@@ -1,0 +1,6 @@
+*.swp
+build
+lib
+test
+.ycm_extra_conf.pyc
+Makefile.local

@@ -1,0 +1,189 @@
+/* Copyright (C) 2015 Krzysztof Jakubowski <nadult@fastmail.fm>
+
+   This file is part of libfwk. */
+
+#include "fwk_gfx.h"
+#include "fwk_opengl.h"
+#include "fwk_xml.h"
+#include <cstring>
+#include <cwchar>
+#include <cstdarg>
+
+namespace fwk {
+namespace gfx {
+
+	int convertToWChar(const char *str, wchar_t *wstr, int buffer_size) {
+		mbstate_t ps;
+		memset(&ps, 0, sizeof(ps));
+
+		size_t len = mbsrtowcs(wstr, &str, buffer_size, &ps);
+		return (int)(len == (size_t)-1 ? 0 : len);
+	}
+
+	FontStyle::FontStyle(Color color, Color shadow_color, HAlign halign, VAlign valign)
+		: text_color(color), shadow_color(shadow_color), halign(halign), valign(valign) {}
+
+	FontStyle::FontStyle(Color color, HAlign halign, VAlign valign)
+		: text_color(color), shadow_color(Color::transparent), halign(halign), valign(valign) {}
+
+	Font::Font() {}
+
+	IRect Font::evalExtents(const char *str, bool exact) const {
+		int len = strlen(str);
+		PodArray<wchar_t> wstr(len);
+		len = convertToWChar(str, wstr.data(), len);
+
+		IRect rect(0, 0, 0, 0);
+		int2 pos(0, 0);
+
+		if(!len && !exact) {
+			rect = m_max_rect;
+			rect.setWidth(0);
+		}
+
+		for(int n = 0; n < len; n++) {
+			if(wstr[n] == '\n') {
+				pos.x = 0;
+				pos.y += m_line_height;
+				continue;
+			}
+
+			auto char_it = m_glyphs.find(wstr[n]);
+			if(char_it == m_glyphs.end()) {
+				char_it = m_glyphs.find((int)' ');
+				DASSERT(char_it != m_glyphs.end());
+			}
+
+			const Glyph &glyph = char_it->second;
+
+			IRect new_rect;
+			if(exact) {
+				new_rect = IRect(pos + glyph.offset, pos + glyph.offset + glyph.size);
+			} else {
+				new_rect = m_max_rect + pos;
+				new_rect.setWidth(wstr[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x);
+			}
+
+			rect = n == 0 ? new_rect : rect + new_rect;
+			if(n + 1 < len) {
+				pos.x += glyph.x_advance;
+				auto kerning_it = m_kernings.find(make_pair((int)wstr[n], (int)wstr[n + 1]));
+				if(kerning_it != m_kernings.end())
+					pos.x += kerning_it->second;
+			}
+		}
+
+		return rect;
+	}
+
+	int Font::genQuads(const char *str, float2 *out_pos, float2 *out_uv, int buffer_size) const {
+		DASSERT(buffer_size >= 0 && str);
+
+		wchar_t wstr[1024];
+		int len = convertToWChar(str, wstr, sizeof(wstr) / sizeof(wchar_t));
+
+		const float2 tex_scale(1.0f / float(m_texture->width()), 1.0f / float(m_texture->height()));
+		int count = min(len, buffer_size);
+		float2 pos(0, 0);
+
+		int gen_count = 0;
+		for(int n = 0; n < count; n++) {
+			if(wstr[n] == '\n') {
+				pos.x = 0;
+				pos.y += m_line_height;
+				continue;
+			}
+
+			auto char_it = m_glyphs.find(wstr[n]);
+			if(char_it == m_glyphs.end()) {
+				char_it = m_glyphs.find((int)' ');
+				DASSERT(char_it != m_glyphs.end());
+			}
+
+			const Glyph &glyph = char_it->second;
+
+			float2 spos = pos + (float2)glyph.offset;
+			out_pos[0] = spos + float2(0.0f, 0.0f);
+			out_pos[1] = spos + float2(glyph.size.x, 0.0f);
+			out_pos[2] = spos + float2(glyph.size.x, glyph.size.y);
+			out_pos[3] = spos + float2(0.0f, glyph.size.y);
+
+			float2 tpos = (float2)glyph.tex_pos;
+			out_uv[0] = tpos + float2(0.0f, 0.0f);
+			out_uv[1] = tpos + float2(glyph.size.x, 0.0f);
+			out_uv[2] = tpos + float2(glyph.size.x, glyph.size.y);
+			out_uv[3] = tpos + float2(0.0f, glyph.size.y);
+			for(int i = 0; i < 4; i++) {
+				out_uv[i].x *= tex_scale.x;
+				out_uv[i].y *= tex_scale.y;
+			}
+
+			if(n + 1 < count) {
+				pos.x += glyph.x_advance;
+				auto kerning_it = m_kernings.find(make_pair((int)wstr[n], (int)wstr[n + 1]));
+				if(kerning_it != m_kernings.end())
+					pos.x += kerning_it->second;
+			}
+
+			out_pos += 4;
+			out_uv += 4;
+			gen_count++;
+		}
+
+		return gen_count;
+	}
+
+	FRect Font::draw(const FRect &rect, const FontStyle &style, const char *text) const {
+		float2 pos = rect.min;
+		if(style.halign != HAlign::left || style.valign != VAlign::top) {
+			FRect extents = (FRect)evalExtents(text);
+			float2 center = rect.center() - extents.center();
+			// TODO: Better veritcal alignment
+
+			pos.x = style.halign == HAlign::left ? rect.min.x : style.halign == HAlign::center
+																	? center.x
+																	: rect.max.x - extents.max.x;
+			pos.y = style.valign == VAlign::top ? rect.min.y : style.valign == VAlign::center
+																   ? center.y
+																   : rect.max.y - extents.max.y;
+		}
+
+		pos = float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
+
+		int len = strlen(text);
+		PodArray<float2> pos_buf(len * 4), uv_buf(len * 4);
+		int quad_count = genQuads(text, pos_buf.data(), uv_buf.data(), len * 4);
+
+		FRect out_rect;
+		for(int n = 0; n < quad_count * 4; n++) {
+			out_rect.min = min(out_rect.min, pos_buf[n]);
+			out_rect.max = max(out_rect.max, pos_buf[n]);
+		}
+		out_rect += pos;
+
+		m_texture->bind();
+		if(style.shadow_color.a) {
+			float2 offset(1.0f, 1.0f);
+			out_rect.max += offset;
+
+			glBegin(GL_QUADS);
+			glColor(style.shadow_color);
+			for(int n = 0; n < quad_count * 4; n++) {
+				glTexCoord(uv_buf[n]);
+				glVertex(pos_buf[n] + pos + offset);
+			}
+			glEnd();
+		}
+
+		glBegin(GL_QUADS);
+		glColor(style.text_color);
+		for(int n = 0; n < quad_count * 4; n++) {
+			glTexCoord(uv_buf[n]);
+			glVertex(pos_buf[n] + pos);
+		}
+		glEnd();
+
+		return out_rect;
+	}
+}
+}

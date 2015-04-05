@@ -1,0 +1,4 @@
+- Remove static variables from texture_png.cpp
+- Add texture_bmp.cpp
+- Optimize kerning loop in font_factory.cpp
+
