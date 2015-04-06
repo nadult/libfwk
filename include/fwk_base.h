@@ -1054,13 +1054,14 @@ struct FileEntry {
 
 namespace FindFiles {
 	enum Flags {
-		regular_file = 1,
-		directory = 2,
+		regular_file    = 1,
+		directory       = 2,
 
-		recursive = 4,
+		recursive       = 4,
 
-		relative = 8,  // all paths relative to given path
-		absolute = 16, // all paths absolute
+		relative        = 8,  // all paths relative to given path
+		absolute        = 16, // all paths absolute
+		include_parent  = 32, // include '..'
 	};
 };
 

@@ -50,11 +50,10 @@ MINGW_LIBS=$(LIBS) `$(MINGW_PKG_CONFIG) --libs freetype2` -lOpenAL32 -ldsound -l
 
 INCLUDES=-Iinclude/ -Isrc/
 
-NICE_FLAGS=-Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wno-uninitialized -Wno-unused-function \
-		   -Wno-unused-but-set-variable -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
-FLAGS=-std=c++11 -O0 -ggdb -Wall $(NICE_FLAGS) $(INCLUDES)
-LINUX_FLAGS=`$(LINUX_PKG_CONFIG) --cflags freetype2` $(FLAGS) -rdynamic
-MINGW_FLAGS=`$(MINGW_PKG_CONFIG) --cflags freetype2` $(FLAGS)
+NICE_FLAGS=-std=c++11 -ggdb -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wno-uninitialized -Wno-unused-function \
+		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
+LINUX_FLAGS=`$(LINUX_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS) -rdynamic
+MINGW_FLAGS=`$(MINGW_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp

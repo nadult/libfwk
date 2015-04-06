@@ -46,9 +46,13 @@ namespace fwk {
 		HANDLE handle = FindFirstFile(tpath, &data);
 		
 		bool is_root = path.isRoot();
+		bool ignore_parent = !(flags & FindFiles::include_parent) || is_root;
 
 		if(handle != INVALID_HANDLE_VALUE) do {
-			if(strcmp(data.cFileName, ".") == 0 || strcmp(data.cFileName, "..") == 0)
+			bool is_current = strcmp(data.cFileName, ".") == 0;
+			bool is_parent = strcmp(data.cFileName, "..") == 0;
+
+			if(is_current || (ignore_parent && is_parent))
 				continue;
 
 			bool is_dir  = data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
@@ -57,9 +61,6 @@ namespace fwk {
 			bool do_accept =( (flags & FindFiles::regular_file) && is_file) ||
 							( (flags & FindFiles::directory)    && is_dir);
 
-			if(do_accept && is_root && is_dir && strcmp(data.cFileName, "..") == 0)
-				do_accept = false;
-			
 			if(do_accept) {
 				FileEntry entry;
 				entry.path = append / FilePath(data.cFileName);
@@ -67,7 +68,7 @@ namespace fwk {
 				out.push_back(entry);
 			}
 				
-			if(is_dir && (flags & FindFiles::recursive) && strcmp(data.cFileName, ".."))
+			if(is_dir && (flags & FindFiles::recursive) && !is_parent)
 				findFiles(out, path / FilePath(data.cFileName), append / FilePath(data.cFileName), flags);
 		} while(FindNextFile(handle, &data));
 	}

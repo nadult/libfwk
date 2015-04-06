@@ -5,9 +5,13 @@
 #ifndef FWK_OPENGL_H
 #define FWK_OPENGL_H
 
-#ifndef _WIN32
-#define GL_GLEXT_PROTOTYPES 1
-#define WIN32_LEAN_AND_MEAN
+
+#ifdef _WIN32
+	#define APIENTRY __attribute__((__stdcall__))
+	#define WINGDIAPI __attribute__((dllimport))
+	#define WIN32_LEAN_AND_MEAN
+#else
+	#define GL_GLEXT_PROTOTYPES 1
 #endif
 
 #include <GL/gl.h>
