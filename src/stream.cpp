@@ -2,7 +2,7 @@
 
    This file is part of libfwk. */
 
-#include "fwk.h"
+#include "fwk_xml.h"
 #include <cstdio>
 #include <cstring>
 #include <limits>

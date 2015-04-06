@@ -5,7 +5,6 @@
 #include "fwk_gfx.h"
 
 namespace fwk {
-namespace gfx {
 
 	const Color Color::white(255, 255, 255);
 	const Color Color::gray(127, 127, 127);
@@ -29,5 +28,4 @@ namespace gfx {
 		return lerp(col, Color(avg, avg, avg, rgba.w), value);
 	}
 
-}
 }

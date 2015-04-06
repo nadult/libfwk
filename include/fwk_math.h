@@ -5,7 +5,7 @@
 #ifndef FWK_MATH_H
 #define FWK_MATH_H
 
-#include "fwk.h"
+#include "fwk_base.h"
 #include <cmath>
 
 namespace fwk {
@@ -472,22 +472,6 @@ namespace fwk {
 
 	template <class T> bool areOverlapping(const Box<T> &a, const Box<T> &b);
 
-	// TODO: support for overlapping boxes
-	template <class Type3> int drawingOrder(const Box<Type3> &a, const Box<Type3> &b) {
-		// DASSERT(!areOverlapping(box, box));
-
-		int y_ret = a.max.y <= b.min.y ? -1 : b.max.y <= a.min.y ? 1 : 0;
-		if(y_ret)
-			return y_ret;
-
-		int x_ret = a.max.x <= b.min.x ? -1 : b.max.x <= a.min.x ? 1 : 0;
-		if(x_ret)
-			return x_ret;
-
-		int z_ret = a.max.z <= b.min.z ? -1 : b.max.z <= a.min.z ? 1 : 0;
-		return z_ret;
-	}
-
 	bool areAdjacent(const Rect<int2> &, const Rect<int2> &);
 	float distanceSq(const Rect<float2> &, const Rect<float2> &);
 	float distanceSq(const Box<float3> &, const Box<float3> &);
@@ -530,9 +514,6 @@ namespace fwk {
 
 	float angleDistance(float ang1, float ang2);
 	float blendAngles(float initial, float target, float step);
-
-	void findPerpendicular(const float3 &v1, float3 &v2, float3 &v3);
-	float3 perturbVector(const float3 &vec, float rand1, float rand2, float strength);
 
 	// TODO: this doesn't work properly if max is smaller than min
 	template <class T> inline T clamp(T obj, T min, T max) { return fwk::min(fwk::max(obj, min), max); }

@@ -3,8 +3,9 @@
    This file is part of libfwk. */
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 
-#include "fwk.h"
+#include "fwk_base.h"
 #include <cstring>
 #include <cstdio>
 #include <windows.h>

@@ -5,7 +5,7 @@
 #ifndef FWK_XML_H
 #define FWK_XML_H
 
-#include "fwk.h"
+#include "fwk_base.h"
 #include "fwk_math.h"
 
 #ifndef RAPIDXML_HPP_INCLUDED
@@ -108,6 +108,9 @@ class XMLDocument {
 
 bool toBool(const char *input);
 int toInt(const char *input);
+int2 toInt2(const char *input);
+int3 toInt3(const char *input);
+int4 toInt4(const char *input);
 
 float toFloat(const char *input);
 float2 toFloat2(const char *input);

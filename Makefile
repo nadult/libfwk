@@ -12,7 +12,7 @@ _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
 
 SHARED_SRC=base filesystem input math profiler stream xml \
 		   gfx/color gfx/device gfx/device_texture gfx/drawing gfx/font gfx/font_factory \
-		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_png gfx/texture_tga
+		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga 
 PROGRAM_SRC=test/streams test/stuff
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows

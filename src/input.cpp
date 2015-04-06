@@ -5,11 +5,10 @@
 #include "fwk_input.h"
 
 namespace fwk {
-namespace io {
 
 	// TODO: use system functions to get proper characters
 	static int translateKey(int key, bool shift) {
-		if(key == Key::space)
+		if(key == InputKey::space)
 			return ' ';
 
 		char numerics_s[11] = ")!@#$%^&*(";
@@ -82,5 +81,4 @@ namespace io {
 	bool InputEvent::mouseKeyPressed(int key) const {
 		return m_type == mouse_key_pressed && m_key == key;
 	}
-}
 }

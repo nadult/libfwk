@@ -7,6 +7,7 @@
 
 #ifndef _WIN32
 #define GL_GLEXT_PROTOTYPES 1
+#define WIN32_LEAN_AND_MEAN
 #endif
 
 #include <GL/gl.h>
@@ -107,7 +108,6 @@ EXT_API void (EXT_ENTRY *glVertexAttribPointer)(GLuint index, GLint size, GLenum
 #include "fwk_gfx.h"
 
 namespace fwk {
-namespace gfx {
 	
 	void testGlError(const char*);
 
@@ -122,7 +122,6 @@ namespace gfx {
 	void glVertex(const float2&);
 	void glTexCoord(const float2&);
 
-}
 }
 
 #endif

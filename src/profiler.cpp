@@ -81,7 +81,7 @@ namespace fwk {
 		s_stack.pop_back();
 	}
 
-	void nextFrame() {
+	void profilerNextFrame() {
 #ifdef USE_RDTSC
 		// TODO: thats probably broken
 		double current_time = getProfilerTime();
@@ -107,7 +107,7 @@ namespace fwk {
 		s_frame_count++;
 	}
 
-	const string getStats(const char *filter) {
+	const string getProfilerStats(const char *filter) {
 		char buffer[1024], *ptr = buffer, *end = buffer + sizeof(buffer);
 
 #ifdef USE_RDTSC
