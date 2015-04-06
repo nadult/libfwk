@@ -1,0 +1,18 @@
+#FWK_DIR should be defined
+
+LINUX_FWK_LIB=$(FWK_DIR)/lib/libfwk.a
+MINGW_FWK_LIB=$(FWK_DIR)/lib/libfwk_win32.a
+
+FWK_LIBS=-lpng -lglfw -lz -lmpg123 -L$(FWK_DIR)/lib
+LINUX_FWK_LIBS=$(FWK_LIBS) -lfwk                      `pkg-config --libs freetype2` -lopenal -lGL -lGLU -lrt -lm -lstdc++
+MINGW_FWK_LIBS=$(FWK_LIBS) -lfwk_win32 `$(MINGW_PREFIX)pkg-config --libs freetype2` -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
+
+FWK_INCLUDES=-I$(FWK_DIR)/include
+
+
+$(LINUX_FWK_LIB):
+	$(MAKE) -C $(FWK_DIR) lib/libfwk.a
+$(MINGW_FWK_LIB):
+	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a
+
+.PHONY: $(LINUX_LIB) $(MINGW_LIB)
