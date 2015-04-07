@@ -241,54 +241,63 @@ class DTexture : public Resource {
 
 typedef Ptr<DTexture> PTexture;
 
-// TODO: make a class out of these functions
+class GfxDevice {
+public:
+	static GfxDevice &instance();
 
-void initDevice();
-void freeDevice();
+	double targetFrameTime();
 
-double targetFrameTime();
+	// Swaps frames and synchronizes frame rate
+	void tick();
 
-// Swaps frames and synchronizes frame rate
-void tick();
+	bool isWindowOpened() const { return m_has_window; }
+	void createWindow(int2 size, bool fullscreen);
+	void destroyWindow();
+	void printDeviceInfo();
 
-void createWindow(int2 size, bool fullscreen);
-void destroyWindow();
-void printDeviceInfo();
+	bool pollEvents();
 
-bool pollEvents();
+	const int2 getWindowSize();
+	int2 getMaxWindowSize(bool is_fullscreen);
+	void adjustWindowSize(int2 &size, bool is_fullscreen);
 
-const int2 getWindowSize();
-int2 getMaxWindowSize(bool is_fullscreen);
-void adjustWindowSize(int2 &size, bool is_fullscreen);
+	void setWindowPos(const int2 &pos);
+	void setWindowTitle(const char *title);
 
-void setWindowPos(const int2 &pos);
-void setWindowTitle(const char *title);
+	void grabMouse(bool);
+	void showCursor(bool);
 
-void grabMouse(bool);
-void showCursor(bool);
+	char getCharPressed();
 
-char getCharPressed();
+	// if key is pressed, after small delay, generates keypresses
+	// every period frames
+	bool isKeyDownAuto(int key, int period = 1);
+	bool isKeyPressed(int);
+	bool isKeyDown(int);
+	bool isKeyUp(int);
 
-// if key is pressed, after small delay, generates keypresses
-// every period frames
-bool isKeyDownAuto(int key, int period = 1);
-bool isKeyPressed(int);
-bool isKeyDown(int);
-bool isKeyUp(int);
+	bool isMouseKeyPressed(int);
+	bool isMouseKeyDown(int);
+	bool isMouseKeyUp(int);
 
-bool isMouseKeyPressed(int);
-bool isMouseKeyDown(int);
-bool isMouseKeyUp(int);
+	int2 getMousePos();
+	int2 getMouseMove();
 
-int2 getMousePos();
-int2 getMouseMove();
+	int getMouseWheelPos();
+	int getMouseWheelMove();
 
-int getMouseWheelPos();
-int getMouseWheelMove();
+	// Generates events from keyboard & mouse input
+	// Mouse move events are always first
+	vector<InputEvent> generateInputEvents();
 
-// Generates events from keyboard & mouse input
-// Mouse move events are always first
-vector<InputEvent> generateInputEvents();
+private:
+	GfxDevice();
+	~GfxDevice();
+
+	struct Impl;
+	unique_ptr<Impl> m_impl;
+	bool m_has_window;
+};
 
 void lookAt(int2 pos);
 

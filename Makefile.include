@@ -10,9 +10,10 @@ MINGW_FWK_LIBS=$(FWK_LIBS) -lfwk_win32 `$(MINGW_PREFIX)pkg-config --libs freetyp
 FWK_INCLUDES=-I$(FWK_DIR)/include
 
 
-$(LINUX_FWK_LIB):
+$(LINUX_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk.a
-$(MINGW_FWK_LIB):
+$(MINGW_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a
 
-.PHONY: $(LINUX_LIB) $(MINGW_LIB)
+.ALWAYS_CHECK:
+
