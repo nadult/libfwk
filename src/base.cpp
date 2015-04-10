@@ -201,7 +201,7 @@ void BitVector::clear(bool value) {
 	memset(m_data.data(), value ? 0xff : 0, m_data.size() * sizeof(base_type));
 }
 
-TextFormatter::TextFormatter(int size) : m_data(size), m_offset(0) {
+TextFormatter::TextFormatter(int size) : m_offset(0), m_data(size) {
 	DASSERT(size > 0);
 	m_data[0] = 0;
 }
@@ -209,16 +209,22 @@ TextFormatter::TextFormatter(int size) : m_data(size), m_offset(0) {
 void TextFormatter::operator()(const char *format, ...) {
 	va_list ap;
 	va_start(ap, format);
-	m_offset += vsnprintf(&m_data[m_offset], m_data.size() - m_offset, format, ap);
+	int offset = vsnprintf(&m_data[m_offset], m_data.size() - m_offset, format, ap);
+	if(offset < 0 || m_offset + offset > m_data.size()) {
+		m_data[m_offset] = 0;
+		THROW(offset < 0 ? "Textformatter: error while encoding"
+						 : "TextFormatter: not enough space in buffer");
+	}
+	m_offset += offset;
 	va_end(ap);
 }
 
-const string format(const char *format, ...) {
+string format(const char *format, ...) {
 	char buffer[4096];
 	va_list ap;
 	va_start(ap, format);
 	vsnprintf(buffer, sizeof(buffer), format, ap);
 	va_end(ap);
-	return std::move(string(buffer));
+	return string(buffer);
 }
 }

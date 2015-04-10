@@ -102,6 +102,7 @@ class InputEvent {
 	Type type() const { return m_type; }
 	bool isMouseEvent() const { return m_type >= mouse_key_down && m_type <= mouse_wheel; }
 	bool isKeyEvent() const { return m_type >= key_down && m_type <= key_pressed; }
+	bool isMouseOver() const { return m_type == mouse_over; }
 
 	bool keyDown(int key) const;
 	bool keyUp(int key) const;
@@ -119,7 +120,6 @@ class InputEvent {
 	bool mouseKeyDown(int key) const;
 	bool mouseKeyUp(int key) const;
 	bool mouseKeyPressed(int key) const;
-	bool mouseOver() const { return m_type == mouse_over; }
 
 	const float2 &mousePos() const {
 		DASSERT(m_type != invalid);

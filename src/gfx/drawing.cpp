@@ -29,98 +29,53 @@ void initViewport(int2 size) {
 	glGetFloatv(GL_MODELVIEW_MATRIX, s_default_matrix);
 }
 
-void lookAt(int2 pos) {
+void lookAt(const float2 &pos) {
 	glLoadMatrixf(s_default_matrix);
 	glTranslatef(-pos.x, -pos.y, 0.0f);
 }
 
-void drawQuad(int2 pos, int2 size, Color color) {
-	glBegin(GL_QUADS);
-
-	glColor(color);
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex2i(pos.x, pos.y);
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex2i(pos.x + size.x, pos.y);
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex2i(pos.x + size.x, pos.y + size.y);
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex2i(pos.x, pos.y + size.y);
-
-	glEnd();
+void drawRect(const FRect &rect, const RectStyle &style) {
+	drawRect(rect, FRect(0, 0, 1, 1), style);
 }
 
-void drawQuad(int2 pos, int2 size, const float2 &uv0, const float2 &uv1, Color color) {
-	glBegin(GL_QUADS);
-
-	glColor(color);
-	glTexCoord2f(uv0.x, uv0.y);
-	glVertex2i(pos.x, pos.y);
-	glTexCoord2f(uv1.x, uv0.y);
-	glVertex2i(pos.x + size.x, pos.y);
-	glTexCoord2f(uv1.x, uv1.y);
-	glVertex2i(pos.x + size.x, pos.y + size.y);
-	glTexCoord2f(uv0.x, uv1.y);
-	glVertex2i(pos.x, pos.y + size.y);
-
-	glEnd();
+void drawRect(const FRect &rect, const FRect &uv_rect, const RectStyle &style) {
+	if(style.fill_color != Color::transparent) {
+		glBegin(GL_QUADS);
+		glColor(style.fill_color);
+		glTexCoord2f(uv_rect.min.x, uv_rect.min.y);
+		glVertex2i(rect.min.x, rect.min.y);
+		glTexCoord2f(uv_rect.max.x, uv_rect.min.y);
+		glVertex2i(rect.max.x, rect.min.y);
+		glTexCoord2f(uv_rect.max.x, uv_rect.max.y);
+		glVertex2i(rect.max.x, rect.max.y);
+		glTexCoord2f(uv_rect.min.x, uv_rect.max.y);
+		glVertex2i(rect.min.x, rect.max.y);
+		glEnd();
+	}
+	if(style.border_color != Color::transparent) {
+		glDisable(GL_TEXTURE_2D);
+		glBegin(GL_LINE_STRIP);
+		glColor(style.border_color);
+		glTexCoord2f(uv_rect.min.x, uv_rect.min.y);
+		glVertex2f(rect.min.x, rect.min.y);
+		glTexCoord2f(uv_rect.max.x, uv_rect.min.y);
+		glVertex2f(rect.max.x, rect.min.y);
+		glTexCoord2f(uv_rect.max.x, uv_rect.max.y);
+		glVertex2f(rect.max.x, rect.max.y);
+		glTexCoord2f(uv_rect.min.x, uv_rect.max.y);
+		glVertex2f(rect.min.x, rect.max.y);
+		glTexCoord2f(uv_rect.min.x, uv_rect.min.y);
+		glVertex2f(rect.min.x, rect.min.y);
+		glEnd();
+		glEnable(GL_TEXTURE_2D);
+	}
 }
 
-void drawQuad(const FRect &rect, const FRect &uv_rect, Color colors[4]) {
-	glBegin(GL_QUADS);
-
-	glColor(colors[0]);
-	glTexCoord2f(uv_rect.min.x, uv_rect.min.y);
-	glVertex2f(rect.min.x, rect.min.y);
-	glColor(colors[1]);
-	glTexCoord2f(uv_rect.max.x, uv_rect.min.y);
-	glVertex2f(rect.max.x, rect.min.y);
-	glColor(colors[2]);
-	glTexCoord2f(uv_rect.max.x, uv_rect.max.y);
-	glVertex2f(rect.max.x, rect.max.y);
-	glColor(colors[3]);
-	glTexCoord2f(uv_rect.min.x, uv_rect.max.y);
-	glVertex2f(rect.min.x, rect.max.y);
-
-	glEnd();
-}
-
-void drawQuad(const FRect &rect, const FRect &uv_rect, Color color) {
-	glBegin(GL_QUADS);
-
-	glColor(color);
-	glTexCoord2f(uv_rect.min.x, uv_rect.min.y);
-	glVertex2f(rect.min.x, rect.min.y);
-	glTexCoord2f(uv_rect.max.x, uv_rect.min.y);
-	glVertex2f(rect.max.x, rect.min.y);
-	glTexCoord2f(uv_rect.max.x, uv_rect.max.y);
-	glVertex2f(rect.max.x, rect.max.y);
-	glTexCoord2f(uv_rect.min.x, uv_rect.max.y);
-	glVertex2f(rect.min.x, rect.max.y);
-
-	glEnd();
-}
-
-void drawLine(int2 p1, int2 p2, Color color) {
+void drawLine(const float2 &start, const float2 &end, Color color) {
 	glBegin(GL_LINES);
-
 	glColor(color);
-	glVertex2i(p1.x, p1.y);
-	glVertex2i(p2.x, p2.y);
-
-	glEnd();
-}
-
-void drawRect(const IRect &rect, Color col) {
-	glBegin(GL_LINE_STRIP);
-	glColor(col);
-
-	glVertex2i(rect.min.x, rect.min.y);
-	glVertex2i(rect.max.x, rect.min.y);
-	glVertex2i(rect.max.x, rect.max.y);
-	glVertex2i(rect.min.x, rect.max.y);
-	glVertex2i(rect.min.x, rect.min.y);
-
+	glVertex2f(start.x, start.y);
+	glVertex2f(end.x, end.y);
 	glEnd();
 }
 

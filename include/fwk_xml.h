@@ -19,6 +19,42 @@ template <class Ch = char> class xml_document;
 
 namespace fwk {
 
+namespace xml_conversions {
+
+	template <class T> T fromString(const char *str) {
+		THROW("xml_conversions::fromString unimplemented for given type");
+	}
+
+	template <> bool fromString<bool>(const char *);
+	template <> int fromString<int>(const char *);
+	template <> int2 fromString<int2>(const char *);
+	template <> int3 fromString<int3>(const char *);
+	template <> int4 fromString<int4>(const char *);
+	template <> float fromString<float>(const char *);
+	template <> float2 fromString<float2>(const char *);
+	template <> float3 fromString<float3>(const char *);
+	template <> float4 fromString<float4>(const char *);
+	template <> FRect fromString<FRect>(const char *);
+	template <> IRect fromString<IRect>(const char *);
+	template <> vector<string> fromString<vector<string>>(const char *);
+
+	template <class T> void toString(const T &value, TextFormatter &out) {
+		THROW("xml_conversions::toString unimplemented for given type");
+	}
+
+	template <> void toString(const bool &value, TextFormatter &out);
+	template <> void toString(const int &value, TextFormatter &out);
+	template <> void toString(const int2 &value, TextFormatter &out);
+	template <> void toString(const int3 &value, TextFormatter &out);
+	template <> void toString(const int4 &value, TextFormatter &out);
+	template <> void toString(const float &value, TextFormatter &out);
+	template <> void toString(const float2 &value, TextFormatter &out);
+	template <> void toString(const float3 &value, TextFormatter &out);
+	template <> void toString(const float4 &value, TextFormatter &out);
+	template <> void toString(const FRect &value, TextFormatter &out);
+	template <> void toString(const IRect &value, TextFormatter &out);
+}
+
 class XMLNode {
   public:
 	XMLNode(const XMLNode &rhs) : m_ptr(rhs.m_ptr), m_doc(rhs.m_doc) {}
@@ -30,23 +66,25 @@ class XMLNode {
 	// Returns nullptr if not found
 	const char *hasAttrib(const char *name) const;
 
-	// Returns default value if attribute is not found
-	int intAttrib(const char *name, int default_value) const;
-	float floatAttrib(const char *name, int default_value) const;
-
-	// If an attribute cannot be found or properly parsed,
-	// then exception is thrown
+	// If an attribute cannot be found or properly parsed then exception is thrown
 	const char *attrib(const char *name) const;
-	float floatAttrib(const char *name) const;
-	int intAttrib(const char *name) const;
+	// If an attribute cannot be found then default_value will be returned
+	const char *attrib(const char *name, const char *default_value) const;
 
-	const int2 int2Attrib(const char *name) const;
-	const int3 int3Attrib(const char *name) const;
+	template <class T> T attrib(const char *name) const {
+		try {
+			return xml_conversions::fromString<T>(attrib(name));
+		}
+		catch(const Exception &ex) {
+			parsingError(name, ex.what());
+			return T();
+		}
+	}
 
-	const float2 float2Attrib(const char *name) const;
-	const float3 float3Attrib(const char *name) const;
-
-	// TODO: make toInt, toFloat2 functions so that they can be used not only on attribs
+	template <class T> T attrib(const char *name, T default_value) const {
+		const char *value = hasAttrib(name);
+		return value ? attrib<T>(value) : default_value;
+	}
 
 	// When adding new nodes, you have to make sure that strings given as
 	// arguments will exist as long as XMLNode exists; use 'own' method
@@ -55,10 +93,11 @@ class XMLNode {
 	void addAttrib(const char *name, float value);
 	void addAttrib(const char *name, int value);
 
-	void addAttrib(const char *name, const int2 &value);
-	void addAttrib(const char *name, const int3 &value);
-	void addAttrib(const char *name, const float2 &value);
-	void addAttrib(const char *name, const float3 &value);
+	template <class T> void addAttrib(const char *name, const T &value) {
+		TextFormatter formatter;
+		xml_conversions::toString(value, formatter);
+		addAttrib(name, own(formatter.text()));
+	}
 
 	XMLNode addChild(const char *name, const char *value = nullptr);
 	XMLNode sibling(const char *name = nullptr) const;
@@ -73,7 +112,7 @@ class XMLNode {
 
   protected:
 	XMLNode(rapidxml::xml_node<> *ptr, rapidxml::xml_document<> *doc) : m_ptr(ptr), m_doc(doc) {}
-	void parsingError(const char *) const;
+	void parsingError(const char *attrib_name, const char *error_message) const;
 	friend class XMLDocument;
 
 	rapidxml::xml_node<> *m_ptr;
@@ -103,23 +142,6 @@ class XMLDocument {
   protected:
 	unique_ptr<rapidxml::xml_document<>> m_ptr;
 };
-
-// These functions expect valid strings and throw on error
-
-bool toBool(const char *input);
-int toInt(const char *input);
-int2 toInt2(const char *input);
-int3 toInt3(const char *input);
-int4 toInt4(const char *input);
-
-float toFloat(const char *input);
-float2 toFloat2(const char *input);
-float3 toFloat3(const char *input);
-float4 toFloat4(const char *input);
-
-const vector<string> toStrings(const char *input);
-unsigned toFlags(const char *input, const char **flags, int num_flags, unsigned first_flag);
-
 }
 
 #endif

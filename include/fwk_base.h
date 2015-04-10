@@ -460,6 +460,7 @@ class MemorySaver : public Stream {
 	char *m_data;
 };
 
+// TODO: use shared_ptr<>
 // Use together with Ptr<>
 class RefCounter {
   public:
@@ -606,13 +607,8 @@ class Resource : public RefCounter {
 };
 
 template <class T> class ResourceMgr {
-  protected:
-	typename std::map<string, Ptr<T>> m_dict;
-	string m_prefix, m_suffix;
-
   public:
-	//! Strings appended to resource name, to obtain a file name
-	ResourceMgr(const string p, const string s) : m_prefix(p), m_suffix(s) {}
+	ResourceMgr(const string prefix, const string suffix) : m_prefix(prefix), m_suffix(suffix) {}
 	~ResourceMgr() {}
 
 	//! Query for a resource,
@@ -689,6 +685,10 @@ template <class T> class ResourceMgr {
 	}
 
 	void clear() { m_dict.clear(); }
+	
+  private:
+	typename std::map<string, Ptr<T>> m_dict;
+	string m_prefix, m_suffix;
 };
 
 template <class T> class ClonablePtr : public unique_ptr<T> {
@@ -864,11 +864,11 @@ class TextFormatter {
 	int length() const { return m_offset; }
 
   private:
+	int m_offset;
 	PodArray<char> m_data;
-	unsigned m_offset;
 };
 
-const string format(const char *format, ...);
+string format(const char *format, ...);
 
 struct ListNode {
 	ListNode() : next(-1), prev(-1) {}
@@ -1054,14 +1054,14 @@ struct FileEntry {
 
 namespace FindFiles {
 	enum Flags {
-		regular_file    = 1,
-		directory       = 2,
+		regular_file = 1,
+		directory = 2,
 
-		recursive       = 4,
+		recursive = 4,
 
-		relative        = 8,  // all paths relative to given path
-		absolute        = 16, // all paths absolute
-		include_parent  = 32, // include '..'
+		relative = 8,		 // all paths relative to given path
+		absolute = 16,		 // all paths absolute
+		include_parent = 32, // include '..'
 	};
 };
 

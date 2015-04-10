@@ -242,7 +242,7 @@ class DTexture : public Resource {
 typedef Ptr<DTexture> PTexture;
 
 class GfxDevice {
-public:
+  public:
 	static GfxDevice &instance();
 
 	double targetFrameTime();
@@ -290,7 +290,7 @@ public:
 	// Mouse move events are always first
 	vector<InputEvent> generateInputEvents();
 
-private:
+  private:
 	GfxDevice();
 	~GfxDevice();
 
@@ -299,24 +299,32 @@ private:
 	bool m_has_window;
 };
 
-void lookAt(int2 pos);
+struct RectStyle {
+	RectStyle(Color fill_color = Color::white, Color border_color = Color::transparent)
+		: fill_color(fill_color), border_color(border_color) {}
 
-void drawQuad(int2 pos, int2 size, Color color = Color::white);
-inline void drawQuad(int x, int y, int w, int h, Color col = Color::white) {
-	drawQuad(int2(x, y), int2(w, h), col);
+	Color fill_color;
+	Color border_color;
+};
+
+void lookAt(const float2 &pos);
+inline void lookAt(const int2 &pos) { lookAt(float2(pos)); }
+
+void drawRect(const FRect &rect, const RectStyle & = RectStyle());
+inline void drawRect(const IRect &rect, const RectStyle &style = RectStyle()) {
+	drawRect(FRect(rect), style);
 }
 
-void drawQuad(int2 pos, int2 size, const float2 &uv0, const float2 &uv1,
-			  Color color = Color::white);
-
-void drawQuad(const FRect &rect, const FRect &uv_rect, Color colors[4]);
-void drawQuad(const FRect &rect, const FRect &uv_rect, Color color = Color::white);
-inline void drawQuad(const FRect &rect, Color color = Color::white) {
-	drawQuad(rect, FRect(0, 0, 1, 1), color);
+void drawRect(const FRect &rect, const FRect &uv_rect, const RectStyle & = RectStyle());
+inline void drawRect(const IRect &rect, const FRect &uv_rect,
+					 const RectStyle &style = RectStyle()) {
+	drawRect(FRect(rect), uv_rect, style);
 }
 
-void drawRect(const IRect &box, Color col = Color::white);
-void drawLine(int2 p1, int2 p2, Color color = Color::white);
+void drawLine(const float2 &from, const float2 &to, Color color = Color::white);
+inline void drawLine(const int2 &from, const int2 &to, Color color = Color::white) {
+	drawLine(from, to, color);
+}
 
 void clear(Color color);
 

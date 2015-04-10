@@ -51,31 +51,31 @@ void Font::loadFromXML(const XMLDocument &doc) {
 	ASSERT(info_node && pages_node && chars_node && common_node);
 
 	m_face_name = info_node.attrib("face");
-	int2 tex_size(common_node.intAttrib("scaleW"), common_node.intAttrib("scaleH"));
-	m_line_height = common_node.intAttrib("lineHeight");
-	int text_base = common_node.intAttrib("base");
+	int2 tex_size(common_node.attrib<int>("scaleW"), common_node.attrib<int>("scaleH"));
+	m_line_height = common_node.attrib<int>("lineHeight");
+	int text_base = common_node.attrib<int>("base");
 
-	int page_count = common_node.intAttrib("pages");
+	int page_count = common_node.attrib<int>("pages");
 	ASSERT(page_count == 1);
 
 	XMLNode first_page_node = pages_node.child("page");
 	ASSERT(first_page_node);
-	ASSERT(first_page_node.intAttrib("id") == 0);
+	ASSERT(first_page_node.attrib<int>("id") == 0);
 
 	m_texture = tex_mgr[first_page_node.attrib("file")];
 	ASSERT(m_texture && m_texture->size() == tex_size);
 
-	int chars_count = chars_node.intAttrib("count");
+	int chars_count = chars_node.attrib<int>("count");
 	XMLNode char_node = chars_node.child("char");
 
 	while(char_node) {
 		Glyph chr;
-		int id = char_node.intAttrib("id");
+		int id = char_node.attrib<int>("id");
 		chr.character = id;
-		chr.tex_pos = int2(char_node.intAttrib("x"), char_node.intAttrib("y"));
-		chr.size = int2(char_node.intAttrib("width"), char_node.intAttrib("height"));
-		chr.offset = int2(char_node.intAttrib("xoffset"), char_node.intAttrib("yoffset"));
-		chr.x_advance = char_node.intAttrib("xadvance");
+		chr.tex_pos = int2(char_node.attrib<int>("x"), char_node.attrib<int>("y"));
+		chr.size = int2(char_node.attrib<int>("width"), char_node.attrib<int>("height"));
+		chr.offset = int2(char_node.attrib<int>("xoffset"), char_node.attrib<int>("yoffset"));
+		chr.x_advance = char_node.attrib<int>("xadvance");
 		m_glyphs[id] = chr;
 
 		chars_count--;
@@ -86,13 +86,13 @@ void Font::loadFromXML(const XMLDocument &doc) {
 
 	XMLNode kernings_node = font_node.child("kernings");
 	if(kernings_node) {
-		int kernings_count = kernings_node.intAttrib("count");
+		int kernings_count = kernings_node.attrib<int>("count");
 
 		XMLNode kerning_node = kernings_node.child("kerning");
 		while(kerning_node) {
-			int first = kerning_node.intAttrib("first");
-			int second = kerning_node.intAttrib("second");
-			int value = kerning_node.intAttrib("amount");
+			int first = kerning_node.attrib<int>("first");
+			int second = kerning_node.attrib<int>("second");
+			int value = kerning_node.attrib<int>("amount");
 			m_kernings[make_pair(first, second)] = value;
 			kernings_count--;
 

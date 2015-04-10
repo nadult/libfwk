@@ -18,19 +18,6 @@ namespace fwk {
 
 const char *XMLNode::own(const char *str) { return m_doc->allocate_string(str); }
 
-// TODO: snprintf / snscanf everywhere?
-void XMLNode::addAttrib(const char *name, float value) {
-	int ivalue = (int)value;
-	if(value == (float)ivalue) {
-		addAttrib(name, ivalue);
-		return;
-	}
-
-	char str_value[64];
-	snprintf(str_value, sizeof(str_value), "%f", value);
-	addAttrib(name, own(str_value));
-}
-
 void XMLNode::addAttrib(const char *name, int value) {
 	char str_value[32];
 	sprintf(str_value, "%d", value);
@@ -41,8 +28,9 @@ void XMLNode::addAttrib(const char *name, const char *value) {
 	m_ptr->append_attribute(m_doc->allocate_attribute(name, value));
 }
 
-void XMLNode::parsingError(const char *attrib_name) const {
-	THROW("Error while parsing attribute value: %s in node: %s\n", attrib_name, name());
+void XMLNode::parsingError(const char *attrib_name, const char *error_message) const {
+	THROW("Error while parsing attribute value: %s in node: %s\n%s", attrib_name, name(),
+		  error_message);
 }
 
 const char *XMLNode::hasAttrib(const char *name) const {
@@ -57,98 +45,9 @@ const char *XMLNode::attrib(const char *name) const {
 	return attrib->value();
 }
 
-int XMLNode::intAttrib(const char *name) const {
-	const char *str = attrib(name);
-	int out;
-	if(sscanf(str, "%d", &out) != 1)
-		parsingError(name);
-	return out;
-}
-
-float XMLNode::floatAttrib(const char *name) const {
-	const char *str = attrib(name);
-	float out;
-	if(sscanf(str, "%f", &out) != 1)
-		parsingError(name);
-	return out;
-}
-
-int XMLNode::intAttrib(const char *name, int default_value) const {
-	const char *attrib = hasAttrib(name);
-	return attrib ? toInt(attrib) : default_value;
-}
-
-float XMLNode::floatAttrib(const char *name, int default_value) const {
-	const char *attrib = hasAttrib(name);
-	return attrib ? toFloat(attrib) : default_value;
-}
-
-const int2 XMLNode::int2Attrib(const char *name) const {
-	const char *str = attrib(name);
-	int2 out;
-	if(sscanf(str, "%d %d", &out.x, &out.y) != 2)
-		parsingError(name);
-	return out;
-}
-
-const int3 XMLNode::int3Attrib(const char *name) const {
-	const char *str = attrib(name);
-	int3 out;
-	if(sscanf(str, "%d %d %d", &out.x, &out.y, &out.z) != 3)
-		parsingError(name);
-	return out;
-}
-
-const float2 XMLNode::float2Attrib(const char *name) const {
-	const char *str = attrib(name);
-	float2 out;
-	if(sscanf(str, "%f %f", &out.x, &out.y) != 2)
-		parsingError(name);
-	return out;
-}
-
-const float3 XMLNode::float3Attrib(const char *name) const {
-	const char *str = attrib(name);
-	float3 out;
-	if(sscanf(str, "%f %f %f", &out.x, &out.y, &out.z) != 3)
-		parsingError(name);
-	return out;
-}
-
-void XMLNode::addAttrib(const char *name, const int2 &value) {
-	char str_value[65];
-	sprintf(str_value, "%d %d", value.x, value.y);
-	addAttrib(name, own(str_value));
-}
-
-void XMLNode::addAttrib(const char *name, const int3 &value) {
-	char str_value[98];
-	sprintf(str_value, "%d %d %d", value.x, value.y, value.z);
-	addAttrib(name, own(str_value));
-}
-
-void XMLNode::addAttrib(const char *name, const float2 &value) {
-	int2 ivalue = (int2)value;
-	if(value == (float2)ivalue) {
-		addAttrib(name, ivalue);
-		return;
-	}
-
-	char str_value[129];
-	sprintf(str_value, "%f %f", value.x, value.y);
-	addAttrib(name, own(str_value));
-}
-
-void XMLNode::addAttrib(const char *name, const float3 &value) {
-	int3 ivalue = (int3)value;
-	if(value == (float3)ivalue) {
-		addAttrib(name, ivalue);
-		return;
-	}
-
-	char str_value[194];
-	sprintf(str_value, "%f %f %f", value.x, value.y, value.z);
-	addAttrib(name, own(str_value));
+const char *XMLNode::attrib(const char *name, const char *default_value) const {
+	const char *value = hasAttrib(name);
+	return value ? value : default_value;
 }
 
 const char *XMLNode::name() const { return m_ptr->name(); }
@@ -215,139 +114,5 @@ void XMLDocument::save(Stream &sr) const {
 	vector<char> buffer;
 	print(std::back_inserter(buffer), *m_ptr);
 	sr.saveData(&buffer[0], buffer.size());
-}
-
-bool toBool(const char *input) {
-	if(strcasecmp(input, "true") == 0)
-		return true;
-	if(strcasecmp(input, "false") == 0)
-		return false;
-	return toInt(input) != 0;
-}
-
-static void toInt(const char *input, int count, int *out) {
-	DASSERT(input);
-	if(!input[0]) {
-		for(int i = 0; i < count; i++)
-			out[i] = 0;
-		return;
-	}
-	
-	const char *format = "%d %d %d %d";
-	if(sscanf(input, format + (4 - count) * 3, out + 0, out + 1, out + 2, out + 3) != count)
-		THROW("Error while converting string \"%s\" to int%d", input, count);
-}
-
-int toInt(const char *input) {
-	int out;
-	toInt(input, 1, &out);
-	return out;
-}
-
-int2 toInt2(const char *input) {
-	int2 out;
-	toInt(input, 2, &out.x);
-	return out;
-}
-
-int3 toInt3(const char *input) {
-	int3 out;
-	toInt(input, 3, &out.x);
-	return out;
-}
-
-int4 toInt4(const char *input) {
-	int4 out;
-	toInt(input, 4, &out.x);
-	return out;
-}
-
-static void toFloat(const char *input, int count, float *out) {
-	DASSERT(input);
-	if(!input[0]) {
-		for(int i = 0; i < count; i++)
-			out[i] = 0.0f;
-		return;
-	}
-
-	const char *format = "%f %f %f %f";
-	if(sscanf(input, format + (4 - count) * 3, out + 0, out + 1, out + 2, out + 3) != count)
-		THROW("Error while converting string \"%s\" to float%d", input, count);
-}
-
-float toFloat(const char *input) {
-	float out;
-	toFloat(input, 1, &out);
-	return out;
-}
-
-float2 toFloat2(const char *input) {
-	float2 out;
-	toFloat(input, 2, &out.x);
-	return out;
-}
-
-float3 toFloat3(const char *input) {
-	float3 out;
-	toFloat(input, 3, &out.x);
-	return out;
-}
-
-float4 toFloat4(const char *input) {
-	float4 out;
-	toFloat(input, 4, &out.x);
-	return out;
-}
-
-const vector<string> toStrings(const char *input) {
-	vector<string> out;
-	const char *iptr = input;
-
-	while(*iptr) {
-		const char *next_space = strchr(iptr, ' ');
-		int len = next_space ? next_space - iptr : strlen(iptr);
-
-		out.emplace_back(string(iptr, iptr + len));
-
-		if(!next_space)
-			break;
-		iptr = next_space + 1;
-	}
-
-	return out;
-}
-
-unsigned toFlags(const char *input, const char **strings, int num_strings, unsigned first_flag) {
-	const char *iptr = input;
-
-	unsigned out_value = 0;
-	while(*iptr) {
-		const char *next_space = strchr(iptr, ' ');
-		int len = next_space ? next_space - iptr : strlen(iptr);
-
-		bool found = false;
-		for(int e = 0; e < num_strings; e++)
-			if(strncmp(iptr, strings[e], len) == 0 && strings[e][len] == 0) {
-				out_value |= first_flag << e;
-				found = true;
-				break;
-			}
-
-		if(!found) {
-			char flags[1024], *ptr = flags;
-			for(int i = 0; i < num_strings; i++)
-				ptr += snprintf(ptr, sizeof(flags) - (ptr - flags), "%s ", strings[i]);
-			if(num_strings)
-				ptr[-1] = 0;
-
-			THROW("Error while converting string \"%s\" to flags (%s)", input, flags);
-		}
-
-		if(!next_space)
-			break;
-		iptr = next_space + 1;
-	}
-
-	return out_value;
 }
 }
