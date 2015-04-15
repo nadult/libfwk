@@ -35,6 +35,8 @@ using i32 = int;
 template <typename T, typename... Args> unique_ptr<T> make_unique(Args &&... args) {
 	return unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+#else
+using std::make_unique;
 #endif
 
 // Compile your program with -rdynamic to get some interesting info
@@ -91,11 +93,6 @@ template <class T> inline constexpr bool isOneOf(const T &value) { return false;
 template <class T, class Arg1, class... Args>
 inline constexpr bool isOneOf(const T &value, const Arg1 &arg1, const Args &... args) {
 	return value == arg1 || isOneOf(value, args...);
-}
-
-template <class T, class TMin, class TMax>
-inline constexpr bool isInRange(const T &value, const TMin &min, const TMax &max) {
-	return value >= min && value <= max;
 }
 
 template <class T1, class T2> inline bool isOneOf(const T1 &value, const vector<T2> &vec) {
@@ -685,7 +682,7 @@ template <class T> class ResourceMgr {
 	}
 
 	void clear() { m_dict.clear(); }
-	
+
   private:
 	typename std::map<string, Ptr<T>> m_dict;
 	string m_prefix, m_suffix;

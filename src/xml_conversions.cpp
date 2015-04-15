@@ -51,7 +51,7 @@ namespace xml_conversions {
 
 	template <> int3 fromString(const char *input) {
 		int out[3];
-		toInt(input, 2, out);
+		toInt(input, 3, out);
 		return int3(out[0], out[1], out[2]);
 	}
 

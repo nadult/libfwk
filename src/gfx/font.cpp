@@ -103,7 +103,7 @@ void Font::loadFromXML(const XMLDocument &doc) {
 
 	m_max_rect = IRect(0, 0, 0, 0);
 	for(auto &it : m_glyphs) {
-		IRect rect = IRect(it.second.size) + it.second.offset;
+		IRect rect = IRect(int2(it.second.size)) + it.second.offset;
 		m_max_rect = sum(m_max_rect, rect);
 	}
 }

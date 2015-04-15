@@ -7,13 +7,15 @@ _dummy := $(shell [ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR))
 _dummy := $(shell [ -d test ] || mkdir -p test)
 _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d $(BUILD_DIR)/gfx ] || mkdir -p $(BUILD_DIR)/gfx)
+_dummy := $(shell [ -d $(BUILD_DIR)/math ] || mkdir -p $(BUILD_DIR)/math)
 _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
 
 
-SHARED_SRC=base filesystem input math profiler stream xml xml_conversions \
+SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
 		   gfx/color gfx/device gfx/device_texture gfx/drawing gfx/font gfx/font_factory \
-		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga 
-PROGRAM_SRC=test/streams test/stuff
+		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga \
+		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector
+PROGRAM_SRC=test/streams test/stuff test/math
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
 
@@ -82,7 +84,7 @@ lib/libfwk_win32.a: $(MINGW_SHARED_OBJECTS)
 clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a
-	-rmdir test lib $(BUILD_DIR)/test $(BUILD_DIR)/gfx
+	-rmdir test lib $(BUILD_DIR)/test $(BUILD_DIR)/gfx $(BUILD_DIR)/math
 	-rmdir $(BUILD_DIR)
 
 $(BUILD_DIR)/.depend: $(DEPS)
