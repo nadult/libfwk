@@ -12,6 +12,7 @@ namespace fwk {
 
 namespace InputKey {
 	enum Type {
+		// For the rest of the keys use ascii characters
 		space = ' ',
 		special = 256,
 
@@ -62,28 +63,38 @@ namespace InputKey {
 		kp_multiply,
 		kp_subtract,
 		kp_add,
-		kp_decimal,
-		kp_equal,
+		//		kp_decimal,
+		kp_period,
 		kp_enter,
 
 		count
 	};
 }
 
+namespace InputButton {
+	enum Type {
+		left,
+		right,
+		middle,
+
+		count
+	};
+};
+
 class InputEvent {
   public:
 	enum Type {
 		invalid,
+		quit,
+
 		key_down,
-		key_down_auto,
 		key_up,
 		key_pressed,
 
-		mouse_key_down,
-		mouse_key_up,
-		mouse_key_pressed,
-		mouse_over,
-		mouse_wheel,
+		mouse_button_down,
+		mouse_button_up,
+		mouse_button_pressed,
+		mouse_over, // dummy event, generated only to conveniently handle mouse input
 	};
 
 	enum Modifier {
@@ -94,51 +105,60 @@ class InputEvent {
 	};
 
 	InputEvent() : m_type(invalid) {}
+	InputEvent(Type type);
 	InputEvent(Type key_type, int key, int iter);
-	InputEvent(Type mouse_type, int key, const int2 &mouse_move);
-	void init(int flags, const int2 &mouse_pos);
-	void translate(const float2 &offset);
+	InputEvent(Type mouse_type, InputButton::Type button);
+	void init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
+	void translate(const int2 &offset);
 
 	Type type() const { return m_type; }
-	bool isMouseEvent() const { return m_type >= mouse_key_down && m_type <= mouse_wheel; }
+
+	bool isMouseEvent() const { return m_type >= mouse_button_down && m_type <= mouse_over; }
 	bool isKeyEvent() const { return m_type >= key_down && m_type <= key_pressed; }
-	bool isMouseOver() const { return m_type == mouse_over; }
+	bool isMouseOverEvent() const { return m_type == mouse_over; }
 
 	bool keyDown(int key) const;
 	bool keyUp(int key) const;
+
 	bool keyPressed(int key) const;
-	bool keyDownAuto(int key, int period = 1) const;
+	bool keyDownAuto(int key, int period = 1, int delay = 12) const;
+
 	int key() const {
-		DASSERT(m_type >= key_down && m_type <= key_pressed);
-		return m_key;
+		DASSERT(m_type != invalid);
+		return isKeyEvent() ? m_key : 0;
 	}
-	int keyChar() const {
-		DASSERT(m_type >= key_down && m_type <= key_pressed);
-		return m_key_char;
+	int keyUnicode() const {
+		DASSERT(m_type != invalid);
+		THROW("Add support for SDL text input");
+		return 0;
 	}
 
-	bool mouseKeyDown(int key) const;
-	bool mouseKeyUp(int key) const;
-	bool mouseKeyPressed(int key) const;
+	bool mouseKeyDown(InputButton::Type) const;
+	bool mouseKeyUp(InputButton::Type) const;
+	bool mouseKeyPressed(InputButton::Type) const;
 
-	const float2 &mousePos() const {
+	// These can be called for every valid event type
+	const int2 &mousePos() const {
 		DASSERT(m_type != invalid);
 		return m_mouse_pos;
 	}
-	const float2 &mouseMove() const {
-		DASSERT(m_type == mouse_over);
+	const int2 &mouseMove() const {
+		DASSERT(m_type != invalid);
 		return m_mouse_move;
 	}
 	int mouseWheel() const {
-		DASSERT(m_type == mouse_wheel);
-		return (int)m_mouse_move.x;
+		DASSERT(m_type != invalid);
+		THROW("Add support for mouse wheel\n");
+		return (int)m_mouse_wheel;
 	}
 
 	bool hasModifier(Modifier modifier) const { return m_modifiers & modifier; }
 
   private:
-	float2 m_mouse_pos, m_mouse_move;
-	int m_key, m_key_char, m_iteration, m_modifiers;
+	int2 m_mouse_pos, m_mouse_move;
+	int m_mouse_wheel;
+	int m_key;
+	int m_iteration, m_modifiers;
 	Type m_type;
 };
 }

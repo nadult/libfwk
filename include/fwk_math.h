@@ -78,7 +78,7 @@ struct short2 {
 	short2(short x, short y) : x(x), y(y) {}
 	short2(const int2 &rhs) : x(rhs.x), y(rhs.y) {}
 	short2() : x(0), y(0) {}
-	operator const int2() const { return int2(x, y); }
+	operator int2() const { return int2(x, y); }
 
 	short2 operator+(const short2 &rhs) const { return short2(x + rhs.x, y + rhs.y); }
 	short2 operator-(const short2 &rhs) const { return short2(x - rhs.x, y - rhs.y); }

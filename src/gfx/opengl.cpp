@@ -3,7 +3,7 @@
    This file is part of libfwk. */
 
 #ifdef FWK_OPENGL_H
-#define DWK_OPENGL_H_ONLY_EXTENSIONS
+#define FWK_OPENGL_H_ONLY_EXTENSIONS
 #undef FWK_OPENGL_H
 #endif
 

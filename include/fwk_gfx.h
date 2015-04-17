@@ -42,7 +42,7 @@ struct Color {
 		struct {
 			u8 r, g, b, a;
 		};
-		u32 rgba;
+		u32 rgba; // TODO: fix problems with endianess
 	};
 };
 
@@ -241,6 +241,15 @@ class DTexture : public Resource {
 
 typedef Ptr<DTexture> PTexture;
 
+struct InputState {
+	int2 mouse_pos, mouse_move;
+	int mouse_wheel;
+	int mouse_buttons[InputButton::count];
+
+	using KeyStatus = pair<int, int>;
+	vector<KeyStatus> keys;
+};
+
 class GfxDevice {
   public:
 	static GfxDevice &instance();
@@ -250,53 +259,43 @@ class GfxDevice {
 	// Swaps frames and synchronizes frame rate
 	void tick();
 
-	bool isWindowOpened() const { return m_has_window; }
 	void createWindow(int2 size, bool fullscreen);
 	void destroyWindow();
 	void printDeviceInfo();
 
 	bool pollEvents();
 
-	const int2 getWindowSize();
-	int2 getMaxWindowSize(bool is_fullscreen);
-	void adjustWindowSize(int2 &size, bool is_fullscreen);
-
-	void setWindowPos(const int2 &pos);
-	void setWindowTitle(const char *title);
-
 	void grabMouse(bool);
 	void showCursor(bool);
 
-	char getCharPressed();
+	const InputState &inputState() const { return m_input_state; }
+	const vector<InputEvent> &inputEvents() const { return m_input_events; }
 
-	// if key is pressed, after small delay, generates keypresses
-	// every period frames
-	bool isKeyDownAuto(int key, int period = 1);
-	bool isKeyPressed(int);
-	bool isKeyDown(int);
-	bool isKeyUp(int);
+	using MainLoopFunction = bool (*)(GfxDevice &device);
 
-	bool isMouseKeyPressed(int);
-	bool isMouseKeyDown(int);
-	bool isMouseKeyUp(int);
-
-	int2 getMousePos();
-	int2 getMouseMove();
-
-	int getMouseWheelPos();
-	int getMouseWheelMove();
-
-	// Generates events from keyboard & mouse input
-	// Mouse move events are always first
-	vector<InputEvent> generateInputEvents();
+	void runMainLoop(MainLoopFunction);
 
   private:
 	GfxDevice();
 	~GfxDevice();
 
-	struct Impl;
-	unique_ptr<Impl> m_impl;
-	bool m_has_window;
+	int translateToSDL(int) const;
+	int translateFromSDL(int) const;
+
+#ifdef __EMSCRIPTEN__
+	static void emscriptenCallback();
+#endif
+	MainLoopFunction m_main_loop_function;
+
+	bool m_is_input_state_initialized;
+	InputState m_input_state;
+	vector<InputEvent> m_input_events;
+	std::map<int, int> m_key_map;
+	std::map<int, int> m_inv_map;
+	double m_time_pressed[InputKey::count];
+	double m_last_time;
+	double m_press_delay;
+	int m_clock;
 };
 
 struct RectStyle {
@@ -307,24 +306,219 @@ struct RectStyle {
 	Color border_color;
 };
 
-void lookAt(const float2 &pos);
-inline void lookAt(const int2 &pos) { lookAt(float2(pos)); }
+class VertexArray {
+  public:
+	VertexArray();
+	~VertexArray();
+	VertexArray(const VertexArray &) = delete;
+	const VertexArray &operator=(const VertexArray &) = delete;
 
-void drawRect(const FRect &rect, const RectStyle & = RectStyle());
-inline void drawRect(const IRect &rect, const RectStyle &style = RectStyle()) {
-	drawRect(FRect(rect), style);
-}
+	VertexArray(VertexArray &&);
+	void operator=(VertexArray &&);
 
-void drawRect(const FRect &rect, const FRect &uv_rect, const RectStyle & = RectStyle());
-inline void drawRect(const IRect &rect, const FRect &uv_rect,
-					 const RectStyle &style = RectStyle()) {
-	drawRect(FRect(rect), uv_rect, style);
-}
+	void bind() const;
+	static void unbind();
 
-void drawLine(const float2 &from, const float2 &to, Color color = Color::white);
-inline void drawLine(const int2 &from, const int2 &to, Color color = Color::white) {
-	drawLine(from, to, color);
-}
+	void addAttrib(int size, int type, bool normalze, int stride, int offset);
+	void clear();
+
+#if OPENGL_VERSION >= 0x30
+	int handle() const { return (int)m_handle; }
+#endif
+
+  protected:
+	int m_bind_count;
+#if OPENGL_VERSION >= 0x30
+	unsigned m_handle;
+#else
+	enum { max_binds = 8 };
+
+	struct AttribBind {
+		int handle, offset;
+		u16 type, stride;
+		u8 index, size;
+		bool normalize;
+	};
+
+	AttribBind m_binds[max_binds];
+#endif
+};
+
+// TODO: usage parameter in setData?
+// TODO: make this type safe (split to base class and templated class)
+class VertexBuffer {
+  public:
+	VertexBuffer();
+	~VertexBuffer();
+
+	VertexBuffer(VertexBuffer &&rhs) : m_handle(rhs.m_handle) { rhs.m_handle = 0; }
+	VertexBuffer(const VertexBuffer &) = delete;
+
+	const VertexBuffer &operator=(const VertexBuffer &) = delete;
+	const VertexBuffer &operator=(VertexBuffer &&);
+
+	void bind() const;
+	static void unbind();
+
+	int size() const { return m_size; }
+	void getData(int offset, int count, void *ptr) const;
+	void setData(int count, const void *ptr, unsigned usage);
+
+	template <class T> void getData(PodArray<T> &out) const {
+		out.resize(m_size / sizeof(T));
+		getData(0, m_size, out.data());
+	}
+
+	template <class T> void setData(const PodArray<T> &in, unsigned usage) {
+		setData(in.size() * sizeof(T), in.data(), usage);
+	}
+
+	const void *mapForReading() const;
+	void *mapForWriting();
+	void unmap() const;
+
+	int getHandle() const { return (int)m_handle; }
+
+  protected:
+	static int activeHandle();
+	static void bindHandle(int handle);
+
+	friend class VertexArray;
+
+	unsigned m_handle;
+	int m_size;
+};
+
+template <class T> class VBReader {
+  public:
+	VBReader(const VertexBuffer &buffer) : m_buffer(buffer), m_data(nullptr) {
+		m_size = m_buffer.size() / sizeof(T);
+		if(m_size) {
+			m_data = (const T *)m_buffer.mapForReading();
+			DASSERT(m_data);
+		}
+	}
+
+	~VBReader() {
+		if(m_size)
+			m_buffer.unmap();
+	}
+	VBReader(const VBReader &) = delete;
+	void operator=(const VBReader &) = delete;
+
+	const T &operator[](int idx) const { return m_data[idx]; }
+
+	int size() const { return m_size; }
+	const T *data() const { return m_data; }
+
+  protected:
+	const VertexBuffer &m_buffer;
+	const T *m_data;
+	int m_size;
+};
+
+class Shader : public RefCounter {
+  public:
+	// TODO: fix enums, also in other gfx classes
+	enum Type { tVertex, tFragment };
+
+	explicit Shader(Type);
+	~Shader();
+
+	void load(Stream &);
+	void save(Stream &) const;
+
+	Shader(Shader &&);
+	Shader(const Shader &) = delete;
+	void operator=(const Shader &) = delete;
+	void operator=(Shader &&);
+
+	Type getType() const;
+	unsigned getHandle() const { return m_handle; }
+
+	string getSource() const;
+	void setSource(const string &str);
+	void compile();
+
+	string name;
+
+  private:
+	unsigned m_handle;
+	bool m_is_compiled;
+};
+
+class Program : public RefCounter {
+  public:
+	Program(const Shader &vertex, const Shader &fragment);
+	~Program();
+	Program(const Program &) = delete;
+	void operator=(const Program &) = delete;
+
+	void bind() const;
+	static void unbind();
+
+	unsigned handle() const { return m_handle; }
+	string getInfo() const;
+
+	void setUniform(const char *name, float);
+	void setUniform(const char *name, const float *, size_t);
+	void setUniform(const char *name, const Matrix4 *, size_t);
+
+	void setUniform(const char *name, int);
+	void setUniform(const char *name, const float2 &);
+	void setUniform(const char *name, const float3 &);
+	void setUniform(const char *name, const float4 &);
+	void setUniform(const char *name, const Matrix4 &);
+
+	void bindAttribLocation(const char *name, unsigned);
+	void link();
+
+  private:
+	unsigned m_handle;
+};
+
+typedef Ptr<Program> PProgram;
+
+class Renderer {
+  public:
+	Renderer(const IRect &viewport, const Matrix4 &view_mat, const Matrix4 &proj_mat);
+
+	void reset(const Matrix4 &view_matrix, const Matrix4 &projection_matrix);
+	void render();
+
+	void addRect(const FRect &rect, PTexture tex, RectStyle style);
+
+	const float2 &viewPos() const { return m_view_pos; }
+	float zoom() const { return m_zoom; }
+
+	const Frustum &frustum() const { return m_frustum; }
+
+	const Ray screenRay(const float2 &screen_pos) const;
+	const Frustum frustum(const FRect &screen_rect) const;
+
+	const float2 worldToScreen(const float3 &) const;
+	const float3 screenToWorld(const float2 &, float floor_height = 0.0f) const;
+
+  protected:
+	void renderRects() const;
+
+	struct RectInstance {
+		FRect rect;
+		PTexture texture;
+		RectStyle style;
+	};
+
+	vector<RectInstance> m_rects;
+
+	const IRect m_viewport;
+	Frustum m_frustum;
+	float2 m_view_pos;
+	float m_zoom, m_zero_depth;
+
+	Matrix4 m_view_matrix, m_inv_view_matrix;
+	Matrix4 m_projection_matrix;
+	PProgram m_default_program;
+};
 
 void clear(Color color);
 

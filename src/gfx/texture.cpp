@@ -7,8 +7,8 @@
 
 // Yeah, there are no external symbols in those files, only loaders
 // and for some reason loaders won't be registered... (linker optimization?)
-#include "texture_bmp.cpp"
-#include "texture_png.cpp"
+#include "gfx/texture_bmp.cpp"
+#include "gfx/texture_png.cpp"
 
 namespace fwk {
 

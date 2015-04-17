@@ -14,8 +14,9 @@ _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
 SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
 		   gfx/color gfx/device gfx/device_texture gfx/drawing gfx/font gfx/font_factory \
 		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga \
+		   gfx/vertex_array gfx/vertex_buffer gfx/shader gfx/program gfx/renderer \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector
-PROGRAM_SRC=test/streams test/stuff test/math
+PROGRAM_SRC=test/streams test/stuff test/math test/window
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
 
@@ -33,6 +34,8 @@ MINGW_OBJECTS:=$(MINGW_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%_.o)
 
 LINUX_PROGRAMS:=$(PROGRAM_SRC:%=%)
 MINGW_PROGRAMS:=$(PROGRAM_SRC:%=%.exe)
+HTML5_PROGRAMS:=$(PROGRAM_SRC:%=%.html)
+HTML5_PROGRAMS_SRC:=$(PROGRAM_SRC:%=%.html.cpp)
 
 all: lib/libfwk.a lib/libfwk_win32.a $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
 
@@ -46,7 +49,7 @@ MINGW_STRIP=$(MINGW_PREFIX)strip
 MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-LIBS=-lglfw -lpng -lz -lmpg123 
+LIBS=-lSDL -lpng -lz -lmpg123 
 LINUX_LIBS=$(LIBS) `$(LINUX_PKG_CONFIG) --libs freetype2` -lopenal -lGL -lGLU -lrt -fopenmp 
 MINGW_LIBS=$(LIBS) `$(MINGW_PKG_CONFIG) --libs freetype2` -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
@@ -54,9 +57,11 @@ INCLUDES=-Iinclude/ -Isrc/
 
 NICE_FLAGS=-std=c++11 -ggdb -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wno-uninitialized -Wno-unused-function \
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
-LINUX_FLAGS=`$(LINUX_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS) -rdynamic
-MINGW_FLAGS=`$(MINGW_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+LINUX_FLAGS=-DFWK_TARGET_LINUX -I/usr/include/SDL/ `$(LINUX_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS) -rdynamic
+MINGW_FLAGS=-DFWK_TARGET_MINGW `$(MINGW_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+HTML5_FLAGS=-DFWK_TARGET_HTML5 -std=c++11 -lSDL -O0 $(INCLUDES)
 
+HTML5_PRELOADS=test.vsh test.fsh
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
 	$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@
@@ -75,6 +80,13 @@ $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
 	$(MINGW_CXX) -o $@ $^  $(LIBS_$*) $(MINGW_LIBS)
 	$(MINGW_STRIP) $@
 
+$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp)
+	cat $^ > $@
+
+$(HTML5_PROGRAMS): %.html: %.html.cpp
+	emcc $(HTML5_FLAGS) $^ -o $@ $(HTML5_PRELOADS:%=--embed-file %)
+
+
 lib/libfwk.a: $(LINUX_SHARED_OBJECTS)
 	$(LINUX_AR) r $@ $^ 
 
@@ -83,6 +95,7 @@ lib/libfwk_win32.a: $(MINGW_SHARED_OBJECTS)
 
 clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
+		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) \
 		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a
 	-rmdir test lib $(BUILD_DIR)/test $(BUILD_DIR)/gfx $(BUILD_DIR)/math
 	-rmdir $(BUILD_DIR)

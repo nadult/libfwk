@@ -191,16 +191,15 @@ const Matrix4 lookAt(const float3 &eye, const float3 &center, const float3 &up) 
 	return transpose(side, cross(side, front), -front) * translation(-eye);
 }
 
-/*
 const Matrix4 perspective(float fov, float aspect, float zNear, float zFar) {
 	float rad = fov * 0.5f;
 	float deltaZ = zFar - zNear;
 
 	float sin = ::sin(rad);
 
-	Matrix4 out = Identity();
+	Matrix4 out = identity();
 	if(deltaZ != 0.0f && sin != 0.0f && aspect != 0.0f) {
-		float ctg = Cos(rad) / sin;
+		float ctg = cos(rad) / sin;
 		out[0][0] = ctg / aspect;
 		out[1][1] = ctg;
 		out[2][2] = -(zFar + zNear) / deltaZ;
@@ -212,7 +211,7 @@ const Matrix4 perspective(float fov, float aspect, float zNear, float zFar) {
 }
 
 const Matrix4 ortho(float left, float right, float top, float bottom, float near, float far) {
-	Matrix out = Identity();
+	Matrix4 out = identity();
 	float ix = 1.0f / (right - left);
 	float iy = 1.0f / (bottom - top);
 	float iz = 1.0f / (far - near);
@@ -225,6 +224,6 @@ const Matrix4 ortho(float left, float right, float top, float bottom, float near
 	out(2, 3) = -(far + near) * iz;
 
 	return out;
-}*/
+}
 
 }

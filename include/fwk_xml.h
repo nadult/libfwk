@@ -11,8 +11,8 @@
 #ifndef RAPIDXML_HPP_INCLUDED
 
 namespace rapidxml {
-template <class Ch = char> class xml_node;
-template <class Ch = char> class xml_document;
+template <class Ch> class xml_node;
+template <class Ch> class xml_document;
 };
 
 #endif
@@ -111,12 +111,12 @@ class XMLNode {
 	explicit operator bool() const { return m_ptr != nullptr; }
 
   protected:
-	XMLNode(rapidxml::xml_node<> *ptr, rapidxml::xml_document<> *doc) : m_ptr(ptr), m_doc(doc) {}
+	XMLNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc) : m_ptr(ptr), m_doc(doc) {}
 	void parsingError(const char *attrib_name, const char *error_message) const;
 	friend class XMLDocument;
 
-	rapidxml::xml_node<> *m_ptr;
-	rapidxml::xml_document<> *m_doc;
+	rapidxml::xml_node<char> *m_ptr;
+	rapidxml::xml_document<char> *m_doc;
 };
 
 class XMLDocument {
@@ -140,7 +140,7 @@ class XMLDocument {
 	const char *own(const char *str);
 
   protected:
-	unique_ptr<rapidxml::xml_document<>> m_ptr;
+	unique_ptr<rapidxml::xml_document<char>> m_ptr;
 };
 }
 

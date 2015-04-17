@@ -7,33 +7,26 @@
 
 namespace fwk {
 
-static float s_default_matrix[16];
-static int2 s_viewport_size;
-
+/*
 void initViewport(int2 size) {
 	s_viewport_size = size;
 	glViewport(0, 0, size.x, size.y);
 	glLoadIdentity();
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, size.x, 0, size.y, -1.0f, 1.0f);
-	glEnable(GL_TEXTURE_2D);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	glTranslatef(0.0f, size.y, 0.0f);
-	glScalef(1.0f, -1.0f, 1.0f);
-
-	glGetFloatv(GL_MODELVIEW_MATRIX, s_default_matrix);
+	setMatrix(MatrixType::projection, ortho(0, size.x, 0, size.y, -1.0f, 1.0f));
+	setMatrix(MatrixType::model_view, identity());
+	mulMatrix(MatrixType::model_view, translation(0, size.y, 0));
+	mulMatrix(MatrixType::model_view, scaling(1.0f, -1.0f, 1.0f));
+	s_default_matrix = getMatrix(MatrixType::model_view);
 }
 
 void lookAt(const float2 &pos) {
-	glLoadMatrixf(s_default_matrix);
-	glTranslatef(-pos.x, -pos.y, 0.0f);
+	setMatrix(MatrixType::model_view, s_default_matrix);
+	mulMatrix(MatrixType::model_view, translation(-pos.x, -pos.y, 0.0f));
 }
+*/
 
+/*
 void drawRect(const FRect &rect, const RectStyle &style) {
 	drawRect(rect, FRect(0, 0, 1, 1), style);
 }
@@ -77,7 +70,7 @@ void drawLine(const float2 &start, const float2 &end, Color color) {
 	glVertex2f(start.x, start.y);
 	glVertex2f(end.x, end.y);
 	glEnd();
-}
+}*/
 
 void clear(Color color) {
 	float4 col = color;
@@ -98,9 +91,9 @@ void setBlendingMode(BlendingMode mode) {
 static IRect s_scissor_rect = IRect::empty();
 
 void setScissorRect(const IRect &rect) {
-	s_scissor_rect = rect;
-	glScissor(rect.min.x, s_viewport_size.y - rect.max.y, rect.width(), rect.height());
-	testGlError("glScissor");
+//	s_scissor_rect = rect;
+//	glScissor(rect.min.x, s_viewport_size.y - rect.max.y, rect.width(), rect.height());
+//	testGlError("glScissor");
 }
 
 const IRect getScissorRect() { return s_scissor_rect; }

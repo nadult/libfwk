@@ -12,6 +12,7 @@
 #include <memory>
 #include <map>
 #include <cstring>
+#include <cstdlib>
 
 namespace fwk {
 
@@ -412,7 +413,7 @@ class FileStream : public Stream {
 	FileStream(const FileStream &) = delete;
 	void operator=(const FileStream &) = delete;
 
-	const char *name() const noexcept;
+	const char *name() const noexcept override;
 
   protected:
 	void v_load(void *, int) override;

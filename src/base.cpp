@@ -5,7 +5,7 @@
 #include "fwk_base.h"
 #include <cstdio>
 
-#ifdef _WIN32
+#ifdef FWK_TARGET_MINGW
 #include <ctime>
 #include <windows.h>
 #else
@@ -13,13 +13,12 @@
 #include <unistd.h>
 #endif
 
-#ifndef __MINGW32__
+#ifdef FWK_TARGET_LINUX
 #include <execinfo.h>
 #endif
 #include <stdarg.h>
 #include <cstring>
 #include <cstdlib>
-#include <ext/vstring.h>
 #include <cstdarg>
 
 namespace fwk {
@@ -54,9 +53,9 @@ double getTime() {
 
 const string backtrace(size_t skip) {
 	string out;
-#ifdef _WIN32
+#ifndef FWK_TARGET_LINUX
 	// ThrowException("write me");
-	out = "Backtraces not avaliable on MinGW platform";
+	out = "Backtraces in LibFWK are supported only on Linux";
 #else
 	void *array[32];
 	size_t size = ::backtrace(array, sizeof(array) / sizeof(void *));

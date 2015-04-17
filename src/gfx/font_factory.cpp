@@ -2,6 +2,9 @@
 
    This file is part of libfwk. */
 
+// TODO: add support for freetype / somehow use html fonts?
+#ifndef FWK_TARGET_HTML5
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -188,3 +191,5 @@ PFont FontFactory::makeFont(string const &path, int size, bool lcd_mode) {
 	return out;
 }
 }
+
+#endif
