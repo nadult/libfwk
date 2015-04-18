@@ -108,7 +108,7 @@ Texture makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	return makeTextureAtlas(glyphs, {256, 256});
 }
 
-PFont FontFactory::makeFont(string const &path, int size, bool lcd_mode) {
+pair<PFont, PTexture> FontFactory::makeFont(string const &path, int size, bool lcd_mode) {
 	FT_Face face = m_impl->getFace(path);
 	if(FT_Set_Pixel_Sizes(face, 0, size) != 0)
 		THROW("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
@@ -159,8 +159,9 @@ PFont FontFactory::makeFont(string const &path, int size, bool lcd_mode) {
 	}
 
 	PFont out(new Font);
-	out->m_texture = new DTexture;
-	out->m_texture->set(makeTextureAtlas(glyphs));
+	PTexture out_texture(new DTexture);
+	out_texture->set(makeTextureAtlas(glyphs));
+	out->m_texture_size = out_texture->size();
 
 	for(auto &glyph : glyphs)
 		out->m_glyphs[glyph.first.character] = glyph.first;
@@ -188,7 +189,7 @@ PFont FontFactory::makeFont(string const &path, int size, bool lcd_mode) {
 					out->m_kernings[make_pair(int(left), int(right))] = kerning.x;
 			}
 
-	return out;
+	return make_pair(out, out_texture);
 }
 }
 

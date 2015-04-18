@@ -38,7 +38,6 @@ void Font::load(Stream &sr) {
 void Font::loadFromXML(const XMLDocument &doc) {
 	m_glyphs.clear();
 	m_kernings.clear();
-	m_texture = nullptr;
 	m_face_name.clear();
 
 	XMLNode font_node = doc.child("font");
@@ -51,7 +50,7 @@ void Font::loadFromXML(const XMLDocument &doc) {
 	ASSERT(info_node && pages_node && chars_node && common_node);
 
 	m_face_name = info_node.attrib("face");
-	int2 tex_size(common_node.attrib<int>("scaleW"), common_node.attrib<int>("scaleH"));
+	m_texture_size = int2(common_node.attrib<int>("scaleW"), common_node.attrib<int>("scaleH"));
 	m_line_height = common_node.attrib<int>("lineHeight");
 	int text_base = common_node.attrib<int>("base");
 
@@ -62,9 +61,7 @@ void Font::loadFromXML(const XMLDocument &doc) {
 	ASSERT(first_page_node);
 	ASSERT(first_page_node.attrib<int>("id") == 0);
 
-	m_texture = tex_mgr[first_page_node.attrib("file")];
-	ASSERT(m_texture && m_texture->size() == tex_size);
-
+	m_texture_name = first_page_node.attrib("file");
 	int chars_count = chars_node.attrib<int>("count");
 	XMLNode char_node = chars_node.child("char");
 
@@ -156,13 +153,13 @@ IRect Font::evalExtents(const char *str, bool exact) const {
 	return rect;
 }
 
-int Font::genQuads(const char *str, float2 *out_pos, float2 *out_uv, int buffer_size) const {
+int Font::genQuads(const char *str, float3 *out_pos, float2 *out_uv, int buffer_size) const {
 	DASSERT(buffer_size >= 0 && str);
 
 	wchar_t wstr[1024];
 	int len = convertToWChar(str, wstr, sizeof(wstr) / sizeof(wchar_t));
 
-	const float2 tex_scale(1.0f / float(m_texture->width()), 1.0f / float(m_texture->height()));
+	const float2 tex_scale(1.0f / float(m_texture_size.x), 1.0f / float(m_texture_size.y));
 	int count = min(len, buffer_size);
 	float2 pos(0, 0);
 
@@ -183,10 +180,10 @@ int Font::genQuads(const char *str, float2 *out_pos, float2 *out_uv, int buffer_
 		const Glyph &glyph = char_it->second;
 
 		float2 spos = pos + (float2)glyph.offset;
-		out_pos[0] = spos + float2(0.0f, 0.0f);
-		out_pos[1] = spos + float2(glyph.size.x, 0.0f);
-		out_pos[2] = spos + float2(glyph.size.x, glyph.size.y);
-		out_pos[3] = spos + float2(0.0f, glyph.size.y);
+		out_pos[0] = float3(spos + float2(0.0f, 0.0f), 0.0f);
+		out_pos[1] = float3(spos + float2(glyph.size.x, 0.0f), 0.0f);
+		out_pos[2] = float3(spos + float2(glyph.size.x, glyph.size.y), 0.0f);
+		out_pos[3] = float3(spos + float2(0.0f, glyph.size.y), 0.0f);
 
 		float2 tpos = (float2)glyph.tex_pos;
 		out_uv[0] = tpos + float2(0.0f, 0.0f);
@@ -213,10 +210,17 @@ int Font::genQuads(const char *str, float2 *out_pos, float2 *out_uv, int buffer_
 	return gen_count;
 }
 
-FRect Font::draw(const FRect &rect, const FontStyle &style, const char *text) const {
+FontRenderer::FontRenderer(PFont font, PTexture texture, Renderer &out)
+	: m_font(font), m_texture(texture), m_renderer(out) {
+	DASSERT(m_font);
+	DASSERT(m_texture);
+	DASSERT(m_texture->size() == m_font->m_texture_size);
+}
+
+FRect FontRenderer::draw(const FRect &rect, const FontStyle &style, const char *text) const {
 	float2 pos = rect.min;
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
-		FRect extents = (FRect)evalExtents(text);
+		FRect extents = (FRect)m_font->evalExtents(text);
 		float2 center = rect.center() - extents.center();
 		// TODO: Better veritcal alignment
 
@@ -231,40 +235,34 @@ FRect Font::draw(const FRect &rect, const FontStyle &style, const char *text) co
 	pos = float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
 
 	int len = strlen(text);
-	PodArray<float2> pos_buf(len * 4), uv_buf(len * 4);
-	int quad_count = genQuads(text, pos_buf.data(), uv_buf.data(), len * 4);
+	PodArray<float3> pos_buf(len * 4);
+	PodArray<float2> uv_buf(len * 4);
+	PodArray<Color> colors(len * 4);
+	int quad_count = m_font->genQuads(text, pos_buf.data(), uv_buf.data(), len * 4);
 
 	FRect out_rect;
 	for(int n = 0; n < quad_count * 4; n++) {
-		out_rect.min = min(out_rect.min, pos_buf[n]);
-		out_rect.max = max(out_rect.max, pos_buf[n]);
+		out_rect.min = min(out_rect.min, pos_buf[n].xy());
+		out_rect.max = max(out_rect.max, pos_buf[n].xy());
 	}
 	out_rect += pos;
+	// TODO: increase out_rect when rendering with shadow?
+			
+	m_renderer.pushViewMatrix();
+	m_renderer.mulViewMatrix(translation(float3(pos + float2(1.0f, 1.0f), 0.0f)));
 
-	m_texture->bind();
-	if(style.shadow_color.a) {
-		float2 offset(1.0f, 1.0f);
-		out_rect.max += offset;
-
-		glBegin(GL_QUADS);
-		glColor(style.shadow_color);
-		for(int n = 0; n < quad_count * 4; n++) {
-			glTexCoord(uv_buf[n]);
-			glVertex(pos_buf[n] + pos + offset);
-		}
-		glEnd();
+	if(style.shadow_color != Color::transparent) {	
+		for(int n = 0; n < quad_count * 4; n++)
+			colors[n] = style.shadow_color;
+		m_renderer.addQuads(pos_buf.data(), uv_buf.data(), colors.data(), quad_count, m_texture);
 	}
-
-	glBegin(GL_QUADS);
-	glColor(style.text_color);
-	for(int n = 0; n < quad_count * 4; n++) {
-		glTexCoord(uv_buf[n]);
-		glVertex(pos_buf[n] + pos);
-	}
-	glEnd();
-
+	
+	m_renderer.mulViewMatrix(translation(float3(-1.0f, -1.0f, 0.0f)));
+	for(int n = 0; n < quad_count * 4; n++)
+		colors[n] = style.text_color;
+	m_renderer.addQuads(pos_buf.data(), uv_buf.data(), colors.data(), quad_count, m_texture);
+	m_renderer.popViewMatrix();
+	
 	return out_rect;
 }
-ResourceMgr<Font> Font::mgr("data/fonts/", ".fnt");
-ResourceMgr<DTexture> Font::tex_mgr("data/fonts/", "");
 }

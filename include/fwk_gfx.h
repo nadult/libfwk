@@ -19,41 +19,31 @@ struct Color {
 	explicit Color(float r, float g, float b, float a = 1.0f)
 		: r(clamp(r * 255.0f, 0.0f, 255.0f)), g(clamp(g * 255.0f, 0.0f, 255.0f)),
 		  b(clamp(b * 255.0f, 0.0f, 255.0f)), a(clamp(a * 255.0f, 0.0f, 255.0f)) {}
-	explicit Color(const float3 &c, float a = 1.0f)
-		: r(clamp(c.x * 255.0f, 0.0f, 255.0f)), g(clamp(c.y * 255.0f, 0.0f, 255.0f)),
-		  b(clamp(c.z * 255.0f, 0.0f, 255.0f)), a(clamp(a * 255.0f, 0.0f, 255.0f)) {}
-	explicit Color(const float4 &c) : Color(float3(c.x, c.y, c.z), c.w) {}
-	Color(u32 rgba) : rgba(rgba) {}
-	Color(Color col, u8 alpha) : rgba((col.rgba & rgb_mask) | ((u32)alpha << 24)) {}
+	explicit Color(const float3 &c, float a = 1.0f) : Color(c.x, c.y, c.z, a) {}
+	explicit Color(const float4 &c) : Color(c.x, c.y, c.z, c.w) {}
+	Color(Color col, u8 alpha) : r(col.r), g(col.g), b(col.b), a(alpha) {}
 	Color() = default;
 
-	Color operator|(Color rhs) const { return rgba | rhs.rgba; }
+	Color operator|(Color rhs) const { return Color(r | rhs.r, g | rhs.g, b | rhs.b, a | rhs.a); }
 	operator float4() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
 	operator float3() const { return float3(r, g, b) * (1.0f / 255.0f); }
 
 	static const Color white, gray, yellow, red, green, blue, black, transparent;
 
-	enum {
-		alpha_mask = 0xff000000u,
-		rgb_mask = 0x00ffffffu,
-	};
-
-	union {
-		struct {
-			u8 r, g, b, a;
-		};
-		u32 rgba; // TODO: fix problems with endianess
-	};
+	u8 r, g, b, a;
 };
 
 Color mulAlpha(Color color, float alpha);
 Color lerp(Color a, Color b, float value);
 Color desaturate(Color col, float value);
 
-inline bool operator==(const Color &lhs, const Color &rhs) { return lhs.rgba == rhs.rgba; }
+inline bool operator==(const Color &lhs, const Color &rhs) {
+	return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b && lhs.a == rhs.a;
+}
 
 inline Color swapBR(Color col) {
-	return ((col.rgba & 0xff) << 16) | ((col.rgba & 0xff0000) >> 16) | (col.rgba & 0xff00ff00);
+	swap(col.b, col.r);
+	return col;
 }
 
 enum TextureIdent {
@@ -230,9 +220,6 @@ class DTexture : public Resource {
 	int id() const { return m_id; }
 	bool isValid() const { return m_id > 0; }
 
-	static ResourceMgr<DTexture> gui_mgr;
-	static ResourceMgr<DTexture> mgr;
-
   private:
 	int m_id;
 	int m_width, m_height;
@@ -305,6 +292,9 @@ struct RectStyle {
 	Color fill_color;
 	Color border_color;
 };
+
+// TODO: fix VertexArray & VertexBuffer classes
+// They don't really add much value on top of OpenGL functions
 
 class VertexArray {
   public:
@@ -389,34 +379,6 @@ class VertexBuffer {
 	int m_size;
 };
 
-template <class T> class VBReader {
-  public:
-	VBReader(const VertexBuffer &buffer) : m_buffer(buffer), m_data(nullptr) {
-		m_size = m_buffer.size() / sizeof(T);
-		if(m_size) {
-			m_data = (const T *)m_buffer.mapForReading();
-			DASSERT(m_data);
-		}
-	}
-
-	~VBReader() {
-		if(m_size)
-			m_buffer.unmap();
-	}
-	VBReader(const VBReader &) = delete;
-	void operator=(const VBReader &) = delete;
-
-	const T &operator[](int idx) const { return m_data[idx]; }
-
-	int size() const { return m_size; }
-	const T *data() const { return m_data; }
-
-  protected:
-	const VertexBuffer &m_buffer;
-	const T *m_data;
-	int m_size;
-};
-
 class Shader : public RefCounter {
   public:
 	// TODO: fix enums, also in other gfx classes
@@ -484,33 +446,55 @@ class Renderer {
   public:
 	Renderer(const IRect &viewport);
 
-	void lookAt(const float2 &pos);
+	void pushViewMatrix();
+	void popViewMatrix();
+	void mulViewMatrix(const Matrix4&);
+	void setViewMatrix(const Matrix4&);
+	void setViewMatrix(const float2 &view_pos);
+	const Matrix4 &viewMatrix() { return m_view_matrix; }
+
 	void render();
 
-	void addRect(const FRect &rect, const FRect &tex_rect, PTexture tex, RectStyle style);
-	void addRect(const FRect &rect, PTexture tex, RectStyle style) {
-		addRect(rect, FRect(0, 0, 1, 1), tex, style);
+	void addRect(const FRect &rect, const FRect &tex_rect, PTexture tex, Color color);
+	void addRect(const FRect &rect, PTexture tex, Color color) {
+		addRect(rect, FRect(0, 0, 1, 1), tex, color);
 	}
-	void addRect(const IRect &rect, PTexture tex, RectStyle style) {
-		addRect(FRect(rect), FRect(0, 0, 1, 1), tex, style);
-	}
-	void addRect(const IRect &rect, const FRect &tex_rect, PTexture tex, RectStyle style) {
-		addRect(FRect(rect), tex_rect, tex, style);
-	}
+
+	void addLineRect(const FRect &rect, Color color);
+
+	// Each line is represented by two vertices
+	void addLines(const float3 *pos, const Color *color, int num_lines);
+
+	//TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
+	
+	// Each quad is represented by 4 vertices (ordered clockwise)
+	void addQuads(const float3 *pos, const float2 *tex_coord, const Color *color, int num_quads,
+				  PTexture tex);
+
+	// Each triangle is represented by 3 vertices
+	void addTris(const float3 *pos, const float2 *tex_coord, const Color *color, int num_tris,
+				 PTexture tex);
 
   protected:
-	void renderRects() const;
-
-	struct RectInstance {
-		FRect rect, tex_rect;
+	struct Element {
+		Matrix4 view_matrix;
 		PTexture texture;
-		RectStyle style;
+		int first_index;
+		int num_indices;
+		int primitive_type;
 	};
 
-	vector<RectInstance> m_rects;
+	Element &makeElement(int primitive_type, PTexture tex);
+
+	vector<float3> m_positions;
+	vector<Color> m_colors;
+	vector<float2> m_tex_coords;
+	vector<uint> m_indices;
+	vector<Element> m_elements;
 
 	const IRect m_viewport;
-	Matrix4 m_view_matrix, m_inv_view_matrix;
+	vector<Matrix4> m_matrix_stack;
+	Matrix4 m_view_matrix;
 	Matrix4 m_projection_matrix;
 	PProgram m_tex_program, m_flat_program;
 };
@@ -557,6 +541,7 @@ class Font : public Resource {
 
 	void load(Stream &);
 	void loadFromXML(const XMLDocument &);
+	const string &textureName() const { return m_texture_name; }
 
 	struct Glyph {
 		int character;
@@ -573,6 +558,34 @@ class Font : public Resource {
 	IRect evalExtents(const string &str, bool exact = false) const {
 		return evalExtents(str.c_str(), exact);
 	}
+
+	int lineHeight() const { return m_line_height; }
+
+  private:
+	friend class FontFactory;
+	friend class FontRenderer;
+
+	// Returns number of quads generated
+	// For every quad it generates: 4 vectors in each buffer
+	int genQuads(const char *str, float3 *out_pos, float2 *out_uv, int buffer_size) const;
+
+
+	// TODO: better representation? hash table maybe?
+	std::map<int, Glyph> m_glyphs;
+	std::map<pair<int, int>, int> m_kernings;
+	string m_texture_name;
+	int2 m_texture_size;
+
+	string m_face_name;
+	IRect m_max_rect;
+	int m_line_height;
+};
+
+using PFont = Ptr<Font>;
+
+class FontRenderer {
+  public:
+	FontRenderer(PFont font, PTexture texture, Renderer &out);
 
 	FRect draw(const FRect &rect, const FontStyle &style, const char *text) const;
 	FRect draw(const FRect &rect, const FontStyle &style, const TextFormatter &fmt) const {
@@ -592,32 +605,13 @@ class Font : public Resource {
 		return draw(FRect(pos, pos), style, str.c_str());
 	}
 
-	int lineHeight() const { return m_line_height; }
-
-	static ResourceMgr<Font> mgr;
-	static ResourceMgr<DTexture> tex_mgr;
-
   private:
-	friend class FontFactory;
-
-	// Returns number of quads generated
-	// For every quad it generates: 4 * 2 floats in each buffer
-	// bufSize is number of float pairs that fits in the buffer
-	int genQuads(const char *str, float2 *out_pos, float2 *out_uv, int buffer_size) const;
-
 	void draw(const int2 &pos, Color col, const char *text) const;
 
-	// TODO: better representation? hash table maybe?
-	std::map<int, Glyph> m_glyphs;
-	std::map<pair<int, int>, int> m_kernings;
+	PFont m_font;
 	PTexture m_texture;
-
-	string m_face_name;
-	IRect m_max_rect;
-	int m_line_height;
+	Renderer &m_renderer;
 };
-
-typedef Ptr<Font> PFont;
 
 class FontFactory {
   public:
@@ -627,7 +621,7 @@ class FontFactory {
 	FontFactory(FontFactory const &) = delete;
 	void operator=(FontFactory const &) = delete;
 
-	PFont makeFont(string const &path, int size_in_pixels, bool lcd_mode = false);
+	pair<PFont, PTexture> makeFont(string const &path, int size_in_pixels, bool lcd_mode = false);
 
   private:
 	class Impl;

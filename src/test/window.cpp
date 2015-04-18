@@ -24,7 +24,8 @@ bool mainLoop(GfxDevice &device) {
 		Color fill_color(float4(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f));
 		Color border_color = Color::black;
 
-		s_renderer->addRect(rect, nullptr, {fill_color, border_color});
+		s_renderer->addRect(rect, nullptr, fill_color);
+		s_renderer->addLineRect(rect, border_color);
 	}
 
 	s_renderer->render();

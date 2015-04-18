@@ -106,7 +106,7 @@ template <class T1, class T2> inline bool isOneOf(const T1 &value, const vector<
 template <class T> inline T max(T a, T b) { return a < b ? b : a; }
 template <class T> inline T min(T a, T b) { return a > b ? b : a; }
 
-template <class T> bool operator!=(const T &a, const T &b) { return !(a == b); }
+template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
 template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
 
