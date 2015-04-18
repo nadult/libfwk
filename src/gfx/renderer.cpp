@@ -69,13 +69,13 @@ void Renderer::popViewMatrix() {
 	m_matrix_stack.pop_back();
 }
 
-void Renderer::mulViewMatrix(const Matrix4 &matrix) { m_view_matrix = matrix * m_view_matrix; }
+void Renderer::mulViewMatrix(const Matrix4 &matrix) { m_view_matrix = m_view_matrix * matrix; }
 
 void Renderer::setViewMatrix(const Matrix4 &matrix) { m_view_matrix = matrix; }
 
 void Renderer::setViewMatrix(const float2 &look_at) {
-	m_view_matrix = translation(-look_at.x, look_at.y, 0.0f) *
-					translation(0, m_viewport.height(), 0) * scaling(1, -1, 1);
+	m_view_matrix = translation(0, m_viewport.height(), 0) * scaling(1, -1, 1) *
+					translation(-look_at.x, -look_at.y, 0.0f);
 }
 
 void Renderer::addRect(const FRect &rect, const FRect &tex_rect, PTexture texture, Color color) {
