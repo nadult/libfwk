@@ -19,6 +19,7 @@ SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
 PROGRAM_SRC=test/streams test/stuff test/math test/window
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
+HTML5_SRC=filesystem_linux
 
 
 LINUX_SHARED_SRC=$(SHARED_SRC) $(LINUX_SRC)
@@ -61,8 +62,6 @@ LINUX_FLAGS=-DFWK_TARGET_LINUX -I/usr/include/SDL/ `$(LINUX_PKG_CONFIG) --cflags
 MINGW_FLAGS=-DFWK_TARGET_MINGW `$(MINGW_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 HTML5_FLAGS=-DFWK_TARGET_HTML5 -std=c++11 -lSDL -O0 $(INCLUDES)
 
-HTML5_PRELOADS=test.vsh test.fsh
-
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
 	$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@
 	$(MINGW_CXX) $(MINGW_FLAGS) -MM $< -MT $(BUILD_DIR)/$*_.o >> $@
@@ -80,11 +79,11 @@ $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
 	$(MINGW_CXX) -o $@ $^  $(LIBS_$*) $(MINGW_LIBS)
 	$(MINGW_STRIP) $@
 
-$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp)
+$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 	cat $^ > $@
 
 $(HTML5_PROGRAMS): %.html: %.html.cpp
-	emcc $(HTML5_FLAGS) $^ -o $@ $(HTML5_PRELOADS:%=--embed-file %)
+	emcc $(HTML5_FLAGS) $^ -o $@
 
 
 lib/libfwk.a: $(LINUX_SHARED_OBJECTS)
@@ -93,10 +92,13 @@ lib/libfwk.a: $(LINUX_SHARED_OBJECTS)
 lib/libfwk_win32.a: $(MINGW_SHARED_OBJECTS)
 	$(MINGW_AR) r $@ $^ 
 
+lib/libfwk.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
+	cat $^ > $@
+
 clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
-		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) \
-		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a
+		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
+		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp
 	-rmdir test lib $(BUILD_DIR)/test $(BUILD_DIR)/gfx $(BUILD_DIR)/math
 	-rmdir $(BUILD_DIR)
 

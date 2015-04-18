@@ -12,9 +12,6 @@
 #include <libgen.h>
 #include <cstring>
 
-#ifndef _DIRENT_HAVE_D_TYPE
-#error dirent without d_type not supported
-#endif
 
 namespace fwk {
 
@@ -46,6 +43,7 @@ bool FilePath::isDirectory() const {
 	return S_ISDIR(buf.st_mode) || S_ISLNK(buf.st_mode);
 }
 
+#ifdef _DIRENT_HAVE_D_TYPE
 static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,
 					  int flags) {
 	DIR *dp = opendir(path.c_str());
@@ -114,6 +112,7 @@ void findFiles(vector<FileEntry> &out, const FilePath &path, int flags) {
 
 	findFiles(out, path.absolute(), append, flags);
 }
+#endif
 }
 
 #endif

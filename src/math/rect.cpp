@@ -5,6 +5,14 @@
 #include "fwk_math.h"
 
 namespace fwk {
+	
+template <class TVec2>
+void Rect<TVec2>::getCorners(Vec2 corners[4]) const {
+	corners[0] = min;
+	corners[1] = Vec2(min.x, max.y);
+	corners[2] = max;
+	corners[3] = Vec2(max.x, min.y);
+}
 
 bool areAdjacent(const IRect &a, const IRect &b) {
 	if(b.min.x < a.max.x && a.min.x < b.max.x)
@@ -33,4 +41,8 @@ bool areOverlapping(const FRect &a, const FRect &b) {
 			return false;
 	return true;
 }
+
+template struct Rect<int2>;
+template struct Rect<float2>;
+
 }

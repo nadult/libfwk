@@ -113,6 +113,10 @@ void Program::setUniform(const char *name, const Matrix4 &matrix) {
 	glUniformMatrix4fv(glGetUniformLocation(m_handle, name), 1, 0, &matrix[0][0]);
 	//DASSERT(glGetError() == GL_NO_ERROR);
 }
+	
+int Program::getUniformLocation(const char *name) {
+	return glGetUniformLocation(m_handle, name);
+}
 
 void Program::bindAttribLocation(const char *name, unsigned loc) {
 	glBindAttribLocation(m_handle, loc, name);

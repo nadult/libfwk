@@ -45,125 +45,139 @@ void renderMesh(const Stream &stream, PTexture tex, Color color) {
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }*/
 
-static PProgram defaultProgram() {
-	Shader vertex_shader(Shader::tVertex);
-	Shader pixel_shader(Shader::tFragment);
-	Loader("test.vsh") >> vertex_shader;
-	Loader("test.fsh") >> pixel_shader;
-	PProgram out = new Program(vertex_shader, pixel_shader);
-	out->bindAttribLocation("vertex", 0);
+static const char *fragment_shader_tex_src =
+	"#version 100\n"
+	"uniform sampler2D tex; 											\n"
+	"uniform lowp vec4 color;											\n"
+	"varying mediump vec2 tex_coord;									\n"
+	"void main() {														\n"
+	"	gl_FragColor = color * texture2D(tex, tex_coord);				\n"
+	"}																	\n";
+
+static const char *fragment_shader_flat_src =
+	"#version 100\n"
+	"uniform lowp vec4 color;											\n"
+	"void main() {														\n"
+	"	gl_FragColor = color;											\n"
+	"}																	\n";
+
+static const char *vertex_shader_src =
+	"#version 100\n"
+	"uniform mat4 view_matrix, proj_matrix;								\n"
+	"attribute vec3 in_pos;												\n"
+	"attribute vec2 in_tex_coord;										\n"
+	"varying vec2 tex_coord;  											\n"
+	"void main() {														\n"
+	"	gl_Position = proj_matrix * view_matrix * vec4(in_pos, 1.0);	\n"
+	"	tex_coord = in_tex_coord;										\n"
+	"} 																	\n";
+
+static PProgram makeProgram(bool with_texture) {
+	Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
+	vertex_shader.setSource(vertex_shader_src);
+	fragment_shader.setSource(with_texture ? fragment_shader_tex_src : fragment_shader_flat_src);
+
+	PProgram out = new Program(vertex_shader, fragment_shader);
+	out->bindAttribLocation("in_pos", 0);
+	out->bindAttribLocation("in_tex_coord", 1);
 	return out;
 }
 
-Renderer::Renderer(const IRect &viewport, const Matrix4 &view_mat, const Matrix4 &proj_mat)
-	: m_viewport(viewport) {
-	m_default_program = defaultProgram();
-	reset(view_mat, proj_mat);
+Renderer::Renderer(const IRect &viewport) : m_viewport(viewport) {
+	m_tex_program = makeProgram(true);
+	m_tex_program->setUniform("tex", 0);
+	m_flat_program = makeProgram(false);
+	lookAt(float2(0.0f, 0.0f));
 }
 
-void Renderer::reset(const Matrix4 &view_matrix, const Matrix4 &projection_matrix) {
-	m_view_matrix = view_matrix;
-	m_projection_matrix = projection_matrix;
-	m_inv_view_matrix = inverse(view_matrix);
-	m_default_program->setUniform("modelViewMatrix", m_view_matrix);
-	m_default_program->setUniform("projectionMatrix", m_projection_matrix);
+void Renderer::lookAt(const float2 &look_at) {
+	m_projection_matrix =
+		ortho(m_viewport.min.x, m_viewport.max.x, m_viewport.min.y, m_viewport.max.y, -1.0f, 1.0f);
+	m_view_matrix = translation(0, m_viewport.height(), 0) * scaling(1, -1, 1);
+	m_view_matrix = translation(-look_at.x, look_at.y, 0.0f) * m_view_matrix;
 
-	/*	m_zoom = zoom;
-
-		m_w2s = isometricView(m_view_pos, m_zoom);
-		m_s2w = inverse(m_w2s);
-
-		m_zero_depth = mulPoint(m_w2s, screenToWorld(float2(0, 0), 0.0f)).z;
-		m_s2w = inverse(m_w2s);
-
-		g_model_view.push();
-		setupView(m_w2s); // TODO
-		m_frustum = Frustum(g_projection * g_model_view);
-		g_model_view.pop();*/
+	m_inv_view_matrix = inverse(m_view_matrix);
+	m_flat_program->setUniform("view_matrix", m_view_matrix);
+	m_flat_program->setUniform("proj_matrix", m_projection_matrix);
+	m_tex_program->setUniform("view_matrix", m_view_matrix);
+	m_tex_program->setUniform("proj_matrix", m_projection_matrix);
 
 	m_rects.clear();
 }
 
-const Frustum Renderer::frustum(const FRect &screen_rect) const {
-	Frustum out;
-
-	Ray rays[4];
-	rays[0] = -screenRay(screen_rect.min);
-	rays[1] = -screenRay(float2(screen_rect.min.x, screen_rect.max.y));
-	rays[2] = -screenRay(screen_rect.max);
-	rays[3] = -screenRay(float2(screen_rect.max.x, screen_rect.min.y));
-
-	out[0] = Plane(rays[1].origin(), rays[0].origin(), rays[0].at(1.0f));
-	out[1] = Plane(rays[3].origin(), rays[2].origin(), rays[2].at(1.0f));
-	out[2] = Plane(rays[2].origin(), rays[1].origin(), rays[1].at(1.0f));
-	out[3] = Plane(rays[0].origin(), rays[3].origin(), rays[3].at(1.0f));
-
-	return out;
-}
-
-const Ray Renderer::screenRay(const float2 &screen_pos) const {
-	return Ray(m_inv_view_matrix, screen_pos);
-}
-
-const float2 Renderer::worldToScreen(const float3 &pos) const {
-	return mulPoint(m_view_matrix, pos).xy();
-}
-
-const float3 Renderer::screenToWorld(const float2 &screen_pos, float floor_height) const {
-	Plane floor(float3(0, 1, 0), floor_height);
-	Ray screen_ray = screenRay(screen_pos);
-	float isect = intersection(screen_ray, floor);
-	return screen_ray.at(isect);
-}
-
-void Renderer::addRect(const FRect &rect, PTexture texture, RectStyle style) {
-	m_rects.emplace_back(RectInstance{rect, texture, style});
+void Renderer::addRect(const FRect &rect, const FRect &tex_rect, PTexture texture, RectStyle style) {
+	m_rects.emplace_back(RectInstance{rect, tex_rect, texture, style});
 }
 
 void Renderer::render() {
-	enum { node_size = 128 };
-
 	//	setupView(translation(m_viewport.min.x, m_viewport.min.y, -m_zero_depth - 1000.0f) * m_w2s);
 	//	setDepthTest(true);
-
 	renderRects();
 	//	glDepthMask(1);
 	DTexture::unbind();
+
+	m_rects.clear();
 }
 
 void Renderer::renderRects() const {
-	m_default_program->bind();
+	if(m_rects.empty())
+		return;
 
+	//TODO: make it a bit more efficient :)
+	
 	vector<float3> positions(m_rects.size() * 4);
+	vector<float4> colors(m_rects.size() * 4);
+	vector<float2> tex_coords(m_rects.size() * 4);
+
 	for(int n = 0; n < (int)m_rects.size(); n++) {
-		positions[n * 4 + 0] = float3(m_rects[n].rect.min.x, m_rects[n].rect.min.y, 0.0f);
-		positions[n * 4 + 1] = float3(m_rects[n].rect.max.x, m_rects[n].rect.min.y, 0.0f);
-		positions[n * 4 + 3] = float3(m_rects[n].rect.min.x, m_rects[n].rect.max.y, 0.0f);
-		positions[n * 4 + 2] = float3(m_rects[n].rect.max.x, m_rects[n].rect.max.y, 0.0f);
+		float2 corners[4];
+		m_rects[n].rect.getCorners(corners);
+		m_rects[n].tex_rect.getCorners(&tex_coords[n * 4]);
+		for(int i = 0; i < 4; i++) {
+			colors[n * 4 + i] = m_rects[n].style.fill_color;
+			positions[n * 4 + i] = float3(corners[i], 0.0f);
+		}
 	}
 
-//	glBegin(GL_QUADS);
-//	for(auto &pos : positions)
-//		glVertex3f(pos.x, pos.y, pos.z);
-//	glEnd();
-	
 	VertexArray array;
-	VertexBuffer buf_pos;
+	VertexBuffer buf_pos, buf_color, buf_tex_coord;
 
 	array.bind();
-	buf_pos.setData(sizeof(float3) * positions.size(), &positions[0], GL_STATIC_DRAW);
+	buf_pos.setData(sizeof(float3) * positions.size(), positions.data(), GL_STATIC_DRAW);
 	array.addAttrib(3, GL_FLOAT, 0, sizeof(float3), 0);
-	
+
+//	buf_color.setData(sizeof(float4) * colors.size(), colors.data(), GL_STATIC_DRAW);
+//	array.addAttrib(4, GL_FLOAT, 0, sizeof(float4), 0);
+
+	buf_tex_coord.setData(sizeof(float2) * tex_coords.size(), tex_coords.data(), GL_STATIC_DRAW);
+	array.addAttrib(2, GL_FLOAT, 0, sizeof(float2), 0);
+
 	VertexArray::unbind();
 	VertexBuffer::unbind();
 
-	//	uv.SetData(sizeof(Vec2) * data.uvs.size(), &data.uvs[0], GL_STATIC_DRAW);
-	//	vao.VertexAttrib(2, 2, GL_FLOAT, 0, sizeof(Vec2), 0);
-
 	array.bind();
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, m_rects.size() * 4);
-	VertexBuffer::unbind();
 
+	PTexture cur_tex;
+	m_flat_program->bind();
+
+	for(int n = 0; n < (int)m_rects.size(); n++) {
+		if(m_rects[n].style.fill_color != Color::transparent) {
+			if(m_rects[n].texture)
+				m_rects[n].texture->bind();
+			PProgram program = (m_rects[n].texture? m_tex_program : m_flat_program);
+			program->setUniform("color", (float4)m_rects[n].style.fill_color);
+			program->bind();
+			glDrawArrays(GL_TRIANGLE_FAN, n * 4, 4);
+		}
+		if(m_rects[n].style.border_color != Color::transparent) {
+			m_flat_program->bind();
+			m_flat_program->setUniform("color", (float4)m_rects[n].style.border_color);
+			glDrawArrays(GL_LINE_LOOP, n * 4, 4);
+		}
+	}
+
+	VertexArray::unbind();
+	DTexture::unbind();
 	Program::unbind();
 }
 }

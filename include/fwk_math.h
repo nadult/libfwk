@@ -365,6 +365,9 @@ template <class TVec2> struct Rect {
 		max = fwk::max(max, point);
 	}
 
+	// Returns corners in clockwise order	
+	void getCorners(Vec2 corners[4]) const;
+
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y; }
 	
 	//TODO: remove or specialize for int/float

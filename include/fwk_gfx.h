@@ -469,6 +469,7 @@ class Program : public RefCounter {
 	void setUniform(const char *name, const float3 &);
 	void setUniform(const char *name, const float4 &);
 	void setUniform(const char *name, const Matrix4 &);
+	int getUniformLocation(const char *name);
 
 	void bindAttribLocation(const char *name, unsigned);
 	void link();
@@ -481,29 +482,27 @@ typedef Ptr<Program> PProgram;
 
 class Renderer {
   public:
-	Renderer(const IRect &viewport, const Matrix4 &view_mat, const Matrix4 &proj_mat);
+	Renderer(const IRect &viewport);
 
-	void reset(const Matrix4 &view_matrix, const Matrix4 &projection_matrix);
+	void lookAt(const float2 &pos);
 	void render();
 
-	void addRect(const FRect &rect, PTexture tex, RectStyle style);
-
-	const float2 &viewPos() const { return m_view_pos; }
-	float zoom() const { return m_zoom; }
-
-	const Frustum &frustum() const { return m_frustum; }
-
-	const Ray screenRay(const float2 &screen_pos) const;
-	const Frustum frustum(const FRect &screen_rect) const;
-
-	const float2 worldToScreen(const float3 &) const;
-	const float3 screenToWorld(const float2 &, float floor_height = 0.0f) const;
+	void addRect(const FRect &rect, const FRect &tex_rect, PTexture tex, RectStyle style);
+	void addRect(const FRect &rect, PTexture tex, RectStyle style) {
+		addRect(rect, FRect(0, 0, 1, 1), tex, style);
+	}
+	void addRect(const IRect &rect, PTexture tex, RectStyle style) {
+		addRect(FRect(rect), FRect(0, 0, 1, 1), tex, style);
+	}
+	void addRect(const IRect &rect, const FRect &tex_rect, PTexture tex, RectStyle style) {
+		addRect(FRect(rect), tex_rect, tex, style);
+	}
 
   protected:
 	void renderRects() const;
 
 	struct RectInstance {
-		FRect rect;
+		FRect rect, tex_rect;
 		PTexture texture;
 		RectStyle style;
 	};
@@ -511,13 +510,9 @@ class Renderer {
 	vector<RectInstance> m_rects;
 
 	const IRect m_viewport;
-	Frustum m_frustum;
-	float2 m_view_pos;
-	float m_zoom, m_zero_depth;
-
 	Matrix4 m_view_matrix, m_inv_view_matrix;
 	Matrix4 m_projection_matrix;
-	PProgram m_default_program;
+	PProgram m_tex_program, m_flat_program;
 };
 
 void clear(Color color);

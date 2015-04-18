@@ -53,11 +53,15 @@ namespace {
 				sr.loadData(line, hdr.width * 3);
 				Color *dst = &out_data[y * hdr.width];
 				for(int x = 0; x < hdr.width; x++)
-					dst[x] = Color(line[x * 3 + 0], line[x * 3 + 1], line[x * 3 + 2]);
+					dst[x] = Color(line[x * 3 + 2], line[x * 3 + 1], line[x * 3 + 0]);
 			}
 		} else if(bpp == 4) {
-			for(int y = hdr.height - 1; y >= 0; y--)
-				sr.loadData(&out_data[y * hdr.width], hdr.width * 4);
+			for(int y = hdr.height - 1; y >= 0; y--) {
+				Color *colors = &out_data[y * hdr.width];
+				sr.loadData(colors, hdr.width * 4);
+				for(int x = 0; x < hdr.width; x++)
+					colors[x] = swapBR(colors[x]);
+			}
 		}
 	}
 	Texture::RegisterLoader tga_loader("tga", loadTGA);

@@ -221,12 +221,14 @@ bool GfxDevice::pollEvents() {
 		case SDL_MOUSEBUTTONUP:
 		case SDL_MOUSEBUTTONDOWN: {
 			bool is_down = event.type == SDL_MOUSEBUTTONDOWN;
+
+			// TODO: fix formatting
 			int button_id =
-				event.button.type == SDL_BUTTON_LEFT
+				event.button.button == SDL_BUTTON_LEFT
 					? InputButton::left
-					: event.button.type == SDL_BUTTON_RIGHT
+					: event.button.button == SDL_BUTTON_RIGHT
 						  ? InputButton::right
-						  : event.button.type == SDL_BUTTON_MIDDLE ? InputButton::middle : -1;
+						  : event.button.button == SDL_BUTTON_MIDDLE ? InputButton::middle : -1;
 			if(button_id != -1) {
 				m_input_state.mouse_buttons[button_id] = is_down ? 1 : -1;
 				events.emplace_back(is_down ? InputEvent::mouse_button_down

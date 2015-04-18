@@ -33,7 +33,7 @@ namespace {
 		//	FormatConv(  2,	TI_A8R3G3B2,		0,0,0,0),
 		//	FormatConv(  2,	TI_X4R4G4B4,		0,0,0,0),
 		FormatConv(4, TI_A2B10G10R10, GL_RGB10_A2, GL_BGRA, GL_UNSIGNED_INT_2_10_10_10_REV),
-		FormatConv(4, TI_A8B8G8R8, GL_RGBA8, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV),
+		FormatConv(4, TI_A8B8G8R8, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE),
 		//	FormatConv(  4,	TI_X8B8G8R8,		0,0,0,0),
 		//	FormatConv(  4,	TI_G16R16,			0,0,0,0),
 		FormatConv(4, TI_A2R10G10B10, GL_RGB10_A2, GL_RGBA, GL_UNSIGNED_INT_2_10_10_10_REV),

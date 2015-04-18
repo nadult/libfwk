@@ -32,6 +32,9 @@ namespace xml_conversions {
 			return;
 		}
 
+		// TODO: this function returns wrong values on Chromium when compiled with emscripten -O1
+		// visible in prototype_00
+
 		const char *format = "%f %f %f %f";
 		if(sscanf(input, format + (4 - count) * 3, out + 0, out + 1, out + 2, out + 3) != count)
 			THROW("Error while parsing %d floats from string \"%s\"", count, input);
