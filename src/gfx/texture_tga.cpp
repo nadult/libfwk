@@ -8,43 +8,53 @@
 namespace fwk {
 
 struct Header {
-	u8 idlength;
-	u8 colourmaptype;
-	u8 datatypecode;
-	u16 colourmaporigin;
-	u16 colourmaplength;
-	u8 colourmapdepth;
+	void save(Stream &sr) const {
+		sr.pack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
+				color_map_depth, x_origin, y_origin, width, height, bits_per_pixel, image_descriptor);
+	}
+
+	void load(Stream &sr) {
+		sr.unpack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
+				  color_map_depth, x_origin, y_origin, width, height, bits_per_pixel, image_descriptor);
+	}
+
+	u8 id_length;
+	u8 color_map_type;
+	u8 data_type_code;
+	u16 color_map_origin;
+	u16 color_map_length;
+	u8 color_map_depth;
 	u16 x_origin;
 	u16 y_origin;
 	u16 width;
 	u16 height;
-	u8 bitsperpixel;
-	u8 imagedescriptor;
-} __attribute__((packed));
+	u8 bits_per_pixel;
+	u8 image_descriptor;
+};
 
 namespace {
 	void loadTGA(Stream &sr, PodArray<Color> &out_data, int2 &out_size) {
 		Header hdr;
 		enum { max_width = 2048 };
 
-		sr.loadData(&hdr, sizeof(hdr));
+		sr >> hdr;
 
-		if(hdr.datatypecode != 2)
-			THROW("Only uncompressed RGB data type is supported (id:%d)", (int)hdr.datatypecode);
-		if(hdr.bitsperpixel != 24 && hdr.bitsperpixel != 32)
-			THROW("Only 24 and 32-bit tga files are supported (bpp:%d)", (int)hdr.bitsperpixel);
+		if(hdr.data_type_code != 2)
+			THROW("Only uncompressed RGB data type is supported (id:%d)", (int)hdr.data_type_code);
+		if(hdr.bits_per_pixel != 24 && hdr.bits_per_pixel != 32)
+			THROW("Only 24 and 32-bit tga files are supported (bpp:%d)", (int)hdr.bits_per_pixel);
 		if(hdr.width > max_width)
 			THROW("Bitmap is too wide (%d pixels): max width is %d", (int)hdr.width,
 				  (int)max_width);
 
-		sr.seek(sr.pos() + hdr.idlength);
+		sr.seek(sr.pos() + hdr.id_length);
 
-		unsigned bpp = hdr.bitsperpixel / 8;
+		unsigned bpp = hdr.bits_per_pixel / 8;
 		out_data.resize(hdr.width * hdr.height);
 		out_size = int2(hdr.width, hdr.height);
 
-		bool v_flip = hdr.imagedescriptor & 16;
-		bool h_flip = hdr.imagedescriptor & 32;
+		bool v_flip = hdr.image_descriptor & 16;
+		bool h_flip = hdr.image_descriptor & 32;
 		ASSERT(!v_flip && !h_flip && "TODO");
 
 		if(bpp == 3) {
@@ -71,12 +81,12 @@ void Texture::saveTGA(Stream &sr) const {
 	Header header;
 	memset(&header, 0, sizeof(header));
 
-	header.datatypecode = 2;
-	header.colourmapdepth = 32;
+	header.data_type_code = 2;
+	header.color_map_depth = 32;
 	header.width = m_size.x;
 	header.height = m_size.y;
-	header.bitsperpixel = 32;
-	header.imagedescriptor = 8;
+	header.bits_per_pixel = 32;
+	header.image_descriptor = 8;
 
 	sr << header;
 	vector<Color> line(m_size.x);
