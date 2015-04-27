@@ -8,6 +8,7 @@
 #include <cstring>
 #include <memory>
 #include <unistd.h>
+#include <SDL.h>
 
 using namespace fwk;
 using std::cout;
@@ -234,7 +235,7 @@ int tmain() {
 	return 0;
 }
 
-int main() {
+int main(int argc, char **argv) {
 	try {
 		return tmain();
 	}

@@ -1,12 +1,16 @@
 #FWK_DIR should be defined
+#MINGW_PREFIX should be defined
 
 LINUX_FWK_LIB=$(FWK_DIR)/lib/libfwk.a
 MINGW_FWK_LIB=$(FWK_DIR)/lib/libfwk_win32.a
-HTML5_FWK_LIB=$(FWK_DIR)/lib/libfwk.cpp
+HTML5_FWK_LIB=$(FWK_DIR)/lib/libfwk.html.cpp
 
-FWK_LIBS=-lpng -lSDL -lz -lmpg123 -L$(FWK_DIR)/lib
-LINUX_FWK_LIBS=$(FWK_LIBS) -lfwk `pkg-config --libs freetype2` -lopenal -lGL -lGLU -lrt
-MINGW_FWK_LIBS=$(FWK_LIBS) -lfwk_win32 `$(MINGW_PREFIX)pkg-config --libs freetype2` -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
+LINUX_PKG_CONFIG=pkg-config
+MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
+
+FWK_LIBS=freetype2 sdl libpng zlib libmpg123
+LINUX_FWK_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk -lopenal -lGL -lGLU -lrt
+MINGW_FWK_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk_win32 -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
 FWK_INCLUDES=-I$(FWK_DIR)/include
 
@@ -17,7 +21,7 @@ $(LINUX_FWK_LIB): .ALWAYS_CHECK
 $(MINGW_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a
 $(HTML5_FWK_LIB): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) lib/libfwk.cpp
+	$(MAKE) -C $(FWK_DIR) lib/libfwk.html.cpp
 
 .ALWAYS_CHECK:
 

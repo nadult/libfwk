@@ -98,7 +98,7 @@ void Renderer::addLineRect(const FRect &rect, Color color) {
 	for(int n = 0; n < 4; n++)
 		pos[n] = float3(pos_2d[n], 0.0f);
 
-	Element &elem = makeElement(GL_LINE_STRIP, nullptr);
+	Element &elem = makeElement(GL_LINES, nullptr);
 	int vertex_offset = (int)m_positions.size();
 
 	m_positions.insert(m_positions.end(), pos, pos + 4);
@@ -121,7 +121,7 @@ Renderer::Element &Renderer::makeElement(int primitive_type, PTexture texture) {
 }
 
 void Renderer::addLines(const float3 *pos, const Color *color, int num_lines) {
-	Element &elem = makeElement(GL_LINE_STRIP, nullptr);
+	Element &elem = makeElement(GL_LINES, nullptr);
 	int vertex_offset = (int)m_positions.size();
 	int num_vertices = num_lines * 2;
 

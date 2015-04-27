@@ -1,4 +1,5 @@
 #include "fwk.h"
+#include <SDL.h>
 
 using namespace fwk;
 

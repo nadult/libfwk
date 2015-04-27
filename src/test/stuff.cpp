@@ -5,6 +5,7 @@
 #include "fwk.h"
 #include <iostream>
 #include <string>
+#include <SDL.h>
 
 using namespace std;
 using namespace fwk;
@@ -21,7 +22,7 @@ int tmain() {
 	return 0;
 }
 
-int main() {
+int main(int argc, char **argv) {
 	try {
 		return tmain();
 	}

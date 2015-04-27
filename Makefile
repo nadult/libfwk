@@ -50,16 +50,16 @@ MINGW_STRIP=$(MINGW_PREFIX)strip
 MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-LIBS=-lSDL -lpng -lz -lmpg123 
-LINUX_LIBS=$(LIBS) `$(LINUX_PKG_CONFIG) --libs freetype2` -lopenal -lGL -lGLU -lrt -fopenmp 
-MINGW_LIBS=$(LIBS) `$(MINGW_PKG_CONFIG) --libs freetype2` -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
+LIBS=freetype2 sdl libpng zlib libmpg123
+LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lopenal -lGL -lGLU -lrt -fopenmp 
+MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
 INCLUDES=-Iinclude/ -Isrc/
 
 NICE_FLAGS=-std=c++11 -ggdb -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wno-uninitialized -Wno-unused-function \
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
-LINUX_FLAGS=-DFWK_TARGET_LINUX -I/usr/include/SDL/ `$(LINUX_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS) -rdynamic
-MINGW_FLAGS=-DFWK_TARGET_MINGW `$(MINGW_PKG_CONFIG) --cflags freetype2` $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+LINUX_FLAGS=-DFWK_TARGET_LINUX $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS) -rdynamic
+MINGW_FLAGS=-DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 HTML5_FLAGS=-DFWK_TARGET_HTML5 -std=c++11 -lSDL -O0 $(INCLUDES)
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
@@ -92,13 +92,13 @@ lib/libfwk.a: $(LINUX_SHARED_OBJECTS)
 lib/libfwk_win32.a: $(MINGW_SHARED_OBJECTS)
 	$(MINGW_AR) r $@ $^ 
 
-lib/libfwk.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
+lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 	cat $^ > $@
 
 clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
-		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp
+		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a lib/libfwk.html.cpp
 	-rmdir test lib $(BUILD_DIR)/test $(BUILD_DIR)/gfx $(BUILD_DIR)/math
 	-rmdir $(BUILD_DIR)
 
