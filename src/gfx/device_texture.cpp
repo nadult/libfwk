@@ -9,7 +9,9 @@ namespace fwk {
 
 static int s_current_tex = 0;
 
-DTexture::DTexture() : m_id(0), m_width(0), m_height(0), m_format(TI_Unknown) {}
+DTexture::DTexture()
+	: m_id(0), m_width(0), m_height(0), m_format(TI_Unknown), m_is_wrapped(false),
+	  m_is_filtered(true), m_is_dirty(false) {}
 
 DTexture::~DTexture() { clear(); }
 
@@ -19,12 +21,23 @@ void DTexture::load(Stream &sr) {
 	set(temp);
 }
 
+void DTexture::setWrapping(bool enable) {
+	m_is_wrapped = enable;
+	m_is_dirty = true;
+}
+
+void DTexture::setFiltering(bool enable) {
+	m_is_filtered = enable;
+	m_is_dirty = true;
+}
+
 void DTexture::resize(TextureFormat format, int width, int height) {
 	if(!m_id) {
 		GLuint gl_id;
 		glGenTextures(1, &gl_id);
 		testGlError("glGenTextures");
 		m_id = (int)gl_id;
+		m_is_dirty = true;
 	}
 
 	if(m_width == width && m_height == height && m_format == format)
@@ -32,11 +45,6 @@ void DTexture::resize(TextureFormat format, int width, int height) {
 
 	try {
 		bind();
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexImage2D(GL_TEXTURE_2D, 0, format.glInternal(), width, height, 0, format.glFormat(),
 					 format.glType(), 0);
 		testGlError("glTexImage2D");
@@ -100,6 +108,17 @@ void DTexture::bind() const {
 	DASSERT(isValid());
 	if(m_id != s_current_tex) {
 		::glBindTexture(GL_TEXTURE_2D, m_id);
+		if(m_is_dirty) {
+			int wrapping = m_is_wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
+
+			int filter = m_is_filtered ? GL_LINEAR : GL_NEAREST;
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+			m_is_dirty = false;
+		}
+
 		s_current_tex = m_id;
 	}
 }
@@ -110,5 +129,4 @@ void DTexture::unbind() {
 		s_current_tex = 0;
 	}
 }
-
 }

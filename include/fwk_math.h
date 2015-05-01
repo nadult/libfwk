@@ -558,7 +558,7 @@ const Matrix4 transpose(const Matrix4 &);
 const Matrix4 inverse(const Matrix4 &);
 
 const Matrix4 translation(const float3 &);
-const Matrix4 lookAt(const float3 &eye, const float3 &center, const float3 &up);
+const Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up);
 const Matrix4 perspective(float fov, float aspect, float zNear, float zFar);
 const Matrix4 ortho(float left, float right, float top, float bottom, float near, float far);
 

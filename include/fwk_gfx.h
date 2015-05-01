@@ -199,6 +199,12 @@ class DTexture : public Resource {
 
 	void load(Stream &);
 
+	void setWrapping(bool enable);
+	bool isWrapped() const { return m_is_wrapped; }
+
+	void setFiltering(bool enable);
+	bool isFiltered() const { return m_is_filtered; }
+
 	void bind() const;
 	static void unbind();
 
@@ -224,6 +230,8 @@ class DTexture : public Resource {
 	int m_id;
 	int m_width, m_height;
 	TextureFormat m_format;
+	bool m_is_wrapped, m_is_filtered;
+	mutable bool m_is_dirty;
 };
 
 typedef Ptr<DTexture> PTexture;

@@ -185,8 +185,8 @@ const Matrix4 translation(const float3 &v) {
 		   float4(v[0], v[1], v[2], 1.0f) );
 }
 
-const Matrix4 lookAt(const float3 &eye, const float3 &center, const float3 &up) {
-	float3 front = normalize(center - eye);
+const Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up) {
+	float3 front = normalize(target - eye);
 	float3 side = normalize(cross(front, up));
 	return transpose(side, cross(side, front), -front) * translation(-eye);
 }
