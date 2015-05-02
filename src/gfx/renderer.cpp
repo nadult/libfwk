@@ -26,14 +26,14 @@ static const char *fragment_shader_flat_src =
 
 static const char *vertex_shader_src =
 	"#version 100\n"
-	"uniform mat4 view_matrix, proj_matrix;								\n"
+	"uniform mat4 proj_view_matrix;										\n"
 	"attribute vec3 in_pos;												\n"
 	"attribute vec4 in_color;											\n"
 	"attribute vec2 in_tex_coord;										\n"
 	"varying vec2 tex_coord;  											\n"
 	"varying vec4 color;  												\n"
 	"void main() {														\n"
-	"	gl_Position = proj_matrix * view_matrix * vec4(in_pos, 1.0);	\n"
+	"	gl_Position = proj_view_matrix * vec4(in_pos, 1.0);				\n"
 	"	tex_coord = in_tex_coord;										\n"
 	"	color = in_color;												\n"
 	"} 																	\n";
@@ -50,15 +50,31 @@ static PProgram makeProgram(bool with_texture) {
 	return out;
 }
 
-Renderer::Renderer(const IRect &viewport) : m_viewport(viewport) {
+Renderer::Renderer(const Matrix4 &projection_matrix) {
 	m_tex_program = makeProgram(true);
 	m_tex_program->setUniform("tex", 0);
 	m_flat_program = makeProgram(false);
-	m_projection_matrix =
-		ortho(m_viewport.min.x, m_viewport.max.x, m_viewport.min.y, m_viewport.max.y, -1.0f, 1.0f);
+	setProjectionMatrix(projection_matrix);
+	setViewMatrix(identity());
+}
+
+Renderer::Renderer(const IRect &viewport) : Renderer(simple2DProjectionMatrix(viewport)) {
+	setViewMatrix(simple2DViewMatrix(viewport, float2(0, 0)));
+}
+
+Matrix4 Renderer::simple2DProjectionMatrix(const IRect &viewport) {
+	return ortho(viewport.min.x, viewport.max.x, viewport.min.y, viewport.max.y, -1.0f, 1.0f);
+}
+
+Matrix4 Renderer::simple2DViewMatrix(const IRect &viewport, const float2 &look_at) {
+	return translation(0, viewport.height(), 0) * scaling(1, -1, 1) *
+		   translation(-look_at.x, -look_at.y, 0.0f);
+}
+
+void Renderer::setProjectionMatrix(const Matrix4 &projection_matrix) {
+	m_projection_matrix = projection_matrix;
 	m_flat_program->setUniform("proj_matrix", m_projection_matrix);
 	m_tex_program->setUniform("proj_matrix", m_projection_matrix);
-	setViewMatrix(float2(0.0f, 0.0f));
 }
 
 void Renderer::pushViewMatrix() { m_matrix_stack.push_back(m_view_matrix); }
@@ -73,10 +89,7 @@ void Renderer::mulViewMatrix(const Matrix4 &matrix) { m_view_matrix = m_view_mat
 
 void Renderer::setViewMatrix(const Matrix4 &matrix) { m_view_matrix = matrix; }
 
-void Renderer::setViewMatrix(const float2 &look_at) {
-	m_view_matrix = translation(0, m_viewport.height(), 0) * scaling(1, -1, 1) *
-					translation(-look_at.x, -look_at.y, 0.0f);
-}
+const Frustum Renderer::frustum() const { return Frustum(m_projection_matrix); }
 
 void Renderer::addRect(const FRect &rect, const FRect &tex_rect, PTexture texture, Color color) {
 	float3 pos[4];
@@ -113,10 +126,11 @@ void Renderer::addLineRect(const FRect &rect, Color color) {
 }
 
 Renderer::Element &Renderer::makeElement(int primitive_type, PTexture texture) {
+	Matrix4 mult_matrix = m_projection_matrix * m_view_matrix;
 	if(m_elements.empty() || m_elements.back().primitive_type != primitive_type ||
-	   m_elements.back().texture != texture || m_view_matrix != m_elements.back().view_matrix)
+	   m_elements.back().texture != texture || mult_matrix != m_elements.back().matrix)
 		m_elements.emplace_back(
-			Element{m_view_matrix, texture, (int)m_indices.size(), 0, primitive_type});
+			Element{mult_matrix, texture, (int)m_indices.size(), 0, primitive_type});
 	return m_elements.back();
 }
 
@@ -177,6 +191,7 @@ void Renderer::render() {
 		return;
 
 	setBlendingMode(bmNormal);
+	glDisable(GL_CULL_FACE);
 
 	VertexArray array;
 	VertexBuffer buf_pos, buf_color, buf_tex_coord;
@@ -208,7 +223,7 @@ void Renderer::render() {
 	for(const auto &element : m_elements) {
 		auto &program = (element.texture ? m_tex_program : m_flat_program);
 		program->bind();
-		program->setUniform("view_matrix", element.view_matrix);
+		program->setUniform("proj_view_matrix", element.matrix);
 		if(element.texture)
 			element.texture->bind();
 		glDrawElements(element.primitive_type, element.num_indices, GL_UNSIGNED_INT,

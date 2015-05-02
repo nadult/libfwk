@@ -191,22 +191,23 @@ const Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up) 
 	return transpose(side, cross(side, front), -front) * translation(-eye);
 }
 
-const Matrix4 perspective(float fov, float aspect, float zNear, float zFar) {
+const Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {
 	float rad = fov * 0.5f;
-	float deltaZ = zFar - zNear;
+	float delta_z = z_far - z_near;
 
 	float sin = ::sin(rad);
 
 	Matrix4 out = identity();
-	if(deltaZ != 0.0f && sin != 0.0f && aspect != 0.0f) {
+	if(delta_z != 0.0f && sin != 0.0f && aspect_ratio != 0.0f) {
 		float ctg = cos(rad) / sin;
-		out[0][0] = ctg / aspect;
+		out[0][0] = ctg / aspect_ratio;
 		out[1][1] = ctg;
-		out[2][2] = -(zFar + zNear) / deltaZ;
+		out[2][2] = -(z_far + z_near) / delta_z;
 		out[2][3] = -1.0f;
-		out[3][2] = -2.0f * zNear * zFar / deltaZ;
+		out[3][2] = -2.0f * z_near * z_far / delta_z;
 		out[3][3] = 0.0f;
 	}
+
 	return out;
 }
 

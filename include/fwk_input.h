@@ -133,9 +133,9 @@ class InputEvent {
 		return 0;
 	}
 
-	bool mouseKeyDown(InputButton::Type) const;
-	bool mouseKeyUp(InputButton::Type) const;
-	bool mouseKeyPressed(InputButton::Type) const;
+	bool mouseButtonDown(InputButton::Type) const;
+	bool mouseButtonUp(InputButton::Type) const;
+	bool mouseButtonPressed(InputButton::Type) const;
 
 	// These can be called for every valid event type
 	const int2 &mousePos() const {

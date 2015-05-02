@@ -77,15 +77,15 @@ bool InputEvent::keyDownAuto(int key, int period, int delay) const {
 	return m_type == key_pressed && m_key == key && period > delay && m_iteration % period == 0;
 }
 
-bool InputEvent::mouseKeyDown(InputButton::Type key) const {
+bool InputEvent::mouseButtonDown(InputButton::Type key) const {
 	return m_type == mouse_button_down && m_key == key;
 }
 
-bool InputEvent::mouseKeyUp(InputButton::Type key) const {
+bool InputEvent::mouseButtonUp(InputButton::Type key) const {
 	return m_type == mouse_button_up && m_key == key;
 }
 
-bool InputEvent::mouseKeyPressed(InputButton::Type key) const {
+bool InputEvent::mouseButtonPressed(InputButton::Type key) const {
 	return m_type == mouse_button_pressed && m_key == key;
 }
 }

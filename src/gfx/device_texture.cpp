@@ -11,7 +11,7 @@ static int s_current_tex = 0;
 
 DTexture::DTexture()
 	: m_id(0), m_width(0), m_height(0), m_format(TI_Unknown), m_is_wrapped(false),
-	  m_is_filtered(true), m_is_dirty(false) {}
+	  m_is_filtered(true), m_has_mipmaps(false), m_is_dirty(false) {}
 
 DTexture::~DTexture() { clear(); }
 
@@ -31,6 +31,17 @@ void DTexture::setFiltering(bool enable) {
 	m_is_dirty = true;
 }
 
+void DTexture::generateMipmaps() {
+	if(!isValid())
+		return;
+
+	bind();
+	glGenerateMipmap(GL_TEXTURE_2D);
+	m_has_mipmaps = true;
+	m_is_dirty = true;
+	bind();
+}
+
 void DTexture::resize(TextureFormat format, int width, int height) {
 	if(!m_id) {
 		GLuint gl_id;
@@ -47,6 +58,7 @@ void DTexture::resize(TextureFormat format, int width, int height) {
 		bind();
 		glTexImage2D(GL_TEXTURE_2D, 0, format.glInternal(), width, height, 0, format.glFormat(),
 					 format.glType(), 0);
+		m_has_mipmaps = false;
 		testGlError("glTexImage2D");
 
 	} catch(const Exception &ex) {
@@ -108,18 +120,22 @@ void DTexture::bind() const {
 	DASSERT(isValid());
 	if(m_id != s_current_tex) {
 		::glBindTexture(GL_TEXTURE_2D, m_id);
-		if(m_is_dirty) {
-			int wrapping = m_is_wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
-
-			int filter = m_is_filtered ? GL_LINEAR : GL_NEAREST;
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-			m_is_dirty = false;
-		}
-
 		s_current_tex = m_id;
+	}
+	if(m_is_dirty) {
+		int wrapping = m_is_wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
+
+		int filter = m_is_filtered ? GL_LINEAR : GL_NEAREST;
+		int min_filter =
+			m_has_mipmaps
+				? filter == GL_LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST
+				: filter;
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+		m_is_dirty = false;
 	}
 }
 

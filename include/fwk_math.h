@@ -36,8 +36,8 @@ template <class T, class T1> inline T &operator/=(T &a, const T1 &b) {
 	return a;
 }
 
-inline float deg2Rad(float v) { return v * (2.0f * constant::pi / 360.0f); }
-inline float rad2Deg(float v) { return v * (360.0f / (2.0f * constant::pi)); }
+inline float degToRad(float v) { return v * (2.0f * constant::pi / 360.0f); }
+inline float radToDeg(float v) { return v * (360.0f / (2.0f * constant::pi)); }
 
 // Return angle in range (0; 2 * PI)
 float normalizeAngle(float radians);
@@ -559,7 +559,7 @@ const Matrix4 inverse(const Matrix4 &);
 
 const Matrix4 translation(const float3 &);
 const Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up);
-const Matrix4 perspective(float fov, float aspect, float zNear, float zFar);
+const Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far);
 const Matrix4 ortho(float left, float right, float top, float bottom, float near, float far);
 
 inline const Matrix4 scaling(float x, float y, float z) { return scaling(float3(x, y, z)); }

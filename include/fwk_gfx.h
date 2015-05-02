@@ -187,7 +187,7 @@ class Texture : public RefCounter {
 	int2 m_size;
 };
 
-// Device texture, no support for mipmaps,
+// Device texture
 class DTexture : public Resource {
   public:
 	DTexture();
@@ -204,6 +204,9 @@ class DTexture : public Resource {
 
 	void setFiltering(bool enable);
 	bool isFiltered() const { return m_is_filtered; }
+
+	bool hasMipmaps() const { return m_has_mipmaps; }
+	void generateMipmaps();
 
 	void bind() const;
 	static void unbind();
@@ -231,6 +234,7 @@ class DTexture : public Resource {
 	int m_width, m_height;
 	TextureFormat m_format;
 	bool m_is_wrapped, m_is_filtered;
+	bool m_has_mipmaps;
 	mutable bool m_is_dirty;
 };
 
@@ -452,14 +456,21 @@ typedef Ptr<Program> PProgram;
 
 class Renderer {
   public:
+	Renderer(const Matrix4 &projection_matrix);
 	Renderer(const IRect &viewport);
+
+	// Simple 2D view has (0, 0) in top left corner of the screen
+	static Matrix4 simple2DProjectionMatrix(const IRect &viewport);
+	static Matrix4 simple2DViewMatrix(const IRect &viewport, const float2 &view_pos);
 
 	void pushViewMatrix();
 	void popViewMatrix();
-	void mulViewMatrix(const Matrix4&);
-	void setViewMatrix(const Matrix4&);
-	void setViewMatrix(const float2 &view_pos);
-	const Matrix4 &viewMatrix() { return m_view_matrix; }
+	void mulViewMatrix(const Matrix4 &);
+	void setViewMatrix(const Matrix4 &);
+	void setProjectionMatrix(const Matrix4 &);
+	const Matrix4 &viewMatrix() const { return m_view_matrix; }
+	const Matrix4 &projectionMatrix() const { return m_projection_matrix; }
+	const Frustum frustum() const;
 
 	void render();
 
@@ -473,8 +484,8 @@ class Renderer {
 	// Each line is represented by two vertices
 	void addLines(const float3 *pos, const Color *color, int num_lines);
 
-	//TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
-	
+	// TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
+
 	// Each quad is represented by 4 vertices (ordered clockwise)
 	void addQuads(const float3 *pos, const float2 *tex_coord, const Color *color, int num_quads,
 				  PTexture tex);
@@ -485,7 +496,7 @@ class Renderer {
 
   protected:
 	struct Element {
-		Matrix4 view_matrix;
+		Matrix4 matrix;
 		PTexture texture;
 		int first_index;
 		int num_indices;
@@ -500,7 +511,6 @@ class Renderer {
 	vector<uint> m_indices;
 	vector<Element> m_elements;
 
-	const IRect m_viewport;
 	vector<Matrix4> m_matrix_stack;
 	Matrix4 m_view_matrix;
 	Matrix4 m_projection_matrix;
@@ -576,7 +586,6 @@ class Font : public Resource {
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
 	int genQuads(const char *str, float3 *out_pos, float2 *out_uv, int buffer_size) const;
-
 
 	// TODO: better representation? hash table maybe?
 	std::map<int, Glyph> m_glyphs;
