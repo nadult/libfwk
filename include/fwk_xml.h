@@ -74,8 +74,7 @@ class XMLNode {
 	template <class T> T attrib(const char *name) const {
 		try {
 			return xml_conversions::fromString<T>(attrib(name));
-		}
-		catch(const Exception &ex) {
+		} catch(const Exception &ex) {
 			parsingError(name, ex.what());
 			return T();
 		}
@@ -103,6 +102,8 @@ class XMLNode {
 	XMLNode sibling(const char *name = nullptr) const;
 	XMLNode child(const char *name = nullptr) const;
 
+	void next() { *this = sibling(name()); }
+
 	const char *value() const;
 	const char *name() const;
 
@@ -111,7 +112,8 @@ class XMLNode {
 	explicit operator bool() const { return m_ptr != nullptr; }
 
   protected:
-	XMLNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc) : m_ptr(ptr), m_doc(doc) {}
+	XMLNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc)
+		: m_ptr(ptr), m_doc(doc) {}
 	void parsingError(const char *attrib_name, const char *error_message) const;
 	friend class XMLDocument;
 

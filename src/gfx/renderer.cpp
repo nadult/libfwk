@@ -186,12 +186,21 @@ void Renderer::addTris(const float3 *pos, const float2 *tex_coord, const Color *
 	elem.num_indices += num_tris * 3;
 }
 
-void Renderer::render() {
+void Renderer::render(bool mode_3d) {
 	if(m_elements.empty())
 		return;
 
-	setBlendingMode(bmNormal);
-	glDisable(GL_CULL_FACE);
+	if(mode_3d) {
+		setBlendingMode(bmDisabled);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_GREATER);
+	} else {
+		setBlendingMode(bmNormal);
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+	}
 
 	VertexArray array;
 	VertexBuffer buf_pos, buf_color, buf_tex_coord;
@@ -240,5 +249,43 @@ void Renderer::render() {
 	VertexArray::unbind();
 	DTexture::unbind();
 	Program::unbind();
+}
+
+void Renderer::clearColor(Color color) {
+	float4 col = color;
+	glClearColor(col.x, col.y, col.z, col.w);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void Renderer::clearDepth(float depth_value) {
+	glClearDepth(depth_value);
+	glClear(GL_DEPTH_BUFFER_BIT);
+}
+
+void Renderer::setBlendingMode(BlendingMode mode) {
+	if(mode == bmDisabled)
+		glDisable(GL_BLEND);
+	else
+		glEnable(GL_BLEND);
+
+	if(mode == bmNormal)
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+static IRect s_scissor_rect = IRect::empty();
+
+void Renderer::setScissorRect(const IRect &rect) {
+	//	s_scissor_rect = rect;
+	//	glScissor(rect.min.x, s_viewport_size.y - rect.max.y, rect.width(), rect.height());
+	//	testGlError("glScissor");
+}
+
+const IRect Renderer::getScissorRect() { return s_scissor_rect; }
+
+void Renderer::setScissorTest(bool is_enabled) {
+	if(is_enabled)
+		glEnable(GL_SCISSOR_TEST);
+	else
+		glDisable(GL_SCISSOR_TEST);
 }
 }

@@ -116,9 +116,7 @@ void GfxDevice::createWindow(int2 size, bool full) {
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glDepthMask(0);
-
 	glViewport(0, 0, size.x, size.y);
-	setBlendingMode(bmNormal);
 }
 
 void GfxDevice::destroyWindow() { THROW("Write me"); }

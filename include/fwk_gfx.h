@@ -472,7 +472,7 @@ class Renderer {
 	const Matrix4 &projectionMatrix() const { return m_projection_matrix; }
 	const Frustum frustum() const;
 
-	void render();
+	void render(bool mode_3d);
 
 	void addRect(const FRect &rect, const FRect &tex_rect, PTexture tex, Color color);
 	void addRect(const FRect &rect, PTexture tex, Color color) {
@@ -493,6 +493,20 @@ class Renderer {
 	// Each triangle is represented by 3 vertices
 	void addTris(const float3 *pos, const float2 *tex_coord, const Color *color, int num_tris,
 				 PTexture tex);
+
+	static void clearColor(Color color);
+	static void clearDepth(float depth_value);
+
+	enum BlendingMode {
+		bmDisabled,
+		bmNormal,
+	};
+
+	static void setBlendingMode(BlendingMode mode);
+	static void setScissorRect(const IRect &rect);
+	static const IRect getScissorRect();
+
+	static void setScissorTest(bool is_enabled);
 
   protected:
 	struct Element {
@@ -516,20 +530,6 @@ class Renderer {
 	Matrix4 m_projection_matrix;
 	PProgram m_tex_program, m_flat_program;
 };
-
-void clear(Color color);
-
-enum BlendingMode {
-	bmDisabled,
-	bmNormal,
-};
-
-void setBlendingMode(BlendingMode mode);
-void setScissorRect(const IRect &rect);
-const IRect getScissorRect();
-
-void setScissorTest(bool is_enabled);
-
 enum class HAlign {
 	left,
 	center,
