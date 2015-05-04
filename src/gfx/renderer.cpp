@@ -8,6 +8,10 @@
 
 namespace fwk {
 
+static const int gl_primitive_type[] = {GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP};
+
+static_assert(arraySize(gl_primitive_type) == PrimitiveType::count, "");
+
 static const char *fragment_shader_tex_src =
 	"#version 100\n"
 	"uniform sampler2D tex; 											\n"
@@ -43,7 +47,7 @@ static PProgram makeProgram(bool with_texture) {
 	vertex_shader.setSource(vertex_shader_src);
 	fragment_shader.setSource(with_texture ? fragment_shader_tex_src : fragment_shader_flat_src);
 
-	PProgram out = new Program(vertex_shader, fragment_shader);
+	PProgram out = make_shared<Program>(vertex_shader, fragment_shader);
 	out->bindAttribLocation("in_pos", 0);
 	out->bindAttribLocation("in_color", 1);
 	out->bindAttribLocation("in_tex_coord", 2);
@@ -91,7 +95,7 @@ void Renderer::setViewMatrix(const Matrix4 &matrix) { m_view_matrix = matrix; }
 
 const Frustum Renderer::frustum() const { return Frustum(m_projection_matrix); }
 
-void Renderer::addRect(const FRect &rect, const FRect &tex_rect, PTexture texture, Color color) {
+void Renderer::add2DFilledRect(const FRect &rect, const FRect &tex_rect, const Material &material) {
 	float3 pos[4];
 	float2 pos_2d[4], tex_coords[4];
 
@@ -100,22 +104,21 @@ void Renderer::addRect(const FRect &rect, const FRect &tex_rect, PTexture textur
 	for(int n = 0; n < 4; n++)
 		pos[n] = float3(pos_2d[n], 0.0f);
 
-	Color colors[4] = {color, color, color, color};
-	addQuads(pos, tex_coords, colors, 1, texture);
+	addQuads(pos, tex_coords, nullptr, 1, material);
 }
 
-void Renderer::addLineRect(const FRect &rect, Color color) {
+void Renderer::add2DRect(const FRect &rect, const Material &material) {
 	float3 pos[4];
 	float2 pos_2d[4], tex_coords[4];
 	rect.getCorners(pos_2d);
 	for(int n = 0; n < 4; n++)
 		pos[n] = float3(pos_2d[n], 0.0f);
 
-	Element &elem = makeElement(GL_LINES, nullptr);
+	Element &elem = makeElement(PrimitiveType::lines, nullptr);
 	int vertex_offset = (int)m_positions.size();
 
 	m_positions.insert(m_positions.end(), pos, pos + 4);
-	m_colors.resize(m_colors.size() + 4, color);
+	m_colors.resize(m_colors.size() + 4, material.color());
 	m_tex_coords.resize(m_tex_coords.size() + 4, float2(0, 0));
 
 	const int num_indices = 8;
@@ -125,7 +128,25 @@ void Renderer::addLineRect(const FRect &rect, Color color) {
 	elem.num_indices += num_indices;
 }
 
-Renderer::Element &Renderer::makeElement(int primitive_type, PTexture texture) {
+void Renderer::addMesh(PMesh mesh, const Material &material) {
+	Element &elem = makeElement(mesh->m_primitive_type, material.texture());
+
+	int vertex_offset = (int)m_positions.size();
+	int num_vertices = mesh->m_positions.size();
+
+	m_positions.insert(m_positions.end(), mesh->m_positions.data(), mesh->m_positions.data() + num_vertices);
+	m_colors.resize(m_colors.size() + num_vertices, material.color());
+	m_tex_coords.insert(m_tex_coords.end(), mesh->m_tex_coords.data(), mesh->m_tex_coords.data() + num_vertices); 
+
+	m_indices.reserve(m_indices.size() + num_vertices);
+	for(int n = 0; n < num_vertices; n++)
+		m_indices.emplace_back(vertex_offset + n);
+	elem.num_indices += num_vertices;
+}
+
+Renderer::Element &Renderer::makeElement(PrimitiveType::Type primitive_type, PTexture texture) {
+	//TODO: merging won't work for triangle strip (have to add some more indices)
+	
 	Matrix4 mult_matrix = m_projection_matrix * m_view_matrix;
 	if(m_elements.empty() || m_elements.back().primitive_type != primitive_type ||
 	   m_elements.back().texture != texture || mult_matrix != m_elements.back().matrix)
@@ -134,13 +155,15 @@ Renderer::Element &Renderer::makeElement(int primitive_type, PTexture texture) {
 	return m_elements.back();
 }
 
-void Renderer::addLines(const float3 *pos, const Color *color, int num_lines) {
-	Element &elem = makeElement(GL_LINES, nullptr);
+void Renderer::addLines(const float3 *pos, const Color *color, int num_lines, const Material &material) {
+	Element &elem = makeElement(PrimitiveType::lines, material.texture());
 	int vertex_offset = (int)m_positions.size();
 	int num_vertices = num_lines * 2;
 
 	m_positions.insert(m_positions.end(), pos, pos + num_vertices);
 	m_colors.insert(m_colors.end(), color, color + num_vertices);
+	for(int n = (int)m_colors.size() - num_vertices; n < (int)m_colors.size(); n++)
+		m_colors[n] = m_colors[n] * material.color();
 	m_tex_coords.resize(m_tex_coords.size() + num_vertices, float2(0, 0));
 
 	for(int n = 0; n < num_vertices; n++)
@@ -149,13 +172,20 @@ void Renderer::addLines(const float3 *pos, const Color *color, int num_lines) {
 }
 
 void Renderer::addQuads(const float3 *pos, const float2 *tex_coord, const Color *color,
-						int num_quads, PTexture texture) {
-	Element &elem = makeElement(GL_TRIANGLES, texture);
+						int num_quads, const Material &material) {
+	Element &elem = makeElement(PrimitiveType::triangles, material.texture());
 	int vertex_offset = (int)m_positions.size();
 	int num_vertices = num_quads * 4;
 
 	m_positions.insert(m_positions.end(), pos, pos + num_vertices);
-	m_colors.insert(m_colors.end(), color, color + num_vertices);
+	if(color) {
+		m_colors.insert(m_colors.end(), color, color + num_vertices);
+		for(int n = (int)m_colors.size() - num_vertices; n < (int)m_colors.size(); n++)
+			m_colors[n] = m_colors[n] * material.color();
+	}
+	else {
+		m_colors.resize(m_colors.size() + num_vertices, material.color());
+	}
 	m_tex_coords.insert(m_tex_coords.end(), tex_coord, tex_coord + num_vertices);
 
 	m_indices.reserve(m_indices.size() + num_quads * 6);
@@ -168,13 +198,15 @@ void Renderer::addQuads(const float3 *pos, const float2 *tex_coord, const Color 
 }
 
 void Renderer::addTris(const float3 *pos, const float2 *tex_coord, const Color *color, int num_tris,
-					   PTexture texture) {
-	Element &elem = makeElement(GL_TRIANGLES, texture);
+					   const Material &material) {
+	Element &elem = makeElement(PrimitiveType::triangles, material.texture());
 	int vertex_offset = (int)m_positions.size();
 	int num_vertices = num_tris * 3;
 
 	m_positions.insert(m_positions.end(), pos, pos + num_vertices);
 	m_colors.insert(m_colors.end(), color, color + num_vertices);
+	for(int n = (int)m_colors.size() - num_vertices; n < (int)m_colors.size(); n++)
+		m_colors[n] = m_colors[n] * material.color();
 	m_tex_coords.insert(m_tex_coords.end(), tex_coord, tex_coord + num_vertices);
 
 	m_indices.reserve(m_indices.size() + num_tris * 3);
@@ -192,14 +224,15 @@ void Renderer::render(bool mode_3d) {
 
 	if(mode_3d) {
 		setBlendingMode(bmDisabled);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_FRONT);
+	//	glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_GREATER);
+		glDepthFunc(GL_LESS);
+		glDepthMask(1);
 	} else {
 		setBlendingMode(bmNormal);
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);
+		glDepthMask(0);
 	}
 
 	VertexArray array;
@@ -235,7 +268,7 @@ void Renderer::render(bool mode_3d) {
 		program->setUniform("proj_view_matrix", element.matrix);
 		if(element.texture)
 			element.texture->bind();
-		glDrawElements(element.primitive_type, element.num_indices, GL_UNSIGNED_INT,
+		glDrawElements(gl_primitive_type[element.primitive_type], element.num_indices, GL_UNSIGNED_INT,
 					   (void *)(element.first_index * sizeof(uint)));
 	}
 
@@ -259,6 +292,7 @@ void Renderer::clearColor(Color color) {
 
 void Renderer::clearDepth(float depth_value) {
 	glClearDepth(depth_value);
+	glDepthMask(1);
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
 

@@ -216,6 +216,7 @@ struct float4 {
 
 	float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 	float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
 	float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
 	float4 operator+(const float4 &rhs) const {
@@ -235,7 +236,10 @@ struct float4 {
 	float &operator[](int idx) { return v[idx]; }
 	const float &operator[](int idx) const { return v[idx]; }
 
-	const float3 xyz() const { return float3(x, y, z); }
+	float2 xy() const { return float2(x, y); }
+	float2 xz() const { return float2(x, z); }
+	float2 yz() const { return float2(y, z); }
+	float3 xyz() const { return float3(x, y, z); }
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble

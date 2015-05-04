@@ -3,6 +3,7 @@
    This file is part of libfwk. */
 
 #include "fwk_gfx.h"
+#include <cstring>
 
 namespace fwk {
 
@@ -29,4 +30,14 @@ Color desaturate(Color col, float value) {
 		sqrtf(rgba.x * rgba.x * 0.299f + rgba.y * rgba.y * 0.587f + rgba.z * rgba.z * 0.114f);
 	return lerp(col, Color(avg, avg, avg, rgba.w), value);
 }
+
+bool Color::operator<(const Color &rhs) const {
+	return memcmp(rgba, rhs.rgba, arraySize(rgba)) < 0;		
+}
+
+Color operator*(Color a, Color b) {
+	float4 fa(a), fb(b);
+	return Color(float4(fa.x * fb.x, fa.y * fb.y, fa.z * fb.z, fa.w * fb.w));
+}
+
 }

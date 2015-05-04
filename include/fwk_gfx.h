@@ -11,6 +11,9 @@
 #include "fwk_xml.h"
 
 namespace fwk {
+namespace collada {
+	struct Root;
+}
 
 struct Color {
 	explicit Color(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
@@ -29,10 +32,17 @@ struct Color {
 	operator float3() const { return float3(r, g, b) * (1.0f / 255.0f); }
 
 	static const Color white, gray, yellow, red, green, blue, black, transparent;
+	bool operator<(const Color &rhs) const;
 
-	u8 r, g, b, a;
+	union {
+		struct {
+			u8 r, g, b, a;
+		};
+		u8 rgba[4];
+	};
 };
 
+Color operator*(Color lhs, Color rhs);
 Color mulAlpha(Color color, float alpha);
 Color lerp(Color a, Color b, float value);
 Color desaturate(Color col, float value);
@@ -131,7 +141,7 @@ class TextureFormat {
 };
 
 // simple RGBA32 texture
-class Texture : public RefCounter {
+class Texture {
   public:
 	Texture(int width, int height);
 	Texture();
@@ -188,9 +198,10 @@ class Texture : public RefCounter {
 };
 
 // Device texture
-class DTexture : public Resource {
+class DTexture {
   public:
 	DTexture();
+	DTexture(const string &name, Stream &);
 	DTexture(DTexture &&);
 	DTexture(const DTexture &) = delete;
 	void operator=(const DTexture &) = delete;
@@ -238,7 +249,7 @@ class DTexture : public Resource {
 	mutable bool m_is_dirty;
 };
 
-typedef Ptr<DTexture> PTexture;
+typedef shared_ptr<DTexture> PTexture;
 
 struct InputState {
 	int2 mouse_pos, mouse_move;
@@ -391,7 +402,7 @@ class VertexBuffer {
 	int m_size;
 };
 
-class Shader : public RefCounter {
+class Shader {
   public:
 	// TODO: fix enums, also in other gfx classes
 	enum Type { tVertex, tFragment };
@@ -421,7 +432,7 @@ class Shader : public RefCounter {
 	bool m_is_compiled;
 };
 
-class Program : public RefCounter {
+class Program {
   public:
 	Program(const Shader &vertex, const Shader &fragment);
 	~Program();
@@ -452,7 +463,71 @@ class Program : public RefCounter {
 	unsigned m_handle;
 };
 
-typedef Ptr<Program> PProgram;
+using PProgram = shared_ptr<Program>;
+
+DECLARE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
+
+class Mesh {
+  public:
+	struct Vertex {
+		float3 pos, nrm;
+		float2 uv;
+	};
+
+	Mesh();
+	Mesh(const string &name, Stream &);
+	Mesh(const Vertex *verts, int count, PrimitiveType::Type type);
+	virtual ~Mesh() = default;
+
+	void loadFromXML(const XMLDocument &);
+	void load(Stream &);
+	virtual void load(const collada::Root &, int mesh_id);
+	void clear();
+
+	void genAdjacency();
+
+	int faceCount() const;
+	void getFace(int face, int &i1, int &i2, int &i3) const;
+
+	int vertexCount() const { return m_positions.size(); }
+	const FBox &boundingBox() const { return m_bbox; }
+	//	const Stream toStream() const;
+
+	float trace(const Segment &segment) const;
+
+	void transformUV(const Matrix4&);
+
+	static shared_ptr<Mesh> makeRect(const FRect &xy_rect, float z);
+	static shared_ptr<Mesh> makeBBox(const FBox &bbox);
+
+	FBox m_bbox;
+	PodArray<float3> m_positions;
+	PodArray<float3> m_normals;
+	PodArray<float2> m_tex_coords;
+	PodArray<unsigned> m_neighbours;
+	PrimitiveType::Type m_primitive_type;
+	friend class Renderer;
+};
+
+using PMesh = shared_ptr<Mesh>;
+
+class Material {
+  public:
+	Material(PTexture texture, Color color = Color::white) : m_texture(texture), m_color(color) {}
+	Material(Color color = Color::white) : m_color(color) {}
+
+	PTexture texture() const { return m_texture; }
+	Color color() const { return m_color; }
+	bool operator<(const Material &rhs) const {
+		return m_texture == rhs.m_texture ? m_color < rhs.m_color : m_texture < rhs.m_texture;
+	}
+
+  protected:
+	PTexture m_texture;
+	Color m_color;
+};
+
+struct DrawElement {};
 
 class Renderer {
   public:
@@ -474,25 +549,27 @@ class Renderer {
 
 	void render(bool mode_3d);
 
-	void addRect(const FRect &rect, const FRect &tex_rect, PTexture tex, Color color);
-	void addRect(const FRect &rect, PTexture tex, Color color) {
-		addRect(rect, FRect(0, 0, 1, 1), tex, color);
+	void add2DFilledRect(const FRect &rect, const FRect &tex_rect, const Material &);
+	void add2DFilledRect(const FRect &rect, const Material &material) {
+		add2DFilledRect(rect, FRect(0, 0, 1, 1), material);
 	}
 
-	void addLineRect(const FRect &rect, Color color);
+	void add2DRect(const FRect &rect, const Material &material);
+
+	void addMesh(PMesh, const Material&);
 
 	// Each line is represented by two vertices
-	void addLines(const float3 *pos, const Color *color, int num_lines);
+	void addLines(const float3 *pos, const Color *color, int num_lines, const Material &material);
 
 	// TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
 
 	// Each quad is represented by 4 vertices (ordered clockwise)
 	void addQuads(const float3 *pos, const float2 *tex_coord, const Color *color, int num_quads,
-				  PTexture tex);
+				  const Material &material);
 
 	// Each triangle is represented by 3 vertices
 	void addTris(const float3 *pos, const float2 *tex_coord, const Color *color, int num_tris,
-				 PTexture tex);
+				 const Material &material);
 
 	static void clearColor(Color color);
 	static void clearDepth(float depth_value);
@@ -514,14 +591,14 @@ class Renderer {
 		PTexture texture;
 		int first_index;
 		int num_indices;
-		int primitive_type;
+		PrimitiveType::Type primitive_type;
 	};
 
-	Element &makeElement(int primitive_type, PTexture tex);
+	Element &makeElement(PrimitiveType::Type, PTexture);
 
 	vector<float3> m_positions;
-	vector<Color> m_colors;
 	vector<float2> m_tex_coords;
+	vector<Color> m_colors;
 	vector<uint> m_indices;
 	vector<Element> m_elements;
 
@@ -530,6 +607,7 @@ class Renderer {
 	Matrix4 m_projection_matrix;
 	PProgram m_tex_program, m_flat_program;
 };
+
 enum class HAlign {
 	left,
 	center,
@@ -553,8 +631,9 @@ struct FontStyle {
 	VAlign valign;
 };
 
-class Font : public Resource {
+class Font {
   public:
+	Font(const string &name, Stream &);
 	Font();
 
 	void load(Stream &);
@@ -598,7 +677,7 @@ class Font : public Resource {
 	int m_line_height;
 };
 
-using PFont = Ptr<Font>;
+using PFont = shared_ptr<Font>;
 
 class FontRenderer {
   public:

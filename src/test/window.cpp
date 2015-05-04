@@ -19,17 +19,17 @@ bool mainLoop(GfxDevice &device) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	clear(Color(50, 0, 50));
+	Renderer::clearColor(Color(50, 0, 50));
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect(-50, -50, 50, 50) + positions[n];
 		Color fill_color(float4(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f));
 		Color border_color = Color::black;
 
-		s_renderer->addRect(rect, nullptr, fill_color);
-		s_renderer->addLineRect(rect, border_color);
+		s_renderer->add2DFilledRect(rect, fill_color);
+		s_renderer->add2DRect(rect, border_color);
 	}
 
-	s_renderer->render();
+	s_renderer->render(false);
 
 	return true;
 }

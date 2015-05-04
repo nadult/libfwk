@@ -9,6 +9,14 @@ namespace fwk {
 
 static int s_current_tex = 0;
 
+//TODO: what if rendering device is recreated?
+//Maybe those textures should be kept inside the device?
+//Similar case for VertexBuffers and VertexArrays
+
+DTexture::DTexture(const string &name, Stream &stream) :DTexture() {
+	load(stream);
+}
+
 DTexture::DTexture()
 	: m_id(0), m_width(0), m_height(0), m_format(TI_Unknown), m_is_wrapped(false),
 	  m_is_filtered(true), m_has_mipmaps(false), m_is_dirty(false) {}

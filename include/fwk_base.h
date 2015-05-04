@@ -18,10 +18,13 @@ namespace fwk {
 
 using std::swap;
 using std::pair;
-using std::make_pair;
 using std::string;
 using std::vector;
 using std::unique_ptr;
+using std::shared_ptr;
+
+using std::make_pair;
+using std::make_shared;
 
 // TODO: use types from cstdint
 using uint = unsigned int;
@@ -458,188 +461,41 @@ class MemorySaver : public Stream {
 	char *m_data;
 };
 
-// TODO: use shared_ptr<>
-// Use together with Ptr<>
-class RefCounter {
+template <class T> class ResourceLoader {
   public:
-	RefCounter() : m_ref_count(0) {}
-
-	// use it if your class is embedded into another
-	void incRefs() { m_ref_count++; }
-	size_t numRefs() const { return m_ref_count; }
-	virtual ~RefCounter() {}
-
-	RefCounter(const RefCounter &) : m_ref_count(0) {}
-	RefCounter(RefCounter &&) : m_ref_count(0) {}
-	RefCounter &operator=(const RefCounter &) { return *this; }
-	RefCounter &operator=(RefCounter &&) { return *this; }
-
-  private:
-	u32 m_ref_count;
-	template <class T> friend class Ptr;
-	template <class T> friend class ResourceMgr;
+	shared_ptr<T> operator()(const string &name, Stream &stream) {
+		return make_shared<T>(name, stream);
+	}
 };
 
-template <class T> class Ptr {
+template <class T> class ResourceManager {
   public:
-	Ptr() noexcept : m_ptr(0) {}
-	~Ptr() noexcept {
-		if(m_ptr)
-			decRefs();
-	}
-	Ptr(T *obj) noexcept : m_ptr(obj) {
-		if(m_ptr)
-			m_ptr->m_ref_count++;
-	}
-	Ptr(const Ptr &p) noexcept : m_ptr(p.m_ptr) {
-		if(m_ptr)
-			m_ptr->m_ref_count++;
-	}
-	Ptr &operator=(const Ptr &p) noexcept {
-		if(p.m_ptr != m_ptr) {
-			if(m_ptr)
-				decRefs();
-			if((m_ptr = p.m_ptr))
-				m_ptr->m_ref_count++;
-		}
-		return *this;
-	}
+	using PResource = shared_ptr<T>;
 
-	bool operator==(const Ptr &t) const noexcept { return m_ptr == t.m_ptr; }
-	bool operator!=(const Ptr &t) const noexcept { return m_ptr != t.m_ptr; }
+	ResourceManager(const string &prefix, const string &suffix)
+		: m_prefix(prefix), m_suffix(suffix) {}
+	~ResourceManager() {}
 
-	bool operator==(const T *t) const noexcept { return m_ptr == t; }
-	bool operator!=(const T *t) const noexcept { return m_ptr != t; }
-
-	template <class TT> bool operator==(const TT *rhs) const noexcept {
-		static_assert(std::is_base_of<T, TT>::value || std::is_base_of<TT, T>::value, "");
-		return ((void *)m_ptr) == ((void *)rhs);
-	}
-	template <class TT> bool operator!=(const TT *rhs) const noexcept {
-		static_assert(std::is_base_of<T, TT>::value || std::is_base_of<TT, T>::value, "");
-		return ((void *)m_ptr) != ((void *)rhs);
-	}
-	template <class TT> bool operator==(const Ptr<TT> &rhs) const noexcept {
-		static_assert(std::is_base_of<T, TT>::value || std::is_base_of<TT, T>::value, "");
-		return ((void *)m_ptr) == ((void *)rhs.m_ptr);
-	}
-	template <class TT> bool operator!=(const Ptr<TT> &rhs) const noexcept {
-		static_assert(std::is_base_of<T, TT>::value || std::is_base_of<TT, T>::value, "");
-		return ((void *)m_ptr) != ((void *)rhs.m_ptr);
-	}
-
-	void reset() noexcept {
-		if(m_ptr) {
-			decRefs();
-			m_ptr = 0;
-		}
-	}
-
-	explicit operator bool() const noexcept { return m_ptr ? 1 : 0; }
-
-	T *operator->() const noexcept { return m_ptr; }
-	T &operator*() const noexcept { return *m_ptr; }
-	T *get() const noexcept { return m_ptr; }
-
-	Ptr copy() { return new T(*m_ptr); }
-
-	void serializePtr(Stream &sr) {
-		DASSERT(m_ptr && "Attempt to serialize null pointer");
-		serialize(*m_ptr, sr);
-	}
-
-  protected:
-	void decRefs() noexcept {
-		m_ptr->m_ref_count--;
-		if(m_ptr->m_ref_count == 0)
-			delete m_ptr;
-	}
-
-	template <class TT> friend class WeakPtr;
-	template <class TT> friend class Ptr;
-	T *m_ptr;
-};
-
-template <class TT, class T> bool operator==(const TT *lhs, const Ptr<T> &rhs) {
-	static_assert(std::is_base_of<T, TT>::value || std::is_base_of<TT, T>::value, "");
-	return lhs == rhs.get();
-}
-
-template <class TT, class T> bool operator!=(const TT *lhs, const Ptr<T> &rhs) {
-	static_assert(std::is_base_of<T, TT>::value || std::is_base_of<TT, T>::value, "");
-	return lhs != rhs.get();
-}
-
-/* Simple pointer, that implicitly initializes to 0 */
-template <class T> class WeakPtr {
-  public:
-	WeakPtr() : ptr(0) {}
-	WeakPtr(T *ptr) : ptr(ptr) {}
-	WeakPtr(const Ptr<T> &ptr) : ptr(ptr.ptr) {}
-
-	template <class TT> bool operator==(const WeakPtr<TT> &t) { return ptr == t.ptr; }
-	template <class TT> bool operator!=(const WeakPtr<TT> &t) { return ptr != t.ptr; }
-
-	operator T *() { return ptr; }
-	operator const T *() const { return ptr; }
-	T *operator->() { return ptr; }
-	const T *operator->() const { return ptr; }
-
-  protected:
-	T *ptr;
-};
-
-template <class T> class ResourceMgr;
-
-class Resource : public RefCounter {
-  public:
-	virtual void load(Stream &sr) = 0;
-
-	virtual ~Resource() {}
-
-	const char *resourceName() const { return m_resource_name.c_str(); }
-	void setResourceName(const char *name) { m_resource_name = name; }
-
-  private:
-	string m_resource_name;
-};
-
-template <class T> class ResourceMgr {
-  public:
-	ResourceMgr(const string prefix, const string suffix) : m_prefix(prefix), m_suffix(suffix) {}
-	~ResourceMgr() {}
-
-	//! Query for a resource,
-	//! throws an exception if the resource could not be found
-	Ptr<T> getResource(const string &name) {
+	PResource accessResource(const string &name) {
 		auto it = m_dict.find(name);
 		if(it == m_dict.end()) {
-			Ptr<T> tmp = new T;
-			if(tmp) {
-				Loader ldr(m_prefix + name + m_suffix);
-				if(ldr.allOk()) {
-					tmp->setResourceName(name.c_str());
-					tmp->load(ldr);
-					if(ldr.allOk()) {
-						m_dict[name] = tmp;
-						return tmp;
-					}
-				}
-			}
-			THROW("Cannot find resource %s (file name: %s%s%s).", name.c_str(), m_prefix.c_str(),
-				  name.c_str(), m_suffix.c_str());
+			Loader stream(m_prefix + name + m_suffix);
+			PResource res = ResourceLoader<T>()(name, stream);
+			DASSERT(res);
+			m_dict[name] = res;
+			return res;
 		}
 		return it->second;
 	}
 
-	Ptr<T> findResource(const string &name) const {
+	PResource findResource(const string &name) const {
 		auto it = m_dict.find(name);
 		if(it == m_dict.end())
-			return Ptr<T>(nullptr);
+			return PResource();
 		return it->second;
 	}
 
-	Ptr<T> operator[](const string &name) { return getResource(name); }
+	PResource operator[](const string &name) { return accessResource(name); }
 
 	const string &prefix() const { return m_prefix; }
 	const string &suffix() const { return m_suffix; }
@@ -650,47 +506,32 @@ template <class T> class ResourceMgr {
 			func(it->first, *it->second);
 	}
 
-	// TODO: provide unload, make it secure, like add additonal flag to refcounter
-	Ptr<T> load(const string &name) {
-		Ptr<T> res = getResource(name);
-		res->m_ref_count++;
-		return res;
-	}
-
-	void freeResource(const string &name) {
+	PResource removeResource(const string &name) {
 		auto iter = m_dict.find(name);
-		DASSERT(iter != m_dict.end());
-		m_dict.erase(iter);
+		if(iter != m_dict.end()) {
+			m_dict.erase(iter);
+			return iter.second;
+		}
+		return PResource();
 	}
 
-	void saveResource(const string &name) {
-		auto it = m_dict.find(name);
-		DASSERT(it != m_dict.end() && it->second);
-		Saver svr(m_prefix + name + m_suffix);
-		it->second->load(svr);
-	}
+	void insertResource(const string &name, PResource res) { m_dict[name] = res; }
 
 	void renameResource(const string &old_name, const string &new_name) {
-		auto old_it = m_dict.find(old_name);
-		auto new_it = m_dict.find(new_name);
-
-		DASSERT(old_it != m_dict.end());
-		DASSERT(new_it == m_dict.end());
-
-		m_dict[new_name] = old_it->second;
-		old_it->second->setResourceName(new_name.c_str());
-		m_dict.erase(old_it);
+		insertResource(new_name, std::move(removeResource(old_name)));
 	}
 
 	void clear() { m_dict.clear(); }
 
   private:
-	typename std::map<string, Ptr<T>> m_dict;
+	typename std::map<string, PResource> m_dict;
 	string m_prefix, m_suffix;
 };
 
 template <class T> class ClonablePtr : public unique_ptr<T> {
   public:
+	static_assert(std::is_same<decltype(&T::clone), T *(T::*)() const>::value, "");
+
 	ClonablePtr(const ClonablePtr &rhs) : unique_ptr<T>(rhs ? rhs->clone() : nullptr) {}
 	ClonablePtr(ClonablePtr &&rhs) : unique_ptr<T>(std::move(rhs)) {}
 	ClonablePtr(T *ptr) : unique_ptr<T>(ptr) {}

@@ -13,7 +13,7 @@ _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
 
 SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
 		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory \
-		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/collada \
+		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/collada gfx/mesh \
 		   gfx/vertex_array gfx/vertex_buffer gfx/shader gfx/program gfx/renderer \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector
 PROGRAM_SRC=test/streams test/stuff test/math test/window

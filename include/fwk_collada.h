@@ -84,7 +84,7 @@ namespace collada {
 		int m_vertex_count, m_stride;
 	};
 
-	class Node : public RefCounter {
+	class Node {
 	  public:
 		enum TypeId {
 			type_root,
@@ -177,6 +177,7 @@ namespace collada {
 
 		int upAxis() const { return m_up_axis; }
 
+		//TODO: make Z default (or pass as an argument)
 		void fixUpAxis(Matrix4 &) const;
 		void fixUpAxis(float3 &) const;
 
@@ -193,10 +194,10 @@ namespace collada {
 		void printInfo() const;
 
 	  protected:
-		vector<Ptr<Mesh>> m_meshes;
-		vector<Ptr<Animation>> m_anims;
-		vector<Ptr<Skin>> m_skins;
-		vector<Ptr<SceneNode>> m_root_joints;
+		vector<shared_ptr<Mesh>> m_meshes;
+		vector<shared_ptr<Animation>> m_anims;
+		vector<shared_ptr<Skin>> m_skins;
+		vector<shared_ptr<SceneNode>> m_root_joints;
 		int m_up_axis;
 	};
 }

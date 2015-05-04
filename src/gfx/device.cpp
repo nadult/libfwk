@@ -113,9 +113,6 @@ void GfxDevice::createWindow(int2 size, bool full) {
 //	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 //	glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
 
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
-	glDepthMask(0);
 	glViewport(0, 0, size.x, size.y);
 }
 

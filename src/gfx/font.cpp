@@ -25,7 +25,9 @@ FontStyle::FontStyle(Color color, Color shadow_color, HAlign halign, VAlign vali
 FontStyle::FontStyle(Color color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(Color::transparent), halign(halign), valign(valign) {}
 
-Font::Font() {}
+Font::Font(const string &name, Stream &stream) : Font() { load(stream); }
+
+Font::Font() = default;
 
 void Font::load(Stream &sr) {
 	ASSERT(sr.isLoading());
@@ -247,22 +249,22 @@ FRect FontRenderer::draw(const FRect &rect, const FontStyle &style, const char *
 	}
 	out_rect += pos;
 	// TODO: increase out_rect when rendering with shadow?
-			
+
 	m_renderer.pushViewMatrix();
 	m_renderer.mulViewMatrix(translation(float3(pos + float2(1.0f, 1.0f), 0.0f)));
 
-	if(style.shadow_color != Color::transparent) {	
+	if(style.shadow_color != Color::transparent) {
 		for(int n = 0; n < quad_count * 4; n++)
 			colors[n] = style.shadow_color;
 		m_renderer.addQuads(pos_buf.data(), uv_buf.data(), colors.data(), quad_count, m_texture);
 	}
-	
+
 	m_renderer.mulViewMatrix(translation(float3(-1.0f, -1.0f, 0.0f)));
 	for(int n = 0; n < quad_count * 4; n++)
 		colors[n] = style.text_color;
 	m_renderer.addQuads(pos_buf.data(), uv_buf.data(), colors.data(), quad_count, m_texture);
 	m_renderer.popViewMatrix();
-	
+
 	return out_rect;
 }
 }

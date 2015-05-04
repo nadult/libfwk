@@ -116,6 +116,7 @@ void loadExtensions() {
 	LOAD(glUniformMatrix4fv);
 	LOAD(glValidateProgram);
 	LOAD(glVertexAttribPointer);
+	LOAD(glGenerateMipmap);
 
 #undef LOAD
 

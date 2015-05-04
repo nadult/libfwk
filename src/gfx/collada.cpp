@@ -245,21 +245,21 @@ namespace collada {
 		if(lib_geometries) {
 			XMLNode geometry_node = lib_geometries.child("geometry");
 			while(geometry_node) {
-				m_meshes.push_back(new Mesh(this, geometry_node));
+				m_meshes.push_back(make_shared<Mesh>(this, geometry_node));
 				geometry_node.next();
 			}
 		}
 		if(lib_controllers) {
 			XMLNode skin_node = lib_controllers.child("controller");
 			while(skin_node) {
-				m_skins.push_back(new Skin(this, skin_node));
+				m_skins.push_back(make_shared<Skin>(this, skin_node));
 				skin_node.next();
 			}
 		}
 		if(lib_animations) {
 			XMLNode anim_node = lib_animations.child("animation");
 			while(anim_node) {
-				m_anims.push_back(new Animation(this, anim_node));
+				m_anims.push_back(make_shared<Animation>(this, anim_node));
 				anim_node.next();
 			}
 		}
@@ -269,7 +269,7 @@ namespace collada {
 				XMLNode node = visual_scene.child("node");
 
 				while(node) {
-					m_root_joints.push_back(new SceneNode(this, node));
+					m_root_joints.push_back(make_shared<SceneNode>(this, node));
 					node.next();
 				}
 				visual_scene.next();
