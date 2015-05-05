@@ -77,4 +77,38 @@ void VertexBuffer::setData(int count, const void *ptr, unsigned usage) {
 	glBufferData(GL_ARRAY_BUFFER, count, ptr, usage);
 	testGlError("glBufferData");
 }
+
+NiceVertexBuffer::NiceVertexBuffer(const void *data, int size, int vertex_size,
+								   VertexDataType data_type)
+	: m_size(size), m_vertex_size(vertex_size), m_data_type(data_type) {
+	glGenBuffers(1, &m_handle);
+	testGlError("glGenBuffers");
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_handle);
+	glBufferData(GL_ARRAY_BUFFER, m_size * m_vertex_size, data, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+NiceVertexBuffer::~NiceVertexBuffer() {
+	if(m_handle) {
+		if(s_active_handle == m_handle)
+			s_active_handle = 0;
+		glDeleteBuffers(1, &m_handle);
+	}
+}
+
+/*
+void NiceVertexBuffer::bind() const {
+	if(s_active_handle != m_handle) {
+		s_active_handle = m_handle;
+		glBindBuffer(GL_ARRAY_BUFFER, m_handle);
+	}
+}
+
+void NiceVertexBuffer::unbind() {
+	if(s_active_handle) {
+		s_active_handle = 0;
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+}*/
 }

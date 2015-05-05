@@ -102,10 +102,16 @@ void Mesh::load(const collada::Root &root, int mesh_id) {
 	}
 
 	if(tex_coord_source) {
-		ASSERT(tex_coord_source->type() == Source::type_float3);
-		for(int v = 0; v < vertex_count; v++) {
-			float3 uvw = tex_coord_source->toFloat3(tris.attribIndex(Semantic::tex_coord, v));
-			m_tex_coords[v] = float2(uvw.x, -uvw.y);
+		if(tex_coord_source->type() == Source::type_float3) {
+			for(int v = 0; v < vertex_count; v++) {
+				float3 uvw = tex_coord_source->toFloat3(tris.attribIndex(Semantic::tex_coord, v));
+				m_tex_coords[v] = float2(uvw.x, -uvw.y);
+			}
+		} else if(tex_coord_source->type() == Source::type_float2) {
+			for(int v = 0; v < vertex_count; v++) {
+				float2 uv = tex_coord_source->toFloat2(tris.attribIndex(Semantic::tex_coord, v));
+				m_tex_coords[v] = float2(uv.x, -uv.y);
+			}
 		}
 	} else if(!m_tex_coords.isEmpty())
 		memset(m_tex_coords.data(), 0, m_tex_coords.size() * sizeof(m_tex_coords[0]));
@@ -115,11 +121,11 @@ void Mesh::load(const collada::Root &root, int mesh_id) {
 
 	for(int n = 0; n < m_positions.size(); n++) {
 		m_positions[n] = mulPoint(root_matrix, m_positions[n]);
-		root.fixUpAxis(m_positions[n]);
+		root.fixUpAxis(m_positions[n], 2);
 	}
 	for(int n = 0; n < m_normals.size(); n++) {
 		m_normals[n] = mulNormal(nrm_matrix, m_normals[n]);
-		root.fixUpAxis(m_normals[n]);
+		root.fixUpAxis(m_normals[n], 2);
 	}
 	if(root.upAxis() != 0) {
 		// TODO: order of vertices in a triangle sometimes has to be changed
@@ -220,7 +226,7 @@ PMesh Mesh::makeRect(const FRect &xy_rect, float z) {
 
 	return make_shared<Mesh>(tverts, arraySize(tverts), PrimitiveType::triangles);
 }
-	
+
 void Mesh::transformUV(const Matrix4 &matrix) {
 	for(int n = 0; n < (int)m_tex_coords.size(); n++)
 		m_tex_coords[n] = (matrix * float4(m_tex_coords[n], 0.0f, 1.0f)).xy();
@@ -228,7 +234,7 @@ void Mesh::transformUV(const Matrix4 &matrix) {
 
 PMesh Mesh::makeBBox(const FBox &bbox) {
 	float3 corners[8];
-	float2 uv[4] = { {0, 0}, {1, 0}, {1, 1}, {0, 1}};
+	float2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
 	bbox.getCorners(corners);
 
@@ -239,7 +245,7 @@ PMesh Mesh::makeBBox(const FBox &bbox) {
 		float3 pos[4];
 		float2 pos_uv[4];
 		Color col[4];
-		int tindex[6] = { 2, 1, 0, 3, 2, 0 };
+		int tindex[6] = {2, 1, 0, 3, 2, 0};
 
 		for(int i = 0; i < 6; i++) {
 			int index = order[tindex[i] + s * 4];

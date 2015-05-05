@@ -178,8 +178,8 @@ namespace collada {
 		int upAxis() const { return m_up_axis; }
 
 		//TODO: make Z default (or pass as an argument)
-		void fixUpAxis(Matrix4 &) const;
-		void fixUpAxis(float3 &) const;
+		void fixUpAxis(Matrix4 &, int target_up_axis) const;
+		void fixUpAxis(float3 &, int target_up_axis) const;
 
 		int meshCount() const { return (int)m_meshes.size(); }
 		int skinCount() const { return (int)m_skins.size(); }

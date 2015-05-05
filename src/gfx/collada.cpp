@@ -170,8 +170,8 @@ namespace collada {
 	}
 
 	Triangles::Triangles(Node *parent, XMLNode node) : m_parent(parent) {
-		DASSERT(parent);
-		DASSERT(node && StringRef(node.name()) == "triangles");
+		DASSERT(parent && node);
+		bool is_poly_list = StringRef(node.name()) == "polylist";
 
 		m_material_name = node.hasAttrib("material") ? node.attrib("material") : "";
 		m_vertex_count = node.attrib<int>("count") * 3;
@@ -195,6 +195,16 @@ namespace collada {
 
 		XMLNode indices_node = node.child("p");
 		ASSERT(indices_node);
+
+		if(is_poly_list) {
+			XMLNode vcounts_node = node.child("vcount");
+			ASSERT(vcounts_node);
+
+			vector<int> vcounts(m_vertex_count / 3);
+			parseValues(vcounts_node, vcounts.data(), vcounts.size());
+			for(int n = 0; n < (int)vcounts.size(); n++)
+				ASSERT(vcounts[n] == 3 && "TODO: add full support for polygons");
+		}
 
 		m_indices.resize(m_vertex_count * m_stride);
 		parseValues(indices_node, m_indices.data(), m_indices.size());
@@ -277,21 +287,30 @@ namespace collada {
 		}
 	}
 
-	void Root::fixUpAxis(Matrix4 &mat) const {
-		if(upAxis() == 2) {
-			swap(mat[1], mat[2]);
-			mat[0] *= -1.0f;
+	static int thirdAxis(int a, int b) {
+		int c = (a + 1) % 3;
+		if ( c == b)
+			c = (c + 1) % 3;
+		return c;
+	}
+
+	void Root::fixUpAxis(Matrix4 &mat, int target_axis) const {
+		if(m_up_axis != target_axis) {
+			int other_axis = thirdAxis(target_axis, m_up_axis);
+			swap(mat[target_axis], mat[m_up_axis]);
+			mat[other_axis] *= -1.0f;
 			mat = transpose(mat);
-			mat[0] *= -1.0f;
-			swap(mat[1], mat[2]);
+			mat[other_axis] *= -1.0f;
+			swap(mat[target_axis], mat[m_up_axis]);
 			mat = transpose(mat);
 		}
 	}
 
-	void Root::fixUpAxis(float3 &vec) const {
-		if(upAxis() == 2) {
-			swap(vec[1], vec[2]);
-			vec[0] = -vec[0];
+	void Root::fixUpAxis(float3 &vec, int target_axis) const {
+		if(m_up_axis != target_axis) {
+			int other_axis = thirdAxis(target_axis, m_up_axis);
+			swap(vec[target_axis], vec[m_up_axis]);
+			vec[other_axis] *= -1.0f;
 		}
 	}
 
@@ -308,6 +327,8 @@ namespace collada {
 		parseSources(node);
 
 		XMLNode tris_node = node.child("triangles");
+		if(!tris_node)
+			tris_node = node.child("polylist");
 		ASSERT(tris_node);
 
 		XMLNode verts_node = node.child("vertices");

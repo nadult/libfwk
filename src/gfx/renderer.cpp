@@ -128,25 +128,32 @@ void Renderer::add2DRect(const FRect &rect, const Material &material) {
 	elem.num_indices += num_indices;
 }
 
-void Renderer::addMesh(PMesh mesh, const Material &material) {
+void Renderer::addMesh(PMesh mesh, const Material &material, const Matrix4 &matrix) {
+	pushViewMatrix();
+	mulViewMatrix(matrix);
+
 	Element &elem = makeElement(mesh->m_primitive_type, material.texture());
 
 	int vertex_offset = (int)m_positions.size();
 	int num_vertices = mesh->m_positions.size();
 
-	m_positions.insert(m_positions.end(), mesh->m_positions.data(), mesh->m_positions.data() + num_vertices);
+	m_positions.insert(m_positions.end(), mesh->m_positions.data(),
+					   mesh->m_positions.data() + num_vertices);
 	m_colors.resize(m_colors.size() + num_vertices, material.color());
-	m_tex_coords.insert(m_tex_coords.end(), mesh->m_tex_coords.data(), mesh->m_tex_coords.data() + num_vertices); 
+	m_tex_coords.insert(m_tex_coords.end(), mesh->m_tex_coords.data(),
+						mesh->m_tex_coords.data() + num_vertices);
 
 	m_indices.reserve(m_indices.size() + num_vertices);
 	for(int n = 0; n < num_vertices; n++)
 		m_indices.emplace_back(vertex_offset + n);
 	elem.num_indices += num_vertices;
+
+	popViewMatrix();
 }
 
 Renderer::Element &Renderer::makeElement(PrimitiveType::Type primitive_type, PTexture texture) {
-	//TODO: merging won't work for triangle strip (have to add some more indices)
-	
+	// TODO: merging won't work for triangle strip (have to add some more indices)
+
 	Matrix4 mult_matrix = m_projection_matrix * m_view_matrix;
 	if(m_elements.empty() || m_elements.back().primitive_type != primitive_type ||
 	   m_elements.back().texture != texture || mult_matrix != m_elements.back().matrix)
@@ -155,7 +162,8 @@ Renderer::Element &Renderer::makeElement(PrimitiveType::Type primitive_type, PTe
 	return m_elements.back();
 }
 
-void Renderer::addLines(const float3 *pos, const Color *color, int num_lines, const Material &material) {
+void Renderer::addLines(const float3 *pos, const Color *color, int num_lines,
+						const Material &material) {
 	Element &elem = makeElement(PrimitiveType::lines, material.texture());
 	int vertex_offset = (int)m_positions.size();
 	int num_vertices = num_lines * 2;
@@ -182,10 +190,7 @@ void Renderer::addQuads(const float3 *pos, const float2 *tex_coord, const Color 
 		m_colors.insert(m_colors.end(), color, color + num_vertices);
 		for(int n = (int)m_colors.size() - num_vertices; n < (int)m_colors.size(); n++)
 			m_colors[n] = m_colors[n] * material.color();
-	}
-	else {
-		m_colors.resize(m_colors.size() + num_vertices, material.color());
-	}
+	} else { m_colors.resize(m_colors.size() + num_vertices, material.color()); }
 	m_tex_coords.insert(m_tex_coords.end(), tex_coord, tex_coord + num_vertices);
 
 	m_indices.reserve(m_indices.size() + num_quads * 6);
@@ -219,12 +224,9 @@ void Renderer::addTris(const float3 *pos, const float2 *tex_coord, const Color *
 }
 
 void Renderer::render(bool mode_3d) {
-	if(m_elements.empty())
-		return;
-
 	if(mode_3d) {
 		setBlendingMode(bmDisabled);
-	//	glEnable(GL_CULL_FACE);
+		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(1);
@@ -235,41 +237,18 @@ void Renderer::render(bool mode_3d) {
 		glDepthMask(0);
 	}
 
-	VertexArray array;
-	VertexBuffer buf_pos, buf_color, buf_tex_coord;
+	NiceVertexArray array({{make_shared<NiceVertexBuffer>(m_positions)},
+						   {make_shared<NiceVertexBuffer>(m_colors), true},
+						   {make_shared<NiceVertexBuffer>(m_tex_coords)}},
+						  {make_shared<NiceIndexBuffer>(m_indices)});
 
-	array.bind();
-	buf_pos.setData(sizeof(float3) * m_positions.size(), m_positions.data(), GL_STATIC_DRAW);
-	array.addAttrib(3, GL_FLOAT, 0, sizeof(float3), 0);
-
-	static_assert(sizeof(Color) == sizeof(unsigned char) * 4, "");
-	buf_color.setData(sizeof(Color) * m_colors.size(), m_colors.data(), GL_STATIC_DRAW);
-	array.addAttrib(4, GL_UNSIGNED_BYTE, 1, sizeof(Color), 0);
-
-	buf_tex_coord.setData(sizeof(float2) * m_tex_coords.size(), m_tex_coords.data(),
-						  GL_STATIC_DRAW);
-	array.addAttrib(2, GL_FLOAT, 0, sizeof(float2), 0);
-
-	GLuint index_buffer;
-	glGenBuffers(1, &index_buffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(uint), m_indices.data(),
-				 GL_STATIC_DRAW);
-
-	VertexArray::unbind();
-	VertexBuffer::unbind();
-
-	array.bind();
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 	for(const auto &element : m_elements) {
 		auto &program = (element.texture ? m_tex_program : m_flat_program);
 		program->bind();
 		program->setUniform("proj_view_matrix", element.matrix);
 		if(element.texture)
 			element.texture->bind();
-		glDrawElements(gl_primitive_type[element.primitive_type], element.num_indices, GL_UNSIGNED_INT,
-					   (void *)(element.first_index * sizeof(uint)));
+		array.drawPrimitives(element.primitive_type, element.num_indices, element.first_index);
 	}
 
 	m_positions.clear();
@@ -278,8 +257,6 @@ void Renderer::render(bool mode_3d) {
 	m_indices.clear();
 	m_elements.clear();
 
-	glDeleteBuffers(1, &index_buffer);
-	VertexArray::unbind();
 	DTexture::unbind();
 	Program::unbind();
 }

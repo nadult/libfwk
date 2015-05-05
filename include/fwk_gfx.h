@@ -397,8 +397,135 @@ class VertexBuffer {
 	static void bindHandle(int handle);
 
 	friend class VertexArray;
+	friend class NiceVertexArray;
 
 	unsigned m_handle;
+	int m_size;
+};
+
+struct VertexDataType {
+	enum Type {
+		type_byte,
+		type_ubyte,
+		type_short,
+		type_ushort,
+		type_float,
+	};
+
+	VertexDataType(Type type, int size) : type(type), size(size) {
+		DASSERT(size >= 1 && size <= 4);
+	}
+
+	template <class T> static constexpr VertexDataType make();
+
+	const Type type;
+	const int size;
+};
+
+template <class T> struct TVertexDataType : public VertexDataType {};
+
+#define DECLARE_VERTEX_DATA(final, base, size)                                                     \
+	template <> struct TVertexDataType<final> : public VertexDataType {                            \
+		TVertexDataType() : VertexDataType(type_##base, size) {}                                   \
+	};
+
+DECLARE_VERTEX_DATA(float4, float, 4)
+DECLARE_VERTEX_DATA(float3, float, 3)
+DECLARE_VERTEX_DATA(float2, float, 2)
+DECLARE_VERTEX_DATA(float, float, 1)
+DECLARE_VERTEX_DATA(Color, ubyte, 4)
+
+#undef DECLARE_VERTEX_DATA
+
+class NiceVertexBuffer {
+  public:
+	NiceVertexBuffer(const void *data, int size, int vertex_size, VertexDataType);
+	~NiceVertexBuffer();
+
+	void operator=(const NiceVertexBuffer &) = delete;
+	NiceVertexBuffer(const NiceVertexBuffer &) = delete;
+
+	template <class T>
+	NiceVertexBuffer(const vector<T> &data)
+		: NiceVertexBuffer(data.data(), (int)data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
+	template <class T>
+	NiceVertexBuffer(const PodArray<T> &data)
+		: NiceVertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
+
+	int size() const { return m_size; }
+
+  private:
+	unsigned m_handle;
+	int m_size, m_vertex_size;
+	VertexDataType m_data_type;
+	friend class NiceVertexArray;
+};
+
+using PNiceVertexBuffer = shared_ptr<NiceVertexBuffer>;
+
+class NiceIndexBuffer {
+  public:
+	enum IndexType {
+		type_uint,
+		type_ubyte,
+		type_ushort,
+	};
+
+	NiceIndexBuffer(const vector<uint> &indices)
+		: NiceIndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_uint) {}
+	NiceIndexBuffer(const vector<u16> &indices)
+		: NiceIndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ushort) {}
+	NiceIndexBuffer(const vector<u8> &indices)
+		: NiceIndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ubyte) {}
+	~NiceIndexBuffer();
+
+	void operator=(const NiceIndexBuffer &) = delete;
+	NiceIndexBuffer(const NiceIndexBuffer &) = delete;
+
+	int size() const { return m_size; }
+	int indexSize() const { return m_index_size; }
+	IndexType indexType() const { return m_index_type; }
+
+  private:
+	NiceIndexBuffer(const void *data, int size, int index_size, IndexType index_type);
+
+	unsigned m_handle;
+	int m_size, m_index_size;
+	IndexType m_index_type;
+	friend class NiceVertexArray;
+};
+
+using PNiceIndexBuffer = shared_ptr<NiceIndexBuffer>;
+
+DECLARE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
+
+struct VertexBufferSource {
+	VertexBufferSource(PNiceVertexBuffer buffer, bool normalize_data = false, int offset = 0)
+		: buffer(std::move(buffer)), normalize_data(normalize_data), offset(offset) {}
+
+	int size() const { return max(0, buffer->size() - offset); }
+
+	PNiceVertexBuffer buffer;
+	bool normalize_data;
+	int offset;
+};
+
+class NiceVertexArray {
+  public:
+	NiceVertexArray(const vector<VertexBufferSource> &);
+	NiceVertexArray(const vector<VertexBufferSource> &, PNiceIndexBuffer);
+
+	void drawPrimitives(PrimitiveType::Type, int num_vertices, int offset = 0) const;
+	void drawPrimitives(PrimitiveType::Type primitive_type) const { drawPrimitives(primitive_type, size()); }
+
+	int size() const { return m_size; }
+
+  private:
+	void initArray();
+
+	VertexArray m_vertex_array;
+	vector<VertexBufferSource> m_vertex_buffers;
+	PNiceIndexBuffer m_index_buffer;
 	int m_size;
 };
 
@@ -465,8 +592,6 @@ class Program {
 
 using PProgram = shared_ptr<Program>;
 
-DECLARE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
-
 class Mesh {
   public:
 	struct Vertex {
@@ -495,7 +620,7 @@ class Mesh {
 
 	float trace(const Segment &segment) const;
 
-	void transformUV(const Matrix4&);
+	void transformUV(const Matrix4 &);
 
 	static shared_ptr<Mesh> makeRect(const FRect &xy_rect, float z);
 	static shared_ptr<Mesh> makeBBox(const FBox &bbox);
@@ -556,7 +681,7 @@ class Renderer {
 
 	void add2DRect(const FRect &rect, const Material &material);
 
-	void addMesh(PMesh, const Material&);
+	void addMesh(PMesh, const Material &, const Matrix4 &matrix = identity());
 
 	// Each line is represented by two vertices
 	void addLines(const float3 *pos, const Color *color, int num_lines, const Material &material);
