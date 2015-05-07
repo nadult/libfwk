@@ -1,0 +1,483 @@
+From e505df578b14e07b37f651aac8f4699e6901f446 Mon Sep 17 00:00:00 2001
+From: Krzysztof Jakubowski <nadult@fastmail.fm>
+Date: Thu, 7 May 2015 00:06:19 +0200
+Subject: [PATCH] Fix collada animations exporter
+
+---
+ source/blender/collada/AnimationExporter.cpp  | 174 +++++++++++---------------
+ source/blender/collada/AnimationExporter.h    |  37 +++---
+ 2 files changed, 88 insertions(+), 121 deletions(-)
+
+diff --git a/source/blender/collada/AnimationExporter.cpp b/source/blender/collada/AnimationExporter.cpp
+index 7bea0b7..7415b70 100644
+--- a/source/blender/collada/AnimationExporter.cpp
++++ b/source/blender/collada/AnimationExporter.cpp
+@@ -23,35 +23,51 @@
+ #include "GeometryExporter.h"
+ #include "AnimationExporter.h"
+ #include "MaterialExporter.h"
++#include "BKE_main.h"
++#include "BKE_global.h"
+ 
+-template<class Functor>
+-void forEachObjectInExportSet(Scene *sce, Functor &f, LinkNode *export_set)
+-{
+-	LinkNode *node;
+-	for (node = export_set; node; node = node->next) {
+-		Object *ob = (Object *)node->link;
+-		f(ob);
+-	}
+-}
++	
++AnimationExporter::AnimationExporter(COLLADASW::StreamWriter *sw, const ExportSettings *export_settings):
++			COLLADASW::LibraryAnimations(sw), export_settings(export_settings), scene(0), sw(sw)
++{ }
+ 
+ bool AnimationExporter::exportAnimations(Scene *sce)
+ {
+ 	bool has_animations = hasAnimations(sce);
+ 	if (has_animations) {
+-		this->scene = sce;
++		scene = sce;
+ 
+ 		openLibrary();
+ 
+-		forEachObjectInExportSet(sce, *this, this->export_settings->export_set);
++		bAction *action = (bAction *)G.main->action.first;
++		while(action) {
++			std::string anim_id = action->id.name;
++			openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
++		
++			for (LinkNode *node = export_settings->export_set; node; node = node->next) {
++				Object *ob = (Object *)node->link;
++				exportObjectAnimations(anim_id, action, ob);
++			}
++
++			closeAnimation();
++			action = (bAction *)action->id.next;
++		}
+ 
+ 		closeLibrary();
++		scene = 0;
+ 	}
++
+ 	return has_animations;
+ }
+ 
+ // called for each exported object
+-void AnimationExporter::operator()(Object *ob)
++void AnimationExporter::exportObjectAnimations(const std::string &anim_id, bAction *current_action, Object *ob)
+ {
++	bAction *prev_action = ob->adt? ob->adt->action : 0;
++	if(ob->adt)
++		ob->adt->action = current_action;
++	m_anim_id = anim_id;
++
+ 	FCurve *fcu;
+ 	char *transformName;
+ 	/* bool isMatAnim = false; */ /* UNUSED */
+@@ -143,7 +159,8 @@ void AnimationExporter::operator()(Object *ob)
+ 		}
+ 	}
+ 
+-
++	if(ob->adt)
++		ob->adt->action = prev_action;
+ }
+ 
+ void AnimationExporter::export_object_constraint_animation(Object *ob)
+@@ -271,7 +288,6 @@ std::string AnimationExporter::getAnimationPathId(const FCurve *fcu)
+ void AnimationExporter::dae_animation(Object *ob, FCurve *fcu, char *transformName, bool is_param, Material *ma)
+ {
+ 	const char *axis_name = NULL;
+-	char anim_id[200];
+ 
+ 	bool has_tangents = false;
+ 	bool quatRotation = false;
+@@ -308,38 +324,12 @@ void AnimationExporter::dae_animation(Object *ob, FCurve *fcu, char *transformNa
+ 		axis_name = "";
+ 	}
+ 
+-	std::string ob_name = std::string("null");
+-
+-	//Create anim Id
+-	if (ob->type == OB_ARMATURE) {
+-		ob_name =  getObjectBoneName(ob, fcu);
+-		BLI_snprintf(
+-				anim_id,
+-				sizeof(anim_id),
+-				"%s_%s.%s",
+-				(char *)translate_id(ob_name).c_str(),
+-				(char *)translate_id(transformName).c_str(),
+-				axis_name);
+-	}
+-	else {
+-		if (ma)
+-			ob_name = id_name(ob) + "_material";
+-		else
+-			ob_name = id_name(ob);
+-
+-		BLI_snprintf(
+-				anim_id,
+-				sizeof(anim_id),
+-				"%s_%s_%s",
+-				(char *)translate_id(ob_name).c_str(),
+-				(char *)getAnimationPathId(fcu).c_str(),
+-				axis_name);
+-	}
+-
+-	openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
++	std::string ob_name = ob->type == OB_ARMATURE ?
++		getObjectBoneName(ob, fcu)  : id_name(ob) + (ma ? "_material" : "");
++	m_sub_anim_id = translate_id(ob_name) + "_" + translate_id(transformName) + axis_name;
+ 
+ 	// create input source
+-	std::string input_id = create_source_from_fcurve(COLLADASW::InputSemantic::INPUT, fcu, anim_id, axis_name);
++	std::string input_id = create_source_from_fcurve(COLLADASW::InputSemantic::INPUT, fcu, axis_name);
+ 
+ 	// create output source
+ 	std::string output_id;
+@@ -351,19 +341,19 @@ void AnimationExporter::dae_animation(Object *ob, FCurve *fcu, char *transformNa
+ 		for (int i = 0; i < fcu->totvert; i++) {
+ 			eul_axis[i] = eul[i * 3 + fcu->array_index];
+ 		}
+-		output_id = create_source_from_array(COLLADASW::InputSemantic::OUTPUT, eul_axis, fcu->totvert, quatRotation, anim_id, axis_name);
++		output_id = create_source_from_array(COLLADASW::InputSemantic::OUTPUT, eul_axis, fcu->totvert, quatRotation, axis_name);
+ 		MEM_freeN(eul);
+ 		MEM_freeN(eul_axis);
+ 	}
+ 	else if (STREQ(transformName, "lens") && (ob->type == OB_CAMERA)) {
+-		output_id = create_lens_source_from_fcurve((Camera *) ob->data, COLLADASW::InputSemantic::OUTPUT, fcu, anim_id);
++		output_id = create_lens_source_from_fcurve((Camera *) ob->data, COLLADASW::InputSemantic::OUTPUT, fcu);
+ 	}
+ 	else {
+-		output_id = create_source_from_fcurve(COLLADASW::InputSemantic::OUTPUT, fcu, anim_id, axis_name);
++		output_id = create_source_from_fcurve(COLLADASW::InputSemantic::OUTPUT, fcu, axis_name);
+ 	}
+ 
+ 	// create interpolations source
+-	std::string interpolation_id = create_interpolation_source(fcu, anim_id, axis_name, &has_tangents);
++	std::string interpolation_id = create_interpolation_source(fcu, axis_name, &has_tangents);
+ 
+ 	// handle tangents (if required)
+ 	std::string intangent_id;
+@@ -371,13 +361,13 @@ void AnimationExporter::dae_animation(Object *ob, FCurve *fcu, char *transformNa
+ 
+ 	if (has_tangents) {
+ 		// create in_tangent source
+-		intangent_id = create_source_from_fcurve(COLLADASW::InputSemantic::IN_TANGENT, fcu, anim_id, axis_name);
++		intangent_id = create_source_from_fcurve(COLLADASW::InputSemantic::IN_TANGENT, fcu, axis_name);
+ 
+ 		// create out_tangent source
+-		outtangent_id = create_source_from_fcurve(COLLADASW::InputSemantic::OUT_TANGENT, fcu, anim_id, axis_name);
++		outtangent_id = create_source_from_fcurve(COLLADASW::InputSemantic::OUT_TANGENT, fcu, axis_name);
+ 	}
+ 
+-	std::string sampler_id = std::string(anim_id) + SAMPLER_ID_SUFFIX;
++	std::string sampler_id = m_sub_anim_id + SAMPLER_ID_SUFFIX;
+ 	COLLADASW::LibraryAnimations::Sampler sampler(sw, sampler_id);
+ 	std::string empty;
+ 	sampler.addInput(COLLADASW::InputSemantic::INPUT, COLLADABU::URI(empty, input_id));
+@@ -415,8 +405,6 @@ void AnimationExporter::dae_animation(Object *ob, FCurve *fcu, char *transformNa
+ 				 "/value" +*/ 
+ 	}
+ 	addChannel(COLLADABU::URI(empty, sampler_id), target);
+-
+-	closeAnimation();
+ }
+ 
+ 
+@@ -498,28 +486,25 @@ void AnimationExporter::dae_baked_animation(std::vector<float> &fra, Object *ob_
+ {
+ 	std::string ob_name = id_name(ob_arm);
+ 	std::string bone_name = bone->name;
+-	char anim_id[200];
+ 
+ 	if (!fra.size())
+ 		return;
+ 
+-	BLI_snprintf(anim_id, sizeof(anim_id), "%s_%s_%s", (char *)translate_id(ob_name).c_str(),
+-	             (char *)translate_id(bone_name).c_str(), "pose_matrix");
+-
+-	openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
++	std::string prev_sub_anim_id = m_sub_anim_id;
++	m_sub_anim_id = translate_id(ob_name) + "_" + translate_id(bone_name) + "_pose_matrix";
+ 
+ 	// create input source
+-	std::string input_id = create_source_from_vector(COLLADASW::InputSemantic::INPUT, fra, false, anim_id, "");
++	std::string input_id = create_source_from_vector(COLLADASW::InputSemantic::INPUT, fra, false, "");
+ 
+ 	// create output source
+ 	std::string output_id;
+ 
+-	output_id = create_4x4_source(fra, ob_arm, bone, anim_id);
++	output_id = create_4x4_source(fra, ob_arm, bone);
+ 
+ 	// create interpolations source
+-	std::string interpolation_id = fake_interpolation_source(fra.size(), anim_id, "");
++	std::string interpolation_id = fake_interpolation_source(fra.size(), "");
+ 
+-	std::string sampler_id = std::string(anim_id) + SAMPLER_ID_SUFFIX;
++	std::string sampler_id = m_sub_anim_id + SAMPLER_ID_SUFFIX;
+ 	COLLADASW::LibraryAnimations::Sampler sampler(sw, sampler_id);
+ 	std::string empty;
+ 	sampler.addInput(COLLADASW::InputSemantic::INPUT, COLLADABU::URI(empty, input_id));
+@@ -535,33 +520,27 @@ void AnimationExporter::dae_baked_animation(std::vector<float> &fra, Object *ob_
+ 	std::string target = translate_id(bone_name) + "/transform";
+ 	addChannel(COLLADABU::URI(empty, sampler_id), target);
+ 
+-	closeAnimation();
++	m_sub_anim_id = prev_sub_anim_id;
+ }
+ 
+ void AnimationExporter::dae_baked_object_animation(std::vector<float> &fra, Object *ob)
+ {
+ 	std::string ob_name = id_name(ob);
+-	char anim_id[200];
+ 
+ 	if (!fra.size())
+ 		return;
+ 
+-	BLI_snprintf(anim_id, sizeof(anim_id), "%s_%s", (char *)translate_id(ob_name).c_str(),
+-	             "object_matrix");
+-
+-	openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
+-
+ 	// create input source
+-	std::string input_id = create_source_from_vector(COLLADASW::InputSemantic::INPUT, fra, false, anim_id, "");
++	std::string input_id = create_source_from_vector(COLLADASW::InputSemantic::INPUT, fra, false, "");
+ 
+ 	// create output source
+ 	std::string output_id;
+-	output_id = create_4x4_source( fra, ob, NULL, anim_id);
++	output_id = create_4x4_source( fra, ob, NULL);
+ 
+ 	// create interpolations source
+-	std::string interpolation_id = fake_interpolation_source(fra.size(), anim_id, "");
++	std::string interpolation_id = fake_interpolation_source(fra.size(), "");
+ 
+-	std::string sampler_id = std::string(anim_id) + SAMPLER_ID_SUFFIX;
++	std::string sampler_id = m_sub_anim_id + SAMPLER_ID_SUFFIX;
+ 	COLLADASW::LibraryAnimations::Sampler sampler(sw, sampler_id);
+ 	std::string empty;
+ 	sampler.addInput(COLLADASW::InputSemantic::INPUT, COLLADABU::URI(empty, input_id));
+@@ -586,7 +565,6 @@ void AnimationExporter::dae_bone_animation(std::vector<float> &fra, float *value
+ {
+ 	const char *axis_names[] = {"X", "Y", "Z"};
+ 	const char *axis_name = NULL;
+-	char anim_id[200];
+ 	bool is_rot = tm_type == 0;
+ 
+ 	if (!fra.size())
+@@ -601,25 +579,20 @@ void AnimationExporter::dae_bone_animation(std::vector<float> &fra, float *value
+ 
+ 	std::string transform_sid = get_transform_sid(NULL, tm_type, axis_name, false);
+ 
+-	BLI_snprintf(anim_id, sizeof(anim_id), "%s_%s_%s", (char *)translate_id(ob_name).c_str(),
+-	             (char *)translate_id(bone_name).c_str(), (char *)transform_sid.c_str());
+-
+-	openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
+-
+ 	// create input source
+-	std::string input_id = create_source_from_vector(COLLADASW::InputSemantic::INPUT, fra, is_rot, anim_id, axis_name);
++	std::string input_id = create_source_from_vector(COLLADASW::InputSemantic::INPUT, fra, is_rot, axis_name);
+ 
+ 	// create output source
+ 	std::string output_id;
+ 	if (axis == -1)
+-		output_id = create_xyz_source(values, fra.size(), anim_id);
++		output_id = create_xyz_source(values, fra.size());
+ 	else
+-		output_id = create_source_from_array(COLLADASW::InputSemantic::OUTPUT, values, fra.size(), is_rot, anim_id, axis_name);
++		output_id = create_source_from_array(COLLADASW::InputSemantic::OUTPUT, values, fra.size(), is_rot, axis_name);
+ 
+ 	// create interpolations source
+-	std::string interpolation_id = fake_interpolation_source(fra.size(), anim_id, axis_name);
++	std::string interpolation_id = fake_interpolation_source(fra.size(), axis_name);
+ 
+-	std::string sampler_id = std::string(anim_id) + SAMPLER_ID_SUFFIX;
++	std::string sampler_id = m_sub_anim_id + SAMPLER_ID_SUFFIX;
+ 	COLLADASW::LibraryAnimations::Sampler sampler(sw, sampler_id);
+ 	std::string empty;
+ 	sampler.addInput(COLLADASW::InputSemantic::INPUT, COLLADABU::URI(empty, input_id));
+@@ -757,9 +730,9 @@ void AnimationExporter::get_source_values(BezTriple *bezt, COLLADASW::InputSeman
+ 	}
+ }
+ 
+-std::string AnimationExporter::create_source_from_fcurve(COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu, const std::string& anim_id, const char *axis_name)
++std::string AnimationExporter::create_source_from_fcurve(COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu, const char *axis_name)
+ {
+-	std::string source_id = anim_id + get_semantic_suffix(semantic);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(semantic);
+ 
+ 	//bool is_angle = STREQ(fcu->rna_path, "rotation");
+ 	bool is_angle = false;
+@@ -807,9 +780,9 @@ std::string AnimationExporter::create_source_from_fcurve(COLLADASW::InputSemanti
+  * Similar to create_source_from_fcurve, but adds conversion of lens
+  * animation data from focal length to FOV.
+  */
+-std::string AnimationExporter::create_lens_source_from_fcurve(Camera *cam, COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu, const std::string& anim_id)
++std::string AnimationExporter::create_lens_source_from_fcurve(Camera *cam, COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu)
+ {
+-	std::string source_id = anim_id + get_semantic_suffix(semantic);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(semantic);
+ 
+ 	COLLADASW::FloatSourceF source(mSW);
+ 	source.setId(source_id);
+@@ -842,9 +815,9 @@ std::string AnimationExporter::create_lens_source_from_fcurve(Camera *cam, COLLA
+ 
+ 
+ //Currently called only to get OUTPUT source values ( if rotation and hence the axis is also specified )
+-std::string AnimationExporter::create_source_from_array(COLLADASW::InputSemantic::Semantics semantic, float *v, int tot, bool is_rot, const std::string& anim_id, const char *axis_name)
++std::string AnimationExporter::create_source_from_array(COLLADASW::InputSemantic::Semantics semantic, float *v, int tot, bool is_rot, const char *axis_name)
+ {
+-	std::string source_id = anim_id + get_semantic_suffix(semantic);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(semantic);
+ 
+ 	COLLADASW::FloatSourceF source(mSW);
+ 	source.setId(source_id);
+@@ -872,9 +845,9 @@ std::string AnimationExporter::create_source_from_array(COLLADASW::InputSemantic
+ 	return source_id;
+ }
+ // only used for sources with INPUT semantic
+-std::string AnimationExporter::create_source_from_vector(COLLADASW::InputSemantic::Semantics semantic, std::vector<float> &fra, bool is_rot, const std::string& anim_id, const char *axis_name)
++std::string AnimationExporter::create_source_from_vector(COLLADASW::InputSemantic::Semantics semantic, std::vector<float> &fra, bool is_rot, const char *axis_name)
+ {
+-	std::string source_id = anim_id + get_semantic_suffix(semantic);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(semantic);
+ 
+ 	COLLADASW::FloatSourceF source(mSW);
+ 	source.setId(source_id);
+@@ -903,10 +876,10 @@ std::string AnimationExporter::create_source_from_vector(COLLADASW::InputSemanti
+ }
+ 
+ 
+-std::string AnimationExporter::create_4x4_source(std::vector<float> &frames, Object *ob, Bone *bone, const std::string &anim_id)
++std::string AnimationExporter::create_4x4_source(std::vector<float> &frames, Object *ob, Bone *bone)
+ {
+ 	COLLADASW::InputSemantic::Semantics semantic = COLLADASW::InputSemantic::OUTPUT;
+-	std::string source_id = anim_id + get_semantic_suffix(semantic);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(semantic);
+ 
+ 	COLLADASW::Float4x4Source source(mSW);
+ 	source.setId(source_id);
+@@ -1008,10 +981,10 @@ std::string AnimationExporter::create_4x4_source(std::vector<float> &frames, Obj
+ 
+ 
+ // only used for sources with OUTPUT semantic ( locations and scale)
+-std::string AnimationExporter::create_xyz_source(float *v, int tot, const std::string& anim_id)
++std::string AnimationExporter::create_xyz_source(float *v, int tot)
+ {
+ 	COLLADASW::InputSemantic::Semantics semantic = COLLADASW::InputSemantic::OUTPUT;
+-	std::string source_id = anim_id + get_semantic_suffix(semantic);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(semantic);
+ 
+ 	COLLADASW::FloatSourceF source(mSW);
+ 	source.setId(source_id);
+@@ -1034,9 +1007,9 @@ std::string AnimationExporter::create_xyz_source(float *v, int tot, const std::s
+ 	return source_id;
+ }
+ 
+-std::string AnimationExporter::create_interpolation_source(FCurve *fcu, const std::string& anim_id, const char *axis_name, bool *has_tangents)
++std::string AnimationExporter::create_interpolation_source(FCurve *fcu, const char *axis_name, bool *has_tangents)
+ {
+-	std::string source_id = anim_id + get_semantic_suffix(COLLADASW::InputSemantic::INTERPOLATION);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(COLLADASW::InputSemantic::INTERPOLATION);
+ 
+ 	COLLADASW::NameSource source(mSW);
+ 	source.setId(source_id);
+@@ -1070,9 +1043,9 @@ std::string AnimationExporter::create_interpolation_source(FCurve *fcu, const st
+ 	return source_id;
+ }
+ 
+-std::string AnimationExporter::fake_interpolation_source(int tot, const std::string& anim_id, const char *axis_name)
++std::string AnimationExporter::fake_interpolation_source(int tot, const char *axis_name)
+ {
+-	std::string source_id = anim_id + get_semantic_suffix(COLLADASW::InputSemantic::INTERPOLATION);
++	std::string source_id = m_sub_anim_id + get_semantic_suffix(COLLADASW::InputSemantic::INTERPOLATION);
+ 
+ 	COLLADASW::NameSource source(mSW);
+ 	source.setId(source_id);
+@@ -1567,4 +1540,3 @@ void AnimationExporter::calc_ob_mat_at_time(Object *ob, float ctime , float mat[
+ 	BKE_object_where_is_calc_time(scene, ob, ctime);
+ 	copy_m4_m4(mat, ob->obmat);
+ }
+-
+diff --git a/source/blender/collada/AnimationExporter.h b/source/blender/collada/AnimationExporter.h
+index 4736361..f602adc 100644
+--- a/source/blender/collada/AnimationExporter.h
++++ b/source/blender/collada/AnimationExporter.h
+@@ -83,27 +83,17 @@ extern "C"
+ 
+ class AnimationExporter: COLLADASW::LibraryAnimations
+ {
+-private:
+-	Scene *scene;
+-	COLLADASW::StreamWriter *sw;
+-
+ public:
+-
+-	AnimationExporter(COLLADASW::StreamWriter *sw, const ExportSettings *export_settings):
+-			COLLADASW::LibraryAnimations(sw), export_settings(export_settings)
+-			{ this->sw = sw; }
+-	
++	AnimationExporter(COLLADASW::StreamWriter *sw, const ExportSettings *export_settings);
+ 
+ 	bool exportAnimations(Scene *sce);
+-
+-	// called for each exported object
+-	void operator() (Object *ob); 
++	void exportObjectAnimations(const std::string &anim_id, bAction *action, Object *ob); 
+ 	
+ protected:
+ 	const ExportSettings *export_settings;
+ 
+ 	void dae_animation(Object *ob, FCurve *fcu, char *transformName, bool is_param, Material *ma = NULL);
+-
++    
+ 	void export_object_constraint_animation(Object *ob);
+ 
+ 	void export_morph_animation(Object *ob);
+@@ -143,21 +133,21 @@ protected:
+ 	
+ 	float* get_eul_source_for_quat(Object *ob );
+ 
+-	std::string create_source_from_fcurve(COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu, const std::string& anim_id, const char *axis_name);
++	std::string create_source_from_fcurve(COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu, const char *axis_name);
+ 
+-	std::string create_lens_source_from_fcurve(Camera *cam, COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu, const std::string& anim_id);
++	std::string create_lens_source_from_fcurve(Camera *cam, COLLADASW::InputSemantic::Semantics semantic, FCurve *fcu);
+ 
+-	std::string create_source_from_array(COLLADASW::InputSemantic::Semantics semantic, float *v, int tot, bool is_rot, const std::string& anim_id, const char *axis_name);
++	std::string create_source_from_array(COLLADASW::InputSemantic::Semantics semantic, float *v, int tot, bool is_rot, const char *axis_name);
+ 
+-	std::string create_source_from_vector(COLLADASW::InputSemantic::Semantics semantic, std::vector<float> &fra, bool is_rot, const std::string& anim_id, const char *axis_name);
++	std::string create_source_from_vector(COLLADASW::InputSemantic::Semantics semantic, std::vector<float> &fra, bool is_rot, const char *axis_name);
+ 
+-	std::string create_xyz_source(float *v, int tot, const std::string& anim_id);
++	std::string create_xyz_source(float *v, int tot);
+ 
+-	std::string create_4x4_source(std::vector<float> &frames, Object * ob_arm, Bone *bone, const std::string& anim_id);
++	std::string create_4x4_source(std::vector<float> &frames, Object * ob_arm, Bone *bone);
+ 
+-	std::string create_interpolation_source(FCurve *fcu, const std::string& anim_id, const char *axis_name, bool *has_tangents);
++	std::string create_interpolation_source(FCurve *fcu, const char *axis_name, bool *has_tangents);
+ 
+-	std::string fake_interpolation_source(int tot, const std::string& anim_id, const char *axis_name);
++	std::string fake_interpolation_source(int tot, const char *axis_name);
+ 	
+ 	// for rotation, axis name is always appended and the value of append_axis is ignored
+ 	std::string get_transform_sid(char *rna_path, int tm_type, const char *axis_name, bool append_axis);
+@@ -188,4 +178,9 @@ protected:
+ 
+ 	void calc_ob_mat_at_time(Object *ob, float ctime , float mat[][4]);
+ 
++private:
++	Scene *scene;
++	COLLADASW::StreamWriter *sw;
++	std::string m_anim_id;
++	std::string m_sub_anim_id;
+ };
+-- 
+2.1.0
+
