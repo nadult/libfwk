@@ -7,8 +7,11 @@
 
 namespace fwk {
 
-NiceIndexBuffer::NiceIndexBuffer(const void *data, int size, int index_size, IndexType index_type)
-	: m_size(size), m_index_size(index_size), m_index_type(index_type) {
+IndexBuffer::IndexBuffer(const void *data, int size, int index_size, IndexType index_type)
+	: m_handle(0), m_size(size), m_index_size(index_size), m_index_type(index_type) {
+	if(!m_size)
+		return;
+
 	glGenBuffers(1, &m_handle);
 	testGlError("glGenBuffers");
 
@@ -17,7 +20,7 @@ NiceIndexBuffer::NiceIndexBuffer(const void *data, int size, int index_size, Ind
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-NiceIndexBuffer::~NiceIndexBuffer() {
+IndexBuffer::~IndexBuffer() {
 	if(m_handle)
 		glDeleteBuffers(1, &m_handle);
 }

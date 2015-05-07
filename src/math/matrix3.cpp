@@ -6,6 +6,10 @@
 
 namespace fwk {
 
+const Matrix3 Matrix3::identity() {
+	return Matrix3({1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
+}
+
 const Matrix3 transpose(const Matrix3 &mat) {
 	return Matrix3({mat[0][0], mat[1][0], mat[2][0]}, {mat[0][1], mat[1][1], mat[2][1]},
 				   {mat[0][2], mat[1][2], mat[2][2]});
@@ -71,9 +75,6 @@ const Matrix3 rotation(const float3 &axis, float radians) {
 					 {xzm - ySin, yzm + xSin, zz * oneMinusCos + cos});
 }
 
-const Matrix3 identity() {
-	return Matrix3({1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
-};
 
 const Matrix3 scaling(const float3 &v) {
 	return Matrix3({v[0], 0.0f, 0.0f}, {0.0f, v[1], 0.0f}, {0.0f, 0.0f, v[2]});

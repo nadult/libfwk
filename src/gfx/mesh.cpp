@@ -8,137 +8,71 @@
 
 namespace fwk {
 
-Mesh::Mesh(const Vertex *verts, int count, PrimitiveType::Type type) : m_primitive_type(type) {
-	m_positions.resize(count);
-	m_normals.resize(count);
-	m_tex_coords.resize(count);
-
-	for(int n = 0; n < count; n++) {
-		m_positions[n] = verts[n].pos;
-		m_normals[n] = verts[n].nrm;
-		m_tex_coords[n] = verts[n].uv;
-	}
-}
-
-void Mesh::clear() {
-	m_positions.clear();
-	m_normals.clear();
-	m_tex_coords.clear();
-	m_neighbours.clear();
-
-	m_primitive_type = PrimitiveType::triangles;
-}
-
-void Mesh::loadFromXML(const XMLDocument &doc) {
-	collada::Root root(doc);
-	load(root, 0);
-}
-
-static bool getRootMatrix(XMLNode node, const Matrix4 &parent_mat, Matrix4 &out,
-						  StringRef mesh_id) {
-	XMLNode mat_node = node.child("matrix");
-	Matrix4 local = parent_mat;
-
-	/*	if(mat_node) {
-			mat_node.parseValues(&local[0][0], 16);
-			local = parent_mat * transpose(local);
-		}
-
-		XMLNode inst_node = node.child("instance_geometry");
-		if(inst_node) {
-			StringRef name = inst_node ? inst_node.weakAttrib("url") : "";
-			if(name[0] == '#' && name + 1 == mesh_id) {
-				out = local;
-				return true;
-			}
-		}
-
-		XMLNode child = node.child("node");
-		while(child) {
-			if(getRootMatrix(child, local, out, mesh_id))
-				return true;
-			child.next();
-		}*/
-
-	return false;
-}
-
-static Matrix4 getRootMatrix(const collada::Root &root, StringRef mesh_id) {
-	Matrix4 out = identity();
-
-	for(int n = 0; n < root.sceneNodeCount(); n++) {
-		XMLNode node = root.sceneNode(n).node();
-		if(getRootMatrix(node, identity(), out, mesh_id))
-			return out;
-		node.next();
-	}
-
-	return out;
-}
-
-void Mesh::load(const collada::Root &root, int mesh_id) {
-	clear();
-
+SimpleMeshData::SimpleMeshData(const collada::Mesh &cmesh) {
 	using namespace collada;
 
-	ASSERT(mesh_id >= 0 && mesh_id < root.meshCount());
-	const collada::Mesh &mesh = root.mesh(mesh_id);
-
-	const Triangles &tris = mesh.triangles();
-	int vertex_count = tris.count() * 3;
+	const Triangles &ctris = cmesh.triangles();
+	int vertex_count = ctris.count() * 3;
 	m_positions.resize(vertex_count);
 	m_normals.resize(vertex_count);
 	m_tex_coords.resize(vertex_count);
 
-	const Source *vertex_source = tris.attribSource(Semantic::vertex);
-	const Source *normal_source = tris.attribSource(Semantic::normal);
-	const Source *tex_coord_source = tris.attribSource(Semantic::tex_coord);
+	const Source *vertex_source = ctris.attribSource(Semantic::vertex);
+	const Source *normal_source = ctris.attribSource(Semantic::normal);
+	const Source *tex_coord_source = ctris.attribSource(Semantic::tex_coord);
 	ASSERT(vertex_source->type() == Source::type_float3);
 	ASSERT(normal_source->type() == Source::type_float3);
 
 	for(int v = 0; v < vertex_count; v++) {
-		m_positions[v] = vertex_source->toFloat3(tris.attribIndex(Semantic::vertex, v));
-		m_normals[v] = normal_source->toFloat3(tris.attribIndex(Semantic::normal, v));
+		m_positions[v] = vertex_source->toFloat3(ctris.attribIndex(Semantic::vertex, v));
+		m_normals[v] = normal_source->toFloat3(ctris.attribIndex(Semantic::normal, v));
 	}
 
 	if(tex_coord_source) {
 		if(tex_coord_source->type() == Source::type_float3) {
 			for(int v = 0; v < vertex_count; v++) {
-				float3 uvw = tex_coord_source->toFloat3(tris.attribIndex(Semantic::tex_coord, v));
+				float3 uvw = tex_coord_source->toFloat3(ctris.attribIndex(Semantic::tex_coord, v));
 				m_tex_coords[v] = float2(uvw.x, -uvw.y);
 			}
 		} else if(tex_coord_source->type() == Source::type_float2) {
 			for(int v = 0; v < vertex_count; v++) {
-				float2 uv = tex_coord_source->toFloat2(tris.attribIndex(Semantic::tex_coord, v));
+				float2 uv = tex_coord_source->toFloat2(ctris.attribIndex(Semantic::tex_coord, v));
 				m_tex_coords[v] = float2(uv.x, -uv.y);
 			}
 		}
-	} else if(!m_tex_coords.isEmpty())
+	} else if(!m_tex_coords.empty())
 		memset(m_tex_coords.data(), 0, m_tex_coords.size() * sizeof(m_tex_coords[0]));
 
-	Matrix4 root_matrix = getRootMatrix(root, mesh.id());
-	Matrix4 nrm_matrix = inverse(transpose(root_matrix));
+	m_indices.resize(m_positions.size());
+	for(int n = 0; n < m_indices.size(); n++)
+		m_indices[n] = n;
 
-	for(int n = 0; n < m_positions.size(); n++) {
-		m_positions[n] = mulPoint(root_matrix, m_positions[n]);
-		root.fixUpAxis(m_positions[n], 2);
-	}
-	for(int n = 0; n < m_normals.size(); n++) {
-		m_normals[n] = mulNormal(nrm_matrix, m_normals[n]);
-		root.fixUpAxis(m_normals[n], 2);
-	}
-	if(root.upAxis() != 0) {
-		// TODO: order of vertices in a triangle sometimes has to be changed
-		for(int n = 0; n < m_positions.size(); n += 3) {
-			//				swap(m_positions[n], m_positions[n + 1]);
-			//				swap(m_tex_coords[n], m_tex_coords[n + 1]);
-			//				swap(m_normals[n], m_normals[n + 1]);
+	m_primitive_type = PrimitiveType::triangles;
+	/*
+		Matrix4 root_matrix = getRootMatrix(root, cmesh.id());
+		Matrix4 nrm_matrix = inverse(transpose(root_matrix));
+
+		for(int n = 0; n < m_positions.size(); n++) {
+			m_positions[n] = mulPoint(root_matrix, m_positions[n]);
+			root.fixUpAxis(m_positions[n], 2);
 		}
-	}
+		for(int n = 0; n < m_normals.size(); n++) {
+			m_normals[n] = mulNormal(nrm_matrix, m_normals[n]);
+			root.fixUpAxis(m_normals[n], 2);
+		}
+		if(root.upAxis() != 0) {
+			// TODO: order of vertices in a triangle sometimes has to be changed
+			for(int n = 0; n < m_positions.size(); n += 3) {
+				//				swap(m_positions[n], m_positions[n + 1]);
+				//				swap(m_tex_coords[n], m_tex_coords[n + 1]);
+				//				swap(m_normals[n], m_normals[n + 1]);
+			}
+		}*/
 
-	m_bbox = FBox(m_positions.data(), m_positions.size());
+	m_bounding_box = FBox(m_positions.data(), m_positions.size());
 }
 
+/*
 void Mesh::genAdjacency() {
 	struct TVec : public float3 {
 		TVec(const float3 &vec) : float3(vec) {}
@@ -214,59 +148,136 @@ void Mesh::getFace(int face, int &i1, int &i2, int &i3) const {
 		i2 = face * 3 + 1;
 		i3 = face * 3 + 2;
 	}
+}*/
+
+SimpleMeshData::SimpleMeshData(MakeRect, const FRect &xy_rect, float z)
+	: m_positions{float3(xy_rect.min.x, xy_rect.min.y, z), float3(xy_rect.max.x, xy_rect.min.y, z),
+				  float3(xy_rect.max.x, xy_rect.max.y, z), float3(xy_rect.min.x, xy_rect.max.y, z)},
+	  m_normals(4, float3(0, 0, 1)), m_tex_coords{{0, 0}, {1, 0}, {1, 1}, {0, 1}},
+	  m_indices{0, 1, 2, 0, 2, 3}, m_primitive_type(PrimitiveType::triangles) {}
+
+SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
+	/*	float3 corners[8];
+		float2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+
+		bbox.getCorners(corners);
+
+		int order[] = {1, 3, 2, 0, 1, 0, 4, 5, 5, 4, 6, 7, 3, 1, 5, 7, 2, 6, 4, 0, 3, 7, 6, 2};
+		Mesh::Vertex verts[36];
+
+		for(int s = 0; s < 6; s++) {
+			float3 pos[4];
+			float2 pos_uv[4];
+			Color col[4];
+			int tindex[6] = {2, 1, 0, 3, 2, 0};
+
+			for(int i = 0; i < 6; i++) {
+				int index = order[tindex[i] + s * 4];
+
+				verts[s * 6 + i].pos = corners[index];
+				verts[s * 6 + i].uv = uv[tindex[i]];
+			}
+		}
+
+		return make_shared<Mesh>(verts, arraySize(verts), PrimitiveType::triangles);*/
 }
 
-PMesh Mesh::makeRect(const FRect &xy_rect, float z) {
-	// TODO: order
-	Mesh::Vertex verts[4] = {{float3(xy_rect.min.x, xy_rect.min.y, z), {0, 1, 0}, {0, 0}},
-							 {float3(xy_rect.max.x, xy_rect.min.y, z), {0, 1, 0}, {1, 0}},
-							 {float3(xy_rect.max.x, xy_rect.max.y, z), {0, 1, 0}, {1, 1}},
-							 {float3(xy_rect.min.x, xy_rect.max.y, z), {0, 1, 0}, {0, 1}}};
-	Mesh::Vertex tverts[6] = {verts[0], verts[1], verts[2], verts[0], verts[2], verts[3]};
-
-	return make_shared<Mesh>(tverts, arraySize(tverts), PrimitiveType::triangles);
-}
-
-void Mesh::transformUV(const Matrix4 &matrix) {
+void SimpleMeshData::transformUV(const Matrix4 &matrix) {
 	for(int n = 0; n < (int)m_tex_coords.size(); n++)
 		m_tex_coords[n] = (matrix * float4(m_tex_coords[n], 0.0f, 1.0f)).xy();
 }
 
-PMesh Mesh::makeBBox(const FBox &bbox) {
-	float3 corners[8];
-	float2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+SimpleMesh::SimpleMesh(const SimpleMeshData &data, Color color)
+	: m_vertex_array(VertexArray::make({make_shared<VertexBuffer>(data.m_positions), color,
+										make_shared<VertexBuffer>(data.m_tex_coords)},
+									   make_shared<IndexBuffer>(data.m_indices))),
+	  m_primitive_type(data.m_primitive_type) {}
 
-	bbox.getCorners(corners);
+void SimpleMesh::draw(Renderer &renderer, const Material &material, const Matrix4 &mat) const {
+	renderer.addDrawCall({m_vertex_array, m_primitive_type, m_vertex_array->size(), 0}, material,
+						 mat);
+}
 
-	int order[] = {1, 3, 2, 0, 1, 0, 4, 5, 5, 4, 6, 7, 3, 1, 5, 7, 2, 6, 4, 0, 3, 7, 6, 2};
-	Mesh::Vertex verts[36];
+MeshData::MeshData(const collada::Root &croot) {
+	for(int n = 0; n < croot.meshCount(); n++) {
+		m_nodes.emplace_back(SimpleMeshData(croot.mesh(n)), Matrix4::identity());
+	}
+}
 
-	for(int s = 0; s < 6; s++) {
-		float3 pos[4];
-		float2 pos_uv[4];
-		Color col[4];
-		int tindex[6] = {2, 1, 0, 3, 2, 0};
+static collada::Root loadCollada(Stream &stream) {
+	XMLDocument doc;
+	stream >> doc;
+	return collada::Root(doc);
+}
 
-		for(int i = 0; i < 6; i++) {
-			int index = order[tindex[i] + s * 4];
+MeshData::MeshData(const string &name, Stream &stream) : MeshData(loadCollada(stream)) {}
 
-			verts[s * 6 + i].pos = corners[index];
-			verts[s * 6 + i].uv = uv[tindex[i]];
+Mesh::Mesh(const string &name, Stream &stream) : Mesh(MeshData(name, stream)) {}
+
+Mesh::Mesh(const MeshData &data) {
+	for(const auto &node : data.m_nodes)
+		m_nodes.emplace_back(SimpleMesh(node.mesh), node.matrix);
+}
+
+void Mesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) const {
+	out.pushViewMatrix();
+	out.mulViewMatrix(matrix);
+
+	for(const auto &node : m_nodes) {
+		out.pushViewMatrix();
+		out.mulViewMatrix(node.matrix);
+		node.mesh.draw(out, material);
+		out.popViewMatrix();
+	}
+	out.popViewMatrix();
+}
+
+/*
+
+static bool getRootMatrix(XMLNode node, const Matrix4 &parent_mat, Matrix4 &out,
+						  StringRef mesh_id) {
+	XMLNode mat_node = node.child("matrix");
+	Matrix4 local = parent_mat;
+
+		if(mat_node) {
+			mat_node.parseValues(&local[0][0], 16);
+			local = parent_mat * transpose(local);
 		}
+
+		XMLNode inst_node = node.child("instance_geometry");
+		if(inst_node) {
+			StringRef name = inst_node ? inst_node.weakAttrib("url") : "";
+			if(name[0] == '#' && name + 1 == mesh_id) {
+				out = local;
+				return true;
+			}
+		}
+
+		XMLNode child = node.child("node");
+		while(child) {
+			if(getRootMatrix(child, local, out, mesh_id))
+				return true;
+			child.next();
+		}
+
+	return false;
+}
+
+static Matrix4 getRootMatrix(const collada::Root &root, StringRef mesh_id) {
+	Matrix4 out = identity();
+
+	for(int n = 0; n < root.sceneNodeCount(); n++) {
+		XMLNode node = root.sceneNode(n).node();
+		if(getRootMatrix(node, identity(), out, mesh_id))
+			return out;
+		node.next();
 	}
 
-	return make_shared<Mesh>(verts, arraySize(verts), PrimitiveType::triangles);
+	return out;
 }
+*/
 
-Mesh::Mesh(const string &name, Stream &stream) : Mesh() { load(stream); }
-Mesh::Mesh() { m_bbox = FBox::empty(); }
-
-void Mesh::load(Stream &sr) {
-	XMLDocument doc;
-	sr >> doc;
-	loadFromXML(doc);
-}
-
+/*
 float Mesh::trace(const Segment &segment) const {
 	float dist = constant::inf;
 	int tri_count = vertexCount() / 3;
@@ -275,7 +286,7 @@ float Mesh::trace(const Segment &segment) const {
 									  m_positions[n * 3 + 2]));
 
 	return dist;
-}
+}*/
 
 // const Stream Mesh::toStream() const {
 //	return Stream(m_primitive_type, m_positions.size(), nullptr, m_positions.data(),

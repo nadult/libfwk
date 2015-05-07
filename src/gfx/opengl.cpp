@@ -117,12 +117,17 @@ void loadExtensions() {
 	LOAD(glValidateProgram);
 	LOAD(glVertexAttribPointer);
 	LOAD(glGenerateMipmap);
+	LOAD(glBindVertexArray);
+	LOAD(glDeleteVertexArrays);
+	LOAD(glGenVertexArrays);
+	LOAD(glVertexAttrib4f);
 
 #undef LOAD
 
 #endif
 }
 
+// TODO: think of better error handling
 void testGlError(const char *msg) {
 	int err = glGetError();
 	if(err == GL_NO_ERROR)

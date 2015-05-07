@@ -212,7 +212,7 @@ int Font::genQuads(const char *str, float3 *out_pos, float2 *out_uv, int buffer_
 	return gen_count;
 }
 
-FontRenderer::FontRenderer(PFont font, PTexture texture, Renderer &out)
+FontRenderer::FontRenderer(PFont font, PTexture texture, Renderer2D &out)
 	: m_font(font), m_texture(texture), m_renderer(out) {
 	DASSERT(m_font);
 	DASSERT(m_texture);

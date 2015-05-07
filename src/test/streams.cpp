@@ -41,7 +41,7 @@ struct Object {
 	Obj2 obj2;
 	char flower;
 
-	Object() :v0(v2),flower(127) { }
+	Object() :v0(11.0f),v2(10.0f),flower(127) { }
 	Object(int v0, float v1, long long v2, Vec v3, const char *text)
 		:v0(v0), v1(v1), v2(v2), text(text), v3(v3), obj2(), flower(127) { }
 

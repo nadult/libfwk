@@ -12,8 +12,12 @@
 
 namespace fwk {
 namespace collada {
-	struct Root;
+	class Root;
+	class Mesh;
 }
+
+class MakeRect {};
+class MakeBBox {};
 
 struct Color {
 	explicit Color(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
@@ -285,6 +289,20 @@ class GfxDevice {
 
 	void runMainLoop(MainLoopFunction);
 
+	static void clearColor(Color color);
+	static void clearDepth(float depth_value);
+
+	enum BlendingMode {
+		bmDisabled,
+		bmNormal,
+	};
+
+	static void setBlendingMode(BlendingMode mode);
+	static void setScissorRect(const IRect &rect);
+	static const IRect getScissorRect();
+
+	static void setScissorTest(bool is_enabled);
+
   private:
 	GfxDevice();
 	~GfxDevice();
@@ -302,10 +320,10 @@ class GfxDevice {
 	vector<InputEvent> m_input_events;
 	std::map<int, int> m_key_map;
 	std::map<int, int> m_inv_map;
-	double m_time_pressed[InputKey::count];
+	//	double m_time_pressed[InputKey::count];
 	double m_last_time;
-	double m_press_delay;
-	int m_clock;
+	//	double m_press_delay;
+	//	int m_clock;
 };
 
 struct RectStyle {
@@ -314,93 +332,6 @@ struct RectStyle {
 
 	Color fill_color;
 	Color border_color;
-};
-
-// TODO: fix VertexArray & VertexBuffer classes
-// They don't really add much value on top of OpenGL functions
-
-class VertexArray {
-  public:
-	VertexArray();
-	~VertexArray();
-	VertexArray(const VertexArray &) = delete;
-	const VertexArray &operator=(const VertexArray &) = delete;
-
-	VertexArray(VertexArray &&);
-	void operator=(VertexArray &&);
-
-	void bind() const;
-	static void unbind();
-
-	void addAttrib(int size, int type, bool normalze, int stride, int offset);
-	void clear();
-
-#if OPENGL_VERSION >= 0x30
-	int handle() const { return (int)m_handle; }
-#endif
-
-  protected:
-	int m_bind_count;
-#if OPENGL_VERSION >= 0x30
-	unsigned m_handle;
-#else
-	enum { max_binds = 8 };
-
-	struct AttribBind {
-		int handle, offset;
-		u16 type, stride;
-		u8 index, size;
-		bool normalize;
-	};
-
-	AttribBind m_binds[max_binds];
-#endif
-};
-
-// TODO: usage parameter in setData?
-// TODO: make this type safe (split to base class and templated class)
-class VertexBuffer {
-  public:
-	VertexBuffer();
-	~VertexBuffer();
-
-	VertexBuffer(VertexBuffer &&rhs) : m_handle(rhs.m_handle) { rhs.m_handle = 0; }
-	VertexBuffer(const VertexBuffer &) = delete;
-
-	const VertexBuffer &operator=(const VertexBuffer &) = delete;
-	const VertexBuffer &operator=(VertexBuffer &&);
-
-	void bind() const;
-	static void unbind();
-
-	int size() const { return m_size; }
-	void getData(int offset, int count, void *ptr) const;
-	void setData(int count, const void *ptr, unsigned usage);
-
-	template <class T> void getData(PodArray<T> &out) const {
-		out.resize(m_size / sizeof(T));
-		getData(0, m_size, out.data());
-	}
-
-	template <class T> void setData(const PodArray<T> &in, unsigned usage) {
-		setData(in.size() * sizeof(T), in.data(), usage);
-	}
-
-	const void *mapForReading() const;
-	void *mapForWriting();
-	void unmap() const;
-
-	int getHandle() const { return (int)m_handle; }
-
-  protected:
-	static int activeHandle();
-	static void bindHandle(int handle);
-
-	friend class VertexArray;
-	friend class NiceVertexArray;
-
-	unsigned m_handle;
-	int m_size;
 };
 
 struct VertexDataType {
@@ -412,7 +343,8 @@ struct VertexDataType {
 		type_float,
 	};
 
-	VertexDataType(Type type, int size) : type(type), size(size) {
+	VertexDataType(Type type, int size, bool normalize)
+		: type(type), size(size), normalize(normalize) {
 		DASSERT(size >= 1 && size <= 4);
 	}
 
@@ -420,37 +352,38 @@ struct VertexDataType {
 
 	const Type type;
 	const int size;
+	bool normalize;
 };
 
 template <class T> struct TVertexDataType : public VertexDataType {};
 
-#define DECLARE_VERTEX_DATA(final, base, size)                                                     \
+#define DECLARE_VERTEX_DATA(final, base, size, normalize)                                          \
 	template <> struct TVertexDataType<final> : public VertexDataType {                            \
-		TVertexDataType() : VertexDataType(type_##base, size) {}                                   \
+		TVertexDataType() : VertexDataType(type_##base, size, normalize) {}                        \
 	};
 
-DECLARE_VERTEX_DATA(float4, float, 4)
-DECLARE_VERTEX_DATA(float3, float, 3)
-DECLARE_VERTEX_DATA(float2, float, 2)
-DECLARE_VERTEX_DATA(float, float, 1)
-DECLARE_VERTEX_DATA(Color, ubyte, 4)
+DECLARE_VERTEX_DATA(float4, float, 4, false)
+DECLARE_VERTEX_DATA(float3, float, 3, false)
+DECLARE_VERTEX_DATA(float2, float, 2, false)
+DECLARE_VERTEX_DATA(float, float, 1, false)
+DECLARE_VERTEX_DATA(Color, ubyte, 4, true)
 
 #undef DECLARE_VERTEX_DATA
 
-class NiceVertexBuffer {
+class VertexBuffer {
   public:
-	NiceVertexBuffer(const void *data, int size, int vertex_size, VertexDataType);
-	~NiceVertexBuffer();
+	VertexBuffer(const void *data, int size, int vertex_size, VertexDataType);
+	~VertexBuffer();
 
-	void operator=(const NiceVertexBuffer &) = delete;
-	NiceVertexBuffer(const NiceVertexBuffer &) = delete;
+	void operator=(const VertexBuffer &) = delete;
+	VertexBuffer(const VertexBuffer &) = delete;
 
 	template <class T>
-	NiceVertexBuffer(const vector<T> &data)
-		: NiceVertexBuffer(data.data(), (int)data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
+	VertexBuffer(const vector<T> &data)
+		: VertexBuffer(data.data(), (int)data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
 	template <class T>
-	NiceVertexBuffer(const PodArray<T> &data)
-		: NiceVertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
+	VertexBuffer(const PodArray<T> &data)
+		: VertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
 
 	int size() const { return m_size; }
 
@@ -458,12 +391,12 @@ class NiceVertexBuffer {
 	unsigned m_handle;
 	int m_size, m_vertex_size;
 	VertexDataType m_data_type;
-	friend class NiceVertexArray;
+	friend class VertexArray;
 };
 
-using PNiceVertexBuffer = shared_ptr<NiceVertexBuffer>;
+using PVertexBuffer = shared_ptr<VertexBuffer>;
 
-class NiceIndexBuffer {
+class IndexBuffer {
   public:
 	enum IndexType {
 		type_uint,
@@ -471,62 +404,99 @@ class NiceIndexBuffer {
 		type_ushort,
 	};
 
-	NiceIndexBuffer(const vector<uint> &indices)
-		: NiceIndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_uint) {}
-	NiceIndexBuffer(const vector<u16> &indices)
-		: NiceIndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ushort) {}
-	NiceIndexBuffer(const vector<u8> &indices)
-		: NiceIndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ubyte) {}
-	~NiceIndexBuffer();
+	IndexBuffer(const vector<u32> &indices)
+		: IndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_uint) {}
+	IndexBuffer(const vector<u16> &indices)
+		: IndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ushort) {}
+	IndexBuffer(const vector<u8> &indices)
+		: IndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ubyte) {}
+	~IndexBuffer();
 
-	void operator=(const NiceIndexBuffer &) = delete;
-	NiceIndexBuffer(const NiceIndexBuffer &) = delete;
+	void operator=(const IndexBuffer &) = delete;
+	IndexBuffer(const IndexBuffer &) = delete;
 
 	int size() const { return m_size; }
 	int indexSize() const { return m_index_size; }
 	IndexType indexType() const { return m_index_type; }
 
   private:
-	NiceIndexBuffer(const void *data, int size, int index_size, IndexType index_type);
+	IndexBuffer(const void *data, int size, int index_size, IndexType index_type);
 
 	unsigned m_handle;
 	int m_size, m_index_size;
 	IndexType m_index_type;
-	friend class NiceVertexArray;
+	friend class VertexArray;
 };
 
-using PNiceIndexBuffer = shared_ptr<NiceIndexBuffer>;
+using PIndexBuffer = shared_ptr<IndexBuffer>;
 
 DECLARE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
-struct VertexBufferSource {
-	VertexBufferSource(PNiceVertexBuffer buffer, bool normalize_data = false, int offset = 0)
-		: buffer(std::move(buffer)), normalize_data(normalize_data), offset(offset) {}
+class VertexArraySource {
+  public:
+	VertexArraySource(PVertexBuffer buffer, int offset = 0);
+	VertexArraySource(const float4 &value);
+	VertexArraySource(const float3 &value) : VertexArraySource(float4(value, 0.0f)) {}
+	VertexArraySource(const float2 &value) : VertexArraySource(float4(value, 0.0f, 0.0f)) {}
+	VertexArraySource(float value) : VertexArraySource(float4(value, 0.0f, 0.0f, 0.0f)) {}
+	VertexArraySource(Color color) : VertexArraySource(float4(color)) {}
+	VertexArraySource(VertexArraySource &&) = default;
+	VertexArraySource(const VertexArraySource &) = default;
 
-	int size() const { return max(0, buffer->size() - offset); }
+	int maxIndex() const;
 
-	PNiceVertexBuffer buffer;
-	bool normalize_data;
-	int offset;
+  private:
+	friend class VertexArray;
+	PVertexBuffer m_buffer;
+	float4 m_single_value;
+	int m_offset;
 };
 
-class NiceVertexArray {
+class VertexArray {
   public:
-	NiceVertexArray(const vector<VertexBufferSource> &);
-	NiceVertexArray(const vector<VertexBufferSource> &, PNiceIndexBuffer);
+	using Source = VertexArraySource;
 
-	void drawPrimitives(PrimitiveType::Type, int num_vertices, int offset = 0) const;
-	void drawPrimitives(PrimitiveType::Type primitive_type) const { drawPrimitives(primitive_type, size()); }
+	VertexArray(vector<Source>, PIndexBuffer = PIndexBuffer());
+	~VertexArray();
+
+	static shared_ptr<VertexArray> make(vector<Source> sources,
+										PIndexBuffer index_buffer = PIndexBuffer()) {
+		return make_shared<VertexArray>(std::move(sources), std::move(index_buffer));
+	}
+
+	void operator=(const VertexArray &) = delete;
+	VertexArray(const VertexArray &) = delete;
+
+	void draw(PrimitiveType::Type, int num_vertices, int offset = 0) const;
+	void draw(PrimitiveType::Type primitive_type) const { draw(primitive_type, size()); }
 
 	int size() const { return m_size; }
 
   private:
-	void initArray();
+	void init();
+	void bind() const;
+	void bindVertexBuffer(int n) const;
+	static void unbind();
 
-	VertexArray m_vertex_array;
-	vector<VertexBufferSource> m_vertex_buffers;
-	PNiceIndexBuffer m_index_buffer;
+	vector<Source> m_sources;
+	PIndexBuffer m_index_buffer;
 	int m_size;
+#if OPENGL_VERSION >= 0x30
+	unsigned m_handle;
+#endif
+};
+
+using PVertexArray = shared_ptr<VertexArray>;
+
+class DrawCall {
+  public:
+	DrawCall(PVertexArray, PrimitiveType::Type, int vertex_count, int index_offset);
+	void issue() const;
+
+  private:
+	PVertexArray m_vertex_array;
+	PrimitiveType::Type m_primitive_type;
+	int m_vertex_count, m_index_offset;
 };
 
 class Shader {
@@ -592,49 +562,204 @@ class Program {
 
 using PProgram = shared_ptr<Program>;
 
-class Mesh {
+class Renderer;
+class Material;
+
+class SimpleMeshData {
   public:
-	struct Vertex {
-		float3 pos, nrm;
-		float2 uv;
-	};
+	SimpleMeshData(const collada::Mesh &);
+	SimpleMeshData() = default;
 
-	Mesh();
-	Mesh(const string &name, Stream &);
-	Mesh(const Vertex *verts, int count, PrimitiveType::Type type);
-	virtual ~Mesh() = default;
+	SimpleMeshData(MakeRect, const FRect &xy_rect, float z);
+	SimpleMeshData(MakeBBox, const FBox &bbox);
 
-	void loadFromXML(const XMLDocument &);
-	void load(Stream &);
-	virtual void load(const collada::Root &, int mesh_id);
-	void clear();
-
-	void genAdjacency();
-
-	int faceCount() const;
-	void getFace(int face, int &i1, int &i2, int &i3) const;
-
-	int vertexCount() const { return m_positions.size(); }
-	const FBox &boundingBox() const { return m_bbox; }
-	//	const Stream toStream() const;
-
-	float trace(const Segment &segment) const;
+	const FBox &boundingBox() const { return m_bounding_box; }
 
 	void transformUV(const Matrix4 &);
 
-	static shared_ptr<Mesh> makeRect(const FRect &xy_rect, float z);
-	static shared_ptr<Mesh> makeBBox(const FBox &bbox);
+	/*
+		void genAdjacency();
 
-	FBox m_bbox;
-	PodArray<float3> m_positions;
-	PodArray<float3> m_normals;
-	PodArray<float2> m_tex_coords;
-	PodArray<unsigned> m_neighbours;
+		int faceCount() const;
+		void getFace(int face, int &i1, int &i2, int &i3) const;
+
+
+	*/
+
+  private:
+	vector<float3> m_positions;
+	vector<float3> m_normals;
+	vector<float2> m_tex_coords;
+	vector<u16> m_indices;
 	PrimitiveType::Type m_primitive_type;
-	friend class Renderer;
+	FBox m_bounding_box;
+	friend class SimpleMesh;
+};
+
+class SimpleMesh {
+  public:
+	SimpleMesh(const SimpleMeshData &, Color color = Color::white);
+	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
+
+  private:
+	PVertexArray m_vertex_array;
+	PrimitiveType::Type m_primitive_type;
+};
+
+using PSimpleMesh = shared_ptr<SimpleMesh>;
+
+class MeshData {
+  public:
+	MeshData(const collada::Root &);
+	MeshData(const string &name, Stream &);
+
+  private:
+	struct Node {
+		Node(const SimpleMeshData &mesh, const Matrix4 &mat) : mesh(mesh), matrix(mat) {}
+		SimpleMeshData mesh;
+		Matrix4 matrix;
+	};
+	vector<Node> m_nodes;
+	friend class Mesh;
+};
+
+class Mesh {
+  public:
+	struct Node {
+		Node(const SimpleMesh &mesh, Matrix4 mat) : mesh(mesh), matrix(mat) {}
+		SimpleMesh mesh;
+		Matrix4 matrix;
+	};
+
+	Mesh(const MeshData &);
+	Mesh(const string &name, Stream &);
+	//	Mesh(const Vertex *verts, int count, PrimitiveType::Type type);
+	virtual ~Mesh() = default;
+
+	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
+
+  private:
+	vector<Node> m_nodes;
 };
 
 using PMesh = shared_ptr<Mesh>;
+
+class Skeleton {
+  public:
+	enum { max_joints = 128 };
+
+	struct Trans {
+		Trans() {}
+		Trans(const Matrix4 &);
+		operator const Matrix4() const;
+
+		float3 pos;
+		Quat rot;
+	};
+
+	struct Joint {
+		Trans trans;
+		string name;
+		int parent_id;
+	};
+
+	void loadFromXML(vector<string> &sids, XMLNode root, const collada::Root &);
+
+	const Joint &operator[](int idx) const { return m_joints[idx]; }
+	Joint &operator[](int idx) { return m_joints[idx]; }
+	int size() const { return (int)m_joints.size(); }
+	int findJoint(const string &) const;
+	void clear();
+
+  private:
+	void loadNode(vector<string> &sids, XMLNode node, const collada::Root &, int parent_id);
+
+	vector<Joint> m_joints;
+	// TODO: additional vector for dummies
+};
+
+Matrix4 lerp(const Skeleton::Trans &, const Skeleton::Trans &, float);
+
+class SkeletalAnim {
+  public:
+	SkeletalAnim() : m_frame_count(0), m_joint_count(0) {}
+
+	typedef Skeleton::Trans Trans;
+
+	int frameCount() const { return m_frame_count; }
+	int jointCount() const { return m_joint_count; }
+
+	const string &name() const { return m_name; }
+	const string &jointName(int idx) const { return m_joint_names[idx]; }
+	float frameTime(int frame_id) const { return m_times[frame_id]; }
+	const Trans &jointTrans(int frame_id, int joint_id) const {
+		return m_transforms[frame_id * m_joint_count + joint_id];
+	}
+
+	void load(const collada::Root &, int anim_id);
+	void clear();
+
+	void animate(Matrix4 *out, const Skeleton &skeleton, double anim_time) const;
+	float length() const { return m_length; }
+
+  protected:
+	string m_name;
+
+	vector<Trans> m_transforms;
+	vector<float> m_times;
+	vector<string> m_joint_names;
+
+	int m_frame_count, m_joint_count;
+	float m_length;
+};
+
+class SkinnedMesh : public Mesh {
+  public:
+	enum { max_weights = 8 };
+
+	// TODO: better names
+	struct JointWeight {
+		float v[max_weights];
+	};
+	struct JointId {
+		u8 v[max_weights];
+	};
+
+	const float3 transformPoint(int id, const Matrix4 *joints) const;
+
+	SkinnedMesh();
+
+	virtual void load(const collada::Root &, int mesh_id);
+	void clear();
+
+	void renderSkeleton(Renderer &, const Matrix4 *joints, const Matrix4 &trans, Color) const;
+	void animate(Matrix4 *out, int anim_id, double anim_time) const;
+	const SkeletalAnim &anim(int anim_id) const { return m_anims[anim_id]; }
+	int animCount() const { return (int)m_anims.size(); }
+
+	int jointCount() const { return m_skeleton.size(); }
+	const Skeleton &skeleton() const { return m_skeleton; }
+
+	void computeBBox();
+	void animateVertices(const Matrix4 *joints, float3 *positions, float3 *normals = nullptr) const;
+	void computeJointPositions(const Matrix4 *joints, const Matrix4 &trans, float3 *out) const;
+
+	void alignPoses(const Matrix4 *pose1, const Matrix4 *pose2, const Matrix4 &pose1_tr,
+					const Matrix4 &pose2_tr, float &error, float3 &best_offset) const;
+	void alignAnim(const Matrix4 *pose, const Matrix4 &pose_trans, int anim_id, float &anim_pos,
+				   float3 &best_offset) const;
+	const float3 rootPos(int anim_id, double anim_time) const;
+
+	static void bindAttribLocations(Program &);
+
+  protected:
+	float3 m_bind_scale;
+	Skeleton m_skeleton;
+	vector<SkeletalAnim> m_anims;
+	PodArray<Matrix4> m_bind, m_inv_bind;
+	PodArray<JointWeight> m_weights;
+	PodArray<JointId> m_ids;
+};
 
 class Material {
   public:
@@ -654,14 +779,10 @@ class Material {
 
 struct DrawElement {};
 
-class Renderer {
+class MatrixStack {
   public:
-	Renderer(const Matrix4 &projection_matrix);
-	Renderer(const IRect &viewport);
-
-	// Simple 2D view has (0, 0) in top left corner of the screen
-	static Matrix4 simple2DProjectionMatrix(const IRect &viewport);
-	static Matrix4 simple2DViewMatrix(const IRect &viewport, const float2 &view_pos);
+	MatrixStack(const Matrix4 &proj_matrix = Matrix4::identity(),
+				const Matrix4 &view_matrix = Matrix4::identity());
 
 	void pushViewMatrix();
 	void popViewMatrix();
@@ -670,47 +791,36 @@ class Renderer {
 	void setProjectionMatrix(const Matrix4 &);
 	const Matrix4 &viewMatrix() const { return m_view_matrix; }
 	const Matrix4 &projectionMatrix() const { return m_projection_matrix; }
+	const Matrix4 &fullMatrix() const;
+
 	const Frustum frustum() const;
 
-	void render(bool mode_3d);
+  private:
+	vector<Matrix4> m_matrix_stack;
+	Matrix4 m_projection_matrix;
+	Matrix4 m_view_matrix;
+	mutable Matrix4 m_full_matrix;
+	mutable bool m_is_dirty;
+};
 
-	void add2DFilledRect(const FRect &rect, const FRect &tex_rect, const Material &);
-	void add2DFilledRect(const FRect &rect, const Material &material) {
-		add2DFilledRect(rect, FRect(0, 0, 1, 1), material);
+class Renderer2D : public MatrixStack {
+  public:
+	Renderer2D(const IRect &viewport);
+	// Simple 2D view has (0, 0) in top left corner of the screen
+	static Matrix4 simpleProjectionMatrix(const IRect &viewport);
+	static Matrix4 simpleViewMatrix(const IRect &viewport, const float2 &view_pos);
+
+	void setViewPos(const float2 &view_pos);
+
+	void render();
+
+	void addFilledRect(const FRect &rect, const FRect &tex_rect, const Material &);
+	void addFilledRect(const FRect &rect, const Material &material) {
+		addFilledRect(rect, FRect(0, 0, 1, 1), material);
 	}
 
-	void add2DRect(const FRect &rect, const Material &material);
+	void addRect(const FRect &rect, const Material &material);
 
-	void addMesh(PMesh, const Material &, const Matrix4 &matrix = identity());
-
-	// Each line is represented by two vertices
-	void addLines(const float3 *pos, const Color *color, int num_lines, const Material &material);
-
-	// TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
-
-	// Each quad is represented by 4 vertices (ordered clockwise)
-	void addQuads(const float3 *pos, const float2 *tex_coord, const Color *color, int num_quads,
-				  const Material &material);
-
-	// Each triangle is represented by 3 vertices
-	void addTris(const float3 *pos, const float2 *tex_coord, const Color *color, int num_tris,
-				 const Material &material);
-
-	static void clearColor(Color color);
-	static void clearDepth(float depth_value);
-
-	enum BlendingMode {
-		bmDisabled,
-		bmNormal,
-	};
-
-	static void setBlendingMode(BlendingMode mode);
-	static void setScissorRect(const IRect &rect);
-	static const IRect getScissorRect();
-
-	static void setScissorTest(bool is_enabled);
-
-  protected:
 	struct Element {
 		Matrix4 matrix;
 		PTexture texture;
@@ -719,6 +829,13 @@ class Renderer {
 		PrimitiveType::Type primitive_type;
 	};
 
+	void addQuads(const float3 *pos, const float2 *tex_coord, const Color *color, int num_quads,
+				  const Material &material);
+	void addLines(const float3 *pos, const Color *color, int num_lines, const Material &material);
+	void addTris(const float3 *pos, const float2 *tex_coord, const Color *color, int num_tris,
+				 const Material &material);
+
+  private:
 	Element &makeElement(PrimitiveType::Type, PTexture);
 
 	vector<float3> m_positions;
@@ -726,10 +843,33 @@ class Renderer {
 	vector<Color> m_colors;
 	vector<uint> m_indices;
 	vector<Element> m_elements;
+	IRect m_viewport;
+	PProgram m_tex_program, m_flat_program;
+};
 
-	vector<Matrix4> m_matrix_stack;
-	Matrix4 m_view_matrix;
-	Matrix4 m_projection_matrix;
+class Renderer : public MatrixStack {
+  public:
+	Renderer(const Matrix4 &projection_matrix = Matrix4::identity());
+
+	void render();
+
+	void addDrawCall(const DrawCall &, const Material &,
+					 const Matrix4 &matrix = Matrix4::identity());
+
+	// TODO: this is useful
+	// Each line is represented by two vertices
+	//	void addLines(const float3 *pos, const Color *color, int num_lines, const Material
+	//&material);
+
+	// TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
+  protected:
+	struct Instance {
+		Matrix4 matrix;
+		Material material;
+		DrawCall draw_call;
+	};
+
+	vector<Instance> m_instances;
 	PProgram m_tex_program, m_flat_program;
 };
 
@@ -806,7 +946,8 @@ using PFont = shared_ptr<Font>;
 
 class FontRenderer {
   public:
-	FontRenderer(PFont font, PTexture texture, Renderer &out);
+	// TODO: generate vectors with coords, or generate draw calls
+	FontRenderer(PFont font, PTexture texture, Renderer2D &out);
 
 	FRect draw(const FRect &rect, const FontStyle &style, const char *text) const;
 	FRect draw(const FRect &rect, const FontStyle &style, const TextFormatter &fmt) const {
@@ -831,7 +972,7 @@ class FontRenderer {
 
 	PFont m_font;
 	PTexture m_texture;
-	Renderer &m_renderer;
+	Renderer2D &m_renderer;
 };
 
 class FontFactory {

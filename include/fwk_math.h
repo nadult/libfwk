@@ -479,6 +479,8 @@ class Matrix3 {
 		v[1] = col1;
 		v[2] = col2;
 	}
+	
+	static const Matrix3 identity();
 
 	const float3 GetRow(int n) const { return float3(v[0][n], v[1][n], v[2][n]); }
 
@@ -504,7 +506,6 @@ const Matrix3 inverse(const Matrix3 &);
 const Matrix3 operator*(const Matrix3 &, const Matrix3 &);
 const float3 operator*(const Matrix3 &, const float3 &);
 
-const Matrix3 identity();
 const Matrix3 scaling(const float3 &);
 const Matrix3 rotation(const float3 &axis, float angle);
 inline const Matrix3 normalRotation(float angle) { return rotation(float3(0, -1, 0), angle); }
@@ -513,7 +514,7 @@ inline const Matrix3 normalRotation(float angle) { return rotation(float3(0, -1,
 // Column major order, vector post multiplication
 class Matrix4 {
   public:
-	Matrix4() {}
+	Matrix4() = default;
 	Matrix4(const Matrix3 &mat) {
 		v[0] = float4(mat[0], 0.0f);
 		v[1] = float4(mat[1], 0.0f);
@@ -527,7 +528,7 @@ class Matrix4 {
 		v[3] = col3;
 	}
 
-	static const Matrix4 zero();
+	static const Matrix4 identity();
 
 	const float4 row(int n) const { return float4(v[0][n], v[1][n], v[2][n], v[3][n]); }
 

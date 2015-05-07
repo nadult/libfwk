@@ -95,8 +95,9 @@ namespace collada {
 		};
 
 		Node(Node *parent, XMLNode node);
-		Node(const Node &) = delete;
-		void operator=(const Node &) = delete;
+		//TODO: fix copying
+//		Node(const Node &) = delete;
+//		void operator=(const Node &) = delete;
 
 		virtual ~Node() {}
 		virtual TypeId typeId() const = 0;
@@ -171,13 +172,14 @@ namespace collada {
 		TypeId typeId() const { return type_root_joint; }
 	};
 
-	struct Root : public Node {
+	class Root : public Node {
+	  public:
 		Root(const XMLDocument &doc);
 		TypeId typeId() const { return type_root; }
 
 		int upAxis() const { return m_up_axis; }
 
-		//TODO: make Z default (or pass as an argument)
+		// TODO: make Z default (or pass as an argument)
 		void fixUpAxis(Matrix4 &, int target_up_axis) const;
 		void fixUpAxis(float3 &, int target_up_axis) const;
 

@@ -100,6 +100,11 @@ EXT_API void (EXT_ENTRY *glUniformMatrix4fv)(GLint location, GLsizei count, GLbo
 EXT_API void (EXT_ENTRY *glValidateProgram)(GLuint program);
 EXT_API void (EXT_ENTRY *glVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
 EXT_API void (EXT_ENTRY *glGenerateMipmap)(GLenum target);
+EXT_API void (EXT_ENTRY *glBindVertexArray)(GLuint array);
+EXT_API void (EXT_ENTRY *glDeleteVertexArrays)(GLsizei n, const GLuint *arrays);
+EXT_API void (EXT_ENTRY *glGenVertexArrays)(GLsizei n, GLuint *arrays);
+EXT_API void (EXT_ENTRY *glVertexAttrib4f)(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
+
 
 }
 

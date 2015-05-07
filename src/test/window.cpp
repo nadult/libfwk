@@ -3,7 +3,7 @@
 
 using namespace fwk;
 
-unique_ptr<Renderer> s_renderer;
+static IRect s_viewport;
 
 bool mainLoop(GfxDevice &device) {
 	static vector<float2> positions;
@@ -19,17 +19,18 @@ bool mainLoop(GfxDevice &device) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	Renderer::clearColor(Color(50, 0, 50));
+	GfxDevice::clearColor(Color(50, 0, 50));
+	Renderer2D renderer(s_viewport);
+
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect(-50, -50, 50, 50) + positions[n];
 		Color fill_color(float4(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f));
 		Color border_color = Color::black;
 
-		s_renderer->add2DFilledRect(rect, fill_color);
-		s_renderer->add2DRect(rect, border_color);
+		renderer.addFilledRect(rect, fill_color);
+		renderer.addRect(rect, border_color);
 	}
-
-	s_renderer->render(false);
+	renderer.render();
 
 	return true;
 }
@@ -42,8 +43,7 @@ int safe_main(int argc, char **argv) {
 	gfx_device.createWindow(res, false);
 
 	// setBlendingMode(bmDisabled);
-	IRect viewport(res);
-	s_renderer = make_unique<Renderer>(viewport);
+	s_viewport = IRect(res);
 	gfx_device.runMainLoop(mainLoop);
 
 	return 0;

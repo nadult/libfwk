@@ -1,5 +1,6 @@
 MINGW_PREFIX=i686-w64-mingw32.static-
 BUILD_DIR=build
+LINUX_CXX=g++ -rdynamic
 
 -include Makefile.local
 
@@ -13,8 +14,8 @@ _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
 
 SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
 		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory \
-		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/collada gfx/mesh \
-		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer \
+		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/collada gfx/mesh gfx/matrix_stack \
+		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector
 PROGRAM_SRC=test/streams test/stuff test/math test/window
 LINUX_SRC=filesystem_linux
@@ -40,7 +41,6 @@ HTML5_PROGRAMS_SRC:=$(PROGRAM_SRC:%=%.html.cpp)
 
 all: lib/libfwk.a lib/libfwk_win32.a $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
 
-LINUX_CXX=g++
 LINUX_AR =ar
 LINUX_STRIP=strip
 LINUX_PKG_CONFIG=pkg-config
@@ -56,9 +56,9 @@ MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole
 
 INCLUDES=-Iinclude/ -Isrc/
 
-NICE_FLAGS=-std=c++11 -ggdb -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wno-uninitialized -Wno-unused-function \
+NICE_FLAGS=-std=c++11 -ggdb -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
-LINUX_FLAGS=-DFWK_TARGET_LINUX $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS) -rdynamic
+LINUX_FLAGS=-DFWK_TARGET_LINUX $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 HTML5_FLAGS=-DFWK_TARGET_HTML5 -std=c++11 -lSDL -O0 $(INCLUDES)
 

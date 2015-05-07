@@ -24,7 +24,7 @@ GfxDevice &GfxDevice::instance() {
 }
 
 GfxDevice::GfxDevice()
-	: m_main_loop_function(nullptr), m_last_time(-1.0), m_press_delay(0.2), m_clock(0) {
+	: m_main_loop_function(nullptr), m_last_time(-1.0)/*, m_press_delay(0.2), m_clock(0)*/ {
 
 	struct Pair {
 		int key, sdl_key;
@@ -342,4 +342,44 @@ InputState GfxDevice::inputState() {
 
 	return out;
 }*/
+
+void GfxDevice::clearColor(Color color) {
+	float4 col = color;
+	glClearColor(col.x, col.y, col.z, col.w);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void GfxDevice::clearDepth(float depth_value) {
+	glClearDepth(depth_value);
+	glDepthMask(1);
+	glClear(GL_DEPTH_BUFFER_BIT);
+}
+
+void GfxDevice::setBlendingMode(BlendingMode mode) {
+	if(mode == bmDisabled)
+		glDisable(GL_BLEND);
+	else
+		glEnable(GL_BLEND);
+
+	if(mode == bmNormal)
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+static IRect s_scissor_rect = IRect::empty();
+
+void GfxDevice::setScissorRect(const IRect &rect) {
+	//	s_scissor_rect = rect;
+	//	glScissor(rect.min.x, s_viewport_size.y - rect.max.y, rect.width(), rect.height());
+	//	testGlError("glScissor");
+}
+
+const IRect GfxDevice::getScissorRect() { return s_scissor_rect; }
+
+void GfxDevice::setScissorTest(bool is_enabled) {
+	if(is_enabled)
+		glEnable(GL_SCISSOR_TEST);
+	else
+		glDisable(GL_SCISSOR_TEST);
+}
+
 }

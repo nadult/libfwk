@@ -174,7 +174,9 @@ namespace collada {
 		bool is_poly_list = StringRef(node.name()) == "polylist";
 
 		m_material_name = node.hasAttrib("material") ? node.attrib("material") : "";
-		m_vertex_count = node.attrib<int>("count") * 3;
+		int poly_count = node.attrib<int>("count");
+		m_vertex_count = poly_count * 3;
+
 		for(int n = 0; n < Semantic::count; n++)
 			m_sources[n] = nullptr;
 		m_stride = 0;
@@ -195,19 +197,47 @@ namespace collada {
 
 		XMLNode indices_node = node.child("p");
 		ASSERT(indices_node);
+			
+		vector<int> vcounts(poly_count);
+	
+		if(is_poly_list) {
+			XMLNode vcounts_node = node.child("vcount");
+			ASSERT(vcounts_node);
+			parseValues(vcounts_node, vcounts.data(), vcounts.size());
+			m_vertex_count = 0;
+			for(int vc : vcounts)
+				m_vertex_count += vc;
+		}
+
+		m_indices.resize(m_vertex_count * m_stride);
+		parseValues(indices_node, m_indices.data(), m_indices.size());
 
 		if(is_poly_list) {
 			XMLNode vcounts_node = node.child("vcount");
 			ASSERT(vcounts_node);
 
-			vector<int> vcounts(m_vertex_count / 3);
-			parseValues(vcounts_node, vcounts.data(), vcounts.size());
-			for(int n = 0; n < (int)vcounts.size(); n++)
-				ASSERT(vcounts[n] == 3 && "TODO: add full support for polygons");
+			vector<int> new_indices;
+			int index = 0;
+			for(int vcount : vcounts) {
+				if(vcount == 3) {
+					for(int i = 0; i < 3 * m_stride; i++)
+						new_indices.emplace_back(m_indices[index + i]);
+					index += 3 * m_stride;
+				}
+				else if(vcount == 4) {
+					int remap[6] = { 0, 1, 2, 0, 2, 3};
+					for(int i = 0; i < 6; i++)
+						for(int j = 0; j < m_stride; j++)
+						new_indices.emplace_back(m_indices[index + remap[i] * m_stride + j]);
+					index += 4 * m_stride;
+				}
+				else THROW("polylist with vcount > 4 not supported");
+			}
+			m_vertex_count = new_indices.size() / m_stride;
+			m_indices.resize(new_indices.size());
+			memcpy(m_indices.data(), new_indices.data(), m_indices.size() * sizeof(m_indices[0]));
 		}
 
-		m_indices.resize(m_vertex_count * m_stride);
-		parseValues(indices_node, m_indices.data(), m_indices.size());
 	}
 
 	const Source *Node::findSource(const char *id) const {
@@ -359,7 +389,7 @@ namespace collada {
 		m_joints = nullptr;
 		m_inv_bind_poses = nullptr;
 
-		m_bind_shape_matrix = identity();
+		m_bind_shape_matrix = Matrix4::identity();
 		XMLNode bind_shape_matrix_node = skin_node.child("bind_shape_matrix");
 		if(bind_shape_matrix_node) {
 			parseValues(bind_shape_matrix_node, &m_bind_shape_matrix[0][0], 16);
@@ -413,6 +443,7 @@ namespace collada {
 
 	Animation::Animation(Node *parent, XMLNode node) : Node(parent, node) {
 		m_frame_count = -1;
+		return;
 
 		XMLNode sampler_node = node.child("sampler");
 		while(sampler_node) {
