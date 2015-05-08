@@ -38,27 +38,34 @@ static const char *vertex_shader_src =
 	"	color = in_color;												\n"
 	"} 																	\n";
 
-static PProgram makeProgram(bool with_texture) {
-	Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
-	vertex_shader.setSource(vertex_shader_src);
-	fragment_shader.setSource(with_texture ? fragment_shader_tex_src : fragment_shader_flat_src);
+struct ProgramFactory {
+	PProgram operator()(const string &name) const {
+		bool with_texture = name == "with_texture";
+		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
+		vertex_shader.setSource(vertex_shader_src);
+		fragment_shader.setSource(with_texture ? fragment_shader_tex_src
+											   : fragment_shader_flat_src);
 
-	PProgram out = make_shared<Program>(vertex_shader, fragment_shader);
-	out->bindAttribLocation("in_pos", 0);
-	out->bindAttribLocation("in_color", 1);
-	out->bindAttribLocation("in_tex_coord", 2);
-	return out;
+		PProgram out = make_shared<Program>(vertex_shader, fragment_shader);
+		out->bindAttribLocation("in_pos", 0);
+		out->bindAttribLocation("in_color", 1);
+		out->bindAttribLocation("in_tex_coord", 2);
+
+		if(with_texture)
+			out->setUniform("tex", 0);
+		return out;
+	}
+};
+
+
+Renderer::Renderer(const Matrix4 &projection_matrix) :MatrixStack(projection_matrix) {
+	static ResourceManager<Program, ProgramFactory> mgr;
+	m_tex_program = mgr["with_texture"];
+	m_flat_program = mgr["without_texture"];
 }
 
-Renderer::Renderer(const Matrix4 &projection_matrix) {
-	m_tex_program = makeProgram(true);
-	m_tex_program->setUniform("tex", 0);
-	m_flat_program = makeProgram(false);
-	setProjectionMatrix(projection_matrix);
-	setViewMatrix(Matrix4::identity());
-}
-
-void Renderer::addDrawCall(const DrawCall &draw_call, const Material &material, const Matrix4 &matrix) {
+void Renderer::addDrawCall(const DrawCall &draw_call, const Material &material,
+						   const Matrix4 &matrix) {
 	m_instances.emplace_back(Instance{fullMatrix() * matrix, material, draw_call});
 }
 

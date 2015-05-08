@@ -568,6 +568,8 @@ class Material;
 class SimpleMeshData {
   public:
 	SimpleMeshData(const collada::Mesh &);
+	SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords, const vector<u16> &indices);
+
 	SimpleMeshData() = default;
 
 	SimpleMeshData(MakeRect, const FRect &xy_rect, float z);
@@ -713,7 +715,7 @@ class SkeletalAnim {
 	float m_length;
 };
 
-class SkinnedMesh : public Mesh {
+class SkinnedMeshData : public SimpleMeshData {
   public:
 	enum { max_weights = 8 };
 
@@ -727,7 +729,8 @@ class SkinnedMesh : public Mesh {
 
 	const float3 transformPoint(int id, const Matrix4 *joints) const;
 
-	SkinnedMesh();
+	SkinnedMeshData();
+	virtual ~SkinnedMeshData() = default;
 
 	virtual void load(const collada::Root &, int mesh_id);
 	void clear();

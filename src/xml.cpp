@@ -29,8 +29,11 @@ void XMLNode::addAttrib(const char *name, const char *value) {
 }
 
 void XMLNode::parsingError(const char *attrib_name, const char *error_message) const {
-	THROW("Error while parsing attribute value: %s in node: %s\n%s", attrib_name, name(),
-		  error_message);
+	if(attrib_name)
+		THROW("Error while parsing attribute value: %s in node: %s\n%s", attrib_name, name(),
+			  error_message);
+	else
+		THROW("Error while parsing value in node: %s\n%s", name(), error_message);
 }
 
 const char *XMLNode::hasAttrib(const char *name) const {
@@ -106,7 +109,7 @@ void XMLDocument::load(Stream &sr) {
 	try {
 		m_ptr->parse<0>(xml_string);
 	} catch(const parse_error &ex) {
-		THROW("rapidxml exception caught: %s at: %d", ex.what(), ex.where<char>() - xml_string);
+		THROW("rapidxml exception caught: %s at: %d", ex.what(), (int)(size_t)(ex.where<char>() - xml_string));
 	}
 }
 

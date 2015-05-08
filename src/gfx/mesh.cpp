@@ -3,73 +3,67 @@
 
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
-#include "fwk_collada.h"
 #include <algorithm>
+#include <assimp/Importer.hpp>
+#include <assimp/IOStream.hpp>
+#include <assimp/IOSystem.hpp>
+#include <assimp/scene.h>		// Output data structure
+#include <assimp/postprocess.h> // Post processing flags
 
 namespace fwk {
 
-SimpleMeshData::SimpleMeshData(const collada::Mesh &cmesh) {
-	using namespace collada;
-
-	const Triangles &ctris = cmesh.triangles();
-	int vertex_count = ctris.count() * 3;
-	m_positions.resize(vertex_count);
-	m_normals.resize(vertex_count);
-	m_tex_coords.resize(vertex_count);
-
-	const Source *vertex_source = ctris.attribSource(Semantic::vertex);
-	const Source *normal_source = ctris.attribSource(Semantic::normal);
-	const Source *tex_coord_source = ctris.attribSource(Semantic::tex_coord);
-	ASSERT(vertex_source->type() == Source::type_float3);
-	ASSERT(normal_source->type() == Source::type_float3);
-
-	for(int v = 0; v < vertex_count; v++) {
-		m_positions[v] = vertex_source->toFloat3(ctris.attribIndex(Semantic::vertex, v));
-		m_normals[v] = normal_source->toFloat3(ctris.attribIndex(Semantic::normal, v));
-	}
-
-	if(tex_coord_source) {
-		if(tex_coord_source->type() == Source::type_float3) {
-			for(int v = 0; v < vertex_count; v++) {
-				float3 uvw = tex_coord_source->toFloat3(ctris.attribIndex(Semantic::tex_coord, v));
-				m_tex_coords[v] = float2(uvw.x, -uvw.y);
-			}
-		} else if(tex_coord_source->type() == Source::type_float2) {
-			for(int v = 0; v < vertex_count; v++) {
-				float2 uv = tex_coord_source->toFloat2(ctris.attribIndex(Semantic::tex_coord, v));
-				m_tex_coords[v] = float2(uv.x, -uv.y);
-			}
+namespace {
+	class StreamWrapper : public Assimp::IOStream {
+	  public:
+		StreamWrapper(Stream &stream) : m_stream(stream) {}
+		size_t Read(void *buffer, size_t size, size_t count) {
+			m_stream.loadData(buffer, size * count);
+			return count;
 		}
-	} else if(!m_tex_coords.empty())
-		memset(m_tex_coords.data(), 0, m_tex_coords.size() * sizeof(m_tex_coords[0]));
 
-	m_indices.resize(m_positions.size());
-	for(int n = 0; n < m_indices.size(); n++)
-		m_indices[n] = n;
-
-	m_primitive_type = PrimitiveType::triangles;
-	/*
-		Matrix4 root_matrix = getRootMatrix(root, cmesh.id());
-		Matrix4 nrm_matrix = inverse(transpose(root_matrix));
-
-		for(int n = 0; n < m_positions.size(); n++) {
-			m_positions[n] = mulPoint(root_matrix, m_positions[n]);
-			root.fixUpAxis(m_positions[n], 2);
+		size_t Write(const void *buffer, size_t size, size_t count) {
+			m_stream.saveData(buffer, size * count);
+			return count;
 		}
-		for(int n = 0; n < m_normals.size(); n++) {
-			m_normals[n] = mulNormal(nrm_matrix, m_normals[n]);
-			root.fixUpAxis(m_normals[n], 2);
-		}
-		if(root.upAxis() != 0) {
-			// TODO: order of vertices in a triangle sometimes has to be changed
-			for(int n = 0; n < m_positions.size(); n += 3) {
-				//				swap(m_positions[n], m_positions[n + 1]);
-				//				swap(m_tex_coords[n], m_tex_coords[n + 1]);
-				//				swap(m_normals[n], m_normals[n + 1]);
+
+		aiReturn Seek(size_t offset, aiOrigin origin) {
+			if(origin == aiOrigin_SET)
+				m_stream.seek(offset);
+			else if(origin == aiOrigin_CUR)
+				m_stream.seek(offset + m_stream.pos());
+			else if(origin == aiOrigin_END) {
+				DASSERT(offset < m_stream.size());
+				m_stream.seek(m_stream.size() - offset);
 			}
-		}*/
+			return aiReturn_SUCCESS;
+		}
 
-	m_bounding_box = FBox(m_positions.data(), m_positions.size());
+		size_t Tell() const { return m_stream.pos(); }
+		size_t FileSize() const { return m_stream.size(); }
+		void Flush() {}
+
+	  private:
+		Stream &m_stream;
+	};
+
+	class SingleFileSystem : public Assimp::IOSystem {
+	  public:
+		SingleFileSystem(Stream &stream) : m_stream(stream) {}
+		bool Exists(const char *name) const override { return strcmp(m_stream.name(), name) == 0; }
+		char getOsSeparator() const override { return '/'; }
+		Assimp::IOStream *Open(const char *name, const char *mode) override {
+			DASSERT(mode && name);
+			if(strchr(mode, 'w'))
+				DASSERT(m_stream.isSaving());
+			if(strchr(mode, 'r'))
+				DASSERT(m_stream.isLoading());
+			return new StreamWrapper(m_stream);
+		}
+		void Close(Assimp::IOStream *file) override { delete file; }
+
+	  private:
+		Stream &m_stream;
+	};
 }
 
 /*
@@ -182,6 +176,11 @@ SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
 		return make_shared<Mesh>(verts, arraySize(verts), PrimitiveType::triangles);*/
 }
 
+SimpleMeshData::SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords,
+							   const vector<u16> &indices)
+	: m_positions(positions), m_tex_coords(tex_coords), m_indices(indices),
+	  m_primitive_type(PrimitiveType::triangles) {}
+
 void SimpleMeshData::transformUV(const Matrix4 &matrix) {
 	for(int n = 0; n < (int)m_tex_coords.size(); n++)
 		m_tex_coords[n] = (matrix * float4(m_tex_coords[n], 0.0f, 1.0f)).xy();
@@ -198,6 +197,7 @@ void SimpleMesh::draw(Renderer &renderer, const Material &material, const Matrix
 						 mat);
 }
 
+/*
 MeshData::MeshData(const collada::Root &croot) {
 	for(int n = 0; n < croot.meshCount(); n++) {
 		m_nodes.emplace_back(SimpleMeshData(croot.mesh(n)), Matrix4::identity());
@@ -208,9 +208,46 @@ static collada::Root loadCollada(Stream &stream) {
 	XMLDocument doc;
 	stream >> doc;
 	return collada::Root(doc);
-}
+}*/
+MeshData::MeshData(const string &name, Stream &stream) {
+	Assimp::Importer importer;
+	importer.SetIOHandler(new SingleFileSystem(stream));
 
-MeshData::MeshData(const string &name, Stream &stream) : MeshData(loadCollada(stream)) {}
+	int flags = aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType;
+	const aiScene *scene = importer.ReadFile(stream.name(), flags);
+	if(!scene)
+		THROW("Error while loading mesh: %s\n%s", name.c_str(), importer.GetErrorString());
+
+	for(uint n = 0; n < scene->mNumMeshes; n++) {
+		const auto *assmesh = scene->mMeshes[n];
+		if(!assmesh->HasPositions() || !assmesh->HasFaces() || assmesh->mNumVertices > 65536)
+			continue;
+
+		vector<float3> positions;
+		vector<float2> tex_coords;
+
+		for(uint n = 0; n < assmesh->mNumVertices; n++) {
+			const auto &pos = assmesh->mVertices[n];
+			positions.emplace_back(pos.x, pos.y, pos.z);
+		}
+
+		if(assmesh->HasTextureCoords(0))
+			for(uint n = 0; n < assmesh->mNumVertices; n++) {
+				const auto &uv = assmesh->mTextureCoords[0][n];
+				tex_coords.emplace_back(uv.x, -uv.y);
+			}
+		else
+			tex_coords.resize(assmesh->mNumVertices, float2(0, 0));
+
+		vector<u16> indices(assmesh->mNumFaces * 3);
+		for(uint n = 0; n < assmesh->mNumFaces; n++) {
+			ASSERT(assmesh->mFaces[n].mNumIndices == 3);
+			for(int i = 0; i < 3; i++)
+				indices[n * 3 + i] = assmesh->mFaces[n].mIndices[i];
+		}
+		m_nodes.emplace_back(SimpleMeshData(positions, tex_coords, indices), Matrix4::identity());
+	}
+}
 
 Mesh::Mesh(const string &name, Stream &stream) : Mesh(MeshData(name, stream)) {}
 

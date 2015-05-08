@@ -18,48 +18,50 @@ namespace collada {
 
 	DECLARE_ENUM(SamplerSemantic, input, output, interpolation, in_tangent, out_tangent);
 
-	DECLARE_ENUM(SourceArrayType, idref_array, name_array, bool_array, float_array, int_array);
-
 	class Node;
 
 	class Source {
 	  public:
-		Source(XMLNode);
-
 		enum Type {
-			type_name,
 			type_float,
 			type_float2,
 			type_float3,
 			type_float4,
-			type_matrix,
+			type_matrix4,
+			type_name,
 
-			type_unknown,
+			type_unknown
 		};
 
-		StringRef id() const { return m_id; }
+		Source(XMLNode);
+
 		Type type() const { return m_type; }
+		const string &id() const { return m_id; }
 
-		int size() const { return m_count; }
-
-		float toFloat(int idx) const;
-		float2 toFloat2(int idx) const;
-		float3 toFloat3(int idx) const;
-		float4 toFloat4(int idx) const;
-
-		Matrix4 toMatrix(int idx) const;
-		StringRef toString(int idx) const;
+		// When accessing, you have to make sure that source type is scorrect
+		vector<float> toFloatArray() const;
+		vector<float2> toFloat2Array() const;
+		vector<float3> toFloat3Array() const;
+		vector<float4> toFloat4Array() const;
+		vector<Matrix4> toMatrix4Array() const;
+		vector<string> toNameArray() const;
 
 	  protected:
-		template <class T, class TBase> const T get(int idx) const;
+		vector<float> m_floats;
+		vector<string> m_strings;
 
-		PodArray<char> m_array;
-		vector<string> m_string_array;
-		StringRef m_id;
-		int m_stride, m_offset, m_count;
-		int m_array_count;
-		SourceArrayType::Type m_array_type;
+		string m_id;
 		Type m_type;
+	};
+
+	class Geometry {
+		Geometry(XMLNode);
+
+		vector<float3> m_positions;
+		vector<float3> m_normals;
+		vector<float3> m_tangents;
+		vector<float3> m_binormals;
+		vector<float2> m_tex_coords;
 	};
 
 	class Triangles {
@@ -95,9 +97,9 @@ namespace collada {
 		};
 
 		Node(Node *parent, XMLNode node);
-		//TODO: fix copying
-//		Node(const Node &) = delete;
-//		void operator=(const Node &) = delete;
+		// TODO: fix copying
+		//		Node(const Node &) = delete;
+		//		void operator=(const Node &) = delete;
 
 		virtual ~Node() {}
 		virtual TypeId typeId() const = 0;

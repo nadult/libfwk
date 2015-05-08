@@ -13,8 +13,8 @@ _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
 
 
 SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
-		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory \
-		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/collada gfx/mesh gfx/matrix_stack \
+		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/skinned_mesh \
+		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/mesh gfx/matrix_stack \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector
 PROGRAM_SRC=test/streams test/stuff test/math test/window
@@ -60,7 +60,7 @@ NICE_FLAGS=-std=c++11 -ggdb -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werro
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
 LINUX_FLAGS=-DFWK_TARGET_LINUX $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-HTML5_FLAGS=-DFWK_TARGET_HTML5 -std=c++11 -lSDL -O0 $(INCLUDES)
+HTML5_FLAGS=-DFWK_TARGET_HTML5 -std=c++11 -lSDL -O0 $(INCLUDES) -I/code/emscripten_libs/libpng-1.2.49/src
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
 	$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@
@@ -85,6 +85,7 @@ $(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp) $(HTML5_S
 $(HTML5_PROGRAMS): %.html: %.html.cpp
 	emcc $(HTML5_FLAGS) $^ -o $@
 
+# TODO: use Makefile.include to build test programs
 
 lib/libfwk.a: $(LINUX_SHARED_OBJECTS)
 	$(LINUX_AR) r $@ $^ 

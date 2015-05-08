@@ -18,6 +18,8 @@ int tmain() {
 		cout << ex.what() << '\n' << ex.backtrace() << '\n';
 	}
 
+	//TODO: add tests for TextFormatter
+
 	cout << "All OK\n";
 	return 0;
 }

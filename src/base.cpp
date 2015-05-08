@@ -169,7 +169,7 @@ const char *strcasestr(const char *a, const char *b) {
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
-int fromString(const char *str, const char **strings, int count) {
+int enumFromString(const char *str, const char **strings, int count) {
 	DASSERT(str);
 	for(int n = 0; n < count; n++)
 		if(strcmp(str, strings[n]) == 0)
@@ -206,16 +206,31 @@ TextFormatter::TextFormatter(int size) : m_offset(0), m_data(size) {
 }
 
 void TextFormatter::operator()(const char *format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	int offset = vsnprintf(&m_data[m_offset], m_data.size() - m_offset, format, ap);
-	if(offset < 0 || m_offset + offset > m_data.size()) {
-		m_data[m_offset] = 0;
-		THROW(offset < 0 ? "Textformatter: error while encoding"
-						 : "TextFormatter: not enough space in buffer");
-	}
-	m_offset += offset;
-	va_end(ap);
+	bool realloc_needed = false;
+
+	do {
+		va_list ap;
+		va_start(ap, format);
+		int offset = vsnprintf(&m_data[m_offset], m_data.size() - m_offset, format, ap);
+		va_end(ap);
+
+		if(offset < 0) {
+			m_data[m_offset] = 0;
+			THROW("Textformatter: error while encoding");
+		}
+
+		if(m_offset + offset >= (int)m_data.size()) {
+			m_data[m_offset] = 0;
+			PodArray<char> new_data((m_offset + offset + 1) * (m_offset == 0 ? 1 : 2));
+			memcpy(new_data.data(), m_data.data(), m_offset + 1);
+			new_data.swap(m_data);
+			realloc_needed = true;
+			printf("re to: %d\n", m_data.size());
+		} else {
+			m_offset += offset;
+			realloc_needed = false;
+		}
+	} while(realloc_needed);
 }
 
 string format(const char *format, ...) {

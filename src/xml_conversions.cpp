@@ -100,6 +100,14 @@ namespace xml_conversions {
 		return IRect(out[0], out[1], out[2], out[3]);
 	}
 
+	template <> Matrix4 fromString(const char *input) {
+		float out[16];
+		toFloat(input, 16, out);
+		return Matrix4(
+			float4(out[0], out[1], out[2], out[3]), float4(out[4], out[5], out[6], out[7]),
+			float4(out[8], out[9], out[10], out[11]), float4(out[12], out[13], out[14], out[15]));
+	}
+
 	template <> vector<string> fromString<vector<string>>(const char *input) {
 		vector<string> out;
 		const char *iptr = input;
@@ -117,6 +125,39 @@ namespace xml_conversions {
 
 		return out;
 	}
+
+	template <> vector<float> fromString<vector<float>>(const char *input) {
+		vector<float> out;
+
+		int offset = 0, num_values = 0;
+		float values[4];
+
+		do {
+			num_values = sscanf(input, " %f %f %f %f%n", values + 0, values + 1, values + 2,
+								values + 3, &offset);
+			input += offset;
+			out.insert(out.end(), values, values + num_values);
+		} while(num_values == 4);
+
+		return out;
+	}
+
+	template <> vector<int> fromString<vector<int>>(const char *input) {
+		vector<int> out;
+
+		int offset = 0, num_values = 0;
+		int values[4];
+
+		do {
+			num_values = sscanf(input, " %d %d %d %d%n", values + 0, values + 1, values + 2,
+								values + 3, &offset);
+			input += offset;
+			out.insert(out.end(), values, values + num_values);
+		} while(num_values == 4);
+
+		return out;
+	}
+
 
 	template <> void toString(const bool &value, TextFormatter &out) {
 		out(value ? "true" : "false");

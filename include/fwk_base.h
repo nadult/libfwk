@@ -67,6 +67,9 @@ class Exception : public std::exception {
 #define FWK_STRINGIZE(something) FWK_STRINGIZE_(something)
 #define FWK_STRINGIZE_(something) #something
 
+#ifdef __clang__
+__attribute__((__format__(__printf__, 3, 4)))
+#endif
 void throwException(const char *file, int line, const char *fmt, ...);
 void doAssert(const char *file, int line, const char *str);
 void handleCtrlC(void (*handler)());
@@ -111,7 +114,7 @@ template <class T> inline T min(T a, T b) { return a > b ? b : a; }
 
 template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
-template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
+template <class T, int size> constexpr int arraySize(T(&)[size]) noexcept { return size; }
 
 void logError(const string &error);
 
@@ -164,7 +167,7 @@ inline bool caseLess(const StringRef a, const StringRef b) {
 	return strcasecmp(a.c_str(), b.c_str()) < 0;
 }
 
-int fromString(const char *str, const char **strings, int count);
+int enumFromString(const char *str, const char **enum_strings, int enum_strings_count);
 
 #define DECLARE_ENUM(type, ...)                                                                    \
 	namespace type {                                                                               \
@@ -182,8 +185,11 @@ int fromString(const char *str, const char **strings, int count);
 			DASSERT(isValid(value));                                                               \
 			return s_strings[value];                                                               \
 		}                                                                                          \
-		Type fromString(const char *str) { return (Type)fwk::fromString(str, s_strings, count); }  \
+		Type fromString(const char *str) {                                                         \
+			return (Type)fwk::enumFromString(str, s_strings, count);                               \
+		}                                                                                          \
 	}
+
 
 template <class T> struct SerializeAsPod;
 
@@ -299,19 +305,19 @@ class Stream {
 	};
 
 	template <class T, int tsize, bool pod> struct Serialization<T[tsize], pod> {
-		static void doLoad(T (&obj)[tsize], Stream &sr) {
+		static void doLoad(T(&obj)[tsize], Stream &sr) {
 			for(size_t n = 0; n < tsize; n++)
 				obj[n].load(sr);
 		};
-		static void doSave(const T (&obj)[tsize], Stream &sr) {
+		static void doSave(const T(&obj)[tsize], Stream &sr) {
 			for(size_t n = 0; n < tsize; n++)
 				obj[n].save(sr);
 		};
 	};
 
 	template <class T, int tsize> struct Serialization<T[tsize], true> {
-		static void doLoad(T (&obj)[tsize], Stream &sr) { sr.loadData(&obj[0], sizeof(T) * tsize); }
-		static void doSave(const T (&obj)[tsize], Stream &sr) {
+		static void doLoad(T(&obj)[tsize], Stream &sr) { sr.loadData(&obj[0], sizeof(T) * tsize); }
+		static void doSave(const T(&obj)[tsize], Stream &sr) {
 			sr.saveData(&obj[0], sizeof(T) * tsize);
 		}
 	};
@@ -463,24 +469,37 @@ class MemorySaver : public Stream {
 
 template <class T> class ResourceLoader {
   public:
-	shared_ptr<T> operator()(const string &name, Stream &stream) {
+	ResourceLoader(const string &file_prefix, const string &file_suffix)
+		: m_file_prefix(file_prefix), m_file_suffix(file_suffix) {}
+
+	shared_ptr<T> operator()(const string &name) const {
+		Loader stream(m_file_prefix + name + m_file_suffix);
 		return make_shared<T>(name, stream);
 	}
+
+	const string &filePrefix() const { return m_file_prefix; }
+	const string &fileSuffix() const { return m_file_suffix; }
+
+  private:
+	string m_file_prefix, m_file_suffix;
 };
 
-template <class T> class ResourceManager {
+template <class T, class Constructor = ResourceLoader<T>> class ResourceManager {
   public:
 	using PResource = shared_ptr<T>;
 
-	ResourceManager(const string &prefix, const string &suffix)
-		: m_prefix(prefix), m_suffix(suffix) {}
+	template <class... ConstructorArgs>
+	ResourceManager(ConstructorArgs &&... args)
+		: m_constructor(std::forward<ConstructorArgs>(args)...) {}
+	ResourceManager() = default;
 	~ResourceManager() {}
+
+	const Constructor &constructor() const { return m_constructor; }
 
 	PResource accessResource(const string &name) {
 		auto it = m_dict.find(name);
 		if(it == m_dict.end()) {
-			Loader stream(m_prefix + name + m_suffix);
-			PResource res = ResourceLoader<T>()(name, stream);
+			PResource res = m_constructor(name);
 			DASSERT(res);
 			m_dict[name] = res;
 			return res;
@@ -496,9 +515,6 @@ template <class T> class ResourceManager {
 	}
 
 	PResource operator[](const string &name) { return accessResource(name); }
-
-	const string &prefix() const { return m_prefix; }
-	const string &suffix() const { return m_suffix; }
 
 	// Functor takes two parameters: name and object
 	template <class Functor> void iterateOver(Functor func) {
@@ -525,6 +541,7 @@ template <class T> class ResourceManager {
 
   private:
 	typename std::map<string, PResource> m_dict;
+	Constructor m_constructor;
 	string m_prefix, m_suffix;
 };
 
@@ -696,9 +713,16 @@ class BitVector {
 
 class TextFormatter {
   public:
+	// You can specify initial buffer size. Don't worry though, buffer
+	// will be resized if needed
 	explicit TextFormatter(int size = 1024);
 
-	void operator()(const char *format, ...);
+#ifdef __clang__
+	__attribute__((__format__(__printf__, 2, 3)))
+#endif
+	void
+	operator()(const char *format, ...);
+
 	const char *text() const { return m_data.data(); }
 	int length() const { return m_offset; }
 
@@ -707,6 +731,9 @@ class TextFormatter {
 	PodArray<char> m_data;
 };
 
+#ifdef __clang__
+__attribute__((__format__(__printf__, 1, 2)))
+#endif
 string format(const char *format, ...);
 
 struct ListNode {

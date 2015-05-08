@@ -36,6 +36,9 @@ namespace xml_conversions {
 	template <> float4 fromString<float4>(const char *);
 	template <> FRect fromString<FRect>(const char *);
 	template <> IRect fromString<IRect>(const char *);
+	template <> Matrix4 fromString<Matrix4>(const char*);
+	template <> vector<float> fromString<vector<float>>(const char*);
+	template <> vector<int> fromString<vector<int>>(const char*);
 	template <> vector<string> fromString<vector<string>>(const char *);
 
 	template <class T> void toString(const T &value, TextFormatter &out) {
@@ -60,9 +63,7 @@ class XMLNode {
 	XMLNode(const XMLNode &rhs) : m_ptr(rhs.m_ptr), m_doc(rhs.m_doc) {}
 	XMLNode() : m_ptr(nullptr), m_doc(nullptr) {}
 
-	// TODO: add function hasAttrib, use it in sys::config
-
-	// TODO: change to tryAttrib
+	// TODO: change to tryAttrib?
 	// Returns nullptr if not found
 	const char *hasAttrib(const char *name) const;
 
@@ -105,6 +106,20 @@ class XMLNode {
 	void next() { *this = sibling(name()); }
 
 	const char *value() const;
+
+	template <class T> T value() const {
+		try {
+			return xml_conversions::fromString<T>(value());
+		} catch(const Exception &ex) {
+			parsingError(nullptr, ex.what());
+			return T();
+		}
+	}
+	template <class T> T value(T default_value) const {
+		const char *val = value();
+		return val[0] ? value<T>() : default_value;
+	}
+
 	const char *name() const;
 
 	const char *own(const char *str);

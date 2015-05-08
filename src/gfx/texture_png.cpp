@@ -2,8 +2,6 @@
 
    This file is part of libfwk. */
 
-#ifndef FWK_TARGET_HTML5
-
 #include "fwk_gfx.h"
 #include <png.h>
 
@@ -197,5 +195,3 @@ namespace {
 	Texture::RegisterLoader png_loader("png", loadPNG);
 }
 }
-
-#endif

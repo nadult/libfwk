@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_collada.h"
+#include <algorithm>
 
 namespace fwk {
 namespace collada {
@@ -12,9 +13,6 @@ namespace collada {
 				"WEIGHT", "JOINT", "INV_BIND_MATRIX");
 
 	DEFINE_ENUM(SamplerSemantic, "INPUT", "OUTPUT", "INTERPOLATION", "IN_TANGENT", "OUT_TANGENT");
-
-	DEFINE_ENUM(SourceArrayType, "IDREF_array", "Name_array", "bool_array", "float_array",
-				"int_array");
 
 	template <class T, class Func> void parseValues(XMLNode node, T *out, int count, Func func) {
 		DASSERT(count >= 0);
@@ -38,6 +36,12 @@ namespace collada {
 			THROW("Parsed %d values, expected %d (node: '%s')", parsed_count, count, node.name());
 	}
 
+	static string parseRef(const char *str) {
+		DASSERT(str);
+		ASSERT(str[0] == '#');
+		return string(str + 1);
+	}
+
 	void parseValues(XMLNode node, int *out, int count) { parseValues(node, out, count, atoi); }
 	void parseValues(XMLNode node, float *out, int count) { parseValues(node, out, count, atof); }
 	void parseValues(XMLNode node, bool *out, int count) {
@@ -45,118 +49,102 @@ namespace collada {
 						  [](const char *v) { return strcmp(v, "true") == 0 ? true : false; });
 	}
 
-	template <class T, class TBase> const T Source::get(int idx) const {
-		T out;
-		DASSERT(idx >= 0 && idx < m_count);
-		int offset = m_offset + idx * m_stride;
-		memcpy(&out, m_array.data() + offset * sizeof(TBase), sizeof(T));
-		return out;
-	}
-
-	float Source::toFloat(int idx) const {
-		DASSERT(m_type == type_float);
-		return get<float, float>(idx);
-	}
-
-	float2 Source::toFloat2(int idx) const {
-		DASSERT(m_type == type_float2);
-		return get<float2, float>(idx);
-	}
-
-	float3 Source::toFloat3(int idx) const {
-		DASSERT(m_type == type_float3);
-		return get<float3, float>(idx);
-	}
-
-	float4 Source::toFloat4(int idx) const {
-		DASSERT(m_type == type_float4);
-		return get<float4, float>(idx);
-	}
-
-	Matrix4 Source::toMatrix(int idx) const {
-		DASSERT(m_type == type_matrix);
-		return transpose(get<Matrix4, float>(idx));
-	}
-
-	StringRef Source::toString(int idx) const {
-		DASSERT(m_type == type_name);
-		DASSERT(idx >= 0 && idx < m_count);
-		return m_string_array[m_offset + idx * m_stride];
-	}
-
-	Source::Source(XMLNode node) : m_stride(1), m_offset(0), m_count(0), m_type(type_unknown) {
+	Source::Source(XMLNode node) : m_type(type_unknown) {
 		DASSERT(node && StringRef(node.name()) == "source");
 		m_id = node.attrib("id");
 
-		XMLNode sub_node = node.child();
-		if(StringRef(sub_node.name()) == "asset") // TODO: fixme
-			sub_node = sub_node.sibling();
-
-		m_array_type = SourceArrayType::fromString(sub_node.name());
-		m_array_count = sub_node.attrib<int>("count");
-		StringRef array_id = sub_node.attrib("id");
-
-		if(m_array_type == SourceArrayType::idref_array ||
-		   m_array_type == SourceArrayType::name_array) {
-			m_string_array.resize(m_array_count);
-			m_string_array = xml_conversions::fromString<vector<string>>(sub_node.value());
-		} else if(m_array_type == SourceArrayType::float_array) {
-			m_array.resize(sizeof(float) * m_array_count);
-			parseValues(sub_node, (float *)m_array.data(), m_array_count);
-		} else if(m_array_type == SourceArrayType::int_array) {
-			m_array.resize(sizeof(int) * m_array_count);
-			parseValues(sub_node, (int *)m_array.data(), m_array_count);
-		} else if(m_array_type == SourceArrayType::bool_array) {
-			m_array.resize(sizeof(bool) * m_array_count);
-			parseValues(sub_node, (bool *)m_array.data(), m_array_count);
-		}
-
-		XMLNode tech_node = sub_node.sibling("technique_common");
+		XMLNode tech_node = node.child("technique_common");
 		ASSERT(tech_node);
-		XMLNode accessor = tech_node.child("accessor");
-		ASSERT(accessor);
+		XMLNode accessor_node = tech_node.child("accessor");
+		ASSERT(accessor_node && !accessor_node.sibling("accessor"));
 
-		m_stride = accessor.hasAttrib("stride") ? accessor.attrib<int>("stride") : 1;
-		m_offset = accessor.hasAttrib("offset") ? accessor.attrib<int>("offset") : 0;
-		m_count =
-			accessor.hasAttrib("count") ? accessor.attrib<int>("count") : m_array_count / m_stride;
-		ASSERT(m_count * m_stride + m_offset <= m_array_count);
+		string acc_source = parseRef(accessor_node.attrib("source"));
+		int acc_stride = accessor_node.attrib<int>("stride", 1);
+		int acc_offset = accessor_node.attrib<int>("offset", 0);
+		int acc_count = accessor_node.attrib<int>("count");
 
-		const char *source_id = accessor.attrib("source");
-		ASSERT(source_id[0] == '#' && StringRef(source_id + 1) == array_id);
-
-		vector<StringRef> param_types;
-		XMLNode param_node = accessor.child("param");
-		while(param_node) {
-			param_types.push_back(param_node.attrib("type"));
-			param_node.next();
+		vector<string> acc_types;
+		{
+			XMLNode param_node = accessor_node.child("param");
+			while(param_node) {
+				acc_types.emplace_back(param_node.attrib("type"));
+				param_node.next();
+			}
 		}
 
-		if(m_array_type == SourceArrayType::float_array) {
-			int simple_count = 0;
-			for(int n = 0; n < (int)param_types.size(); n++)
-				if(param_types[n] == "float")
-					simple_count++;
+		XMLNode farray_node = node.child("float_array");
+		XMLNode sarray_node = node.child("Name_array");
 
-			if(simple_count == 0 && param_types.size() == 1) {
-				ASSERT(param_types.front() == "float4x4");
-				m_type = type_matrix;
+		if(farray_node) {
+			m_floats = xml_conversions::fromString<vector<float>>(farray_node.value());
+			ASSERT((int)m_floats.size() == farray_node.attrib<int>("count"));
+			ASSERT(acc_source == farray_node.attrib("id"));
+
+			if(acc_types.size() == 1 && acc_types[0] == "float4x4") {
+				ASSERT(acc_stride == 16);
+				ASSERT(acc_count == (int)m_floats.size() / acc_stride);
+				m_type = type_matrix4;
 			} else {
-				ASSERT(simple_count == (int)param_types.size());
-				ASSERT(simple_count <= 4);
-				m_type = simple_count == 1 ? type_float : simple_count == 2
-															  ? type_float2
-															  : simple_count == 3 ? type_float3
-																				  : type_float4;
+				ASSERT(std::all_of(acc_types.begin(), acc_types.end(),
+								   [](const string &s) { return s == "float"; }));
+				int size = (int)acc_types.size();
+				ASSERT(size >= 1 && size <= 4);
+				ASSERT(acc_count == (int)m_floats.size() / size);
+				ASSERT(acc_stride == size);
+
+				m_type = size == 1 ? type_float : size == 2 ? type_float2 : size == 3 ? type_float3
+																					  : type_float4;
 			}
-		} else if(m_array_type == SourceArrayType::name_array ||
-				  m_array_type == SourceArrayType::idref_array) {
-			ASSERT(param_types.size() == 1);
-			ASSERT(param_types.front() == "name");
-			m_type = type_name;
-		} else
-			ASSERT(0 && "array_type not supported (TODO)");
+		}
 	}
+
+	vector<float> Source::toFloatArray() const {
+		DASSERT(m_type == type_float);
+		return m_floats;
+	}
+
+	vector<float2> Source::toFloat2Array() const {
+		DASSERT(m_type == type_float2);
+		vector<float2> out;
+		out.reserve(m_floats.size() / 2);
+		for(int n = 0; n < (int)m_floats.size(); n += 2)
+			out.emplace_back(m_floats[n + 0], m_floats[n + 1]);
+		return out;
+	}
+
+	vector<float3> Source::toFloat3Array() const {
+		DASSERT(m_type == type_float3);
+		vector<float3> out;
+		out.reserve(m_floats.size() / 3);
+		for(int n = 0; n < (int)m_floats.size(); n += 3)
+			out.emplace_back(m_floats[n + 0], m_floats[n + 1], m_floats[n + 2]);
+		return out;
+	}
+
+	vector<float4> Source::toFloat4Array() const {
+		DASSERT(m_type == type_float4);
+		vector<float4> out;
+		out.reserve(m_floats.size() / 4);
+		for(int n = 0; n < (int)m_floats.size(); n += 4)
+			out.emplace_back(m_floats[n + 0], m_floats[n + 1], m_floats[n + 2], m_floats[n + 3]);
+		return out;
+	}
+
+	vector<Matrix4> Source::toMatrix4Array() const {
+		DASSERT(m_type == type_matrix);
+		vector<Matrix4> out;
+		out.reserve(m_floats.size() / 16);
+		for(int n = 0; n < (int)m_floats.size(); n += 16) {
+			const float *ptr = &m_floats[n];
+			out.emplace_back(float4(ptr[0], ptr[1], ptr[2], ptr[3]),
+							 float4(ptr[4], ptr[5], ptr[6], ptr[7]),
+							 float4(ptr[8], ptr[9], ptr[10], ptr[11]),
+							 float4(ptr[12], ptr[13], ptr[14], ptr[15]));
+		}
+		return out;
+	}
+
+	vector<string> Source::toNameArray() const { DASSERT(m_type == type_name); return m_strings; }
 
 	int Triangles::attribIndex(Semantic::Type sem, int idx) const {
 		DASSERT(idx >= 0 && idx < m_vertex_count);
@@ -197,9 +185,9 @@ namespace collada {
 
 		XMLNode indices_node = node.child("p");
 		ASSERT(indices_node);
-			
+
 		vector<int> vcounts(poly_count);
-	
+
 		if(is_poly_list) {
 			XMLNode vcounts_node = node.child("vcount");
 			ASSERT(vcounts_node);
@@ -223,21 +211,19 @@ namespace collada {
 					for(int i = 0; i < 3 * m_stride; i++)
 						new_indices.emplace_back(m_indices[index + i]);
 					index += 3 * m_stride;
-				}
-				else if(vcount == 4) {
-					int remap[6] = { 0, 1, 2, 0, 2, 3};
+				} else if(vcount == 4) {
+					int remap[6] = {0, 1, 2, 0, 2, 3};
 					for(int i = 0; i < 6; i++)
 						for(int j = 0; j < m_stride; j++)
-						new_indices.emplace_back(m_indices[index + remap[i] * m_stride + j]);
+							new_indices.emplace_back(m_indices[index + remap[i] * m_stride + j]);
 					index += 4 * m_stride;
-				}
-				else THROW("polylist with vcount > 4 not supported");
+				} else
+					THROW("polylist with vcount > 4 not supported");
 			}
 			m_vertex_count = new_indices.size() / m_stride;
 			m_indices.resize(new_indices.size());
 			memcpy(m_indices.data(), new_indices.data(), m_indices.size() * sizeof(m_indices[0]));
 		}
-
 	}
 
 	const Source *Node::findSource(const char *id) const {
@@ -319,7 +305,7 @@ namespace collada {
 
 	static int thirdAxis(int a, int b) {
 		int c = (a + 1) % 3;
-		if ( c == b)
+		if(c == b)
 			c = (c + 1) % 3;
 		return c;
 	}
@@ -438,7 +424,7 @@ namespace collada {
 		ASSERT(m_inv_bind_poses && m_weights && m_joints);
 		ASSERT(m_joints->type() == Source::type_name);
 		ASSERT(m_weights->type() == Source::type_float);
-		ASSERT(m_inv_bind_poses->type() == Source::type_matrix);
+		ASSERT(m_inv_bind_poses->type() == Source::type_matrix4);
 	}
 
 	Animation::Animation(Node *parent, XMLNode node) : Node(parent, node) {
@@ -467,7 +453,7 @@ namespace collada {
 
 			ASSERT(sampler.input && sampler.output);
 			ASSERT(sampler.input->type() == Source::type_float);
-			ASSERT(sampler.output->type() == Source::type_matrix);
+			ASSERT(sampler.output->type() == Source::type_matrix4);
 
 			if(m_frame_count == -1)
 				m_frame_count = sampler.input->size();
@@ -506,5 +492,71 @@ namespace collada {
 	}
 
 	SceneNode::SceneNode(Node *parent, XMLNode node) : Node(parent, node) {}
+	
+	/*
+SimpleMeshData::SimpleMeshData(const collada::Mesh &cmesh) {
+using namespace collada;
+
+const Triangles &ctris = cmesh.triangles();
+int vertex_count = ctris.count() * 3;
+m_positions.resize(vertex_count);
+m_normals.resize(vertex_count);
+m_tex_coords.resize(vertex_count);
+
+const Source *vertex_source = ctris.attribSource(Semantic::vertex);
+const Source *normal_source = ctris.attribSource(Semantic::normal);
+const Source *tex_coord_source = ctris.attribSource(Semantic::tex_coord);
+ASSERT(vertex_source->type() == Source::type_float3);
+ASSERT(normal_source->type() == Source::type_float3);
+
+for(int v = 0; v < vertex_count; v++) {
+	m_positions[v] = vertex_source->toFloat3(ctris.attribIndex(Semantic::vertex, v));
+	m_normals[v] = normal_source->toFloat3(ctris.attribIndex(Semantic::normal, v));
+}
+
+if(tex_coord_source) {
+	if(tex_coord_source->type() == Source::type_float3) {
+		for(int v = 0; v < vertex_count; v++) {
+			float3 uvw = tex_coord_source->toFloat3(ctris.attribIndex(Semantic::tex_coord, v));
+			m_tex_coords[v] = float2(uvw.x, -uvw.y);
+		}
+	} else if(tex_coord_source->type() == Source::type_float2) {
+		for(int v = 0; v < vertex_count; v++) {
+			float2 uv = tex_coord_source->toFloat2(ctris.attribIndex(Semantic::tex_coord, v));
+			m_tex_coords[v] = float2(uv.x, -uv.y);
+		}
+	}
+} else if(!m_tex_coords.empty())
+	memset(m_tex_coords.data(), 0, m_tex_coords.size() * sizeof(m_tex_coords[0]));
+
+m_indices.resize(m_positions.size());
+for(int n = 0; n < m_indices.size(); n++)
+	m_indices[n] = n;
+
+m_primitive_type = PrimitiveType::triangles;
+	Matrix4 root_matrix = getRootMatrix(root, cmesh.id());
+	Matrix4 nrm_matrix = inverse(transpose(root_matrix));
+
+	for(int n = 0; n < m_positions.size(); n++) {
+		m_positions[n] = mulPoint(root_matrix, m_positions[n]);
+		root.fixUpAxis(m_positions[n], 2);
+	}
+	for(int n = 0; n < m_normals.size(); n++) {
+		m_normals[n] = mulNormal(nrm_matrix, m_normals[n]);
+		root.fixUpAxis(m_normals[n], 2);
+	}
+	if(root.upAxis() != 0) {
+		// TODO: order of vertices in a triangle sometimes has to be changed
+		for(int n = 0; n < m_positions.size(); n += 3) {
+			//				swap(m_positions[n], m_positions[n + 1]);
+			//				swap(m_tex_coords[n], m_tex_coords[n + 1]);
+			//				swap(m_normals[n], m_normals[n + 1]);
+		}
+	}
+
+m_bounding_box = FBox(m_positions.data(), m_positions.size());
+}*/
+
+
 }
 }

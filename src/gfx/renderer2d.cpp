@@ -39,24 +39,31 @@ static const char *vertex_shader_2d_src =
 	"	color = in_color;												\n"
 	"} 																	\n";
 
-static PProgram makeProgram2D(bool with_texture) {
-	Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
-	vertex_shader.setSource(vertex_shader_2d_src);
-	fragment_shader.setSource(with_texture ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src);
+struct ProgramFactory2D {
+	PProgram operator()(const string &name) const {
+		bool with_texture = name == "with_texture";
+		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
+		vertex_shader.setSource(vertex_shader_2d_src);
+		fragment_shader.setSource(with_texture ? fragment_shader_2d_tex_src
+											   : fragment_shader_2d_flat_src);
 
-	PProgram out = make_shared<Program>(vertex_shader, fragment_shader);
-	out->bindAttribLocation("in_pos", 0);
-	out->bindAttribLocation("in_color", 1);
-	out->bindAttribLocation("in_tex_coord", 2);
-	return out;
-}
+		PProgram out = make_shared<Program>(vertex_shader, fragment_shader);
+		out->bindAttribLocation("in_pos", 0);
+		out->bindAttribLocation("in_color", 1);
+		out->bindAttribLocation("in_tex_coord", 2);
+
+		if(with_texture)
+			out->setUniform("tex", 0);
+		return out;
+	}
+};
 
 Renderer2D::Renderer2D(const IRect &viewport)
 	: MatrixStack(simpleProjectionMatrix(viewport), simpleViewMatrix(viewport, float2(0, 0))),
 	  m_viewport(viewport) {
-	m_tex_program = makeProgram2D(true);
-	m_tex_program->setUniform("tex", 0);
-	m_flat_program = makeProgram2D(false);
+	static ResourceManager<Program, ProgramFactory2D> mgr;
+	m_tex_program = mgr["with_texture"];
+	m_flat_program = mgr["without_texture"];
 }
 
 void Renderer2D::setViewPos(const float2 &view_pos) {
