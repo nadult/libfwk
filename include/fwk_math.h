@@ -10,6 +10,9 @@
 
 namespace fwk {
 
+// TODO: make sure that all classes / structures here have proper default constructor (for example
+// AxisAngle requires fixing)
+
 namespace constant {
 	static const float pi = 3.14159265358979f;
 	static const float e = 2.71828182845905f;
@@ -369,12 +372,12 @@ template <class TVec2> struct Rect {
 		max = fwk::max(max, point);
 	}
 
-	// Returns corners in clockwise order	
+	// Returns corners in clockwise order
 	void getCorners(Vec2 corners[4]) const;
 
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y; }
-	
-	//TODO: remove or specialize for int/float
+
+	// TODO: remove or specialize for int/float
 	bool isInside(const Vec2 &point) const {
 		return point.x >= min.x && point.x < max.x && point.y >= min.y && point.y < max.y;
 	}
@@ -430,8 +433,8 @@ template <class TVec3> struct Box {
 	}
 
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y || max.z <= min.z; }
-	
-	//TODO: remove or specialize for int/float
+
+	// TODO: remove or specialize for int/float
 	bool isInside(const Vec3 &point) const {
 		return point.x >= min.x && point.x < max.x && point.y >= min.y && point.y < max.y &&
 			   point.z >= min.z && point.z < max.z;
@@ -473,13 +476,14 @@ const FBox operator*(const Matrix4 &, const FBox &);
 // Column major order, vector post multiplication
 class Matrix3 {
   public:
-	Matrix3() {}
+	Matrix3() = default;
+	Matrix3(const Matrix3 &) = default;
 	Matrix3(const float3 &col0, const float3 &col1, const float3 &col2) {
 		v[0] = col0;
 		v[1] = col1;
 		v[2] = col2;
 	}
-	
+
 	static const Matrix3 identity();
 
 	const float3 GetRow(int n) const { return float3(v[0][n], v[1][n], v[2][n]); }
@@ -515,6 +519,7 @@ inline const Matrix3 normalRotation(float angle) { return rotation(float3(0, -1,
 class Matrix4 {
   public:
 	Matrix4() = default;
+	Matrix4(const Matrix4 &) = default;
 	Matrix4(const Matrix3 &mat) {
 		v[0] = float4(mat[0], 0.0f);
 		v[1] = float4(mat[1], 0.0f);

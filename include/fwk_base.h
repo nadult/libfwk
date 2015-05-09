@@ -16,6 +16,10 @@
 
 namespace fwk {
 
+// TODO: implement simple Range class template to use instead of pointer and count
+// when passing values to functions, etc.
+// Nice feature: reinterpretable ranges (char to uchar, etc.)
+
 using std::swap;
 using std::pair;
 using std::string;
@@ -189,7 +193,6 @@ int enumFromString(const char *str, const char **enum_strings, int enum_strings_
 			return (Type)fwk::enumFromString(str, s_strings, count);                               \
 		}                                                                                          \
 	}
-
 
 template <class T> struct SerializeAsPod;
 
@@ -473,14 +476,15 @@ template <class T> class ResourceLoader {
 		: m_file_prefix(file_prefix), m_file_suffix(file_suffix) {}
 
 	shared_ptr<T> operator()(const string &name) const {
-		Loader stream(m_file_prefix + name + m_file_suffix);
+		Loader stream(fileName(name));
 		return make_shared<T>(name, stream);
 	}
 
+	string fileName(const string &name) const { return m_file_prefix + name + m_file_suffix; }
 	const string &filePrefix() const { return m_file_prefix; }
 	const string &fileSuffix() const { return m_file_suffix; }
 
-  private:
+  protected:
 	string m_file_prefix, m_file_suffix;
 };
 

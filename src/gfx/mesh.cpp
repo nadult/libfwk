@@ -1,70 +1,14 @@
 /* Copyright (C) 2013 Krzysztof Jakubowski <nadult@fastmail.fm>
-.*/
+
+   This file is part of libfwk.*/
 
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
 #include <algorithm>
-#include <assimp/Importer.hpp>
-#include <assimp/IOStream.hpp>
-#include <assimp/IOSystem.hpp>
-#include <assimp/scene.h>		// Output data structure
-#include <assimp/postprocess.h> // Post processing flags
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 namespace fwk {
-
-namespace {
-	class StreamWrapper : public Assimp::IOStream {
-	  public:
-		StreamWrapper(Stream &stream) : m_stream(stream) {}
-		size_t Read(void *buffer, size_t size, size_t count) {
-			m_stream.loadData(buffer, size * count);
-			return count;
-		}
-
-		size_t Write(const void *buffer, size_t size, size_t count) {
-			m_stream.saveData(buffer, size * count);
-			return count;
-		}
-
-		aiReturn Seek(size_t offset, aiOrigin origin) {
-			if(origin == aiOrigin_SET)
-				m_stream.seek(offset);
-			else if(origin == aiOrigin_CUR)
-				m_stream.seek(offset + m_stream.pos());
-			else if(origin == aiOrigin_END) {
-				DASSERT(offset < m_stream.size());
-				m_stream.seek(m_stream.size() - offset);
-			}
-			return aiReturn_SUCCESS;
-		}
-
-		size_t Tell() const { return m_stream.pos(); }
-		size_t FileSize() const { return m_stream.size(); }
-		void Flush() {}
-
-	  private:
-		Stream &m_stream;
-	};
-
-	class SingleFileSystem : public Assimp::IOSystem {
-	  public:
-		SingleFileSystem(Stream &stream) : m_stream(stream) {}
-		bool Exists(const char *name) const override { return strcmp(m_stream.name(), name) == 0; }
-		char getOsSeparator() const override { return '/'; }
-		Assimp::IOStream *Open(const char *name, const char *mode) override {
-			DASSERT(mode && name);
-			if(strchr(mode, 'w'))
-				DASSERT(m_stream.isSaving());
-			if(strchr(mode, 'r'))
-				DASSERT(m_stream.isLoading());
-			return new StreamWrapper(m_stream);
-		}
-		void Close(Assimp::IOStream *file) override { delete file; }
-
-	  private:
-		Stream &m_stream;
-	};
-}
 
 /*
 void Mesh::genAdjacency() {
@@ -151,29 +95,58 @@ SimpleMeshData::SimpleMeshData(MakeRect, const FRect &xy_rect, float z)
 	  m_indices{0, 1, 2, 0, 2, 3}, m_primitive_type(PrimitiveType::triangles) {}
 
 SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
-	/*	float3 corners[8];
-		float2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+		float3 corners[8];
+		float2 uvs[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
 		bbox.getCorners(corners);
 
 		int order[] = {1, 3, 2, 0, 1, 0, 4, 5, 5, 4, 6, 7, 3, 1, 5, 7, 2, 6, 4, 0, 3, 7, 6, 2};
-		Mesh::Vertex verts[36];
+		
+		m_positions.reserve(24);
+		m_tex_coords.reserve(24);
+		m_indices.reserve(36);
 
 		for(int s = 0; s < 6; s++) {
-			float3 pos[4];
-			float2 pos_uv[4];
-			Color col[4];
-			int tindex[6] = {2, 1, 0, 3, 2, 0};
-
-			for(int i = 0; i < 6; i++) {
-				int index = order[tindex[i] + s * 4];
-
-				verts[s * 6 + i].pos = corners[index];
-				verts[s * 6 + i].uv = uv[tindex[i]];
+			for(int i = 0; i < 4; i++) {
+				m_positions.emplace_back(corners[order[s * 4 + i]]);
+				m_tex_coords.emplace_back(uvs[i]);
 			}
+			
+			int face_indices[6] = {2, 1, 0, 3, 2, 0};
+			for(int i = 0; i < 6; i++)
+				m_indices.push_back(s * 4 + face_indices[i]);
 		}
+		m_primitive_type = PrimitiveType::triangles;
+}
 
-		return make_shared<Mesh>(verts, arraySize(verts), PrimitiveType::triangles);*/
+SimpleMeshData::SimpleMeshData(const aiScene &ascene, int mesh_id) {
+	DASSERT(mesh_id >= 0 && mesh_id < ascene.mNumMeshes);
+	const auto *amesh = ascene.mMeshes[mesh_id];
+
+	DASSERT(amesh->HasPositions() && amesh->HasFaces() && amesh->mNumVertices <= 65536);
+
+	for(uint n = 0; n < amesh->mNumVertices; n++) {
+		const auto &pos = amesh->mVertices[n];
+		m_positions.emplace_back(pos.x, pos.y, pos.z);
+	}
+
+	if(amesh->HasTextureCoords(0))
+		for(uint n = 0; n < amesh->mNumVertices; n++) {
+			const auto &uv = amesh->mTextureCoords[0][n];
+			m_tex_coords.emplace_back(uv.x, -uv.y);
+		}
+	else {
+		// TODO: fixme
+		m_tex_coords.resize(amesh->mNumVertices, float2(0, 0));
+	}
+
+	m_indices.resize(amesh->mNumFaces * 3);
+	for(uint n = 0; n < amesh->mNumFaces; n++) {
+		ASSERT(amesh->mFaces[n].mNumIndices == 3);
+		for(int i = 0; i < 3; i++)
+			m_indices[n * 3 + i] = amesh->mFaces[n].mIndices[i];
+	}
+	m_primitive_type = PrimitiveType::triangles;
 }
 
 SimpleMeshData::SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords,
@@ -209,47 +182,17 @@ static collada::Root loadCollada(Stream &stream) {
 	stream >> doc;
 	return collada::Root(doc);
 }*/
-MeshData::MeshData(const string &name, Stream &stream) {
-	Assimp::Importer importer;
-	importer.SetIOHandler(new SingleFileSystem(stream));
 
-	int flags = aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType;
-	const aiScene *scene = importer.ReadFile(stream.name(), flags);
-	if(!scene)
-		THROW("Error while loading mesh: %s\n%s", name.c_str(), importer.GetErrorString());
-
-	for(uint n = 0; n < scene->mNumMeshes; n++) {
-		const auto *assmesh = scene->mMeshes[n];
-		if(!assmesh->HasPositions() || !assmesh->HasFaces() || assmesh->mNumVertices > 65536)
+MeshData::MeshData(const aiScene &ascene) {
+	for(uint n = 0; n < ascene.mNumMeshes; n++) {
+		const auto *amesh = ascene.mMeshes[n];
+		if(!amesh->HasPositions() || !amesh->HasFaces() || amesh->mNumVertices > 65536)
 			continue;
-
-		vector<float3> positions;
-		vector<float2> tex_coords;
-
-		for(uint n = 0; n < assmesh->mNumVertices; n++) {
-			const auto &pos = assmesh->mVertices[n];
-			positions.emplace_back(pos.x, pos.y, pos.z);
-		}
-
-		if(assmesh->HasTextureCoords(0))
-			for(uint n = 0; n < assmesh->mNumVertices; n++) {
-				const auto &uv = assmesh->mTextureCoords[0][n];
-				tex_coords.emplace_back(uv.x, -uv.y);
-			}
-		else
-			tex_coords.resize(assmesh->mNumVertices, float2(0, 0));
-
-		vector<u16> indices(assmesh->mNumFaces * 3);
-		for(uint n = 0; n < assmesh->mNumFaces; n++) {
-			ASSERT(assmesh->mFaces[n].mNumIndices == 3);
-			for(int i = 0; i < 3; i++)
-				indices[n * 3 + i] = assmesh->mFaces[n].mIndices[i];
-		}
-		m_nodes.emplace_back(SimpleMeshData(positions, tex_coords, indices), Matrix4::identity());
+		m_nodes.emplace_back(SimpleMeshData(ascene, n), Matrix4::identity());
 	}
 }
 
-Mesh::Mesh(const string &name, Stream &stream) : Mesh(MeshData(name, stream)) {}
+Mesh::Mesh(const aiScene &scene) : Mesh(MeshData(scene)) {}
 
 Mesh::Mesh(const MeshData &data) {
 	for(const auto &node : data.m_nodes)

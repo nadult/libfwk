@@ -10,6 +10,8 @@
 #include "fwk_input.h"
 #include "fwk_xml.h"
 
+class aiScene;
+
 namespace fwk {
 namespace collada {
 	class Root;
@@ -567,8 +569,9 @@ class Material;
 
 class SimpleMeshData {
   public:
-	SimpleMeshData(const collada::Mesh &);
-	SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords, const vector<u16> &indices);
+	SimpleMeshData(const aiScene &scene, int mesh_id);
+	SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords,
+				   const vector<u16> &indices);
 
 	SimpleMeshData() = default;
 
@@ -588,7 +591,7 @@ class SimpleMeshData {
 
 	*/
 
-  private:
+  protected:
 	vector<float3> m_positions;
 	vector<float3> m_normals;
 	vector<float2> m_tex_coords;
@@ -612,8 +615,7 @@ using PSimpleMesh = shared_ptr<SimpleMesh>;
 
 class MeshData {
   public:
-	MeshData(const collada::Root &);
-	MeshData(const string &name, Stream &);
+	MeshData(const aiScene&);
 
   private:
 	struct Node {
@@ -634,7 +636,7 @@ class Mesh {
 	};
 
 	Mesh(const MeshData &);
-	Mesh(const string &name, Stream &);
+	Mesh(const aiScene&);
 	//	Mesh(const Vertex *verts, int count, PrimitiveType::Type type);
 	virtual ~Mesh() = default;
 
@@ -651,7 +653,8 @@ class Skeleton {
 	enum { max_joints = 128 };
 
 	struct Trans {
-		Trans() {}
+		Trans() = default;
+		Trans(const float3 &pos, const Quat &quat) : pos(pos), rot(quat) {}
 		Trans(const Matrix4 &);
 		operator const Matrix4() const;
 
@@ -665,7 +668,8 @@ class Skeleton {
 		int parent_id;
 	};
 
-	void loadFromXML(vector<string> &sids, XMLNode root, const collada::Root &);
+	Skeleton() = default;
+	Skeleton(const aiScene &, int mesh_id);
 
 	const Joint &operator[](int idx) const { return m_joints[idx]; }
 	Joint &operator[](int idx) { return m_joints[idx]; }
@@ -673,9 +677,9 @@ class Skeleton {
 	int findJoint(const string &) const;
 	void clear();
 
-  private:
-	void loadNode(vector<string> &sids, XMLNode node, const collada::Root &, int parent_id);
+	void draw(Renderer &) const;
 
+  private:
 	vector<Joint> m_joints;
 	// TODO: additional vector for dummies
 };
@@ -717,9 +721,8 @@ class SkeletalAnim {
 
 class SkinnedMeshData : public SimpleMeshData {
   public:
-	enum { max_weights = 8 };
+	enum { max_weights = 4 };
 
-	// TODO: better names
 	struct JointWeight {
 		float v[max_weights];
 	};
@@ -730,10 +733,8 @@ class SkinnedMeshData : public SimpleMeshData {
 	const float3 transformPoint(int id, const Matrix4 *joints) const;
 
 	SkinnedMeshData();
+	SkinnedMeshData(const aiScene &, int mesh_id = 0);
 	virtual ~SkinnedMeshData() = default;
-
-	virtual void load(const collada::Root &, int mesh_id);
-	void clear();
 
 	void renderSkeleton(Renderer &, const Matrix4 *joints, const Matrix4 &trans, Color) const;
 	void animate(Matrix4 *out, int anim_id, double anim_time) const;
@@ -759,9 +760,9 @@ class SkinnedMeshData : public SimpleMeshData {
 	float3 m_bind_scale;
 	Skeleton m_skeleton;
 	vector<SkeletalAnim> m_anims;
-	PodArray<Matrix4> m_bind, m_inv_bind;
-	PodArray<JointWeight> m_weights;
-	PodArray<JointId> m_ids;
+	vector<Matrix4> m_binds, m_inv_binds;
+	vector<JointWeight> m_joint_weights;
+	vector<JointId> m_joint_ids;
 };
 
 class Material {
@@ -778,6 +779,41 @@ class Material {
   protected:
 	PTexture m_texture;
 	Color m_color;
+};
+
+class AssimpImporter {
+  public:
+	AssimpImporter();
+	~AssimpImporter();
+
+	const aiScene &loadScene(Stream &stream, uint flags, const char *extension_hint = nullptr);
+	const aiScene &loadScene(const char *data, int data_size, uint flags,
+							 const char *extension_hint = nullptr);
+	const aiScene &loadScene(const string &file_name, uint flags);
+	void freeScene();
+
+	static uint defaultFlags();
+
+  private:
+	class Impl;
+	unique_ptr<Impl> m_impl;
+};
+
+template <class T> class AssimpLoader : public ResourceLoader<T> {
+  public:
+	AssimpLoader(const string &prefix, const string &suffix, uint flags)
+		: ResourceLoader<T>(prefix, suffix), m_flags(flags) {}
+
+	shared_ptr<T> operator()(const string &name) {
+		const aiScene &scene = m_importer.loadScene(ResourceLoader<T>::fileName(name), m_flags);
+		auto out = make_shared<T>(scene);
+		m_importer.freeScene();
+		return out;
+	}
+
+  protected:
+	AssimpImporter m_importer;
+	uint m_flags;
 };
 
 struct DrawElement {};
