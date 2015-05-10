@@ -217,6 +217,8 @@ struct float3 {
 struct float4 {
 	using Scalar = float;
 
+	//TODO: use range[4]
+	float4(const float *v) :x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
 	float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 	float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
 	float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
@@ -532,6 +534,11 @@ class Matrix4 {
 		v[2] = col2;
 		v[3] = col3;
 	}
+	Matrix4(const float *vals) { //TODO: use range<float, 16>
+		for(int n = 0; n < 4; n++)
+			v[n] = float4(vals + n * 4);
+	}
+
 
 	static const Matrix4 identity();
 

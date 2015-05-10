@@ -575,12 +575,16 @@ class SimpleMeshData {
 
 	SimpleMeshData() = default;
 
-	SimpleMeshData(MakeRect, const FRect &xy_rect, float z);
+	SimpleMeshData(MakeRect, const FRect &xz_rect, float y);
 	SimpleMeshData(MakeBBox, const FBox &bbox);
 
 	const FBox &boundingBox() const { return m_bounding_box; }
 
 	void transformUV(const Matrix4 &);
+
+	const vector<float3> &positions() const { return m_positions; }
+	const vector<float2> &texCoords() const { return m_tex_coords; }
+	const vector<u16> &indices() const { return m_indices; }
 
 	/*
 		void genAdjacency();
@@ -615,28 +619,30 @@ using PSimpleMesh = shared_ptr<SimpleMesh>;
 
 class MeshData {
   public:
-	MeshData(const aiScene&);
+	MeshData(const aiScene &);
+
+	struct Node {
+		string name;
+		Matrix4 trans;
+		int parent_id;
+		vector<int> mesh_ids;
+	};
+
+	const vector<Node> &nodes() const { return m_nodes; }
+	const vector<SimpleMeshData> &meshes() const { return m_meshes; }
 
   private:
-	struct Node {
-		Node(const SimpleMeshData &mesh, const Matrix4 &mat) : mesh(mesh), matrix(mat) {}
-		SimpleMeshData mesh;
-		Matrix4 matrix;
-	};
+	vector<SimpleMeshData> m_meshes;
 	vector<Node> m_nodes;
 	friend class Mesh;
 };
 
 class Mesh {
   public:
-	struct Node {
-		Node(const SimpleMesh &mesh, Matrix4 mat) : mesh(mesh), matrix(mat) {}
-		SimpleMesh mesh;
-		Matrix4 matrix;
-	};
+	using Node = MeshData::Node;
 
 	Mesh(const MeshData &);
-	Mesh(const aiScene&);
+	Mesh(const aiScene &);
 	//	Mesh(const Vertex *verts, int count, PrimitiveType::Type type);
 	virtual ~Mesh() = default;
 
@@ -644,6 +650,7 @@ class Mesh {
 
   private:
 	vector<Node> m_nodes;
+	vector<SimpleMesh> m_meshes;
 };
 
 using PMesh = shared_ptr<Mesh>;
@@ -663,9 +670,11 @@ class Skeleton {
 	};
 
 	struct Joint {
-		Trans trans;
+		Matrix4 trans;
+		Matrix4 inv_bind;
 		string name;
 		int parent_id;
+		bool is_dummy;
 	};
 
 	Skeleton() = default;
@@ -675,12 +684,21 @@ class Skeleton {
 	Joint &operator[](int idx) { return m_joints[idx]; }
 	int size() const { return (int)m_joints.size(); }
 	int findJoint(const string &) const;
-	void clear();
 
-	void draw(Renderer &) const;
+	struct VertexWeight {
+		VertexWeight(float weight, int joint_id) : weight(weight), joint_id(joint_id) {}
+
+		float weight;
+		int joint_id;
+	};
+
+	const vector<Joint> &joints() const { return m_joints; }
+	const vector<vector<VertexWeight>> &vertexWeights() const { return m_vertex_weights; }
+	vector<Matrix4> invBinds() const;
 
   private:
 	vector<Joint> m_joints;
+	vector<vector<VertexWeight>> m_vertex_weights;
 	// TODO: additional vector for dummies
 };
 
@@ -688,55 +706,38 @@ Matrix4 lerp(const Skeleton::Trans &, const Skeleton::Trans &, float);
 
 class SkeletalAnim {
   public:
-	SkeletalAnim() : m_frame_count(0), m_joint_count(0) {}
-
-	typedef Skeleton::Trans Trans;
-
-	int frameCount() const { return m_frame_count; }
-	int jointCount() const { return m_joint_count; }
-
-	const string &name() const { return m_name; }
-	const string &jointName(int idx) const { return m_joint_names[idx]; }
-	float frameTime(int frame_id) const { return m_times[frame_id]; }
-	const Trans &jointTrans(int frame_id, int joint_id) const {
-		return m_transforms[frame_id * m_joint_count + joint_id];
-	}
-
-	void load(const collada::Root &, int anim_id);
-	void clear();
-
+	using Trans = Skeleton::Trans;
+	SkeletalAnim(const aiScene &, int mesh_id, int anim_id, const Skeleton &);
 	void animate(Matrix4 *out, const Skeleton &skeleton, double anim_time) const;
-	float length() const { return m_length; }
 
   protected:
 	string m_name;
 
-	vector<Trans> m_transforms;
-	vector<float> m_times;
-	vector<string> m_joint_names;
+	struct Channel {
+		string joint_name;
+		int joint_id;
 
-	int m_frame_count, m_joint_count;
+		struct Key {
+			Trans trans;
+			float time;
+		};
+		vector<Key> keys;
+	};
+
+	vector<Channel> m_channels;
 	float m_length;
 };
 
 class SkinnedMeshData : public SimpleMeshData {
   public:
-	enum { max_weights = 4 };
-
-	struct JointWeight {
-		float v[max_weights];
-	};
-	struct JointId {
-		u8 v[max_weights];
-	};
-
 	const float3 transformPoint(int id, const Matrix4 *joints) const;
 
 	SkinnedMeshData();
 	SkinnedMeshData(const aiScene &, int mesh_id = 0);
 	virtual ~SkinnedMeshData() = default;
 
-	void renderSkeleton(Renderer &, const Matrix4 *joints, const Matrix4 &trans, Color) const;
+	void drawSkeleton(Renderer &, int anim_id, float anim_pos, Color) const;
+
 	void animate(Matrix4 *out, int anim_id, double anim_time) const;
 	const SkeletalAnim &anim(int anim_id) const { return m_anims[anim_id]; }
 	int animCount() const { return (int)m_anims.size(); }
@@ -761,8 +762,17 @@ class SkinnedMeshData : public SimpleMeshData {
 	Skeleton m_skeleton;
 	vector<SkeletalAnim> m_anims;
 	vector<Matrix4> m_binds, m_inv_binds;
-	vector<JointWeight> m_joint_weights;
-	vector<JointId> m_joint_ids;
+};
+
+class SkinnedMesh {
+  public:
+	SkinnedMesh(const aiScene &, int mesh_id = 0);
+
+	void draw(Renderer &, int anim_id, float anim_pos, const Material &,
+			  const Matrix4 &matrix = Matrix4::identity()) const;
+
+  protected:
+	SkinnedMeshData m_data;
 };
 
 class Material {
