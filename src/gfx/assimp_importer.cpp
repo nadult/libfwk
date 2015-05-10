@@ -48,6 +48,6 @@ const aiScene &AssimpImporter::loadScene(const string &file_name, uint flags) {
 void AssimpImporter::freeScene() { m_impl->FreeScene(); }
 
 uint AssimpImporter::defaultFlags() {
-	return aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType;
+	return aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_ValidateDataStructure;
 }
 }

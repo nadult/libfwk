@@ -173,19 +173,6 @@ void SimpleMesh::draw(Renderer &renderer, const Material &material, const Matrix
 						 mat);
 }
 
-/*
-MeshData::MeshData(const collada::Root &croot) {
-	for(int n = 0; n < croot.meshCount(); n++) {
-		m_nodes.emplace_back(SimpleMeshData(croot.mesh(n)), Matrix4::identity());
-	}
-}
-
-static collada::Root loadCollada(Stream &stream) {
-	XMLDocument doc;
-	stream >> doc;
-	return collada::Root(doc);
-}*/
-
 MeshData::MeshData(const aiScene &ascene) {
 	Matrix4 mat(ascene.mRootNode->mTransformation[0]);
 

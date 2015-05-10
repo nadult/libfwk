@@ -582,7 +582,9 @@ class SimpleMeshData {
 
 	void transformUV(const Matrix4 &);
 
+	int vertexCount() const { return (int)m_positions.size(); }
 	const vector<float3> &positions() const { return m_positions; }
+	const vector<float3> &normals() const { return m_positions; }
 	const vector<float2> &texCoords() const { return m_tex_coords; }
 	const vector<u16> &indices() const { return m_indices; }
 
@@ -591,8 +593,6 @@ class SimpleMeshData {
 
 		int faceCount() const;
 		void getFace(int face, int &i1, int &i2, int &i3) const;
-
-
 	*/
 
   protected:
@@ -619,6 +619,7 @@ using PSimpleMesh = shared_ptr<SimpleMesh>;
 
 class MeshData {
   public:
+	MeshData() = default;
 	MeshData(const aiScene &);
 
 	struct Node {
@@ -631,7 +632,7 @@ class MeshData {
 	const vector<Node> &nodes() const { return m_nodes; }
 	const vector<SimpleMeshData> &meshes() const { return m_meshes; }
 
-  private:
+  protected:
 	vector<SimpleMeshData> m_meshes;
 	vector<Node> m_nodes;
 	friend class Mesh;
@@ -648,7 +649,7 @@ class Mesh {
 
 	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
 
-  private:
+  protected:
 	vector<Node> m_nodes;
 	vector<SimpleMesh> m_meshes;
 };
@@ -657,8 +658,6 @@ using PMesh = shared_ptr<Mesh>;
 
 class Skeleton {
   public:
-	enum { max_joints = 128 };
-
 	struct Trans {
 		Trans() = default;
 		Trans(const float3 &pos, const Quat &quat) : pos(pos), rot(quat) {}
@@ -671,35 +670,20 @@ class Skeleton {
 
 	struct Joint {
 		Matrix4 trans;
-		Matrix4 inv_bind;
 		string name;
 		int parent_id;
-		bool is_dummy;
 	};
 
 	Skeleton() = default;
-	Skeleton(const aiScene &, int mesh_id);
+	Skeleton(const aiScene &);
 
 	const Joint &operator[](int idx) const { return m_joints[idx]; }
 	Joint &operator[](int idx) { return m_joints[idx]; }
 	int size() const { return (int)m_joints.size(); }
 	int findJoint(const string &) const;
 
-	struct VertexWeight {
-		VertexWeight(float weight, int joint_id) : weight(weight), joint_id(joint_id) {}
-
-		float weight;
-		int joint_id;
-	};
-
-	const vector<Joint> &joints() const { return m_joints; }
-	const vector<vector<VertexWeight>> &vertexWeights() const { return m_vertex_weights; }
-	vector<Matrix4> invBinds() const;
-
   private:
 	vector<Joint> m_joints;
-	vector<vector<VertexWeight>> m_vertex_weights;
-	// TODO: additional vector for dummies
 };
 
 Matrix4 lerp(const Skeleton::Trans &, const Skeleton::Trans &, float);
@@ -707,8 +691,9 @@ Matrix4 lerp(const Skeleton::Trans &, const Skeleton::Trans &, float);
 class SkeletalAnim {
   public:
 	using Trans = Skeleton::Trans;
-	SkeletalAnim(const aiScene &, int mesh_id, int anim_id, const Skeleton &);
-	void animate(Matrix4 *out, const Skeleton &skeleton, double anim_time) const;
+	SkeletalAnim(const aiScene &, int anim_id, const Skeleton &);
+	void animateJoints(Matrix4 *out, const Skeleton &skeleton, double anim_time) const;
+	//TODO: advanced interpolation support
 
   protected:
 	string m_name;
@@ -728,17 +713,16 @@ class SkeletalAnim {
 	float m_length;
 };
 
-class SkinnedMeshData : public SimpleMeshData {
+class SkinnedMeshData : public MeshData {
   public:
-	const float3 transformPoint(int id, const Matrix4 *joints) const;
-
 	SkinnedMeshData();
-	SkinnedMeshData(const aiScene &, int mesh_id = 0);
+	SkinnedMeshData(const aiScene &);
 	virtual ~SkinnedMeshData() = default;
 
-	void drawSkeleton(Renderer &, int anim_id, float anim_pos, Color) const;
+	void drawSkeleton(Renderer &, int anim_id, double anim_pos, Color) const;
 
-	void animate(Matrix4 *out, int anim_id, double anim_time) const;
+	// Pass -1 to anim_id for bind position
+	void animateJoints(Matrix4 *out, int anim_id, double anim_time) const;
 	const SkeletalAnim &anim(int anim_id) const { return m_anims[anim_id]; }
 	int animCount() const { return (int)m_anims.size(); }
 
@@ -746,34 +730,45 @@ class SkinnedMeshData : public SimpleMeshData {
 	const Skeleton &skeleton() const { return m_skeleton; }
 
 	void computeBBox();
-	void animateVertices(const Matrix4 *joints, float3 *positions, float3 *normals = nullptr) const;
 	void computeJointPositions(const Matrix4 *joints, const Matrix4 &trans, float3 *out) const;
+	SimpleMeshData animateMesh(int mesh_id, const Matrix4 *joints) const;
 
-	void alignPoses(const Matrix4 *pose1, const Matrix4 *pose2, const Matrix4 &pose1_tr,
-					const Matrix4 &pose2_tr, float &error, float3 &best_offset) const;
-	void alignAnim(const Matrix4 *pose, const Matrix4 &pose_trans, int anim_id, float &anim_pos,
-				   float3 &best_offset) const;
-	const float3 rootPos(int anim_id, double anim_time) const;
+	struct VertexWeight {
+		VertexWeight(float weight, int joint_id) : weight(weight), joint_id(joint_id) {}
 
-	static void bindAttribLocations(Program &);
+		float weight;
+		int joint_id;
+	};
+
+	struct MeshSkin {
+		vector<vector<VertexWeight>> vertex_weights;
+	};
+	//TODO: instancing support
 
   protected:
+	void animateVertices(int mesh_id, const Matrix4 *joints, float3 *positions, float3 *normals = nullptr) const;
+
 	float3 m_bind_scale;
 	Skeleton m_skeleton;
 	vector<SkeletalAnim> m_anims;
-	vector<Matrix4> m_binds, m_inv_binds;
+	vector<MeshSkin> m_mesh_skins;
+	vector<Matrix4> m_bind_matrices;
+	vector<Matrix4> m_inv_bind_matrices;
 };
 
 class SkinnedMesh {
   public:
-	SkinnedMesh(const aiScene &, int mesh_id = 0);
+	SkinnedMesh(const aiScene &);
 
-	void draw(Renderer &, int anim_id, float anim_pos, const Material &,
+	void draw(Renderer &, int anim_id, double anim_pos, const Material &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
+	int animCount() const { return m_data.animCount(); }
 
   protected:
 	SkinnedMeshData m_data;
 };
+
+using PSkinnedMesh = shared_ptr<SkinnedMesh>;
 
 class Material {
   public:

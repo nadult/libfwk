@@ -1,15 +1,29 @@
-From e505df578b14e07b37f651aac8f4699e6901f446 Mon Sep 17 00:00:00 2001
+From b7854a597020163767b37e6d6bb334433f78d3e3 Mon Sep 17 00:00:00 2001
 From: Krzysztof Jakubowski <nadult@fastmail.fm>
 Date: Thu, 7 May 2015 00:06:19 +0200
 Subject: [PATCH] Fix collada animations exporter
 
 ---
+ build_files/build_environment/install_deps.sh |   2 +-
  source/blender/collada/AnimationExporter.cpp  | 174 +++++++++++---------------
  source/blender/collada/AnimationExporter.h    |  37 +++---
- 2 files changed, 88 insertions(+), 121 deletions(-)
+ 3 files changed, 90 insertions(+), 123 deletions(-)
 
+diff --git a/build_files/build_environment/install_deps.sh b/build_files/build_environment/install_deps.sh
+index ea60eb3..9f3535d 100755
+--- a/build_files/build_environment/install_deps.sh
++++ b/build_files/build_environment/install_deps.sh
+@@ -36,7 +36,7 @@ required-numpy: \
+ 
+ DISTRO=""
+ RPM=""
+-SRC="$HOME/src/blender-deps"
++SRC="$HOME/code/blender-deps"
+ INST="/opt/lib"
+ TMP="/tmp"
+ CWD=$PWD
 diff --git a/source/blender/collada/AnimationExporter.cpp b/source/blender/collada/AnimationExporter.cpp
-index 7bea0b7..7415b70 100644
+index 7bea0b7..7bf7161 100644
 --- a/source/blender/collada/AnimationExporter.cpp
 +++ b/source/blender/collada/AnimationExporter.cpp
 @@ -23,35 +23,51 @@
@@ -45,7 +59,7 @@ index 7bea0b7..7415b70 100644
 -		forEachObjectInExportSet(sce, *this, this->export_settings->export_set);
 +		bAction *action = (bAction *)G.main->action.first;
 +		while(action) {
-+			std::string anim_id = action->id.name;
++			std::string anim_id = action->id.name + (strncmp(action->id.name, "AC", 2) == 0? 2 : 0);
 +			openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
 +		
 +			for (LinkNode *node = export_settings->export_set; node; node = node->next) {
@@ -129,7 +143,7 @@ index 7bea0b7..7415b70 100644
 -	openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
 +	std::string ob_name = ob->type == OB_ARMATURE ?
 +		getObjectBoneName(ob, fcu)  : id_name(ob) + (ma ? "_material" : "");
-+	m_sub_anim_id = translate_id(ob_name) + "_" + translate_id(transformName) + axis_name;
++	m_sub_anim_id = m_anim_id + "_" + translate_id(ob_name) + "_" + translate_id(transformName) + axis_name;
  
  	// create input source
 -	std::string input_id = create_source_from_fcurve(COLLADASW::InputSemantic::INPUT, fcu, anim_id, axis_name);
@@ -201,7 +215,7 @@ index 7bea0b7..7415b70 100644
 -
 -	openAnimation(anim_id, COLLADABU::Utils::EMPTY_STRING);
 +	std::string prev_sub_anim_id = m_sub_anim_id;
-+	m_sub_anim_id = translate_id(ob_name) + "_" + translate_id(bone_name) + "_pose_matrix";
++	m_sub_anim_id = m_anim_id + "_" + translate_id(ob_name) + "_" + translate_id(bone_name) + "_pose_matrix";
  
  	// create input source
 -	std::string input_id = create_source_from_vector(COLLADASW::InputSemantic::INPUT, fra, false, anim_id, "");
