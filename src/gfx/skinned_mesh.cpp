@@ -177,6 +177,7 @@ SkinnedMeshData::SkinnedMeshData(const aiScene &ascene) : MeshData(ascene), m_sk
 	}
 	// TODO: fixing this value fixes junker on new assimp
 	m_bind_scale = inv(m_bind_scale);
+	computeBoundingBox();
 }
 
 void SkinnedMeshData::drawSkeleton(Renderer &out, int anim_id, double anim_pos, Color color) const {
@@ -196,31 +197,45 @@ void SkinnedMeshData::drawSkeleton(Renderer &out, int anim_id, double anim_pos, 
 
 	out.popViewMatrix();
 }
+	
+FBox SkinnedMeshData::computeBoundingBox(int anim_id, double anim_pos) const {
+	PodArray<Matrix4> joints(m_skeleton.size());
+	animateJoints(joints.data(), anim_id, anim_pos);
 
-void SkinnedMeshData::computeBBox() {
-	/*	PodArray<float3> temp(vertexCount());
+	FBox out = FBox::empty();
+	for(int n = 0; n < (int)m_meshes.size(); n++) {
+		PodArray<float3> positions(m_meshes[n].vertexCount());
+		animateVertices(n, joints.data(), positions.data(), nullptr);
+		FBox bbox(positions.data(), positions.size());
+		out = n == 0? bbox : sum(m_bounding_box, bbox);
+	}
+	return out;
+}
 
-		for(int a = 0; a < (int)m_anims.size(); a++) {
-			const SkeletalAnim &anim = m_anims[a];
-			int frame_count = anim.frameCount();
-			for(int f = 0; f < frame_count; f++) {
-				Matrix4 joints[Skeleton::max_joints];
+void SkinnedMeshData::computeBoundingBox() {
+	//TODO: make this more accurate
+	FBox bbox = computeBoundingBox(-1, 0.0f);
+	for(int a = 0; a < animCount(); a++)
+		bbox = sum(bbox, computeBoundingBox(a, 0.0f));
+	m_bounding_box = FBox(bbox.center() - bbox.size(), bbox.center() + bbox.size());
+}
+	
+float SkinnedMeshData::intersect(const Segment &segment, int anim_id, float anim_pos) const {
+	PodArray<Matrix4> joints(m_skeleton.size());
+	animateJoints(joints.data(), anim_id, anim_pos);
 
-				anim.animateJoints(joints, m_skeleton, double(f) * anim.length() / double(frame_count
-	   -
-	   1));
-				for(int j = 0; j < m_skeleton.size(); j++)
-					joints[j] = scaling(m_bind_scale) * joints[j] * m_inv_bind[j];
+	for(int n = 0; n < (int)m_meshes.size(); n++) {
+		PodArray<float3> positions(m_meshes[n].vertexCount());
+		animateVertices(n, joints.data(), positions.data(), nullptr);
 
-				animateVertices(joints, temp.data());
-				FBox bbox(temp.data(), temp.size());
+		float isect = intersection(segment, FBox(positions.data(), positions.size()));
+		if(isect < constant::inf && isect >= segment.min && isect <= segment.max) {
+			//TODO: intersect polygons
+			return isect;
+		}
+	}
 
-				if(a == 0 && f == 0)
-					m_bbox = bbox;
-				else
-					m_bbox = FBox(min(m_bbox.min, bbox.min), max(m_bbox.max, bbox.max));
-			}
-		}*/
+	return constant::inf;
 }
 
 void SkinnedMeshData::animateVertices(int mesh_id, const Matrix4 *joints, float3 *out_positions,
@@ -248,7 +263,7 @@ void SkinnedMeshData::animateVertices(int mesh_id, const Matrix4 *joints, float3
 		}
 	}
 }
-	
+
 SimpleMeshData SkinnedMeshData::animateMesh(int mesh_id, const Matrix4 *joints) const {
 	vector<float3> positions = m_meshes[mesh_id].positions();
 	vector<float2> tex_coords = m_meshes[mesh_id].texCoords();
@@ -280,6 +295,7 @@ void SkinnedMeshData::animateJoints(Matrix4 *trans, int anim_id, double anim_pos
 		trans[n] = scaling(m_bind_scale) * trans[n] * m_inv_bind_matrices[n];
 }
 
+// TODO: problems when importing junker on custom compiled assimp (mesh is too small)
 SkinnedMesh::SkinnedMesh(const aiScene &ascene) : m_data(ascene) {}
 
 void SkinnedMesh::draw(Renderer &out, int anim_id, double anim_pos, const Material &material,
@@ -289,11 +305,12 @@ void SkinnedMesh::draw(Renderer &out, int anim_id, double anim_pos, const Materi
 
 	vector<Matrix4> joints(m_data.skeleton().size());
 	m_data.animateJoints(joints.data(), anim_id, anim_pos);
-	//m_data.drawSkeleton(out, anim_id, anim_pos, material.color());
+	// m_data.drawSkeleton(out, anim_id, anim_pos, material.color());
 
 	for(int m = 0; m < (int)m_data.meshes().size(); m++)
 		SimpleMesh(m_data.animateMesh(m, joints.data())).draw(out, material, Matrix4::identity());
 
 	out.popViewMatrix();
 }
+
 }

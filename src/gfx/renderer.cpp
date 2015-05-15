@@ -68,6 +68,23 @@ void Renderer::addDrawCall(const DrawCall &draw_call, const Material &material,
 						   const Matrix4 &matrix) {
 	m_instances.emplace_back(Instance{fullMatrix() * matrix, material, draw_call});
 }
+	
+void Renderer::addLines(const float3 *positions, int count, Color color) {
+	m_lines.emplace_back(LineInstance{fullMatrix(), (int)m_line_positions.size(), count});
+	m_line_positions.insert(m_line_positions.end(), positions, positions + count);
+	m_line_colors.resize(m_line_colors.size() + count, color);
+}
+	
+void Renderer::addBBoxLines(const FBox &bbox, Color color) {
+	float3 verts[8];
+	bbox.getCorners(verts);
+
+	int indices[] = { 0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 4, 1, 5, 3, 7, 2, 6 };
+	float3 out_verts[arraySize(indices)];
+	for(int i = 0; i < arraySize(indices); i++)
+		out_verts[i] = verts[indices[i]];
+	addLines(out_verts, arraySize(out_verts), color);
+}
 
 void Renderer::render() {
 	GfxDevice::setBlendingMode(GfxDevice::bmDisabled);
@@ -85,7 +102,20 @@ void Renderer::render() {
 		instance.draw_call.issue();
 	}
 
+	VertexArray line_array({make_shared<VertexBuffer>(m_line_positions),
+			                make_shared<VertexBuffer>(m_line_colors),
+							VertexArraySource(float2(0, 0))});
+	DTexture::unbind();
+	m_flat_program->bind();
+	for(const auto &instance : m_lines) {
+		m_flat_program->setUniform("proj_view_matrix", instance.matrix);
+		line_array.draw(PrimitiveType::lines, instance.count, instance.first);
+	}
+
 	m_instances.clear();
+	m_line_positions.clear();
+	m_line_colors.clear();
+	m_lines.clear();
 
 	DTexture::unbind();
 	Program::unbind();

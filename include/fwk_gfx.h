@@ -596,6 +596,8 @@ class SimpleMeshData {
 	*/
 
   protected:
+	void computeBoundingBox();
+
 	vector<float3> m_positions;
 	vector<float3> m_normals;
 	vector<float2> m_tex_coords;
@@ -632,7 +634,12 @@ class MeshData {
 	const vector<Node> &nodes() const { return m_nodes; }
 	const vector<SimpleMeshData> &meshes() const { return m_meshes; }
 
+	const FBox &boundingBox() const { return m_bounding_box; }
+
   protected:
+	void computeBoundingBox();
+
+	FBox m_bounding_box;
 	vector<SimpleMeshData> m_meshes;
 	vector<Node> m_nodes;
 	friend class Mesh;
@@ -693,7 +700,7 @@ class SkeletalAnim {
 	using Trans = Skeleton::Trans;
 	SkeletalAnim(const aiScene &, int anim_id, const Skeleton &);
 	void animateJoints(Matrix4 *out, const Skeleton &skeleton, double anim_time) const;
-	//TODO: advanced interpolation support
+	// TODO: advanced interpolation support
 
   protected:
 	string m_name;
@@ -722,16 +729,19 @@ class SkinnedMeshData : public MeshData {
 	void drawSkeleton(Renderer &, int anim_id, double anim_pos, Color) const;
 
 	// Pass -1 to anim_id for bind position
-	void animateJoints(Matrix4 *out, int anim_id, double anim_time) const;
+	void animateJoints(Matrix4 *out, int anim_id, double anim_pos) const;
 	const SkeletalAnim &anim(int anim_id) const { return m_anims[anim_id]; }
 	int animCount() const { return (int)m_anims.size(); }
 
 	int jointCount() const { return m_skeleton.size(); }
 	const Skeleton &skeleton() const { return m_skeleton; }
 
-	void computeBBox();
+	void computeBoundingBox();
+	FBox computeBoundingBox(int anim_id, double anim_pos) const;
 	void computeJointPositions(const Matrix4 *joints, const Matrix4 &trans, float3 *out) const;
 	SimpleMeshData animateMesh(int mesh_id, const Matrix4 *joints) const;
+
+	float intersect(const Segment &, int anim_id, float anim_pos) const;
 
 	struct VertexWeight {
 		VertexWeight(float weight, int joint_id) : weight(weight), joint_id(joint_id) {}
@@ -743,10 +753,11 @@ class SkinnedMeshData : public MeshData {
 	struct MeshSkin {
 		vector<vector<VertexWeight>> vertex_weights;
 	};
-	//TODO: instancing support
+	// TODO: instancing support
 
   protected:
-	void animateVertices(int mesh_id, const Matrix4 *joints, float3 *positions, float3 *normals = nullptr) const;
+	void animateVertices(int mesh_id, const Matrix4 *joints, float3 *positions,
+						 float3 *normals = nullptr) const;
 
 	float3 m_bind_scale;
 	Skeleton m_skeleton;
@@ -763,6 +774,15 @@ class SkinnedMesh {
 	void draw(Renderer &, int anim_id, double anim_pos, const Material &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
 	int animCount() const { return m_data.animCount(); }
+
+	FBox boundingBox(int anim_id, float anim_pos) const {
+		return m_data.computeBoundingBox(anim_id, anim_pos);
+	}
+	FBox boundingBox() const { return m_data.boundingBox(); }
+
+	float intersect(const Segment &ray, int anim_id, float anim_pos) const {
+		return m_data.intersect(ray, anim_id, anim_pos);
+	}
 
   protected:
 	SkinnedMeshData m_data;
@@ -810,6 +830,9 @@ template <class T> class AssimpLoader : public ResourceLoader<T> {
 		: ResourceLoader<T>(prefix, suffix), m_flags(flags) {}
 
 	shared_ptr<T> operator()(const string &name) {
+		AssimpImporter m_importer;
+
+		// TODO: Crash when same m_importer is used for multiple loads
 		const aiScene &scene = m_importer.loadScene(ResourceLoader<T>::fileName(name), m_flags);
 		auto out = make_shared<T>(scene);
 		m_importer.freeScene();
@@ -817,7 +840,6 @@ template <class T> class AssimpLoader : public ResourceLoader<T> {
 	}
 
   protected:
-	AssimpImporter m_importer;
 	uint m_flags;
 };
 
@@ -899,6 +921,8 @@ class Renderer : public MatrixStack {
 
 	void addDrawCall(const DrawCall &, const Material &,
 					 const Matrix4 &matrix = Matrix4::identity());
+	void addLines(const float3 *positions, int count, Color color);
+	void addBBoxLines(const FBox &bbox, Color color);
 
 	// TODO: this is useful
 	// Each line is represented by two vertices
@@ -912,6 +936,15 @@ class Renderer : public MatrixStack {
 		Material material;
 		DrawCall draw_call;
 	};
+
+	struct LineInstance {
+		Matrix4 matrix;
+		int first, count;
+	};
+
+	vector<LineInstance> m_lines;
+	vector<float3> m_line_positions;
+	vector<Color> m_line_colors;
 
 	vector<Instance> m_instances;
 	PProgram m_tex_program, m_flat_program;
@@ -1010,6 +1043,7 @@ class FontRenderer {
 	FRect draw(const float2 &pos, const FontStyle &style, string const &str) const {
 		return draw(FRect(pos, pos), style, str.c_str());
 	}
+	const Font &font() const { return *m_font; }
 
   private:
 	void draw(const int2 &pos, Color col, const char *text) const;

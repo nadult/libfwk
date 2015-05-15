@@ -95,7 +95,9 @@ SimpleMeshData::SimpleMeshData(MakeRect, const FRect &xz_rect, float y)
 				  float3(xz_rect.max[0], y, xz_rect.max[1]),
 				  float3(xz_rect.min[0], y, xz_rect.max[1])},
 	  m_normals(4, float3(0, 1, 0)), m_tex_coords{{0, 0}, {1, 0}, {1, 1}, {0, 1}},
-	  m_indices{0, 2, 1, 0, 3, 2}, m_primitive_type(PrimitiveType::triangles) {}
+	  m_indices{0, 2, 1, 0, 3, 2}, m_primitive_type(PrimitiveType::triangles) {
+	computeBoundingBox();
+}
 
 SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
 	float3 corners[8];
@@ -120,6 +122,7 @@ SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
 			m_indices.push_back(s * 4 + face_indices[i]);
 	}
 	m_primitive_type = PrimitiveType::triangles;
+	computeBoundingBox();
 }
 
 SimpleMeshData::SimpleMeshData(const aiScene &ascene, int mesh_id) {
@@ -150,16 +153,23 @@ SimpleMeshData::SimpleMeshData(const aiScene &ascene, int mesh_id) {
 			m_indices[n * 3 + i] = amesh->mFaces[n].mIndices[i];
 	}
 	m_primitive_type = PrimitiveType::triangles;
+	computeBoundingBox();
 }
 
 SimpleMeshData::SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords,
 							   const vector<u16> &indices)
 	: m_positions(positions), m_tex_coords(tex_coords), m_indices(indices),
-	  m_primitive_type(PrimitiveType::triangles) {}
+	  m_primitive_type(PrimitiveType::triangles) {
+	computeBoundingBox();
+}
 
 void SimpleMeshData::transformUV(const Matrix4 &matrix) {
 	for(int n = 0; n < (int)m_tex_coords.size(); n++)
 		m_tex_coords[n] = (matrix * float4(m_tex_coords[n], 0.0f, 1.0f)).xy();
+}
+
+void SimpleMeshData::computeBoundingBox() {
+	m_bounding_box = FBox(m_positions.data(), (int)m_positions.size());
 }
 
 SimpleMesh::SimpleMesh(const SimpleMeshData &data, Color color)
@@ -189,25 +199,31 @@ MeshData::MeshData(const aiScene &ascene) {
 
 		Node new_node;
 		new_node.name = anode->mName.C_Str();
-		//TODO: why transpose is needed?
+		// TODO: why transpose is needed?
 		new_node.trans = transpose(Matrix4(anode->mTransformation[0]));
 		new_node.parent_id = parent_id;
-		
+
 		for(uint m = 0; m < anode->mNumMeshes; m++)
 			new_node.mesh_ids.emplace_back(anode->mMeshes[m]);
 
 		parent_id = (int)m_nodes.size();
 		m_nodes.emplace_back(new_node);
 
-
 		for(uint c = 0; c < anode->mNumChildren; c++)
 			queue.emplace_back(anode->mChildren[c], parent_id);
 	}
+	computeBoundingBox();
+}
+
+void MeshData::computeBoundingBox() {
+	m_bounding_box = m_meshes.empty()? FBox::empty() : m_meshes.front().boundingBox();
+	for(const auto &mesh : m_meshes)
+		m_bounding_box = sum(m_bounding_box, mesh.boundingBox());
 }
 
 Mesh::Mesh(const aiScene &scene) : Mesh(MeshData(scene)) {}
 
-Mesh::Mesh(const MeshData &data) :m_nodes(data.nodes()) {
+Mesh::Mesh(const MeshData &data) : m_nodes(data.nodes()) {
 	m_meshes.reserve(data.meshes().size());
 	for(const auto &mesh : data.meshes())
 		m_meshes.emplace_back(mesh);
@@ -229,6 +245,7 @@ void Mesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) 
 	out.popViewMatrix();
 }
 
+
 /*
 float Mesh::trace(const Segment &segment) const {
 	float dist = constant::inf;
@@ -239,5 +256,4 @@ float Mesh::trace(const Segment &segment) const {
 
 	return dist;
 }*/
-
 }

@@ -35,8 +35,6 @@ static int sourcesMaxIndex(const vector<VertexArraySource> &sources) {
 
 VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 	: m_sources(std::move(sources)), m_index_buffer(ib) {
-	DASSERT(ib);
-	m_size = ib->size();
 	if(ib) {
 		m_size = ib->size();
 		if(sourcesMaxIndex(m_sources) == 0)

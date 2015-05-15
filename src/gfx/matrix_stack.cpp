@@ -41,5 +41,7 @@ const Matrix4 &MatrixStack::fullMatrix() const {
 	return m_full_matrix;
 }
 
-const Frustum MatrixStack::frustum() const { return Frustum(m_projection_matrix); }
+const Frustum MatrixStack::frustum() const {
+	return Frustum(fullMatrix());
+}
 }

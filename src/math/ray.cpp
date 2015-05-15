@@ -77,9 +77,10 @@ float intersection(const Segment &segment, const float3 &a, const float3 &b, con
 }
 
 const Ray operator*(const Matrix4 &mat, const Ray &ray) {
-	float3 target = ray.origin() + ray.dir() * 1000.0f;
+	float3 target = ray.origin() + ray.dir() * 1.0f;
 	float3 new_origin = mulPoint(mat, ray.origin());
-	float3 new_dir = normalize(mulPoint(mat, target) - new_origin);
+	float3 new_target = mulPoint(mat, target);
+	float3 new_dir = normalize(new_target - new_origin);
 	return Ray(new_origin, new_dir);
 }
 }

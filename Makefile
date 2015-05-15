@@ -50,17 +50,17 @@ MINGW_STRIP=$(MINGW_PREFIX)strip
 MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-LIBS=freetype2 sdl libpng zlib libmpg123
+LIBS=freetype2 sdl libpng zlib libmpg123 assimp
 LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lopenal -lGL -lGLU -lrt -fopenmp 
 MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
 INCLUDES=-Iinclude/ -Isrc/
 
-NICE_FLAGS=-std=c++11 -ggdb -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
+NICE_FLAGS=-std=c++11 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
-LINUX_FLAGS=-DFWK_TARGET_LINUX $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-MINGW_FLAGS=-DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-HTML5_FLAGS=-DFWK_TARGET_HTML5 -std=c++11 -lSDL -O0 $(INCLUDES) -I/code/emscripten_libs/libpng-1.2.49/src
+LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+HTML5_FLAGS=-DFWK_TARGET_HTML5 -s USE_LIBPNG=1 -s USE_ZLIB=1 -s USE_ASSIMP=1 $(NICE_FLAGS) $(INCLUDES) -lSDL -O0
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
 	$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@
