@@ -328,6 +328,7 @@ const float2 rotateVector(const float2 &vec, float radians);
 const float3 rotateVector(const float3 &pos, const float3 &axis, float angle);
 
 float triangleArea(const float3 &, const float3 &, const float3 &);
+float frand();
 
 bool isnan(float);
 bool isnan(const float2 &);

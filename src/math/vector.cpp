@@ -99,4 +99,7 @@ bool isnan(float f) {
 bool isnan(const float2 &v) { return isnan(v.x) || isnan(v.y); }
 bool isnan(const float3 &v) { return isnan(v.x) || isnan(v.y) || isnan(v.z); }
 bool isnan(const float4 &v) { return isnan(v.x) || isnan(v.y) || isnan(v.z) || isnan(v.w); }
+
+float frand() { return float(rand()) / float(RAND_MAX); }
+
 }
