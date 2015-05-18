@@ -60,6 +60,7 @@ const float3 inv(const float3 &v) { return float3(1.0f / v.x, 1.0f / v.y, 1.0f /
 const float4 inv(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 1.0f / v.w); }
 
 float vectorToAngle(const float2 &normalized_vec) {
+	DASSERT(isNormalized(normalized_vec));
 	float ang = acos(normalized_vec.x);
 	return normalized_vec.y < 0 ? 2.0f * constant::pi - ang : ang;
 }
@@ -82,24 +83,4 @@ const float3 rotateVector(const float3 &pos, const float3 &axis, float radians) 
 
 	return pos * c + cross(axis, pos) * s + axis * dot(axis, pos) * (1 - c);
 }
-
-float triangleArea(const float3 &pa, const float3 &pb, const float3 &pc) {
-	return 0.5f * length(cross(pb - pa, pc - pa));
-}
-
-bool isnan(float f) {
-#ifdef _WIN32
-	volatile float vf = f;
-	return vf != vf;
-#else
-	return ::isnan(f);
-#endif
-}
-
-bool isnan(const float2 &v) { return isnan(v.x) || isnan(v.y); }
-bool isnan(const float3 &v) { return isnan(v.x) || isnan(v.y) || isnan(v.z); }
-bool isnan(const float4 &v) { return isnan(v.x) || isnan(v.y) || isnan(v.z) || isnan(v.w); }
-
-float frand() { return float(rand()) / float(RAND_MAX); }
-
 }

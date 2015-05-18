@@ -69,13 +69,13 @@ void Renderer::addDrawCall(const DrawCall &draw_call, const Material &material,
 	m_instances.emplace_back(Instance{fullMatrix() * matrix, material, draw_call});
 }
 	
-void Renderer::addLines(const float3 *positions, int count, Color color) {
-	m_lines.emplace_back(LineInstance{fullMatrix(), (int)m_line_positions.size(), count});
+void Renderer::addLines(const float3 *positions, int count, Color color, const Matrix4 &matrix) {
+	m_lines.emplace_back(LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), count});
 	m_line_positions.insert(m_line_positions.end(), positions, positions + count);
 	m_line_colors.resize(m_line_colors.size() + count, color);
 }
 	
-void Renderer::addBBoxLines(const FBox &bbox, Color color) {
+void Renderer::addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix) {
 	float3 verts[8];
 	bbox.getCorners(verts);
 
@@ -83,7 +83,7 @@ void Renderer::addBBoxLines(const FBox &bbox, Color color) {
 	float3 out_verts[arraySize(indices)];
 	for(int i = 0; i < arraySize(indices); i++)
 		out_verts[i] = verts[indices[i]];
-	addLines(out_verts, arraySize(out_verts), color);
+	addLines(out_verts, arraySize(out_verts), color, matrix);
 }
 
 void Renderer::render() {

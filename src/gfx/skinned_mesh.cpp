@@ -97,10 +97,11 @@ SkeletalAnim::SkeletalAnim(const aiScene &ascene, int anim_id, const Skeleton &s
 	m_length = aanim.mDuration;
 }
 
-void SkeletalAnim::animateJoints(Matrix4 *out, const Skeleton &skeleton, double anim_pos) const {
+SkeletonPose SkeletalAnim::animateSkeleton(const Skeleton &skeleton, double anim_pos) const {
 	if(anim_pos >= m_length)
 		anim_pos -= double(int(anim_pos / m_length)) * m_length;
 
+	SkeletonPose out(skeleton.size());
 	for(int n = 0; n < skeleton.size(); n++)
 		out[n] = skeleton[n].trans;
 
@@ -128,6 +129,7 @@ void SkeletalAnim::animateJoints(Matrix4 *out, const Skeleton &skeleton, double 
 	for(int n = 0; n < skeleton.size(); n++)
 		if(skeleton[n].parent_id != -1)
 			out[n] = out[skeleton[n].parent_id] * out[n];
+	return out;
 }
 
 SkinnedMeshData::SkinnedMeshData() : m_bind_scale(1, 1, 1) {}
@@ -180,67 +182,71 @@ SkinnedMeshData::SkinnedMeshData(const aiScene &ascene) : MeshData(ascene), m_sk
 	computeBoundingBox();
 }
 
-void SkinnedMeshData::drawSkeleton(Renderer &out, int anim_id, double anim_pos, Color color) const {
+void SkinnedMeshData::drawSkeleton(Renderer &out, const SkeletonPose &pose, Color color) const {
 	SimpleMeshData mesh(MakeBBox(), FBox(-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f));
 	auto simple_mesh = make_shared<SimpleMesh>(mesh, color);
 	out.pushViewMatrix();
 
-	vector<Matrix4> joints(m_skeleton.size());
-	animateJoints(joints.data(), anim_id, anim_pos);
+	Matrix4 matrix = Matrix4::identity();
 
 	vector<float3> positions(m_skeleton.size());
-	computeJointPositions(joints.data(), Matrix4::identity(), positions.data());
+	for(int n = 0; n < (int)m_skeleton.size(); n++) {
+		positions[n] = mulPoint(pose[n], m_bind_matrices[n][3].xyz());
+		positions[n] = mulPoint(matrix, positions[n]);
+	}
 
-	for(int n = 0; n < (int)joints.size(); n++)
+	for(int n = 0; n < (int)m_skeleton.size(); n++)
 		if(m_inv_bind_matrices[n] != Matrix4::identity())
 			simple_mesh->draw(out, {Color::green}, translation(positions[n]));
 
 	out.popViewMatrix();
 }
-	
-FBox SkinnedMeshData::computeBoundingBox(int anim_id, double anim_pos) const {
-	PodArray<Matrix4> joints(m_skeleton.size());
-	animateJoints(joints.data(), anim_id, anim_pos);
 
+FBox SkinnedMeshData::computeBoundingBox(const SkeletonPose &pose) const {
 	FBox out = FBox::empty();
+
 	for(int n = 0; n < (int)m_meshes.size(); n++) {
 		PodArray<float3> positions(m_meshes[n].vertexCount());
-		animateVertices(n, joints.data(), positions.data(), nullptr);
+		animateVertices(n, pose, positions.data(), nullptr);
 		FBox bbox(positions.data(), positions.size());
-		out = n == 0? bbox : sum(m_bounding_box, bbox);
+		out = n == 0 ? bbox : sum(m_bounding_box, bbox);
 	}
+
 	return out;
 }
 
 void SkinnedMeshData::computeBoundingBox() {
-	//TODO: make this more accurate
-	FBox bbox = computeBoundingBox(-1, 0.0f);
+	// TODO: make this more accurate
+	FBox bbox = computeBoundingBox(animateSkeleton(-1, 0.0f));
 	for(int a = 0; a < animCount(); a++)
-		bbox = sum(bbox, computeBoundingBox(a, 0.0f));
+		bbox = sum(bbox, computeBoundingBox(animateSkeleton(a, 0.0f)));
 	m_bounding_box = FBox(bbox.center() - bbox.size(), bbox.center() + bbox.size());
 }
-	
-float SkinnedMeshData::intersect(const Segment &segment, int anim_id, float anim_pos) const {
-	PodArray<Matrix4> joints(m_skeleton.size());
-	animateJoints(joints.data(), anim_id, anim_pos);
+
+float SkinnedMeshData::intersect(const Segment &segment, const SkeletonPose &pose) const {
+	float min_isect = constant::inf;
 
 	for(int n = 0; n < (int)m_meshes.size(); n++) {
-		PodArray<float3> positions(m_meshes[n].vertexCount());
-		animateVertices(n, joints.data(), positions.data(), nullptr);
+		const auto &mesh = m_meshes[n];
+		PodArray<float3> positions(mesh.vertexCount());
+		animateVertices(n, pose, positions.data(), nullptr);
 
-		float isect = intersection(segment, FBox(positions.data(), positions.size()));
-		if(isect < constant::inf && isect >= segment.min && isect <= segment.max) {
-			//TODO: intersect polygons
-			return isect;
-		}
+		float box_isect = intersection(segment, FBox(positions.data(), positions.size()));
+		if(box_isect < constant::inf && box_isect >= segment.min && box_isect <= segment.max)
+			for(const auto &tri : mesh.trisIndices()) {
+				float isect =
+					intersection(segment, positions[tri[0]], positions[tri[1]], positions[tri[2]]);
+				min_isect = min(min_isect, isect);
+			}
 	}
 
-	return constant::inf;
+	return min_isect;
 }
 
-void SkinnedMeshData::animateVertices(int mesh_id, const Matrix4 *joints, float3 *out_positions,
+void SkinnedMeshData::animateVertices(int mesh_id, const SkeletonPose &pose, float3 *out_positions,
 									  float3 *out_normals) const {
 	DASSERT(mesh_id >= 0 && mesh_id < (int)m_meshes.size());
+	DASSERT(pose.size() == m_skeleton.size());
 	const MeshSkin &skin = m_mesh_skins[mesh_id];
 	const SimpleMeshData &mesh = m_meshes[mesh_id];
 
@@ -251,66 +257,56 @@ void SkinnedMeshData::animateVertices(int mesh_id, const Matrix4 *joints, float3
 			float3 pos = mesh.positions()[v];
 			float3 out;
 			for(const auto &weight : vweights)
-				out += mulPointAffine(joints[weight.joint_id], pos) * weight.weight;
+				out += mulPointAffine(pose[weight.joint_id], pos) * weight.weight;
 			out_positions[v] = out;
 		}
 		if(out_normals) {
 			float3 nrm = mesh.normals()[v];
 			float3 out;
 			for(const auto &weight : vweights)
-				out += mulNormalAffine(joints[weight.joint_id], nrm) * weight.weight;
+				out += mulNormalAffine(pose[weight.joint_id], nrm) * weight.weight;
 			out_normals[v] = out;
 		}
 	}
 }
 
-SimpleMeshData SkinnedMeshData::animateMesh(int mesh_id, const Matrix4 *joints) const {
+SimpleMeshData SkinnedMeshData::animateMesh(int mesh_id, const SkeletonPose &pose) const {
+	DASSERT(pose.size() == m_skeleton.size());
 	vector<float3> positions = m_meshes[mesh_id].positions();
 	vector<float2> tex_coords = m_meshes[mesh_id].texCoords();
-	animateVertices(mesh_id, joints, positions.data(), nullptr);
+	animateVertices(mesh_id, pose, positions.data(), nullptr);
 	return SimpleMeshData(positions, tex_coords, m_meshes[mesh_id].indices());
 }
 
-void SkinnedMeshData::computeJointPositions(const Matrix4 *joints, const Matrix4 &trans,
-											float3 *out) const {
-	for(int n = 0; n < m_skeleton.size(); n++) {
-		out[n] = mulPoint(joints[n], m_bind_matrices[n][3].xyz());
-		out[n] = mulPoint(trans, out[n]);
-	}
-}
-
-void SkinnedMeshData::animateJoints(Matrix4 *trans, int anim_id, double anim_pos) const {
+SkeletonPose SkinnedMeshData::animateSkeleton(int anim_id, double anim_pos) const {
 	DASSERT(anim_id >= -1 && anim_id < (int)m_anims.size());
+	SkeletonPose out;
 
 	if(anim_id == -1) {
+		out.resize(m_skeleton.size());
 		for(int n = 0; n < m_skeleton.size(); n++) {
 			const auto &joint = m_skeleton[n];
-			trans[n] = joint.trans;
+			out[n] = joint.trans;
 			if(joint.parent_id != -1)
-				trans[n] = trans[joint.parent_id] * trans[n];
+				out[n] = out[joint.parent_id] * out[n];
 		}
-	} else { m_anims[anim_id].animateJoints(trans, m_skeleton, anim_pos); }
+	} else { out = m_anims[anim_id].animateSkeleton(m_skeleton, anim_pos); }
 
 	for(int n = 0; n < m_skeleton.size(); n++)
-		trans[n] = scaling(m_bind_scale) * trans[n] * m_inv_bind_matrices[n];
+		out[n] = scaling(m_bind_scale) * out[n] * m_inv_bind_matrices[n];
+	return out;
 }
 
 // TODO: problems when importing junker on custom compiled assimp (mesh is too small)
 SkinnedMesh::SkinnedMesh(const aiScene &ascene) : m_data(ascene) {}
 
-void SkinnedMesh::draw(Renderer &out, int anim_id, double anim_pos, const Material &material,
+void SkinnedMesh::draw(Renderer &out, const SkeletonPose &pose, const Material &material,
 					   const Matrix4 &matrix) const {
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
-
-	vector<Matrix4> joints(m_data.skeleton().size());
-	m_data.animateJoints(joints.data(), anim_id, anim_pos);
-	// m_data.drawSkeleton(out, anim_id, anim_pos, material.color());
-
 	for(int m = 0; m < (int)m_data.meshes().size(); m++)
-		SimpleMesh(m_data.animateMesh(m, joints.data())).draw(out, material, Matrix4::identity());
-
+		SimpleMesh(m_data.animateMesh(m, pose)).draw(out, material, Matrix4::identity());
 	out.popViewMatrix();
+	// m_data.drawSkeleton(out, anim_id, anim_pos, material.color());
 }
-
 }

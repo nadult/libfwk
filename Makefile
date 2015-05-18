@@ -16,7 +16,7 @@ SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
 		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/skinned_mesh gfx/assimp_importer \
 		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/mesh gfx/matrix_stack \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d \
-		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat
+		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat math/base
 PROGRAM_SRC=test/streams test/stuff test/math test/window
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
@@ -56,7 +56,7 @@ MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole
 
 INCLUDES=-Iinclude/ -Isrc/
 
-NICE_FLAGS=-std=c++11 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
+NICE_FLAGS=-std=c++14 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
 LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)

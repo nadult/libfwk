@@ -212,4 +212,10 @@ const Matrix4 ortho(float left, float right, float top, float bottom, float near
 
 	return out;
 }
+
+void decompose(const Matrix4 &mat, Quat &rot, float3 &pos) {
+	pos = mat[3].xyz();
+	rot = normalize(Quat(Matrix3(mat[0].xyz(), mat[1].xyz(), mat[2].xyz())));
+}
+
 }

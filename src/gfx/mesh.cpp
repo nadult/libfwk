@@ -172,6 +172,19 @@ void SimpleMeshData::computeBoundingBox() {
 	m_bounding_box = FBox(m_positions.data(), (int)m_positions.size());
 }
 
+vector<SimpleMeshData::TriIndices> SimpleMeshData::trisIndices() const {
+	vector<TriIndices> out;
+
+	if(m_primitive_type == PrimitiveType::triangles) {
+		out.reserve(m_indices.size() / 3);
+		for(int n = 0; n < (int)m_indices.size(); n += 3)
+			out.push_back({{m_indices[n + 0], m_indices[n + 1], m_indices[n + 2]}});
+	} else
+		THROW("Add support for different primitive types");
+
+	return out;
+}
+
 SimpleMesh::SimpleMesh(const SimpleMeshData &data, Color color)
 	: m_vertex_array(VertexArray::make({make_shared<VertexBuffer>(data.m_positions), color,
 										make_shared<VertexBuffer>(data.m_tex_coords)},
@@ -216,7 +229,7 @@ MeshData::MeshData(const aiScene &ascene) {
 }
 
 void MeshData::computeBoundingBox() {
-	m_bounding_box = m_meshes.empty()? FBox::empty() : m_meshes.front().boundingBox();
+	m_bounding_box = m_meshes.empty() ? FBox::empty() : m_meshes.front().boundingBox();
 	for(const auto &mesh : m_meshes)
 		m_bounding_box = sum(m_bounding_box, mesh.boundingBox());
 }
@@ -244,7 +257,6 @@ void Mesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) 
 
 	out.popViewMatrix();
 }
-
 
 /*
 float Mesh::trace(const Segment &segment) const {

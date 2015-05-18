@@ -588,6 +588,10 @@ class SimpleMeshData {
 	const vector<float2> &texCoords() const { return m_tex_coords; }
 	const vector<u16> &indices() const { return m_indices; }
 
+	using TriIndices = array<int, 3>;
+
+	vector<TriIndices> trisIndices() const;
+
 	/*
 		void genAdjacency();
 
@@ -663,6 +667,9 @@ class Mesh {
 
 using PMesh = shared_ptr<Mesh>;
 
+//TODO: add blending
+using SkeletonPose = vector<Matrix4>;
+
 class Skeleton {
   public:
 	struct Trans {
@@ -699,7 +706,10 @@ class SkeletalAnim {
   public:
 	using Trans = Skeleton::Trans;
 	SkeletalAnim(const aiScene &, int anim_id, const Skeleton &);
-	void animateJoints(Matrix4 *out, const Skeleton &skeleton, double anim_time) const;
+	SkeletonPose animateSkeleton(const Skeleton &skeleton, double anim_time) const;
+
+	const string &name() const { return m_name; }
+	float length() const { return m_length; }
 	// TODO: advanced interpolation support
 
   protected:
@@ -726,10 +736,10 @@ class SkinnedMeshData : public MeshData {
 	SkinnedMeshData(const aiScene &);
 	virtual ~SkinnedMeshData() = default;
 
-	void drawSkeleton(Renderer &, int anim_id, double anim_pos, Color) const;
+	void drawSkeleton(Renderer &, const SkeletonPose &, Color) const;
 
 	// Pass -1 to anim_id for bind position
-	void animateJoints(Matrix4 *out, int anim_id, double anim_pos) const;
+	SkeletonPose animateSkeleton(int anim_id, double anim_pos) const;
 	const SkeletalAnim &anim(int anim_id) const { return m_anims[anim_id]; }
 	int animCount() const { return (int)m_anims.size(); }
 
@@ -737,11 +747,10 @@ class SkinnedMeshData : public MeshData {
 	const Skeleton &skeleton() const { return m_skeleton; }
 
 	void computeBoundingBox();
-	FBox computeBoundingBox(int anim_id, double anim_pos) const;
-	void computeJointPositions(const Matrix4 *joints, const Matrix4 &trans, float3 *out) const;
-	SimpleMeshData animateMesh(int mesh_id, const Matrix4 *joints) const;
+	FBox computeBoundingBox(const SkeletonPose &) const;
+	SimpleMeshData animateMesh(int mesh_id, const SkeletonPose &) const;
 
-	float intersect(const Segment &, int anim_id, float anim_pos) const;
+	float intersect(const Segment &, const SkeletonPose &) const;
 
 	struct VertexWeight {
 		VertexWeight(float weight, int joint_id) : weight(weight), joint_id(joint_id) {}
@@ -756,7 +765,7 @@ class SkinnedMeshData : public MeshData {
 	// TODO: instancing support
 
   protected:
-	void animateVertices(int mesh_id, const Matrix4 *joints, float3 *positions,
+	void animateVertices(int mesh_id, const SkeletonPose &, float3 *positions,
 						 float3 *normals = nullptr) const;
 
 	float3 m_bind_scale;
@@ -771,17 +780,21 @@ class SkinnedMesh {
   public:
 	SkinnedMesh(const aiScene &);
 
-	void draw(Renderer &, int anim_id, double anim_pos, const Material &,
+	void draw(Renderer &, const SkeletonPose &, const Material &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
+	const SkeletalAnim &anim(int anim_id) const { return m_data.anim(anim_id); }
 	int animCount() const { return m_data.animCount(); }
 
-	FBox boundingBox(int anim_id, float anim_pos) const {
-		return m_data.computeBoundingBox(anim_id, anim_pos);
+	SkeletonPose animateSkeleton(int anim_id, double anim_pos) const {
+		return m_data.animateSkeleton(anim_id, anim_pos);
 	}
+	const Skeleton &skeleton() const { return m_data.skeleton(); }
+
+	FBox boundingBox(const SkeletonPose &pose) const { return m_data.computeBoundingBox(pose); }
 	FBox boundingBox() const { return m_data.boundingBox(); }
 
-	float intersect(const Segment &ray, int anim_id, float anim_pos) const {
-		return m_data.intersect(ray, anim_id, anim_pos);
+	float intersect(const Segment &ray, const SkeletonPose &pose) const {
+		return m_data.intersect(ray, pose);
 	}
 
   protected:
@@ -921,8 +934,9 @@ class Renderer : public MatrixStack {
 
 	void addDrawCall(const DrawCall &, const Material &,
 					 const Matrix4 &matrix = Matrix4::identity());
-	void addLines(const float3 *positions, int count, Color color);
-	void addBBoxLines(const FBox &bbox, Color color);
+	void addLines(const float3 *positions, int count, Color color,
+				  const Matrix4 &matrix = Matrix4::identity());
+	void addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
 
 	// TODO: this is useful
 	// Each line is represented by two vertices

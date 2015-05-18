@@ -6,6 +6,7 @@
 #define FWK_BASE_H
 
 #include <vector>
+#include <array>
 #include <string>
 #include <exception>
 #include <type_traits>
@@ -16,10 +17,7 @@
 
 namespace fwk {
 
-// TODO: implement simple Range class template to use instead of pointer and count
-// when passing values to functions, etc.
-// Nice feature: reinterpretable ranges (char to uchar, etc.)
-
+using std::array;
 using std::swap;
 using std::pair;
 using std::string;
@@ -114,13 +112,122 @@ template <class T1, class T2> inline bool isOneOf(const T1 &value, const vector<
 }
 
 template <class T> inline T max(T a, T b) { return a < b ? b : a; }
-template <class T> inline T min(T a, T b) { return a > b ? b : a; }
+template <class T> inline T min(T a, T b) { return b < a ? b : a; }
 
 template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
 template <class T, int size> constexpr int arraySize(T(&)[size]) noexcept { return size; }
 
 void logError(const string &error);
+
+template <class T> class Range;
+
+template <class T> class RangeIterator {
+  public:
+  protected:
+#ifdef NDEBUG
+	constexpr RangeIterator(T *pointer, int, int) noexcept : m_pointer(pointer) {}
+#else
+	constexpr RangeIterator(T *pointer, int left, int right) noexcept : m_pointer(pointer),
+																		m_left(left),
+																		m_right(right) {
+		DASSERT(m_pointer);
+		DASSERT(left >= 0 && right >= 0);
+	}
+#endif
+	friend class Range<T>;
+
+	constexpr auto operator+(int offset) const noexcept {
+#ifdef NDEBUG
+		return RangeIterator(m_pointer + offset, 0, 0);
+#else
+		return RangeIterator(m_pointer + offset, m_left + offset, m_right + offset);
+#endif
+	}
+	constexpr auto operator-(int offset) const noexcept { return operator+(-offset); }
+
+	constexpr int operator-(const RangeIterator &rhs) const noexcept {
+#ifndef NDEBUG
+		DASSERT(m_pointer >= rhs.m_pointer ? m_pointer - rhs.m_pointer <= m_left
+										   : rhs.m_pointer - m_pointer <= m_right);
+#endif
+		return m_pointer - rhs.m_pointer;
+	}
+	constexpr T &operator*() const noexcept { return *m_pointer; }
+	constexpr bool operator==(const RangeIterator &rhs) const noexcept {
+		return m_pointer == rhs.m_pointer;
+	}
+	constexpr bool operator<(const RangeIterator &rhs) const noexcept {
+		return m_pointer < rhs.m_pointer;
+	}
+
+  private:
+	T *m_pointer;
+#ifndef NDEBUG
+	int m_left, m_right;
+#endif
+};
+
+template <class T> class PodArray;
+
+// Simple wrapper class for ranges of values
+// The user is responsible for making sure, that the values
+// exist while Range pointing to them is in use
+// TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
+template <class T> class Range {
+  public:
+	template <class TConvertible>
+	constexpr Range(const std::vector<TConvertible> &vec) noexcept : Range(vec.data(), vec.size()) {
+	}
+	template <class TConvertible>
+	constexpr Range(std::vector<TConvertible> &vec) noexcept : Range(vec.data(), vec.size()) {}
+	template <class TConvertible>
+	constexpr Range(const PodArray<TConvertible> &array) noexcept
+		: Range(array.data(), array.size()) {}
+	template <class TConvertible>
+	constexpr Range(PodArray<TConvertible> &array) noexcept : Range(array.data(), array.size()) {}
+	template <class TConvertible, int N>
+	constexpr Range(TConvertible(&array)[N]) noexcept : Range(array, N) {}
+	template <class TConvertible>
+	constexpr Range(TConvertible *data, int size) noexcept : m_data(data), m_size(size) {
+		DASSERT(m_data || m_size == 0);
+		DASSERT(m_size >= 0);
+	}
+	constexpr Range(T *data, int size) noexcept : m_data(data), m_size(size) {
+		DASSERT(m_data || m_size == 0);
+		DASSERT(m_size >= 0);
+	}
+	operator Range<const T>() const { return Range<const T>(m_data, m_size); }
+
+	constexpr auto cbegin() const noexcept { return RangeIterator<const T>(m_data, 0, m_size); }
+	constexpr auto cend() const noexcept {
+		return RangeIterator<const T>(m_data + m_size, m_size, 0);
+	}
+	constexpr auto begin() const noexcept { return cbegin(); }
+	constexpr auto end() const noexcept { return cend(); }
+	constexpr auto begin() noexcept { return RangeIterator<T>(m_data, 0, m_size); }
+	constexpr auto end() noexcept { return RangeIterator<T>(m_data + m_size, m_size, 0); }
+
+	constexpr const T *data() const noexcept { return m_data; }
+	constexpr T *data() noexcept { return m_data; }
+	constexpr int size() const noexcept { return m_size; }
+
+	constexpr const T &operator[](int idx) const noexcept {
+		DASSERT(idx >= 0 && idx < m_size);
+		return m_data[idx];
+	}
+	constexpr T &operator[](int idx) noexcept {
+		DASSERT(idx >= 0 && idx < m_size);
+		return m_data[idx];
+	}
+
+  private:
+	T *m_data;
+	int m_size;
+};
+
+template <class T> using CRangeIterator = RangeIterator<const T>;
+template <class T> using CRange = Range<const T>;
 
 // TODO: move to string_ref.cpp
 // Simple reference to string

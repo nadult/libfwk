@@ -57,7 +57,7 @@ Quat::operator AxisAngle() const {
 	float sqrLen = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 
 	return sqrLen > 0 ? AxisAngle(float3(v[0], v[1], v[2]) / sqrLen, 2.0f * acos(v[3]))
-					  : AxisAngle(float3(1.0f, 0.0f, 0.0f), 0.0f);
+					  : AxisAngle(float3(0.0f, 1.0f, 0.0f), 0.0f);
 }
 
 const Quat Quat::operator*(const Quat &q) const {
@@ -83,4 +83,9 @@ const Quat slerp(const Quat &lhs, const Quat &rhs, float t) {
 
 	return normalize(lhs * coeff0 + rhs * coeff1);
 }
+
+float distance(const Quat &lhs, const Quat &rhs) {
+	return 2.0f * (1.0f - dot(lhs, rhs));
+}
+
 }

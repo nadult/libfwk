@@ -217,8 +217,8 @@ struct float3 {
 struct float4 {
 	using Scalar = float;
 
-	//TODO: use range[4]
-	float4(const float *v) :x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
+	// TODO: use range[4]
+	float4(const float *v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
 	float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 	float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
 	float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
@@ -326,9 +326,15 @@ const float2 angleToVector(float radians);
 const float2 rotateVector(const float2 &vec, float radians);
 
 const float3 rotateVector(const float3 &pos, const float3 &axis, float angle);
+template <class TVec> bool isNormalized(const TVec &vec) {
+	auto length_sq = lengthSq(vec);
+	return length_sq >= 1.0f - constant::epsilon && length_sq <= 1.0f + constant::epsilon;
+}
 
 float triangleArea(const float3 &, const float3 &, const float3 &);
 float frand();
+float angleDistance(float a, float b);
+float blendAngles(float initial, float target, float step);
 
 bool isnan(float);
 bool isnan(const float2 &);
@@ -535,11 +541,10 @@ class Matrix4 {
 		v[2] = col2;
 		v[3] = col3;
 	}
-	Matrix4(const float *vals) { //TODO: use range<float, 16>
+	Matrix4(const float *vals) { // TODO: use range<float, 16>
 		for(int n = 0; n < 4; n++)
 			v[n] = float4(vals + n * 4);
 	}
-
 
 	static const Matrix4 identity();
 
@@ -600,7 +605,7 @@ class AxisAngle {
 
 class Quat : public float4 {
   public:
-	Quat() {}
+	Quat() : float4(0, 0, 0, 1) {}
 	Quat(const Quat &q) : float4(q) {}
 	Quat &operator=(const Quat &q) {
 		float4::operator=(float4(q));
@@ -627,6 +632,10 @@ inline float dot(const Quat &lhs, const Quat &rhs) { return dot(float4(lhs), flo
 const Quat inverse(const Quat &);
 const Quat normalize(const Quat &);
 const Quat slerp(const Quat &, const Quat &, float t);
+// in radians
+float distance(const Quat &, const Quat &);
+
+void decompose(const Matrix4&, Quat&, float3&);
 
 class Ray {
   public:
