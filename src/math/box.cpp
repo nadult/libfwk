@@ -14,16 +14,16 @@ template <class TVec3> void Box<TVec3>::getCorners(TRange<Vec3, 8> out) const {
 	}
 }
 
-template <class TVec3> Box<TVec3>::Box(const TVec3 *ptr, int count) {
-	if(!count) {
+template <class TVec3> Box<TVec3>::Box(CRange<Vec3> points) {
+	if(points.empty()) {
 		*this = empty();
 		return;
 	}
 
-	min = max = ptr[0];
-	for(int n = 1; n < count; n++) {
-		min = fwk::min(min, ptr[n]);
-		max = fwk::max(max, ptr[n]);
+	min = max = points[0];
+	for(int n = 1; n < points.size(); n++) {
+		min = fwk::min(min, points[n]);
+		max = fwk::max(max, points[n]);
 	}
 }
 

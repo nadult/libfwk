@@ -423,7 +423,7 @@ template <class TVec3> struct Box {
 	Box(Vec3 min, Vec3 max) : min(min), max(max) {}
 	Box(Scalar minX, Scalar minY, Scalar minZ, Scalar maxX, Scalar maxY, Scalar maxZ)
 		: min(minX, minY, minZ), max(maxX, maxY, maxZ) {}
-	Box(const Vec3 *ptr, int count);
+	Box(CRange<Vec3>);
 	Box() = default;
 	static Box empty() { return Box(Vec3(), Vec3()); }
 
@@ -522,6 +522,8 @@ const float3 operator*(const Matrix3 &, const float3 &);
 
 const Matrix3 scaling(const float3 &);
 const Matrix3 rotation(const float3 &axis, float angle);
+
+//TODO: what's this?
 inline const Matrix3 normalRotation(float angle) { return rotation(float3(0, -1, 0), angle); }
 
 // Stored just like in OpenGL:

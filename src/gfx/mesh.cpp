@@ -126,7 +126,7 @@ SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
 }
 
 SimpleMeshData::SimpleMeshData(const aiScene &ascene, int mesh_id) {
-	DASSERT(mesh_id >= 0 && mesh_id < ascene.mNumMeshes);
+	DASSERT(mesh_id >= 0 && mesh_id < (int)ascene.mNumMeshes);
 	const auto *amesh = ascene.mMeshes[mesh_id];
 
 	DASSERT(amesh->HasPositions() && amesh->HasFaces() && amesh->mNumVertices <= 65536);
@@ -169,7 +169,7 @@ void SimpleMeshData::transformUV(const Matrix4 &matrix) {
 }
 
 void SimpleMeshData::computeBoundingBox() {
-	m_bounding_box = FBox(m_positions.data(), (int)m_positions.size());
+	m_bounding_box = FBox(m_positions);
 }
 
 vector<SimpleMeshData::TriIndices> SimpleMeshData::trisIndices() const {

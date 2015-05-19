@@ -75,7 +75,6 @@ const Matrix3 rotation(const float3 &axis, float radians) {
 					 {xzm - ySin, yzm + xSin, zz * oneMinusCos + cos});
 }
 
-
 const Matrix3 scaling(const float3 &v) {
 	return Matrix3({v[0], 0.0f, 0.0f}, {0.0f, v[1], 0.0f}, {0.0f, 0.0f, v[2]});
 }

@@ -226,6 +226,7 @@ template <class T> class Range {
 	constexpr const T *data() const noexcept { return m_data; }
 	constexpr T *data() noexcept { return m_data; }
 	constexpr int size() const noexcept { return m_size; }
+	constexpr bool empty() const noexcept { return m_size == 0; }
 
 	constexpr const T &operator[](int idx) const noexcept {
 		DASSERT(idx >= 0 && idx < m_size);

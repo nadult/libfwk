@@ -66,7 +66,7 @@ int Skeleton::findJoint(const string &name) const {
 }
 
 SkeletalAnim::SkeletalAnim(const aiScene &ascene, int anim_id, const Skeleton &skeleton) {
-	DASSERT(anim_id >= 0 && anim_id < ascene.mNumAnimations);
+	DASSERT(anim_id >= 0 && anim_id < (int)ascene.mNumAnimations);
 
 	const auto &aanim = *ascene.mAnimations[anim_id];
 
@@ -208,7 +208,7 @@ FBox SkinnedMeshData::computeBoundingBox(const SkeletonPose &pose) const {
 	for(int n = 0; n < (int)m_meshes.size(); n++) {
 		PodArray<float3> positions(m_meshes[n].vertexCount());
 		animateVertices(n, pose, positions.data(), nullptr);
-		FBox bbox(positions.data(), positions.size());
+		FBox bbox(positions);
 		out = n == 0 ? bbox : sum(m_bounding_box, bbox);
 	}
 
@@ -231,7 +231,7 @@ float SkinnedMeshData::intersect(const Segment &segment, const SkeletonPose &pos
 		PodArray<float3> positions(mesh.vertexCount());
 		animateVertices(n, pose, positions.data(), nullptr);
 
-		float box_isect = intersection(segment, FBox(positions.data(), positions.size()));
+		float box_isect = intersection(segment, FBox(positions));
 		if(box_isect < constant::inf && box_isect >= segment.min && box_isect <= segment.max)
 			for(const auto &tri : mesh.trisIndices()) {
 				float isect =
@@ -246,7 +246,7 @@ float SkinnedMeshData::intersect(const Segment &segment, const SkeletonPose &pos
 void SkinnedMeshData::animateVertices(int mesh_id, const SkeletonPose &pose, float3 *out_positions,
 									  float3 *out_normals) const {
 	DASSERT(mesh_id >= 0 && mesh_id < (int)m_meshes.size());
-	DASSERT(pose.size() == m_skeleton.size());
+	DASSERT((int)pose.size() == m_skeleton.size());
 	const MeshSkin &skin = m_mesh_skins[mesh_id];
 	const SimpleMeshData &mesh = m_meshes[mesh_id];
 
@@ -271,7 +271,7 @@ void SkinnedMeshData::animateVertices(int mesh_id, const SkeletonPose &pose, flo
 }
 
 SimpleMeshData SkinnedMeshData::animateMesh(int mesh_id, const SkeletonPose &pose) const {
-	DASSERT(pose.size() == m_skeleton.size());
+	DASSERT((int)pose.size() == m_skeleton.size());
 	vector<float3> positions = m_meshes[mesh_id].positions();
 	vector<float2> tex_coords = m_meshes[mesh_id].texCoords();
 	animateVertices(mesh_id, pose, positions.data(), nullptr);
