@@ -6,11 +6,11 @@
 
 namespace fwk {
 
-template <class TVec3> void Box<TVec3>::getCorners(TVec3 corners[8]) const {
+template <class TVec3> void Box<TVec3>::getCorners(TRange<Vec3, 8> out) const {
 	for(int n = 0; n < 8; n++) {
-		corners[n].x = (n & 4 ? min : max).x;
-		corners[n].y = (n & 2 ? min : max).y;
-		corners[n].z = (n & 1 ? min : max).z;
+		out[n].x = (n & 4 ? min : max).x;
+		out[n].y = (n & 2 ? min : max).y;
+		out[n].z = (n & 1 ? min : max).z;
 	}
 }
 

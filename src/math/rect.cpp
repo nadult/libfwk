@@ -7,7 +7,7 @@
 namespace fwk {
 	
 template <class TVec2>
-void Rect<TVec2>::getCorners(Vec2 corners[4]) const {
+void Rect<TVec2>::getCorners(TRange<Vec2, 4> corners) const {
 	corners[0] = min;
 	corners[1] = Vec2(min.x, max.y);
 	corners[2] = max;

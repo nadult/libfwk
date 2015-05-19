@@ -17,8 +17,9 @@ const Plane normalize(const Plane &plane) {
 }
 
 const Plane operator*(const Matrix4 &m, const Plane &p) {
-	float4 tmp = m * float4(p.normal(), -p.distance());
-	return Plane(tmp.xyz(), -tmp.w);
+	float3 new_p = mulPoint(m, p.normal() * p.distance());
+	float3 new_n = normalize(mulNormal(m, p.normal()));
+	return Plane(new_n, dot(new_n, new_p));
 }
 
 float intersection(const Ray &ray, const Plane &plane) {

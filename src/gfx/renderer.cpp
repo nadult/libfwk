@@ -74,7 +74,7 @@ void Renderer::addLines(const float3 *positions, int count, Color color, const M
 	m_line_positions.insert(m_line_positions.end(), positions, positions + count);
 	m_line_colors.resize(m_line_colors.size() + count, color);
 }
-	
+
 void Renderer::addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix) {
 	float3 verts[8];
 	bbox.getCorners(verts);

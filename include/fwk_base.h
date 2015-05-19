@@ -123,7 +123,6 @@ void logError(const string &error);
 template <class T> class Range;
 
 template <class T> class RangeIterator {
-  public:
   protected:
 #ifdef NDEBUG
 	constexpr RangeIterator(T *pointer, int, int) noexcept : m_pointer(pointer) {}
@@ -137,6 +136,7 @@ template <class T> class RangeIterator {
 #endif
 	friend class Range<T>;
 
+  public:
 	constexpr auto operator+(int offset) const noexcept {
 #ifdef NDEBUG
 		return RangeIterator(m_pointer + offset, 0, 0);
@@ -153,12 +153,24 @@ template <class T> class RangeIterator {
 #endif
 		return m_pointer - rhs.m_pointer;
 	}
-	constexpr T &operator*() const noexcept { return *m_pointer; }
+	constexpr T &operator*() const noexcept {
+		DASSERT(m_right >= 1);
+		return *m_pointer;
+	}
 	constexpr bool operator==(const RangeIterator &rhs) const noexcept {
 		return m_pointer == rhs.m_pointer;
 	}
 	constexpr bool operator<(const RangeIterator &rhs) const noexcept {
 		return m_pointer < rhs.m_pointer;
+	}
+	constexpr RangeIterator &operator++() {
+		m_pointer++;
+#ifndef NDEBUG
+		DASSERT(m_right > 0);
+		m_left++;
+		m_right--;
+#endif
+		return *this;
 	}
 
   private:
@@ -188,6 +200,9 @@ template <class T> class Range {
 	constexpr Range(PodArray<TConvertible> &array) noexcept : Range(array.data(), array.size()) {}
 	template <class TConvertible, int N>
 	constexpr Range(TConvertible(&array)[N]) noexcept : Range(array, N) {}
+	template <class TConvertible>
+	constexpr Range(TConvertible *begin, TConvertible *end) noexcept
+		: Range(begin, (int)(end - begin)) {}
 	template <class TConvertible>
 	constexpr Range(TConvertible *data, int size) noexcept : m_data(data), m_size(size) {
 		DASSERT(m_data || m_size == 0);
@@ -224,6 +239,20 @@ template <class T> class Range {
   private:
 	T *m_data;
 	int m_size;
+};
+
+// TODO: better name
+template <class T, int TSize> class TRange : public Range<T> {
+  public:
+	template <class... Args>
+	constexpr TRange(Args &&... args)
+		: Range<T>(std::forward<Args>(args)...) {
+		DASSERT(Range<T>::size() >= TSize);
+	}
+	template <class TConvertible, int N>
+	constexpr TRange(TConvertible(&array)[N]) noexcept : Range<T>(array, N) {
+		static_assert(N >= TSize, "Array not big enough");
+	}
 };
 
 template <class T> using CRangeIterator = RangeIterator<const T>;

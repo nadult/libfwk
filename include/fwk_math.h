@@ -382,7 +382,8 @@ template <class TVec2> struct Rect {
 	}
 
 	// Returns corners in clockwise order
-	void getCorners(Vec2 corners[4]) const;
+	// TODO: CW or CCW depends on handeness...
+	void getCorners(TRange<Vec2, 4>) const;
 
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y; }
 
@@ -449,7 +450,7 @@ template <class TVec3> struct Box {
 			   point.z >= min.z && point.z < max.z;
 	}
 
-	void getCorners(Vec3 corners[8]) const;
+	void getCorners(TRange<Vec3, 8>) const;
 
 	const Rect<Vec2> xz() const { return Rect<Vec2>(min.xz(), max.xz()); }
 	const Rect<Vec2> xy() const { return Rect<Vec2>(min.xy(), max.xy()); }
@@ -676,6 +677,8 @@ class Plane {
   public:
 	Plane() {}
 	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {}
+
+	// TODO: should triangle be CW or CCW?
 	Plane(const float3 &a, const float3 &b, const float3 &c);
 
 	const float3 &normal() const { return m_nrm; }
@@ -699,6 +702,7 @@ inline float intersection(const Plane &plane, const Ray &ray) { return intersect
 
 bool intersection(const Plane &, const Plane &, Ray &ray);
 
+// Basically, a set of planes
 class Frustum {
   public:
 	enum {
@@ -713,16 +717,19 @@ class Frustum {
 	};
 
 	Frustum() {}
-	Frustum(const Matrix4 &projection);
+	Frustum(const Matrix4 &view_projection);
+	Frustum(TRange<Plane, planes_count>);
 
-	bool isInside(const float3 &point) const;
-	bool isInside(const FBox &box) const;
+	bool isIntersecting(const float3 &point) const;
+	bool isIntersecting(const FBox &box) const;
+	bool isIntersecting(CRange<float3> points) const;
 
 	const Plane &operator[](int idx) const { return m_planes[idx]; }
 	Plane &operator[](int idx) { return m_planes[idx]; }
+	int size() const { return planes_count; }
 
   protected:
-	Plane m_planes[planes_count];
+	std::array<Plane, planes_count> m_planes;
 };
 
 const Frustum operator*(const Matrix4 &, const Frustum &);
