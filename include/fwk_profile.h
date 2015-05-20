@@ -16,8 +16,9 @@ void updateTimer(const char *name, double time, bool auto_clear = true);
 void updateCounter(const char *name, int value);
 void profilerNextFrame();
 
-void begin(const char *name);
-void end(const char *name);
+//TODO: make proper hierarchical timers
+//void begin(const char *name);
+//void end(const char *name);
 
 const string getProfilerStats(const char *filter = "");
 

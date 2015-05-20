@@ -29,7 +29,7 @@ float distance(const Ray &ray, const float3 &point) {
 	return dot(diff, diff);
 }
 
-float intersection(const Segment &segment, const Box<float3> &box) {
+pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box) {
 	// TODO: check if works correctly for (+/-)INF
 	float3 inv_dir = segment.invDir();
 	float3 origin = segment.origin();
@@ -51,7 +51,12 @@ float intersection(const Segment &segment, const Box<float3> &box) {
 	lmin = max(lmin, segment.min);
 	lmax = min(lmax, segment.max);
 
-	return lmin <= lmax ? lmin : constant::inf;
+	return lmin <= lmax? make_pair(lmin, lmax) : make_pair(constant::inf, constant::inf);
+}
+
+float intersection(const Segment &segment, const Box<float3> &box) {
+	auto ranges = intersectionRange(segment, box);
+	return ranges.first;
 }
 
 float intersection(const Segment &segment, const float3 &a, const float3 &b, const float3 &c) {

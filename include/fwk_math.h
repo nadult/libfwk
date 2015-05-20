@@ -642,11 +642,10 @@ void decompose(const Matrix4&, Quat&, float3&);
 
 class Ray {
   public:
-	Ray(const float3 &origin, const float3 &dir);
+	Ray(const float3 &origin = float3(0, 0, 0), const float3 &dir = float3(0, 0, 1));
 	Ray(const Matrix4 &screen_to_world, const float2 &screen_pos);
 	Ray(const float3 &origin, const float3 &dir, const float3 &idir)
 		: m_origin(origin), m_dir(dir), m_inv_dir(idir) {}
-	Ray() {}
 
 	const float3 &dir() const { return m_dir; }
 	const float3 &invDir() const { return m_inv_dir; }
@@ -661,7 +660,7 @@ class Ray {
 };
 
 struct Segment : public Ray {
-	Segment(const Ray &ray, float min = -constant::inf, float max = constant::inf)
+	Segment(const Ray &ray = Ray(), float min = -constant::inf, float max = constant::inf)
 		: Ray(ray), min(min), max(max) {}
 	const Segment operator-() const { return Segment(Ray::operator-(), -max, -min); }
 
@@ -669,6 +668,7 @@ struct Segment : public Ray {
 };
 
 // returns infinity if doesn't intersect
+pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box);
 float intersection(const Segment &segment, const Box<float3> &box);
 float intersection(const Segment &segment, const float3 &p1, const float3 &p2, const float3 &p3);
 
