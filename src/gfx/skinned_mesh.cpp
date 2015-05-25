@@ -18,24 +18,24 @@ namespace {
 }
 
 Skeleton::Trans::Trans(const Matrix4 &mat) {
+	scale = float3(1, 1, 1);
 	rot = Quat(Matrix3(mat[0].xyz(), mat[1].xyz(), mat[2].xyz()));
 	rot = normalize(rot);
 	pos = mat[3].xyz();
 }
 
 Skeleton::Trans::operator const Matrix4() const {
-	const Matrix3 rot_matrix(rot);
+	const Matrix3 rot_matrix = Matrix3(rot) * scaling(scale);
 	return Matrix4(float4(rot_matrix[0], 0.0f), float4(rot_matrix[1], 0.0f),
 				   float4(rot_matrix[2], 0.0f), float4(pos, 1.0f));
 }
 
 Matrix4 lerp(const Skeleton::Trans &lhs, const Skeleton::Trans &rhs, float t) {
-	Quat slerped = slerp(dot(lhs.rot, rhs.rot) < 0.0f ? -lhs.rot : lhs.rot, rhs.rot, t);
-	Matrix3 rot_matrix(slerped);
+	//TODO: there is some problem with interpolation of attack animation in knight.dae
+	Quat rot = slerp(lhs.rot, rhs.rot, t);
+	float3 scale = lerp(lhs.scale, rhs.scale, t);
 	float3 pos = lerp(lhs.pos, rhs.pos, t);
-
-	return Matrix4(float4(rot_matrix[0], 0.0f), float4(rot_matrix[1], 0.0f),
-				   float4(rot_matrix[2], 0.0f), float4(pos, 1.0f));
+	return Matrix4(Skeleton::Trans(scale, pos, rot));
 }
 
 Skeleton::Skeleton(const aiScene &ascene) {
@@ -82,11 +82,19 @@ SkeletalAnim::SkeletalAnim(const aiScene &ascene, int anim_id, const Skeleton &s
 		new_channel.joint_id = joint_id;
 
 		ASSERT(achannel.mNumRotationKeys == achannel.mNumPositionKeys);
+		ASSERT(achannel.mNumScalingKeys == achannel.mNumPositionKeys);
 		new_channel.keys.resize(achannel.mNumPositionKeys);
 
 		for(uint k = 0; k < achannel.mNumPositionKeys; k++) {
 			ASSERT(achannel.mPositionKeys[k].mTime == achannel.mRotationKeys[k].mTime);
-			new_channel.keys[k].trans = Trans(convert(achannel.mPositionKeys[k].mValue),
+			ASSERT(achannel.mScalingKeys[k].mTime == achannel.mRotationKeys[k].mTime);
+
+			float3 scl = convert(achannel.mScalingKeys[k].mValue);
+//			if(scl != float3(1, 1, 1))
+//				printf("%f %f %f\n", scl.x, scl.y, scl.z);
+
+			new_channel.keys[k].trans = Trans(convert(achannel.mScalingKeys[k].mValue),
+											  convert(achannel.mPositionKeys[k].mValue),
 											  convert(achannel.mRotationKeys[k].mValue));
 			new_channel.keys[k].time = achannel.mPositionKeys[k].mTime;
 		}

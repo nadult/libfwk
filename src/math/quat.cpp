@@ -71,21 +71,27 @@ const Quat inverse(const Quat &q) { return Quat(float4(-q[0], -q[1], -q[2], q[3]
 
 const Quat normalize(const Quat &q) { return Quat(float4(q) / sqrtf(dot(q, q))); }
 
-const Quat slerp(const Quat &lhs, const Quat &rhs, float t) {
-	float angle = acos(clamp(dot(lhs, rhs), -1.0f, 1.0f));
+const Quat slerp(const Quat &lhs, Quat rhs, float t) {
+	float qdot = dot(lhs, rhs);
+	if(qdot < 0.0f) {
+		qdot = -qdot;
+		rhs = -rhs;
+	}
 
-	if(fabsf(angle) < constant::epsilon)
-		return lhs;
+	float coeff0, coeff1;
 
-	float inv_sin = 1.0f / sin(angle);
-	float coeff0 = sin((1.0f - t) * angle) * inv_sin;
-	float coeff1 = sin(t * angle) * inv_sin;
+	if(1.0f - qdot > constant::epsilon) {
+		float angle = acos(qdot);
+		float inv_sin = 1.0f / sin(angle);
+		coeff0 = sin((1.0f - t) * angle) * inv_sin;
+		coeff1 = sin(t * angle) * inv_sin;
+	} else {
+		coeff0 = 1.0f - t;
+		coeff1 = t;
+	}
 
 	return normalize(lhs * coeff0 + rhs * coeff1);
 }
 
-float distance(const Quat &lhs, const Quat &rhs) {
-	return 2.0f * (1.0f - dot(lhs, rhs));
-}
-
+float distance(const Quat &lhs, const Quat &rhs) { return 2.0f * (1.0f - dot(lhs, rhs)); }
 }

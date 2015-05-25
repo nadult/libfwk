@@ -634,7 +634,7 @@ class Quat : public float4 {
 inline float dot(const Quat &lhs, const Quat &rhs) { return dot(float4(lhs), float4(rhs)); }
 const Quat inverse(const Quat &);
 const Quat normalize(const Quat &);
-const Quat slerp(const Quat &, const Quat &, float t);
+const Quat slerp(const Quat &, Quat, float t);
 // in radians
 float distance(const Quat &, const Quat &);
 

@@ -674,10 +674,11 @@ class Skeleton {
   public:
 	struct Trans {
 		Trans() = default;
-		Trans(const float3 &pos, const Quat &quat) : pos(pos), rot(quat) {}
+		Trans(const float3 &scale, const float3 &pos, const Quat &quat) : scale(scale), pos(pos), rot(quat) {}
 		Trans(const Matrix4 &);
 		operator const Matrix4() const;
 
+		float3 scale;
 		float3 pos;
 		Quat rot;
 	};
