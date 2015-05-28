@@ -18,12 +18,17 @@ void testMatrices() {
 	//TODO: finish me
 }
 
+void testRays() {
+	//TODO: write me
+}
+
 int main(int argc, char **argv) {
 	FBox box(0, -100, 0, 1200, 100, 720);
 	FBox temp(32, 0, 32, 64, 0.5f, 64);
 	ASSERT(areOverlapping(box, temp));
 
 	testMatrices();
+	testRays();
 
 	printf("All OK\n");
 	return 0;

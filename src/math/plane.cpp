@@ -22,10 +22,6 @@ const Plane operator*(const Matrix4 &m, const Plane &p) {
 	return Plane(new_n, dot(new_n, new_p));
 }
 
-float intersection(const Ray &ray, const Plane &plane) {
-	return -dot(plane, ray.origin()) / dot(plane.normal(), ray.dir());
-}
-
 float dot(const Plane &plane, const float3 &point) {
 	return dot(plane.normal(), point) - plane.distance();
 }

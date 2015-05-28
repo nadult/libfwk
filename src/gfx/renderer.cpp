@@ -27,6 +27,7 @@ static const char *fragment_shader_flat_src =
 static const char *vertex_shader_src =
 	"#version 100\n"
 	"uniform mat4 proj_view_matrix;										\n"
+	"uniform vec4 mesh_color;											\n"
 	"attribute vec3 in_pos;												\n"
 	"attribute vec4 in_color;											\n"
 	"attribute vec2 in_tex_coord;										\n"
@@ -35,7 +36,7 @@ static const char *vertex_shader_src =
 	"void main() {														\n"
 	"	gl_Position = proj_view_matrix * vec4(in_pos, 1.0);				\n"
 	"	tex_coord = in_tex_coord;										\n"
-	"	color = in_color;												\n"
+	"	color = in_color * mesh_color;									\n"
 	"} 																	\n";
 
 struct ProgramFactory {
@@ -97,6 +98,7 @@ void Renderer::render() {
 		auto &program = (instance.material.texture() ? m_tex_program : m_flat_program);
 		program->bind();
 		program->setUniform("proj_view_matrix", instance.matrix);
+		program->setUniform("mesh_color", (float4)instance.material.color());
 		if(instance.material.texture())
 			instance.material.texture()->bind();
 		instance.draw_call.issue();
@@ -107,6 +109,7 @@ void Renderer::render() {
 							VertexArraySource(float2(0, 0))});
 	DTexture::unbind();
 	m_flat_program->bind();
+	m_flat_program->setUniform("mesh_color", float4(1, 1, 1, 1));
 	for(const auto &instance : m_lines) {
 		m_flat_program->setUniform("proj_view_matrix", instance.matrix);
 		line_array.draw(PrimitiveType::lines, instance.count, instance.first);

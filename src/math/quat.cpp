@@ -94,4 +94,8 @@ const Quat slerp(const Quat &lhs, Quat rhs, float t) {
 }
 
 float distance(const Quat &lhs, const Quat &rhs) { return 2.0f * (1.0f - dot(lhs, rhs)); }
+
+const Quat rotationBetween(const float3 &v1, const float3 &v2) {
+	return normalize(Quat(cross(v1, v2), sqrt(lengthSq(v1) * lengthSq(v2)) + dot(v1, v2)));
+}
 }

@@ -239,8 +239,7 @@ float SkinnedMeshData::intersect(const Segment &segment, const SkeletonPose &pos
 		PodArray<float3> positions(mesh.vertexCount());
 		animateVertices(n, pose, positions.data(), nullptr);
 
-		float box_isect = intersection(segment, FBox(positions));
-		if(box_isect < constant::inf && box_isect >= segment.min && box_isect <= segment.max)
+		if(intersection(segment, FBox(positions)) < constant::inf)
 			for(const auto &tri : mesh.trisIndices()) {
 				float isect =
 					intersection(segment, positions[tri[0]], positions[tri[1]], positions[tri[2]]);

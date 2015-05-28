@@ -44,9 +44,9 @@ const Matrix4 operator*(const Matrix4 &lhs, const Matrix4 &rhs) {
 						  dot(rhs[3], tlhs[3])));
 }
 
-const float4 operator*(const Matrix4 &lhs, const float4 &rhs) {
-	return float4(dot(lhs.row(0), rhs), dot(lhs.row(1), rhs), dot(lhs.row(2), rhs),
-				  dot(lhs.row(3), rhs));
+const float4 operator*(const Matrix4 &matrix, const float4 &vector) {
+	return float4(dot(matrix.row(0), vector), dot(matrix.row(1), vector),
+				  dot(matrix.row(2), vector), dot(matrix.row(3), vector));
 }
 
 const float3 mulPoint(const Matrix4 &mat, const float3 &pt) {
@@ -54,19 +54,20 @@ const float3 mulPoint(const Matrix4 &mat, const float3 &pt) {
 	return tmp.xyz() / tmp.w;
 }
 
-const float3 mulPointAffine(const Matrix4 &mat, const float3 &pt) {
-	return float3(dot(mat.row(0).xyz(), pt), dot(mat.row(1).xyz(), pt), dot(mat.row(2).xyz(), pt)) +
-		   mat[3].xyz();
+const float3 mulPointAffine(const Matrix4 &affine_mat, const float3 &pt) {
+	return float3(dot(affine_mat.row(0).xyz(), pt), dot(affine_mat.row(1).xyz(), pt),
+				  dot(affine_mat.row(2).xyz(), pt)) +
+		   affine_mat[3].xyz();
 }
 
-const float3 mulNormal(const Matrix4 &invTrans, const float3 &nrm) {
-	return float3(dot(invTrans.row(0).xyz(), nrm), dot(invTrans.row(1).xyz(), nrm),
-				  dot(invTrans.row(2).xyz(), nrm));
-}
-
-const float3 mulNormalAffine(const Matrix4 &invTrans, const float3 &nrm) {
-	float4 tmp = invTrans * float4(nrm[0], nrm[1], nrm[2], 0.0f);
+const float3 mulNormal(const Matrix4 &inverse_transpose, const float3 &nrm) {
+	float4 tmp = inverse_transpose * float4(nrm, 0.0f);
 	return tmp.xyz();
+}
+
+const float3 mulNormalAffine(const Matrix4 &affine_mat, const float3 &nrm) {
+	return float3(dot(affine_mat.row(0).xyz(), nrm), dot(affine_mat.row(1).xyz(), nrm),
+				  dot(affine_mat.row(2).xyz(), nrm));
 }
 
 bool operator==(const Matrix4 &lhs, const Matrix4 &rhs) {
@@ -217,5 +218,4 @@ void decompose(const Matrix4 &mat, Quat &rot, float3 &pos) {
 	pos = mat[3].xyz();
 	rot = normalize(Quat(Matrix3(mat[0].xyz(), mat[1].xyz(), mat[2].xyz())));
 }
-
 }

@@ -47,7 +47,7 @@ const Matrix3 operator*(const Matrix3 &lhs, const Matrix3 &rhs) {
 }
 
 const float3 operator*(const Matrix3 &lhs, const float3 &rhs) {
-	return float3(dot(lhs.GetRow(0), rhs), dot(lhs.GetRow(1), rhs), dot(lhs.GetRow(2), rhs));
+	return float3(dot(lhs.row(0), rhs), dot(lhs.row(1), rhs), dot(lhs.row(2), rhs));
 }
 
 bool operator==(const Matrix3 &lhs, const Matrix3 &rhs) {

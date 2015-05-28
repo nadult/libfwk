@@ -20,6 +20,13 @@ Ray::Ray(const Matrix4 &screen_to_world, const float2 &screen_pos) {
 	m_inv_dir = float3(1.0f / m_dir.x, 1.0f / m_dir.y, 1.0f / m_dir.z);
 }
 
+Segment::Segment(const Ray &ray, float min, float max) : Ray(ray), m_min(min), m_max(max) {
+}
+Segment::Segment(const float3 &start, const float3 &end)
+	: Ray(start, normalize(end - start)), m_min(0.0f), m_max(distance(end, start)) {}
+
+Segment Segment::operator-() const { THROW("wtf");return Segment(Ray::operator-(), m_min, m_max); }
+
 float distance(const Ray &ray, const float3 &point) {
 	float3 diff = point - ray.origin();
 	float t = dot(diff, ray.dir());
@@ -48,10 +55,10 @@ pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &
 	l2 = inv_dir.z * (box.max.z - origin.z);
 	lmin = max(lmin, min(l1, l2));
 	lmax = min(lmax, max(l1, l2));
-	lmin = max(lmin, segment.min);
-	lmax = min(lmax, segment.max);
+	lmin = max(lmin, segment.min());
+	lmax = min(lmax, segment.max());
 
-	return lmin <= lmax? make_pair(lmin, lmax) : make_pair(constant::inf, constant::inf);
+	return lmin <= lmax ? make_pair(lmin, lmax) : make_pair(constant::inf, constant::inf);
 }
 
 float intersection(const Segment &segment, const Box<float3> &box) {
@@ -60,6 +67,8 @@ float intersection(const Segment &segment, const Box<float3> &box) {
 }
 
 float intersection(const Segment &segment, const float3 &a, const float3 &b, const float3 &c) {
+	//TODO: should be working for front & back faces
+	
 	float3 ab = b - a;
 	float3 ac = c - a;
 
@@ -77,15 +86,35 @@ float intersection(const Segment &segment, const float3 &a, const float3 &b, con
 	if(v < 0.0f || v > tri_dot || w < 0.0f || v + w > tri_dot)
 		return constant::inf;
 
-	float t = dot(offset, tri_nrm);
-	return t < segment.min || t > segment.max ? constant::inf : t / tri_dot;
+	// TODO: use triple product
+	return intersection(Plane(a, b, c), segment);
 }
 
-const Ray operator*(const Matrix4 &mat, const Ray &ray) {
-	float3 target = ray.origin() + ray.dir() * 1.0f;
-	float3 new_origin = mulPoint(mat, ray.origin());
+float intersection(const Segment &segment, const Plane &plane) {
+	//TOODO: should be working for both sides
+	float dist = -dot(plane, segment.origin()) / dot(plane.normal(), segment.dir());
+	return dist < segment.min() || dist > segment.max() ? constant::inf : dist;
+}
+
+const Segment operator*(const Matrix4 &mat, const Segment &segment) {
+	//	float3 new_origin = mulPoint(mat, segment.origin());
+	//	float3 new_dir = mulNormal(mat, segment.dir());
+	//	float len = length(new_dir);
+	//	new_dir /= len;
+
+	if(segment.min() > -constant::inf && segment.max() < constant::inf) {
+		float3 start = segment.at(segment.min()), end = segment.at(segment.max());
+		return Segment(mulPoint(mat, start), mulPoint(mat, end));
+	}
+
+	float3 target = segment.origin() + segment.dir() * 1.0f;
+	float3 new_origin = mulPoint(mat, segment.origin());
 	float3 new_target = mulPoint(mat, target);
-	float3 new_dir = normalize(new_target - new_origin);
-	return Ray(new_origin, new_dir);
+	float3 new_dir = mulNormal(mat, segment.dir()); // new_target - new_origin);
+	printf("len: %f\n", length(new_dir));
+	float len = 1.0f;
+
+	Segment segment1 = Segment(Ray(new_origin, new_dir), segment.min() * len, segment.max() * len);
+	return Segment(Ray(new_origin, new_dir), segment.min() * len, segment.max() * len);
 }
 }

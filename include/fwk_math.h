@@ -496,7 +496,7 @@ class Matrix3 {
 
 	static const Matrix3 identity();
 
-	const float3 GetRow(int n) const { return float3(v[0][n], v[1][n], v[2][n]); }
+	const float3 row(int n) const { return float3(v[0][n], v[1][n], v[2][n]); }
 
 	float operator()(int row, int col) const { return v[col][row]; }
 	float &operator()(int row, int col) { return v[col][row]; }
@@ -523,7 +523,7 @@ const float3 operator*(const Matrix3 &, const float3 &);
 const Matrix3 scaling(const float3 &);
 const Matrix3 rotation(const float3 &axis, float angle);
 
-//TODO: what's this?
+// TODO: what's this?
 inline const Matrix3 normalRotation(float angle) { return rotation(float3(0, -1, 0), angle); }
 
 // Stored just like in OpenGL:
@@ -574,8 +574,8 @@ const float4 operator*(const Matrix4 &, const float4 &);
 
 const float3 mulPoint(const Matrix4 &mat, const float3 &);
 const float3 mulPointAffine(const Matrix4 &mat, const float3 &);
-const float3 mulNormal(const Matrix4 &invTrans, const float3 &);
-const float3 mulNormalAffine(const Matrix4 &invTrans, const float3 &);
+const float3 mulNormal(const Matrix4 &inverse_transpose, const float3 &);
+const float3 mulNormalAffine(const Matrix4 &affine_mat, const float3 &);
 
 // Equivalent to creating the matrix with column{0,1,2,3} as rows
 const Matrix4 transpose(const float4 &col0, const float4 &col1, const float4 &col2,
@@ -618,6 +618,7 @@ class Quat : public float4 {
 	explicit Quat(const float4 &v) : float4(v) {}
 	explicit Quat(const Matrix3 &);
 	explicit Quat(const AxisAngle &);
+	Quat(const float3 &xyz, float w) : float4(xyz, w) {}
 	Quat(float yaw, float pitch, float roll);
 
 	const Quat operator*(float v) const { return Quat(float4::operator*(v)); }
@@ -635,44 +636,12 @@ inline float dot(const Quat &lhs, const Quat &rhs) { return dot(float4(lhs), flo
 const Quat inverse(const Quat &);
 const Quat normalize(const Quat &);
 const Quat slerp(const Quat &, Quat, float t);
+const Quat rotationBetween(const float3 &, const float3 &);
+
 // in radians
 float distance(const Quat &, const Quat &);
 
-void decompose(const Matrix4&, Quat&, float3&);
-
-class Ray {
-  public:
-	Ray(const float3 &origin = float3(0, 0, 0), const float3 &dir = float3(0, 0, 1));
-	Ray(const Matrix4 &screen_to_world, const float2 &screen_pos);
-	Ray(const float3 &origin, const float3 &dir, const float3 &idir)
-		: m_origin(origin), m_dir(dir), m_inv_dir(idir) {}
-
-	const float3 &dir() const { return m_dir; }
-	const float3 &invDir() const { return m_inv_dir; }
-	const float3 &origin() const { return m_origin; }
-	const float3 at(float t) const { return m_origin + m_dir * t; }
-	const Ray operator-() const { return Ray(m_origin, -m_dir, -m_inv_dir); }
-
-  private:
-	float3 m_origin;
-	float3 m_dir;
-	float3 m_inv_dir;
-};
-
-struct Segment : public Ray {
-	Segment(const Ray &ray = Ray(), float min = -constant::inf, float max = constant::inf)
-		: Ray(ray), min(min), max(max) {}
-	const Segment operator-() const { return Segment(Ray::operator-(), -max, -min); }
-
-	float min, max;
-};
-
-// returns infinity if doesn't intersect
-pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box);
-float intersection(const Segment &segment, const Box<float3> &box);
-float intersection(const Segment &segment, const float3 &p1, const float3 &p2, const float3 &p3);
-
-const Ray operator*(const Matrix4 &, const Ray &);
+void decompose(const Matrix4 &, Quat &, float3 &);
 
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 class Plane {
@@ -696,11 +665,49 @@ class Plane {
 
 const Plane normalize(const Plane &);
 const Plane operator*(const Matrix4 &, const Plane &);
-
-float intersection(const Ray &, const Plane &);
 float dot(const Plane &, const float3 &point);
 
-inline float intersection(const Plane &plane, const Ray &ray) { return intersection(ray, plane); }
+class Ray {
+  public:
+	Ray(const float3 &origin = float3(0, 0, 0), const float3 &dir = float3(0, 0, 1));
+	Ray(const Matrix4 &screen_to_world, const float2 &screen_pos);
+	Ray(const float3 &origin, const float3 &dir, const float3 &idir)
+		: m_origin(origin), m_dir(dir), m_inv_dir(idir) {}
+
+	const float3 &dir() const { return m_dir; }
+	const float3 &invDir() const { return m_inv_dir; }
+	const float3 &origin() const { return m_origin; }
+	const float3 at(float t) const { return m_origin + m_dir * t; }
+	const Ray operator-() const { return Ray(m_origin, -m_dir, -m_inv_dir); }
+
+  protected:
+	float3 m_origin;
+	float3 m_dir;
+	float3 m_inv_dir;
+};
+
+struct Segment : public Ray {
+	Segment(const Ray &ray = Ray(), float min = -constant::inf, float max = constant::inf);
+	Segment(const float3 &start, const float3 &end);
+	Segment operator-() const;
+
+	float min() const { return m_min; }
+	float max() const { return m_max; }
+
+	private:
+	float m_min, m_max;
+};
+
+// returns infinity if doesn't intersect
+pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box);
+float intersection(const Segment &segment, const Box<float3> &box);
+float intersection(const Segment &segment, const float3 &p1, const float3 &p2, const float3 &p3);
+
+// Doesn't work properly with non-uniform scaling
+const Segment operator*(const Matrix4 &, const Segment &);
+
+float intersection(const Segment &, const Plane &);
+inline float intersection(const Plane &plane, const Segment &ray) { return intersection(ray, plane); }
 
 bool intersection(const Plane &, const Plane &, Ray &ray);
 
