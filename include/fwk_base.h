@@ -27,6 +27,7 @@ using std::shared_ptr;
 
 using std::make_pair;
 using std::make_shared;
+using std::make_unique;
 
 // TODO: use types from cstdint
 using uint = unsigned int;
@@ -36,14 +37,6 @@ using u16 = unsigned short;
 using i16 = short;
 using u32 = unsigned;
 using i32 = int;
-
-#if __cplusplus < 201402L
-template <typename T, typename... Args> unique_ptr<T> make_unique(Args &&... args) {
-	return unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-#else
-using std::make_unique;
-#endif
 
 // Compile your program with -rdynamic to get some interesting info
 // Currently not avaliable on mingw32 platform
@@ -127,7 +120,7 @@ template <class T> class RangeIterator {
 #ifdef NDEBUG
 	constexpr RangeIterator(T *pointer, int, int) noexcept : m_pointer(pointer) {}
 #else
-	constexpr RangeIterator(T *pointer, int left, int right) noexcept : m_pointer(pointer),
+	RangeIterator(T *pointer, int left, int right) noexcept : m_pointer(pointer),
 																		m_left(left),
 																		m_right(right) {
 		DASSERT(m_pointer);
@@ -163,7 +156,7 @@ template <class T> class RangeIterator {
 	constexpr bool operator<(const RangeIterator &rhs) const noexcept {
 		return m_pointer < rhs.m_pointer;
 	}
-	constexpr RangeIterator &operator++() {
+	RangeIterator &operator++() {
 		m_pointer++;
 #ifndef NDEBUG
 		DASSERT(m_right > 0);
@@ -204,11 +197,11 @@ template <class T> class Range {
 	constexpr Range(TConvertible *begin, TConvertible *end) noexcept
 		: Range(begin, (int)(end - begin)) {}
 	template <class TConvertible>
-	constexpr Range(TConvertible *data, int size) noexcept : m_data(data), m_size(size) {
+	Range(TConvertible *data, int size) noexcept : m_data(data), m_size(size) {
 		DASSERT(m_data || m_size == 0);
 		DASSERT(m_size >= 0);
 	}
-	constexpr Range(T *data, int size) noexcept : m_data(data), m_size(size) {
+	Range(T *data, int size) noexcept : m_data(data), m_size(size) {
 		DASSERT(m_data || m_size == 0);
 		DASSERT(m_size >= 0);
 	}
@@ -218,21 +211,21 @@ template <class T> class Range {
 	constexpr auto cend() const noexcept {
 		return RangeIterator<const T>(m_data + m_size, m_size, 0);
 	}
-	constexpr auto begin() const noexcept { return cbegin(); }
-	constexpr auto end() const noexcept { return cend(); }
-	constexpr auto begin() noexcept { return RangeIterator<T>(m_data, 0, m_size); }
-	constexpr auto end() noexcept { return RangeIterator<T>(m_data + m_size, m_size, 0); }
+	auto begin() const noexcept { return cbegin(); }
+	auto end() const noexcept { return cend(); }
+	auto begin() noexcept { return RangeIterator<T>(m_data, 0, m_size); }
+	auto end() noexcept { return RangeIterator<T>(m_data + m_size, m_size, 0); }
 
-	constexpr const T *data() const noexcept { return m_data; }
-	constexpr T *data() noexcept { return m_data; }
+	const T *data() const noexcept { return m_data; }
+	T *data() noexcept { return m_data; }
 	constexpr int size() const noexcept { return m_size; }
 	constexpr bool empty() const noexcept { return m_size == 0; }
 
-	constexpr const T &operator[](int idx) const noexcept {
+	const T &operator[](int idx) const noexcept {
 		DASSERT(idx >= 0 && idx < m_size);
 		return m_data[idx];
 	}
-	constexpr T &operator[](int idx) noexcept {
+	T &operator[](int idx) noexcept {
 		DASSERT(idx >= 0 && idx < m_size);
 		return m_data[idx];
 	}
@@ -246,7 +239,7 @@ template <class T> class Range {
 template <class T, int TSize> class TRange : public Range<T> {
   public:
 	template <class... Args>
-	constexpr TRange(Args &&... args)
+	TRange(Args &&... args)
 		: Range<T>(std::forward<Args>(args)...) {
 		DASSERT(Range<T>::size() >= TSize);
 	}
