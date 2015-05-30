@@ -168,9 +168,7 @@ void SimpleMeshData::transformUV(const Matrix4 &matrix) {
 		m_tex_coords[n] = (matrix * float4(m_tex_coords[n], 0.0f, 1.0f)).xy();
 }
 
-void SimpleMeshData::computeBoundingBox() {
-	m_bounding_box = FBox(m_positions);
-}
+void SimpleMeshData::computeBoundingBox() { m_bounding_box = FBox(m_positions); }
 
 vector<SimpleMeshData::TriIndices> SimpleMeshData::trisIndices() const {
 	vector<TriIndices> out;
@@ -234,6 +232,13 @@ void MeshData::computeBoundingBox() {
 		m_bounding_box = sum(m_bounding_box, mesh.boundingBox());
 }
 
+int MeshData::findNode(const string &name) const {
+	for(int n = 0; n < (int)m_nodes.size(); n++)
+		if(m_nodes[n].name == name)
+			return n;
+	return -1;
+}
+
 Mesh::Mesh(const aiScene &scene) : Mesh(MeshData(scene)) {}
 
 Mesh::Mesh(const MeshData &data) : m_nodes(data.nodes()) {
@@ -256,6 +261,11 @@ void Mesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) 
 	}
 
 	out.popViewMatrix();
+}
+
+void Mesh::printHierarchy() const {
+	for(int n = 0; n < (int)m_nodes.size(); n++)
+		printf("%d: %s\n", n, m_nodes[n].name.c_str());
 }
 
 /*

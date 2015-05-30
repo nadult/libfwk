@@ -9,8 +9,9 @@ TODO: write more detailed description.
 
 ## Compilation
 
-libfwt requires C++11 support.
+libfwt requires C++14 support.
 
 To compile simply run make. If you want to cross-compile for mingw32,
 simply override MINGW\_PREFIX in Makefile.local with proper prefix.
+There is also an option to compile for the web (using emscripten).
 

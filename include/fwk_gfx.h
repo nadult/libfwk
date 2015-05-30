@@ -639,6 +639,7 @@ class MeshData {
 	const vector<SimpleMeshData> &meshes() const { return m_meshes; }
 
 	const FBox &boundingBox() const { return m_bounding_box; }
+	int findNode(const string &name) const;
 
   protected:
 	void computeBoundingBox();
@@ -659,6 +660,7 @@ class Mesh {
 	virtual ~Mesh() = default;
 
 	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
+	void printHierarchy() const;
 
   protected:
 	vector<Node> m_nodes;
@@ -797,6 +799,8 @@ class SkinnedMesh {
 	float intersect(const Segment &ray, const SkeletonPose &pose) const {
 		return m_data.intersect(ray, pose);
 	}
+	Matrix4 nodeTrans(const string &name, const SkeletonPose&) const;
+	void printHierarchy() const;
 
   protected:
 	SkinnedMeshData m_data;

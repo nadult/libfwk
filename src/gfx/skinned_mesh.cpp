@@ -31,7 +31,7 @@ Skeleton::Trans::operator const Matrix4() const {
 }
 
 Matrix4 lerp(const Skeleton::Trans &lhs, const Skeleton::Trans &rhs, float t) {
-	//TODO: there is some problem with interpolation of attack animation in knight.dae
+	// TODO: there is some problem with interpolation of attack animation in knight.dae
 	Quat rot = slerp(lhs.rot, rhs.rot, t);
 	float3 scale = lerp(lhs.scale, rhs.scale, t);
 	float3 pos = lerp(lhs.pos, rhs.pos, t);
@@ -90,8 +90,8 @@ SkeletalAnim::SkeletalAnim(const aiScene &ascene, int anim_id, const Skeleton &s
 			ASSERT(achannel.mScalingKeys[k].mTime == achannel.mRotationKeys[k].mTime);
 
 			float3 scl = convert(achannel.mScalingKeys[k].mValue);
-//			if(scl != float3(1, 1, 1))
-//				printf("%f %f %f\n", scl.x, scl.y, scl.z);
+			//			if(scl != float3(1, 1, 1))
+			//				printf("%f %f %f\n", scl.x, scl.y, scl.z);
 
 			new_channel.keys[k].trans = Trans(convert(achannel.mScalingKeys[k].mValue),
 											  convert(achannel.mPositionKeys[k].mValue),
@@ -315,5 +315,17 @@ void SkinnedMesh::draw(Renderer &out, const SkeletonPose &pose, const Material &
 		SimpleMesh(m_data.animateMesh(m, pose)).draw(out, material, Matrix4::identity());
 	out.popViewMatrix();
 	// m_data.drawSkeleton(out, anim_id, anim_pos, material.color());
+}
+
+Matrix4 SkinnedMesh::nodeTrans(const string &name, const SkeletonPose &pose) const {
+	for(int n = 0; n < (int)skeleton().size(); n++)
+		if(m_data.skeleton()[n].name == name)
+			return pose[n];
+	return Matrix4::identity();
+}
+
+void SkinnedMesh::printHierarchy() const {
+	for(int n = 0; n < m_data.skeleton().size(); n++)
+		printf("%d: %s\n", n, m_data.skeleton()[n].name.c_str());
 }
 }

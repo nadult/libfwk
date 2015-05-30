@@ -35,16 +35,14 @@ Quat::operator Matrix3() const {
 				   {(xz + yw), (yz - xw), 1.0f - (xx + yy)});
 }
 
-Quat::Quat(float y, float p, float r) {
+const Quat Quat::fromYawPitchRoll(float y, float p, float r) {
 	float cy, cp, cr, sy, sp, sr;
 	sincosf(y * 0.5f, &cy, &sy);
 	sincosf(p * 0.5f, &cp, &sp);
 	sincosf(r * 0.5f, &cr, &sr);
 
-	v[0] = cy * cp * sr - sy * sp * cr;
-	v[1] = cy * sp * cr + sy * cp * sr;
-	v[2] = sy * cp * cr - cy * sp * sr;
-	v[3] = cy * cp * cr + sy * sp * sr;
+	return Quat(cy * cp * sr - sy * sp * cr, cy * sp * cr + sy * cp * sr,
+				sy * cp * cr - cy * sp * sr, cy * cp * cr + sy * sp * sr);
 }
 
 Quat::Quat(const AxisAngle &aa) {
@@ -67,7 +65,9 @@ const Quat Quat::operator*(const Quat &q) const {
 					   v[3] * q[3] - v[0] * q[0] - v[1] * q[1] - q[2] * v[2]));
 }
 
-const Quat inverse(const Quat &q) { return Quat(float4(-q[0], -q[1], -q[2], q[3])); }
+const Quat inverse(const Quat &q) {
+	return conjugate(q) * (1.0f / dot(q, q));
+}
 
 const Quat normalize(const Quat &q) { return Quat(float4(q) / sqrtf(dot(q, q))); }
 
@@ -98,4 +98,23 @@ float distance(const Quat &lhs, const Quat &rhs) { return 2.0f * (1.0f - dot(lhs
 const Quat rotationBetween(const float3 &v1, const float3 &v2) {
 	return normalize(Quat(cross(v1, v2), sqrt(lengthSq(v1) * lengthSq(v2)) + dot(v1, v2)));
 }
+
+const Quat conjugate(const Quat &q) { return Quat(-q.xyz(), q.w); }
+
+/*
+ //TODO: fixme
+const Quat exp(const Quat &q) {
+	float r = length(q.xyz());
+	float s = r > constant::epsilon ? sin(r) / r : 1.0f;
+
+	return Quat(q.xyz() * s, cosf(r));
+}
+
+const Quat log(const Quat &q) {
+	float r = length(q.xyz());
+	float s = atanf(r / q.w);
+	return Quat(q.xyz() * s, 0.0f);
+}
+
+const Quat pow(const Quat &q, float value) { return exp(normalize(log(q)) * value); }*/
 }

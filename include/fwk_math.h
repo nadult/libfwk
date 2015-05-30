@@ -615,11 +615,13 @@ class Quat : public float4 {
 		return *this;
 	}
 
+	Quat(const float3 &xyz, float w) : float4(xyz, w) {}
+	Quat(float x, float y, float z, float w) : float4(x, y, z, w) {}
 	explicit Quat(const float4 &v) : float4(v) {}
 	explicit Quat(const Matrix3 &);
 	explicit Quat(const AxisAngle &);
-	Quat(const float3 &xyz, float w) : float4(xyz, w) {}
-	Quat(float yaw, float pitch, float roll);
+
+	static const Quat fromYawPitchRoll(float y, float p, float r);
 
 	const Quat operator*(float v) const { return Quat(float4::operator*(v)); }
 	const Quat operator+(const Quat &rhs) const { return Quat(float4::operator+(rhs)); }
@@ -637,11 +639,20 @@ const Quat inverse(const Quat &);
 const Quat normalize(const Quat &);
 const Quat slerp(const Quat &, Quat, float t);
 const Quat rotationBetween(const float3 &, const float3 &);
+const Quat conjugate(const Quat&);
 
 // in radians
 float distance(const Quat &, const Quat &);
 
-void decompose(const Matrix4 &, Quat &, float3 &);
+struct AffineTrans {
+	Quat rotation;
+	float3 translation;
+	float3 scale;
+};
+
+
+
+AffineTrans decompose(const Matrix4 &);
 
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 class Plane {
