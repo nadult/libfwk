@@ -380,6 +380,7 @@ class VertexBuffer {
 	void operator=(const VertexBuffer &) = delete;
 	VertexBuffer(const VertexBuffer &) = delete;
 
+	//TODO: figure a way of passing different range types here
 	template <class T>
 	VertexBuffer(const vector<T> &data)
 		: VertexBuffer(data.data(), (int)data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
@@ -669,14 +670,15 @@ class Mesh {
 
 using PMesh = shared_ptr<Mesh>;
 
-//TODO: add blending
+// TODO: add blending
 using SkeletonPose = vector<Matrix4>;
 
 class Skeleton {
   public:
 	struct Trans {
 		Trans() = default;
-		Trans(const float3 &scale, const float3 &pos, const Quat &quat) : scale(scale), pos(pos), rot(quat) {}
+		Trans(const float3 &scale, const float3 &pos, const Quat &quat)
+			: scale(scale), pos(pos), rot(quat) {}
 		Trans(const Matrix4 &);
 		operator const Matrix4() const;
 
@@ -799,7 +801,7 @@ class SkinnedMesh {
 	float intersect(const Segment &ray, const SkeletonPose &pose) const {
 		return m_data.intersect(ray, pose);
 	}
-	Matrix4 nodeTrans(const string &name, const SkeletonPose&) const;
+	Matrix4 nodeTrans(const string &name, const SkeletonPose &) const;
 	void printHierarchy() const;
 
   protected:
@@ -939,9 +941,11 @@ class Renderer : public MatrixStack {
 
 	void addDrawCall(const DrawCall &, const Material &,
 					 const Matrix4 &matrix = Matrix4::identity());
-	void addLines(const float3 *positions, int count, Color color,
+	void addLines(Range<const float3> verts, Color color,
 				  const Matrix4 &matrix = Matrix4::identity());
 	void addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
+	void addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords,
+				   const Material &, const Matrix4 &matrix = Matrix4::identity());
 
 	// TODO: this is useful
 	// Each line is represented by two vertices
@@ -956,10 +960,19 @@ class Renderer : public MatrixStack {
 		DrawCall draw_call;
 	};
 
+	struct SpriteInstance {
+		Matrix4 matrix;
+		Material material;
+		array<float3, 4> verts;
+		array<float2, 4> tex_coords;
+	};
+
 	struct LineInstance {
 		Matrix4 matrix;
 		int first, count;
 	};
+
+	vector<SpriteInstance> m_sprites;
 
 	vector<LineInstance> m_lines;
 	vector<float3> m_line_positions;

@@ -25,6 +25,8 @@ using std::vector;
 using std::unique_ptr;
 using std::shared_ptr;
 
+using std::begin;
+using std::end;
 using std::make_pair;
 using std::make_shared;
 using std::make_unique;
@@ -115,14 +117,14 @@ void logError(const string &error);
 
 template <class T> class Range;
 
-template <class T> class RangeIterator {
+template <class T> class RangeIterator : public std::iterator<std::random_access_iterator_tag, T> {
   protected:
 #ifdef NDEBUG
 	constexpr RangeIterator(T *pointer, int, int) noexcept : m_pointer(pointer) {}
 #else
 	RangeIterator(T *pointer, int left, int right) noexcept : m_pointer(pointer),
-																		m_left(left),
-																		m_right(right) {
+															  m_left(left),
+															  m_right(right) {
 		DASSERT(m_pointer);
 		DASSERT(left >= 0 && right >= 0);
 	}
@@ -181,6 +183,7 @@ template <class T> class PodArray;
 // TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
 template <class T> class Range {
   public:
+	Range(std::vector<T> &data) : Range(data.data(), data.size()) {}
 	template <class TConvertible>
 	constexpr Range(const std::vector<TConvertible> &vec) noexcept : Range(vec.data(), vec.size()) {
 	}
@@ -236,21 +239,45 @@ template <class T> class Range {
 };
 
 // TODO: better name
-template <class T, int TSize> class TRange : public Range<T> {
+// TODO: Minimum size is a bit misleading, user could expect exact size
+template <class T, int MinSize> class TRange : public Range<T> {
   public:
-	template <class... Args>
-	TRange(Args &&... args)
-		: Range<T>(std::forward<Args>(args)...) {
-		DASSERT(Range<T>::size() >= TSize);
+	template <class... Args> TRange(Args &&... args) : Range<T>(std::forward<Args>(args)...) {
+		DASSERT(Range<T>::size() >= MinSize);
 	}
 	template <class TConvertible, int N>
 	constexpr TRange(TConvertible(&array)[N]) noexcept : Range<T>(array, N) {
-		static_assert(N >= TSize, "Array not big enough");
+		static_assert(N >= MinSize, "Array not big enough");
 	}
 };
 
 template <class T> using CRangeIterator = RangeIterator<const T>;
 template <class T> using CRange = Range<const T>;
+
+template <class T> auto makeRange(const std::vector<T> &vec) noexcept {
+	return Range<const T>(vec.data(), vec.size());
+}
+
+template <class T> auto makeRange(std::vector<T> &vec) noexcept {
+	return Range<T>(vec.data(), vec.size());
+}
+
+template <class T> auto makeRange(const PodArray<T> &vec) noexcept {
+	return Range<const T>(vec.data(), vec.size());
+}
+
+template <class T> auto makeRange(PodArray<T> &vec) noexcept {
+	return Range<T>(vec.data(), vec.size());
+}
+
+template <class T, int N> auto makeRange(T(&array)[N]) noexcept { return TRange<T, N>(array); }
+
+template <class T> Range<typename T::value_type> makeRange(T *begin, T *end) noexcept {
+	return Range<typename T::value_type>(begin, (int)(end - begin));
+}
+
+template <class T> auto makeRange(T *data, int size) noexcept { return Range<T>(data, size); }
+
 
 // TODO: move to string_ref.cpp
 // Simple reference to string

@@ -70,10 +70,12 @@ void Renderer::addDrawCall(const DrawCall &draw_call, const Material &material,
 	m_instances.emplace_back(Instance{fullMatrix() * matrix, material, draw_call});
 }
 	
-void Renderer::addLines(const float3 *positions, int count, Color color, const Matrix4 &matrix) {
-	m_lines.emplace_back(LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), count});
-	m_line_positions.insert(m_line_positions.end(), positions, positions + count);
-	m_line_colors.resize(m_line_colors.size() + count, color);
+void Renderer::addLines(Range<const float3> verts, Color color, const Matrix4 &matrix) {
+	DASSERT(verts.size() % 2 == 0);
+
+	m_lines.emplace_back(LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), verts.size()});
+	m_line_positions.insert(m_line_positions.end(), begin(verts), end(verts));
+	m_line_colors.resize(m_line_colors.size() + verts.size(), color);
 }
 
 void Renderer::addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix) {
@@ -84,7 +86,18 @@ void Renderer::addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix
 	float3 out_verts[arraySize(indices)];
 	for(int i = 0; i < arraySize(indices); i++)
 		out_verts[i] = verts[indices[i]];
-	addLines(out_verts, arraySize(out_verts), color, matrix);
+	addLines(out_verts, color, matrix);
+}
+
+
+void Renderer::addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords,
+				   const Material &material, const Matrix4 &matrix) {
+	SpriteInstance new_sprite;
+	new_sprite.matrix = fullMatrix() * matrix;
+	new_sprite.material = material;
+	std::copy(begin(verts), begin(verts) + 4, begin(new_sprite.verts));
+	std::copy(begin(tex_coords), begin(tex_coords) + 4, begin(new_sprite.tex_coords));
+	m_sprites.push_back(new_sprite);
 }
 
 void Renderer::render() {
@@ -104,6 +117,35 @@ void Renderer::render() {
 		instance.draw_call.issue();
 	}
 
+	GfxDevice::setBlendingMode(GfxDevice::bmNormal);
+	glDisable(GL_CULL_FACE);
+	glDepthMask(0);
+	{
+		vector<float3> positions;
+		vector<float2> tex_coords;
+		for(const auto &sprite : m_sprites) {
+			positions.insert(end(positions), begin(sprite.verts), end(sprite.verts));
+			tex_coords.insert(end(tex_coords), begin(sprite.tex_coords), end(sprite.tex_coords));
+		}
+
+		VertexArray sprite_array({make_shared<VertexBuffer>(positions),
+								  VertexArraySource(Color::white),
+				                  make_shared<VertexBuffer>(tex_coords)});
+
+		//TODO: transform to screen space, divide into regions, sort each region
+		for(int n = 0; n < (int)m_sprites.size(); n++) {
+			const auto &instance = m_sprites[n];
+			auto &program = (instance.material.texture() ? m_tex_program : m_flat_program);
+			program->bind();
+			program->setUniform("proj_view_matrix", instance.matrix);
+			program->setUniform("mesh_color", (float4)instance.material.color());
+			if(instance.material.texture())
+				instance.material.texture()->bind();
+			sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
+		}
+	}
+
+	glDepthMask(1);
 	VertexArray line_array({make_shared<VertexBuffer>(m_line_positions),
 			                make_shared<VertexBuffer>(m_line_colors),
 							VertexArraySource(float2(0, 0))});
@@ -116,6 +158,7 @@ void Renderer::render() {
 	}
 
 	m_instances.clear();
+	m_sprites.clear();
 	m_line_positions.clear();
 	m_line_colors.clear();
 	m_lines.clear();
