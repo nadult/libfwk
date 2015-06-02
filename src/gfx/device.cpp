@@ -89,8 +89,7 @@ int GfxDevice::translateFromSDL(int key_code) const {
 	if(key_code >= 0 && key_code <= 255)
 		return key_code;
 	auto it = m_inv_map.find(key_code);
-	DASSERT(it != m_inv_map.end());
-	return it->second;
+	return it == m_inv_map.end()? -1 : it->second;
 }
 
 GfxDevice::~GfxDevice() { SDL_Quit(); }
@@ -192,6 +191,9 @@ bool GfxDevice::pollEvents() {
 		switch(event.type) {
 		case SDL_KEYDOWN: {
 			int key_id = translateFromSDL(event.key.keysym.sym);
+			if(key_id == -1)
+				break;
+
 			bool is_pressed = false;
 			for(const auto &key_state : m_input_state.keys)
 				if(key_state.first == key_id)
@@ -204,6 +206,9 @@ bool GfxDevice::pollEvents() {
 		}
 		case SDL_KEYUP: {
 			int key_id = translateFromSDL(event.key.keysym.sym);
+			if(key_id == -1)
+				break;
+
 			events.emplace_back(InputEvent::key_up, key_id, 0);
 			for(auto &key_state : m_input_state.keys)
 				if(key_state.first == key_id)
