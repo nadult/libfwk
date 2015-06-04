@@ -639,7 +639,7 @@ const Quat inverse(const Quat &);
 const Quat normalize(const Quat &);
 const Quat slerp(const Quat &, Quat, float t);
 const Quat rotationBetween(const float3 &, const float3 &);
-const Quat conjugate(const Quat&);
+const Quat conjugate(const Quat &);
 
 // in radians
 float distance(const Quat &, const Quat &);
@@ -649,8 +649,6 @@ struct AffineTrans {
 	float3 translation;
 	float3 scale;
 };
-
-
 
 AffineTrans decompose(const Matrix4 &);
 
@@ -705,7 +703,7 @@ struct Segment : public Ray {
 	float min() const { return m_min; }
 	float max() const { return m_max; }
 
-	private:
+  private:
 	float m_min, m_max;
 };
 
@@ -718,7 +716,9 @@ float intersection(const Segment &segment, const float3 &p1, const float3 &p2, c
 const Segment operator*(const Matrix4 &, const Segment &);
 
 float intersection(const Segment &, const Plane &);
-inline float intersection(const Plane &plane, const Segment &ray) { return intersection(ray, plane); }
+inline float intersection(const Plane &plane, const Segment &ray) {
+	return intersection(ray, plane);
+}
 
 bool intersection(const Plane &, const Plane &, Ray &ray);
 
@@ -753,6 +753,31 @@ class Frustum {
 };
 
 const Frustum operator*(const Matrix4 &, const Frustum &);
+
+class Cylinder {
+  public:
+	Cylinder(const float3 &pos, float radius, float height)
+		: m_pos(pos), m_radius(radius), m_height(height) {}
+
+	const float3 &pos() const { return m_pos; }
+	float radius() const { return m_radius; }
+	float height() const { return m_height; }
+
+	FBox enclosingBox() const {
+		return FBox(-m_radius, 0, -m_radius, m_radius, m_height, m_radius) + m_pos;
+	}
+	Cylinder operator+(const float3 &offset) const {
+		return Cylinder(m_pos + offset, m_radius, m_height);
+	}
+
+  private:
+	float3 m_pos;
+	float m_radius;
+	float m_height;
+};
+
+bool areIntersecting(const Cylinder &, const Cylinder &);
+bool areIntersecting(const FBox &, const Cylinder &);
 
 static_assert(sizeof(Matrix3) == sizeof(float3) * 3, "Wrong size of Matrix3 class");
 static_assert(sizeof(Matrix4) == sizeof(float4) * 4, "Wrong size of Matrix4 class");

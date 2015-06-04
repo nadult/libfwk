@@ -78,7 +78,7 @@ void Renderer::addLines(Range<const float3> verts, Color color, const Matrix4 &m
 	m_line_colors.resize(m_line_colors.size() + verts.size(), color);
 }
 
-void Renderer::addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix) {
+void Renderer::addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix) {
 	float3 verts[8];
 	bbox.getCorners(verts);
 

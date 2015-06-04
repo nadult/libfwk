@@ -953,7 +953,8 @@ class Renderer : public MatrixStack {
 					 const Matrix4 &matrix = Matrix4::identity());
 	void addLines(Range<const float3> verts, Color color,
 				  const Matrix4 &matrix = Matrix4::identity());
-	void addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
+
+	void addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
 	void addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords,
 				   const Material &, const Matrix4 &matrix = Matrix4::identity());
 
