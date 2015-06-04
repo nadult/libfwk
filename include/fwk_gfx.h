@@ -810,20 +810,30 @@ class SkinnedMesh {
 
 using PSkinnedMesh = shared_ptr<SkinnedMesh>;
 
+
+
 class Material {
   public:
-	Material(PTexture texture, Color color = Color::white) : m_texture(texture), m_color(color) {}
-	Material(Color color = Color::white) : m_color(color) {}
+	enum Flags {
+		flag_blended = 1,
+		flag_two_sided = 2,
+	};
+
+	Material(PTexture texture, Color color = Color::white, uint flags = 0) : m_texture(texture), m_color(color), m_flags(flags) {}
+	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
 
 	PTexture texture() const { return m_texture; }
 	Color color() const { return m_color; }
+	uint flags() const { return m_flags; }
+
 	bool operator<(const Material &rhs) const {
-		return m_texture == rhs.m_texture ? m_color < rhs.m_color : m_texture < rhs.m_texture;
+		return m_flags == rhs.m_flags? m_texture == rhs.m_texture ? m_color < rhs.m_color : m_texture < rhs.m_texture : m_flags < rhs.m_flags;
 	}
 
   protected:
 	PTexture m_texture;
 	Color m_color;
+	uint m_flags;
 };
 
 class AssimpImporter {

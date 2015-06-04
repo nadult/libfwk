@@ -58,8 +58,7 @@ struct ProgramFactory {
 	}
 };
 
-
-Renderer::Renderer(const Matrix4 &projection_matrix) :MatrixStack(projection_matrix) {
+Renderer::Renderer(const Matrix4 &projection_matrix) : MatrixStack(projection_matrix) {
 	static ResourceManager<Program, ProgramFactory> mgr;
 	m_tex_program = mgr["with_texture"];
 	m_flat_program = mgr["without_texture"];
@@ -69,11 +68,12 @@ void Renderer::addDrawCall(const DrawCall &draw_call, const Material &material,
 						   const Matrix4 &matrix) {
 	m_instances.emplace_back(Instance{fullMatrix() * matrix, material, draw_call});
 }
-	
+
 void Renderer::addLines(Range<const float3> verts, Color color, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 
-	m_lines.emplace_back(LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), verts.size()});
+	m_lines.emplace_back(
+		LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), verts.size()});
 	m_line_positions.insert(m_line_positions.end(), begin(verts), end(verts));
 	m_line_colors.resize(m_line_colors.size() + verts.size(), color);
 }
@@ -82,16 +82,15 @@ void Renderer::addBBoxLines(const FBox &bbox, Color color, const Matrix4 &matrix
 	float3 verts[8];
 	bbox.getCorners(verts);
 
-	int indices[] = { 0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 4, 1, 5, 3, 7, 2, 6 };
+	int indices[] = {0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 4, 1, 5, 3, 7, 2, 6};
 	float3 out_verts[arraySize(indices)];
 	for(int i = 0; i < arraySize(indices); i++)
 		out_verts[i] = verts[indices[i]];
 	addLines(out_verts, color, matrix);
 }
 
-
 void Renderer::addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords,
-				   const Material &material, const Matrix4 &matrix) {
+						 const Material &material, const Matrix4 &matrix) {
 	SpriteInstance new_sprite;
 	new_sprite.matrix = fullMatrix() * matrix;
 	new_sprite.material = material;
@@ -101,7 +100,6 @@ void Renderer::addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> 
 }
 
 void Renderer::render() {
-	GfxDevice::setBlendingMode(GfxDevice::bmDisabled);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -112,6 +110,9 @@ void Renderer::render() {
 		program->bind();
 		program->setUniform("proj_view_matrix", instance.matrix);
 		program->setUniform("mesh_color", (float4)instance.material.color());
+		GfxDevice::setBlendingMode(instance.material.flags() & Material::flag_blended
+									   ? GfxDevice::bmNormal
+									   : GfxDevice::bmDisabled);
 		if(instance.material.texture())
 			instance.material.texture()->bind();
 		instance.draw_call.issue();
@@ -130,9 +131,9 @@ void Renderer::render() {
 
 		VertexArray sprite_array({make_shared<VertexBuffer>(positions),
 								  VertexArraySource(Color::white),
-				                  make_shared<VertexBuffer>(tex_coords)});
+								  make_shared<VertexBuffer>(tex_coords)});
 
-		//TODO: transform to screen space, divide into regions, sort each region
+		// TODO: transform to screen space, divide into regions, sort each region
 		for(int n = 0; n < (int)m_sprites.size(); n++) {
 			const auto &instance = m_sprites[n];
 			auto &program = (instance.material.texture() ? m_tex_program : m_flat_program);
@@ -147,7 +148,7 @@ void Renderer::render() {
 
 	glDepthMask(1);
 	VertexArray line_array({make_shared<VertexBuffer>(m_line_positions),
-			                make_shared<VertexBuffer>(m_line_colors),
+							make_shared<VertexBuffer>(m_line_colors),
 							VertexArraySource(float2(0, 0))});
 	DTexture::unbind();
 	m_flat_program->bind();
