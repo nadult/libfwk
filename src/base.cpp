@@ -225,7 +225,6 @@ void TextFormatter::operator()(const char *format, ...) {
 			memcpy(new_data.data(), m_data.data(), m_offset + 1);
 			new_data.swap(m_data);
 			realloc_needed = true;
-			printf("re to: %d\n", m_data.size());
 		} else {
 			m_offset += offset;
 			realloc_needed = false;
