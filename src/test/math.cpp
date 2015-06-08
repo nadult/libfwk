@@ -1,6 +1,5 @@
 #include "fwk_math.h"
 #include "fwk_base.h"
-#include <SDL.h>
 
 using namespace fwk;
 

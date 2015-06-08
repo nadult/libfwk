@@ -10,14 +10,14 @@ DEFINE_ENUM(SomeEnum, "foo", "bar", "foo_bar");
 	{                                                                                              \
 		bool exception_thrown = false;                                                             \
 		try {                                                                                      \
-			code ;                                                                                  \
+			code;                                                                                  \
 		} catch(...) { exception_thrown = true; }                                                  \
 		ASSERT(exception_thrown);                                                                  \
 	}
 
 int main() {
 	ASSERT(SomeEnum::fromString("foo") == SomeEnum::foo);
-	ASSERT_EXCEPTION( SomeEnum::fromString("something else") );
+	ASSERT_EXCEPTION(SomeEnum::fromString("something else"));
 	ASSERT(SomeEnum::fromString("something else", true) == SomeEnum::invalid);
 
 	ASSERT(string("foo_bar") == toString(SomeEnum::foo_bar));

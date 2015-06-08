@@ -1,5 +1,4 @@
 #include "fwk.h"
-#include <SDL.h>
 
 using namespace fwk;
 
@@ -40,7 +39,7 @@ int safe_main(int argc, char **argv) {
 	int2 res(640, 480);
 
 	auto &gfx_device = GfxDevice::instance();
-	gfx_device.createWindow(res, false);
+	gfx_device.createWindow("foo", res, false);
 
 	// setBlendingMode(bmDisabled);
 	s_viewport = IRect(res);

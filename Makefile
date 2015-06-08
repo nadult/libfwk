@@ -50,7 +50,7 @@ MINGW_STRIP=$(MINGW_PREFIX)strip
 MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-LIBS=freetype2 sdl libpng zlib libmpg123 assimp
+LIBS=freetype2 sdl2 libpng zlib libmpg123 assimp
 LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lopenal -lGL -lGLU -lrt -fopenmp 
 MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
@@ -60,7 +60,7 @@ NICE_FLAGS=-std=c++14 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=retu
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
 LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-HTML5_FLAGS=-DFWK_TARGET_HTML5 -s USE_LIBPNG=1 -s USE_ZLIB=1 -s USE_ASSIMP=1 $(NICE_FLAGS) $(INCLUDES) -lSDL -O0
+HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_ZLIB=1 -s USE_ASSIMP=1 $(NICE_FLAGS) $(INCLUDES)
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
 	$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@
@@ -73,10 +73,10 @@ $(MINGW_OBJECTS): $(BUILD_DIR)/%_.o: src/%.cpp
 	$(MINGW_CXX) $(MINGW_FLAGS) -c src/$*.cpp -o $@
 
 $(LINUX_PROGRAMS): %:     $(LINUX_SHARED_OBJECTS) $(BUILD_DIR)/%.o
-	$(LINUX_CXX) -o $@ $^ -rdynamic $(LIBS_$@) $(LINUX_LIBS)
+	$(LINUX_CXX) -o $@ $^ -rdynamic $(LINUX_LIBS) $(LIBS_$@)
 
 $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
-	$(MINGW_CXX) -o $@ $^  $(LIBS_$*) $(MINGW_LIBS)
+	$(MINGW_CXX) -o $@ $^ $(MINGW_LIBS) $(LIBS_$*)
 	$(MINGW_STRIP) $@
 
 $(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)

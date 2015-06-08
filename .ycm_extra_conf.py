@@ -64,7 +64,7 @@ flags = [
 '-isystem',
 '/usr/local/include',
 '-isystem',
-'/usr/include/SDL',
+'/usr/include/SDL2',
 ]
 
 

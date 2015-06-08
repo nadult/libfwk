@@ -2,6 +2,8 @@
 
    This file is part of libfwk. */
 
+#define SDL_MAIN_HANDLED
+
 #include "fwk_gfx.h"
 #include "fwk_opengl.h"
 #include <memory.h>
@@ -16,6 +18,10 @@
 
 namespace fwk {
 
+static void reportSDLError(const char *func_name) {
+	THROW("Error on %s: %s", func_name, SDL_GetError());
+}
+
 void loadExtensions();
 
 GfxDevice &GfxDevice::instance() {
@@ -24,51 +30,47 @@ GfxDevice &GfxDevice::instance() {
 }
 
 GfxDevice::GfxDevice()
-	: m_main_loop_function(nullptr), m_last_time(-1.0)/*, m_press_delay(0.2), m_clock(0)*/ {
+	: m_main_loop_function(nullptr), m_last_time(-1.0) /*, m_press_delay(0.2), m_clock(0)*/
+{
 
 	struct Pair {
 		int key, sdl_key;
 	} pairs[] = {
 #define PAIR(input_key, sdl_key)                                                                   \
 	{ InputKey::input_key, SDLK_##sdl_key }
-		  PAIR(space, SPACE),		   PAIR(esc, ESCAPE),		   PAIR(f1, F1),
-		  PAIR(f2, F2),				   PAIR(f3, F3),			   PAIR(f4, F4),
-		  PAIR(f5, F5),				   PAIR(f6, F6),			   PAIR(f7, F7),
-		  PAIR(f8, F8),				   PAIR(f9, F9),			   PAIR(f10, F10),
-		  PAIR(f11, F11),			   PAIR(f12, F12),			   PAIR(up, UP),
-		  PAIR(down, DOWN),			   PAIR(left, LEFT),		   PAIR(right, RIGHT),
-		  PAIR(lshift, LSHIFT),		   PAIR(rshift, RSHIFT),	   PAIR(lctrl, LCTRL),
-		  PAIR(rctrl, RCTRL),		   PAIR(lalt, LALT),		   PAIR(ralt, RALT),
-		  PAIR(tab, TAB),			   PAIR(enter, RETURN),		   PAIR(backspace, BACKSPACE),
-		  PAIR(insert, INSERT),		   PAIR(del, DELETE),		   PAIR(pageup, PAGEUP),
-		  PAIR(pagedown, PAGEDOWN),	PAIR(home, HOME),		   PAIR(end, END),
-		  /*	PAIR(kp_0, KP_0),
-			  PAIR(kp_1, KP_1),
-			  PAIR(kp_2, KP_2),
-			  PAIR(kp_3, KP_3),
-			  PAIR(kp_4, KP_4),
-			  PAIR(kp_5, KP_5),
-			  PAIR(kp_6, KP_6),
-			  PAIR(kp_7, KP_7),
-			  PAIR(kp_8, KP_8),
-			  PAIR(kp_9, KP_9),*/
-		  PAIR(kp_0, KP0),			   PAIR(kp_1, KP1),			   PAIR(kp_2, KP2),
-		  PAIR(kp_3, KP3),			   PAIR(kp_4, KP4),			   PAIR(kp_5, KP5),
-		  PAIR(kp_6, KP6),			   PAIR(kp_7, KP7),			   PAIR(kp_8, KP8),
-		  PAIR(kp_9, KP9),			   PAIR(kp_divide, KP_DIVIDE), PAIR(kp_multiply, KP_MULTIPLY),
-		  PAIR(kp_subtract, KP_MINUS), PAIR(kp_add, KP_PLUS),
-		  //	PAIR(kp_decimal, KP_DECIMAL),
-		  PAIR(kp_enter, KP_ENTER),	PAIR(kp_period, KP_PERIOD),
+		PAIR(space, SPACE), PAIR(esc, ESCAPE), PAIR(f1, F1), PAIR(f2, F2), PAIR(f3, F3),
+		PAIR(f4, F4), PAIR(f5, F5), PAIR(f6, F6), PAIR(f7, F7), PAIR(f8, F8), PAIR(f9, F9),
+		PAIR(f10, F10), PAIR(f11, F11), PAIR(f12, F12), PAIR(up, UP), PAIR(down, DOWN),
+		PAIR(left, LEFT), PAIR(right, RIGHT), PAIR(lshift, LSHIFT), PAIR(rshift, RSHIFT),
+		PAIR(lctrl, LCTRL), PAIR(rctrl, RCTRL), PAIR(lalt, LALT), PAIR(ralt, RALT), PAIR(tab, TAB),
+		PAIR(enter, RETURN), PAIR(backspace, BACKSPACE), PAIR(insert, INSERT), PAIR(del, DELETE),
+		PAIR(pageup, PAGEUP), PAIR(pagedown, PAGEDOWN), PAIR(home, HOME), PAIR(end, END),
+		/*	PAIR(kp_0, KP_0),
+			PAIR(kp_1, KP_1),
+			PAIR(kp_2, KP_2),
+			PAIR(kp_3, KP_3),
+			PAIR(kp_4, KP_4),
+			PAIR(kp_5, KP_5),
+			PAIR(kp_6, KP_6),
+			PAIR(kp_7, KP_7),
+			PAIR(kp_8, KP_8),
+			PAIR(kp_9, KP_9),*/
+		PAIR(kp_0, KP_0), PAIR(kp_1, KP_1), PAIR(kp_2, KP_2), PAIR(kp_3, KP_3), PAIR(kp_4, KP_4),
+		PAIR(kp_5, KP_5), PAIR(kp_6, KP_6), PAIR(kp_7, KP_7), PAIR(kp_8, KP_8), PAIR(kp_9, KP_9),
+		PAIR(kp_divide, KP_DIVIDE), PAIR(kp_multiply, KP_MULTIPLY), PAIR(kp_subtract, KP_MINUS),
+		PAIR(kp_add, KP_PLUS),
+		//	PAIR(kp_decimal, KP_DECIMAL),
+		PAIR(kp_enter, KP_ENTER), PAIR(kp_period, KP_PERIOD),
 #undef PAIR
-	  };
+	};
 
 	for(int n = 0; n < arraySize(pairs); n++) {
 		m_key_map[pairs[n].key] = pairs[n].sdl_key;
 		m_inv_map[pairs[n].sdl_key] = pairs[n].key;
 	}
 
-	if(SDL_Init(SDL_INIT_EVERYTHING) != 0)
-		THROW("Error while initializing SDL");
+	if(SDL_Init(SDL_INIT_VIDEO) != 0)
+		reportSDLError("SDL_Init");
 	//	SDL_GL_SetSwapInterval(1);
 
 	memset(&m_input_state, 0, sizeof(m_input_state));
@@ -89,28 +91,48 @@ int GfxDevice::translateFromSDL(int key_code) const {
 	if(key_code >= 0 && key_code <= 255)
 		return key_code;
 	auto it = m_inv_map.find(key_code);
-	return it == m_inv_map.end()? -1 : it->second;
+	return it == m_inv_map.end() ? -1 : it->second;
 }
 
-GfxDevice::~GfxDevice() { SDL_Quit(); }
+GfxDevice::~GfxDevice() {
+	m_window_impl.reset();
+	SDL_Quit();
+}
 
-void GfxDevice::createWindow(int2 size, bool full) {
-	SDL_Surface *surface = SDL_SetVideoMode(size.x, size.y, 32, SDL_OPENGL | SDL_DOUBLEBUF);
-	if(!surface)
-		THROW("Error while creating SDL window");
-	//	if(SDL_CreateWindow("foobar", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, size.x,
-	// size.y,
-	//						SDL_WINDOW_OPENGL) != 0)
-	//		THROW("Error while creating SDL window");
+struct GfxDevice::WindowImpl {
+  public:
+	WindowImpl(const string &name, int2 size, bool full) {
+		int flags = SDL_WINDOW_OPENGL | (full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+		window = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+								  size.x, size.y, flags);
+		if(!window)
+			reportSDLError("SDL_CreateWindow");
+		if(!(gl_context = SDL_GL_CreateContext(window))) {
+			SDL_DestroyWindow(window);
+			reportSDLError("SDL_GL_CreateContext");
+		}
+	}
+	~WindowImpl() {
+		SDL_GL_DeleteContext(gl_context);
+		SDL_DestroyWindow(window);
+	}
 
-	//	SDL_GL_SetSwapInterval(1);
+	SDL_Window *window;
+	SDL_GLContext gl_context;
+};
+
+void GfxDevice::createWindow(const string &name, int2 size, bool full) {
+	if(m_window_impl)
+		THROW("For now only single window is supported");
+	m_window_impl = make_unique<WindowImpl>(name, size, full);
+	SDL_GL_SetSwapInterval(1);
 
 	loadExtensions();
-//	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-//	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-//	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-//	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-//	glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
+	//	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	//	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+	//	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+	//	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	//	glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
 
 	glViewport(0, 0, size.x, size.y);
 }
@@ -133,7 +155,8 @@ void GfxDevice::printDeviceInfo() {
 double GfxDevice::targetFrameTime() { return 1.0 / 60.0; }
 
 void GfxDevice::tick() {
-	SDL_GL_SwapBuffers();
+	DASSERT(m_window_impl);
+	SDL_GL_SwapWindow(m_window_impl->window);
 	double time_diff = getTime() - m_last_time;
 
 	bool needs_sleep = true;
@@ -265,7 +288,8 @@ bool GfxDevice::pollEvents() {
 	m_input_events.emplace_back(InputEvent::mouse_over);
 
 	for(auto &event : m_input_events)
-		event.init(modifiers, m_input_state.mouse_pos, m_input_state.mouse_move, m_input_state.mouse_wheel);
+		event.init(modifiers, m_input_state.mouse_pos, m_input_state.mouse_move,
+				   m_input_state.mouse_wheel);
 
 	return true;
 }
@@ -386,5 +410,4 @@ void GfxDevice::setScissorTest(bool is_enabled) {
 	else
 		glDisable(GL_SCISSOR_TEST);
 }
-
 }

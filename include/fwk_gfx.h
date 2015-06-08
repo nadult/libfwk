@@ -275,7 +275,7 @@ class GfxDevice {
 	// Swaps frames and synchronizes frame rate
 	void tick();
 
-	void createWindow(int2 size, bool fullscreen);
+	void createWindow(const string &name, int2 size, bool fullscreen);
 	void destroyWindow();
 	void printDeviceInfo();
 
@@ -324,6 +324,9 @@ class GfxDevice {
 	std::map<int, int> m_inv_map;
 	//	double m_time_pressed[InputKey::count];
 	double m_last_time;
+
+	struct WindowImpl;
+	unique_ptr<WindowImpl> m_window_impl;
 	//	double m_press_delay;
 	//	int m_clock;
 };
