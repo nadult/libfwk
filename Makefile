@@ -58,8 +58,8 @@ INCLUDES=-Iinclude/ -Isrc/
 
 NICE_FLAGS=-std=c++14 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
-LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_ZLIB=1 -s USE_ASSIMP=1 $(NICE_FLAGS) $(INCLUDES)
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp

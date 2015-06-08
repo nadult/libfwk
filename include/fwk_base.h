@@ -344,8 +344,7 @@ int enumFromString(const char *str, const char **enum_strings, int enum_strings_
 		static const char *s_strings[] = {__VA_ARGS__};                                            \
 		static_assert(arraySize(s_strings) == count, "String count does not match enum count");    \
 		const char *toString(int value, const char *on_invalid) {                                  \
-			DASSERT((on_invalid && value == invalid) || isValid(value));                           \
-			return value == invalid ? on_invalid : s_strings[value];                               \
+			return !isValid(value) ? on_invalid : s_strings[value];                                \
 		}                                                                                          \
 		Type fromString(const char *str, bool handle_invalid) {                                    \
 			return (Type)fwk::enumFromString(str, s_strings, count, handle_invalid);               \
