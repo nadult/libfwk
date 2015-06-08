@@ -278,7 +278,6 @@ template <class T> Range<typename T::value_type> makeRange(T *begin, T *end) noe
 
 template <class T> auto makeRange(T *data, int size) noexcept { return Range<T>(data, size); }
 
-
 // TODO: move to string_ref.cpp
 // Simple reference to string
 // User have to make sure that referenced data is alive as long as StringRef
@@ -328,13 +327,15 @@ inline bool caseLess(const StringRef a, const StringRef b) {
 	return strcasecmp(a.c_str(), b.c_str()) < 0;
 }
 
-int enumFromString(const char *str, const char **enum_strings, int enum_strings_count);
+int enumFromString(const char *str, const char **enum_strings, int enum_strings_count,
+				   bool handle_invalid);
 
+// See test/enums.cpp for example usage
 #define DECLARE_ENUM(type, ...)                                                                    \
 	namespace type {                                                                               \
-		enum Type : char { __VA_ARGS__, count };                                                   \
-		const char *toString(int);                                                                 \
-		Type fromString(const char *);                                                             \
+		enum Type : char { invalid = -1, __VA_ARGS__, count };                                     \
+		const char *toString(int, const char *on_invalid = nullptr);                               \
+		Type fromString(const char *, bool handle_invalid = false);                                \
 		inline constexpr bool isValid(int val) { return val >= 0 && val < count; }                 \
 	}
 
@@ -342,12 +343,12 @@ int enumFromString(const char *str, const char **enum_strings, int enum_strings_
 	namespace type {                                                                               \
 		static const char *s_strings[] = {__VA_ARGS__};                                            \
 		static_assert(arraySize(s_strings) == count, "String count does not match enum count");    \
-		const char *toString(int value) {                                                          \
-			DASSERT(isValid(value));                                                               \
-			return s_strings[value];                                                               \
+		const char *toString(int value, const char *on_invalid) {                                  \
+			DASSERT((on_invalid && value == invalid) || isValid(value));                           \
+			return value == invalid ? on_invalid : s_strings[value];                               \
 		}                                                                                          \
-		Type fromString(const char *str) {                                                         \
-			return (Type)fwk::enumFromString(str, s_strings, count);                               \
+		Type fromString(const char *str, bool handle_invalid) {                                    \
+			return (Type)fwk::enumFromString(str, s_strings, count, handle_invalid);               \
 		}                                                                                          \
 	}
 

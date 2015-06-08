@@ -169,19 +169,21 @@ const char *strcasestr(const char *a, const char *b) {
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
-int enumFromString(const char *str, const char **strings, int count) {
+int enumFromString(const char *str, const char **strings, int count, bool handle_invalid) {
 	DASSERT(str);
 	for(int n = 0; n < count; n++)
 		if(strcmp(str, strings[n]) == 0)
 			return n;
 
-	char tstrings[1024], *ptr = tstrings;
-	for(int i = 0; i < count; i++)
-		ptr += snprintf(ptr, sizeof(tstrings) - (ptr - tstrings), "%s ", strings[i]);
-	if(count)
-		ptr[-1] = 0;
+	if(!handle_invalid) {
+		char tstrings[1024], *ptr = tstrings;
+		for(int i = 0; i < count; i++)
+			ptr += snprintf(ptr, sizeof(tstrings) - (ptr - tstrings), "%s ", strings[i]);
+		if(count)
+			ptr[-1] = 0;
+		THROW("Error while finding string \"%s\" in array (%s)", str, tstrings);
+	}
 
-	THROW("Error while finding string \"%s\" in array (%s)", str, tstrings);
 	return -1;
 }
 

@@ -17,7 +17,7 @@ SHARED_SRC=base filesystem input profiler stream xml xml_conversions \
 		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/mesh gfx/matrix_stack \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d math/cylinder \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat math/base
-PROGRAM_SRC=test/streams test/stuff test/math test/window
+PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
 HTML5_SRC=filesystem_linux
