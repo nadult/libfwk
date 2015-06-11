@@ -146,6 +146,14 @@ class TextureFormat {
 	unsigned id;
 };
 
+struct HeightMap16bit {
+public:
+	void load(Stream&);
+
+	vector<u16> data;
+	int2 size;
+};
+
 // simple RGBA32 texture
 class Texture {
   public:
@@ -383,7 +391,7 @@ class VertexBuffer {
 	void operator=(const VertexBuffer &) = delete;
 	VertexBuffer(const VertexBuffer &) = delete;
 
-	//TODO: figure a way of passing different range types here
+	// TODO: figure a way of passing different range types here
 	template <class T>
 	VertexBuffer(const vector<T> &data)
 		: VertexBuffer(data.data(), (int)data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
@@ -573,9 +581,11 @@ class Material;
 
 class SimpleMeshData {
   public:
+	enum { max_verts = 65535 };
+
 	SimpleMeshData(const aiScene &scene, int mesh_id);
-	SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords,
-				   const vector<u16> &indices);
+	SimpleMeshData(vector<float3> positions, vector<float2> tex_coords, vector<u16> indices,
+				   PrimitiveType::Type type = PrimitiveType::triangles);
 
 	SimpleMeshData() = default;
 
@@ -595,6 +605,7 @@ class SimpleMeshData {
 	using TriIndices = array<int, 3>;
 
 	vector<TriIndices> trisIndices() const;
+	PrimitiveType::Type primitiveType() const { return m_primitive_type; }
 
 	/*
 		void genAdjacency();
@@ -813,8 +824,6 @@ class SkinnedMesh {
 
 using PSkinnedMesh = shared_ptr<SkinnedMesh>;
 
-
-
 class Material {
   public:
 	enum Flags {
@@ -822,7 +831,8 @@ class Material {
 		flag_two_sided = 2,
 	};
 
-	Material(PTexture texture, Color color = Color::white, uint flags = 0) : m_texture(texture), m_color(color), m_flags(flags) {}
+	Material(PTexture texture, Color color = Color::white, uint flags = 0)
+		: m_texture(texture), m_color(color), m_flags(flags) {}
 	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
 
 	PTexture texture() const { return m_texture; }
@@ -830,7 +840,9 @@ class Material {
 	uint flags() const { return m_flags; }
 
 	bool operator<(const Material &rhs) const {
-		return m_flags == rhs.m_flags? m_texture == rhs.m_texture ? m_color < rhs.m_color : m_texture < rhs.m_texture : m_flags < rhs.m_flags;
+		return m_flags == rhs.m_flags
+				   ? m_texture == rhs.m_texture ? m_color < rhs.m_color : m_texture < rhs.m_texture
+				   : m_flags < rhs.m_flags;
 	}
 
   protected:
@@ -899,7 +911,8 @@ class MatrixStack {
 	Matrix4 m_projection_matrix;
 	Matrix4 m_view_matrix;
 	mutable Matrix4 m_full_matrix;
-	mutable bool m_is_dirty;
+	mutable Frustum m_frustum;
+	mutable bool m_is_dirty, m_is_frustum_dirty;
 };
 
 class Renderer2D : public MatrixStack {

@@ -11,7 +11,7 @@ namespace fwk {
 namespace {
 
 	struct Timer {
-		Timer(const string &name) :name(name), is_rare(false) {}
+		Timer(const string &name) : name(name), is_rare(false) {}
 
 		string name;
 		vector<pair<double, double>> values;
@@ -20,7 +20,7 @@ namespace {
 	};
 
 	struct Counter {
-		Counter(const string &name) :name(name), value(0) {}
+		Counter(const string &name) : name(name), value(0) {}
 
 		string name;
 		long long value;
@@ -46,12 +46,11 @@ namespace {
 		s_counters.push_back(Counter(name));
 		return s_counters.back();
 	}
-
 }
 
 void updateTimer(const char *id, double start_time, double end_time, bool is_rare) {
 	DASSERT(end_time >= start_time);
-	Timer &timer = accessTimer(id);	
+	Timer &timer = accessTimer(id);
 	timer.is_rare = is_rare;
 	timer.values.emplace_back(start_time, end_time);
 }
@@ -61,9 +60,7 @@ void updateCounter(const char *id, int value) {
 	counter.value += value;
 }
 
-double getProfilerTime() {
-	return getTime();
-}
+double getProfilerTime() { return getTime(); }
 
 void profilerNextFrame() {
 	for(int n = 0; n < (int)s_counters.size(); n++)
@@ -88,8 +85,7 @@ const string getProfilerStats(const char *filter) {
 
 		if(timer.is_rare) {
 			shown_value = timer.values.back().second - timer.values.back().first;
-		}
-		else {
+		} else {
 			double sum = 0.0;
 			vector<pair<double, double>> filtered_values;
 			for(auto value : timer.values)
@@ -110,8 +106,11 @@ const string getProfilerStats(const char *filter) {
 	if(!s_counters.empty())
 		out("Counters\n");
 	for(const auto &counter : s_counters) {
-		if(counter.name.find(filter) != string::npos)
-			out("  %s: %lld\n", counter.name.c_str(), counter.value);
+		if(counter.name.find(filter) != string::npos) {
+			bool in_kilos = counter.value > 1000 * 10;
+			out("  %s: %lld%s\n", counter.name.c_str(),
+				in_kilos ? (counter.value + 500) / 1000 : counter.value, in_kilos ? "k" : "");
+		}
 	}
 
 	return out.text();

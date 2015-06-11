@@ -435,6 +435,7 @@ template <class TVec3> struct Box {
 
 	Box operator+(const Vec3 &offset) const { return Box(min + offset, max + offset); }
 	Box operator-(const Vec3 &offset) const { return Box(min - offset, max - offset); }
+	Box operator*(const Vec3 &scale) const { return Box(min * scale, max * scale); }
 	Box operator*(Scalar scale) const { return Box(min * scale, max * scale); }
 
 	void include(const Vec3 &point) {

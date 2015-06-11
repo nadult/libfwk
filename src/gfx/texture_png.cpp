@@ -8,190 +8,163 @@
 namespace fwk {
 namespace {
 
-	struct PngInfo {
-		PngInfo() : ptr(0), info(0) {}
-		~PngInfo() {
-			if(ptr || info)
-				png_destroy_read_struct(&ptr, &info, 0);
-		}
+	class PngLoader {
+	  public:
+		PngLoader(Stream &stream) : stream(stream), m_struct(nullptr), m_info(nullptr) {
+			enum { sig_size = 8 };
+			unsigned char signature[sig_size];
+			stream.loadData(signature, sig_size);
+			stream.seek(stream.pos() - sig_size);
+			if(png_sig_cmp(signature, 0, sig_size))
+				THROW("Wrong PNG file signature");
 
-		png_structp ptr;
-		png_infop info;
-		int colorType, channels;
-		int width, height;
-	};
+			m_struct =
+				png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, errorCallback, warningCallback);
+			m_info = png_create_info_struct(m_struct);
 
-	// TODO: FIX THIS!
-	vector<u8> fileData;
-	int filePos;
+			if(!m_struct || !m_info) {
+				finalCleanup();
+				THROW("Error while initializing PNGLoader");
+			}
 
-	void png_read(png_structp, png_bytep data, png_size_t length) {
-		int bytes = std::min(length, fileData.size() - filePos);
+			png_set_read_fn(m_struct, this, readCallback);
+			png_read_info(m_struct, m_info);
 
-		memcpy(data, &fileData[filePos], bytes);
-		filePos += bytes;
-		return;
-	}
+			png_uint_32 width, height;
 
-	void png_error_func(png_structp png_ptr, png_const_charp message) {
-		THROW("LibPNG Error: %s", message);
-	}
+			png_get_IHDR(m_struct, m_info, &width, &height, &m_bit_depth, &m_color_type, 0, 0, 0);
 
-	void png_warn_func(png_structp png_ptr, png_const_charp message) { return; }
+			if(m_color_type == PNG_COLOR_TYPE_GRAY && m_bit_depth < 8)
+				png_set_expand_gray_1_2_4_to_8(m_struct);
 
-	void InitPngInfo(PngInfo &png) {
-		if(png_sig_cmp((png_byte *)&fileData[0], 0, 8))
-			THROW("Wrong PNG file signature");
+			if(png_get_valid(m_struct, m_info, PNG_INFO_tRNS) &&
+			   !(png_get_valid(m_struct, m_info, PNG_INFO_PLTE)))
+				png_set_tRNS_to_alpha(m_struct);
 
-		png.ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, png_error_func, png_warn_func);
-		if(!png.ptr)
-			THROW("Out of memory");
+			png_get_IHDR(m_struct, m_info, &width, &height, &m_bit_depth, &m_color_type, 0, 0, 0);
 
-		png.info = png_create_info_struct(png.ptr);
-		if(!png.info)
-			THROW("Out of memory");
-
-		png_set_read_fn(png.ptr, 0, png_read);
-		png_set_error_fn(png.ptr, 0, png_error_func, png_warn_func);
-		png_read_info(png.ptr, png.info);
-	}
-
-	void readHeader(PngInfo &png, int *owidth, int *oheight, TextureIdent *oFormat) {
-		int bitdepth;
-		png_uint_32 width, height;
-
-		png_get_IHDR(png.ptr, png.info, (png_uint_32 *)&width, (png_uint_32 *)&height, &bitdepth,
-					 &png.colorType, 0, 0, 0);
-
-		if(png.colorType == PNG_COLOR_TYPE_GRAY && bitdepth < 8)
-			png_set_expand_gray_1_2_4_to_8(png.ptr);
-		if(png_get_valid(png.ptr, png.info, PNG_INFO_tRNS) &&
-		   !(png_get_valid(png.ptr, png.info, PNG_INFO_PLTE)))
-			png_set_tRNS_to_alpha(png.ptr);
-
-		png_get_IHDR(png.ptr, png.info, (png_uint_32 *)&width, (png_uint_32 *)&height, &bitdepth,
-					 &png.colorType, 0, 0, 0);
-
-		if(bitdepth < 8) {
-			bitdepth = 8;
-			png_set_packing(png.ptr);
-		}
+			if(m_bit_depth < 8) {
+				m_bit_depth = 8;
+				png_set_packing(m_struct);
+			}
 
 #ifdef __LITTLE_ENDIAN__
-		if(bitdepth == 16)
-			png_set_swap(png.ptr);
+			if(m_bit_depth == 16)
+				png_set_swap(m_struct);
 #endif
 
-		png_read_update_info(png.ptr, png.info);
-		png.channels = (int)png_get_channels(png.ptr, png.info);
-		png.colorType = png_get_color_type(png.ptr, png.info);
+			png_read_update_info(m_struct, m_info);
+			m_channels = (int)png_get_channels(m_struct, m_info);
+			m_color_type = png_get_color_type(m_struct, m_info);
 
-		switch(png.colorType) {
-		case PNG_COLOR_TYPE_PALETTE:
-			*oFormat = png_get_valid(png.ptr, png.info, PNG_INFO_tRNS) ? TI_A8B8G8R8 : TI_R8G8B8;
-			break;
-
-		case PNG_COLOR_TYPE_GRAY:
-			*oFormat = TI_R8G8B8;
-			break;
-
-		case PNG_COLOR_TYPE_GRAY_ALPHA:
-			*oFormat = TI_A8B8G8R8;
-			break;
-
-		case PNG_COLOR_TYPE_RGB:
-			*oFormat = TI_R8G8B8;
-			break;
-
-		case PNG_COLOR_TYPE_RGB_ALPHA:
-			*oFormat = TI_A8B8G8R8;
-			break;
-
-		default:
-			THROW("PNG color type not supported");
-		}
-		*owidth = png.width = width;
-		*oheight = png.height = height;
-	}
-
-	void readData(PngInfo &png, Color *out) {
-		int width = png.width, height = png.height;
-
-		vector<u8> temp;
-		temp.resize(width * height * 4);
-		vector<u8 *> rowPointers(height);
-
-		png_bytep trans = 0;
-		int numTrans = 0;
-
-		png_colorp palette = 0;
-		int numPalette = 0;
-
-		for(int y = 0; y < height; y++)
-			rowPointers[y] = &temp[width * 4 * y];
-
-		if(png.colorType == PNG_COLOR_TYPE_PALETTE) {
-			if(png.channels != 1)
-				THROW("Only 8-bit palettes are supported");
-
-			if(!png_get_PLTE(png.ptr, png.info, &palette, &numPalette))
-				THROW("Error while retrieving PNG palette");
-
-			if(png_get_valid(png.ptr, png.info, PNG_INFO_tRNS))
-				png_get_tRNS(png.ptr, png.info, &trans, &numTrans, 0);
+			m_width = width;
+			m_height = height;
 		}
 
-		png_read_image(png.ptr, &rowPointers[0]);
+		~PngLoader() { finalCleanup(); }
+		PngLoader(const PngLoader &) = delete;
+		void operator=(const PngLoader &) = delete;
 
-		for(int y = 0; y < height; y++) {
-			Color *dst = out + width * y;
-			u8 *src = rowPointers[y];
+		int2 size() const { return {m_width, m_height}; }
 
-			if(png.colorType == PNG_COLOR_TYPE_PALETTE) {
-				for(int x = 0; x < width; x++) {
-					png_color &col = palette[src[x]];
-					dst[x] = Color(col.red, col.green, col.blue, trans ? trans[src[x]] : 255u);
+		void operator>>(vector<u16> &out) const {
+			ASSERT(m_bit_depth == 16);
+			ASSERT(m_color_type == PNG_COLOR_TYPE_GRAY);
+
+			vector<u8 *> row_pointers(m_height);
+			out.resize(m_width * m_height);
+			for(int y = 0; y < m_height; y++)
+				row_pointers[y] = (u8 *)&out[m_width * y];
+			png_read_image(m_struct, &row_pointers[0]);
+		}
+
+		void operator>>(Range<Color> out) const {
+			DASSERT(out.size() >= m_width * m_height);
+			vector<u8> temp;
+			temp.resize(m_width * m_height * 4);
+			vector<u8 *> rowPointers(m_height);
+
+			png_bytep trans = 0;
+			int numTrans = 0;
+
+			png_colorp palette = 0;
+			int numPalette = 0;
+
+			for(int y = 0; y < m_height; y++)
+				rowPointers[y] = &temp[m_width * 4 * y];
+
+			if(m_color_type == PNG_COLOR_TYPE_PALETTE) {
+				if(m_channels != 1)
+					THROW("Only 8-bit palettes are supported");
+
+				if(!png_get_PLTE(m_struct, m_info, &palette, &numPalette))
+					THROW("Error while retrieving PNG palette");
+
+				if(png_get_valid(m_struct, m_info, PNG_INFO_tRNS))
+					png_get_tRNS(m_struct, m_info, &trans, &numTrans, 0);
+			}
+
+			png_read_image(m_struct, &rowPointers[0]);
+
+			for(int y = 0; y < m_height; y++) {
+				Color *dst = out.data() + m_width * y;
+				u8 *src = rowPointers[y];
+
+				if(m_color_type == PNG_COLOR_TYPE_PALETTE) {
+					for(int x = 0; x < m_width; x++) {
+						png_color &col = palette[src[x]];
+						dst[x] = Color(col.red, col.green, col.blue, trans ? trans[src[x]] : 255u);
+					}
+				} else if(m_color_type == PNG_COLOR_TYPE_GRAY) {
+					for(int x = 0; x < m_width; x++)
+						dst[x] = Color(src[x], src[x], src[x]);
+				} else if(m_color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
+					for(int x = 0; x < m_width; x++)
+						dst[x] = Color(src[x * 2], src[x * 2], src[x * 2], src[x * 2 + 1]);
+				} else if(m_color_type == PNG_COLOR_TYPE_RGB) {
+					for(int x = 0; x < m_width; x++)
+						dst[x] = Color(src[x * 3 + 0], src[x * 3 + 1], src[x * 3 + 2]);
+				} else if(m_color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
+					for(int x = 0; x < m_width; x++) // TODO: check
+						dst[x] =
+							Color(src[x * 4 + 0], src[x * 4 + 1], src[x * 4 + 2], src[x * 4 + 3]);
 				}
-			} else if(png.colorType == PNG_COLOR_TYPE_GRAY) {
-				for(int x = 0; x < width; x++)
-					dst[x] = Color(src[x], src[x], src[x]);
-			} else if(png.colorType == PNG_COLOR_TYPE_GRAY_ALPHA) {
-				for(int x = 0; x < width; x++)
-					dst[x] = Color(src[x * 2], src[x * 2], src[x * 2], src[x * 2 + 1]);
-			} else if(png.colorType == PNG_COLOR_TYPE_RGB) {
-				for(int x = 0; x < width; x++)
-					dst[x] = Color(src[x * 3 + 0], src[x * 3 + 1], src[x * 3 + 2]);
-			} else if(png.colorType == PNG_COLOR_TYPE_RGB_ALPHA) {
-				for(int x = 0; x < width; x++) // TODO: check
-					dst[x] = Color(src[x * 4 + 0], src[x * 4 + 1], src[x * 4 + 2], src[x * 4 + 3]);
 			}
 		}
-	}
 
-	void loadPNG(Stream &sr, PodArray<Color> &out_data, int2 &out_size) {
-		try {
-			PngInfo png;
-
-			fileData.resize(sr.size());
-			sr.loadData(&fileData[0], fileData.size());
-			filePos = 0;
-
-			InitPngInfo(png);
-			int width, height;
-			TextureIdent id;
-			readHeader(png, &width, &height, &id);
-
-			out_data.resize(width * height);
-			out_size = int2(width, height);
-			readData(png, out_data.data());
-
-			fileData.clear();
-		} catch(...) {
-			fileData.clear();
-			throw;
+	  private:
+		void finalCleanup() { png_destroy_read_struct(&m_struct, &m_info, 0); }
+		static void readCallback(png_structp png_ptr, png_bytep data, png_size_t length) {
+			auto *loader = static_cast<PngLoader *>(png_get_io_ptr(png_ptr));
+			loader->stream.loadData(data, length);
 		}
+
+		static void errorCallback(png_structp png_ptr, png_const_charp message) {
+			THROW("LibPNG Error: %s", message);
+		}
+
+		static void warningCallback(png_structp png_ptr, png_const_charp message) {}
+
+		Stream &stream;
+		png_structp m_struct;
+		png_infop m_info;
+		int m_color_type, m_bit_depth, m_channels;
+		int m_width, m_height;
+	};
+
+	void loadPNG(Stream &stream, PodArray<Color> &out_data, int2 &out_size) {
+		PngLoader loader(stream);
+		out_size = loader.size();
+		out_data.resize(out_size.x * out_size.y);
+		loader >> out_data;
 	}
 
 	Texture::RegisterLoader png_loader("png", loadPNG);
+}
+
+void HeightMap16bit::load(Stream &stream) {
+	PngLoader loader(stream);
+	size = loader.size();
+	loader >> data;
 }
 }

@@ -4,6 +4,7 @@
 
 #include "fwk_gfx.h"
 #include "fwk_opengl.h"
+#include "fwk_profile.h"
 #include <climits>
 
 namespace fwk {
@@ -58,6 +59,14 @@ VertexArray::~VertexArray() {
 #endif
 }
 
+static int countTriangles(PrimitiveType::Type prim_type, int num_indices) {
+	if(prim_type == PrimitiveType::triangles)
+		return num_indices / 3;
+	if(prim_type == PrimitiveType::triangle_strip)
+		return max(0, num_indices - 2);
+	return 0;
+}
+
 void VertexArray::draw(PrimitiveType::Type pt, int num_vertices, int offset) const {
 	if(!num_vertices)
 		return;
@@ -67,13 +76,17 @@ void VertexArray::draw(PrimitiveType::Type pt, int num_vertices, int offset) con
 	bind();
 
 	if(m_index_buffer) {
+		updateCounter("gfx::tris", countTriangles(pt, num_vertices));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer->m_handle);
 		glDrawElements(gl_primitive_type[pt], num_vertices,
 					   gl_index_data_type[m_index_buffer->m_index_type],
 					   (void *)(size_t)(offset * m_index_buffer->indexSize()));
 		testGlError("glDrawElements");
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	} else { glDrawArrays(gl_primitive_type[pt], offset, num_vertices); }
+	} else {
+		updateCounter("gfx::tris", countTriangles(pt, num_vertices));
+		glDrawArrays(gl_primitive_type[pt], offset, num_vertices);
+	}
 
 	unbind();
 }

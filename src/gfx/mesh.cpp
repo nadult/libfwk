@@ -156,10 +156,12 @@ SimpleMeshData::SimpleMeshData(const aiScene &ascene, int mesh_id) {
 	computeBoundingBox();
 }
 
-SimpleMeshData::SimpleMeshData(const vector<float3> &positions, const vector<float2> &tex_coords,
-							   const vector<u16> &indices)
-	: m_positions(positions), m_tex_coords(tex_coords), m_indices(indices),
-	  m_primitive_type(PrimitiveType::triangles) {
+SimpleMeshData::SimpleMeshData(vector<float3> positions, vector<float2> tex_coords,
+							   vector<u16> indices, PrimitiveType::Type prim_type)
+	: m_positions(std::move(positions)), m_tex_coords(std::move(tex_coords)),
+	  m_indices(std::move(indices)), m_primitive_type(prim_type) {
+	DASSERT(positions.size() < max_verts);
+	DASSERT(tex_coords.size() == positions.size() || tex_coords.empty());
 	computeBoundingBox();
 }
 
@@ -172,6 +174,7 @@ void SimpleMeshData::computeBoundingBox() { m_bounding_box = FBox(m_positions); 
 
 vector<SimpleMeshData::TriIndices> SimpleMeshData::trisIndices() const {
 	vector<TriIndices> out;
+	// TODO: remove degenerate triangles
 
 	if(m_primitive_type == PrimitiveType::triangles) {
 		out.reserve(m_indices.size() / 3);
@@ -187,7 +190,8 @@ SimpleMesh::SimpleMesh(const SimpleMeshData &data, Color color)
 	: m_vertex_array(VertexArray::make({make_shared<VertexBuffer>(data.m_positions), color,
 										make_shared<VertexBuffer>(data.m_tex_coords)},
 									   make_shared<IndexBuffer>(data.m_indices))),
-	  m_primitive_type(data.m_primitive_type) {}
+	  m_primitive_type(data.m_primitive_type) {
+}
 
 void SimpleMesh::draw(Renderer &renderer, const Material &material, const Matrix4 &mat) const {
 	renderer.addDrawCall({m_vertex_array, m_primitive_type, m_vertex_array->size(), 0}, material,
