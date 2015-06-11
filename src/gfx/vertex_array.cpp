@@ -13,6 +13,11 @@ static const int gl_vertex_data_type[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, G
 										  GL_FLOAT};
 static const int gl_index_data_type[] = {GL_UNSIGNED_INT, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT};
 static const int gl_primitive_type[] = {GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP};
+	
+#if OPENGL_VERSION < 0x30
+int VertexArray::s_max_bind = 0;
+#endif
+
 static_assert(arraySize(gl_primitive_type) == PrimitiveType::count, "");
 
 VertexArraySource::VertexArraySource(PVertexBuffer buffer, int offset)
@@ -95,12 +100,18 @@ void VertexArray::bind() const {
 #if OPENGL_VERSION >= 0x30
 	glBindVertexArray(m_handle);
 #else
+	int max_bind = 0;
 	for(int n = 0; n < (int)m_sources.size(); n++)
-		bindVertexBuffer(n);
+		if(bindVertexBuffer(n))
+			max_bind = max(max_bind, n);
+
+	for(int n = (int)m_sources.size(); n <= s_max_bind; n++)
+		glDisableVertexAttribArray(n);
+	s_max_bind = max_bind;
 #endif
 }
 
-void VertexArray::bindVertexBuffer(int n) const {
+bool VertexArray::bindVertexBuffer(int n) const {
 	const auto &source = m_sources[n];
 
 	if(source.m_buffer) {
@@ -112,12 +123,13 @@ void VertexArray::bindVertexBuffer(int n) const {
 							  source.m_buffer->m_data_type.normalize ? GL_TRUE : GL_FALSE,
 							  source.m_buffer->m_vertex_size, (void *)(size_t)source.m_offset);
 		glEnableVertexAttribArray(n);
+		return true;
 	} else {
 		const float4 &value = source.m_single_value;
 		glVertexAttrib4f(n, value.x, value.y, value.z, value.w);
 		glDisableVertexAttribArray(n);
+		return false;
 	}
-	// TODO: shouldn't other vertex attrib arrays be disabled?
 }
 
 void VertexArray::unbind() {

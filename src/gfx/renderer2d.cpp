@@ -51,6 +51,7 @@ struct ProgramFactory2D {
 		out->bindAttribLocation("in_pos", 0);
 		out->bindAttribLocation("in_color", 1);
 		out->bindAttribLocation("in_tex_coord", 2);
+		out->link();
 
 		if(with_texture)
 			out->setUniform("tex", 0);

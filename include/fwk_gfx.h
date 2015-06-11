@@ -147,8 +147,8 @@ class TextureFormat {
 };
 
 struct HeightMap16bit {
-public:
-	void load(Stream&);
+  public:
+	void load(Stream &);
 
 	vector<u16> data;
 	int2 size;
@@ -489,7 +489,7 @@ class VertexArray {
   private:
 	void init();
 	void bind() const;
-	void bindVertexBuffer(int n) const;
+	bool bindVertexBuffer(int n) const;
 	static void unbind();
 
 	vector<Source> m_sources;
@@ -497,6 +497,8 @@ class VertexArray {
 	int m_size;
 #if OPENGL_VERSION >= 0x30
 	unsigned m_handle;
+#else
+	static int s_max_bind;
 #endif
 };
 
@@ -561,6 +563,9 @@ class Program {
 	void setUniform(const char *name, const Matrix4 *, size_t);
 
 	void setUniform(const char *name, int);
+	void setUniform(const char *name, const int2&);
+	void setUniform(const char *name, const int3&);
+	void setUniform(const char *name, const int4&);
 	void setUniform(const char *name, const float2 &);
 	void setUniform(const char *name, const float3 &);
 	void setUniform(const char *name, const float4 &);
@@ -572,6 +577,7 @@ class Program {
 
   private:
 	unsigned m_handle;
+	bool m_is_linked;
 };
 
 using PProgram = shared_ptr<Program>;
@@ -831,22 +837,27 @@ class Material {
 		flag_two_sided = 2,
 	};
 
+	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
+			 uint flags = 0)
+		: m_program(program), m_textures(std::move(textures)), m_color(color), m_flags(flags) {}
 	Material(PTexture texture, Color color = Color::white, uint flags = 0)
-		: m_texture(texture), m_color(color), m_flags(flags) {}
+		: m_textures({texture}), m_color(color), m_flags(flags) {}
 	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
 
-	PTexture texture() const { return m_texture; }
+	PProgram program() const { return m_program; }
+	PTexture texture() const { return m_textures.empty()? PTexture() : m_textures.front(); }
+	const vector<PTexture> &textures() const { return m_textures; }
 	Color color() const { return m_color; }
 	uint flags() const { return m_flags; }
 
 	bool operator<(const Material &rhs) const {
-		return m_flags == rhs.m_flags
-				   ? m_texture == rhs.m_texture ? m_color < rhs.m_color : m_texture < rhs.m_texture
-				   : m_flags < rhs.m_flags;
+		return std::tie(m_program, m_textures, m_color, m_flags) <
+			   std::tie(rhs.m_program, rhs.m_textures, rhs.m_color, rhs.m_flags);
 	}
 
   protected:
-	PTexture m_texture;
+	PProgram m_program;
+	vector<PTexture> m_textures;
 	Color m_color;
 	uint m_flags;
 };

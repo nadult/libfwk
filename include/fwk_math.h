@@ -144,7 +144,15 @@ struct int4 {
 		return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w;
 	}
 
-	int x, y, z, w;
+	int &operator[](int idx) { return v[idx]; }
+	const int &operator[](int idx) const { return v[idx]; }
+
+	union {
+		struct {
+			int x, y, z, w;
+		};
+		int v[4];
+	};
 };
 
 struct float2 {

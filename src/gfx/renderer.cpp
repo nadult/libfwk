@@ -51,6 +51,7 @@ struct ProgramFactory {
 		out->bindAttribLocation("in_pos", 0);
 		out->bindAttribLocation("in_color", 1);
 		out->bindAttribLocation("in_tex_coord", 2);
+		out->link();
 
 		if(with_texture)
 			out->setUniform("tex", 0);
@@ -99,6 +100,21 @@ void Renderer::addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> 
 	m_sprites.push_back(new_sprite);
 }
 
+static void bindTextures(const vector<PTexture> &textures) {
+	static int max_bind = 0;
+
+	for(int n = 0; n < (int)textures.size(); n++) {
+		glActiveTexture(GL_TEXTURE0 + n);
+		textures[n]->bind();
+	}
+	for(int n = (int)textures.size(); n < max_bind; n++) {
+		glActiveTexture(GL_TEXTURE0 + n);
+		glDisable(GL_TEXTURE_2D);
+	}
+	max_bind = (int)textures.size();
+	glActiveTexture(GL_TEXTURE0);
+}
+
 void Renderer::render() {
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
@@ -106,15 +122,17 @@ void Renderer::render() {
 	glDepthMask(1);
 
 	for(const auto &instance : m_instances) {
-		auto &program = (instance.material.texture() ? m_tex_program : m_flat_program);
+		bindTextures(instance.material.textures());
+		PProgram program = instance.material.program();
+		if(!program)
+			program = instance.material.texture() ? m_tex_program : m_flat_program;
+
 		program->bind();
 		program->setUniform("proj_view_matrix", instance.matrix);
 		program->setUniform("mesh_color", (float4)instance.material.color());
 		GfxDevice::setBlendingMode(instance.material.flags() & Material::flag_blended
 									   ? GfxDevice::bmNormal
 									   : GfxDevice::bmDisabled);
-		if(instance.material.texture())
-			instance.material.texture()->bind();
 		instance.draw_call.issue();
 	}
 
@@ -136,12 +154,16 @@ void Renderer::render() {
 		// TODO: transform to screen space, divide into regions, sort each region
 		for(int n = 0; n < (int)m_sprites.size(); n++) {
 			const auto &instance = m_sprites[n];
-			auto &program = (instance.material.texture() ? m_tex_program : m_flat_program);
+
+			bindTextures(instance.material.textures());
+			PProgram program = instance.material.program();
+			if(!program)
+				program = instance.material.texture() ? m_tex_program : m_flat_program;
+
 			program->bind();
 			program->setUniform("proj_view_matrix", instance.matrix);
 			program->setUniform("mesh_color", (float4)instance.material.color());
-			if(instance.material.texture())
-				instance.material.texture()->bind();
+
 			sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
 		}
 	}

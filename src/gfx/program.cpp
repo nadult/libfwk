@@ -12,7 +12,7 @@ namespace {
 	unsigned s_active_program;
 }
 
-Program::Program(const Shader &vertex, const Shader &fragment) {
+Program::Program(const Shader &vertex, const Shader &fragment) :m_is_linked(false) {
 	DASSERT(vertex.getType() == Shader::tVertex);
 	DASSERT(fragment.getType() == Shader::tFragment);
 
@@ -28,7 +28,6 @@ Program::Program(const Shader &vertex, const Shader &fragment) {
 		glDeleteProgram(m_handle);
 		throw;
 	}
-	link();
 }
 
 Program::~Program() {
@@ -40,6 +39,7 @@ Program::~Program() {
 }
 
 void Program::bind() const {
+	DASSERT(m_is_linked);
 	if(s_active_program == m_handle)
 		return;
 
@@ -90,6 +90,24 @@ void Program::setUniform(const char *name, int v) {
 	//DASSERT(glGetError() == GL_NO_ERROR);
 }
 
+void Program::setUniform(const char *name, const int2 &v) {
+	bind();
+	glUniform1iv(glGetUniformLocation(m_handle, name), 2, &v[0]);
+	//DASSERT(glGetError() == GL_NO_ERROR);
+}
+
+void Program::setUniform(const char *name, const int3 &v) {
+	bind();
+	glUniform1iv(glGetUniformLocation(m_handle, name), 3, &v[0]);
+	//DASSERT(glGetError() == GL_NO_ERROR);
+}
+
+void Program::setUniform(const char *name, const int4 &v) {
+	bind();
+	glUniform1iv(glGetUniformLocation(m_handle, name), 4, &v[0]);
+	//DASSERT(glGetError() == GL_NO_ERROR);
+}
+
 void Program::setUniform(const char *name, const float2 &v) {
 	bind();
 	glUniform2f(glGetUniformLocation(m_handle, name), v[0], v[1]);
@@ -120,9 +138,13 @@ int Program::getUniformLocation(const char *name) {
 
 void Program::bindAttribLocation(const char *name, unsigned loc) {
 	glBindAttribLocation(m_handle, loc, name);
+	m_is_linked = false;
 }
 
 void Program::link() {
+	if(m_is_linked)
+		return;
+	m_is_linked = true;
 	glLinkProgram(m_handle);
 	testGlError("Error while linking program");
 }

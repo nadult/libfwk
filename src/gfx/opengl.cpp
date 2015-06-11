@@ -121,6 +121,7 @@ void loadExtensions() {
 	LOAD(glDeleteVertexArrays);
 	LOAD(glGenVertexArrays);
 	LOAD(glVertexAttrib4f);
+	LOAD(glActiveTexture);
 
 #undef LOAD
 

@@ -104,6 +104,7 @@ EXT_API void (EXT_ENTRY *glBindVertexArray)(GLuint array);
 EXT_API void (EXT_ENTRY *glDeleteVertexArrays)(GLsizei n, const GLuint *arrays);
 EXT_API void (EXT_ENTRY *glGenVertexArrays)(GLsizei n, GLuint *arrays);
 EXT_API void (EXT_ENTRY *glVertexAttrib4f)(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
+EXT_API void (EXT_ENTRY *glActiveTexture)(GLenum texture);
 
 
 }
