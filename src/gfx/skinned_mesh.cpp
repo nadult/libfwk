@@ -282,7 +282,7 @@ SimpleMeshData SkinnedMeshData::animateMesh(int mesh_id, const SkeletonPose &pos
 	vector<float3> positions = m_meshes[mesh_id].positions();
 	vector<float2> tex_coords = m_meshes[mesh_id].texCoords();
 	animateVertices(mesh_id, pose, positions.data(), nullptr);
-	return SimpleMeshData(positions, tex_coords, m_meshes[mesh_id].indices());
+	return SimpleMeshData(positions, {}, tex_coords, m_meshes[mesh_id].indices());
 }
 
 SkeletonPose SkinnedMeshData::animateSkeleton(int anim_id, double anim_pos) const {

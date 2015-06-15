@@ -1,4 +1,3 @@
-- Remove static variables from texture_png.cpp
 - Optimize kerning loop in font_factory.cpp
 - Fix TODO in filesystem_linux (regarding links).
 - In fact, just fix all TODOs
@@ -6,3 +5,4 @@
 - Fix the namespace mess
 
 - Fix texture loaders so that they wont have to be inlined in texture.cpp
+- Add tests for SimpleMesh operations

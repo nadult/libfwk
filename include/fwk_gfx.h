@@ -398,10 +398,19 @@ class VertexBuffer {
 	template <class T>
 	VertexBuffer(const PodArray<T> &data)
 		: VertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
+	template <class T> vector<T> getData() const {
+		ASSERT(TVertexDataType<T>().type == m_data_type.type);
+		ASSERT(sizeof(T) == m_vertex_size);
+		vector<T> out(m_size);
+		download(makeRange(reinterpret_cast<char *>(out.data()), m_size * m_vertex_size));
+		return out;
+	}
 
 	int size() const { return m_size; }
 
   private:
+	void download(Range<char> out, int src_offset = 0) const;
+
 	unsigned m_handle;
 	int m_size, m_vertex_size;
 	VertexDataType m_data_type;
@@ -412,29 +421,23 @@ using PVertexBuffer = shared_ptr<VertexBuffer>;
 
 class IndexBuffer {
   public:
-	enum IndexType {
-		type_uint,
-		type_ubyte,
-		type_ushort,
-	};
+	enum { max_index_value = 65535 };
 
-	IndexBuffer(const vector<u32> &indices)
-		: IndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_uint) {}
-	IndexBuffer(const vector<u16> &indices)
-		: IndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ushort) {}
-	IndexBuffer(const vector<u8> &indices)
-		: IndexBuffer(indices.data(), indices.size(), sizeof(indices[0]), type_ubyte) {}
+	IndexBuffer(const vector<uint> &indices);
 	~IndexBuffer();
 
 	void operator=(const IndexBuffer &) = delete;
 	IndexBuffer(const IndexBuffer &) = delete;
 
+	vector<uint> getData() const;
 	int size() const { return m_size; }
-	int indexSize() const { return m_index_size; }
-	IndexType indexType() const { return m_index_type; }
 
   private:
-	IndexBuffer(const void *data, int size, int index_size, IndexType index_type);
+	enum IndexType {
+		type_uint,
+		type_ubyte,
+		type_ushort,
+	};
 
 	unsigned m_handle;
 	int m_size, m_index_size;
@@ -458,6 +461,9 @@ class VertexArraySource {
 	VertexArraySource(const VertexArraySource &) = default;
 
 	int maxIndex() const;
+	PVertexBuffer buffer() const { return m_buffer; }
+	const float4 &singleValue() const { return m_single_value; }
+	int offset() const { return m_offset; }
 
   private:
 	friend class VertexArray;
@@ -484,6 +490,8 @@ class VertexArray {
 	void draw(PrimitiveType::Type, int num_vertices, int offset = 0) const;
 	void draw(PrimitiveType::Type primitive_type) const { draw(primitive_type, size()); }
 
+	const auto &sources() const { return m_sources; }
+	PIndexBuffer indexBuffer() const { return m_index_buffer; }
 	int size() const { return m_size; }
 
   private:
@@ -563,9 +571,9 @@ class Program {
 	void setUniform(const char *name, const Matrix4 *, size_t);
 
 	void setUniform(const char *name, int);
-	void setUniform(const char *name, const int2&);
-	void setUniform(const char *name, const int3&);
-	void setUniform(const char *name, const int4&);
+	void setUniform(const char *name, const int2 &);
+	void setUniform(const char *name, const int3 &);
+	void setUniform(const char *name, const int4 &);
 	void setUniform(const char *name, const float2 &);
 	void setUniform(const char *name, const float3 &);
 	void setUniform(const char *name, const float4 &);
@@ -587,15 +595,20 @@ class Material;
 
 class SimpleMeshData {
   public:
-	enum { max_verts = 65535 };
-
+	SimpleMeshData();
 	SimpleMeshData(const aiScene &scene, int mesh_id);
-	SimpleMeshData(vector<float3> positions, vector<float2> tex_coords, vector<u16> indices,
-				   PrimitiveType::Type type = PrimitiveType::triangles);
+	SimpleMeshData(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
+				   vector<uint> indices, PrimitiveType::Type type = PrimitiveType::triangles);
+	SimpleMeshData(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
+				   PIndexBuffer indices, PrimitiveType::Type type = PrimitiveType::triangles);
+	SimpleMeshData(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1,
+				   PrimitiveType::Type = PrimitiveType::triangles);
+	SimpleMeshData(const SimpleMeshData &) = default;
+	SimpleMeshData(SimpleMeshData &&) = default;
+	SimpleMeshData& operator=(SimpleMeshData &&) = default;
+	SimpleMeshData& operator=(const SimpleMeshData &) = default;
 
-	SimpleMeshData() = default;
-
-	SimpleMeshData(MakeRect, const FRect &xz_rect, float y);
+		SimpleMeshData(MakeRect, const FRect &xz_rect, float y);
 	SimpleMeshData(MakeBBox, const FBox &bbox);
 
 	const FBox &boundingBox() const { return m_bounding_box; }
@@ -606,12 +619,19 @@ class SimpleMeshData {
 	const vector<float3> &positions() const { return m_positions; }
 	const vector<float3> &normals() const { return m_positions; }
 	const vector<float2> &texCoords() const { return m_tex_coords; }
-	const vector<u16> &indices() const { return m_indices; }
+	const vector<uint> &indices() const { return m_indices; }
 
-	using TriIndices = array<int, 3>;
+	bool hasTexCoords() const { return !m_tex_coords.empty(); }
+	bool hasNormals() const { return !m_normals.empty(); }
+
+	using TriIndices = array<uint, 3>;
 
 	vector<TriIndices> trisIndices() const;
 	PrimitiveType::Type primitiveType() const { return m_primitive_type; }
+
+	vector<SimpleMeshData> split(int max_vertices) const;
+	static SimpleMeshData merge(const vector<SimpleMeshData> &);
+	static SimpleMeshData transform(const Matrix4 &, SimpleMeshData);
 
 	/*
 		void genAdjacency();
@@ -626,14 +646,19 @@ class SimpleMeshData {
 	vector<float3> m_positions;
 	vector<float3> m_normals;
 	vector<float2> m_tex_coords;
-	vector<u16> m_indices;
+	vector<uint> m_indices;
 	PrimitiveType::Type m_primitive_type;
 	FBox m_bounding_box;
 	friend class SimpleMesh;
 };
 
+vector<float3> transformVertices(const Matrix4 &, vector<float3>);
+vector<float3> transformNormals(const Matrix4 &, vector<float3>);
+
 class SimpleMesh {
   public:
+	enum { max_vertices = 65536 };
+
 	SimpleMesh(const SimpleMeshData &, Color color = Color::white);
 	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
 
@@ -845,7 +870,7 @@ class Material {
 	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
 
 	PProgram program() const { return m_program; }
-	PTexture texture() const { return m_textures.empty()? PTexture() : m_textures.front(); }
+	PTexture texture() const { return m_textures.empty() ? PTexture() : m_textures.front(); }
 	const vector<PTexture> &textures() const { return m_textures; }
 	Color color() const { return m_color; }
 	uint flags() const { return m_flags; }

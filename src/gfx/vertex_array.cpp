@@ -85,7 +85,7 @@ void VertexArray::draw(PrimitiveType::Type pt, int num_vertices, int offset) con
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer->m_handle);
 		glDrawElements(gl_primitive_type[pt], num_vertices,
 					   gl_index_data_type[m_index_buffer->m_index_type],
-					   (void *)(size_t)(offset * m_index_buffer->indexSize()));
+					   (void *)(size_t)(offset * m_index_buffer->m_index_size));
 		testGlError("glDrawElements");
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	} else {
