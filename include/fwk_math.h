@@ -661,6 +661,41 @@ struct AffineTrans {
 
 AffineTrans decompose(const Matrix4 &);
 
+class Triangle {
+  public:
+	Triangle(const float3 &a, const float3 &b, const float3 &c);
+	Triangle() : Triangle(float3(), float3(), float3()) {}
+
+	float3 operator[](int idx) const {
+		DASSERT(idx >= 0 && idx < 3);
+		return idx == 0 ? m_point : m_point + m_edge[idx];
+	}
+
+	float3 a() const { return m_point; }
+	float3 b() const { return m_point + m_edge[0]; }
+	float3 c() const { return m_point + m_edge[1]; }
+	const float3 &cross() const { return m_cross; }
+
+	Triangle operator*(float scale) const {
+		return Triangle(a() * scale, b() * scale, c() * scale);
+	}
+	Triangle operator*(const float3 &scale) const {
+		return Triangle(a() * scale, b() * scale, c() * scale);
+	}
+
+	float3 edge1() const { return m_edge[0]; }
+	float3 edge2() const { return m_edge[1]; }
+	float3 normal() const;
+	float area() const;
+
+  protected:
+	float3 m_point;
+	float3 m_edge[2];
+	float3 m_cross;
+};
+
+Triangle operator*(const Matrix4 &, const Triangle &);
+
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 class Plane {
   public:
@@ -668,7 +703,8 @@ class Plane {
 	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {}
 
 	// TODO: should triangle be CW or CCW?
-	Plane(const float3 &a, const float3 &b, const float3 &c);
+	Plane(const Triangle &);
+	Plane(const float3 &a, const float3 &b, const float3 &c) : Plane(Triangle(a, b, c)) {}
 
 	const float3 &normal() const { return m_nrm; }
 
@@ -718,8 +754,8 @@ struct Segment : public Ray {
 
 // returns infinity if doesn't intersect
 pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box);
-float intersection(const Segment &segment, const Box<float3> &box);
-float intersection(const Segment &segment, const float3 &p1, const float3 &p2, const float3 &p3);
+float intersection(const Segment &segment, const Box<float3> &);
+float intersection(const Segment &segment, const Triangle &);
 
 // Doesn't work properly with non-uniform scaling
 const Segment operator*(const Matrix4 &, const Segment &);

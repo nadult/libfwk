@@ -8,331 +8,244 @@
 #include <limits>
 #include <iostream>
 
-namespace fwk
-{
+namespace fwk {
 
-	using namespace std;
+using namespace std;
 
-	Stream::Stream(bool is_loading)
-		:m_size(0), m_pos(0), m_exception_thrown(false), m_is_loading(is_loading) { }
-		
-	void Stream::handleException(const Exception &ex) {
-		if(m_exception_thrown)
-			throw ex;
-		m_exception_thrown = 1;
+Stream::Stream(bool is_loading)
+	: m_size(0), m_pos(0), m_exception_thrown(false), m_is_loading(is_loading) {}
 
-		char info[std::numeric_limits<long long>::digits * 2 + 2];
-		snprintf(info, sizeof(info), "%lld/%lld", m_pos, m_size);
+void Stream::handleException(const Exception &ex) {
+	if(m_exception_thrown)
+		throw ex;
+	m_exception_thrown = 1;
 
-		char buffer[1024];
-		snprintf(buffer, sizeof(buffer), "While %s stream \"%s\" at position %s:\n%s",
-						(m_is_loading ? "loading from" : "saving to"), name(), info, ex.what());
-		throw Exception(buffer, ex.backtrace());
-	}
+	char info[std::numeric_limits<long long>::digits * 2 + 2];
+	snprintf(info, sizeof(info), "%lld/%lld", m_pos, m_size);
 
-	void Stream::loadData(void *ptr, int bytes) {
-		if(!bytes)
-			return;
+	char buffer[1024];
+	snprintf(buffer, sizeof(buffer), "While %s stream \"%s\" at position %s:\n%s",
+			 (m_is_loading ? "loading from" : "saving to"), name(), info, ex.what());
+	throw Exception(buffer, ex.backtrace());
+}
 
-		try {
-			DASSERT(isLoading() && ptr);
-			DASSERT(bytes >= 0 && m_pos + bytes <= m_size);
-			v_load(ptr, bytes);
-		}
-		catch(const Exception &ex) {
-			handleException(ex);
-		}
-	}
+void Stream::loadData(void *ptr, int bytes) {
+	if(!bytes)
+		return;
 
-	void Stream::saveData(const void *ptr, int bytes) {
-		if(!bytes)
-			return;
+	try {
+		DASSERT(isLoading() && ptr);
+		DASSERT(bytes >= 0 && m_pos + bytes <= m_size);
+		v_load(ptr, bytes);
+	} catch(const Exception &ex) { handleException(ex); }
+}
 
-		try {
-			DASSERT(isSaving() && ptr && bytes >= 0);
-			v_save(ptr, bytes);
-		}
-		catch(const Exception &ex) {
-			handleException(ex);
-		}
-	}
+void Stream::saveData(const void *ptr, int bytes) {
+	if(!bytes)
+		return;
 
-	void Stream::seek(long long pos) {
-		try {
-			DASSERT(pos >= 0 && pos <= m_size);
-			v_seek(pos);
-		}
-		catch(const Exception &ex) {
-			handleException(ex);
-		}
-	}
+	try {
+		DASSERT(isSaving() && ptr && bytes >= 0);
+		v_save(ptr, bytes);
+	} catch(const Exception &ex) { handleException(ex); }
+}
 
-	void Stream::signature(u32 sig) {
-		if(m_is_loading) {
-			u32 tmp;
-			loadData(&tmp, sizeof(tmp));
+void Stream::seek(long long pos) {
+	try {
+		DASSERT(pos >= 0 && pos <= m_size);
+		v_seek(pos);
+	} catch(const Exception &ex) { handleException(ex); }
+}
 
-			if(tmp != sig) {
-				char sigc[12] = {
-					char((sig >>  0) & 0xff), 0, 0,
-					char((sig >>  8) & 0xff), 0, 0,
-					char((sig >> 16) & 0xff), 0, 0,
-					char((sig >> 24) & 0xff), 0, 0,
-				};
+void Stream::signature(u32 sig) {
+	if(m_is_loading) {
+		u32 tmp;
+		loadData(&tmp, sizeof(tmp));
 
-				for(int k = 0; k < 4; k++) {
-					if(sigc[k * 3] == 0) {
-						sigc[k * 3 + 0] = '\\';
-						sigc[k * 3 + 1] = '0';
-					}
+		if(tmp != sig) {
+			char sigc[12] = {
+				char((sig >> 0) & 0xff), 0, 0, char((sig >> 8) & 0xff), 0, 0,
+				char((sig >> 16) & 0xff), 0, 0, char((sig >> 24) & 0xff), 0, 0,
+			};
+
+			for(int k = 0; k < 4; k++) {
+				if(sigc[k * 3] == 0) {
+					sigc[k * 3 + 0] = '\\';
+					sigc[k * 3 + 1] = '0';
 				}
-
-				char text[128];
-				snprintf(text, sizeof(text), "Expected signature: 0x%08x (\"%s%s%s%s\")",
-							sig, sigc + 0, sigc + 3, sigc + 6, sigc + 9);
-				handleException(Exception(text));
 			}
+
+			char text[128];
+			snprintf(text, sizeof(text), "Expected signature: 0x%08x (\"%s%s%s%s\")", sig, sigc + 0,
+					 sigc + 3, sigc + 6, sigc + 9);
+			handleException(Exception(text));
 		}
-		else saveData(&sig, sizeof(sig));
+	} else
+		saveData(&sig, sizeof(sig));
+}
+
+static int decodeString(const char *str, int strSize, char *buf, int bufSize) {
+	int len = 0;
+	bufSize--;
+
+	for(int n = 0; n < strSize && len < bufSize; n++) {
+		if(str[n] == '\\') {
+			if(bufSize - len < 2)
+				goto END;
+
+			buf[len++] = '\\';
+			buf[len++] = '\\';
+		} else if(str[n] >= 32 && str[n] < 127) { buf[len++] = str[n]; } else {
+			if(bufSize - len < 4)
+				goto END;
+
+			buf[len++] = '\\';
+			unsigned int code = (u8)str[n];
+			buf[len++] = '0' + code / 64;
+			buf[len++] = '0' + (code / 8) % 8;
+			buf[len++] = '0' + code % 8;
+		}
 	}
-
-	static int decodeString(const char *str, int strSize, char *buf, int bufSize) {
-		int len = 0;
-		bufSize--;
-
-		for(int n = 0; n < strSize && len < bufSize; n++) {
-			if(str[n] == '\\') {
-				if(bufSize - len < 2)
-					goto END;
-
-				buf[len++] = '\\';
-				buf[len++] = '\\';
-			}
-			else if(str[n] >= 32 && str[n] < 127) {
-				buf[len++] = str[n];
-			}
-			else {
-				if(bufSize - len < 4)
-					goto END;
-
-				buf[len++] = '\\';
-				unsigned int code = (u8)str[n];
-				buf[len++] = '0' + code / 64;
-				buf[len++] = '0' + (code / 8) % 8;
-				buf[len++] = '0' + code % 8;
-			}
-
-		}
 
 END:
-		buf[len++] = 0;
-		return len;
-	}
+	buf[len++] = 0;
+	return len;
+}
 
-	void Stream::signature(const char *str, int len) {
-		char buf[33];
-		DASSERT(str && len > 0 && len < (int)sizeof(buf) - 1);
+void Stream::signature(const char *str, int len) {
+	char buf[33];
+	DASSERT(str && len > 0 && len < (int)sizeof(buf) - 1);
 
-		if(m_is_loading) {
-			loadData(buf, len);
+	if(m_is_loading) {
+		loadData(buf, len);
 
-			if(memcmp(buf, str, len) != 0) {
-				char rsig[256], dsig[256];
-				decodeString(str, len, rsig, sizeof(rsig));
-				decodeString(buf, len, dsig, sizeof(dsig));
-				char buffer[512]; //TODO: buffer sizes
-				snprintf(buffer, sizeof(buffer), "Expected signature: \"%s\" got: \"%s\"", rsig, dsig);
-				handleException(Exception(buffer));
-			}
+		if(memcmp(buf, str, len) != 0) {
+			char rsig[256], dsig[256];
+			decodeString(str, len, rsig, sizeof(rsig));
+			decodeString(buf, len, dsig, sizeof(dsig));
+			char buffer[512]; // TODO: buffer sizes
+			snprintf(buffer, sizeof(buffer), "Expected signature: \"%s\" got: \"%s\"", rsig, dsig);
+			handleException(Exception(buffer));
 		}
-		else
-			saveData(str, len);
+	} else
+		saveData(str, len);
+}
+
+int Stream::loadString(char *buffer, int size) {
+	DASSERT(buffer && size >= 0);
+
+	i32 length;
+	u8 tmp_len;
+	*this >> tmp_len;
+	if(tmp_len < 255)
+		length = tmp_len;
+	else
+		*this >> length;
+
+	if(length >= size)
+		handleException(Exception("Buffer size is too small"));
+	loadData(buffer, length);
+	buffer[length] = 0;
+	return length;
+}
+
+void Stream::saveString(const char *ptr, int length) {
+	DASSERT(ptr && length >= 0);
+	if(length == 0)
+		length = strlen(ptr);
+
+	if(length < 255)
+		*this << u8(length);
+	else
+		pack((u8)255, length);
+	saveData(ptr, length);
+}
+
+void loadFromStream(string &v, Stream &sr) {
+	u32 len;
+	u8 tmp;
+
+	sr >> tmp;
+	if(tmp < 255)
+		len = tmp;
+	else
+		sr >> len;
+
+	try {
+		if(len > sr.size() - sr.pos())
+			sr.handleException("Invalid stream data");
+		v.resize(len, 0);
+	} catch(const Exception &ex) { sr.handleException(ex); }
+
+	sr.loadData(&v[0], len);
+}
+
+void saveToStream(const string &v, Stream &sr) { sr.saveString(v.c_str(), v.size()); }
+
+FileStream::FileStream(const char *file_name, bool is_loading)
+	: Stream(is_loading), m_name(file_name) {
+	if(!(m_file = fopen(file_name, is_loading ? "rb" : "wb")))
+		THROW("Error while opening file \"%s\"", file_name);
+
+	fseek((FILE *)m_file, 0, SEEK_END);
+	auto pos = ftell((FILE *)m_file);
+
+	if(pos < -1) {
+		fclose((FILE *)m_file);
+		THROW("Trying to open a directory: \"%s\"", file_name);
 	}
+	m_size = pos;
+	fseek((FILE *)m_file, 0, SEEK_SET);
+}
 
-	int Stream::loadString(char *buffer, int size) {
-		DASSERT(buffer && size >= 0);
+FileStream::~FileStream() throw() {
+	if(m_file)
+		fclose((FILE *)m_file);
+}
 
-		i32 length;
-		u8 tmp_len;
-		*this >> tmp_len;
-		if(tmp_len < 255)
-			length = tmp_len;
-		else
-			*this >> length;
+void FileStream::v_load(void *data, int bytes) {
+	if(fread(data, bytes, 1, (FILE *)m_file) != 1)
+		THROW("fread failed with errno: %s\n", strerror(errno));
+	m_pos += bytes;
+}
 
-		if(length >= size)
-			handleException(Exception("Buffer size is too small"));
-		loadData(buffer, length);
-		buffer[length] = 0;
-		return length;
-	}
+void FileStream::v_save(const void *data, int bytes) {
+	if(fwrite(data, bytes, 1, (FILE *)m_file) != 1)
+		THROW("fwrite failed with errno: %s\n", strerror(errno));
+	m_pos += bytes;
+	if(m_pos > m_size)
+		m_size = m_pos;
+}
 
-	void Stream::saveString(const char *ptr, int length) {
-		DASSERT(ptr && length >= 0);
-		if(length == 0)
-			length = strlen(ptr);
+void FileStream::v_seek(long long pos) {
+	if(fseek((FILE *)m_file, pos, SEEK_SET) != 0)
+		THROW("fseek failed with errno: %s\n", strerror(errno));
+	m_pos = pos;
+}
 
-		if(length < 255)
-			*this << u8(length);
-		else
-			pack((u8)255, length);
-		saveData(ptr, length);
-	}
+const char *FileStream::name() const throw() { return m_name.c_str(); }
 
-	void loadFromStream(string &v, Stream &sr) {
-		u32 len;
-		u8  tmp;
+MemoryLoader::MemoryLoader(const char *data, long long size) : Stream(true), m_data(data) {
+	ASSERT(size >= 0);
+	m_pos = 0;
+	m_size = size;
+}
 
-		sr >> tmp;
-		if(tmp < 255)
-			len = tmp;
-		else sr >> len;
+void MemoryLoader::v_load(void *ptr, int count) {
+	memcpy(ptr, m_data + m_pos, count);
+	m_pos += count;
+}
 
-		try {
-			if(len > sr.size() - sr.pos())
-				sr.handleException("Invalid stream data");
-			v.resize(len, 0);
-		}
-		catch(const Exception &ex) {
-			sr.handleException(ex);
-		}
+MemorySaver::MemorySaver(char *data, long long size) : Stream(false), m_data(data) {
+	ASSERT(size >= 0);
+	m_pos = 0;
+	m_size = size;
+}
 
-		sr.loadData(&v[0], len);
-	}
-
-	void saveToStream(const string &v, Stream &sr) {
-		sr.saveString(v.c_str(), v.size());
-	}
-
-	enum {
-		//TODO: tune-able parameters?
-		min0 = 16,
-		min1 = 1024 * 4,
-		min2 = 1024 * 1024,
-		min3 = 1024 * 1024 * 128,
-
-		max0 = 64,
-		max1 = 16 * 1024,
-		max2 = 1024 * 1024 * 4,
-		max3 = 1024 * 1024 * 512,
-	};
-
-	void Stream::encodeInt(int value) {
-		if(value >= -min0 && value < max0 - min0) {
-			value += min0;
-			pack(u8(0x00 + value));
-		}
-		else if(value >= -min1 && value < max1 - min1) {
-			value += min1;
-			pack(u8(0x40 + (value & 0x3f)), u8(value >> 6));
-		}
-		else if(value >= -min2 && value < max2 - min2) {
-			value += min2;
-			pack(u8(0x80 + (value & 0x3f)), u8((value >> 6) & 0xff), u8((value >> 14)));
-		}
-		else if(value >= -min3 && value < max3 - min3) {
-			value += min3;
-			pack(u8(0xc0 + (value & 0x1f)), u8((value >> 5) & 0xff), u8((value >> 13) & 0xff), u8(value >> 21));
-		}
-		else {
-			pack(u8(0xff), u8(value & 0xff), u8((value >> 8) & 0xff), u8((value >> 16) & 0xff), u8(value >> 24));
-		}
-	}
-
-	int Stream::decodeInt() {
-		u8 first_byte, bytes[4];
-		loadData(&first_byte, 1);
-
-		u8 header = first_byte & 0xc0;
-		if(header == 0x00) {
-			return (first_byte & 0x3f) - min0;
-		}
-		else if(header == 0x40) {
-			loadData(bytes, 1);
-			return (i32(first_byte & 0x3f) | (i32(bytes[0]) << 6)) - min1;
-		}
-		else if(header == 0x80) {
-			loadData(bytes, 2);
-			return (i32(first_byte & 0x3f) | (i32(bytes[0]) << 6) | (i32(bytes[1]) << 14)) - min2;
-		}
-		else {
-			if(first_byte == 0xff) {
-				loadData(bytes, 4);
-				return (i32(bytes[0]) | (i32(bytes[1]) << 8) | (i32(bytes[2]) << 16) | (i32(bytes[3]) << 24));
-			}
-			else {
-				loadData(bytes, 3);
-				return (i32(first_byte & 0x1f) | i32(bytes[0] << 5) | (i32(bytes[1]) << 13) | (i32(bytes[2]) << 21)) - min3;
-			}
-		}
-	}
-
-	FileStream::FileStream(const char *file_name, bool is_loading) :Stream(is_loading), m_name(file_name) {
-		if(!( m_file = fopen(file_name, is_loading? "rb" : "wb") ))
-			THROW("Error while opening file \"%s\"", file_name);
-
-		fseek((FILE*)m_file, 0, SEEK_END);
-		auto pos = ftell((FILE*)m_file);
-
-		if(pos < -1) {
-			fclose((FILE*)m_file);
-			THROW("Trying to open a directory: \"%s\"", file_name);
-		}
-		m_size = pos;
-		fseek((FILE*)m_file, 0, SEEK_SET);
-	}
-
-	FileStream::~FileStream() throw() {
-		if(m_file)
-			fclose((FILE*)m_file);
-	}
-
-	void FileStream::v_load(void* data, int bytes) {
-		if(fread(data, bytes, 1, (FILE*)m_file) != 1)
-			THROW("fread failed with errno: %s\n", strerror(errno));
-		m_pos += bytes;
-	}
-
-	void FileStream::v_save(const void* data, int bytes) {
-		if(fwrite(data, bytes, 1, (FILE*)m_file) != 1)
-			THROW("fwrite failed with errno: %s\n", strerror(errno));
-		m_pos += bytes;
-		if(m_pos > m_size)
-			m_size = m_pos;
-	}
-
-	void FileStream::v_seek(long long pos) {
-		if(fseek((FILE*)m_file, pos, SEEK_SET) != 0)
-			THROW("fseek failed with errno: %s\n", strerror(errno));
-		m_pos = pos;
-	}
-
-	const char *FileStream::name() const throw() {
-		return m_name.c_str();
-	}
-	
-	MemoryLoader::MemoryLoader(const char *data, long long size) :Stream(true), m_data(data) {
-		ASSERT(size >= 0);
-		m_pos = 0;
-		m_size = size;
-	}
-
-	void MemoryLoader::v_load(void *ptr, int count) {
-		memcpy(ptr, m_data + m_pos, count);
-		m_pos += count;
-	}
-	
-	MemorySaver::MemorySaver(char *data, long long size) :Stream(false), m_data(data) {
-		ASSERT(size >= 0);
-		m_pos = 0;
-		m_size = size;
-	}
-
-	void MemorySaver::v_save(const void *ptr, int count) {
-		if(count + m_pos > m_size)
-			THROW("Overflowing buffer (MemorySaver buffer has constant size)");
-		memcpy(m_data + m_pos, ptr, count);
-		m_pos += count;
-	}
-
+void MemorySaver::v_save(const void *ptr, int count) {
+	if(count + m_pos > m_size)
+		THROW("Overflowing buffer (MemorySaver buffer has constant size)");
+	memcpy(m_data + m_pos, ptr, count);
+	m_pos += count;
+}
 }

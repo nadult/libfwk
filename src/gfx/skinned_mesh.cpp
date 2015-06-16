@@ -241,8 +241,8 @@ float SkinnedMeshData::intersect(const Segment &segment, const SkeletonPose &pos
 
 		if(intersection(segment, FBox(positions)) < constant::inf)
 			for(const auto &tri : mesh.trisIndices()) {
-				float isect =
-					intersection(segment, positions[tri[0]], positions[tri[1]], positions[tri[2]]);
+				float isect = intersection(
+					segment, Triangle(positions[tri[0]], positions[tri[1]], positions[tri[2]]));
 				min_isect = min(min_isect, isect);
 			}
 	}

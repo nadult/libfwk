@@ -6,10 +6,6 @@
 
 namespace fwk {
 
-float triangleArea(const float3 &pa, const float3 &pb, const float3 &pc) {
-	return 0.5f * length(cross(pb - pa, pc - pa));
-}
-
 bool isnan(float f) {
 #ifdef _WIN32
 	volatile float vf = f;

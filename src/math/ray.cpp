@@ -66,28 +66,24 @@ float intersection(const Segment &segment, const Box<float3> &box) {
 	return ranges.first;
 }
 
-float intersection(const Segment &segment, const float3 &a, const float3 &b, const float3 &c) {
-	//TODO: should be working for front & back faces
-	
-	float3 ab = b - a;
-	float3 ac = c - a;
+float intersection(const Segment &segment, const Triangle &tri) {
+	float tri_dot = dot(segment.dir(), tri.cross());
 
-	float3 tri_nrm = cross(ab, ac);
-	float tri_dot = dot(segment.dir(), tri_nrm);
-	if(tri_dot <= 0.0f)
-		return constant::inf;
-
-	float3 offset = segment.origin() - a;
+	float3 offset = segment.origin() - tri.a();
+	float3 e1 = tri.edge1(), e2 = tri.edge2();
+	if(tri_dot < 0) { // back side
+		swap(e1, e2);
+		tri_dot = -tri_dot;
+	}
 
 	float3 tmp = cross(segment.dir(), offset);
-	float v = dot(ac, tmp);
-	float w = -dot(ab, tmp);
+	float v = dot(e2, tmp);
+	float w = -dot(e1, tmp);
 
 	if(v < 0.0f || v > tri_dot || w < 0.0f || v + w > tri_dot)
 		return constant::inf;
 
-	// TODO: use triple product
-	return intersection(Plane(a, b, c), segment);
+	return intersection(Plane(tri), segment);
 }
 
 float intersection(const Segment &segment, const Plane &plane) {
@@ -111,7 +107,6 @@ const Segment operator*(const Matrix4 &mat, const Segment &segment) {
 	float3 new_origin = mulPoint(mat, segment.origin());
 	float3 new_target = mulPoint(mat, target);
 	float3 new_dir = mulNormal(mat, segment.dir()); // new_target - new_origin);
-	printf("len: %f\n", length(new_dir));
 	float len = 1.0f;
 
 	Segment segment1 = Segment(Ray(new_origin, new_dir), segment.min() * len, segment.max() * len);

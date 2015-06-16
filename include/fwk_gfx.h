@@ -605,10 +605,10 @@ class SimpleMeshData {
 				   PrimitiveType::Type = PrimitiveType::triangles);
 	SimpleMeshData(const SimpleMeshData &) = default;
 	SimpleMeshData(SimpleMeshData &&) = default;
-	SimpleMeshData& operator=(SimpleMeshData &&) = default;
-	SimpleMeshData& operator=(const SimpleMeshData &) = default;
+	SimpleMeshData &operator=(SimpleMeshData &&) = default;
+	SimpleMeshData &operator=(const SimpleMeshData &) = default;
 
-		SimpleMeshData(MakeRect, const FRect &xz_rect, float y);
+	SimpleMeshData(MakeRect, const FRect &xz_rect, float y);
 	SimpleMeshData(MakeBBox, const FBox &bbox);
 
 	const FBox &boundingBox() const { return m_bounding_box; }

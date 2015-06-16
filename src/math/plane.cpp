@@ -6,10 +6,7 @@
 
 namespace fwk {
 
-Plane::Plane(const float3 &a, const float3 &b, const float3 &c) {
-	m_nrm = normalize(cross(c - a, b - a));
-	m_dist = dot(a, m_nrm);
-}
+Plane::Plane(const Triangle &tri) : m_nrm(tri.normal()), m_dist(dot(tri.a(), m_nrm)) {}
 
 const Plane normalize(const Plane &plane) {
 	float mul = 1.0f / length(plane.normal());
