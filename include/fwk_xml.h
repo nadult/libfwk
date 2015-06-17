@@ -36,9 +36,9 @@ namespace xml_conversions {
 	template <> float4 fromString<float4>(const char *);
 	template <> FRect fromString<FRect>(const char *);
 	template <> IRect fromString<IRect>(const char *);
-	template <> Matrix4 fromString<Matrix4>(const char*);
-	template <> vector<float> fromString<vector<float>>(const char*);
-	template <> vector<int> fromString<vector<int>>(const char*);
+	template <> Matrix4 fromString<Matrix4>(const char *);
+	template <> vector<float> fromString<vector<float>>(const char *);
+	template <> vector<int> fromString<vector<int>>(const char *);
 	template <> vector<string> fromString<vector<string>>(const char *);
 
 	template <class T> void toString(const T &value, TextFormatter &out) {
@@ -83,7 +83,7 @@ class XMLNode {
 
 	template <class T> T attrib(const char *name, T default_value) const {
 		const char *value = hasAttrib(name);
-		return value ? attrib<T>(value) : default_value;
+		return value ? xml_conversions::fromString<T>(value) : default_value;
 	}
 
 	// When adding new nodes, you have to make sure that strings given as

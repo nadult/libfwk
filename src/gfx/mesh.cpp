@@ -90,7 +90,7 @@ void Mesh::getFace(int face, int &i1, int &i2, int &i3) const {
 	}
 }*/
 
-SimpleMeshData::SimpleMeshData(MakeRect, const FRect &xz_rect, float y)
+SimpleMesh::SimpleMesh(MakeRect, const FRect &xz_rect, float y)
 	: m_positions{float3(xz_rect.min[0], y, xz_rect.min[1]),
 				  float3(xz_rect.max[0], y, xz_rect.min[1]),
 				  float3(xz_rect.max[0], y, xz_rect.max[1]),
@@ -100,7 +100,7 @@ SimpleMeshData::SimpleMeshData(MakeRect, const FRect &xz_rect, float y)
 	computeBoundingBox();
 }
 
-SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
+SimpleMesh::SimpleMesh(MakeBBox, const FBox &bbox) {
 	float3 corners[8];
 	float2 uvs[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
@@ -126,7 +126,7 @@ SimpleMeshData::SimpleMeshData(MakeBBox, const FBox &bbox) {
 	computeBoundingBox();
 }
 
-SimpleMeshData::SimpleMeshData(const aiScene &ascene, int mesh_id) {
+SimpleMesh::SimpleMesh(const aiScene &ascene, int mesh_id) {
 	DASSERT(mesh_id >= 0 && mesh_id < (int)ascene.mNumMeshes);
 	const auto *amesh = ascene.mMeshes[mesh_id];
 
@@ -157,53 +157,53 @@ SimpleMeshData::SimpleMeshData(const aiScene &ascene, int mesh_id) {
 	computeBoundingBox();
 }
 
-SimpleMeshData::SimpleMeshData() : m_primitive_type(PrimitiveType::triangles) {}
+SimpleMesh::SimpleMesh()
+	: m_primitive_type(PrimitiveType::triangles), m_is_drawing_cache_dirty(false) {}
 
-SimpleMeshData::SimpleMeshData(vector<float3> positions, vector<float3> normals,
-							   vector<float2> tex_coords, vector<uint> indices,
-							   PrimitiveType::Type prim_type)
+SimpleMesh::SimpleMesh(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
+					   vector<uint> indices, PrimitiveType::Type prim_type)
 	: m_positions(std::move(positions)), m_normals(std::move(normals)),
 	  m_tex_coords(std::move(tex_coords)), m_indices(std::move(indices)),
-	  m_primitive_type(prim_type) {
+	  m_primitive_type(prim_type), m_is_drawing_cache_dirty(true) {
 	DASSERT(m_tex_coords.size() == m_positions.size() || m_tex_coords.empty());
 	DASSERT(m_normals.size() == m_positions.size() || m_normals.empty());
 	for(auto idx : indices)
 		DASSERT(idx < m_positions.size());
 	computeBoundingBox();
 }
-SimpleMeshData::SimpleMeshData(PVertexBuffer positions, PVertexBuffer normals,
-							   PVertexBuffer tex_coords, PIndexBuffer indices,
-							   PrimitiveType::Type prim_type)
-	: SimpleMeshData((DASSERT(positions), positions->getData<float3>()),
-					 normals ? normals->getData<float3>() : vector<float3>(),
-					 tex_coords ? tex_coords->getData<float2>() : vector<float2>(),
-					 indices ? indices->getData() : vector<uint>(), prim_type) {}
+SimpleMesh::SimpleMesh(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
+					   PIndexBuffer indices, PrimitiveType::Type prim_type)
+	: SimpleMesh((DASSERT(positions), positions->getData<float3>()),
+				 normals ? normals->getData<float3>() : vector<float3>(),
+				 tex_coords ? tex_coords->getData<float2>() : vector<float2>(),
+				 indices ? indices->getData() : vector<uint>(), prim_type) {}
 
 template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
 	DASSERT(array);
 	const auto &sources = array->sources();
 	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < sources.size()));
-	return buffer_id == -1? PVertexBuffer() : sources[buffer_id].buffer();
+	return buffer_id == -1 ? PVertexBuffer() : sources[buffer_id].buffer();
 }
 
-SimpleMeshData::SimpleMeshData(PVertexArray array, int positions_id, int normals_id,
-							   int tex_coords_id, PrimitiveType::Type prim_type)
-	: SimpleMeshData(extractBuffer<float3>(array, positions_id),
-					 extractBuffer<float3>(array, normals_id),
-					 extractBuffer<float2>(array, tex_coords_id),
-					 (DASSERT(array), array->indexBuffer()), prim_type) {}
+SimpleMesh::SimpleMesh(PVertexArray array, int positions_id, int normals_id, int tex_coords_id,
+					   PrimitiveType::Type prim_type)
+	: SimpleMesh(extractBuffer<float3>(array, positions_id),
+				 extractBuffer<float3>(array, normals_id),
+				 extractBuffer<float2>(array, tex_coords_id),
+				 (DASSERT(array), array->indexBuffer()), prim_type) {}
 
-void SimpleMeshData::transformUV(const Matrix4 &matrix) {
+void SimpleMesh::transformUV(const Matrix4 &matrix) {
 	for(int n = 0; n < (int)m_tex_coords.size(); n++)
 		m_tex_coords[n] = (matrix * float4(m_tex_coords[n], 0.0f, 1.0f)).xy();
+	m_is_drawing_cache_dirty = true;
 }
 
-void SimpleMeshData::computeBoundingBox() { m_bounding_box = FBox(m_positions); }
+void SimpleMesh::computeBoundingBox() { m_bounding_box = FBox(m_positions); }
 
-vector<SimpleMeshData::TriIndices> SimpleMeshData::trisIndices() const {
+vector<SimpleMesh::TriIndices> SimpleMesh::trisIndices() const {
 	vector<TriIndices> out;
 	// TODO: remove degenerate triangles
-	
+
 	if(m_indices.size() < 3)
 		return out;
 
@@ -218,24 +218,23 @@ vector<SimpleMeshData::TriIndices> SimpleMeshData::trisIndices() const {
 			uint c = m_indices[n];
 
 			if(a != b && b != c && a != c)
-				out.push_back({a, b, c});
+				out.push_back({{a, b, c}});
 		}
-	}
-	else
+	} else
 		THROW("Add support for different primitive types");
 
 	return out;
 }
 
-//TODO: test split / merge and transform
-vector<SimpleMeshData> SimpleMeshData::split(int max_vertices) const {
+// TODO: test split / merge and transform
+vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
 	DASSERT(max_vertices >= 3 && !m_indices.empty());
-	vector<SimpleMeshData> out;
+	vector<SimpleMesh> out;
 
 	int last_index = 0;
 
 	while(true) {
-		out.push_back(SimpleMeshData());
+		out.push_back(SimpleMesh());
 		auto &new_mesh = out.back();
 
 		int num_vertices = 0;
@@ -287,8 +286,8 @@ vector<SimpleMeshData> SimpleMeshData::split(int max_vertices) const {
 	return out;
 }
 
-SimpleMeshData SimpleMeshData::merge(const vector<SimpleMeshData> &meshes) {
-	SimpleMeshData out;
+SimpleMesh SimpleMesh::merge(const vector<SimpleMesh> &meshes) {
+	SimpleMesh out;
 
 	int num_vertices = 0, num_indices = 0;
 	bool has_tex_coords = meshes.empty() ? false : meshes.front().hasTexCoords();
@@ -355,30 +354,63 @@ vector<float3> transformNormals(const Matrix4 &mat, vector<float3> normals) {
 	return normals;
 }
 
-SimpleMeshData SimpleMeshData::transform(const Matrix4 &mat, SimpleMeshData mesh) {
+SimpleMesh SimpleMesh::transform(const Matrix4 &mat, SimpleMesh mesh) {
 	mesh.m_positions = transformVertices(mat, std::move(mesh.m_positions));
 	if(mesh.hasNormals())
 		mesh.m_normals = transformNormals(mat, std::move(mesh.m_normals));
 	return mesh;
 }
 
-SimpleMesh::SimpleMesh(const SimpleMeshData &data, Color color)
-	: m_vertex_array(VertexArray::make({make_shared<VertexBuffer>(data.m_positions), color,
-										make_shared<VertexBuffer>(data.m_tex_coords)},
-									   make_shared<IndexBuffer>(data.m_indices))),
-	  m_primitive_type(data.m_primitive_type) {}
-
-void SimpleMesh::draw(Renderer &renderer, const Material &material, const Matrix4 &mat) const {
-	renderer.addDrawCall({m_vertex_array, m_primitive_type, m_vertex_array->size(), 0}, material,
-						 mat);
+static PVertexArray makeVertexArray(const SimpleMesh &data) {
+	auto vertices = make_shared<VertexBuffer>(data.positions());
+	auto tex_coords = data.hasTexCoords() ? make_shared<VertexBuffer>(data.texCoords())
+										  : VertexArraySource(float2(0, 0));
+	auto indices = data.hasIndices() ? make_shared<IndexBuffer>(data.indices()) : PIndexBuffer();
+	return VertexArray::make({vertices, Color::white, tex_coords}, std::move(indices));
 }
 
-MeshData::MeshData(const aiScene &ascene) {
+void SimpleMesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) const {
+	if(m_is_drawing_cache_dirty) {
+		m_is_drawing_cache_dirty = false;
+		m_drawing_cache.clear();
+
+		if(hasIndices() && m_positions.size() > IndexBuffer::max_index_value) {
+			auto parts = split(IndexBuffer::max_index_value);
+			for(const auto &part : parts)
+				m_drawing_cache.emplace_back(makeVertexArray(part));
+		} else { m_drawing_cache.emplace_back(makeVertexArray(*this)); }
+	}
+
+	for(const auto &varray : m_drawing_cache) {
+		DrawCall draw_call(varray, m_primitive_type, varray->size(), 0);
+		out.addDrawCall(draw_call, material, matrix);
+	}
+}
+
+float SimpleMesh::intersect(const Segment &segment) const {
+	float min_isect = constant::inf;
+
+	if(intersection(segment, m_bounding_box) < constant::inf)
+		for(const auto &indices : trisIndices()) {
+			Triangle triangle(m_positions[indices[0]], m_positions[indices[1]],
+							  m_positions[indices[2]]);
+			min_isect = min(min_isect, intersection(segment, triangle));
+		}
+
+	return min_isect;
+}
+
+void SimpleMesh::clearDrawingCache() const {
+	m_drawing_cache.clear();
+	m_is_drawing_cache_dirty = true;
+}
+
+Mesh::Mesh(const aiScene &ascene) {
 	Matrix4 mat(ascene.mRootNode->mTransformation[0]);
 
 	m_meshes.reserve(ascene.mNumMeshes);
 	for(uint n = 0; n < ascene.mNumMeshes; n++)
-		m_meshes.emplace_back(SimpleMeshData(ascene, n));
+		m_meshes.emplace_back(SimpleMesh(ascene, n));
 
 	std::deque<pair<const aiNode *, int>> queue({make_pair(ascene.mRootNode, -1)});
 
@@ -405,25 +437,17 @@ MeshData::MeshData(const aiScene &ascene) {
 	computeBoundingBox();
 }
 
-void MeshData::computeBoundingBox() {
+void Mesh::computeBoundingBox() {
 	m_bounding_box = m_meshes.empty() ? FBox::empty() : m_meshes.front().boundingBox();
 	for(const auto &mesh : m_meshes)
 		m_bounding_box = sum(m_bounding_box, mesh.boundingBox());
 }
 
-int MeshData::findNode(const string &name) const {
+int Mesh::findNode(const string &name) const {
 	for(int n = 0; n < (int)m_nodes.size(); n++)
 		if(m_nodes[n].name == name)
 			return n;
 	return -1;
-}
-
-Mesh::Mesh(const aiScene &scene) : Mesh(MeshData(scene)) {}
-
-Mesh::Mesh(const MeshData &data) : m_nodes(data.nodes()) {
-	m_meshes.reserve(data.meshes().size());
-	for(const auto &mesh : data.meshes())
-		m_meshes.emplace_back(mesh);
 }
 
 void Mesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) const {
@@ -447,14 +471,21 @@ void Mesh::printHierarchy() const {
 		printf("%d: %s\n", n, m_nodes[n].name.c_str());
 }
 
-/*
-float Mesh::trace(const Segment &segment) const {
-	float dist = constant::inf;
-	int tri_count = vertexCount() / 3;
-	for(int n = 0; n < tri_count; n++)
-		dist = min(dist, intersection(segment, m_positions[n * 3 + 0], m_positions[n * 3 + 1],
-									  m_positions[n * 3 + 2]));
+float Mesh::intersect(const Segment &segment) const {
+	float min_isect = constant::inf;
 
-	return dist;
-}*/
+	vector<Matrix4> matrices(m_nodes.size());
+	for(int n = 0; n < (int)m_nodes.size(); n++) {
+		matrices[n] = m_nodes[n].trans;
+		if(m_nodes[n].parent_id != -1)
+			matrices[n] = matrices[m_nodes[n].parent_id] * matrices[n];
+
+		for(int mesh_id : m_nodes[n].mesh_ids) {
+			float isect = m_meshes[mesh_id].intersect(inverse(matrices[n]) * segment);
+			min_isect = min(min_isect, isect);
+		}
+	}
+
+	return min_isect;
+}
 }

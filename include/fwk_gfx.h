@@ -593,23 +593,23 @@ using PProgram = shared_ptr<Program>;
 class Renderer;
 class Material;
 
-class SimpleMeshData {
+class SimpleMesh {
   public:
-	SimpleMeshData();
-	SimpleMeshData(const aiScene &scene, int mesh_id);
-	SimpleMeshData(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
-				   vector<uint> indices, PrimitiveType::Type type = PrimitiveType::triangles);
-	SimpleMeshData(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
-				   PIndexBuffer indices, PrimitiveType::Type type = PrimitiveType::triangles);
-	SimpleMeshData(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1,
-				   PrimitiveType::Type = PrimitiveType::triangles);
-	SimpleMeshData(const SimpleMeshData &) = default;
-	SimpleMeshData(SimpleMeshData &&) = default;
-	SimpleMeshData &operator=(SimpleMeshData &&) = default;
-	SimpleMeshData &operator=(const SimpleMeshData &) = default;
+	SimpleMesh();
+	SimpleMesh(const aiScene &scene, int mesh_id);
+	SimpleMesh(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
+			   vector<uint> indices, PrimitiveType::Type type = PrimitiveType::triangles);
+	SimpleMesh(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
+			   PIndexBuffer indices, PrimitiveType::Type type = PrimitiveType::triangles);
+	SimpleMesh(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1,
+			   PrimitiveType::Type = PrimitiveType::triangles);
+	SimpleMesh(const SimpleMesh &) = default;
+	SimpleMesh(SimpleMesh &&) = default;
+	SimpleMesh &operator=(SimpleMesh &&) = default;
+	SimpleMesh &operator=(const SimpleMesh &) = default;
 
-	SimpleMeshData(MakeRect, const FRect &xz_rect, float y);
-	SimpleMeshData(MakeBBox, const FBox &bbox);
+	SimpleMesh(MakeRect, const FRect &xz_rect, float y);
+	SimpleMesh(MakeBBox, const FBox &bbox);
 
 	const FBox &boundingBox() const { return m_bounding_box; }
 
@@ -623,16 +623,21 @@ class SimpleMeshData {
 
 	bool hasTexCoords() const { return !m_tex_coords.empty(); }
 	bool hasNormals() const { return !m_normals.empty(); }
+	bool hasIndices() const { return !m_indices.empty(); }
 
 	using TriIndices = array<uint, 3>;
 
 	vector<TriIndices> trisIndices() const;
 	PrimitiveType::Type primitiveType() const { return m_primitive_type; }
 
-	vector<SimpleMeshData> split(int max_vertices) const;
-	static SimpleMeshData merge(const vector<SimpleMeshData> &);
-	static SimpleMeshData transform(const Matrix4 &, SimpleMeshData);
+	vector<SimpleMesh> split(int max_vertices) const;
+	static SimpleMesh merge(const vector<SimpleMesh> &);
+	static SimpleMesh transform(const Matrix4 &, SimpleMesh);
 
+	float intersect(const Segment &) const;
+
+	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
+	void clearDrawingCache() const;
 	/*
 		void genAdjacency();
 
@@ -649,30 +654,20 @@ class SimpleMeshData {
 	vector<uint> m_indices;
 	PrimitiveType::Type m_primitive_type;
 	FBox m_bounding_box;
-	friend class SimpleMesh;
-};
 
-vector<float3> transformVertices(const Matrix4 &, vector<float3>);
-vector<float3> transformNormals(const Matrix4 &, vector<float3>);
-
-class SimpleMesh {
-  public:
-	enum { max_vertices = 65536 };
-
-	SimpleMesh(const SimpleMeshData &, Color color = Color::white);
-	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
-
-  private:
-	PVertexArray m_vertex_array;
-	PrimitiveType::Type m_primitive_type;
+	mutable vector<PVertexArray> m_drawing_cache;
+	mutable bool m_is_drawing_cache_dirty;
 };
 
 using PSimpleMesh = shared_ptr<SimpleMesh>;
 
-class MeshData {
+vector<float3> transformVertices(const Matrix4 &, vector<float3>);
+vector<float3> transformNormals(const Matrix4 &, vector<float3>);
+
+class Mesh {
   public:
-	MeshData() = default;
-	MeshData(const aiScene &);
+	Mesh() = default;
+	Mesh(const aiScene &);
 
 	struct Node {
 		string name;
@@ -682,35 +677,23 @@ class MeshData {
 	};
 
 	const vector<Node> &nodes() const { return m_nodes; }
-	const vector<SimpleMeshData> &meshes() const { return m_meshes; }
+	const vector<SimpleMesh> &meshes() const { return m_meshes; }
+	void printHierarchy() const;
 
 	const FBox &boundingBox() const { return m_bounding_box; }
 	int findNode(const string &name) const;
 
+	float intersect(const Segment &ray) const;
+
+	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
+	void clearDrawingCache() const;
+
   protected:
 	void computeBoundingBox();
 
-	FBox m_bounding_box;
-	vector<SimpleMeshData> m_meshes;
-	vector<Node> m_nodes;
-	friend class Mesh;
-};
-
-class Mesh {
-  public:
-	using Node = MeshData::Node;
-
-	Mesh(const MeshData &);
-	Mesh(const aiScene &);
-	//	Mesh(const Vertex *verts, int count, PrimitiveType::Type type);
-	virtual ~Mesh() = default;
-
-	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
-	void printHierarchy() const;
-
-  protected:
-	vector<Node> m_nodes;
 	vector<SimpleMesh> m_meshes;
+	vector<Node> m_nodes;
+	FBox m_bounding_box;
 };
 
 using PMesh = shared_ptr<Mesh>;
@@ -758,6 +741,7 @@ class SkeletalAnim {
 	SkeletalAnim(const aiScene &, int anim_id, const Skeleton &);
 	SkeletonPose animateSkeleton(const Skeleton &skeleton, double anim_time) const;
 
+	string print() const;
 	const string &name() const { return m_name; }
 	float length() const { return m_length; }
 	// TODO: advanced interpolation support
@@ -780,11 +764,11 @@ class SkeletalAnim {
 	float m_length;
 };
 
-class SkinnedMeshData : public MeshData {
+class SkinnedMesh : public Mesh {
   public:
-	SkinnedMeshData();
-	SkinnedMeshData(const aiScene &);
-	virtual ~SkinnedMeshData() = default;
+	SkinnedMesh();
+	SkinnedMesh(const aiScene &);
+	virtual ~SkinnedMesh() = default;
 
 	void drawSkeleton(Renderer &, const SkeletonPose &, Color) const;
 
@@ -796,9 +780,9 @@ class SkinnedMeshData : public MeshData {
 	int jointCount() const { return m_skeleton.size(); }
 	const Skeleton &skeleton() const { return m_skeleton; }
 
-	void computeBoundingBox();
-	FBox computeBoundingBox(const SkeletonPose &) const;
-	SimpleMeshData animateMesh(int mesh_id, const SkeletonPose &) const;
+	FBox boundingBox() const { return m_bounding_box; }
+	FBox boundingBox(const SkeletonPose &) const;
+	SimpleMesh animateMesh(int mesh_id, const SkeletonPose &) const;
 
 	float intersect(const Segment &, const SkeletonPose &) const;
 
@@ -814,43 +798,24 @@ class SkinnedMeshData : public MeshData {
 	};
 	// TODO: instancing support
 
+	void draw(Renderer &, const SkeletonPose &, const Material &,
+			  const Matrix4 &matrix = Matrix4::identity()) const;
+	Matrix4 nodeTrans(const string &name, const SkeletonPose &) const;
+	void printHierarchy() const;
+
   protected:
+	void computeBoundingBox();
+	// TODO: ranges
 	void animateVertices(int mesh_id, const SkeletonPose &, float3 *positions,
 						 float3 *normals = nullptr) const;
 
+	FBox m_bounding_box;
 	float3 m_bind_scale;
 	Skeleton m_skeleton;
 	vector<SkeletalAnim> m_anims;
 	vector<MeshSkin> m_mesh_skins;
 	vector<Matrix4> m_bind_matrices;
 	vector<Matrix4> m_inv_bind_matrices;
-};
-
-class SkinnedMesh {
-  public:
-	SkinnedMesh(const aiScene &);
-
-	void draw(Renderer &, const SkeletonPose &, const Material &,
-			  const Matrix4 &matrix = Matrix4::identity()) const;
-	const SkeletalAnim &anim(int anim_id) const { return m_data.anim(anim_id); }
-	int animCount() const { return m_data.animCount(); }
-
-	SkeletonPose animateSkeleton(int anim_id, double anim_pos) const {
-		return m_data.animateSkeleton(anim_id, anim_pos);
-	}
-	const Skeleton &skeleton() const { return m_data.skeleton(); }
-
-	FBox boundingBox(const SkeletonPose &pose) const { return m_data.computeBoundingBox(pose); }
-	FBox boundingBox() const { return m_data.boundingBox(); }
-
-	float intersect(const Segment &ray, const SkeletonPose &pose) const {
-		return m_data.intersect(ray, pose);
-	}
-	Matrix4 nodeTrans(const string &name, const SkeletonPose &) const;
-	void printHierarchy() const;
-
-  protected:
-	SkinnedMeshData m_data;
 };
 
 using PSkinnedMesh = shared_ptr<SkinnedMesh>;

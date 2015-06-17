@@ -140,9 +140,21 @@ SkeletonPose SkeletalAnim::animateSkeleton(const Skeleton &skeleton, double anim
 	return out;
 }
 
-SkinnedMeshData::SkinnedMeshData() : m_bind_scale(1, 1, 1) {}
+string SkeletalAnim::print() const {
+	TextFormatter out;
+	out("Anim: %s:", m_name.c_str());
+	for(const auto &channel : m_channels) {
+		out("  %12s: %d|", channel.joint_name.c_str(), (int)channel.keys.size());
+		for(const auto &key : channel.keys)
+			out("%6.3f ", key.time);
+		out("\n");
+	}
+	return out.text();
+}
 
-SkinnedMeshData::SkinnedMeshData(const aiScene &ascene) : MeshData(ascene), m_skeleton(ascene) {
+SkinnedMesh::SkinnedMesh() : m_bind_scale(1, 1, 1) {}
+
+SkinnedMesh::SkinnedMesh(const aiScene &ascene) : Mesh(ascene), m_skeleton(ascene) {
 	for(uint a = 0; a < ascene.mNumAnimations; a++)
 		m_anims.emplace_back(ascene, (int)a, m_skeleton);
 
@@ -190,9 +202,8 @@ SkinnedMeshData::SkinnedMeshData(const aiScene &ascene) : MeshData(ascene), m_sk
 	computeBoundingBox();
 }
 
-void SkinnedMeshData::drawSkeleton(Renderer &out, const SkeletonPose &pose, Color color) const {
-	SimpleMeshData mesh(MakeBBox(), FBox(-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f));
-	auto simple_mesh = make_shared<SimpleMesh>(mesh, color);
+void SkinnedMesh::drawSkeleton(Renderer &out, const SkeletonPose &pose, Color color) const {
+	SimpleMesh bbox_mesh(MakeBBox(), FBox(-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f));
 	out.pushViewMatrix();
 
 	Matrix4 matrix = Matrix4::identity();
@@ -205,15 +216,17 @@ void SkinnedMeshData::drawSkeleton(Renderer &out, const SkeletonPose &pose, Colo
 
 	for(int n = 0; n < (int)m_skeleton.size(); n++)
 		if(m_inv_bind_matrices[n] != Matrix4::identity())
-			simple_mesh->draw(out, {Color::green}, translation(positions[n]));
+			bbox_mesh.draw(out, {Color::green}, translation(positions[n]));
 
 	out.popViewMatrix();
 }
 
-FBox SkinnedMeshData::computeBoundingBox(const SkeletonPose &pose) const {
+FBox SkinnedMesh::boundingBox(const SkeletonPose &pose) const {
 	FBox out = FBox::empty();
 
+	DASSERT(!m_meshes.empty());
 	for(int n = 0; n < (int)m_meshes.size(); n++) {
+		DASSERT(m_meshes[n].vertexCount() > 0);
 		PodArray<float3> positions(m_meshes[n].vertexCount());
 		animateVertices(n, pose, positions.data(), nullptr);
 		FBox bbox(positions);
@@ -223,15 +236,15 @@ FBox SkinnedMeshData::computeBoundingBox(const SkeletonPose &pose) const {
 	return out;
 }
 
-void SkinnedMeshData::computeBoundingBox() {
+void SkinnedMesh::computeBoundingBox() {
 	// TODO: make this more accurate
-	FBox bbox = computeBoundingBox(animateSkeleton(-1, 0.0f));
+	FBox bbox = boundingBox(animateSkeleton(-1, 0.0f));
 	for(int a = 0; a < animCount(); a++)
-		bbox = sum(bbox, computeBoundingBox(animateSkeleton(a, 0.0f)));
+		bbox = sum(bbox, boundingBox(animateSkeleton(a, 0.0f)));
 	m_bounding_box = FBox(bbox.center() - bbox.size(), bbox.center() + bbox.size());
 }
 
-float SkinnedMeshData::intersect(const Segment &segment, const SkeletonPose &pose) const {
+float SkinnedMesh::intersect(const Segment &segment, const SkeletonPose &pose) const {
 	float min_isect = constant::inf;
 
 	for(int n = 0; n < (int)m_meshes.size(); n++) {
@@ -250,12 +263,12 @@ float SkinnedMeshData::intersect(const Segment &segment, const SkeletonPose &pos
 	return min_isect;
 }
 
-void SkinnedMeshData::animateVertices(int mesh_id, const SkeletonPose &pose, float3 *out_positions,
-									  float3 *out_normals) const {
+void SkinnedMesh::animateVertices(int mesh_id, const SkeletonPose &pose, float3 *out_positions,
+								  float3 *out_normals) const {
 	DASSERT(mesh_id >= 0 && mesh_id < (int)m_meshes.size());
 	DASSERT((int)pose.size() == m_skeleton.size());
 	const MeshSkin &skin = m_mesh_skins[mesh_id];
-	const SimpleMeshData &mesh = m_meshes[mesh_id];
+	const SimpleMesh &mesh = m_meshes[mesh_id];
 
 	for(int v = 0; v < (int)skin.vertex_weights.size(); v++) {
 		const auto &vweights = skin.vertex_weights[v];
@@ -277,15 +290,15 @@ void SkinnedMeshData::animateVertices(int mesh_id, const SkeletonPose &pose, flo
 	}
 }
 
-SimpleMeshData SkinnedMeshData::animateMesh(int mesh_id, const SkeletonPose &pose) const {
+SimpleMesh SkinnedMesh::animateMesh(int mesh_id, const SkeletonPose &pose) const {
 	DASSERT((int)pose.size() == m_skeleton.size());
 	vector<float3> positions = m_meshes[mesh_id].positions();
 	vector<float2> tex_coords = m_meshes[mesh_id].texCoords();
 	animateVertices(mesh_id, pose, positions.data(), nullptr);
-	return SimpleMeshData(positions, {}, tex_coords, m_meshes[mesh_id].indices());
+	return SimpleMesh(positions, {}, tex_coords, m_meshes[mesh_id].indices());
 }
 
-SkeletonPose SkinnedMeshData::animateSkeleton(int anim_id, double anim_pos) const {
+SkeletonPose SkinnedMesh::animateSkeleton(int anim_id, double anim_pos) const {
 	DASSERT(anim_id >= -1 && anim_id < (int)m_anims.size());
 	SkeletonPose out;
 
@@ -304,28 +317,25 @@ SkeletonPose SkinnedMeshData::animateSkeleton(int anim_id, double anim_pos) cons
 	return out;
 }
 
-// TODO: problems when importing junker on custom compiled assimp (mesh is too small)
-SkinnedMesh::SkinnedMesh(const aiScene &ascene) : m_data(ascene) {}
-
 void SkinnedMesh::draw(Renderer &out, const SkeletonPose &pose, const Material &material,
 					   const Matrix4 &matrix) const {
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
-	for(int m = 0; m < (int)m_data.meshes().size(); m++)
-		SimpleMesh(m_data.animateMesh(m, pose)).draw(out, material, Matrix4::identity());
+	for(int m = 0; m < (int)meshes().size(); m++)
+		SimpleMesh(animateMesh(m, pose)).draw(out, material, Matrix4::identity());
 	out.popViewMatrix();
 	// m_data.drawSkeleton(out, anim_id, anim_pos, material.color());
 }
 
 Matrix4 SkinnedMesh::nodeTrans(const string &name, const SkeletonPose &pose) const {
-	for(int n = 0; n < (int)skeleton().size(); n++)
-		if(m_data.skeleton()[n].name == name)
+	for(int n = 0; n < (int)m_skeleton.size(); n++)
+		if(m_skeleton[n].name == name)
 			return pose[n];
 	return Matrix4::identity();
 }
 
 void SkinnedMesh::printHierarchy() const {
-	for(int n = 0; n < m_data.skeleton().size(); n++)
-		printf("%d: %s\n", n, m_data.skeleton()[n].name.c_str());
+	for(int n = 0; n < m_skeleton.size(); n++)
+		printf("%d: %s\n", n, m_skeleton[n].name.c_str());
 }
 }
