@@ -164,8 +164,7 @@ void Renderer::render() {
 		instance.draw_call.issue();
 	}
 
-	GfxDevice::setBlendingMode(GfxDevice::bmNormal);
-	glDisable(GL_CULL_FACE);
+	dev_config.update(Material::flag_blended | Material::flag_two_sided);
 	glDepthMask(0);
 	{
 		vector<float3> positions;
@@ -191,8 +190,6 @@ void Renderer::render() {
 			program->bind();
 			program->setUniform("proj_view_matrix", instance.matrix);
 			program->setUniform("mesh_color", (float4)instance.material.color());
-			dev_config.update(instance.material.flags());
-
 			sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
 		}
 	}

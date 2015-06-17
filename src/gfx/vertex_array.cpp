@@ -13,7 +13,7 @@ static const int gl_vertex_data_type[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, G
 										  GL_FLOAT};
 static const int gl_index_data_type[] = {GL_UNSIGNED_INT, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT};
 static const int gl_primitive_type[] = {GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP};
-	
+
 #if OPENGL_VERSION < 0x30
 int VertexArray::s_max_bind = 0;
 #endif
@@ -27,7 +27,7 @@ VertexArraySource::VertexArraySource(PVertexBuffer buffer, int offset)
 
 VertexArraySource::VertexArraySource(const float4 &value) : m_single_value(value), m_offset(0) {}
 
-//TODO: not really max, it's max + 1 ...
+// TODO: not really max, it's max + 1 ...
 int VertexArray::Source::maxIndex() const {
 	return m_buffer ? max(0, m_buffer->size() - m_offset) : INT_MAX;
 }
@@ -80,6 +80,7 @@ void VertexArray::draw(PrimitiveType::Type pt, int num_vertices, int offset) con
 
 	bind();
 
+	updateCounter("gfx::draw_calls", 1);
 	if(m_index_buffer) {
 		updateCounter("gfx::tris", countTriangles(pt, num_vertices));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer->m_handle);

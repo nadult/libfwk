@@ -18,11 +18,12 @@ SimpleMesh::SimpleMesh(MakeRect, const FRect &xz_rect, float y)
 				  float3(xz_rect.max[0], y, xz_rect.max[1]),
 				  float3(xz_rect.min[0], y, xz_rect.max[1])},
 	  m_normals(4, float3(0, 1, 0)), m_tex_coords{{0, 0}, {1, 0}, {1, 1}, {0, 1}},
-	  m_indices{0, 2, 1, 0, 3, 2}, m_primitive_type(PrimitiveType::triangles) {
+	  m_indices{0, 2, 1, 0, 3, 2}, m_primitive_type(PrimitiveType::triangles),
+	  m_is_drawing_cache_dirty(true) {
 	computeBoundingBox();
 }
 
-SimpleMesh::SimpleMesh(MakeBBox, const FBox &bbox) {
+SimpleMesh::SimpleMesh(MakeBBox, const FBox &bbox) : SimpleMesh() {
 	float3 corners[8];
 	float2 uvs[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
@@ -44,11 +45,10 @@ SimpleMesh::SimpleMesh(MakeBBox, const FBox &bbox) {
 		for(int i = 0; i < 6; i++)
 			m_indices.push_back(s * 4 + face_indices[i]);
 	}
-	m_primitive_type = PrimitiveType::triangles;
 	computeBoundingBox();
 }
 
-SimpleMesh::SimpleMesh(MakeCylinder, const Cylinder &cylinder, int num_sides) {
+SimpleMesh::SimpleMesh(MakeCylinder, const Cylinder &cylinder, int num_sides) : SimpleMesh() {
 	DASSERT(num_sides >= 3);
 
 	m_positions.resize(num_sides * 2);
@@ -82,7 +82,6 @@ SimpleMesh::SimpleMesh(MakeCylinder, const Cylinder &cylinder, int num_sides) {
 		m_indices.insert(end(m_indices), {i0, i2, i1});
 	}
 
-	m_primitive_type = PrimitiveType::triangles;
 	computeBoundingBox();
 }
 }

@@ -627,6 +627,9 @@ class SimpleMesh {
 	bool hasNormals() const { return !m_normals.empty(); }
 	bool hasIndices() const { return !m_indices.empty(); }
 
+	void removeNormals() { m_normals.clear(); }
+	void removeTexCoords() { m_tex_coords.clear(); }
+
 	using TriIndices = array<uint, 3>;
 
 	vector<TriIndices> trisIndices() const;
@@ -670,6 +673,8 @@ class Mesh {
   public:
 	Mesh() = default;
 	Mesh(const aiScene &);
+	Mesh(Mesh &&) = default;
+	Mesh &operator=(Mesh &&) = default;
 
 	struct Node {
 		string name;
@@ -680,6 +685,7 @@ class Mesh {
 
 	const vector<Node> &nodes() const { return m_nodes; }
 	const vector<SimpleMesh> &meshes() const { return m_meshes; }
+	SimpleMesh toSimpleMesh() const;
 	void printHierarchy() const;
 
 	const FBox &boundingBox() const { return m_bounding_box; }

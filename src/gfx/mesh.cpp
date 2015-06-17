@@ -122,7 +122,7 @@ SimpleMesh::SimpleMesh(const aiScene &ascene, int mesh_id) {
 }
 
 SimpleMesh::SimpleMesh()
-	: m_primitive_type(PrimitiveType::triangles), m_is_drawing_cache_dirty(false) {}
+	: m_primitive_type(PrimitiveType::triangles), m_is_drawing_cache_dirty(true) {}
 
 SimpleMesh::SimpleMesh(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
 					   vector<uint> indices, PrimitiveType::Type prim_type)
@@ -433,6 +433,22 @@ void Mesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) 
 void Mesh::printHierarchy() const {
 	for(int n = 0; n < (int)m_nodes.size(); n++)
 		printf("%d: %s\n", n, m_nodes[n].name.c_str());
+}
+
+SimpleMesh Mesh::toSimpleMesh() const {
+	vector<Matrix4> matrices(m_nodes.size());
+	vector<SimpleMesh> meshes;
+
+	for(int n = 0; n < (int)m_nodes.size(); n++) {
+		matrices[n] = m_nodes[n].trans;
+		if(m_nodes[n].parent_id != -1)
+			matrices[n] = matrices[m_nodes[n].parent_id] * matrices[n];
+
+		for(int mesh_id : m_nodes[n].mesh_ids)
+			meshes.emplace_back(SimpleMesh::transform(matrices[n], m_meshes[mesh_id]));
+	}
+
+	return SimpleMesh::merge(meshes);
 }
 
 float Mesh::intersect(const Segment &segment) const {
