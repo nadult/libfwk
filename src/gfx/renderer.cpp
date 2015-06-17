@@ -115,11 +115,41 @@ static void bindTextures(const vector<PTexture> &textures) {
 	glActiveTexture(GL_TEXTURE0);
 }
 
+namespace {
+
+	struct DeviceConfig {
+		DeviceConfig() : flags(~0u) { update(0); }
+
+		void update(uint new_flags) {
+			if((new_flags & Material::flag_blended) != (flags & Material::flag_blended)) {
+				GfxDevice::setBlendingMode(new_flags & Material::flag_blended
+											   ? GfxDevice::bmNormal
+											   : GfxDevice::bmDisabled);
+			}
+			if((new_flags & Material::flag_two_sided) != (flags & Material::flag_two_sided)) {
+				if(new_flags & Material::flag_two_sided)
+					glDisable(GL_CULL_FACE);
+				else
+					glEnable(GL_CULL_FACE);
+			}
+			if((new_flags & Material::flag_wire) != (flags & Material::flag_wire)) {
+				glPolygonMode(GL_FRONT_AND_BACK,
+							  new_flags & Material::flag_wire ? GL_LINE : GL_FILL);
+			}
+
+			flags = new_flags;
+		}
+
+		uint flags;
+	};
+}
+
 void Renderer::render() {
-	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(1);
+
+	DeviceConfig dev_config;
 
 	for(const auto &instance : m_instances) {
 		bindTextures(instance.material.textures());
@@ -130,9 +160,7 @@ void Renderer::render() {
 		program->bind();
 		program->setUniform("proj_view_matrix", instance.matrix);
 		program->setUniform("mesh_color", (float4)instance.material.color());
-		GfxDevice::setBlendingMode(instance.material.flags() & Material::flag_blended
-									   ? GfxDevice::bmNormal
-									   : GfxDevice::bmDisabled);
+		dev_config.update(instance.material.flags());
 		instance.draw_call.issue();
 	}
 
@@ -163,6 +191,7 @@ void Renderer::render() {
 			program->bind();
 			program->setUniform("proj_view_matrix", instance.matrix);
 			program->setUniform("mesh_color", (float4)instance.material.color());
+			dev_config.update(instance.material.flags());
 
 			sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
 		}

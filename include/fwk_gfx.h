@@ -20,6 +20,7 @@ namespace collada {
 
 class MakeRect {};
 class MakeBBox {};
+class MakeCylinder {};
 
 struct Color {
 	explicit Color(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
@@ -610,6 +611,7 @@ class SimpleMesh {
 
 	SimpleMesh(MakeRect, const FRect &xz_rect, float y);
 	SimpleMesh(MakeBBox, const FBox &bbox);
+	SimpleMesh(MakeCylinder, const Cylinder &, int num_sides);
 
 	const FBox &boundingBox() const { return m_bounding_box; }
 
@@ -825,6 +827,7 @@ class Material {
 	enum Flags {
 		flag_blended = 1,
 		flag_two_sided = 2,
+		flag_wire = 4,
 	};
 
 	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,

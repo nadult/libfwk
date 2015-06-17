@@ -90,42 +90,6 @@ void Mesh::getFace(int face, int &i1, int &i2, int &i3) const {
 	}
 }*/
 
-SimpleMesh::SimpleMesh(MakeRect, const FRect &xz_rect, float y)
-	: m_positions{float3(xz_rect.min[0], y, xz_rect.min[1]),
-				  float3(xz_rect.max[0], y, xz_rect.min[1]),
-				  float3(xz_rect.max[0], y, xz_rect.max[1]),
-				  float3(xz_rect.min[0], y, xz_rect.max[1])},
-	  m_normals(4, float3(0, 1, 0)), m_tex_coords{{0, 0}, {1, 0}, {1, 1}, {0, 1}},
-	  m_indices{0, 2, 1, 0, 3, 2}, m_primitive_type(PrimitiveType::triangles) {
-	computeBoundingBox();
-}
-
-SimpleMesh::SimpleMesh(MakeBBox, const FBox &bbox) {
-	float3 corners[8];
-	float2 uvs[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-
-	bbox.getCorners(corners);
-
-	int order[] = {1, 3, 2, 0, 1, 0, 4, 5, 5, 4, 6, 7, 3, 1, 5, 7, 2, 6, 4, 0, 3, 7, 6, 2};
-
-	m_positions.reserve(24);
-	m_tex_coords.reserve(24);
-	m_indices.reserve(36);
-
-	for(int s = 0; s < 6; s++) {
-		for(int i = 0; i < 4; i++) {
-			m_positions.emplace_back(corners[order[s * 4 + i]]);
-			m_tex_coords.emplace_back(uvs[i]);
-		}
-
-		int face_indices[6] = {2, 1, 0, 3, 2, 0};
-		for(int i = 0; i < 6; i++)
-			m_indices.push_back(s * 4 + face_indices[i]);
-	}
-	m_primitive_type = PrimitiveType::triangles;
-	computeBoundingBox();
-}
-
 SimpleMesh::SimpleMesh(const aiScene &ascene, int mesh_id) {
 	DASSERT(mesh_id >= 0 && mesh_id < (int)ascene.mNumMeshes);
 	const auto *amesh = ascene.mMeshes[mesh_id];
