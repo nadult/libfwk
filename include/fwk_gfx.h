@@ -594,10 +594,12 @@ using PProgram = shared_ptr<Program>;
 class Renderer;
 class Material;
 
+// Make it immutable, with operations requiring a copy/move
 class SimpleMesh {
   public:
 	SimpleMesh();
 	SimpleMesh(const aiScene &scene, int mesh_id);
+
 	SimpleMesh(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
 			   vector<uint> indices, PrimitiveType::Type type = PrimitiveType::triangles);
 	SimpleMesh(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
@@ -608,6 +610,9 @@ class SimpleMesh {
 	SimpleMesh(SimpleMesh &&) = default;
 	SimpleMesh &operator=(SimpleMesh &&) = default;
 	SimpleMesh &operator=(const SimpleMesh &) = default;
+
+	SimpleMesh(const XMLNode &);
+	void saveToXML(XMLNode) const;
 
 	SimpleMesh(MakeRect, const FRect &xz_rect, float y);
 	SimpleMesh(MakeBBox, const FBox &bbox);
@@ -652,6 +657,7 @@ class SimpleMesh {
 
   protected:
 	void computeBoundingBox();
+	void verifyData() const;
 
 	vector<float3> m_positions;
 	vector<float3> m_normals;
@@ -676,6 +682,9 @@ class Mesh {
 	Mesh(Mesh &&) = default;
 	Mesh &operator=(Mesh &&) = default;
 
+	Mesh(const XMLNode &);
+	void saveToXML(XMLNode) const;
+
 	struct Node {
 		string name;
 		Matrix4 trans;
@@ -698,6 +707,7 @@ class Mesh {
 
   protected:
 	void computeBoundingBox();
+	void verifyData() const;
 
 	vector<SimpleMesh> m_meshes;
 	vector<Node> m_nodes;

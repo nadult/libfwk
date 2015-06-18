@@ -21,41 +21,110 @@ namespace fwk {
 
 namespace xml_conversions {
 
-	template <class T> T fromString(const char *str) {
-		THROW("xml_conversions::fromString unimplemented for given type");
+	template <class T> TextFormatter toString(const T &value);
+
+	namespace detail {
+
+		template <class T> T fromString(TextParser &) {
+			static_assert(sizeof(T) < 0,
+						  "xml_conversions::fromString unimplemented for given type");
+		}
+
+		template <> bool fromString<bool>(TextParser &);
+		template <> int fromString<int>(TextParser &);
+		template <> int2 fromString<int2>(TextParser &);
+		template <> int3 fromString<int3>(TextParser &);
+		template <> int4 fromString<int4>(TextParser &);
+		template <> uint fromString<uint>(TextParser &);
+		template <> float fromString<float>(TextParser &);
+		template <> float2 fromString<float2>(TextParser &);
+		template <> float3 fromString<float3>(TextParser &);
+		template <> float4 fromString<float4>(TextParser &);
+		template <> FRect fromString<FRect>(TextParser &);
+		template <> IRect fromString<IRect>(TextParser &);
+		template <> FBox fromString<FBox>(TextParser &);
+		template <> IBox fromString<IBox>(TextParser &);
+		template <> Matrix4 fromString<Matrix4>(TextParser &);
+
+		template <class T> vector<T> vectorFromString(TextParser &parser) {
+			vector<T> out;
+			while(parser.hasAnythingLeft())
+				out.emplace_back(fromString<T>(parser));
+			return out;
+		}
+
+		template <> vector<float> vectorFromString<float>(TextParser &);
+		template <> vector<int> vectorFromString<int>(TextParser &);
+		template <> vector<string> vectorFromString<string>(TextParser &);
+
+		template <class T> struct SelectParser {
+			static T parse(TextParser &parser) { return fromString<T>(parser); }
+		};
+
+		template <class T> struct SelectParser<vector<T>> {
+			static vector<T> parse(TextParser &parser) { return vectorFromString<T>(parser); }
+		};
+
+		template <class T> void toString(const T &value, TextFormatter &out) {
+			static_assert(sizeof(T) < 0, "xml_conversions::toString unimplemented for given type");
+		}
+
+		template <> void toString(const string &value, TextFormatter &out);
+		template <> void toString(const bool &value, TextFormatter &out);
+		template <> void toString(const int &value, TextFormatter &out);
+		template <> void toString(const int2 &value, TextFormatter &out);
+		template <> void toString(const int3 &value, TextFormatter &out);
+		template <> void toString(const int4 &value, TextFormatter &out);
+		template <> void toString(const uint &value, TextFormatter &out);
+		template <> void toString(const float &value, TextFormatter &out);
+		template <> void toString(const float2 &value, TextFormatter &out);
+		template <> void toString(const float3 &value, TextFormatter &out);
+		template <> void toString(const float4 &value, TextFormatter &out);
+		template <> void toString(const FRect &value, TextFormatter &out);
+		template <> void toString(const IRect &value, TextFormatter &out);
+		template <> void toString(const FBox &value, TextFormatter &out);
+		template <> void toString(const IBox &value, TextFormatter &out);
+		template <> void toString(const Matrix4 &value, TextFormatter &out);
+
+		template <class T> void vectorToString(const vector<T> &array, TextFormatter &out) {
+			for(int n = 0; n < (int)array.size(); n++) {
+				toString(array[n], out);
+				if(n + 1 < (int)array.size())
+					out(" ");
+			}
+		}
+
+		template <class T> struct SelectPrinter {
+			static void print(const T &value, TextFormatter &out) {
+				return toString<T>(value, out);
+			}
+		};
+
+		template <class T> struct SelectPrinter<vector<T>> {
+			static void print(const vector<T> &value, TextFormatter &out) {
+				return vectorToString<T>(value, out);
+			}
+		};
 	}
 
-	template <> bool fromString<bool>(const char *);
-	template <> int fromString<int>(const char *);
-	template <> int2 fromString<int2>(const char *);
-	template <> int3 fromString<int3>(const char *);
-	template <> int4 fromString<int4>(const char *);
-	template <> float fromString<float>(const char *);
-	template <> float2 fromString<float2>(const char *);
-	template <> float3 fromString<float3>(const char *);
-	template <> float4 fromString<float4>(const char *);
-	template <> FRect fromString<FRect>(const char *);
-	template <> IRect fromString<IRect>(const char *);
-	template <> Matrix4 fromString<Matrix4>(const char *);
-	template <> vector<float> fromString<vector<float>>(const char *);
-	template <> vector<int> fromString<vector<int>>(const char *);
-	template <> vector<string> fromString<vector<string>>(const char *);
+	template <class T> T fromString(TextParser &parser) {
+		return detail::SelectParser<T>::parse(parser);
+	}
+
+	template <class T> T fromString(const char *input) {
+		TextParser parser(input);
+		return detail::SelectParser<T>::parse(parser);
+	}
 
 	template <class T> void toString(const T &value, TextFormatter &out) {
-		THROW("xml_conversions::toString unimplemented for given type");
+		detail::SelectPrinter<T>::print(value, out);
 	}
 
-	template <> void toString(const bool &value, TextFormatter &out);
-	template <> void toString(const int &value, TextFormatter &out);
-	template <> void toString(const int2 &value, TextFormatter &out);
-	template <> void toString(const int3 &value, TextFormatter &out);
-	template <> void toString(const int4 &value, TextFormatter &out);
-	template <> void toString(const float &value, TextFormatter &out);
-	template <> void toString(const float2 &value, TextFormatter &out);
-	template <> void toString(const float3 &value, TextFormatter &out);
-	template <> void toString(const float4 &value, TextFormatter &out);
-	template <> void toString(const FRect &value, TextFormatter &out);
-	template <> void toString(const IRect &value, TextFormatter &out);
+	template <class T> TextFormatter toString(const T &value) {
+		TextFormatter out;
+		detail::SelectPrinter<T>::print(value, out);
+		return out;
+	}
 }
 
 class XMLNode {
@@ -124,6 +193,7 @@ class XMLNode {
 
 	const char *own(const char *str);
 	const char *own(const string &str) { return own(str.c_str()); }
+	const char *own(const TextFormatter &str) { return own(str.text()); }
 	explicit operator bool() const { return m_ptr != nullptr; }
 
   protected:

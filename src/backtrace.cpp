@@ -60,6 +60,7 @@ namespace {
 
 	const char *s_filtered_names[] = {
 		"std::basic_string<char, std::char_traits<char>, std::allocator<char> >", "fwk::string",
+		"std::", "", "fwk::", "",
 	};
 }
 
@@ -70,6 +71,7 @@ const string backtrace(size_t skip) {
 	size_t size = ::backtrace(addresses, arraySize(addresses));
 	char **strings = backtrace_symbols(addresses, size);
 
+	// TODO: these are not exactly correct (inlining?)
 	string file_lines[32];
 	string exec_name = execName();
 	for(size_t i = skip; i < size; i++) {

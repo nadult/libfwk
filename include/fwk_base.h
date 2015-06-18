@@ -876,7 +876,7 @@ class TextFormatter {
   public:
 	// You can specify initial buffer size. Don't worry though, buffer
 	// will be resized if needed
-	explicit TextFormatter(int size = 1024);
+	explicit TextFormatter(int size = 256);
 
 #ifdef __clang__
 	__attribute__((__format__(__printf__, 2, 3)))
@@ -890,6 +890,26 @@ class TextFormatter {
   private:
 	int m_offset;
 	PodArray<char> m_data;
+};
+
+// Parsing white-space separated elements
+class TextParser {
+  public:
+	TextParser(const char *input) : m_current(input) { DASSERT(m_current); }
+
+	bool parseBool();
+	string parseString();
+	void parseInts(Range<int> out);
+	void parseFloats(Range<float> out);
+	void parseUints(Range<uint> out);
+	void parseStrings(Range<string> out);
+
+	bool hasAnythingLeft();
+	int countElements() const;
+	bool isFinished() const { return !*m_current; }
+
+  private:
+	const char *m_current;
 };
 
 #ifdef __clang__

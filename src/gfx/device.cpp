@@ -18,6 +18,8 @@
 
 namespace fwk {
 
+DEFINE_ENUM(PrimitiveType, "points", "lines", "triangles", "triangle_strip");
+
 static void reportSDLError(const char *func_name) {
 	THROW("Error on %s: %s", func_name, SDL_GetError());
 }
