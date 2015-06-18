@@ -15,6 +15,7 @@
 
 #ifdef FWK_TARGET_LINUX
 #include <execinfo.h>
+#include <dlfcn.h>
 #endif
 #include <stdarg.h>
 #include <cstring>
@@ -49,82 +50,6 @@ double getTime() {
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_nsec / 1.0e9 + ts.tv_sec;
 #endif
-}
-
-const string backtrace(size_t skip) {
-	string out;
-#ifndef FWK_TARGET_LINUX
-	// ThrowException("write me");
-	out = "Backtraces in LibFWK are supported only on Linux";
-#else
-	void *array[32];
-	size_t size = ::backtrace(array, sizeof(array) / sizeof(void *));
-	char **strings = backtrace_symbols(array, size);
-	char buffer[1024], *ptr = buffer;
-	int buf_size = (int)sizeof(buffer);
-
-	for(size_t i = skip; i < size; i++) {
-		int len = strlen(strings[i]);
-		int max_len = len < buf_size ? len : buf_size;
-		memcpy(ptr, strings[i], max_len);
-		ptr += max_len;
-		buf_size -= max_len;
-		if(buf_size) {
-			*ptr++ = '\n';
-			buf_size--;
-		}
-	}
-	ptr[buf_size ? 0 : -1] = 0;
-	free(strings);
-	out = buffer;
-#endif
-
-	return out;
-}
-
-static void filterString(string &str, const char *src, const char *dst) {
-	DASSERT(src && dst);
-	int src_len = strlen(src);
-
-	auto pos = str.find(src);
-	while(pos != std::string::npos) {
-		str = str.substr(0, pos) + dst + str.substr(pos + src_len);
-		pos = str.find(src);
-	}
-}
-
-static const char *s_filtered_names[] = {
-	"std::basic_string<char, std::char_traits<char>, std::allocator<char> >", "fwk::string",
-};
-
-const string cppFilterBacktrace(const string &input) {
-#if !defined(_WIN32) && !defined(__MINGW32__)
-	string command = "echo \"" + input + "\" | c++filt -n";
-
-	FILE *file = popen(command.c_str(), "r");
-	if(file) {
-		vector<char> buf;
-		try {
-			while(!feof(file) && buf.size() < 1024 * 4) {
-				buf.push_back(fgetc(file));
-				if((u8)buf.back() == 255) {
-					buf.pop_back();
-					break;
-				}
-			}
-		} catch(...) {
-			fclose(file);
-			throw;
-		}
-		fclose(file);
-
-		string out(&buf[0], buf.size());
-		for(int n = 0; n < (int)arraySize(s_filtered_names); n += 2)
-			filterString(out, s_filtered_names[n], s_filtered_names[n + 1]);
-		return out;
-	}
-#endif
-	return input;
 }
 
 Exception::Exception(const char *str) : m_data(str) { m_backtrace = fwk::backtrace(3); }
