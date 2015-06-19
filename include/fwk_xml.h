@@ -30,6 +30,7 @@ namespace xml_conversions {
 						  "xml_conversions::fromString unimplemented for given type");
 		}
 
+		template <> string fromString<string>(TextParser &);
 		template <> bool fromString<bool>(TextParser &);
 		template <> int fromString<int>(TextParser &);
 		template <> int2 fromString<int2>(TextParser &);
@@ -45,6 +46,7 @@ namespace xml_conversions {
 		template <> FBox fromString<FBox>(TextParser &);
 		template <> IBox fromString<IBox>(TextParser &);
 		template <> Matrix4 fromString<Matrix4>(TextParser &);
+		template <> Quat fromString<Quat>(TextParser &);
 
 		template <class T> vector<T> vectorFromString(TextParser &parser) {
 			vector<T> out;
@@ -85,6 +87,7 @@ namespace xml_conversions {
 		template <> void toString(const FBox &value, TextFormatter &out);
 		template <> void toString(const IBox &value, TextFormatter &out);
 		template <> void toString(const Matrix4 &value, TextFormatter &out);
+		template <> void toString(const Quat &value, TextFormatter &out);
 
 		template <class T> void vectorToString(const vector<T> &array, TextFormatter &out) {
 			for(int n = 0; n < (int)array.size(); n++) {
@@ -157,9 +160,8 @@ class XMLNode {
 
 	// When adding new nodes, you have to make sure that strings given as
 	// arguments will exist as long as XMLNode exists; use 'own' method
-	// to reallocate them in the memory pool if you're unsure
+	// to reallocate them in the memory pool if you're not sure
 	void addAttrib(const char *name, const char *value);
-	void addAttrib(const char *name, float value);
 	void addAttrib(const char *name, int value);
 
 	template <class T> void addAttrib(const char *name, const T &value) {
@@ -223,8 +225,11 @@ class XMLDocument {
 
 	XMLNode addChild(const char *name, const char *value = nullptr) const;
 	XMLNode child(const char *name = nullptr) const;
+	XMLNode child(const string &name) const { return child(name.c_str()); }
 
 	const char *own(const char *str);
+	const char *own(const string &str) { return own(str.c_str()); }
+	const char *own(const TextFormatter &str) { return own(str.text()); }
 
   protected:
 	unique_ptr<rapidxml::xml_document<char>> m_ptr;

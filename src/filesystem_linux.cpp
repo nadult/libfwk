@@ -12,7 +12,6 @@
 #include <libgen.h>
 #include <cstring>
 
-
 namespace fwk {
 
 FilePath::Element FilePath::extractRoot(const char *str) {
@@ -83,9 +82,9 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 			//		printf("found in %s: %s (%d)\n", path.c_str(), dirp->d_name,
 			//(int)dirp->d_type);
 
-		//TODO: check why was this added
-		//	if(do_accept && is_root && dirp->d_type == DT_DIR)
-		//		do_accept = false;
+			// TODO: check why was this added
+			//	if(do_accept && is_root && dirp->d_type == DT_DIR)
+			//		do_accept = false;
 
 			if(do_accept) {
 				FileEntry entry;
@@ -105,12 +104,15 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 	closedir(dp);
 }
 
-void findFiles(vector<FileEntry> &out, const FilePath &path, int flags) {
+vector<FileEntry> findFiles(const FilePath &path, int flags) {
+	vector<FileEntry> out;
+
 	bool is_relative = flags & FindFiles::relative;
 	bool is_absolute = flags & FindFiles::absolute;
 	FilePath append = is_relative ? "." : is_absolute ? path.absolute() : path;
 
 	findFiles(out, path.absolute(), append, flags);
+	return out;
 }
 #endif
 }

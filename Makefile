@@ -5,11 +5,13 @@ LINUX_CXX=g++ -rdynamic
 -include Makefile.local
 
 _dummy := $(shell [ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR))
-_dummy := $(shell [ -d test ] || mkdir -p test)
-_dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d $(BUILD_DIR)/gfx ] || mkdir -p $(BUILD_DIR)/gfx)
 _dummy := $(shell [ -d $(BUILD_DIR)/math ] || mkdir -p $(BUILD_DIR)/math)
 _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
+_dummy := $(shell [ -d $(BUILD_DIR)/tools ] || mkdir -p $(BUILD_DIR)/tools)
+_dummy := $(shell [ -d test ] || mkdir -p test)
+_dummy := $(shell [ -d tools ] || mkdir -p tools)
+_dummy := $(shell [ -d lib ] || mkdir -p lib)
 
 
 SHARED_SRC=base backtrace filesystem input profiler stream xml xml_conversions \
@@ -18,7 +20,7 @@ SHARED_SRC=base backtrace filesystem input profiler stream xml xml_conversions \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d math/cylinder \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat math/base math/triangle \
 		   text_formatter text_parser
-PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums
+PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums tools/convert
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
 HTML5_SRC=filesystem_linux
@@ -101,8 +103,8 @@ clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
 		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a lib/libfwk.html.cpp
-	-rmdir test lib $(BUILD_DIR)/test $(BUILD_DIR)/gfx $(BUILD_DIR)/math
-	-rmdir $(BUILD_DIR)
+	-rmdir test lib tools
+	find $(BUILD_DIR) -type d -empty -delete
 
 $(BUILD_DIR)/.depend: $(DEPS)
 	cat $(DEPS) > $(BUILD_DIR)/.depend

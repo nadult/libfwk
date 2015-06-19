@@ -6,19 +6,11 @@ namespace xml_conversions {
 
 	namespace detail {
 
+		template <> string fromString(TextParser &parser) { return parser.parseString(); }
 		template <> bool fromString(TextParser &parser) { return parser.parseBool(); }
-
-		template <> uint fromString(TextParser &parser) {
-			uint out[1];
-			parser.parseUints(out);
-			return out[0];
-		}
-
-		template <> int fromString(TextParser &parser) {
-			int out[1];
-			parser.parseInts(out);
-			return out[0];
-		}
+		template <> uint fromString(TextParser &parser) { return parser.parseUint(); }
+		template <> int fromString(TextParser &parser) { return parser.parseInt(); }
+		template <> float fromString(TextParser &parser) { return parser.parseFloat(); }
 
 		template <> int2 fromString(TextParser &parser) {
 			int2 out;
@@ -36,12 +28,6 @@ namespace xml_conversions {
 			int4 out;
 			parser.parseInts(out.v);
 			return out;
-		}
-
-		template <> float fromString(TextParser &parser) {
-			float out[1];
-			parser.parseFloats(out);
-			return out[0];
 		}
 
 		template <> float2 fromString(TextParser &parser) {
@@ -93,6 +79,12 @@ namespace xml_conversions {
 						   float4(out[4], out[5], out[6], out[7]),
 						   float4(out[8], out[9], out[10], out[11]),
 						   float4(out[12], out[13], out[14], out[15]));
+		}
+
+		template <> Quat fromString(TextParser &parser) {
+			float out[4];
+			parser.parseFloats(out);
+			return Quat(out[0], out[1], out[2], out[3]);
 		}
 
 		template <> vector<string> vectorFromString<string>(TextParser &parser) {
@@ -171,6 +163,15 @@ namespace xml_conversions {
 			toStringFloat(values, out);
 		}
 
+		template <> void toString(const IRect &rect, TextFormatter &out) {
+			out("%d %d %d %d", rect.min.x, rect.min.y, rect.max.x, rect.max.y);
+		}
+
+		template <> void toString(const IBox &box, TextFormatter &out) {
+			out("%d %d %d %d %d %d", box.min.x, box.min.y, box.min.z, box.max.x, box.max.y,
+				box.max.z);
+		}
+
 		template <> void toString(const FBox &box, TextFormatter &out) {
 			float values[6] = {box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z};
 			toStringFloat(values, out);
@@ -180,8 +181,8 @@ namespace xml_conversions {
 			toStringFloat(CRange<float>(&value[0].x, 16), out);
 		}
 
-		template <> void toString(const IRect &rect, TextFormatter &out) {
-			out("%d %d %d %d", rect.min.x, rect.min.y, rect.max.x, rect.max.y);
+		template <> void toString(const Quat &value, TextFormatter &out) {
+			toStringFloat(value.v, out);
 		}
 	}
 }

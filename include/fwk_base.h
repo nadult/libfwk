@@ -898,7 +898,11 @@ class TextParser {
 	TextParser(const char *input) : m_current(input) { DASSERT(m_current); }
 
 	bool parseBool();
+	int parseInt();
+	float parseFloat();
+	uint parseUint();
 	string parseString();
+
 	void parseInts(Range<int> out);
 	void parseFloats(Range<float> out);
 	void parseUints(Range<uint> out);
@@ -1112,7 +1116,7 @@ namespace FindFiles {
 	};
 };
 
-void findFiles(vector<FileEntry> &out, const FilePath &path, int flags = FindFiles::regular_file);
+vector<FileEntry> findFiles(const FilePath &path, int flags = FindFiles::regular_file);
 bool removeSuffix(string &str, const string &suffix);
 bool removePrefix(string &str, const string &prefix);
 string toLower(const string &str);

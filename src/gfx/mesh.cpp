@@ -51,7 +51,7 @@ Mesh::Mesh(const XMLNode &node) {
 	XMLNode mesh_node = node.child("mesh");
 
 	while(subnode) {
-		m_nodes.emplace_back(Node{subnode.attrib("name"), subnode.attrib<Matrix4>("matrix"),
+		m_nodes.emplace_back(Node{subnode.attrib("name"), subnode.attrib<Matrix4>("trans"),
 								  subnode.attrib<int>("parent_id"),
 								  subnode.attrib<vector<int>>("mesh_ids")});
 		subnode.next();
@@ -78,7 +78,7 @@ void Mesh::saveToXML(XMLNode xml_node) const {
 	for(const auto &node : m_nodes) {
 		XMLNode subnode = xml_node.addChild("node");
 		subnode.addAttrib("name", subnode.own(node.name));
-		subnode.addAttrib("matrix", node.trans);
+		subnode.addAttrib("trans", node.trans);
 		subnode.addAttrib("parent_id", node.parent_id);
 		subnode.addAttrib("mesh_ids", node.mesh_ids);
 	}

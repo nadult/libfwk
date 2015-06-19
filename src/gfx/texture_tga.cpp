@@ -8,14 +8,18 @@
 namespace fwk {
 
 struct Header {
+	Header() { memset(this, 0, sizeof(Header)); }
+
 	void save(Stream &sr) const {
 		sr.pack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
-				color_map_depth, x_origin, y_origin, width, height, bits_per_pixel, image_descriptor);
+				color_map_depth, x_origin, y_origin, width, height, bits_per_pixel,
+				image_descriptor);
 	}
 
 	void load(Stream &sr) {
 		sr.unpack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
-				  color_map_depth, x_origin, y_origin, width, height, bits_per_pixel, image_descriptor);
+				  color_map_depth, x_origin, y_origin, width, height, bits_per_pixel,
+				  image_descriptor);
 	}
 
 	u8 id_length;

@@ -6,7 +6,7 @@ then
 fi
 
 set -e
-make -j4 test/streams test/stuff test/math test/enums
+make -j4 test/streams test/stuff test/math test/enums test/window
 cd test
 ./streams
 ./stuff

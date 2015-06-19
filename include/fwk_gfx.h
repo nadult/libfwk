@@ -740,7 +740,7 @@ class Skeleton {
 	};
 
 	Skeleton() = default;
-	Skeleton(const aiScene &);
+	Skeleton(const Mesh &);
 
 	const Joint &operator[](int idx) const { return m_joints[idx]; }
 	Joint &operator[](int idx) { return m_joints[idx]; }
@@ -759,6 +759,9 @@ class SkeletalAnim {
 	SkeletalAnim(const aiScene &, int anim_id, const Skeleton &);
 	SkeletonPose animateSkeleton(const Skeleton &skeleton, double anim_time) const;
 
+	SkeletalAnim(const XMLNode &, const Skeleton &);
+	void saveToXML(XMLNode) const;
+
 	string print() const;
 	const string &name() const { return m_name; }
 	float length() const { return m_length; }
@@ -768,6 +771,10 @@ class SkeletalAnim {
 	string m_name;
 
 	struct Channel {
+		Channel() = default;
+		Channel(const XMLNode &);
+		void saveToXML(XMLNode) const;
+
 		string joint_name;
 		int joint_id;
 
@@ -788,6 +795,9 @@ class SkinnedMesh : public Mesh {
 	SkinnedMesh(const aiScene &);
 	virtual ~SkinnedMesh() = default;
 
+	SkinnedMesh(const XMLNode &);
+	void saveToXML(XMLNode) const;
+
 	void drawSkeleton(Renderer &, const SkeletonPose &, Color) const;
 
 	// Pass -1 to anim_id for bind position
@@ -805,13 +815,18 @@ class SkinnedMesh : public Mesh {
 	float intersect(const Segment &, const SkeletonPose &) const;
 
 	struct VertexWeight {
-		VertexWeight(float weight, int joint_id) : weight(weight), joint_id(joint_id) {}
+		VertexWeight(float weight = 0.0f, int joint_id = 0) : weight(weight), joint_id(joint_id) {}
 
 		float weight;
 		int joint_id;
 	};
 
 	struct MeshSkin {
+		MeshSkin() = default;
+		MeshSkin(const XMLNode &);
+		void saveToXML(XMLNode) const;
+		bool isEmpty() const;
+
 		vector<vector<VertexWeight>> vertex_weights;
 	};
 	// TODO: instancing support
@@ -826,6 +841,7 @@ class SkinnedMesh : public Mesh {
 	// TODO: ranges
 	void animateVertices(int mesh_id, const SkeletonPose &, float3 *positions,
 						 float3 *normals = nullptr) const;
+	void verifyData();
 
 	FBox m_bounding_box;
 	float3 m_bind_scale;
@@ -906,6 +922,24 @@ template <class T> class AssimpLoader : public ResourceLoader<T> {
 
   protected:
 	uint m_flags;
+};
+
+template <class T> class XMLLoader : public ResourceLoader<T> {
+  public:
+	XMLLoader(const string &prefix, const string &suffix, string node_name)
+		: ResourceLoader<T>(prefix, suffix), m_node_name(std::move(node_name)) {}
+
+	shared_ptr<T> operator()(const string &name) {
+		XMLDocument doc;
+		Loader(ResourceLoader<T>::fileName(name)) >> doc;
+		XMLNode child = doc.child(m_node_name);
+		if(!child)
+			THROW("Cannot find node '%s' in XML document", m_node_name.c_str());
+		return make_shared<T>(child);
+	}
+
+  protected:
+	string m_node_name;
 };
 
 struct DrawElement {};

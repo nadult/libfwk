@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+#include "fwk_xml.h"
 
 namespace fwk {
 
@@ -65,9 +66,7 @@ const Quat Quat::operator*(const Quat &q) const {
 					   v[3] * q[3] - v[0] * q[0] - v[1] * q[1] - q[2] * v[2]));
 }
 
-const Quat inverse(const Quat &q) {
-	return conjugate(q) * (1.0f / dot(q, q));
-}
+const Quat inverse(const Quat &q) { return conjugate(q) * (1.0f / dot(q, q)); }
 
 const Quat normalize(const Quat &q) { return Quat(float4(q) / sqrtf(dot(q, q))); }
 

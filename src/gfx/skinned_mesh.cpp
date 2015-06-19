@@ -5,8 +5,9 @@
 #include "fwk_gfx.h"
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <deque>
 #include <map>
+#include <algorithm>
+#include <functional>
 
 namespace fwk {
 
@@ -38,24 +39,9 @@ Matrix4 lerp(const Skeleton::Trans &lhs, const Skeleton::Trans &rhs, float t) {
 	return Matrix4(Skeleton::Trans(scale, pos, rot));
 }
 
-Skeleton::Skeleton(const aiScene &ascene) {
-	auto *root_node = ascene.mRootNode;
-	DASSERT(root_node);
-
-	std::deque<pair<const aiNode *, int>> queue({make_pair(ascene.mRootNode, -1)});
-
-	while(!queue.empty()) {
-		auto *anode = queue.front().first;
-		int parent_id = queue.front().second;
-		queue.pop_front();
-
-		int current_id = (int)m_joints.size();
-		m_joints.emplace_back(
-			Joint{transpose(Matrix4(anode->mTransformation[0])), anode->mName.C_Str(), parent_id});
-
-		for(uint c = 0; c < anode->mNumChildren; c++)
-			queue.emplace_back(anode->mChildren[c], current_id);
-	}
+Skeleton::Skeleton(const Mesh &mesh) {
+	for(const auto &node : mesh.nodes())
+		m_joints.emplace_back(Joint{node.trans, node.name, node.parent_id});
 }
 
 int Skeleton::findJoint(const string &name) const {
@@ -89,10 +75,6 @@ SkeletalAnim::SkeletalAnim(const aiScene &ascene, int anim_id, const Skeleton &s
 			ASSERT(achannel.mPositionKeys[k].mTime == achannel.mRotationKeys[k].mTime);
 			ASSERT(achannel.mScalingKeys[k].mTime == achannel.mRotationKeys[k].mTime);
 
-			float3 scl = convert(achannel.mScalingKeys[k].mValue);
-			//			if(scl != float3(1, 1, 1))
-			//				printf("%f %f %f\n", scl.x, scl.y, scl.z);
-
 			new_channel.keys[k].trans = Trans(convert(achannel.mScalingKeys[k].mValue),
 											  convert(achannel.mPositionKeys[k].mValue),
 											  convert(achannel.mRotationKeys[k].mValue));
@@ -103,6 +85,68 @@ SkeletalAnim::SkeletalAnim(const aiScene &ascene, int anim_id, const Skeleton &s
 
 	m_name = aanim.mName.C_Str();
 	m_length = aanim.mDuration;
+}
+SkeletalAnim::Channel::Channel(const XMLNode &node) {
+	joint_name = node.attrib("joint_name");
+	joint_id = node.attrib<int>("joint_id");
+
+	XMLNode pos_trans_node = node.child("pos_trans");
+	XMLNode scale_trans_node = node.child("scale_trans");
+	XMLNode rot_trans_node = node.child("rot_trans");
+	XMLNode times_node = node.child("times");
+	ASSERT(pos_trans_node && scale_trans_node && rot_trans_node && times_node);
+
+	using namespace xml_conversions;
+	auto pos_trans = fromString<vector<float3>>(pos_trans_node.value());
+	auto scale_trans = fromString<vector<float3>>(scale_trans_node.value());
+	auto rot_trans = fromString<vector<Quat>>(rot_trans_node.value());
+	auto times = fromString<vector<float>>(times_node.value());
+	ASSERT(pos_trans.size() == scale_trans.size());
+	ASSERT(rot_trans.size() == pos_trans.size());
+	ASSERT(times.size() == pos_trans.size());
+
+	keys.resize(times.size());
+	for(int n = 0; n < (int)times.size(); n++)
+		keys[n] = Key{Trans{scale_trans[n], pos_trans[n], rot_trans[n]}, times[n]};
+}
+
+void SkeletalAnim::Channel::saveToXML(XMLNode node) const {
+	vector<float3> pos_trans;
+	vector<float3> scale_trans;
+	vector<Quat> rot_trans;
+	vector<float> times;
+
+	node.addAttrib("joint_name", node.own(joint_name));
+	node.addAttrib("joint_id", joint_id);
+
+	for(const auto &key : keys) {
+		pos_trans.emplace_back(key.trans.pos);
+		rot_trans.emplace_back(key.trans.rot);
+		scale_trans.emplace_back(key.trans.scale);
+		times.emplace_back(key.time);
+	}
+
+	using namespace xml_conversions;
+	node.addChild("pos_trans", node.own(toString(pos_trans)));
+	node.addChild("scale_trans", node.own(toString(scale_trans)));
+	node.addChild("rot_trans", node.own(toString(rot_trans)));
+	node.addChild("times", node.own(toString(times)));
+}
+
+SkeletalAnim::SkeletalAnim(const XMLNode &node, const Skeleton &skeleton)
+	: m_name(node.attrib("name")), m_length(node.attrib<float>("length")) {
+	XMLNode channel_node = node.child("channel");
+	while(channel_node) {
+		m_channels.emplace_back(channel_node);
+		channel_node.next();
+	}
+}
+
+void SkeletalAnim::saveToXML(XMLNode node) const {
+	node.addAttrib("length", m_length);
+	node.addAttrib("name", node.own(m_name));
+	for(const auto &channel : m_channels)
+		channel.saveToXML(node.addChild("channel"));
 }
 
 SkeletonPose SkeletalAnim::animateSkeleton(const Skeleton &skeleton, double anim_pos) const {
@@ -152,9 +196,64 @@ string SkeletalAnim::print() const {
 	return out.text();
 }
 
+SkinnedMesh::MeshSkin::MeshSkin(const XMLNode &node) {
+	using namespace xml_conversions;
+	XMLNode counts_node = node.child("counts");
+	XMLNode weights_node = node.child("weights");
+	XMLNode joint_ids_node = node.child("joint_ids");
+	if(!counts_node && !weights_node && !joint_ids_node)
+		return;
+
+	ASSERT(counts_node && weights_node && joint_ids_node);
+	auto counts = fromString<vector<int>>(counts_node.value());
+	auto weights = fromString<vector<float>>(weights_node.value());
+	auto joint_ids = fromString<vector<int>>(joint_ids_node.value());
+
+	ASSERT(weights.size() == joint_ids.size());
+	ASSERT(std::accumulate(begin(counts), end(counts), 0) == (int)weights.size());
+
+	vertex_weights.resize(counts.size());
+	int offset = 0;
+	for(int n = 0; n < (int)counts.size(); n++) {
+		auto &out = vertex_weights[n];
+		out.resize(counts[n]);
+		for(int i = 0; i < counts[n]; i++)
+			out[i] = VertexWeight(weights[offset + i], joint_ids[offset + i]);
+		offset += counts[n];
+	}
+}
+
+void SkinnedMesh::MeshSkin::saveToXML(XMLNode node) const {
+	if(isEmpty())
+		return;
+
+	vector<int> counts;
+	vector<float> weights;
+	vector<int> joint_ids;
+
+	for(int n = 0; n < (int)vertex_weights.size(); n++) {
+		const auto &in = vertex_weights[n];
+		counts.emplace_back((int)in.size());
+		for(int i = 0; i < (int)in.size(); i++) {
+			weights.emplace_back(in[i].weight);
+			joint_ids.emplace_back(in[i].joint_id);
+		}
+	}
+
+	using namespace xml_conversions;
+	node.addChild("counts", node.own(toString(counts)));
+	node.addChild("weights", node.own(toString(weights)));
+	node.addChild("joint_ids", node.own(toString(joint_ids)));
+}
+
+bool SkinnedMesh::MeshSkin::isEmpty() const {
+	return std::all_of(begin(vertex_weights), end(vertex_weights),
+					   [](const auto &v) { return v.empty(); });
+}
+
 SkinnedMesh::SkinnedMesh() : m_bind_scale(1, 1, 1) {}
 
-SkinnedMesh::SkinnedMesh(const aiScene &ascene) : Mesh(ascene), m_skeleton(ascene) {
+SkinnedMesh::SkinnedMesh(const aiScene &ascene) : Mesh(ascene), m_skeleton(*this) {
 	for(uint a = 0; a < ascene.mNumAnimations; a++)
 		m_anims.emplace_back(ascene, (int)a, m_skeleton);
 
@@ -200,6 +299,60 @@ SkinnedMesh::SkinnedMesh(const aiScene &ascene) : Mesh(ascene), m_skeleton(ascen
 	// TODO: fixing this value fixes junker on new assimp
 	m_bind_scale = inv(m_bind_scale);
 	computeBoundingBox();
+}
+
+SkinnedMesh::SkinnedMesh(const XMLNode &node) : Mesh(node), m_skeleton(*this) {
+	XMLNode anim_node = node.child("anim");
+	while(anim_node) {
+		m_anims.emplace_back(anim_node, m_skeleton);
+		anim_node.next();
+	}
+
+	XMLNode skin_node = node.child("skin");
+	while(skin_node) {
+		m_mesh_skins.emplace_back(skin_node);
+		skin_node.next();
+	}
+
+	using namespace xml_conversions;
+	if(const char *bind_scale_string = node.hasAttrib("bind_scale"))
+		m_bind_scale = fromString<float3>(bind_scale_string);
+	else
+		m_bind_scale = float3(1, 1, 1);
+
+	XMLNode bind_matrices_node = node.child("bind_matrices");
+	if(bind_matrices_node) {
+		m_bind_matrices = fromString<vector<Matrix4>>(bind_matrices_node.value());
+		m_inv_bind_matrices.reserve(m_bind_matrices.size());
+		for(const auto &matrix : m_bind_matrices)
+			m_inv_bind_matrices.emplace_back(inverse(matrix));
+	} else {
+		m_bind_matrices = vector<Matrix4>(m_skeleton.size(), Matrix4::identity());
+		m_inv_bind_matrices = m_bind_matrices;
+	}
+
+	computeBoundingBox();
+	verifyData();
+}
+
+void SkinnedMesh::verifyData() {
+	ASSERT((int)m_bind_matrices.size() == m_skeleton.size());
+	ASSERT(m_mesh_skins.size() == m_meshes.size());
+}
+
+void SkinnedMesh::saveToXML(XMLNode node) const {
+	Mesh::saveToXML(node);
+	if(m_bind_scale != float3(1, 1, 1))
+		node.addAttrib("bind_scale", m_bind_scale);
+
+	for(const auto &anim : m_anims)
+		anim.saveToXML(node.addChild("anim"));
+	for(const auto &mesh_skin : m_mesh_skins)
+		mesh_skin.saveToXML(node.addChild("skin"));
+
+	if(std::any_of(begin(m_bind_matrices), end(m_bind_matrices),
+				   [](const auto &mat) { return mat != Matrix4::identity(); }))
+		node.addChild("bind_matrices", node.own(xml_conversions::toString(m_bind_matrices)));
 }
 
 void SkinnedMesh::drawSkeleton(Renderer &out, const SkeletonPose &pose, Color color) const {
