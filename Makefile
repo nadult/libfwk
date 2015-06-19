@@ -20,7 +20,7 @@ SHARED_SRC=base backtrace filesystem input profiler stream xml xml_conversions \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d math/cylinder \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat math/base math/triangle \
 		   text_formatter text_parser
-PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums tools/convert
+PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums tools/mesh_convert tools/mesh_viewer
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
 HTML5_SRC=filesystem_linux

@@ -133,8 +133,11 @@ namespace {
 					glEnable(GL_CULL_FACE);
 			}
 			if((new_flags & Material::flag_wire) != (flags & Material::flag_wire)) {
+#ifndef FWK_TARGET_HTML5
+				// TODO: if it's not supported on all of the targets then remove
 				glPolygonMode(GL_FRONT_AND_BACK,
 							  new_flags & Material::flag_wire ? GL_LINE : GL_FILL);
+#endif
 			}
 
 			flags = new_flags;

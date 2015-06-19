@@ -1,3 +1,7 @@
+/* Copyright (C) 2015 Krzysztof Jakubowski <nadult@fastmail.fm>
+
+   This file is part of libfwk. */
+
 #include "fwk_xml.h"
 #include <cfloat>
 

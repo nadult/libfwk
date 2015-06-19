@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_gfx.h"
+#include "fwk_profile.h"
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <map>
@@ -298,7 +299,9 @@ SkinnedMesh::SkinnedMesh(const aiScene &ascene) : Mesh(ascene), m_skeleton(*this
 	}
 	// TODO: fixing this value fixes junker on new assimp
 	m_bind_scale = inv(m_bind_scale);
+	filterAnimatedMeshes();
 	computeBoundingBox();
+	verifyData();
 }
 
 SkinnedMesh::SkinnedMesh(const XMLNode &node) : Mesh(node), m_skeleton(*this) {
@@ -308,9 +311,12 @@ SkinnedMesh::SkinnedMesh(const XMLNode &node) : Mesh(node), m_skeleton(*this) {
 		anim_node.next();
 	}
 
+	m_mesh_skins.resize(m_meshes.size());
 	XMLNode skin_node = node.child("skin");
 	while(skin_node) {
-		m_mesh_skins.emplace_back(skin_node);
+		int mesh_id = skin_node.attrib<int>("mesh_id");
+		ASSERT(mesh_id >= 0 && mesh_id < (int)m_mesh_skins.size());
+		m_mesh_skins[mesh_id] = MeshSkin(skin_node);
 		skin_node.next();
 	}
 
@@ -331,8 +337,28 @@ SkinnedMesh::SkinnedMesh(const XMLNode &node) : Mesh(node), m_skeleton(*this) {
 		m_inv_bind_matrices = m_bind_matrices;
 	}
 
+	filterAnimatedMeshes();
 	computeBoundingBox();
 	verifyData();
+}
+
+void SkinnedMesh::filterAnimatedMeshes() {
+	vector<int> is_animated(m_meshes.size());
+
+	m_animated_mesh_ids.clear();
+	for(int n = 0; n < (int)m_mesh_skins.size(); n++) {
+		is_animated[n] = !m_mesh_skins[n].isEmpty();
+		if(is_animated[n])
+			m_animated_mesh_ids.emplace_back(n);
+	}
+
+	for(auto &node : m_nodes) {
+		vector<int> mesh_ids;
+		for(int n = 0; n < (int)node.mesh_ids.size(); n++)
+			if(!is_animated[node.mesh_ids[n]])
+				mesh_ids.emplace_back(node.mesh_ids[n]);
+		node.mesh_ids = std::move(mesh_ids);
+	}
 }
 
 void SkinnedMesh::verifyData() {
@@ -347,8 +373,15 @@ void SkinnedMesh::saveToXML(XMLNode node) const {
 
 	for(const auto &anim : m_anims)
 		anim.saveToXML(node.addChild("anim"));
-	for(const auto &mesh_skin : m_mesh_skins)
-		mesh_skin.saveToXML(node.addChild("skin"));
+
+	for(int n = 0; n < (int)m_mesh_skins.size(); n++) {
+		const auto &mesh_skin = m_mesh_skins[n];
+		if(!mesh_skin.isEmpty()) {
+			XMLNode skin_node = node.addChild("skin");
+			skin_node.addAttrib("mesh_id", n);
+			mesh_skin.saveToXML(skin_node);
+		}
+	}
 
 	if(std::any_of(begin(m_bind_matrices), end(m_bind_matrices),
 				   [](const auto &mat) { return mat != Matrix4::identity(); }))
@@ -375,35 +408,26 @@ void SkinnedMesh::drawSkeleton(Renderer &out, const SkeletonPose &pose, Color co
 }
 
 FBox SkinnedMesh::boundingBox(const SkeletonPose &pose) const {
-	FBox out = FBox::empty();
+	FBox out = Mesh::boundingBox();
 
-	DASSERT(!m_meshes.empty());
-	for(int n = 0; n < (int)m_meshes.size(); n++) {
-		DASSERT(m_meshes[n].vertexCount() > 0);
-		PodArray<float3> positions(m_meshes[n].vertexCount());
-		animateVertices(n, pose, positions.data(), nullptr);
+	for(int mesh_id : m_animated_mesh_ids) {
+		const auto &mesh = m_meshes[mesh_id];
+		PodArray<float3> positions(mesh.vertexCount());
+		animateVertices(mesh_id, pose, positions.data(), nullptr);
 		FBox bbox(positions);
-		out = n == 0 ? bbox : sum(m_bounding_box, bbox);
+		out = out.isEmpty() ? bbox : sum(out, bbox);
 	}
 
 	return out;
 }
 
-void SkinnedMesh::computeBoundingBox() {
-	// TODO: make this more accurate
-	FBox bbox = boundingBox(animateSkeleton(-1, 0.0f));
-	for(int a = 0; a < animCount(); a++)
-		bbox = sum(bbox, boundingBox(animateSkeleton(a, 0.0f)));
-	m_bounding_box = FBox(bbox.center() - bbox.size(), bbox.center() + bbox.size());
-}
-
 float SkinnedMesh::intersect(const Segment &segment, const SkeletonPose &pose) const {
-	float min_isect = constant::inf;
+	float min_isect = Mesh::intersect(segment);
 
-	for(int n = 0; n < (int)m_meshes.size(); n++) {
-		const auto &mesh = m_meshes[n];
+	for(int mesh_id : m_animated_mesh_ids) {
+		const auto &mesh = m_meshes[mesh_id];
 		PodArray<float3> positions(mesh.vertexCount());
-		animateVertices(n, pose, positions.data(), nullptr);
+		animateVertices(mesh_id, pose, positions.data(), nullptr);
 
 		if(intersection(segment, FBox(positions)) < constant::inf)
 			for(const auto &tri : mesh.trisIndices()) {
@@ -420,8 +444,13 @@ void SkinnedMesh::animateVertices(int mesh_id, const SkeletonPose &pose, float3 
 								  float3 *out_normals) const {
 	DASSERT(mesh_id >= 0 && mesh_id < (int)m_meshes.size());
 	DASSERT((int)pose.size() == m_skeleton.size());
+
 	const MeshSkin &skin = m_mesh_skins[mesh_id];
 	const SimpleMesh &mesh = m_meshes[mesh_id];
+	updateCounter("SM::animateVertices", 1);
+	FWK_PROFILE("SM::animateVertices");
+
+	DASSERT(!skin.isEmpty());
 
 	for(int v = 0; v < (int)skin.vertex_weights.size(); v++) {
 		const auto &vweights = skin.vertex_weights[v];
@@ -429,8 +458,12 @@ void SkinnedMesh::animateVertices(int mesh_id, const SkeletonPose &pose, float3 
 		if(out_positions) {
 			float3 pos = mesh.positions()[v];
 			float3 out;
-			for(const auto &weight : vweights)
+			for(const auto &weight : vweights) {
+				ASSERT(weight.joint_id >= 0 && weight.joint_id < (int)pose.size());
+				ASSERT(weight.weight >= 0 && weight.weight <= 1.0f);
+
 				out += mulPointAffine(pose[weight.joint_id], pos) * weight.weight;
+			}
 			out_positions[v] = out;
 		}
 		if(out_normals) {
@@ -472,12 +505,14 @@ SkeletonPose SkinnedMesh::animateSkeleton(int anim_id, double anim_pos) const {
 
 void SkinnedMesh::draw(Renderer &out, const SkeletonPose &pose, const Material &material,
 					   const Matrix4 &matrix) const {
+	Mesh::draw(out, material, matrix);
+
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
-	for(int m = 0; m < (int)meshes().size(); m++)
-		SimpleMesh(animateMesh(m, pose)).draw(out, material, Matrix4::identity());
-	out.popViewMatrix();
+	for(int mesh_id : m_animated_mesh_ids)
+		SimpleMesh(animateMesh(mesh_id, pose)).draw(out, material, Matrix4::identity());
 	// m_data.drawSkeleton(out, anim_id, anim_pos, material.color());
+	out.popViewMatrix();
 }
 
 Matrix4 SkinnedMesh::nodeTrans(const string &name, const SkeletonPose &pose) const {

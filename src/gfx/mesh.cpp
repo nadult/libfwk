@@ -68,7 +68,7 @@ Mesh::Mesh(const XMLNode &node) {
 void Mesh::verifyData() const {
 	for(int n = 0; n < (int)m_nodes.size(); n++) {
 		const auto &node = m_nodes[n];
-		ASSERT(node.parent_id >= -1 && node.parent_id < (int)m_nodes.size() && node.parent_id != n);
+		ASSERT(node.parent_id >= -1 && node.parent_id < n);
 		for(auto mesh_id : node.mesh_ids)
 			ASSERT(mesh_id >= 0 && mesh_id < (int)m_meshes.size());
 	}

@@ -631,6 +631,7 @@ class SimpleMesh {
 	bool hasTexCoords() const { return !m_tex_coords.empty(); }
 	bool hasNormals() const { return !m_normals.empty(); }
 	bool hasIndices() const { return !m_indices.empty(); }
+	bool isEmpty() const { return m_positions.empty(); }
 
 	void removeNormals() { m_normals.clear(); }
 	void removeTexCoords() { m_tex_coords.clear(); }
@@ -789,6 +790,10 @@ class SkeletalAnim {
 	float m_length;
 };
 
+// Skinned SimpleMeshes will be filtered out of nodes
+// Mesh will be responsible for static SimpleMeshes and
+// SkinnedMesh for skinned ones. Instancing for skinned
+// elements is not supported
 class SkinnedMesh : public Mesh {
   public:
 	SkinnedMesh();
@@ -808,7 +813,6 @@ class SkinnedMesh : public Mesh {
 	int jointCount() const { return m_skeleton.size(); }
 	const Skeleton &skeleton() const { return m_skeleton; }
 
-	FBox boundingBox() const { return m_bounding_box; }
 	FBox boundingBox(const SkeletonPose &) const;
 	SimpleMesh animateMesh(int mesh_id, const SkeletonPose &) const;
 
@@ -837,15 +841,16 @@ class SkinnedMesh : public Mesh {
 	void printHierarchy() const;
 
   protected:
-	void computeBoundingBox();
+	void filterAnimatedMeshes();
 	// TODO: ranges
 	void animateVertices(int mesh_id, const SkeletonPose &, float3 *positions,
 						 float3 *normals = nullptr) const;
 	void verifyData();
 
-	FBox m_bounding_box;
 	float3 m_bind_scale;
 	Skeleton m_skeleton;
+	vector<int> m_animated_mesh_ids;
+	;
 	vector<SkeletalAnim> m_anims;
 	vector<MeshSkin> m_mesh_skins;
 	vector<Matrix4> m_bind_matrices;
@@ -866,7 +871,10 @@ class Material {
 			 uint flags = 0)
 		: m_program(program), m_textures(std::move(textures)), m_color(color), m_flags(flags) {}
 	Material(PTexture texture, Color color = Color::white, uint flags = 0)
-		: m_textures({texture}), m_color(color), m_flags(flags) {}
+		: m_color(color), m_flags(flags) {
+		if(texture)
+			m_textures.emplace_back(std::move(texture));
+	}
 	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
 
 	PProgram program() const { return m_program; }
@@ -932,7 +940,7 @@ template <class T> class XMLLoader : public ResourceLoader<T> {
 	shared_ptr<T> operator()(const string &name) {
 		XMLDocument doc;
 		Loader(ResourceLoader<T>::fileName(name)) >> doc;
-		XMLNode child = doc.child(m_node_name);
+		XMLNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child)
 			THROW("Cannot find node '%s' in XML document", m_node_name.c_str());
 		return make_shared<T>(child);

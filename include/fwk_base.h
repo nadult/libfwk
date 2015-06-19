@@ -677,11 +677,7 @@ template <class T, class Constructor = ResourceLoader<T>> class ResourceManager 
 
 	PResource operator[](const string &name) { return accessResource(name); }
 
-	// Functor takes two parameters: name and object
-	template <class Functor> void iterateOver(Functor func) {
-		for(auto it = m_dict.begin(); it != m_dict.end(); ++it)
-			func(it->first, *it->second);
-	}
+	const auto &dict() const { return m_dict; }
 
 	PResource removeResource(const string &name) {
 		auto iter = m_dict.find(name);
@@ -697,6 +693,11 @@ template <class T, class Constructor = ResourceLoader<T>> class ResourceManager 
 	void renameResource(const string &old_name, const string &new_name) {
 		insertResource(new_name, std::move(removeResource(old_name)));
 	}
+
+	using Iterator = typename std::map<string, PResource>::const_iterator;
+
+	auto begin() const { return std::begin(m_dict); }
+	auto end() const { return std::end(m_dict); }
 
 	void clear() { m_dict.clear(); }
 
