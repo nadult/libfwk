@@ -214,13 +214,20 @@ const Matrix4 ortho(float left, float right, float top, float bottom, float near
 	return out;
 }
 
-AffineTrans decompose(const Matrix4 &mat) {
-	AffineTrans out;
+AffineTrans::AffineTrans(const Matrix4 &mat) {
+	translation = mat[3].xyz();
+	rotation = normalize(Quat(Matrix3(mat[0].xyz(), mat[1].xyz(), mat[2].xyz())));
+	scale = float3(length(mat.row(0).xyz()), length(mat.row(1).xyz()), length(mat.row(2).xyz()));
+}
 
-	out.translation = mat[3].xyz();
-	out.rotation = normalize(Quat(Matrix3(mat[0].xyz(), mat[1].xyz(), mat[2].xyz())));
-	out.scale = float3(length(mat.row(0).xyz()), length(mat.row(1).xyz()), length(mat.row(2).xyz()));
+AffineTrans::operator Matrix4() const {
+	const Matrix3 rot_matrix = Matrix3(rotation) * scaling(scale);
+	return Matrix4(float4(rot_matrix[0], 0.0f), float4(rot_matrix[1], 0.0f),
+				   float4(rot_matrix[2], 0.0f), float4(translation, 1.0f));
+}
 
-	return out;
+AffineTrans lerp(const AffineTrans &a, const AffineTrans &b, float t) {
+	return AffineTrans(lerp(a.translation, b.translation, t), lerp(a.scale, b.scale, t),
+					   slerp(a.rotation, b.rotation, t));
 }
 }

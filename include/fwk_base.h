@@ -14,6 +14,7 @@
 #include <map>
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
 
 namespace fwk {
 
@@ -40,8 +41,18 @@ using i16 = short;
 using u32 = unsigned;
 using i32 = int;
 
+// TODO: write more of these
+template <class Range, class Functor> bool anyOf(const Range &range, Functor functor) {
+	return std::any_of(begin(range), end(range), functor);
+}
+
+template <class Range, class Functor> bool allOf(const Range &range, Functor functor) {
+	return std::all_of(begin(range), end(range), functor);
+}
+
 // Compile your program with -rdynamic to get some interesting info
 // Currently not avaliable on mingw32 platform
+// TODO: use lib-lldb
 const string backtrace(size_t skip = 0);
 
 // Uses c++filt program to demangle C++ names; also it shortens some of the common
@@ -277,6 +288,56 @@ template <class T> Range<typename T::value_type> makeRange(T *begin, T *end) noe
 }
 
 template <class T> auto makeRange(T *data, int size) noexcept { return Range<T>(data, size); }
+
+template <class A, class B> class Indexer;
+
+template <class Target, class Indices>
+class IndexIterator
+	: public std::iterator<std::random_access_iterator_tag, typename Target::value_type> {
+	using Index = typename Indices::const_iterator;
+
+  protected:
+	constexpr IndexIterator(Index idx, Target &target) noexcept : m_idx(idx), m_target(target) {}
+	friend class Indexer<Target, Indices>;
+
+  public:
+	constexpr auto operator+(int offset) const noexcept {
+		return IndexIterator(m_idx + offset, m_target);
+	}
+	constexpr auto operator-(int offset) const noexcept { return operator+(-offset); }
+
+	constexpr int operator-(const IndexIterator &rhs) const noexcept { return m_idx - rhs.m_idx; }
+	constexpr auto &operator*() const noexcept { return m_target[*m_idx]; }
+	constexpr bool operator==(const IndexIterator &rhs) const noexcept {
+		return m_idx == rhs.m_idx;
+	}
+	constexpr bool operator<(const IndexIterator &rhs) const noexcept { return m_idx < rhs.m_idx; }
+	IndexIterator &operator++() {
+		m_idx++;
+		return *this;
+	}
+
+  private:
+	Index m_idx;
+	Target &m_target;
+};
+template <class Target, class Indices> class Indexer {
+  public:
+	Indexer(Target &target, const Indices &indices) : m_target(target), m_indices(indices) {}
+
+	int size() const { return m_indices.size(); }
+	auto begin() const { return IndexIterator<Target, Indices>(std::begin(m_indices), m_target); }
+	auto end() const { return IndexIterator<Target, Indices>(std::end(m_indices), m_target); }
+
+  private:
+	Target &m_target;
+	const Indices &m_indices;
+};
+
+template <class Target, class Indices>
+auto indexWith(const Target &target, const Indices &indices) {
+	return Indexer<const Target, Indices>(target, indices);
+}
 
 // TODO: move to string_ref.cpp
 // Simple reference to string

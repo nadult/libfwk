@@ -19,7 +19,7 @@ void testMatrices() {
 			frand() * constant::pi * 2.0f);
 
 		Matrix4 mat = translation(trans) * scaling(scale) * Matrix4(Quat(aa));
-		auto dec = decompose(mat);
+		AffineTrans dec(mat);
 		assertCloseEnough(trans, dec.translation);
 		assertCloseEnough(scale, dec.scale);
 	}

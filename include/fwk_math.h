@@ -313,13 +313,21 @@ float dot(const float4 &a, const float4 &b);
 
 float lengthSq(const float2 &);
 float lengthSq(const float3 &);
-float distanceSq(const float3 &, const float3 &);
+float lengthSq(const float4 &);
 float distanceSq(const float2 &, const float2 &);
+float distanceSq(const float3 &, const float3 &);
+float distanceSq(const float4 &, const float4 &);
 
 float length(const float2 &);
 float length(const float3 &);
-float distance(const float3 &, const float3 &);
+float length(const float4 &);
 float distance(const float2 &, const float2 &);
+float distance(const float3 &, const float3 &);
+float distance(const float4 &, const float4 &);
+
+template <class T> bool areSimilar(const T &a, const T &b) {
+	return distanceSq(a, b) < constant::epsilon;
+}
 
 const float2 normalize(const float2 &);
 const float3 normalize(const float3 &);
@@ -451,6 +459,7 @@ template <class TVec3> struct Box {
 		max = Vec3(fwk::max(max.x, point.x), fwk::max(max.y, point.y), fwk::max(max.z, point.z));
 	}
 
+	// TODO: what about bounding boxes enclosing single point?
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y || max.z <= min.z; }
 
 	// TODO: remove or specialize for int/float
@@ -654,12 +663,18 @@ const Quat conjugate(const Quat &);
 float distance(const Quat &, const Quat &);
 
 struct AffineTrans {
-	Quat rotation;
+	AffineTrans() : scale(1, 1, 1) {}
+	AffineTrans(const Matrix4 &);
+	AffineTrans(const float3 &pos, const float3 &scale, const Quat &rot)
+		: translation(pos), scale(scale), rotation(rot) {}
+	operator Matrix4() const;
+
 	float3 translation;
 	float3 scale;
+	Quat rotation;
 };
 
-AffineTrans decompose(const Matrix4 &);
+AffineTrans lerp(const AffineTrans &, const AffineTrans &, float t);
 
 class Triangle {
   public:

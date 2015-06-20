@@ -12,6 +12,32 @@
 
 namespace fwk {
 
+namespace {
+
+	void transToXML(const AffineTrans &trans, XMLNode node) {
+		if(!areSimilar(trans.translation, float3()))
+			node.addAttrib("pos", trans.translation);
+		if(!areSimilar(trans.scale, float3(1, 1, 1)))
+			node.addAttrib("scale", trans.scale);
+		if(!areSimilar((float4)trans.rotation, (float4)Quat()))
+			node.addAttrib("rot", trans.rotation);
+	}
+
+	AffineTrans transFromXML(XMLNode node) {
+		using namespace xml_conversions;
+		float3 pos, scale(1, 1, 1);
+		Quat rot;
+
+		if(auto *pos_string = node.hasAttrib("pos"))
+			pos = fromString<float3>(pos_string);
+		if(auto *scale_string = node.hasAttrib("scale"))
+			scale = fromString<float3>(scale_string);
+		if(auto *rot_string = node.hasAttrib("rot"))
+			rot = fromString<Quat>(rot_string);
+		return AffineTrans(pos, scale, rot);
+	}
+}
+
 Mesh::Mesh(const aiScene &ascene) {
 	Matrix4 mat(ascene.mRootNode->mTransformation[0]);
 
@@ -28,7 +54,7 @@ Mesh::Mesh(const aiScene &ascene) {
 
 		Node new_node;
 		new_node.name = anode->mName.C_Str();
-		// TODO: why transpose is needed?
+
 		new_node.trans = transpose(Matrix4(anode->mTransformation[0]));
 		new_node.parent_id = parent_id;
 
@@ -42,8 +68,10 @@ Mesh::Mesh(const aiScene &ascene) {
 			queue.emplace_back(anode->mChildren[c], parent_id);
 	}
 
+	for(uint a = 0; a < ascene.mNumAnimations; a++)
+		m_anims.emplace_back(ascene, (int)a, *this);
+
 	verifyData();
-	computeBoundingBox();
 }
 
 Mesh::Mesh(const XMLNode &node) {
@@ -51,7 +79,7 @@ Mesh::Mesh(const XMLNode &node) {
 	XMLNode mesh_node = node.child("mesh");
 
 	while(subnode) {
-		m_nodes.emplace_back(Node{subnode.attrib("name"), subnode.attrib<Matrix4>("trans"),
+		m_nodes.emplace_back(Node{subnode.attrib("name"), transFromXML(subnode),
 								  subnode.attrib<int>("parent_id"),
 								  subnode.attrib<vector<int>>("mesh_ids")});
 		subnode.next();
@@ -61,8 +89,13 @@ Mesh::Mesh(const XMLNode &node) {
 		mesh_node.next();
 	}
 
+	XMLNode anim_node = node.child("anim");
+	while(anim_node) {
+		m_anims.emplace_back(anim_node);
+		anim_node.next();
+	}
+
 	verifyData();
-	computeBoundingBox();
 }
 
 void Mesh::verifyData() const {
@@ -78,21 +111,31 @@ void Mesh::saveToXML(XMLNode xml_node) const {
 	for(const auto &node : m_nodes) {
 		XMLNode subnode = xml_node.addChild("node");
 		subnode.addAttrib("name", subnode.own(node.name));
-		subnode.addAttrib("trans", node.trans);
 		subnode.addAttrib("parent_id", node.parent_id);
 		subnode.addAttrib("mesh_ids", node.mesh_ids);
+		transToXML(node.trans, subnode);
 	}
 
 	for(const auto &mesh : m_meshes) {
 		XMLNode mesh_node = xml_node.addChild("mesh");
 		mesh.saveToXML(mesh_node);
 	}
+	for(const auto &anim : m_anims)
+		anim.saveToXML(xml_node.addChild("anim"));
 }
 
-void Mesh::computeBoundingBox() {
-	m_bounding_box = m_meshes.empty() ? FBox::empty() : m_meshes.front().boundingBox();
-	for(const auto &mesh : m_meshes)
-		m_bounding_box = sum(m_bounding_box, mesh.boundingBox());
+FBox Mesh::boundingBox(const MeshPose &pose) const {
+	DASSERT(pose.size() == m_nodes.size());
+
+	FBox out = FBox::empty();
+	const auto &final_pose = finalPose(pose);
+	for(int n = 0; n < (int)m_nodes.size(); n++) {
+		for(const auto &mesh : indexWith(m_meshes, m_nodes[n].mesh_ids)) {
+			FBox bbox = final_pose[n] * mesh.boundingBox();
+			out = out.isEmpty() ? bbox : sum(out, bbox);
+		}
+	}
+	return out;
 }
 
 int Mesh::findNode(const string &name) const {
@@ -102,18 +145,15 @@ int Mesh::findNode(const string &name) const {
 	return -1;
 }
 
-void Mesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) const {
+void Mesh::draw(Renderer &out, const MeshPose &pose, const Material &material,
+				const Matrix4 &matrix) const {
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
-	vector<Matrix4> matrices(m_nodes.size());
-	for(int n = 0; n < (int)m_nodes.size(); n++) {
-		matrices[n] = m_nodes[n].trans;
-		if(m_nodes[n].parent_id != -1)
-			matrices[n] = matrices[m_nodes[n].parent_id] * matrices[n];
+	const auto &final_pose = finalPose(pose);
+	for(int n = 0; n < (int)m_nodes.size(); n++)
 		for(int mesh_id : m_nodes[n].mesh_ids)
-			m_meshes[mesh_id].draw(out, material, matrices[n]);
-	}
+			m_meshes[mesh_id].draw(out, material, final_pose[n]);
 
 	out.popViewMatrix();
 }
@@ -123,37 +163,55 @@ void Mesh::printHierarchy() const {
 		printf("%d: %s\n", n, m_nodes[n].name.c_str());
 }
 
-SimpleMesh Mesh::toSimpleMesh() const {
-	vector<Matrix4> matrices(m_nodes.size());
+SimpleMesh Mesh::toSimpleMesh(const MeshPose &pose) const {
 	vector<SimpleMesh> meshes;
 
-	for(int n = 0; n < (int)m_nodes.size(); n++) {
-		matrices[n] = m_nodes[n].trans;
-		if(m_nodes[n].parent_id != -1)
-			matrices[n] = matrices[m_nodes[n].parent_id] * matrices[n];
-
-		for(int mesh_id : m_nodes[n].mesh_ids)
-			meshes.emplace_back(SimpleMesh::transform(matrices[n], m_meshes[mesh_id]));
-	}
+	const auto &final_pose = finalPose(pose);
+	for(int n = 0; n < (int)m_nodes.size(); n++)
+		for(const auto &mesh : indexWith(m_meshes, m_nodes[n].mesh_ids))
+			meshes.emplace_back(SimpleMesh::transform(final_pose[n], mesh));
 
 	return SimpleMesh::merge(meshes);
 }
 
-float Mesh::intersect(const Segment &segment) const {
+float Mesh::intersect(const Segment &segment, const MeshPose &pose) const {
 	float min_isect = constant::inf;
 
-	vector<Matrix4> matrices(m_nodes.size());
-	for(int n = 0; n < (int)m_nodes.size(); n++) {
-		matrices[n] = m_nodes[n].trans;
-		if(m_nodes[n].parent_id != -1)
-			matrices[n] = matrices[m_nodes[n].parent_id] * matrices[n];
-
-		for(int mesh_id : m_nodes[n].mesh_ids) {
-			float isect = m_meshes[mesh_id].intersect(inverse(matrices[n]) * segment);
+	const auto &final_pose = finalPose(pose);
+	for(int n = 0; n < (int)m_nodes.size(); n++)
+		for(const auto &mesh : indexWith(m_meshes, m_nodes[n].mesh_ids)) {
+			float isect = mesh.intersect(inverse(final_pose[n]) * segment);
 			min_isect = min(min_isect, isect);
 		}
-	}
 
 	return min_isect;
+}
+
+const vector<Matrix4> &Mesh::finalPose(const MeshPose &pose) const {
+	DASSERT(pose.size() == m_nodes.size());
+	if(pose.m_is_dirty) {
+		auto &out = pose.m_final;
+		out = std::vector<Matrix4>(begin(pose.m_transforms), end(pose.m_transforms));
+		for(int n = 0; n < (int)out.size(); n++)
+			if(m_nodes[n].parent_id != -1)
+				out[n] = out[m_nodes[n].parent_id] * out[n];
+		pose.m_is_dirty = false;
+	}
+	return pose.m_final;
+}
+
+MeshPose Mesh::defaultPose() const {
+	vector<AffineTrans> out(m_nodes.size());
+	for(int n = 0; n < (int)m_nodes.size(); n++)
+		out[n] = m_nodes[n].trans;
+	return MeshPose(std::move(out));
+}
+
+MeshPose Mesh::animatePose(int anim_id, double anim_pos) const {
+	DASSERT(anim_id >= -1 && anim_id < (int)m_anims.size());
+
+	if(anim_id == -1)
+		return defaultPose();
+	return m_anims[anim_id].animatePose(defaultPose(), anim_pos);
 }
 }

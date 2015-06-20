@@ -40,13 +40,17 @@ float dot(const float4 &a, const float4 &b) {
 
 float lengthSq(const float2 &v) { return dot(v, v); }
 float lengthSq(const float3 &v) { return dot(v, v); }
-float distanceSq(const float3 &a, const float3 &b) { return lengthSq(a - b); }
+float lengthSq(const float4 &v) { return dot(v, v); }
 float distanceSq(const float2 &a, const float2 &b) { return lengthSq(a - b); }
+float distanceSq(const float3 &a, const float3 &b) { return lengthSq(a - b); }
+float distanceSq(const float4 &a, const float4 &b) { return lengthSq(a - b); }
 
 float length(const float2 &v) { return sqrt(lengthSq(v)); }
 float length(const float3 &v) { return sqrt(lengthSq(v)); }
-float distance(const float3 &a, const float3 &b) { return sqrt(distanceSq(a, b)); }
+float length(const float4 &v) { return sqrt(lengthSq(v)); }
 float distance(const float2 &a, const float2 &b) { return sqrt(distanceSq(a, b)); }
+float distance(const float3 &a, const float3 &b) { return sqrt(distanceSq(a, b)); }
+float distance(const float4 &a, const float4 &b) { return sqrt(distanceSq(a, b)); }
 
 const float2 normalize(const float2 &v) { return v / length(v); }
 const float3 normalize(const float3 &v) { return v / length(v); }

@@ -11,6 +11,7 @@
 #include "fwk_xml.h"
 
 class aiScene;
+class aiNodeAnim;
 
 namespace fwk {
 namespace collada {
@@ -676,6 +677,67 @@ using PSimpleMesh = shared_ptr<SimpleMesh>;
 vector<float3> transformVertices(const Matrix4 &, vector<float3>);
 vector<float3> transformNormals(const Matrix4 &, vector<float3>);
 
+class Mesh;
+
+class MeshPose {
+  public:
+	MeshPose(vector<AffineTrans> transforms = {});
+	const vector<AffineTrans> &transforms() const { return m_transforms; }
+	auto size() const { return m_transforms.size(); }
+	auto begin() const { return std::begin(m_transforms); }
+	auto end() const { return std::end(m_transforms); }
+
+  private:
+	vector<AffineTrans> m_transforms;
+	friend class MeshAnim;
+
+  private:
+	friend class Mesh;
+	friend class SkinnedMesh;
+	mutable vector<Matrix4> m_final;
+	mutable vector<Matrix4> m_skinned_final;
+	mutable bool m_is_dirty, m_is_skinned_dirty;
+};
+
+class MeshAnim {
+  public:
+	MeshAnim(const aiScene &, int anim_id, const Mesh &);
+	MeshPose animatePose(MeshPose initial_pose, double anim_time) const;
+
+	MeshAnim(const XMLNode &);
+	void saveToXML(XMLNode) const;
+
+	string print() const;
+	const string &name() const { return m_name; }
+	float length() const { return m_length; }
+	// TODO: advanced interpolation support
+
+  protected:
+	string m_name;
+
+	AffineTrans animateChannel(int channel_id, double anim_pos) const;
+	void verifyData() const;
+
+	struct Channel {
+		Channel() = default;
+		Channel(const aiNodeAnim &, int joint_id, vector<float> &shared_time_track);
+		Channel(const XMLNode &);
+		void saveToXML(XMLNode) const;
+
+		vector<float3> translation_track;
+		vector<float3> scale_track;
+		vector<Quat> rotation_track;
+		vector<float> time_track;
+		string joint_name;
+		int joint_id;
+	};
+
+	vector<Channel> m_channels;
+	vector<float> m_shared_time_track;
+	int m_max_joint_id;
+	float m_length;
+};
+
 class Mesh {
   public:
 	Mesh() = default;
@@ -688,107 +750,47 @@ class Mesh {
 
 	struct Node {
 		string name;
-		Matrix4 trans;
+		AffineTrans trans;
 		int parent_id;
 		vector<int> mesh_ids;
 	};
 
 	const vector<Node> &nodes() const { return m_nodes; }
 	const vector<SimpleMesh> &meshes() const { return m_meshes; }
-	SimpleMesh toSimpleMesh() const;
+	SimpleMesh toSimpleMesh(const MeshPose &) const;
 	void printHierarchy() const;
 
-	const FBox &boundingBox() const { return m_bounding_box; }
+	MeshPose defaultPose() const;
+	FBox boundingBox(const MeshPose &pose) const;
 	int findNode(const string &name) const;
 
-	float intersect(const Segment &ray) const;
+	float intersect(const Segment &, const MeshPose &) const;
 
-	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
+	void draw(Renderer &out, const Material &mat,
+			  const Matrix4 &matrix = Matrix4::identity()) const {
+		draw(out, defaultPose(), mat, matrix);
+	}
+	void draw(Renderer &, const MeshPose &pose, const Material &,
+			  const Matrix4 &matrix = Matrix4::identity()) const;
 	void clearDrawingCache() const;
 
+	void applyParentTransforms(MeshPose &) const;
+
+	// Pass -1 to anim_id for bind position
+	MeshPose animatePose(int anim_id, double anim_pos) const;
+	const MeshAnim &anim(int anim_id) const { return m_anims[anim_id]; }
+	int animCount() const { return (int)m_anims.size(); }
+
   protected:
-	void computeBoundingBox();
+	const vector<Matrix4> &finalPose(const MeshPose &) const;
 	void verifyData() const;
 
 	vector<SimpleMesh> m_meshes;
 	vector<Node> m_nodes;
-	FBox m_bounding_box;
+	vector<MeshAnim> m_anims;
 };
 
 using PMesh = shared_ptr<Mesh>;
-
-// TODO: add blending
-using SkeletonPose = vector<Matrix4>;
-
-class Skeleton {
-  public:
-	struct Trans {
-		Trans() = default;
-		Trans(const float3 &scale, const float3 &pos, const Quat &quat)
-			: scale(scale), pos(pos), rot(quat) {}
-		Trans(const Matrix4 &);
-		operator const Matrix4() const;
-
-		float3 scale;
-		float3 pos;
-		Quat rot;
-	};
-
-	struct Joint {
-		Matrix4 trans;
-		string name;
-		int parent_id;
-	};
-
-	Skeleton() = default;
-	Skeleton(const Mesh &);
-
-	const Joint &operator[](int idx) const { return m_joints[idx]; }
-	Joint &operator[](int idx) { return m_joints[idx]; }
-	int size() const { return (int)m_joints.size(); }
-	int findJoint(const string &) const;
-
-  private:
-	vector<Joint> m_joints;
-};
-
-Matrix4 lerp(const Skeleton::Trans &, const Skeleton::Trans &, float);
-
-class SkeletalAnim {
-  public:
-	using Trans = Skeleton::Trans;
-	SkeletalAnim(const aiScene &, int anim_id, const Skeleton &);
-	SkeletonPose animateSkeleton(const Skeleton &skeleton, double anim_time) const;
-
-	SkeletalAnim(const XMLNode &, const Skeleton &);
-	void saveToXML(XMLNode) const;
-
-	string print() const;
-	const string &name() const { return m_name; }
-	float length() const { return m_length; }
-	// TODO: advanced interpolation support
-
-  protected:
-	string m_name;
-
-	struct Channel {
-		Channel() = default;
-		Channel(const XMLNode &);
-		void saveToXML(XMLNode) const;
-
-		string joint_name;
-		int joint_id;
-
-		struct Key {
-			Trans trans;
-			float time;
-		};
-		vector<Key> keys;
-	};
-
-	vector<Channel> m_channels;
-	float m_length;
-};
 
 // Skinned SimpleMeshes will be filtered out of nodes
 // Mesh will be responsible for static SimpleMeshes and
@@ -803,20 +805,12 @@ class SkinnedMesh : public Mesh {
 	SkinnedMesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
-	void drawSkeleton(Renderer &, const SkeletonPose &, Color) const;
+	void drawSkeleton(Renderer &, const MeshPose &, Color) const;
 
-	// Pass -1 to anim_id for bind position
-	SkeletonPose animateSkeleton(int anim_id, double anim_pos) const;
-	const SkeletalAnim &anim(int anim_id) const { return m_anims[anim_id]; }
-	int animCount() const { return (int)m_anims.size(); }
+	FBox boundingBox(const MeshPose &) const;
+	SimpleMesh animateMesh(int mesh_id, const MeshPose &) const;
 
-	int jointCount() const { return m_skeleton.size(); }
-	const Skeleton &skeleton() const { return m_skeleton; }
-
-	FBox boundingBox(const SkeletonPose &) const;
-	SimpleMesh animateMesh(int mesh_id, const SkeletonPose &) const;
-
-	float intersect(const Segment &, const SkeletonPose &) const;
+	float intersect(const Segment &, const MeshPose &) const;
 
 	struct VertexWeight {
 		VertexWeight(float weight = 0.0f, int joint_id = 0) : weight(weight), joint_id(joint_id) {}
@@ -835,23 +829,21 @@ class SkinnedMesh : public Mesh {
 	};
 	// TODO: instancing support
 
-	void draw(Renderer &, const SkeletonPose &, const Material &,
+	void draw(Renderer &, const MeshPose &, const Material &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
-	Matrix4 nodeTrans(const string &name, const SkeletonPose &) const;
+	Matrix4 nodeTrans(const string &name, const MeshPose &) const;
 	void printHierarchy() const;
 
   protected:
-	void filterAnimatedMeshes();
+	const vector<Matrix4> &finalPose(const MeshPose &) const;
+	void filterSkinnedMeshes();
 	// TODO: ranges
-	void animateVertices(int mesh_id, const SkeletonPose &, float3 *positions,
+	void animateVertices(int mesh_id, const MeshPose &, float3 *positions,
 						 float3 *normals = nullptr) const;
 	void verifyData();
 
 	float3 m_bind_scale;
-	Skeleton m_skeleton;
-	vector<int> m_animated_mesh_ids;
-	;
-	vector<SkeletalAnim> m_anims;
+	vector<int> m_skinned_mesh_ids; // TODO: skinned mesh ids
 	vector<MeshSkin> m_mesh_skins;
 	vector<Matrix4> m_bind_matrices;
 	vector<Matrix4> m_inv_bind_matrices;

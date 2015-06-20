@@ -12,16 +12,14 @@ ResourceManager<DTexture> s_textures("", "");
 }
 
 struct ViewConfig {
-	ViewConfig(float zoom = 1.0f, float x_rot = 0.0f, float y_rot = 0.0f)
-		: zoom(zoom), x_rot(x_rot), y_rot(y_rot) {}
+	ViewConfig(float zoom = 1.0f, Quat rot = Quat()) : zoom(zoom), rot(rot) {}
 
 	float zoom;
-	float x_rot, y_rot;
+	Quat rot;
 };
 
 ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
-	return ViewConfig(lerp(a.zoom, b.zoom, t), lerp(a.x_rot, b.x_rot, t),
-					  lerp(a.y_rot, b.y_rot, t));
+	return ViewConfig(lerp(a.zoom, b.zoom, t), slerp(a.rot, b.rot, t));
 }
 
 class Viewer {
@@ -84,9 +82,10 @@ class Viewer {
 			}
 		}
 
+		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));
+
 		m_target_view.zoom = clamp(m_target_view.zoom * (1.0f + scale), 0.2f, 4.0f);
-		m_target_view.x_rot += x_rot;
-		m_target_view.y_rot += y_rot;
+		m_target_view.rot = normalize(rot * m_target_view.rot);
 	}
 
 	void tick(float time_diff) {
@@ -101,15 +100,16 @@ class Viewer {
 
 		const auto &mesh = m_meshes[m_current_mesh];
 
-		auto pose = mesh.mesh->animateSkeleton(m_current_anim, m_anim_pos);
-		auto bbox = mesh.mesh->boundingBox(mesh.mesh->animateSkeleton(-1, 0.0f));
-		float scale = 10.0f / (bbox.width() + bbox.height() + bbox.depth());
-		auto matrix = scaling(m_view_config.zoom * scale) *
-					  Matrix4(Quat(AxisAngle({0, 1, 0}, m_view_config.x_rot)) *
-							  Quat(AxisAngle({1, 0, 0}, m_view_config.y_rot))) *
-					  translation(-bbox.center());
+		auto pose = mesh.mesh->animatePose(m_current_anim, m_anim_pos);
+		auto initial_bbox = mesh.mesh->boundingBox(mesh.mesh->animatePose(-1, 0.0f));
+		auto bbox = mesh.mesh->boundingBox(pose);
+
+		float scale =
+			4.0f / max(initial_bbox.width(), max(initial_bbox.height(), initial_bbox.depth()));
+		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
+					  translation(-initial_bbox.center());
 		mesh.mesh->draw(out, pose, {mesh.tex}, matrix);
-		out.addWireBox(((fwk::Mesh *)(mesh.mesh.get()))->boundingBox(), {Color::red}, matrix);
+		out.addWireBox(initial_bbox, {Color::red}, matrix);
 		out.addWireBox(bbox, {Color::green}, matrix);
 
 		TextFormatter fmt;
@@ -117,8 +117,10 @@ class Viewer {
 			(int)m_meshes.size());
 		fmt("Texture: %s\n", mesh.tex ? mesh.tex_name.c_str() : "none");
 		string anim_name = m_current_anim == -1 ? "none" : mesh.mesh->anim(m_current_anim).name();
-		fmt("Animation: %s (%d / %d)\n\n", anim_name.c_str(), m_current_anim + 1,
+		fmt("Animation: %s (%d / %d)\n", anim_name.c_str(), m_current_anim + 1,
 			(int)mesh.mesh->animCount());
+		fmt("Size: %.2f %.2f %.2f\n\n", initial_bbox.width(), initial_bbox.height(),
+			initial_bbox.depth());
 		fmt("Help:\n");
 		fmt("M: change mesh\n");
 		fmt("A: change animation\n");
