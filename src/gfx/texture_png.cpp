@@ -48,11 +48,6 @@ namespace {
 				png_set_packing(m_struct);
 			}
 
-#ifdef __LITTLE_ENDIAN__
-			if(m_bit_depth == 16)
-				png_set_swap(m_struct);
-#endif
-
 			png_read_update_info(m_struct, m_info);
 			m_channels = (int)png_get_channels(m_struct, m_info);
 			m_color_type = png_get_color_type(m_struct, m_info);
@@ -70,6 +65,11 @@ namespace {
 		void operator>>(vector<u16> &out) const {
 			ASSERT(m_bit_depth == 16);
 			ASSERT(m_color_type == PNG_COLOR_TYPE_GRAY);
+
+#if defined(__LITTLE_ENDIAN__) || defined(FWK_TARGET_MINGW)
+			if(m_bit_depth == 16)
+				png_set_swap(m_struct);
+#endif
 
 			vector<u8 *> row_pointers(m_height);
 			out.resize(m_width * m_height);

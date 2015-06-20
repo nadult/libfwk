@@ -76,7 +76,7 @@ Mesh::Mesh(const aiScene &ascene) {
 
 Mesh::Mesh(const XMLNode &node) {
 	XMLNode subnode = node.child("node");
-	XMLNode mesh_node = node.child("mesh");
+	XMLNode mesh_node = node.child("simple_mesh");
 
 	while(subnode) {
 		m_nodes.emplace_back(Node{subnode.attrib("name"), transFromXML(subnode),
@@ -117,7 +117,7 @@ void Mesh::saveToXML(XMLNode xml_node) const {
 	}
 
 	for(const auto &mesh : m_meshes) {
-		XMLNode mesh_node = xml_node.addChild("mesh");
+		XMLNode mesh_node = xml_node.addChild("simple_mesh");
 		mesh.saveToXML(mesh_node);
 	}
 	for(const auto &anim : m_anims)

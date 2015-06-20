@@ -180,7 +180,7 @@ SimpleMesh::SimpleMesh(PVertexBuffer positions, PVertexBuffer normals, PVertexBu
 template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
 	DASSERT(array);
 	const auto &sources = array->sources();
-	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < sources.size()));
+	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < (int)sources.size()));
 	return buffer_id == -1 ? PVertexBuffer() : sources[buffer_id].buffer();
 }
 

@@ -724,6 +724,7 @@ class MeshAnim {
 		Channel(const XMLNode &);
 		void saveToXML(XMLNode) const;
 
+		// TODO: interpolation information
 		vector<float3> translation_track;
 		vector<float3> scale_track;
 		vector<Quat> rotation_track;
@@ -732,6 +733,7 @@ class MeshAnim {
 		int joint_id;
 	};
 
+	// TODO: information about whether its looped or not
 	vector<Channel> m_channels;
 	vector<float> m_shared_time_track;
 	int m_max_joint_id;
