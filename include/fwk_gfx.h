@@ -11,6 +11,8 @@
 #include "fwk_xml.h"
 
 class aiScene;
+class aiAnimation;
+class aiMesh;
 class aiNodeAnim;
 
 namespace fwk {
@@ -614,6 +616,7 @@ class SimpleMesh {
 
 	SimpleMesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
+	aiMesh *toAIMesh() const;
 
 	SimpleMesh(MakeRect, const FRect &xz_rect, float y);
 	SimpleMesh(MakeBBox, const FBox &bbox);
@@ -625,7 +628,7 @@ class SimpleMesh {
 
 	int vertexCount() const { return (int)m_positions.size(); }
 	const vector<float3> &positions() const { return m_positions; }
-	const vector<float3> &normals() const { return m_positions; }
+	const vector<float3> &normals() const { return m_normals; }
 	const vector<float2> &texCoords() const { return m_tex_coords; }
 	const vector<uint> &indices() const { return m_indices; }
 
@@ -706,6 +709,7 @@ class MeshAnim {
 
 	MeshAnim(const XMLNode &);
 	void saveToXML(XMLNode) const;
+	aiAnimation *toAIAnimation() const;
 
 	string print() const;
 	const string &name() const { return m_name; }
@@ -723,10 +727,11 @@ class MeshAnim {
 		Channel(const aiNodeAnim &, int joint_id, vector<float> &shared_time_track);
 		Channel(const XMLNode &);
 		void saveToXML(XMLNode) const;
+		aiNodeAnim *toAINodeAnim(const vector<float> &shared_time_track) const;
 
 		// TODO: interpolation information
 		vector<float3> translation_track;
-		vector<float3> scale_track;
+		vector<float3> scaling_track;
 		vector<Quat> rotation_track;
 		vector<float> time_track;
 		string joint_name;
@@ -746,9 +751,11 @@ class Mesh {
 	Mesh(const aiScene &);
 	Mesh(Mesh &&) = default;
 	Mesh &operator=(Mesh &&) = default;
+	virtual ~Mesh() = default;
 
 	Mesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
+	virtual aiScene *toAIScene() const;
 
 	struct Node {
 		string name;
@@ -757,8 +764,9 @@ class Mesh {
 		vector<int> mesh_ids;
 	};
 
-	const vector<Node> &nodes() const { return m_nodes; }
-	const vector<SimpleMesh> &meshes() const { return m_meshes; }
+	const auto &nodes() const { return m_nodes; }
+	const auto &meshes() const { return m_meshes; }
+	const auto &anims() const { return m_anims; }
 	SimpleMesh toSimpleMesh(const MeshPose &) const;
 	void printHierarchy() const;
 
@@ -802,10 +810,10 @@ class SkinnedMesh : public Mesh {
   public:
 	SkinnedMesh();
 	SkinnedMesh(const aiScene &);
-	virtual ~SkinnedMesh() = default;
 
 	SkinnedMesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
+	aiScene *toAIScene() const override;
 
 	void drawSkeleton(Renderer &, const MeshPose &, Color) const;
 
@@ -905,6 +913,23 @@ class AssimpImporter {
   private:
 	class Impl;
 	unique_ptr<Impl> m_impl;
+};
+
+class AssimpExporter {
+  public:
+	AssimpExporter();
+	~AssimpExporter();
+
+	void saveScene(const aiScene *, const string &format_id, uint flags, Stream &);
+	void saveScene(const aiScene *, const string &format_id, uint flags, const string &file_name);
+
+	string findFormat(const string &extension) const;
+	// vector of pairs (id, extension)
+	const auto &formats() const { return m_formats; }
+	uint defaultFlags() const;
+
+  protected:
+	vector<pair<string, string>> m_formats;
 };
 
 template <class T> class AssimpLoader : public ResourceLoader<T> {

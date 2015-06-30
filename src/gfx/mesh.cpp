@@ -39,13 +39,40 @@ namespace {
 }
 
 Mesh::Mesh(const aiScene &ascene) {
-	Matrix4 mat(ascene.mRootNode->mTransformation[0]);
+	auto *root_node = ascene.mRootNode;
+
+	// Assimp is adding redundant node
+	while(true) {
+		auto name = root_node->mName;
+		bool not_used = root_node->mNumChildren == 1 && root_node->mNumMeshes == 0 &&
+						Matrix4(root_node->mTransformation[0]) == Matrix4::identity();
+
+		for(int m = 0; m < (int)ascene.mNumMeshes; m++) {
+			auto *mesh = ascene.mMeshes[m];
+			for(int b = 0; b < (int)mesh->mNumBones; b++)
+				if(mesh->mBones[b]->mName == name)
+					not_used = false;
+		}
+
+		for(int a = 0; a < (int)ascene.mNumAnimations; a++) {
+			auto *anim = ascene.mAnimations[a];
+			for(int c = 0; c < (int)anim->mNumChannels; c++)
+				if(anim->mChannels[c]->mNodeName == name)
+					not_used = false;
+		}
+
+		if(not_used)
+			root_node = root_node->mChildren[0];
+		else
+			break;
+	}
+	Matrix4 mat(root_node->mTransformation[0]);
 
 	m_meshes.reserve(ascene.mNumMeshes);
 	for(uint n = 0; n < ascene.mNumMeshes; n++)
 		m_meshes.emplace_back(SimpleMesh(ascene, n));
 
-	std::deque<pair<const aiNode *, int>> queue({make_pair(ascene.mRootNode, -1)});
+	std::deque<pair<const aiNode *, int>> queue({make_pair(root_node, -1)});
 
 	while(!queue.empty()) {
 		auto *anode = queue.front().first;
@@ -122,6 +149,57 @@ void Mesh::saveToXML(XMLNode xml_node) const {
 	}
 	for(const auto &anim : m_anims)
 		anim.saveToXML(xml_node.addChild("anim"));
+}
+
+aiScene *Mesh::toAIScene() const {
+	// TODO: UGH: fix this...
+	aiScene *out = static_cast<aiScene *>(malloc(sizeof(aiScene)));
+	memset(out, 0, sizeof(aiScene));
+
+	vector<aiNode *> anodes;
+	for(const auto &node : m_nodes) {
+		aiNode *new_node = new aiNode(node.name.c_str());
+		new_node->mNumMeshes = node.mesh_ids.size();
+		new_node->mMeshes = new unsigned int[new_node->mNumMeshes];
+		std::copy(begin(node.mesh_ids), end(node.mesh_ids), new_node->mMeshes);
+		auto *parent = node.parent_id == -1 ? nullptr : anodes[node.parent_id];
+		new_node->mParent = parent;
+		if(parent)
+			parent->mNumChildren++;
+		Matrix4 mat = transpose(node.trans);
+		new_node->mTransformation = aiMatrix4x4(
+			mat[0][0], mat[0][1], mat[0][2], mat[0][3], mat[1][0], mat[1][1], mat[1][2], mat[1][3],
+			mat[2][0], mat[2][1], mat[2][2], mat[2][3], mat[3][0], mat[3][1], mat[3][2], mat[3][3]);
+		anodes.emplace_back(new_node);
+	}
+	out->mRootNode = anodes.empty() ? nullptr : anodes[0];
+	ASSERT(out->mRootNode);
+
+	for(int p = 0; p < (int)anodes.size(); p++) {
+		auto *parent = anodes[p];
+		parent->mChildren = parent->mNumChildren ? new aiNode *[parent->mNumChildren] : nullptr;
+		int child_id = 0;
+		for(int c = p + 1; c < (int)anodes.size(); c++)
+			if(anodes[c]->mParent == parent)
+				parent->mChildren[child_id++] = anodes[c];
+	}
+
+	aiScene &scene = *out;
+	scene.mMaterials = new aiMaterial *[1];
+	scene.mNumMaterials = 1;
+	scene.mMaterials[0] = new aiMaterial();
+
+	scene.mMeshes = new aiMesh *[m_meshes.size()];
+	scene.mNumMeshes = (int)m_meshes.size();
+	for(int n = 0; n < (int)m_meshes.size(); n++)
+		scene.mMeshes[n] = m_meshes[n].toAIMesh();
+
+	scene.mNumAnimations = m_anims.size();
+	scene.mAnimations = new aiAnimation *[m_anims.size()];
+	for(int n = 0; n < (int)m_anims.size(); n++)
+		scene.mAnimations[n] = m_anims[n].toAIAnimation();
+
+	return out;
 }
 
 FBox Mesh::boundingBox(const MeshPose &pose) const {

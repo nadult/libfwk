@@ -189,6 +189,22 @@ void SkinnedMesh::saveToXML(XMLNode node) const {
 		node.addChild("bind_matrices", node.own(xml_conversions::toString(m_bind_matrices)));
 }
 
+aiScene *SkinnedMesh::toAIScene() const {
+	aiScene *out = Mesh::toAIScene();
+	auto *root_node = out->mRootNode;
+	ASSERT(root_node);
+
+	delete[] root_node->mMeshes;
+	vector<int> mesh_ids = m_nodes.front().mesh_ids;
+	mesh_ids.insert(begin(mesh_ids), begin(m_skinned_mesh_ids), end(m_skinned_mesh_ids));
+
+	root_node->mNumMeshes = (int)mesh_ids.size();
+	root_node->mMeshes = new unsigned int[root_node->mNumMeshes];
+	std::copy(begin(mesh_ids), end(mesh_ids), root_node->mMeshes);
+
+	return out;
+}
+
 void SkinnedMesh::drawSkeleton(Renderer &out, const MeshPose &pose, Color color) const {
 	SimpleMesh bbox_mesh(MakeBBox(), FBox(-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f));
 	out.pushViewMatrix();

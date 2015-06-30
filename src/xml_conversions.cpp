@@ -133,6 +133,8 @@ namespace xml_conversions {
 			for(int n = 0; n < in.size(); n++) {
 				char buffer[DBL_MAX_10_EXP + 2];
 				// TODO: save floats accurately?
+				// printf("%1.8e", f)
+
 				int len = snprintf(buffer, sizeof(buffer), "%f", in[n]);
 				while(len > 0 && buffer[len - 1] == '0')
 					len--;

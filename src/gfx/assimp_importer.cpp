@@ -25,7 +25,8 @@ const aiScene &AssimpImporter::loadScene(Stream &stream, uint flags, const char 
 
 	const auto *scene = m_impl->ReadFileFromMemory(data.data(), data.size(), flags, extension_hint);
 	if(!scene)
-		THROW("Error while loading assimp::scene from file: %s\n%s", stream.name(), m_impl->GetErrorString());
+		THROW("Error while loading assimp::scene from file: %s\n%s", stream.name(),
+			  m_impl->GetErrorString());
 	return *scene;
 }
 
@@ -48,6 +49,7 @@ const aiScene &AssimpImporter::loadScene(const string &file_name, uint flags) {
 void AssimpImporter::freeScene() { m_impl->FreeScene(); }
 
 uint AssimpImporter::defaultFlags() {
-	return aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType | aiProcess_ValidateDataStructure;
+	return aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType |
+		   aiProcess_ValidateDataStructure;
 }
 }

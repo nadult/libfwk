@@ -28,7 +28,7 @@ MeshAnim::Channel::Channel(const XMLNode &node)
 	if(XMLNode pos_node = node.child("translation"))
 		translation_track = fromString<vector<float3>>(pos_node.value());
 	if(XMLNode scale_node = node.child("scale"))
-		scale_track = fromString<vector<float3>>(scale_node.value());
+		scaling_track = fromString<vector<float3>>(scale_node.value());
 	if(XMLNode rot_node = node.child("rotation"))
 		rotation_track = fromString<vector<Quat>>(rot_node.value());
 	if(XMLNode times_node = node.child("time"))
@@ -42,12 +42,50 @@ void MeshAnim::Channel::saveToXML(XMLNode node) const {
 	using namespace xml_conversions;
 	if(!translation_track.empty())
 		node.addChild("translation", node.own(toString(translation_track)));
-	if(!scale_track.empty())
-		node.addChild("scale", node.own(toString(scale_track)));
+	if(!scaling_track.empty())
+		node.addChild("scale", node.own(toString(scaling_track)));
 	if(!rotation_track.empty())
 		node.addChild("rotation", node.own(toString(rotation_track)));
 	if(!time_track.empty())
 		node.addChild("time", node.own(toString(time_track)));
+}
+
+aiNodeAnim *MeshAnim::Channel::toAINodeAnim(const vector<float> &shared_time_track) const {
+	auto *out = new aiNodeAnim;
+
+	out->mNumPositionKeys = translation_track.size();
+	out->mNumRotationKeys = rotation_track.size();
+	out->mNumScalingKeys = scaling_track.size();
+
+	out->mPositionKeys =
+		translation_track.empty() ? nullptr : new aiVectorKey[translation_track.size()];
+	out->mRotationKeys = rotation_track.empty() ? nullptr : new aiQuatKey[rotation_track.size()];
+	out->mScalingKeys = scaling_track.empty() ? nullptr : new aiVectorKey[scaling_track.size()];
+
+	const auto &time_track = this->time_track.empty() ? shared_time_track : this->time_track;
+
+	for(int n = 0; n < (int)translation_track.size(); n++) {
+		float3 pos = translation_track[n];
+		out->mPositionKeys[n].mTime = time_track[n];
+		out->mPositionKeys[n].mValue = aiVector3D(pos.x, pos.y, pos.z);
+	}
+
+	for(int n = 0; n < (int)scaling_track.size(); n++) {
+		float3 scale = scaling_track[n];
+		out->mScalingKeys[n].mTime = time_track[n];
+		out->mScalingKeys[n].mValue = aiVector3D(scale.x, scale.y, scale.z);
+	}
+
+	for(int n = 0; n < (int)rotation_track.size(); n++) {
+		auto rot = rotation_track[n];
+		out->mRotationKeys[n].mTime = time_track[n];
+		out->mRotationKeys[n].mValue = aiQuaternion(rot.w, rot.x, rot.y, rot.z);
+	}
+
+	out->mPreState = out->mPostState = aiAnimBehaviour::aiAnimBehaviour_CONSTANT;
+	out->mNodeName = joint_name.c_str();
+
+	return out;
 }
 
 MeshAnim::Channel::Channel(const aiNodeAnim &achannel, int joint_id,
@@ -56,7 +94,7 @@ MeshAnim::Channel::Channel(const aiNodeAnim &achannel, int joint_id,
 	ASSERT(achannel.mNumRotationKeys == achannel.mNumPositionKeys);
 	ASSERT(achannel.mNumScalingKeys == achannel.mNumPositionKeys);
 	translation_track.resize(achannel.mNumPositionKeys);
-	scale_track.resize(achannel.mNumPositionKeys);
+	scaling_track.resize(achannel.mNumPositionKeys);
 	rotation_track.resize(achannel.mNumPositionKeys);
 	time_track.resize(achannel.mNumPositionKeys);
 
@@ -65,15 +103,15 @@ MeshAnim::Channel::Channel(const aiNodeAnim &achannel, int joint_id,
 		ASSERT(achannel.mScalingKeys[k].mTime == achannel.mRotationKeys[k].mTime);
 
 		translation_track[k] = convert(achannel.mPositionKeys[k].mValue);
-		scale_track[k] = convert(achannel.mScalingKeys[k].mValue);
+		scaling_track[k] = convert(achannel.mScalingKeys[k].mValue);
 		rotation_track[k] = convert(achannel.mRotationKeys[k].mValue);
 		time_track[k] = achannel.mPositionKeys[k].mTime;
 	}
 
 	if(allOf(translation_track, [](auto v) { return areSimilar(v, float3()); }))
 		translation_track.clear();
-	if(allOf(scale_track, [](auto v) { return areSimilar(v, float3(1, 1, 1)); }))
-		scale_track.clear();
+	if(allOf(scaling_track, [](auto v) { return areSimilar(v, float3(1, 1, 1)); }))
+		scaling_track.clear();
 	if(allOf(rotation_track, [](auto q) { return areSimilar((float4)q, (float4)Quat()); }))
 		rotation_track.clear();
 
@@ -126,6 +164,19 @@ void MeshAnim::saveToXML(XMLNode node) const {
 	node.addChild("shared_time_track", node.own(xml_conversions::toString(m_shared_time_track)));
 }
 
+aiAnimation *MeshAnim::toAIAnimation() const {
+	auto *out = new aiAnimation;
+
+	out->mNumChannels = m_channels.size();
+	out->mChannels = m_channels.empty() ? nullptr : new aiNodeAnim *[out->mNumChannels];
+	for(int n = 0; n < (int)m_channels.size(); n++)
+		out->mChannels[n] = m_channels[n].toAINodeAnim(m_shared_time_track);
+	out->mName = m_name.c_str();
+	out->mDuration = m_length;
+
+	return out;
+}
+
 AffineTrans MeshAnim::animateChannel(int channel_id, double anim_pos) const {
 	DASSERT(channel_id >= 0 && channel_id < m_channels.size());
 	const auto &channel = m_channels[channel_id];
@@ -148,8 +199,8 @@ AffineTrans MeshAnim::animateChannel(int channel_id, double anim_pos) const {
 	if(!channel.translation_track.empty())
 		pos = lerp(channel.translation_track[frame0], channel.translation_track[frame1],
 				   blend_factor);
-	if(!channel.scale_track.empty())
-		scale = lerp(channel.scale_track[frame0], channel.scale_track[frame1], blend_factor);
+	if(!channel.scaling_track.empty())
+		scale = lerp(channel.scaling_track[frame0], channel.scaling_track[frame1], blend_factor);
 	if(!channel.rotation_track.empty())
 		rot = slerp(channel.rotation_track[frame0], channel.rotation_track[frame1], blend_factor);
 
@@ -189,7 +240,7 @@ void MeshAnim::verifyData() const {
 			channel.time_track.empty() ? m_shared_time_track.size() : channel.time_track.size();
 		ASSERT(channel.translation_track.size() == num_keys || channel.translation_track.empty());
 		ASSERT(channel.rotation_track.size() == num_keys || channel.rotation_track.empty());
-		ASSERT(channel.scale_track.size() == num_keys || channel.scale_track.empty());
+		ASSERT(channel.scaling_track.size() == num_keys || channel.scaling_track.empty());
 		ASSERT(channel.joint_id >= 0);
 	}
 }

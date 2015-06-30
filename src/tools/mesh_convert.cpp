@@ -3,6 +3,7 @@
    This file is part of libfwk. */
 
 #include "fwk.h"
+#include <assimp/scene.h>
 
 using namespace fwk;
 
@@ -64,7 +65,16 @@ void saveMesh(shared_ptr<TMesh> mesh, const string &node_name, FileType file_typ
 		XMLNode node = doc.addChild(doc.own(node_name));
 		mesh->saveToXML(node);
 		stream << doc;
-	} else if(file_type == FileType::assimp_mesh) { THROW("Write me"); } else
+	} else if(file_type == FileType::assimp_mesh) {
+		AssimpExporter exporter;
+		auto *scene = mesh->toAIScene();
+		string extension = FilePath(stream.name()).fileExtension();
+		string format_id = exporter.findFormat(extension);
+		if(format_id.empty())
+			THROW("Assimp doesn't support exporting to '*.%s' files", extension.c_str());
+		auto format = exporter.formats().front();
+		exporter.saveScene(scene, format.first, 0, stream);
+	} else
 		THROW("Unsupported file type");
 }
 
@@ -78,6 +88,8 @@ template <class TMesh> void convert(const string &from, const string &to) {
 	printf("Loading: %s (format: %s)\n", from.c_str(),
 		   from_type == FileType::xml_mesh ? "xml" : "assimp");
 	auto pair = loadMesh<TMesh>(from_type, loader);
+	printf(" Parts: %d  Nodes: %d  Anims: %d\n", (int)pair.first->meshes().size(),
+		   (int)pair.first->nodes().size(), (int)pair.first->anims().size());
 	printf(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
 	saveMesh(pair.first, pair.second, to_type, saver);
 }

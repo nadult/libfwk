@@ -1113,6 +1113,7 @@ class FilePath {
 	bool isEmpty() const { return m_path.empty(); }
 
 	string fileName() const;
+	string fileExtension() const;
 	bool isDirectory() const;
 	bool isRegularFile() const;
 

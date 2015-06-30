@@ -155,6 +155,47 @@ void SimpleMesh::saveToXML(XMLNode node) const {
 		node.addChild("indices", node.own(toString(m_indices)));
 }
 
+aiMesh *SimpleMesh::toAIMesh() const {
+	auto *amesh = new aiMesh;
+	amesh->mMaterialIndex = 0;
+
+	amesh->mNumVertices = vertexCount();
+	amesh->mVertices = new aiVector3D[vertexCount()];
+	for(int n = 0; n < (int)positions().size(); n++) {
+		float3 pos = positions()[n];
+		amesh->mVertices[n] = aiVector3D(pos.x, pos.y, pos.z);
+	}
+
+	amesh->mNormals = hasNormals() ? new aiVector3D[normals().size()] : nullptr;
+	for(int n = 0; n < (int)normals().size(); n++) {
+		float3 nrm = normals()[n];
+		amesh->mNormals[n] = aiVector3D(nrm.x, nrm.y, nrm.z);
+	}
+
+	amesh->mNumUVComponents[0] = hasTexCoords() ? 1 : 0;
+	amesh->mTextureCoords[0] = hasTexCoords() ? new aiVector3D[texCoords().size()] : nullptr;
+	for(int n = 0; n < (int)texCoords().size(); n++) {
+		float2 tex = texCoords()[n];
+		amesh->mTextureCoords[0][n] = aiVector3D(tex.x, -tex.y, 0);
+	}
+
+	auto faces = trisIndices();
+	amesh->mFaces = new aiFace[faces.size()];
+	amesh->mNumFaces = faces.size();
+	amesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
+
+	for(int n = 0; n < (int)faces.size(); n++) {
+		const auto &face = faces[n];
+		aiFace &aface = amesh->mFaces[n];
+		aface.mNumIndices = face.size();
+		aface.mIndices = new unsigned int[face.size()];
+		for(int i = 0; i < (int)face.size(); i++)
+			aface.mIndices[i] = face[i];
+	}
+
+	return amesh;
+}
+
 SimpleMesh::SimpleMesh()
 	: m_primitive_type(PrimitiveType::triangles), m_is_drawing_cache_dirty(true) {}
 
@@ -201,9 +242,9 @@ void SimpleMesh::computeBoundingBox() { m_bounding_box = FBox(m_positions); }
 
 vector<SimpleMesh::TriIndices> SimpleMesh::trisIndices() const {
 	vector<TriIndices> out;
-	// TODO: remove degenerate triangles
 
-	if(m_indices.size() < 3)
+	if(isOneOf(m_primitive_type, PrimitiveType::lines, PrimitiveType::points) ||
+	   m_indices.size() < 3)
 		return out;
 
 	if(m_primitive_type == PrimitiveType::triangles) {
@@ -220,7 +261,7 @@ vector<SimpleMesh::TriIndices> SimpleMesh::trisIndices() const {
 				out.push_back({{a, b, c}});
 		}
 	} else
-		THROW("Add support for different primitive types");
+		THROW("Unsupported primitive type: %s\n", toString(m_primitive_type));
 
 	return out;
 }
