@@ -11,6 +11,9 @@
 #else
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 
 #ifdef FWK_TARGET_LINUX
@@ -23,6 +26,64 @@
 #include <cstdarg>
 
 namespace fwk {
+
+namespace {
+
+	struct AutoSegHandler {
+		AutoSegHandler() { handleSegFault(); }
+	} s_auto_seg_handler;
+
+	void (*s_handler)() = 0;
+
+#ifdef _WIN32
+	BOOL shandler(DWORD type) {
+		if(type == CTRL_C_EVENT && s_handler) {
+			s_handler();
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+#else
+	void shandler(int) {
+		if(s_handler)
+			s_handler();
+	}
+#endif
+
+	void segfaultHandler(int, siginfo_t *, void *) {
+		printf("Segmentation fault!\n");
+		printf("Backtrace:\n%s\n", cppFilterBacktrace(backtrace()).c_str());
+		exit(1);
+	}
+}
+
+void handleCtrlC(void (*handler)()) {
+	s_handler = handler;
+#ifdef _WIN32
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)shandler, TRUE);
+#else
+	struct sigaction sig_int_handler;
+
+	sig_int_handler.sa_handler = shandler;
+	sigemptyset(&sig_int_handler.sa_mask);
+	sig_int_handler.sa_flags = 0;
+	sigaction(SIGINT, &sig_int_handler, NULL);
+#endif
+}
+
+void handleSegFault() {
+#ifdef _WIN32
+// TODO: writeme
+#else
+	struct sigaction sa;
+	sa.sa_flags = SA_SIGINFO;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_sigaction = segfaultHandler;
+	if(sigaction(SIGSEGV, &sa, NULL) == -1)
+		THROW("Error while attaching segfault handler");
+#endif
+}
 
 void sleep(double sec) {
 	if(sec <= 0)

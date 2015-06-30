@@ -81,6 +81,7 @@ __attribute__((__format__(__printf__, 3, 4)))
 void throwException(const char *file, int line, const char *fmt, ...);
 void doAssert(const char *file, int line, const char *str);
 void handleCtrlC(void (*handler)());
+void handleSegFault();
 void sleep(double sec);
 double getTime();
 
