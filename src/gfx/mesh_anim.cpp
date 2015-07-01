@@ -178,7 +178,7 @@ aiAnimation *MeshAnim::toAIAnimation() const {
 }
 
 AffineTrans MeshAnim::animateChannel(int channel_id, double anim_pos) const {
-	DASSERT(channel_id >= 0 && channel_id < m_channels.size());
+	DASSERT(channel_id >= 0 && channel_id < (int)m_channels.size());
 	const auto &channel = m_channels[channel_id];
 
 	const auto &times = channel.time_track.empty() ? m_shared_time_track : channel.time_track;

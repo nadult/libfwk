@@ -8,12 +8,6 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-aiScene::~aiScene() {
-	// TODO: add proper destructor
-}
-
-aiMaterial::aiMaterial() { memset(this, 0, sizeof(*this)); }
-
 namespace fwk {
 
 AssimpExporter::AssimpExporter() {

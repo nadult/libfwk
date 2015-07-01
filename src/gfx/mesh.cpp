@@ -187,7 +187,9 @@ aiScene *Mesh::toAIScene() const {
 	aiScene &scene = *out;
 	scene.mMaterials = new aiMaterial *[1];
 	scene.mNumMaterials = 1;
-	scene.mMaterials[0] = new aiMaterial();
+	// TODO: UGHHHH....
+	scene.mMaterials[0] = static_cast<aiMaterial *>(malloc(sizeof(aiMaterial)));
+	memset(scene.mMaterials[0], 0, sizeof(aiMaterial));
 
 	scene.mMeshes = new aiMesh *[m_meshes.size()];
 	scene.mNumMeshes = (int)m_meshes.size();

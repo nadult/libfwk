@@ -51,11 +51,13 @@ namespace {
 	}
 #endif
 
+#ifndef _WIN32
 	void segfaultHandler(int, siginfo_t *, void *) {
 		printf("Segmentation fault!\n");
 		printf("Backtrace:\n%s\n", cppFilterBacktrace(backtrace(2)).c_str());
 		exit(1);
 	}
+#endif
 }
 
 void handleCtrlC(void (*handler)()) {
@@ -97,7 +99,7 @@ string execCommand(const string &cmd) {
 			result += buffer;
 	}
 	int ret = pclose(pipe);
-	if(WEXITSTATUS(ret) != 0)
+	if(ret != 0)
 		THROW("Error while executing command:\n\"%s\"", cmd.c_str());
 	return result;
 }
