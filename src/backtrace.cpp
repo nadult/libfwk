@@ -23,20 +23,6 @@ namespace {
 		return name;
 	}
 
-	string execCommand(const string &cmd) {
-		FILE *pipe = popen(cmd.c_str(), "r");
-		if(!pipe)
-			THROW("error while executing command: '%s'", cmd.c_str());
-		char buffer[1024];
-		std::string result = "";
-		while(!feof(pipe)) {
-			if(fgets(buffer, sizeof(buffer), pipe))
-				result += buffer;
-		}
-		pclose(pipe);
-		return result;
-	}
-
 	string nicePath(const string &path) {
 		if(path[0] == '?')
 			return "";

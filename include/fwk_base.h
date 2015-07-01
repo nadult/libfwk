@@ -50,6 +50,8 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 	return std::all_of(begin(range), end(range), functor);
 }
 
+string execCommand(const string &cmd);
+
 // Compile your program with -rdynamic to get some interesting info
 // Currently not avaliable on mingw32 platform
 // TODO: use lib-lldb

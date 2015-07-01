@@ -17,16 +17,30 @@ void printHelp(const char *app_name) {
 		   "Params:\n"
 		   "  param 1:          source mesh\n"
 		   "  param 2:          target mesh\n\n"
+		   "Supported input formats:\n"
+		   "  .blend (blender has to be available in the command line)\n"
+		   "  .dae\n"
+		   "  .mesh\n\n"
+		   "Supported output formats:\n"
+		   "  .mesh\n"
+		   "  .dae (assimp exporter doesn't support animations and is kinda broken)\n\n"
 		   "Examples:\n"
 		   "  %s --skinned-mesh file.dae file.mesh\n"
-		   "  %s file.mesh file.dae\n\n"
-		   "  %s *.mesh *.dae\n\n",
+		   "  %s file.blend file.mesh\n\n"
+		   "  %s *.dae *.mesh\n\n",
 		   app_name, app_name, app_name, app_name);
 }
 
-enum class FileType {
-	xml_mesh,
-	assimp_mesh,
+DECLARE_ENUM(FileType, fwk, blender, assimp);
+DEFINE_ENUM(FileType, "fwk mesh", "blender", "assimp");
+
+struct FileExt {
+	string ext;
+	FileType::Type type;
+};
+
+const FileExt extensions[] = {
+	{".dae", FileType::assimp}, {".mesh", FileType::fwk}, {".blend", FileType::blender},
 };
 
 enum class MeshType {
@@ -35,22 +49,48 @@ enum class MeshType {
 	skinned_mesh,
 };
 
-FileType classify(const string &name) {
-	auto pos = name.rfind(".mesh");
-	if(pos != string::npos && pos + 5 == name.size())
-		return FileType::xml_mesh;
-	return FileType::assimp_mesh;
+FileType::Type classify(const string &name) {
+	string iname = name;
+	std::transform(begin(iname), end(iname), begin(iname), tolower);
+
+	for(auto &ext : extensions) {
+		auto pos = iname.rfind(ext.ext);
+		if(pos != string::npos && pos + ext.ext.size() == iname.size())
+			return ext.type;
+	}
+
+	THROW("Unsupported file type: %s\n", name.c_str());
+	return FileType::invalid;
 }
 
-template <class TMesh> auto loadMesh(FileType file_type, Stream &stream) {
-	if(file_type == FileType::xml_mesh) {
+template <class TMesh> auto loadMesh(FileType::Type file_type, Stream &stream) {
+	if(file_type == FileType::fwk) {
 		XMLDocument doc;
 		stream >> doc;
 		XMLNode child = doc.child();
 		ASSERT(child && "empty XML document");
 		return make_pair(make_shared<TMesh>(child), string(child.name()));
 	}
-	DASSERT(file_type == FileType::assimp_mesh);
+	if(file_type == FileType::blender) {
+		ASSERT(dynamic_cast<FileStream *>(&stream));
+		string file_name = stream.name();
+		string temp_script_name = file_name + ".py";
+		string temp_file_name = file_name + ".dae";
+		string script = format("import bpy\nbpy.ops.wm.collada_export(filepath=\"%s\")\n",
+							   temp_file_name.c_str());
+
+		Saver(temp_script_name).saveData(script.data(), script.size());
+
+		execCommand(format("blender %s --background --python %s 2>/dev/null", file_name.c_str(),
+						   temp_script_name.c_str()));
+
+		remove(temp_script_name.c_str());
+		Loader loader(temp_file_name);
+		auto out = loadMesh<TMesh>(FileType::assimp, loader);
+		remove(temp_file_name.c_str());
+		return std::move(out);
+	}
+	DASSERT(file_type == FileType::assimp);
 	{
 		AssimpImporter importer;
 		auto mesh = make_shared<TMesh>(importer.loadScene(stream, AssimpImporter::defaultFlags()));
@@ -59,34 +99,35 @@ template <class TMesh> auto loadMesh(FileType file_type, Stream &stream) {
 }
 
 template <class TMesh>
-void saveMesh(shared_ptr<TMesh> mesh, const string &node_name, FileType file_type, Stream &stream) {
-	if(file_type == FileType::xml_mesh) {
+void saveMesh(shared_ptr<TMesh> mesh, const string &node_name, FileType::Type file_type,
+			  Stream &stream) {
+	if(file_type == FileType::fwk) {
 		XMLDocument doc;
 		XMLNode node = doc.addChild(doc.own(node_name));
 		mesh->saveToXML(node);
 		stream << doc;
-	} else if(file_type == FileType::assimp_mesh) {
+	} else if(file_type == FileType::assimp) {
 		AssimpExporter exporter;
 		auto *scene = mesh->toAIScene();
 		string extension = FilePath(stream.name()).fileExtension();
 		string format_id = exporter.findFormat(extension);
 		if(format_id.empty())
 			THROW("Assimp doesn't support exporting to '*.%s' files", extension.c_str());
+		printf("Keep in mind: assimp isn't so good when it comes to exporting data...\n");
 		auto format = exporter.formats().front();
 		exporter.saveScene(scene, format.first, 0, stream);
 	} else
-		THROW("Unsupported file type");
+		THROW("Unsupported file type: %s", toString(file_type));
 }
 
 template <class TMesh> void convert(const string &from, const string &to) {
-	FileType from_type = classify(from);
-	FileType to_type = classify(to);
+	FileType::Type from_type = classify(from);
+	FileType::Type to_type = classify(to);
 
 	Loader loader(from);
 	Saver saver(to);
 
-	printf("Loading: %s (format: %s)\n", from.c_str(),
-		   from_type == FileType::xml_mesh ? "xml" : "assimp");
+	printf("Loading: %s (format: %s)\n", from.c_str(), toString(from_type));
 	auto pair = loadMesh<TMesh>(from_type, loader);
 	printf(" Parts: %d  Nodes: %d  Anims: %d\n", (int)pair.first->meshes().size(),
 		   (int)pair.first->nodes().size(), (int)pair.first->anims().size());
@@ -103,7 +144,7 @@ void convert(MeshType mesh_type, const string &from, const string &to) {
 		convert<SkinnedMesh>(from, to);
 }
 
-int main(int argc, char **argv) {
+int safe_main(int argc, char **argv) {
 	vector<string> params;
 	MeshType mesh_type = MeshType::mesh;
 	if(argc == 1) {
@@ -163,4 +204,13 @@ int main(int argc, char **argv) {
 	} else { convert(mesh_type, params[0], params[1]); }
 
 	return 0;
+}
+
+int main(int argc, char **argv) {
+	try {
+		return safe_main(argc, argv);
+	} catch(const Exception &ex) {
+		printf("%s\n\nBacktrace:\n%s\n", ex.what(), cppFilterBacktrace(ex.backtrace()).c_str());
+		return 1;
+	}
 }

@@ -53,7 +53,7 @@ namespace {
 
 	void segfaultHandler(int, siginfo_t *, void *) {
 		printf("Segmentation fault!\n");
-		printf("Backtrace:\n%s\n", cppFilterBacktrace(backtrace()).c_str());
+		printf("Backtrace:\n%s\n", cppFilterBacktrace(backtrace(2)).c_str());
 		exit(1);
 	}
 }
@@ -83,6 +83,23 @@ void handleSegFault() {
 	if(sigaction(SIGSEGV, &sa, NULL) == -1)
 		THROW("Error while attaching segfault handler");
 #endif
+}
+
+// TODO: stdout and stderr returned separately?
+string execCommand(const string &cmd) {
+	FILE *pipe = popen(cmd.c_str(), "r");
+	if(!pipe)
+		THROW("error while executing command: '%s'", cmd.c_str());
+	char buffer[1024];
+	std::string result = "";
+	while(!feof(pipe)) {
+		if(fgets(buffer, sizeof(buffer), pipe))
+			result += buffer;
+	}
+	int ret = pclose(pipe);
+	if(WEXITSTATUS(ret) != 0)
+		THROW("Error while executing command:\n\"%s\"", cmd.c_str());
+	return result;
 }
 
 void sleep(double sec) {
