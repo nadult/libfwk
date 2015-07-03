@@ -392,14 +392,14 @@ inline bool caseLess(const StringRef a, const StringRef b) {
 }
 
 int enumFromString(const char *str, const char **enum_strings, int enum_strings_count,
-				   bool handle_invalid);
+				   bool throw_on_invalid);
 
 // See test/enums.cpp for example usage
 #define DECLARE_ENUM(type, ...)                                                                    \
 	namespace type {                                                                               \
 		enum Type : char { invalid = -1, __VA_ARGS__, count };                                     \
 		const char *toString(int, const char *on_invalid = nullptr);                               \
-		Type fromString(const char *, bool handle_invalid = false);                                \
+		Type fromString(const char *, bool throw_on_invalid = true);                               \
 		inline constexpr bool isValid(int val) { return val >= 0 && val < count; }                 \
 	}
 
@@ -410,8 +410,8 @@ int enumFromString(const char *str, const char **enum_strings, int enum_strings_
 		const char *toString(int value, const char *on_invalid) {                                  \
 			return !isValid(value) ? on_invalid : s_strings[value];                                \
 		}                                                                                          \
-		Type fromString(const char *str, bool handle_invalid) {                                    \
-			return (Type)fwk::enumFromString(str, s_strings, count, handle_invalid);               \
+		Type fromString(const char *str, bool throw_on_invalid) {                                  \
+			return (Type)fwk::enumFromString(str, s_strings, count, throw_on_invalid);             \
 		}                                                                                          \
 	}
 
