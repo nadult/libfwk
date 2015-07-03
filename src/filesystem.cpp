@@ -261,4 +261,25 @@ void mkdirRecursive(const FilePath &path) {
 	if(ret != 0)
 		THROW("Cannot create directory: \"%s\" error: %s\n", path.c_str(), strerror(errno));
 }
+
+vector<string> findFiles(const string &prefix, const string &suffix) {
+	string full_prefix = FilePath(prefix).absolute();
+	if(prefix.back() == '/')
+		full_prefix.push_back('/');
+	FilePath path(prefix);
+	if(path.isRegularFile())
+		path = path.parent();
+
+	auto entries =
+		findFiles(path, FindFiles::recursive | FindFiles::absolute | FindFiles::regular_file);
+	vector<string> out;
+
+	for(auto &entry : entries) {
+		string temp = entry.path;
+		if(removePrefix(temp, full_prefix) && removeSuffix(temp, suffix))
+			out.emplace_back(temp);
+	}
+
+	return out;
+}
 }

@@ -1182,6 +1182,7 @@ namespace FindFiles {
 	};
 };
 
+vector<string> findFiles(const string &prefix, const string &suffix);
 vector<FileEntry> findFiles(const FilePath &path, int flags = FindFiles::regular_file);
 bool removeSuffix(string &str, const string &suffix);
 bool removePrefix(string &str, const string &prefix);
