@@ -108,6 +108,12 @@ namespace xml_conversions {
 			parser.parseInts(out);
 			return out;
 		}
+		
+		template <> vector<uint> vectorFromString<uint>(TextParser &parser) {
+			vector<uint> out(parser.countElements());
+			parser.parseUints(out);
+			return out;
+		}
 
 		template <> void toString(const string &value, TextFormatter &out) {
 			out("%s", value.c_str());

@@ -3,11 +3,9 @@
    This file is part of libfwk. */
 
 #include "fwk_base.h"
-#include <cstdio>
-#include <stdarg.h>
+#include <cerrno>
 #include <cstring>
 #include <cstdlib>
-#include <cstdarg>
 #include <algorithm>
 #include <functional>
 
@@ -19,51 +17,38 @@ namespace {
 		__attribute__((noinline));
 	void throwError(const char *input, const char *type_name, int count) {
 		string what = count > 1 ? fwk::format("%d %s", count, type_name) : type_name;
-		THROW("Error while parsing %s from \"%s\"", what.c_str(), input);
+		size_t max_len = 32;
+		string short_input =
+			strlen(input) > max_len ? string(input, input + max_len) + "..." : string(input);
+		THROW("Error while parsing %s from \"%s\"", what.c_str(), short_input.c_str());
 	}
 
-	template <class T>
-	int parseSingle(const char *input, T &out, const char *format, const char *type_name) {
-		int offset = 0;
-		if(sscanf(input, format, &out, &offset) != 1)
-			throwError(input, type_name, 1);
-		return offset;
+	auto strtol(const char *ptr, char **end_ptr) { return ::strtol(ptr, end_ptr, 0); }
+	auto strtoul(const char *ptr, char **end_ptr) { return ::strtoul(ptr, end_ptr, 0); }
+
+	template <class Func> auto parseSingle(const char **ptr, Func func, const char *type_name) {
+		char *end_ptr = const_cast<char *>(*ptr);
+		errno = 0;
+		auto value = func(*ptr, &end_ptr);
+		if(errno != 0 || end_ptr == *ptr)
+			throwError(*ptr, type_name, 1);
+		*ptr = end_ptr;
+		return value;
 	}
 
-	template <class T>
-	int parseMultiple(const char *input, Range<T> out, const char *format, const char *type_name) {
-		int num_parsed = 0, count = out.size();
-		const char *current = input;
-
-		while(num_parsed + 4 < count) {
-			int offset = 0;
-			auto *tout = &out[num_parsed];
-			if(sscanf(current, format, tout + 0, tout + 1, tout + 2, tout + 3, &offset) != 4)
-				throwError(input, type_name, out.size());
-			num_parsed += 4;
-			current += offset;
+	template <class Func, class T>
+	void parseMultiple(const char **ptr, Range<T> out, Func func, const char *type_name) {
+		char *end_ptr = const_cast<char *>(*ptr);
+		errno = 0;
+		for(int n = 0; n < out.size(); n++) {
+			auto value = func(*ptr, &end_ptr);
+			if(errno != 0 || end_ptr == *ptr)
+				throwError(*ptr, type_name, out.size() - n);
+			out[n] = value;
+			*ptr = end_ptr;
 		}
-
-		format += 9;
-		while(num_parsed < count) {
-			int offset = 0;
-			if(sscanf(current, format, &out[num_parsed], &offset) != 1)
-				throwError(input, type_name, out.size());
-			num_parsed++;
-			current += offset;
-		}
-
-		return current - input;
 	}
 }
-/*
-int TextParser::operator()(const char *format, ...) {
-va_list args;
-va_start(args, format);
-int ret = vsscanf(m_current, format, args);
-va_end(args);
-return ret;
-}*/
 
 int TextParser::countElements() const {
 	int count = 0;
@@ -97,35 +82,17 @@ string TextParser::parseString() {
 	return out[0];
 }
 
-int TextParser::parseInt() {
-	int out;
-	m_current += parseSingle(m_current, out, " %d%n", "int");
-	return out;
-}
+int TextParser::parseInt() { return parseSingle(&m_current, strtol, "int"); }
 
-float TextParser::parseFloat() {
-	float out;
-	m_current += parseSingle(m_current, out, " %f%n", "float");
-	return out;
-}
+float TextParser::parseFloat() { return parseSingle(&m_current, strtof, "float"); }
 
-uint TextParser::parseUint() {
-	uint out;
-	m_current += parseSingle(m_current, out, " %u%n", "uint");
-	return out;
-}
+uint TextParser::parseUint() { return parseSingle(&m_current, strtoul, "uint"); }
 
-void TextParser::parseInts(Range<int> out) {
-	m_current += parseMultiple(m_current, out, " %d %d %d %d%n", "int");
-}
+void TextParser::parseInts(Range<int> out) { parseMultiple(&m_current, out, strtol, "int"); }
 
-void TextParser::parseFloats(Range<float> out) {
-	m_current += parseMultiple(m_current, out, " %f %f %f %f%n", "float");
-}
+void TextParser::parseFloats(Range<float> out) { parseMultiple(&m_current, out, strtof, "float"); }
 
-void TextParser::parseUints(Range<uint> out) {
-	m_current += parseMultiple(m_current, out, " %u %u %u %u%n", "uint");
-}
+void TextParser::parseUints(Range<uint> out) { parseMultiple(&m_current, out, strtoul, "uint"); }
 
 void TextParser::parseStrings(Range<string> out) {
 	const char *iptr = m_current;

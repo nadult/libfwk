@@ -57,6 +57,7 @@ namespace xml_conversions {
 
 		template <> vector<float> vectorFromString<float>(TextParser &);
 		template <> vector<int> vectorFromString<int>(TextParser &);
+		template <> vector<uint> vectorFromString<uint>(TextParser &);
 		template <> vector<string> vectorFromString<string>(TextParser &);
 
 		template <class T> struct SelectParser {

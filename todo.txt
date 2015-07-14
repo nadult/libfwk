@@ -4,6 +4,7 @@
 - Think about moving globla functions to classes / namespaces (especially functions in fwk_profile.h)
 - Fix the namespace mess
 - Bug: keyDown(InputKey::tab) doesn't work
+- scanf's are very slow compared to strto*, maybe we should change printfs as well in text printer?
 
 - when printing strings to XML, library should check if restricted characters are not used by accident (&, <, >)
 - separate XMLFormatter from TextFormatter
