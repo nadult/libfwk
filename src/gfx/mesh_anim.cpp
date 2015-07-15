@@ -19,17 +19,48 @@ namespace {
 	}
 }
 
+void MeshAnim::transToXML(const AffineTrans &trans, XMLNode node) {
+	if(!areSimilar(trans.translation, float3()))
+		node.addAttrib("pos", trans.translation);
+	if(!areSimilar(trans.scale, float3(1, 1, 1)))
+		node.addAttrib("scale", trans.scale);
+	if(!areSimilar((float4)trans.rotation, (float4)Quat()))
+		node.addAttrib("rot", trans.rotation);
+}
+
+AffineTrans MeshAnim::transFromXML(XMLNode node) {
+	using namespace xml_conversions;
+	float3 pos, scale(1, 1, 1);
+	Quat rot;
+
+	if(auto *pos_string = node.hasAttrib("pos"))
+		pos = fromString<float3>(pos_string);
+	if(auto *scale_string = node.hasAttrib("scale"))
+		scale = fromString<float3>(scale_string);
+	if(auto *rot_string = node.hasAttrib("rot"))
+		rot = fromString<Quat>(rot_string);
+	return AffineTrans(pos, scale, rot);
+}
+
 MeshPose::MeshPose(vector<AffineTrans> transforms)
 	: m_transforms(std::move(transforms)), m_is_dirty(true), m_is_skinned_dirty(true) {}
+
+void MeshPose::transform(const AffineTrans &pre_trans) {
+	for(auto &trans : m_transforms)
+		trans = pre_trans * trans;
+	m_is_dirty = m_is_skinned_dirty = true;
+}
 
 MeshAnim::Channel::Channel(const XMLNode &node)
 	: joint_name(node.attrib("joint_name")), joint_id(node.attrib<int>("joint_id")) {
 	using namespace xml_conversions;
-	if(XMLNode pos_node = node.child("translation"))
+
+	default_trans = transFromXML(node);
+	if(XMLNode pos_node = node.child("pos"))
 		translation_track = fromString<vector<float3>>(pos_node.value());
 	if(XMLNode scale_node = node.child("scale"))
 		scaling_track = fromString<vector<float3>>(scale_node.value());
-	if(XMLNode rot_node = node.child("rotation"))
+	if(XMLNode rot_node = node.child("rot"))
 		rotation_track = fromString<vector<Quat>>(rot_node.value());
 	if(XMLNode times_node = node.child("time"))
 		time_track = fromString<vector<float>>(times_node.value());
@@ -40,12 +71,14 @@ void MeshAnim::Channel::saveToXML(XMLNode node) const {
 	node.addAttrib("joint_id", joint_id);
 
 	using namespace xml_conversions;
+
+	transToXML(default_trans, node);
 	if(!translation_track.empty())
-		node.addChild("translation", node.own(toString(translation_track)));
+		node.addChild("pos", node.own(toString(translation_track)));
 	if(!scaling_track.empty())
 		node.addChild("scale", node.own(toString(scaling_track)));
 	if(!rotation_track.empty())
-		node.addChild("rotation", node.own(toString(rotation_track)));
+		node.addChild("rot", node.own(toString(rotation_track)));
 	if(!time_track.empty())
 		node.addChild("time", node.own(toString(time_track)));
 }
@@ -121,6 +154,19 @@ MeshAnim::Channel::Channel(const aiNodeAnim &achannel, int joint_id,
 		time_track.clear();
 }
 
+AffineTrans MeshAnim::Channel::blend(int frame0, int frame1, float t) const {
+	AffineTrans out = default_trans;
+
+	if(!translation_track.empty())
+		out.translation = lerp(translation_track[frame0], translation_track[frame1], t);
+	if(!scaling_track.empty())
+		out.scale = lerp(scaling_track[frame0], scaling_track[frame1], t);
+	if(!rotation_track.empty())
+		out.rotation = slerp(rotation_track[frame0], rotation_track[frame1], t);
+
+	return out;
+}
+
 MeshAnim::MeshAnim(const aiScene &ascene, int anim_id, const Mesh &mesh) : m_max_joint_id(0) {
 	DASSERT(anim_id >= 0 && anim_id < (int)ascene.mNumAnimations);
 
@@ -193,18 +239,7 @@ AffineTrans MeshAnim::animateChannel(int channel_id, double anim_pos) const {
 	float diff = times[frame1] - times[frame0];
 	float blend_factor = diff < constant::epsilon ? 0.0f : (anim_pos - times[frame0]) / diff;
 
-	float3 pos, scale(1, 1, 1);
-	Quat rot;
-
-	if(!channel.translation_track.empty())
-		pos = lerp(channel.translation_track[frame0], channel.translation_track[frame1],
-				   blend_factor);
-	if(!channel.scaling_track.empty())
-		scale = lerp(channel.scaling_track[frame0], channel.scaling_track[frame1], blend_factor);
-	if(!channel.rotation_track.empty())
-		rot = slerp(channel.rotation_track[frame0], channel.rotation_track[frame1], blend_factor);
-
-	return AffineTrans(pos, scale, rot);
+	return channel.blend(frame0, frame1, blend_factor);
 }
 
 MeshPose MeshAnim::animatePose(MeshPose pose, double anim_pos) const {

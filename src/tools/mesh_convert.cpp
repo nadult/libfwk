@@ -74,19 +74,24 @@ template <class TMesh> auto loadMesh(FileType::Type file_type, Stream &stream) {
 	if(file_type == FileType::blender) {
 		ASSERT(dynamic_cast<FileStream *>(&stream));
 		string file_name = stream.name();
+		string temp_file_name = file_name + ".mesh";
 		string temp_script_name = file_name + ".py";
-		string temp_file_name = file_name + ".dae";
-		string script = format("import bpy\nbpy.ops.wm.collada_export(filepath=\"%s\")\n",
-							   temp_file_name.c_str());
+
+		string script;
+		{
+			Loader loader("data/export_fwk_mesh.py");
+			script.resize(loader.size(), ' ');
+			loader.loadData(&script[0], script.size());
+			script += "write(\"" + temp_file_name + "\", [])";
+		}
 
 		Saver(temp_script_name).saveData(script.data(), script.size());
-
 		execCommand(format("blender %s --background --python %s 2>/dev/null", file_name.c_str(),
 						   temp_script_name.c_str()));
 
 		remove(temp_script_name.c_str());
 		Loader loader(temp_file_name);
-		auto out = loadMesh<TMesh>(FileType::assimp, loader);
+		auto out = loadMesh<TMesh>(FileType::fwk, loader);
 		remove(temp_file_name.c_str());
 		return std::move(out);
 	}

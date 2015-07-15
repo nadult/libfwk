@@ -34,15 +34,18 @@ class Viewer {
 	Viewer(const IRect &viewport, const vector<pair<string, string>> &file_names)
 		: m_viewport(viewport), m_current_mesh(0), m_current_anim(-1), m_anim_pos(0.0) {
 		for(auto file_name : file_names) {
-
 			PTexture tex;
-			if(!file_name.second.empty()) {
-				try {
-					tex = s_textures[file_name.second];
-				} catch(...) {}
+			if(!file_name.second.empty() && access(file_name.second)) {
+				double time = getTime();
+				tex = s_textures[file_name.second];
+				printf("Loaded texture %s: %.2f ms\n", file_name.second.c_str(),
+					   (getTime() - time) * 1000.0f);
 			}
-			m_meshes.emplace_back(
-				Mesh{s_meshes[file_name.first], tex, file_name.first, file_name.second});
+
+			double time = getTime();
+			auto mesh = s_meshes[file_name.first];
+			printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), (getTime() - time) * 1000.0f);
+			m_meshes.emplace_back(Mesh{mesh, tex, file_name.first, file_name.second});
 		}
 
 		FontFactory factory;
@@ -50,6 +53,12 @@ class Viewer {
 
 		if(m_meshes.empty())
 			THROW("No meshes loaded\n");
+
+		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
+		Loader("data/flat_shader.vsh") >> vertex_shader;
+		Loader("data/flat_shader.fsh") >> fragment_shader;
+		m_flat_program = make_shared<Program>(vertex_shader, fragment_shader);
+		m_flat_program->link();
 	}
 
 	void handleInput(GfxDevice &device, float time_diff) {
@@ -108,9 +117,11 @@ class Viewer {
 			4.0f / max(initial_bbox.width(), max(initial_bbox.height(), initial_bbox.depth()));
 		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
 					  translation(-initial_bbox.center());
-		mesh.mesh->draw(out, pose, {mesh.tex}, matrix);
+		auto material = mesh.tex ? Material(mesh.tex) : Material(m_flat_program, {});
+		mesh.mesh->draw(out, pose, material, matrix);
 		out.addWireBox(initial_bbox, {Color::red}, matrix);
 		out.addWireBox(bbox, {Color::green}, matrix);
+		mesh.mesh->drawSkeleton(out, pose, Color::yellow, matrix);
 
 		TextFormatter fmt;
 		fmt("Mesh: %s (%d / %d)\n", mesh.mesh_name.c_str(), m_current_mesh + 1,
@@ -139,6 +150,7 @@ class Viewer {
   private:
 	vector<Mesh> m_meshes;
 	pair<PFont, PTexture> m_font_data;
+	PProgram m_flat_program;
 
 	IRect m_viewport;
 	int m_current_mesh, m_current_anim;
@@ -211,6 +223,7 @@ int safe_main(int argc, char **argv) {
 	auto &gfx_device = GfxDevice::instance();
 	gfx_device.createWindow("libfwk::mesh_viewer", resolution, false);
 
+	double init_time = getTime();
 	Viewer viewer(IRect(resolution), files);
 	s_viewer = &viewer;
 

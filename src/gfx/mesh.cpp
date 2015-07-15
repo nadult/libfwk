@@ -12,31 +12,7 @@
 
 namespace fwk {
 
-namespace {
-
-	void transToXML(const AffineTrans &trans, XMLNode node) {
-		if(!areSimilar(trans.translation, float3()))
-			node.addAttrib("pos", trans.translation);
-		if(!areSimilar(trans.scale, float3(1, 1, 1)))
-			node.addAttrib("scale", trans.scale);
-		if(!areSimilar((float4)trans.rotation, (float4)Quat()))
-			node.addAttrib("rot", trans.rotation);
-	}
-
-	AffineTrans transFromXML(XMLNode node) {
-		using namespace xml_conversions;
-		float3 pos, scale(1, 1, 1);
-		Quat rot;
-
-		if(auto *pos_string = node.hasAttrib("pos"))
-			pos = fromString<float3>(pos_string);
-		if(auto *scale_string = node.hasAttrib("scale"))
-			scale = fromString<float3>(scale_string);
-		if(auto *rot_string = node.hasAttrib("rot"))
-			rot = fromString<Quat>(rot_string);
-		return AffineTrans(pos, scale, rot);
-	}
-}
+DEFINE_ENUM(MeshNodeType, "unknown", "skeleton", "bone", "mesh");
 
 Mesh::Mesh(const aiScene &ascene) {
 	auto *root_node = ascene.mRootNode;
@@ -95,10 +71,38 @@ Mesh::Mesh(const aiScene &ascene) {
 			queue.emplace_back(anode->mChildren[c], parent_id);
 	}
 
+	for(int n = 0; n < (int)m_nodes.size(); n++) {
+		auto &node = m_nodes[n];
+		node.id = n;
+		if(node.parent_id != -1)
+			m_nodes[node.parent_id].children_ids.emplace_back(n);
+	}
+
 	for(uint a = 0; a < ascene.mNumAnimations; a++)
 		m_anims.emplace_back(ascene, (int)a, *this);
 
 	verifyData();
+}
+
+static void parseNodes(vector<Mesh::Node> &out, int parent_id, XMLNode xml_node) {
+	Mesh::Node new_node;
+
+	new_node.type = MeshNodeType::fromString(xml_node.attrib("type"));
+	new_node.name = xml_node.attrib("name");
+	new_node.trans = MeshAnim::transFromXML(xml_node);
+	new_node.parent_id = parent_id;
+	int node_id = new_node.id = (int)out.size();
+	new_node.mesh_ids = xml_node.attrib<vector<int>>("mesh_ids", {});
+
+	out.emplace_back(std::move(new_node));
+	XMLNode child_node = xml_node.child("node");
+	if(parent_id != -1)
+		out[parent_id].children_ids.emplace_back(node_id);
+
+	while(child_node) {
+		parseNodes(out, node_id, child_node);
+		child_node.next();
+	}
 }
 
 Mesh::Mesh(const XMLNode &node) {
@@ -106,11 +110,10 @@ Mesh::Mesh(const XMLNode &node) {
 	XMLNode mesh_node = node.child("simple_mesh");
 
 	while(subnode) {
-		m_nodes.emplace_back(Node{subnode.attrib("name"), transFromXML(subnode),
-								  subnode.attrib<int>("parent_id"),
-								  subnode.attrib<vector<int>>("mesh_ids")});
+		parseNodes(m_nodes, -1, subnode);
 		subnode.next();
 	}
+
 	while(mesh_node) {
 		m_meshes.emplace_back(mesh_node);
 		mesh_node.next();
@@ -134,14 +137,27 @@ void Mesh::verifyData() const {
 	}
 }
 
-void Mesh::saveToXML(XMLNode xml_node) const {
-	for(const auto &node : m_nodes) {
-		XMLNode subnode = xml_node.addChild("node");
-		subnode.addAttrib("name", subnode.own(node.name));
-		subnode.addAttrib("parent_id", node.parent_id);
-		subnode.addAttrib("mesh_ids", node.mesh_ids);
-		transToXML(node.trans, subnode);
+static void saveNodes(const vector<Mesh::Node> &nodes, int node_id, XMLNode xml_node) {
+	const auto &node = nodes[node_id];
+	xml_node.addAttrib("name", xml_node.own(node.name));
+	xml_node.addAttrib("type", toString(node.type));
+	vector<int> mesh_ids = node.mesh_ids;
+	mesh_ids.insert(begin(mesh_ids), begin(node.skinned_mesh_ids), end(node.skinned_mesh_ids));
+
+	if(!mesh_ids.empty())
+		xml_node.addAttrib("mesh_ids", mesh_ids);
+	MeshAnim::transToXML(node.trans, xml_node);
+
+	for(int child_id : node.children_ids) {
+		XMLNode child_node = xml_node.addChild("node");
+		saveNodes(nodes, child_id, child_node);
 	}
+}
+
+void Mesh::saveToXML(XMLNode xml_node) const {
+	for(int n = 0; n < (int)m_nodes.size(); n++)
+		if(m_nodes[n].parent_id == -1)
+			saveNodes(m_nodes, n, xml_node.addChild("node"));
 
 	for(const auto &mesh : m_meshes) {
 		XMLNode mesh_node = xml_node.addChild("simple_mesh");

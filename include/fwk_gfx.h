@@ -690,6 +690,8 @@ class MeshPose {
 	auto begin() const { return std::begin(m_transforms); }
 	auto end() const { return std::end(m_transforms); }
 
+	void transform(const AffineTrans &pre_trans);
+
   private:
 	vector<AffineTrans> m_transforms;
 	friend class MeshAnim;
@@ -701,6 +703,11 @@ class MeshPose {
 	mutable vector<Matrix4> m_skinned_final;
 	mutable bool m_is_dirty, m_is_skinned_dirty;
 };
+
+inline MeshPose operator*(const AffineTrans &trans, MeshPose pose) {
+	pose.transform(trans);
+	return pose;
+}
 
 class MeshAnim {
   public:
@@ -716,6 +723,9 @@ class MeshAnim {
 	float length() const { return m_length; }
 	// TODO: advanced interpolation support
 
+	static void transToXML(const AffineTrans &trans, XMLNode node);
+	static AffineTrans transFromXML(XMLNode node);
+
   protected:
 	string m_name;
 
@@ -728,8 +738,10 @@ class MeshAnim {
 		Channel(const XMLNode &);
 		void saveToXML(XMLNode) const;
 		aiNodeAnim *toAINodeAnim(const vector<float> &shared_time_track) const;
+		AffineTrans blend(int frame0, int frame1, float t) const;
 
 		// TODO: interpolation information
+		AffineTrans default_trans;
 		vector<float3> translation_track;
 		vector<float3> scaling_track;
 		vector<Quat> rotation_track;
@@ -745,6 +757,8 @@ class MeshAnim {
 	float m_length;
 };
 
+DECLARE_ENUM(MeshNodeType, unknown, skeleton, bone, mesh);
+
 class Mesh {
   public:
 	Mesh() = default;
@@ -758,10 +772,14 @@ class Mesh {
 	virtual aiScene *toAIScene() const;
 
 	struct Node {
+		using Type = MeshNodeType::Type;
+		Type type;
 		string name;
 		AffineTrans trans;
-		int parent_id;
+		int id, parent_id;
+		vector<int> children_ids;
 		vector<int> mesh_ids;
+		vector<int> skinned_mesh_ids;
 	};
 
 	const auto &nodes() const { return m_nodes; }
@@ -815,10 +833,11 @@ class SkinnedMesh : public Mesh {
 	void saveToXML(XMLNode) const;
 	aiScene *toAIScene() const override;
 
-	void drawSkeleton(Renderer &, const MeshPose &, Color) const;
+	void drawSkeleton(Renderer &, const MeshPose &, Color,
+					  const Matrix4 &matrix = Matrix4::identity()) const;
 
 	FBox boundingBox(const MeshPose &) const;
-	SimpleMesh animateMesh(int mesh_id, const MeshPose &) const;
+	SimpleMesh animateMesh(int node_id, int mesh_id, const MeshPose &) const;
 
 	float intersect(const Segment &, const MeshPose &) const;
 
@@ -837,7 +856,6 @@ class SkinnedMesh : public Mesh {
 
 		vector<vector<VertexWeight>> vertex_weights;
 	};
-	// TODO: instancing support
 
 	void draw(Renderer &, const MeshPose &, const Material &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
@@ -848,12 +866,14 @@ class SkinnedMesh : public Mesh {
 	const vector<Matrix4> &finalPose(const MeshPose &) const;
 	void filterSkinnedMeshes();
 	// TODO: ranges
-	void animateVertices(int mesh_id, const MeshPose &, float3 *positions,
+	void animateVertices(int node_id, int mesh_id, const MeshPose &, float3 *positions,
 						 float3 *normals = nullptr) const;
 	void verifyData();
+	void computeBindMatrices();
+	Matrix4 computeOffsetMatrix(int node_id) const;
 
+	int m_skeleton_node_id;
 	float3 m_bind_scale;
-	vector<int> m_skinned_mesh_ids; // TODO: skinned mesh ids
 	vector<MeshSkin> m_mesh_skins;
 	vector<Matrix4> m_bind_matrices;
 	vector<Matrix4> m_inv_bind_matrices;
@@ -871,7 +891,10 @@ class Material {
 
 	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
 			 uint flags = 0)
-		: m_program(program), m_textures(std::move(textures)), m_color(color), m_flags(flags) {}
+		: m_program(program), m_textures(std::move(textures)), m_color(color), m_flags(flags) {
+		for(const auto &tex : m_textures)
+			DASSERT(tex);
+	}
 	Material(PTexture texture, Color color = Color::white, uint flags = 0)
 		: m_color(color), m_flags(flags) {
 		if(texture)

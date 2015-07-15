@@ -272,8 +272,9 @@ vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
 	vector<SimpleMesh> out;
 
 	int last_index = 0;
+	auto tris_indices = trisIndices();
 
-	while(true) {
+	while(last_index < (int)tris_indices.size()) {
 		out.push_back(SimpleMesh());
 		auto &new_mesh = out.back();
 
@@ -281,23 +282,19 @@ vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
 		std::unordered_map<uint, uint> index_map;
 		vector<pair<uint, uint>> index_list;
 
-		if(m_indices.empty()) {
-			for(int n = 0; n < num_vertices; n++)
-				index_list.emplace_back(n, n);
-		} else
-			for(int i = last_index; i < (int)m_indices.size(); i++) {
-				uint vindex = m_indices[i];
+		for(int i = last_index; i < (int)tris_indices.size(); i++) {
+			if(num_vertices + 3 > max_vertices)
+				break;
+			const auto &tri = tris_indices[i];
+			for(int j = 0; j < 3; j++) {
+				uint vindex = tri[j];
 				auto it = index_map.find(vindex);
-				if(it == index_map.end()) {
+				if(it == index_map.end())
 					it = index_map.emplace(vindex, num_vertices++).first;
-				}
 				index_list.emplace_back(vindex, it->second);
-
-				if(num_vertices >= max_vertices) {
-					last_index = i + 1;
-					break;
-				}
 			}
+			last_index++;
+		}
 
 		new_mesh.m_positions.resize(num_vertices);
 		for(auto index_pair : index_list)
@@ -319,7 +316,7 @@ vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
 			for(int n = 0; n < (int)index_list.size(); n++)
 				new_mesh.m_indices[n] = index_list[n].second;
 		}
-		new_mesh.m_primitive_type = m_primitive_type;
+		new_mesh.m_primitive_type = PrimitiveType::triangles;
 		new_mesh.computeBoundingBox();
 	}
 
