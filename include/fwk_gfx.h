@@ -814,16 +814,15 @@ class Model {
 
 	void clearDrawingCache() const;
 
-	void applyParentTransforms(ModelPose &) const;
-
 	// Pass -1 to anim_id for bind position
 	ModelPose animatePose(int anim_id, double anim_pos) const;
 	const ModelAnim &anim(int anim_id) const { return m_anims[anim_id]; }
 	int animCount() const { return (int)m_anims.size(); }
 
-  protected:
 	const vector<Matrix4> &finalPose(const ModelPose &) const;
 	const vector<Matrix4> &finalSkinnedPose(const ModelPose &) const;
+
+  protected:
 	int addNode(const string &name, const AffineTrans &, int parent_id);
 
 	void verifyData() const;

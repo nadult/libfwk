@@ -7,10 +7,16 @@
 
 using namespace fwk;
 
+string dataPath(string file_name) {
+	FilePath exec(executablePath());
+	return exec.parent().parent() / "data" / file_name;
+}
+
 void printHelp(const char *app_name) {
 	printf("Synopsis:\n"
 		   "  %s [flags] [params]\n\n"
 		   "Flags:\n"
+		   "  --transform \"1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1\"\n"
 		   "Params:\n"
 		   "  param 1:          source model\n"
 		   "  param 2:          target model\n\n"
@@ -70,7 +76,9 @@ auto loadModel(FileType::Type file_type, Stream &stream) {
 
 		string script;
 		{
-			Loader loader("data/export_fwk_model.py");
+			string script_path = dataPath("export_fwk_model.py");
+
+			Loader loader(script_path);
 			script.resize(loader.size(), ' ');
 			loader.loadData(&script[0], script.size());
 			script += "write(\"" + temp_file_name + "\", [])";
@@ -105,7 +113,7 @@ void saveModel(shared_ptr<Model> model, const string &node_name, FileType::Type 
 		THROW("Unsupported file type for saving: %s", toString(file_type));
 }
 
-void convert(const string &from, const string &to) {
+void convert(const string &from, const Matrix4 &transform, const string &to) {
 	FileType::Type from_type = classify(from);
 	FileType::Type to_type = classify(to);
 
@@ -117,6 +125,7 @@ void convert(const string &from, const string &to) {
 	printf(" Parts: %d  Nodes: %d  Anims: %d\n", (int)pair.first->meshes().size(),
 		   (int)pair.first->nodes().size(), (int)pair.first->anims().size());
 	printf(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
+
 	saveModel(pair.first, pair.second, to_type, saver);
 }
 
@@ -127,10 +136,14 @@ int safe_main(int argc, char **argv) {
 		exit(0);
 	}
 
+	Matrix4 transform = Matrix4::identity();
+
 	for(int n = 1; n < argc; n++) {
 		string arg(argv[n]);
 
 		if(arg[0] == '-' && arg[1] == '-') {
+			if(arg == "--transform" && n + 1 < argc)
+				transform = xml_conversions::fromString<Matrix4>(argv[++n]);
 			if(arg == "--help") {
 				printHelp(argv[0]);
 				exit(0);
@@ -167,10 +180,10 @@ int safe_main(int argc, char **argv) {
 				FilePath dst_folder = FilePath(dst_name).parent();
 				if(!access(dst_folder))
 					mkdirRecursive(dst_folder);
-				convert(src_name, dst_name);
+				convert(src_name, transform, dst_name);
 			}
 		}
-	} else { convert(params[0], params[1]); }
+	} else { convert(params[0], transform, params[1]); }
 
 	return 0;
 }

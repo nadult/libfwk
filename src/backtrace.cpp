@@ -13,15 +13,16 @@
 
 namespace fwk {
 
+string executablePath() {
+	char name[128];
+	int ret = readlink("/proc/self/exe", name, sizeof(name) - 1);
+	if(ret == -1)
+		return "";
+	name[ret] = 0;
+	return name;
+}
+
 namespace {
-	string execName() {
-		char name[128];
-		int ret = readlink("/proc/self/exe", name, sizeof(name) - 1);
-		if(ret == -1)
-			return "";
-		name[ret] = 0;
-		return name;
-	}
 
 	string nicePath(const string &path) {
 		if(path[0] == '?')
@@ -50,7 +51,7 @@ namespace {
 	};
 }
 
-const string backtrace(size_t skip) {
+string backtrace(size_t skip) {
 	TextFormatter out;
 
 	void *addresses[32];
@@ -59,7 +60,7 @@ const string backtrace(size_t skip) {
 
 	// TODO: these are not exactly correct (inlining?)
 	string file_lines[32];
-	string exec_name = execName();
+	string exec_name = executablePath();
 	for(size_t i = skip; i < size; i++) {
 		string file_line =
 			execCommand(format("addr2line %p -e %s", addresses[i], exec_name.c_str()));
@@ -85,7 +86,7 @@ const string backtrace(size_t skip) {
 	return out.text();
 }
 
-const string cppFilterBacktrace(const string &input) {
+string cppFilterBacktrace(const string &input) {
 	string command = "echo \"" + input + "\" | c++filt -n";
 
 	FILE *file = popen(command.c_str(), "r");
@@ -118,8 +119,8 @@ const string cppFilterBacktrace(const string &input) {
 
 namespace fwk {
 
-const string backtrace(size_t skip) { return "Backtraces in LibFWK are supported only on Linux"; }
-const string cppFilterBacktrace(const string &input) { return input; }
+string backtrace(size_t skip) { return "Backtraces in LibFWK are supported only on Linux"; }
+string cppFilterBacktrace(const string &input) { return input; }
 }
 
 #endif

@@ -18,6 +18,26 @@ def relativeDifference(a, b):
     magnitude = max(abs(a), abs(b))
     return 0.0 if (magnitude < 0.000001) else (abs(a - b) / magnitude)
 
+
+def fixMatrixUpAxis(mat):
+    mat = mat.copy()
+    i = 0
+    while i < 4:
+        mat[1][i], mat[2][i] = mat[2][i], mat[1][i]
+        mat[2][i] *= -1.0
+        i = i + 1
+    mat.transpose()
+    i = 0
+    while i < 4:
+        mat[1][i], mat[2][i] = mat[2][i], mat[1][i]
+        mat[2][i] *= -1.0
+        i = i + 1
+    mat.transpose()
+    return mat
+
+def fixVectorUpAxis(vec):
+    return Vector((vec.x, vec.z, -vec.y))
+
 def formatFloat(f):
     if relativeDifference(float(int(round(f))), f) < 0.00001:
         return str(int(round(f)))
@@ -33,14 +53,6 @@ def formatFloats(floats):
         if len(out) > 0:
             out += ' '
         out += formatFloat(f)
-    return out
-
-def formatMatrix(matrix):
-    out = ""
-    for row in matrix:
-        if len(out) > 0:
-            out += " "
-        out += formatFloats(row)
     return out
 
 def vecToString(vec):
@@ -120,14 +132,14 @@ def writeMesh(xml_parent, mesh, obj, node_id_map):
         if len(verts) == 4:
             tris = [verts[0], verts[1], verts[2], verts[2], verts[3], verts[0]]
         else:
-            tris = face.vertices
+            tris = [verts[0], verts[1], verts[2]]
         mesh_indices.extend(tris)
     for vertex in mesh.vertices:
-        mesh_positions.extend(vertex.co)
+        mesh_positions.append(vecToString(fixVectorUpAxis(vertex.co)))
 
     xml_positions = ET.SubElement(xml_mesh_node, "positions")
     xml_indices = ET.SubElement(xml_mesh_node, "indices")
-    xml_positions.text = ' '.join(map(formatFloat, mesh_positions))
+    xml_positions.text = ' '.join(mesh_positions)
     xml_indices.text = ' '.join(map(str, mesh_indices))
 
     if obj.find_armature():
@@ -135,7 +147,7 @@ def writeMesh(xml_parent, mesh, obj, node_id_map):
 
 
 def writeTrans(xml_node, matrix):
-    loc, rot, scale = matrix.decompose()
+    loc, rot, scale = fixMatrixUpAxis(matrix).decompose()
     xml_node.set("pos", vecToString(loc))
     if rot != Quaternion((1, 0, 0, 0)):
         xml_node.set("rot", quatToString(rot))
@@ -151,9 +163,9 @@ def writeBone(xml_parent, bone, node_id_map):
 
     matrix = bone.matrix_local.copy()
     if not (bone.parent is None):
-        parent_mat = bone.parent.matrix_local.copy()
-        parent_mat.invert()
-        matrix = parent_mat * matrix
+        parent_inv = bone.parent.matrix_local.copy()
+        parent_inv.invert()
+        matrix = parent_inv * matrix
     writeTrans(xml_bone, matrix)
 
     for child in bone.children:
@@ -174,7 +186,12 @@ def writeObject(xml_parent, obj, mesh_list, node_id_map):
 #   xml_obj_node.set("type", objectTypeString(obj))
     node_id_map[obj.name] = len(node_id_map)
 
-    writeTrans(xml_obj_node, obj.matrix_world)
+    matrix = obj.matrix_world.copy()
+    if obj.parent:
+        parent_inv = obj.parent.matrix_world.copy()
+        parent_inv.invert()
+        matrix = parent_inv * matrix
+    writeTrans(xml_obj_node, matrix)
 
     if not obj.parent is None:
         xml_obj_node.set("parent", obj.parent.name)
@@ -250,10 +267,10 @@ def writeAnim(xml_parent, action, armature):
         for bone in armature.pose.bones:
             matrix = bone.matrix.copy()
             if bone.parent:
-                parent_mat = bone.parent.matrix.copy()
-                parent_mat.invert()
-                matrix = parent_mat * matrix
-            matrices.append(matrix)
+                parent_inv = bone.parent.matrix.copy()
+                parent_inv.invert()
+                matrix = parent_inv * matrix
+            matrices.append(fixMatrixUpAxis(matrix))
         matrices_2d.append(matrices)
 
     index = 0

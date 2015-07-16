@@ -50,16 +50,17 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 	return std::all_of(begin(range), end(range), functor);
 }
 
+string executablePath();
 string execCommand(const string &cmd);
 
 // Compile your program with -rdynamic to get some interesting info
 // Currently not avaliable on mingw32 platform
 // TODO: use lib-lldb
-const string backtrace(size_t skip = 0);
+string backtrace(size_t skip = 0);
 
 // Uses c++filt program to demangle C++ names; also it shortens some of the common
 // long class names, like std::basic_string<...> to fwk::string
-const string cppFilterBacktrace(const string &);
+string cppFilterBacktrace(const string &);
 
 class Exception : public std::exception {
   public:

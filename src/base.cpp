@@ -99,8 +99,8 @@ string execCommand(const string &cmd) {
 			result += buffer;
 	}
 	int ret = pclose(pipe);
-	if(ret != 0)
-		THROW("Error while executing command:\n\"%s\"", cmd.c_str());
+	if(ret != 0) // TODO: return two arguments (result and error code)?
+		THROW("Error while executing command:\n\"%s\"\nResult: %s\n", cmd.c_str(), result.c_str());
 	return result;
 }
 

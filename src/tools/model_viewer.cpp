@@ -9,6 +9,11 @@ using namespace fwk;
 namespace {
 ResourceManager<Model, XMLLoader<Model>> s_models("", "", "");
 ResourceManager<DTexture> s_textures("", "");
+
+string dataPath(string file_name) {
+	FilePath exec(executablePath());
+	return exec.parent().parent() / "data" / file_name;
+}
 }
 
 struct ViewConfig {
@@ -56,8 +61,8 @@ class Viewer {
 			THROW("No models loaded\n");
 
 		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
-		Loader("data/flat_shader.vsh") >> vertex_shader;
-		Loader("data/flat_shader.fsh") >> fragment_shader;
+		Loader(dataPath("flat_shader.vsh")) >> vertex_shader;
+		Loader(dataPath("flat_shader.fsh")) >> fragment_shader;
 		m_flat_program = make_shared<Program>(vertex_shader, fragment_shader);
 		m_flat_program->link();
 	}
