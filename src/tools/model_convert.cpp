@@ -11,28 +11,25 @@ void printHelp(const char *app_name) {
 	printf("Synopsis:\n"
 		   "  %s [flags] [params]\n\n"
 		   "Flags:\n"
-		   "  --mesh (default): treat data as meshes\n"
-		   "  --skinned-mesh:   treat data as skinned meshes\n"
-		   //		   "  --simple-mesh:    treat data as simple mesh\n\n"
 		   "Params:\n"
-		   "  param 1:          source mesh\n"
-		   "  param 2:          target mesh\n\n"
+		   "  param 1:          source model\n"
+		   "  param 2:          target model\n\n"
 		   "Supported input formats:\n"
 		   "  .blend (blender has to be available in the command line)\n"
 		   "  .dae\n"
-		   "  .mesh\n\n"
+		   "  .model\n\n"
 		   "Supported output formats:\n"
-		   "  .mesh\n"
+		   "  .model\n"
 		   "  .dae (assimp exporter doesn't support animations and is kinda broken)\n\n"
 		   "Examples:\n"
-		   "  %s --skinned-mesh file.dae file.mesh\n"
-		   "  %s file.blend file.mesh\n\n"
-		   "  %s *.dae *.mesh\n\n",
+		   "  %s file.dae file.model\n"
+		   "  %s file.blend file.model\n\n"
+		   "  %s *.dae *.model\n\n",
 		   app_name, app_name, app_name, app_name);
 }
 
 DECLARE_ENUM(FileType, fwk, blender, assimp);
-DEFINE_ENUM(FileType, "fwk mesh", "blender", "assimp");
+DEFINE_ENUM(FileType, "fwk model", "blender", "assimp");
 
 struct FileExt {
 	string ext;
@@ -40,13 +37,7 @@ struct FileExt {
 };
 
 const FileExt extensions[] = {
-	{".dae", FileType::assimp}, {".mesh", FileType::fwk}, {".blend", FileType::blender},
-};
-
-enum class MeshType {
-	mesh,
-	//	simple_mesh,
-	skinned_mesh,
+	{".dae", FileType::assimp}, {".model", FileType::fwk}, {".blend", FileType::blender},
 };
 
 FileType::Type classify(const string &name) {
@@ -63,23 +54,23 @@ FileType::Type classify(const string &name) {
 	return FileType::invalid;
 }
 
-template <class TMesh> auto loadMesh(FileType::Type file_type, Stream &stream) {
+auto loadModel(FileType::Type file_type, Stream &stream) {
 	if(file_type == FileType::fwk) {
 		XMLDocument doc;
 		stream >> doc;
 		XMLNode child = doc.child();
 		ASSERT(child && "empty XML document");
-		return make_pair(make_shared<TMesh>(child), string(child.name()));
+		return make_pair(make_shared<Model>(child), string(child.name()));
 	}
 	if(file_type == FileType::blender) {
 		ASSERT(dynamic_cast<FileStream *>(&stream));
 		string file_name = stream.name();
-		string temp_file_name = file_name + ".mesh";
+		string temp_file_name = file_name + ".model";
 		string temp_script_name = file_name + ".py";
 
 		string script;
 		{
-			Loader loader("data/export_fwk_mesh.py");
+			Loader loader("data/export_fwk_model.py");
 			script.resize(loader.size(), ' ');
 			loader.loadData(&script[0], script.size());
 			script += "write(\"" + temp_file_name + "\", [])";
@@ -91,41 +82,30 @@ template <class TMesh> auto loadMesh(FileType::Type file_type, Stream &stream) {
 
 		remove(temp_script_name.c_str());
 		Loader loader(temp_file_name);
-		auto out = loadMesh<TMesh>(FileType::fwk, loader);
+		auto out = loadModel(FileType::fwk, loader);
 		remove(temp_file_name.c_str());
 		return std::move(out);
 	}
 	DASSERT(file_type == FileType::assimp);
 	{
 		AssimpImporter importer;
-		auto mesh = make_shared<TMesh>(importer.loadScene(stream, AssimpImporter::defaultFlags()));
-		return make_pair(mesh, string("mesh"));
+		auto model = make_shared<Model>(importer.loadScene(stream, AssimpImporter::defaultFlags()));
+		return make_pair(model, string("model"));
 	}
 }
 
-template <class TMesh>
-void saveMesh(shared_ptr<TMesh> mesh, const string &node_name, FileType::Type file_type,
-			  Stream &stream) {
+void saveModel(shared_ptr<Model> model, const string &node_name, FileType::Type file_type,
+			   Stream &stream) {
 	if(file_type == FileType::fwk) {
 		XMLDocument doc;
 		XMLNode node = doc.addChild(doc.own(node_name));
-		mesh->saveToXML(node);
+		model->saveToXML(node);
 		stream << doc;
-	} else if(file_type == FileType::assimp) {
-		AssimpExporter exporter;
-		auto *scene = mesh->toAIScene();
-		string extension = FilePath(stream.name()).fileExtension();
-		string format_id = exporter.findFormat(extension);
-		if(format_id.empty())
-			THROW("Assimp doesn't support exporting to '*.%s' files", extension.c_str());
-		printf("Keep in mind: assimp isn't so good when it comes to exporting data...\n");
-		auto format = exporter.formats().front();
-		exporter.saveScene(scene, format.first, 0, stream);
 	} else
-		THROW("Unsupported file type: %s", toString(file_type));
+		THROW("Unsupported file type for saving: %s", toString(file_type));
 }
 
-template <class TMesh> void convert(const string &from, const string &to) {
+void convert(const string &from, const string &to) {
 	FileType::Type from_type = classify(from);
 	FileType::Type to_type = classify(to);
 
@@ -133,25 +113,15 @@ template <class TMesh> void convert(const string &from, const string &to) {
 	Saver saver(to);
 
 	printf("Loading: %s (format: %s)\n", from.c_str(), toString(from_type));
-	auto pair = loadMesh<TMesh>(from_type, loader);
+	auto pair = loadModel(from_type, loader);
 	printf(" Parts: %d  Nodes: %d  Anims: %d\n", (int)pair.first->meshes().size(),
 		   (int)pair.first->nodes().size(), (int)pair.first->anims().size());
 	printf(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
-	saveMesh(pair.first, pair.second, to_type, saver);
-}
-
-void convert(MeshType mesh_type, const string &from, const string &to) {
-	if(mesh_type == MeshType::mesh)
-		convert<Mesh>(from, to);
-	//	else if(mesh_type == MeshType::simple_mesh)
-	//		convert<SimpleMesh>(from, to);
-	else if(mesh_type == MeshType::skinned_mesh)
-		convert<SkinnedMesh>(from, to);
+	saveModel(pair.first, pair.second, to_type, saver);
 }
 
 int safe_main(int argc, char **argv) {
 	vector<string> params;
-	MeshType mesh_type = MeshType::mesh;
 	if(argc == 1) {
 		printHelp(argv[0]);
 		exit(0);
@@ -165,12 +135,6 @@ int safe_main(int argc, char **argv) {
 				printHelp(argv[0]);
 				exit(0);
 			}
-			if(arg == "--mesh")
-				mesh_type = MeshType::mesh;
-			//			if(arg == "--simple-mesh")
-			//				mesh_type = MeshType::simple_mesh;
-			if(arg == "--skinned-mesh")
-				mesh_type = MeshType::skinned_mesh;
 		} else { params.emplace_back(arg); }
 	}
 
@@ -203,10 +167,10 @@ int safe_main(int argc, char **argv) {
 				FilePath dst_folder = FilePath(dst_name).parent();
 				if(!access(dst_folder))
 					mkdirRecursive(dst_folder);
-				convert(mesh_type, src_name, dst_name);
+				convert(src_name, dst_name);
 			}
 		}
-	} else { convert(mesh_type, params[0], params[1]); }
+	} else { convert(params[0], params[1]); }
 
 	return 0;
 }

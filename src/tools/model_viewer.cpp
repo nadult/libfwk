@@ -7,7 +7,7 @@
 using namespace fwk;
 
 namespace {
-ResourceManager<SkinnedMesh, XMLLoader<SkinnedMesh>> s_meshes("", "", "");
+ResourceManager<Model, XMLLoader<Model>> s_models("", "", "");
 ResourceManager<DTexture> s_textures("", "");
 }
 
@@ -24,15 +24,16 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 
 class Viewer {
   public:
-	struct Mesh {
-		PSkinnedMesh mesh;
+	struct Model {
+		PModel model;
 		PTexture tex;
-		string mesh_name;
+		string model_name;
 		string tex_name;
 	};
 
 	Viewer(const IRect &viewport, const vector<pair<string, string>> &file_names)
-		: m_viewport(viewport), m_current_mesh(0), m_current_anim(-1), m_anim_pos(0.0) {
+		: m_viewport(viewport), m_current_model(0), m_current_anim(-1), m_anim_pos(0.0),
+		  m_show_nodes(false) {
 		for(auto file_name : file_names) {
 			PTexture tex;
 			if(!file_name.second.empty() && access(file_name.second)) {
@@ -43,16 +44,16 @@ class Viewer {
 			}
 
 			double time = getTime();
-			auto mesh = s_meshes[file_name.first];
+			auto model = s_models[file_name.first];
 			printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), (getTime() - time) * 1000.0f);
-			m_meshes.emplace_back(Mesh{mesh, tex, file_name.first, file_name.second});
+			m_models.emplace_back(Model{model, tex, file_name.first, file_name.second});
 		}
 
 		FontFactory factory;
 		m_font_data = factory.makeFont("data/LiberationSans-Regular.ttf", 14, false);
 
-		if(m_meshes.empty())
-			THROW("No meshes loaded\n");
+		if(m_models.empty())
+			THROW("No models loaded\n");
 
 		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
 		Loader("data/flat_shader.vsh") >> vertex_shader;
@@ -79,16 +80,18 @@ class Viewer {
 			if(event.keyPressed(InputKey::pagedown))
 				scale -= time_diff * 2.0f;
 			if(event.keyDown('m')) {
-				m_current_mesh = (m_current_mesh + 1) % m_meshes.size();
+				m_current_model = (m_current_model + 1) % m_models.size();
 				m_current_anim = -1;
 				m_anim_pos = 0.0;
 			}
 			if(event.keyDown('a')) {
 				m_current_anim++;
-				if(m_current_anim == m_meshes[m_current_mesh].mesh->animCount())
+				if(m_current_anim == m_models[m_current_model].model->animCount())
 					m_current_anim = -1;
 				m_anim_pos = 0.0f;
 			}
+			if(event.keyDown('s'))
+				m_show_nodes ^= 1;
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));
@@ -107,34 +110,36 @@ class Viewer {
 			degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(), 1.0f, 10000.0f));
 		out.setViewMatrix(translation(0, 0, -5.0f));
 
-		const auto &mesh = m_meshes[m_current_mesh];
+		const auto &model = m_models[m_current_model];
 
-		auto pose = mesh.mesh->animatePose(m_current_anim, m_anim_pos);
-		auto initial_bbox = mesh.mesh->boundingBox(mesh.mesh->animatePose(-1, 0.0f));
-		auto bbox = mesh.mesh->boundingBox(pose);
+		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
+		auto initial_bbox = model.model->boundingBox(model.model->animatePose(-1, 0.0f));
+		auto bbox = model.model->boundingBox(pose);
 
 		float scale =
 			4.0f / max(initial_bbox.width(), max(initial_bbox.height(), initial_bbox.depth()));
 		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
 					  translation(-initial_bbox.center());
-		auto material = mesh.tex ? Material(mesh.tex) : Material(m_flat_program, {});
-		mesh.mesh->draw(out, pose, material, matrix);
+		auto material = model.tex ? Material(model.tex) : Material(m_flat_program, {});
+		model.model->draw(out, pose, material, matrix);
 		out.addWireBox(initial_bbox, {Color::red}, matrix);
 		out.addWireBox(bbox, {Color::green}, matrix);
-		mesh.mesh->drawSkeleton(out, pose, Color::yellow, matrix);
+		if(m_show_nodes)
+			model.model->drawNodes(out, pose, Color::green, Color::yellow, matrix);
 
 		TextFormatter fmt;
-		fmt("Mesh: %s (%d / %d)\n", mesh.mesh_name.c_str(), m_current_mesh + 1,
-			(int)m_meshes.size());
-		fmt("Texture: %s\n", mesh.tex ? mesh.tex_name.c_str() : "none");
-		string anim_name = m_current_anim == -1 ? "none" : mesh.mesh->anim(m_current_anim).name();
+		fmt("Model: %s (%d / %d)\n", model.model_name.c_str(), m_current_model + 1,
+			(int)m_models.size());
+		fmt("Texture: %s\n", model.tex ? model.tex_name.c_str() : "none");
+		string anim_name = m_current_anim == -1 ? "none" : model.model->anim(m_current_anim).name();
 		fmt("Animation: %s (%d / %d)\n", anim_name.c_str(), m_current_anim + 1,
-			(int)mesh.mesh->animCount());
+			(int)model.model->animCount());
 		fmt("Size: %.2f %.2f %.2f\n\n", initial_bbox.width(), initial_bbox.height(),
 			initial_bbox.depth());
 		fmt("Help:\n");
-		fmt("M: change mesh\n");
+		fmt("M: change model\n");
 		fmt("A: change animation\n");
+		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n");
 
@@ -148,13 +153,14 @@ class Viewer {
 	const IRect &viewport() const { return m_viewport; }
 
   private:
-	vector<Mesh> m_meshes;
+	vector<Model> m_models;
 	pair<PFont, PTexture> m_font_data;
 	PProgram m_flat_program;
 
 	IRect m_viewport;
-	int m_current_mesh, m_current_anim;
+	int m_current_model, m_current_anim;
 	double m_anim_pos;
+	bool m_show_nodes;
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
 };
@@ -189,17 +195,17 @@ int safe_main(int argc, char **argv) {
 	int2 resolution(1200, 700);
 
 	if(argc <= 1) {
-		printf("Usage:\n%s mesh_name.mesh\n%s data/*.mesh\n", argv[0], argv[0]);
+		printf("Usage:\n%s model_name.model\n%s data/*.model\n", argv[0], argv[0]);
 		return 0;
 	}
 
-	string mesh_argument = argv[1], tex_argument = argc > 2 ? argv[2] : "";
+	string model_argument = argv[1], tex_argument = argc > 2 ? argv[2] : "";
 	vector<pair<string, string>> files;
 
-	if(mesh_argument.find('*') != string::npos) {
-		auto star_pos = mesh_argument.find('*');
-		string prefix = mesh_argument.substr(0, star_pos);
-		string suffix = mesh_argument.substr(star_pos + 1);
+	if(model_argument.find('*') != string::npos) {
+		auto star_pos = model_argument.find('*');
+		string prefix = model_argument.substr(0, star_pos);
+		string suffix = model_argument.substr(star_pos + 1);
 
 		auto tstar_pos = tex_argument.find('*');
 		string tprefix = star_pos == string::npos ? "" : tex_argument.substr(0, tstar_pos);
@@ -218,10 +224,10 @@ int safe_main(int argc, char **argv) {
 				files.emplace_back(file.path, tex_name);
 			}
 		}
-	} else { files = {make_pair(mesh_argument, tex_argument)}; }
+	} else { files = {make_pair(model_argument, tex_argument)}; }
 
 	auto &gfx_device = GfxDevice::instance();
-	gfx_device.createWindow("libfwk::mesh_viewer", resolution, false);
+	gfx_device.createWindow("libfwk::model_viewer", resolution, false);
 
 	double init_time = getTime();
 	Viewer viewer(IRect(resolution), files);

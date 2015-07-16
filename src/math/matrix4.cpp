@@ -226,6 +226,10 @@ AffineTrans::operator Matrix4() const {
 				   float4(rot_matrix[2], 0.0f), float4(translation, 1.0f));
 }
 
+AffineTrans operator*(const AffineTrans &lhs, const AffineTrans &rhs) {
+	return AffineTrans(Matrix4(lhs) * Matrix4(rhs));
+}
+
 AffineTrans lerp(const AffineTrans &a, const AffineTrans &b, float t) {
 	return AffineTrans(lerp(a.translation, b.translation, t), lerp(a.scale, b.scale, t),
 					   slerp(a.rotation, b.rotation, t));

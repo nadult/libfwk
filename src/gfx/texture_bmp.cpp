@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2014 Krzysztof Jakubowski <nadult@fastmail.fm>
+/* Copyright (C) 2015 Krzysztof Jakubowski <nadult@fastmail.fm>
 
    This file is part of libfwk.
  */

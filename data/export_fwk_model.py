@@ -19,7 +19,7 @@ def relativeDifference(a, b):
     return 0.0 if (magnitude < 0.000001) else (abs(a - b) / magnitude)
 
 def formatFloat(f):
-    if relativeDifference(float(int(round(f))), f) < 0.000001:
+    if relativeDifference(float(int(round(f))), f) < 0.00001:
         return str(int(round(f)))
     else:
         out = "%f" % f
@@ -50,10 +50,10 @@ def quatToString(quat):
     return formatFloats([quat.x, quat.y, quat.z, quat.w])
 
 def xmlIndent(elem, level=0):
-  i = "\n" + level*"  "
+  i = "\n" + level*"\t"
   if len(elem):
     if not elem.text or not elem.text.strip():
-      elem.text = i + "  "
+      elem.text = i + "\t"
     if not elem.tail or not elem.tail.strip():
       elem.tail = i
     for elem in elem:
@@ -76,26 +76,26 @@ def writeSkin(xml_parent, mesh, obj, node_id_map):
 
     index_map = [0] * len(obj.vertex_groups)
     for vg in obj.vertex_groups:
-        joint_id = node_id_map[vg.name] if (vg.name in node_id_map) else -1
-        index_map[vg.index] = joint_id
+        node_id = node_id_map[vg.name] if (vg.name in node_id_map) else -1
+        index_map[vg.index] = node_id
 
     counts = []
     weights = []
-    joint_ids = []
+    node_ids = []
 
     for vertex in mesh.vertices:
         vweights = []
-        vjoint_ids = []
+        vnode_ids = []
         for group in vertex.groups:
-            joint_id = index_map[group.group]
-            if joint_id != -1 and group.weight > 0.000001:
+            node_id = index_map[group.group]
+            if node_id != -1 and group.weight > 0.000001:
                 vweights.append(group.weight)
-                vjoint_ids.append(joint_id)
+                vnode_ids.append(node_id)
 
         weight_sum = sum(vweights)
         if weight_sum > 0.000001:
             weights.extend(formatFloat(w / weight_sum) for w in vweights)
-            joint_ids.extend(str(j) for j in vjoint_ids)
+            node_ids.extend(str(j) for j in vnode_ids)
             counts.append(str(len(vweights)))
         else:
             counts.append("0")
@@ -103,7 +103,7 @@ def writeSkin(xml_parent, mesh, obj, node_id_map):
     xml_skin = ET.SubElement(xml_parent, "skin")
     (ET.SubElement(xml_skin, "counts")).text = " ".join(counts)
     (ET.SubElement(xml_skin, "weights")).text = " ".join(weights)
-    (ET.SubElement(xml_skin, "joint_ids")).text = " ".join(joint_ids)
+    (ET.SubElement(xml_skin, "node_ids")).text = " ".join(node_ids)
 
 def writeMesh(xml_parent, mesh, obj, node_id_map):
     xml_mesh_node = ET.SubElement(xml_parent, "simple_mesh")
@@ -146,7 +146,7 @@ def writeTrans(xml_node, matrix):
 def writeBone(xml_parent, bone, node_id_map):
     xml_bone = ET.SubElement(xml_parent, "node")
     xml_bone.set("name", bone.name)
-    xml_bone.set("type", "bone")
+#   xml_bone.set("type", "bone")
     node_id_map[bone.name] = len(node_id_map)
 
     matrix = bone.matrix_local.copy()
@@ -159,19 +159,19 @@ def writeBone(xml_parent, bone, node_id_map):
     for child in bone.children:
         writeBone(xml_bone, child, node_id_map)
 
-def objectTypeString(type):
-    if type == "MESH":
+def objectTypeString(obj):
+    if obj.type == "MESH":
         return "mesh"
-    if type == "ARMATURE":
+    if obj.type == "ARMATURE":
         return "skeleton"
-    if type == "BONE":
+    if obj.type == "BONE":
         return "bone"
     return "unknown"
 
 def writeObject(xml_parent, obj, mesh_list, node_id_map):
     xml_obj_node = ET.SubElement(xml_parent, "node")
     xml_obj_node.set("name", obj.name)
-    xml_obj_node.set("type", objectTypeString(obj.type))
+#   xml_obj_node.set("type", objectTypeString(obj))
     node_id_map[obj.name] = len(node_id_map)
 
     writeTrans(xml_obj_node, obj.matrix_world)
@@ -179,7 +179,7 @@ def writeObject(xml_parent, obj, mesh_list, node_id_map):
     if not obj.parent is None:
         xml_obj_node.set("parent", obj.parent.name)
     if obj.type == "MESH":
-        xml_obj_node.set("mesh_ids", str(len(mesh_list)))
+        xml_obj_node.set("mesh_id", str(len(mesh_list)))
         mesh = prepareMesh(obj)
         mesh_list.append((mesh, obj))
     if obj.type == "ARMATURE":
@@ -214,7 +214,7 @@ def writeTimeTrack(xml_parent, track, frame_range, fps, is_shared):
     xml_track.text = text
 
 
-def writeAnim(xml_parent, action, armature, node_id_map):
+def writeAnim(xml_parent, action, armature):
     armature_data = armature.data
     armature_data.pose_position = "POSE"
 
@@ -236,11 +236,6 @@ def writeAnim(xml_parent, action, armature, node_id_map):
     xml_anim = ET.SubElement(xml_parent, "anim")
     xml_anim.set("name", action.name)
     xml_anim.set("length", formatFloat((action.frame_range[1] - action.frame_range[0] + 1) / fps))
-    writeTimeTrack(xml_anim, markers, action.frame_range, fps, True)
-
-    bone_ids = []
-    for bone in armature.pose.bones:
-        bone_ids.append(node_id_map[bone.name])
 
     matrices_2d = []
 
@@ -264,8 +259,7 @@ def writeAnim(xml_parent, action, armature, node_id_map):
     index = 0
     for bone in armature.pose.bones:
         xml_channel = ET.SubElement(xml_anim, "channel")
-        xml_channel.set("joint_name", bone.name)
-        xml_channel.set("joint_id", str(bone_ids[index]))
+        xml_channel.set("name", bone.name)
 
         positions = []
         rotations = []
@@ -300,6 +294,8 @@ def writeAnim(xml_parent, action, armature, node_id_map):
                 xml_scales.text = " ".join(scales)
 
         index = index + 1
+    
+    writeTimeTrack(xml_anim, markers, action.frame_range, fps, True)
 
 def write(file_path, layer_ids):
     context = bpy.context
@@ -314,7 +310,7 @@ def write(file_path, layer_ids):
         for id in layer_ids:
             context.scene.layers[id] = True
 
-    xml_root = ET.Element("mesh")
+    xml_root = ET.Element("model")
 
     node_id_map = {}
     mesh_list = []
@@ -332,7 +328,7 @@ def write(file_path, layer_ids):
   
     if armature:
         for action in bpy.data.actions:
-            writeAnim(xml_root, action, armature, node_id_map)
+            writeAnim(xml_root, action, armature)
 
     xmlIndent(xml_root)
     xml_tree = ET.ElementTree(xml_root)

@@ -15,12 +15,12 @@ _dummy := $(shell [ -d lib ] || mkdir -p lib)
 
 
 SHARED_SRC=base backtrace filesystem input profiler stream xml xml_conversions \
-		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/skinned_mesh gfx/mesh_anim gfx/assimp_importer gfx/assimp_exporter \
-		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/mesh gfx/simple_mesh gfx/mesh_constructor gfx/matrix_stack \
+		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/assimp_importer \
+		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model gfx/simple_mesh gfx/mesh_constructor gfx/matrix_stack \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d math/cylinder \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat math/base math/triangle \
 		   text_formatter text_parser
-PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums tools/mesh_convert tools/mesh_viewer
+PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums tools/model_convert tools/model_viewer
 LINUX_SRC=filesystem_linux
 MINGW_SRC=filesystem_windows
 HTML5_SRC=filesystem_linux

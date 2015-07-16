@@ -664,7 +664,7 @@ float distance(const Quat &, const Quat &);
 
 struct AffineTrans {
 	AffineTrans() : scale(1, 1, 1) {}
-	AffineTrans(const Matrix4 &);
+	explicit AffineTrans(const Matrix4 &);
 	AffineTrans(const float3 &pos, const float3 &scale, const Quat &rot)
 		: translation(pos), scale(scale), rotation(rot) {}
 	operator Matrix4() const;
@@ -674,6 +674,7 @@ struct AffineTrans {
 	Quat rotation;
 };
 
+AffineTrans operator*(const AffineTrans &, const AffineTrans &);
 AffineTrans lerp(const AffineTrans &, const AffineTrans &, float t);
 
 class Triangle {

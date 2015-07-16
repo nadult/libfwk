@@ -4,6 +4,24 @@
 
 #include "testing.h"
 
+float3 randomTranslation(float magnitude) {
+	return float3(frand() - 0.5f, frand() - 0.5f, frand() - 0.5f) * 2.0f * magnitude;
+}
+
+float3 randomScale() {
+	return float3(1.0f + frand() * 2.0f, 1.0f + frand() * 2.0f, frand() * 2.0f + 1.0f);
+}
+
+Quat randomRotation() {
+	return Quat(AxisAngle(
+		normalize(float3(frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f)),
+		frand() * constant::pi * 2.0f));
+}
+
+AffineTrans randomTransform() {
+	return AffineTrans(randomTranslation(50.0f), randomScale(), randomRotation());
+}
+
 void testMatrices() {
 	float3 up(0, 1, 0);
 	float angle = constant::pi * 0.25f;
@@ -12,16 +30,25 @@ void testMatrices() {
 	float3 rot_b = mulNormal(rotation(up, angle), float3(0, 0, 1));
 
 	for(int n = 0; n < 100; n++) {
-		float3 trans(frand() * 100, frand() * 100, frand() * 100);
-		float3 scale(1.0f + frand() * 2.0f, 1.0f + frand() * 2.0f, frand() * 2.0f + 1.0f);
-		AxisAngle aa(
-			normalize(float3(frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f)),
-			frand() * constant::pi * 2.0f);
+		float3 trans = randomTranslation(100.0f);
+		float3 scale = randomScale();
+		Quat rot = randomRotation();
 
-		Matrix4 mat = translation(trans) * scaling(scale) * Matrix4(Quat(aa));
+		Matrix4 mat = translation(trans) * scaling(scale) * Matrix4(rot);
 		AffineTrans dec(mat);
 		assertCloseEnough(trans, dec.translation);
 		assertCloseEnough(scale, dec.scale);
+	}
+
+	for(int n = 0; n < 100; n++) {
+		AffineTrans trans1 = randomTransform(), trans2 = randomTransform();
+		Matrix4 mtrans1(trans1), mtrans2(trans2);
+
+		AffineTrans result1 = trans1 * trans2;
+		AffineTrans result2 = AffineTrans(mtrans1 * mtrans2);
+		assertCloseEnough(result1.translation, result2.translation);
+		assertCloseEnough(result1.scale, result2.scale);
+		assertCloseEnough(result1.rotation, result2.rotation);
 	}
 
 	// TODO: finish me

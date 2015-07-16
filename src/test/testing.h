@@ -27,10 +27,7 @@ inline float relativeDifference(float a, float b) {
 }
 
 inline bool closeEnough(float a, float b) { return relativeDifference(a, b) < constant::epsilon; }
-inline bool closeEnough(const float2 &a, const float2 &b) {
-	return distance(a, b) < constant::epsilon;
-}
-inline bool closeEnough(const float3 &a, const float3 &b) {
+template <class T> inline bool closeEnough(const T &a, const T &b) {
 	return distance(a, b) < constant::epsilon;
 }
 
