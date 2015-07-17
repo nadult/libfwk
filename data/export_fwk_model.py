@@ -58,6 +58,9 @@ def formatFloats(floats):
 def vecToString(vec):
     return formatFloats([vec.x, vec.y, vec.z])
 
+def colorToString(col):
+    return formatFloats([col.r, col.g, col.b])
+
 def quatToString(quat):
     return formatFloats([quat.x, quat.y, quat.z, quat.w])
 
@@ -120,9 +123,12 @@ def writeSkin(xml_parent, mesh, obj, node_id_map):
 def writeMesh(xml_parent, mesh, obj, node_id_map):
     xml_mesh_node = ET.SubElement(xml_parent, "simple_mesh")
 #   xml_mesh_node.attrib["name"] = mesh.name
-    xml_mesh_node.attrib["primitive_type"] = "triangles"
     mesh_positions = []
-    mesh_indices = []
+    index_sets = []
+    for mat in mesh.materials:
+        index_sets.append([])
+    if not mesh.materials:
+        index_sets = [[]]
 
     if not mesh.tessfaces:
         mesh.calc_tessface()
@@ -133,18 +139,24 @@ def writeMesh(xml_parent, mesh, obj, node_id_map):
             tris = [verts[0], verts[1], verts[2], verts[2], verts[3], verts[0]]
         else:
             tris = [verts[0], verts[1], verts[2]]
-        mesh_indices.extend(tris)
+        index_sets[face.material_index].extend(tris)
+
     for vertex in mesh.vertices:
         mesh_positions.append(vecToString(fixVectorUpAxis(vertex.co)))
 
+    mat_idx = 0
+    while mat_idx < len(index_sets):
+        xml_layer = ET.SubElement(xml_mesh_node, "indices")
+        if mesh.materials:
+            xml_layer.set("mat_name", mesh.materials[mat_idx].name)
+        xml_layer.text = ' '.join(map(str, index_sets[mat_idx]))
+        mat_idx += 1
+
     xml_positions = ET.SubElement(xml_mesh_node, "positions")
-    xml_indices = ET.SubElement(xml_mesh_node, "indices")
     xml_positions.text = ' '.join(mesh_positions)
-    xml_indices.text = ' '.join(map(str, mesh_indices))
 
     if obj.find_armature():
         writeSkin(xml_mesh_node, mesh, obj, node_id_map)
-
 
 def writeTrans(xml_node, matrix):
     loc, rot, scale = fixMatrixUpAxis(matrix).decompose()
@@ -314,6 +326,12 @@ def writeAnim(xml_parent, action, armature):
     
     writeTimeTrack(xml_anim, markers, action.frame_range, fps, True)
 
+def writeMaterial(xml_parent, mat):
+    xml_mat = ET.SubElement(xml_parent, "material")
+    xml_mat.set("name", mat.name)
+    xml_mat.set("diffuse", colorToString(mat.diffuse_color))
+
+
 def write(file_path, layer_ids):
     context = bpy.context
     scene = context.scene
@@ -342,6 +360,9 @@ def write(file_path, layer_ids):
 
     for (mesh, obj) in mesh_list:
         writeMesh(xml_root, mesh, obj, node_id_map)
+
+    for mat in bpy.data.materials:
+        writeMaterial(xml_root, mat)
   
     if armature:
         for action in bpy.data.actions:

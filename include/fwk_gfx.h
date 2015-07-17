@@ -594,26 +594,127 @@ class Program {
 
 using PProgram = shared_ptr<Program>;
 
+class Material {
+  public:
+	enum Flags {
+		flag_blended = 1,
+		flag_two_sided = 2,
+		flag_wire = 4,
+	};
+	Material(PProgram program, Color color = Color::white, uint flags = 0)
+		: m_program(program), m_color(color), m_flags(flags) {}
+
+	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
+			 uint flags = 0)
+		: m_program(program), m_textures(std::move(textures)), m_color(color), m_flags(flags) {
+		for(const auto &tex : m_textures)
+			DASSERT(tex);
+	}
+	Material(PTexture texture, Color color = Color::white, uint flags = 0)
+		: m_color(color), m_flags(flags) {
+		if(texture)
+			m_textures.emplace_back(std::move(texture));
+	}
+	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
+
+	PProgram program() const { return m_program; }
+	PTexture texture() const { return m_textures.empty() ? PTexture() : m_textures.front(); }
+	const vector<PTexture> &textures() const { return m_textures; }
+	Color color() const { return m_color; }
+	uint flags() const { return m_flags; }
+
+	bool operator<(const Material &rhs) const {
+		return std::tie(m_program, m_textures, m_color, m_flags) <
+			   std::tie(rhs.m_program, rhs.m_textures, rhs.m_color, rhs.m_flags);
+	}
+
+  protected:
+	PProgram m_program;
+	vector<PTexture> m_textures;
+	Color m_color;
+	uint m_flags;
+};
+
+using PMaterial = shared_ptr<Material>;
+
 class Renderer;
-class Material;
+
+struct MeshBuffers {
+  public:
+	MeshBuffers() = default;
+	MeshBuffers(vector<float3> positions, vector<float3> normals = {},
+				vector<float2> tex_coords = {});
+	MeshBuffers(PVertexBuffer positions, PVertexBuffer normals = PVertexBuffer(),
+				PVertexBuffer tex_coords = PVertexBuffer());
+	MeshBuffers(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1);
+
+	MeshBuffers(const XMLNode &node);
+	void saveToXML(XMLNode) const;
+
+	int size() const { return (int)positions.size(); }
+
+	vector<float3> positions;
+	vector<float3> normals;
+	vector<float2> tex_coords;
+};
+
+class MeshIndices {
+  public:
+	using Type = PrimitiveType::Type;
+
+	static bool isSupported(Type type) {
+		return isOneOf(type, Type::triangles, Type::triangle_strip);
+	}
+
+	MeshIndices(vector<uint> = {}, Type ptype = Type::triangles);
+	MeshIndices(Range<uint>, Type ptype = Type::triangles);
+	MeshIndices(PIndexBuffer, Type ptype = Type::triangles);
+
+	operator const vector<uint> &() const { return m_data; }
+	Type type() const { return m_type; }
+
+	using TriIndices = array<uint, 3>;
+	vector<TriIndices> trisIndices() const;
+
+	// Does not exclude degenerate triangles
+	int triangleCount() const;
+	int size() const { return (int)m_data.size(); }
+	uint maxIndex() const;
+
+	static MeshIndices changeType(MeshIndices, Type new_type);
+	static MeshIndices merge(const vector<MeshIndices> &, vector<pair<uint, uint>> &index_ranges);
+
+  private:
+	vector<uint> m_data;
+	Type m_type;
+};
+
+struct MaterialRef {
+	MaterialRef() = default;
+	MaterialRef(const string &name) : name(name) {}
+	MaterialRef(PMaterial material) : pointer(std::move(material)) {}
+
+	string name;
+	PMaterial pointer;
+};
+
+struct SimpleMeshInitializer {
+	MeshBuffers buffers;
+	vector<MeshIndices> indices;
+	vector<MaterialRef> materials;
+};
 
 // Make it immutable, with operations requiring a copy/move
 class SimpleMesh {
   public:
-	SimpleMesh();
-	SimpleMesh(const aiScene &scene, int mesh_id);
-
-	SimpleMesh(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
-			   vector<uint> indices, PrimitiveType::Type type = PrimitiveType::triangles);
-	SimpleMesh(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
-			   PIndexBuffer indices, PrimitiveType::Type type = PrimitiveType::triangles);
-	SimpleMesh(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1,
-			   PrimitiveType::Type = PrimitiveType::triangles);
+	SimpleMesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
+			   vector<MaterialRef> = {});
 	SimpleMesh(const SimpleMesh &) = default;
 	SimpleMesh(SimpleMesh &&) = default;
 	SimpleMesh &operator=(SimpleMesh &&) = default;
 	SimpleMesh &operator=(const SimpleMesh &) = default;
 
+	SimpleMesh(const aiScene &scene, int mesh_id);
 	SimpleMesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
@@ -624,25 +725,30 @@ class SimpleMesh {
 	const FBox &boundingBox() const { return m_bounding_box; }
 
 	void transformUV(const Matrix4 &);
+	void changePrimitiveType(PrimitiveType::Type new_type);
 
-	int vertexCount() const { return (int)m_positions.size(); }
-	const vector<float3> &positions() const { return m_positions; }
-	const vector<float3> &normals() const { return m_normals; }
-	const vector<float2> &texCoords() const { return m_tex_coords; }
-	const vector<uint> &indices() const { return m_indices; }
+	int vertexCount() const { return (int)m_buffers.positions.size(); }
+	int triangleCount() const;
 
-	bool hasTexCoords() const { return !m_tex_coords.empty(); }
-	bool hasNormals() const { return !m_normals.empty(); }
-	bool hasIndices() const { return !m_indices.empty(); }
-	bool isEmpty() const { return m_positions.empty(); }
+	const MeshBuffers &buffers() const { return m_buffers; }
+	const vector<float3> &positions() const { return m_buffers.positions; }
+	const vector<float3> &normals() const { return m_buffers.normals; }
+	const vector<float2> &texCoords() const { return m_buffers.tex_coords; }
+	const vector<MeshIndices> &indices() const { return m_indices; }
+	const MeshIndices &mergedIndices() const { return m_merged_indices; }
+	const auto &materials() const { return m_materials; }
 
-	void removeNormals() { m_normals.clear(); }
-	void removeTexCoords() { m_tex_coords.clear(); }
+	bool hasTexCoords() const { return !m_buffers.tex_coords.empty(); }
+	bool hasNormals() const { return !m_buffers.normals.empty(); }
+	bool isEmpty() const { return m_buffers.positions.empty(); }
 
-	using TriIndices = array<uint, 3>;
+	void removeNormals() { m_buffers.normals.clear(); }
+	void removeTexCoords() { m_buffers.tex_coords.clear(); }
 
+	using TriIndices = MeshIndices::TriIndices;
 	vector<TriIndices> trisIndices() const;
-	PrimitiveType::Type primitiveType() const { return m_primitive_type; }
+
+	PrimitiveType::Type primitiveType() const { return m_indices.front().type(); }
 
 	vector<SimpleMesh> split(int max_vertices) const;
 	static SimpleMesh merge(const vector<SimpleMesh> &);
@@ -650,8 +756,10 @@ class SimpleMesh {
 
 	float intersect(const Segment &) const;
 
-	void draw(Renderer &, const Material &, const Matrix4 &matrix = Matrix4::identity()) const;
+	void draw(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void clearDrawingCache() const;
+
+	void assignMaterials(const std::map<string, PMaterial> &);
 	/*
 		void genAdjacency();
 
@@ -662,15 +770,17 @@ class SimpleMesh {
   protected:
 	void computeBoundingBox();
 	void verifyData() const;
+	void afterInit();
+	void updateDrawingCache() const;
 
-	vector<float3> m_positions;
-	vector<float3> m_normals;
-	vector<float2> m_tex_coords;
-	vector<uint> m_indices;
-	PrimitiveType::Type m_primitive_type;
+	MeshBuffers m_buffers;
+	vector<MeshIndices> m_indices;
+	MeshIndices m_merged_indices;
+	vector<pair<uint, uint>> m_merged_ranges;
+	vector<MaterialRef> m_materials;
 	FBox m_bounding_box;
 
-	mutable vector<PVertexArray> m_drawing_cache;
+	mutable vector<pair<DrawCall, MaterialRef>> m_drawing_cache;
 	mutable bool m_is_drawing_cache_dirty;
 };
 
@@ -794,6 +904,8 @@ class Model {
 	const auto &nodes() const { return m_nodes; }
 	const auto &meshes() const { return m_meshes; }
 	const auto &anims() const { return m_anims; }
+	const auto &materials() const { return m_materials; }
+
 	SimpleMesh toSimpleMesh(const ModelPose &) const;
 	void printHierarchy() const;
 
@@ -803,11 +915,10 @@ class Model {
 
 	float intersect(const Segment &, const ModelPose &) const;
 
-	void draw(Renderer &out, const Material &mat,
-			  const Matrix4 &matrix = Matrix4::identity()) const {
-		draw(out, defaultPose(), mat, matrix);
+	void draw(Renderer &out, PMaterial mat, const Matrix4 &matrix = Matrix4::identity()) const {
+		draw(out, defaultPose(), std::move(mat), matrix);
 	}
-	void draw(Renderer &, const ModelPose &pose, const Material &,
+	void draw(Renderer &, const ModelPose &pose, PMaterial,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawNodes(Renderer &, const ModelPose &, Color node_color, Color line_color,
 				   const Matrix4 &matrix = Matrix4::identity()) const;
@@ -842,48 +953,10 @@ class Model {
 	float3 m_bind_scale;
 	vector<Matrix4> m_bind_matrices;
 	vector<Matrix4> m_inv_bind_matrices;
+	std::map<string, PMaterial> m_materials;
 };
 
 using PModel = shared_ptr<Model>;
-
-class Material {
-  public:
-	enum Flags {
-		flag_blended = 1,
-		flag_two_sided = 2,
-		flag_wire = 4,
-	};
-
-	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
-			 uint flags = 0)
-		: m_program(program), m_textures(std::move(textures)), m_color(color), m_flags(flags) {
-		for(const auto &tex : m_textures)
-			DASSERT(tex);
-	}
-	Material(PTexture texture, Color color = Color::white, uint flags = 0)
-		: m_color(color), m_flags(flags) {
-		if(texture)
-			m_textures.emplace_back(std::move(texture));
-	}
-	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
-
-	PProgram program() const { return m_program; }
-	PTexture texture() const { return m_textures.empty() ? PTexture() : m_textures.front(); }
-	const vector<PTexture> &textures() const { return m_textures; }
-	Color color() const { return m_color; }
-	uint flags() const { return m_flags; }
-
-	bool operator<(const Material &rhs) const {
-		return std::tie(m_program, m_textures, m_color, m_flags) <
-			   std::tie(rhs.m_program, rhs.m_textures, rhs.m_color, rhs.m_flags);
-	}
-
-  protected:
-	PProgram m_program;
-	vector<PTexture> m_textures;
-	Color m_color;
-	uint m_flags;
-};
 
 class AssimpImporter {
   public:
@@ -1017,14 +1090,13 @@ class Renderer : public MatrixStack {
 
 	void render();
 
-	void addDrawCall(const DrawCall &, const Material &,
-					 const Matrix4 &matrix = Matrix4::identity());
+	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 	void addLines(Range<const float3> verts, Color color,
 				  const Matrix4 &matrix = Matrix4::identity());
 
 	void addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
-	void addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords,
-				   const Material &, const Matrix4 &matrix = Matrix4::identity());
+	void addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords, PMaterial,
+				   const Matrix4 &matrix = Matrix4::identity());
 
 	// TODO: this is useful
 	// Each line is represented by two vertices
@@ -1035,13 +1107,13 @@ class Renderer : public MatrixStack {
   protected:
 	struct Instance {
 		Matrix4 matrix;
-		Material material;
+		PMaterial material;
 		DrawCall draw_call;
 	};
 
 	struct SpriteInstance {
 		Matrix4 matrix;
-		Material material;
+		PMaterial material;
 		array<float3, 4> verts;
 		array<float2, 4> tex_coords;
 	};

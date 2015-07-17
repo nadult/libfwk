@@ -65,9 +65,9 @@ Renderer::Renderer(const Matrix4 &projection_matrix) : MatrixStack(projection_ma
 	m_flat_program = mgr["without_texture"];
 }
 
-void Renderer::addDrawCall(const DrawCall &draw_call, const Material &material,
-						   const Matrix4 &matrix) {
-	m_instances.emplace_back(Instance{fullMatrix() * matrix, material, draw_call});
+void Renderer::addDrawCall(const DrawCall &draw_call, PMaterial material, const Matrix4 &matrix) {
+	DASSERT(material);
+	m_instances.emplace_back(Instance{fullMatrix() * matrix, std::move(material), draw_call});
 }
 
 void Renderer::addLines(Range<const float3> verts, Color color, const Matrix4 &matrix) {
@@ -91,10 +91,11 @@ void Renderer::addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix) 
 }
 
 void Renderer::addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords,
-						 const Material &material, const Matrix4 &matrix) {
+						 PMaterial material, const Matrix4 &matrix) {
+	DASSERT(material);
 	SpriteInstance new_sprite;
 	new_sprite.matrix = fullMatrix() * matrix;
-	new_sprite.material = material;
+	new_sprite.material = std::move(material);
 	std::copy(begin(verts), begin(verts) + 4, begin(new_sprite.verts));
 	std::copy(begin(tex_coords), begin(tex_coords) + 4, begin(new_sprite.tex_coords));
 	m_sprites.push_back(new_sprite);
@@ -155,15 +156,17 @@ void Renderer::render() {
 	DeviceConfig dev_config;
 
 	for(const auto &instance : m_instances) {
-		bindTextures(instance.material.textures());
-		PProgram program = instance.material.program();
+		auto material = instance.material;
+
+		bindTextures(material->textures());
+		PProgram program = material->program();
 		if(!program)
-			program = instance.material.texture() ? m_tex_program : m_flat_program;
+			program = material->texture() ? m_tex_program : m_flat_program;
 
 		program->bind();
 		program->setUniform("proj_view_matrix", instance.matrix);
-		program->setUniform("mesh_color", (float4)instance.material.color());
-		dev_config.update(instance.material.flags());
+		program->setUniform("mesh_color", (float4)material->color());
+		dev_config.update(material->flags());
 		instance.draw_call.issue();
 	}
 
@@ -185,14 +188,15 @@ void Renderer::render() {
 		for(int n = 0; n < (int)m_sprites.size(); n++) {
 			const auto &instance = m_sprites[n];
 
-			bindTextures(instance.material.textures());
-			PProgram program = instance.material.program();
+			auto material = instance.material;
+			bindTextures(material->textures());
+			PProgram program = material->program();
 			if(!program)
-				program = instance.material.texture() ? m_tex_program : m_flat_program;
+				program = material->texture() ? m_tex_program : m_flat_program;
 
 			program->bind();
 			program->setUniform("proj_view_matrix", instance.matrix);
-			program->setUniform("mesh_color", (float4)instance.material.color());
+			program->setUniform("mesh_color", (float4)material->color());
 			sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
 		}
 	}

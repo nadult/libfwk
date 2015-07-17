@@ -177,7 +177,16 @@ Model::Model(const XMLNode &node) {
 		anim_node.next();
 	}
 
+	XMLNode mat_node = node.child("material");
+	while(mat_node) {
+		m_materials[mat_node.attrib("name")] =
+			make_shared<Material>(Color(mat_node.attrib<float3>("diffuse")));
+		mat_node.next();
+	}
+
 	computeBindMatrices();
+	for(auto &mesh : m_meshes)
+		mesh.assignMaterials(m_materials);
 	verifyData();
 }
 
@@ -260,6 +269,11 @@ void Model::saveToXML(XMLNode xml_node) const {
 		if(!skin.isEmpty())
 			skin.saveToXML(mesh_node.addChild("skin"));
 	}
+	for(const auto &mat : m_materials) {
+		XMLNode mat_node = xml_node.addChild("material");
+		mat_node.addAttrib("name", mat_node.own(mat.first));
+		mat_node.addAttrib("diffuse", float3(mat.second->color()));
+	}
 	for(const auto &anim : m_anims)
 		anim.saveToXML(xml_node.addChild("anim"));
 }
@@ -302,7 +316,7 @@ int Model::findNode(const string &name) const {
 	return -1;
 }
 
-void Model::draw(Renderer &out, const ModelPose &pose, const Material &material,
+void Model::draw(Renderer &out, const ModelPose &pose, PMaterial material,
 				 const Matrix4 &matrix) const {
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
@@ -334,9 +348,10 @@ void Model::drawNodes(Renderer &out, const ModelPose &pose, Color node_color, Co
 	for(int n = 0; n < (int)m_nodes.size(); n++)
 		positions[n] = mulPoint(final_pose[n], m_bind_matrices[n][3].xyz());
 
+	auto material = make_shared<Material>(node_color);
 	for(int n = 0; n < (int)m_nodes.size(); n++) {
 		if(m_inv_bind_matrices[n] != Matrix4::identity())
-			bbox_mesh.draw(out, {node_color}, translation(positions[n]));
+			bbox_mesh.draw(out, material, translation(positions[n]));
 		if(m_nodes[n].parent_id != -1) {
 			vector<float3> lines{positions[n], positions[m_nodes[n].parent_id]};
 			out.addLines(lines, line_color);
@@ -441,11 +456,13 @@ SimpleMesh Model::animateMesh(int node_id, const ModelPose &pose) const {
 
 	const auto &node = m_nodes[node_id];
 	DASSERT(node.mesh_id != -1);
+	const auto &mesh = m_meshes[node.mesh_id];
 
-	vector<float3> positions = m_meshes[node.mesh_id].positions();
-	vector<float2> tex_coords = m_meshes[node.mesh_id].texCoords();
+	vector<float3> positions = mesh.positions();
+	vector<float2> tex_coords = mesh.texCoords();
 	animateVertices(node_id, pose, positions.data(), nullptr);
-	return SimpleMesh(positions, {}, tex_coords, m_meshes[node.mesh_id].indices());
+
+	return SimpleMesh({positions, {}, tex_coords}, mesh.indices(), mesh.materials());
 }
 
 Matrix4 Model::nodeTrans(const string &name, const ModelPose &pose) const {

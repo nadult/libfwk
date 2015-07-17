@@ -145,6 +145,7 @@ template <class T> class RangeIterator : public std::iterator<std::random_access
 	}
 #endif
 	friend class Range<T>;
+	friend class Range<typename std::remove_const<T>::type>;
 
   public:
 	constexpr auto operator+(int offset) const noexcept {

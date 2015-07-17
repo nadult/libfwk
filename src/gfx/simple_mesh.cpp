@@ -12,6 +12,128 @@
 
 namespace fwk {
 
+MeshIndices::MeshIndices(vector<uint> indices, Type type)
+	: m_data(std::move(indices)), m_type(type) {
+	DASSERT(isSupported(m_type));
+}
+
+MeshIndices::MeshIndices(Range<uint> indices, Type type)
+	: MeshIndices(vector<uint>(begin(indices), end(indices)), type) {}
+MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices->getData(), type) {}
+
+MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
+							   vector<pair<uint, uint>> &index_ranges) {
+	auto type = set.empty() ? Type::triangles : set.front().type();
+	if(type == Type::triangle_strip)
+		THROW("Fix merging");
+
+	vector<uint> merged;
+	index_ranges.clear();
+
+	for(const auto &indices : set) {
+		DASSERT(indices.type() == type);
+		index_ranges.emplace_back(merged.size(), indices.size());
+		merged.insert(end(merged), begin(indices.m_data), end(indices.m_data));
+	}
+
+	return MeshIndices(merged, type);
+}
+
+int MeshIndices::triangleCount() const {
+	int index_count = (int)m_data.size();
+	return m_type == Type::triangles ? index_count / 3 : max(0, index_count - 2);
+}
+
+uint MeshIndices::maxIndex() const {
+	uint out = 0;
+	for(const auto idx : m_data)
+		out = max(out, idx);
+	return out;
+}
+
+vector<MeshIndices::TriIndices> MeshIndices::trisIndices() const {
+	vector<TriIndices> out;
+	out.reserve(triangleCount());
+
+	if(m_type == Type::triangles) {
+		for(uint n = 0; n + 2 < m_data.size(); n += 3)
+			out.push_back({{m_data[n + 0], m_data[n + 1], m_data[n + 2]}});
+
+	} else {
+		DASSERT(m_type == Type::triangle_strip);
+		bool do_swap = false;
+
+		for(uint n = 2; n < m_data.size(); n++) {
+			uint a = m_data[n - 2];
+			uint b = m_data[n - 1];
+			uint c = m_data[n];
+			if(do_swap)
+				swap(b, c);
+			do_swap ^= 1;
+
+			if(a != b && b != c && a != c)
+				out.push_back({{a, b, c}});
+		}
+	}
+
+	return out;
+}
+
+MeshIndices MeshIndices::changeType(MeshIndices indices, Type new_type) {
+	if(new_type == indices.type())
+		return indices;
+
+	if(new_type == Type::triangle_strip)
+		THROW("Please write me");
+	if(new_type == Type::triangles) {
+		auto tris = indices.trisIndices();
+		indices.m_data.reserve(tris.size() * 3);
+		indices.m_data.clear();
+		for(const auto &tri : tris)
+			indices.m_data.insert(end(indices.m_data), begin(tri), end(tri));
+	}
+
+	return indices;
+}
+
+MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
+						 vector<float2> tex_coords)
+	: positions(std::move(positions)), normals(std::move(normals)),
+	  tex_coords(std::move(tex_coords)) {
+	DASSERT(tex_coords.empty() || positions.size() == tex_coords.size());
+	DASSERT(normals.empty() || positions.size() == normals.size());
+}
+
+MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords)
+	: MeshBuffers((DASSERT(positions), positions->getData<float3>()),
+				  normals ? normals->getData<float3>() : vector<float3>(),
+				  tex_coords ? tex_coords->getData<float2>() : vector<float2>()) {}
+
+template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
+	DASSERT(array);
+	const auto &sources = array->sources();
+	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < (int)sources.size()));
+	return buffer_id == -1 ? PVertexBuffer() : sources[buffer_id].buffer();
+}
+
+MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, int tex_coords_id)
+	: MeshBuffers(extractBuffer<float3>(array, positions_id),
+				  extractBuffer<float3>(array, normals_id),
+				  extractBuffer<float2>(array, tex_coords_id)) {}
+
+MeshBuffers::MeshBuffers(const XMLNode &node)
+	: MeshBuffers(node.childValue<vector<float3>>("positions", {}),
+				  node.childValue<vector<float3>>("normals", {}),
+				  node.childValue<vector<float2>>("tex_coords", {})) {}
+
+void MeshBuffers::saveToXML(XMLNode node) const {
+	using namespace xml_conversions;
+	node.addChild("positions", node.own(toString(positions)));
+	if(!tex_coords.empty())
+		node.addChild("tex_coords", node.own(toString(tex_coords)));
+	if(!normals.empty())
+		node.addChild("normals", node.own(toString(normals)));
+}
 /*
 void Mesh::genAdjacency() {
 	struct TVec : public float3 {
@@ -90,143 +212,148 @@ void Mesh::getFace(int face, int &i1, int &i2, int &i3) const {
 	}
 }*/
 
-SimpleMesh::SimpleMesh(const aiScene &ascene, int mesh_id) {
+SimpleMesh::SimpleMesh(MeshBuffers buffers, vector<MeshIndices> indices,
+					   vector<MaterialRef> materials)
+	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
+	  m_materials(std::move(materials)), m_is_drawing_cache_dirty(true) {
+	afterInit();
+}
+
+void SimpleMesh::afterInit() {
+	for(const auto &indices : m_indices) {
+		DASSERT((int)indices.maxIndex() < m_buffers.size());
+		DASSERT(indices.type() == primitiveType());
+	}
+	m_merged_indices = MeshIndices::merge(m_indices, m_merged_ranges);
+	computeBoundingBox();
+}
+
+static MeshBuffers loadBuffers(const aiScene &ascene, int mesh_id) {
 	DASSERT(mesh_id >= 0 && mesh_id < (int)ascene.mNumMeshes);
 	const auto *amesh = ascene.mMeshes[mesh_id];
 
-	DASSERT(amesh->HasPositions() && amesh->HasFaces() && amesh->mNumVertices <= 65536);
+	vector<float3> positions, normals;
+	vector<float2> tex_coords;
 
-	for(uint n = 0; n < amesh->mNumVertices; n++) {
-		const auto &pos = amesh->mVertices[n];
-		m_positions.emplace_back(pos.x, pos.y, pos.z);
-	}
-
-	if(amesh->HasTextureCoords(0))
+	if(amesh->HasPositions()) {
 		for(uint n = 0; n < amesh->mNumVertices; n++) {
-			const auto &uv = amesh->mTextureCoords[0][n];
-			m_tex_coords.emplace_back(uv.x, -uv.y);
+			const auto &pos = amesh->mVertices[n];
+			positions.emplace_back(pos.x, pos.y, pos.z);
 		}
-	else {
-		// TODO: fixme
-		m_tex_coords.resize(amesh->mNumVertices, float2(0, 0));
+
+		if(amesh->HasTextureCoords(0))
+			for(uint n = 0; n < amesh->mNumVertices; n++) {
+				const auto &uv = amesh->mTextureCoords[0][n];
+				tex_coords.emplace_back(uv.x, -uv.y);
+			}
+
+		if(amesh->HasNormals())
+			for(uint n = 0; n < amesh->mNumVertices; n++) {
+				const auto &normal = amesh->mNormals[n];
+				normals.emplace_back(normal.x, normal.y, normal.z);
+			}
 	}
 
-	m_indices.resize(amesh->mNumFaces * 3);
+	// TODO: check if std::move here is needed or not
+	return MeshBuffers(positions, normals, tex_coords);
+}
+
+static vector<MeshIndices> loadIndices(const aiScene &ascene, int mesh_id) {
+	DASSERT(mesh_id >= 0 && mesh_id < (int)ascene.mNumMeshes);
+	const auto *amesh = ascene.mMeshes[mesh_id];
+
+	vector<uint> indices(amesh->mNumFaces * 3);
 	for(uint n = 0; n < amesh->mNumFaces; n++) {
 		ASSERT(amesh->mFaces[n].mNumIndices == 3);
 		for(int i = 0; i < 3; i++)
-			m_indices[n * 3 + i] = amesh->mFaces[n].mIndices[i];
+			indices[n * 3 + i] = amesh->mFaces[n].mIndices[i];
 	}
-	m_primitive_type = PrimitiveType::triangles;
-	computeBoundingBox();
+
+	// TODO: check for std::move
+	return {MeshIndices(indices)};
 }
 
-SimpleMesh::SimpleMesh(const XMLNode &node) : m_is_drawing_cache_dirty(true) {
-	m_primitive_type = PrimitiveType::fromString(node.attrib("primitive_type"));
+SimpleMesh::SimpleMesh(const aiScene &ascene, int mesh_id)
+	: SimpleMesh(loadBuffers(ascene, mesh_id), loadIndices(ascene, mesh_id)) {}
 
-	XMLNode pos_node = node.child("positions");
-	XMLNode uvs_node = node.child("tex_coords");
-	XMLNode normals_node = node.child("normals");
-	XMLNode indices_node = node.child("indices");
-	using namespace xml_conversions;
+static vector<MeshIndices> loadIndices(const XMLNode &node) {
+	vector<MeshIndices> out;
+	XMLNode xml_indices = node.child("indices");
+	while(xml_indices) {
+		PrimitiveType::Type type = PrimitiveType::triangles;
+		if(const char *type_string = xml_indices.hasAttrib("type"))
+			type = PrimitiveType::fromString(type_string);
+		out.emplace_back(xml_indices.value<vector<uint>>(), type);
+		xml_indices.next();
+	}
+	return out;
+}
 
-	m_positions = pos_node ? fromString<vector<float3>>(pos_node.value()) : vector<float3>();
-	m_tex_coords = uvs_node ? fromString<vector<float2>>(uvs_node.value()) : vector<float2>();
-	m_normals = normals_node ? fromString<vector<float3>>(normals_node.value()) : vector<float3>();
-	m_indices = indices_node ? fromString<vector<uint>>(indices_node.value()) : vector<uint>();
+static vector<MaterialRef> loadMaterials(const XMLNode &node) {
+	XMLNode xml_indices = node.child("indices");
+	vector<string> names;
+	while(xml_indices) {
+		names.emplace_back(xml_indices.attrib("mat_name", ""));
+		xml_indices.next();
+	}
+	return vector<MaterialRef>(begin(names), end(names));
+}
 
-	if(const char *bbox_string = node.hasAttrib("bounding_box"))
-		m_bounding_box = fromString<FBox>(bbox_string);
-	else
-		computeBoundingBox();
+SimpleMesh::SimpleMesh(const XMLNode &node)
+	: SimpleMesh(MeshBuffers(node), loadIndices(node), loadMaterials(node)) {}
+
+void SimpleMesh::assignMaterials(const std::map<string, PMaterial> &map) {
+	for(auto &mat : m_materials) {
+		auto it = map.find(mat.name);
+		if(it != map.end())
+			mat.pointer = it->second;
+	}
 }
 
 void SimpleMesh::saveToXML(XMLNode node) const {
-	using namespace xml_conversions;
-	node.addAttrib("primitive_type", PrimitiveType::toString(m_primitive_type));
-	node.addAttrib("bounding_box", m_bounding_box);
+	m_buffers.saveToXML(node);
+	for(int n = 0; n < (int)m_indices.size(); n++) {
+		const auto &indices = m_indices[n];
+		string mat_name = m_materials.empty() ? string() : m_materials[n].name;
 
-	node.addChild("positions", node.own(toString(m_positions)));
-	if(!m_tex_coords.empty())
-		node.addChild("tex_coords", node.own(toString(m_tex_coords)));
-	if(!m_normals.empty())
-		node.addChild("normals", node.own(toString(m_normals)));
-	if(!m_indices.empty())
-		node.addChild("indices", node.own(toString(m_indices)));
+		XMLNode xml_indices =
+			node.addChild("indices", node.own(xml_conversions::toString((vector<uint>)indices)));
+		if(indices.type() != PrimitiveType::triangles)
+			xml_indices.addAttrib("type", toString(indices.type()));
+		if(!mat_name.empty())
+			xml_indices.addAttrib("mat_name", xml_indices.own(mat_name));
+	}
 }
-
-SimpleMesh::SimpleMesh()
-	: m_primitive_type(PrimitiveType::triangles), m_is_drawing_cache_dirty(true) {}
-
-SimpleMesh::SimpleMesh(vector<float3> positions, vector<float3> normals, vector<float2> tex_coords,
-					   vector<uint> indices, PrimitiveType::Type prim_type)
-	: m_positions(std::move(positions)), m_normals(std::move(normals)),
-	  m_tex_coords(std::move(tex_coords)), m_indices(std::move(indices)),
-	  m_primitive_type(prim_type), m_is_drawing_cache_dirty(true) {
-	DASSERT(m_tex_coords.size() == m_positions.size() || m_tex_coords.empty());
-	DASSERT(m_normals.size() == m_positions.size() || m_normals.empty());
-	for(auto idx : indices)
-		DASSERT(idx < m_positions.size());
-	computeBoundingBox();
-}
-
-SimpleMesh::SimpleMesh(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
-					   PIndexBuffer indices, PrimitiveType::Type prim_type)
-	: SimpleMesh((DASSERT(positions), positions->getData<float3>()),
-				 normals ? normals->getData<float3>() : vector<float3>(),
-				 tex_coords ? tex_coords->getData<float2>() : vector<float2>(),
-				 indices ? indices->getData() : vector<uint>(), prim_type) {}
-
-template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
-	DASSERT(array);
-	const auto &sources = array->sources();
-	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < (int)sources.size()));
-	return buffer_id == -1 ? PVertexBuffer() : sources[buffer_id].buffer();
-}
-
-SimpleMesh::SimpleMesh(PVertexArray array, int positions_id, int normals_id, int tex_coords_id,
-					   PrimitiveType::Type prim_type)
-	: SimpleMesh(extractBuffer<float3>(array, positions_id),
-				 extractBuffer<float3>(array, normals_id),
-				 extractBuffer<float2>(array, tex_coords_id),
-				 (DASSERT(array), array->indexBuffer()), prim_type) {}
 
 void SimpleMesh::transformUV(const Matrix4 &matrix) {
-	for(int n = 0; n < (int)m_tex_coords.size(); n++)
-		m_tex_coords[n] = (matrix * float4(m_tex_coords[n], 0.0f, 1.0f)).xy();
+	auto &tex_coords = m_buffers.tex_coords;
+	for(int n = 0; n < (int)tex_coords.size(); n++)
+		tex_coords[n] = (matrix * float4(tex_coords[n], 0.0f, 1.0f)).xy();
 	m_is_drawing_cache_dirty = true;
 }
 
-void SimpleMesh::computeBoundingBox() { m_bounding_box = FBox(m_positions); }
+void SimpleMesh::computeBoundingBox() { m_bounding_box = FBox(m_buffers.positions); }
+
+int SimpleMesh::triangleCount() const {
+	int count = 0;
+	for(const auto &indices : m_indices)
+		count += indices.triangleCount();
+	return count;
+}
 
 vector<SimpleMesh::TriIndices> SimpleMesh::trisIndices() const {
 	vector<TriIndices> out;
-
-	if(isOneOf(m_primitive_type, PrimitiveType::lines, PrimitiveType::points) ||
-	   m_indices.size() < 3)
-		return out;
-
-	if(m_primitive_type == PrimitiveType::triangles) {
-		out.reserve(m_indices.size() / 3);
-		for(int n = 0; n < (int)m_indices.size(); n += 3)
-			out.push_back({{m_indices[n + 0], m_indices[n + 1], m_indices[n + 2]}});
-	} else if(m_primitive_type == PrimitiveType::triangle_strip) {
-		for(int n = 2; n < (int)m_indices.size(); n++) {
-			uint a = m_indices[n - 2];
-			uint b = m_indices[n - 1];
-			uint c = m_indices[n];
-
-			if(a != b && b != c && a != c)
-				out.push_back({{a, b, c}});
-		}
-	} else
-		THROW("Unsupported primitive type: %s\n", toString(m_primitive_type));
-
+	for(const auto &indices : m_indices) {
+		auto tris = indices.trisIndices();
+		out.insert(end(out), begin(tris), end(tris));
+	}
 	return out;
 }
 
 // TODO: test split / merge and transform
 vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
+	return {*this};
+	/*
 	DASSERT(max_vertices >= 3 && !m_indices.empty());
 	vector<SimpleMesh> out;
 
@@ -279,10 +406,12 @@ vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
 		new_mesh.computeBoundingBox();
 	}
 
-	return out;
+	return out;*/
 }
 
 SimpleMesh SimpleMesh::merge(const vector<SimpleMesh> &meshes) {
+	return meshes.front();
+	/*
 	SimpleMesh out;
 
 	int num_vertices = 0, num_indices = 0;
@@ -334,7 +463,7 @@ SimpleMesh SimpleMesh::merge(const vector<SimpleMesh> &meshes) {
 	}
 
 	out.computeBoundingBox();
-	return out;
+	return out;*/
 }
 
 vector<float3> transformVertices(const Matrix4 &mat, vector<float3> verts) {
@@ -351,53 +480,64 @@ vector<float3> transformNormals(const Matrix4 &mat, vector<float3> normals) {
 }
 
 SimpleMesh SimpleMesh::transform(const Matrix4 &mat, SimpleMesh mesh) {
-	mesh.m_positions = transformVertices(mat, std::move(mesh.m_positions));
+	mesh.m_buffers.positions = transformVertices(mat, std::move(mesh.m_buffers.positions));
 	if(mesh.hasNormals())
-		mesh.m_normals = transformNormals(mat, std::move(mesh.m_normals));
+		mesh.m_buffers.normals = transformNormals(mat, std::move(mesh.m_buffers.normals));
 	return mesh;
 }
 
-static PVertexArray makeVertexArray(const SimpleMesh &data) {
-	auto vertices = make_shared<VertexBuffer>(data.positions());
-	auto tex_coords = data.hasTexCoords() ? make_shared<VertexBuffer>(data.texCoords())
-										  : VertexArraySource(float2(0, 0));
-	auto indices = data.hasIndices() ? make_shared<IndexBuffer>(data.indices()) : PIndexBuffer();
-	return VertexArray::make({vertices, Color::white, tex_coords}, std::move(indices));
+void SimpleMesh::draw(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
+	if(m_is_drawing_cache_dirty)
+		updateDrawingCache();
+
+	for(const auto &cache_elem : m_drawing_cache)
+		out.addDrawCall(cache_elem.first,
+						cache_elem.second.pointer ? cache_elem.second.pointer : material, matrix);
 }
 
-void SimpleMesh::draw(Renderer &out, const Material &material, const Matrix4 &matrix) const {
-	if(m_is_drawing_cache_dirty) {
-		m_is_drawing_cache_dirty = false;
-		m_drawing_cache.clear();
+void SimpleMesh::updateDrawingCache() const {
+	m_drawing_cache.clear();
 
-		if(hasIndices() && m_positions.size() > IndexBuffer::max_index_value) {
-			auto parts = split(IndexBuffer::max_index_value);
-			for(const auto &part : parts)
-				m_drawing_cache.emplace_back(makeVertexArray(part));
-		} else { m_drawing_cache.emplace_back(makeVertexArray(*this)); }
-	}
-
-	for(const auto &varray : m_drawing_cache) {
-		DrawCall draw_call(varray, m_primitive_type, varray->size(), 0);
-		out.addDrawCall(draw_call, material, matrix);
-	}
-}
-
-float SimpleMesh::intersect(const Segment &segment) const {
-	float min_isect = constant::inf;
-
-	if(intersection(segment, m_bounding_box) < constant::inf)
-		for(const auto &indices : trisIndices()) {
-			Triangle triangle(m_positions[indices[0]], m_positions[indices[1]],
-							  m_positions[indices[2]]);
-			min_isect = min(min_isect, intersection(segment, triangle));
+	if(m_buffers.positions.size() > IndexBuffer::max_index_value) {
+		auto parts = split(IndexBuffer::max_index_value);
+		for(auto &part : parts) {
+			part.updateDrawingCache();
+			m_drawing_cache.insert(end(m_drawing_cache), begin(part.m_drawing_cache),
+								   end(part.m_drawing_cache));
 		}
+	} else {
+		auto vertices = make_shared<VertexBuffer>(m_buffers.positions);
+		auto tex_coords = hasTexCoords() ? make_shared<VertexBuffer>(m_buffers.tex_coords)
+										 : VertexArraySource(float2(0, 0));
+		auto indices = make_shared<IndexBuffer>(m_merged_indices);
+		auto varray = VertexArray::make({vertices, Color::white, tex_coords}, std::move(indices));
 
-	return min_isect;
+		for(int n = 0; n < (int)m_indices.size(); n++) {
+			const auto &range = m_merged_ranges[n];
+			const auto &indices = m_indices[n];
+			m_drawing_cache.emplace_back(
+				DrawCall(varray, indices.type(), range.second, range.first),
+				m_materials.empty() ? MaterialRef() : m_materials[n]);
+		}
+	}
+	m_is_drawing_cache_dirty = false;
 }
 
 void SimpleMesh::clearDrawingCache() const {
 	m_drawing_cache.clear();
 	m_is_drawing_cache_dirty = true;
+}
+
+float SimpleMesh::intersect(const Segment &segment) const {
+	float min_isect = constant::inf;
+
+	const auto &positions = m_buffers.positions;
+	if(intersection(segment, m_bounding_box) < constant::inf)
+		for(const auto &indices : trisIndices()) {
+			Triangle triangle(positions[indices[0]], positions[indices[1]], positions[indices[2]]);
+			min_isect = min(min_isect, intersection(segment, triangle));
+		}
+
+	return min_isect;
 }
 }

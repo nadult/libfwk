@@ -12,7 +12,7 @@ _dummy := $(shell [ -d $(BUILD_DIR)/tools ] || mkdir -p $(BUILD_DIR)/tools)
 _dummy := $(shell [ -d test ] || mkdir -p test)
 _dummy := $(shell [ -d tools ] || mkdir -p tools)
 _dummy := $(shell [ -d lib ] || mkdir -p lib)
-_dummy := $(shell [ -d test ] || mkdir -p temp)
+_dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=base backtrace filesystem input profiler stream xml xml_conversions \

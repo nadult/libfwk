@@ -191,6 +191,11 @@ class XMLNode {
 		const char *val = value();
 		return val[0] ? value<T>() : default_value;
 	}
+	template <class T> T childValue(const char *child_name, T default_value) const {
+		XMLNode child_node = child(child_name);
+		const char *val = child_node ? child_node.value() : "";
+		return val[0] ? child_node.value<T>() : default_value;
+	}
 
 	const char *name() const;
 

@@ -125,7 +125,9 @@ class Viewer {
 			4.0f / max(initial_bbox.width(), max(initial_bbox.height(), initial_bbox.depth()));
 		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
 					  translation(-initial_bbox.center());
-		auto material = model.tex ? Material(model.tex) : Material(m_flat_program, {});
+		auto material =
+			model.tex ? make_shared<Material>(model.tex) : make_shared<Material>(m_flat_program);
+
 		model.model->draw(out, pose, material, matrix);
 		out.addWireBox(initial_bbox, {Color::red}, matrix);
 		out.addWireBox(bbox, {Color::green}, matrix);
