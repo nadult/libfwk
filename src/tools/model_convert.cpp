@@ -7,6 +7,14 @@
 
 using namespace fwk;
 
+struct BlenderParams {
+	BlenderParams() : just_export(false) {}
+	string objects_filter;
+	bool just_export;
+};
+
+static BlenderParams s_blender_params;
+
 string dataPath(string file_name) {
 	FilePath exec(executablePath());
 	return exec.parent().parent() / "data" / file_name;
@@ -16,7 +24,9 @@ void printHelp(const char *app_name) {
 	printf("Synopsis:\n"
 		   "  %s [flags] [params]\n\n"
 		   "Flags:\n"
-		   "  --transform \"1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1\"\n"
+		   // "  --transform \"1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1\"\n"
+		   "  --blender-objects-filter \"human.*\"\n"
+		   "  --blender-just-export\n"
 		   "Params:\n"
 		   "  param 1:          source model\n"
 		   "  param 2:          target model\n\n"
@@ -60,6 +70,36 @@ FileType::Type classify(const string &name) {
 	return FileType::invalid;
 }
 
+string exportFromBlender(const string &file_name, string &target_file_name) {
+	if(target_file_name.empty())
+		target_file_name = file_name + ".model";
+	string temp_script_name = file_name + ".py";
+
+	string script;
+	{
+		string script_path = dataPath("export_fwk_model.py");
+
+		Loader loader(script_path);
+		script.resize(loader.size(), ' ');
+		loader.loadData(&script[0], script.size());
+		string args = "\"" + target_file_name + "\"";
+		if(!s_blender_params.objects_filter.empty())
+			args += ", objects_filter=\"" + s_blender_params.objects_filter + "\"";
+		script += "write(" + args + ")\n";
+	}
+
+	Saver(temp_script_name).saveData(script.data(), script.size());
+	auto result = execCommand(format("blender %s --background --python %s 2>&1", file_name.c_str(),
+									 temp_script_name.c_str()));
+
+	remove(temp_script_name.c_str());
+
+	if(!result.second)
+		THROW("Error while exporting from blender (file: %s):\n%s", file_name.c_str(),
+			  result.first.c_str());
+	return result.first;
+}
+
 auto loadModel(FileType::Type file_type, Stream &stream) {
 	if(file_type == FileType::fwk) {
 		XMLDocument doc;
@@ -70,29 +110,17 @@ auto loadModel(FileType::Type file_type, Stream &stream) {
 	}
 	if(file_type == FileType::blender) {
 		ASSERT(dynamic_cast<FileStream *>(&stream));
-		string file_name = stream.name();
-		string temp_file_name = file_name + ".model";
-		string temp_script_name = file_name + ".py";
+		string temp_file_name;
+		auto blender_result = exportFromBlender(stream.name(), temp_file_name);
 
-		string script;
-		{
-			string script_path = dataPath("export_fwk_model.py");
-
-			Loader loader(script_path);
-			script.resize(loader.size(), ' ');
-			loader.loadData(&script[0], script.size());
-			script += "write(\"" + temp_file_name + "\", [])";
+		try {
+			Loader loader(temp_file_name);
+			auto out = loadModel(FileType::fwk, loader);
+			remove(temp_file_name.c_str());
+			return std::move(out);
+		} catch(const Exception &ex) {
+			THROW("%s\nBlender output:\n%s", ex.what(), blender_result.c_str());
 		}
-
-		Saver(temp_script_name).saveData(script.data(), script.size());
-		execCommand(format("blender %s --background --python %s 2>/dev/null", file_name.c_str(),
-						   temp_script_name.c_str()));
-
-		remove(temp_script_name.c_str());
-		Loader loader(temp_file_name);
-		auto out = loadModel(FileType::fwk, loader);
-		remove(temp_file_name.c_str());
-		return std::move(out);
 	}
 	DASSERT(file_type == FileType::assimp);
 	{
@@ -116,6 +144,16 @@ void saveModel(shared_ptr<Model> model, const string &node_name, FileType::Type 
 void convert(const string &from, const Matrix4 &transform, const string &to) {
 	FileType::Type from_type = classify(from);
 	FileType::Type to_type = classify(to);
+
+	bool any_transforms = false;
+
+	if(from_type == FileType::blender && to_type == FileType::fwk && !any_transforms &&
+	   s_blender_params.just_export) {
+		string target_name = to;
+		string result = exportFromBlender(from, target_name);
+		printf("Blender output:\n%s", result.c_str());
+		return;
+	}
 
 	Loader loader(from);
 	Saver saver(to);
@@ -144,7 +182,11 @@ int safe_main(int argc, char **argv) {
 		if(arg[0] == '-' && arg[1] == '-') {
 			if(arg == "--transform" && n + 1 < argc)
 				transform = xml_conversions::fromString<Matrix4>(argv[++n]);
-			if(arg == "--help") {
+			else if(arg == "--blender-objects-filter" && n + 1 < argc)
+				s_blender_params.objects_filter = argv[++n];
+			else if(arg == "--blender-just-export")
+				s_blender_params.just_export = true;
+			else if(arg == "--help") {
 				printHelp(argv[0]);
 				exit(0);
 			}

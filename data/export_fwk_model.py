@@ -1,6 +1,7 @@
 #Written for Blender 2.75
 #Author: Krzysztof 'nadult' Jakubowski
 
+import re
 import bpy
 import mathutils
 import xml.etree.ElementTree as ET
@@ -59,7 +60,7 @@ def vecToString(vec):
     return formatFloats([vec.x, vec.y, vec.z])
 
 def colorToString(col):
-    return formatFloats([col.r, col.g, col.b])
+    return formatFloats([col[0], col[1], col[2]])
 
 def quatToString(quat):
     return formatFloats([quat.x, quat.y, quat.z, quat.w])
@@ -121,7 +122,7 @@ def writeSkin(xml_parent, mesh, obj, node_id_map):
     (ET.SubElement(xml_skin, "node_ids")).text = " ".join(node_ids)
 
 def writeMesh(xml_parent, mesh, obj, node_id_map):
-    xml_mesh_node = ET.SubElement(xml_parent, "simple_mesh")
+    xml_mesh_node = ET.SubElement(xml_parent, "mesh")
 #   xml_mesh_node.attrib["name"] = mesh.name
     mesh_positions = []
     index_sets = []
@@ -155,7 +156,7 @@ def writeMesh(xml_parent, mesh, obj, node_id_map):
     xml_positions = ET.SubElement(xml_mesh_node, "positions")
     xml_positions.text = ' '.join(mesh_positions)
 
-    if obj.find_armature():
+    if obj.find_armature() and obj.find_armature().is_visible(bpy.context.scene):
         writeSkin(xml_mesh_node, mesh, obj, node_id_map)
 
 def writeTrans(xml_node, matrix):
@@ -259,7 +260,8 @@ def writeAnim(xml_parent, action, armature):
 
     fps = bpy.context.scene.render.fps
     markers = extractMarkers(action)
-    if not markers:
+
+    if (not markers) or (not armature.is_visible(bpy.context.scene)):
         return
     
     xml_anim = ET.SubElement(xml_parent, "anim")
@@ -326,24 +328,30 @@ def writeAnim(xml_parent, action, armature):
     
     writeTimeTrack(xml_anim, markers, action.frame_range, fps, True)
 
+def materialDiffuse(mat):
+    if mat.use_nodes:
+        col = mat.node_tree.nodes['Diffuse BSDF'].inputs[0].default_value
+        return col
+    else:
+        return mat.diffuse_color
+
 def writeMaterial(xml_parent, mat):
     xml_mat = ET.SubElement(xml_parent, "material")
     xml_mat.set("name", mat.name)
-    xml_mat.set("diffuse", colorToString(mat.diffuse_color))
+    xml_mat.set("diffuse", colorToString(materialDiffuse(mat)))
 
-
-def write(file_path, layer_ids):
+# objects_filter: a regular expression for object names, like "human.*"
+def write(file_path, objects_filter=""):
     context = bpy.context
     scene = context.scene
-    for object in context.scene.objects:
-        object.hide = False
 
-    if len(layer_ids) == 0:
-        context.scene.layers = [True] * len(context.scene.layers)
+    if objects_filter:
+        for object in context.scene.objects:
+            object.hide = not re.search(objects_filter, object.name)
     else:
-        context.scene.layers = [False] * len(context.scene.layers)
-        for id in layer_ids:
-            context.scene.layers[id] = True
+        for object in context.scene.objects:
+            object.hide = False
+    context.scene.layers = [True] * len(context.scene.layers)
 
     xml_root = ET.Element("model")
 

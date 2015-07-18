@@ -88,7 +88,7 @@ void handleSegFault() {
 }
 
 // TODO: stdout and stderr returned separately?
-string execCommand(const string &cmd) {
+pair<string, bool> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");
 	if(!pipe)
 		THROW("error while executing command: '%s'", cmd.c_str());
@@ -99,9 +99,7 @@ string execCommand(const string &cmd) {
 			result += buffer;
 	}
 	int ret = pclose(pipe);
-	if(ret != 0) // TODO: return two arguments (result and error code)?
-		THROW("Error while executing command:\n\"%s\"\nResult: %s\n", cmd.c_str(), result.c_str());
-	return result;
+	return make_pair(result, ret == 0);
 }
 
 void sleep(double sec) {

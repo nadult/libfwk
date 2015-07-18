@@ -602,11 +602,12 @@ class Material {
 		flag_wire = 4,
 	};
 	Material(PProgram program, Color color = Color::white, uint flags = 0)
-		: m_program(program), m_color(color), m_flags(flags) {}
+		: m_program(std::move(program)), m_color(color), m_flags(flags) {}
 
 	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
 			 uint flags = 0)
-		: m_program(program), m_textures(std::move(textures)), m_color(color), m_flags(flags) {
+		: m_program(std::move(program)), m_textures(std::move(textures)), m_color(color),
+		  m_flags(flags) {
 		for(const auto &tex : m_textures)
 			DASSERT(tex);
 	}
@@ -698,29 +699,23 @@ struct MaterialRef {
 	PMaterial pointer;
 };
 
-struct SimpleMeshInitializer {
-	MeshBuffers buffers;
-	vector<MeshIndices> indices;
-	vector<MaterialRef> materials;
-};
-
 // Make it immutable, with operations requiring a copy/move
-class SimpleMesh {
+class Mesh {
   public:
-	SimpleMesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
-			   vector<MaterialRef> = {});
-	SimpleMesh(const SimpleMesh &) = default;
-	SimpleMesh(SimpleMesh &&) = default;
-	SimpleMesh &operator=(SimpleMesh &&) = default;
-	SimpleMesh &operator=(const SimpleMesh &) = default;
+	Mesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
+		 vector<MaterialRef> = {});
+	Mesh(const Mesh &) = default;
+	Mesh(Mesh &&) = default;
+	Mesh &operator=(Mesh &&) = default;
+	Mesh &operator=(const Mesh &) = default;
 
-	SimpleMesh(const aiScene &scene, int mesh_id);
-	SimpleMesh(const XMLNode &);
+	Mesh(const aiScene &scene, int mesh_id);
+	Mesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
-	SimpleMesh(MakeRect, const FRect &xz_rect, float y);
-	SimpleMesh(MakeBBox, const FBox &bbox);
-	SimpleMesh(MakeCylinder, const Cylinder &, int num_sides);
+	Mesh(MakeRect, const FRect &xz_rect, float y);
+	Mesh(MakeBBox, const FBox &bbox);
+	Mesh(MakeCylinder, const Cylinder &, int num_sides);
 
 	const FBox &boundingBox() const { return m_bounding_box; }
 
@@ -750,9 +745,9 @@ class SimpleMesh {
 
 	PrimitiveType::Type primitiveType() const { return m_indices.front().type(); }
 
-	vector<SimpleMesh> split(int max_vertices) const;
-	static SimpleMesh merge(const vector<SimpleMesh> &);
-	static SimpleMesh transform(const Matrix4 &, SimpleMesh);
+	vector<Mesh> split(int max_vertices) const;
+	static Mesh merge(const vector<Mesh> &);
+	static Mesh transform(const Matrix4 &, Mesh);
 
 	float intersect(const Segment &) const;
 
@@ -784,10 +779,19 @@ class SimpleMesh {
 	mutable bool m_is_drawing_cache_dirty;
 };
 
-using PSimpleMesh = shared_ptr<SimpleMesh>;
+using PMesh = shared_ptr<Mesh>;
 
 vector<float3> transformVertices(const Matrix4 &, vector<float3>);
 vector<float3> transformNormals(const Matrix4 &, vector<float3>);
+
+struct MaterialDef {
+	MaterialDef(const string &name, Color diffuse) : name(name), diffuse(diffuse) {}
+	MaterialDef(const XMLNode &);
+	void saveToXML(XMLNode) const;
+
+	string name;
+	Color diffuse;
+};
 
 class Model;
 
@@ -904,9 +908,11 @@ class Model {
 	const auto &nodes() const { return m_nodes; }
 	const auto &meshes() const { return m_meshes; }
 	const auto &anims() const { return m_anims; }
-	const auto &materials() const { return m_materials; }
 
-	SimpleMesh toSimpleMesh(const ModelPose &) const;
+	const auto &materialDefs() const { return m_material_defs; }
+	void assignMaterials(const std::map<string, PMaterial> &);
+
+	Mesh toMesh(const ModelPose &) const;
 	void printHierarchy() const;
 
 	ModelPose defaultPose() const;
@@ -940,20 +946,20 @@ class Model {
 	// TODO: ranges
 	void animateVertices(int node_id, const ModelPose &, float3 *positions,
 						 float3 *normals = nullptr) const;
-	SimpleMesh animateMesh(int node_id, const ModelPose &) const;
+	Mesh animateMesh(int node_id, const ModelPose &) const;
 	Matrix4 computeOffsetMatrix(int node_id) const;
 	void computeBindMatrices();
 
-	vector<SimpleMesh> m_meshes;
+	vector<Mesh> m_meshes;
 	vector<MeshSkin> m_mesh_skins;
 
 	vector<Node> m_nodes;
 	vector<ModelAnim> m_anims;
+	vector<MaterialDef> m_material_defs;
 
 	float3 m_bind_scale;
 	vector<Matrix4> m_bind_matrices;
 	vector<Matrix4> m_inv_bind_matrices;
-	std::map<string, PMaterial> m_materials;
 };
 
 using PModel = shared_ptr<Model>;

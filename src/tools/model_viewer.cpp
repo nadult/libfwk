@@ -31,14 +31,31 @@ class Viewer {
   public:
 	struct Model {
 		PModel model;
+		PMaterial default_material;
 		PTexture tex;
 		string model_name;
 		string tex_name;
 	};
 
+	void makeMaterials(Model &model) {
+		std::map<string, PMaterial> materials;
+
+		for(const auto &def : model.model->materialDefs()) {
+			materials[def.name] = model.tex ? make_shared<Material>(model.tex, def.diffuse)
+											: make_shared<Material>(m_flat_program, def.diffuse);
+		}
+		model.model->assignMaterials(materials);
+	}
+
 	Viewer(const IRect &viewport, const vector<pair<string, string>> &file_names)
 		: m_viewport(viewport), m_current_model(0), m_current_anim(-1), m_anim_pos(0.0),
 		  m_show_nodes(false) {
+		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
+		Loader(dataPath("flat_shader.vsh")) >> vertex_shader;
+		Loader(dataPath("flat_shader.fsh")) >> fragment_shader;
+		m_flat_program = make_shared<Program>(vertex_shader, fragment_shader);
+		m_flat_program->link();
+
 		for(auto file_name : file_names) {
 			PTexture tex;
 			if(!file_name.second.empty() && access(file_name.second)) {
@@ -48,10 +65,15 @@ class Viewer {
 					   (getTime() - time) * 1000.0f);
 			}
 
+			PMaterial default_mat =
+				tex ? make_shared<Material>(tex) : make_shared<Material>(m_flat_program);
+
 			double time = getTime();
 			auto model = s_models[file_name.first];
 			printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), (getTime() - time) * 1000.0f);
-			m_models.emplace_back(Model{model, tex, file_name.first, file_name.second});
+			Model new_model{model, default_mat, tex, file_name.first, file_name.second};
+			makeMaterials(new_model);
+			m_models.push_back(std::move(new_model));
 		}
 
 		FontFactory factory;
@@ -59,12 +81,6 @@ class Viewer {
 
 		if(m_models.empty())
 			THROW("No models loaded\n");
-
-		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
-		Loader(dataPath("flat_shader.vsh")) >> vertex_shader;
-		Loader(dataPath("flat_shader.fsh")) >> fragment_shader;
-		m_flat_program = make_shared<Program>(vertex_shader, fragment_shader);
-		m_flat_program->link();
 	}
 
 	void handleInput(GfxDevice &device, float time_diff) {
@@ -125,10 +141,8 @@ class Viewer {
 			4.0f / max(initial_bbox.width(), max(initial_bbox.height(), initial_bbox.depth()));
 		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
 					  translation(-initial_bbox.center());
-		auto material =
-			model.tex ? make_shared<Material>(model.tex) : make_shared<Material>(m_flat_program);
 
-		model.model->draw(out, pose, material, matrix);
+		model.model->draw(out, pose, model.default_material, matrix);
 		out.addWireBox(initial_bbox, {Color::red}, matrix);
 		out.addWireBox(bbox, {Color::green}, matrix);
 		if(m_show_nodes)

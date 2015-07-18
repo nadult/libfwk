@@ -13,6 +13,14 @@
 
 namespace fwk {
 
+MaterialDef::MaterialDef(const XMLNode &node)
+	: name(node.attrib("name")), diffuse(node.attrib<float3>("diffuse")) {}
+
+void MaterialDef::saveToXML(XMLNode node) const {
+	node.addAttrib("name", node.own(name));
+	node.addAttrib("diffuse", float3(diffuse));
+}
+
 Model::MeshSkin::MeshSkin(const XMLNode &node) {
 	using namespace xml_conversions;
 	XMLNode counts_node = node.child("counts");
@@ -74,7 +82,7 @@ Model::Model(const aiScene &ascene) {
 
 	m_meshes.reserve(ascene.mNumMeshes);
 	for(uint n = 0; n < ascene.mNumMeshes; n++)
-		m_meshes.emplace_back(SimpleMesh(ascene, n));
+		m_meshes.emplace_back(Mesh(ascene, n));
 
 	std::deque<pair<const aiNode *, int>> queue({make_pair(root_node, -1)});
 
@@ -160,7 +168,7 @@ Model::Model(const XMLNode &node) {
 			stack.emplace_back(child, node_id);
 	}
 
-	XMLNode mesh_node = node.child("simple_mesh");
+	XMLNode mesh_node = node.child("mesh");
 	while(mesh_node) {
 		if(XMLNode skin_node = mesh_node.child("skin"))
 			m_mesh_skins.emplace_back(skin_node);
@@ -179,14 +187,11 @@ Model::Model(const XMLNode &node) {
 
 	XMLNode mat_node = node.child("material");
 	while(mat_node) {
-		m_materials[mat_node.attrib("name")] =
-			make_shared<Material>(Color(mat_node.attrib<float3>("diffuse")));
+		m_material_defs.emplace_back(mat_node);
 		mat_node.next();
 	}
 
 	computeBindMatrices();
-	for(auto &mesh : m_meshes)
-		mesh.assignMaterials(m_materials);
 	verifyData();
 }
 
@@ -264,18 +269,21 @@ void Model::saveToXML(XMLNode xml_node) const {
 		const auto &mesh = m_meshes[m];
 		const auto &skin = m_mesh_skins[m];
 
-		XMLNode mesh_node = xml_node.addChild("simple_mesh");
+		XMLNode mesh_node = xml_node.addChild("mesh");
 		mesh.saveToXML(mesh_node);
 		if(!skin.isEmpty())
 			skin.saveToXML(mesh_node.addChild("skin"));
 	}
-	for(const auto &mat : m_materials) {
-		XMLNode mat_node = xml_node.addChild("material");
-		mat_node.addAttrib("name", mat_node.own(mat.first));
-		mat_node.addAttrib("diffuse", float3(mat.second->color()));
-	}
+
+	for(const auto &mat : m_material_defs)
+		mat.saveToXML(xml_node.addChild("material"));
 	for(const auto &anim : m_anims)
 		anim.saveToXML(xml_node.addChild("anim"));
+}
+
+void Model::assignMaterials(const std::map<string, PMaterial> &map) {
+	for(auto &mesh : m_meshes)
+		mesh.assignMaterials(map);
 }
 
 FBox Model::boundingBox(const ModelPose &pose) const {
@@ -329,9 +337,7 @@ void Model::draw(Renderer &out, const ModelPose &pose, PMaterial material,
 
 			if(skin.isEmpty()) {
 				mesh.draw(out, material, final_pose[node.id]);
-			} else {
-				SimpleMesh(animateMesh(node.id, pose)).draw(out, material, Matrix4::identity());
-			}
+			} else { Mesh(animateMesh(node.id, pose)).draw(out, material, Matrix4::identity()); }
 		}
 
 	out.popViewMatrix();
@@ -339,7 +345,7 @@ void Model::draw(Renderer &out, const ModelPose &pose, PMaterial material,
 
 void Model::drawNodes(Renderer &out, const ModelPose &pose, Color node_color, Color line_color,
 					  const Matrix4 &matrix) const {
-	SimpleMesh bbox_mesh(MakeBBox(), FBox(-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f));
+	Mesh bbox_mesh(MakeBBox(), FBox(-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f));
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
@@ -366,8 +372,8 @@ void Model::printHierarchy() const {
 		printf("%d: %s\n", n, m_nodes[n].name.c_str());
 }
 
-SimpleMesh Model::toSimpleMesh(const ModelPose &pose) const {
-	vector<SimpleMesh> meshes;
+Mesh Model::toMesh(const ModelPose &pose) const {
+	vector<Mesh> meshes;
 
 	const auto &final_pose = finalPose(pose);
 	for(const auto &node : m_nodes)
@@ -375,11 +381,11 @@ SimpleMesh Model::toSimpleMesh(const ModelPose &pose) const {
 			const auto &mesh = m_meshes[node.mesh_id];
 			const auto &skin = m_mesh_skins[node.mesh_id];
 
-			meshes.emplace_back(skin.isEmpty() ? SimpleMesh::transform(final_pose[node.id], mesh)
+			meshes.emplace_back(skin.isEmpty() ? Mesh::transform(final_pose[node.id], mesh)
 											   : animateMesh(node.id, pose));
 		}
 
-	return SimpleMesh::merge(meshes);
+	return Mesh::merge(meshes);
 }
 
 float Model::intersect(const Segment &segment, const ModelPose &pose) const {
@@ -420,7 +426,7 @@ void Model::animateVertices(int node_id, const ModelPose &pose, float3 *out_posi
 	DASSERT(node.mesh_id != -1);
 
 	const MeshSkin &skin = m_mesh_skins[node.mesh_id];
-	const SimpleMesh &mesh = m_meshes[node.mesh_id];
+	const Mesh &mesh = m_meshes[node.mesh_id];
 	updateCounter("Model::animateVertices", 1);
 	FWK_PROFILE("Model::animateVertices");
 	DASSERT(!skin.isEmpty());
@@ -451,7 +457,7 @@ void Model::animateVertices(int node_id, const ModelPose &pose, float3 *out_posi
 	}
 }
 
-SimpleMesh Model::animateMesh(int node_id, const ModelPose &pose) const {
+Mesh Model::animateMesh(int node_id, const ModelPose &pose) const {
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
 
 	const auto &node = m_nodes[node_id];
@@ -462,7 +468,7 @@ SimpleMesh Model::animateMesh(int node_id, const ModelPose &pose) const {
 	vector<float2> tex_coords = mesh.texCoords();
 	animateVertices(node_id, pose, positions.data(), nullptr);
 
-	return SimpleMesh({positions, {}, tex_coords}, mesh.indices(), mesh.materials());
+	return Mesh({positions, {}, tex_coords}, mesh.indices(), mesh.materials());
 }
 
 Matrix4 Model::nodeTrans(const string &name, const ModelPose &pose) const {

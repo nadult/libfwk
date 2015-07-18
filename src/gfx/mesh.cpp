@@ -212,14 +212,13 @@ void Mesh::getFace(int face, int &i1, int &i2, int &i3) const {
 	}
 }*/
 
-SimpleMesh::SimpleMesh(MeshBuffers buffers, vector<MeshIndices> indices,
-					   vector<MaterialRef> materials)
+Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<MaterialRef> materials)
 	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
 	  m_materials(std::move(materials)), m_is_drawing_cache_dirty(true) {
 	afterInit();
 }
 
-void SimpleMesh::afterInit() {
+void Mesh::afterInit() {
 	for(const auto &indices : m_indices) {
 		DASSERT((int)indices.maxIndex() < m_buffers.size());
 		DASSERT(indices.type() == primitiveType());
@@ -273,8 +272,8 @@ static vector<MeshIndices> loadIndices(const aiScene &ascene, int mesh_id) {
 	return {MeshIndices(indices)};
 }
 
-SimpleMesh::SimpleMesh(const aiScene &ascene, int mesh_id)
-	: SimpleMesh(loadBuffers(ascene, mesh_id), loadIndices(ascene, mesh_id)) {}
+Mesh::Mesh(const aiScene &ascene, int mesh_id)
+	: Mesh(loadBuffers(ascene, mesh_id), loadIndices(ascene, mesh_id)) {}
 
 static vector<MeshIndices> loadIndices(const XMLNode &node) {
 	vector<MeshIndices> out;
@@ -299,10 +298,9 @@ static vector<MaterialRef> loadMaterials(const XMLNode &node) {
 	return vector<MaterialRef>(begin(names), end(names));
 }
 
-SimpleMesh::SimpleMesh(const XMLNode &node)
-	: SimpleMesh(MeshBuffers(node), loadIndices(node), loadMaterials(node)) {}
+Mesh::Mesh(const XMLNode &node) : Mesh(MeshBuffers(node), loadIndices(node), loadMaterials(node)) {}
 
-void SimpleMesh::assignMaterials(const std::map<string, PMaterial> &map) {
+void Mesh::assignMaterials(const std::map<string, PMaterial> &map) {
 	for(auto &mat : m_materials) {
 		auto it = map.find(mat.name);
 		if(it != map.end())
@@ -310,7 +308,7 @@ void SimpleMesh::assignMaterials(const std::map<string, PMaterial> &map) {
 	}
 }
 
-void SimpleMesh::saveToXML(XMLNode node) const {
+void Mesh::saveToXML(XMLNode node) const {
 	m_buffers.saveToXML(node);
 	for(int n = 0; n < (int)m_indices.size(); n++) {
 		const auto &indices = m_indices[n];
@@ -325,23 +323,23 @@ void SimpleMesh::saveToXML(XMLNode node) const {
 	}
 }
 
-void SimpleMesh::transformUV(const Matrix4 &matrix) {
+void Mesh::transformUV(const Matrix4 &matrix) {
 	auto &tex_coords = m_buffers.tex_coords;
 	for(int n = 0; n < (int)tex_coords.size(); n++)
 		tex_coords[n] = (matrix * float4(tex_coords[n], 0.0f, 1.0f)).xy();
 	m_is_drawing_cache_dirty = true;
 }
 
-void SimpleMesh::computeBoundingBox() { m_bounding_box = FBox(m_buffers.positions); }
+void Mesh::computeBoundingBox() { m_bounding_box = FBox(m_buffers.positions); }
 
-int SimpleMesh::triangleCount() const {
+int Mesh::triangleCount() const {
 	int count = 0;
 	for(const auto &indices : m_indices)
 		count += indices.triangleCount();
 	return count;
 }
 
-vector<SimpleMesh::TriIndices> SimpleMesh::trisIndices() const {
+vector<Mesh::TriIndices> Mesh::trisIndices() const {
 	vector<TriIndices> out;
 	for(const auto &indices : m_indices) {
 		auto tris = indices.trisIndices();
@@ -351,17 +349,18 @@ vector<SimpleMesh::TriIndices> SimpleMesh::trisIndices() const {
 }
 
 // TODO: test split / merge and transform
-vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
+vector<Mesh> Mesh::split(int max_vertices) const {
+	THROW("fixme");
 	return {*this};
 	/*
 	DASSERT(max_vertices >= 3 && !m_indices.empty());
-	vector<SimpleMesh> out;
+	vector<Mesh> out;
 
 	int last_index = 0;
 	auto tris_indices = trisIndices();
 
 	while(last_index < (int)tris_indices.size()) {
-		out.push_back(SimpleMesh());
+		out.push_back(Mesh());
 		auto &new_mesh = out.back();
 
 		int num_vertices = 0;
@@ -409,10 +408,11 @@ vector<SimpleMesh> SimpleMesh::split(int max_vertices) const {
 	return out;*/
 }
 
-SimpleMesh SimpleMesh::merge(const vector<SimpleMesh> &meshes) {
+Mesh Mesh::merge(const vector<Mesh> &meshes) {
+	THROW("fixme");
 	return meshes.front();
 	/*
-	SimpleMesh out;
+	Mesh out;
 
 	int num_vertices = 0, num_indices = 0;
 	bool has_tex_coords = meshes.empty() ? false : meshes.front().hasTexCoords();
@@ -479,14 +479,14 @@ vector<float3> transformNormals(const Matrix4 &mat, vector<float3> normals) {
 	return normals;
 }
 
-SimpleMesh SimpleMesh::transform(const Matrix4 &mat, SimpleMesh mesh) {
+Mesh Mesh::transform(const Matrix4 &mat, Mesh mesh) {
 	mesh.m_buffers.positions = transformVertices(mat, std::move(mesh.m_buffers.positions));
 	if(mesh.hasNormals())
 		mesh.m_buffers.normals = transformNormals(mat, std::move(mesh.m_buffers.normals));
 	return mesh;
 }
 
-void SimpleMesh::draw(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
+void Mesh::draw(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
 	if(m_is_drawing_cache_dirty)
 		updateDrawingCache();
 
@@ -495,7 +495,7 @@ void SimpleMesh::draw(Renderer &out, PMaterial material, const Matrix4 &matrix) 
 						cache_elem.second.pointer ? cache_elem.second.pointer : material, matrix);
 }
 
-void SimpleMesh::updateDrawingCache() const {
+void Mesh::updateDrawingCache() const {
 	m_drawing_cache.clear();
 
 	if(m_buffers.positions.size() > IndexBuffer::max_index_value) {
@@ -523,12 +523,12 @@ void SimpleMesh::updateDrawingCache() const {
 	m_is_drawing_cache_dirty = false;
 }
 
-void SimpleMesh::clearDrawingCache() const {
+void Mesh::clearDrawingCache() const {
 	m_drawing_cache.clear();
 	m_is_drawing_cache_dirty = true;
 }
 
-float SimpleMesh::intersect(const Segment &segment) const {
+float Mesh::intersect(const Segment &segment) const {
 	float min_isect = constant::inf;
 
 	const auto &positions = m_buffers.positions;

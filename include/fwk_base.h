@@ -51,7 +51,7 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 }
 
 string executablePath();
-string execCommand(const string &cmd);
+pair<string, bool> execCommand(const string &cmd);
 
 // Compile your program with -rdynamic to get some interesting info
 // Currently not avaliable on mingw32 platform

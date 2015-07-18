@@ -12,15 +12,15 @@ This file is part of libfwk.*/
 
 namespace fwk {
 
-SimpleMesh::SimpleMesh(MakeRect, const FRect &xz_rect, float y)
-	: SimpleMesh(MeshBuffers({float3(xz_rect.min[0], y, xz_rect.min[1]),
-							  float3(xz_rect.max[0], y, xz_rect.min[1]),
-							  float3(xz_rect.max[0], y, xz_rect.max[1]),
-							  float3(xz_rect.min[0], y, xz_rect.max[1])},
-							 vector<float3>(4, float3(0, 1, 0)), {{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
-				 {MeshIndices({0, 2, 1, 0, 3, 2})}) {}
+Mesh::Mesh(MakeRect, const FRect &xz_rect, float y)
+	: Mesh(MeshBuffers({float3(xz_rect.min[0], y, xz_rect.min[1]),
+						float3(xz_rect.max[0], y, xz_rect.min[1]),
+						float3(xz_rect.max[0], y, xz_rect.max[1]),
+						float3(xz_rect.min[0], y, xz_rect.max[1])},
+					   vector<float3>(4, float3(0, 1, 0)), {{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+		   {MeshIndices({0, 2, 1, 0, 3, 2})}) {}
 
-SimpleMesh::SimpleMesh(MakeBBox, const FBox &bbox) : SimpleMesh() {
+Mesh::Mesh(MakeBBox, const FBox &bbox) : Mesh() {
 	float3 corners[8];
 	float2 uvs[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 
@@ -49,7 +49,7 @@ SimpleMesh::SimpleMesh(MakeBBox, const FBox &bbox) : SimpleMesh() {
 	afterInit();
 }
 
-SimpleMesh::SimpleMesh(MakeCylinder, const Cylinder &cylinder, int num_sides) : SimpleMesh() {
+Mesh::Mesh(MakeCylinder, const Cylinder &cylinder, int num_sides) : Mesh() {
 	DASSERT(num_sides >= 3);
 
 	m_buffers.positions.resize(num_sides * 2);

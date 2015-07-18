@@ -63,7 +63,7 @@ string backtrace(size_t skip) {
 	string exec_name = executablePath();
 	for(size_t i = skip; i < size; i++) {
 		string file_line =
-			execCommand(format("addr2line %p -e %s", addresses[i], exec_name.c_str()));
+			execCommand(format("addr2line %p -e %s", addresses[i], exec_name.c_str())).first;
 		auto colon_pos = file_line.find(':');
 		string file = nicePath(file_line.substr(0, colon_pos));
 		int line = colon_pos == string::npos ? 0 : atoi(&file_line[colon_pos + 1]);
