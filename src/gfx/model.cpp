@@ -12,7 +12,7 @@
 namespace fwk {
 
 MaterialDef::MaterialDef(const XMLNode &node)
-	: name(node.attrib("name")), diffuse(node.attrib<float3>("diffuse")) {}
+	: name(node.attrib("name")), diffuse(node.attrib("diffuse", float3(1, 1, 1))) {}
 
 void MaterialDef::saveToXML(XMLNode node) const {
 	node.addAttrib("name", node.own(name));

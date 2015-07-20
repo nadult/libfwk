@@ -250,12 +250,8 @@ static vector<MeshIndices> loadIndices(const XMLNode &node) {
 }
 
 static vector<MaterialRef> loadMaterials(const XMLNode &node) {
-	XMLNode xml_indices = node.child("indices");
-	vector<string> names;
-	while(xml_indices) {
-		names.emplace_back(xml_indices.attrib("mat_name", ""));
-		xml_indices.next();
-	}
+	XMLNode xml_mats = node.child("materials");
+	vector<string> names = xml_mats ? xml_mats.value<vector<string>>() : vector<string>();
 	return vector<MaterialRef>(begin(names), end(names));
 }
 
@@ -273,14 +269,15 @@ void Mesh::saveToXML(XMLNode node) const {
 	m_buffers.saveToXML(node);
 	for(int n = 0; n < (int)m_indices.size(); n++) {
 		const auto &indices = m_indices[n];
-		string mat_name = m_materials.empty() ? string() : m_materials[n].name;
-
-		XMLNode xml_indices =
-			node.addChild("indices", node.own(xml_conversions::toString((vector<uint>)indices)));
+		XMLNode xml_indices = node.addChild("indices", (vector<uint>)indices);
 		if(indices.type() != PrimitiveType::triangles)
 			xml_indices.addAttrib("type", toString(indices.type()));
-		if(!mat_name.empty())
-			xml_indices.addAttrib("mat_name", xml_indices.own(mat_name));
+	}
+	if(!m_materials.empty()) {
+		vector<string> names;
+		for(const auto &mat : m_materials)
+			names.emplace_back(mat.name);
+		node.addChild("materials", names);
 	}
 }
 

@@ -9,10 +9,10 @@ import xml.etree.ElementTree as ET
 Quaternion = mathutils.Quaternion
 Vector = mathutils.Vector
 
-logging = True
+g_logging = True
 
 def log(message):
-    if logging:
+    if g_logging:
         print(message)
 
 def relativeDifference(a, b):
@@ -129,6 +129,7 @@ def writeMesh(xml_parent, mesh, obj):
 #   xml_mesh_node.attrib["name"] = mesh.name
     mesh_positions = []
     index_sets = []
+    materials = []
     for mat in mesh.materials:
         index_sets.append([])
     if not mesh.materials:
@@ -147,17 +148,19 @@ def writeMesh(xml_parent, mesh, obj):
 
     for vertex in mesh.vertices:
         mesh_positions.append(vecToString(fixVectorUpAxis(vertex.co)))
+    xml_positions = ET.SubElement(xml_mesh_node, "positions")
+    xml_positions.text = ' '.join(mesh_positions)
 
     mat_idx = 0
     while mat_idx < len(index_sets):
         xml_layer = ET.SubElement(xml_mesh_node, "indices")
         if mesh.materials:
-            xml_layer.set("mat_name", mesh.materials[mat_idx].name)
+            materials.append(mesh.materials[mat_idx].name)
         xml_layer.text = ' '.join(map(str, index_sets[mat_idx]))
         mat_idx += 1
 
-    xml_positions = ET.SubElement(xml_mesh_node, "positions")
-    xml_positions.text = ' '.join(mesh_positions)
+    if materials:
+        ET.SubElement(xml_mesh_node, "materials").text =  ' '.join(materials)
 
     if obj.find_armature() and obj.find_armature().is_visible(bpy.context.scene):
         writeSkin(xml_mesh_node, mesh, obj)
@@ -344,6 +347,9 @@ def materialDiffuse(mat):
         return mat.diffuse_color
 
 def writeMaterial(xml_parent, mat):
+    if(not isValidString(mat.name)):
+        raise Exception("Material names mustn't contain whitespaces: \"" + obj.name + '"')
+
     xml_mat = ET.SubElement(xml_parent, "material")
     xml_mat.set("name", mat.name)
     xml_mat.set("diffuse", colorToString(materialDiffuse(mat)))

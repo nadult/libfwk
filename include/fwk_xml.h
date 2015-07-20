@@ -175,6 +175,12 @@ class XMLNode {
 	XMLNode sibling(const char *name = nullptr) const;
 	XMLNode child(const char *name = nullptr) const;
 
+	template <class T> XMLNode addChild(const char *name, const T &value) {
+		TextFormatter formatter;
+		xml_conversions::toString(value, formatter);
+		return addChild(name, own(formatter.text()));
+	}
+
 	void next() { *this = sibling(name()); }
 
 	const char *value() const;
