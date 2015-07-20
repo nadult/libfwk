@@ -3,7 +3,6 @@
    This file is part of libfwk. */
 
 #include "fwk.h"
-#include <assimp/scene.h>
 
 using namespace fwk;
 
@@ -32,11 +31,9 @@ void printHelp(const char *app_name) {
 		   "  param 2:          target model\n\n"
 		   "Supported input formats:\n"
 		   "  .blend (blender has to be available in the command line)\n"
-		   "  .dae\n"
 		   "  .model\n\n"
 		   "Supported output formats:\n"
 		   "  .model\n"
-		   "  .dae (assimp exporter doesn't support animations and is kinda broken)\n\n"
 		   "Examples:\n"
 		   "  %s file.dae file.model\n"
 		   "  %s file.blend file.model\n\n"
@@ -44,8 +41,8 @@ void printHelp(const char *app_name) {
 		   app_name, app_name, app_name, app_name);
 }
 
-DECLARE_ENUM(FileType, fwk, blender, assimp);
-DEFINE_ENUM(FileType, "fwk model", "blender", "assimp");
+DECLARE_ENUM(FileType, fwk, blender);
+DEFINE_ENUM(FileType, "fwk model", "blender");
 
 struct FileExt {
 	string ext;
@@ -53,7 +50,7 @@ struct FileExt {
 };
 
 const FileExt extensions[] = {
-	{".dae", FileType::assimp}, {".model", FileType::fwk}, {".blend", FileType::blender},
+	{".model", FileType::fwk}, {".blend", FileType::blender},
 };
 
 FileType::Type classify(const string &name) {
@@ -100,34 +97,31 @@ string exportFromBlender(const string &file_name, string &target_file_name) {
 	return result.first;
 }
 
-auto loadModel(FileType::Type file_type, Stream &stream) {
+pair<PModel, string> loadModel(FileType::Type file_type, Stream &stream) {
+	pair<PModel, string> out;
+
 	if(file_type == FileType::fwk) {
 		XMLDocument doc;
 		stream >> doc;
 		XMLNode child = doc.child();
 		ASSERT(child && "empty XML document");
-		return make_pair(make_shared<Model>(child), string(child.name()));
-	}
-	if(file_type == FileType::blender) {
+		out = make_pair(make_shared<Model>(child), string(child.name()));
+	} else {
+		DASSERT(file_type == FileType::blender);
 		ASSERT(dynamic_cast<FileStream *>(&stream));
 		string temp_file_name;
 		auto blender_result = exportFromBlender(stream.name(), temp_file_name);
 
 		try {
 			Loader loader(temp_file_name);
-			auto out = loadModel(FileType::fwk, loader);
+			out = loadModel(FileType::fwk, loader);
 			remove(temp_file_name.c_str());
-			return std::move(out);
 		} catch(const Exception &ex) {
 			THROW("%s\nBlender output:\n%s", ex.what(), blender_result.c_str());
 		}
 	}
-	DASSERT(file_type == FileType::assimp);
-	{
-		AssimpImporter importer;
-		auto model = make_shared<Model>(importer.loadScene(stream, AssimpImporter::defaultFlags()));
-		return make_pair(model, string("model"));
-	}
+
+	return out;
 }
 
 void saveModel(shared_ptr<Model> model, const string &node_name, FileType::Type file_type,

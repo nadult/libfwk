@@ -4,17 +4,18 @@
 LINUX_FWK_LIB=$(FWK_DIR)/lib/libfwk.a
 MINGW_FWK_LIB=$(FWK_DIR)/lib/libfwk_win32.a
 HTML5_FWK_LIB=$(FWK_DIR)/lib/libfwk.html.cpp
+LINUX_FWK_MODEL_CONVERT=$(FWK_DIR)/tools/model_convert
 
 LINUX_PKG_CONFIG=pkg-config
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-FWK_LIBS=freetype2 sdl2 libpng zlib libmpg123 assimp
-LINUX_FWK_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk -lopenal -lGL -lGLU -lrt #/code/assimp/build/code/libassimp.a
+FWK_LIBS=freetype2 sdl2 libpng zlib libmpg123
+LINUX_FWK_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk -lopenal -lGL -lGLU -lrt
 MINGW_FWK_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk_win32 -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
 FWK_INCLUDES=-I$(FWK_DIR)/include
 
-HTML5_FWK_FLAGS=-std=c++14 -DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -I$(FWK_DIR)/src $(FWK_INCLUDES) -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_ZLIB=1 -s USE_ASSIMP=1
+HTML5_FWK_FLAGS=-std=c++14 -DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -I$(FWK_DIR)/src $(FWK_INCLUDES) -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_ZLIB=1
 
 $(LINUX_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk.a
@@ -22,6 +23,8 @@ $(MINGW_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a
 $(HTML5_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk.html.cpp
+$(LINUX_FWK_MODEL_CONVERT): .ALWAYS_CHECK
+	$(MAKE) -C $(FWK_DIR) tools/model_convert
 
 .ALWAYS_CHECK:
 

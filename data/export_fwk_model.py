@@ -19,6 +19,8 @@ def relativeDifference(a, b):
     magnitude = max(abs(a), abs(b))
     return 0.0 if (magnitude < 0.000001) else (abs(a - b) / magnitude)
 
+def isValidString(string):
+    return string.split() == [string]
 
 def fixMatrixUpAxis(mat):
     mat = mat.copy()
@@ -86,27 +88,27 @@ def prepareMesh(obj):
             mod.show_viewport = False
     return obj.to_mesh(bpy.context.scene, apply_modifiers=True, settings="PREVIEW")
 
-def writeSkin(xml_parent, mesh, obj, node_id_map):
+def writeSkin(xml_parent, mesh, obj):
     num_verts = len(mesh.vertices)
     log ("Skin for: " + obj.name)
-
-    index_map = [0] * len(obj.vertex_groups)
-    for vg in obj.vertex_groups:
-        node_id = node_id_map[vg.name] if (vg.name in node_id_map) else -1
-        index_map[vg.index] = node_id
 
     counts = []
     weights = []
     node_ids = []
+    node_names = []
+
+    for vg in obj.vertex_groups:
+        if(not isValidString(vg.name)):
+            raise Exception("Vertex groups names mustn't contain whitespaces: \"" + obj.name + '"')
+        node_names.append(vg.name)
 
     for vertex in mesh.vertices:
         vweights = []
         vnode_ids = []
         for group in vertex.groups:
-            node_id = index_map[group.group]
-            if node_id != -1 and group.weight > 0.000001:
+            if group.weight > 0.000001:
                 vweights.append(group.weight)
-                vnode_ids.append(node_id)
+                vnode_ids.append(group.group)
 
         weight_sum = sum(vweights)
         if weight_sum > 0.000001:
@@ -120,8 +122,9 @@ def writeSkin(xml_parent, mesh, obj, node_id_map):
     (ET.SubElement(xml_skin, "counts")).text = " ".join(counts)
     (ET.SubElement(xml_skin, "weights")).text = " ".join(weights)
     (ET.SubElement(xml_skin, "node_ids")).text = " ".join(node_ids)
+    (ET.SubElement(xml_skin, "node_names")).text = " ".join(node_names)
 
-def writeMesh(xml_parent, mesh, obj, node_id_map):
+def writeMesh(xml_parent, mesh, obj):
     xml_mesh_node = ET.SubElement(xml_parent, "mesh")
 #   xml_mesh_node.attrib["name"] = mesh.name
     mesh_positions = []
@@ -157,7 +160,7 @@ def writeMesh(xml_parent, mesh, obj, node_id_map):
     xml_positions.text = ' '.join(mesh_positions)
 
     if obj.find_armature() and obj.find_armature().is_visible(bpy.context.scene):
-        writeSkin(xml_mesh_node, mesh, obj, node_id_map)
+        writeSkin(xml_mesh_node, mesh, obj)
 
 def writeTrans(xml_node, matrix):
     loc, rot, scale = fixMatrixUpAxis(matrix).decompose()
@@ -168,11 +171,14 @@ def writeTrans(xml_node, matrix):
     if str_scale != "1 1 1":
         xml_node.set("scale", str_scale)
 
-def writeBone(xml_parent, bone, node_id_map):
+def writeBone(xml_parent, bone, bone_xml_map):
+    if(not isValidString(bone.name)):
+        raise Exception("Bone names mustn't contain whitespaces: \"" + obj.name + '"')
+
     xml_bone = ET.SubElement(xml_parent, "node")
     xml_bone.set("name", bone.name)
 #   xml_bone.set("type", "bone")
-    node_id_map[bone.name] = len(node_id_map)
+    bone_xml_map[bone.name] = xml_bone
 
     matrix = bone.matrix_local.copy()
     if not (bone.parent is None):
@@ -182,7 +188,7 @@ def writeBone(xml_parent, bone, node_id_map):
     writeTrans(xml_bone, matrix)
 
     for child in bone.children:
-        writeBone(xml_bone, child, node_id_map)
+        writeBone(xml_bone, child, bone_xml_map)
 
 def objectTypeString(obj):
     if obj.type == "MESH":
@@ -193,21 +199,23 @@ def objectTypeString(obj):
         return "bone"
     return "unknown"
 
-def writeObject(xml_parent, obj, mesh_list, node_id_map):
+def writeObject(xml_parent, obj, mesh_list, bone_xml_map={}):
+    if(not isValidString(obj.name)):
+        raise Exception("Object names mustn't contain whitespaces: \"" + obj.name + '"')
+
+    matrix = obj.matrix_local.copy()
+    if obj.parent:
+        if(obj.parent_bone):
+            xml_parent = bone_xml_map[obj.parent_bone]
+            bone = obj.parent.pose.bones[obj.parent_bone]
+            matrix = bone.matrix.inverted() * matrix
+
     xml_obj_node = ET.SubElement(xml_parent, "node")
     xml_obj_node.set("name", obj.name)
 #   xml_obj_node.set("type", objectTypeString(obj))
-    node_id_map[obj.name] = len(node_id_map)
 
-    matrix = obj.matrix_world.copy()
-    if obj.parent:
-        parent_inv = obj.parent.matrix_world.copy()
-        parent_inv.invert()
-        matrix = parent_inv * matrix
     writeTrans(xml_obj_node, matrix)
 
-    if not obj.parent is None:
-        xml_obj_node.set("parent", obj.parent.name)
     if obj.type == "MESH":
         xml_obj_node.set("mesh_id", str(len(mesh_list)))
         mesh = prepareMesh(obj)
@@ -217,12 +225,12 @@ def writeObject(xml_parent, obj, mesh_list, node_id_map):
         armature.pose_position = "REST"
         for bone in armature.bones:
             if bone.parent is None:
-                writeBone(xml_obj_node, bone, node_id_map)
+                writeBone(xml_obj_node, bone, bone_xml_map)
     
     scene = bpy.context.scene    
     for child in obj.children:
         if child.is_visible(scene):
-            writeObject(xml_obj_node, child, mesh_list, node_id_map)
+            writeObject(xml_obj_node, child, mesh_list, bone_xml_map)
 
 def extractMarkers(action):
     markers = set([])
@@ -355,19 +363,18 @@ def write(file_path, objects_filter=""):
 
     xml_root = ET.Element("model")
 
-    node_id_map = {}
     mesh_list = []
     armature = None
 
     for obj in scene.objects:
         if (obj.parent is None) and (obj.is_visible(scene)):
-            writeObject(xml_root, obj, mesh_list, node_id_map)
+            writeObject(xml_root, obj, mesh_list)
         if obj.type == "ARMATURE":
             armature = obj
             log("Armature: " + armature.name)
 
     for (mesh, obj) in mesh_list:
-        writeMesh(xml_root, mesh, obj, node_id_map)
+        writeMesh(xml_root, mesh, obj)
 
     for mat in bpy.data.materials:
         writeMaterial(xml_root, mat)

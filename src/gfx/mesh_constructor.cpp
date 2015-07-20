@@ -5,8 +5,6 @@ This file is part of libfwk.*/
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
 #include <algorithm>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <deque>
 #include <unordered_map>
 

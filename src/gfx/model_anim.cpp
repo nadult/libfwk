@@ -4,20 +4,11 @@
 
 #include "fwk_gfx.h"
 #include "fwk_profile.h"
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <map>
 #include <algorithm>
 #include <functional>
 
 namespace fwk {
-
-namespace {
-	float3 convert(const aiVector3t<float> &vec) { return float3(vec.x, vec.y, vec.z); }
-	Quat convert(const aiQuaterniont<float> &quat) {
-		return Quat(float4(quat.x, quat.y, quat.z, quat.w));
-	}
-}
 
 void ModelAnim::transToXML(const AffineTrans &trans, XMLNode node) {
 	if(!areSimilar(trans.translation, float3()))
@@ -81,38 +72,6 @@ void ModelAnim::Channel::saveToXML(XMLNode node) const {
 		node.addChild("time", node.own(toString(time_track)));
 }
 
-ModelAnim::Channel::Channel(const aiNodeAnim &achannel, vector<float> &shared_time_track)
-	: node_name(achannel.mNodeName.C_Str()), node_id(-1) {
-	ASSERT(achannel.mNumRotationKeys == achannel.mNumPositionKeys);
-	ASSERT(achannel.mNumScalingKeys == achannel.mNumPositionKeys);
-	translation_track.resize(achannel.mNumPositionKeys);
-	scaling_track.resize(achannel.mNumPositionKeys);
-	rotation_track.resize(achannel.mNumPositionKeys);
-	time_track.resize(achannel.mNumPositionKeys);
-
-	for(uint k = 0; k < achannel.mNumPositionKeys; k++) {
-		ASSERT(achannel.mPositionKeys[k].mTime == achannel.mRotationKeys[k].mTime);
-		ASSERT(achannel.mScalingKeys[k].mTime == achannel.mRotationKeys[k].mTime);
-
-		translation_track[k] = convert(achannel.mPositionKeys[k].mValue);
-		scaling_track[k] = convert(achannel.mScalingKeys[k].mValue);
-		rotation_track[k] = convert(achannel.mRotationKeys[k].mValue);
-		time_track[k] = achannel.mPositionKeys[k].mTime;
-	}
-
-	if(allOf(translation_track, [](auto v) { return areSimilar(v, float3()); }))
-		translation_track.clear();
-	if(allOf(scaling_track, [](auto v) { return areSimilar(v, float3(1, 1, 1)); }))
-		scaling_track.clear();
-	if(allOf(rotation_track, [](auto q) { return areSimilar((float4)q, (float4)Quat()); }))
-		rotation_track.clear();
-
-	if(shared_time_track.empty())
-		shared_time_track = time_track;
-	if(time_track == shared_time_track)
-		time_track.clear();
-}
-
 AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 	AffineTrans out = default_trans;
 
@@ -124,23 +83,6 @@ AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 		out.rotation = slerp(rotation_track[frame0], rotation_track[frame1], t);
 
 	return out;
-}
-
-ModelAnim::ModelAnim(const aiScene &ascene, int anim_id, const Model &model) {
-	DASSERT(anim_id >= 0 && anim_id < (int)ascene.mNumAnimations);
-
-	const auto &aanim = *ascene.mAnimations[anim_id];
-
-	for(uint c = 0; c < aanim.mNumChannels; c++) {
-		const auto &achannel = *aanim.mChannels[c];
-		m_channels.emplace_back(achannel, m_shared_time_track);
-	}
-
-	m_name = aanim.mName.C_Str();
-	m_length = aanim.mDuration;
-
-	updateNodeIndices(model);
-	verifyData();
 }
 
 ModelAnim::ModelAnim(const XMLNode &node, const Model &model)

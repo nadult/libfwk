@@ -10,10 +10,6 @@
 #include "fwk_input.h"
 #include "fwk_xml.h"
 
-class aiScene;
-class aiAnimation;
-class aiMesh;
-class aiNodeAnim;
 
 namespace fwk {
 namespace collada {
@@ -680,6 +676,7 @@ class MeshIndices {
 	// Does not exclude degenerate triangles
 	int triangleCount() const;
 	int size() const { return (int)m_data.size(); }
+	bool empty() const { return m_data.empty(); }
 	uint maxIndex() const;
 
 	static MeshIndices changeType(MeshIndices, Type new_type);
@@ -709,7 +706,6 @@ class Mesh {
 	Mesh &operator=(Mesh &&) = default;
 	Mesh &operator=(const Mesh &) = default;
 
-	Mesh(const aiScene &scene, int mesh_id);
 	Mesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
@@ -823,7 +819,6 @@ inline ModelPose operator*(const AffineTrans &trans, ModelPose pose) {
 
 class ModelAnim {
   public:
-	ModelAnim(const aiScene &, int anim_id, const Model &);
 	ModelPose animatePose(ModelPose initial_pose, double anim_time) const;
 
 	ModelAnim(const XMLNode &, const Model &);
@@ -846,7 +841,6 @@ class ModelAnim {
 
 	struct Channel {
 		Channel() = default;
-		Channel(const aiNodeAnim &, vector<float> &shared_time_track);
 		Channel(const XMLNode &);
 		void saveToXML(XMLNode) const;
 		AffineTrans blend(int frame0, int frame1, float t) const;
@@ -868,10 +862,38 @@ class ModelAnim {
 	float m_length;
 };
 
+class MeshSkin {
+  public:
+	MeshSkin();
+	MeshSkin(const XMLNode &);
+
+	void saveToXML(XMLNode) const;
+	bool empty() const;
+
+	void attach(const Model &);
+
+	struct VertexWeight {
+		VertexWeight(float weight = 0.0f, int node_id = 0) : weight(weight), node_id(node_id) {}
+
+		float weight;
+		int node_id;
+	};
+
+	void animatePositions(Range<float3>, Range<Matrix4>) const;
+	void animateNormals(Range<float3>, Range<Matrix4>) const;
+
+	int size() const { return (int)m_vertex_weights.size(); }
+
+  protected:
+	vector<vector<VertexWeight>> m_vertex_weights;
+	vector<string> m_node_names;
+	vector<int> m_mapping;
+	int m_max_node_index;
+};
+
 class Model {
   public:
 	Model() = default;
-	Model(const aiScene &);
 	Model(Model &&) = default;
 	Model &operator=(Model &&) = default;
 	virtual ~Model() = default;
@@ -887,22 +909,6 @@ class Model {
 		AffineTrans trans;
 		int id, parent_id, mesh_id;
 		vector<int> children_ids;
-	};
-
-	struct VertexWeight {
-		VertexWeight(float weight = 0.0f, int node_id = 0) : weight(weight), node_id(node_id) {}
-
-		float weight;
-		int node_id;
-	};
-
-	struct MeshSkin {
-		MeshSkin() = default;
-		MeshSkin(const XMLNode &);
-		void saveToXML(XMLNode) const;
-		bool isEmpty() const;
-
-		vector<vector<VertexWeight>> vertex_weights;
 	};
 
 	const auto &nodes() const { return m_nodes; }
@@ -943,9 +949,8 @@ class Model {
 	int addNode(const string &name, const AffineTrans &, int parent_id);
 
 	void verifyData() const;
-	// TODO: ranges
-	void animateVertices(int node_id, const ModelPose &, float3 *positions,
-						 float3 *normals = nullptr) const;
+	void animateVertices(int node_id, const ModelPose &, Range<float3> positions,
+						 Range<float3> normals = Range<float3>::makeEmpty()) const;
 	Mesh animateMesh(int node_id, const ModelPose &) const;
 	Matrix4 computeOffsetMatrix(int node_id) const;
 	void computeBindMatrices();
@@ -963,43 +968,6 @@ class Model {
 };
 
 using PModel = shared_ptr<Model>;
-
-class AssimpImporter {
-  public:
-	AssimpImporter();
-	~AssimpImporter();
-
-	const aiScene &loadScene(Stream &stream, uint flags, const char *extension_hint = nullptr);
-	const aiScene &loadScene(const char *data, int data_size, uint flags,
-							 const char *extension_hint = nullptr);
-	const aiScene &loadScene(const string &file_name, uint flags);
-	void freeScene();
-
-	static uint defaultFlags();
-
-  private:
-	class Impl;
-	unique_ptr<Impl> m_impl;
-};
-
-template <class T> class AssimpLoader : public ResourceLoader<T> {
-  public:
-	AssimpLoader(const string &prefix, const string &suffix, uint flags)
-		: ResourceLoader<T>(prefix, suffix), m_flags(flags) {}
-
-	shared_ptr<T> operator()(const string &name) {
-		AssimpImporter m_importer;
-
-		// TODO: Crash when same m_importer is used for multiple loads
-		const aiScene &scene = m_importer.loadScene(ResourceLoader<T>::fileName(name), m_flags);
-		auto out = make_shared<T>(scene);
-		m_importer.freeScene();
-		return out;
-	}
-
-  protected:
-	uint m_flags;
-};
 
 template <class T> class XMLLoader : public ResourceLoader<T> {
   public:

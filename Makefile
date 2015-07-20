@@ -16,7 +16,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=base backtrace filesystem input profiler stream xml xml_conversions \
-		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/assimp_importer \
+		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/mesh_skin \
 		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model gfx/mesh gfx/mesh_constructor gfx/matrix_stack \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d math/cylinder \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat math/base math/triangle \
@@ -54,7 +54,7 @@ MINGW_STRIP=$(MINGW_PREFIX)strip
 MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-LIBS=freetype2 sdl2 libpng zlib libmpg123 assimp
+LIBS=freetype2 sdl2 libpng zlib libmpg123
 LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lopenal -lGL -lGLU -lrt -fopenmp 
 MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
@@ -64,7 +64,7 @@ NICE_FLAGS=-std=c++14 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=retu
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
 LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_ZLIB=1 -s USE_ASSIMP=1 $(NICE_FLAGS) $(INCLUDES)
+HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_ZLIB=1 $(NICE_FLAGS) $(INCLUDES)
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
 	$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@

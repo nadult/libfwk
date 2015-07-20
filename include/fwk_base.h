@@ -226,6 +226,8 @@ template <class T> class Range {
 	}
 	operator Range<const T>() const { return Range<const T>(m_data, m_size); }
 
+	static Range makeEmpty() { return Range(nullptr, 0); }
+
 	constexpr auto cbegin() const noexcept { return RangeIterator<const T>(m_data, 0, m_size); }
 	constexpr auto cend() const noexcept {
 		return RangeIterator<const T>(m_data + m_size, m_size, 0);
@@ -253,6 +255,10 @@ template <class T> class Range {
 	T *m_data;
 	int m_size;
 };
+
+template <class T1, class OutputIterator> void copy(Range<T1> range, OutputIterator iter) {
+	return std::copy(begin(range), end(range), iter);
+}
 
 // TODO: better name
 // TODO: Minimum size is a bit misleading, user could expect exact size

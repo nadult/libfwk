@@ -5,8 +5,6 @@
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
 #include <algorithm>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <deque>
 #include <unordered_map>
 #include "fwk_profile.h"
@@ -19,119 +17,6 @@ MaterialDef::MaterialDef(const XMLNode &node)
 void MaterialDef::saveToXML(XMLNode node) const {
 	node.addAttrib("name", node.own(name));
 	node.addAttrib("diffuse", float3(diffuse));
-}
-
-Model::MeshSkin::MeshSkin(const XMLNode &node) {
-	using namespace xml_conversions;
-	XMLNode counts_node = node.child("counts");
-	XMLNode weights_node = node.child("weights");
-	XMLNode node_ids_node = node.child("node_ids");
-	if(!counts_node && !weights_node && !node_ids_node)
-		return;
-
-	ASSERT(counts_node && weights_node && node_ids_node);
-	auto counts = fromString<vector<int>>(counts_node.value());
-	auto weights = fromString<vector<float>>(weights_node.value());
-	auto node_ids = fromString<vector<int>>(node_ids_node.value());
-
-	ASSERT(weights.size() == node_ids.size());
-	ASSERT(std::accumulate(begin(counts), end(counts), 0) == (int)weights.size());
-
-	vertex_weights.resize(counts.size());
-	int offset = 0;
-	for(int n = 0; n < (int)counts.size(); n++) {
-		auto &out = vertex_weights[n];
-		out.resize(counts[n]);
-		for(int i = 0; i < counts[n]; i++)
-			out[i] = VertexWeight(weights[offset + i], node_ids[offset + i]);
-		offset += counts[n];
-	}
-}
-
-void Model::MeshSkin::saveToXML(XMLNode node) const {
-	if(isEmpty())
-		return;
-
-	vector<int> counts;
-	vector<float> weights;
-	vector<int> node_ids;
-
-	for(int n = 0; n < (int)vertex_weights.size(); n++) {
-		const auto &in = vertex_weights[n];
-		counts.emplace_back((int)in.size());
-		for(int i = 0; i < (int)in.size(); i++) {
-			weights.emplace_back(in[i].weight);
-			node_ids.emplace_back(in[i].node_id);
-		}
-	}
-
-	using namespace xml_conversions;
-	node.addChild("counts", node.own(toString(counts)));
-	node.addChild("weights", node.own(toString(weights)));
-	node.addChild("node_ids", node.own(toString(node_ids)));
-}
-
-bool Model::MeshSkin::isEmpty() const {
-	return std::all_of(begin(vertex_weights), end(vertex_weights),
-					   [](const auto &v) { return v.empty(); });
-}
-
-Model::Model(const aiScene &ascene) {
-	auto *root_node = ascene.mRootNode;
-	Matrix4 mat(root_node->mTransformation[0]);
-
-	m_meshes.reserve(ascene.mNumMeshes);
-	for(uint n = 0; n < ascene.mNumMeshes; n++)
-		m_meshes.emplace_back(Mesh(ascene, n));
-
-	std::deque<pair<const aiNode *, int>> queue({make_pair(root_node, -1)});
-
-	while(!queue.empty()) {
-		auto *anode = queue.front().first;
-		int parent_id = queue.front().second;
-		queue.pop_front();
-
-		int node_id =
-			addNode(anode->mName.C_Str(),
-					AffineTrans(transpose(Matrix4(anode->mTransformation[0]))), parent_id);
-		Node &new_node = m_nodes[node_id];
-		if(anode->mNumMeshes > 1) {
-			for(uint n = 0; n < anode->mNumMeshes; n++) {
-				int mesh_node_id = addNode("", AffineTrans(), node_id);
-				auto &mesh_node = m_nodes[mesh_node_id];
-				mesh_node.mesh_id = anode->mMeshes[n];
-			}
-		} else if(anode->mNumMeshes == 1) { new_node.mesh_id = anode->mMeshes[0]; }
-
-		for(uint c = 0; c < anode->mNumChildren; c++)
-			queue.emplace_back(anode->mChildren[c], node_id);
-	}
-
-	for(uint a = 0; a < ascene.mNumAnimations; a++)
-		m_anims.emplace_back(ascene, (int)a, *this);
-
-	m_mesh_skins.resize(m_meshes.size());
-	for(uint m = 0; m < ascene.mNumMeshes; m++) {
-		const aiMesh &amesh = *ascene.mMeshes[m];
-		ASSERT((int)amesh.mNumVertices == m_meshes[m].vertexCount());
-		MeshSkin &skin = m_mesh_skins[m];
-		skin.vertex_weights.resize(amesh.mNumVertices);
-
-		for(uint n = 0; n < amesh.mNumBones; n++) {
-			const aiBone &abone = *amesh.mBones[n];
-			int node_id = findNode(abone.mName.C_Str());
-			ASSERT(node_id != -1);
-			const auto &joint = m_nodes[node_id];
-
-			for(uint w = 0; w < abone.mNumWeights; w++) {
-				const aiVertexWeight &aweight = abone.mWeights[w];
-				skin.vertex_weights[aweight.mVertexId].emplace_back(aweight.mWeight, node_id);
-			}
-		}
-	}
-
-	computeBindMatrices();
-	verifyData();
 }
 
 Model::Model(const XMLNode &node) {
@@ -191,6 +76,9 @@ Model::Model(const XMLNode &node) {
 		mat_node.next();
 	}
 
+	for(auto &skin : m_mesh_skins)
+		skin.attach(*this);
+
 	computeBindMatrices();
 	verifyData();
 }
@@ -236,14 +124,7 @@ void Model::verifyData() const {
 	for(int m = 0; m < (int)m_meshes.size(); m++) {
 		const auto &mesh = m_meshes[m];
 		const auto &skin = m_mesh_skins[m];
-
-		ASSERT((int)skin.vertex_weights.size() == mesh.vertexCount() || skin.isEmpty());
-		for(const auto &vweights : skin.vertex_weights) {
-			for(const auto &weight : vweights) {
-				ASSERT(weight.node_id >= 0 && weight.node_id < (int)m_nodes.size());
-				ASSERT(weight.weight >= 0 && weight.weight <= 1.0f);
-			}
-		}
+		ASSERT(skin.size() == mesh.vertexCount() || skin.empty());
 	}
 }
 
@@ -271,7 +152,7 @@ void Model::saveToXML(XMLNode xml_node) const {
 
 		XMLNode mesh_node = xml_node.addChild("mesh");
 		mesh.saveToXML(mesh_node);
-		if(!skin.isEmpty())
+		if(!skin.empty())
 			skin.saveToXML(mesh_node.addChild("skin"));
 	}
 
@@ -297,11 +178,11 @@ FBox Model::boundingBox(const ModelPose &pose) const {
 			const auto &skin = m_mesh_skins[node.mesh_id];
 
 			FBox bbox;
-			if(skin.isEmpty()) {
+			if(skin.empty()) {
 				bbox = final_pose[node.id] * mesh.boundingBox();
 			} else {
 				PodArray<float3> positions(mesh.vertexCount());
-				animateVertices(node.id, pose, positions.data(), nullptr);
+				animateVertices(node.id, pose, positions);
 				bbox = FBox(positions);
 			}
 			out = out.isEmpty() ? bbox : sum(out, bbox);
@@ -335,7 +216,7 @@ void Model::draw(Renderer &out, const ModelPose &pose, PMaterial material,
 			const auto &mesh = m_meshes[node.mesh_id];
 			const auto &skin = m_mesh_skins[node.mesh_id];
 
-			if(skin.isEmpty()) {
+			if(skin.empty()) {
 				mesh.draw(out, material, final_pose[node.id]);
 			} else { Mesh(animateMesh(node.id, pose)).draw(out, material, Matrix4::identity()); }
 		}
@@ -381,8 +262,8 @@ Mesh Model::toMesh(const ModelPose &pose) const {
 			const auto &mesh = m_meshes[node.mesh_id];
 			const auto &skin = m_mesh_skins[node.mesh_id];
 
-			meshes.emplace_back(skin.isEmpty() ? Mesh::transform(final_pose[node.id], mesh)
-											   : animateMesh(node.id, pose));
+			meshes.emplace_back(skin.empty() ? Mesh::transform(final_pose[node.id], mesh)
+											 : animateMesh(node.id, pose));
 		}
 
 	return Mesh::merge(meshes);
@@ -397,12 +278,12 @@ float Model::intersect(const Segment &segment, const ModelPose &pose) const {
 			const auto &mesh = m_meshes[node.mesh_id];
 			const auto &skin = m_mesh_skins[node.mesh_id];
 
-			if(skin.isEmpty()) {
+			if(skin.empty()) {
 				float isect = mesh.intersect(inverse(final_pose[node.id]) * segment);
 				min_isect = min(min_isect, isect);
 			} else {
 				PodArray<float3> positions(mesh.vertexCount());
-				animateVertices(node.id, pose, positions.data(), nullptr);
+				animateVertices(node.id, pose, positions);
 
 				// TODO: optimize
 				if(intersection(segment, FBox(positions)) < constant::inf)
@@ -418,8 +299,8 @@ float Model::intersect(const Segment &segment, const ModelPose &pose) const {
 	return min_isect;
 }
 
-void Model::animateVertices(int node_id, const ModelPose &pose, float3 *out_positions,
-							float3 *out_normals) const {
+void Model::animateVertices(int node_id, const ModelPose &pose, Range<float3> out_positions,
+							Range<float3> out_normals) const {
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
 
 	const auto &node = m_nodes[node_id];
@@ -429,7 +310,7 @@ void Model::animateVertices(int node_id, const ModelPose &pose, float3 *out_posi
 	const Mesh &mesh = m_meshes[node.mesh_id];
 	updateCounter("Model::animateVertices", 1);
 	FWK_PROFILE("Model::animateVertices");
-	DASSERT(!skin.isEmpty());
+	DASSERT(!skin.empty());
 
 	vector<Matrix4> matrices = finalSkinnedPose(pose);
 	Matrix4 offset_matrix = computeOffsetMatrix(node_id);
@@ -437,23 +318,15 @@ void Model::animateVertices(int node_id, const ModelPose &pose, float3 *out_posi
 	for(auto &matrix : matrices)
 		matrix = matrix * offset_matrix;
 
-	for(int v = 0; v < (int)skin.vertex_weights.size(); v++) {
-		const auto &vweights = skin.vertex_weights[v];
-
-		if(out_positions) {
-			float3 pos = mesh.positions()[v];
-			float3 out;
-			for(const auto &weight : vweights)
-				out += mulPointAffine(matrices[weight.node_id], pos) * weight.weight;
-			out_positions[v] = out;
-		}
-		if(out_normals) {
-			float3 nrm = mesh.normals()[v];
-			float3 out;
-			for(const auto &weight : vweights)
-				out += mulNormalAffine(matrices[weight.node_id], nrm) * weight.weight;
-			out_normals[v] = out;
-		}
+	if(!out_positions.empty()) {
+		DASSERT(out_positions.size() == (int)mesh.positions().size());
+		std::copy(begin(mesh.positions()), end(mesh.positions()), begin(out_positions));
+		skin.animatePositions(out_positions, matrices);
+	}
+	if(!out_normals.empty()) {
+		DASSERT(out_normals.size() == (int)mesh.normals().size());
+		std::copy(begin(mesh.normals()), end(mesh.normals()), begin(out_normals));
+		skin.animateNormals(out_normals, matrices);
 	}
 }
 
@@ -466,7 +339,7 @@ Mesh Model::animateMesh(int node_id, const ModelPose &pose) const {
 
 	vector<float3> positions = mesh.positions();
 	vector<float2> tex_coords = mesh.texCoords();
-	animateVertices(node_id, pose, positions.data(), nullptr);
+	animateVertices(node_id, pose, positions);
 
 	return Mesh({positions, {}, tex_coords}, mesh.indices(), mesh.materials());
 }

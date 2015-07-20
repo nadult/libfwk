@@ -5,8 +5,6 @@
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
 #include <algorithm>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <deque>
 #include <unordered_map>
 
@@ -24,14 +22,25 @@ MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices-
 MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
 							   vector<pair<uint, uint>> &index_ranges) {
 	auto type = set.empty() ? Type::triangles : set.front().type();
-	if(type == Type::triangle_strip)
-		THROW("Fix merging");
 
 	vector<uint> merged;
 	index_ranges.clear();
 
 	for(const auto &indices : set) {
 		DASSERT(indices.type() == type);
+
+		if(type == Type::triangle_strip && !merged.empty() && !indices.empty()) {
+			uint prev = merged.back(), next = indices.m_data.front();
+
+			if(merged.size() % 2 == 1) {
+				uint indices[5] = {prev, prev, prev, next, next};
+				merged.insert(end(merged), begin(indices), end(indices));
+			} else {
+				uint indices[4] = {prev, prev, next, next};
+				merged.insert(end(merged), begin(indices), end(indices));
+			}
+		}
+
 		index_ranges.emplace_back(merged.size(), indices.size());
 		merged.insert(end(merged), begin(indices.m_data), end(indices.m_data));
 	}
@@ -227,54 +236,6 @@ void Mesh::afterInit() {
 	computeBoundingBox();
 }
 
-static MeshBuffers loadBuffers(const aiScene &ascene, int mesh_id) {
-	DASSERT(mesh_id >= 0 && mesh_id < (int)ascene.mNumMeshes);
-	const auto *amesh = ascene.mMeshes[mesh_id];
-
-	vector<float3> positions, normals;
-	vector<float2> tex_coords;
-
-	if(amesh->HasPositions()) {
-		for(uint n = 0; n < amesh->mNumVertices; n++) {
-			const auto &pos = amesh->mVertices[n];
-			positions.emplace_back(pos.x, pos.y, pos.z);
-		}
-
-		if(amesh->HasTextureCoords(0))
-			for(uint n = 0; n < amesh->mNumVertices; n++) {
-				const auto &uv = amesh->mTextureCoords[0][n];
-				tex_coords.emplace_back(uv.x, -uv.y);
-			}
-
-		if(amesh->HasNormals())
-			for(uint n = 0; n < amesh->mNumVertices; n++) {
-				const auto &normal = amesh->mNormals[n];
-				normals.emplace_back(normal.x, normal.y, normal.z);
-			}
-	}
-
-	// TODO: check if std::move here is needed or not
-	return MeshBuffers(positions, normals, tex_coords);
-}
-
-static vector<MeshIndices> loadIndices(const aiScene &ascene, int mesh_id) {
-	DASSERT(mesh_id >= 0 && mesh_id < (int)ascene.mNumMeshes);
-	const auto *amesh = ascene.mMeshes[mesh_id];
-
-	vector<uint> indices(amesh->mNumFaces * 3);
-	for(uint n = 0; n < amesh->mNumFaces; n++) {
-		ASSERT(amesh->mFaces[n].mNumIndices == 3);
-		for(int i = 0; i < 3; i++)
-			indices[n * 3 + i] = amesh->mFaces[n].mIndices[i];
-	}
-
-	// TODO: check for std::move
-	return {MeshIndices(indices)};
-}
-
-Mesh::Mesh(const aiScene &ascene, int mesh_id)
-	: Mesh(loadBuffers(ascene, mesh_id), loadIndices(ascene, mesh_id)) {}
-
 static vector<MeshIndices> loadIndices(const XMLNode &node) {
 	vector<MeshIndices> out;
 	XMLNode xml_indices = node.child("indices");
@@ -409,7 +370,7 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 }
 
 Mesh Mesh::merge(const vector<Mesh> &meshes) {
-	THROW("fixme");
+	// THROW("fixme");
 	return meshes.front();
 	/*
 	Mesh out;
