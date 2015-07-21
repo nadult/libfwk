@@ -10,7 +10,6 @@
 #include "fwk_input.h"
 #include "fwk_xml.h"
 
-
 namespace fwk {
 namespace collada {
 	class Root;
@@ -891,6 +890,86 @@ class MeshSkin {
 	int m_max_node_index;
 };
 
+class ModelNode {
+  public:
+	ModelNode(const ModelNode *parent, const string &name, const AffineTrans &trans,
+			  int mesh_id = -1);
+
+	const auto &children() const { return m_children; }
+	const auto &name() const { return m_name; }
+
+	const auto &localTrans() const { return m_trans; }
+	AffineTrans globalTrans() const;
+
+	int meshId() const { return m_mesh_id; }
+	int id() const { return m_id; }
+	int parentId() const { return m_parent ? m_parent->m_id : -1; }
+
+	const ModelNode *root() const;
+	const ModelNode *parent() const { return m_parent; }
+
+  private:
+	friend class ModelTree;
+	vector<unique_ptr<ModelNode>> m_children;
+	string m_name;
+	AffineTrans m_trans;
+	const ModelNode *m_parent;
+	int m_mesh_id;
+	mutable int m_id;
+};
+
+class ModelTree {
+  public:
+	ModelTree();
+	~ModelTree();
+
+	const ModelNode *root() const { return &m_root; }
+
+	template <class... Args> const ModelNode *addNode(const ModelNode *parent, Args &&... args) {
+		DASSERT(parent && parent->root() == root());
+		auto new_node = make_unique<ModelNode>(parent, std::forward<Args>(args)...);
+		if(!addNodeName(new_node.get()))
+			return nullptr;
+
+		auto ret = new_node.get();
+		const_cast<ModelNode *>(parent)->m_children.emplace_back(std::move(new_node));
+		m_is_dirty = true;
+		return ret;
+	}
+
+	template <class... Args> const ModelNode *updateNode(const ModelNode *node, Args &&... args) {
+		DASSERT(node);
+		const ModelNode *parent = node->m_parent;
+		removeNode(node);
+		addNode(parent, std::forward<Args>(args)...);
+	}
+
+	void removeNode(const ModelNode *node);
+
+	const ModelNode *findNode(const string &name) const;
+	int findNodeId(const string &name) const {
+		auto *node = findNode(name);
+		return node ? node->id() : -1;
+	}
+
+	const auto &nodes() const {
+		if(m_is_dirty)
+			updateNodeIds();
+		return m_all_nodes;
+	}
+	void updateNodeIds() const;
+
+  private:
+	bool addNodeName(const ModelNode *);
+
+	struct Map;
+	unique_ptr<Map> m_map;
+	ModelNode m_root;
+
+	mutable bool m_is_dirty;
+	mutable vector<const ModelNode *> m_all_nodes;
+};
+
 class Model {
   public:
 	Model() = default;
@@ -901,17 +980,13 @@ class Model {
 	Model(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
-	int findNode(const string &name) const;
-	vector<int> findNodes(const vector<string> &names) const;
+	void join(const Model &, const string &name);
 
-	struct Node {
-		string name;
-		AffineTrans trans;
-		int id, parent_id, mesh_id;
-		vector<int> children_ids;
-	};
+	const ModelNode *findNode(const string &name) const { return m_tree.findNode(name); }
+	int findNodeId(const string &name) const { return m_tree.findNodeId(name); }
+	const ModelNode *rootNode() const { return m_tree.root(); }
+	const auto &nodes() const { return m_tree.nodes(); }
 
-	const auto &nodes() const { return m_nodes; }
 	const auto &meshes() const { return m_meshes; }
 	const auto &anims() const { return m_anims; }
 
@@ -946,7 +1021,7 @@ class Model {
 	const vector<Matrix4> &finalSkinnedPose(const ModelPose &) const;
 
   protected:
-	int addNode(const string &name, const AffineTrans &, int parent_id);
+	void updateNodes();
 
 	void verifyData() const;
 	void animateVertices(int node_id, const ModelPose &, Range<float3> positions,
@@ -955,10 +1030,11 @@ class Model {
 	Matrix4 computeOffsetMatrix(int node_id) const;
 	void computeBindMatrices();
 
+	ModelTree m_tree;
+
 	vector<Mesh> m_meshes;
 	vector<MeshSkin> m_mesh_skins;
 
-	vector<Node> m_nodes;
 	vector<ModelAnim> m_anims;
 	vector<MaterialDef> m_material_defs;
 

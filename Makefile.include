@@ -4,6 +4,7 @@
 LINUX_FWK_LIB=$(FWK_DIR)/lib/libfwk.a
 MINGW_FWK_LIB=$(FWK_DIR)/lib/libfwk_win32.a
 HTML5_FWK_LIB=$(FWK_DIR)/lib/libfwk.html.cpp
+FWK_FULL_SOURCE=$(FWK_DIR)/lib/libfwk.cpp
 LINUX_FWK_MODEL_CONVERT=$(FWK_DIR)/tools/model_convert
 
 LINUX_PKG_CONFIG=pkg-config
@@ -16,6 +17,7 @@ MINGW_FWK_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib 
 FWK_INCLUDES=-I$(FWK_DIR)/include
 
 HTML5_FWK_FLAGS=-std=c++14 -DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -I$(FWK_DIR)/src $(FWK_INCLUDES) -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_ZLIB=1
+FULL_FWK_FLAGS=-std=c++14 -I$(FWK_DIR)/src $(FWK_INCLUDES) $(shell $(LINUX_PKG_CONFIG) --cflags --libs $(FWK_LIBS)) -DPNG_SKIP_SETJMP_CHECK -lopenal -lGL -lGLU -lrt
 
 $(LINUX_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk.a
@@ -23,6 +25,8 @@ $(MINGW_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a
 $(HTML5_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk.html.cpp
+$(FWK_FULL_SOURCE): .ALWAYS_CHECK
+	$(MAKE) -C $(FWK_DIR) lib/libfwk.cpp
 $(LINUX_FWK_MODEL_CONVERT): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) tools/model_convert
 

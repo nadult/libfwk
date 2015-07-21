@@ -19,38 +19,25 @@ void MaterialDef::saveToXML(XMLNode node) const {
 	node.addAttrib("diffuse", float3(diffuse));
 }
 
+static void parseTree(ModelTree &tree, const ModelNode *parent, XMLNode xml_node) {
+	auto *new_node =
+		tree.addNode(parent, xml_node.attrib("name"), ModelAnim::transFromXML(xml_node),
+					 xml_node.attrib<int>("mesh_id", -1));
+	ASSERT(new_node && "nodes should have distinct names");
+
+	XMLNode child_node = xml_node.child("node");
+	while(child_node) {
+		parseTree(tree, new_node, child_node);
+		child_node.next();
+	}
+}
+
 Model::Model(const XMLNode &node) {
-	std::vector<pair<XMLNode, int>> stack;
-	vector<XMLNode> root_nodes;
+	std::vector<pair<XMLNode, const ModelNode *>> stack;
 	XMLNode subnode = node.child("node");
 	while(subnode) {
-		root_nodes.emplace_back(subnode);
+		parseTree(m_tree, m_tree.root(), subnode);
 		subnode.next();
-	}
-	std::reverse(begin(root_nodes), end(root_nodes));
-	for(const auto &node : root_nodes)
-		stack.emplace_back(node, -1);
-
-	while(!stack.empty()) {
-		XMLNode xml_node = stack.back().first;
-		int parent_id = stack.back().second;
-		stack.pop_back();
-
-		int node_id =
-			addNode(xml_node.attrib("name"), ModelAnim::transFromXML(xml_node), parent_id);
-		Model::Node &new_node = m_nodes[node_id];
-		new_node.mesh_id = xml_node.attrib<int>("mesh_id", -1);
-
-		vector<XMLNode> children;
-		XMLNode child_node = xml_node.child("node");
-		while(child_node) {
-			children.push_back(child_node);
-			child_node.next();
-		}
-
-		std::reverse(begin(children), end(children));
-		for(const auto &child : children)
-			stack.emplace_back(child, node_id);
 	}
 
 	XMLNode mesh_node = node.child("mesh");
@@ -84,7 +71,7 @@ Model::Model(const XMLNode &node) {
 }
 
 Matrix4 Model::computeOffsetMatrix(int node_id) const {
-	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
+	DASSERT(node_id >= 0 && node_id < (int)nodes().size());
 	auto bind_pose = Model::finalPose(defaultPose());
 	return bind_pose[node_id];
 }
@@ -92,17 +79,16 @@ Matrix4 Model::computeOffsetMatrix(int node_id) const {
 void Model::computeBindMatrices() {
 	auto def = defaultPose();
 
-	m_bind_matrices = vector<Matrix4>(m_nodes.size(), Matrix4::identity());
+	m_bind_matrices = vector<Matrix4>(nodes().size(), Matrix4::identity());
 	m_inv_bind_matrices.clear();
 
-	for(int n = 0; n < (int)m_nodes.size(); n++) {
-		Matrix4 mat = m_nodes[n].trans;
-		if(m_nodes[n].parent_id != -1)
-			mat = m_bind_matrices[m_nodes[n].parent_id] * mat;
-		m_bind_matrices[n] = mat;
+	for(const auto *node : nodes()) {
+		Matrix4 mat = node->globalTrans();
+		m_bind_matrices.emplace_back(mat);
 		m_inv_bind_matrices.emplace_back(inverse(mat));
 	}
 
+	// TODO: is this really needed?
 	m_bind_scale = float3(1, 1, 1);
 	for(const auto &inv_bind : m_inv_bind_matrices) {
 		m_bind_scale =
@@ -114,12 +100,7 @@ void Model::computeBindMatrices() {
 }
 
 void Model::verifyData() const {
-	for(int n = 0; n < (int)m_nodes.size(); n++) {
-		const auto &node = m_nodes[n];
-		ASSERT(node.parent_id >= -1 && node.parent_id < n);
-		ASSERT(node.mesh_id >= -1 && node.mesh_id < (int)m_meshes.size());
-	}
-
+	// TODO: verify mesh indices
 	ASSERT(m_meshes.size() == m_mesh_skins.size());
 	for(int m = 0; m < (int)m_meshes.size(); m++) {
 		const auto &mesh = m_meshes[m];
@@ -128,23 +109,19 @@ void Model::verifyData() const {
 	}
 }
 
-static void saveNodes(const vector<Model::Node> &nodes, int node_id, XMLNode xml_node) {
-	const auto &node = nodes[node_id];
-	xml_node.addAttrib("name", xml_node.own(node.name));
-	if(node.mesh_id != -1)
-		xml_node.addAttrib("mesh_id", node.mesh_id);
-	ModelAnim::transToXML(node.trans, xml_node);
+static void saveNode(const ModelTree &tree, const ModelNode *node, XMLNode xml_node) {
+	xml_node.addAttrib("name", xml_node.own(node->name()));
+	if(node->meshId() != -1)
+		xml_node.addAttrib("mesh_id", node->meshId());
+	ModelAnim::transToXML(node->localTrans(), xml_node);
 
-	for(int child_id : node.children_ids) {
-		XMLNode child_node = xml_node.addChild("node");
-		saveNodes(nodes, child_id, child_node);
-	}
+	for(const auto &child : node->children())
+		saveNode(tree, child.get(), xml_node.addChild("node"));
 }
 
 void Model::saveToXML(XMLNode xml_node) const {
-	for(int n = 0; n < (int)m_nodes.size(); n++)
-		if(m_nodes[n].parent_id == -1)
-			saveNodes(m_nodes, n, xml_node.addChild("node"));
+	for(const auto &node : m_tree.root()->children())
+		saveNode(m_tree, node.get(), xml_node.addChild("node"));
 
 	for(int m = 0; m < (int)m_meshes.size(); m++) {
 		const auto &mesh = m_meshes[m];
@@ -168,21 +145,21 @@ void Model::assignMaterials(const std::map<string, PMaterial> &map) {
 }
 
 FBox Model::boundingBox(const ModelPose &pose) const {
-	DASSERT(pose.size() == m_nodes.size());
+	DASSERT(pose.size() == nodes().size());
 
 	FBox out = FBox::empty();
 	const auto &final_pose = finalPose(pose);
-	for(const auto &node : m_nodes)
-		if(node.mesh_id != -1) {
-			const auto &mesh = m_meshes[node.mesh_id];
-			const auto &skin = m_mesh_skins[node.mesh_id];
+	for(const auto &node : nodes())
+		if(node->meshId() != -1) {
+			const auto &mesh = m_meshes[node->meshId()];
+			const auto &skin = m_mesh_skins[node->meshId()];
 
 			FBox bbox;
 			if(skin.empty()) {
-				bbox = final_pose[node.id] * mesh.boundingBox();
+				bbox = final_pose[node->id()] * mesh.boundingBox();
 			} else {
 				PodArray<float3> positions(mesh.vertexCount());
-				animateVertices(node.id, pose, positions);
+				animateVertices(node->id(), pose, positions);
 				bbox = FBox(positions);
 			}
 			out = out.isEmpty() ? bbox : sum(out, bbox);
@@ -191,19 +168,7 @@ FBox Model::boundingBox(const ModelPose &pose) const {
 	return out;
 }
 
-vector<int> Model::findNodes(const vector<string> &names) const {
-	vector<int> out;
-	for(const auto &name : names)
-		out.push_back(findNode(name));
-	return out;
-}
-
-int Model::findNode(const string &name) const {
-	for(int n = 0; n < (int)m_nodes.size(); n++)
-		if(m_nodes[n].name == name)
-			return n;
-	return -1;
-}
+void Model::join(const Model &other, const string &name) {}
 
 void Model::draw(Renderer &out, const ModelPose &pose, PMaterial material,
 				 const Matrix4 &matrix) const {
@@ -211,14 +176,14 @@ void Model::draw(Renderer &out, const ModelPose &pose, PMaterial material,
 	out.mulViewMatrix(matrix);
 
 	const auto &final_pose = finalPose(pose);
-	for(const auto &node : m_nodes)
-		if(node.mesh_id != -1) {
-			const auto &mesh = m_meshes[node.mesh_id];
-			const auto &skin = m_mesh_skins[node.mesh_id];
+	for(const auto &node : nodes())
+		if(node->meshId() != -1) {
+			const auto &mesh = m_meshes[node->meshId()];
+			const auto &skin = m_mesh_skins[node->meshId()];
 
 			if(skin.empty()) {
-				mesh.draw(out, material, final_pose[node.id]);
-			} else { Mesh(animateMesh(node.id, pose)).draw(out, material, Matrix4::identity()); }
+				mesh.draw(out, material, final_pose[node->id()]);
+			} else { Mesh(animateMesh(node->id(), pose)).draw(out, material, Matrix4::identity()); }
 		}
 
 	out.popViewMatrix();
@@ -231,16 +196,16 @@ void Model::drawNodes(Renderer &out, const ModelPose &pose, Color node_color, Co
 	out.mulViewMatrix(matrix);
 
 	const auto &final_pose = finalSkinnedPose(pose);
-	vector<float3> positions(m_nodes.size());
-	for(int n = 0; n < (int)m_nodes.size(); n++)
+	vector<float3> positions(nodes().size());
+	for(int n = 0; n < (int)nodes().size(); n++)
 		positions[n] = mulPoint(final_pose[n], m_bind_matrices[n][3].xyz());
 
 	auto material = make_shared<Material>(node_color);
-	for(int n = 0; n < (int)m_nodes.size(); n++) {
-		if(m_inv_bind_matrices[n] != Matrix4::identity())
-			bbox_mesh.draw(out, material, translation(positions[n]));
-		if(m_nodes[n].parent_id != -1) {
-			vector<float3> lines{positions[n], positions[m_nodes[n].parent_id]};
+	for(const auto *node : nodes()) {
+		if(m_inv_bind_matrices[node->id()] != Matrix4::identity())
+			bbox_mesh.draw(out, material, translation(positions[node->id()]));
+		if(node->parentId() != -1) {
+			vector<float3> lines{positions[node->id()], positions[node->parentId()]};
 			out.addLines(lines, line_color);
 		}
 	}
@@ -249,21 +214,21 @@ void Model::drawNodes(Renderer &out, const ModelPose &pose, Color node_color, Co
 }
 
 void Model::printHierarchy() const {
-	for(int n = 0; n < (int)m_nodes.size(); n++)
-		printf("%d: %s\n", n, m_nodes[n].name.c_str());
+	for(const auto *node : nodes())
+		printf("%d: %s\n", node->id(), node->name().c_str());
 }
 
 Mesh Model::toMesh(const ModelPose &pose) const {
 	vector<Mesh> meshes;
 
 	const auto &final_pose = finalPose(pose);
-	for(const auto &node : m_nodes)
-		if(node.mesh_id != -1) {
-			const auto &mesh = m_meshes[node.mesh_id];
-			const auto &skin = m_mesh_skins[node.mesh_id];
+	for(const auto *node : nodes())
+		if(node->meshId() != -1) {
+			const auto &mesh = m_meshes[node->meshId()];
+			const auto &skin = m_mesh_skins[node->meshId()];
 
-			meshes.emplace_back(skin.empty() ? Mesh::transform(final_pose[node.id], mesh)
-											 : animateMesh(node.id, pose));
+			meshes.emplace_back(skin.empty() ? Mesh::transform(final_pose[node->id()], mesh)
+											 : animateMesh(node->id(), pose));
 		}
 
 	return Mesh::merge(meshes);
@@ -273,17 +238,17 @@ float Model::intersect(const Segment &segment, const ModelPose &pose) const {
 	float min_isect = constant::inf;
 
 	const auto &final_pose = finalPose(pose);
-	for(const auto &node : m_nodes)
-		if(node.mesh_id != -1) {
-			const auto &mesh = m_meshes[node.mesh_id];
-			const auto &skin = m_mesh_skins[node.mesh_id];
+	for(const auto &node : nodes())
+		if(node->meshId() != -1) {
+			const auto &mesh = m_meshes[node->meshId()];
+			const auto &skin = m_mesh_skins[node->meshId()];
 
 			if(skin.empty()) {
-				float isect = mesh.intersect(inverse(final_pose[node.id]) * segment);
+				float isect = mesh.intersect(inverse(final_pose[node->id()]) * segment);
 				min_isect = min(min_isect, isect);
 			} else {
 				PodArray<float3> positions(mesh.vertexCount());
-				animateVertices(node.id, pose, positions);
+				animateVertices(node->id(), pose, positions);
 
 				// TODO: optimize
 				if(intersection(segment, FBox(positions)) < constant::inf)
@@ -301,13 +266,13 @@ float Model::intersect(const Segment &segment, const ModelPose &pose) const {
 
 void Model::animateVertices(int node_id, const ModelPose &pose, Range<float3> out_positions,
 							Range<float3> out_normals) const {
-	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
+	DASSERT(node_id >= 0 && node_id < (int)nodes().size());
 
-	const auto &node = m_nodes[node_id];
-	DASSERT(node.mesh_id != -1);
+	const auto &node = nodes()[node_id];
+	DASSERT(node->meshId() != -1);
 
-	const MeshSkin &skin = m_mesh_skins[node.mesh_id];
-	const Mesh &mesh = m_meshes[node.mesh_id];
+	const MeshSkin &skin = m_mesh_skins[node->meshId()];
+	const Mesh &mesh = m_meshes[node->meshId()];
 	updateCounter("Model::animateVertices", 1);
 	FWK_PROFILE("Model::animateVertices");
 	DASSERT(!skin.empty());
@@ -331,11 +296,11 @@ void Model::animateVertices(int node_id, const ModelPose &pose, Range<float3> ou
 }
 
 Mesh Model::animateMesh(int node_id, const ModelPose &pose) const {
-	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
+	DASSERT(node_id >= 0 && node_id < (int)nodes().size());
 
-	const auto &node = m_nodes[node_id];
-	DASSERT(node.mesh_id != -1);
-	const auto &mesh = m_meshes[node.mesh_id];
+	const auto &node = nodes()[node_id];
+	DASSERT(node->meshId() != -1);
+	const auto &mesh = m_meshes[node->meshId()];
 
 	vector<float3> positions = mesh.positions();
 	vector<float2> tex_coords = mesh.texCoords();
@@ -346,33 +311,32 @@ Mesh Model::animateMesh(int node_id, const ModelPose &pose) const {
 
 Matrix4 Model::nodeTrans(const string &name, const ModelPose &pose) const {
 	const auto &final_pose = finalPose(pose);
-	for(int n = 0; n < (int)m_nodes.size(); n++)
-		if(m_nodes[n].name == name)
-			return final_pose[n];
+	if(const auto *node = findNode(name))
+		return final_pose[node->id()];
 	return Matrix4::identity();
 }
 
 const vector<Matrix4> &Model::finalPose(const ModelPose &pose) const {
-	DASSERT(pose.size() == m_nodes.size());
+	DASSERT(pose.size() == nodes().size());
 	if(pose.m_is_dirty) {
 		auto &out = pose.m_final;
 		out = std::vector<Matrix4>(begin(pose.m_transforms), end(pose.m_transforms));
 		for(int n = 0; n < (int)out.size(); n++)
-			if(m_nodes[n].parent_id != -1)
-				out[n] = out[m_nodes[n].parent_id] * out[n];
+			if(nodes()[n]->parentId() != -1)
+				out[n] = out[nodes()[n]->parentId()] * out[n];
 		pose.m_is_dirty = false;
 	}
 	return pose.m_final;
 }
 
 const vector<Matrix4> &Model::finalSkinnedPose(const ModelPose &pose) const {
-	DASSERT(pose.size() == m_nodes.size());
+	DASSERT(pose.size() == nodes().size());
 	if(pose.m_is_skinned_dirty) {
 		const auto &normal_poses = Model::finalPose(pose);
-		DASSERT(normal_poses.size() == m_nodes.size());
+		DASSERT(normal_poses.size() == nodes().size());
 
 		auto &out = pose.m_skinned_final;
-		out.resize(m_nodes.size());
+		out.resize(nodes().size());
 		for(int n = 0; n < (int)out.size(); n++)
 			out[n] = scaling(m_bind_scale) * normal_poses[n] * m_inv_bind_matrices[n];
 
@@ -382,9 +346,9 @@ const vector<Matrix4> &Model::finalSkinnedPose(const ModelPose &pose) const {
 }
 
 ModelPose Model::defaultPose() const {
-	vector<AffineTrans> out(m_nodes.size());
-	for(int n = 0; n < (int)m_nodes.size(); n++)
-		out[n] = m_nodes[n].trans;
+	vector<AffineTrans> out(nodes().size());
+	for(int n = 0; n < (int)nodes().size(); n++)
+		out[n] = nodes()[n]->localTrans();
 	return ModelPose(std::move(out));
 }
 
@@ -394,15 +358,5 @@ ModelPose Model::animatePose(int anim_id, double anim_pos) const {
 	if(anim_id == -1)
 		return defaultPose();
 	return m_anims[anim_id].animatePose(defaultPose(), anim_pos);
-}
-
-int Model::addNode(const string &name, const AffineTrans &trans, int parent_id) {
-	DASSERT(parent_id >= -1 && parent_id < (int)m_nodes.size());
-
-	int node_id = (int)m_nodes.size();
-	m_nodes.emplace_back(Node{name, trans, node_id, parent_id, -1, vector<int>()});
-	if(parent_id != -1)
-		m_nodes[parent_id].children_ids.emplace_back(node_id);
-	return node_id;
 }
 }

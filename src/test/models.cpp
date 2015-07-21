@@ -20,13 +20,13 @@ void testMain() {
 	PModel model = make_shared<Model>(doc.child());
 	remove(mesh_path.c_str());
 
-	int cube_id = model->findNode("Cube");
-	int plane_id = model->findNode("Plane");
-	int cone_id = model->findNode("Cone");
+	int cube_id = model->findNodeId("Cube");
+	int plane_id = model->findNodeId("Plane");
+	int cone_id = model->findNodeId("Cone");
 
 	ASSERT(cube_id != -1 && plane_id != -1 && cone_id != -1);
 	const auto &nodes = model->nodes();
-	ASSERT(nodes[plane_id].parent_id == cube_id);
+	ASSERT(nodes[plane_id]->parentId() == cube_id);
 
 	auto pose = model->finalPose(model->defaultPose());
 	vector<AffineTrans> transforms(begin(pose), end(pose));

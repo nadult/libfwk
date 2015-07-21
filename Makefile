@@ -15,25 +15,20 @@ _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
-SHARED_SRC=base backtrace filesystem input profiler stream xml xml_conversions \
-		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/mesh_skin \
+SHARED_SRC=base backtrace filesystem filesystem_linux filesystem_windows input profiler stream xml xml_conversions \
+		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree gfx/mesh_skin \
 		   gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model gfx/mesh gfx/mesh_constructor gfx/matrix_stack \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/shader gfx/program gfx/renderer gfx/renderer2d math/cylinder \
 		   math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat math/base math/triangle \
 		   text_formatter text_parser
 PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models tools/model_convert tools/model_viewer
-LINUX_SRC=filesystem_linux
-MINGW_SRC=filesystem_windows
-HTML5_SRC=filesystem_linux
 
 
-LINUX_SHARED_SRC=$(SHARED_SRC) $(LINUX_SRC)
-MINGW_SHARED_SRC=$(SHARED_SRC) $(MINGW_SRC)
-ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC) $(LINUX_SRC) $(MINGW_SRC)
+ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
 DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.dep)
 
-LINUX_SHARED_OBJECTS:=$(LINUX_SHARED_SRC:%=$(BUILD_DIR)/%.o)
-MINGW_SHARED_OBJECTS:=$(MINGW_SHARED_SRC:%=$(BUILD_DIR)/%_.o)
+LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
+MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o)
 
 LINUX_OBJECTS:=$(LINUX_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.o)
 MINGW_OBJECTS:=$(MINGW_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%_.o)
@@ -43,7 +38,7 @@ MINGW_PROGRAMS:=$(PROGRAM_SRC:%=%.exe)
 HTML5_PROGRAMS:=$(PROGRAM_SRC:%=%.html)
 HTML5_PROGRAMS_SRC:=$(PROGRAM_SRC:%=%.html.cpp)
 
-all: lib/libfwk.a lib/libfwk_win32.a $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
+all: lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
 
 LINUX_AR =ar
 LINUX_STRIP=strip
@@ -83,7 +78,7 @@ $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
 	$(MINGW_CXX) -o $@ $^ $(MINGW_LIBS) $(LIBS_$*)
 	$(MINGW_STRIP) $@
 
-$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
+$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp)
 	cat $^ > $@
 
 $(HTML5_PROGRAMS): %.html: %.html.cpp
@@ -95,7 +90,10 @@ lib/libfwk.a: $(LINUX_SHARED_OBJECTS)
 	$(LINUX_AR) r $@ $^ 
 
 lib/libfwk_win32.a: $(MINGW_SHARED_OBJECTS)
-	$(MINGW_AR) r $@ $^ 
+	$(MINGW_AR) r $@ $^
+
+lib/libfwk.cpp: $(SHARED_SRC:%=src/%.cpp)
+	cat $^ > $@
 
 lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 	cat $^ > $@
@@ -103,7 +101,7 @@ lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
-		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a lib/libfwk.html.cpp
+		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp
 	-rmdir test temp lib tools
 	find $(BUILD_DIR) -type d -empty -delete
 

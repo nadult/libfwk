@@ -105,7 +105,7 @@ ModelAnim::ModelAnim(const XMLNode &node, const Model &model)
 void ModelAnim::updateNodeIndices(const Model &model) {
 	m_max_node_id = 0;
 	for(auto &channel : m_channels) {
-		channel.node_id = model.findNode(channel.node_name);
+		channel.node_id = model.findNodeId(channel.node_name);
 		m_max_node_id = max(m_max_node_id, channel.node_id);
 	}
 }

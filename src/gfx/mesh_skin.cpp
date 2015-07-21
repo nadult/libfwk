@@ -75,7 +75,9 @@ bool MeshSkin::empty() const {
 
 void MeshSkin::attach(const Model &model) {
 	m_max_node_index = 0;
-	m_mapping = model.findNodes(m_node_names);
+	m_mapping.clear();
+	for(const auto &name : m_node_names)
+		m_mapping.emplace_back(model.findNodeId(name));
 	for(int n = 0; n < (int)m_mapping.size(); n++) {
 		int id = m_mapping[n];
 		m_max_node_index = max(m_max_node_index, id);
