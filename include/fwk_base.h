@@ -41,6 +41,41 @@ using i16 = short;
 using u32 = unsigned;
 using i32 = int;
 
+// Copy on write, not an animal
+template <class T> class cow_ptr {
+  public:
+	cow_ptr(const T &rhs) : m_ptr(make_shared<const T>(rhs)) {}
+	cow_ptr(T &&rhs) : m_ptr(make_shared<const T>(std::move(rhs))) {}
+
+	cow_ptr() = default;
+	cow_ptr(const cow_ptr &) = default;
+	cow_ptr(cow_ptr &&) = default;
+	cow_ptr &operator=(const cow_ptr &) = default;
+	cow_ptr &operator=(cow_ptr &&) = default;
+
+	const T *operator->() const { return m_ptr.operator->(); }
+	T *operator->() { return get(); }
+	const T *get() const { return m_ptr.get(); }
+
+	T *get() {
+		if(!m_ptr.unique())
+			m_ptr = make_shared<const T>(*m_ptr.get());
+		return const_cast<T *>(m_ptr.get());
+	}
+
+	bool operator==(const T *rhs) const { return m_ptr == rhs; }
+
+  private:
+	cow_ptr(shared_ptr<const T> ptr) : m_ptr(std::move(ptr)) {}
+	template <class T1, class... Args> friend cow_ptr<T1> make_cow(Args &&...);
+
+	shared_ptr<const T> m_ptr;
+};
+
+template <class T, class... Args> cow_ptr<T> make_cow(Args &&... args) {
+	return cow_ptr<T>(make_shared<const T>(std::forward<Args>(args)...));
+}
+
 // TODO: write more of these
 template <class Range, class Functor> bool anyOf(const Range &range, Functor functor) {
 	return std::any_of(begin(range), end(range), functor);
@@ -63,6 +98,7 @@ string backtrace(size_t skip = 0);
 string cppFilterBacktrace(const string &);
 
 class Exception : public std::exception {
+
   public:
 	Exception(const char *);
 	Exception(const string &);
@@ -133,6 +169,7 @@ void logError(const string &error);
 template <class T> class Range;
 
 template <class T> class RangeIterator : public std::iterator<std::random_access_iterator_tag, T> {
+
   protected:
 #ifdef NDEBUG
 	constexpr RangeIterator(T *pointer, int, int) noexcept : m_pointer(pointer) {}
@@ -198,6 +235,7 @@ template <class T> class PodArray;
 // exist while Range pointing to them is in use
 // TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
 template <class T> class Range {
+
   public:
 	Range(std::vector<T> &data) : Range(data.data(), data.size()) {}
 	template <class TConvertible>
@@ -1197,6 +1235,24 @@ bool removePrefix(string &str, const string &prefix);
 string toLower(const string &str);
 void mkdirRecursive(const FilePath &path);
 bool access(const FilePath &path);
+
+class NameMapping {
+  public:
+	NameMapping() = default;
+	NameMapping(vector<string> names);
+	NameMapping(const NameMapping &);
+	NameMapping(NameMapping &&) = default;
+	~NameMapping();
+
+	const vector<string> &names() const { return m_names; }
+	vector<int> operator()(const vector<string> &names) const;
+	auto size() const { return m_names.size(); }
+
+  protected:
+	vector<string> m_names;
+	struct Map;
+	mutable unique_ptr<Map> m_map;
+};
 }
 
 #endif
