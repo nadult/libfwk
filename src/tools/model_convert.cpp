@@ -105,7 +105,7 @@ pair<PModel, string> loadModel(FileType::Type file_type, Stream &stream) {
 		stream >> doc;
 		XMLNode child = doc.child();
 		ASSERT(child && "empty XML document");
-		out = make_pair(make_shared<Model>(child), string(child.name()));
+		out = make_pair(make_cow<Model>(child), string(child.name()));
 	} else {
 		DASSERT(file_type == FileType::blender);
 		ASSERT(dynamic_cast<FileStream *>(&stream));
@@ -124,8 +124,7 @@ pair<PModel, string> loadModel(FileType::Type file_type, Stream &stream) {
 	return out;
 }
 
-void saveModel(shared_ptr<Model> model, const string &node_name, FileType::Type file_type,
-			   Stream &stream) {
+void saveModel(PModel model, const string &node_name, FileType::Type file_type, Stream &stream) {
 	if(file_type == FileType::fwk) {
 		XMLDocument doc;
 		XMLNode node = doc.addChild(doc.own(node_name));
@@ -154,8 +153,8 @@ void convert(const string &from, const Matrix4 &transform, const string &to) {
 
 	printf("Loading: %s (format: %s)\n", from.c_str(), toString(from_type));
 	auto pair = loadModel(from_type, loader);
-	printf(" Parts: %d  Nodes: %d  Anims: %d\n", (int)pair.first->meshes().size(),
-		   (int)pair.first->nodes().size(), (int)pair.first->anims().size());
+	printf(" Nodes: %d  Anims: %d\n", (int)pair.first->nodes().size(),
+		   (int)pair.first->anims().size());
 	printf(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
 
 	saveModel(pair.first, pair.second, to_type, saver);

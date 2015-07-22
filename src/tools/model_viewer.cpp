@@ -30,22 +30,25 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 class Viewer {
   public:
 	struct Model {
+		Model(PModel model, PProgram prog, PMaterial default_mat, PTexture tex, string mname,
+			  string tname)
+			: model(std::move(model)), materials(default_mat), model_name(mname), tex_name(tname) {
+			std::map<string, PMaterial> map;
+
+			for(const auto &def : this->model->materialDefs()) {
+				map[def.name] = tex ? make_cow<Material>(tex, def.diffuse)
+									: make_cow<Material>(prog, def.diffuse);
+			}
+			materials = MaterialSet(default_mat, map);
+		}
+
 		PModel model;
-		PMaterial default_material;
-		PTexture tex;
+		MaterialSet materials;
 		string model_name;
 		string tex_name;
 	};
 
-	void makeMaterials(Model &model) {
-		std::map<string, PMaterial> materials;
-
-		for(const auto &def : model.model->materialDefs()) {
-			materials[def.name] = model.tex ? make_shared<Material>(model.tex, def.diffuse)
-											: make_shared<Material>(m_flat_program, def.diffuse);
-		}
-		model.model->assignMaterials(materials);
-	}
+	void makeMaterials(PMaterial default_mat, Model &model) {}
 
 	Viewer(const IRect &viewport, const vector<pair<string, string>> &file_names)
 		: m_viewport(viewport), m_current_model(0), m_current_anim(-1), m_anim_pos(0.0),
@@ -53,8 +56,7 @@ class Viewer {
 		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
 		Loader(dataPath("flat_shader.vsh")) >> vertex_shader;
 		Loader(dataPath("flat_shader.fsh")) >> fragment_shader;
-		m_flat_program = make_shared<Program>(vertex_shader, fragment_shader);
-		m_flat_program->link();
+		m_flat_program = make_cow<Program>(vertex_shader, fragment_shader);
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -66,14 +68,13 @@ class Viewer {
 			}
 
 			PMaterial default_mat =
-				tex ? make_shared<Material>(tex) : make_shared<Material>(m_flat_program);
+				tex ? make_cow<Material>(tex) : make_cow<Material>(m_flat_program);
 
 			double time = getTime();
 			auto model = s_models[file_name.first];
 			printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), (getTime() - time) * 1000.0f);
-			Model new_model{model, default_mat, tex, file_name.first, file_name.second};
-			makeMaterials(new_model);
-			m_models.push_back(std::move(new_model));
+			m_models.emplace_back(model, m_flat_program, default_mat, tex, file_name.first,
+								  file_name.second);
 		}
 
 		FontFactory factory;
@@ -142,7 +143,7 @@ class Viewer {
 		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
 					  translation(-initial_bbox.center());
 
-		model.model->draw(out, pose, model.default_material, matrix);
+		model.model->draw(out, pose, model.materials, matrix);
 		out.addWireBox(initial_bbox, {Color::red}, matrix);
 		out.addWireBox(bbox, {Color::green}, matrix);
 		if(m_show_nodes)
@@ -151,7 +152,7 @@ class Viewer {
 		TextFormatter fmt;
 		fmt("Model: %s (%d / %d)\n", model.model_name.c_str(), m_current_model + 1,
 			(int)m_models.size());
-		fmt("Texture: %s\n", model.tex ? model.tex_name.c_str() : "none");
+		fmt("Texture: %s\n", !model.tex_name.empty() ? model.tex_name.c_str() : "none");
 		string anim_name = m_current_anim == -1 ? "none" : model.model->anim(m_current_anim).name();
 		fmt("Animation: %s (%d / %d)\n", anim_name.c_str(), m_current_anim + 1,
 			(int)model.model->animCount());

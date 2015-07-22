@@ -33,16 +33,7 @@ AffineTrans ModelAnim::transFromXML(XMLNode node) {
 	return AffineTrans(pos, scale, rot);
 }
 
-ModelPose::ModelPose(vector<AffineTrans> transforms)
-	: m_transforms(std::move(transforms)), m_is_dirty(true), m_is_skinned_dirty(true) {}
-
-void ModelPose::transform(const AffineTrans &pre_trans) {
-	for(auto &trans : m_transforms)
-		trans = pre_trans * trans;
-	m_is_dirty = m_is_skinned_dirty = true;
-}
-
-ModelAnim::Channel::Channel(const XMLNode &node) : node_name(node.attrib("name")), node_id(-1) {
+ModelAnim::Channel::Channel(const XMLNode &node) : node_name(node.attrib("name")) {
 	using namespace xml_conversions;
 
 	default_trans = transFromXML(node);
@@ -85,12 +76,11 @@ AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 	return out;
 }
 
-ModelAnim::ModelAnim(const XMLNode &node, const Model &model)
-	: m_name(node.attrib("name")), m_max_node_id(0), m_length(node.attrib<float>("length")) {
+ModelAnim::ModelAnim(const XMLNode &node)
+	: m_name(node.attrib("name")), m_length(node.attrib<float>("length")) {
 	XMLNode channel_node = node.child("channel");
 	while(channel_node) {
 		m_channels.emplace_back(channel_node);
-		m_max_node_id = max(m_max_node_id, m_channels.back().node_id);
 		channel_node.next();
 	}
 
@@ -98,16 +88,7 @@ ModelAnim::ModelAnim(const XMLNode &node, const Model &model)
 	ASSERT(shared_track);
 	m_shared_time_track = xml_conversions::fromString<vector<float>>(shared_track.value());
 
-	updateNodeIndices(model);
 	verifyData();
-}
-
-void ModelAnim::updateNodeIndices(const Model &model) {
-	m_max_node_id = 0;
-	for(auto &channel : m_channels) {
-		channel.node_id = model.findNodeId(channel.node_name);
-		m_max_node_id = max(m_max_node_id, channel.node_id);
-	}
 }
 
 void ModelAnim::saveToXML(XMLNode node) const {
@@ -140,14 +121,17 @@ AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
 	return channel.blend(frame0, frame1, blend_factor);
 }
 
-ModelPose ModelAnim::animatePose(ModelPose pose, double anim_pos) const {
-	DASSERT(m_max_node_id < (int)pose.size());
-
+Pose ModelAnim::animatePose(Pose pose, double anim_pos) const {
 	if(anim_pos >= m_length)
 		anim_pos -= double(int(anim_pos / m_length)) * m_length;
 
-	for(int n = 0; n < (int)m_channels.size(); n++)
-		pose.m_transforms[m_channels[n].node_id] = animateChannel(n, anim_pos);
+	for(int n = 0; n < (int)m_channels.size(); n++) {
+		const auto &channel = m_channels[n];
+		int id = pose.name_mapping(channel.node_name);
+		DASSERT(id != -1);
+		if(id != -1)
+			pose.transforms[id] = animateChannel(n, anim_pos);
+	}
 
 	return pose;
 }
@@ -174,7 +158,6 @@ void ModelAnim::verifyData() const {
 		ASSERT(channel.translation_track.size() == num_keys || channel.translation_track.empty());
 		ASSERT(channel.rotation_track.size() == num_keys || channel.rotation_track.empty());
 		ASSERT(channel.scaling_track.size() == num_keys || channel.scaling_track.empty());
-		ASSERT(channel.node_id >= 0);
 	}
 }
 }

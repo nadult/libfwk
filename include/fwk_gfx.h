@@ -215,8 +215,9 @@ class DTexture {
   public:
 	DTexture();
 	DTexture(const string &name, Stream &);
+	DTexture(const Texture &);
 	DTexture(DTexture &&);
-	DTexture(const DTexture &) = delete;
+	DTexture(const DTexture &);
 	void operator=(const DTexture &) = delete;
 	void operator=(DTexture &&);
 	~DTexture();
@@ -262,7 +263,7 @@ class DTexture {
 	mutable bool m_is_dirty;
 };
 
-typedef shared_ptr<DTexture> PTexture;
+using PTexture = cow_ptr<DTexture>;
 
 struct InputState {
 	int2 mouse_pos, mouse_move;
@@ -416,7 +417,7 @@ class VertexBuffer {
 	friend class VertexArray;
 };
 
-using PVertexBuffer = shared_ptr<VertexBuffer>;
+using PVertexBuffer = cow_ptr<VertexBuffer>;
 
 class IndexBuffer {
   public:
@@ -444,7 +445,7 @@ class IndexBuffer {
 	friend class VertexArray;
 };
 
-using PIndexBuffer = shared_ptr<IndexBuffer>;
+using PIndexBuffer = cow_ptr<IndexBuffer>;
 
 DECLARE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
@@ -478,9 +479,9 @@ class VertexArray {
 	VertexArray(vector<Source>, PIndexBuffer = PIndexBuffer());
 	~VertexArray();
 
-	static shared_ptr<VertexArray> make(vector<Source> sources,
-										PIndexBuffer index_buffer = PIndexBuffer()) {
-		return make_shared<VertexArray>(std::move(sources), std::move(index_buffer));
+	static cow_ptr<VertexArray> make(vector<Source> sources,
+									 PIndexBuffer index_buffer = PIndexBuffer()) {
+		return make_cow<VertexArray>(std::move(sources), std::move(index_buffer));
 	}
 
 	void operator=(const VertexArray &) = delete;
@@ -509,7 +510,7 @@ class VertexArray {
 #endif
 };
 
-using PVertexArray = shared_ptr<VertexArray>;
+using PVertexArray = cow_ptr<VertexArray>;
 
 class DrawCall {
   public:
@@ -554,16 +555,27 @@ class Shader {
 
 class Program {
   public:
-	Program(const Shader &vertex, const Shader &fragment);
+	Program(const Shader &vertex, const Shader &fragment,
+			const vector<string> &location_names = {});
 	~Program();
 	Program(const Program &) = delete;
 	void operator=(const Program &) = delete;
 
-	void bind() const;
-	static void unbind();
-
 	unsigned handle() const { return m_handle; }
 	string getInfo() const;
+
+  private:
+	unsigned m_handle;
+};
+
+using PProgram = cow_ptr<Program>;
+
+class ProgramBinder {
+  public:
+	ProgramBinder(PProgram);
+	ProgramBinder(const ProgramBinder &) = delete;
+	ProgramBinder(ProgramBinder &&) = default;
+	~ProgramBinder();
 
 	void setUniform(const char *name, float);
 	void setUniform(const char *name, const float *, size_t);
@@ -577,17 +589,17 @@ class Program {
 	void setUniform(const char *name, const float3 &);
 	void setUniform(const char *name, const float4 &);
 	void setUniform(const char *name, const Matrix4 &);
-	int getUniformLocation(const char *name);
+	int getUniformLocation(const char *name) const;
 
-	void bindAttribLocation(const char *name, unsigned);
-	void link();
+	PProgram program() const { return m_program; }
 
-  private:
-	unsigned m_handle;
-	bool m_is_linked;
+	void bind() const;
+	static void unbind();
+
+  protected:
+	PProgram m_program;
+	unsigned handle() const { return m_program->handle(); }
 };
-
-using PProgram = shared_ptr<Program>;
 
 class Material {
   public:
@@ -596,22 +608,11 @@ class Material {
 		flag_two_sided = 2,
 		flag_wire = 4,
 	};
-	Material(PProgram program, Color color = Color::white, uint flags = 0)
-		: m_program(std::move(program)), m_color(color), m_flags(flags) {}
-
+	Material(PProgram program, Color color = Color::white, uint flags = 0);
 	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
-			 uint flags = 0)
-		: m_program(std::move(program)), m_textures(std::move(textures)), m_color(color),
-		  m_flags(flags) {
-		for(const auto &tex : m_textures)
-			DASSERT(tex);
-	}
-	Material(PTexture texture, Color color = Color::white, uint flags = 0)
-		: m_color(color), m_flags(flags) {
-		if(texture)
-			m_textures.emplace_back(std::move(texture));
-	}
-	Material(Color color = Color::white, uint flags = 0) : m_color(color), m_flags(flags) {}
+			 uint flags = 0);
+	Material(PTexture texture, Color color = Color::white, uint flags = 0);
+	Material(Color color = Color::white, uint flags = 0);
 
 	PProgram program() const { return m_program; }
 	PTexture texture() const { return m_textures.empty() ? PTexture() : m_textures.front(); }
@@ -619,10 +620,7 @@ class Material {
 	Color color() const { return m_color; }
 	uint flags() const { return m_flags; }
 
-	bool operator<(const Material &rhs) const {
-		return std::tie(m_program, m_textures, m_color, m_flags) <
-			   std::tie(rhs.m_program, rhs.m_textures, rhs.m_color, rhs.m_flags);
-	}
+	bool operator<(const Material &rhs) const;
 
   protected:
 	PProgram m_program;
@@ -631,15 +629,64 @@ class Material {
 	uint m_flags;
 };
 
-using PMaterial = shared_ptr<Material>;
+using PMaterial = cow_ptr<Material>;
+
+class MaterialSet {
+  public:
+	MaterialSet(PMaterial default_mat, std::map<string, PMaterial> = {});
+	~MaterialSet();
+
+	PMaterial operator[](const string &name) const;
+	vector<PMaterial> operator()(const vector<string> &names) const;
+
+  private:
+	PMaterial m_default;
+	std::map<string, PMaterial> m_map;
+};
 
 class Renderer;
 
+struct Pose {
+  public:
+	Pose(vector<Matrix4> transforms = {}, NameMapping name_mapping = NameMapping())
+		: transforms(std::move(transforms)), name_mapping(std::move(name_mapping)) {
+		ASSERT(this->transforms.size() == this->name_mapping.size());
+	}
+	auto size() const { return transforms.size(); }
+
+	Matrix4 operator()(const string &name) const {
+		int id = name_mapping(name);
+		return id == -1 ? Matrix4::identity() : transforms[id];
+	}
+
+	vector<Matrix4> transforms;
+	NameMapping name_mapping;
+};
+
+inline Pose operator*(const Matrix4 &mat, Pose pose) {
+	for(auto &transform : pose.transforms)
+		transform = mat * transform;
+	return pose;
+}
+inline Pose operator*(Pose pose, const Matrix4 &mat) {
+	for(auto &transform : pose.transforms)
+		transform = transform * mat;
+	return pose;
+}
+
 struct MeshBuffers {
   public:
+	struct VertexWeight {
+		VertexWeight(float weight = 0.0f, int node_id = 0) : weight(weight), node_id(node_id) {}
+
+		float weight;
+		int node_id;
+	};
+
 	MeshBuffers() = default;
 	MeshBuffers(vector<float3> positions, vector<float3> normals = {},
-				vector<float2> tex_coords = {});
+				vector<float2> tex_coords = {}, vector<vector<VertexWeight>> weights = {},
+				vector<string> node_names = {});
 	MeshBuffers(PVertexBuffer positions, PVertexBuffer normals = PVertexBuffer(),
 				PVertexBuffer tex_coords = PVertexBuffer());
 	MeshBuffers(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1);
@@ -647,11 +694,19 @@ struct MeshBuffers {
 	MeshBuffers(const XMLNode &node);
 	void saveToXML(XMLNode) const;
 
+	void animatePositions(Range<float3>, const Pose &) const;
+	void animateNormals(Range<float3>, const Pose &) const;
+
 	int size() const { return (int)positions.size(); }
+	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
+
+	vector<pair<Matrix4, float>> mapPose(const Pose &) const;
 
 	vector<float3> positions;
 	vector<float3> normals;
 	vector<float2> tex_coords;
+	vector<vector<VertexWeight>> weights;
+	vector<string> node_names;
 };
 
 class MeshIndices {
@@ -686,20 +741,11 @@ class MeshIndices {
 	Type m_type;
 };
 
-struct MaterialRef {
-	MaterialRef() = default;
-	MaterialRef(const string &name) : name(name) {}
-	MaterialRef(PMaterial material) : pointer(std::move(material)) {}
-
-	string name;
-	PMaterial pointer;
-};
-
 // Make it immutable, with operations requiring a copy/move
 class Mesh {
   public:
 	Mesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
-		 vector<MaterialRef> = {});
+		 vector<string> mat_names = {});
 	Mesh(const Mesh &) = default;
 	Mesh(Mesh &&) = default;
 	Mesh &operator=(Mesh &&) = default;
@@ -713,6 +759,7 @@ class Mesh {
 	Mesh(MakeCylinder, const Cylinder &, int num_sides);
 
 	const FBox &boundingBox() const { return m_bounding_box; }
+	FBox boundingBox(const Pose &) const;
 
 	void transformUV(const Matrix4 &);
 	void changePrimitiveType(PrimitiveType::Type new_type);
@@ -726,7 +773,7 @@ class Mesh {
 	const vector<float2> &texCoords() const { return m_buffers.tex_coords; }
 	const vector<MeshIndices> &indices() const { return m_indices; }
 	const MeshIndices &mergedIndices() const { return m_merged_indices; }
-	const auto &materials() const { return m_materials; }
+	const auto &materialNames() const { return m_material_names; }
 
 	bool hasTexCoords() const { return !m_buffers.tex_coords.empty(); }
 	bool hasNormals() const { return !m_buffers.normals.empty(); }
@@ -745,11 +792,14 @@ class Mesh {
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	float intersect(const Segment &) const;
+	float intersect(const Segment &, const Pose &) const;
 
-	void draw(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
+	Mesh animate(const Pose &) const;
+	void draw(Renderer &, const MaterialSet &, const Matrix4 &matrix = Matrix4::identity()) const;
+	void draw(Renderer &, const Pose &, const MaterialSet &,
+			  const Matrix4 &matrix = Matrix4::identity()) const;
 	void clearDrawingCache() const;
 
-	void assignMaterials(const std::map<string, PMaterial> &);
 	/*
 		void genAdjacency();
 
@@ -767,14 +817,14 @@ class Mesh {
 	vector<MeshIndices> m_indices;
 	MeshIndices m_merged_indices;
 	vector<pair<uint, uint>> m_merged_ranges;
-	vector<MaterialRef> m_materials;
+	vector<string> m_material_names;
 	FBox m_bounding_box;
 
-	mutable vector<pair<DrawCall, MaterialRef>> m_drawing_cache;
+	mutable vector<pair<DrawCall, string>> m_drawing_cache;
 	mutable bool m_is_drawing_cache_dirty;
 };
 
-using PMesh = shared_ptr<Mesh>;
+using PMesh = cow_ptr<Mesh>;
 
 vector<float3> transformVertices(const Matrix4 &, vector<float3>);
 vector<float3> transformNormals(const Matrix4 &, vector<float3>);
@@ -790,37 +840,9 @@ struct MaterialDef {
 
 class Model;
 
-class ModelPose {
-  public:
-	ModelPose(vector<AffineTrans> transforms = {});
-	const vector<AffineTrans> &transforms() const { return m_transforms; }
-	auto size() const { return m_transforms.size(); }
-	auto begin() const { return std::begin(m_transforms); }
-	auto end() const { return std::end(m_transforms); }
-
-	void transform(const AffineTrans &pre_trans);
-
-  private:
-	vector<AffineTrans> m_transforms;
-	friend class ModelAnim;
-
-  private:
-	friend class Model;
-	mutable vector<Matrix4> m_final;
-	mutable vector<Matrix4> m_skinned_final;
-	mutable bool m_is_dirty, m_is_skinned_dirty;
-};
-
-inline ModelPose operator*(const AffineTrans &trans, ModelPose pose) {
-	pose.transform(trans);
-	return pose;
-}
-
 class ModelAnim {
   public:
-	ModelPose animatePose(ModelPose initial_pose, double anim_time) const;
-
-	ModelAnim(const XMLNode &, const Model &);
+	ModelAnim(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
 	string print() const;
@@ -831,12 +853,13 @@ class ModelAnim {
 	static void transToXML(const AffineTrans &trans, XMLNode node);
 	static AffineTrans transFromXML(XMLNode node);
 
+	Pose animatePose(Pose initial_pose, double anim_time) const;
+
   protected:
 	string m_name;
 
 	AffineTrans animateChannel(int channel_id, double anim_pos) const;
 	void verifyData() const;
-	void updateNodeIndices(const Model &);
 
 	struct Channel {
 		Channel() = default;
@@ -851,123 +874,55 @@ class ModelAnim {
 		vector<Quat> rotation_track;
 		vector<float> time_track;
 		string node_name;
-		int node_id;
 	};
 
 	// TODO: information about whether its looped or not
 	vector<Channel> m_channels;
 	vector<float> m_shared_time_track;
-	int m_max_node_id;
 	float m_length;
 };
 
-class MeshSkin {
-  public:
-	MeshSkin();
-	MeshSkin(const XMLNode &);
-
-	void saveToXML(XMLNode) const;
-	bool empty() const;
-
-	void attach(const Model &);
-
-	struct VertexWeight {
-		VertexWeight(float weight = 0.0f, int node_id = 0) : weight(weight), node_id(node_id) {}
-
-		float weight;
-		int node_id;
-	};
-
-	void animatePositions(Range<float3>, Range<Matrix4>) const;
-	void animateNormals(Range<float3>, Range<Matrix4>) const;
-
-	int size() const { return (int)m_vertex_weights.size(); }
-
-  protected:
-	vector<vector<VertexWeight>> m_vertex_weights;
-	vector<string> m_node_names;
-	vector<int> m_mapping;
-	int m_max_node_index;
-};
+class ModelNode;
+using PModelNode = unique_ptr<ModelNode>;
 
 class ModelNode {
   public:
-	ModelNode(const ModelNode *parent, const string &name, const AffineTrans &trans,
-			  int mesh_id = -1);
+	ModelNode(const string &name, const AffineTrans &trans = AffineTrans(), PMesh mesh = PMesh());
+	ModelNode(const ModelNode &rhs);
+
+	void addChild(PModelNode);
+	PModelNode removeChild(const ModelNode *);
+	PModelNode clone() const;
 
 	const auto &children() const { return m_children; }
 	const auto &name() const { return m_name; }
+	const ModelNode *find(const string &name, bool recursive = true) const;
+
+	// TODO: name validation
+	void setTrans(const AffineTrans &trans) { m_trans = trans; }
+	void setName(const string &name) { m_name = name; }
+	void setMesh(PMesh mesh) { m_mesh = std::move(mesh); }
+	void setId(int new_id) { m_id = new_id; }
 
 	const auto &localTrans() const { return m_trans; }
 	AffineTrans globalTrans() const;
 
-	int meshId() const { return m_mesh_id; }
+	auto mesh() const { return m_mesh; }
 	int id() const { return m_id; }
-	int parentId() const { return m_parent ? m_parent->m_id : -1; }
 
 	const ModelNode *root() const;
 	const ModelNode *parent() const { return m_parent; }
+	bool isDescendant(const ModelNode *ancestor) const;
+
+	void dfs(vector<ModelNode *> &out);
 
   private:
-	friend class ModelTree;
-	vector<unique_ptr<ModelNode>> m_children;
+	vector<PModelNode> m_children;
 	string m_name;
 	AffineTrans m_trans;
+	PMesh m_mesh;
+	int m_id;
 	const ModelNode *m_parent;
-	int m_mesh_id;
-	mutable int m_id;
-};
-
-class ModelTree {
-  public:
-	ModelTree();
-	~ModelTree();
-
-	const ModelNode *root() const { return &m_root; }
-
-	template <class... Args> const ModelNode *addNode(const ModelNode *parent, Args &&... args) {
-		DASSERT(parent && parent->root() == root());
-		auto new_node = make_unique<ModelNode>(parent, std::forward<Args>(args)...);
-		if(!addNodeName(new_node.get()))
-			return nullptr;
-
-		auto ret = new_node.get();
-		const_cast<ModelNode *>(parent)->m_children.emplace_back(std::move(new_node));
-		m_is_dirty = true;
-		return ret;
-	}
-
-	template <class... Args> const ModelNode *updateNode(const ModelNode *node, Args &&... args) {
-		DASSERT(node);
-		const ModelNode *parent = node->m_parent;
-		removeNode(node);
-		addNode(parent, std::forward<Args>(args)...);
-	}
-
-	void removeNode(const ModelNode *node);
-
-	const ModelNode *findNode(const string &name) const;
-	int findNodeId(const string &name) const {
-		auto *node = findNode(name);
-		return node ? node->id() : -1;
-	}
-
-	const auto &nodes() const {
-		if(m_is_dirty)
-			updateNodeIds();
-		return m_all_nodes;
-	}
-	void updateNodeIds() const;
-
-  private:
-	bool addNodeName(const ModelNode *);
-
-	struct Map;
-	unique_ptr<Map> m_map;
-	ModelNode m_root;
-
-	mutable bool m_is_dirty;
-	mutable vector<const ModelNode *> m_all_nodes;
 };
 
 class Model {
@@ -977,86 +932,78 @@ class Model {
 	Model &operator=(Model &&) = default;
 	virtual ~Model() = default;
 
+	Model(PModelNode, vector<ModelAnim> anims = {}, vector<MaterialDef> material_defs = {});
 	Model(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
 	void join(const Model &, const string &name);
 
-	const ModelNode *findNode(const string &name) const { return m_tree.findNode(name); }
-	int findNodeId(const string &name) const { return m_tree.findNodeId(name); }
-	const ModelNode *rootNode() const { return m_tree.root(); }
-	const auto &nodes() const { return m_tree.nodes(); }
+	const ModelNode *findNode(const string &name) const { return m_root->find(name); }
+	int findNodeId(const string &name) const;
+	const ModelNode *rootNode() const { return m_root.get(); }
+	const auto &nodes() const { return m_nodes; }
 
-	const auto &meshes() const { return m_meshes; }
 	const auto &anims() const { return m_anims; }
 
 	const auto &materialDefs() const { return m_material_defs; }
-	void assignMaterials(const std::map<string, PMaterial> &);
 
-	Mesh toMesh(const ModelPose &) const;
+	Mesh toMesh(const Pose &) const;
 	void printHierarchy() const;
 
-	ModelPose defaultPose() const;
-	FBox boundingBox(const ModelPose &pose) const;
-	Matrix4 nodeTrans(const string &name, const ModelPose &) const;
+	Pose defaultPose() const;
+	FBox boundingBox(const Pose &pose) const;
+	Matrix4 nodeTrans(const string &name, const Pose &) const;
 
-	float intersect(const Segment &, const ModelPose &) const;
+	float intersect(const Segment &, const Pose &) const;
 
-	void draw(Renderer &out, PMaterial mat, const Matrix4 &matrix = Matrix4::identity()) const {
-		draw(out, defaultPose(), std::move(mat), matrix);
+	void draw(Renderer &out, const MaterialSet &mats,
+			  const Matrix4 &matrix = Matrix4::identity()) const {
+		draw(out, defaultPose(), mats, matrix);
 	}
-	void draw(Renderer &, const ModelPose &pose, PMaterial,
+	void draw(Renderer &, const Pose &pose, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
-	void drawNodes(Renderer &, const ModelPose &, Color node_color, Color line_color,
+	void drawNodes(Renderer &, const Pose &, Color node_color, Color line_color,
 				   const Matrix4 &matrix = Matrix4::identity()) const;
 
 	void clearDrawingCache() const;
 
 	// Pass -1 to anim_id for bind position
-	ModelPose animatePose(int anim_id, double anim_pos) const;
+	Pose animatePose(int anim_id, double anim_pos) const;
+	Pose meshSkinningPose(Pose, int node_id) const;
+	Pose finalPose(Pose) const;
+
 	const ModelAnim &anim(int anim_id) const { return m_anims[anim_id]; }
 	int animCount() const { return (int)m_anims.size(); }
 
-	const vector<Matrix4> &finalPose(const ModelPose &) const;
-	const vector<Matrix4> &finalSkinnedPose(const ModelPose &) const;
-
   protected:
 	void updateNodes();
-
 	void verifyData() const;
-	void animateVertices(int node_id, const ModelPose &, Range<float3> positions,
-						 Range<float3> normals = Range<float3>::makeEmpty()) const;
-	Mesh animateMesh(int node_id, const ModelPose &) const;
-	Matrix4 computeOffsetMatrix(int node_id) const;
-	void computeBindMatrices();
 
-	ModelTree m_tree;
-
-	vector<Mesh> m_meshes;
-	vector<MeshSkin> m_mesh_skins;
-
+	PModelNode m_root;
 	vector<ModelAnim> m_anims;
+
 	vector<MaterialDef> m_material_defs;
 
+	vector<ModelNode *> m_nodes;
 	float3 m_bind_scale;
 	vector<Matrix4> m_bind_matrices;
 	vector<Matrix4> m_inv_bind_matrices;
 };
 
-using PModel = shared_ptr<Model>;
+using PModel = cow_ptr<Model>;
 
 template <class T> class XMLLoader : public ResourceLoader<T> {
   public:
 	XMLLoader(const string &prefix, const string &suffix, string node_name)
 		: ResourceLoader<T>(prefix, suffix), m_node_name(std::move(node_name)) {}
 
-	shared_ptr<T> operator()(const string &name) {
+	cow_ptr<T> operator()(const string &name) {
 		XMLDocument doc;
 		Loader(ResourceLoader<T>::fileName(name)) >> doc;
 		XMLNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child)
 			THROW("Cannot find node '%s' in XML document", m_node_name.c_str());
-		return make_shared<T>(child);
+		return make_cow<T>(child);
 	}
 
   protected:
@@ -1252,7 +1199,7 @@ class Font {
 	int m_line_height;
 };
 
-using PFont = shared_ptr<Font>;
+using PFont = cow_ptr<Font>;
 
 class FontRenderer {
   public:

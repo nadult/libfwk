@@ -9,9 +9,52 @@
 
 namespace fwk {
 
-ModelNode::ModelNode(const ModelNode *parent, const string &name, const AffineTrans &trans,
-					 int mesh_id)
-	: m_name(name), m_trans(trans), m_parent(parent), m_mesh_id(mesh_id), m_id(-1) {}
+ModelNode::ModelNode(const string &name, const AffineTrans &trans, PMesh mesh)
+	: m_name(name), m_trans(trans), m_mesh(std::move(mesh)), m_id(-1), m_parent(nullptr) {}
+
+ModelNode::ModelNode(const ModelNode &rhs)
+	: m_name(rhs.m_name), m_trans(rhs.m_trans), m_mesh(rhs.m_mesh), m_id(-1), m_parent(nullptr) {
+	for(auto &child : rhs.m_children) {
+		auto child_clone = child->clone();
+		child_clone->m_parent = this;
+		m_children.emplace_back(std::move(child_clone));
+	}
+}
+
+void ModelNode::addChild(PModelNode node) {
+	node->m_parent = this;
+	m_children.emplace_back(std::move(node));
+}
+
+PModelNode ModelNode::removeChild(const ModelNode *child_to_remove) {
+	for(auto it = begin(m_children); it != end(m_children); ++it)
+		if(it->get() == child_to_remove) {
+			auto child = std::move(*it);
+			m_children.erase(it);
+			return child;
+		}
+	return PModelNode();
+}
+
+PModelNode ModelNode::clone() const { return make_unique<ModelNode>(*this); }
+
+void ModelNode::dfs(vector<ModelNode *> &out) {
+	out.emplace_back(this);
+	for(const auto &child : m_children)
+		child->dfs(out);
+}
+
+const ModelNode *ModelNode::find(const string &name, bool recursive) const {
+	for(const auto &child : m_children) {
+		if(child->name() == name)
+			return child.get();
+		if(recursive)
+			if(auto ret = child->find(name, true))
+				return ret;
+	}
+
+	return nullptr;
+}
 
 const ModelNode *ModelNode::root() const {
 	const auto *node = this;
@@ -20,113 +63,17 @@ const ModelNode *ModelNode::root() const {
 	return node;
 }
 
+bool ModelNode::isDescendant(const ModelNode *test_ancestor) const {
+	auto ancestor = m_parent;
+	while(ancestor) {
+		if(ancestor == test_ancestor)
+			return true;
+		ancestor = ancestor->m_parent;
+	}
+	return false;
+}
+
 AffineTrans ModelNode::globalTrans() const {
 	return m_parent ? m_parent->globalTrans() * m_trans : m_trans;
 }
-
-struct ModelTree::Map : public std::unordered_map<string, const ModelNode *> {};
-
-ModelTree::ModelTree()
-	: m_map(make_unique<Map>()), m_root(nullptr, "", AffineTrans()), m_is_dirty(false) {
-	m_map->emplace("", &m_root);
-}
-
-ModelTree::~ModelTree() = default;
-
-bool ModelTree::addNodeName(const ModelNode *node) {
-	if(findNode(node->name()))
-		return false;
-	m_map->emplace(node->name(), node);
-	return true;
-}
-
-void ModelTree::removeNode(const ModelNode *node) {
-	DASSERT(node && node != &m_root && node->root() == &m_root);
-	auto &container = const_cast<ModelNode *>(node->m_parent)->m_children;
-	for(auto it = begin(container); it != end(container); ++it)
-		if(it->get() == node) {
-			container.erase(it);
-			break;
-		}
-	m_is_dirty = true;
-}
-
-const ModelNode *ModelTree::findNode(const string &name) const {
-	if(m_is_dirty)
-		updateNodeIds();
-	auto it = m_map->find(name);
-	return it == m_map->end() ? nullptr : it->second;
-}
-
-static void dfs(vector<const ModelNode *> &out, const ModelNode *node) {
-	out.push_back(node);
-	for(const auto &child : node->children())
-		dfs(out, child.get());
-}
-
-void ModelTree::updateNodeIds() const {
-	if(m_is_dirty) {
-		m_all_nodes.clear();
-		dfs(m_all_nodes, &m_root);
-		for(int n = 0; n < (int)m_all_nodes.size(); n++)
-			const_cast<ModelNode *>(m_all_nodes[n])->m_id = n;
-		m_is_dirty = false;
-	}
-}
-
-/*
-void ModelTree::join(const ModelNode *target, const ModelNode *source) {
-	DASSERT(target && source);
-	DASSERT(target->root() == root() && source->root() != root());
-
-	target->
-}*/
-
-/*
-vector<int> ModelTree::findNodes(const vector<string> &names) const {
-	vector<int> out;
-	for(const auto &name : names)
-		out.push_back(findNode(name));
-	return out;
-}
-
-int ModelTree::findNode(const string &name) const {
-	for(int n = 0; n < (int)m_nodes.size(); n++)
-		if(m_nodes[n].name == name)
-			return n;
-	return -1;
-}
-
-void ModelTree::removeNode(int node_id) {
-	DASSERT(node_id != -1);
-
-}
-
-int ModelTree::addMeshNode(const string &name, const AffineTrans &trans, int mesh_id, int parent_id)
-{
-	DASSERT(parent_id >= -1 && parent_id < (int)m_nodes.size());
-
-	int node_id = -1;
-	if(m_free_nodes.empty()) {
-		node_id = (int)m_nodes.size();
-		m_nodes.push_back(Node{});
-	}
-	else {
-		node_id = m_free_nodes.back();
-		m_free_nodes.pop_back();
-	}
-
-	auto &node = m_nodes[node_id];
-	node = Node(Node{name, trans, node_id, parent_id, -1, vector<int>()});
-	if(parent_id != -1)
-		m_nodes[parent_id].children_ids.emplace_back(node_id);
-	return node_id;
-}
-
-
-int ModelTree::addMeshMode(
-
-void ModelTree::updateNodeIndices() {
-
-}*/
 }

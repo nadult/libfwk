@@ -53,17 +53,20 @@ template <class T> class cow_ptr {
 	cow_ptr &operator=(const cow_ptr &) = default;
 	cow_ptr &operator=(cow_ptr &&) = default;
 
-	const T *operator->() const { return m_ptr.operator->(); }
-	T *operator->() { return get(); }
-	const T *get() const { return m_ptr.get(); }
+	const T &operator*() const noexcept { return m_ptr.operator*(); }
+	const T *operator->() const noexcept { return m_ptr.operator->(); }
+	const T *get() const noexcept { return m_ptr.get(); }
 
-	T *get() {
+	T *mutate() {
 		if(!m_ptr.unique())
 			m_ptr = make_shared<const T>(*m_ptr.get());
 		return const_cast<T *>(m_ptr.get());
 	}
 
-	bool operator==(const T *rhs) const { return m_ptr == rhs; }
+	explicit operator bool() const noexcept { return !!m_ptr.get(); }
+	bool operator==(const T *rhs) const noexcept { return m_ptr == rhs; }
+	bool operator==(const cow_ptr &rhs) const noexcept { return m_ptr == rhs.m_ptr; }
+	bool operator<(const cow_ptr &rhs) const noexcept { return m_ptr < rhs.m_ptr; }
 
   private:
 	cow_ptr(shared_ptr<const T> ptr) : m_ptr(std::move(ptr)) {}
@@ -71,6 +74,8 @@ template <class T> class cow_ptr {
 
 	shared_ptr<const T> m_ptr;
 };
+
+template <class T> inline T *mutate(cow_ptr<T> &ptr) { return ptr.mutate(); }
 
 template <class T, class... Args> cow_ptr<T> make_cow(Args &&... args) {
 	return cow_ptr<T>(make_shared<const T>(std::forward<Args>(args)...));
@@ -742,9 +747,9 @@ template <class T> class ResourceLoader {
 	ResourceLoader(const string &file_prefix, const string &file_suffix)
 		: m_file_prefix(file_prefix), m_file_suffix(file_suffix) {}
 
-	shared_ptr<T> operator()(const string &name) const {
+	cow_ptr<T> operator()(const string &name) const {
 		Loader stream(fileName(name));
-		return make_shared<T>(name, stream);
+		return make_cow<T>(name, stream);
 	}
 
 	string fileName(const string &name) const { return m_file_prefix + name + m_file_suffix; }
@@ -757,7 +762,7 @@ template <class T> class ResourceLoader {
 
 template <class T, class Constructor = ResourceLoader<T>> class ResourceManager {
   public:
-	using PResource = shared_ptr<T>;
+	using PResource = cow_ptr<T>;
 
 	template <class... ConstructorArgs>
 	ResourceManager(ConstructorArgs &&... args)
@@ -1239,19 +1244,17 @@ bool access(const FilePath &path);
 class NameMapping {
   public:
 	NameMapping() = default;
-	NameMapping(vector<string> names);
-	NameMapping(const NameMapping &);
-	NameMapping(NameMapping &&) = default;
+	NameMapping(const vector<string> &names);
 	~NameMapping();
 
-	const vector<string> &names() const { return m_names; }
+	vector<string> names() const;
+	int operator()(const string &name) const;
 	vector<int> operator()(const vector<string> &names) const;
-	auto size() const { return m_names.size(); }
+	size_t size() const;
 
   protected:
-	vector<string> m_names;
 	struct Map;
-	mutable unique_ptr<Map> m_map;
+	mutable cow_ptr<Map> m_map;
 };
 }
 

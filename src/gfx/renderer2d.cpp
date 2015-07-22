@@ -8,7 +8,6 @@
 
 namespace fwk {
 
-
 static const char *fragment_shader_2d_tex_src =
 	"#version 100\n"
 	"uniform sampler2D tex; 											\n"
@@ -47,15 +46,8 @@ struct ProgramFactory2D {
 		fragment_shader.setSource(with_texture ? fragment_shader_2d_tex_src
 											   : fragment_shader_2d_flat_src);
 
-		PProgram out = make_shared<Program>(vertex_shader, fragment_shader);
-		out->bindAttribLocation("in_pos", 0);
-		out->bindAttribLocation("in_color", 1);
-		out->bindAttribLocation("in_tex_coord", 2);
-		out->link();
-
-		if(with_texture)
-			out->setUniform("tex", 0);
-		return out;
+		return make_cow<Program>(vertex_shader, fragment_shader,
+								 vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
 };
 
@@ -99,7 +91,7 @@ void Renderer2D::addRect(const FRect &rect, const Material &material) {
 	for(int n = 0; n < 4; n++)
 		pos[n] = float3(pos_2d[n], 0.0f);
 
-	Element &elem = makeElement(PrimitiveType::lines, nullptr);
+	Element &elem = makeElement(PrimitiveType::lines, PTexture());
 	int vertex_offset = (int)m_positions.size();
 
 	m_positions.insert(m_positions.end(), pos, pos + 4);
@@ -190,14 +182,17 @@ void Renderer2D::render() {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(0);
 
-	VertexArray array({make_shared<VertexBuffer>(m_positions), make_shared<VertexBuffer>(m_colors),
-					   make_shared<VertexBuffer>(m_tex_coords)},
-					  make_shared<IndexBuffer>(m_indices));
+	VertexArray array({make_cow<VertexBuffer>(m_positions), make_cow<VertexBuffer>(m_colors),
+					   make_cow<VertexBuffer>(m_tex_coords)},
+					  make_cow<IndexBuffer>(m_indices));
 
 	for(const auto &element : m_elements) {
 		auto &program = (element.texture ? m_tex_program : m_flat_program);
-		program->bind();
-		program->setUniform("proj_view_matrix", element.matrix);
+		ProgramBinder binder(program);
+		binder.bind();
+		if(element.texture)
+			binder.setUniform("tex", 0);
+		binder.setUniform("proj_view_matrix", element.matrix);
 		if(element.texture)
 			element.texture->bind();
 		array.draw(element.primitive_type, element.num_indices, element.first_index);
@@ -210,6 +205,5 @@ void Renderer2D::render() {
 	m_elements.clear();
 
 	DTexture::unbind();
-	Program::unbind();
 }
 }

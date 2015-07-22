@@ -158,24 +158,23 @@ pair<PFont, PTexture> FontFactory::makeFont(string const &path, int size, bool l
 							std::move(tex));
 	}
 
-	PFont out(new Font);
-	PTexture out_texture(new DTexture);
-	out_texture->set(makeTextureAtlas(glyphs));
-	out->m_texture_size = out_texture->size();
+	Font out;
+	auto atlas = makeTextureAtlas(glyphs);
+	out.m_texture_size = atlas.size();
 
 	for(auto &glyph : glyphs)
-		out->m_glyphs[glyph.first.character] = glyph.first;
+		out.m_glyphs[glyph.first.character] = glyph.first;
 
-	out->m_max_rect = IRect(0, 0, 0, 0);
+	out.m_max_rect = IRect(0, 0, 0, 0);
 
 	for(auto &glyph : glyphs) {
 		IRect rect = IRect((int2)glyph.first.size) + int2(glyph.first.offset);
-		out->m_max_rect = sum(out->m_max_rect, rect);
+		out.m_max_rect = sum(out.m_max_rect, rect);
 	}
-	out->m_line_height = face->size->metrics.height / 64;
+	out.m_line_height = face->size->metrics.height / 64;
 
-	for(auto &glyph : out->m_glyphs)
-		glyph.second.offset.y -= out->m_max_rect.min.y;
+	for(auto &glyph : out.m_glyphs)
+		glyph.second.offset.y -= out.m_max_rect.min.y;
 
 	// TODO: optimize
 	if(FT_HAS_KERNING(face))
@@ -186,10 +185,10 @@ pair<PFont, PTexture> FontFactory::makeFont(string const &path, int size, bool l
 
 				int2 kerning(vector.x / 64, vector.y / 64);
 				if(kerning.x != 0)
-					out->m_kernings[make_pair(int(left), int(right))] = kerning.x;
+					out.m_kernings[make_pair(int(left), int(right))] = kerning.x;
 			}
 
-	return make_pair(out, out_texture);
+	return make_pair(PFont(out), make_cow<DTexture>(atlas));
 }
 }
 

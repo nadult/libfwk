@@ -118,10 +118,10 @@ def writeSkin(xml_parent, mesh, obj):
         else:
             counts.append("0")
 
-    xml_skin = ET.SubElement(xml_parent, "skin")
-    (ET.SubElement(xml_skin, "counts")).text = " ".join(counts)
-    (ET.SubElement(xml_skin, "weights")).text = " ".join(weights)
-    (ET.SubElement(xml_skin, "node_ids")).text = " ".join(node_ids)
+    xml_skin = xml_parent
+    (ET.SubElement(xml_skin, "vertex_weight_counts")).text = " ".join(counts)
+    (ET.SubElement(xml_skin, "vertex_weights")).text = " ".join(weights)
+    (ET.SubElement(xml_skin, "vertex_weight_node_ids")).text = " ".join(node_ids)
     (ET.SubElement(xml_skin, "node_names")).text = " ".join(node_names)
 
 def writeMesh(xml_parent, mesh, obj):

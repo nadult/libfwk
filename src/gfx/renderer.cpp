@@ -47,15 +47,8 @@ struct ProgramFactory {
 		fragment_shader.setSource(with_texture ? fragment_shader_tex_src
 											   : fragment_shader_flat_src);
 
-		PProgram out = make_shared<Program>(vertex_shader, fragment_shader);
-		out->bindAttribLocation("in_pos", 0);
-		out->bindAttribLocation("in_color", 1);
-		out->bindAttribLocation("in_tex_coord", 2);
-		out->link();
-
-		if(with_texture)
-			out->setUniform("tex", 0);
-		return out;
+		return make_cow<Program>(vertex_shader, fragment_shader,
+								 vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
 };
 
@@ -163,9 +156,10 @@ void Renderer::render() {
 		if(!program)
 			program = material->texture() ? m_tex_program : m_flat_program;
 
-		program->bind();
-		program->setUniform("proj_view_matrix", instance.matrix);
-		program->setUniform("mesh_color", (float4)material->color());
+		ProgramBinder binder(program);
+		binder.bind();
+		binder.setUniform("proj_view_matrix", instance.matrix);
+		binder.setUniform("mesh_color", (float4)material->color());
 		dev_config.update(material->flags());
 		instance.draw_call.issue();
 	}
@@ -180,9 +174,9 @@ void Renderer::render() {
 			tex_coords.insert(end(tex_coords), begin(sprite.tex_coords), end(sprite.tex_coords));
 		}
 
-		VertexArray sprite_array({make_shared<VertexBuffer>(positions),
+		VertexArray sprite_array({make_cow<VertexBuffer>(positions),
 								  VertexArraySource(Color::white),
-								  make_shared<VertexBuffer>(tex_coords)});
+								  make_cow<VertexBuffer>(tex_coords)});
 
 		// TODO: transform to screen space, divide into regions, sort each region
 		for(int n = 0; n < (int)m_sprites.size(); n++) {
@@ -194,22 +188,26 @@ void Renderer::render() {
 			if(!program)
 				program = material->texture() ? m_tex_program : m_flat_program;
 
-			program->bind();
-			program->setUniform("proj_view_matrix", instance.matrix);
-			program->setUniform("mesh_color", (float4)material->color());
+			ProgramBinder binder(program);
+			binder.bind();
+			if(material->texture())
+				binder.setUniform("tex", 0);
+			binder.setUniform("proj_view_matrix", instance.matrix);
+			binder.setUniform("mesh_color", (float4)material->color());
 			sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
 		}
 	}
 
 	glDepthMask(1);
-	VertexArray line_array({make_shared<VertexBuffer>(m_line_positions),
-							make_shared<VertexBuffer>(m_line_colors),
+	VertexArray line_array({make_cow<VertexBuffer>(m_line_positions),
+							make_cow<VertexBuffer>(m_line_colors),
 							VertexArraySource(float2(0, 0))});
 	DTexture::unbind();
-	m_flat_program->bind();
-	m_flat_program->setUniform("mesh_color", float4(1, 1, 1, 1));
+	ProgramBinder binder(m_flat_program);
+	binder.bind();
+	binder.setUniform("mesh_color", float4(1, 1, 1, 1));
 	for(const auto &instance : m_lines) {
-		m_flat_program->setUniform("proj_view_matrix", instance.matrix);
+		binder.setUniform("proj_view_matrix", instance.matrix);
 		line_array.draw(PrimitiveType::lines, instance.count, instance.first);
 	}
 
@@ -220,6 +218,5 @@ void Renderer::render() {
 	m_lines.clear();
 
 	DTexture::unbind();
-	Program::unbind();
 }
 }

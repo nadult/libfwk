@@ -17,7 +17,7 @@ void testMain() {
 	execCommand(command);
 	XMLDocument doc;
 	Loader(mesh_path) >> doc;
-	PModel model = make_shared<Model>(doc.child());
+	PModel model = make_cow<Model>(doc.child());
 	remove(mesh_path.c_str());
 
 	int cube_id = model->findNodeId("Cube");
@@ -26,10 +26,10 @@ void testMain() {
 
 	ASSERT(cube_id != -1 && plane_id != -1 && cone_id != -1);
 	const auto &nodes = model->nodes();
-	ASSERT(nodes[plane_id]->parentId() == cube_id);
+	ASSERT(nodes[plane_id]->parent()->id() == cube_id);
 
 	auto pose = model->finalPose(model->defaultPose());
-	vector<AffineTrans> transforms(begin(pose), end(pose));
+	vector<AffineTrans> transforms(begin(pose.transforms), end(pose.transforms));
 
 	assertCloseEnough(transforms[cube_id].translation, float3(10, 0, 0));
 	assertCloseEnough(transforms[plane_id].translation, float3(0, 0, -5));

@@ -17,6 +17,10 @@ DTexture::DTexture(const string &name, Stream &stream) :DTexture() {
 	load(stream);
 }
 
+DTexture::DTexture(const Texture &tex) : DTexture() { set(tex); }
+
+DTexture::DTexture(const DTexture &tex) { THROW("Write me (also move constructor)"); }
+
 DTexture::DTexture()
 	: m_id(0), m_width(0), m_height(0), m_format(TI_Unknown), m_is_wrapped(false),
 	  m_is_filtered(true), m_has_mipmaps(false), m_is_dirty(false) {}

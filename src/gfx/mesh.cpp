@@ -106,11 +106,23 @@ MeshIndices MeshIndices::changeType(MeshIndices indices, Type new_type) {
 }
 
 MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
-						 vector<float2> tex_coords)
+						 vector<float2> tex_coords, vector<vector<VertexWeight>> weights,
+						 vector<string> node_names)
 	: positions(std::move(positions)), normals(std::move(normals)),
-	  tex_coords(std::move(tex_coords)) {
+	  tex_coords(std::move(tex_coords)), weights(std::move(weights)),
+	  node_names(std::move(node_names)) {
+	// TODO: when loading from file, we want to use ASSERT, otherwise DASSERT
+	// In general if data is marked as untrusted, then we have to check.
+
 	DASSERT(tex_coords.empty() || positions.size() == tex_coords.size());
 	DASSERT(normals.empty() || positions.size() == normals.size());
+	DASSERT(weights.empty() || positions.size() == weights.size());
+
+	int max_node_id = -1;
+	for(const auto &vweights : weights)
+		for(auto vweight : vweights)
+			max_node_id = max(max_node_id, vweight.node_id);
+	ASSERT(max_node_id < (int)node_names.size());
 }
 
 MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords)
@@ -130,10 +142,45 @@ MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, i
 				  extractBuffer<float3>(array, normals_id),
 				  extractBuffer<float2>(array, tex_coords_id)) {}
 
+static auto parseVertexWeights(const XMLNode &node) {
+	vector<vector<MeshBuffers::VertexWeight>> out;
+
+	XMLNode counts_node = node.child("vertex_weight_counts");
+	XMLNode weights_node = node.child("vertex_weights");
+	XMLNode node_ids_node = node.child("vertex_weight_node_ids");
+
+	if(!counts_node && !weights_node && !node_ids_node)
+		return out;
+
+	ASSERT(counts_node && weights_node && node_ids_node);
+	auto counts = counts_node.value<vector<int>>();
+	auto weights = weights_node.value<vector<float>>();
+	auto node_ids = node_ids_node.value<vector<int>>();
+
+	ASSERT(weights.size() == node_ids.size());
+	ASSERT(std::accumulate(begin(counts), end(counts), 0) == (int)weights.size());
+
+	out.resize(counts.size());
+
+	int offset = 0, max_index = 0;
+	for(int n = 0; n < (int)counts.size(); n++) {
+		auto &vweights = out[n];
+		vweights.resize(counts[n]);
+		for(int i = 0; i < counts[n]; i++) {
+			max_index = max(max_index, node_ids[offset + i]);
+			vweights[i] = MeshBuffers::VertexWeight(weights[offset + i], node_ids[offset + i]);
+		}
+		offset += counts[n];
+	}
+
+	return out;
+}
+
 MeshBuffers::MeshBuffers(const XMLNode &node)
 	: MeshBuffers(node.childValue<vector<float3>>("positions", {}),
 				  node.childValue<vector<float3>>("normals", {}),
-				  node.childValue<vector<float2>>("tex_coords", {})) {}
+				  node.childValue<vector<float2>>("tex_coords", {}), parseVertexWeights(node),
+				  node.childValue<vector<string>>("node_names", {})) {}
 
 void MeshBuffers::saveToXML(XMLNode node) const {
 	using namespace xml_conversions;
@@ -142,6 +189,80 @@ void MeshBuffers::saveToXML(XMLNode node) const {
 		node.addChild("tex_coords", node.own(toString(tex_coords)));
 	if(!normals.empty())
 		node.addChild("normals", node.own(toString(normals)));
+
+	if(!weights.empty()) {
+		vector<int> counts;
+		vector<float> vweights;
+		vector<int> node_ids;
+
+		for(int n = 0; n < (int)weights.size(); n++) {
+			const auto &in = weights[n];
+			counts.emplace_back((int)in.size());
+			for(int i = 0; i < (int)in.size(); i++) {
+				vweights.emplace_back(in[i].weight);
+				node_ids.emplace_back(in[i].node_id);
+			}
+		}
+
+		node.addChild("vertex_weight_counts", counts);
+		node.addChild("vertex_weights", vweights);
+		node.addChild("vertex_weight_node_ids", node_ids);
+	}
+	if(!node_names.empty())
+		node.addChild("node_names", node_names);
+}
+
+vector<pair<Matrix4, float>> MeshBuffers::mapPose(const Pose &pose) const {
+	auto mapping = pose.name_mapping(node_names);
+	vector<pair<Matrix4, float>> out;
+	out.reserve(node_names.size());
+	for(int id : mapping) {
+		float weight = id == -1 ? 0.0f : 1.0f;
+		out.emplace_back(id == -1 ? Matrix4::identity() : pose.transforms[id], weight);
+	}
+	return out;
+}
+
+void MeshBuffers::animatePositions(Range<float3> out_positions, const Pose &pose) const {
+	DASSERT(out_positions.size() == positions.size());
+	// DASSERT(m_max_node_index < (int)matrices.size());
+	auto matrices = mapPose(pose);
+
+	for(int v = 0; v < (int)size(); v++) {
+		const auto &vweights = weights[v];
+
+		float3 pos = positions[v];
+		float3 out;
+		float weight_sum = 0.0f;
+
+		for(const auto &weight : vweights) {
+			float cur_weight = weight.weight * matrices[weight.node_id].second;
+			weight_sum += cur_weight;
+			out += mulPointAffine(matrices[weight.node_id].first, pos) * cur_weight;
+		}
+		out_positions[v] = out / weight_sum;
+	}
+}
+
+void MeshBuffers::animateNormals(Range<float3> out_normals, const Pose &pose) const {
+	DASSERT(out_normals.size() == normals.size());
+	// DASSERT(m_max_node_index < (int)matrices.size());
+	auto matrices = mapPose(pose);
+
+	for(int v = 0; v < (int)normals.size(); v++) {
+		const auto &vweights = weights[v];
+
+		float3 nrm = normals[v];
+		float3 out;
+		float weight_sum = 0.0f;
+
+		for(const auto &weight : vweights) {
+			float cur_weight = weight.weight * matrices[weight.node_id].second;
+			weight_sum += cur_weight;
+			out += mulNormalAffine(matrices[weight.node_id].first, nrm) * cur_weight;
+		}
+		out_normals[v] = out / weight_sum;
+	}
 }
 /*
 void Mesh::genAdjacency() {
@@ -150,7 +271,8 @@ void Mesh::genAdjacency() {
 		TVec() {}
 
 		bool operator<(const TVec &rhs) const {
-			return v[0] == rhs[0] ? v[1] == rhs[1] ? v[2] < rhs[2] : v[1] < rhs[1] : v[0] < rhs[0];
+			return v[0] == rhs[0] ? v[1] == rhs[1] ? v[2] < rhs[2] : v[1] < rhs[1] : v[0] <
+rhs[0];
 		}
 	};
 
@@ -221,9 +343,9 @@ void Mesh::getFace(int face, int &i1, int &i2, int &i3) const {
 	}
 }*/
 
-Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<MaterialRef> materials)
+Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> material_names)
 	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
-	  m_materials(std::move(materials)), m_is_drawing_cache_dirty(true) {
+	  m_material_names(std::move(material_names)), m_is_drawing_cache_dirty(true) {
 	afterInit();
 }
 
@@ -232,6 +354,7 @@ void Mesh::afterInit() {
 		DASSERT((int)indices.maxIndex() < m_buffers.size());
 		DASSERT(indices.type() == primitiveType());
 	}
+	DASSERT(m_material_names.empty() || m_material_names.size() == m_indices.size());
 	m_merged_indices = MeshIndices::merge(m_indices, m_merged_ranges);
 	computeBoundingBox();
 }
@@ -249,20 +372,8 @@ static vector<MeshIndices> loadIndices(const XMLNode &node) {
 	return out;
 }
 
-static vector<MaterialRef> loadMaterials(const XMLNode &node) {
-	XMLNode xml_mats = node.child("materials");
-	vector<string> names = xml_mats ? xml_mats.value<vector<string>>() : vector<string>();
-	return vector<MaterialRef>(begin(names), end(names));
-}
-
-Mesh::Mesh(const XMLNode &node) : Mesh(MeshBuffers(node), loadIndices(node), loadMaterials(node)) {}
-
-void Mesh::assignMaterials(const std::map<string, PMaterial> &map) {
-	for(auto &mat : m_materials) {
-		auto it = map.find(mat.name);
-		if(it != map.end())
-			mat.pointer = it->second;
-	}
+Mesh::Mesh(const XMLNode &node)
+	: Mesh(MeshBuffers(node), loadIndices(node), node.childValue<vector<string>>("materials", {})) {
 }
 
 void Mesh::saveToXML(XMLNode node) const {
@@ -273,12 +384,8 @@ void Mesh::saveToXML(XMLNode node) const {
 		if(indices.type() != PrimitiveType::triangles)
 			xml_indices.addAttrib("type", toString(indices.type()));
 	}
-	if(!m_materials.empty()) {
-		vector<string> names;
-		for(const auto &mat : m_materials)
-			names.emplace_back(mat.name);
-		node.addChild("materials", names);
-	}
+	if(!m_material_names.empty())
+		node.addChild("materials", m_material_names);
 }
 
 void Mesh::transformUV(const Matrix4 &matrix) {
@@ -289,6 +396,15 @@ void Mesh::transformUV(const Matrix4 &matrix) {
 }
 
 void Mesh::computeBoundingBox() { m_bounding_box = FBox(m_buffers.positions); }
+
+FBox Mesh::boundingBox(const Pose &pose) const {
+	if(!m_buffers.hasSkin())
+		return boundingBox();
+
+	vector<float3> positions(vertexCount());
+	m_buffers.animatePositions(positions, pose);
+	return FBox(positions);
+}
 
 int Mesh::triangleCount() const {
 	int count = 0;
@@ -444,13 +560,30 @@ Mesh Mesh::transform(const Matrix4 &mat, Mesh mesh) {
 	return mesh;
 }
 
-void Mesh::draw(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
+Mesh Mesh::animate(const Pose &pose) const {
+	if(!m_buffers.hasSkin())
+		return *this;
+
+	MeshBuffers new_buffers = m_buffers;
+	m_buffers.animatePositions(new_buffers.positions, pose);
+	if(!new_buffers.normals.empty())
+		m_buffers.animateNormals(new_buffers.normals, pose);
+	return Mesh(std::move(new_buffers), m_indices, m_material_names);
+}
+
+void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matrix) const {
 	if(m_is_drawing_cache_dirty)
 		updateDrawingCache();
 
 	for(const auto &cache_elem : m_drawing_cache)
-		out.addDrawCall(cache_elem.first,
-						cache_elem.second.pointer ? cache_elem.second.pointer : material, matrix);
+		out.addDrawCall(cache_elem.first, materials[cache_elem.second], matrix);
+}
+
+void Mesh::draw(Renderer &out, const Pose &pose, const MaterialSet &materials,
+				const Matrix4 &matrix) const {
+	if(!m_buffers.hasSkin())
+		return draw(out, materials, matrix);
+	animate(pose).draw(out, materials, matrix);
 }
 
 void Mesh::updateDrawingCache() const {
@@ -464,18 +597,18 @@ void Mesh::updateDrawingCache() const {
 								   end(part.m_drawing_cache));
 		}
 	} else {
-		auto vertices = make_shared<VertexBuffer>(m_buffers.positions);
-		auto tex_coords = hasTexCoords() ? make_shared<VertexBuffer>(m_buffers.tex_coords)
+		auto vertices = make_cow<VertexBuffer>(m_buffers.positions);
+		auto tex_coords = hasTexCoords() ? make_cow<VertexBuffer>(m_buffers.tex_coords)
 										 : VertexArraySource(float2(0, 0));
-		auto indices = make_shared<IndexBuffer>(m_merged_indices);
+		auto indices = make_cow<IndexBuffer>(m_merged_indices);
 		auto varray = VertexArray::make({vertices, Color::white, tex_coords}, std::move(indices));
 
 		for(int n = 0; n < (int)m_indices.size(); n++) {
 			const auto &range = m_merged_ranges[n];
 			const auto &indices = m_indices[n];
+			string mat_name = m_material_names.empty() ? "" : m_material_names[n];
 			m_drawing_cache.emplace_back(
-				DrawCall(varray, indices.type(), range.second, range.first),
-				m_materials.empty() ? MaterialRef() : m_materials[n]);
+				DrawCall(varray, indices.type(), range.second, range.first), mat_name);
 		}
 	}
 	m_is_drawing_cache_dirty = false;
@@ -496,6 +629,24 @@ float Mesh::intersect(const Segment &segment) const {
 			min_isect = min(min_isect, intersection(segment, triangle));
 		}
 
+	return min_isect;
+}
+
+float Mesh::intersect(const Segment &segment, const Pose &pose) const {
+	if(!m_buffers.hasSkin())
+		return intersect(segment);
+
+	vector<float3> positions(vertexCount());
+	m_buffers.animatePositions(positions, pose);
+
+	float min_isect = constant::inf;
+	// TODO: optimize
+	if(intersection(segment, FBox(positions)) < constant::inf)
+		for(const auto &tri : trisIndices()) {
+			float isect = intersection(
+				segment, Triangle(positions[tri[0]], positions[tri[1]], positions[tri[2]]));
+			min_isect = min(min_isect, isect);
+		}
 	return min_isect;
 }
 }
