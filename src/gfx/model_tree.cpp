@@ -76,4 +76,18 @@ bool ModelNode::isDescendant(const ModelNode *test_ancestor) const {
 AffineTrans ModelNode::globalTrans() const {
 	return m_parent ? m_parent->globalTrans() * m_trans : m_trans;
 }
+
+bool ModelNode::join(const ModelNode *other, const string &name) {
+	if(m_name == name) {
+		m_children.clear();
+		for(auto &child : other->m_children)
+			m_children.emplace_back(child->clone());
+		m_mesh = other->m_mesh;
+		return true;
+	}
+
+	if(const auto *cnode = find(name))
+		return const_cast<ModelNode *>(cnode)->join(other, name);
+	return false;
+}
 }

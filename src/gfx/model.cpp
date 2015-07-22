@@ -85,6 +85,8 @@ Model::Model(PModelNode root, vector<ModelAnim> anims, vector<MaterialDef> mater
 	updateNodes();
 }
 
+Model::Model(const Model &rhs) : Model(rhs.m_root->clone(), rhs.m_anims, rhs.m_material_defs) {}
+
 Model::Model(const XMLNode &node)
 	: Model(parseTree(node), parseAnims(node), parseMaterials(node)) {}
 
@@ -165,7 +167,15 @@ FBox Model::boundingBox(const Pose &pose) const {
 	return out;
 }
 
-void Model::join(const Model &other, const string &name) {}
+void Model::join(const string &local_name, const Model &other, const string &other_name) {
+	if(auto *other_node = other.findNode(other_name))
+		if(m_root->join(other_node, local_name)) {
+			m_material_defs.insert(end(m_material_defs), begin(other.materialDefs()),
+								   end(other.materialDefs()));
+			// TODO: anims?
+			updateNodes();
+		}
+}
 
 void Model::draw(Renderer &out, const Pose &pose, const MaterialSet &materials,
 				 const Matrix4 &matrix) const {

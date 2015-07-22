@@ -915,6 +915,7 @@ class ModelNode {
 	bool isDescendant(const ModelNode *ancestor) const;
 
 	void dfs(vector<ModelNode *> &out);
+	bool join(const ModelNode *other, const string &name);
 
   private:
 	vector<PModelNode> m_children;
@@ -934,9 +935,10 @@ class Model {
 
 	Model(PModelNode, vector<ModelAnim> anims = {}, vector<MaterialDef> material_defs = {});
 	Model(const XMLNode &);
+	Model(const Model &);
 	void saveToXML(XMLNode) const;
 
-	void join(const Model &, const string &name);
+	void join(const string &local_name, const Model &, const string &other_name);
 
 	const ModelNode *findNode(const string &name) const { return m_root->find(name); }
 	int findNodeId(const string &name) const;
