@@ -4,8 +4,10 @@
 
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
+#include "fwk_profile.h"
 #include <algorithm>
 #include <limits>
+#include <numeric>
 
 namespace fwk {
 
@@ -167,36 +169,35 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	return MeshBuffers{out_positions, out_normals, out_tex_coords};
 }
 
-void MeshBuffers::animatePositions(Range<float3> out_positions, CRange<Matrix4> matrices) const {
-	DASSERT(out_positions.size() == positions.size());
+vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {
+	FWK_PROFILE("MeshBuffers::animatePositions");
 	DASSERT(matrices.size() == node_names.size());
+	vector<float3> out(positions.size());
 
 	for(int v = 0; v < (int)size(); v++) {
 		const auto &vweights = weights[v];
 
-		float3 pos = positions[v];
-		float3 out;
-
+		float3 blend, pos = positions[v];
 		for(const auto &weight : vweights)
-			out += mulPointAffine(matrices[weight.node_id], pos) * weight.weight;
-		out_positions[v] = out;
+			blend += mulPointAffine(matrices[weight.node_id], pos) * weight.weight;
+		out[v] = blend;
 	}
+	return out;
 }
 
-void MeshBuffers::animateNormals(Range<float3> out_normals, CRange<Matrix4> matrices) const {
-	DASSERT(out_normals.size() == normals.size());
+vector<float3> MeshBuffers::animateNormals(CRange<Matrix4> matrices) const {
 	DASSERT(matrices.size() == node_names.size());
+	vector<float3> out(normals.size());
 
 	for(int v = 0; v < (int)normals.size(); v++) {
 		const auto &vweights = weights[v];
 
-		float3 nrm = normals[v];
-		float3 out;
-
+		float3 blend, nrm = normals[v];
 		for(const auto &weight : vweights)
-			out += mulNormalAffine(matrices[weight.node_id], nrm) * weight.weight;
-		out_normals[v] = out;
+			blend += mulNormalAffine(matrices[weight.node_id], nrm) * weight.weight;
+		out[v] = blend;
 	}
+	return out;
 }
 
 MeshBuffers MeshBuffers::transform(const Matrix4 &matrix, MeshBuffers buffers) {

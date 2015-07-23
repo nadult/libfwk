@@ -1,4 +1,5 @@
 #version 100
+#extension GL_OES_standard_derivatives : enable
 
 varying lowp vec4 color;
 varying mediump vec3 tpos;

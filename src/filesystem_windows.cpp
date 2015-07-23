@@ -13,6 +13,12 @@
 
 namespace fwk {
 
+string executablePath() {
+	CHAR path[MAX_PATH];
+	GetModuleFileName(GetModuleHandleW(0), path, arraySize(path));
+	return path;
+}
+
 FilePath::Element FilePath::extractRoot(const char *str) {
 	if((str[0] >= 'a' && str[0] <= 'z') || (str[0] >= 'A' && str[0] <= 'Z'))
 		if(str[1] == ':' && (str[2] == '/' || str[2] == '\\'))

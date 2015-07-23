@@ -12,7 +12,7 @@ string mainPath(string file_name) {
 }
 
 void testSplittingMerging() {
-	auto cylinder = Mesh(MakeCylinder(), Cylinder({0, 0, 0}, 1, 2), 32);
+	auto cylinder = Mesh::makeCylinder(Cylinder({0, 0, 0}, 1, 2), 32);
 	vector<Mesh> parts;
 	for(int x = 0; x < 32; x++)
 		for(int y = 0; y < 32; y++)

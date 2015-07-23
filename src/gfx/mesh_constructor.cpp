@@ -10,32 +10,35 @@ This file is part of libfwk.*/
 
 namespace fwk {
 
-Mesh::Mesh(MakeRect, const FRect &xz_rect, float y)
-	: Mesh(MeshBuffers({float3(xz_rect.min[0], y, xz_rect.min[1]),
-						float3(xz_rect.max[0], y, xz_rect.min[1]),
-						float3(xz_rect.max[0], y, xz_rect.max[1]),
-						float3(xz_rect.min[0], y, xz_rect.max[1])},
-					   vector<float3>(4, float3(0, 1, 0)), {{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
-		   {MeshIndices({0, 2, 1, 0, 3, 2})}) {}
+Mesh Mesh::makeRect(const FRect &xz_rect, float y) {
+	auto positions = {
+		float3(xz_rect.min[0], y, xz_rect.min[1]), float3(xz_rect.max[0], y, xz_rect.min[1]),
+		float3(xz_rect.max[0], y, xz_rect.max[1]), float3(xz_rect.min[0], y, xz_rect.max[1])};
+	auto normals = vector<float3>(4, float3(0, 1, 0));
+	auto tex_coords = vector<float2>{{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+	return Mesh({std::move(positions), std::move(normals), std::move(tex_coords)},
+				{MeshIndices({0, 2, 1, 0, 3, 2})});
+}
 
-Mesh::Mesh(MakeBBox, const FBox &bbox) : Mesh() {
+Mesh Mesh::makeBBox(const FBox &bbox) {
 	float3 corners[8];
 	float2 uvs[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-
 	bbox.getCorners(corners);
 
 	int order[] = {1, 3, 2, 0, 1, 0, 4, 5, 5, 4, 6, 7, 3, 1, 5, 7, 2, 6, 4, 0, 3, 7, 6, 2};
 
-	m_buffers.positions.reserve(24);
-	m_buffers.tex_coords.reserve(24);
+	vector<float3> positions;
+	vector<float2> tex_coords;
+	positions.reserve(24);
+	tex_coords.reserve(24);
 
 	vector<uint> indices;
 	indices.reserve(36);
 
 	for(int s = 0; s < 6; s++) {
 		for(int i = 0; i < 4; i++) {
-			m_buffers.positions.emplace_back(corners[order[s * 4 + i]]);
-			m_buffers.tex_coords.emplace_back(uvs[i]);
+			positions.emplace_back(corners[order[s * 4 + i]]);
+			tex_coords.emplace_back(uvs[i]);
 		}
 
 		int face_indices[6] = {2, 1, 0, 3, 2, 0};
@@ -43,29 +46,28 @@ Mesh::Mesh(MakeBBox, const FBox &bbox) : Mesh() {
 			indices.push_back(s * 4 + face_indices[i]);
 	}
 
-	m_indices = {MeshIndices(indices)};
-	afterInit();
+	return Mesh({positions, {}, tex_coords}, {{indices}});
 }
 
-Mesh::Mesh(MakeCylinder, const Cylinder &cylinder, int num_sides) : Mesh() {
+Mesh Mesh::makeCylinder(const Cylinder &cylinder, int num_sides) {
 	DASSERT(num_sides >= 3);
 
-	m_buffers.positions.resize(num_sides * 2);
+	vector<float3> positions(num_sides * 2);
 	for(int n = 0; n < num_sides; n++) {
 		float angle = n * constant::pi * 2.0f / float(num_sides);
 		float px = cosf(angle) * cylinder.radius();
 		float pz = sinf(angle) * cylinder.radius();
 		float3 offset = cylinder.pos();
 
-		m_buffers.positions[n] = float3(px, 0.0f, pz) + offset;
-		m_buffers.positions[n + num_sides] = float3(px, cylinder.height(), pz) + offset;
+		positions[n] = float3(px, 0.0f, pz) + offset;
+		positions[n + num_sides] = float3(px, cylinder.height(), pz) + offset;
 	}
 
 	// TODO: generate tex coords as well?
 	// TODO: create mapping functions (like in 3dsmax) and apply them afterwards
 
 	vector<uint> indices;
-	m_indices.reserve(num_sides * 6 + (num_sides - 2) * 3 * 2);
+	indices.reserve(num_sides * 6 + (num_sides - 2) * 3 * 2);
 	for(int n = 0; n < num_sides; n++) {
 		uint i0 = n, i1 = (n + 1) % num_sides;
 		uint j0 = n + num_sides, j1 = i1 + num_sides;
@@ -82,7 +84,6 @@ Mesh::Mesh(MakeCylinder, const Cylinder &cylinder, int num_sides) : Mesh() {
 		indices.insert(end(indices), {i0, i2, i1});
 	}
 
-	m_indices = {MeshIndices(indices)};
-	afterInit();
+	return Mesh({positions, {}, {}}, {{indices}});
 }
 }

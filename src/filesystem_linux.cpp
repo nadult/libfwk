@@ -14,6 +14,15 @@
 
 namespace fwk {
 
+string executablePath() {
+	char name[128];
+	int ret = readlink("/proc/self/exe", name, sizeof(name) - 1);
+	if(ret == -1)
+		return "";
+	name[ret] = 0;
+	return name;
+}
+
 FilePath::Element FilePath::extractRoot(const char *str) {
 	if(str[0] == '/')
 		return Element{str, 1};

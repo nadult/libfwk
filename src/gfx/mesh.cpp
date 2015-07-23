@@ -11,16 +11,11 @@ namespace fwk {
 
 Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> material_names)
 	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
-	  m_material_names(std::move(material_names)), m_is_drawing_cache_dirty(true) {
-	afterInit();
-}
-
-void Mesh::afterInit() {
+	  m_material_names(std::move(material_names)), m_ready_flags(0) {
 	for(const auto &indices : m_indices)
 		DASSERT((int)indices.indexRange().second < m_buffers.size());
 	DASSERT(m_material_names.empty() || m_material_names.size() == m_indices.size());
 	m_merged_indices = MeshIndices::merge(m_indices, m_merged_ranges);
-	computeBoundingBox();
 }
 
 static vector<MeshIndices> loadIndices(const XMLNode &node) {
@@ -56,18 +51,22 @@ void Mesh::transformUV(const Matrix4 &matrix) {
 	auto &tex_coords = m_buffers.tex_coords;
 	for(int n = 0; n < (int)tex_coords.size(); n++)
 		tex_coords[n] = (matrix * float4(tex_coords[n], 0.0f, 1.0f)).xy();
-	m_is_drawing_cache_dirty = true;
+	m_ready_flags &= ~flag_drawing_cache;
 }
 
-void Mesh::computeBoundingBox() { m_bounding_box = FBox(m_buffers.positions); }
+FBox Mesh::boundingBox() const {
+	if(!(m_ready_flags & flag_bounding_box)) {
+		m_ready_flags |= flag_bounding_box;
+		m_bounding_box = FBox(m_buffers.positions);
+	}
+
+	return m_bounding_box;
+}
 
 FBox Mesh::boundingBox(const Pose &pose) const {
 	if(!m_buffers.hasSkin())
 		return boundingBox();
-
-	vector<float3> positions(vertexCount());
-	m_buffers.animatePositions(positions, m_buffers.mapPose(pose));
-	return FBox(positions);
+	return FBox(m_buffers.animatePositions(m_buffers.mapPose(pose)));
 }
 
 int Mesh::triangleCount() const {
@@ -166,16 +165,14 @@ Mesh Mesh::animate(const Pose &pose) const {
 	if(!m_buffers.hasSkin())
 		return *this;
 
-	MeshBuffers new_buffers = m_buffers;
 	auto mapped_pose = m_buffers.mapPose(pose);
-	m_buffers.animatePositions(new_buffers.positions, mapped_pose);
-	if(!new_buffers.normals.empty())
-		m_buffers.animateNormals(new_buffers.normals, mapped_pose);
-	return Mesh(std::move(new_buffers), m_indices, m_material_names);
+	return Mesh(MeshBuffers(m_buffers.animatePositions(mapped_pose),
+							m_buffers.animateNormals(mapped_pose), m_buffers.tex_coords),
+				m_indices, m_material_names);
 }
 
 void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matrix) const {
-	if(m_is_drawing_cache_dirty)
+	if(!(m_ready_flags & flag_drawing_cache))
 		updateDrawingCache();
 
 	for(const auto &cache_elem : m_drawing_cache)
@@ -214,19 +211,19 @@ void Mesh::updateDrawingCache() const {
 				DrawCall(varray, indices.type(), range.second, range.first), mat_name);
 		}
 	}
-	m_is_drawing_cache_dirty = false;
+	m_ready_flags |= flag_drawing_cache;
 }
 
 void Mesh::clearDrawingCache() const {
 	m_drawing_cache.clear();
-	m_is_drawing_cache_dirty = true;
+	m_ready_flags &= ~flag_drawing_cache;
 }
 
 float Mesh::intersect(const Segment &segment) const {
 	float min_isect = constant::inf;
 
 	const auto &positions = m_buffers.positions;
-	if(intersection(segment, m_bounding_box) < constant::inf)
+	if(intersection(segment, boundingBox()) < constant::inf)
 		for(const auto &indices : trisIndices()) {
 			Triangle triangle(positions[indices[0]], positions[indices[1]], positions[indices[2]]);
 			min_isect = min(min_isect, intersection(segment, triangle));
@@ -239,8 +236,7 @@ float Mesh::intersect(const Segment &segment, const Pose &pose) const {
 	if(!m_buffers.hasSkin())
 		return intersect(segment);
 
-	vector<float3> positions(vertexCount());
-	m_buffers.animatePositions(positions, m_buffers.mapPose(pose));
+	auto positions = m_buffers.animatePositions(m_buffers.mapPose(pose));
 
 	float min_isect = constant::inf;
 	// TODO: optimize

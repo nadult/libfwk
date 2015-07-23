@@ -7,10 +7,11 @@
 
 namespace fwk {
 
-struct NameMapping::Map : public std::unordered_map<string, int> {};
+struct NameMapping::Map : public std::unordered_map<string, int> {
+	using std::unordered_map<string, int>::unordered_map;
+};
 
-NameMapping::NameMapping(const vector<string> &names) {
-	m_map = make_cow<Map>();
+NameMapping::NameMapping(const vector<string> &names) : m_map(make_cow<Map>(names.size())) {
 	for(int n = 0; n < (int)names.size(); n++) {
 		auto ret = mutate(m_map)->emplace(names[n], n);
 		// TODO: think what to do about name duplicates

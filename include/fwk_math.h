@@ -803,6 +803,8 @@ class Frustum {
 
 	bool isIntersecting(const float3 &point) const;
 	bool isIntersecting(const FBox &box) const;
+
+	// TODO: clang crashes on this (in full opt with -DNDEBUG)
 	bool isIntersecting(CRange<float3> points) const;
 
 	const Plane &operator[](int idx) const { return m_planes[idx]; }

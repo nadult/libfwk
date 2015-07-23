@@ -198,7 +198,7 @@ void Model::draw(Renderer &out, const Pose &pose, const MaterialSet &materials,
 
 void Model::drawNodes(Renderer &out, const Pose &pose, Color node_color, Color line_color,
 					  const Matrix4 &matrix) const {
-	Mesh bbox_mesh(MakeBBox(), FBox(-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f));
+	Mesh bbox_mesh = Mesh::makeBBox({-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f});
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
@@ -272,6 +272,7 @@ Pose Model::finalPose(Pose pose) const {
 }
 
 Pose Model::meshSkinningPose(Pose pose, int node_id) const {
+	FWK_PROFILE("Model::meshSkinningPose");
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
 	Pose final_pose = finalPose(std::move(pose));
 

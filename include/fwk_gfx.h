@@ -16,10 +16,6 @@ namespace collada {
 	class Mesh;
 }
 
-class MakeRect {};
-class MakeBBox {};
-class MakeCylinder {};
-
 struct Color {
 	explicit Color(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
 	explicit Color(int r, int g, int b, int a = 255)
@@ -696,8 +692,8 @@ struct MeshBuffers {
 	MeshBuffers(const XMLNode &node);
 	void saveToXML(XMLNode) const;
 
-	void animatePositions(Range<float3>, CRange<Matrix4>) const;
-	void animateNormals(Range<float3>, CRange<Matrix4>) const;
+	vector<float3> animatePositions(CRange<Matrix4>) const;
+	vector<float3> animateNormals(CRange<Matrix4>) const;
 
 	int size() const { return (int)positions.size(); }
 	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
@@ -763,11 +759,11 @@ class Mesh {
 	Mesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
-	Mesh(MakeRect, const FRect &xz_rect, float y);
-	Mesh(MakeBBox, const FBox &bbox);
-	Mesh(MakeCylinder, const Cylinder &, int num_sides);
+	static Mesh makeRect(const FRect &xz_rect, float y);
+	static Mesh makeBBox(const FBox &bbox);
+	static Mesh makeCylinder(const Cylinder &, int num_sides);
 
-	const FBox &boundingBox() const { return m_bounding_box; }
+	FBox boundingBox() const;
 	FBox boundingBox(const Pose &) const;
 
 	void transformUV(const Matrix4 &);
@@ -789,6 +785,7 @@ class Mesh {
 	bool hasSkin() const { return m_buffers.hasSkin(); }
 	bool isEmpty() const { return m_buffers.positions.empty(); }
 
+	// TODO: make this completely immutable (and the others as well, if possible)
 	void removeNormals() { m_buffers.normals.clear(); }
 	void removeTexCoords() { m_buffers.tex_coords.clear(); }
 
@@ -816,20 +813,24 @@ class Mesh {
 	*/
 
   protected:
-	void computeBoundingBox();
 	void verifyData() const;
-	void afterInit();
 	void updateDrawingCache() const;
 
 	MeshBuffers m_buffers;
 	vector<MeshIndices> m_indices;
+	vector<string> m_material_names;
+
 	MeshIndices m_merged_indices;
 	vector<pair<uint, uint>> m_merged_ranges;
-	vector<string> m_material_names;
-	FBox m_bounding_box;
 
+	mutable FBox m_bounding_box;
 	mutable vector<pair<DrawCall, string>> m_drawing_cache;
-	mutable bool m_is_drawing_cache_dirty;
+
+	enum Flags {
+		flag_drawing_cache,
+		flag_bounding_box,
+	};
+	mutable uint m_ready_flags;
 };
 
 using PMesh = cow_ptr<Mesh>;
