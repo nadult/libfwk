@@ -700,6 +700,9 @@ struct MeshBuffers {
 	int size() const { return (int)positions.size(); }
 	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
 
+	static MeshBuffers transform(const Matrix4 &, MeshBuffers);
+	MeshBuffers remap(const vector<uint> &mapping) const;
+
 	vector<pair<Matrix4, float>> mapPose(const Pose &) const;
 
 	vector<float3> positions;
@@ -731,10 +734,13 @@ class MeshIndices {
 	int triangleCount() const;
 	int size() const { return (int)m_data.size(); }
 	bool empty() const { return m_data.empty(); }
-	uint maxIndex() const;
+	pair<uint, uint> indexRange() const;
 
 	static MeshIndices changeType(MeshIndices, Type new_type);
 	static MeshIndices merge(const vector<MeshIndices> &, vector<pair<uint, uint>> &index_ranges);
+	static MeshIndices applyOffset(MeshIndices, uint offset);
+
+	vector<MeshIndices> split(uint max_vertices, vector<vector<uint>> &out_mappings) const;
 
   private:
 	vector<uint> m_data;
@@ -777,6 +783,7 @@ class Mesh {
 
 	bool hasTexCoords() const { return !m_buffers.tex_coords.empty(); }
 	bool hasNormals() const { return !m_buffers.normals.empty(); }
+	bool hasSkin() const { return m_buffers.hasSkin(); }
 	bool isEmpty() const { return m_buffers.positions.empty(); }
 
 	void removeNormals() { m_buffers.normals.clear(); }
@@ -785,10 +792,8 @@ class Mesh {
 	using TriIndices = MeshIndices::TriIndices;
 	vector<TriIndices> trisIndices() const;
 
-	PrimitiveType::Type primitiveType() const { return m_indices.front().type(); }
-
 	vector<Mesh> split(int max_vertices) const;
-	static Mesh merge(const vector<Mesh> &);
+	static Mesh merge(vector<Mesh>);
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	float intersect(const Segment &) const;
@@ -825,9 +830,6 @@ class Mesh {
 };
 
 using PMesh = cow_ptr<Mesh>;
-
-vector<float3> transformVertices(const Matrix4 &, vector<float3>);
-vector<float3> transformNormals(const Matrix4 &, vector<float3>);
 
 struct MaterialDef {
 	MaterialDef(const string &name, Color diffuse) : name(name), diffuse(diffuse) {}

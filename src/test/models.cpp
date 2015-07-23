@@ -4,10 +4,28 @@
 
 #include "testing.h"
 #include "fwk_gfx.h"
+#include <tuple>
 
 string mainPath(string file_name) {
 	FilePath exec(executablePath());
 	return exec.parent().parent() / file_name;
+}
+
+void testSplittingMerging() {
+	auto cylinder = Mesh(MakeCylinder(), Cylinder({0, 0, 0}, 1, 2), 32);
+	vector<Mesh> parts;
+	for(int x = 0; x < 32; x++)
+		for(int y = 0; y < 32; y++)
+			parts.emplace_back(Mesh::transform(translation(x * 2, 0, y * 2), cylinder));
+	Mesh big_mesh = Mesh::merge(parts);
+
+	parts = big_mesh.split(1024);
+	for(auto &part : parts)
+		ASSERT(part.vertexCount() <= 1024);
+
+	Mesh merged = Mesh::merge(parts);
+	ASSERT(merged.triangleCount() == big_mesh.triangleCount());
+	// TODO: test triangle strips as well
 }
 
 void testMain() {
