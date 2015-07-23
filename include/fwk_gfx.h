@@ -957,7 +957,7 @@ class Model {
 	Mesh toMesh(const Pose &) const;
 	void printHierarchy() const;
 
-	Pose defaultPose() const;
+	const Pose &defaultPose() const { return m_default_pose; }
 	FBox boundingBox(const Pose &pose) const;
 	Matrix4 nodeTrans(const string &name, const Pose &) const;
 
@@ -994,6 +994,7 @@ class Model {
 	vector<ModelNode *> m_nodes;
 	float3 m_bind_scale;
 	vector<Matrix4> m_inv_bind_matrices;
+	Pose m_default_pose;
 };
 
 using PModel = cow_ptr<Model>;

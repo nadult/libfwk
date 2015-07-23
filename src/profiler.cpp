@@ -30,6 +30,7 @@ namespace {
 	vector<Counter> s_counters;
 	int s_frame_count = 0;
 	double s_last_frame_time[2] = {-1.0, -1.0};
+	double s_last_limit = 0.0;
 
 	Timer &accessTimer(const string &name) {
 		for(auto &timer : s_timers)
@@ -71,7 +72,14 @@ void profilerNextFrame() {
 const string getProfilerStats(const char *filter) {
 	TextFormatter out;
 
-	double min_time = getTime() - 0.5;
+	double cur_time = getTime();
+	if(s_last_limit < cur_time) {
+		if(s_last_limit + 10.0 < cur_time)
+			s_last_limit = cur_time;
+		while(s_last_limit < cur_time - 0.5)
+			s_last_limit += 0.5;
+	}
+	double min_time = s_last_limit - 1.0;
 
 	if(!s_timers.empty())
 		out("Timers:\n");
@@ -86,14 +94,18 @@ const string getProfilerStats(const char *filter) {
 		if(timer.is_rare) {
 			shown_value = timer.values.back().second - timer.values.back().first;
 		} else {
-			double sum = 0.0;
+			double sum = 0.0, count = 0.0;
 			vector<pair<double, double>> filtered_values;
+
 			for(auto value : timer.values)
 				if(value.second >= min_time) {
 					filtered_values.emplace_back(value);
-					sum += value.second - value.first;
+					if(value.second < s_last_limit) {
+						sum += value.second - value.first;
+						count ++;
+					}
 				}
-			shown_value = sum / double(filtered_values.size());
+			shown_value = sum / count;
 			timer.values = std::move(filtered_values);
 		}
 

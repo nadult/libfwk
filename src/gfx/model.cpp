@@ -117,6 +117,16 @@ void Model::updateNodes() {
 	}
 	// TODO: fixing this value fixes junker on new assimp
 	m_bind_scale = inv(m_bind_scale);
+
+
+	vector<Matrix4> pose_matrices;
+	vector<string> pose_names;
+
+	for(const auto *node : m_nodes) {
+		pose_matrices.emplace_back(node->localTrans());
+		pose_names.emplace_back(node->name());
+	}
+	m_default_pose = Pose(std::move(pose_matrices), pose_names);
 }
 
 static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, XMLNode xml_node) {
@@ -274,18 +284,6 @@ Pose Model::meshSkinningPose(Pose pose, int node_id) const {
 	for(int n = 0; n < (int)out.size(); n++)
 		out[n] = pre * final_pose.transforms[n] * m_inv_bind_matrices[n] * offset_matrix;
 	return Pose(std::move(out), final_pose.name_mapping);
-}
-
-Pose Model::defaultPose() const {
-	vector<Matrix4> out;
-	vector<string> names;
-
-	for(const auto *node : m_nodes) {
-		out.emplace_back(node->localTrans());
-		names.emplace_back(node->name());
-	}
-
-	return Pose(std::move(out), names);
 }
 
 Pose Model::animatePose(int anim_id, double anim_pos) const {
