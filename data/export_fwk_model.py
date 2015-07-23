@@ -1,6 +1,9 @@
 #Written for Blender 2.75
 #Author: Krzysztof 'nadult' Jakubowski
 
+#TODO: if we have 2 armatures, then they can have bones with same names
+#      identify nodes better than by just using their names
+
 import re
 import bpy
 import mathutils
@@ -96,19 +99,32 @@ def writeSkin(xml_parent, mesh, obj):
     weights = []
     node_ids = []
     node_names = []
+    group_index = [-1] * len(obj.vertex_groups)
+    do_export = [0] * len(obj.vertex_groups)
+
+    armature = obj.find_armature()
+    if not armature.is_visible(bpy.context.scene):
+        return;
 
     for vg in obj.vertex_groups:
         if(not isValidString(vg.name)):
             raise Exception("Vertex groups names mustn't contain whitespaces: \"" + obj.name + '"')
-        node_names.append(vg.name)
+        do_export[vg.index] = armature.data.bones.find(vg.name) != -1
+        if do_export[vg.index]:
+            group_index[vg.index] = len(node_names)
+            node_names.append(vg.name)
+        else:
+            group_index[vg.index] = -1
+            log("Skipping vertex group: " + vg.name)
 
     for vertex in mesh.vertices:
         vweights = []
         vnode_ids = []
         for group in vertex.groups:
-            if group.weight > 0.000001:
+            index = group_index[group.group]
+            if group.weight > 0.000001 and index != -1:
                 vweights.append(group.weight)
-                vnode_ids.append(group.group)
+                vnode_ids.append(index)
 
         weight_sum = sum(vweights)
         if weight_sum > 0.000001:

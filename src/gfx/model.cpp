@@ -104,14 +104,9 @@ void Model::updateNodes() {
 
 	auto def = defaultPose();
 
-	m_bind_matrices = vector<Matrix4>(nodes().size(), Matrix4::identity());
 	m_inv_bind_matrices.clear();
-
-	for(const auto *node : nodes()) {
-		Matrix4 mat = node->globalTrans();
-		m_bind_matrices.emplace_back(mat);
-		m_inv_bind_matrices.emplace_back(inverse(mat));
-	}
+	for(const auto *node : nodes())
+		m_inv_bind_matrices.emplace_back(inverse(node->globalTrans()));
 
 	// TODO: is this really needed?
 	m_bind_scale = float3(1, 1, 1);
@@ -200,7 +195,7 @@ void Model::drawNodes(Renderer &out, const Pose &pose, Color node_color, Color l
 	auto final_pose = finalPose(pose);
 	vector<float3> positions(nodes().size());
 	for(int n = 0; n < (int)nodes().size(); n++)
-		positions[n] = mulPoint(final_pose(m_nodes[n]->name()), m_bind_matrices[n][3].xyz());
+		positions[n] = mulPoint(final_pose(m_nodes[n]->name()), float3(0, 0, 0));
 
 	auto material = make_cow<Material>(node_color);
 	for(const auto *node : nodes()) {
@@ -240,7 +235,8 @@ float Model::intersect(const Segment &segment, const Pose &pose) const {
 	for(const auto &node : nodes())
 		if(node->mesh()) {
 			float isect =
-				node->mesh()->intersect(inverse(final_pose.transforms[node->id()]) * segment, pose);
+				node->mesh()->intersect(inverse(final_pose.transforms[node->id()]) * segment,
+						meshSkinningPose(pose, node->id()));
 			min_isect = min(min_isect, isect);
 		}
 
@@ -267,12 +263,10 @@ Pose Model::finalPose(Pose pose) const {
 
 Pose Model::meshSkinningPose(Pose pose, int node_id) const {
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
-	Pose bind_pose = finalPose(defaultPose());
-	Matrix4 offset_matrix = bind_pose.transforms[node_id];
-
 	Pose final_pose = finalPose(std::move(pose));
 
-	Matrix4 pre = inverse(offset_matrix) * scaling(m_bind_scale);
+	Matrix4 offset_matrix = m_nodes[node_id]->globalTrans();
+	Matrix4 pre = m_inv_bind_matrices[node_id] * scaling(m_bind_scale);
 
 	// TODO: check poses
 	vector<Matrix4> out;

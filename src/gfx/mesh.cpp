@@ -66,7 +66,7 @@ FBox Mesh::boundingBox(const Pose &pose) const {
 		return boundingBox();
 
 	vector<float3> positions(vertexCount());
-	m_buffers.animatePositions(positions, pose);
+	m_buffers.animatePositions(positions, m_buffers.mapPose(pose));
 	return FBox(positions);
 }
 
@@ -167,9 +167,10 @@ Mesh Mesh::animate(const Pose &pose) const {
 		return *this;
 
 	MeshBuffers new_buffers = m_buffers;
-	m_buffers.animatePositions(new_buffers.positions, pose);
+	auto mapped_pose = m_buffers.mapPose(pose);
+	m_buffers.animatePositions(new_buffers.positions, mapped_pose);
 	if(!new_buffers.normals.empty())
-		m_buffers.animateNormals(new_buffers.normals, pose);
+		m_buffers.animateNormals(new_buffers.normals, mapped_pose);
 	return Mesh(std::move(new_buffers), m_indices, m_material_names);
 }
 
@@ -239,7 +240,7 @@ float Mesh::intersect(const Segment &segment, const Pose &pose) const {
 		return intersect(segment);
 
 	vector<float3> positions(vertexCount());
-	m_buffers.animatePositions(positions, pose);
+	m_buffers.animatePositions(positions, m_buffers.mapPose(pose));
 
 	float min_isect = constant::inf;
 	// TODO: optimize

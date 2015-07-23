@@ -663,6 +663,8 @@ struct Pose {
 	NameMapping name_mapping;
 };
 
+using FinalPose = vector<Matrix4>;
+
 inline Pose operator*(const Matrix4 &mat, Pose pose) {
 	for(auto &transform : pose.transforms)
 		transform = mat * transform;
@@ -694,8 +696,8 @@ struct MeshBuffers {
 	MeshBuffers(const XMLNode &node);
 	void saveToXML(XMLNode) const;
 
-	void animatePositions(Range<float3>, const Pose &) const;
-	void animateNormals(Range<float3>, const Pose &) const;
+	void animatePositions(Range<float3>, CRange<Matrix4>) const;
+	void animateNormals(Range<float3>, CRange<Matrix4>) const;
 
 	int size() const { return (int)positions.size(); }
 	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
@@ -703,7 +705,8 @@ struct MeshBuffers {
 	static MeshBuffers transform(const Matrix4 &, MeshBuffers);
 	MeshBuffers remap(const vector<uint> &mapping) const;
 
-	vector<pair<Matrix4, float>> mapPose(const Pose &) const;
+	// Pose must have configuration for each of the nodes in node_names
+	vector<Matrix4> mapPose(const Pose &) const;
 
 	vector<float3> positions;
 	vector<float3> normals;
@@ -990,7 +993,6 @@ class Model {
 
 	vector<ModelNode *> m_nodes;
 	float3 m_bind_scale;
-	vector<Matrix4> m_bind_matrices;
 	vector<Matrix4> m_inv_bind_matrices;
 };
 

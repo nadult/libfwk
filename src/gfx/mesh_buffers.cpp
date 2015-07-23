@@ -131,14 +131,16 @@ void MeshBuffers::saveToXML(XMLNode node) const {
 		node.addChild("node_names", node_names);
 }
 
-vector<pair<Matrix4, float>> MeshBuffers::mapPose(const Pose &pose) const {
+vector<Matrix4> MeshBuffers::mapPose(const Pose &pose) const {
 	auto mapping = pose.name_mapping(node_names);
-	vector<pair<Matrix4, float>> out;
-	out.reserve(node_names.size());
-	for(int id : mapping) {
-		float weight = id == -1 ? 0.0f : 1.0f;
-		out.emplace_back(id == -1 ? Matrix4::identity() : pose.transforms[id], weight);
+	vector<Matrix4> out(node_names.size());
+
+	for(int n = 0; n < (int)mapping.size(); n++) {
+		if(mapping[n] == -1)
+			THROW("missing node configuration: %s", node_names[n].c_str());
+		out[n] = pose.transforms[mapping[n]];
 	}
+
 	return out;
 }
 
@@ -165,45 +167,35 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	return MeshBuffers{out_positions, out_normals, out_tex_coords};
 }
 
-void MeshBuffers::animatePositions(Range<float3> out_positions, const Pose &pose) const {
+void MeshBuffers::animatePositions(Range<float3> out_positions, CRange<Matrix4> matrices) const {
 	DASSERT(out_positions.size() == positions.size());
-	// DASSERT(m_max_node_index < (int)matrices.size());
-	auto matrices = mapPose(pose);
+	DASSERT(matrices.size() == node_names.size());
 
 	for(int v = 0; v < (int)size(); v++) {
 		const auto &vweights = weights[v];
 
 		float3 pos = positions[v];
 		float3 out;
-		float weight_sum = 0.0f;
 
-		for(const auto &weight : vweights) {
-			float cur_weight = weight.weight * matrices[weight.node_id].second;
-			weight_sum += cur_weight;
-			out += mulPointAffine(matrices[weight.node_id].first, pos) * cur_weight;
-		}
-		out_positions[v] = out / weight_sum;
+		for(const auto &weight : vweights)
+			out += mulPointAffine(matrices[weight.node_id], pos) * weight.weight;
+		out_positions[v] = out;
 	}
 }
 
-void MeshBuffers::animateNormals(Range<float3> out_normals, const Pose &pose) const {
+void MeshBuffers::animateNormals(Range<float3> out_normals, CRange<Matrix4> matrices) const {
 	DASSERT(out_normals.size() == normals.size());
-	// DASSERT(m_max_node_index < (int)matrices.size());
-	auto matrices = mapPose(pose);
+	DASSERT(matrices.size() == node_names.size());
 
 	for(int v = 0; v < (int)normals.size(); v++) {
 		const auto &vweights = weights[v];
 
 		float3 nrm = normals[v];
 		float3 out;
-		float weight_sum = 0.0f;
 
-		for(const auto &weight : vweights) {
-			float cur_weight = weight.weight * matrices[weight.node_id].second;
-			weight_sum += cur_weight;
-			out += mulNormalAffine(matrices[weight.node_id].first, nrm) * cur_weight;
-		}
-		out_normals[v] = out / weight_sum;
+		for(const auto &weight : vweights)
+			out += mulNormalAffine(matrices[weight.node_id], nrm) * weight.weight;
+		out_normals[v] = out;
 	}
 }
 
@@ -212,4 +204,5 @@ MeshBuffers MeshBuffers::transform(const Matrix4 &matrix, MeshBuffers buffers) {
 	buffers.normals = transformNormals(matrix, std::move(buffers.normals));
 	return buffers;
 }
+
 }
