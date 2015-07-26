@@ -133,6 +133,9 @@ namespace {
 							  new_flags & Material::flag_wire ? GL_LINE : GL_FILL);
 #endif
 			}
+			if((new_flags & Material::flag_clear_depth) && !(flags & Material::flag_clear_depth)) {
+				GfxDevice::clearDepth(1.0f);
+			}
 
 			flags = new_flags;
 		}
@@ -161,6 +164,7 @@ void Renderer::render() {
 		binder.setUniform("proj_view_matrix", instance.matrix);
 		binder.setUniform("mesh_color", (float4)material->color());
 		dev_config.update(material->flags());
+
 		instance.draw_call.issue();
 	}
 

@@ -603,6 +603,7 @@ class Material {
 		flag_blended = 1,
 		flag_two_sided = 2,
 		flag_wire = 4,
+		flag_clear_depth = 8,
 	};
 	Material(PProgram program, Color color = Color::white, uint flags = 0);
 	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
