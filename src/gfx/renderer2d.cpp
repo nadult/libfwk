@@ -46,7 +46,7 @@ struct ProgramFactory2D {
 		fragment_shader.setSource(with_texture ? fragment_shader_2d_tex_src
 											   : fragment_shader_2d_flat_src);
 
-		return make_cow<Program>(vertex_shader, fragment_shader,
+		return make_immutable<Program>(vertex_shader, fragment_shader,
 								 vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
 };
@@ -182,9 +182,9 @@ void Renderer2D::render() {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(0);
 
-	VertexArray array({make_cow<VertexBuffer>(m_positions), make_cow<VertexBuffer>(m_colors),
-					   make_cow<VertexBuffer>(m_tex_coords)},
-					  make_cow<IndexBuffer>(m_indices));
+	VertexArray array({make_immutable<VertexBuffer>(m_positions), make_immutable<VertexBuffer>(m_colors),
+					   make_immutable<VertexBuffer>(m_tex_coords)},
+					  make_immutable<IndexBuffer>(m_indices));
 
 	for(const auto &element : m_elements) {
 		auto &program = (element.texture ? m_tex_program : m_flat_program);

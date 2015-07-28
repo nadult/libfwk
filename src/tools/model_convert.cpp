@@ -105,7 +105,7 @@ pair<PModel, string> loadModel(FileType::Type file_type, Stream &stream) {
 		stream >> doc;
 		XMLNode child = doc.child();
 		ASSERT(child && "empty XML document");
-		out = make_pair(make_cow<Model>(child), string(child.name()));
+		out = make_pair(make_immutable<Model>(child), string(child.name()));
 	} else {
 		DASSERT(file_type == FileType::blender);
 		ASSERT(dynamic_cast<FileStream *>(&stream));

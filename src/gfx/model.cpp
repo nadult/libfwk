@@ -8,6 +8,7 @@
 #include <deque>
 #include <unordered_map>
 #include "fwk_profile.h"
+#include "fwk_cache.h"
 
 namespace fwk {
 
@@ -17,6 +18,49 @@ MaterialDef::MaterialDef(const XMLNode &node)
 void MaterialDef::saveToXML(XMLNode node) const {
 	node.addAttrib("name", node.own(name));
 	node.addAttrib("diffuse", float3(diffuse));
+}
+
+auto makeNameMap(const vector<string> &names) {
+	vector<pair<string, int>> out(names.size());
+	for(int n = 0; n < (int)names.size(); n++)
+		out[n] = make_pair(names[n], n);
+	std::sort(begin(out), end(out));
+	return out;
+}
+
+Pose::Pose(vector<Matrix4> transforms, NameMap name_map)
+	: m_name_map(std::move(name_map)), m_transforms(std::move(transforms)) {
+	DASSERT(m_transforms.size() == m_name_map.size());
+}
+Pose::Pose(vector<Matrix4> transforms, const vector<string> &names)
+	: Pose(std::move(transforms), makeNameMap(names)) {}
+
+vector<int> Pose::mapNames(const vector<string> &names) const {
+	auto dst_map = makeNameMap(names);
+	int src_index = 0;
+	vector<int> out(names.size());
+
+	for(int n = 0; n < (int)dst_map.size(); n++) {
+		const string &name = dst_map[n].first;
+		while(m_name_map[src_index].first != name) {
+			src_index++;
+			if(src_index == (int)m_name_map.size())
+				THROW("Cannot find node in pose: %s", name.c_str());
+		}
+
+		out[dst_map[n].second] = m_name_map[src_index++].second;
+	}
+	return out;
+}
+
+vector<Matrix4> Pose::mapTransforms(const vector<int> &mapping) const {
+	vector<Matrix4> out;
+	out.reserve(mapping.size());
+	for(auto it : mapping) {
+		DASSERT(it >= 0 && it < (int)m_transforms.size());
+		out.emplace_back(m_transforms[it]);
+	}
+	return out;
 }
 
 namespace {
@@ -42,7 +86,7 @@ namespace {
 		XMLNode mesh_node = xml_node.child("mesh");
 		vector<PMesh> meshes;
 		while(mesh_node) {
-			meshes.emplace_back(make_cow<Mesh>(mesh_node));
+			meshes.emplace_back(make_immutable<Mesh>(mesh_node));
 			mesh_node.next();
 		}
 
@@ -118,7 +162,6 @@ void Model::updateNodes() {
 	// TODO: fixing this value fixes junker on new assimp
 	m_bind_scale = inv(m_bind_scale);
 
-
 	vector<Matrix4> pose_matrices;
 	vector<string> pose_names;
 
@@ -157,17 +200,15 @@ void Model::saveToXML(XMLNode xml_node) const {
 		anim.saveToXML(xml_node.addChild("anim"));
 }
 
-FBox Model::boundingBox(const Pose &pose) const {
-	DASSERT(pose.size() == nodes().size());
+FBox Model::boundingBox(PPose pose) const {
+	DASSERT(isValidPose(pose));
 
 	FBox out = FBox::empty();
-	const auto &final_pose = finalPose(pose);
-	for(const auto &node : nodes())
-		if(node->mesh()) {
-			FBox bbox = final_pose.transforms[node->id()] *
-						node->mesh()->boundingBox(meshSkinningPose(pose, node->id()));
-			out = out.isEmpty() ? bbox : sum(out, bbox);
-		}
+	auto anim_data = animatedData(pose);
+	for(auto pair : anim_data->meshes) {
+		FBox bbox = pair.first * pair.second->boundingBox();
+		out = out.isEmpty() ? bbox : sum(out, bbox);
+	}
 
 	return out;
 }
@@ -182,32 +223,34 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 		}
 }
 
-void Model::draw(Renderer &out, const Pose &pose, const MaterialSet &materials,
+void Model::draw(Renderer &out, PPose pose, const MaterialSet &materials,
 				 const Matrix4 &matrix) const {
+	DASSERT(isValidPose(pose));
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
-	auto final_pose = finalPose(pose);
-	for(const auto *node : m_nodes)
-		if(node->mesh())
-			node->mesh()->draw(out, meshSkinningPose(pose, node->id()), materials,
-							   final_pose(node->name()));
+	auto anim_data = animatedData(pose);
+	for(auto pair : anim_data->meshes)
+		pair.second->draw(out, materials, pair.first);
 
 	out.popViewMatrix();
 }
 
-void Model::drawNodes(Renderer &out, const Pose &pose, Color node_color, Color line_color,
+void Model::drawNodes(Renderer &out, PPose pose, Color node_color, Color line_color,
 					  const Matrix4 &matrix) const {
+	DASSERT(isValidPose(pose));
 	Mesh bbox_mesh = Mesh::makeBBox({-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f});
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
-	auto final_pose = finalPose(pose);
+	auto global_pose = globalPose(pose);
+	auto transforms = global_pose->transforms();
+
 	vector<float3> positions(nodes().size());
 	for(int n = 0; n < (int)nodes().size(); n++)
-		positions[n] = mulPoint(final_pose(m_nodes[n]->name()), float3(0, 0, 0));
+		positions[n] = mulPoint(transforms[n], float3(0, 0, 0));
 
-	auto material = make_cow<Material>(node_color);
+	auto material = make_immutable<Material>(node_color);
 	for(const auto *node : nodes()) {
 		if(m_inv_bind_matrices[node->id()] != Matrix4::identity())
 			bbox_mesh.draw(out, material, translation(positions[node->id()]));
@@ -225,73 +268,105 @@ void Model::printHierarchy() const {
 		printf("%d: %s\n", node->id(), node->name().c_str());
 }
 
-Mesh Model::toMesh(const Pose &pose) const {
+Mesh Model::toMesh(PPose pose) const {
+	DASSERT(isValidPose(pose));
 	vector<Mesh> meshes;
 
-	const auto &final_pose = finalPose(pose);
+	auto global_pose = globalPose(pose);
+	const auto &transforms = global_pose->transforms();
+
 	for(const auto *node : nodes())
 		if(node->mesh()) {
-			auto mesh = node->mesh()->animate(meshSkinningPose(pose, node->id()));
-			meshes.emplace_back(Mesh::transform(final_pose(node->name()), mesh));
+			auto mesh = node->mesh()->animate(meshSkinningPose(global_pose, node->id()));
+			meshes.emplace_back(Mesh::transform(transforms[node->id()], mesh));
 		}
 
 	return Mesh::merge(meshes);
 }
 
-float Model::intersect(const Segment &segment, const Pose &pose) const {
+float Model::intersect(const Segment &segment, PPose pose) const {
+	DASSERT(isValidPose(pose));
 	float min_isect = constant::inf;
 
-	const auto &final_pose = finalPose(pose);
-	for(const auto &node : nodes())
-		if(node->mesh()) {
-			float isect =
-				node->mesh()->intersect(inverse(final_pose.transforms[node->id()]) * segment,
-						meshSkinningPose(pose, node->id()));
-			min_isect = min(min_isect, isect);
-		}
+	auto anim_data = animatedData(pose);
+	for(auto pair : anim_data->meshes) {
+		float isect = pair.second->intersect(inverse(pair.first) * segment);
+		min_isect = min(min_isect, isect);
+	}
 
 	return min_isect;
 }
 
-Matrix4 Model::nodeTrans(const string &name, const Pose &pose) const {
-	const auto &final_pose = finalPose(pose);
+Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
+	DASSERT(isValidPose(pose));
+	auto global_pose = globalPose(pose);
 	if(const auto *node = findNode(name))
-		return final_pose.transforms[node->id()];
+		return global_pose->transforms()[node->id()];
 	return Matrix4::identity();
 }
 
-// TODO: cleanup those terrible inefficiencies...
-Pose Model::finalPose(Pose pose) const {
-	DASSERT(pose.size() == nodes().size());
-	vector<Matrix4> out = pose.transforms;
-
+PPose Model::globalPose(PPose pose) const {
+	DASSERT(isValidPose(pose));
+	vector<Matrix4> out = pose->transforms();
 	for(int n = 0; n < (int)out.size(); n++)
 		if(nodes()[n]->parent())
 			out[n] = out[nodes()[n]->parent()->id()] * out[n];
-	return Pose(out, pose.name_mapping);
+	return make_immutable<Pose>(std::move(out), pose->nameMap());
 }
 
-Pose Model::meshSkinningPose(Pose pose, int node_id) const {
+PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
+	DASSERT(isValidPose(global_pose));
 	FWK_PROFILE("Model::meshSkinningPose");
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
-	Pose final_pose = finalPose(std::move(pose));
 
-	Matrix4 offset_matrix = m_nodes[node_id]->globalTrans();
 	Matrix4 pre = m_inv_bind_matrices[node_id] * scaling(m_bind_scale);
+	Matrix4 post = m_nodes[node_id]->globalTrans();
 
-	// TODO: check poses
-	vector<Matrix4> out;
-	out.resize(nodes().size());
+	vector<Matrix4> out = global_pose->transforms();
 	for(int n = 0; n < (int)out.size(); n++)
-		out[n] = pre * final_pose.transforms[n] * m_inv_bind_matrices[n] * offset_matrix;
-	return Pose(std::move(out), final_pose.name_mapping);
+		out[n] = pre * out[n] * m_inv_bind_matrices[n] * post;
+	return make_immutable<Pose>(std::move(out), global_pose->nameMap());
 }
 
-Pose Model::animatePose(int anim_id, double anim_pos) const {
+PPose Model::animatePose(int anim_id, double anim_pos) const {
 	DASSERT(anim_id >= -1 && anim_id < (int)m_anims.size());
 
 	if(anim_id == -1)
 		return defaultPose();
 	return m_anims[anim_id].animatePose(defaultPose(), anim_pos);
 }
+
+bool Model::isValidPose(PPose pose) const {
+	// TODO: keep weak_ptr to model inside pose?
+	return pose && pose->nameMap() == m_default_pose->nameMap();
+}
+
+immutable_ptr<Model::AnimatedData> Model::animatedData(PPose pose) const {
+	auto &cache = TCache<AnimatedData, PModel, PPose>::g_cache;
+	auto key = cache.makeKey(get_immutable_ptr(), pose);
+
+	if(auto data = cache.access(key))
+		return data;
+
+	AnimatedData new_data;
+	new_data.global_pose = globalPose(pose);
+	const auto &transforms = new_data.global_pose->transforms();
+
+	for(const auto *node : nodes())
+		if(node->mesh()) {
+			PMesh mesh;
+			if(node->mesh()->hasSkin()) {
+				auto skinning_pose = meshSkinningPose(new_data.global_pose, node->id());
+				mesh = PMesh(node->mesh()->animate(skinning_pose));
+			} else { mesh = node->mesh(); }
+
+			new_data.meshes.emplace_back(transforms[node->id()], mesh);
+		}
+
+	auto data_ptr = make_immutable<AnimatedData>(std::move(new_data));
+	cache.add(key, data_ptr);
+	return data_ptr;
+}
+
+template <class Value, class... Keys> TCache<Value, Keys...> TCache<Value, Keys...>::g_cache;
 }

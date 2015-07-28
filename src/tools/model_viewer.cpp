@@ -36,8 +36,8 @@ class Viewer {
 			std::map<string, PMaterial> map;
 
 			for(const auto &def : this->model->materialDefs()) {
-				map[def.name] = tex ? make_cow<Material>(tex, def.diffuse)
-									: make_cow<Material>(prog, def.diffuse);
+				map[def.name] = tex ? make_immutable<Material>(tex, def.diffuse)
+									: make_immutable<Material>(prog, def.diffuse);
 			}
 			materials = MaterialSet(default_mat, map);
 		}
@@ -56,7 +56,7 @@ class Viewer {
 		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
 		Loader(dataPath("flat_shader.vsh")) >> vertex_shader;
 		Loader(dataPath("flat_shader.fsh")) >> fragment_shader;
-		m_flat_program = make_cow<Program>(vertex_shader, fragment_shader);
+		m_flat_program = make_immutable<Program>(vertex_shader, fragment_shader);
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -68,7 +68,7 @@ class Viewer {
 			}
 
 			PMaterial default_mat =
-				tex ? make_cow<Material>(tex) : make_cow<Material>(m_flat_program);
+				tex ? make_immutable<Material>(tex) : make_immutable<Material>(m_flat_program);
 
 			double time = getTime();
 			auto model = s_models[file_name.first];

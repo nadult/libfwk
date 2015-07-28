@@ -3,6 +3,7 @@
    This file is part of libfwk. */
 
 #include "testing.h"
+#include "fwk_cache.h"
 
 void testTextFormatter() {
 	TextFormatter fmt;
@@ -62,8 +63,26 @@ void testPathOperations() {
 	// TODO: write me
 }
 
+struct Object : public immutable_base<Object> {
+	Object(int a) : a(a) {}
+	int a;
+};
+using PObject = immutable_ptr<Object>;
+
+void testCache() {
+
+	auto obj1 = PObject(10);
+	auto obj2 = PObject(20);
+
+	TCache<Object, PObject> cache;
+	auto key = cache.makeKey(obj1);
+	cache.add(key, obj2);
+	ASSERT(cache.access(key) == obj2);
+}
+
 void testMain() {
 	testTextFormatter();
 	testXMLConverters();
 	testPathOperations();
+	testCache();
 }

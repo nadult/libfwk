@@ -47,7 +47,7 @@ struct ProgramFactory {
 		fragment_shader.setSource(with_texture ? fragment_shader_tex_src
 											   : fragment_shader_flat_src);
 
-		return make_cow<Program>(vertex_shader, fragment_shader,
+		return make_immutable<Program>(vertex_shader, fragment_shader,
 								 vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
 };
@@ -178,9 +178,9 @@ void Renderer::render() {
 			tex_coords.insert(end(tex_coords), begin(sprite.tex_coords), end(sprite.tex_coords));
 		}
 
-		VertexArray sprite_array({make_cow<VertexBuffer>(positions),
+		VertexArray sprite_array({make_immutable<VertexBuffer>(positions),
 								  VertexArraySource(Color::white),
-								  make_cow<VertexBuffer>(tex_coords)});
+								  make_immutable<VertexBuffer>(tex_coords)});
 
 		// TODO: transform to screen space, divide into regions, sort each region
 		for(int n = 0; n < (int)m_sprites.size(); n++) {
@@ -203,8 +203,8 @@ void Renderer::render() {
 	}
 
 	glDepthMask(1);
-	VertexArray line_array({make_cow<VertexBuffer>(m_line_positions),
-							make_cow<VertexBuffer>(m_line_colors),
+	VertexArray line_array({make_immutable<VertexBuffer>(m_line_positions),
+							make_immutable<VertexBuffer>(m_line_colors),
 							VertexArraySource(float2(0, 0))});
 	DTexture::unbind();
 	ProgramBinder binder(m_flat_program);

@@ -207,7 +207,7 @@ class Texture {
 };
 
 // Device texture
-class DTexture {
+class DTexture : public immutable_base<DTexture> {
   public:
 	DTexture();
 	DTexture(const string &name, Stream &);
@@ -259,7 +259,7 @@ class DTexture {
 	mutable bool m_is_dirty;
 };
 
-using PTexture = cow_ptr<DTexture>;
+using PTexture = immutable_ptr<DTexture>;
 
 struct InputState {
 	int2 mouse_pos, mouse_move;
@@ -379,7 +379,7 @@ DECLARE_VERTEX_DATA(Color, ubyte, 4, true)
 
 #undef DECLARE_VERTEX_DATA
 
-class VertexBuffer {
+class VertexBuffer : public immutable_base<VertexBuffer> {
   public:
 	VertexBuffer(const void *data, int size, int vertex_size, VertexDataType);
 	~VertexBuffer();
@@ -413,9 +413,9 @@ class VertexBuffer {
 	friend class VertexArray;
 };
 
-using PVertexBuffer = cow_ptr<VertexBuffer>;
+using PVertexBuffer = immutable_ptr<VertexBuffer>;
 
-class IndexBuffer {
+class IndexBuffer : public immutable_base<IndexBuffer> {
   public:
 	enum { max_index_value = 65535 };
 
@@ -441,7 +441,7 @@ class IndexBuffer {
 	friend class VertexArray;
 };
 
-using PIndexBuffer = cow_ptr<IndexBuffer>;
+using PIndexBuffer = immutable_ptr<IndexBuffer>;
 
 DECLARE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
@@ -468,16 +468,16 @@ class VertexArraySource {
 	int m_offset;
 };
 
-class VertexArray {
+class VertexArray : public immutable_base<VertexArray> {
   public:
 	using Source = VertexArraySource;
 
 	VertexArray(vector<Source>, PIndexBuffer = PIndexBuffer());
 	~VertexArray();
 
-	static cow_ptr<VertexArray> make(vector<Source> sources,
-									 PIndexBuffer index_buffer = PIndexBuffer()) {
-		return make_cow<VertexArray>(std::move(sources), std::move(index_buffer));
+	static immutable_ptr<VertexArray> make(vector<Source> sources,
+										   PIndexBuffer index_buffer = PIndexBuffer()) {
+		return make_immutable<VertexArray>(std::move(sources), std::move(index_buffer));
 	}
 
 	void operator=(const VertexArray &) = delete;
@@ -506,7 +506,7 @@ class VertexArray {
 #endif
 };
 
-using PVertexArray = cow_ptr<VertexArray>;
+using PVertexArray = immutable_ptr<VertexArray>;
 
 class DrawCall {
   public:
@@ -549,7 +549,7 @@ class Shader {
 	bool m_is_compiled;
 };
 
-class Program {
+class Program : public immutable_base<Program> {
   public:
 	Program(const Shader &vertex, const Shader &fragment,
 			const vector<string> &location_names = {});
@@ -564,7 +564,7 @@ class Program {
 	unsigned m_handle;
 };
 
-using PProgram = cow_ptr<Program>;
+using PProgram = immutable_ptr<Program>;
 
 class ProgramBinder {
   public:
@@ -597,7 +597,7 @@ class ProgramBinder {
 	unsigned handle() const { return m_program->handle(); }
 };
 
-class Material {
+class Material : public immutable_base<Material> {
   public:
 	enum Flags {
 		flag_blended = 1,
@@ -626,7 +626,7 @@ class Material {
 	uint m_flags;
 };
 
-using PMaterial = cow_ptr<Material>;
+using PMaterial = immutable_ptr<Material>;
 
 class MaterialSet {
   public:
@@ -643,35 +643,26 @@ class MaterialSet {
 
 class Renderer;
 
-struct Pose {
+struct Pose : public immutable_base<Pose> {
   public:
-	Pose(vector<Matrix4> transforms = {}, NameMapping name_mapping = NameMapping())
-		: transforms(std::move(transforms)), name_mapping(std::move(name_mapping)) {
-		ASSERT(this->transforms.size() == this->name_mapping.size());
-	}
-	auto size() const { return transforms.size(); }
+	using NameMap = vector<pair<string, int>>;
 
-	Matrix4 operator()(const string &name) const {
-		int id = name_mapping(name);
-		return id == -1 ? Matrix4::identity() : transforms[id];
-	}
+	Pose(vector<Matrix4> transforms = {}, NameMap = {});
+	Pose(vector<Matrix4> transforms, const vector<string> &names);
 
-	vector<Matrix4> transforms;
-	NameMapping name_mapping;
+	auto size() const { return m_transforms.size(); }
+	const auto &transforms() const { return m_transforms; }
+	const NameMap &nameMap() const { return m_name_map; }
+
+	vector<int> mapNames(const vector<string> &) const;
+	vector<Matrix4> mapTransforms(const vector<int> &mapping) const;
+
+  private:
+	NameMap m_name_map;
+	vector<Matrix4> m_transforms;
 };
 
-using FinalPose = vector<Matrix4>;
-
-inline Pose operator*(const Matrix4 &mat, Pose pose) {
-	for(auto &transform : pose.transforms)
-		transform = mat * transform;
-	return pose;
-}
-inline Pose operator*(Pose pose, const Matrix4 &mat) {
-	for(auto &transform : pose.transforms)
-		transform = transform * mat;
-	return pose;
-}
+using PPose = immutable_ptr<Pose>;
 
 struct MeshBuffers {
   public:
@@ -703,7 +694,7 @@ struct MeshBuffers {
 	MeshBuffers remap(const vector<uint> &mapping) const;
 
 	// Pose must have configuration for each of the nodes in node_names
-	vector<Matrix4> mapPose(const Pose &) const;
+	vector<Matrix4> mapPose(PPose skinning_pose) const;
 
 	vector<float3> positions;
 	vector<float3> normals;
@@ -748,7 +739,7 @@ class MeshIndices {
 };
 
 // Make it immutable, with operations requiring a copy/move
-class Mesh {
+class Mesh : public immutable_base<Mesh> {
   public:
 	Mesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
 		 vector<string> mat_names = {});
@@ -765,7 +756,7 @@ class Mesh {
 	static Mesh makeCylinder(const Cylinder &, int num_sides);
 
 	FBox boundingBox() const;
-	FBox boundingBox(const Pose &) const;
+	FBox boundingBox(PPose) const;
 
 	void transformUV(const Matrix4 &);
 	void changePrimitiveType(PrimitiveType::Type new_type);
@@ -798,11 +789,11 @@ class Mesh {
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	float intersect(const Segment &) const;
-	float intersect(const Segment &, const Pose &) const;
+	float intersect(const Segment &, PPose) const;
 
-	Mesh animate(const Pose &) const;
+	Mesh animate(PPose) const;
 	void draw(Renderer &, const MaterialSet &, const Matrix4 &matrix = Matrix4::identity()) const;
-	void draw(Renderer &, const Pose &, const MaterialSet &,
+	void draw(Renderer &, PPose, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
 	void clearDrawingCache() const;
 
@@ -834,7 +825,7 @@ class Mesh {
 	mutable uint m_ready_flags;
 };
 
-using PMesh = cow_ptr<Mesh>;
+using PMesh = immutable_ptr<Mesh>;
 
 struct MaterialDef {
 	MaterialDef(const string &name, Color diffuse) : name(name), diffuse(diffuse) {}
@@ -860,7 +851,7 @@ class ModelAnim {
 	static void transToXML(const AffineTrans &trans, XMLNode node);
 	static AffineTrans transFromXML(XMLNode node);
 
-	Pose animatePose(Pose initial_pose, double anim_time) const;
+	PPose animatePose(PPose initial_pose, double anim_time) const;
 
   protected:
 	string m_name;
@@ -886,6 +877,7 @@ class ModelAnim {
 	// TODO: information about whether its looped or not
 	vector<Channel> m_channels;
 	vector<float> m_shared_time_track;
+	vector<string> m_node_names;
 	float m_length;
 };
 
@@ -933,17 +925,27 @@ class ModelNode {
 	const ModelNode *m_parent;
 };
 
-class Model {
+class Model : public immutable_base<Model> {
   public:
 	Model() = default;
 	Model(Model &&) = default;
 	Model &operator=(Model &&) = default;
-	virtual ~Model() = default;
+	~Model() = default;
 
 	Model(PModelNode, vector<ModelAnim> anims = {}, vector<MaterialDef> material_defs = {});
 	Model(const XMLNode &);
 	Model(const Model &);
 	void saveToXML(XMLNode) const;
+
+	// TODO: use this in transformation functions
+	// TODO: better name
+	/*	void decimate(MeshBuffers &out_buffers, vector<MeshIndices> &out_indices,
+					  vector<string> &out_names) {
+			out_buffers = std::move(m_buffers);
+			out_indices = std::move(m_indices);
+			out_names = std::move(m_material_names);
+			*this = Mesh();
+		}*/
 
 	void join(const string &local_name, const Model &, const string &other_name);
 
@@ -956,37 +958,44 @@ class Model {
 
 	const auto &materialDefs() const { return m_material_defs; }
 
-	Mesh toMesh(const Pose &) const;
+	Mesh toMesh(PPose) const;
 	void printHierarchy() const;
 
-	const Pose &defaultPose() const { return m_default_pose; }
-	FBox boundingBox(const Pose &pose) const;
-	Matrix4 nodeTrans(const string &name, const Pose &) const;
+	FBox boundingBox(PPose) const;
+	Matrix4 nodeTrans(const string &name, PPose) const;
 
-	float intersect(const Segment &, const Pose &) const;
+	float intersect(const Segment &, PPose) const;
 
 	void draw(Renderer &out, const MaterialSet &mats,
 			  const Matrix4 &matrix = Matrix4::identity()) const {
 		draw(out, defaultPose(), mats, matrix);
 	}
-	void draw(Renderer &, const Pose &pose, const MaterialSet &,
+	void draw(Renderer &, PPose, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
-	void drawNodes(Renderer &, const Pose &, Color node_color, Color line_color,
+	void drawNodes(Renderer &, PPose, Color node_color, Color line_color,
 				   const Matrix4 &matrix = Matrix4::identity()) const;
 
 	void clearDrawingCache() const;
 
-	// Pass -1 to anim_id for bind position
-	Pose animatePose(int anim_id, double anim_pos) const;
-	Pose meshSkinningPose(Pose, int node_id) const;
-	Pose finalPose(Pose) const;
-
 	const ModelAnim &anim(int anim_id) const { return m_anims[anim_id]; }
 	int animCount() const { return (int)m_anims.size(); }
+
+	// Pass -1 to anim_id for bind position
+	PPose animatePose(int anim_id, double anim_pos) const;
+	PPose defaultPose() const { return m_default_pose; }
+	PPose globalPose(PPose local_pose) const;
+	PPose meshSkinningPose(PPose global_pose, int node_id) const;
+	bool isValidPose(PPose) const;
 
   protected:
 	void updateNodes();
 	void verifyData() const;
+
+	struct AnimatedData: public immutable_base<AnimatedData> {
+		PPose global_pose;
+		vector<pair<Matrix4, PMesh>> meshes;
+	};
+	immutable_ptr<AnimatedData> animatedData(PPose) const;
 
 	PModelNode m_root;
 	vector<ModelAnim> m_anims;
@@ -996,23 +1005,23 @@ class Model {
 	vector<ModelNode *> m_nodes;
 	float3 m_bind_scale;
 	vector<Matrix4> m_inv_bind_matrices;
-	Pose m_default_pose;
+	PPose m_default_pose;
 };
 
-using PModel = cow_ptr<Model>;
+using PModel = immutable_ptr<Model>;
 
 template <class T> class XMLLoader : public ResourceLoader<T> {
   public:
 	XMLLoader(const string &prefix, const string &suffix, string node_name)
 		: ResourceLoader<T>(prefix, suffix), m_node_name(std::move(node_name)) {}
 
-	cow_ptr<T> operator()(const string &name) {
+	immutable_ptr<T> operator()(const string &name) {
 		XMLDocument doc;
 		Loader(ResourceLoader<T>::fileName(name)) >> doc;
 		XMLNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child)
 			THROW("Cannot find node '%s' in XML document", m_node_name.c_str());
-		return make_cow<T>(child);
+		return make_immutable<T>(child);
 	}
 
   protected:
@@ -1162,7 +1171,7 @@ struct FontStyle {
 	VAlign valign;
 };
 
-class Font {
+class Font : public immutable_base<Font> {
   public:
 	Font(const string &name, Stream &);
 	Font();
@@ -1208,7 +1217,7 @@ class Font {
 	int m_line_height;
 };
 
-using PFont = cow_ptr<Font>;
+using PFont = immutable_ptr<Font>;
 
 class FontRenderer {
   public:

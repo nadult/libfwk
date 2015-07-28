@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <algorithm>
+#include <atomic>
 
 namespace fwk {
 
@@ -41,45 +42,139 @@ using i16 = short;
 using u32 = unsigned;
 using i32 = int;
 
-// Copy on write, not an animal
-template <class T> class cow_ptr {
-  public:
-	cow_ptr(const T &rhs) : m_ptr(make_shared<const T>(rhs)) {}
-	cow_ptr(T &&rhs) : m_ptr(make_shared<const T>(std::move(rhs))) {}
+template <class T> class immutable_ptr;
+template <class T> class immutable_weak_ptr;
 
-	cow_ptr() = default;
-	cow_ptr(const cow_ptr &) = default;
-	cow_ptr(cow_ptr &&) = default;
-	cow_ptr &operator=(const cow_ptr &) = default;
-	cow_ptr &operator=(cow_ptr &&) = default;
+// TODO: enable_shared_from_this should be hidden
+template <class T> class immutable_base : public std::enable_shared_from_this<T> {
+  public:
+	immutable_base() : m_mutation_counter(-1) {}
+	immutable_base(const immutable_base &) : immutable_base() {}
+	immutable_base(immutable_base &&) : immutable_base() {}
+	void operator=(const immutable_base &) {}
+	void operator=(immutable_base &&) {}
+
+	immutable_ptr<T> get_immutable_ptr() const;
+
+  private:
+	std::atomic<int> m_mutation_counter; //TODO: this should be atomic?
+	friend class immutable_ptr<T>;
+};
+
+// Pointer to immutable object
+// TODO: verify that it is thread-safe
+// It can be mutated with mutate method, but if the pointer is
+// not unique then a copy will be made.
+// TODO: make it work without immutable_base
+template <class T> class immutable_ptr {
+  public:
+	static_assert(std::is_base_of<immutable_base<T>, T>::value, "");
+
+	immutable_ptr(const T &rhs) : m_ptr(make_shared<const T>(rhs)) { incCounter(); }
+	immutable_ptr(T &&rhs) : m_ptr(make_shared<const T>(std::move(rhs))) { incCounter(); }
+
+	immutable_ptr() = default;
+	immutable_ptr(const immutable_ptr &) = default;
+	immutable_ptr(immutable_ptr &&) = default;
+	immutable_ptr &operator=(const immutable_ptr &) = default;
+	immutable_ptr &operator=(immutable_ptr &&) = default;
 
 	const T &operator*() const noexcept { return m_ptr.operator*(); }
 	const T *operator->() const noexcept { return m_ptr.operator->(); }
 	const T *get() const noexcept { return m_ptr.get(); }
 
+	// It will make a copy if there is pointer is not unique
 	T *mutate() {
-		if(!m_ptr.unique())
+		if(!m_ptr.unique()) {
 			m_ptr = make_shared<const T>(*m_ptr.get());
+			// TODO: make a copy if counter is too big (and reset the counter)
+			incCounter();
+		}
 		return const_cast<T *>(m_ptr.get());
 	}
 
 	explicit operator bool() const noexcept { return !!m_ptr.get(); }
 	bool operator==(const T *rhs) const noexcept { return m_ptr == rhs; }
-	bool operator==(const cow_ptr &rhs) const noexcept { return m_ptr == rhs.m_ptr; }
-	bool operator<(const cow_ptr &rhs) const noexcept { return m_ptr < rhs.m_ptr; }
+	bool operator==(const immutable_ptr &rhs) const noexcept { return m_ptr == rhs.m_ptr; }
+	bool operator<(const immutable_ptr &rhs) const noexcept { return m_ptr < rhs.m_ptr; }
+
+	auto getKey() const { return (long long)*m_ptr.get(); }
+	auto getWeakPtr() const { return std::weak_ptr<const T>(m_ptr); }
 
   private:
-	cow_ptr(shared_ptr<const T> ptr) : m_ptr(std::move(ptr)) {}
-	template <class T1, class... Args> friend cow_ptr<T1> make_cow(Args &&...);
+	immutable_ptr(shared_ptr<const T> ptr) : m_ptr(std::move(ptr)) {}
+	template <class T1, class... Args> friend immutable_ptr<T1> make_immutable(Args &&...);
+	template <class T1> friend immutable_ptr<T1> make_immutable(T1 &&);
+	template <class T1, class U>
+	friend immutable_ptr<T1> static_pointer_cast(const immutable_ptr<U> &) noexcept;
+	friend class immutable_base<T>;
+	friend class immutable_weak_ptr<T>;
+
+	void incCounter() {
+		const immutable_base<T> *base = m_ptr.get();
+		const_cast<immutable_base<T>*>(base)->m_mutation_counter++;
+	}
+	int numMutations() const {
+		const immutable_base<T> *base = m_ptr.get();
+		return base->m_mutation_counter;
+	}
 
 	shared_ptr<const T> m_ptr;
 };
 
-template <class T> inline T *mutate(cow_ptr<T> &ptr) { return ptr.mutate(); }
-
-template <class T, class... Args> cow_ptr<T> make_cow(Args &&... args) {
-	return cow_ptr<T>(make_shared<const T>(std::forward<Args>(args)...));
+template <class T> immutable_ptr<T> immutable_base<T>::get_immutable_ptr() const {
+	if(m_mutation_counter >= 0)
+		return immutable_ptr<T>(std::enable_shared_from_this<T>::shared_from_this());
+	return immutable_ptr<T>();
 }
+
+template <class T> inline T *mutate(immutable_ptr<T> &ptr) { return ptr.mutate(); }
+
+template <class T> immutable_ptr<T> make_immutable(T &&object) {
+	auto ret = immutable_ptr<T>(make_shared<const T>(std::move(object)));
+	ret.incCounter();
+	return ret;
+}
+
+template <class T, class... Args> immutable_ptr<T> make_immutable(Args &&... args) {
+	auto ret = immutable_ptr<T>(make_shared<const T>(std::forward<Args>(args)...));
+	ret.incCounter();
+	return ret;
+}
+
+template <class T, class U>
+immutable_ptr<T> static_pointer_cast(const immutable_ptr<U> &cp) noexcept {
+	return immutable_ptr<T>(static_pointer_cast<const T>(cp.m_ptr));
+}
+
+template <class T> class immutable_weak_ptr {
+  public:
+	immutable_weak_ptr() = default;
+	immutable_weak_ptr(immutable_ptr<T> ptr)
+		: m_ptr(ptr.m_ptr), m_mutation_counter(ptr? ptr.numMutations() : -1) {}
+
+	immutable_ptr<T> lock() const {
+		immutable_ptr<T> out(m_ptr.lock());
+		if(out && out.numMutations() == m_mutation_counter)
+			return out;
+		return immutable_ptr<T>();
+	}
+
+	bool operator==(const immutable_weak_ptr &rhs) const noexcept {
+		return !m_ptr.owner_before(rhs.m_ptr) && !rhs.m_ptr.owner_before(m_ptr) &&
+			   m_mutation_counter == rhs.m_mutation_counter;
+	}
+	bool operator<(const immutable_weak_ptr &rhs) const noexcept {
+		if(m_mutation_counter == rhs.m_mutation_counter)
+			return m_ptr.owner_before(rhs.m_ptr);
+		return m_mutation_counter < rhs.m_mutation_counter;
+	}
+	bool expired() const noexcept { return m_ptr.expired(); }
+
+  private:
+	std::weak_ptr<const T> m_ptr;
+	int m_mutation_counter;
+};
 
 // TODO: write more of these
 template <class Range, class Functor> bool anyOf(const Range &range, Functor functor) {
@@ -393,6 +488,7 @@ auto indexWith(const Target &target, const Indices &indices) {
 	return Indexer<const Target, Indices>(target, indices);
 }
 
+// TODO: change name to borrowedstring ? (like in Rust)
 // TODO: move to string_ref.cpp
 // Simple reference to string
 // User have to make sure that referenced data is alive as long as StringRef
@@ -747,9 +843,9 @@ template <class T> class ResourceLoader {
 	ResourceLoader(const string &file_prefix, const string &file_suffix)
 		: m_file_prefix(file_prefix), m_file_suffix(file_suffix) {}
 
-	cow_ptr<T> operator()(const string &name) const {
+	immutable_ptr<T> operator()(const string &name) const {
 		Loader stream(fileName(name));
-		return make_cow<T>(name, stream);
+		return make_immutable<T>(name, stream);
 	}
 
 	string fileName(const string &name) const { return m_file_prefix + name + m_file_suffix; }
@@ -762,7 +858,7 @@ template <class T> class ResourceLoader {
 
 template <class T, class Constructor = ResourceLoader<T>> class ResourceManager {
   public:
-	using PResource = cow_ptr<T>;
+	using PResource = immutable_ptr<T>;
 
 	template <class... ConstructorArgs>
 	ResourceManager(ConstructorArgs &&... args)
@@ -1240,22 +1336,6 @@ bool removePrefix(string &str, const string &prefix);
 string toLower(const string &str);
 void mkdirRecursive(const FilePath &path);
 bool access(const FilePath &path);
-
-class NameMapping {
-  public:
-	NameMapping() = default;
-	NameMapping(const vector<string> &names);
-	~NameMapping();
-
-	vector<string> names() const;
-	int operator()(const string &name) const;
-	vector<int> operator()(const vector<string> &names) const;
-	size_t size() const;
-
-  protected:
-	struct Map;
-	mutable cow_ptr<Map> m_map;
-};
 }
 
 #endif

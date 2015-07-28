@@ -63,7 +63,7 @@ FBox Mesh::boundingBox() const {
 	return m_bounding_box;
 }
 
-FBox Mesh::boundingBox(const Pose &pose) const {
+FBox Mesh::boundingBox(PPose pose) const {
 	if(!m_buffers.hasSkin())
 		return boundingBox();
 	return FBox(m_buffers.animatePositions(m_buffers.mapPose(pose)));
@@ -161,7 +161,7 @@ Mesh Mesh::transform(const Matrix4 &mat, Mesh mesh) {
 	return mesh;
 }
 
-Mesh Mesh::animate(const Pose &pose) const {
+Mesh Mesh::animate(PPose pose) const {
 	if(!m_buffers.hasSkin())
 		return *this;
 
@@ -179,7 +179,7 @@ void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matr
 		out.addDrawCall(cache_elem.first, materials[cache_elem.second], matrix);
 }
 
-void Mesh::draw(Renderer &out, const Pose &pose, const MaterialSet &materials,
+void Mesh::draw(Renderer &out, PPose pose, const MaterialSet &materials,
 				const Matrix4 &matrix) const {
 	if(!m_buffers.hasSkin())
 		return draw(out, materials, matrix);
@@ -197,10 +197,10 @@ void Mesh::updateDrawingCache() const {
 								   end(part.m_drawing_cache));
 		}
 	} else {
-		auto vertices = make_cow<VertexBuffer>(m_buffers.positions);
-		auto tex_coords = hasTexCoords() ? make_cow<VertexBuffer>(m_buffers.tex_coords)
+		auto vertices = make_immutable<VertexBuffer>(m_buffers.positions);
+		auto tex_coords = hasTexCoords() ? make_immutable<VertexBuffer>(m_buffers.tex_coords)
 										 : VertexArraySource(float2(0, 0));
-		auto indices = make_cow<IndexBuffer>(m_merged_indices);
+		auto indices = make_immutable<IndexBuffer>(m_merged_indices);
 		auto varray = VertexArray::make({vertices, Color::white, tex_coords}, std::move(indices));
 
 		for(int n = 0; n < (int)m_indices.size(); n++) {
@@ -232,7 +232,7 @@ float Mesh::intersect(const Segment &segment) const {
 	return min_isect;
 }
 
-float Mesh::intersect(const Segment &segment, const Pose &pose) const {
+float Mesh::intersect(const Segment &segment, PPose pose) const {
 	if(!m_buffers.hasSkin())
 		return intersect(segment);
 

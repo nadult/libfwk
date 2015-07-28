@@ -133,17 +133,8 @@ void MeshBuffers::saveToXML(XMLNode node) const {
 		node.addChild("node_names", node_names);
 }
 
-vector<Matrix4> MeshBuffers::mapPose(const Pose &pose) const {
-	auto mapping = pose.name_mapping(node_names);
-	vector<Matrix4> out(node_names.size());
-
-	for(int n = 0; n < (int)mapping.size(); n++) {
-		if(mapping[n] == -1)
-			THROW("missing node configuration: %s", node_names[n].c_str());
-		out[n] = pose.transforms[mapping[n]];
-	}
-
-	return out;
+vector<Matrix4> MeshBuffers::mapPose(PPose pose) const {
+	return pose->mapTransforms(pose->mapNames(node_names));
 }
 
 MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
@@ -171,6 +162,7 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 
 vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {
 	FWK_PROFILE("MeshBuffers::animatePositions");
+	updateCounter("animatePositions", 1);	
 	DASSERT(matrices.size() == node_names.size());
 	vector<float3> out(positions.size());
 
@@ -205,5 +197,4 @@ MeshBuffers MeshBuffers::transform(const Matrix4 &matrix, MeshBuffers buffers) {
 	buffers.normals = transformNormals(matrix, std::move(buffers.normals));
 	return buffers;
 }
-
 }

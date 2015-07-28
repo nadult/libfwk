@@ -188,7 +188,7 @@ pair<PFont, PTexture> FontFactory::makeFont(string const &path, int size, bool l
 					out.m_kernings[make_pair(int(left), int(right))] = kerning.x;
 			}
 
-	return make_pair(PFont(out), make_cow<DTexture>(atlas));
+	return make_pair(PFont(out), make_immutable<DTexture>(atlas));
 }
 }
 

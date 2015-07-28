@@ -81,6 +81,7 @@ ModelAnim::ModelAnim(const XMLNode &node)
 	XMLNode channel_node = node.child("channel");
 	while(channel_node) {
 		m_channels.emplace_back(channel_node);
+		m_node_names.emplace_back(m_channels.back().node_name);
 		channel_node.next();
 	}
 
@@ -121,19 +122,19 @@ AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
 	return channel.blend(frame0, frame1, blend_factor);
 }
 
-Pose ModelAnim::animatePose(Pose pose, double anim_pos) const {
+PPose ModelAnim::animatePose(PPose initial_pose, double anim_pos) const {
+	DASSERT(initial_pose);
 	if(anim_pos >= m_length)
 		anim_pos -= double(int(anim_pos / m_length)) * m_length;
 
+	auto mapping = initial_pose->mapNames(m_node_names);
+	auto matrices = initial_pose->transforms();
 	for(int n = 0; n < (int)m_channels.size(); n++) {
 		const auto &channel = m_channels[n];
-		int id = pose.name_mapping(channel.node_name);
-		DASSERT(id != -1);
-		if(id != -1)
-			pose.transforms[id] = animateChannel(n, anim_pos);
+		matrices[mapping[n]] = animateChannel(n, anim_pos);
 	}
 
-	return pose;
+	return make_immutable<Pose>(std::move(matrices), initial_pose->nameMap());
 }
 
 string ModelAnim::print() const {
