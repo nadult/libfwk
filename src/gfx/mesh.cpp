@@ -63,10 +63,10 @@ FBox Mesh::boundingBox() const {
 	return m_bounding_box;
 }
 
-FBox Mesh::boundingBox(PPose pose) const {
+FBox Mesh::boundingBox(const AnimatedData &data) const {
 	if(!m_buffers.hasSkin())
 		return boundingBox();
-	return FBox(m_buffers.animatePositions(m_buffers.mapPose(pose)));
+	return data.bounding_box;
 }
 
 int Mesh::triangleCount() const {
@@ -161,13 +161,21 @@ Mesh Mesh::transform(const Matrix4 &mat, Mesh mesh) {
 	return mesh;
 }
 
-Mesh Mesh::animate(PPose pose) const {
+Mesh::AnimatedData Mesh::animate(PPose pose) const {
+	if(!m_buffers.hasSkin())
+		return AnimatedData();
+
+	auto mapped_pose = m_buffers.mapPose(pose);
+	auto positions = m_buffers.animatePositions(mapped_pose);
+	FBox bbox = FBox(positions);
+	return AnimatedData{bbox, std::move(positions), m_buffers.animateNormals(mapped_pose)};
+}
+
+Mesh Mesh::animate(AnimatedData data) const {
 	if(!m_buffers.hasSkin())
 		return *this;
 
-	auto mapped_pose = m_buffers.mapPose(pose);
-	return Mesh(MeshBuffers(m_buffers.animatePositions(mapped_pose),
-							m_buffers.animateNormals(mapped_pose), m_buffers.tex_coords),
+	return Mesh(MeshBuffers(std::move(data.positions), std::move(data.normals), m_buffers.tex_coords),
 				m_indices, m_material_names);
 }
 
@@ -179,11 +187,11 @@ void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matr
 		out.addDrawCall(cache_elem.first, materials[cache_elem.second], matrix);
 }
 
-void Mesh::draw(Renderer &out, PPose pose, const MaterialSet &materials,
+void Mesh::draw(Renderer &out, AnimatedData data, const MaterialSet &materials,
 				const Matrix4 &matrix) const {
 	if(!m_buffers.hasSkin())
 		return draw(out, materials, matrix);
-	animate(pose).draw(out, materials, matrix);
+	animate(std::move(data)).draw(out, materials, matrix);
 }
 
 void Mesh::updateDrawingCache() const {
@@ -232,11 +240,12 @@ float Mesh::intersect(const Segment &segment) const {
 	return min_isect;
 }
 
-float Mesh::intersect(const Segment &segment, PPose pose) const {
+float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
 	if(!m_buffers.hasSkin())
 		return intersect(segment);
 
-	auto positions = m_buffers.animatePositions(m_buffers.mapPose(pose));
+	DASSERT(isValidAnimationData(data));
+	const auto &positions = data.positions;
 
 	float min_isect = constant::inf;
 	// TODO: optimize

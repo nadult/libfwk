@@ -755,8 +755,14 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh makeBBox(const FBox &bbox);
 	static Mesh makeCylinder(const Cylinder &, int num_sides);
 
+	struct AnimatedData {
+		FBox bounding_box;
+		vector<float3> positions;
+		vector<float3> normals;
+	};
+
 	FBox boundingBox() const;
-	FBox boundingBox(PPose) const;
+	FBox boundingBox(const AnimatedData &) const;
 
 	void transformUV(const Matrix4 &);
 	void changePrimitiveType(PrimitiveType::Type new_type);
@@ -789,13 +795,21 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	float intersect(const Segment &) const;
-	float intersect(const Segment &, PPose) const;
+	float intersect(const Segment &, const AnimatedData &) const;
 
-	Mesh animate(PPose) const;
+	AnimatedData animate(PPose) const;
+	Mesh animate(AnimatedData) const;
 	void draw(Renderer &, const MaterialSet &, const Matrix4 &matrix = Matrix4::identity()) const;
-	void draw(Renderer &, PPose, const MaterialSet &,
+	void draw(Renderer &, AnimatedData, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
 	void clearDrawingCache() const;
+
+	bool isValidAnimationData(const AnimatedData &data) const {
+		if(!hasSkin())
+			return data.positions.empty() && data.normals.empty();
+		return data.positions.size() == positions().size() &&
+			   data.normals.size() == normals().size();
+	}
 
 	/*
 		void genAdjacency();
@@ -819,8 +833,8 @@ class Mesh : public immutable_base<Mesh> {
 	mutable vector<pair<DrawCall, string>> m_drawing_cache;
 
 	enum Flags {
-		flag_drawing_cache,
 		flag_bounding_box,
+		flag_drawing_cache,
 	};
 	mutable uint m_ready_flags;
 };
@@ -991,9 +1005,14 @@ class Model : public immutable_base<Model> {
 	void updateNodes();
 	void verifyData() const;
 
-	struct AnimatedData: public immutable_base<AnimatedData> {
+	struct AnimatedData : public immutable_base<AnimatedData> {
 		PPose global_pose;
-		vector<pair<Matrix4, PMesh>> meshes;
+		struct MeshData {
+			PMesh mesh;
+			Mesh::AnimatedData anim_data;
+			Matrix4 transform;
+		};
+		vector<MeshData> meshes_data;
 	};
 	immutable_ptr<AnimatedData> animatedData(PPose) const;
 

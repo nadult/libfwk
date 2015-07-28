@@ -2,6 +2,9 @@
 
    This file is part of libfwk. */
 
+#ifndef FWK_CACHE_H
+#define FWK_CACHE_H
+
 #include "fwk_base.h"
 #include <mutex>
 
@@ -83,3 +86,5 @@ template <class Value, class... Keys> class TCache : public CacheBase {
 	std::map<Key, immutable_ptr<Value>> m_map;
 };
 }
+
+#endif

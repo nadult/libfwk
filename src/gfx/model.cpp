@@ -201,12 +201,10 @@ void Model::saveToXML(XMLNode xml_node) const {
 }
 
 FBox Model::boundingBox(PPose pose) const {
-	DASSERT(isValidPose(pose));
-
 	FBox out = FBox::empty();
 	auto anim_data = animatedData(pose);
-	for(auto pair : anim_data->meshes) {
-		FBox bbox = pair.first * pair.second->boundingBox();
+	for(auto mesh_data : anim_data->meshes_data) {
+		FBox bbox = mesh_data.transform * mesh_data.anim_data.bounding_box;
 		out = out.isEmpty() ? bbox : sum(out, bbox);
 	}
 
@@ -225,13 +223,12 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 
 void Model::draw(Renderer &out, PPose pose, const MaterialSet &materials,
 				 const Matrix4 &matrix) const {
-	DASSERT(isValidPose(pose));
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
 	auto anim_data = animatedData(pose);
-	for(auto pair : anim_data->meshes)
-		pair.second->draw(out, materials, pair.first);
+	for(auto mesh_data : anim_data->meshes_data)
+		mesh_data.mesh->draw(out, mesh_data.anim_data, materials, mesh_data.transform);
 
 	out.popViewMatrix();
 }
@@ -269,28 +266,22 @@ void Model::printHierarchy() const {
 }
 
 Mesh Model::toMesh(PPose pose) const {
-	DASSERT(isValidPose(pose));
 	vector<Mesh> meshes;
 
-	auto global_pose = globalPose(pose);
-	const auto &transforms = global_pose->transforms();
-
-	for(const auto *node : nodes())
-		if(node->mesh()) {
-			auto mesh = node->mesh()->animate(meshSkinningPose(global_pose, node->id()));
-			meshes.emplace_back(Mesh::transform(transforms[node->id()], mesh));
-		}
+	auto anim_data = animatedData(pose);
+	for(auto mesh_data : anim_data->meshes_data)
+		meshes.emplace_back(Mesh::transform(mesh_data.transform, mesh_data.mesh->animate(mesh_data.anim_data)));
 
 	return Mesh::merge(meshes);
 }
 
 float Model::intersect(const Segment &segment, PPose pose) const {
-	DASSERT(isValidPose(pose));
 	float min_isect = constant::inf;
 
 	auto anim_data = animatedData(pose);
-	for(auto pair : anim_data->meshes) {
-		float isect = pair.second->intersect(inverse(pair.first) * segment);
+	for(auto mesh_data : anim_data->meshes_data) {
+		float isect =
+			mesh_data.mesh->intersect(inverse(mesh_data.transform) * segment, mesh_data.anim_data);
 		min_isect = min(min_isect, isect);
 	}
 
@@ -342,6 +333,7 @@ bool Model::isValidPose(PPose pose) const {
 }
 
 immutable_ptr<Model::AnimatedData> Model::animatedData(PPose pose) const {
+	DASSERT(isValidPose(pose));
 	auto &cache = TCache<AnimatedData, PModel, PPose>::g_cache;
 	auto key = cache.makeKey(get_immutable_ptr(), pose);
 
@@ -354,13 +346,15 @@ immutable_ptr<Model::AnimatedData> Model::animatedData(PPose pose) const {
 
 	for(const auto *node : nodes())
 		if(node->mesh()) {
-			PMesh mesh;
+			Mesh::AnimatedData anim_data;
+
 			if(node->mesh()->hasSkin()) {
 				auto skinning_pose = meshSkinningPose(new_data.global_pose, node->id());
-				mesh = PMesh(node->mesh()->animate(skinning_pose));
-			} else { mesh = node->mesh(); }
+				anim_data = node->mesh()->animate(skinning_pose);
+			}
 
-			new_data.meshes.emplace_back(transforms[node->id()], mesh);
+			new_data.meshes_data.emplace_back(
+				AnimatedData::MeshData{node->mesh(), std::move(anim_data), transforms[node->id()]});
 		}
 
 	auto data_ptr = make_immutable<AnimatedData>(std::move(new_data));
