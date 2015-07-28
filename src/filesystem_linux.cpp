@@ -51,7 +51,6 @@ bool FilePath::isDirectory() const {
 	return S_ISDIR(buf.st_mode) || S_ISLNK(buf.st_mode);
 }
 
-#ifdef _DIRENT_HAVE_D_TYPE
 static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,
 					  int flags) {
 	DIR *dp = opendir(path.c_str());
@@ -70,39 +69,43 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 			if(is_current || (ignore_parent && is_parent))
 				continue;
 
-			if(dirp->d_type == DT_UNKNOWN) {
-				char full_path[FILENAME_MAX];
-				struct stat buf;
-
-				snprintf(full_path, sizeof(full_path), "%s/%s", path.c_str(), dirp->d_name);
-				stat(full_path, &buf);
-				if(S_ISDIR(buf.st_mode))
-					dirp->d_type = DT_DIR;
-				else if(S_ISREG(buf.st_mode))
-					dirp->d_type = DT_REG;
-			}
-
+			bool is_directory = false, is_regular = false;
+#ifdef _DIRENT_HAVE_D_TYPE
+			is_directory = dirp->d_type == DT_DIR;
+			is_regular = dirp->d_type == DT_REG;
 			// TODO: fix this
 			//		if(dirp->d_type == DT_LNK)
 			//			dirp->d_type = DT_DIR;
 
-			bool do_accept = ((flags & FindFiles::regular_file) && dirp->d_type == DT_REG) ||
-							 ((flags & FindFiles::directory) && (dirp->d_type == DT_DIR));
-			//		printf("found in %s: %s (%d)\n", path.c_str(), dirp->d_name,
-			//(int)dirp->d_type);
+			if(dirp->d_type == DT_UNKNOWN)
+#endif
+			{
+				char full_path[FILENAME_MAX];
+				struct stat buf;
+
+				snprintf(full_path, sizeof(full_path), "%s/%s", path.c_str(), dirp->d_name);
+				lstat(full_path, &buf);
+				is_directory = S_ISDIR(buf.st_mode);
+				is_regular = S_ISREG(buf.st_mode);
+			}
+
+			bool do_accept = ((flags & FindFiles::regular_file) && is_regular) ||
+							 ((flags & FindFiles::directory) && is_directory);
+			//		printf("found in %s: %s (%d/%d)\n", path.c_str(), dirp->d_name, is_directory,
+			// is_regular);
 
 			// TODO: check why was this added
-			//	if(do_accept && is_root && dirp->d_type == DT_DIR)
+			//	if(do_accept && is_root && is_directory)
 			//		do_accept = false;
 
 			if(do_accept) {
 				FileEntry entry;
 				entry.path = append / FilePath(dirp->d_name);
-				entry.is_dir = dirp->d_type == DT_DIR;
+				entry.is_dir = is_directory;
 				out.push_back(entry);
 			}
 
-			if(dirp->d_type == DT_DIR && (flags & FindFiles::recursive) && !is_parent)
+			if(is_directory && (flags & FindFiles::recursive) && !is_parent)
 				findFiles(out, path / FilePath(dirp->d_name), append / FilePath(dirp->d_name),
 						  flags);
 		}
@@ -123,7 +126,6 @@ vector<FileEntry> findFiles(const FilePath &path, int flags) {
 	findFiles(out, path.absolute(), append, flags);
 	return out;
 }
-#endif
 }
 
 #endif
