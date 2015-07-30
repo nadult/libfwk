@@ -272,6 +272,9 @@ struct InputState {
 
 class GfxDevice {
   public:
+	GfxDevice();
+	~GfxDevice();
+
 	static GfxDevice &instance();
 
 	double targetFrameTime();
@@ -310,9 +313,6 @@ class GfxDevice {
 	static void setScissorTest(bool is_enabled);
 
   private:
-	GfxDevice();
-	~GfxDevice();
-
 	int translateToSDL(int) const;
 	int translateFromSDL(int) const;
 

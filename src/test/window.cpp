@@ -29,6 +29,18 @@ bool mainLoop(GfxDevice &device) {
 		renderer.addFilledRect(rect, fill_color);
 		renderer.addRect(rect, border_color);
 	}
+
+	static PFont font;
+	static PTexture font_texture;
+	if(!font) {
+		Loader font_ldr("data/liberation_16.fnt");
+		Loader tex_ldr("data/liberation_16_0.tga");
+		font = make_immutable<Font>("", font_ldr);
+		font_texture = make_immutable<DTexture>("", tex_ldr);
+	}
+	FontRenderer font_renderer(font, font_texture, renderer);
+	font_renderer.draw(FRect(0, 0, 200, 20), {Color::white}, "Hello world!");
+
 	renderer.render();
 
 	return true;
@@ -38,7 +50,7 @@ int safe_main(int argc, char **argv) {
 	double time = getTime();
 	int2 res(640, 480);
 
-	auto &gfx_device = GfxDevice::instance();
+	GfxDevice gfx_device;
 	gfx_device.createWindow("foo", res, false);
 
 	// setBlendingMode(bmDisabled);

@@ -14,14 +14,14 @@ static const char *fragment_shader_tex_src =
 	"varying lowp vec4 color;											\n"
 	"varying mediump vec2 tex_coord;									\n"
 	"void main() {														\n"
-	"	gl_FragColor = color * texture2D(tex, tex_coord);				\n"
+	"  gl_FragColor = color * texture2D(tex, tex_coord);				\n"
 	"}																	\n";
 
 static const char *fragment_shader_flat_src =
 	"#version 100\n"
 	"varying lowp vec4 color;											\n"
 	"void main() {														\n"
-	"	gl_FragColor = color;											\n"
+	"  gl_FragColor = color;											\n"
 	"}																	\n";
 
 static const char *vertex_shader_src =
@@ -34,9 +34,9 @@ static const char *vertex_shader_src =
 	"varying vec2 tex_coord;  											\n"
 	"varying vec4 color;  												\n"
 	"void main() {														\n"
-	"	gl_Position = proj_view_matrix * vec4(in_pos, 1.0);				\n"
-	"	tex_coord = in_tex_coord;										\n"
-	"	color = in_color * mesh_color;									\n"
+	"  gl_Position = proj_view_matrix * vec4(in_pos, 1.0);				\n"
+	"  tex_coord = in_tex_coord;										\n"
+	"  color = in_color * mesh_color;									\n"
 	"} 																	\n";
 
 struct ProgramFactory {

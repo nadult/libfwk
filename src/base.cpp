@@ -25,7 +25,13 @@
 #include <cstdlib>
 #include <cstdarg>
 
+#ifdef FWK_TARGET_HTML5
+#include "emscripten.h"
+#endif
+
 namespace fwk {
+
+#ifndef FWK_TARGET_HTML5
 
 namespace {
 
@@ -87,6 +93,8 @@ void handleSegFault() {
 #endif
 }
 
+#endif
+
 // TODO: stdout and stderr returned separately?
 pair<string, bool> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");
@@ -145,13 +153,25 @@ void throwException(const char *file, int line, const char *fmt, ...) {
 	vsnprintf(buffer, sizeof(buffer), new_fmt, ap);
 	va_end(ap);
 
+#ifdef FWK_TARGET_HTML5
+	printf("Exception thrown: %s\n", buffer);
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "Exception thrown: %s\n", buffer);
+	emscripten_force_exit(1);
+#else
 	throw Exception(buffer);
+#endif
 }
 
 void doAssert(const char *file, int line, const char *text) {
-	char new_text[2048];
-	snprintf(new_text, sizeof(new_text), "%s:%d: Assertion failed: %s", file, line, text);
-	throw fwk::Exception(new_text);
+	char buffer[2048];
+	snprintf(buffer, sizeof(buffer), "%s:%d: Assertion failed: %s", file, line, text);
+#ifdef FWK_TARGET_HTML5
+	printf("%s\n", buffer);
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_force_exit(1);
+#else
+	throw fwk::Exception(buffer);
+#endif
 }
 
 #ifdef _WIN32

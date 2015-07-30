@@ -130,6 +130,7 @@ void loadExtensions() {
 
 // TODO: think of better error handling
 void testGlError(const char *msg) {
+#ifndef FWK_TARGET_HTML5
 	int err = glGetError();
 	if(err == GL_NO_ERROR)
 		return;
@@ -154,6 +155,7 @@ void testGlError(const char *msg) {
 	}
 
 	THROW("%s: %s", msg, err_code);
+#endif
 }
 
 bool isExtensionSupported(OpenglExtension::Type ext) { return s_is_extension_supported[ext]; }

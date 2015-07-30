@@ -204,7 +204,7 @@ FBox Model::boundingBox(PPose pose) const {
 	FBox out = FBox::empty();
 	auto anim_data = animatedData(pose);
 	for(auto mesh_data : anim_data->meshes_data) {
-		FBox bbox = mesh_data.transform * mesh_data.anim_data.bounding_box;
+		FBox bbox = mesh_data.transform * mesh_data.mesh->boundingBox(mesh_data.anim_data);
 		out = out.isEmpty() ? bbox : sum(out, bbox);
 	}
 

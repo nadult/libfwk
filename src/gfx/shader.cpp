@@ -60,6 +60,11 @@ void Shader::setSource(const string &str) {
 	const char *text = &str[0];
 
 	m_is_compiled = false;
+	for(int n = 0; n < length; n++) {
+		bool is_valid = (text[n] >= 32 && text[n] <= 125) || text[n] == '\t' || text[n] == '\n';
+		if(!is_valid)
+			THROW("fuck: %s", str.c_str());
+	}
 	glShaderSource(m_handle, 1, &text, &length);
 	testGlError("Error in glShaderSource");
 

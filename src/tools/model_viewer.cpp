@@ -149,6 +149,14 @@ class Viewer {
 		if(m_show_nodes)
 			model.model->drawNodes(out, pose, Color::green, Color::yellow, matrix);
 
+		int num_parts = 0, num_verts = 0; {
+			for(const auto &node : model.model->nodes())
+				if(node->mesh()) {
+					num_parts++;
+					num_verts += node->mesh()->vertexCount();
+				}
+		}
+
 		TextFormatter fmt;
 		fmt("Model: %s (%d / %d)\n", model.model_name.c_str(), m_current_model + 1,
 			(int)m_models.size());
@@ -158,6 +166,7 @@ class Viewer {
 			(int)model.model->animCount());
 		fmt("Size: %.2f %.2f %.2f\n\n", initial_bbox.width(), initial_bbox.height(),
 			initial_bbox.depth());
+		fmt("Parts: %d  Verts: %d\n", num_parts, num_verts);
 		fmt("Help:\n");
 		fmt("M: change model\n");
 		fmt("A: change animation\n");
@@ -246,7 +255,7 @@ int safe_main(int argc, char **argv) {
 		}
 	} else { files = {make_pair(model_argument, tex_argument)}; }
 
-	auto &gfx_device = GfxDevice::instance();
+	GfxDevice gfx_device;
 	gfx_device.createWindow("libfwk::model_viewer", resolution, false);
 
 	double init_time = getTime();

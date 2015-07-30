@@ -183,8 +183,9 @@ void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matr
 	if(!(m_ready_flags & flag_drawing_cache))
 		updateDrawingCache();
 
-	for(const auto &cache_elem : m_drawing_cache)
+	for(const auto &cache_elem : m_drawing_cache) {
 		out.addDrawCall(cache_elem.first, materials[cache_elem.second], matrix);
+	}
 }
 
 void Mesh::draw(Renderer &out, AnimatedData data, const MaterialSet &materials,

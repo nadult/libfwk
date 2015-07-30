@@ -26,14 +26,18 @@ static void reportSDLError(const char *func_name) {
 
 void loadExtensions();
 
+// TODO: Something is corrupting this memory when running under emscripten
+static GfxDevice *s_instance = nullptr;
+
 GfxDevice &GfxDevice::instance() {
-	static GfxDevice s_instance;
-	return s_instance;
+	DASSERT(s_instance);
+	return *s_instance;
 }
 
 GfxDevice::GfxDevice()
 	: m_main_loop_function(nullptr), m_last_time(-1.0) /*, m_press_delay(0.2), m_clock(0)*/
 {
+	s_instance = this;
 
 	struct Pair {
 		int key, sdl_key;
@@ -98,6 +102,7 @@ int GfxDevice::translateFromSDL(int key_code) const {
 
 GfxDevice::~GfxDevice() {
 	m_window_impl.reset();
+	s_instance = nullptr;
 	SDL_Quit();
 }
 

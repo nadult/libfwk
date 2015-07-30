@@ -8,6 +8,10 @@
 #include <limits>
 #include <iostream>
 
+#ifdef FWK_TARGET_HTML5
+#include "emscripten.h"
+#endif
+
 namespace fwk {
 
 using namespace std;
@@ -23,10 +27,17 @@ void Stream::handleException(const Exception &ex) {
 	char info[std::numeric_limits<long long>::digits * 2 + 2];
 	snprintf(info, sizeof(info), "%lld/%lld", m_pos, m_size);
 
-	char buffer[1024];
+	char buffer[4096];
 	snprintf(buffer, sizeof(buffer), "While %s stream \"%s\" at position %s:\n%s",
 			 (m_is_loading ? "loading from" : "saving to"), name(), info, ex.what());
+
+#ifdef FWK_TARGET_HTML5
+	printf("%s\n", buffer);
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_force_exit(1);
+#else
 	throw Exception(buffer, ex.backtrace());
+#endif
 }
 
 void Stream::loadData(void *ptr, int bytes) {

@@ -6,7 +6,9 @@
 #ifndef FWK_TARGET_HTML5
 
 #include <ft2build.h>
+#ifdef FT_FREETYPE_H
 #include FT_FREETYPE_H
+#endif
 
 #include "fwk_gfx.h"
 #include <cstring>
