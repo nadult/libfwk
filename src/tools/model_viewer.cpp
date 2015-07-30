@@ -207,8 +207,6 @@ bool main_loop(GfxDevice &device) {
 	renderer_3d.render();
 	renderer_2d.render();
 
-	profilerNextFrame();
-
 	return true;
 }
 
