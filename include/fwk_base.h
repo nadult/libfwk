@@ -46,7 +46,7 @@ template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
 
 // TODO: enable_shared_from_this should be hidden
-template <class T> class immutable_base : public std::enable_shared_from_this<T> {
+template <class T> class immutable_base : public std::enable_shared_from_this<const T> {
   public:
 	immutable_base() : m_mutation_counter(-1) {}
 	immutable_base(const immutable_base &) : immutable_base() {}
@@ -124,7 +124,7 @@ template <class T> class immutable_ptr {
 
 template <class T> immutable_ptr<T> immutable_base<T>::get_immutable_ptr() const {
 	if(m_mutation_counter >= 0)
-		return immutable_ptr<T>(std::enable_shared_from_this<T>::shared_from_this());
+		return immutable_ptr<T>(std::enable_shared_from_this<const T>::shared_from_this());
 	return immutable_ptr<T>();
 }
 

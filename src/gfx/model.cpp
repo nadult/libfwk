@@ -334,10 +334,9 @@ bool Model::isValidPose(PPose pose) const {
 
 immutable_ptr<Model::AnimatedData> Model::animatedData(PPose pose) const {
 	DASSERT(isValidPose(pose));
-	auto &cache = TCache<AnimatedData, PModel, PPose>::g_cache;
-	auto key = cache.makeKey(get_immutable_ptr(), pose);
+	auto key = Cache::makeKey(get_immutable_ptr(), pose);
 
-	if(auto data = cache.access(key))
+	if(auto data = Cache::access<AnimatedData>(key))
 		return data;
 
 	AnimatedData new_data;
@@ -358,9 +357,8 @@ immutable_ptr<Model::AnimatedData> Model::animatedData(PPose pose) const {
 		}
 
 	auto data_ptr = make_immutable<AnimatedData>(std::move(new_data));
-	cache.add(key, data_ptr);
+	Cache::add(key, data_ptr);
 	return data_ptr;
 }
 
-template <class Value, class... Keys> TCache<Value, Keys...> TCache<Value, Keys...>::g_cache;
 }

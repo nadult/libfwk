@@ -70,14 +70,12 @@ struct Object : public immutable_base<Object> {
 using PObject = immutable_ptr<Object>;
 
 void testCache() {
-
 	auto obj1 = PObject(10);
 	auto obj2 = PObject(20);
 
-	TCache<Object, PObject> cache;
-	auto key = cache.makeKey(obj1);
-	cache.add(key, obj2);
-	ASSERT(cache.access(key) == obj2);
+	auto key = Cache::makeKey(obj1);
+	Cache::add(key, obj2);
+	ASSERT(Cache::access<Object>(key) == obj2);
 }
 
 void testMain() {

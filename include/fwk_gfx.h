@@ -270,6 +270,16 @@ struct InputState {
 	vector<KeyStatus> keys;
 };
 
+//TODO: Write base class for objects using opengl handles, like GfxHandle
+/*
+class GfxHandle {
+public:
+	bool isValid() const;
+
+	//In GfxDevice: List m_all_handles;
+	ListNode m_node;
+};*/
+
 class GfxDevice {
   public:
 	GfxDevice();
