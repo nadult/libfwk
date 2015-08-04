@@ -51,8 +51,9 @@ template <class Value, class Key> class CacheImpl {
 	auto access(const Key &key) const {
 		std::lock_guard<std::mutex> lock(m_mutex);
 		auto it = m_map.find(key);
-		if(it != m_map.end())
+		if(it != m_map.end()) {
 			return it->second;
+		}
 		return immutable_ptr<Value>();
 	}
 
@@ -90,9 +91,11 @@ template <class Value, class Key> class CacheImpl {
 	}
 
 	void clearInvalid() {
-		for(auto it = begin(m_map); it != end(m_map); ++it)
-			if(!cache::isValidKey(it->first))
-				m_map.erase(it);
+		for(auto it = begin(m_map); it != end(m_map);) {
+			auto current = it++;
+			if(!cache::isValidKey(current->first))
+				m_map.erase(current);
+		}
 	}
 
 	// TODO: shared_mutex

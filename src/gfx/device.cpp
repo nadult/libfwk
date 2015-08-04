@@ -162,6 +162,7 @@ void GfxDevice::printDeviceInfo() {
 double GfxDevice::targetFrameTime() { return 1.0 / 60.0; }
 
 void GfxDevice::tick() {
+#ifndef __EMSCRIPTEN__
 	DASSERT(m_window_impl);
 	SDL_GL_SwapWindow(m_window_impl->window);
 	double time_diff = getTime() - m_last_time;
@@ -185,6 +186,7 @@ void GfxDevice::tick() {
 				;
 		}
 	}
+#endif
 
 	m_last_time = getTime();
 }
