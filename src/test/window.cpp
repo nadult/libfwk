@@ -51,7 +51,7 @@ int safe_main(int argc, char **argv) {
 	int2 res(640, 480);
 
 	GfxDevice gfx_device;
-	gfx_device.createWindow("foo", res, false);
+	gfx_device.createWindow("foo", res, true, false);
 
 	// setBlendingMode(bmDisabled);
 	s_viewport = IRect(res);

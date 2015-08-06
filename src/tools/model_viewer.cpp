@@ -256,7 +256,7 @@ int safe_main(int argc, char **argv) {
 	} else { files = {make_pair(model_argument, tex_argument)}; }
 
 	GfxDevice gfx_device;
-	gfx_device.createWindow("libfwk::model_viewer", resolution, false);
+	gfx_device.createWindow("libfwk::model_viewer", resolution, true, false);
 
 	double init_time = getTime();
 	Viewer viewer(IRect(resolution), files);

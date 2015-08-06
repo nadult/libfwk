@@ -108,8 +108,12 @@ GfxDevice::~GfxDevice() {
 
 struct GfxDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, int2 size, bool full) {
+	WindowImpl(const string &name, int2 size, bool use_multisampling, bool full) {
 		int flags = SDL_WINDOW_OPENGL | (full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+		if(use_multisampling) {
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+		}
 		window = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 								  size.x, size.y, flags);
 		if(!window)
@@ -128,10 +132,10 @@ struct GfxDevice::WindowImpl {
 	SDL_GLContext gl_context;
 };
 
-void GfxDevice::createWindow(const string &name, int2 size, bool full) {
+void GfxDevice::createWindow(const string &name, int2 size, bool multisample, bool full) {
 	if(m_window_impl)
 		THROW("For now only single window is supported");
-	m_window_impl = make_unique<WindowImpl>(name, size, full);
+	m_window_impl = make_unique<WindowImpl>(name, size, multisample, full);
 	SDL_GL_SetSwapInterval(1);
 
 	loadExtensions();
