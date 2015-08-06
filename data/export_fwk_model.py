@@ -181,33 +181,39 @@ def writeMesh(xml_parent, mesh, obj):
     if obj.find_armature() and obj.find_armature().is_visible(bpy.context.scene):
         writeSkin(xml_mesh_node, mesh, obj)
 
-def writeTrans(xml_node, matrix):
-    loc, rot, scale = fixMatrixUpAxis(matrix).decompose()
-    xml_node.set("pos", vecToString(loc))
-    if rot != Quaternion((1, 0, 0, 0)):
-        xml_node.set("rot", quatToString(rot))
-    str_scale = vecToString(scale)
-    if str_scale != "1 1 1":
-        xml_node.set("scale", str_scale)
+def genTrans(matrix):
+    pos, rot, scale = fixMatrixUpAxis(matrix).decompose()
+    return (vecToString(pos), quatToString(rot), vecToString(scale))
 
-def writeBone(xml_parent, bone, bone_xml_map):
+
+def writeTrans(xml_node, matrix):
+    (pos, rot, scale) = genTrans(matrix)
+    if pos != "0 0 0":
+        xml_node.set("pos", pos)
+    if rot != "0 0 0 1":
+        xml_node.set("rot", rot)
+    if scale != "1 1 1":
+        xml_node.set("scale", scale)
+
+def writeBone(xml_parent, bone, bone_map):
     if(not isValidString(bone.name)):
         raise Exception("Bone names mustn't contain whitespaces: \"" + obj.name + '"')
 
     xml_bone = ET.SubElement(xml_parent, "node")
     xml_bone.set("name", bone.name)
 #   xml_bone.set("type", "bone")
-    bone_xml_map[bone.name] = xml_bone
 
     matrix = bone.matrix_local.copy()
     if not (bone.parent is None):
         parent_inv = bone.parent.matrix_local.copy()
         parent_inv.invert()
         matrix = parent_inv * matrix
+    
+    bone_map[bone.name] = (xml_bone, genTrans(matrix))
     writeTrans(xml_bone, matrix)
 
     for child in bone.children:
-        writeBone(xml_bone, child, bone_xml_map)
+        writeBone(xml_bone, child, bone_map)
 
 def objectTypeString(obj):
     if obj.type == "MESH":
@@ -218,14 +224,14 @@ def objectTypeString(obj):
         return "bone"
     return "unknown"
 
-def writeObject(xml_parent, obj, mesh_list, bone_xml_map={}):
+def writeObject(xml_parent, obj, mesh_list, bone_map):
     if(not isValidString(obj.name)):
         raise Exception("Object names mustn't contain whitespaces: \"" + obj.name + '"')
 
     matrix = obj.matrix_local.copy()
     if obj.parent:
         if(obj.parent_bone):
-            xml_parent = bone_xml_map[obj.parent_bone]
+            xml_parent = bone_map[obj.parent_bone][0]
             bone = obj.parent.pose.bones[obj.parent_bone]
             matrix = bone.matrix.inverted() * matrix
 
@@ -244,12 +250,12 @@ def writeObject(xml_parent, obj, mesh_list, bone_xml_map={}):
         armature.pose_position = "REST"
         for bone in armature.bones:
             if bone.parent is None:
-                writeBone(xml_obj_node, bone, bone_xml_map)
+                writeBone(xml_obj_node, bone, bone_map)
     
     scene = bpy.context.scene    
     for child in obj.children:
         if child.is_visible(scene):
-            writeObject(xml_obj_node, child, mesh_list, bone_xml_map)
+            writeObject(xml_obj_node, child, mesh_list, bone_map)
 
 def extractMarkers(action):
     markers = set([])
@@ -271,7 +277,7 @@ def writeTimeTrack(xml_parent, track, frame_range, fps, is_shared):
     xml_track.text = text
 
 
-def writeAnim(xml_parent, action, armature):
+def writeAnim(xml_parent, action, armature, bone_map):
     armature_data = armature.data
     armature_data.pose_position = "POSE"
 
@@ -318,39 +324,46 @@ def writeAnim(xml_parent, action, armature):
     for bone in armature.pose.bones:
         xml_channel = ET.SubElement(xml_anim, "channel")
         xml_channel.set("name", bone.name)
+        (def_pos, def_rot, def_scale) = bone_map[bone.name][1]
 
         positions = []
         rotations = []
         scales = []
+        anything_added = False
 
         marker_idx = 0
         while marker_idx < len(markers):
             matrix = matrices_2d[marker_idx][index]
-            loc, rot, scale = matrix.decompose()
-            positions.append(vecToString(loc))
+            pos, rot, scale = matrix.decompose()
+            positions.append(vecToString(pos))
             rotations.append(quatToString(rot))
             scales.append(vecToString(scale))
             marker_idx = marker_idx + 1
 
-        if any(pos != "0 0 0" for pos in positions):
+        if any(pos != def_pos for pos in positions):
             if all(pos == positions[0] for pos in positions):
                 xml_channel.set("pos", positions[0])
             else:
                 xml_positions = ET.SubElement(xml_channel, "pos")
                 xml_positions.text = " ".join(positions)
-        if any(rot != "0 0 0 1" for rot in rotations):
+            anything_added = True
+        if any(rot != def_rot for rot in rotations):
             if all(rot == rotations[0] for rot in rotations):
                 xml_channel.set("rot", rotations[0])
             else:
                 xml_rotations = ET.SubElement(xml_channel, "rot")
                 xml_rotations.text = " ".join(rotations)
-        if any(scale != "1 1 1" for scale in scales):
+            anything_added = True
+        if any(scale != def_scale for scale in scales):
             if all(scale == scales[0] for scale in scales):
                 xml_channel.set("scale", scales[0])
             else:
                 xml_scales = ET.SubElement(xml_channel, "scale")
                 xml_scales.text = " ".join(scales)
+            anything_added = True
 
+        if not anything_added:
+            xml_anim.remove(xml_channel)
         index = index + 1
     
     writeTimeTrack(xml_anim, markers, action.frame_range, fps, True)
@@ -376,24 +389,29 @@ def write(file_path, objects_filter=""):
     scene = context.scene
 
     if objects_filter:
-        for object in context.scene.objects:
+        for object in scene.objects:
             object.hide = not re.search(objects_filter, object.name)
+            print("Hide " + object.name + ": " + str(object.hide))
     else:
-        for object in context.scene.objects:
+        for object in scene.objects:
             object.hide = False
-    context.scene.layers = [True] * len(context.scene.layers)
+    scene.layers = [True] * len(scene.layers)
 
     xml_root = ET.Element("model")
 
     mesh_list = []
-    armature = None
+    armatures = []
+    bone_map = {}
 
     for obj in scene.objects:
         if (obj.parent is None) and (obj.is_visible(scene)):
-            writeObject(xml_root, obj, mesh_list)
-        if obj.type == "ARMATURE":
-            armature = obj
-            log("Armature: " + armature.name)
+            writeObject(xml_root, obj, mesh_list, bone_map)
+            if obj.type == "ARMATURE":
+                armatures.append(obj)
+
+    if len(armatures) > 1:
+        raise Exception("Exporting multiple armatures is not supported")
+    armature = armatures[0] if (len(armatures) > 0) else None
 
     for (mesh, obj) in mesh_list:
         writeMesh(xml_root, mesh, obj)
@@ -403,7 +421,7 @@ def write(file_path, objects_filter=""):
   
     if armature:
         for action in bpy.data.actions:
-            writeAnim(xml_root, action, armature)
+            writeAnim(xml_root, action, armature, bone_map)
 
     xmlIndent(xml_root)
     xml_tree = ET.ElementTree(xml_root)

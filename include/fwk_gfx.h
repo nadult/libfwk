@@ -864,7 +864,7 @@ class Model;
 
 class ModelAnim {
   public:
-	ModelAnim(const XMLNode &);
+	ModelAnim(const XMLNode &, PPose default_pose);
 	void saveToXML(XMLNode) const;
 
 	string print() const;
@@ -872,8 +872,8 @@ class ModelAnim {
 	float length() const { return m_length; }
 	// TODO: advanced interpolation support
 
-	static void transToXML(const AffineTrans &trans, XMLNode node);
-	static AffineTrans transFromXML(XMLNode node);
+	static void transToXML(const AffineTrans &trans, const AffineTrans &default_trans, XMLNode node);
+	static AffineTrans transFromXML(XMLNode node, const AffineTrans &default_trans = AffineTrans());
 
 	PPose animatePose(PPose initial_pose, double anim_time) const;
 
@@ -885,12 +885,12 @@ class ModelAnim {
 
 	struct Channel {
 		Channel() = default;
-		Channel(const XMLNode &);
+		Channel(const XMLNode&, const AffineTrans &default_trans);
 		void saveToXML(XMLNode) const;
 		AffineTrans blend(int frame0, int frame1, float t) const;
 
 		// TODO: interpolation information
-		AffineTrans default_trans;
+		AffineTrans trans, default_trans;
 		vector<float3> translation_track;
 		vector<float3> scaling_track;
 		vector<Quat> rotation_track;
@@ -953,12 +953,12 @@ class Model : public immutable_base<Model> {
   public:
 	Model() = default;
 	Model(Model &&) = default;
+	Model(const Model &);
 	Model &operator=(Model &&) = default;
 	~Model() = default;
 
 	Model(PModelNode, vector<ModelAnim> anims = {}, vector<MaterialDef> material_defs = {});
-	Model(const XMLNode &);
-	Model(const Model &);
+	static Model loadFromXML(const XMLNode&);
 	void saveToXML(XMLNode) const;
 
 	// TODO: use this in transformation functions
@@ -996,7 +996,7 @@ class Model : public immutable_base<Model> {
 	}
 	void draw(Renderer &, PPose, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
-	void drawNodes(Renderer &, PPose, Color node_color, Color line_color,
+	void drawNodes(Renderer &, PPose, Color node_color, Color line_color, float node_scale = 1.0f,
 				   const Matrix4 &matrix = Matrix4::identity()) const;
 
 	void clearDrawingCache() const;
@@ -1050,7 +1050,7 @@ template <class T> class XMLLoader : public ResourceLoader<T> {
 		XMLNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child)
 			THROW("Cannot find node '%s' in XML document", m_node_name.c_str());
-		return make_immutable<T>(child);
+		return immutable_ptr<T>(T::loadFromXML(child));
 	}
 
   protected:

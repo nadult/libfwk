@@ -35,7 +35,7 @@ void testMain() {
 	execCommand(command);
 	XMLDocument doc;
 	Loader(mesh_path) >> doc;
-	PModel model = make_immutable<Model>(doc.child());
+	PModel model = PModel(Model::loadFromXML(doc.child()));
 	remove(mesh_path.c_str());
 
 	int cube_id = model->findNodeId("Cube");

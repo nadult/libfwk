@@ -147,7 +147,7 @@ class Viewer {
 		out.addWireBox(initial_bbox, {Color::red}, matrix);
 		out.addWireBox(bbox, {Color::green}, matrix);
 		if(m_show_nodes)
-			model.model->drawNodes(out, pose, Color::green, Color::yellow, matrix);
+			model.model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f, matrix);
 
 		int num_parts = 0, num_verts = 0; {
 			for(const auto &node : model.model->nodes())

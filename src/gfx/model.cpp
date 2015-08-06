@@ -82,42 +82,18 @@ namespace {
 		return new_node;
 	}
 
-	PModelNode parseTree(XMLNode xml_node) {
-		XMLNode mesh_node = xml_node.child("mesh");
-		vector<PMesh> meshes;
-		while(mesh_node) {
-			meshes.emplace_back(make_immutable<Mesh>(mesh_node));
-			mesh_node.next();
-		}
+	PPose defaultPose(ModelNode *root) {
+		vector<ModelNode *> nodes;
+		root->dfs(nodes);
 
-		PModelNode root = make_unique<ModelNode>("");
-		XMLNode subnode = xml_node.child("node");
-		while(subnode) {
-			root->addChild(parseNode(meshes, subnode));
-			subnode.next();
-		}
-		return root;
-	}
+		vector<Matrix4> pose_matrices;
+		vector<string> pose_names;
 
-	vector<ModelAnim> parseAnims(XMLNode xml_node) {
-		vector<ModelAnim> out;
-		XMLNode anim_node = xml_node.child("anim");
-		while(anim_node) {
-			out.emplace_back(anim_node);
-			anim_node.next();
+		for(const auto *node : nodes) {
+			pose_matrices.emplace_back(node->localTrans());
+			pose_names.emplace_back(node->name());
 		}
-		return out;
-	}
-
-	vector<MaterialDef> parseMaterials(XMLNode xml_node) {
-		vector<MaterialDef> out;
-		XMLNode mat_node = xml_node.child("material");
-		while(mat_node) {
-			out.emplace_back(mat_node);
-			mat_node.next();
-		}
-
-		return out;
+		return Pose(std::move(pose_matrices), pose_names);
 	}
 }
 
@@ -131,8 +107,38 @@ Model::Model(PModelNode root, vector<ModelAnim> anims, vector<MaterialDef> mater
 
 Model::Model(const Model &rhs) : Model(rhs.m_root->clone(), rhs.m_anims, rhs.m_material_defs) {}
 
-Model::Model(const XMLNode &node)
-	: Model(parseTree(node), parseAnims(node), parseMaterials(node)) {}
+Model Model::loadFromXML(const XMLNode &xml_node) {
+	XMLNode mesh_node = xml_node.child("mesh");
+	vector<PMesh> meshes;
+	while(mesh_node) {
+		meshes.emplace_back(make_immutable<Mesh>(mesh_node));
+		mesh_node.next();
+	}
+
+	PModelNode root = make_unique<ModelNode>("");
+	XMLNode subnode = xml_node.child("node");
+	while(subnode) {
+		root->addChild(parseNode(meshes, subnode));
+		subnode.next();
+	}
+
+	auto default_pose = fwk::defaultPose(root.get());
+	vector<ModelAnim> anims;
+	XMLNode anim_node = xml_node.child("anim");
+	while(anim_node) {
+		anims.emplace_back(anim_node, default_pose);
+		anim_node.next();
+	}
+
+	vector<MaterialDef> material_defs;
+	XMLNode mat_node = xml_node.child("material");
+	while(mat_node) {
+		material_defs.emplace_back(mat_node);
+		mat_node.next();
+	}
+
+	return Model(std::move(root), std::move(anims), std::move(material_defs));
+}
 
 int Model::findNodeId(const string &name) const {
 	const auto *node = findNode(name);
@@ -145,8 +151,6 @@ void Model::updateNodes() {
 
 	for(int n = 0; n < (int)m_nodes.size(); n++)
 		m_nodes[n]->setId(n);
-
-	auto def = defaultPose();
 
 	m_inv_bind_matrices.clear();
 	for(const auto *node : nodes())
@@ -161,22 +165,14 @@ void Model::updateNodes() {
 	}
 	// TODO: fixing this value fixes junker on new assimp
 	m_bind_scale = inv(m_bind_scale);
-
-	vector<Matrix4> pose_matrices;
-	vector<string> pose_names;
-
-	for(const auto *node : m_nodes) {
-		pose_matrices.emplace_back(node->localTrans());
-		pose_names.emplace_back(node->name());
-	}
-	m_default_pose = Pose(std::move(pose_matrices), pose_names);
+	m_default_pose = fwk::defaultPose(m_root.get());
 }
 
 static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, XMLNode xml_node) {
 	xml_node.addAttrib("name", xml_node.own(node->name()));
 	if(node->mesh())
 		xml_node.addAttrib("mesh_id", meshes[node->mesh().get()]);
-	ModelAnim::transToXML(node->localTrans(), xml_node);
+	ModelAnim::transToXML(node->localTrans(), AffineTrans(), xml_node);
 
 	for(const auto &child : node->children())
 		saveNode(meshes, child.get(), xml_node.addChild("node"));
@@ -234,9 +230,9 @@ void Model::draw(Renderer &out, PPose pose, const MaterialSet &materials,
 }
 
 void Model::drawNodes(Renderer &out, PPose pose, Color node_color, Color line_color,
-					  const Matrix4 &matrix) const {
+					  float node_scale, const Matrix4 &matrix) const {
 	DASSERT(isValidPose(pose));
-	Mesh bbox_mesh = Mesh::makeBBox({-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f});
+	Mesh bbox_mesh = Mesh::makeBBox(FBox{-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f} * node_scale);
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
@@ -251,7 +247,7 @@ void Model::drawNodes(Renderer &out, PPose pose, Color node_color, Color line_co
 	for(const auto *node : nodes()) {
 		if(m_inv_bind_matrices[node->id()] != Matrix4::identity())
 			bbox_mesh.draw(out, material, translation(positions[node->id()]));
-		if(node->parent()) {
+		if(node->parent() && node->parent() != m_nodes.front()) {
 			vector<float3> lines{positions[node->id()], positions[node->parent()->id()]};
 			out.addLines(lines, line_color);
 		}
@@ -270,7 +266,8 @@ Mesh Model::toMesh(PPose pose) const {
 
 	auto anim_data = animatedData(pose);
 	for(auto mesh_data : anim_data->meshes_data)
-		meshes.emplace_back(Mesh::transform(mesh_data.transform, mesh_data.mesh->animate(mesh_data.anim_data)));
+		meshes.emplace_back(
+			Mesh::transform(mesh_data.transform, mesh_data.mesh->animate(mesh_data.anim_data)));
 
 	return Mesh::merge(meshes);
 }
@@ -360,5 +357,4 @@ immutable_ptr<Model::AnimatedData> Model::animatedData(PPose pose) const {
 	Cache::add(key, data_ptr);
 	return data_ptr;
 }
-
 }
