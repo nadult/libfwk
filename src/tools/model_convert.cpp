@@ -7,9 +7,10 @@
 using namespace fwk;
 
 struct BlenderParams {
-	BlenderParams() : just_export(false) {}
+	BlenderParams() : just_export(false), print_output(false) {}
 	string objects_filter;
 	bool just_export;
+	bool print_output;
 };
 
 static BlenderParams s_blender_params;
@@ -26,6 +27,7 @@ void printHelp(const char *app_name) {
 		   // "  --transform \"1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1\"\n"
 		   "  --blender-objects-filter \"human.*\"\n"
 		   "  --blender-just-export\n"
+		   "  --blender-print-output\n"
 		   "Params:\n"
 		   "  param 1:          source model\n"
 		   "  param 2:          target model\n\n"
@@ -94,6 +96,10 @@ string exportFromBlender(const string &file_name, string &target_file_name) {
 	if(!result.second)
 		THROW("Error while exporting from blender (file: %s):\n%s", file_name.c_str(),
 			  result.first.c_str());
+
+	if(s_blender_params.print_output)
+		printf("%s\n", result.first.c_str());
+
 	return result.first;
 }
 
@@ -179,6 +185,8 @@ int safe_main(int argc, char **argv) {
 				s_blender_params.objects_filter = argv[++n];
 			else if(arg == "--blender-just-export")
 				s_blender_params.just_export = true;
+			else if(arg == "--blender-print-output")
+				s_blender_params.print_output = true;
 			else if(arg == "--help") {
 				printHelp(argv[0]);
 				exit(0);

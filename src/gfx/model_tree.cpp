@@ -10,10 +10,12 @@
 namespace fwk {
 
 ModelNode::ModelNode(const string &name, const AffineTrans &trans, PMesh mesh)
-	: m_name(name), m_trans(trans), m_mesh(std::move(mesh)), m_id(-1), m_parent(nullptr) {}
+	: m_name(name), m_trans(trans), m_inv_trans(inverse(trans)), m_mesh(std::move(mesh)), m_id(-1),
+	  m_parent(nullptr) {}
 
 ModelNode::ModelNode(const ModelNode &rhs)
-	: m_name(rhs.m_name), m_trans(rhs.m_trans), m_mesh(rhs.m_mesh), m_id(-1), m_parent(nullptr) {
+	: m_name(rhs.m_name), m_trans(rhs.m_trans), m_inv_trans(rhs.m_inv_trans), m_mesh(rhs.m_mesh),
+	  m_id(-1), m_parent(nullptr) {
 	for(auto &child : rhs.m_children) {
 		auto child_clone = child->clone();
 		child_clone->m_parent = this;
@@ -37,6 +39,11 @@ PModelNode ModelNode::removeChild(const ModelNode *child_to_remove) {
 }
 
 PModelNode ModelNode::clone() const { return make_unique<ModelNode>(*this); }
+
+void ModelNode::setTrans(const AffineTrans &trans) {
+	m_trans = trans;
+	m_inv_trans = inverse(trans);
+}
 
 void ModelNode::dfs(vector<ModelNode *> &out) {
 	out.emplace_back(this);
@@ -73,8 +80,12 @@ bool ModelNode::isDescendant(const ModelNode *test_ancestor) const {
 	return false;
 }
 
-AffineTrans ModelNode::globalTrans() const {
+Matrix4 ModelNode::globalTrans() const {
 	return m_parent ? m_parent->globalTrans() * m_trans : m_trans;
+}
+
+Matrix4 ModelNode::invGlobalTrans() const {
+	return m_parent ? m_inv_trans * m_parent->invGlobalTrans() : m_inv_trans;
 }
 
 bool ModelNode::join(const ModelNode *other, const string &name) {

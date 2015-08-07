@@ -148,23 +148,8 @@ int Model::findNodeId(const string &name) const {
 void Model::updateNodes() {
 	m_nodes.clear();
 	m_root->dfs(m_nodes);
-
 	for(int n = 0; n < (int)m_nodes.size(); n++)
 		m_nodes[n]->setId(n);
-
-	m_inv_bind_matrices.clear();
-	for(const auto *node : nodes())
-		m_inv_bind_matrices.emplace_back(inverse(node->globalTrans()));
-
-	// TODO: is this really needed?
-	m_bind_scale = float3(1, 1, 1);
-	for(const auto &inv_bind : m_inv_bind_matrices) {
-		m_bind_scale =
-			min(m_bind_scale, float3(length(inv_bind[0].xyz()), length(inv_bind[1].xyz()),
-									 length(inv_bind[2].xyz())));
-	}
-	// TODO: fixing this value fixes junker on new assimp
-	m_bind_scale = inv(m_bind_scale);
 	m_default_pose = fwk::defaultPose(m_root.get());
 }
 
@@ -245,7 +230,7 @@ void Model::drawNodes(Renderer &out, PPose pose, Color node_color, Color line_co
 
 	auto material = make_immutable<Material>(node_color);
 	for(const auto *node : nodes()) {
-		if(m_inv_bind_matrices[node->id()] != Matrix4::identity())
+		if(node != m_root.get())
 			bbox_mesh.draw(out, material, translation(positions[node->id()]));
 		if(node->parent() && node->parent() != m_nodes.front()) {
 			vector<float3> lines{positions[node->id()], positions[node->parent()->id()]};
@@ -307,12 +292,12 @@ PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	FWK_PROFILE("Model::meshSkinningPose");
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
 
-	Matrix4 pre = m_inv_bind_matrices[node_id] * scaling(m_bind_scale);
+	Matrix4 pre = inverse(m_nodes[node_id]->globalTrans());
 	Matrix4 post = m_nodes[node_id]->globalTrans();
 
 	vector<Matrix4> out = global_pose->transforms();
 	for(int n = 0; n < (int)out.size(); n++)
-		out[n] = pre * out[n] * m_inv_bind_matrices[n] * post;
+		out[n] = pre * out[n] * m_nodes[n]->invGlobalTrans() * post;
 	return make_immutable<Pose>(std::move(out), global_pose->nameMap());
 }
 

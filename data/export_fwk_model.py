@@ -230,10 +230,12 @@ def writeObject(xml_parent, obj, mesh_list, bone_map):
 
     matrix = obj.matrix_local.copy()
     if obj.parent:
-        if(obj.parent_bone):
+        if(obj.parent_bone and obj.parent_type == "BONE"):
             xml_parent = bone_map[obj.parent_bone][0]
             bone = obj.parent.pose.bones[obj.parent_bone]
-            matrix = bone.matrix.inverted() * matrix
+            print("Obj: " + obj.name + " has bone parent: " + obj.parent_bone)
+        elif obj.parent_type != "OBJECT":
+            raise Exception("Unsupported parenting type: " + obj.parent_type)
 
     xml_obj_node = ET.SubElement(xml_parent, "node")
     xml_obj_node.set("name", obj.name)

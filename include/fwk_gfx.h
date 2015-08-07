@@ -922,13 +922,16 @@ class ModelNode {
 	const ModelNode *find(const string &name, bool recursive = true) const;
 
 	// TODO: name validation
-	void setTrans(const AffineTrans &trans) { m_trans = trans; }
+	void setTrans(const AffineTrans &trans);
 	void setName(const string &name) { m_name = name; }
 	void setMesh(PMesh mesh) { m_mesh = std::move(mesh); }
 	void setId(int new_id) { m_id = new_id; }
 
 	const auto &localTrans() const { return m_trans; }
-	AffineTrans globalTrans() const;
+	const auto &invLocalTrans() const { return m_inv_trans; }
+
+	Matrix4 globalTrans() const;
+	Matrix4 invGlobalTrans() const;
 
 	auto mesh() const { return m_mesh; }
 	int id() const { return m_id; }
@@ -944,6 +947,7 @@ class ModelNode {
 	vector<PModelNode> m_children;
 	string m_name;
 	AffineTrans m_trans;
+	Matrix4 m_inv_trans;
 	PMesh m_mesh;
 	int m_id;
 	const ModelNode *m_parent;
@@ -1032,8 +1036,6 @@ class Model : public immutable_base<Model> {
 	vector<MaterialDef> m_material_defs;
 
 	vector<ModelNode *> m_nodes;
-	float3 m_bind_scale;
-	vector<Matrix4> m_inv_bind_matrices;
 	PPose m_default_pose;
 };
 
