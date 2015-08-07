@@ -233,7 +233,9 @@ def writeObject(xml_parent, obj, mesh_list, bone_map):
         if(obj.parent_bone and obj.parent_type == "BONE"):
             xml_parent = bone_map[obj.parent_bone][0]
             bone = obj.parent.pose.bones[obj.parent_bone]
-            print("Obj: " + obj.name + " has bone parent: " + obj.parent_bone)
+            bone_world = obj.parent.matrix_world * bone.matrix
+            obj_world = obj.matrix_world
+            matrix = bone_world.inverted() * obj_world
         elif obj.parent_type != "OBJECT":
             raise Exception("Unsupported parenting type: " + obj.parent_type)
 

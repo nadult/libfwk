@@ -172,8 +172,11 @@ void Model::saveToXML(XMLNode xml_node) const {
 	for(const auto &node : m_root->children())
 		saveNode(mesh_ids, node.get(), xml_node.addChild("node"));
 
+	vector<const Mesh*> meshes(mesh_ids.size(), nullptr);
 	for(const auto &pair : mesh_ids)
-		pair.first->saveToXML(xml_node.addChild("mesh"));
+		meshes[pair.second] = pair.first;
+	for(const auto *mesh : meshes)
+		mesh->saveToXML(xml_node.addChild("mesh"));
 
 	for(const auto &mat : m_material_defs)
 		mat.saveToXML(xml_node.addChild("material"));
