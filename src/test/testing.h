@@ -31,13 +31,22 @@ template <class T> inline bool closeEnough(const T &a, const T &b) {
 	return distance(a, b) < constant::epsilon;
 }
 
+template <class T>
+void reportError(const T &a, const T&b) {
+	TextFormatter atext, btext;
+	xml_conversions::toString(a, atext);
+	xml_conversions::toString(b, btext);
+	THROW("Error:  %s != %s", atext.text(), btext.text());
+}
+
 template <class T> void assertCloseEnough(const T &a, const T &b) {
-	if(!closeEnough(a, b)) {
-		TextFormatter atext, btext;
-		xml_conversions::toString(a, atext);
-		xml_conversions::toString(b, btext);
-		THROW("Error:  %s != %s", atext.text(), btext.text());
-	}
+	if(!closeEnough(a, b))
+		reportError(a, b);
+}
+
+inline void assertCloseEnough(const Quat &a, const Quat &b) {
+	if(!closeEnough((float4)a, (float4)b) && !closeEnough(-(float4)a, (float4)b))
+		reportError(a, b);
 }
 
 template <class T> void assertEqual(const T &a, const T &b) {

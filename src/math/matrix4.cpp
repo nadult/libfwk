@@ -215,13 +215,50 @@ const Matrix4 ortho(float left, float right, float top, float bottom, float near
 }
 
 AffineTrans::AffineTrans(const Matrix4 &mat) {
+	// Source: GLM
+	float3 col[3] = {mat[0].xyz(), mat[1].xyz(), mat[2].xyz()};
+	float3 skew;
+
+	scale.x = length(col[0]);
+	col[0] /= scale.x;
+
+	// Compute XY shear factor and make 2nd col orthogonal to 1st.
+	skew.z = dot(col[0], col[1]);
+	col[1] -= col[0] * skew.z;
+
+	scale.y = length(col[1]);
+	col[1] /= scale.y;
+	skew.z /= scale.y;
+
+	// Compute XZ and YZ shears, orthogonalize 3rd col.
+	skew.y = dot(col[0], col[2]);
+	col[2] -= col[0] * skew.y;
+	skew.x = dot(col[1], col[2]);
+	col[2] -= col[1] * skew.x;
+
+	// Next, get Z scale and normalize 3rd col.
+	scale.z = length(col[2]);
+	col[2] /= scale.z;
+	skew.y /= scale.z;
+	skew.x /= scale.z;
+
+	// At this point, the matrix (in cols[]) is orthonormal.
+	// Check for a coordinate system flip.  If the determinant
+	// is -1, then negate the matrix and the scaling factors.
+	float3 pdum3 = cross(col[1], col[2]); // v3Cross(col[1], col[2], Pdum3);
+	if(dot(col[0], pdum3) < 0) {
+		scale = -scale;
+		col[0] = -col[0];
+		col[1] = -col[1];
+		col[2] = -col[2];
+	}
+
 	translation = mat[3].xyz();
-	rotation = normalize(Quat(Matrix3(mat[0].xyz(), mat[1].xyz(), mat[2].xyz())));
-	scale = float3(length(mat.row(0).xyz()), length(mat.row(1).xyz()), length(mat.row(2).xyz()));
+	rotation = normalize(Quat(Matrix3(col[0], col[1], col[2])));
 }
 
 AffineTrans::operator Matrix4() const {
-	const Matrix3 rot_matrix = Matrix3(rotation) * scaling(scale);
+	const Matrix3 rot_matrix = Matrix3(normalize(rotation)) * scaling(scale);
 	return Matrix4(float4(rot_matrix[0], 0.0f), float4(rot_matrix[1], 0.0f),
 				   float4(rot_matrix[2], 0.0f), float4(translation, 1.0f));
 }

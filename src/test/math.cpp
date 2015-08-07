@@ -13,9 +13,9 @@ float3 randomScale() {
 }
 
 Quat randomRotation() {
-	return Quat(AxisAngle(
+	return normalize(Quat(AxisAngle(
 		normalize(float3(frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f)),
-		frand() * constant::pi * 2.0f));
+		frand() * constant::pi * 2.0f)));
 }
 
 AffineTrans randomTransform() {
@@ -34,7 +34,7 @@ void testMatrices() {
 		float3 scale = randomScale();
 		Quat rot = randomRotation();
 
-		Matrix4 mat = translation(trans) * scaling(scale) * Matrix4(rot);
+		Matrix4 mat = translation(trans) * Matrix4(rot) * scaling(scale);
 		AffineTrans dec(mat);
 		assertCloseEnough(trans, dec.translation);
 		assertCloseEnough(scale, dec.scale);
@@ -44,8 +44,15 @@ void testMatrices() {
 		AffineTrans trans1 = randomTransform(), trans2 = randomTransform();
 		Matrix4 mtrans1(trans1), mtrans2(trans2);
 
+		AffineTrans result0 = AffineTrans(mtrans1);
+
 		AffineTrans result1 = trans1 * trans2;
 		AffineTrans result2 = AffineTrans(mtrans1 * mtrans2);
+
+		assertCloseEnough(result0.translation, trans1.translation);
+		assertCloseEnough(result0.scale, trans1.scale);
+		assertCloseEnough(result0.rotation, trans1.rotation);
+
 		assertCloseEnough(result1.translation, result2.translation);
 		assertCloseEnough(result1.scale, result2.scale);
 		assertCloseEnough(result1.rotation, result2.rotation);

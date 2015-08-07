@@ -8,32 +8,77 @@
 namespace fwk {
 
 Quat::Quat(const Matrix3 &mat) {
-	v[3] = sqrtf(max(0.0f, 1.0f + mat[0][0] + mat[1][1] + mat[2][2])) * 0.5f;
-	v[0] = sqrtf(max(0.0f, 1.0f + mat[0][0] - mat[1][1] - mat[2][2])) * 0.5f;
-	v[1] = sqrtf(max(0.0f, 1.0f - mat[0][0] + mat[1][1] - mat[2][2])) * 0.5f;
-	v[2] = sqrtf(max(0.0f, 1.0f - mat[0][0] - mat[1][1] + mat[2][2])) * 0.5f;
+	// Source: GLM
+	float fourXSquaredMinus1 = mat[0][0] - mat[1][1] - mat[2][2];
+	float fourYSquaredMinus1 = mat[1][1] - mat[0][0] - mat[2][2];
+	float fourZSquaredMinus1 = mat[2][2] - mat[0][0] - mat[1][1];
+	float fourWSquaredMinus1 = mat[0][0] + mat[1][1] + mat[2][2];
 
-	if(mat[2][1] > mat[1][2])
-		v[0] = -v[0];
-	if(mat[0][2] > mat[2][0])
-		v[1] = -v[1];
-	if(mat[1][0] > mat[0][1])
-		v[2] = -v[2];
+	int biggestIndex = 0;
+	float fourBiggestSquaredMinus1 = fourWSquaredMinus1;
+	if(fourXSquaredMinus1 > fourBiggestSquaredMinus1) {
+		fourBiggestSquaredMinus1 = fourXSquaredMinus1;
+		biggestIndex = 1;
+	}
+	if(fourYSquaredMinus1 > fourBiggestSquaredMinus1) {
+		fourBiggestSquaredMinus1 = fourYSquaredMinus1;
+		biggestIndex = 2;
+	}
+	if(fourZSquaredMinus1 > fourBiggestSquaredMinus1) {
+		fourBiggestSquaredMinus1 = fourZSquaredMinus1;
+		biggestIndex = 3;
+	}
+
+	float biggestVal = sqrt(fourBiggestSquaredMinus1 + float(1)) * float(0.5);
+	float mult = 0.25 / biggestVal;
+
+	switch(biggestIndex) {
+	case 0:
+		*this = Quat((mat[1][2] - mat[2][1]) * mult, (mat[2][0] - mat[0][2]) * mult,
+					 (mat[0][1] - mat[1][0]) * mult, biggestVal);
+		break;
+	case 1:
+
+		*this = Quat(biggestVal, (mat[0][1] + mat[1][0]) * mult, (mat[2][0] + mat[0][2]) * mult,
+					 (mat[1][2] - mat[2][1]) * mult);
+		break;
+	case 2:
+		*this = Quat((mat[0][1] + mat[1][0]) * mult, biggestVal, (mat[1][2] + mat[2][1]) * mult,
+					 (mat[2][0] - mat[0][2]) * mult);
+		break;
+	case 3:
+		*this = Quat((mat[2][0] + mat[0][2]) * mult, (mat[1][2] + mat[2][1]) * mult, biggestVal,
+					 (mat[0][1] - mat[1][0]) * mult);
+		break;
+	}
 }
 
 Quat::operator Matrix3() const {
-	float tx = v[0] * 1.414213562373f;
-	float ty = v[1] * 1.414213562373f;
-	float tz = v[2] * 1.414213562373f;
-	float tw = v[3] * 1.414213562373f;
+	// Source: GLM
+	Matrix3 out;
+	float qxx(x * x);
+	float qyy(y * y);
+	float qzz(z * z);
+	float qxz(x * z);
+	float qxy(x * y);
+	float qyz(y * z);
+	float qwx(w * x);
+	float qwy(w * y);
+	float qwz(w * z);
+	float mul = 2.0f / length(*this);
 
-	float xx = tx * tx, yy = ty * ty, zz = tz * tz;
-	float xz = tx * tz, xy = tx * ty, yz = ty * tz;
-	float xw = tx * tw, yw = ty * tw, zw = tz * tw;
+	out[0][0] = 1 - mul * (qyy + qzz);
+	out[0][1] = mul * (qxy + qwz);
+	out[0][2] = mul * (qxz - qwy);
 
-	return Matrix3({1.0f - (yy + zz), (xy + zw), (xz - yw)},
-				   {(xy - zw), 1.0f - (xx + zz), (yz + xw)},
-				   {(xz + yw), (yz - xw), 1.0f - (xx + yy)});
+	out[1][0] = mul * (qxy - qwz);
+	out[1][1] = 1 - mul * (qxx + qzz);
+	out[1][2] = mul * (qyz + qwx);
+
+	out[2][0] = mul * (qxz + qwy);
+	out[2][1] = mul * (qyz - qwx);
+	out[2][2] = 1 - mul * (qxx + qyy);
+	return out;
 }
 
 const Quat Quat::fromYawPitchRoll(float y, float p, float r) {
