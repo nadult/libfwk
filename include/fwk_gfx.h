@@ -1005,13 +1005,13 @@ class Model : public immutable_base<Model> {
 
 	const auto &materialDefs() const { return m_material_defs; }
 
-	Mesh toMesh(PPose) const;
+	Mesh toMesh(PPose = PPose()) const;
 	void printHierarchy() const;
 
-	FBox boundingBox(PPose) const;
-	Matrix4 nodeTrans(const string &name, PPose) const;
+	FBox boundingBox(PPose = PPose()) const;
+	Matrix4 nodeTrans(const string &name, PPose = PPose()) const;
 
-	float intersect(const Segment &, PPose) const;
+	float intersect(const Segment &, PPose = PPose()) const;
 
 	void draw(Renderer &out, const MaterialSet &mats,
 			  const Matrix4 &matrix = Matrix4::identity()) const {

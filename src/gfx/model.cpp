@@ -189,7 +189,7 @@ void Model::saveToXML(XMLNode xml_node) const {
 	for(const auto &node : m_root->children())
 		saveNode(mesh_ids, node.get(), xml_node.addChild("node"));
 
-	vector<const Mesh*> meshes(mesh_ids.size(), nullptr);
+	vector<const Mesh *> meshes(mesh_ids.size(), nullptr);
 	for(const auto &pair : mesh_ids)
 		meshes[pair.second] = pair.first;
 	for(const auto *mesh : meshes)
@@ -202,6 +202,9 @@ void Model::saveToXML(XMLNode xml_node) const {
 }
 
 FBox Model::boundingBox(PPose pose) const {
+	if(!pose)
+		pose = m_default_pose;
+
 	FBox out = FBox::empty();
 	auto anim_data = animatedData(pose);
 	for(auto mesh_data : anim_data->meshes_data) {
@@ -269,6 +272,8 @@ void Model::printHierarchy() const {
 Mesh Model::toMesh(PPose pose) const {
 	vector<Mesh> meshes;
 
+	if(!pose)
+		pose = m_default_pose;
 	auto anim_data = animatedData(pose);
 	for(auto mesh_data : anim_data->meshes_data)
 		meshes.emplace_back(
@@ -280,6 +285,8 @@ Mesh Model::toMesh(PPose pose) const {
 float Model::intersect(const Segment &segment, PPose pose) const {
 	float min_isect = constant::inf;
 
+	if(!pose)
+		pose = m_default_pose;
 	auto anim_data = animatedData(pose);
 	for(auto mesh_data : anim_data->meshes_data) {
 		float isect =
@@ -291,7 +298,9 @@ float Model::intersect(const Segment &segment, PPose pose) const {
 }
 
 Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
-	DASSERT(isValidPose(pose));
+	if(!pose)
+		pose = m_default_pose;
+
 	auto global_pose = globalPose(pose);
 	if(const auto *node = findNode(name))
 		return global_pose->transforms()[node->id()];

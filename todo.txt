@@ -6,6 +6,10 @@
 - Bug: keyDown(InputKey::tab) doesn't work
 - scanf's are very slow compared to strto*, maybe we should change printfs as well in text printer?
 
+- Add HTML5 build target for pre-commit tests
+
+- ModelNodes should be more flexible when creating (no need for empty root node, nodes with empty names should be ok, etc.)
+
 - when printing strings to XML, library should check if restricted characters are not used by accident (&, <, >)
 - separate XMLFormatter from TextFormatter
 
