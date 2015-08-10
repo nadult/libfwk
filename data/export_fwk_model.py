@@ -201,7 +201,7 @@ def writeBone(xml_parent, bone, bone_map):
 
     xml_bone = ET.SubElement(xml_parent, "node")
     xml_bone.set("name", bone.name)
-#   xml_bone.set("type", "bone")
+    xml_bone.set("type", "generic")
 
     matrix = bone.matrix_local.copy()
     if not (bone.parent is None):
@@ -215,14 +215,17 @@ def writeBone(xml_parent, bone, bone_map):
     for child in bone.children:
         writeBone(xml_bone, child, bone_map)
 
-def objectTypeString(obj):
-    if obj.type == "MESH":
-        return "mesh"
-    if obj.type == "ARMATURE":
-        return "skeleton"
-    if obj.type == "BONE":
-        return "bone"
-    return "unknown"
+def objectTypeToString(obj):
+#    if obj.type == "MESH":
+#        return "mesh"
+#    if obj.type == "ARMATURE":
+#        return "armature"
+#    if obj.type == "BONE":
+#        return "bone"
+    if obj.type == "EMPTY":
+        return "empty"
+
+    return "generic"
 
 def writeObject(xml_parent, obj, mesh_list, bone_map):
     if(not isValidString(obj.name)):
@@ -241,7 +244,16 @@ def writeObject(xml_parent, obj, mesh_list, bone_map):
 
     xml_obj_node = ET.SubElement(xml_parent, "node")
     xml_obj_node.set("name", obj.name)
-#   xml_obj_node.set("type", objectTypeString(obj))
+    obj_type = objectTypeToString(obj)
+    if obj_type != "generic":
+        xml_obj_node.set("type", obj_type)
+
+    if obj.type == "EMPTY":
+        keys = list(set(obj.keys()) - set(["_RNA_UI", "cycles_visibility", "cycles"]))
+        for key in keys:
+            xml_prop = ET.SubElement(xml_obj_node, "property")
+            xml_prop.set("name", key)
+            xml_prop.set("value", str(obj[key]))
 
     writeTrans(xml_obj_node, matrix)
 
@@ -256,7 +268,7 @@ def writeObject(xml_parent, obj, mesh_list, bone_map):
             if bone.parent is None:
                 writeBone(xml_obj_node, bone, bone_map)
     
-    scene = bpy.context.scene    
+    scene = bpy.context.scene
     for child in obj.children:
         if child.is_visible(scene):
             writeObject(xml_obj_node, child, mesh_list, bone_map)

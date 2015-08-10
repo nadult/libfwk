@@ -67,12 +67,21 @@ namespace {
 
 	PModelNode parseNode(vector<PMesh> &meshes, XMLNode xml_node) {
 		auto name = xml_node.attrib("name");
+		auto type = ModelNodeType::fromString(xml_node.attrib("type", "generic"));
 		auto trans = ModelAnim::transFromXML(xml_node);
 		auto mesh_id = xml_node.attrib<int>("mesh_id", -1);
 		ASSERT(mesh_id >= -1 && mesh_id < (int)meshes.size());
 
-		auto new_node =
-			make_unique<ModelNode>(name, trans, mesh_id == -1 ? PMesh() : meshes[mesh_id]);
+		vector<ModelNode::Property> props;
+		XMLNode prop_node = xml_node.child("property");
+		while(prop_node) {
+			props.emplace_back(
+				ModelNode::Property{prop_node.attrib("name"), prop_node.attrib("value")});
+			prop_node.next();
+		}
+
+		auto new_node = make_unique<ModelNode>(name, type, trans,
+											   mesh_id == -1 ? PMesh() : meshes[mesh_id], props);
 		XMLNode child_node = xml_node.child("node");
 		while(child_node) {
 			new_node->addChild(parseNode(meshes, child_node));
@@ -155,9 +164,17 @@ void Model::updateNodes() {
 
 static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, XMLNode xml_node) {
 	xml_node.addAttrib("name", xml_node.own(node->name()));
+	if(node->type() != ModelNodeType::generic)
+		xml_node.addAttrib("type", toString(node->type()));
 	if(node->mesh())
 		xml_node.addAttrib("mesh_id", meshes[node->mesh().get()]);
 	ModelAnim::transToXML(node->localTrans(), AffineTrans(), xml_node);
+
+	for(const auto &prop : node->properties()) {
+		XMLNode xml_prop = xml_node.addChild("property");
+		xml_prop.addAttrib("name", xml_prop.own(prop.name));
+		xml_prop.addAttrib("value", xml_prop.own(prop.value));
+	}
 
 	for(const auto &child : node->children())
 		saveNode(meshes, child.get(), xml_node.addChild("node"));

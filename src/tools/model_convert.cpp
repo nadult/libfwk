@@ -149,8 +149,7 @@ void convert(const string &from, const Matrix4 &transform, const string &to) {
 	if(from_type == FileType::blender && to_type == FileType::fwk && !any_transforms &&
 	   s_blender_params.just_export) {
 		string target_name = to;
-		string result = exportFromBlender(from, target_name);
-		printf("Blender output:\n%s", result.c_str());
+		exportFromBlender(from, target_name);
 		return;
 	}
 

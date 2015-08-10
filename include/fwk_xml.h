@@ -120,6 +120,11 @@ namespace xml_conversions {
 		return detail::SelectParser<T>::parse(parser);
 	}
 
+	template <class T> T fromString(const string &input) {
+		TextParser parser(input.c_str());
+		return detail::SelectParser<T>::parse(parser);
+	}
+
 	template <class T> void toString(const T &value, TextFormatter &out) {
 		detail::SelectPrinter<T>::print(value, out);
 	}

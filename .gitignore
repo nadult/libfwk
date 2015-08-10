@@ -3,5 +3,6 @@
 /lib
 /test
 /tools
+/temp
 /.ycm_extra_conf.pyc
 /Makefile.local

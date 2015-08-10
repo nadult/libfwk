@@ -270,7 +270,7 @@ struct InputState {
 	vector<KeyStatus> keys;
 };
 
-//TODO: Write base class for objects using opengl handles, like GfxHandle
+// TODO: Write base class for objects using opengl handles, like GfxHandle
 /*
 class GfxHandle {
 public:
@@ -872,7 +872,8 @@ class ModelAnim {
 	float length() const { return m_length; }
 	// TODO: advanced interpolation support
 
-	static void transToXML(const AffineTrans &trans, const AffineTrans &default_trans, XMLNode node);
+	static void transToXML(const AffineTrans &trans, const AffineTrans &default_trans,
+						   XMLNode node);
 	static AffineTrans transFromXML(XMLNode node, const AffineTrans &default_trans = AffineTrans());
 
 	PPose animatePose(PPose initial_pose, double anim_time) const;
@@ -885,7 +886,7 @@ class ModelAnim {
 
 	struct Channel {
 		Channel() = default;
-		Channel(const XMLNode&, const AffineTrans &default_trans);
+		Channel(const XMLNode &, const AffineTrans &default_trans);
 		void saveToXML(XMLNode) const;
 		AffineTrans blend(int frame0, int frame1, float t) const;
 
@@ -908,17 +909,33 @@ class ModelAnim {
 class ModelNode;
 using PModelNode = unique_ptr<ModelNode>;
 
+DECLARE_ENUM(ModelNodeType, generic, mesh, armature, bone, empty);
+
 class ModelNode {
   public:
-	ModelNode(const string &name, const AffineTrans &trans = AffineTrans(), PMesh mesh = PMesh());
+	using Type = ModelNodeType::Type;
+
+	struct Property {
+		string name;
+		string value;
+	};
+
+	using PropertyMap = std::map<string, string>;
+
+	ModelNode(const string &name, Type type = Type::generic,
+			  const AffineTrans &trans = AffineTrans(), PMesh mesh = PMesh(),
+			  vector<Property> props = {});
 	ModelNode(const ModelNode &rhs);
 
 	void addChild(PModelNode);
 	PModelNode removeChild(const ModelNode *);
 	PModelNode clone() const;
 
+	Type type() const { return m_type; }
 	const auto &children() const { return m_children; }
 	const auto &name() const { return m_name; }
+	const auto &properties() const { return m_properties; }
+	PropertyMap propertyMap() const;
 	const ModelNode *find(const string &name, bool recursive = true) const;
 
 	// TODO: name validation
@@ -945,10 +962,12 @@ class ModelNode {
 
   private:
 	vector<PModelNode> m_children;
+	vector<Property> m_properties;
 	string m_name;
 	AffineTrans m_trans;
 	Matrix4 m_inv_trans;
 	PMesh m_mesh;
+	Type m_type;
 	int m_id;
 	const ModelNode *m_parent;
 };
@@ -962,7 +981,7 @@ class Model : public immutable_base<Model> {
 	~Model() = default;
 
 	Model(PModelNode, vector<ModelAnim> anims = {}, vector<MaterialDef> material_defs = {});
-	static Model loadFromXML(const XMLNode&);
+	static Model loadFromXML(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
 	// TODO: use this in transformation functions
