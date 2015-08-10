@@ -247,8 +247,10 @@ bool access(const FilePath &path) {
 }
 
 void mkdirRecursive(const FilePath &path) {
-	FilePath parent = path.parent();
+	if(access(path))
+		return;
 
+	FilePath parent = path.parent();
 	if(!access(parent))
 		mkdirRecursive(parent);
 
