@@ -610,10 +610,10 @@ class ProgramBinder {
 class Material : public immutable_base<Material> {
   public:
 	enum Flags {
-		flag_blended = 1,
-		flag_two_sided = 2,
-		flag_wire = 4,
-		flag_clear_depth = 8,
+		flag_blended = 1u,
+		flag_two_sided = 2u,
+		flag_wire = 4u,
+		flag_clear_depth = 8u,
 	};
 	Material(PProgram program, Color color = Color::white, uint flags = 0);
 	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
@@ -724,6 +724,8 @@ class MeshIndices {
 	MeshIndices(vector<uint> = {}, Type ptype = Type::triangles);
 	MeshIndices(Range<uint>, Type ptype = Type::triangles);
 	MeshIndices(PIndexBuffer, Type ptype = Type::triangles);
+
+	static MeshIndices makeRange(int count, uint first = 0, Type ptype = Type::triangles);
 
 	operator const vector<uint> &() const { return m_data; }
 	Type type() const { return m_type; }

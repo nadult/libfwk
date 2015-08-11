@@ -13,7 +13,7 @@ Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> mate
 	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
 	  m_material_names(std::move(material_names)), m_ready_flags(0) {
 	for(const auto &indices : m_indices)
-		DASSERT((int)indices.indexRange().second < m_buffers.size());
+		DASSERT(indices.empty() || (int)indices.indexRange().second < m_buffers.size());
 	DASSERT(m_material_names.empty() || m_material_names.size() == m_indices.size());
 	m_merged_indices = MeshIndices::merge(m_indices, m_merged_ranges);
 }

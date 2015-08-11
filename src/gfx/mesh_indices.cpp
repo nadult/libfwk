@@ -18,6 +18,13 @@ MeshIndices::MeshIndices(Range<uint> indices, Type type)
 	: MeshIndices(vector<uint>(begin(indices), end(indices)), type) {}
 MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices->getData(), type) {}
 
+MeshIndices MeshIndices::makeRange(int count, uint first, Type ptype) {
+	DASSERT(count >= 0);
+	vector<uint> indices(count);
+	std::iota(begin(indices), end(indices), first);
+	return MeshIndices(std::move(indices), ptype);
+}
+
 MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
 							   vector<pair<uint, uint>> &index_ranges) {
 	auto type = std::all_of(begin(set), end(set), [](auto &inds) {

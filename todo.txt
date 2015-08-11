@@ -17,3 +17,5 @@
 - Add tests for SimpleMesh operations
 
 - Clang 3.6 Crashes when compiling frustum.cpp with -O2/-O3 and DNDEBUG
+
+- Fix problems with Range conversions (make them explicit?)
