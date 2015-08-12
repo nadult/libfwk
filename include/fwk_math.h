@@ -351,6 +351,7 @@ float triangleArea(const float3 &, const float3 &, const float3 &);
 float frand();
 float angleDistance(float a, float b);
 float blendAngles(float initial, float target, float step);
+float fixAngle(float angle);
 
 bool isnan(float);
 bool isnan(const float2 &);

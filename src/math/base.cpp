@@ -41,5 +41,12 @@ float blendAngles(float initial, float target, float step) {
 	return initial;
 }
 
+float fixAngle(float angle) {
+	angle = fmodf(angle, 2.0f * constant::pi);
+	if(angle < 0.0f)
+		angle += 2.0f * constant::pi;
+	return angle;
+}
+
 float frand() { return float(rand()) / float(RAND_MAX); }
 }
