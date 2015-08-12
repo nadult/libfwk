@@ -148,7 +148,6 @@ class InputEvent {
 	}
 	int mouseWheel() const {
 		DASSERT(m_type != invalid);
-		THROW("Add support for mouse wheel\n");
 		return (int)m_mouse_wheel;
 	}
 

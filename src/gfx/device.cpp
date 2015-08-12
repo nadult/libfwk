@@ -222,6 +222,7 @@ bool GfxDevice::pollEvents() {
 		}
 	}
 	m_input_state.mouse_move = int2(0, 0);
+	m_input_state.mouse_wheel = 0;
 
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
@@ -273,6 +274,9 @@ bool GfxDevice::pollEvents() {
 			}
 			break;
 		}
+		case SDL_MOUSEWHEEL:
+			m_input_state.mouse_wheel = event.wheel.y;
+			break;
 		case SDL_QUIT:
 			events.emplace_back(InputEvent::quit);
 			return false;
