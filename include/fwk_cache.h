@@ -57,7 +57,7 @@ template <class Value, class Key> class CacheImpl {
 		return immutable_ptr<Value>();
 	}
 
-	void remove(const Key &key) const {
+	void remove(const Key &key) {
 		std::lock_guard<std::mutex> lock(m_mutex);
 		m_map.erase(m_map.find(key));
 		m_next_clear_cycle--;

@@ -40,6 +40,7 @@ HTML5_PROGRAMS:=$(PROGRAM_SRC:%=%.html)
 HTML5_PROGRAMS_SRC:=$(PROGRAM_SRC:%=%.html.cpp)
 
 all: lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
+tools: tools/model_viewer tools/model_convert
 
 LINUX_AR =ar
 LINUX_STRIP=strip
@@ -112,7 +113,7 @@ $(BUILD_DIR)/.depend: $(DEPS)
 
 depend: $(BUILD_DIR)/.depend
 
-.PHONY: clean depend
+.PHONY: clean depend tools
 
 DEPEND_FILE=$(BUILD_DIR)/.depend
 DEP=$(wildcard $(DEPEND_FILE))

@@ -93,23 +93,15 @@ float intersection(const Segment &segment, const Plane &plane) {
 }
 
 const Segment operator*(const Matrix4 &mat, const Segment &segment) {
-	//	float3 new_origin = mulPoint(mat, segment.origin());
-	//	float3 new_dir = mulNormal(mat, segment.dir());
-	//	float len = length(new_dir);
-	//	new_dir /= len;
-
 	if(segment.min() > -constant::inf && segment.max() < constant::inf) {
 		float3 start = segment.at(segment.min()), end = segment.at(segment.max());
 		return Segment(mulPoint(mat, start), mulPoint(mat, end));
 	}
 
-	float3 target = segment.origin() + segment.dir() * 1.0f;
 	float3 new_origin = mulPoint(mat, segment.origin());
-	float3 new_target = mulPoint(mat, target);
-	float3 new_dir = mulNormal(mat, segment.dir()); // new_target - new_origin);
+	float3 new_dir = mulNormal(mat, segment.dir());
 	float len = 1.0f;
 
-	Segment segment1 = Segment(Ray(new_origin, new_dir), segment.min() * len, segment.max() * len);
 	return Segment(Ray(new_origin, new_dir), segment.min() * len, segment.max() * len);
 }
 }

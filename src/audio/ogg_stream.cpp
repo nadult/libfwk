@@ -47,7 +47,7 @@ Sound OggStream::makeSound() const {
 		data.insert(end(data), buffer, buffer + ret);
 	}
 
-	printf("Sound %s: %dKB\n", m_file_name.c_str(), data.size() / 1024);
+	printf("Sound %s: %dKB\n", m_file_name.c_str(), (int)data.size() / 1024);
 	return Sound(std::move(data), info);
 }
 }

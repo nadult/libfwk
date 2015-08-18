@@ -163,7 +163,7 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {
 	FWK_PROFILE("MeshBuffers::animatePositions");
 	FWK_PROFILE_COUNTER("animatePositions", 1);	
-	DASSERT(matrices.size() == node_names.size());
+	DASSERT(matrices.size() == (int)node_names.size());
 	vector<float3> out(positions.size());
 
 	for(int v = 0; v < (int)size(); v++) {
@@ -178,7 +178,7 @@ vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {
 }
 
 vector<float3> MeshBuffers::animateNormals(CRange<Matrix4> matrices) const {
-	DASSERT(matrices.size() == node_names.size());
+	DASSERT(matrices.size() == (int)node_names.size());
 	vector<float3> out(normals.size());
 
 	for(int v = 0; v < (int)normals.size(); v++) {
