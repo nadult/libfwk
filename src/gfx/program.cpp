@@ -79,67 +79,72 @@ void ProgramBinder::unbind() {
 void ProgramBinder::setUniform(const char *name, float v) {
 	bind();
 	glUniform1f(glGetUniformLocation(handle(), name), v);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
-void ProgramBinder::setUniform(const char *name, const float *v, size_t count) {
+void ProgramBinder::setUniform(const char *name, CRange<float> range) {
 	bind();
-	glUniform1fv(glGetUniformLocation(handle(), name), count, v);
-	// DASSERT(glGetError() == GL_NO_ERROR);
+	glUniform1fv(glGetUniformLocation(handle(), name), range.size(), range.data());
 }
 
-void ProgramBinder::setUniform(const char *name, const Matrix4 *v, size_t count) {
+void ProgramBinder::setUniform(const char *name, CRange<Matrix4> range) {
 	bind();
-	glUniformMatrix4fv(glGetUniformLocation(handle(), name), count, 0, &v[0][0][0]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
+	glUniformMatrix4fv(glGetUniformLocation(handle(), name), range.size(), false,
+					   (float *)range.data());
+}
+
+void ProgramBinder::setUniform(const char *name, CRange<float2> range) {
+	bind();
+	glUniform2fv(glGetUniformLocation(handle(), name), range.size(), (float *)range.data());
+}
+
+void ProgramBinder::setUniform(const char *name, CRange<float3> range) {
+	bind();
+	glUniform3fv(glGetUniformLocation(handle(), name), range.size(), (float *)range.data());
+}
+
+void ProgramBinder::setUniform(const char *name, CRange<float4> range) {
+	bind();
+	glUniform4fv(glGetUniformLocation(handle(), name), range.size(), (float *)range.data());
 }
 
 void ProgramBinder::setUniform(const char *name, int v) {
 	bind();
 	glUniform1i(glGetUniformLocation(handle(), name), v);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void ProgramBinder::setUniform(const char *name, const int2 &v) {
 	bind();
 	glUniform1iv(glGetUniformLocation(handle(), name), 2, &v[0]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void ProgramBinder::setUniform(const char *name, const int3 &v) {
 	bind();
 	glUniform1iv(glGetUniformLocation(handle(), name), 3, &v[0]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void ProgramBinder::setUniform(const char *name, const int4 &v) {
 	bind();
 	glUniform1iv(glGetUniformLocation(handle(), name), 4, &v[0]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void ProgramBinder::setUniform(const char *name, const float2 &v) {
 	bind();
 	glUniform2f(glGetUniformLocation(handle(), name), v[0], v[1]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void ProgramBinder::setUniform(const char *name, const float3 &v) {
 	bind();
 	glUniform3f(glGetUniformLocation(handle(), name), v[0], v[1], v[2]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void ProgramBinder::setUniform(const char *name, const float4 &v) {
 	bind();
 	glUniform4f(glGetUniformLocation(handle(), name), v[0], v[1], v[2], v[3]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 void ProgramBinder::setUniform(const char *name, const Matrix4 &matrix) {
 	bind();
 	glUniformMatrix4fv(glGetUniformLocation(handle(), name), 1, 0, &matrix[0][0]);
-	// DASSERT(glGetError() == GL_NO_ERROR);
 }
 
 int ProgramBinder::getUniformLocation(const char *name) const {

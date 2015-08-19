@@ -9,13 +9,11 @@ namespace fwk {
 
 static int s_current_tex = 0;
 
-//TODO: what if rendering device is recreated?
-//Maybe those textures should be kept inside the device?
-//Similar case for VertexBuffers and VertexArrays
+// TODO: what if rendering device is recreated?
+// Maybe those textures should be kept inside the device?
+// Similar case for VertexBuffers and VertexArrays
 
-DTexture::DTexture(const string &name, Stream &stream) :DTexture() {
-	load(stream);
-}
+DTexture::DTexture(const string &name, Stream &stream) : DTexture() { load(stream); }
 
 DTexture::DTexture(const Texture &tex) : DTexture() { set(tex); }
 
@@ -24,6 +22,13 @@ DTexture::DTexture(const DTexture &tex) { THROW("Write me (also move constructor
 DTexture::DTexture()
 	: m_id(0), m_width(0), m_height(0), m_format(TI_Unknown), m_is_wrapped(false),
 	  m_is_filtered(true), m_has_mipmaps(false), m_is_dirty(false) {}
+
+DTexture::DTexture(TextureFormat format, const int2 &size, bool is_wrapped, bool is_filtered)
+	: DTexture() {
+	resize(format, size.x, size.y);
+	setWrapping(is_wrapped);
+	setFiltering(is_filtered);
+}
 
 DTexture::~DTexture() { clear(); }
 
@@ -149,6 +154,31 @@ void DTexture::bind() const {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
 		m_is_dirty = false;
 	}
+}
+
+void DTexture::bind(const vector<immutable_ptr<DTexture>> &set) {
+	vector<const DTexture *> temp;
+	temp.reserve(set.size());
+
+	for(auto &tex : set)
+		temp.emplace_back(tex.get());
+	bind(temp);
+}
+
+void DTexture::bind(const vector<const DTexture *> &set) {
+	static int max_bind = 0;
+
+	for(int n = 0; n < (int)set.size(); n++) {
+		DASSERT(set[n]);
+		glActiveTexture(GL_TEXTURE0 + n);
+		set[n]->bind();
+	}
+	for(int n = (int)set.size(); n < max_bind; n++) {
+		glActiveTexture(GL_TEXTURE0 + n);
+		glDisable(GL_TEXTURE_2D);
+	}
+	max_bind = (int)set.size();
+	glActiveTexture(GL_TEXTURE0);
 }
 
 void DTexture::unbind() {

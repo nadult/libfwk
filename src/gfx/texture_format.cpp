@@ -71,6 +71,9 @@ namespace {
 		//	FormatConv(  8,	TI_G32R32F,			0,0,0,0),
 		//	FormatConv(  16,TI_A32B32G32R32F,	0,0,0,0),
 
+		FormatConv(1, TI_DEPTH24, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT),
+		FormatConv(4, TI_R16G16B16A16, GL_RGBA16, GL_RGBA, GL_UNSIGNED_BYTE),
+
 		FormatConv(0, TI_Unknown, 0, 0, 0, 0),
 	};
 }

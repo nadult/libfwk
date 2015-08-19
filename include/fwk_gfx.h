@@ -57,6 +57,7 @@ inline Color swapBR(Color col) {
 	return col;
 }
 
+// TODO: just use gl formats?
 enum TextureIdent {
 	TI_Unknown = 0,
 
@@ -112,6 +113,9 @@ enum TextureIdent {
 	TI_R32F = 114,
 	TI_G32R32F = 115,
 	TI_A32B32G32R32F = 116,
+
+	TI_DEPTH24 = 0xff0001,
+	TI_R16G16B16A16 = 0xff0002,
 
 	TI_FORCE_DWORD = 0x7fffffff
 };
@@ -211,6 +215,7 @@ class DTexture : public immutable_base<DTexture> {
   public:
 	DTexture();
 	DTexture(const string &name, Stream &);
+	DTexture(TextureFormat format, const int2 &size, bool is_wrapped, bool is_filtered);
 	DTexture(const Texture &);
 	DTexture(DTexture &&);
 	DTexture(const DTexture &);
@@ -230,6 +235,10 @@ class DTexture : public immutable_base<DTexture> {
 	void generateMipmaps();
 
 	void bind() const;
+
+	// TODO: one overload should be enough
+	static void bind(const vector<const DTexture *> &);
+	static void bind(const vector<immutable_ptr<DTexture>> &);
 	static void unbind();
 
 	void resize(TextureFormat format, int width, int height);
@@ -393,6 +402,10 @@ class VertexBuffer : public immutable_base<VertexBuffer> {
 
 	void operator=(const VertexBuffer &) = delete;
 	VertexBuffer(const VertexBuffer &) = delete;
+
+	template <class T> static immutable_ptr<VertexBuffer> make(const vector<T> &data) {
+		return make_immutable<VertexBuffer>(data);
+	}
 
 	// TODO: figure a way of passing different range types here
 	template <class T>
@@ -581,8 +594,11 @@ class ProgramBinder {
 	~ProgramBinder();
 
 	void setUniform(const char *name, float);
-	void setUniform(const char *name, const float *, size_t);
-	void setUniform(const char *name, const Matrix4 *, size_t);
+	void setUniform(const char *name, CRange<float>);
+	void setUniform(const char *name, CRange<float2>);
+	void setUniform(const char *name, CRange<float3>);
+	void setUniform(const char *name, CRange<float4>);
+	void setUniform(const char *name, CRange<Matrix4>);
 
 	void setUniform(const char *name, int);
 	void setUniform(const char *name, const int2 &);

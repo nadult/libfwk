@@ -56,7 +56,6 @@ static const char *vertex_shader_src =
 
 struct ProgramFactory {
 	PProgram operator()(const string &name) const {
-		bool with_texture = name == "with_texture";
 		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
 		vertex_shader.setSource(vertex_shader_src);
 		const char *src =
@@ -114,21 +113,6 @@ void Renderer::addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> 
 	m_sprites.push_back(new_sprite);
 }
 
-static void bindTextures(const vector<PTexture> &textures) {
-	static int max_bind = 0;
-
-	for(int n = 0; n < (int)textures.size(); n++) {
-		glActiveTexture(GL_TEXTURE0 + n);
-		textures[n]->bind();
-	}
-	for(int n = (int)textures.size(); n < max_bind; n++) {
-		glActiveTexture(GL_TEXTURE0 + n);
-		glDisable(GL_TEXTURE_2D);
-	}
-	max_bind = (int)textures.size();
-	glActiveTexture(GL_TEXTURE0);
-}
-
 namespace {
 
 	struct DeviceConfig {
@@ -167,7 +151,7 @@ void Renderer::render() {
 	for(const auto &instance : m_instances) {
 		auto material = instance.material;
 
-		bindTextures(material->textures());
+		DTexture::bind(material->textures());
 		PProgram program = material->texture() ? m_tex_program : m_flat_program;
 
 		ProgramBinder binder(program);
@@ -207,7 +191,7 @@ void Renderer::renderSprites() {
 		const auto &instance = m_sprites[n];
 
 		auto material = instance.material;
-		bindTextures(material->textures());
+		DTexture::bind(material->textures());
 		PProgram program = material->texture() ? m_tex_program : m_flat_program;
 
 		ProgramBinder binder(program);
