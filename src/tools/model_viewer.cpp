@@ -30,14 +30,13 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 class Viewer {
   public:
 	struct Model {
-		Model(PModel model, PProgram prog, PMaterial default_mat, PTexture tex, string mname,
-			  string tname)
+		Model(PModel model, PMaterial default_mat, PTexture tex, string mname, string tname)
 			: model(std::move(model)), materials(default_mat), model_name(mname), tex_name(tname) {
 			std::map<string, PMaterial> map;
 
 			for(const auto &def : this->model->materialDefs()) {
 				map[def.name] = tex ? make_immutable<Material>(tex, def.diffuse)
-									: make_immutable<Material>(prog, def.diffuse);
+									: make_immutable<Material>(def.diffuse);
 			}
 			materials = MaterialSet(default_mat, map);
 		}
@@ -53,10 +52,6 @@ class Viewer {
 	Viewer(const IRect &viewport, const vector<pair<string, string>> &file_names)
 		: m_viewport(viewport), m_current_model(0), m_current_anim(-1), m_anim_pos(0.0),
 		  m_show_nodes(false) {
-		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
-		Loader(dataPath("flat_shader.vsh")) >> vertex_shader;
-		Loader(dataPath("flat_shader.fsh")) >> fragment_shader;
-		m_flat_program = make_immutable<Program>(vertex_shader, fragment_shader);
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -67,14 +62,12 @@ class Viewer {
 					   (getTime() - time) * 1000.0f);
 			}
 
-			PMaterial default_mat =
-				tex ? make_immutable<Material>(tex) : make_immutable<Material>(m_flat_program);
+			PMaterial default_mat = make_immutable<Material>(tex);
 
 			double time = getTime();
 			auto model = s_models[file_name.first];
 			printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), (getTime() - time) * 1000.0f);
-			m_models.emplace_back(model, m_flat_program, default_mat, tex, file_name.first,
-								  file_name.second);
+			m_models.emplace_back(model, default_mat, tex, file_name.first, file_name.second);
 		}
 
 		FontFactory factory;
@@ -149,7 +142,8 @@ class Viewer {
 		if(m_show_nodes)
 			model.model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f, matrix);
 
-		int num_parts = 0, num_verts = 0; {
+		int num_parts = 0, num_verts = 0;
+		{
 			for(const auto &node : model.model->nodes())
 				if(node->mesh()) {
 					num_parts++;

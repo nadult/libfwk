@@ -9,15 +9,12 @@
 
 namespace fwk {
 
-Material::Material(PProgram program, Color color, uint flags)
-	: m_program(std::move(program)), m_color(color), m_flags(flags) {}
-
-Material::Material(PProgram program, vector<PTexture> textures, Color color, uint flags)
-	: m_program(std::move(program)), m_textures(std::move(textures)), m_color(color),
-	  m_flags(flags) {
+Material::Material(vector<PTexture> textures, Color color, uint flags)
+	: m_textures(std::move(textures)), m_color(color), m_flags(flags) {
 	for(const auto &tex : m_textures)
 		DASSERT(tex);
 }
+
 Material::Material(PTexture texture, Color color, uint flags) : m_color(color), m_flags(flags) {
 	if(texture)
 		m_textures.emplace_back(std::move(texture));
@@ -25,8 +22,8 @@ Material::Material(PTexture texture, Color color, uint flags) : m_color(color), 
 Material::Material(Color color, uint flags) : m_color(color), m_flags(flags) {}
 
 bool Material::operator<(const Material &rhs) const {
-	return std::tie(m_program, m_textures, m_color, m_flags) <
-		   std::tie(rhs.m_program, rhs.m_textures, rhs.m_color, rhs.m_flags);
+	return std::tie(m_textures, m_color, m_flags) <
+		   std::tie(rhs.m_textures, rhs.m_color, rhs.m_flags);
 }
 
 MaterialSet::MaterialSet(PMaterial default_mat, std::map<string, PMaterial> map)

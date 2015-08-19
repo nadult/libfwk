@@ -8,6 +8,13 @@
 
 namespace fwk {
 
+static const char *fragment_shader_simple_src =
+	"#version 100\n"
+	"varying lowp vec4 color;							\n"
+	"void main() {										\n"
+	"  gl_FragColor = color;							\n"
+	"}													\n";
+
 static const char *fragment_shader_tex_src =
 	"#version 100\n"
 	"uniform sampler2D tex; 											\n"
@@ -18,11 +25,17 @@ static const char *fragment_shader_tex_src =
 	"}																	\n";
 
 static const char *fragment_shader_flat_src =
-	"#version 100\n"
-	"varying lowp vec4 color;											\n"
-	"void main() {														\n"
-	"  gl_FragColor = color;											\n"
-	"}																	\n";
+	"#version 100															\n"
+	"#extension GL_OES_standard_derivatives : enable						\n"
+	"																		\n"
+	"varying lowp vec4 color;												\n"
+	"varying mediump vec3 tpos;												\n"
+	"																		\n"
+	"void main() {															\n"
+	"	mediump vec3 normal = normalize(cross(dFdx(tpos), dFdy(tpos)));		\n"
+	"	mediump float shade = abs(dot(normal, vec3(0, 0, 1))) * 0.5 + 0.5;	\n"
+	"	gl_FragColor = color * shade;										\n"
+	"}																		\n";
 
 static const char *vertex_shader_src =
 	"#version 100\n"
@@ -33,8 +46,10 @@ static const char *vertex_shader_src =
 	"attribute vec2 in_tex_coord;										\n"
 	"varying vec2 tex_coord;  											\n"
 	"varying vec4 color;  												\n"
+	" varying vec3 tpos;												\n"
 	"void main() {														\n"
 	"  gl_Position = proj_view_matrix * vec4(in_pos, 1.0);				\n"
+	"  tpos = gl_Position.xyz;											\n"
 	"  tex_coord = in_tex_coord;										\n"
 	"  color = in_color * mesh_color;									\n"
 	"} 																	\n";
@@ -44,19 +59,24 @@ struct ProgramFactory {
 		bool with_texture = name == "with_texture";
 		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
 		vertex_shader.setSource(vertex_shader_src);
-		fragment_shader.setSource(with_texture ? fragment_shader_tex_src
-											   : fragment_shader_flat_src);
+		const char *src =
+			name == "tex" ? fragment_shader_tex_src : name == "flat" ? fragment_shader_flat_src
+																	 : fragment_shader_simple_src;
+		fragment_shader.setSource(src);
 
 		return make_immutable<Program>(vertex_shader, fragment_shader,
-								 vector<string>{"in_pos", "in_color", "in_tex_coord"});
+									   vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
 };
 
 Renderer::Renderer(const Matrix4 &projection_matrix) : MatrixStack(projection_matrix) {
 	static ResourceManager<Program, ProgramFactory> mgr;
-	m_tex_program = mgr["with_texture"];
-	m_flat_program = mgr["without_texture"];
+	m_tex_program = mgr["tex"];
+	m_flat_program = mgr["flat"];
+	m_simple_program = mgr["simple"];
 }
+
+Renderer::~Renderer() = default;
 
 void Renderer::addDrawCall(const DrawCall &draw_call, PMaterial material, const Matrix4 &matrix) {
 	DASSERT(material);
@@ -126,13 +146,6 @@ namespace {
 				else
 					glEnable(GL_CULL_FACE);
 			}
-			if((new_flags & Material::flag_wire) != (flags & Material::flag_wire)) {
-#ifndef FWK_TARGET_HTML5
-				// TODO: if it's not supported on all of the targets then remove
-				glPolygonMode(GL_FRONT_AND_BACK,
-							  new_flags & Material::flag_wire ? GL_LINE : GL_FILL);
-#endif
-			}
 			if((new_flags & Material::flag_clear_depth) && !(flags & Material::flag_clear_depth)) {
 				GfxDevice::clearDepth(1.0f);
 			}
@@ -155,9 +168,7 @@ void Renderer::render() {
 		auto material = instance.material;
 
 		bindTextures(material->textures());
-		PProgram program = material->program();
-		if(!program)
-			program = material->texture() ? m_tex_program : m_flat_program;
+		PProgram program = material->texture() ? m_tex_program : m_flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
@@ -170,57 +181,64 @@ void Renderer::render() {
 
 	dev_config.update(Material::flag_blended | Material::flag_two_sided);
 	glDepthMask(0);
-	{
-		vector<float3> positions;
-		vector<float2> tex_coords;
-		for(const auto &sprite : m_sprites) {
-			positions.insert(end(positions), begin(sprite.verts), end(sprite.verts));
-			tex_coords.insert(end(tex_coords), begin(sprite.tex_coords), end(sprite.tex_coords));
-		}
-
-		VertexArray sprite_array({make_immutable<VertexBuffer>(positions),
-								  VertexArraySource(Color::white),
-								  make_immutable<VertexBuffer>(tex_coords)});
-
-		// TODO: transform to screen space, divide into regions, sort each region
-		for(int n = 0; n < (int)m_sprites.size(); n++) {
-			const auto &instance = m_sprites[n];
-
-			auto material = instance.material;
-			bindTextures(material->textures());
-			PProgram program = material->program();
-			if(!program)
-				program = material->texture() ? m_tex_program : m_flat_program;
-
-			ProgramBinder binder(program);
-			binder.bind();
-			if(material->texture())
-				binder.setUniform("tex", 0);
-			binder.setUniform("proj_view_matrix", instance.matrix);
-			binder.setUniform("mesh_color", (float4)material->color());
-			sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
-		}
-	}
+	renderSprites();
 
 	glDepthMask(1);
+	renderLines();
+
+	clear();
+	DTexture::unbind();
+}
+
+void Renderer::renderSprites() {
+	vector<float3> positions;
+	vector<float2> tex_coords;
+	for(const auto &sprite : m_sprites) {
+		positions.insert(end(positions), begin(sprite.verts), end(sprite.verts));
+		tex_coords.insert(end(tex_coords), begin(sprite.tex_coords), end(sprite.tex_coords));
+	}
+
+	VertexArray sprite_array({make_immutable<VertexBuffer>(positions),
+							  VertexArraySource(Color::white),
+							  make_immutable<VertexBuffer>(tex_coords)});
+
+	// TODO: transform to screen space, divide into regions, sort each region
+	for(int n = 0; n < (int)m_sprites.size(); n++) {
+		const auto &instance = m_sprites[n];
+
+		auto material = instance.material;
+		bindTextures(material->textures());
+		PProgram program = material->texture() ? m_tex_program : m_flat_program;
+
+		ProgramBinder binder(program);
+		binder.bind();
+		if(material->texture())
+			binder.setUniform("tex", 0);
+		binder.setUniform("proj_view_matrix", instance.matrix);
+		binder.setUniform("mesh_color", (float4)material->color());
+		sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
+	}
+}
+
+void Renderer::renderLines() {
 	VertexArray line_array({make_immutable<VertexBuffer>(m_line_positions),
 							make_immutable<VertexBuffer>(m_line_colors),
 							VertexArraySource(float2(0, 0))});
 	DTexture::unbind();
-	ProgramBinder binder(m_flat_program);
+	ProgramBinder binder(m_simple_program);
 	binder.bind();
 	binder.setUniform("mesh_color", float4(1, 1, 1, 1));
 	for(const auto &instance : m_lines) {
 		binder.setUniform("proj_view_matrix", instance.matrix);
 		line_array.draw(PrimitiveType::lines, instance.count, instance.first);
 	}
+}
 
+void Renderer::clear() {
 	m_instances.clear();
 	m_sprites.clear();
 	m_line_positions.clear();
 	m_line_colors.clear();
 	m_lines.clear();
-
-	DTexture::unbind();
 }
 }

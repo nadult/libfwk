@@ -609,16 +609,12 @@ class Material : public immutable_base<Material> {
 	enum Flags {
 		flag_blended = 1u,
 		flag_two_sided = 2u,
-		flag_wire = 4u,
 		flag_clear_depth = 8u,
 	};
-	Material(PProgram program, Color color = Color::white, uint flags = 0);
-	Material(PProgram program, vector<PTexture> textures, Color color = Color::white,
-			 uint flags = 0);
+	Material(vector<PTexture> textures, Color color = Color::white, uint flags = 0);
 	Material(PTexture texture, Color color = Color::white, uint flags = 0);
 	Material(Color color = Color::white, uint flags = 0);
 
-	PProgram program() const { return m_program; }
 	PTexture texture() const { return m_textures.empty() ? PTexture() : m_textures.front(); }
 	const vector<PTexture> &textures() const { return m_textures; }
 	Color color() const { return m_color; }
@@ -627,7 +623,6 @@ class Material : public immutable_base<Material> {
 	bool operator<(const Material &rhs) const;
 
   protected:
-	PProgram m_program;
 	vector<PTexture> m_textures;
 	Color m_color;
 	uint m_flags;
@@ -1151,8 +1146,10 @@ class Renderer2D : public MatrixStack {
 class Renderer : public MatrixStack {
   public:
 	Renderer(const Matrix4 &projection_matrix = Matrix4::identity());
+	virtual ~Renderer();
 
-	void render();
+	virtual void render();
+	void clear();
 
 	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 	void addLines(Range<const float3> verts, Color color,
@@ -1169,6 +1166,9 @@ class Renderer : public MatrixStack {
 
 	// TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
   protected:
+	void renderLines();
+	void renderSprites();
+
 	struct Instance {
 		Matrix4 matrix;
 		PMaterial material;
@@ -1194,7 +1194,7 @@ class Renderer : public MatrixStack {
 	vector<Color> m_line_colors;
 
 	vector<Instance> m_instances;
-	PProgram m_tex_program, m_flat_program;
+	PProgram m_tex_program, m_flat_program, m_simple_program;
 };
 
 enum class HAlign {
