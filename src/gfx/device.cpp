@@ -288,7 +288,6 @@ void GfxDevice::emscriptenCallback() {
 
 	inst.pollEvents();
 	inst.m_main_loop_function(inst);
-	SDL_GL_SwapWindow(m_window_impl->window);
 }
 #endif
 
