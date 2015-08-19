@@ -289,9 +289,6 @@ class GfxDevice {
 
 	double targetFrameTime();
 
-	// Swaps frames and synchronizes frame rate
-	void tick();
-
 	void createWindow(const string &name, int2 size, bool multisample, bool fullscreen);
 	void destroyWindow();
 	void printDeviceInfo();

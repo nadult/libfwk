@@ -35,7 +35,7 @@ GfxDevice &GfxDevice::instance() {
 }
 
 GfxDevice::GfxDevice()
-	: m_main_loop_function(nullptr), m_last_time(-1.0) /*, m_press_delay(0.2), m_clock(0)*/
+	: m_main_loop_function(nullptr)  /*,m_press_delay(0.2), m_clock(0)*/
 {
 	s_instance = this;
 
@@ -77,7 +77,6 @@ GfxDevice::GfxDevice()
 
 	if(SDL_Init(SDL_INIT_VIDEO) != 0)
 		reportSDLError("SDL_Init");
-	//	SDL_GL_SetSwapInterval(1);
 
 	memset(&m_input_state, 0, sizeof(m_input_state));
 	m_is_input_state_initialized = false;
@@ -136,7 +135,8 @@ void GfxDevice::createWindow(const string &name, int2 size, bool multisample, bo
 	if(m_window_impl)
 		THROW("For now only single window is supported");
 	m_window_impl = make_unique<WindowImpl>(name, size, multisample, full);
-	SDL_GL_SetSwapInterval(1);
+
+	SDL_GL_SetSwapInterval(-1);
 
 	loadExtensions();
 	//	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -164,36 +164,6 @@ void GfxDevice::printDeviceInfo() {
 }
 
 double GfxDevice::targetFrameTime() { return 1.0 / 60.0; }
-
-void GfxDevice::tick() {
-#ifndef __EMSCRIPTEN__
-	DASSERT(m_window_impl);
-	SDL_GL_SwapWindow(m_window_impl->window);
-	double time_diff = getTime() - m_last_time;
-
-	bool needs_sleep = true;
-
-	if(needs_sleep) {
-		double target_diff = targetFrameTime();
-		double target_time = m_last_time + target_diff;
-
-#ifdef _WIN32
-		// TODO: check if this is enough
-		double busy_sleep = 0.001;
-#else
-		double busy_sleep = 0.0002;
-#endif
-
-		if(time_diff < target_diff) {
-			sleep(target_diff - time_diff - busy_sleep);
-			while(getTime() < target_time)
-				;
-		}
-	}
-#endif
-
-	m_last_time = getTime();
-}
 
 bool GfxDevice::pollEvents() {
 	SDL_Event event;
@@ -318,7 +288,7 @@ void GfxDevice::emscriptenCallback() {
 
 	inst.pollEvents();
 	inst.m_main_loop_function(inst);
-	inst.tick();
+	SDL_GL_SwapWindow(m_window_impl->window);
 }
 #endif
 
@@ -330,7 +300,7 @@ void GfxDevice::runMainLoop(MainLoopFunction function) {
 	while(pollEvents()) {
 		if(!function(*this))
 			break;
-		tick();
+		SDL_GL_SwapWindow(m_window_impl->window);
 	}
 #endif
 	m_main_loop_function = nullptr;
