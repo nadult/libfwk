@@ -12,9 +12,9 @@
 
 namespace fwk {
 
-Texture::Texture(int w, int h) : m_data(w * h), m_size(w, h) {}
-
 Texture::Texture() : m_size(0, 0) {}
+Texture::Texture(int w, int h) : m_data(w * h), m_size(w, h) {}
+Texture::Texture(Stream &sr) : Texture() { load(sr); }
 
 void Texture::resize(int w, int h) {
 	m_size = int2(w, h);

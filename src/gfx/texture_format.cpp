@@ -8,159 +8,126 @@
 
 namespace fwk {
 
-namespace {
-	struct FormatConv {
-		FormatConv(int bpp, TextureIdent a, int b, int c, int d, bool compr = 0)
-			: bytes_per_pixel(bpp), format(a), internal(b), gFormat(c), type(d),
-			  is_compressed(compr) {}
+DEFINE_ENUM(TextureFormatId, "rgba", "rgba_float", "dxt1", "dxt3", "dxt5");
 
+enum class DDSId {
+	Unknown = 0,
+
+	R8G8B8 = 20,
+	A8R8G8B8 = 21,
+	X8R8G8B8 = 22,
+	R5G6B5 = 23,
+	X1R5G5B5 = 24,
+	A1R5G5B5 = 25,
+	A4R4G4B4 = 26,
+	R3G3B2 = 27,
+	A8 = 28,
+	A8R3G3B2 = 29,
+	X4R4G4B4 = 30,
+	A2B10G10R10 = 31,
+	A8B8G8R8 = 32,
+	X8B8G8R8 = 33,
+	G16R16 = 34,
+	A2R10G10B10 = 35,
+	A16B16G16R16 = 36,
+
+	L8 = 50,
+	A8L8 = 51,
+	A4L4 = 52,
+
+	V8U8 = 60,
+	L6V5U5 = 61,
+	X8L8V8U8 = 62,
+	Q8W8V8U8 = 63,
+	V16U16 = 64,
+	A2W10V10U10 = 67,
+
+	UYVY = 0x59565955,		// MAKEFOURCC('U', 'Y', 'V', 'Y'),
+	R8G8_B8G8 = 0x47424752, // MAKEFOURCC('R', 'G', 'B', 'G'),
+	YUY2 = 0x32595559,		// MAKEFOURCC('Y', 'U', 'Y', '2'),
+	G8R8_G8B8 = 0x42475247, // MAKEFOURCC('G', 'R', 'G', 'B'),
+	DXT1 = 0x31545844,		// MAKEFOURCC('D', 'X', 'T', '1'),
+	DXT2 = 0x32545844,		// MAKEFOURCC('D', 'X', 'T', '2'),
+	DXT3 = 0x33545844,		// MAKEFOURCC('D', 'X', 'T', '3'),
+	DXT4 = 0x34545844,		// MAKEFOURCC('D', 'X', 'T', '4'),
+	DXT5 = 0x35545844,		// MAKEFOURCC('D', 'X', 'T', '5'),
+
+	L16 = 81,
+	Q16W16V16U16 = 110,
+
+	// Floating point surface formats
+	// s10e5 formats (16-bits per channel)
+	R16F = 111,
+	G16R16F = 112,
+	A16B16G16R16F = 113,
+
+	// IEEE s23e8 formats (32-bits per channel)
+	R32F = 114,
+	G32R32F = 115,
+	A32B32G32R32F = 116,
+};
+
+using Id = TextureFormatId::Type;
+
+namespace {
+	struct FormatDesc {
+		FormatDesc(Id id, DDSId dds_id, int bpp, int i, int f, int t, bool is_compressed = false)
+			: id(id), dds_id(dds_id), bytes_per_pixel(bpp), internal(i), gFormat(f), type(t),
+			  is_compressed(is_compressed) {}
+
+		Id id;
+		DDSId dds_id;
 		int bytes_per_pixel;
-		TextureIdent format;
 		int internal, gFormat, type;
 		bool is_compressed;
 	};
 
-	FormatConv fmtTab[] = {
-		FormatConv(3, TI_R8G8B8, GL_RGB8, GL_BGR, GL_UNSIGNED_BYTE),
-		FormatConv(4, TI_A8R8G8B8, GL_RGBA8, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV),
-		FormatConv(4, TI_X8R8G8B8, GL_RGBA8, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV),
-		FormatConv(2, TI_R5G6B5, GL_RGB5, GL_RGB, GL_UNSIGNED_SHORT_5_6_5),
-		//	FormatConv(  2,	TI_X1R5G5B5,		0,0,0,0),
-		FormatConv(2, TI_A1R5G5B5, GL_RGB5_A1, GL_BGRA, GL_UNSIGNED_SHORT_1_5_5_5_REV),
-		FormatConv(2, TI_A4R4G4B4, GL_RGBA4, GL_BGRA, GL_UNSIGNED_SHORT_4_4_4_4_REV),
-		FormatConv(1, TI_R3G3B2, GL_R3_G3_B2, GL_RGB, GL_UNSIGNED_BYTE_3_3_2),
-		FormatConv(1, TI_A8, GL_ALPHA8, GL_ALPHA, GL_UNSIGNED_BYTE),
-		//	FormatConv(  2,	TI_A8R3G3B2,		0,0,0,0),
-		//	FormatConv(  2,	TI_X4R4G4B4,		0,0,0,0),
-		FormatConv(4, TI_A2B10G10R10, GL_RGB10_A2, GL_BGRA, GL_UNSIGNED_INT_2_10_10_10_REV),
-		FormatConv(4, TI_A8B8G8R8, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE),
-		//	FormatConv(  4,	TI_X8B8G8R8,		0,0,0,0),
-		//	FormatConv(  4,	TI_G16R16,			0,0,0,0),
-		FormatConv(4, TI_A2R10G10B10, GL_RGB10_A2, GL_RGBA, GL_UNSIGNED_INT_2_10_10_10_REV),
-		//	FormatConv(  8,	TI_A16B16G16R16,	0,0,0,0),
+	const FormatDesc s_descs[] = {
+		FormatDesc(Id::rgba, DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE),
+		FormatDesc(Id::rgba_float, DDSId::A32B32G32R32F, 16, GL_RGBA, GL_RGBA, GL_FLOAT),
 
-		FormatConv(1, TI_L8, GL_LUMINANCE8, GL_LUMINANCE, GL_UNSIGNED_BYTE),
-		FormatConv(2, TI_A8L8, GL_LUMINANCE8_ALPHA8, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE),
-		//	FormatConv(  1,	TI_A4L4,			0,0,0,0),
-
-		//	FormatConv(  2,	TI_V8U8,			0,0,0,0),
-		//	FormatConv(  2,	TI_L6V5U5,			0,0,0,0),
-		//	FormatConv(  4,	TI_X8L8V8U8,		0,0,0,0),
-		//	FormatConv(  4,	TI_Q8W8V8U8,		0,0,0,0),
-		//	FormatConv(  4,	TI_V16U16,			0,0,0,0),
-		//	FormatConv(  4,	TI_A2W10V10U10,		0,0,0,0),
-
-		//	FormatConv(  2,	TI_UYVY,			0,0,0,0),
-		//	tFormatConv(  2,	TI_R8G8_B8G8,		0,0,0,0),
-		//	FormatConv(  2,	TI_YUY2,			0,0,0,0),
-		//	FormatConv(  2,	TI_G8R8_G8B8,		0,0,0,0),
-		FormatConv(0, TI_DXT1, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, 1),
-		//	FormatConv(  1,	TI_DXT2,			0,0,0,0),
-		FormatConv(1, TI_DXT3, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, 1),
-		//	FormatConv(  1,	TI_DXT4,			0,0,0,0),
-		FormatConv(1, TI_DXT5, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0, 1),
-
-		FormatConv(2, TI_L16, GL_LUMINANCE16, GL_LUMINANCE, GL_UNSIGNED_SHORT),
-		//	FormatConv(  8,	TI_Q16W16V16U16,	0,0,0,0),
-
-		//	FormatConv(  2,	TI_R16F,			0,0,0,0),
-		//	FormatConv(  4,	TI_G16R16F,			0,0,0,0),
-		//	FormatConv(  8,	TI_A16B16G16R16F,	0,0,0,0),
-
-		//	FormatConv(  4,	TI_R32F,			0,0,0,0),
-		//	FormatConv(  8,	TI_G32R32F,			0,0,0,0),
-		//	FormatConv(  16,TI_A32B32G32R32F,	0,0,0,0),
-
-		FormatConv(1, TI_DEPTH24, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT),
-		FormatConv(4, TI_R16G16B16A16, GL_RGBA16, GL_RGBA, GL_UNSIGNED_BYTE),
-
-		FormatConv(0, TI_Unknown, 0, 0, 0, 0),
+		FormatDesc(Id::dxt1, DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true),
+		FormatDesc(Id::dxt3, DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true),
+		FormatDesc(Id::dxt5, DDSId::DXT5, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0, true),
 	};
+
+	const FormatDesc &getDesc(Id id) {
+		DASSERT(id >= 0 && id < arraySize(s_descs));
+		DASSERT(s_descs[id].id == id);
+		return s_descs[id];
+	}
 }
 
-TextureFormat::TextureFormat(int internal) {
-	for(id = 0; fmtTab[id].format != TI_Unknown; id++)
-		if(fmtTab[id].internal == internal)
-			break;
-}
-
-TextureFormat::TextureFormat(int internal, int format, int type, bool is_compressed) {
-	for(id = 0; fmtTab[id].format != TI_Unknown; id++)
-		if(fmtTab[id].internal == internal && fmtTab[id].gFormat == format &&
-		   fmtTab[id].type == type && fmtTab[id].is_compressed == is_compressed)
-			break;
-}
-
-TextureFormat::TextureFormat() {
-	for(id = 0; fmtTab[id].format != TI_Unknown; id++)
-		;
-}
-
-TextureFormat::TextureFormat(TextureIdent fmt) {
-	for(id = 0; fmtTab[id].format != TI_Unknown; id++)
-		if(fmtTab[id].format == fmt)
-			break;
-}
-
-TextureIdent TextureFormat::ident() const { return fmtTab[id].format; }
-int TextureFormat::glInternal() const { return fmtTab[id].internal; }
-int TextureFormat::glFormat() const { return fmtTab[id].gFormat; }
-int TextureFormat::glType() const { return fmtTab[id].type; }
-bool TextureFormat::isCompressed() const { return fmtTab[id].is_compressed; }
-int TextureFormat::bytesPerPixel() const { return fmtTab[id].bytes_per_pixel; }
-
-bool TextureFormat::operator==(const TextureFormat &t) const { return id == t.id; }
+int TextureFormat::glInternal() const { return getDesc(m_id).internal; }
+int TextureFormat::glFormat() const { return getDesc(m_id).gFormat; }
+int TextureFormat::glType() const { return getDesc(m_id).type; }
+bool TextureFormat::isCompressed() const { return getDesc(m_id).is_compressed; }
+int TextureFormat::bytesPerPixel() const { return getDesc(m_id).bytes_per_pixel; }
 
 bool TextureFormat::isSupported() const {
-	if(fmtTab[id].format == TI_Unknown)
-		return 0;
+	if(m_id == Id::dxt1)
+		return false; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC)||glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_DXT1);
+	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
+		return false; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC);
 
-	if(fmtTab[id].is_compressed) {
-		switch(fmtTab[id].format) {
-		case TI_DXT1:
-			return 0; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC)||glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_DXT1);
-
-		case TI_DXT3:
-		case TI_DXT5:
-			return 0; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC);
-
-		default:
-			return 0;
-		}
-		//		return 0;
-	}
-	return 1;
+	return true;
 }
 
 int TextureFormat::evalImageSize(int width, int height) const {
-	switch(fmtTab[id].format) {
-	case TI_DXT1:
+	if(m_id == Id::dxt1)
 		return ((width + 3) / 4) * ((height + 3) / 4) * 8;
-
-	case TI_DXT2:
-	case TI_DXT3:
-	case TI_DXT4:
-	case TI_DXT5:
+	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
 		return ((width + 3) / 4) * ((height + 3) / 4) * 16;
 
-	default:
-		return width * height * fmtTab[id].bytes_per_pixel;
-	}
+	return width * height * getDesc(m_id).bytes_per_pixel;
 }
 
 int TextureFormat::evalLineSize(int width) const {
-	switch(fmtTab[id].format) {
-	case TI_DXT1:
+	if(m_id == Id::dxt1)
 		return ((width + 3) / 4) * 8;
-
-	case TI_DXT2:
-	case TI_DXT3:
-	case TI_DXT4:
-	case TI_DXT5:
+	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
 		return ((width + 3) / 4) * 16;
 
-	default:
-		return width * fmtTab[id].bytes_per_pixel;
-	}
+	return width * getDesc(m_id).bytes_per_pixel;
 }
 }

@@ -57,77 +57,16 @@ inline Color swapBR(Color col) {
 	return col;
 }
 
-// TODO: just use gl formats?
-enum TextureIdent {
-	TI_Unknown = 0,
-
-	TI_R8G8B8 = 20,
-	TI_A8R8G8B8 = 21,
-	TI_X8R8G8B8 = 22,
-	TI_R5G6B5 = 23,
-	TI_X1R5G5B5 = 24,
-	TI_A1R5G5B5 = 25,
-	TI_A4R4G4B4 = 26,
-	TI_R3G3B2 = 27,
-	TI_A8 = 28,
-	TI_A8R3G3B2 = 29,
-	TI_X4R4G4B4 = 30,
-	TI_A2B10G10R10 = 31,
-	TI_A8B8G8R8 = 32,
-	TI_X8B8G8R8 = 33,
-	TI_G16R16 = 34,
-	TI_A2R10G10B10 = 35,
-	TI_A16B16G16R16 = 36,
-
-	TI_L8 = 50,
-	TI_A8L8 = 51,
-	TI_A4L4 = 52,
-
-	TI_V8U8 = 60,
-	TI_L6V5U5 = 61,
-	TI_X8L8V8U8 = 62,
-	TI_Q8W8V8U8 = 63,
-	TI_V16U16 = 64,
-	TI_A2W10V10U10 = 67,
-
-	TI_UYVY = 0x59565955,	  // MAKEFOURCC('U', 'Y', 'V', 'Y'),
-	TI_R8G8_B8G8 = 0x47424752, // MAKEFOURCC('R', 'G', 'B', 'G'),
-	TI_YUY2 = 0x32595559,	  // MAKEFOURCC('Y', 'U', 'Y', '2'),
-	TI_G8R8_G8B8 = 0x42475247, // MAKEFOURCC('G', 'R', 'G', 'B'),
-	TI_DXT1 = 0x31545844,	  // MAKEFOURCC('D', 'X', 'T', '1'),
-	TI_DXT2 = 0x32545844,	  // MAKEFOURCC('D', 'X', 'T', '2'),
-	TI_DXT3 = 0x33545844,	  // MAKEFOURCC('D', 'X', 'T', '3'),
-	TI_DXT4 = 0x34545844,	  // MAKEFOURCC('D', 'X', 'T', '4'),
-	TI_DXT5 = 0x35545844,	  // MAKEFOURCC('D', 'X', 'T', '5'),
-
-	TI_L16 = 81,
-	TI_Q16W16V16U16 = 110,
-
-	// Floating point surface formats
-	// s10e5 formats (16-bits per channel)
-	TI_R16F = 111,
-	TI_G16R16F = 112,
-	TI_A16B16G16R16F = 113,
-
-	// IEEE s23e8 formats (32-bits per channel)
-	TI_R32F = 114,
-	TI_G32R32F = 115,
-	TI_A32B32G32R32F = 116,
-
-	TI_DEPTH24 = 0xff0001,
-	TI_R16G16B16A16 = 0xff0002,
-
-	TI_FORCE_DWORD = 0x7fffffff
-};
+DECLARE_ENUM(TextureFormatId, rgba, rgba_float, dxt1, dxt3, dxt5);
 
 class TextureFormat {
   public:
-	TextureFormat(int internal, int format, int type, bool compressed = 0);
-	TextureFormat(int internal);
-	TextureFormat(TextureIdent fmt);
-	TextureFormat();
+	using Id = TextureFormatId::Type;
 
-	TextureIdent ident() const;
+	TextureFormat(int internal, int format, int type);
+	TextureFormat(Id id = Id::rgba) : m_id(id) { DASSERT(TextureFormatId::isValid(id)); }
+
+	Id id() const { return m_id; }
 	int glInternal() const;
 	int glFormat() const;
 	int glType() const;
@@ -138,11 +77,12 @@ class TextureFormat {
 	int evalImageSize(int width, int height) const;
 	int evalLineSize(int width) const;
 
-	bool operator==(const TextureFormat &) const;
 	bool isSupported() const;
 
+	bool operator==(const TextureFormat &rhs) const { return m_id == rhs.m_id; }
+
   private:
-	unsigned id;
+	Id m_id;
 };
 
 struct HeightMap16bit {
@@ -157,13 +97,14 @@ struct HeightMap16bit {
 class Texture {
   public:
 	Texture(int width, int height);
+	Texture(Stream &);
 	Texture();
 
 	// data is not preserved
 	void resize(int width, int height);
 	void clear();
 	void fill(Color);
-	void blit(Texture const &src, int2 target_pos);
+	void blit(const Texture &src, int2 target_pos);
 
 	int width() const { return m_size.x; }
 	int height() const { return m_size.y; }
@@ -173,7 +114,7 @@ class Texture {
 	bool isEmpty() const { return m_data.isEmpty(); }
 	bool testPixelAlpha(const int2 &) const;
 
-	TextureFormat format() const { return TextureFormat(TI_A8B8G8R8); }
+	TextureFormat format() const { return TextureFormatId::rgba; }
 
 	// Loading from TGA, BMP, PNG, DDS
 	void load(Stream &);
@@ -210,26 +151,35 @@ class Texture {
 	int2 m_size;
 };
 
+struct TextureConfig {
+	enum Flags {
+		flag_wrapped = 1u,
+		flag_filtered = 2u,
+	};
+
+	TextureConfig(uint flags = 0) : flags(flags) {}
+	bool operator==(const TextureConfig &rhs) const { return flags == rhs.flags; }
+
+	uint flags;
+};
+
 // Device texture
 class DTexture : public immutable_base<DTexture> {
   public:
 	DTexture();
 	DTexture(const string &name, Stream &);
-	DTexture(TextureFormat format, const int2 &size, bool is_wrapped, bool is_filtered);
-	DTexture(const Texture &);
+	DTexture(TextureFormat format, const int2 &size, const TextureConfig & = TextureConfig());
+	DTexture(const Texture &, const TextureConfig & = TextureConfig());
+
 	DTexture(DTexture &&);
-	DTexture(const DTexture &);
+
+	void operator=(DTexture &&) = delete;
+	DTexture(const DTexture &) = delete;
 	void operator=(const DTexture &) = delete;
-	void operator=(DTexture &&);
 	~DTexture();
 
-	void load(Stream &);
-
-	void setWrapping(bool enable);
-	bool isWrapped() const { return m_is_wrapped; }
-
-	void setFiltering(bool enable);
-	bool isFiltered() const { return m_is_filtered; }
+	void setConfig(const TextureConfig &);
+	const TextureConfig &config() const { return m_config; }
 
 	bool hasMipmaps() const { return m_has_mipmaps; }
 	void generateMipmaps();
@@ -241,31 +191,27 @@ class DTexture : public immutable_base<DTexture> {
 	static void bind(const vector<immutable_ptr<DTexture>> &);
 	static void unbind();
 
-	void resize(TextureFormat format, int width, int height);
-	void clear();
-
-	void set(const Texture &);
 	void upload(const Texture &src, const int2 &target_pos = int2(0, 0));
 	void upload(const void *pixels, const int2 &dimensions, const int2 &target_pos);
 	void download(Texture &target) const;
-	void blit(DTexture &target, const IRect &src_rect, const int2 &target_pos) const;
 
-	int width() const { return m_width; }
-	int height() const { return m_height; }
-	int2 size() const { return int2(m_width, m_height); }
-	int pixelCount() const { return m_width * m_height; }
+	int width() const { return m_size.x; }
+	int height() const { return m_size.y; }
+	int2 size() const { return m_size; }
+
 	TextureFormat format() const { return m_format; }
 
 	int id() const { return m_id; }
 	bool isValid() const { return m_id > 0; }
 
   private:
-	int m_id;
-	int m_width, m_height;
+	void updateConfig();
+
+	uint m_id;
+	int2 m_size;
 	TextureFormat m_format;
-	bool m_is_wrapped, m_is_filtered;
+	TextureConfig m_config;
 	bool m_has_mipmaps;
-	mutable bool m_is_dirty;
 };
 
 using PTexture = immutable_ptr<DTexture>;
