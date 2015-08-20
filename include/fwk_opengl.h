@@ -106,6 +106,17 @@ EXT_API void (EXT_ENTRY *glGenVertexArrays)(GLsizei n, GLuint *arrays);
 EXT_API void (EXT_ENTRY *glVertexAttrib4f)(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 EXT_API void (EXT_ENTRY *glActiveTexture)(GLenum texture);
 
+EXT_API void (EXT_ENTRY *glBindRenderbuffer)(GLenum target, GLuint renderbuffer);
+EXT_API void (EXT_ENTRY *glDeleteRenderbuffers)(GLsizei n, const GLuint *renderbuffers);
+EXT_API void (EXT_ENTRY *glGenRenderbuffers)(GLsizei n, GLuint *renderbuffers);
+EXT_API void (EXT_ENTRY *glRenderbufferStorage)(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
+
+EXT_API void (EXT_ENTRY *glBindFramebuffer)(GLenum target, GLuint framebuffer);
+EXT_API void (EXT_ENTRY *glDeleteFramebuffers)(GLsizei n, const GLuint *framebuffers);
+EXT_API void (EXT_ENTRY *glGenFramebuffers)(GLsizei n, GLuint *framebuffers);
+EXT_API GLenum (EXT_ENTRY *glCheckFramebufferStatus)(GLenum target);
+EXT_API void (EXT_ENTRY *glFramebufferRenderbuffer)(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+EXT_API void (EXT_ENTRY *glFramebufferTexture2D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 
 }
 

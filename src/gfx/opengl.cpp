@@ -114,6 +114,7 @@ void loadExtensions() {
 	LOAD(glUniformMatrix2fv);
 	LOAD(glUniformMatrix3fv);
 	LOAD(glUniformMatrix4fv);
+
 	LOAD(glValidateProgram);
 	LOAD(glVertexAttribPointer);
 	LOAD(glGenerateMipmap);
@@ -122,6 +123,18 @@ void loadExtensions() {
 	LOAD(glGenVertexArrays);
 	LOAD(glVertexAttrib4f);
 	LOAD(glActiveTexture);
+
+	LOAD(glBindRenderbuffer);
+	LOAD(glDeleteRenderbuffers);
+	LOAD(glGenRenderbuffers);
+	LOAD(glRenderbufferStorage);
+
+	LOAD(glBindFramebuffer);
+	LOAD(glDeleteFramebuffers);
+	LOAD(glGenFramebuffers);
+	LOAD(glCheckFramebufferStatus);
+	LOAD(glFramebufferRenderbuffer);
+	LOAD(glFramebufferTexture2D);
 
 #undef LOAD
 
