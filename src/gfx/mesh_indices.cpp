@@ -6,6 +6,7 @@
 #include "fwk_xml.h"
 #include <algorithm>
 #include <limits>
+#include <numeric>
 
 namespace fwk {
 
