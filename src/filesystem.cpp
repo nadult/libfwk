@@ -246,6 +246,17 @@ bool access(const FilePath &path) {
 #endif
 }
 
+double lastModificationTime(const FilePath &file_name) {
+#ifdef _WIN32
+	THROW("Write me please");
+#else
+	struct stat attribs;
+	if(stat(file_name.c_str(), &attribs) != 0)
+		THROW("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+	return double(attribs.st_mtim.tv_sec) + double(attribs.st_mtim.tv_nsec) * 0.000000001;
+#endif
+}
+
 void mkdirRecursive(const FilePath &path) {
 	if(access(path))
 		return;

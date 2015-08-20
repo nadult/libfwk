@@ -57,7 +57,7 @@ template <class T> class immutable_base : public std::enable_shared_from_this<co
 	immutable_ptr<T> get_immutable_ptr() const;
 
   private:
-	std::atomic<int> m_mutation_counter; //TODO: this should be atomic?
+	std::atomic<int> m_mutation_counter; // TODO: this should be atomic?
 	friend class immutable_ptr<T>;
 };
 
@@ -112,7 +112,7 @@ template <class T> class immutable_ptr {
 
 	void incCounter() {
 		const immutable_base<T> *base = m_ptr.get();
-		const_cast<immutable_base<T>*>(base)->m_mutation_counter++;
+		const_cast<immutable_base<T> *>(base)->m_mutation_counter++;
 	}
 	int numMutations() const {
 		const immutable_base<T> *base = m_ptr.get();
@@ -151,7 +151,7 @@ template <class T> class immutable_weak_ptr {
   public:
 	immutable_weak_ptr() = default;
 	immutable_weak_ptr(immutable_ptr<T> ptr)
-		: m_ptr(ptr.m_ptr), m_mutation_counter(ptr? ptr.numMutations() : -1) {}
+		: m_ptr(ptr.m_ptr), m_mutation_counter(ptr ? ptr.numMutations() : -1) {}
 
 	immutable_ptr<T> lock() const {
 		immutable_ptr<T> out(m_ptr.lock());
@@ -1335,7 +1335,8 @@ bool removeSuffix(string &str, const string &suffix);
 bool removePrefix(string &str, const string &prefix);
 string toLower(const string &str);
 void mkdirRecursive(const FilePath &path);
-bool access(const FilePath &path);
+bool access(const FilePath &);
+double lastModificationTime(const FilePath &);
 }
 
 #endif
