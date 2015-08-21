@@ -57,7 +57,7 @@ inline Color swapBR(Color col) {
 	return col;
 }
 
-DECLARE_ENUM(TextureFormatId, rgba, rgba_float, dxt1, dxt3, dxt5);
+DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, dxt1, dxt3, dxt5);
 
 class TextureFormat {
   public:

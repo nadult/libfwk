@@ -8,7 +8,7 @@
 
 namespace fwk {
 
-DEFINE_ENUM(TextureFormatId, "rgba", "rgba_float", "dxt1", "dxt3", "dxt5");
+DEFINE_ENUM(TextureFormatId, "rgba", "rgba_f16", "rgba_f32", "dxt1", "dxt3", "dxt5");
 
 enum class DDSId {
 	Unknown = 0,
@@ -84,7 +84,8 @@ namespace {
 
 	const FormatDesc s_descs[] = {
 		FormatDesc(Id::rgba, DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE),
-		FormatDesc(Id::rgba_float, DDSId::A32B32G32R32F, 16, GL_RGBA, GL_RGBA, GL_FLOAT),
+		FormatDesc(Id::rgba_f16, DDSId::A32B32G32R32F, 8, GL_RGBA16F, GL_RGBA, GL_FLOAT),
+		FormatDesc(Id::rgba_f32, DDSId::A32B32G32R32F, 16, GL_RGBA32F, GL_RGBA, GL_FLOAT),
 
 		FormatDesc(Id::dxt1, DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true),
 		FormatDesc(Id::dxt3, DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true),
