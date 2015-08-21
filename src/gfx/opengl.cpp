@@ -30,7 +30,7 @@ static PROC loadFunction(const char *name) {
 #endif
 
 DEFINE_ENUM(OpenglExtension, "EXT_texture_compression_dxt1", "EXT_texture_compression_s3tc",
-			"ARB_texture_non_power_of_two");
+			"ARB_texture_non_power_of_two", "EXT_draw_buffers");
 
 static bool s_is_extension_supported[OpenglExtension::count] = {
 	false,

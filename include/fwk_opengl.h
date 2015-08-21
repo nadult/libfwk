@@ -136,7 +136,8 @@ namespace fwk {
 	DECLARE_ENUM(OpenglExtension,
 		ext_texture_compression_dxt1,
 		ext_texture_compression_s3tc,
-		arb_texture_non_power_of_two
+		arb_texture_non_power_of_two,
+		ext_draw_buffers
 	);
 
 	bool isExtensionSupported(OpenglExtension::Type);
