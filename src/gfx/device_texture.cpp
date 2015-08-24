@@ -7,10 +7,6 @@
 
 namespace fwk {
 
-// TODO: what if rendering device is recreated?
-// Maybe those textures should be kept inside the device?
-// Similar case for VertexBuffers and VertexArrays
-
 DTexture::DTexture(TextureFormat format, const int2 &size, const TextureConfig &config)
 	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
 
@@ -39,12 +35,13 @@ DTexture::DTexture(const Texture &tex, const TextureConfig &config)
 	upload(tex, int2(0, 0));
 }
 
+/*
 DTexture::DTexture(DTexture &&rhs)
 	: m_id(rhs.m_id), m_size(rhs.m_size), m_format(rhs.m_format), m_config(rhs.m_config),
 	  m_has_mipmaps(rhs.m_has_mipmaps) {
 	rhs.m_id = 0;
 	rhs.m_size = int2();
-}
+}*/
 
 DTexture::~DTexture() {
 	if(m_id)

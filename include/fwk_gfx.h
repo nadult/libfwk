@@ -163,6 +163,8 @@ struct TextureConfig {
 	uint flags;
 };
 
+//
+
 // Device texture
 class DTexture : public immutable_base<DTexture> {
   public:
@@ -171,7 +173,10 @@ class DTexture : public immutable_base<DTexture> {
 	DTexture(TextureFormat format, const int2 &size, const TextureConfig & = TextureConfig());
 	DTexture(const Texture &, const TextureConfig & = TextureConfig());
 
-	DTexture(DTexture &&);
+	// TODO: think about this:
+	// some opengl handle may be assigned to something, example:
+	// texture assigned to FBO; At the same time FBO keeps shared_ptr to this texture
+	//  DTexture(DTexture &&);
 
 	void operator=(DTexture &&) = delete;
 	DTexture(const DTexture &) = delete;
@@ -215,6 +220,7 @@ class DTexture : public immutable_base<DTexture> {
 };
 
 using PTexture = immutable_ptr<DTexture>;
+using STexture = shared_ptr<DTexture>;
 
 struct InputState {
 	int2 mouse_pos, mouse_move;
@@ -1030,7 +1036,51 @@ template <class T> class XMLLoader : public ResourceLoader<T> {
 	string m_node_name;
 };
 
-struct DrawElement {};
+DECLARE_ENUM(RenderBufferType, depth, depth_stencil);
+
+class RenderBuffer {
+  public:
+	using Type = RenderBufferType::Type;
+	RenderBuffer(const int2 &size, Type);
+	~RenderBuffer();
+
+	void operator=(const RenderBuffer &) = delete;
+	RenderBuffer(const RenderBuffer &) = delete;
+
+	Type type() const { return m_type; }
+	uint id() const { return m_id; }
+	int2 size() const { return m_size; }
+
+  private:
+	int2 m_size;
+	Type m_type;
+	uint m_id;
+};
+
+using SRenderBuffer = shared_ptr<RenderBuffer>;
+
+class FrameBuffer {
+  public:
+	FrameBuffer(STexture color_buffer, SRenderBuffer depth_buffer = SRenderBuffer());
+	~FrameBuffer();
+
+	void operator=(const FrameBuffer &) = delete;
+	FrameBuffer(const FrameBuffer &) = delete;
+
+	void bind();
+	static void unbind();
+
+	STexture colorBuffer() const { return m_color_buffer; }
+	SRenderBuffer depthBuffer() const { return m_depth_buffer; }
+	int2 size() const { return m_color_buffer->size(); }
+
+  private:
+	STexture m_color_buffer;
+	SRenderBuffer m_depth_buffer;
+	uint m_id;
+};
+
+using SFrameBuffer = shared_ptr<FrameBuffer>;
 
 class MatrixStack {
   public:

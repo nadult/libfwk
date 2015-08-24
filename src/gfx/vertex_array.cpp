@@ -54,6 +54,7 @@ VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 	for(int n = 0; n < (int)m_sources.size(); n++)
 		bindVertexBuffer(n);
 	glBindVertexArray(0);
+// TODO: test for errors
 #endif
 }
 
