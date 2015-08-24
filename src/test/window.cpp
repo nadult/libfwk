@@ -2,8 +2,6 @@
 
 using namespace fwk;
 
-static IRect s_viewport;
-
 bool mainLoop(GfxDevice &device) {
 	static vector<float2> positions;
 
@@ -19,7 +17,7 @@ bool mainLoop(GfxDevice &device) {
 		positions.erase(positions.begin());
 
 	GfxDevice::clearColor(Color(50, 0, 50));
-	Renderer2D renderer(s_viewport);
+	Renderer2D renderer(IRect(GfxDevice::instance().windowSize()));
 
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect(-50, -50, 50, 50) + positions[n];
@@ -39,7 +37,7 @@ bool mainLoop(GfxDevice &device) {
 		font_texture = make_immutable<DTexture>("", tex_ldr);
 	}
 	FontRenderer font_renderer(font, font_texture, renderer);
-	font_renderer.draw(FRect(0, 0, 200, 20), {Color::white}, "Hello world!");
+	font_renderer.draw(FRect(5, 5, 200, 20), {Color::white}, "Hello world!");
 
 	renderer.render();
 
@@ -48,13 +46,10 @@ bool mainLoop(GfxDevice &device) {
 
 int safe_main(int argc, char **argv) {
 	double time = getTime();
-	int2 res(640, 480);
+	int2 res(800, 600);
 
 	GfxDevice gfx_device;
-	gfx_device.createWindow("foo", res, true, false);
-
-	// setBlendingMode(bmDisabled);
-	s_viewport = IRect(res);
+	gfx_device.createWindow("foo", res, GfxDevice::flag_multisampling | GfxDevice::flag_resizable);
 	gfx_device.runMainLoop(mainLoop);
 
 	return 0;

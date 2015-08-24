@@ -177,7 +177,9 @@ void Renderer2D::addTris(const float3 *pos, const float2 *tex_coord, const Color
 }
 
 void Renderer2D::render() {
-	GfxDevice::setBlendingMode(GfxDevice::bmNormal);
+	glViewport(m_viewport.min.x, m_viewport.min.y, m_viewport.width(), m_viewport.height());
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(0);

@@ -35,7 +35,7 @@ GfxDevice &GfxDevice::instance() {
 }
 
 GfxDevice::GfxDevice()
-	: m_main_loop_function(nullptr)  /*,m_press_delay(0.2), m_clock(0)*/
+	: m_main_loop_function(nullptr) /*,m_press_delay(0.2), m_clock(0)*/
 {
 	s_instance = this;
 
@@ -80,6 +80,9 @@ GfxDevice::GfxDevice()
 
 	memset(&m_input_state, 0, sizeof(m_input_state));
 	m_is_input_state_initialized = false;
+
+	m_last_time = -1.0;
+	m_frame_time = 0.0;
 }
 
 int GfxDevice::translateToSDL(int key_code) const {
@@ -107,14 +110,22 @@ GfxDevice::~GfxDevice() {
 
 struct GfxDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, int2 size, bool use_multisampling, bool full) {
-		int flags = SDL_WINDOW_OPENGL | (full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-		if(use_multisampling) {
+	WindowImpl(const string &name, const int2 &size, uint flags) : flags(flags) {
+		int sdl_flags = SDL_WINDOW_OPENGL;
+		DASSERT(!((flags & flag_fullscreen) && (flags & flag_fullscreen_desktop)));
+
+		if(flags & flag_fullscreen)
+			sdl_flags |= SDL_WINDOW_FULLSCREEN;
+		if(flags & flag_fullscreen_desktop)
+			sdl_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+		if(flags & flag_resizable)
+			sdl_flags |= SDL_WINDOW_RESIZABLE;
+		if(flags & flag_multisampling) {
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 		}
-		window = SDL_CreateWindow(name.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-								  size.x, size.y, flags);
+		int window_pos = flags & flag_centered ? SDL_WINDOWPOS_CENTERED : 0;
+		window = SDL_CreateWindow(name.c_str(), window_pos, window_pos, size.x, size.y, sdl_flags);
 		if(!window)
 			reportSDLError("SDL_CreateWindow");
 		if(!(gl_context = SDL_GL_CreateContext(window))) {
@@ -129,12 +140,12 @@ struct GfxDevice::WindowImpl {
 
 	SDL_Window *window;
 	SDL_GLContext gl_context;
+	uint flags;
 };
 
-void GfxDevice::createWindow(const string &name, int2 size, bool multisample, bool full) {
-	if(m_window_impl)
-		THROW("For now only single window is supported");
-	m_window_impl = make_unique<WindowImpl>(name, size, multisample, full);
+void GfxDevice::createWindow(const string &name, const int2 &size, uint flags) {
+	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
+	m_window_impl = make_unique<WindowImpl>(name, size, flags);
 
 	SDL_GL_SetSwapInterval(-1);
 
@@ -144,11 +155,36 @@ void GfxDevice::createWindow(const string &name, int2 size, bool multisample, bo
 	//	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 	//	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	//	glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
-
-	glViewport(0, 0, size.x, size.y);
 }
 
-void GfxDevice::destroyWindow() { THROW("Write me"); }
+void GfxDevice::destroyWindow() { m_window_impl.reset(); }
+
+void GfxDevice::setWindowSize(const int2 &size) {
+	if(m_window_impl)
+		SDL_SetWindowSize(m_window_impl->window, size.x, size.y);
+}
+
+void GfxDevice::setWindowFullscreen(uint flags) {
+	DASSERT(flags == 0 || flags == flag_fullscreen || flags == flag_fullscreen_desktop);
+
+	if(m_window_impl) {
+		uint sdl_flags = flags & flag_fullscreen
+							 ? SDL_WINDOW_FULLSCREEN
+							 : flags & flag_fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+		SDL_SetWindowFullscreen(m_window_impl->window, sdl_flags);
+		uint mask = flag_fullscreen | flag_fullscreen_desktop;
+		m_window_impl->flags = (m_window_impl->flags & ~mask) | (mask & flags);
+	}
+}
+
+uint GfxDevice::windowFlags() const { return m_window_impl ? m_window_impl->flags : 0; }
+
+int2 GfxDevice::windowSize() const {
+	int2 out;
+	if(m_window_impl)
+		SDL_GetWindowSize(m_window_impl->window, &out.x, &out.y);
+	return out;
+}
 
 void GfxDevice::printDeviceInfo() {
 	int max_tex_size;
@@ -162,8 +198,6 @@ void GfxDevice::printDeviceInfo() {
 		   "Maximum texture size: %d\n",
 		   vendor, renderer, max_tex_size);
 }
-
-double GfxDevice::targetFrameTime() { return 1.0 / 60.0; }
 
 bool GfxDevice::pollEvents() {
 	SDL_Event event;
@@ -285,6 +319,9 @@ bool GfxDevice::pollEvents() {
 void GfxDevice::emscriptenCallback() {
 	GfxDevice &inst = instance();
 	DASSERT(inst.m_main_loop_function);
+	double time = getTime();
+	inst.m_frame_time = inst.m_last_time < 0.0 ? 0.0 : time - inst.m_last_time;
+	inst.m_last_time = time;
 
 	inst.pollEvents();
 	inst.m_main_loop_function(inst);
@@ -297,6 +334,10 @@ void GfxDevice::runMainLoop(MainLoopFunction function) {
 	emscripten_set_main_loop(emscriptenCallback, 0, 1);
 #else
 	while(pollEvents()) {
+		double time = getTime();
+		m_frame_time = m_last_time < 0.0 ? 0.0 : time - m_last_time;
+		m_last_time = time;
+
 		if(!function(*this))
 			break;
 		SDL_GL_SwapWindow(m_window_impl->window);
@@ -305,22 +346,9 @@ void GfxDevice::runMainLoop(MainLoopFunction function) {
 	m_main_loop_function = nullptr;
 }
 
-void GfxDevice::grabMouse(bool grab) {
-	//	if(grab)
-	//		glfwDisable(GLFW_MOUSE_CURSOR);
-	//	else
-	//		glfwEnable(GLFW_MOUSE_CURSOR);
-}
+void GfxDevice::grabMouse(bool grab) { THROW("Writeme"); }
 
-void GfxDevice::showCursor(bool flag) {
-	//	if(flag)
-	//		glfwEnable(GLFW_MOUSE_CURSOR);
-	//	else
-	//		glfwDisable(GLFW_MOUSE_CURSOR);
-}
-
-/*
-*/
+void GfxDevice::showCursor(bool flag) { THROW("Writeme"); }
 
 /*
 InputState GfxDevice::inputState() {
@@ -370,30 +398,4 @@ void GfxDevice::clearDepth(float depth_value) {
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
 
-void GfxDevice::setBlendingMode(BlendingMode mode) {
-	if(mode == bmDisabled)
-		glDisable(GL_BLEND);
-	else
-		glEnable(GL_BLEND);
-
-	if(mode == bmNormal)
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-
-static IRect s_scissor_rect = IRect::empty();
-
-void GfxDevice::setScissorRect(const IRect &rect) {
-	//	s_scissor_rect = rect;
-	//	glScissor(rect.min.x, s_viewport_size.y - rect.max.y, rect.width(), rect.height());
-	//	testGlError("glScissor");
-}
-
-const IRect GfxDevice::getScissorRect() { return s_scissor_rect; }
-
-void GfxDevice::setScissorTest(bool is_enabled) {
-	if(is_enabled)
-		glEnable(GL_SCISSOR_TEST);
-	else
-		glDisable(GL_SCISSOR_TEST);
-}
 }

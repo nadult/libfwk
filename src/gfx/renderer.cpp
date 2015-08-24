@@ -68,7 +68,8 @@ struct ProgramFactory {
 	}
 };
 
-Renderer::Renderer(const Matrix4 &projection_matrix) : MatrixStack(projection_matrix) {
+Renderer::Renderer(const IRect &viewport, const Matrix4 &projection_matrix)
+	: MatrixStack(projection_matrix), m_viewport(viewport) {
 	static ResourceManager<Program, ProgramFactory> mgr;
 	m_tex_program = mgr["tex"];
 	m_flat_program = mgr["flat"];
@@ -120,9 +121,10 @@ namespace {
 
 		void update(uint new_flags) {
 			if((new_flags & Material::flag_blended) != (flags & Material::flag_blended)) {
-				GfxDevice::setBlendingMode(new_flags & Material::flag_blended
-											   ? GfxDevice::bmNormal
-											   : GfxDevice::bmDisabled);
+				if(new_flags & Material::flag_blended)
+					glEnable(GL_BLEND);
+				else
+					glDisable(GL_BLEND);
 			}
 			if((new_flags & Material::flag_two_sided) != (flags & Material::flag_two_sided)) {
 				if(new_flags & Material::flag_two_sided)
@@ -142,6 +144,8 @@ namespace {
 }
 
 void Renderer::render() {
+	glViewport(m_viewport.min.x, m_viewport.min.y, m_viewport.width(), m_viewport.height());
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(1);

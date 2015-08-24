@@ -49,9 +49,18 @@ class Viewer {
 
 	void makeMaterials(PMaterial default_mat, Model &model) {}
 
-	Viewer(const IRect &viewport, const vector<pair<string, string>> &file_names)
-		: m_viewport(viewport), m_current_model(0), m_current_anim(-1), m_anim_pos(0.0),
-		  m_show_nodes(false) {
+	void updateViewport() {
+		IRect new_viewport = IRect(GfxDevice::instance().windowSize());
+		if(new_viewport != m_viewport || !m_renderer_3d) {
+			m_viewport = new_viewport;
+			m_renderer_3d = make_unique<Renderer>(m_viewport);
+			m_renderer_2d = make_unique<Renderer2D>(m_viewport);
+		}
+	}
+
+	Viewer(const vector<pair<string, string>> &file_names)
+		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
+		updateViewport();
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -120,10 +129,10 @@ class Viewer {
 		m_anim_pos += time_diff;
 	}
 
-	void draw(Renderer &out, Renderer2D &out2d) const {
-		out.setProjectionMatrix(perspective(
+	void draw() const {
+		m_renderer_3d->setProjectionMatrix(perspective(
 			degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(), 1.0f, 10000.0f));
-		out.setViewMatrix(translation(0, 0, -5.0f));
+		m_renderer_3d->setViewMatrix(translation(0, 0, -5.0f));
 
 		const auto &model = m_models[m_current_model];
 
@@ -136,11 +145,11 @@ class Viewer {
 		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
 					  translation(-initial_bbox.center());
 
-		model.model->draw(out, pose, model.materials, matrix);
-		out.addWireBox(initial_bbox, {Color::red}, matrix);
-		out.addWireBox(bbox, {Color::green}, matrix);
+		model.model->draw(*m_renderer_3d, pose, model.materials, matrix);
+		m_renderer_3d->addWireBox(initial_bbox, {Color::red}, matrix);
+		m_renderer_3d->addWireBox(bbox, {Color::green}, matrix);
 		if(m_show_nodes)
-			model.model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f, matrix);
+			model.model->drawNodes(*m_renderer_3d, pose, Color::green, Color::yellow, 0.1f, matrix);
 
 		int num_parts = 0, num_verts = 0;
 		{
@@ -168,11 +177,15 @@ class Viewer {
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n");
 
-		FontRenderer font(m_font_data.first, m_font_data.second, out2d);
+		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);
 		FontStyle style{Color::white, Color::black};
-		auto extents = font.font().evalExtents(fmt.text());
-		out2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)), {Color(0, 0, 0, 80)});
+		auto extents = font.evalExtents(fmt.text());
+		m_renderer_2d->addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
+									 {Color(0, 0, 0, 80)});
 		font.draw(FRect(5, 5, 300, 100), style, fmt.text());
+
+		m_renderer_3d->render();
+		m_renderer_2d->render();
 	}
 
 	const IRect &viewport() const { return m_viewport; }
@@ -188,6 +201,9 @@ class Viewer {
 	bool m_show_nodes;
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
+
+	unique_ptr<Renderer> m_renderer_3d;
+	unique_ptr<Renderer2D> m_renderer_2d;
 };
 
 static Viewer *s_viewer = nullptr;
@@ -202,13 +218,8 @@ bool main_loop(GfxDevice &device) {
 	float time_diff = 1.0f / 60.0f;
 	s_viewer->handleInput(device, time_diff);
 	s_viewer->tick(time_diff);
-
-	Renderer renderer_3d;
-	Renderer2D renderer_2d(s_viewer->viewport());
-	s_viewer->draw(renderer_3d, renderer_2d);
-
-	renderer_3d.render();
-	renderer_2d.render();
+	s_viewer->updateViewport();
+	s_viewer->draw();
 
 	return true;
 }
@@ -250,10 +261,11 @@ int safe_main(int argc, char **argv) {
 	} else { files = {make_pair(model_argument, tex_argument)}; }
 
 	GfxDevice gfx_device;
-	gfx_device.createWindow("libfwk::model_viewer", resolution, true, false);
+	gfx_device.createWindow("libfwk::model_viewer", resolution,
+							GfxDevice::flag_resizable | GfxDevice::flag_multisampling);
 
 	double init_time = getTime();
-	Viewer viewer(IRect(resolution), files);
+	Viewer viewer(files);
 	s_viewer = &viewer;
 
 	gfx_device.runMainLoop(main_loop);

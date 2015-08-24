@@ -225,16 +225,8 @@ struct InputState {
 	vector<KeyStatus> keys;
 };
 
-// TODO: Write base class for objects using opengl handles, like GfxHandle
-/*
-class GfxHandle {
-public:
-	bool isValid() const;
-
-	//In GfxDevice: List m_all_handles;
-	ListNode m_node;
-};*/
-
+// Once created (by calling instance first time, it will exist
+// till the end of the application).
 class GfxDevice {
   public:
 	GfxDevice();
@@ -242,13 +234,28 @@ class GfxDevice {
 
 	static GfxDevice &instance();
 
-	double targetFrameTime();
+	enum {
+		flag_multisampling = 1u,
+		flag_fullscreen = 2u,
+		flag_fullscreen_desktop = 4u,
+		flag_resizable = 8u,
+		flag_centered = 16u,
+	};
 
-	void createWindow(const string &name, int2 size, bool multisample, bool fullscreen);
+	void createWindow(const string &name, const int2 &size, uint flags);
 	void destroyWindow();
 	void printDeviceInfo();
 
-	bool pollEvents();
+	void setWindowSize(const int2 &);
+	int2 windowSize() const;
+
+	void setWindowFullscreen(uint flags);
+	uint windowFlags() const;
+	bool isWindowFullscreen() const {
+		return windowFlags() & (flag_fullscreen | flag_fullscreen_desktop);
+	}
+
+	double frameTime() const { return m_frame_time; }
 
 	void grabMouse(bool);
 	void showCursor(bool);
@@ -257,26 +264,15 @@ class GfxDevice {
 	const vector<InputEvent> &inputEvents() const { return m_input_events; }
 
 	using MainLoopFunction = bool (*)(GfxDevice &device);
-
 	void runMainLoop(MainLoopFunction);
 
 	static void clearColor(Color color);
 	static void clearDepth(float depth_value);
 
-	enum BlendingMode {
-		bmDisabled,
-		bmNormal,
-	};
-
-	static void setBlendingMode(BlendingMode mode);
-	static void setScissorRect(const IRect &rect);
-	static const IRect getScissorRect();
-
-	static void setScissorTest(bool is_enabled);
-
   private:
 	int translateToSDL(int) const;
 	int translateFromSDL(int) const;
+	bool pollEvents();
 
 #ifdef __EMSCRIPTEN__
 	static void emscriptenCallback();
@@ -289,7 +285,7 @@ class GfxDevice {
 	std::map<int, int> m_key_map;
 	std::map<int, int> m_inv_map;
 	//	double m_time_pressed[InputKey::count];
-	double m_last_time;
+	double m_last_time, m_frame_time;
 
 	struct WindowImpl;
 	unique_ptr<WindowImpl> m_window_impl;
@@ -1107,7 +1103,7 @@ class Renderer2D : public MatrixStack {
 
 class Renderer : public MatrixStack {
   public:
-	Renderer(const Matrix4 &projection_matrix = Matrix4::identity());
+	Renderer(const IRect &viewport, const Matrix4 &projection_matrix = Matrix4::identity());
 	virtual ~Renderer();
 
 	virtual void render();
@@ -1149,6 +1145,7 @@ class Renderer : public MatrixStack {
 		int first, count;
 	};
 
+	IRect m_viewport;
 	vector<SpriteInstance> m_sprites;
 
 	vector<LineInstance> m_lines;
@@ -1200,12 +1197,6 @@ class Font : public immutable_base<Font> {
 	};
 
 	IRect evalExtents(const char *str, bool exact = false) const;
-	IRect evalExtents(const TextFormatter &fmt, bool exact = false) const {
-		return evalExtents(fmt.text(), exact);
-	}
-	IRect evalExtents(const string &str, bool exact = false) const {
-		return evalExtents(str.c_str(), exact);
-	}
 
 	int lineHeight() const { return m_line_height; }
 
@@ -1253,6 +1244,13 @@ class FontRenderer {
 		return draw(FRect(pos, pos), style, str.c_str());
 	}
 	const Font &font() const { return *m_font; }
+
+	IRect evalExtents(const TextFormatter &fmt, bool exact = false) const {
+		return m_font->evalExtents(fmt.text(), exact);
+	}
+	IRect evalExtents(const string &str, bool exact = false) const {
+		return m_font->evalExtents(str.c_str(), exact);
+	}
 
   private:
 	void draw(const int2 &pos, Color col, const char *text) const;
