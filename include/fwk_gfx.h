@@ -487,49 +487,46 @@ class DrawCall {
 	int m_vertex_count, m_index_offset;
 };
 
+DECLARE_ENUM(ShaderType, vertex, fragment);
+
 class Shader {
   public:
-	// TODO: fix enums, also in other gfx classes
-	enum Type { tVertex, tFragment };
+	using Type = ShaderType::Type;
 
-	explicit Shader(Type);
+	Shader(Type, Stream &, const string &predefined_macros = string());
+	Shader(Type, const string &source, const string &predefined_macros = string(),
+		   const string &name = string());
+	Shader(Shader &&);
 	~Shader();
 
-	void load(Stream &);
-	void save(Stream &) const;
-
-	Shader(Shader &&);
 	Shader(const Shader &) = delete;
 	void operator=(const Shader &) = delete;
-	void operator=(Shader &&);
 
-	Type getType() const;
-	unsigned getHandle() const { return m_handle; }
-
-	string getSource() const;
-	void setSource(const string &str);
-	void compile();
-
-	string name;
+	Type type() const;
+	string source() const;
+	uint id() const { return m_id; }
+	bool isValid() const { return m_id != 0; }
 
   private:
-	unsigned m_handle;
-	bool m_is_compiled;
+	uint m_id;
 };
 
 class Program : public immutable_base<Program> {
   public:
 	Program(const Shader &vertex, const Shader &fragment,
 			const vector<string> &location_names = {});
+	Program(const string &vsh_file_name, const string &fsh_file_name,
+			const string &predefined_macros, const vector<string> &location_names = {});
 	~Program();
+
 	Program(const Program &) = delete;
 	void operator=(const Program &) = delete;
 
-	unsigned handle() const { return m_handle; }
+	unsigned id() const { return m_id; }
 	string getInfo() const;
 
   private:
-	unsigned m_handle;
+	uint m_id;
 };
 
 using PProgram = immutable_ptr<Program>;
@@ -565,7 +562,7 @@ class ProgramBinder {
 
   protected:
 	PProgram m_program;
-	unsigned handle() const { return m_program->handle(); }
+	unsigned id() const { return m_program->id(); }
 };
 
 class Material : public immutable_base<Material> {

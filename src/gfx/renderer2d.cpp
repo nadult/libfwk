@@ -40,14 +40,13 @@ static const char *vertex_shader_2d_src =
 
 struct ProgramFactory2D {
 	PProgram operator()(const string &name) const {
-		bool with_texture = name == "with_texture";
-		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
-		vertex_shader.setSource(vertex_shader_2d_src);
-		fragment_shader.setSource(with_texture ? fragment_shader_2d_tex_src
-											   : fragment_shader_2d_flat_src);
+		const char *src =
+			name == "with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
+		Shader vertex_shader(ShaderType::vertex, vertex_shader_2d_src, "", name);
+		Shader fragment_shader(ShaderType::fragment, src, "", name);
 
 		return make_immutable<Program>(vertex_shader, fragment_shader,
-								 vector<string>{"in_pos", "in_color", "in_tex_coord"});
+									   vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
 };
 
@@ -184,7 +183,8 @@ void Renderer2D::render() {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(0);
 
-	VertexArray array({make_immutable<VertexBuffer>(m_positions), make_immutable<VertexBuffer>(m_colors),
+	VertexArray array({make_immutable<VertexBuffer>(m_positions),
+					   make_immutable<VertexBuffer>(m_colors),
 					   make_immutable<VertexBuffer>(m_tex_coords)},
 					  make_immutable<IndexBuffer>(m_indices));
 

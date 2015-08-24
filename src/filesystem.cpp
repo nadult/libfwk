@@ -249,6 +249,7 @@ bool access(const FilePath &path) {
 double lastModificationTime(const FilePath &file_name) {
 #ifdef _WIN32
 	THROW("Write me please");
+	return 0.0;
 #else
 	struct stat attribs;
 	if(stat(file_name.c_str(), &attribs) != 0)

@@ -7,91 +7,60 @@
 
 namespace fwk {
 
-Shader::Shader(Shader::Type type) : m_is_compiled(false) {
-	m_handle = glCreateShader(type == tVertex ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
-	testGlError("Error while creating shader");
-}
-
-Shader::Shader(Shader &&rhs) : m_handle(0) { *this = std::move(rhs); }
-
-void Shader::operator=(Shader &&rhs) {
-	if(m_handle != ~0u)
-		glDeleteShader(m_handle);
-
-	name = std::move(rhs.name);
-	m_handle = rhs.m_handle;
-	rhs.m_handle = 0;
-	m_is_compiled = rhs.m_is_compiled;
-}
-
-Shader::~Shader() {
-	if(m_handle != ~0u) {
-		glDeleteShader(m_handle);
-	}
-}
-
-void Shader::load(Stream &sr) {
+static string loadSource(Stream &stream) {
 	string text;
-	name = sr.name();
-	text.resize(sr.size());
+	text.resize(stream.size());
 	if(!text.empty()) {
-		sr.loadData(&text[0], text.size());
+		stream.loadData(&text[0], text.size());
 		text[text.size()] = 0;
 	}
-	setSource(text);
+	return text;
 }
 
-void Shader::save(Stream &sr) const {
-	string text = getSource();
-	sr.saveData(&text[0], text.size());
-}
+Shader::Shader(Type type, Stream &sr, const string &predefined_macros)
+	: Shader(type, loadSource(sr), predefined_macros, sr.name()) {}
+Shader::Shader(Type type, const string &source, const string &predefined_macros,
+			   const string &name) {
+	m_id = glCreateShader(type == Type::vertex ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
+	testGlError("Error while creating shader");
 
-string Shader::getSource() const {
-	GLint length;
-	glGetShaderiv(m_handle, GL_SHADER_SOURCE_LENGTH, &length);
+	string full_source =
+		predefined_macros.empty() ? source : predefined_macros + "\n#line 0\n" + source;
 
-	string source((size_t)length, (char)0);
-	glGetShaderSource(m_handle, length + 1, 0, &source[0]);
-	return source;
-}
-
-void Shader::setSource(const string &str) {
-	GLint length = (GLint)str.size();
-	const char *text = &str[0];
-
-	m_is_compiled = false;
-	for(int n = 0; n < length; n++) {
-		bool is_valid = (text[n] >= 32 && text[n] <= 125) || text[n] == '\t' || text[n] == '\n';
+	for(char c : full_source) {
+		bool is_valid = (c >= 32 && c <= 125) || c == '\t' || c == '\n';
 		if(!is_valid)
-			THROW("fuck: %s", str.c_str());
+			THROW("Invalid character in shader source (ascii: %d)\n", (int)c);
 	}
-	glShaderSource(m_handle, 1, &text, &length);
-	testGlError("Error in glShaderSource");
 
-	compile();
-}
+	GLint length = (GLint)full_source.size();
+	const char *string = full_source.data();
 
-void Shader::compile() {
-	if(m_is_compiled)
-		return;
+	glShaderSource(m_id, 1, &string, &length);
+	testGlError("glShaderSource");
 
-	glCompileShader(m_handle);
+	glCompileShader(m_id);
 	testGlError("Error in glCompileShader");
 
 	GLint status;
-	glGetShaderiv(m_handle, GL_COMPILE_STATUS, &status);
+	glGetShaderiv(m_id, GL_COMPILE_STATUS, &status);
 	if(status != GL_TRUE) {
 		char buf[4096];
-		glGetShaderInfoLog(m_handle, sizeof(buf), 0, buf);
-		THROW("Compilation log (%s):\n%s", name.c_str(), buf);
+		glGetShaderInfoLog(m_id, sizeof(buf), 0, buf);
+		THROW("Compilation error of '%s':\n%s", name.c_str(), buf);
 	}
-
-	m_is_compiled = true;
 }
 
-Shader::Type Shader::getType() const {
+Shader::~Shader() {
+	if(m_id)
+		glDeleteShader(m_id);
+}
+
+Shader::Shader(Shader &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
+
+ShaderType::Type Shader::type() const {
 	GLint type;
-	glGetShaderiv(m_handle, GL_SHADER_TYPE, &type);
-	return type == GL_VERTEX_SHADER ? tVertex : tFragment;
+	glGetShaderiv(m_id, GL_SHADER_TYPE, &type);
+	return type == GL_VERTEX_SHADER ? Type::vertex : Type::fragment;
 }
 }

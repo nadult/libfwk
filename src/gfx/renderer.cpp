@@ -56,13 +56,12 @@ static const char *vertex_shader_src =
 
 struct ProgramFactory {
 	PProgram operator()(const string &name) const {
-		Shader vertex_shader(Shader::tVertex), fragment_shader(Shader::tFragment);
-		vertex_shader.setSource(vertex_shader_src);
 		const char *src =
 			name == "tex" ? fragment_shader_tex_src : name == "flat" ? fragment_shader_flat_src
 																	 : fragment_shader_simple_src;
-		fragment_shader.setSource(src);
 
+		Shader vertex_shader(ShaderType::vertex, vertex_shader_src, "", name);
+		Shader fragment_shader(ShaderType::fragment, src, "", name);
 		return make_immutable<Program>(vertex_shader, fragment_shader,
 									   vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
