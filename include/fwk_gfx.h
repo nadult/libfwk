@@ -57,7 +57,7 @@ inline Color swapBR(Color col) {
 	return col;
 }
 
-DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, dxt1, dxt3, dxt5);
+DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, luminance, dxt1, dxt3, dxt5);
 
 class TextureFormat {
   public:
@@ -246,6 +246,7 @@ class GfxDevice {
 		flag_fullscreen_desktop = 4u,
 		flag_resizable = 8u,
 		flag_centered = 16u,
+		flag_vsync = 32u,
 	};
 
 	void createWindow(const string &name, const int2 &size, uint flags);

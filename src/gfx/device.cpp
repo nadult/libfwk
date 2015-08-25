@@ -147,7 +147,7 @@ void GfxDevice::createWindow(const string &name, const int2 &size, uint flags) {
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
 	m_window_impl = make_unique<WindowImpl>(name, size, flags);
 
-	SDL_GL_SetSwapInterval(-1);
+	SDL_GL_SetSwapInterval(flags & flag_vsync ? -1 : 0);
 
 	loadExtensions();
 	//	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

@@ -261,8 +261,8 @@ int safe_main(int argc, char **argv) {
 	} else { files = {make_pair(model_argument, tex_argument)}; }
 
 	GfxDevice gfx_device;
-	gfx_device.createWindow("libfwk::model_viewer", resolution,
-							GfxDevice::flag_resizable | GfxDevice::flag_multisampling);
+	uint flags = GfxDevice::flag_resizable | GfxDevice::flag_multisampling | GfxDevice::flag_vsync;
+	gfx_device.createWindow("libfwk::model_viewer", resolution, flags);
 
 	double init_time = getTime();
 	Viewer viewer(files);

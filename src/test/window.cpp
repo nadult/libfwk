@@ -49,7 +49,8 @@ int safe_main(int argc, char **argv) {
 	int2 res(800, 600);
 
 	GfxDevice gfx_device;
-	gfx_device.createWindow("foo", res, GfxDevice::flag_multisampling | GfxDevice::flag_resizable);
+	gfx_device.createWindow("foo", res, GfxDevice::flag_multisampling | GfxDevice::flag_resizable |
+											GfxDevice::flag_vsync);
 	gfx_device.runMainLoop(mainLoop);
 
 	return 0;
