@@ -133,12 +133,7 @@ namespace fwk {
 	
 	void testGlError(const char*);
 
-	DECLARE_ENUM(OpenglExtension,
-		ext_texture_compression_dxt1,
-		ext_texture_compression_s3tc,
-		arb_texture_non_power_of_two,
-		ext_draw_buffers
-	);
+	DECLARE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic);
 
 	bool isExtensionSupported(OpenglExtension::Type);
 	void glColor(Color);

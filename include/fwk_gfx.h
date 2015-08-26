@@ -276,6 +276,8 @@ class GfxDevice {
 	static void clearColor(Color color);
 	static void clearDepth(float depth_value);
 
+	string extensions() const;
+
   private:
 	int translateToSDL(int) const;
 	int translateFromSDL(int) const;

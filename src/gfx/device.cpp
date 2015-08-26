@@ -24,7 +24,7 @@ static void reportSDLError(const char *func_name) {
 	THROW("Error on %s: %s", func_name, SDL_GetError());
 }
 
-void loadExtensions();
+void initializeOpenGL();
 
 // TODO: Something is corrupting this memory when running under emscripten
 static GfxDevice *s_instance = nullptr;
@@ -148,13 +148,7 @@ void GfxDevice::createWindow(const string &name, const int2 &size, uint flags) {
 	m_window_impl = make_unique<WindowImpl>(name, size, flags);
 
 	SDL_GL_SetSwapInterval(flags & flag_vsync ? -1 : 0);
-
-	loadExtensions();
-	//	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	//	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-	//	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-	//	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-	//	glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
+	initializeOpenGL();
 }
 
 void GfxDevice::destroyWindow() { m_window_impl.reset(); }
@@ -385,6 +379,8 @@ InputState GfxDevice::inputState() {
 
 	return out;
 }*/
+
+string GfxDevice::extensions() const { return (const char *)glGetString(GL_EXTENSIONS); }
 
 void GfxDevice::clearColor(Color color) {
 	float4 col = color;

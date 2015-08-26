@@ -18,25 +18,51 @@
 #include "windows.h"
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <html5.h>
+#endif
+
 namespace fwk {
 
 #ifdef _WIN32
 static PROC loadFunction(const char *name) {
 	PROC func = wglGetProcAddress(name);
-	//		if(!func)
-	//			THROW("Error while importing OpenGL function: %s", name);
+	if(!func)
+		THROW("Error while importing OpenGL function: %s", name);
 	return func;
 }
 #endif
 
-DEFINE_ENUM(OpenglExtension, "EXT_texture_compression_dxt1", "EXT_texture_compression_s3tc",
-			"ARB_texture_non_power_of_two", "EXT_draw_buffers");
+DEFINE_ENUM(OpenglExtension, "compressed_texture_s3tc", "texture_filter_anisotropic");
 
 static bool s_is_extension_supported[OpenglExtension::count] = {
 	false,
 };
 
-void loadExtensions() {
+void initializeOpenGL() {
+#ifdef __EMSCRIPTEN__
+	const char *must_haves[] = {"EXT_shader_texture_lod",   "OES_element_index_uint",
+								"OES_standard_derivatives", "OES_texture_float",
+								"OES_texture_half_float",   "OES_vertex_array_object",
+								"WEBGL_depth_texture"};
+	const char *optionals[] = {"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc"};
+
+	auto context = emscripten_webgl_get_current_context();
+	for(auto ext : must_haves)
+		if(!emscripten_webgl_enable_extension(context, ext))
+			THROW("OpenGL Extension not supported: %s", ext);
+	for(auto ext : optionals)
+		emscripten_webgl_enable_extension(context, ext);
+#else
+	int major = 0, minor = 0;
+	glGetIntegerv(GL_MAJOR_VERSION, &major);
+	glGetIntegerv(GL_MINOR_VERSION, &minor);
+	int version = major * 100 + minor;
+	if(version < 300)
+		THROW("Minimum required OpenGL version: 3.0");
+#endif
+
 	const char *strings = (const char *)glGetString(GL_EXTENSIONS);
 	for(int n = 0; n < OpenglExtension::count; n++)
 		s_is_extension_supported[n] =
@@ -44,7 +70,6 @@ void loadExtensions() {
 
 #ifdef _WIN32
 #define LOAD(func) (func = (decltype(func))loadFunction(#func));
-
 	LOAD(glCompressedTexImage3D);
 	LOAD(glCompressedTexImage2D);
 	LOAD(glCompressedTexImage1D);
