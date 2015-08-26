@@ -45,7 +45,7 @@ void initializeOpenGL() {
 	const char *must_haves[] = {"EXT_shader_texture_lod",   "OES_element_index_uint",
 								"OES_standard_derivatives", "OES_texture_float",
 								"OES_texture_half_float",   "OES_vertex_array_object",
-								"WEBGL_depth_texture"};
+								"WEBGL_depth_texture",		"WEBGL_draw_buffers"};
 	const char *optionals[] = {"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc"};
 
 	auto context = emscripten_webgl_get_current_context();
@@ -160,6 +160,7 @@ void initializeOpenGL() {
 	LOAD(glCheckFramebufferStatus);
 	LOAD(glFramebufferRenderbuffer);
 	LOAD(glFramebufferTexture2D);
+	LOAD(glDrawBuffers);
 
 #undef LOAD
 

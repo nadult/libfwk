@@ -8,7 +8,8 @@
 
 namespace fwk {
 
-DEFINE_ENUM(TextureFormatId, "rgba", "rgba_f16", "rgba_f32", "luminance", "dxt1", "dxt3", "dxt5");
+DEFINE_ENUM(TextureFormatId, "rgba", "rgba_f16", "rgba_f32", "luminance", "dxt1", "dxt3", "dxt5",
+			"depth", "depth_stencil");
 
 enum class DDSId {
 	Unknown = 0,
@@ -91,6 +92,12 @@ namespace {
 		FormatDesc(Id::dxt1, DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true),
 		FormatDesc(Id::dxt3, DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true),
 		FormatDesc(Id::dxt5, DDSId::DXT5, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0, true),
+
+		FormatDesc(Id::depth, DDSId::Unknown, 4, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT,
+				   GL_UNSIGNED_SHORT), // TODO: WebGL requires 16bits
+		FormatDesc(Id::depth_stencil, DDSId::Unknown, 4, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
+				   GL_UNSIGNED_INT_24_8),
+
 	};
 
 	const FormatDesc &getDesc(Id id) {

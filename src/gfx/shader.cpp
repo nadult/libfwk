@@ -22,7 +22,7 @@ Shader::Shader(Type type, Stream &sr, const string &predefined_macros)
 Shader::Shader(Type type, const string &source, const string &predefined_macros,
 			   const string &name) {
 	m_id = glCreateShader(type == Type::vertex ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
-	testGlError("Error while creating shader");
+	testGlError("glCreateShader");
 
 	string full_source =
 		predefined_macros.empty() ? source : predefined_macros + "\n#line 0\n" + source;
@@ -44,6 +44,8 @@ Shader::Shader(Type type, const string &source, const string &predefined_macros,
 
 	GLint status;
 	glGetShaderiv(m_id, GL_COMPILE_STATUS, &status);
+	testGlError("glGetShaderiv\n");
+
 	if(status != GL_TRUE) {
 		char buf[4096];
 		glGetShaderInfoLog(m_id, sizeof(buf), 0, buf);

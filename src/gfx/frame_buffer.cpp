@@ -4,36 +4,68 @@
 
 #include "fwk_gfx.h"
 #include "fwk_opengl.h"
+#include <numeric>
 
 namespace fwk {
 
-FrameBuffer::FrameBuffer(STexture color_buffer, SRenderBuffer depth_buffer)
-	: m_color_buffer(std::move(color_buffer)), m_depth_buffer(std::move(depth_buffer)), m_id(0) {
-	DASSERT(m_color_buffer);
-	DASSERT(!m_depth_buffer || m_color_buffer->size() == m_depth_buffer->size());
+FrameBufferTarget::operator bool() const { return texture || render_buffer; }
+TextureFormat FrameBufferTarget::format() const {
+	return texture ? texture->format() : render_buffer ? render_buffer->format() : TextureFormat();
+}
+int2 FrameBufferTarget::size() const {
+	return texture ? texture->size() : render_buffer ? render_buffer->size() : int2();
+}
+
+static void attach(int type, const FrameBufferTarget &target) {
+	DASSERT(target);
+	if(target.render_buffer)
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, type, GL_RENDERBUFFER,
+								  target.render_buffer->id());
+	else
+		glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, target.texture->id(), 0);
+}
+
+FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
+	: m_colors(std::move(colors)), m_depth(std::move(depth)), m_id(0) {
+	DASSERT(!m_colors.empty() && m_colors.front());
+	DASSERT(!m_depth || m_depth.size() == m_colors.front().size());
+	for(const auto &color : m_colors)
+		DASSERT(color.size() == m_colors.front().size());
+	DASSERT((int)m_colors.size() <= GL_MAX_COLOR_ATTACHMENTS);
 
 	try {
 		glGenFramebuffers(1, &m_id);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_id);
-		if(m_depth_buffer) {
-			int type = m_depth_buffer->type() == RenderBufferType::depth_stencil
-						   ? GL_DEPTH_STENCIL_ATTACHMENT
-						   : GL_DEPTH_ATTACHMENT;
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, type, GL_RENDERBUFFER, m_depth_buffer->id());
+
+		if(m_depth) {
+			auto format = m_depth.format();
+			DASSERT(isOneOf(format, TextureFormatId::depth, TextureFormatId::depth_stencil));
+			bool has_stencil = format == TextureFormatId::depth_stencil;
+			attach(has_stencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT, m_depth);
 		}
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-							   m_color_buffer->id(), 0);
+
+		for(int n = 0; n < (int)m_colors.size(); n++)
+			attach(GL_COLOR_ATTACHMENT0 + n, m_colors[n]);
+
 		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			THROW("Error while initializing framebuffer");
+
+		GLenum indices[GL_MAX_COLOR_ATTACHMENTS];
+		std::iota(begin(indices), end(indices), GL_COLOR_ATTACHMENT0);
+		glDrawBuffers(m_colors.size(), indices);
 	} catch(...) {
 		glDeleteFramebuffers(1, &m_id);
 		throw;
 	}
+	unbind();
 }
+
+FrameBuffer::FrameBuffer(Target color, Target depth)
+	: FrameBuffer(vector<Target>{std::move(color)}, std::move(depth)) {}
 
 FrameBuffer::~FrameBuffer() { glDeleteFramebuffers(1, &m_id); }
 
+int2 FrameBuffer::size() const { return m_colors.front().size(); }
 void FrameBuffer::bind() { glBindFramebuffer(GL_FRAMEBUFFER, m_id); }
-
 void FrameBuffer::unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 }

@@ -57,7 +57,8 @@ inline Color swapBR(Color col) {
 	return col;
 }
 
-DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, luminance, dxt1, dxt3, dxt5);
+DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, luminance, dxt1, dxt3, dxt5, depth,
+			 depth_stencil);
 
 class TextureFormat {
   public:
@@ -1036,33 +1037,50 @@ template <class T> class XMLLoader : public ResourceLoader<T> {
 	string m_node_name;
 };
 
-DECLARE_ENUM(RenderBufferType, depth, depth_stencil);
-
 class RenderBuffer {
   public:
-	using Type = RenderBufferType::Type;
-	RenderBuffer(const int2 &size, Type);
+	using Format = TextureFormat;
+	RenderBuffer(TextureFormat, const int2 &size);
 	~RenderBuffer();
 
 	void operator=(const RenderBuffer &) = delete;
 	RenderBuffer(const RenderBuffer &) = delete;
 
-	Type type() const { return m_type; }
+	Format format() const { return m_format; }
 	uint id() const { return m_id; }
 	int2 size() const { return m_size; }
 
   private:
 	int2 m_size;
-	Type m_type;
+	Format m_format;
 	uint m_id;
 };
 
 using SRenderBuffer = shared_ptr<RenderBuffer>;
 
+struct FrameBufferTarget {
+	FrameBufferTarget() {}
+	FrameBufferTarget(STexture texture) : texture(std::move(texture)) {}
+	FrameBufferTarget(SRenderBuffer render_buffer) : render_buffer(std::move(render_buffer)) {}
+
+	operator bool() const;
+	TextureFormat format() const;
+	int2 size() const;
+
+	STexture texture;
+	SRenderBuffer render_buffer;
+};
+
 class FrameBuffer {
   public:
-	FrameBuffer(STexture color_buffer, SRenderBuffer depth_buffer = SRenderBuffer());
+	using Target = FrameBufferTarget;
+	FrameBuffer(vector<Target> colors, Target depth = Target());
+	FrameBuffer(Target color, Target depth = Target());
 	~FrameBuffer();
+
+	static shared_ptr<FrameBuffer> make(vector<Target> colors, Target depth = Target()) {
+		return make_shared<FrameBuffer>(std::move(colors), std::move(depth));
+	}
 
 	void operator=(const FrameBuffer &) = delete;
 	FrameBuffer(const FrameBuffer &) = delete;
@@ -1070,13 +1088,13 @@ class FrameBuffer {
 	void bind();
 	static void unbind();
 
-	STexture colorBuffer() const { return m_color_buffer; }
-	SRenderBuffer depthBuffer() const { return m_depth_buffer; }
-	int2 size() const { return m_color_buffer->size(); }
+	const auto &colors() const { return m_colors; }
+	const Target &depth() const { return m_depth; }
+	int2 size() const;
 
   private:
-	STexture m_color_buffer;
-	SRenderBuffer m_depth_buffer;
+	vector<Target> m_colors;
+	Target m_depth;
 	uint m_id;
 };
 
