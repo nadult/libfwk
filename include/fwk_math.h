@@ -165,6 +165,7 @@ struct float2 {
 
 	float2 operator+(const float2 &rhs) const { return float2(x + rhs.x, y + rhs.y); }
 	float2 operator*(const float2 &rhs) const { return float2(x * rhs.x, y * rhs.y); }
+	float2 operator/(const float2 &rhs) const { return float2(x / rhs.x, y / rhs.y); }
 	float2 operator-(const float2 &rhs) const { return float2(x - rhs.x, y - rhs.y); }
 	float2 operator*(float s) const { return float2(x * s, y * s); }
 	float2 operator/(float s) const { return *this * (1.0f / s); }
@@ -193,6 +194,7 @@ struct float3 {
 	explicit operator int3() const { return int3((int)x, (int)y, (int)z); }
 
 	float3 operator*(const float3 &rhs) const { return float3(x * rhs.x, y * rhs.y, z * rhs.z); }
+	float3 operator/(const float3 &rhs) const { return float3(x / rhs.x, y / rhs.y, z / rhs.z); }
 	float3 operator+(const float3 &rhs) const { return float3(x + rhs.x, y + rhs.y, z + rhs.z); }
 	float3 operator-(const float3 &rhs) const { return float3(x - rhs.x, y - rhs.y, z - rhs.z); }
 	float3 operator*(float s) const { return float3(x * s, y * s, z * s); }
@@ -228,10 +230,16 @@ struct float4 {
 	// TODO: use range[4]
 	float4(const float *v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
 	float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
-	float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-	float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	explicit float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	explicit float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
 	float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
+	float4 operator*(const float4 &rhs) const {
+		return float4(x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w);
+	}
+	float4 operator/(const float4 &rhs) const {
+		return float4(x / rhs.x, y / rhs.y, z / rhs.z, w / rhs.w);
+	}
 	float4 operator+(const float4 &rhs) const {
 		return float4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
 	}
