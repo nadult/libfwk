@@ -57,8 +57,8 @@ inline Color swapBR(Color col) {
 	return col;
 }
 
-DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, luminance, dxt1, dxt3, dxt5, depth,
-			 depth_stencil);
+DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, rgb, rgb_f16, rgb_f32, luminance, dxt1,
+			 dxt3, dxt5, depth, depth_stencil);
 
 class TextureFormat {
   public:
@@ -169,10 +169,15 @@ struct TextureConfig {
 // Device texture
 class DTexture : public immutable_base<DTexture> {
   public:
+	using Format = TextureFormat;
+	using Config = TextureConfig;
+
 	DTexture();
 	DTexture(const string &name, Stream &);
-	DTexture(TextureFormat format, const int2 &size, const TextureConfig & = TextureConfig());
-	DTexture(const Texture &, const TextureConfig & = TextureConfig());
+	DTexture(Format format, const int2 &size, const Config & = Config());
+	DTexture(Format format, const Texture &, const Config & = Config());
+	DTexture(Format format, const int2 &size, CRange<float4>, const Config & = Config());
+	DTexture(const Texture &, const Config & = Config());
 
 	// TODO: think about this:
 	// some opengl handle may be assigned to something, example:
@@ -184,8 +189,8 @@ class DTexture : public immutable_base<DTexture> {
 	void operator=(const DTexture &) = delete;
 	~DTexture();
 
-	void setConfig(const TextureConfig &);
-	const TextureConfig &config() const { return m_config; }
+	void setConfig(const Config &);
+	const Config &config() const { return m_config; }
 
 	bool hasMipmaps() const { return m_has_mipmaps; }
 	void generateMipmaps();
@@ -197,26 +202,27 @@ class DTexture : public immutable_base<DTexture> {
 	static void bind(const vector<immutable_ptr<DTexture>> &);
 	static void unbind();
 
-	void upload(const Texture &src, const int2 &target_pos = int2(0, 0));
-	void upload(const void *pixels, const int2 &dimensions, const int2 &target_pos);
+	void upload(const Texture &src, const int2 &target_pos = int2());
+	void upload(Format, const void *pixels, const int2 &dimensions,
+				const int2 &target_pos = int2());
 	void download(Texture &target) const;
 
 	int width() const { return m_size.x; }
 	int height() const { return m_size.y; }
 	int2 size() const { return m_size; }
 
-	TextureFormat format() const { return m_format; }
+	Format format() const { return m_format; }
 
 	int id() const { return m_id; }
-	bool isValid() const { return m_id > 0; }
+	// bool isValid() const { return m_id > 0; }
 
   private:
 	void updateConfig();
 
 	uint m_id;
 	int2 m_size;
-	TextureFormat m_format;
-	TextureConfig m_config;
+	Format m_format;
+	Config m_config;
 	bool m_has_mipmaps;
 };
 

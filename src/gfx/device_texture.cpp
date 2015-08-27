@@ -7,8 +7,9 @@
 
 namespace fwk {
 
-DTexture::DTexture(TextureFormat format, const int2 &size, const TextureConfig &config)
+DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
+	DASSERT(size.x >= 1 && size.y >= 1);
 
 	try {
 		glGenTextures(1, &m_id);
@@ -30,10 +31,17 @@ DTexture::DTexture(TextureFormat format, const int2 &size, const TextureConfig &
 }
 
 DTexture::DTexture(const string &name, Stream &stream) : DTexture(Texture(stream)) {}
-DTexture::DTexture(const Texture &tex, const TextureConfig &config)
-	: DTexture(tex.format(), tex.size(), config) {
-	upload(tex, int2(0, 0));
+DTexture::DTexture(Format format, const Texture &tex, const Config &config)
+	: DTexture(format, tex.size(), config) {
+	upload(tex);
 }
+DTexture::DTexture(Format format, const int2 &size, CRange<float4> data, const Config &config)
+	: DTexture(format, size, config) {
+	DASSERT(data.size() >= size.x * size.y);
+	upload(TextureFormatId::rgba_f32, data.data(), size);
+}
+DTexture::DTexture(const Texture &tex, const Config &config)
+	: DTexture(tex.format(), tex, config) {}
 
 /*
 DTexture::DTexture(DTexture &&rhs)
@@ -48,10 +56,7 @@ DTexture::~DTexture() {
 		glDeleteTextures(1, &m_id);
 }
 
-void DTexture::setConfig(const TextureConfig &config) {
-	if(!isValid())
-		return;
-
+void DTexture::setConfig(const Config &config) {
 	if(m_config != config) {
 		m_config = config;
 		updateConfig();
@@ -59,9 +64,6 @@ void DTexture::setConfig(const TextureConfig &config) {
 }
 
 void DTexture::generateMipmaps() {
-	if(!isValid())
-		return;
-
 	bind();
 	glGenerateMipmap(GL_TEXTURE_2D);
 	m_has_mipmaps = true;
@@ -71,11 +73,11 @@ void DTexture::generateMipmaps() {
 void DTexture::updateConfig() {
 	bind();
 
-	int wrapping = m_config.flags & TextureConfig::flag_wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+	int wrapping = m_config.flags & Config::flag_wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
 
-	int filter = m_config.flags & TextureConfig::flag_filtered ? GL_LINEAR : GL_NEAREST;
+	int filter = m_config.flags & Config::flag_filtered ? GL_LINEAR : GL_NEAREST;
 	int min_filter = m_has_mipmaps
 						 ? filter == GL_LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST
 						 : filter;
@@ -85,17 +87,15 @@ void DTexture::updateConfig() {
 }
 
 void DTexture::upload(const Texture &src, const int2 &target_pos) {
-	DASSERT(isValid());
-	DASSERT(src.format() == m_format);
-	upload(src.data(), src.size(), target_pos);
+	upload(src.format(), src.data(), src.size(), target_pos);
 }
 
-void DTexture::upload(const void *pixels, const int2 &size, const int2 &target_pos) {
+void DTexture::upload(Format format, const void *pixels, const int2 &size, const int2 &target_pos) {
 	bind();
 	DASSERT(size.x + target_pos.x <= m_size.x && size.y + target_pos.y <= m_size.y);
 
-	glTexSubImage2D(GL_TEXTURE_2D, 0, target_pos.x, target_pos.y, size.x, size.y,
-					m_format.glFormat(), m_format.glType(), pixels);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, target_pos.x, target_pos.y, size.x, size.y, format.glFormat(),
+					format.glType(), pixels);
 }
 
 void DTexture::download(Texture &target) const {
@@ -105,10 +105,7 @@ void DTexture::download(Texture &target) const {
 	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), target.data());
 }
 
-void DTexture::bind() const {
-	DASSERT(isValid());
-	::glBindTexture(GL_TEXTURE_2D, m_id);
-}
+void DTexture::bind() const { ::glBindTexture(GL_TEXTURE_2D, m_id); }
 
 void DTexture::bind(const vector<immutable_ptr<DTexture>> &set) {
 	vector<const DTexture *> temp;
