@@ -170,7 +170,9 @@ static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, 
 		xml_node.addAttrib("mesh_id", meshes[node->mesh().get()]);
 	ModelAnim::transToXML(node->localTrans(), AffineTrans(), xml_node);
 
-	for(const auto &prop : node->properties()) {
+	auto props = node->properties();
+	std::sort(begin(props), end(props));
+	for(const auto &prop : props) {
 		XMLNode xml_prop = xml_node.addChild("property");
 		xml_prop.addAttrib("name", xml_prop.own(prop.name));
 		xml_prop.addAttrib("value", xml_prop.own(prop.value));

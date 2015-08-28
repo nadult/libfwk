@@ -190,6 +190,10 @@ int safe_main(int argc, char **argv) {
 				printHelp(argv[0]);
 				exit(0);
 			}
+			else {
+				printf("Unsupported parameter: %s\n", argv[n]);
+				exit(1);
+			}
 		} else { params.emplace_back(arg); }
 	}
 

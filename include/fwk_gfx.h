@@ -601,7 +601,7 @@ class Material : public immutable_base<Material> {
 
 using PMaterial = immutable_ptr<Material>;
 
-class MaterialSet {
+class MaterialSet : public immutable_base<MaterialSet> {
   public:
 	MaterialSet(PMaterial default_mat, std::map<string, PMaterial> = {});
 	~MaterialSet();
@@ -881,6 +881,10 @@ class ModelNode {
 	using Type = ModelNodeType::Type;
 
 	struct Property {
+		bool operator<(const Property &rhs) const {
+			return tie(name, value) < tie(rhs.name, rhs.value);
+		}
+
 		string name;
 		string value;
 	};

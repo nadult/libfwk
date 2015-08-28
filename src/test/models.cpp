@@ -38,9 +38,9 @@ void testMain() {
 	PModel model = PModel(Model::loadFromXML(doc.child()));
 	remove(mesh_path.c_str());
 
-	int cube_id = model->findNodeId("Cube");
-	int plane_id = model->findNodeId("Plane");
-	int cone_id = model->findNodeId("Cone");
+	int cube_id = model->findNodeId("cube");
+	int plane_id = model->findNodeId("plane");
+	int cone_id = model->findNodeId("cone");
 
 	ASSERT(cube_id != -1 && plane_id != -1 && cone_id != -1);
 	const auto &nodes = model->nodes();

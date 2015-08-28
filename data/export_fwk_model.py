@@ -8,9 +8,11 @@ import re
 import bpy
 import mathutils
 import xml.etree.ElementTree as ET
+import random
 
 Quaternion = mathutils.Quaternion
 Vector = mathutils.Vector
+Matrix = mathutils.Matrix
 
 g_logging = True
 
@@ -112,7 +114,7 @@ def writeSkin(xml_parent, mesh, obj):
         do_export[vg.index] = armature.data.bones.find(vg.name) != -1
         if do_export[vg.index]:
             group_index[vg.index] = len(node_names)
-            node_names.append(vg.name)
+            node_names.append(vg.name.lower())
         else:
             group_index[vg.index] = -1
             log("Skipping vertex group: " + vg.name)
@@ -171,7 +173,7 @@ def writeMesh(xml_parent, mesh, obj):
     while mat_idx < len(index_sets):
         xml_layer = ET.SubElement(xml_mesh_node, "indices")
         if mesh.materials:
-            materials.append(mesh.materials[mat_idx].name)
+            materials.append(mesh.materials[mat_idx].name.lower())
         xml_layer.text = ' '.join(map(str, index_sets[mat_idx]))
         mat_idx += 1
 
@@ -200,7 +202,7 @@ def writeBone(xml_parent, bone, bone_map):
         raise Exception("Bone names mustn't contain whitespaces: \"" + obj.name + '"')
 
     xml_bone = ET.SubElement(xml_parent, "node")
-    xml_bone.set("name", bone.name)
+    xml_bone.set("name", bone.name.lower())
     xml_bone.set("type", "generic")
 
     matrix = bone.matrix_local.copy()
@@ -227,9 +229,17 @@ def objectTypeToString(obj):
 
     return "generic"
 
-def writeObject(xml_parent, obj, mesh_list, bone_map):
+def writeProperty(xml_node, prop_name, prop_value):
+    xml_prop = ET.SubElement(xml_node, "property")
+    xml_prop.set("name", prop_name)
+    xml_prop.set("value", prop_value)
+
+def writeObject(xml_root, xml_parent, obj, mesh_list, bone_map, override_matrix = None, override_name = None):
     if(not isValidString(obj.name)):
         raise Exception("Object names mustn't contain whitespaces: \"" + obj.name + '"')
+
+    if obj.proxy:
+        return
 
     matrix = obj.matrix_local.copy()
     if obj.parent:
@@ -241,9 +251,31 @@ def writeObject(xml_parent, obj, mesh_list, bone_map):
             matrix = bone_world.inverted() * obj_world
         elif obj.parent_type != "OBJECT":
             raise Exception("Unsupported parenting type: " + obj.parent_type)
+    if override_matrix:
+        matrix = override_matrix
+
+    for ps in obj.particle_systems:
+        group = ps.settings.dupli_group
+        if group and ps.settings.render_type == "GROUP":
+            #TODO: get actual objects generated for each particle instead of randomizing here
+            objects = group.objects
+
+            idx = 0
+            for part in ps.particles:
+                pos, rot, scale = matrix.decompose()
+                #TODO: fix rotations & positions
+                #part.rotation.to_matrix().to_4x4() * \
+                mat = Matrix.Translation(part.location) * \
+                      rot.to_matrix().to_4x4() * \
+                      Matrix.Scale(1.0, 4, scale * part.size)
+                object = random.choice(objects)
+                if object.type == "EMPTY" and part.is_exist:
+                    writeObject(xml_root, xml_root, object, mesh_list, bone_map, mat, "particle_" + str(idx))
+                    print("Pos: " + vecToString(part.location))
+                    idx = idx + 1
 
     xml_obj_node = ET.SubElement(xml_parent, "node")
-    xml_obj_node.set("name", obj.name)
+    xml_obj_node.set("name", (override_name if override_name else obj.name).lower())
     obj_type = objectTypeToString(obj)
     if obj_type != "generic":
         xml_obj_node.set("type", obj_type)
@@ -251,9 +283,16 @@ def writeObject(xml_parent, obj, mesh_list, bone_map):
     if obj.type == "EMPTY":
         keys = list(set(obj.keys()) - set(["_RNA_UI", "cycles_visibility", "cycles"]))
         for key in keys:
-            xml_prop = ET.SubElement(xml_obj_node, "property")
-            xml_prop.set("name", key)
-            xml_prop.set("value", str(obj[key]))
+            writeProperty(xml_obj_node, key, str(obj[key]))
+        if obj.dupli_group:
+            group = obj.dupli_group
+            if len(group.objects) > 1:
+                raise Exception("Duplicating groups with multiple objects not supported: " + obj.name)
+            if len(group.objects) == 1:
+                link = group.objects[0]
+                writeProperty(xml_obj_node, "link_object", link.name.lower())
+                #if link.library:
+                #    writeProperty(xml_obj_node, "link_library", link.library.filepath)
 
     writeTrans(xml_obj_node, matrix)
 
@@ -271,7 +310,7 @@ def writeObject(xml_parent, obj, mesh_list, bone_map):
     scene = bpy.context.scene
     for child in obj.children:
         if child.is_visible(scene):
-            writeObject(xml_obj_node, child, mesh_list, bone_map)
+            writeObject(xml_root, xml_obj_node, child, mesh_list, bone_map)
 
 def extractMarkers(action):
     markers = set([])
@@ -314,7 +353,7 @@ def writeAnim(xml_parent, action, armature, bone_map):
         return
     
     xml_anim = ET.SubElement(xml_parent, "anim")
-    xml_anim.set("name", action.name)
+    xml_anim.set("name", action.name.lower())
     xml_anim.set("length", formatFloat((action.frame_range[1] - action.frame_range[0] + 1) / fps))
 
     matrices_2d = []
@@ -339,7 +378,7 @@ def writeAnim(xml_parent, action, armature, bone_map):
     index = 0
     for bone in armature.pose.bones:
         xml_channel = ET.SubElement(xml_anim, "channel")
-        xml_channel.set("name", bone.name)
+        xml_channel.set("name", bone.name.lower())
         (def_pos, def_rot, def_scale) = bone_map[bone.name][1]
 
         positions = []
@@ -396,18 +435,19 @@ def writeMaterial(xml_parent, mat):
         raise Exception("Material names mustn't contain whitespaces: \"" + obj.name + '"')
 
     xml_mat = ET.SubElement(xml_parent, "material")
-    xml_mat.set("name", mat.name)
+    xml_mat.set("name", mat.name.lower())
     xml_mat.set("diffuse", colorToString(materialDiffuse(mat)))
 
 # objects_filter: a regular expression for object names, like "human.*"
 def write(file_path, objects_filter=""):
     context = bpy.context
     scene = context.scene
+    objects_filter = objects_filter.lower()
 
     if objects_filter:
         for object in scene.objects:
-            object.hide = not re.search(objects_filter, object.name)
-            print("Hide " + object.name + ": " + str(object.hide))
+            object.hide = not re.search(objects_filter, object.name.lower())
+            print("Show " + object.name + ": " + str(not object.hide))
     else:
         for object in scene.objects:
             object.hide = False
@@ -421,7 +461,7 @@ def write(file_path, objects_filter=""):
 
     for obj in scene.objects:
         if (obj.parent is None) and (obj.is_visible(scene)):
-            writeObject(xml_root, obj, mesh_list, bone_map)
+            writeObject(xml_root, xml_root, obj, mesh_list, bone_map)
             if obj.type == "ARMATURE":
                 armatures.append(obj)
 
