@@ -40,4 +40,14 @@ Color operator*(Color a, Color b) {
 	return Color(float4(fa.x * fb.x, fa.y * fb.y, fa.z * fb.z, fa.w * fb.w));
 }
 
+float3 SRGBToLinear(const float3&v) {
+	float exp = 2.2;
+	return float3(powf(v.x, exp), powf(v.y, exp), powf(v.z, exp));
+}
+
+float3 linearToSRGB(const float3&v) {
+	float exp = 1.0f / 2.2f;
+	return float3(powf(v.x, exp), powf(v.y, exp), powf(v.z, exp));
+}
+
 }

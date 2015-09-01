@@ -16,6 +16,8 @@ namespace collada {
 	class Mesh;
 }
 
+//TODO: Default color class should be flat based; Change
+//      u8-based Color to Color32bit or something
 struct Color {
 	explicit Color(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
 	explicit Color(int r, int g, int b, int a = 255)
@@ -47,6 +49,9 @@ Color operator*(Color lhs, Color rhs);
 Color mulAlpha(Color color, float alpha);
 Color lerp(Color a, Color b, float value);
 Color desaturate(Color col, float value);
+
+float3 SRGBToLinear(const float3&);
+float3 linearToSRGB(const float3&);
 
 inline bool operator==(const Color &lhs, const Color &rhs) {
 	return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b && lhs.a == rhs.a;
