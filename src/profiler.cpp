@@ -3,6 +3,7 @@
    This file is part of libfwk. */
 
 #include "fwk_profile.h"
+#include "fwk_opengl.h"
 #include <cstring>
 #include <cstdio>
 
@@ -52,6 +53,10 @@ void Profiler::updateCounter(const char *id, int value) {
 }
 
 double Profiler::getTime() { return fwk::getTime(); }
+
+void Profiler::openglFinish() {
+	glFinish();
+}
 
 void Profiler::nextFrame() {
 	for(int n = 0; n < (int)m_counters.size(); n++)

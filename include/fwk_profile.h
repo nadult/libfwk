@@ -16,6 +16,7 @@ class Profiler {
 
 	static Profiler *instance();
 	static double getTime();
+	static void openglFinish();
 
 	// TODO: Add hierarchical timers
 	void updateTimer(const char *name, double start_time, double end_time, bool is_rare = true);
@@ -49,16 +50,22 @@ class Profiler {
 };
 
 struct AutoTimer {
-	AutoTimer(const char *id, bool is_rare)
-		: start_time(Profiler::getTime()), id(id), is_rare(is_rare) {}
+	AutoTimer(const char *id, bool is_rare, bool is_opengl)
+		: id(id), is_rare(is_rare), is_opengl(is_opengl) {
+			if(is_opengl)
+				Profiler::openglFinish();
+			start_time = Profiler::getTime();
+		}
 	~AutoTimer() {
+		if(is_opengl)
+			Profiler::openglFinish();
 		if(auto *profiler = Profiler::instance())
 			profiler->updateTimer(id, start_time, Profiler::getTime(), is_rare);
 	}
 
 	double start_time;
 	const char *id;
-	bool is_rare;
+	bool is_rare, is_opengl;
 };
 
 #ifdef DISABLE_PROFILER
@@ -69,8 +76,9 @@ struct AutoTimer {
 
 #else
 
-#define FWK_PROFILE(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, false)
-#define FWK_PROFILE_RARE(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, true)
+#define FWK_PROFILE(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, false, false)
+#define FWK_PROFILE_RARE(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, true, false)
+#define FWK_PROFILE_OPENGL(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, false, true)
 
 #define FWK_PROFILE_NAME(a) FWK_PROFILE_NAME_(a)
 #define FWK_PROFILE_NAME_(a) timer##a

@@ -4,7 +4,6 @@
 
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
-#include "fwk_profile.h"
 #include <algorithm>
 #include <limits>
 #include <numeric>
@@ -161,8 +160,6 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 }
 
 vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {
-	FWK_PROFILE("MeshBuffers::animatePositions");
-	FWK_PROFILE_COUNTER("animatePositions", 1);	
 	DASSERT(matrices.size() == (int)node_names.size());
 	vector<float3> out(positions.size());
 

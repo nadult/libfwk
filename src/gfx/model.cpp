@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <deque>
 #include <unordered_map>
-#include "fwk_profile.h"
 #include "fwk_cache.h"
 
 namespace fwk {
@@ -320,7 +319,6 @@ PPose Model::globalPose(PPose pose) const {
 
 PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	DASSERT(isValidPose(global_pose));
-	FWK_PROFILE("Model::meshSkinningPose");
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
 
 	Matrix4 pre = inverse(m_nodes[node_id]->globalTrans());
