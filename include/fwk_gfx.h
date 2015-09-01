@@ -608,11 +608,14 @@ class MaterialSet : public immutable_base<MaterialSet> {
 
 	PMaterial operator[](const string &name) const;
 	vector<PMaterial> operator()(const vector<string> &names) const;
+	const auto &map() const { return m_map; }
 
   private:
 	PMaterial m_default;
 	std::map<string, PMaterial> m_map;
 };
+
+using PMaterialSet = immutable_ptr<MaterialSet>;
 
 class Renderer;
 

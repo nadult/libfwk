@@ -45,12 +45,12 @@ namespace {
 string backtrace(size_t skip) {
 	TextFormatter out;
 
-	void *addresses[32];
+	void *addresses[64];
 	size_t size = ::backtrace(addresses, arraySize(addresses));
 	char **strings = backtrace_symbols(addresses, size);
 
 	// TODO: these are not exactly correct (inlining?)
-	string file_lines[32];
+	string file_lines[64];
 	string exec_name = executablePath();
 	for(size_t i = skip; i < size; i++) {
 		string file_line = execCommand(format("addr2line %p -e %s 2>/dev/null", addresses[i],
@@ -84,7 +84,7 @@ string cppFilterBacktrace(const string &input) {
 	if(file) {
 		vector<char> buf;
 		try {
-			while(!feof(file) && buf.size() < 1024 * 4) {
+			while(!feof(file) && buf.size() < 1024 * 16) {
 				buf.push_back(fgetc(file));
 				if((u8)buf.back() == 255) {
 					buf.pop_back();

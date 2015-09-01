@@ -47,8 +47,14 @@ FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
 		for(int n = 0; n < (int)m_colors.size(); n++)
 			attach(GL_COLOR_ATTACHMENT0 + n, m_colors[n]);
 
-		if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-			THROW("Error while initializing framebuffer");
+		auto ret = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if(ret != GL_FRAMEBUFFER_COMPLETE) {
+			const char *err_code =
+				ret == GL_FRAMEBUFFER_UNSUPPORTED
+					? "\nunsupported combination of internal formats for attached images"
+					: "unknown";
+			THROW("Error while initializing framebuffer:%s", err_code);
+		}
 
 		GLenum indices[GL_MAX_COLOR_ATTACHMENTS];
 		std::iota(begin(indices), end(indices), GL_COLOR_ATTACHMENT0);
