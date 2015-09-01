@@ -333,6 +333,10 @@ float distance(const float2 &, const float2 &);
 float distance(const float3 &, const float3 &);
 float distance(const float4 &, const float4 &);
 
+float2 inverse(const float2 &);
+float3 inverse(const float3 &);
+float4 inverse(const float4 &);
+
 template <class T> bool areSimilar(const T &a, const T &b) {
 	return distanceSq(a, b) < constant::epsilon;
 }

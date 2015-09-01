@@ -52,6 +52,10 @@ float distance(const float2 &a, const float2 &b) { return sqrt(distanceSq(a, b))
 float distance(const float3 &a, const float3 &b) { return sqrt(distanceSq(a, b)); }
 float distance(const float4 &a, const float4 &b) { return sqrt(distanceSq(a, b)); }
 
+float2 inverse(const float2 &v) { return float2(1.0f / v.x, 1.0f / v.y); }
+float3 inverse(const float3 &v) { return float3(1.0f / v.x, 1.0f / v.y, 1.0f / v.z); }
+float4 inverse(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 1.0f / v.w); }
+
 const float2 normalize(const float2 &v) { return v / length(v); }
 const float3 normalize(const float3 &v) { return v / length(v); }
 

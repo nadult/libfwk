@@ -161,7 +161,7 @@ int Font::genQuads(const char *str, float3 *out_pos, float2 *out_uv, int buffer_
 	wchar_t wstr[1024];
 	int len = convertToWChar(str, wstr, sizeof(wstr) / sizeof(wchar_t));
 
-	const float2 tex_scale(1.0f / float(m_texture_size.x), 1.0f / float(m_texture_size.y));
+	const float2 tex_scale = inverse(float2(m_texture_size));
 	int count = min(len, buffer_size);
 	float2 pos(0, 0);
 
