@@ -71,6 +71,12 @@ void testRays() {
 	assertCloseEnough(tri.area(), 2.0f);
 }
 
+void testDistances() {
+	assertEqual(distance(Cylinder(float3(1, 2, 3), 0.5, 2.0), float3(2, 2, 3)), 0.5f);
+	assertEqual(distance(Cylinder(float3(1, 1, 1), 1.5, 2.0), float3(2, 1, 1)), 0.0f);
+	assertEqual(distance(Cylinder(float3(2, 2, 2), 1.5, 2.0), float3(2, 5, 2)), 1.0f);
+}
+
 void testMain() {
 	FBox box(0, -100, 0, 1200, 100, 720);
 	FBox temp(32, 0, 32, 64, 0.5f, 64);
@@ -78,6 +84,7 @@ void testMain() {
 
 	testMatrices();
 	testRays();
+	testDistances();
 
 	float3 vec(0, 0, 1);
 

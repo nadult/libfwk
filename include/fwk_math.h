@@ -677,7 +677,8 @@ float distance(const Quat &, const Quat &);
 
 struct AffineTrans {
 	explicit AffineTrans(const Matrix4 &);
-	AffineTrans(const float3 &pos = float3(), const Quat &rot = Quat(), const float3 &scale = float3(1.0f, 1.0f, 1.0f))
+	AffineTrans(const float3 &pos = float3(), const Quat &rot = Quat(),
+				const float3 &scale = float3(1.0f, 1.0f, 1.0f))
 		: translation(pos), scale(scale), rotation(rot) {}
 	operator Matrix4() const;
 
@@ -851,6 +852,7 @@ class Cylinder {
 	float m_height;
 };
 
+float distance(const Cylinder &, const float3 &);
 bool areIntersecting(const Cylinder &, const Cylinder &);
 bool areIntersecting(const FBox &, const Cylinder &);
 
