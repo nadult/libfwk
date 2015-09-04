@@ -290,9 +290,10 @@ float Model::intersect(const Segment &segment, PPose pose) const {
 		pose = m_default_pose;
 	auto anim_data = animatedData(pose);
 	for(auto mesh_data : anim_data->meshes_data) {
-		float isect =
-			mesh_data.mesh->intersect(inverse(mesh_data.transform) * segment, mesh_data.anim_data);
-		min_isect = min(min_isect, isect);
+		auto new_segment = inverse(mesh_data.transform) * segment;
+		float isect = mesh_data.mesh->intersect(new_segment, mesh_data.anim_data);
+		float3 point = new_segment.at(isect);
+		min_isect = min(min_isect, distance(segment.origin(), point));
 	}
 
 	return min_isect;
