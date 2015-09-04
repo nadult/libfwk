@@ -676,9 +676,8 @@ const Quat conjugate(const Quat &);
 float distance(const Quat &, const Quat &);
 
 struct AffineTrans {
-	AffineTrans() : scale(1, 1, 1) {}
 	explicit AffineTrans(const Matrix4 &);
-	AffineTrans(const float3 &pos, const float3 &scale, const Quat &rot)
+	AffineTrans(const float3 &pos = float3(), const Quat &rot = Quat(), const float3 &scale = float3(1.0f, 1.0f, 1.0f))
 		: translation(pos), scale(scale), rotation(rot) {}
 	operator Matrix4() const;
 

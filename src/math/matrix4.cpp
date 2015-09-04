@@ -268,7 +268,7 @@ AffineTrans operator*(const AffineTrans &lhs, const AffineTrans &rhs) {
 }
 
 AffineTrans lerp(const AffineTrans &a, const AffineTrans &b, float t) {
-	return AffineTrans(lerp(a.translation, b.translation, t), lerp(a.scale, b.scale, t),
-					   slerp(a.rotation, b.rotation, t));
+	return AffineTrans(lerp(a.translation, b.translation, t), slerp(a.rotation, b.rotation, t),
+					   lerp(a.scale, b.scale, t));
 }
 }

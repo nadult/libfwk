@@ -31,7 +31,7 @@ AffineTrans ModelAnim::transFromXML(XMLNode node, const AffineTrans &default_tra
 		scale = fromString<float3>(scale_string);
 	if(auto *rot_string = node.hasAttrib("rot"))
 		rot = fromString<Quat>(rot_string);
-	return AffineTrans(pos, scale, rot);
+	return AffineTrans(pos, rot, scale);
 }
 
 ModelAnim::Channel::Channel(const XMLNode &node, const AffineTrans &default_trans)
