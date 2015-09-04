@@ -20,12 +20,10 @@ Ray::Ray(const Matrix4 &screen_to_world, const float2 &screen_pos) {
 	m_inv_dir = inverse(m_dir);
 }
 
-Segment::Segment(const Ray &ray, float min, float max) : Ray(ray), m_min(min), m_max(max) {
-}
 Segment::Segment(const float3 &start, const float3 &end)
-	: Ray(start, normalize(end - start)), m_min(0.0f), m_max(distance(end, start)) {}
-
-Segment Segment::operator-() const { THROW("wtf");return Segment(Ray::operator-(), m_min, m_max); }
+	: Ray(start, normalize(end - start)), m_end(end), m_length(distance(end, start)) {
+	DASSERT(m_length > 0.0f);
+}
 
 float distance(const Ray &ray, const float3 &point) {
 	float3 diff = point - ray.origin();
@@ -36,10 +34,9 @@ float distance(const Ray &ray, const float3 &point) {
 	return dot(diff, diff);
 }
 
-pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box) {
-	// TODO: check if works correctly for (+/-)INF
-	float3 inv_dir = segment.invDir();
-	float3 origin = segment.origin();
+pair<float, float> intersectionRange(const Ray &ray, const Box<float3> &box) {
+	float3 inv_dir = ray.invDir();
+	float3 origin = ray.origin();
 
 	float l1 = inv_dir.x * (box.min.x - origin.x);
 	float l2 = inv_dir.x * (box.max.x - origin.x);
@@ -55,15 +52,15 @@ pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &
 	l2 = inv_dir.z * (box.max.z - origin.z);
 	lmin = max(lmin, min(l1, l2));
 	lmax = min(lmax, max(l1, l2));
-	lmin = max(lmin, segment.min());
-	lmax = min(lmax, segment.max());
+	lmin = max(lmin, 0.0f);
 
 	return lmin <= lmax ? make_pair(lmin, lmax) : make_pair(constant::inf, constant::inf);
 }
 
-float intersection(const Segment &segment, const Box<float3> &box) {
-	auto ranges = intersectionRange(segment, box);
-	return ranges.first;
+pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box) {
+	auto pair = intersectionRange((Ray)segment, box);
+	pair.second = min(pair.second, segment.length());
+	return pair.first <= pair.second ? pair : make_pair(constant::inf, constant::inf);
 }
 
 float intersection(const Segment &segment, const Triangle &tri) {
@@ -87,21 +84,12 @@ float intersection(const Segment &segment, const Triangle &tri) {
 }
 
 float intersection(const Segment &segment, const Plane &plane) {
-	//TOODO: should be working for both sides
+	// TODO: should be working for both sides
 	float dist = -dot(plane, segment.origin()) / dot(plane.normal(), segment.dir());
-	return dist < segment.min() || dist > segment.max() ? constant::inf : dist;
+	return dist < 0.0f || dist > segment.length() ? constant::inf : dist;
 }
 
 const Segment operator*(const Matrix4 &mat, const Segment &segment) {
-	if(segment.min() > -constant::inf && segment.max() < constant::inf) {
-		float3 start = segment.at(segment.min()), end = segment.at(segment.max());
-		return Segment(mulPoint(mat, start), mulPoint(mat, end));
-	}
-
-	float3 new_origin = mulPoint(mat, segment.origin());
-	float3 new_dir = mulNormal(mat, segment.dir());
-	float len = 1.0f;
-
-	return Segment(Ray(new_origin, new_dir), segment.min() * len, segment.max() * len);
+	return Segment(mulPoint(mat, segment.origin()), mulPoint(mat, segment.end()));
 }
 }

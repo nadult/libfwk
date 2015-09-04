@@ -175,8 +175,9 @@ Mesh Mesh::animate(AnimatedData data) const {
 	if(!m_buffers.hasSkin())
 		return *this;
 
-	return Mesh(MeshBuffers(std::move(data.positions), std::move(data.normals), m_buffers.tex_coords),
-				m_indices, m_material_names);
+	return Mesh(
+		MeshBuffers(std::move(data.positions), std::move(data.normals), m_buffers.tex_coords),
+		m_indices, m_material_names);
 }
 
 void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matrix) const {
@@ -249,8 +250,7 @@ float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
 	const auto &positions = data.positions;
 
 	float min_isect = constant::inf;
-	// TODO: optimize
-	if(intersection(segment, FBox(positions)) < constant::inf)
+	if(intersection(segment, data.bounding_box) < constant::inf)
 		for(const auto &tri : trisIndices()) {
 			float isect = intersection(
 				segment, Triangle(positions[tri[0]], positions[tri[1]], positions[tri[2]]));

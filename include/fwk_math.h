@@ -769,32 +769,40 @@ class Ray {
 	float3 m_inv_dir;
 };
 
-struct Segment : public Ray {
-	Segment(const Ray &ray = Ray(), float min = -constant::inf, float max = constant::inf);
-	Segment(const float3 &start, const float3 &end);
-	Segment operator-() const;
+class Segment : public Ray {
+  public:
+	Segment(const float3 &start = float3(), const float3 &end = float3(0, 0, 1));
 
-	float min() const { return m_min; }
-	float max() const { return m_max; }
+	float length() const { return m_length; }
+	float3 end() const { return m_end; }
 
   private:
-	float m_min, m_max;
+	float3 m_end;
+	float m_length;
 };
 
 // returns infinity if doesn't intersect
-pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box);
-float intersection(const Segment &segment, const Box<float3> &);
-float intersection(const Segment &segment, const Triangle &);
+pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);
+pair<float, float> intersectionRange(const Segment &, const Box<float3> &box);
 
-// Doesn't work properly with non-uniform scaling
+inline float intersection(const Ray &ray, const Box<float3> &box) {
+	return intersectionRange(ray, box).first;
+}
+
+inline float intersection(const Segment &segment, const Box<float3> &box) {
+	return intersectionRange(segment, box).first;
+}
+
+float intersection(const Segment &, const Triangle &);
+
 const Segment operator*(const Matrix4 &, const Segment &);
 
 float intersection(const Segment &, const Plane &);
-inline float intersection(const Plane &plane, const Segment &ray) {
-	return intersection(ray, plane);
+inline float intersection(const Plane &plane, const Segment &segment) {
+	return intersection(segment, plane);
 }
 
-bool intersection(const Plane &, const Plane &, Ray &ray);
+bool intersection(const Plane &, const Plane &, Ray &out);
 
 // Basically, a set of planes
 class Frustum {
