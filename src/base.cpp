@@ -199,12 +199,10 @@ int enumFromString(const char *str, const char **strings, int count, bool throw_
 			return n;
 
 	if(throw_on_invalid) {
-		char tstrings[1024], *ptr = tstrings;
+		TextFormatter all_strings;
 		for(int i = 0; i < count; i++)
-			ptr += snprintf(ptr, sizeof(tstrings) - (ptr - tstrings), "%s ", strings[i]);
-		if(count)
-			ptr[-1] = 0;
-		THROW("Error while finding string \"%s\" in array (%s)", str, tstrings);
+			all_strings("%s%s", strings[i], i + 1 < count ? " " : "");
+		THROW("Error when parsing enum: couldn't match \"%s\" to (%s)", str, all_strings.text());
 	}
 
 	return -1;
