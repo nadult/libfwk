@@ -10,8 +10,8 @@ LINUX_FWK_MODEL_CONVERT=$(FWK_DIR)/tools/model_convert
 LINUX_PKG_CONFIG=pkg-config
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-FWK_LIBS=freetype2 sdl2 libpng zlib libmpg123 vorbisfile
-LINUX_FWK_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk -lopenal -lGL -lGLU -lrt
+FWK_LIBS=freetype2 sdl2 libpng zlib libmpg123 vorbisfile 
+LINUX_FWK_LIBS=-lCGAL -lboost_thread -lboost_system -lgmp -lmpfr $(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk -lopenal -lGL -lGLU -lrt
 MINGW_FWK_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk_win32 -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
 FWK_INCLUDES=-I$(FWK_DIR)/include

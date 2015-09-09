@@ -105,6 +105,7 @@ class Viewer {
 				scale -= time_diff * 2.0f;
 			if(event.keyDown('m')) {
 				m_current_model = (m_current_model + 1) % m_models.size();
+				m_tet_mesh.reset();
 				m_current_anim = -1;
 				m_anim_pos = 0.0;
 			}
@@ -116,6 +117,23 @@ class Viewer {
 			}
 			if(event.keyDown('s'))
 				m_show_nodes ^= 1;
+			if(event.keyDown('t')) {
+				m_tet_mesh.reset();
+				try {
+					TetMesh::Params params;
+					params.facet_angle = 25;
+					params.facet_size = 0.15;
+					params.facet_distance = 0.008;
+					params.cell_size = 0.01;
+					const auto &model = m_models[m_current_model];
+					auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
+					auto mesh = model.model->toMesh(pose);
+
+					m_tet_mesh = make_unique<TetMesh>(
+						TetMesh::make(mesh.positions(), mesh.trisIndices(), params));
+					printf("tets: %d\n", (int)m_tet_mesh->m_indices.size());
+				} catch(...) { printf("Error while generating tet-mesh\n"); }
+			}
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));
@@ -150,6 +168,10 @@ class Viewer {
 		m_renderer_3d->addWireBox(bbox, {Color::green}, matrix);
 		if(m_show_nodes)
 			model.model->drawNodes(*m_renderer_3d, pose, Color::green, Color::yellow, 0.1f, matrix);
+		if(m_tet_mesh) {
+			auto material = make_immutable<Material>(Color::white, Material::flag_ignore_depth);
+			m_tet_mesh->draw(*m_renderer_3d, material, matrix);
+		}
 
 		int num_parts = 0, num_verts = 0;
 		{
@@ -201,6 +223,7 @@ class Viewer {
 	bool m_show_nodes;
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
+	unique_ptr<TetMesh> m_tet_mesh;
 
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;

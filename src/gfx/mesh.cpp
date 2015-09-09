@@ -9,6 +9,24 @@
 
 namespace fwk {
 
+void TetMesh::draw(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
+	out.pushViewMatrix();
+	out.mulViewMatrix(matrix);
+
+	vector<float3> lines;
+
+	for(auto tet : m_indices) {
+		float3 tlines[12];
+		int pairs[12] = {0, 1, 0, 2, 2, 1, 3, 0, 3, 1, 3, 2};
+		for(int i = 0; i < arraySize(pairs); i++)
+			tlines[i] = m_positions[tet[pairs[i]]];
+		lines.insert(end(lines), begin(tlines), end(tlines));
+	}
+	out.addLines(lines, material);
+
+	out.popViewMatrix();
+}
+
 Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> material_names)
 	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
 	  m_material_names(std::move(material_names)), m_ready_flags(0) {
@@ -257,5 +275,12 @@ float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
 			min_isect = min(min_isect, isect);
 		}
 	return min_isect;
+}
+
+void Mesh::process(float unit) {
+	for(auto &pos : m_buffers.positions) {
+		pos.x = (roundf(pos.x / unit)) * unit;
+		pos.z = (roundf(pos.z / unit)) * unit;
+	}
 }
 }

@@ -226,6 +226,16 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 		}
 }
 
+void Model::process(float unit) {
+	for(auto *node : m_nodes) {
+		PMesh mesh = node->mesh();
+		if(mesh) {
+			mutate(mesh)->process(unit);
+			node->setMesh(mesh);
+		}
+	}
+}
+
 void Model::draw(Renderer &out, PPose pose, const MaterialSet &materials,
 				 const Matrix4 &matrix) const {
 	out.pushViewMatrix();

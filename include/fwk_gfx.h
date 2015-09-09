@@ -770,6 +770,7 @@ class Mesh : public immutable_base<Mesh> {
 	// TODO: make this completely immutable (and the others as well, if possible)
 	void removeNormals() { m_buffers.normals.clear(); }
 	void removeTexCoords() { m_buffers.tex_coords.clear(); }
+	void process(float unit);
 
 	using TriIndices = MeshIndices::TriIndices;
 	vector<TriIndices> trisIndices() const;
@@ -824,6 +825,25 @@ class Mesh : public immutable_base<Mesh> {
 };
 
 using PMesh = immutable_ptr<Mesh>;
+
+class TetMesh {
+  public:
+	using TriIndices = MeshIndices::TriIndices;
+	using TetIndices = array<int, 4>;
+
+	struct Params {
+		float facet_angle, facet_size, facet_distance;
+		float cell_size;
+	};
+
+	TetMesh(vector<float3> positions, vector<TetIndices> tets);
+	static TetMesh make(CRange<float3> positions, CRange<TriIndices> faces, Params);
+
+	void draw(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
+
+	vector<float3> m_positions;
+	vector<TetIndices> m_indices;
+};
 
 struct MaterialDef {
 	MaterialDef(const string &name, Color diffuse) : name(name), diffuse(diffuse) {}
@@ -1011,6 +1031,7 @@ class Model : public immutable_base<Model> {
 	PPose globalPose(PPose local_pose) const;
 	PPose meshSkinningPose(PPose global_pose, int node_id) const;
 	bool isValidPose(PPose) const;
+	void process(float unit);
 
   protected:
 	void updateNodes();
@@ -1241,6 +1262,7 @@ class Renderer : public MatrixStack {
 	vector<LineInstance> m_lines;
 	vector<float3> m_line_positions;
 	vector<Color> m_line_colors;
+	vector<uint> m_line_flags;
 
 	vector<Instance> m_instances;
 	PProgram m_tex_program, m_flat_program, m_simple_program;
