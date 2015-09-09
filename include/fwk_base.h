@@ -83,7 +83,7 @@ template <class T> class immutable_ptr {
 	const T *operator->() const noexcept { return m_ptr.operator->(); }
 	const T *get() const noexcept { return m_ptr.get(); }
 
-	// It will make a copy if there is pointer is not unique
+	// It will make a copy if the pointer is not unique
 	T *mutate() {
 		if(!m_ptr.unique()) {
 			m_ptr = make_shared<const T>(*m_ptr.get());

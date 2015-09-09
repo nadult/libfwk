@@ -586,6 +586,7 @@ class Material : public immutable_base<Material> {
 		flag_blended = 1u,
 		flag_two_sided = 2u,
 		flag_clear_depth = 8u,
+		flag_ignore_depth = 16u,
 	};
 	Material(vector<PTexture> textures, Color color = Color::white, uint flags = 0);
 	Material(PTexture texture, Color color = Color::white, uint flags = 0);
@@ -1196,6 +1197,8 @@ class Renderer : public MatrixStack {
 	void clear();
 
 	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void addLines(Range<const float3> verts, PMaterial material,
+				  const Matrix4 &matrix = Matrix4::identity());
 	void addLines(Range<const float3> verts, Color color,
 				  const Matrix4 &matrix = Matrix4::identity());
 
@@ -1229,6 +1232,7 @@ class Renderer : public MatrixStack {
 	struct LineInstance {
 		Matrix4 matrix;
 		int first, count;
+		uint material_flags;
 	};
 
 	IRect m_viewport;

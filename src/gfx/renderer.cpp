@@ -82,11 +82,20 @@ void Renderer::addDrawCall(const DrawCall &draw_call, PMaterial material, const 
 	m_instances.emplace_back(Instance{fullMatrix() * matrix, std::move(material), draw_call});
 }
 
+void Renderer::addLines(Range<const float3> verts, PMaterial material, const Matrix4 &matrix) {
+	DASSERT(verts.size() % 2 == 0);
+
+	m_lines.emplace_back(LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(),
+									  verts.size(), material->flags()});
+	m_line_positions.insert(m_line_positions.end(), begin(verts), end(verts));
+	m_line_colors.resize(m_line_colors.size() + verts.size(), material->color());
+}
+
 void Renderer::addLines(Range<const float3> verts, Color color, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 
 	m_lines.emplace_back(
-		LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), verts.size()});
+		LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), verts.size(), 0u});
 	m_line_positions.insert(m_line_positions.end(), begin(verts), end(verts));
 	m_line_colors.resize(m_line_colors.size() + verts.size(), color);
 }
@@ -216,6 +225,11 @@ void Renderer::renderLines() {
 	binder.bind();
 	binder.setUniform("mesh_color", float4(1, 1, 1, 1));
 	for(const auto &instance : m_lines) {
+		if(instance.material_flags & Material::flag_ignore_depth)
+			glDisable(GL_DEPTH_TEST);
+		else
+			glEnable(GL_DEPTH_TEST);
+
 		binder.setUniform("proj_view_matrix", instance.matrix);
 		line_array.draw(PrimitiveType::lines, instance.count, instance.first);
 	}
