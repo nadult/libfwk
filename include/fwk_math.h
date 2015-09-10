@@ -703,6 +703,7 @@ class Triangle {
 	float3 a() const { return m_point; }
 	float3 b() const { return m_point + m_edge[0]; }
 	float3 c() const { return m_point + m_edge[1]; }
+	float3 center() const { return m_point + (m_edge[0] + m_edge[1]) * (1.0f / 3.0f); }
 	const float3 &cross() const { return m_cross; }
 
 	Triangle operator*(float scale) const {
