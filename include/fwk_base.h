@@ -185,6 +185,10 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 	return std::all_of(begin(range), end(range), functor);
 }
 
+template <class T1, class T2> void insertBack(vector<T1> &into, const vector<T2> &from) {
+	into.insert(end(into), begin(from), end(from));
+}
+
 string executablePath();
 pair<string, bool> execCommand(const string &cmd);
 
@@ -277,7 +281,6 @@ template <class T> class RangeIterator : public std::iterator<std::random_access
 	RangeIterator(T *pointer, int left, int right) noexcept : m_pointer(pointer),
 															  m_left(left),
 															  m_right(right) {
-		DASSERT(m_pointer);
 		DASSERT(left >= 0 && right >= 0);
 	}
 #endif
@@ -302,7 +305,7 @@ template <class T> class RangeIterator : public std::iterator<std::random_access
 		return m_pointer - rhs.m_pointer;
 	}
 	constexpr T &operator*() const noexcept {
-		DASSERT(m_right >= 1);
+		DASSERT(m_right >= 1 && m_pointer);
 		return *m_pointer;
 	}
 	constexpr bool operator==(const RangeIterator &rhs) const noexcept {
