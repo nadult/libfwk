@@ -61,6 +61,7 @@ class Viewer {
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
 		updateViewport();
+		m_tet_steps = 0;
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -85,6 +86,17 @@ class Viewer {
 		if(m_models.empty())
 			THROW("No models loaded\n");
 	}
+
+	void updateTet(Renderer &out) {
+		m_tet_mesh.reset();
+		const auto &model = m_models[m_current_model];
+		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
+		auto mesh = model.model->toMesh(pose);
+		m_tet_mesh = make_unique<TetMesh>(
+			TetMesh::make(mesh.positions(), mesh.trisIndices(), m_tet_steps, out));
+	}
+
+	void resetTet() { m_tet_steps = 0; }
 
 	void handleInput(GfxDevice &device, float time_diff) {
 		float x_rot = 0.0f, y_rot = 0.0f;
@@ -117,23 +129,10 @@ class Viewer {
 			}
 			if(event.keyDown('s'))
 				m_show_nodes ^= 1;
-			if(event.keyDown('t')) {
-				m_tet_mesh.reset();
-				try {
-					TetMesh::Params params;
-					params.facet_angle = 25;
-					params.facet_size = 0.15;
-					params.facet_distance = 0.008;
-					params.cell_size = 0.01;
-					const auto &model = m_models[m_current_model];
-					auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
-					auto mesh = model.model->toMesh(pose);
-
-					m_tet_mesh = make_unique<TetMesh>(
-						TetMesh::make(mesh.positions(), mesh.trisIndices(), params));
-					printf("tets: %d\n", (int)m_tet_mesh->m_indices.size());
-				} catch(...) { printf("Error while generating tet-mesh\n"); }
-			}
+			if(event.keyDown('t'))
+				m_tet_steps++;
+			if(event.keyDown('r'))
+				m_tet_steps = 0;
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));
@@ -147,7 +146,7 @@ class Viewer {
 		m_anim_pos += time_diff;
 	}
 
-	void draw() const {
+	void draw() {
 		m_renderer_3d->setProjectionMatrix(perspective(
 			degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(), 1.0f, 10000.0f));
 		m_renderer_3d->setViewMatrix(translation(0, 0, -5.0f));
@@ -168,6 +167,12 @@ class Viewer {
 		m_renderer_3d->addWireBox(bbox, {Color::green}, matrix);
 		if(m_show_nodes)
 			model.model->drawNodes(*m_renderer_3d, pose, Color::green, Color::yellow, 0.1f, matrix);
+
+		m_renderer_3d->pushViewMatrix();
+		m_renderer_3d->mulViewMatrix(matrix);
+		updateTet(*m_renderer_3d);
+		m_renderer_3d->popViewMatrix();
+
 		if(m_tet_mesh) {
 			auto material = make_immutable<Material>(Color::white, Material::flag_ignore_depth);
 			m_tet_mesh->draw(*m_renderer_3d, material, matrix);
@@ -223,7 +228,9 @@ class Viewer {
 	bool m_show_nodes;
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
+
 	unique_ptr<TetMesh> m_tet_mesh;
+	int m_tet_steps;
 
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;

@@ -178,66 +178,6 @@ MeshIndices MeshIndices::changeType(MeshIndices indices, Type new_type) {
 }
 
 /*
-void Mesh::genAdjacency() {
-	struct TVec : public float3 {
-		TVec(const float3 &vec) : float3(vec) {}
-		TVec() {}
-
-		bool operator<(const TVec &rhs) const {
-			return v[0] == rhs[0] ? v[1] == rhs[1] ? v[2] < rhs[2] : v[1] < rhs[1] : v[0] <
-rhs[0];
-		}
-	};
-
-	struct Edge {
-		Edge(const TVec &a, const TVec &b, int faceIdx) : faceIdx(faceIdx) {
-			v[0] = a;
-			v[1] = b;
-			if(v[0] < v[1])
-				swap(v[0], v[1]);
-		}
-
-		bool operator<(const Edge &rhs) const {
-			return v[0] == rhs.v[0] ? v[1] < rhs.v[1] : v[0] < rhs.v[0];
-		}
-
-		bool operator==(const Edge &rhs) const { return v[0] == rhs.v[0] && v[1] == rhs.v[1]; }
-
-		TVec v[2];
-		int faceIdx;
-	};
-
-	vector<Edge> edges;
-	for(int f = 0; f < faceCount(); f++) {
-		int idx[3];
-		getFace(f, idx[0], idx[1], idx[2]);
-		edges.push_back(Edge(m_positions[idx[0]], m_positions[idx[1]], f));
-		edges.push_back(Edge(m_positions[idx[1]], m_positions[idx[2]], f));
-		edges.push_back(Edge(m_positions[idx[2]], m_positions[idx[0]], f));
-	}
-	std::sort(edges.begin(), edges.end());
-
-	m_neighbours.resize(faceCount() * 3);
-	for(int f = 0; f < faceCount(); f++) {
-		int idx[3];
-		getFace(f, idx[0], idx[1], idx[2]);
-
-		for(int i = 0; i < 3; i++) {
-			Edge edge(m_positions[idx[i]], m_positions[idx[(i + 1) % 3]], ~0u);
-			auto edg = lower_bound(edges.begin(), edges.end(), edge);
-
-			int neighbour = ~0u;
-			while(edg != edges.end() && *edg == edge) {
-				if(edg->faceIdx != f) {
-					neighbour = edg->faceIdx;
-					break;
-				}
-				++edg;
-			}
-			m_neighbours[f * 3 + i] = neighbour;
-		}
-	}
-}
 
 int Mesh::faceCount() const {
 	return m_primitive_type == PrimitiveType::triangle_strip ? m_positions.size() - 2
