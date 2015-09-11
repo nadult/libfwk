@@ -185,7 +185,12 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 	return std::all_of(begin(range), end(range), functor);
 }
 
-template <class T1, class T2> void insertBack(vector<T1> &into, const vector<T2> &from) {
+template <class T1, class Container> void insertBack(vector<T1> &into, const Container &from) {
+	into.insert(end(into), begin(from), end(from));
+}
+
+template <class T1, class T2>
+void insertBack(vector<T1> &into, const std::initializer_list<T2> &from) {
 	into.insert(end(into), begin(from), end(from));
 }
 

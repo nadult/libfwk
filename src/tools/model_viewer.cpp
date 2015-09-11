@@ -120,6 +120,7 @@ class Viewer {
 				m_tet_mesh.reset();
 				m_current_anim = -1;
 				m_anim_pos = 0.0;
+				m_tet_steps = 0;
 			}
 			if(event.keyDown('a')) {
 				m_current_anim++;

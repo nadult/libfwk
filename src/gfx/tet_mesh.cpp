@@ -34,6 +34,7 @@ namespace {
 				if(m_edges[e] == edge) {
 					m_edges[e] = m_edges.back();
 					m_edges.pop_back();
+					break;
 				}
 		}
 		void addEdge(HalfEdge *edge) { m_edges.emplace_back(edge); }
@@ -49,6 +50,13 @@ namespace {
 
 	class HalfEdge {
 	  public:
+		~HalfEdge() {
+			m_start->removeEdge(this);
+			if(m_opposite) {
+				DASSERT(m_opposite->m_opposite == this);
+				m_opposite->m_opposite = nullptr;
+			}
+		}
 		HalfEdge(const HalfEdge &) = delete;
 		void operator=(const HalfEdge &) = delete;
 
@@ -67,7 +75,7 @@ namespace {
 		HalfEdge(Vertex *v1, Vertex *v2, HalfEdge *next, HalfEdge *prev, Face *face)
 			: m_start(v1), m_end(v2), m_opposite(nullptr), m_next(next), m_prev(prev),
 			  m_face(face) {
-			DASSERT(v1 && v2 && face);
+			DASSERT(v1 && v2 && v1 != v2 && face);
 			m_start->addEdge(this);
 			for(auto *end_edge : m_end->all())
 				if(end_edge->end() == m_start) {
@@ -76,13 +84,6 @@ namespace {
 					end_edge->m_opposite = this;
 					break;
 				}
-		}
-		~HalfEdge() {
-			m_start->removeEdge(this);
-			if(m_opposite) {
-				DASSERT(m_opposite->m_opposite == this);
-				m_opposite->m_opposite = nullptr;
-			}
 		}
 
 		friend class Face;
@@ -95,8 +96,9 @@ namespace {
 	  public:
 		Face(Vertex *v1, Vertex *v2, Vertex *v3, int index)
 			: m_he0(v1, v2, &m_he1, &m_he2, this), m_he1(v2, v3, &m_he2, &m_he0, this),
-			  m_he2(v3, v1, &m_he0, &m_he1, this), m_index(index) {
+			  m_he2(v3, v1, &m_he0, &m_he1, this), m_index(index), m_temp(0) {
 			DASSERT(v1 && v2 && v3);
+			DASSERT(v1 != v2 && v2 != v3 && v3 != v1);
 			m_tri = Triangle(v1->pos(), v2->pos(), v3->pos());
 		}
 
@@ -106,20 +108,26 @@ namespace {
 			DASSERT(idx >= 0 && idx <= 2);
 			return idx == 0 ? &m_he0 : idx == 1 ? &m_he1 : &m_he2;
 		}
-		vector<HalfEdge *> halfEdges() { return {&m_he0, &m_he1, &m_he2}; }
+
+		array<Vertex *, 3> verts() { return {{m_he0.start(), m_he1.start(), m_he2.start()}}; }
+		array<HalfEdge *, 3> halfEdges() { return {{&m_he0, &m_he1, &m_he2}}; }
 
 		const auto &triangle() const { return m_tri; }
+		void setTemp(int temp) { m_temp = temp; }
+		int temp() const { return m_temp; }
 
 	  private:
 		friend class HalfMesh;
 		HalfEdge m_he0, m_he1, m_he2;
 		Triangle m_tri;
-		int m_index;
+		int m_index, m_temp;
 	};
 
 	class HalfMesh {
 	  public:
 		HalfMesh(CRange<float3> positions, CRange<TriIndices> tri_indices) {
+			// TODO: add more asserts:
+			//- edge can be shared by at most two triangles
 			for(auto pos : positions)
 				addVertex(pos);
 
@@ -132,6 +140,9 @@ namespace {
 				if(!hedge->opposite())
 					printf("Unpaired half-edge found!\n");
 		}
+		~HalfMesh() {}
+
+		bool empty() const { return m_faces.empty(); }
 
 		Vertex *addVertex(const float3 &pos) {
 			m_verts.emplace_back(make_unique<Vertex>(pos, (int)m_verts.size()));
@@ -141,6 +152,19 @@ namespace {
 		Face *addFace(Vertex *a, Vertex *b, Vertex *c) {
 			m_faces.emplace_back(make_unique<Face>(a, b, c, (int)m_faces.size()));
 			return m_faces.back().get();
+		}
+
+		vector<HalfEdge *> orderedEdges(Vertex *vert) {
+			vector<HalfEdge *> out;
+			DASSERT(vert);
+			auto *first = vert->first(), *temp = first;
+			do {
+				out.emplace_back(temp);
+				temp = temp->nextVert();
+				DASSERT(temp && "All edges must be paired");
+			} while(temp != first);
+
+			return out;
 		}
 
 		void removeVertex(Vertex *vert) {
@@ -164,34 +188,6 @@ namespace {
 			m_faces.pop_back();
 		}
 
-		Vertex *findBestVert() {
-			Vertex *best = nullptr;
-			float best_dot = constant::inf;
-
-			for(auto *vert : verts()) {
-				if(vert->degree() == 3)
-					return vert;
-			}
-			/*for(int v = 0; v < (int)verts.size(); v++) {
-				int deg = 1;
-				auto *sedge = hedge(vertex(v)->hedge), *tedge = nextVert(sedge);
-				while(tedge != sedge) {
-					tedge = nextVert(tedge);
-					deg++;
-				}
-
-				if(deg == 3) {
-					HalfEdge *rem_edge[3] = {sedge, nextVert(sedge), prevVert(sedge)};
-					Face *vfaces[3] = {face(rem_edge[0]), face(rem_edge[1]), face(rem_edge[2])};
-					HalfEdge *new_edge[3] = {next(rem_edge[0]), next(rem_edge[1]),
-											 next(rem_edge[2])};
-					best = v;
-				}
-			}*/
-
-			return best;
-		}
-
 		vector<Vertex *> verts() {
 			vector<Vertex *> out;
 			for(auto &vert : m_verts)
@@ -211,9 +207,145 @@ namespace {
 			return out;
 		}
 
+		Face *findFace(Vertex *a, Vertex *b, Vertex *c) {
+			for(HalfEdge *edge : a->all()) {
+				if(edge->end() == b && edge->next()->end() == c)
+					return edge->face();
+				if(edge->end() == c && edge->next()->end() == b)
+					return edge->face();
+			}
+			return nullptr;
+		}
+
+		Tetrahedron makeTet(const Vertex *a, const Vertex *b, const Vertex *c,
+							const Vertex *d) const {
+			DASSERT(a && b && c && d);
+			return Tetrahedron(a->pos(), b->pos(), c->pos(), d->pos());
+		}
+
+		Tetrahedron makeTet(HalfEdge *edge) {
+			DASSERT(edge && edge->opposite());
+			return makeTet(edge->start(), edge->end(), edge->next()->end(),
+						   edge->opposite()->next()->end());
+		}
+
+		Tetrahedron makeTet(Vertex *vert) {
+			DASSERT(vert && vert->degree() == 3);
+			auto edges = vert->all();
+			return makeTet(vert, edges[0]->end(), edges[1]->end(), edges[2]->end());
+		}
+
+		bool isIntersecting(const Tetrahedron &tet) {
+			for(auto *face : faces())
+				if(!face->temp())
+					if(tet.isIntersecting(face->triangle()))
+						return true;
+			return false;
+		}
+
+		bool isIntersecting(const Tetrahedron &tet, const vector<Face *> &exclude) {
+			for(auto *face : exclude)
+				face->setTemp(1);
+			bool out = isIntersecting(tet);
+			for(auto *face : exclude)
+				face->setTemp(0);
+			return out;
+		}
+
+		Vertex *findBestVert() {
+			Vertex *best = nullptr;
+			float best_dot = constant::inf;
+
+			for(auto *vert : verts()) {
+				if(vert->degree() != 3)
+					continue;
+				auto rem_edges = orderedEdges(vert);
+				DASSERT((int)rem_edges.size() == 3);
+
+				float3 corners[3] = {rem_edges[0]->end()->pos(), rem_edges[1]->end()->pos(),
+									 rem_edges[2]->end()->pos()};
+				float3 center = (corners[0] + corners[1] + corners[2]) / 3.0f;
+				bool neg_side = true;
+				for(auto *edge : rem_edges)
+					if(dot(edge->face()->triangle(), center) >= 0.0f)
+						neg_side = false;
+
+				if(neg_side)
+					best = vert;
+			}
+
+			return best;
+		}
+
+		HalfEdge *findBestEdge() {
+			HalfEdge *best = nullptr;
+			float best_dot = constant::inf;
+
+			for(auto *edge : halfEdges()) {
+				if(!edge->opposite())
+					continue;
+
+				Tetrahedron tet = makeTet(edge);
+
+				Face *f1 = edge->face();
+				Face *f2 = edge->opposite()->face();
+
+				float3 corners[3] = {edge->end()->pos(), edge->next()->end()->pos(),
+									 edge->opposite()->next()->end()->pos()};
+				float3 center = (corners[0] + corners[1] + corners[2]) / 3.0f;
+
+				if(dot(f1->triangle(), center) >= 0.0f || dot(f2->triangle(), center) >= 0.0f)
+					continue;
+
+				bool is_intersecting = isIntersecting(tet, {f1, f2});
+				float fdot = fabs(dot(f1->triangle().normal(), f2->triangle().normal()));
+
+				if(fdot < best_dot && !is_intersecting) {
+					best = edge;
+					best_dot = fdot;
+				}
+			}
+
+			return best;
+		}
+
+		pair<Face *, float> findBestFace() {
+			Face *best = nullptr;
+			float best_dist = 0.001f;
+
+			for(auto *face : faces()) {
+				const auto &tri = face->triangle();
+				float3 center = tri.center();
+
+				float min_dist = 0.0f;
+				float max_dist = min(min(distance(tri.a(), tri.b()), distance(tri.b(), tri.c())),
+									 distance(tri.c(), tri.a())) *
+								 0.7f;
+
+				while(max_dist - min_dist > 0.001f) {
+					float mid = (max_dist + min_dist) * 0.5f;
+					float3 new_vert = center - tri.normal() * mid;
+					Tetrahedron tet(tri[0], tri[1], tri[2], new_vert);
+
+					if(isIntersecting(tet, {face}))
+						max_dist = mid;
+					else
+						min_dist = mid;
+				}
+
+				if(min_dist > best_dist) {
+					best_dist = min_dist;
+					best = face;
+				}
+			}
+
+			return make_pair(best, best_dist);
+		}
+
 		void draw(Renderer &out) {
 			vector<float3> lines;
 
+			auto edge_mat = make_immutable<Material>(Color::blue, Material::flag_ignore_depth);
 			for(auto *hedge : halfEdges()) {
 				float3 line[2] = {hedge->start()->pos(), hedge->end()->pos()};
 				float3 center = hedge->face()->triangle().center();
@@ -224,9 +356,21 @@ namespace {
 				lines.emplace_back(line[0]);
 				lines.emplace_back(line[1]);
 			}
+			out.addLines(lines, edge_mat);
+			lines.clear();
 
-			out.addLines(lines,
-						 make_immutable<Material>(Color::white, Material::flag_ignore_depth));
+			for(auto *face : faces()) {
+				const auto &tri = face->triangle();
+				float3 center = tri.center();
+				float3 normal = tri.normal();
+				float3 side = normalize(tri.a() - center);
+
+				insertBack(lines, {center, center + normal * 0.5f});
+				insertBack(lines, {center + normal * 0.5f, center + normal * 0.4f + side * 0.1f});
+				insertBack(lines, {center + normal * 0.5f, center + normal * 0.4f - side * 0.1f});
+			}
+			auto normal_mat = make_immutable<Material>(Color::blue, Material::flag_ignore_depth);
+			out.addLines(lines, normal_mat);
 		}
 
 		vector<unique_ptr<Vertex>> m_verts;
@@ -241,23 +385,61 @@ TetMesh::TetMesh(vector<float3> positions, vector<TetIndices> tets)
 			DASSERT(i >= 0 && i < (int)m_positions.size());
 }
 
+static void draw(const Tetrahedron &tet, Renderer &out) {
+	auto material = make_immutable<Material>(Color::red, Material::flag_clear_depth);
+
+	Mesh mesh = Mesh::makeTetrahedron(tet);
+	mesh.draw(out, material);
+}
+
 TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices, int max_steps,
 					  Renderer &renderer) {
-	vector<float3> verts;
-	vector<TetIndices> tets;
 
 	HalfMesh mesh(positions, tri_indices);
+	vector<Tetrahedron> tets;
 
-	for(int s = 0; s < max_steps; s++) {
-		Vertex *best = mesh.findBestVert();
-
-		if(best) {
+	for(int s = 0; s < max_steps && !mesh.empty(); s++) {
+		if(Vertex *best = mesh.findBestVert()) {
+			DASSERT(best->degree() == 3);
+			auto *edge = best->first();
+			Vertex *verts[3] = {edge->prevVert()->end(), edge->end(), edge->nextVert()->end()};
+			tets.emplace_back(mesh.makeTet(best));
 			mesh.removeVertex(best);
+
+			if(auto *face = mesh.findFace(verts[0], verts[1], verts[2]))
+				mesh.removeFace(face);
+			else
+				mesh.addFace(verts[0], verts[2], verts[1]);
+		} else if(HalfEdge *edge = mesh.findBestEdge()) {
+			Face *f1 = edge->face(), *f2 = edge->opposite()->face();
+			Vertex *v0 = edge->start(), *v1 = edge->end();
+			Vertex *vf1 = edge->next()->end(), *vf2 = edge->opposite()->next()->end();
+			tets.emplace_back(mesh.makeTet(edge));
+			mesh.removeFace(f1);
+			mesh.removeFace(f2);
+			mesh.addFace(v1, vf1, vf2);
+			mesh.addFace(v0, vf2, vf1);
+		} else {
+			auto pair = mesh.findBestFace();
+			DASSERT(pair.first && "Don't know what to do!");
+
+			auto *face = pair.first;
+			auto verts = face->verts();
+			float3 new_pos = face->triangle().center() - face->triangle().normal() * pair.second;
+			auto *new_vert = mesh.addVertex(new_pos);
+			tets.emplace_back(mesh.makeTet(new_vert, verts[0], verts[1], verts[2]));
+			mesh.removeFace(face);
+			mesh.addFace(verts[0], verts[1], new_vert);
+			mesh.addFace(verts[1], verts[2], new_vert);
+			mesh.addFace(verts[2], verts[0], new_vert);
 		}
 	}
 
 	mesh.draw(renderer);
+	for(const auto &tet : tets)
+		fwk::draw(tet, renderer);
 
-	return TetMesh(std::move(verts), std::move(tets));
+	vector<float3> verts;
+	return TetMesh(std::move(verts), std::move(vector<TetIndices>()));
 }
 }

@@ -738,6 +738,7 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh makeRect(const FRect &xz_rect, float y);
 	static Mesh makeBBox(const FBox &bbox);
 	static Mesh makeCylinder(const Cylinder &, int num_sides);
+	static Mesh makeTetrahedron(const Tetrahedron &);
 
 	struct AnimatedData {
 		FBox bounding_box;

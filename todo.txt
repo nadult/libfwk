@@ -21,3 +21,5 @@
 - Fix problems with Range conversions (make them explicit?)
 
 - tools/model_viewer crashes when wrong path is passed (for example folder instead of path to .model file)
+
+- When LLDB is attached, make it catch all throws automatically

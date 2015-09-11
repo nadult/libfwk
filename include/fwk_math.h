@@ -697,7 +697,7 @@ class Triangle {
 
 	float3 operator[](int idx) const {
 		DASSERT(idx >= 0 && idx < 3);
-		return idx == 0 ? m_point : m_point + m_edge[idx];
+		return idx == 0 ? a() : idx == 1 ? b() : c();
 	}
 
 	float3 a() const { return m_point; }
@@ -745,6 +745,22 @@ class Plane {
   protected:
 	float3 m_nrm;
 	float m_dist;
+};
+
+class Tetrahedron {
+  public:
+	Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4);
+	Tetrahedron(TRange<const float3, 4> points)
+		: Tetrahedron(points[0], points[1], points[2], points[3]) {}
+
+	bool isIntersecting(const Triangle &) const;
+
+	const float3 &operator[](int idx) const { return m_corners[idx]; }
+	const float3 &corner(int idx) const { return m_corners[idx]; }
+	const auto &corners() const { return m_corners; }
+
+  private:
+	array<float3, 4> m_corners;
 };
 
 const Plane normalize(const Plane &);
