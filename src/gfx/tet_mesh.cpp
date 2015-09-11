@@ -148,7 +148,15 @@ namespace {
 
 		bool empty() const { return m_faces.empty(); }
 
+		bool canAddVert(const float3 &new_pos) const {
+			for(auto &vert : m_verts)
+				if(distance(vert->pos(), new_pos) < constant::epsilon)
+					return false;
+			return true;
+		}
+
 		Vertex *addVertex(const float3 &pos) {
+			DASSERT(canAddVert(pos));
 			m_verts.emplace_back(make_unique<Vertex>(pos, (int)m_verts.size()));
 			return m_verts.back().get();
 		}
@@ -300,6 +308,9 @@ namespace {
 
 				if(dot(f1->triangle(), center) >= 0.0f || dot(f2->triangle(), center) >= 0.0f)
 					continue;
+				if(fabs(dot(f1->triangle().normal(), f2->triangle().normal())) >
+				   1.0f - constant::epsilon)
+					continue;
 
 				float fdot = fabs(dot(f1->triangle().normal(), f2->triangle().normal()));
 				if(fdot < best_dot) {
@@ -327,19 +338,21 @@ namespace {
 									 distance(tri.c(), tri.a())) *
 								 0.7f;
 
+				float ok_dist = 0.0f;
+
 				while(max_dist - min_dist > 0.002f) {
 					float mid = (max_dist + min_dist) * 0.5f;
 					float3 new_vert = center - tri.normal() * mid;
 					Tetrahedron tet(tri[0], tri[1], tri[2], new_vert);
 
-					if(isIntersecting(tet, {face}))
-						max_dist = mid;
-					else
+					if(!isIntersecting(tet, {face}) && canAddVert(new_vert)) {
 						min_dist = mid;
+						ok_dist = mid;
+					} else { max_dist = mid; }
 				}
 
-				if(min_dist > best_dist) {
-					best_dist = min_dist;
+				if(ok_dist > best_dist) {
+					best_dist = ok_dist;
 					best = face;
 					break;
 				}
@@ -351,6 +364,7 @@ namespace {
 		Tetrahedron extractTet() {
 			FWK_PROFILE("extractTet");
 			Tetrahedron out;
+			const char *ext_mode = "";
 
 			if(Vertex *best = findBestVert()) {
 				DASSERT(best->degree() == 3);
@@ -363,6 +377,7 @@ namespace {
 					removeFace(face);
 				else
 					addFace(verts[0], verts[2], verts[1]);
+				ext_mode = "vert";
 			} else if(HalfEdge *edge = findBestEdge()) {
 				Face *f1 = edge->face(), *f2 = edge->opposite()->face();
 				Vertex *v0 = edge->start(), *v1 = edge->end();
@@ -372,6 +387,7 @@ namespace {
 				removeFace(f2);
 				addFace(v1, vf1, vf2);
 				addFace(v0, vf2, vf1);
+				ext_mode = "edge";
 			} else {
 				auto pair = findBestFace();
 
@@ -387,10 +403,18 @@ namespace {
 					addFace(verts[1], verts[2], new_vert);
 					addFace(verts[2], verts[0], new_vert);
 				}
+				ext_mode = "face";
 			}
 
-			if(!out.isValid())
+			if(!out.isValid()) {
+				printf("Mode: %s\n", ext_mode);
+				for(int i = 0; i < 4; i++) {
+					float dist = distance(out[i], out[(i + 1) % 4]);
+					printf("%f %f %f (-> %f)\n", out[i].x, out[i].y, out[i].z, dist);
+				}
+
 				printf("Volume: %f\n", out.volume());
+			}
 			DASSERT(out.isValid() && "Couldn't extract valid tetrahedron");
 			return out;
 		}

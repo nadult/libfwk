@@ -103,6 +103,8 @@ class Viewer {
 		float scale = 0.0f;
 
 		for(const auto &event : device.inputEvents()) {
+			bool shift = event.hasModifier(InputEvent::mod_lshift);
+
 			if(event.keyPressed(InputKey::left))
 				x_rot -= time_diff * 2.0f;
 			if(event.keyPressed(InputKey::right))
@@ -116,7 +118,8 @@ class Viewer {
 			if(event.keyPressed(InputKey::pagedown))
 				scale -= time_diff * 2.0f;
 			if(event.keyDown('m')) {
-				m_current_model = (m_current_model + 1) % m_models.size();
+				m_current_model =
+					(m_current_model + (shift ? m_models.size() - 1 : 1)) % m_models.size();
 				m_tet_mesh.reset();
 				m_current_anim = -1;
 				m_anim_pos = 0.0;
@@ -131,7 +134,7 @@ class Viewer {
 			if(event.keyDown('s'))
 				m_show_nodes ^= 1;
 			if(event.keyDown('t'))
-				m_tet_steps++;
+				m_tet_steps += shift ? 10 : 1;
 			if(event.keyDown('r'))
 				m_tet_steps = 0;
 		}
@@ -204,6 +207,8 @@ class Viewer {
 		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n\n");
+		if(m_tet_steps > 0)
+			fmt("Tetrahedralization steps: %d\n", m_tet_steps);
 		fmt("%s", Profiler::instance()->getStats("extractTet").c_str());
 
 		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);

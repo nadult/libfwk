@@ -47,7 +47,7 @@ float Tetrahedron::volume() const {
 
 bool Tetrahedron::isValid() const {
 	for(int n = 0; n < 4; n++)
-		if(distanceSq(m_corners[n], m_corners[(n + 1) % 4]) < constant::epsilon)
+		if(distance(m_corners[n], m_corners[(n + 1) % 4]) < constant::epsilon)
 			return false;
 	return volume() > pow(constant::epsilon, 3);
 }
