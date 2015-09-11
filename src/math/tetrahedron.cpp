@@ -10,7 +10,10 @@
 
 namespace fwk {
 Tetrahedron::Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4)
-	: m_corners({{p1, p2, p3, p4}}) {}
+	: m_corners({{p1, p2, p3, p4}}) {
+	if(volume() < 0.0f)
+		swap(m_corners[2], m_corners[3]);
+}
 
 bool Tetrahedron::isIntersecting(const Triangle &triangle0) const {
 	using K = CGAL::Simple_cartesian<double>;
@@ -46,6 +49,6 @@ bool Tetrahedron::isValid() const {
 	for(int n = 0; n < 4; n++)
 		if(distanceSq(m_corners[n], m_corners[(n + 1) % 4]) < constant::epsilon)
 			return false;
-	return volume() > constant::epsilon;
+	return volume() > pow(constant::epsilon, 3);
 }
 }

@@ -4,6 +4,7 @@
 
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
+#include "fwk_profile.h"
 #include <algorithm>
 #include <limits>
 
@@ -300,12 +301,13 @@ namespace {
 				if(dot(f1->triangle(), center) >= 0.0f || dot(f2->triangle(), center) >= 0.0f)
 					continue;
 
-				bool is_intersecting = isIntersecting(tet, {f1, f2});
 				float fdot = fabs(dot(f1->triangle().normal(), f2->triangle().normal()));
-
-				if(fdot < best_dot && !is_intersecting) {
-					best = edge;
-					best_dot = fdot;
+				if(fdot < best_dot) {
+					if(!isIntersecting(tet, {f1, f2})) {
+						best = edge;
+						best_dot = fdot;
+						break;
+					}
 				}
 			}
 
@@ -325,7 +327,7 @@ namespace {
 									 distance(tri.c(), tri.a())) *
 								 0.7f;
 
-				while(max_dist - min_dist > 0.001f) {
+				while(max_dist - min_dist > 0.002f) {
 					float mid = (max_dist + min_dist) * 0.5f;
 					float3 new_vert = center - tri.normal() * mid;
 					Tetrahedron tet(tri[0], tri[1], tri[2], new_vert);
@@ -339,6 +341,7 @@ namespace {
 				if(min_dist > best_dist) {
 					best_dist = min_dist;
 					best = face;
+					break;
 				}
 			}
 
@@ -346,6 +349,7 @@ namespace {
 		}
 
 		Tetrahedron extractTet() {
+			FWK_PROFILE("extractTet");
 			Tetrahedron out;
 
 			if(Vertex *best = findBestVert()) {
@@ -385,6 +389,8 @@ namespace {
 				}
 			}
 
+			if(!out.isValid())
+				printf("Volume: %f\n", out.volume());
 			DASSERT(out.isValid() && "Couldn't extract valid tetrahedron");
 			return out;
 		}
@@ -496,14 +502,18 @@ TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices, 
 
 	vector<Tetrahedron> tets;
 	while(max_steps) {
+		bool extracted = false;
 		for(auto &sub_mesh : sub_meshes) {
 			if(!sub_mesh.empty()) {
 				auto tet = sub_mesh.extractTet();
 				tets.emplace_back(tet);
+				extracted = true;
 				max_steps--;
 				break;
 			}
 		}
+		if(!extracted)
+			break;
 	}
 
 	for(auto &sub_mesh : sub_meshes)

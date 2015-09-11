@@ -203,7 +203,8 @@ class Viewer {
 		fmt("A: change animation\n");
 		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
-		fmt("pgup/pgdn: zoom\n");
+		fmt("pgup/pgdn: zoom\n\n");
+		fmt("%s", Profiler::instance()->getStats("extractTet").c_str());
 
 		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);
 		FontStyle style{Color::white, Color::black};
@@ -252,6 +253,9 @@ bool main_loop(GfxDevice &device) {
 	s_viewer->updateViewport();
 	s_viewer->draw();
 
+	auto *profiler = Profiler::instance();
+	profiler->nextFrame();
+
 	return true;
 }
 
@@ -291,6 +295,7 @@ int safe_main(int argc, char **argv) {
 		}
 	} else { files = {make_pair(model_argument, tex_argument)}; }
 
+	Profiler profiler;
 	GfxDevice gfx_device;
 	uint flags = GfxDevice::flag_resizable | GfxDevice::flag_multisampling | GfxDevice::flag_vsync;
 	gfx_device.createWindow("libfwk::model_viewer", resolution, flags);
