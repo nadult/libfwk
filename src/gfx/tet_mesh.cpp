@@ -18,7 +18,7 @@ namespace {
 
 	class Vertex {
 	  public:
-		Vertex(float3 pos, int index) : m_pos(pos), m_index(index) {}
+		Vertex(float3 pos, int index) : m_pos(pos), m_index(index), m_temp(0) {}
 		~Vertex() { DASSERT(m_edges.empty()); }
 		Vertex(const Vertex &) = delete;
 		void operator=(const Vertex &) = delete;
@@ -27,6 +27,9 @@ namespace {
 		HalfEdge *first() { return m_edges.empty() ? nullptr : m_edges.front(); }
 		const vector<HalfEdge *> &all() { return m_edges; }
 		int degree() const { return (int)m_edges.size(); }
+
+		int temp() const { return m_temp; }
+		void setTemp(int temp) { m_temp = temp; }
 
 	  private:
 		void removeEdge(HalfEdge *edge) {
@@ -45,7 +48,7 @@ namespace {
 
 		vector<HalfEdge *> m_edges;
 		float3 m_pos;
-		int m_index;
+		int m_index, m_temp;
 	};
 
 	class HalfEdge {
@@ -125,7 +128,8 @@ namespace {
 
 	class HalfMesh {
 	  public:
-		HalfMesh(CRange<float3> positions, CRange<TriIndices> tri_indices) {
+		HalfMesh(CRange<float3> positions = CRange<float3>(),
+				 CRange<TriIndices> tri_indices = CRange<TriIndices>()) {
 			// TODO: add more asserts:
 			//- edge can be shared by at most two triangles
 			for(auto pos : positions)
@@ -140,7 +144,6 @@ namespace {
 				if(!hedge->opposite())
 					printf("Unpaired half-edge found!\n");
 		}
-		~HalfMesh() {}
 
 		bool empty() const { return m_faces.empty(); }
 
@@ -342,7 +345,95 @@ namespace {
 			return make_pair(best, best_dist);
 		}
 
-		void draw(Renderer &out) {
+		Tetrahedron extractTet() {
+			Tetrahedron out;
+
+			if(Vertex *best = findBestVert()) {
+				DASSERT(best->degree() == 3);
+				auto *edge = best->first();
+				Vertex *verts[3] = {edge->prevVert()->end(), edge->end(), edge->nextVert()->end()};
+				out = makeTet(best);
+				removeVertex(best);
+
+				if(auto *face = findFace(verts[0], verts[1], verts[2]))
+					removeFace(face);
+				else
+					addFace(verts[0], verts[2], verts[1]);
+			} else if(HalfEdge *edge = findBestEdge()) {
+				Face *f1 = edge->face(), *f2 = edge->opposite()->face();
+				Vertex *v0 = edge->start(), *v1 = edge->end();
+				Vertex *vf1 = edge->next()->end(), *vf2 = edge->opposite()->next()->end();
+				out = makeTet(edge);
+				removeFace(f1);
+				removeFace(f2);
+				addFace(v1, vf1, vf2);
+				addFace(v0, vf2, vf1);
+			} else {
+				auto pair = findBestFace();
+
+				if(pair.first) {
+					auto *face = pair.first;
+					auto verts = face->verts();
+					float3 new_pos =
+						face->triangle().center() - face->triangle().normal() * pair.second;
+					auto *new_vert = addVertex(new_pos);
+					out = makeTet(new_vert, verts[0], verts[1], verts[2]);
+					removeFace(face);
+					addFace(verts[0], verts[1], new_vert);
+					addFace(verts[1], verts[2], new_vert);
+					addFace(verts[2], verts[0], new_vert);
+				}
+			}
+
+			DASSERT(out.isValid() && "Couldn't extract valid tetrahedron");
+			return out;
+		}
+
+		void clearTemps(int value) {
+			for(auto *vert : verts())
+				vert->setTemp(0);
+			for(auto *face : faces())
+				face->setTemp(0);
+		}
+
+		void selectConnected(Vertex *vert) {
+			if(vert->temp())
+				return;
+			vert->setTemp(1);
+			for(HalfEdge *edge : vert->all()) {
+				selectConnected(edge->end());
+				edge->face()->setTemp(1);
+			}
+		}
+
+		HalfMesh extractSelection() {
+			HalfMesh out;
+			std::map<Vertex *, Vertex *> vert_map;
+			for(auto *vert : verts())
+				if(vert->temp()) {
+					auto *new_vert = out.addVertex(vert->pos());
+					vert_map[vert] = new_vert;
+				}
+
+			for(auto *face : faces())
+				if(face->temp()) {
+					auto verts = face->verts();
+					auto it0 = vert_map.find(verts[0]);
+					auto it1 = vert_map.find(verts[1]);
+					auto it2 = vert_map.find(verts[2]);
+					if(it0 != vert_map.end() && it1 != vert_map.end() && it2 != vert_map.end())
+						out.addFace(it0->second, it1->second, it2->second);
+					removeFace(face);
+				}
+
+			for(auto *vert : verts())
+				if(vert->temp())
+					removeVertex(vert);
+
+			return out;
+		}
+
+		void draw(Renderer &out, float scale) {
 			vector<float3> lines;
 
 			auto edge_mat = make_immutable<Material>(Color::blue, Material::flag_ignore_depth);
@@ -362,8 +453,8 @@ namespace {
 			for(auto *face : faces()) {
 				const auto &tri = face->triangle();
 				float3 center = tri.center();
-				float3 normal = tri.normal();
-				float3 side = normalize(tri.a() - center);
+				float3 normal = tri.normal() * scale;
+				float3 side = normalize(tri.a() - center) * scale;
 
 				insertBack(lines, {center, center + normal * 0.5f});
 				insertBack(lines, {center + normal * 0.5f, center + normal * 0.4f + side * 0.1f});
@@ -396,46 +487,27 @@ TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices, 
 					  Renderer &renderer) {
 
 	HalfMesh mesh(positions, tri_indices);
+	vector<HalfMesh> sub_meshes;
+	while(!mesh.empty()) {
+		mesh.selectConnected(mesh.verts().front());
+		sub_meshes.emplace_back(mesh.extractSelection());
+		mesh.clearTemps(0);
+	}
+
 	vector<Tetrahedron> tets;
-
-	for(int s = 0; s < max_steps && !mesh.empty(); s++) {
-		if(Vertex *best = mesh.findBestVert()) {
-			DASSERT(best->degree() == 3);
-			auto *edge = best->first();
-			Vertex *verts[3] = {edge->prevVert()->end(), edge->end(), edge->nextVert()->end()};
-			tets.emplace_back(mesh.makeTet(best));
-			mesh.removeVertex(best);
-
-			if(auto *face = mesh.findFace(verts[0], verts[1], verts[2]))
-				mesh.removeFace(face);
-			else
-				mesh.addFace(verts[0], verts[2], verts[1]);
-		} else if(HalfEdge *edge = mesh.findBestEdge()) {
-			Face *f1 = edge->face(), *f2 = edge->opposite()->face();
-			Vertex *v0 = edge->start(), *v1 = edge->end();
-			Vertex *vf1 = edge->next()->end(), *vf2 = edge->opposite()->next()->end();
-			tets.emplace_back(mesh.makeTet(edge));
-			mesh.removeFace(f1);
-			mesh.removeFace(f2);
-			mesh.addFace(v1, vf1, vf2);
-			mesh.addFace(v0, vf2, vf1);
-		} else {
-			auto pair = mesh.findBestFace();
-			DASSERT(pair.first && "Don't know what to do!");
-
-			auto *face = pair.first;
-			auto verts = face->verts();
-			float3 new_pos = face->triangle().center() - face->triangle().normal() * pair.second;
-			auto *new_vert = mesh.addVertex(new_pos);
-			tets.emplace_back(mesh.makeTet(new_vert, verts[0], verts[1], verts[2]));
-			mesh.removeFace(face);
-			mesh.addFace(verts[0], verts[1], new_vert);
-			mesh.addFace(verts[1], verts[2], new_vert);
-			mesh.addFace(verts[2], verts[0], new_vert);
+	while(max_steps) {
+		for(auto &sub_mesh : sub_meshes) {
+			if(!sub_mesh.empty()) {
+				auto tet = sub_mesh.extractTet();
+				tets.emplace_back(tet);
+				max_steps--;
+				break;
+			}
 		}
 	}
 
-	mesh.draw(renderer);
+	for(auto &sub_mesh : sub_meshes)
+		sub_mesh.draw(renderer, distance(FBox(positions).min, FBox(positions).max) * 0.05f);
 	for(const auto &tet : tets)
 		fwk::draw(tet, renderer);
 

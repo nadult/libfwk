@@ -752,8 +752,11 @@ class Tetrahedron {
 	Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4);
 	Tetrahedron(TRange<const float3, 4> points)
 		: Tetrahedron(points[0], points[1], points[2], points[3]) {}
+	Tetrahedron() : Tetrahedron(float3(), float3(), float3(), float3()) {}
 
+	float volume() const;
 	bool isIntersecting(const Triangle &) const;
+	bool isValid() const;
 
 	const float3 &operator[](int idx) const { return m_corners[idx]; }
 	const float3 &corner(int idx) const { return m_corners[idx]; }

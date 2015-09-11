@@ -35,4 +35,17 @@ bool Tetrahedron::isIntersecting(const Triangle &triangle0) const {
 
 	return true;
 }
+
+float Tetrahedron::volume() const {
+	return dot(m_corners[0] - m_corners[3],
+			   cross(m_corners[1] - m_corners[3], m_corners[2] - m_corners[3])) /
+		   6.0f;
+}
+
+bool Tetrahedron::isValid() const {
+	for(int n = 0; n < 4; n++)
+		if(distanceSq(m_corners[n], m_corners[(n + 1) % 4]) < constant::epsilon)
+			return false;
+	return volume() > constant::epsilon;
+}
 }

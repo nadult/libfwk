@@ -345,6 +345,7 @@ template <class T> class PodArray;
 template <class T> class Range {
 
   public:
+	Range() : Range(nullptr, 0) {}
 	Range(std::vector<T> &data) : Range(data.data(), data.size()) {}
 	template <class TConvertible>
 	constexpr Range(const std::vector<TConvertible> &vec) noexcept : Range(vec.data(), vec.size()) {
