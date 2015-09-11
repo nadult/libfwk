@@ -11,7 +11,7 @@ namespace fwk {
 
 static Profiler *s_profiler_instance = nullptr;
 
-Profiler::Profiler() : m_frame_count(0), m_frame_limit(0) {
+Profiler::Profiler() : m_frame_count(0), m_frame_limit(0), m_last_frame_time(-1.0) {
 	DASSERT(!s_profiler_instance);
 	s_profiler_instance = this;
 }
@@ -54,14 +54,21 @@ void Profiler::updateCounter(const char *id, int value) {
 
 double Profiler::getTime() { return fwk::getTime(); }
 
-void Profiler::openglFinish() {
-	glFinish();
-}
+void Profiler::openglFinish() { glFinish(); }
 
-void Profiler::nextFrame() {
+void Profiler::nextFrame(double expected_time) {
 	for(int n = 0; n < (int)m_counters.size(); n++)
 		m_counters[n].value = 0;
+
 	m_frame_count++;
+	double cur_time = getTime();
+	if(cur_time - m_last_frame_time > expected_time && m_last_frame_time > 0.0) {
+		int add_frames = (cur_time - m_last_frame_time) / expected_time - 1;
+		if(add_frames > 0)
+			m_frame_count += min(29, add_frames);
+	}
+	m_last_frame_time = cur_time;
+
 	if(m_frame_count - m_frame_limit >= 30)
 		m_frame_limit += 30;
 }
@@ -72,8 +79,6 @@ const string Profiler::getStats(const char *filter) {
 	double cur_time = getTime();
 	long long min_frame = m_frame_limit - 30;
 
-	if(!m_timers.empty())
-		out("Timers:\n");
 	for(auto &timer : m_timers) {
 		double shown_value = 0.0;
 		if(timer.last_frame_time > 0.0) {
@@ -82,7 +87,7 @@ const string Profiler::getStats(const char *filter) {
 		}
 
 		if(timer.values.empty()) {
-			out("  %s: no samples\n", timer.name.c_str());
+			out("%s: no samples\n", timer.name.c_str());
 			continue;
 		}
 
@@ -107,15 +112,13 @@ const string Profiler::getStats(const char *filter) {
 		double ms = shown_value * 1000.0;
 		double us = ms * 1000.0;
 		bool print_ms = ms > 0.5;
-		out("  %s: %.2f %s\n", timer.name.c_str(), print_ms ? ms : us, print_ms ? "ms" : "us");
+		out("%s: %.2f %s\n", timer.name.c_str(), print_ms ? ms : us, print_ms ? "ms" : "us");
 	}
 
-	if(!m_counters.empty())
-		out("Counters\n");
 	for(const auto &counter : m_counters) {
 		if(counter.name.find(filter) != string::npos) {
 			bool in_kilos = counter.value > 1000 * 10;
-			out("  %s: %lld%s\n", counter.name.c_str(),
+			out("%s: %lld%s\n", counter.name.c_str(),
 				in_kilos ? (counter.value + 500) / 1000 : counter.value, in_kilos ? "k" : "");
 		}
 	}

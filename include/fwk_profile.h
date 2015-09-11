@@ -21,7 +21,7 @@ class Profiler {
 	// TODO: Add hierarchical timers
 	void updateTimer(const char *name, double start_time, double end_time, bool is_rare = true);
 	void updateCounter(const char *name, int value);
-	void nextFrame();
+	void nextFrame(double expected_time = 1.0 / 60.0);
 	const string getStats(const char *filter = "");
 
   private:
@@ -47,15 +47,16 @@ class Profiler {
 	vector<Timer> m_timers;
 	vector<Counter> m_counters;
 	long long m_frame_count, m_frame_limit;
+	double m_last_frame_time;
 };
 
 struct AutoTimer {
 	AutoTimer(const char *id, bool is_rare, bool is_opengl)
 		: id(id), is_rare(is_rare), is_opengl(is_opengl) {
-			if(is_opengl)
-				Profiler::openglFinish();
-			start_time = Profiler::getTime();
-		}
+		if(is_opengl)
+			Profiler::openglFinish();
+		start_time = Profiler::getTime();
+	}
 	~AutoTimer() {
 		if(is_opengl)
 			Profiler::openglFinish();
