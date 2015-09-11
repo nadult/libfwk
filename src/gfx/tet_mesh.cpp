@@ -20,7 +20,15 @@ namespace {
 	class Vertex {
 	  public:
 		Vertex(float3 pos, int index) : m_pos(pos), m_index(index), m_temp(0) {}
-		~Vertex() { DASSERT(m_edges.empty()); }
+		~Vertex() {
+			if(!m_edges.empty()) {
+				static bool reported = false;
+				if(!reported) {
+					reported = true;
+					printf("HalfEdges should be destroyed before Vertices\n");
+				}
+			}
+		}
 		Vertex(const Vertex &) = delete;
 		void operator=(const Vertex &) = delete;
 
@@ -81,12 +89,13 @@ namespace {
 			  m_face(face) {
 			DASSERT(v1 && v2 && v1 != v2 && face);
 			m_start->addEdge(this);
+
 			for(auto *end_edge : m_end->all())
 				if(end_edge->end() == m_start) {
 					m_opposite = end_edge;
-					DASSERT(end_edge->m_opposite == nullptr);
+					DASSERT(end_edge->m_opposite == nullptr &&
+							"One edge shouldn't be shared by more than two triangles");
 					end_edge->m_opposite = this;
-					break;
 				}
 		}
 
@@ -105,8 +114,6 @@ namespace {
 			DASSERT(v1 != v2 && v2 != v3 && v3 != v1);
 			m_tri = Triangle(v1->pos(), v2->pos(), v3->pos());
 		}
-
-		~Face() {}
 
 		HalfEdge *halfEdge(int idx) {
 			DASSERT(idx >= 0 && idx <= 2);
@@ -138,6 +145,8 @@ namespace {
 
 			for(int f = 0; f < tri_indices.size(); f++) {
 				const auto &ids = tri_indices[f];
+				for(int i = 0; i < 3; i++)
+					DASSERT(ids[i] >= 0 && ids[i] < (int)m_verts.size());
 				addFace(m_verts[ids[0]].get(), m_verts[ids[1]].get(), m_verts[ids[2]].get());
 			}
 
@@ -162,6 +171,7 @@ namespace {
 		}
 
 		Face *addFace(Vertex *a, Vertex *b, Vertex *c) {
+			DASSERT(!findFace(a, b, c));
 			m_faces.emplace_back(make_unique<Face>(a, b, c, (int)m_faces.size()));
 			return m_faces.back().get();
 		}
@@ -282,8 +292,14 @@ namespace {
 					if(dot(edge->face()->triangle(), center) >= 0.0f)
 						neg_side = false;
 
-				if(neg_side)
-					best = vert;
+				if(neg_side) {
+					Tetrahedron tet(vert->pos(), corners[0], corners[1], corners[2]);
+					if(!isIntersecting(tet, {rem_edges[0]->face(), rem_edges[1]->face(),
+											 rem_edges[2]->face()})) {
+						best = vert;
+						break;
+					}
+				}
 			}
 
 			return best;

@@ -15,17 +15,17 @@ Tetrahedron::Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, c
 		swap(m_corners[2], m_corners[3]);
 }
 
-bool Tetrahedron::isIntersecting(const Triangle &triangle0) const {
+bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
 	using K = CGAL::Simple_cartesian<double>;
 	using Point = K::Point_3;
 
-	Triangle triangle(lerp(triangle0[0], triangle0.center(), 0.01f),
-					  lerp(triangle0[1], triangle0.center(), 0.01f),
-					  lerp(triangle0[2], triangle0.center(), 0.01f));
+	float3 center = (m_corners[0] + m_corners[1] + m_corners[2] + m_corners[3]) * 0.25f;
 
 	Point tet_points[4], tri_points[3];
-	for(int n = 0; n < 4; n++)
-		tet_points[n] = Point(m_corners[n].x, m_corners[n].y, m_corners[n].z);
+	for(int n = 0; n < 4; n++) {
+		float3 p = lerp(m_corners[n], center, 0.001f);
+		tet_points[n] = Point(p.x, p.y, p.z);
+	}
 	for(int n = 0; n < 3; n++)
 		tri_points[n] = Point(triangle[n].x, triangle[n].y, triangle[n].z);
 
