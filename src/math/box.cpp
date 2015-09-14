@@ -62,6 +62,7 @@ const FBox operator*(const Matrix4 &mat, const FBox &box) {
 }
 
 bool areOverlapping(const FBox &a, const FBox &b) {
+	// TODO: these epsilons shouldnt be here...
 	for(int n = 0; n < 3; n++)
 		if(b.min[n] >= a.max[n] - constant::epsilon || a.min[n] >= b.max[n] - constant::epsilon)
 			return false;

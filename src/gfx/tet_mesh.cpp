@@ -346,6 +346,7 @@ namespace {
 		}*/
 
 		bool testTriangleSegment(const Triangle &tri, const Segment &seg) {
+			FWK_PROFILE_COUNTER("XtestTriangleSegment", 1);
 			float3 dir = seg.dir();
 			float len = seg.length();
 			float min_dist = constant::inf;
@@ -357,10 +358,21 @@ namespace {
 
 		// Ignores faces which share an edge
 		bool testNewFace(Vertex *a, Vertex *b, Vertex *c) {
+			FWK_PROFILE_COUNTER("XtestNewFace", 1);
+
 			Vertex *tri_verts[3] = {a, b, c};
 			Triangle tri(a->pos(), b->pos(), c->pos());
+			float3 tri_points[3] = {tri.a(), tri.b(), tri.c()};
+			FBox tri_box(tri_points);
 
 			for(auto &face : m_faces) {
+				const auto &ttri = face->triangle();
+				float3 ttri_points[3] = {ttri.a(), ttri.b(), ttri.c()};
+				FBox ttri_box(ttri_points);
+				ttri_box.enlarge(constant::epsilon * 2.0f);
+				if(!areOverlapping(tri_box, ttri_box))
+					continue;
+
 				auto verts = face->verts();
 				Vertex *matched = nullptr;
 				int num_matched = 0;
@@ -375,29 +387,25 @@ namespace {
 					Plane plane(face->triangle());
 					for(int n = 0; n < 3; n++) {
 						Segment seg(tri[n], tri[(n + 1) % 3]);
-						float tdist[2] = {dot(Plane(face->triangle()), seg.origin()),
-										  dot(Plane(face->triangle()), seg.end())};
+						float tdist[2] = {dot(Plane(ttri), seg.origin()),
+										  dot(Plane(ttri), seg.end())};
 
-						if(!testTriangleSegment(face->triangle(), seg) &&
-						   distance(face->triangle(), seg) < constant::epsilon &&
+						if(!testTriangleSegment(ttri, seg) &&
+						   distance(ttri, seg) < constant::epsilon &&
 						   !(isOneOf(tri_verts[n], verts[0], verts[1], verts[2]) &&
 							 isOneOf(tri_verts[(n + 1) % 3], verts[0], verts[1], verts[2])))
 							any_parallel = true;
 					}
 
 					// TODO: second distance test is only for intersection
-					if(any_parallel && distance(tri, face->triangle()) < constant::epsilon)
+					if(any_parallel && distance(tri, ttri) < constant::epsilon)
 						return false;
 
-					if(num_matched == 1 && areIntersecting(tri, face->triangle()))
+					if(num_matched == 1 && areIntersecting(tri, ttri))
 						return false;
 				}
 				if(num_matched == 0) {
-					if(areIntersecting(tri, face->triangle()))
-						//	if(NoDivTriTriIsect(tri.a().v, tri.b().v, tri.c().v,
-						// face->triangle().a().v,
-						//						face->triangle().b().v, face->triangle().c().v,
-						// 0.0f))
+					if(areIntersecting(tri, ttri))
 						return false;
 				}
 			}
@@ -515,7 +523,7 @@ namespace {
 		}
 
 		Tetrahedron extractTet() {
-			FWK_PROFILE("extractTet");
+			FWK_PROFILE("XextractTet");
 			Tetrahedron out;
 			const char *ext_mode = "";
 

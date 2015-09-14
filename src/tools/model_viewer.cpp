@@ -209,7 +209,7 @@ class Viewer {
 		fmt("pgup/pgdn: zoom\n\n");
 		if(m_tet_steps > 0)
 			fmt("Tetrahedralization steps: %d\n", m_tet_steps);
-		fmt("%s", Profiler::instance()->getStats("extractTet").c_str());
+		fmt("%s", Profiler::instance()->getStats("X").c_str());
 
 		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);
 		FontStyle style{Color::white, Color::black};

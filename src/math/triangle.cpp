@@ -8,6 +8,7 @@
 #include <CGAL/intersections.h>
 #include <CGAL/Triangle_3.h>
 #include <boost/variant.hpp>
+#include "fwk_profile.h"
 
 namespace fwk {
 
@@ -326,6 +327,7 @@ bool areIntersecting(const Triangle &a, const Triangle &b) {
 	using K = CGAL::Exact_predicates_exact_constructions_kernel;
 	using Point = K::Point_3;
 	using Segment = K::Segment_3;
+	FWK_PROFILE_COUNTER("XareIntersecting", 1);
 
 	Point ap[3], bp[3];
 	for(int n = 0; n < 3; n++)
@@ -357,6 +359,7 @@ bool areIntersecting(const Triangle &a, const Triangle &b) {
 			return true;
 		}
 	} catch(...) { return true; }
+
 	return false;
 }
 

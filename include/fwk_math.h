@@ -471,6 +471,10 @@ template <class TVec3> struct Box {
 		min = Vec3(fwk::min(min.x, point.x), fwk::min(min.y, point.y), fwk::min(min.z, point.z));
 		max = Vec3(fwk::max(max.x, point.x), fwk::max(max.y, point.y), fwk::max(max.z, point.z));
 	}
+	void enlarge(float v) {
+		min -= Vec3(v, v, v);
+		max += Vec3(v, v, v);
+	}
 
 	// TODO: what about bounding boxes enclosing single point?
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y || max.z <= min.z; }
