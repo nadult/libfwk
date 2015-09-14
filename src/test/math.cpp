@@ -71,10 +71,23 @@ void testRays() {
 	assertCloseEnough(tri.area(), 2.0f);
 }
 
-void testDistances() {
+void testIntersections() {
 	assertEqual(distance(Cylinder(float3(1, 2, 3), 0.5, 2.0), float3(2, 2, 3)), 0.5f);
 	assertEqual(distance(Cylinder(float3(1, 1, 1), 1.5, 2.0), float3(2, 1, 1)), 0.0f);
 	assertEqual(distance(Cylinder(float3(2, 2, 2), 1.5, 2.0), float3(2, 5, 2)), 1.0f);
+
+	Triangle tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
+	Segment seg(float3(1, 1, -1), float3(1, 1, 1));
+
+	assertEqual(intersection(tri, seg), constant::inf);
+	assertEqual(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
+	assertEqual(distance(tri, seg), sqrtf(2.0f) / 2.0f);
+
+	Triangle tri1(float3(4.330130, 10.000000, 2.500000), float3(-4.330130, 10.000000, 2.500000),
+				  float3(0.000000, 1.730360, 0.000000));
+	Triangle tri2(float3(-2.500000, 0.000000, -4.330130), float3(4.330130, 10.000000, 2.500000),
+				  float3(-2.500000, 0.000000, 4.330130));
+	ASSERT(areIntersecting(tri1, tri2));
 }
 
 void testMain() {
@@ -84,7 +97,7 @@ void testMain() {
 
 	testMatrices();
 	testRays();
-	testDistances();
+	testIntersections();
 
 	float3 vec(0, 0, 1);
 

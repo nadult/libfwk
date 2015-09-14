@@ -52,7 +52,6 @@ pair<float, float> intersectionRange(const Ray &ray, const Box<float3> &box) {
 	l2 = inv_dir.z * (box.max.z - origin.z);
 	lmin = max(lmin, min(l1, l2));
 	lmax = min(lmax, max(l1, l2));
-	lmin = max(lmin, 0.0f);
 
 	return lmin <= lmax ? make_pair(lmin, lmax) : make_pair(constant::inf, constant::inf);
 }
@@ -63,29 +62,59 @@ pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &
 	return pair.first <= pair.second ? pair : make_pair(constant::inf, constant::inf);
 }
 
-float intersection(const Segment &segment, const Triangle &tri) {
-	float tri_dot = dot(segment.dir(), tri.cross());
-
-	float3 offset = segment.origin() - tri.a();
+// Moller-Trombore, source: wikipedia
+float intersection(const Ray &ray, const Triangle &tri) {
 	float3 e1 = tri.edge1(), e2 = tri.edge2();
-	if(tri_dot < 0) { // back side
-		swap(e1, e2);
-		tri_dot = -tri_dot;
-	}
 
-	float3 tmp = cross(segment.dir(), offset);
-	float v = dot(e2, tmp);
-	float w = -dot(e1, tmp);
+	// Begin calculating determinant - also used to calculate u parameter
+	float3 P = cross(normalize(ray.dir()), e2);
+	// if determinant is near zero, ray lies in plane of triangle
+	float det = dot(e1, P);
+	// NOT CULLING
+	if(det > -constant::epsilon && det < constant::epsilon)
+		return constant::inf;
+	float inv_det = 1.f / det;
 
-	if(v < 0.0f || v > tri_dot || w < 0.0f || v + w > tri_dot)
+	// calculate distance from V1 to ray origin
+	float3 T = ray.origin() - tri.a();
+
+	// Calculate u parameter and test bound
+	float u = dot(T, P) * inv_det;
+	// The intersection lies outside of the triangle
+	if(u < 0.f || u > 1.f)
 		return constant::inf;
 
-	return intersection(Plane(tri), segment);
+	// Prepare to test v parameter
+	float3 Q = cross(T, e1);
+
+	// Calculate V parameter and test bound
+	float v = dot(normalize(ray.dir()), Q) * inv_det;
+	// The intersection lies outside of the triangle
+	if(v < 0.f || u + v > 1.f)
+		return constant::inf;
+
+	float t = dot(e2, Q) * inv_det;
+
+	if(t > constant::epsilon)
+		return t;
+
+	return constant::inf;
+}
+
+float intersection(const Segment &segment, const Triangle &tri) {
+	float isect = intersection((Ray)segment, tri);
+	return isect < 0.0f || isect > segment.length() ? constant::inf : isect;
+}
+
+float intersection(const Ray &ray, const Plane &plane) {
+	float ndot = dot(plane.normal(), ray.dir());
+	if(fabs(ndot) < constant::epsilon)
+		return constant::inf;
+	return -dot(plane, ray.origin()) / ndot;
 }
 
 float intersection(const Segment &segment, const Plane &plane) {
-	// TODO: should be working for both sides
-	float dist = -dot(plane, segment.origin()) / dot(plane.normal(), segment.dir());
+	float dist = intersection((Ray)segment, plane);
 	return dist < 0.0f || dist > segment.length() ? constant::inf : dist;
 }
 

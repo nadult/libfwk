@@ -726,6 +726,10 @@ class Triangle {
 
 Triangle operator*(const Matrix4 &, const Triangle &);
 
+float distance(const Triangle &, const Triangle &);
+float distance(const Triangle &, const float3 &);
+bool areIntersecting(const Triangle &, const Triangle &);
+
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 class Plane {
   public:
@@ -733,7 +737,7 @@ class Plane {
 	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {}
 
 	// TODO: should triangle be CW or CCW?
-	Plane(const Triangle &);
+	explicit Plane(const Triangle &);
 	Plane(const float3 &a, const float3 &b, const float3 &c) : Plane(Triangle(a, b, c)) {}
 
 	const float3 &normal() const { return m_nrm; }
@@ -801,6 +805,8 @@ class Segment : public Ray {
 	float m_length;
 };
 
+float distance(const Triangle &tri, const Segment &);
+
 // returns infinity if doesn't intersect
 pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);
 pair<float, float> intersectionRange(const Segment &, const Box<float3> &box);
@@ -813,13 +819,20 @@ inline float intersection(const Segment &segment, const Box<float3> &box) {
 	return intersectionRange(segment, box).first;
 }
 
+float intersection(const Ray &, const Triangle &);
 float intersection(const Segment &, const Triangle &);
 
 const Segment operator*(const Matrix4 &, const Segment &);
 
 float intersection(const Segment &, const Plane &);
+float intersection(const Ray &, const Plane &);
+
 inline float intersection(const Plane &plane, const Segment &segment) {
 	return intersection(segment, plane);
+}
+inline float intersection(const Plane &plane, const Ray &ray) { return intersection(ray, plane); }
+inline float intersection(const Triangle &tri, const Segment &segment) {
+	return intersection(segment, tri);
 }
 
 bool intersection(const Plane &, const Plane &, Ray &out);

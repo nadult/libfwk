@@ -17,6 +17,9 @@ namespace {
 	class HalfEdge;
 	class Face;
 
+	static bool logging = false;
+	static bool enable_test = false;
+
 	class Vertex {
 	  public:
 		Vertex(float3 pos, int index) : m_pos(pos), m_index(index), m_temp(0) {}
@@ -165,12 +168,21 @@ namespace {
 		}
 
 		Vertex *addVertex(const float3 &pos) {
+			if(logging)
+				printf("Add vert: %f %f %f\n", pos.x, pos.y, pos.z);
+
 			DASSERT(canAddVert(pos));
 			m_verts.emplace_back(make_unique<Vertex>(pos, (int)m_verts.size()));
 			return m_verts.back().get();
 		}
 
 		Face *addFace(Vertex *a, Vertex *b, Vertex *c) {
+			DASSERT(a != b && b != c && c != a);
+			if(logging) {
+				printf("AddFace: ");
+				for(auto *v : {a, b, c})
+					printf("%f %f %f%s", v->pos().x, v->pos().y, v->pos().z, v == c ? "\n" : " | ");
+			}
 			DASSERT(!findFace(a, b, c));
 			m_faces.emplace_back(make_unique<Face>(a, b, c, (int)m_faces.size()));
 			return m_faces.back().get();
@@ -274,6 +286,124 @@ namespace {
 			return out;
 		}
 
+		/*bool testTriangleSegment(const Triangle &tri, const Segment &seg) {
+			Plane plane(tri);
+			float3 s1 = seg.origin() - plane.normal() * dot(plane, seg.origin());
+			float3 s2 = seg.end() - plane.normal() * dot(plane, seg.end());
+
+			if(fabs(dot(seg.dir(), tri.normal())) < 0.9f)
+				return true;
+
+			DASSERT(dot(plane, s1) < constant::epsilon);
+			float3 axis3 = plane.normal();
+			float3 axis2 = s2 - s1;
+			if(length(axis2) < constant::epsilon)
+				return true;
+			axis2 = normalize(axis2);
+			float3 axis1 = cross(plane.normal(), axis2);
+
+			Matrix3 mat(axis1, axis2, axis3);
+			mat = transpose(mat);
+
+			float2 tpos[3];
+			for(int i = 0; i < 3; i++) {
+				float3 vec = tri[i] - s1;
+				float3 pos = mat * vec;
+				DASSERT(fabs(pos.z) < constant::epsilon);
+				tpos[i] = pos.xy();
+			}
+
+			float yisect[3];
+			int num_isects = 0;
+
+			for(int i = 0; i < 3; i++) {
+				int ni = (i + 1) % 3;
+				float2 dir = tpos[ni] - tpos[i];
+				if(fabs(dir.x) > constant::epsilon) {
+					float t = -tpos[i].x / dir.x;
+					if(t >= 0.0f && t <= 1.0f)
+						yisect[num_isects++] = tpos[i].y + dir.y * t;
+				}
+			}
+
+			if(num_isects == 2) {
+				float tmin = min(yisect[0], yisect[1]);
+				float tmax = max(yisect[0], yisect[1]);
+				tmin = max(0.0f, tmin);
+				tmax = min(distance(s2, s1), tmax);
+
+				if(tmax - tmin > constant::epsilon) {
+					printf("Shared: %f\n", tmax - tmin);
+					for(int i = 0; i < 3; i++)
+						printf("%f %f %f\n", tri[i].x, tri[i].y, tri[i].z);
+					printf("%f %f %f -> %f %f %f\n", seg.origin().x, seg.origin().y, seg.origin().z,
+						   seg.end().x, seg.end().y, seg.end().z);
+					return false;
+				}
+			}
+
+			return true;
+		}*/
+
+		bool testTriangleSegment(const Triangle &tri, const Segment &seg) {
+			float3 dir = seg.dir();
+			float len = seg.length();
+			float min_dist = constant::inf;
+
+			for(float t = 0.01f; t < len - 0.01f && min_dist > constant::epsilon; t += 0.02f)
+				min_dist = min(min_dist, distance(tri, seg.at(t)));
+			return min_dist > constant::epsilon;
+		}
+
+		// Ignores faces which share an edge
+		bool testNewFace(Vertex *a, Vertex *b, Vertex *c) {
+			Vertex *tri_verts[3] = {a, b, c};
+			Triangle tri(a->pos(), b->pos(), c->pos());
+
+			for(auto &face : m_faces) {
+				auto verts = face->verts();
+				Vertex *matched = nullptr;
+				int num_matched = 0;
+				for(auto *vert : face->verts())
+					if(isOneOf(vert, a, b, c)) {
+						num_matched++;
+						matched = vert;
+					}
+
+				if(num_matched == 1 || num_matched == 2) {
+					bool any_parallel = false;
+					Plane plane(face->triangle());
+					for(int n = 0; n < 3; n++) {
+						Segment seg(tri[n], tri[(n + 1) % 3]);
+						float tdist[2] = {dot(Plane(face->triangle()), seg.origin()),
+										  dot(Plane(face->triangle()), seg.end())};
+
+						if(!testTriangleSegment(face->triangle(), seg) &&
+						   distance(face->triangle(), seg) < constant::epsilon &&
+						   !(isOneOf(tri_verts[n], verts[0], verts[1], verts[2]) &&
+							 isOneOf(tri_verts[(n + 1) % 3], verts[0], verts[1], verts[2])))
+							any_parallel = true;
+					}
+
+					// TODO: second distance test is only for intersection
+					if(any_parallel && distance(tri, face->triangle()) < constant::epsilon)
+						return false;
+
+					if(num_matched == 1 && areIntersecting(tri, face->triangle()))
+						return false;
+				}
+				if(num_matched == 0) {
+					if(areIntersecting(tri, face->triangle()))
+						//	if(NoDivTriTriIsect(tri.a().v, tri.b().v, tri.c().v,
+						// face->triangle().a().v,
+						//						face->triangle().b().v, face->triangle().c().v,
+						// 0.0f))
+						return false;
+				}
+			}
+			return true;
+		}
+
 		Vertex *findBestVert() {
 			Vertex *best = nullptr;
 			float best_dot = constant::inf;
@@ -289,17 +419,14 @@ namespace {
 				float3 center = (corners[0] + corners[1] + corners[2]) / 3.0f;
 				bool neg_side = true;
 				for(auto *edge : rem_edges)
-					if(dot(edge->face()->triangle(), center) >= 0.0f)
+					if(dot(Plane(edge->face()->triangle()), center) >= 0.0f)
 						neg_side = false;
 
-				if(neg_side) {
-					Tetrahedron tet(vert->pos(), corners[0], corners[1], corners[2]);
-					if(!isIntersecting(tet, {rem_edges[0]->face(), rem_edges[1]->face(),
-											 rem_edges[2]->face()})) {
+				if(neg_side)
+					if(testNewFace(rem_edges[0]->end(), rem_edges[1]->end(), rem_edges[2]->end())) {
 						best = vert;
 						break;
 					}
-				}
 			}
 
 			return best;
@@ -317,12 +444,21 @@ namespace {
 
 				Face *f1 = edge->face();
 				Face *f2 = edge->opposite()->face();
+				Vertex *end1 = edge->next()->end(), *end2 = edge->opposite()->next()->end();
 
-				float3 corners[3] = {edge->end()->pos(), edge->next()->end()->pos(),
-									 edge->opposite()->next()->end()->pos()};
+				float3 corners[3] = {edge->end()->pos(), end1->pos(), end2->pos()};
 				float3 center = (corners[0] + corners[1] + corners[2]) / 3.0f;
 
-				if(dot(f1->triangle(), center) >= 0.0f || dot(f2->triangle(), center) >= 0.0f)
+				bool shared_ends_edge = false;
+				for(auto *tedge : end1->all())
+					if(isOneOf(tedge->opposite(), end2->all()))
+						shared_ends_edge = true;
+
+				if(shared_ends_edge)
+					continue;
+
+				if(dot(Plane(f1->triangle()), center) >= 0.0f ||
+				   dot(Plane(f2->triangle()), center) >= 0.0f)
 					continue;
 				if(fabs(dot(f1->triangle().normal(), f2->triangle().normal())) >
 				   1.0f - constant::epsilon)
@@ -330,7 +466,8 @@ namespace {
 
 				float fdot = fabs(dot(f1->triangle().normal(), f2->triangle().normal()));
 				if(fdot < best_dot) {
-					if(!isIntersecting(tet, {f1, f2})) {
+					if(testNewFace(edge->start(), end2, end1) &&
+					   testNewFace(edge->end(), end1, end2)) {
 						best = edge;
 						best_dot = fdot;
 						break;
@@ -352,7 +489,7 @@ namespace {
 				float min_dist = 0.0f;
 				float max_dist = min(min(distance(tri.a(), tri.b()), distance(tri.b(), tri.c())),
 									 distance(tri.c(), tri.a())) *
-								 0.7f;
+								 0.3f;
 
 				float ok_dist = 0.0f;
 
@@ -431,6 +568,9 @@ namespace {
 
 				printf("Volume: %f\n", out.volume());
 			}
+
+			if(logging)
+				printf("Extract: %s\n", ext_mode);
 			DASSERT(out.isValid() && "Couldn't extract valid tetrahedron");
 			return out;
 		}
@@ -531,7 +671,9 @@ static void draw(const Tetrahedron &tet, Renderer &out) {
 
 TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices, int max_steps,
 					  Renderer &renderer) {
-
+	int max = max_steps - 12;
+	bool enable_testing = max_steps >= 13;
+	logging = false;
 	HalfMesh mesh(positions, tri_indices);
 	vector<HalfMesh> sub_meshes;
 	while(!mesh.empty()) {
@@ -540,8 +682,14 @@ TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices, 
 		mesh.clearTemps(0);
 	}
 
+	enable_test = false;
 	vector<Tetrahedron> tets;
+	// printf("Start:\n");
+	// logging = true;
 	while(max_steps) {
+		if(max_steps <= max && enable_testing)
+			enable_test = 1;
+
 		bool extracted = false;
 		for(auto &sub_mesh : sub_meshes) {
 			if(!sub_mesh.empty()) {

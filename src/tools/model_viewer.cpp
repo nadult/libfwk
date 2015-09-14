@@ -136,7 +136,7 @@ class Viewer {
 			if(event.keyDown('t'))
 				m_tet_steps += shift ? 10 : 1;
 			if(event.keyDown('r'))
-				m_tet_steps = 0;
+				m_tet_steps = shift ? 0 : max(0, m_tet_steps - 1);
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));

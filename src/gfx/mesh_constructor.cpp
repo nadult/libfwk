@@ -95,7 +95,7 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 	for(int n = 0; n < 4; n++) {
 		int inds[4] = {n, (n + 1) % 4, (n + 2) % 4, (n + 3) % 4};
 
-		if(dot(Triangle(tet[inds[0]], tet[inds[1]], tet[inds[2]]), tet[inds[3]]) > 0.0f)
+		if(dot(Plane(tet[inds[0]], tet[inds[1]], tet[inds[2]]), tet[inds[3]]) > 0.0f)
 			swap(inds[1], inds[2]);
 		insertBack(indices, {inds[0], inds[1], inds[2]});
 	}
