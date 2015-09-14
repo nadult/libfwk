@@ -16,6 +16,13 @@ struct Face {
 	const auto &triangle() const { return m_tri; }
 	bool operator<(const Face &face) const { return m_box.min.y < face.m_box.min.y; }
 
+	bool almostEmpty() const {
+		float min_dist = constant::epsilon * constant::epsilon;
+		return distanceSq(m_tri[0], m_tri[1]) < min_dist ||
+			   distanceSq(m_tri[1], m_tri[2]) < min_dist ||
+			   distanceSq(m_tri[2], m_tri[0]) < min_dist;
+	}
+
 	Triangle m_tri;
 	FBox m_box;
 };
@@ -87,11 +94,35 @@ pair<vector<Face>, vector<Face>> clipFace(const Face &face, pair<float2, float2>
 			ccpoint[i] =
 				float3(cpoint[i][0], lerp(tpoint[0].y, tpoint[i + 1].y, tpos[i]), cpoint[i][1]);
 
-		inside = {Face(tpoint[0], ccpoint[1], ccpoint[0])};
-		outside = {Face(ccpoint[1], tpoint[1], tpoint[2]), Face(ccpoint[1], tpoint[2], ccpoint[0])};
+		inside = {Face(tpoint[0], ccpoint[0], ccpoint[1])};
+		outside = {Face(ccpoint[1], tpoint[1], tpoint[2]), Face(ccpoint[0], tpoint[1], ccpoint[1])};
 	}
 
 	return make_pair(inside, outside);
+}
+
+pair<float2, float2> faceEdge(const Face &face, int edge) {
+	return make_pair(face[edge].xz(), face[(edge + 1) % 3].xz());
+}
+
+pair<vector<Face>, vector<Face>> clipFace(const Face &face, const Face &clipper) {
+	pair<vector<Face>, vector<Face>> out = clipFace(face, faceEdge(clipper, 0));
+	for(int n = 1; n < 3; n++) {
+		pair<vector<Face>, vector<Face>> out2;
+		for(auto &face : out.first) {
+			auto outi = clipFace(face, faceEdge(clipper, n));
+			insertBack(out2.first, outi.first);
+			insertBack(out2.second, outi.second);
+		}
+		for(auto &face : out.second) {
+			auto outo = clipFace(face, faceEdge(clipper, n));
+			insertBack(out2.second, outo.first);
+			insertBack(out2.second, outo.second);
+		}
+		out = out2;
+	}
+
+	return out;
 }
 
 void draw(Renderer &out, const vector<Face> &faces, float scale) {
@@ -143,24 +174,20 @@ TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices,
 	Face first = faces.back();
 
 	vector<Face> inside, outside;
+	vector<Face> new_faces;
+
 	for(const auto &face : faces) {
-		for(int i = 0; i < 3; i++) {
-			auto out = clipFace(first, make_pair(face[i].xz(), face[(i + 1) % 3].xz()));
-			if(out.first.empty() || out.second.empty())
-				continue;
+		auto out = clipFace(first, face);
+		if(out.first.empty() || out.second.empty())
+			continue;
 
-			insertBack(inside, out.first);
-			insertBack(outside, out.second);
+		insertBack(new_faces, out.first);
+		insertBack(new_faces, out.second);
 
-			insertBack(inside, {first, face});
-			break;
-		}
-
-		if(!inside.empty())
-			break;
+		insertBack(new_faces, {first, face});
+		break;
 	}
-	faces = inside;
-	insertBack(faces, outside);
+	faces = new_faces;
 
 	float scale = length(FBox(positions).min - FBox(positions).max) * 0.1f;
 	fwk::draw(renderer, faces, scale);
