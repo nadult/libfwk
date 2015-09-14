@@ -363,6 +363,38 @@ bool areIntersecting(const Triangle &a, const Triangle &b) {
 	return false;
 }
 
+bool areIntersecting(const Triangle2D &a, const Triangle2D &b) {
+	using K = CGAL::Exact_predicates_exact_constructions_kernel;
+	using Point = K::Point_2;
+	using Segment = K::Segment_2;
+	FWK_PROFILE_COUNTER("XareIntersecting", 1);
+
+	Point ap[3], bp[3];
+	for(int n = 0; n < 3; n++)
+		ap[n] = Point(a[n].x, a[n].y);
+	for(int n = 0; n < 3; n++)
+		bp[n] = Point(b[n].x, b[n].y);
+
+	CGAL::Triangle_2<K> tria(ap[0], ap[1], ap[2]);
+	CGAL::Triangle_2<K> trib(bp[0], bp[1], bp[2]);
+
+	try {
+		auto isect = intersection(tria, trib);
+		if(isect) {
+			if(auto *p = boost::get<Point>(&*isect))
+				return false;
+			if(auto *s = boost::get<Segment>(&*isect)) {
+				float len = sqrtf(CGAL::to_double(s->squared_length()));
+				return len > constant::epsilon;
+			}
+
+			return true;
+		}
+	} catch(...) { return true; }
+
+	return false;
+}
+
 Triangle::Triangle(const float3 &a, const float3 &b, const float3 &c) {
 	m_point = a;
 	m_edge[0] = b - a;

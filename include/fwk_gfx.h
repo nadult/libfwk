@@ -832,9 +832,11 @@ class TetMesh {
 	using TriIndices = MeshIndices::TriIndices;
 	using TetIndices = array<int, 4>;
 
-	TetMesh(vector<float3> positions = vector<float3>(), vector<TetIndices> tets = vector<TetIndices>());
+	TetMesh(vector<float3> positions = vector<float3>(),
+			vector<TetIndices> tets = vector<TetIndices>());
 	static TetMesh make(CRange<float3> positions, CRange<TriIndices> faces, int max_steps,
 						Renderer &);
+	static TetMesh make(CRange<float3> positions, CRange<TriIndices> faces, Renderer &);
 
 	void draw(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 

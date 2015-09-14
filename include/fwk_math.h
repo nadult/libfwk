@@ -728,11 +728,23 @@ class Triangle {
 	float3 m_cross;
 };
 
+struct Triangle2D {
+	Triangle2D(const float2 &a, const float2 &b, const float2 &c) : m_points({{a, b, c}}) {}
+
+	const float2 &operator[](int idx) const { return m_points[idx]; }
+	float2 center() const { return (m_points[0] + m_points[1] + m_points[2]) * 0.5f; }
+
+  private:
+	array<float2, 3> m_points;
+};
+
 Triangle operator*(const Matrix4 &, const Triangle &);
 
 float distance(const Triangle &, const Triangle &);
 float distance(const Triangle &, const float3 &);
+
 bool areIntersecting(const Triangle &, const Triangle &);
+bool areIntersecting(const Triangle2D &, const Triangle2D &);
 
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 class Plane {

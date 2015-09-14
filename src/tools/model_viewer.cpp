@@ -92,8 +92,7 @@ class Viewer {
 		const auto &model = m_models[m_current_model];
 		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
 		auto mesh = model.model->toMesh(pose);
-		m_tet_mesh = make_unique<TetMesh>(
-			TetMesh::make(mesh.positions(), mesh.trisIndices(), m_tet_steps, out));
+		m_tet_mesh = make_unique<TetMesh>(TetMesh::make(mesh.positions(), mesh.trisIndices(), out));
 	}
 
 	void resetTet() { m_tet_steps = 0; }
