@@ -3,10 +3,12 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+#ifdef FWK_TARGET_LINUX
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/intersections.h>
 #include <CGAL/Tetrahedron_3.h>
 #include <CGAL/Triangle_3.h>
+#endif
 
 namespace fwk {
 Tetrahedron::Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4)
@@ -15,6 +17,7 @@ Tetrahedron::Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, c
 		swap(m_corners[2], m_corners[3]);
 }
 
+#ifdef FWK_TARGET_LINUX
 bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
 	using K = CGAL::Simple_cartesian<double>;
 	using Point = K::Point_3;
@@ -38,6 +41,7 @@ bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
 
 	return true;
 }
+#endif
 
 float Tetrahedron::volume() const {
 	return dot(m_corners[0] - m_corners[3],

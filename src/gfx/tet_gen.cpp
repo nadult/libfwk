@@ -66,9 +66,9 @@ namespace {
 	}
 }
 
-vector<TriIndices> TetMesh::findIntersections(CRange<float3> verts, CRange<TriIndices> tris) {
+Mesh TetMesh::findIntersections(const Mesh &mesh) {
 	tetgenio out;
-	tetgen("dQ", verts, tris, out);
+	tetgen("dQ", mesh.positions(), mesh.trisIndices(), out);
 
 	vector<TriIndices> inds(out.numberoftrifaces);
 	for(int n = 0; n < out.numberoftrifaces; n++) {
@@ -76,15 +76,16 @@ vector<TriIndices> TetMesh::findIntersections(CRange<float3> verts, CRange<TriIn
 		inds[n] = {{(uint)tri[0], (uint)tri[1], (uint)tri[2]}};
 	}
 
-	return inds;
+	return Mesh(mesh.buffers(), {std::move(inds)});
 }
 
-TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices, uint flags) {
+TetMesh TetMesh::make(const Mesh &mesh, uint flags) {
+	DASSERT(HalfMesh(mesh).is2Manifold());
 	auto opts =
-		string("p") + (flags & flag_quality ? "q" : "") + (flags & flag_print_details ? "" : "Q");
+		string("p") + (flags & flag_quality ? "q" : "") + (flags & flag_print_details ? "V" : "Q");
 
 	tetgenio out;
-	tetgen(opts, positions, tri_indices, out);
+	tetgen(opts, mesh.positions(), mesh.trisIndices(), out);
 	DASSERT(out.numberofcorners == 4);
 
 	vector<float3> tet_points(out.numberofpoints);

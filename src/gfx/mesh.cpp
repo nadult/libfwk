@@ -9,24 +9,6 @@
 
 namespace fwk {
 
-void TetMesh::draw(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
-	out.pushViewMatrix();
-	out.mulViewMatrix(matrix);
-
-	vector<float3> lines;
-
-	for(auto tet : m_indices) {
-		float3 tlines[12];
-		int pairs[12] = {0, 1, 0, 2, 2, 1, 3, 0, 3, 1, 3, 2};
-		for(int i = 0; i < arraySize(pairs); i++)
-			tlines[i] = m_positions[tet[pairs[i]]];
-		lines.insert(end(lines), begin(tlines), end(tlines));
-	}
-	out.addLines(lines, material);
-
-	out.popViewMatrix();
-}
-
 Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> material_names)
 	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
 	  m_material_names(std::move(material_names)), m_ready_flags(0) {
@@ -125,6 +107,33 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 			out.emplace_back(
 				Mesh(m_buffers.remap(mappings[i]), {std::move(new_indices[i])}, {mat_name}));
 		DASSERT(out.back().vertexCount() <= max_vertices);
+	}
+
+	return out;
+}
+
+vector<Mesh> Mesh::splitToSubMeshes() const {
+	HalfMesh hmesh(positions(), trisIndices());
+
+	if(hasNormals() || hasTexCoords())
+		THROW("please add support for whole mesh data");
+
+	vector<Mesh> out;
+	while(!hmesh.empty()) {
+		hmesh.selectConnected(hmesh.verts().front());
+		auto sub_mesh = hmesh.extractSelection();
+		hmesh.clearTemps(0);
+		DASSERT(!sub_mesh.empty());
+
+		vector<float3> positions;
+		for(auto *vert : sub_mesh.verts())
+			positions.emplace_back(vert->pos());
+
+		vector<uint> inds;
+		for(auto *face : sub_mesh.faces())
+			for(auto *vert : face->verts())
+				inds.emplace_back(vert->index());
+		out.emplace_back(Mesh(MeshBuffers(std::move(positions)), {std::move(inds)}));
 	}
 
 	return out;

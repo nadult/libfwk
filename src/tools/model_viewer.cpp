@@ -84,23 +84,37 @@ class Viewer {
 
 		if(m_models.empty())
 			THROW("No models loaded\n");
+
+		updateModel();
 	}
 
-	void updateTet() {
+	void updateModel() {
 		FWK_PROFILE_RARE("XupdateTet");
 
 		m_tet_mesh.reset();
 		const auto &model = m_models[m_current_model];
 		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
-		auto mesh = model.model->toMesh(pose);
-		try {
-			m_tet_mesh = make_unique<TetMesh>(
-				TetMesh::make(mesh.positions(), mesh.trisIndices(), TetMesh::flag_quality));
-			m_tet_isects = PMesh();
-		} catch(...) {
-			auto isects = TetMesh::findIntersections(mesh.positions(), mesh.trisIndices());
-			m_tet_isects = Mesh(mesh.buffers(), {MeshIndices(isects)});
+		auto sub_meshes = model.model->toMesh(pose).splitToSubMeshes();
+
+		vector<TetMesh> tets;
+		vector<Mesh> isects;
+
+		m_num_segments = m_num_nonmanifold = 0;
+		for(const auto &sub_mesh : sub_meshes) {
+			m_num_segments++;
+			if(!HalfMesh(sub_mesh).is2Manifold()) {
+				m_num_nonmanifold++;
+				continue;
+			}
+
+			try {
+				auto tet = TetMesh::make(sub_mesh, 0);
+				tets.emplace_back(std::move(tet));
+			} catch(...) { isects.emplace_back(TetMesh::findIntersections(sub_mesh)); }
 		}
+
+		m_tet_mesh = make_unique<TetMesh>(TetMesh::makeUnion(tets));
+		m_tet_isects = isects.empty() ? PMesh() : PMesh(Mesh::merge(isects));
 	}
 
 	void handleInput(GfxDevice &device, float time_diff) {
@@ -125,8 +139,7 @@ class Viewer {
 			if(event.keyDown('m')) {
 				m_current_model =
 					(m_current_model + (shift ? m_models.size() - 1 : 1)) % m_models.size();
-				m_tet_mesh.reset();
-				m_tet_isects = PMesh();
+				updateModel();
 				m_current_anim = -1;
 				m_anim_pos = 0.0;
 			}
@@ -147,8 +160,6 @@ class Viewer {
 	}
 
 	void tick(float time_diff) {
-		if(!m_tet_mesh && !m_tet_isects)
-			updateTet();
 		m_view_config = lerp(m_view_config, m_target_view, 0.1f);
 		m_anim_pos += time_diff;
 	}
@@ -215,8 +226,16 @@ class Viewer {
 		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n\n");
+
+		fmt("Segments: %d", m_num_segments);
+		if(m_num_nonmanifold)
+			fmt(" (non manifold: %d)", m_num_nonmanifold);
+		fmt("\n");
+
+		if(m_tet_mesh)
+			fmt("Tets: %d\n", m_tet_mesh->size());
 		if(m_tet_isects)
-			fmt("Tetrahedralizer error: self-intersections found");
+			fmt("Tetrahedralizer error: self-intersections found\n");
 		fmt("%s", Profiler::instance()->getStats("X").c_str());
 
 		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);
@@ -246,6 +265,7 @@ class Viewer {
 
 	unique_ptr<TetMesh> m_tet_mesh;
 	PMesh m_tet_isects;
+	int m_num_segments, m_num_nonmanifold;
 
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;

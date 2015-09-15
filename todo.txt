@@ -1,4 +1,5 @@
 - Fix problems with Range conversions (make them explicit?)
+- VSYNC under windows
 
 - Optimize kerning loop in font_factory.cpp
 - Fix TODO in filesystem_linux (regarding links).
