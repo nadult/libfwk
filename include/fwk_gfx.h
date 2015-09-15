@@ -688,21 +688,22 @@ struct MeshBuffers {
 class MeshIndices {
   public:
 	using Type = PrimitiveType::Type;
+	using TriIndices = array<uint, 3>;
 
 	static bool isSupported(Type type) {
 		return isOneOf(type, Type::triangles, Type::triangle_strip);
 	}
 
 	MeshIndices(vector<uint> = {}, Type ptype = Type::triangles);
-	MeshIndices(Range<uint>, Type ptype = Type::triangles);
+	MeshIndices(CRange<uint>, Type ptype = Type::triangles);
 	MeshIndices(PIndexBuffer, Type ptype = Type::triangles);
+	MeshIndices(const vector<TriIndices> &);
 
 	static MeshIndices makeRange(int count, uint first = 0, Type ptype = Type::triangles);
 
 	operator const vector<uint> &() const { return m_data; }
 	Type type() const { return m_type; }
 
-	using TriIndices = array<uint, 3>;
 	vector<TriIndices> trisIndices() const;
 
 	// Does not exclude degenerate triangles
@@ -774,6 +775,7 @@ class Mesh : public immutable_base<Mesh> {
 	void process(float unit);
 
 	using TriIndices = MeshIndices::TriIndices;
+	vector<Triangle> tris() const;
 	vector<TriIndices> trisIndices() const;
 
 	vector<Mesh> split(int max_vertices) const;
@@ -832,11 +834,18 @@ class TetMesh {
 	using TriIndices = MeshIndices::TriIndices;
 	using TetIndices = array<int, 4>;
 
+	enum Flags {
+		flag_quality = 1,
+		flag_print_details = 2,
+	};
+
 	TetMesh(vector<float3> positions = vector<float3>(),
 			vector<TetIndices> tets = vector<TetIndices>());
 	static TetMesh make(CRange<float3> positions, CRange<TriIndices> faces, int max_steps,
 						Renderer &);
-	static TetMesh make(CRange<float3> positions, CRange<TriIndices> faces, Renderer &);
+
+	static vector<TriIndices> findIntersections(CRange<float3>, CRange<TriIndices>);
+	static TetMesh make(CRange<float3> positions, CRange<TriIndices> faces, uint flags = 0);
 
 	void draw(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 

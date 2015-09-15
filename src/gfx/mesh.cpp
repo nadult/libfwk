@@ -103,6 +103,14 @@ vector<Mesh::TriIndices> Mesh::trisIndices() const {
 	return out;
 }
 
+vector<Triangle> Mesh::tris() const {
+	vector<Triangle> out;
+	const auto &verts = positions();
+	for(const auto &inds : trisIndices())
+		out.emplace_back(verts[inds[0]], verts[inds[1]], verts[inds[2]]);
+	return out;
+}
+
 // TODO: test split / merge and transform
 vector<Mesh> Mesh::split(int max_vertices) const {
 	vector<Mesh> out;

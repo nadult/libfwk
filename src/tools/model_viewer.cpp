@@ -61,7 +61,6 @@ class Viewer {
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
 		updateViewport();
-		m_tet_steps = 0;
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -87,15 +86,22 @@ class Viewer {
 			THROW("No models loaded\n");
 	}
 
-	void updateTet(Renderer &out) {
+	void updateTet() {
+		FWK_PROFILE_RARE("XupdateTet");
+
 		m_tet_mesh.reset();
 		const auto &model = m_models[m_current_model];
 		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
 		auto mesh = model.model->toMesh(pose);
-		m_tet_mesh = make_unique<TetMesh>(TetMesh::make(mesh.positions(), mesh.trisIndices(), out));
+		try {
+			m_tet_mesh = make_unique<TetMesh>(
+				TetMesh::make(mesh.positions(), mesh.trisIndices(), TetMesh::flag_quality));
+			m_tet_isects = PMesh();
+		} catch(...) {
+			auto isects = TetMesh::findIntersections(mesh.positions(), mesh.trisIndices());
+			m_tet_isects = Mesh(mesh.buffers(), {MeshIndices(isects)});
+		}
 	}
-
-	void resetTet() { m_tet_steps = 0; }
 
 	void handleInput(GfxDevice &device, float time_diff) {
 		float x_rot = 0.0f, y_rot = 0.0f;
@@ -120,9 +126,9 @@ class Viewer {
 				m_current_model =
 					(m_current_model + (shift ? m_models.size() - 1 : 1)) % m_models.size();
 				m_tet_mesh.reset();
+				m_tet_isects = PMesh();
 				m_current_anim = -1;
 				m_anim_pos = 0.0;
-				m_tet_steps = 0;
 			}
 			if(event.keyDown('a')) {
 				m_current_anim++;
@@ -132,10 +138,6 @@ class Viewer {
 			}
 			if(event.keyDown('s'))
 				m_show_nodes ^= 1;
-			if(event.keyDown('t'))
-				m_tet_steps += shift ? 10 : 1;
-			if(event.keyDown('r'))
-				m_tet_steps = shift ? 0 : max(0, m_tet_steps - 1);
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));
@@ -145,6 +147,8 @@ class Viewer {
 	}
 
 	void tick(float time_diff) {
+		if(!m_tet_mesh && !m_tet_isects)
+			updateTet();
 		m_view_config = lerp(m_view_config, m_target_view, 0.1f);
 		m_anim_pos += time_diff;
 	}
@@ -171,14 +175,19 @@ class Viewer {
 		if(m_show_nodes)
 			model.model->drawNodes(*m_renderer_3d, pose, Color::green, Color::yellow, 0.1f, matrix);
 
-		m_renderer_3d->pushViewMatrix();
-		m_renderer_3d->mulViewMatrix(matrix);
-		updateTet(*m_renderer_3d);
-		m_renderer_3d->popViewMatrix();
-
 		if(m_tet_mesh) {
 			auto material = make_immutable<Material>(Color::white, Material::flag_ignore_depth);
 			m_tet_mesh->draw(*m_renderer_3d, material, matrix);
+		}
+		if(m_tet_isects) {
+			auto material = make_immutable<Material>(Color::red, Material::flag_ignore_depth |
+																	 Material::flag_clear_depth);
+			m_tet_isects->draw(*m_renderer_3d, material, matrix);
+			vector<float3> lines;
+			for(auto tri : m_tet_isects->tris())
+				insertBack(lines, {tri[0], tri[1], tri[1], tri[2], tri[2], tri[0]});
+			PMaterial mat = Material(Color::black, Material::flag_ignore_depth);
+			m_renderer_3d->addLines(lines, mat, matrix);
 		}
 
 		int num_parts = 0, num_verts = 0;
@@ -206,8 +215,8 @@ class Viewer {
 		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n\n");
-		if(m_tet_steps > 0)
-			fmt("Tetrahedralization steps: %d\n", m_tet_steps);
+		if(m_tet_isects)
+			fmt("Tetrahedralizer error: self-intersections found");
 		fmt("%s", Profiler::instance()->getStats("X").c_str());
 
 		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);
@@ -236,7 +245,7 @@ class Viewer {
 	ViewConfig m_target_view;
 
 	unique_ptr<TetMesh> m_tet_mesh;
-	int m_tet_steps;
+	PMesh m_tet_isects;
 
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;

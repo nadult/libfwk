@@ -1,3 +1,5 @@
+- Fix problems with Range conversions (make them explicit?)
+
 - Optimize kerning loop in font_factory.cpp
 - Fix TODO in filesystem_linux (regarding links).
 - In fact, just fix all TODOs
@@ -18,7 +20,6 @@
 
 - Clang 3.6 Crashes when compiling frustum.cpp with -O2/-O3 and DNDEBUG
 
-- Fix problems with Range conversions (make them explicit?)
 
 - tools/model_viewer crashes when wrong path is passed (for example folder instead of path to .model file)
 

@@ -15,9 +15,11 @@ MeshIndices::MeshIndices(vector<uint> indices, Type type)
 	DASSERT(isSupported(m_type));
 }
 
-MeshIndices::MeshIndices(Range<uint> indices, Type type)
+MeshIndices::MeshIndices(CRange<uint> indices, Type type)
 	: MeshIndices(vector<uint>(begin(indices), end(indices)), type) {}
 MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices->getData(), type) {}
+MeshIndices::MeshIndices(const vector<TriIndices> &indices)
+	: MeshIndices(CRange<uint>(&indices.data()[0][0], indices.size() * 3)) {}
 
 MeshIndices MeshIndices::makeRange(int count, uint first, Type ptype) {
 	DASSERT(count >= 0);

@@ -152,6 +152,7 @@ static void draw(const Tetrahedron &tet, Renderer &out) {
 	mesh.draw(out, material);
 }
 
+
 TetMesh TetMesh::make(CRange<float3> positions, CRange<TriIndices> tri_indices,
 					  Renderer &renderer) {
 	vector<Tetrahedron> tets;
