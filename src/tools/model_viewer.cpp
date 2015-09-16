@@ -94,7 +94,13 @@ class Viewer {
 		m_tet_mesh = PTetMesh();
 		const auto &model = m_models[m_current_model];
 		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
-		auto sub_meshes = model.model->toMesh(pose).splitToSubMeshes();
+
+		auto mesh = model.model->toMesh(pose);
+		mesh = Mesh::csgDifference(
+			mesh, Mesh::transform(rotation(float3(0, 1, 0), 20.0f), m_models[0].model->toMesh()));
+		m_tet_isects = mesh;
+		return;
+		auto sub_meshes = mesh.splitToSubMeshes();
 
 		vector<TetMesh> tets;
 		vector<Mesh> isects;
