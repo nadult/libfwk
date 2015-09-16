@@ -1,5 +1,7 @@
 - Fix problems with Range conversions (make them explicit?)
 - VSYNC under windows
+- Fix problem in Cache when get_immutable_ptr() return null
+- input key tab doesnt work
 
 - Optimize kerning loop in font_factory.cpp
 - Fix TODO in filesystem_linux (regarding links).

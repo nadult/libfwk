@@ -27,24 +27,130 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 	return ViewConfig(lerp(a.zoom, b.zoom, t), slerp(a.rot, b.rot, t));
 }
 
+DECLARE_ENUM(ViewerMode, model, tets, tets_csg);
+DEFINE_ENUM(ViewerMode, "animated model", "tetrahedralization", "tetrahedra csg");
+
 class Viewer {
   public:
 	struct Model {
 		Model(PModel model, PMaterial default_mat, PTexture tex, string mname, string tname)
-			: model(std::move(model)), materials(default_mat), model_name(mname), tex_name(tname) {
+			: m_model(std::move(model)), m_materials(default_mat), m_model_name(mname),
+			  m_tex_name(tname), m_num_segments(0), m_num_non_manifold(0), m_tets_computed(false) {
 			std::map<string, PMaterial> map;
 
-			for(const auto &def : this->model->materialDefs()) {
+			for(const auto &def : m_model->materialDefs()) {
 				map[def.name] = tex ? make_immutable<Material>(tex, def.diffuse)
 									: make_immutable<Material>(def.diffuse);
 			}
-			materials = MaterialSet(default_mat, map);
+			m_materials = MaterialSet(default_mat, map);
 		}
 
-		PModel model;
-		MaterialSet materials;
-		string model_name;
-		string tex_name;
+		PPose animatePose(int anim_id, float anim_pos) const {
+			return m_model->animatePose(anim_id, anim_pos);
+		}
+
+		FBox boundingBox(PPose pose = PPose()) const { return m_model->boundingBox(pose); }
+
+		float scale() const {
+			auto bbox = m_model->boundingBox();
+			return 4.0f / max(bbox.width(), max(bbox.height(), bbox.depth()));
+		}
+
+		void updateTets() {
+			if(m_tets_computed)
+				return;
+			m_tets_computed = true;
+
+			FWK_PROFILE_RARE("XupdateTets");
+			m_tet_mesh = PTetMesh();
+			auto sub_meshes = m_model->toMesh(PPose()).splitToSubMeshes();
+
+			vector<TetMesh> tets;
+			vector<Mesh> isects;
+
+			m_num_segments = m_num_non_manifold = 0;
+			for(const auto &sub_mesh : sub_meshes) {
+				m_num_segments++;
+				if(!HalfMesh(sub_mesh).is2Manifold()) {
+					m_num_non_manifold++;
+					continue;
+				}
+
+				try {
+					auto tet = TetMesh::make(sub_mesh, 0);
+					tets.emplace_back(std::move(tet));
+				} catch(...) { isects.emplace_back(TetMesh::findIntersections(sub_mesh)); }
+			}
+
+			m_tet_mesh = PTetMesh(TetMesh::makeUnion(tets));
+			m_tet_isects = isects.empty() ? PMesh() : PMesh(Mesh::merge(isects));
+		}
+
+		void drawModel(Renderer &out, PPose pose, bool show_nodes, const Matrix4 &matrix) {
+			m_model->draw(out, pose, m_materials, matrix);
+			if(show_nodes)
+				m_model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f, matrix);
+		}
+
+		void printModelStats(TextFormatter &fmt) const {
+			int num_parts = 0, num_verts = 0, num_faces = 0;
+			for(const auto &node : m_model->nodes())
+				if(node->mesh()) {
+					num_parts++;
+					num_verts += node->mesh()->vertexCount();
+					num_faces += node->mesh()->triangleCount();
+				}
+			FBox bbox = m_model->boundingBox();
+			fmt("Size: %.2f %.2f %.2f\n\n", bbox.width(), bbox.height(), bbox.depth());
+			fmt("Parts: %d  Verts: %d Faces: %d\n", num_parts, num_verts, num_faces);
+		}
+
+		void printTetStats(TextFormatter &fmt) const {
+			DASSERT(m_tets_computed);
+
+			fmt("Segments: %d", m_num_segments);
+			if(m_num_non_manifold)
+				fmt(" (non manifold: %d)", m_num_non_manifold);
+			fmt("\n");
+
+			if(m_tet_mesh)
+				fmt("Tets: %d\n", m_tet_mesh->size());
+			if(m_tet_isects)
+				fmt("Tetrahedralizer error: self-intersections found\n");
+		}
+
+		void drawTets(Renderer &out, const Matrix4 &matrix, Color color) const {
+			DASSERT(m_tets_computed);
+
+			if(m_tet_mesh) {
+				PMaterial line_mat = make_immutable<Material>(
+					Color::white, Material::flag_blended | Material::flag_ignore_depth);
+				PMaterial tet_mat = make_immutable<Material>(color);
+				// m_tet_mesh->drawLines(*m_renderer_3d, line_mat, matrix);
+				m_tet_mesh->drawTets(out, tet_mat, matrix);
+				// m_tet_mesh->toMesh().draw(*m_renderer_3d, material, matrix);
+			}
+			if(m_tet_isects) {
+				auto material = make_immutable<Material>(
+					Color::red, Material::flag_ignore_depth | Material::flag_clear_depth);
+				m_tet_isects->draw(out, material, matrix);
+				vector<float3> lines;
+				for(auto tri : m_tet_isects->tris())
+					insertBack(lines, {tri[0], tri[1], tri[1], tri[2], tri[2], tri[0]});
+				PMaterial mat = Material(Color::black, Material::flag_ignore_depth);
+				out.addLines(lines, mat, matrix);
+			}
+		}
+
+		PModel m_model;
+		PTetMesh m_tet_mesh;
+		PMesh m_tet_isects;
+		MaterialSet m_materials;
+		string m_model_name;
+		string m_tex_name;
+		int m_num_segments;
+		int m_num_non_manifold;
+		bool m_tets_computed;
 	};
 
 	void makeMaterials(PMaterial default_mat, Model &model) {}
@@ -58,9 +164,13 @@ class Viewer {
 		}
 	}
 
+	using Mode = ViewerMode::Type;
+
 	Viewer(const vector<pair<string, string>> &file_names)
-		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
+		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
+		  m_mode(Mode::model) {
 		updateViewport();
+		m_tet_csg_offset = float3(0.1, 0, 0.3);
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -84,43 +194,6 @@ class Viewer {
 
 		if(m_models.empty())
 			THROW("No models loaded\n");
-
-		updateModel();
-	}
-
-	void updateModel() {
-		FWK_PROFILE_RARE("XupdateTet");
-
-		m_tet_mesh = PTetMesh();
-		const auto &model = m_models[m_current_model];
-		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
-
-		auto mesh = model.model->toMesh(pose);
-		mesh = Mesh::csgDifference(
-			mesh, Mesh::transform(rotation(float3(0, 1, 0), 20.0f), m_models[0].model->toMesh()));
-		m_tet_isects = mesh;
-		return;
-		auto sub_meshes = mesh.splitToSubMeshes();
-
-		vector<TetMesh> tets;
-		vector<Mesh> isects;
-
-		m_num_segments = m_num_nonmanifold = 0;
-		for(const auto &sub_mesh : sub_meshes) {
-			m_num_segments++;
-			if(!HalfMesh(sub_mesh).is2Manifold()) {
-				m_num_nonmanifold++;
-				continue;
-			}
-
-			try {
-				auto tet = TetMesh::make(sub_mesh, 0);
-				tets.emplace_back(std::move(tet));
-			} catch(...) { isects.emplace_back(TetMesh::findIntersections(sub_mesh)); }
-		}
-
-		m_tet_mesh = PTetMesh(TetMesh::makeUnion(tets));
-		m_tet_isects = isects.empty() ? PMesh() : PMesh(Mesh::merge(isects));
 	}
 
 	void handleInput(GfxDevice &device, float time_diff) {
@@ -130,14 +203,28 @@ class Viewer {
 		for(const auto &event : device.inputEvents()) {
 			bool shift = event.hasModifier(InputEvent::mod_lshift);
 
-			if(event.keyPressed(InputKey::left))
-				x_rot -= time_diff * 2.0f;
-			if(event.keyPressed(InputKey::right))
-				x_rot += time_diff * 2.0f;
-			if(event.keyPressed(InputKey::up))
-				y_rot -= time_diff * 2.0f;
-			if(event.keyPressed(InputKey::down))
-				y_rot += time_diff * 2.0f;
+			if(event.keyDown('q'))
+				m_mode = (Mode)((m_mode + 1) % ViewerMode::count);
+			if(event.hasModifier(InputEvent::mod_lctrl) && m_mode == Mode::tets_csg) {
+				if(event.keyPressed(InputKey::left))
+					m_tet_csg_offset.x -= time_diff * 2.0f;
+				if(event.keyPressed(InputKey::right))
+					m_tet_csg_offset.x += time_diff * 2.0f;
+				if(event.keyPressed(InputKey::up))
+					m_tet_csg_offset.z -= time_diff * 2.0f;
+				if(event.keyPressed(InputKey::down))
+					m_tet_csg_offset.z += time_diff * 2.0f;
+
+			} else {
+				if(event.keyPressed(InputKey::left))
+					x_rot -= time_diff * 2.0f;
+				if(event.keyPressed(InputKey::right))
+					x_rot += time_diff * 2.0f;
+				if(event.keyPressed(InputKey::up))
+					y_rot -= time_diff * 2.0f;
+				if(event.keyPressed(InputKey::down))
+					y_rot += time_diff * 2.0f;
+			}
 			if(event.keyPressed(InputKey::pageup))
 				scale += time_diff * 2.0f;
 			if(event.keyPressed(InputKey::pagedown))
@@ -145,13 +232,12 @@ class Viewer {
 			if(event.keyDown('m')) {
 				m_current_model =
 					(m_current_model + (shift ? m_models.size() - 1 : 1)) % m_models.size();
-				updateModel();
 				m_current_anim = -1;
 				m_anim_pos = 0.0;
 			}
 			if(event.keyDown('a')) {
 				m_current_anim++;
-				if(m_current_anim == m_models[m_current_model].model->animCount())
+				if(m_current_anim == m_models[m_current_model].m_model->animCount())
 					m_current_anim = -1;
 				m_anim_pos = 0.0f;
 			}
@@ -175,79 +261,47 @@ class Viewer {
 			degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(), 1.0f, 10000.0f));
 		m_renderer_3d->setViewMatrix(translation(0, 0, -5.0f));
 
-		const auto &model = m_models[m_current_model];
+		bool show_tets = isOneOf(m_mode, Mode::tets, Mode::tets_csg);
+		auto &model = m_models[m_current_model];
+		if(show_tets)
+			model.updateTets();
 
-		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
-		auto initial_bbox = model.model->boundingBox(model.model->animatePose(-1, 0.0f));
-		auto bbox = model.model->boundingBox(pose);
+		auto pose = m_mode == Mode::model ? model.animatePose(m_current_anim, m_anim_pos) : PPose();
+		auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
+					  translation(-model.boundingBox(pose).center());
 
-		float scale =
-			4.0f / max(initial_bbox.width(), max(initial_bbox.height(), initial_bbox.depth()));
-		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
-					  translation(-initial_bbox.center());
-
-		if(!m_tet_mesh)
-			model.model->draw(*m_renderer_3d, pose, model.materials, matrix);
-		m_renderer_3d->addWireBox(initial_bbox, {Color::red}, matrix);
-		m_renderer_3d->addWireBox(bbox, {Color::green}, matrix);
-		if(m_show_nodes)
-			model.model->drawNodes(*m_renderer_3d, pose, Color::green, Color::yellow, 0.1f, matrix);
-
-		if(m_tet_mesh) {
-			PMaterial line_mat = make_immutable<Material>(
-				Color(200, 255, 200, 140), Material::flag_blended | Material::flag_ignore_depth);
-			PMaterial tet_mat = make_immutable<Material>(Color(80, 255, 200));
-			// m_tet_mesh->drawLines(*m_renderer_3d, line_mat, matrix);
-			m_tet_mesh->drawTets(*m_renderer_3d, tet_mat, matrix);
-			// m_tet_mesh->toMesh().draw(*m_renderer_3d, material, matrix);
-		}
-		if(m_tet_isects) {
-			auto material = make_immutable<Material>(Color::red, Material::flag_ignore_depth |
-																	 Material::flag_clear_depth);
-			m_tet_isects->draw(*m_renderer_3d, material, matrix);
-			vector<float3> lines;
-			for(auto tri : m_tet_isects->tris())
-				insertBack(lines, {tri[0], tri[1], tri[1], tri[2], tri[2], tri[0]});
-			PMaterial mat = Material(Color::black, Material::flag_ignore_depth);
-			m_renderer_3d->addLines(lines, mat, matrix);
+		if(m_mode == Mode::model)
+			model.drawModel(*m_renderer_3d, pose, m_show_nodes, matrix);
+		else if(show_tets) {
+			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
+			if(m_mode == Mode::tets_csg)
+				model.drawTets(*m_renderer_3d, matrix * translation(m_tet_csg_offset),
+							   Color(255, 80, 200));
 		}
 
-		int num_parts = 0, num_verts = 0, num_faces = 0;
-		{
-			for(const auto &node : model.model->nodes())
-				if(node->mesh()) {
-					num_parts++;
-					num_verts += node->mesh()->vertexCount();
-					num_faces += node->mesh()->triangleCount();
-				}
-		}
+		m_renderer_3d->addWireBox(model.boundingBox(pose), {Color::green}, matrix);
 
 		TextFormatter fmt;
-		fmt("Model: %s (%d / %d)\n", model.model_name.c_str(), m_current_model + 1,
+		fmt("Mode: %s (Q)\n", toString(m_mode));
+		fmt("Model: %s (%d / %d)\n", model.m_model_name.c_str(), m_current_model + 1,
 			(int)m_models.size());
-		fmt("Texture: %s\n", !model.tex_name.empty() ? model.tex_name.c_str() : "none");
-		string anim_name = m_current_anim == -1 ? "none" : model.model->anim(m_current_anim).name();
+		// fmt("Texture: %s\n", !model.m_tex_name.empty() ? model.m_tex_name.c_str() : "none");
+		string anim_name =
+			m_current_anim == -1 ? "none" : model.m_model->anim(m_current_anim).name();
 		fmt("Animation: %s (%d / %d)\n", anim_name.c_str(), m_current_anim + 1,
-			(int)model.model->animCount());
-		fmt("Size: %.2f %.2f %.2f\n\n", initial_bbox.width(), initial_bbox.height(),
-			initial_bbox.depth());
-		fmt("Parts: %d  Verts: %d Faces: %d\n", num_parts, num_verts, num_faces);
+			(int)model.m_model->animCount());
 		fmt("Help:\n");
 		fmt("M: change model\n");
 		fmt("A: change animation\n");
 		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n\n");
+		if(m_mode == Mode::tets_csg)
+			fmt("ctrl+ up/down/left/right: move mesh");
 
-		fmt("Segments: %d", m_num_segments);
-		if(m_num_nonmanifold)
-			fmt(" (non manifold: %d)", m_num_nonmanifold);
-		fmt("\n");
-
-		if(m_tet_mesh)
-			fmt("Tets: %d\n", m_tet_mesh->size());
-		if(m_tet_isects)
-			fmt("Tetrahedralizer error: self-intersections found\n");
+		model.printModelStats(fmt);
+		if(show_tets)
+			model.printTetStats(fmt);
 		fmt("%s", Profiler::instance()->getStats("X").c_str());
 
 		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);
@@ -275,12 +329,11 @@ class Viewer {
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
 
-	PTetMesh m_tet_mesh;
-	PMesh m_tet_isects;
-	int m_num_segments, m_num_nonmanifold;
+	float3 m_tet_csg_offset;
 
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;
+	Mode m_mode;
 };
 
 static Viewer *s_viewer = nullptr;
