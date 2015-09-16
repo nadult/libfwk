@@ -10,13 +10,15 @@
 
 namespace fwk {
 
-	//TODO: option to limit cache size
-	//TODO: more control over caches? so that they could be used as drawing
-	//caches, not only computation caches
+// TODO: nullptr should be treated differently in some cases
+//      (when get_immutable_ptr() returns null, cache should be disabled)
+// TODO: option to limit cache size
+// TODO: more control over caches? so that they could be used as drawing
+// caches, not only computation caches
 
 namespace cache {
 
-	//TODO: option to verify object state (with method isValid or something)
+	// TODO: option to verify object state (with method isValid or something)
 
 	template <class T> static bool isValidKeyElement(const T &elem) { return true; }
 	template <class T> static bool isValidKeyElement(const immutable_weak_ptr<T> &elem) {

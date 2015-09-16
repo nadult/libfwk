@@ -951,32 +951,48 @@ class HalfMesh {
 	vector<unique_ptr<Face>> m_faces;
 };
 
-class TetMesh {
+class TetMesh : public immutable_base<TetMesh> {
   public:
 	using TriIndices = MeshIndices::TriIndices;
 	using TetIndices = array<int, 4>;
+
+	TetMesh(vector<float3> positions = vector<float3>(),
+			CRange<TetIndices> tet_verts = CRange<TetIndices>());
+
+	array<int, 3> tetFace(int tet, int face_id) const {
+		DASSERT(tet >= 0 && tet < (int)m_tet_tets.size());
+		DASSERT(face_id >= 0 && face_id < 4);
+		static int inds[4][3] = {{0, 2, 1}, {1, 2, 3}, {2, 0, 3}, {3, 0, 1}};
+		const auto &tverts = m_tet_verts[tet];
+		return {{tverts[inds[face_id][0]], tverts[inds[face_id][1]], tverts[inds[face_id][2]]}};
+	}
+	Tetrahedron makeTet(int tet) const;
 
 	enum Flags {
 		flag_quality = 1,
 		flag_print_details = 2,
 	};
-
-	TetMesh(vector<float3> positions = vector<float3>(),
-			vector<TetIndices> tets = vector<TetIndices>());
-	static TetMesh make(CRange<float3> positions, CRange<TriIndices> faces, int max_steps,
-						Renderer &);
-
 	static Mesh findIntersections(const Mesh &);
 	static TetMesh make(const Mesh &, uint flags = 0);
-
-	void draw(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
-	int size() const { return (int)m_indices.size(); }
-
 	static TetMesh makeUnion(const vector<TetMesh> &);
 
-	vector<float3> m_positions;
-	vector<TetIndices> m_indices;
+	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
+	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
+
+	const auto &verts() const { return m_verts; }
+	const auto &tetVerts() const { return m_tet_verts; }
+	const auto &tetTets() const { return m_tet_tets; }
+	int size() const { return (int)m_tet_tets.size(); }
+
+	Mesh toMesh() const;
+
+  private:
+	vector<float3> m_verts;
+	vector<array<int, 4>> m_tet_tets;
+	vector<array<int, 4>> m_tet_verts;
 };
+
+using PTetMesh = immutable_ptr<TetMesh>;
 
 struct MaterialDef {
 	MaterialDef(const string &name, Color diffuse) : name(name), diffuse(diffuse) {}

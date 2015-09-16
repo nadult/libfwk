@@ -91,7 +91,7 @@ class Viewer {
 	void updateModel() {
 		FWK_PROFILE_RARE("XupdateTet");
 
-		m_tet_mesh.reset();
+		m_tet_mesh = PTetMesh();
 		const auto &model = m_models[m_current_model];
 		auto pose = model.model->animatePose(m_current_anim, m_anim_pos);
 		auto sub_meshes = model.model->toMesh(pose).splitToSubMeshes();
@@ -113,7 +113,7 @@ class Viewer {
 			} catch(...) { isects.emplace_back(TetMesh::findIntersections(sub_mesh)); }
 		}
 
-		m_tet_mesh = make_unique<TetMesh>(TetMesh::makeUnion(tets));
+		m_tet_mesh = PTetMesh(TetMesh::makeUnion(tets));
 		m_tet_isects = isects.empty() ? PMesh() : PMesh(Mesh::merge(isects));
 	}
 
@@ -180,15 +180,20 @@ class Viewer {
 		auto matrix = scaling(m_view_config.zoom * scale) * Matrix4(m_view_config.rot) *
 					  translation(-initial_bbox.center());
 
-		model.model->draw(*m_renderer_3d, pose, model.materials, matrix);
+		if(!m_tet_mesh)
+			model.model->draw(*m_renderer_3d, pose, model.materials, matrix);
 		m_renderer_3d->addWireBox(initial_bbox, {Color::red}, matrix);
 		m_renderer_3d->addWireBox(bbox, {Color::green}, matrix);
 		if(m_show_nodes)
 			model.model->drawNodes(*m_renderer_3d, pose, Color::green, Color::yellow, 0.1f, matrix);
 
 		if(m_tet_mesh) {
-			auto material = make_immutable<Material>(Color::white, Material::flag_ignore_depth);
-			m_tet_mesh->draw(*m_renderer_3d, material, matrix);
+			PMaterial line_mat = make_immutable<Material>(
+				Color(200, 255, 200, 140), Material::flag_blended | Material::flag_ignore_depth);
+			PMaterial tet_mat = make_immutable<Material>(Color(80, 255, 200));
+			// m_tet_mesh->drawLines(*m_renderer_3d, line_mat, matrix);
+			m_tet_mesh->drawTets(*m_renderer_3d, tet_mat, matrix);
+			// m_tet_mesh->toMesh().draw(*m_renderer_3d, material, matrix);
 		}
 		if(m_tet_isects) {
 			auto material = make_immutable<Material>(Color::red, Material::flag_ignore_depth |
@@ -201,12 +206,13 @@ class Viewer {
 			m_renderer_3d->addLines(lines, mat, matrix);
 		}
 
-		int num_parts = 0, num_verts = 0;
+		int num_parts = 0, num_verts = 0, num_faces = 0;
 		{
 			for(const auto &node : model.model->nodes())
 				if(node->mesh()) {
 					num_parts++;
 					num_verts += node->mesh()->vertexCount();
+					num_faces += node->mesh()->triangleCount();
 				}
 		}
 
@@ -219,7 +225,7 @@ class Viewer {
 			(int)model.model->animCount());
 		fmt("Size: %.2f %.2f %.2f\n\n", initial_bbox.width(), initial_bbox.height(),
 			initial_bbox.depth());
-		fmt("Parts: %d  Verts: %d\n", num_parts, num_verts);
+		fmt("Parts: %d  Verts: %d Faces: %d\n", num_parts, num_verts, num_faces);
 		fmt("Help:\n");
 		fmt("M: change model\n");
 		fmt("A: change animation\n");
@@ -263,7 +269,7 @@ class Viewer {
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
 
-	unique_ptr<TetMesh> m_tet_mesh;
+	PTetMesh m_tet_mesh;
 	PMesh m_tet_isects;
 	int m_num_segments, m_num_nonmanifold;
 

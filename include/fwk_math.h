@@ -781,6 +781,9 @@ class Tetrahedron {
 	const float3 &operator[](int idx) const { return m_corners[idx]; }
 	const float3 &corner(int idx) const { return m_corners[idx]; }
 	const auto &corners() const { return m_corners; }
+	float3 center() const {
+		return (m_corners[0] + m_corners[1] + m_corners[2] + m_corners[3]) * 0.25f;
+	}
 
   private:
 	array<float3, 4> m_corners;

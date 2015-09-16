@@ -265,6 +265,13 @@ template <class T1, class T2> inline bool isOneOf(const T1 &value, const vector<
 			return true;
 	return false;
 }
+template <class T1, class T2, size_t S>
+inline bool isOneOf(const T1 &value, const array<T2, S> &arr) {
+	for(const auto &item : arr)
+		if(value == item)
+			return true;
+	return false;
+}
 
 template <class T> inline T max(T a, T b) { return a < b ? b : a; }
 template <class T> inline T min(T a, T b) { return b < a ? b : a; }
