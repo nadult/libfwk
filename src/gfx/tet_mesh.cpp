@@ -13,15 +13,17 @@ namespace fwk {
 
 using TriIndices = TetMesh::TriIndices;
 
-array<int, 3> sortFace(array<int, 3> face) {
-	if(face[0] > face[1])
-		swap(face[0], face[1]);
-	if(face[1] > face[2])
-		swap(face[1], face[2]);
-	if(face[0] > face[1])
-		swap(face[0], face[1]);
+namespace {
+	array<int, 3> sortFace(array<int, 3> face) {
+		if(face[0] > face[1])
+			swap(face[0], face[1]);
+		if(face[1] > face[2])
+			swap(face[1], face[2]);
+		if(face[0] > face[1])
+			swap(face[0], face[1]);
 
-	return face;
+		return face;
+	}
 }
 
 TetMesh::TetMesh(vector<float3> positions, CRange<TetIndices> tet_indices)
@@ -107,6 +109,43 @@ TetMesh TetMesh::makeUnion(const vector<TetMesh> &sub_tets) {
 	}
 
 	return TetMesh(std::move(positions), std::move(indices));
+}
+
+TetMesh TetMesh::transform(const Matrix4 &matrix, TetMesh mesh) {
+	// TODO: how can we modify tetmesh in place?
+	return TetMesh(MeshBuffers::transform(matrix, MeshBuffers(mesh.verts())).positions,
+				   mesh.tetVerts());
+}
+
+TetMesh TetMesh::selectTets(const TetMesh &mesh, const vector<int> &indices) {
+	// TODO: select vertices
+	auto indexer = indexWith(mesh.tetVerts(), indices);
+	return TetMesh(mesh.verts(), vector<TetIndices>(begin(indexer), end(indexer)));
+}
+
+template <class T> void makeUnique(vector<T> &vec) {
+	std::sort(begin(vec), end(vec));
+	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
+}
+
+TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b) {
+	vector<int> sel_a, sel_b;
+
+	for(int i = 0; i < a.size(); i++) {
+		Tetrahedron tet_a(a.makeTet(i));
+		if(isOneOf(-1, a.tetTets()[i]))
+			for(int j = 0; j < b.size(); j++) {
+				Tetrahedron tet_b(b.makeTet(j));
+				if(isOneOf(-1, b.tetTets()[j]) && areIntersecting(tet_a, tet_b)) {
+					sel_a.emplace_back(i);
+					sel_b.emplace_back(j);
+				}
+			}
+	}
+	makeUnique(sel_a);
+	makeUnique(sel_b);
+
+	return makeUnion({selectTets(a, sel_a), selectTets(b, sel_b)});
 }
 
 Mesh TetMesh::toMesh() const {

@@ -89,7 +89,7 @@ Mesh Mesh::makeCylinder(const Cylinder &cylinder, int num_sides) {
 
 Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 	vector<float3> positions;
-	insertBack(positions, tet.corners());
+	insertBack(positions, tet.verts());
 
 	vector<uint> indices;
 	for(int n = 0; n < 4; n++) {

@@ -751,6 +751,7 @@ class Plane {
   public:
 	Plane() {}
 	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {}
+	Plane(const float3 &normal, const float3 &point) : m_nrm(normal), m_dist(dot(point, normal)) {}
 
 	// TODO: should triangle be CW or CCW?
 	explicit Plane(const Triangle &);
@@ -769,25 +770,32 @@ class Plane {
 
 class Tetrahedron {
   public:
+	using FaceIndices = array<int, 3>;
+	using Edge = pair<float3, float3>;
+
 	Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4);
 	Tetrahedron(TRange<const float3, 4> points)
 		: Tetrahedron(points[0], points[1], points[2], points[3]) {}
 	Tetrahedron() : Tetrahedron(float3(), float3(), float3(), float3()) {}
 
+	static array<FaceIndices, 4> faces();
+	array<Plane, 4> planes() const;
+	array<Edge, 6> edges() const;
+
 	float volume() const;
 	bool isIntersecting(const Triangle &) const;
 	bool isValid() const;
 
-	const float3 &operator[](int idx) const { return m_corners[idx]; }
-	const float3 &corner(int idx) const { return m_corners[idx]; }
-	const auto &corners() const { return m_corners; }
-	float3 center() const {
-		return (m_corners[0] + m_corners[1] + m_corners[2] + m_corners[3]) * 0.25f;
-	}
+	const float3 &operator[](int idx) const { return m_verts[idx]; }
+	const float3 &corner(int idx) const { return m_verts[idx]; }
+	const auto &verts() const { return m_verts; }
+	float3 center() const { return (m_verts[0] + m_verts[1] + m_verts[2] + m_verts[3]) * 0.25f; }
 
   private:
-	array<float3, 4> m_corners;
+	array<float3, 4> m_verts;
 };
+
+bool areIntersecting(const Tetrahedron &, const Tetrahedron &);
 
 const Plane normalize(const Plane &);
 const Plane operator*(const Matrix4 &, const Plane &);

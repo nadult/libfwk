@@ -119,17 +119,21 @@ class Viewer {
 				fmt("Tetrahedralizer error: self-intersections found\n");
 		}
 
+		void drawTets(const TetMesh &mesh, Renderer &out, const Matrix4 &matrix,
+					  Color color) const {
+			PMaterial line_mat = make_immutable<Material>(
+				Color::white, Material::flag_blended | Material::flag_ignore_depth);
+			PMaterial tet_mat = make_immutable<Material>(color);
+			// m_tet_mesh->drawLines(*m_renderer_3d, line_mat, matrix);
+			mesh.drawTets(out, tet_mat, matrix);
+			// m_tet_mesh->toMesh().draw(*m_renderer_3d, material, matrix);
+		}
+
 		void drawTets(Renderer &out, const Matrix4 &matrix, Color color) const {
 			DASSERT(m_tets_computed);
 
-			if(m_tet_mesh) {
-				PMaterial line_mat = make_immutable<Material>(
-					Color::white, Material::flag_blended | Material::flag_ignore_depth);
-				PMaterial tet_mat = make_immutable<Material>(color);
-				// m_tet_mesh->drawLines(*m_renderer_3d, line_mat, matrix);
-				m_tet_mesh->drawTets(out, tet_mat, matrix);
-				// m_tet_mesh->toMesh().draw(*m_renderer_3d, material, matrix);
-			}
+			if(m_tet_mesh)
+				drawTets(*m_tet_mesh, out, matrix, color);
 			if(m_tet_isects) {
 				auto material = make_immutable<Material>(
 					Color::red, Material::flag_ignore_depth | Material::flag_clear_depth);
@@ -140,6 +144,15 @@ class Viewer {
 				PMaterial mat = Material(Color::black, Material::flag_ignore_depth);
 				out.addLines(lines, mat, matrix);
 			}
+		}
+
+		void drawTetsCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset) {
+			if(!m_tet_mesh)
+				return;
+
+			auto second_mesh = PTetMesh(TetMesh::transform(translation(offset), *m_tet_mesh));
+			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh));
+			drawTets(*csg, out, matrix, color);
 		}
 
 		PModel m_model;
@@ -272,12 +285,10 @@ class Viewer {
 
 		if(m_mode == Mode::model)
 			model.drawModel(*m_renderer_3d, pose, m_show_nodes, matrix);
-		else if(show_tets) {
+		else if(m_mode == Mode::tets)
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
-			if(m_mode == Mode::tets_csg)
-				model.drawTets(*m_renderer_3d, matrix * translation(m_tet_csg_offset),
-							   Color(255, 80, 200));
-		}
+		else if(m_mode == Mode::tets_csg)
+			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset);
 
 		m_renderer_3d->addWireBox(model.boundingBox(pose), {Color::green}, matrix);
 
@@ -297,7 +308,7 @@ class Viewer {
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n\n");
 		if(m_mode == Mode::tets_csg)
-			fmt("ctrl+ up/down/left/right: move mesh");
+			fmt("ctrl+ up/down/left/right: move mesh\n");
 
 		model.printModelStats(fmt);
 		if(show_tets)

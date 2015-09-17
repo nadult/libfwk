@@ -976,9 +976,13 @@ class TetMesh : public immutable_base<TetMesh> {
 		flag_quality = 1,
 		flag_print_details = 2,
 	};
+
+	static TetMesh transform(const Matrix4 &, TetMesh);
 	static Mesh findIntersections(const Mesh &);
 	static TetMesh make(const Mesh &, uint flags = 0);
 	static TetMesh makeUnion(const vector<TetMesh> &);
+	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
+	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &);
 
 	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
