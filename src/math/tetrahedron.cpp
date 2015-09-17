@@ -34,6 +34,14 @@ array<Plane, 4> Tetrahedron::planes() const {
 	return out;
 }
 
+array<Triangle, 4> Tetrahedron::tris() const {
+	auto faces = Tetrahedron::faces();
+	array<Triangle, 4> out;
+	for(int n = 0; n < 4; n++)
+		out[n] = Triangle(m_verts[faces[n][0]], m_verts[faces[n][1]], m_verts[faces[n][2]]);
+	return out;
+}
+
 array<Tetrahedron::Edge, 6> Tetrahedron::edges() const {
 	int indices[6][2] = {{0, 1}, {1, 2}, {2, 0}, {0, 3}, {3, 1}, {3, 2}};
 	array<Edge, 6> out;

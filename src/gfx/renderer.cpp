@@ -82,7 +82,7 @@ void Renderer::addDrawCall(const DrawCall &draw_call, PMaterial material, const 
 	m_instances.emplace_back(Instance{fullMatrix() * matrix, std::move(material), draw_call});
 }
 
-void Renderer::addLines(Range<const float3> verts, PMaterial material, const Matrix4 &matrix) {
+void Renderer::addLines(CRange<float3> verts, PMaterial material, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 
 	m_lines.emplace_back(LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(),
@@ -91,13 +91,20 @@ void Renderer::addLines(Range<const float3> verts, PMaterial material, const Mat
 	m_line_colors.resize(m_line_colors.size() + verts.size(), material->color());
 }
 
-void Renderer::addLines(Range<const float3> verts, Color color, const Matrix4 &matrix) {
+void Renderer::addLines(CRange<float3> verts, Color color, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 
 	m_lines.emplace_back(
 		LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), verts.size(), 0u});
 	m_line_positions.insert(m_line_positions.end(), begin(verts), end(verts));
 	m_line_colors.resize(m_line_colors.size() + verts.size(), color);
+}
+
+void Renderer::addSegments(CRange<Segment> segs, PMaterial material, const Matrix4 &matrix) {
+	vector<float3> verts;
+	for(const auto &seg : segs)
+		insertBack(verts, {seg.origin(), seg.end()});
+	addLines(verts, material, matrix);
 }
 
 void Renderer::addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix) {

@@ -779,7 +779,10 @@ class Tetrahedron {
 	Tetrahedron() : Tetrahedron(float3(), float3(), float3(), float3()) {}
 
 	static array<FaceIndices, 4> faces();
+
+	// normals pointing inside
 	array<Plane, 4> planes() const;
+	array<Triangle, 4> tris() const;
 	array<Edge, 6> edges() const;
 
 	float volume() const;
@@ -837,6 +840,8 @@ float distance(const Triangle &tri, const Segment &);
 // returns infinity if doesn't intersect
 pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);
 pair<float, float> intersectionRange(const Segment &, const Box<float3> &box);
+
+pair<Segment, bool> intersectionSegment(const Triangle &, const Triangle &);
 
 inline float intersection(const Ray &ray, const Box<float3> &box) {
 	return intersectionRange(ray, box).first;

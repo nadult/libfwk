@@ -151,8 +151,12 @@ class Viewer {
 				return;
 
 			auto second_mesh = PTetMesh(TetMesh::transform(translation(offset), *m_tet_mesh));
-			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh));
+			vector<Segment> segments;
+			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments));
+
 			drawTets(*csg, out, matrix, color);
+			PMaterial mat = Material(Color::black, Material::flag_ignore_depth);
+			out.addSegments(segments, mat, matrix);
 		}
 
 		PModel m_model;

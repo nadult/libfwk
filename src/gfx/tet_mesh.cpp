@@ -128,8 +128,10 @@ template <class T> void makeUnique(vector<T> &vec) {
 	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
 }
 
-TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b) {
+TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments) {
 	vector<int> sel_a, sel_b;
+
+	vector<pair<int, int>> isects;
 
 	for(int i = 0; i < a.size(); i++) {
 		Tetrahedron tet_a(a.makeTet(i));
@@ -139,11 +141,26 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b) {
 				if(isOneOf(-1, b.tetTets()[j]) && areIntersecting(tet_a, tet_b)) {
 					sel_a.emplace_back(i);
 					sel_b.emplace_back(j);
+					isects.emplace_back(i, j);
 				}
 			}
 	}
+
 	makeUnique(sel_a);
 	makeUnique(sel_b);
+	makeUnique(isects);
+
+	for(auto pair : isects) {
+		Tetrahedron tet_a(a.makeTet(pair.first));
+		Tetrahedron tet_b(b.makeTet(pair.second));
+
+		for(const auto &tri_a : tet_a.tris())
+			for(const auto &tri_b : tet_b.tris()) {
+				auto isect = intersectionSegment(tri_a, tri_b);
+				if(isect.second)
+					segments.emplace_back(isect.first);
+			}
+	}
 
 	return makeUnion({selectTets(a, sel_a), selectTets(b, sel_b)});
 }

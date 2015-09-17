@@ -55,6 +55,38 @@ bool areIntersecting(const Triangle &a, const Triangle &b) {
 	return false;
 }
 
+template <class K> float3 fromCGAL(const CGAL::Point_3<K> &p) {
+	return float3(CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.z()));
+}
+
+pair<Segment, bool> intersectionSegment(const Triangle &a, const Triangle &b) {
+	using K = CGAL::Exact_predicates_exact_constructions_kernel;
+	using Point = K::Point_3;
+	using Segment = K::Segment_3;
+
+	Point ap[3], bp[3];
+	for(int n = 0; n < 3; n++)
+		ap[n] = Point(a[n].x, a[n].y, a[n].z);
+	for(int n = 0; n < 3; n++)
+		bp[n] = Point(b[n].x, b[n].y, b[n].z);
+
+	CGAL::Triangle_3<K> tria(ap[0], ap[1], ap[2]);
+	CGAL::Triangle_3<K> trib(bp[0], bp[1], bp[2]);
+
+	try {
+		auto isect = intersection(tria, trib);
+		if(isect) {
+			if(auto *s = boost::get<Segment>(&*isect)) {
+				float len = sqrtf(CGAL::to_double(s->squared_length()));
+				if(len > constant::epsilon)
+					return make_pair(fwk::Segment(fromCGAL(s->min()), fromCGAL(s->max())), true);
+			}
+		}
+	} catch(...) {}
+
+	return make_pair(fwk::Segment(), false);
+}
+
 bool areIntersecting(const Triangle2D &a, const Triangle2D &b) {
 	using K = CGAL::Exact_predicates_exact_constructions_kernel;
 	using Point = K::Point_2;

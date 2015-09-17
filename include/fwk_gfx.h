@@ -982,7 +982,7 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh make(const Mesh &, uint flags = 0);
 	static TetMesh makeUnion(const vector<TetMesh> &);
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
-	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &);
+	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &, vector<Segment> &);
 
 	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
@@ -1375,10 +1375,9 @@ class Renderer : public MatrixStack {
 	void clear();
 
 	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-	void addLines(Range<const float3> verts, PMaterial material,
-				  const Matrix4 &matrix = Matrix4::identity());
-	void addLines(Range<const float3> verts, Color color,
-				  const Matrix4 &matrix = Matrix4::identity());
+	void addLines(CRange<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void addLines(CRange<float3>, Color, const Matrix4 &matrix = Matrix4::identity());
+	void addSegments(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 
 	void addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
 	void addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords, PMaterial,
