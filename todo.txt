@@ -1,4 +1,3 @@
-- Fix problems with Range conversions (make them explicit?)
 - VSYNC under windows
 - Fix problem in Cache when get_immutable_ptr() return null
 - input key tab doesnt work

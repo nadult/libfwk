@@ -118,8 +118,8 @@ void Renderer::addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix) 
 	addLines(out_verts, color, matrix);
 }
 
-void Renderer::addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords,
-						 PMaterial material, const Matrix4 &matrix) {
+void Renderer::addSprite(CRange<float3, 4> verts, CRange<float2, 4> tex_coords, PMaterial material,
+						 const Matrix4 &matrix) {
 	DASSERT(material);
 	SpriteInstance new_sprite;
 	new_sprite.matrix = fullMatrix() * matrix;

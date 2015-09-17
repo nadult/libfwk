@@ -6,7 +6,7 @@
 
 namespace fwk {
 
-template <class TVec3> void Box<TVec3>::getCorners(TRange<Vec3, 8> out) const {
+template <class TVec3> void Box<TVec3>::getCorners(Range<Vec3, 8> out) const {
 	for(int n = 0; n < 8; n++) {
 		out[n].x = (n & 4 ? min : max).x;
 		out[n].y = (n & 2 ? min : max).y;

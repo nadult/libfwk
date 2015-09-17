@@ -5,9 +5,8 @@
 #include "fwk_math.h"
 
 namespace fwk {
-	
-template <class TVec2>
-void Rect<TVec2>::getCorners(TRange<Vec2, 4> corners) const {
+
+template <class TVec2> void Rect<TVec2>::getCorners(Range<Vec2, 4> corners) const {
 	corners[0] = min;
 	corners[1] = Vec2(min.x, max.y);
 	corners[2] = max;
@@ -44,5 +43,4 @@ bool areOverlapping(const FRect &a, const FRect &b) {
 
 template struct Rect<int2>;
 template struct Rect<float2>;
-
 }

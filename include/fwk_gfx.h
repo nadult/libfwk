@@ -370,18 +370,18 @@ class VertexBuffer : public immutable_base<VertexBuffer> {
 		return make_immutable<VertexBuffer>(data);
 	}
 
-	// TODO: figure a way of passing different range types here
 	template <class T>
-	VertexBuffer(const vector<T> &data)
-		: VertexBuffer(data.data(), (int)data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
-	template <class T>
-	VertexBuffer(const PodArray<T> &data)
+	VertexBuffer(CRange<T> data)
 		: VertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
+	template <class Range, typename = typename std::enable_if<ConvertsToRange<Range>::value>::type>
+	VertexBuffer(const Range &range)
+		: VertexBuffer(makeRange(range)) {}
+
 	template <class T> vector<T> getData() const {
 		ASSERT(TVertexDataType<T>().type == m_data_type.type);
 		ASSERT(sizeof(T) == m_vertex_size);
 		vector<T> out(m_size);
-		download(makeRange(reinterpret_cast<char *>(out.data()), m_size * m_vertex_size));
+		download(reinterpretRange<char>(Range<T>(out)));
 		return out;
 	}
 
@@ -695,7 +695,6 @@ class MeshIndices {
 	}
 
 	MeshIndices(vector<uint> = {}, Type ptype = Type::triangles);
-	MeshIndices(CRange<uint>, Type ptype = Type::triangles);
 	MeshIndices(PIndexBuffer, Type ptype = Type::triangles);
 	MeshIndices(const vector<TriIndices> &);
 
@@ -1380,7 +1379,7 @@ class Renderer : public MatrixStack {
 	void addSegments(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 
 	void addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
-	void addSprite(TRange<const float3, 4> verts, TRange<const float2, 4> tex_coords, PMaterial,
+	void addSprite(CRange<float3, 4> verts, CRange<float2, 4> tex_coords, PMaterial,
 				   const Matrix4 &matrix = Matrix4::identity());
 
 	// TODO: this is useful

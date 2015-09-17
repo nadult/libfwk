@@ -176,24 +176,6 @@ template <class T> class immutable_weak_ptr {
 	int m_mutation_counter;
 };
 
-// TODO: write more of these
-template <class Range, class Functor> bool anyOf(const Range &range, Functor functor) {
-	return std::any_of(begin(range), end(range), functor);
-}
-
-template <class Range, class Functor> bool allOf(const Range &range, Functor functor) {
-	return std::all_of(begin(range), end(range), functor);
-}
-
-template <class T1, class Container> void insertBack(vector<T1> &into, const Container &from) {
-	into.insert(end(into), begin(from), end(from));
-}
-
-template <class T1, class T2>
-void insertBack(vector<T1> &into, const std::initializer_list<T2> &from) {
-	into.insert(end(into), begin(from), end(from));
-}
-
 string executablePath();
 pair<string, bool> execCommand(const string &cmd);
 
@@ -251,6 +233,11 @@ double getTime();
 #else
 #define DASSERT(expr) ASSERT(expr)
 #endif
+}
+
+#include "fwk_range.h"
+
+namespace fwk {
 
 template <class T> inline constexpr bool isOneOf(const T &value) { return false; }
 
@@ -281,178 +268,6 @@ template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return
 template <class T, int size> constexpr int arraySize(T(&)[size]) noexcept { return size; }
 
 void logError(const string &error);
-
-template <class T> class Range;
-
-template <class T> class RangeIterator : public std::iterator<std::random_access_iterator_tag, T> {
-
-  protected:
-#ifdef NDEBUG
-	constexpr RangeIterator(T *pointer, int, int) noexcept : m_pointer(pointer) {}
-#else
-	RangeIterator(T *pointer, int left, int right) noexcept : m_pointer(pointer),
-															  m_left(left),
-															  m_right(right) {
-		DASSERT(left >= 0 && right >= 0);
-	}
-#endif
-	friend class Range<T>;
-	friend class Range<typename std::remove_const<T>::type>;
-
-  public:
-	constexpr auto operator+(int offset) const noexcept {
-#ifdef NDEBUG
-		return RangeIterator(m_pointer + offset, 0, 0);
-#else
-		return RangeIterator(m_pointer + offset, m_left + offset, m_right + offset);
-#endif
-	}
-	constexpr auto operator-(int offset) const noexcept { return operator+(-offset); }
-
-	constexpr int operator-(const RangeIterator &rhs) const noexcept {
-#ifndef NDEBUG
-		DASSERT(m_pointer >= rhs.m_pointer ? m_pointer - rhs.m_pointer <= m_left
-										   : rhs.m_pointer - m_pointer <= m_right);
-#endif
-		return m_pointer - rhs.m_pointer;
-	}
-	constexpr T &operator*() const noexcept {
-		DASSERT(m_right >= 1 && m_pointer);
-		return *m_pointer;
-	}
-	constexpr bool operator==(const RangeIterator &rhs) const noexcept {
-		return m_pointer == rhs.m_pointer;
-	}
-	constexpr bool operator<(const RangeIterator &rhs) const noexcept {
-		return m_pointer < rhs.m_pointer;
-	}
-	RangeIterator &operator++() {
-		m_pointer++;
-#ifndef NDEBUG
-		DASSERT(m_right > 0);
-		m_left++;
-		m_right--;
-#endif
-		return *this;
-	}
-
-  private:
-	T *m_pointer;
-#ifndef NDEBUG
-	int m_left, m_right;
-#endif
-};
-
-template <class T> class PodArray;
-
-// Simple wrapper class for ranges of values
-// The user is responsible for making sure, that the values
-// exist while Range pointing to them is in use
-// TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
-template <class T> class Range {
-
-  public:
-	Range() : Range(nullptr, 0) {}
-	Range(std::vector<T> &data) : Range(data.data(), data.size()) {}
-	template <class TConvertible>
-	constexpr Range(const std::vector<TConvertible> &vec) noexcept : Range(vec.data(), vec.size()) {
-	}
-	template <class TConvertible>
-	constexpr Range(std::vector<TConvertible> &vec) noexcept : Range(vec.data(), vec.size()) {}
-	template <class TConvertible>
-	constexpr Range(const PodArray<TConvertible> &array) noexcept
-		: Range(array.data(), array.size()) {}
-	template <class TConvertible>
-	constexpr Range(PodArray<TConvertible> &array) noexcept : Range(array.data(), array.size()) {}
-	template <class TConvertible, int N>
-	constexpr Range(TConvertible(&array)[N]) noexcept : Range(array, N) {}
-	template <class TConvertible>
-	constexpr Range(TConvertible *begin, TConvertible *end) noexcept
-		: Range(begin, (int)(end - begin)) {}
-	template <class TConvertible>
-	Range(TConvertible *data, int size) noexcept : m_data(data), m_size(size) {
-		DASSERT(m_data || m_size == 0);
-		DASSERT(m_size >= 0);
-	}
-	Range(T *data, int size) noexcept : m_data(data), m_size(size) {
-		DASSERT(m_data || m_size == 0);
-		DASSERT(m_size >= 0);
-	}
-	operator Range<const T>() const { return Range<const T>(m_data, m_size); }
-
-	static Range makeEmpty() { return Range(nullptr, 0); }
-
-	constexpr auto cbegin() const noexcept { return RangeIterator<const T>(m_data, 0, m_size); }
-	constexpr auto cend() const noexcept {
-		return RangeIterator<const T>(m_data + m_size, m_size, 0);
-	}
-	auto begin() const noexcept { return cbegin(); }
-	auto end() const noexcept { return cend(); }
-	auto begin() noexcept { return RangeIterator<T>(m_data, 0, m_size); }
-	auto end() noexcept { return RangeIterator<T>(m_data + m_size, m_size, 0); }
-
-	const T *data() const noexcept { return m_data; }
-	T *data() noexcept { return m_data; }
-	constexpr int size() const noexcept { return m_size; }
-	constexpr bool empty() const noexcept { return m_size == 0; }
-
-	const T &operator[](int idx) const noexcept {
-		DASSERT(idx >= 0 && idx < m_size);
-		return m_data[idx];
-	}
-	T &operator[](int idx) noexcept {
-		DASSERT(idx >= 0 && idx < m_size);
-		return m_data[idx];
-	}
-
-  private:
-	T *m_data;
-	int m_size;
-};
-
-template <class T1, class OutputIterator> void copy(Range<T1> range, OutputIterator iter) {
-	return std::copy(begin(range), end(range), iter);
-}
-
-// TODO: better name
-// TODO: Minimum size is a bit misleading, user could expect exact size
-template <class T, int MinSize> class TRange : public Range<T> {
-  public:
-	template <class... Args> TRange(Args &&... args) : Range<T>(std::forward<Args>(args)...) {
-		DASSERT(Range<T>::size() >= MinSize);
-	}
-	template <class TConvertible, int N>
-	constexpr TRange(TConvertible(&array)[N]) noexcept : Range<T>(array, N) {
-		static_assert(N >= MinSize, "Array not big enough");
-	}
-};
-
-template <class T> using CRangeIterator = RangeIterator<const T>;
-template <class T> using CRange = Range<const T>;
-
-template <class T> auto makeRange(const std::vector<T> &vec) noexcept {
-	return Range<const T>(vec.data(), vec.size());
-}
-
-template <class T> auto makeRange(std::vector<T> &vec) noexcept {
-	return Range<T>(vec.data(), vec.size());
-}
-
-template <class T> auto makeRange(const PodArray<T> &vec) noexcept {
-	return Range<const T>(vec.data(), vec.size());
-}
-
-template <class T> auto makeRange(PodArray<T> &vec) noexcept {
-	return Range<T>(vec.data(), vec.size());
-}
-
-template <class T, int N> auto makeRange(T(&array)[N]) noexcept { return TRange<T, N>(array); }
-
-template <class T> Range<typename T::value_type> makeRange(T *begin, T *end) noexcept {
-	return Range<typename T::value_type>(begin, (int)(end - begin));
-}
-
-template <class T> auto makeRange(T *data, int size) noexcept { return Range<T>(data, size); }
 
 template <class A, class B> class Indexer;
 

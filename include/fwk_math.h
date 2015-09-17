@@ -412,7 +412,7 @@ template <class TVec2> struct Rect {
 
 	// Returns corners in clockwise order
 	// TODO: CW or CCW depends on handeness...
-	void getCorners(TRange<Vec2, 4>) const;
+	void getCorners(Range<Vec2, 4>) const;
 
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y; }
 
@@ -485,7 +485,7 @@ template <class TVec3> struct Box {
 			   point.z >= min.z && point.z < max.z;
 	}
 
-	void getCorners(TRange<Vec3, 8>) const;
+	void getCorners(Range<Vec3, 8>) const;
 
 	const Rect<Vec2> xz() const { return Rect<Vec2>(min.xz(), max.xz()); }
 	const Rect<Vec2> xy() const { return Rect<Vec2>(min.xy(), max.xy()); }
@@ -774,7 +774,7 @@ class Tetrahedron {
 	using Edge = pair<float3, float3>;
 
 	Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4);
-	Tetrahedron(TRange<const float3, 4> points)
+	Tetrahedron(CRange<float3, 4> points)
 		: Tetrahedron(points[0], points[1], points[2], points[3]) {}
 	Tetrahedron() : Tetrahedron(float3(), float3(), float3(), float3()) {}
 
@@ -885,7 +885,7 @@ class Frustum {
 
 	Frustum() {}
 	Frustum(const Matrix4 &view_projection);
-	Frustum(TRange<Plane, planes_count>);
+	Frustum(CRange<Plane, planes_count>);
 
 	bool isIntersecting(const float3 &point) const;
 	bool isIntersecting(const FBox &box) const;

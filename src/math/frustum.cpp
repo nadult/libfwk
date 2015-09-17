@@ -24,7 +24,7 @@ Frustum::Frustum(const Matrix4 &view_proj) {
 		m_planes[n] = m_planes[n];
 }
 
-Frustum::Frustum(TRange<Plane, planes_count> planes) {
+Frustum::Frustum(CRange<Plane, planes_count> planes) {
 	for(int n = 0; n < planes_count; n++)
 		m_planes[n] = planes[n];
 }
