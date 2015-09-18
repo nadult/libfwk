@@ -721,6 +721,7 @@ class Triangle {
 	float3 edge2() const { return m_edge[1]; }
 	float3 normal() const;
 	float area() const;
+	array<float3, 3> verts() const { return {{a(), b(), c()}}; }
 
   protected:
 	float3 m_point;

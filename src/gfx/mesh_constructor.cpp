@@ -102,4 +102,17 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 
 	return Mesh({positions, {}, {}}, {{indices}});
 }
+
+Mesh Mesh::makePolySoup(CRange<Triangle> tris) {
+	vector<float3> positions;
+	vector<uint> indices;
+
+	for(const auto &tri : tris) {
+		uint off = positions.size();
+		insertBack(positions, tri.verts());
+		insertBack(indices, {off, off + 1, off + 2});
+	}
+
+	return Mesh({positions, {}, {}}, {{indices}});
+}
 }

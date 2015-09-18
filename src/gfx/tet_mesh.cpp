@@ -28,6 +28,9 @@ namespace {
 
 TetMesh::TetMesh(vector<float3> positions, CRange<TetIndices> tet_indices)
 	: m_verts(std::move(positions)), m_tet_verts(begin(tet_indices), end(tet_indices)) {
+	for(int i = 0; i < (int)m_tet_verts.size(); i++)
+		if(makeTet(i).volume() < 0.0f)
+			swap(m_tet_verts[i][2], m_tet_verts[i][3]);
 
 	std::map<array<int, 3>, int> faces;
 	m_tet_tets.resize(m_tet_verts.size(), {{-1, -1, -1, -1}});
@@ -128,7 +131,8 @@ template <class T> void makeUnique(vector<T> &vec) {
 	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
 }
 
-TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments) {
+TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
+							   vector<Triangle> &tris) {
 	vector<int> sel_a, sel_b;
 
 	vector<pair<int, int>> isects;
@@ -154,12 +158,19 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 		Tetrahedron tet_a(a.makeTet(pair.first));
 		Tetrahedron tet_b(b.makeTet(pair.second));
 
-		for(const auto &tri_a : tet_a.tris())
-			for(const auto &tri_b : tet_b.tris()) {
-				auto isect = intersectionSegment(tri_a, tri_b);
-				if(isect.second)
-					segments.emplace_back(isect.first);
-			}
+		const auto &tris_a = tet_a.tris();
+		const auto &tris_b = tet_b.tris();
+
+		for(int i = 0; i < 4; i++)
+			for(int j = 0; j < 4; j++)
+				if(a.tetTet(pair.first, i) == -1 && b.tetTet(pair.second, j) == -1) {
+					auto isect = intersectionSegment(tris_a[i], tris_b[j]);
+					if(isect.second) {
+						segments.emplace_back(isect.first);
+						tris.emplace_back(tris_a[i]);
+						tris.emplace_back(tris_b[j]);
+					}
+				}
 	}
 
 	return makeUnion({selectTets(a, sel_a), selectTets(b, sel_b)});

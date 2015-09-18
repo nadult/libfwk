@@ -735,6 +735,7 @@ class Mesh : public immutable_base<Mesh> {
 	Mesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
+	static Mesh makePolySoup(CRange<Triangle>);
 	static Mesh makeRect(const FRect &xz_rect, float y);
 	static Mesh makeBBox(const FBox &bbox);
 	static Mesh makeCylinder(const Cylinder &, int num_sides);
@@ -965,9 +966,18 @@ class TetMesh : public immutable_base<TetMesh> {
 	array<int, 3> tetFace(int tet, int face_id) const {
 		DASSERT(tet >= 0 && tet < (int)m_tet_tets.size());
 		DASSERT(face_id >= 0 && face_id < 4);
-		static int inds[4][3] = {{0, 2, 1}, {1, 2, 3}, {2, 0, 3}, {3, 0, 1}};
+		static int inds[4][3] = {{0, 1, 2}, {1, 3, 2}, {2, 3, 0}, {3, 1, 0}};
 		const auto &tverts = m_tet_verts[tet];
 		return {{tverts[inds[face_id][0]], tverts[inds[face_id][1]], tverts[inds[face_id][2]]}};
+	}
+	Triangle tetTri(int tet, int face_id) const {
+		auto face = tetFace(tet, face_id);
+		return Triangle(m_verts[face[0]], m_verts[face[1]], m_verts[face[2]]);
+	}
+	int tetTet(int tet, int face_id) const {
+		DASSERT(tet >= 0 && tet < (int)m_tet_tets.size());
+		DASSERT(face_id >= 0 && face_id < 4);
+		return m_tet_tets[tet][face_id];
 	}
 	Tetrahedron makeTet(int tet) const;
 
@@ -981,7 +991,8 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh make(const Mesh &, uint flags = 0);
 	static TetMesh makeUnion(const vector<TetMesh> &);
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
-	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &, vector<Segment> &);
+	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &, vector<Segment> &,
+								 vector<Triangle> &);
 
 	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;

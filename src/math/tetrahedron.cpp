@@ -12,17 +12,14 @@
 
 namespace fwk {
 Tetrahedron::Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4)
-	: m_verts({{p1, p2, p3, p4}}) {
-	if(volume() < 0.0f)
-		swap(m_verts[2], m_verts[3]);
-}
+	: m_verts({{p1, p2, p3, p4}}) {}
 
 array<array<int, 3>, 4> Tetrahedron::faces() {
 	array<FaceIndices, 4> out;
-	out[0] = {{0, 2, 1}};
-	out[1] = {{1, 2, 3}};
-	out[2] = {{2, 0, 3}};
-	out[3] = {{3, 0, 1}};
+	out[0] = {{0, 1, 2}};
+	out[1] = {{1, 3, 2}};
+	out[2] = {{2, 3, 0}};
+	out[3] = {{3, 1, 0}};
 	return out;
 }
 
@@ -30,7 +27,7 @@ array<Plane, 4> Tetrahedron::planes() const {
 	auto faces = Tetrahedron::faces();
 	array<Plane, 4> out;
 	for(int n = 0; n < 4; n++)
-		out[n] = Plane(m_verts[faces[n][0]], m_verts[faces[n][2]], m_verts[faces[n][1]]);
+		out[n] = Plane(m_verts[faces[n][0]], m_verts[faces[n][1]], m_verts[faces[n][2]]);
 	return out;
 }
 
