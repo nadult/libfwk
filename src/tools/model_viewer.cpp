@@ -123,7 +123,8 @@ class Viewer {
 					  Color color) const {
 			PMaterial line_mat = make_immutable<Material>(
 				Color::white, Material::flag_blended | Material::flag_ignore_depth);
-			PMaterial tet_mat = make_immutable<Material>(color);
+			PMaterial tet_mat = make_immutable<Material>(
+				color, color.a != 255 ? Material::flag_blended | Material::flag_ignore_depth : 0);
 			// m_tet_mesh->drawLines(*m_renderer_3d, line_mat, matrix);
 			mesh.drawTets(out, tet_mat, matrix);
 			// m_tet_mesh->toMesh().draw(*m_renderer_3d, material, matrix);
@@ -155,7 +156,8 @@ class Viewer {
 			vector<Triangle> tris;
 			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris));
 
-			// drawTets(*csg, out, matrix, color);
+			drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
+			drawTets(*second_mesh, out, matrix, Color(color, 100));
 			PMaterial tri_mat = Material(Color::red, Material::flag_ignore_depth);
 			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
 			out.addSegments(segments, line_mat, matrix);

@@ -131,6 +131,13 @@ void Renderer::addSprite(CRange<float3, 4> verts, CRange<float2, 4> tex_coords, 
 
 namespace {
 
+	void enable(uint what, bool enable) {
+		if(enable)
+			::glEnable(what);
+		else
+			::glDisable(what);
+	}
+
 	struct DeviceConfig {
 		DeviceConfig() : flags(~0u) { update(0); }
 
@@ -149,6 +156,11 @@ namespace {
 			}
 			if((new_flags & Material::flag_clear_depth) && !(flags & Material::flag_clear_depth)) {
 				GfxDevice::clearDepth(1.0f);
+			}
+			if((new_flags & Material::flag_ignore_depth) != (flags & Material::flag_ignore_depth)) {
+				bool do_enable = !(new_flags & Material::flag_ignore_depth);
+				glDepthMask(do_enable);
+				enable(GL_DEPTH_TEST, do_enable);
 			}
 
 			flags = new_flags;
@@ -232,11 +244,7 @@ void Renderer::renderLines() {
 	binder.bind();
 	binder.setUniform("mesh_color", float4(1, 1, 1, 1));
 	for(const auto &instance : m_lines) {
-		if(instance.material_flags & Material::flag_ignore_depth)
-			glDisable(GL_DEPTH_TEST);
-		else
-			glEnable(GL_DEPTH_TEST);
-
+		enable(GL_DEPTH_TEST, !(instance.material_flags & Material::flag_ignore_depth));
 		binder.setUniform("proj_view_matrix", instance.matrix);
 		line_array.draw(PrimitiveType::lines, instance.count, instance.first);
 	}
