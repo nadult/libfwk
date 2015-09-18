@@ -37,6 +37,7 @@ namespace {
 	}
 
 	const char *s_filtered_names[] = {
+		"unsigned int", "uint",
 		"std::basic_string<char, std::char_traits<char>, std::allocator<char> >", "fwk::string",
 		"std::", "", "fwk::", "",
 	};
@@ -53,8 +54,8 @@ string backtrace(size_t skip) {
 	string file_lines[64];
 	string exec_name = executablePath();
 	for(size_t i = skip; i < size; i++) {
-		string file_line = execCommand(format("addr2line %p -e %s 2>/dev/null", addresses[i],
-											  exec_name.c_str())).first;
+		auto command = format("addr2line %p -e %s 2>/dev/null", addresses[i], exec_name.c_str());
+		string file_line = execCommand(command).first;
 		auto colon_pos = file_line.find(':');
 		string file = nicePath(file_line.substr(0, colon_pos));
 		int line = colon_pos == string::npos ? 0 : atoi(&file_line[colon_pos + 1]);
