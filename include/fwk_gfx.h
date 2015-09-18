@@ -955,6 +955,144 @@ class HalfMesh {
 	vector<unique_ptr<Face>> m_faces;
 };
 
+/*struct LoopSegment {
+		float3 point;
+		HalfFace *face;
+		LoopSegment *next;
+	};*/
+
+class TetMesh;
+
+class HalfTetMesh {
+  public:
+	using TriIndices = Mesh::TriIndices;
+	class Vertex;
+	class Edge;
+	class Face;
+	class Tet;
+
+	HalfTetMesh(const TetMesh &);
+
+	bool empty() const { return m_tets.empty(); }
+
+	Vertex *addVertex(const float3 &pos);
+	Tet *addTet(Vertex *, Vertex *, Vertex *, Vertex *);
+	Tet *findTet(Vertex *, Vertex *, Vertex *, Vertex *);
+
+	void removeVertex(Vertex *vert);
+	void removeTet(Tet *tet);
+	vector<Tet *> tets();
+	vector<Face *> faces();
+	vector<Vertex *> verts();
+
+	class Vertex {
+	  public:
+		Vertex(float3 pos, int index) : m_pos(pos), m_index(index), m_temp(0) {}
+		~Vertex() = default;
+		Vertex(const Vertex &) = delete;
+		void operator=(const Vertex &) = delete;
+
+		const float3 &pos() const { return m_pos; }
+		const auto &faces() { return m_faces; }
+		const auto &tets() { return m_tets; }
+
+		int temp() const { return m_temp; }
+		void setTemp(int temp) { m_temp = temp; }
+
+		// It might change when verts are removed from HalfTetMesh
+		int index() const { return m_index; }
+
+	  private:
+		void removeFace(Face *);
+		void addFace(Face *);
+		void removeTet(Tet *);
+		void addTet(Tet *);
+
+		friend class Face;
+		friend class HalfTetMesh;
+		vector<Face *> m_faces;
+		vector<Tet *> m_tets;
+		float3 m_pos;
+		int m_index, m_temp;
+	};
+
+	/*class Edge {
+	  public:
+		  Edge(Face *face, Edge *opposite
+		~Edge();
+		Edge(const Edge &) = delete;
+		void operator=(const HalfEdge &) = delete;
+
+		Vertex *start() { return m_start; }
+		Vertex *end() { return m_end; }
+
+		HalfEdge *opposite() { return m_opposite; }
+		HalfEdge *next() { return m_next; }
+		HalfEdge *prev() { return m_prev; }
+
+		HalfEdge *prevVert() { return m_prev->m_opposite; }
+		HalfEdge *nextVert() { return m_opposite ? m_opposite->m_next : nullptr; }
+		Face *face() { return m_face; }
+
+	  private:
+		HalfEdge(Vertex *v1, Vertex *v2, HalfEdge *next, HalfEdge *prev, Face *face);
+
+		friend class Face;
+		Vertex *m_start, *m_end;
+		HalfEdge *m_opposite, *m_next, *m_prev;
+		Face *m_face;
+	};*/
+
+	class Face {
+	  public:
+		Face(Vertex *v1, Vertex *v2, Vertex *v3, int index);
+		~Face();
+
+		Face(const Face &) = delete;
+		void operator=(const Face &) = delete;
+
+		const auto &verts() { return m_verts; }
+		Face *opposite() { return m_opposite; }
+		const auto &triangle() const { return m_tri; }
+		void setTemp(int temp) { m_temp = temp; }
+		int temp() const { return m_temp; }
+
+		// It might change when faces are removed from HalfMesh
+		int index() const { return m_index; }
+
+	  private:
+		// array<Edge, 3> m_edges;
+		array<Vertex *, 3> m_verts;
+		Face *m_opposite;
+		Triangle m_tri;
+		int m_index, m_temp;
+	};
+
+	class Tet {
+	  public:
+		Tet(Vertex *, Vertex *, Vertex *, Vertex *, int index);
+		~Tet();
+
+		Tet(const Tet &) = delete;
+		void operator=(const Tet &) = delete;
+
+		array<Face *, 4> faces();
+		const auto &verts() { return m_verts; }
+		const auto &neighbours() { return m_neighbours; }
+
+	  private:
+		friend class HalfTetMesh;
+
+		array<unique_ptr<Face>, 4> m_faces;
+		array<Vertex *, 4> m_verts;
+		array<Tet *, 4> m_neighbours;
+		int m_index;
+	};
+
+	vector<unique_ptr<Vertex>> m_verts;
+	vector<unique_ptr<Tet>> m_tets;
+};
+
 class TetMesh : public immutable_base<TetMesh> {
   public:
 	using TriIndices = MeshIndices::TriIndices;

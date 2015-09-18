@@ -155,6 +155,7 @@ class Viewer {
 			vector<Segment> segments;
 			vector<Triangle> tris;
 			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris));
+			HalfTetMesh hmesh(*m_tet_mesh);
 
 			drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
 			drawTets(*second_mesh, out, matrix, Color(color, 100));
@@ -292,14 +293,13 @@ class Viewer {
 		auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
 					  translation(-model.boundingBox(pose).center());
 
-		if(m_mode == Mode::model)
+		if(m_mode == Mode::model) {
 			model.drawModel(*m_renderer_3d, pose, m_show_nodes, matrix);
-		else if(m_mode == Mode::tets)
+			m_renderer_3d->addWireBox(model.boundingBox(pose), {Color::green}, matrix);
+		} else if(m_mode == Mode::tets)
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
 		else if(m_mode == Mode::tets_csg)
 			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset);
-
-		m_renderer_3d->addWireBox(model.boundingBox(pose), {Color::green}, matrix);
 
 		TextFormatter fmt;
 		fmt("Mode: %s (Q)\n", toString(m_mode));

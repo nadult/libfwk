@@ -781,7 +781,6 @@ class Tetrahedron {
 
 	static array<FaceIndices, 4> faces();
 
-	// normals pointing inside
 	array<Plane, 4> planes() const;
 	array<Triangle, 4> tris() const;
 	array<Edge, 6> edges() const;
