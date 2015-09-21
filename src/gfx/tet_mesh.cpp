@@ -131,49 +131,97 @@ template <class T> void makeUnique(vector<T> &vec) {
 	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
 }
 
+using Tet = HalfTetMesh::Tet;
+using Face = HalfTetMesh::Face;
+
+struct Isect {
+	Face *face_a, *face_b;
+	Segment segment;
+};
+
+struct Loop {
+	vector<Isect> segments;
+
+	bool empty() const { return segments.empty(); }
+};
+
+Loop extractLoop(vector<Isect> &isects) {
+	if(isects.empty())
+		return Loop();
+
+	vector<Isect> current = {isects.back()};
+	isects.pop_back();
+
+	while(true) {
+		float3 cur_end = current.back().segment.end();
+		if(distance(cur_end, current.front().segment.origin()) < constant::epsilon)
+			break;
+
+		bool found = false;
+		for(int n = 0; n < (int)isects.size(); n++) {
+			Segment segment = isects[n].segment;
+			bool connects = distance(cur_end, segment.origin()) < constant::epsilon;
+			if(!connects && distance(cur_end, segment.end()) < constant::epsilon) {
+				connects = true;
+				segment = Segment(segment.end(), segment.origin());
+			}
+
+			if(connects) {
+				current.emplace_back(Isect{isects[n].face_a, isects[n].face_b, segment});
+				isects[n] = isects.back();
+				isects.pop_back();
+				found = true;
+				break;
+			}
+		}
+		if(!found)
+			return Loop();
+	}
+
+	// TODO: proper neighbour tracing for robust intersection finding
+	DASSERT(distance(current.back().segment.end(), current.front().segment.origin()) <
+			constant::epsilon);
+	return Loop{std::move(current)};
+}
+
 TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
 							   vector<Triangle> &tris) {
-	vector<int> sel_a, sel_b;
+	HalfTetMesh ha(a), hb(b);
 
-	vector<pair<int, int>> isects;
+	vector<pair<Tet *, Tet *>> tet_isects;
 
-	for(int i = 0; i < a.size(); i++) {
-		Tetrahedron tet_a(a.makeTet(i));
-		if(isOneOf(-1, a.tetTets()[i]))
-			for(int j = 0; j < b.size(); j++) {
-				Tetrahedron tet_b(b.makeTet(j));
-				if(isOneOf(-1, b.tetTets()[j]) && areIntersecting(tet_a, tet_b)) {
-					sel_a.emplace_back(i);
-					sel_b.emplace_back(j);
-					isects.emplace_back(i, j);
-				}
-			}
-	}
+	for(auto *tet_a : ha.tets())
+		if(tet_a->isBoundary())
+			for(auto *tet_b : hb.tets())
+				if(tet_b->isBoundary())
+					if(areIntersecting(tet_a->tet(), tet_b->tet()))
+						tet_isects.emplace_back(tet_a, tet_b);
 
-	makeUnique(sel_a);
-	makeUnique(sel_b);
-	makeUnique(isects);
-
-	for(auto pair : isects) {
-		Tetrahedron tet_a(a.makeTet(pair.first));
-		Tetrahedron tet_b(b.makeTet(pair.second));
-
-		const auto &tris_a = tet_a.tris();
-		const auto &tris_b = tet_b.tris();
-
-		for(int i = 0; i < 4; i++)
-			for(int j = 0; j < 4; j++)
-				if(a.tetTet(pair.first, i) == -1 && b.tetTet(pair.second, j) == -1) {
-					auto isect = intersectionSegment(tris_a[i], tris_b[j]);
-					if(isect.second) {
-						segments.emplace_back(isect.first);
-						tris.emplace_back(tris_a[i]);
-						tris.emplace_back(tris_b[j]);
+	vector<Isect> isects;
+	for(auto pair : tet_isects)
+		for(auto *face_a : pair.first->faces())
+			if(face_a->isBoundary())
+				for(auto *face_b : pair.second->faces())
+					if(face_b->isBoundary()) {
+						auto isect = intersectionSegment(face_a->triangle(), face_b->triangle());
+						if(isect.second)
+							isects.emplace_back(Isect{face_a, face_b, isect.first});
 					}
-				}
+
+	vector<Loop> loops;
+	while(true) {
+		Loop new_loop = extractLoop(isects);
+		if(new_loop.empty())
+			break;
+		for(auto &isect : new_loop.segments) {
+			segments.emplace_back(isect.segment);
+			tris.emplace_back(isect.face_a->triangle());
+			tris.emplace_back(isect.face_b->triangle());
+		}
+		loops.emplace_back(std::move(new_loop));
 	}
 
-	return makeUnion({selectTets(a, sel_a), selectTets(b, sel_b)});
+	return TetMesh();
 }
 
 Mesh TetMesh::toMesh() const {

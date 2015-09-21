@@ -155,11 +155,10 @@ class Viewer {
 			vector<Segment> segments;
 			vector<Triangle> tris;
 			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris));
-			HalfTetMesh hmesh(*m_tet_mesh);
 
 			drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
 			drawTets(*second_mesh, out, matrix, Color(color, 100));
-			PMaterial tri_mat = Material(Color::red, Material::flag_ignore_depth);
+			PMaterial tri_mat = Material(Color::red);
 			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
 			out.addSegments(segments, line_mat, matrix);
 			Mesh::makePolySoup(tris).draw(out, tri_mat, matrix);

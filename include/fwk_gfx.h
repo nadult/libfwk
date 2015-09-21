@@ -955,12 +955,6 @@ class HalfMesh {
 	vector<unique_ptr<Face>> m_faces;
 };
 
-/*struct LoopSegment {
-		float3 point;
-		HalfFace *face;
-		LoopSegment *next;
-	};*/
-
 class TetMesh;
 
 class HalfTetMesh {
@@ -1051,6 +1045,7 @@ class HalfTetMesh {
 		Face(const Face &) = delete;
 		void operator=(const Face &) = delete;
 
+		bool isBoundary() const { return m_opposite == nullptr; }
 		const auto &verts() { return m_verts; }
 		Face *opposite() { return m_opposite; }
 		const auto &triangle() const { return m_tri; }
@@ -1076,9 +1071,11 @@ class HalfTetMesh {
 		Tet(const Tet &) = delete;
 		void operator=(const Tet &) = delete;
 
+		bool isBoundary() const;
 		array<Face *, 4> faces();
 		const auto &verts() { return m_verts; }
 		const auto &neighbours() { return m_neighbours; }
+		Tetrahedron tet() const;
 
 	  private:
 		friend class HalfTetMesh;

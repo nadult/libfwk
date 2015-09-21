@@ -66,6 +66,13 @@ HalfTetMesh::Tet::Tet(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, int index)
 		vert->addTet(this);
 }
 
+bool HalfTetMesh::Tet::isBoundary() const {
+	for(const auto &face : m_faces)
+		if(face->isBoundary())
+			return true;
+	return false;
+}
+
 HalfTetMesh::Tet::~Tet() {
 	for(auto *vert : m_verts)
 		vert->removeTet(this);
@@ -73,6 +80,10 @@ HalfTetMesh::Tet::~Tet() {
 
 array<Face *, 4> HalfTetMesh::Tet::faces() {
 	return {{m_faces[0].get(), m_faces[1].get(), m_faces[2].get(), m_faces[3].get()}};
+}
+
+Tetrahedron HalfTetMesh::Tet::tet() const {
+	return Tetrahedron(m_verts[0]->pos(), m_verts[1]->pos(), m_verts[2]->pos(), m_verts[3]->pos());
 }
 
 HalfTetMesh::HalfTetMesh(const TetMesh &mesh) {
