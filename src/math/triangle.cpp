@@ -123,12 +123,10 @@ Triangle::Triangle(const float3 &a, const float3 &b, const float3 &c) {
 	m_point = a;
 	m_edge[0] = b - a;
 	m_edge[1] = c - a;
-	m_cross = fwk::cross(edge1(), edge2());
+	m_normal = fwk::cross(edge1(), edge2());
+	m_length = length(m_normal);
+	m_normal /= m_length;
 }
-
-// TODO: write tests
-float3 Triangle::normal() const { return normalize(m_cross); }
-float Triangle::area() const { return 0.5f * length(m_cross); }
 
 Triangle operator*(const Matrix4 &mat, const Triangle &tri) {
 	return Triangle(mulPoint(mat, tri.a()), mulPoint(mat, tri.b()), mulPoint(mat, tri.c()));
@@ -153,6 +151,14 @@ float distance(const Triangle &tri, const Segment &seg) {
 														   ? seg.end()
 														   : seg.at(plane_isect);
 	return distance(tri, point);
+}
+
+float3 Triangle::barycentric(const float3 &point) const {
+	float3 diff = point - m_point;
+	float w = dot(fwk::cross(m_edge[0], diff), m_normal);
+	float v = dot(fwk::cross(m_edge[1], diff), m_normal);
+	float u = 1.0f - w - v;
+	return float3(u, v, w);
 }
 
 // Source: realtimecollisiondetection (book)

@@ -9,7 +9,24 @@
 #include <algorithm>
 #include <limits>
 
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Constrained_Delaunay_triangulation_2.h>
+#include <CGAL/Triangulation_face_base_with_info_2.h>
+#include <CGAL/Polygon_2.h>
+
 namespace fwk {
+
+namespace {
+
+	struct K : CGAL::Exact_predicates_inexact_constructions_kernel {};
+
+	typedef CGAL::Triangulation_vertex_base_2<K> Vb;
+	typedef CGAL::Constrained_triangulation_face_base_2<K> Fb;
+	typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
+	typedef CGAL::Exact_predicates_tag Itag;
+	typedef CGAL::Constrained_Delaunay_triangulation_2<K, TDS, Itag> CDT;
+	typedef CDT::Point Point;
+}
 
 using TriIndices = TetMesh::TriIndices;
 
@@ -133,21 +150,23 @@ template <class T> void makeUnique(vector<T> &vec) {
 
 using Tet = HalfTetMesh::Tet;
 using Face = HalfTetMesh::Face;
+using Vertex = HalfTetMesh::Vertex;
 
 struct Isect {
 	Face *face_a, *face_b;
 	Segment segment;
 };
 
-struct Loop {
-	vector<Isect> segments;
-
-	bool empty() const { return segments.empty(); }
+struct LoopElem {
+	Face *face;
+	Vertex *vertex;
 };
 
-Loop extractLoop(vector<Isect> &isects) {
+using Loop = vector<LoopElem>;
+
+pair<Loop, Loop> extractLoop(vector<Isect> &isects, HalfTetMesh &ha, HalfTetMesh &hb) {
 	if(isects.empty())
-		return Loop();
+		return make_pair(Loop(), Loop());
 
 	vector<Isect> current = {isects.back()};
 	isects.pop_back();
@@ -175,17 +194,133 @@ Loop extractLoop(vector<Isect> &isects) {
 			}
 		}
 		if(!found)
-			return Loop();
+			return make_pair(Loop(), Loop());
 	}
 
 	// TODO: proper neighbour tracing for robust intersection finding
 	DASSERT(distance(current.back().segment.end(), current.front().segment.origin()) <
 			constant::epsilon);
-	return Loop{std::move(current)};
+
+	Loop outa, outb;
+	for(const auto &isect : current) {
+		// TODO: vertex may already exist
+		Vertex *va = ha.addVertex(isect.segment.origin());
+		Vertex *vb = hb.addVertex(isect.segment.origin());
+		outa.emplace_back(LoopElem{isect.face_a, va});
+		outb.emplace_back(LoopElem{isect.face_b, vb});
+	}
+	return make_pair(outa, outb);
+}
+
+struct ChangeBase {
+	ChangeBase(float3 vec_x, float3 vec_y, float3 offset)
+		: m_vec_x(vec_x), m_vec_y(vec_y), m_vec_z(cross(m_vec_x, m_vec_y)), m_offset(offset),
+		  m_base(Matrix3(m_vec_x, m_vec_y, m_vec_z)), m_ibase(transpose(m_base)) {}
+
+	float3 to(const float3 &vec) const { return m_ibase * (vec - m_offset); }
+	float3 from(const float3 &vec) const {
+		return (m_vec_x * vec.x + m_vec_y * vec.y + m_vec_z * vec.z) + m_offset;
+	}
+
+	float3 m_vec_x, m_vec_y, m_vec_z, m_offset;
+	Matrix3 m_base, m_ibase;
+};
+
+float3 fromCGAL(const Point &p) {
+	return float3(CGAL::to_double(p.x()), 0.0f, CGAL::to_double(p.y()));
+}
+
+void triangulateFace(Face *face, vector<pair<Vertex *, Vertex *>> &edges) {
+	Plane plane(face->triangle());
+	ChangeBase chbase(normalize(face->triangle().edge1()), face->triangle().normal(),
+					  face->triangle().a());
+
+	vector<Segment> segs;
+	vector<Vertex *> verts;
+	insertBack(verts, face->verts());
+
+	for(auto &edge : edges) {
+		Segment seg(chbase.to(edge.first->pos()), chbase.to(edge.second->pos()));
+		DASSERT(distance(chbase.from(seg.origin()), edge.first->pos()) < constant::epsilon);
+		verts.emplace_back(edge.first);
+		verts.emplace_back(edge.second);
+		segs.emplace_back(seg);
+	}
+	for(int i = 0; i < 3; i++) {
+		Segment seg(chbase.to(face->verts()[i]->pos()),
+					chbase.to(face->verts()[(i + 1) % 3]->pos()));
+		segs.emplace_back(seg);
+	}
+	makeUnique(verts);
+
+	//	printf("From:\n");
+	CDT cdt;
+	for(auto &seg : segs) {
+		//		printf("%f %f -> %f %f\n", seg.origin().x, seg.origin().z, seg.end().x,
+		// seg.end().z);
+		cdt.insert_constraint(Point(seg.origin().x, seg.origin().z),
+							  Point(seg.end().x, seg.end().z));
+	}
+	DASSERT(cdt.is_valid());
+
+	vector<Segment> out;
+	// printf("Triangulation:\n");
+	for(auto it = cdt.finite_edges_begin(); it != cdt.finite_edges_end(); ++it) {
+		auto edge = cdt.segment(it);
+		float3 start = fromCGAL(edge.start()), end = fromCGAL(edge.end());
+		//	printf("%f %f -> %f %f\n", start.x, start.z, end.x, end.z);
+		if(distance(start, end) > constant::epsilon) {
+			start = chbase.from(start);
+			end = chbase.from(end);
+
+			Vertex *vert1 = nullptr, *vert2 = nullptr;
+			float mdist1 = constant::inf, mdist2 = constant::inf;
+			for(auto *vert : verts) {
+				float dist1 = distance(vert->pos(), start);
+				float dist2 = distance(vert->pos(), end);
+				if(dist1 < mdist1) {
+					vert1 = vert;
+					mdist1 = dist1;
+				}
+				if(dist2 < mdist2) {
+					vert2 = vert;
+					mdist2 = dist2;
+				}
+			}
+
+			if(vert1 && vert2) {
+				edges.emplace_back(vert1, vert2);
+			}
+		}
+	}
+}
+
+vector<Segment> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops) {
+	// TODO: edge may already exist
+	using NewEdge = pair<Vertex *, Vertex *>;
+	std::map<Face *, vector<NewEdge>> new_edge_map;
+
+	for(const auto &loop : loops) {
+		for(int n = 0; n < (int)loop.size(); n++) {
+			const auto &cur = loop[n];
+			const auto &next = loop[(n + 1) % loop.size()];
+
+			NewEdge new_edge(cur.vertex, next.vertex);
+			new_edge_map[cur.face].emplace_back(new_edge);
+		}
+	}
+
+	vector<Segment> triangulations;
+	for(auto &pair : new_edge_map) {
+		triangulateFace(pair.first, pair.second);
+		for(auto &edge : pair.second)
+			triangulations.emplace_back(edge.first->pos(), edge.second->pos());
+	}
+	return triangulations;
 }
 
 TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
-							   vector<Triangle> &tris) {
+							   vector<Triangle> &tris, vector<Tetrahedron> &ttets) {
 	HalfTetMesh ha(a), hb(b);
 
 	vector<pair<Tet *, Tet *>> tet_isects;
@@ -196,6 +331,13 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 				if(tet_b->isBoundary())
 					if(areIntersecting(tet_a->tet(), tet_b->tet()))
 						tet_isects.emplace_back(tet_a, tet_b);
+
+	if(0)
+		for(auto *tet_a : ha.tets())
+			for(auto *tet_b : hb.tets())
+				if(!tet_a->isBoundary())
+					if(areIntersecting(tet_a->tet(), tet_b->tet()))
+						ttets.emplace_back(tet_a->tet());
 
 	vector<Isect> isects;
 	for(auto pair : tet_isects)
@@ -208,18 +350,31 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 							isects.emplace_back(Isect{face_a, face_b, isect.first});
 					}
 
-	vector<Loop> loops;
+	vector<Loop> a_loops, b_loops;
+
 	while(true) {
-		Loop new_loop = extractLoop(isects);
-		if(new_loop.empty())
+		auto new_loop = extractLoop(isects, ha, hb);
+		if(new_loop.first.empty())
 			break;
-		for(auto &isect : new_loop.segments) {
-			segments.emplace_back(isect.segment);
-			tris.emplace_back(isect.face_a->triangle());
-			tris.emplace_back(isect.face_b->triangle());
+
+		for(int n = 0, count = (int)new_loop.first.size(); n < count; n++) {
+			const auto &prev = new_loop.first[(n - 1 + count) % count];
+			const auto &cur = new_loop.first[n];
+
+			segments.emplace_back(Segment(prev.vertex->pos(), cur.vertex->pos()));
+			tris.emplace_back(cur.face->triangle());
 		}
-		loops.emplace_back(std::move(new_loop));
+		for(int n = 0, count = (int)new_loop.second.size(); n < count; n++) {
+			const auto &cur = new_loop.second[n];
+			tris.emplace_back(cur.face->triangle());
+		}
+
+		a_loops.emplace_back(new_loop.first);
+		b_loops.emplace_back(new_loop.second);
 	}
+
+	insertBack(segments, triangulateMesh(ha, a_loops));
+	triangulateMesh(hb, b_loops);
 
 	return TetMesh();
 }

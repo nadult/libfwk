@@ -154,10 +154,20 @@ class Viewer {
 			auto second_mesh = PTetMesh(TetMesh::transform(translation(offset), *m_tet_mesh));
 			vector<Segment> segments;
 			vector<Triangle> tris;
-			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris));
+			vector<Tetrahedron> tets;
+
+			auto csg =
+				PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris, tets));
 
 			drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
 			drawTets(*second_mesh, out, matrix, Color(color, 100));
+			PMaterial matt = make_immutable<Material>(
+				Color(Color::green, 100), Material::flag_blended | Material::flag_ignore_depth);
+			if(0)
+				for(auto &tet : tets) {
+					Mesh tetmesh = Mesh::makeTetrahedron(tet);
+					tetmesh.draw(out, matt, matrix);
+				}
 			PMaterial tri_mat = Material(Color::red);
 			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
 			out.addSegments(segments, line_mat, matrix);

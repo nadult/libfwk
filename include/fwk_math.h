@@ -708,7 +708,7 @@ class Triangle {
 	float3 b() const { return m_point + m_edge[0]; }
 	float3 c() const { return m_point + m_edge[1]; }
 	float3 center() const { return m_point + (m_edge[0] + m_edge[1]) * (1.0f / 3.0f); }
-	const float3 &cross() const { return m_cross; }
+	float3 cross() const { return m_normal * m_length; }
 
 	Triangle operator*(float scale) const {
 		return Triangle(a() * scale, b() * scale, c() * scale);
@@ -717,16 +717,19 @@ class Triangle {
 		return Triangle(a() * scale, b() * scale, c() * scale);
 	}
 
+	float3 barycentric(const float3 &point) const;
+
 	float3 edge1() const { return m_edge[0]; }
 	float3 edge2() const { return m_edge[1]; }
-	float3 normal() const;
-	float area() const;
+	float3 normal() const { return m_normal; }
+	float area() const { return m_length * 0.5f; }
 	array<float3, 3> verts() const { return {{a(), b(), c()}}; }
 
   protected:
 	float3 m_point;
 	float3 m_edge[2];
-	float3 m_cross;
+	float3 m_normal;
+	float m_length;
 };
 
 struct Triangle2D {
