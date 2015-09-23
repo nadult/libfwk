@@ -9,24 +9,30 @@
 #include <algorithm>
 #include <limits>
 
+#define CGAL_ENABLED
+
+#ifdef CGAL_ENABLED
+
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Constrained_Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_face_base_with_info_2.h>
 #include <CGAL/Polygon_2.h>
 
-namespace fwk {
-
 namespace {
 
-	struct K : CGAL::Exact_predicates_inexact_constructions_kernel {};
+struct K : CGAL::Exact_predicates_inexact_constructions_kernel {};
 
-	typedef CGAL::Triangulation_vertex_base_2<K> Vb;
-	typedef CGAL::Constrained_triangulation_face_base_2<K> Fb;
-	typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
-	typedef CGAL::Exact_predicates_tag Itag;
-	typedef CGAL::Constrained_Delaunay_triangulation_2<K, TDS, Itag> CDT;
-	typedef CDT::Point Point;
+typedef CGAL::Triangulation_vertex_base_2<K> Vb;
+typedef CGAL::Constrained_triangulation_face_base_2<K> Fb;
+typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
+typedef CGAL::Exact_predicates_tag Itag;
+typedef CGAL::Constrained_Delaunay_triangulation_2<K, TDS, Itag> CDT;
+typedef CDT::Point Point;
 }
+
+#endif
+
+namespace fwk {
 
 using TriIndices = TetMesh::TriIndices;
 
@@ -143,11 +149,6 @@ TetMesh TetMesh::selectTets(const TetMesh &mesh, const vector<int> &indices) {
 	return TetMesh(mesh.verts(), vector<TetIndices>(begin(indexer), end(indexer)));
 }
 
-template <class T> void makeUnique(vector<T> &vec) {
-	std::sort(begin(vec), end(vec));
-	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
-}
-
 using Tet = HalfTetMesh::Tet;
 using Face = HalfTetMesh::Face;
 using Vertex = HalfTetMesh::Vertex;
@@ -212,43 +213,30 @@ pair<Loop, Loop> extractLoop(vector<Isect> &isects, HalfTetMesh &ha, HalfTetMesh
 	return make_pair(outa, outb);
 }
 
-struct ChangeBase {
-	ChangeBase(float3 vec_x, float3 vec_y, float3 offset)
-		: m_vec_x(vec_x), m_vec_y(vec_y), m_vec_z(cross(m_vec_x, m_vec_y)), m_offset(offset),
-		  m_base(Matrix3(m_vec_x, m_vec_y, m_vec_z)), m_ibase(transpose(m_base)) {}
-
-	float3 to(const float3 &vec) const { return m_ibase * (vec - m_offset); }
-	float3 from(const float3 &vec) const {
-		return (m_vec_x * vec.x + m_vec_y * vec.y + m_vec_z * vec.z) + m_offset;
-	}
-
-	float3 m_vec_x, m_vec_y, m_vec_z, m_offset;
-	Matrix3 m_base, m_ibase;
-};
+#ifdef CGAL_ENABLED
 
 float3 fromCGAL(const Point &p) {
 	return float3(CGAL::to_double(p.x()), 0.0f, CGAL::to_double(p.y()));
 }
 
-void triangulateFace(Face *face, vector<pair<Vertex *, Vertex *>> &edges) {
+vector<array<Vertex *, 3>> triangulateFace(Face *face,
+										   const vector<pair<Vertex *, Vertex *>> &edges) {
 	Plane plane(face->triangle());
-	ChangeBase chbase(normalize(face->triangle().edge1()), face->triangle().normal(),
-					  face->triangle().a());
+	Projection proj(face->triangle());
 
 	vector<Segment> segs;
 	vector<Vertex *> verts;
 	insertBack(verts, face->verts());
 
 	for(auto &edge : edges) {
-		Segment seg(chbase.to(edge.first->pos()), chbase.to(edge.second->pos()));
-		DASSERT(distance(chbase.from(seg.origin()), edge.first->pos()) < constant::epsilon);
+		Segment seg(proj * edge.first->pos(), proj * edge.second->pos());
+		DASSERT(distance(proj / seg.origin(), edge.first->pos()) < constant::epsilon);
 		verts.emplace_back(edge.first);
 		verts.emplace_back(edge.second);
 		segs.emplace_back(seg);
 	}
 	for(int i = 0; i < 3; i++) {
-		Segment seg(chbase.to(face->verts()[i]->pos()),
-					chbase.to(face->verts()[(i + 1) % 3]->pos()));
+		Segment seg(proj * face->verts()[i]->pos(), proj * face->verts()[(i + 1) % 3]->pos());
 		segs.emplace_back(seg);
 	}
 	makeUnique(verts);
@@ -263,64 +251,143 @@ void triangulateFace(Face *face, vector<pair<Vertex *, Vertex *>> &edges) {
 	}
 	DASSERT(cdt.is_valid());
 
-	vector<Segment> out;
+	vector<array<Vertex *, 3>> out;
 	// printf("Triangulation:\n");
-	for(auto it = cdt.finite_edges_begin(); it != cdt.finite_edges_end(); ++it) {
-		auto edge = cdt.segment(it);
-		float3 start = fromCGAL(edge.start()), end = fromCGAL(edge.end());
-		//	printf("%f %f -> %f %f\n", start.x, start.z, end.x, end.z);
-		if(distance(start, end) > constant::epsilon) {
-			start = chbase.from(start);
-			end = chbase.from(end);
+	for(auto it = cdt.finite_faces_begin(); it != cdt.finite_faces_end(); ++it) {
+		auto tri = cdt.triangle(it);
+		array<Vertex *, 3> tri_verts = {{nullptr, nullptr, nullptr}};
 
-			Vertex *vert1 = nullptr, *vert2 = nullptr;
-			float mdist1 = constant::inf, mdist2 = constant::inf;
+		for(int i = 0; i < 3; i++) {
+			float3 pos = proj / fromCGAL(tri[i]);
+			float min_dist = constant::inf;
 			for(auto *vert : verts) {
-				float dist1 = distance(vert->pos(), start);
-				float dist2 = distance(vert->pos(), end);
-				if(dist1 < mdist1) {
-					vert1 = vert;
-					mdist1 = dist1;
+				float dist = distance(vert->pos(), pos);
+				if(dist < min_dist) {
+					min_dist = dist;
+					tri_verts[i] = vert;
 				}
-				if(dist2 < mdist2) {
-					vert2 = vert;
-					mdist2 = dist2;
-				}
-			}
-
-			if(vert1 && vert2) {
-				edges.emplace_back(vert1, vert2);
 			}
 		}
+		if(dot(face->triangle().normal(),
+			   Triangle(tri_verts[0]->pos(), tri_verts[1]->pos(), tri_verts[2]->pos()).normal()) <
+		   0.0f)
+			swap(tri_verts[1], tri_verts[2]);
+
+		if(tri_verts[0] && tri_verts[1] && tri_verts[2]) {
+			bool wrong = tri_verts[0] == tri_verts[1] || tri_verts[1] == tri_verts[2] ||
+						 tri_verts[0] == tri_verts[2];
+			// TODO: wrong shouldnt happen
+			if(!wrong)
+				out.emplace_back(tri_verts);
+		}
 	}
+	return out;
+}
+#else
+
+vector<array<Vertex *, 3>> triangulateFace(Face *face,
+										   const vector<pair<Vertex *, Vertex *>> &edges) {
+	return {};
 }
 
-vector<Segment> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops) {
+#endif
+
+TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_steps) {
+	using MeshSegment = pair<Vertex *, Vertex *>;
 	// TODO: edge may already exist
-	using NewEdge = pair<Vertex *, Vertex *>;
-	std::map<Face *, vector<NewEdge>> new_edge_map;
+	vector<MeshSegment> segments;
+	for(const auto &loop : loops)
+		for(int n = 0; n < (int)loop.size(); n++)
+			segments.emplace_back(make_pair(loop[n].vertex, loop[(n + 1) % loop.size()].vertex));
 
-	for(const auto &loop : loops) {
-		for(int n = 0; n < (int)loop.size(); n++) {
-			const auto &cur = loop[n];
-			const auto &next = loop[(n + 1) % loop.size()];
+	printf("Triangulating (%d steps):\n", max_steps);
+	int step = 0;
+	while(!segments.empty()) {
+		if(step++ >= max_steps)
+			break;
 
-			NewEdge new_edge(cur.vertex, next.vertex);
-			new_edge_map[cur.face].emplace_back(new_edge);
+		// Finding face that requires triangulation
+		Face *cur_face = nullptr;
+		for(auto *face : mesh.faces()) {
+			auto seg = segments.back();
+			Projection proj(face->triangle());
+			Triangle2D tri = (proj * face->triangle()).xz();
+			auto proj_seg = proj * Segment(seg.first->pos(), seg.second->pos());
+			if(fabs(proj_seg.origin().y) > constant::epsilon ||
+			   fabs(proj_seg.end().y) > constant::epsilon)
+				continue;
+
+			auto result = clip(tri, proj_seg.xz());
+			if(!result.inside.empty()) {
+				cur_face = face;
+				break;
+			}
+		}
+		DASSERT(cur_face);
+
+		// Finding all segments lying on that face (clipping if necessary)
+		Projection proj(cur_face->triangle());
+		Triangle2D tri2d = (proj * cur_face->triangle()).xz();
+		vector<pair<Vertex *, Vertex *>> cur_segments;
+
+		for(int n = 0; n < (int)segments.size(); n++) {
+			auto seg = segments[n];
+			auto proj_seg = proj * Segment(seg.first->pos(), seg.second->pos());
+			if(fabs(proj_seg.origin().y) > constant::epsilon ||
+			   fabs(proj_seg.end().y) > constant::epsilon)
+				continue;
+
+			Segment2D seg2d = proj_seg.xz();
+			auto result = clip(tri2d, seg2d);
+			if(result.inside.empty())
+				continue;
+
+			segments[n--] = segments.back();
+			segments.pop_back();
+
+			if(!result.outside_front.empty()) {
+				float3 pos(result.inside.start.x, 0.0f, result.inside.start.y);
+				auto vert = mesh.addVertex(proj / pos);
+				segments.push_back(MeshSegment(seg.first, vert));
+				seg = MeshSegment(vert, seg.second);
+			}
+			if(!result.outside_back.empty()) {
+				float3 pos(result.inside.end.x, 0.0f, result.inside.end.y);
+				auto vert = mesh.addVertex(proj / pos);
+				segments.push_back(MeshSegment(vert, seg.second));
+				seg = MeshSegment(seg.first, vert);
+			}
+
+			cur_segments.emplace_back(seg);
+		}
+
+		printf("Segments: %d / %d\n", (int)cur_segments.size(), (int)segments.size());
+
+		// Triangulating tet-face
+		auto triangles = triangulateFace(cur_face, cur_segments);
+		auto tet = cur_face->tet();
+		Vertex *other_vertex = nullptr;
+		for(auto *vert : tet->verts())
+			if(!isOneOf(vert, cur_face->verts()))
+				other_vertex = vert;
+		mesh.removeTet(tet);
+		for(auto tri : triangles) {
+			// TODO: check for negative volume
+			mesh.addTet(tri[0], tri[1], tri[2], other_vertex);
 		}
 	}
 
-	vector<Segment> triangulations;
-	for(auto &pair : new_edge_map) {
-		triangulateFace(pair.first, pair.second);
-		for(auto &edge : pair.second)
-			triangulations.emplace_back(edge.first->pos(), edge.second->pos());
-	}
-	return triangulations;
+	vector<Triangle> tris;
+
+	// Mesh fill_mesh = Mesh::makePolySoup(tris);
+	// printf("manifold: %s\n", HalfMesh(fill_mesh).is2Manifold() ? "yes" : "no");
+	// TetMesh fill_tets = TetMesh::make(fill_mesh);
+
+	return TetMesh(mesh);
 }
 
 TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
-							   vector<Triangle> &tris, vector<Tetrahedron> &ttets) {
+							   vector<Triangle> &tris, vector<Tetrahedron> &ttets, int max_steps) {
 	HalfTetMesh ha(a), hb(b);
 
 	vector<pair<Tet *, Tet *>> tet_isects;
@@ -345,9 +412,11 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 			if(face_a->isBoundary())
 				for(auto *face_b : pair.second->faces())
 					if(face_b->isBoundary()) {
+#ifdef CGAL_ENABLED
 						auto isect = intersectionSegment(face_a->triangle(), face_b->triangle());
 						if(isect.second)
 							isects.emplace_back(Isect{face_a, face_b, isect.first});
+#endif
 					}
 
 	vector<Loop> a_loops, b_loops;
@@ -373,10 +442,9 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 		b_loops.emplace_back(new_loop.second);
 	}
 
-	insertBack(segments, triangulateMesh(ha, a_loops));
-	triangulateMesh(hb, b_loops);
-
-	return TetMesh();
+	return triangulateMesh(ha, a_loops, max_steps);
+	// return triangulateMesh(hb, b_loops);
+	// return TetMesh();
 }
 
 Mesh TetMesh::toMesh() const {

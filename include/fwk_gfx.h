@@ -965,19 +965,26 @@ class HalfTetMesh {
 	class Face;
 	class Tet;
 
-	HalfTetMesh(const TetMesh &);
+	explicit HalfTetMesh(const TetMesh &);
+	explicit operator TetMesh() const;
 
 	bool empty() const { return m_tets.empty(); }
 
 	Vertex *addVertex(const float3 &pos);
 	Tet *addTet(Vertex *, Vertex *, Vertex *, Vertex *);
 	Tet *findTet(Vertex *, Vertex *, Vertex *, Vertex *);
+	pair<Face *, Face *> findFaces(Vertex *, Vertex *, Vertex *);
 
 	void removeVertex(Vertex *vert);
 	void removeTet(Tet *tet);
 	vector<Tet *> tets();
 	vector<Face *> faces();
 	vector<Vertex *> verts();
+	vector<Face *> extractSelectedFaces(vector<Tet *>);
+
+	struct SubdivisionResult {};
+
+	void subdivideEdge(Vertex *e1, Vertex *e2, Vertex *divisor);
 
 	class Vertex {
 	  public:
@@ -1039,12 +1046,13 @@ class HalfTetMesh {
 
 	class Face {
 	  public:
-		Face(Vertex *v1, Vertex *v2, Vertex *v3, int index);
+		Face(Tet *tet, Vertex *v1, Vertex *v2, Vertex *v3, int index);
 		~Face();
 
 		Face(const Face &) = delete;
 		void operator=(const Face &) = delete;
 
+		Tet *tet() const { return m_tet; }
 		bool isBoundary() const { return m_opposite == nullptr; }
 		const auto &verts() { return m_verts; }
 		Face *opposite() { return m_opposite; }
@@ -1058,6 +1066,7 @@ class HalfTetMesh {
 	  private:
 		// array<Edge, 3> m_edges;
 		array<Vertex *, 3> m_verts;
+		Tet *m_tet;
 		Face *m_opposite;
 		Triangle m_tri;
 		int m_index, m_temp;
@@ -1077,13 +1086,16 @@ class HalfTetMesh {
 		const auto &neighbours() { return m_neighbours; }
 		Tetrahedron tet() const;
 
+		void setTemp(int temp) { m_temp = temp; }
+		int temp() const { return m_temp; }
+
 	  private:
 		friend class HalfTetMesh;
 
 		array<unique_ptr<Face>, 4> m_faces;
 		array<Vertex *, 4> m_verts;
 		array<Tet *, 4> m_neighbours;
-		int m_index;
+		int m_index, m_temp;
 	};
 
 	vector<unique_ptr<Vertex>> m_verts;
@@ -1127,7 +1139,7 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh makeUnion(const vector<TetMesh> &);
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
 	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &, vector<Segment> &,
-								 vector<Triangle> &, vector<Tetrahedron> &);
+								 vector<Triangle> &, vector<Tetrahedron> &, int);
 
 	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;

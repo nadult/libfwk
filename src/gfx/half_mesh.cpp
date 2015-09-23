@@ -85,6 +85,8 @@ bool HalfMesh::is2ManifoldUnion() const {
 bool HalfMesh::is2Manifold() const {
 	if(!is2ManifoldUnion())
 		return false;
+	if(m_verts.empty())
+		return true;
 
 	vector<char> visited(m_verts.size(), 0);
 

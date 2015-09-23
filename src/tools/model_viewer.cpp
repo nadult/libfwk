@@ -147,20 +147,25 @@ class Viewer {
 			}
 		}
 
-		void drawTetsCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset) {
+		void drawTetsCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset,
+						 int num_steps) {
 			if(!m_tet_mesh)
 				return;
+
+			PMaterial tri_mat = Material(Color::red);
+			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
 
 			auto second_mesh = PTetMesh(TetMesh::transform(translation(offset), *m_tet_mesh));
 			vector<Segment> segments;
 			vector<Triangle> tris;
 			vector<Tetrahedron> tets;
 
-			auto csg =
-				PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris, tets));
+			auto csg = PTetMesh(
+				TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris, tets, num_steps));
 
-			drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
-			drawTets(*second_mesh, out, matrix, Color(color, 100));
+			csg->drawTets(out, tri_mat, matrix);
+			// drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
+			// drawTets(*second_mesh, out, matrix, Color(color, 100));
 			PMaterial matt = make_immutable<Material>(
 				Color(Color::green, 100), Material::flag_blended | Material::flag_ignore_depth);
 			if(0)
@@ -168,10 +173,8 @@ class Viewer {
 					Mesh tetmesh = Mesh::makeTetrahedron(tet);
 					tetmesh.draw(out, matt, matrix);
 				}
-			PMaterial tri_mat = Material(Color::red);
-			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
 			out.addSegments(segments, line_mat, matrix);
-			Mesh::makePolySoup(tris).draw(out, tri_mat, matrix);
+			// Mesh::makePolySoup(tris).draw(out, tri_mat, matrix);
 		}
 
 		PModel m_model;
@@ -200,7 +203,7 @@ class Viewer {
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
-		  m_mode(Mode::model) {
+		  m_mode(Mode::model), m_num_steps(0) {
 		updateViewport();
 		m_tet_csg_offset = float3(0.1, 0, 0.3);
 
@@ -239,13 +242,13 @@ class Viewer {
 				m_mode = (Mode)((m_mode + 1) % ViewerMode::count);
 			if(event.hasModifier(InputEvent::mod_lctrl) && m_mode == Mode::tets_csg) {
 				if(event.keyPressed(InputKey::left))
-					m_tet_csg_offset.x -= time_diff * 2.0f;
+					m_tet_csg_offset.x -= time_diff;
 				if(event.keyPressed(InputKey::right))
-					m_tet_csg_offset.x += time_diff * 2.0f;
+					m_tet_csg_offset.x += time_diff;
 				if(event.keyPressed(InputKey::up))
-					m_tet_csg_offset.z -= time_diff * 2.0f;
+					m_tet_csg_offset.z -= time_diff;
 				if(event.keyPressed(InputKey::down))
-					m_tet_csg_offset.z += time_diff * 2.0f;
+					m_tet_csg_offset.z += time_diff;
 
 			} else {
 				if(event.keyPressed(InputKey::left))
@@ -275,6 +278,10 @@ class Viewer {
 			}
 			if(event.keyDown('s'))
 				m_show_nodes ^= 1;
+			if(event.keyDown('i') && m_num_steps > 0)
+				m_num_steps--;
+			if(event.keyDown('k'))
+				m_num_steps++;
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));
@@ -308,7 +315,8 @@ class Viewer {
 		} else if(m_mode == Mode::tets)
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
 		else if(m_mode == Mode::tets_csg)
-			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset);
+			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset,
+							  m_num_steps);
 
 		TextFormatter fmt;
 		fmt("Mode: %s (Q)\n", toString(m_mode));
@@ -325,8 +333,10 @@ class Viewer {
 		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n\n");
-		if(m_mode == Mode::tets_csg)
+		if(m_mode == Mode::tets_csg) {
 			fmt("ctrl+ up/down/left/right: move mesh\n");
+			fmt("steps: %d", m_num_steps);
+		}
 
 		model.printModelStats(fmt);
 		if(show_tets)
@@ -363,6 +373,7 @@ class Viewer {
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;
 	Mode m_mode;
+	int m_num_steps;
 };
 
 static Viewer *s_viewer = nullptr;
