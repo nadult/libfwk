@@ -5,6 +5,12 @@
 #include "fwk_base.h"
 #include <cstdio>
 
+namespace fwk {
+
+Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols)
+	: m_addresses(std::move(addresses)), m_symbols(std::move(symbols)) {}
+}
+
 #ifdef FWK_TARGET_LINUX
 
 #include <execinfo.h>
@@ -24,7 +30,74 @@ namespace {
 			file_path = relative_path;
 		return file_path;
 	}
+}
 
+Backtrace Backtrace::get(size_t skip) {
+	void *addresses[64];
+	size_t size = ::backtrace(addresses, arraySize(addresses));
+	char **strings = backtrace_symbols(addresses, size);
+
+	vector<void *> addrs;
+	vector<string> symbols;
+
+	try {
+		for(size_t i = skip; i < size; i++) {
+			addrs.emplace_back(addresses[i]);
+			symbols.emplace_back(string(strings[i]));
+		}
+	} catch(...) {
+		free(strings);
+		return Backtrace();
+	}
+	free(strings);
+
+	return Backtrace(std::move(addrs), std::move(symbols));
+}
+
+string Backtrace::analyze(bool filter) const {
+	// TODO: these are not exactly correct (inlining?)
+	TextFormatter command;
+	command("addr2line ");
+	for(auto address : m_addresses)
+		command("%p ", address);
+	command("-e %s 2>/dev/null", executablePath().c_str());
+	string result = execCommand(command.text()).first;
+	vector<string> file_lines;
+	while(!result.empty()) {
+		auto pos = result.find('\n');
+		file_lines.emplace_back(result.substr(0, pos));
+		if(pos != string::npos)
+			pos++;
+		result = result.substr(pos);
+	}
+	file_lines.resize(m_addresses.size());
+
+	for(auto &file_line : file_lines) {
+		auto colon_pos = file_line.find(':');
+		string file = nicePath(file_line.substr(0, colon_pos));
+		int line = colon_pos == string::npos ? 0 : atoi(&file_line[colon_pos + 1]);
+		file_line = file.empty() ? "?" : format("%s:%d", file.c_str(), line);
+	}
+
+	int max_len = 0;
+	for(const auto &file_line : file_lines)
+		max_len = max(max_len, (int)file_line.size());
+
+	TextFormatter formatter;
+	for(size_t i = 0; i < size(); i++) {
+		string tstring = i < m_symbols.size() ? m_symbols[i] : "";
+		const char *file_line = i < file_lines.size() ? file_lines[i].c_str() : "";
+		tstring = tstring.substr(0, tstring.find('['));
+
+		string fmt = format("%%%ds %%s\n", max_len);
+		formatter(fmt.c_str(), file_line, tstring.c_str());
+	}
+
+	string out = formatter.text();
+	return filter ? Backtrace::filter(out) : out;
+}
+
+namespace {
 	void filterString(string &str, const char *src, const char *dst) {
 		DASSERT(src && dst);
 		int src_len = strlen(src);
@@ -43,42 +116,7 @@ namespace {
 	};
 }
 
-string backtrace(size_t skip) {
-	TextFormatter out;
-
-	void *addresses[64];
-	size_t size = ::backtrace(addresses, arraySize(addresses));
-	char **strings = backtrace_symbols(addresses, size);
-
-	// TODO: these are not exactly correct (inlining?)
-	string file_lines[64];
-	string exec_name = executablePath();
-	for(size_t i = skip; i < size; i++) {
-		auto command = format("addr2line %p -e %s 2>/dev/null", addresses[i], exec_name.c_str());
-		string file_line = execCommand(command).first;
-		auto colon_pos = file_line.find(':');
-		string file = nicePath(file_line.substr(0, colon_pos));
-		int line = colon_pos == string::npos ? 0 : atoi(&file_line[colon_pos + 1]);
-		file_lines[i] = file.empty() ? "?" : format("%s:%d", file.c_str(), line);
-	}
-
-	int max_len = 0;
-	for(const auto &file_line : file_lines)
-		max_len = max(max_len, (int)file_line.size());
-
-	for(size_t i = skip; i < size; i++) {
-		string tstring = strings[i];
-		tstring = tstring.substr(0, tstring.find('['));
-
-		string fmt = format("%%%ds %%s\\n", max_len);
-		out(fmt.c_str(), file_lines[i].c_str(), tstring.c_str());
-	}
-	free(strings);
-
-	return out.text();
-}
-
-string cppFilterBacktrace(const string &input) {
+string Backtrace::filter(const string &input) {
 	string command = "echo \"" + input + "\" | c++filt -n";
 
 	FILE *file = popen(command.c_str(), "r");
@@ -111,8 +149,8 @@ string cppFilterBacktrace(const string &input) {
 
 namespace fwk {
 
-string backtrace(size_t skip) { return "Backtraces in LibFWK are supported only on Linux"; }
-string cppFilterBacktrace(const string &input) { return input; }
+Backtrace Backtrace::get(size_t skip) { return Backtrace(); }
+string Backtrace::analyze(bool) const { return "Backtraces in LibFWK are supported only on Linux"; }
 }
 
 #endif

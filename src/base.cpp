@@ -60,7 +60,7 @@ namespace {
 #ifndef _WIN32
 	void segfaultHandler(int, siginfo_t *, void *) {
 		printf("Segmentation fault!\n");
-		printf("Backtrace:\n%s\n", cppFilterBacktrace(backtrace(2)).c_str());
+		printf("Backtrace:\n%s\n", Backtrace::get(2).analyze(true).c_str());
 		exit(1);
 	}
 #endif
@@ -138,9 +138,9 @@ double getTime() {
 #endif
 }
 
-Exception::Exception(const char *str) : m_data(str) { m_backtrace = fwk::backtrace(3); }
-Exception::Exception(const string &s) : m_data(s) { m_backtrace = fwk::backtrace(3); }
-Exception::Exception(const string &s, const string &bt) : m_data(s), m_backtrace(bt) {}
+Exception::Exception(string text) : m_text(std::move(text)), m_backtrace(Backtrace::get(3)) {}
+Exception::Exception(string text, Backtrace bt)
+	: m_text(std::move(text)), m_backtrace(std::move(bt)) {}
 
 void throwException(const char *file, int line, const char *fmt, ...) {
 	char new_fmt[2048];

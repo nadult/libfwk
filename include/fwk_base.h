@@ -182,24 +182,37 @@ pair<string, bool> execCommand(const string &cmd);
 // Compile your program with -rdynamic to get some interesting info
 // Currently not avaliable on mingw32 platform
 // TODO: use lib-lldb
-string backtrace(size_t skip = 0);
+class Backtrace {
+  public:
+	Backtrace(vector<void *> addresses = {}, vector<string> symbols = {});
+	static Backtrace get(size_t skip = 0);
 
-// Uses c++filt program to demangle C++ names; also it shortens some of the common
-// long class names, like std::basic_string<...> to fwk::string
-string cppFilterBacktrace(const string &);
+	// When filter is true, analyzer uses c++filt program to demangle C++
+	// names; it also shortens some of the common long class names, like
+	// std::basic_string<...> to fwk::string
+	string analyze(bool filter) const;
+	auto size() const { return m_addresses.size(); }
+
+  private:
+	static string filter(const string &);
+
+	vector<void *> m_addresses;
+	vector<string> m_symbols;
+};
 
 class Exception : public std::exception {
 
   public:
-	Exception(const char *);
-	Exception(const string &);
-	Exception(const string &, const string &);
+	explicit Exception(string text);
+	explicit Exception(string text, Backtrace);
 	~Exception() noexcept {}
-	const char *what() const noexcept { return m_data.c_str(); }
-	const char *backtrace() const noexcept { return m_backtrace.c_str(); }
+	const char *what() const noexcept { return m_text.c_str(); }
+	string backtrace(bool filter = true) const { return m_backtrace.analyze(filter); }
+	const Backtrace &backtraceData() const { return m_backtrace; }
 
   protected:
-	string m_data, m_backtrace;
+	string m_text;
+	Backtrace m_backtrace;
 };
 
 #define FWK_STRINGIZE(something) FWK_STRINGIZE_(something)

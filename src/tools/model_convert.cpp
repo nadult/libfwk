@@ -189,8 +189,7 @@ int safe_main(int argc, char **argv) {
 			else if(arg == "--help") {
 				printHelp(argv[0]);
 				exit(0);
-			}
-			else {
+			} else {
 				printf("Unsupported parameter: %s\n", argv[n]);
 				exit(1);
 			}
@@ -238,7 +237,7 @@ int main(int argc, char **argv) {
 	try {
 		return safe_main(argc, argv);
 	} catch(const Exception &ex) {
-		printf("%s\n\nBacktrace:\n%s\n", ex.what(), cppFilterBacktrace(ex.backtrace()).c_str());
+		printf("%s\n\nBacktrace:\n%s\n", ex.what(), ex.backtrace().c_str());
 		return 1;
 	}
 }

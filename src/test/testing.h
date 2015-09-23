@@ -31,8 +31,7 @@ template <class T> inline bool closeEnough(const T &a, const T &b) {
 	return distance(a, b) < constant::epsilon;
 }
 
-template <class T>
-void reportError(const T &a, const T&b) {
+template <class T> void reportError(const T &a, const T &b) {
 	TextFormatter atext, btext;
 	xml_conversions::toString(a, atext);
 	xml_conversions::toString(b, btext);
@@ -65,8 +64,7 @@ int main(int argc, char **argv) {
 		testMain();
 		printf("%s: OK\n", argv[0]);
 	} catch(const Exception &ex) {
-		printf("%s: FAILED\n%s\nBacktrace:\n%s\n", argv[0], ex.what(),
-			   cppFilterBacktrace(ex.backtrace()).c_str());
+		printf("%s: FAILED\n%s\nBacktrace:\n%s\n", argv[0], ex.what(), ex.backtrace().c_str());
 		return 1;
 	}
 	return 0;

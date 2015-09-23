@@ -36,7 +36,7 @@ void Stream::handleException(const Exception &ex) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	throw Exception(buffer, ex.backtrace());
+	throw Exception(buffer, ex.backtraceData());
 #endif
 }
 
@@ -184,7 +184,7 @@ void loadFromStream(string &v, Stream &sr) {
 
 	try {
 		if(len > sr.size() - sr.pos())
-			sr.handleException("Invalid stream data");
+			sr.handleException(Exception("Invalid stream data"));
 		v.resize(len, 0);
 	} catch(const Exception &ex) { sr.handleException(ex); }
 
