@@ -49,11 +49,12 @@ template <class T> class PodArray;
 // TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
 template <class T, int min_size = 0> class Range {
   public:
-	using type = typename std::remove_const<T>::type;
+	using value_type = typename std::remove_const<T>::type;
 	enum { is_const = std::is_const<T>::value };
-	using vector_type = typename std::conditional<is_const, const vector<type>, vector<type>>::type;
+	using vector_type =
+		typename std::conditional<is_const, const vector<value_type>, vector<value_type>>::type;
 	using pod_array_type =
-		typename std::conditional<is_const, const PodArray<type>, PodArray<type>>::type;
+		typename std::conditional<is_const, const PodArray<value_type>, PodArray<value_type>>::type;
 
 	// friend class CRange<typename std::remove_const<T>::type>;
 	Range(T *data, int size) : m_data(data), m_size(size) {
@@ -63,7 +64,10 @@ template <class T, int min_size = 0> class Range {
 	Range(T *begin, T *end) : Range(begin, (int)(end - begin)) {}
 	Range(vector_type &vec) : Range(vec.data(), vec.size()) {}
 	Range(pod_array_type &array) : Range(array.data(), array.size()) {}
-	template <int N> Range(T(&array)[N]) : m_data(array), m_size(N) {
+	template <int N> Range(value_type(&array)[N]) : m_data(array), m_size(N) {
+		static_assert(N >= min_size, "Array too small");
+	}
+	template <int N> Range(const value_type(&array)[N]) : m_data(array), m_size(N) {
 		static_assert(N >= min_size, "Array too small");
 	}
 	Range() : m_data(nullptr), m_size(0) {
@@ -75,14 +79,14 @@ template <class T, int min_size = 0> class Range {
 		static_assert(other_size >= min_size, "Range too small");
 	}
 	template <class U = T>
-	Range(const Range<type, min_size> &range,
+	Range(const Range<value_type, min_size> &range,
 		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)
 		: m_data(range.m_data), m_size(range.m_size) {}
 	template <class U = T>
 	Range(const std::initializer_list<T> &list,
 		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)
 		: Range(list.begin(), list.end()) {}
-	operator vector<type>() const { return vector<type>(cbegin(), cend()); }
+	operator vector<value_type>() const { return vector<value_type>(cbegin(), cend()); }
 
 	auto cbegin() const noexcept { return CRangeIterator<T>(m_data); }
 	auto cend() const noexcept { return CRangeIterator<T>(m_data + m_size); }
@@ -143,6 +147,29 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 
 template <class T1, class Container> void insertBack(vector<T1> &into, const Container &from) {
 	into.insert(end(into), begin(from), end(from));
+}
+
+template <class Range> auto setDifference(const Range &a, const Range &b) {
+	vector<typename Range::value_type> out(a.size());
+	DASSERT(std::is_sorted(begin(a), end(a)));
+	DASSERT(std::is_sorted(begin(b), end(b)));
+	auto it = std::set_difference(begin(a), end(a), begin(b), end(b), begin(out));
+	out.resize(it - begin(out));
+	return out;
+}
+
+template <class Range> auto setIntersection(const Range &a, const Range &b) {
+	vector<typename Range::value_type> out(a.size());
+	DASSERT(std::is_sorted(begin(a), end(a)));
+	DASSERT(std::is_sorted(begin(b), end(b)));
+	auto it = std::set_intersection(begin(a), end(a), begin(b), end(b), begin(out));
+	out.resize(it - begin(out));
+	return out;
+}
+
+template <class T> void makeUnique(vector<T> &vec) {
+	std::sort(begin(vec), end(vec));
+	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
 }
 
 template <class T1, class T2>
