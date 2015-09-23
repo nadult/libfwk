@@ -964,6 +964,9 @@ __attribute__((__format__(__printf__, 1, 2)))
 #endif
 string format(const char *format, ...);
 
+// Converting % to argument
+string simpleFormat(const char *format, const vector<string> &args);
+
 struct ListNode {
 	ListNode() : next(-1), prev(-1) {}
 

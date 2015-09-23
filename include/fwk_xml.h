@@ -136,6 +136,15 @@ namespace xml_conversions {
 	}
 }
 
+template <class... Args> string xmlFormat(const char *format, const Args &... args) {
+	vector<string> strings = {xml_conversions::toString(args).text()...};
+	return simpleFormat(format, strings);
+}
+
+template <class... Args> void xmlPrint(const char *format, Args &&... args) {
+	printf("%s", xmlFormat(format, std::forward<Args>(args)...).c_str());
+}
+
 class XMLNode {
   public:
 	XMLNode(const XMLNode &rhs) : m_ptr(rhs.m_ptr), m_doc(rhs.m_doc) {}

@@ -231,4 +231,19 @@ string format(const char *format, ...) {
 	va_end(ap);
 	return string(buffer);
 }
+
+string simpleFormat(const char *format, const vector<string> &args) {
+	TextFormatter out;
+
+	DASSERT(std::count(format, format + strlen(format), '%') == args.size());
+	size_t arg_id = 0;
+	for(const char *c = format; *c; c++) {
+		if(*c == '%') {
+			out("%s", arg_id >= args.size() ? "" : args[arg_id].c_str());
+			arg_id++;
+		} else { out("%c", *c); }
+	}
+
+	return out.text();
+}
 }
