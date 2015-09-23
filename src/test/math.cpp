@@ -90,6 +90,23 @@ void testIntersections() {
 	ASSERT(areIntersecting(tri1, tri2));
 }
 
+void test2DIntersections() {
+	Triangle2D tri(float2(1, 2), float2(5, 3), float2(3, 5));
+	Segment2D seg(float2(3, 1), float2(3, 6));
+	auto result = clip(tri, seg);
+	assertEqual(result.inside.start, float2(3, 2.5f));
+	assertEqual(result.inside.end, float2(3, 5));
+	assertEqual(result.outside_front.start, float2(3, 1));
+	assertEqual(result.outside_front.end, float2(3, 2.5f));
+	assertEqual(result.outside_back.start, float2(3, 5));
+	assertEqual(result.outside_back.end, float2(3, 6));
+
+	Segment2D seg1({0, 2}, {3, 2}), seg2({1, 1}, {1, 3}), seg3({1.00001, 3}, {3, 3});
+	assertEqual(intersection(seg1, seg2).first, float2(1, 2));
+	ASSERT(!intersection(seg1, seg3).second);
+	ASSERT(!intersection(seg2, seg3).second);
+}
+
 void testMain() {
 	FBox box(0, -100, 0, 1200, 100, 720);
 	FBox temp(32, 0, 32, 64, 0.5f, 64);
@@ -98,6 +115,7 @@ void testMain() {
 	testMatrices();
 	testRays();
 	testIntersections();
+	test2DIntersections();
 
 	float3 vec(0, 0, 1);
 

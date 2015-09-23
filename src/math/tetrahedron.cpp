@@ -3,7 +3,13 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+
 #ifdef FWK_TARGET_LINUX
+#define CGAL_ENABLED
+#endif
+
+
+#ifdef CGAL_ENABLED
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/intersections.h>
 #include <CGAL/Tetrahedron_3.h>
@@ -47,7 +53,7 @@ array<Tetrahedron::Edge, 6> Tetrahedron::edges() const {
 	return out;
 }
 
-#ifdef FWK_TARGET_LINUX
+#ifdef CGAL_ENABLED
 bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
 	using K = CGAL::Simple_cartesian<double>;
 	using Point = K::Point_3;

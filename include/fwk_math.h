@@ -694,6 +694,16 @@ struct AffineTrans {
 AffineTrans operator*(const AffineTrans &, const AffineTrans &);
 AffineTrans lerp(const AffineTrans &, const AffineTrans &, float t);
 
+struct Triangle2D {
+	Triangle2D(const float2 &a, const float2 &b, const float2 &c) : m_points({{a, b, c}}) {}
+
+	const float2 &operator[](int idx) const { return m_points[idx]; }
+	float2 center() const { return (m_points[0] + m_points[1] + m_points[2]) * 0.5f; }
+
+  private:
+	array<float2, 3> m_points;
+};
+
 class Triangle {
   public:
 	Triangle(const float3 &a, const float3 &b, const float3 &c);
@@ -717,6 +727,8 @@ class Triangle {
 		return Triangle(a() * scale, b() * scale, c() * scale);
 	}
 
+	Triangle2D xz() const { return Triangle2D(a().xz(), b().xz(), c().xz()); }
+
 	float3 barycentric(const float3 &point) const;
 
 	float3 edge1() const { return m_edge[0]; }
@@ -730,16 +742,6 @@ class Triangle {
 	float3 m_edge[2];
 	float3 m_normal;
 	float m_length;
-};
-
-struct Triangle2D {
-	Triangle2D(const float2 &a, const float2 &b, const float2 &c) : m_points({{a, b, c}}) {}
-
-	const float2 &operator[](int idx) const { return m_points[idx]; }
-	float2 center() const { return (m_points[0] + m_points[1] + m_points[2]) * 0.5f; }
-
-  private:
-	array<float2, 3> m_points;
 };
 
 Triangle operator*(const Matrix4 &, const Triangle &);
@@ -826,17 +828,39 @@ class Ray {
 	float3 m_inv_dir;
 };
 
+struct Segment2D {
+	Segment2D() = default;
+	Segment2D(const float2 &a, const float2 &b) : start(a), end(b) {}
+	bool empty() const { return distance(end, start) < constant::epsilon; }
+
+	float2 start, end;
+};
+
+inline float length(const Segment2D &seg) { return distance(seg.start, seg.end); }
+
 class Segment : public Ray {
   public:
 	Segment(const float3 &start = float3(), const float3 &end = float3(0, 0, 1));
 
 	float length() const { return m_length; }
 	float3 end() const { return m_end; }
+	Segment2D xz() const { return Segment2D(origin().xz(), end().xz()); }
 
   private:
 	float3 m_end;
 	float m_length;
 };
+
+struct ClipResult {
+	ClipResult(Segment2D a = Segment2D(), Segment2D b = Segment2D(), Segment2D c = Segment2D())
+		: inside(a), outside_front(b), outside_back(c) {}
+	Segment2D inside;
+	Segment2D outside_front;
+	Segment2D outside_back;
+};
+
+pair<float2, bool> intersection(const Segment2D &, const Segment2D &);
+ClipResult clip(const Triangle2D &, const Segment2D &);
 
 float distance(const Triangle &tri, const Segment &);
 
@@ -871,6 +895,26 @@ inline float intersection(const Triangle &tri, const Segment &segment) {
 }
 
 bool intersection(const Plane &, const Plane &, Ray &out);
+
+class Projection {
+  public:
+	Projection(const float3 &origin, const float3 &vec_x, const float3 &vec_y);
+	// X: edge1 Y: normal
+	Projection(const Triangle &tri);
+
+	float3 project(const float3 &) const;
+	float3 unproject(const float3 &) const;
+	Triangle project(const Triangle &) const;
+	Segment project(const Segment &) const;
+
+	// TODO: maybe those operators aren't such a good idea?
+	template <class T> auto operator*(const T &obj) const { return project(obj); }
+	template <class T> auto operator/(const T &obj) const { return unproject(obj); }
+
+  private:
+	Matrix3 m_base, m_ibase;
+	float3 m_origin;
+};
 
 // Basically, a set of planes
 class Frustum {

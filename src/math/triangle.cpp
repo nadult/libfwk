@@ -5,6 +5,10 @@
 #include "fwk_math.h"
 
 #ifdef FWK_TARGET_LINUX
+#define CGAL_ENABLED
+#endif
+
+#ifdef CGAL_ENABLED
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/intersections.h>
@@ -15,7 +19,7 @@
 
 namespace fwk {
 
-#ifdef FWK_TARGET_LINUX
+#ifdef CGAL_ENABLED
 bool areIntersecting(const Triangle &a, const Triangle &b) {
 	using K = CGAL::Exact_predicates_exact_constructions_kernel;
 	using Point = K::Point_3;
