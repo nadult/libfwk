@@ -12,6 +12,7 @@ using HalfEdge = HalfMesh::HalfEdge;
 
 HalfMesh::Vertex::Vertex(float3 pos, int index) : m_pos(pos), m_index(index), m_temp(0) {}
 HalfMesh::Vertex::~Vertex() {
+#ifndef NDEBUG
 	if(!m_edges.empty()) {
 		static bool reported = false;
 		if(!reported) {
@@ -19,6 +20,7 @@ HalfMesh::Vertex::~Vertex() {
 			printf("HalfEdges should be destroyed before Vertices\n");
 		}
 	}
+#endif
 }
 
 void HalfMesh::Vertex::removeEdge(HalfEdge *edge) {
@@ -34,7 +36,15 @@ void HalfMesh::Vertex::addEdge(HalfEdge *edge) { m_edges.emplace_back(edge); }
 HalfMesh::HalfEdge::~HalfEdge() {
 	m_start->removeEdge(this);
 	if(m_opposite) {
-		DASSERT(m_opposite->m_opposite == this);
+#ifndef NDEBUG
+		if(m_opposite->m_opposite != this) {
+			static bool reported = false;
+			if(!reported) {
+				reported = true;
+				printf("Errors in HalfMesh edges relationships");
+			}
+		}
+#endif
 		m_opposite->m_opposite = nullptr;
 	}
 }

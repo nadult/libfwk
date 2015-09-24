@@ -142,6 +142,7 @@ struct LoopElem {
 };
 
 using Loop = vector<LoopElem>;
+using Edge = pair<Vertex *, Vertex *>;
 
 pair<Loop, Loop> extractLoop(vector<Isect> &isects, HalfTetMesh &ha, HalfTetMesh &hb) {
 	if(isects.empty())
@@ -191,8 +192,7 @@ pair<Loop, Loop> extractLoop(vector<Isect> &isects, HalfTetMesh &ha, HalfTetMesh
 	return make_pair(outa, outb);
 }
 
-vector<array<Vertex *, 3>> triangulateFace(Face *face,
-										   const vector<pair<Vertex *, Vertex *>> &edges) {
+vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &edges) {
 	Plane plane(face->triangle());
 	Projection proj(face->triangle());
 
@@ -267,7 +267,7 @@ struct Split {
 
 vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners,
 							 const vector<array<Vertex *, 3>> &tris) {
-	std::set<pair<Vertex *, Vertex *>> edges;
+	std::set<Edge> edges;
 	for(auto tri : tris) {
 		for(int i = 0; i < 3; i++) {
 			auto edge = make_pair(tri[i], tri[(i + 1) % 3]);
@@ -332,14 +332,15 @@ vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners
 	return out;
 }
 
-TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_steps) {
-	// printf("Triangulation:\n");
-	using MeshSegment = pair<Vertex *, Vertex *>;
+vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_steps) {
+	printf("Triangulation:\n");
 	// TODO: edge may already exist
-	vector<MeshSegment> segments;
+	vector<Edge> segments;
 	for(const auto &loop : loops)
 		for(int n = 0; n < (int)loop.size(); n++)
 			segments.emplace_back(make_pair(loop[n].vertex, loop[(n + 1) % loop.size()].vertex));
+
+	vector<Edge> processed;
 
 	int step = 0;
 	while(!segments.empty()) {
@@ -348,6 +349,7 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 
 		for(int n = 0; n < (int)segments.size(); n++) {
 			if(mesh.hasEdge(segments[n].first, segments[n].second)) {
+				processed.emplace_back(segments[n]);
 				segments[n] = segments.back();
 				segments.pop_back();
 			}
@@ -386,7 +388,7 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 		// Finding all segments lying on that face (clipping if necessary)
 		Projection proj(cur_face->triangle());
 		Triangle2D tri2d = (proj * cur_face->triangle()).xz();
-		vector<pair<Vertex *, Vertex *>> cur_segments;
+		vector<Edge> cur_segments;
 
 		for(int n = 0; n < (int)segments.size(); n++) {
 			auto seg = segments[n];
@@ -406,14 +408,14 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 			if(!result.outside_front.empty()) {
 				float3 pos(result.inside.start.x, 0.0f, result.inside.start.y);
 				auto vert = mesh.addVertex(proj / pos);
-				segments.push_back(MeshSegment(seg.first, vert));
-				seg = MeshSegment(vert, seg.second);
+				segments.push_back(Edge(seg.first, vert));
+				seg = Edge(vert, seg.second);
 			}
 			if(!result.outside_back.empty()) {
 				float3 pos(result.inside.end.x, 0.0f, result.inside.end.y);
 				auto vert = mesh.addVertex(proj / pos);
-				segments.push_back(MeshSegment(vert, seg.second));
-				seg = MeshSegment(seg.first, vert);
+				segments.push_back(Edge(vert, seg.second));
+				seg = Edge(seg.first, vert);
 			}
 
 			cur_segments.emplace_back(seg);
@@ -423,6 +425,7 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 		auto triangles = triangulateFace(cur_face, cur_segments);
 		auto tet = cur_face->tet();
 		auto face_corners = cur_face->verts();
+		insertBack(processed, cur_segments);
 
 		Vertex *other_vertex = nullptr;
 		for(auto *vert : tet->verts())
@@ -445,13 +448,9 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 		}
 	}
 
-	vector<Triangle> tris;
-
-	// Mesh fill_mesh = Mesh::makePolySoup(tris);
-	// printf("manifold: %s\n", HalfMesh(fill_mesh).is2Manifold() ? "yes" : "no");
 	// TetMesh fill_tets = TetMesh::make(fill_mesh);
 
-	return TetMesh(mesh);
+	return processed;
 }
 
 TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
@@ -508,16 +507,15 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 		b_loops.emplace_back(new_loop.second);
 	}
 
-	TetMesh result;
 	try {
-		result = triangulateMesh(ha, a_loops, max_steps);
+		auto edges1 = triangulateMesh(ha, a_loops, max_steps);
+		// auto edges2 = triangulateMesh(hb, b_loops, max_steps);
+		printf("manifold: %s\n\n", HalfMesh(TetMesh(ha).toMesh()).is2Manifold() ? "yes" : "no");
+		return TetMesh(ha);
 	} catch(const Exception &ex) {
 		printf("Error: %s\n", ex.what());
 		return {};
 	}
-	return result;
-	// return triangulateMesh(hb, b_loops);
-	// return TetMesh();
 }
 
 Mesh TetMesh::toMesh() const {

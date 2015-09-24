@@ -124,12 +124,20 @@ HalfTetMesh::operator TetMesh() const {
 	vector<float3> verts;
 	vector<array<int, 4>> indices;
 
-	for(auto &vert : m_verts)
-		verts.emplace_back(vert->pos());
+	std::map<int, int> vert_map;
+
 	for(auto &tet : m_tets) {
-		auto verts = tet->verts();
-		array<int, 4> tet_inds = {
-			{verts[0]->index(), verts[1]->index(), verts[2]->index(), verts[3]->index()}};
+		auto tverts = tet->verts();
+		array<int, 4> tet_inds;
+		for(int i = 0; i < 4; i++) {
+			int id = tverts[i]->index();
+			auto it = vert_map.find(id);
+			if(it == vert_map.end()) {
+				vert_map[id] = tet_inds[i] = (int)verts.size();
+				verts.emplace_back(m_verts[id]->pos());
+			} else
+				tet_inds[i] = it->second;
+		}
 		indices.emplace_back(tet_inds);
 	}
 
