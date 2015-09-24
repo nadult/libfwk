@@ -300,4 +300,9 @@ void HalfTetMesh::subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisor
 		current = divisors[n];
 	}
 }
+
+bool HalfTetMesh::hasEdge(Vertex *a, Vertex *b) const {
+	DASSERT(a && b && a != b);
+	return !setIntersection(a->tets(), b->tets()).empty();
+}
 }

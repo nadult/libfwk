@@ -976,6 +976,7 @@ class HalfTetMesh {
 	Tet *findTet(Vertex *, Vertex *, Vertex *, Vertex *);
 	pair<Face *, Face *> findFaces(Vertex *, Vertex *, Vertex *);
 	bool isValid(Vertex *) const;
+	bool hasEdge(Vertex *, Vertex *) const;
 
 	void removeVertex(Vertex *vert);
 	void removeTet(Tet *tet);

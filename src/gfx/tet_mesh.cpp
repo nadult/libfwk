@@ -346,6 +346,16 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 		if(step++ >= max_steps)
 			break;
 
+		for(int n = 0; n < (int)segments.size(); n++) {
+			if(mesh.hasEdge(segments[n].first, segments[n].second)) {
+				segments[n] = segments.back();
+				segments.pop_back();
+			}
+		}
+
+		if(segments.empty())
+			break;
+
 		// Finding face that requires triangulation
 		Face *cur_face = nullptr;
 		for(auto *face : mesh.faces()) {
@@ -362,6 +372,14 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 				cur_face = face;
 				break;
 			}
+		}
+
+		if(!cur_face) {
+			printf("Cannot find face for segments:\n");
+			for(auto seg : segments)
+				xmlPrint("% -> % (len: %)\n", seg.first->pos(), seg.second->pos(),
+						 distance(seg.first->pos(), seg.second->pos()));
+			printf("\n");
 		}
 		DASSERT(cur_face);
 
@@ -490,7 +508,14 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 		b_loops.emplace_back(new_loop.second);
 	}
 
-	return triangulateMesh(ha, a_loops, max_steps);
+	TetMesh result;
+	try {
+		result = triangulateMesh(ha, a_loops, max_steps);
+	} catch(const Exception &ex) {
+		printf("Error: %s\n", ex.what());
+		return {};
+	}
+	return result;
 	// return triangulateMesh(hb, b_loops);
 	// return TetMesh();
 }
