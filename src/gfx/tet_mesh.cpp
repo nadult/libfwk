@@ -311,10 +311,17 @@ vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners
 		if(best_dot > 0.99f) {
 			// DASSERT(best_dot > 0.99f);
 			auto &split = splits[best_split];
-			if(!isOneOf(edge.first, split.e1, split.e2))
-				split.splits.emplace_back(edge.first);
-			if(!isOneOf(edge.second, split.e1, split.e2))
-				split.splits.emplace_back(edge.second);
+
+			if(!isOneOf(edge.first, split.e1, split.e2)) {
+				if(fabs(dot(normalize(edge.first->pos() - split.e1->pos()), vec)) >
+				   1.0f - constant::epsilon)
+					split.splits.emplace_back(edge.first);
+			}
+			if(!isOneOf(edge.second, split.e1, split.e2)) {
+				if(fabs(dot(normalize(edge.second->pos() - split.e1->pos()), vec)) >
+				   1.0f - constant::epsilon)
+					split.splits.emplace_back(edge.second);
+			}
 		}
 	}
 
@@ -326,6 +333,7 @@ vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners
 }
 
 TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_steps) {
+	// printf("Triangulation:\n");
 	using MeshSegment = pair<Vertex *, Vertex *>;
 	// TODO: edge may already exist
 	vector<MeshSegment> segments;
@@ -405,8 +413,13 @@ TetMesh triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_st
 		mesh.removeTet(tet);
 
 		auto splits = findEdgeSplits(mesh, face_corners, triangles);
-		for(auto split : splits)
+		for(auto split : splits) {
+			// xmlPrint("Splits for (%) (%):\n", split.e1->pos(), split.e2->pos());
+			// for(auto s : split.splits)
+			//	xmlPrint("(%) ", s->pos());
+			// xmlPrint("\n");
 			mesh.subdivideEdge(split.e1, split.e2, split.splits);
+		}
 
 		for(auto tri : triangles) {
 			// TODO: check for negative volume

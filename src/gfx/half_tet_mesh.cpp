@@ -39,7 +39,7 @@ HalfTetMesh::Face::Face(Tet *tet, Vertex *a, Vertex *b, Vertex *c, int index)
 		if(isOneOf(a, verts) && isOneOf(b, verts) && isOneOf(c, verts)) {
 			float tdot = dot(face->triangle().normal(), m_tri.normal());
 			if(tdot > -0.99f)
-				printf("dot : %f\n", tdot);
+				printf("HalfTetMesh::addTet/Face::Face dot : %f\n", tdot);
 			DASSERT(tdot < -1.0f + constant::epsilon);
 			DASSERT(m_opposite == nullptr && face->m_opposite == nullptr &&
 					"Multiple faces sharing same vertices detected");
@@ -291,7 +291,7 @@ namespace {
 void HalfTetMesh::subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisors) {
 	DASSERT(e1 && e2);
 	std::sort(begin(divisors), end(divisors), Comparator(e1->pos()));
-	makeUnique(divisors);
+	divisors.resize(std::unique(begin(divisors), end(divisors)) - divisors.begin());
 
 	Vertex *current = e1;
 	for(int n = 0; n < (int)divisors.size(); n++) {
