@@ -224,6 +224,21 @@ void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matr
 	}
 }
 
+void Mesh::drawLines(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
+	out.pushViewMatrix();
+	out.mulViewMatrix(matrix);
+
+	const auto &pos = positions();
+	vector<float3> lines;
+	for(auto tri : trisIndices()) {
+		int inds[6] = {0, 1, 1, 2, 2, 0};
+		for(int i = 0; i < 6; i++)
+			lines.emplace_back(pos[tri[inds[i]]]);
+	}
+	out.addLines(lines, material);
+	out.popViewMatrix();
+}
+
 void Mesh::draw(Renderer &out, AnimatedData data, const MaterialSet &materials,
 				const Matrix4 &matrix) const {
 	if(!m_buffers.hasSkin())

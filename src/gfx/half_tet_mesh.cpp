@@ -37,6 +37,10 @@ HalfTetMesh::Face::Face(Tet *tet, Vertex *a, Vertex *b, Vertex *c, int index)
 	for(auto *face : a->faces()) {
 		const auto &verts = face->verts();
 		if(isOneOf(a, verts) && isOneOf(b, verts) && isOneOf(c, verts)) {
+			float tdot = dot(face->triangle().normal(), m_tri.normal());
+			if(tdot > -0.99f)
+				printf("dot : %f\n", tdot);
+			DASSERT(tdot < -1.0f + constant::epsilon);
 			DASSERT(m_opposite == nullptr && face->m_opposite == nullptr &&
 					"Multiple faces sharing same vertices detected");
 			m_opposite = face;
@@ -145,7 +149,16 @@ Tet *HalfTetMesh::addTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
 	// TODO: maybe don't do that
 	if(Tetrahedron(a->pos(), b->pos(), c->pos(), d->pos()).volume() < 0.0f)
 		swap(c, d);
-	m_tets.emplace_back(make_unique<Tet>(a, b, c, d, (int)m_tets.size()));
+	try {
+		auto tet = make_unique<Tet>(a, b, c, d, (int)m_tets.size());
+		m_tets.emplace_back(std::move(tet));
+	} catch(const Exception &ex) {
+		xmlPrint("%|%|%|% vol:%\n", a->pos(), b->pos(), c->pos(), d->pos(),
+				 Tetrahedron(a->pos(), b->pos(), c->pos(), d->pos()).volume());
+		printf("Error: %s\n", ex.what());
+		return nullptr;
+	}
+
 	return m_tets.back().get();
 }
 
@@ -193,6 +206,15 @@ void HalfTetMesh::removeVertex(Vertex *vert) {
 	m_verts.pop_back();
 }
 
+bool HalfTetMesh::isValid(Vertex *vert) const {
+	if(!vert)
+		return false;
+	int index = vert->index();
+	if(index < 0 || index >= (int)m_verts.size())
+		return false;
+	return m_verts[index].get() == vert;
+}
+
 void HalfTetMesh::removeTet(Tet *tet) {
 	DASSERT(tet && m_tets[tet->m_index].get() == tet);
 	int index = tet->m_index;
@@ -236,5 +258,46 @@ vector<Face *> HalfTetMesh::extractSelectedFaces(vector<Tet *> tets) {
 	for(auto &tet : m_tets)
 		tet->setTemp(0);
 	return out;
+}
+
+void HalfTetMesh::subdivideEdge(Vertex *e1, Vertex *e2, Vertex *split) {
+	DASSERT(isValid(e1) && isValid(e2) && isValid(split));
+	DASSERT(e1 != split & e2 != split);
+
+	auto tets = setIntersection(e1->tets(), e2->tets());
+	for(auto *tet : tets) {
+		array<Vertex *, 4> verts = tet->verts();
+		auto other_verts = setDifference(verts, array<Vertex *, 2>({{e1, e2}}));
+		DASSERT(other_verts.size() == 2);
+		removeTet(tet);
+		addTet(e1, split, other_verts[0], other_verts[1]);
+		addTet(e2, split, other_verts[0], other_verts[1]);
+	}
+}
+
+namespace {
+
+	struct Comparator {
+		Comparator(float3 ref) : ref(ref) {}
+
+		bool operator()(Vertex *a, Vertex *b) const {
+			return distanceSq(a->pos(), ref) < distanceSq(b->pos(), ref);
+		}
+
+		float3 ref;
+	};
+}
+
+void HalfTetMesh::subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisors) {
+	DASSERT(e1 && e2);
+	std::sort(begin(divisors), end(divisors), Comparator(e1->pos()));
+	makeUnique(divisors);
+
+	Vertex *current = e1;
+	for(int n = 0; n < (int)divisors.size(); n++) {
+		DASSERT(divisors[n]);
+		subdivideEdge(current, e2, divisors[n]);
+		current = divisors[n];
+	}
 }
 }

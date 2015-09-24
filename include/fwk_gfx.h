@@ -796,6 +796,7 @@ class Mesh : public immutable_base<Mesh> {
 	void draw(Renderer &, const MaterialSet &, const Matrix4 &matrix = Matrix4::identity()) const;
 	void draw(Renderer &, AnimatedData, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
+	void drawLines(Renderer &out, PMaterial material, const Matrix4 &matrix) const;
 	void clearDrawingCache() const;
 
 	bool isValidAnimationData(const AnimatedData &data) const {
@@ -974,17 +975,21 @@ class HalfTetMesh {
 	Tet *addTet(Vertex *, Vertex *, Vertex *, Vertex *);
 	Tet *findTet(Vertex *, Vertex *, Vertex *, Vertex *);
 	pair<Face *, Face *> findFaces(Vertex *, Vertex *, Vertex *);
+	bool isValid(Vertex *) const;
 
 	void removeVertex(Vertex *vert);
 	void removeTet(Tet *tet);
 	vector<Tet *> tets();
 	vector<Face *> faces();
 	vector<Vertex *> verts();
+
 	vector<Face *> extractSelectedFaces(vector<Tet *>);
+	void splitEdge(Vertex *e1, Vertex *e2, Vertex *split);
 
 	struct SubdivisionResult {};
 
 	void subdivideEdge(Vertex *e1, Vertex *e2, Vertex *divisor);
+	void subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisors);
 
 	class Vertex {
 	  public:
