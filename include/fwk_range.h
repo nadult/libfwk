@@ -149,27 +149,44 @@ template <class T1, class Container> void insertBack(vector<T1> &into, const Con
 	into.insert(end(into), begin(from), end(from));
 }
 
-template <class Range> auto setDifference(const Range &a, const Range &b) {
-	vector<typename Range::value_type> out(a.size());
-	DASSERT(std::is_sorted(begin(a), end(a)));
-	DASSERT(std::is_sorted(begin(b), end(b)));
-	auto it = std::set_difference(begin(a), end(a), begin(b), end(b), begin(out));
-	out.resize(it - begin(out));
-	return out;
-}
-
-template <class Range> auto setIntersection(const Range &a, const Range &b) {
-	vector<typename Range::value_type> out(a.size());
-	DASSERT(std::is_sorted(begin(a), end(a)));
-	DASSERT(std::is_sorted(begin(b), end(b)));
-	auto it = std::set_intersection(begin(a), end(a), begin(b), end(b), begin(out));
-	out.resize(it - begin(out));
-	return out;
-}
-
 template <class T> void makeUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
 	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
+}
+
+template <class T> void makeSorted(vector<T> &vec) { std::sort(begin(vec), end(vec)); }
+
+template <class Range1, class Range2> auto setDifference(const Range1 &a, const Range2 &b) {
+	using VecType = vector<typename Range1::value_type>;
+	VecType out(a.size());
+	VecType va(begin(a), end(a)), vb(begin(b), end(b));
+	makeSorted(va);
+	makeSorted(vb);
+	auto it = std::set_difference(begin(va), end(va), begin(vb), end(vb), begin(out));
+	out.resize(it - begin(out));
+	return out;
+}
+
+template <class Range1, class Range2> auto setIntersection(const Range1 &a, const Range2 &b) {
+	using VecType = vector<typename Range1::value_type>;
+	VecType out(std::min(a.size(), b.size()));
+	VecType va(begin(a), end(a)), vb(begin(b), end(b));
+	makeSorted(va);
+	makeSorted(vb);
+	auto it = std::set_intersection(begin(va), end(va), begin(vb), end(vb), begin(out));
+	out.resize(it - begin(out));
+	return out;
+}
+
+template <class Range1, class Range2> auto setUnion(const Range1 &a, const Range2 &b) {
+	using VecType = vector<typename Range1::value_type>;
+	VecType out(a.size() + b.size());
+	VecType va(begin(a), end(a)), vb(begin(b), end(b));
+	makeSorted(va);
+	makeSorted(vb);
+	auto it = std::set_union(begin(va), end(va), begin(vb), end(vb), begin(out));
+	out.resize(it - begin(out));
+	return out;
 }
 
 template <class T1, class T2>
