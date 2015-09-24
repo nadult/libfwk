@@ -142,7 +142,7 @@ struct LoopElem {
 };
 
 using Loop = vector<LoopElem>;
-using Edge = pair<Vertex *, Vertex *>;
+using Edge = HalfTetMesh::Edge;
 
 pair<Loop, Loop> extractLoop(vector<Isect> &isects, HalfTetMesh &ha, HalfTetMesh &hb) {
 	if(isects.empty())
@@ -201,10 +201,10 @@ vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &edges
 	insertBack(verts, face->verts());
 
 	for(auto &edge : edges) {
-		Segment seg(proj * edge.first->pos(), proj * edge.second->pos());
-		DASSERT(distance(proj / seg.origin(), edge.first->pos()) < constant::epsilon);
-		verts.emplace_back(edge.first);
-		verts.emplace_back(edge.second);
+		Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
+		DASSERT(distance(proj / seg.origin(), edge.a->pos()) < constant::epsilon);
+		verts.emplace_back(edge.a);
+		verts.emplace_back(edge.b);
 		segs.emplace_back(seg.xz());
 	}
 
@@ -270,9 +270,9 @@ vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners
 	std::set<Edge> edges;
 	for(auto tri : tris) {
 		for(int i = 0; i < 3; i++) {
-			auto edge = make_pair(tri[i], tri[(i + 1) % 3]);
-			if(edge.first > edge.second)
-				swap(edge.first, edge.second);
+			Edge edge(tri[i], tri[(i + 1) % 3]);
+			if(edge.a > edge.b)
+				swap(edge.a, edge.b);
 
 			auto it = edges.find(edge);
 			if(it == edges.end())
@@ -294,7 +294,7 @@ vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners
 	for(auto edge : edges) {
 		int best_split = 0;
 		float best_dot = 0.0f;
-		float3 vec = normalize(edge.first->pos() - edge.second->pos());
+		float3 vec = normalize(edge.a->pos() - edge.b->pos());
 
 		for(int i = 0; i < 3; i++) {
 			float edot = fabs(dot(vec, dir[i]));
@@ -312,15 +312,15 @@ vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners
 			// DASSERT(best_dot > 0.99f);
 			auto &split = splits[best_split];
 
-			if(!isOneOf(edge.first, split.e1, split.e2)) {
-				if(fabs(dot(normalize(edge.first->pos() - split.e1->pos()), vec)) >
+			if(!isOneOf(edge.a, split.e1, split.e2)) {
+				if(fabs(dot(normalize(edge.a->pos() - split.e1->pos()), vec)) >
 				   1.0f - constant::epsilon)
-					split.splits.emplace_back(edge.first);
+					split.splits.emplace_back(edge.a);
 			}
-			if(!isOneOf(edge.second, split.e1, split.e2)) {
-				if(fabs(dot(normalize(edge.second->pos() - split.e1->pos()), vec)) >
+			if(!isOneOf(edge.b, split.e1, split.e2)) {
+				if(fabs(dot(normalize(edge.b->pos() - split.e1->pos()), vec)) >
 				   1.0f - constant::epsilon)
-					split.splits.emplace_back(edge.second);
+					split.splits.emplace_back(edge.b);
 			}
 		}
 	}
@@ -333,38 +333,38 @@ vector<Split> findEdgeSplits(const HalfTetMesh &mesh, array<Vertex *, 3> corners
 }
 
 vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int max_steps) {
-	printf("Triangulation:\n");
+	// printf("Triangulation:\n");
 	// TODO: edge may already exist
-	vector<Edge> segments;
+	vector<Edge> edges;
 	for(const auto &loop : loops)
 		for(int n = 0; n < (int)loop.size(); n++)
-			segments.emplace_back(make_pair(loop[n].vertex, loop[(n + 1) % loop.size()].vertex));
+			edges.emplace_back(loop[n].vertex, loop[(n + 1) % loop.size()].vertex);
 
 	vector<Edge> processed;
 
 	int step = 0;
-	while(!segments.empty()) {
+	while(!edges.empty()) {
 		if(step++ >= max_steps)
 			break;
 
-		for(int n = 0; n < (int)segments.size(); n++) {
-			if(mesh.hasEdge(segments[n].first, segments[n].second)) {
-				processed.emplace_back(segments[n]);
-				segments[n] = segments.back();
-				segments.pop_back();
+		for(int n = 0; n < (int)edges.size(); n++) {
+			if(mesh.hasEdge(edges[n].a, edges[n].b)) {
+				processed.emplace_back(edges[n]);
+				edges[n] = edges.back();
+				edges.pop_back();
 			}
 		}
 
-		if(segments.empty())
+		if(edges.empty())
 			break;
 
 		// Finding face that requires triangulation
 		Face *cur_face = nullptr;
 		for(auto *face : mesh.faces()) {
-			auto seg = segments.back();
+			auto edge = edges.back();
 			Projection proj(face->triangle());
 			Triangle2D tri = (proj * face->triangle()).xz();
-			auto proj_seg = proj * Segment(seg.first->pos(), seg.second->pos());
+			auto proj_seg = proj * Segment(edge.a->pos(), edge.b->pos());
 			if(fabs(proj_seg.origin().y) > constant::epsilon ||
 			   fabs(proj_seg.end().y) > constant::epsilon)
 				continue;
@@ -377,22 +377,22 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int m
 		}
 
 		if(!cur_face) {
-			printf("Cannot find face for segments:\n");
-			for(auto seg : segments)
-				xmlPrint("% -> % (len: %)\n", seg.first->pos(), seg.second->pos(),
-						 distance(seg.first->pos(), seg.second->pos()));
+			printf("Cannot find face for edges:\n");
+			for(auto edge : edges)
+				xmlPrint("% -> % (len: %)\n", edge.a->pos(), edge.b->pos(),
+						 distance(edge.a->pos(), edge.b->pos()));
 			printf("\n");
 		}
 		DASSERT(cur_face);
 
-		// Finding all segments lying on that face (clipping if necessary)
+		// Finding all edges lying on that face (clipping if necessary)
 		Projection proj(cur_face->triangle());
 		Triangle2D tri2d = (proj * cur_face->triangle()).xz();
-		vector<Edge> cur_segments;
+		vector<Edge> cur_edges;
 
-		for(int n = 0; n < (int)segments.size(); n++) {
-			auto seg = segments[n];
-			auto proj_seg = proj * Segment(seg.first->pos(), seg.second->pos());
+		for(int n = 0; n < (int)edges.size(); n++) {
+			auto edge = edges[n];
+			auto proj_seg = proj * Segment(edge.a->pos(), edge.b->pos());
 			if(fabs(proj_seg.origin().y) > constant::epsilon ||
 			   fabs(proj_seg.end().y) > constant::epsilon)
 				continue;
@@ -402,30 +402,30 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int m
 			if(result.inside.empty())
 				continue;
 
-			segments[n--] = segments.back();
-			segments.pop_back();
+			edges[n--] = edges.back();
+			edges.pop_back();
 
 			if(!result.outside_front.empty()) {
 				float3 pos(result.inside.start.x, 0.0f, result.inside.start.y);
 				auto vert = mesh.addVertex(proj / pos);
-				segments.push_back(Edge(seg.first, vert));
-				seg = Edge(vert, seg.second);
+				edges.push_back(Edge(edge.a, vert));
+				edge = Edge(vert, edge.b);
 			}
 			if(!result.outside_back.empty()) {
 				float3 pos(result.inside.end.x, 0.0f, result.inside.end.y);
 				auto vert = mesh.addVertex(proj / pos);
-				segments.push_back(Edge(vert, seg.second));
-				seg = Edge(seg.first, vert);
+				edges.push_back(Edge(vert, edge.b));
+				edge = Edge(edge.a, vert);
 			}
 
-			cur_segments.emplace_back(seg);
+			cur_edges.emplace_back(edge);
 		}
 
 		// Triangulating tet-face
-		auto triangles = triangulateFace(cur_face, cur_segments);
+		auto triangles = triangulateFace(cur_face, cur_edges);
 		auto tet = cur_face->tet();
 		auto face_corners = cur_face->verts();
-		insertBack(processed, cur_segments);
+		insertBack(processed, cur_edges);
 
 		Vertex *other_vertex = nullptr;
 		for(auto *vert : tet->verts())
@@ -453,8 +453,54 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int m
 	return processed;
 }
 
+// Each face gets a number
+void genSegments(HalfTetMesh &mesh, vector<Edge> &edges) {
+	auto faces = mesh.faces();
+	std::sort(begin(faces), end(faces),
+			  [](auto *a, auto *b) { return a->triangle().area() > b->triangle().area(); });
+	for(auto *face : faces)
+		face->setTemp(-1);
+
+	int cur_ident = 0;
+	while(true) {
+		Face *start_face = nullptr;
+		for(auto *face : faces)
+			if(face->temp() == -1 && face->isBoundary()) {
+				start_face = face;
+				break;
+			}
+		if(!start_face)
+			break;
+
+		vector<Face *> list = {start_face};
+		while(!list.empty()) {
+			auto *face = list.back();
+			list.pop_back();
+			if(face->temp() != -1)
+				continue;
+			face->setTemp(cur_ident);
+
+			for(auto edge : face->edges()) {
+				bool is_seg_boundary = false;
+				for(auto tedge : edges)
+					if(edge == tedge || edge == tedge.inverse()) {
+						is_seg_boundary = true;
+						break;
+					}
+
+				if(!is_seg_boundary)
+					for(auto *nface : mesh.edgeFaces(edge.a, edge.b))
+						if(nface->temp() == -1 && nface->isBoundary())
+							list.emplace_back(nface);
+			}
+		}
+		cur_ident++;
+	}
+}
+
 TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
-							   vector<Triangle> &tris, vector<Tetrahedron> &ttets, int max_steps) {
+							   vector<Triangle> &tris, vector<Tetrahedron> &ttets,
+							   vector<vector<Triangle>> &segs, int max_steps) {
 	HalfTetMesh ha(a), hb(b);
 
 	vector<pair<Tet *, Tet *>> tet_isects;
@@ -465,13 +511,6 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 				if(tet_b->isBoundary())
 					if(areIntersecting(tet_a->tet(), tet_b->tet()))
 						tet_isects.emplace_back(tet_a, tet_b);
-
-	if(0)
-		for(auto *tet_a : ha.tets())
-			for(auto *tet_b : hb.tets())
-				if(!tet_a->isBoundary())
-					if(areIntersecting(tet_a->tet(), tet_b->tet()))
-						ttets.emplace_back(tet_a->tet());
 
 	vector<Isect> isects;
 	for(auto pair : tet_isects)
@@ -509,8 +548,25 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 
 	try {
 		auto edges1 = triangulateMesh(ha, a_loops, max_steps);
+		genSegments(ha, edges1);
+
+		segs.clear();
+		for(auto *face : ha.faces()) {
+			int seg_id = face->temp();
+			if(seg_id != -1) {
+				if((int)segs.size() < seg_id + 1)
+					segs.resize(seg_id + 1);
+				segs[seg_id].emplace_back(face->triangle());
+			}
+		}
+
+		//	for(auto edge : edges1)
+		//		segments.emplace_back(edge.a->pos(), edge.b->pos());
+
 		// auto edges2 = triangulateMesh(hb, b_loops, max_steps);
-		printf("manifold: %s\n\n", HalfMesh(TetMesh(ha).toMesh()).is2Manifold() ? "yes" : "no");
+		// genSegments(hb, edges2);
+
+		DASSERT(HalfMesh(TetMesh(ha).toMesh()).is2Manifold());
 		return TetMesh(ha);
 	} catch(const Exception &ex) {
 		printf("Error: %s\n", ex.what());

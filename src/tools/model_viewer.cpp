@@ -30,8 +30,8 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 DECLARE_ENUM(ViewerMode, model, tets, tets_csg);
 DEFINE_ENUM(ViewerMode, "animated model", "tetrahedralization", "tetrahedra csg");
 
-DECLARE_ENUM(CsgDisplayMode, tets, boundary);
-DEFINE_ENUM(CsgDisplayMode, "tets", "boundary");
+DECLARE_ENUM(CsgDisplayMode, tets, boundary, segments);
+DEFINE_ENUM(CsgDisplayMode, "tets", "boundary", "segments");
 
 class Viewer {
   public:
@@ -163,13 +163,21 @@ class Viewer {
 			vector<Segment> segments;
 			vector<Triangle> tris;
 			vector<Tetrahedron> tets;
+			vector<vector<Triangle>> segs;
 
-			auto csg = PTetMesh(
-				TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris, tets, num_steps));
+			auto csg = PTetMesh(TetMesh::boundaryIsect(*m_tet_mesh, *second_mesh, segments, tris,
+													   tets, segs, num_steps));
 
 			if(display_mode == CsgDisplayMode::boundary) {
 				csg->toMesh().drawLines(out, line2_mat, matrix);
 				csg->toMesh().draw(out, tri_mat, matrix);
+			} else if(display_mode == CsgDisplayMode::segments) {
+				vector<Color> colors = {Color::green, Color::red, Color::blue, Color::yellow,
+										Color::white};
+				for(int s = 0; s < (int)segs.size(); s++) {
+					Color col = colors[s % colors.size()];
+					Mesh::makePolySoup(segs[s]).draw(out, PMaterial(Material(col)), matrix);
+				}
 			} else {
 				csg->drawTets(out, tri_mat, matrix);
 				// drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
@@ -213,7 +221,7 @@ class Viewer {
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
-		  m_mode(Mode::model), m_num_steps(0), m_csg_display_mode(CsgDisplayMode::tets) {
+		  m_mode(Mode::tets_csg), m_num_steps(50), m_csg_display_mode(CsgDisplayMode::segments) {
 		updateViewport();
 		m_tet_csg_offset = float3(0.1, 0, 0.3);
 

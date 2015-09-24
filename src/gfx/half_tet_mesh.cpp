@@ -252,6 +252,11 @@ vector<Vertex *> HalfTetMesh::verts() {
 	return out;
 }
 
+vector<Face *> HalfTetMesh::edgeFaces(Vertex *a, Vertex *b) {
+	DASSERT(a && b && a != b);
+	return setIntersection(a->faces(), b->faces());
+}
+
 vector<Face *> HalfTetMesh::extractSelectedFaces(vector<Tet *> tets) {
 	for(auto &tet : m_tets)
 		tet->setTemp(0);

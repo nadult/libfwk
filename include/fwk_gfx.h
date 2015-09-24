@@ -984,6 +984,7 @@ class HalfTetMesh {
 	vector<Face *> faces();
 	vector<Vertex *> verts();
 
+	vector<Face *> edgeFaces(Vertex *, Vertex *);
 	vector<Face *> extractSelectedFaces(vector<Tet *>);
 	void splitEdge(Vertex *e1, Vertex *e2, Vertex *split);
 
@@ -1023,32 +1024,16 @@ class HalfTetMesh {
 		int m_index, m_temp;
 	};
 
-	/*class Edge {
+	class Edge {
 	  public:
-		  Edge(Face *face, Edge *opposite
-		~Edge();
-		Edge(const Edge &) = delete;
-		void operator=(const HalfEdge &) = delete;
+		Edge(Vertex *a, Vertex *b) : a(a), b(b) { DASSERT(a && b && a != b); }
+		bool operator==(const Edge &rhs) const { return (a == rhs.a && b == rhs.b); }
 
-		Vertex *start() { return m_start; }
-		Vertex *end() { return m_end; }
+		Edge inverse() const { return Edge(b, a); }
+		bool operator<(const Edge &rhs) const { return std::tie(a, b) < std::tie(rhs.a, rhs.b); }
 
-		HalfEdge *opposite() { return m_opposite; }
-		HalfEdge *next() { return m_next; }
-		HalfEdge *prev() { return m_prev; }
-
-		HalfEdge *prevVert() { return m_prev->m_opposite; }
-		HalfEdge *nextVert() { return m_opposite ? m_opposite->m_next : nullptr; }
-		Face *face() { return m_face; }
-
-	  private:
-		HalfEdge(Vertex *v1, Vertex *v2, HalfEdge *next, HalfEdge *prev, Face *face);
-
-		friend class Face;
-		Vertex *m_start, *m_end;
-		HalfEdge *m_opposite, *m_next, *m_prev;
-		Face *m_face;
-	};*/
+		Vertex *a, *b;
+	};
 
 	class Face {
 	  public:
@@ -1065,6 +1050,11 @@ class HalfTetMesh {
 		const auto &triangle() const { return m_tri; }
 		void setTemp(int temp) { m_temp = temp; }
 		int temp() const { return m_temp; }
+
+		array<Edge, 3> edges() const {
+			return {{Edge(m_verts[0], m_verts[1]), Edge(m_verts[1], m_verts[2]),
+					 Edge(m_verts[2], m_verts[0])}};
+		}
 
 		// It might change when faces are removed from HalfMesh
 		int index() const { return m_index; }
@@ -1145,7 +1135,8 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh makeUnion(const vector<TetMesh> &);
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
 	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &, vector<Segment> &,
-								 vector<Triangle> &, vector<Tetrahedron> &, int);
+								 vector<Triangle> &, vector<Tetrahedron> &,
+								 vector<vector<Triangle>> &, int);
 
 	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
