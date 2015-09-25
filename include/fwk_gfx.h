@@ -968,11 +968,13 @@ class HalfTetMesh {
 
 	explicit HalfTetMesh(const TetMesh &);
 	explicit operator TetMesh() const;
+	HalfTetMesh(const HalfTetMesh &rhs);
 
 	bool empty() const { return m_tets.empty(); }
 
 	Vertex *addVertex(const float3 &pos);
 	Tet *addTet(Vertex *, Vertex *, Vertex *, Vertex *);
+	Tet *addTet(CRange<Vertex *, 4>);
 	Tet *findTet(Vertex *, Vertex *, Vertex *, Vertex *);
 	pair<Face *, Face *> findFaces(Vertex *, Vertex *, Vertex *);
 	bool isValid(Vertex *) const;
@@ -1136,7 +1138,7 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
 	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &, vector<Segment> &,
 								 vector<Triangle> &, vector<Tetrahedron> &,
-								 vector<vector<Triangle>> &, int);
+								 vector<vector<Triangle>> &, TetMesh &, TetMesh &, int);
 
 	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;

@@ -120,6 +120,22 @@ HalfTetMesh::HalfTetMesh(const TetMesh &mesh) {
 			   m_verts[tet[3]].get());
 }
 
+HalfTetMesh::HalfTetMesh(const HalfTetMesh &rhs) {
+	for(const auto &vert : rhs.m_verts) {
+		auto *new_vert = addVertex(vert->pos());
+		new_vert->setTemp(vert->temp());
+	}
+
+	for(const auto &tet : rhs.m_tets) {
+		auto verts = tet->verts();
+		array<Vertex *, 4> new_verts;
+		for(int n = 0; n < 4; n++)
+			new_verts[n] = m_verts[verts[n]->index()].get();
+		auto *new_tet = addTet(new_verts);
+		new_tet->setTemp(tet->temp());
+	}
+}
+
 HalfTetMesh::operator TetMesh() const {
 	vector<float3> verts;
 	vector<array<int, 4>> indices;
@@ -168,6 +184,10 @@ Tet *HalfTetMesh::addTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
 	}
 
 	return m_tets.back().get();
+}
+
+Tet *HalfTetMesh::addTet(CRange<Vertex *, 4> range) {
+	return addTet(range[0], range[1], range[2], range[3]);
 }
 
 Tet *HalfTetMesh::findTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {

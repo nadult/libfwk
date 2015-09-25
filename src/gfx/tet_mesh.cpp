@@ -498,9 +498,40 @@ void genSegments(HalfTetMesh &mesh, vector<Edge> &edges) {
 	}
 }
 
+TetMesh finalCuts(HalfTetMesh ha, HalfTetMesh hb, TetMesh &rem) {
+	HalfTetMesh removed = ha;
+
+	for(auto *tet : ha.tets()) {
+		Tetrahedron tetra1(tet->tet());
+		bool isect = false;
+		for(auto *other : hb.tets())
+			if(areIntersecting(tetra1, other->tet())) {
+				isect = true;
+				break;
+			}
+		if(isect)
+			ha.removeTet(tet);
+	}
+	for(auto *tet : removed.tets()) {
+		Tetrahedron tetra1(tet->tet());
+		bool isect = false;
+		for(auto *other : hb.tets())
+			if(areIntersecting(tetra1, other->tet())) {
+				isect = true;
+				break;
+			}
+		if(!isect)
+			removed.removeTet(tet);
+	}
+
+	rem = TetMesh(removed);
+	return TetMesh(ha);
+}
+
 TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
 							   vector<Triangle> &tris, vector<Tetrahedron> &ttets,
-							   vector<vector<Triangle>> &segs, int max_steps) {
+							   vector<vector<Triangle>> &segs, TetMesh &final, TetMesh &final_rem,
+							   int max_steps) {
 	HalfTetMesh ha(a), hb(b);
 
 	vector<pair<Tet *, Tet *>> tet_isects;
@@ -563,8 +594,10 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 		//	for(auto edge : edges1)
 		//		segments.emplace_back(edge.a->pos(), edge.b->pos());
 
-		// auto edges2 = triangulateMesh(hb, b_loops, max_steps);
-		// genSegments(hb, edges2);
+		auto edges2 = triangulateMesh(hb, b_loops, max_steps);
+		genSegments(hb, edges2);
+
+		final = finalCuts(ha, hb, final_rem);
 
 		DASSERT(HalfMesh(TetMesh(ha).toMesh()).is2Manifold());
 		return TetMesh(ha);
