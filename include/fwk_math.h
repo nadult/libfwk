@@ -279,6 +279,7 @@ const int2 max(const int2 &a, const int2 &b);
 const int3 min(const int3 &a, const int3 &b);
 const int3 max(const int3 &a, const int3 &b);
 
+inline int abs(int a) { return ::abs(a); }
 const int2 abs(const int2 &v);
 const int3 abs(const int3 &v);
 
@@ -708,6 +709,7 @@ class Triangle {
   public:
 	Triangle(const float3 &a, const float3 &b, const float3 &c);
 	Triangle() : Triangle(float3(), float3(), float3()) {}
+	using Edge = pair<float3, float3>;
 
 	float3 operator[](int idx) const {
 		DASSERT(idx >= 0 && idx < 3);
@@ -736,6 +738,7 @@ class Triangle {
 	float3 normal() const { return m_normal; }
 	float area() const { return m_length * 0.5f; }
 	array<float3, 3> verts() const { return {{a(), b(), c()}}; }
+	array<Edge, 3> edges() const { return {{Edge(a(), b()), Edge(b(), c()), Edge(c(), a())}}; }
 
   protected:
 	float3 m_point;
@@ -792,6 +795,7 @@ class Tetrahedron {
 
 	float volume() const;
 	bool isIntersecting(const Triangle &) const;
+	bool isInside(const float3 &vec) const;
 	bool isValid() const;
 
 	const float3 &operator[](int idx) const { return m_verts[idx]; }
@@ -804,6 +808,7 @@ class Tetrahedron {
 };
 
 bool areIntersecting(const Tetrahedron &, const Tetrahedron &);
+bool areIntersecting(const Tetrahedron &, const Triangle &);
 
 const Plane normalize(const Plane &);
 const Plane operator*(const Matrix4 &, const Plane &);
