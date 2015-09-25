@@ -63,6 +63,18 @@ void testPathOperations() {
 	// TODO: write me
 }
 
+void testFunc1(Range<int, 5>) {}
+void testFunc2(CRange<int, 5>) {}
+
+void testRanges() {
+	array<int, 5> tab1;
+	testFunc1(tab1);
+	testFunc2(tab1);
+	const array<int, 5> tab2 = {{1, 2, 3, 4, 5}};
+	testFunc2(tab2);
+	// TODO: write me
+}
+
 struct Object : public immutable_base<Object> {
 	Object(int a) : a(a) {}
 	int a;

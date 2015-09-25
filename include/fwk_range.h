@@ -50,7 +50,7 @@ template <class T> class PodArray;
 template <class T, int min_size = 0> class Range {
   public:
 	using value_type = typename std::remove_const<T>::type;
-	enum { is_const = std::is_const<T>::value };
+	enum { is_const = std::is_const<T>::value, minimum_size = min_size };
 	using vector_type =
 		typename std::conditional<is_const, const vector<value_type>, vector<value_type>>::type;
 	using pod_array_type =
@@ -68,6 +68,12 @@ template <class T, int min_size = 0> class Range {
 		static_assert(N >= min_size, "Array too small");
 	}
 	template <int N> Range(const value_type(&array)[N]) : m_data(array), m_size(N) {
+		static_assert(N >= min_size, "Array too small");
+	}
+	template <size_t N> Range(array<value_type, N> &arr) : m_data(arr.data()), m_size(N) {
+		static_assert(N >= min_size, "Array too small");
+	}
+	template <size_t N> Range(const array<value_type, N> &arr) : m_data(arr.data()), m_size(N) {
 		static_assert(N >= min_size, "Array too small");
 	}
 	Range() : m_data(nullptr), m_size(0) {
