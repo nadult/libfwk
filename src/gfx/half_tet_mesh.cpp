@@ -9,6 +9,7 @@ namespace fwk {
 using Tet = HalfTetMesh::Tet;
 using Vertex = HalfTetMesh::Vertex;
 using Face = HalfTetMesh::Face;
+using Edge = HalfTetMesh::Edge;
 
 void HalfTetMesh::Vertex::addFace(Face *face) { m_faces.emplace_back(face); }
 void HalfTetMesh::Vertex::removeFace(Face *face) {
@@ -59,6 +60,19 @@ HalfTetMesh::Face::~Face() {
 		DASSERT(m_opposite->m_opposite = this);
 		m_opposite->m_opposite = nullptr;
 	}
+}
+int HalfTetMesh::Face::edgeId(Edge edge) const {
+	for(int i = 0; i < 3; i++) {
+		Edge face_edge(m_verts[i], m_verts[(i + 1) % 3]);
+		if(edge == face_edge || edge.inverse() == face_edge)
+			return i;
+	}
+	return -1;
+}
+
+array<Edge, 3> HalfTetMesh::Face::edges() const {
+	return {
+		{Edge(m_verts[0], m_verts[1]), Edge(m_verts[1], m_verts[2]), Edge(m_verts[2], m_verts[0])}};
 }
 
 HalfTetMesh::Tet::Tet(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, int index)
@@ -340,6 +354,31 @@ void HalfTetMesh::subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisor
 bool HalfTetMesh::hasEdge(Vertex *a, Vertex *b) const {
 	DASSERT(a && b && a != b);
 	return !setIntersection(a->tets(), b->tets()).empty();
+}
+
+bool HalfTetMesh::haveSharedEdge(Face *a, Face *b) const {
+	DASSERT(a && b);
+	return setIntersection(a->verts(), b->verts()).size() == 2;
+}
+Edge HalfTetMesh::sharedEdge(Face *a, Face *b) {
+	DASSERT(a && b);
+	auto isect = setIntersection(a->verts(), b->verts());
+	DASSERT(isect.size() == 2);
+	return Edge(isect[0], isect[1]);
+}
+
+array<Tet *, 4> HalfTetMesh::subdivideTet(Tet *tet, Vertex *vert) {
+	DASSERT(tet && vert);
+	DASSERT(!isOneOf(vert, tet->verts()));
+	DASSERT(tet->tet().isInside(vert->pos()));
+
+	auto verts = tet->verts();
+
+	removeTet(tet);
+	array<Tet *, 4> out = {
+		{addTet(verts[0], verts[1], verts[2], vert), addTet(verts[1], verts[3], verts[2], vert),
+		 addTet(verts[2], verts[3], verts[0], vert), addTet(verts[3], verts[1], verts[0], vert)}};
+	return out;
 }
 
 bool HalfTetMesh::isIntersecting(const Tetrahedron &tetra) const {

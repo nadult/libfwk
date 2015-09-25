@@ -988,7 +988,8 @@ class HalfTetMesh {
 
 	vector<Face *> edgeFaces(Vertex *, Vertex *);
 	vector<Face *> extractSelectedFaces(vector<Tet *>);
-	void splitEdge(Vertex *e1, Vertex *e2, Vertex *split);
+	bool haveSharedEdge(Face *, Face *) const;
+	Edge sharedEdge(Face *, Face *);
 
 	bool isIntersecting(const Tetrahedron &) const;
 	bool isIntersecting(const Triangle &) const;
@@ -998,6 +999,9 @@ class HalfTetMesh {
 
 	void subdivideEdge(Vertex *e1, Vertex *e2, Vertex *divisor);
 	void subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisors);
+
+	// Returned tet at index i contains face #i from original tet
+	array<Tet *, 4> subdivideTet(Tet *tet, Vertex *vert);
 
 	class Vertex {
 	  public:
@@ -1057,10 +1061,8 @@ class HalfTetMesh {
 		void setTemp(int temp) { m_temp = temp; }
 		int temp() const { return m_temp; }
 
-		array<Edge, 3> edges() const {
-			return {{Edge(m_verts[0], m_verts[1]), Edge(m_verts[1], m_verts[2]),
-					 Edge(m_verts[2], m_verts[0])}};
-		}
+		int edgeId(Edge) const;
+		array<Edge, 3> edges() const;
 
 		// It might change when faces are removed from HalfMesh
 		int index() const { return m_index; }
@@ -1148,7 +1150,7 @@ class TetMesh : public immutable_base<TetMesh> {
 		vector<pair<Color, vector<Segment>>> segment_groups;
 		vector<pair<Color, TetMesh>> tet_meshes;
 		int max_steps, phase;
-		enum { max_phases = 3 };
+		enum { max_phases = 4 };
 	};
 
 	enum CSGMode {
