@@ -30,9 +30,6 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 DECLARE_ENUM(ViewerMode, model, tets, tets_csg);
 DEFINE_ENUM(ViewerMode, "animated model", "tetrahedralization", "tetrahedra csg");
 
-DECLARE_ENUM(CsgDisplayMode, tets, boundary, segments, final);
-DEFINE_ENUM(CsgDisplayMode, "tets", "boundary", "segments", "final");
-
 class Viewer {
   public:
 	struct Model {
@@ -150,8 +147,14 @@ class Viewer {
 			}
 		}
 
+		auto makeMat(Color col, bool line) {
+			uint flags =
+				col.a != 255 || line ? Material::flag_blended | Material::flag_ignore_depth : 0;
+			return make_immutable<Material>(col, flags);
+		}
+
 		void drawTetsCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset,
-						 int num_steps, CsgDisplayMode::Type display_mode, int csg_mesh_id) {
+						 int num_steps, int csg_phase, int csg_mesh_id) {
 			if(!m_tet_mesh)
 				return;
 
@@ -168,37 +171,18 @@ class Viewer {
 
 			auto mesh_a = csg_mesh_id ? *second_mesh : *m_tet_mesh;
 			auto mesh_b = csg_mesh_id ? *m_tet_mesh : *second_mesh;
-			auto csg = PTetMesh(TetMesh::boundaryIsect(mesh_a, mesh_b, segments, tris, tets, segs,
-													   final, final_removed, num_steps));
+			TetMesh::CSGVisualData vis_data;
+			vis_data.max_steps = num_steps;
+			vis_data.phase = csg_phase;
 
-			if(display_mode == CsgDisplayMode::boundary) {
-				csg->toMesh().drawLines(out, line2_mat, matrix);
-				csg->toMesh().draw(out, tri_mat, matrix);
-			} else if(display_mode == CsgDisplayMode::segments) {
-				vector<Color> colors = {Color::green, Color::red, Color::blue, Color::yellow,
-										Color::white};
-				for(int s = 0; s < (int)segs.size(); s++) {
-					Color col = colors[s % colors.size()];
-					Mesh::makePolySoup(segs[s]).draw(out, PMaterial(Material(col)), matrix);
-				}
-			} else if(display_mode == CsgDisplayMode::final) {
-				PTetMesh(final)->drawTets(out, tri_mat, matrix);
-				drawTets(*PTetMesh(final_removed), out, matrix, Color(color, 80));
-			} else {
-				csg->drawTets(out, tri_mat, matrix);
-				// drawTets(*m_tet_mesh, out, matrix, Color(color, 100));
-				// drawTets(*second_mesh, out, matrix, Color(color, 100));
-			}
+			auto csg = PTetMesh(TetMesh::csg(mesh_a, mesh_b, TetMesh::csg_difference, &vis_data));
 
-			PMaterial matt = make_immutable<Material>(
-				Color(Color::green, 100), Material::flag_blended | Material::flag_ignore_depth);
-			if(0)
-				for(auto &tet : tets) {
-					Mesh tetmesh = Mesh::makeTetrahedron(tet);
-					tetmesh.draw(out, matt, matrix);
-				}
-			out.addSegments(segments, line_mat, matrix);
-			// Mesh::makePolySoup(tris).draw(out, tri_mat, matrix);
+			for(auto pair : vis_data.poly_soups)
+				Mesh::makePolySoup(pair.second).draw(out, makeMat(pair.first, false), matrix);
+			for(auto pair : vis_data.segment_groups)
+				out.addSegments(pair.second, makeMat(pair.first, true), matrix);
+			for(auto pair : vis_data.tet_meshes)
+				drawTets(*PTetMesh(pair.second), out, matrix, pair.first);
 		}
 
 		PModel m_model;
@@ -227,8 +211,7 @@ class Viewer {
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
-		  m_mode(Mode::tets_csg), m_num_steps(50), m_csg_display_mode(CsgDisplayMode::segments),
-		  m_csg_mesh_id(0) {
+		  m_mode(Mode::tets_csg), m_num_steps(50), m_csg_phase(0), m_csg_mesh_id(0) {
 		updateViewport();
 		m_tet_csg_offset = float3(0.1, 0, 0.3);
 
@@ -308,8 +291,7 @@ class Viewer {
 			if(event.keyDown('k'))
 				m_num_steps++;
 			if(event.keyDown('l'))
-				m_csg_display_mode =
-					(CsgDisplayMode::Type)((m_csg_display_mode + 1) % CsgDisplayMode::count);
+				m_csg_phase = (m_csg_phase + 1) % TetMesh::CSGVisualData::max_phases;
 			if(event.keyDown('o'))
 				m_csg_mesh_id = (m_csg_mesh_id + 1) % 2;
 		}
@@ -346,7 +328,7 @@ class Viewer {
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
 		else if(m_mode == Mode::tets_csg)
 			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset,
-							  m_num_steps, m_csg_display_mode, m_csg_mesh_id);
+							  m_num_steps, m_csg_phase, m_csg_mesh_id);
 
 		TextFormatter fmt;
 		fmt("Mode: %s (Q)\n", toString(m_mode));
@@ -403,8 +385,7 @@ class Viewer {
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;
 	Mode m_mode;
-	int m_num_steps, m_csg_mesh_id;
-	CsgDisplayMode::Type m_csg_display_mode;
+	int m_num_steps, m_csg_mesh_id, m_csg_phase;
 };
 
 static Viewer *s_viewer = nullptr;

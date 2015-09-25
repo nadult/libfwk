@@ -990,6 +990,10 @@ class HalfTetMesh {
 	vector<Face *> extractSelectedFaces(vector<Tet *>);
 	void splitEdge(Vertex *e1, Vertex *e2, Vertex *split);
 
+	bool isIntersecting(const Tetrahedron &) const;
+	bool isIntersecting(const Triangle &) const;
+	bool isIntersecting(const float3 &) const;
+
 	struct SubdivisionResult {};
 
 	void subdivideEdge(Vertex *e1, Vertex *e2, Vertex *divisor);
@@ -1136,9 +1140,25 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh make(const Mesh &, uint flags = 0);
 	static TetMesh makeUnion(const vector<TetMesh> &);
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
-	static TetMesh boundaryIsect(const TetMesh &, const TetMesh &, vector<Segment> &,
-								 vector<Triangle> &, vector<Tetrahedron> &,
-								 vector<vector<Triangle>> &, TetMesh &, TetMesh &, int);
+
+	struct CSGVisualData {
+		CSGVisualData() : max_steps(0), phase(0) {}
+
+		vector<pair<Color, vector<Triangle>>> poly_soups;
+		vector<pair<Color, vector<Segment>>> segment_groups;
+		vector<pair<Color, TetMesh>> tet_meshes;
+		int max_steps, phase;
+		enum { max_phases = 3 };
+	};
+
+	enum CSGMode {
+		csg_difference,
+		csg_intersection,
+		csg_union,
+	};
+
+	static TetMesh csg(const TetMesh &, const TetMesh &, CSGMode mode,
+					   CSGVisualData *vis_data = nullptr);
 
 	void drawLines(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawTets(Renderer &, PMaterial, const Matrix4 &matrix = Matrix4::identity()) const;

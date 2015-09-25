@@ -344,7 +344,7 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int m
 
 	int step = 0;
 	while(!edges.empty()) {
-		if(step++ >= max_steps)
+		if(step++ >= max_steps && max_steps >= 0)
 			break;
 
 		for(int n = 0; n < (int)edges.size(); n++) {
@@ -405,6 +405,8 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int m
 			edges[n--] = edges.back();
 			edges.pop_back();
 
+			// TODO: Segments on the opposite mesh should be cut as well
+			// in the same way
 			if(!result.outside_front.empty()) {
 				float3 pos(result.inside.start.x, 0.0f, result.inside.start.y);
 				auto vert = mesh.addVertex(proj / pos);
@@ -454,31 +456,39 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, const vector<Loop> &loops, int m
 }
 
 // Each face gets a number
-void genSegments(HalfTetMesh &mesh, vector<Edge> &edges) {
+void genSegments(HalfTetMesh &mesh, const HalfTetMesh &other, vector<Edge> &edges) {
 	auto faces = mesh.faces();
 	std::sort(begin(faces), end(faces),
 			  [](auto *a, auto *b) { return a->triangle().area() > b->triangle().area(); });
 	for(auto *face : faces)
-		face->setTemp(-1);
+		face->setTemp(0);
 
-	int cur_ident = 0;
+	int cur_ident = 1;
 	while(true) {
 		Face *start_face = nullptr;
 		for(auto *face : faces)
-			if(face->temp() == -1 && face->isBoundary()) {
+			if(face->temp() == 0 && face->isBoundary()) {
 				start_face = face;
 				break;
 			}
 		if(!start_face)
 			break;
 
+		bool is_inside_computed = false;
+		bool is_inside = false;
+
 		vector<Face *> list = {start_face};
 		while(!list.empty()) {
 			auto *face = list.back();
 			list.pop_back();
-			if(face->temp() != -1)
+			if(face->temp() != 0)
 				continue;
-			face->setTemp(cur_ident);
+
+			if(!is_inside_computed) {
+				is_inside_computed = true;
+				is_inside = other.isIntersecting(face->triangle().center());
+			}
+			face->setTemp(is_inside ? -cur_ident : cur_ident);
 
 			for(auto edge : face->edges()) {
 				bool is_seg_boundary = false;
@@ -490,7 +500,7 @@ void genSegments(HalfTetMesh &mesh, vector<Edge> &edges) {
 
 				if(!is_seg_boundary)
 					for(auto *nface : mesh.edgeFaces(edge.a, edge.b))
-						if(nface->temp() == -1 && nface->isBoundary())
+						if(nface->temp() == 0 && nface->isBoundary())
 							list.emplace_back(nface);
 			}
 		}
@@ -498,40 +508,46 @@ void genSegments(HalfTetMesh &mesh, vector<Edge> &edges) {
 	}
 }
 
-TetMesh finalCuts(HalfTetMesh ha, HalfTetMesh hb, TetMesh &rem) {
-	HalfTetMesh removed = ha;
+TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_data) {
+	vector<Triangle> tris1, tris2;
+	vector<Face *> faces1, faces2;
 
-	for(auto *tet : ha.tets()) {
-		Tetrahedron tetra1(tet->tet());
-		bool isect = false;
-		for(auto *other : hb.tets())
-			if(areIntersecting(tetra1, other->tet())) {
-				isect = true;
-				break;
-			}
-		if(isect)
-			ha.removeTet(tet);
-	}
-	for(auto *tet : removed.tets()) {
-		Tetrahedron tetra1(tet->tet());
-		bool isect = false;
-		for(auto *other : hb.tets())
-			if(areIntersecting(tetra1, other->tet())) {
-				isect = true;
-				break;
-			}
-		if(!isect)
-			removed.removeTet(tet);
+	for(auto *tet : h1.tets())
+		tet->setTemp(h2.isIntersecting(tet->tet()) ? 1 : 0);
+	for(auto *tet : h1.tets()) {
+		if(tet->temp()) {
+			auto faces = tet->faces();
+			auto neighbours = tet->neighbours();
+
+			for(int i = 0; i < 4; i++)
+				if(faces[i]->temp() > 0 || (neighbours[i] && !neighbours[i]->temp()))
+					faces1.emplace_back(faces[i]);
+		}
 	}
 
-	rem = TetMesh(removed);
-	return TetMesh(ha);
+	for(auto *face : h2.faces())
+		if(face->temp() < 0)
+			faces2.emplace_back(face);
+
+	for(auto *face1 : faces1)
+		tris1.emplace_back(face1->triangle());
+	for(auto *face2 : faces2)
+		tris2.emplace_back(face2->verts()[0]->pos(), face2->verts()[2]->pos(),
+						   face2->verts()[1]->pos());
+
+	auto all_tris = tris1;
+	insertBack(all_tris, tris2);
+	Mesh fill_mesh = Mesh::makePolySoup(all_tris);
+	if(vis_data && vis_data->phase == 2) {
+		vis_data->poly_soups.emplace_back(Color::red, tris1);
+		vis_data->poly_soups.emplace_back(Color::green, tris2);
+	}
+	printf("is manifold: %s\n", HalfMesh(fill_mesh).is2Manifold() ? "yes" : "no");
+
+	return TetMesh(h1);
 }
 
-TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segment> &segments,
-							   vector<Triangle> &tris, vector<Tetrahedron> &ttets,
-							   vector<vector<Triangle>> &segs, TetMesh &final, TetMesh &final_rem,
-							   int max_steps) {
+TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
 	HalfTetMesh ha(a), hb(b);
 
 	vector<pair<Tet *, Tet *>> tet_isects;
@@ -556,6 +572,9 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 
 	vector<Loop> a_loops, b_loops;
 
+	vector<Segment> boundary_segs;
+	vector<Triangle> boundary_tris[2];
+
 	while(true) {
 		auto new_loop = extractLoop(isects, ha, hb);
 		if(new_loop.first.empty())
@@ -565,39 +584,54 @@ TetMesh TetMesh::boundaryIsect(const TetMesh &a, const TetMesh &b, vector<Segmen
 			const auto &prev = new_loop.first[(n - 1 + count) % count];
 			const auto &cur = new_loop.first[n];
 
-			segments.emplace_back(Segment(prev.vertex->pos(), cur.vertex->pos()));
-			tris.emplace_back(cur.face->triangle());
+			boundary_segs.emplace_back(Segment(prev.vertex->pos(), cur.vertex->pos()));
+			boundary_tris[0].emplace_back(cur.face->triangle());
 		}
 		for(int n = 0, count = (int)new_loop.second.size(); n < count; n++) {
 			const auto &cur = new_loop.second[n];
-			tris.emplace_back(cur.face->triangle());
+			boundary_tris[1].emplace_back(cur.face->triangle());
 		}
 
 		a_loops.emplace_back(new_loop.first);
 		b_loops.emplace_back(new_loop.second);
 	}
 
-	try {
-		auto edges1 = triangulateMesh(ha, a_loops, max_steps);
-		genSegments(ha, edges1);
+	if(vis_data) {
+		vis_data->segment_groups.emplace_back(Color::black, boundary_segs);
+		if(vis_data->phase == 0) {
+			vis_data->poly_soups.emplace_back(Color::red, boundary_tris[0]);
+			vis_data->poly_soups.emplace_back(Color::green, boundary_tris[1]);
+		}
+	}
 
-		segs.clear();
-		for(auto *face : ha.faces()) {
-			int seg_id = face->temp();
-			if(seg_id != -1) {
-				if((int)segs.size() < seg_id + 1)
-					segs.resize(seg_id + 1);
-				segs[seg_id].emplace_back(face->triangle());
+	try {
+		auto edges1 = triangulateMesh(ha, a_loops, vis_data ? vis_data->max_steps : -1);
+		genSegments(ha, hb, edges1);
+
+		vector<Color> colors = {Color::green, Color::red, Color::blue, Color::yellow, Color::white};
+
+		if(vis_data->phase == 1) {
+			vector<vector<Triangle>> segs;
+			segs.clear();
+			for(auto *face : ha.faces()) {
+				int seg_id = abs(face->temp());
+				if(seg_id != 0) {
+					if((int)segs.size() < seg_id + 1)
+						segs.resize(seg_id + 1);
+					segs[seg_id].emplace_back(face->triangle());
+				}
 			}
+			for(int n = 0; n < (int)segs.size(); n++)
+				vis_data->poly_soups.emplace_back(colors[n % colors.size()], segs[n]);
 		}
 
 		//	for(auto edge : edges1)
 		//		segments.emplace_back(edge.a->pos(), edge.b->pos());
 
-		auto edges2 = triangulateMesh(hb, b_loops, max_steps);
-		genSegments(hb, edges2);
+		auto edges2 = triangulateMesh(hb, b_loops, vis_data ? vis_data->max_steps : -1);
+		genSegments(hb, ha, edges2);
 
-		final = finalCuts(ha, hb, final_rem);
+		auto final = finalCuts(ha, hb, vis_data);
 
 		DASSERT(HalfMesh(TetMesh(ha).toMesh()).is2Manifold());
 		return TetMesh(ha);

@@ -131,8 +131,11 @@ HalfTetMesh::HalfTetMesh(const HalfTetMesh &rhs) {
 		array<Vertex *, 4> new_verts;
 		for(int n = 0; n < 4; n++)
 			new_verts[n] = m_verts[verts[n]->index()].get();
+
 		auto *new_tet = addTet(new_verts);
 		new_tet->setTemp(tet->temp());
+		for(int i = 0; i < 4; i++)
+			new_tet->faces()[i]->setTemp(tet->faces()[i]->temp());
 	}
 }
 
@@ -337,5 +340,26 @@ void HalfTetMesh::subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisor
 bool HalfTetMesh::hasEdge(Vertex *a, Vertex *b) const {
 	DASSERT(a && b && a != b);
 	return !setIntersection(a->tets(), b->tets()).empty();
+}
+
+bool HalfTetMesh::isIntersecting(const Tetrahedron &tetra) const {
+	for(const auto &tet : m_tets)
+		if(areIntersecting(tet->tet(), tetra))
+			return true;
+	return false;
+}
+
+bool HalfTetMesh::isIntersecting(const Triangle &tri) const {
+	for(const auto &tet : m_tets)
+		if(areIntersecting(tet->tet(), tri))
+			return true;
+	return false;
+}
+
+bool HalfTetMesh::isIntersecting(const float3 &point) const {
+	for(const auto &tet : m_tets)
+		if(tet->tet().isInside(point))
+			return true;
+	return false;
 }
 }
