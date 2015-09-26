@@ -180,6 +180,8 @@ class Viewer {
 			for(auto pair : vis_data.poly_soups)
 				Mesh::makePolySoup(pair.second).draw(out, makeMat(pair.first, false), matrix);
 			for(auto pair : vis_data.segment_groups)
+				out.addSegments(pair.second, makeMat(pair.first, false), matrix);
+			for(auto pair : vis_data.segment_groups_trans)
 				out.addSegments(pair.second, makeMat(pair.first, true), matrix);
 			for(auto pair : vis_data.tet_meshes)
 				drawTets(*PTetMesh(pair.second), out, matrix, pair.first);
@@ -347,7 +349,7 @@ class Viewer {
 		fmt("pgup/pgdn: zoom\n\n");
 		if(m_mode == Mode::tets_csg) {
 			fmt("ctrl+ up/down/left/right: move mesh\n");
-			fmt("steps: %d\n", m_num_steps);
+			fmt("phase: %d steps: %d\n", m_csg_phase, m_num_steps);
 		}
 
 		model.printModelStats(fmt);

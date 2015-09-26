@@ -182,6 +182,14 @@ Vertex *HalfTetMesh::addVertex(const float3 &pos) {
 	return m_verts.back().get();
 }
 
+Vertex *HalfTetMesh::findVertex(const float3 &pos) {
+	auto result =
+		findMin(m_verts, [pos](const auto &vert) { return distanceSq(vert->pos(), pos); });
+	if(result.first != -1 && sqrtf(result.second) < constant::epsilon)
+		return m_verts[result.first].get();
+	return nullptr;
+}
+
 Tet *HalfTetMesh::addTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
 	DASSERT(a != b && b != c && c != a);
 	DASSERT(a != d && b != d && c != d);

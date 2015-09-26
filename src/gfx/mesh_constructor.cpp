@@ -103,14 +103,31 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 	return Mesh({positions, {}, {}}, {{indices}});
 }
 
-Mesh Mesh::makePolySoup(CRange<Triangle> tris) {
+Mesh Mesh::makePolySoup(CRange<Triangle> rtris) {
 	vector<float3> positions;
 	vector<uint> indices;
 
+	vector<Triangle> tris = rtris;
+	std::sort(begin(tris), end(tris), [](const auto &a, const auto &b) {
+		auto ca = a.center(), cb = b.center();
+		return std::tie(ca.x, ca.y, ca.z) < std::tie(cb.x, cb.y, cb.z);
+	});
+
 	for(const auto &tri : tris) {
 		uint off = positions.size();
-		insertBack(positions, tri.verts());
-		insertBack(indices, {off, off + 1, off + 2});
+		int inds[3];
+		for(auto vert : tri.verts()) {
+			auto result = findMin(positions, [vert](auto v) { return distanceSq(v, vert); });
+
+			int index = 0;
+			if(result.first != -1 && sqrtf(result.second) < constant::epsilon)
+				index = result.first;
+			else {
+				index = positions.size();
+				positions.emplace_back(vert);
+			}
+			indices.emplace_back((uint)index);
+		}
 	}
 
 	return Mesh({positions, {}, {}}, {{indices}});

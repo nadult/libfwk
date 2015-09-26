@@ -973,6 +973,7 @@ class HalfTetMesh {
 	bool empty() const { return m_tets.empty(); }
 
 	Vertex *addVertex(const float3 &pos);
+	Vertex *findVertex(const float3 &pos);
 	Tet *addTet(Vertex *, Vertex *, Vertex *, Vertex *);
 	Tet *addTet(CRange<Vertex *, 4>);
 	Tet *findTet(Vertex *, Vertex *, Vertex *, Vertex *);
@@ -1148,9 +1149,10 @@ class TetMesh : public immutable_base<TetMesh> {
 
 		vector<pair<Color, vector<Triangle>>> poly_soups;
 		vector<pair<Color, vector<Segment>>> segment_groups;
+		vector<pair<Color, vector<Segment>>> segment_groups_trans;
 		vector<pair<Color, TetMesh>> tet_meshes;
 		int max_steps, phase;
-		enum { max_phases = 4 };
+		enum { max_phases = 5 };
 	};
 
 	enum CSGMode {

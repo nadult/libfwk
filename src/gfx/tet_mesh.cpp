@@ -393,7 +393,7 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 			for(auto tri : triangles)
 				for(int i = 0; i < 3; i++)
 					edges.emplace_back(tri[i]->pos(), tri[(i + 1) % 3]->pos());
-			vis_data->segment_groups.emplace_back(col, edges);
+			vis_data->segment_groups_trans.emplace_back(col, edges);
 		}
 
 		face_triangulations.emplace_back(other_vert.front(), std::move(triangles));
@@ -510,9 +510,37 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 		vis_data->poly_soups.emplace_back(Color::red, tris1);
 		vis_data->poly_soups.emplace_back(Color::green, tris2);
 	}
-	// printf("is manifold: %s\n", HalfMesh(fill_mesh).is2Manifold() ? "yes" : "no");
 
-	return TetMesh(h1);
+	bool is_manifold = HalfMesh(fill_mesh).is2Manifold();
+	DASSERT(is_manifold);
+
+	if(is_manifold) {
+		auto fill = HalfTetMesh(TetMesh::make(fill_mesh, 0));
+		if(vis_data && vis_data->phase == 4) {
+			vis_data->tet_meshes.emplace_back(Color::red, TetMesh(fill));
+			vector<Segment> segments;
+			for(auto btri : fill_mesh.tris())
+				for(auto edge : btri.edges())
+					segments.emplace_back(edge.first, edge.second);
+			vis_data->segment_groups.emplace_back(Color::blue, segments);
+		}
+
+		if(0)
+			for(auto *tet : h1.tets()) {
+				auto old_verts = tet->verts();
+				array<Vertex *, 4> new_verts;
+				for(int i = 0; i < 4; i++) {
+					float3 pos = old_verts[i]->pos();
+					new_verts[i] = fill.findVertex(pos);
+					if(!new_verts[i])
+						new_verts[i] = fill.addVertex(pos);
+				}
+				fill.addTet(new_verts);
+			}
+		return TetMesh(fill);
+	}
+
+	return TetMesh();
 }
 
 TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
@@ -565,7 +593,7 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 	}
 
 	if(vis_data) {
-		vis_data->segment_groups.emplace_back(Color::black, boundary_segs);
+		vis_data->segment_groups_trans.emplace_back(Color::black, boundary_segs);
 		if(vis_data->phase == 0) {
 			vis_data->poly_soups.emplace_back(Color::red, boundary_tris[0]);
 			vis_data->poly_soups.emplace_back(Color::green, boundary_tris[1]);
