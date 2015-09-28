@@ -75,6 +75,25 @@ array<Edge, 3> HalfTetMesh::Face::edges() const {
 		{Edge(m_verts[0], m_verts[1]), Edge(m_verts[1], m_verts[2]), Edge(m_verts[2], m_verts[0])}};
 }
 
+vector<Face *> HalfTetMesh::Face::neighbours() const {
+	vector<Face *> out;
+	for(auto *vert : m_verts)
+		for(auto *face : vert->faces())
+			if(face != this)
+				out.emplace_back(face);
+	makeUnique(out);
+	return out;
+}
+
+Vertex *HalfTetMesh::Face::otherVert(CRange<Vertex *, 2> edge) const {
+	DASSERT(isOneOf(edge[0], m_verts) && isOneOf(edge[1], m_verts));
+	// TODO: maybe CRange parameter shouldn't be minimum but exact value?
+	for(int i = 0; i < 2; i++)
+		if(m_verts[i] != edge[0] && m_verts[i] != edge[1])
+			return m_verts[i];
+	return m_verts[2];
+}
+
 HalfTetMesh::Tet::Tet(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, int index)
 	: m_faces({{make_unique<Face>(this, v0, v1, v2, 0), make_unique<Face>(this, v1, v3, v2, 1),
 				make_unique<Face>(this, v2, v3, v0, 2), make_unique<Face>(this, v3, v1, v0, 3)}}),
@@ -300,6 +319,14 @@ vector<Vertex *> HalfTetMesh::verts() {
 vector<Face *> HalfTetMesh::edgeFaces(Vertex *a, Vertex *b) {
 	DASSERT(a && b && a != b);
 	return setIntersection(a->faces(), b->faces());
+}
+
+vector<Face *> HalfTetMesh::edgeBoundaryFaces(Vertex *a, Vertex *b) {
+	vector<Face *> out;
+	for(auto *face : edgeFaces(a, b))
+		if(face->isBoundary())
+			out.emplace_back(face);
+	return out;
 }
 
 vector<Face *> HalfTetMesh::extractSelectedFaces(vector<Tet *> tets) {

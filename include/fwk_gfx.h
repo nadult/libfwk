@@ -988,6 +988,7 @@ class HalfTetMesh {
 	vector<Vertex *> verts();
 
 	vector<Face *> edgeFaces(Vertex *, Vertex *);
+	vector<Face *> edgeBoundaryFaces(Vertex *, Vertex *);
 	vector<Face *> extractSelectedFaces(vector<Tet *>);
 	bool haveSharedEdge(Face *, Face *) const;
 	Edge sharedEdge(Face *, Face *);
@@ -1067,6 +1068,9 @@ class HalfTetMesh {
 
 		// It might change when faces are removed from HalfMesh
 		int index() const { return m_index; }
+
+		vector<Face *> neighbours() const;
+		Vertex *otherVert(CRange<Vertex *, 2> edge) const;
 
 	  private:
 		// array<Edge, 3> m_edges;

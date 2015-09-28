@@ -215,7 +215,13 @@ class Viewer {
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
 		  m_mode(Mode::tets_csg), m_num_steps(0), m_csg_phase(0), m_csg_mesh_id(0) {
 		updateViewport();
+
 		m_tet_csg_offset = float3(0.1, 0, 0.3);
+		if(access("tet_offset.data")) {
+			Loader file("tet_offset.data");
+			auto range = Range<float>(m_tet_csg_offset.v);
+			file.loadData(range.data(), range.size() * sizeof(float));
+		}
 
 		for(auto file_name : file_names) {
 			PTexture tex;
@@ -298,6 +304,11 @@ class Viewer {
 			}
 			if(event.keyDown('o'))
 				m_csg_mesh_id = (m_csg_mesh_id + 1) % 2;
+			if(event.keyDown('p')) {
+				Saver file("tet_offset.data");
+				auto range = Range<float>(m_tet_csg_offset.v);
+				file.saveData(range.data(), range.size() * sizeof(float));
+			}
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));

@@ -868,6 +868,7 @@ struct ClipResult {
 pair<float2, bool> intersection(const Segment2D &, const Segment2D &);
 ClipResult clip(const Triangle2D &, const Segment2D &);
 
+float distance(const Ray &ray, const float3 &point);
 float distance(const Triangle &tri, const Segment &);
 
 // returns infinity if doesn't intersect
