@@ -213,7 +213,7 @@ class Viewer {
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
-		  m_mode(Mode::tets_csg), m_num_steps(50), m_csg_phase(0), m_csg_mesh_id(0) {
+		  m_mode(Mode::tets_csg), m_num_steps(0), m_csg_phase(0), m_csg_mesh_id(0) {
 		updateViewport();
 		m_tet_csg_offset = float3(0.1, 0, 0.3);
 
@@ -292,8 +292,10 @@ class Viewer {
 				m_num_steps--;
 			if(event.keyDown('k'))
 				m_num_steps++;
-			if(event.keyDown('l'))
-				m_csg_phase = (m_csg_phase + 1) % TetMesh::CSGVisualData::max_phases;
+			if(event.keyDown('l')) {
+				int off = shift ? TetMesh::CSGVisualData::max_phases - 1 : 1;
+				m_csg_phase = (m_csg_phase + off) % TetMesh::CSGVisualData::max_phases;
+			}
 			if(event.keyDown('o'))
 				m_csg_mesh_id = (m_csg_mesh_id + 1) % 2;
 		}

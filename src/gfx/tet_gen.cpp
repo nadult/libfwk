@@ -82,7 +82,7 @@ Mesh TetMesh::findIntersections(const Mesh &mesh) {
 TetMesh TetMesh::make(const Mesh &mesh, uint flags) {
 	DASSERT(HalfMesh(mesh).is2Manifold());
 	auto opts =
-		string("p") + (flags & flag_quality ? "q" : "") + (flags & flag_print_details ? "V" : "Q");
+		string("pY") + (flags & flag_quality ? "q" : "") + (flags & flag_print_details ? "V" : "Q");
 
 	tetgenio out;
 	tetgen(opts, mesh.positions(), mesh.trisIndices(), out);

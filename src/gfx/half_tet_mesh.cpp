@@ -381,11 +381,18 @@ array<Tet *, 4> HalfTetMesh::subdivideTet(Tet *tet, Vertex *vert) {
 	DASSERT(tet->tet().isInside(vert->pos()));
 
 	auto verts = tet->verts();
+	for(auto *tvert : verts)
+		DASSERT(distance(tvert->pos(), vert->pos()) > constant::epsilon);
+	//	float vol = tet->tet().volume();
 
 	removeTet(tet);
 	array<Tet *, 4> out = {
 		{addTet(verts[0], verts[1], verts[2], vert), addTet(verts[1], verts[3], verts[2], vert),
 		 addTet(verts[2], verts[3], verts[0], vert), addTet(verts[3], verts[1], verts[0], vert)}};
+	//	float vol_sum = 0.0f;
+	//	for(auto *tet : out)
+	//		vol_sum += tet->tet().volume();
+	//	printf("%f -> %f\n", vol, vol_sum);
 	return out;
 }
 

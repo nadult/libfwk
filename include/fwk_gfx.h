@@ -1152,7 +1152,7 @@ class TetMesh : public immutable_base<TetMesh> {
 		vector<pair<Color, vector<Segment>>> segment_groups_trans;
 		vector<pair<Color, TetMesh>> tet_meshes;
 		int max_steps, phase;
-		enum { max_phases = 5 };
+		enum { max_phases = 6 };
 	};
 
 	enum CSGMode {

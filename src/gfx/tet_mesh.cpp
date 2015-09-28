@@ -273,6 +273,7 @@ void prepareMesh(HalfTetMesh &mesh, vector<Loop> &loops) {
 		int count = 0;
 		for(auto *face : tet->faces())
 			count += face->temp();
+
 		if(count > 1) {
 			Vertex *center = mesh.addVertex(tet->tet().center());
 
@@ -331,6 +332,16 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 
 	std::map<Face *, vector<FaceEdge>> face_edges;
 
+	if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
+		vector<Triangle> tris;
+		for(auto loop : loops)
+			for(auto elem : loop) {
+				auto verts = elem.face->verts();
+				tris.emplace_back(verts[0]->pos(), verts[1]->pos(), verts[2]->pos());
+			}
+		vis_data->poly_soups.emplace_back(Color::red, tris);
+	}
+
 	for(const auto &loop : loops) {
 		if(loop.empty())
 			continue;
@@ -371,17 +382,21 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 			processed.emplace_back(tri_edges.back());
 		}
 
-		for(int i = 0; i < 3; i++)
-			if(!edge_verts[i].empty()) {
-				auto edge = face->edges()[i];
-				auto splits = sortEdgeVerts(edge, edge_verts[i]);
-				edge_splits.emplace_back(SplitInfo{face->edges()[i], splits});
-
-				tri_edges.emplace_back(edge.a, splits.front());
-				for(int i = 0; i + 1 < (int)splits.size(); i++)
-					tri_edges.emplace_back(splits[i], splits[i + 1]);
-				tri_edges.emplace_back(splits.back(), edge.b);
+		for(int i = 0; i < 3; i++) {
+			auto edge = face->edges()[i];
+			if(edge_verts[i].empty()) {
+				tri_edges.emplace_back(edge.a, edge.b);
+				continue;
 			}
+
+			auto splits = sortEdgeVerts(edge, edge_verts[i]);
+			edge_splits.emplace_back(SplitInfo{face->edges()[i], splits});
+
+			tri_edges.emplace_back(edge.a, splits.front());
+			for(int i = 0; i + 1 < (int)splits.size(); i++)
+				tri_edges.emplace_back(splits[i], splits[i + 1]);
+			tri_edges.emplace_back(splits.back(), edge.b);
+		}
 
 		auto other_vert = setDifference(face->tet()->verts(), face->verts());
 		DASSERT(other_vert.size() == 1);
@@ -409,16 +424,6 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 	for(const auto &tring : face_triangulations)
 		for(auto face_verts : tring.second)
 			mesh.addTet(face_verts[0], face_verts[1], face_verts[2], tring.first);
-
-	if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
-		vector<Triangle> tris;
-		for(auto tring : face_triangulations)
-			for(auto verts : tring.second)
-				tris.emplace_back(verts[0]->pos(), verts[1]->pos(), verts[2]->pos());
-
-		vis_data->poly_soups.emplace_back(Color::red, tris);
-	}
-	// TetMesh fill_tets = TetMesh::make(fill_mesh);
 
 	return processed;
 }
@@ -516,7 +521,7 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 
 	if(is_manifold) {
 		auto fill = HalfTetMesh(TetMesh::make(fill_mesh, 0));
-		if(vis_data && vis_data->phase == 4) {
+		if(vis_data && vis_data->phase >= 4) {
 			vis_data->tet_meshes.emplace_back(Color::red, TetMesh(fill));
 			vector<Segment> segments;
 			for(auto btri : fill_mesh.tris())
@@ -525,8 +530,8 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 			vis_data->segment_groups.emplace_back(Color::blue, segments);
 		}
 
-		if(0)
-			for(auto *tet : h1.tets()) {
+		for(auto *tet : h1.tets())
+			if(!tet->temp()) {
 				auto old_verts = tet->verts();
 				array<Vertex *, 4> new_verts;
 				for(int i = 0; i < 4; i++) {
@@ -537,6 +542,13 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 				}
 				fill.addTet(new_verts);
 			}
+
+		if(vis_data && vis_data->phase == 5) {
+			for(auto *tet : h1.tets())
+				if(tet->temp())
+					h1.removeTet(tet);
+			vis_data->tet_meshes.emplace_back(Color::green, TetMesh(h1));
+		}
 		return TetMesh(fill);
 	}
 
@@ -545,6 +557,9 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 
 TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
 	HalfTetMesh ha(a), hb(b);
+
+	DASSERT(HalfMesh(TetMesh(ha).toMesh()).is2Manifold());
+	DASSERT(HalfMesh(TetMesh(hb).toMesh()).is2Manifold());
 
 	vector<pair<Tet *, Tet *>> tet_isects;
 
@@ -611,6 +626,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 			segs.clear();
 			for(auto *face : ha.faces()) {
 				int seg_id = abs(face->temp());
+				if(seg_id == 0)
+					seg_id = 3;
 				if(seg_id != 0) {
 					if((int)segs.size() < seg_id + 1)
 						segs.resize(seg_id + 1);
@@ -621,31 +638,37 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 				vis_data->poly_soups.emplace_back(colors[n % colors.size()], segs[n]);
 		}
 
-		//	for(auto edge : edges1)
-		//		segments.emplace_back(edge.a->pos(), edge.b->pos());
-
 		auto edges2 = triangulateMesh(hb, b_loops, vis_data, 2);
 		genSegments(hb, ha, edges2);
 
 		auto final = finalCuts(ha, hb, vis_data);
+		DASSERT(HalfMesh(TetMesh(final).toMesh()).is2Manifold());
 
-		DASSERT(HalfMesh(TetMesh(ha).toMesh()).is2Manifold());
-		return TetMesh(ha);
+		return TetMesh(final);
 	} catch(const Exception &ex) {
-		printf("Error: %s\n", ex.what());
+		printf("Error: %s\n%s", ex.what(), ex.backtrace(true).c_str());
 		return {};
 	}
 }
 
 Mesh TetMesh::toMesh() const {
 	vector<uint> faces;
+	vector<float3> new_verts;
+	vector<int> vert_map(m_verts.size(), -1);
+
 	for(int t = 0; t < size(); t++)
 		for(int i = 0; i < 4; i++)
 			if(m_tet_tets[t][i] == -1) {
 				auto face = tetFace(t, i);
-				insertBack(faces, {(uint)face[0], (uint)face[1], (uint)face[2]});
+				for(int j = 0; j < 3; j++) {
+					if(vert_map[face[j]] == -1) {
+						vert_map[face[j]] = (int)new_verts.size();
+						new_verts.emplace_back(m_verts[face[j]]);
+					}
+					faces.emplace_back((uint)vert_map[face[j]]);
+				}
 			}
 
-	return Mesh(MeshBuffers(m_verts), {{faces}});
+	return Mesh(MeshBuffers(std::move(new_verts)), {{std::move(faces)}});
 }
 }
