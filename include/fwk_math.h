@@ -696,10 +696,11 @@ AffineTrans operator*(const AffineTrans &, const AffineTrans &);
 AffineTrans lerp(const AffineTrans &, const AffineTrans &, float t);
 
 struct Triangle2D {
+	Triangle2D() : m_points({{float2(), float2(), float2()}}) {}
 	Triangle2D(const float2 &a, const float2 &b, const float2 &c) : m_points({{a, b, c}}) {}
 
 	const float2 &operator[](int idx) const { return m_points[idx]; }
-	float2 center() const { return (m_points[0] + m_points[1] + m_points[2]) * 0.5f; }
+	float2 center() const { return (m_points[0] + m_points[1] + m_points[2]) / 3.0f; }
 
   private:
 	array<float2, 3> m_points;
@@ -841,7 +842,7 @@ struct Segment2D {
 	float2 start, end;
 };
 
-vector<Triangle2D> triangulate(const vector<Segment2D> &);
+vector<Triangle2D> triangulate(const vector<Segment2D> &, vector<int> boundary_markers);
 inline float length(const Segment2D &seg) { return distance(seg.start, seg.end); }
 
 class Segment : public Ray {

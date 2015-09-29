@@ -198,7 +198,10 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 			 float scale) {
 	XMLDocument doc;
 	auto svg_node = doc.addChild("svg");
+	svg_node = svg_node.addChild("g");
+
 	auto cnode = svg_node.addChild("g");
+	cnode.addAttrib("render-order", -1);
 	cnode.addAttrib("style", "stroke-width:3;stroke:black");
 	float2 tmin;
 	for(auto tri : tris)
@@ -211,20 +214,6 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 
 	tmin *= scale;
 	float2 offset = -tmin + float2(50, 50);
-
-	for(auto tri : tris) {
-		float2 p[3] = {tri[0] * scale + offset, tri[1] * scale + offset, tri[2] * scale + offset};
-		float2 center = (p[0] + p[1] + p[2]) / 3.0f;
-		for(auto &pt : p)
-			pt = lerp(pt, center, 0.01f);
-		Triangle t3{float3(p[0], 0.0f), float3(p[1], 0.0f), float3(p[2], 0.0f)};
-		float area = t3.area();
-
-		auto poly = svg_node.addChild("polygon");
-		string points = format("%f,%f %f,%f %f,%f", p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y);
-		poly.addAttrib("points", points);
-		poly.addAttrib("style", "stroke-width:2;fill:red;stroke:blue");
-	}
 
 	for(auto pt : points) {
 		auto vert = cnode.addChild("circle");
@@ -241,18 +230,45 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 							 "stroke-dasharray:none;"
 							 "stroke-dashoffset:0");
 
-	for(auto seg : segs) {
+	for(int s = 0; s < (int)segs.size(); s++) {
+		const auto &seg = segs[s];
 		auto line = lnode.addChild("line");
 		line.addAttrib("x1", seg.start.x * scale + offset.x);
 		line.addAttrib("y1", seg.start.y * scale + offset.y);
 		line.addAttrib("x2", seg.end.x * scale + offset.x);
 		line.addAttrib("y2", seg.end.y * scale + offset.y);
+		auto center = (seg.start + seg.end) * 0.5f * scale + offset;
+		string value = format("seg %d", s);
+		auto text = lnode.addChild("text", lnode.own(value));
+		text.addAttrib("x", center.x);
+		text.addAttrib("y", center.y);
+		text.addAttrib("text-anchor", "middle");
+		text.addAttrib("font-size", "16px");
+		text.addAttrib("stroke-width", "1");
 	}
 
-	Saver(format("file%d.svg", id)) << doc;
+	auto tnode = svg_node.addChild("g");
+	tnode.addAttrib("render-order", 1);
+
+	for(auto tri : tris) {
+		float2 p[3] = {tri[0] * scale + offset, tri[1] * scale + offset, tri[2] * scale + offset};
+		float2 center = (p[0] + p[1] + p[2]) / 3.0f;
+		for(auto &pt : p)
+			pt = lerp(pt, center, 0.01f);
+		Triangle t3{float3(p[0], 0.0f), float3(p[1], 0.0f), float3(p[2], 0.0f)};
+		float area = t3.area();
+
+		auto poly = tnode.addChild("polygon");
+		string points = format("%f,%f %f,%f %f,%f", p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y);
+		poly.addAttrib("points", points);
+		poly.addAttrib("style", "stroke-width:2;fill:red;stroke:blue;fill-opacity:0.4");
+	}
+
+	Saver(format("temp/file%d.svg", id)) << doc;
 }
 
-vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &edges, int tid,
+vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &bedges,
+										   const vector<Edge> &edges, int tid,
 										   vector<Edge> disallow) {
 	Plane plane(face->triangle());
 	Projection proj(face->triangle());
@@ -262,17 +278,29 @@ vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &edges
 	vector<Vertex *> verts;
 	insertBack(verts, face->verts());
 
+	vector<int> markers;
+
+	for(auto &edge : bedges) {
+		Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
+		DASSERT(distance(proj / seg.origin(), edge.a->pos()) < constant::epsilon);
+		verts.emplace_back(edge.a);
+		verts.emplace_back(edge.b);
+		segs.emplace_back(seg.xz());
+		markers.emplace_back(1);
+	}
+
 	for(auto &edge : edges) {
 		Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
 		DASSERT(distance(proj / seg.origin(), edge.a->pos()) < constant::epsilon);
 		verts.emplace_back(edge.a);
 		verts.emplace_back(edge.b);
 		segs.emplace_back(seg.xz());
+		markers.emplace_back(0);
 	}
 	makeUnique(verts);
 
 	vector<array<Vertex *, 3>> out;
-	auto triangulation = triangulate(segs);
+	auto triangulation = triangulate(segs, markers);
 	bool any_wrong = false;
 
 	for(auto tri : triangulation) {
@@ -316,25 +344,30 @@ vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &edges
 				if(area < constant::epsilon) {
 					xmlPrint("Sliver: % (% % %)\n", area, otri[0]->pos(), otri[1]->pos(),
 							 otri[2]->pos());
+					any_wrong = true;
 				}
-				out.emplace_back(otri);
+
+				if(area > 0.0f)
+					out.emplace_back(otri);
 			}
 		}
 	}
 
-	if(any_wrong) {
-		vector<Segment2D> segs;
-		vector<float2> points;
+	/*	if(any_wrong) {
+			vector<Segment2D> segs;
+			vector<float2> points;
 
-		for(auto &edge : edges) {
-			Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
-			segs.emplace_back(seg.xz());
-			points.emplace_back(seg.origin().xz());
-			points.emplace_back(seg.end().xz());
-		}
+			for(auto &edge : edges) {
+				Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
+				segs.emplace_back(seg.xz());
+				points.emplace_back(seg.origin().xz());
+				points.emplace_back(seg.end().xz());
+			}
+			for(auto tri : triangulation)
+				points.emplace_back(tri.center());
 
-		saveSvg(points, segs, triangulation, tid, 1000.0f);
-	}
+			// saveSvg(points, segs, triangulation, tid, 1000.0f);
+		}*/
 
 	std::sort(begin(out), end(out));
 	auto uniq = out;
@@ -459,6 +492,8 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 	vector<SplitInfo> edge_splits;
 	vector<Tet *> rem_tets;
 
+	// TODO: specified edge may lie on the boundary of the triangle
+
 	int tid = 0;
 	for(auto pair : face_edges) {
 		auto *face = pair.first;
@@ -467,7 +502,7 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 		rem_tets.emplace_back(face->tet());
 
 		//	printf("Preparing %d:\n", tid);
-		vector<Edge> tri_edges;
+		vector<Edge> tri_boundary_edges, tri_inside_edges;
 		for(auto edge : pair.second) {
 			//		xmlPrint("Inside edge: (%) (%)\n", edge.v1->pos(), edge.v2->pos());
 
@@ -475,8 +510,8 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 				edge_verts[face->edgeId(mesh.sharedEdge(face, edge.prev))].emplace_back(edge.v1);
 			if(edge.next != face)
 				edge_verts[face->edgeId(mesh.sharedEdge(face, edge.next))].emplace_back(edge.v2);
-			tri_edges.emplace_back(Edge(edge.v1, edge.v2));
-			processed.emplace_back(tri_edges.back());
+			tri_inside_edges.emplace_back(Edge(edge.v1, edge.v2));
+			processed.emplace_back(tri_inside_edges.back());
 		}
 
 		vector<Edge> disallow;
@@ -485,7 +520,7 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 			auto edge = face->edges()[i];
 
 			if(edge_verts[i].empty()) {
-				tri_edges.emplace_back(edge.a, edge.b);
+				tri_boundary_edges.emplace_back(edge.a, edge.b);
 				continue;
 			}
 
@@ -498,16 +533,17 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 			//			xmlPrint("(%) ", split->pos());
 			//		xmlPrint("\n");
 
-			tri_edges.emplace_back(edge.a, splits.front());
+			tri_boundary_edges.emplace_back(edge.a, splits.front());
 			for(int i = 0; i + 1 < (int)splits.size(); i++)
-				tri_edges.emplace_back(splits[i], splits[i + 1]);
-			tri_edges.emplace_back(splits.back(), edge.b);
+				tri_boundary_edges.emplace_back(splits[i], splits[i + 1]);
+			tri_boundary_edges.emplace_back(splits.back(), edge.b);
 		}
 
 		auto other_vert = setDifference(face->tet()->verts(), face->verts());
 		DASSERT(other_vert.size() == 1);
 
-		auto triangles = triangulateFace(face, tri_edges, tid++, disallow);
+		auto triangles =
+			triangulateFace(face, tri_boundary_edges, tri_inside_edges, tid++, disallow);
 		if(vis_data && vis_data->phase == 1) {
 			Color col = mesh_id % 2 ? Color::yellow : Color::blue;
 			vector<Segment> edges;

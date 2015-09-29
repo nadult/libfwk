@@ -130,30 +130,6 @@ bool areIntersecting(const Triangle2D &a, const Triangle2D &b) {
 	return false;
 }
 
-vector<Triangle2D> triangulate(const vector<Segment2D> &segs) {
-	using K = CGAL::Exact_predicates_inexact_constructions_kernel;
-	typedef CGAL::Triangulation_vertex_base_2<K> Vb;
-	typedef CGAL::Constrained_triangulation_face_base_2<K> Fb;
-	typedef CGAL::Triangulation_data_structure_2<Vb, Fb> TDS;
-	typedef CGAL::Exact_predicates_tag Itag;
-	typedef CGAL::Constrained_Delaunay_triangulation_2<K, TDS, Itag> CDT;
-	typedef CDT::Point Point;
-
-	CDT cdt;
-	for(auto &seg : segs)
-		cdt.insert_constraint(Point(seg.start.x, seg.start.y), Point(seg.end.x, seg.end.y));
-	DASSERT(cdt.is_valid());
-
-	vector<Triangle2D> out;
-
-	for(auto it = cdt.finite_faces_begin(); it != cdt.finite_faces_end(); ++it) {
-		auto tri = cdt.triangle(it);
-		out.emplace_back(fromCGAL(tri[0]), fromCGAL(tri[1]), fromCGAL(tri[2]));
-	}
-
-	return out;
-}
-
 #endif
 
 Triangle::Triangle(const float3 &a, const float3 &b, const float3 &c) {
