@@ -267,6 +267,286 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 	Saver(format("temp/file%d.svg", id)) << doc;
 }
 
+struct Line {
+	Vertex *e1, *e2;
+	vector<Edge> edges;
+};
+vector<Line> extractLines(const vector<Edge> &edges, vector<Vertex *> endings) {
+	vector<Line> out;
+	vector<int> marked(edges.size(), 0);
+
+	std::map<Vertex *, vector<int>> edge_map;
+	for(int n = 0; n < (int)edges.size(); n++) {
+		edge_map[edges[n].a].emplace_back(n);
+		edge_map[edges[n].b].emplace_back(n);
+	}
+
+	/*	printf("Extracting lines:\n");
+		for(const auto &edge : edges)
+			xmlPrint("% - %\n", (long long)edge.a % 1337, (long long)edge.b % 1337);
+		printf("endings:\n");
+		for(auto *v : endings)
+			xmlPrint("%\n", (long long)v % 1337);*/
+
+	for(int n = 0; n < (int)edges.size(); n++) {
+		if(marked[n])
+			continue;
+		const auto &start = edges[n];
+
+		bool aends = isOneOf(start.a, endings);
+		bool bends = isOneOf(start.b, endings);
+		if(!aends && !bends)
+			continue;
+
+		marked[n] = true;
+
+		Line new_line{start.a, start.b, {}};
+		if(bends)
+			swap(new_line.e1, new_line.e2);
+		new_line.edges.emplace_back(new_line.e1, new_line.e2);
+
+		while(!isOneOf(new_line.e2, endings)) {
+			auto &inds = edge_map[new_line.e2];
+			int edge_id = -1;
+			for(int i : inds)
+				if(!marked[i])
+					edge_id = i;
+			DASSERT(edge_id != -1);
+			marked[edge_id] = 1;
+
+			Vertex *next = edges[edge_id].a == new_line.e2 ? edges[edge_id].b : edges[edge_id].a;
+			new_line.edges.emplace_back(new_line.e2, next);
+			new_line.e2 = next;
+		}
+
+		out.emplace_back(std::move(new_line));
+	}
+
+	return out;
+}
+
+// bedges: border edges
+// iedges: inside edges
+vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector<Edge> &iedges,
+										const vector<Vertex *> &endings) {
+	vector<Line> blines = extractLines(bedges, endings);
+	vector<Line> lines = extractLines(iedges, endings);
+	vector<int> marked(blines.size(), 0);
+
+	vector<vector<Edge>> out;
+
+	/*	for(auto bl : blines) {
+			xmlPrint("Bline: ");
+			for(auto e : bl.edges)
+				xmlPrint("(%-%) ", (long long)e.a % 1337, (long long)e.b % 1337);
+			xmlPrint("\n");
+		}
+		for(auto l : lines) {
+			xmlPrint("Line: ");
+			for(auto e : l.edges)
+				xmlPrint("(%-%) ", (long long)e.a % 1337, (long long)e.b % 1337);
+			xmlPrint("\n");
+		}*/
+
+	for(int n = 0; n < (int)blines.size(); n++) {
+		if(marked[n])
+			continue;
+		marked[n] = true;
+		//		xmlPrint("Select: %-%: ", (long long)blines[n].e1 % 1337, (long long)blines[n].e2 %
+		// 1337);
+
+		const auto &line = blines[n];
+		int b1 = -1, b2 = -1;
+		for(int i = 0; i < (int)lines.size(); i++) {
+			if(isOneOf(line.e1, lines[i].e1, lines[i].e2))
+				b1 = i;
+			if(isOneOf(line.e2, lines[i].e1, lines[i].e2))
+				b2 = i;
+		}
+		DASSERT(b1 != -1 && b2 != -1);
+		const auto &line1 = lines[b1], &line2 = lines[b2];
+
+		/*
+		xmlPrint("(%-%) ", (long long)lines[b1].e1 % 1337, (long long)lines[b1].e2 % 1337);
+		if(b1 != b2)
+			xmlPrint("(%-%) ", (long long)lines[b2].e1 % 1337, (long long)lines[b2].e2 % 1337);
+		printf("\n");*/
+
+		int inside = -1;
+		bool inside_invert = false;
+		if(b1 != b2) {
+			const auto *e1 = isOneOf(line1.e1, line.e1, line.e2) ? line1.e2 : line1.e1;
+			const auto *e2 = isOneOf(line2.e1, line.e1, line.e2) ? line2.e2 : line2.e1;
+
+			if(e1 != e2) {
+				bool invert = false;
+				for(int j = n + 1; j < (int)blines.size(); j++) {
+					if(marked[j])
+						continue;
+					if(blines[j].e1 == e1 && blines[j].e2 == e2) {
+						inside = j;
+						break;
+					}
+					if(blines[j].e1 == e2 && blines[j].e2 == e1) {
+						inside = j;
+						inside_invert = true;
+						break;
+					}
+				}
+				if(inside == -1)
+					exit(0);
+				DASSERT(inside != -1);
+				marked[inside] = 1;
+			}
+		}
+
+		// TODO: extract ordered
+		vector<Edge> poly_edges;
+		insertBack(poly_edges, line.edges);
+		insertBack(poly_edges, line1.edges);
+		if(b1 != b2)
+			insertBack(poly_edges, line2.edges);
+		if(inside != -1)
+			insertBack(poly_edges, blines[inside].edges);
+
+		/*		xmlPrint("Poly: ");
+				for(auto e : poly_edges)
+					xmlPrint("(%-%) ", (long long)e.a % 1337, (long long)e.b % 1337);
+				xmlPrint("\n");*/
+		out.emplace_back(std::move(poly_edges));
+	}
+
+	return out;
+}
+
+vector<Vertex *> polyVerts(const vector<Edge> &edges) {
+	DASSERT(edges.size() >= 3);
+	vector<int> marked(edges.size(), 0);
+
+	Vertex *end_vert = edges.front().b;
+	vector<Vertex *> out = {edges.front().a};
+	marked[0] = 1;
+	int count = 1;
+
+	while(count < (int)edges.size()) {
+		Vertex *next = nullptr;
+		for(int n = 0; n < (int)edges.size(); n++) {
+			if(marked[n])
+				continue;
+			if(edges[n].a == out.back()) {
+				next = edges[n].b;
+				marked[n] = 1;
+				break;
+			}
+			if(edges[n].b == out.back()) {
+				next = edges[n].a;
+				marked[n] = 1;
+				break;
+			}
+		}
+
+		DASSERT(next);
+		count++;
+		out.emplace_back(next);
+	}
+
+	DASSERT(out.back() == end_vert);
+	return out;
+}
+
+vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &proj) {
+	vector<float> out(verts.size());
+
+	for(int n = 0, count = (int)verts.size(); n < (int)verts.size(); n++) {
+		float2 cur = (proj * verts[n]->pos()).xz();
+		float2 prev = (proj * verts[(n + count - 1) % count]->pos()).xz();
+		float2 next = (proj * verts[(n + 1) % count]->pos()).xz();
+
+		float vcross = -cross(normalize(cur - prev), normalize(next - cur));
+		float vdot = dot(normalize(next - cur), normalize(prev - cur));
+		out[n] = atan2(vcross, vdot);
+		if(out[n] < 0.0f)
+			out[n] = constant::pi * 2.0f + out[n];
+		DASSERT(out[n] >= 0.0f && out[n] < constant::pi * 2.0f);
+	}
+
+	return out;
+}
+
+// Simple ear-clipping algorithm from: http://arxiv.org/pdf/1212.6038.pdf
+vector<array<Vertex *, 3>> triangulateSimplePolygon(Face *face, const vector<Edge> &edges) {
+	vector<array<Vertex *, 3>> out;
+
+	Projection proj(face->triangle());
+	vector<Vertex *> verts = polyVerts(edges);
+	vector<float> angles = computeAngles(verts, proj);
+	float angle_sum = std::accumulate(begin(angles), end(angles), 0.0f);
+
+	// Making sure, verts are in CW order
+	if(fabs(angle_sum - constant::pi * ((int)verts.size() - 2)) > 0.01f) {
+		std::reverse(begin(verts), end(verts));
+		std::reverse(begin(angles), end(angles));
+		for(auto &ang : angles)
+			ang = constant::pi * 2.0 - ang;
+		angle_sum = std::accumulate(begin(angles), end(angles), 0.0f);
+	}
+
+	/*
+	printf("Verts: (%f)\n", radToDeg(angle_sum));
+	for(int n = 0; n < (int)verts.size(); n++)
+		xmlPrint("%: %\n", (proj * verts[n]->pos()).xz(), radToDeg(angles[n]));*/
+	DASSERT(fabs(angle_sum - constant::pi * ((int)verts.size() - 2)) < 0.01f);
+
+	while(out.size() + 2 < edges.size()) {
+		vector<float> angles = computeAngles(verts, proj);
+
+		int best_vert = -1;
+		float best_angle = constant::pi;
+		std::array<Vertex *, 3> best_ear;
+
+		for(int n = 0, count = (int)verts.size(); n < count; n++) {
+			if(angles[n] > best_angle)
+				continue;
+
+			Vertex *cur = verts[n];
+			Vertex *prev = verts[(n + count - 1) % count];
+			Vertex *next = verts[(n + 1) % count];
+			Triangle2D new_tri((proj * prev->pos()).xz(), (proj * cur->pos()).xz(),
+							   (proj * next->pos()).xz());
+
+			float min_dist = constant::inf;
+			for(int i = 0; i < count; i++)
+				if(!isOneOf(verts[i], cur, prev, next))
+					min_dist = min(min_dist, distance(new_tri, (proj * verts[i]->pos()).xz()));
+
+			// TODO: try to minimize min_dist?
+			if(min_dist > constant::epsilon) {
+				best_vert = n;
+				best_angle = angles[n];
+				best_ear = {{prev, cur, next}};
+			}
+		}
+		DASSERT(best_vert != -1);
+
+		out.emplace_back(best_ear);
+		verts.erase(verts.begin() + best_vert);
+	}
+
+	return out;
+}
+
+vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &bedges,
+										   const vector<Edge> &iedges,
+										   const vector<Vertex *> all_splits) {
+
+	vector<vector<Edge>> simple_polys = findSimplePolygons(bedges, iedges, all_splits);
+
+	vector<array<Vertex *, 3>> out;
+	for(const auto &poly : simple_polys)
+		insertBack(out, triangulateSimplePolygon(face, poly));
+	return out;
+}
+
 vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &bedges,
 										   const vector<Edge> &edges, int tid,
 										   vector<Edge> disallow) {
@@ -499,6 +779,7 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 		auto *face = pair.first;
 		auto verts = pair.first->verts();
 		array<vector<Vertex *>, 3> edge_verts;
+		vector<Vertex *> all_splits;
 		rem_tets.emplace_back(face->tet());
 
 		//	printf("Preparing %d:\n", tid);
@@ -528,6 +809,7 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 
 			auto splits = sortEdgeVerts(edge, edge_verts[i]);
 			edge_splits.emplace_back(SplitInfo{face->edges()[i], splits});
+			insertBack(all_splits, splits);
 			//		xmlPrint("Outside edge #% (%) (%): ", i, edge.a->pos(), edge.b->pos());
 			//		for(auto split : splits)
 			//			xmlPrint("(%) ", split->pos());
@@ -542,8 +824,7 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 		auto other_vert = setDifference(face->tet()->verts(), face->verts());
 		DASSERT(other_vert.size() == 1);
 
-		auto triangles =
-			triangulateFace(face, tri_boundary_edges, tri_inside_edges, tid++, disallow);
+		auto triangles = triangulateFace(face, tri_boundary_edges, tri_inside_edges, all_splits);
 		if(vis_data && vis_data->phase == 1) {
 			Color col = mesh_id % 2 ? Color::yellow : Color::blue;
 			vector<Segment> edges;
