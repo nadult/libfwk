@@ -56,16 +56,17 @@ float2 inverse(const float2 &v) { return float2(1.0f / v.x, 1.0f / v.y); }
 float3 inverse(const float3 &v) { return float3(1.0f / v.x, 1.0f / v.y, 1.0f / v.z); }
 float4 inverse(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 1.0f / v.w); }
 
-const float2 normalize(const float2 &v) { return v / length(v); }
-const float3 normalize(const float3 &v) { return v / length(v); }
+float2 normalize(const float2 &v) { return v / length(v); }
+float3 normalize(const float3 &v) { return v / length(v); }
 
-const float3 cross(const float3 &a, const float3 &b) {
+float cross(const float2 &a, const float2 &b) { return a.x * b.y - a.y * b.x; }
+float3 cross(const float3 &a, const float3 &b) {
 	return float3(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]);
 }
 
-const float2 inv(const float2 &v) { return float2(1.0f / v.x, 1.0f / v.y); }
-const float3 inv(const float3 &v) { return float3(1.0f / v.x, 1.0f / v.y, 1.0f / v.z); }
-const float4 inv(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 1.0f / v.w); }
+float2 inv(const float2 &v) { return float2(1.0f / v.x, 1.0f / v.y); }
+float3 inv(const float3 &v) { return float3(1.0f / v.x, 1.0f / v.y, 1.0f / v.z); }
+float4 inv(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 1.0f / v.w); }
 
 float vectorToAngle(const float2 &normalized_vec) {
 	DASSERT(isNormalized(normalized_vec));

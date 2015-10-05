@@ -342,13 +342,15 @@ template <class T> bool areSimilar(const T &a, const T &b) {
 	return distanceSq(a, b) < constant::epsilon;
 }
 
-const float2 normalize(const float2 &);
-const float3 normalize(const float3 &);
-const float3 cross(const float3 &a, const float3 &b);
+float2 normalize(const float2 &);
+float3 normalize(const float3 &);
 
-const float2 inv(const float2 &);
-const float3 inv(const float3 &);
-const float4 inv(const float4 &);
+float cross(const float2 &a, const float2 &b);
+float3 cross(const float3 &a, const float3 &b);
+
+float2 inv(const float2 &);
+float3 inv(const float3 &);
+float4 inv(const float4 &);
 
 float vectorToAngle(const float2 &normalized_vector);
 const float2 angleToVector(float radians);
@@ -755,6 +757,7 @@ float distance(const Triangle &, const float3 &);
 
 bool areIntersecting(const Triangle &, const Triangle &);
 bool areIntersecting(const Triangle2D &, const Triangle2D &);
+float distance(const Triangle2D &, const float2 &point);
 
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 class Plane {

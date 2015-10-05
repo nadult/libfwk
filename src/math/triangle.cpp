@@ -232,4 +232,9 @@ float3 closestPoint(const Triangle &tri, const float3 &point) {
 float distance(const Triangle &tri, const float3 &point) {
 	return distance(closestPoint(tri, point), point);
 }
+
+float distance(const Triangle2D &tri, const float2 &point) {
+	return distance(Triangle(asXZ(tri[0]), asXZ(tri[1]), asXZ(tri[2])),
+					float3(point.x, 0.0f, point.y));
+}
 }

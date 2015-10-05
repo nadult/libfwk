@@ -108,7 +108,7 @@ namespace xml_conversions {
 			parser.parseInts(out);
 			return out;
 		}
-		
+
 		template <> vector<uint> vectorFromString<uint>(TextParser &parser) {
 			vector<uint> out(parser.countElements());
 			parser.parseUints(out);
@@ -134,6 +134,9 @@ namespace xml_conversions {
 		}
 
 		template <> void toString(const uint &value, TextFormatter &out) { out("%u", value); }
+		template <> void toString(const long long &value, TextFormatter &out) {
+			out("%lld", value);
+		}
 
 		static void toStringFloat(CRange<float> in, TextFormatter &out) {
 			for(int n = 0; n < in.size(); n++) {
