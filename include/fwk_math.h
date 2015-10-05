@@ -845,7 +845,6 @@ struct Segment2D {
 	float2 start, end;
 };
 
-vector<Triangle2D> triangulate(const vector<Segment2D> &, vector<int> boundary_markers);
 inline float length(const Segment2D &seg) { return distance(seg.start, seg.end); }
 
 class Segment : public Ray {

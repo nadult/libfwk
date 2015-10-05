@@ -23,7 +23,7 @@ SHARED_SRC=base backtrace filesystem filesystem_linux filesystem_windows input p
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader gfx/program \
 		   gfx/renderer gfx/renderer2d \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat \
-		   math/base math/triangle math/tetrahedron math/projection math/triangulation \
+		   math/base math/triangle math/tetrahedron math/projection \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream
 PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models tools/model_convert tools/model_viewer
 

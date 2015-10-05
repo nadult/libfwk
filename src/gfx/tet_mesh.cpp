@@ -547,115 +547,6 @@ vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &bedge
 	return out;
 }
 
-vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &bedges,
-										   const vector<Edge> &edges, int tid,
-										   vector<Edge> disallow) {
-	Plane plane(face->triangle());
-	Projection proj(face->triangle());
-
-	//	printf("Triangulating face %d: %d edges\n", tid, (int)edges.size());
-	vector<Segment2D> segs;
-	vector<Vertex *> verts;
-	insertBack(verts, face->verts());
-
-	vector<int> markers;
-
-	for(auto &edge : bedges) {
-		Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
-		DASSERT(distance(proj / seg.origin(), edge.a->pos()) < constant::epsilon);
-		verts.emplace_back(edge.a);
-		verts.emplace_back(edge.b);
-		segs.emplace_back(seg.xz());
-		markers.emplace_back(1);
-	}
-
-	for(auto &edge : edges) {
-		Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
-		DASSERT(distance(proj / seg.origin(), edge.a->pos()) < constant::epsilon);
-		verts.emplace_back(edge.a);
-		verts.emplace_back(edge.b);
-		segs.emplace_back(seg.xz());
-		markers.emplace_back(0);
-	}
-	makeUnique(verts);
-
-	vector<array<Vertex *, 3>> out;
-	auto triangulation = triangulate(segs, markers);
-	bool any_wrong = false;
-
-	for(auto tri : triangulation) {
-		array<Vertex *, 3> otri = {{nullptr, nullptr, nullptr}};
-
-		for(int i = 0; i < 3; i++) {
-			float3 pos = proj / float3(tri[i].x, 0.0f, tri[i].y);
-			float min_dist = constant::inf;
-			for(auto *vert : verts) {
-				float dist = distance(vert->pos(), pos);
-				if(dist < min_dist) {
-					min_dist = dist;
-					otri[i] = vert;
-				}
-			}
-		}
-		if(dot(face->triangle().normal(),
-			   Triangle(otri[0]->pos(), otri[1]->pos(), otri[2]->pos()).normal()) < 0.0f)
-			swap(otri[1], otri[2]);
-
-		if(otri[0] && otri[1] && otri[2]) {
-			// TODO: wrong shouldnt happen
-			bool wrong = otri[0] == otri[1] || otri[1] == otri[2] || otri[0] == otri[2];
-			for(const auto &tri : out) {
-				bool same = true;
-				for(int i = 0; i < 3; i++)
-					if(!isOneOf(otri[i], tri))
-						same = false;
-				if(same)
-					wrong = true;
-			}
-			for(auto wrong_edge : disallow)
-				if(isOneOf(wrong_edge.a, otri) && isOneOf(wrong_edge.b, otri)) {
-					//	printf("Disallowed\n");
-					wrong = true;
-				}
-
-			if(!wrong) {
-				float area = Triangle(otri[0]->pos(), otri[1]->pos(), otri[2]->pos()).area();
-
-				if(area < constant::epsilon) {
-					xmlPrint("Sliver: % (% % %)\n", area, otri[0]->pos(), otri[1]->pos(),
-							 otri[2]->pos());
-					any_wrong = true;
-				}
-
-				if(area > 0.0f)
-					out.emplace_back(otri);
-			}
-		}
-	}
-
-	/*	if(any_wrong) {
-			vector<Segment2D> segs;
-			vector<float2> points;
-
-			for(auto &edge : edges) {
-				Segment seg(proj * edge.a->pos(), proj * edge.b->pos());
-				segs.emplace_back(seg.xz());
-				points.emplace_back(seg.origin().xz());
-				points.emplace_back(seg.end().xz());
-			}
-			for(auto tri : triangulation)
-				points.emplace_back(tri.center());
-
-			// saveSvg(points, segs, triangulation, tid, 1000.0f);
-		}*/
-
-	std::sort(begin(out), end(out));
-	auto uniq = out;
-	makeUnique(uniq);
-	DASSERT(uniq == out);
-	return out;
-}
-
 // When more than one triangulated face belong to single tetrahedron,
 // then this tet should be subdivided
 void prepareMesh(HalfTetMesh &mesh, vector<Loop> &loops) {
@@ -795,8 +686,6 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 			processed.emplace_back(tri_inside_edges.back());
 		}
 
-		vector<Edge> disallow;
-
 		for(int i = 0; i < 3; i++) {
 			auto edge = face->edges()[i];
 
@@ -804,8 +693,6 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 				tri_boundary_edges.emplace_back(edge.a, edge.b);
 				continue;
 			}
-
-			disallow.emplace_back(edge);
 
 			auto splits = sortEdgeVerts(edge, edge_verts[i]);
 			edge_splits.emplace_back(SplitInfo{face->edges()[i], splits});
