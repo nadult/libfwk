@@ -474,6 +474,7 @@ vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &pro
 }
 
 // Simple ear-clipping algorithm from: http://arxiv.org/pdf/1212.6038.pdf
+// TODO: avoid slivers
 vector<array<Vertex *, 3>> triangulateSimplePolygon(Face *face, const vector<Edge> &edges) {
 	vector<array<Vertex *, 3>> out;
 
@@ -727,6 +728,13 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 	makeUnique(rem_tets);
 	for(auto *tet : rem_tets)
 		mesh.removeTet(tet);
+
+	// TODO: better ordering
+	std::sort(begin(edge_splits), end(edge_splits), [](const auto &s1, const auto &s2) {
+		float3 c1 = s1.edge.a->pos() + s1.edge.b->pos();
+		float3 c2 = s2.edge.a->pos() + s2.edge.b->pos();
+		return c1.x + c1.y + c1.z < c2.x + c2.y + c2.z;
+	});
 
 	for(const auto &split : edge_splits)
 		mesh.subdivideEdge(split.edge.a, split.edge.b, split.splits);

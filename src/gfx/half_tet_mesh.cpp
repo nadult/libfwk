@@ -197,6 +197,7 @@ HalfTetMesh::operator TetMesh() const {
 }
 
 Vertex *HalfTetMesh::addVertex(const float3 &pos) {
+	DASSERT(!findVertex(pos));
 	m_verts.emplace_back(make_unique<Vertex>(pos, (int)m_verts.size()));
 	return m_verts.back().get();
 }
