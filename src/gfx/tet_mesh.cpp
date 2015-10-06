@@ -838,6 +838,10 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 
 	for(auto *tet : h1.tets())
 		tet->setTemp(h2.isIntersecting(tet->tet()) ? 1 : 0);
+	for(auto *tet : h1.tets())
+		for(auto *ntet : tet->neighbours())
+			if(ntet && ntet->temp())
+				tet->setTemp(1);
 	for(auto *tet : h1.tets()) {
 		if(tet->temp()) {
 			auto faces = tet->faces();
@@ -891,6 +895,7 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 					if(!new_verts[i])
 						new_verts[i] = fill.addVertex(pos);
 				}
+
 				fill.addTet(new_verts);
 			}
 
