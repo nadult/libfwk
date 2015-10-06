@@ -10,6 +10,12 @@ namespace fwk {
 const Color Color::white(255, 255, 255);
 const Color Color::gray(127, 127, 127);
 const Color Color::yellow(255, 255, 0);
+const Color Color::cyan(0, 255, 255);
+const Color Color::magneta(255, 0, 255);
+const Color Color::purple(0x80, 0, 0x80);
+const Color Color::brown(0xA5, 0x2A, 0x2A);
+const Color Color::orange(0xFF, 0xA5, 0);
+const Color Color::gold(255, 215, 0);
 const Color Color::red(255, 0, 0);
 const Color Color::green(0, 255, 0);
 const Color Color::blue(0, 0, 255);

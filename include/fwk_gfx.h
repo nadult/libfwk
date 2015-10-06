@@ -34,7 +34,8 @@ struct Color {
 	operator float4() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
 	operator float3() const { return float3(r, g, b) * (1.0f / 255.0f); }
 
-	static const Color white, gray, yellow, red, green, blue, black, transparent;
+	static const Color white, gray, yellow, cyan, magneta, purple, brown, orange, gold, red, green,
+		blue, black, transparent;
 	bool operator<(const Color &rhs) const;
 
 	union {
