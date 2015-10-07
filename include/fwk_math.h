@@ -816,6 +816,8 @@ bool areIntersecting(const Tetrahedron &, const Triangle &);
 
 const Plane normalize(const Plane &);
 const Plane operator*(const Matrix4 &, const Plane &);
+
+// TODO: change name to distance
 float dot(const Plane &, const float3 &point);
 
 class Ray {
@@ -840,6 +842,7 @@ class Ray {
 struct Segment2D {
 	Segment2D() = default;
 	Segment2D(const float2 &a, const float2 &b) : start(a), end(b) {}
+	Segment2D(const pair<float2, float2> &pair) : Segment2D(pair.first, pair.second) {}
 	bool empty() const { return distance(end, start) < constant::epsilon; }
 
 	float2 start, end;
@@ -850,6 +853,7 @@ inline float length(const Segment2D &seg) { return distance(seg.start, seg.end);
 class Segment : public Ray {
   public:
 	Segment(const float3 &start = float3(), const float3 &end = float3(0, 0, 1));
+	Segment(const pair<float3, float3> &pair) : Segment(pair.first, pair.second) {}
 
 	float length() const { return m_length; }
 	float3 end() const { return m_end; }
@@ -872,7 +876,10 @@ pair<float2, bool> intersection(const Segment2D &, const Segment2D &);
 ClipResult clip(const Triangle2D &, const Segment2D &);
 
 float distance(const Ray &ray, const float3 &point);
+float distance(const Segment &, const float3 &point);
 float distance(const Triangle &tri, const Segment &);
+
+float3 closestPoint(const Segment &, const float3 &point);
 
 // returns infinity if doesn't intersect
 pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);

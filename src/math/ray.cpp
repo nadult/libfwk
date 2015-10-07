@@ -31,7 +31,25 @@ float distance(const Ray &ray, const float3 &point) {
 
 	if(t > 0.0f)
 		diff -= ray.dir() * t;
+	THROW("verify me");
 	return dot(diff, diff);
+}
+
+float3 closestPoint(const Segment &segment, const float3 &point) {
+	float3 diff = point - segment.origin();
+	float t = dot(diff, segment.dir());
+
+	if(t < 0.0f)
+		return segment.origin();
+	if(t > segment.length())
+		return segment.end();
+	t /= segment.length();
+
+	return segment.origin() + (segment.end() - segment.origin()) * t;
+}
+
+float distance(const Segment &segment, const float3 &point) {
+	return distance(closestPoint(segment, point), point);
 }
 
 pair<float, float> intersectionRange(const Ray &ray, const Box<float3> &box) {

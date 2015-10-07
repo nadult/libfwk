@@ -69,6 +69,12 @@ void testRays() {
 	assertCloseEnough(intersection(segment1, tri), 4.0f);
 	assertEqual(intersection(segment2, tri), constant::inf);
 	assertCloseEnough(tri.area(), 2.0f);
+
+	Segment segment3(float3(1, 1, 0), float3(4, 4, 0));
+	float3 p1(4, 1, 0), p2(0.5, 0.5, 0), p3(5, 4, 0);
+	assertCloseEnough(closestPoint(segment3, p1), float3(2.5, 2.5, 0));
+	assertCloseEnough(closestPoint(segment3, p2), float3(1, 1, 0));
+	assertCloseEnough(closestPoint(segment3, p3), float3(4, 4, 0));
 }
 
 void testIntersections() {
