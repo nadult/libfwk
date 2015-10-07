@@ -137,61 +137,78 @@ struct Isect {
 	Segment segment;
 };
 
-struct LoopElem {
-	Face *face;
-	Vertex *origin;
+struct FaceEdgeInfo {
+	vector<Edge> edges;
+	std::map<Vertex *, int> border_verts;
 };
 
-using Loop = vector<LoopElem>;
+using Loop = vector<Edge>;
+using FaceEdgeMap = std::map<Face *, FaceEdgeInfo>;
 
-pair<Loop, Loop> extractLoop(vector<Isect> &isects, HalfTetMesh &ha, HalfTetMesh &hb) {
-	// TODO: what if loop touches 3 faces of single tetrahedron?
-	if(isects.empty())
-		return make_pair(Loop(), Loop());
+int findClosestEdge(Face *face, Vertex *vert) {
+	if(isOneOf(vert, face->verts()))
+		return -1;
 
-	vector<Isect> current = {isects.back()};
-	isects.pop_back();
+	int closest = -1;
+	float closest_dist = constant::inf;
+	auto edges = face->edges();
 
-	while(true) {
-		float3 cur_end = current.back().segment.end();
-		if(distance(cur_end, current.front().segment.origin()) < constant::epsilon)
-			break;
-
-		bool found = false;
-		for(int n = 0; n < (int)isects.size(); n++) {
-			Segment segment = isects[n].segment;
-			bool connects = distance(cur_end, segment.origin()) < constant::epsilon;
-			if(!connects && distance(cur_end, segment.end()) < constant::epsilon) {
-				connects = true;
-				segment = Segment(segment.end(), segment.origin());
-			}
-
-			if(connects) {
-				current.emplace_back(Isect{isects[n].face_a, isects[n].face_b, segment});
-				isects[n] = isects.back();
-				isects.pop_back();
-				found = true;
-				break;
-			}
+	for(int i = 0; i < 3; i++) {
+		auto edge = edges[i];
+		float dist = distance(edge.segment(), vert->pos());
+		if(dist < closest_dist) {
+			closest = i;
+			closest_dist = dist;
 		}
-		if(!found)
-			return make_pair(Loop(), Loop());
 	}
 
-	// TODO: proper neighbour tracing for robust intersection finding
-	DASSERT(distance(current.back().segment.end(), current.front().segment.origin()) <
-			constant::epsilon);
+	if(closest_dist < constant::epsilon)
+		return closest;
+	return -1;
+}
 
-	Loop outa, outb;
-	for(const auto &isect : current) {
-		// TODO: vertex may already exist
-		Vertex *va = ha.addVertex(isect.segment.origin());
-		Vertex *vb = hb.addVertex(isect.segment.origin());
+void updateBorderVert(FaceEdgeMap &map, Face *face, Vertex *vert) {
+	int edge_id = findClosestEdge(face, vert);
 
-		outa.emplace_back(LoopElem{isect.face_a, va});
-		outb.emplace_back(LoopElem{isect.face_b, vb});
+	if(edge_id != -1) {
+		map[face].border_verts[vert] = edge_id;
+		Face *other = face->boundaryNeighbours()[edge_id];
+		DASSERT(other);
+
+		int other_id = other->edgeId(face->edges()[edge_id]);
+		DASSERT(other_id != -1);
+		map[other].border_verts[vert] = other_id;
 	}
-	return make_pair(outa, outb);
+}
+
+vector<Edge> findVerts(const vector<Isect> &isects, HalfTetMesh &mesh) {
+	vector<Edge> out;
+	for(const auto &isect : isects) {
+		DASSERT(distance(isect.segment.origin(), isect.segment.end()) > constant::epsilon);
+		Vertex *f1 = mesh.findVertex(isect.segment.origin());
+		Vertex *f2 = mesh.findVertex(isect.segment.end());
+		Vertex *v1 = f1 ? f1 : mesh.addVertex(isect.segment.origin());
+		Vertex *v2 = f2 ? f2 : mesh.addVertex(isect.segment.end());
+		out.emplace_back(v1, v2);
+	}
+	return out;
+}
+
+void extractLoops(const vector<Isect> &isects, HalfTetMesh &hmesh1, HalfTetMesh &hmesh2,
+				  vector<Edge> &loops1, vector<Edge> &loops2, FaceEdgeMap &map1,
+				  FaceEdgeMap &map2) {
+	loops1 = findVerts(isects, hmesh1);
+	loops2 = findVerts(isects, hmesh2);
+
+	for(int i = 0; i < (int)isects.size(); i++) {
+		const auto &cur = isects[i];
+		map1[cur.face_a].edges.emplace_back(loops1[i].a, loops1[i].b);
+		map2[cur.face_b].edges.emplace_back(loops2[i].a, loops2[i].b);
+		updateBorderVert(map1, cur.face_a, loops1[i].a);
+		updateBorderVert(map1, cur.face_a, loops1[i].b);
+		updateBorderVert(map2, cur.face_b, loops2[i].a);
+		updateBorderVert(map2, cur.face_b, loops2[i].b);
+	}
 }
 
 void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> tris, int id,
@@ -267,207 +284,138 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 	Saver(format("temp/file%d.svg", id)) << doc;
 }
 
-struct Line {
-	Vertex *e1, *e2;
-	vector<Edge> edges;
-};
-vector<Line> extractLines(const vector<Edge> &edges, vector<Vertex *> endings) {
-	vector<Line> out;
-	vector<int> marked(edges.size(), 0);
+float angleBetween(Vertex *vprev, Vertex *vcur, Vertex *vnext, const Projection &proj) {
+	DASSERT(vprev && vcur && vnext);
+	float2 cur = (proj * vcur->pos()).xz();
+	float2 prev = (proj * vprev->pos()).xz();
+	float2 next = (proj * vnext->pos()).xz();
 
-	std::map<Vertex *, vector<int>> edge_map;
-	for(int n = 0; n < (int)edges.size(); n++) {
-		edge_map[edges[n].a].emplace_back(n);
-		edge_map[edges[n].b].emplace_back(n);
+	float vcross = -cross(normalize(cur - prev), normalize(next - cur));
+	float vdot = dot(normalize(next - cur), normalize(prev - cur));
+
+	float ang = atan2(vcross, vdot);
+	if(ang < 0.0f)
+		ang = constant::pi * 2.0f + ang;
+	DASSERT(ang >= 0.0f && ang < constant::pi * 2.0f);
+	return ang;
+}
+
+vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &proj) {
+	vector<float> out(verts.size());
+
+	for(int n = 0, count = (int)verts.size(); n < count; n++) {
+		auto *prev = verts[(n + count - 1) % count];
+		auto *next = verts[(n + 1) % count];
+		out[n] = angleBetween(prev, verts[n], next, proj);
 	}
-
-	/*	printf("Extracting lines:\n");
-		for(const auto &edge : edges)
-			xmlPrint("% - %\n", (long long)edge.a % 1337, (long long)edge.b % 1337);
-		printf("endings:\n");
-		for(auto *v : endings)
-			xmlPrint("%\n", (long long)v % 1337);*/
-
-	for(int n = 0; n < (int)edges.size(); n++) {
-		if(marked[n])
-			continue;
-		const auto &start = edges[n];
-
-		bool aends = isOneOf(start.a, endings);
-		bool bends = isOneOf(start.b, endings);
-		if(!aends && !bends)
-			continue;
-
-		marked[n] = true;
-
-		Line new_line{start.a, start.b, {}};
-		if(bends)
-			swap(new_line.e1, new_line.e2);
-		new_line.edges.emplace_back(new_line.e1, new_line.e2);
-
-		while(!isOneOf(new_line.e2, endings)) {
-			auto &inds = edge_map[new_line.e2];
-			int edge_id = -1;
-			for(int i : inds)
-				if(!marked[i])
-					edge_id = i;
-			DASSERT(edge_id != -1);
-			marked[edge_id] = 1;
-
-			Vertex *next = edges[edge_id].a == new_line.e2 ? edges[edge_id].b : edges[edge_id].a;
-			new_line.edges.emplace_back(new_line.e2, next);
-			new_line.e2 = next;
-		}
-
-		out.emplace_back(std::move(new_line));
-	}
-
 	return out;
 }
 
 // bedges: border edges
 // iedges: inside edges
 vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector<Edge> &iedges,
-										const vector<Vertex *> &endings) {
-	vector<Line> blines = extractLines(bedges, endings);
-	vector<Line> lines = extractLines(iedges, endings);
-	vector<int> marked(blines.size(), 0);
+										const Projection &proj) {
+	bool do_print = false;
+
+	// TODO: handle holes
+	if(do_print) {
+		xmlPrint("bedges: ");
+		for(auto e : bedges)
+			xmlPrint("(%-%)[%:%] ", (long long)e.a % 1337, (long long)e.b % 1337,
+					 (proj * e.a->pos()).xz(), (proj * e.b->pos()).xz());
+		xmlPrint("\n");
+		xmlPrint("iedges: ");
+		for(auto e : iedges)
+			xmlPrint("(%-%)[%:%] ", (long long)e.a % 1337, (long long)e.b % 1337,
+					 (proj * e.a->pos()).xz(), (proj * e.b->pos()).xz());
+		xmlPrint("\n");
+	}
+
+	std::map<Vertex *, vector<Edge>> map;
+	for(auto bedge : bedges)
+		map[bedge.a].emplace_back(bedge);
+	for(auto iedge : iedges) {
+		map[iedge.a].emplace_back(iedge);
+		map[iedge.b].emplace_back(iedge.inverse());
+	}
 
 	vector<vector<Edge>> out;
 
-	/*	for(auto bl : blines) {
-			xmlPrint("Bline: ");
-			for(auto e : bl.edges)
-				xmlPrint("(%-%) ", (long long)e.a % 1337, (long long)e.b % 1337);
-			xmlPrint("\n");
-		}
-		for(auto l : lines) {
-			xmlPrint("Line: ");
-			for(auto e : l.edges)
-				xmlPrint("(%-%) ", (long long)e.a % 1337, (long long)e.b % 1337);
-			xmlPrint("\n");
-		}*/
+	while(!map.empty()) {
+		auto it = map.begin();
+		DASSERT(!it->second.empty());
+		Edge start = it->second.back();
+		it->second.pop_back();
+		if(it->second.empty())
+			map.erase(it);
 
-	for(int n = 0; n < (int)blines.size(); n++) {
-		if(marked[n])
-			continue;
-		marked[n] = true;
-		//		xmlPrint("Select: %-%: ", (long long)blines[n].e1 % 1337, (long long)blines[n].e2 %
-		// 1337);
+		vector<Edge> loop = {start};
+		if(do_print)
+			xmlPrint("Start: %-%\n", (long long)start.a % 1337, (long long)start.b % 1337);
 
-		const auto &line = blines[n];
-		int b1 = -1, b2 = -1;
-		for(int i = 0; i < (int)lines.size(); i++) {
-			if(isOneOf(line.e1, lines[i].e1, lines[i].e2))
-				b1 = i;
-			if(isOneOf(line.e2, lines[i].e1, lines[i].e2))
-				b2 = i;
-		}
-		DASSERT(b1 != -1 && b2 != -1);
-		const auto &line1 = lines[b1], &line2 = lines[b2];
+		while(true) {
+			Vertex *current = loop.back().b;
+			auto it = map.find(current);
 
-		/*
-		xmlPrint("(%-%) ", (long long)lines[b1].e1 % 1337, (long long)lines[b1].e2 % 1337);
-		if(b1 != b2)
-			xmlPrint("(%-%) ", (long long)lines[b2].e1 % 1337, (long long)lines[b2].e2 % 1337);
-		printf("\n");*/
+			if(it == map.end()) {
+				DASSERT(current == start.a);
+				break;
+			}
 
-		int inside = -1;
-		bool inside_invert = false;
-		if(b1 != b2) {
-			const auto *e1 = isOneOf(line1.e1, line.e1, line.e2) ? line1.e2 : line1.e1;
-			const auto *e2 = isOneOf(line2.e1, line.e1, line.e2) ? line2.e2 : line2.e1;
+			float min_angle = constant::inf;
+			Edge best_edge;
 
-			if(e1 != e2) {
-				bool invert = false;
-				for(int j = n + 1; j < (int)blines.size(); j++) {
-					if(marked[j])
-						continue;
-					if(blines[j].e1 == e1 && blines[j].e2 == e2) {
-						inside = j;
-						break;
-					}
-					if(blines[j].e1 == e2 && blines[j].e2 == e1) {
-						inside = j;
-						inside_invert = true;
-						break;
-					}
+			for(auto edge : it->second) {
+				if(edge.b == loop.back().a)
+					continue;
+				float angle = angleBetween(loop.back().a, current, edge.b, proj);
+
+				if(do_print)
+					xmlPrint("Consider: %-% (%)\n", (long long)edge.a % 1337,
+							 (long long)edge.b % 1337, radToDeg(angle));
+				if(angle < min_angle) {
+					min_angle = angle;
+					best_edge = edge;
 				}
-				if(inside == -1)
-					exit(0);
-				DASSERT(inside != -1);
-				marked[inside] = 1;
 			}
+
+			if(current == start.a) {
+				float start_angle = angleBetween(loop.back().a, current, start.b, proj);
+				if(do_print)
+					xmlPrint("Consider start: (%)\n", radToDeg(start_angle));
+				if(start_angle < min_angle)
+					break;
+			}
+			if(do_print)
+				xmlPrint("Added: %-%\n", (long long)best_edge.a % 1337,
+						 (long long)best_edge.b % 1337);
+
+			if(!best_edge.isValid())
+				exit(0);
+			DASSERT(best_edge.isValid());
+			for(int i = 0; i < (int)it->second.size(); i++)
+				if(it->second[i] == best_edge) {
+					it->second[i] = it->second.back();
+					it->second.pop_back();
+					break;
+				}
+			if(it->second.empty())
+				map.erase(it);
+
+			loop.emplace_back(best_edge);
 		}
-
-		// TODO: extract ordered
-		vector<Edge> poly_edges;
-		insertBack(poly_edges, line.edges);
-		insertBack(poly_edges, line1.edges);
-		if(b1 != b2)
-			insertBack(poly_edges, line2.edges);
-		if(inside != -1)
-			insertBack(poly_edges, blines[inside].edges);
-
-		/*		xmlPrint("Poly: ");
-				for(auto e : poly_edges)
-					xmlPrint("(%-%) ", (long long)e.a % 1337, (long long)e.b % 1337);
-				xmlPrint("\n");*/
-		out.emplace_back(std::move(poly_edges));
+		out.emplace_back(loop);
 	}
 
-	return out;
-}
-
-vector<Vertex *> polyVerts(const vector<Edge> &edges) {
-	DASSERT(edges.size() >= 3);
-	vector<int> marked(edges.size(), 0);
-
-	Vertex *end_vert = edges.front().b;
-	vector<Vertex *> out = {edges.front().a};
-	marked[0] = 1;
-	int count = 1;
-
-	while(count < (int)edges.size()) {
-		Vertex *next = nullptr;
-		for(int n = 0; n < (int)edges.size(); n++) {
-			if(marked[n])
-				continue;
-			if(edges[n].a == out.back()) {
-				next = edges[n].b;
-				marked[n] = 1;
-				break;
-			}
-			if(edges[n].b == out.back()) {
-				next = edges[n].a;
-				marked[n] = 1;
-				break;
-			}
+	if(do_print) {
+		printf("polygons: %d\n", (int)out.size());
+		for(auto poly : out) {
+			printf("Poly: ");
+			for(auto e : poly)
+				xmlPrint("%-% ", (long long)e.a % 1337, (long long)e.b % 1337);
+			printf("\n");
 		}
-
-		DASSERT(next);
-		count++;
-		out.emplace_back(next);
-	}
-
-	DASSERT(out.back() == end_vert);
-	return out;
-}
-
-vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &proj) {
-	vector<float> out(verts.size());
-
-	for(int n = 0, count = (int)verts.size(); n < (int)verts.size(); n++) {
-		float2 cur = (proj * verts[n]->pos()).xz();
-		float2 prev = (proj * verts[(n + count - 1) % count]->pos()).xz();
-		float2 next = (proj * verts[(n + 1) % count]->pos()).xz();
-
-		float vcross = -cross(normalize(cur - prev), normalize(next - cur));
-		float vdot = dot(normalize(next - cur), normalize(prev - cur));
-		out[n] = atan2(vcross, vdot);
-		if(out[n] < 0.0f)
-			out[n] = constant::pi * 2.0f + out[n];
-		DASSERT(out[n] >= 0.0f && out[n] < constant::pi * 2.0f);
+		printf("\n");
 	}
 
 	return out;
@@ -475,11 +423,17 @@ vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &pro
 
 // Simple ear-clipping algorithm from: http://arxiv.org/pdf/1212.6038.pdf
 // TODO: avoid slivers
-vector<array<Vertex *, 3>> triangulateSimplePolygon(Face *face, const vector<Edge> &edges) {
+// TODO: add support for holes (when loop is contained in single triangle)
+vector<array<Vertex *, 3>> triangulateSimplePolygon(const vector<Edge> &edges,
+													const Projection &proj) {
 	vector<array<Vertex *, 3>> out;
 
-	Projection proj(face->triangle());
-	vector<Vertex *> verts = polyVerts(edges);
+	vector<Vertex *> verts(edges.size(), nullptr);
+	for(int e = 0; e < (int)edges.size(); e++) {
+		DASSERT(edges[e].b == edges[(e + 1) % edges.size()].a);
+		verts[e] = edges[e].a;
+	}
+
 	vector<float> angles = computeAngles(verts, proj);
 	float angle_sum = std::accumulate(begin(angles), end(angles), 0.0f);
 
@@ -492,10 +446,9 @@ vector<array<Vertex *, 3>> triangulateSimplePolygon(Face *face, const vector<Edg
 		angle_sum = std::accumulate(begin(angles), end(angles), 0.0f);
 	}
 
-	/*
-	printf("Verts: (%f)\n", radToDeg(angle_sum));
-	for(int n = 0; n < (int)verts.size(); n++)
-		xmlPrint("%: %\n", (proj * verts[n]->pos()).xz(), radToDeg(angles[n]));*/
+	/*	printf("Verts: (%f)\n", radToDeg(angle_sum));
+		for(int n = 0; n < (int)verts.size(); n++)
+			xmlPrint("%: %\n", (proj * verts[n]->pos()).xz(), radToDeg(angles[n]));*/
 	DASSERT(fabs(angle_sum - constant::pi * ((int)verts.size() - 2)) < 0.01f);
 
 	while(out.size() + 2 < edges.size()) {
@@ -537,27 +490,29 @@ vector<array<Vertex *, 3>> triangulateSimplePolygon(Face *face, const vector<Edg
 }
 
 vector<array<Vertex *, 3>> triangulateFace(Face *face, const vector<Edge> &bedges,
-										   const vector<Edge> &iedges,
-										   const vector<Vertex *> all_splits) {
+										   const vector<Edge> &iedges) {
+	Projection proj(face->triangle());
 
-	vector<vector<Edge>> simple_polys = findSimplePolygons(bedges, iedges, all_splits);
+	vector<vector<Edge>> simple_polys = findSimplePolygons(bedges, iedges, proj);
 
 	vector<array<Vertex *, 3>> out;
 	for(const auto &poly : simple_polys)
-		insertBack(out, triangulateSimplePolygon(face, poly));
+		insertBack(out, triangulateSimplePolygon(poly, proj));
 	return out;
 }
 
 // When more than one triangulated face belong to single tetrahedron,
 // then this tet should be subdivided
-void prepareMesh(HalfTetMesh &mesh, vector<Loop> &loops) {
+void prepareMesh(HalfTetMesh &mesh, FaceEdgeMap &map) {
 	vector<Tet *> split_tets;
 
+	int edge_count = 0;
 	for(auto *face : mesh.faces())
 		face->setTemp(0);
-	for(const auto &loop : loops)
-		for(const auto &elem : loop)
-			elem.face->setTemp(1);
+	for(const auto &it : map) {
+		it.first->setTemp(1);
+		edge_count += (int)it.second.edges.size();
+	}
 
 	std::map<Face *, Face *> face_map;
 
@@ -587,12 +542,33 @@ void prepareMesh(HalfTetMesh &mesh, vector<Loop> &loops) {
 		}
 	}
 
-	for(auto &loop : loops)
-		for(auto &elem : loop) {
-			auto it = face_map.find(elem.face);
-			if(it != face_map.end())
-				elem.face = it->second;
-		}
+	FaceEdgeMap new_map;
+	for(auto old_elem : map) {
+		Face *face = old_elem.first;
+		auto remap_it = face_map.find(face);
+		if(remap_it != face_map.end())
+			face = remap_it->second;
+		new_map[face] = old_elem.second;
+	}
+	new_map.swap(map);
+	// TODO: this should work...
+	/*
+		for(auto it : face_map) {
+			auto mit = map.find(it.first);
+			if(mit != map.end()) {
+				map[it.second] = mit->second;
+				map.erase(mit);
+			}
+		}*/
+
+	int after_edge_count = 0;
+	for(auto it : map) {
+		after_edge_count += (int)it.second.edges.size();
+		for(auto bv : it.second.border_verts)
+			DASSERT(distance(it.first->edges()[bv.second].segment(), bv.first->pos()) <
+					constant::epsilon);
+	}
+	DASSERT(edge_count == after_edge_count);
 }
 
 vector<Vertex *> sortEdgeVerts(Edge edge, vector<Vertex *> splits) {
@@ -609,51 +585,19 @@ vector<Vertex *> sortEdgeVerts(Edge edge, vector<Vertex *> splits) {
 	return splits;
 }
 
-vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
-							 TetMesh::CSGVisualData *vis_data, int mesh_id) {
-	// printf("Triangulation:\n");
-	// TODO: edge may already exist
-	vector<Edge> processed;
+void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData *vis_data,
+					 int mesh_id) {
+	prepareMesh(mesh, map);
 
-	prepareMesh(mesh, loops);
-
-	struct FaceEdge {
-		Vertex *v1, *v2;
-		Face *prev, *next;
-	};
-
-	std::map<Face *, vector<FaceEdge>> face_edges;
-
-	if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
-		vector<Triangle> tris;
-		for(auto loop : loops)
-			for(auto elem : loop) {
-				auto verts = elem.face->verts();
-				tris.emplace_back(verts[0]->pos(), verts[1]->pos(), verts[2]->pos());
-			}
-		vis_data->poly_soups.emplace_back(Color::red, tris);
-	}
-
-	for(const auto &loop : loops) {
-		if(loop.empty())
-			continue;
-		DASSERT(loop.size() >= 2);
-		LoopElem prev = loop.back();
-
-		for(int n = 0; n < (int)loop.size(); n++) {
-			const auto &cur = loop[n];
-			const auto &prev = loop[(n + loop.size() - 1) % loop.size()];
-			const auto &next = loop[(n + 1) % loop.size()];
-
-			face_edges[cur.face].emplace_back(
-				FaceEdge{cur.origin, next.origin, prev.face, next.face});
-		}
-	}
-
-	// After triangulation face pointers in loops will no longer be valid
-	for(auto &loop : loops)
-		for(auto &elem : loop)
-			elem.face = nullptr;
+	/*	if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
+			vector<Triangle> tris;
+			for(auto loop : loops)
+				for(auto elem : loop) {
+					auto verts = elem.face->verts();
+					tris.emplace_back(verts[0]->pos(), verts[1]->pos(), verts[2]->pos());
+				}
+			vis_data->poly_soups.emplace_back(Color::red, tris);
+		}*/
 
 	struct SplitInfo {
 		Edge edge;
@@ -664,32 +608,25 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 	vector<SplitInfo> edge_splits;
 	vector<Tet *> rem_tets;
 
-	// TODO: specified edge may lie on the boundary of the triangle
-
-	int tid = 0;
-	for(auto pair : face_edges) {
+	for(auto pair : map) {
 		auto *face = pair.first;
 		auto verts = pair.first->verts();
+		auto edges = face->edges();
+		auto &border_verts = pair.second.border_verts;
+
 		array<vector<Vertex *>, 3> edge_verts;
-		vector<Vertex *> all_splits;
 		rem_tets.emplace_back(face->tet());
 
-		//	printf("Preparing %d:\n", tid);
-		vector<Edge> tri_boundary_edges, tri_inside_edges;
-		for(auto edge : pair.second) {
-			//		xmlPrint("Inside edge: (%) (%)\n", edge.v1->pos(), edge.v2->pos());
-
-			if(edge.prev != face)
-				edge_verts[face->edgeId(mesh.sharedEdge(face, edge.prev))].emplace_back(edge.v1);
-			if(edge.next != face)
-				edge_verts[face->edgeId(mesh.sharedEdge(face, edge.next))].emplace_back(edge.v2);
-			tri_inside_edges.emplace_back(Edge(edge.v1, edge.v2));
-			processed.emplace_back(tri_inside_edges.back());
+		for(auto bvert : border_verts) {
+			DASSERT(bvert.second >= 0 && bvert.second < 3);
+			float dist = distance(edges[bvert.second].segment(), bvert.first->pos());
+			DASSERT(dist < constant::epsilon);
+			edge_verts[bvert.second].emplace_back(bvert.first);
 		}
 
+		vector<Edge> tri_boundary_edges, tri_inside_edges;
 		for(int i = 0; i < 3; i++) {
 			auto edge = face->edges()[i];
-
 			if(edge_verts[i].empty()) {
 				tri_boundary_edges.emplace_back(edge.a, edge.b);
 				continue;
@@ -697,37 +634,54 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 
 			auto splits = sortEdgeVerts(edge, edge_verts[i]);
 			edge_splits.emplace_back(SplitInfo{face->edges()[i], splits});
-			insertBack(all_splits, splits);
-			//		xmlPrint("Outside edge #% (%) (%): ", i, edge.a->pos(), edge.b->pos());
-			//		for(auto split : splits)
-			//			xmlPrint("(%) ", split->pos());
-			//		xmlPrint("\n");
 
 			tri_boundary_edges.emplace_back(edge.a, splits.front());
-			for(int i = 0; i + 1 < (int)splits.size(); i++)
+			//			DASSERT(distance(edge.segment(), splits.front()->pos()) <
+			// constant::epsilon);
+			for(int i = 0; i + 1 < (int)splits.size(); i++) {
 				tri_boundary_edges.emplace_back(splits[i], splits[i + 1]);
+				DASSERT(distance(edge.segment(), splits[i]->pos()) < constant::epsilon);
+			}
 			tri_boundary_edges.emplace_back(splits.back(), edge.b);
 		}
+
+		for(auto edge : pair.second.edges)
+			if(!isOneOf(edge, tri_boundary_edges) && !isOneOf(edge.inverse(), tri_boundary_edges))
+				tri_inside_edges.emplace_back(edge.ordered());
 
 		auto other_vert = setDifference(face->tet()->verts(), face->verts());
 		DASSERT(other_vert.size() == 1);
 
-		auto triangles = triangulateFace(face, tri_boundary_edges, tri_inside_edges, all_splits);
-		if(vis_data && vis_data->phase == 1) {
+		//		printf("triangulating face (i:%d b:%d)\n", (int)tri_inside_edges.size(),
+		//			   (int)tri_boundary_edges.size());
+		auto triangles = triangulateFace(face, tri_boundary_edges, tri_inside_edges);
+		//		printf("new tris: %d\n", (int)triangles.size());
+
+		if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
 			Color col = mesh_id % 2 ? Color::yellow : Color::blue;
 			vector<Segment> edges;
 			for(auto tri : triangles)
 				for(int i = 0; i < 3; i++)
 					edges.emplace_back(tri[i]->pos(), tri[(i + 1) % 3]->pos());
-			vis_data->segment_groups_trans.emplace_back(col, edges);
+			vis_data->segment_groups.emplace_back(col, edges);
 		}
+
+		float area_sum = 0.0f;
+		for(auto t : triangles) {
+			Triangle tri(t[0]->pos(), t[1]->pos(), t[2]->pos());
+			area_sum += tri.area();
+		}
+		DASSERT(fabs(area_sum - face->triangle().area()) < constant::epsilon);
 
 		face_triangulations.emplace_back(other_vert.front(), std::move(triangles));
 	}
 
+	float old_volume = 0.0f;
 	makeUnique(rem_tets);
-	for(auto *tet : rem_tets)
+	for(auto *tet : rem_tets) {
+		old_volume += tet->tet().volume();
 		mesh.removeTet(tet);
+	}
 
 	// TODO: better ordering
 	std::sort(begin(edge_splits), end(edge_splits), [](const auto &s1, const auto &s2) {
@@ -739,29 +693,38 @@ vector<Edge> triangulateMesh(HalfTetMesh &mesh, vector<Loop> &loops,
 	for(const auto &split : edge_splits)
 		mesh.subdivideEdge(split.edge.a, split.edge.b, split.splits);
 
+	float new_volume = 0.0f;
 	for(const auto &tring : face_triangulations)
-		for(auto face_verts : tring.second)
-			mesh.addTet(face_verts[0], face_verts[1], face_verts[2], tring.first);
+		for(auto face_verts : tring.second) {
+			auto *tet = mesh.addTet(face_verts[0], face_verts[1], face_verts[2], tring.first);
+			new_volume += tet->tet().volume();
+		}
+	DASSERT(fabs(new_volume - old_volume) < constant::epsilon);
 
 	if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
 		vector<Triangle> tris;
+		vector<Segment> segs;
+
 		for(auto *face : mesh.faces()) {
 			auto verts = face->verts();
-			if(face->isBoundary())
+			if(face->isBoundary()) {
+				for(auto e : face->edges())
+					segs.emplace_back(e.segment());
 				tris.emplace_back(verts[0]->pos(), verts[1]->pos(), verts[2]->pos());
+			}
 		}
-		vis_data->poly_soups.emplace_back(Color(Color::blue, 100), tris);
-	}
 
-	return processed;
+		vis_data->segment_groups.emplace_back(Color::magneta, segs);
+		vis_data->poly_soups.emplace_back(Color(Color::brown, 255), tris);
+	}
 }
 
 static float volume(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
 	return Tetrahedron(a->pos(), b->pos(), c->pos(), d->pos()).volume();
 }
 
-void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Loop> &loops1,
-						const vector<Loop> &loops2, const vector<Edge> &edges2) {
+void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edge> &loops1,
+						const vector<Edge> &loops2) {
 	//	for(auto *face1 : mesh1.faces())
 	//		face1->setTemp(0);
 	for(auto *face2 : mesh2.faces())
@@ -770,44 +733,46 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Loo
 	vector<Face *> list;
 
 	DASSERT(loops1.size() == loops2.size());
-	for(int l = 0; l < (int)loops1.size(); l++) {
-		const auto &loop1 = loops1[l];
-		const auto &loop2 = loops2[l];
-		DASSERT(loop1.size() == loop2.size());
+	for(int i = 0; i < (int)loops1.size(); i++) {
+		std::array<Vertex *, 2> edge1{{loops1[i].a, loops1[i].b}};
+		std::array<Vertex *, 2> edge2{{loops2[i].a, loops2[i].b}};
 
-		for(int i = 0; i < (int)loop1.size(); i++) {
-			std::array<Vertex *, 2> edge1{{loop1[i].origin, loop1[(i + 1) % loop1.size()].origin}};
-			std::array<Vertex *, 2> edge2{{loop2[i].origin, loop2[(i + 1) % loop2.size()].origin}};
+		auto faces1 = mesh1.edgeBoundaryFaces(edge1[0], edge1[1]);
+		auto faces2 = mesh2.edgeBoundaryFaces(edge2[0], edge2[1]);
 
-			auto faces1 = mesh1.edgeBoundaryFaces(edge1[0], edge1[1]);
-			auto faces2 = mesh2.edgeBoundaryFaces(edge2[0], edge2[1]);
-			DASSERT(faces1.size() == 2 && faces2.size() == 2);
+		if(faces1.size() != 2 || faces2.size() != 2) {
+			for(auto f : faces1)
+				xmlPrint("nrm: % (%  ||   %   ||   %)\n", f->triangle().normal(), f->triangle()[0],
+						 f->triangle()[1], f->triangle()[2]);
 
-			std::array<Vertex *, 2> far_verts1 = {
-				{faces1[0]->otherVert(edge1), faces1[1]->otherVert(edge1)}};
-			std::array<Vertex *, 2> far_verts2 = {
-				{faces2[0]->otherVert(edge2), faces2[1]->otherVert(edge2)}};
-			auto verts1a = faces1[0]->verts(), verts1b = faces1[1]->verts();
-			auto verts2a = faces2[0]->verts(), verts2b = faces2[1]->verts();
-
-			float v1 = volume(verts1a[0], verts1a[1], verts1a[2], far_verts2[0]);
-			float v2 = volume(verts1b[0], verts1b[1], verts1b[2], far_verts2[0]);
-
-			int vert_inside = 0;
-			if(v1 < 0.0f && v2 < 0.0f)
-				vert_inside = 0;
-			else if(v1 > 0.0f && v2 > 0.0f)
-				vert_inside = 1;
-			else {
-				// TODO: verify me
-				float v3 = volume(verts1a[0], verts1a[1], verts1a[2], far_verts1[1]);
-				vert_inside = v3 < 0.0f ? 0 : 1;
-			}
-
-			faces2[vert_inside]->setTemp(1);
-			faces2[vert_inside ^ 1]->setTemp(-1);
-			insertBack(list, faces2);
+			printf("f1:%d f2:%d\n", (int)faces1.size(), (int)faces2.size());
 		}
+		DASSERT(faces1.size() == 2 && faces2.size() == 2);
+
+		std::array<Vertex *, 2> far_verts1 = {
+			{faces1[0]->otherVert(edge1), faces1[1]->otherVert(edge1)}};
+		std::array<Vertex *, 2> far_verts2 = {
+			{faces2[0]->otherVert(edge2), faces2[1]->otherVert(edge2)}};
+		auto verts1a = faces1[0]->verts(), verts1b = faces1[1]->verts();
+		auto verts2a = faces2[0]->verts(), verts2b = faces2[1]->verts();
+
+		float v1 = volume(verts1a[0], verts1a[1], verts1a[2], far_verts2[0]);
+		float v2 = volume(verts1b[0], verts1b[1], verts1b[2], far_verts2[0]);
+
+		int vert_inside = 0;
+		if(v1 < 0.0f && v2 < 0.0f)
+			vert_inside = 0;
+		else if(v1 > 0.0f && v2 > 0.0f)
+			vert_inside = 1;
+		else {
+			// TODO: verify me
+			float v3 = volume(verts1a[0], verts1a[1], verts1a[2], far_verts1[1]);
+			vert_inside = v3 < 0.0f ? 0 : 1;
+		}
+
+		faces2[vert_inside]->setTemp(1);
+		faces2[vert_inside ^ 1]->setTemp(-1);
+		insertBack(list, faces2);
 	}
 
 	while(!list.empty()) {
@@ -816,11 +781,12 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Loo
 
 		for(auto edge : face->edges()) {
 			bool is_seg_boundary = false;
-			for(auto tedge : edges2)
-				if(edge == tedge || edge == tedge.inverse()) {
-					is_seg_boundary = true;
-					break;
-				}
+			for(const auto &loop2 : loops2) // TODO: change to set
+				for(auto tedge : loops2)
+					if(edge == tedge || edge == tedge.inverse()) {
+						is_seg_boundary = true;
+						break;
+					}
 
 			if(!is_seg_boundary)
 				for(auto *nface : mesh2.edgeFaces(edge.a, edge.b))
@@ -911,85 +877,168 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 	return TetMesh();
 }
 
-TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
-	HalfTetMesh ha(a), hb(b);
+struct Intersection {
+	Intersection() : is_valid(false) {}
+	Intersection(Segment seg) : segment(seg), is_valid(true) {}
 
-	// DASSERT(HalfMesh(TetMesh(ha).toMesh()).is2Manifold());
-	// DASSERT(HalfMesh(TetMesh(hb).toMesh()).is2Manifold());
+	Segment segment;
+	bool is_valid;
+};
 
-	vector<pair<Tet *, Tet *>> tet_isects;
+int partIsect(const Triangle &t1, const Triangle &t2, float3 isects[3], bool is_isect[3],
+			  float epsilon) {
+	int count = 0;
+	for(int e = 0; e < 3; e++) {
+		auto edge = t2.edges()[e];
+		float d1 = dot(edge.first - t1.a(), t1.normal());
+		float d2 = dot(edge.second - t1.b(), t1.normal());
 
-	for(auto *tet_a : ha.tets())
-		if(tet_a->isBoundary())
-			for(auto *tet_b : hb.tets())
-				if(tet_b->isBoundary())
-					if(areIntersecting(tet_a->tet(), tet_b->tet()))
-						tet_isects.emplace_back(tet_a, tet_b);
+		is_isect[e] = fabs(d1 - d2) > epsilon;
+		if(d1 < d2) {
+			is_isect[e] = d1 < epsilon && d2 > -epsilon;
+		} else { is_isect[e] = d2 < epsilon && d1 > -epsilon; }
+		if(!is_isect[e])
+			continue;
 
-	vector<Isect> isects;
-	for(auto pair : tet_isects)
-		for(auto *face_a : pair.first->faces())
-			if(face_a->isBoundary())
-				for(auto *face_b : pair.second->faces())
-					if(face_b->isBoundary()) {
-						auto isect = intersectionSegment(face_a->triangle(), face_b->triangle());
-						if(isect.second)
-							isects.emplace_back(Isect{face_a, face_b, isect.first});
+		float t = d1 / (d1 - d2);
+		isects[e] = edge.second * t + edge.first * (1.0f - t);
 
-						// TODO: handle situation when cuts are very close to vertices
-						DASSERT(!ha.findVertex(isect.first.origin()));
-						DASSERT(!ha.findVertex(isect.first.end()));
-						DASSERT(!hb.findVertex(isect.first.origin()));
-						DASSERT(!hb.findVertex(isect.first.end()));
-					}
-
-	vector<Loop> a_loops, b_loops;
-
-	vector<Segment> boundary_segs;
-	vector<Triangle> boundary_tris[2];
-
-	while(true) {
-		auto new_loop = extractLoop(isects, ha, hb);
-		if(new_loop.first.empty())
-			break;
-
-		for(int n = 0, count = (int)new_loop.first.size(); n < count; n++) {
-			const auto &prev = new_loop.first[(n - 1 + count) % count];
-			const auto &cur = new_loop.first[n];
-
-			boundary_segs.emplace_back(Segment(prev.origin->pos(), cur.origin->pos()));
-			boundary_tris[0].emplace_back(cur.face->triangle());
+		for(int i = 0; i < 3; i++) {
+			auto iedge = t1.edges()[i];
+			float3 icross = cross(iedge.second - iedge.first, isects[e] - iedge.first);
+			if(dot(icross, t1.normal()) < -epsilon)
+				is_isect[e] = false;
 		}
-		for(int n = 0, count = (int)new_loop.second.size(); n < count; n++) {
-			const auto &cur = new_loop.second[n];
-			boundary_tris[1].emplace_back(cur.face->triangle());
-		}
-
-		a_loops.emplace_back(new_loop.first);
-		b_loops.emplace_back(new_loop.second);
+		if(is_isect[e])
+			count++;
 	}
 
+	return count;
+}
+
+// Algorithm idea: http://web.stanford.edu/class/cs277/resources/papers/Moller1997b.pdf
+Intersection findIntersection(Face *f1, Face *f2, float epsilon) {
+	const Triangle &t1 = f1->triangle(), &t2 = f2->triangle();
+
+	auto ret = intersectionSegment(t1, t2);
+	return ret.second ? ret.first : Intersection();
+
+	float3 isects[2][3];
+	bool is_isect[2][3];
+
+	int c1 = partIsect(t1, t2, isects[0], is_isect[0], epsilon);
+	int c2 = partIsect(t2, t1, isects[1], is_isect[1], epsilon);
+
+	float3 points[4];
+	int npoint = 0;
+	for(int n = 0; n < 2; n++)
+		for(int i = 0; i < 3; i++)
+			if(is_isect[n][i]) {
+				bool is_ok = true;
+				for(int j = 0; j < npoint; j++)
+					if(!(distance(isects[n][i], points[j]) > constant::epsilon))
+						is_ok = false;
+				if(is_ok)
+					points[npoint++] = isects[n][i];
+			}
+
+	if(npoint >= 2)
+		return Segment(points[0], points[1]);
+	if(npoint > 0)
+		printf("zero : %d %d\n", c1, c2);
+	return Intersection();
+}
+
+TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
+	HalfTetMesh hmesh1(a), hmesh2(b);
+
+	// DASSERT(HalfMesh(TetMesh(hmesh1).toMesh()).is2Manifold());
+	// DASSERT(HalfMesh(TetMesh(hmesh2).toMesh()).is2Manifold());
+
+	vector<Isect> isects;
+	for(auto *face_a : hmesh1.faces())
+		if(face_a->isBoundary())
+			for(auto *face_b : hmesh2.faces())
+				if(face_b->isBoundary()) {
+					auto isect = findIntersection(face_a, face_b, 0.001f);
+					if(isect.is_valid)
+						isects.emplace_back(Isect{face_a, face_b, isect.segment});
+
+					// TODO: handle situation when cuts are very close to vertices
+					//		DASSERT(!hmesh1.findVertex(isect.first.origin()));
+					//		DASSERT(!hmesh1.findVertex(isect.first.end()));
+					//		DASSERT(!hmesh2.findVertex(isect.first.origin()));
+					//		DASSERT(!hmesh2.findVertex(isect.first.end()));
+				}
+
+	// Here we have to make sure, that edges create closed loops
+	vector<Edge> loops1, loops2;
+	FaceEdgeMap map1, map2;
+	extractLoops(isects, hmesh1, hmesh2, loops1, loops2, map1, map2);
+
+	bool do_print = false;
+
+	if(do_print) {
+		xmlPrint("Start loops: ");
+		for(auto edge : loops1)
+			xmlPrint("%-% ", (long long)edge.a % 1337, (long long)edge.b % 1337);
+		xmlPrint("\n");
+		xmlPrint("Start loops: ");
+		for(auto edge : loops2)
+			xmlPrint("%-% ", (long long)edge.a % 1337, (long long)edge.b % 1337);
+		xmlPrint("\n");
+	}
+
+	std::map<Vertex *, int> vcounts;
+	for(auto edge : loops1) {
+		vcounts[edge.a]++;
+		vcounts[edge.b]++;
+	}
+	for(auto edge : loops2) {
+		vcounts[edge.a]++;
+		vcounts[edge.b]++;
+	}
+	for(auto vcount : vcounts)
+		DASSERT(vcount.second >= 2);
+
 	if(vis_data) {
-		vis_data->segment_groups_trans.emplace_back(Color::black, boundary_segs);
+		vector<Segment> segs;
+		for(const auto &edge : loops1)
+			segs.emplace_back(edge.segment());
+		vis_data->segment_groups_trans.emplace_back(Color::black, segs);
 		if(vis_data->phase == 0) {
-			vis_data->poly_soups.emplace_back(Color::red, boundary_tris[0]);
-			vis_data->poly_soups.emplace_back(Color::green, boundary_tris[1]);
+			vis_data->tet_meshes.emplace_back(Color(Color::red, 100), TetMesh(hmesh1));
+			vis_data->tet_meshes.emplace_back(Color(Color::green, 100), TetMesh(hmesh2));
 		}
 	}
 
 	try {
-		auto edges1 = triangulateMesh(ha, a_loops, vis_data, 1);
-		auto edges2 = triangulateMesh(hb, b_loops, vis_data, 2);
+		triangulateMesh(hmesh1, map1, vis_data, 1);
+		triangulateMesh(hmesh2, map2, vis_data, 2);
 
-		divideIntoSegments(ha, hb, a_loops, b_loops, edges2);
-		divideIntoSegments(hb, ha, b_loops, a_loops, edges1);
+		bool err = false;
+		for(auto e1 : loops1)
+			if(hmesh1.edgeBoundaryFaces(e1.a, e1.b).empty()) {
+				xmlPrint("Not found: %-%\n", (long long)e1.a % 1337, (long long)e1.b % 1337);
+				err = true;
+			}
+		for(auto e2 : loops2)
+			if(hmesh2.edgeBoundaryFaces(e2.a, e2.b).empty()) {
+				xmlPrint("Not found: %-%\n", (long long)e2.a % 1337, (long long)e2.b % 1337);
+				bool err = true;
+			}
+		if(err)
+			exit(0);
+
+		divideIntoSegments(hmesh1, hmesh2, loops1, loops2);
+		divideIntoSegments(hmesh2, hmesh1, loops2, loops1);
 
 		if(vis_data->phase == 2) {
 			vector<Color> colors = {Color::green, Color::red, Color::blue, Color::yellow,
 									Color::white};
 			vector<vector<Triangle>> segs;
 			segs.clear();
-			for(auto *face : ha.faces()) {
+			for(auto *face : hmesh1.faces()) {
 				int seg_id = face->temp();
 				if(seg_id < 0)
 					seg_id = colors.size() / 2 - seg_id;
@@ -1003,7 +1052,7 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 				vis_data->poly_soups.emplace_back(colors[n % colors.size()], segs[n]);
 		}
 
-		auto final = finalCuts(ha, hb, vis_data);
+		auto final = finalCuts(hmesh1, hmesh2, vis_data);
 		// DASSERT(HalfMesh(TetMesh(final).toMesh()).is2Manifold());
 
 		return TetMesh(final);

@@ -154,7 +154,7 @@ class Viewer {
 		}
 
 		void drawTetsCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset,
-						 int num_steps, int csg_phase, int csg_mesh_id) {
+						 float scale, int num_steps, int csg_phase, int csg_mesh_id) {
 			if(!m_tet_mesh)
 				return;
 
@@ -185,6 +185,12 @@ class Viewer {
 				out.addSegments(pair.second, makeMat(pair.first, true), matrix);
 			for(auto pair : vis_data.tet_meshes)
 				drawTets(*PTetMesh(pair.second), out, matrix, pair.first);
+			for(auto pair : vis_data.point_sets) {
+				auto mat = makeMat(Color(pair.first, min((int)pair.first.a, 254)), false);
+				auto box = Mesh::makeBBox(FBox(-1, -1, -1, 1, 1, 1) * scale);
+				for(auto point : pair.second)
+					box.draw(out, mat, matrix * translation(point));
+			}
 		}
 
 		PModel m_model;
@@ -343,7 +349,7 @@ class Viewer {
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
 		else if(m_mode == Mode::tets_csg)
 			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset,
-							  m_num_steps, m_csg_phase, m_csg_mesh_id);
+							  model.scale() * 0.001f, m_num_steps, m_csg_phase, m_csg_mesh_id);
 
 		TextFormatter fmt;
 		fmt("Mode: %s (Q)\n", toString(m_mode));
