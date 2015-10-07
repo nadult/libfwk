@@ -30,6 +30,19 @@ void HalfTetMesh::Vertex::removeTet(Tet *tet) {
 			break;
 		}
 }
+
+bool HalfTetMesh::Edge::isBoundary() const {
+	for(auto *face : a->faces())
+		if(face->isBoundary())
+			return true;
+	for(auto *face : b->faces())
+		if(face->isBoundary())
+			return true;
+	return false;
+}
+
+vector<Face *> HalfTetMesh::Edge::faces() { return setIntersection(a->faces(), b->faces()); }
+
 HalfTetMesh::Face::Face(Tet *tet, Vertex *a, Vertex *b, Vertex *c, int index)
 	: m_verts({{a, b, c}}), m_tet(tet), m_opposite(nullptr), m_index(index), m_temp(0) {
 	DASSERT(a && b && c);
@@ -61,6 +74,22 @@ HalfTetMesh::Face::~Face() {
 		m_opposite->m_opposite = nullptr;
 	}
 }
+
+pair<int, float> HalfTetMesh::Face::closestEdgeId(const float3 &pos) {
+	int id = -1;
+	float min_dist = constant::inf;
+	auto edges = this->edges();
+
+	for(int i = 0; i < 3; i++) {
+		float dist = distance(edges[i].segment(), pos);
+		if(dist < min_dist) {
+			min_dist = dist;
+			id = i;
+		}
+	}
+	return make_pair(id, min_dist);
+}
+
 int HalfTetMesh::Face::edgeId(Edge edge) const {
 	for(int i = 0; i < 3; i++) {
 		Edge face_edge(m_verts[i], m_verts[(i + 1) % 3]);
@@ -82,6 +111,20 @@ vector<Face *> HalfTetMesh::Face::neighbours() const {
 			if(face != this)
 				out.emplace_back(face);
 	makeUnique(out);
+	return out;
+}
+
+array<Face *, 3> HalfTetMesh::Face::boundaryNeighbours() const {
+	array<Face *, 3> out = {{nullptr, nullptr, nullptr}};
+	auto edges = this->edges();
+
+	for(int i = 0; i < 3; i++) {
+		for(auto *face : edges[i].faces())
+			if(face != this && face->isBoundary()) {
+				out[i] = face;
+				break;
+			}
+	}
 	return out;
 }
 
@@ -314,6 +357,23 @@ vector<Vertex *> HalfTetMesh::verts() {
 	vector<Vertex *> out;
 	for(const auto &vertex : m_verts)
 		out.emplace_back(vertex.get());
+	return out;
+}
+
+vector<Edge> HalfTetMesh::edges() {
+	vector<Edge> out;
+	for(const auto &tet : m_tets)
+		for(auto *face : tet->faces())
+			for(auto edge : face->edges()) {
+				if(edge.b < edge.a)
+					swap(edge.b, edge.a);
+				out.emplace_back(edge);
+			}
+
+	std::sort(begin(out), end(out));
+	auto it = std::unique(begin(out), end(out));
+	out.erase(it, out.end());
+	//	makeUnique(out);
 	return out;
 }
 

@@ -987,6 +987,7 @@ class HalfTetMesh {
 	vector<Tet *> tets();
 	vector<Face *> faces();
 	vector<Vertex *> verts();
+	vector<Edge> edges();
 
 	vector<Face *> edgeFaces(Vertex *, Vertex *);
 	vector<Face *> edgeBoundaryFaces(Vertex *, Vertex *);
@@ -1039,11 +1040,20 @@ class HalfTetMesh {
 
 	class Edge {
 	  public:
+		// TODO: allow invalid edges
+		Edge() : a(nullptr), b(nullptr) {}
 		Edge(Vertex *a, Vertex *b) : a(a), b(b) { DASSERT(a && b && a != b); }
 		bool operator==(const Edge &rhs) const { return (a == rhs.a && b == rhs.b); }
 
 		Edge inverse() const { return Edge(b, a); }
 		bool operator<(const Edge &rhs) const { return std::tie(a, b) < std::tie(rhs.a, rhs.b); }
+		Segment segment() const { return Segment(a->pos(), b->pos()); }
+		bool isBoundary() const;
+
+		Edge ordered() const { return Edge(a < b ? a : b, a > b ? a : b); }
+		vector<Face *> faces();
+
+		bool isValid() const { return a && b && a != b; }
 
 		Vertex *a, *b;
 	};
@@ -1064,8 +1074,13 @@ class HalfTetMesh {
 		void setTemp(int temp) { m_temp = temp; }
 		int temp() const { return m_temp; }
 
+		pair<int, float> closestEdgeId(const float3 &);
 		int edgeId(Edge) const;
 		array<Edge, 3> edges() const;
+
+		// If more than one boundary face is adjacent to some edge,
+		// then first one is returned
+		array<Face *, 3> boundaryNeighbours() const;
 
 		// It might change when faces are removed from HalfMesh
 		int index() const { return m_index; }
@@ -1156,6 +1171,7 @@ class TetMesh : public immutable_base<TetMesh> {
 		vector<pair<Color, vector<Segment>>> segment_groups;
 		vector<pair<Color, vector<Segment>>> segment_groups_trans;
 		vector<pair<Color, TetMesh>> tet_meshes;
+		vector<pair<Color, vector<float3>>> point_sets;
 		int max_steps, phase;
 		enum { max_phases = 6 };
 	};
