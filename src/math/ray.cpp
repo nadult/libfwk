@@ -35,6 +35,12 @@ float distance(const Ray &ray, const float3 &point) {
 	return dot(diff, diff);
 }
 
+float3 closestPoint(const Ray &ray, const float3 &point) {
+	float3 diff = point - ray.origin();
+	float t = dot(diff, ray.dir());
+	return ray.origin() + ray.dir() * t;
+}
+
 float3 closestPoint(const Segment &segment, const float3 &point) {
 	float3 diff = point - segment.origin();
 	float t = dot(diff, segment.dir());

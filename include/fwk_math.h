@@ -880,6 +880,7 @@ float distance(const Segment &, const float3 &point);
 float distance(const Triangle &tri, const Segment &);
 
 float3 closestPoint(const Segment &, const float3 &point);
+float3 closestPoint(const Ray &, const float3 &point);
 
 // returns infinity if doesn't intersect
 pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);
@@ -921,6 +922,10 @@ class Projection {
 
 	float3 project(const float3 &) const;
 	float3 unproject(const float3 &) const;
+
+	float3 projectVector(const float3 &) const;
+	float3 unprojectVector(const float3 &) const;
+
 	Triangle project(const Triangle &) const;
 	Segment project(const Segment &) const;
 

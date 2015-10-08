@@ -283,13 +283,7 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 
 	Saver(format("temp/file%d.svg", id)) << doc;
 }
-
-float angleBetween(Vertex *vprev, Vertex *vcur, Vertex *vnext, const Projection &proj) {
-	DASSERT(vprev && vcur && vnext);
-	float2 cur = (proj * vcur->pos()).xz();
-	float2 prev = (proj * vprev->pos()).xz();
-	float2 next = (proj * vnext->pos()).xz();
-
+float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
 	float vcross = -cross(normalize(cur - prev), normalize(next - cur));
 	float vdot = dot(normalize(next - cur), normalize(prev - cur));
 
@@ -298,6 +292,14 @@ float angleBetween(Vertex *vprev, Vertex *vcur, Vertex *vnext, const Projection 
 		ang = constant::pi * 2.0f + ang;
 	DASSERT(ang >= 0.0f && ang < constant::pi * 2.0f);
 	return ang;
+}
+
+float angleBetween(Vertex *vprev, Vertex *vcur, Vertex *vnext, const Projection &proj) {
+	DASSERT(vprev && vcur && vnext);
+	float2 cur = (proj * vcur->pos()).xz();
+	float2 prev = (proj * vprev->pos()).xz();
+	float2 next = (proj * vnext->pos()).xz();
+	return angleBetween(prev, cur, next);
 }
 
 vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &proj) {
@@ -521,7 +523,8 @@ void prepareMesh(HalfTetMesh &mesh, FaceEdgeMap &map) {
 		for(auto *face : tet->faces())
 			count += face->temp();
 
-		if(count > 1) {
+		// TODO: this shouldn't be required; in general count > 1 should be sufficient
+		if(count >= 1) {
 			Vertex *center = mesh.addVertex(tet->tet().center());
 
 			auto old_faces = tet->faces();
@@ -657,7 +660,7 @@ void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData
 		auto triangles = triangulateFace(face, tri_boundary_edges, tri_inside_edges);
 		//		printf("new tris: %d\n", (int)triangles.size());
 
-		if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
+		if(vis_data && vis_data->phase == 1) {
 			Color col = mesh_id % 2 ? Color::yellow : Color::blue;
 			vector<Segment> edges;
 			for(auto tri : triangles)
@@ -723,6 +726,23 @@ static float volume(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
 	return Tetrahedron(a->pos(), b->pos(), c->pos(), d->pos()).volume();
 }
 
+float ndot(Face *a, Face *b) { return dot(a->triangle().normal(), b->triangle().normal()); }
+
+bool areParallel(Face *a, Face *b) {
+	float ndot = dot(a->triangle().normal(), b->triangle().normal());
+	return fabs(ndot) > 1.0f - constant::epsilon;
+}
+
+bool posParallel(float v) { return v >= 1.0f - constant::epsilon; }
+bool negParallel(float v) { return v < -1.0f + constant::epsilon; }
+
+Projection edgeProjection(Edge edge, Face *face) {
+	Ray ray(edge.segment());
+	float3 far_point = face->otherVert({edge.a, edge.b})->pos();
+	float3 edge_point = closestPoint(Ray(edge.segment()), far_point);
+	return Projection(edge.a->pos(), normalize(edge_point - far_point), ray.dir());
+}
+
 void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edge> &loops1,
 						const vector<Edge> &loops2) {
 	//	for(auto *face1 : mesh1.faces())
@@ -739,39 +759,65 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edg
 
 		auto faces1 = mesh1.edgeBoundaryFaces(edge1[0], edge1[1]);
 		auto faces2 = mesh2.edgeBoundaryFaces(edge2[0], edge2[1]);
-
-		if(faces1.size() != 2 || faces2.size() != 2) {
-			for(auto f : faces1)
-				xmlPrint("nrm: % (%  ||   %   ||   %)\n", f->triangle().normal(), f->triangle()[0],
-						 f->triangle()[1], f->triangle()[2]);
-
-			printf("f1:%d f2:%d\n", (int)faces1.size(), (int)faces2.size());
-		}
 		DASSERT(faces1.size() == 2 && faces2.size() == 2);
+		DASSERT(distance(edge1[0]->pos(), edge2[0]->pos()) < constant::epsilon);
+		DASSERT(distance(edge1[1]->pos(), edge2[1]->pos()) < constant::epsilon);
 
-		std::array<Vertex *, 2> far_verts1 = {
-			{faces1[0]->otherVert(edge1), faces1[1]->otherVert(edge1)}};
-		std::array<Vertex *, 2> far_verts2 = {
-			{faces2[0]->otherVert(edge2), faces2[1]->otherVert(edge2)}};
-		auto verts1a = faces1[0]->verts(), verts1b = faces1[1]->verts();
-		auto verts2a = faces2[0]->verts(), verts2b = faces2[1]->verts();
+		Projection proj = edgeProjection(loops1[i], faces1[0]);
 
-		float v1 = volume(verts1a[0], verts1a[1], verts1a[2], far_verts2[0]);
-		float v2 = volume(verts1b[0], verts1b[1], verts1b[2], far_verts2[0]);
+		float2 vectors1[2] = {(proj * faces1[0]->otherVert(edge1)->pos()).xz(),
+							  (proj * faces1[1]->otherVert(edge1)->pos()).xz()};
+		float2 vectors2[2] = {(proj * faces2[0]->otherVert(edge2)->pos()).xz(),
+							  (proj * faces2[1]->otherVert(edge2)->pos()).xz()};
 
-		int vert_inside = 0;
-		if(v1 < 0.0f && v2 < 0.0f)
-			vert_inside = 0;
-		else if(v1 > 0.0f && v2 > 0.0f)
-			vert_inside = 1;
-		else {
-			// TODO: verify me
-			float v3 = volume(verts1a[0], verts1a[1], verts1a[2], far_verts1[1]);
-			vert_inside = v3 < 0.0f ? 0 : 1;
+		float2 normals1[2] = {(proj.projectVector(faces1[0]->triangle().normal())).xz(),
+							  (proj.projectVector(faces1[1]->triangle().normal())).xz()};
+		float2 normals2[2] = {(proj.projectVector(faces2[0]->triangle().normal())).xz(),
+							  (proj.projectVector(faces2[1]->triangle().normal())).xz()};
+
+		for(int n = 0; n < 2; n++) {
+			vectors1[n] = normalize(vectors1[n]);
+			vectors2[n] = normalize(vectors2[n]);
+			DASSERT(isNormalized(normals1[n]));
+			DASSERT(isNormalized(normals2[n]));
 		}
 
-		faces2[vert_inside]->setTemp(1);
-		faces2[vert_inside ^ 1]->setTemp(-1);
+		float dir1[2], dir2[2];
+		for(int n = 0; n < 2; n++) {
+			float2 mvector1 = normalize(vectors1[n] + normals1[n]);
+			dir1[n] = angleBetween(vectors1[n], float2(0, 0), mvector1);
+			if(dir1[n] > constant::pi)
+				dir1[n] -= constant::pi * 2.0f;
+			float2 mvector2 = normalize(vectors2[n] + normals2[n]);
+			dir2[n] = angleBetween(vectors2[n], float2(0, 0), mvector2);
+			if(dir2[n] > constant::pi)
+				dir2[n] -= constant::pi * 2.0f;
+		}
+
+		//		xmlPrint("vectors1: (%) (%) % %\n", vectors1[0], vectors1[1], dir1[0], dir1[1]);
+		//		xmlPrint("vectors2: (%) (%) % %\n", vectors2[0], vectors2[1], dir2[0], dir2[1]);
+
+		DASSERT((dir1[0] < 0.0f) != (dir1[1] < 0.0f));
+		DASSERT((dir2[0] < 0.0f) != (dir2[1] < 0.0f));
+
+		if(dir1[0] < 0.0f)
+			swap(vectors1[0], vectors1[1]);
+
+		float face1_angle = angleBetween(vectors1[0], float2(0, 0), vectors1[1]);
+		for(int n = 0; n < 2; n++) {
+			float angle = angleBetween(vectors1[0], float2(0, 0), vectors2[n]);
+
+			int value = 0;
+			if(dir2[n] > 0.0f) {
+				value =
+					angle < constant::epsilon || angle > face1_angle - constant::epsilon ? -1 : 1;
+			} else {
+				value =
+					angle < -constant::epsilon || angle > face1_angle + constant::epsilon ? -1 : 1;
+			}
+			faces2[n]->setTemp(value);
+		}
+
 		insertBack(list, faces2);
 	}
 
@@ -896,7 +942,9 @@ int partIsect(const Triangle &t1, const Triangle &t2, float3 isects[3], bool is_
 		is_isect[e] = fabs(d1 - d2) > epsilon;
 		if(d1 < d2) {
 			is_isect[e] = d1 < epsilon && d2 > -epsilon;
-		} else { is_isect[e] = d2 < epsilon && d1 > -epsilon; }
+		} else {
+			is_isect[e] = d2 < epsilon && d1 > -epsilon;
+		}
 		if(!is_isect[e])
 			continue;
 
