@@ -28,4 +28,4 @@
 
 - When LLDB is attached, make it catch all throws automatically
 
-- Find replacements for tetgen & triangle with better licenses
+- Find replacement for tetgen with better license

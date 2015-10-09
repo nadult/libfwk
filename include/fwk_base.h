@@ -245,6 +245,8 @@ double getTime();
 #define DASSERT(expr) ({})
 #else
 #define DASSERT(expr) ASSERT(expr)
+//TODO: DASSERT_CLOSE_ENOUGH
+//TODO: DASSERT_EQUAL
 #endif
 }
 

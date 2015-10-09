@@ -1054,6 +1054,9 @@ class HalfTetMesh {
 		vector<Face *> faces();
 
 		bool isValid() const { return a && b && a != b; }
+		bool hasSharedEnds(const Edge &other) const {
+			return isOneOf(a, other.a, other.b) || isOneOf(b, other.a, other.b);
+		}
 
 		Vertex *a, *b;
 	};

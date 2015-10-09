@@ -284,18 +284,21 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 	Saver(format("temp/file%d.svg", id)) << doc;
 }
 float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
+	DASSERT(distanceSq(prev, cur) > constant::epsilon && distanceSq(cur, next) > constant::epsilon);
 	float vcross = -cross(normalize(cur - prev), normalize(next - cur));
 	float vdot = dot(normalize(next - cur), normalize(prev - cur));
 
 	float ang = atan2(vcross, vdot);
 	if(ang < 0.0f)
 		ang = constant::pi * 2.0f + ang;
-	DASSERT(ang >= 0.0f && ang <= constant::pi * 2.0f);
+	DASSERT(!isnan(ang));
 	return ang;
 }
 
 float angleBetween(Vertex *vprev, Vertex *vcur, Vertex *vnext, const Projection &proj) {
 	DASSERT(vprev && vcur && vnext);
+	DASSERT(vprev != vcur && vcur != vnext);
+
 	float2 cur = (proj * vcur->pos()).xz();
 	float2 prev = (proj * vprev->pos()).xz();
 	float2 next = (proj * vnext->pos()).xz();
@@ -317,7 +320,6 @@ vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &pro
 // iedges: inside edges
 vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector<Edge> &iedges,
 										const Projection &proj, bool do_print = false) {
-	// TODO: handle holes
 	if(do_print) {
 		xmlPrint("bedges: ");
 		for(auto e : bedges)
@@ -337,6 +339,58 @@ vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector
 	for(auto iedge : iedges) {
 		map[iedge.a].emplace_back(iedge);
 		map[iedge.b].emplace_back(iedge.inverse());
+	}
+
+	// Creating bridges between unconnected edges
+	while(true) {
+		vector<Vertex *> stack = {map.begin()->first};
+		for(auto &elem : map)
+			elem.first->setTemp(0);
+
+		int count = 0;
+		while(!stack.empty()) {
+			Vertex *vert = stack.back();
+			stack.pop_back();
+			if(vert->temp())
+				continue;
+
+			vert->setTemp(1);
+			count++;
+
+			for(auto edge : map[vert])
+				stack.push_back(edge.a == vert ? edge.b : edge.a);
+		}
+
+		if(count == (int)map.size())
+			break;
+
+		Edge best_edge;
+		float max_distance = 0.0f; // TODO: is it a good idea?
+
+		for(const auto &it1 : map)
+			if(it1.first->temp() == 1)
+				for(const auto &it2 : map)
+					if(it2.first->temp() == 0) {
+						Edge edge(it1.first, it2.first);
+
+						float dist = constant::inf;
+						for(const auto &it3 : map)
+							for(auto tedge : it3.second)
+								if(!tedge.hasSharedEnds(edge))
+									dist = min(dist, distance(edge.segment(), tedge.segment()));
+						if(dist > max_distance) {
+							best_edge = edge;
+							max_distance = dist;
+						}
+					}
+
+		if(do_print)
+			xmlPrint("Adding bridge: %-%\n", (long long)best_edge.a % 1337,
+					 (long long)best_edge.b % 1337);
+		DASSERT(best_edge.isValid());
+		DASSERT(max_distance >= constant::epsilon); // TODO: check if this could happen
+		map[best_edge.a].emplace_back(best_edge);
+		map[best_edge.b].emplace_back(best_edge.inverse());
 	}
 
 	vector<vector<Edge>> out;
@@ -379,7 +433,7 @@ vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector
 				}
 			}
 
-			if(current == start.a) {
+			if(current == start.a && loop.back().a != start.b) {
 				float start_angle = angleBetween(loop.back().a, current, start.b, proj);
 				if(do_print)
 					xmlPrint("Consider start: (%)\n", radToDeg(start_angle));
@@ -680,10 +734,8 @@ void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData
 		}
 
 		float area_sum = 0.0f;
-		for(auto t : triangles) {
-			Triangle tri(t[0]->pos(), t[1]->pos(), t[2]->pos());
-			area_sum += tri.area();
-		}
+		for(auto t : triangles)
+			area_sum += Triangle(t[0]->pos(), t[1]->pos(), t[2]->pos()).area();
 		DASSERT(fabs(area_sum - face->triangle().area()) < constant::epsilon);
 
 		face_triangulations.emplace_back(other_vert.front(), std::move(triangles));
@@ -739,12 +791,7 @@ Projection edgeProjection(Edge edge, Face *face) {
 	return Projection(edge.a->pos(), normalize(edge_point - far_point), ray.dir());
 }
 
-enum FaceType {
-	face_unclassified,
-	face_inside,
-	face_outside,
-	face_shared
-};
+enum FaceType { face_unclassified, face_inside, face_outside, face_shared };
 
 void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edge> &loops1,
 						const vector<Edge> &loops2) {
@@ -982,9 +1029,6 @@ Intersection findIntersection(Face *f1, Face *f2, float epsilon) {
 	int npoint = 0;
 	for(int n = 0; n < 2; n++)
 		for(int i = 0; i < 3; i++) {
-			//			is_isect[n][i] =
-			//				distance(t1, isects[n][i]) < epsilon && distance(t2, isects[n][i]) <
-			//epsilon;
 			if(is_isect[n][i]) {
 				bool is_ok = true;
 				for(int j = 0; j < npoint; j++)
@@ -1020,12 +1064,6 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 
 					if(isect.is_valid)
 						isects.emplace_back(Isect{face_a, face_b, isect.segment});
-
-					// TODO: handle situation when cuts are very close to vertices
-					//		DASSERT(!hmesh1.findVertex(isect.first.origin()));
-					//		DASSERT(!hmesh1.findVertex(isect.first.end()));
-					//		DASSERT(!hmesh2.findVertex(isect.first.origin()));
-					//		DASSERT(!hmesh2.findVertex(isect.first.end()));
 				}
 
 	// Here we have to make sure, that edges create closed loops

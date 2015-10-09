@@ -84,6 +84,9 @@ TetMesh TetMesh::make(const Mesh &mesh, uint flags) {
 	auto opts =
 		string("pY") + (flags & flag_quality ? "q" : "") + (flags & flag_print_details ? "V" : "Q");
 
+	if(mesh.isEmpty())
+		return TetMesh();
+
 	tetgenio out;
 	tetgen(opts, mesh.positions(), mesh.trisIndices(), out);
 	DASSERT(out.numberofcorners == 4);
