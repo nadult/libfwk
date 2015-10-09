@@ -25,16 +25,6 @@ Segment::Segment(const float3 &start, const float3 &end)
 	DASSERT(m_length > 0.0f);
 }
 
-float distance(const Ray &ray, const float3 &point) {
-	float3 diff = point - ray.origin();
-	float t = dot(diff, ray.dir());
-
-	if(t > 0.0f)
-		diff -= ray.dir() * t;
-	THROW("verify me");
-	return dot(diff, diff);
-}
-
 float3 closestPoint(const Ray &ray, const float3 &point) {
 	float3 diff = point - ray.origin();
 	float t = dot(diff, ray.dir());
@@ -52,6 +42,10 @@ float3 closestPoint(const Segment &segment, const float3 &point) {
 	t /= segment.length();
 
 	return segment.origin() + (segment.end() - segment.origin()) * t;
+}
+
+float distance(const Ray &ray, const float3 &point) {
+	return distance(closestPoint(ray, point), point);
 }
 
 float distance(const Segment &segment, const float3 &point) {

@@ -290,7 +290,7 @@ float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
 	float ang = atan2(vcross, vdot);
 	if(ang < 0.0f)
 		ang = constant::pi * 2.0f + ang;
-	DASSERT(ang >= 0.0f && ang < constant::pi * 2.0f);
+	DASSERT(ang >= 0.0f && ang <= constant::pi * 2.0f);
 	return ang;
 }
 
@@ -316,9 +316,7 @@ vector<float> computeAngles(const vector<Vertex *> &verts, const Projection &pro
 // bedges: border edges
 // iedges: inside edges
 vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector<Edge> &iedges,
-										const Projection &proj) {
-	bool do_print = false;
-
+										const Projection &proj, bool do_print = false) {
 	// TODO: handle holes
 	if(do_print) {
 		xmlPrint("bedges: ");
@@ -392,8 +390,11 @@ vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector
 				xmlPrint("Added: %-%\n", (long long)best_edge.a % 1337,
 						 (long long)best_edge.b % 1337);
 
-			if(!best_edge.isValid())
-				exit(0);
+			if(!best_edge.isValid()) {
+				if(!do_print)
+					findSimplePolygons(bedges, iedges, proj, true);
+				THROW("Invalid topology");
+			}
 			DASSERT(best_edge.isValid());
 			for(int i = 0; i < (int)it->second.size(); i++)
 				if(it->second[i] == best_edge) {
@@ -448,7 +449,8 @@ vector<array<Vertex *, 3>> triangulateSimplePolygon(const vector<Edge> &edges,
 		angle_sum = std::accumulate(begin(angles), end(angles), 0.0f);
 	}
 
-	/*	printf("Verts: (%f)\n", radToDeg(angle_sum));
+	/*	printf("Verts: (%f exp:%f)\n", radToDeg(angle_sum),
+			   radToDeg(constant::pi * (verts.size() - 2)));
 		for(int n = 0; n < (int)verts.size(); n++)
 			xmlPrint("%: %\n", (proj * verts[n]->pos()).xz(), radToDeg(angles[n]));*/
 	DASSERT(fabs(angle_sum - constant::pi * ((int)verts.size() - 2)) < 0.01f);
@@ -648,9 +650,17 @@ void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData
 			tri_boundary_edges.emplace_back(splits.back(), edge.b);
 		}
 
-		for(auto edge : pair.second.edges)
-			if(!isOneOf(edge, tri_boundary_edges) && !isOneOf(edge.inverse(), tri_boundary_edges))
+		for(int i = 0; i < 3; i++)
+			insertBack(edge_verts[i], {face->edges()[i].a, face->edges()[i].b});
+
+		for(auto edge : pair.second.edges) {
+			bool on_border = false;
+			for(int i = 0; i < 3; i++)
+				if(isOneOf(edge.a, edge_verts[i]) && isOneOf(edge.b, edge_verts[i]))
+					on_border = true;
+			if(!on_border)
 				tri_inside_edges.emplace_back(edge.ordered());
+		}
 
 		auto other_vert = setDifference(face->tet()->verts(), face->verts());
 		DASSERT(other_vert.size() == 1);
@@ -704,7 +714,7 @@ void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData
 		}
 	DASSERT(fabs(new_volume - old_volume) < constant::epsilon);
 
-	if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
+	if(vis_data && vis_data->phase == 1 && mesh_id == 1 && 0) {
 		vector<Triangle> tris;
 		vector<Segment> segs;
 
@@ -722,20 +732,6 @@ void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData
 	}
 }
 
-static float volume(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
-	return Tetrahedron(a->pos(), b->pos(), c->pos(), d->pos()).volume();
-}
-
-float ndot(Face *a, Face *b) { return dot(a->triangle().normal(), b->triangle().normal()); }
-
-bool areParallel(Face *a, Face *b) {
-	float ndot = dot(a->triangle().normal(), b->triangle().normal());
-	return fabs(ndot) > 1.0f - constant::epsilon;
-}
-
-bool posParallel(float v) { return v >= 1.0f - constant::epsilon; }
-bool negParallel(float v) { return v < -1.0f + constant::epsilon; }
-
 Projection edgeProjection(Edge edge, Face *face) {
 	Ray ray(edge.segment());
 	float3 far_point = face->otherVert({edge.a, edge.b})->pos();
@@ -743,12 +739,19 @@ Projection edgeProjection(Edge edge, Face *face) {
 	return Projection(edge.a->pos(), normalize(edge_point - far_point), ray.dir());
 }
 
+enum FaceType {
+	face_unclassified,
+	face_inside,
+	face_outside,
+	face_shared
+};
+
 void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edge> &loops1,
 						const vector<Edge> &loops2) {
 	//	for(auto *face1 : mesh1.faces())
 	//		face1->setTemp(0);
 	for(auto *face2 : mesh2.faces())
-		face2->setTemp(0);
+		face2->setTemp(face_unclassified);
 
 	vector<Face *> list;
 
@@ -807,14 +810,12 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edg
 		for(int n = 0; n < 2; n++) {
 			float angle = angleBetween(vectors1[0], float2(0, 0), vectors2[n]);
 
-			int value = 0;
-			if(dir2[n] > 0.0f) {
-				value =
-					angle < constant::epsilon || angle > face1_angle - constant::epsilon ? -1 : 1;
-			} else {
-				value =
-					angle < -constant::epsilon || angle > face1_angle + constant::epsilon ? -1 : 1;
-			}
+			int value = face_shared;
+			float eps = constant::epsilon;
+			if(angle < -eps || angle > face1_angle + eps)
+				value = face_inside;
+			else if(angle > eps && angle < face1_angle - eps)
+				value = face_outside;
 			faces2[n]->setTemp(value);
 		}
 
@@ -836,7 +837,7 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edg
 
 			if(!is_seg_boundary)
 				for(auto *nface : mesh2.edgeFaces(edge.a, edge.b))
-					if(nface->temp() == 0 && nface->isBoundary()) {
+					if(nface->temp() == face_unclassified && nface->isBoundary()) {
 						list.emplace_back(nface);
 						nface->setTemp(face->temp());
 					}
@@ -860,13 +861,13 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 			auto neighbours = tet->neighbours();
 
 			for(int i = 0; i < 4; i++)
-				if(faces[i]->temp() > 0 || (neighbours[i] && !neighbours[i]->temp()))
+				if(faces[i]->temp() == face_outside || (neighbours[i] && !neighbours[i]->temp()))
 					faces1.emplace_back(faces[i]);
 		}
 	}
 
 	for(auto *face : h2.faces())
-		if(face->temp() < 0)
+		if(face->temp() == face_inside)
 			faces2.emplace_back(face);
 
 	for(auto *face1 : faces1)
@@ -968,8 +969,8 @@ int partIsect(const Triangle &t1, const Triangle &t2, float3 isects[3], bool is_
 Intersection findIntersection(Face *f1, Face *f2, float epsilon) {
 	const Triangle &t1 = f1->triangle(), &t2 = f2->triangle();
 
-	auto ret = intersectionSegment(t1, t2);
-	return ret.second ? ret.first : Intersection();
+	//	auto ret = intersectionSegment(t1, t2);
+	//	return ret.second ? ret.first : Intersection();
 
 	float3 isects[2][3];
 	bool is_isect[2][3];
@@ -980,7 +981,10 @@ Intersection findIntersection(Face *f1, Face *f2, float epsilon) {
 	float3 points[4];
 	int npoint = 0;
 	for(int n = 0; n < 2; n++)
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < 3; i++) {
+			//			is_isect[n][i] =
+			//				distance(t1, isects[n][i]) < epsilon && distance(t2, isects[n][i]) <
+			//epsilon;
 			if(is_isect[n][i]) {
 				bool is_ok = true;
 				for(int j = 0; j < npoint; j++)
@@ -989,11 +993,12 @@ Intersection findIntersection(Face *f1, Face *f2, float epsilon) {
 				if(is_ok)
 					points[npoint++] = isects[n][i];
 			}
+		}
 
 	if(npoint >= 2)
 		return Segment(points[0], points[1]);
-	if(npoint > 0)
-		printf("zero : %d %d\n", c1, c2);
+	//	if(npoint > 0)
+	//		printf("zero : %d %d\n", c1, c2);
 	return Intersection();
 }
 
@@ -1008,7 +1013,11 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		if(face_a->isBoundary())
 			for(auto *face_b : hmesh2.faces())
 				if(face_b->isBoundary()) {
-					auto isect = findIntersection(face_a, face_b, 0.001f);
+					auto isect1 = findIntersection(face_a, face_b, 0.001f);
+					auto isect2 = findIntersection(face_b, face_a, 0.001f);
+					auto isect =
+						isect1.segment.length() > isect2.segment.length() ? isect1 : isect2;
+
 					if(isect.is_valid)
 						isects.emplace_back(Isect{face_a, face_b, isect.segment});
 
@@ -1023,6 +1032,19 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 	vector<Edge> loops1, loops2;
 	FaceEdgeMap map1, map2;
 	extractLoops(isects, hmesh1, hmesh2, loops1, loops2, map1, map2);
+
+	for(int l = 0; l < (int)loops1.size(); l++) {
+		for(int i = l + 1; i < (int)loops1.size(); i++) {
+			if(isOneOf(loops1[l], loops1[i], loops1[i].inverse())) {
+				loops1[i] = loops1.back();
+				loops1.pop_back();
+				DASSERT(isOneOf(loops2[l], loops2[i], loops2[i].inverse()));
+				loops2[i] = loops2.back();
+				loops2.pop_back();
+				i--;
+			}
+		}
+	}
 
 	bool do_print = false;
 
@@ -1046,19 +1068,70 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		vcounts[edge.a]++;
 		vcounts[edge.b]++;
 	}
-	for(auto vcount : vcounts)
-		DASSERT(vcount.second >= 2);
+
+	vector<Segment> red;
+	bool restart = true;
+	while(restart) {
+		restart = false;
+		for(int e = 0; e < (int)loops1.size(); e++) {
+			Edge edge = loops1[e];
+			if(vcounts[edge.a] < 2 || vcounts[edge.b] < 2) {
+				restart = true;
+				vcounts[edge.a]--;
+				vcounts[edge.b]--;
+				vcounts[loops2[e].a]--;
+				vcounts[loops2[e].b]--;
+
+				printf("Red: %f\n", loops1[e].segment().length());
+				red.emplace_back(loops1[e].segment());
+				loops1[e] = loops1.back();
+				loops1.pop_back();
+				loops2[e] = loops2.back();
+				loops2.pop_back();
+				e--;
+			}
+		}
+	}
 
 	if(vis_data) {
+		struct Compare {
+			bool operator()(const float3 &a, const float3 &b) const {
+				return std::tie(a.x, a.y, a.z) < std::tie(b.x, b.y, b.z);
+			}
+		};
+
 		vector<Segment> segs;
-		for(const auto &edge : loops1)
+		std::map<float3, int, Compare> points;
+		vector<vector<float3>> tpoints;
+
+		for(const auto &edge : loops1) {
 			segs.emplace_back(edge.segment());
+			points[edge.a->pos()]++;
+			points[edge.b->pos()]++;
+		}
+
+		for(auto &p : points) {
+			if((int)tpoints.size() <= p.second)
+				tpoints.resize(p.second + 1);
+			tpoints[p.second].emplace_back(p.first);
+		}
+
+		vector<Color> colors = {Color::black,  Color::green, Color::red,	Color::blue,
+								Color::yellow, Color::white, Color::magneta};
+		int id = 0;
+		for(auto tp : tpoints)
+			vis_data->point_sets.emplace_back(colors[id++ % colors.size()], tp);
+
 		vis_data->segment_groups_trans.emplace_back(Color::black, segs);
+		vis_data->segment_groups_trans.emplace_back(Color::red, red);
 		if(vis_data->phase == 0) {
 			vis_data->tet_meshes.emplace_back(Color(Color::red, 100), TetMesh(hmesh1));
 			vis_data->tet_meshes.emplace_back(Color(Color::green, 100), TetMesh(hmesh2));
 		}
 	}
+
+	for(auto vcount : vcounts)
+		DASSERT(vcount.second >= 2 || vcount.second == 0);
 
 	try {
 		triangulateMesh(hmesh1, map1, vis_data, 1);
@@ -1075,22 +1148,22 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 				xmlPrint("Not found: %-%\n", (long long)e2.a % 1337, (long long)e2.b % 1337);
 				bool err = true;
 			}
-		if(err)
+		if(err) {
+			printf("Exiting due to invalid triangulation (not all edges are present in the "
+				   "output)\n");
 			exit(0);
+		}
 
 		divideIntoSegments(hmesh1, hmesh2, loops1, loops2);
 		divideIntoSegments(hmesh2, hmesh1, loops2, loops1);
 
 		if(vis_data->phase == 2) {
-			vector<Color> colors = {Color::green, Color::red, Color::blue, Color::yellow,
-									Color::white};
+			vector<Color> colors = {Color::black, Color::green, Color::red, Color::yellow};
 			vector<vector<Triangle>> segs;
 			segs.clear();
 			for(auto *face : hmesh1.faces()) {
 				int seg_id = face->temp();
-				if(seg_id < 0)
-					seg_id = colors.size() / 2 - seg_id;
-				if(seg_id != 0) {
+				if(seg_id > 0) {
 					if((int)segs.size() < seg_id + 1)
 						segs.resize(seg_id + 1);
 					segs[seg_id].emplace_back(face->triangle());

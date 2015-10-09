@@ -79,7 +79,9 @@ class Viewer {
 				try {
 					auto tet = TetMesh::make(sub_mesh, 0);
 					tets.emplace_back(std::move(tet));
-				} catch(...) { isects.emplace_back(TetMesh::findIntersections(sub_mesh)); }
+				} catch(...) {
+					isects.emplace_back(TetMesh::findIntersections(sub_mesh));
+				}
 			}
 
 			m_tet_mesh = PTetMesh(TetMesh::makeUnion(tets));
@@ -187,7 +189,7 @@ class Viewer {
 				drawTets(*PTetMesh(pair.second), out, matrix, pair.first);
 			for(auto pair : vis_data.point_sets) {
 				auto mat = makeMat(Color(pair.first, min((int)pair.first.a, 254)), false);
-				auto box = Mesh::makeBBox(FBox(-1, -1, -1, 1, 1, 1) * scale);
+				auto box = Mesh::makeBBox(FBox(-1, -1, -1, 1, 1, 1) * scale * 0.03f);
 				for(auto point : pair.second)
 					box.draw(out, mat, matrix * translation(point));
 			}
@@ -349,7 +351,7 @@ class Viewer {
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
 		else if(m_mode == Mode::tets_csg)
 			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset,
-							  model.scale() * 0.001f, m_num_steps, m_csg_phase, m_csg_mesh_id);
+							  1.0f / model.scale(), m_num_steps, m_csg_phase, m_csg_mesh_id);
 
 		TextFormatter fmt;
 		fmt("Mode: %s (Q)\n", toString(m_mode));
@@ -464,7 +466,9 @@ int safe_main(int argc, char **argv) {
 				files.emplace_back(file.path, tex_name);
 			}
 		}
-	} else { files = {make_pair(model_argument, tex_argument)}; }
+	} else {
+		files = {make_pair(model_argument, tex_argument)};
+	}
 
 	Profiler profiler;
 	GfxDevice gfx_device;

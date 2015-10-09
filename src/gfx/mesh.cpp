@@ -309,6 +309,7 @@ float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
 	return min_isect;
 }
 
+// TODO: wtf is this? remove it
 void Mesh::process(float unit) {
 	for(auto &pos : m_buffers.positions) {
 		pos.x = (roundf(pos.x / unit)) * unit;
