@@ -284,7 +284,7 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 	Saver(format("temp/file%d.svg", id)) << doc;
 }
 float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
-	DASSERT(distanceSq(prev, cur) > constant::epsilon && distanceSq(cur, next) > constant::epsilon);
+	DASSERT(distance(prev, cur) > constant::epsilon && distance(cur, next) > constant::epsilon);
 	float vcross = -cross(normalize(cur - prev), normalize(next - cur));
 	float vdot = dot(normalize(next - cur), normalize(prev - cur));
 
@@ -856,13 +856,29 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edg
 		float face1_angle = angleBetween(vectors1[0], float2(0, 0), vectors1[1]);
 		for(int n = 0; n < 2; n++) {
 			float angle = angleBetween(vectors1[0], float2(0, 0), vectors2[n]);
+			float eps = constant::epsilon;
 
 			int value = face_shared;
-			float eps = constant::epsilon;
-			if(angle < -eps || angle > face1_angle + eps)
-				value = face_inside;
-			else if(angle > eps && angle < face1_angle - eps)
-				value = face_outside;
+			if(dir2[n] < 0.0f) {
+				if(angle < -eps)
+					value = face_inside;
+				else if(angle < face1_angle - eps)
+					value = face_outside;
+				else if(angle < face1_angle + eps)
+					value = face_shared;
+				else
+					value = face_inside;
+			} else {
+				if(angle < -eps)
+					value = face_inside;
+				else if(angle < eps)
+					value = face_shared;
+				else if(angle < face1_angle + eps)
+					value = face_outside;
+				else
+					value = face_inside;
+			}
+
 			faces2[n]->setTemp(value);
 		}
 
