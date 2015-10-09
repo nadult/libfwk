@@ -323,6 +323,8 @@ float dot(const float4 &a, const float4 &b);
 float lengthSq(const float2 &);
 float lengthSq(const float3 &);
 float lengthSq(const float4 &);
+
+inline float distanceSq(float a, float b) { return (a - b) * (a - b); }
 float distanceSq(const float2 &, const float2 &);
 float distanceSq(const float3 &, const float3 &);
 float distanceSq(const float4 &, const float4 &);
@@ -330,6 +332,8 @@ float distanceSq(const float4 &, const float4 &);
 float length(const float2 &);
 float length(const float3 &);
 float length(const float4 &);
+
+inline float distance(float a, float b) { return a < b ? b - a : a - b; }
 float distance(const float2 &, const float2 &);
 float distance(const float3 &, const float3 &);
 float distance(const float4 &, const float4 &);
@@ -338,8 +342,9 @@ float2 inverse(const float2 &);
 float3 inverse(const float3 &);
 float4 inverse(const float4 &);
 
-template <class T> bool areSimilar(const T &a, const T &b) {
-	return distanceSq(a, b) < constant::epsilon;
+// TODO: remove it?
+template <class T> bool areSimilar(const T &a, const T &b, float epsilon = constant::epsilon) {
+	return distanceSq(a, b) < epsilon;
 }
 
 float2 normalize(const float2 &);
@@ -877,10 +882,15 @@ ClipResult clip(const Triangle2D &, const Segment2D &);
 
 float distance(const Ray &ray, const float3 &point);
 float distance(const Segment &, const float3 &point);
+float distance(const Segment &, const Segment &);
+float distance(const Ray &, const Ray &);
 float distance(const Triangle &tri, const Segment &);
 
 float3 closestPoint(const Segment &, const float3 &point);
 float3 closestPoint(const Ray &, const float3 &point);
+
+pair<float3, float3> closestPoints(const Ray &, const Ray &);
+pair<float3, float3> closestPoints(const Segment &, const Segment &);
 
 // returns infinity if doesn't intersect
 pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);

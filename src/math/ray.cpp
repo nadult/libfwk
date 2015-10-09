@@ -44,12 +44,57 @@ float3 closestPoint(const Segment &segment, const float3 &point) {
 	return segment.origin() + (segment.end() - segment.origin()) * t;
 }
 
+// Algorithm idea: http://www.geometrictools.com/GTEngine/Include/Mathematics/GteDistLineLine.h
+pair<float3, float3> closestPoints(const Ray &ray1, const Ray &ray2) {
+	float3 diff = ray1.origin() - ray2.origin();
+	float a01 = -dot(ray1.dir(), ray2.dir());
+	float b0 = dot(diff, ray1.dir());
+	float s1 = -b0, s2 = 0.0f;
+
+	if(fabs(a01) < 1.0f) {
+		float det = 1.0f - a01 * a01;
+		float b1 = -dot(diff, ray2.dir());
+		s1 = (a01 * b1 - b0) / det;
+		s2 = (a01 * b0 - b1) / det;
+	}
+
+	return make_pair(ray1.at(s1), ray2.at(s2));
+}
+
+pair<float3, float3> closestPoints(const Segment &seg1, const Segment &seg2) {
+	float3 diff = seg1.origin() - seg2.origin();
+	float a01 = -dot(seg1.dir(), seg2.dir());
+	float b0 = dot(diff, seg1.dir());
+	float s1 = -b0, s2 = 0.0f;
+
+	if(fabs(a01) < 1.0f) {
+		float det = 1.0f - a01 * a01;
+		float b1 = -dot(diff, seg2.dir());
+		s1 = (a01 * b1 - b0) / det;
+		s2 = (a01 * b0 - b1) / det;
+	}
+
+	s1 = clamp(s1, 0.0f, seg1.length());
+	s2 = clamp(s2, 0.0f, seg2.length());
+
+	return make_pair(seg1.at(s1), seg2.at(s2));
+}
 float distance(const Ray &ray, const float3 &point) {
 	return distance(closestPoint(ray, point), point);
 }
 
 float distance(const Segment &segment, const float3 &point) {
 	return distance(closestPoint(segment, point), point);
+}
+
+float distance(const Segment &seg1, const Segment &seg2) {
+	auto points = closestPoints(seg1, seg2);
+	return distance(points.first, points.second);
+}
+
+float distance(const Ray &seg1, const Ray &seg2) {
+	auto points = closestPoints(seg1, seg2);
+	return distance(points.first, points.second);
 }
 
 pair<float, float> intersectionRange(const Ray &ray, const Box<float3> &box) {

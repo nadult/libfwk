@@ -79,6 +79,12 @@ void testRays() {
 	assertCloseEnough(closestPoint(Ray(segment3), p1), float3(2.5, 2.5, 0));
 	assertCloseEnough(closestPoint(Ray(segment3), p2), float3(0.5, 0.5, 0));
 	assertCloseEnough(closestPoint(Ray(segment3), p3), float3(4.5, 4.5, 0));
+
+	Segment segment4(float3(3, 2, 0), float3(6, 5, 0));
+	Segment segment5(float3(6, 7, 0), float3(8, 5, 0));
+	assertCloseEnough(distance(segment3, segment4), sqrtf(2.0f) / 2.0f);
+	assertCloseEnough(distance(segment4, segment5), sqrtf(2.0f));
+	assertCloseEnough(distance(Ray(segment4), Ray(segment5)), 0.0f);
 }
 
 void testIntersections() {
