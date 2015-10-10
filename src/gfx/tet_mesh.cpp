@@ -805,8 +805,34 @@ Projection edgeProjection(Edge edge, Face *face) {
 	return Projection(edge.a->pos(), normalize(edge_point - far_point), ray.dir());
 }
 
-// TODO: 4th type: when two faces are coplanar with negative normals
-enum FaceType { face_unclassified, face_inside, face_outside, face_shared };
+// How these faces will be interpreted depends on the CSG operation
+// So, maybe in some situations it makes no sense to make faces compatible:
+// for example: in case of subtraction: opposite shared faces don't have to be compatible
+// because tets behind them won't be merged
+enum FaceType { face_unclassified, face_inside, face_outside, face_shared, face_shared_opposite };
+
+void floodFill(HalfTetMesh &mesh, vector<Face *> list, vector<Edge> limits) {
+	while(!list.empty()) {
+		Face *face = list.back();
+		list.pop_back();
+
+		for(auto edge : face->edges()) {
+			bool is_seg_boundary = false;
+			for(auto tedge : limits)
+				if(edge == tedge || edge == tedge.inverse()) {
+					is_seg_boundary = true;
+					break;
+				}
+
+			if(!is_seg_boundary)
+				for(auto *nface : mesh.edgeFaces(edge.a, edge.b))
+					if(nface->temp() == face_unclassified && nface->isBoundary()) {
+						list.emplace_back(nface);
+						nface->setTemp(face->temp());
+					}
+		}
+	}
+}
 
 void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edge> &loops1,
 						const vector<Edge> &loops2) {
@@ -815,7 +841,7 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edg
 	for(auto *face2 : mesh2.faces())
 		face2->setTemp(face_unclassified);
 
-	vector<Face *> list;
+	vector<Face *> list1, list2;
 
 	DASSERT(loops1.size() == loops2.size());
 	for(int i = 0; i < (int)loops1.size(); i++) {
@@ -869,58 +895,38 @@ void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edg
 			swap(vectors1[0], vectors1[1]);
 
 		float face1_angle = angleBetween(vectors1[0], float2(0, 0), vectors1[1]);
+
 		for(int n = 0; n < 2; n++) {
 			float angle = angleBetween(vectors1[0], float2(0, 0), vectors2[n]);
 			float eps = constant::epsilon;
+			if(angle > constant::pi * 2.0f - eps)
+				angle -= constant::pi * 2.0f;
 
 			int value = face_shared;
-			if(dir2[n] < 0.0f) {
-				if(angle < -eps)
-					value = face_inside;
-				else if(angle < face1_angle - eps)
-					value = face_outside;
-				else if(angle < face1_angle + eps)
-					value = face_shared;
-				else
-					value = face_inside;
-			} else {
-				if(angle < -eps)
-					value = face_inside;
-				else if(angle < eps)
-					value = face_shared;
-				else if(angle < face1_angle + eps)
-					value = face_outside;
-				else
-					value = face_inside;
-			}
+			if(angle < -eps)
+				value = face_inside;
+			else if(angle < eps)
+				value = dir2[n] < 0.0f ? face_shared_opposite : face_shared;
+			else if(angle < face1_angle - eps)
+				value = face_outside;
+			else if(angle < face1_angle + eps)
+				value = dir2[n] < 0.0f ? face_shared : face_shared_opposite;
+			else
+				value = face_inside;
 
+			int old = faces2[n]->temp();
+			if(old && old != value) {
+				printf("Error: %d -> %d\n", old, value);
+				printf("dir1: %f %f\ndir2: %f %f\nangles: %f %f\n\n", dir1[0], dir1[1], dir2[0],
+					   dir2[1], angle, face1_angle);
+			}
 			faces2[n]->setTemp(value);
 		}
 
-		insertBack(list, faces2);
+		insertBack(list2, faces2);
 	}
 
-	while(!list.empty()) {
-		Face *face = list.back();
-		list.pop_back();
-
-		for(auto edge : face->edges()) {
-			bool is_seg_boundary = false;
-			for(const auto &loop2 : loops2) // TODO: change to set
-				for(auto tedge : loops2)
-					if(edge == tedge || edge == tedge.inverse()) {
-						is_seg_boundary = true;
-						break;
-					}
-
-			if(!is_seg_boundary)
-				for(auto *nface : mesh2.edgeFaces(edge.a, edge.b))
-					if(nface->temp() == face_unclassified && nface->isBoundary()) {
-						list.emplace_back(nface);
-						nface->setTemp(face->temp());
-					}
-		}
-	}
+	floodFill(mesh2, list2, loops2);
 }
 
 TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_data) {
@@ -939,7 +945,8 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 			auto neighbours = tet->neighbours();
 
 			for(int i = 0; i < 4; i++)
-				if(faces[i]->temp() == face_outside || (neighbours[i] && !neighbours[i]->temp()))
+				if(isOneOf(faces[i]->temp(), face_outside, face_shared_opposite) ||
+				   (neighbours[i] && !neighbours[i]->temp()))
 					faces1.emplace_back(faces[i]);
 		}
 	}
@@ -1087,17 +1094,19 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 			points[edge.b->pos()]++;
 		}
 
-		for(auto &p : points) {
-			if((int)tpoints.size() <= p.second)
-				tpoints.resize(p.second + 1);
-			tpoints[p.second].emplace_back(p.first);
-		}
+		if(0) {
+			for(auto &p : points) {
+				if((int)tpoints.size() <= p.second)
+					tpoints.resize(p.second + 1);
+				tpoints[p.second].emplace_back(p.first);
+			}
 
-		vector<Color> colors = {Color::black,  Color::green, Color::red,	Color::blue,
-								Color::yellow, Color::white, Color::magneta};
-		int id = 0;
-		for(auto tp : tpoints)
-			vis_data->point_sets.emplace_back(colors[id++ % colors.size()], tp);
+			vector<Color> colors = {Color::black,  Color::green, Color::red,	Color::blue,
+									Color::yellow, Color::white, Color::magneta};
+			int id = 0;
+			for(auto tp : tpoints)
+				vis_data->point_sets.emplace_back(colors[id++ % colors.size()], tp);
+		}
 
 		vis_data->segment_groups_trans.emplace_back(Color::black, segs);
 		vis_data->segment_groups_trans.emplace_back(Color::red, red);
@@ -1136,7 +1145,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		divideIntoSegments(hmesh2, hmesh1, loops2, loops1);
 
 		if(vis_data->phase == 2) {
-			vector<Color> colors = {Color::black, Color::green, Color::red, Color::yellow};
+			vector<Color> colors = {Color::black, Color::green, Color::red, Color::yellow,
+									Color::magneta};
 			vector<vector<Triangle>> segs;
 			segs.clear();
 			for(auto *face : hmesh1.faces()) {
