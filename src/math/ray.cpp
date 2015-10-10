@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+#include "fwk_xml.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -190,7 +191,8 @@ inline float2 project(const float2 &vx, const float2 &vy, const float2 &vec) {
 }
 
 pair<float2, bool> lineIntersection(const Segment2D &seg1, const Segment2D &seg2) {
-	DASSERT(length(seg1) > constant::epsilon && length(seg2) > constant::epsilon);
+	DASSERT(length(seg1) > constant::epsilon);
+	DASSERT(length(seg2) > constant::epsilon);
 
 	float2 dir = normalize(seg1.end - seg1.start);
 	float2 nrm(-dir.y, dir.x);
@@ -201,8 +203,15 @@ pair<float2, bool> lineIntersection(const Segment2D &seg1, const Segment2D &seg2
 	float2 sdir = proj_seg2.end - proj_seg2.start;
 
 	// TODO: test overlap
-	if(fabs(sdir.y) < constant::epsilon)
+	if(fabs(sdir.y) < constant::epsilon) {
+		// TODO: fix this
+		float2 p1[2] = {seg1.start, seg1.end}, p2[2] = {seg2.start, seg2.end};
+		for(int i = 0; i < 2; i++)
+			for(int j = 0; j < 2; j++)
+				if(distance(p1[i], p2[j]) < constant::epsilon)
+					return make_pair(p1[i], true);
 		return make_pair(float2(), false);
+	}
 
 	float t = -proj_seg2.start.y / sdir.y;
 	float2 p = proj_seg2.start + sdir * t;
@@ -224,6 +233,7 @@ pair<float2, bool> intersection(const Segment2D &seg1, const Segment2D &seg2) {
 	return result;
 }
 
+// TODO: simplify this and lineIntersections (too many special cases and epsilons)
 ClipResult clip(const Triangle2D &tri, const Segment2D &iseg) {
 	Segment2D seg = iseg;
 	ClipResult out;
@@ -239,7 +249,13 @@ ClipResult clip(const Triangle2D &tri, const Segment2D &iseg) {
 		if(dot1 >= 0.0f && dot2 >= 0.0f)
 			continue;
 
+		if(seg.empty())
+			return ClipResult();
 		auto isect = lineIntersection(seg, Segment2D(a, b));
+		if(!isect.second) {
+			return ClipResult();
+			xmlPrint("(%) (%) (%)   : (%) (%)\n", tri[0], tri[1], tri[2], iseg.start, iseg.end);
+		}
 		DASSERT(isect.second);
 
 		if(dot1 <= 0.0f) {

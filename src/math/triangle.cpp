@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+#include "fwk_xml.h"
 
 #ifdef FWK_TARGET_LINUX
 #define CGAL_ENABLED
@@ -58,7 +59,9 @@ bool areIntersecting(const Triangle &a, const Triangle &b) {
 			}
 			return true;
 		}
-	} catch(...) { return true; }
+	} catch(...) {
+		return true;
+	}
 
 	return false;
 }
@@ -94,9 +97,72 @@ pair<Segment, bool> intersectionSegment(const Triangle &a, const Triangle &b) {
 					return make_pair(fwk::Segment(fromCGAL(s->min()), fromCGAL(s->max())), true);
 			}
 		}
-	} catch(...) {}
+	} catch(...) {
+	}
 
 	return make_pair(fwk::Segment(), false);
+}
+
+vector<Segment> compatibleEdges(const Triangle &tri1, const Triangle &tri2) {
+	Projection proj(tri1);
+	Triangle ptri2(proj * tri2);
+
+	vector<pair<float3, float3>> edges;
+
+	float eps = constant::epsilon;
+
+	bool vert_touching[3] = {false, false, false};
+	float isect[3] = {constant::inf, constant::inf, constant::inf};
+
+	for(int n = 0; n < 3; n++) {
+		float3 v1 = ptri2[n], v2 = ptri2[(n + 1) % 3];
+		if(fabs(v1.y) < eps) {
+			vert_touching[n] = true;
+			continue;
+		}
+
+		if((v1.y <= 0.0f) == (v2.y <= 0.0f))
+			continue;
+
+		isect[n] = -v1.y / (v2.y - v1.y);
+	}
+
+	float3 points[3];
+	int npoints = 0;
+
+	for(int n = 0; n < 3; n++) {
+		if(vert_touching[n]) {
+			points[npoints++] = ptri2[n];
+		}
+		int nn = (n + 1) % 3;
+		if(isect[n] < constant::inf && !vert_touching[nn])
+			points[npoints++] = ptri2[n] + (ptri2[nn] - ptri2[n]) * isect[n];
+	}
+
+	if(npoints == 2) {
+		edges.emplace_back(points[0], points[1]);
+	}
+	if(npoints == 3) {
+		for(int n = 0; n < 3; n++)
+			edges.emplace_back(points[n], points[(n + 1) % 3]);
+	}
+
+	Triangle2D tri1_2d((proj * tri1).xz());
+	vector<Segment> out;
+
+	for(auto &edge : edges) {
+		auto tedge = Segment2D(edge.first.xz(), edge.second.xz());
+		if(tedge.empty())
+			continue;
+
+		auto result = clip(tri1_2d, tedge);
+		auto clipped = result.inside;
+
+		if(!clipped.empty())
+			out.emplace_back(proj / asXZ(clipped.start), proj / asXZ(clipped.end));
+	}
+
+	return out;
 }
 
 bool areIntersecting(const Triangle2D &a, const Triangle2D &b) {
@@ -125,7 +191,9 @@ bool areIntersecting(const Triangle2D &a, const Triangle2D &b) {
 
 			return true;
 		}
-	} catch(...) { return true; }
+	} catch(...) {
+		return true;
+	}
 
 	return false;
 }

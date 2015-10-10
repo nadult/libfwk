@@ -724,6 +724,11 @@ class Triangle {
 		return idx == 0 ? a() : idx == 1 ? b() : c();
 	}
 
+	bool isValid() const {
+		THROW("TODO: write me");
+		return false;
+	}
+
 	float3 a() const { return m_point; }
 	float3 b() const { return m_point + m_edge[0]; }
 	float3 c() const { return m_point + m_edge[1]; }
@@ -848,7 +853,9 @@ struct Segment2D {
 	Segment2D() = default;
 	Segment2D(const float2 &a, const float2 &b) : start(a), end(b) {}
 	Segment2D(const pair<float2, float2> &pair) : Segment2D(pair.first, pair.second) {}
-	bool empty() const { return distance(end, start) < constant::epsilon; }
+
+	bool empty() const { return length() < constant::epsilon; }
+	float length() const { return distance(start, end); }
 
 	float2 start, end;
 };
@@ -897,6 +904,9 @@ pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);
 pair<float, float> intersectionRange(const Segment &, const Box<float3> &box);
 
 pair<Segment, bool> intersectionSegment(const Triangle &, const Triangle &);
+
+// TODO: better name
+vector<Segment> compatibleEdges(const Triangle &, const Triangle &);
 
 inline float intersection(const Ray &ray, const Box<float3> &box) {
 	return intersectionRange(ray, box).first;

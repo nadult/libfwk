@@ -194,6 +194,15 @@ vector<Edge> findVerts(const vector<Isect> &isects, HalfTetMesh &mesh) {
 	return out;
 }
 
+void makeEdgesUnique(vector<Edge> &edges) {
+	for(int e1 = 0; e1 < (int)edges.size(); e1++)
+		for(int e2 = e1 + 1; e2 < (int)edges.size(); e2++)
+			if(edges[e2] == edges[e1] || edges[e2].inverse() == edges[e1]) {
+				edges[e2--] = edges.back();
+				edges.pop_back();
+			}
+}
+
 void extractLoops(const vector<Isect> &isects, HalfTetMesh &hmesh1, HalfTetMesh &hmesh2,
 				  vector<Edge> &loops1, vector<Edge> &loops2, FaceEdgeMap &map1,
 				  FaceEdgeMap &map2) {
@@ -209,6 +218,11 @@ void extractLoops(const vector<Isect> &isects, HalfTetMesh &hmesh1, HalfTetMesh 
 		updateBorderVert(map2, cur.face_b, loops2[i].a);
 		updateBorderVert(map2, cur.face_b, loops2[i].b);
 	}
+
+	for(auto &it : map1)
+		makeEdgesUnique(it.second.edges);
+	for(auto &it : map2)
+		makeEdgesUnique(it.second.edges);
 }
 
 void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> tris, int id,
@@ -791,6 +805,7 @@ Projection edgeProjection(Edge edge, Face *face) {
 	return Projection(edge.a->pos(), normalize(edge_point - far_point), ray.dir());
 }
 
+// TODO: 4th type: when two faces are coplanar with negative normals
 enum FaceType { face_unclassified, face_inside, face_outside, face_shared };
 
 void divideIntoSegments(HalfTetMesh &mesh1, HalfTetMesh &mesh2, const vector<Edge> &loops1,
@@ -987,81 +1002,6 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 	return TetMesh();
 }
 
-struct Intersection {
-	Intersection() : is_valid(false) {}
-	Intersection(Segment seg) : segment(seg), is_valid(true) {}
-
-	Segment segment;
-	bool is_valid;
-};
-
-int partIsect(const Triangle &t1, const Triangle &t2, float3 isects[3], bool is_isect[3],
-			  float epsilon) {
-	int count = 0;
-	for(int e = 0; e < 3; e++) {
-		auto edge = t2.edges()[e];
-		float d1 = dot(edge.first - t1.a(), t1.normal());
-		float d2 = dot(edge.second - t1.b(), t1.normal());
-
-		is_isect[e] = fabs(d1 - d2) > epsilon;
-		if(d1 < d2) {
-			is_isect[e] = d1 < epsilon && d2 > -epsilon;
-		} else {
-			is_isect[e] = d2 < epsilon && d1 > -epsilon;
-		}
-		if(!is_isect[e])
-			continue;
-
-		float t = d1 / (d1 - d2);
-		isects[e] = edge.second * t + edge.first * (1.0f - t);
-
-		for(int i = 0; i < 3; i++) {
-			auto iedge = t1.edges()[i];
-			float3 icross = cross(iedge.second - iedge.first, isects[e] - iedge.first);
-			if(dot(icross, t1.normal()) < -epsilon)
-				is_isect[e] = false;
-		}
-		if(is_isect[e])
-			count++;
-	}
-
-	return count;
-}
-
-// Algorithm idea: http://web.stanford.edu/class/cs277/resources/papers/Moller1997b.pdf
-Intersection findIntersection(Face *f1, Face *f2, float epsilon) {
-	const Triangle &t1 = f1->triangle(), &t2 = f2->triangle();
-
-	//	auto ret = intersectionSegment(t1, t2);
-	//	return ret.second ? ret.first : Intersection();
-
-	float3 isects[2][3];
-	bool is_isect[2][3];
-
-	int c1 = partIsect(t1, t2, isects[0], is_isect[0], epsilon);
-	int c2 = partIsect(t2, t1, isects[1], is_isect[1], epsilon);
-
-	float3 points[4];
-	int npoint = 0;
-	for(int n = 0; n < 2; n++)
-		for(int i = 0; i < 3; i++) {
-			if(is_isect[n][i]) {
-				bool is_ok = true;
-				for(int j = 0; j < npoint; j++)
-					if(!(distance(isects[n][i], points[j]) > constant::epsilon))
-						is_ok = false;
-				if(is_ok)
-					points[npoint++] = isects[n][i];
-			}
-		}
-
-	if(npoint >= 2)
-		return Segment(points[0], points[1]);
-	//	if(npoint > 0)
-	//		printf("zero : %d %d\n", c1, c2);
-	return Intersection();
-}
-
 TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
 	HalfTetMesh hmesh1(a), hmesh2(b);
 
@@ -1073,35 +1013,18 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		if(face_a->isBoundary())
 			for(auto *face_b : hmesh2.faces())
 				if(face_b->isBoundary()) {
-					auto isect1 = findIntersection(face_a, face_b, 0.001f);
-					auto isect2 = findIntersection(face_b, face_a, 0.001f);
-					auto isect =
-						isect1.segment.length() > isect2.segment.length() ? isect1 : isect2;
-
-					if(isect.is_valid)
-						isects.emplace_back(Isect{face_a, face_b, isect.segment});
+					auto edges = compatibleEdges(face_a->triangle(), face_b->triangle());
+					insertBack(edges, compatibleEdges(face_b->triangle(), face_a->triangle()));
+					for(auto edge : edges)
+						isects.emplace_back(Isect{face_a, face_b, edge});
 				}
 
-	// Here we have to make sure, that edges create closed loops
+	// Here we have to make sure, that edges form closed loops
 	vector<Edge> loops1, loops2;
 	FaceEdgeMap map1, map2;
 	extractLoops(isects, hmesh1, hmesh2, loops1, loops2, map1, map2);
 
-	for(int l = 0; l < (int)loops1.size(); l++) {
-		for(int i = l + 1; i < (int)loops1.size(); i++) {
-			if(isOneOf(loops1[l], loops1[i], loops1[i].inverse())) {
-				loops1[i] = loops1.back();
-				loops1.pop_back();
-				DASSERT(isOneOf(loops2[l], loops2[i], loops2[i].inverse()));
-				loops2[i] = loops2.back();
-				loops2.pop_back();
-				i--;
-			}
-		}
-	}
-
 	bool do_print = false;
-
 	if(do_print) {
 		xmlPrint("Start loops: ");
 		for(auto edge : loops1)
@@ -1203,7 +1126,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 				bool err = true;
 			}
 		if(err) {
-			printf("Exiting due to invalid triangulation (not all edges are present in the "
+			printf("Exiting due to invalid triangulation (not all edges are "
+				   "present in the "
 				   "output)\n");
 			exit(0);
 		}
