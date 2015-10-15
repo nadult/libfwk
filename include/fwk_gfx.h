@@ -996,7 +996,6 @@ class HalfTetMesh {
 	Edge sharedEdge(Face *, Face *);
 
 	bool isIntersecting(const Tetrahedron &) const;
-	bool isIntersecting(const Triangle &) const;
 	bool isIntersecting(const float3 &) const;
 
 	struct SubdivisionResult {};
@@ -1176,6 +1175,11 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh makeUnion(const vector<TetMesh> &);
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
 
+	TetMesh extract(CRange<int> tet_indices) const;
+	vector<int> selection(const FBox &) const;
+	vector<int> invertSelection(CRange<int>) const;
+	bool isValidSelection(CRange<int>) const;
+
 	struct CSGVisualData {
 		CSGVisualData() : max_steps(0), phase(0) {}
 
@@ -1206,6 +1210,7 @@ class TetMesh : public immutable_base<TetMesh> {
 	int size() const { return (int)m_tet_tets.size(); }
 
 	Mesh toMesh() const;
+	FBox computeBBox() const;
 
   private:
 	vector<float3> m_verts;

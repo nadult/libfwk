@@ -121,11 +121,59 @@ TetMesh TetMesh::transform(const Matrix4 &matrix, TetMesh mesh) {
 				   mesh.tetVerts());
 }
 
-TetMesh TetMesh::selectTets(const TetMesh &mesh, const vector<int> &indices) {
-	// TODO: select vertices
-	auto indexer = indexWith(mesh.tetVerts(), indices);
-	return TetMesh(mesh.verts(), vector<TetIndices>(begin(indexer), end(indexer)));
+TetMesh TetMesh::extract(CRange<int> indices) const {
+	DASSERT(isValidSelection(indices));
+
+	vector<int> vert_map(m_verts.size(), -1);
+	vector<float3> new_verts;
+
+	for(auto idx : indices) {
+		for(auto i : m_tet_verts[idx])
+			if(vert_map[i] == -1) {
+				vert_map[i] = (int)new_verts.size();
+				new_verts.emplace_back(m_verts[i]);
+			}
+	}
+
+	vector<TetIndices> new_tets;
+	new_tets.reserve(indices.size());
+	for(auto idx : indices) {
+		TetIndices new_tet;
+		for(int i = 0; i < 4; i++)
+			new_tet[i] = vert_map[m_tet_verts[idx][i]];
+		new_tets.emplace_back(new_tet);
+	}
+
+	return TetMesh(vector<float3>(begin(new_verts), end(new_verts)), std::move(new_tets));
 }
+
+vector<int> TetMesh::selection(const FBox &box) const {
+	vector<int> out;
+	for(int t = 0; t < size(); t++)
+		if(areIntersecting(makeTet(t), box))
+			out.emplace_back(t);
+	return out;
+}
+
+vector<int> TetMesh::invertSelection(CRange<int> range) const {
+	DASSERT(isValidSelection(range));
+
+	vector<int> all(size());
+	std::iota(begin(all), end(all), 0);
+	return setDifference(all, range);
+}
+
+bool TetMesh::isValidSelection(CRange<int> range) const {
+	int prev = -1;
+	for(auto idx : range) {
+		if(idx == prev || idx < 0 || idx >= size())
+			return false;
+		prev = idx;
+	}
+	return true;
+}
+
+FBox TetMesh::computeBBox() const { return FBox(m_verts); }
 
 using Tet = HalfTetMesh::Tet;
 using Face = HalfTetMesh::Face;
@@ -1008,7 +1056,12 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 }
 
 TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
-	HalfTetMesh hmesh1(a), hmesh2(b);
+	// TODO: accuracy depends on bounding box coordinates, take them into consideration
+	float epsilon = 0.0001f;
+
+	FBox csg_bbox = enlarge(intersection(a.computeBBox(), b.computeBBox()), epsilon);
+	HalfTetMesh hmesh1(a.extract(a.selection(csg_bbox)));
+	HalfTetMesh hmesh2(b.extract(b.selection(csg_bbox)));
 
 	// DASSERT(HalfMesh(TetMesh(hmesh1).toMesh()).is2Manifold());
 	// DASSERT(HalfMesh(TetMesh(hmesh2).toMesh()).is2Manifold());

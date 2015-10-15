@@ -491,13 +491,6 @@ bool HalfTetMesh::isIntersecting(const Tetrahedron &tetra) const {
 	return false;
 }
 
-bool HalfTetMesh::isIntersecting(const Triangle &tri) const {
-	for(const auto &tet : m_tets)
-		if(areIntersecting(tet->tet(), tri))
-			return true;
-	return false;
-}
-
 bool HalfTetMesh::isIntersecting(const float3 &point) const {
 	for(const auto &tet : m_tets)
 		if(tet->tet().isInside(point))
