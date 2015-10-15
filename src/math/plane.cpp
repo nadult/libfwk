@@ -8,6 +8,21 @@ namespace fwk {
 
 Plane::Plane(const Triangle &tri) : m_nrm(tri.normal()), m_dist(dot(tri.a(), m_nrm)) {}
 
+Plane::SideTestResult Plane::sideTest(CRange<float3> verts) const {
+	int positive = 0, negative = 0;
+	for(const auto &vert : verts) {
+		float tdot = dot(*this, vert);
+
+		if(tdot < 0.0f)
+			negative++;
+		if(tdot > 0.0f)
+			positive++;
+		if(positive && negative)
+			return both_sides;
+	}
+	return positive ? all_positive : all_negative;
+}
+
 const Plane normalize(const Plane &plane) {
 	float mul = 1.0f / length(plane.normal());
 	return Plane(plane.normal() * mul, plane.distance() * mul);

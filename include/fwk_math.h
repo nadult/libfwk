@@ -274,6 +274,8 @@ struct float4 {
 	};
 };
 
+// TODO: write map function which transforms all coordinates
+
 const int2 min(const int2 &a, const int2 &b);
 const int2 max(const int2 &a, const int2 &b);
 const int3 min(const int3 &a, const int3 &b);
@@ -449,6 +451,8 @@ bool areOverlapping(const Rect<int2> &a, const Rect<int2> &b);
 bool areAdjacent(const Rect<int2> &, const Rect<int2> &);
 float distanceSq(const Rect<float2> &, const Rect<float2> &);
 
+// Invariant: max >= min
+// TODO: enforce invariant; do the same for other classes
 template <class TVec3> struct Box {
 	using Vec3 = TVec3;
 	using Vec2 = decltype(TVec3().xz());
@@ -476,15 +480,6 @@ template <class TVec3> struct Box {
 	Box operator*(const Vec3 &scale) const { return Box(min * scale, max * scale); }
 	Box operator*(Scalar scale) const { return Box(min * scale, max * scale); }
 
-	void include(const Vec3 &point) {
-		min = Vec3(fwk::min(min.x, point.x), fwk::min(min.y, point.y), fwk::min(min.z, point.z));
-		max = Vec3(fwk::max(max.x, point.x), fwk::max(max.y, point.y), fwk::max(max.z, point.z));
-	}
-	void enlarge(float v) {
-		min -= Vec3(v, v, v);
-		max += Vec3(v, v, v);
-	}
-
 	// TODO: what about bounding boxes enclosing single point?
 	bool isEmpty() const { return max.x <= min.x || max.y <= min.y || max.z <= min.z; }
 
@@ -502,8 +497,24 @@ template <class TVec3> struct Box {
 
 	bool operator==(const Box &rhs) const { return min == rhs.min && max == rhs.max; }
 
+	// TODO: these should be hidden, because we don't want to allow
+	// mins which are greater than maxes.  If user wants to store invalid value
+	// like this, then he should simply store it in a pair ofr vec3's.
 	Vec3 min, max;
 };
+
+template <class TVec3> Box<TVec3> include(const Box<TVec3> &box, const TVec3 &point) {
+	return Box<TVec3>(min(box.min, point), max(box.max, point));
+}
+
+template <class TVec3> Box<TVec3> enlarge(const Box<TVec3> &box, typename TVec3::Scalar offset) {
+	return Box<TVec3>(box.min - TVec3(offset, offset, offset),
+					  box.max + TVec3(offset, offset, offset));
+}
+
+template <class TVec3> Box<TVec3> enlarge(const Box<TVec3> &box, const TVec3 &offset) {
+	return Box<TVec3>(box.min - offset, box.max + offset);
+}
 
 template <class TVec3> const Box<TVec3> sum(const Box<TVec3> &a, const Box<TVec3> &b) {
 	return Box<TVec3>(min(a.min, b.min), max(a.max, b.max));
@@ -788,6 +799,13 @@ class Plane {
 	// from plane to point (0, 0, 0)
 	float distance() const { return m_dist; }
 
+	enum SideTestResult {
+		all_negative = -1,
+		both_sides = 0,
+		all_positive = 1,
+	};
+	SideTestResult sideTest(CRange<float3> verts) const;
+
   protected:
 	float3 m_nrm;
 	float m_dist;
@@ -823,8 +841,54 @@ class Tetrahedron {
 	array<float3, 4> m_verts;
 };
 
+inline auto verts(const Tetrahedron &tet) { return tet.verts(); }
+
+// Planes are pointing outwards (like the faces)
+inline auto planes(const Tetrahedron &tet) { return tet.planes(); }
+inline auto edges(const Tetrahedron &tet) { return tet.edges(); }
+
+inline float3 normalizedDirection(const pair<float3, float3> &edge) {
+	return normalize(edge.second - edge.first);
+}
+
+// Source: http://www.geometrictools.com/Documentation/MethodOfSeparatingAxes.pdf
+// TODO: planes should be pointing inwards, not outwards...
+template <class Convex1, class Convex2> bool satTest(const Convex1 &a, const Convex2 &b) {
+	auto a_verts = verts(a);
+	auto b_verts = verts(b);
+
+	for(const auto &plane : planes(a))
+		if(plane.sideTest(b_verts) == 1)
+			return false;
+	for(const auto &plane : planes(b))
+		if(plane.sideTest(a_verts) == 1)
+			return false;
+
+	auto a_edges = edges(a);
+	auto b_edges = edges(b);
+	for(const auto &edge_a : a_edges) {
+		float3 nrm_a = normalize(edge_a.second - edge_a.first);
+		for(const auto &edge_b : b_edges) {
+			float3 nrm_b = normalize(edge_b.second - edge_b.first);
+			float3 plane_nrm = normalize(cross(nrm_a, nrm_b));
+			int side_a = Plane(plane_nrm, edge_a.first).sideTest(a_verts);
+			if(side_a == 0)
+				continue;
+
+			int side_b = Plane(plane_nrm, edge_a.first).sideTest(b_verts);
+			if(side_b == 0)
+				continue;
+
+			if(side_a * side_b < 0)
+				return false;
+		}
+	}
+
+	return true;
+}
+
 bool areIntersecting(const Tetrahedron &, const Tetrahedron &);
-bool areIntersecting(const Tetrahedron &, const Triangle &);
+bool areIntersecting(const Tetrahedron &, const FBox &);
 
 const Plane normalize(const Plane &);
 const Plane operator*(const Matrix4 &, const Plane &);
@@ -1019,6 +1083,10 @@ class Cylinder {
 float distance(const Cylinder &, const float3 &);
 bool areIntersecting(const Cylinder &, const Cylinder &);
 bool areIntersecting(const FBox &, const Cylinder &);
+
+array<Plane, 6> planes(const FBox &);
+array<pair<float3, float3>, 12> edges(const FBox &);
+array<float3, 8> verts(const FBox &);
 
 static_assert(sizeof(Matrix3) == sizeof(float3) * 3, "Wrong size of Matrix3 class");
 static_assert(sizeof(Matrix4) == sizeof(float4) * 4, "Wrong size of Matrix4 class");

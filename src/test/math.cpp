@@ -111,6 +111,32 @@ void testIntersections() {
 		Segment2D seg2(float2(-100, -99), float2(100, 99));
 		auto isect = intersection(seg1, seg2);
 		xmlPrint("% %\n", isect.first, isect.second);*/
+
+	Tetrahedron tet({0, 0, 0}, {1, 0, 0}, {0, 0, 1}, {0.25, 1, 0.25});
+	assertEqual(tet.volume(), 1.0f / 6.0f);
+
+	FBox bbox1({0, 0, 0}, {1, 1, 1});
+	FBox bbox2({0.49, 0, 0.49}, {1, 1, 1});
+	FBox bbox3({0.45, 0.5, 0.45}, {2, 2, 2});
+
+	assertEqual(areIntersecting(tet, bbox1), true);
+	assertEqual(areIntersecting(tet, bbox2), true);
+	assertEqual(areIntersecting(tet, bbox3), false);
+
+	for(int n = 0; n < 10000; n++) {
+		float3 points[4];
+		for(int i = 0; i < 4; i++)
+			points[i] = float3(int3(randomTranslation(100.0f)));
+
+		FBox box1(makeRange({points[0], points[1]}));
+		FBox box2(makeRange({points[2], points[3]}));
+		try {
+			assertEqual(areOverlapping(box1, box2), satTest(box1, box2));
+		} catch(const Exception &ex) {
+			xmlPrint("Box1: %\nBox2: %\n", box1, box2);
+			throw;
+		}
+	}
 }
 
 void test2DIntersections() {

@@ -87,81 +87,16 @@ bool Tetrahedron::isValid() const {
 	return volume() > pow(constant::epsilon, 3);
 }
 
-static int side(CRange<float3> verts, const Plane &plane) {
-	int positive = 0, negative = 0;
-	for(const auto &vert : verts) {
-		float tdot = dot(plane, vert);
-		if(tdot < 0.0f)
-			negative++;
-		if(tdot > 0.0f)
-			positive++;
-		if(positive && negative)
-			return 0;
-	}
-	return positive ? 1 : -1;
-}
-
-// Source: http://www.geometrictools.com/Documentation/MethodOfSeparatingAxes.pdf
-bool areIntersecting(const Tetrahedron &a, const Tetrahedron &b) {
-	for(const auto &plane : a.planes())
-		if(side(b.verts(), plane) == 1)
-			return false;
-	for(const auto &plane : b.planes())
-		if(side(a.verts(), plane) == 1)
-			return false;
-
-	for(const auto &edge_a : a.edges()) {
-		float3 nrm_a = normalize(edge_a.second - edge_a.first);
-		for(const auto &edge_b : b.edges()) {
-			float3 nrm_b = normalize(edge_b.second - edge_b.first);
-			float3 plane_nrm = normalize(cross(nrm_a, nrm_b));
-			int side_a = side(a.verts(), Plane(plane_nrm, edge_a.first));
-			if(side_a == 0)
-				continue;
-			int side_b = side(b.verts(), Plane(plane_nrm, edge_a.first));
-			if(side_b == 0)
-				continue;
-			if(side_a * side_b < 0)
-				return false;
-		}
-	}
-
-	return true;
-}
-
-bool areIntersecting(const Tetrahedron &tet, const Triangle &tri) {
-	THROW("This is not exactly correct");
-	Plane tri_plane(tri);
-
-	if(side(tet.verts(), tri_plane) != 0)
-		return false;
-	for(const auto &plane : tet.planes())
-		if(side(tri.verts(), plane) == 1)
-			return false;
-
-	for(const auto &edge_a : tet.edges()) {
-		float3 nrm_a = normalize(edge_a.second - edge_a.first);
-		for(const auto &edge_b : tri.edges()) {
-			float3 nrm_b = normalize(edge_b.second - edge_b.first);
-			float3 plane_nrm = normalize(cross(nrm_a, nrm_b));
-			int side_a = side(tet.verts(), Plane(plane_nrm, edge_a.first));
-			if(side_a == 0)
-				continue;
-			int side_b = side(tri.verts(), Plane(plane_nrm, edge_a.first));
-			if(side_b == 0)
-				continue;
-			if(side_a * side_b < 0)
-				return false;
-		}
-	}
-
-	return true;
-}
-
 bool Tetrahedron::isInside(const float3 &point) const {
 	for(const auto &plane : planes())
 		if(dot(plane, point) > 0.0f)
 			return false;
 	return true;
+}
+
+bool areIntersecting(const Tetrahedron &a, const Tetrahedron &b) { return satTest(a, b); }
+
+bool areIntersecting(const Tetrahedron &tet, const FBox &box) {
+	return areOverlapping(FBox(verts(tet)), box) && satTest(tet, box);
 }
 }

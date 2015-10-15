@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+#include "fwk_xml.h"
 
 namespace fwk {
 
@@ -54,11 +55,14 @@ const FBox operator*(const Matrix4 &mat, const FBox &box) {
 	float3 corners[8];
 	box.getCorners(corners);
 
-	FBox out;
-	out.min = out.max = mulPoint(mat, corners[0]);
-	for(int n = 1; n < arraySize(corners); n++)
-		out.include(mulPoint(mat, corners[n]));
-	return out;
+	float3 omin = mulPoint(mat, corners[0]), omax = omin;
+	for(int n = 1; n < arraySize(corners); n++) {
+		float3 point = mulPoint(mat, corners[n]);
+		omin = min(omin, point);
+		omax = max(omax, point);
+	}
+
+	return FBox(omin, omax);
 }
 
 bool areOverlapping(const FBox &a, const FBox &b) {
@@ -74,6 +78,44 @@ bool areOverlapping(const IBox &a, const IBox &b) {
 		if(b.min[n] >= a.max[n] || a.min[n] >= b.max[n])
 			return false;
 	return true;
+}
+
+array<Plane, 6> planes(const FBox &box) {
+	array<Plane, 6> out;
+	out[0] = Plane({-1, 0, 0}, -box.min.x);
+	out[1] = Plane({1, 0, 0}, box.max.x);
+	out[2] = Plane({0, -1, 0}, -box.min.y);
+	out[3] = Plane({0, 1, 0}, box.max.y);
+	out[4] = Plane({0, 0, -1}, -box.min.z);
+	out[5] = Plane({0, 0, 1}, box.max.z);
+	return out;
+}
+
+array<float3, 8> verts(const FBox &box) {
+	array<float3, 8> out;
+	box.getCorners(out);
+	return out;
+}
+
+array<pair<float3, float3>, 12> edges(const FBox &box) {
+	array<pair<float3, float3>, 12> out;
+	float3 corners[8];
+	box.getCorners(corners);
+	int indices[12][2] = {{7, 3},
+						  {3, 2},
+						  {2, 6},
+						  {6, 7},
+						  {5, 1},
+						  {1, 0},
+						  {0, 4},
+						  {4, 5},
+						  {5, 7},
+						  {1, 3},
+						  {0, 2},
+						  {4, 6}};
+	for(int n = 0; n < 12; n++)
+		out[n] = make_pair(corners[indices[n][0]], corners[indices[n][1]]);
+	return out;
 }
 
 template struct Box<int3>;
