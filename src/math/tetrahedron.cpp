@@ -4,10 +4,6 @@
 
 #include "fwk_math.h"
 
-#ifdef FWK_TARGET_LINUX
-#define CGAL_ENABLED
-#endif
-
 #ifdef CGAL_ENABLED
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/intersections.h>
@@ -72,7 +68,8 @@ bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
 
 	try {
 		return CGAL::do_intersect(tet, tri);
-	} catch(...) {}
+	} catch(...) {
+	}
 
 	return true;
 }

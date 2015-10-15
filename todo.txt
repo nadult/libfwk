@@ -29,3 +29,5 @@
 - When LLDB is attached, make it catch all throws automatically
 
 - Find replacement for tetgen with better license
+
+- Think about accuracy of different math functions. Some of tem could be easily improved

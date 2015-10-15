@@ -371,6 +371,7 @@ float triangleArea(const float3 &, const float3 &, const float3 &);
 float frand();
 float angleDistance(float a, float b);
 float blendAngles(float initial, float target, float step);
+float angleBetween(const float2 &prev, const float2 &cur, const float2 &next);
 float fixAngle(float angle);
 
 bool isnan(float);
@@ -752,6 +753,7 @@ class Triangle {
 	float area() const { return m_length * 0.5f; }
 	array<float3, 3> verts() const { return {{a(), b(), c()}}; }
 	array<Edge, 3> edges() const { return {{Edge(a(), b()), Edge(b(), c()), Edge(c(), a())}}; }
+	array<float, 3> angles() const;
 
   protected:
 	float3 m_point;

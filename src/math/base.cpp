@@ -41,6 +41,18 @@ float blendAngles(float initial, float target, float step) {
 	return initial;
 }
 
+float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
+	DASSERT(distance(prev, cur) > constant::epsilon && distance(cur, next) > constant::epsilon);
+	float vcross = -cross(normalize(cur - prev), normalize(next - cur));
+	float vdot = dot(normalize(next - cur), normalize(prev - cur));
+
+	float ang = atan2(vcross, vdot);
+	if(ang < 0.0f)
+		ang = constant::pi * 2.0f + ang;
+	DASSERT(!isnan(ang));
+	return ang;
+}
+
 float fixAngle(float angle) {
 	angle = fmodf(angle, 2.0f * constant::pi);
 	if(angle < 0.0f)

@@ -55,7 +55,7 @@ MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
 LIBS=freetype2 sdl2 libpng zlib libmpg123 vorbisfile
-LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lCGAL -lgmp -lmpfr -lboost_thread -lboost_system -lopenal -lGL -lGLU -lrt -fopenmp
+LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lboost_thread -lboost_system -lopenal -lGL -lGLU -lrt -fopenmp
 MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
 INCLUDES=-Iinclude/ -Isrc/
@@ -64,7 +64,7 @@ NICE_FLAGS=-std=c++14 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=retu
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
 LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+MINGW_FLAGS=-DFWK_TARGET_MINGW -O3 -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 --embed-file data/ $(NICE_FLAGS) $(INCLUDES)
 
 $(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp

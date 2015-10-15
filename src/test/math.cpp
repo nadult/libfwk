@@ -99,11 +99,18 @@ void testIntersections() {
 	assertEqual(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
 	assertEqual(distance(tri, seg), sqrtf(2.0f) / 2.0f);
 
+	/*
 	Triangle tri1(float3(4.330130, 10.000000, 2.500000), float3(-4.330130, 10.000000, 2.500000),
 				  float3(0.000000, 1.730360, 0.000000));
 	Triangle tri2(float3(-2.500000, 0.000000, -4.330130), float3(4.330130, 10.000000, 2.500000),
 				  float3(-2.500000, 0.000000, 4.330130));
-	ASSERT(areIntersecting(tri1, tri2));
+	ASSERT(areIntersecting(tri1, tri2));*/
+
+	// TODO: 2d Segment intersections
+	/*	Segment2D seg1(float2(-100, -100), float2(100, 100));
+		Segment2D seg2(float2(-100, -99), float2(100, 99));
+		auto isect = intersection(seg1, seg2);
+		xmlPrint("% %\n", isect.first, isect.second);*/
 }
 
 void test2DIntersections() {

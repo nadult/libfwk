@@ -1007,6 +1007,15 @@ class HalfTetMesh {
 	// Returned tet at index i contains face #i from original tet
 	array<Tet *, 4> subdivideTet(Tet *tet, Vertex *vert);
 
+	// TODO: fix constness of some of the methods
+
+	string stats() const;
+
+	// TODO: for now user have to make sure that thare are no tets between
+	// some of the merged points which can cause trouble
+	Vertex *mergeVerts(CRange<Vertex *>);
+	Vertex *mergeVerts(CRange<Vertex *>, const float3 &new_pos);
+
 	class Vertex {
 	  public:
 		Vertex(float3 pos, int index) : m_pos(pos), m_index(index), m_temp(0) {}

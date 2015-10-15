@@ -229,21 +229,30 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 			 float scale) {
 	XMLDocument doc;
 	auto svg_node = doc.addChild("svg");
-	svg_node = svg_node.addChild("g");
-
 	auto cnode = svg_node.addChild("g");
 	cnode.addAttrib("render-order", -1);
 	cnode.addAttrib("style", "stroke-width:3;stroke:black");
-	float2 tmin;
+	float2 tmin, tmax;
 	for(auto tri : tris)
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < 3; i++) {
 			tmin = min(tmin, tri[i]);
-	for(auto pt : points)
-		tmin = min(tmin, pt);
-	for(auto seg : segs)
-		tmin = min(tmin, min(seg.start, seg.end));
+			tmax = max(tmax, tri[i]);
+		}
+	/*	for(auto pt : points) {
+			tmin = min(tmin, pt);
+			tmax = max(tmax, pt);
+		}
+		for(auto seg : segs) {
+			tmin = min(tmin, min(seg.start, seg.end));
+			tmax = max(tmax, max(seg.start, seg.end));
+		}*/
 
 	tmin *= scale;
+	tmax *= scale;
+
+	svg_node.addAttrib("width", tmax.x - tmin.x + 100.0f);
+	svg_node.addAttrib("height", tmax.y - tmin.y + 100.0f);
+
 	float2 offset = -tmin + float2(50, 50);
 
 	for(auto pt : points) {
@@ -254,7 +263,7 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 	}
 
 	auto lnode = svg_node.addChild("g");
-	lnode.addAttrib("style", "stroke-width:2.5;stroke:black;"
+	lnode.addAttrib("style", "stroke-width:1.5;stroke:black;"
 							 "stroke-linecap:square;"
 							 "stroke-linejoin:miter;"
 							 "stroke-miterlimit:10;"
@@ -284,29 +293,18 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 	for(auto tri : tris) {
 		float2 p[3] = {tri[0] * scale + offset, tri[1] * scale + offset, tri[2] * scale + offset};
 		float2 center = (p[0] + p[1] + p[2]) / 3.0f;
-		for(auto &pt : p)
-			pt = lerp(pt, center, 0.01f);
+		//		for(auto &pt : p)
+		//			pt = lerp(pt, center, 0.01f);
 		Triangle t3{float3(p[0], 0.0f), float3(p[1], 0.0f), float3(p[2], 0.0f)};
 		float area = t3.area();
 
 		auto poly = tnode.addChild("polygon");
 		string points = format("%f,%f %f,%f %f,%f", p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y);
 		poly.addAttrib("points", points);
-		poly.addAttrib("style", "stroke-width:2;fill:red;stroke:blue;fill-opacity:0.4");
+		poly.addAttrib("style", "stroke-width:2.5;fill:red;stroke:blue;fill-opacity:0.4");
 	}
 
 	Saver(format("temp/file%d.svg", id)) << doc;
-}
-float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
-	DASSERT(distance(prev, cur) > constant::epsilon && distance(cur, next) > constant::epsilon);
-	float vcross = -cross(normalize(cur - prev), normalize(next - cur));
-	float vdot = dot(normalize(next - cur), normalize(prev - cur));
-
-	float ang = atan2(vcross, vdot);
-	if(ang < 0.0f)
-		ang = constant::pi * 2.0f + ang;
-	DASSERT(!isnan(ang));
-	return ang;
 }
 
 float angleBetween(Vertex *vprev, Vertex *vcur, Vertex *vnext, const Projection &proj) {
@@ -479,7 +477,7 @@ vector<vector<Edge>> findSimplePolygons(const vector<Edge> &bedges, const vector
 	}
 
 	if(do_print) {
-		printf("polygons: %d\n", (int)out.size());
+		printf("Simple polygons: %d\n", (int)out.size());
 		for(auto poly : out) {
 			printf("Poly: ");
 			for(auto e : poly)
@@ -1134,12 +1132,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 				xmlPrint("Not found: %-%\n", (long long)e2.a % 1337, (long long)e2.b % 1337);
 				bool err = true;
 			}
-		if(err) {
-			printf("Exiting due to invalid triangulation (not all edges are "
-				   "present in the "
-				   "output)\n");
-			exit(0);
-		}
+		if(err)
+			THROW("Invalid triangulation (not all edges are present in the output)");
 
 		divideIntoSegments(hmesh1, hmesh2, loops1, loops2);
 		divideIntoSegments(hmesh2, hmesh1, loops2, loops1);
@@ -1166,7 +1160,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 
 		return TetMesh(final);
 	} catch(const Exception &ex) {
-		printf("Error: %s\n%s", ex.what(), ex.backtrace(true).c_str());
+		printf("Error: %s\n%s Mesh #1 stats:\n%s\n\nMesh #2 stats:\n%s\n", ex.what(),
+			   ex.backtrace(true).c_str(), hmesh1.stats().c_str(), hmesh2.stats().c_str());
 		return {};
 	}
 }

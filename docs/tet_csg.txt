@@ -1,0 +1,21 @@
+----- Założenia:
+  Generalnie nie da się zaprezentować dokładnie wyniku każdej kombinacji przecięć jakiś meshy. Zakładamy
+  że operacje nie są dokładne: jeśli mamy jakiś wynik przecięcia to tak naprawdę oznacza, że przecięcie 
+  może być w tej okolicy, a może trójkąty są jedynie bardzo blisko siebie
+
+  Możemy też założyć, że siatki wejściowe są poprawne, tzn. nie zawierają jakiś zdegenerowanych tetów, 
+  lub punktów / krawędzi które są zbyt blisko jakiś innych punktów / krawędzi.
+
+
+------- Podejście:
+
+  Musimy trochę zmodyfikować meshe wejściowe, .... Co jeśli musimy mergować wierzchołki z już
+  istniejących meshy ze sobą? Modyfikujemy geometrię (a nie tylko triangulujemy face-y).
+
+  SOLUTIONS:
+
+  CSG robimy najpierw na samych powierzchniach brzegowych, w których w razie potrzeby mergujemy
+  odpowiendnio wierzchołki. Tylko face-y w pobliżu przecięć są modyfikowane, wszystkie tety w pobliżu
+  modyfikowanej powierzchni usuwamy. Nie powinni ich być dużo. Pozostałą przestrzeń wypłeniamy,
+  nie bawimy się W OGÓLE w podziały tetów tak jak to było w artykule o CSG na tetach.
+

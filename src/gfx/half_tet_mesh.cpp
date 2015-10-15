@@ -268,7 +268,7 @@ Tet *HalfTetMesh::addTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
 		xmlPrint("%|%|%|% vol:%\n", a->pos(), b->pos(), c->pos(), d->pos(),
 				 Tetrahedron(a->pos(), b->pos(), c->pos(), d->pos()).volume());
 		printf("Error: %s\n", ex.what());
-		return nullptr;
+		throw;
 	}
 
 	return m_tets.back().get();
@@ -503,5 +503,66 @@ bool HalfTetMesh::isIntersecting(const float3 &point) const {
 		if(tet->tet().isInside(point))
 			return true;
 	return false;
+}
+
+Vertex *HalfTetMesh::mergeVerts(CRange<Vertex *> verts) {
+	float3 center;
+	for(auto v : verts)
+		center += v->pos();
+	return mergeVerts(verts, center);
+}
+
+Vertex *HalfTetMesh::mergeVerts(CRange<Vertex *> verts, const float3 &new_pos) {
+	vector<Tet *> affected_tets;
+	for(auto *vert : verts)
+		insertBack(affected_tets, vert->tets());
+	makeUnique(affected_tets);
+
+	vector<array<Vertex *, 3>> new_tets;
+	for(auto *tet : affected_tets) {
+		auto shared_verts = setDifference(tet->verts(), verts);
+		DASSERT(shared_verts.size() < 4);
+		if(shared_verts.size() == 3)
+			new_tets.push_back({{shared_verts[0], shared_verts[1], shared_verts[2]}});
+	}
+	makeUnique(new_tets);
+
+	for(auto *tet : affected_tets)
+		removeTet(tet);
+	for(auto *vert : verts)
+		removeVertex(vert);
+	Vertex *new_vert = addVertex(new_pos);
+	for(auto &new_tet : new_tets)
+		addTet(new_tet[0], new_tet[1], new_tet[2], new_vert);
+
+	return new_vert;
+}
+
+string HalfTetMesh::stats() const {
+	float min_dist = constant::inf;
+
+	for(int v1 = 0; v1 < (int)m_verts.size(); v1++)
+		for(int v2 = v1 + 1; v2 < (int)m_verts.size(); v2++) {
+			float dist = distance(m_verts[v1]->pos(), m_verts[v2]->pos());
+			min_dist = min(min_dist, dist);
+		}
+
+	float shortest = constant::inf, longest = 0.0f;
+	for(auto edge : const_cast<HalfTetMesh *>(this)->edges()) {
+		float length = distance(edge.a->pos(), edge.b->pos());
+		shortest = min(shortest, length);
+		longest = max(longest, length);
+	}
+
+	float min_angle = constant::inf;
+	for(auto *face : const_cast<HalfTetMesh *>(this)->faces())
+		for(auto angle : face->triangle().angles())
+			min_angle = min(min_angle, angle);
+
+	string out;
+	out += format("Min distance between points: %f\n", min_dist);
+	out += format("Shortest edge: %f\nLongest edge: %f\n", shortest, longest);
+	out += format("minimum angle: %f deg\n", radToDeg(min_angle));
+	return out;
 }
 }
