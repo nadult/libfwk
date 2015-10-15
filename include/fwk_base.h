@@ -578,6 +578,7 @@ template <class T, int size> struct SerializeAsPod<T[size]> {
 	enum { arraySize = size };
 };
 
+//TODO: use std::is_trivially_copyable instead?
 #define SERIALIZE_AS_POD(type)                                                                     \
 	namespace fwk {                                                                                \
 		template <> struct SerializeAsPod<type> {                                                  \

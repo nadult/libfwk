@@ -136,6 +136,10 @@ template <class Container> auto makeRange(const Container &container) {
 	return CRange<type>(container.data(), container.size());
 }
 
+template <class T> auto makeRange(const std::initializer_list<T> &list) {
+	return CRange<T>(list.begin(), list.end());
+}
+
 template <class Target, class T> auto reinterpretRange(Range<T> range) {
 	using out_type = typename std::conditional<std::is_const<T>::value, const Target, Target>::type;
 	return Range<out_type>(reinterpret_cast<out_type *>(range.data()),
@@ -242,6 +246,22 @@ void insertBack(vector<T1> &into, const std::initializer_list<T2> &from) {
 
 template <class T1, class OutputIterator> void copy(Range<T1> range, OutputIterator iter) {
 	return std::copy(begin(range), end(range), iter);
+}
+
+template <class Range, class Func> auto transform(const Range &range, const Func &func) {
+	vector<typename Range::value_type> out;
+	out.reserve(range.size());
+	for(auto elem : range)
+		out.emplace_back(func(elem));
+	return out;
+}
+
+template <class T, size_t size, class Func>
+array<T, size> transform(const array<T, size> &input, const Func &func) {
+	array<T, size> out;
+	for(int n = 0; n < (int)input.size(); n++)
+		out[n] = func(input[n]);
+	return out;
 }
 }
 
