@@ -3,27 +3,42 @@
    This file is part of libfwk.*/
 
 #include "fwk_gfx.h"
+#include "fwk_xml.h"
 
 namespace fwk {
 
 using VertexId = DynamicMesh::VertexId;
 using FaceId = DynamicMesh::FaceId;
 using EdgeId = DynamicMesh::EdgeId;
+using EdgeLoop = DynamicMesh::EdgeLoop;
 
-DynamicMesh::DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris) {
+DynamicMesh::DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris)
+	: m_num_verts(0), m_num_faces(0) {
 	for(auto vert : verts)
 		addVertex(vert);
 	for(auto tri : tris)
-		addFace(tri[0], tri[1], tri[2]);
+		addFace(VertexId(tri[0]), VertexId(tri[1]), VertexId(tri[2]));
 }
 
 DynamicMesh::operator Mesh() const {
-	vector<array<uint, 3>> tris;
-	tris.reserve(m_faces.size());
-	for(const auto &face : m_faces)
-		tris.push_back({{(uint)face[0], (uint)face[1], (uint)face[2]}});
+	vector<int> vert_map(m_verts.size());
+	vector<float3> out_verts;
 
-	return Mesh(m_verts, {std::move(tris)});
+	for(auto vert : verts()) {
+		vert_map[vert] = (int)out_verts.size();
+		out_verts.emplace_back(point(vert));
+	}
+
+	vector<array<uint, 3>> out_tris;
+	for(auto face : faces()) {
+		array<uint, 3> new_tri;
+		auto fverts = verts(face);
+		for(int i = 0; i < 3; i++)
+			new_tri[i] = vert_map[fverts[i]];
+		out_tris.emplace_back(new_tri);
+	}
+
+	return Mesh(std::move(out_verts), {std::move(out_tris)});
 }
 
 bool DynamicMesh::isManifoldUnion() const {
@@ -41,8 +56,8 @@ bool DynamicMesh::isManifold() const {
 		return true;
 
 	vector<int> visited(m_verts.size(), 0);
-	vector<VertexId> list = {0};
-	size_t visited_count = 0;
+	vector<VertexId> list = {VertexId(0)};
+	int visited_count = 0;
 
 	while(!list.empty()) {
 		auto vert = list.back();
@@ -55,20 +70,36 @@ bool DynamicMesh::isManifold() const {
 			list.emplace_back(edge.b);
 	}
 
-	return visited_count == m_verts.size();
+	return visited_count == m_num_verts;
 }
 
-bool DynamicMesh::isValid(VertexId id) const { return id.id >= 0 && id.id < (int)m_verts.size(); }
-bool DynamicMesh::isValid(FaceId id) const { return id.id >= 0 && id.id < (int)m_faces.size(); }
+bool DynamicMesh::isValid(VertexId id) const {
+	return id.id >= 0 && id.id < (int)m_verts.size() && !isnan(m_verts[id].x);
+}
+bool DynamicMesh::isValid(FaceId id) const {
+	return id.id >= 0 && id.id < (int)m_faces.size() && m_faces[id][0] != -1;
+}
 bool DynamicMesh::isValid(EdgeId id) const {
 	return isValid(id.a) && isValid(id.b) && id.a != id.b;
 }
 
 VertexId DynamicMesh::addVertex(const float3 &pos) {
-	int index = (int)m_verts.size();
-	m_verts.emplace_back(pos);
-	m_adjacency.emplace_back(vector<int>());
-	return index;
+	DASSERT(!isnan(pos));
+
+	int index = -1;
+	if(m_free_verts.empty()) {
+		index = (int)m_verts.size();
+		m_verts.emplace_back(pos);
+		m_adjacency.emplace_back(vector<int>());
+	} else {
+		index = m_free_verts.back();
+		m_free_verts.pop_back();
+		m_verts[index] = pos;
+		DASSERT(m_adjacency[index].empty());
+	}
+
+	m_num_verts++;
+	return VertexId(index);
 }
 
 FaceId DynamicMesh::addFace(CRange<VertexId, 3> indices) {
@@ -76,36 +107,46 @@ FaceId DynamicMesh::addFace(CRange<VertexId, 3> indices) {
 		DASSERT(isValid(idx));
 	DASSERT(indices[0] != indices[1] && indices[1] != indices[2] && indices[2] != indices[0]);
 
-	int index = (int)m_faces.size();
-	m_faces.push_back({{indices[0], indices[1], indices[2]}});
-	for(auto i : indices)
-		m_adjacency[i].emplace_back(index);
+	int index = -1;
+	if(m_free_faces.empty()) {
+		index = (int)m_faces.size();
+		m_faces.push_back({{indices[0], indices[1], indices[2]}});
+	} else {
+		index = m_free_faces.back();
+		m_free_faces.pop_back();
+		DASSERT(m_faces[index][0] == -1);
+	}
 
-	return index;
+	for(auto i : indices) {
+		auto &adjacency = m_adjacency[i];
+		int value = index;
+		for(auto &adj : adjacency)
+			if(adj > value)
+				swap(adj, value);
+		adjacency.emplace_back(value);
+	}
+
+	m_num_faces++;
+	return FaceId(index);
 }
 
-void DynamicMesh::removeVertex(int idx) {
-	DASSERT(idx >= 0 && idx < vertexCount());
-	DASSERT(m_adjacency[idx].empty());
+void DynamicMesh::remove(VertexId id) {
+	DASSERT(isValid(id));
 
-	int last_idx = vertexCount() - 1;
-	for(auto fidx : m_adjacency.back())
-		for(auto &iidx : m_faces[fidx])
-			if(iidx == last_idx)
-				iidx = idx;
-	m_verts[idx] = m_verts.back();
-	m_adjacency[idx].swap(m_adjacency.back());
+	while(!m_adjacency[id].empty())
+		remove(FaceId(m_adjacency[id].back()));
 
-	m_adjacency.pop_back();
-	m_verts.pop_back();
+	m_verts[id].x = NAN;
+	m_free_verts.emplace_back(id);
+	m_num_verts--;
 }
 
-void DynamicMesh::removeFace(int idx) {
-	DASSERT(idx >= 0 && idx < faceCount());
+void DynamicMesh::remove(FaceId id) {
+	DASSERT(isValid(id));
 
-	for(auto vidx : m_faces[idx]) {
+	for(auto vidx : m_faces[id]) {
 		auto &adjacency = m_adjacency[vidx];
-		auto it = std::find(begin(adjacency), end(adjacency), idx);
+		auto it = std::find(begin(adjacency), end(adjacency), id.id);
 		DASSERT(it != adjacency.end());
 		int pos = it - adjacency.begin();
 		while(pos + 1 < (int)adjacency.size()) {
@@ -115,25 +156,17 @@ void DynamicMesh::removeFace(int idx) {
 		adjacency.pop_back();
 	}
 
-	int last_idx = faceCount() - 1;
-	for(auto vidx : m_faces.back()) {
-		auto &adjacency = m_adjacency[vidx];
-		int value = idx;
-		for(auto &aidx : adjacency)
-			if(aidx > value)
-				swap(aidx, value);
-		DASSERT(value == last_idx);
-	}
-
-	m_faces[idx] = m_faces.back();
-	m_faces.pop_back();
+	m_faces[id][0] = -1;
+	m_free_faces.emplace_back(id);
+	m_num_faces--;
 }
 
 vector<VertexId> DynamicMesh::verts() const {
 	vector<VertexId> out;
-	out.reserve(m_verts.size());
-	for(int i = 0; i < vertexCount(); i++)
-		out.emplace_back(i);
+	out.reserve(m_num_verts);
+	for(int i = 0; i < vertexIdCount(); i++)
+		if(!isnan(m_verts[i].x))
+			out.emplace_back(i);
 	return out;
 }
 
@@ -142,7 +175,7 @@ array<VertexId, 3> DynamicMesh::verts(FaceId id) const {
 	array<VertexId, 3> out;
 	const auto &face = m_faces[id];
 	for(int i = 0; i < 3; i++)
-		out[i] = face[i];
+		out[i] = VertexId(face[i]);
 	return out;
 }
 
@@ -153,9 +186,10 @@ array<VertexId, 2> DynamicMesh::verts(EdgeId id) const {
 
 vector<FaceId> DynamicMesh::faces() const {
 	vector<FaceId> out;
-	out.reserve(m_faces.size());
-	for(int i = 0; i < faceCount(); i++)
-		out.emplace_back(i);
+	out.reserve(m_num_faces);
+	for(int i = 0; i < faceIdCount(); i++)
+		if(m_faces[i][0] != -1)
+			out.emplace_back(i);
 	return out;
 }
 
@@ -181,10 +215,9 @@ vector<FaceId> DynamicMesh::faces(EdgeId id) const {
 	DASSERT(isValid(id));
 	const auto &adj1 = m_adjacency[id.a];
 	const auto &adj2 = m_adjacency[id.b];
-	vector<FaceId> out(min(adj1.size(), adj2.size()));
+	vector<int> out(min(adj1.size(), adj2.size()));
 	auto it = std::set_intersection(begin(adj1), end(adj1), begin(adj2), end(adj2), begin(out));
-	out.resize(it - out.begin());
-	return out;
+	return vector<FaceId>(out.begin(), it);
 }
 
 array<EdgeId, 3> DynamicMesh::edges(FaceId id) const {
@@ -192,7 +225,7 @@ array<EdgeId, 3> DynamicMesh::edges(FaceId id) const {
 	array<EdgeId, 3> out;
 	const auto &face = m_faces[id];
 	for(int i = 0; i < 3; i++)
-		out[i] = EdgeId(face[i], face[(i + 1) % 3]);
+		out[i] = EdgeId(VertexId(face[i]), VertexId(face[(i + 1) % 3]));
 	return out;
 }
 
@@ -204,12 +237,45 @@ vector<EdgeId> DynamicMesh::edges(VertexId id) const {
 		const auto &face = m_faces[face_idx];
 		for(int i = 0; i < 3; i++)
 			if(face[i] == id) {
-				out.emplace_back(face[i], face[(i + 1) % 3]);
+				out.emplace_back(VertexId(face[i]), VertexId(face[(i + 1) % 3]));
 				break;
 			}
 	}
 	return out;
 }
+
+int DynamicMesh::faceEdgeIndex(FaceId face_id, EdgeId edge) const {
+	DASSERT(isValid(edge) && isValid(face_id));
+	const auto &face = m_faces[face_id];
+	for(int i = 0; i < 3; i++)
+		if(edge.a == face[i] && edge.b == face[(i + 1) % 3])
+			return i;
+	return -1;
+}
+
+EdgeId DynamicMesh::faceEdge(FaceId face_id, int sub_id) const {
+	DASSERT(isValid(face_id));
+	DASSERT(sub_id >= 0 && sub_id < 3);
+	const auto &face = m_faces[face_id];
+	return EdgeId(VertexId(face[sub_id]), VertexId(face[(sub_id + 1) % 3]));
+}
+
+VertexId DynamicMesh::closestVertex(const float3 &pos) const {
+	VertexId out;
+	float min_dist = constant::inf;
+
+	for(auto vert : verts()) {
+		float dist = distanceSq(pos, point(vert));
+		if(dist < min_dist) {
+			out = vert;
+			min_dist = dist;
+		}
+	}
+
+	return out;
+}
+
+Segment DynamicMesh::segment(EdgeId id) const { return Segment(point(id.a), point(id.b)); }
 
 Triangle DynamicMesh::triangle(FaceId id) const {
 	DASSERT(isValid(id));

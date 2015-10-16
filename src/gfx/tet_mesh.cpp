@@ -704,19 +704,8 @@ vector<Vertex *> sortEdgeVerts(Edge edge, vector<Vertex *> splits) {
 	return splits;
 }
 
-void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData *vis_data,
-					 int mesh_id) {
+void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map) {
 	prepareMesh(mesh, map);
-
-	/*	if(vis_data && vis_data->phase == 1 && mesh_id == 1) {
-			vector<Triangle> tris;
-			for(auto loop : loops)
-				for(auto elem : loop) {
-					auto verts = elem.face->verts();
-					tris.emplace_back(verts[0]->pos(), verts[1]->pos(), verts[2]->pos());
-				}
-			vis_data->poly_soups.emplace_back(Color::red, tris);
-		}*/
 
 	struct SplitInfo {
 		Edge edge;
@@ -784,15 +773,6 @@ void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData
 		auto triangles = triangulateFace(face, tri_boundary_edges, tri_inside_edges);
 		//		printf("new tris: %d\n", (int)triangles.size());
 
-		if(vis_data && vis_data->phase == 1) {
-			Color col = mesh_id % 2 ? Color::yellow : Color::blue;
-			vector<Segment> edges;
-			for(auto tri : triangles)
-				for(int i = 0; i < 3; i++)
-					edges.emplace_back(tri[i]->pos(), tri[(i + 1) % 3]->pos());
-			vis_data->segment_groups.emplace_back(col, edges);
-		}
-
 		float area_sum = 0.0f;
 		for(auto t : triangles)
 			area_sum += Triangle(t[0]->pos(), t[1]->pos(), t[2]->pos()).area();
@@ -825,23 +805,6 @@ void triangulateMesh(HalfTetMesh &mesh, FaceEdgeMap &map, TetMesh::CSGVisualData
 			new_volume += tet->tet().volume();
 		}
 	DASSERT(fabs(new_volume - old_volume) < constant::epsilon);
-
-	if(vis_data && vis_data->phase == 1 && mesh_id == 1 && 0) {
-		vector<Triangle> tris;
-		vector<Segment> segs;
-
-		for(auto *face : mesh.faces()) {
-			auto verts = face->verts();
-			if(face->isBoundary()) {
-				for(auto e : face->edges())
-					segs.emplace_back(e.segment());
-				tris.emplace_back(verts[0]->pos(), verts[1]->pos(), verts[2]->pos());
-			}
-		}
-
-		vis_data->segment_groups.emplace_back(Color::magneta, segs);
-		vis_data->poly_soups.emplace_back(Color(Color::brown, 255), tris);
-	}
 }
 
 Projection edgeProjection(Edge edge, Face *face) {
@@ -1068,6 +1031,7 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 
 	DASSERT(dmesh1.isManifold());
 	DASSERT(dmesh2.isManifold());
+	auto loops = dmesh1.findIntersections(dmesh2);
 
 	vector<Isect> isects;
 	for(auto *face_a : hmesh1.faces())
@@ -1142,11 +1106,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		std::map<float3, int, Compare> points;
 		vector<vector<float3>> tpoints;
 
-		for(const auto &edge : loops1) {
-			segs.emplace_back(edge.segment());
-			points[edge.a->pos()]++;
-			points[edge.b->pos()]++;
-		}
+		for(const auto &edge : loops.first)
+			segs.emplace_back(dmesh1.segment(edge.second));
 
 		if(0) {
 			for(auto &p : points) {
@@ -1174,8 +1135,23 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		DASSERT(vcount.second >= 2 || vcount.second == 0);
 
 	try {
-		triangulateMesh(hmesh1, map1, vis_data, 1);
-		triangulateMesh(hmesh2, map2, vis_data, 2);
+		triangulateMesh(hmesh1, map1);
+		triangulateMesh(hmesh2, map2);
+
+		dmesh1.triangulateFaces(loops.first);
+		dmesh2.triangulateFaces(loops.second);
+
+		if(vis_data->phase == 1) {
+			vector<Segment> segs1, segs2;
+			for(auto face : dmesh1.faces())
+				for(auto edge : dmesh1.edges(face))
+					segs1.emplace_back(dmesh1.segment(edge));
+			for(auto face : dmesh2.faces())
+				for(auto edge : dmesh2.edges(face))
+					segs2.emplace_back(dmesh2.segment(edge));
+			vis_data->segment_groups.emplace_back(Color::yellow, segs1);
+			vis_data->segment_groups.emplace_back(Color::blue, segs2);
+		}
 
 		bool err = false;
 		for(auto e1 : loops1)

@@ -843,19 +843,33 @@ class DynamicMesh {
 	explicit operator Mesh() const;
 
 	struct VertexId {
-		VertexId(int id = -1) : id(id) {}
+		explicit VertexId(int id = -1) : id(id) {}
 		operator int() const { return id; }
+		bool isValid() const { return id >= 0; }
 		int id;
 	};
 
 	struct FaceId {
-		FaceId(int id = -1) : id(id) {}
+		explicit FaceId(int id = -1) : id(id) {}
 		operator int() const { return id; }
+		bool isValid() const { return id >= 0; }
 		int id;
 	};
 
 	struct EdgeId {
-		EdgeId(VertexId a = VertexId(), VertexId b = VertexId()) : a(a), b(b) {}
+		EdgeId() {}
+		EdgeId(VertexId a, VertexId b) : a(a), b(b) {}
+		bool isValid() const { return a.isValid() && b.isValid() && a != b; }
+		EdgeId inverse() const { return EdgeId(b, a); }
+		EdgeId ordered() const { return a < b ? EdgeId(a, b) : EdgeId(b, a); }
+		bool operator==(const EdgeId &rhs) const {
+			return std::tie(a, b) == std::tie(rhs.a, rhs.b);
+		}
+
+		bool hasSharedEnds(const EdgeId &other) const {
+			return isOneOf(a, other.a, other.b) || isOneOf(b, other.a, other.b);
+		}
+
 		VertexId a, b;
 	};
 
@@ -870,9 +884,8 @@ class DynamicMesh {
 	FaceId addFace(CRange<VertexId, 3>);
 	FaceId addFace(VertexId v0, VertexId v1, VertexId v2) { return addFace({v0, v1, v2}); }
 
-	// remove functions change the ordering of vertices and faces
-	void removeVertex(int);
-	void removeFace(int);
+	void remove(VertexId);
+	void remove(FaceId);
 
 	vector<VertexId> verts() const;
 	array<VertexId, 3> verts(FaceId) const;
@@ -884,20 +897,36 @@ class DynamicMesh {
 	vector<FaceId> faces(EdgeId) const;
 
 	array<EdgeId, 3> edges(FaceId) const;
+	EdgeId faceEdge(FaceId face_id, int sub_id) const;
+	int faceEdgeIndex(FaceId, EdgeId) const;
 
 	// All edges starting from current vertex
 	vector<EdgeId> edges(VertexId) const;
 
-	float3 vertexPos(int idx) const { return m_verts[idx]; }
+	float3 point(VertexId id) const {
+		DASSERT(isValid(id));
+		return m_verts[id];
+	}
+	Segment segment(EdgeId) const;
 	Triangle triangle(FaceId) const;
 
-	int faceCount() const { return (int)m_faces.size(); }
-	int vertexCount() const { return (int)m_verts.size(); }
+	VertexId closestVertex(const float3 &pos) const;
+
+	int faceCount() const { return m_num_faces; }
+	int vertexCount() const { return m_num_verts; }
+	int vertexIdCount() const { return (int)m_verts.size(); }
+	int faceIdCount() const { return (int)m_faces.size(); }
+
+	using EdgeLoop = vector<pair<FaceId, EdgeId>>;
+	pair<EdgeLoop, EdgeLoop> findIntersections(DynamicMesh &);
+	void triangulateFaces(EdgeLoop);
 
   private:
 	vector<float3> m_verts;
 	vector<array<int, 3>> m_faces;
 	vector<vector<int>> m_adjacency;
+	vector<int> m_free_verts, m_free_faces;
+	int m_num_verts, m_num_faces;
 };
 
 using PMesh = immutable_ptr<Mesh>;
