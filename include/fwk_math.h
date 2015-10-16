@@ -753,6 +753,7 @@ class Triangle {
 	Triangle operator*(const float3 &scale) const {
 		return Triangle(a() * scale, b() * scale, c() * scale);
 	}
+	Triangle inverse() const { return Triangle(c(), b(), a()); }
 
 	Triangle2D xz() const { return Triangle2D(a().xz(), b().xz(), c().xz()); }
 
