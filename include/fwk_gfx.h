@@ -865,6 +865,7 @@ class DynamicMesh {
 		bool operator==(const EdgeId &rhs) const {
 			return std::tie(a, b) == std::tie(rhs.a, rhs.b);
 		}
+		bool operator<(const EdgeId &rhs) const { return std::tie(a, b) < std::tie(rhs.a, rhs.b); }
 
 		bool hasSharedEnds(const EdgeId &other) const {
 			return isOneOf(a, other.a, other.b) || isOneOf(b, other.a, other.b);
@@ -899,6 +900,7 @@ class DynamicMesh {
 	array<EdgeId, 3> edges(FaceId) const;
 	EdgeId faceEdge(FaceId face_id, int sub_id) const;
 	int faceEdgeIndex(FaceId, EdgeId) const;
+	VertexId otherVertex(FaceId, EdgeId) const;
 
 	// All edges starting from current vertex
 	vector<EdgeId> edges(VertexId) const;
@@ -920,6 +922,16 @@ class DynamicMesh {
 	using EdgeLoop = vector<pair<FaceId, EdgeId>>;
 	pair<EdgeLoop, EdgeLoop> findIntersections(DynamicMesh &);
 	void triangulateFaces(EdgeLoop);
+
+	// How these faces will be interpreted depends on the CSG operation
+	// So, maybe in some situations it makes no sense to make faces compatible:
+	// for example: in case of subtraction: opposite shared faces don't have to be compatible
+	// because tets behind them won't be merged
+	enum class FaceType { unclassified, inside, outside, shared, shared_opposite };
+
+	// Indexed by FaceId
+	vector<FaceType> classifyFaces(const DynamicMesh &mesh2, const EdgeLoop &loop1,
+								   const EdgeLoop &loop2) const;
 
   private:
 	vector<float3> m_verts;

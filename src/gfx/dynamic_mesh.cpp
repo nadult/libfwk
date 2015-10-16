@@ -115,6 +115,7 @@ FaceId DynamicMesh::addFace(CRange<VertexId, 3> indices) {
 		index = m_free_faces.back();
 		m_free_faces.pop_back();
 		DASSERT(m_faces[index][0] == -1);
+		m_faces[index] = {{indices[0], indices[1], indices[2]}};
 	}
 
 	for(auto i : indices) {
@@ -244,6 +245,13 @@ vector<EdgeId> DynamicMesh::edges(VertexId id) const {
 	return out;
 }
 
+EdgeId DynamicMesh::faceEdge(FaceId face_id, int sub_id) const {
+	DASSERT(isValid(face_id));
+	DASSERT(sub_id >= 0 && sub_id < 3);
+	const auto &face = m_faces[face_id];
+	return EdgeId(VertexId(face[sub_id]), VertexId(face[(sub_id + 1) % 3]));
+}
+
 int DynamicMesh::faceEdgeIndex(FaceId face_id, EdgeId edge) const {
 	DASSERT(isValid(edge) && isValid(face_id));
 	const auto &face = m_faces[face_id];
@@ -253,11 +261,15 @@ int DynamicMesh::faceEdgeIndex(FaceId face_id, EdgeId edge) const {
 	return -1;
 }
 
-EdgeId DynamicMesh::faceEdge(FaceId face_id, int sub_id) const {
+VertexId DynamicMesh::otherVertex(FaceId face_id, EdgeId edge_id) const {
 	DASSERT(isValid(face_id));
-	DASSERT(sub_id >= 0 && sub_id < 3);
+	DASSERT(isValid(edge_id));
 	const auto &face = m_faces[face_id];
-	return EdgeId(VertexId(face[sub_id]), VertexId(face[(sub_id + 1) % 3]));
+	for(int i = 0; i < 3; i++)
+		if(!isOneOf(face[i], edge_id.a, edge_id.b))
+			return VertexId(face[i]);
+
+	return VertexId(-1);
 }
 
 VertexId DynamicMesh::closestVertex(const float3 &pos) const {

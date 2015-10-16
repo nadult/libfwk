@@ -1170,18 +1170,20 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		divideIntoSegments(hmesh1, hmesh2, loops1, loops2);
 		divideIntoSegments(hmesh2, hmesh1, loops2, loops1);
 
+		auto ftypes2 = dmesh1.classifyFaces(dmesh2, loops.first, loops.second);
+		auto ftypes1 = dmesh2.classifyFaces(dmesh1, loops.second, loops.first);
+
 		if(vis_data->phase == 2) {
 			vector<Color> colors = {Color::black, Color::green, Color::red, Color::yellow,
 									Color::magneta};
 			vector<vector<Triangle>> segs;
 			segs.clear();
-			for(auto *face : hmesh1.faces()) {
-				int seg_id = face->temp();
-				if(seg_id > 0) {
-					if((int)segs.size() < seg_id + 1)
-						segs.resize(seg_id + 1);
-					segs[seg_id].emplace_back(face->triangle());
-				}
+
+			for(auto face : dmesh1.faces()) {
+				int seg_id = (int)ftypes1[face];
+				if((int)segs.size() < seg_id + 1)
+					segs.resize(seg_id + 1);
+				segs[seg_id].emplace_back(dmesh1.triangle(face));
 			}
 			for(int n = 0; n < (int)segs.size(); n++)
 				vis_data->poly_soups.emplace_back(colors[n % colors.size()], segs[n]);

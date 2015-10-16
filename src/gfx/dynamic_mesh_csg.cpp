@@ -4,6 +4,7 @@
 
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
+#include <set>
 
 namespace fwk {
 
@@ -500,5 +501,127 @@ pair<EdgeLoop, EdgeLoop> DynamicMesh::findIntersections(DynamicMesh &rhs) {
 		}
 
 	return make_pair(loop1, loop2);
+}
+
+using FaceType = DynamicMesh::FaceType;
+
+static void floodFill(const DynamicMesh &mesh, vector<FaceId> list, EdgeLoop limits_vec,
+					  vector<FaceType> &data) {
+	std::set<EdgeId> limits;
+	for(auto pair : limits_vec)
+		limits.insert(pair.second.ordered());
+
+	while(!list.empty()) {
+		FaceId face = list.back();
+		list.pop_back();
+
+		for(auto edge : mesh.edges(face))
+			if(!limits.count(edge.ordered()))
+				for(auto nface : mesh.faces(edge))
+					if(data[nface] == FaceType::unclassified) {
+						data[nface] = data[face];
+						list.emplace_back(nface);
+					}
+	}
+}
+
+Projection edgeProjection(const DynamicMesh &mesh, EdgeId edge, FaceId face) {
+	auto segment = mesh.segment(edge);
+	Ray ray(segment);
+	float3 far_point = mesh.point(mesh.otherVertex(face, edge));
+	float3 edge_point = closestPoint(ray, far_point);
+	return Projection(mesh.point(edge.a), normalize(edge_point - far_point), ray.dir());
+}
+
+vector<FaceType> DynamicMesh::classifyFaces(const DynamicMesh &mesh2, const EdgeLoop &loop1,
+											const EdgeLoop &loop2) const {
+	vector<FaceType> out(mesh2.faceIdCount(), FaceType::unclassified);
+
+	vector<FaceId> list1, list2;
+	const auto &mesh1 = *this;
+
+	DASSERT(loop1.size() == loop2.size());
+	for(int i = 0; i < (int)loop1.size(); i++) {
+		auto edge1 = loop1[i].second;
+		auto edge2 = loop2[i].second;
+
+		auto faces1 = mesh1.faces(edge1);
+		auto faces2 = mesh2.faces(edge2);
+		DASSERT(faces1.size() == 2 && faces2.size() == 2);
+
+		Projection proj = edgeProjection(mesh1, edge1, faces1[0]);
+
+		float2 vectors1[2] = {(proj * mesh1.point(mesh1.otherVertex(faces1[0], edge1))).xz(),
+							  (proj * mesh1.point(mesh1.otherVertex(faces1[1], edge1))).xz()};
+		float2 vectors2[2] = {(proj * mesh2.point(mesh2.otherVertex(faces2[0], edge2))).xz(),
+							  (proj * mesh2.point(mesh2.otherVertex(faces2[1], edge2))).xz()};
+
+		float2 normals1[2] = {(proj.projectVector(mesh1.triangle(faces1[0]).normal())).xz(),
+							  (proj.projectVector(mesh1.triangle(faces1[1]).normal())).xz()};
+		float2 normals2[2] = {(proj.projectVector(mesh2.triangle(faces2[0]).normal())).xz(),
+							  (proj.projectVector(mesh2.triangle(faces2[1]).normal())).xz()};
+
+		for(int n = 0; n < 2; n++) {
+			vectors1[n] = normalize(vectors1[n]);
+			vectors2[n] = normalize(vectors2[n]);
+			DASSERT(isNormalized(normals1[n]));
+			DASSERT(isNormalized(normals2[n]));
+		}
+
+		float dir1[2], dir2[2];
+		for(int n = 0; n < 2; n++) {
+			float2 mvector1 = normalize(vectors1[n] + normals1[n]);
+			dir1[n] = angleBetween(vectors1[n], float2(0, 0), mvector1);
+			if(dir1[n] > constant::pi)
+				dir1[n] -= constant::pi * 2.0f;
+			float2 mvector2 = normalize(vectors2[n] + normals2[n]);
+			dir2[n] = angleBetween(vectors2[n], float2(0, 0), mvector2);
+			if(dir2[n] > constant::pi)
+				dir2[n] -= constant::pi * 2.0f;
+		}
+
+		//		xmlPrint("vectors1: (%) (%) % %\n", vectors1[0], vectors1[1], dir1[0], dir1[1]);
+		//		xmlPrint("vectors2: (%) (%) % %\n", vectors2[0], vectors2[1], dir2[0], dir2[1]);
+
+		DASSERT((dir1[0] < 0.0f) != (dir1[1] < 0.0f));
+		DASSERT((dir2[0] < 0.0f) != (dir2[1] < 0.0f));
+
+		if(dir1[0] < 0.0f)
+			swap(vectors1[0], vectors1[1]);
+
+		float face1_angle = angleBetween(vectors1[0], float2(0, 0), vectors1[1]);
+
+		for(int n = 0; n < 2; n++) {
+			float angle = angleBetween(vectors1[0], float2(0, 0), vectors2[n]);
+			float eps = constant::epsilon;
+			if(angle > constant::pi * 2.0f - eps)
+				angle -= constant::pi * 2.0f;
+
+			auto value = FaceType::shared;
+			if(angle < -eps)
+				value = FaceType::inside;
+			else if(angle < eps)
+				value = dir2[n] < 0.0f ? FaceType::shared_opposite : FaceType::shared;
+			else if(angle < face1_angle - eps)
+				value = FaceType::outside;
+			else if(angle < face1_angle + eps)
+				value = dir2[n] < 0.0f ? FaceType::shared : FaceType::shared_opposite;
+			else
+				value = FaceType::inside;
+
+			auto old = out[faces2[n]];
+			if(old != FaceType::unclassified && old != value) {
+				printf("Error: %d -> %d\n", old, value);
+				printf("dir1: %f %f\ndir2: %f %f\nangles: %f %f\n\n", dir1[0], dir1[1], dir2[0],
+					   dir2[1], angle, face1_angle);
+			}
+			out[faces2[n]] = value;
+		}
+
+		insertBack(list2, faces2);
+	}
+
+	floodFill(mesh2, list2, loop2, out);
+	return out;
 }
 }
