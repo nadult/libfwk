@@ -783,10 +783,6 @@ class Mesh : public immutable_base<Mesh> {
 	vector<Mesh> splitToSubMeshes() const;
 
 	static Mesh merge(vector<Mesh>);
-	static Mesh csgDifference(const Mesh &, const Mesh &);
-	static Mesh csgUnion(const Mesh &, const Mesh &);
-	static Mesh csgIntersection(const Mesh &, const Mesh &);
-
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	float intersect(const Segment &) const;
