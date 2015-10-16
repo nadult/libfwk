@@ -1015,7 +1015,7 @@ TetMesh finalCuts(HalfTetMesh h1, HalfTetMesh h2, TetMesh::CSGVisualData *vis_da
 		vis_data->poly_soups.emplace_back(Color::green, tris2);
 	}
 
-	bool is_manifold = true; // HalfMesh(fill_mesh).is2Manifold();
+	bool is_manifold = DynamicMesh(fill_mesh).isManifold();
 	DASSERT(is_manifold);
 
 	if(is_manifold) {
@@ -1063,8 +1063,11 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 	HalfTetMesh hmesh1(a.extract(a.selection(csg_bbox)));
 	HalfTetMesh hmesh2(b.extract(b.selection(csg_bbox)));
 
-	// DASSERT(HalfMesh(TetMesh(hmesh1).toMesh()).is2Manifold());
-	// DASSERT(HalfMesh(TetMesh(hmesh2).toMesh()).is2Manifold());
+	DynamicMesh dmesh1(TetMesh(hmesh1).toMesh());
+	DynamicMesh dmesh2(TetMesh(hmesh2).toMesh());
+
+	DASSERT(dmesh1.isManifold());
+	DASSERT(dmesh2.isManifold());
 
 	vector<Isect> isects;
 	for(auto *face_a : hmesh1.faces())

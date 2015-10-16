@@ -21,7 +21,7 @@ SHARED_SRC=base backtrace filesystem filesystem_linux filesystem_windows input p
 		   gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model gfx/mesh gfx/tet_mesh \
 		   gfx/tet_gen gfx/half_tet_mesh gfx/half_mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/mesh_csg \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader gfx/program \
-		   gfx/renderer gfx/renderer2d \
+		   gfx/renderer gfx/renderer2d gfx/dynamic_mesh \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat \
 		   math/base math/triangle math/tetrahedron math/projection \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream

@@ -835,6 +835,71 @@ class Mesh : public immutable_base<Mesh> {
 	mutable uint m_ready_flags;
 };
 
+class DynamicMesh {
+  public:
+	DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris);
+	explicit DynamicMesh(const Mesh &mesh) : DynamicMesh(mesh.positions(), mesh.trisIndices()) {}
+	DynamicMesh() : DynamicMesh({}, {}) {}
+	explicit operator Mesh() const;
+
+	struct VertexId {
+		VertexId(int id = -1) : id(id) {}
+		operator int() const { return id; }
+		int id;
+	};
+
+	struct FaceId {
+		FaceId(int id = -1) : id(id) {}
+		operator int() const { return id; }
+		int id;
+	};
+
+	struct EdgeId {
+		EdgeId(VertexId a = VertexId(), VertexId b = VertexId()) : a(a), b(b) {}
+		VertexId a, b;
+	};
+
+	bool isValid(VertexId) const;
+	bool isValid(FaceId) const;
+	bool isValid(EdgeId) const;
+
+	bool isManifold() const;
+	bool isManifoldUnion() const;
+
+	VertexId addVertex(const float3 &pos);
+	FaceId addFace(CRange<VertexId, 3>);
+	FaceId addFace(VertexId v0, VertexId v1, VertexId v2) { return addFace({v0, v1, v2}); }
+
+	// remove functions change the ordering of vertices and faces
+	void removeVertex(int);
+	void removeFace(int);
+
+	vector<VertexId> verts() const;
+	array<VertexId, 3> verts(FaceId) const;
+	array<VertexId, 2> verts(EdgeId) const;
+
+	vector<FaceId> faces() const;
+	vector<FaceId> faces(FaceId) const;
+	vector<FaceId> faces(VertexId) const;
+	vector<FaceId> faces(EdgeId) const;
+
+	array<EdgeId, 3> edges(FaceId) const;
+
+	// All edges starting from current vertex
+	vector<EdgeId> edges(VertexId) const;
+
+	float3 vertexPos(int idx) const { return m_verts[idx]; }
+	Triangle triangle(FaceId) const;
+
+	int faceCount() const { return (int)m_faces.size(); }
+	int vertexCount() const { return (int)m_verts.size(); }
+
+  private:
+	vector<float3> m_verts;
+	vector<array<int, 3>> m_faces;
+	vector<vector<int>> m_adjacency;
+};
+
 using PMesh = immutable_ptr<Mesh>;
 
 class HalfMesh {
@@ -986,6 +1051,8 @@ class HalfTetMesh {
 	void removeTet(Tet *tet);
 	vector<Tet *> tets();
 	vector<Face *> faces();
+
+	// TODO: proxy class for accessing verts / faces / etc
 	vector<Vertex *> verts();
 	vector<Edge> edges();
 
