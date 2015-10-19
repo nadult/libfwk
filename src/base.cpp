@@ -31,6 +31,24 @@
 
 namespace fwk {
 
+void *SimpleAllocatorBase::allocateBytes(size_t count) noexcept {
+	void *out = malloc(count);
+	if(!out) {
+		auto bt = Backtrace::get(1);
+		printf("Fatal error while allocating memory (%llu bytes)\n", (unsigned long long)count);
+		printf("Generating backtrace:\n");
+		try {
+			string text = bt.analyze(false);
+			printf("%s\n", text.c_str());
+		} catch(const Exception &ex) {
+			printf("Failed:\n%s\n", ex.what());
+		}
+		exit(1);
+	}
+
+	return out;
+}
+
 #ifndef FWK_TARGET_HTML5
 
 namespace {
@@ -241,7 +259,9 @@ string simpleFormat(const char *format, const vector<string> &args) {
 		if(*c == '%') {
 			out("%s", arg_id >= args.size() ? "" : args[arg_id].c_str());
 			arg_id++;
-		} else { out("%c", *c); }
+		} else {
+			out("%c", *c);
+		}
 	}
 
 	return out.text();

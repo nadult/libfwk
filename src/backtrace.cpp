@@ -7,7 +7,7 @@
 
 namespace fwk {
 
-Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols)
+Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols)
 	: m_addresses(std::move(addresses)), m_symbols(std::move(symbols)) {}
 }
 
@@ -37,8 +37,8 @@ Backtrace Backtrace::get(size_t skip) {
 	size_t size = ::backtrace(addresses, arraySize(addresses));
 	char **strings = backtrace_symbols(addresses, size);
 
-	vector<void *> addrs;
-	vector<string> symbols;
+	std::vector<void *> addrs;
+	std::vector<string> symbols;
 
 	try {
 		for(size_t i = skip; i < size; i++) {
@@ -62,7 +62,7 @@ string Backtrace::analyze(bool filter) const {
 		command("%p ", address);
 	command("-e %s 2>/dev/null", executablePath().c_str());
 	string result = execCommand(command.text()).first;
-	vector<string> file_lines;
+	std::vector<string> file_lines;
 	while(!result.empty()) {
 		auto pos = result.find('\n');
 		file_lines.emplace_back(result.substr(0, pos));
@@ -121,7 +121,7 @@ string Backtrace::filter(const string &input) {
 
 	FILE *file = popen(command.c_str(), "r");
 	if(file) {
-		vector<char> buf;
+		std::vector<char> buf;
 		try {
 			while(!feof(file) && buf.size() < 1024 * 16) {
 				buf.push_back(fgetc(file));

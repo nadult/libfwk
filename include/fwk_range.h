@@ -250,6 +250,7 @@ template <class T1, class OutputIterator> void copy(Range<T1> range, OutputItera
 
 template <class Range, class Func> auto transform(const Range &range, const Func &func) {
 	using Value = decltype(func(*range.begin()));
+	static_assert(!std::is_void<Value>::value, "Func must return some value");
 	vector<Value> out;
 	out.reserve(range.size());
 	for(auto elem : range)
@@ -260,6 +261,7 @@ template <class Range, class Func> auto transform(const Range &range, const Func
 template <class T, size_t size, class Func>
 auto transform(const array<T, size> &input, const Func &func) {
 	using Value = decltype(func(*input.begin()));
+	static_assert(!std::is_void<Value>::value, "Func must return some value");
 	array<Value, size> out;
 	for(int n = 0; n < (int)input.size(); n++)
 		out[n] = func(input[n]);

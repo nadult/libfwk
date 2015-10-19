@@ -23,7 +23,6 @@ using std::array;
 using std::swap;
 using std::pair;
 using std::string;
-using std::vector;
 using std::unique_ptr;
 using std::shared_ptr;
 
@@ -41,6 +40,35 @@ using u16 = unsigned short;
 using i16 = short;
 using u32 = unsigned;
 using i32 = int;
+
+class SimpleAllocatorBase {
+  public:
+	void *allocateBytes(size_t count) noexcept;
+	void deallocateBytes(void *ptr) noexcept { free(ptr); }
+};
+
+// TODO: in multithreaded env consider: tbb::scalable_allocator
+template <class T> class SimpleAllocator : public SimpleAllocatorBase {
+  public:
+	using value_type = T;
+
+	SimpleAllocator() = default;
+	template <typename U> SimpleAllocator(const SimpleAllocator<U> &other) {}
+
+	T *allocate(size_t count) noexcept {
+		return static_cast<T *>(allocateBytes(count * sizeof(T)));
+	}
+
+	size_t max_size() const noexcept { return std::numeric_limits<size_t>::max() / sizeof(T); }
+
+	template <class Other> struct rebind { using other = SimpleAllocator<Other>; };
+
+	void deallocate(T *ptr, size_t) noexcept { deallocateBytes(ptr); }
+	template <class U> bool operator==(const SimpleAllocator<U> &rhs) const { return true; }
+	template <class Other> bool operator==(const Other &rhs) const { return false; }
+};
+
+template <class T> using vector = std::vector<T, SimpleAllocator<T>>;
 
 template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
@@ -184,7 +212,7 @@ pair<string, bool> execCommand(const string &cmd);
 // TODO: use lib-lldb
 class Backtrace {
   public:
-	Backtrace(vector<void *> addresses = {}, vector<string> symbols = {});
+	Backtrace(std::vector<void *> addresses = {}, std::vector<string> symbols = {});
 	static Backtrace get(size_t skip = 0);
 
 	// When filter is true, analyzer uses c++filt program to demangle C++
@@ -196,8 +224,8 @@ class Backtrace {
   private:
 	static string filter(const string &);
 
-	vector<void *> m_addresses;
-	vector<string> m_symbols;
+	std::vector<void *> m_addresses;
+	std::vector<string> m_symbols;
 };
 
 class Exception : public std::exception {
@@ -245,8 +273,8 @@ double getTime();
 #define DASSERT(expr) ({})
 #else
 #define DASSERT(expr) ASSERT(expr)
-//TODO: DASSERT_CLOSE_ENOUGH
-//TODO: DASSERT_EQUAL
+// TODO: DASSERT_CLOSE_ENOUGH
+// TODO: DASSERT_EQUAL
 #endif
 }
 
@@ -507,12 +535,16 @@ class Stream {
 		static void doLoad(T &obj, Stream &sr) {
 			try {
 				obj.load(sr);
-			} catch(const Exception &ex) { sr.handleException(ex); }
+			} catch(const Exception &ex) {
+				sr.handleException(ex);
+			}
 		}
 		static void doSave(const T &obj, Stream &sr) {
 			try {
 				obj.save(sr);
-			} catch(const Exception &ex) { sr.handleException(ex); }
+			} catch(const Exception &ex) {
+				sr.handleException(ex);
+			}
 		}
 	};
 
@@ -578,7 +610,7 @@ template <class T, int size> struct SerializeAsPod<T[size]> {
 	enum { arraySize = size };
 };
 
-//TODO: use std::is_trivially_copyable instead?
+// TODO: use std::is_trivially_copyable instead?
 #define SERIALIZE_AS_POD(type)                                                                     \
 	namespace fwk {                                                                                \
 		template <> struct SerializeAsPod<type> {                                                  \
@@ -589,12 +621,14 @@ template <class T, int size> struct SerializeAsPod<T[size]> {
 void loadFromStream(string &, Stream &);
 void saveToStream(const string &, Stream &);
 
-template <class T, class A> void loadFromStream(vector<T, A> &v, Stream &sr) {
+template <class T> void loadFromStream(vector<T> &v, Stream &sr) {
 	u32 size;
 	sr.loadData(&size, sizeof(size));
 	try {
 		v.resize(size);
-	} catch(Exception &ex) { sr.handleException(ex); }
+	} catch(Exception &ex) {
+		sr.handleException(ex);
+	}
 
 	if(SerializeAsPod<T>::value)
 		sr.loadData(&v[0], sizeof(T) * size);
@@ -603,7 +637,7 @@ template <class T, class A> void loadFromStream(vector<T, A> &v, Stream &sr) {
 			loadFromStream(v[n], sr);
 }
 
-template <class T, class A> void saveToStream(const vector<T, A> &v, Stream &sr) {
+template <class T> void saveToStream(const vector<T> &v, Stream &sr) {
 	u32 size;
 	size = u32(v.size());
 	if(size_t(size) != v.size())
@@ -1173,8 +1207,8 @@ namespace FindFiles {
 
 		recursive = 4,
 
-		relative = 8,		 // all paths relative to given path
-		absolute = 16,		 // all paths absolute
+		relative = 8, // all paths relative to given path
+		absolute = 16, // all paths absolute
 		include_parent = 32, // include '..'
 	};
 };
