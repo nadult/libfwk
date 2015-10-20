@@ -143,7 +143,7 @@ template <class T> auto makeRange(const std::initializer_list<T> &list) {
 template <class Target, class T> auto reinterpretRange(Range<T> range) {
 	using out_type = typename std::conditional<std::is_const<T>::value, const Target, Target>::type;
 	return Range<out_type>(reinterpret_cast<out_type *>(range.data()),
-						   size_t(range.size()) * sizeof(Target) / sizeof(T));
+						   size_t(range.size()) * sizeof(T) / sizeof(Target));
 }
 
 // TODO: write more of these

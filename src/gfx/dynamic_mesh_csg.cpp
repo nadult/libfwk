@@ -525,14 +525,6 @@ static void floodFill(const DynamicMesh &mesh, vector<FaceId> list, EdgeLoop lim
 	}
 }
 
-Projection edgeProjection(const DynamicMesh &mesh, EdgeId edge, FaceId face) {
-	auto segment = mesh.segment(edge);
-	Ray ray(segment);
-	float3 far_point = mesh.point(mesh.otherVertex(face, edge));
-	float3 edge_point = closestPoint(ray, far_point);
-	return Projection(mesh.point(edge.a), normalize(edge_point - far_point), ray.dir());
-}
-
 vector<FaceType> DynamicMesh::classifyFaces(const DynamicMesh &mesh2, const EdgeLoop &loop1,
 											const EdgeLoop &loop2) const {
 	vector<FaceType> out(mesh2.faceIdCount(), FaceType::unclassified);
@@ -549,7 +541,7 @@ vector<FaceType> DynamicMesh::classifyFaces(const DynamicMesh &mesh2, const Edge
 		auto faces2 = mesh2.faces(edge2);
 		DASSERT(faces1.size() == 2 && faces2.size() == 2);
 
-		Projection proj = edgeProjection(mesh1, edge1, faces1[0]);
+		Projection proj = mesh1.edgeProjection(edge1, faces1[0]);
 
 		float2 vectors1[2] = {(proj * mesh1.point(mesh1.otherVertex(faces1[0], edge1))).xz(),
 							  (proj * mesh1.point(mesh1.otherVertex(faces1[1], edge1))).xz()};

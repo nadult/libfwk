@@ -63,7 +63,7 @@ class Viewer {
 
 			FWK_PROFILE_RARE("XupdateTets");
 			m_tet_mesh = PTetMesh();
-			auto sub_meshes = m_model->toMesh(PPose()).splitToSubMeshes();
+			auto sub_meshes = DynamicMesh(m_model->toMesh(PPose())).separateSurfaces();
 
 			vector<TetMesh> tets;
 			vector<Mesh> isects;
@@ -71,20 +71,20 @@ class Viewer {
 			m_num_segments = m_num_non_manifold = 0;
 			for(const auto &sub_mesh : sub_meshes) {
 				m_num_segments++;
-				if(!HalfMesh(sub_mesh).is2Manifold()) {
+				if(!DynamicMesh(sub_mesh).representsVolume()) {
 					m_num_non_manifold++;
 					continue;
 				}
 
 				try {
-					auto tet = TetMesh::make(sub_mesh, 0);
+					auto tet = TetMesh::make(Mesh(sub_mesh), 0);
 					tets.emplace_back(std::move(tet));
 				} catch(...) {
-					isects.emplace_back(TetMesh::findIntersections(sub_mesh));
+					isects.emplace_back(TetMesh::findIntersections(Mesh(sub_mesh)));
 				}
 			}
 
-			m_tet_mesh = PTetMesh(TetMesh::makeUnion(tets));
+			m_tet_mesh = PTetMesh(TetMesh::merge(tets));
 			m_tet_isects = isects.empty() ? PMesh() : PMesh(Mesh::merge(isects));
 		}
 
@@ -330,6 +330,18 @@ class Viewer {
 		m_anim_pos += time_diff;
 	}
 
+	static void faceVertHistogram(TextFormatter &out, PModel model) {
+		DynamicMesh dmesh(model->toMesh());
+		std::map<int, int> fcounts;
+
+		for(auto vert : dmesh.verts())
+			fcounts[dmesh.faceCount(vert)]++;
+		out("Faces/vert: ");
+		for(auto it : fcounts)
+			out("%d:%d ", it.first, it.second);
+		out("\n");
+	}
+
 	void draw() {
 		m_renderer_3d->setProjectionMatrix(perspective(
 			degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(), 1.0f, 10000.0f));
@@ -372,6 +384,7 @@ class Viewer {
 			fmt("ctrl+ up/down/left/right: move mesh\n");
 			fmt("phase: %d steps: %d\n", m_csg_phase, m_num_steps);
 		}
+		// faceVertHistogram(fmt, model.m_model);
 
 		model.printModelStats(fmt);
 		if(show_tets)

@@ -11,10 +11,6 @@
 #include "fwk_xml.h"
 
 namespace fwk {
-namespace collada {
-	class Root;
-	class Mesh;
-}
 
 // TODO: Default color class should be float based; Change
 //      u8-based Color to Color32bit or something
@@ -780,7 +776,6 @@ class Mesh : public immutable_base<Mesh> {
 	vector<TriIndices> trisIndices() const;
 
 	vector<Mesh> split(int max_vertices) const;
-	vector<Mesh> splitToSubMeshes() const;
 
 	static Mesh merge(vector<Mesh>);
 	static Mesh transform(const Matrix4 &, Mesh);
@@ -831,6 +826,8 @@ class Mesh : public immutable_base<Mesh> {
 	mutable uint m_ready_flags;
 };
 
+// Vertex / Face indices can have values up to vertexIdCount() / faceIdCount() -1
+// Some indices in the middle may be invalid
 class DynamicMesh {
   public:
 	DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris);
@@ -841,6 +838,7 @@ class DynamicMesh {
 	struct VertexId {
 		explicit VertexId(int id = -1) : id(id) {}
 		operator int() const { return id; }
+		explicit operator bool() const { return isValid(); }
 		bool isValid() const { return id >= 0; }
 		int id;
 	};
@@ -848,6 +846,7 @@ class DynamicMesh {
 	struct FaceId {
 		explicit FaceId(int id = -1) : id(id) {}
 		operator int() const { return id; }
+		explicit operator bool() const { return isValid(); }
 		bool isValid() const { return id >= 0; }
 		int id;
 	};
@@ -856,6 +855,7 @@ class DynamicMesh {
 		EdgeId() {}
 		EdgeId(VertexId a, VertexId b) : a(a), b(b) {}
 		bool isValid() const { return a.isValid() && b.isValid() && a != b; }
+		explicit operator bool() const { return isValid(); }
 		EdgeId inverse() const { return EdgeId(b, a); }
 		EdgeId ordered() const { return a < b ? EdgeId(a, b) : EdgeId(b, a); }
 		bool operator==(const EdgeId &rhs) const {
@@ -870,12 +870,21 @@ class DynamicMesh {
 		VertexId a, b;
 	};
 
+	DynamicMesh extract(CRange<FaceId>) const;
+	vector<DynamicMesh> separateSurfaces() const;
+
 	bool isValid(VertexId) const;
 	bool isValid(FaceId) const;
 	bool isValid(EdgeId) const;
 
-	bool isManifold() const;
-	bool isManifoldUnion() const;
+	// TODO: we need overlap tests as well
+	// TODO: this isn't exactly what we need; A sum of closed oriented manifolds
+	// which touch each other on vertex or edge are acceptable as well
+	bool isClosedOrientableSurface(CRange<FaceId>) const;
+
+	// Basically it means that it is a union of closed orientable surfaces
+	bool representsVolume() const;
+	int eulerPoincare() const;
 
 	VertexId addVertex(const float3 &pos);
 	FaceId addFace(CRange<VertexId, 3>);
@@ -884,7 +893,11 @@ class DynamicMesh {
 	void remove(VertexId);
 	void remove(FaceId);
 
+	vector<FaceId> inverse(CRange<FaceId>) const;
+	vector<VertexId> inverse(CRange<VertexId>) const;
+
 	vector<VertexId> verts() const;
+	vector<VertexId> verts(CRange<FaceId>) const;
 	array<VertexId, 3> verts(FaceId) const;
 	array<VertexId, 2> verts(EdgeId) const;
 
@@ -892,6 +905,8 @@ class DynamicMesh {
 	vector<FaceId> faces(FaceId) const;
 	vector<FaceId> faces(VertexId) const;
 	vector<FaceId> faces(EdgeId) const;
+
+	vector<FaceId> selectSurface(FaceId representative) const;
 
 	array<EdgeId, 3> edges(FaceId) const;
 	EdgeId faceEdge(FaceId face_id, int sub_id) const;
@@ -907,10 +922,13 @@ class DynamicMesh {
 	}
 	Segment segment(EdgeId) const;
 	Triangle triangle(FaceId) const;
+	Projection edgeProjection(EdgeId, FaceId) const;
 
 	VertexId closestVertex(const float3 &pos) const;
 
+	int faceCount(VertexId) const;
 	int faceCount() const { return m_num_faces; }
+
 	int vertexCount() const { return m_num_verts; }
 	int vertexIdCount() const { return (int)m_verts.size(); }
 	int faceIdCount() const { return (int)m_faces.size(); }
@@ -938,126 +956,6 @@ class DynamicMesh {
 };
 
 using PMesh = immutable_ptr<Mesh>;
-
-class HalfMesh {
-  public:
-	using TriIndices = Mesh::TriIndices;
-	class Vertex;
-	class HalfEdge;
-	class Face;
-
-	HalfMesh(CRange<float3> positions = CRange<float3>(),
-			 CRange<TriIndices> tri_indices = CRange<TriIndices>());
-	HalfMesh(const Mesh &mesh) : HalfMesh(mesh.positions(), mesh.trisIndices()) {}
-
-	bool is2ManifoldUnion() const;
-	bool is2Manifold() const;
-
-	bool empty() const { return m_faces.empty(); }
-
-	Vertex *addVertex(const float3 &pos);
-	Face *addFace(Vertex *a, Vertex *b, Vertex *c);
-	vector<HalfEdge *> orderedEdges(Vertex *vert);
-	void removeVertex(Vertex *vert);
-	void removeFace(Face *face);
-	vector<Vertex *> verts();
-	vector<Face *> faces();
-	vector<HalfEdge *> halfEdges();
-
-	Face *findFace(Vertex *a, Vertex *b, Vertex *c);
-
-	void clearTemps(int value);
-	void selectConnected(Vertex *vert);
-	HalfMesh extractSelection();
-
-	void draw(Renderer &out, float scale);
-
-	class Vertex {
-	  public:
-		Vertex(float3 pos, int index);
-		~Vertex();
-		Vertex(const Vertex &) = delete;
-		void operator=(const Vertex &) = delete;
-
-		const float3 &pos() const { return m_pos; }
-		HalfEdge *first() { return m_edges.empty() ? nullptr : m_edges.front(); }
-		const vector<HalfEdge *> &all() { return m_edges; }
-		int degree() const { return (int)m_edges.size(); }
-
-		int temp() const { return m_temp; }
-		void setTemp(int temp) { m_temp = temp; }
-
-		// It might change when verts are removed from HalfMesh
-		int index() const { return m_index; }
-
-	  private:
-		void removeEdge(HalfEdge *edge);
-		void addEdge(HalfEdge *edge);
-
-		friend class HalfMesh;
-		friend class HalfEdge;
-		friend class Face;
-
-		vector<HalfEdge *> m_edges;
-		float3 m_pos;
-		int m_index, m_temp;
-	};
-
-	class HalfEdge {
-	  public:
-		~HalfEdge();
-		HalfEdge(const HalfEdge &) = delete;
-		void operator=(const HalfEdge &) = delete;
-
-		Vertex *start() { return m_start; }
-		Vertex *end() { return m_end; }
-
-		HalfEdge *opposite() { return m_opposite; }
-		HalfEdge *next() { return m_next; }
-		HalfEdge *prev() { return m_prev; }
-
-		HalfEdge *prevVert() { return m_prev->m_opposite; }
-		HalfEdge *nextVert() { return m_opposite ? m_opposite->m_next : nullptr; }
-		Face *face() { return m_face; }
-
-	  private:
-		HalfEdge(Vertex *v1, Vertex *v2, HalfEdge *next, HalfEdge *prev, Face *face);
-
-		friend class Face;
-		Vertex *m_start, *m_end;
-		HalfEdge *m_opposite, *m_next, *m_prev;
-		Face *m_face;
-	};
-
-	class Face {
-	  public:
-		Face(Vertex *v1, Vertex *v2, Vertex *v3, int index);
-
-		HalfEdge *halfEdge(int idx) {
-			DASSERT(idx >= 0 && idx <= 2);
-			return idx == 0 ? &m_he0 : idx == 1 ? &m_he1 : &m_he2;
-		}
-
-		array<Vertex *, 3> verts() { return {{m_he0.start(), m_he1.start(), m_he2.start()}}; }
-		array<HalfEdge *, 3> halfEdges() { return {{&m_he0, &m_he1, &m_he2}}; }
-
-		const auto &triangle() const { return m_tri; }
-		void setTemp(int temp) { m_temp = temp; }
-		int temp() const { return m_temp; }
-
-		// It might change when faces are removed from HalfMesh
-		int index() const { return m_index; }
-
-	  private:
-		friend class HalfMesh;
-		HalfEdge m_he0, m_he1, m_he2;
-		Triangle m_tri;
-		int m_index, m_temp;
-	};
-
-	vector<unique_ptr<Vertex>> m_verts;
-	vector<unique_ptr<Face>> m_faces;
-};
 
 class TetMesh;
 
@@ -1276,7 +1174,7 @@ class TetMesh : public immutable_base<TetMesh> {
 	static TetMesh transform(const Matrix4 &, TetMesh);
 	static Mesh findIntersections(const Mesh &);
 	static TetMesh make(const Mesh &, uint flags = 0);
-	static TetMesh makeUnion(const vector<TetMesh> &);
+	static TetMesh merge(const vector<TetMesh> &);
 	static TetMesh selectTets(const TetMesh &, const vector<int> &indices);
 
 	TetMesh extract(CRange<int> tet_indices) const;

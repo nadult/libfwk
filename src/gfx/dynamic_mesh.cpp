@@ -29,48 +29,91 @@ DynamicMesh::operator Mesh() const {
 		out_verts.emplace_back(point(vert));
 	}
 
-	vector<array<uint, 3>> out_tris;
-	for(auto face : faces()) {
-		array<uint, 3> new_tri;
-		auto fverts = verts(face);
-		for(int i = 0; i < 3; i++)
-			new_tri[i] = vert_map[fverts[i]];
-		out_tris.emplace_back(new_tri);
-	}
-
+	auto out_tris = transform(faces(), [&](auto face) {
+		return transform(verts(face), [&](auto vert) { return (uint)vert_map[vert]; });
+	});
 	return Mesh(std::move(out_verts), {std::move(out_tris)});
 }
 
-bool DynamicMesh::isManifoldUnion() const {
-	for(auto face : faces())
-		for(auto edge : edges(face))
-			if(faces(edge).size() != 2)
+DynamicMesh DynamicMesh::extract(CRange<FaceId> selection) const {
+	auto used_verts = verts(selection);
+	vector<int> vert_map(m_verts.size(), -1);
+	for(int n = 0; n < (int)used_verts.size(); n++)
+		vert_map[used_verts[n].id] = n;
+
+	auto out_verts = transform(used_verts, [this](auto id) { return point(id); });
+	vector<array<uint, 3>> out_tris;
+	for(auto face : selection) {
+		auto tri = transform(verts(face), [&](auto vert) { return (uint)vert_map[vert]; });
+		out_tris.emplace_back(tri);
+	}
+	return DynamicMesh(std::move(out_verts), std::move(out_tris));
+}
+
+vector<DynamicMesh> DynamicMesh::separateSurfaces() const {
+	vector<DynamicMesh> out;
+
+	vector<char> selection(faceIdCount(), false);
+	for(auto face : faces()) {
+		if(selection[face])
+			continue;
+		auto surface = selectSurface(face);
+		out.emplace_back(extract(surface));
+		for(auto sface : surface)
+			selection[sface] = true;
+	}
+	return out;
+}
+
+// More about manifolds: http://www.cs.mtu.edu/~shene/COURSES/cs3621/SLIDES/Mesh.pdf
+bool DynamicMesh::isClosedOrientableSurface(CRange<FaceId> subset) const {
+	vector<char> selection(faceIdCount(), false);
+	for(auto face : subset)
+		selection[face] = true;
+
+	vector<FaceId> efaces;
+	for(auto face : subset) {
+		for(auto edge : edges(face)) {
+			efaces.clear();
+			for(auto eface : faces(edge))
+				if(selection[eface])
+					efaces.emplace_back(eface);
+			if(efaces.size() != 2)
 				return false;
+			auto oface = efaces[efaces[0] == face ? 1 : 0];
+			if(!isOneOf(edge.inverse(), edges(oface)))
+				return false;
+		}
+	}
+
 	return true;
 }
 
-bool DynamicMesh::isManifold() const {
-	if(!isManifoldUnion())
-		return false;
-	if(m_verts.empty())
-		return true;
+bool DynamicMesh::representsVolume() const {
+	vector<char> visited(faceIdCount(), false);
 
-	vector<int> visited(m_verts.size(), 0);
-	vector<VertexId> list = {VertexId(0)};
-	int visited_count = 0;
-
-	while(!list.empty()) {
-		auto vert = list.back();
-		list.pop_back();
-		if(visited[vert])
+	for(auto face : faces()) {
+		if(visited[face])
 			continue;
-		visited[vert] = 1;
-		visited_count++;
-		for(auto edge : edges(vert))
-			list.emplace_back(edge.b);
+		auto surface = selectSurface(face);
+		if(!isClosedOrientableSurface(surface))
+			return false;
+		for(auto sface : surface)
+			visited[sface] = true;
 	}
 
-	return visited_count == m_num_verts;
+	return true;
+}
+
+int DynamicMesh::eulerPoincare() const {
+	vector<EdgeId> all_edges;
+	for(auto face : faces())
+		insertBack(all_edges, edges(face));
+	for(auto &edge : all_edges)
+		edge = edge.ordered();
+	makeUnique(all_edges);
+
+	return vertexCount() - (int)all_edges.size() + faceCount();
 }
 
 bool DynamicMesh::isValid(VertexId id) const {
@@ -162,12 +205,28 @@ void DynamicMesh::remove(FaceId id) {
 	m_num_faces--;
 }
 
+vector<FaceId> DynamicMesh::inverse(CRange<FaceId> filter) const {
+	return setDifference(faces(), filter);
+}
+
+vector<VertexId> DynamicMesh::inverse(CRange<VertexId> filter) const {
+	return setDifference(verts(), filter);
+}
+
 vector<VertexId> DynamicMesh::verts() const {
 	vector<VertexId> out;
 	out.reserve(m_num_verts);
 	for(int i = 0; i < vertexIdCount(); i++)
 		if(!isnan(m_verts[i].x))
 			out.emplace_back(i);
+	return out;
+}
+
+vector<VertexId> DynamicMesh::verts(CRange<FaceId> faces) const {
+	vector<VertexId> out;
+	for(auto face : faces)
+		insertBack(out, verts(face));
+	makeUnique(out);
 	return out;
 }
 
@@ -219,6 +278,64 @@ vector<FaceId> DynamicMesh::faces(EdgeId id) const {
 	vector<int> out(min(adj1.size(), adj2.size()));
 	auto it = std::set_intersection(begin(adj1), end(adj1), begin(adj2), end(adj2), begin(out));
 	return vector<FaceId>(out.begin(), it);
+}
+
+vector<FaceId> DynamicMesh::selectSurface(FaceId representative) const {
+	vector<FaceId> out;
+
+	vector<char> visited(faceIdCount(), 0);
+
+	vector<FaceId> list = {representative};
+	while(!list.empty()) {
+		FaceId face = list.back();
+		list.pop_back();
+
+		if(visited[face])
+			continue;
+		visited[face] = true;
+		out.emplace_back(face);
+
+		for(auto edge : edges(face)) {
+			auto efaces = faces(edge);
+			if(efaces.size() == 2) {
+				auto other_face = efaces[efaces[0] == face ? 1 : 0];
+				if(isOneOf(edge.inverse(), edges(other_face)))
+					list.emplace_back(other_face);
+				continue;
+			}
+			//			if(efaces.size() == 1)
+			//				continue;
+
+			FaceId best_face;
+			float min_angle = constant::inf;
+			auto proj = edgeProjection(edge, face);
+			auto normal = proj.projectVector(triangle(face).normal()).xz();
+			DASSERT(fabs(normal.y) > 1.0f - constant::epsilon);
+
+			for(auto eface : efaces) {
+				if(eface == face || isOneOf(edge, edges(eface)))
+					continue;
+
+				auto vector1 = normalize(proj.project(point(otherVertex(face, edge))).xz());
+				auto vector2 = normalize(proj.project(point(otherVertex(eface, edge))).xz());
+				if(normal.y < 0.0f)
+					swap(vector1, vector2);
+
+				float angle = angleBetween(vector1, float2(0, 0), vector2);
+				//				xmlPrint("% - %: ang:% nrm:%\n", vector1, vector2, angle, normal);
+				if(angle < min_angle) {
+					min_angle = angle;
+					best_face = eface;
+				}
+			}
+			if(best_face)
+				list.emplace_back(best_face);
+		}
+	}
+	//	printf("Extracted: %d/%d\n", (int)out.size(), (int)faces().size());
+	//	xmlPrint("%\n", vector<int>(begin(out), end(out)));
+
+	return out;
 }
 
 array<EdgeId, 3> DynamicMesh::edges(FaceId id) const {
@@ -293,5 +410,17 @@ Triangle DynamicMesh::triangle(FaceId id) const {
 	DASSERT(isValid(id));
 	const auto &face = m_faces[id];
 	return Triangle(m_verts[face[0]], m_verts[face[1]], m_verts[face[2]]);
+}
+
+Projection DynamicMesh::edgeProjection(EdgeId edge, FaceId face) const {
+	Ray ray(segment(edge));
+	float3 far_point = point(otherVertex(face, edge));
+	float3 edge_point = closestPoint(ray, far_point);
+	return Projection(point(edge.a), normalize(edge_point - far_point), ray.dir());
+}
+
+int DynamicMesh::faceCount(VertexId vertex_id) const {
+	DASSERT(isValid(vertex_id));
+	return (int)m_adjacency[vertex_id].size();
 }
 }

@@ -99,15 +99,27 @@ void TetMesh::drawTets(Renderer &out, PMaterial material, const Matrix4 &matrix)
 	mesh->draw(out, material, matrix);
 }
 
-TetMesh TetMesh::makeUnion(const vector<TetMesh> &sub_tets) {
+TetMesh TetMesh::merge(const vector<TetMesh> &sub_tets) {
 	vector<float3> positions;
 	vector<TetIndices> indices;
+	std::map<std::tuple<float, float, float>, int> pos_map;
 
 	for(const auto &sub_tet : sub_tets) {
-		int off = (int)positions.size();
-		insertBack(positions, sub_tet.verts());
+		const auto &verts = sub_tet.verts();
+
 		for(auto tidx : sub_tet.tetVerts()) {
-			TetIndices inds{{tidx[0] + off, tidx[1] + off, tidx[2] + off, tidx[3] + off}};
+			TetIndices inds;
+			for(int i = 0; i < 4; i++) {
+				int idx = tidx[i];
+				auto point = verts[tidx[i]];
+				auto it = pos_map.find(std::tie(point.x, point.y, point.z));
+				if(it == pos_map.end()) {
+					pos_map[std::tie(point.x, point.y, point.z)] = inds[i] = positions.size();
+					positions.emplace_back(point);
+				} else {
+					inds[i] = it->second;
+				}
+			}
 			indices.emplace_back(inds);
 		}
 	}
@@ -269,6 +281,9 @@ TetMesh finalCuts(HalfTetMesh h1parts, HalfTetMesh h2parts, const DynamicMesh &d
 				  const vector<FaceType> &data2, TetMesh::CSGVisualData *vis_data) {
 	vector<Triangle> tris;
 
+	// TODO: handle situations when one mesh is inside another and the boundaries
+	// do not touch each other
+
 	// TODO: vertex positions still may differ by a small value; it has to be fixed!
 	for(auto face : dmesh1.faces())
 		if(data1[face] == FaceType::outside)
@@ -287,10 +302,10 @@ TetMesh finalCuts(HalfTetMesh h1parts, HalfTetMesh h2parts, const DynamicMesh &d
 										  vector<Triangle>(begin(tris) + tris1_count, end(tris)));
 	}
 
-	bool is_manifold = DynamicMesh(fill_mesh).isManifold();
-	DASSERT(is_manifold);
+	bool is_valid = DynamicMesh(fill_mesh).representsVolume();
+	DASSERT(is_valid);
 
-	if(is_manifold) {
+	if(is_valid) {
 		auto fill = HalfTetMesh(TetMesh::make(fill_mesh, 0));
 
 		if(vis_data && vis_data->phase >= 4) {
@@ -339,8 +354,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 	DynamicMesh dmesh2(TetMesh(hmesh2).toMesh());
 
 	try {
-		DASSERT(dmesh1.isManifold());
-		DASSERT(dmesh2.isManifold());
+		DASSERT(dmesh1.representsVolume());
+		DASSERT(dmesh2.representsVolume());
 		auto loops = dmesh1.findIntersections(dmesh2);
 
 		if(vis_data) {
@@ -374,8 +389,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 		auto ftypes1 = dmesh2.classifyFaces(dmesh1, loops.second, loops.first);
 
 		if(vis_data && vis_data->phase == 2) {
-			vector<Color> colors = {Color::black, Color::green, Color::red, Color::yellow,
-									Color::magneta};
+			vector<Color> colors = {Color::black,  Color::green,   Color::red,
+									Color::yellow, Color::magneta, Color::purple};
 			vector<vector<Triangle>> segs;
 			segs.clear();
 
@@ -385,13 +400,19 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 					segs.resize(seg_id + 1);
 				segs[seg_id].emplace_back(dmesh1.triangle(face));
 			}
+			/*	for(auto face : dmesh2.faces()) {
+					int seg_id = 5;
+					if((int)segs.size() < seg_id + 1)
+						segs.resize(seg_id + 1);
+					segs[seg_id].emplace_back(dmesh2.triangle(face));
+				}*/
+
 			for(int n = 0; n < (int)segs.size(); n++)
 				vis_data->poly_soups.emplace_back(colors[n % colors.size()], segs[n]);
 		}
 
 		auto final =
 			finalCuts(hmesh1_parts, hmesh2_parts, dmesh1, dmesh2, ftypes1, ftypes2, vis_data);
-		DASSERT(DynamicMesh(TetMesh(final).toMesh()).isManifold());
 		return TetMesh(final);
 	} catch(const Exception &ex) {
 		printf("Error: %s\n%s Mesh #1 stats:\n%s\n\nMesh #2 stats:\n%s\n", ex.what(),

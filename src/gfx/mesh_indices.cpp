@@ -41,7 +41,9 @@ MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
 
 		if(type == Type::triangle_strip) {
 			DASSERT(indices.size() >= 3 || indices.size() == 0);
-		} else if(type == Type::triangles) { DASSERT(indices.size() % 3 == 0); }
+		} else if(type == Type::triangles) {
+			DASSERT(indices.size() % 3 == 0);
+		}
 
 		if(type == Type::triangle_strip && !merged.empty() && !indices.empty()) {
 			uint prev = merged.back(), next = indices.m_data.front();

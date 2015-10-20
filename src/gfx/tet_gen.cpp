@@ -80,7 +80,7 @@ Mesh TetMesh::findIntersections(const Mesh &mesh) {
 }
 
 TetMesh TetMesh::make(const Mesh &mesh, uint flags) {
-	DASSERT(DynamicMesh(mesh).isManifold());
+	DASSERT(DynamicMesh(mesh).representsVolume());
 	auto opts =
 		string("pY") + (flags & flag_quality ? "q" : "") + (flags & flag_print_details ? "V" : "Q");
 

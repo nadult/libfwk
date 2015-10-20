@@ -112,33 +112,6 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 	return out;
 }
 
-vector<Mesh> Mesh::splitToSubMeshes() const {
-	HalfMesh hmesh(positions(), trisIndices());
-
-	if(hasNormals() || hasTexCoords())
-		THROW("please add support for whole mesh data");
-
-	vector<Mesh> out;
-	while(!hmesh.empty()) {
-		hmesh.selectConnected(hmesh.verts().front());
-		auto sub_mesh = hmesh.extractSelection();
-		hmesh.clearTemps(0);
-		DASSERT(!sub_mesh.empty());
-
-		vector<float3> positions;
-		for(auto *vert : sub_mesh.verts())
-			positions.emplace_back(vert->pos());
-
-		vector<uint> inds;
-		for(auto *face : sub_mesh.faces())
-			for(auto *vert : face->verts())
-				inds.emplace_back(vert->index());
-		out.emplace_back(Mesh(MeshBuffers(std::move(positions)), {std::move(inds)}));
-	}
-
-	return out;
-}
-
 Mesh Mesh::merge(vector<Mesh> meshes) {
 	for(const auto &mesh : meshes)
 		if(mesh.hasSkin())
