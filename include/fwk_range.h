@@ -253,7 +253,7 @@ template <class Range, class Func> auto transform(const Range &range, const Func
 	static_assert(!std::is_void<Value>::value, "Func must return some value");
 	vector<Value> out;
 	out.reserve(range.size());
-	for(auto elem : range)
+	for(const auto &elem : range)
 		out.emplace_back(func(elem));
 	return out;
 }
@@ -265,6 +265,28 @@ auto transform(const array<T, size> &input, const Func &func) {
 	array<Value, size> out;
 	for(int n = 0; n < (int)input.size(); n++)
 		out[n] = func(input[n]);
+	return out;
+}
+
+template <class Range, class Filter> auto filter(const Range &range, const Filter &filter) {
+	using Value = typename Range::value_type;
+	vector<Value> out;
+	out.reserve(range.size());
+	for(const auto &elem : range)
+		if(filter(elem))
+			out.emplace_back(elem);
+	return out;
+}
+
+template <class T, class Range> vector<T> transform(const Range &range) {
+	return vector<T>(begin(range), end(range));
+}
+
+template <class T, class U, size_t size>
+std::array<T, size> transform(const std::array<U, size> &range) {
+	std::array<T, size> out;
+	for(size_t i = 0; i < size; i++)
+		out[i] = T(range[i]);
 	return out;
 }
 }

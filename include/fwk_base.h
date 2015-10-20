@@ -295,9 +295,17 @@ template <class T1, class T2> inline bool isOneOf(const T1 &value, const vector<
 			return true;
 	return false;
 }
+
 template <class T1, class T2, size_t S>
 inline bool isOneOf(const T1 &value, const array<T2, S> &arr) {
 	for(const auto &item : arr)
+		if(value == item)
+			return true;
+	return false;
+}
+
+template <class T1, class T2> inline bool isOneOf(const T1 &value, const CRange<T2> &vec) {
+	for(const auto &item : vec)
 		if(value == item)
 			return true;
 	return false;
