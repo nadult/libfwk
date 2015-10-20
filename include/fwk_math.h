@@ -972,9 +972,6 @@ pair<float, float> intersectionRange(const Segment &, const Box<float3> &box);
 
 pair<Segment, bool> intersectionSegment(const Triangle &, const Triangle &);
 
-// TODO: better name
-vector<Segment> compatibleEdges(const Triangle &, const Triangle &);
-
 inline float intersection(const Ray &ray, const Box<float3> &box) {
 	return intersectionRange(ray, box).first;
 }

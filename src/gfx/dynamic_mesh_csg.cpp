@@ -15,6 +15,66 @@ using EdgeLoop = DynamicMesh::EdgeLoop;
 
 namespace {
 
+	vector<Segment> compatibleEdges(const Triangle &tri1, const Triangle &tri2, float eps) {
+		Projection proj(tri1);
+		Triangle ptri2(proj * tri2);
+
+		vector<pair<float3, float3>> edges;
+
+		bool vert_touching[3] = {false, false, false};
+		float isect[3] = {constant::inf, constant::inf, constant::inf};
+
+		for(int n = 0; n < 3; n++) {
+			float3 v1 = ptri2[n], v2 = ptri2[(n + 1) % 3];
+			if(fabs(v1.y) < eps) {
+				vert_touching[n] = true;
+				continue;
+			}
+
+			if((v1.y <= 0.0f) == (v2.y <= 0.0f))
+				continue;
+
+			isect[n] = -v1.y / (v2.y - v1.y);
+		}
+
+		float3 points[3];
+		int npoints = 0;
+
+		for(int n = 0; n < 3; n++) {
+			if(vert_touching[n]) {
+				points[npoints++] = ptri2[n];
+			}
+			int nn = (n + 1) % 3;
+			if(isect[n] < constant::inf && !vert_touching[nn])
+				points[npoints++] = ptri2[n] + (ptri2[nn] - ptri2[n]) * isect[n];
+		}
+
+		if(npoints == 2) {
+			edges.emplace_back(points[0], points[1]);
+		}
+		if(npoints == 3) {
+			for(int n = 0; n < 3; n++)
+				edges.emplace_back(points[n], points[(n + 1) % 3]);
+		}
+
+		Triangle2D tri1_2d((proj * tri1).xz());
+		vector<Segment> out;
+
+		for(auto &edge : edges) {
+			auto tedge = Segment2D(edge.first.xz(), edge.second.xz());
+			if(tedge.empty())
+				continue;
+
+			// TODO: dont use clip method (which should be removed btw)
+			auto result = clip(tri1_2d, tedge);
+			auto clipped = result.inside;
+
+			if(!clipped.empty())
+				out.emplace_back(proj / asXZ(clipped.start), proj / asXZ(clipped.end));
+		}
+
+		return out;
+	}
 	struct FaceEdgeInfo {
 		vector<EdgeId> edges;
 		std::map<VertexId, int> border_verts;
@@ -41,7 +101,7 @@ namespace {
 		return EdgeId(v1, v2);
 	}
 
-	int findClosestEdge(DynamicMesh &mesh, FaceId face, VertexId vert) {
+	int findClosestEdge(DynamicMesh &mesh, FaceId face, VertexId vert, float tolerance) {
 		if(isOneOf(vert, mesh.verts(face)))
 			return -1;
 
@@ -58,29 +118,28 @@ namespace {
 			}
 		}
 
-		if(closest_dist < constant::epsilon)
+		if(closest_dist < tolerance)
 			return closest;
 		return -1;
 	}
 
-	void updateBorderVert(DynamicMesh &mesh, FaceEdgeMap &map, FaceId face, VertexId vert) {
-		int edge_id = findClosestEdge(mesh, face, vert);
+	void updateBorderVert(DynamicMesh &mesh, FaceEdgeMap &map, FaceId face, VertexId vert,
+						  float tolerance) {
+		int edge_id = findClosestEdge(mesh, face, vert, tolerance);
 
 		if(edge_id != -1) {
 			map[face].border_verts[vert] = edge_id;
 			auto edge = mesh.faceEdge(face, edge_id);
-			auto other_faces = mesh.faces(edge);
-			FaceId other;
-			for(auto &oface : other_faces)
-				if(oface != face) {
-					other = oface;
-					break;
-				}
-			DASSERT(mesh.isValid(other));
+			for(auto oface : mesh.faces(edge)) {
+				if(oface == face)
+					continue;
 
-			int other_id = mesh.faceEdgeIndex(other, edge.inverse());
-			DASSERT(other_id != -1);
-			map[other].border_verts[vert] = other_id;
+				int other_id = mesh.faceEdgeIndex(oface, edge.inverse());
+				if(other_id == -1)
+					other_id = mesh.faceEdgeIndex(oface, edge);
+				DASSERT(other_id != -1);
+				map[oface].border_verts[vert] = other_id;
+			}
 		}
 	}
 
@@ -373,15 +432,15 @@ namespace {
 	}
 }
 
-void DynamicMesh::triangulateFaces(EdgeLoop loop) {
+void DynamicMesh::triangulateFaces(EdgeLoop loop, float tolerance) {
 	vector<FaceId> rem_faces;
 	vector<array<VertexId, 3>> new_faces;
 
 	FaceEdgeMap face_edge_map;
 	for(auto ledge : loop) {
 		face_edge_map[ledge.first].edges.emplace_back(ledge.second);
-		updateBorderVert(*this, face_edge_map, ledge.first, ledge.second.a);
-		updateBorderVert(*this, face_edge_map, ledge.first, ledge.second.b);
+		updateBorderVert(*this, face_edge_map, ledge.first, ledge.second.a, tolerance);
+		updateBorderVert(*this, face_edge_map, ledge.first, ledge.second.b, tolerance);
 	}
 
 	for(auto pair : face_edge_map) {
@@ -486,13 +545,13 @@ void DynamicMesh::triangulateFaces(EdgeLoop loop) {
 	DASSERT(fabs(new_volume - old_volume) < constant::epsilon);*/
 }
 
-pair<EdgeLoop, EdgeLoop> DynamicMesh::findIntersections(DynamicMesh &rhs) {
+pair<EdgeLoop, EdgeLoop> DynamicMesh::findIntersections(DynamicMesh &rhs, float tolerance) {
 	EdgeLoop loop1, loop2;
 
 	for(auto face1 : faces())
 		for(auto face2 : rhs.faces()) {
-			auto edges = compatibleEdges(triangle(face1), rhs.triangle(face2));
-			insertBack(edges, compatibleEdges(rhs.triangle(face2), triangle(face1)));
+			auto edges = compatibleEdges(triangle(face1), rhs.triangle(face2), tolerance);
+			insertBack(edges, compatibleEdges(rhs.triangle(face2), triangle(face1), tolerance));
 
 			for(auto edge : edges) {
 				loop1.emplace_back(face1, addEdge(*this, edge));
@@ -615,5 +674,45 @@ vector<FaceType> DynamicMesh::classifyFaces(const DynamicMesh &mesh2, const Edge
 
 	floodFill(mesh2, list2, loop2, out);
 	return out;
+}
+
+void DynamicMesh::makeCool(float tolerance) {
+	// TODO: write me
+}
+
+DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &b,
+									   CSGVisualData *vis_data) {
+	// TODO: make sure that faces are properly marked
+	vector<int> faceop(a.faceCount(), 0);
+	faceop.resize(a.faceCount() + b.faceCount(), 1);
+
+	float epsilon = 0.01f;
+
+	auto merged = DynamicMesh::merge({a, b});
+
+	if(vis_data && vis_data->phase == 0) {
+		vector<Triangle> tris[2];
+		for(auto face : merged.faces())
+			tris[faceop[face]].emplace_back(merged.triangle(face));
+		vis_data->poly_soups.emplace_back(Color::red, tris[0]);
+		vis_data->poly_soups.emplace_back(Color::green, tris[1]);
+	}
+
+	merged.makeCool(epsilon);
+
+	if(vis_data && vis_data->phase == 1) {
+		vector<Triangle> tris[2];
+		vector<Segment> segs;
+
+		for(auto face : merged.faces()) {
+			tris[faceop[face]].emplace_back(merged.triangle(face));
+			for(auto edge : merged.edges(face))
+				segs.emplace_back(merged.segment(edge));
+			vis_data->poly_soups.emplace_back(Color::red, tris[0]);
+			vis_data->poly_soups.emplace_back(Color::green, tris[1]);
+			vis_data->segment_groups.emplace_back(Color::black, segs);
+		}
+	}
+	return merged;
 }
 }

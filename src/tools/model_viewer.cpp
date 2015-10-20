@@ -27,8 +27,8 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 	return ViewConfig(lerp(a.zoom, b.zoom, t), slerp(a.rot, b.rot, t));
 }
 
-DECLARE_ENUM(ViewerMode, model, tets, tets_csg);
-DEFINE_ENUM(ViewerMode, "animated model", "tetrahedralization", "tetrahedra csg");
+DECLARE_ENUM(ViewerMode, model, tets, model_csg, tets_csg);
+DEFINE_ENUM(ViewerMode, "animated model", "tetrahedralization", "model csg", "tetrahedra csg");
 
 class Viewer {
   public:
@@ -195,6 +195,41 @@ class Viewer {
 			}
 		}
 
+		void drawCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset, float scale,
+					 int num_steps, int csg_phase, int csg_mesh_id) {
+			PMaterial tri_mat = Material(Color::red);
+			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
+			PMaterial line2_mat = Material(Color::yellow, Material::flag_ignore_depth);
+
+			auto mesh_a = DynamicMesh(m_model->toMesh());
+			auto mesh_b = DynamicMesh(Mesh::transform(translation(offset), Mesh(mesh_a)));
+			if(csg_mesh_id)
+				swap(mesh_a, mesh_b);
+
+			vector<Segment> segments;
+			vector<Triangle> tris;
+			vector<vector<Triangle>> segs;
+
+			DynamicMesh::CSGVisualData vis_data;
+			vis_data.max_steps = num_steps;
+			vis_data.phase = csg_phase;
+
+			auto csg = DynamicMesh::csgDifference(mesh_a, mesh_b, &vis_data);
+
+			for(auto pair : vis_data.poly_soups)
+				Mesh::makePolySoup(pair.second).draw(out, makeMat(pair.first, false), matrix);
+			for(auto pair : vis_data.segment_groups)
+				out.addSegments(pair.second, makeMat(pair.first, false), matrix);
+			for(auto pair : vis_data.segment_groups_trans)
+				out.addSegments(pair.second, makeMat(pair.first, true), matrix);
+			for(auto pair : vis_data.point_sets) {
+				auto mat = makeMat(Color(pair.first, min((int)pair.first.a, 254)), false);
+				auto box = Mesh::makeBBox(FBox(-1, -1, -1, 1, 1, 1) * scale * 0.03f);
+				for(auto point : pair.second)
+					box.draw(out, mat, matrix * translation(point));
+			}
+		}
+
 		PModel m_model;
 		PTetMesh m_tet_mesh;
 		PMesh m_tet_isects;
@@ -221,13 +256,13 @@ class Viewer {
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
-		  m_mode(Mode::tets_csg), m_num_steps(0), m_csg_phase(0), m_csg_mesh_id(0) {
+		  m_mode(Mode::model_csg), m_num_steps(0), m_csg_mesh_id(0), m_csg_phase(0) {
 		updateViewport();
 
-		m_tet_csg_offset = float3(0.1, 0, 0.3);
+		m_csg_offset = float3(0.1, 0, 0.3);
 		if(access("tet_offset.data")) {
 			Loader file("tet_offset.data");
-			auto range = Range<float>(m_tet_csg_offset.v);
+			auto range = Range<float>(m_csg_offset.v);
 			file.loadData(range.data(), range.size() * sizeof(float));
 		}
 
@@ -264,15 +299,16 @@ class Viewer {
 
 			if(event.keyDown('q'))
 				m_mode = (Mode)((m_mode + 1) % ViewerMode::count);
-			if(event.hasModifier(InputEvent::mod_lctrl) && m_mode == Mode::tets_csg) {
+			if(event.hasModifier(InputEvent::mod_lctrl) &&
+			   isOneOf(m_mode, Mode::tets_csg, Mode::model_csg)) {
 				if(event.keyPressed(InputKey::left))
-					m_tet_csg_offset.x -= time_diff;
+					m_csg_offset.x -= time_diff;
 				if(event.keyPressed(InputKey::right))
-					m_tet_csg_offset.x += time_diff;
+					m_csg_offset.x += time_diff;
 				if(event.keyPressed(InputKey::up))
-					m_tet_csg_offset.z -= time_diff;
+					m_csg_offset.z -= time_diff;
 				if(event.keyPressed(InputKey::down))
-					m_tet_csg_offset.z += time_diff;
+					m_csg_offset.z += time_diff;
 
 			} else {
 				if(event.keyPressed(InputKey::left))
@@ -314,7 +350,7 @@ class Viewer {
 				m_csg_mesh_id = (m_csg_mesh_id + 1) % 2;
 			if(event.keyDown('p')) {
 				Saver file("tet_offset.data");
-				auto range = Range<float>(m_tet_csg_offset.v);
+				auto range = Range<float>(m_csg_offset.v);
 				file.saveData(range.data(), range.size() * sizeof(float));
 			}
 		}
@@ -362,8 +398,11 @@ class Viewer {
 		} else if(m_mode == Mode::tets)
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
 		else if(m_mode == Mode::tets_csg)
-			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_tet_csg_offset,
+			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_csg_offset,
 							  1.0f / model.scale(), m_num_steps, m_csg_phase, m_csg_mesh_id);
+		else if(m_mode == Mode::model_csg)
+			model.drawCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_csg_offset,
+						  1.0f / model.scale(), m_num_steps, m_csg_phase, m_csg_mesh_id);
 
 		TextFormatter fmt;
 		fmt("Mode: %s (Q)\n", toString(m_mode));
@@ -380,7 +419,7 @@ class Viewer {
 		fmt("S: display skeleton\n");
 		fmt("up/down/left/right: rotate\n");
 		fmt("pgup/pgdn: zoom\n\n");
-		if(m_mode == Mode::tets_csg) {
+		if(isOneOf(m_mode, Mode::tets_csg, Mode::model_csg)) {
 			fmt("ctrl+ up/down/left/right: move mesh\n");
 			fmt("phase: %d steps: %d\n", m_csg_phase, m_num_steps);
 		}
@@ -416,7 +455,7 @@ class Viewer {
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
 
-	float3 m_tet_csg_offset;
+	float3 m_csg_offset;
 
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;

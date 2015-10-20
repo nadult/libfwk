@@ -205,6 +205,43 @@ void DynamicMesh::remove(FaceId id) {
 	m_num_faces--;
 }
 
+VertexId DynamicMesh::merge(CRange<VertexId> range) {
+	float3 sum;
+	for(auto vert : range)
+		sum += point(vert);
+	return merge(range, sum / float(range.size()));
+}
+
+VertexId DynamicMesh::merge(CRange<VertexId> range, const float3 &target_pos) {
+	VertexId new_vert = addVertex(target_pos);
+
+	vector<FaceId> sel_faces;
+	for(auto vert : range)
+		insertBack(sel_faces, faces(vert));
+	makeUnique(sel_faces);
+
+	for(auto face : sel_faces) {
+		auto untouched_verts = setDifference(verts(face), range);
+
+		auto fverts = verts(face);
+		remove(face);
+
+		int count = 0;
+		for(int i = 0; i < 3; i++)
+			if(isOneOf(fverts[i], range)) {
+				fverts[i] = new_vert;
+				count++;
+			}
+		if(count == 1)
+			addFace(fverts);
+	}
+
+	for(auto vert : range)
+		remove(vert);
+
+	return VertexId();
+}
+
 vector<FaceId> DynamicMesh::inverse(CRange<FaceId> filter) const {
 	return setDifference(faces(), filter);
 }
@@ -422,5 +459,9 @@ Projection DynamicMesh::edgeProjection(EdgeId edge, FaceId face) const {
 int DynamicMesh::faceCount(VertexId vertex_id) const {
 	DASSERT(isValid(vertex_id));
 	return (int)m_adjacency[vertex_id].size();
+}
+
+DynamicMesh DynamicMesh::merge(CRange<DynamicMesh> meshes) {
+	return DynamicMesh(Mesh::merge(vector<Mesh>(begin(meshes), end(meshes))));
 }
 }

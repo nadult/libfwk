@@ -893,6 +893,28 @@ class DynamicMesh {
 	void remove(VertexId);
 	void remove(FaceId);
 
+	// Distance between pair of not-conincident simplices will be >= epsilon
+	void makeCool(float epsilon);
+
+	struct CSGVisualData {
+		CSGVisualData() : max_steps(0), phase(0) {}
+
+		vector<pair<Color, vector<Triangle>>> poly_soups;
+		vector<pair<Color, vector<Segment>>> segment_groups;
+		vector<pair<Color, vector<Segment>>> segment_groups_trans;
+		vector<pair<Color, vector<float3>>> point_sets;
+		int max_steps, phase;
+		enum { max_phases = 6 };
+	};
+
+	static DynamicMesh csgDifference(const DynamicMesh &a, const DynamicMesh &b,
+									 CSGVisualData *data = nullptr);
+
+	static DynamicMesh merge(CRange<DynamicMesh>);
+
+	VertexId merge(CRange<VertexId>);
+	VertexId merge(CRange<VertexId>, const float3 &target_pos);
+
 	vector<FaceId> inverse(CRange<FaceId>) const;
 	vector<VertexId> inverse(CRange<VertexId>) const;
 
@@ -905,6 +927,14 @@ class DynamicMesh {
 	vector<FaceId> faces(FaceId) const;
 	vector<FaceId> faces(VertexId) const;
 	vector<FaceId> faces(EdgeId) const;
+
+	template <class Filter> vector<FaceId> faces(VertexId vertex, const Filter &filter) const {
+		return fwk::filter(faces(vertex), filter);
+	}
+
+	template <class Filter> vector<FaceId> faces(EdgeId edge, const Filter &filter) const {
+		return fwk::filter(faces(edge), filter);
+	}
 
 	vector<FaceId> selectSurface(FaceId representative) const;
 
@@ -920,6 +950,7 @@ class DynamicMesh {
 		DASSERT(isValid(id));
 		return m_verts[id];
 	}
+
 	Segment segment(EdgeId) const;
 	Triangle triangle(FaceId) const;
 	Projection edgeProjection(EdgeId, FaceId) const;
@@ -934,8 +965,8 @@ class DynamicMesh {
 	int faceIdCount() const { return (int)m_faces.size(); }
 
 	using EdgeLoop = vector<pair<FaceId, EdgeId>>;
-	pair<EdgeLoop, EdgeLoop> findIntersections(DynamicMesh &);
-	void triangulateFaces(EdgeLoop);
+	pair<EdgeLoop, EdgeLoop> findIntersections(DynamicMesh &, float tolerance);
+	void triangulateFaces(EdgeLoop, float tolerance);
 
 	// How these faces will be interpreted depends on the CSG operation
 	// So, maybe in some situations it makes no sense to make faces compatible:
@@ -999,8 +1030,6 @@ class HalfTetMesh {
 
 	bool isIntersecting(const Tetrahedron &) const;
 	bool isIntersecting(const float3 &) const;
-
-	struct SubdivisionResult {};
 
 	void subdivideEdge(Vertex *e1, Vertex *e2, Vertex *divisor);
 	void subdivideEdge(Vertex *e1, Vertex *e2, vector<Vertex *> divisors);
@@ -1182,6 +1211,12 @@ class TetMesh : public immutable_base<TetMesh> {
 	vector<int> invertSelection(CRange<int>) const;
 	bool isValidSelection(CRange<int>) const;
 
+	enum CSGMode {
+		csg_difference,
+		csg_intersection,
+		csg_union,
+	};
+
 	struct CSGVisualData {
 		CSGVisualData() : max_steps(0), phase(0) {}
 
@@ -1192,12 +1227,6 @@ class TetMesh : public immutable_base<TetMesh> {
 		vector<pair<Color, vector<float3>>> point_sets;
 		int max_steps, phase;
 		enum { max_phases = 6 };
-	};
-
-	enum CSGMode {
-		csg_difference,
-		csg_intersection,
-		csg_union,
 	};
 
 	static TetMesh csg(const TetMesh &, const TetMesh &, CSGMode mode,

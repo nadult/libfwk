@@ -31,3 +31,5 @@
 - Find replacement for tetgen with better license
 
 - Think about accuracy of different math functions. Some of tem could be easily improved
+
+- Serialization of floats to XML isn't accurate; fix it

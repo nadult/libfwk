@@ -341,9 +341,9 @@ TetMesh finalCuts(HalfTetMesh h1parts, HalfTetMesh h2parts, const DynamicMesh &d
 
 TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
 	// TODO: accuracy depends on bounding box coordinates, take them into consideration
-	float epsilon = 0.0001f;
+	float tolerance = 0.01f;
 
-	FBox csg_bbox = enlarge(intersection(a.computeBBox(), b.computeBBox()), epsilon);
+	FBox csg_bbox = enlarge(intersection(a.computeBBox(), b.computeBBox()), tolerance);
 	HalfTetMesh hmesh1(a.extract(a.selection(csg_bbox)));
 	HalfTetMesh hmesh2(b.extract(b.selection(csg_bbox)));
 
@@ -356,7 +356,7 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 	try {
 		DASSERT(dmesh1.representsVolume());
 		DASSERT(dmesh2.representsVolume());
-		auto loops = dmesh1.findIntersections(dmesh2);
+		auto loops = dmesh1.findIntersections(dmesh2, tolerance);
 
 		if(vis_data) {
 			vector<Segment> isect_lines;
@@ -370,8 +370,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 			}
 		}
 
-		dmesh1.triangulateFaces(loops.first);
-		dmesh2.triangulateFaces(loops.second);
+		dmesh1.triangulateFaces(loops.first, tolerance);
+		dmesh2.triangulateFaces(loops.second, tolerance);
 
 		if(vis_data && vis_data->phase == 1) {
 			vector<Segment> segs1, segs2;
