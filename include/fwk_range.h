@@ -155,10 +155,6 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 	return std::all_of(begin(range), end(range), functor);
 }
 
-template <class T1, class Container> void insertBack(vector<T1> &into, const Container &from) {
-	into.insert(end(into), begin(from), end(from));
-}
-
 template <class T> void makeUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
 	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
@@ -239,9 +235,17 @@ template <class Range, class Func> auto findMax(const Range &range, const Func &
 	return make_pair(best_index, best_val);
 }
 
+template <class T1, class Range> void insertBack(vector<T1> &into, const Range &from) {
+	into.insert(end(into), begin(from), end(from));
+}
+
 template <class T1, class T2>
 void insertBack(vector<T1> &into, const std::initializer_list<T2> &from) {
 	into.insert(end(into), begin(from), end(from));
+}
+
+template <class Container, class Range> void insert(Container &into, const Range &from) {
+	into.insert(begin(from), end(from));
 }
 
 template <class T1, class OutputIterator> void copy(Range<T1> range, OutputIterator iter) {

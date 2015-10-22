@@ -899,10 +899,11 @@ float dot(const Plane &, const float3 &point);
 
 class Ray {
   public:
-	Ray(const float3 &origin = float3(0, 0, 0), const float3 &dir = float3(0, 0, 1));
+	Ray(const float3 &origin, const float3 &dir);
 	Ray(const Matrix4 &screen_to_world, const float2 &screen_pos);
 	Ray(const float3 &origin, const float3 &dir, const float3 &idir)
 		: m_origin(origin), m_dir(dir), m_inv_dir(idir) {}
+	Ray() : Ray(float3(), float3(0, 0, 1)) {}
 
 	const float3 &dir() const { return m_dir; }
 	const float3 &invDir() const { return m_inv_dir; }
@@ -931,8 +932,9 @@ inline float length(const Segment2D &seg) { return distance(seg.start, seg.end);
 
 class Segment : public Ray {
   public:
-	Segment(const float3 &start = float3(), const float3 &end = float3(0, 0, 1));
+	Segment(const float3 &start, const float3 &end);
 	Segment(const pair<float3, float3> &pair) : Segment(pair.first, pair.second) {}
+	Segment() : Segment(float3(), float3(0, 0, 1)) {}
 
 	float length() const { return m_length; }
 	float3 end() const { return m_end; }
@@ -957,6 +959,9 @@ ClipResult clip(const Triangle2D &, const Segment2D &);
 float distance(const Ray &ray, const float3 &point);
 float distance(const Segment &, const float3 &point);
 float distance(const Segment &, const Segment &);
+inline float distance(const float3 &point, const Segment &segment) {
+	return distance(segment, point);
+}
 float distance(const Ray &, const Ray &);
 float distance(const Triangle &tri, const Segment &);
 
