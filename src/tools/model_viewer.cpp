@@ -339,9 +339,9 @@ class Viewer {
 			if(event.keyDown('s'))
 				m_show_nodes ^= 1;
 			if(event.keyDown('i') && m_num_steps > 0)
-				m_num_steps--;
+				m_num_steps = max(0, m_num_steps - (shift ? 10 : 1));
 			if(event.keyDown('k'))
-				m_num_steps++;
+				m_num_steps += shift ? 10 : 1;
 			if(event.keyDown('l')) {
 				int off = shift ? TetMesh::CSGVisualData::max_phases - 1 : 1;
 				m_csg_phase = (m_csg_phase + off) % TetMesh::CSGVisualData::max_phases;
@@ -371,7 +371,7 @@ class Viewer {
 		std::map<int, int> fcounts;
 
 		for(auto vert : dmesh.verts())
-			fcounts[dmesh.faceCount(vert)]++;
+			fcounts[dmesh.polyCount(vert)]++;
 		out("Faces/vert: ");
 		for(auto it : fcounts)
 			out("%d:%d ", it.first, it.second);

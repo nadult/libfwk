@@ -285,12 +285,12 @@ TetMesh finalCuts(HalfTetMesh h1parts, HalfTetMesh h2parts, const DynamicMesh &d
 	// do not touch each other
 
 	// TODO: vertex positions still may differ by a small value; it has to be fixed!
-	for(auto face : dmesh1.faces())
+	for(auto face : dmesh1.polys())
 		if(data1[face] == FaceType::outside)
 			tris.emplace_back(dmesh1.triangle(face));
 	auto tris1_count = tris.size();
 
-	for(auto face : dmesh2.faces())
+	for(auto face : dmesh2.polys())
 		if(data2[face] == FaceType::inside)
 			tris.emplace_back(dmesh2.triangle(face).inverse());
 
@@ -375,10 +375,10 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 
 		if(vis_data && vis_data->phase == 1) {
 			vector<Segment> segs1, segs2;
-			for(auto face : dmesh1.faces())
+			for(auto face : dmesh1.polys())
 				for(auto edge : dmesh1.edges(face))
 					segs1.emplace_back(dmesh1.segment(edge));
-			for(auto face : dmesh2.faces())
+			for(auto face : dmesh2.polys())
 				for(auto edge : dmesh2.edges(face))
 					segs2.emplace_back(dmesh2.segment(edge));
 			vis_data->segment_groups.emplace_back(Color::yellow, segs1);
@@ -394,13 +394,13 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 			vector<vector<Triangle>> segs;
 			segs.clear();
 
-			for(auto face : dmesh1.faces()) {
+			for(auto face : dmesh1.polys()) {
 				int seg_id = (int)ftypes1[face];
 				if((int)segs.size() < seg_id + 1)
 					segs.resize(seg_id + 1);
 				segs[seg_id].emplace_back(dmesh1.triangle(face));
 			}
-			/*	for(auto face : dmesh2.faces()) {
+			/*	for(auto face : dmesh2.polys()) {
 					int seg_id = 5;
 					if((int)segs.size() < seg_id + 1)
 						segs.resize(seg_id + 1);

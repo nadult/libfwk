@@ -826,13 +826,14 @@ class Mesh : public immutable_base<Mesh> {
 	mutable uint m_ready_flags;
 };
 
-// Vertex / Face indices can have values up to vertexIdCount() / faceIdCount() -1
+// Vertex / Poly indices can have values up to vertexIdCount() / polyIdCount() -1
 // Some indices in the middle may be invalid
 class DynamicMesh {
   public:
-	DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris);
+	DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris, int poly_value = 0);
+	DynamicMesh(CRange<float3> verts, CRange<vector<uint>> polys, int poly_value = 0);
 	explicit DynamicMesh(const Mesh &mesh) : DynamicMesh(mesh.positions(), mesh.trisIndices()) {}
-	DynamicMesh() : DynamicMesh({}, {}) {}
+	DynamicMesh() : DynamicMesh({}, vector<vector<uint>>{}) {}
 	explicit operator Mesh() const;
 
 	struct VertexId {
@@ -843,8 +844,8 @@ class DynamicMesh {
 		int id;
 	};
 
-	struct FaceId {
-		explicit FaceId(int id = -1) : id(id) {}
+	struct PolyId {
+		explicit PolyId(int id = -1) : id(id) {}
 		operator int() const { return id; }
 		explicit operator bool() const { return isValid(); }
 		bool isValid() const { return id >= 0; }
@@ -870,31 +871,134 @@ class DynamicMesh {
 		VertexId a, b;
 	};
 
-	DynamicMesh extract(CRange<FaceId>) const;
+	DynamicMesh extract(CRange<PolyId>) const;
 	vector<DynamicMesh> separateSurfaces() const;
 
 	bool isValid(VertexId) const;
-	bool isValid(FaceId) const;
+	bool isValid(PolyId) const;
 	bool isValid(EdgeId) const;
 
+	using Polygon = vector<VertexId>;
+
+	class Simplex {
+	  public:
+		Simplex() : m_size(0) {}
+		Simplex(VertexId vert) : m_size(1) { m_verts[0] = vert; }
+		Simplex(EdgeId edge) : m_size(2) {
+			m_verts[0] = edge.a;
+			m_verts[1] = edge.b;
+		}
+		Simplex(const array<VertexId, 3> &face) : m_verts(face), m_size(3) {}
+
+		int size() const { return m_size; }
+		bool isVertex() const { return m_size == 1; }
+		bool isEdge() const { return m_size == 2; }
+		bool isFace() const { return m_size == 3; }
+
+		VertexId asVertex() const {
+			DASSERT(isVertex());
+			return m_verts[0];
+		}
+
+		EdgeId asEdge() const {
+			DASSERT(isEdge());
+			return EdgeId(m_verts[0], m_verts[1]);
+		}
+
+		array<VertexId, 3> asFace() const {
+			DASSERT(isFace());
+			return m_verts;
+		}
+
+		bool operator<(const Simplex &rhs) const {
+			return std::tie(m_size, m_verts) < std::tie(rhs.m_size, rhs.m_verts);
+		}
+
+		VertexId operator[](int id) const {
+			DASSERT(id >= 0 && id < m_size);
+			return m_verts[id];
+		}
+		string print(const DynamicMesh &mesh) const {
+			TextFormatter out;
+			out("(");
+			for(int i = 0; i < m_size; i++) {
+				auto pt = mesh.point(m_verts[i]);
+				out("%f:%f:%f%c", pt.x, pt.y, pt.z, i + 1 == m_size ? ')' : ' ');
+			}
+			return (string)out.text();
+		}
+
+	  private:
+		array<VertexId, 3> m_verts;
+		int m_size;
+	};
+
+	bool isValid(const Simplex &simplex) const {
+		for(int i = 0; i < simplex.size(); i++)
+			if(!isValid(simplex[i]))
+				return false;
+		return true;
+	}
+
+	template <class T1, class T2> bool isValid(const pair<T1, T2> &simplex_pair) const {
+		return isValid(simplex_pair.first) && isValid(simplex_pair.second);
+	}
+
 	// TODO: we need overlap tests as well
-	// TODO: this isn't exactly what we need; A sum of closed oriented manifolds
-	// which touch each other on vertex or edge are acceptable as well
-	bool isClosedOrientableSurface(CRange<FaceId>) const;
+	bool isClosedOrientableSurface(CRange<PolyId>) const;
 
 	// Basically it means that it is a union of closed orientable surfaces
 	bool representsVolume() const;
 	int eulerPoincare() const;
 
+	bool isTriangular() const;
+
 	VertexId addVertex(const float3 &pos);
-	FaceId addFace(CRange<VertexId, 3>);
-	FaceId addFace(VertexId v0, VertexId v1, VertexId v2) { return addFace({v0, v1, v2}); }
+	PolyId addPoly(CRange<VertexId, 3>, int value = 0);
+	PolyId addPoly(VertexId v0, VertexId v1, VertexId v2, int value = 0) {
+		return addPoly({v0, v1, v2}, value);
+	}
 
 	void remove(VertexId);
-	void remove(FaceId);
+	void remove(PolyId);
 
 	// Distance between pair of not-conincident simplices will be >= epsilon
-	void makeCool(float epsilon);
+	void makeCool(float epsilon, int max_steps);
+
+	static pair<Simplex, Simplex> makeSimplexPair(const Simplex &a, const Simplex &b) {
+		return a < b ? make_pair(b, a) : make_pair(a, b);
+	}
+
+	template <class TSimplex> auto nearbyVerts(TSimplex simplex_id, float tolerance) const {
+		vector<pair<Simplex, Simplex>> out;
+		DASSERT(isValid(simplex_id));
+
+		for(auto vert : verts())
+			if(!coincident(vert, simplex_id) &&
+			   distance(simplex(simplex_id), point(vert)) < tolerance)
+				out.emplace_back(makeSimplexPair(simplex_id, vert));
+		return out;
+	}
+
+	template <class TSimplex> auto nearbyEdges(TSimplex simplex_id, float tolerance) const {
+		vector<pair<Simplex, Simplex>> out;
+		DASSERT(isValid(simplex_id));
+
+		for(auto edge : edges())
+			if(!coincident(simplex_id, edge) &&
+			   distance(simplex(simplex_id), segment(edge)) < tolerance)
+				out.emplace_back(makeSimplexPair(simplex_id, edge));
+		return out;
+	}
+
+	template <class TSimplex> auto nearbyPairs(TSimplex simplex_id, float tolerance) const {
+		DASSERT(isValid(simplex_id));
+
+		vector<pair<Simplex, Simplex>> out;
+		insertBack(out, nearbyVerts(simplex_id, tolerance));
+		insertBack(out, nearbyEdges(simplex_id, tolerance));
+		return out;
+	}
 
 	struct CSGVisualData {
 		CSGVisualData() : max_steps(0), phase(0) {}
@@ -915,33 +1019,44 @@ class DynamicMesh {
 	VertexId merge(CRange<VertexId>);
 	VertexId merge(CRange<VertexId>, const float3 &target_pos);
 
-	vector<FaceId> inverse(CRange<FaceId>) const;
+	void split(EdgeId, VertexId);
+
+	vector<PolyId> inverse(CRange<PolyId>) const;
 	vector<VertexId> inverse(CRange<VertexId>) const;
 
 	vector<VertexId> verts() const;
-	vector<VertexId> verts(CRange<FaceId>) const;
-	array<VertexId, 3> verts(FaceId) const;
+	vector<VertexId> verts(CRange<PolyId>) const;
+	vector<VertexId> verts(PolyId) const;
 	array<VertexId, 2> verts(EdgeId) const;
 
-	vector<FaceId> faces() const;
-	vector<FaceId> faces(FaceId) const;
-	vector<FaceId> faces(VertexId) const;
-	vector<FaceId> faces(EdgeId) const;
+	vector<PolyId> polys() const;
+	vector<PolyId> polys(VertexId) const;
+	vector<PolyId> polys(EdgeId) const;
+	vector<PolyId> coincidentPolys(PolyId) const;
 
-	template <class Filter> vector<FaceId> faces(VertexId vertex, const Filter &filter) const {
-		return fwk::filter(faces(vertex), filter);
+	template <class Filter> vector<PolyId> polys(VertexId vertex, const Filter &filter) const {
+		return fwk::filter(polys(vertex), filter);
 	}
 
-	template <class Filter> vector<FaceId> faces(EdgeId edge, const Filter &filter) const {
-		return fwk::filter(faces(edge), filter);
+	template <class Filter> vector<PolyId> polys(EdgeId edge, const Filter &filter) const {
+		return fwk::filter(polys(edge), filter);
 	}
 
-	vector<FaceId> selectSurface(FaceId representative) const;
+	bool coincident(VertexId vert1, VertexId vert2) const { return vert1 == vert2; }
+	bool coincident(VertexId vert, EdgeId edge) const;
+	bool coincident(EdgeId edge1, EdgeId edge2) const;
+	bool coincident(VertexId vert, PolyId face) const;
+	bool coincident(EdgeId, PolyId) const;
+	bool coincident(PolyId, PolyId) const;
 
-	array<EdgeId, 3> edges(FaceId) const;
-	EdgeId faceEdge(FaceId face_id, int sub_id) const;
-	int faceEdgeIndex(FaceId, EdgeId) const;
-	VertexId otherVertex(FaceId, EdgeId) const;
+	vector<PolyId> selectSurface(PolyId representative) const;
+
+	vector<EdgeId> edges() const;
+	vector<EdgeId> edges(PolyId) const;
+
+	EdgeId polyEdge(PolyId face_id, int sub_id) const;
+	int polyEdgeIndex(PolyId, EdgeId) const;
+	VertexId otherVertex(PolyId, EdgeId) const;
 
 	// All edges starting from current vertex
 	vector<EdgeId> edges(VertexId) const;
@@ -950,21 +1065,90 @@ class DynamicMesh {
 		DASSERT(isValid(id));
 		return m_verts[id];
 	}
-
 	Segment segment(EdgeId) const;
-	Triangle triangle(FaceId) const;
-	Projection edgeProjection(EdgeId, FaceId) const;
+	Triangle triangle(PolyId) const;
 
-	VertexId closestVertex(const float3 &pos) const;
+	float3 simplex(VertexId id) const { return point(id); }
+	Segment simplex(EdgeId id) const { return segment(id); }
+	Triangle simplex(PolyId id) const { return triangle(id); }
 
-	int faceCount(VertexId) const;
-	int faceCount() const { return m_num_faces; }
+	template <class TSimplex> float sdistance(const Simplex &gsimplex, TSimplex tsimplex) const {
+		if(gsimplex.isVertex())
+			return distance(point(gsimplex.asVertex()), simplex(tsimplex));
+		else if(gsimplex.isEdge())
+			return distance(segment(gsimplex.asEdge()), simplex(tsimplex));
+		else
+			THROW("simplex type not supported");
+		return constant::inf;
+	}
+
+	float sdistance(const Simplex &a, const Simplex &b) const {
+		if(b.isVertex())
+			return sdistance(a, b.asVertex());
+		else if(b.isEdge())
+			return sdistance(a, b.asEdge());
+		else
+			THROW("simplex type not supported");
+		return constant::inf;
+	}
+
+	Projection edgeProjection(EdgeId, PolyId) const;
+
+	template <class Simplex, class MeshSimplex = VertexId>
+	auto closestVertex(const Simplex &simplex, MeshSimplex exclude = VertexId()) const {
+		VertexId out;
+		float min_dist = constant::inf;
+
+		for(auto vert : verts()) {
+			if(coincident(exclude, vert))
+				continue;
+			float dist = distance(simplex, point(vert));
+			if(dist < min_dist) {
+				out = vert;
+				min_dist = dist;
+			}
+		}
+
+		return out;
+	}
+
+	template <class Simplex, class MeshSimplex = EdgeId>
+	auto closestEdge(const Simplex &simplex, MeshSimplex exclude = EdgeId()) const {
+		EdgeId out;
+		float min_dist = constant::inf;
+
+		for(auto edge : edges()) {
+			if(coincident(exclude, edge))
+				continue;
+			if(distance(point(edge.a), point(edge.b)) < constant::epsilon)
+				xmlPrint("Invalid edge: % - % (%) (%)\n", edge.a.id, edge.b.id, point(edge.a),
+						 point(edge.b));
+			float dist = distance(simplex, segment(edge));
+			if(dist < min_dist) {
+				out = edge;
+				min_dist = dist;
+			}
+		}
+
+		return out;
+	}
+
+	vector<PolyId> triangulate(PolyId);
+
+	// When faces are modified, or divided, their values are propagated
+	int value(PolyId) const;
+	void setValue(PolyId, int value);
+
+	int polyCount(VertexId) const;
+	int polyCount() const { return m_num_polys; }
 
 	int vertexCount() const { return m_num_verts; }
-	int vertexIdCount() const { return (int)m_verts.size(); }
-	int faceIdCount() const { return (int)m_faces.size(); }
+	int vertexCount(PolyId) const;
 
-	using EdgeLoop = vector<pair<FaceId, EdgeId>>;
+	int vertexIdCount() const { return (int)m_verts.size(); }
+	int polyIdCount() const { return (int)m_polys.size(); }
+
+	using EdgeLoop = vector<pair<PolyId, EdgeId>>;
 	pair<EdgeLoop, EdgeLoop> findIntersections(DynamicMesh &, float tolerance);
 	void triangulateFaces(EdgeLoop, float tolerance);
 
@@ -974,16 +1158,20 @@ class DynamicMesh {
 	// because tets behind them won't be merged
 	enum class FaceType { unclassified, inside, outside, shared, shared_opposite };
 
-	// Indexed by FaceId
+	// Indexed by PolyId
 	vector<FaceType> classifyFaces(const DynamicMesh &mesh2, const EdgeLoop &loop1,
 								   const EdgeLoop &loop2) const;
 
   private:
+	struct Poly {
+		vector<int> verts;
+		int value;
+	};
 	vector<float3> m_verts;
-	vector<array<int, 3>> m_faces;
+	vector<Poly> m_polys;
 	vector<vector<int>> m_adjacency;
-	vector<int> m_free_verts, m_free_faces;
-	int m_num_verts, m_num_faces;
+	vector<int> m_free_verts, m_free_polys;
+	int m_num_verts, m_num_polys;
 };
 
 using PMesh = immutable_ptr<Mesh>;
