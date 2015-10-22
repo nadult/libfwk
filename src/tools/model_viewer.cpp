@@ -189,7 +189,7 @@ class Viewer {
 				drawTets(*PTetMesh(pair.second), out, matrix, pair.first);
 			for(auto pair : vis_data.point_sets) {
 				auto mat = makeMat(Color(pair.first, min((int)pair.first.a, 254)), false);
-				auto box = Mesh::makeBBox(FBox(-1, -1, -1, 1, 1, 1) * scale * 0.03f);
+				auto box = Mesh::makeBBox(FBox(-1, -1, -1, 1, 1, 1) * scale * 0.01f);
 				for(auto point : pair.second)
 					box.draw(out, mat, matrix * translation(point));
 			}
@@ -256,7 +256,7 @@ class Viewer {
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
-		  m_mode(Mode::model_csg), m_num_steps(0), m_csg_mesh_id(0), m_csg_phase(0) {
+		  m_mode(Mode::model_csg), m_num_steps(1), m_csg_mesh_id(0), m_csg_phase(0) {
 		updateViewport();
 
 		m_csg_offset = float3(0.1, 0, 0.3);

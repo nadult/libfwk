@@ -735,10 +735,14 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 
 	FBox bbox(transform(verts(), [&](auto vert) { return point(vert); }));
 
+	printf("Before: Verts:%d edges:%d faces:%d\n", (int)verts().size(), (int)edges().size(),
+		   (int)polys().size());
 	printf("Normalizing:\n");
 	double total_time = getTime();
-	while(repeat) {
+	while(repeat && max_steps) {
 		repeat = false;
+		max_steps--;
+
 		int num_ee_splits = 0;
 		int num_ve_splits = 0;
 		int num_vv_merges = 0;
@@ -824,7 +828,7 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 					float e21_dist = distance(segment(edge2), point(edge1.a));
 					float e22_dist = distance(segment(edge2), point(edge1.b));
 
-					if(min(e11_dist, e12_dist) < dist || min(e21_dist, e22_dist) < dist)
+					if(min(e11_dist, e12_dist) < tolerance || min(e21_dist, e22_dist) < tolerance)
 						continue;
 
 					auto cpoints = closestPoints(segment(edge1), segment(edge2));
@@ -842,13 +846,15 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 			   num_ee_splits, ee_time * 1000.0, num_vv_merges, vv_time * 1000.0);
 		repeat = num_ve_splits || num_ee_splits || num_vv_merges;
 	}
+	printf("After: Verts:%d edges:%d faces:%d\n", (int)verts().size(), (int)edges().size(),
+		   (int)polys().size());
 	total_time = getTime() - total_time;
 	printf("Total time: %f msec\n\n", total_time * 1000.0);
 }
 
 DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &b,
 									   CSGVisualData *vis_data) {
-	float epsilon = 0.05f;
+	float epsilon = 0.1f;
 
 	auto out = DynamicMesh::merge({a, b});
 	DASSERT(out.isTriangular());
@@ -878,11 +884,13 @@ DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &
 			segs.emplace_back(triout.segment(edge));
 		for(auto poly : triout.polys())
 			tris[triout.value(poly)].emplace_back(triout.triangle(poly));
+		auto points = transform(out.verts(), [&](auto vert) { return out.point(vert); });
 
 		vis_data->poly_soups.emplace_back(Color(Color::red, 255), tris[0]);
 		vis_data->poly_soups.emplace_back(Color(Color::green, 200), tris[1]);
 		vis_data->poly_soups.emplace_back(Color::cyan, tris[2]);
-		vis_data->segment_groups.emplace_back(Color::black, segs);
+		vis_data->point_sets.emplace_back(Color::black, points);
+		vis_data->segment_groups_trans.emplace_back(Color::black, segs);
 	}
 	return out;
 }
