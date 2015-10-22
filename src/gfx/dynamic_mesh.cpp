@@ -553,6 +553,11 @@ void DynamicMesh::setValue(PolyId poly, int value) {
 
 Segment DynamicMesh::segment(EdgeId id) const { return Segment(point(id.a), point(id.b)); }
 
+FBox DynamicMesh::box(EdgeId id) const {
+	auto p1 = point(id.a), p2 = point(id.b);
+	return FBox(min(p1, p2), max(p1, p2));
+}
+
 Triangle DynamicMesh::triangle(PolyId id) const {
 	DASSERT(isValid(id) && vertexCount(id) == 3);
 	const auto &vids = m_polys[id].verts;

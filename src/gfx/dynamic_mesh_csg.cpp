@@ -12,6 +12,7 @@ using VertexId = DynamicMesh::VertexId;
 using PolyId = DynamicMesh::PolyId;
 using EdgeId = DynamicMesh::EdgeId;
 using EdgeLoop = DynamicMesh::EdgeLoop;
+using Simplex = DynamicMesh::Simplex;
 
 namespace {
 
@@ -679,12 +680,63 @@ vector<FaceType> DynamicMesh::classifyFaces(const DynamicMesh &mesh2, const Edge
 	return out;
 }
 
+template <class T> struct Grid {
+	Grid(FBox bbox, int3 size, float tolerance)
+		: m_bbox(bbox), m_size(size), m_tolerance(tolerance) {
+		m_bbox = enlarge(m_bbox, tolerance);
+		m_cells.resize(size.x * size.y * size.z);
+		m_cell_size = m_bbox.size() / float3(m_size);
+		m_inv_cell_size = inv(m_cell_size);
+	}
+
+	IBox cellRange(FBox box) const {
+		float3 offset(m_tolerance, m_tolerance, m_tolerance);
+		float3 min_pos = (box.min - m_bbox.min - offset) * m_inv_cell_size;
+		float3 max_pos = (box.max - m_bbox.min + offset) * m_inv_cell_size;
+		return IBox(max(int3(0, 0, 0), int3(min_pos)), min(m_size, int3(max_pos) + int3(1, 1, 1)));
+	}
+
+	int cellId(int3 pos) const { return pos.x + m_size.x * (pos.y + m_size.y * pos.z); }
+
+	void add(T simplex, FBox box) {
+		auto range = cellRange(box);
+		DASSERT(!range.isEmpty());
+		for(int x = range.min.x; x < range.max.x; x++)
+			for(int y = range.min.y; y < range.max.y; y++)
+				for(int z = range.min.z; z < range.max.z; z++)
+					m_cells[cellId({x, y, z})].emplace_back(simplex);
+	}
+
+	vector<T> find(FBox box) const {
+		auto range = cellRange(box);
+		DASSERT(!range.isEmpty());
+		vector<T> out;
+		//		for(auto cell : m_cells)
+		//			insertBack(out, cell);
+		for(int x = range.min.x; x < range.max.x; x++)
+			for(int y = range.min.y; y < range.max.y; y++)
+				for(int z = range.min.z; z < range.max.z; z++)
+					insertBack(out, m_cells[cellId({x, y, z})]);
+		makeUnique(out);
+		return out;
+	}
+
+	vector<vector<T>> m_cells;
+	FBox m_bbox;
+	float3 m_cell_size, m_inv_cell_size;
+	float m_tolerance;
+	int3 m_size;
+};
+
 void DynamicMesh::makeCool(float tolerance, int max_steps) {
 	bool repeat = true;
 
 	float tolerance_sq = tolerance * tolerance;
 
+	FBox bbox(transform(verts(), [&](auto vert) { return point(vert); }));
+
 	printf("Normalizing:\n");
+	double total_time = getTime();
 	while(repeat) {
 		repeat = false;
 		int num_ee_splits = 0;
@@ -695,6 +747,10 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 		auto to_check = verts();
 		vector<float> weights(vertexIdCount(), 1.0f);
 
+		Grid<VertexId> vgrid(bbox, int3(8, 8, 8), tolerance);
+		for(auto vert : verts())
+			vgrid.add(vert, FBox(point(vert), point(vert)));
+
 		while(!to_check.empty()) {
 			auto vert1 = to_check.back();
 			to_check.pop_back();
@@ -702,7 +758,7 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 				continue;
 			auto vert1p = point(vert1);
 
-			for(auto vert2 : verts()) {
+			for(auto vert2 : vgrid.find(FBox(vert1p, vert1p))) {
 				if(isValid(vert2) && vert2 != vert1) {
 					auto vert2p = point(vert2);
 					auto dist_sq = distanceSq(vert1p, vert2p);
@@ -713,6 +769,7 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 						if((int)weights.size() < new_vert + 1)
 							weights.resize(new_vert + 1, 1.0f);
 						weights[new_vert] = w1 + w2;
+						vgrid.add(new_vert, FBox(point, point));
 						to_check.emplace_back(new_vert);
 						num_vv_merges++;
 						break;
@@ -722,11 +779,15 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 		}
 		vv_time = getTime() - vv_time;
 
+		Grid<EdgeId> vegrid(bbox, int3(8, 8, 8), tolerance);
+		for(auto edge : edges())
+			vegrid.add(edge, box(edge));
+
 		double ve_time = getTime();
 		for(auto vert : verts()) {
 			auto pvert = point(vert);
 
-			for(auto edge : edges()) {
+			for(auto edge : vegrid.find(FBox(pvert, pvert))) {
 				if(isOneOf(vert, edge.a, edge.b))
 					continue;
 
@@ -746,9 +807,13 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 		}
 		ve_time = getTime() - ve_time;
 
+		Grid<EdgeId> egrid(bbox, int3(8, 8, 8), tolerance);
+		for(auto edge : edges())
+			egrid.add(edge, box(edge));
+
 		double ee_time = getTime();
 		for(auto edge1 : edges()) {
-			for(auto edge2 : edges()) {
+			for(auto edge2 : egrid.find(box(edge1))) {
 				if(!isValid(edge1) || !isValid(edge2) || coincident(edge1, edge2))
 					continue;
 
@@ -777,7 +842,8 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 			   num_ee_splits, ee_time * 1000.0, num_vv_merges, vv_time * 1000.0);
 		repeat = num_ve_splits || num_ee_splits || num_vv_merges;
 	}
-	printf("\n\n");
+	total_time = getTime() - total_time;
+	printf("Total time: %f msec\n\n", total_time * 1000.0);
 }
 
 DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &b,

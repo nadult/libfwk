@@ -913,6 +913,9 @@ class DynamicMesh {
 		bool operator<(const Simplex &rhs) const {
 			return std::tie(m_size, m_verts) < std::tie(rhs.m_size, rhs.m_verts);
 		}
+		bool operator==(const Simplex &rhs) const {
+			return std::tie(m_size, m_verts) == std::tie(rhs.m_size, rhs.m_verts);
+		}
 
 		VertexId operator[](int id) const {
 			DASSERT(id >= 0 && id < m_size);
@@ -1065,6 +1068,8 @@ class DynamicMesh {
 		DASSERT(isValid(id));
 		return m_verts[id];
 	}
+
+	FBox box(EdgeId) const;
 	Segment segment(EdgeId) const;
 	Triangle triangle(PolyId) const;
 
