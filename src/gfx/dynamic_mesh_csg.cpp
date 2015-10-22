@@ -679,11 +679,85 @@ vector<FaceType> DynamicMesh::classifyFaces(const DynamicMesh &mesh2, const Edge
 	return out;
 }
 
-void DynamicMesh::makeCool(float tolerance, int max_steps) {}
+void DynamicMesh::makeCool(float tolerance, int max_steps) {
+	bool repeat = true;
+
+	printf("Normalizing:\n");
+	while(repeat) {
+		repeat = false;
+		int num_ee_splits = 0;
+		int num_ve_splits = 0;
+		int num_vv_merges = 0;
+
+		for(auto vert1 : verts()) {
+			for(auto vert2 : verts()) {
+				if(!isValid(vert1) || !isValid(vert2) || vert1 == vert2)
+					continue;
+
+				auto dist = distance(point(vert1), point(vert2));
+				if(dist < tolerance) {
+					merge({vert1, vert2});
+					num_vv_merges++;
+				}
+			}
+		}
+
+		for(auto vert : verts()) {
+			auto pvert = point(vert);
+
+			for(auto edge : edges()) {
+				if(isOneOf(vert, edge.a, edge.b))
+					continue;
+
+				float edist = distance(pvert, segment(edge));
+				if(edist < tolerance) {
+					float e1_dist = distance(pvert, point(edge.a));
+					float e2_dist = distance(pvert, point(edge.b));
+
+					if(e1_dist >= tolerance && e2_dist >= tolerance) {
+						auto new_vert = addVertex(closestPoint(segment(edge), pvert));
+						//	printf("Splitting: %d : %d-%d\n", vert.id, edge.a.id, edge.b.id);
+						split(edge, new_vert);
+						num_ve_splits++;
+					}
+				}
+			}
+		}
+
+		for(auto edge1 : edges()) {
+			for(auto edge2 : edges()) {
+				if(!isValid(edge1) || !isValid(edge2) || coincident(edge1, edge2))
+					continue;
+
+				float dist = distance(segment(edge1), segment(edge2));
+				if(dist < tolerance) {
+					float e11_dist = distance(segment(edge1), point(edge2.a));
+					float e12_dist = distance(segment(edge1), point(edge2.b));
+					float e21_dist = distance(segment(edge2), point(edge1.a));
+					float e22_dist = distance(segment(edge2), point(edge1.b));
+
+					if(min(e11_dist, e12_dist) < dist || min(e21_dist, e22_dist) < dist)
+						continue;
+
+					auto cpoints = closestPoints(segment(edge1), segment(edge2));
+					auto vert1 = addVertex(cpoints.first);
+					auto vert2 = addVertex(cpoints.second);
+					split(edge1, vert1);
+					split(edge2, vert2);
+					num_ee_splits++;
+				}
+			}
+		}
+
+		printf("VE:%d EE:%d VV:%d\n", num_ve_splits, num_ee_splits, num_vv_merges);
+		repeat = num_ve_splits || num_ee_splits || num_vv_merges;
+	}
+	printf("\n\n");
+}
 
 DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &b,
 									   CSGVisualData *vis_data) {
-	float epsilon = 0.001f;
+	float epsilon = 0.1f;
 
 	auto out = DynamicMesh::merge({a, b});
 	DASSERT(out.isTriangular());
@@ -714,8 +788,8 @@ DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &
 		for(auto poly : triout.polys())
 			tris[triout.value(poly)].emplace_back(triout.triangle(poly));
 
-		vis_data->poly_soups.emplace_back(Color(Color::red, 100), tris[0]);
-		vis_data->poly_soups.emplace_back(Color(Color::green, 100), tris[1]);
+		vis_data->poly_soups.emplace_back(Color(Color::red, 255), tris[0]);
+		vis_data->poly_soups.emplace_back(Color(Color::green, 200), tris[1]);
 		vis_data->poly_soups.emplace_back(Color::cyan, tris[2]);
 		vis_data->segment_groups.emplace_back(Color::black, segs);
 	}

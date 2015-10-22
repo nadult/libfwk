@@ -169,19 +169,21 @@ VertexId DynamicMesh::addVertex(const float3 &pos) {
 }
 
 PolyId DynamicMesh::addPoly(CRange<VertexId, 3> indices, int value) {
-	for(auto idx : indices)
-		DASSERT(isValid(idx));
-	DASSERT(indices[0] != indices[1] && indices[1] != indices[2] && indices[2] != indices[0]);
+	for(int i1 = 0; i1 < (int)indices.size(); i1++) {
+		DASSERT(isValid(indices[i1]));
+		for(int i2 = i1 + 1; i2 < (int)indices.size(); i2++)
+			DASSERT(indices[i1] != indices[i2]);
+	}
 
 	int index = -1;
 	if(m_free_polys.empty()) {
 		index = (int)m_polys.size();
-		m_polys.emplace_back(Poly{{indices[0], indices[1], indices[2]}, value});
+		m_polys.emplace_back(Poly{vector<int>(begin(indices), end(indices)), value});
 	} else {
 		index = m_free_polys.back();
 		m_free_polys.pop_back();
 		DASSERT(m_polys[index].verts.empty());
-		m_polys[index] = Poly{{indices[0], indices[1], indices[2]}, value};
+		m_polys[index] = Poly{vector<int>(begin(indices), end(indices)), value};
 	}
 
 	for(auto i : indices) {
@@ -238,26 +240,36 @@ VertexId DynamicMesh::merge(CRange<VertexId> range) {
 VertexId DynamicMesh::merge(CRange<VertexId> range, const float3 &target_pos) {
 	VertexId new_vert = addVertex(target_pos);
 
-	vector<PolyId> sel_faces;
+	vector<PolyId> sel_polys;
 	for(auto vert : range)
-		insertBack(sel_faces, polys(vert));
-	makeUnique(sel_faces);
+		insertBack(sel_polys, polys(vert));
+	makeUnique(sel_polys);
 
-	for(auto face : sel_faces) {
-		auto untouched_verts = setDifference(verts(face), range);
+	for(auto poly : sel_polys) {
+		auto untouched_verts = setDifference(verts(poly), range);
 
-		auto fverts = verts(face);
-		auto fvalue = value(face);
-		remove(face);
+		auto pverts = verts(poly);
+		auto pvalue = value(poly);
+		remove(poly);
 
 		int count = 0;
-		for(int i = 0; i < 3; i++)
-			if(isOneOf(fverts[i], range)) {
-				fverts[i] = new_vert;
+		for(auto &pvert : pverts)
+			if(isOneOf(pvert, range)) {
+				pvert = new_vert;
 				count++;
 			}
-		if(count == 1)
-			addPoly(fverts, fvalue);
+		DASSERT(count > 0);
+
+		std::rotate(begin(pverts), std::find(begin(pverts), end(pverts), new_vert), end(pverts));
+		auto it = begin(pverts);
+		DASSERT(*it == new_vert);
+
+		while(it != end(pverts)) {
+			auto next = std::find(it + 1, end(pverts), new_vert);
+			if(next - it >= 3)
+				addPoly(vector<VertexId>(it, next), pvalue);
+			it = next;
+		}
 	}
 
 	for(auto vert : range)
@@ -268,29 +280,26 @@ VertexId DynamicMesh::merge(CRange<VertexId> range, const float3 &target_pos) {
 
 void DynamicMesh::split(EdgeId edge, VertexId vert) {
 	DASSERT(isValid(edge) && isValid(vert));
-	auto efaces = polys(edge);
+	DASSERT(!coincident(vert, edge));
 
-	for(auto face : polys(edge)) {
-		auto fverts = verts(face);
-		auto fvalue = value(face);
-		int end1id = -1, end2id = -1;
+	auto epolys = polys(edge);
+	auto &vadjacency = m_adjacency[vert];
 
-		for(int i = 0; i < 3; i++) {
-			if(fverts[i] == edge.a)
-				end1id = i;
-			if(fverts[i] == edge.b)
-				end2id = i;
+	for(auto poly_id : polys(edge)) {
+		auto &pverts = m_polys[poly_id].verts;
+		int idx = -1;
+
+		for(int i = 0, size = (int)pverts.size(); i < size; i++) {
+			int cur = pverts[i], next = pverts[(i + 1) % size];
+			if(isOneOf(cur, edge.a, edge.b) && isOneOf(next, edge.a, edge.b)) {
+				idx = i + 1;
+				break;
+			}
 		}
-		DASSERT(end1id != -1 && end2id != -1);
+		DASSERT(idx != -1);
 
-		remove(face);
-
-		fverts[end1id] = vert;
-		addPoly(fverts, fvalue);
-
-		fverts[end1id] = edge.a;
-		fverts[end2id] = vert;
-		addPoly(fverts, fvalue);
+		pverts.insert(begin(pverts) + idx, vert);
+		vadjacency.emplace_back(poly_id);
 	}
 }
 
@@ -356,11 +365,13 @@ vector<PolyId> DynamicMesh::polys(VertexId id) const {
 
 vector<PolyId> DynamicMesh::polys(EdgeId id) const {
 	DASSERT(isValid(id));
-	const auto &adj1 = m_adjacency[id.a];
-	const auto &adj2 = m_adjacency[id.b];
-	vector<int> out(min(adj1.size(), adj2.size()));
-	auto it = std::set_intersection(begin(adj1), end(adj1), begin(adj2), end(adj2), begin(out));
-	return vector<PolyId>(out.begin(), it);
+	vector<PolyId> out;
+	for(auto poly : polys(id.a)) {
+		auto pedges = edges(poly);
+		if(isOneOf(id, pedges) || isOneOf(id.inverse(), pedges))
+			out.emplace_back(poly);
+	}
+	return out;
 }
 
 vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
