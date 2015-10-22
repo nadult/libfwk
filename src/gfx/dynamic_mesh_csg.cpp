@@ -682,6 +682,8 @@ vector<FaceType> DynamicMesh::classifyFaces(const DynamicMesh &mesh2, const Edge
 void DynamicMesh::makeCool(float tolerance, int max_steps) {
 	bool repeat = true;
 
+	float tolerance_sq = tolerance * tolerance;
+
 	printf("Normalizing:\n");
 	while(repeat) {
 		repeat = false;
@@ -689,19 +691,38 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 		int num_ve_splits = 0;
 		int num_vv_merges = 0;
 
-		for(auto vert1 : verts()) {
-			for(auto vert2 : verts()) {
-				if(!isValid(vert1) || !isValid(vert2) || vert1 == vert2)
-					continue;
+		double vv_time = getTime();
+		auto to_check = verts();
+		vector<float> weights(vertexIdCount(), 1.0f);
 
-				auto dist = distance(point(vert1), point(vert2));
-				if(dist < tolerance) {
-					merge({vert1, vert2});
-					num_vv_merges++;
+		while(!to_check.empty()) {
+			auto vert1 = to_check.back();
+			to_check.pop_back();
+			if(!isValid(vert1))
+				continue;
+			auto vert1p = point(vert1);
+
+			for(auto vert2 : verts()) {
+				if(isValid(vert2) && vert2 != vert1) {
+					auto vert2p = point(vert2);
+					auto dist_sq = distanceSq(vert1p, vert2p);
+					if(dist_sq < tolerance_sq) {
+						float w1 = weights[vert1], w2 = weights[vert2];
+						float3 point = (vert1p * w1 + vert2p * w2) / (w1 + w2);
+						auto new_vert = merge({vert1, vert2}, point);
+						if((int)weights.size() < new_vert + 1)
+							weights.resize(new_vert + 1, 1.0f);
+						weights[new_vert] = w1 + w2;
+						to_check.emplace_back(new_vert);
+						num_vv_merges++;
+						break;
+					}
 				}
 			}
 		}
+		vv_time = getTime() - vv_time;
 
+		double ve_time = getTime();
 		for(auto vert : verts()) {
 			auto pvert = point(vert);
 
@@ -723,7 +744,9 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 				}
 			}
 		}
+		ve_time = getTime() - ve_time;
 
+		double ee_time = getTime();
 		for(auto edge1 : edges()) {
 			for(auto edge2 : edges()) {
 				if(!isValid(edge1) || !isValid(edge2) || coincident(edge1, edge2))
@@ -748,8 +771,10 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 				}
 			}
 		}
+		ee_time = getTime() - ee_time;
 
-		printf("VE:%d EE:%d VV:%d\n", num_ve_splits, num_ee_splits, num_vv_merges);
+		printf("VE:%d(%.2f) EE:%d(%.2f) VV:%d(%.2f)\n", num_ve_splits, ve_time * 1000.0,
+			   num_ee_splits, ee_time * 1000.0, num_vv_merges, vv_time * 1000.0);
 		repeat = num_ve_splits || num_ee_splits || num_vv_merges;
 	}
 	printf("\n\n");
@@ -757,7 +782,7 @@ void DynamicMesh::makeCool(float tolerance, int max_steps) {
 
 DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &b,
 									   CSGVisualData *vis_data) {
-	float epsilon = 0.1f;
+	float epsilon = 0.05f;
 
 	auto out = DynamicMesh::merge({a, b});
 	DASSERT(out.isTriangular());
