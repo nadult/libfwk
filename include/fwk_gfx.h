@@ -965,9 +965,6 @@ class DynamicMesh {
 	void remove(VertexId);
 	void remove(PolyId);
 
-	// Distance between pair of not-conincident simplices will be >= epsilon
-	void makeCool(float epsilon, int max_steps);
-
 	static pair<Simplex, Simplex> makeSimplexPair(const Simplex &a, const Simplex &b) {
 		return a < b ? make_pair(b, a) : make_pair(a, b);
 	}
@@ -1014,8 +1011,7 @@ class DynamicMesh {
 		enum { max_phases = 6 };
 	};
 
-	static DynamicMesh csgDifference(const DynamicMesh &a, const DynamicMesh &b,
-									 CSGVisualData *data = nullptr);
+	static DynamicMesh csgDifference(DynamicMesh a, DynamicMesh b, CSGVisualData *data = nullptr);
 
 	static DynamicMesh merge(CRange<DynamicMesh>);
 
@@ -1023,6 +1019,7 @@ class DynamicMesh {
 	VertexId merge(CRange<VertexId>, const float3 &target_pos);
 
 	void split(EdgeId, VertexId);
+	void move(VertexId, const float3 &new_pos);
 
 	vector<PolyId> inverse(CRange<PolyId>) const;
 	vector<VertexId> inverse(CRange<VertexId>) const;

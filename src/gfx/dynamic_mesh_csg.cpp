@@ -752,6 +752,8 @@ template <class T> struct Grid {
 
 	int cellId(int3 pos) const { return pos.x + m_size.x * (pos.y + m_size.y * pos.z); }
 
+	void remove(T simplex) {}
+
 	void add(T simplex, FBox box) {
 		auto range = cellRange(box);
 		DASSERT(!range.isEmpty());
@@ -765,8 +767,6 @@ template <class T> struct Grid {
 		auto range = cellRange(box);
 		DASSERT(!range.isEmpty());
 		vector<T> out;
-		//		for(auto cell : m_cells)
-		//			insertBack(out, cell);
 		for(int x = range.min.x; x < range.max.x; x++)
 			for(int y = range.min.y; y < range.max.y; y++)
 				for(int z = range.min.z; z < range.max.z; z++)
@@ -782,170 +782,135 @@ template <class T> struct Grid {
 	int3 m_size;
 };
 
-void DynamicMesh::makeCool(float tolerance, int max_steps) {
-	bool repeat = true;
-
-	float tolerance_sq = tolerance * tolerance;
-
-	FBox bbox(transform(verts(), [&](auto vert) { return point(vert); }));
-
-	printf("Before: Verts:%d edges:%d faces:%d\n", (int)verts().size(), (int)edges().size(),
-		   (int)polys().size());
-	printf("Normalizing:\n");
-	double total_time = getTime();
-	while(repeat && max_steps) {
-		repeat = false;
-		max_steps--;
-
-		int num_ee_splits = 0;
-		int num_ve_splits = 0;
-		int num_vv_merges = 0;
-
-		double vv_time = getTime();
-		auto to_check = verts();
-		vector<float> weights(vertexIdCount(), 1.0f);
-
-		Grid<VertexId> vgrid(bbox, int3(8, 8, 8), tolerance);
-		for(auto vert : verts())
-			vgrid.add(vert, FBox(point(vert), point(vert)));
-
-		while(!to_check.empty()) {
-			auto vert1 = to_check.back();
-			to_check.pop_back();
-			if(!isValid(vert1))
-				continue;
-			auto vert1p = point(vert1);
-
-			for(auto vert2 : vgrid.find(FBox(vert1p, vert1p))) {
-				if(isValid(vert2) && vert2 != vert1) {
-					auto vert2p = point(vert2);
-					auto dist_sq = distanceSq(vert1p, vert2p);
-					if(dist_sq < tolerance_sq) {
-						float w1 = weights[vert1], w2 = weights[vert2];
-						float3 point = (vert1p * w1 + vert2p * w2) / (w1 + w2);
-						auto new_vert = merge({vert1, vert2}, point);
-						if((int)weights.size() < new_vert + 1)
-							weights.resize(new_vert + 1, 1.0f);
-						weights[new_vert] = w1 + w2;
-						vgrid.add(new_vert, FBox(point, point));
-						to_check.emplace_back(new_vert);
-						num_vv_merges++;
-						break;
-					}
-				}
-			}
-		}
-		vv_time = getTime() - vv_time;
-
-		Grid<EdgeId> vegrid(bbox, int3(8, 8, 8), tolerance);
-		for(auto edge : edges())
-			vegrid.add(edge, box(edge));
-
-		double ve_time = getTime();
-		for(auto vert : verts()) {
-			auto pvert = point(vert);
-
-			for(auto edge : vegrid.find(FBox(pvert, pvert))) {
-				if(isOneOf(vert, edge.a, edge.b))
-					continue;
-
-				float edist = distance(pvert, segment(edge));
-				if(edist < tolerance) {
-					float e1_dist = distance(pvert, point(edge.a));
-					float e2_dist = distance(pvert, point(edge.b));
-
-					if(e1_dist >= tolerance && e2_dist >= tolerance) {
-						auto new_vert = addVertex(closestPoint(segment(edge), pvert));
-						//	printf("Splitting: %d : %d-%d\n", vert.id, edge.a.id, edge.b.id);
-						split(edge, new_vert);
-						num_ve_splits++;
-					}
-				}
-			}
-		}
-		ve_time = getTime() - ve_time;
-
-		Grid<EdgeId> egrid(bbox, int3(8, 8, 8), tolerance);
-		for(auto edge : edges())
-			egrid.add(edge, box(edge));
-
-		double ee_time = getTime();
-		for(auto edge1 : edges()) {
-			for(auto edge2 : egrid.find(box(edge1))) {
-				if(!isValid(edge1) || !isValid(edge2) || coincident(edge1, edge2))
-					continue;
-
-				float dist = distance(segment(edge1), segment(edge2));
-				if(dist < tolerance) {
-					float e11_dist = distance(segment(edge1), point(edge2.a));
-					float e12_dist = distance(segment(edge1), point(edge2.b));
-					float e21_dist = distance(segment(edge2), point(edge1.a));
-					float e22_dist = distance(segment(edge2), point(edge1.b));
-
-					if(min(e11_dist, e12_dist) < tolerance || min(e21_dist, e22_dist) < tolerance)
-						continue;
-
-					auto cpoints = closestPoints(segment(edge1), segment(edge2));
-					auto vert1 = addVertex(cpoints.first);
-					auto vert2 = addVertex(cpoints.second);
-					split(edge1, vert1);
-					split(edge2, vert2);
-					num_ee_splits++;
-				}
-			}
-		}
-		ee_time = getTime() - ee_time;
-
-		printf("VE:%d(%.2f) EE:%d(%.2f) VV:%d(%.2f)\n", num_ve_splits, ve_time * 1000.0,
-			   num_ee_splits, ee_time * 1000.0, num_vv_merges, vv_time * 1000.0);
-		repeat = num_ve_splits || num_ee_splits || num_vv_merges;
-	}
-	printf("After: Verts:%d edges:%d faces:%d\n", (int)verts().size(), (int)edges().size(),
-		   (int)polys().size());
-	total_time = getTime() - total_time;
-	printf("Total time: %f msec\n\n", total_time * 1000.0);
-}
-
-DynamicMesh DynamicMesh::csgDifference(const DynamicMesh &a, const DynamicMesh &b,
+DynamicMesh DynamicMesh::csgDifference(DynamicMesh dmesh1, DynamicMesh dmesh2,
 									   CSGVisualData *vis_data) {
-	float epsilon = 0.1f;
-
-	auto out = DynamicMesh::merge({a, b});
-	DASSERT(out.isTriangular());
-
-	for(auto poly : out.polys())
-		out.setValue(poly, poly < (int)a.polyCount() ? 0 : 1);
+	float tolerance = 0.001f;
 
 	if(vis_data && vis_data->phase == 0) {
 		vector<Triangle> tris[2];
-		for(auto poly : out.polys())
-			tris[out.value(poly)].emplace_back(out.triangle(poly));
-		vis_data->poly_soups.emplace_back(Color::red, tris[0]);
-		vis_data->poly_soups.emplace_back(Color::green, tris[1]);
+		for(auto poly : dmesh1.polys())
+			tris[0].emplace_back(dmesh1.triangle(poly));
+		for(auto poly : dmesh2.polys())
+			tris[1].emplace_back(dmesh2.triangle(poly));
+		vis_data->poly_soups.emplace_back(Color(Color::red, 140), tris[0]);
+		vis_data->poly_soups.emplace_back(Color(Color::green, 140), tris[1]);
 	}
 
-	out.makeCool(epsilon, vis_data ? vis_data->max_steps : 999999999);
+	try {
+		DASSERT(dmesh1.representsVolume());
+		DASSERT(dmesh2.representsVolume());
+		auto loops = dmesh1.findIntersections(dmesh2, tolerance);
 
-	if(vis_data && vis_data->phase == 1) {
-		DynamicMesh triout = out;
-		for(auto poly : triout.polys())
-			triout.triangulate(poly);
+		vector<float3> new_points(loops.first.size());
 
-		vector<Triangle> tris[3];
-		vector<Segment> segs;
+		for(int i = 0, size = (int)loops.first.size(); i < size; i++) {
+			const auto &elem1 = loops.first[i], &elem2 = loops.second[i];
+			auto edge1 = elem1.second, edge2 = elem2.second;
+			auto pos1 = (dmesh1.point(edge1.a) + dmesh2.point(edge2.a)) * 0.5f;
+			auto pos2 = (dmesh1.point(edge1.b) + dmesh2.point(edge2.b)) * 0.5f;
+			dmesh1.move(edge1.a, pos1);
+			dmesh1.move(edge1.b, pos2);
+			dmesh2.move(edge2.a, pos1);
+			dmesh2.move(edge2.b, pos2);
+		}
 
-		for(auto edge : out.edges())
-			segs.emplace_back(triout.segment(edge));
-		for(auto poly : triout.polys())
-			tris[triout.value(poly)].emplace_back(triout.triangle(poly));
-		auto points = transform(out.verts(), [&](auto vert) { return out.point(vert); });
+		if(vis_data) {
+			vector<Segment> isect_lines;
+			vector<Triangle> tris[2];
+			vector<Segment> tri_segs[2];
+			for(const auto &edge : loops.first)
+				isect_lines.emplace_back(dmesh1.segment(edge.second));
+			vis_data->segment_groups_trans.emplace_back(Color::black, isect_lines);
+			for(auto elem : loops.first) {
+				tris[0].emplace_back(dmesh1.triangle(elem.first));
+				for(auto edge : dmesh1.edges(elem.first))
+					tri_segs[0].emplace_back(dmesh1.segment(edge));
+			}
+			for(auto elem : loops.second) {
+				tris[1].emplace_back(dmesh2.triangle(elem.first));
+				for(auto edge : dmesh2.edges(elem.first))
+					tri_segs[1].emplace_back(dmesh2.segment(edge));
+			}
 
-		vis_data->poly_soups.emplace_back(Color(Color::red, 255), tris[0]);
-		vis_data->poly_soups.emplace_back(Color(Color::green, 200), tris[1]);
-		vis_data->poly_soups.emplace_back(Color::cyan, tris[2]);
-		vis_data->point_sets.emplace_back(Color::black, points);
-		vis_data->segment_groups_trans.emplace_back(Color::black, segs);
+			if(vis_data->phase == 0) {
+				auto points1 =
+					transform(dmesh1.verts(), [&](auto vert) { return dmesh1.point(vert); });
+				auto points2 =
+					transform(dmesh2.verts(), [&](auto vert) { return dmesh2.point(vert); });
+				//		vis_data->point_sets.emplace_back(Color::black, points1);
+				//		vis_data->point_sets.emplace_back(Color::black, points2);
+				vis_data->poly_soups.emplace_back(Color::red, tris[0]);
+				vis_data->poly_soups.emplace_back(Color::green, tris[1]);
+				vis_data->segment_groups.emplace_back(Color::yellow, tri_segs[0]);
+				vis_data->segment_groups.emplace_back(Color::blue, tri_segs[1]);
+			}
+		}
+
+		dmesh1.triangulateFaces(loops.first, tolerance);
+		dmesh2.triangulateFaces(loops.second, tolerance);
+
+		if(vis_data && vis_data->phase == 1) {
+			vector<Segment> segs1, segs2;
+			for(auto face : dmesh1.polys())
+				for(auto edge : dmesh1.edges(face))
+					segs1.emplace_back(dmesh1.segment(edge));
+			for(auto face : dmesh2.polys())
+				for(auto edge : dmesh2.edges(face))
+					segs2.emplace_back(dmesh2.segment(edge));
+			vis_data->segment_groups.emplace_back(Color::yellow, segs1);
+			vis_data->segment_groups.emplace_back(Color::blue, segs2);
+		}
+
+		auto ftypes2 = dmesh1.classifyFaces(dmesh2, loops.first, loops.second);
+		auto ftypes1 = dmesh2.classifyFaces(dmesh1, loops.second, loops.first);
+
+		if(vis_data && vis_data->phase == 2) {
+			vector<Color> colors = {Color::black,  Color::green,   Color::red,
+									Color::yellow, Color::magneta, Color::purple};
+			vector<vector<Triangle>> segs;
+			segs.clear();
+
+			for(auto face : dmesh1.polys()) {
+				int seg_id = (int)ftypes1[face];
+				if((int)segs.size() < seg_id + 1)
+					segs.resize(seg_id + 1);
+				segs[seg_id].emplace_back(dmesh1.triangle(face));
+			}
+			/*	for(auto face : dmesh2.polys()) {
+					int seg_id = 5;
+					if((int)segs.size() < seg_id + 1)
+						segs.resize(seg_id + 1);
+					segs[seg_id].emplace_back(dmesh2.triangle(face));
+				}*/
+
+			for(int n = 0; n < (int)segs.size(); n++)
+				vis_data->poly_soups.emplace_back(colors[n % colors.size()], segs[n]);
+		}
+
+		vector<Triangle> tris;
+		for(auto face : dmesh1.polys())
+			if(ftypes1[face] == FaceType::outside)
+				tris.emplace_back(dmesh1.triangle(face));
+		int num_outside = tris.size();
+		for(auto face : dmesh2.polys())
+			if(ftypes2[face] == FaceType::inside)
+				tris.emplace_back(dmesh2.triangle(face).inverse());
+
+		if(vis_data && vis_data->phase >= 3) {
+			vis_data->poly_soups.emplace_back(Color::red, subRange(tris, 0, num_outside));
+			vis_data->poly_soups.emplace_back(Color::green,
+											  subRange(tris, num_outside, tris.size()));
+			vector<Segment> segs;
+			for(auto tri : tris)
+				insertBack(segs, transform<Segment>(tri.edges()));
+			if(vis_data->phase == 3)
+				vis_data->segment_groups.emplace_back(Color::blue, segs);
+		}
+
+		return DynamicMesh(Mesh::makePolySoup(tris));
+	} catch(const Exception &ex) {
+		printf("Error: %s\n%s\n\n", ex.what(), ex.backtrace(true).c_str());
+		return {};
 	}
-	return out;
 }
 }

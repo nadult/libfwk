@@ -284,9 +284,16 @@ void DynamicMesh::split(EdgeId edge, VertexId vert) {
 
 	auto epolys = polys(edge);
 	auto &vadjacency = m_adjacency[vert];
+	xmlPrint("split %-%: v:%\n", (int)edge.a, (int)edge.b, (int)vert);
 
-	for(auto poly_id : polys(edge)) {
-		auto &pverts = m_polys[poly_id].verts;
+	for(auto poly_id : epolys) {
+		auto pverts = m_polys[poly_id].verts;
+		if(isOneOf(vert, pverts)) {
+			remove(poly_id);
+			continue;
+		}
+		xmlPrint("Splitting: %\n", transform<int>(pverts));
+
 		int idx = -1;
 
 		for(int i = 0, size = (int)pverts.size(); i < size; i++) {
@@ -296,11 +303,19 @@ void DynamicMesh::split(EdgeId edge, VertexId vert) {
 				break;
 			}
 		}
+
+		if(idx == -1) // TODO: make sure it doesn't happen
+			continue;
 		DASSERT(idx != -1);
 
 		pverts.insert(begin(pverts) + idx, vert);
 		vadjacency.emplace_back(poly_id);
 	}
+}
+
+void DynamicMesh::move(VertexId vertex_id, const float3 &new_pos) {
+	DASSERT(isValid(vertex_id));
+	m_verts[vertex_id] = new_pos;
 }
 
 vector<PolyId> DynamicMesh::inverse(CRange<PolyId> filter) const {
@@ -536,8 +551,30 @@ vector<PolyId> DynamicMesh::triangulate(PolyId poly_id) {
 	auto pvalue = value(poly_id);
 	remove(poly_id);
 
-	for(int i = 1, size = pverts.size(); i + 1 < size; i++)
-		out.emplace_back(addPoly(pverts[0], pverts[i], pverts[i + 1], pvalue));
+	vector<char> duplicates(pverts.size(), 0);
+	int first_duplicate = -1;
+	for(int i = 0; i < (int)pverts.size(); i++)
+		for(int j = i + 1; j < (int)pverts.size(); j++)
+			if(pverts[i] == pverts[j]) {
+				if(first_duplicate == -1)
+					first_duplicate = i;
+				duplicates[i] = 1;
+				duplicates[j] = 1;
+			}
+
+	if(first_duplicate != -1) {
+		std::rotate(begin(pverts), begin(pverts) + first_duplicate, end(pverts));
+		std::rotate(begin(duplicates), begin(duplicates) + first_duplicate, end(duplicates));
+	}
+
+	int first_vert = 0;
+	for(int i = 1, size = pverts.size(); i + 1 < size; i++) {
+		if(duplicates[i])
+			first_vert = i;
+		array<VertexId, 3> verts = {{pverts[first_vert], pverts[i], pverts[i + 1]}};
+		if(distinct(verts))
+			out.emplace_back(addPoly(verts, pvalue));
+	}
 	return out;
 }
 
