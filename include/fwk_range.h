@@ -140,6 +140,8 @@ template <class T> auto makeRange(const std::initializer_list<T> &list) {
 	return CRange<T>(list.begin(), list.end());
 }
 
+//TODO: make range could take a pair of iterators as well
+
 template <class Target, class T> auto reinterpretRange(Range<T> range) {
 	using out_type = typename std::conditional<std::is_const<T>::value, const Target, Target>::type;
 	return Range<out_type>(reinterpret_cast<out_type *>(range.data()),
@@ -293,6 +295,15 @@ std::array<T, size> transform(const std::array<U, size> &range) {
 		out[i] = T(range[i]);
 	return out;
 }
+
+template <class Range>
+bool distinct(const Range &range) {
+	using Value = typename Range::value_type;
+	vector<Value> temp(begin(range), end(range));
+	makeUnique(temp);
+	return temp.size() == range.size();
+}
+
 }
 
 #endif

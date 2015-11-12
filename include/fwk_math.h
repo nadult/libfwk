@@ -967,6 +967,7 @@ float distance(const Triangle &tri, const Segment &);
 
 float3 closestPoint(const Segment &, const float3 &point);
 float3 closestPoint(const Ray &, const float3 &point);
+float3 closestPoint(const Triangle&, const float3 &point);
 
 pair<float3, float3> closestPoints(const Ray &, const Ray &);
 pair<float3, float3> closestPoints(const Segment &, const Segment &);

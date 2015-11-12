@@ -183,6 +183,59 @@ namespace {
 		return out;
 	}
 
+	int floodFill(std::map<VertexId, vector<VertexId>> &map, vector<int> &values, VertexId start) {
+		vector<VertexId> stack = {start};
+		int count = 0;
+		while(!stack.empty()) {
+			VertexId vert = stack.back();
+			stack.pop_back();
+			if(values[vert])
+				continue;
+			values[vert] = 1;
+			count++;
+
+			for(auto target : map[vert])
+				stack.push_back(target);
+		}
+		return count;
+	}
+
+	EdgeId findBestEdge(const DynamicMesh &mesh, std::map<VertexId, vector<VertexId>> &map,
+						const vector<int> &values) {
+		EdgeId best_edge;
+		float max_distance = 0.0f; // TODO: is it a good idea?
+
+		for(const auto &it1 : map)
+			if(values[it1.first] == 1)
+				for(const auto &it2 : map)
+					if(values[it2.first] == 0) {
+						EdgeId edge(it1.first, it2.first);
+
+						bool invalid = false;
+						float dist = constant::inf;
+						for(const auto &it3 : map)
+							for(auto ttarget : it3.second) {
+								EdgeId tedge(it3.first, ttarget);
+
+								if(tedge == edge.inverse() || tedge == edge)
+									invalid = true;
+								if(!tedge.hasSharedEnds(edge)) {
+									float edist = distance(mesh.segment(edge), mesh.segment(tedge));
+									dist = min(dist, edist);
+								}
+							}
+						if(dist > max_distance && !invalid) {
+							best_edge = edge;
+							max_distance = dist;
+						}
+					}
+
+		DASSERT(best_edge.isValid());
+		DASSERT(max_distance >= constant::epsilon); // TODO: check if this could happen
+
+		return best_edge;
+	}
+
 	// bedges: border edges
 	// iedges: inside edges
 	vector<vector<EdgeId>> findSimplePolygons(const DynamicMesh &mesh, const vector<EdgeId> &bedges,
@@ -201,74 +254,75 @@ namespace {
 			xmlPrint("\n");
 		}
 
-		std::map<VertexId, vector<EdgeId>> map;
+		std::map<VertexId, vector<VertexId>> map;
 		for(auto bedge : bedges)
-			map[bedge.a].emplace_back(bedge);
+			map[bedge.a].emplace_back(bedge.b);
 		for(auto iedge : iedges) {
-			map[iedge.a].emplace_back(iedge);
-			map[iedge.b].emplace_back(iedge.inverse());
+			map[iedge.a].emplace_back(iedge.b);
+			if(iedge.a != iedge.b)
+				map[iedge.b].emplace_back(iedge.a);
 		}
 
 		// Creating bridges between unconnected edges
 		while(true) {
-			vector<VertexId> stack = {map.begin()->first};
 			vector<int> temps(mesh.vertexIdCount(), 0);
-
-			int count = 0;
-			while(!stack.empty()) {
-				VertexId vert = stack.back();
-				stack.pop_back();
-				if(temps[vert])
-					continue;
-
-				temps[vert] = 1;
-				count++;
-
-				for(auto edge : map[vert])
-					stack.push_back(edge.a == vert ? edge.b : edge.a);
-			}
-
-			if(count == (int)map.size())
+			if(floodFill(map, temps, map.begin()->first) == (int)map.size())
 				break;
 
-			EdgeId best_edge;
-			float max_distance = 0.0f; // TODO: is it a good idea?
-
-			for(const auto &it1 : map)
-				if(temps[it1.first] == 1)
-					for(const auto &it2 : map)
-						if(temps[it2.first] == 0) {
-							EdgeId edge(it1.first, it2.first);
-
-							float dist = constant::inf;
-							for(const auto &it3 : map)
-								for(auto tedge : it3.second)
-									if(!tedge.hasSharedEnds(edge)) {
-										float edist =
-											distance(mesh.segment(edge), mesh.segment(tedge));
-										dist = min(dist, edist);
-									}
-							if(dist > max_distance) {
-								best_edge = edge;
-								max_distance = dist;
-							}
-						}
+			EdgeId best_edge = findBestEdge(mesh, map, temps);
 
 			if(do_print)
 				xmlPrint("Adding bridge: %-%\n", (long long)best_edge.a % 1337,
 						 (long long)best_edge.b % 1337);
-			DASSERT(best_edge.isValid());
-			DASSERT(max_distance >= constant::epsilon); // TODO: check if this could happen
-			map[best_edge.a].emplace_back(best_edge);
-			map[best_edge.b].emplace_back(best_edge.inverse());
+			map[best_edge.a].emplace_back(best_edge.b);
+			map[best_edge.b].emplace_back(best_edge.a);
 		}
 
 		vector<vector<EdgeId>> out;
 
+		// Removing single verts
+		for(auto &it : map) {
+			for(int n = 0; n < (int)it.second.size(); n++)
+				if(it.second[n] == it.first) {
+					it.second[n--] = it.second.back();
+					it.second.pop_back();
+				}
+		}
+
+		vector<int> vert_neighbour_counts(mesh.vertexIdCount(), 0);
+		{
+			vector<EdgeId> all_edges;
+			for(auto it : map)
+				for(auto target : it.second)
+					all_edges.emplace_back(EdgeId(it.first, target).ordered());
+			makeUnique(all_edges);
+			for(auto edge : all_edges) {
+				vert_neighbour_counts[edge.a]++;
+				vert_neighbour_counts[edge.b]++;
+			}
+		}
+
+		for(auto it : map) {
+			if(vert_neighbour_counts[it.first] != 1)
+				continue;
+
+			vector<int> temps(mesh.vertexIdCount(), 0);
+			temps[it.first] = 1;
+			EdgeId best_edge = findBestEdge(mesh, map, temps);
+
+			if(do_print)
+				xmlPrint("Linking: %-%\n", (long long)best_edge.a % 1337,
+						 (long long)best_edge.b % 1337);
+			map[best_edge.a].emplace_back(best_edge.b);
+			map[best_edge.b].emplace_back(best_edge.a);
+			vert_neighbour_counts[best_edge.a]++;
+			vert_neighbour_counts[best_edge.b]++;
+		}
+
 		while(!map.empty()) {
 			auto it = map.begin();
 			DASSERT(!it->second.empty());
-			EdgeId start = it->second.back();
+			EdgeId start(it->first, it->second.back());
 			it->second.pop_back();
 			if(it->second.empty())
 				map.erase(it);
@@ -289,17 +343,17 @@ namespace {
 				float min_angle = constant::inf;
 				EdgeId best_edge;
 
-				for(auto edge : it->second) {
-					if(edge.b == loop.back().a)
+				for(auto target : it->second) {
+					if(target == loop.back().a)
 						continue;
-					float angle = angleBetween(mesh, loop.back().a, current, edge.b, proj);
+					float angle = angleBetween(mesh, loop.back().a, current, target, proj);
 
 					if(do_print)
-						xmlPrint("Consider: %-% (%)\n", (long long)edge.a % 1337,
-								 (long long)edge.b % 1337, radToDeg(angle));
+						xmlPrint("Consider: %-% (%)\n", (long long)it->first % 1337,
+								 (long long)target % 1337, radToDeg(angle));
 					if(angle < min_angle) {
 						min_angle = angle;
-						best_edge = edge;
+						best_edge = EdgeId(it->first, target);
 					}
 				}
 
@@ -321,7 +375,7 @@ namespace {
 				}
 				DASSERT(best_edge.isValid());
 				for(int i = 0; i < (int)it->second.size(); i++)
-					if(it->second[i] == best_edge) {
+					if(EdgeId(it->first, it->second[i]) == best_edge) {
 						it->second[i] = it->second.back();
 						it->second.pop_back();
 						break;
@@ -350,7 +404,6 @@ namespace {
 
 	// Simple ear-clipping algorithm from: http://arxiv.org/pdf/1212.6038.pdf
 	// TODO: avoid slivers
-	// TODO: add support for holes (when loop is contained in single triangle)
 	vector<array<VertexId, 3>> triangulateSimplePolygon(const DynamicMesh &mesh,
 														const vector<EdgeId> &edges,
 														const Projection &proj) {
@@ -419,10 +472,10 @@ namespace {
 		return out;
 	}
 
-	vector<array<VertexId, 3>> triangulateFace(const DynamicMesh &mesh, PolyId face,
+	vector<array<VertexId, 3>> triangulateFace(const DynamicMesh &mesh, const Triangle &tri,
 											   const vector<EdgeId> &bedges,
 											   const vector<EdgeId> &iedges) {
-		Projection proj(mesh.triangle(face));
+		Projection proj(tri);
 
 		vector<vector<EdgeId>> simple_polys = findSimplePolygons(mesh, bedges, iedges, proj);
 
@@ -496,7 +549,8 @@ void DynamicMesh::triangulateFaces(EdgeLoop loop, float tolerance) {
 
 		//		printf("triangulating face (i:%d b:%d)\n", (int)tri_inside_edges.size(),
 		//			   (int)tri_boundary_edges.size());
-		auto triangles = triangulateFace(*this, face, tri_boundary_edges, tri_inside_edges);
+		auto triangles =
+			triangulateFace(*this, triangle(face), tri_boundary_edges, tri_inside_edges);
 		insertBack(new_faces, triangles);
 		//		printf("new tris: %d\n", (int)triangles.size());
 
