@@ -126,6 +126,8 @@ template <class T> struct ConvertsToRange {
 	enum { value = converts((T *)nullptr) };
 };
 
+// TODO: makeRange from a pair of iterators
+
 template <class Container> auto makeRange(Container &container) {
 	using type = typename std::remove_pointer<decltype(container.data())>::type;
 	return Range<type>(container.data(), container.size());
@@ -140,7 +142,15 @@ template <class T> auto makeRange(const std::initializer_list<T> &list) {
 	return CRange<T>(list.begin(), list.end());
 }
 
-//TODO: make range could take a pair of iterators as well
+template <class TRange> auto subRange(const TRange &range, int start, int end) {
+	using Value = typename TRange::value_type;
+	return Range<const Value>(&*(begin(range) + start), &*(begin(range) + end));
+}
+
+template <class TRange> auto subRange(TRange &range, int start, int end) {
+	using Value = typename TRange::value_type;
+	return Range<Value>(&*(begin(range) + start), &*(begin(range) + end));
+}
 
 template <class Target, class T> auto reinterpretRange(Range<T> range) {
 	using out_type = typename std::conditional<std::is_const<T>::value, const Target, Target>::type;
@@ -296,14 +306,12 @@ std::array<T, size> transform(const std::array<U, size> &range) {
 	return out;
 }
 
-template <class Range>
-bool distinct(const Range &range) {
+template <class Range> bool distinct(const Range &range) {
 	using Value = typename Range::value_type;
 	vector<Value> temp(begin(range), end(range));
 	makeUnique(temp);
 	return temp.size() == range.size();
 }
-
 }
 
 #endif
