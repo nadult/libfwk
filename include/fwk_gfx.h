@@ -780,6 +780,15 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh merge(vector<Mesh>);
 	static Mesh transform(const Matrix4 &, Mesh);
 
+	enum CSGMode {
+		csg_difference,
+		csg_intersection,
+		csg_union,
+		csg_xor,
+	};
+
+	static Mesh csgCork(Mesh, Mesh, CSGMode);
+
 	float intersect(const Segment &) const;
 	float intersect(const Segment &, const AnimatedData &) const;
 
@@ -1627,7 +1636,6 @@ class Model : public immutable_base<Model> {
 	PPose globalPose(PPose local_pose) const;
 	PPose meshSkinningPose(PPose global_pose, int node_id) const;
 	bool isValidPose(PPose) const;
-	void process(float unit);
 
   protected:
 	void updateNodes();

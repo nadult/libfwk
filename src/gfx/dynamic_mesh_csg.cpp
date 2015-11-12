@@ -786,6 +786,12 @@ DynamicMesh DynamicMesh::csgDifference(DynamicMesh dmesh1, DynamicMesh dmesh2,
 									   CSGVisualData *vis_data) {
 	float tolerance = 0.001f;
 
+	if(vis_data && vis_data->phase == 5) {
+		auto cmesh = Mesh::csgCork(Mesh(dmesh1), Mesh(dmesh2), Mesh::csg_difference);
+		vis_data->poly_soups.emplace_back(Color::red, cmesh.tris());
+		return {};
+	}
+
 	if(vis_data && vis_data->phase == 0) {
 		vector<Triangle> tris[2];
 		for(auto poly : dmesh1.polys())
