@@ -176,6 +176,18 @@ float3 Triangle::barycentric(const float3 &point) const {
 	return float3(u, v, w);
 }
 
+vector<float3> Triangle::pickPoints(float density) const {
+	float stepx = 1.0f / (length(m_edge[0]) * density);
+	float stepy = 1.0f / (length(m_edge[1]) * density);
+	vector<float3> out;
+
+	for(float x = 0; x < 1.0f; x += stepx)
+		for(float y = 0; x + y < 1.0f; y += stepy)
+			out.emplace_back(m_edge[0] * x + m_edge[1] * y + m_point);
+
+	return out;
+}
+
 // Source: realtimecollisiondetection (book)
 float3 closestPoint(const Triangle &tri, const float3 &point) {
 	float3 a = tri.a(), b = tri.b(), c = tri.c();

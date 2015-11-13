@@ -1024,6 +1024,8 @@ class DynamicMesh {
 
 	static DynamicMesh merge(CRange<DynamicMesh>);
 
+	float distanceTo(const float3 &point) const;
+
 	VertexId merge(CRange<VertexId>);
 	VertexId merge(CRange<VertexId>, const float3 &target_pos);
 

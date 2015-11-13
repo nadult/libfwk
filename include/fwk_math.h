@@ -758,6 +758,7 @@ class Triangle {
 	Triangle2D xz() const { return Triangle2D(a().xz(), b().xz(), c().xz()); }
 
 	float3 barycentric(const float3 &point) const;
+	vector<float3> pickPoints(float density) const;
 
 	float3 edge1() const { return m_edge[0]; }
 	float3 edge2() const { return m_edge[1]; }
@@ -967,7 +968,7 @@ float distance(const Triangle &tri, const Segment &);
 
 float3 closestPoint(const Segment &, const float3 &point);
 float3 closestPoint(const Ray &, const float3 &point);
-float3 closestPoint(const Triangle&, const float3 &point);
+float3 closestPoint(const Triangle &, const float3 &point);
 
 pair<float3, float3> closestPoints(const Ray &, const Ray &);
 pair<float3, float3> closestPoints(const Segment &, const Segment &);
