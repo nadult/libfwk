@@ -16,7 +16,7 @@ using Simplex = DynamicMesh::Simplex;
 
 namespace {
 
-	vector<Segment> compatibleEdges(const Triangle &tri1, const Triangle &tri2, float eps) {
+	vector<Segment> intersections(const Triangle &tri1, const Triangle &tri2, float eps) {
 		Projection proj(tri1);
 		Triangle ptri2(proj * tri2);
 
@@ -27,13 +27,15 @@ namespace {
 
 		for(int n = 0; n < 3; n++) {
 			float3 v1 = ptri2[n], v2 = ptri2[(n + 1) % 3];
-			if(fabs(v1.y) < eps) {
-				vert_touching[n] = true;
+			if(fabsf(v1.y - v2.y) < constant::epsilon)
 				continue;
-			}
+			if((v1.y > eps && v2.y > eps) || (v1.y < -eps && v2.y < -eps))
+				continue;
 
-			if((v1.y <= 0.0f) == (v2.y <= 0.0f))
-				continue;
+			//			if((v1.y <= 0.0f) == (v2.y <= 0.0f))
+			//				continue;
+			//			if(fabsf(v1.y) < eps || fabsf(v2.y) < eps)
+			//				continue;
 
 			isect[n] = -v1.y / (v2.y - v1.y);
 		}
@@ -42,11 +44,8 @@ namespace {
 		int npoints = 0;
 
 		for(int n = 0; n < 3; n++) {
-			if(vert_touching[n]) {
-				points[npoints++] = ptri2[n];
-			}
 			int nn = (n + 1) % 3;
-			if(isect[n] < constant::inf && !vert_touching[nn])
+			if(isect[n] < constant::inf)
 				points[npoints++] = ptri2[n] + (ptri2[nn] - ptri2[n]) * isect[n];
 		}
 
@@ -76,6 +75,7 @@ namespace {
 
 		return out;
 	}
+
 	struct FaceEdgeInfo {
 		vector<EdgeId> edges;
 		std::map<VertexId, int> border_verts;
@@ -607,8 +607,8 @@ pair<EdgeLoop, EdgeLoop> DynamicMesh::findIntersections(DynamicMesh &rhs, float 
 
 	for(auto face1 : polys())
 		for(auto face2 : rhs.polys()) {
-			auto edges = compatibleEdges(triangle(face1), rhs.triangle(face2), tolerance);
-			insertBack(edges, compatibleEdges(rhs.triangle(face2), triangle(face1), tolerance));
+			auto edges = intersections(triangle(face1), rhs.triangle(face2), tolerance);
+			insertBack(edges, intersections(rhs.triangle(face2), triangle(face1), tolerance));
 
 			for(auto edge : edges) {
 				loop1.emplace_back(face1, addEdge(*this, edge));
@@ -784,7 +784,7 @@ template <class T> struct Grid {
 
 DynamicMesh DynamicMesh::csgDifference(DynamicMesh dmesh1, DynamicMesh dmesh2,
 									   CSGVisualData *vis_data) {
-	float tolerance = 0.001f;
+	float tolerance = 0.0001f;
 
 	if(vis_data && vis_data->phase == 5) {
 		auto cmesh = Mesh::csgCork(Mesh(dmesh1), Mesh(dmesh2), Mesh::csg_difference);

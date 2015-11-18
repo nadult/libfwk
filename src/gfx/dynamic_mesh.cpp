@@ -618,10 +618,19 @@ DynamicMesh DynamicMesh::merge(CRange<DynamicMesh> meshes) {
 	return DynamicMesh(Mesh::merge(vector<Mesh>(begin(meshes), end(meshes))));
 }
 
-float DynamicMesh::distanceTo(const float3 &tpoint) const {
-	float min_dist = constant::inf;
-	for(auto poly : polys())
-		min_dist = min(min_dist, fwk::distance(triangle(poly), tpoint));
-	return min_dist;
+float3 closestPoint(const DynamicMesh &mesh, const float3 &point) {
+	float min_dist_sq = constant::inf;
+	float3 out;
+
+	for(auto poly : mesh.polys()) {
+		auto ppoint = closestPoint(mesh.triangle(poly), point);
+		auto dist_sq = distanceSq(point, ppoint);
+		if(dist_sq < min_dist_sq) {
+			min_dist_sq = dist_sq;
+			out = ppoint;
+		}
+	}
+
+	return out;
 }
 }

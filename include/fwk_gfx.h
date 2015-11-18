@@ -1024,8 +1024,6 @@ class DynamicMesh {
 
 	static DynamicMesh merge(CRange<DynamicMesh>);
 
-	float distanceTo(const float3 &point) const;
-
 	VertexId merge(CRange<VertexId>);
 	VertexId merge(CRange<VertexId>, const float3 &target_pos);
 
@@ -1186,6 +1184,8 @@ class DynamicMesh {
 	vector<int> m_free_verts, m_free_polys;
 	int m_num_verts, m_num_polys;
 };
+
+float3 closestPoint(const DynamicMesh &, const float3 &point);
 
 using PMesh = immutable_ptr<Mesh>;
 

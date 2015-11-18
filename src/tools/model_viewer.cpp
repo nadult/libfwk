@@ -156,7 +156,7 @@ class Viewer {
 		}
 
 		void drawTetsCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset,
-						 float scale, int num_steps, int csg_phase, int csg_mesh_id) {
+						 float3 rot, float scale, int num_steps, int csg_phase, int csg_mesh_id) {
 			if(!m_tet_mesh)
 				return;
 
@@ -164,7 +164,8 @@ class Viewer {
 			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
 			PMaterial line2_mat = Material(Color::yellow, Material::flag_ignore_depth);
 
-			auto second_mesh = PTetMesh(TetMesh::transform(translation(offset), *m_tet_mesh));
+			auto second_mesh = PTetMesh(TetMesh::transform(
+				translation(offset) * rotation(float3(0, 0, 1), rot.x), *m_tet_mesh));
 			vector<Segment> segments;
 			vector<Triangle> tris;
 			vector<Tetrahedron> tets;
@@ -195,14 +196,15 @@ class Viewer {
 			}
 		}
 
-		void drawCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset, float scale,
-					 int num_steps, int csg_phase, int csg_mesh_id) {
+		void drawCsg(Renderer &out, const Matrix4 &matrix, Color color, float3 offset, float3 rot,
+					 float scale, int num_steps, int csg_phase, int csg_mesh_id) {
 			PMaterial tri_mat = Material(Color::red);
 			PMaterial line_mat = Material(Color::black, Material::flag_ignore_depth);
 			PMaterial line2_mat = Material(Color::yellow, Material::flag_ignore_depth);
 
 			auto mesh_a = DynamicMesh(m_model->toMesh());
-			auto mesh_b = DynamicMesh(Mesh::transform(translation(offset), Mesh(mesh_a)));
+			auto mesh_b = DynamicMesh(Mesh::transform(
+				translation(offset) * rotation(float3(0, 0, 1), rot.x), Mesh(mesh_a)));
 			if(csg_mesh_id)
 				swap(mesh_a, mesh_b);
 
@@ -309,7 +311,16 @@ class Viewer {
 					m_csg_offset.z -= time_diff;
 				if(event.keyPressed(InputKey::down))
 					m_csg_offset.z += time_diff;
-
+			} else if(event.hasModifier(InputEvent::mod_lshift) &&
+					  isOneOf(m_mode, Mode::tets_csg, Mode::model_csg)) {
+				if(event.keyPressed(InputKey::left))
+					m_csg_rot.x -= time_diff;
+				if(event.keyPressed(InputKey::right))
+					m_csg_rot.x += time_diff;
+				if(event.keyPressed(InputKey::up))
+					m_csg_rot.y -= time_diff;
+				if(event.keyPressed(InputKey::down))
+					m_csg_rot.y += time_diff;
 			} else {
 				if(event.keyPressed(InputKey::left))
 					x_rot -= time_diff * 2.0f;
@@ -398,10 +409,10 @@ class Viewer {
 		} else if(m_mode == Mode::tets)
 			model.drawTets(*m_renderer_3d, matrix, Color(80, 255, 200));
 		else if(m_mode == Mode::tets_csg)
-			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_csg_offset,
+			model.drawTetsCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_csg_offset, m_csg_rot,
 							  1.0f / model.scale(), m_num_steps, m_csg_phase, m_csg_mesh_id);
 		else if(m_mode == Mode::model_csg)
-			model.drawCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_csg_offset,
+			model.drawCsg(*m_renderer_3d, matrix, Color(80, 255, 200), m_csg_offset, m_csg_rot,
 						  1.0f / model.scale(), m_num_steps, m_csg_phase, m_csg_mesh_id);
 
 		TextFormatter fmt;
@@ -446,7 +457,6 @@ class Viewer {
   private:
 	vector<Model> m_models;
 	pair<PFont, PTexture> m_font_data;
-	PProgram m_flat_program;
 
 	IRect m_viewport;
 	int m_current_model, m_current_anim;
@@ -456,6 +466,7 @@ class Viewer {
 	ViewConfig m_target_view;
 
 	float3 m_csg_offset;
+	float3 m_csg_rot;
 
 	unique_ptr<Renderer> m_renderer_3d;
 	unique_ptr<Renderer2D> m_renderer_2d;
