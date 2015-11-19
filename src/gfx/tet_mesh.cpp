@@ -306,7 +306,7 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 		//		for(auto &pt : p)
 		//			pt = lerp(pt, center, 0.01f);
 		Triangle t3{float3(p[0], 0.0f), float3(p[1], 0.0f), float3(p[2], 0.0f)};
-		float area = t3.area();
+		float area = t3.surfaceArea();
 
 		auto poly = tnode.addChild("polygon");
 		string points = format("%f,%f %f,%f %f,%f", p[0].x, p[0].y, p[1].x, p[1].y, p[2].x, p[2].y);
@@ -405,14 +405,24 @@ pair<vector<Tetrahedron>, vector<Tetrahedron>> splitTet(Tetrahedron tet, Plane p
 	return {{tet}, {}};
 }
 
+auto filterTets(const vector<Tetrahedron> &tets, float tolerance) {
+	vector<Tetrahedron> out;
+	for(auto tet : tets)
+		if(tet.inscribedSphereRadius() > tolerance)
+			out.emplace_back(tet);
+	return out;
+}
+
 vector<Tetrahedron> subtract(vector<Tetrahedron> tets, Tetrahedron b) {
 	const auto &planes = b.planes();
 	vector<Tetrahedron> out;
 
+	float tolerance = 0.001f;
+
 	for(auto tet : tets) {
 		if(!areIntersecting(tet, b)) {
-			//		out.emplace_back(tet);
-			//		continue;
+			out.emplace_back(tet);
+			continue;
 		}
 
 		vector<Tetrahedron> current = {tet};
@@ -420,11 +430,12 @@ vector<Tetrahedron> subtract(vector<Tetrahedron> tets, Tetrahedron b) {
 			vector<Tetrahedron> temp;
 			for(auto ttet : current) {
 				auto result = splitTet(ttet, plane);
+				result.first = filterTets(result.first, tolerance);
+				result.second = filterTets(result.second, tolerance);
 				insertBack(out, result.first);
 				insertBack(temp, result.second);
 			}
 			current.swap(temp);
-			break;
 		}
 	}
 
@@ -466,13 +477,10 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 	auto mesh2 = b; // b.extract(b.selection(csg_bbox));
 
 	auto soup1 = mesh1.tets(), soup2 = mesh2.tets();
-	Plane plane;
 
-	vector<Tetrahedron> out = {soup1.front()};
+	vector<Tetrahedron> out = soup1;
 	for(auto tet2 : soup2) {
-		plane = tet2.planes()[0];
 		out = subtract(out, tet2);
-		break;
 	}
 
 	mesh2 = makeTetSoup(mesh2.tets());
@@ -486,8 +494,8 @@ TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisual
 			vis_data->tet_meshes.emplace_back(Color(Color::green, 100), mesh2);
 		}
 		if(vis_data->phase == 1) {
-			vis_data->poly_soups.emplace_back(Color(Color::green, 100), makePlane(plane, 5.0f));
-			//	vis_data->tet_meshes.emplace_back(Color(Color::green, 100), mesh2);
+			//	vis_data->poly_soups.emplace_back(Color(Color::green, 100), makePlane(plane, 5.0f));
+			vis_data->tet_meshes.emplace_back(Color(Color::green, 100), mesh2);
 			vis_data->tet_meshes.emplace_back(Color(Color::red, 100), TetMesh::makeTetSoup(out));
 		}
 	}

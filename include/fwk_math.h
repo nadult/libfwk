@@ -369,7 +369,6 @@ template <class TVec> bool isNormalized(const TVec &vec) {
 	return length_sq >= 1.0f - constant::epsilon && length_sq <= 1.0f + constant::epsilon;
 }
 
-float triangleArea(const float3 &, const float3 &, const float3 &);
 float frand();
 float angleDistance(float a, float b);
 float blendAngles(float initial, float target, float step);
@@ -763,7 +762,7 @@ class Triangle {
 	float3 edge1() const { return m_edge[0]; }
 	float3 edge2() const { return m_edge[1]; }
 	float3 normal() const { return m_normal; }
-	float area() const { return m_length * 0.5f; }
+	float surfaceArea() const { return m_length * 0.5f; }
 	array<float3, 3> verts() const { return {{a(), b(), c()}}; }
 	array<Edge, 3> edges() const { return {{Edge(a(), b()), Edge(b(), c()), Edge(c(), a())}}; }
 	array<float, 3> angles() const;
@@ -831,6 +830,9 @@ class Tetrahedron {
 	array<Edge, 6> edges() const;
 
 	float volume() const;
+	float surfaceArea() const;
+	float inscribedSphereRadius() const;
+
 	bool isIntersecting(const Triangle &) const;
 	bool isInside(const float3 &vec) const;
 	bool isValid() const;

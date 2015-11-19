@@ -80,6 +80,15 @@ float Tetrahedron::volume() const {
 		   6.0f;
 }
 
+float Tetrahedron::surfaceArea() const {
+	float total = 0.0f;
+	for(auto tri : tris())
+		total += tri.surfaceArea();
+	return total;
+}
+
+float Tetrahedron::inscribedSphereRadius() const { return 3.0f * volume() / surfaceArea(); }
+
 bool Tetrahedron::isValid() const {
 	for(int n = 0; n < 4; n++)
 		if(distance(m_verts[n], m_verts[(n + 1) % 4]) < constant::epsilon)
