@@ -1377,6 +1377,7 @@ class TetMesh : public immutable_base<TetMesh> {
 
 	TetMesh(vector<float3> positions = vector<float3>(),
 			CRange<TetIndices> tet_verts = CRange<TetIndices>());
+	static TetMesh makeTetSoup(CRange<Tetrahedron>);
 
 	array<int, 3> tetFace(int tet, int face_id) const {
 		DASSERT(tet >= 0 && tet < (int)m_tet_tets.size());
@@ -1411,6 +1412,8 @@ class TetMesh : public immutable_base<TetMesh> {
 	vector<int> selection(const FBox &) const;
 	vector<int> invertSelection(CRange<int>) const;
 	bool isValidSelection(CRange<int>) const;
+
+	vector<Tetrahedron> tets() const;
 
 	enum CSGMode {
 		csg_difference,

@@ -72,4 +72,8 @@ bool intersection(const Plane &plane0, const Plane &plane1, Ray &line) {
 			   normalize(cross(plane0.normal(), plane1.normal())));
 	return true;
 }
+
+float3 closestPoint(const Plane &plane, const float3 &point) {
+	return point - plane.normal() * dot(plane, point);
+}
 }

@@ -94,6 +94,12 @@ bool Tetrahedron::isInside(const float3 &point) const {
 	return true;
 }
 
+Tetrahedron fixVolume(const Tetrahedron &tet) {
+	if(tet.volume() < 0.0f)
+		return {tet[3], tet[1], tet[2], tet[0]};
+	return tet;
+}
+
 bool areIntersecting(const Tetrahedron &a, const Tetrahedron &b) { return satTest(a, b); }
 
 bool areIntersecting(const Tetrahedron &tet, const FBox &box) {

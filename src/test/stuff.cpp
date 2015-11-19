@@ -30,8 +30,6 @@ void testXMLConverters() {
 	testClassConversions(99);
 	testClassConversions(1234.5f);
 	testClassConversions(568u);
-	testClassConversions(false);
-	testClassConversions(true);
 	testClassConversions(string("foobar"));
 
 	testClassConversions(int2(4, 5));

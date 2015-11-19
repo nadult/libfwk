@@ -91,10 +91,10 @@ namespace xml_conversions {
 		template <> void toString(const Matrix4 &value, TextFormatter &out);
 		template <> void toString(const Quat &value, TextFormatter &out);
 
-		template <class T> void vectorToString(const vector<T> &array, TextFormatter &out) {
-			for(int n = 0; n < (int)array.size(); n++) {
-				toString(array[n], out);
-				if(n + 1 < (int)array.size())
+		template <class T> void rangeToString(CRange<T> range, TextFormatter &out) {
+			for(int n = 0; n < (int)range.size(); n++) {
+				toString(range[n], out);
+				if(n + 1 < (int)range.size())
 					out(" ");
 			}
 		}
@@ -107,7 +107,13 @@ namespace xml_conversions {
 
 		template <class T> struct SelectPrinter<vector<T>> {
 			static void print(const vector<T> &value, TextFormatter &out) {
-				return vectorToString<T>(value, out);
+				return rangeToString<T>(value, out);
+			}
+		};
+
+		template <class T, size_t S> struct SelectPrinter<array<T, S>> {
+			static void print(const array<T, S> &value, TextFormatter &out) {
+				return rangeToString<T>(value, out);
 			}
 		};
 	}

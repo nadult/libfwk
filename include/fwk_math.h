@@ -807,6 +807,7 @@ class Plane {
 		all_positive = 1,
 	};
 	SideTestResult sideTest(CRange<float3> verts) const;
+	Plane operator-() const { return Plane(-m_nrm, -m_dist); }
 
   protected:
 	float3 m_nrm;
@@ -842,6 +843,8 @@ class Tetrahedron {
   private:
 	array<float3, 4> m_verts;
 };
+
+Tetrahedron fixVolume(const Tetrahedron &);
 
 inline auto verts(const Tetrahedron &tet) { return tet.verts(); }
 
@@ -969,6 +972,7 @@ float distance(const Triangle &tri, const Segment &);
 float3 closestPoint(const Segment &, const float3 &point);
 float3 closestPoint(const Ray &, const float3 &point);
 float3 closestPoint(const Triangle &, const float3 &point);
+float3 closestPoint(const Plane &, const float3 &point);
 
 pair<float3, float3> closestPoints(const Ray &, const Ray &);
 pair<float3, float3> closestPoints(const Segment &, const Segment &);
