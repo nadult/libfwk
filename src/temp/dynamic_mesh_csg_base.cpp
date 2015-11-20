@@ -2,7 +2,7 @@
 
    This file is part of libfwk.*/
 
-#include "fwk_gfx.h"
+#include "dynamic_mesh_csg.h"
 #include "fwk_xml.h"
 
 namespace fwk {
@@ -10,6 +10,7 @@ namespace fwk {
 using VertexId = DynamicMesh::VertexId;
 using PolyId = DynamicMesh::PolyId;
 using EdgeId = DynamicMesh::EdgeId;
+using EdgeLoop = DynamicMesh::EdgeLoop;
 
 DynamicMesh::DynamicMesh(CRange<float3> verts, CRange<vector<uint>> polys, int poly_value)
 	: m_num_verts(0), m_num_polys(0) {

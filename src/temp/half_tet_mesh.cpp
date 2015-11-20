@@ -2,7 +2,7 @@
 
    This file is part of libfwk.*/
 
-#include "fwk_gfx.h"
+#include "half_tet_mesh.h"
 
 namespace fwk {
 

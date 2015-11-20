@@ -2,7 +2,7 @@
 
    This file is part of libfwk.*/
 
-#include "fwk_gfx.h"
+#include "dynamic_mesh_csg.h"
 #include "fwk_xml.h"
 #include <set>
 
