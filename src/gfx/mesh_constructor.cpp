@@ -103,6 +103,29 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 	return Mesh({positions, {}, {}}, {{indices}});
 }
 
+Mesh Mesh::makePlane(const Plane &plane, const float3 &start, float size) {
+	DASSERT(size > constant::epsilon);
+	THROW("Test me");
+
+	float3 p[3] = {{-size, -size, -size}, {size, size, size}, {size, -size, size}};
+	for(int i = 0; i < 3; i++)
+		p[i] = closestPoint(plane, p[i]);
+	if(distance(p[0], p[1]) < distance(p[0], p[2]))
+		p[1] = p[2];
+
+	float3 pnormal1 = normalize(p[1] - p[0]);
+	float3 pnormal2 = cross(plane.normal(), pnormal1);
+
+	float3 center = closestPoint(plane, start);
+	float3 corners[4] = {
+		center - pnormal1 * size - pnormal2 * size, center + pnormal1 * size - pnormal2 * size,
+		center + pnormal1 * size + pnormal2 * size, center - pnormal1 * size + pnormal2 * size,
+	};
+
+	vector<uint> indices = {0, 1, 2, 0, 2, 3};
+	return Mesh({vector<float3>(corners, corners + 4), {}, {}}, {{indices}});
+}
+
 Mesh Mesh::makePolySoup(CRange<Triangle> rtris) {
 	vector<float3> positions;
 	vector<uint> indices;

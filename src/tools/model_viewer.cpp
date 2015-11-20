@@ -258,7 +258,7 @@ class Viewer {
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false),
-		  m_mode(Mode::tets_csg), m_num_steps(1), m_csg_mesh_id(0), m_csg_phase(1) {
+		  m_mode(Mode::model), m_num_steps(0), m_csg_mesh_id(0), m_csg_phase(0) {
 		updateViewport();
 
 		m_csg_offset = float3(0.1, 0, 0.3);

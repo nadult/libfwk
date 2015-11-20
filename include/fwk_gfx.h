@@ -737,6 +737,7 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh makeBBox(const FBox &bbox);
 	static Mesh makeCylinder(const Cylinder &, int num_sides);
 	static Mesh makeTetrahedron(const Tetrahedron &);
+	static Mesh makePlane(const Plane &, const float3 &start, float extent);
 
 	struct AnimatedData {
 		FBox bounding_box;
@@ -787,6 +788,7 @@ class Mesh : public immutable_base<Mesh> {
 		csg_xor,
 	};
 
+	// TODO: csg results have to be simplified afterwards
 	static Mesh csgCork(Mesh, Mesh, CSGMode);
 
 	float intersect(const Segment &) const;

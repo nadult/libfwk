@@ -317,190 +317,25 @@ void saveSvg(vector<float2> points, vector<Segment2D> segs, vector<Triangle2D> t
 	Saver(format("temp/file%d.svg", id)) << doc;
 }
 
-pair<vector<Tetrahedron>, vector<Tetrahedron>> splitTet(Tetrahedron tet, Plane plane) {
-	auto dots = transform(tet.verts(), [&](auto vert) { return dot(plane, vert); });
-
-	if(allOf(dots, [](auto dot) { return dot <= 0.0f; }))
-		return {{}, {tet}};
-	if(allOf(dots, [](auto dot) { return dot >= 0.0f; }))
-		return {{tet}, {}};
-
-	int neg = 0;
-	for(auto dot : dots)
-		neg += dot < 0.0f;
-
-	if(neg == 1) {
-		const auto &verts = tet.verts();
-
-		int neg_id = 0;
-		int pos_id[3];
-		for(int n = 0, i = 0; n < 4; n++) {
-			if(dots[n] < 0.0f)
-				neg_id = n;
-			else
-				pos_id[i++] = n;
-		}
-
-		float isects[3];
-		float3 points[3];
-
-		for(int n = 0; n < 3; n++) {
-			Segment seg(verts[neg_id], verts[pos_id[n]]);
-			isects[n] = clamp(intersection(seg, plane), 0.0f, seg.length());
-			points[n] = seg.at(isects[n]);
-		}
-
-		auto ntet = fixVolume(Tetrahedron(verts[neg_id], points[0], points[1], points[2]));
-		Tetrahedron ptets[3] = {
-			fixVolume(Tetrahedron(points[1], verts[pos_id[0]], verts[pos_id[1]], verts[pos_id[2]])),
-			fixVolume(Tetrahedron(points[1], verts[pos_id[0]], verts[pos_id[2]], points[2])),
-			fixVolume(Tetrahedron(verts[pos_id[0]], points[0], points[1], points[2]))};
-
-		auto vol_sum = ntet.volume() + ptets[0].volume() + ptets[1].volume() + ptets[2].volume();
-		DASSERT(fabs(vol_sum - tet.volume()) < constant::epsilon);
-
-		return {{ptets[0], ptets[1], ptets[2]}, {ntet}};
-	} else if(neg == 3) {
-		auto out = splitTet(tet, -plane);
-		return make_pair(out.second, out.first);
-	} else {
-		DASSERT(neg == 2);
-		const auto &verts = tet.verts();
-
-		int neg_id[2];
-		int pos_id[2];
-		for(int n = 0, i = 0, j = 0; n < 4; n++) {
-			if(dots[n] < 0.0f)
-				neg_id[i++] = n;
-			else
-				pos_id[j++] = n;
-		}
-
-		float isects[4];
-		float3 points[4];
-		for(int i = 0; i < 4; i++) {
-			Segment seg(verts[neg_id[i / 2]], verts[pos_id[i % 2]]);
-			isects[i] = clamp(intersection(seg, plane), 0.0f, seg.length());
-			points[i] = seg.at(isects[i]);
-		}
-
-		array<Tetrahedron, 3> ptets = {{
-			fixVolume(Tetrahedron(verts[pos_id[0]], verts[pos_id[1]], points[1], points[3])),
-			fixVolume(Tetrahedron(verts[pos_id[0]], points[0], points[1], points[2])),
-			fixVolume(Tetrahedron(verts[pos_id[0]], points[1], points[2], points[3])),
-		}};
-		array<Tetrahedron, 3> ntets = {{
-			fixVolume(Tetrahedron(verts[neg_id[0]], verts[neg_id[1]], points[2], points[3])),
-			fixVolume(Tetrahedron(verts[neg_id[0]], points[0], points[1], points[2])),
-			fixVolume(Tetrahedron(verts[neg_id[0]], points[1], points[2], points[3])),
-		}};
-		float vol_sum = 0.0f;
-		for(int i = 0; i < 3; i++)
-			vol_sum += ptets[i].volume() + ntets[i].volume();
-		DASSERT(fabs(vol_sum - tet.volume()) < constant::epsilon);
-
-		return {{ptets[0], ptets[1], ptets[2]}, {ntets[0], ntets[1], ntets[2]}};
-	}
-
-	return {{tet}, {}};
-}
-
-auto filterTets(const vector<Tetrahedron> &tets, float tolerance) {
-	vector<Tetrahedron> out;
-	for(auto tet : tets)
-		if(tet.inscribedSphereRadius() > tolerance)
-			out.emplace_back(tet);
-	return out;
-}
-
-vector<Tetrahedron> subtract(vector<Tetrahedron> tets, Tetrahedron b) {
-	const auto &planes = b.planes();
-	vector<Tetrahedron> out;
-
-	float tolerance = 0.001f;
-
-	for(auto tet : tets) {
-		if(!areIntersecting(tet, b)) {
-			out.emplace_back(tet);
-			continue;
-		}
-
-		vector<Tetrahedron> current = {tet};
-		for(auto plane : b.planes()) {
-			vector<Tetrahedron> temp;
-			for(auto ttet : current) {
-				auto result = splitTet(ttet, plane);
-				result.first = filterTets(result.first, tolerance);
-				result.second = filterTets(result.second, tolerance);
-				insertBack(out, result.first);
-				insertBack(temp, result.second);
-			}
-			current.swap(temp);
-		}
-	}
-
-	return out;
-}
-
-auto makePlane(const Plane &plane, float size) {
-	DASSERT(size > constant::epsilon);
-
-	float3 p[3] = {{-size, -size, -size}, {size, size, size}, {size, -size, size}};
-	for(int i = 0; i < 3; i++)
-		p[i] = closestPoint(plane, p[i]);
-	if(distance(p[0], p[1]) < distance(p[0], p[2]))
-		p[1] = p[2];
-
-	float3 pnormal1 = normalize(p[1] - p[0]);
-	float3 pnormal2 = cross(plane.normal(), pnormal1);
-
-	float3 center = closestPoint(plane, float3());
-	float3 corner[4] = {
-		center - pnormal1 * size - pnormal2 * size, center + pnormal1 * size - pnormal2 * size,
-		center + pnormal1 * size + pnormal2 * size, center - pnormal1 * size + pnormal2 * size,
-	};
-
-	return vector<Triangle>{
-		{corner[0], corner[1], corner[2]},
-		{corner[0], corner[2], corner[3]},
-		{corner[0], corner[2], corner[1]},
-		{corner[0], corner[3], corner[2]},
-	};
-}
-
 TetMesh TetMesh::csg(const TetMesh &a, const TetMesh &b, CSGMode mode, CSGVisualData *vis_data) {
-	// TODO: accuracy depends on bounding box coordinates, take them into consideration
-	float tolerance = 0.01f;
+	FBox csg_bbox = enlarge(intersection(a.computeBBox(), b.computeBBox()), constant::epsilon);
+	auto mesh1 = a.extract(a.selection(csg_bbox));
+	auto mesh2 = b.extract(b.selection(csg_bbox));
 
-	FBox csg_bbox = enlarge(intersection(a.computeBBox(), b.computeBBox()), tolerance);
-	auto mesh1 = a; // a.extract(a.selection(csg_bbox));
-	auto mesh2 = b; // b.extract(b.selection(csg_bbox));
+	printf("TODO: Please write proper CORK-based CSG\n");
+	return {};
 
-	auto soup1 = mesh1.tets(), soup2 = mesh2.tets();
+	if(mode != CSGMode::csg_difference)
+		THROW("Write support for other modes");
 
-	vector<Tetrahedron> out = soup1;
-	for(auto tet2 : soup2) {
-		out = subtract(out, tet2);
-	}
-
-	mesh2 = makeTetSoup(mesh2.tets());
+	auto cork_result = Mesh::csgCork(mesh1.toMesh(), mesh2.toMesh(), Mesh::csg_difference);
+	auto out_mesh = TetMesh::make(cork_result);
 
 	auto hmesh1_parts = a.extract(a.invertSelection(a.selection(csg_bbox)));
 	auto hmesh2_parts = b.extract(b.invertSelection(b.selection(csg_bbox)));
+	out_mesh = TetMesh::merge({out_mesh, hmesh1_parts});
 
-	if(vis_data) {
-		if(vis_data->phase == 0) {
-			vis_data->tet_meshes.emplace_back(Color(Color::red, 100), mesh1);
-			vis_data->tet_meshes.emplace_back(Color(Color::green, 100), mesh2);
-		}
-		if(vis_data->phase == 1) {
-			//	vis_data->poly_soups.emplace_back(Color(Color::green, 100), makePlane(plane, 5.0f));
-			vis_data->tet_meshes.emplace_back(Color(Color::green, 100), mesh2);
-			vis_data->tet_meshes.emplace_back(Color(Color::red, 100), TetMesh::makeTetSoup(out));
-		}
-	}
-
-	return {};
+	return out_mesh;
 }
 
 Mesh TetMesh::toMesh() const {

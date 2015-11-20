@@ -502,7 +502,7 @@ Vertex *HalfTetMesh::mergeVerts(CRange<Vertex *> verts) {
 	float3 center;
 	for(auto v : verts)
 		center += v->pos();
-	return mergeVerts(verts, center);
+	return mergeVerts(verts, center / verts.size());
 }
 
 Vertex *HalfTetMesh::mergeVerts(CRange<Vertex *> verts, const float3 &new_pos) {
