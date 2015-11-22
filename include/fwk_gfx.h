@@ -837,6 +837,19 @@ class Mesh : public immutable_base<Mesh> {
 	mutable uint m_ready_flags;
 };
 
+class Voronoi {
+  public:
+	Voronoi(vector<float3>);
+	Mesh toMesh() const;
+
+	const auto &points() const { return m_points; }
+	const FBox &boundingBox() const { return m_bbox; }
+
+  private:
+	vector<float3> m_points;
+	FBox m_bbox;
+};
+
 // Vertex / Poly indices can have values up to vertexIdCount() / polyIdCount() -1
 // Some indices in the middle may be invalid
 class DynamicMesh {
@@ -1022,9 +1035,7 @@ class DynamicMesh {
 		enum { max_phases = 6 };
 	};
 
-	static DynamicMesh csgDifference(DynamicMesh a, DynamicMesh b, CSGVisualData *data = nullptr) {
-		return {};
-	}
+	static DynamicMesh csgDifference(DynamicMesh a, DynamicMesh b, CSGVisualData *data = nullptr);
 
 	static DynamicMesh merge(CRange<DynamicMesh>);
 

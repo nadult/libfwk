@@ -10,6 +10,7 @@ _dummy := $(shell [ -d $(BUILD_DIR)/audio ] || mkdir -p $(BUILD_DIR)/audio)
 _dummy := $(shell [ -d $(BUILD_DIR)/math ] || mkdir -p $(BUILD_DIR)/math)
 _dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
 _dummy := $(shell [ -d $(BUILD_DIR)/tools ] || mkdir -p $(BUILD_DIR)/tools)
+_dummy := $(shell [ -d $(BUILD_DIR)/voropp ] || mkdir -p $(BUILD_DIR)/voropp)
 _dummy := $(shell [ -d test ] || mkdir -p test)
 _dummy := $(shell [ -d tools ] || mkdir -p tools)
 _dummy := $(shell [ -d lib ] || mkdir -p lib)
@@ -21,7 +22,7 @@ SHARED_SRC=base backtrace filesystem filesystem_linux filesystem_windows input p
 		   gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model gfx/mesh gfx/tet_mesh \
 		   gfx/tet_gen gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader gfx/program \
-		   gfx/renderer gfx/renderer2d gfx/dynamic_mesh \
+		   gfx/renderer gfx/renderer2d gfx/dynamic_mesh voropp/voropp gfx/voronoi \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat \
 		   math/base math/triangle math/tetrahedron math/projection \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream
@@ -58,7 +59,7 @@ LIBS=freetype2 sdl2 libpng zlib libmpg123 vorbisfile
 LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lcork -lgmp -lmpfr -lboost_thread -lboost_system -lopenal -lGL -lGLU -lrt -fopenmp
 MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
-INCLUDES=-Iinclude/ -Isrc/
+INCLUDES=-Iinclude/ -Isrc/ -Isrc/voropp/
 
 NICE_FLAGS=-std=c++14 -Wall -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
 		   -Wno-unused-variable -Wparentheses -Wno-overloaded-virtual #-Werror
