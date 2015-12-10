@@ -79,9 +79,7 @@ class Viewer {
 				try {
 					auto tet = TetMesh::make(Mesh(sub_mesh), 0);
 					tets.emplace_back(std::move(tet));
-				} catch(...) {
-					isects.emplace_back(TetMesh::findIntersections(Mesh(sub_mesh)));
-				}
+				} catch(...) { isects.emplace_back(TetMesh::findIntersections(Mesh(sub_mesh))); }
 			}
 
 			m_tet_mesh = PTetMesh(TetMesh::merge(tets));
@@ -287,7 +285,7 @@ class Viewer {
 		}
 
 		FontFactory factory;
-		m_font_data = factory.makeFont("data/LiberationSans-Regular.ttf", 14, false);
+		m_font = make_unique<Font>(factory.makeFont("data/LiberationSans-Regular.ttf", 14, false));
 
 		if(m_models.empty())
 			THROW("No models loaded\n");
@@ -443,12 +441,11 @@ class Viewer {
 			model.printTetStats(fmt);
 		fmt("%s", Profiler::instance()->getStats("X").c_str());
 
-		FontRenderer font(m_font_data.first, m_font_data.second, *m_renderer_2d);
 		FontStyle style{Color::white, Color::black};
-		auto extents = font.evalExtents(fmt.text());
+		auto extents = m_font->evalExtents(fmt.text());
 		m_renderer_2d->addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
 									 {Color(0, 0, 0, 80)});
-		font.draw(FRect(5, 5, 300, 100), style, fmt.text());
+		m_font->draw(*m_renderer_2d, FRect(5, 5, 300, 100), style, fmt.text());
 
 		m_renderer_3d->render();
 		m_renderer_2d->render();
@@ -458,7 +455,7 @@ class Viewer {
 
   private:
 	vector<Model> m_models;
-	pair<PFont, PTexture> m_font_data;
+	unique_ptr<Font> m_font;
 
 	IRect m_viewport;
 	int m_current_model, m_current_anim;
@@ -531,9 +528,7 @@ int safe_main(int argc, char **argv) {
 				files.emplace_back(file.path, tex_name);
 			}
 		}
-	} else {
-		files = {make_pair(model_argument, tex_argument)};
-	}
+	} else { files = {make_pair(model_argument, tex_argument)}; }
 
 	Profiler profiler;
 	GfxDevice gfx_device;

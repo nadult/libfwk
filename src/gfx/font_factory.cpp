@@ -18,7 +18,7 @@
 
 namespace fwk {
 
-int convertToWChar(const char *str, wchar_t *wstr, int buffer_size);
+int convertToWChar(StringRef str, PodArray<wchar_t> &out);
 
 class FontFactory::Impl {
   public:
@@ -53,7 +53,7 @@ FontFactory::~FontFactory() {
 	FT_Done_FreeType(m_impl->library);
 }
 
-static Texture makeTextureAtlas(vector<pair<Font::Glyph, Texture>> &glyphs, int2 atlas_size) {
+static Texture makeTextureAtlas(vector<pair<FontCore::Glyph, Texture>> &glyphs, int2 atlas_size) {
 	const int border = 2;
 
 	bool all_fits = true;
@@ -101,7 +101,7 @@ static Texture makeTextureAtlas(vector<pair<Font::Glyph, Texture>> &glyphs, int2
 	return atlas;
 }
 
-using GlyphPair = pair<Font::Glyph, Texture>;
+using GlyphPair = pair<FontCore::Glyph, Texture>;
 
 Texture makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	std::sort(begin(glyphs), end(glyphs), [](const GlyphPair &a, const GlyphPair &b) {
@@ -110,21 +110,23 @@ Texture makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	return makeTextureAtlas(glyphs, {256, 256});
 }
 
-pair<PFont, PTexture> FontFactory::makeFont(string const &path, int size, bool lcd_mode) {
+FontCore::FontCore() = default;
+
+Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	FT_Face face = m_impl->getFace(path);
 	if(FT_Set_Pixel_Sizes(face, 0, size) != 0)
 		THROW("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
 
-	vector<wchar_t> ansi_charset;
+	PodArray<wchar_t> ansi_charset;
 	{
 		vector<char> chars;
 		for(char c = 32; c < 127; c++)
 			chars.emplace_back(c);
 		ansi_charset.resize(chars.size());
-		convertToWChar(chars.data(), ansi_charset.data(), chars.size());
+		convertToWChar(StringRef(chars.data(), chars.size()), ansi_charset);
 	}
 
-	vector<pair<Font::Glyph, Texture>> glyphs;
+	vector<pair<FontCore::Glyph, Texture>> glyphs;
 	for(wchar_t character : ansi_charset) {
 		FT_UInt index = FT_Get_Char_Index(face, character);
 		if(FT_Load_Glyph(face, index, FT_LOAD_DEFAULT) != 0)
@@ -156,11 +158,11 @@ pair<PFont, PTexture> FontFactory::makeFont(string const &path, int size, bool l
 		short2 bearing(glyph->metrics.horiBearingX / 64, -glyph->metrics.horiBearingY / 64);
 		short advance = glyph->metrics.horiAdvance / 64;
 
-		glyphs.emplace_back(Font::Glyph{character, {0, 0}, tex.size(), bearing, advance},
+		glyphs.emplace_back(FontCore::Glyph{character, {0, 0}, tex.size(), bearing, advance},
 							std::move(tex));
 	}
 
-	Font out;
+	FontCore out;
 	auto atlas = makeTextureAtlas(glyphs);
 	out.m_texture_size = atlas.size();
 
@@ -190,7 +192,7 @@ pair<PFont, PTexture> FontFactory::makeFont(string const &path, int size, bool l
 					out.m_kernings[make_pair(int(left), int(right))] = kerning.x;
 			}
 
-	return make_pair(PFont(out), make_immutable<DTexture>(atlas));
+	return {PFontCore(std::move(out)), make_immutable<DTexture>(atlas)};
 }
 }
 

@@ -1708,13 +1708,12 @@ struct FontStyle {
 	VAlign valign;
 };
 
-class Font : public immutable_base<Font> {
+class FontCore : public immutable_base<FontCore> {
   public:
-	Font(const string &name, Stream &);
-	Font();
+	FontCore(const string &name, Stream &);
+	FontCore(const XMLDocument &);
+	FontCore(const XMLNode &);
 
-	void load(Stream &);
-	void loadFromXML(const XMLDocument &);
 	const string &textureName() const { return m_texture_name; }
 
 	struct Glyph {
@@ -1725,17 +1724,17 @@ class Font : public immutable_base<Font> {
 		short x_advance;
 	};
 
-	IRect evalExtents(const char *str, bool exact = false) const;
-
+	IRect evalExtents(StringRef, bool exact = false) const;
 	int lineHeight() const { return m_line_height; }
 
   private:
+	FontCore();
 	friend class FontFactory;
-	friend class FontRenderer;
+	friend class Font;
 
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
-	int genQuads(const char *str, float3 *out_pos, float2 *out_uv, int buffer_size) const;
+	int genQuads(StringRef, Range<float3> out_pos, Range<float2> out_uv) const;
 
 	// TODO: better representation? hash table maybe?
 	std::map<int, Glyph> m_glyphs;
@@ -1748,45 +1747,28 @@ class Font : public immutable_base<Font> {
 	int m_line_height;
 };
 
-using PFont = immutable_ptr<Font>;
+using PFontCore = immutable_ptr<FontCore>;
 
-class FontRenderer {
+class Font {
   public:
-	// TODO: generate vectors with coords, or generate draw calls
-	FontRenderer(PFont font, PTexture texture, Renderer2D &out);
+	Font(PFontCore font, PTexture texture);
 
-	FRect draw(const FRect &rect, const FontStyle &style, const char *text) const;
-	FRect draw(const FRect &rect, const FontStyle &style, const TextFormatter &fmt) const {
-		return draw(rect, style, fmt.text());
-	}
-	FRect draw(const FRect &rect, const FontStyle &style, string const &str) const {
-		return draw(rect, style, str.c_str());
+	FRect draw(Renderer2D &out, const FRect &rect, const FontStyle &style, StringRef) const;
+	FRect draw(Renderer2D &out, const float2 &pos, const FontStyle &style, StringRef text) const {
+		return draw(out, FRect(pos, pos), style, text);
 	}
 
-	FRect draw(const float2 &pos, const FontStyle &style, const char *text) const {
-		return draw(FRect(pos, pos), style, text);
-	}
-	FRect draw(const float2 &pos, const FontStyle &style, TextFormatter const &fmt) const {
-		return draw(FRect(pos, pos), style, fmt.text());
-	}
-	FRect draw(const float2 &pos, const FontStyle &style, string const &str) const {
-		return draw(FRect(pos, pos), style, str.c_str());
-	}
-	const Font &font() const { return *m_font; }
+	auto core() const { return m_core; }
+	auto texture() const { return m_texture; }
 
-	IRect evalExtents(const TextFormatter &fmt, bool exact = false) const {
-		return m_font->evalExtents(fmt.text(), exact);
+	IRect evalExtents(StringRef text, bool exact = false) const {
+		return m_core->evalExtents(text, exact);
 	}
-	IRect evalExtents(const string &str, bool exact = false) const {
-		return m_font->evalExtents(str.c_str(), exact);
-	}
+	int lineHeight() const { return m_core->lineHeight(); }
 
   private:
-	void draw(const int2 &pos, Color col, const char *text) const;
-
-	PFont m_font;
+	PFontCore m_core;
 	PTexture m_texture;
-	Renderer2D &m_renderer;
 };
 
 class FontFactory {
@@ -1797,7 +1779,7 @@ class FontFactory {
 	FontFactory(FontFactory const &) = delete;
 	void operator=(FontFactory const &) = delete;
 
-	pair<PFont, PTexture> makeFont(string const &path, int size_in_pixels, bool lcd_mode = false);
+	Font makeFont(string const &path, int size_in_pixels, bool lcd_mode = false);
 
   private:
 	class Impl;

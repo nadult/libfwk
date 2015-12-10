@@ -28,16 +28,16 @@ bool mainLoop(GfxDevice &device) {
 		renderer.addRect(rect, border_color);
 	}
 
-	static PFont font;
+	static PFontCore font_core;
 	static PTexture font_texture;
-	if(!font) {
+	if(!font_core) {
 		Loader font_ldr("data/liberation_16.fnt");
 		Loader tex_ldr("data/liberation_16_0.tga");
-		font = make_immutable<Font>("", font_ldr);
+		font_core = make_immutable<FontCore>("", font_ldr);
 		font_texture = make_immutable<DTexture>("", tex_ldr);
 	}
-	FontRenderer font_renderer(font, font_texture, renderer);
-	font_renderer.draw(FRect(5, 5, 200, 20), {Color::white}, "Hello world!");
+	Font(font_core, font_texture)
+		.draw(renderer, FRect(5, 5, 200, 20), {Color::white}, "Hello world!");
 
 	renderer.render();
 
