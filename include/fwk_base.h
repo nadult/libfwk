@@ -41,6 +41,13 @@ using i16 = short;
 using u32 = unsigned;
 using i32 = int;
 
+template <class T1, class T2> bool operator==(const shared_ptr<T1> &lhs, const T2 *rhs) {
+	return lhs.get() == rhs;
+}
+template <class T1, class T2> bool operator==(const T1 *lhs, const shared_ptr<T2> &rhs) {
+	return lhs == rhs.get();
+}
+
 class SimpleAllocatorBase {
   public:
 	void *allocateBytes(size_t count) noexcept;
@@ -128,6 +135,8 @@ template <class T> class immutable_ptr {
 
 	auto getKey() const { return (long long)*m_ptr.get(); }
 	auto getWeakPtr() const { return std::weak_ptr<const T>(m_ptr); }
+
+	operator shared_ptr<const T>() const { return m_ptr; }
 
   private:
 	immutable_ptr(shared_ptr<const T> ptr) : m_ptr(std::move(ptr)) {}
@@ -376,49 +385,51 @@ auto indexWith(const Target &target, const Indices &indices) {
 // User have to make sure that referenced data is alive as long as StringRef
 class StringRef {
   public:
-	StringRef(const string &str) : m_ptr(str.c_str()), m_len((int)str.size()) {}
-	StringRef(const char *str, int len) : m_ptr(str), m_len(len) {
-		DASSERT((int)strlen(str) == len);
+	StringRef(const string &str) : m_data(str.c_str()), m_length((int)str.size()) {}
+	StringRef(const char *str, int length) : m_data(str ? str : ""), m_length(length) {
+		DASSERT((int)strlen(str) == length);
 	}
-	StringRef(const char *str) : m_ptr(str), m_len(strlen(str)) {}
-	StringRef() : m_ptr(nullptr), m_len(0) {}
-	explicit operator const char *() const { return m_ptr; }
-	const char *c_str() const { return m_ptr; }
-	bool isValid() const { return m_ptr != nullptr; }
-	int size() const { return m_len; }
-	bool isEmpty() const { return m_len == 0; }
+	StringRef(const char *str) {
+		if(!str)
+			str = "";
+		m_data = str;
+		m_length = strlen(str);
+	}
+	StringRef() : m_data(""), m_length(0) {}
+
+	explicit operator const char *() const { return m_data; }
+	explicit operator string() const { return string(m_data, m_data + m_length); }
+	const char *c_str() const { return m_data; }
+
+	int size() const { return m_length; }
+	int length() const { return m_length; }
+	bool empty() const { return m_length == 0; }
+	int compare(const StringRef &rhs) const { return strcmp(m_data, rhs.m_data); }
+	int caseCompare(const StringRef &rhs) const { return strcasecmp(m_data, rhs.m_data); }
+
+	const char *begin() const { return m_data; }
+	const char *end() const { return m_data + m_length; }
+
+	bool operator==(const StringRef &rhs) const {
+		return m_length == rhs.m_length && compare(rhs) == 0;
+	}
+	bool operator<(const StringRef &rhs) const { return compare(rhs) < 0; }
 
 	StringRef operator+(int offset) const {
-		DASSERT(offset >= 0 && offset <= m_len);
-		return StringRef(m_ptr + offset, m_len - offset);
+		DASSERT(offset >= 0 && offset <= m_length);
+		return StringRef(m_data + offset, m_length - offset);
 	}
 
   private:
-	const char *m_ptr;
-	int m_len;
+	const char *m_data;
+	int m_length;
 };
 
-inline bool operator==(const StringRef a, const StringRef b) {
-	DASSERT(a.isValid() && b.isValid());
-	return a.size() == b.size() && strcmp(a.c_str(), b.c_str()) == 0;
-}
-
-inline bool operator<(const StringRef a, const StringRef b) {
-	DASSERT(a.isValid() && b.isValid());
-	return strcmp(a.c_str(), b.c_str()) < 0;
-}
-
 inline bool caseEqual(const StringRef a, const StringRef b) {
-	DASSERT(a.isValid() && b.isValid());
-	return a.size() == b.size() && strcasecmp(a.c_str(), b.c_str()) == 0;
+	return a.size() == b.size() && a.caseCompare(b) == 0;
 }
-
 inline bool caseNEqual(const StringRef a, const StringRef b) { return !caseEqual(a, b); }
-
-inline bool caseLess(const StringRef a, const StringRef b) {
-	DASSERT(a.isValid() && b.isValid());
-	return strcasecmp(a.c_str(), b.c_str()) < 0;
-}
+inline bool caseLess(const StringRef a, const StringRef b) { return a.caseCompare(b) < 0; }
 
 int enumFromString(const char *str, const char **enum_strings, int enum_strings_count,
 				   bool throw_on_invalid);
@@ -462,9 +473,6 @@ class Stream {
 
 	int loadString(char *buffer, int size);
 	void saveString(const char *, int size = 0);
-
-	void encodeInt(int);
-	int decodeInt();
 
 	bool isLoading() const noexcept { return m_is_loading; }
 	bool isSaving() const noexcept { return !m_is_loading; }
@@ -543,16 +551,12 @@ class Stream {
 		static void doLoad(T &obj, Stream &sr) {
 			try {
 				obj.load(sr);
-			} catch(const Exception &ex) {
-				sr.handleException(ex);
-			}
+			} catch(const Exception &ex) { sr.handleException(ex); }
 		}
 		static void doSave(const T &obj, Stream &sr) {
 			try {
 				obj.save(sr);
-			} catch(const Exception &ex) {
-				sr.handleException(ex);
-			}
+			} catch(const Exception &ex) { sr.handleException(ex); }
 		}
 	};
 
@@ -634,9 +638,7 @@ template <class T> void loadFromStream(vector<T> &v, Stream &sr) {
 	sr.loadData(&size, sizeof(size));
 	try {
 		v.resize(size);
-	} catch(Exception &ex) {
-		sr.handleException(ex);
-	}
+	} catch(Exception &ex) { sr.handleException(ex); }
 
 	if(SerializeAsPod<T>::value)
 		sr.loadData(&v[0], sizeof(T) * size);
@@ -885,6 +887,9 @@ template <class T> class PodArray {
 	T *data() { return m_data; }
 	const T *data() const { return m_data; }
 
+	T *begin() { return m_data; }
+	const T *begin() const { return m_data; }
+
 	T *end() { return m_data + m_size; }
 	const T *end() const { return m_data + m_size; }
 
@@ -987,6 +992,7 @@ class TextFormatter {
 
 	const char *text() const { return m_data.data(); }
 	int length() const { return m_offset; }
+	operator StringRef() const { return StringRef(text(), length()); }
 
   private:
 	int m_offset;
@@ -1215,8 +1221,8 @@ namespace FindFiles {
 
 		recursive = 4,
 
-		relative = 8, // all paths relative to given path
-		absolute = 16, // all paths absolute
+		relative = 8,		 // all paths relative to given path
+		absolute = 16,		 // all paths absolute
 		include_parent = 32, // include '..'
 	};
 };

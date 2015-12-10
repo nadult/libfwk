@@ -69,11 +69,10 @@ XMLNode XMLNode::sibling(const char *name) const {
 
 XMLNode XMLNode::child(const char *name) const { return XMLNode(m_ptr->first_node(name), m_doc); }
 
-XMLDocument::XMLDocument() : m_ptr(new xml_document<>) {}
-XMLDocument::XMLDocument(XMLDocument &&other) : m_ptr(std::move(other.m_ptr)) {}
-XMLDocument::~XMLDocument() {}
-
-void XMLDocument::operator=(XMLDocument &&other) { m_ptr = std::move(other.m_ptr); }
+XMLDocument::XMLDocument() : m_ptr(make_unique<xml_document<>>()) {}
+XMLDocument::XMLDocument(XMLDocument &&) = default;
+XMLDocument::~XMLDocument() = default;
+XMLDocument &XMLDocument::operator=(XMLDocument &&) = default;
 
 const char *XMLDocument::own(const char *str) { return m_ptr->allocate_string(str); }
 
@@ -109,7 +108,8 @@ void XMLDocument::load(Stream &sr) {
 	try {
 		m_ptr->parse<0>(xml_string);
 	} catch(const parse_error &ex) {
-		THROW("rapidxml exception caught: %s at: %d", ex.what(), (int)(size_t)(ex.where<char>() - xml_string));
+		THROW("rapidxml exception caught: %s at: %d", ex.what(),
+			  (int)(size_t)(ex.where<char>() - xml_string));
 	}
 }
 

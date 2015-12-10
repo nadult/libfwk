@@ -244,11 +244,9 @@ class XMLNode {
 class XMLDocument {
   public:
 	XMLDocument();
-	XMLDocument(const XMLDocument &) = delete;
 	XMLDocument(XMLDocument &&);
 	~XMLDocument();
-	void operator=(XMLDocument &&);
-	void operator=(const XMLDocument &) = delete;
+	XMLDocument &operator=(XMLDocument &&);
 
 	void load(const char *file_name);
 	void save(const char *file_name) const;
