@@ -149,7 +149,7 @@ IRect FontCore::evalExtents(StringRef text, bool exact) const {
 	return rect;
 }
 
-int FontCore::genQuads(StringRef text, Range<float3> out_pos, Range<float2> out_uv) const {
+int FontCore::genQuads(StringRef text, Range<float2> out_pos, Range<float2> out_uv) const {
 	DASSERT(out_pos.size() == out_uv.size());
 	DASSERT(out_pos.size() % 4 == 0);
 
@@ -177,10 +177,10 @@ int FontCore::genQuads(StringRef text, Range<float3> out_pos, Range<float2> out_
 		const Glyph &glyph = char_it->second;
 
 		float2 spos = pos + (float2)glyph.offset;
-		out_pos[offset + 0] = float3(spos + float2(0.0f, 0.0f), 0.0f);
-		out_pos[offset + 1] = float3(spos + float2(glyph.size.x, 0.0f), 0.0f);
-		out_pos[offset + 2] = float3(spos + float2(glyph.size.x, glyph.size.y), 0.0f);
-		out_pos[offset + 3] = float3(spos + float2(0.0f, glyph.size.y), 0.0f);
+		out_pos[offset + 0] = spos + float2(0.0f, 0.0f);
+		out_pos[offset + 1] = spos + float2(glyph.size.x, 0.0f);
+		out_pos[offset + 2] = spos + float2(glyph.size.x, glyph.size.y);
+		out_pos[offset + 3] = spos + float2(0.0f, glyph.size.y);
 
 		float2 tpos = (float2)glyph.tex_pos;
 		out_uv[offset + 0] = tpos + float2(0.0f, 0.0f);
@@ -228,15 +228,16 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style, Str
 
 	pos = float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
 
-	PodArray<float3> pos_buf(text.length() * 4);
-	PodArray<float2> uv_buf(text.length() * 4);
-	PodArray<Color> colors(text.length() * 4);
+	vector<float2> pos_buf(text.length() * 4);
+	vector<float2> uv_buf(text.length() * 4);
 	int quad_count = m_core->genQuads(text, pos_buf, uv_buf);
+	pos_buf.resize(quad_count * 4);
+	uv_buf.resize(quad_count * 4);
 
 	FRect out_rect;
 	for(int n = 0; n < quad_count * 4; n++) {
-		out_rect.min = min(out_rect.min, pos_buf[n].xy());
-		out_rect.max = max(out_rect.max, pos_buf[n].xy());
+		out_rect.min = min(out_rect.min, pos_buf[n]);
+		out_rect.max = max(out_rect.max, pos_buf[n]);
 	}
 	out_rect += pos;
 	// TODO: increase out_rect when rendering with shadow?
@@ -244,16 +245,11 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style, Str
 	out.pushViewMatrix();
 	out.mulViewMatrix(translation(float3(pos + float2(1.0f, 1.0f), 0.0f)));
 
-	if(style.shadow_color != Color::transparent) {
-		for(int n = 0; n < quad_count * 4; n++)
-			colors[n] = style.shadow_color;
-		out.addQuads(pos_buf.data(), uv_buf.data(), colors.data(), quad_count, m_texture);
-	}
+	if(style.shadow_color != Color::transparent)
+		out.addQuads(pos_buf, uv_buf, {}, {m_texture, style.shadow_color});
 
 	out.mulViewMatrix(translation(float3(-1.0f, -1.0f, 0.0f)));
-	for(int n = 0; n < quad_count * 4; n++)
-		colors[n] = style.text_color;
-	out.addQuads(pos_buf.data(), uv_buf.data(), colors.data(), quad_count, m_texture);
+	out.addQuads(pos_buf, uv_buf, {}, {m_texture, style.text_color});
 	out.popViewMatrix();
 
 	return out_rect;

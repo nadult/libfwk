@@ -577,6 +577,23 @@ class ProgramBinder {
 	unsigned id() const { return m_program->id(); }
 };
 
+class SimpleMaterial {
+  public:
+	SimpleMaterial(STexture texture, Color color = Color::white)
+		: m_texture(texture), m_color(color) {}
+	SimpleMaterial(PTexture texture, Color color = Color::white)
+		: m_texture(texture), m_color(color) {}
+	SimpleMaterial(Color color = Color::white) : m_color(color) {}
+
+	shared_ptr<const DTexture> texture() const { return m_texture; }
+	Color color() const { return m_color; }
+
+  private:
+	shared_ptr<const DTexture> m_texture;
+	Color m_color;
+};
+
+// TODO: no need to make it immutable, it should be able to store STexture as well
 class Material : public immutable_base<Material> {
   public:
 	enum Flags {
@@ -1591,40 +1608,54 @@ class Renderer2D : public MatrixStack {
 	static Matrix4 simpleViewMatrix(const IRect &viewport, const float2 &view_pos);
 
 	void setViewPos(const float2 &view_pos);
+	void setViewPos(const int2 &view_pos) { setViewPos(float2(view_pos)); }
 
 	void render();
 
-	void addFilledRect(const FRect &rect, const FRect &tex_rect, const Material &);
-	void addFilledRect(const FRect &rect, const Material &material) {
-		addFilledRect(rect, FRect(0, 0, 1, 1), material);
+	void addFilledRect(const FRect &rect, const FRect &tex_rect, const SimpleMaterial &);
+	void addFilledRect(const FRect &rect, const SimpleMaterial &mat) {
+		addFilledRect(rect, FRect(0, 0, 1, 1), mat);
+	}
+	void addFilledRect(const IRect &rect, const SimpleMaterial &mat) {
+		addFilledRect(FRect(rect), mat);
 	}
 
-	void addRect(const FRect &rect, const Material &material);
+	void addRect(const FRect &rect, Color color);
 
 	struct Element {
 		Matrix4 matrix;
-		PTexture texture;
-		int first_index;
-		int num_indices;
+		shared_ptr<const DTexture> texture;
+		int first_index, num_indices;
+		int scissor_rect_id;
 		PrimitiveType::Type primitive_type;
 	};
 
-	void addQuads(const float3 *pos, const float2 *tex_coord, const Color *color, int num_quads,
-				  const Material &material);
-	void addLines(const float3 *pos, const Color *color, int num_lines, const Material &material);
-	void addTris(const float3 *pos, const float2 *tex_coord, const Color *color, int num_tris,
-				 const Material &material);
+	// tex_coord & color can be empty
+	void addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
+				  const SimpleMaterial &material);
+	void addLines(CRange<float2> pos, CRange<Color> color, Color mat_color);
+	void addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
+				 const SimpleMaterial &material);
+
+	void setScissorRect(IRect);
+	void disableScissorRect();
+
+	void clear();
 
   private:
-	Element &makeElement(PrimitiveType::Type, PTexture);
+	Element &makeElement(PrimitiveType::Type, shared_ptr<const DTexture>);
+	void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
+						Color mat_color);
 
-	vector<float3> m_positions;
+	vector<float2> m_positions;
 	vector<float2> m_tex_coords;
 	vector<Color> m_colors;
 	vector<uint> m_indices;
+	vector<IRect> m_scissor_rects;
 	vector<Element> m_elements;
 	IRect m_viewport;
 	PProgram m_tex_program, m_flat_program;
+	int m_current_scissor_rect;
 };
 
 class Renderer : public MatrixStack {
@@ -1734,7 +1765,7 @@ class FontCore : public immutable_base<FontCore> {
 
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
-	int genQuads(StringRef, Range<float3> out_pos, Range<float2> out_uv) const;
+	int genQuads(StringRef, Range<float2> out_pos, Range<float2> out_uv) const;
 
 	// TODO: better representation? hash table maybe?
 	std::map<int, Glyph> m_glyphs;

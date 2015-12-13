@@ -340,9 +340,12 @@ void GfxDevice::runMainLoop(MainLoopFunction function) {
 	m_main_loop_function = nullptr;
 }
 
-void GfxDevice::grabMouse(bool grab) { THROW("Writeme"); }
+void GfxDevice::grabMouse(bool grab) {
+	if(m_window_impl)
+		SDL_SetWindowGrab(m_window_impl->window, grab ? SDL_TRUE : SDL_FALSE);
+}
 
-void GfxDevice::showCursor(bool flag) { THROW("Writeme"); }
+void GfxDevice::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
 
 /*
 InputState GfxDevice::inputState() {
@@ -393,5 +396,4 @@ void GfxDevice::clearDepth(float depth_value) {
 	glDepthMask(1);
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
-
 }
