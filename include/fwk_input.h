@@ -10,6 +10,18 @@
 
 namespace fwk {
 
+class SDLKeyMap {
+  public:
+	SDLKeyMap();
+	~SDLKeyMap();
+	int to(int) const;
+	int from(int) const;
+
+  private:
+	std::map<int, int> m_key_map;
+	std::map<int, int> m_inv_map;
+};
+
 namespace InputKey {
 	enum Type {
 		// For the rest of the keys use ascii characters
@@ -71,15 +83,7 @@ namespace InputKey {
 	};
 }
 
-namespace InputButton {
-	enum Type {
-		left,
-		right,
-		middle,
-
-		count
-	};
-};
+DECLARE_ENUM(InputButton, left, right, middle);
 
 class InputEvent {
   public:
@@ -159,6 +163,36 @@ class InputEvent {
 	int m_key;
 	int m_iteration, m_modifiers;
 	Type m_type;
+};
+
+class InputState {
+  public:
+	InputState();
+
+	bool isKeyDown(int key) const;
+	bool isKeyUp(int key) const;
+	bool isKeyPressed(int key) const;
+	bool isKeyDownAuto(int key, int period = 1, int delay = 12) const;
+
+	bool isMouseButtonDown(InputButton::Type) const;
+	bool isMouseButtonUp(InputButton::Type) const;
+	bool isMouseButtonPressed(InputButton::Type) const;
+
+	const int2 &mousePos() const { return m_mouse_pos; }
+	const int2 &mouseMove() const { return m_mouse_move; }
+	int mouseWheelMove() const { return m_mouse_wheel; }
+
+  private:
+	vector<InputEvent> pollEvents(const SDLKeyMap &);
+
+	using KeyStatus = pair<int, int>;
+	vector<KeyStatus> m_keys;
+
+	friend class GfxDevice;
+	int2 m_mouse_pos, m_mouse_move;
+	int m_mouse_wheel;
+	int m_mouse_buttons[InputButton::count];
+	bool m_is_initialized;
 };
 }
 

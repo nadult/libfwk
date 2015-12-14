@@ -231,15 +231,6 @@ class DTexture : public immutable_base<DTexture> {
 using PTexture = immutable_ptr<DTexture>;
 using STexture = shared_ptr<DTexture>;
 
-struct InputState {
-	int2 mouse_pos, mouse_move;
-	int mouse_wheel;
-	int mouse_buttons[InputButton::count];
-
-	using KeyStatus = pair<int, int>;
-	vector<KeyStatus> keys;
-};
-
 // Once created (by calling instance first time, it will exist
 // till the end of the application).
 class GfxDevice {
@@ -288,8 +279,6 @@ class GfxDevice {
 	string extensions() const;
 
   private:
-	int translateToSDL(int) const;
-	int translateFromSDL(int) const;
 	bool pollEvents();
 
 #ifdef __EMSCRIPTEN__
@@ -300,8 +289,7 @@ class GfxDevice {
 	bool m_is_input_state_initialized;
 	InputState m_input_state;
 	vector<InputEvent> m_input_events;
-	std::map<int, int> m_key_map;
-	std::map<int, int> m_inv_map;
+	SDLKeyMap m_key_map;
 	//	double m_time_pressed[InputKey::count];
 	double m_last_time, m_frame_time;
 
