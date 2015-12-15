@@ -159,7 +159,6 @@ void Renderer2D::addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<C
 	int num_quads = pos.size() / 4;
 
 	appendVertices(pos, tex_coord, color, material.color());
-	m_indices.reserve(m_indices.size() + num_quads * 6);
 	for(int n = 0; n < num_quads; n++) {
 		int inds[6] = {0, 1, 2, 0, 2, 3};
 		for(int i = 0; i < 6; i++)
@@ -178,7 +177,6 @@ void Renderer2D::addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<Co
 	int vertex_offset = (int)m_positions.size();
 	appendVertices(pos, tex_coord, color, material.color());
 
-	m_indices.reserve(m_indices.size() + num_tris * 3);
 	for(int n = 0; n < num_tris; n++) {
 		int inds[3] = {0, 1, 2};
 		for(int i = 0; i < 3; i++)
