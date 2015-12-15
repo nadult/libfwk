@@ -6,6 +6,7 @@
 
 #include "fwk_gfx.h"
 #include "fwk_opengl.h"
+#include "fwk_input.h"
 #include <memory.h>
 #include <SDL_video.h>
 #include <SDL.h>
@@ -32,26 +33,11 @@ GfxDevice &GfxDevice::instance() {
 	return *s_instance;
 }
 
-GfxDevice::GfxDevice()
-	: m_main_loop_function(nullptr) /*,m_press_delay(0.2), m_clock(0)*/
-{
-	s_instance = this;
-
-	if(SDL_Init(SDL_INIT_VIDEO) != 0)
-		reportSDLError("SDL_Init");
-
-	memset(&m_input_state, 0, sizeof(m_input_state));
-	m_is_input_state_initialized = false;
-
-	m_last_time = -1.0;
-	m_frame_time = 0.0;
-}
-
-GfxDevice::~GfxDevice() {
-	m_window_impl.reset();
-	s_instance = nullptr;
-	SDL_Quit();
-}
+struct GfxDevice::InputImpl {
+	InputState state;
+	vector<InputEvent> events;
+	SDLKeyMap key_map;
+};
 
 struct GfxDevice::WindowImpl {
   public:
@@ -87,6 +73,22 @@ struct GfxDevice::WindowImpl {
 	SDL_GLContext gl_context;
 	uint flags;
 };
+
+GfxDevice::GfxDevice() : m_main_loop_function(nullptr), m_input_impl(make_unique<InputImpl>()) {
+	s_instance = this;
+
+	if(SDL_Init(SDL_INIT_VIDEO) != 0)
+		reportSDLError("SDL_Init");
+
+	m_last_time = -1.0;
+	m_frame_time = 0.0;
+}
+
+GfxDevice::~GfxDevice() {
+	m_window_impl.reset();
+	s_instance = nullptr;
+	SDL_Quit();
+}
 
 void GfxDevice::createWindow(const string &name, const int2 &size, uint flags) {
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
@@ -139,8 +141,8 @@ void GfxDevice::printDeviceInfo() {
 }
 
 bool GfxDevice::pollEvents() {
-	m_input_events = m_input_state.pollEvents(m_key_map);
-	for(const auto &event : m_input_events)
+	m_input_impl->events = m_input_impl->state.pollEvents(m_input_impl->key_map);
+	for(const auto &event : m_input_impl->events)
 		if(event.type() == InputEvent::quit)
 			return false;
 	return true;
@@ -183,6 +185,10 @@ void GfxDevice::grabMouse(bool grab) {
 }
 
 void GfxDevice::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
+
+const InputState &GfxDevice::inputState() const { return m_input_impl->state; }
+
+const vector<InputEvent> &GfxDevice::inputEvents() const { return m_input_impl->events; }
 
 string GfxDevice::extensions() const { return (const char *)glGetString(GL_EXTENSIONS); }
 

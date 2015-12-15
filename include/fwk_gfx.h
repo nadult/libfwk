@@ -7,10 +7,12 @@
 
 #include "fwk_base.h"
 #include "fwk_math.h"
-#include "fwk_input.h"
 #include "fwk_xml.h"
 
 namespace fwk {
+
+class InputState;
+class InputEvent;
 
 // TODO: Default color class should be float based; Change
 //      u8-based Color to Color32bit or something
@@ -267,8 +269,8 @@ class GfxDevice {
 	void grabMouse(bool);
 	void showCursor(bool);
 
-	const InputState &inputState() const { return m_input_state; }
-	const vector<InputEvent> &inputEvents() const { return m_input_events; }
+	const InputState &inputState() const;
+	const vector<InputEvent> &inputEvents() const;
 
 	using MainLoopFunction = bool (*)(GfxDevice &device);
 	void runMainLoop(MainLoopFunction);
@@ -286,17 +288,12 @@ class GfxDevice {
 #endif
 	MainLoopFunction m_main_loop_function;
 
-	bool m_is_input_state_initialized;
-	InputState m_input_state;
-	vector<InputEvent> m_input_events;
-	SDLKeyMap m_key_map;
-	//	double m_time_pressed[InputKey::count];
+	struct InputImpl;
+	unique_ptr<InputImpl> m_input_impl;
 	double m_last_time, m_frame_time;
 
 	struct WindowImpl;
 	unique_ptr<WindowImpl> m_window_impl;
-	//	double m_press_delay;
-	//	int m_clock;
 };
 
 struct RectStyle {
@@ -1743,7 +1740,7 @@ class FontCore : public immutable_base<FontCore> {
 		short x_advance;
 	};
 
-	IRect evalExtents(StringRef, bool exact = false) const;
+	IRect evalExtents(const wstring &, bool exact = false) const;
 	int lineHeight() const { return m_line_height; }
 
   private:
@@ -1753,7 +1750,7 @@ class FontCore : public immutable_base<FontCore> {
 
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
-	int genQuads(StringRef, Range<float2> out_pos, Range<float2> out_uv) const;
+	int genQuads(const wstring &, Range<float2> out_pos, Range<float2> out_uv) const;
 
 	// TODO: better representation? hash table maybe?
 	std::map<int, Glyph> m_glyphs;
@@ -1772,16 +1769,30 @@ class Font {
   public:
 	Font(PFontCore font, PTexture texture);
 
-	FRect draw(Renderer2D &out, const FRect &rect, const FontStyle &style, StringRef) const;
-	FRect draw(Renderer2D &out, const float2 &pos, const FontStyle &style, StringRef text) const {
+	FRect draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
+			   const wstring &text) const;
+	FRect draw(Renderer2D &out, const float2 &pos, const FontStyle &style,
+			   const wstring &text) const {
 		return draw(out, FRect(pos, pos), style, text);
+	}
+
+	FRect draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
+			   StringRef text_utf8) const {
+		return draw(out, rect, style, toWideString(text_utf8));
+	}
+	FRect draw(Renderer2D &out, const float2 &pos, const FontStyle &style,
+			   StringRef text_utf8) const {
+		return draw(out, FRect(pos, pos), style, toWideString(text_utf8));
 	}
 
 	auto core() const { return m_core; }
 	auto texture() const { return m_texture; }
 
-	IRect evalExtents(StringRef text, bool exact = false) const {
+	IRect evalExtents(const wstring &text, bool exact = false) const {
 		return m_core->evalExtents(text, exact);
+	}
+	IRect evalExtents(StringRef text, bool exact = false) const {
+		return m_core->evalExtents(toWideString(text), exact);
 	}
 	int lineHeight() const { return m_core->lineHeight(); }
 

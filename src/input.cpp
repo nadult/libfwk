@@ -24,16 +24,6 @@ SDLKeyMap::SDLKeyMap() {
 		PAIR(lctrl, LCTRL), PAIR(rctrl, RCTRL), PAIR(lalt, LALT), PAIR(ralt, RALT), PAIR(tab, TAB),
 		PAIR(enter, RETURN), PAIR(backspace, BACKSPACE), PAIR(insert, INSERT), PAIR(del, DELETE),
 		PAIR(pageup, PAGEUP), PAIR(pagedown, PAGEDOWN), PAIR(home, HOME), PAIR(end, END),
-		/*	PAIR(kp_0, KP_0),
-			PAIR(kp_1, KP_1),
-			PAIR(kp_2, KP_2),
-			PAIR(kp_3, KP_3),
-			PAIR(kp_4, KP_4),
-			PAIR(kp_5, KP_5),
-			PAIR(kp_6, KP_6),
-			PAIR(kp_7, KP_7),
-			PAIR(kp_8, KP_8),
-			PAIR(kp_9, KP_9),*/
 		PAIR(kp_0, KP_0), PAIR(kp_1, KP_1), PAIR(kp_2, KP_2), PAIR(kp_3, KP_3), PAIR(kp_4, KP_4),
 		PAIR(kp_5, KP_5), PAIR(kp_6, KP_6), PAIR(kp_7, KP_7), PAIR(kp_8, KP_8), PAIR(kp_9, KP_9),
 		PAIR(kp_divide, KP_DIVIDE), PAIR(kp_multiply, KP_MULTIPLY), PAIR(kp_subtract, KP_MINUS),
@@ -53,7 +43,7 @@ SDLKeyMap::~SDLKeyMap() = default;
 
 int SDLKeyMap::to(int key_code) const {
 	DASSERT(key_code >= 0);
-	if(key_code >= 0 && key_code <= 255)
+	if(key_code >= 32 && key_code <= 126)
 		return key_code;
 	auto it = m_key_map.find(key_code);
 	DASSERT(it != m_key_map.end());
@@ -62,49 +52,11 @@ int SDLKeyMap::to(int key_code) const {
 
 int SDLKeyMap::from(int key_code) const {
 	DASSERT(key_code >= 0);
-	if(key_code >= 0 && key_code <= 255)
+	if(key_code >= 32 && key_code <= 126)
 		return key_code;
 	auto it = m_inv_map.find(key_code);
 	return it == m_inv_map.end() ? -1 : it->second;
 }
-
-/*
-char GfxDevice::getCharPressed() {
-if(isKeyPressed(InputKey::space))
-	return ' ';
-
-char numerics_s[11] = ")!@#$%^&*(";
-char map[][2] = {
-	{'-', '_'},
-	{'`', '~'},
-	{'=', '+'},
-	{'[', '{'},
-	{']', '}'},
-	{';', ':'},
-	{'\'', '"'},
-	{',', '<'},
-	{'.', '>'},
-	{'/', '?'},
-	{'\\', '|'},
-};
-
-bool shift = isKeyPressed(InputKey::lshift) || isKeyPressed(InputKey::rshift); // TODO: capslock
-
-for(int i = 0; i < (int)sizeof(map) / 2; i++)
-	if(isKeyPressed(map[i][0]))
-		return map[i][shift ? 1 : 0];
-
-for(int k = 32; k < 128; k++) {
-	if(!isKeyPressed(k))
-		continue;
-	if(k >= 'A' && k <= 'Z')
-		return shift ? k : k - 'A' + 'a';
-	if(k >= '0' && k <= '9')
-		return shift ? numerics_s[k - '0'] : k;
-}
-
-return 0;
-}*/
 
 InputEvent::InputEvent(Type type) : m_type(type) {
 	DASSERT(m_type == mouse_over || (!isKeyEvent() && !isMouseEvent()));
@@ -120,14 +72,14 @@ InputEvent::InputEvent(Type mouse_type, InputButton::Type button)
 	DASSERT(isMouseEvent());
 }
 
+InputEvent::InputEvent(wstring text) : m_text(std::move(text)), m_type(text_input) {}
+
 void InputEvent::init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel) {
 	m_mouse_pos = mouse_pos;
 	m_mouse_move = mouse_move;
 	m_mouse_wheel = mouse_wheel;
 	m_modifiers = flags;
 }
-
-void InputEvent::translate(const int2 &offset) { m_mouse_pos += offset; }
 
 bool InputEvent::keyDown(int key) const { return m_type == key_down && m_key == key; }
 
@@ -136,7 +88,8 @@ bool InputEvent::keyUp(int key) const { return m_type == key_up && m_key == key;
 bool InputEvent::keyPressed(int key) const { return m_type == key_pressed && m_key == key; }
 
 bool InputEvent::keyDownAuto(int key, int period, int delay) const {
-	THROW("verify me");
+	if(keyDown(key))
+		return true;
 	return m_type == key_pressed && m_key == key && m_iteration > delay &&
 		   (m_iteration - delay) % period == 0;
 }
@@ -182,7 +135,7 @@ bool InputState::isKeyPressed(int key) const {
 bool InputState::isKeyDownAuto(int key, int period, int delay) const {
 	for(auto pair : m_keys)
 		if(pair.first == key)
-			return pair.second > delay && (pair.second - delay) % period == 0;
+			return pair.second == 0 || (pair.second > delay && (pair.second - delay) % period == 0);
 	return false;
 }
 
@@ -227,6 +180,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 	}
 	m_mouse_move = int2(0, 0);
 	m_mouse_wheel = 0;
+	m_text.clear();
 
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
@@ -242,6 +196,16 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 			if(!is_pressed) {
 				m_keys.emplace_back(key_id, 0);
 				events.emplace_back(InputEvent::key_down, key_id, 0);
+			}
+			break;
+		}
+		case SDL_TEXTINPUT: {
+			// TODO: Should we call SDL_StartTextInput before?
+			int len = strnlen(event.text.text, arraySize(event.text.text));
+			auto text = toWideString(string(event.text.text, event.text.text + len), false);
+			if(!text.empty()) {
+				m_text += text;
+				events.emplace_back(text);
 			}
 			break;
 		}

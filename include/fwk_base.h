@@ -23,6 +23,7 @@ using std::array;
 using std::swap;
 using std::pair;
 using std::string;
+using std::wstring;
 using std::unique_ptr;
 using std::shared_ptr;
 
@@ -395,6 +396,7 @@ class StringRef {
 		m_data = str;
 		m_length = strlen(str);
 	}
+	// TODO: conversion from CRange<char>? but what about null-termination
 	StringRef() : m_data(""), m_length(0) {}
 
 	explicit operator const char *() const { return m_data; }
@@ -430,6 +432,13 @@ inline bool caseEqual(const StringRef a, const StringRef b) {
 }
 inline bool caseNEqual(const StringRef a, const StringRef b) { return !caseEqual(a, b); }
 inline bool caseLess(const StringRef a, const StringRef b) { return a.caseCompare(b) < 0; }
+
+// To properly handle all characters you have to set locale:
+// setlocale(LC_ALL, "en_US.UTF8");
+// setlocale(LC_NUMERIC, "C");
+// TODO: make these functions locale-independent and just use UTF-8 everywhere
+wstring toWideString(StringRef, bool throw_on_invalid = true);
+string fromWideString(const wstring &, bool throw_on_invalid = true);
 
 int enumFromString(const char *str, const char **enum_strings, int enum_strings_count,
 				   bool throw_on_invalid);

@@ -5,37 +5,15 @@
 #include "fwk_gfx.h"
 #include "fwk_opengl.h"
 #include "fwk_xml.h"
-#include <cstring>
-#include <cwchar>
-#include <cstdarg>
 
 namespace fwk {
-
-int convertToWChar(StringRef text, PodArray<wchar_t> &out) {
-	mbstate_t ps;
-	memset(&ps, 0, sizeof(ps));
-
-	const char *str = text.c_str();
-	size_t len = mbsrtowcs(out.data(), &str, out.size(), &ps);
-	return (int)(len == (size_t)-1 ? 0 : len);
-}
-
-namespace {
-	XMLDocument loadDoc(Stream &sr) {
-		DASSERT(sr.isLoading());
-		XMLDocument doc;
-		sr >> doc;
-		return std::move(doc);
-	}
-}
-
 FontStyle::FontStyle(Color color, Color shadow_color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(shadow_color), halign(halign), valign(valign) {}
 
 FontStyle::FontStyle(Color color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(Color::transparent), halign(halign), valign(valign) {}
 
-FontCore::FontCore(const string &name, Stream &stream) : FontCore(loadDoc(stream)) {}
+FontCore::FontCore(const string &name, Stream &stream) : FontCore(XMLDocument(stream)) {}
 FontCore::FontCore(const XMLDocument &doc) : FontCore(doc.child("font")) {}
 FontCore::FontCore(const XMLNode &font_node) {
 	ASSERT(font_node);
@@ -102,26 +80,23 @@ FontCore::FontCore(const XMLNode &font_node) {
 	}
 }
 
-IRect FontCore::evalExtents(StringRef text, bool exact) const {
-	PodArray<wchar_t> wstr(text.size());
-	int len = convertToWChar(text, wstr);
-
+IRect FontCore::evalExtents(const wstring &text, bool exact) const {
 	IRect rect(0, 0, 0, 0);
 	int2 pos(0, 0);
 
-	if(!len && !exact) {
+	if(text.empty() && !exact) {
 		rect = m_max_rect;
 		rect.setWidth(0);
 	}
 
-	for(int n = 0; n < len; n++) {
-		if(wstr[n] == '\n') {
+	for(int n = 0; n < (int)text.size(); n++) {
+		if(text[n] == '\n') {
 			pos.x = 0;
 			pos.y += m_line_height;
 			continue;
 		}
 
-		auto char_it = m_glyphs.find(wstr[n]);
+		auto char_it = m_glyphs.find(text[n]);
 		if(char_it == m_glyphs.end()) {
 			char_it = m_glyphs.find((int)' ');
 			DASSERT(char_it != m_glyphs.end());
@@ -134,13 +109,13 @@ IRect FontCore::evalExtents(StringRef text, bool exact) const {
 			new_rect = IRect(pos + glyph.offset, pos + glyph.offset + glyph.size);
 		} else {
 			new_rect = m_max_rect + pos;
-			new_rect.setWidth(wstr[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x);
+			new_rect.setWidth(text[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x);
 		}
 
 		rect = n == 0 ? new_rect : rect + new_rect;
-		if(n + 1 < len) {
+		if(n + 1 < (int)text.size()) {
 			pos.x += glyph.x_advance;
-			auto kerning_it = m_kernings.find(make_pair((int)wstr[n], (int)wstr[n + 1]));
+			auto kerning_it = m_kernings.find(make_pair((int)text[n], (int)text[n + 1]));
 			if(kerning_it != m_kernings.end())
 				pos.x += kerning_it->second;
 		}
@@ -149,26 +124,23 @@ IRect FontCore::evalExtents(StringRef text, bool exact) const {
 	return rect;
 }
 
-int FontCore::genQuads(StringRef text, Range<float2> out_pos, Range<float2> out_uv) const {
+int FontCore::genQuads(const wstring &text, Range<float2> out_pos, Range<float2> out_uv) const {
 	DASSERT(out_pos.size() == out_uv.size());
 	DASSERT(out_pos.size() % 4 == 0);
 
-	PodArray<wchar_t> wstr(text.size());
-	int len = convertToWChar(text, wstr);
-
 	const float2 tex_scale = inverse(float2(m_texture_size));
-	int count = min(len, out_pos.size() / 4);
+	int count = min((int)text.size(), out_pos.size() / 4);
 	float2 pos(0, 0);
 
 	int offset = 0;
 	for(int n = 0; n < count; n++) {
-		if(wstr[n] == '\n') {
+		if(text[n] == '\n') {
 			pos.x = 0;
 			pos.y += m_line_height;
 			continue;
 		}
 
-		auto char_it = m_glyphs.find(wstr[n]);
+		auto char_it = m_glyphs.find(text[n]);
 		if(char_it == m_glyphs.end()) {
 			char_it = m_glyphs.find((int)' ');
 			DASSERT(char_it != m_glyphs.end());
@@ -194,7 +166,7 @@ int FontCore::genQuads(StringRef text, Range<float2> out_pos, Range<float2> out_
 
 		if(n + 1 < count) {
 			pos.x += glyph.x_advance;
-			auto kerning_it = m_kernings.find(make_pair((int)wstr[n], (int)wstr[n + 1]));
+			auto kerning_it = m_kernings.find(make_pair((int)text[n], (int)text[n + 1]));
 			if(kerning_it != m_kernings.end())
 				pos.x += kerning_it->second;
 		}
@@ -211,7 +183,7 @@ Font::Font(PFontCore core, PTexture texture) : m_core(core), m_texture(texture) 
 	DASSERT(m_texture->size() == m_core->m_texture_size);
 }
 
-FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style, StringRef text) const {
+FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style, const wstring &text) const {
 	float2 pos = rect.min;
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
 		FRect extents = (FRect)m_core->evalExtents(text);

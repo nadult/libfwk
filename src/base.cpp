@@ -40,13 +40,41 @@ void *SimpleAllocatorBase::allocateBytes(size_t count) noexcept {
 		try {
 			string text = bt.analyze(false);
 			printf("%s\n", text.c_str());
-		} catch(const Exception &ex) {
-			printf("Failed:\n%s\n", ex.what());
-		}
+		} catch(const Exception &ex) { printf("Failed:\n%s\n", ex.what()); }
 		exit(1);
 	}
 
 	return out;
+}
+
+wstring toWideString(StringRef text, bool throw_on_invalid) {
+	mbstate_t ps;
+	memset(&ps, 0, sizeof(ps));
+	const char *str = text.c_str();
+	PodArray<wchar_t> buffer(text.size());
+
+	auto size = mbsrtowcs(buffer.data(), &str, buffer.size(), &ps);
+	if(size == (size_t)-1) {
+		if(throw_on_invalid)
+			THROW("Error when converting string to wide string");
+		return wstring();
+	}
+	return wstring(buffer.data(), buffer.data() + size);
+}
+
+string fromWideString(const std::wstring &text, bool throw_on_invalid) {
+	PodArray<char> buffer(text.size() * 4);
+	mbstate_t ps;
+	memset(&ps, 0, sizeof(ps));
+
+	const wchar_t *src = text.c_str();
+	auto size = wcsrtombs(buffer.data(), &src, buffer.size(), &ps);
+	if(size == (size_t)-1) {
+		if(throw_on_invalid)
+			THROW("Error while converting wide string to string");
+		return string();
+	}
+	return string(buffer.data(), buffer.data() + size);
 }
 
 #ifndef FWK_TARGET_HTML5
@@ -259,9 +287,7 @@ string simpleFormat(const char *format, const vector<string> &args) {
 		if(*c == '%') {
 			out("%s", arg_id >= args.size() ? "" : args[arg_id].c_str());
 			arg_id++;
-		} else {
-			out("%c", *c);
-		}
+		} else { out("%c", *c); }
 	}
 
 	return out.text();

@@ -88,12 +88,12 @@ DECLARE_ENUM(InputButton, left, right, middle);
 class InputEvent {
   public:
 	enum Type {
-		invalid,
 		quit,
 
 		key_down,
 		key_up,
 		key_pressed,
+		text_input,
 
 		mouse_button_down,
 		mouse_button_up,
@@ -108,12 +108,13 @@ class InputEvent {
 		mod_lalt = 8,
 	};
 
-	InputEvent() : m_type(invalid) {}
 	InputEvent(Type type);
 	InputEvent(Type key_type, int key, int iter);
 	InputEvent(Type mouse_type, InputButton::Type button);
+	InputEvent(wstring);
+
 	void init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
-	void translate(const int2 &offset);
+	void offset(const int2 &offset) { m_mouse_pos += offset; }
 
 	Type type() const { return m_type; }
 
@@ -127,41 +128,24 @@ class InputEvent {
 	bool keyPressed(int key) const;
 	bool keyDownAuto(int key, int period = 1, int delay = 12) const;
 
-	int key() const {
-		DASSERT(m_type != invalid);
-		return isKeyEvent() ? m_key : 0;
-	}
-	int keyUnicode() const {
-		DASSERT(m_type != invalid);
-		THROW("Add support for SDL text input");
-		return 0;
-	}
+	int key() const { return isKeyEvent() ? m_key : 0; }
+	const wstring &text() const { return m_text; }
 
 	bool mouseButtonDown(InputButton::Type) const;
 	bool mouseButtonUp(InputButton::Type) const;
 	bool mouseButtonPressed(InputButton::Type) const;
 
-	// These can be called for every valid event type
-	const int2 &mousePos() const {
-		DASSERT(m_type != invalid);
-		return m_mouse_pos;
-	}
-	const int2 &mouseMove() const {
-		DASSERT(m_type != invalid);
-		return m_mouse_move;
-	}
-	int mouseWheel() const {
-		DASSERT(m_type != invalid);
-		return (int)m_mouse_wheel;
-	}
+	const int2 &mousePos() const { return m_mouse_pos; }
+	const int2 &mouseMove() const { return m_mouse_move; }
+	int mouseWheel() const { return (int)m_mouse_wheel; }
 
 	bool hasModifier(Modifier modifier) const { return m_modifiers & modifier; }
 
   private:
+	wstring m_text;
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;
-	int m_key;
-	int m_iteration, m_modifiers;
+	int m_key, m_iteration, m_modifiers;
 	Type m_type;
 };
 
@@ -173,6 +157,7 @@ class InputState {
 	bool isKeyUp(int key) const;
 	bool isKeyPressed(int key) const;
 	bool isKeyDownAuto(int key, int period = 1, int delay = 12) const;
+	const wstring &text() const { return m_text; }
 
 	bool isMouseButtonDown(InputButton::Type) const;
 	bool isMouseButtonUp(InputButton::Type) const;
@@ -184,11 +169,12 @@ class InputState {
 
   private:
 	vector<InputEvent> pollEvents(const SDLKeyMap &);
+	friend class GfxDevice;
 
 	using KeyStatus = pair<int, int>;
 	vector<KeyStatus> m_keys;
+	wstring m_text;
 
-	friend class GfxDevice;
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;
 	int m_mouse_buttons[InputButton::count];

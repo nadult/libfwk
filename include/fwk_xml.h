@@ -244,6 +244,7 @@ class XMLNode {
 class XMLDocument {
   public:
 	XMLDocument();
+	XMLDocument(Stream &);
 	XMLDocument(XMLDocument &&);
 	~XMLDocument();
 	XMLDocument &operator=(XMLDocument &&);

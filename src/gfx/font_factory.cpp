@@ -18,8 +18,6 @@
 
 namespace fwk {
 
-int convertToWChar(StringRef str, PodArray<wchar_t> &out);
-
 class FontFactory::Impl {
   public:
 	FT_Library library;
@@ -117,13 +115,12 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	if(FT_Set_Pixel_Sizes(face, 0, size) != 0)
 		THROW("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
 
-	PodArray<wchar_t> ansi_charset;
+	wstring ansi_charset;
 	{
 		vector<char> chars;
 		for(char c = 32; c < 127; c++)
 			chars.emplace_back(c);
-		ansi_charset.resize(chars.size());
-		convertToWChar(StringRef(chars.data(), chars.size()), ansi_charset);
+		ansi_charset = toWideString(string(begin(chars), end(chars)));
 	}
 
 	vector<pair<FontCore::Glyph, Texture>> glyphs;

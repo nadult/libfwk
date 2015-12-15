@@ -70,6 +70,10 @@ XMLNode XMLNode::sibling(const char *name) const {
 XMLNode XMLNode::child(const char *name) const { return XMLNode(m_ptr->first_node(name), m_doc); }
 
 XMLDocument::XMLDocument() : m_ptr(make_unique<xml_document<>>()) {}
+XMLDocument::XMLDocument(Stream &stream) :XMLDocument() {
+	stream >> *this;
+}
+
 XMLDocument::XMLDocument(XMLDocument &&) = default;
 XMLDocument::~XMLDocument() = default;
 XMLDocument &XMLDocument::operator=(XMLDocument &&) = default;
