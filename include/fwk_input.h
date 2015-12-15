@@ -93,7 +93,7 @@ class InputEvent {
 		key_down,
 		key_up,
 		key_pressed,
-		text_input,
+		key_char,
 
 		mouse_button_down,
 		mouse_button_up,
@@ -111,7 +111,7 @@ class InputEvent {
 	InputEvent(Type type);
 	InputEvent(Type key_type, int key, int iter);
 	InputEvent(Type mouse_type, InputButton::Type button);
-	InputEvent(wstring);
+	InputEvent(wchar_t);
 
 	void init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
 	void offset(const int2 &offset) { m_mouse_pos += offset; }
@@ -129,7 +129,7 @@ class InputEvent {
 	bool keyDownAuto(int key, int period = 1, int delay = 12) const;
 
 	int key() const { return isKeyEvent() ? m_key : 0; }
-	const wstring &text() const { return m_text; }
+	wchar_t keyChar() const { return m_char; }
 
 	bool mouseButtonDown(InputButton::Type) const;
 	bool mouseButtonUp(InputButton::Type) const;
@@ -142,7 +142,7 @@ class InputEvent {
 	bool hasModifier(Modifier modifier) const { return m_modifiers & modifier; }
 
   private:
-	wstring m_text;
+	wchar_t m_char;
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;
 	int m_key, m_iteration, m_modifiers;

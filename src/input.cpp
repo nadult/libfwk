@@ -58,21 +58,21 @@ int SDLKeyMap::from(int key_code) const {
 	return it == m_inv_map.end() ? -1 : it->second;
 }
 
-InputEvent::InputEvent(Type type) : m_type(type) {
+InputEvent::InputEvent(Type type) : m_char(0), m_type(type) {
 	DASSERT(m_type == mouse_over || (!isKeyEvent() && !isMouseEvent()));
 }
 
 InputEvent::InputEvent(Type key_type, int key, int iter)
-	: m_key(key), m_iteration(iter), m_type(key_type) {
+	: m_char(0), m_key(key), m_iteration(iter), m_type(key_type) {
 	DASSERT(isKeyEvent());
 }
 
 InputEvent::InputEvent(Type mouse_type, InputButton::Type button)
-	: m_key(button), m_type(mouse_type) {
+	: m_char(0), m_key(button), m_type(mouse_type) {
 	DASSERT(isMouseEvent());
 }
 
-InputEvent::InputEvent(wstring text) : m_text(std::move(text)), m_type(text_input) {}
+InputEvent::InputEvent(wchar_t kchar) : m_char(kchar), m_type(key_char) {}
 
 void InputEvent::init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel) {
 	m_mouse_pos = mouse_pos;
@@ -205,7 +205,8 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 			auto text = toWideString(string(event.text.text, event.text.text + len), false);
 			if(!text.empty()) {
 				m_text += text;
-				events.emplace_back(text);
+				for(auto ch : text)
+					events.emplace_back(ch);
 			}
 			break;
 		}
