@@ -50,12 +50,6 @@ const float3 operator*(const Matrix3 &lhs, const float3 &rhs) {
 	return float3(dot(lhs.row(0), rhs), dot(lhs.row(1), rhs), dot(lhs.row(2), rhs));
 }
 
-bool operator==(const Matrix3 &lhs, const Matrix3 &rhs) {
-	return lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2];
-}
-
-bool operator!=(const Matrix3 &lhs, const Matrix3 &rhs) { return !(lhs == rhs); }
-
 const Matrix3 rotation(const float3 &axis, float radians) {
 	float cos = cosf(radians), sin = sinf(radians);
 	float oneMinusCos = 1.0f - cos;

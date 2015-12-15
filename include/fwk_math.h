@@ -528,6 +528,7 @@ const Box<float3> rotateY(const Box<float3> &box, const float3 &origin, float an
 
 bool areOverlapping(const Box<float3> &a, const Box<float3> &b);
 bool areOverlapping(const Box<int3> &a, const Box<int3> &b);
+float distance(const Box<float3> &a, const Box<float3> &b);
 
 typedef Rect<int2> IRect;
 typedef Rect<float2> FRect;
@@ -563,7 +564,9 @@ class Matrix3 {
 	float3 v[3];
 };
 
-bool operator==(const Matrix3 &lhs, const Matrix3 &rhs);
+inline bool operator==(const Matrix3 &lhs, const Matrix3 &rhs) {
+	return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
+}
 
 const Matrix3 transpose(const Matrix3 &);
 
@@ -621,7 +624,9 @@ class Matrix4 {
 	float4 v[4];
 };
 
-bool operator==(const Matrix4 &lhs, const Matrix4 &rhs);
+inline bool operator==(const Matrix4 &lhs, const Matrix4 &rhs) {
+	return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
+}
 
 const Matrix4 operator*(const Matrix4 &, const Matrix4 &);
 const float4 operator*(const Matrix4 &, const float4 &);
@@ -786,9 +791,13 @@ float distance(const Triangle2D &, const float2 &point);
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 class Plane {
   public:
-	Plane() {}
-	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {}
-	Plane(const float3 &normal, const float3 &point) : m_nrm(normal), m_dist(dot(point, normal)) {}
+	Plane() : m_nrm(0, 0, 1), m_dist(0) {}
+	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {
+		DASSERT(isNormalized(normal));
+	}
+	Plane(const float3 &normal, const float3 &point) : m_nrm(normal), m_dist(dot(point, normal)) {
+		DASSERT(isNormalized(normal));
+	}
 
 	// TODO: should triangle be CW or CCW?
 	explicit Plane(const Triangle &);
@@ -1049,7 +1058,7 @@ class Frustum {
 		planes_count,
 	};
 
-	Frustum() {}
+	Frustum() = default;
 	Frustum(const Matrix4 &view_projection);
 	Frustum(CRange<Plane, planes_count>);
 

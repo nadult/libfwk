@@ -71,6 +71,14 @@ Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_a
 		   translation(-look_at.x, -look_at.y, 0.0f);
 }
 
+void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<Color, 4> colors,
+							   const SimpleMaterial &material) {
+	float2 pos[4], tex_coords[4];
+	rect.getCorners(pos);
+	tex_rect.getCorners(tex_coords);
+	addQuads(pos, tex_coords, colors, material);
+}
+
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect,
 							   const SimpleMaterial &material) {
 	float2 pos[4], tex_coords[4];
@@ -91,6 +99,15 @@ void Renderer2D::addRect(const FRect &rect, Color color) {
 	for(int i = 0; i < num_indices; i++)
 		m_indices.emplace_back(vertex_offset + indices[i]);
 	elem.num_indices += num_indices;
+}
+
+void Renderer2D::addLine(const float2 &p1, const float2 &p2, Color color) {
+	Element &elem = makeElement(PrimitiveType::lines, PTexture());
+	int vertex_offset = (int)m_positions.size();
+	appendVertices({p1, p2}, {}, {}, color);
+
+	insertBack(m_indices, {vertex_offset, vertex_offset + 1});
+	elem.num_indices += 2;
 }
 
 Renderer2D::Element &Renderer2D::makeElement(PrimitiveType::Type primitive_type,
@@ -220,8 +237,14 @@ void Renderer2D::render() {
 				glDisable(GL_SCISSOR_TEST);
 			else if(prev_scissor_rect == -1)
 				glEnable(GL_SCISSOR_TEST);
-			const auto &rect = m_scissor_rects[element.scissor_rect_id];
-			glScissor(rect.min.x, m_viewport.height() - rect.max.y, rect.width(), rect.height());
+
+			if(element.scissor_rect_id != -1) {
+				IRect rect = m_scissor_rects[element.scissor_rect_id];
+				int min_y = m_viewport.height() - rect.max.y;
+				rect = IRect(rect.min.x, max(0, min_y), rect.max.x, min_y + rect.height());
+				glScissor(rect.min.x, rect.min.y, rect.width(), rect.height());
+			}
+
 			prev_scissor_rect = element.scissor_rect_id;
 		}
 

@@ -70,12 +70,6 @@ const float3 mulNormalAffine(const Matrix4 &affine_mat, const float3 &nrm) {
 				  dot(affine_mat.row(2).xyz(), nrm));
 }
 
-bool operator==(const Matrix4 &lhs, const Matrix4 &rhs) {
-	return lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2] && lhs[3] == rhs[3];
-}
-
-bool operator!=(const Matrix4 &lhs, const Matrix4 &rhs) { return !(lhs == rhs); }
-
 const Matrix4 transpose(const float4 &a, const float4 &b, const float4 &c, const float4 &d) {
 	return Matrix4({a[0], b[0], c[0], d[0]}, {a[1], b[1], c[1], d[1]}, {a[2], b[2], c[2], d[2]},
 				   {a[3], b[3], c[3], d[3]});

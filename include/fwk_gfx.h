@@ -1597,6 +1597,8 @@ class Renderer2D : public MatrixStack {
 
 	void render();
 
+	void addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<Color, 4> colors,
+					   const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const SimpleMaterial &mat) {
 		addFilledRect(rect, FRect(0, 0, 1, 1), mat);
@@ -1606,6 +1608,12 @@ class Renderer2D : public MatrixStack {
 	}
 
 	void addRect(const FRect &rect, Color color);
+	void addRect(const IRect &rect, Color color) { addRect(FRect(rect), color); }
+
+	void addLine(const float2 &p1, const float2 &p2, Color color);
+	void addLine(const int2 &p1, const int2 &p2, Color color) {
+		addLine(float2(p1), float2(p2), color);
+	}
 
 	struct Element {
 		Matrix4 matrix;

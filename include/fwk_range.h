@@ -81,13 +81,13 @@ template <class T, int min_size = 0> class Range {
 	}
 	template <int other_size>
 	Range(Range<T, other_size> range)
-		: m_data(range.m_data), m_size(range.m_size) {
+		: m_data(range.data()), m_size(range.size()) {
 		static_assert(other_size >= min_size, "Range too small");
 	}
 	template <class U = T>
 	Range(const Range<value_type, min_size> &range,
 		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)
-		: m_data(range.m_data), m_size(range.m_size) {}
+		: m_data(range.data()), m_size(range.size()) {}
 	template <class U = T>
 	Range(const std::initializer_list<T> &list,
 		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)

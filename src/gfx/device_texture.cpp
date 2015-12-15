@@ -9,7 +9,7 @@ namespace fwk {
 
 DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
-	DASSERT(size.x >= 1 && size.y >= 1);
+	DASSERT(size.x >= 0 && size.y >= 0);
 
 	try {
 		glGenTextures(1, &m_id);

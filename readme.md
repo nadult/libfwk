@@ -10,6 +10,7 @@ TODO: write more detailed description.
 ## Features
 
 Supported platforms: linux, windows (using mingw), browser (using emscripten)
+
 TODO: write me
 
 ## Compilation

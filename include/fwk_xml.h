@@ -80,6 +80,8 @@ namespace xml_conversions {
 		template <> void toString(const int4 &value, TextFormatter &out);
 		template <> void toString(const uint &value, TextFormatter &out);
 		template <> void toString(const long long &value, TextFormatter &out);
+		template <> void toString(const unsigned long long &value, TextFormatter &out);
+		template <> void toString(const size_t &value, TextFormatter &out);
 		template <> void toString(const float &value, TextFormatter &out);
 		template <> void toString(const float2 &value, TextFormatter &out);
 		template <> void toString(const float3 &value, TextFormatter &out);

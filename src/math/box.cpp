@@ -118,6 +118,12 @@ array<pair<float3, float3>, 12> edges(const FBox &box) {
 	return out;
 }
 
+float distance(const Box<float3> &a, const Box<float3> &b) {
+	float3 p1 = clamp(b.center(), a.min, a.max);
+	float3 p2 = clamp(p1, b.min, b.max);
+	return distance(p1, p2);
+}
+
 template struct Box<int3>;
 template struct Box<float3>;
 }

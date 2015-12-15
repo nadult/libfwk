@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+#include "fwk_xml.h"
 
 #ifdef CGAL_ENABLED
 #include <CGAL/Simple_cartesian.h>
@@ -68,8 +69,7 @@ bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
 
 	try {
 		return CGAL::do_intersect(tet, tri);
-	} catch(...) {
-	}
+	} catch(...) {}
 
 	return true;
 }
@@ -112,6 +112,7 @@ Tetrahedron fixVolume(const Tetrahedron &tet) {
 bool areIntersecting(const Tetrahedron &a, const Tetrahedron &b) { return satTest(a, b); }
 
 bool areIntersecting(const Tetrahedron &tet, const FBox &box) {
+	xmlPrint("% : % %\n", tet.verts(), box.min, box.max);
 	return areOverlapping(FBox(verts(tet)), box) && satTest(tet, box);
 }
 }

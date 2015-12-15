@@ -95,6 +95,7 @@ void TextParser::parseFloats(Range<float> out) { parseMultiple(&m_current, out, 
 void TextParser::parseUints(Range<uint> out) { parseMultiple(&m_current, out, strtoul, "uint"); }
 
 void TextParser::parseStrings(Range<string> out) {
+	// TODO: what if we have empty string on input?
 	const char *iptr = m_current;
 	int count = 0;
 
