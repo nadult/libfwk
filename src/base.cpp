@@ -281,7 +281,7 @@ string format(const char *format, ...) {
 string simpleFormat(const char *format, const vector<string> &args) {
 	TextFormatter out;
 
-	DASSERT(std::count(format, format + strlen(format), '%') == args.size());
+	DASSERT(std::count(format, format + strlen(format), '%') == (int)args.size());
 	size_t arg_id = 0;
 	for(const char *c = format; *c; c++) {
 		if(*c == '%') {

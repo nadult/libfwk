@@ -54,8 +54,8 @@ MINGW_STRIP=$(MINGW_PREFIX)strip
 MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-LIBS=freetype2 sdl2 libpng zlib libmpg123 vorbisfile
-LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lcork -lgmp -lmpfr -lboost_thread -lboost_system -lopenal -lGL -lGLU -lrt -fopenmp
+LIBS=freetype2 sdl2 libpng vorbisfile
+LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt -fopenmp
 MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
 
 INCLUDES=-Iinclude/ -Isrc/

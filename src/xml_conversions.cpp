@@ -140,9 +140,6 @@ namespace xml_conversions {
 		template <> void toString(const unsigned long long &value, TextFormatter &out) {
 			out("%llu", value);
 		}
-		template <> void toString(const size_t &value, TextFormatter &out) {
-			out("%llu", (unsigned long long)value);
-		}
 
 		static void toStringFloat(CRange<float> in, TextFormatter &out) {
 			for(int n = 0; n < in.size(); n++) {

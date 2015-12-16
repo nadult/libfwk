@@ -6,7 +6,10 @@
 #include "fwk_xml.h"
 #include <algorithm>
 #include <limits>
+
+#ifdef CORK_ENABLED
 #include <cork.h>
+#endif
 
 namespace fwk {
 
@@ -283,6 +286,7 @@ float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
 	return min_isect;
 }
 
+#ifdef CORK_ENABLED
 namespace {
 
 	// TODO: make it exception safe...
@@ -312,8 +316,10 @@ namespace {
 					{vector<uint>(mesh.triangles, mesh.triangles + mesh.n_triangles * 3)}};
 	}
 }
+#endif
 
 Mesh Mesh::csgCork(Mesh mesh1, Mesh mesh2, CSGMode mode) {
+#ifdef CORK_ENABLED
 	double time = getTime();
 	CorkTriMesh cmesh1 = toCork(mesh1);
 	CorkTriMesh cmesh2 = toCork(mesh2);
@@ -339,7 +345,7 @@ Mesh Mesh::csgCork(Mesh mesh1, Mesh mesh2, CSGMode mode) {
 	freeCorkTriMesh(&cout);
 	freeCorkTriMesh(&cmesh1);
 	freeCorkTriMesh(&cmesh2);
-
+#endif
 	return {};
 }
 }

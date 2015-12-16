@@ -57,7 +57,9 @@ DynamicMesh DynamicMesh::extract(CRange<PolyId> selection) const {
 	for(int n = 0; n < (int)used_verts.size(); n++)
 		vert_map[used_verts[n].id] = n;
 
-	auto out_verts = transform(used_verts, [this](auto id) { return point(id); });
+	vector<float3> out_verts;
+	for(auto id : used_verts)
+		out_verts.emplace_back(point(id));
 	vector<vector<uint>> out_polys;
 	for(auto poly : selection)
 		out_polys.emplace_back(

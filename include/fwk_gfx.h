@@ -1634,6 +1634,7 @@ class Renderer2D : public MatrixStack {
 	void disableScissorRect();
 
 	void clear();
+	const IRect &viewport() const { return m_viewport; }
 
   private:
 	Element &makeElement(PrimitiveType::Type, shared_ptr<const DTexture>);

@@ -71,6 +71,19 @@ Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_a
 		   translation(-look_at.x, -look_at.y, 0.0f);
 }
 
+Renderer2D::Element &Renderer2D::makeElement(PrimitiveType::Type primitive_type,
+											 shared_ptr<const DTexture> texture) {
+	// TODO: merging won't work for triangle strip (have to add some more indices)
+
+	if(m_elements.empty() || m_elements.back().primitive_type != primitive_type ||
+	   m_elements.back().texture != texture || fullMatrix() != m_elements.back().matrix ||
+	   m_current_scissor_rect != m_elements.back().scissor_rect_id)
+		m_elements.emplace_back(Element{fullMatrix(), std::move(texture), (int)m_indices.size(), 0,
+										m_current_scissor_rect, primitive_type});
+	return m_elements.back();
+}
+
+
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<Color, 4> colors,
 							   const SimpleMaterial &material) {
 	float2 pos[4], tex_coords[4];
@@ -108,17 +121,6 @@ void Renderer2D::addLine(const float2 &p1, const float2 &p2, Color color) {
 
 	insertBack(m_indices, {vertex_offset, vertex_offset + 1});
 	elem.num_indices += 2;
-}
-
-Renderer2D::Element &Renderer2D::makeElement(PrimitiveType::Type primitive_type,
-											 shared_ptr<const DTexture> texture) {
-	// TODO: merging won't work for triangle strip (have to add some more indices)
-
-	if(m_elements.empty() || m_elements.back().primitive_type != primitive_type ||
-	   m_elements.back().texture != texture || fullMatrix() != m_elements.back().matrix)
-		m_elements.emplace_back(Element{fullMatrix(), std::move(texture), (int)m_indices.size(), 0,
-										m_current_scissor_rect, primitive_type});
-	return m_elements.back();
 }
 
 void Renderer2D::appendVertices(CRange<float2> positions, CRange<float2> tex_coords,
