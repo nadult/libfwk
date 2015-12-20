@@ -792,12 +792,8 @@ float distance(const Triangle2D &, const float2 &point);
 class Plane {
   public:
 	Plane() : m_nrm(0, 0, 1), m_dist(0) {}
-	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {
-		DASSERT(isNormalized(normal));
-	}
-	Plane(const float3 &normal, const float3 &point) : m_nrm(normal), m_dist(dot(point, normal)) {
-		DASSERT(isNormalized(normal));
-	}
+	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {}
+	Plane(const float3 &normal, const float3 &point) : m_nrm(normal), m_dist(dot(point, normal)) {}
 
 	// TODO: should triangle be CW or CCW?
 	explicit Plane(const Triangle &);
