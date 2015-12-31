@@ -183,12 +183,12 @@ Font::Font(PFontCore core, PTexture texture) : m_core(core), m_texture(texture) 
 	DASSERT(m_texture->size() == m_core->m_texture_size);
 }
 
-FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style, const wstring &text) const {
+FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
+				 const wstring &text) const {
 	float2 pos = rect.min;
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
-		FRect extents = (FRect)m_core->evalExtents(text);
+		FRect extents = (FRect)m_core->evalExtents(text, true);
 		float2 center = rect.center() - extents.center();
-		// TODO: Better vertical alignment
 
 		pos.x = style.halign == HAlign::left ? rect.min.x : style.halign == HAlign::center
 																? center.x

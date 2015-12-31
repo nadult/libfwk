@@ -1,6 +1,8 @@
 - Implement Cork based CSG for comparison
 - Fix satTest (when edges from two objects are the same, you will get 0 normals)
 
+- Add template operator== and operator< for classes which implement method: tuple<...> tied() const
+
 - VSYNC under windows
 - Fix problem in Cache when get_immutable_ptr() return null
 - input key tab doesnt work
