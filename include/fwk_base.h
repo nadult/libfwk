@@ -443,6 +443,29 @@ string fromWideString(const wstring &, bool throw_on_invalid = true);
 int enumFromString(const char *str, const char **enum_strings, int enum_strings_count,
 				   bool throw_on_invalid);
 
+template <class Type, int min, int max> class EnumRange {
+  public:
+	class Iter {
+	  public:
+		Iter(int pos) : pos(pos) {}
+
+		auto operator*() const { return Type(pos); }
+		const Iter &operator++() {
+			pos++;
+			return *this;
+		}
+
+		bool operator<(const Iter &rhs) const { return pos < rhs.pos; }
+		bool operator==(const Iter &rhs) const { return pos == rhs.pos; }
+
+	  private:
+		int pos;
+	};
+
+	auto begin() const { return Iter(min); }
+	auto end() const { return Iter(max); }
+};
+
 // See test/enums.cpp for example usage
 #define DECLARE_ENUM(type, ...)                                                                    \
 	namespace type {                                                                               \
@@ -450,6 +473,7 @@ int enumFromString(const char *str, const char **enum_strings, int enum_strings_
 		const char *toString(int, const char *on_invalid = nullptr);                               \
 		Type fromString(const char *, bool throw_on_invalid = true);                               \
 		inline constexpr bool isValid(int val) { return val >= 0 && val < count; }                 \
+		inline constexpr auto all() { return EnumRange<Type, 0, count>(); }                        \
 	}
 
 #define DEFINE_ENUM(type, ...)                                                                     \

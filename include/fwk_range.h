@@ -138,7 +138,7 @@ template <class Container> auto makeRange(const Container &container) {
 	return CRange<type>(container.data(), container.size());
 }
 
-template <class T> auto makeRange(const std::initializer_list<T> &list) {
+template <class T> auto makeRange(std::initializer_list<T> list) {
 	return CRange<T>(list.begin(), list.end());
 }
 
