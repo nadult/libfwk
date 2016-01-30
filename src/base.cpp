@@ -40,7 +40,9 @@ void *SimpleAllocatorBase::allocateBytes(size_t count) noexcept {
 		try {
 			string text = bt.analyze(false);
 			printf("%s\n", text.c_str());
-		} catch(const Exception &ex) { printf("Failed:\n%s\n", ex.what()); }
+		} catch(const Exception &ex) {
+			printf("Failed:\n%s\n", ex.what());
+		}
 		exit(1);
 	}
 
@@ -238,16 +240,16 @@ const char *strcasestr(const char *a, const char *b) {
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
-int enumFromString(const char *str, const char **strings, int count, bool throw_on_invalid) {
+int enumFromString(const char *str, CRange<const char *> strings, bool throw_on_invalid) {
 	DASSERT(str);
-	for(int n = 0; n < count; n++)
+	for(int n = 0; n < strings.size(); n++)
 		if(strcmp(str, strings[n]) == 0)
 			return n;
 
 	if(throw_on_invalid) {
 		TextFormatter all_strings;
-		for(int i = 0; i < count; i++)
-			all_strings("%s%s", strings[i], i + 1 < count ? " " : "");
+		for(int i = 0; i < strings.size(); i++)
+			all_strings("%s%s", strings[i], i + 1 < strings.size() ? " " : "");
 		THROW("Error when parsing enum: couldn't match \"%s\" to (%s)", str, all_strings.text());
 	}
 
@@ -287,7 +289,9 @@ string simpleFormat(const char *format, const vector<string> &args) {
 		if(*c == '%') {
 			out("%s", arg_id >= args.size() ? "" : args[arg_id].c_str());
 			arg_id++;
-		} else { out("%c", *c); }
+		} else {
+			out("%c", *c);
+		}
 	}
 
 	return out.text();

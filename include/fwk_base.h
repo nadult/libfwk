@@ -17,6 +17,19 @@
 #include <algorithm>
 #include <atomic>
 
+#ifndef BOOST_PP_VARIADICS
+#define BOOST_PP_VARIADICS 1
+#endif
+
+#if !BOOST_PP_VARIADICS
+#error FWK requires BOOST_PP_VARIADICS == 1
+#endif
+
+#include <boost/preprocessor/list/to_tuple.hpp>
+#include <boost/preprocessor/variadic/to_list.hpp>
+
+#include <boost/optional.hpp>
+
 namespace fwk {
 
 using std::array;
@@ -32,6 +45,8 @@ using std::end;
 using std::make_pair;
 using std::make_shared;
 using std::make_unique;
+using boost::optional;
+using boost::none;
 
 // TODO: use types from cstdint
 using uint = unsigned int;
@@ -253,8 +268,25 @@ class Exception : public std::exception {
 	Backtrace m_backtrace;
 };
 
-#define FWK_STRINGIZE(something) FWK_STRINGIZE_(something)
-#define FWK_STRINGIZE_(something) #something
+#define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
+#define FWK_STRINGIZE_(...) #__VA_ARGS__
+
+#define FWK_UNLIST_(...) __VA_ARGS__
+#define FWK_UNLIST(...) FWK_UNLIST_ __VA_ARGS__
+
+#define FWK_STRINGIZE_OP_(r, data, elem) FWK_STRINGIZE(elem)
+#define FWK_STRINGIZE_LIST(...)                                                                    \
+	FWK_UNLIST(BOOST_PP_LIST_TO_TUPLE(                                                             \
+		BOOST_PP_LIST_TRANSFORM(FWK_STRINGIZE_OP_, _, BOOST_PP_VARIADIC_TO_LIST(__VA_ARGS__))))
+
+template <class... Args> auto countArguments(Args... args) {
+	struct Info {
+		enum { value = sizeof...(Args) };
+	};
+	return Info();
+}
+
+#define COUNT_ARGUMENTS(...) decltype(countArguments(__VA_ARGS__))::value
 
 #ifdef __clang__
 __attribute__((__format__(__printf__, 3, 4)))
@@ -440,8 +472,7 @@ inline bool caseLess(const StringRef a, const StringRef b) { return a.caseCompar
 wstring toWideString(StringRef, bool throw_on_invalid = true);
 string fromWideString(const wstring &, bool throw_on_invalid = true);
 
-int enumFromString(const char *str, const char **enum_strings, int enum_strings_count,
-				   bool throw_on_invalid);
+int enumFromString(const char *str, CRange<const char *> enum_strings, bool throw_on_invalid);
 
 template <class Type, int min, int max> class EnumRange {
   public:
@@ -466,7 +497,78 @@ template <class Type, int min, int max> class EnumRange {
 	auto end() const { return Iter(max); }
 };
 
-// See test/enums.cpp for example usage
+struct EnumWithStringsTrait {};
+
+template <class T> struct IsEnumWithStrings {
+	enum { value = std::is_base_of<EnumWithStringsTrait, T>::value };
+};
+
+template <class T>
+static auto fromString(const char *str) ->
+	typename std::enable_if<IsEnumWithStrings<T>::value, optional<T>>::type {
+	int ret = fwk::enumFromString(str, T::strings(), false);
+	if(ret == -1)
+		return none;
+	return T(ret);
+}
+
+template <class T>
+static auto fromString(const string &str) ->
+	typename std::enable_if<IsEnumWithStrings<T>::value, optional<T>>::type {
+	return fromString<T>(str.c_str());
+}
+
+// Safe enum class
+// Initially initializes to 0 (first element). Converts to int, can be easily used as
+// an index into some array. Full version (as opposed to simple) adds conversion to/from
+// strings, which are automatically generated from enum names. Enum with strings cannot be defined
+// at function scope. Some examples are available in src/test/enums.cpp.
+#define ENUM_SIMPLE(type, ...)                                                                     \
+	class type {                                                                                   \
+	  public:                                                                                      \
+		enum Enum { __VA_ARGS__ };                                                                 \
+		enum { count = COUNT_ARGUMENTS(__VA_ARGS__) };                                             \
+                                                                                                   \
+		type() : m_value((Enum)0) {}                                                               \
+		type(Enum value) : m_value(value) {}                                                       \
+		explicit type(int value) : m_value((Enum)value) { DASSERT(value >= 0 && value < count); }  \
+                                                                                                   \
+		operator int() const { return (int)m_value; }                                              \
+		static auto all() { return EnumRange<type, 0, count>(); }                                  \
+                                                                                                   \
+	  private:                                                                                     \
+		Enum m_value;                                                                              \
+	};
+
+#define ENUM(type, ...)                                                                            \
+	class type : public EnumWithStringsTrait {                                                     \
+	  public:                                                                                      \
+		enum Enum { __VA_ARGS__ };                                                                 \
+		enum { count = COUNT_ARGUMENTS(__VA_ARGS__) };                                             \
+		static auto strings() {                                                                    \
+			static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};              \
+			static_assert(arraySize(s_strings) == count,                                           \
+						  "Invalid number of strings specified for enum " #type);                  \
+			return CRange<const char *>(s_strings, count);                                         \
+		}                                                                                          \
+                                                                                                   \
+		type() : m_value((Enum)0) {}                                                               \
+		type(Enum value) : m_value(value) {}                                                       \
+		explicit type(const char *str) : type(fwk::enumFromString(str, strings(), true)) {}        \
+		explicit type(const string &str) : type(str.c_str()) {}                                    \
+		explicit type(int value) : m_value((Enum)value) { DASSERT(value >= 0 && value < count); }  \
+                                                                                                   \
+		operator int() const { return (int)m_value; }                                              \
+		explicit operator const char *() const { return strings()[m_value]; }                      \
+		explicit operator string() const { return strings()[m_value]; }                            \
+                                                                                                   \
+		static auto all() { return EnumRange<type, 0, count>(); }                                  \
+                                                                                                   \
+	  private:                                                                                     \
+		Enum m_value;                                                                              \
+	};                                                                                             \
+	inline const char *toString(type value) { return value.operator const char *(); }
+
 #define DECLARE_ENUM(type, ...)                                                                    \
 	namespace type {                                                                               \
 		enum Type : char { invalid = -1, __VA_ARGS__, count };                                     \
@@ -484,7 +586,8 @@ template <class Type, int min, int max> class EnumRange {
 			return !isValid(value) ? on_invalid : s_strings[value];                                \
 		}                                                                                          \
 		Type fromString(const char *str, bool throw_on_invalid) {                                  \
-			return (Type)fwk::enumFromString(str, s_strings, count, throw_on_invalid);             \
+			return (Type)fwk::enumFromString(str, CRange<const char *>(s_strings, count),          \
+											 throw_on_invalid);                                    \
 		}                                                                                          \
 	}
 
@@ -584,12 +687,16 @@ class Stream {
 		static void doLoad(T &obj, Stream &sr) {
 			try {
 				obj.load(sr);
-			} catch(const Exception &ex) { sr.handleException(ex); }
+			} catch(const Exception &ex) {
+				sr.handleException(ex);
+			}
 		}
 		static void doSave(const T &obj, Stream &sr) {
 			try {
 				obj.save(sr);
-			} catch(const Exception &ex) { sr.handleException(ex); }
+			} catch(const Exception &ex) {
+				sr.handleException(ex);
+			}
 		}
 	};
 
@@ -671,7 +778,9 @@ template <class T> void loadFromStream(vector<T> &v, Stream &sr) {
 	sr.loadData(&size, sizeof(size));
 	try {
 		v.resize(size);
-	} catch(Exception &ex) { sr.handleException(ex); }
+	} catch(Exception &ex) {
+		sr.handleException(ex);
+	}
 
 	if(SerializeAsPod<T>::value)
 		sr.loadData(&v[0], sizeof(T) * size);
