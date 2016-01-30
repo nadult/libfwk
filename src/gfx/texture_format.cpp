@@ -8,9 +8,6 @@
 
 namespace fwk {
 
-DEFINE_ENUM(TextureFormatId, "rgba", "rgba_f16", "rgba_f32", "rgb", "rgb_f16", "rgb_f32",
-			"luminance", "dxt1", "dxt3", "dxt5", "depth", "depth_stencil");
-
 enum class DDSId {
 	Unknown = 0,
 
@@ -68,7 +65,7 @@ enum class DDSId {
 	A32B32G32R32F = 116,
 };
 
-using Id = TextureFormatId::Type;
+using Id = TextureFormatId;
 
 namespace {
 	struct FormatDesc {

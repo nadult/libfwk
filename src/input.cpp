@@ -67,7 +67,7 @@ InputEvent::InputEvent(Type key_type, int key, int iter)
 	DASSERT(isKeyEvent());
 }
 
-InputEvent::InputEvent(Type mouse_type, InputButton::Type button)
+InputEvent::InputEvent(Type mouse_type, InputButton button)
 	: m_char(0), m_key(button), m_type(mouse_type) {
 	DASSERT(isMouseEvent());
 }
@@ -94,15 +94,15 @@ bool InputEvent::keyDownAuto(int key, int period, int delay) const {
 		   (m_iteration - delay) % period == 0;
 }
 
-bool InputEvent::mouseButtonDown(InputButton::Type key) const {
+bool InputEvent::mouseButtonDown(InputButton key) const {
 	return m_type == mouse_button_down && m_key == key;
 }
 
-bool InputEvent::mouseButtonUp(InputButton::Type key) const {
+bool InputEvent::mouseButtonUp(InputButton key) const {
 	return m_type == mouse_button_up && m_key == key;
 }
 
-bool InputEvent::mouseButtonPressed(InputButton::Type key) const {
+bool InputEvent::mouseButtonPressed(InputButton key) const {
 	return m_type == mouse_button_pressed && m_key == key;
 }
 
@@ -139,20 +139,9 @@ bool InputState::isKeyDownAuto(int key, int period, int delay) const {
 	return false;
 }
 
-bool InputState::isMouseButtonDown(InputButton::Type key) const {
-	DASSERT(InputButton::isValid(key));
-	return m_mouse_buttons[key] == 1;
-}
-
-bool InputState::isMouseButtonUp(InputButton::Type key) const {
-	DASSERT(InputButton::isValid(key));
-	return m_mouse_buttons[key] == -1;
-}
-
-bool InputState::isMouseButtonPressed(InputButton::Type key) const {
-	DASSERT(InputButton::isValid(key));
-	return m_mouse_buttons[key] == 2;
-}
+bool InputState::isMouseButtonDown(InputButton key) const { return m_mouse_buttons[key] == 1; }
+bool InputState::isMouseButtonUp(InputButton key) const { return m_mouse_buttons[key] == -1; }
+bool InputState::isMouseButtonPressed(InputButton key) const { return m_mouse_buttons[key] == 2; }
 
 vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 	vector<InputEvent> events;
@@ -167,11 +156,10 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 				key_state.second++;
 
 		m_keys.resize(std::remove_if(m_keys.begin(), m_keys.end(), [](const pair<int, int> &state) {
-			return state.second == -1;
-		}) - m_keys.begin());
+						  return state.second == -1;
+					  }) - m_keys.begin());
 
-		for(int n = 0; n < InputButton::count; n++) {
-			auto &state = m_mouse_buttons[n];
+		for(auto &state : m_mouse_buttons) {
 			if(state == 1)
 				state = 2;
 			else if(state == -1)
@@ -239,7 +227,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 				m_mouse_buttons[button_id] = is_down ? 1 : -1;
 				events.emplace_back(is_down ? InputEvent::mouse_button_down
 											: InputEvent::mouse_button_up,
-									InputButton::Type(button_id));
+									InputButton(button_id));
 			}
 			break;
 		}
@@ -266,9 +254,9 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 		}
 	}
 
-	for(int n = 0; n < InputButton::count; n++)
-		if(m_mouse_buttons[n] == 2)
-			events.emplace_back(InputEvent::mouse_button_pressed, InputButton::Type(n));
+	for(auto button : all<InputButton>())
+		if(m_mouse_buttons[button] == 2)
+			events.emplace_back(InputEvent::mouse_button_pressed, button);
 	events.emplace_back(InputEvent::mouse_over);
 
 	for(auto &event : events)

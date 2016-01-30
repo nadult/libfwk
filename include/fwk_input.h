@@ -83,7 +83,7 @@ namespace InputKey {
 	};
 }
 
-DECLARE_ENUM(InputButton, left, right, middle);
+DEFINE_ENUM(InputButton, left, right, middle);
 
 class InputEvent {
   public:
@@ -110,7 +110,7 @@ class InputEvent {
 
 	InputEvent(Type type);
 	InputEvent(Type key_type, int key, int iter);
-	InputEvent(Type mouse_type, InputButton::Type button);
+	InputEvent(Type mouse_type, InputButton button);
 	InputEvent(wchar_t);
 
 	void init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
@@ -131,9 +131,9 @@ class InputEvent {
 	int key() const { return isKeyEvent() ? m_key : 0; }
 	wchar_t keyChar() const { return m_char; }
 
-	bool mouseButtonDown(InputButton::Type) const;
-	bool mouseButtonUp(InputButton::Type) const;
-	bool mouseButtonPressed(InputButton::Type) const;
+	bool mouseButtonDown(InputButton) const;
+	bool mouseButtonUp(InputButton) const;
+	bool mouseButtonPressed(InputButton) const;
 
 	const int2 &mousePos() const { return m_mouse_pos; }
 	const int2 &mouseMove() const { return m_mouse_move; }
@@ -159,9 +159,9 @@ class InputState {
 	bool isKeyDownAuto(int key, int period = 1, int delay = 12) const;
 	const wstring &text() const { return m_text; }
 
-	bool isMouseButtonDown(InputButton::Type) const;
-	bool isMouseButtonUp(InputButton::Type) const;
-	bool isMouseButtonPressed(InputButton::Type) const;
+	bool isMouseButtonDown(InputButton) const;
+	bool isMouseButtonUp(InputButton) const;
+	bool isMouseButtonPressed(InputButton) const;
 
 	const int2 &mousePos() const { return m_mouse_pos; }
 	const int2 &mouseMove() const { return m_mouse_move; }
@@ -177,7 +177,7 @@ class InputState {
 
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;
-	int m_mouse_buttons[InputButton::count];
+	int m_mouse_buttons[count<InputButton>()];
 	bool m_is_initialized;
 };
 }

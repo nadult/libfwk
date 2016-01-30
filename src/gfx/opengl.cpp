@@ -34,9 +34,7 @@ static PROC loadFunction(const char *name) {
 }
 #endif
 
-DEFINE_ENUM(OpenglExtension, "compressed_texture_s3tc", "texture_filter_anisotropic");
-
-static bool s_is_extension_supported[OpenglExtension::count] = {
+static bool s_is_extension_supported[count<OpenglExtension>()] = {
 	false,
 };
 
@@ -64,9 +62,8 @@ void initializeOpenGL() {
 #endif
 
 	const char *strings = (const char *)glGetString(GL_EXTENSIONS);
-	for(int n = 0; n < OpenglExtension::count; n++)
-		s_is_extension_supported[n] =
-			strstr(strings, OpenglExtension::toString((OpenglExtension::Type)n)) != nullptr;
+	for(auto elem : all<OpenglExtension>())
+		s_is_extension_supported[elem] = strstr(strings, toString(elem)) != nullptr;
 
 #ifdef _WIN32
 #define LOAD(func) (func = (decltype(func))loadFunction(#func));
@@ -197,7 +194,7 @@ void testGlError(const char *msg) {
 #endif
 }
 
-bool isExtensionSupported(OpenglExtension::Type ext) { return s_is_extension_supported[ext]; }
+bool isExtensionSupported(OpenglExtension ext) { return s_is_extension_supported[ext]; }
 
 void glColor(Color color) { glColor4ub(color.r, color.g, color.b, color.a); }
 

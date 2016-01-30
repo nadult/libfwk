@@ -71,7 +71,7 @@ Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_a
 		   translation(-look_at.x, -look_at.y, 0.0f);
 }
 
-Renderer2D::Element &Renderer2D::makeElement(PrimitiveType::Type primitive_type,
+Renderer2D::Element &Renderer2D::makeElement(PrimitiveType primitive_type,
 											 shared_ptr<const DTexture> texture) {
 	// TODO: merging won't work for triangle strip (have to add some more indices)
 
@@ -82,7 +82,6 @@ Renderer2D::Element &Renderer2D::makeElement(PrimitiveType::Type primitive_type,
 										m_current_scissor_rect, primitive_type});
 	return m_elements.back();
 }
-
 
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<Color, 4> colors,
 							   const SimpleMaterial &material) {

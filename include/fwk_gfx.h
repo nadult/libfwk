@@ -61,15 +61,15 @@ inline Color swapBR(Color col) {
 	return col;
 }
 
-DECLARE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, rgb, rgb_f16, rgb_f32, luminance, dxt1,
-			 dxt3, dxt5, depth, depth_stencil);
+DEFINE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, rgb, rgb_f16, rgb_f32, luminance, dxt1, dxt3,
+			dxt5, depth, depth_stencil);
 
 class TextureFormat {
   public:
-	using Id = TextureFormatId::Type;
+	using Id = TextureFormatId;
 
 	TextureFormat(int internal, int format, int type);
-	TextureFormat(Id id = Id::rgba) : m_id(id) { DASSERT(TextureFormatId::isValid(id)); }
+	TextureFormat(Id id = Id::rgba) : m_id(id) {}
 
 	Id id() const { return m_id; }
 	int glInternal() const;
@@ -408,7 +408,7 @@ class IndexBuffer : public immutable_base<IndexBuffer> {
 
 using PIndexBuffer = immutable_ptr<IndexBuffer>;
 
-DECLARE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
+DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
 class VertexArraySource {
   public:
@@ -448,8 +448,8 @@ class VertexArray : public immutable_base<VertexArray> {
 	void operator=(const VertexArray &) = delete;
 	VertexArray(const VertexArray &) = delete;
 
-	void draw(PrimitiveType::Type, int num_vertices, int offset = 0) const;
-	void draw(PrimitiveType::Type primitive_type) const { draw(primitive_type, size()); }
+	void draw(PrimitiveType, int num_vertices, int offset = 0) const;
+	void draw(PrimitiveType primitive_type) const { draw(primitive_type, size()); }
 
 	const auto &sources() const { return m_sources; }
 	PIndexBuffer indexBuffer() const { return m_index_buffer; }
@@ -475,20 +475,20 @@ using PVertexArray = immutable_ptr<VertexArray>;
 
 class DrawCall {
   public:
-	DrawCall(PVertexArray, PrimitiveType::Type, int vertex_count, int index_offset);
+	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset);
 	void issue() const;
 
   private:
 	PVertexArray m_vertex_array;
-	PrimitiveType::Type m_primitive_type;
+	PrimitiveType m_primitive_type;
 	int m_vertex_count, m_index_offset;
 };
 
-DECLARE_ENUM(ShaderType, vertex, fragment);
+DEFINE_ENUM(ShaderType, vertex, fragment);
 
 class Shader {
   public:
-	using Type = ShaderType::Type;
+	using Type = ShaderType;
 
 	Shader(Type, Stream &, const string &predefined_macros = string());
 	Shader(Type, const string &source, const string &predefined_macros = string(),
@@ -686,7 +686,7 @@ struct MeshBuffers {
 
 class MeshIndices {
   public:
-	using Type = PrimitiveType::Type;
+	using Type = PrimitiveType;
 	using TriIndices = array<uint, 3>;
 
 	static bool isSupported(Type type) {
@@ -751,7 +751,7 @@ class Mesh : public immutable_base<Mesh> {
 	FBox boundingBox(const AnimatedData &) const;
 
 	void transformUV(const Matrix4 &);
-	void changePrimitiveType(PrimitiveType::Type new_type);
+	void changePrimitiveType(PrimitiveType new_type);
 
 	int vertexCount() const { return (int)m_buffers.positions.size(); }
 	int triangleCount() const;
@@ -1239,11 +1239,11 @@ class ModelAnim {
 class ModelNode;
 using PModelNode = unique_ptr<ModelNode>;
 
-DECLARE_ENUM(ModelNodeType, generic, mesh, armature, bone, empty);
+DEFINE_ENUM(ModelNodeType, generic, mesh, armature, bone, empty);
 
 class ModelNode {
   public:
-	using Type = ModelNodeType::Type;
+	using Type = ModelNodeType;
 
 	struct Property {
 		bool operator<(const Property &rhs) const {
@@ -1535,7 +1535,7 @@ class Renderer2D : public MatrixStack {
 		shared_ptr<const DTexture> texture;
 		int first_index, num_indices;
 		int scissor_rect_id;
-		PrimitiveType::Type primitive_type;
+		PrimitiveType primitive_type;
 	};
 
 	// tex_coord & color can be empty
@@ -1552,7 +1552,7 @@ class Renderer2D : public MatrixStack {
 	const IRect &viewport() const { return m_viewport; }
 
   private:
-	Element &makeElement(PrimitiveType::Type, shared_ptr<const DTexture>);
+	Element &makeElement(PrimitiveType, shared_ptr<const DTexture>);
 	void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
 						Color mat_color);
 

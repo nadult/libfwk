@@ -36,7 +36,7 @@ Program::Program(const Shader &vertex, const Shader &fragment,
 }
 
 static Shader loadShader(const string &file_name, const string &predefined_macros,
-						 ShaderType::Type type) {
+						 ShaderType type) {
 	Loader loader(file_name);
 	return Shader(type, loader, predefined_macros);
 }

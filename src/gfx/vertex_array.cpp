@@ -12,13 +12,13 @@ namespace fwk {
 static const int gl_vertex_data_type[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT,
 										  GL_FLOAT};
 static const int gl_index_data_type[] = {GL_UNSIGNED_INT, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT};
-static const int gl_primitive_type[] = {GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP};
+
+SAFE_ARRAY(static const int gl_primitive_type, count<PrimitiveType>(), GL_POINTS, GL_LINES,
+		   GL_TRIANGLES, GL_TRIANGLE_STRIP);
 
 #if OPENGL_VERSION < 0x30
 int VertexArray::s_max_bind = 0;
 #endif
-
-static_assert(arraySize(gl_primitive_type) == PrimitiveType::count, "");
 
 VertexArraySource::VertexArraySource(PVertexBuffer buffer, int offset)
 	: m_buffer(std::move(buffer)), m_offset(offset) {
@@ -45,7 +45,9 @@ VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 		m_size = ib->size();
 		if(sourcesMaxIndex(m_sources) == 0)
 			m_size = 0;
-	} else { m_size = sourcesMaxIndex(m_sources); }
+	} else {
+		m_size = sourcesMaxIndex(m_sources);
+	}
 
 #if OPENGL_VERSION >= 0x30
 	glGenVertexArrays(1, &m_handle);
@@ -65,7 +67,7 @@ VertexArray::~VertexArray() {
 #endif
 }
 
-static int countTriangles(PrimitiveType::Type prim_type, int num_indices) {
+static int countTriangles(PrimitiveType prim_type, int num_indices) {
 	if(prim_type == PrimitiveType::triangles)
 		return num_indices / 3;
 	if(prim_type == PrimitiveType::triangle_strip)
@@ -73,7 +75,7 @@ static int countTriangles(PrimitiveType::Type prim_type, int num_indices) {
 	return 0;
 }
 
-void VertexArray::draw(PrimitiveType::Type pt, int num_vertices, int offset) const {
+void VertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
 	if(!num_vertices)
 		return;
 	DASSERT(offset >= 0 && num_vertices >= 0);
@@ -141,11 +143,10 @@ void VertexArray::unbind() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType::Type primitive_type, int vertex_count,
+DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType primitive_type, int vertex_count,
 				   int index_offset)
 	: m_vertex_array(std::move(vertex_array)), m_primitive_type(primitive_type),
 	  m_vertex_count(vertex_count), m_index_offset(index_offset) {
-	DASSERT(PrimitiveType::isValid(primitive_type));
 	DASSERT(m_vertex_array);
 }
 

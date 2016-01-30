@@ -168,9 +168,9 @@ namespace fwk {
 
 void testGlError(const char *);
 
-DECLARE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic);
+DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic);
 
-bool isExtensionSupported(OpenglExtension::Type);
+bool isExtensionSupported(OpenglExtension);
 void glColor(Color);
 void glVertex(const float2 &);
 void glTexCoord(const float2 &);

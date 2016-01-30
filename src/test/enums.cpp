@@ -1,16 +1,18 @@
 #include "testing.h"
 
-ENUM(SomeEnum, foo, bar, foo_bar);
+DEFINE_ENUM(SomeEnum, foo, bar, foo_bar, last);
 
 void testMain() {
-	ASSERT(SomeEnum("foo") == SomeEnum::foo);
-	ASSERT_EXCEPTION(SomeEnum("something else"));
-	ASSERT(fromString<SomeEnum>("something else") == none);
+	ASSERT(fromString<SomeEnum>("foo") == SomeEnum::foo);
+	ASSERT_EXCEPTION(fromString<SomeEnum>("something else"));
+	ASSERT(tryFromString<SomeEnum>("something else") == none);
 	ASSERT(string("foo_bar") == toString(SomeEnum::foo_bar));
 
-	ENUM_SIMPLE(LocalEnum, first_element, middle_element, last_element);
-	int array[LocalEnum::count] = {1, 2, 3};
+	SAFE_ARRAY(int array, count<SomeEnum>(), 1, 2, 3, 4);
 
-	ASSERT(array[LocalEnum::middle_element] == 2);
-	ASSERT(LocalEnum::last_element > LocalEnum::middle_element);
+	ASSERT(array[SomeEnum::foo_bar] == 3);
+	string text;
+	for(auto elem : all<SomeEnum>())
+		text += toString(elem);
+	ASSERT(text == "foobarfoo_barlast");
 }

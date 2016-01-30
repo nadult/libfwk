@@ -26,9 +26,9 @@ static vector<MeshIndices> loadIndices(const XMLNode &node) {
 	vector<MeshIndices> out;
 	XMLNode xml_indices = node.child("indices");
 	while(xml_indices) {
-		PrimitiveType::Type type = PrimitiveType::triangles;
+		auto type = PrimitiveType::triangles;
 		if(const char *type_string = xml_indices.hasAttrib("type"))
-			type = PrimitiveType::fromString(type_string);
+			type = fromString<PrimitiveType>(type_string);
 		out.emplace_back(xml_indices.value<vector<uint>>(), type);
 		xml_indices.next();
 	}

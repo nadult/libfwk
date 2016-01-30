@@ -60,7 +60,7 @@ Shader::~Shader() {
 
 Shader::Shader(Shader &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
 
-ShaderType::Type Shader::type() const {
+ShaderType Shader::type() const {
 	GLint type;
 	glGetShaderiv(m_id, GL_SHADER_TYPE, &type);
 	return type == GL_VERTEX_SHADER ? Type::vertex : Type::fragment;

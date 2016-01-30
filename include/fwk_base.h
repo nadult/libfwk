@@ -279,7 +279,7 @@ class Exception : public std::exception {
 	FWK_UNLIST(BOOST_PP_LIST_TO_TUPLE(                                                             \
 		BOOST_PP_LIST_TRANSFORM(FWK_STRINGIZE_OP_, _, BOOST_PP_VARIADIC_TO_LIST(__VA_ARGS__))))
 
-template <class... Args> auto countArguments(Args... args) {
+template <class... Args> auto countArguments(Args...) {
 	struct Info {
 		enum { value = sizeof...(Args) };
 	};
@@ -497,99 +497,75 @@ template <class Type, int min, int max> class EnumRange {
 	auto end() const { return Iter(max); }
 };
 
-struct EnumWithStringsTrait {};
+// Safe enum class
+// Initially initializes to 0 (first element). Converts to int, can be easily used as
+// an index into some array. Can be converted to/from strings, which are automatically generated
+// from enum names. Enum with strings cannot be defined at function scope. Some examples are
+// available in src/test/enums.cpp.
+//
+// unsolved problems:
+// - cannot define complex enum in function scope
+// - still not very type safe
+// - naming in the debugger (EnumName_::Enum)
+#define DEFINE_ENUM(Type, ...)                                                                     \
+	namespace Type##_ {                                                                            \
+		enum Enum : char { __VA_ARGS__ };                                                          \
+		constexpr int enumCount(Enum) { return COUNT_ARGUMENTS(__VA_ARGS__); }                     \
+		inline static auto enumStrings(Enum) {                                                            \
+			static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};              \
+			static_assert(arraySize(s_strings) == enumCount(Enum()),                               \
+						  "Invalid number of strings specified for enum " #Type);                  \
+			return CRange<const char *, enumCount(Enum())>(s_strings, enumCount(Enum()));          \
+		}                                                                                          \
+	}                                                                                              \
+	using Type = Type##_::Enum;
 
-template <class T> struct IsEnumWithStrings {
-	enum { value = std::is_base_of<EnumWithStringsTrait, T>::value };
+template <class T> struct IsEnum {
+	template <class C> static auto test(int) -> decltype(enumCount(C()));
+	template <class C> static auto test(...) -> void;
+	enum { value = std::is_same<int, decltype(test<T>(0))>::value };
 };
 
 template <class T>
-static auto fromString(const char *str) ->
-	typename std::enable_if<IsEnumWithStrings<T>::value, optional<T>>::type {
-	int ret = fwk::enumFromString(str, T::strings(), false);
+static auto fromString(const char *str) -> typename std::enable_if<IsEnum<T>::value, T>::type {
+	return T(fwk::enumFromString(str, enumStrings(T()), true));
+}
+
+template <class T>
+static auto fromString(const string &str) -> typename std::enable_if<IsEnum<T>::value, T>::type {
+	return fromString<T>(str.c_str());
+}
+
+template <class T>
+static auto tryFromString(const char *str) ->
+	typename std::enable_if<IsEnum<T>::value, optional<T>>::type {
+	int ret = fwk::enumFromString(str, enumStrings(T()), false);
 	if(ret == -1)
 		return none;
 	return T(ret);
 }
 
 template <class T>
-static auto fromString(const string &str) ->
-	typename std::enable_if<IsEnumWithStrings<T>::value, optional<T>>::type {
-	return fromString<T>(str.c_str());
+static auto tryFromString(const string &str) ->
+	typename std::enable_if<IsEnum<T>::value, optional<T>>::type {
+	return tryFromString<T>(str.c_str());
+}
+template <class T>
+static auto toString(T value) -> typename std::enable_if<IsEnum<T>::value, const char *>::type {
+	return enumStrings(T())[value];
 }
 
-// Safe enum class
-// Initially initializes to 0 (first element). Converts to int, can be easily used as
-// an index into some array. Full version (as opposed to simple) adds conversion to/from
-// strings, which are automatically generated from enum names. Enum with strings cannot be defined
-// at function scope. Some examples are available in src/test/enums.cpp.
-#define ENUM_SIMPLE(type, ...)                                                                     \
-	class type {                                                                                   \
-	  public:                                                                                      \
-		enum Enum { __VA_ARGS__ };                                                                 \
-		enum { count = COUNT_ARGUMENTS(__VA_ARGS__) };                                             \
-                                                                                                   \
-		type() : m_value((Enum)0) {}                                                               \
-		type(Enum value) : m_value(value) {}                                                       \
-		explicit type(int value) : m_value((Enum)value) { DASSERT(value >= 0 && value < count); }  \
-                                                                                                   \
-		operator int() const { return (int)m_value; }                                              \
-		static auto all() { return EnumRange<type, 0, count>(); }                                  \
-                                                                                                   \
-	  private:                                                                                     \
-		Enum m_value;                                                                              \
-	};
+template <class T> constexpr auto count() -> typename std::enable_if<IsEnum<T>::value, int>::type {
+	return enumCount(T());
+}
+template <class T>
+auto all() -> typename std::enable_if<IsEnum<T>::value, EnumRange<T, 0, count<T>()>>::type {
+	return EnumRange<T, 0, count<T>()>();
+}
 
-#define ENUM(type, ...)                                                                            \
-	class type : public EnumWithStringsTrait {                                                     \
-	  public:                                                                                      \
-		enum Enum { __VA_ARGS__ };                                                                 \
-		enum { count = COUNT_ARGUMENTS(__VA_ARGS__) };                                             \
-		static auto strings() {                                                                    \
-			static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};              \
-			static_assert(arraySize(s_strings) == count,                                           \
-						  "Invalid number of strings specified for enum " #type);                  \
-			return CRange<const char *>(s_strings, count);                                         \
-		}                                                                                          \
-                                                                                                   \
-		type() : m_value((Enum)0) {}                                                               \
-		type(Enum value) : m_value(value) {}                                                       \
-		explicit type(const char *str) : type(fwk::enumFromString(str, strings(), true)) {}        \
-		explicit type(const string &str) : type(str.c_str()) {}                                    \
-		explicit type(int value) : m_value((Enum)value) { DASSERT(value >= 0 && value < count); }  \
-                                                                                                   \
-		operator int() const { return (int)m_value; }                                              \
-		explicit operator const char *() const { return strings()[m_value]; }                      \
-		explicit operator string() const { return strings()[m_value]; }                            \
-                                                                                                   \
-		static auto all() { return EnumRange<type, 0, count>(); }                                  \
-                                                                                                   \
-	  private:                                                                                     \
-		Enum m_value;                                                                              \
-	};                                                                                             \
-	inline const char *toString(type value) { return value.operator const char *(); }
-
-#define DECLARE_ENUM(type, ...)                                                                    \
-	namespace type {                                                                               \
-		enum Type : char { invalid = -1, __VA_ARGS__, count };                                     \
-		const char *toString(int, const char *on_invalid = nullptr);                               \
-		Type fromString(const char *, bool throw_on_invalid = true);                               \
-		inline constexpr bool isValid(int val) { return val >= 0 && val < count; }                 \
-		inline constexpr auto all() { return EnumRange<Type, 0, count>(); }                        \
-	}
-
-#define DEFINE_ENUM(type, ...)                                                                     \
-	namespace type {                                                                               \
-		static const char *s_strings[] = {__VA_ARGS__};                                            \
-		static_assert(arraySize(s_strings) == count, "String count does not match enum count");    \
-		const char *toString(int value, const char *on_invalid) {                                  \
-			return !isValid(value) ? on_invalid : s_strings[value];                                \
-		}                                                                                          \
-		Type fromString(const char *str, bool throw_on_invalid) {                                  \
-			return (Type)fwk::enumFromString(str, CRange<const char *>(s_strings, count),          \
-											 throw_on_invalid);                                    \
-		}                                                                                          \
-	}
+#define SAFE_ARRAY(declaration, size, ...)                                                         \
+	declaration[] = {__VA_ARGS__};                                                                 \
+	static_assert(COUNT_ARGUMENTS(__VA_ARGS__) == size, "Invalid number of elements in an array");
 
 template <class T> struct SerializeAsPod;
 

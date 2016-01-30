@@ -9,8 +9,6 @@
 
 namespace fwk {
 
-DEFINE_ENUM(ModelNodeType, "generic", "mesh", "armature", "bone", "empty");
-
 ModelNode::ModelNode(const string &name, Type type, const AffineTrans &trans, PMesh mesh,
 					 vector<Property> props)
 	: m_properties(std::move(props)), m_name(name), m_trans(trans), m_inv_trans(inverse(trans)),

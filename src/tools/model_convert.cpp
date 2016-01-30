@@ -43,19 +43,18 @@ void printHelp(const char *app_name) {
 		   app_name, app_name, app_name, app_name);
 }
 
-DECLARE_ENUM(FileType, fwk, blender);
-DEFINE_ENUM(FileType, "fwk model", "blender");
+DEFINE_ENUM(FileType, fwk_model, blender);
 
 struct FileExt {
 	string ext;
-	FileType::Type type;
+	FileType type;
 };
 
 const FileExt extensions[] = {
-	{".model", FileType::fwk}, {".blend", FileType::blender},
+	{".model", FileType::fwk_model}, {".blend", FileType::blender},
 };
 
-FileType::Type classify(const string &name) {
+FileType classify(const string &name) {
 	string iname = name;
 	std::transform(begin(iname), end(iname), begin(iname), tolower);
 
@@ -66,7 +65,7 @@ FileType::Type classify(const string &name) {
 	}
 
 	THROW("Unsupported file type: %s\n", name.c_str());
-	return FileType::invalid;
+	return FileType();
 }
 
 string exportFromBlender(const string &file_name, string &target_file_name) {
@@ -103,10 +102,10 @@ string exportFromBlender(const string &file_name, string &target_file_name) {
 	return result.first;
 }
 
-pair<PModel, string> loadModel(FileType::Type file_type, Stream &stream) {
+pair<PModel, string> loadModel(FileType file_type, Stream &stream) {
 	pair<PModel, string> out;
 
-	if(file_type == FileType::fwk) {
+	if(file_type == FileType::fwk_model) {
 		XMLDocument doc;
 		stream >> doc;
 		XMLNode child = doc.child();
@@ -120,7 +119,7 @@ pair<PModel, string> loadModel(FileType::Type file_type, Stream &stream) {
 
 		try {
 			Loader loader(temp_file_name);
-			out = loadModel(FileType::fwk, loader);
+			out = loadModel(FileType::fwk_model, loader);
 			remove(temp_file_name.c_str());
 		} catch(const Exception &ex) {
 			THROW("%s\nBlender output:\n%s", ex.what(), blender_result.c_str());
@@ -130,8 +129,8 @@ pair<PModel, string> loadModel(FileType::Type file_type, Stream &stream) {
 	return out;
 }
 
-void saveModel(PModel model, const string &node_name, FileType::Type file_type, Stream &stream) {
-	if(file_type == FileType::fwk) {
+void saveModel(PModel model, const string &node_name, FileType file_type, Stream &stream) {
+	if(file_type == FileType::fwk_model) {
 		XMLDocument doc;
 		XMLNode node = doc.addChild(doc.own(node_name));
 		model->saveToXML(node);
@@ -141,12 +140,12 @@ void saveModel(PModel model, const string &node_name, FileType::Type file_type, 
 }
 
 void convert(const string &from, const Matrix4 &transform, const string &to) {
-	FileType::Type from_type = classify(from);
-	FileType::Type to_type = classify(to);
+	auto from_type = classify(from);
+	auto to_type = classify(to);
 
 	bool any_transforms = false;
 
-	if(from_type == FileType::blender && to_type == FileType::fwk && !any_transforms &&
+	if(from_type == FileType::blender && to_type == FileType::fwk_model && !any_transforms &&
 	   s_blender_params.just_export) {
 		string target_name = to;
 		exportFromBlender(from, target_name);
@@ -193,7 +192,9 @@ int safe_main(int argc, char **argv) {
 				printf("Unsupported parameter: %s\n", argv[n]);
 				exit(1);
 			}
-		} else { params.emplace_back(arg); }
+		} else {
+			params.emplace_back(arg);
+		}
 	}
 
 	if(params.size() != 2) {
@@ -228,7 +229,9 @@ int safe_main(int argc, char **argv) {
 				convert(src_name, transform, dst_name);
 			}
 		}
-	} else { convert(params[0], transform, params[1]); }
+	} else {
+		convert(params[0], transform, params[1]);
+	}
 
 	return 0;
 }

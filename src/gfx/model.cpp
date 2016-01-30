@@ -66,7 +66,7 @@ namespace {
 
 	PModelNode parseNode(vector<PMesh> &meshes, XMLNode xml_node) {
 		auto name = xml_node.attrib("name");
-		auto type = ModelNodeType::fromString(xml_node.attrib("type", "generic"));
+		auto type = fromString<ModelNodeType>(xml_node.attrib("type", "generic"));
 		auto trans = ModelAnim::transFromXML(xml_node);
 		auto mesh_id = xml_node.attrib<int>("mesh_id", -1);
 		ASSERT(mesh_id >= -1 && mesh_id < (int)meshes.size());
