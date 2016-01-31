@@ -34,9 +34,7 @@ static PROC loadFunction(const char *name) {
 }
 #endif
 
-static bool s_is_extension_supported[count<OpenglExtension>()] = {
-	false,
-};
+static EnumMap<bool, OpenglExtension> s_is_extension_supported;
 
 void initializeOpenGL() {
 #ifdef __EMSCRIPTEN__

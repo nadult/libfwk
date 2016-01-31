@@ -68,7 +68,7 @@ InputEvent::InputEvent(Type key_type, int key, int iter)
 }
 
 InputEvent::InputEvent(Type mouse_type, InputButton button)
-	: m_char(0), m_key(button), m_type(mouse_type) {
+	: m_char(0), m_key((int)button), m_type(mouse_type) {
 	DASSERT(isMouseEvent());
 }
 
@@ -95,15 +95,15 @@ bool InputEvent::keyDownAuto(int key, int period, int delay) const {
 }
 
 bool InputEvent::mouseButtonDown(InputButton key) const {
-	return m_type == mouse_button_down && m_key == key;
+	return m_type == mouse_button_down && m_key == (int)key;
 }
 
 bool InputEvent::mouseButtonUp(InputButton key) const {
-	return m_type == mouse_button_up && m_key == key;
+	return m_type == mouse_button_up && m_key == (int)key;
 }
 
 bool InputEvent::mouseButtonPressed(InputButton key) const {
-	return m_type == mouse_button_pressed && m_key == key;
+	return m_type == mouse_button_pressed && m_key == (int)key;
 }
 
 InputState::InputState() : m_mouse_wheel(0), m_is_initialized(0) {
@@ -216,18 +216,23 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 		case SDL_MOUSEBUTTONDOWN: {
 			bool is_down = event.type == SDL_MOUSEBUTTONDOWN;
 
-			// TODO: fix formatting
-			int button_id =
-				event.button.button == SDL_BUTTON_LEFT
-					? InputButton::left
-					: event.button.button == SDL_BUTTON_RIGHT
-						  ? InputButton::right
-						  : event.button.button == SDL_BUTTON_MIDDLE ? InputButton::middle : -1;
-			if(button_id != -1) {
-				m_mouse_buttons[button_id] = is_down ? 1 : -1;
+			optional<InputButton> button_id;
+			switch(event.button.button) {
+			case SDL_BUTTON_LEFT:
+				button_id = InputButton::left;
+				break;
+			case SDL_BUTTON_RIGHT:
+				button_id = InputButton::right;
+				break;
+			case SDL_BUTTON_MIDDLE:
+				button_id = InputButton::middle;
+				break;
+			}
+			if(button_id) {
+				m_mouse_buttons[*button_id] = is_down ? 1 : -1;
 				events.emplace_back(is_down ? InputEvent::mouse_button_down
 											: InputEvent::mouse_button_up,
-									InputButton(button_id));
+									*button_id);
 			}
 			break;
 		}

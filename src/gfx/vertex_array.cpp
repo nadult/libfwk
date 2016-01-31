@@ -13,8 +13,8 @@ static const int gl_vertex_data_type[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, G
 										  GL_FLOAT};
 static const int gl_index_data_type[] = {GL_UNSIGNED_INT, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT};
 
-SAFE_ARRAY(static const int gl_primitive_type, count<PrimitiveType>(), GL_POINTS, GL_LINES,
-		   GL_TRIANGLES, GL_TRIANGLE_STRIP);
+static const EnumMap<int, PrimitiveType> gl_primitives{
+	{GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP}};
 
 #if OPENGL_VERSION < 0x30
 int VertexArray::s_max_bind = 0;
@@ -87,14 +87,14 @@ void VertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
 	if(m_index_buffer) {
 		FWK_PROFILE_COUNTER("gfx::tris", countTriangles(pt, num_vertices));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer->m_handle);
-		glDrawElements(gl_primitive_type[pt], num_vertices,
+		glDrawElements(gl_primitives[pt], num_vertices,
 					   gl_index_data_type[m_index_buffer->m_index_type],
 					   (void *)(size_t)(offset * m_index_buffer->m_index_size));
 		testGlError("glDrawElements");
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	} else {
 		FWK_PROFILE_COUNTER("gfx::tris", countTriangles(pt, num_vertices));
-		glDrawArrays(gl_primitive_type[pt], offset, num_vertices);
+		glDrawArrays(gl_primitives[pt], offset, num_vertices);
 	}
 
 	unbind();

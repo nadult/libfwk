@@ -177,7 +177,7 @@ class InputState {
 
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;
-	int m_mouse_buttons[count<InputButton>()];
+	EnumMap<int, InputButton> m_mouse_buttons;
 	bool m_is_initialized;
 };
 }

@@ -80,7 +80,7 @@ namespace {
 		bool is_compressed;
 	};
 
-	const FormatDesc s_descs[] = {
+	const EnumMap<FormatDesc, Id> s_descs{{
 		FormatDesc(Id::rgba, DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE),
 		FormatDesc(Id::rgba_f16, DDSId::A16B16G16R16F, 8, GL_RGBA16F, GL_RGBA, GL_FLOAT),
 		FormatDesc(Id::rgba_f32, DDSId::A32B32G32R32F, 16, GL_RGBA32F, GL_RGBA, GL_FLOAT),
@@ -97,11 +97,9 @@ namespace {
 				   GL_UNSIGNED_SHORT), // TODO: WebGL requires 16bits
 		FormatDesc(Id::depth_stencil, DDSId::Unknown, 4, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
 				   GL_UNSIGNED_INT_24_8),
-
-	};
+	}};
 
 	const FormatDesc &getDesc(Id id) {
-		DASSERT(id >= 0 && id < arraySize(s_descs));
 		DASSERT(s_descs[id].id == id);
 		return s_descs[id];
 	}

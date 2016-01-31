@@ -502,29 +502,23 @@ template <class Type, int min, int max> class EnumRange {
 // an index into some array. Can be converted to/from strings, which are automatically generated
 // from enum names. Enum with strings cannot be defined at function scope. Some examples are
 // available in src/test/enums.cpp.
-//
-// unsolved problems:
-// - cannot define complex enum in function scope
-// - still not very type safe
-// - naming in the debugger (EnumName_::Enum)
 #define DEFINE_ENUM(Type, ...)                                                                     \
-	namespace Type##_ {                                                                            \
-		enum Enum : char { __VA_ARGS__ };                                                          \
-		constexpr int enumCount(Enum) { return COUNT_ARGUMENTS(__VA_ARGS__); }                     \
-		inline static auto enumStrings(Enum) {                                                            \
-			static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};              \
-			static_assert(arraySize(s_strings) == enumCount(Enum()),                               \
-						  "Invalid number of strings specified for enum " #Type);                  \
-			return CRange<const char *, enumCount(Enum())>(s_strings, enumCount(Enum()));          \
-		}                                                                                          \
+	enum class Type : unsigned char { __VA_ARGS__ };                                               \
+	inline static auto enumStrings(Type) {                                                         \
+		static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};                  \
+		return CRange<const char *, arraySize(s_strings)>(s_strings, arraySize(s_strings));        \
 	}                                                                                              \
-	using Type = Type##_::Enum;
+	constexpr int enumCount(Type) { return decltype(enumStrings(Type()))::minimum_size; }
 
 template <class T> struct IsEnum {
 	template <class C> static auto test(int) -> decltype(enumCount(C()));
 	template <class C> static auto test(...) -> void;
 	enum { value = std::is_same<int, decltype(test<T>(0))>::value };
 };
+
+template <class T> auto enumNext(T value) -> typename std::enable_if<IsEnum<T>::value, T>::type {
+	return T((int(value) + 1) % enumCount(T()));
+}
 
 template <class T>
 static auto fromString(const char *str) -> typename std::enable_if<IsEnum<T>::value, T>::type {
@@ -552,7 +546,7 @@ static auto tryFromString(const string &str) ->
 }
 template <class T>
 static auto toString(T value) -> typename std::enable_if<IsEnum<T>::value, const char *>::type {
-	return enumStrings(T())[value];
+	return enumStrings(T())[(int)value];
 }
 
 template <class T> constexpr auto count() -> typename std::enable_if<IsEnum<T>::value, int>::type {
@@ -562,6 +556,21 @@ template <class T>
 auto all() -> typename std::enable_if<IsEnum<T>::value, EnumRange<T, 0, count<T>()>>::type {
 	return EnumRange<T, 0, count<T>()>();
 }
+
+template <class T, class Enum, class = typename std::enable_if<IsEnum<Enum>::value, T>::type>
+struct EnumMap {
+	const T &operator[](Enum index) const { return m_data[(int)index]; }
+	T &operator[](Enum index) { return m_data[(int)index]; }
+
+	T *begin() { return m_data; }
+	T *end() { return m_data + size(); }
+	const T *begin() const { return m_data; }
+	const T *end() const { return m_data + size(); }
+
+	constexpr int size() const { return count<Enum>(); }
+
+	T m_data[count<Enum>()];
+};
 
 #define SAFE_ARRAY(declaration, size, ...)                                                         \
 	declaration[] = {__VA_ARGS__};                                                                 \
