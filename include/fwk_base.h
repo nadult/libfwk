@@ -504,7 +504,7 @@ template <class Type, int min, int max> class EnumRange {
 // available in src/test/enums.cpp.
 #define DEFINE_ENUM(Type, ...)                                                                     \
 	enum class Type : unsigned char { __VA_ARGS__ };                                               \
-	inline static auto enumStrings(Type) {                                                         \
+	inline auto enumStrings(Type) {                                                                \
 		static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};                  \
 		return CRange<const char *, arraySize(s_strings)>(s_strings, arraySize(s_strings));        \
 	}                                                                                              \
@@ -566,7 +566,12 @@ struct EnumMap {
 	T *end() { return m_data + size(); }
 	const T *begin() const { return m_data; }
 	const T *end() const { return m_data + size(); }
+	bool operator==(const EnumMap &rhs) const { return std::equal(begin(), end(), rhs.begin()); }
+	bool operator<(const EnumMap &rhs) const {
+		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
+	}
 
+	constexpr bool empty() const { return size() == 0; }
 	constexpr int size() const { return count<Enum>(); }
 
 	T m_data[count<Enum>()];

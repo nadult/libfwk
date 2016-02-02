@@ -1,3 +1,4 @@
+- EnumMap is not initialized by default
 - __attribute__((cold)) on throwException (all code that leads to it
   should be inside cold section)
 - Separate ASSERTS which throw (asserts that validate input) from ASSERTS which doesn't (verifying program correctness)
