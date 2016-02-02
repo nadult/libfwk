@@ -72,6 +72,8 @@ namespace xml_conversions {
 			static_assert(sizeof(T) < 0, "xml_conversions::toString unimplemented for given type");
 		}
 
+		using CString = const char *;
+		template <> void toString(const CString &value, TextFormatter &out);
 		template <> void toString(const string &value, TextFormatter &out);
 		template <> void toString(const bool &value, TextFormatter &out);
 		template <> void toString(const int &value, TextFormatter &out);
@@ -79,6 +81,7 @@ namespace xml_conversions {
 		template <> void toString(const int3 &value, TextFormatter &out);
 		template <> void toString(const int4 &value, TextFormatter &out);
 		template <> void toString(const uint &value, TextFormatter &out);
+		template <> void toString(const unsigned long &value, TextFormatter &out);
 		template <> void toString(const long long &value, TextFormatter &out);
 		template <> void toString(const unsigned long long &value, TextFormatter &out);
 		template <> void toString(const float &value, TextFormatter &out);

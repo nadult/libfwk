@@ -115,6 +115,7 @@ namespace xml_conversions {
 			return out;
 		}
 
+		template <> void toString(const CString &value, TextFormatter &out) { out("%s", value); }
 		template <> void toString(const string &value, TextFormatter &out) {
 			out("%s", value.c_str());
 		}
@@ -134,6 +135,7 @@ namespace xml_conversions {
 		}
 
 		template <> void toString(const uint &value, TextFormatter &out) { out("%u", value); }
+		template <> void toString(const unsigned long &value, TextFormatter &out) { out("%lu", value); }
 		template <> void toString(const long long &value, TextFormatter &out) {
 			out("%lld", value);
 		}

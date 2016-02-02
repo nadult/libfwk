@@ -50,6 +50,7 @@ void testXMLConverters() {
 	ASSERT(fromString<float2>("100 \r\t\n  1") == float2(100, 1));
 
 	ASSERT(fromString<vector<float2>>("1 2 4 5.5") == vector<float2>({{1, 2}, {4, 5.5}}));
+	ASSERT(toString(vector<int>().size()).text() == string("0"));
 
 	ASSERT(toString(vector<int>({4, 5, 6, 7, 8})).text() == string("4 5 6 7 8"));
 	ASSERT(toString(vector<float>({1, 2, 3, 4.5, 5.5, 6})).text() == string("1 2 3 4.5 5.5 6"));
