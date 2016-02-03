@@ -115,32 +115,22 @@ namespace xml_conversions {
 			return out;
 		}
 
-		template <> void toString(const CString &value, TextFormatter &out) { out("%s", value); }
-		template <> void toString(const string &value, TextFormatter &out) {
-			out("%s", value.c_str());
-		}
+		void toString(const char *value, TextFormatter &out) { out("%s", value); }
+		void toString(const string &value, TextFormatter &out) { out("%s", value.c_str()); }
 
-		template <> void toString(const bool &value, TextFormatter &out) {
-			out(value ? "true" : "false");
-		}
-		template <> void toString(const int &value, TextFormatter &out) { out("%d", value); }
-		template <> void toString(const int2 &value, TextFormatter &out) {
-			out("%d %d", value.x, value.y);
-		}
-		template <> void toString(const int3 &value, TextFormatter &out) {
+		void toString(bool value, TextFormatter &out) { out(value ? "true" : "false"); }
+		void toString(int value, TextFormatter &out) { out("%d", value); }
+		void toString(uint value, TextFormatter &out) { out("%u", value); }
+		void toString(unsigned long value, TextFormatter &out) { out("%lu", value); }
+		void toString(long long value, TextFormatter &out) { out("%lld", value); }
+		void toString(unsigned long long value, TextFormatter &out) { out("%llu", value); }
+
+		void toString(const int2 &value, TextFormatter &out) { out("%d %d", value.x, value.y); }
+		void toString(const int3 &value, TextFormatter &out) {
 			out("%d %d %d", value.x, value.y, value.z);
 		}
-		template <> void toString(const int4 &value, TextFormatter &out) {
+		void toString(const int4 &value, TextFormatter &out) {
 			out("%d %d %d %d", value.x, value.y, value.z, value.w);
-		}
-
-		template <> void toString(const uint &value, TextFormatter &out) { out("%u", value); }
-		template <> void toString(const unsigned long &value, TextFormatter &out) { out("%lu", value); }
-		template <> void toString(const long long &value, TextFormatter &out) {
-			out("%lld", value);
-		}
-		template <> void toString(const unsigned long long &value, TextFormatter &out) {
-			out("%llu", value);
 		}
 
 		static void toStringFloat(CRange<float> in, TextFormatter &out) {
@@ -161,49 +151,47 @@ namespace xml_conversions {
 			}
 		}
 
-		template <> void toString(const float &value, TextFormatter &out) {
+		void toString(float value, TextFormatter &out) {
 			float values[1] = {value};
 			toStringFloat(values, out);
 		}
-		template <> void toString(const float2 &value, TextFormatter &out) {
+		void toString(const float2 &value, TextFormatter &out) {
 			float values[2] = {value.x, value.y};
 			toStringFloat(values, out);
 		}
-		template <> void toString(const float3 &value, TextFormatter &out) {
+		void toString(const float3 &value, TextFormatter &out) {
 			float values[3] = {value.x, value.y, value.z};
 			toStringFloat(values, out);
 		}
-		template <> void toString(const float4 &value, TextFormatter &out) {
+		void toString(const float4 &value, TextFormatter &out) {
 			float values[4] = {value.x, value.y, value.z, value.w};
 			toStringFloat(values, out);
 		}
 
-		template <> void toString(const FRect &rect, TextFormatter &out) {
+		void toString(const FRect &rect, TextFormatter &out) {
 			float values[4] = {rect.min.x, rect.min.y, rect.max.x, rect.max.y};
 			toStringFloat(values, out);
 		}
 
-		template <> void toString(const IRect &rect, TextFormatter &out) {
+		void toString(const IRect &rect, TextFormatter &out) {
 			out("%d %d %d %d", rect.min.x, rect.min.y, rect.max.x, rect.max.y);
 		}
 
-		template <> void toString(const IBox &box, TextFormatter &out) {
+		void toString(const IBox &box, TextFormatter &out) {
 			out("%d %d %d %d %d %d", box.min.x, box.min.y, box.min.z, box.max.x, box.max.y,
 				box.max.z);
 		}
 
-		template <> void toString(const FBox &box, TextFormatter &out) {
+		void toString(const FBox &box, TextFormatter &out) {
 			float values[6] = {box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z};
 			toStringFloat(values, out);
 		}
 
-		template <> void toString(const Matrix4 &value, TextFormatter &out) {
+		void toString(const Matrix4 &value, TextFormatter &out) {
 			toStringFloat(CRange<float>(&value[0].x, 16), out);
 		}
 
-		template <> void toString(const Quat &value, TextFormatter &out) {
-			toStringFloat(value.v, out);
-		}
+		void toString(const Quat &value, TextFormatter &out) { toStringFloat(value.v, out); }
 	}
 }
 }

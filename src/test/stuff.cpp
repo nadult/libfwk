@@ -54,6 +54,9 @@ void testXMLConverters() {
 
 	ASSERT(toString(vector<int>({4, 5, 6, 7, 8})).text() == string("4 5 6 7 8"));
 	ASSERT(toString(vector<float>({1, 2, 3, 4.5, 5.5, 6})).text() == string("1 2 3 4.5 5.5 6"));
+	ASSERT(toString("foo").text() == string("foo"));
+	ASSERT(toString(short(10)).text() == string("10"));
+
 	ASSERT_EXCEPTION(fromString<vector<int>>("1 2a 3"));
 	ASSERT_EXCEPTION(fromString<bool>("foobar"));
 }

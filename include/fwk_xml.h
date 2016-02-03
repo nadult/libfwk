@@ -68,44 +68,45 @@ namespace xml_conversions {
 			static vector<T> parse(TextParser &parser) { return vectorFromString<T>(parser); }
 		};
 
-		template <class T> void toString(const T &value, TextFormatter &out) {
-			static_assert(sizeof(T) < 0, "xml_conversions::toString unimplemented for given type");
-		}
+		void toString(const char *value, TextFormatter &out);
+		void toString(const string &value, TextFormatter &out);
 
-		using CString = const char *;
-		template <> void toString(const CString &value, TextFormatter &out);
-		template <> void toString(const string &value, TextFormatter &out);
-		template <> void toString(const bool &value, TextFormatter &out);
-		template <> void toString(const int &value, TextFormatter &out);
-		template <> void toString(const int2 &value, TextFormatter &out);
-		template <> void toString(const int3 &value, TextFormatter &out);
-		template <> void toString(const int4 &value, TextFormatter &out);
-		template <> void toString(const uint &value, TextFormatter &out);
-		template <> void toString(const unsigned long &value, TextFormatter &out);
-		template <> void toString(const long long &value, TextFormatter &out);
-		template <> void toString(const unsigned long long &value, TextFormatter &out);
-		template <> void toString(const float &value, TextFormatter &out);
-		template <> void toString(const float2 &value, TextFormatter &out);
-		template <> void toString(const float3 &value, TextFormatter &out);
-		template <> void toString(const float4 &value, TextFormatter &out);
-		template <> void toString(const FRect &value, TextFormatter &out);
-		template <> void toString(const IRect &value, TextFormatter &out);
-		template <> void toString(const FBox &value, TextFormatter &out);
-		template <> void toString(const IBox &value, TextFormatter &out);
-		template <> void toString(const Matrix4 &value, TextFormatter &out);
-		template <> void toString(const Quat &value, TextFormatter &out);
+		void toString(bool value, TextFormatter &out);
+		void toString(int value, TextFormatter &out);
+		void toString(uint value, TextFormatter &out);
+		void toString(unsigned long value, TextFormatter &out);
+		void toString(long long value, TextFormatter &out);
+		void toString(unsigned long long value, TextFormatter &out);
 
-		template <class T> void rangeToString(CRange<T> range, TextFormatter &out) {
-			for(int n = 0; n < (int)range.size(); n++) {
-				toString(range[n], out);
-				if(n + 1 < (int)range.size())
-					out(" ");
-			}
-		}
+		void toString(const int2 &value, TextFormatter &out);
+		void toString(const int3 &value, TextFormatter &out);
+		void toString(const int4 &value, TextFormatter &out);
+		void toString(float value, TextFormatter &out);
+		void toString(const float2 &value, TextFormatter &out);
+		void toString(const float3 &value, TextFormatter &out);
+		void toString(const float4 &value, TextFormatter &out);
+		void toString(const FRect &value, TextFormatter &out);
+		void toString(const IRect &value, TextFormatter &out);
+		void toString(const FBox &value, TextFormatter &out);
+		void toString(const IBox &value, TextFormatter &out);
+		void toString(const Matrix4 &value, TextFormatter &out);
+		void toString(const Quat &value, TextFormatter &out);
+
+		template <class T> void rangeToString(CRange<T>, TextFormatter &);
+
+		template <class T> struct ConvertibleToString {
+			template <class C>
+			static auto test(int) -> decltype(
+				fwk::xml_conversions::detail::toString(*(const C *)0, *(TextFormatter *)0));
+			template <class C> static auto test(...) -> char;
+			enum { value = !std::is_same<char, decltype(test<T>(0))>::value };
+		};
 
 		template <class T> struct SelectPrinter {
+			static_assert(ConvertibleToString<T>::value,
+						  "Missing toString(T, TextFormatter&) for given type");
 			static void print(const T &value, TextFormatter &out) {
-				return toString<T>(value, out);
+				return fwk::xml_conversions::detail::toString(value, out);
 			}
 		};
 
@@ -120,6 +121,14 @@ namespace xml_conversions {
 				return rangeToString<T>(value, out);
 			}
 		};
+
+		template <class T> void rangeToString(CRange<T> range, TextFormatter &out) {
+			for(int n = 0; n < (int)range.size(); n++) {
+				SelectPrinter<T>::print(range[n], out);
+				if(n + 1 < (int)range.size())
+					out(" ");
+			}
+		}
 	}
 
 	template <class T> T fromString(TextParser &parser) {
