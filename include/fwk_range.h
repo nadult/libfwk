@@ -126,6 +126,10 @@ template <class T> struct ConvertsToRange {
 	enum { value = converts((T *)nullptr) };
 };
 
+template <class T> struct ContainerBaseType {
+	using type = typename std::remove_reference<decltype(*begin(*((T *)0)))>::type;
+};
+
 // TODO: makeRange from a pair of iterators
 
 template <class Container> auto makeRange(Container &container) {
@@ -136,6 +140,11 @@ template <class Container> auto makeRange(Container &container) {
 template <class Container> auto makeRange(const Container &container) {
 	using type = typename std::remove_pointer<decltype(container.data())>::type;
 	return CRange<type>(container.data(), container.size());
+}
+
+template <class Iter> auto makeRange(const Iter &begin, const Iter &end) {
+	using BaseType = typename std::remove_reference<decltype(*begin)>::type;
+	return Range<BaseType>(&*begin, &*end);
 }
 
 template <class T> auto makeRange(std::initializer_list<T> list) {
@@ -156,6 +165,11 @@ template <class Target, class T> auto reinterpretRange(Range<T> range) {
 	using out_type = typename std::conditional<std::is_const<T>::value, const Target, Target>::type;
 	return Range<out_type>(reinterpret_cast<out_type *>(range.data()),
 						   size_t(range.size()) * sizeof(T) / sizeof(Target));
+}
+
+template <class TContainer, class TBase = typename ContainerBaseType<TContainer>::type>
+auto accumulate(const TContainer &container, TBase init = TBase()) {
+	return std::accumulate(begin(container), end(container), init);
 }
 
 // TODO: write more of these

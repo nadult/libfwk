@@ -62,7 +62,7 @@ INCLUDES=-Iinclude/ -Isrc/
 
 # Clang gives no warnings for uninitialized class members!
 NICE_FLAGS=-std=c++14 -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
-		   -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual #-Werror
+		   -Werror=switch -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual #-Werror
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
 LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW -O3 -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
