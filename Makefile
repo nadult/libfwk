@@ -17,19 +17,19 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=base backtrace filesystem filesystem_linux filesystem_windows input profiler stream xml xml_conversions \
-		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree gfx/material \
-		   gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model gfx/mesh gfx/mesh_indices \
-		   gfx/mesh_buffers gfx/mesh_constructor \
-		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader gfx/program \
-		   gfx/renderer gfx/renderer2d gfx/dynamic_mesh \
-           math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector math/quat \
-		   math/base math/triangle math/tetrahedron math/projection \
+		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \
+		   gfx/material gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model \
+		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor \
+		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
+		   gfx/program gfx/renderer gfx/renderer2d gfx/dynamic_mesh \
+           math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector \
+		   math/quat math/base math/triangle math/tetrahedron math/projection \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream
 PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models tools/model_convert tools/model_viewer
 
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
-DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.dep)
+DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d)
 
 LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
 MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o)
@@ -61,28 +61,28 @@ MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole
 INCLUDES=-Iinclude/ -Isrc/
 
 # Clang gives no warnings for uninitialized class members!
-NICE_FLAGS=-std=c++14 -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder -Wuninitialized -Wno-unused-function \
-		   -Werror=switch -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual #-Werror
+NICE_FLAGS=-std=c++14 -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder \
+		   -Wuninitialized -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
+		   -Wparentheses -Wno-overloaded-virtual #-Werror
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
-LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-MINGW_FLAGS=-DFWK_TARGET_MINGW -O3 -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 --embed-file data/ $(NICE_FLAGS) $(INCLUDES)
-
-$(DEPS): $(BUILD_DIR)/%.dep: src/%.cpp
-	$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@
-#	$(MINGW_CXX) $(MINGW_FLAGS) -MM $< -MT $(BUILD_DIR)/$*_.o >> $@
+LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
+			$(INCLUDES) $(FLAGS)
+MINGW_FLAGS=-DFWK_TARGET_MINGW -O3 -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
+			$(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
+			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)
 
 $(LINUX_OBJECTS): $(BUILD_DIR)/%.o:  src/%.cpp
-	$(LINUX_CXX) $(LINUX_FLAGS) -c src/$*.cpp -o $@
+	$(LINUX_CXX) -MMD $(LINUX_FLAGS) -c src/$*.cpp -o $@
 
 $(MINGW_OBJECTS): $(BUILD_DIR)/%_.o: src/%.cpp
-	$(MINGW_CXX) $(MINGW_FLAGS) -c src/$*.cpp -o $@
+	$(MINGW_CXX) -MMD $(MINGW_FLAGS) -c src/$*.cpp -o $@
 
 $(LINUX_PROGRAMS): %:     $(LINUX_SHARED_OBJECTS) $(BUILD_DIR)/%.o
-	$(LINUX_CXX) -o $@ $^ -rdynamic $(LINUX_LIBS) $(LIBS_$@)
+	$(LINUX_CXX) -MMD -o $@ $^ -rdynamic $(LINUX_LIBS) $(LIBS_$@)
 
 $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
-	$(MINGW_CXX) -o $@ $^ $(MINGW_LIBS) $(LIBS_$*)
+	$(MINGW_CXX) -MMD -o $@ $^ $(MINGW_LIBS) $(LIBS_$*)
 	$(MINGW_STRIP) $@
 
 $(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp)
@@ -108,20 +108,10 @@ lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
-		$(DEPS) $(BUILD_DIR)/.depend lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp
+		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp
 	-rmdir test temp lib tools
 	find $(BUILD_DIR) -type d -empty -delete
 
-$(BUILD_DIR)/.depend: $(DEPS)
-	cat $(DEPS) > $(BUILD_DIR)/.depend
+.PHONY: clean tools
 
-depend: $(BUILD_DIR)/.depend
-
-.PHONY: clean depend tools
-
-DEPEND_FILE=$(BUILD_DIR)/.depend
-DEP=$(wildcard $(DEPEND_FILE))
-ifneq "$(DEP)" ""
-include $(DEP)
-endif
-
+-include $(DEPS)
