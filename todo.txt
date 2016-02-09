@@ -1,3 +1,6 @@
+- FileSystem::current() is wrong on linux
+  add FileSystem::setCurrent()
+
 - EnumMap is not initialized by default
 - __attribute__((cold)) on throwException (all code that leads to it
   should be inside cold section)

@@ -474,7 +474,7 @@ string fromWideString(const wstring &, bool throw_on_invalid = true);
 
 int enumFromString(const char *str, CRange<const char *> enum_strings, bool throw_on_invalid);
 
-template <class Type, int min, int max> class EnumRange {
+template <class Type> class EnumRange {
   public:
 	class Iter {
 	  public:
@@ -493,8 +493,16 @@ template <class Type, int min, int max> class EnumRange {
 		int pos;
 	};
 
-	auto begin() const { return Iter(min); }
-	auto end() const { return Iter(max); }
+	auto begin() const { return Iter(m_min); }
+	auto end() const { return Iter(m_max); }
+	int size() const { return m_max - m_min; }
+
+	EnumRange(int min, int max) :m_min(min), m_max(max) {
+		DASSERT(min >= 0 && max >= min);
+	}
+
+  protected:
+	int m_min, m_max;
 };
 
 // Safe enum class
@@ -553,8 +561,8 @@ template <class T> constexpr auto count() -> typename std::enable_if<IsEnum<T>::
 	return enumCount(T());
 }
 template <class T>
-auto all() -> typename std::enable_if<IsEnum<T>::value, EnumRange<T, 0, count<T>()>>::type {
-	return EnumRange<T, 0, count<T>()>();
+auto all() -> typename std::enable_if<IsEnum<T>::value, EnumRange<T>>::type {
+	return EnumRange<T>(0, count<T>());
 }
 
 template <class T, class Enum, class = typename std::enable_if<IsEnum<Enum>::value, T>::type>
