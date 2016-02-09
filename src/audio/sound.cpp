@@ -34,7 +34,6 @@ Sound::Sound(Stream &sr) {
 	sr.signature("data", 4);
 	sr >> size;
 
-	ASSERT(size >= 0);
 	if(channels > 2 || (bits != 8 && bits != 16))
 		THROW("Unsupported format (bits: %d channels: %d)", bits, channels);
 

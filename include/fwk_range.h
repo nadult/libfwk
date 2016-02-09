@@ -167,9 +167,11 @@ template <class Target, class T> auto reinterpretRange(Range<T> range) {
 						   size_t(range.size()) * sizeof(T) / sizeof(Target));
 }
 
-template <class TContainer, class TBase = typename ContainerBaseType<TContainer>::type>
-auto accumulate(const TContainer &container, TBase init = TBase()) {
-	return std::accumulate(begin(container), end(container), init);
+template <class TContainer, class TBase = typename std::remove_const<typename ContainerBaseType<TContainer>::type>::type>
+auto accumulate(const TContainer &container, TBase value = TBase()) {
+	for(const auto &elem : container)
+		value = value + elem;
+	return value;
 }
 
 // TODO: write more of these

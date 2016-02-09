@@ -176,7 +176,7 @@ uint AudioDevice::prepSource(uint buffer_id) {
 }
 
 void AudioDevice::updateSource(uint source_id, const SoundPos &pos) {
-	DASSERT(source_id >= 0 && source_id < m_impl->sources.size());
+	DASSERT(source_id < m_impl->sources.size());
 	uint source = m_impl->sources[source_id];
 	alSource3f(source, AL_POSITION, pos.pos.x, pos.pos.y, pos.pos.z);
 	alSource3f(source, AL_VELOCITY, pos.velocity.x, pos.velocity.y, pos.velocity.z);
@@ -184,7 +184,7 @@ void AudioDevice::updateSource(uint source_id, const SoundPos &pos) {
 }
 
 void AudioDevice::updateSource(uint source_id, const SoundConfig &config) {
-	DASSERT(source_id >= 0 && source_id < m_impl->sources.size());
+	DASSERT(source_id < m_impl->sources.size());
 	uint source = m_impl->sources[source_id];
 	alSourcef(source, AL_ROLLOFF_FACTOR, config.rolloff);
 	alSourcef(source, AL_GAIN, config.gain);
