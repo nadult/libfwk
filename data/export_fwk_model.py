@@ -3,6 +3,8 @@
 
 #TODO: if we have 2 armatures, then they can have bones with same names
 #      identify nodes better than by just using their names
+# TODO: makeValidStrings make convert two different strings into one, ex.:
+#       "obj_name" and "obj name"; Make sure this doesn't happen
 
 import re
 import bpy
@@ -24,8 +26,8 @@ def relativeDifference(a, b):
     magnitude = max(abs(a), abs(b))
     return 0.0 if (magnitude < 0.000001) else (abs(a - b) / magnitude)
 
-def isValidString(string):
-    return string.split() == [string]
+def makeValidString(identifier):
+    return '_'.join(identifier.lower().split())
 
 def fixMatrixUpAxis(mat):
     mat = mat.copy()
@@ -109,12 +111,10 @@ def writeSkin(xml_parent, mesh, obj):
         return;
 
     for vg in obj.vertex_groups:
-        if(not isValidString(vg.name)):
-            raise Exception("Vertex groups names mustn't contain whitespaces: \"" + obj.name + '"')
         do_export[vg.index] = armature.data.bones.find(vg.name) != -1
         if do_export[vg.index]:
             group_index[vg.index] = len(node_names)
-            node_names.append(vg.name.lower())
+            node_names.append(makeValidString(vg.name))
         else:
             group_index[vg.index] = -1
             log("Skipping vertex group: " + vg.name)
@@ -173,7 +173,7 @@ def writeMesh(xml_parent, mesh, obj):
     while mat_idx < len(index_sets):
         xml_layer = ET.SubElement(xml_mesh_node, "indices")
         if mesh.materials:
-            materials.append(mesh.materials[mat_idx].name.lower())
+            materials.append(makeValidString(mesh.materials[mat_idx].name))
         xml_layer.text = ' '.join(map(str, index_sets[mat_idx]))
         mat_idx += 1
 
@@ -198,11 +198,8 @@ def writeTrans(xml_node, matrix):
         xml_node.set("scale", scale)
 
 def writeBone(xml_parent, bone, bone_map):
-    if(not isValidString(bone.name)):
-        raise Exception("Bone names mustn't contain whitespaces: \"" + obj.name + '"')
-
     xml_bone = ET.SubElement(xml_parent, "node")
-    xml_bone.set("name", bone.name.lower())
+    xml_bone.set("name", makeValidString(bone.name))
     xml_bone.set("type", "generic")
 
     matrix = bone.matrix_local.copy()
@@ -235,9 +232,6 @@ def writeProperty(xml_node, prop_name, prop_value):
     xml_prop.set("value", prop_value)
 
 def writeObject(xml_root, xml_parent, obj, mesh_list, bone_map, override_matrix = None, override_name = None):
-    if(not isValidString(obj.name)):
-        raise Exception("Object names mustn't contain whitespaces: \"" + obj.name + '"')
-
     if obj.proxy:
         return
 
@@ -275,7 +269,7 @@ def writeObject(xml_root, xml_parent, obj, mesh_list, bone_map, override_matrix 
                     idx = idx + 1
 
     xml_obj_node = ET.SubElement(xml_parent, "node")
-    xml_obj_node.set("name", (override_name if override_name else obj.name).lower())
+    xml_obj_node.set("name", makeValidString(override_name if override_name else obj.name))
     obj_type = objectTypeToString(obj)
     if obj_type != "generic":
         xml_obj_node.set("type", obj_type)
@@ -290,7 +284,7 @@ def writeObject(xml_root, xml_parent, obj, mesh_list, bone_map, override_matrix 
                 raise Exception("Duplicating groups with multiple objects not supported: " + obj.name)
             if len(group.objects) == 1:
                 link = group.objects[0]
-                writeProperty(xml_obj_node, "link_object", link.name.lower())
+                writeProperty(xml_obj_node, "link_object", makeValidString(link.name))
                 #if link.library:
                 #    writeProperty(xml_obj_node, "link_library", link.library.filepath)
 
@@ -353,7 +347,7 @@ def writeAnim(xml_parent, action, armature, bone_map):
         return
     
     xml_anim = ET.SubElement(xml_parent, "anim")
-    xml_anim.set("name", action.name.lower())
+    xml_anim.set("name", makeValidString(action.name))
     xml_anim.set("length", formatFloat((action.frame_range[1] - action.frame_range[0] + 1) / fps))
 
     matrices_2d = []
@@ -378,7 +372,7 @@ def writeAnim(xml_parent, action, armature, bone_map):
     index = 0
     for bone in armature.pose.bones:
         xml_channel = ET.SubElement(xml_anim, "channel")
-        xml_channel.set("name", bone.name.lower())
+        xml_channel.set("name", makeValidString(bone.name))
         (def_pos, def_rot, def_scale) = bone_map[bone.name][1]
 
         positions = []
@@ -431,11 +425,8 @@ def materialDiffuse(mat):
         return mat.diffuse_color
 
 def writeMaterial(xml_parent, mat):
-    if(not isValidString(mat.name)):
-        raise Exception("Material names mustn't contain whitespaces: \"" + obj.name + '"')
-
     xml_mat = ET.SubElement(xml_parent, "material")
-    xml_mat.set("name", mat.name.lower())
+    xml_mat.set("name", makeValidString(mat.name))
     xml_mat.set("diffuse", colorToString(materialDiffuse(mat)))
 
 # objects_filter: a regular expression for object names, like "human.*"
