@@ -14,8 +14,8 @@
 
 namespace fwk {
 
-string executablePath() {
-	char name[128];
+FilePath executablePath() {
+	char name[512];
 	int ret = readlink("/proc/self/exe", name, sizeof(name) - 1);
 	if(ret == -1)
 		return "";
@@ -30,9 +30,16 @@ FilePath::Element FilePath::extractRoot(const char *str) {
 }
 
 FilePath FilePath::current() {
-	char *pwd = getenv("PWD");
-	ASSERT(pwd && pwd[0] == '/');
-	return FilePath(pwd);
+	char buffer[512];
+	char *name = getcwd(buffer, sizeof(buffer) - 1);
+	if(!name)
+		THROW("Error in getcwd: %s", strerror(errno));
+	return FilePath(name);
+}
+
+void FilePath::setCurrent(const FilePath &path) {
+	if(chdir(path.c_str()) != 0)
+		THROW("Error in chdir: %s", strerror(errno));
 }
 
 bool FilePath::isRegularFile() const {

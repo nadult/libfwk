@@ -229,9 +229,6 @@ template <class T> class immutable_weak_ptr {
 	int m_mutation_counter;
 };
 
-string executablePath();
-pair<string, bool> execCommand(const string &cmd);
-
 // Compile your program with -rdynamic to get some interesting info
 // Currently not avaliable on mingw32 platform
 // TODO: use lib-lldb
@@ -497,9 +494,7 @@ template <class Type> class EnumRange {
 	auto end() const { return Iter(m_max); }
 	int size() const { return m_max - m_min; }
 
-	EnumRange(int min, int max) :m_min(min), m_max(max) {
-		DASSERT(min >= 0 && max >= min);
-	}
+	EnumRange(int min, int max) : m_min(min), m_max(max) { DASSERT(min >= 0 && max >= min); }
 
   protected:
 	int m_min, m_max;
@@ -560,8 +555,7 @@ static auto toString(T value) -> typename std::enable_if<IsEnum<T>::value, const
 template <class T> constexpr auto count() -> typename std::enable_if<IsEnum<T>::value, int>::type {
 	return enumCount(T());
 }
-template <class T>
-auto all() -> typename std::enable_if<IsEnum<T>::value, EnumRange<T>>::type {
+template <class T> auto all() -> typename std::enable_if<IsEnum<T>::value, EnumRange<T>>::type {
 	return EnumRange<T>(0, count<T>());
 }
 
@@ -1315,6 +1309,7 @@ class FilePath {
 	FilePath &operator/=(const FilePath &other);
 
 	static FilePath current();
+	static void setCurrent(const FilePath &);
 
 	operator const string &() const { return m_path; }
 	const char *c_str() const { return m_path.c_str(); }
@@ -1375,6 +1370,8 @@ string toLower(const string &str);
 void mkdirRecursive(const FilePath &path);
 bool access(const FilePath &);
 double lastModificationTime(const FilePath &);
+FilePath executablePath();
+pair<string, bool> execCommand(const string &cmd);
 }
 
 #endif

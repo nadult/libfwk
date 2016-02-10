@@ -79,7 +79,8 @@ class TestStream : public FileStream {
 			if(size > 128)
 				log("...");
 			log("\n");
-		} catch(...) {}
+		} catch(...) {
+		}
 	}
 
 	void v_save(const void *data, int size) {
@@ -90,7 +91,8 @@ class TestStream : public FileStream {
 			if(size > 128)
 				log("...");
 			log("\n");
-		} catch(...) {}
+		} catch(...) {
+		}
 		FileStream::v_save(data, size);
 	}
 
@@ -151,6 +153,17 @@ void testPodData() {
 		THROW("Error when serializing POD data");
 }
 
+void testFilesystem() {
+	auto old_current = FilePath::current();
+	auto data_dir = executablePath().parent().parent() / "data";
+	ASSERT(access(data_dir / "test.blend"));
+	FilePath::setCurrent(data_dir);
+	ASSERT(FilePath::current() == data_dir.absolute());
+	ASSERT(access("test.blend"));
+	FilePath::setCurrent(old_current);
+	ASSERT(FilePath::current() == old_current);
+}
+
 void testMain() {
 	struct ScopeExit {
 		~ScopeExit() {
@@ -186,4 +199,6 @@ void testMain() {
 	ASSERT(pods2.size() == pods.size());
 	for(size_t n = 0; n < pods.size(); n++)
 		ASSERT(pods2[n] == pods[n]);
+
+	testFilesystem();
 }

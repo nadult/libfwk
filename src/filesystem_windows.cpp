@@ -13,8 +13,8 @@
 
 namespace fwk {
 
-string executablePath() {
-	CHAR path[MAX_PATH];
+FilePath executablePath() {
+	char path[MAX_PATH];
 	GetModuleFileName(GetModuleHandleW(0), path, arraySize(path));
 	return path;
 }
@@ -29,8 +29,14 @@ FilePath::Element FilePath::extractRoot(const char *str) {
 
 FilePath FilePath::current() {
 	char buf[MAX_PATH];
-	GetCurrentDirectory(sizeof(buf), buf);
+	if(!GetCurrentDirectory(sizeof(buf), buf))
+		THROW("Error in GetCurrentDirectory");
 	return FilePath(buf);
+}
+
+void FilePath::setCurrent(const FilePath &path) {
+	if(!SetCurrentDirectory(path.c_str()))
+		THROW("Error in SetCurrentDirectory(%s)", path.c_str());
 }
 
 bool FilePath::isRegularFile() const {
