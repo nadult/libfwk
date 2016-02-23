@@ -281,7 +281,6 @@ const int2 max(const int2 &a, const int2 &b);
 const int3 min(const int3 &a, const int3 &b);
 const int3 max(const int3 &a, const int3 &b);
 
-inline int abs(int a) { return ::abs(a); }
 const int2 abs(const int2 &v);
 const int3 abs(const int3 &v);
 
@@ -296,17 +295,6 @@ inline const float3 min(const float3 &a, const float3 &b) {
 }
 inline const float3 max(const float3 &a, const float3 &b) {
 	return float3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
-}
-
-inline const int2 round(const float2 &v) { return int2(v.x + 0.5f, v.y + 0.5f); }
-inline const int3 round(const float3 &v) { return int3(v.x + 0.5f, v.y + 0.5f, v.z + 0.5f); }
-
-inline const int2 ceil(const float2 &v) {
-	return int2(v.x + (1.0f - constant::epsilon), v.y + (1.0f - constant::epsilon));
-}
-inline const int3 ceil(const float3 &v) {
-	return int3(v.x + (1.0f - constant::epsilon), v.y + (1.0f - constant::epsilon),
-				v.z + (1.0f - constant::epsilon));
 }
 
 inline const int3 asXZ(const int2 &pos) { return int3(pos.x, 0, pos.y); }

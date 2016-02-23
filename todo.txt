@@ -1,3 +1,9 @@
+- texture should use int2 instead of width, height
+- Saver, Loader -> SaveStream, LoadStream or similar
+- automatic operators: > >= <=
+- colors in Color:: shouldn't be defined in cpp file coz they can't be used in static definitions
+- enum map SUX, it doesn't verify shit
+
 - EnumMap is not initialized by default
 - __attribute__((cold)) on throwException (all code that leads to it
   should be inside cold section)
