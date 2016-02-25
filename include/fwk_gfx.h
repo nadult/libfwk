@@ -101,11 +101,13 @@ struct HeightMap16bit {
 // simple RGBA32 texture
 class Texture {
   public:
+	// TODO: make it initialize with black or something by default
 	Texture(int width, int height);
 	Texture(Stream &);
 	Texture();
 
 	// data is not preserved
+	// TODO: it should be or else remove this function
 	void resize(int width, int height);
 	void clear();
 	void fill(Color);
@@ -1669,6 +1671,8 @@ class FontCore : public immutable_base<FontCore> {
 
   private:
 	FontCore();
+	void computeRect();
+
 	friend class FontFactory;
 	friend class Font;
 

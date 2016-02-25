@@ -73,6 +73,10 @@ FontCore::FontCore(const XMLNode &font_node) {
 		ASSERT(kernings_count == 0);
 	}
 
+	computeRect();
+}
+
+void FontCore::computeRect() {
 	m_max_rect = IRect(0, 0, 0, 0);
 	for(auto &it : m_glyphs) {
 		IRect rect = IRect(int2(it.second.size)) + it.second.offset;

@@ -2,15 +2,40 @@
 
    This file is part of libfwk. */
 
-// TODO: add support for freetype / somehow use html fonts?
-#ifndef FWK_TARGET_HTML5
+#include "fwk_gfx.h"
+
+namespace fwk {
+
+FontCore::FontCore() {
+	m_texture_size = int2(2, 2);
+	m_max_rect = IRect(int2(8, 8));
+	m_line_height = 8;
+	m_glyphs[' '] = FontCore::Glyph{' ', short2(0, 0), short2(2, 2), short2(0, 0), 2};
+}
+}
+
+#ifdef FWK_TARGET_HTML5
+
+namespace fwk {
+
+class FontFactory::Impl {};
+FontFactory::FontFactory() = default;
+FontFactory::~FontFactory() = default;
+
+Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
+	// TODO: add support for freetype / somehow use html fonts
+	FontCore core;
+	return Font(PFontCore(std::move(core)), make_immutable<DTexture>(Texture(2, 2)));
+}
+}
+
+#else
 
 #include <ft2build.h>
 #ifdef FT_FREETYPE_H
 #include FT_FREETYPE_H
 #endif
 
-#include "fwk_gfx.h"
 #include <cstring>
 #include <cwchar>
 #include <cstdarg>
@@ -107,8 +132,6 @@ Texture makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	});
 	return makeTextureAtlas(glyphs, {256, 256});
 }
-
-FontCore::FontCore() = default;
 
 Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	FT_Face face = m_impl->getFace(path);
