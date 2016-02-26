@@ -251,6 +251,7 @@ class GfxDevice {
 		flag_resizable = 8u,
 		flag_centered = 16u,
 		flag_vsync = 32u,
+		flag_maximized = 64u,
 	};
 
 	void createWindow(const string &name, const int2 &size, uint flags);

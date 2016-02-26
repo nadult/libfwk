@@ -49,6 +49,8 @@ struct GfxDevice::WindowImpl {
 			sdl_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		if(flags & flag_resizable)
 			sdl_flags |= SDL_WINDOW_RESIZABLE;
+		if(flags & flag_maximized)
+			sdl_flags |= SDL_WINDOW_MAXIMIZED;
 		if(flags & flag_multisampling) {
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
