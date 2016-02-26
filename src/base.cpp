@@ -4,6 +4,10 @@
 
 #include "fwk_base.h"
 #include <cstdio>
+#include <stdarg.h>
+#include <cstring>
+#include <cstdlib>
+#include <cstdarg>
 
 #ifdef FWK_TARGET_MINGW
 #include <ctime>
@@ -20,10 +24,6 @@
 #include <execinfo.h>
 #include <dlfcn.h>
 #endif
-#include <stdarg.h>
-#include <cstring>
-#include <cstdlib>
-#include <cstdarg>
 
 #ifdef FWK_TARGET_HTML5
 #include "emscripten.h"
@@ -79,69 +79,102 @@ string fromWideString(const std::wstring &text, bool throw_on_invalid) {
 	return string(buffer.data(), buffer.data() + size);
 }
 
-#ifndef FWK_TARGET_HTML5
-
 namespace {
 
-	struct AutoSegHandler {
-		AutoSegHandler() { handleSegFault(); }
-	} s_auto_seg_handler;
+	void (*s_user_ctrlc_func)() = 0;
 
-	void (*s_handler)() = 0;
+#if defined(FWK_TARGET_MINGW)
 
-#ifdef _WIN32
-	BOOL shandler(DWORD type) {
-		if(type == CTRL_C_EVENT && s_handler) {
-			s_handler();
+	BOOL handleControlC(DWORD type) {
+		if(type == CTRL_C_EVENT && s_user_ctrlc_func) {
+			s_user_ctrlc_func();
 			return TRUE;
 		}
 
 		return FALSE;
 	}
-#else
-	void shandler(int) {
-		if(s_handler)
-			s_handler();
-	}
-#endif
 
-#ifndef _WIN32
+	const char *exceptionName(DWORD code) {
+		switch(code) {
+#define CASE(code)                                                                                 \
+	case code:                                                                                     \
+		return #code;
+			CASE(EXCEPTION_ACCESS_VIOLATION)
+			CASE(EXCEPTION_ARRAY_BOUNDS_EXCEEDED)
+			CASE(EXCEPTION_BREAKPOINT)
+			CASE(EXCEPTION_DATATYPE_MISALIGNMENT)
+			CASE(EXCEPTION_FLT_DENORMAL_OPERAND)
+			CASE(EXCEPTION_FLT_DIVIDE_BY_ZERO)
+			CASE(EXCEPTION_FLT_INEXACT_RESULT)
+			CASE(EXCEPTION_FLT_INVALID_OPERATION)
+			CASE(EXCEPTION_FLT_OVERFLOW)
+			CASE(EXCEPTION_FLT_STACK_CHECK)
+			CASE(EXCEPTION_FLT_UNDERFLOW)
+			CASE(EXCEPTION_ILLEGAL_INSTRUCTION)
+			CASE(EXCEPTION_IN_PAGE_ERROR)
+			CASE(EXCEPTION_INT_DIVIDE_BY_ZERO)
+			CASE(EXCEPTION_INT_OVERFLOW)
+			CASE(EXCEPTION_INVALID_DISPOSITION)
+			CASE(EXCEPTION_NONCONTINUABLE_EXCEPTION)
+			CASE(EXCEPTION_PRIV_INSTRUCTION)
+			CASE(EXCEPTION_SINGLE_STEP)
+			CASE(EXCEPTION_STACK_OVERFLOW)
+#undef CASE
+		default:
+			return "UNKNOWN";
+		}
+	}
+
+	LONG WINAPI windows_exception_handler(EXCEPTION_POINTERS *info) {
+		printf("Signal received: %s\n", exceptionName(info->ExceptionRecord->ExceptionCode));
+		printf("Backtrace:\n%s\n", Backtrace::get(2, info->ContextRecord).analyze(false).c_str());
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
+	struct AutoSigHandler {
+		AutoSigHandler() { SetUnhandledExceptionFilter(windows_exception_handler); }
+	} s_auto_sig_handler;
+
+#elif defined(FWK_TARGET_LINUX)
+
+	void handleControlC(int) {
+		if(s_user_ctrlc_func)
+			s_user_ctrlc_func();
+	}
+
 	void segfaultHandler(int, siginfo_t *, void *) {
 		printf("Segmentation fault!\n");
 		printf("Backtrace:\n%s\n", Backtrace::get(2).analyze(true).c_str());
 		exit(1);
 	}
+
+	struct AutoSigHandler {
+		AutoSigHandler() {
+			struct sigaction sa;
+			sa.sa_flags = SA_SIGINFO;
+			sigemptyset(&sa.sa_mask);
+			sa.sa_sigaction = segfaultHandler;
+			if(sigaction(SIGSEGV, &sa, NULL) == -1)
+				THROW("Error while attaching segfault handler");
+		}
+	} s_auto_sig_handler;
+
 #endif
 }
 
 void handleCtrlC(void (*handler)()) {
-	s_handler = handler;
-#ifdef _WIN32
-	SetConsoleCtrlHandler((PHANDLER_ROUTINE)shandler, TRUE);
-#else
+	s_user_ctrlc_func = handler;
+#if defined(FWK_TARGET_MINGW)
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)handleControlC, TRUE);
+#elif defined(FWK_TARGET_LINUX)
 	struct sigaction sig_int_handler;
 
-	sig_int_handler.sa_handler = shandler;
+	sig_int_handler.sa_handler = handleControlC;
 	sigemptyset(&sig_int_handler.sa_mask);
 	sig_int_handler.sa_flags = 0;
 	sigaction(SIGINT, &sig_int_handler, NULL);
 #endif
 }
-
-void handleSegFault() {
-#ifdef _WIN32
-// TODO: writeme
-#else
-	struct sigaction sa;
-	sa.sa_flags = SA_SIGINFO;
-	sigemptyset(&sa.sa_mask);
-	sa.sa_sigaction = segfaultHandler;
-	if(sigaction(SIGSEGV, &sa, NULL) == -1)
-		THROW("Error while attaching segfault handler");
-#endif
-}
-
-#endif
 
 // TODO: stdout and stderr returned separately?
 pair<string, bool> execCommand(const string &cmd) {

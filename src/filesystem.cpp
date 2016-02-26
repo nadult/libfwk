@@ -8,6 +8,9 @@
 #include <cstdio>
 #include <algorithm>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #ifdef _WIN32
 
 #include <windows.h>
@@ -16,8 +19,6 @@
 
 #else
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -248,8 +249,10 @@ bool access(const FilePath &path) {
 
 double lastModificationTime(const FilePath &file_name) {
 #ifdef _WIN32
-	THROW("Write me please");
-	return 0.0;
+	struct _stat64 attribs;
+	if(_stat64(file_name.c_str(), &attribs) != 0)
+		THROW("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+	return double(attribs.st_mtime);
 #else
 	struct stat attribs;
 	if(stat(file_name.c_str(), &attribs) != 0)

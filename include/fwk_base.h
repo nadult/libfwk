@@ -235,7 +235,7 @@ template <class T> class immutable_weak_ptr {
 class Backtrace {
   public:
 	Backtrace(std::vector<void *> addresses = {}, std::vector<string> symbols = {});
-	static Backtrace get(size_t skip = 0);
+	static Backtrace get(size_t skip = 0, void *context = nullptr);
 
 	// When filter is true, analyzer uses c++filt program to demangle C++
 	// names; it also shortens some of the common long class names, like

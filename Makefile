@@ -56,7 +56,8 @@ MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
 LIBS=freetype2 sdl2 libpng vorbisfile
 LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt -fopenmp
-MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32
+MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32\
+		   -lws2_32 -limagehlp
 
 INCLUDES=-Iinclude/ -Isrc/
 
@@ -67,7 +68,7 @@ NICE_FLAGS=-std=c++14 -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wer
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
 LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
 			$(INCLUDES) $(FLAGS)
-MINGW_FLAGS=-DFWK_TARGET_MINGW -O3 -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
+MINGW_FLAGS=-DFWK_TARGET_MINGW -g -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
 			$(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)
@@ -83,7 +84,7 @@ $(LINUX_PROGRAMS): %:     $(LINUX_SHARED_OBJECTS) $(BUILD_DIR)/%.o
 
 $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
 	$(MINGW_CXX) -MMD -o $@ $^ $(MINGW_LIBS) $(LIBS_$*)
-	$(MINGW_STRIP) $@
+#	$(MINGW_STRIP) $@
 
 $(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp)
 	cat $^ > $@
