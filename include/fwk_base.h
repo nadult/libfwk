@@ -229,8 +229,6 @@ template <class T> class immutable_weak_ptr {
 	int m_mutation_counter;
 };
 
-// Compile your program with -rdynamic to get some interesting info
-// Currently not avaliable on mingw32 platform
 // TODO: use lib-lldb
 class Backtrace {
   public:
@@ -251,12 +249,12 @@ class Backtrace {
 };
 
 class Exception : public std::exception {
-
   public:
 	explicit Exception(string text);
 	explicit Exception(string text, Backtrace);
 	~Exception() noexcept {}
-	const char *what() const noexcept { return m_text.c_str(); }
+	const char *what() const noexcept;
+	const char *text() const noexcept { return m_text.c_str(); }
 	string backtrace(bool filter = true) const { return m_backtrace.analyze(filter); }
 	const Backtrace &backtraceData() const { return m_backtrace; }
 

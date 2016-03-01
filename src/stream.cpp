@@ -24,19 +24,16 @@ void Stream::handleException(const Exception &ex) {
 		throw ex;
 	m_exception_thrown = 1;
 
-	char info[std::numeric_limits<long long>::digits * 2 + 2];
-	snprintf(info, sizeof(info), "%lld/%lld", m_pos, m_size);
-
-	char buffer[4096];
-	snprintf(buffer, sizeof(buffer), "While %s stream \"%s\" at position %s:\n%s",
-			 (m_is_loading ? "loading from" : "saving to"), name(), info, ex.what());
+	TextFormatter out;
+	out("While %s stream \"%s\" at position %lld/%lld:\n%s",
+		(m_is_loading ? "loading from" : "saving to"), name(), m_pos, m_size, ex.text());
 
 #ifdef FWK_TARGET_HTML5
-	printf("%s\n", buffer);
+	printf("%s\n", out.text());
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	throw Exception(buffer, ex.backtraceData());
+	throw Exception(out.text(), ex.backtraceData());
 #endif
 }
 
@@ -48,7 +45,9 @@ void Stream::loadData(void *ptr, int bytes) {
 		DASSERT(isLoading() && ptr);
 		DASSERT(bytes >= 0 && m_pos + bytes <= m_size);
 		v_load(ptr, bytes);
-	} catch(const Exception &ex) { handleException(ex); }
+	} catch(const Exception &ex) {
+		handleException(ex);
+	}
 }
 
 void Stream::saveData(const void *ptr, int bytes) {
@@ -58,14 +57,18 @@ void Stream::saveData(const void *ptr, int bytes) {
 	try {
 		DASSERT(isSaving() && ptr && bytes >= 0);
 		v_save(ptr, bytes);
-	} catch(const Exception &ex) { handleException(ex); }
+	} catch(const Exception &ex) {
+		handleException(ex);
+	}
 }
 
 void Stream::seek(long long pos) {
 	try {
 		DASSERT(pos >= 0 && pos <= m_size);
 		v_seek(pos);
-	} catch(const Exception &ex) { handleException(ex); }
+	} catch(const Exception &ex) {
+		handleException(ex);
+	}
 }
 
 void Stream::signature(u32 sig) {
@@ -106,7 +109,9 @@ static int decodeString(const char *str, int strSize, char *buf, int bufSize) {
 
 			buf[len++] = '\\';
 			buf[len++] = '\\';
-		} else if(str[n] >= 32 && str[n] < 127) { buf[len++] = str[n]; } else {
+		} else if(str[n] >= 32 && str[n] < 127) {
+			buf[len++] = str[n];
+		} else {
 			if(bufSize - len < 4)
 				goto END;
 
@@ -186,7 +191,9 @@ void loadFromStream(string &v, Stream &sr) {
 		if(len > sr.size() - sr.pos())
 			sr.handleException(Exception("Invalid stream data"));
 		v.resize(len, 0);
-	} catch(const Exception &ex) { sr.handleException(ex); }
+	} catch(const Exception &ex) {
+		sr.handleException(ex);
+	}
 
 	sr.loadData(&v[0], len);
 }

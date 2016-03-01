@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 	try {
 		return safe_main(argc, argv);
 	} catch(const Exception &ex) {
-		printf("%s\n\nBacktrace:\n%s\n", ex.what(), ex.backtrace().c_str());
+		printf("%s\n", ex.what());
 		return 1;
 	}
 }

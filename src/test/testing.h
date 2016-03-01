@@ -17,7 +17,9 @@ using namespace fwk;
 		bool exception_thrown = false;                                                             \
 		try {                                                                                      \
 			code;                                                                                  \
-		} catch(...) { exception_thrown = true; }                                                  \
+		} catch(...) {                                                                             \
+			exception_thrown = true;                                                               \
+		}                                                                                          \
 		ASSERT(exception_thrown);                                                                  \
 	}
 
@@ -64,7 +66,7 @@ int main(int argc, char **argv) {
 		testMain();
 		printf("%s: OK\n", argv[0]);
 	} catch(const Exception &ex) {
-		printf("%s: FAILED\n%s\nBacktrace:\n%s\n", argv[0], ex.what(), ex.backtrace().c_str());
+		printf("%s: FAILED\n%s\n", argv[0], ex.what());
 		return 1;
 	}
 	return 0;

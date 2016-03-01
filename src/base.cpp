@@ -223,6 +223,21 @@ Exception::Exception(string text) : m_text(std::move(text)), m_backtrace(Backtra
 Exception::Exception(string text, Backtrace bt)
 	: m_text(std::move(text)), m_backtrace(std::move(bt)) {}
 
+const char *Exception::what() const noexcept {
+	static char thread_local buffer[4096];
+
+	try {
+		TextFormatter fmt;
+		fmt("%s\nBacktrace:\n%s", text(), backtrace().c_str());
+		int len = min((int)strlen(fmt.text()), (int)arraySize(buffer) - 1);
+		memcpy(buffer, fmt.text(), len);
+		buffer[len] = 0;
+	} catch(...) {
+		return text();
+	}
+	return buffer;
+}
+
 void throwException(const char *file, int line, const char *fmt, ...) {
 	char new_fmt[2048];
 	snprintf(new_fmt, sizeof(new_fmt), "%s:%d: %s", file, line, fmt);
