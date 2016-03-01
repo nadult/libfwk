@@ -9,7 +9,7 @@
 namespace fwk {
 
 enum class DDSId {
-	Unknown = 0,
+	unknown = 0,
 
 	R8G8B8 = 20,
 	A8R8G8B8 = 21,
@@ -69,47 +69,43 @@ using Id = TextureFormatId;
 
 namespace {
 	struct FormatDesc {
-		FormatDesc(Id id, DDSId dds_id, int bpp, int i, int f, int t, bool is_compressed = false)
-			: id(id), dds_id(dds_id), bytes_per_pixel(bpp), internal(i), gFormat(f), type(t),
+		FormatDesc() = default;
+		FormatDesc(DDSId dds_id, int bpp, int i, int f, int t, bool is_compressed = false)
+			: dds_id(dds_id), bytes_per_pixel(bpp), internal(i), gFormat(f), type(t),
 			  is_compressed(is_compressed) {}
 
-		Id id;
-		DDSId dds_id;
-		int bytes_per_pixel;
-		int internal, gFormat, type;
-		bool is_compressed;
+		DDSId dds_id = DDSId::unknown;
+		int bytes_per_pixel = 0;
+		int internal = 0, gFormat = 0, type = 0;
+		bool is_compressed = false;
 	};
 
-	const EnumMap<FormatDesc, Id> s_descs{{
-		FormatDesc(Id::rgba, DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE),
-		FormatDesc(Id::rgba_f16, DDSId::A16B16G16R16F, 8, GL_RGBA16F, GL_RGBA, GL_FLOAT),
-		FormatDesc(Id::rgba_f32, DDSId::A32B32G32R32F, 16, GL_RGBA32F, GL_RGBA, GL_FLOAT),
-		FormatDesc(Id::rgb, DDSId::Unknown, 3, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE),
-		FormatDesc(Id::rgb_f16, DDSId::Unknown, 6, GL_RGB16F, GL_RGB, GL_FLOAT),
-		FormatDesc(Id::rgb_f32, DDSId::Unknown, 12, GL_RGB32F, GL_RGB, GL_FLOAT),
-		FormatDesc(Id::luminance, DDSId::L8, 1, GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE),
+	const EnumMap<Id, FormatDesc> descs{{
+		{Id::rgba, FormatDesc(DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE)},
+		{Id::rgba_f16, FormatDesc(DDSId::A16B16G16R16F, 8, GL_RGBA16F, GL_RGBA, GL_FLOAT)},
+		{Id::rgba_f32, FormatDesc(DDSId::A32B32G32R32F, 16, GL_RGBA32F, GL_RGBA, GL_FLOAT)},
+		{Id::rgb, FormatDesc(DDSId::unknown, 3, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)},
+		{Id::rgb_f16, FormatDesc(DDSId::unknown, 6, GL_RGB16F, GL_RGB, GL_FLOAT)},
+		{Id::rgb_f32, FormatDesc(DDSId::unknown, 12, GL_RGB32F, GL_RGB, GL_FLOAT)},
+		{Id::luminance, FormatDesc(DDSId::L8, 1, GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE)},
 
-		FormatDesc(Id::dxt1, DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true),
-		FormatDesc(Id::dxt3, DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true),
-		FormatDesc(Id::dxt5, DDSId::DXT5, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0, true),
+		{Id::dxt1, FormatDesc(DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true)},
+		{Id::dxt3, FormatDesc(DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true)},
+		{Id::dxt5, FormatDesc(DDSId::DXT5, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0, true)},
 
-		FormatDesc(Id::depth, DDSId::Unknown, 4, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT,
-				   GL_UNSIGNED_SHORT), // TODO: WebGL requires 16bits
-		FormatDesc(Id::depth_stencil, DDSId::Unknown, 4, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
-				   GL_UNSIGNED_INT_24_8),
+		{Id::depth, FormatDesc(DDSId::unknown, 4, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT,
+							   GL_UNSIGNED_SHORT)},
+		// TODO: WebGL requires 16bits
+		{Id::depth_stencil, FormatDesc(DDSId::unknown, 4, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
+									   GL_UNSIGNED_INT_24_8)},
 	}};
-
-	const FormatDesc &getDesc(Id id) {
-		DASSERT(s_descs[id].id == id);
-		return s_descs[id];
-	}
 }
 
-int TextureFormat::glInternal() const { return getDesc(m_id).internal; }
-int TextureFormat::glFormat() const { return getDesc(m_id).gFormat; }
-int TextureFormat::glType() const { return getDesc(m_id).type; }
-bool TextureFormat::isCompressed() const { return getDesc(m_id).is_compressed; }
-int TextureFormat::bytesPerPixel() const { return getDesc(m_id).bytes_per_pixel; }
+int TextureFormat::glInternal() const { return descs[m_id].internal; }
+int TextureFormat::glFormat() const { return descs[m_id].gFormat; }
+int TextureFormat::glType() const { return descs[m_id].type; }
+bool TextureFormat::isCompressed() const { return descs[m_id].is_compressed; }
+int TextureFormat::bytesPerPixel() const { return descs[m_id].bytes_per_pixel; }
 
 bool TextureFormat::isSupported() const {
 	if(m_id == Id::dxt1)
@@ -126,7 +122,7 @@ int TextureFormat::evalImageSize(int width, int height) const {
 	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
 		return ((width + 3) / 4) * ((height + 3) / 4) * 16;
 
-	return width * height * getDesc(m_id).bytes_per_pixel;
+	return width * height * descs[m_id].bytes_per_pixel;
 }
 
 int TextureFormat::evalLineSize(int width) const {
@@ -135,6 +131,6 @@ int TextureFormat::evalLineSize(int width) const {
 	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
 		return ((width + 3) / 4) * 16;
 
-	return width * getDesc(m_id).bytes_per_pixel;
+	return width * descs[m_id].bytes_per_pixel;
 }
 }

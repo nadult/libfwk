@@ -9,7 +9,7 @@ void testMain() {
 	ASSERT(tryFromString<SomeEnum>("something else") == none);
 	ASSERT(string("foo_bar") == toString(SomeEnum::foo_bar));
 
-	EnumMap<int, SomeEnum> array{{1, 2, 3, 4}};
+	EnumMap<SomeEnum, int> array{{1, 2, 3, 4}};
 
 	ASSERT(array[SomeEnum::foo_bar] == 3);
 	string text;

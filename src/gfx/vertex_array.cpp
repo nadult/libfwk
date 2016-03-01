@@ -13,7 +13,7 @@ static const int gl_vertex_data_type[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, G
 										  GL_FLOAT};
 static const int gl_index_data_type[] = {GL_UNSIGNED_INT, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT};
 
-static const EnumMap<int, PrimitiveType> gl_primitives{
+static const EnumMap<PrimitiveType, int> gl_primitives{
 	{GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP}};
 
 #if OPENGL_VERSION < 0x30

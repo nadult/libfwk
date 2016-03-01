@@ -1,13 +1,12 @@
+- make exceptions print backtraces by default (useful when not caught by the user)
 - more todos in the code
 - texture should use int2 instead of width, height
 - Saver, Loader -> SaveStream, LoadStream or similar
 - automatic operators: > >= <=
 - colors in Color:: shouldn't be defined in cpp file coz they can't be used in static definitions
-- enum map SUX, it doesn't verify shit
 - normalize -> normalized
 - disable openglFinish in AutoTimer when there is no profiler
 
-- EnumMap is not initialized by default
 - __attribute__((cold)) on throwException (all code that leads to it
   should be inside cold section)
 - Separate ASSERTS which throw (asserts that validate input) from ASSERTS which doesn't (verifying program correctness)

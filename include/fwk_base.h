@@ -559,15 +559,49 @@ template <class T> auto all() -> typename std::enable_if<IsEnum<T>::value, EnumR
 	return EnumRange<T>(0, count<T>());
 }
 
-template <class T, class Enum, class = typename std::enable_if<IsEnum<Enum>::value, T>::type>
-struct EnumMap {
+template <class Enum, class T, class = typename std::enable_if<IsEnum<Enum>::value, T>::type>
+class EnumMap {
+  public:
+	EnumMap(CRange<pair<Enum, T>> pairs) {
+#ifndef NDEBUG
+		bool enum_used[count<Enum>()] = {
+			false,
+		};
+		int enum_count = 0;
+#endif
+		for(auto &pair : pairs) {
+			int index = (int)pair.first;
+			m_data[index] = pair.second;
+#ifndef NDEBUG
+			DASSERT(!enum_used[index] && "Enum entry missing");
+			enum_used[index] = true;
+			enum_count++;
+#endif
+		}
+		DASSERT(enum_count == count<Enum>() && "Invalid number of pairs specified");
+	}
+	EnumMap(CRange<pair<Enum, T>> pairs, T default_value) {
+		m_data.fill(default_value);
+		for(auto &pair : pairs)
+			m_data[(int)pair.first] = pair.second;
+	}
+	EnumMap(CRange<T> values) {
+		DASSERT(values.size() == (int)m_data.size() && "Invalid number of values specified");
+		std::copy(values.begin(), values.end(), m_data.begin());
+	}
+	EnumMap(const T &default_value = T()) { m_data.fill(default_value); }
+	EnumMap(std::initializer_list<pair<Enum, T>> list) : EnumMap(CRange<pair<Enum, T>>(list)) {}
+	EnumMap(std::initializer_list<pair<Enum, T>> list, T default_value)
+		: EnumMap(CRange<pair<Enum, T>>(list), default_value) {}
+	EnumMap(std::initializer_list<T> values) : EnumMap(CRange<T>(values)) {}
+
 	const T &operator[](Enum index) const { return m_data[(int)index]; }
 	T &operator[](Enum index) { return m_data[(int)index]; }
 
-	T *begin() { return m_data; }
-	T *end() { return m_data + size(); }
-	const T *begin() const { return m_data; }
-	const T *end() const { return m_data + size(); }
+	T *begin() { return m_data.data(); }
+	T *end() { return m_data.data() + size(); }
+	const T *begin() const { return m_data.data(); }
+	const T *end() const { return m_data.data() + size(); }
 	bool operator==(const EnumMap &rhs) const { return std::equal(begin(), end(), rhs.begin()); }
 	bool operator<(const EnumMap &rhs) const {
 		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
@@ -575,8 +609,13 @@ struct EnumMap {
 
 	constexpr bool empty() const { return size() == 0; }
 	constexpr int size() const { return count<Enum>(); }
+	void fill(const T &value) {
+		for(int n = 0; n < size(); n++)
+			m_data[n] = value;
+	}
 
-	T m_data[count<Enum>()];
+  private:
+	std::array<T, count<Enum>()> m_data;
 };
 
 #define SAFE_ARRAY(declaration, size, ...)                                                         \
