@@ -10,11 +10,6 @@ MatrixStack::MatrixStack(const Matrix4 &proj_matrix, const Matrix4 &view_matrix)
 	: m_projection_matrix(proj_matrix), m_view_matrix(view_matrix), m_is_dirty(true),
 	  m_is_frustum_dirty(true) {}
 
-void MatrixStack::setProjectionMatrix(const Matrix4 &projection_matrix) {
-	m_projection_matrix = projection_matrix;
-	m_is_dirty = m_is_frustum_dirty = true;
-}
-
 void MatrixStack::pushViewMatrix() { m_matrix_stack.push_back(m_view_matrix); }
 
 void MatrixStack::popViewMatrix() {

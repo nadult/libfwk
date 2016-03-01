@@ -87,14 +87,7 @@ class Viewer {
 
 	void makeMaterials(PMaterial default_mat, Model &model) {}
 
-	void updateViewport() {
-		IRect new_viewport = IRect(GfxDevice::instance().windowSize());
-		if(new_viewport != m_viewport || !m_renderer_3d) {
-			m_viewport = new_viewport;
-			m_renderer_3d = make_unique<Renderer>(m_viewport);
-			m_renderer_2d = make_unique<Renderer2D>(m_viewport);
-		}
-	}
+	void updateViewport() { m_viewport = IRect(GfxDevice::instance().windowSize()); }
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
@@ -183,9 +176,12 @@ class Viewer {
 	}
 
 	void draw() {
-		m_renderer_3d->setProjectionMatrix(perspective(
-			degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(), 1.0f, 10000.0f));
-		m_renderer_3d->setViewMatrix(translation(0, 0, -5.0f));
+		Matrix4 proj = perspective(degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(),
+								   1.0f, 10000.0f);
+		Renderer renderer_3d(m_viewport, proj);
+		Renderer2D renderer_2d(m_viewport);
+
+		renderer_3d.setViewMatrix(translation(0, 0, -5.0f));
 
 		auto &model = m_models[m_current_model];
 
@@ -193,8 +189,8 @@ class Viewer {
 		auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
 					  translation(-model.boundingBox(pose).center());
 
-		model.drawModel(*m_renderer_3d, pose, m_show_nodes, matrix);
-		m_renderer_3d->addWireBox(model.boundingBox(pose), {Color::green}, matrix);
+		model.drawModel(renderer_3d, pose, m_show_nodes, matrix);
+		renderer_3d.addWireBox(model.boundingBox(pose), {Color::green}, matrix);
 
 		TextFormatter fmt;
 		fmt("Model: %s (%d / %d)\n", model.m_model_name.c_str(), m_current_model + 1,
@@ -216,12 +212,12 @@ class Viewer {
 
 		FontStyle style{Color::white, Color::black};
 		auto extents = m_font->evalExtents(fmt.text());
-		m_renderer_2d->addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
-									 {Color(0, 0, 0, 80)});
-		m_font->draw(*m_renderer_2d, FRect(5, 5, 300, 100), style, fmt.text());
+		renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
+								  {Color(0, 0, 0, 80)});
+		m_font->draw(renderer_2d, FRect(5, 5, 300, 100), style, fmt.text());
 
-		m_renderer_3d->render();
-		m_renderer_2d->render();
+		renderer_3d.render();
+		renderer_2d.render();
 	}
 
 	const IRect &viewport() const { return m_viewport; }
@@ -236,9 +232,6 @@ class Viewer {
 	bool m_show_nodes;
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
-
-	unique_ptr<Renderer> m_renderer_3d;
-	unique_ptr<Renderer2D> m_renderer_2d;
 };
 
 static Viewer *s_viewer = nullptr;

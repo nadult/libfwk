@@ -1487,7 +1487,6 @@ class MatrixStack {
 	void popViewMatrix();
 	void mulViewMatrix(const Matrix4 &);
 	void setViewMatrix(const Matrix4 &);
-	void setProjectionMatrix(const Matrix4 &);
 	const Matrix4 &viewMatrix() const { return m_view_matrix; }
 	const Matrix4 &projectionMatrix() const { return m_projection_matrix; }
 	const Matrix4 &fullMatrix() const;
@@ -1570,32 +1569,29 @@ class Renderer2D : public MatrixStack {
 	int m_current_scissor_rect;
 };
 
+// TODO: rename to RenderList?
 class Renderer : public MatrixStack {
   public:
 	Renderer(const IRect &viewport, const Matrix4 &projection_matrix = Matrix4::identity());
-	virtual ~Renderer();
+	~Renderer();
 
-	virtual void render();
+	void render();
 	void clear();
 
 	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void addLines(CRange<float3>, CRange<Color>, PMaterial,
+				  const Matrix4 &matrix = Matrix4::identity());
 	void addLines(CRange<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 	void addLines(CRange<float3>, Color, const Matrix4 &matrix = Matrix4::identity());
 	void addSegments(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 
 	void addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
-	void addSpriteTris(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
-					   PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void addSprites(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
+					PMaterial, const Matrix4 &matrix = Matrix4::identity());
 
-	// TODO: this is useful
-	// Each line is represented by two vertices
-	//	void addLines(const float3 *pos, const Color *color, int num_lines, const Material
-	//&material);
-
-	// TODO: pass ElementSource class, which can be single element, vector, pod array, whatever
-  protected:
-	void renderLines();
-	void renderSprites();
+	const auto &instances() const { return m_instances; }
+	const auto &sprites() const { return m_sprites; }
+	const auto &lines() const { return m_lines; }
 
 	struct Instance {
 		Matrix4 matrix;
@@ -1603,7 +1599,7 @@ class Renderer : public MatrixStack {
 		DrawCall draw_call;
 	};
 
-	struct SpriteTris {
+	struct SpriteInstance {
 		Matrix4 matrix;
 		PMaterial material;
 		vector<float3> positions;
@@ -1613,18 +1609,21 @@ class Renderer : public MatrixStack {
 
 	struct LineInstance {
 		Matrix4 matrix;
-		int first, count;
+		vector<float3> positions;
+		vector<Color> colors;
 		uint material_flags;
+		Color material_color;
 	};
 
+  protected:
+	void renderLines();
+	void renderSprites();
+	SpriteInstance &spriteInstance(PMaterial, Matrix4, bool has_colors, bool has_tex_coords);
+	LineInstance &lineInstance(Color, uint, Matrix4, bool has_colors);
+
 	IRect m_viewport;
-	vector<SpriteTris> m_sprites;
-
+	vector<SpriteInstance> m_sprites;
 	vector<LineInstance> m_lines;
-	vector<float3> m_line_positions;
-	vector<Color> m_line_colors;
-	vector<uint> m_line_flags;
-
 	vector<Instance> m_instances;
 	PProgram m_tex_program, m_flat_program, m_simple_program;
 };

@@ -5,6 +5,7 @@
 #include "fwk_gfx.h"
 #include "fwk_opengl.h"
 #include <algorithm>
+#include <functional>
 
 namespace fwk {
 
@@ -79,25 +80,65 @@ Renderer::~Renderer() = default;
 
 void Renderer::addDrawCall(const DrawCall &draw_call, PMaterial material, const Matrix4 &matrix) {
 	DASSERT(material);
-	m_instances.emplace_back(Instance{fullMatrix() * matrix, std::move(material), draw_call});
+	m_instances.emplace_back(Instance{viewMatrix() * matrix, std::move(material), draw_call});
+}
+
+Renderer::SpriteInstance &Renderer::spriteInstance(PMaterial mat, Matrix4 matrix, bool has_colors,
+												   bool has_tex_coords) {
+	SpriteInstance *inst = m_sprites.empty() ? nullptr : &m_sprites.back();
+	matrix = viewMatrix() * matrix;
+
+	if(!inst || has_tex_coords != !inst->tex_coords.empty() ||
+	   has_colors != !inst->colors.empty() || mat != inst->material || matrix != inst->matrix) {
+		m_sprites.emplace_back(SpriteInstance());
+		inst = &m_sprites.back();
+		inst->matrix = matrix;
+		inst->material = mat;
+	}
+
+	return *inst;
+}
+
+Renderer::LineInstance &Renderer::lineInstance(Color col, uint flags, Matrix4 matrix,
+											   bool has_colors) {
+	LineInstance *inst = m_lines.empty() ? nullptr : &m_lines.back();
+	matrix = viewMatrix() * matrix;
+
+	if(!inst || has_colors != !inst->colors.empty() || col != inst->material_color ||
+	   flags != inst->material_flags || matrix != inst->matrix) {
+		m_lines.emplace_back(LineInstance());
+		inst = &m_lines.back();
+		inst->matrix = matrix;
+		inst->material_color = col;
+		inst->material_flags = flags;
+	}
+
+	return *inst;
+}
+
+void Renderer::addLines(CRange<float3> verts, CRange<Color> colors, PMaterial mat,
+						const Matrix4 &matrix) {
+	DASSERT(verts.size() % 2 == 0);
+	DASSERT(colors.size() == verts.size() || colors.empty());
+	DASSERT(mat);
+
+	auto &inst = lineInstance(mat->color(), mat->flags(), matrix, true);
+	insertBack(inst.positions, verts);
+	insertBack(inst.colors, colors);
 }
 
 void Renderer::addLines(CRange<float3> verts, PMaterial material, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
+	DASSERT(material);
 
-	m_lines.emplace_back(LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(),
-									  verts.size(), material->flags()});
-	m_line_positions.insert(m_line_positions.end(), begin(verts), end(verts));
-	m_line_colors.resize(m_line_colors.size() + verts.size(), material->color());
+	auto &inst = lineInstance(material->color(), material->flags(), matrix, false);
+	insertBack(inst.positions, verts);
 }
 
 void Renderer::addLines(CRange<float3> verts, Color color, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
-
-	m_lines.emplace_back(
-		LineInstance{fullMatrix() * matrix, (int)m_line_positions.size(), verts.size(), 0u});
-	m_line_positions.insert(m_line_positions.end(), begin(verts), end(verts));
-	m_line_colors.resize(m_line_colors.size() + verts.size(), color);
+	auto &inst = lineInstance(color, 0u, matrix, false);
+	insertBack(inst.positions, verts);
 }
 
 void Renderer::addSegments(CRange<Segment> segs, PMaterial material, const Matrix4 &matrix) {
@@ -118,28 +159,14 @@ void Renderer::addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix) 
 	addLines(out_verts, color, matrix);
 }
 
-void Renderer::addSpriteTris(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
-							 PMaterial material, const Matrix4 &matrix) {
+void Renderer::addSprites(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
+						  PMaterial material, const Matrix4 &matrix) {
 	DASSERT(tex_coords.empty() || tex_coords.size() == verts.size());
 	DASSERT(colors.empty() || colors.size() == verts.size());
-	if(verts.empty())
-		return;
-
-	SpriteTris *instance = m_sprites.empty() ? nullptr : &m_sprites.back();
-	auto full_mat = fullMatrix() * matrix;
-
-	if(!instance || instance->material != material ||
-	   instance->tex_coords.empty() != tex_coords.empty() ||
-	   instance->colors.empty() != colors.empty() || full_mat != instance->matrix) {
-		m_sprites.emplace_back(SpriteTris());
-		instance = &m_sprites.back();
-		instance->matrix = full_mat;
-		instance->material = material;
-	}
-
-	insertBack(instance->positions, verts);
-	insertBack(instance->tex_coords, tex_coords);
-	insertBack(instance->colors, colors);
+	auto &inst = spriteInstance(material, matrix, !colors.empty(), !tex_coords.empty());
+	insertBack(inst.positions, verts);
+	insertBack(inst.tex_coords, tex_coords);
+	insertBack(inst.colors, colors);
 }
 namespace {
 
@@ -199,7 +226,7 @@ void Renderer::render() {
 
 		ProgramBinder binder(program);
 		binder.bind();
-		binder.setUniform("proj_view_matrix", instance.matrix);
+		binder.setUniform("proj_view_matrix", projectionMatrix() * instance.matrix);
 		binder.setUniform("mesh_color", (float4)material->color());
 		dev_config.update(material->flags());
 
@@ -237,32 +264,32 @@ void Renderer::renderSprites() {
 		binder.bind();
 		if(mat->texture())
 			binder.setUniform("tex", 0);
-		binder.setUniform("proj_view_matrix", sprite.matrix);
+		binder.setUniform("proj_view_matrix", projectionMatrix() * sprite.matrix);
 		binder.setUniform("mesh_color", (float4)mat->color());
 		sprite_array.draw(PrimitiveType::triangles, sprite_array.size(), 0);
 	}
 }
 
 void Renderer::renderLines() {
-	VertexArray line_array({make_immutable<VertexBuffer>(m_line_positions),
-							make_immutable<VertexBuffer>(m_line_colors),
-							VertexArraySource(float2(0, 0))});
 	DTexture::unbind();
 	ProgramBinder binder(m_simple_program);
-	binder.bind();
-	binder.setUniform("mesh_color", float4(1, 1, 1, 1));
-	for(const auto &instance : m_lines) {
-		enable(GL_DEPTH_TEST, !(instance.material_flags & Material::flag_ignore_depth));
-		binder.setUniform("proj_view_matrix", instance.matrix);
-		line_array.draw(PrimitiveType::lines, instance.count, instance.first);
+	for(const auto &inst : m_lines) {
+		auto pos = make_immutable<VertexBuffer>(inst.positions);
+		auto col = inst.colors.empty()
+					   ? VertexArraySource(Color::white)
+					   : VertexArraySource(make_immutable<VertexBuffer>(inst.colors));
+		VertexArray line_array({pos, col, VertexArraySource(float2(0, 0))});
+
+		binder.setUniform("mesh_color", (float4)inst.material_color);
+		enable(GL_DEPTH_TEST, !(inst.material_flags & Material::flag_ignore_depth));
+		binder.setUniform("proj_view_matrix", projectionMatrix() * inst.matrix);
+		line_array.draw(PrimitiveType::lines, line_array.size(), 0);
 	}
 }
 
 void Renderer::clear() {
 	m_instances.clear();
 	m_sprites.clear();
-	m_line_positions.clear();
-	m_line_colors.clear();
 	m_lines.clear();
 }
 }
