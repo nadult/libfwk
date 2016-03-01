@@ -1584,8 +1584,8 @@ class Renderer : public MatrixStack {
 	void addSegments(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 
 	void addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
-	void addSprite(CRange<float3, 4> verts, CRange<float2, 4> tex_coords, PMaterial,
-				   const Matrix4 &matrix = Matrix4::identity());
+	void addSpriteTris(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
+					   PMaterial, const Matrix4 &matrix = Matrix4::identity());
 
 	// TODO: this is useful
 	// Each line is represented by two vertices
@@ -1603,11 +1603,12 @@ class Renderer : public MatrixStack {
 		DrawCall draw_call;
 	};
 
-	struct SpriteInstance {
+	struct SpriteTris {
 		Matrix4 matrix;
 		PMaterial material;
-		array<float3, 4> verts;
-		array<float2, 4> tex_coords;
+		vector<float3> positions;
+		vector<float2> tex_coords;
+		vector<Color> colors;
 	};
 
 	struct LineInstance {
@@ -1617,7 +1618,7 @@ class Renderer : public MatrixStack {
 	};
 
 	IRect m_viewport;
-	vector<SpriteInstance> m_sprites;
+	vector<SpriteTris> m_sprites;
 
 	vector<LineInstance> m_lines;
 	vector<float3> m_line_positions;

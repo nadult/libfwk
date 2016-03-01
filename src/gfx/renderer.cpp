@@ -118,17 +118,29 @@ void Renderer::addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix) 
 	addLines(out_verts, color, matrix);
 }
 
-void Renderer::addSprite(CRange<float3, 4> verts, CRange<float2, 4> tex_coords, PMaterial material,
-						 const Matrix4 &matrix) {
-	DASSERT(material);
-	SpriteInstance new_sprite;
-	new_sprite.matrix = fullMatrix() * matrix;
-	new_sprite.material = std::move(material);
-	std::copy(begin(verts), begin(verts) + 4, begin(new_sprite.verts));
-	std::copy(begin(tex_coords), begin(tex_coords) + 4, begin(new_sprite.tex_coords));
-	m_sprites.push_back(new_sprite);
-}
+void Renderer::addSpriteTris(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
+							 PMaterial material, const Matrix4 &matrix) {
+	DASSERT(tex_coords.empty() || tex_coords.size() == verts.size());
+	DASSERT(colors.empty() || colors.size() == verts.size());
+	if(verts.empty())
+		return;
 
+	SpriteTris *instance = m_sprites.empty() ? nullptr : &m_sprites.back();
+	auto full_mat = fullMatrix() * matrix;
+
+	if(!instance || instance->material != material ||
+	   instance->tex_coords.empty() != tex_coords.empty() ||
+	   instance->colors.empty() != colors.empty() || full_mat != instance->matrix) {
+		m_sprites.emplace_back(SpriteTris());
+		instance = &m_sprites.back();
+		instance->matrix = full_mat;
+		instance->material = material;
+	}
+
+	insertBack(instance->positions, verts);
+	insertBack(instance->tex_coords, tex_coords);
+	insertBack(instance->colors, colors);
+}
 namespace {
 
 	void enable(uint what, bool enable) {
@@ -206,32 +218,28 @@ void Renderer::render() {
 }
 
 void Renderer::renderSprites() {
-	vector<float3> positions;
-	vector<float2> tex_coords;
+	// TODO: divide into regions, sort each region by Z
 	for(const auto &sprite : m_sprites) {
-		positions.insert(end(positions), begin(sprite.verts), end(sprite.verts));
-		tex_coords.insert(end(tex_coords), begin(sprite.tex_coords), end(sprite.tex_coords));
-	}
+		auto pos = make_immutable<VertexBuffer>(sprite.positions);
+		auto tex = !sprite.tex_coords.empty()
+					   ? VertexArraySource(make_immutable<VertexBuffer>(sprite.tex_coords))
+					   : VertexArraySource(float2(0, 0));
+		auto col = !sprite.colors.empty()
+					   ? VertexArraySource(make_immutable<VertexBuffer>(sprite.colors))
+					   : VertexArraySource(Color::white);
+		VertexArray sprite_array({pos, col, tex});
 
-	VertexArray sprite_array({make_immutable<VertexBuffer>(positions),
-							  VertexArraySource(Color::white),
-							  make_immutable<VertexBuffer>(tex_coords)});
-
-	// TODO: transform to screen space, divide into regions, sort each region
-	for(int n = 0; n < (int)m_sprites.size(); n++) {
-		const auto &instance = m_sprites[n];
-
-		auto material = instance.material;
-		DTexture::bind(material->textures());
-		PProgram program = material->texture() ? m_tex_program : m_flat_program;
+		const auto &mat = sprite.material;
+		DTexture::bind(mat->textures());
+		PProgram program = mat->texture() ? m_tex_program : m_flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
-		if(material->texture())
+		if(mat->texture())
 			binder.setUniform("tex", 0);
-		binder.setUniform("proj_view_matrix", instance.matrix);
-		binder.setUniform("mesh_color", (float4)material->color());
-		sprite_array.draw(PrimitiveType::triangle_strip, 4, n * 4);
+		binder.setUniform("proj_view_matrix", sprite.matrix);
+		binder.setUniform("mesh_color", (float4)mat->color());
+		sprite_array.draw(PrimitiveType::triangles, sprite_array.size(), 0);
 	}
 }
 
