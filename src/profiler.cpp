@@ -19,7 +19,7 @@ Profiler::~Profiler() { s_profiler_instance = nullptr; }
 
 Profiler *Profiler::instance() { return s_profiler_instance; }
 
-Profiler::Timer &Profiler::accessTimer(const string &name) {
+Profiler::Timer &Profiler::accessTimer(const char*name) {
 	for(auto &timer : m_timers)
 		if(timer.name == name)
 			return timer;
@@ -27,7 +27,7 @@ Profiler::Timer &Profiler::accessTimer(const string &name) {
 	return m_timers.back();
 }
 
-Profiler::Counter &Profiler::accessCounter(const string &name) {
+Profiler::Counter &Profiler::accessCounter(const char*name) {
 	for(auto &counter : m_counters)
 		if(counter.name == name)
 			return counter;

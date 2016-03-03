@@ -41,8 +41,8 @@ class Profiler {
 		long long value;
 	};
 
-	Timer &accessTimer(const string &name);
-	Counter &accessCounter(const string &name);
+	Timer &accessTimer(const char *);
+	Counter &accessCounter(const char *);
 
 	vector<Timer> m_timers;
 	vector<Counter> m_counters;
