@@ -19,7 +19,7 @@ Profiler::~Profiler() { s_profiler_instance = nullptr; }
 
 Profiler *Profiler::instance() { return s_profiler_instance; }
 
-Profiler::Timer &Profiler::accessTimer(const char*name) {
+Profiler::Timer &Profiler::accessTimer(const char *name) {
 	for(auto &timer : m_timers)
 		if(timer.name == name)
 			return timer;
@@ -27,7 +27,7 @@ Profiler::Timer &Profiler::accessTimer(const char*name) {
 	return m_timers.back();
 }
 
-Profiler::Counter &Profiler::accessCounter(const char*name) {
+Profiler::Counter &Profiler::accessCounter(const char *name) {
 	for(auto &counter : m_counters)
 		if(counter.name == name)
 			return counter;
@@ -124,5 +124,22 @@ const string Profiler::getStats(const char *filter) {
 	}
 
 	return out.text();
+}
+
+ScopedProfile::ScopedProfile(const char *id, bool is_rare, bool is_opengl)
+	: id(id), is_rare(is_rare), is_opengl(is_opengl) {
+	if(Profiler::instance()) {
+		if(is_opengl)
+			Profiler::openglFinish();
+		start_time = Profiler::getTime();
+	}
+}
+
+ScopedProfile::~ScopedProfile() {
+	if(auto *profiler = Profiler::instance()) {
+		if(is_opengl)
+			Profiler::openglFinish();
+		profiler->updateTimer(id, start_time, Profiler::getTime(), is_rare);
+	}
 }
 }

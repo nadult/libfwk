@@ -50,19 +50,9 @@ class Profiler {
 	double m_last_frame_time;
 };
 
-struct AutoTimer {
-	AutoTimer(const char *id, bool is_rare, bool is_opengl)
-		: id(id), is_rare(is_rare), is_opengl(is_opengl) {
-		if(is_opengl)
-			Profiler::openglFinish();
-		start_time = Profiler::getTime();
-	}
-	~AutoTimer() {
-		if(is_opengl)
-			Profiler::openglFinish();
-		if(auto *profiler = Profiler::instance())
-			profiler->updateTimer(id, start_time, Profiler::getTime(), is_rare);
-	}
+struct ScopedProfile {
+	ScopedProfile(const char *id, bool is_rare, bool is_opengl);
+	~ScopedProfile();
 
 	double start_time;
 	const char *id;
@@ -77,9 +67,9 @@ struct AutoTimer {
 
 #else
 
-#define FWK_PROFILE(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, false, false)
-#define FWK_PROFILE_RARE(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, true, false)
-#define FWK_PROFILE_OPENGL(id) fwk::AutoTimer FWK_PROFILE_NAME(__LINE__)(id, false, true)
+#define FWK_PROFILE(id) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, false, false)
+#define FWK_PROFILE_RARE(id) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, true, false)
+#define FWK_PROFILE_OPENGL(id) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, false, true)
 
 #define FWK_PROFILE_NAME(a) FWK_PROFILE_NAME_(a)
 #define FWK_PROFILE_NAME_(a) timer##a
