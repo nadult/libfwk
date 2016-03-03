@@ -49,21 +49,29 @@ template <class T> class PodArray;
 // TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
 template <class T, int min_size = 0> class Range {
   public:
+	struct NoAsserts {};
 	using value_type = typename std::remove_const<T>::type;
 	enum { is_const = std::is_const<T>::value, minimum_size = min_size };
 	using vector_type =
 		typename std::conditional<is_const, const vector<value_type>, vector<value_type>>::type;
 	using pod_array_type =
 		typename std::conditional<is_const, const PodArray<value_type>, PodArray<value_type>>::type;
+	static_assert(min_size >= 0, "min_size should be >= 0");
 
-	// friend class CRange<typename std::remove_const<T>::type>;
+	Range(T *data, int size, NoAsserts) : m_data(data), m_size(size) {
+		if(min_size > 0)
+			DASSERT(m_size >= min_size);
+	}
 	Range(T *data, int size) : m_data(data), m_size(size) {
 		DASSERT(m_data || m_size == 0);
-		DASSERT(m_size >= min_size);
+		if(min_size > 0)
+			DASSERT(m_size >= min_size);
 	}
-	Range(T *begin, T *end) : Range(begin, (int)(end - begin)) {}
-	Range(vector_type &vec) : Range(vec.data(), vec.size()) {}
-	Range(pod_array_type &array) : Range(array.data(), array.size()) {}
+	Range(T *begin, T *end) : Range(begin, (int)(end - begin), NoAsserts()) {
+		DASSERT(end >= begin);
+	}
+	Range(vector_type &vec) : Range(vec.data(), vec.size(), NoAsserts()) {}
+	Range(pod_array_type &array) : Range(array.data(), array.size(), NoAsserts()) {}
 	template <int N> Range(value_type(&array)[N]) : m_data(array), m_size(N) {
 		static_assert(N >= min_size, "Array too small");
 	}
@@ -84,6 +92,7 @@ template <class T, int min_size = 0> class Range {
 		: m_data(range.data()), m_size(range.size()) {
 		static_assert(other_size >= min_size, "Range too small");
 	}
+
 	template <class U = T>
 	Range(const Range<value_type, min_size> &range,
 		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)
@@ -115,7 +124,7 @@ template <class T, int min_size = 0> class Range {
 
 template <class T, int min_size = 0> using CRange = Range<const T, min_size>;
 
-template <class T> struct ConvertsToRange {
+template <class T> struct IsRange {
 	template <class T1,
 			  typename Base = typename std::remove_pointer<decltype(((T1 *)nullptr)->data())>::type,
 			  typename TRange = decltype(Range<Base>(*(T1 *) nullptr))>
@@ -134,12 +143,12 @@ template <class T> struct ContainerBaseType {
 
 template <class Container> auto makeRange(Container &container) {
 	using type = typename std::remove_pointer<decltype(container.data())>::type;
-	return Range<type>(container.data(), container.size());
+	return Range<type>(container.data(), container.size(), typename Range<type>::NoAsserts());
 }
 
 template <class Container> auto makeRange(const Container &container) {
 	using type = typename std::remove_pointer<decltype(container.data())>::type;
-	return CRange<type>(container.data(), container.size());
+	return CRange<type>(container.data(), container.size(), typename Range<type>::NoAsserts());
 }
 
 template <class Iter> auto makeRange(const Iter &begin, const Iter &end) {
@@ -149,6 +158,14 @@ template <class Iter> auto makeRange(const Iter &begin, const Iter &end) {
 
 template <class T> auto makeRange(std::initializer_list<T> list) {
 	return CRange<T>(list.begin(), list.end());
+}
+
+template <class T, size_t N> auto makeRange(T(&array)[N]) { return CRange<T, N>(array, array + N); }
+
+template <class Container> auto makeConstRange(const Container &container) {
+	auto range = makeRange(container);
+	using Base = typename decltype(range)::value_type;
+	return CRange<Base>(range.data(), range.size());
 }
 
 template <class TRange> auto subRange(const TRange &range, int start, int end) {
@@ -167,7 +184,8 @@ template <class Target, class T> auto reinterpretRange(Range<T> range) {
 						   size_t(range.size()) * sizeof(T) / sizeof(Target));
 }
 
-template <class TContainer, class TBase = typename std::remove_const<typename ContainerBaseType<TContainer>::type>::type>
+template <class TContainer, class TBase = typename std::remove_const<
+								typename ContainerBaseType<TContainer>::type>::type>
 auto accumulate(const TContainer &container, TBase value = TBase()) {
 	for(const auto &elem : container)
 		value = value + elem;
@@ -319,6 +337,25 @@ std::array<T, size> transform(const std::array<U, size> &range) {
 	std::array<T, size> out;
 	for(size_t i = 0; i < size; i++)
 		out[i] = T(range[i]);
+	return out;
+}
+
+template <class Container>
+auto merge(
+	Container ranges, typename std::enable_if<IsRange<Container>::value, void *>::type = nullptr,
+	typename std::enable_if<
+		IsRange<typename std::remove_pointer<decltype(((Container *)0)->data())>::type>::value,
+		void *>::type = nullptr) {
+	auto range = makeRange(ranges);
+	using Base = typename decltype(makeRange(*range.data()))::value_type;
+
+	vector<Base> out;
+	size_t total_size = 0;
+	for(const auto &elem : range)
+		total_size += makeConstRange(elem).size();
+	out.reserve(total_size);
+	for(const auto &elem : ranges)
+		insertBack(out, makeConstRange(elem));
 	return out;
 }
 

@@ -1,4 +1,7 @@
-- make exceptions print backtraces by default (useful when not caught by the user)
+- enumNext, enumPrev, enumShift?
+- isEmpty -> empty
+- add precompiled headers
+
 - more todos in the code
 - texture should use int2 instead of width, height
 - Saver, Loader -> SaveStream, LoadStream or similar

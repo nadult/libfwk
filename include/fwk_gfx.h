@@ -358,7 +358,7 @@ class VertexBuffer : public immutable_base<VertexBuffer> {
 	template <class T>
 	VertexBuffer(CRange<T> data)
 		: VertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
-	template <class Range, typename = typename std::enable_if<ConvertsToRange<Range>::value>::type>
+	template <class Range, typename = typename std::enable_if<IsRange<Range>::value>::type>
 	VertexBuffer(const Range &range)
 		: VertexBuffer(makeRange(range)) {}
 
