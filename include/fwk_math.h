@@ -159,7 +159,7 @@ struct float2 {
 	using Scalar = float;
 
 	float2(float x, float y) : x(x), y(y) {}
-	float2(const int2 &xy) : x(xy.x), y(xy.y) {}
+	explicit float2(const int2 &xy) : x(xy.x), y(xy.y) {}
 	float2() : x(0.0f), y(0.0f) {}
 	explicit operator int2() const { return int2((int)x, (int)y); }
 
@@ -189,7 +189,7 @@ struct float3 {
 
 	float3(float x, float y, float z) : x(x), y(y), z(z) {}
 	float3(const float2 &xy, float z) : x(xy.x), y(xy.y), z(z) {}
-	float3(const int3 &xyz) : x(xyz.x), y(xyz.y), z(xyz.z) {}
+	explicit float3(const int3 &xyz) : x(xyz.x), y(xyz.y), z(xyz.z) {}
 	float3() : x(0.0f), y(0.0f), z(0.0f) {}
 	explicit operator int3() const { return int3((int)x, (int)y, (int)z); }
 
@@ -227,11 +227,10 @@ struct float3 {
 struct float4 {
 	using Scalar = float;
 
-	// TODO: use range[4]
-	float4(const float *v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
+	float4(CRange<float, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
 	float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
-	explicit float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-	explicit float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
 	float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
 	float4 operator*(const float4 &rhs) const {
@@ -381,8 +380,8 @@ template <class TVec2> struct Rect {
 	explicit Rect(Vec2 size) : min(0, 0), max(size) {}
 	Rect(Vec2 min, Vec2 max) : min(min), max(max) {}
 	Rect(Scalar minX, Scalar minY, Scalar maxX, Scalar maxY) : min(minX, minY), max(maxX, maxY) {}
+	Rect(CRange<Vec2>);
 	Rect() = default;
-	static Rect empty() { return Rect(Vec2(), Vec2()); }
 
 	Scalar width() const { return max.x - min.x; }
 	Scalar height() const { return max.y - min.y; }
@@ -412,7 +411,7 @@ template <class TVec2> struct Rect {
 	// TODO: CW or CCW depends on handeness...
 	void getCorners(Range<Vec2, 4>) const;
 
-	bool isEmpty() const { return max.x <= min.x || max.y <= min.y; }
+	bool empty() const { return max.x <= min.x || max.y <= min.y; }
 
 	// TODO: remove or specialize for int/float
 	bool isInside(const Vec2 &point) const {
@@ -454,7 +453,6 @@ template <class TVec3> struct Box {
 		: min(minX, minY, minZ), max(maxX, maxY, maxZ) {}
 	Box(CRange<Vec3>);
 	Box() = default;
-	static Box empty() { return Box(Vec3(), Vec3()); }
 
 	Scalar width() const { return max.x - min.x; }
 	Scalar height() const { return max.y - min.y; }
@@ -468,7 +466,7 @@ template <class TVec3> struct Box {
 	Box operator*(Scalar scale) const { return Box(min * scale, max * scale); }
 
 	// TODO: what about bounding boxes enclosing single point?
-	bool isEmpty() const { return max.x <= min.x || max.y <= min.y || max.z <= min.z; }
+	bool empty() const { return max.x <= min.x || max.y <= min.y || max.z <= min.z; }
 
 	// TODO: remove or specialize for int/float
 	bool isInside(const Vec3 &point) const {
@@ -589,9 +587,9 @@ class Matrix4 {
 		v[2] = col2;
 		v[3] = col3;
 	}
-	Matrix4(const float *vals) { // TODO: use range<float, 16>
+	Matrix4(CRange<float, 16> values) { // TODO: use range<float, 16>
 		for(int n = 0; n < 4; n++)
-			v[n] = float4(vals + n * 4);
+			v[n] = float4(CRange<float, 4>(values.data() + n * 4, 4));
 	}
 
 	static const Matrix4 identity();

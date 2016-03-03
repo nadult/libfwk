@@ -1,5 +1,4 @@
 - enumNext, enumPrev, enumShift?
-- isEmpty -> empty
 - add precompiled headers
 
 - more todos in the code

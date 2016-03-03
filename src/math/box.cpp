@@ -16,10 +16,8 @@ template <class TVec3> void Box<TVec3>::getCorners(Range<Vec3, 8> out) const {
 }
 
 template <class TVec3> Box<TVec3>::Box(CRange<Vec3> points) {
-	if(points.empty()) {
-		*this = empty();
+	if(points.empty())
 		return;
-	}
 
 	min = max = points[0];
 	for(int n = 1; n < points.size(); n++) {
