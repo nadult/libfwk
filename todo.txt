@@ -1,5 +1,7 @@
+- remove CSG ops
 - enumNext, enumPrev, enumShift?
 - add precompiled headers
+- DEFINE_ENUM in class scope
 
 - more todos in the code
 - texture should use int2 instead of width, height
@@ -11,6 +13,7 @@
 - __attribute__((cold)) on throwException (all code that leads to it
   should be inside cold section)
 - Separate ASSERTS which throw (asserts that validate input) from ASSERTS which doesn't (verifying program correctness)
+- Add asserts ASSERT_NE _LT, etc.
 - clamp doesn't work properly when max < min
 
 - consider using Niebler's ranges

@@ -29,7 +29,7 @@ PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models
 
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
-DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d)
+DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d) $(BUILD_DIR)/fwk.h.d
 
 LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
 MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o)
@@ -73,8 +73,14 @@ MINGW_FLAGS=-DFWK_TARGET_MINGW -g -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG
 HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)
 
-$(LINUX_OBJECTS): $(BUILD_DIR)/%.o:  src/%.cpp
-	$(LINUX_CXX) -MMD $(LINUX_FLAGS) -c src/$*.cpp -o $@
+PCH_FILE=$(BUILD_DIR)/fwk.h.pch
+PCH_INCLUDE=src/pch.h
+
+$(PCH_FILE): $(PCH_INCLUDE)
+	clang -x c++-header -MMD $(LINUX_FLAGS) $^ -emit-pch -o $@
+
+$(LINUX_OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE)
+	$(LINUX_CXX) -MMD $(LINUX_FLAGS) -include-pch $(PCH_FILE) -c src/$*.cpp -o $@
 
 $(MINGW_OBJECTS): $(BUILD_DIR)/%_.o: src/%.cpp
 	$(MINGW_CXX) -MMD $(MINGW_FLAGS) -c src/$*.cpp -o $@
@@ -109,7 +115,7 @@ lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 clean:
 	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
-		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp
+		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp $(PCH_FILE)
 	-rmdir test temp lib tools
 	find $(BUILD_DIR) -type d -empty -delete
 
