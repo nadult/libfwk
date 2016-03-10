@@ -786,16 +786,6 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh merge(vector<Mesh>);
 	static Mesh transform(const Matrix4 &, Mesh);
 
-	enum CSGMode {
-		csg_difference,
-		csg_intersection,
-		csg_union,
-		csg_xor,
-	};
-
-	// TODO: csg results have to be simplified afterwards
-	static Mesh csgCork(Mesh, Mesh, CSGMode);
-
 	float intersect(const Segment &) const;
 	float intersect(const Segment &, const AnimatedData &) const;
 
@@ -1014,21 +1004,6 @@ class DynamicMesh {
 		insertBack(out, nearbyVerts(simplex_id, tolerance));
 		insertBack(out, nearbyEdges(simplex_id, tolerance));
 		return out;
-	}
-
-	struct CSGVisualData {
-		CSGVisualData() : max_steps(0), phase(0) {}
-
-		vector<pair<Color, vector<Triangle>>> poly_soups;
-		vector<pair<Color, vector<Segment>>> segment_groups;
-		vector<pair<Color, vector<Segment>>> segment_groups_trans;
-		vector<pair<Color, vector<float3>>> point_sets;
-		int max_steps, phase;
-		enum { max_phases = 6 };
-	};
-
-	static DynamicMesh csgDifference(DynamicMesh a, DynamicMesh b, CSGVisualData *data = nullptr) {
-		return {};
 	}
 
 	static DynamicMesh merge(CRange<DynamicMesh>);

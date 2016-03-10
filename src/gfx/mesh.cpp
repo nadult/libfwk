@@ -7,10 +7,6 @@
 #include <algorithm>
 #include <limits>
 
-#ifdef CORK_ENABLED
-#include <cork.h>
-#endif
-
 namespace fwk {
 
 Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> material_names)
@@ -286,66 +282,4 @@ float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
 	return min_isect;
 }
 
-#ifdef CORK_ENABLED
-namespace {
-
-	// TODO: make it exception safe...
-	CorkTriMesh toCork(const Mesh &mesh) {
-		CorkTriMesh out;
-
-		vector<Mesh::TriIndices> tris = mesh.trisIndices();
-
-		out.n_triangles = tris.size();
-		out.n_vertices = mesh.positions().size();
-		out.vertices = new float[out.n_vertices * 3];
-		out.triangles = new uint[out.n_triangles * 3];
-		memcpy(out.vertices, mesh.positions()[0].v, out.n_vertices * sizeof(float3));
-		memcpy(out.triangles, &tris[0][0], sizeof(uint) * 3 * out.n_triangles);
-
-		return out;
-	}
-
-	Mesh fromCork(const CorkTriMesh &mesh) {
-		vector<float3> positions(mesh.n_vertices);
-		for(uint n = 0; n < mesh.n_vertices; n++) {
-			const float *v = mesh.vertices + n * 3;
-			positions[n] = float3(v[0], v[1], v[2]);
-		}
-
-		return Mesh{{positions},
-					{vector<uint>(mesh.triangles, mesh.triangles + mesh.n_triangles * 3)}};
-	}
-}
-#endif
-
-Mesh Mesh::csgCork(Mesh mesh1, Mesh mesh2, CSGMode mode) {
-#ifdef CORK_ENABLED
-	double time = getTime();
-	CorkTriMesh cmesh1 = toCork(mesh1);
-	CorkTriMesh cmesh2 = toCork(mesh2);
-	CorkTriMesh cout = {0, 0, 0, 0};
-
-	try {
-		DASSERT(isSolid(cmesh1));
-		DASSERT(isSolid(cmesh2));
-
-		using Func = void (*)(CorkTriMesh, CorkTriMesh, CorkTriMesh *);
-		Func funcs[4] = {
-			computeDifference, computeIntersection, computeUnion, computeSymmetricDifference,
-		};
-
-		DASSERT(mode >= 0 && mode < arraySize(funcs));
-		funcs[mode](cmesh1, cmesh2, &cout);
-		printf("cork isects time: %f msec\n", (getTime() - time) * 1000.0);
-
-		auto imesh = fromCork(cout);
-		return imesh;
-	} catch(...) {
-	}
-	freeCorkTriMesh(&cout);
-	freeCorkTriMesh(&cmesh1);
-	freeCorkTriMesh(&cmesh2);
-#endif
-	return {};
-}
 }
