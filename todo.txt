@@ -2,7 +2,6 @@
 - fontstyle -> style
 - isEmpty -> empty
 - move class around in fwk_gfx
-- move renderer -> render_list
 - make AnimaedMesh similar to AnimatedModel
 - remove redundant immutalbe_ptrs
 - add class VertexArraySpec and use it to verify drawcalls
