@@ -6,7 +6,7 @@
 
 namespace fwk {
 
-AnimatedModel::AnimatedModel(vector<MeshData> data) : m_meshes(std::move(data)) {}
+AnimatedModel::AnimatedModel(vector<MeshData> data) : m_meshes(move(data)) {}
 
 AnimatedModel::AnimatedModel(const Model &model, PPose pose) {
 	if(!pose)
@@ -25,8 +25,7 @@ AnimatedModel::AnimatedModel(const Model &model, PPose pose) {
 				anim_data = node->mesh()->animate(skinning_pose);
 			}
 
-			m_meshes.emplace_back(
-				MeshData{node->mesh(), std::move(anim_data), transforms[node->id()]});
+			m_meshes.emplace_back(MeshData{node->mesh(), move(anim_data), transforms[node->id()]});
 		}
 }
 

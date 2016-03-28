@@ -219,9 +219,8 @@ double getTime() {
 #endif
 }
 
-Exception::Exception(string text) : m_text(std::move(text)), m_backtrace(Backtrace::get(3)) {}
-Exception::Exception(string text, Backtrace bt)
-	: m_text(std::move(text)), m_backtrace(std::move(bt)) {}
+Exception::Exception(string text) : m_text(move(text)), m_backtrace(Backtrace::get(3)) {}
+Exception::Exception(string text, Backtrace bt) : m_text(move(text)), m_backtrace(move(bt)) {}
 
 const char *Exception::what() const noexcept {
 	static char thread_local buffer[4096];

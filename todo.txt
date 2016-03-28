@@ -9,7 +9,6 @@
 - additional isnan checks?
 - keyChar is not treated as key event in InputEvent::isKeyEvent
 - add clang's small vector
-- std::move -> move
 - think about usefulness of const correctness; in some cases were just wasting time
 - separate align function for fonts
 - enumNext, enumPrev, enumShift?

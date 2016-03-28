@@ -11,7 +11,7 @@ namespace fwk {
 
 DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType primitive_type, int vertex_count,
 				   int index_offset, PMaterial material, Matrix4 matrix)
-	: matrix(matrix), material(material), m_vertex_array(std::move(vertex_array)),
+	: matrix(matrix), material(material), m_vertex_array(move(vertex_array)),
 	  m_primitive_type(primitive_type), m_vertex_count(vertex_count), m_index_offset(index_offset) {
 	DASSERT(m_vertex_array);
 }
@@ -88,12 +88,12 @@ RenderList::~RenderList() = default;
 
 void RenderList::add(DrawCall draw_call) {
 	draw_call.matrix = viewMatrix() * draw_call.matrix;
-	m_draw_calls.emplace_back(std::move(draw_call));
+	m_draw_calls.emplace_back(move(draw_call));
 }
 
 void RenderList::add(DrawCall draw_call, const Matrix4 &matrix) {
 	draw_call.matrix = viewMatrix() * matrix * draw_call.matrix;
-	m_draw_calls.emplace_back(std::move(draw_call));
+	m_draw_calls.emplace_back(move(draw_call));
 }
 
 void RenderList::add(CRange<DrawCall> draws) {

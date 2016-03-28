@@ -142,7 +142,7 @@ PPose ModelAnim::animatePose(PPose initial_pose, double anim_pos) const {
 		matrices[mapping[n]] = animateChannel(n, anim_pos);
 	}
 
-	return make_immutable<Pose>(std::move(matrices), initial_pose->nameMap());
+	return make_immutable<Pose>(move(matrices), initial_pose->nameMap());
 }
 
 string ModelAnim::print() const {

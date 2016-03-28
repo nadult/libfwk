@@ -106,7 +106,7 @@ const string Profiler::getStats(const char *filter) {
 					}
 				}
 			shown_value = count == 0.0 ? 0.0 : sum / count;
-			timer.values = std::move(filtered_values);
+			timer.values = move(filtered_values);
 		}
 
 		double ms = shown_value * 1000.0;

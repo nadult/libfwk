@@ -216,7 +216,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 		case SDL_MOUSEBUTTONDOWN: {
 			bool is_down = event.type == SDL_MOUSEBUTTONDOWN;
 
-			optional<InputButton> button_id;
+			Maybe<InputButton> button_id;
 			switch(event.button.button) {
 			case SDL_BUTTON_LEFT:
 				button_id = InputButton::left;

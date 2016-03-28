@@ -7,8 +7,7 @@
 namespace fwk {
 
 Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> material_names)
-	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
-	  m_material_names(std::move(material_names)) {
+	: m_buffers(move(buffers)), m_indices(move(indices)), m_material_names(move(material_names)) {
 	for(const auto &indices : m_indices)
 		DASSERT(indices.empty() || (int)indices.indexRange().second < m_buffers.size());
 	DASSERT(m_material_names.empty() || m_material_names.size() == m_indices.size());
@@ -98,7 +97,7 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 		string mat_name = m_material_names.empty() ? "" : m_material_names[n];
 		for(int i = 0; i < (int)new_indices.size(); i++)
 			out.emplace_back(
-				Mesh(m_buffers.remap(mappings[i]), {std::move(new_indices[i])}, {mat_name}));
+				Mesh(m_buffers.remap(mappings[i]), {move(new_indices[i])}, {mat_name}));
 		DASSERT(out.back().vertexCount() <= max_vertices);
 	}
 
@@ -114,7 +113,7 @@ Mesh Mesh::merge(vector<Mesh> meshes) {
 	}
 
 	if(meshes.size() == 1)
-		return std::move(meshes.front());
+		return move(meshes.front());
 	if(meshes.empty())
 		return Mesh();
 
@@ -148,20 +147,19 @@ Mesh Mesh::merge(vector<Mesh> meshes) {
 			std::copy(begin(mesh.normals()), end(mesh.normals()), begin(out_normals) + offset);
 
 		for(int n = 0; n < (int)mesh.indices().size(); n++) {
-			out_indices.emplace_back(
-				MeshIndices::applyOffset(std::move(mesh.indices()[n]), offset));
+			out_indices.emplace_back(MeshIndices::applyOffset(move(mesh.indices()[n]), offset));
 			out_materials.emplace_back(mesh.materialNames().empty() ? "" : mesh.materialNames()[n]);
 		}
 
 		offset += mesh.vertexCount();
 	}
 
-	return Mesh({std::move(out_positions), std::move(out_normals), std::move(out_tex_coords)},
-				std::move(out_indices), std::move(out_materials));
+	return Mesh({move(out_positions), move(out_normals), move(out_tex_coords)}, move(out_indices),
+				move(out_materials));
 }
 
 Mesh Mesh::transform(const Matrix4 &mat, Mesh mesh) {
-	mesh.m_buffers = MeshBuffers::transform(mat, std::move(mesh.m_buffers));
+	mesh.m_buffers = MeshBuffers::transform(mat, move(mesh.m_buffers));
 	mesh.m_bounding_box = FBox(mesh.positions());
 	return mesh;
 }
@@ -208,13 +206,13 @@ Mesh::AnimatedData Mesh::animate(PPose pose) const {
 	auto mapped_pose = m_buffers.mapPose(pose);
 	auto positions = m_buffers.animatePositions(mapped_pose);
 	FBox bbox = FBox(positions);
-	return AnimatedData{bbox, std::move(positions), m_buffers.animateNormals(mapped_pose)};
+	return AnimatedData{bbox, move(positions), m_buffers.animateNormals(mapped_pose)};
 }
 
 Mesh Mesh::apply(Mesh mesh, AnimatedData data) {
 	if(!data.empty()) {
-		mesh.m_buffers.positions = std::move(data.positions);
-		mesh.m_buffers.normals = std::move(data.normals);
+		mesh.m_buffers.positions = move(data.positions);
+		mesh.m_buffers.normals = move(data.normals);
 		mesh.m_bounding_box = data.bounding_box;
 	}
 	return mesh;
@@ -267,7 +265,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 			auto merged_indices = MeshIndices::merge(m_indices, merged_ranges);
 
 			auto indices = make_immutable<IndexBuffer>(merged_indices);
-			auto varray = VertexArray::make({vertices, colors, tex_coords}, std::move(indices));
+			auto varray = VertexArray::make({vertices, colors, tex_coords}, move(indices));
 
 			for(int n = 0; n < (int)m_indices.size(); n++) {
 				const auto &range = merged_ranges[n];

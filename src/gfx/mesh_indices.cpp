@@ -7,8 +7,7 @@
 
 namespace fwk {
 
-MeshIndices::MeshIndices(vector<uint> indices, Type type)
-	: m_data(std::move(indices)), m_type(type) {
+MeshIndices::MeshIndices(vector<uint> indices, Type type) : m_data(move(indices)), m_type(type) {
 	DASSERT(isSupported(m_type));
 }
 
@@ -20,7 +19,7 @@ MeshIndices MeshIndices::makeRange(int count, uint first, Type ptype) {
 	DASSERT(count >= 0);
 	vector<uint> indices(count);
 	std::iota(begin(indices), end(indices), first);
-	return MeshIndices(std::move(indices), ptype);
+	return MeshIndices(move(indices), ptype);
 }
 
 MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
@@ -99,8 +98,8 @@ vector<MeshIndices> MeshIndices::split(uint max_vertices,
 		for(auto idx : mapping)
 			index_map[idx - range.first] = ~0u;
 
-		out.emplace_back(std::move(indices));
-		out_mappings.emplace_back(std::move(mapping));
+		out.emplace_back(move(indices));
+		out_mappings.emplace_back(move(mapping));
 	}
 
 	return out;

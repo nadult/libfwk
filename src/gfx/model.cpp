@@ -24,11 +24,11 @@ auto makeNameMap(const vector<string> &names) {
 }
 
 Pose::Pose(vector<Matrix4> transforms, NameMap name_map)
-	: m_name_map(std::move(name_map)), m_transforms(std::move(transforms)) {
+	: m_name_map(move(name_map)), m_transforms(move(transforms)) {
 	DASSERT(m_transforms.size() == m_name_map.size());
 }
 Pose::Pose(vector<Matrix4> transforms, const vector<string> &names)
-	: Pose(std::move(transforms), makeNameMap(names)) {}
+	: Pose(move(transforms), makeNameMap(names)) {}
 
 vector<int> Pose::mapNames(const vector<string> &names) const {
 	auto dst_map = makeNameMap(names);
@@ -97,13 +97,12 @@ namespace {
 			pose_matrices.emplace_back(node->localTrans());
 			pose_names.emplace_back(node->name());
 		}
-		return Pose(std::move(pose_matrices), pose_names);
+		return Pose(move(pose_matrices), pose_names);
 	}
 }
 
 Model::Model(PModelNode root, vector<ModelAnim> anims, vector<MaterialDef> material_defs)
-	: m_root(std::move(root)), m_anims(std::move(anims)),
-	  m_material_defs(std::move(material_defs)) {
+	: m_root(move(root)), m_anims(move(anims)), m_material_defs(move(material_defs)) {
 	ASSERT(m_root->name() == "" && m_root->localTrans() == AffineTrans() && !m_root->mesh());
 	// TODO: verify data
 	updateNodes();
@@ -141,7 +140,7 @@ Model Model::loadFromXML(const XMLNode &xml_node) {
 		mat_node.next();
 	}
 
-	return Model(std::move(root), std::move(anims), std::move(material_defs));
+	return Model(move(root), move(anims), move(material_defs));
 }
 
 int Model::findNodeId(const string &name) const {
@@ -263,7 +262,7 @@ PPose Model::globalPose(PPose pose) const {
 	for(int n = 0; n < (int)out.size(); n++)
 		if(nodes()[n]->parent())
 			out[n] = out[nodes()[n]->parent()->id()] * out[n];
-	return make_immutable<Pose>(std::move(out), pose->nameMap());
+	return make_immutable<Pose>(move(out), pose->nameMap());
 }
 
 PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
@@ -276,7 +275,7 @@ PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	vector<Matrix4> out = global_pose->transforms();
 	for(int n = 0; n < (int)out.size(); n++)
 		out[n] = pre * out[n] * m_nodes[n]->invGlobalTrans() * post;
-	return make_immutable<Pose>(std::move(out), global_pose->nameMap());
+	return make_immutable<Pose>(move(out), global_pose->nameMap());
 }
 
 PPose Model::animatePose(int anim_id, double anim_pos) const {

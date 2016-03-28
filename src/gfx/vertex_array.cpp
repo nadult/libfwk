@@ -21,7 +21,7 @@ int VertexArray::s_max_bind = 0;
 #endif
 
 VertexArraySource::VertexArraySource(PVertexBuffer buffer, int offset)
-	: m_buffer(std::move(buffer)), m_offset(offset) {
+	: m_buffer(move(buffer)), m_offset(offset) {
 	DASSERT(m_buffer);
 }
 
@@ -40,7 +40,7 @@ static int sourcesMaxSize(const vector<VertexArraySource> &sources) {
 }
 
 VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
-	: m_sources(std::move(sources)), m_index_buffer(ib) {
+	: m_sources(move(sources)), m_index_buffer(ib) {
 	if(ib) {
 		m_size = ib->size();
 		if(sourcesMaxSize(m_sources) == 0)

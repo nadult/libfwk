@@ -78,7 +78,7 @@ Renderer2D::Element &Renderer2D::makeElement(PrimitiveType primitive_type,
 	if(m_elements.empty() || m_elements.back().primitive_type != primitive_type ||
 	   m_elements.back().texture != texture || fullMatrix() != m_elements.back().matrix ||
 	   m_current_scissor_rect != m_elements.back().scissor_rect_id)
-		m_elements.emplace_back(Element{fullMatrix(), std::move(texture), (int)m_indices.size(), 0,
+		m_elements.emplace_back(Element{fullMatrix(), move(texture), (int)m_indices.size(), 0,
 										m_current_scissor_rect, primitive_type});
 	return m_elements.back();
 }

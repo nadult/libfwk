@@ -26,7 +26,7 @@ static void attach(int type, const FrameBufferTarget &target) {
 }
 
 FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
-	: m_colors(std::move(colors)), m_depth(std::move(depth)), m_id(0) {
+	: m_colors(move(colors)), m_depth(move(depth)), m_id(0) {
 	DASSERT(!m_colors.empty() && m_colors.front());
 	DASSERT(!m_depth || m_depth.size() == m_colors.front().size());
 	for(const auto &color : m_colors)
@@ -67,7 +67,7 @@ FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
 }
 
 FrameBuffer::FrameBuffer(Target color, Target depth)
-	: FrameBuffer(vector<Target>{std::move(color)}, std::move(depth)) {}
+	: FrameBuffer(vector<Target>{move(color)}, move(depth)) {}
 
 FrameBuffer::~FrameBuffer() { glDeleteFramebuffers(1, &m_id); }
 

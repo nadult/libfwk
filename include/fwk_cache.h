@@ -43,7 +43,7 @@ template <class Value, class Key> class CacheImpl {
 
 	void add(const Key &key, immutable_ptr<Value> value) {
 		std::lock_guard<std::mutex> lock(m_mutex);
-		m_map.emplace(key, std::move(value));
+		m_map.emplace(key, move(value));
 		if(!--m_next_clear_cycle) {
 			clearInvalid();
 			m_next_clear_cycle = m_map.size();
@@ -122,7 +122,7 @@ class Cache {
 
 	template <class Value, class Key> static void add(const Key &key, immutable_ptr<Value> value) {
 		auto &instance = CacheImpl<Value, Key>::instance();
-		instance.add(key, std::move(value));
+		instance.add(key, move(value));
 	}
 
 	template <class Value, class Key> static auto access(const Key &key) {

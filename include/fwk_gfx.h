@@ -444,7 +444,7 @@ class VertexArray : public immutable_base<VertexArray> {
 
 	static immutable_ptr<VertexArray> make(vector<Source> sources,
 										   PIndexBuffer index_buffer = PIndexBuffer()) {
-		return make_immutable<VertexArray>(std::move(sources), std::move(index_buffer));
+		return make_immutable<VertexArray>(move(sources), move(index_buffer));
 	}
 
 	void operator=(const VertexArray &) = delete;
@@ -498,8 +498,8 @@ using SRenderBuffer = shared_ptr<RenderBuffer>;
 
 struct FrameBufferTarget {
 	FrameBufferTarget() {}
-	FrameBufferTarget(STexture texture) : texture(std::move(texture)) {}
-	FrameBufferTarget(SRenderBuffer render_buffer) : render_buffer(std::move(render_buffer)) {}
+	FrameBufferTarget(STexture texture) : texture(move(texture)) {}
+	FrameBufferTarget(SRenderBuffer render_buffer) : render_buffer(move(render_buffer)) {}
 
 	operator bool() const;
 	TextureFormat format() const;
@@ -517,7 +517,7 @@ class FrameBuffer {
 	~FrameBuffer();
 
 	static shared_ptr<FrameBuffer> make(vector<Target> colors, Target depth = Target()) {
-		return make_shared<FrameBuffer>(std::move(colors), std::move(depth));
+		return make_shared<FrameBuffer>(move(colors), move(depth));
 	}
 
 	void operator=(const FrameBuffer &) = delete;

@@ -57,9 +57,7 @@ string Program::getInfo() const {
 	return string(buf);
 }
 
-ProgramBinder::ProgramBinder(PProgram program) : m_program(std::move(program)) {
-	DASSERT(m_program);
-}
+ProgramBinder::ProgramBinder(PProgram program) : m_program(move(program)) { DASSERT(m_program); }
 
 namespace {
 

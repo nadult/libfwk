@@ -89,7 +89,7 @@ namespace {
 }
 
 Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols)
-	: m_addresses(std::move(addresses)), m_symbols(std::move(symbols)) {}
+	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}
 
 Backtrace Backtrace::get(size_t skip, void *context_) {
 	std::vector<void *> addrs;
@@ -151,7 +151,7 @@ Backtrace Backtrace::get(size_t skip, void *context_) {
 	free(strings);
 #endif
 
-	return Backtrace(std::move(addrs), std::move(symbols));
+	return Backtrace(move(addrs), move(symbols));
 }
 
 string Backtrace::analyze(bool filter) const {

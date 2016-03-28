@@ -25,7 +25,7 @@ FontFactory::~FontFactory() = default;
 Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	// TODO: add support for freetype / somehow use html fonts
 	FontCore core;
-	return Font(PFontCore(std::move(core)), make_immutable<DTexture>(Texture(2, 2)));
+	return Font(PFontCore(move(core)), make_immutable<DTexture>(Texture(2, 2)));
 }
 }
 
@@ -179,7 +179,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 		short advance = glyph->metrics.horiAdvance / 64;
 
 		glyphs.emplace_back(FontCore::Glyph{character, {0, 0}, tex.size(), bearing, advance},
-							std::move(tex));
+							move(tex));
 	}
 
 	FontCore out;
@@ -212,7 +212,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 					out.m_kernings[make_pair(int(left), int(right))] = kerning.x;
 			}
 
-	return {PFontCore(std::move(out)), make_immutable<DTexture>(atlas)};
+	return {PFontCore(move(out)), make_immutable<DTexture>(atlas)};
 }
 }
 

@@ -34,6 +34,7 @@ namespace fwk {
 
 using std::array;
 using std::swap;
+using std::move;
 using std::pair;
 using std::string;
 using std::wstring;
@@ -45,7 +46,7 @@ using std::end;
 using std::make_pair;
 using std::make_shared;
 using std::make_unique;
-using boost::optional;
+template <class T> using Maybe = boost::optional<T>;
 using boost::none;
 
 // TODO: use types from cstdint
@@ -122,7 +123,7 @@ template <class T> class immutable_ptr {
 	static_assert(std::is_base_of<immutable_base<T>, T>::value, "");
 
 	immutable_ptr(const T &rhs) : m_ptr(make_shared<const T>(rhs)) { incCounter(); }
-	immutable_ptr(T &&rhs) : m_ptr(make_shared<const T>(std::move(rhs))) { incCounter(); }
+	immutable_ptr(T &&rhs) : m_ptr(make_shared<const T>(move(rhs))) { incCounter(); }
 
 	immutable_ptr() = default;
 	immutable_ptr(const immutable_ptr &) = default;
@@ -155,7 +156,7 @@ template <class T> class immutable_ptr {
 	operator shared_ptr<const T>() const { return m_ptr; }
 
   private:
-	immutable_ptr(shared_ptr<const T> ptr) : m_ptr(std::move(ptr)) {}
+	immutable_ptr(shared_ptr<const T> ptr) : m_ptr(move(ptr)) {}
 	template <class T1, class... Args> friend immutable_ptr<T1> make_immutable(Args &&...);
 	template <class T1> friend immutable_ptr<T1> make_immutable(T1 &&);
 	template <class T1, class U>
@@ -184,7 +185,7 @@ template <class T> immutable_ptr<T> immutable_base<T>::get_immutable_ptr() const
 template <class T> inline T *mutate(immutable_ptr<T> &ptr) { return ptr.mutate(); }
 
 template <class T> immutable_ptr<T> make_immutable(T &&object) {
-	auto ret = immutable_ptr<T>(make_shared<const T>(std::move(object)));
+	auto ret = immutable_ptr<T>(make_shared<const T>(move(object)));
 	ret.incCounter();
 	return ret;
 }
@@ -533,7 +534,7 @@ static auto fromString(const string &str) -> typename std::enable_if<IsEnum<T>::
 
 template <class T>
 static auto tryFromString(const char *str) ->
-	typename std::enable_if<IsEnum<T>::value, optional<T>>::type {
+	typename std::enable_if<IsEnum<T>::value, Maybe<T>>::type {
 	int ret = fwk::enumFromString(str, enumStrings(T()), false);
 	if(ret == -1)
 		return none;
@@ -542,7 +543,7 @@ static auto tryFromString(const char *str) ->
 
 template <class T>
 static auto tryFromString(const string &str) ->
-	typename std::enable_if<IsEnum<T>::value, optional<T>>::type {
+	typename std::enable_if<IsEnum<T>::value, Maybe<T>>::type {
 	return tryFromString<T>(str.c_str());
 }
 template <class T>
@@ -964,7 +965,7 @@ template <class T, class Constructor = ResourceLoader<T>> class ResourceManager 
 	void insertResource(const string &name, PResource res) { m_dict[name] = res; }
 
 	void renameResource(const string &old_name, const string &new_name) {
-		insertResource(new_name, std::move(removeResource(old_name)));
+		insertResource(new_name, move(removeResource(old_name)));
 	}
 
 	using Iterator = typename std::map<string, PResource>::const_iterator;
@@ -985,14 +986,14 @@ template <class T> class ClonablePtr : public unique_ptr<T> {
 	static_assert(std::is_same<decltype(&T::clone), T *(T::*)() const>::value, "");
 
 	ClonablePtr(const ClonablePtr &rhs) : unique_ptr<T>(rhs ? rhs->clone() : nullptr) {}
-	ClonablePtr(ClonablePtr &&rhs) : unique_ptr<T>(std::move(rhs)) {}
+	ClonablePtr(ClonablePtr &&rhs) : unique_ptr<T>(move(rhs)) {}
 	ClonablePtr(T *ptr) : unique_ptr<T>(ptr) {}
 	ClonablePtr() {}
 
 	explicit operator bool() const { return unique_ptr<T>::operator bool(); }
 	bool isValid() const { return unique_ptr<T>::operator bool(); }
 
-	void operator=(ClonablePtr &&rhs) { unique_ptr<T>::operator=(std::move(rhs)); }
+	void operator=(ClonablePtr &&rhs) { unique_ptr<T>::operator=(move(rhs)); }
 	void operator=(const ClonablePtr &rhs) {
 		if(&rhs == this)
 			return;
@@ -1325,7 +1326,7 @@ class FilePath {
 	FilePath();
 
 	void operator=(const FilePath &rhs) { m_path = rhs.m_path; }
-	void operator=(FilePath &&rhs) { m_path = std::move(rhs.m_path); }
+	void operator=(FilePath &&rhs) { m_path = move(rhs.m_path); }
 
 	bool isRoot() const;
 	bool isAbsolute() const;

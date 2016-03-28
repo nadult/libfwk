@@ -609,7 +609,7 @@ class ModelNode {
 	// TODO: name validation
 	void setTrans(const AffineTrans &trans);
 	void setName(const string &name) { m_name = name; }
-	void setMesh(PMesh mesh) { m_mesh = std::move(mesh); }
+	void setMesh(PMesh mesh) { m_mesh = move(mesh); }
 	void setId(int new_id) { m_id = new_id; }
 
 	const auto &localTrans() const { return m_trans; }
@@ -658,9 +658,9 @@ class Model : public immutable_base<Model> {
 	// TODO: better name
 	/*	void decimate(MeshBuffers &out_buffers, vector<MeshIndices> &out_indices,
 					  vector<string> &out_names) {
-			out_buffers = std::move(m_buffers);
-			out_indices = std::move(m_indices);
-			out_names = std::move(m_material_names);
+			out_buffers = move(m_buffers);
+			out_indices = move(m_indices);
+			out_names = move(m_material_names);
 			*this = Mesh();
 		}*/
 
@@ -727,7 +727,7 @@ using PModel = immutable_ptr<Model>;
 template <class T> class XMLLoader : public ResourceLoader<T> {
   public:
 	XMLLoader(const string &prefix, const string &suffix, string node_name)
-		: ResourceLoader<T>(prefix, suffix), m_node_name(std::move(node_name)) {}
+		: ResourceLoader<T>(prefix, suffix), m_node_name(move(node_name)) {}
 
 	immutable_ptr<T> operator()(const string &name) {
 		XMLDocument doc;

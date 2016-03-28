@@ -10,8 +10,8 @@ namespace fwk {
 
 ModelNode::ModelNode(const string &name, Type type, const AffineTrans &trans, PMesh mesh,
 					 vector<Property> props)
-	: m_properties(std::move(props)), m_name(name), m_trans(trans), m_inv_trans(inverse(trans)),
-	  m_mesh(std::move(mesh)), m_type(type), m_id(-1), m_parent(nullptr) {}
+	: m_properties(move(props)), m_name(name), m_trans(trans), m_inv_trans(inverse(trans)),
+	  m_mesh(move(mesh)), m_type(type), m_id(-1), m_parent(nullptr) {}
 
 ModelNode::ModelNode(const ModelNode &rhs)
 	: m_properties(rhs.m_properties), m_name(rhs.m_name), m_trans(rhs.m_trans),
@@ -19,7 +19,7 @@ ModelNode::ModelNode(const ModelNode &rhs)
 	for(auto &child : rhs.m_children) {
 		auto child_clone = child->clone();
 		child_clone->m_parent = this;
-		m_children.emplace_back(std::move(child_clone));
+		m_children.emplace_back(move(child_clone));
 	}
 }
 
@@ -32,13 +32,13 @@ ModelNode::PropertyMap ModelNode::propertyMap() const {
 
 void ModelNode::addChild(PModelNode node) {
 	node->m_parent = this;
-	m_children.emplace_back(std::move(node));
+	m_children.emplace_back(move(node));
 }
 
 PModelNode ModelNode::removeChild(const ModelNode *child_to_remove) {
 	for(auto it = begin(m_children); it != end(m_children); ++it)
 		if(it->get() == child_to_remove) {
-			auto child = std::move(*it);
+			auto child = move(*it);
 			m_children.erase(it);
 			return child;
 		}
