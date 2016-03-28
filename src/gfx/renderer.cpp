@@ -9,6 +9,17 @@
 
 namespace fwk {
 
+DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType primitive_type, int vertex_count,
+				   int index_offset, PMaterial material, Matrix4 matrix)
+	: matrix(matrix), material(material), m_vertex_array(std::move(vertex_array)),
+	  m_primitive_type(primitive_type), m_vertex_count(vertex_count), m_index_offset(index_offset) {
+	DASSERT(m_vertex_array);
+}
+
+void DrawCall::issue() const {
+	m_vertex_array->draw(m_primitive_type, m_vertex_count, m_index_offset);
+}
+
 static const char *fragment_shader_simple_src =
 	"#version 100\n"
 	"varying lowp vec4 color;							\n"
@@ -75,9 +86,24 @@ RenderList::RenderList(const IRect &viewport, const Matrix4 &projection_matrix)
 
 RenderList::~RenderList() = default;
 
-void RenderList::addDrawCall(const DrawCall &draw_call, PMaterial material, const Matrix4 &matrix) {
-	DASSERT(material);
-	m_instances.emplace_back(Instance{viewMatrix() * matrix, std::move(material), draw_call});
+void RenderList::add(DrawCall draw_call) {
+	draw_call.matrix = viewMatrix() * draw_call.matrix;
+	m_draw_calls.emplace_back(std::move(draw_call));
+}
+
+void RenderList::add(DrawCall draw_call, const Matrix4 &matrix) {
+	draw_call.matrix = viewMatrix() * matrix * draw_call.matrix;
+	m_draw_calls.emplace_back(std::move(draw_call));
+}
+
+void RenderList::add(CRange<DrawCall> draws) {
+	for(auto draw : draws)
+		add(draw);
+}
+
+void RenderList::add(CRange<DrawCall> draws, const Matrix4 &mat) {
+	for(auto draw : draws)
+		add(draw, mat);
 }
 
 namespace {
@@ -129,23 +155,22 @@ void RenderList::render() {
 	glDepthMask(1);
 
 	DeviceConfig dev_config;
-
 	auto tex_program = s_mgr["tex"];
 	auto flat_program = s_mgr["flat"];
 
-	for(const auto &instance : m_instances) {
-		auto material = instance.material;
-
-		DTexture::bind(material->textures());
-		PProgram program = material->texture() ? tex_program : flat_program;
+	for(const auto &draw_call : m_draw_calls) {
+		auto mat = draw_call.material;
+		if(mat)
+			DTexture::bind(mat->textures());
+		PProgram program = mat && mat->texture() ? tex_program : flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
-		binder.setUniform("proj_view_matrix", projectionMatrix() * instance.matrix);
-		binder.setUniform("mesh_color", (float4)material->color());
-		dev_config.update(material->flags());
+		binder.setUniform("proj_view_matrix", projectionMatrix() * draw_call.matrix);
+		binder.setUniform("mesh_color", (float4)(mat ? mat->color() : Color::white));
+		dev_config.update(mat ? mat->flags() : 0);
 
-		instance.draw_call.issue();
+		draw_call.issue();
 	}
 
 	dev_config.update(Material::flag_blended | Material::flag_two_sided);
@@ -206,7 +231,7 @@ void RenderList::renderLines() {
 }
 
 void RenderList::clear() {
-	m_instances.clear();
+	m_draw_calls.clear();
 	m_sprites.clear();
 	m_lines.clear();
 }

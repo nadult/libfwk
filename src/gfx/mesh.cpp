@@ -11,11 +11,11 @@ namespace fwk {
 
 Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> material_names)
 	: m_buffers(std::move(buffers)), m_indices(std::move(indices)),
-	  m_material_names(std::move(material_names)), m_ready_flags(0) {
+	  m_material_names(std::move(material_names)) {
 	for(const auto &indices : m_indices)
 		DASSERT(indices.empty() || (int)indices.indexRange().second < m_buffers.size());
 	DASSERT(m_material_names.empty() || m_material_names.size() == m_indices.size());
-	m_merged_indices = MeshIndices::merge(m_indices, m_merged_ranges);
+	m_bounding_box = FBox(m_buffers.positions);
 }
 
 static vector<MeshIndices> loadIndices(const XMLNode &node) {
@@ -47,29 +47,14 @@ void Mesh::saveToXML(XMLNode node) const {
 		node.addChild("materials", m_material_names);
 }
 
-void Mesh::transformUV(const Matrix4 &matrix) {
-	auto &tex_coords = m_buffers.tex_coords;
-	for(int n = 0; n < (int)tex_coords.size(); n++)
-		tex_coords[n] = (matrix * float4(tex_coords[n], 0.0f, 1.0f)).xy();
-	m_ready_flags &= ~flag_drawing_cache;
-}
-
-FBox Mesh::boundingBox() const {
-	if(!(m_ready_flags & flag_bounding_box)) {
-		m_ready_flags |= flag_bounding_box;
-		m_bounding_box = FBox(m_buffers.positions);
-	}
-
-	return m_bounding_box;
-}
-
-FBox Mesh::boundingBox(const AnimatedData &data) const {
-	if(!m_buffers.hasSkin())
-		return boundingBox();
-	return data.bounding_box;
+FBox Mesh::boundingBox(const AnimatedData &anim_data) const {
+	return anim_data.empty() ? m_bounding_box : anim_data.bounding_box;
 }
 
 int Mesh::triangleCount() const {
+	if(!hasIndices())
+		return vertexCount() / 3;
+
 	int count = 0;
 	for(const auto &indices : m_indices)
 		count += indices.triangleCount();
@@ -78,15 +63,24 @@ int Mesh::triangleCount() const {
 
 vector<Mesh::TriIndices> Mesh::trisIndices() const {
 	vector<TriIndices> out;
-	for(const auto &indices : m_indices) {
-		auto tris = indices.trisIndices();
-		out.insert(end(out), begin(tris), end(tris));
+	out.reserve(triangleCount());
+
+	if(hasIndices()) {
+		for(const auto &indices : m_indices) {
+			auto tris = indices.trisIndices();
+			out.insert(end(out), begin(tris), end(tris));
+		}
+	} else {
+		for(uint n = 0, count = (uint)triangleCount(); n < count; n++)
+			out.emplace_back(TriIndices{{n * 3 + 0, n * 3 + 1, n * 3 + 2}});
 	}
 	return out;
 }
 
 vector<Triangle> Mesh::tris() const {
 	vector<Triangle> out;
+	out.reserve(triangleCount());
+
 	const auto &verts = positions();
 	for(const auto &inds : trisIndices())
 		out.emplace_back(verts[inds[0]], verts[inds[1]], verts[inds[2]]);
@@ -96,6 +90,8 @@ vector<Triangle> Mesh::tris() const {
 // TODO: test split / merge and transform
 vector<Mesh> Mesh::split(int max_vertices) const {
 	vector<Mesh> out;
+	if(!hasIndices())
+		THROW("Write me, please");
 
 	for(int n = 0; n < (int)m_indices.size(); n++) {
 		const auto &sub_indices = m_indices[n];
@@ -113,9 +109,12 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 }
 
 Mesh Mesh::merge(vector<Mesh> meshes) {
-	for(const auto &mesh : meshes)
+	for(const auto &mesh : meshes) {
 		if(mesh.hasSkin())
-			THROW("writeme");
+			THROW("Merging skinned models not supported");
+		if(!mesh.hasIndices())
+			THROW("Write me");
+	}
 
 	if(meshes.size() == 1)
 		return std::move(meshes.front());
@@ -166,7 +165,43 @@ Mesh Mesh::merge(vector<Mesh> meshes) {
 
 Mesh Mesh::transform(const Matrix4 &mat, Mesh mesh) {
 	mesh.m_buffers = MeshBuffers::transform(mat, std::move(mesh.m_buffers));
+	mesh.m_bounding_box = FBox(mesh.positions());
 	return mesh;
+}
+
+void Mesh::removeNormals() { m_buffers.normals.clear(); }
+void Mesh::removeTexCoords() { m_buffers.tex_coords.clear(); }
+void Mesh::removeColors() { m_buffers.colors.clear(); }
+
+void Mesh::removeIndices(CRange<pair<string, Color>> color_map) {
+	if(hasIndices()) {
+		auto mapping = fwk::merge(trisIndices());
+		vector<Color> colors;
+
+		if(!color_map.empty()) {
+			removeColors();
+			colors.resize(mapping.size());
+
+			int idx = 0;
+			for(int i = 0; i < (int)m_indices.size(); i++) {
+				Color color = Color::white;
+				for(auto &pair : color_map)
+					if(pair.first == m_material_names[i]) {
+						color = pair.second;
+						break;
+					}
+
+				int size = m_indices[i].size();
+				for(int j = 0; j < size; j++)
+					colors[idx + j] = color;
+				idx += size;
+			}
+		}
+
+		m_buffers = m_buffers.remap(mapping);
+		m_buffers.colors = colors;
+		m_indices.clear();
+	}
 }
 
 Mesh::AnimatedData Mesh::animate(PPose pose) const {
@@ -179,77 +214,79 @@ Mesh::AnimatedData Mesh::animate(PPose pose) const {
 	return AnimatedData{bbox, std::move(positions), m_buffers.animateNormals(mapped_pose)};
 }
 
-Mesh Mesh::animate(AnimatedData data) const {
-	if(!m_buffers.hasSkin())
-		return *this;
-
-	return Mesh(
-		MeshBuffers(std::move(data.positions), std::move(data.normals), m_buffers.tex_coords),
-		m_indices, m_material_names);
-}
-
-void Mesh::draw(RenderList &out, const MaterialSet &materials, const Matrix4 &matrix) const {
-	if(!(m_ready_flags & flag_drawing_cache))
-		updateDrawingCache();
-
-	for(const auto &cache_elem : m_drawing_cache) {
-		out.addDrawCall(cache_elem.first, materials[cache_elem.second], matrix);
+Mesh Mesh::apply(Mesh mesh, AnimatedData data) {
+	if(!data.empty()) {
+		mesh.m_buffers.positions = std::move(data.positions);
+		mesh.m_buffers.normals = std::move(data.normals);
+		mesh.m_bounding_box = data.bounding_box;
 	}
+	return mesh;
 }
 
-void Mesh::drawLines(RenderList &out, PMaterial material, const Matrix4 &matrix) const {
-	out.pushViewMatrix();
-	out.mulViewMatrix(matrix);
-
-	const auto &pos = positions();
+vector<float3> Mesh::lines() const {
 	vector<float3> lines;
+	lines.reserve(triangleCount() * 6);
 	for(auto tri : trisIndices()) {
 		int inds[6] = {0, 1, 1, 2, 2, 0};
-		for(int i = 0; i < 6; i++)
-			lines.emplace_back(pos[tri[inds[i]]]);
+		for(int i : inds)
+			lines.emplace_back(m_buffers.positions[tri[i]]);
 	}
-	out.lines().add(lines, material);
-	out.popViewMatrix();
+	return lines;
 }
 
-void Mesh::draw(RenderList &out, AnimatedData data, const MaterialSet &materials,
-				const Matrix4 &matrix) const {
-	if(!m_buffers.hasSkin())
-		return draw(out, materials, matrix);
-	animate(std::move(data)).draw(out, materials, matrix);
-}
+vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const AnimatedData *anim_data,
+									const Matrix4 &matrix) const {
+	vector<DrawCall> out;
 
-void Mesh::updateDrawingCache() const {
-	m_drawing_cache.clear();
+	if(anim_data) {
+		DASSERT(valid(*anim_data));
+		if(anim_data->empty())
+			anim_data = nullptr;
+	}
 
-	if(m_buffers.positions.size() > IndexBuffer::max_index_value) {
-		auto parts = split(IndexBuffer::max_index_value);
-		for(auto &part : parts) {
-			part.updateDrawingCache();
-			m_drawing_cache.insert(end(m_drawing_cache), begin(part.m_drawing_cache),
-								   end(part.m_drawing_cache));
+	if(hasIndices() && m_buffers.positions.size() > IndexBuffer::max_index_value) {
+		vector<Mesh> parts;
+
+		if(anim_data) {
+			auto animated = apply(*this, *anim_data);
+			parts = animated.split(IndexBuffer::max_index_value);
+		} else {
+			parts = split(IndexBuffer::max_index_value);
 		}
+
+		for(auto &part : parts)
+			insertBack(out, part.genDrawCalls(materials, nullptr, matrix));
 	} else {
-		auto vertices = make_immutable<VertexBuffer>(m_buffers.positions);
+		// TODO: normals
+		auto vertices =
+			make_immutable<VertexBuffer>(anim_data ? anim_data->positions : m_buffers.positions);
 		auto tex_coords = hasTexCoords() ? make_immutable<VertexBuffer>(m_buffers.tex_coords)
 										 : VertexArraySource(float2(0, 0));
-		auto indices = make_immutable<IndexBuffer>(m_merged_indices);
-		auto varray = VertexArray::make({vertices, Color::white, tex_coords}, std::move(indices));
+		auto colors = hasColors() ? make_immutable<VertexBuffer>(m_buffers.colors)
+								  : VertexArraySource(Color::white);
 
-		for(int n = 0; n < (int)m_indices.size(); n++) {
-			const auto &range = m_merged_ranges[n];
-			const auto &indices = m_indices[n];
-			string mat_name = m_material_names.empty() ? "" : m_material_names[n];
-			m_drawing_cache.emplace_back(
-				DrawCall(varray, indices.type(), range.second, range.first), mat_name);
+		if(hasIndices()) {
+			vector<pair<uint, uint>> merged_ranges;
+			auto merged_indices = MeshIndices::merge(m_indices, merged_ranges);
+
+			auto indices = make_immutable<IndexBuffer>(merged_indices);
+			auto varray = VertexArray::make({vertices, colors, tex_coords}, std::move(indices));
+
+			for(int n = 0; n < (int)m_indices.size(); n++) {
+				const auto &range = merged_ranges[n];
+				const auto &indices = m_indices[n];
+				string mat_name = m_material_names.empty() ? "" : m_material_names[n];
+				out.emplace_back(varray, indices.type(), range.second, range.first,
+								 materials[mat_name], matrix);
+			}
+		} else {
+			auto varray = VertexArray::make({vertices, colors, tex_coords});
+			out.emplace_back(varray, PrimitiveType::triangles, triangleCount() * 3, 0,
+							 materials.defaultMat(), matrix);
 		}
 	}
-	m_ready_flags |= flag_drawing_cache;
-}
 
-void Mesh::clearDrawingCache() const {
-	m_drawing_cache.clear();
-	m_ready_flags &= ~flag_drawing_cache;
+	return out;
 }
 
 float Mesh::intersect(const Segment &segment) const {
@@ -257,28 +294,28 @@ float Mesh::intersect(const Segment &segment) const {
 
 	const auto &positions = m_buffers.positions;
 	if(intersection(segment, boundingBox()) < constant::inf)
-		for(const auto &indices : trisIndices()) {
-			Triangle triangle(positions[indices[0]], positions[indices[1]], positions[indices[2]]);
+		for(Triangle triangle : tris())
 			min_isect = min(min_isect, intersection(segment, triangle));
-		}
 
 	return min_isect;
 }
 
-float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
-	if(!m_buffers.hasSkin())
+float Mesh::intersect(const Segment &segment, const AnimatedData &anim_data) const {
+	if(anim_data.empty())
 		return intersect(segment);
 
-	DASSERT(isValidAnimationData(data));
-	const auto &positions = data.positions;
+	DASSERT(valid(anim_data));
+	const auto &positions = anim_data.positions;
 
 	float min_isect = constant::inf;
-	if(intersection(segment, data.bounding_box) < constant::inf)
-		for(const auto &tri : trisIndices()) {
-			float isect = intersection(
-				segment, Triangle(positions[tri[0]], positions[tri[1]], positions[tri[2]]));
-			min_isect = min(min_isect, isect);
-		}
+	if(intersection(segment, anim_data.bounding_box) < constant::inf)
+		for(const auto &tri : tris())
+			min_isect = min(min_isect, intersection(segment, tri));
 	return min_isect;
+}
+
+bool Mesh::valid(const AnimatedData &anim_data) const {
+	return anim_data.empty() || (anim_data.positions.size() == positions().size() &&
+								 anim_data.normals.size() == normals().size());
 }
 }

@@ -26,16 +26,17 @@ namespace {
 }
 
 MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
-						 vector<float2> tex_coords, vector<vector<VertexWeight>> weights,
-						 vector<string> node_names)
+						 vector<float2> tex_coords, vector<Color> colors,
+						 vector<vector<VertexWeight>> weights, vector<string> node_names)
 	: positions(std::move(positions)), normals(std::move(normals)),
-	  tex_coords(std::move(tex_coords)), weights(std::move(weights)),
+	  tex_coords(std::move(tex_coords)), colors(std::move(colors)), weights(std::move(weights)),
 	  node_names(std::move(node_names)) {
 	// TODO: when loading from file, we want to use ASSERT, otherwise DASSERT
 	// In general if data is marked as untrusted, then we have to check.
 
 	DASSERT(tex_coords.empty() || positions.size() == tex_coords.size());
 	DASSERT(normals.empty() || positions.size() == normals.size());
+	DASSERT(colors.empty() || positions.size() == colors.size());
 	DASSERT(weights.empty() || positions.size() == weights.size());
 
 	int max_node_id = -1;
@@ -45,10 +46,12 @@ MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
 	ASSERT(max_node_id < (int)node_names.size());
 }
 
-MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords)
+MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
+						 PVertexBuffer colors)
 	: MeshBuffers((DASSERT(positions), positions->getData<float3>()),
 				  normals ? normals->getData<float3>() : vector<float3>(),
-				  tex_coords ? tex_coords->getData<float2>() : vector<float2>()) {}
+				  tex_coords ? tex_coords->getData<float2>() : vector<float2>(),
+				  colors ? colors->getData<Color>() : vector<Color>()) {}
 
 template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
 	DASSERT(array);
@@ -57,10 +60,11 @@ template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int bu
 	return buffer_id == -1 ? PVertexBuffer() : sources[buffer_id].buffer();
 }
 
-MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, int tex_coords_id)
-	: MeshBuffers(extractBuffer<float3>(array, positions_id),
-				  extractBuffer<float3>(array, normals_id),
-				  extractBuffer<float2>(array, tex_coords_id)) {}
+MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, int tex_coords_id,
+						 int colors_id)
+	: MeshBuffers(
+		  extractBuffer<float3>(array, positions_id), extractBuffer<float3>(array, normals_id),
+		  extractBuffer<float2>(array, tex_coords_id), extractBuffer<Color>(array, colors_id)) {}
 
 static auto parseVertexWeights(const XMLNode &node) {
 	vector<vector<MeshBuffers::VertexWeight>> out;
@@ -99,7 +103,7 @@ static auto parseVertexWeights(const XMLNode &node) {
 MeshBuffers::MeshBuffers(const XMLNode &node)
 	: MeshBuffers(node.childValue<vector<float3>>("positions", {}),
 				  node.childValue<vector<float3>>("normals", {}),
-				  node.childValue<vector<float2>>("tex_coords", {}), parseVertexWeights(node),
+				  node.childValue<vector<float2>>("tex_coords", {}), {}, parseVertexWeights(node),
 				  node.childValue<vector<string>>("node_names", {})) {}
 
 void MeshBuffers::saveToXML(XMLNode node) const {
@@ -143,6 +147,7 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	vector<float3> out_positions(mapping.size());
 	vector<float3> out_normals(!normals.empty() ? mapping.size() : 0);
 	vector<float2> out_tex_coords(!tex_coords.empty() ? mapping.size() : 0);
+	vector<Color> out_colors(!colors.empty() ? mapping.size() : 0);
 
 	uint num_vertices = positions.size();
 	DASSERT(all_of(begin(mapping), end(mapping), [=](uint idx) { return idx < num_vertices; }));
@@ -155,8 +160,11 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	if(!tex_coords.empty())
 		for(int n = 0; n < (int)mapping.size(); n++)
 			out_tex_coords[n] = tex_coords[mapping[n]];
+	if(!colors.empty())
+		for(int n = 0; n < (int)mapping.size(); n++)
+			out_colors[n] = colors[mapping[n]];
 
-	return MeshBuffers{out_positions, out_normals, out_tex_coords};
+	return MeshBuffers{out_positions, out_normals, out_tex_coords, out_colors};
 }
 
 vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {

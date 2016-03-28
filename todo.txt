@@ -1,5 +1,11 @@
 - Fix copyrights
-- Add support for meshes without index buffer
+- isEmpty -> empty
+- move class around in fwk_gfx
+- move renderer -> render_list
+- make AnimaedMesh similar to AnimatedModel
+- remove redundant immutalbe_ptrs
+- add class VertexArraySpec and use it to verify drawcalls
+- saving/loading Mesh colors to XML
 - Separate model matrix from view matrix in MatrixStack?
 - MemorySaver should increase it's size if necessary
 - show rare profiles at the end

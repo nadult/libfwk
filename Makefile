@@ -19,7 +19,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 SHARED_SRC=base backtrace filesystem filesystem_linux filesystem_windows input profiler stream xml xml_conversions \
 		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \
 		   gfx/material gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model \
-		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor \
+		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
 		   gfx/program gfx/renderer gfx/renderer2d gfx/dynamic_mesh gfx/sprite_buffer gfx/line_buffer \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector \

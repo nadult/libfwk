@@ -202,20 +202,6 @@ void Model::saveToXML(XMLNode xml_node) const {
 		anim.saveToXML(xml_node.addChild("anim"));
 }
 
-FBox Model::boundingBox(PPose pose) const {
-	if(!pose)
-		pose = m_default_pose;
-
-	FBox out;
-	auto anim_data = animatedData(pose);
-	for(auto mesh_data : anim_data->meshes_data) {
-		FBox bbox = mesh_data.transform * mesh_data.mesh->boundingBox(mesh_data.anim_data);
-		out = out.empty() ? bbox : sum(out, bbox);
-	}
-
-	return out;
-}
-
 void Model::join(const string &local_name, const Model &other, const string &other_name) {
 	if(auto *other_node = other.findNode(other_name))
 		if(m_root->join(other_node, local_name)) {
@@ -226,22 +212,16 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 		}
 }
 
-void Model::draw(RenderList &out, PPose pose, const MaterialSet &materials,
-				 const Matrix4 &matrix) const {
-	out.pushViewMatrix();
-	out.mulViewMatrix(matrix);
-
-	auto anim_data = animatedData(pose);
-	for(auto mesh_data : anim_data->meshes_data)
-		mesh_data.mesh->draw(out, mesh_data.anim_data, materials, mesh_data.transform);
-
-	out.popViewMatrix();
-}
-
 void Model::drawNodes(RenderList &out, PPose pose, Color node_color, Color line_color,
 					  float node_scale, const Matrix4 &matrix) const {
-	DASSERT(isValidPose(pose));
+	// TODO: move this to model viewer
+	DASSERT(valid(pose));
+	auto node_mat = make_immutable<Material>(node_color, Material::flag_ignore_depth);
+	auto line_mat = make_immutable<Material>(line_color, Material::flag_ignore_depth);
+
 	Mesh bbox_mesh = Mesh::makeBBox(FBox{-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f} * node_scale);
+	auto bbox_draw = bbox_mesh.genDrawCalls(node_mat);
+
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
@@ -254,11 +234,9 @@ void Model::drawNodes(RenderList &out, PPose pose, Color node_color, Color line_
 	if(positions.size() % 2 == 1)
 		positions.pop_back();
 
-	auto node_mat = make_immutable<Material>(node_color, Material::flag_ignore_depth);
-	auto line_mat = make_immutable<Material>(line_color, Material::flag_ignore_depth);
 	for(const auto *node : nodes()) {
 		if(node != m_root.get())
-			bbox_mesh.draw(out, node_mat, translation(positions[node->id()]));
+			out.add(bbox_draw, translation(positions[node->id()]));
 		if(node->parent() && node->parent() != m_nodes.front()) {
 			float3 line[2] = {positions[node->id()], positions[node->parent()->id()]};
 			out.lines().add(line, line_mat);
@@ -273,37 +251,6 @@ void Model::printHierarchy() const {
 		printf("%d: %s\n", node->id(), node->name().c_str());
 }
 
-Mesh Model::toMesh(PPose pose) const {
-	vector<Mesh> meshes;
-
-	if(!pose)
-		pose = m_default_pose;
-	auto anim_data = animatedData(pose);
-	for(auto mesh_data : anim_data->meshes_data)
-		meshes.emplace_back(
-			Mesh::transform(mesh_data.transform, mesh_data.mesh->animate(mesh_data.anim_data)));
-
-	return Mesh::merge(meshes);
-}
-
-float Model::intersect(const Segment &segment, PPose pose) const {
-	float min_isect = constant::inf;
-
-	if(!pose)
-		pose = m_default_pose;
-	auto anim_data = animatedData(pose);
-	for(auto mesh_data : anim_data->meshes_data) {
-		auto inv_segment = inverse(mesh_data.transform) * segment;
-		float inv_isect = mesh_data.mesh->intersect(inv_segment, mesh_data.anim_data);
-		if(inv_isect < constant::inf) {
-			float3 point = mulPoint(mesh_data.transform, inv_segment.at(inv_isect));
-			min_isect = min(min_isect, distance(segment.origin(), point));
-		}
-	}
-
-	return min_isect;
-}
-
 Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
 	if(!pose)
 		pose = m_default_pose;
@@ -315,7 +262,7 @@ Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
 }
 
 PPose Model::globalPose(PPose pose) const {
-	DASSERT(isValidPose(pose));
+	DASSERT(valid(pose));
 	vector<Matrix4> out = pose->transforms();
 	for(int n = 0; n < (int)out.size(); n++)
 		if(nodes()[n]->parent())
@@ -324,7 +271,7 @@ PPose Model::globalPose(PPose pose) const {
 }
 
 PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
-	DASSERT(isValidPose(global_pose));
+	DASSERT(valid(global_pose));
 	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
 
 	Matrix4 pre = inverse(m_nodes[node_id]->globalTrans());
@@ -344,37 +291,8 @@ PPose Model::animatePose(int anim_id, double anim_pos) const {
 	return m_anims[anim_id].animatePose(defaultPose(), anim_pos);
 }
 
-bool Model::isValidPose(PPose pose) const {
+bool Model::valid(PPose pose) const {
 	// TODO: keep weak_ptr to model inside pose?
 	return pose && pose->nameMap() == m_default_pose->nameMap();
-}
-
-immutable_ptr<Model::AnimatedData> Model::animatedData(PPose pose) const {
-	DASSERT(isValidPose(pose));
-	auto key = Cache::makeKey(get_immutable_ptr(), pose);
-
-	if(auto data = Cache::access<AnimatedData>(key))
-		return data;
-
-	AnimatedData new_data;
-	new_data.global_pose = globalPose(pose);
-	const auto &transforms = new_data.global_pose->transforms();
-
-	for(const auto *node : nodes())
-		if(node->mesh()) {
-			Mesh::AnimatedData anim_data;
-
-			if(node->mesh()->hasSkin()) {
-				auto skinning_pose = meshSkinningPose(new_data.global_pose, node->id());
-				anim_data = node->mesh()->animate(skinning_pose);
-			}
-
-			new_data.meshes_data.emplace_back(
-				AnimatedData::MeshData{node->mesh(), std::move(anim_data), transforms[node->id()]});
-		}
-
-	auto data_ptr = make_immutable<AnimatedData>(std::move(new_data));
-	Cache::add(key, data_ptr);
-	return data_ptr;
 }
 }

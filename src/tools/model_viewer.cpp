@@ -46,15 +46,17 @@ class Viewer {
 			return m_model->animatePose(anim_id, anim_pos);
 		}
 
-		FBox boundingBox(PPose pose = PPose()) const { return m_model->boundingBox(pose); }
+		auto animate(PPose pose) const { return AnimatedModel(*m_model, pose); }
+		FBox boundingBox(PPose pose = PPose()) const { return animate(pose).boundingBox(); }
 
 		float scale() const {
-			auto bbox = m_model->boundingBox();
+			auto bbox = boundingBox();
 			return 4.0f / max(bbox.width(), max(bbox.height(), bbox.depth()));
 		}
 
 		void drawModel(RenderList &out, PPose pose, bool show_nodes, const Matrix4 &matrix) {
-			m_model->draw(out, pose, m_materials, matrix);
+			out.add(animate(pose).genDrawCalls(m_materials, matrix));
+
 			if(show_nodes)
 				m_model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f / scale(), matrix);
 		}
@@ -67,7 +69,7 @@ class Viewer {
 					num_verts += node->mesh()->vertexCount();
 					num_faces += node->mesh()->triangleCount();
 				}
-			FBox bbox = m_model->boundingBox();
+			FBox bbox = boundingBox();
 			fmt("Size: %.2f %.2f %.2f\n\n", bbox.width(), bbox.height(), bbox.depth());
 			fmt("Parts: %d  Verts: %d Faces: %d\n", num_parts, num_verts, num_faces);
 		}
@@ -164,7 +166,7 @@ class Viewer {
 	}
 
 	static void faceVertHistogram(TextFormatter &out, PModel model) {
-		DynamicMesh dmesh(model->toMesh());
+		DynamicMesh dmesh(AnimatedModel(*model).toMesh());
 		std::map<int, int> fcounts;
 
 		for(auto vert : dmesh.verts())

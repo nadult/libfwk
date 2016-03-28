@@ -178,23 +178,4 @@ MeshIndices MeshIndices::changeType(MeshIndices indices, Type new_type) {
 
 	return indices;
 }
-
-/*
-
-int Mesh::faceCount() const {
-	return m_primitive_type == PrimitiveType::triangle_strip ? m_positions.size() - 2
-															 : m_positions.size() / 3;
-}
-
-void Mesh::getFace(int face, int &i1, int &i2, int &i3) const {
-	if(m_primitive_type == PrimitiveType::triangle_strip) {
-		i1 = face + 0;
-		i2 = face + 1;
-		i3 = face + 2;
-	} else {
-		i1 = face * 3 + 0;
-		i2 = face * 3 + 1;
-		i3 = face * 3 + 2;
-	}
-}*/
 }

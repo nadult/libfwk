@@ -424,7 +424,7 @@ class VertexArraySource {
 	VertexArraySource(VertexArraySource &&) = default;
 	VertexArraySource(const VertexArraySource &) = default;
 
-	int maxIndex() const;
+	int maxSize() const;
 	PVertexBuffer buffer() const { return m_buffer; }
 	const float4 &singleValue() const { return m_single_value; }
 	int offset() const { return m_offset; }
@@ -475,17 +475,6 @@ class VertexArray : public immutable_base<VertexArray> {
 };
 
 using PVertexArray = immutable_ptr<VertexArray>;
-
-class DrawCall {
-  public:
-	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset);
-	void issue() const;
-
-  private:
-	PVertexArray m_vertex_array;
-	PrimitiveType m_primitive_type;
-	int m_vertex_count, m_index_offset;
-};
 
 DEFINE_ENUM(ShaderType, vertex, fragment);
 
@@ -609,11 +598,12 @@ class Material : public immutable_base<Material> {
 
 using PMaterial = immutable_ptr<Material>;
 
-class MaterialSet : public immutable_base<MaterialSet> {
+class MaterialSet {
   public:
 	MaterialSet(PMaterial default_mat, std::map<string, PMaterial> = {});
 	~MaterialSet();
 
+	auto defaultMat() const { return m_default; }
 	PMaterial operator[](const string &name) const;
 	vector<PMaterial> operator()(const vector<string> &names) const;
 	const auto &map() const { return m_map; }
@@ -623,9 +613,21 @@ class MaterialSet : public immutable_base<MaterialSet> {
 	std::map<string, PMaterial> m_map;
 };
 
-using PMaterialSet = immutable_ptr<MaterialSet>;
+class DrawCall {
+  public:
+	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset,
+			 PMaterial = PMaterial(), Matrix4 = Matrix4::identity());
 
-class RenderList;
+	void issue() const;
+
+	Matrix4 matrix;
+	PMaterial material;
+
+  private:
+	PVertexArray m_vertex_array;
+	PrimitiveType m_primitive_type;
+	int m_vertex_count, m_index_offset;
+};
 
 struct Pose : public immutable_base<Pose> {
   public:
@@ -659,11 +661,12 @@ struct MeshBuffers {
 
 	MeshBuffers() = default;
 	MeshBuffers(vector<float3> positions, vector<float3> normals = {},
-				vector<float2> tex_coords = {}, vector<vector<VertexWeight>> weights = {},
-				vector<string> node_names = {});
+				vector<float2> tex_coords = {}, vector<Color> colors = {},
+				vector<vector<VertexWeight>> weights = {}, vector<string> node_names = {});
 	MeshBuffers(PVertexBuffer positions, PVertexBuffer normals = PVertexBuffer(),
-				PVertexBuffer tex_coords = PVertexBuffer());
-	MeshBuffers(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1);
+				PVertexBuffer tex_coords = PVertexBuffer(), PVertexBuffer colors = PVertexBuffer());
+	MeshBuffers(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1,
+				int color_id = -1);
 
 	MeshBuffers(const XMLNode &node);
 	void saveToXML(XMLNode) const;
@@ -674,15 +677,17 @@ struct MeshBuffers {
 	int size() const { return (int)positions.size(); }
 	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
 
-	static MeshBuffers transform(const Matrix4 &, MeshBuffers);
 	MeshBuffers remap(const vector<uint> &mapping) const;
 
 	// Pose must have configuration for each of the nodes in node_names
 	vector<Matrix4> mapPose(PPose skinning_pose) const;
 
+	static MeshBuffers transform(const Matrix4 &, MeshBuffers);
+
 	vector<float3> positions;
 	vector<float3> normals;
 	vector<float2> tex_coords;
+	vector<Color> colors;
 	vector<vector<VertexWeight>> weights;
 	vector<string> node_names;
 };
@@ -724,7 +729,7 @@ class MeshIndices {
 	Type m_type;
 };
 
-// Make it immutable, with operations requiring a copy/move
+// TODO: doesn't really have to be immutable
 class Mesh : public immutable_base<Mesh> {
   public:
 	Mesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
@@ -745,15 +750,16 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh makePlane(const Plane &, const float3 &start, float extent);
 
 	struct AnimatedData {
+		bool empty() const { return positions.empty(); }
+
 		FBox bounding_box;
 		vector<float3> positions;
 		vector<float3> normals;
 	};
 
-	FBox boundingBox() const;
+	FBox boundingBox() const { return m_bounding_box; }
 	FBox boundingBox(const AnimatedData &) const;
 
-	void transformUV(const Matrix4 &);
 	void changePrimitiveType(PrimitiveType new_type);
 
 	int vertexCount() const { return (int)m_buffers.positions.size(); }
@@ -764,72 +770,45 @@ class Mesh : public immutable_base<Mesh> {
 	const vector<float3> &normals() const { return m_buffers.normals; }
 	const vector<float2> &texCoords() const { return m_buffers.tex_coords; }
 	const vector<MeshIndices> &indices() const { return m_indices; }
-	const MeshIndices &mergedIndices() const { return m_merged_indices; }
 	const auto &materialNames() const { return m_material_names; }
 
 	bool hasTexCoords() const { return !m_buffers.tex_coords.empty(); }
 	bool hasNormals() const { return !m_buffers.normals.empty(); }
+	bool hasColors() const { return !m_buffers.colors.empty(); }
 	bool hasSkin() const { return m_buffers.hasSkin(); }
+	bool hasIndices() const { return !m_indices.empty(); }
 	bool isEmpty() const { return m_buffers.positions.empty(); }
 
-	// TODO: make this completely immutable (and the others as well, if possible)
-	void removeNormals() { m_buffers.normals.clear(); }
-	void removeTexCoords() { m_buffers.tex_coords.clear(); }
-	void process(float unit);
+	void removeNormals();
+	void removeTexCoords();
+	void removeColors();
+	void removeIndices(CRange<pair<string, Color>> color_map = {});
+	static Mesh transform(const Matrix4 &, Mesh);
 
 	using TriIndices = MeshIndices::TriIndices;
 	vector<Triangle> tris() const;
 	vector<TriIndices> trisIndices() const;
 
 	vector<Mesh> split(int max_vertices) const;
-
 	static Mesh merge(vector<Mesh>);
-	static Mesh transform(const Matrix4 &, Mesh);
 
 	float intersect(const Segment &) const;
 	float intersect(const Segment &, const AnimatedData &) const;
 
 	AnimatedData animate(PPose) const;
-	Mesh animate(AnimatedData) const;
-	void draw(RenderList &, const MaterialSet &, const Matrix4 &matrix = Matrix4::identity()) const;
-	void draw(RenderList &, AnimatedData, const MaterialSet &,
-			  const Matrix4 &matrix = Matrix4::identity()) const;
-	void drawLines(RenderList &out, PMaterial material, const Matrix4 &matrix) const;
-	void clearDrawingCache() const;
+	static Mesh apply(Mesh, AnimatedData);
 
-	bool isValidAnimationData(const AnimatedData &data) const {
-		if(!hasSkin())
-			return data.positions.empty() && data.normals.empty();
-		return data.positions.size() == positions().size() &&
-			   data.normals.size() == normals().size();
-	}
-
-	/*
-		void genAdjacency();
-
-		int faceCount() const;
-		void getFace(int face, int &i1, int &i2, int &i3) const;
-	*/
+	vector<float3> lines() const;
+	vector<DrawCall> genDrawCalls(const MaterialSet &, const AnimatedData *anim_data = nullptr,
+								  const Matrix4 & = Matrix4::identity()) const;
 
   protected:
-	void verifyData() const;
-	void updateDrawingCache() const;
+	bool valid(const AnimatedData &) const;
 
 	MeshBuffers m_buffers;
 	vector<MeshIndices> m_indices;
 	vector<string> m_material_names;
-
-	MeshIndices m_merged_indices;
-	vector<pair<uint, uint>> m_merged_ranges;
-
-	mutable FBox m_bounding_box;
-	mutable vector<pair<DrawCall, string>> m_drawing_cache;
-
-	enum Flags {
-		flag_bounding_box,
-		flag_drawing_cache,
-	};
-	mutable uint m_ready_flags;
+	FBox m_bounding_box;
 };
 
 // Vertex / Poly indices can have values up to vertexIdCount() / polyIdCount() -1
@@ -1284,6 +1263,8 @@ class ModelNode {
 	const ModelNode *m_parent;
 };
 
+class RenderList;
+
 class Model : public immutable_base<Model> {
   public:
 	Model() = default;
@@ -1312,25 +1293,13 @@ class Model : public immutable_base<Model> {
 	int findNodeId(const string &name) const;
 	const ModelNode *rootNode() const { return m_root.get(); }
 	const auto &nodes() const { return m_nodes; }
-
 	const auto &anims() const { return m_anims; }
-
 	const auto &materialDefs() const { return m_material_defs; }
 
-	Mesh toMesh(PPose = PPose()) const;
 	void printHierarchy() const;
 
-	FBox boundingBox(PPose = PPose()) const;
-	Matrix4 nodeTrans(const string &name, PPose = PPose()) const;
+	Matrix4 nodeTrans(const string &name, PPose) const;
 
-	float intersect(const Segment &, PPose = PPose()) const;
-
-	void draw(RenderList &out, const MaterialSet &mats,
-			  const Matrix4 &matrix = Matrix4::identity()) const {
-		draw(out, defaultPose(), mats, matrix);
-	}
-	void draw(RenderList &, PPose, const MaterialSet &,
-			  const Matrix4 &matrix = Matrix4::identity()) const;
 	void drawNodes(RenderList &, PPose, Color node_color, Color line_color, float node_scale = 1.0f,
 				   const Matrix4 &matrix = Matrix4::identity()) const;
 
@@ -1344,30 +1313,36 @@ class Model : public immutable_base<Model> {
 	PPose defaultPose() const { return m_default_pose; }
 	PPose globalPose(PPose local_pose) const;
 	PPose meshSkinningPose(PPose global_pose, int node_id) const;
-	bool isValidPose(PPose) const;
+	bool valid(PPose) const;
 
   protected:
 	void updateNodes();
-	void verifyData() const;
-
-	struct AnimatedData : public immutable_base<AnimatedData> {
-		PPose global_pose;
-		struct MeshData {
-			PMesh mesh;
-			Mesh::AnimatedData anim_data;
-			Matrix4 transform;
-		};
-		vector<MeshData> meshes_data;
-	};
-	immutable_ptr<AnimatedData> animatedData(PPose) const;
 
 	PModelNode m_root;
 	vector<ModelAnim> m_anims;
-
 	vector<MaterialDef> m_material_defs;
-
 	vector<ModelNode *> m_nodes;
 	PPose m_default_pose;
+};
+
+class AnimatedModel {
+  public:
+	struct MeshData {
+		PMesh mesh;
+		Mesh::AnimatedData anim_data;
+		Matrix4 transform;
+	};
+
+	AnimatedModel(vector<MeshData>);
+	AnimatedModel(const Model &, PPose = PPose());
+
+	Mesh toMesh() const;
+	FBox boundingBox() const;
+	float intersect(const Segment &) const;
+	vector<DrawCall> genDrawCalls(const MaterialSet &, const Matrix4 & = Matrix4::identity()) const;
+
+  private:
+	vector<MeshData> m_meshes;
 };
 
 using PModel = immutable_ptr<Model>;
@@ -1605,25 +1580,22 @@ class RenderList : public MatrixStack {
 	void render();
 	void clear();
 
-	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(DrawCall);
+	void add(DrawCall, const Matrix4 &);
+	void add(CRange<DrawCall>);
+	void add(CRange<DrawCall>, const Matrix4 &);
 
-	const auto &instances() const { return m_instances; }
+	const auto &drawCalls() const { return m_draw_calls; }
 	const auto &sprites() const { return m_sprites; }
 	const auto &lines() const { return m_lines; }
 	auto &sprites() { return m_sprites; }
 	auto &lines() { return m_lines; }
 
-	struct Instance {
-		Matrix4 matrix;
-		PMaterial material;
-		DrawCall draw_call;
-	};
-
   protected:
 	void renderLines();
 	void renderSprites();
 
-	vector<Instance> m_instances;
+	vector<DrawCall> m_draw_calls;
 	SpriteBuffer m_sprites;
 	LineBuffer m_lines;
 	IRect m_viewport;

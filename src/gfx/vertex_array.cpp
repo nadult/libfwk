@@ -27,15 +27,15 @@ VertexArraySource::VertexArraySource(PVertexBuffer buffer, int offset)
 
 VertexArraySource::VertexArraySource(const float4 &value) : m_single_value(value), m_offset(0) {}
 
-// TODO: not really max, it's max + 1 ...
-int VertexArray::Source::maxIndex() const {
+int VertexArray::Source::maxSize() const {
 	return m_buffer ? max(0, m_buffer->size() - m_offset) : INT_MAX;
 }
 
-static int sourcesMaxIndex(const vector<VertexArraySource> &sources) {
-	int size = sources.empty() ? 0 : sources.front().maxIndex();
+static int sourcesMaxSize(const vector<VertexArraySource> &sources) {
+	int size = sources.empty() ? 0 : INT_MAX;
+
 	for(const auto &source : sources)
-		size = min(size, source.maxIndex());
+		size = min(size, source.maxSize());
 	return size;
 }
 
@@ -43,10 +43,10 @@ VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 	: m_sources(std::move(sources)), m_index_buffer(ib) {
 	if(ib) {
 		m_size = ib->size();
-		if(sourcesMaxIndex(m_sources) == 0)
+		if(sourcesMaxSize(m_sources) == 0)
 			m_size = 0;
 	} else {
-		m_size = sourcesMaxIndex(m_sources);
+		m_size = sourcesMaxSize(m_sources);
 	}
 
 #if OPENGL_VERSION >= 0x30
@@ -141,16 +141,5 @@ void VertexArray::unbind() {
 	glBindVertexArray(0);
 #endif
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType primitive_type, int vertex_count,
-				   int index_offset)
-	: m_vertex_array(std::move(vertex_array)), m_primitive_type(primitive_type),
-	  m_vertex_count(vertex_count), m_index_offset(index_offset) {
-	DASSERT(m_vertex_array);
-}
-
-void DrawCall::issue() const {
-	m_vertex_array->draw(m_primitive_type, m_vertex_count, m_index_offset);
 }
 }
