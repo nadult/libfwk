@@ -119,16 +119,15 @@ class InputEvent {
 	Type type() const { return m_type; }
 
 	bool isMouseEvent() const { return m_type >= mouse_button_down && m_type <= mouse_over; }
-	bool isKeyEvent() const { return m_type >= key_down && m_type <= key_pressed; }
+	bool isKeyEvent() const { return m_type >= key_down && m_type <= key_char; }
 	bool isMouseOverEvent() const { return m_type == mouse_over; }
 
+	int key() const;
 	bool keyDown(int key) const;
 	bool keyUp(int key) const;
-
 	bool keyPressed(int key) const;
 	bool keyDownAuto(int key, int period = 1, int delay = 12) const;
 
-	int key() const { return isKeyEvent() ? m_key : 0; }
 	wchar_t keyChar() const { return m_char; }
 
 	bool mouseButtonDown(InputButton) const;

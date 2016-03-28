@@ -64,7 +64,7 @@ InputEvent::InputEvent(Type type) : m_char(0), m_type(type) {
 
 InputEvent::InputEvent(Type key_type, int key, int iter)
 	: m_char(0), m_key(key), m_iteration(iter), m_type(key_type) {
-	DASSERT(isKeyEvent());
+	DASSERT(isOneOf(m_type, key_down, key_up, key_pressed));
 }
 
 InputEvent::InputEvent(Type mouse_type, InputButton button)
@@ -81,10 +81,9 @@ void InputEvent::init(int flags, const int2 &mouse_pos, const int2 &mouse_move, 
 	m_modifiers = flags;
 }
 
+int InputEvent::key() const { return isOneOf(m_type, key_down, key_up, key_pressed) ? m_key : 0; }
 bool InputEvent::keyDown(int key) const { return m_type == key_down && m_key == key; }
-
 bool InputEvent::keyUp(int key) const { return m_type == key_up && m_key == key; }
-
 bool InputEvent::keyPressed(int key) const { return m_type == key_pressed && m_key == key; }
 
 bool InputEvent::keyDownAuto(int key, int period, int delay) const {

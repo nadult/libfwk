@@ -7,7 +7,6 @@
 - show rare profiles at the end
 - add StrongBaseType<> class
 - additional isnan checks?
-- keyChar is not treated as key event in InputEvent::isKeyEvent
 - add clang's small vector
 - think about usefulness of const correctness; in some cases were just wasting time
 - separate align function for fonts
