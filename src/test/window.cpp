@@ -16,13 +16,13 @@ bool mainLoop(GfxDevice &device) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	GfxDevice::clearColor(Color(50, 0, 50));
+	GfxDevice::clearColor(IColor(50, 0, 50));
 	Renderer2D renderer(IRect(GfxDevice::instance().windowSize()));
 
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect(-50, -50, 50, 50) + positions[n];
-		Color fill_color(float4(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f));
-		Color border_color = Color::black;
+		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
+		IColor border_color = ColorId::black;
 
 		renderer.addFilledRect(rect, fill_color);
 		renderer.addRect(rect, border_color);
@@ -37,7 +37,7 @@ bool mainLoop(GfxDevice &device) {
 		font_texture = make_immutable<DTexture>("", tex_ldr);
 	}
 	Font(font_core, font_texture)
-		.draw(renderer, FRect(5, 5, 200, 20), {Color::white}, "Hello world!");
+		.draw(renderer, FRect(5, 5, 200, 20), {ColorId::white}, "Hello world!");
 
 	renderer.render();
 

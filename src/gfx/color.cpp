@@ -7,53 +7,43 @@
 
 namespace fwk {
 
-const Color Color::white(255, 255, 255);
-const Color Color::gray(127, 127, 127);
-const Color Color::yellow(255, 255, 0);
-const Color Color::cyan(0, 255, 255);
-const Color Color::magneta(255, 0, 255);
-const Color Color::purple(0x80, 0, 0x80);
-const Color Color::brown(0xA5, 0x2A, 0x2A);
-const Color Color::orange(0xFF, 0xA5, 0);
-const Color Color::gold(255, 215, 0);
-const Color Color::red(255, 0, 0);
-const Color Color::green(0, 255, 0);
-const Color Color::blue(0, 0, 255);
-const Color Color::black(0, 0, 0);
-const Color Color::transparent(0, 0, 0, 0);
-
-Color mulAlpha(Color color, float alpha_mul) {
-	float4 fcolor(color);
-	fcolor.w *= alpha_mul;
-	return Color(fcolor);
+FColor::FColor(ColorId color_id) {
+	static EnumMap<ColorId, float4> map = {{
+		{ColorId::white, FColor(1.0f, 1.0f, 1.0f)},
+		{ColorId::gray, FColor(0.5f, 0.5f, 0.5f)},
+		{ColorId::yellow, FColor(1.0f, 1.0f, 0)},
+		{ColorId::cyan, FColor(0, 1.0f, 1.0f)},
+		{ColorId::magneta, FColor(1.0f, 0, 1.0f)},
+		{ColorId::purple, FColor(0.5f, 0, 0.5f)},
+		{ColorId::brown, FColor(0.647f, 0.164f, 0.164f)},
+		{ColorId::orange, FColor(1.0f, 0xA5, 0)},
+		{ColorId::gold, FColor(1.0f, 0.843f, 0)},
+		{ColorId::red, FColor(1.0f, 0, 0)},
+		{ColorId::green, FColor(0, 1.0f, 0)},
+		{ColorId::blue, FColor(0, 0, 1.0f)},
+		{ColorId::black, FColor(0, 0, 0)},
+		{ColorId::transparent, FColor(0, 0, 0, 0)},
+	}};
+	*this = map[color_id];
 }
 
-Color lerp(Color a, Color b, float value) { return Color(lerp((float4)a, (float4)b, value)); }
-
-Color desaturate(Color col, float value) {
-	float4 rgba(col);
-	float avg =
-		sqrtf(rgba.x * rgba.x * 0.299f + rgba.y * rgba.y * 0.587f + rgba.z * rgba.z * 0.114f);
-	return lerp(col, Color(avg, avg, avg, rgba.w), value);
+FColor mulAlpha(FColor color, float alpha_mul) {
+	color.a *= alpha_mul;
+	return color;
 }
 
-bool Color::operator<(const Color &rhs) const {
-	return memcmp(rgba, rhs.rgba, arraySize(rgba)) < 0;		
+FColor desaturate(FColor col, float value) {
+	float avg = sqrtf(col.r * col.r * 0.299f + col.g * col.g * 0.587f + col.b * col.b * 0.114f);
+	return lerp(col, FColor(avg, avg, avg, col.a), value);
 }
 
-Color operator*(Color a, Color b) {
-	float4 fa(a), fb(b);
-	return Color(float4(fa.x * fb.x, fa.y * fb.y, fa.z * fb.z, fa.w * fb.w));
-}
-
-float3 SRGBToLinear(const float3&v) {
+FColor SRGBToLinear(const FColor &c) {
 	float exp = 2.2;
-	return float3(powf(v.x, exp), powf(v.y, exp), powf(v.z, exp));
+	return FColor(powf(c.r, exp), powf(c.g, exp), powf(c.b, exp), c.a);
 }
 
-float3 linearToSRGB(const float3&v) {
+FColor linearToSRGB(const FColor &c) {
 	float exp = 1.0f / 2.2f;
-	return float3(powf(v.x, exp), powf(v.y, exp), powf(v.z, exp));
+	return FColor(powf(c.r, exp), powf(c.g, exp), powf(c.b, exp), c.a);
 }
-
 }

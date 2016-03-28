@@ -8,7 +8,8 @@ namespace fwk {
 
 LineBuffer::LineBuffer(const MatrixStack &stack) : m_matrix_stack(stack) {}
 
-LineBuffer::Instance &LineBuffer::instance(Color col, uint flags, Matrix4 matrix, bool has_colors) {
+LineBuffer::Instance &LineBuffer::instance(FColor col, uint flags, Matrix4 matrix,
+										   bool has_colors) {
 	Instance *inst = m_instances.empty() ? nullptr : &m_instances.back();
 	matrix = m_matrix_stack.viewMatrix() * matrix;
 
@@ -24,7 +25,7 @@ LineBuffer::Instance &LineBuffer::instance(Color col, uint flags, Matrix4 matrix
 	return *inst;
 }
 
-void LineBuffer::add(CRange<float3> verts, CRange<Color> colors, PMaterial mat,
+void LineBuffer::add(CRange<float3> verts, CRange<IColor> colors, PMaterial mat,
 					 const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 	DASSERT(colors.size() == verts.size() || colors.empty());
@@ -43,7 +44,7 @@ void LineBuffer::add(CRange<float3> verts, PMaterial material, const Matrix4 &ma
 	insertBack(inst.positions, verts);
 }
 
-void LineBuffer::add(CRange<float3> verts, Color color, const Matrix4 &matrix) {
+void LineBuffer::add(CRange<float3> verts, IColor color, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 	auto &inst = instance(color, 0u, matrix, false);
 	insertBack(inst.positions, verts);
@@ -56,7 +57,7 @@ void LineBuffer::add(CRange<Segment> segs, PMaterial material, const Matrix4 &ma
 	add(verts, material, matrix);
 }
 
-void LineBuffer::addBox(const FBox &bbox, Color color, const Matrix4 &matrix) {
+void LineBuffer::addBox(const FBox &bbox, IColor color, const Matrix4 &matrix) {
 	float3 verts[8];
 	bbox.getCorners(verts);
 

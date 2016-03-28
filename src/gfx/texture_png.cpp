@@ -78,7 +78,7 @@ namespace {
 			png_read_image(m_struct, &row_pointers[0]);
 		}
 
-		void operator>>(Range<Color> out) const {
+		void operator>>(Range<IColor> out) const {
 			DASSERT(out.size() >= m_width * m_height);
 			vector<u8> temp;
 			temp.resize(m_width * m_height * 4);
@@ -107,27 +107,27 @@ namespace {
 			png_read_image(m_struct, &rowPointers[0]);
 
 			for(int y = 0; y < m_height; y++) {
-				Color *dst = out.data() + m_width * y;
+				IColor *dst = out.data() + m_width * y;
 				u8 *src = rowPointers[y];
 
 				if(m_color_type == PNG_COLOR_TYPE_PALETTE) {
 					for(int x = 0; x < m_width; x++) {
 						png_color &col = palette[src[x]];
-						dst[x] = Color(col.red, col.green, col.blue, trans ? trans[src[x]] : 255u);
+						dst[x] = IColor(col.red, col.green, col.blue, trans ? trans[src[x]] : 255u);
 					}
 				} else if(m_color_type == PNG_COLOR_TYPE_GRAY) {
 					for(int x = 0; x < m_width; x++)
-						dst[x] = Color(src[x], src[x], src[x]);
+						dst[x] = IColor(src[x], src[x], src[x]);
 				} else if(m_color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
 					for(int x = 0; x < m_width; x++)
-						dst[x] = Color(src[x * 2], src[x * 2], src[x * 2], src[x * 2 + 1]);
+						dst[x] = IColor(src[x * 2], src[x * 2], src[x * 2], src[x * 2 + 1]);
 				} else if(m_color_type == PNG_COLOR_TYPE_RGB) {
 					for(int x = 0; x < m_width; x++)
-						dst[x] = Color(src[x * 3 + 0], src[x * 3 + 1], src[x * 3 + 2]);
+						dst[x] = IColor(src[x * 3 + 0], src[x * 3 + 1], src[x * 3 + 2]);
 				} else if(m_color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
 					for(int x = 0; x < m_width; x++) // TODO: check
 						dst[x] =
-							Color(src[x * 4 + 0], src[x * 4 + 1], src[x * 4 + 2], src[x * 4 + 3]);
+							IColor(src[x * 4 + 0], src[x * 4 + 1], src[x * 4 + 2], src[x * 4 + 3]);
 				}
 			}
 		}
@@ -152,7 +152,7 @@ namespace {
 		int m_width, m_height;
 	};
 
-	void loadPNG(Stream &stream, PodArray<Color> &out_data, int2 &out_size) {
+	void loadPNG(Stream &stream, PodArray<IColor> &out_data, int2 &out_size) {
 		PngLoader loader(stream);
 		out_size = loader.size();
 		out_data.resize(out_size.x * out_size.y);

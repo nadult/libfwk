@@ -12,7 +12,7 @@ MaterialDef::MaterialDef(const XMLNode &node)
 
 void MaterialDef::saveToXML(XMLNode node) const {
 	node.addAttrib("name", node.own(name));
-	node.addAttrib("diffuse", float3(diffuse));
+	node.addAttrib("diffuse", diffuse.rgb());
 }
 
 auto makeNameMap(const vector<string> &names) {
@@ -207,7 +207,7 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 		}
 }
 
-void Model::drawNodes(RenderList &out, PPose pose, Color node_color, Color line_color,
+void Model::drawNodes(RenderList &out, PPose pose, FColor node_color, FColor line_color,
 					  float node_scale, const Matrix4 &matrix) const {
 	// TODO: move this to model viewer
 	DASSERT(valid(pose));

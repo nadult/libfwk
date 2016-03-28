@@ -192,9 +192,8 @@ const vector<InputEvent> &GfxDevice::inputEvents() const { return m_input_impl->
 
 string GfxDevice::extensions() const { return (const char *)glGetString(GL_EXTENSIONS); }
 
-void GfxDevice::clearColor(Color color) {
-	float4 col = color;
-	glClearColor(col.x, col.y, col.z, col.w);
+void GfxDevice::clearColor(FColor col) {
+	glClearColor(col.r, col.g, col.b, col.a);
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 

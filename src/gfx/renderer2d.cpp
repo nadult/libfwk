@@ -83,7 +83,7 @@ Renderer2D::Element &Renderer2D::makeElement(PrimitiveType primitive_type,
 	return m_elements.back();
 }
 
-void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<Color, 4> colors,
+void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<IColor, 4> colors,
 							   const SimpleMaterial &material) {
 	float2 pos[4], tex_coords[4];
 	rect.getCorners(pos);
@@ -99,7 +99,7 @@ void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect,
 	addQuads(pos, tex_coords, {}, material);
 }
 
-void Renderer2D::addRect(const FRect &rect, Color color) {
+void Renderer2D::addRect(const FRect &rect, IColor color) {
 	float2 pos[4];
 	rect.getCorners(pos);
 	Element &elem = makeElement(PrimitiveType::lines, PTexture());
@@ -113,7 +113,7 @@ void Renderer2D::addRect(const FRect &rect, Color color) {
 	elem.num_indices += num_indices;
 }
 
-void Renderer2D::addLine(const float2 &p1, const float2 &p2, Color color) {
+void Renderer2D::addLine(const float2 &p1, const float2 &p2, IColor color) {
 	Element &elem = makeElement(PrimitiveType::lines, PTexture());
 	int vertex_offset = (int)m_positions.size();
 	appendVertices({p1, p2}, {}, {}, color);
@@ -123,23 +123,23 @@ void Renderer2D::addLine(const float2 &p1, const float2 &p2, Color color) {
 }
 
 void Renderer2D::appendVertices(CRange<float2> positions, CRange<float2> tex_coords,
-								CRange<Color> colors, Color mat_color) {
+								CRange<IColor> colors, FColor mat_color) {
 	DASSERT(colors.size() == positions.size() || colors.empty());
 	DASSERT(tex_coords.size() == positions.size() || tex_coords.empty());
 
 	insertBack(m_positions, positions);
 	if(colors.empty())
-		m_colors.resize(m_positions.size(), mat_color);
+		m_colors.resize(m_positions.size(), IColor(mat_color));
 	else
 		for(auto col : colors)
-			m_colors.emplace_back(col * mat_color);
+			m_colors.emplace_back(IColor(FColor(col) * mat_color));
 	if(tex_coords.empty())
 		m_tex_coords.resize(m_positions.size(), float2());
 	else
 		insertBack(m_tex_coords, tex_coords);
 }
 
-void Renderer2D::addLines(CRange<float2> pos, CRange<Color> color, Color mat_color) {
+void Renderer2D::addLines(CRange<float2> pos, CRange<IColor> color, FColor mat_color) {
 	DASSERT(pos.size() % 2 == 0);
 
 	Element &elem = makeElement(PrimitiveType::lines, PTexture());
@@ -151,7 +151,7 @@ void Renderer2D::addLines(CRange<float2> pos, CRange<Color> color, Color mat_col
 	elem.num_indices += (int)pos.size();
 }
 
-void Renderer2D::addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
+void Renderer2D::addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor> color,
 						  const SimpleMaterial &material) {
 	DASSERT(pos.size() % 4 == 0);
 
@@ -168,7 +168,7 @@ void Renderer2D::addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<C
 	elem.num_indices += num_quads * 6;
 }
 
-void Renderer2D::addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
+void Renderer2D::addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor> color,
 						 const SimpleMaterial &material) {
 	DASSERT(pos.size() % 3 == 0);
 

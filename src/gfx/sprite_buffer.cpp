@@ -24,7 +24,7 @@ SpriteBuffer::Instance &SpriteBuffer::instance(PMaterial mat, Matrix4 matrix, bo
 	return *inst;
 }
 
-void SpriteBuffer::add(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
+void SpriteBuffer::add(CRange<float3> verts, CRange<float2> tex_coords, CRange<IColor> colors,
 					   PMaterial material, const Matrix4 &matrix) {
 	DASSERT(tex_coords.empty() || tex_coords.size() == verts.size());
 	DASSERT(colors.empty() || colors.size() == verts.size());

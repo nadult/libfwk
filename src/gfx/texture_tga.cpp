@@ -37,7 +37,7 @@ struct Header {
 };
 
 namespace {
-	void loadTGA(Stream &sr, PodArray<Color> &out_data, int2 &out_size) {
+	void loadTGA(Stream &sr, PodArray<IColor> &out_data, int2 &out_size) {
 		Header hdr;
 		enum { max_width = 2048 };
 
@@ -65,16 +65,16 @@ namespace {
 			for(int y = hdr.height - 1; y >= 0; y--) {
 				char line[max_width * 3];
 				sr.loadData(line, hdr.width * 3);
-				Color *dst = &out_data[y * hdr.width];
+				IColor *dst = &out_data[y * hdr.width];
 				for(int x = 0; x < hdr.width; x++)
-					dst[x] = Color(line[x * 3 + 2], line[x * 3 + 1], line[x * 3 + 0]);
+					dst[x] = IColor(line[x * 3 + 2], line[x * 3 + 1], line[x * 3 + 0]);
 			}
 		} else if(bpp == 4) {
 			for(int y = hdr.height - 1; y >= 0; y--) {
-				Color *colors = &out_data[y * hdr.width];
+				IColor *colors = &out_data[y * hdr.width];
 				sr.loadData(colors, hdr.width * 4);
 				for(int x = 0; x < hdr.width; x++)
-					colors[x] = swapBR(colors[x]);
+					colors[x] = colors[x].bgra();
 			}
 		}
 	}
@@ -93,12 +93,12 @@ void Texture::saveTGA(Stream &sr) const {
 	header.image_descriptor = 8;
 
 	sr << header;
-	vector<Color> line(m_size.x);
+	vector<IColor> line(m_size.x);
 	for(int y = m_size.y - 1; y >= 0; y--) {
-		memcpy(&line[0], this->line(y), m_size.x * sizeof(Color));
+		memcpy(&line[0], this->line(y), m_size.x * sizeof(IColor));
 		for(int x = 0; x < m_size.x; x++)
-			line[x] = Color(line[x].b, line[x].g, line[x].r, line[x].a);
-		sr.saveData(&line[0], m_size.x * sizeof(Color));
+			line[x] = IColor(line[x].b, line[x].g, line[x].r, line[x].a);
+		sr.saveData(&line[0], m_size.x * sizeof(IColor));
 	}
 }
 }

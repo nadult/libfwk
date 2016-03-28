@@ -168,10 +168,10 @@ void Mesh::removeNormals() { m_buffers.normals.clear(); }
 void Mesh::removeTexCoords() { m_buffers.tex_coords.clear(); }
 void Mesh::removeColors() { m_buffers.colors.clear(); }
 
-void Mesh::removeIndices(CRange<pair<string, Color>> color_map) {
+void Mesh::removeIndices(CRange<pair<string, IColor>> color_map) {
 	if(hasIndices()) {
 		auto mapping = fwk::merge(trisIndices());
-		vector<Color> colors;
+		vector<IColor> colors;
 
 		if(!color_map.empty()) {
 			removeColors();
@@ -179,7 +179,7 @@ void Mesh::removeIndices(CRange<pair<string, Color>> color_map) {
 
 			int idx = 0;
 			for(int i = 0; i < (int)m_indices.size(); i++) {
-				Color color = Color::white;
+				IColor color = ColorId::white;
 				for(auto &pair : color_map)
 					if(pair.first == m_material_names[i]) {
 						color = pair.second;
@@ -258,7 +258,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 		auto tex_coords = hasTexCoords() ? make_immutable<VertexBuffer>(m_buffers.tex_coords)
 										 : VertexArraySource(float2(0, 0));
 		auto colors = hasColors() ? make_immutable<VertexBuffer>(m_buffers.colors)
-								  : VertexArraySource(Color::white);
+								  : VertexArraySource(FColor(ColorId::white));
 
 		if(hasIndices()) {
 			vector<pair<uint, uint>> merged_ranges;

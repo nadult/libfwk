@@ -167,7 +167,7 @@ void RenderList::render() {
 		ProgramBinder binder(program);
 		binder.bind();
 		binder.setUniform("proj_view_matrix", projectionMatrix() * draw_call.matrix);
-		binder.setUniform("mesh_color", (float4)(mat ? mat->color() : Color::white));
+		binder.setUniform("mesh_color", (float4)(mat ? mat->color() : ColorId::white));
 		dev_config.update(mat ? mat->flags() : 0);
 
 		draw_call.issue();
@@ -196,7 +196,7 @@ void RenderList::renderSprites() {
 					   : VertexArraySource(float2(0, 0));
 		auto col = !sprite.colors.empty()
 					   ? VertexArraySource(make_immutable<VertexBuffer>(sprite.colors))
-					   : VertexArraySource(Color::white);
+					   : VertexArraySource(FColor(ColorId::white));
 		VertexArray sprite_array({pos, col, tex});
 
 		const auto &mat = sprite.material;
@@ -219,7 +219,7 @@ void RenderList::renderLines() {
 	for(const auto &inst : m_lines.instances()) {
 		auto pos = make_immutable<VertexBuffer>(inst.positions);
 		auto col = inst.colors.empty()
-					   ? VertexArraySource(Color::white)
+					   ? VertexArraySource(FColor(ColorId::white))
 					   : VertexArraySource(make_immutable<VertexBuffer>(inst.colors));
 		VertexArray line_array({pos, col, VertexArraySource(float2(0, 0))});
 

@@ -39,7 +39,7 @@ struct MeshBuffers {
 
 	MeshBuffers() = default;
 	MeshBuffers(vector<float3> positions, vector<float3> normals = {},
-				vector<float2> tex_coords = {}, vector<Color> colors = {},
+				vector<float2> tex_coords = {}, vector<IColor> colors = {},
 				vector<vector<VertexWeight>> weights = {}, vector<string> node_names = {});
 	MeshBuffers(PVertexBuffer positions, PVertexBuffer normals = PVertexBuffer(),
 				PVertexBuffer tex_coords = PVertexBuffer(), PVertexBuffer colors = PVertexBuffer());
@@ -65,7 +65,7 @@ struct MeshBuffers {
 	vector<float3> positions;
 	vector<float3> normals;
 	vector<float2> tex_coords;
-	vector<Color> colors;
+	vector<IColor> colors;
 	vector<vector<VertexWeight>> weights;
 	vector<string> node_names;
 };
@@ -159,7 +159,7 @@ class Mesh : public immutable_base<Mesh> {
 	void removeNormals();
 	void removeTexCoords();
 	void removeColors();
-	void removeIndices(CRange<pair<string, Color>> color_map = {});
+	void removeIndices(CRange<pair<string, IColor>> color_map = {});
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	using TriIndices = MeshIndices::TriIndices;
@@ -516,12 +516,12 @@ float3 closestPoint(const DynamicMesh &, const float3 &point);
 using PMesh = immutable_ptr<Mesh>;
 
 struct MaterialDef {
-	MaterialDef(const string &name, Color diffuse) : name(name), diffuse(diffuse) {}
+	MaterialDef(const string &name, FColor diffuse) : name(name), diffuse(diffuse) {}
 	MaterialDef(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
 	string name;
-	Color diffuse;
+	FColor diffuse;
 };
 
 class Model;
@@ -677,8 +677,8 @@ class Model : public immutable_base<Model> {
 
 	Matrix4 nodeTrans(const string &name, PPose) const;
 
-	void drawNodes(RenderList &, PPose, Color node_color, Color line_color, float node_scale = 1.0f,
-				   const Matrix4 &matrix = Matrix4::identity()) const;
+	void drawNodes(RenderList &, PPose, FColor node_color, FColor line_color,
+				   float node_scale = 1.0f, const Matrix4 &matrix = Matrix4::identity()) const;
 
 	void clearDrawingCache() const;
 

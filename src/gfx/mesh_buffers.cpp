@@ -22,7 +22,7 @@ namespace {
 }
 
 MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
-						 vector<float2> tex_coords, vector<Color> colors,
+						 vector<float2> tex_coords, vector<IColor> colors,
 						 vector<vector<VertexWeight>> weights, vector<string> node_names)
 	: positions(move(positions)), normals(move(normals)), tex_coords(move(tex_coords)),
 	  colors(move(colors)), weights(move(weights)), node_names(move(node_names)) {
@@ -46,7 +46,7 @@ MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertex
 	: MeshBuffers((DASSERT(positions), positions->getData<float3>()),
 				  normals ? normals->getData<float3>() : vector<float3>(),
 				  tex_coords ? tex_coords->getData<float2>() : vector<float2>(),
-				  colors ? colors->getData<Color>() : vector<Color>()) {}
+				  colors ? colors->getData<IColor>() : vector<IColor>()) {}
 
 template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
 	DASSERT(array);
@@ -59,7 +59,7 @@ MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, i
 						 int colors_id)
 	: MeshBuffers(
 		  extractBuffer<float3>(array, positions_id), extractBuffer<float3>(array, normals_id),
-		  extractBuffer<float2>(array, tex_coords_id), extractBuffer<Color>(array, colors_id)) {}
+		  extractBuffer<float2>(array, tex_coords_id), extractBuffer<IColor>(array, colors_id)) {}
 
 static auto parseVertexWeights(const XMLNode &node) {
 	vector<vector<MeshBuffers::VertexWeight>> out;
@@ -142,7 +142,7 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	vector<float3> out_positions(mapping.size());
 	vector<float3> out_normals(!normals.empty() ? mapping.size() : 0);
 	vector<float2> out_tex_coords(!tex_coords.empty() ? mapping.size() : 0);
-	vector<Color> out_colors(!colors.empty() ? mapping.size() : 0);
+	vector<IColor> out_colors(!colors.empty() ? mapping.size() : 0);
 
 	uint num_vertices = positions.size();
 	DASSERT(all_of(begin(mapping), end(mapping), [=](uint idx) { return idx < num_vertices; }));

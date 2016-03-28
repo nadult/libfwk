@@ -58,7 +58,8 @@ class Viewer {
 			out.add(animate(pose).genDrawCalls(m_materials, matrix));
 
 			if(show_nodes)
-				m_model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f / scale(), matrix);
+				m_model->drawNodes(out, pose, ColorId::green, ColorId::yellow, 0.1f / scale(),
+								   matrix);
 		}
 
 		void printModelStats(TextFormatter &fmt) const {
@@ -74,7 +75,7 @@ class Viewer {
 			fmt("Parts: %d  Verts: %d Faces: %d\n", num_parts, num_verts, num_faces);
 		}
 
-		auto makeMat(Color col, bool line) {
+		auto makeMat(IColor col, bool line) {
 			uint flags =
 				col.a != 255 || line ? Material::flag_blended | Material::flag_ignore_depth : 0;
 			return make_immutable<Material>(col, flags);
@@ -193,7 +194,7 @@ class Viewer {
 					  translation(-model.boundingBox(pose).center());
 
 		model.drawModel(renderer_3d, pose, m_show_nodes, matrix);
-		renderer_3d.lines().addBox(model.boundingBox(pose), {Color::green}, matrix);
+		renderer_3d.lines().addBox(model.boundingBox(pose), {ColorId::green}, matrix);
 
 		TextFormatter fmt;
 		fmt("Model: %s (%d / %d)\n", model.m_model_name.c_str(), m_current_model + 1,
@@ -213,10 +214,10 @@ class Viewer {
 		model.printModelStats(fmt);
 		fmt("%s", Profiler::instance()->getStats("X").c_str());
 
-		FontStyle style{Color::white, Color::black};
+		FontStyle style{ColorId::white, ColorId::black};
 		auto extents = m_font->evalExtents(fmt.text());
 		renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
-								  {Color(0, 0, 0, 80)});
+								  {IColor(0, 0, 0, 80)});
 		m_font->draw(renderer_2d, FRect(5, 5, 300, 100), style, fmt.text());
 
 		renderer_3d.render();
@@ -242,7 +243,7 @@ static Viewer *s_viewer = nullptr;
 bool main_loop(GfxDevice &device) {
 	DASSERT(s_viewer);
 
-	Color nice_background(200, 200, 255);
+	IColor nice_background(200, 200, 255);
 	GfxDevice::clearColor(nice_background);
 	GfxDevice::clearDepth(1.0f);
 

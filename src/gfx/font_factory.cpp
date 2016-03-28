@@ -113,7 +113,7 @@ static Texture makeTextureAtlas(vector<pair<FontCore::Glyph, Texture>> &glyphs, 
 	}
 
 	Texture atlas(atlas_size.x, atlas_size.y);
-	atlas.fill(Color::transparent);
+	atlas.fill(ColorId::transparent);
 
 	for(int g = 0; g < (int)glyphs.size(); g++) {
 		auto const &glyph = glyphs[g].first;
@@ -161,17 +161,17 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 		Texture tex(lcd_mode ? bitmap.width / 3 : bitmap.width, bitmap.rows);
 
 		for(int y = 0; y < tex.height(); y++) {
-			Color *dst = tex.line(y);
+			IColor *dst = tex.line(y);
 			unsigned char *src = bitmap.buffer + bitmap.pitch * y;
 			if(lcd_mode) {
 				for(int x = 0; x < tex.width(); x++) {
-					Color src_color(src[x * 3 + 0], src[x * 3 + 1], src[x * 3 + 2]);
+					IColor src_color(src[x * 3 + 0], src[x * 3 + 1], src[x * 3 + 2]);
 					dst[x] = src_color;
 				}
 
 			} else {
 				for(int x = 0; x < tex.width(); x++)
-					dst[x] = Color(255, 255, 255, int(src[x]));
+					dst[x] = IColor(255, 255, 255, int(src[x]));
 			}
 		}
 

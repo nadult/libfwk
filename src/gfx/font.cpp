@@ -7,11 +7,11 @@
 #include "fwk_xml.h"
 
 namespace fwk {
-FontStyle::FontStyle(Color color, Color shadow_color, HAlign halign, VAlign valign)
+FontStyle::FontStyle(FColor color, FColor shadow_color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(shadow_color), halign(halign), valign(valign) {}
 
-FontStyle::FontStyle(Color color, HAlign halign, VAlign valign)
-	: text_color(color), shadow_color(Color::transparent), halign(halign), valign(valign) {}
+FontStyle::FontStyle(FColor color, HAlign halign, VAlign valign)
+	: text_color(color), shadow_color(ColorId::transparent), halign(halign), valign(valign) {}
 
 FontCore::FontCore(const string &name, Stream &stream) : FontCore(XMLDocument(stream)) {}
 FontCore::FontCore(const XMLDocument &doc) : FontCore(doc.child("font")) {}
@@ -221,7 +221,7 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 	out.pushViewMatrix();
 	out.mulViewMatrix(translation(float3(pos + float2(1.0f, 1.0f), 0.0f)));
 
-	if(style.shadow_color != Color::transparent)
+	if(style.shadow_color != ColorId::transparent)
 		out.addQuads(pos_buf, uv_buf, {}, {m_texture, style.shadow_color});
 
 	out.mulViewMatrix(translation(float3(-1.0f, -1.0f, 0.0f)));

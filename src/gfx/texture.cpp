@@ -31,7 +31,7 @@ void Texture::clear() {
 	m_data.clear();
 }
 
-void Texture::fill(Color color) {
+void Texture::fill(IColor color) {
 	for(int n = 0; n < m_data.size(); n++)
 		m_data[n] = color;
 }
@@ -54,9 +54,9 @@ void Texture::blit(Texture const &src, int2 dst_pos) {
 		return;
 
 	for(int y = 0; y < blit_size.y; y++) {
-		Color const *src_line = src.line(src_pos.y + y) + src_pos.x;
-		Color *dst_line = line(dst_pos.y + y) + dst_pos.x;
-		memcpy(dst_line, src_line, sizeof(Color) * blit_size.x);
+		IColor const *src_line = src.line(src_pos.y + y) + src_pos.x;
+		IColor *dst_line = line(dst_pos.y + y) + dst_pos.x;
+		memcpy(dst_line, src_line, sizeof(IColor) * blit_size.x);
 	}
 }
 

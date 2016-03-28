@@ -193,12 +193,6 @@ void testGlError(const char *msg) {
 }
 
 bool isExtensionSupported(OpenglExtension ext) { return s_is_extension_supported[ext]; }
-
-void glColor(Color color) { glColor4ub(color.r, color.g, color.b, color.a); }
-
-void glVertex(const float2 &v) { glVertex2f(v.x, v.y); }
-
-void glTexCoord(const float2 &v) { glTexCoord2f(v.x, v.y); }
 }
 
 #undef EXT_API

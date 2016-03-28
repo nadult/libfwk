@@ -13,27 +13,66 @@ namespace fwk {
 class InputState;
 class InputEvent;
 
-// TODO: Default color class should be float based; Change
-//      u8-based Color to Color32bit or something
-struct Color {
-	explicit Color(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
-	explicit Color(int r, int g, int b, int a = 255)
+DEFINE_ENUM(ColorId, white, gray, yellow, cyan, magneta, purple, brown, orange, gold, red, green,
+			blue, black, transparent);
+
+struct FColor {
+	FColor() : r(0.0), g(0.0), b(0.0), a(1.0) {}
+	FColor(float r, float g, float b, float a = 1.0f) : r(r), g(g), b(b), a(a) {}
+	FColor(const float4 &rgba) : r(rgba[0]), g(rgba[1]), b(rgba[2]), a(rgba[3]) {}
+	FColor(const float3 &rgb, float a = 1.0) : r(rgb[0]), g(rgb[1]), b(rgb[2]), a(a) {}
+	FColor(ColorId);
+	operator float4() const { return float4(v); }
+
+	float3 rgb() const { return float3(r, g, b); }
+	FColor operator*(float s) const { return FColor(r * s, g * s, b * s, a * s); }
+	FColor operator*(const FColor &rhs) const {
+		return FColor(r * rhs.r, g * rhs.g, b * rhs.b, a * rhs.a);
+	}
+	FColor operator-(const FColor &rhs) const {
+		return FColor(r - rhs.r, g - rhs.g, b - rhs.b, a - rhs.a);
+	}
+	FColor operator+(const FColor &rhs) const {
+		return FColor(r + rhs.r, g + rhs.g, b + rhs.b, a + rhs.a);
+	}
+
+	auto tied() const { return std::tie(r, g, b, a); }
+	bool operator<(const FColor &rhs) const { return tied() < rhs.tied(); }
+	bool operator==(const FColor &rhs) const { return tied() == rhs.tied(); }
+
+	union {
+		struct {
+			float r, g, b, a;
+		};
+		float v[4];
+	};
+};
+
+FColor mulAlpha(FColor color, float alpha);
+FColor desaturate(FColor col, float value);
+FColor SRGBToLinear(const FColor &);
+FColor linearToSRGB(const FColor &);
+
+struct IColor {
+	IColor(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
+	IColor(int4 rgba) : IColor(rgba[0], rgba[1], rgba[2], rgba[3]) {}
+	IColor(int r, int g, int b, int a = 255)
 		: r(clamp(r, 0, 255)), g(clamp(g, 0, 255)), b(clamp(b, 0, 255)), a(clamp(a, 0, 255)) {}
-	explicit Color(float r, float g, float b, float a = 1.0f)
-		: r(clamp(r * 255.0f, 0.0f, 255.0f)), g(clamp(g * 255.0f, 0.0f, 255.0f)),
-		  b(clamp(b * 255.0f, 0.0f, 255.0f)), a(clamp(a * 255.0f, 0.0f, 255.0f)) {}
-	explicit Color(const float3 &c, float a = 1.0f) : Color(c.x, c.y, c.z, a) {}
-	explicit Color(const float4 &c) : Color(c.x, c.y, c.z, c.w) {}
-	Color(Color col, u8 alpha) : r(col.r), g(col.g), b(col.b), a(alpha) {}
-	Color() = default;
+	explicit IColor(const FColor &c)
+		: r(clamp(c.r * 255.0f, 0.0f, 255.0f)), g(clamp(c.g * 255.0f, 0.0f, 255.0f)),
+		  b(clamp(c.b * 255.0f, 0.0f, 255.0f)), a(clamp(c.a * 255.0f, 0.0f, 255.0f)) {}
+	IColor(IColor col, u8 alpha) : r(col.r), g(col.g), b(col.b), a(alpha) {}
+	IColor(ColorId color_id) : IColor(FColor(color_id)) {}
+	IColor() = default;
 
-	Color operator|(Color rhs) const { return Color(r | rhs.r, g | rhs.g, b | rhs.b, a | rhs.a); }
-	operator float4() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
-	operator float3() const { return float3(r, g, b) * (1.0f / 255.0f); }
+	operator FColor() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
+	operator int4() const { return int4(r, g, b, a); }
 
-	static const Color white, gray, yellow, cyan, magneta, purple, brown, orange, gold, red, green,
-		blue, black, transparent;
-	bool operator<(const Color &rhs) const;
+	auto tied() const { return std::tie(r, g, b, a); }
+	bool operator<(const IColor &rhs) const { return tied() < rhs.tied(); }
+	bool operator==(const IColor &rhs) const { return tied() == rhs.tied(); }
+
+	IColor bgra() const { return IColor(b, g, r, a); }
 
 	union {
 		struct {
@@ -42,23 +81,6 @@ struct Color {
 		u8 rgba[4];
 	};
 };
-
-Color operator*(Color lhs, Color rhs);
-Color mulAlpha(Color color, float alpha);
-Color lerp(Color a, Color b, float value);
-Color desaturate(Color col, float value);
-
-float3 SRGBToLinear(const float3 &);
-float3 linearToSRGB(const float3 &);
-
-inline bool operator==(const Color &lhs, const Color &rhs) {
-	return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b && lhs.a == rhs.a;
-}
-
-inline Color swapBR(Color col) {
-	swap(col.b, col.r);
-	return col;
-}
 
 DEFINE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, rgb, rgb_f16, rgb_f32, luminance, dxt1, dxt3,
 			dxt5, depth, depth_stencil);
@@ -109,7 +131,7 @@ class Texture {
 	// TODO: it should be or else remove this function
 	void resize(int width, int height);
 	void clear();
-	void fill(Color);
+	void fill(IColor);
 	void blit(const Texture &src, int2 target_pos);
 
 	int width() const { return m_size.x; }
@@ -127,33 +149,33 @@ class Texture {
 	void save(Stream &) const;
 	void swap(Texture &);
 
-	using Loader = void (*)(Stream &, PodArray<Color> &out_data, int2 &out_size);
+	using Loader = void (*)(Stream &, PodArray<IColor> &out_data, int2 &out_size);
 	struct RegisterLoader {
 		RegisterLoader(const char *locase_ext, Loader);
 	};
 
 	void saveTGA(Stream &) const;
 
-	Color *data() { return m_data.data(); }
-	const Color *data() const { return m_data.data(); }
+	IColor *data() { return m_data.data(); }
+	const IColor *data() const { return m_data.data(); }
 
-	Color *line(int y) {
+	IColor *line(int y) {
 		DASSERT(y < m_size.y);
 		return &m_data[y * m_size.x];
 	}
-	const Color *line(int y) const {
+	const IColor *line(int y) const {
 		DASSERT(y < m_size.y);
 		return &m_data[y * m_size.x];
 	}
 
-	Color &operator()(int x, int y) { return m_data[x + y * m_size.x]; }
-	const Color operator()(int x, int y) const { return m_data[x + y * m_size.x]; }
+	IColor &operator()(int x, int y) { return m_data[x + y * m_size.x]; }
+	const IColor operator()(int x, int y) const { return m_data[x + y * m_size.x]; }
 
-	Color &operator[](int idx) { return m_data[idx]; }
-	const Color operator[](int idx) const { return m_data[idx]; }
+	IColor &operator[](int idx) { return m_data[idx]; }
+	const IColor operator[](int idx) const { return m_data[idx]; }
 
   private:
-	PodArray<Color> m_data;
+	PodArray<IColor> m_data;
 	int2 m_size;
 };
 
@@ -277,7 +299,7 @@ class GfxDevice {
 	using MainLoopFunction = bool (*)(GfxDevice &device);
 	void runMainLoop(MainLoopFunction);
 
-	static void clearColor(Color color);
+	static void clearColor(FColor);
 	static void clearDepth(float depth_value);
 
 	string extensions() const;
@@ -299,11 +321,11 @@ class GfxDevice {
 };
 
 struct RectStyle {
-	RectStyle(Color fill_color = Color::white, Color border_color = Color::transparent)
+	RectStyle(FColor fill_color = ColorId::white, FColor border_color = ColorId::transparent)
 		: fill_color(fill_color), border_color(border_color) {}
 
-	Color fill_color;
-	Color border_color;
+	FColor fill_color;
+	FColor border_color;
 };
 
 struct VertexDataType {
@@ -338,7 +360,7 @@ DECLARE_VERTEX_DATA(float4, float, 4, false)
 DECLARE_VERTEX_DATA(float3, float, 3, false)
 DECLARE_VERTEX_DATA(float2, float, 2, false)
 DECLARE_VERTEX_DATA(float, float, 1, false)
-DECLARE_VERTEX_DATA(Color, ubyte, 4, true)
+DECLARE_VERTEX_DATA(IColor, ubyte, 4, true)
 
 #undef DECLARE_VERTEX_DATA
 
@@ -419,7 +441,8 @@ class VertexArraySource {
 	VertexArraySource(const float3 &value) : VertexArraySource(float4(value, 0.0f)) {}
 	VertexArraySource(const float2 &value) : VertexArraySource(float4(value, 0.0f, 0.0f)) {}
 	VertexArraySource(float value) : VertexArraySource(float4(value, 0.0f, 0.0f, 0.0f)) {}
-	VertexArraySource(Color color) : VertexArraySource(float4(color)) {}
+	VertexArraySource(IColor color) : VertexArraySource(FColor(color)) {}
+	VertexArraySource(FColor color) : VertexArraySource(float4(color)) {}
 	VertexArraySource(VertexArraySource &&) = default;
 	VertexArraySource(const VertexArraySource &) = default;
 
@@ -618,18 +641,18 @@ class ProgramBinder {
 
 class SimpleMaterial {
   public:
-	SimpleMaterial(STexture texture, Color color = Color::white)
+	SimpleMaterial(STexture texture, FColor color = ColorId::white)
 		: m_texture(texture), m_color(color) {}
-	SimpleMaterial(PTexture texture, Color color = Color::white)
+	SimpleMaterial(PTexture texture, FColor color = ColorId::white)
 		: m_texture(texture), m_color(color) {}
-	SimpleMaterial(Color color = Color::white) : m_color(color) {}
+	SimpleMaterial(FColor color = ColorId::white) : m_color(color) {}
 
 	shared_ptr<const DTexture> texture() const { return m_texture; }
-	Color color() const { return m_color; }
+	FColor color() const { return m_color; }
 
   private:
 	shared_ptr<const DTexture> m_texture;
-	Color m_color;
+	FColor m_color;
 };
 
 // TODO: no need to make it immutable, it should be able to store STexture as well
@@ -641,20 +664,20 @@ class Material : public immutable_base<Material> {
 		flag_clear_depth = 8u,
 		flag_ignore_depth = 16u,
 	};
-	Material(vector<PTexture> textures, Color color = Color::white, uint flags = 0);
-	Material(PTexture texture, Color color = Color::white, uint flags = 0);
-	Material(Color color = Color::white, uint flags = 0);
+	Material(vector<PTexture> textures, FColor color = ColorId::white, uint flags = 0);
+	Material(PTexture texture, FColor color = ColorId::white, uint flags = 0);
+	Material(FColor color = ColorId::white, uint flags = 0);
 
 	PTexture texture() const { return m_textures.empty() ? PTexture() : m_textures.front(); }
 	const vector<PTexture> &textures() const { return m_textures; }
-	Color color() const { return m_color; }
+	FColor color() const { return m_color; }
 	uint flags() const { return m_flags; }
 
 	bool operator<(const Material &rhs) const;
 
   protected:
 	vector<PTexture> m_textures;
-	Color m_color;
+	FColor m_color;
 	uint m_flags;
 };
 
@@ -711,7 +734,7 @@ class Renderer2D : public MatrixStack {
 
 	void render();
 
-	void addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<Color, 4> colors,
+	void addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<IColor, 4>,
 					   const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const SimpleMaterial &mat) {
@@ -721,11 +744,11 @@ class Renderer2D : public MatrixStack {
 		addFilledRect(FRect(rect), mat);
 	}
 
-	void addRect(const FRect &rect, Color color);
-	void addRect(const IRect &rect, Color color) { addRect(FRect(rect), color); }
+	void addRect(const FRect &rect, IColor);
+	void addRect(const IRect &rect, IColor color) { addRect(FRect(rect), color); }
 
-	void addLine(const float2 &p1, const float2 &p2, Color color);
-	void addLine(const int2 &p1, const int2 &p2, Color color) {
+	void addLine(const float2 &, const float2 &, IColor);
+	void addLine(const int2 &p1, const int2 &p2, IColor color) {
 		addLine(float2(p1), float2(p2), color);
 	}
 
@@ -738,10 +761,10 @@ class Renderer2D : public MatrixStack {
 	};
 
 	// tex_coord & color can be empty
-	void addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
-				  const SimpleMaterial &material);
-	void addLines(CRange<float2> pos, CRange<Color> color, Color mat_color);
-	void addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
+	void addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor>,
+				  const SimpleMaterial &);
+	void addLines(CRange<float2> pos, CRange<IColor>, FColor mat_color);
+	void addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor>,
 				 const SimpleMaterial &material);
 
 	void setScissorRect(IRect);
@@ -752,12 +775,11 @@ class Renderer2D : public MatrixStack {
 
   private:
 	Element &makeElement(PrimitiveType, shared_ptr<const DTexture>);
-	void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<Color> color,
-						Color mat_color);
+	void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor>, FColor);
 
 	vector<float2> m_positions;
 	vector<float2> m_tex_coords;
-	vector<Color> m_colors;
+	vector<IColor> m_colors;
 	vector<uint> m_indices;
 	vector<IRect> m_scissor_rects;
 	vector<Element> m_elements;
@@ -773,11 +795,11 @@ class SpriteBuffer {
 		PMaterial material;
 		vector<float3> positions;
 		vector<float2> tex_coords;
-		vector<Color> colors;
+		vector<IColor> colors;
 	};
 
 	SpriteBuffer(const MatrixStack &);
-	void add(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors, PMaterial,
+	void add(CRange<float3> verts, CRange<float2> tex_coords, CRange<IColor> colors, PMaterial,
 			 const Matrix4 &matrix = Matrix4::identity());
 	void clear();
 
@@ -795,23 +817,24 @@ class LineBuffer {
 	struct Instance {
 		Matrix4 matrix;
 		vector<float3> positions;
-		vector<Color> colors;
+		vector<IColor> colors;
 		uint material_flags;
-		Color material_color;
+		FColor material_color;
 	};
 
 	LineBuffer(const MatrixStack &);
-	void add(CRange<float3>, CRange<Color>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CRange<float3>, CRange<IColor>, PMaterial,
+			 const Matrix4 &matrix = Matrix4::identity());
 	void add(CRange<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-	void add(CRange<float3>, Color, const Matrix4 &matrix = Matrix4::identity());
+	void add(CRange<float3>, IColor, const Matrix4 &matrix = Matrix4::identity());
 	void add(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-	void addBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
+	void addBox(const FBox &bbox, IColor color, const Matrix4 &matrix = Matrix4::identity());
 	void clear();
 
 	const auto &instances() const { return m_instances; }
 
   private:
-	Instance &instance(Color, uint, Matrix4, bool has_colors);
+	Instance &instance(FColor, uint, Matrix4, bool has_colors);
 
 	vector<Instance> m_instances;
 	const MatrixStack &m_matrix_stack;
@@ -877,12 +900,12 @@ enum class VAlign {
 };
 
 struct FontStyle {
-	FontStyle(Color color, Color shadow_color, HAlign halign = HAlign::left,
+	FontStyle(FColor color, FColor shadow_color, HAlign halign = HAlign::left,
 			  VAlign valign = VAlign::top);
-	FontStyle(Color color, HAlign halign = HAlign::left, VAlign valign = VAlign::top);
+	FontStyle(FColor color, HAlign halign = HAlign::left, VAlign valign = VAlign::top);
 
-	Color text_color;
-	Color shadow_color;
+	FColor text_color;
+	FColor shadow_color;
 	HAlign halign;
 	VAlign valign;
 };
@@ -979,6 +1002,7 @@ class FontFactory {
 };
 }
 
-SERIALIZE_AS_POD(Color)
+SERIALIZE_AS_POD(FColor)
+SERIALIZE_AS_POD(IColor)
 
 #endif

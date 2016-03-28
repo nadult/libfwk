@@ -8,7 +8,7 @@
 namespace fwk {
 namespace {
 
-	void loadBMP(Stream &sr, PodArray<Color> &out_data, int2 &out_size) {
+	void loadBMP(Stream &sr, PodArray<IColor> &out_data, int2 &out_size) {
 		enum { maxwidth = 2048 };
 
 		{
@@ -66,7 +66,7 @@ namespace {
 		out_size = int2(width, height);
 
 		if(bytesPerPixel == 1) {
-			Color palette[256];
+			IColor palette[256];
 			sr.loadData(palette, sizeof(palette)); // TODO: check if palette is ok
 			sr.seek(offset);
 
@@ -74,7 +74,7 @@ namespace {
 				palette[n].a = 255;
 
 			for(int y = height - 1; y >= 0; y--) {
-				Color *dst = &out_data[width * y];
+				IColor *dst = &out_data[width * y];
 				u8 line[maxwidth];
 				sr.loadData(line, width);
 				sr.seek(sr.pos() + lineAlignment);
@@ -88,10 +88,10 @@ namespace {
 				u8 line[maxwidth * 3];
 				sr.loadData(line, width * 3);
 
-				Color *dst = &out_data[width * y];
+				IColor *dst = &out_data[width * y];
 				for(int x = 0; x < width; x++)
 					dst[x] =
-						Color(line[x * 3 + 0], line[x * 3 + 1], line[x * 3 + 2]); // TODO: check me
+						IColor(line[x * 3 + 0], line[x * 3 + 1], line[x * 3 + 2]); // TODO: check me
 				sr.seek(sr.pos() + lineAlignment);
 			}
 		} else if(bytesPerPixel == 4) {

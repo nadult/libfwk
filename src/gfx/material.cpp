@@ -9,17 +9,17 @@
 
 namespace fwk {
 
-Material::Material(vector<PTexture> textures, Color color, uint flags)
+Material::Material(vector<PTexture> textures, FColor color, uint flags)
 	: m_textures(move(textures)), m_color(color), m_flags(flags) {
 	for(const auto &tex : m_textures)
 		DASSERT(tex);
 }
 
-Material::Material(PTexture texture, Color color, uint flags) : m_color(color), m_flags(flags) {
+Material::Material(PTexture texture, FColor color, uint flags) : m_color(color), m_flags(flags) {
 	if(texture)
 		m_textures.emplace_back(move(texture));
 }
-Material::Material(Color color, uint flags) : m_color(color), m_flags(flags) {}
+Material::Material(FColor color, uint flags) : m_color(color), m_flags(flags) {}
 
 bool Material::operator<(const Material &rhs) const {
 	return std::tie(m_textures, m_color, m_flags) <

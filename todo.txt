@@ -11,16 +11,15 @@
 - think about usefulness of const correctness; in some cases were just wasting time
 - separate align function for fonts
 - enumNext, enumPrev, enumShift?
-- add precompiled headers
 - DEFINE_ENUM in class scope
 - Hide HAlign, VAlign inside fontstyle?
-- Color -> FColor (float4), IColor (dword)
+- remove temp/ stuff
+- removeIndicies should use materialset
 
 - more todos in the code
 - texture should use int2 instead of width, height
 - Saver, Loader -> SaveStream, LoadStream or similar
 - automatic operators: > >= <=
-- colors in Color:: shouldn't be defined in cpp file coz they can't be used in static definitions
 - normalize -> normalized
 
 - __attribute__((cold)) on throwException (all code that leads to it
