@@ -13,7 +13,6 @@
 - enumNext, enumPrev, enumShift?
 - DEFINE_ENUM in class scope
 - Hide HAlign, VAlign inside fontstyle?
-- remove temp/ stuff
 - removeIndicies should use materialset
 
 - more todos in the code
