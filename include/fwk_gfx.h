@@ -475,6 +475,69 @@ class VertexArray : public immutable_base<VertexArray> {
 
 using PVertexArray = immutable_ptr<VertexArray>;
 
+class RenderBuffer {
+  public:
+	using Format = TextureFormat;
+	RenderBuffer(TextureFormat, const int2 &size);
+	~RenderBuffer();
+
+	void operator=(const RenderBuffer &) = delete;
+	RenderBuffer(const RenderBuffer &) = delete;
+
+	Format format() const { return m_format; }
+	uint id() const { return m_id; }
+	int2 size() const { return m_size; }
+
+  private:
+	int2 m_size;
+	Format m_format;
+	uint m_id;
+};
+
+using SRenderBuffer = shared_ptr<RenderBuffer>;
+
+struct FrameBufferTarget {
+	FrameBufferTarget() {}
+	FrameBufferTarget(STexture texture) : texture(std::move(texture)) {}
+	FrameBufferTarget(SRenderBuffer render_buffer) : render_buffer(std::move(render_buffer)) {}
+
+	operator bool() const;
+	TextureFormat format() const;
+	int2 size() const;
+
+	STexture texture;
+	SRenderBuffer render_buffer;
+};
+
+class FrameBuffer {
+  public:
+	using Target = FrameBufferTarget;
+	FrameBuffer(vector<Target> colors, Target depth = Target());
+	FrameBuffer(Target color, Target depth = Target());
+	~FrameBuffer();
+
+	static shared_ptr<FrameBuffer> make(vector<Target> colors, Target depth = Target()) {
+		return make_shared<FrameBuffer>(std::move(colors), std::move(depth));
+	}
+
+	void operator=(const FrameBuffer &) = delete;
+	FrameBuffer(const FrameBuffer &) = delete;
+
+	void bind();
+	static void unbind();
+
+	const auto &colors() const { return m_colors; }
+	const Target &depth() const { return m_depth; }
+	int2 size() const;
+
+  private:
+	vector<Target> m_colors;
+	Target m_depth;
+	uint m_id;
+};
+
+using SFrameBuffer = shared_ptr<FrameBuffer>;
+
 DEFINE_ENUM(ShaderType, vertex, fragment);
 
 class Shader {
@@ -611,85 +674,6 @@ class MaterialSet {
 	PMaterial m_default;
 	std::map<string, PMaterial> m_map;
 };
-
-class DrawCall {
-  public:
-	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset,
-			 PMaterial = PMaterial(), Matrix4 = Matrix4::identity());
-
-	void issue() const;
-
-	Matrix4 matrix;
-	PMaterial material;
-
-  private:
-	PVertexArray m_vertex_array;
-	PrimitiveType m_primitive_type;
-	int m_vertex_count, m_index_offset;
-};
-
-class RenderBuffer {
-  public:
-	using Format = TextureFormat;
-	RenderBuffer(TextureFormat, const int2 &size);
-	~RenderBuffer();
-
-	void operator=(const RenderBuffer &) = delete;
-	RenderBuffer(const RenderBuffer &) = delete;
-
-	Format format() const { return m_format; }
-	uint id() const { return m_id; }
-	int2 size() const { return m_size; }
-
-  private:
-	int2 m_size;
-	Format m_format;
-	uint m_id;
-};
-
-using SRenderBuffer = shared_ptr<RenderBuffer>;
-
-struct FrameBufferTarget {
-	FrameBufferTarget() {}
-	FrameBufferTarget(STexture texture) : texture(std::move(texture)) {}
-	FrameBufferTarget(SRenderBuffer render_buffer) : render_buffer(std::move(render_buffer)) {}
-
-	operator bool() const;
-	TextureFormat format() const;
-	int2 size() const;
-
-	STexture texture;
-	SRenderBuffer render_buffer;
-};
-
-class FrameBuffer {
-  public:
-	using Target = FrameBufferTarget;
-	FrameBuffer(vector<Target> colors, Target depth = Target());
-	FrameBuffer(Target color, Target depth = Target());
-	~FrameBuffer();
-
-	static shared_ptr<FrameBuffer> make(vector<Target> colors, Target depth = Target()) {
-		return make_shared<FrameBuffer>(std::move(colors), std::move(depth));
-	}
-
-	void operator=(const FrameBuffer &) = delete;
-	FrameBuffer(const FrameBuffer &) = delete;
-
-	void bind();
-	static void unbind();
-
-	const auto &colors() const { return m_colors; }
-	const Target &depth() const { return m_depth; }
-	int2 size() const;
-
-  private:
-	vector<Target> m_colors;
-	Target m_depth;
-	uint m_id;
-};
-
-using SFrameBuffer = shared_ptr<FrameBuffer>;
 
 class MatrixStack {
   public:
@@ -831,6 +815,22 @@ class LineBuffer {
 
 	vector<Instance> m_instances;
 	const MatrixStack &m_matrix_stack;
+};
+
+class DrawCall {
+  public:
+	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset,
+			 PMaterial = PMaterial(), Matrix4 = Matrix4::identity());
+
+	void issue() const;
+
+	Matrix4 matrix;
+	PMaterial material;
+
+  private:
+	PVertexArray m_vertex_array;
+	PrimitiveType m_primitive_type;
+	int m_vertex_count, m_index_offset;
 };
 
 class RenderList : public MatrixStack {
