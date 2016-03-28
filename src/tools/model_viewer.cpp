@@ -113,7 +113,8 @@ class Viewer {
 		}
 
 		FontFactory factory;
-		m_font = make_unique<Font>(factory.makeFont("data/LiberationSans-Regular.ttf", 14, false));
+		auto font_path = dataPath("LiberationSans-Regular.ttf");
+		m_font = make_unique<Font>(factory.makeFont(font_path, 14, false));
 
 		if(m_models.empty())
 			THROW("No models loaded\n");
