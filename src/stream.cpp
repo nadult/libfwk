@@ -30,7 +30,7 @@ void Stream::handleException(const Exception &ex) {
 
 #ifdef FWK_TARGET_HTML5
 	printf("%s\n", out.text());
-	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", out.text());
 	emscripten_force_exit(1);
 #else
 	throw Exception(out.text(), ex.backtraceData());

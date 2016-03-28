@@ -70,7 +70,7 @@ LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS
 			$(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW -g -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
 			$(NICE_FLAGS) $(INCLUDES) $(FLAGS)
-HTML5_FLAGS=-DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
+HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)
 
 PCH_FILE=$(BUILD_DIR)/fwk.h.pch

@@ -2,6 +2,8 @@
 
    This file is part of libfwk.*/
 
+#pragma once
+
 #include "fwk_gfx.h"
 #include "fwk_xml.h"
 
