@@ -226,7 +226,7 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 		}
 }
 
-void Model::draw(Renderer &out, PPose pose, const MaterialSet &materials,
+void Model::draw(RenderList &out, PPose pose, const MaterialSet &materials,
 				 const Matrix4 &matrix) const {
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
@@ -238,7 +238,7 @@ void Model::draw(Renderer &out, PPose pose, const MaterialSet &materials,
 	out.popViewMatrix();
 }
 
-void Model::drawNodes(Renderer &out, PPose pose, Color node_color, Color line_color,
+void Model::drawNodes(RenderList &out, PPose pose, Color node_color, Color line_color,
 					  float node_scale, const Matrix4 &matrix) const {
 	DASSERT(isValidPose(pose));
 	Mesh bbox_mesh = Mesh::makeBBox(FBox{-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f} * node_scale);
@@ -251,14 +251,17 @@ void Model::drawNodes(Renderer &out, PPose pose, Color node_color, Color line_co
 	vector<float3> positions(nodes().size());
 	for(int n = 0; n < (int)nodes().size(); n++)
 		positions[n] = mulPoint(transforms[n], float3(0, 0, 0));
+	if(positions.size() % 2 == 1)
+		positions.pop_back();
 
-	auto material = make_immutable<Material>(node_color);
+	auto node_mat = make_immutable<Material>(node_color, Material::flag_ignore_depth);
+	auto line_mat = make_immutable<Material>(line_color, Material::flag_ignore_depth);
 	for(const auto *node : nodes()) {
 		if(node != m_root.get())
-			bbox_mesh.draw(out, material, translation(positions[node->id()]));
+			bbox_mesh.draw(out, node_mat, translation(positions[node->id()]));
 		if(node->parent() && node->parent() != m_nodes.front()) {
-			vector<float3> lines{positions[node->id()], positions[node->parent()->id()]};
-			out.addLines(lines, line_color);
+			float3 line[2] = {positions[node->id()], positions[node->parent()->id()]};
+			out.lines().add(line, line_mat);
 		}
 	}
 

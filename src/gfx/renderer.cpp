@@ -68,106 +68,18 @@ struct ProgramFactory {
 	}
 };
 
-Renderer::Renderer(const IRect &viewport, const Matrix4 &projection_matrix)
-	: MatrixStack(projection_matrix), m_viewport(viewport) {
-	static ResourceManager<Program, ProgramFactory> mgr;
-	m_tex_program = mgr["tex"];
-	m_flat_program = mgr["flat"];
-	m_simple_program = mgr["simple"];
-}
+static ResourceManager<Program, ProgramFactory> s_mgr;
 
-Renderer::~Renderer() = default;
+RenderList::RenderList(const IRect &viewport, const Matrix4 &projection_matrix)
+	: MatrixStack(projection_matrix), m_sprites(*this), m_lines(*this), m_viewport(viewport) {}
 
-void Renderer::addDrawCall(const DrawCall &draw_call, PMaterial material, const Matrix4 &matrix) {
+RenderList::~RenderList() = default;
+
+void RenderList::addDrawCall(const DrawCall &draw_call, PMaterial material, const Matrix4 &matrix) {
 	DASSERT(material);
 	m_instances.emplace_back(Instance{viewMatrix() * matrix, std::move(material), draw_call});
 }
 
-Renderer::SpriteInstance &Renderer::spriteInstance(PMaterial mat, Matrix4 matrix, bool has_colors,
-												   bool has_tex_coords) {
-	SpriteInstance *inst = m_sprites.empty() ? nullptr : &m_sprites.back();
-	matrix = viewMatrix() * matrix;
-
-	if(!inst || has_tex_coords != !inst->tex_coords.empty() ||
-	   has_colors != !inst->colors.empty() || mat != inst->material || matrix != inst->matrix) {
-		m_sprites.emplace_back(SpriteInstance());
-		inst = &m_sprites.back();
-		inst->matrix = matrix;
-		inst->material = mat;
-	}
-
-	return *inst;
-}
-
-Renderer::LineInstance &Renderer::lineInstance(Color col, uint flags, Matrix4 matrix,
-											   bool has_colors) {
-	LineInstance *inst = m_lines.empty() ? nullptr : &m_lines.back();
-	matrix = viewMatrix() * matrix;
-
-	if(!inst || has_colors != !inst->colors.empty() || col != inst->material_color ||
-	   flags != inst->material_flags || matrix != inst->matrix) {
-		m_lines.emplace_back(LineInstance());
-		inst = &m_lines.back();
-		inst->matrix = matrix;
-		inst->material_color = col;
-		inst->material_flags = flags;
-	}
-
-	return *inst;
-}
-
-void Renderer::addLines(CRange<float3> verts, CRange<Color> colors, PMaterial mat,
-						const Matrix4 &matrix) {
-	DASSERT(verts.size() % 2 == 0);
-	DASSERT(colors.size() == verts.size() || colors.empty());
-	DASSERT(mat);
-
-	auto &inst = lineInstance(mat->color(), mat->flags(), matrix, true);
-	insertBack(inst.positions, verts);
-	insertBack(inst.colors, colors);
-}
-
-void Renderer::addLines(CRange<float3> verts, PMaterial material, const Matrix4 &matrix) {
-	DASSERT(verts.size() % 2 == 0);
-	DASSERT(material);
-
-	auto &inst = lineInstance(material->color(), material->flags(), matrix, false);
-	insertBack(inst.positions, verts);
-}
-
-void Renderer::addLines(CRange<float3> verts, Color color, const Matrix4 &matrix) {
-	DASSERT(verts.size() % 2 == 0);
-	auto &inst = lineInstance(color, 0u, matrix, false);
-	insertBack(inst.positions, verts);
-}
-
-void Renderer::addSegments(CRange<Segment> segs, PMaterial material, const Matrix4 &matrix) {
-	vector<float3> verts;
-	for(const auto &seg : segs)
-		insertBack(verts, {seg.origin(), seg.end()});
-	addLines(verts, material, matrix);
-}
-
-void Renderer::addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix) {
-	float3 verts[8];
-	bbox.getCorners(verts);
-
-	int indices[] = {0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 4, 1, 5, 3, 7, 2, 6};
-	float3 out_verts[arraySize(indices)];
-	for(int i = 0; i < arraySize(indices); i++)
-		out_verts[i] = verts[indices[i]];
-	addLines(out_verts, color, matrix);
-}
-
-void Renderer::addSprites(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
-						  PMaterial material, const Matrix4 &matrix) {
-	DASSERT(tex_coords.empty() || tex_coords.size() == verts.size());
-	DASSERT(colors.empty() || colors.size() == verts.size());
-	auto &inst = spriteInstance(material, matrix, !colors.empty(), !tex_coords.empty());
-	insertBack(inst.positions, verts);
-	insertBack(inst.tex_coords, tex_coords);
-	insertBack(inst.colors, colors);
-}
 namespace {
 
 	void enable(uint what, bool enable) {
@@ -209,7 +121,7 @@ namespace {
 	};
 }
 
-void Renderer::render() {
+void RenderList::render() {
 	glViewport(m_viewport.min.x, m_viewport.min.y, m_viewport.width(), m_viewport.height());
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH_TEST);
@@ -218,11 +130,14 @@ void Renderer::render() {
 
 	DeviceConfig dev_config;
 
+	auto tex_program = s_mgr["tex"];
+	auto flat_program = s_mgr["flat"];
+
 	for(const auto &instance : m_instances) {
 		auto material = instance.material;
 
 		DTexture::bind(material->textures());
-		PProgram program = material->texture() ? m_tex_program : m_flat_program;
+		PProgram program = material->texture() ? tex_program : flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
@@ -244,9 +159,12 @@ void Renderer::render() {
 	DTexture::unbind();
 }
 
-void Renderer::renderSprites() {
+void RenderList::renderSprites() {
+	auto tex_program = s_mgr["tex"];
+	auto flat_program = s_mgr["flat"];
+
 	// TODO: divide into regions, sort each region by Z
-	for(const auto &sprite : m_sprites) {
+	for(const auto &sprite : m_sprites.instances()) {
 		auto pos = make_immutable<VertexBuffer>(sprite.positions);
 		auto tex = !sprite.tex_coords.empty()
 					   ? VertexArraySource(make_immutable<VertexBuffer>(sprite.tex_coords))
@@ -258,7 +176,7 @@ void Renderer::renderSprites() {
 
 		const auto &mat = sprite.material;
 		DTexture::bind(mat->textures());
-		PProgram program = mat->texture() ? m_tex_program : m_flat_program;
+		PProgram program = mat->texture() ? tex_program : flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
@@ -270,10 +188,10 @@ void Renderer::renderSprites() {
 	}
 }
 
-void Renderer::renderLines() {
+void RenderList::renderLines() {
 	DTexture::unbind();
-	ProgramBinder binder(m_simple_program);
-	for(const auto &inst : m_lines) {
+	ProgramBinder binder(s_mgr["simple"]);
+	for(const auto &inst : m_lines.instances()) {
 		auto pos = make_immutable<VertexBuffer>(inst.positions);
 		auto col = inst.colors.empty()
 					   ? VertexArraySource(Color::white)
@@ -287,7 +205,7 @@ void Renderer::renderLines() {
 	}
 }
 
-void Renderer::clear() {
+void RenderList::clear() {
 	m_instances.clear();
 	m_sprites.clear();
 	m_lines.clear();

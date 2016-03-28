@@ -188,7 +188,7 @@ Mesh Mesh::animate(AnimatedData data) const {
 		m_indices, m_material_names);
 }
 
-void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matrix) const {
+void Mesh::draw(RenderList &out, const MaterialSet &materials, const Matrix4 &matrix) const {
 	if(!(m_ready_flags & flag_drawing_cache))
 		updateDrawingCache();
 
@@ -197,7 +197,7 @@ void Mesh::draw(Renderer &out, const MaterialSet &materials, const Matrix4 &matr
 	}
 }
 
-void Mesh::drawLines(Renderer &out, PMaterial material, const Matrix4 &matrix) const {
+void Mesh::drawLines(RenderList &out, PMaterial material, const Matrix4 &matrix) const {
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);
 
@@ -208,11 +208,11 @@ void Mesh::drawLines(Renderer &out, PMaterial material, const Matrix4 &matrix) c
 		for(int i = 0; i < 6; i++)
 			lines.emplace_back(pos[tri[inds[i]]]);
 	}
-	out.addLines(lines, material);
+	out.lines().add(lines, material);
 	out.popViewMatrix();
 }
 
-void Mesh::draw(Renderer &out, AnimatedData data, const MaterialSet &materials,
+void Mesh::draw(RenderList &out, AnimatedData data, const MaterialSet &materials,
 				const Matrix4 &matrix) const {
 	if(!m_buffers.hasSkin())
 		return draw(out, materials, matrix);
@@ -281,5 +281,4 @@ float Mesh::intersect(const Segment &segment, const AnimatedData &data) const {
 		}
 	return min_isect;
 }
-
 }

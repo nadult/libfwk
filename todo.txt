@@ -1,6 +1,20 @@
+- Fix copyrights
+- Add support for meshes without index buffer
+- Separate model matrix from view matrix in MatrixStack?
+- MemorySaver should increase it's size if necessary
+- show rare profiles at the end
+- add StrongBaseType<> class
+- additional isnan checks?
+- keyChar is not treated as key event in InputEvent::isKeyEvent
+- add clang's small vector
+- std::move -> move
+- think about usefulness of const correctness; in some cases were just wasting time
+- separate align function for fonts
 - enumNext, enumPrev, enumShift?
 - add precompiled headers
 - DEFINE_ENUM in class scope
+- Hide HAlign, VAlign inside fontstyle?
+- Color -> FColor (float4), IColor (dword)
 
 - more todos in the code
 - texture should use int2 instead of width, height

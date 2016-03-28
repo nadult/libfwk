@@ -625,7 +625,7 @@ class MaterialSet : public immutable_base<MaterialSet> {
 
 using PMaterialSet = immutable_ptr<MaterialSet>;
 
-class Renderer;
+class RenderList;
 
 struct Pose : public immutable_base<Pose> {
   public:
@@ -791,10 +791,10 @@ class Mesh : public immutable_base<Mesh> {
 
 	AnimatedData animate(PPose) const;
 	Mesh animate(AnimatedData) const;
-	void draw(Renderer &, const MaterialSet &, const Matrix4 &matrix = Matrix4::identity()) const;
-	void draw(Renderer &, AnimatedData, const MaterialSet &,
+	void draw(RenderList &, const MaterialSet &, const Matrix4 &matrix = Matrix4::identity()) const;
+	void draw(RenderList &, AnimatedData, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
-	void drawLines(Renderer &out, PMaterial material, const Matrix4 &matrix) const;
+	void drawLines(RenderList &out, PMaterial material, const Matrix4 &matrix) const;
 	void clearDrawingCache() const;
 
 	bool isValidAnimationData(const AnimatedData &data) const {
@@ -1325,13 +1325,13 @@ class Model : public immutable_base<Model> {
 
 	float intersect(const Segment &, PPose = PPose()) const;
 
-	void draw(Renderer &out, const MaterialSet &mats,
+	void draw(RenderList &out, const MaterialSet &mats,
 			  const Matrix4 &matrix = Matrix4::identity()) const {
 		draw(out, defaultPose(), mats, matrix);
 	}
-	void draw(Renderer &, PPose, const MaterialSet &,
+	void draw(RenderList &, PPose, const MaterialSet &,
 			  const Matrix4 &matrix = Matrix4::identity()) const;
-	void drawNodes(Renderer &, PPose, Color node_color, Color line_color, float node_scale = 1.0f,
+	void drawNodes(RenderList &, PPose, Color node_color, Color line_color, float node_scale = 1.0f,
 				   const Matrix4 &matrix = Matrix4::identity()) const;
 
 	void clearDrawingCache() const;
@@ -1544,37 +1544,9 @@ class Renderer2D : public MatrixStack {
 	int m_current_scissor_rect;
 };
 
-// TODO: rename to RenderList?
-class Renderer : public MatrixStack {
+class SpriteBuffer {
   public:
-	Renderer(const IRect &viewport, const Matrix4 &projection_matrix = Matrix4::identity());
-	~Renderer();
-
-	void render();
-	void clear();
-
-	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-	void addLines(CRange<float3>, CRange<Color>, PMaterial,
-				  const Matrix4 &matrix = Matrix4::identity());
-	void addLines(CRange<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-	void addLines(CRange<float3>, Color, const Matrix4 &matrix = Matrix4::identity());
-	void addSegments(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-
-	void addWireBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
-	void addSprites(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors,
-					PMaterial, const Matrix4 &matrix = Matrix4::identity());
-
-	const auto &instances() const { return m_instances; }
-	const auto &sprites() const { return m_sprites; }
-	const auto &lines() const { return m_lines; }
-
 	struct Instance {
-		Matrix4 matrix;
-		PMaterial material;
-		DrawCall draw_call;
-	};
-
-	struct SpriteInstance {
 		Matrix4 matrix;
 		PMaterial material;
 		vector<float3> positions;
@@ -1582,7 +1554,23 @@ class Renderer : public MatrixStack {
 		vector<Color> colors;
 	};
 
-	struct LineInstance {
+	SpriteBuffer(const MatrixStack &);
+	void add(CRange<float3> verts, CRange<float2> tex_coords, CRange<Color> colors, PMaterial,
+			 const Matrix4 &matrix = Matrix4::identity());
+	void clear();
+
+	const auto &instances() const { return m_instances; }
+
+  private:
+	Instance &instance(PMaterial, Matrix4, bool has_colors, bool has_tex_coords);
+
+	vector<Instance> m_instances;
+	const MatrixStack &m_matrix_stack;
+};
+
+class LineBuffer {
+  public:
+	struct Instance {
 		Matrix4 matrix;
 		vector<float3> positions;
 		vector<Color> colors;
@@ -1590,17 +1578,55 @@ class Renderer : public MatrixStack {
 		Color material_color;
 	};
 
+	LineBuffer(const MatrixStack &);
+	void add(CRange<float3>, CRange<Color>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CRange<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CRange<float3>, Color, const Matrix4 &matrix = Matrix4::identity());
+	void add(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void addBox(const FBox &bbox, Color color, const Matrix4 &matrix = Matrix4::identity());
+	void clear();
+
+	const auto &instances() const { return m_instances; }
+
+  private:
+	Instance &instance(Color, uint, Matrix4, bool has_colors);
+
+	vector<Instance> m_instances;
+	const MatrixStack &m_matrix_stack;
+};
+
+class RenderList : public MatrixStack {
+  public:
+	RenderList(const IRect &viewport, const Matrix4 &projection_matrix = Matrix4::identity());
+	RenderList(const RenderList &) = delete;
+	void operator=(const RenderList &) = delete;
+	~RenderList();
+
+	void render();
+	void clear();
+
+	void addDrawCall(const DrawCall &, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+
+	const auto &instances() const { return m_instances; }
+	const auto &sprites() const { return m_sprites; }
+	const auto &lines() const { return m_lines; }
+	auto &sprites() { return m_sprites; }
+	auto &lines() { return m_lines; }
+
+	struct Instance {
+		Matrix4 matrix;
+		PMaterial material;
+		DrawCall draw_call;
+	};
+
   protected:
 	void renderLines();
 	void renderSprites();
-	SpriteInstance &spriteInstance(PMaterial, Matrix4, bool has_colors, bool has_tex_coords);
-	LineInstance &lineInstance(Color, uint, Matrix4, bool has_colors);
 
-	IRect m_viewport;
-	vector<SpriteInstance> m_sprites;
-	vector<LineInstance> m_lines;
 	vector<Instance> m_instances;
-	PProgram m_tex_program, m_flat_program, m_simple_program;
+	SpriteBuffer m_sprites;
+	LineBuffer m_lines;
+	IRect m_viewport;
 };
 
 enum class HAlign {

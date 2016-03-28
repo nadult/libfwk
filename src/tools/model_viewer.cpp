@@ -53,10 +53,10 @@ class Viewer {
 			return 4.0f / max(bbox.width(), max(bbox.height(), bbox.depth()));
 		}
 
-		void drawModel(Renderer &out, PPose pose, bool show_nodes, const Matrix4 &matrix) {
+		void drawModel(RenderList &out, PPose pose, bool show_nodes, const Matrix4 &matrix) {
 			m_model->draw(out, pose, m_materials, matrix);
 			if(show_nodes)
-				m_model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f, matrix);
+				m_model->drawNodes(out, pose, Color::green, Color::yellow, 0.1f / scale(), matrix);
 		}
 
 		void printModelStats(TextFormatter &fmt) const {
@@ -178,7 +178,7 @@ class Viewer {
 	void draw() {
 		Matrix4 proj = perspective(degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(),
 								   1.0f, 10000.0f);
-		Renderer renderer_3d(m_viewport, proj);
+		RenderList renderer_3d(m_viewport, proj);
 		Renderer2D renderer_2d(m_viewport);
 
 		renderer_3d.setViewMatrix(translation(0, 0, -5.0f));
@@ -190,7 +190,7 @@ class Viewer {
 					  translation(-model.boundingBox(pose).center());
 
 		model.drawModel(renderer_3d, pose, m_show_nodes, matrix);
-		renderer_3d.addWireBox(model.boundingBox(pose), {Color::green}, matrix);
+		renderer_3d.lines().addBox(model.boundingBox(pose), {Color::green}, matrix);
 
 		TextFormatter fmt;
 		fmt("Model: %s (%d / %d)\n", model.m_model_name.c_str(), m_current_model + 1,
