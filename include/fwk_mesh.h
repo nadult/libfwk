@@ -107,7 +107,6 @@ class MeshIndices {
 	Type m_type;
 };
 
-// TODO: doesn't really have to be immutable
 class Mesh : public immutable_base<Mesh> {
   public:
 	Mesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
@@ -155,7 +154,7 @@ class Mesh : public immutable_base<Mesh> {
 	bool hasColors() const { return !m_buffers.colors.empty(); }
 	bool hasSkin() const { return m_buffers.hasSkin(); }
 	bool hasIndices() const { return !m_indices.empty(); }
-	bool isEmpty() const { return m_buffers.positions.empty(); }
+	bool empty() const { return m_buffers.positions.empty(); }
 
 	void removeNormals();
 	void removeTexCoords();

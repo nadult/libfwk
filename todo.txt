@@ -1,8 +1,5 @@
 - Fix copyrights
-- fontstyle -> style
-- isEmpty -> empty
 - make AnimaedMesh similar to AnimatedModel
-- remove redundant immutalbe_ptrs
 - add class VertexArraySpec and use it to verify drawcalls
 - saving/loading Mesh colors to XML
 - Separate model matrix from view matrix in MatrixStack?

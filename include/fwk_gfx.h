@@ -117,7 +117,7 @@ class Texture {
 	int2 size() const { return m_size; }
 	int pixelCount() const { return m_size.x * m_size.y; }
 
-	bool isEmpty() const { return m_data.isEmpty(); }
+	bool empty() const { return m_data.empty(); }
 	bool testPixelAlpha(const int2 &) const;
 
 	TextureFormat format() const { return TextureFormatId::rgba; }
@@ -932,21 +932,18 @@ using PFontCore = immutable_ptr<FontCore>;
 
 class Font {
   public:
+	using Style = FontStyle;
 	Font(PFontCore font, PTexture texture);
 
-	FRect draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
-			   const wstring &text) const;
-	FRect draw(Renderer2D &out, const float2 &pos, const FontStyle &style,
-			   const wstring &text) const {
+	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, const wstring &text) const;
+	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, const wstring &text) const {
 		return draw(out, FRect(pos, pos), style, text);
 	}
 
-	FRect draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
-			   StringRef text_utf8) const {
+	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, StringRef text_utf8) const {
 		return draw(out, rect, style, toWideString(text_utf8));
 	}
-	FRect draw(Renderer2D &out, const float2 &pos, const FontStyle &style,
-			   StringRef text_utf8) const {
+	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, StringRef text_utf8) const {
 		return draw(out, FRect(pos, pos), style, toWideString(text_utf8));
 	}
 

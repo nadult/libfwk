@@ -1053,7 +1053,7 @@ template <class T> class PodArray {
 		free(m_data);
 		m_data = nullptr;
 	}
-	bool isEmpty() const { return m_size == 0; }
+	bool empty() const { return m_size == 0; }
 
 	T *data() { return m_data; }
 	const T *data() const { return m_data; }
@@ -1210,7 +1210,7 @@ struct ListNode {
 
 struct List {
 	List() : head(-1), tail(-1) {}
-	bool isEmpty() const { return head == -1; }
+	bool empty() const { return head == -1; }
 
 	int head, tail;
 };
@@ -1268,7 +1268,7 @@ template <class Object, ListNode Object::*member, class Container>
 int freeListAlloc(Container &container, List &free_list) {
 	int idx;
 
-	if(free_list.isEmpty()) {
+	if(free_list.empty()) {
 		container.emplace_back();
 		idx = (int)container.size() - 1;
 	} else {
@@ -1329,7 +1329,7 @@ class FilePath {
 
 	bool isRoot() const;
 	bool isAbsolute() const;
-	bool isEmpty() const { return m_path.empty(); }
+	bool empty() const { return m_path.empty(); }
 
 	string fileName() const;
 	string fileExtension() const;
