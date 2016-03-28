@@ -20,6 +20,7 @@ struct FColor {
 	FColor() : r(0.0), g(0.0), b(0.0), a(1.0) {}
 	FColor(float r, float g, float b, float a = 1.0f) : r(r), g(g), b(b), a(a) {}
 	FColor(const float4 &rgba) : r(rgba[0]), g(rgba[1]), b(rgba[2]), a(rgba[3]) {}
+	FColor(const FColor &col, float a) : r(col.r), g(col.g), b(col.b), a(a) {}
 	FColor(const float3 &rgb, float a = 1.0) : r(rgb[0]), g(rgb[1]), b(rgb[2]), a(a) {}
 	FColor(ColorId);
 	operator float4() const { return float4(v); }
@@ -734,7 +735,7 @@ class Renderer2D : public MatrixStack {
 
 	void render();
 
-	void addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<IColor, 4>,
+	void addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<FColor, 4>,
 					   const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const SimpleMaterial &mat) {
@@ -744,11 +745,11 @@ class Renderer2D : public MatrixStack {
 		addFilledRect(FRect(rect), mat);
 	}
 
-	void addRect(const FRect &rect, IColor);
-	void addRect(const IRect &rect, IColor color) { addRect(FRect(rect), color); }
+	void addRect(const FRect &rect, FColor);
+	void addRect(const IRect &rect, FColor color) { addRect(FRect(rect), color); }
 
-	void addLine(const float2 &, const float2 &, IColor);
-	void addLine(const int2 &p1, const int2 &p2, IColor color) {
+	void addLine(const float2 &, const float2 &, FColor);
+	void addLine(const int2 &p1, const int2 &p2, FColor color) {
 		addLine(float2(p1), float2(p2), color);
 	}
 
@@ -761,10 +762,10 @@ class Renderer2D : public MatrixStack {
 	};
 
 	// tex_coord & color can be empty
-	void addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor>,
+	void addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>,
 				  const SimpleMaterial &);
-	void addLines(CRange<float2> pos, CRange<IColor>, FColor mat_color);
-	void addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor>,
+	void addLines(CRange<float2> pos, CRange<FColor>, FColor mat_color);
+	void addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>,
 				 const SimpleMaterial &material);
 
 	void setScissorRect(IRect);
@@ -775,7 +776,7 @@ class Renderer2D : public MatrixStack {
 
   private:
 	Element &makeElement(PrimitiveType, shared_ptr<const DTexture>);
-	void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<IColor>, FColor);
+	void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>, FColor);
 
 	vector<float2> m_positions;
 	vector<float2> m_tex_coords;
