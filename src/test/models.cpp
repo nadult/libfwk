@@ -3,7 +3,7 @@
    This file is part of libfwk.*/
 
 #include "testing.h"
-#include "fwk_gfx.h"
+#include "fwk_mesh.h"
 #include <tuple>
 
 string mainPath(string file_name) {

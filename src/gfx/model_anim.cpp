@@ -2,11 +2,9 @@
 
    This file is part of libfwk.*/
 
-#include "fwk_gfx.h"
+#include "fwk_mesh.h"
 #include "fwk_profile.h"
-#include <map>
 #include <algorithm>
-#include <functional>
 
 namespace fwk {
 

@@ -1,4 +1,5 @@
 - Fix copyrights
+- fontstyle -> style
 - isEmpty -> empty
 - move class around in fwk_gfx
 - move renderer -> render_list

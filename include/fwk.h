@@ -9,6 +9,7 @@
 #include "fwk_math.h"
 #include "fwk_input.h"
 #include "fwk_gfx.h"
+#include "fwk_mesh.h"
 #include "fwk_profile.h"
 #include "fwk_xml.h"
 

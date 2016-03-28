@@ -2,10 +2,7 @@
 
    This file is part of libfwk.*/
 
-#include "fwk_gfx.h"
-#include "fwk_xml.h"
-#include <algorithm>
-#include <limits>
+#include "fwk_mesh.h"
 #include <numeric>
 
 namespace fwk {

@@ -2,10 +2,9 @@
 
    This file is part of libfwk.*/
 
-#include "fwk_gfx.h"
+#include "fwk_mesh.h"
 #include "fwk_xml.h"
 #include <algorithm>
-#include <unordered_map>
 
 namespace fwk {
 

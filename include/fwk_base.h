@@ -1409,6 +1409,9 @@ bool access(const FilePath &);
 double lastModificationTime(const FilePath &);
 FilePath executablePath();
 pair<string, bool> execCommand(const string &cmd);
+
+class XMLNode;
+class XMLDocument;
 }
 
 #endif
