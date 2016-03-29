@@ -191,7 +191,7 @@ class Viewer {
 
 		auto pose = model.animatePose(m_current_anim, m_anim_pos);
 		auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
-					  translation(-model.boundingBox(pose).center());
+					  translation(-model.boundingBox().center());
 
 		model.drawModel(renderer_3d, pose, m_show_nodes, matrix);
 		renderer_3d.lines().addBox(model.boundingBox(pose), {ColorId::green}, matrix);

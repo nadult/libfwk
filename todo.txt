@@ -1,4 +1,5 @@
 - Fix copyrights
+- support for multiple armatures in exporter; support for animation without armatures
 - make AnimaedMesh similar to AnimatedModel
 - add class VertexArraySpec and use it to verify drawcalls
 - saving/loading Mesh colors to XML

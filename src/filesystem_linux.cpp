@@ -62,7 +62,7 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 					  int flags) {
 	DIR *dp = opendir(path.c_str());
 	if(!dp)
-		THROW("Error while opening directory %s: %s", path.c_str(), strerror(errno));
+		return;
 	bool is_root = path.isRoot();
 	bool ignore_parent = !(flags & FindFiles::include_parent) || is_root;
 
