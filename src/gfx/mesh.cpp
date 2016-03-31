@@ -259,6 +259,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 										 : VertexArraySource(float2(0, 0));
 		auto colors = hasColors() ? make_immutable<VertexBuffer>(m_buffers.colors)
 								  : VertexArraySource(FColor(ColorId::white));
+		FBox bbox = anim_data ? anim_data->bounding_box : m_bounding_box;
 
 		if(hasIndices()) {
 			vector<pair<uint, uint>> merged_ranges;
@@ -272,12 +273,12 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 				const auto &indices = m_indices[n];
 				string mat_name = m_material_names.empty() ? "" : m_material_names[n];
 				out.emplace_back(varray, indices.type(), range.second, range.first,
-								 materials[mat_name], matrix);
+								 materials[mat_name], matrix, matrix * bbox);
 			}
 		} else {
 			auto varray = VertexArray::make({vertices, colors, tex_coords});
 			out.emplace_back(varray, PrimitiveType::triangles, triangleCount() * 3, 0,
-							 materials.defaultMat(), matrix);
+							 materials.defaultMat(), matrix, matrix * bbox);
 		}
 	}
 

@@ -64,7 +64,7 @@ struct IColor {
 		  b(clamp(c.b * 255.0f, 0.0f, 255.0f)), a(clamp(c.a * 255.0f, 0.0f, 255.0f)) {}
 	IColor(IColor col, u8 alpha) : r(col.r), g(col.g), b(col.b), a(alpha) {}
 	IColor(ColorId color_id) : IColor(FColor(color_id)) {}
-	IColor() = default;
+	IColor() : IColor(0, 0, 0) {}
 
 	operator FColor() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
 	operator int4() const { return int4(r, g, b, a); }
@@ -844,11 +844,12 @@ class LineBuffer {
 class DrawCall {
   public:
 	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset,
-			 PMaterial = PMaterial(), Matrix4 = Matrix4::identity());
+			 PMaterial = PMaterial(), Matrix4 = Matrix4::identity(), Maybe<FBox> = none);
 
 	void issue() const;
 
 	Matrix4 matrix;
+	Maybe<FBox> bbox;
 	PMaterial material;
 
   private:

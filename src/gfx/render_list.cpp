@@ -10,8 +10,8 @@
 namespace fwk {
 
 DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType primitive_type, int vertex_count,
-				   int index_offset, PMaterial material, Matrix4 matrix)
-	: matrix(matrix), material(material), m_vertex_array(move(vertex_array)),
+				   int index_offset, PMaterial material, Matrix4 matrix, Maybe<FBox> bbox)
+	: matrix(matrix), bbox(bbox), material(material), m_vertex_array(move(vertex_array)),
 	  m_primitive_type(primitive_type), m_vertex_count(vertex_count), m_index_offset(index_offset) {
 	DASSERT(m_vertex_array);
 }
