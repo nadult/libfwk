@@ -660,11 +660,15 @@ class SimpleMaterial {
 class Material : public immutable_base<Material> {
   public:
 	enum Flags {
-		flag_blended = 1u,
-		flag_two_sided = 2u,
-		flag_clear_depth = 8u,
-		flag_ignore_depth = 16u,
+		flag_blended = 0x0001u,
+		flag_two_sided = 0x0002u,
+		flag_clear_depth = 0x0004u,
+		flag_ignore_depth = 0x0008u,
+
+		flag_custom_mask = 0xffff0000u,
+		flag_custom_shift = 16,
 	};
+
 	Material(vector<PTexture> textures, FColor color = ColorId::white, uint flags = 0);
 	Material(PTexture texture, FColor color = ColorId::white, uint flags = 0);
 	Material(FColor color = ColorId::white, uint flags = 0);
