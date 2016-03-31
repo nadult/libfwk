@@ -52,6 +52,11 @@ bool areOverlapping(const FRect &a, const FRect &b) {
 	return true;
 }
 
+const Rect<int2> enclosingIRect(const Rect<float2> &frect) {
+	return Rect<int2>(floorf(frect.min.x), floorf(frect.min.y), ceilf(frect.max.x),
+					  ceilf(frect.max.y));
+};
+
 template struct Rect<int2>;
 template struct Rect<float2>;
 }

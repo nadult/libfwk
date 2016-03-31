@@ -57,6 +57,7 @@ struct int2 {
 
 	int2 operator+(const int2 &rhs) const { return int2(x + rhs.x, y + rhs.y); }
 	int2 operator-(const int2 &rhs) const { return int2(x - rhs.x, y - rhs.y); }
+	int2 operator*(const int2 &rhs) const { return int2(x * rhs.x, y * rhs.y); }
 	int2 operator*(int s) const { return int2(x * s, y * s); }
 	int2 operator/(int s) const { return int2(x / s, y / s); }
 	int2 operator%(int s) const { return int2(x % s, y % s); }
@@ -85,6 +86,7 @@ struct short2 {
 
 	short2 operator+(const short2 &rhs) const { return short2(x + rhs.x, y + rhs.y); }
 	short2 operator-(const short2 &rhs) const { return short2(x - rhs.x, y - rhs.y); }
+	short2 operator*(const short2 &rhs) const { return short2(x * rhs.x, y * rhs.y); }
 	short2 operator*(short s) const { return short2(x * s, y * s); }
 	short2 operator/(short s) const { return short2(x / s, y / s); }
 	short2 operator%(short s) const { return short2(x % s, y % s); }
@@ -398,6 +400,7 @@ template <class TVec2> struct Rect {
 
 	Rect operator+(const Vec2 &offset) const { return Rect(min + offset, max + offset); }
 	Rect operator-(const Vec2 &offset) const { return Rect(min - offset, max - offset); }
+	Rect operator*(const Vec2 &scale) const { return Rect(min * scale, max * scale); }
 	Rect operator*(Scalar scale) const { return Rect(min * scale, max * scale); }
 
 	Rect operator+(const Rect &rhs) { return Rect(fwk::min(min, rhs.min), fwk::max(max, rhs.max)); }
@@ -431,11 +434,30 @@ template <class TVec2> const Rect<TVec2> intersection(const Rect<TVec2> &a, cons
 	return Rect<TVec2>(max(a.min, b.min), min(a.max, b.max));
 }
 
+template <class Type2>
+inline const Rect<Type2> inset(Rect<Type2> rect, const Type2 &tl, const Type2 &br) {
+	return Rect<Type2>(rect.min + tl, rect.max - br);
+}
+
+template <class Type2> inline const Rect<Type2> inset(Rect<Type2> rect, const Type2 &inset) {
+	return Rect<Type2>(rect.min + inset, rect.max - inset);
+}
+
+template <class TVec> Rect<TVec> enlarge(const Rect<TVec> &rect, typename TVec::Scalar offset) {
+	return Rect<TVec>(rect.min - TVec3(offset, offset, offset),
+					  rect.max + TVec3(offset, offset, offset));
+}
+
+template <class TVec> Rect<TVec> enlarge(const Rect<TVec> &rect, const TVec &offset) {
+	return Rect<TVec>(rect.min - offset, rect.max + offset);
+}
+
 bool areOverlapping(const Rect<float2> &a, const Rect<float2> &b);
 bool areOverlapping(const Rect<int2> &a, const Rect<int2> &b);
 
 bool areAdjacent(const Rect<int2> &, const Rect<int2> &);
 float distanceSq(const Rect<float2> &, const Rect<float2> &);
+const Rect<int2> enclosingIRect(const Rect<float2> &);
 
 // Invariant: max >= min
 // TODO: enforce invariant; do the same for other classes
