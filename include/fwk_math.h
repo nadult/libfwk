@@ -275,6 +275,10 @@ struct float4 {
 	};
 };
 
+inline float2 operator*(float scalar, const float2 &rhs) { return rhs * scalar; }
+inline float3 operator*(float scalar, const float3 &rhs) { return rhs * scalar; }
+inline float4 operator*(float scalar, const float4 &rhs) { return rhs * scalar; }
+
 // TODO: write map function which transforms all coordinates
 
 const int2 min(const int2 &a, const int2 &b);
