@@ -274,7 +274,7 @@ def writeObject(xml_root, xml_parent, obj, mesh_list, bone_map, override_matrix 
     if obj_type != "generic":
         xml_obj_node.set("type", obj_type)
 
-    if obj.type == "EMPTY":
+    if True: #obj.type == "EMPTY" :
         keys = list(set(obj.keys()) - set(["_RNA_UI", "cycles_visibility", "cycles"]))
         for key in keys:
             writeProperty(xml_obj_node, key, str(obj[key]))

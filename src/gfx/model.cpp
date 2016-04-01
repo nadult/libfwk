@@ -70,8 +70,7 @@ namespace {
 		vector<ModelNode::Property> props;
 		XMLNode prop_node = xml_node.child("property");
 		while(prop_node) {
-			props.emplace_back(
-				ModelNode::Property{prop_node.attrib("name"), prop_node.attrib("value")});
+			props.emplace_back(prop_node.attrib("name"), prop_node.attrib("value"));
 			prop_node.next();
 		}
 
@@ -168,8 +167,8 @@ static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, 
 	std::sort(begin(props), end(props));
 	for(const auto &prop : props) {
 		XMLNode xml_prop = xml_node.addChild("property");
-		xml_prop.addAttrib("name", xml_prop.own(prop.name));
-		xml_prop.addAttrib("value", xml_prop.own(prop.value));
+		xml_prop.addAttrib("name", xml_prop.own(prop.first));
+		xml_prop.addAttrib("value", xml_prop.own(prop.second));
 	}
 
 	for(const auto &child : node->children())

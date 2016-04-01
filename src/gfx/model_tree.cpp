@@ -26,7 +26,7 @@ ModelNode::ModelNode(const ModelNode &rhs)
 ModelNode::PropertyMap ModelNode::propertyMap() const {
 	PropertyMap out;
 	for(const auto &prop : m_properties)
-		out[prop.name] = prop.value;
+		out[prop.first] = prop.second;
 	return out;
 }
 

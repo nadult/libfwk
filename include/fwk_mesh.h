@@ -581,15 +581,7 @@ class ModelNode {
   public:
 	using Type = ModelNodeType;
 
-	struct Property {
-		bool operator<(const Property &rhs) const {
-			return tie(name, value) < tie(rhs.name, rhs.value);
-		}
-
-		string name;
-		string value;
-	};
-
+	using Property = std::pair<string, string>;
 	using PropertyMap = std::map<string, string>;
 
 	ModelNode(const string &name, Type type = Type::generic,
