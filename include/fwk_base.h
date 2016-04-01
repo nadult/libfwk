@@ -58,6 +58,9 @@ using i16 = short;
 using u32 = unsigned;
 using i32 = int;
 
+template <class... T> struct Undefined;
+template <size_t... S> struct UndefinedSize;
+
 template <class T1, class T2> bool operator==(const shared_ptr<T1> &lhs, const T2 *rhs) {
 	return lhs.get() == rhs;
 }
@@ -1179,11 +1182,13 @@ class TextParser {
 	bool parseBool();
 	int parseInt();
 	float parseFloat();
+	double parseDouble();
 	uint parseUint();
 	string parseString();
 
 	void parseInts(Range<int> out);
 	void parseFloats(Range<float> out);
+	void parseDoubles(Range<double> out);
 	void parseUints(Range<uint> out);
 	void parseStrings(Range<string> out);
 

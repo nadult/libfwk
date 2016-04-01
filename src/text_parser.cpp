@@ -83,15 +83,13 @@ string TextParser::parseString() {
 }
 
 int TextParser::parseInt() { return parseSingle(&m_current, strtol, "int"); }
-
 float TextParser::parseFloat() { return parseSingle(&m_current, strtof, "float"); }
-
+double TextParser::parseDouble() { return parseSingle(&m_current, strtod, "double"); }
 uint TextParser::parseUint() { return parseSingle(&m_current, strtoul, "uint"); }
 
 void TextParser::parseInts(Range<int> out) { parseMultiple(&m_current, out, strtol, "int"); }
-
 void TextParser::parseFloats(Range<float> out) { parseMultiple(&m_current, out, strtof, "float"); }
-
+void TextParser::parseDoubles(Range<double> out) { parseMultiple(&m_current, out, strtod, "double"); }
 void TextParser::parseUints(Range<uint> out) { parseMultiple(&m_current, out, strtoul, "uint"); }
 
 void TextParser::parseStrings(Range<string> out) {

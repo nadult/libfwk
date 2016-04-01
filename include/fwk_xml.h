@@ -37,6 +37,7 @@ namespace xml_conversions {
 		template <> int3 fromString<int3>(TextParser &);
 		template <> int4 fromString<int4>(TextParser &);
 		template <> uint fromString<uint>(TextParser &);
+		template <> double fromString<double>(TextParser &);
 		template <> float fromString<float>(TextParser &);
 		template <> float2 fromString<float2>(TextParser &);
 		template <> float3 fromString<float3>(TextParser &);
@@ -56,6 +57,7 @@ namespace xml_conversions {
 		}
 
 		template <> vector<float> vectorFromString<float>(TextParser &);
+		template <> vector<double> vectorFromString<double>(TextParser &);
 		template <> vector<int> vectorFromString<int>(TextParser &);
 		template <> vector<uint> vectorFromString<uint>(TextParser &);
 		template <> vector<string> vectorFromString<string>(TextParser &);
@@ -81,6 +83,7 @@ namespace xml_conversions {
 		void toString(const int2 &value, TextFormatter &out);
 		void toString(const int3 &value, TextFormatter &out);
 		void toString(const int4 &value, TextFormatter &out);
+		void toString(double value, TextFormatter &out);
 		void toString(float value, TextFormatter &out);
 		void toString(const float2 &value, TextFormatter &out);
 		void toString(const float3 &value, TextFormatter &out);

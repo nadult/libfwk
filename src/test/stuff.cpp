@@ -35,6 +35,8 @@ void testXMLConverters() {
 	testClassConversions(int2(4, 5));
 	testClassConversions(int3(6, 7, 99));
 	testClassConversions(int4(10, 11, 1000, 11));
+	testClassConversions(123.456f);
+	testClassConversions(12345.6789);
 	testClassConversions(float2(11, 17));
 	testClassConversions(float3(45, 67, 1.5));
 	testClassConversions(float4(1, 1.5, 5.5, 12.5));

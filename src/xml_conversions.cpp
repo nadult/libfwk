@@ -15,6 +15,7 @@ namespace xml_conversions {
 		template <> uint fromString(TextParser &parser) { return parser.parseUint(); }
 		template <> int fromString(TextParser &parser) { return parser.parseInt(); }
 		template <> float fromString(TextParser &parser) { return parser.parseFloat(); }
+		template <> double fromString(TextParser &parser) { return parser.parseDouble(); }
 
 		template <> int2 fromString(TextParser &parser) {
 			int2 out;
@@ -103,6 +104,12 @@ namespace xml_conversions {
 			return out;
 		}
 
+		template <> vector<double> vectorFromString<double>(TextParser &parser) {
+			vector<double> out(parser.countElements());
+			parser.parseDoubles(out);
+			return out;
+		}
+
 		template <> vector<int> vectorFromString<int>(TextParser &parser) {
 			vector<int> out(parser.countElements());
 			parser.parseInts(out);
@@ -133,13 +140,14 @@ namespace xml_conversions {
 			out("%d %d %d %d", value.x, value.y, value.z, value.w);
 		}
 
-		static void toStringFloat(CRange<float> in, TextFormatter &out) {
+		template <class Base, int min_size>
+		static void doublesToString(CRange<Base, min_size> in, TextFormatter &out) {
 			for(int n = 0; n < in.size(); n++) {
 				char buffer[DBL_MAX_10_EXP + 2];
 				// TODO: save floats accurately?
 				// printf("%1.8e", f)
 
-				int len = snprintf(buffer, sizeof(buffer), "%f", in[n]);
+				int len = snprintf(buffer, sizeof(buffer), "%f", (double)in[n]);
 				while(len > 0 && buffer[len - 1] == '0')
 					len--;
 				if(len > 0 && buffer[len - 1] == '.')
@@ -151,26 +159,34 @@ namespace xml_conversions {
 			}
 		}
 
+		void toString(double value, TextFormatter &out) {
+			double values[1] = {value};
+			doublesToString(makeRange(values), out);
+		}
+
 		void toString(float value, TextFormatter &out) {
 			float values[1] = {value};
-			toStringFloat(values, out);
+			doublesToString(makeRange(values), out);
 		}
+
 		void toString(const float2 &value, TextFormatter &out) {
 			float values[2] = {value.x, value.y};
-			toStringFloat(values, out);
+			doublesToString(makeRange(values), out);
 		}
+
 		void toString(const float3 &value, TextFormatter &out) {
 			float values[3] = {value.x, value.y, value.z};
-			toStringFloat(values, out);
+			doublesToString(makeRange(values), out);
 		}
+
 		void toString(const float4 &value, TextFormatter &out) {
 			float values[4] = {value.x, value.y, value.z, value.w};
-			toStringFloat(values, out);
+			doublesToString(makeRange(values), out);
 		}
 
 		void toString(const FRect &rect, TextFormatter &out) {
 			float values[4] = {rect.min.x, rect.min.y, rect.max.x, rect.max.y};
-			toStringFloat(values, out);
+			doublesToString(makeRange(values), out);
 		}
 
 		void toString(const IRect &rect, TextFormatter &out) {
@@ -184,14 +200,16 @@ namespace xml_conversions {
 
 		void toString(const FBox &box, TextFormatter &out) {
 			float values[6] = {box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z};
-			toStringFloat(values, out);
+			doublesToString(makeRange(values), out);
 		}
 
 		void toString(const Matrix4 &value, TextFormatter &out) {
-			toStringFloat(CRange<float>(&value[0].x, 16), out);
+			doublesToString(CRange<float>(&value[0].x, 16), out);
 		}
 
-		void toString(const Quat &value, TextFormatter &out) { toStringFloat(value.v, out); }
+		void toString(const Quat &value, TextFormatter &out) {
+			doublesToString(makeRange(value.v), out);
+		}
 	}
 }
 }
