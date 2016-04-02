@@ -26,6 +26,7 @@
 #endif
 
 #include <boost/preprocessor/list/to_tuple.hpp>
+#include <boost/preprocessor/list/transform.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
 
 #include <boost/optional.hpp>

@@ -55,7 +55,7 @@ MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
 LIBS=freetype2 sdl2 libpng vorbisfile
-LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt -fopenmp
+LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt
 MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32\
 		   -lws2_32 -limagehlp
 
