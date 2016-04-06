@@ -772,8 +772,8 @@ class Renderer2D : public MatrixStack {
 	void addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>,
 				 const SimpleMaterial &material);
 
-	void setScissorRect(IRect);
-	void disableScissorRect();
+	Maybe<IRect> scissorRect() const;
+	void setScissorRect(Maybe<IRect>);
 
 	void clear();
 	const IRect &viewport() const { return m_viewport; }

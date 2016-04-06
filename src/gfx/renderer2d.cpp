@@ -186,15 +186,23 @@ void Renderer2D::addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<FC
 	elem.num_indices += num_tris * 3;
 }
 
-void Renderer2D::setScissorRect(IRect rect) {
+Maybe<IRect> Renderer2D::scissorRect() const {
+	if(m_current_scissor_rect != -1)
+		return m_scissor_rects[m_current_scissor_rect];
+	return none;
+}
+
+void Renderer2D::setScissorRect(Maybe<IRect> rect) {
+	if(!rect) {
+		m_current_scissor_rect = -1;
+		return;
+	}
 	if(m_scissor_rects.empty() || m_current_scissor_rect == -1 ||
-	   m_scissor_rects[m_current_scissor_rect] != rect) {
-		m_scissor_rects.emplace_back(rect);
+	   m_scissor_rects[m_current_scissor_rect] != *rect) {
+		m_scissor_rects.emplace_back(*rect);
 		m_current_scissor_rect = (int)m_scissor_rects.size() - 1;
 	}
 }
-
-void Renderer2D::disableScissorRect() { m_current_scissor_rect = -1; }
 
 void Renderer2D::clear() {
 	m_positions.clear();
