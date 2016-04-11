@@ -199,6 +199,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 
 	for(auto &glyph : out.m_glyphs)
 		glyph.second.offset.y -= out.m_max_rect.min.y;
+	out.computeRect();
 
 	// TODO: optimize
 	if(FT_HAS_KERNING(face))

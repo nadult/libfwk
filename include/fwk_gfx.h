@@ -932,7 +932,7 @@ class FontCore : public immutable_base<FontCore> {
 		short x_advance;
 	};
 
-	IRect evalExtents(const wstring &, bool exact = false) const;
+	IRect evalExtents(const wstring &) const;
 	int lineHeight() const { return m_line_height; }
 
   private:
@@ -979,12 +979,8 @@ class Font {
 	auto core() const { return m_core; }
 	auto texture() const { return m_texture; }
 
-	IRect evalExtents(const wstring &text, bool exact = false) const {
-		return m_core->evalExtents(text, exact);
-	}
-	IRect evalExtents(StringRef text, bool exact = false) const {
-		return m_core->evalExtents(toWideString(text), exact);
-	}
+	IRect evalExtents(const wstring &text) const { return m_core->evalExtents(text); }
+	IRect evalExtents(StringRef text) const { return m_core->evalExtents(toWideString(text)); }
 	int lineHeight() const { return m_core->lineHeight(); }
 
   private:

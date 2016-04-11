@@ -16,6 +16,8 @@
 - DEFINE_ENUM in class scope
 - Hide HAlign, VAlign inside fontstyle?
 - removeIndicies should use materialset
+- make makeUnique not use resize (use erase)
+- setscissorrect should check if rect is empty or not
 
 - more todos in the code
 - texture should use int2 instead of width, height

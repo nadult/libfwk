@@ -84,11 +84,11 @@ void FontCore::computeRect() {
 	}
 }
 
-IRect FontCore::evalExtents(const wstring &text, bool exact) const {
+IRect FontCore::evalExtents(const wstring &text) const {
 	IRect rect(0, 0, 0, 0);
 	int2 pos(0, 0);
 
-	if(text.empty() && !exact) {
+	if(text.empty()) {
 		rect = m_max_rect;
 		rect.setWidth(0);
 	}
@@ -108,13 +108,8 @@ IRect FontCore::evalExtents(const wstring &text, bool exact) const {
 
 		const Glyph &glyph = char_it->second;
 
-		IRect new_rect;
-		if(exact) {
-			new_rect = IRect(pos + glyph.offset, pos + glyph.offset + glyph.size);
-		} else {
-			new_rect = m_max_rect + pos;
-			new_rect.setWidth(text[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x);
-		}
+		IRect new_rect = m_max_rect + pos;
+		new_rect.setWidth(text[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x);
 
 		rect = n == 0 ? new_rect : rect + new_rect;
 		if(n + 1 < (int)text.size()) {
@@ -191,7 +186,7 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 				 const wstring &text) const {
 	float2 pos = rect.min;
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
-		FRect extents = (FRect)m_core->evalExtents(text, true);
+		FRect extents = (FRect)m_core->evalExtents(text);
 		float2 center = rect.center() - extents.center();
 
 		pos.x = style.halign == HAlign::left ? rect.min.x : style.halign == HAlign::center
