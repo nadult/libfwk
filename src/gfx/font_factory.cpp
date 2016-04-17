@@ -112,7 +112,7 @@ static Texture makeTextureAtlas(vector<pair<FontCore::Glyph, Texture>> &glyphs, 
 		return makeTextureAtlas(glyphs, new_atlas_size);
 	}
 
-	Texture atlas(atlas_size.x, atlas_size.y);
+	Texture atlas(atlas_size);
 	atlas.fill(ColorId::transparent);
 
 	for(int g = 0; g < (int)glyphs.size(); g++) {
@@ -158,7 +158,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 
 		auto const &bitmap = glyph->bitmap;
 
-		Texture tex(lcd_mode ? bitmap.width / 3 : bitmap.width, bitmap.rows);
+		Texture tex(int2(lcd_mode ? bitmap.width / 3 : bitmap.width, bitmap.rows));
 
 		for(int y = 0; y < tex.height(); y++) {
 			IColor *dst = tex.line(y);

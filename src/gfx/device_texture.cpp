@@ -101,7 +101,7 @@ void DTexture::upload(Format format, const void *pixels, const int2 &size, const
 void DTexture::download(Texture &target) const {
 	bind();
 	DASSERT(m_format == target.format());
-	target.resize(m_size.x, m_size.y);
+	target.resize(m_size);
 	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), target.data());
 }
 

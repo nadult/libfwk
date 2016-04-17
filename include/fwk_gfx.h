@@ -127,13 +127,13 @@ struct HeightMap16bit {
 class Texture {
   public:
 	// TODO: make it initialize with black or something by default
-	Texture(int width, int height);
+	Texture(int2);
 	Texture(Stream &);
 	Texture();
 
 	// data is not preserved
 	// TODO: it should be or else remove this function
-	void resize(int width, int height);
+	void resize(int2);
 	void clear();
 	void fill(IColor);
 	void blit(const Texture &src, int2 target_pos);

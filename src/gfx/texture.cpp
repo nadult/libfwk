@@ -12,13 +12,13 @@
 
 namespace fwk {
 
-Texture::Texture() : m_size(0, 0) {}
-Texture::Texture(int w, int h) : m_data(w * h), m_size(w, h) {}
+Texture::Texture() {}
+Texture::Texture(int2 size) : m_data(size.x * size.y), m_size(size) {}
 Texture::Texture(Stream &sr) : Texture() { load(sr); }
 
-void Texture::resize(int w, int h) {
-	m_size = int2(w, h);
-	m_data.resize(w * h);
+void Texture::resize(int2 size) {
+	m_size = size;
+	m_data.resize(size.x * size.y);
 }
 
 void Texture::swap(Texture &tex) {
@@ -27,13 +27,13 @@ void Texture::swap(Texture &tex) {
 }
 
 void Texture::clear() {
-	m_size = int2(0, 0);
+	m_size = int2();
 	m_data.clear();
 }
 
 void Texture::fill(IColor color) {
-	for(int n = 0; n < m_data.size(); n++)
-		m_data[n] = color;
+	for(auto &col : m_data)
+		col = color;
 }
 
 void Texture::blit(Texture const &src, int2 dst_pos) {
