@@ -37,13 +37,48 @@ FColor desaturate(FColor col, float value) {
 	return lerp(col, FColor(avg, avg, avg, col.a), value);
 }
 
-FColor SRGBToLinear(const FColor &c) {
+FColor srgbToLinear(const FColor &c) {
 	float exp = 2.2;
 	return FColor(powf(c.r, exp), powf(c.g, exp), powf(c.b, exp), c.a);
 }
 
-FColor linearToSRGB(const FColor &c) {
+FColor linearToSrgb(const FColor &c) {
 	float exp = 1.0f / 2.2f;
 	return FColor(powf(c.r, exp), powf(c.g, exp), powf(c.b, exp), c.a);
+}
+
+// Source: blender
+float3 hsvToRgb(float3 hsv) {
+	float nr = fabsf(hsv[0] * 6.0f - 3.0f) - 1.0f;
+	float ng = 2.0f - fabsf(hsv[0] * 6.0f - 2.0f);
+	float nb = 2.0f - fabsf(hsv[0] * 6.0f - 4.0f);
+
+	nr = clamp(nr, 0.0f, 1.0f);
+	nb = clamp(nb, 0.0f, 1.0f);
+	ng = clamp(ng, 0.0f, 1.0f);
+
+	return float3(((nr - 1.0f) * hsv[1] + 1.0f) * hsv[2], ((ng - 1.0f) * hsv[1] + 1.0f) * hsv[2],
+				  ((nb - 1.0f) * hsv[1] + 1.0f) * hsv[2]);
+}
+
+float3 rgbToHsv(float3 rgb) {
+	float k = 0.0f;
+
+	if(rgb[1] < rgb[2]) {
+		swap(rgb[1], rgb[2]);
+		k = -1.0f;
+	}
+
+	float min_gb = rgb[2];
+	if(rgb[0] < rgb[1]) {
+		swap(rgb[0], rgb[1]);
+		k = -2.0f / 6.0f - k;
+		min_gb = min(rgb[1], rgb[2]);
+	}
+
+	float chroma = rgb[0] - min_gb;
+
+	return float3(fabsf(k + (rgb[1] - rgb[2]) / (6.0f * chroma + 1e-20f)),
+				  chroma / (rgb[0] + 1e-20f), rgb[0]);
 }
 }

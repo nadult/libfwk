@@ -51,8 +51,11 @@ struct FColor {
 
 FColor mulAlpha(FColor color, float alpha);
 FColor desaturate(FColor col, float value);
-FColor SRGBToLinear(const FColor &);
-FColor linearToSRGB(const FColor &);
+FColor srgbToLinear(const FColor &);
+FColor linearToSrgb(const FColor &);
+float3 hsvToRgb(float3);
+float3 rgbToHsv(float3);
+inline float3 rgbToHsv(const FColor &col) { return rgbToHsv(col.rgb()); }
 
 struct IColor {
 	IColor(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
