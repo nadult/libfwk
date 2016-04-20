@@ -18,9 +18,8 @@ Mesh Mesh::makeRect(const FRect &xz_rect, float y) {
 }
 
 Mesh Mesh::makeBBox(const FBox &bbox) {
-	float3 corners[8];
+	auto corners = bbox.corners();
 	float2 uvs[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-	bbox.getCorners(corners);
 
 	int order[] = {1, 3, 2, 0, 1, 0, 4, 5, 5, 4, 6, 7, 3, 1, 5, 7, 2, 6, 4, 0, 3, 7, 6, 2};
 

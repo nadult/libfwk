@@ -51,11 +51,7 @@ bool Frustum::isIntersecting(CRange<float3> points) const {
 	return true;
 }
 
-bool Frustum::isIntersecting(const FBox &box) const {
-	float3 points[8];
-	box.getCorners(points);
-	return isIntersecting(points);
-}
+bool Frustum::isIntersecting(const FBox &box) const { return isIntersecting(box.corners()); }
 
 const Frustum operator*(const Matrix4 &matrix, const Frustum &frustum) {
 	Frustum out;

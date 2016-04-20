@@ -6,23 +6,7 @@
 
 namespace fwk {
 
-template <class TVec2> Rect<TVec2>::Rect(CRange<Vec2> range) {
-	if(range.empty())
-		return;
-
-	min = max = range[0];
-	for(int n = 1; n < range.size(); n++) {
-		min = fwk::min(min, range[n]);
-		max = fwk::max(max, range[n]);
-	}
-}
-
-template <class TVec2> void Rect<TVec2>::getCorners(Range<Vec2, 4> corners) const {
-	corners[0] = min;
-	corners[1] = Vec2(min.x, max.y);
-	corners[2] = max;
-	corners[3] = Vec2(max.x, min.y);
-}
+template <class TVec2> Rect<TVec2>::Rect(CRange<Vec2> range) { *this = minMax(range); }
 
 bool areAdjacent(const IRect &a, const IRect &b) {
 	if(b.min.x < a.max.x && a.min.x < b.max.x)

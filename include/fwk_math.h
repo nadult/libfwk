@@ -381,10 +381,10 @@ template <class TVec2> struct Rect {
 	using Scalar = typename TVec2::Scalar;
 
 	template <class TTVec2>
-	explicit Rect(const Rect<TTVec2> &other)
-		: min(other.min), max(other.max) {}
+	explicit Rect(const Rect<TTVec2> &other) : min(other.min), max(other.max) {}
 	explicit Rect(Vec2 size) : min(0, 0), max(size) {}
 	Rect(Vec2 min, Vec2 max) : min(min), max(max) {}
+	Rect(const pair<Vec2, Vec2> &min_max) : min(min_max.first), max(min_max.second) {}
 	Rect(Scalar minX, Scalar minY, Scalar maxX, Scalar maxY) : min(minX, minY), max(maxX, maxY) {}
 	Rect(CRange<Vec2>);
 	Rect() = default;
@@ -416,7 +416,7 @@ template <class TVec2> struct Rect {
 
 	// Returns corners in clockwise order
 	// TODO: CW or CCW depends on handeness...
-	void getCorners(Range<Vec2, 4>) const;
+	array<Vec2, 4> corners() const { return {{min, Vec2(min.x, max.y), max, Vec2(max.x, min.y)}}; }
 
 	bool empty() const { return max.x <= min.x || max.y <= min.y; }
 
@@ -471,10 +471,10 @@ template <class TVec3> struct Box {
 	using Scalar = typename TVec3::Scalar;
 
 	template <class TTVec3>
-	explicit Box(const Box<TTVec3> &other)
-		: min(other.min), max(other.max) {}
+	explicit Box(const Box<TTVec3> &other) : min(other.min), max(other.max) {}
 	explicit Box(Vec3 size) : min(0, 0, 0), max(size) {}
 	Box(Vec3 min, Vec3 max) : min(min), max(max) {}
+	Box(const pair<Vec3, Vec3> &min_max) : min(min_max.first), max(min_max.second) {}
 	Box(Scalar minX, Scalar minY, Scalar minZ, Scalar maxX, Scalar maxY, Scalar maxZ)
 		: min(minX, minY, minZ), max(maxX, maxY, maxZ) {}
 	Box(CRange<Vec3>);
@@ -500,7 +500,15 @@ template <class TVec3> struct Box {
 			   point.z >= min.z && point.z < max.z;
 	}
 
-	void getCorners(Range<Vec3, 8>) const;
+	array<Vec3, 8> corners() const {
+		array<Vec3, 8> out;
+		for(int n = 0; n < 8; n++) {
+			out[n].x = (n & 4 ? min : max).x;
+			out[n].y = (n & 2 ? min : max).y;
+			out[n].z = (n & 1 ? min : max).z;
+		}
+		return out;
+	}
 
 	const Rect<Vec2> xz() const { return Rect<Vec2>(min.xz(), max.xz()); }
 	const Rect<Vec2> xy() const { return Rect<Vec2>(min.xy(), max.xy()); }
@@ -536,7 +544,6 @@ template <class TVec3> const Box<TVec3> intersection(const Box<TVec3> &a, const 
 }
 
 const Box<int3> enclosingIBox(const Box<float3> &);
-const Box<float3> rotateY(const Box<float3> &box, const float3 &origin, float angle);
 
 bool areOverlapping(const Box<float3> &a, const Box<float3> &b);
 bool areOverlapping(const Box<int3> &a, const Box<int3> &b);
@@ -630,7 +637,7 @@ class Matrix4 {
 
 	const Matrix4 operator+(const Matrix4 &) const;
 	const Matrix4 operator-(const Matrix4 &) const;
-	const Matrix4 operator*(float) const;
+	const Matrix4 operator*(float)const;
 
   protected:
 	float4 v[4];
@@ -702,7 +709,7 @@ class Quat : public float4 {
 	operator Matrix3() const;
 	operator AxisAngle() const;
 
-	const Quat operator*(const Quat &) const;
+	const Quat operator*(const Quat &)const;
 };
 
 inline float dot(const Quat &lhs, const Quat &rhs) { return dot(float4(lhs), float4(rhs)); }

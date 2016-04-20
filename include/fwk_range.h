@@ -72,10 +72,10 @@ template <class T, int min_size = 0> class Range {
 	}
 	Range(vector_type &vec) : Range(vec.data(), vec.size(), NoAsserts()) {}
 	Range(pod_array_type &array) : Range(array.data(), array.size(), NoAsserts()) {}
-	template <int N> Range(value_type(&array)[N]) : m_data(array), m_size(N) {
+	template <int N> Range(value_type (&array)[N]) : m_data(array), m_size(N) {
 		static_assert(N >= min_size, "Array too small");
 	}
-	template <int N> Range(const value_type(&array)[N]) : m_data(array), m_size(N) {
+	template <int N> Range(const value_type (&array)[N]) : m_data(array), m_size(N) {
 		static_assert(N >= min_size, "Array too small");
 	}
 	template <size_t N> Range(array<value_type, N> &arr) : m_data(arr.data()), m_size(N) {
@@ -88,8 +88,7 @@ template <class T, int min_size = 0> class Range {
 		static_assert(min_size == 0, "Cannot construct empty range with minimum size > 0");
 	}
 	template <int other_size>
-	Range(Range<T, other_size> range)
-		: m_data(range.data()), m_size(range.size()) {
+	Range(Range<T, other_size> range) : m_data(range.data()), m_size(range.size()) {
 		static_assert(other_size >= min_size, "Range too small");
 	}
 
@@ -127,7 +126,7 @@ template <class T, int min_size = 0> using CRange = Range<const T, min_size>;
 template <class T> struct IsRange {
 	template <class T1,
 			  typename Base = typename std::remove_pointer<decltype(((T1 *)nullptr)->data())>::type,
-			  typename TRange = decltype(Range<Base>(*(T1 *) nullptr))>
+			  typename TRange = decltype(Range<Base>(*(T1 *)nullptr))>
 	constexpr static bool converts(T1 *) {
 		return true;
 	}
@@ -160,7 +159,9 @@ template <class T> auto makeRange(std::initializer_list<T> list) {
 	return CRange<T>(list.begin(), list.end());
 }
 
-template <class T, size_t N> auto makeRange(T(&array)[N]) { return CRange<T, N>(array, array + N); }
+template <class T, size_t N> auto makeRange(T (&array)[N]) {
+	return CRange<T, N>(array, array + N);
+}
 
 template <class Container> auto makeConstRange(const Container &container) {
 	auto range = makeRange(container);
@@ -280,6 +281,19 @@ template <class Range, class Func> auto findMax(const Range &range, const Func &
 
 	return make_pair(best_index, best_val);
 }
+
+template <class T> pair<T, T> minMax(CRange<T> range) {
+	if(range.empty())
+		return make_pair(T(), T());
+	T tmin = range[0], tmax = range[0];
+	for(int n = 1; n < range.size(); n++) {
+		tmin = min(tmin, range[n]);
+		tmax = max(tmax, range[n]);
+	}
+	return make_pair(tmin, tmax);
+}
+
+template <class TRange> auto minMax(const TRange &range) { return minMax(makeRange(range)); }
 
 template <class T1, class Range> void insertBack(vector<T1> &into, const Range &from) {
 	into.insert(end(into), begin(from), end(from));

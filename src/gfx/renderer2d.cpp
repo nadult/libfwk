@@ -85,26 +85,18 @@ Renderer2D::Element &Renderer2D::makeElement(PrimitiveType primitive_type,
 
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<FColor, 4> colors,
 							   const SimpleMaterial &material) {
-	float2 pos[4], tex_coords[4];
-	rect.getCorners(pos);
-	tex_rect.getCorners(tex_coords);
-	addQuads(pos, tex_coords, colors, material);
+	addQuads(rect.corners(), tex_rect.corners(), colors, material);
 }
 
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect,
 							   const SimpleMaterial &material) {
-	float2 pos[4], tex_coords[4];
-	rect.getCorners(pos);
-	tex_rect.getCorners(tex_coords);
-	addQuads(pos, tex_coords, {}, material);
+	addQuads(rect.corners(), tex_rect.corners(), {}, material);
 }
 
 void Renderer2D::addRect(const FRect &rect, FColor color) {
-	float2 pos[4];
-	rect.getCorners(pos);
 	Element &elem = makeElement(PrimitiveType::lines, PTexture());
 	int vertex_offset = (int)m_positions.size();
-	appendVertices(pos, {}, {}, color);
+	appendVertices(rect.corners(), {}, {}, color);
 
 	const int num_indices = 8;
 	int indices[num_indices] = {0, 1, 1, 2, 2, 3, 3, 0};

@@ -58,9 +58,7 @@ void LineBuffer::add(CRange<Segment> segs, PMaterial material, const Matrix4 &ma
 }
 
 void LineBuffer::addBox(const FBox &bbox, IColor color, const Matrix4 &matrix) {
-	float3 verts[8];
-	bbox.getCorners(verts);
-
+	auto verts = bbox.corners();
 	int indices[] = {0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 4, 1, 5, 3, 7, 2, 6};
 	float3 out_verts[arraySize(indices)];
 	for(int i = 0; i < arraySize(indices); i++)
