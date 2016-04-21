@@ -5,17 +5,17 @@
 #ifndef FWK_BASE_H
 #define FWK_BASE_H
 
-#include <vector>
-#include <array>
-#include <string>
-#include <exception>
-#include <type_traits>
-#include <memory>
-#include <map>
-#include <cstring>
-#include <cstdlib>
 #include <algorithm>
+#include <array>
 #include <atomic>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <map>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 #ifndef BOOST_PP_VARIADICS
 #define BOOST_PP_VARIADICS 1
@@ -358,7 +358,7 @@ template <class T> inline T min(T a, T b) { return b < a ? b : a; }
 
 template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
-template <class T, int size> constexpr int arraySize(T(&)[size]) noexcept { return size; }
+template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
 
 void logError(const string &error);
 
@@ -740,19 +740,19 @@ class Stream {
 	};
 
 	template <class T, int tsize, bool pod> struct Serialization<T[tsize], pod> {
-		static void doLoad(T(&obj)[tsize], Stream &sr) {
+		static void doLoad(T (&obj)[tsize], Stream &sr) {
 			for(size_t n = 0; n < tsize; n++)
 				obj[n].load(sr);
 		};
-		static void doSave(const T(&obj)[tsize], Stream &sr) {
+		static void doSave(const T (&obj)[tsize], Stream &sr) {
 			for(size_t n = 0; n < tsize; n++)
 				obj[n].save(sr);
 		};
 	};
 
 	template <class T, int tsize> struct Serialization<T[tsize], true> {
-		static void doLoad(T(&obj)[tsize], Stream &sr) { sr.loadData(&obj[0], sizeof(T) * tsize); }
-		static void doSave(const T(&obj)[tsize], Stream &sr) {
+		static void doLoad(T (&obj)[tsize], Stream &sr) { sr.loadData(&obj[0], sizeof(T) * tsize); }
+		static void doSave(const T (&obj)[tsize], Stream &sr) {
 			sr.saveData(&obj[0], sizeof(T) * tsize);
 		}
 	};
@@ -1211,6 +1211,7 @@ string simpleFormat(const char *format, const vector<string> &args);
 
 struct ListNode {
 	ListNode() : next(-1), prev(-1) {}
+	bool empty() const { return next == -1 && prev == -1; }
 
 	int next, prev;
 };
@@ -1236,9 +1237,8 @@ int freeListAlloc(Container &container, List &free_list) __attribute__((noinline
 // Assumes that node is disconnected
 template <class Object, ListNode Object::*member, class Container>
 void listInsert(Container &container, List &list, int idx) {
-	DASSERT(idx >= 0 && idx < (int)container.size());
 	ListNode &node = container[idx].*member;
-	DASSERT(node.prev == -1 && node.next == -1);
+	DASSERT(node.empty());
 
 	node.next = list.head;
 	if(list.head == -1)
@@ -1251,7 +1251,6 @@ void listInsert(Container &container, List &list, int idx) {
 // Assumes that node is on this list
 template <class Object, ListNode Object::*member, class Container>
 void listRemove(Container &container, List &list, int idx) {
-	DASSERT(idx >= 0 && idx < (int)container.size());
 	ListNode &node = container[idx].*member;
 	int prev = node.prev, next = node.next;
 

@@ -175,7 +175,7 @@ FilePath FilePath::relative(const FilePath &ref) const {
 
 	FilePath out;
 	out.construct(oelems);
-	return move(out);
+	return out;
 }
 
 bool FilePath::isRelative(const FilePath &ref) const {
@@ -200,7 +200,7 @@ FilePath FilePath::parent() const { return *this / ".."; }
 FilePath FilePath::operator/(const FilePath &other) const {
 	FilePath out = *this;
 	out /= other;
-	return move(out);
+	return out;
 }
 
 FilePath &FilePath::operator/=(const FilePath &other) {
@@ -236,7 +236,7 @@ bool removePrefix(string &str, const string &prefix) {
 string toLower(const string &str) {
 	string out(str);
 	std::transform(out.begin(), out.end(), out.begin(), ::tolower);
-	return move(out);
+	return out;
 }
 
 bool access(const FilePath &path) {
