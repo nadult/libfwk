@@ -1,3 +1,4 @@
+- Renderer2D cant handle more than 64K indices
 - Fix copyrights
 - Add FATAL (kills app and prints bactrace immediately)
 - Rename InputEvent::***Event -> InputEvent::***
@@ -7,7 +8,6 @@
 - saving/loading Mesh colors to XML
 - Separate model matrix from view matrix in MatrixStack?
 - MemorySaver should increase it's size if necessary
-- show rare profiles at the end
 - add StrongBaseType<> class
 - additional isnan checks?
 - add clang's small vector

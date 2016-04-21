@@ -3,9 +3,10 @@
    This file is part of libfwk. */
 
 #include "fwk_profile.h"
+
 #include "fwk_opengl.h"
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 
 namespace fwk {
 
@@ -41,9 +42,10 @@ void Profiler::updateTimer(const char *id, double start_time, double end_time, b
 	timer.is_rare = is_rare;
 
 	double time = end_time - start_time;
-	if(is_rare)
+	if(is_rare) {
 		timer.values.emplace_back(m_frame_count, time);
-	else
+		timer.last_frame_time = -end_time;
+	} else
 		timer.last_frame_time += time;
 }
 
@@ -79,6 +81,7 @@ const string Profiler::getStats(const char *filter) {
 	double cur_time = getTime();
 	long long min_frame = m_frame_limit - 30;
 
+	vector<pair<bool, string>> lines;
 	for(auto &timer : m_timers) {
 		double shown_value = 0.0;
 		if(timer.last_frame_time > 0.0) {
@@ -92,6 +95,8 @@ const string Profiler::getStats(const char *filter) {
 		}
 
 		if(timer.is_rare) {
+			if(cur_time - (-timer.last_frame_time) > 10.0)
+				continue;
 			shown_value = timer.values.back().second;
 		} else {
 			double sum = 0.0, count = 0.0;
@@ -112,24 +117,32 @@ const string Profiler::getStats(const char *filter) {
 		double ms = shown_value * 1000.0;
 		double us = ms * 1000.0;
 		bool print_ms = ms > 0.5;
-		out("%s: %.2f %s\n", timer.name.c_str(), print_ms ? ms : us, print_ms ? "ms" : "us");
+		lines.emplace_back(timer.is_rare, format("%s: %.2f %s\n", timer.name.c_str(),
+												 print_ms ? ms : us, print_ms ? "ms" : "us"));
 	}
 
 	for(const auto &counter : m_counters) {
 		if(counter.name.find(filter) != string::npos) {
 			bool in_kilos = counter.value > 1000 * 10;
-			out("%s: %lld%s\n", counter.name.c_str(),
-				in_kilos ? (counter.value + 500) / 1000 : counter.value, in_kilos ? "k" : "");
+			lines.emplace_back(false,
+							   format("%s: %lld%s\n", counter.name.c_str(),
+									  in_kilos ? (counter.value + 500) / 1000 : counter.value,
+									  in_kilos ? "k" : ""));
 		}
 	}
+
+	makeSorted(lines);
+	for(auto &pair : lines)
+		out("%s", pair.second.c_str());
+	lines.clear();
 
 	return out.text();
 }
 
-ScopedProfile::ScopedProfile(const char *id, bool is_rare, bool is_opengl)
-	: id(id), is_rare(is_rare), is_opengl(is_opengl) {
+ScopedProfile::ScopedProfile(const char *id, uint flags, double min_time)
+	: min_time(min_time), id(id), flags(flags) {
 	if(Profiler::instance()) {
-		if(is_opengl)
+		if(flags & ProfileFlag::opengl)
 			Profiler::openglFinish();
 		start_time = Profiler::getTime();
 	}
@@ -137,9 +150,12 @@ ScopedProfile::ScopedProfile(const char *id, bool is_rare, bool is_opengl)
 
 ScopedProfile::~ScopedProfile() {
 	if(auto *profiler = Profiler::instance()) {
-		if(is_opengl)
+		auto cur_time = Profiler::getTime();
+		if(cur_time - start_time < min_time)
+			return;
+		if(flags & ProfileFlag::opengl)
 			Profiler::openglFinish();
-		profiler->updateTimer(id, start_time, Profiler::getTime(), is_rare);
+		profiler->updateTimer(id, start_time, cur_time, flags & ProfileFlag::rare);
 	}
 }
 }

@@ -9,6 +9,13 @@
 
 namespace fwk {
 
+namespace ProfileFlag {
+	enum Type {
+		opengl = 1,
+		rare = 2,
+	};
+};
+
 class Profiler {
   public:
 	Profiler();
@@ -51,12 +58,12 @@ class Profiler {
 };
 
 struct ScopedProfile {
-	ScopedProfile(const char *id, bool is_rare, bool is_opengl);
+	ScopedProfile(const char *id, uint flags = 0, double min_time = 0.0);
 	~ScopedProfile();
 
-	double start_time;
+	double start_time, min_time;
 	const char *id;
-	bool is_rare, is_opengl;
+	uint flags;
 };
 
 #ifdef DISABLE_PROFILER
@@ -67,9 +74,10 @@ struct ScopedProfile {
 
 #else
 
-#define FWK_PROFILE(id) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, false, false)
-#define FWK_PROFILE_RARE(id) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, true, false)
-#define FWK_PROFILE_OPENGL(id) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, false, true)
+#define FWK_PROFILE(...) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(__VA_ARGS__)
+#define FWK_PROFILE_RARE(id) fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, ProfileFlag::rare)
+#define FWK_PROFILE_OPENGL(id)                                                                     \
+	fwk::ScopedProfile FWK_PROFILE_NAME(__LINE__)(id, ProfileFlag::opengl)
 
 #define FWK_PROFILE_NAME(a) FWK_PROFILE_NAME_(a)
 #define FWK_PROFILE_NAME_(a) timer##a
