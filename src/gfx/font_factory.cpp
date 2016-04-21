@@ -25,7 +25,7 @@ FontFactory::~FontFactory() = default;
 Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	// TODO: add support for freetype / somehow use html fonts
 	FontCore core;
-	return Font(PFontCore(move(core)), make_immutable<DTexture>(Texture(2, 2)));
+	return Font(PFontCore(move(core)), make_immutable<DTexture>(Texture({2, 2})));
 }
 }
 
@@ -36,10 +36,10 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 #include FT_FREETYPE_H
 #endif
 
+#include <algorithm>
+#include <cstdarg>
 #include <cstring>
 #include <cwchar>
-#include <cstdarg>
-#include <algorithm>
 
 namespace fwk {
 
