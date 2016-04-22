@@ -3,26 +3,26 @@
    This file is part of libfwk. */
 
 #include "fwk_base.h"
-#include <cstdio>
-#include <stdarg.h>
-#include <cstring>
-#include <cstdlib>
 #include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <stdarg.h>
 
 #ifdef FWK_TARGET_MINGW
 #include <ctime>
 #include <windows.h>
 #else
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #endif
 
 #ifdef FWK_TARGET_LINUX
-#include <execinfo.h>
 #include <dlfcn.h>
+#include <execinfo.h>
 #endif
 
 #ifdef FWK_TARGET_HTML5
@@ -238,11 +238,10 @@ const char *Exception::what() const noexcept {
 }
 
 void throwException(const char *file, int line, const char *fmt, ...) {
-	char new_fmt[2048];
+	char new_fmt[1024];
 	snprintf(new_fmt, sizeof(new_fmt), "%s:%d: %s", file, line, fmt);
 
-	// TODO: support custom types, like vector
-	char buffer[2048];
+	char buffer[4096];
 	va_list ap;
 	va_start(ap, fmt);
 	vsnprintf(buffer, sizeof(buffer), new_fmt, ap);
@@ -257,9 +256,34 @@ void throwException(const char *file, int line, const char *fmt, ...) {
 #endif
 }
 
-void doAssert(const char *file, int line, const char *text) {
-	char buffer[2048];
-	snprintf(buffer, sizeof(buffer), "%s:%d: Assertion failed: %s", file, line, text);
+void fatalError(const char *file, int line, const char *fmt, ...) {
+	char new_fmt[1024];
+	snprintf(new_fmt, sizeof(new_fmt), "%s:%d: %s", file, line, fmt);
+
+	char buffer[4096];
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(buffer, sizeof(buffer), new_fmt, ap);
+	va_end(ap);
+
+#ifdef FWK_TARGET_HTML5
+	printf("%s\n", buffer);
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_force_exit(1);
+#else
+	auto bt = Backtrace::get(1).analyze(true);
+	printf("%s\nBacktrace:\n%s", buffer, bt.c_str());
+	exit(1);
+#endif
+}
+
+void assertFailed(const char *file, int line, const char *text) {
+	fatalError(file, line, "Assertion failed: %s", text);
+}
+
+void checkFailed(const char *file, int line, const char *text) {
+	char buffer[1024];
+	snprintf(buffer, sizeof(buffer), "%s:%d: Check failed: %s", file, line, text);
 #ifdef FWK_TARGET_HTML5
 	printf("%s\n", buffer);
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);

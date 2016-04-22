@@ -112,7 +112,7 @@ template <class T, int min_size = 0> class Range {
 	bool empty() const noexcept { return m_size == 0; }
 
 	T &operator[](int idx) const {
-		DASSERT(idx >= 0 && idx < m_size);
+		PASSERT(idx >= 0 && idx < m_size);
 		return m_data[idx];
 	}
 

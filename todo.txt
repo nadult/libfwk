@@ -1,6 +1,9 @@
+- Remove LinkedVector
+- Add asserts ASSERT_NE _LT, etc.
+- Make noexcept vector? noexcept by default?
+
 - Renderer2D cant handle more than 64K indices
 - Fix copyrights
-- Add FATAL (kills app and prints bactrace immediately)
 - Rename InputEvent::***Event -> InputEvent::***
 - support for multiple armatures in exporter; support for animation without armatures
 - make AnimaedMesh similar to AnimatedModel
@@ -27,8 +30,6 @@
 
 - __attribute__((cold)) on throwException (all code that leads to it
   should be inside cold section)
-- Separate ASSERTS which throw (asserts that validate input) from ASSERTS which doesn't (verifying program correctness)
-- Add asserts ASSERT_NE _LT, etc.
 - clamp doesn't work properly when max < min
 
 - consider using Niebler's ranges

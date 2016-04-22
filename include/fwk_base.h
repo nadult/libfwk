@@ -292,7 +292,9 @@ template <class... Args> auto countArguments(Args...) {
 __attribute__((__format__(__printf__, 3, 4)))
 #endif
 void throwException(const char *file, int line, const char *fmt, ...);
-void doAssert(const char *file, int line, const char *str);
+void fatalError(const char *file, int line, const char *fmt, ...);
+void assertFailed(const char *file, int line, const char *str);
+void checkFailed(const char *file, int line, const char *str);
 void handleCtrlC(void (*handler)());
 void handleSegFault();
 void sleep(double sec);
@@ -300,6 +302,7 @@ double getTime();
 
 // TODO: maybe FILE / LINE is not required if we have backtraces?
 
+#define FATAL(...) fwk::fatalError(__FILE__, __LINE__, __VA_ARGS__)
 #define THROW(...) fwk::throwException(__FILE__, __LINE__, __VA_ARGS__)
 
 // TODO: add fatal exception and use it for asserts
@@ -308,15 +311,26 @@ double getTime();
 #define ASSERT(expr)                                                                               \
 	({                                                                                             \
 		if(!(expr))                                                                                \
-			fwk::doAssert(__FILE__, __LINE__, FWK_STRINGIZE(expr));                                \
+			fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr));                            \
+	})
+
+// Use this for checking input; It will throw on error, so that recovery is possible
+#define CHECK(expr)                                                                                \
+	({                                                                                             \
+		if(!(expr))                                                                                \
+			fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr));                             \
 	})
 
 #ifdef NDEBUG
 #define DASSERT(expr) ({})
 #else
 #define DASSERT(expr) ASSERT(expr)
-// TODO: DASSERT_CLOSE_ENOUGH
-// TODO: DASSERT_EQUAL
+#endif
+
+#if defined(FWK_PARANOID) && !defined(NDEBUG)
+#define PASSERT(expr) ASSERT(expr)
+#else
+#define PASSERT(expr) ({})
 #endif
 }
 
@@ -420,7 +434,7 @@ class StringRef {
   public:
 	StringRef(const string &str) : m_data(str.c_str()), m_length((int)str.size()) {}
 	StringRef(const char *str, int length) : m_data(str ? str : ""), m_length(length) {
-		DASSERT((int)strlen(str) == length);
+		PASSERT((int)strlen(str) == length);
 	}
 	StringRef(const char *str) {
 		if(!str)
@@ -1204,7 +1218,8 @@ class TextParser {
 #ifdef __clang__
 __attribute__((__format__(__printf__, 1, 2)))
 #endif
-string format(const char *format, ...);
+string
+format(const char *format, ...);
 
 // Converting % to argument
 string simpleFormat(const char *format, const vector<string> &args);

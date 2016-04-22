@@ -109,11 +109,11 @@ pair<PModel, string> loadModel(FileType file_type, Stream &stream) {
 		XMLDocument doc;
 		stream >> doc;
 		XMLNode child = doc.child();
-		ASSERT(child && "empty XML document");
+		CHECK(child && "empty XML document");
 		out = make_pair(immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name()));
 	} else {
 		DASSERT(file_type == FileType::blender);
-		ASSERT(dynamic_cast<FileStream *>(&stream));
+		CHECK(dynamic_cast<FileStream *>(&stream));
 		string temp_file_name;
 		auto blender_result = exportFromBlender(stream.name(), temp_file_name);
 
