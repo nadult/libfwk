@@ -292,8 +292,11 @@ template <class... Args> auto countArguments(Args...) {
 __attribute__((__format__(__printf__, 3, 4)))
 #endif
 void throwException(const char *file, int line, const char *fmt, ...);
-void fatalError(const char *file, int line, const char *fmt, ...);
-void assertFailed(const char *file, int line, const char *str);
+#ifdef __clang__
+__attribute__((__format__(__printf__, 3, 4)))
+#endif
+void fatalError(const char *file, int line, const char *fmt, ...) __attribute__((noreturn));
+void assertFailed(const char *file, int line, const char *str) __attribute__((noreturn));
 void checkFailed(const char *file, int line, const char *str);
 void handleCtrlC(void (*handler)());
 void handleSegFault();

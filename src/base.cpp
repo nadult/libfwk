@@ -278,7 +278,18 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 }
 
 void assertFailed(const char *file, int line, const char *text) {
-	fatalError(file, line, "Assertion failed: %s", text);
+	char buffer[1024];
+	snprintf(buffer, sizeof(buffer), "%s:%d: Assertion failed: %s", file, line, text);
+
+#ifdef FWK_TARGET_HTML5
+	printf("%s\n", buffer);
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_force_exit(1);
+#else
+	auto bt = Backtrace::get(1).analyze(true);
+	printf("%s\nBacktrace:\n%s", buffer, bt.c_str());
+	exit(1);
+#endif
 }
 
 void checkFailed(const char *file, int line, const char *text) {
@@ -289,7 +300,7 @@ void checkFailed(const char *file, int line, const char *text) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	throw fwk::Exception(buffer);
+	throw fwk::Exception(buffer, Backtrace::get(1));
 #endif
 }
 
