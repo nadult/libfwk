@@ -1249,9 +1249,6 @@ void listInsert(Container &container, List &list, int idx) __attribute__((noinli
 template <class Object, ListNode Object::*member, class Container>
 void listRemove(Container &container, List &list, int idx) __attribute__((noinline));
 
-template <class Object, ListNode Object::*member, class Container>
-int freeListAlloc(Container &container, List &free_list) __attribute__((noinline));
-
 // Assumes that node is disconnected
 template <class Object, ListNode Object::*member, class Container>
 void listInsert(Container &container, List &list, int idx) {
@@ -1286,58 +1283,6 @@ void listRemove(Container &container, List &list, int idx) {
 		node.next = -1;
 	}
 }
-
-// Assumes that node is disconnected
-template <class Object, ListNode Object::*member, class Container>
-int freeListAlloc(Container &container, List &free_list) {
-	int idx;
-
-	if(free_list.empty()) {
-		container.emplace_back();
-		idx = (int)container.size() - 1;
-	} else {
-		idx = free_list.head;
-		listRemove<Object, member>(container, free_list, idx);
-	}
-
-	return idx;
-}
-
-template <class Object> class LinkedVector {
-  public:
-	typedef pair<ListNode, Object> Elem;
-	LinkedVector() : m_list_size(0) {}
-
-	Object &operator[](int idx) { return m_objects[idx].second; }
-	const Object &operator[](int idx) const { return m_objects[idx].second; }
-	int size() const { return m_objects.size(); }
-	int listSize() const { return m_list_size; }
-
-	int alloc() {
-		int idx = freeListAlloc<Elem, &Elem::first>(m_objects, m_free);
-		listInsert<Elem, &Elem::first>(m_objects, m_active, idx);
-		m_list_size++;
-		return idx;
-	}
-
-	void free(int idx) {
-		DASSERT(idx >= 0 && idx < (int)m_objects.size());
-		listRemove<Elem, &Elem::first>(m_objects, m_active, idx);
-		listInsert<Elem, &Elem::first>(m_objects, m_free, idx);
-		m_list_size--;
-	}
-
-	int next(int idx) const { return m_objects[idx].first.next; }
-	int prev(int idx) const { return m_objects[idx].first.prev; }
-
-	int head() const { return m_active.head; }
-	int tail() const { return m_active.tail; }
-
-  protected:
-	vector<Elem> m_objects;
-	List m_active, m_free;
-	int m_list_size;
-};
 
 // TODO: verify that it works on windows when working on different drives
 class FilePath {

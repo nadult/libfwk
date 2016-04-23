@@ -1,4 +1,3 @@
-- Remove LinkedVector
 - Add asserts ASSERT_NE _LT, etc.
 - Make noexcept vector? noexcept by default?
 
