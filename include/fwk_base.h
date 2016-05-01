@@ -606,7 +606,7 @@ class EnumMap {
 		DASSERT(values.size() == (int)m_data.size() && "Invalid number of values specified");
 		std::copy(values.begin(), values.end(), m_data.begin());
 	}
-	EnumMap(const T &default_value = T()) { m_data.fill(default_value); }
+	explicit EnumMap(const T &default_value = T()) { m_data.fill(default_value); }
 	EnumMap(std::initializer_list<pair<Enum, T>> list) : EnumMap(CRange<pair<Enum, T>>(list)) {}
 	EnumMap(std::initializer_list<pair<Enum, T>> list, T default_value)
 		: EnumMap(CRange<pair<Enum, T>>(list), default_value) {}

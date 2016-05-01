@@ -4,7 +4,6 @@
 - PodArray -> PodVector
 - Make noexcept vector? noexcept by default?
 - findMax / findMin suck; remove them?
-- explicit in EnumMap
 - use fwk::FATAL
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
