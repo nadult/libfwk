@@ -29,15 +29,13 @@
 #include <boost/preprocessor/list/transform.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
 
-#include "fwk_folly_optional.h"
-
 namespace fwk {
 
+using std::string;
 using std::array;
 using std::swap;
 using std::move;
 using std::pair;
-using std::string;
 using std::wstring;
 using std::unique_ptr;
 using std::shared_ptr;
@@ -47,8 +45,6 @@ using std::end;
 using std::make_pair;
 using std::make_shared;
 using std::make_unique;
-template <class T> using Maybe = folly::Optional<T>;
-using folly::none;
 
 // TODO: use types from cstdint
 using uint = unsigned int;
@@ -337,6 +333,7 @@ double getTime();
 #endif
 }
 
+#include "fwk_maybe.h"
 #include "fwk_range.h"
 
 namespace fwk {
