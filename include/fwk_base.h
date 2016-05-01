@@ -92,8 +92,6 @@ template <class T> class SimpleAllocator : public SimpleAllocatorBase {
 	template <class Other> bool operator==(const Other &rhs) const { return false; }
 };
 
-template <class T> using vector = std::vector<T, SimpleAllocator<T>>;
-
 template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
 
@@ -332,6 +330,8 @@ double getTime();
 #define PASSERT(expr) ({})
 #endif
 }
+
+#include "fwk_vector.h"
 
 #include "fwk_maybe.h"
 #include "fwk_range.h"

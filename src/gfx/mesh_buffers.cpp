@@ -145,7 +145,7 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	vector<IColor> out_colors(!colors.empty() ? mapping.size() : 0);
 
 	uint num_vertices = positions.size();
-	DASSERT(all_of(begin(mapping), end(mapping), [=](uint idx) { return idx < num_vertices; }));
+	DASSERT(allOf(mapping, [=](uint idx) { return idx < num_vertices; }));
 
 	for(int n = 0; n < (int)mapping.size(); n++)
 		out_positions[n] = positions[mapping[n]];
