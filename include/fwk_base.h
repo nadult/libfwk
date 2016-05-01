@@ -29,7 +29,7 @@
 #include <boost/preprocessor/list/transform.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
 
-#include <boost/optional.hpp>
+#include "fwk_folly_optional.h"
 
 namespace fwk {
 
@@ -47,8 +47,8 @@ using std::end;
 using std::make_pair;
 using std::make_shared;
 using std::make_unique;
-template <class T> using Maybe = boost::optional<T>;
-using boost::none;
+template <class T> using Maybe = folly::Optional<T>;
+using folly::none;
 
 // TODO: use types from cstdint
 using uint = unsigned int;

@@ -6,7 +6,7 @@ void testMain() {
 	ASSERT(bool() == false);
 	ASSERT(fromString<SomeEnum>("foo") == SomeEnum::foo);
 	ASSERT_EXCEPTION(fromString<SomeEnum>("something else"));
-	ASSERT(tryFromString<SomeEnum>("something else") == none);
+	ASSERT(!tryFromString<SomeEnum>("something else"));
 	ASSERT(string("foo_bar") == toString(SomeEnum::foo_bar));
 
 	EnumMap<SomeEnum, int> array{{1, 2, 3, 4}};
