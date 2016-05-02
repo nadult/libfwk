@@ -15,17 +15,17 @@ BaseVector::BaseVector(BaseVector &&rhs) : data(rhs.data), size(rhs.size), capac
 	rhs.size = rhs.capacity = 0;
 }
 
-BaseVector::BaseVector(size_t tsize, BinaryFunc copy_func, const BaseVector &rhs)
+BaseVector::BaseVector(size_t tsize, CopyFunc copy_func, const BaseVector &rhs)
 	: BaseVector(tsize, rhs.size, rhs.capacity) {
-	for(int n = 0; n < size; n++)
-		copy_func(data + tsize * n, rhs.data + tsize * n);
+	copy_func(data, rhs.data, size);
 }
 
-BaseVector::BaseVector(size_t tsize, BinaryFunc copy_func, char *ptr, int size)
+BaseVector::BaseVector(size_t tsize, CopyFunc copy_func, char *ptr, int size)
 	: BaseVector(tsize, size, size) {
-	for(int n = 0; n < size; n++)
-		copy_func(data + tsize * n, ptr + tsize * n);
+	copy_func(data, ptr, size);
 }
+
+BaseVector::~BaseVector() { free(data); }
 
 void BaseVector::swap(BaseVector &rhs) {
 	fwk::swap(data, rhs.data);
@@ -33,43 +33,36 @@ void BaseVector::swap(BaseVector &rhs) {
 	fwk::swap(capacity, rhs.capacity);
 }
 
-void BaseVector::free(size_t tsize, UnaryFunc destroy_func) {
-	for(int n = 0; n < size; n++)
-		destroy_func(data + tsize * n);
-	::free(data);
-	data = nullptr;
-	size = capacity = 0;
-}
-
 int BaseVector::newCapacity(int min) const {
 	return min > capacity * 2 ? min : (capacity == 0 ? initial_size : capacity * 2);
 }
 
-void BaseVector::reallocate(size_t tsize, BinaryFunc move_destroy_func, int new_capacity) {
+void BaseVector::reallocate(size_t tsize, MoveDestroyFunc move_destroy_func, int new_capacity) {
 	if(new_capacity <= capacity)
 		return;
 
 	BaseVector new_base(tsize, size, new_capacity);
-	for(int n = 0; n < size; n++) {
-		auto offset = tsize * n;
-		move_destroy_func(new_base.data + offset, data + offset);
-	}
+	move_destroy_func(new_base.data, data, size);
 	swap(new_base);
 }
 
-void BaseVector::resize(size_t tsize, UnaryFunc destroy_func, BinaryFunc move_destroy_func,
-						BinaryFunc copy_func, void *obj, int new_size) {
+void BaseVector::resize(size_t tsize, DestroyFunc destroy_func, MoveDestroyFunc move_destroy_func,
+						InitFunc init_func, void *obj, int new_size) {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocate(tsize, move_destroy_func, newCapacity(new_size));
 
-	while(size > new_size)
-		destroy_func(data + tsize * --size);
-	while(size < new_size)
-		copy_func(data + tsize * size++, obj);
+	if(size > new_size) {
+		destroy_func(data, size - new_size);
+		size = new_size;
+	}
+	if(size < new_size) {
+		init_func(data + tsize * size, obj, new_size - size);
+		size = new_size;
+	}
 }
 
-void BaseVector::insert(size_t tsize, BinaryFunc move_destroy_func, int index, int count) {
+void BaseVector::insert(size_t tsize, MoveDestroyFunc move_destroy_func, int index, int count) {
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
@@ -77,26 +70,23 @@ void BaseVector::insert(size_t tsize, BinaryFunc move_destroy_func, int index, i
 
 	int move_count = size - index;
 	for(int n = move_count - 1; n >= 0; n--)
-		move_destroy_func(data + tsize * (index + n + count), data + tsize * (index + n));
+		move_destroy_func(data + tsize * (index + n + count), data + tsize * (index + n), 1);
 	size = new_size;
 }
 
-void BaseVector::clear(size_t tsize, UnaryFunc destroy_func) {
-	for(int n = 0; n < size; n++)
-		destroy_func(data + tsize * n);
+void BaseVector::clear(size_t tsize, DestroyFunc destroy_func) {
+	destroy_func(data, size);
 	size = 0;
 }
 
-void BaseVector::erase(size_t tsize, UnaryFunc destroy_func, BinaryFunc move_destroy_func,
+void BaseVector::erase(size_t tsize, DestroyFunc destroy_func, MoveDestroyFunc move_destroy_func,
 					   int index, int count) {
 	DASSERT(index >= 0 && count >= 0 && index + count <= size);
 	int move_start = index + count;
 	int move_count = size - move_start;
 
-	for(int n = 0; n < count; n++)
-		destroy_func(data + tsize * (index + n));
-	for(int n = 0; n < move_count; n++)
-		move_destroy_func(data + tsize * (index + n), data + tsize * (index + count + n));
+	destroy_func(data + tsize * index, count);
+	move_destroy_func(data + tsize * index, data + tsize * (index + count), move_count);
 	size -= count;
 }
 

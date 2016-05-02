@@ -6,25 +6,27 @@ namespace fwk {
 
 class BaseVector {
   public:
-	using BinaryFunc = void (*)(void *, void *);
-	using UnaryFunc = void (*)(void *);
+	using MoveDestroyFunc = void (*)(void *, void *, int);
+	using DestroyFunc = void (*)(void *, int);
+	using InitFunc = void (*)(void *, const void *, int);
+	using CopyFunc = void (*)(void *, const void *, int);
 
 	BaseVector() : data(0), size(0), capacity(0) {}
 	BaseVector(size_t tsize, int size, int capacity);
-	BaseVector(size_t, BinaryFunc, const BaseVector &);
-	BaseVector(size_t, BinaryFunc, char *, int size);
+	BaseVector(size_t, CopyFunc, const BaseVector &);
+	BaseVector(size_t, CopyFunc, char *, int size);
 	BaseVector(BaseVector &&);
 	void swap(BaseVector &);
+	~BaseVector();
 
 	enum { initial_size = 8 };
 
 	int newCapacity(int min) const;
-	void reallocate(size_t tsize, BinaryFunc move_destroy_func, int new_capacity);
-	void clear(size_t tsize, UnaryFunc destroy_func);
-	void erase(size_t, UnaryFunc, BinaryFunc, int index, int count);
-	void free(size_t, UnaryFunc);
-	void resize(size_t, UnaryFunc, BinaryFunc, BinaryFunc, void *obj, int new_size);
-	void insert(size_t, BinaryFunc, int offset, int count);
+	void reallocate(size_t tsize, MoveDestroyFunc move_destroy_func, int new_capacity);
+	void clear(size_t tsize, DestroyFunc destroy_func);
+	void erase(size_t, DestroyFunc, MoveDestroyFunc, int index, int count);
+	void resize(size_t, DestroyFunc, MoveDestroyFunc, InitFunc, void *obj, int new_size);
+	void insert(size_t, MoveDestroyFunc, int offset, int count);
 
 	char *data;
 	int size, capacity;
@@ -43,8 +45,8 @@ template <class T> class Vector {
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
 	Vector() {}
-	~Vector() { m_base.free(sizeof(T), &Vector::destroyObject); }
-	Vector(const Vector &rhs) : m_base(sizeof(T), &Vector::copyObject, rhs.m_base) {}
+	~Vector() { destroy(m_base.data, m_base.size); }
+	Vector(const Vector &rhs) : m_base(sizeof(T), &Vector::copy, rhs.m_base) {}
 	Vector(Vector &&rhs) : m_base(move(rhs.m_base)) {}
 	Vector(int size, const T &value = T()) { resize(size, value); }
 	template <class Iter, typename = std::_RequireInputIter<Iter>>
@@ -96,31 +98,29 @@ template <class T> class Vector {
 	int capacity() const { return m_base.capacity; }
 	bool empty() const { return m_base.size == 0; }
 
-	void clear() { m_base.clear(sizeof(T), &Vector::destroyObject); }
+	void clear() { m_base.clear(sizeof(T), &Vector::destroy); }
 
 	void reserve(int new_capacity) { reallocate(m_base.newCapacity(new_capacity)); }
 	void resize(int new_size, T default_value = T()) {
-		m_base.resize(sizeof(T), &Vector::destroyObject, &Vector::moveAndDestroyObject,
-					  &Vector::copyObject, &default_value, new_size);
+		m_base.resize(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, &Vector::init,
+					  &default_value, new_size);
 	}
 
 	template <class... Args> void emplace_back(Args &&... args) {
 		if(m_base.size == m_base.capacity)
 			grow();
-		int index = m_base.size++;
-		new(m_base.data + sizeof(T) * index) T(std::forward<Args>(args)...);
+		new(end()) T(std::forward<Args>(args)...);
+		m_base.size++;
 	}
 	void push_back(const T &rhs) { emplace_back(rhs); }
 
 	void erase(const_iterator it) {
-		m_base.erase(sizeof(T), &Vector::destroyObject, &Vector::moveAndDestroyObject, it - begin(),
-					 1);
+		m_base.erase(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, it - begin(), 1);
 	}
 	void pop_back() { erase(end() - 1); }
 
 	void erase(const_iterator a, const_iterator b) {
-		m_base.erase(sizeof(T), &Vector::destroyObject, &Vector::moveAndDestroyObject, a - begin(),
-					 b - a);
+		m_base.erase(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, a - begin(), b - a);
 	}
 
 	iterator insert(const const_iterator pos, const T &value) {
@@ -128,17 +128,19 @@ template <class T> class Vector {
 	}
 	template <class Iter> iterator insert(const const_iterator pos, Iter first, Iter last) {
 		int offset = pos - begin();
-		m_base.insert(sizeof(T), &Vector::moveAndDestroyObject, offset, last - first);
+		m_base.insert(sizeof(T), &Vector::moveAndDestroy, offset, last - first);
+		int toffset = offset;
 		while(!(first == last)) {
 			new(data() + offset++) T(*first);
 			++first;
 		}
-		return begin() + offset;
+		return begin() + toffset;
 	}
 
 	iterator insert(const_iterator pos, std::initializer_list<T> il) {
+		int offset = pos - begin();
 		insert(pos, il.begin(), il.end());
-		return begin() + (pos - begin());
+		return begin() + offset;
 	}
 
 	auto begin() { return data(); }
@@ -164,23 +166,35 @@ template <class T> class Vector {
 	}
 
   private:
-	static void copyObject(void *dst, void *src) { new(dst) T(*reinterpret_cast<const T *>(src)); }
-	static void moveAndDestroyObject(void *dst, void *src) {
-		auto &source = *reinterpret_cast<T *>(src);
-		new(dst) T(move(source));
-		source.~T();
+	static void copy(void *vdst, const void *vsrc, int count) {
+		const T *src = (T *)vsrc;
+		T *dst = (T *)vdst;
+		for(int n = 0; n < count; n++)
+			new(dst + n) T(src[n]);
 	}
-	static void moveObject(void *dst, void *src) {
-		auto &source = *reinterpret_cast<T *>(src);
-		new(dst) T(move(source));
+	static void moveAndDestroy(void *vdst, void *vsrc, int count) {
+		T *src = (T *)vsrc;
+		T *dst = (T *)vdst;
+		for(int n = 0; n < count; n++) {
+			new(dst + n) T(move(src[n]));
+			src[n].~T();
+		}
 	}
-	static void destroyObject(void *src) {
-		auto &source = *reinterpret_cast<T *>(src);
-		source.~T();
+	static void init(void *vdst, const void *vsrc, int count) {
+		const T *src = (T *)vsrc;
+		T *dst = (T *)vdst;
+		for(int n = 0; n < count; n++)
+			new(dst + n) T(*src);
+	}
+
+	static void destroy(void *vsrc, int count) {
+		T *src = (T *)vsrc;
+		for(int n = 0; n < count; n++)
+			src[n].~T();
 	}
 
 	void reallocate(int new_capacity) {
-		m_base.reallocate(sizeof(T), &Vector::moveAndDestroyObject, new_capacity);
+		m_base.reallocate(sizeof(T), &Vector::moveAndDestroy, new_capacity);
 	}
 
 	void grow() {
