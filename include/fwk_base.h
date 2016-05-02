@@ -65,6 +65,13 @@ template <class T1, class T2> bool operator==(const T1 *lhs, const shared_ptr<T2
 	return lhs == rhs.get();
 }
 
+template <class T> struct IsPod {
+	enum { value = std::is_pod<T>::value };
+};
+template <class T1, class T2> struct IsPod<pair<T1, T2>> {
+	enum { value = IsPod<T1>::value && IsPod<T2>::value };
+};
+
 class SimpleAllocatorBase {
   public:
 	void *allocateBytes(size_t count) noexcept;
