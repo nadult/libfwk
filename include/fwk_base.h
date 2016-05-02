@@ -99,6 +99,10 @@ template <class T> class SimpleAllocator : public SimpleAllocatorBase {
 	template <class Other> bool operator==(const Other &rhs) const { return false; }
 };
 
+#ifdef FWK_STD_VECTOR
+template <class T> using vector = std::vector<T, SimpleAllocator<T>>;
+#endif
+
 template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
 
@@ -338,8 +342,9 @@ double getTime();
 #endif
 }
 
+#ifndef FWK_STD_VECTOR
 #include "fwk_vector.h"
-
+#endif
 #include "fwk_maybe.h"
 #include "fwk_range.h"
 

@@ -1,8 +1,15 @@
 #include "fwk_base.h"
+#ifdef FWK_TARGET_LINUX
+#include <malloc.h>
+static size_t usableSize(void *ptr, size_t size) { return malloc_usable_size(ptr); }
+#else
+static size_t usableSize(void *, size_t size) { return size; }
+#endif
 #include <stdio.h>
 
 namespace fwk {
 
+#ifndef FWK_STD_VECTOR
 void BaseVector::alloc(int obj_size, int size_, int capacity_) noexcept {
 	size = size_;
 	capacity = capacity_;
@@ -10,6 +17,7 @@ void BaseVector::alloc(int obj_size, int size_, int capacity_) noexcept {
 	data = (char *)malloc(nbytes);
 	if(nbytes && !data)
 		FATAL("Error while allocating memory: %d * %d bytes", capacity, obj_size);
+	capacity = usableSize(data, nbytes) / obj_size;
 }
 
 void BaseVector::swap(BaseVector &rhs) noexcept {
@@ -18,8 +26,16 @@ void BaseVector::swap(BaseVector &rhs) noexcept {
 	fwk::swap(capacity, rhs.capacity);
 }
 
-int BaseVector::newCapacity(int min) const noexcept {
-	return min > capacity * 2 ? min : (capacity == 0 ? initial_size : capacity * 2);
+int BaseVector::growCapacity(int obj_size) const noexcept {
+	if(capacity == 0)
+		return max(64 / obj_size, 1);
+	if(capacity > 4096 * 32 / obj_size)
+		return capacity * 2;
+	return (capacity * 3 + 1) / 2;
+}
+
+int BaseVector::insertCapacity(int obj_size, int min_size) const noexcept {
+	return max(growCapacity(obj_size), min_size);
 }
 
 void BaseVector::copyConstruct(int obj_size, CopyFunc copy_func, char *ptr, int size) {
@@ -38,22 +54,21 @@ void BaseVector::reallocate(int obj_size, MoveDestroyFunc move_destroy_func, int
 }
 
 void BaseVector::grow(int obj_size, MoveDestroyFunc move_destroy_func) {
-	int current = capacity;
-	reallocate(obj_size, move_destroy_func, current == 0 ? BaseVector::initial_size : current * 2);
+	reallocate(obj_size, move_destroy_func, growCapacity(obj_size));
 }
 
 void BaseVector::resize(int obj_size, DestroyFunc destroy_func, MoveDestroyFunc move_destroy_func,
-						InitFunc init_func, void *obj, int new_size) {
+						InitFunc init_func, const void *obj, int new_size) {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
-		reallocate(obj_size, move_destroy_func, newCapacity(new_size));
+		reallocate(obj_size, move_destroy_func, insertCapacity(obj_size, new_size));
 
 	if(size > new_size) {
 		destroy_func(data, size - new_size);
 		size = new_size;
 	}
 	if(size < new_size) {
-		init_func(data + obj_size * size, obj, new_size - size);
+		init_func(data + size_t(obj_size) * size, obj, new_size - size);
 		size = new_size;
 	}
 }
@@ -62,23 +77,37 @@ void BaseVector::assignPartial(int obj_size, DestroyFunc destroy_func, int new_s
 	clear(destroy_func);
 	if(new_size > capacity) {
 		BaseVector new_base;
-		new_base.alloc(obj_size, new_size, newCapacity(new_size));
+		new_base.alloc(obj_size, new_size, insertCapacity(obj_size, new_size));
 		swap(new_base);
 		return;
 	}
 	size = new_size;
 }
 
-void BaseVector::insert(int obj_size, MoveDestroyFunc move_destroy_func, int index, int count) {
+void BaseVector::assign(int obj_size, DestroyFunc destroy_func, CopyFunc copy_func, const void *ptr,
+						int new_size) {
+	assignPartial(obj_size, destroy_func, new_size);
+	copy_func(data, ptr, size);
+}
+
+void BaseVector::insertPartial(int obj_size, MoveDestroyFunc move_destroy_func, int index,
+							   int count) {
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
-		reallocate(obj_size, move_destroy_func, newCapacity(new_size));
+		reallocate(obj_size, move_destroy_func, insertCapacity(obj_size, new_size));
 
 	int move_count = size - index;
 	if(move_count > 0)
-		move_destroy_func(data + obj_size * (index + count), data + obj_size * index, move_count);
+		move_destroy_func(data + size_t(obj_size) * (index + count),
+						  data + size_t(obj_size) * index, move_count);
 	size = new_size;
+}
+
+void BaseVector::insert(int obj_size, MoveDestroyFunc move_destroy_func, CopyFunc copy_func,
+						int index, const void *ptr, int count) {
+	insertPartial(obj_size, move_destroy_func, index, count);
+	copy_func(data + size_t(obj_size) * index, ptr, count);
 }
 
 void BaseVector::clear(DestroyFunc destroy_func) noexcept {
@@ -92,8 +121,9 @@ void BaseVector::erase(int obj_size, DestroyFunc destroy_func, MoveDestroyFunc m
 	int move_start = index + count;
 	int move_count = size - move_start;
 
-	destroy_func(data + obj_size * index, count);
-	move_destroy_func(data + obj_size * index, data + obj_size * (index + count), move_count);
+	destroy_func(data + size_t(obj_size) * index, count);
+	move_destroy_func(data + size_t(obj_size) * index, data + size_t(obj_size) * (index + count),
+					  move_count);
 	size -= count;
 }
 
@@ -106,6 +136,14 @@ void BaseVector::reallocatePod(int obj_size, int new_capacity) noexcept {
 	if(new_capacity <= capacity)
 		return;
 
+	if(data && size_t(capacity - size) * 16 < size_t(capacity)) {
+		data = (char *)realloc(data, size_t(obj_size) * new_capacity);
+		if(!data)
+			FATAL("Error while re-allocating memory: %d * %d bytes", new_capacity, obj_size);
+		capacity = usableSize(data, size_t(obj_size) * new_capacity) / obj_size;
+		return;
+	}
+
 	BaseVector new_base;
 	new_base.alloc(obj_size, size, new_capacity);
 	memcpy(new_base.data, data, size_t(obj_size) * size);
@@ -114,16 +152,17 @@ void BaseVector::reallocatePod(int obj_size, int new_capacity) noexcept {
 
 void BaseVector::growPod(int obj_size) noexcept {
 	int current = capacity;
-	reallocatePod(obj_size, current == 0 ? BaseVector::initial_size : current * 2);
+	reallocatePod(obj_size, growCapacity(obj_size));
 }
 
-void BaseVector::resizePod(int obj_size, InitFunc init_func, void *obj, int new_size) noexcept {
+void BaseVector::resizePod(int obj_size, InitFunc init_func, const void *obj,
+						   int new_size) noexcept {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
-		reallocatePod(obj_size, newCapacity(new_size));
+		reallocatePod(obj_size, insertCapacity(obj_size, new_size));
 
 	if(size < new_size)
-		init_func(data + obj_size * size, obj, new_size - size);
+		init_func(data + size_t(obj_size) * size, obj, new_size - size);
 	size = new_size;
 }
 
@@ -131,24 +170,34 @@ void BaseVector::assignPartialPod(int obj_size, int new_size) noexcept {
 	clearPod();
 	if(new_size > capacity) {
 		BaseVector new_base;
-		new_base.alloc(obj_size, new_size, newCapacity(new_size));
+		new_base.alloc(obj_size, new_size, insertCapacity(obj_size, new_size));
 		swap(new_base);
 		return;
 	}
 	size = new_size;
 }
 
-void BaseVector::insertPod(int obj_size, int index, int count) noexcept {
+void BaseVector::assignPod(int obj_size, const void *ptr, int new_size) {
+	assignPartialPod(obj_size, new_size);
+	memcpy(data, ptr, size_t(obj_size) * size);
+}
+
+void BaseVector::insertPodPartial(int obj_size, int index, int count) noexcept {
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
-		reallocatePod(obj_size, newCapacity(new_size));
+		reallocatePod(obj_size, insertCapacity(obj_size, new_size));
 
 	int move_count = size - index;
 	if(move_count > 0)
-		memmove(data + obj_size * (index + count), data + obj_size * index,
+		memmove(data + size_t(obj_size) * (index + count), data + size_t(obj_size) * index,
 				size_t(obj_size) * move_count);
 	size = new_size;
+}
+
+void BaseVector::insertPod(int obj_size, int index, const void *ptr, int count) noexcept {
+	insertPodPartial(obj_size, index, count);
+	memcpy(data + size_t(obj_size) * index, ptr, size_t(obj_size) * count);
 }
 
 void BaseVector::erasePod(int obj_size, int index, int count) noexcept {
@@ -156,10 +205,12 @@ void BaseVector::erasePod(int obj_size, int index, int count) noexcept {
 	int move_start = index + count;
 	int move_count = size - move_start;
 	if(move_count > 0)
-		memcpy(data + obj_size * index, data + obj_size * (index + count),
+		memcpy(data + size_t(obj_size) * index, data + size_t(obj_size) * (index + count),
 			   size_t(obj_size) * move_count);
 	size -= count;
 }
+
+#endif
 
 #ifdef TEST_VECTOR
 
@@ -200,7 +251,7 @@ void print(const vector<vector<int>> &vecs) {
 	}
 }
 int main() {
-	Vector<int> vec = {10, 20, 40, 50};
+	vector<int> vec = {10, 20, 40, 50};
 	printf("size: %d\n", vec.size());
 
 	vector<vector<int>> vvals;
