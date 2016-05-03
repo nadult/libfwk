@@ -101,7 +101,7 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 
 Mesh Mesh::makePlane(const Plane &plane, const float3 &start, float size) {
 	DASSERT(size > constant::epsilon);
-	THROW("Test me");
+	FATAL("Test me");
 
 	float3 p[3] = {{-size, -size, -size}, {size, size, size}, {size, -size, size}};
 	for(int i = 0; i < 3; i++)

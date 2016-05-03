@@ -87,7 +87,7 @@ vector<Triangle> Mesh::tris() const {
 vector<Mesh> Mesh::split(int max_vertices) const {
 	vector<Mesh> out;
 	if(!hasIndices())
-		THROW("Write me, please");
+		FATAL("Write me, please");
 
 	for(int n = 0; n < (int)m_indices.size(); n++) {
 		const auto &sub_indices = m_indices[n];
@@ -107,9 +107,9 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 Mesh Mesh::merge(vector<Mesh> meshes) {
 	for(const auto &mesh : meshes) {
 		if(mesh.hasSkin())
-			THROW("Merging skinned models not supported");
+			FATAL("Merging skinned models not supported");
 		if(!mesh.hasIndices())
-			THROW("Write me");
+			FATAL("Write me");
 	}
 
 	if(meshes.size() == 1)

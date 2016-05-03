@@ -431,7 +431,7 @@ class DynamicMesh {
 		else if(gsimplex.isEdge())
 			return distance(segment(gsimplex.asEdge()), simplex(tsimplex));
 		else
-			THROW("simplex type not supported");
+			FATAL("simplex type not supported");
 		return constant::inf;
 	}
 
@@ -441,7 +441,7 @@ class DynamicMesh {
 		else if(b.isEdge())
 			return sdistance(a, b.asEdge());
 		else
-			THROW("simplex type not supported");
+			FATAL("simplex type not supported");
 		return constant::inf;
 	}
 

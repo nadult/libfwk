@@ -137,7 +137,7 @@ vector<Matrix4> MeshBuffers::mapPose(PPose pose) const {
 
 MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	if(hasSkin())
-		THROW("FIXME");
+		FATAL("FIXME");
 
 	vector<float3> out_positions(mapping.size());
 	vector<float3> out_normals(!normals.empty() ? mapping.size() : 0);

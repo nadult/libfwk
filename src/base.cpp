@@ -155,7 +155,7 @@ namespace {
 			sigemptyset(&sa.sa_mask);
 			sa.sa_sigaction = segfaultHandler;
 			if(sigaction(SIGSEGV, &sa, NULL) == -1)
-				THROW("Error while attaching segfault handler");
+				FATAL("Error while attaching segfault handler");
 		}
 	} s_auto_sig_handler;
 

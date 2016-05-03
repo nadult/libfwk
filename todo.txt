@@ -1,8 +1,6 @@
 - Add asserts ASSERT_NE _LT, etc.
 - Add vmin, vmax; don't use std::min, write better alternative?
-- Make noexcept vector? noexcept by default?
 - findMax / findMin suck; remove them?
-- use fwk::FATAL
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
 - Add UnorderedVector and SortedVector classes

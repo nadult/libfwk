@@ -790,8 +790,8 @@ class Stream {
 	friend class Saver;
 
   protected:
-	virtual void v_load(void *, int) { THROW("v_load unimplemented"); }
-	virtual void v_save(const void *, int) { THROW("v_save unimplemented"); }
+	virtual void v_load(void *, int) { FATAL("v_load unimplemented"); }
+	virtual void v_save(const void *, int) { FATAL("v_save unimplemented"); }
 	virtual void v_seek(long long pos) { m_pos = pos; }
 
 	long long m_size, m_pos;

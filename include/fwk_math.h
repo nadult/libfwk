@@ -760,7 +760,7 @@ class Triangle {
 	}
 
 	bool isValid() const {
-		THROW("TODO: write me");
+		FATAL("TODO: write me");
 		return false;
 	}
 
