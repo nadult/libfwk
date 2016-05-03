@@ -1,7 +1,5 @@
 - Add asserts ASSERT_NE _LT, etc.
-- noreturn funcs return under emscripten
 - Add vmin, vmax; don't use std::min, write better alternative?
-- PodArray -> PodVector
 - Make noexcept vector? noexcept by default?
 - findMax / findMin suck; remove them?
 - use fwk::FATAL

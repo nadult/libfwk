@@ -67,6 +67,11 @@ template <class T> class Vector {
 	typedef std::reverse_iterator<iterator> reverse_iterator;
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
+	template <typename _InIter>
+	using RequireInputIter = typename std::enable_if<
+		std::is_convertible<typename std::iterator_traits<_InIter>::iterator_category,
+							std::input_iterator_tag>::value>::type;
+
 	Vector() { m_base.zero(); }
 	~Vector() { destroy(m_base.data, m_base.size); }
 	Vector(const Vector &rhs) {
@@ -79,7 +84,7 @@ template <class T> class Vector {
 		m_base.zero();
 		resize(size, value);
 	}
-	template <class Iter, typename = std::_RequireInputIter<Iter>> Vector(Iter first, Iter last) {
+	template <class Iter, typename = RequireInputIter<Iter>> Vector(Iter first, Iter last) {
 		m_base.zero();
 		assign(first, last);
 	}
@@ -88,8 +93,7 @@ template <class T> class Vector {
 
 	void swap(Vector &rhs) { m_base.swap(rhs.m_base); }
 
-	template <class Iter, typename = std::_RequireInputIter<Iter>>
-	void assign(Iter first, Iter last) {
+	template <class Iter, typename = RequireInputIter<Iter>> void assign(Iter first, Iter last) {
 		if(std::is_trivially_destructible<T>::value)
 			m_base.assignPartialPod(sizeof(T), last - first);
 		else

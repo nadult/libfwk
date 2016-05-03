@@ -273,8 +273,8 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 #else
 	auto bt = Backtrace::get(1).analyze(true);
 	printf("%s\nBacktrace:\n%s", buffer, bt.c_str());
-	exit(1);
 #endif
+	exit(1);
 }
 
 void assertFailed(const char *file, int line, const char *text) {
@@ -288,8 +288,8 @@ void assertFailed(const char *file, int line, const char *text) {
 #else
 	auto bt = Backtrace::get(1).analyze(true);
 	printf("%s\nBacktrace:\n%s", buffer, bt.c_str());
-	exit(1);
 #endif
+	exit(1);
 }
 
 void checkFailed(const char *file, int line, const char *text) {
