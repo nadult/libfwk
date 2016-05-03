@@ -136,7 +136,7 @@ void BaseVector::reallocatePod(int obj_size, int new_capacity) noexcept {
 	if(new_capacity <= capacity)
 		return;
 
-	if(data && size_t(capacity - size) * 16 < size_t(capacity)) {
+	if(0 && data && size_t(capacity - size) * 16 < size_t(capacity)) {
 		data = (char *)realloc(data, size_t(obj_size) * new_capacity);
 		if(!data)
 			FATAL("Error while re-allocating memory: %d * %d bytes", new_capacity, obj_size);

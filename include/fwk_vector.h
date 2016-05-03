@@ -102,7 +102,7 @@ template <class T> class Vector {
 	}
 
 	void assign(const_iterator first, const_iterator last) {
-		if(std::is_trivially_copy_constructible<T>::value ||
+		if(std::is_trivially_copy_constructible<T>::value &&
 		   std::is_trivially_destructible<T>::value)
 			m_base.assignPod(sizeof(T), first, last - first);
 		else
@@ -222,11 +222,24 @@ template <class T> class Vector {
 	}
 
 	iterator insert(const const_iterator pos, const_iterator first, const_iterator last) {
+		if(pos == end() && last - first <= m_base.capacity - m_base.size) {
+			if(std::is_trivially_move_constructible<T>::value &&
+			   std::is_trivially_destructible<T>::value &&
+			   std::is_trivially_copy_constructible<T>::value)
+				memcpy(end(), first, (last - first) * sizeof(T));
+			else
+				copy(end(), first, last - first);
+			auto out = end();
+			m_base.size += last - first;
+			return out;
+		}
+
 		int offset = pos - begin();
 		if(std::is_trivially_move_constructible<T>::value &&
 		   std::is_trivially_destructible<T>::value &&
 		   std::is_trivially_copy_constructible<T>::value)
 			m_base.insertPod(sizeof(T), offset, first, last - first);
+
 		else
 			m_base.insert(sizeof(T), &Vector::moveAndDestroyBackwards, &Vector::copy, offset, first,
 						  last - first);
@@ -245,20 +258,11 @@ template <class T> class Vector {
 	auto end() const { return data() + size(); }
 
 	bool operator==(const Vector &rhs) const {
-		if(m_base.size != rhs.m_base.size)
-			return false;
-		for(int n = 0; n < m_base.size; n++)
-			if(!((*this)[n] == rhs[n]))
-				return false;
-		return true;
+		return size() == rhs.size() && std::equal(begin(), end(), rhs.begin(), rhs.end());
 	}
 
 	bool operator<(const Vector &rhs) const {
-		int count = m_base.size < rhs.m_base.size ? m_base.size : rhs.m_base.size;
-		for(int n = 0; n < count; n++)
-			if((*this)[n] < rhs[n])
-				return false;
-		return m_base.size < rhs.m_base.size;
+		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
 	}
 
   private:
