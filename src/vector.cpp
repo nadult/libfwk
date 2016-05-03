@@ -57,20 +57,15 @@ void BaseVector::grow(int obj_size, MoveDestroyFunc move_destroy_func) {
 	reallocate(obj_size, move_destroy_func, growCapacity(obj_size));
 }
 
-void BaseVector::resize(int obj_size, DestroyFunc destroy_func, MoveDestroyFunc move_destroy_func,
-						InitFunc init_func, const void *obj, int new_size) {
+void BaseVector::resizePartial(int obj_size, DestroyFunc destroy_func,
+							   MoveDestroyFunc move_destroy_func, int new_size) {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocate(obj_size, move_destroy_func, insertCapacity(obj_size, new_size));
 
-	if(size > new_size) {
+	if(size > new_size)
 		destroy_func(data, size - new_size);
-		size = new_size;
-	}
-	if(size < new_size) {
-		init_func(data + size_t(obj_size) * size, obj, new_size - size);
-		size = new_size;
-	}
+	size = new_size;
 }
 
 void BaseVector::assignPartial(int obj_size, DestroyFunc destroy_func, int new_size) noexcept {
@@ -155,14 +150,10 @@ void BaseVector::growPod(int obj_size) noexcept {
 	reallocatePod(obj_size, growCapacity(obj_size));
 }
 
-void BaseVector::resizePod(int obj_size, InitFunc init_func, const void *obj,
-						   int new_size) noexcept {
+void BaseVector::resizePodPartial(int obj_size, int new_size) noexcept {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocatePod(obj_size, insertCapacity(obj_size, new_size));
-
-	if(size < new_size)
-		init_func(data + size_t(obj_size) * size, obj, new_size - size);
 	size = new_size;
 }
 
@@ -211,68 +202,4 @@ void BaseVector::erasePod(int obj_size, int index, int count) noexcept {
 }
 
 #endif
-
-#ifdef TEST_VECTOR
-
-void fatalError(const char *file, int line, const char *fmt, ...) {
-	char new_fmt[1024];
-	snprintf(new_fmt, sizeof(new_fmt), "%s:%d: %s", file, line, fmt);
-
-	char buffer[4096];
-	va_list ap;
-	va_start(ap, fmt);
-	vsnprintf(buffer, sizeof(buffer), new_fmt, ap);
-	va_end(ap);
-
-#ifdef FWK_TARGET_HTML5
-	printf("%s\n", buffer);
-	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
-	emscripten_force_exit(1);
-#else
-	printf("%s", buffer);
-	exit(1);
-#endif
 }
-
-void assertFailed(const char *file, int line, const char *text) {
-	printf("assert failed: %s:%d : %s\n", file, line, text);
-	exit(1);
-}
-#endif
-}
-
-#ifdef TEST_VECTOR
-using namespace fwk;
-void print(const vector<vector<int>> &vecs) {
-	for(auto &v : vecs) {
-		for(auto vv : v)
-			printf("%d ", vv);
-		printf("\n");
-	}
-}
-int main() {
-	vector<int> vec = {10, 20, 40, 50};
-	printf("size: %d\n", vec.size());
-
-	vector<vector<int>> vvals;
-	for(int k = 0; k < 4; k++)
-		vvals.emplace_back(vec);
-	vvals.erase(vvals.begin() + 1);
-	print(vvals);
-
-	/*
-	vec.insert(vec.begin() + 2, 30);
-	for(int n = 0; n < vec.size(); n++)
-		printf("%d\n", vec[n]);
-	printf("erase:\n");
-	vec.erase(vec.begin() + 3, vec.end());
-	for(int n = 0; n < vec.size(); n++)
-		printf("%d\n", vec[n]);
-
-	auto copy = vec;
-	for(auto v : copy)
-		printf("%d ", v);
-	printf("\n"); */
-	return 0;
-}
-#endif

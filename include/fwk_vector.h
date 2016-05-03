@@ -35,7 +35,7 @@ class BaseVector {
 	void reallocate(int, MoveDestroyFunc move_destroy_func, int new_capacity);
 	void clear(DestroyFunc destroy_func) noexcept;
 	void erase(int, DestroyFunc, MoveDestroyFunc, int index, int count);
-	void resize(int, DestroyFunc, MoveDestroyFunc, InitFunc, const void *, int new_size);
+	void resizePartial(int, DestroyFunc, MoveDestroyFunc, int new_size);
 	void insertPartial(int, MoveDestroyFunc, int offset, int count);
 	void insert(int, MoveDestroyFunc, CopyFunc, int offset, const void *, int count);
 	void assignPartial(int, DestroyFunc, int new_size) noexcept;
@@ -46,11 +46,12 @@ class BaseVector {
 	void reallocatePod(int, int new_capacity) noexcept;
 	void clearPod() noexcept { size = 0; }
 	void erasePod(int, int index, int count) noexcept;
-	void resizePod(int, InitFunc, const void *, int new_size) noexcept;
+	void resizePodPartial(int, int new_size) noexcept;
 	void insertPodPartial(int, int offset, int count) noexcept;
 	void insertPod(int, int offset, const void *, int count) noexcept;
 	void assignPartialPod(int, int new_size) noexcept;
 	void assignPod(int, const void *, int size);
+
 	char *data;
 	int size, capacity;
 };
@@ -163,14 +164,27 @@ template <class T> class Vector {
 			m_base.reallocate(sizeof(T), &Vector::moveAndDestroy, new_capacity);
 	}
 
-	void resize(int new_size, T default_value = T()) {
+	void resize(int new_size, T default_value) {
+		int index = m_base.size;
 		if(std::is_trivially_move_constructible<T>::value &&
 		   std::is_trivially_destructible<T>::value &&
 		   std::is_trivially_copy_constructible<T>::value)
-			m_base.resizePod(sizeof(T), &Vector::init, &default_value, new_size);
+			m_base.resizePodPartial(sizeof(T), new_size);
 		else
-			m_base.resize(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, &Vector::init,
-						  &default_value, new_size);
+			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
+		while(index < new_size)
+			new(data() + index++) T(default_value);
+	}
+	void resize(int new_size) {
+		int index = m_base.size;
+		if(std::is_trivially_move_constructible<T>::value &&
+		   std::is_trivially_destructible<T>::value &&
+		   std::is_trivially_copy_constructible<T>::value)
+			m_base.resizePodPartial(sizeof(T), new_size);
+		else
+			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
+		while(index < new_size)
+			new(data() + index++) T();
 	}
 
 	template <class... Args> void emplace_back(Args &&... args) {
@@ -185,6 +199,7 @@ template <class T> class Vector {
 		m_base.size++;
 	}
 	void push_back(const T &rhs) { emplace_back(rhs); }
+	void push_back(T &&rhs) { emplace_back(move(rhs)); }
 
 	void erase(const_iterator it) {
 		if(std::is_trivially_move_constructible<T>::value &&

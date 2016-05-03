@@ -25,7 +25,7 @@ SHARED_SRC=base backtrace filesystem filesystem_linux filesystem_windows input p
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection vector \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream
-PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models tools/model_convert tools/model_viewer
+PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models test/vector test/vector_perf tools/model_convert tools/model_viewer
 
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
