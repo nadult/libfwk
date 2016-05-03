@@ -10,7 +10,6 @@ class BaseVector {
   public:
 	using MoveDestroyFunc = void (*)(void *, void *, int);
 	using DestroyFunc = void (*)(void *, int);
-	using InitFunc = void (*)(void *, const void *, int);
 	using CopyFunc = void (*)(void *, const void *, int);
 
 	~BaseVector() noexcept { ::free(data); }
@@ -312,13 +311,6 @@ template <class T> class Vector {
 			src[n].~T();
 		}
 	}
-	static void init(void *vdst, const void *vsrc, int count) {
-		const T *__restrict__ src = (T *)vsrc;
-		T *__restrict__ dst = (T *)vdst;
-		for(int n = 0; n < count; n++)
-			new(dst + n) T(*src);
-	}
-
 	static void destroy(void *vsrc, int count) {
 		T *src = (T *)vsrc;
 		for(int n = 0; n < count; n++)

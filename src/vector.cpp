@@ -7,6 +7,8 @@ static size_t usableSize(void *, size_t size) { return size; }
 #endif
 #include <stdio.h>
 
+// TODO: there is still space for improvement (perf-wise) here
+// TODO: more aggressive inlining here improves perf
 namespace fwk {
 
 #ifndef FWK_STD_VECTOR
@@ -28,14 +30,15 @@ void BaseVector::swap(BaseVector &rhs) noexcept {
 
 int BaseVector::growCapacity(int obj_size) const noexcept {
 	if(capacity == 0)
-		return max(64 / obj_size, 1);
+		return obj_size > 64 ? 1 : 64 / obj_size;
 	if(capacity > 4096 * 32 / obj_size)
 		return capacity * 2;
 	return (capacity * 3 + 1) / 2;
 }
 
 int BaseVector::insertCapacity(int obj_size, int min_size) const noexcept {
-	return max(growCapacity(obj_size), min_size);
+	int cap = growCapacity(obj_size);
+	return cap > min_size ? cap : min_size;
 }
 
 void BaseVector::copyConstruct(int obj_size, CopyFunc copy_func, char *ptr, int size) {
