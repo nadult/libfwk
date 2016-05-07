@@ -80,7 +80,7 @@ template <class T> class Vector {
 	}
 	Vector(Vector &&rhs) { m_base.moveConstruct(move(rhs.m_base)); }
 
-	Vector(int size, const T &value = T()) {
+	explicit Vector(int size, const T &value = T()) {
 		m_base.zero();
 		resize(size, value);
 	}

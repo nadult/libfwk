@@ -1371,8 +1371,8 @@ namespace FindFiles {
 
 		recursive = 4,
 
-		relative = 8,		 // all paths relative to given path
-		absolute = 16,		 // all paths absolute
+		relative = 8, // all paths relative to given path
+		absolute = 16, // all paths absolute
 		include_parent = 32, // include '..'
 	};
 };

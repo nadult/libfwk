@@ -4,6 +4,12 @@
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
 - Add UnorderedVector and SortedVector classes
+- klasa flat_storage<Type, space> która nie wymaga definicji typu, ale space musi być większy niż sizeof(Type)
+  inaczej wywali się przy implementacji operator= i podobnych
+- use size_type inside
+- dodać irange do vector-a
+- vector[-1] indeksuje od konca?
+- makeRange z initializer_listy ?
 
 - Renderer2D cant handle more than 64K indices
 - Fix copyrights
