@@ -1,4 +1,7 @@
 - Add asserts ASSERT_NE _LT, etc.
+- Variant uses operator new for non-POD types...
+- dont use printf, make TextFormatter use xmlVersions, add formatRange(..) which adds, [], ();
+  what about other goodies from printfs?
 - Add vmin, vmax; don't use std::min, write better alternative?
 - findMax / findMin suck; remove them?
 - separate vector allocator specialized with element size
@@ -9,6 +12,7 @@
 - use size_type inside
 - dodać irange do vector-a
 - vector[-1] indeksuje od konca?
+- shrink_to_fit dla vectora?
 - makeRange z initializer_listy ?
 
 - Renderer2D cant handle more than 64K indices
