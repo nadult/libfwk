@@ -538,7 +538,8 @@ template <class Type> class EnumRange {
 	enum class Type : unsigned char { __VA_ARGS__ };                                               \
 	inline auto enumStrings(Type) {                                                                \
 		static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};                  \
-		return CRange<const char *, arraySize(s_strings)>(s_strings, arraySize(s_strings));        \
+		constexpr int size = fwk::arraySize(s_strings);                                            \
+		return fwk::CRange<const char *, size>(s_strings, size);                                   \
 	}                                                                                              \
 	constexpr int enumCount(Type) { return decltype(enumStrings(Type()))::minimum_size; }
 

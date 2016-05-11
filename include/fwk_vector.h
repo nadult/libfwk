@@ -78,7 +78,7 @@ template <class T> class Vector {
 		m_base.zero();
 		assign(rhs.begin(), rhs.end());
 	}
-	Vector(Vector &&rhs) { m_base.moveConstruct(move(rhs.m_base)); }
+	Vector(Vector &&rhs) { m_base.moveConstruct(std::move(rhs.m_base)); }
 
 	explicit Vector(int size, const T &value = T()) {
 		m_base.zero();
@@ -198,7 +198,7 @@ template <class T> class Vector {
 		m_base.size++;
 	}
 	void push_back(const T &rhs) { emplace_back(rhs); }
-	void push_back(T &&rhs) { emplace_back(move(rhs)); }
+	void push_back(T &&rhs) { emplace_back(std::move(rhs)); }
 
 	void erase(const_iterator it) {
 		if(std::is_trivially_move_constructible<T>::value &&
@@ -299,7 +299,7 @@ template <class T> class Vector {
 		T *__restrict__ src = (T *)vsrc;
 		T *__restrict__ dst = (T *)vdst;
 		for(int n = 0; n < count; n++) {
-			new(dst + n) T(move(src[n]));
+			new(dst + n) T(std::move(src[n]));
 			src[n].~T();
 		}
 	}
@@ -307,7 +307,7 @@ template <class T> class Vector {
 		T *__restrict__ src = (T *)vsrc;
 		T *__restrict__ dst = (T *)vdst;
 		for(int n = count - 1; n >= 0; n--) {
-			new(dst + n) T(move(src[n]));
+			new(dst + n) T(std::move(src[n]));
 			src[n].~T();
 		}
 	}

@@ -26,44 +26,31 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+// Some modifications by Krzysztof 'nadult' Jakubowski
 
-#include <cassert>
-#include <cstddef> // size_t
+#pragma once
+// clang-format off
+
 #include <new> // operator new
-#include <stdexcept> // runtime_error
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
-
-// [[deprecated]] is only available in C++14, use this for the time being
-#if __cplusplus <= 201103L
-# ifdef __GNUC__
-#  define MAPBOX_VARIANT_DEPRECATED __attribute__((deprecated))
-# elif defined(_MSC_VER)
-#  define MAPBOX_VARIANT_DEPRECATED __declspec(deprecated)
-# else
-#  define MAPBOX_VARIANT_DEPRECATED
-# endif
-#else
-#  define MAPBOX_VARIANT_DEPRECATED [[deprecated]]
-#endif
-
+#include "fwk_base.h"
 
 #ifdef _MSC_VER
  // https://msdn.microsoft.com/en-us/library/bw1hbe6y.aspx
  #ifdef NDEBUG
   #define VARIANT_INLINE __forceinline
  #else
-  #define VARIANT_INLINE __declspec(noinline)
+  #define VARIANT_INLINE inline
  #endif
 #else
  #ifdef NDEBUG
   #define VARIANT_INLINE inline __attribute__((always_inline))
  #else
-  #define VARIANT_INLINE __attribute__((noinline))
+  #define VARIANT_INLINE inline
  #endif
 #endif
 
@@ -74,144 +61,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define VARIANT_VERSION (VARIANT_MAJOR_VERSION*100000) + (VARIANT_MINOR_VERSION*100) + (VARIANT_PATCH_VERSION)
 
 
-namespace mapbox { namespace util {
-
-// Based on variant/recursive_wrapper.hpp from boost.
-//
-// Original license:
-//
-// Copyright (c) 2002-2003
-// Eric Friedman, Itay Maman
-//
-// Distributed under the Boost Software License, Version 1.0. (See
-// accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt)
-
-template <typename T>
-class recursive_wrapper
-{
-
-    T* p_;
-
-    void assign(T const& rhs)
-    {
-        this->get() = rhs;
-    }
-
-public:
-
-    using type = T;
-
-    /**
-     * Default constructor default initializes the internally stored value.
-     * For POD types this means nothing is done and the storage is
-     * uninitialized.
-     *
-     * @throws std::bad_alloc if there is insufficient memory for an object
-     *         of type T.
-     * @throws any exception thrown by the default constructur of T.
-     */
-    recursive_wrapper() : p_(new T) {};
-
-    ~recursive_wrapper() noexcept { delete p_; };
-
-    recursive_wrapper(recursive_wrapper const& operand)
-        : p_(new T(operand.get())) {}
-
-    recursive_wrapper(T const& operand)
-        : p_(new T(operand)) {}
-
-    recursive_wrapper(recursive_wrapper && operand)
-        : p_(new T(std::move(operand.get()))) {}
-
-    recursive_wrapper(T && operand)
-        : p_(new T(std::move(operand))) {}
-
-    inline recursive_wrapper & operator=(recursive_wrapper const& rhs)
-    {
-        assign(rhs.get());
-        return *this;
-    }
-
-    inline recursive_wrapper & operator=(T const& rhs)
-    {
-        assign(rhs);
-        return *this;
-    }
-
-    inline void swap(recursive_wrapper & operand) noexcept
-    {
-        T* temp = operand.p_;
-        operand.p_ = p_;
-        p_ = temp;
-    }
-
-    recursive_wrapper & operator=(recursive_wrapper && rhs) noexcept
-    {
-        swap(rhs);
-        return *this;
-    }
-
-    recursive_wrapper & operator=(T && rhs)
-    {
-        get() = std::move(rhs);
-        return *this;
-    }
-
-    T & get()
-    {
-        assert(p_);
-        return *get_pointer();
-    }
-
-    T const& get() const
-    {
-        assert(p_);
-        return *get_pointer();
-    }
-
-    T* get_pointer() { return p_; }
-
-    const T* get_pointer() const { return p_; }
-
-    operator T const&() const { return this->get(); }
-
-    operator T &() { return this->get(); }
-
-}; // class recursive_wrapper
-
-template <typename T>
-inline void swap(recursive_wrapper<T> & lhs, recursive_wrapper<T> & rhs) noexcept
-{
-    lhs.swap(rhs);
-}
-
-// XXX This should derive from std::logic_error instead of std::runtime_error.
-//     See https://github.com/mapbox/variant/issues/48 for details.
-class bad_variant_access : public std::runtime_error {
-
-public:
-
-    explicit bad_variant_access(const std::string& what_arg) :
-        runtime_error(what_arg) {}
-
-    explicit bad_variant_access(const char* what_arg) :
-        runtime_error(what_arg) {}
-
-}; // class bad_variant_access
-
-template <typename R = void>
-struct MAPBOX_VARIANT_DEPRECATED static_visitor
-{
-    using result_type = R;
-protected:
-    static_visitor() {}
-    ~static_visitor() {}
-};
+namespace fwk {
 
 namespace detail {
-
-static constexpr std::size_t invalid_value = std::size_t(-1);
 
 template <typename T, typename... Types>
 struct direct_type;
@@ -219,14 +71,14 @@ struct direct_type;
 template <typename T, typename First, typename... Types>
 struct direct_type<T, First, Types...>
 {
-    static constexpr std::size_t index = std::is_same<T, First>::value
-        ? sizeof...(Types) : direct_type<T, Types...>::index;
+    static constexpr int index = std::is_same<T, First>::value
+        ? (int)sizeof...(Types) : direct_type<T, Types...>::index;
 };
 
 template <typename T>
 struct direct_type<T>
 {
-    static constexpr std::size_t index = invalid_value;
+    static constexpr int index = -1;
 };
 
 template <typename T, typename... Types>
@@ -235,25 +87,25 @@ struct convertible_type;
 template <typename T, typename First, typename... Types>
 struct convertible_type<T, First, Types...>
 {
-    static constexpr std::size_t index = std::is_convertible<T, First>::value
-        ? sizeof...(Types) : convertible_type<T, Types...>::index;
+    static constexpr int index = std::is_convertible<T, First>::value
+        ? (int)sizeof...(Types) : convertible_type<T, Types...>::index;
 };
 
 template <typename T>
 struct convertible_type<T>
 {
-    static constexpr std::size_t index = invalid_value;
+    static constexpr int index = -1;
 };
 
 template <typename T, typename... Types>
 struct value_traits
 {
     using value_type = typename std::remove_reference<T>::type;
-    static constexpr std::size_t direct_index = direct_type<value_type, Types...>::index;
-    static constexpr bool is_direct = direct_index != invalid_value;
-    static constexpr std::size_t index = is_direct ? direct_index : convertible_type<value_type, Types...>::index;
-    static constexpr bool is_valid = index != invalid_value;
-    static constexpr std::size_t tindex = is_valid ? sizeof...(Types) - index : 0;
+    static constexpr int direct_index = direct_type<value_type, Types...>::index;
+    static constexpr bool is_direct = direct_index != -1;
+    static constexpr int index = is_direct ? direct_index : convertible_type<value_type, Types...>::index;
+    static constexpr bool is_valid = index != -1;
+    static constexpr int tindex = is_valid ? (int)sizeof...(Types) - index : 0;
     using target_type = typename std::tuple_element<tindex, std::tuple<void, Types...>>::type;
 };
 
@@ -316,19 +168,19 @@ struct result_of_binary_visit<F, V, typename enable_if_type<typename F::result_t
 
 
 
-template <std::size_t arg1, std::size_t... others>
+template <int arg1, int... others>
 struct static_max;
 
-template <std::size_t arg>
+template <int arg>
 struct static_max<arg>
 {
-    static const std::size_t value = arg;
+    static const int value = arg;
 };
 
-template <std::size_t arg1, std::size_t arg2, std::size_t... others>
+template <int arg1, int arg2, int... others>
 struct static_max<arg1, arg2, others...>
 {
-    static const std::size_t value = arg1 >= arg2 ? static_max<arg1, others...>::value :
+    static const int value = arg1 >= arg2 ? static_max<arg1, others...>::value :
         static_max<arg2, others...>::value;
 };
 
@@ -338,9 +190,9 @@ struct variant_helper;
 template <typename T, typename... Types>
 struct variant_helper<T, Types...>
 {
-    VARIANT_INLINE static void destroy(const std::size_t type_index, void * data)
+    VARIANT_INLINE static void destroy(int type_index, void * data)
     {
-        if (type_index == sizeof...(Types))
+        if (type_index == (int)sizeof...(Types))
         {
             reinterpret_cast<T*>(data)->~T();
         }
@@ -350,9 +202,9 @@ struct variant_helper<T, Types...>
         }
     }
 
-    VARIANT_INLINE static void move(const std::size_t old_type_index, void * old_value, void * new_value)
+    VARIANT_INLINE static void move(int old_type_index, void * old_value, void * new_value)
     {
-        if (old_type_index == sizeof...(Types))
+        if (old_type_index == (int)sizeof...(Types))
         {
             new (new_value) T(std::move(*reinterpret_cast<T*>(old_value)));
         }
@@ -362,9 +214,9 @@ struct variant_helper<T, Types...>
         }
     }
 
-    VARIANT_INLINE static void copy(const std::size_t old_type_index, const void * old_value, void * new_value)
+    VARIANT_INLINE static void copy(int old_type_index, const void * old_value, void * new_value)
     {
-        if (old_type_index == sizeof...(Types))
+        if (old_type_index == (int)sizeof...(Types))
         {
             new (new_value) T(*reinterpret_cast<const T*>(old_value));
         }
@@ -379,9 +231,9 @@ struct variant_helper<T, Types...>
 template <>
 struct variant_helper<>
 {
-    VARIANT_INLINE static void destroy(const std::size_t, void *) {}
-    VARIANT_INLINE static void move(const std::size_t, void *, void *) {}
-    VARIANT_INLINE static void copy(const std::size_t, const void *, void *) {}
+    VARIANT_INLINE static void destroy(int, void *) {}
+    VARIANT_INLINE static void move(int, void *, void *) {}
+    VARIANT_INLINE static void copy(int, const void *, void *) {}
 };
 
 template <typename T>
@@ -389,21 +241,6 @@ struct unwrapper
 {
     static T const& apply_const(T const& obj) {return obj;}
     static T& apply(T & obj) {return obj;}
-};
-
-template <typename T>
-struct unwrapper<recursive_wrapper<T>>
-{
-    static auto apply_const(recursive_wrapper<T> const& obj)
-        -> typename recursive_wrapper<T>::type const&
-    {
-        return obj.get();
-    }
-    static auto apply(recursive_wrapper<T> & obj)
-        -> typename recursive_wrapper<T>::type&
-    {
-        return obj.get();
-    }
 };
 
 template <typename T>
@@ -691,53 +528,58 @@ struct static_none_of : std::is_same<std::tuple<std::false_type, typename Predic
 struct no_init {};
 
 template <typename... Types>
-class variant
+class Variant
 {
     static_assert(sizeof...(Types) > 0, "Template parameter type list of variant can not be empty");
+	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
     static_assert(detail::static_none_of<std::is_reference, Types...>::value, "Variant can not hold reference types. Maybe use std::reference?");
 
-private:
+#ifdef NDEBUG
+	enum { ndebug_access = true };
+#else
+	enum { ndebug_access = false };
+#endif
 
-    static const std::size_t data_size = detail::static_max<sizeof(Types)...>::value;
-    static const std::size_t data_align = detail::static_max<alignof(Types)...>::value;
+private:
+    static const int data_size = detail::static_max<(int)sizeof(Types)...>::value;
+    static const int data_align = detail::static_max<(int)alignof(Types)...>::value;
 
     using first_type = typename std::tuple_element<0, std::tuple<Types...>>::type;
     using data_type = typename std::aligned_storage<data_size, data_align>::type;
     using helper_type = detail::variant_helper<Types...>;
 
-    std::size_t type_index;
     data_type data;
+    char type_index;
 
 public:
-
-    VARIANT_INLINE variant()
+    VARIANT_INLINE Variant()
         noexcept(std::is_nothrow_default_constructible<first_type>::value)
-        : type_index(sizeof...(Types) - 1)
+        : type_index((int)sizeof...(Types) - 1)
     {
         static_assert(std::is_default_constructible<first_type>::value, "First type in variant must be default constructible to allow default construction of variant");
         new (&data) first_type();
     }
 
-    VARIANT_INLINE variant(no_init) noexcept
-        : type_index(detail::invalid_value) {}
+    VARIANT_INLINE Variant(no_init) noexcept
+        : type_index(-1) {}
 
     // http://isocpp.org/blog/2012/11/universal-references-in-c11-scott-meyers
     template <typename T, typename Traits = detail::value_traits<T, Types...>,
                           typename Enable = typename std::enable_if<Traits::is_valid>::type>
-    VARIANT_INLINE variant(T && val)
+    VARIANT_INLINE Variant(T && val)
         noexcept(std::is_nothrow_constructible<typename Traits::target_type, T && >::value)
         : type_index(Traits::index)
     {
         new (&data) typename Traits::target_type(std::forward<T>(val));
     }
 
-    VARIANT_INLINE variant(variant<Types...> const& old)
+    VARIANT_INLINE Variant(Variant<Types...> const& old)
         : type_index(old.type_index)
     {
         helper_type::copy(old.type_index, &old.data, &data);
     }
 
-    VARIANT_INLINE variant(variant<Types...> && old)
+    VARIANT_INLINE Variant(Variant<Types...> && old)
         noexcept(std::is_nothrow_move_constructible<std::tuple<Types...>>::value)
         : type_index(old.type_index)
     {
@@ -745,30 +587,30 @@ public:
     }
 
 private:
-    VARIANT_INLINE void copy_assign(variant<Types...> const& rhs)
+    VARIANT_INLINE void copy_assign(Variant<Types...> const& rhs)
     {
         helper_type::destroy(type_index, &data);
-        type_index = detail::invalid_value;
+        type_index = -1;
         helper_type::copy(rhs.type_index, &rhs.data, &data);
         type_index = rhs.type_index;
     }
 
-    VARIANT_INLINE void move_assign(variant<Types...> && rhs)
+    VARIANT_INLINE void move_assign(Variant<Types...> && rhs)
     {
         helper_type::destroy(type_index, &data);
-        type_index = detail::invalid_value;
+        type_index = -1;
         helper_type::move(rhs.type_index, &rhs.data, &data);
         type_index = rhs.type_index;
     }
 
 public:
-    VARIANT_INLINE variant<Types...>& operator=(variant<Types...> &&  other)
+    VARIANT_INLINE Variant<Types...>& operator=(Variant<Types...> &&  other)
     {
         move_assign(std::move(other));
         return *this;
     }
 
-    VARIANT_INLINE variant<Types...>& operator=(variant<Types...> const& other)
+    VARIANT_INLINE Variant<Types...>& operator=(Variant<Types...> const& other)
     {
         copy_assign(other);
         return *this;
@@ -777,18 +619,18 @@ public:
     // conversions
     // move-assign
     template <typename T>
-    VARIANT_INLINE variant<Types...>& operator=(T && rhs) noexcept
+    VARIANT_INLINE Variant<Types...>& operator=(T && rhs) noexcept
     {
-        variant<Types...> temp(std::forward<T>(rhs));
+        Variant<Types...> temp(std::forward<T>(rhs));
         move_assign(std::move(temp));
         return *this;
     }
 
     // copy-assign
     template <typename T>
-    VARIANT_INLINE variant<Types...>& operator=(T const& rhs)
+    VARIANT_INLINE Variant<Types...>& operator=(T const& rhs)
     {
-        variant<Types...> temp(rhs);
+        Variant<Types...> temp(rhs);
         copy_assign(temp);
         return *this;
     }
@@ -802,121 +644,66 @@ public:
 
     VARIANT_INLINE bool valid() const
     {
-        return type_index != detail::invalid_value;
+        return type_index != -1;
     }
 
     template <typename T, typename... Args>
     VARIANT_INLINE void set(Args &&... args)
     {
         helper_type::destroy(type_index, &data);
-        type_index = detail::invalid_value;
+        type_index = -1;
         new (&data) T(std::forward<Args>(args)...);
         type_index = detail::direct_type<T, Types...>::index;
     }
-
     // get<T>()
     template <typename T, typename std::enable_if<
-                          (detail::direct_type<T, Types...>::index != detail::invalid_value)
+                          (detail::direct_type<T, Types...>::index != -1)
                           >::type* = nullptr>
     VARIANT_INLINE T & get()
     {
-        if (type_index == detail::direct_type<T, Types...>::index)
-        {
+        if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T*>(&data);
-        }
         else
-        {
-            throw bad_variant_access("in get<T>()");
-        }
+			FATAL("Bad variant access in get()");
     }
 
     template <typename T, typename std::enable_if<
-                          (detail::direct_type<T, Types...>::index != detail::invalid_value)
+                          (detail::direct_type<T, Types...>::index != -1)
                           >::type* = nullptr>
     VARIANT_INLINE T const& get() const
     {
-        if (type_index == detail::direct_type<T, Types...>::index)
-        {
+        if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T const*>(&data);
-        }
         else
-        {
-            throw bad_variant_access("in get<T>()");
-        }
-    }
-
-    // get<T>() - T stored as recursive_wrapper<T>
-    template <typename T, typename std::enable_if<
-                          (detail::direct_type<recursive_wrapper<T>, Types...>::index != detail::invalid_value)
-                          >::type* = nullptr>
-    VARIANT_INLINE T & get()
-    {
-        if (type_index == detail::direct_type<recursive_wrapper<T>, Types...>::index)
-        {
-            return (*reinterpret_cast<recursive_wrapper<T>*>(&data)).get();
-        }
-        else
-        {
-            throw bad_variant_access("in get<T>()");
-        }
-    }
-
-    template <typename T,typename std::enable_if<
-                         (detail::direct_type<recursive_wrapper<T>, Types...>::index != detail::invalid_value)
-                         >::type* = nullptr>
-    VARIANT_INLINE T const& get() const
-    {
-        if (type_index == detail::direct_type<recursive_wrapper<T>, Types...>::index)
-        {
-            return (*reinterpret_cast<recursive_wrapper<T> const*>(&data)).get();
-        }
-        else
-        {
-            throw bad_variant_access("in get<T>()");
-        }
+			FATAL("Bad variant access in get()");
     }
 
     // get<T>() - T stored as std::reference_wrapper<T>
     template <typename T, typename std::enable_if<
-                          (detail::direct_type<std::reference_wrapper<T>, Types...>::index != detail::invalid_value)
+                          (detail::direct_type<std::reference_wrapper<T>, Types...>::index != -1)
                           >::type* = nullptr>
     VARIANT_INLINE T& get()
     {
-        if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index)
-        {
+        if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
-        }
         else
-        {
-            throw bad_variant_access("in get<T>()");
-        }
+			FATAL("Bad variant access in get()");
     }
 
     template <typename T,typename std::enable_if<
-                         (detail::direct_type<std::reference_wrapper<T const>, Types...>::index != detail::invalid_value)
+                         (detail::direct_type<std::reference_wrapper<T const>, Types...>::index != -1)
                          >::type* = nullptr>
     VARIANT_INLINE T const& get() const
     {
-        if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index)
-        {
+        if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
-        }
         else
-        {
-            throw bad_variant_access("in get<T>()");
-        }
-    }
-
-    // This function is deprecated because it returns an internal index field.
-    // Use which() instead.
-    MAPBOX_VARIANT_DEPRECATED VARIANT_INLINE std::size_t get_type_index() const
-    {
-        return type_index;
+			FATAL("Bad variant access in get()");
     }
 
     VARIANT_INLINE int which() const noexcept
     {
-        return static_cast<int>(sizeof...(Types) - type_index - 1);
+        return (int)sizeof...(Types) - type_index - 1;
     }
 
     // visitor
@@ -955,51 +742,30 @@ public:
         return detail::binary_dispatcher<F, V, R, Types...>::apply(v0, v1, std::forward<F>(f));
     }
 
-    ~variant() noexcept // no-throw destructor
+    ~Variant() noexcept // no-throw destructor
     {
         helper_type::destroy(type_index, &data);
     }
 
-    // comparison operators
-    // equality
-    VARIANT_INLINE bool operator==(variant const& rhs) const
+    VARIANT_INLINE bool operator==(Variant const& rhs) const
     {
-        assert(valid() && rhs.valid());
+        DASSERT(valid() && rhs.valid());
         if (this->which() != rhs.which())
         {
             return false;
         }
-        detail::comparer<variant, detail::equal_comp> visitor(*this);
+        detail::comparer<Variant, detail::equal_comp> visitor(*this);
         return visit(rhs, visitor);
     }
-
-    VARIANT_INLINE bool operator!=(variant const& rhs) const
+    VARIANT_INLINE bool operator<(Variant const& rhs) const
     {
-        return !(*this == rhs);
-    }
-
-    // less than
-    VARIANT_INLINE bool operator<(variant const& rhs) const
-    {
-        assert(valid() && rhs.valid());
+        DASSERT(valid() && rhs.valid());
         if (this->which() != rhs.which())
         {
             return this->which() < rhs.which();
         }
-        detail::comparer<variant, detail::less_comp> visitor(*this);
+        detail::comparer<Variant, detail::less_comp> visitor(*this);
         return visit(rhs, visitor);
-    }
-    VARIANT_INLINE bool operator>(variant const& rhs) const
-    {
-        return rhs < *this;
-    }
-    VARIANT_INLINE bool operator<=(variant const& rhs) const
-    {
-        return !(*this > rhs);
-    }
-    VARIANT_INLINE bool operator>=(variant const& rhs) const
-    {
-        return !(*this < rhs);
     }
 };
 
@@ -1046,10 +812,4 @@ ResultType const& get(T const& var)
     return var.template get<ResultType>();
 }
 
-
-}}
-
-namespace fwk {
-	template <typename ...Types>
-	using Variant = mapbox::util::variant<Types...>;
 }

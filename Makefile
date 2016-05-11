@@ -1,6 +1,7 @@
 MINGW_PREFIX=i686-w64-mingw32.static-
 BUILD_DIR=build
 LINUX_CXX=g++ -rdynamic
+INCLUDE_PCH_PARAM=
 
 -include Makefile.local
 
@@ -25,7 +26,8 @@ SHARED_SRC=base vector backtrace filesystem filesystem_linux filesystem_windows 
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
 		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/sprite_buffer gfx/line_buffer 
-PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models test/vector test/vector_perf tools/model_convert tools/model_viewer
+PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models test/vector test/vector_perf \
+			test/variant_perf tools/model_convert tools/model_viewer
 
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
@@ -80,7 +82,7 @@ $(PCH_FILE): $(PCH_INCLUDE)
 	clang -x c++-header -MMD $(LINUX_FLAGS) $^ -emit-pch -o $@
 
 $(LINUX_OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE)
-	$(LINUX_CXX) -MMD $(LINUX_FLAGS) -include-pch $(PCH_FILE) -c src/$*.cpp -o $@
+	$(LINUX_CXX) -MMD $(LINUX_FLAGS) $(INCLUDE_PCH_PARAM) $(PCH_FILE) -c src/$*.cpp -o $@
 
 $(MINGW_OBJECTS): $(BUILD_DIR)/%_.o: src/%.cpp
 	$(MINGW_CXX) -MMD $(MINGW_FLAGS) -c src/$*.cpp -o $@

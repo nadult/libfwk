@@ -11,11 +11,10 @@
 
 class TestTimer {
   public:
-	TestTimer(const std::string &name)
-		: name(name),
-		  start(boost::date_time::microsec_clock<boost::posix_time::ptime>::local_time()) {}
+	TestTimer(const std::string &name) __attribute__((noinline))
+	: name(name), start(boost::date_time::microsec_clock<boost::posix_time::ptime>::local_time()) {}
 
-	~TestTimer() {
+	~TestTimer() __attribute__((noinline)) {
 		using namespace std;
 		using namespace boost;
 
