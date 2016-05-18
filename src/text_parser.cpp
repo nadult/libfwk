@@ -3,18 +3,17 @@
    This file is part of libfwk. */
 
 #include "fwk_base.h"
-#include <cerrno>
-#include <cstring>
-#include <cstdlib>
 #include <algorithm>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <functional>
 
 namespace fwk {
 
 namespace {
 
-	static void throwError(const char *input, const char *type_name, int count)
-		__attribute__((noinline));
+	static void throwError(const char *input, const char *type_name, int count) NOINLINE;
 	void throwError(const char *input, const char *type_name, int count) {
 		string what = count > 1 ? fwk::format("%d %s", count, type_name) : type_name;
 		size_t max_len = 32;
@@ -89,7 +88,9 @@ uint TextParser::parseUint() { return parseSingle(&m_current, strtoul, "uint"); 
 
 void TextParser::parseInts(Range<int> out) { parseMultiple(&m_current, out, strtol, "int"); }
 void TextParser::parseFloats(Range<float> out) { parseMultiple(&m_current, out, strtof, "float"); }
-void TextParser::parseDoubles(Range<double> out) { parseMultiple(&m_current, out, strtod, "double"); }
+void TextParser::parseDoubles(Range<double> out) {
+	parseMultiple(&m_current, out, strtod, "double");
+}
 void TextParser::parseUints(Range<uint> out) { parseMultiple(&m_current, out, strtoul, "uint"); }
 
 void TextParser::parseStrings(Range<string> out) {

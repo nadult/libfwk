@@ -3,8 +3,7 @@
    This file is part of libfwk. */
 
 #include "fwk_gfx.h"
-#include <GL/gl.h>
-#include <GL/glext.h>
+#include "fwk_opengl.h"
 
 namespace fwk {
 

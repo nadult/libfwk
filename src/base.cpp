@@ -9,7 +9,7 @@
 #include <cstring>
 #include <stdarg.h>
 
-#ifdef FWK_TARGET_MINGW
+#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
 #include <ctime>
 #include <windows.h>
 #else
@@ -176,6 +176,11 @@ void handleCtrlC(void (*handler)()) {
 #endif
 }
 
+#ifdef FWK_TARGET_MSVC
+#define popen _popen
+#define pclose _pclose
+#endif
+
 // TODO: stdout and stderr returned separately?
 pair<string, bool> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");
@@ -304,9 +309,11 @@ void checkFailed(const char *file, int line, const char *text) {
 #endif
 }
 
-#ifdef _WIN32
+#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
 
-const char *strcasestr(const char *a, const char *b) {
+static int strcasecmp(const char *a, const char *b) { return _stricmp(a, b); }
+
+static const char *strcasestr(const char *a, const char *b) {
 	DASSERT(a && b);
 
 	while(*a) {
@@ -378,4 +385,7 @@ string simpleFormat(const char *format, const vector<string> &args) {
 
 	return out.text();
 }
+
+int StringRef::compare(const StringRef &rhs) const { return strcmp(m_data, rhs.m_data); }
+int StringRef::caseCompare(const StringRef &rhs) const { return strcasecmp(m_data, rhs.m_data); }
 }

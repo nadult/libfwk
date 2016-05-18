@@ -29,6 +29,15 @@
 #include <boost/preprocessor/list/transform.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
 
+#if _MSC_VER
+#define NORETURN
+#define NOINLINE
+#define __restrict__ __restrict
+#else
+#define NORETURN __attribute__((noreturn))
+#define NOINLINE __attribute__((noinline))
+#endif
+
 namespace fwk {
 
 using std::string;
@@ -300,13 +309,15 @@ void throwException(const char *file, int line, const char *fmt, ...);
 #ifdef __clang__
 __attribute__((__format__(__printf__, 3, 4)))
 #endif
-void fatalError(const char *file, int line, const char *fmt, ...) __attribute__((noreturn));
-void assertFailed(const char *file, int line, const char *str) __attribute__((noreturn));
+void fatalError(const char *file, int line, const char *fmt, ...) NORETURN;
+void assertFailed(const char *file, int line, const char *str) NORETURN;
 void checkFailed(const char *file, int line, const char *str);
 void handleCtrlC(void (*handler)());
 void handleSegFault();
 void sleep(double sec);
 double getTime();
+
+#include <assert.h>
 
 // TODO: maybe FILE / LINE is not required if we have backtraces?
 
@@ -316,11 +327,7 @@ double getTime();
 // TODO: add fatal exception and use it for asserts
 // TODO: add special assert for verifying input files, which throws normal exception
 
-#define ASSERT(expr)                                                                               \
-	({                                                                                             \
-		if(!(expr))                                                                                \
-			fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr));                            \
-	})
+#define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 
 // Use this for checking input; It will throw on error, so that recovery is possible
 #define CHECK(expr)                                                                                \
@@ -330,7 +337,7 @@ double getTime();
 	})
 
 #ifdef NDEBUG
-#define DASSERT(expr) ({})
+#define DASSERT(expr) ((void)0)
 #else
 #define DASSERT(expr) ASSERT(expr)
 #endif
@@ -338,7 +345,7 @@ double getTime();
 #if defined(FWK_PARANOID) && !defined(NDEBUG)
 #define PASSERT(expr) ASSERT(expr)
 #else
-#define PASSERT(expr) ({})
+#define PASSERT(expr) ((void)0)
 #endif
 }
 
@@ -464,8 +471,8 @@ class StringRef {
 	int size() const { return m_length; }
 	int length() const { return m_length; }
 	bool empty() const { return m_length == 0; }
-	int compare(const StringRef &rhs) const { return strcmp(m_data, rhs.m_data); }
-	int caseCompare(const StringRef &rhs) const { return strcasecmp(m_data, rhs.m_data); }
+	int compare(const StringRef &rhs) const;
+	int caseCompare(const StringRef &rhs) const;
 
 	const char *begin() const { return m_data; }
 	const char *end() const { return m_data + m_length; }
@@ -705,7 +712,7 @@ class Stream {
 		return *this;
 	}
 
-	void handleException(const Exception &) __attribute__((noinline));
+	void handleException(const Exception &) NOINLINE;
 
   private:
 	template <class... Args> struct SumSize {
@@ -957,7 +964,7 @@ template <class T, class Constructor = ResourceLoader<T>> class ResourceManager 
 	template <class... ConstructorArgs>
 	ResourceManager(ConstructorArgs &&... args)
 		: m_constructor(std::forward<ConstructorArgs>(args)...) {}
-	ResourceManager() = default;
+	ResourceManager() {}
 	~ResourceManager() {}
 
 	const Constructor &constructor() const { return m_constructor; }
@@ -1071,9 +1078,9 @@ template <class T> class PodArray {
 		rhs.m_data = nullptr;
 		rhs.m_size = 0;
 	}
-	void load(Stream &sr) __attribute__((noinline));
-	void save(Stream &sr) const __attribute__((noinline));
-	void resize(int new_size) __attribute__((noinline));
+	void load(Stream &sr) NOINLINE;
+	void save(Stream &sr) const NOINLINE;
+	void resize(int new_size) NOINLINE;
 
 	void swap(PodArray &rhs) {
 		fwk::swap(m_data, rhs.m_data);
@@ -1254,10 +1261,10 @@ struct List {
 // TODO: add functions to remove head / tail
 
 template <class Object, ListNode Object::*member, class Container>
-void listInsert(Container &container, List &list, int idx) __attribute__((noinline));
+void listInsert(Container &container, List &list, int idx) NOINLINE;
 
 template <class Object, ListNode Object::*member, class Container>
-void listRemove(Container &container, List &list, int idx) __attribute__((noinline));
+void listRemove(Container &container, List &list, int idx) NOINLINE;
 
 // Assumes that node is disconnected
 template <class Object, ListNode Object::*member, class Container>
@@ -1372,8 +1379,8 @@ namespace FindFiles {
 
 		recursive = 4,
 
-		relative = 8, // all paths relative to given path
-		absolute = 16, // all paths absolute
+		relative = 8,		 // all paths relative to given path
+		absolute = 16,		 // all paths absolute
 		include_parent = 32, // include '..'
 	};
 };

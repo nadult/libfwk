@@ -7,6 +7,7 @@
 
 #include "fwk_base.h"
 #include <cmath>
+#include <limits>
 
 namespace fwk {
 
@@ -16,7 +17,7 @@ namespace fwk {
 namespace constant {
 	static const float pi = 3.14159265358979f;
 	static const float e = 2.71828182845905f;
-	static const float inf = 1.0f / 0.0f;
+	static const float inf = std::numeric_limits<float>::infinity();
 	static const float epsilon = 0.0001f;
 }
 
@@ -281,35 +282,31 @@ inline float4 operator*(float scalar, const float4 &rhs) { return rhs * scalar; 
 
 // TODO: write map function which transforms all coordinates
 
-const int2 min(const int2 &a, const int2 &b);
-const int2 max(const int2 &a, const int2 &b);
-const int3 min(const int3 &a, const int3 &b);
-const int3 max(const int3 &a, const int3 &b);
+int2 min(const int2 &a, const int2 &b);
+int2 max(const int2 &a, const int2 &b);
+int3 min(const int3 &a, const int3 &b);
+int3 max(const int3 &a, const int3 &b);
 
-const int2 abs(const int2 &v);
-const int3 abs(const int3 &v);
+int2 abs(const int2 &v);
+int3 abs(const int3 &v);
 
-inline const float2 min(const float2 &a, const float2 &b) {
-	return float2(min(a.x, b.x), min(a.y, b.y));
-}
-inline const float2 max(const float2 &a, const float2 &b) {
-	return float2(max(a.x, b.x), max(a.y, b.y));
-}
-inline const float3 min(const float3 &a, const float3 &b) {
+inline float2 min(const float2 &a, const float2 &b) { return float2(min(a.x, b.x), min(a.y, b.y)); }
+inline float2 max(const float2 &a, const float2 &b) { return float2(max(a.x, b.x), max(a.y, b.y)); }
+inline float3 min(const float3 &a, const float3 &b) {
 	return float3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z));
 }
-inline const float3 max(const float3 &a, const float3 &b) {
+inline float3 max(const float3 &a, const float3 &b) {
 	return float3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
 }
 
-inline const int3 asXZ(const int2 &pos) { return int3(pos.x, 0, pos.y); }
-inline const int3 asXY(const int2 &pos) { return int3(pos.x, pos.y, 0); }
-inline const int3 asXZY(const int2 &pos, int y) { return int3(pos.x, y, pos.y); }
+inline int3 asXZ(const int2 &pos) { return int3(pos.x, 0, pos.y); }
+inline int3 asXY(const int2 &pos) { return int3(pos.x, pos.y, 0); }
+inline int3 asXZY(const int2 &pos, int y) { return int3(pos.x, y, pos.y); }
 
-inline const float3 asXZ(const float2 &pos) { return float3(pos.x, 0, pos.y); }
-inline const float3 asXY(const float2 &pos) { return float3(pos.x, pos.y, 0); }
-inline const float3 asXZY(const float2 &pos, float y) { return float3(pos.x, y, pos.y); }
-inline const float3 asXZY(const float3 &pos) { return float3(pos.x, pos.z, pos.y); }
+inline float3 asXZ(const float2 &pos) { return float3(pos.x, 0, pos.y); }
+inline float3 asXY(const float2 &pos) { return float3(pos.x, pos.y, 0); }
+inline float3 asXZY(const float2 &pos, float y) { return float3(pos.x, y, pos.y); }
+inline float3 asXZY(const float3 &pos) { return float3(pos.x, pos.z, pos.y); }
 
 float dot(const float2 &a, const float2 &b);
 float dot(const float3 &a, const float3 &b);

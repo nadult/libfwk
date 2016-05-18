@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{68d8f40a-da37-4241-b0d4-4c64ab151dd2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{e7c14b4d-e54c-4050-a35e-725714e79c89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\gfx">
+      <UniqueIdentifier>{061add50-81b4-4461-a894-abd54d2f5db5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\math">
+      <UniqueIdentifier>{1794c7c9-d1c2-4883-9ad4-5dd0969e114f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\audio">
+      <UniqueIdentifier>{1bb54418-bcb9-4c83-8bf2-548aa16e1dc8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\fwk.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_audio.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_base.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_cache.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_gfx.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_input.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_math.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_maybe.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_mesh.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_opengl.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_profile.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_range.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_variant.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_vector.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fwk_xml.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pch.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\gfx\animated_model.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\color.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\device.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\device_texture.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\dynamic_mesh.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\font.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\font_factory.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\frame_buffer.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\index_buffer.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\line_buffer.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\material.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\matrix_stack.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\mesh.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\mesh_buffers.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\mesh_constructor.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\mesh_indices.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\model.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\model_anim.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\model_tree.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\opengl.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\program.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\render_buffer.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\render_list.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\renderer2d.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\shader.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\sprite_buffer.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\texture.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\texture_bmp.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\texture_format.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\texture_png.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\texture_tga.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\vertex_array.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\vertex_buffer.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\base.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\box.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\cylinder.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\frustum.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\matrix3.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\matrix4.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\plane.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\projection.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\quat.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\ray.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\rect.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\tetrahedron.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\triangle.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\vector.cpp">
+      <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\backtrace.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cache.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\filesystem.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\filesystem_linux.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\filesystem_windows.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\input.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\profiler.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stream.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\text_formatter.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\text_parser.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vector.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xml.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\xml_conversions.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\audio\device.cpp">
+      <Filter>src\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="src\audio\ogg_stream.cpp">
+      <Filter>src\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="src\audio\sound.cpp">
+      <Filter>src\audio</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

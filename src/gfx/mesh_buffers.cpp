@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_mesh.h"
+#include <numeric>
 
 namespace fwk {
 

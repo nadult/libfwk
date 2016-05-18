@@ -25,7 +25,7 @@
 
 namespace fwk {
 
-#ifdef _WIN32
+#ifdef FWK_TARGET_MINGW
 static PROC loadFunction(const char *name) {
 	PROC func = wglGetProcAddress(name);
 	if(!func)
@@ -63,7 +63,7 @@ void initializeOpenGL() {
 	for(auto elem : all<OpenglExtension>())
 		s_is_extension_supported[elem] = strstr(strings, toString(elem)) != nullptr;
 
-#ifdef _WIN32
+#ifdef FWK_TARGET_MINGW
 #define LOAD(func) (func = (decltype(func))loadFunction(#func));
 	LOAD(glCompressedTexImage3D);
 	LOAD(glCompressedTexImage2D);

@@ -81,9 +81,16 @@ Quat::operator Matrix3() const {
 	return out;
 }
 
+#ifdef FWK_TARGET_MSVC
+static void sincosf(float deg, float *s, float *c) {
+	*s = sinf(deg);
+	*c = cosf(deg);
+}
+#endif
+
 const Quat Quat::fromYawPitchRoll(float y, float p, float r) {
 	float cy, cp, cr, sy, sp, sr;
-	sincosf(y * 0.5f, &cy, &sy);
+	sincosf(y * 0.5f, &cy, &sy); // TODO: swap c&s?
 	sincosf(p * 0.5f, &cp, &sp);
 	sincosf(r * 0.5f, &cr, &sr);
 

@@ -6,10 +6,10 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include "fwk_base.h"
-#include <cstring>
 #include <cstdio>
-#include <windows.h>
+#include <cstring>
 #include <sys/stat.h>
+#include <windows.h>
 
 namespace fwk {
 
@@ -42,13 +42,21 @@ void FilePath::setCurrent(const FilePath &path) {
 bool FilePath::isRegularFile() const {
 	struct _stat buf;
 	_stat(c_str(), &buf);
+#ifdef FWK_TARGET_MSVC
+	return buf.st_mode & _S_IFREG;
+#else
 	return S_ISREG(buf.st_mode);
+#endif
 }
 
 bool FilePath::isDirectory() const {
 	struct _stat buf;
 	_stat(c_str(), &buf);
+#ifdef FWK_TARGET_MSVC
+	return buf.st_mode & _S_IFDIR;
+#else
 	return S_ISDIR(buf.st_mode);
+#endif
 }
 
 static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,

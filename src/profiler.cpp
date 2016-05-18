@@ -2,7 +2,15 @@
 
    This file is part of libfwk. */
 
+#ifdef max
+#error WTF
+#endif
+
 #include "fwk_profile.h"
+
+#ifdef max
+#error WTF
+#endif
 
 #include "fwk_opengl.h"
 #include <cstdio>

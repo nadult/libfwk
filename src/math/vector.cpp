@@ -18,17 +18,13 @@ void sincosf(float rad, float *s, float *c) {
 
 namespace fwk {
 
-const int2 min(const int2 &a, const int2 &b) { return int2(min(a.x, b.x), min(a.y, b.y)); }
-const int2 max(const int2 &a, const int2 &b) { return int2(max(a.x, b.x), max(a.y, b.y)); }
-const int3 min(const int3 &a, const int3 &b) {
-	return int3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z));
-}
-const int3 max(const int3 &a, const int3 &b) {
-	return int3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
-}
+int2 min(const int2 &a, const int2 &b) { return int2(min(a.x, b.x), min(a.y, b.y)); }
+int2 max(const int2 &a, const int2 &b) { return int2(max(a.x, b.x), max(a.y, b.y)); }
+int3 min(const int3 &a, const int3 &b) { return int3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)); }
+int3 max(const int3 &a, const int3 &b) { return int3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)); }
 
-const int2 abs(const int2 &v) { return int2(v.x < 0 ? -v.x : v.x, v.y < 0 ? -v.y : v.y); }
-const int3 abs(const int3 &v) {
+int2 abs(const int2 &v) { return int2(v.x < 0 ? -v.x : v.x, v.y < 0 ? -v.y : v.y); }
+int3 abs(const int3 &v) {
 	return int3(v.x < 0 ? -v.x : v.x, v.y < 0 ? -v.y : v.y, v.z < 0 ? -v.z : v.z);
 }
 

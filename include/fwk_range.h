@@ -87,9 +87,11 @@ template <class T, int min_size = 0> class Range {
 	Range() : m_data(nullptr), m_size(0) {
 		static_assert(min_size == 0, "Cannot construct empty range with minimum size > 0");
 	}
-	template <int other_size>
-	Range(Range<T, other_size> range) : m_data(range.data()), m_size(range.size()) {
-		static_assert(other_size >= min_size, "Range too small");
+	Range(const Range &other) : m_data(other.m_data), m_size(other.m_size) {}
+	template <int other_min_size,
+			  typename std::enable_if<other_min_size != min_size>::type * = nullptr>
+	Range(Range<T, other_min_size> range) : m_data(range.data()), m_size(range.size()) {
+		static_assert(other_min_size >= min_size, "Range too small");
 	}
 
 	template <class U = T>

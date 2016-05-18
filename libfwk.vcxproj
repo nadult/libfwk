@@ -1,0 +1,282 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\fwk.h" />
+    <ClInclude Include="include\fwk_audio.h" />
+    <ClInclude Include="include\fwk_base.h" />
+    <ClInclude Include="include\fwk_cache.h" />
+    <ClInclude Include="include\fwk_gfx.h" />
+    <ClInclude Include="include\fwk_input.h" />
+    <ClInclude Include="include\fwk_math.h" />
+    <ClInclude Include="include\fwk_maybe.h" />
+    <ClInclude Include="include\fwk_mesh.h" />
+    <ClInclude Include="include\fwk_opengl.h" />
+    <ClInclude Include="include\fwk_profile.h" />
+    <ClInclude Include="include\fwk_range.h" />
+    <ClInclude Include="include\fwk_variant.h" />
+    <ClInclude Include="include\fwk_vector.h" />
+    <ClInclude Include="include\fwk_xml.h" />
+    <ClInclude Include="src\pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\audio\device.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)audio_device.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)audio_device.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)audio_device.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)audio_device.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\audio\ogg_stream.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\audio\sound.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\backtrace.cpp" />
+    <ClCompile Include="src\base.cpp" />
+    <ClCompile Include="src\cache.cpp" />
+    <ClCompile Include="src\filesystem.cpp" />
+    <ClCompile Include="src\filesystem_linux.cpp" />
+    <ClCompile Include="src\filesystem_windows.cpp" />
+    <ClCompile Include="src\gfx\animated_model.cpp" />
+    <ClCompile Include="src\gfx\color.cpp" />
+    <ClCompile Include="src\gfx\device.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)gfx_device.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)gfx_device.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)gfx_device.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)gfx_device.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\gfx\device_texture.cpp" />
+    <ClCompile Include="src\gfx\dynamic_mesh.cpp" />
+    <ClCompile Include="src\gfx\font.cpp" />
+    <ClCompile Include="src\gfx\font_factory.cpp" />
+    <ClCompile Include="src\gfx\frame_buffer.cpp" />
+    <ClCompile Include="src\gfx\index_buffer.cpp" />
+    <ClCompile Include="src\gfx\line_buffer.cpp" />
+    <ClCompile Include="src\gfx\material.cpp" />
+    <ClCompile Include="src\gfx\matrix_stack.cpp" />
+    <ClCompile Include="src\gfx\mesh.cpp" />
+    <ClCompile Include="src\gfx\mesh_buffers.cpp" />
+    <ClCompile Include="src\gfx\mesh_constructor.cpp" />
+    <ClCompile Include="src\gfx\mesh_indices.cpp" />
+    <ClCompile Include="src\gfx\model.cpp" />
+    <ClCompile Include="src\gfx\model_anim.cpp" />
+    <ClCompile Include="src\gfx\model_tree.cpp" />
+    <ClCompile Include="src\gfx\opengl.cpp" />
+    <ClCompile Include="src\gfx\program.cpp" />
+    <ClCompile Include="src\gfx\renderer2d.cpp" />
+    <ClCompile Include="src\gfx\render_buffer.cpp" />
+    <ClCompile Include="src\gfx\render_list.cpp" />
+    <ClCompile Include="src\gfx\shader.cpp" />
+    <ClCompile Include="src\gfx\sprite_buffer.cpp" />
+    <ClCompile Include="src\gfx\texture.cpp" />
+    <ClCompile Include="src\gfx\texture_bmp.cpp" />
+    <ClCompile Include="src\gfx\texture_format.cpp" />
+    <ClCompile Include="src\gfx\texture_png.cpp" />
+    <ClCompile Include="src\gfx\texture_tga.cpp" />
+    <ClCompile Include="src\gfx\vertex_array.cpp" />
+    <ClCompile Include="src\gfx\vertex_buffer.cpp" />
+    <ClCompile Include="src\input.cpp" />
+    <ClCompile Include="src\math\base.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)math_base.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)math_base.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)math_base.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)math_base.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\math\box.cpp" />
+    <ClCompile Include="src\math\cylinder.cpp" />
+    <ClCompile Include="src\math\frustum.cpp" />
+    <ClCompile Include="src\math\matrix3.cpp" />
+    <ClCompile Include="src\math\matrix4.cpp" />
+    <ClCompile Include="src\math\plane.cpp" />
+    <ClCompile Include="src\math\projection.cpp" />
+    <ClCompile Include="src\math\quat.cpp" />
+    <ClCompile Include="src\math\ray.cpp" />
+    <ClCompile Include="src\math\rect.cpp" />
+    <ClCompile Include="src\math\tetrahedron.cpp" />
+    <ClCompile Include="src\math\triangle.cpp" />
+    <ClCompile Include="src\math\vector.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)math_vector.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)math_vector.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)math_vector.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)math_vector.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\profiler.cpp" />
+    <ClCompile Include="src\stream.cpp" />
+    <ClCompile Include="src\text_formatter.cpp" />
+    <ClCompile Include="src\text_parser.cpp" />
+    <ClCompile Include="src\vector.cpp" />
+    <ClCompile Include="src\xml.cpp" />
+    <ClCompile Include="src\xml_conversions.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D58F34BE-FFCB-485F-9294-460EA261D0ED}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>libfwk</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140_xp</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140_xp</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140_xp</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140_xp</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>C:\projects\frontier\libfwk\include;C:\projects\frontier\libfwk\src;c:\libs\include;c:\libs\include\SDL2;$(IncludePath)</IncludePath>
+    <LibraryPath>c:\libs\lib_x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)\build\$(Configuration)\</OutDir>
+    <IntDir>build\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>C:\projects\frontier\libfwk\include;C:\projects\frontier\libfwk\src;c:\libs\include;c:\libs\include\SDL2;$(IncludePath)</IncludePath>
+    <LibraryPath>c:\libs\lib_x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)\build\$(Configuration)\</OutDir>
+    <IntDir>build\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\projects\frontier\libfwk\include;C:\projects\frontier\libfwk\src;c:\libs\include;c:\libs\include\SDL2;$(IncludePath)</IncludePath>
+    <LibraryPath>c:\libs\lib_x64;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>build\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\projects\frontier\libfwk\include;C:\projects\frontier\libfwk\src;c:\libs\include;c:\libs\include\SDL2;$(IncludePath)</IncludePath>
+    <LibraryPath>c:\libs\lib_x64;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>build\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/wd4800 /wd4244 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/wd4800 /wd4244 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\projects\frontier\libfwk\include;C:\projects\frontier\libfwk\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/wd4800 /wd4244 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/wd4800 /wd4244 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC %(AdditionalOptions)</AdditionalOptions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
