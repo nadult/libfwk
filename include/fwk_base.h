@@ -330,11 +330,7 @@ double getTime();
 #define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 
 // Use this for checking input; It will throw on error, so that recovery is possible
-#define CHECK(expr)                                                                                \
-	({                                                                                             \
-		if(!(expr))                                                                                \
-			fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr));                             \
-	})
+#define CHECK(expr)  (!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0))
 
 #ifdef NDEBUG
 #define DASSERT(expr) ((void)0)

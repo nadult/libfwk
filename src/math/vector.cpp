@@ -8,7 +8,7 @@
 #include <float.h>
 #endif
 
-#ifdef WIN32
+#if defined(FWK_TARGET_MSVC) || defined(FWK_TARGET_MINGW)
 void sincosf(float rad, float *s, float *c) {
 	DASSERT(s && c);
 	*s = sin(rad);

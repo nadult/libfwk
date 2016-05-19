@@ -98,9 +98,8 @@ template <class T, int min_size = 0> class Range {
 	Range(const Range<value_type, min_size> &range,
 		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)
 		: m_data(range.data()), m_size(range.size()) {}
-	template <class U = T>
-	Range(const std::initializer_list<T> &list,
-		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)
+
+	Range(const std::initializer_list<T> &list)
 		: Range(list.begin(), list.end()) {}
 	operator vector<value_type>() const { return vector<value_type>(cbegin(), cend()); }
 
