@@ -21,8 +21,7 @@ const EnumMap<FileType, string> Converter::s_extensions = {
 };
 
 FileType Converter::classify(const string &name) {
-	string iname = name;
-	std::transform(begin(iname), end(iname), begin(iname), tolower);
+	string iname = toLower(name);
 
 	for(auto type : all<FileType>()) {
 		auto pos = iname.rfind(s_extensions[type]);
@@ -49,6 +48,7 @@ string Converter::locateBlender() {
 	}
 
 	THROW("Cannot find blender");
+	return "";
 #else
 	return "blender";
 #endif

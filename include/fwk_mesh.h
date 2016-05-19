@@ -750,7 +750,7 @@ class Converter {
 		bool print_output = false;
 	};
 
-	Converter(Settings = Settings());
+	Converter(Settings);
 
 	void operator()(const string &from, const string &to);
 
