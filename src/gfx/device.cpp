@@ -5,11 +5,11 @@
 #define SDL_MAIN_HANDLED
 
 #include "fwk_gfx.h"
-#include "fwk_opengl.h"
 #include "fwk_input.h"
-#include <memory.h>
-#include <SDL_video.h>
+#include "fwk_opengl.h"
 #include <SDL.h>
+#include <SDL_video.h>
+#include <memory.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -43,20 +43,25 @@ struct GfxDevice::WindowImpl {
 		int sdl_flags = SDL_WINDOW_OPENGL;
 		DASSERT(!((flags & flag_fullscreen) && (flags & flag_fullscreen_desktop)));
 
+		int pos_x = 20, pos_y = 50;
 		if(flags & flag_fullscreen)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN;
 		if(flags & flag_fullscreen_desktop)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		if(flags & flag_resizable)
 			sdl_flags |= SDL_WINDOW_RESIZABLE;
-		if(flags & flag_maximized)
+		if(flags & flag_maximized) {
 			sdl_flags |= SDL_WINDOW_MAXIMIZED;
+			pos_x = pos_y = 0;
+		}
+		if(flags & flag_centered)
+			pos_x = pos_y = SDL_WINDOWPOS_CENTERED;
 		if(flags & flag_multisampling) {
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 		}
-		int window_pos = flags & flag_centered ? SDL_WINDOWPOS_CENTERED : 0;
-		window = SDL_CreateWindow(name.c_str(), window_pos, window_pos, size.x, size.y, sdl_flags);
+
+		window = SDL_CreateWindow(name.c_str(), pos_x, pos_y, size.x, size.y, sdl_flags);
 		if(!window)
 			reportSDLError("SDL_CreateWindow");
 		if(!(gl_context = SDL_GL_CreateContext(window))) {
