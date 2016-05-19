@@ -8,6 +8,8 @@ using namespace fwk;
 
 struct BlenderParams {
 	BlenderParams() : just_export(false), print_output(false) {}
+
+	string binary_path;
 	string objects_filter;
 	bool just_export;
 	bool print_output;
@@ -68,6 +70,25 @@ FileType classify(const string &name) {
 	return FileType();
 }
 
+#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
+string findBlender() {
+	vector<string> pfiles = {"C:/program files/", "C:/program files (x86)/"};
+	for(auto pf : pfiles) {
+		for(auto dir : fwk::findFiles(pf, FindFiles::directory)) {
+			string folder_name = toLower(dir.path.fileName());
+			if(folder_name.find("blender") != string::npos) {
+				auto files = fwk::findFiles(dir.path, "blender.exe");
+				if(!files.empty())
+					return string(dir.path) + files[0] + "blender.exe";
+			}
+		}
+	}
+	return "";
+}
+#else
+string findBlender() { return "blender"; }
+#endif
+
 string exportFromBlender(const string &file_name, string &target_file_name) {
 	if(target_file_name.empty())
 		target_file_name = file_name + ".model";
@@ -86,9 +107,17 @@ string exportFromBlender(const string &file_name, string &target_file_name) {
 		script += "write(" + args + ")\n";
 	}
 
+	string blender_path = s_blender_params.binary_path;
+	if(blender_path.empty()) {
+		blender_path = findBlender();
+		if(blender_path.empty())
+			THROW("Cannot find blender\n");
+	}
+
 	Saver(temp_script_name).saveData(script.data(), script.size());
-	auto result = execCommand(format("blender %s --background --python %s 2>&1", file_name.c_str(),
-									 temp_script_name.c_str()));
+	auto result =
+		execCommand(format("\"%s\" %s --background --python %s 2>&1", blender_path.c_str(),
+						   file_name.c_str(), temp_script_name.c_str()));
 
 	remove(temp_script_name.c_str());
 
@@ -183,6 +212,8 @@ int safe_main(int argc, char **argv) {
 				s_blender_params.objects_filter = argv[++n];
 			else if(arg == "--blender-just-export")
 				s_blender_params.just_export = true;
+			else if(arg == "--blender-binary-path" && n + 1 < argc)
+				s_blender_params.binary_path = argv[++n];
 			else if(arg == "--blender-print-output")
 				s_blender_params.print_output = true;
 			else if(arg == "--help") {
