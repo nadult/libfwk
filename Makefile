@@ -23,7 +23,7 @@ SHARED_SRC=base vector backtrace filesystem filesystem_linux filesystem_windows 
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream \
 		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \
 		   gfx/material gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model \
-		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model \
+		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
 		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/sprite_buffer gfx/line_buffer 
 PROGRAM_SRC=test/streams test/stuff test/math test/window test/enums test/models test/vector test/vector_perf \

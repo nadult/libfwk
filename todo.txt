@@ -1,4 +1,7 @@
 - Add asserts ASSERT_NE _LT, etc.
+- Add function for registering some information when assertion fails or exception is thrown or whatever
+  like: ASSERT_INFO("While parsing file: %s", file_name.c_str());
+- Make custom string class (not a template)
 - Variant uses operator new for non-POD types...
 - dont use printf, make TextFormatter use xmlVersions, add formatRange(..) which adds, [], ();
   what about other goodies from printfs?

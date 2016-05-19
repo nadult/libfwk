@@ -6,17 +6,6 @@
 
 using namespace fwk;
 
-struct BlenderParams {
-	BlenderParams() : just_export(false), print_output(false) {}
-
-	string binary_path;
-	string objects_filter;
-	bool just_export;
-	bool print_output;
-};
-
-static BlenderParams s_blender_params;
-
 string dataPath(string file_name) {
 	FilePath exec(executablePath());
 	return exec.parent().parent() / "data" / file_name;
@@ -45,154 +34,6 @@ void printHelp(const char *app_name) {
 		   app_name, app_name, app_name, app_name);
 }
 
-DEFINE_ENUM(FileType, fwk_model, blender);
-
-struct FileExt {
-	string ext;
-	FileType type;
-};
-
-const FileExt extensions[] = {
-	{".model", FileType::fwk_model}, {".blend", FileType::blender},
-};
-
-FileType classify(const string &name) {
-	string iname = name;
-	std::transform(begin(iname), end(iname), begin(iname), tolower);
-
-	for(auto &ext : extensions) {
-		auto pos = iname.rfind(ext.ext);
-		if(pos != string::npos && pos + ext.ext.size() == iname.size())
-			return ext.type;
-	}
-
-	THROW("Unsupported file type: %s\n", name.c_str());
-	return FileType();
-}
-
-#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
-string findBlender() {
-	vector<string> pfiles = {"C:/program files/", "C:/program files (x86)/"};
-	for(auto pf : pfiles) {
-		for(auto dir : fwk::findFiles(pf, FindFiles::directory)) {
-			string folder_name = toLower(dir.path.fileName());
-			if(folder_name.find("blender") != string::npos) {
-				auto files = fwk::findFiles(dir.path, "blender.exe");
-				if(!files.empty())
-					return string(dir.path) + files[0] + "blender.exe";
-			}
-		}
-	}
-	return "";
-}
-#else
-string findBlender() { return "blender"; }
-#endif
-
-string exportFromBlender(const string &file_name, string &target_file_name) {
-	if(target_file_name.empty())
-		target_file_name = file_name + ".model";
-	string temp_script_name = file_name + ".py";
-
-	string script;
-	{
-		string script_path = dataPath("export_fwk_model.py");
-
-		Loader loader(script_path);
-		script.resize(loader.size(), ' ');
-		loader.loadData(&script[0], script.size());
-		string args = "\"" + target_file_name + "\"";
-		if(!s_blender_params.objects_filter.empty())
-			args += ", objects_filter=\"" + s_blender_params.objects_filter + "\"";
-		script += "write(" + args + ")\n";
-	}
-
-	string blender_path = s_blender_params.binary_path;
-	if(blender_path.empty()) {
-		blender_path = findBlender();
-		if(blender_path.empty())
-			THROW("Cannot find blender\n");
-	}
-
-	Saver(temp_script_name).saveData(script.data(), script.size());
-	auto result =
-		execCommand(format("\"%s\" %s --background --python %s 2>&1", blender_path.c_str(),
-						   file_name.c_str(), temp_script_name.c_str()));
-
-	remove(temp_script_name.c_str());
-
-	if(!result.second)
-		THROW("Error while exporting from blender (file: %s):\n%s", file_name.c_str(),
-			  result.first.c_str());
-
-	if(s_blender_params.print_output)
-		printf("%s\n", result.first.c_str());
-
-	return result.first;
-}
-
-pair<PModel, string> loadModel(FileType file_type, Stream &stream) {
-	pair<PModel, string> out;
-
-	if(file_type == FileType::fwk_model) {
-		XMLDocument doc;
-		stream >> doc;
-		XMLNode child = doc.child();
-		CHECK(child && "empty XML document");
-		out = make_pair(immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name()));
-	} else {
-		DASSERT(file_type == FileType::blender);
-		CHECK(dynamic_cast<FileStream *>(&stream));
-		string temp_file_name;
-		auto blender_result = exportFromBlender(stream.name(), temp_file_name);
-
-		try {
-			Loader loader(temp_file_name);
-			out = loadModel(FileType::fwk_model, loader);
-			remove(temp_file_name.c_str());
-		} catch(const Exception &ex) {
-			THROW("%s\nBlender output:\n%s", ex.what(), blender_result.c_str());
-		}
-	}
-
-	return out;
-}
-
-void saveModel(PModel model, const string &node_name, FileType file_type, Stream &stream) {
-	if(file_type == FileType::fwk_model) {
-		XMLDocument doc;
-		XMLNode node = doc.addChild(doc.own(node_name));
-		model->saveToXML(node);
-		stream << doc;
-	} else
-		THROW("Unsupported file type for saving: %s", toString(file_type));
-}
-
-void convert(const string &from, const Matrix4 &transform, const string &to) {
-	auto from_type = classify(from);
-	auto to_type = classify(to);
-
-	bool any_transforms = false;
-
-	if(from_type == FileType::blender && to_type == FileType::fwk_model && !any_transforms &&
-	   s_blender_params.just_export) {
-		string target_name = to;
-		exportFromBlender(from, target_name);
-		return;
-	}
-
-	Loader loader(from);
-	Saver saver(to);
-
-	printf("Loading: %s (format: %s)\n", from.c_str(), toString(from_type));
-	auto pair = loadModel(from_type, loader);
-	printf(" Nodes: %d  Anims: %d\n", (int)pair.first->nodes().size(),
-		   (int)pair.first->anims().size());
-	printf(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
-
-	saveModel(pair.first, pair.second, to_type, saver);
-}
-
 int safe_main(int argc, char **argv) {
 	vector<string> params;
 	if(argc == 1) {
@@ -200,22 +41,20 @@ int safe_main(int argc, char **argv) {
 		exit(0);
 	}
 
-	Matrix4 transform = Matrix4::identity();
+	Converter::Settings settings;
+	settings.export_script_path = dataPath("export_fwk_model.py");
+	settings.print_output = true;
 
 	for(int n = 1; n < argc; n++) {
 		string arg(argv[n]);
 
 		if(arg[0] == '-' && arg[1] == '-') {
-			if(arg == "--transform" && n + 1 < argc)
-				transform = xml_conversions::fromString<Matrix4>(argv[++n]);
-			else if(arg == "--blender-objects-filter" && n + 1 < argc)
-				s_blender_params.objects_filter = argv[++n];
-			else if(arg == "--blender-just-export")
-				s_blender_params.just_export = true;
-			else if(arg == "--blender-binary-path" && n + 1 < argc)
-				s_blender_params.binary_path = argv[++n];
-			else if(arg == "--blender-print-output")
-				s_blender_params.print_output = true;
+			if(arg == "--blender-just-export")
+				settings.just_export = true;
+			else if(arg == "--blender-path" && n + 1 < argc)
+				settings.blender_path = argv[++n];
+			else if(arg == "--blender-output")
+				settings.blender_output = true;
 			else if(arg == "--help") {
 				printHelp(argv[0]);
 				exit(0);
@@ -233,6 +72,7 @@ int safe_main(int argc, char **argv) {
 		exit(1);
 	}
 
+	Converter converter(settings);
 	if(params[0].find('*') != string::npos) {
 		auto star_pos = params[0].find('*');
 		string prefix = params[0].substr(0, star_pos);
@@ -257,11 +97,11 @@ int safe_main(int argc, char **argv) {
 				FilePath dst_folder = FilePath(dst_name).parent();
 				if(!access(dst_folder))
 					mkdirRecursive(dst_folder);
-				convert(src_name, transform, dst_name);
+				converter(src_name, dst_name);
 			}
 		}
 	} else {
-		convert(params[0], transform, params[1]);
+		converter(params[0], params[1]);
 	}
 
 	return 0;

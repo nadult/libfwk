@@ -74,6 +74,9 @@
     <ClCompile Include="src\gfx\color.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
+    <ClCompile Include="src\gfx\converter.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
     <ClCompile Include="src\gfx\device.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>

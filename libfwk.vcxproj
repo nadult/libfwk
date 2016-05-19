@@ -63,6 +63,7 @@
     <ClCompile Include="src\filesystem_windows.cpp" />
     <ClCompile Include="src\gfx\animated_model.cpp" />
     <ClCompile Include="src\gfx\color.cpp" />
+    <ClCompile Include="src\gfx\converter.cpp" />
     <ClCompile Include="src\gfx\device.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)gfx_device.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)gfx_device.obj</ObjectFileName>
