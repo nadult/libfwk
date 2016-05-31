@@ -105,9 +105,8 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 }
 
 Mesh Mesh::merge(vector<Mesh> meshes) {
+	//TODO: Merging skinned meshes
 	for(const auto &mesh : meshes) {
-		if(mesh.hasSkin())
-			FATAL("Merging skinned models not supported");
 		if(!mesh.hasIndices())
 			FATAL("Write me");
 	}

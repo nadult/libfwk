@@ -6,6 +6,7 @@
 - dont use printf, make TextFormatter use xmlVersions, add formatRange(..) which adds, [], ();
   what about other goodies from printfs?
 - Add vmin, vmax; don't use std::min, write better alternative?
+- max & min should accept multiple arguments and ranges
 - findMax / findMin suck; remove them?
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
@@ -17,6 +18,7 @@
 - vector[-1] indeksuje od konca?
 - shrink_to_fit dla vectora?
 - makeRange z initializer_listy ?
+- klasa do flag (bazująca na zwykłym enumie)
 
 - Renderer2D cant handle more than 64K indices
 - Fix copyrights
