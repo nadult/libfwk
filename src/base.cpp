@@ -187,7 +187,7 @@ pair<string, bool> execCommand(const string &cmd) {
 	if(!pipe)
 		THROW("error while executing command: '%s'", cmd.c_str());
 	char buffer[1024];
-	std::string result = "";
+	string result = "";
 	while(!feof(pipe)) {
 		if(fgets(buffer, sizeof(buffer), pipe))
 			result += buffer;

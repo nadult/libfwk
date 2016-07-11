@@ -38,14 +38,15 @@
 #define NOINLINE __attribute__((noinline))
 #endif
 
+#define FWK_USE_STD_STRING
+//#define FWK_USE_STD_VECTOR
+
 namespace fwk {
 
-using std::string;
 using std::array;
 using std::swap;
 using std::move;
 using std::pair;
-using std::wstring;
 using std::unique_ptr;
 using std::shared_ptr;
 
@@ -108,7 +109,7 @@ template <class T> class SimpleAllocator : public SimpleAllocatorBase {
 	template <class Other> bool operator==(const Other &rhs) const { return false; }
 };
 
-#ifdef FWK_STD_VECTOR
+#ifdef FWK_USE_STD_VECTOR
 template <class T> using vector = std::vector<T, SimpleAllocator<T>>;
 #endif
 
@@ -251,21 +252,26 @@ template <class T> class immutable_weak_ptr {
 // TODO: use lib-lldb
 class Backtrace {
   public:
-	Backtrace(std::vector<void *> addresses = {}, std::vector<string> symbols = {});
+	Backtrace(std::vector<void *> addresses = {}, std::vector<std::string> symbols = {});
 	static Backtrace get(size_t skip = 0, void *context = nullptr);
 
 	// When filter is true, analyzer uses c++filt program to demangle C++
 	// names; it also shortens some of the common long class names, like
 	// std::basic_string<...> to fwk::string
-	string analyze(bool filter) const;
+	std::string analyze(bool filter) const;
 	auto size() const { return m_addresses.size(); }
 
   private:
-	static string filter(const string &);
+	static std::string filter(const std::string &);
 
 	std::vector<void *> m_addresses;
-	std::vector<string> m_symbols;
+	std::vector<std::string> m_symbols;
 };
+}
+
+#include "fwk_string.h"
+
+namespace fwk {
 
 class Exception : public std::exception {
   public:
@@ -330,7 +336,7 @@ double getTime();
 #define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 
 // Use this for checking input; It will throw on error, so that recovery is possible
-#define CHECK(expr)  (!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0))
+#define CHECK(expr) (!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0))
 
 #ifdef NDEBUG
 #define DASSERT(expr) ((void)0)
@@ -1356,7 +1362,7 @@ class FilePath {
 };
 
 inline bool operator==(const FilePath &lhs, const FilePath &rhs) {
-	return (const string &)lhs == (const string &)rhs;
+	return ((const string &)lhs).compare((const string &)rhs) == 0;
 }
 
 struct FileEntry {

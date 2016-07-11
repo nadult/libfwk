@@ -11,7 +11,7 @@ static size_t usableSize(void *, size_t size) { return size; }
 // TODO: more aggressive inlining here improves perf
 namespace fwk {
 
-#ifndef FWK_STD_VECTOR
+#ifndef FWK_USE_STD_VECTOR
 void BaseVector::alloc(int obj_size, int size_, int capacity_) noexcept {
 	size = size_;
 	capacity = capacity_;

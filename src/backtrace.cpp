@@ -48,9 +48,9 @@ namespace {
 		return command.text();
 	}
 
-	std::vector<string> analyzeAddresses(std::vector<void *> addresses) {
+	std::vector<std::string> analyzeAddresses(std::vector<void *> addresses) {
 		string result = execCommand(analyzeCommand(addresses)).first;
-		std::vector<string> file_lines;
+		std::vector<std::string> file_lines;
 		while(!result.empty()) {
 			auto pos = result.find('\n');
 			file_lines.emplace_back(result.substr(0, pos));
@@ -88,12 +88,12 @@ namespace {
 	};
 }
 
-Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols)
+Backtrace::Backtrace(std::vector<void *> addresses, std::vector<std::string> symbols)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}
 
 Backtrace Backtrace::get(size_t skip, void *context_) {
 	std::vector<void *> addrs;
-	std::vector<string> symbols;
+	std::vector<std::string> symbols;
 
 #if defined(FWK_TARGET_MINGW)
 	if(!context_) {
@@ -154,9 +154,9 @@ Backtrace Backtrace::get(size_t skip, void *context_) {
 	return Backtrace(move(addrs), move(symbols));
 }
 
-string Backtrace::analyze(bool filter) const {
+std::string Backtrace::analyze(bool filter) const {
 	TextFormatter formatter;
-	std::vector<string> file_lines;
+	std::vector<std::string> file_lines;
 
 #if defined(FWK_TARGET_HTML5)
 #elif defined(FWK_TARGET_LINUX)
@@ -180,13 +180,13 @@ string Backtrace::analyze(bool filter) const {
 		}
 	}
 
-	string out = formatter.text();
+	std::string out = formatter.text();
 	return filter ? Backtrace::filter(out) : out;
 }
 
-string Backtrace::filter(const string &input) {
+std::string Backtrace::filter(const std::string &input) {
 #ifdef FWK_TARGET_LINUX
-	string command = "echo \"" + input + "\" | c++filt -n";
+	std::string command = "echo \"" + input + "\" | c++filt -n";
 
 	FILE *file = popen(command.c_str(), "r");
 	if(file) {

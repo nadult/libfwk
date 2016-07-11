@@ -17,7 +17,7 @@ _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
-SHARED_SRC=base vector backtrace filesystem filesystem_linux filesystem_windows input profiler stream xml xml_conversions \
+SHARED_SRC=base vector string backtrace filesystem filesystem_linux filesystem_windows input profiler stream xml xml_conversions \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream \

@@ -4,7 +4,7 @@
 
 namespace fwk {
 
-#ifndef FWK_STD_VECTOR
+#ifndef FWK_USE_STD_VECTOR
 
 class BaseVector {
   public:
