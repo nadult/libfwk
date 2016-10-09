@@ -5,17 +5,6 @@
 #ifndef FWK_AUDIO_H
 #define FWK_AUDIO_H
 
-#include <vector>
-#include <array>
-#include <string>
-#include <exception>
-#include <type_traits>
-#include <memory>
-#include <map>
-#include <cstring>
-#include <cstdlib>
-#include <algorithm>
-
 #include "fwk_base.h"
 #include "fwk_math.h"
 

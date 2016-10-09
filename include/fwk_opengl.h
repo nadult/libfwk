@@ -5,21 +5,23 @@
 #ifndef FWK_OPENGL_H
 #define FWK_OPENGL_H
 
-#ifdef FWK_TARGET_MINGW
-#define APIENTRY __attribute__((__stdcall__))
-#define WINGDIAPI __attribute__((dllimport))
-#define WIN32_LEAN_AND_MEAN
-#elif defined(FWK_TARGET_MSVC)
-#define WINGDIAPI __declspec(dllimport)
-#define APIENTRY __stdcall
+#ifdef __MINGW32__
+	#ifndef _WINDOWS_
+		#define _WINDOWS_
+		#define APIENTRY __attribute__((__stdcall__))
+		#define WINGDIAPI __attribute__((dllimport))
+	#endif
+#elif defined(_MSC_VER)
+	#define WINGDIAPI __declspec(dllimport)
+	#define APIENTRY __stdcall
 #else
-#define GL_GLEXT_PROTOTYPES 1
+	#define GL_GLEXT_PROTOTYPES 1
 #endif
 
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#ifdef FWK_TARGET_MINGW
+#ifdef __MINGW32__
 
 #ifndef EXT_API
 #define EXT_API extern

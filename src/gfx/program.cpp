@@ -21,7 +21,7 @@ Program::Program(const Shader &vertex, const Shader &fragment,
 		glAttachShader(m_id, fragment.id());
 		testGlError("Error while attaching fragment shader to program");
 
-		for(uint l = 0; l < location_names.size(); l++) {
+		for(int l = 0; l < location_names.size(); l++) {
 			glBindAttribLocation(m_id, l, location_names[l].c_str());
 			testGlError("Error while binding attribute");
 		}

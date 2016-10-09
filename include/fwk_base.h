@@ -8,12 +8,11 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
-#include <cstdlib>
-#include <cstring>
 #include <exception>
 #include <map>
 #include <memory>
 #include <string>
+#include <cstring>
 #include <type_traits>
 #include <vector>
 
@@ -316,8 +315,6 @@ void handleCtrlC(void (*handler)());
 void handleSegFault();
 void sleep(double sec);
 double getTime();
-
-#include <assert.h>
 
 // TODO: maybe FILE / LINE is not required if we have backtraces?
 
