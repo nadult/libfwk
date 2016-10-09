@@ -224,13 +224,14 @@ template <class T> class Vector {
 	iterator insert(const const_iterator pos, const T &value) {
 		return insert(pos, &value, (&value) + 1);
 	}
+
 	template <class Iter> iterator insert(const const_iterator pos, Iter first, Iter last) {
 		int offset = pos - begin();
 		if(std::is_trivially_move_constructible<T>::value &&
 		   std::is_trivially_destructible<T>::value)
-			m_base.insertPodPartial(sizeof(T), offset, last - first);
+			m_base.insertPodPartial(sizeof(T), offset, std::distance(first, last));
 		else
-			m_base.insertPartial(sizeof(T), &Vector::moveAndDestroyBackwards, offset, last - first);
+			m_base.insertPartial(sizeof(T), &Vector::moveAndDestroyBackwards, offset, std::distance(first, last));
 		int toffset = offset;
 		while(!(first == last)) {
 			new(data() + offset++) T(*first);
@@ -257,7 +258,6 @@ template <class T> class Vector {
 		   std::is_trivially_destructible<T>::value &&
 		   std::is_trivially_copy_constructible<T>::value)
 			m_base.insertPod(sizeof(T), offset, first, last - first);
-
 		else
 			m_base.insert(sizeof(T), &Vector::moveAndDestroyBackwards, &Vector::copy, offset, first,
 						  last - first);

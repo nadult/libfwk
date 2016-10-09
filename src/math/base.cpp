@@ -11,7 +11,7 @@ bool isnan(float f) {
 	volatile float vf = f;
 	return vf != vf;
 #else
-	return ::isnan(f);
+	return std::isnan(f);
 #endif
 }
 

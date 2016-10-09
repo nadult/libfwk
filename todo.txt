@@ -1,4 +1,5 @@
 - Add asserts ASSERT_NE _LT, etc.
+- Add some PASSERTs to fwk vector?
 - Add function for registering some information when assertion fails or exception is thrown or whatever
   like: ASSERT_INFO("While parsing file: %s", file_name.c_str());
 - Make custom string class (not a template)

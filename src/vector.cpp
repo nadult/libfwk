@@ -199,7 +199,7 @@ void BaseVector::erasePod(int obj_size, int index, int count) noexcept {
 	int move_start = index + count;
 	int move_count = size - move_start;
 	if(move_count > 0)
-		memcpy(data + size_t(obj_size) * index, data + size_t(obj_size) * (index + count),
+		memmove(data + size_t(obj_size) * index, data + size_t(obj_size) * (index + count),
 			   size_t(obj_size) * move_count);
 	size -= count;
 }
