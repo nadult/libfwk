@@ -8,11 +8,11 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstring>
 #include <exception>
 #include <map>
 #include <memory>
 #include <string>
-#include <cstring>
 #include <type_traits>
 #include <vector>
 
@@ -327,7 +327,7 @@ double getTime();
 #define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 
 // Use this for checking input; It will throw on error, so that recovery is possible
-#define CHECK(expr)  (!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0))
+#define CHECK(expr) (!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0))
 
 #ifdef NDEBUG
 #define DASSERT(expr) ((void)0)

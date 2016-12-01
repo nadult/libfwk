@@ -231,7 +231,8 @@ template <class T> class Vector {
 		   std::is_trivially_destructible<T>::value)
 			m_base.insertPodPartial(sizeof(T), offset, std::distance(first, last));
 		else
-			m_base.insertPartial(sizeof(T), &Vector::moveAndDestroyBackwards, offset, std::distance(first, last));
+			m_base.insertPartial(sizeof(T), &Vector::moveAndDestroyBackwards, offset,
+								 std::distance(first, last));
 		int toffset = offset;
 		while(!(first == last)) {
 			new(data() + offset++) T(*first);

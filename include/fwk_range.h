@@ -99,8 +99,7 @@ template <class T, int min_size = 0> class Range {
 		  typename std::enable_if<std::is_const<U>::value>::type * = nullptr)
 		: m_data(range.data()), m_size(range.size()) {}
 
-	Range(const std::initializer_list<T> &list)
-		: Range(list.begin(), list.end()) {}
+	Range(const std::initializer_list<T> &list) : Range(list.begin(), list.end()) {}
 	operator vector<value_type>() const { return vector<value_type>(cbegin(), cend()); }
 
 	auto cbegin() const noexcept { return CRangeIterator<T>(m_data); }
