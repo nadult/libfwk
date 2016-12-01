@@ -14,4 +14,8 @@ void testMain() {
 	vec.erase(vec.begin() + 3, vec.end());
 	auto copy = vec;
 	ASSERT(string(xml_conversions::toString(copy).text()) == "10 20 30");
+
+	vector<string> vecs = { "xxx", "yyy", "zzz", "xxx", "abc", "abc", "zzz" };
+	makeUnique(vecs);
+	ASSERT(string(xml_conversions::toString(vecs).text()) == "abc xxx yyy zzz");
 }

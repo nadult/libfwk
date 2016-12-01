@@ -67,7 +67,7 @@ void BaseVector::resizePartial(int obj_size, DestroyFunc destroy_func,
 		reallocate(obj_size, move_destroy_func, insertCapacity(obj_size, new_size));
 
 	if(size > new_size)
-		destroy_func(data, size - new_size);
+		destroy_func(data + size_t(obj_size) * new_size, size - new_size);
 	size = new_size;
 }
 

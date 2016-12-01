@@ -1,3 +1,4 @@
+- better tests for vector? Use tests from libc++ or something?
 - Add asserts ASSERT_NE _LT, etc.
 - Add some PASSERTs to fwk vector?
 - Add function for registering some information when assertion fails or exception is thrown or whatever
