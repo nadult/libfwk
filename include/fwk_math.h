@@ -19,6 +19,9 @@ namespace constant {
 	static const float e = 2.71828182845905f;
 	static const float inf = std::numeric_limits<float>::infinity();
 	static const float epsilon = 0.0001f;
+
+	// TODO: how to properly pick this value?
+	static const float isect_epsilon = 0.000000001f;
 }
 
 template <class T> inline const T clamp(T obj, T tmin, T tmax) { return min(tmax, max(tmin, obj)); }

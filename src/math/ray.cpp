@@ -132,10 +132,10 @@ float intersection(const Ray &ray, const Triangle &tri) {
 
 	// Begin calculating determinant - also used to calculate u parameter
 	float3 P = cross(normalize(ray.dir()), e2);
-	// if determinant is near zero, ray lies in plane of triangle
 	float det = dot(e1, P);
-	// NOT CULLING
-	if(det > -constant::epsilon && det < constant::epsilon)
+
+	// if determinant is near zero, ray lies in plane of triangle
+	if(det > -constant::isect_epsilon && det < constant::isect_epsilon)
 		return constant::inf;
 	float inv_det = 1.f / det;
 
