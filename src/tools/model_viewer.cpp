@@ -271,7 +271,18 @@ int safe_main(int argc, char **argv) {
 	string model_argument = argv[1], tex_argument = argc > 2 ? argv[2] : "";
 	vector<pair<string, string>> files;
 
-	if(model_argument.find('*') != string::npos) {
+	bool multiple_files = model_argument.find('*') != string::npos;
+	if(!multiple_files) {
+		if(FilePath(model_argument).isDirectory()) {
+			model_argument += "*.model";
+			multiple_files = true;
+		}
+		else {
+			files = {make_pair(model_argument, tex_argument)};
+		}
+	}
+
+	if(multiple_files) {
 		auto star_pos = model_argument.find('*');
 		string prefix = model_argument.substr(0, star_pos);
 		string suffix = model_argument.substr(star_pos + 1);
@@ -293,8 +304,6 @@ int safe_main(int argc, char **argv) {
 				files.emplace_back(file.path, tex_name);
 			}
 		}
-	} else {
-		files = {make_pair(model_argument, tex_argument)};
 	}
 
 	Profiler profiler;
