@@ -221,12 +221,13 @@ pair<float2, bool> lineIntersection(const Segment2D &seg1, const Segment2D &seg2
 pair<float2, bool> intersection(const Segment2D &seg1, const Segment2D &seg2) {
 	auto result = lineIntersection(seg1, seg2);
 	if(result.second) {
-		float2 dir1 = normalize(seg1.end - seg1.start);
-		float2 dir2 = normalize(seg2.end - seg2.start);
+		float2 dir1 = (seg1.end - seg1.start);
+		float2 dir2 = (seg2.end - seg2.start);
 		float seg1_pos = dot(result.first - seg1.start, dir1);
 		float seg2_pos = dot(result.first - seg2.start, dir2);
 
-		if(seg1_pos < 0.0f || seg1_pos > 1.0f || seg2_pos < 0.0f || seg2_pos > 1.0f)
+		if(seg1_pos < 0.0f || seg1_pos > dot(dir1, dir1) || seg2_pos < 0.0f ||
+		   seg2_pos > dot(dir2, dir2))
 			return make_pair(float2(), false);
 	}
 

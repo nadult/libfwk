@@ -1,3 +1,5 @@
+- Segment2D -> Segment2 ?
+- Fix Segment2D-Segment2D  intersections (write them normally, not projection-based)
 - better tests for vector? Use tests from libc++ or something?
 - rapidxml is allocating with std::new (exceptions aren't caught)
 - Add asserts ASSERT_NE _LT, etc.

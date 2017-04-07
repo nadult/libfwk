@@ -155,6 +155,11 @@ void test2DIntersections() {
 	assertEqual(intersection(seg1, seg2).first, float2(1, 2));
 	ASSERT(!intersection(seg1, seg3).second);
 	ASSERT(!intersection(seg2, seg3).second);
+
+	Segment2D seg4({-3.788882, -9.852953}, {-3.870192, -10.849642});
+	Segment2D seg5({-3.723713, -9.857805}, {-3.771331, -9.854259});
+	ASSERT(!intersection(seg4, seg5).second);
+	ASSERT(!intersection(seg5, seg4).second);
 }
 
 void testMain() {
