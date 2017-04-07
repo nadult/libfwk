@@ -3,7 +3,9 @@
    This file is part of libfwk.*/
 
 #include "fwk_gfx.h"
+#include "fwk_mesh.h"
 #include "fwk_opengl.h"
+#include "fwk_xml.h"
 #include <algorithm>
 
 namespace fwk {
@@ -71,16 +73,24 @@ Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_a
 		   translation(-look_at.x, -look_at.y, 0.0f);
 }
 
-Renderer2D::Element &Renderer2D::makeElement(PrimitiveType primitive_type,
+Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {
+	if(m_chunks.empty() ||
+	   m_chunks.back().positions.size() + num_verts > IndexBuffer::max_index_value)
+		m_chunks.emplace_back();
+	return m_chunks.back();
+}
+
+Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType primitive_type,
 											 shared_ptr<const DTexture> texture) {
 	// TODO: merging won't work for triangle strip (have to add some more indices)
+	auto &elems = chunk.elements;
 
-	if(m_elements.empty() || m_elements.back().primitive_type != primitive_type ||
-	   m_elements.back().texture != texture || fullMatrix() != m_elements.back().matrix ||
-	   m_current_scissor_rect != m_elements.back().scissor_rect_id)
-		m_elements.emplace_back(Element{fullMatrix(), move(texture), (int)m_indices.size(), 0,
-										m_current_scissor_rect, primitive_type});
-	return m_elements.back();
+	if(elems.empty() || elems.back().primitive_type != primitive_type ||
+	   elems.back().texture != texture || fullMatrix() != elems.back().matrix ||
+	   m_current_scissor_rect != elems.back().scissor_rect_id)
+		elems.emplace_back(Element{fullMatrix(), move(texture), (int)chunk.indices.size(), 0,
+								   m_current_scissor_rect, primitive_type});
+	return elems.back();
 }
 
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<FColor, 4> colors,
@@ -94,52 +104,55 @@ void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect,
 }
 
 void Renderer2D::addRect(const FRect &rect, FColor color) {
-	Element &elem = makeElement(PrimitiveType::lines, PTexture());
-	int vertex_offset = (int)m_positions.size();
-	appendVertices(rect.corners(), {}, {}, color);
+	auto &chunk = allocChunk(4);
+	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
+	int vertex_offset = (int)chunk.positions.size();
+	chunk.appendVertices(rect.corners(), {}, {}, color);
 
 	const int num_indices = 8;
 	int indices[num_indices] = {0, 1, 1, 2, 2, 3, 3, 0};
 	for(int i = 0; i < num_indices; i++)
-		m_indices.emplace_back(vertex_offset + indices[i]);
+		chunk.indices.emplace_back(vertex_offset + indices[i]);
 	elem.num_indices += num_indices;
 }
 
 void Renderer2D::addLine(const float2 &p1, const float2 &p2, FColor color) {
-	Element &elem = makeElement(PrimitiveType::lines, PTexture());
-	int vertex_offset = (int)m_positions.size();
-	appendVertices({p1, p2}, {}, {}, color);
+	auto &chunk = allocChunk(2);
+	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
+	int vertex_offset = (int)chunk.positions.size();
+	chunk.appendVertices({p1, p2}, {}, {}, color);
 
-	insertBack(m_indices, {vertex_offset, vertex_offset + 1});
+	insertBack(chunk.indices, {vertex_offset, vertex_offset + 1});
 	elem.num_indices += 2;
 }
 
-void Renderer2D::appendVertices(CRange<float2> positions, CRange<float2> tex_coords,
-								CRange<FColor> colors, FColor mat_color) {
+void Renderer2D::DrawChunk::appendVertices(CRange<float2> positions_, CRange<float2> tex_coords_,
+										   CRange<FColor> colors_, FColor mat_color) {
 	DASSERT(colors.size() == positions.size() || colors.empty());
 	DASSERT(tex_coords.size() == positions.size() || tex_coords.empty());
 
-	insertBack(m_positions, positions);
-	if(colors.empty())
-		m_colors.resize(m_positions.size(), IColor(mat_color));
+	insertBack(positions, positions_);
+	if(colors_.empty())
+		colors.resize(positions.size(), IColor(mat_color));
 	else
-		for(auto col : colors)
-			m_colors.emplace_back(col * mat_color);
-	if(tex_coords.empty())
-		m_tex_coords.resize(m_positions.size(), float2());
+		for(auto col : colors_)
+			colors.emplace_back(col * mat_color);
+	if(tex_coords_.empty())
+		tex_coords.resize(positions.size(), float2());
 	else
-		insertBack(m_tex_coords, tex_coords);
+		insertBack(tex_coords, tex_coords_);
 }
 
 void Renderer2D::addLines(CRange<float2> pos, CRange<FColor> color, FColor mat_color) {
 	DASSERT(pos.size() % 2 == 0);
 
-	Element &elem = makeElement(PrimitiveType::lines, PTexture());
+	auto &chunk = allocChunk(pos.size());
+	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
 
-	int vertex_offset = (int)m_positions.size();
-	appendVertices(pos, {}, color, mat_color);
+	int vertex_offset = (int)chunk.positions.size();
+	chunk.appendVertices(pos, {}, color, mat_color);
 	for(int n = 0; n < (int)pos.size(); n++)
-		m_indices.emplace_back(vertex_offset + n);
+		chunk.indices.emplace_back(vertex_offset + n);
 	elem.num_indices += (int)pos.size();
 }
 
@@ -147,15 +160,16 @@ void Renderer2D::addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<F
 						  const SimpleMaterial &material) {
 	DASSERT(pos.size() % 4 == 0);
 
-	Element &elem = makeElement(PrimitiveType::triangles, material.texture());
-	int vertex_offset = (int)m_positions.size();
+	auto &chunk = allocChunk(pos.size());
+	Element &elem = makeElement(chunk, PrimitiveType::triangles, material.texture());
+	int vertex_offset = (int)chunk.positions.size();
 	int num_quads = pos.size() / 4;
 
-	appendVertices(pos, tex_coord, color, material.color());
+	chunk.appendVertices(pos, tex_coord, color, material.color());
 	for(int n = 0; n < num_quads; n++) {
 		int inds[6] = {0, 1, 2, 0, 2, 3};
 		for(int i = 0; i < 6; i++)
-			m_indices.emplace_back(vertex_offset + n * 4 + inds[i]);
+			chunk.indices.emplace_back(vertex_offset + n * 4 + inds[i]);
 	}
 	elem.num_indices += num_quads * 6;
 }
@@ -166,14 +180,15 @@ void Renderer2D::addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<FC
 
 	int num_tris = pos.size() / 3;
 
-	Element &elem = makeElement(PrimitiveType::triangles, material.texture());
-	int vertex_offset = (int)m_positions.size();
-	appendVertices(pos, tex_coord, color, material.color());
+	auto &chunk = allocChunk(pos.size());
+	Element &elem = makeElement(chunk, PrimitiveType::triangles, material.texture());
+	int vertex_offset = (int)chunk.positions.size();
+	chunk.appendVertices(pos, tex_coord, color, material.color());
 
 	for(int n = 0; n < num_tris; n++) {
 		int inds[3] = {0, 1, 2};
 		for(int i = 0; i < 3; i++)
-			m_indices.emplace_back(vertex_offset + n * 3 + inds[i]);
+			chunk.indices.emplace_back(vertex_offset + n * 3 + inds[i]);
 	}
 	elem.num_indices += num_tris * 3;
 }
@@ -197,11 +212,7 @@ void Renderer2D::setScissorRect(Maybe<IRect> rect) {
 }
 
 void Renderer2D::clear() {
-	m_positions.clear();
-	m_colors.clear();
-	m_tex_coords.clear();
-	m_indices.clear();
-	m_elements.clear();
+	m_chunks.clear();
 	m_scissor_rects.clear();
 	m_current_scissor_rect = -1;
 }
@@ -215,39 +226,41 @@ void Renderer2D::render() {
 	glDepthMask(0);
 	glDisable(GL_SCISSOR_TEST);
 
-	VertexArray array({make_immutable<VertexBuffer>(m_positions),
-					   make_immutable<VertexBuffer>(m_colors),
-					   make_immutable<VertexBuffer>(m_tex_coords)},
-					  make_immutable<IndexBuffer>(m_indices));
-
 	int prev_scissor_rect = -1;
-	for(const auto &element : m_elements) {
-		auto &program = (element.texture ? m_tex_program : m_flat_program);
-		ProgramBinder binder(program);
-		binder.bind();
-		if(element.texture)
-			binder.setUniform("tex", 0);
-		binder.setUniform("proj_view_matrix", element.matrix);
-		if(element.texture)
-			element.texture->bind();
+	for(const auto &chunk : m_chunks) {
+		VertexArray array({make_immutable<VertexBuffer>(chunk.positions),
+						   make_immutable<VertexBuffer>(chunk.colors),
+						   make_immutable<VertexBuffer>(chunk.tex_coords)},
+						  make_immutable<IndexBuffer>(chunk.indices));
 
-		if(element.scissor_rect_id != prev_scissor_rect) {
-			if(element.scissor_rect_id == -1)
-				glDisable(GL_SCISSOR_TEST);
-			else if(prev_scissor_rect == -1)
-				glEnable(GL_SCISSOR_TEST);
+		for(const auto &element : chunk.elements) {
+			auto &program = (element.texture ? m_tex_program : m_flat_program);
+			ProgramBinder binder(program);
+			binder.bind();
+			if(element.texture)
+				binder.setUniform("tex", 0);
+			binder.setUniform("proj_view_matrix", element.matrix);
+			if(element.texture)
+				element.texture->bind();
 
-			if(element.scissor_rect_id != -1) {
-				IRect rect = m_scissor_rects[element.scissor_rect_id];
-				int min_y = m_viewport.height() - rect.max.y;
-				rect = IRect(rect.min.x, max(0, min_y), rect.max.x, min_y + rect.height());
-				glScissor(rect.min.x, rect.min.y, rect.width(), rect.height());
+			if(element.scissor_rect_id != prev_scissor_rect) {
+				if(element.scissor_rect_id == -1)
+					glDisable(GL_SCISSOR_TEST);
+				else if(prev_scissor_rect == -1)
+					glEnable(GL_SCISSOR_TEST);
+
+				if(element.scissor_rect_id != -1) {
+					IRect rect = m_scissor_rects[element.scissor_rect_id];
+					int min_y = m_viewport.height() - rect.max.y;
+					rect = IRect(rect.min.x, max(0, min_y), rect.max.x, min_y + rect.height());
+					glScissor(rect.min.x, rect.min.y, rect.width(), rect.height());
+				}
+
+				prev_scissor_rect = element.scissor_rect_id;
 			}
 
-			prev_scissor_rect = element.scissor_rect_id;
+			array.draw(element.primitive_type, element.num_indices, element.first_index);
 		}
-
-		array.draw(element.primitive_type, element.num_indices, element.first_index);
 	}
 
 	glDisable(GL_SCISSOR_TEST);

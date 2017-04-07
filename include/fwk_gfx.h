@@ -781,15 +781,21 @@ class Renderer2D : public MatrixStack {
 	const IRect &viewport() const { return m_viewport; }
 
   private:
-	Element &makeElement(PrimitiveType, shared_ptr<const DTexture>);
-	void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>, FColor);
+	struct DrawChunk {
+		void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>, FColor);
 
-	vector<float2> m_positions;
-	vector<float2> m_tex_coords;
-	vector<IColor> m_colors;
-	vector<uint> m_indices;
+		vector<float2> positions;
+		vector<float2> tex_coords;
+		vector<IColor> colors;
+		vector<uint> indices;
+		vector<Element> elements;
+	};
+
+	DrawChunk &allocChunk(int num_verts);
+	Element &makeElement(DrawChunk &, PrimitiveType, shared_ptr<const DTexture>);
+
+	vector<DrawChunk> m_chunks;
 	vector<IRect> m_scissor_rects;
-	vector<Element> m_elements;
 	IRect m_viewport;
 	PProgram m_tex_program, m_flat_program;
 	int m_current_scissor_rect;

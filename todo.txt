@@ -23,7 +23,6 @@
 - makeRange z initializer_listy ?
 - klasa do flag (bazująca na zwykłym enumie)
 
-- Renderer2D cant handle more than 64K indices
 - Fix copyrights
 - Rename InputEvent::***Event -> InputEvent::***
 - support for multiple armatures in exporter; support for animation without armatures
