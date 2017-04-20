@@ -45,6 +45,7 @@ void Profiler::updateTimer(const char *id, double start_time, double end_time, b
 	if(is_rare) {
 		timer.values.emplace_back(m_frame_count, time);
 		timer.last_frame_time = -end_time;
+		timer.display_time = -1.0;
 	} else
 		timer.last_frame_time += time;
 }
@@ -84,6 +85,9 @@ const string Profiler::getStats(const char *filter) {
 	vector<pair<bool, string>> lines;
 	for(auto &timer : m_timers) {
 		double shown_value = 0.0;
+		if(timer.display_time < 0.0)
+			timer.display_time = cur_time;
+
 		if(timer.last_frame_time > 0.0) {
 			timer.values.emplace_back(m_frame_count, timer.last_frame_time);
 			timer.last_frame_time = 0.0;
@@ -95,8 +99,9 @@ const string Profiler::getStats(const char *filter) {
 		}
 
 		if(timer.is_rare) {
-			if(cur_time - (-timer.last_frame_time) > 10.0)
+			if(cur_time - timer.display_time > 10.0) {
 				continue;
+			}
 			shown_value = timer.values.back().second;
 		} else {
 			double sum = 0.0, count = 0.0;
