@@ -164,6 +164,9 @@ template <class... Args> string xmlFormat(const char *format, const Args &... ar
 	return simpleFormat(format, strings);
 }
 
+template <class... Args>
+void xmlPrint(const char *format, Args &&... args) __attribute__((noinline));
+
 template <class... Args> void xmlPrint(const char *format, Args &&... args) {
 	printf("%s", xmlFormat(format, std::forward<Args>(args)...).c_str());
 }
