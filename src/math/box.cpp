@@ -7,7 +7,7 @@
 
 namespace fwk {
 
-template <class TVec3> Box<TVec3>::Box(CRange<Vec3> points) { *this = minMax(points); }
+template <class TVec3> Box<TVec3>::Box(CRange<Vec3> points) { *this = vecMinMax(points); }
 
 const Box<int3> enclosingIBox(const Box<float3> &fbox) {
 	return Box<int3>(floorf(fbox.min.x), floorf(fbox.min.y), floorf(fbox.min.z), ceilf(fbox.max.x),
@@ -15,13 +15,13 @@ const Box<int3> enclosingIBox(const Box<float3> &fbox) {
 };
 
 const FBox operator*(const Matrix4 &mat, const FBox &box) {
-	return minMax(transform(box.corners(), [&](auto pt) { return mulPoint(mat, pt); }));
+	return vecMinMax(transform(box.corners(), [&](auto pt) { return mulPoint(mat, pt); }));
 }
 
 bool areOverlapping(const FBox &a, const FBox &b) {
 	// TODO: these epsilons shouldnt be here...
 	for(int n = 0; n < 3; n++)
-		if(b.min[n] >= a.max[n] - constant::epsilon || a.min[n] >= b.max[n] - constant::epsilon)
+		if(b.min[n] >= a.max[n] - fconstant::epsilon || a.min[n] >= b.max[n] - fconstant::epsilon)
 			return false;
 	return true;
 }
@@ -57,8 +57,8 @@ array<pair<float3, float3>, 12> edges(const FBox &box) {
 }
 
 float distance(const Box<float3> &a, const Box<float3> &b) {
-	float3 p1 = clamp(b.center(), a.min, a.max);
-	float3 p2 = clamp(p1, b.min, b.max);
+	float3 p1 = vclamp(b.center(), a.min, a.max);
+	float3 p2 = vclamp(p1, b.min, b.max);
 	return distance(p1, p2);
 }
 

@@ -125,7 +125,7 @@ AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
 	// TODO: fix timing
 
 	float diff = times[frame1] - times[frame0];
-	float blend_factor = diff < constant::epsilon ? 0.0f : (anim_pos - times[frame0]) / diff;
+	float blend_factor = diff < fconstant::epsilon ? 0.0f : (anim_pos - times[frame0]) / diff;
 
 	return channel.blend(frame0, frame1, blend_factor);
 }

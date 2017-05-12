@@ -6,7 +6,7 @@
 
 namespace fwk {
 
-template <class TVec2> Rect<TVec2>::Rect(CRange<Vec2> range) { *this = minMax(range); }
+template <class TVec2> Rect<TVec2>::Rect(CRange<Vec2> range) { *this = vecMinMax(range); }
 
 bool areAdjacent(const IRect &a, const IRect &b) {
 	if(b.min.x < a.max.x && a.min.x < b.max.x)
@@ -17,8 +17,8 @@ bool areAdjacent(const IRect &a, const IRect &b) {
 }
 
 float distanceSq(const FRect &a, const FRect &b) {
-	float2 p1 = clamp(b.center(), a.min, a.max);
-	float2 p2 = clamp(p1, b.min, b.max);
+	float2 p1 = vclamp(b.center(), a.min, a.max);
+	float2 p2 = vclamp(p1, b.min, b.max);
 	return distanceSq(p1, p2);
 }
 
@@ -31,7 +31,7 @@ bool areOverlapping(const IRect &a, const IRect &b) {
 
 bool areOverlapping(const FRect &a, const FRect &b) {
 	for(int n = 0; n < 2; n++)
-		if(b.min[n] >= a.max[n] - constant::epsilon || a.min[n] >= b.max[n] - constant::epsilon)
+		if(b.min[n] >= a.max[n] - fconstant::epsilon || a.min[n] >= b.max[n] - fconstant::epsilon)
 			return false;
 	return true;
 }

@@ -50,7 +50,7 @@ Mesh Mesh::makeCylinder(const Cylinder &cylinder, int num_sides) {
 
 	vector<float3> positions(num_sides * 2);
 	for(int n = 0; n < num_sides; n++) {
-		float angle = n * constant::pi * 2.0f / float(num_sides);
+		float angle = n * fconstant::pi * 2.0f / float(num_sides);
 		float px = cosf(angle) * cylinder.radius();
 		float pz = sinf(angle) * cylinder.radius();
 		float3 offset = cylinder.pos();
@@ -100,7 +100,7 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 }
 
 Mesh Mesh::makePlane(const Plane &plane, const float3 &start, float size) {
-	DASSERT(size > constant::epsilon);
+	DASSERT(size > fconstant::epsilon);
 	FATAL("Test me");
 
 	float3 p[3] = {{-size, -size, -size}, {size, size, size}, {size, -size, size}};
@@ -139,7 +139,7 @@ Mesh Mesh::makePolySoup(CRange<Triangle> rtris) {
 			auto result = findMin(positions, [vert](auto v) { return distanceSq(v, vert); });
 
 			int index = 0;
-			if(result.first != -1 && sqrtf(result.second) < constant::epsilon)
+			if(result.first != -1 && sqrtf(result.second) < fconstant::epsilon)
 				index = result.first;
 			else {
 				index = positions.size();

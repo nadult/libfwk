@@ -281,6 +281,13 @@ class Exception : public std::exception {
 	Backtrace m_backtrace;
 };
 
+#define FWK_TIE_MEMBERS(...)                                                                       \
+	auto tied() const { return std::tie(__VA_ARGS__); }
+#define FWK_ORDER_BY(name, ...)                                                                    \
+	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
+	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
+	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
+
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
 

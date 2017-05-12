@@ -91,9 +91,9 @@ float Tetrahedron::inscribedSphereRadius() const { return 3.0f * volume() / surf
 
 bool Tetrahedron::isValid() const {
 	for(int n = 0; n < 4; n++)
-		if(distance(m_verts[n], m_verts[(n + 1) % 4]) < constant::epsilon)
+		if(distance(m_verts[n], m_verts[(n + 1) % 4]) < fconstant::epsilon)
 			return false;
-	return volume() > pow(constant::epsilon, 3);
+	return volume() > pow(fconstant::epsilon, 3);
 }
 
 bool Tetrahedron::isInside(const float3 &point) const {

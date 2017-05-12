@@ -61,7 +61,7 @@ bool intersection(const Plane &plane0, const Plane &plane1, Ray &line) {
 	float n11 = lengthSq(plane1.normal());
 	float det = n00 * n11 - n01 * n01;
 
-	if(fabsf(det) < constant::epsilon)
+	if(fabsf(det) < fconstant::epsilon)
 		return false;
 
 	float inv_det = 1.0f / det;

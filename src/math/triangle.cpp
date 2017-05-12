@@ -45,7 +45,7 @@ bool areIntersecting(const Triangle &a, const Triangle &b) {
 			if(auto *s = boost::get<Segment>(&*isect)) {
 				float len = sqrtf(CGAL::to_double(s->squared_length()));
 				// printf("segment: %f\n", len);
-				return len > constant::epsilon;
+				return len > fconstant::epsilon;
 			}
 			if(auto *t = boost::get<K::Triangle_3>(&*isect)) {
 				// printf("tri\n");
@@ -89,7 +89,7 @@ pair<Segment, bool> intersectionSegment(const Triangle &a, const Triangle &b) {
 		if(isect) {
 			if(auto *s = boost::get<Segment>(&*isect)) {
 				float len = sqrtf(CGAL::to_double(s->squared_length()));
-				if(len > constant::epsilon)
+				if(len > fconstant::epsilon)
 					return make_pair(fwk::Segment(fromCGAL(s->min()), fromCGAL(s->max())), true);
 			}
 		}
@@ -120,7 +120,7 @@ bool areIntersecting(const Triangle2D &a, const Triangle2D &b) {
 				return false;
 			if(auto *s = boost::get<Segment>(&*isect)) {
 				float len = sqrtf(CGAL::to_double(s->squared_length()));
-				return len > constant::epsilon;
+				return len > fconstant::epsilon;
 			}
 
 			return true;
@@ -148,17 +148,17 @@ Triangle operator*(const Matrix4 &mat, const Triangle &tri) {
 }
 
 float distance(const Triangle &a, const Triangle &b) {
-	float min_dist = constant::inf;
-	for(int n = 0; n < 3 && min_dist > constant::epsilon; n++)
+	float min_dist = fconstant::inf;
+	for(int n = 0; n < 3 && min_dist > fconstant::epsilon; n++)
 		min_dist = min(min_dist, distance(b, Segment(a[n], a[(n + 1) % 3])));
-	for(int n = 0; n < 3 && min_dist > constant::epsilon; n++)
+	for(int n = 0; n < 3 && min_dist > fconstant::epsilon; n++)
 		min_dist = min(min_dist, distance(a, Segment(b[n], b[(n + 1) % 3])));
 	return min_dist;
 }
 
 float distance(const Triangle &tri, const Segment &seg) {
 	float isect = intersection(tri, seg);
-	if(isect < constant::inf)
+	if(isect < fconstant::inf)
 		return 0.0f;
 
 	float plane_isect = intersection(Plane(tri), (Ray)seg);

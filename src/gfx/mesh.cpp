@@ -105,7 +105,7 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 }
 
 Mesh Mesh::merge(vector<Mesh> meshes) {
-	//TODO: Merging skinned meshes
+	// TODO: Merging skinned meshes
 	for(const auto &mesh : meshes) {
 		if(!mesh.hasIndices())
 			FATAL("Write me");
@@ -285,10 +285,10 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 }
 
 float Mesh::intersect(const Segment &segment) const {
-	float min_isect = constant::inf;
+	float min_isect = fconstant::inf;
 
 	const auto &positions = m_buffers.positions;
-	if(intersection(segment, boundingBox()) < constant::inf)
+	if(intersection(segment, boundingBox()) < fconstant::inf)
 		for(Triangle triangle : tris())
 			min_isect = min(min_isect, intersection(segment, triangle));
 
@@ -302,8 +302,8 @@ float Mesh::intersect(const Segment &segment, const AnimatedData &anim_data) con
 	DASSERT(valid(anim_data));
 	const auto &positions = anim_data.positions;
 
-	float min_isect = constant::inf;
-	if(intersection(segment, anim_data.bounding_box) < constant::inf)
+	float min_isect = fconstant::inf;
+	if(intersection(segment, anim_data.bounding_box) < fconstant::inf)
 		for(const auto &tri : tris())
 			min_isect = min(min_isect, intersection(segment, tri));
 	return min_isect;

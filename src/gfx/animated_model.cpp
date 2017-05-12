@@ -39,12 +39,12 @@ Mesh AnimatedModel::toMesh() const {
 }
 
 float AnimatedModel::intersect(const Segment &segment) const {
-	float min_isect = constant::inf;
+	float min_isect = fconstant::inf;
 
 	for(auto mesh_data : m_meshes) {
 		auto inv_segment = inverse(mesh_data.transform) * segment;
 		float inv_isect = mesh_data.mesh->intersect(inv_segment, mesh_data.anim_data);
-		if(inv_isect < constant::inf) {
+		if(inv_isect < fconstant::inf) {
 			float3 point = mulPoint(mesh_data.transform, inv_segment.at(inv_isect));
 			min_isect = min(min_isect, distance(segment.origin(), point));
 		}

@@ -18,11 +18,6 @@ void sincosf(float rad, float *s, float *c) {
 
 namespace fwk {
 
-int2 min(const int2 &a, const int2 &b) { return int2(min(a.x, b.x), min(a.y, b.y)); }
-int2 max(const int2 &a, const int2 &b) { return int2(max(a.x, b.x), max(a.y, b.y)); }
-int3 min(const int3 &a, const int3 &b) { return int3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)); }
-int3 max(const int3 &a, const int3 &b) { return int3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)); }
-
 int2 abs(const int2 &v) { return int2(v.x < 0 ? -v.x : v.x, v.y < 0 ? -v.y : v.y); }
 int3 abs(const int3 &v) {
 	return int3(v.x < 0 ? -v.x : v.x, v.y < 0 ? -v.y : v.y, v.z < 0 ? -v.z : v.z);
@@ -67,7 +62,7 @@ float4 inv(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 
 float vectorToAngle(const float2 &normalized_vec) {
 	DASSERT(isNormalized(normalized_vec));
 	float ang = acos(normalized_vec.x);
-	return normalized_vec.y < 0 ? 2.0f * constant::pi - ang : ang;
+	return normalized_vec.y < 0 ? 2.0f * fconstant::pi - ang : ang;
 }
 
 const float2 angleToVector(float radians) {

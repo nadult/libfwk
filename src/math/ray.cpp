@@ -117,13 +117,13 @@ pair<float, float> intersectionRange(const Ray &ray, const Box<float3> &box) {
 	lmin = max(lmin, min(l1, l2));
 	lmax = min(lmax, max(l1, l2));
 
-	return lmin <= lmax ? make_pair(lmin, lmax) : make_pair(constant::inf, constant::inf);
+	return lmin <= lmax ? make_pair(lmin, lmax) : make_pair(fconstant::inf, fconstant::inf);
 }
 
 pair<float, float> intersectionRange(const Segment &segment, const Box<float3> &box) {
 	auto pair = intersectionRange((Ray)segment, box);
 	pair.second = min(pair.second, segment.length());
-	return pair.first <= pair.second ? pair : make_pair(constant::inf, constant::inf);
+	return pair.first <= pair.second ? pair : make_pair(fconstant::inf, fconstant::inf);
 }
 
 // Moller-Trombore, source: wikipedia
@@ -135,8 +135,8 @@ float intersection(const Ray &ray, const Triangle &tri) {
 	float det = dot(e1, P);
 
 	// if determinant is near zero, ray lies in plane of triangle
-	if(det > -constant::isect_epsilon && det < constant::isect_epsilon)
-		return constant::inf;
+	if(det > -fconstant::isect_epsilon && det < fconstant::isect_epsilon)
+		return fconstant::inf;
 	float inv_det = 1.f / det;
 
 	// calculate distance from V1 to ray origin
@@ -146,7 +146,7 @@ float intersection(const Ray &ray, const Triangle &tri) {
 	float u = dot(T, P) * inv_det;
 	// The intersection lies outside of the triangle
 	if(u < 0.f || u > 1.f)
-		return constant::inf;
+		return fconstant::inf;
 
 	// Prepare to test v parameter
 	float3 Q = cross(T, e1);
@@ -155,31 +155,31 @@ float intersection(const Ray &ray, const Triangle &tri) {
 	float v = dot(normalize(ray.dir()), Q) * inv_det;
 	// The intersection lies outside of the triangle
 	if(v < 0.f || u + v > 1.f)
-		return constant::inf;
+		return fconstant::inf;
 
 	float t = dot(e2, Q) * inv_det;
 
-	if(t > constant::epsilon)
+	if(t > fconstant::epsilon)
 		return t;
 
-	return constant::inf;
+	return fconstant::inf;
 }
 
 float intersection(const Segment &segment, const Triangle &tri) {
 	float isect = intersection((Ray)segment, tri);
-	return isect < 0.0f || isect > segment.length() ? constant::inf : isect;
+	return isect < 0.0f || isect > segment.length() ? fconstant::inf : isect;
 }
 
 float intersection(const Ray &ray, const Plane &plane) {
 	float ndot = dot(plane.normal(), ray.dir());
-	if(fabs(ndot) < constant::epsilon)
-		return constant::inf;
+	if(fabs(ndot) < fconstant::epsilon)
+		return fconstant::inf;
 	return -dot(plane, ray.origin()) / ndot;
 }
 
 float intersection(const Segment &segment, const Plane &plane) {
 	float dist = intersection((Ray)segment, plane);
-	return dist < 0.0f || dist > segment.length() ? constant::inf : dist;
+	return dist < 0.0f || dist > segment.length() ? fconstant::inf : dist;
 }
 
 const Segment operator*(const Matrix4 &mat, const Segment &segment) {
@@ -191,8 +191,8 @@ inline float2 project(const float2 &vx, const float2 &vy, const float2 &vec) {
 }
 
 pair<float2, bool> lineIntersection(const Segment2D &seg1, const Segment2D &seg2) {
-	DASSERT(length(seg1) > constant::epsilon);
-	DASSERT(length(seg2) > constant::epsilon);
+	DASSERT(length(seg1) > fconstant::epsilon);
+	DASSERT(length(seg2) > fconstant::epsilon);
 
 	float2 dir = normalize(seg1.end - seg1.start);
 	float2 nrm(-dir.y, dir.x);
@@ -203,12 +203,12 @@ pair<float2, bool> lineIntersection(const Segment2D &seg1, const Segment2D &seg2
 	float2 sdir = proj_seg2.end - proj_seg2.start;
 
 	// TODO: test overlap
-	if(fabs(sdir.y) < constant::epsilon) {
+	if(fabs(sdir.y) < fconstant::epsilon) {
 		// TODO: fix this
 		float2 p1[2] = {seg1.start, seg1.end}, p2[2] = {seg2.start, seg2.end};
 		for(int i = 0; i < 2; i++)
 			for(int j = 0; j < 2; j++)
-				if(distance(p1[i], p2[j]) < constant::epsilon)
+				if(distance(p1[i], p2[j]) < fconstant::epsilon)
 					return make_pair(p1[i], true);
 		return make_pair(float2(), false);
 	}

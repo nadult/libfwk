@@ -49,7 +49,7 @@ void Texture::blit(Texture const &src, int2 dst_pos) {
 		dst_pos.y = 0;
 	}
 
-	blit_size = min(blit_size, size() - dst_pos);
+	blit_size = vmin(blit_size, size() - dst_pos);
 	if(blit_size.x <= 0 || blit_size.y <= 0)
 		return;
 

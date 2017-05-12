@@ -207,8 +207,8 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 
 	FRect out_rect;
 	for(int n = 0; n < quad_count * 4; n++) {
-		out_rect.min = min(out_rect.min, pos_buf[n]);
-		out_rect.max = max(out_rect.max, pos_buf[n]);
+		out_rect.min = vmin(out_rect.min, pos_buf[n]);
+		out_rect.max = vmax(out_rect.max, pos_buf[n]);
 	}
 	out_rect += pos;
 	// TODO: increase out_rect when rendering with shadow?

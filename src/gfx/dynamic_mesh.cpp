@@ -416,10 +416,10 @@ vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 			//				continue;
 
 			PolyId best_face;
-			float min_angle = constant::inf;
+			float min_angle = fconstant::inf;
 			auto proj = edgeProjection(edge, face);
 			auto normal = proj.projectVector(triangle(face).normal()).xz();
-			DASSERT(fabs(normal.y) > 1.0f - constant::epsilon);
+			DASSERT(fabs(normal.y) > 1.0f - fconstant::epsilon);
 
 			for(auto eface : epolys) {
 				if(eface == face || isOneOf(edge, edges(eface)))
@@ -592,7 +592,7 @@ Segment DynamicMesh::segment(EdgeId id) const { return Segment(point(id.a), poin
 
 FBox DynamicMesh::box(EdgeId id) const {
 	auto p1 = point(id.a), p2 = point(id.b);
-	return FBox(min(p1, p2), max(p1, p2));
+	return FBox(vmin(p1, p2), vmax(p1, p2));
 }
 
 Triangle DynamicMesh::triangle(PolyId id) const {
@@ -619,7 +619,7 @@ DynamicMesh DynamicMesh::merge(CRange<DynamicMesh> meshes) {
 }
 
 float3 closestPoint(const DynamicMesh &mesh, const float3 &point) {
-	float min_dist_sq = constant::inf;
+	float min_dist_sq = fconstant::inf;
 	float3 out;
 
 	for(auto poly : mesh.polys()) {

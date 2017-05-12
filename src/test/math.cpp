@@ -15,7 +15,7 @@ float3 randomScale() {
 Quat randomRotation() {
 	return normalize(Quat(AxisAngle(
 		normalize(float3(frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f)),
-		frand() * constant::pi * 2.0f)));
+		frand() * fconstant::pi * 2.0f)));
 }
 
 AffineTrans randomTransform() {
@@ -24,7 +24,7 @@ AffineTrans randomTransform() {
 
 void testMatrices() {
 	float3 up(0, 1, 0);
-	float angle = constant::pi * 0.25f;
+	float angle = fconstant::pi * 0.25f;
 
 	float3 rot_a = mulNormal(rotation(up, angle), float3(1, 0, 0));
 	float3 rot_b = mulNormal(rotation(up, angle), float3(0, 0, 1));
@@ -67,7 +67,7 @@ void testRays() {
 	Segment segment2(float3(1.3, 1.3, 0), float3(1.0, 1.0, 10));
 
 	assertCloseEnough(intersection(segment1, tri), 4.0f);
-	assertEqual(intersection(segment2, tri), constant::inf);
+	assertEqual(intersection(segment2, tri), fconstant::inf);
 	assertCloseEnough(tri.surfaceArea(), 2.0f);
 
 	Segment segment3(float3(1, 1, 0), float3(4, 4, 0));
@@ -95,7 +95,7 @@ void testIntersections() {
 	Triangle tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
 	Segment seg(float3(1, 1, -1), float3(1, 1, 1));
 
-	assertEqual(intersection(tri, seg), constant::inf);
+	assertEqual(intersection(tri, seg), fconstant::inf);
 	assertEqual(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
 	assertEqual(distance(tri, seg), sqrtf(2.0f) / 2.0f);
 
@@ -161,6 +161,14 @@ void test2DIntersections() {
 	ASSERT(!intersection(seg4, seg5).second);
 	ASSERT(!intersection(seg5, seg4).second);
 }
+
+static_assert(isVector<short2>(), "");
+static_assert(isVector<float4>(), "");
+static_assert(!isVector<vector<int>>(), "");
+
+static_assert(isRealObject<FRect>(), "");
+static_assert(isIntegralObject<IBox>(), "");
+static_assert(isIntegralVector<int3>(), "");
 
 void testMain() {
 	FBox box(0, -100, 0, 1200, 100, 720);

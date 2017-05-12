@@ -21,16 +21,16 @@ bool isnan(const float4 &v) { return isnan(v.x) || isnan(v.y) || isnan(v.z) || i
 
 float angleDistance(float a, float b) {
 	float diff = fabs(a - b);
-	return min(diff, constant::pi * 2.0f - diff);
+	return min(diff, fconstant::pi * 2.0f - diff);
 }
 
 float blendAngles(float initial, float target, float step) {
 	if(initial != target) {
 		float new_ang1 = initial + step, new_ang2 = initial - step;
 		if(new_ang1 < 0.0f)
-			new_ang1 += constant::pi * 2.0f;
+			new_ang1 += fconstant::pi * 2.0f;
 		if(new_ang2 < 0.0f)
-			new_ang2 += constant::pi * 2.0f;
+			new_ang2 += fconstant::pi * 2.0f;
 		float new_angle =
 			angleDistance(new_ang1, target) < angleDistance(new_ang2, target) ? new_ang1 : new_ang2;
 		if(angleDistance(initial, target) < step)
@@ -41,22 +41,45 @@ float blendAngles(float initial, float target, float step) {
 	return initial;
 }
 
-float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
-	DASSERT(distance(prev, cur) > constant::epsilon && distance(cur, next) > constant::epsilon);
-	float vcross = -cross(normalize(cur - prev), normalize(next - cur));
-	float vdot = dot(normalize(next - cur), normalize(prev - cur));
+float vectorToAngle(const float2 &vec1, const float2 &vec2) {
+	// DASSERT(distance(prev, cur) > fconstant::epsilon && distance(cur, next) >
+	// fconstant::epsilon);
+	float vcross = -cross(-vec1, vec2);
+	float vdot = dot(vec2, vec1);
 
 	float ang = atan2(vcross, vdot);
 	if(ang < 0.0f)
-		ang = constant::pi * 2.0f + ang;
+		ang = fconstant::pi * 2.0f + ang;
 	DASSERT(!isnan(ang));
 	return ang;
 }
 
+template <class Vec, class Real = typename Vec::Scalar>
+Real angleBetween(const Vec &prev, const Vec &cur, const Vec &next) {
+	// DASSERT(distance(prev, cur) > fconstant::epsilon && distance(cur, next) >
+	// fconstant::epsilon);
+	Real vcross = -cross(normalize(cur - prev), normalize(next - cur));
+	Real vdot = dot(normalize(next - cur), normalize(prev - cur));
+
+	Real ang = atan2(vcross, vdot);
+	if(ang < 0.0f)
+		ang = constant<Real>::pi * 2.0 + ang;
+	DASSERT(!isnan(ang));
+	return ang;
+}
+
+float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
+	return angleBetween<float2>(prev, cur, next);
+}
+
+double angleBetween(const double2 &prev, const double2 &cur, const double2 &next) {
+	return 0.0f; // angleBetween<double2>(prev, cur, next);
+}
+
 float fixAngle(float angle) {
-	angle = fmodf(angle, 2.0f * constant::pi);
+	angle = fmodf(angle, 2.0f * fconstant::pi);
 	if(angle < 0.0f)
-		angle += 2.0f * constant::pi;
+		angle += 2.0f * fconstant::pi;
 	return angle;
 }
 

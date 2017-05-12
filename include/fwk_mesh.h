@@ -432,7 +432,7 @@ class DynamicMesh {
 			return distance(segment(gsimplex.asEdge()), simplex(tsimplex));
 		else
 			FATAL("simplex type not supported");
-		return constant::inf;
+		return fconstant::inf;
 	}
 
 	float sdistance(const Simplex &a, const Simplex &b) const {
@@ -442,7 +442,7 @@ class DynamicMesh {
 			return sdistance(a, b.asEdge());
 		else
 			FATAL("simplex type not supported");
-		return constant::inf;
+		return fconstant::inf;
 	}
 
 	Projection edgeProjection(EdgeId, PolyId) const;
@@ -450,7 +450,7 @@ class DynamicMesh {
 	template <class Simplex, class MeshSimplex = VertexId>
 	auto closestVertex(const Simplex &simplex, MeshSimplex exclude = VertexId()) const {
 		VertexId out;
-		float min_dist = constant::inf;
+		float min_dist = fconstant::inf;
 
 		for(auto vert : verts()) {
 			if(coincident(exclude, vert))
@@ -468,12 +468,12 @@ class DynamicMesh {
 	template <class Simplex, class MeshSimplex = EdgeId>
 	auto closestEdge(const Simplex &simplex, MeshSimplex exclude = EdgeId()) const {
 		EdgeId out;
-		float min_dist = constant::inf;
+		float min_dist = fconstant::inf;
 
 		for(auto edge : edges()) {
 			if(coincident(exclude, edge))
 				continue;
-			if(distance(point(edge.a), point(edge.b)) < constant::epsilon)
+			if(distance(point(edge.a), point(edge.b)) < fconstant::epsilon)
 				xmlPrint("Invalid edge: % - % (%) (%)\n", edge.a.id, edge.b.id, point(edge.a),
 						 point(edge.b));
 			float dist = distance(simplex, segment(edge));

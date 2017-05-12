@@ -25,12 +25,12 @@ using namespace fwk;
 
 inline float relativeDifference(float a, float b) {
 	float magnitude = max(fabs(a), fabs(b));
-	return magnitude < constant::epsilon ? 0.0f : fabs(a - b) / magnitude;
+	return magnitude < fconstant::epsilon ? 0.0f : fabs(a - b) / magnitude;
 }
 
-inline bool closeEnough(float a, float b) { return relativeDifference(a, b) < constant::epsilon; }
+inline bool closeEnough(float a, float b) { return relativeDifference(a, b) < fconstant::epsilon; }
 template <class T> inline bool closeEnough(const T &a, const T &b) {
-	return distance(a, b) < constant::epsilon;
+	return distance(a, b) < fconstant::epsilon;
 }
 
 template <class T> void reportError(const T &a, const T &b) {
