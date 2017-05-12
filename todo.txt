@@ -1,3 +1,7 @@
+- warnings in audio/device.cpp and mesh_indices
+- double2, double3, double4
+- extendible xml:: toString fromString ?
+- hashing functions for basic types
 - Segment2D -> Segment2 ?
 - Fix Segment2D-Segment2D  intersections (write them normally, not projection-based)
 - better tests for vector? Use tests from libc++ or something?
