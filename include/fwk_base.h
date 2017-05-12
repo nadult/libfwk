@@ -539,7 +539,7 @@ template <class Type> class EnumRange {
 // Safe enum class
 // Initially initializes to 0 (first element). Converts to int, can be easily used as
 // an index into some array. Can be converted to/from strings, which are automatically generated
-// from enum names. Enum with strings cannot be defined at function scope. Some examples are
+// from enum names. fwk enum cannot be defined in class or function scope. Some examples are
 // available in src/test/enums.cpp.
 #define DEFINE_ENUM(Type, ...)                                                                     \
 	enum class Type : unsigned char { __VA_ARGS__ };                                               \
@@ -547,58 +547,60 @@ template <class Type> class EnumRange {
 		static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};                  \
 		constexpr int size = fwk::arraySize(s_strings);                                            \
 		return fwk::CRange<const char *, size>(s_strings, size);                                   \
-	}                                                                                              \
-	constexpr int enumCount(Type) { return decltype(enumStrings(Type()))::minimum_size; }
+	}
 
 template <class T> struct IsEnum {
-	template <class C> static auto test(int) -> decltype(enumCount(C()));
+	template <class C> static auto test(int) -> decltype(enumStrings(C()));
 	template <class C> static auto test(...) -> void;
-	enum { value = std::is_same<int, decltype(test<T>(0))>::value };
+	enum { value = !std::is_same<void, decltype(test<T>(0))>::value };
 };
 
-template <class T> auto enumNext(T value) -> typename std::enable_if<IsEnum<T>::value, T>::type {
-	return T((int(value) + 1) % enumCount(T()));
-}
+template <class T, class Result>
+using EnableIfEnum = typename std::enable_if<IsEnum<T>::value, Result>::type;
 
-template <class T>
-static auto fromString(const char *str) -> typename std::enable_if<IsEnum<T>::value, T>::type {
+template <class T> static auto fromString(const char *str) -> EnableIfEnum<T, T> {
 	return T(fwk::enumFromString(str, enumStrings(T()), true));
 }
 
-template <class T>
-static auto fromString(const string &str) -> typename std::enable_if<IsEnum<T>::value, T>::type {
+template <class T> static auto fromString(const string &str) -> EnableIfEnum<T, T> {
 	return fromString<T>(str.c_str());
 }
 
-template <class T>
-static auto tryFromString(const char *str) ->
-	typename std::enable_if<IsEnum<T>::value, Maybe<T>>::type {
+template <class T> static auto tryFromString(const char *str) -> EnableIfEnum<T, Maybe<T>> {
 	int ret = fwk::enumFromString(str, enumStrings(T()), false);
 	if(ret == -1)
 		return none;
 	return T(ret);
 }
 
-template <class T>
-static auto tryFromString(const string &str) ->
-	typename std::enable_if<IsEnum<T>::value, Maybe<T>>::type {
+template <class T> static auto tryFromString(const string &str) -> EnableIfEnum<T, Maybe<T>> {
 	return tryFromString<T>(str.c_str());
 }
-template <class T>
-static auto toString(T value) -> typename std::enable_if<IsEnum<T>::value, const char *>::type {
+template <class T> static auto toString(T value) -> EnableIfEnum<T, const char *> {
 	return enumStrings(T())[(int)value];
 }
 
-template <class T> constexpr auto count() -> typename std::enable_if<IsEnum<T>::value, int>::type {
-	return enumCount(T());
+template <class T> constexpr auto count() -> EnableIfEnum<T, int> {
+	return decltype(enumStrings(T()))::minimum_size;
 }
-template <class T> auto all() -> typename std::enable_if<IsEnum<T>::value, EnumRange<T>>::type {
+
+template <class T> auto all() -> EnableIfEnum<T, EnumRange<T>> {
 	return EnumRange<T>(0, count<T>());
 }
 
-template <class Enum, class T, class = typename std::enable_if<IsEnum<Enum>::value, T>::type>
-class EnumMap {
+template <class T> auto next(T value) -> EnableIfEnum<T, T> {
+	return T((int(value) + 1) % count<T>());
+}
+
+template <class T> auto prev(T value) -> EnableIfEnum<T, T> {
+	return T((int(value) + (count<T> - 1)) % count<T>());
+}
+
+template <class Enum, class T> class EnumMap {
   public:
+	static_assert(IsEnum<Enum>::value,
+				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM");
+
 	EnumMap(CRange<pair<Enum, T>> pairs) {
 #ifndef NDEBUG
 		bool enum_used[count<Enum>()] = {

@@ -45,7 +45,6 @@
 - add clang's small vector
 - think about usefulness of const correctness; in some cases were just wasting time
 - separate align function for fonts
-- enumNext, enumPrev, enumShift?
 - DEFINE_ENUM in class scope
 - Hide HAlign, VAlign inside fontstyle?
 - removeIndicies should use materialset
