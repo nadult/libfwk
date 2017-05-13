@@ -53,6 +53,24 @@ namespace xml_conversions {
 			return out;
 		}
 
+		template <> double2 fromString(TextParser &parser) {
+			double2 out;
+			parser.parseDoubles(out.v);
+			return out;
+		}
+
+		template <> double3 fromString(TextParser &parser) {
+			double3 out;
+			parser.parseDoubles(out.v);
+			return out;
+		}
+
+		template <> double4 fromString(TextParser &parser) {
+			double4 out;
+			parser.parseDoubles(out.v);
+			return out;
+		}
+
 		template <> FRect fromString(TextParser &parser) {
 			float out[4];
 			parser.parseFloats(out);
@@ -181,6 +199,21 @@ namespace xml_conversions {
 
 		void toString(const float4 &value, TextFormatter &out) {
 			float values[4] = {value.x, value.y, value.z, value.w};
+			doublesToString(makeRange(values), out);
+		}
+
+		void toString(const double2 &value, TextFormatter &out) {
+			double values[2] = {value.x, value.y};
+			doublesToString(makeRange(values), out);
+		}
+
+		void toString(const double3 &value, TextFormatter &out) {
+			double values[3] = {value.x, value.y, value.z};
+			doublesToString(makeRange(values), out);
+		}
+
+		void toString(const double4 &value, TextFormatter &out) {
+			double values[4] = {value.x, value.y, value.z, value.w};
 			doublesToString(makeRange(values), out);
 		}
 

@@ -18,47 +18,6 @@ void sincosf(float rad, float *s, float *c) {
 
 namespace fwk {
 
-int2 abs(const int2 &v) { return int2(v.x < 0 ? -v.x : v.x, v.y < 0 ? -v.y : v.y); }
-int3 abs(const int3 &v) {
-	return int3(v.x < 0 ? -v.x : v.x, v.y < 0 ? -v.y : v.y, v.z < 0 ? -v.z : v.z);
-}
-
-float dot(const float2 &a, const float2 &b) { return a.x * b.x + a.y * b.y; }
-float dot(const float3 &a, const float3 &b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
-float dot(const float4 &a, const float4 &b) {
-	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-}
-
-float lengthSq(const float2 &v) { return dot(v, v); }
-float lengthSq(const float3 &v) { return dot(v, v); }
-float lengthSq(const float4 &v) { return dot(v, v); }
-float distanceSq(const float2 &a, const float2 &b) { return lengthSq(a - b); }
-float distanceSq(const float3 &a, const float3 &b) { return lengthSq(a - b); }
-float distanceSq(const float4 &a, const float4 &b) { return lengthSq(a - b); }
-
-float length(const float2 &v) { return sqrt(lengthSq(v)); }
-float length(const float3 &v) { return sqrt(lengthSq(v)); }
-float length(const float4 &v) { return sqrt(lengthSq(v)); }
-float distance(const float2 &a, const float2 &b) { return sqrt(distanceSq(a, b)); }
-float distance(const float3 &a, const float3 &b) { return sqrt(distanceSq(a, b)); }
-float distance(const float4 &a, const float4 &b) { return sqrt(distanceSq(a, b)); }
-
-float2 inverse(const float2 &v) { return float2(1.0f / v.x, 1.0f / v.y); }
-float3 inverse(const float3 &v) { return float3(1.0f / v.x, 1.0f / v.y, 1.0f / v.z); }
-float4 inverse(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 1.0f / v.w); }
-
-float2 normalize(const float2 &v) { return v / length(v); }
-float3 normalize(const float3 &v) { return v / length(v); }
-
-float cross(const float2 &a, const float2 &b) { return a.x * b.y - a.y * b.x; }
-float3 cross(const float3 &a, const float3 &b) {
-	return float3(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]);
-}
-
-float2 inv(const float2 &v) { return float2(1.0f / v.x, 1.0f / v.y); }
-float3 inv(const float3 &v) { return float3(1.0f / v.x, 1.0f / v.y, 1.0f / v.z); }
-float4 inv(const float4 &v) { return float4(1.0f / v.x, 1.0f / v.y, 1.0f / v.z, 1.0f / v.w); }
-
 float vectorToAngle(const float2 &normalized_vec) {
 	DASSERT(isNormalized(normalized_vec));
 	float ang = acos(normalized_vec.x);

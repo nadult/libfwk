@@ -18,7 +18,7 @@ Ray::Ray(const Matrix4 &screen_to_world, const float2 &screen_pos) {
 
 	m_origin = p1;
 	m_dir = normalize(p2 - p1);
-	m_inv_dir = inverse(m_dir);
+	m_inv_dir = inv(m_dir);
 }
 
 Segment::Segment(const float3 &start, const float3 &end)

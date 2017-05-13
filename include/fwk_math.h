@@ -11,6 +11,9 @@
 
 namespace fwk {
 
+struct NotAVector;
+template <int N> struct NotAVectorN;
+
 namespace detail {
 
 	template <class T> using IsReal = std::is_floating_point<T>;
@@ -30,47 +33,72 @@ namespace detail {
 		enum { value = sizeof(test<T>(nullptr)) == 1 };
 	};
 
-	template <class T> struct VectorSize {
-		template <class U>
-		static constexpr
-			typename std::enable_if<(sizeof(typename U::Scalar) > 0) && (U::size > 0), int>::type
-			test(U *) {
-			return U::size;
-		}
-		template <class U> static constexpr int test(...) { return 0; }
+	template <class T, int N> struct VectorInfo {
+		template <class U> struct RetOk {
+			using Scalar = typename U::Scalar;
+			using Vector = U;
+			template <class A> using Arg = A;
 
-		enum { value = test<T>(nullptr) };
+			enum {
+				size = U::vector_size,
+				is_real = std::is_floating_point<Scalar>::value,
+				is_integral = std::is_integral<Scalar>::value
+			};
+		};
+		using RetError = typename std::conditional<N == 0, NotAVector, NotAVectorN<N>>::type;
+		struct Zero {
+			enum { size = 0, is_real = 0, is_integral = 0 };
+		};
+
+		template <class U>
+		static constexpr auto test(int) ->
+			typename std::conditional<(sizeof(typename U::Scalar) > 0) &&
+										  (U::vector_size == N || N == 0),
+									  RetOk<U>, RetError>::type;
+		template <class U> static constexpr RetError test(...);
+
+		using Ret = decltype(test<T>(0));
+		using Get =
+			typename std::conditional<std::is_same<Ret, RetError>::value, Zero, RetOk<T>>::type;
+
+		using IntegralRet = typename std::conditional<Get::is_integral, Ret, RetError>::type;
+		using RealRet = typename std::conditional<Get::is_real, Ret, RetError>::type;
 	};
 
-	template <class T> struct IsVector {
-		enum { value = VectorSize<T>::value > 0 };
+	template <class T, int N = 0> struct IsVector {
+		enum { value = VectorInfo<T, N>::size > 0 };
 	};
 }
 
-template <class T, class Result>
-using EnableIfVector = typename std::enable_if<detail::IsVector<T>::value, Result>::type;
-template <class T, class Result, int size>
-using EnableIfVectorN = typename std::enable_if<detail::VectorSize<T>::value == size, Result>::type;
-template <class T, class Result>
-using EnableIfReal = typename std::enable_if<detail::IsReal<T>::value, Result>::type;
-template <class T, class Result>
-using EnableIfIntegral = typename std::enable_if<detail::IsIntegral<T>::value, Result>::type;
+template <class T, int N = 0> using AsVectorScalar = typename detail::VectorInfo<T, N>::Ret::Scalar;
+template <class T, int N = 0> using AsVector = typename detail::VectorInfo<T, N>::Ret::Vector;
+template <class Arg, class T, int N = 0>
+using EnableIfVector = typename detail::VectorInfo<T, N>::Ret::template Arg<Arg>;
+template <class Arg, class T, int N = 0>
+using EnableIfRealVector = typename detail::VectorInfo<T, N>::RealRet::template Arg<Arg>;
+
+template <class T, int N = 0>
+using AsRealVector = typename detail::VectorInfo<T, N>::RealRet::Vector;
+template <class T, int N = 0>
+using AsIntegralVector = typename detail::VectorInfo<T, N>::IntegralRet::Vector;
 
 template <class T> constexpr bool isReal() { return detail::IsReal<T>::value; }
 template <class T> constexpr bool isIntegral() { return detail::IsIntegral<T>::value; }
 template <class T> constexpr bool isRealObject() { return detail::IsRealObject<T>::value; }
 template <class T> constexpr bool isIntegralObject() { return detail::IsIntegralObject<T>::value; }
 
-template <class T> constexpr bool isVector() { return detail::IsVector<T>::value; }
-template <class T> constexpr bool isRealVector() {
-	return detail::IsVector<T>::value && detail::IsRealObject<T>::value;
+template <class T, int N = 0> constexpr bool isVector() {
+	return detail::VectorInfo<T, N>::Get::size > 0;
 }
-template <class T> constexpr bool isIntegralVector() {
-	return detail::IsVector<T>::value && detail::IsIntegralObject<T>::value;
+template <class T, int N = 0> constexpr bool isRealVector() {
+	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_real;
+}
+template <class T, int N = 0> constexpr bool isIntegralVector() {
+	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_integral;
 }
 
-// TODO: make sure that all classes / structures here have proper default constructor (for example
-// AxisAngle requires fixing)
+// TODO: make sure that all classes / structures here have proper default constructor (for
+// example AxisAngle requires fixing)
 
 // TODO: remove epsilons?
 namespace fconstant {
@@ -92,6 +120,7 @@ namespace dconstant {
 template <class Real> struct constant {
 	static_assert(isReal<Real>(), "");
 
+	static const constexpr Real one = 1.0;
 	static const constexpr Real pi = 3.14159265358979;
 	static const constexpr Real e = 2.71828182845905;
 	static const constexpr Real epsilon = 0.0001;
@@ -118,7 +147,7 @@ template <class Obj, class Scalar> inline Obj lerp(const Obj &a, const Obj &b, c
 
 struct short2 {
 	using Scalar = short;
-	enum { size = 2 };
+	enum { vector_size = 2 };
 
 	short2(short x, short y) : x(x), y(y) {}
 	short2() : x(0), y(0) {}
@@ -146,7 +175,7 @@ struct short2 {
 
 struct int2 {
 	using Scalar = int;
-	enum { size = 2 };
+	enum { vector_size = 2 };
 
 	int2(short2 rhs) : x(rhs.x), y(rhs.y) {}
 	int2(int x, int y) : x(x), y(y) {}
@@ -154,19 +183,19 @@ struct int2 {
 
 	operator short2() const { return short2(x, y); }
 
-	int2 operator+(const int2 &rhs) const { return int2(x + rhs.x, y + rhs.y); }
-	int2 operator-(const int2 &rhs) const { return int2(x - rhs.x, y - rhs.y); }
-	int2 operator*(const int2 &rhs) const { return int2(x * rhs.x, y * rhs.y); }
-	int2 operator*(int s) const { return int2(x * s, y * s); }
-	int2 operator/(int s) const { return int2(x / s, y / s); }
-	int2 operator%(int s) const { return int2(x % s, y % s); }
-	int2 operator-() const { return int2(-x, -y); }
+	int2 operator+(const int2 &rhs) const { return {x + rhs.x, y + rhs.y}; }
+	int2 operator-(const int2 &rhs) const { return {x - rhs.x, y - rhs.y}; }
+	int2 operator*(const int2 &rhs) const { return {x * rhs.x, y * rhs.y}; }
+	int2 operator*(int s) const { return {x * s, y * s}; }
+	int2 operator/(int s) const { return {x / s, y / s}; }
+	int2 operator%(int s) const { return {x % s, y % s}; }
+	int2 operator-() const { return {-x, -y}; }
 
 	int &operator[](int idx) { return v[idx]; }
 	const int &operator[](int idx) const { return v[idx]; }
 
 	operator Range<int, 2>() { return v; }
-	operator CRange<int, 2>() { return v; }
+	operator CRange<int, 2>() const { return v; }
 
 	FWK_ORDER_BY(int2, x, y);
 
@@ -180,27 +209,27 @@ struct int2 {
 
 struct int3 {
 	using Scalar = int;
-	enum { size = 3 };
+	enum { vector_size = 3 };
 
 	int3(int x, int y, int z) : x(x), y(y), z(z) {}
 	int3() : x(0), y(0), z(0) {}
 
-	int3 operator+(const int3 &rhs) const { return int3(x + rhs.x, y + rhs.y, z + rhs.z); }
-	int3 operator-(const int3 &rhs) const { return int3(x - rhs.x, y - rhs.y, z - rhs.z); }
-	int3 operator*(const int3 &rhs) const { return int3(x * rhs.x, y * rhs.y, z * rhs.z); }
-	int3 operator*(int s) const { return int3(x * s, y * s, z * s); }
-	int3 operator/(int s) const { return int3(x / s, y / s, z / s); }
-	int3 operator%(int s) const { return int3(x % s, y % s, z % s); }
+	int3 operator+(const int3 &rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
+	int3 operator-(const int3 &rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
+	int3 operator*(const int3 &rhs) const { return {x * rhs.x, y * rhs.y, z * rhs.z}; }
+	int3 operator*(int s) const { return {x * s, y * s, z * s}; }
+	int3 operator/(int s) const { return {x / s, y / s, z / s}; }
+	int3 operator%(int s) const { return {x % s, y % s, z % s}; }
 
-	int2 xy() const { return int2(x, y); }
-	int2 xz() const { return int2(x, z); }
-	int2 yz() const { return int2(y, z); }
+	int2 xy() const { return {x, y}; }
+	int2 xz() const { return {x, z}; }
+	int2 yz() const { return {y, z}; }
 
 	int &operator[](int idx) { return v[idx]; }
 	const int &operator[](int idx) const { return v[idx]; }
 
 	operator Range<int, 3>() { return v; }
-	operator CRange<int, 3>() { return v; }
+	operator CRange<int, 3>() const { return v; }
 
 	FWK_ORDER_BY(int3, x, y, z);
 
@@ -214,25 +243,21 @@ struct int3 {
 
 struct int4 {
 	using Scalar = int;
-	enum { size = 4 };
+	enum { vector_size = 4 };
 
 	int4(int x, int y, int z, int w) : x(x), y(y), z(z), w(w) {}
 	int4() : x(0), y(0), z(0), w(0) {}
 
-	int4 operator+(const int4 rhs) const {
-		return int4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
-	}
-	int4 operator-(const int4 rhs) const {
-		return int4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
-	}
-	int4 operator*(int s) const { return int4(x * s, y * s, z * s, w * s); }
-	int4 operator/(int s) const { return int4(x / s, y / s, z / s, w / s); }
+	int4 operator+(const int4 rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w}; }
+	int4 operator-(const int4 rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w}; }
+	int4 operator*(int s) const { return {x * s, y * s, z * s, w * s}; }
+	int4 operator/(int s) const { return {x / s, y / s, z / s, w / s}; }
 
 	int &operator[](int idx) { return v[idx]; }
 	const int &operator[](int idx) const { return v[idx]; }
 
 	operator Range<int, 4>() { return v; }
-	operator CRange<int, 4>() { return v; }
+	operator CRange<int, 4>() const { return v; }
 
 	FWK_ORDER_BY(int4, x, y, z, w);
 
@@ -246,26 +271,27 @@ struct int4 {
 
 struct float2 {
 	using Scalar = float;
-	enum { size = 2 };
+	enum { vector_size = 2 };
 
 	float2(float x, float y) : x(x), y(y) {}
-	explicit float2(const int2 &xy) : x(xy.x), y(xy.y) {}
 	float2() : x(0.0f), y(0.0f) {}
-	explicit operator int2() const { return int2((int)x, (int)y); }
 
-	float2 operator+(const float2 &rhs) const { return float2(x + rhs.x, y + rhs.y); }
-	float2 operator*(const float2 &rhs) const { return float2(x * rhs.x, y * rhs.y); }
-	float2 operator/(const float2 &rhs) const { return float2(x / rhs.x, y / rhs.y); }
-	float2 operator-(const float2 &rhs) const { return float2(x - rhs.x, y - rhs.y); }
-	float2 operator*(float s) const { return float2(x * s, y * s); }
+	explicit float2(const int2 &vec) : x(vec.x), y(vec.y) {}
+	explicit operator int2() const { return {(int)x, (int)y}; }
+
+	float2 operator+(const float2 &rhs) const { return {x + rhs.x, y + rhs.y}; }
+	float2 operator*(const float2 &rhs) const { return {x * rhs.x, y * rhs.y}; }
+	float2 operator/(const float2 &rhs) const { return {x / rhs.x, y / rhs.y}; }
+	float2 operator-(const float2 &rhs) const { return {x - rhs.x, y - rhs.y}; }
+	float2 operator*(float s) const { return {x * s, y * s}; }
 	float2 operator/(float s) const { return *this * (1.0f / s); }
-	float2 operator-() const { return float2(-x, -y); }
+	float2 operator-() const { return {-x, -y}; }
 
 	float &operator[](int idx) { return v[idx]; }
 	const float &operator[](int idx) const { return v[idx]; }
 
 	operator Range<float, 2>() { return v; }
-	operator CRange<float, 2>() { return v; }
+	operator CRange<float, 2>() const { return v; }
 
 	FWK_ORDER_BY(float2, x, y);
 
@@ -279,31 +305,32 @@ struct float2 {
 
 struct float3 {
 	using Scalar = float;
-	enum { size = 3 };
+	enum { vector_size = 3 };
 
 	float3(float x, float y, float z) : x(x), y(y), z(z) {}
 	float3(const float2 &xy, float z) : x(xy.x), y(xy.y), z(z) {}
-	explicit float3(const int3 &xyz) : x(xyz.x), y(xyz.y), z(xyz.z) {}
 	float3() : x(0.0f), y(0.0f), z(0.0f) {}
-	explicit operator int3() const { return int3((int)x, (int)y, (int)z); }
 
-	float3 operator*(const float3 &rhs) const { return float3(x * rhs.x, y * rhs.y, z * rhs.z); }
-	float3 operator/(const float3 &rhs) const { return float3(x / rhs.x, y / rhs.y, z / rhs.z); }
-	float3 operator+(const float3 &rhs) const { return float3(x + rhs.x, y + rhs.y, z + rhs.z); }
-	float3 operator-(const float3 &rhs) const { return float3(x - rhs.x, y - rhs.y, z - rhs.z); }
-	float3 operator*(float s) const { return float3(x * s, y * s, z * s); }
+	explicit float3(const int3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
+	explicit operator int3() const { return {(int)x, (int)y, (int)z}; }
+
+	float3 operator*(const float3 &rhs) const { return {x * rhs.x, y * rhs.y, z * rhs.z}; }
+	float3 operator/(const float3 &rhs) const { return {x / rhs.x, y / rhs.y, z / rhs.z}; }
+	float3 operator+(const float3 &rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
+	float3 operator-(const float3 &rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
+	float3 operator*(float s) const { return {x * s, y * s, z * s}; }
 	float3 operator/(float s) const { return *this * (1.0f / s); }
-	float3 operator-() const { return float3(-x, -y, -z); }
+	float3 operator-() const { return {-x, -y, -z}; }
 
 	float &operator[](int idx) { return v[idx]; }
 	const float &operator[](int idx) const { return v[idx]; }
 
-	float2 xy() const { return float2(x, y); }
-	float2 xz() const { return float2(x, z); }
-	float2 yz() const { return float2(y, z); }
+	float2 xy() const { return {x, y}; }
+	float2 xz() const { return {x, z}; }
+	float2 yz() const { return {y, z}; }
 
 	operator Range<float, 3>() { return v; }
-	operator CRange<float, 3>() { return v; }
+	operator CRange<float, 3>() const { return v; }
 
 	FWK_ORDER_BY(float3, x, y, z);
 
@@ -317,7 +344,7 @@ struct float3 {
 
 struct float4 {
 	using Scalar = float;
-	enum { size = 4 };
+	enum { vector_size = 4 };
 
 	float4(CRange<float, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
 	float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
@@ -325,32 +352,35 @@ struct float4 {
 	float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
 	float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
+	explicit float4(const int4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
+	explicit operator int4() const { return {(int)x, (int)y, (int)z, (int)w}; }
+
 	float4 operator*(const float4 &rhs) const {
-		return float4(x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w);
+		return {x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w};
 	}
 	float4 operator/(const float4 &rhs) const {
-		return float4(x / rhs.x, y / rhs.y, z / rhs.z, w / rhs.w);
+		return {x / rhs.x, y / rhs.y, z / rhs.z, w / rhs.w};
 	}
 	float4 operator+(const float4 &rhs) const {
-		return float4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+		return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w};
 	}
 	float4 operator-(const float4 &rhs) const {
-		return float4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
+		return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w};
 	}
-	float4 operator*(float s) const { return float4(x * s, y * s, z * s, w * s); }
+	float4 operator*(float s) const { return {x * s, y * s, z * s, w * s}; }
 	float4 operator/(float s) const { return *this * (1.0f / s); }
-	float4 operator-() const { return float4(-x, -y, -z, -w); }
+	float4 operator-() const { return {-x, -y, -z, -w}; }
 
 	float &operator[](int idx) { return v[idx]; }
 	const float &operator[](int idx) const { return v[idx]; }
 
-	float2 xy() const { return float2(x, y); }
-	float2 xz() const { return float2(x, z); }
-	float2 yz() const { return float2(y, z); }
-	float3 xyz() const { return float3(x, y, z); }
+	float2 xy() const { return {x, y}; }
+	float2 xz() const { return {x, z}; }
+	float2 yz() const { return {y, z}; }
+	float3 xyz() const { return {x, y, z}; }
 
 	operator Range<float, 4>() { return v; }
-	operator CRange<float, 4>() { return v; }
+	operator CRange<float, 4>() const { return v; }
 
 	FWK_ORDER_BY(float4, x, y, z, w);
 
@@ -368,12 +398,13 @@ struct float4 {
 
 struct double2 {
 	using Scalar = double;
-	enum { size = 2 };
+	enum { vector_size = 2 };
 
 	double2(double x, double y) : x(x), y(y) {}
+	double2() : x(0.0f), y(0.0f) {}
+
 	explicit double2(const int2 &vec) : x(vec.x), y(vec.y) {}
 	explicit double2(const float2 &vec) : x(vec.x), y(vec.y) {}
-	double2() : x(0.0f), y(0.0f) {}
 	explicit operator int2() const { return int2((int)x, (int)y); }
 	explicit operator float2() const { return {(float)x, (float)y}; }
 
@@ -389,7 +420,7 @@ struct double2 {
 	const double &operator[](int idx) const { return v[idx]; }
 
 	operator Range<double, 2>() { return v; }
-	operator CRange<double, 2>() { return v; }
+	operator CRange<double, 2>() const { return v; }
 
 	FWK_ORDER_BY(double2, x, y);
 
@@ -401,63 +432,158 @@ struct double2 {
 	};
 };
 
-template <class T, class T1> inline T &operator+=(T &a, const T1 &b) {
-	a = a + b;
-	return a;
-}
-template <class T, class T1> inline T &operator-=(T &a, const T1 &b) {
-	a = a - b;
-	return a;
-}
-template <class T, class T1> inline T &operator*=(T &a, const T1 &b) {
-	a = a * b;
-	return a;
-}
-template <class T, class T1> inline T &operator/=(T &a, const T1 &b) {
-	a = a / b;
-	return a;
+struct double3 {
+	using Scalar = double;
+	enum { vector_size = 3 };
+
+	double3(double x, double y, double z) : x(x), y(y), z(z) {}
+	double3(const double2 &xy, double z) : x(xy.x), y(xy.y), z(z) {}
+	double3() : x(0.0f), y(0.0f), z(0.0f) {}
+
+	explicit double3(const int3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
+	explicit double3(const float3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
+	explicit operator int3() const { return {(int)x, (int)y, (int)z}; }
+	explicit operator float3() const { return {(float)x, (float)y, (float)z}; }
+
+	double3 operator*(const double3 &rhs) const { return double3(x * rhs.x, y * rhs.y, z * rhs.z); }
+	double3 operator/(const double3 &rhs) const { return double3(x / rhs.x, y / rhs.y, z / rhs.z); }
+	double3 operator+(const double3 &rhs) const { return double3(x + rhs.x, y + rhs.y, z + rhs.z); }
+	double3 operator-(const double3 &rhs) const { return double3(x - rhs.x, y - rhs.y, z - rhs.z); }
+	double3 operator*(double s) const { return double3(x * s, y * s, z * s); }
+	double3 operator/(double s) const { return *this * (1.0f / s); }
+	double3 operator-() const { return double3(-x, -y, -z); }
+
+	double &operator[](int idx) { return v[idx]; }
+	const double &operator[](int idx) const { return v[idx]; }
+
+	double2 xy() const { return double2(x, y); }
+	double2 xz() const { return double2(x, z); }
+	double2 yz() const { return double2(y, z); }
+
+	operator Range<double, 3>() { return v; }
+	operator CRange<double, 3>() const { return v; }
+
+	FWK_ORDER_BY(double3, x, y, z);
+
+	union {
+		struct {
+			double x, y, z;
+		};
+		double v[3];
+	};
+};
+
+struct double4 {
+	using Scalar = double;
+	enum { vector_size = 4 };
+
+	double4(CRange<double, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
+	double4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
+	double4(const double3 &xyz, double w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	double4(const double2 &xy, double z, double w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	double4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+
+	explicit double4(const int4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
+	explicit double4(const float4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
+	explicit operator int4() const { return {(int)x, (int)y, (int)z, (int)w}; }
+	explicit operator float4() const { return {(float)x, (float)y, (float)z, (float)w}; }
+
+	double4 operator*(const double4 &rhs) const {
+		return double4(x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w);
+	}
+	double4 operator/(const double4 &rhs) const {
+		return double4(x / rhs.x, y / rhs.y, z / rhs.z, w / rhs.w);
+	}
+	double4 operator+(const double4 &rhs) const {
+		return double4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+	}
+	double4 operator-(const double4 &rhs) const {
+		return double4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
+	}
+	double4 operator*(double s) const { return double4(x * s, y * s, z * s, w * s); }
+	double4 operator/(double s) const { return *this * (1.0f / s); }
+	double4 operator-() const { return double4(-x, -y, -z, -w); }
+
+	double &operator[](int idx) { return v[idx]; }
+	const double &operator[](int idx) const { return v[idx]; }
+
+	double2 xy() const { return double2(x, y); }
+	double2 xz() const { return double2(x, z); }
+	double2 yz() const { return double2(y, z); }
+	double3 xyz() const { return double3(x, y, z); }
+
+	operator Range<double, 4>() { return v; }
+	operator CRange<double, 4>() const { return v; }
+
+	FWK_ORDER_BY(double4, x, y, z, w);
+
+	// TODO: when adding support for SSE, make sure to also write
+	// default constructors and operator=, becuase compiler might have some trouble
+	// when optimizing
+	// ALSO: verify if it is really required
+	union {
+		struct {
+			double x, y, z, w;
+		};
+		double v[4];
+	};
+};
+
+template <class T, int N> struct MakeVectorT { using type = NotAVector; };
+template <> struct MakeVectorT<short, 2> { using type = short2; };
+template <> struct MakeVectorT<int, 2> { using type = int2; };
+template <> struct MakeVectorT<int, 3> { using type = int3; };
+template <> struct MakeVectorT<int, 4> { using type = int4; };
+template <> struct MakeVectorT<float, 2> { using type = float2; };
+template <> struct MakeVectorT<float, 3> { using type = float3; };
+template <> struct MakeVectorT<float, 4> { using type = float4; };
+template <> struct MakeVectorT<double, 2> { using type = double2; };
+template <> struct MakeVectorT<double, 3> { using type = double3; };
+template <> struct MakeVectorT<double, 4> { using type = double4; };
+template <class T, int N>
+using MakeVector =
+	typename MakeVectorT<typename std::conditional<isVector<T>(), typename T::Scalar, T>::type,
+						 N>::type;
+
+template <class T, class T1> const T &operator+=(T &a, const T1 &b) { return a = a + b; }
+template <class T, class T1> const T &operator-=(T &a, const T1 &b) { return a = a - b; }
+template <class T, class T1> const T &operator*=(T &a, const T1 &b) { return a = a * b; }
+template <class T, class T1> const T &operator/=(T &a, const T1 &b) { return a = a / b; }
+
+template <class T> AsVector<T> operator*(typename T::Scalar s, const T &v) { return v * s; }
+
+template <class T> AsVector<T, 2> vmin(const T &lhs, const T &rhs) {
+	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]));
 }
 
-template <class Vec>
-inline EnableIfVector<Vec, Vec> operator*(typename Vec::Scalar scalar, const Vec &rhs) {
-	return rhs * scalar;
+template <class T> AsVector<T, 3> vmin(const T &lhs, const T &rhs) {
+	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]));
 }
 
-// TODO: write map function which transforms all coordinates
-
-template <class Vec> EnableIfVectorN<Vec, Vec, 2> vmin(const Vec &lhs, const Vec &rhs) {
-	return Vec(min(lhs.x, rhs.x), min(lhs.y, rhs.y));
+template <class T> AsVector<T, 4> vmin(const T &lhs, const T &rhs) {
+	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]), min(lhs[3], rhs[3]));
 }
 
-template <class Vec> EnableIfVectorN<Vec, Vec, 3> vmin(const Vec &lhs, const Vec &rhs) {
-	return Vec(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z));
+template <class T> AsVector<T, 2> vmax(const T &lhs, const T &rhs) {
+	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]));
 }
 
-template <class Vec> EnableIfVectorN<Vec, Vec, 4> vmin(const Vec &lhs, const Vec &rhs) {
-	return Vec(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z), min(lhs.w, rhs.w));
+template <class T> AsVector<T, 3> vmax(const T &lhs, const T &rhs) {
+	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]));
 }
 
-template <class Vec> EnableIfVectorN<Vec, Vec, 2> vmax(const Vec &lhs, const Vec &rhs) {
-	return Vec(max(lhs.x, rhs.x), max(lhs.y, rhs.y));
+template <class T> AsVector<T, 4> vmax(const T &lhs, const T &rhs) {
+	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]), max(lhs[3], rhs[3]));
 }
 
-template <class Vec> EnableIfVectorN<Vec, Vec, 3> vmax(const Vec &lhs, const Vec &rhs) {
-	return Vec(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z));
-}
-
-template <class Vec> EnableIfVectorN<Vec, Vec, 4> vmax(const Vec &lhs, const Vec &rhs) {
-	return Vec(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z), max(lhs.w, rhs.w));
-}
-
-template <class Vec>
-EnableIfVector<Vec, Vec> vclamp(const Vec &vec, const Vec &tmin, const Vec &tmax) {
+template <class T> AsVector<T> vclamp(const T &vec, const T &tmin, const T &tmax) {
 	return vmin(tmax, vmax(tmin, vec));
 }
 
-template <class Vec> EnableIfVector<Vec, pair<Vec, Vec>> vecMinMax(CRange<Vec> range) {
+template <class T> EnableIfVector<pair<T, T>, T> vecMinMax(CRange<T> range) {
 	if(range.empty())
-		return make_pair(Vec(), Vec());
-	Vec tmin = range[0], tmax = range[0];
+		return make_pair(T(), T());
+	T tmin = range[0], tmax = range[0];
 	for(int n = 1; n < range.size(); n++) {
 		tmin = vmin(tmin, range[n]);
 		tmax = vmax(tmax, range[n]);
@@ -465,86 +591,88 @@ template <class Vec> EnableIfVector<Vec, pair<Vec, Vec>> vecMinMax(CRange<Vec> r
 	return make_pair(tmin, tmax);
 }
 
-template <class TRange, class Vec = typename ContainerBaseType<TRange>::type>
-EnableIfVector<Vec, pair<Vec, Vec>> vecMinMax(const TRange &range) {
+template <class TRange, class T = typename ContainerBaseType<TRange>::type>
+EnableIfVector<pair<T, T>, T> vecMinMax(const TRange &range) {
 	return vecMinMax(makeRange(range));
 }
 
-template <class Vec> EnableIfVectorN<Vec, Vec, 2> dot(const Vec &lhs, const Vec &rhs) {
+template <class T> AsVectorScalar<T, 2> dot(const T &lhs, const T &rhs) {
 	return lhs.x * rhs.x + lhs.y * rhs.y;
 }
 
-template <class Vec> EnableIfVectorN<Vec, Vec, 3> dot(const Vec &lhs, const Vec &rhs) {
+template <class T> AsVectorScalar<T, 3> dot(const T &lhs, const T &rhs) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
-template <class Vec> EnableIfVectorN<Vec, Vec, 4> dot(const Vec &lhs, const Vec &rhs) {
+template <class T> AsVectorScalar<T, 4> dot(const T &lhs, const T &rhs) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
-/*
-template <class Vec> EnableIfReal length(const Vec &vec) {
-	return sqrtf(dot(vec, vec)
+template <class T>
+EnableIfVector<decltype(std::sqrt(AsVectorScalar<T>())), T> length(const T &vec) {
+	return std::sqrt(dot(vec, vec));
 }
 
-template <class Vec, class Real = typename Vec::Scalar> Real length(const Vec &vec) {
-	return sqrtf(dot(vec, vec)
-}*/
+template <class T> AsVectorScalar<T> lengthSq(const T &vec) { return dot(vec, vec); }
 
-float2 normalize(const float2 &);
+template <class T>
+EnableIfVector<decltype(std::sqrt(AsVectorScalar<T>())), T> distance(const T &lhs, const T &rhs) {
+	return length(lhs - rhs);
+}
 
-int2 abs(const int2 &v);
-int3 abs(const int3 &v);
+template <class T> AsVectorScalar<T> distanceSq(const T &lhs, const T &rhs) {
+	return lengthSq(lhs - rhs);
+}
 
-inline int3 asXZ(const int2 &pos) { return int3(pos.x, 0, pos.y); }
-inline int3 asXY(const int2 &pos) { return int3(pos.x, pos.y, 0); }
-inline int3 asXZY(const int2 &pos, int y) { return int3(pos.x, y, pos.y); }
+template <class T> AsRealVector<T> normalize(const T &v) { return v / length(v); }
 
-inline float3 asXZ(const float2 &pos) { return float3(pos.x, 0, pos.y); }
-inline float3 asXY(const float2 &pos) { return float3(pos.x, pos.y, 0); }
-inline float3 asXZY(const float2 &pos, float y) { return float3(pos.x, y, pos.y); }
-inline float3 asXZY(const float3 &pos) { return float3(pos.x, pos.z, pos.y); }
+template <class T> AsVector<T, 2> vabs(const T &v) { return {std::abs(v.x), std::abs(v.y)}; }
 
-float dot(const float2 &a, const float2 &b);
-float dot(const float3 &a, const float3 &b);
-float dot(const float4 &a, const float4 &b);
+template <class T> AsVector<T, 3> vabs(const T &v) {
+	return {std::abs(v.x), std::abs(v.y), std::abs(v.z)};
+}
 
-float lengthSq(const float2 &);
-float lengthSq(const float3 &);
-float lengthSq(const float4 &);
+template <class T> AsVector<T, 4> vabs(const T &v) {
+	return T(std::abs(v.x), std::abs(v.y), std::abs(v.z), std::abs(v.w));
+}
 
-inline float distanceSq(float a, float b) { return (a - b) * (a - b); }
-float distanceSq(const float2 &, const float2 &);
-float distanceSq(const float3 &, const float3 &);
-float distanceSq(const float4 &, const float4 &);
+template <class T> EnableIfVector<MakeVector<T, 3>, T, 2> asXZ(const T &v) {
+	return {v[0], 0, v[1]};
+}
+template <class T> EnableIfVector<MakeVector<T, 3>, T, 2> asXY(const T &v) {
+	return {v[0], v[1], 0};
+}
+template <class T> MakeVector<T, 3> asXZY(const T &xz, AsVectorScalar<T, 2> y) {
+	return {xz[0], y, xz[1]};
+}
 
-float length(const float2 &);
-float length(const float3 &);
-float length(const float4 &);
-
-inline float distance(float a, float b) { return a < b ? b - a : a - b; }
-float distance(const float2 &, const float2 &);
-float distance(const float3 &, const float3 &);
-float distance(const float4 &, const float4 &);
-
-float2 inverse(const float2 &);
-float3 inverse(const float3 &);
-float4 inverse(const float4 &);
+template <class T> AsVector<T, 3> asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
 // TODO: remove it?
 template <class T> bool areSimilar(const T &a, const T &b, float epsilon = fconstant::epsilon) {
 	return distanceSq(a, b) < epsilon;
 }
 
-float2 normalize(const float2 &);
-float3 normalize(const float3 &);
+template <class T> AsRealVector<T, 2> inv(const T &v) {
+	const auto one = constant<typename T::Scalar>::one;
+	return {one / v.x, one / v.y};
+}
+template <class T> AsRealVector<T, 3> inv(const T &v) {
+	const auto one = constant<typename T::Scalar>::one;
+	return {one / v.x, one / v.y, one / v.z};
+}
+template <class T> AsRealVector<T, 4> inv(const T &v) {
+	const auto one = constant<typename T::Scalar>::one;
+	return {one / v.x, one / v.y, one / v.z, one / v.w};
+}
 
-float cross(const float2 &a, const float2 &b);
-float3 cross(const float3 &a, const float3 &b);
+template <class T> AsVectorScalar<T, 2> cross(const T &a, const T &b) {
+	return a.x * b.y - a.y * b.x;
+}
 
-float2 inv(const float2 &);
-float3 inv(const float3 &);
-float4 inv(const float4 &);
+template <class T> AsVector<T, 3> cross(const T &a, const T &b) {
+	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
+}
 
 float vectorToAngle(const float2 &normalized_vector);
 const float2 angleToVector(float radians);
@@ -567,9 +695,15 @@ float vectorToAngle(const float2 &vec1, const float2 &vec2);
 float fixAngle(float angle);
 
 bool isnan(float);
-bool isnan(const float2 &);
-bool isnan(const float3 &);
-bool isnan(const float4 &);
+bool isnan(double);
+
+// TODO: fix makeRange (begin(), end())
+template <class T> EnableIfRealVector<bool, T> isnan(const T &v) {
+	for(int n = 0; n < T::vector_size; n++)
+		if(isnan(v[n]))
+			return true;
+	return false;
+}
 
 class Matrix3;
 class Matrix4;

@@ -6,18 +6,23 @@
 
 namespace fwk {
 
-bool isnan(float f) {
+bool isnan(float s) {
 #ifdef _WIN32
-	volatile float vf = f;
-	return vf != vf;
+	volatile float vs = s;
+	return vs != vs;
 #else
-	return std::isnan(f);
+	return std::isnan(s);
 #endif
 }
 
-bool isnan(const float2 &v) { return isnan(v.x) || isnan(v.y); }
-bool isnan(const float3 &v) { return isnan(v.x) || isnan(v.y) || isnan(v.z); }
-bool isnan(const float4 &v) { return isnan(v.x) || isnan(v.y) || isnan(v.z) || isnan(v.w); }
+bool isnan(double s) {
+#ifdef _WIN32
+	volatile double vs = s;
+	return vs != vs;
+#else
+	return std::isnan(s);
+#endif
+}
 
 float angleDistance(float a, float b) {
 	float diff = fabs(a - b);

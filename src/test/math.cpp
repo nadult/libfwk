@@ -182,6 +182,17 @@ void testMain() {
 
 	float3 vec(0, 0, 1);
 
+	auto float_len = length(float3(1, 2, 3));
+	auto double_len = length(int3(2, 3, 4));
+	auto int_dot = dot(int2(10, 20), int2(30, 40));
+	assertEqual(vabs(float2(-10.5f, 13.125f)), float2(10.5f, 13.125f));
+
+	static_assert(std::is_same<decltype(float_len), float>::value, "");
+	static_assert(std::is_same<decltype(double_len), double>::value, "");
+	static_assert(std::is_same<decltype(int_dot), int>::value, "");
+
+	assertEqual(xmlFormat("%", double3(1, 2, 3)), xmlFormat("%", float3(1, 2, 3)));
+
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));
 	Quat p = normalize(pow(rot, 1.0f));

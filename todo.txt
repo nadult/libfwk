@@ -2,7 +2,6 @@
 - use std::sqrtf, etc.
 - port Random from Frontier
 - warnings in audio/device.cpp and mesh_indices
-- double2, double3, double4
 - extendible xml:: toString fromString ?
 - hashing functions for basic types
 - Segment2D -> Segment2 ?
@@ -17,7 +16,6 @@
 - Variant uses operator new for non-POD types...
 - dont use printf, make TextFormatter use xmlVersions, add formatRange(..) which adds, [], ();
   what about other goodies from printfs?
-- Add vmin, vmax; don't use std::min, write better alternative?
 - max & min should accept multiple arguments and ranges
 - findMax / findMin suck; remove them?
 - separate vector allocator specialized with element size
