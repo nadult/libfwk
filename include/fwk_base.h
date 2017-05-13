@@ -862,7 +862,7 @@ template <class T> void loadFromStream(vector<T> &v, Stream &sr) {
 template <class T> void saveToStream(const vector<T> &v, Stream &sr) {
 	u32 size;
 	size = u32(v.size());
-	if(size_t(size) != v.size())
+	if(size_t(size) != size_t(v.size()))
 		sr.handleException(Exception("Vector size too big (> 2^32) for serializer to handle"));
 	sr.saveData(&size, sizeof(size));
 

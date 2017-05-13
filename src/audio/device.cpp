@@ -7,8 +7,8 @@
 #ifdef _WIN32
 #define AL_LIBTYPE_STATIC
 #endif
-#include <AL/alc.h>
 #include <AL/al.h>
+#include <AL/alc.h>
 #include <string.h>
 
 namespace fwk {
@@ -128,7 +128,7 @@ AudioDevice::~AudioDevice() {
 
 void AudioDevice::tick() {
 	m_impl->num_free_sources = 0;
-	for(int n = 0; n < (int)m_impl->sources.size(); n++) {
+	for(int n = 0; n < m_impl->sources.size(); n++) {
 		ALint state;
 		alGetSourcei(m_impl->sources[n], AL_SOURCE_STATE, &state);
 		if(state != AL_PLAYING)
@@ -176,7 +176,7 @@ uint AudioDevice::prepSource(uint buffer_id) {
 }
 
 void AudioDevice::updateSource(uint source_id, const SoundPos &pos) {
-	DASSERT(source_id < m_impl->sources.size());
+	DASSERT((int)source_id < m_impl->sources.size());
 	uint source = m_impl->sources[source_id];
 	alSource3f(source, AL_POSITION, pos.pos.x, pos.pos.y, pos.pos.z);
 	alSource3f(source, AL_VELOCITY, pos.velocity.x, pos.velocity.y, pos.velocity.z);
@@ -184,7 +184,7 @@ void AudioDevice::updateSource(uint source_id, const SoundPos &pos) {
 }
 
 void AudioDevice::updateSource(uint source_id, const SoundConfig &config) {
-	DASSERT(source_id < m_impl->sources.size());
+	DASSERT((int)source_id < m_impl->sources.size());
 	uint source = m_impl->sources[source_id];
 	alSourcef(source, AL_ROLLOFF_FACTOR, config.rolloff);
 	alSourcef(source, AL_GAIN, config.gain);

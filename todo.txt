@@ -1,7 +1,6 @@
 - Maybe<pair<>> in vecMinMax ?
 - use std::sqrtf, etc.
 - port Random from Frontier
-- warnings in audio/device.cpp and mesh_indices
 - extendible xml:: toString fromString ?
 - hashing functions for basic types
 - Segment2D -> Segment2 ?

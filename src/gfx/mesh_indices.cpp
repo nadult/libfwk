@@ -73,7 +73,7 @@ vector<MeshIndices> MeshIndices::split(uint max_vertices,
 	auto range = indexRange();
 	vector<uint> index_map(range.second - range.first + 1, ~0u);
 
-	uint last_index = 0;
+	int last_index = 0;
 	while(last_index + 2 < m_data.size()) {
 		uint num_vertices = 0;
 		vector<uint> mapping, indices;
@@ -134,14 +134,14 @@ vector<MeshIndices::TriIndices> MeshIndices::trisIndices() const {
 	out.reserve(triangleCount());
 
 	if(m_type == Type::triangles) {
-		for(uint n = 0; n + 2 < m_data.size(); n += 3)
+		for(int n = 0; n + 2 < m_data.size(); n += 3)
 			out.push_back({{m_data[n + 0], m_data[n + 1], m_data[n + 2]}});
 
 	} else {
 		DASSERT(m_type == Type::triangle_strip);
 		bool do_swap = false;
 
-		for(uint n = 2; n < m_data.size(); n++) {
+		for(int n = 2; n < m_data.size(); n++) {
 			uint a = m_data[n - 2];
 			uint b = m_data[n - 1];
 			uint c = m_data[n];
