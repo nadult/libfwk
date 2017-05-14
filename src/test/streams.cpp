@@ -3,9 +3,9 @@
    This file is part of libfwk. */
 
 #include "testing.h"
-#include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <unistd.h>
 
@@ -192,12 +192,12 @@ void testMain() {
 	testPodData();
 
 	vector<Vec> pods(1000), pods2;
-	for(size_t n = 0; n < pods.size(); n++)
+	for(int n = 0; n < pods.size(); n++)
 		pods[n] = Vec(n, n + 1, n + 2);
 	Saver("temp.dat") << pods;
 	Loader("temp.dat") >> pods2;
 	ASSERT(pods2.size() == pods.size());
-	for(size_t n = 0; n < pods.size(); n++)
+	for(int n = 0; n < pods.size(); n++)
 		ASSERT(pods2[n] == pods[n]);
 
 	testFilesystem();

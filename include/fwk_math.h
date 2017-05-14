@@ -8,6 +8,7 @@
 #include "fwk_base.h"
 #include <cmath>
 #include <limits>
+#include <random>
 
 namespace fwk {
 
@@ -1456,6 +1457,47 @@ bool areIntersecting(const FBox &, const Cylinder &);
 array<Plane, 6> planes(const FBox &);
 array<pair<float3, float3>, 12> edges(const FBox &);
 array<float3, 8> verts(const FBox &);
+
+using RandomSeed = unsigned long;
+
+class Random {
+  public:
+	Random(RandomSeed = 123);
+
+	RandomSeed operator()();
+
+	int uniform(int min, int max);
+	int uniform(int up_to) { return uniform(0, up_to - 1); }
+	float uniform(float min, float max);
+	double uniform(double min, double max);
+
+	template <class T> AsRealVector<T> sampleBox(const T &min, const T &max) {
+		T out;
+		for(int n = 0; n < T::vector_size; n++)
+			out[n] = uniform(min[n], max[n]);
+		return out;
+	}
+	template <class T> AsRealVector<T> sampleUnitHemisphere() {
+		return normalize(sampleUnitSphere<T>());
+	}
+
+	template <class T> AsRealVector<T> sampleUnitSphere() {
+		using Scalar = typename T::Scalar;
+		T one;
+		for(int n = 0; n < T::vector_size; n++)
+			one[n] = Scalar(1);
+		auto out = sampleBox(-one, one);
+		while(lengthSq(out) > Scalar(1))
+			out = sampleBox(-one, one);
+		return out;
+	}
+
+	Quat uniformRotation();
+	Quat uniformRotation(float3 axis);
+
+  private:
+	std::default_random_engine m_engine;
+};
 
 static_assert(sizeof(Matrix3) == sizeof(float3) * 3, "Wrong size of Matrix3 class");
 static_assert(sizeof(Matrix4) == sizeof(float4) * 4, "Wrong size of Matrix4 class");

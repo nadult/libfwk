@@ -1,6 +1,5 @@
 - Maybe<pair<>> in vecMinMax ?
 - use std::sqrtf, etc.
-- port Random from Frontier
 - extendible xml:: toString fromString ?
 - hashing functions for basic types
 - Segment2D -> Segment2 ?
