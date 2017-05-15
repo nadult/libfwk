@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -81,6 +82,44 @@ template <class T> struct IsPod {
 template <class T1, class T2> struct IsPod<pair<T1, T2>> {
 	enum { value = IsPod<T1>::value && IsPod<T2>::value };
 };
+
+struct IsNotTied;
+
+namespace detail {
+
+	struct ValidType {
+		template <class A> using Arg = A;
+	};
+
+	template <class T> struct IsRefTuple {
+		enum { value = 0 };
+		using type = std::false_type;
+	};
+
+	template <class... Members> struct IsRefTuple<std::tuple<Members &...>> {
+		enum { value = 1 };
+		using type = std::true_type;
+	};
+
+	template <class T> struct HasTiedFunction {
+		template <class C>
+		static auto test(int) -> typename IsRefTuple<decltype(((C *)nullptr)->tied())>::type;
+		template <class C> static auto test(...) -> std::false_type;
+		enum { value = std::is_same<std::true_type, decltype(test<T>(0))>::value };
+	};
+}
+
+template <class T> constexpr bool isTied() { return detail::HasTiedFunction<T>::value; }
+template <class Arg, class T>
+using EnableIfTied = typename std::conditional<detail::HasTiedFunction<T>::value, detail::ValidType,
+											   IsNotTied>::type::template Arg<Arg>;
+
+#define FWK_TIE_MEMBERS(...)                                                                       \
+	auto tied() const { return std::tie(__VA_ARGS__); }
+#define FWK_ORDER_BY(name, ...)                                                                    \
+	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
+	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
+	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
 
 class SimpleAllocatorBase {
   public:
@@ -282,13 +321,6 @@ class Exception : public std::exception {
 	string m_text;
 	Backtrace m_backtrace;
 };
-
-#define FWK_TIE_MEMBERS(...)                                                                       \
-	auto tied() const { return std::tie(__VA_ARGS__); }
-#define FWK_ORDER_BY(name, ...)                                                                    \
-	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
-	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
-	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
 
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__

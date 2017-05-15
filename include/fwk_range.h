@@ -125,6 +125,8 @@ template <class T, int min_size = 0> class Range {
 
 template <class T, int min_size = 0> using CRange = Range<const T, min_size>;
 
+struct NotARange;
+
 template <class T> struct IsRange {
 	template <class U,
 			  class Base = typename std::remove_pointer<decltype(((U *)nullptr)->data())>::type,
@@ -134,6 +136,10 @@ template <class T> struct IsRange {
 	template <class U> static void converts(...);
 	enum { value = std::is_same<int, decltype(converts<T>(nullptr))>::value };
 };
+
+template <class Arg, class T>
+using EnableIfRange = typename std::conditional<IsRange<T>::value, detail::ValidType,
+												NotARange>::type::template Arg<Arg>;
 
 template <class T> struct ContainerBaseType {
 	using type = typename std::remove_reference<decltype(*begin(*((T *)0)))>::type;

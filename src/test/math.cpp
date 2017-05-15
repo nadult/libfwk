@@ -203,6 +203,25 @@ static_assert(isRealObject<FRect>(), "");
 static_assert(isIntegralObject<IBox>(), "");
 static_assert(isIntegralVector<int3>(), "");
 
+void testHash() {
+	vector<vector<Segment3<double>>> data;
+	for(int n = 0; n < 100; n++) {
+		vector<Segment3<double>> segs;
+		for(int x = 0; x < 100; x++)
+			segs.emplace_back(double3(randomTranslation(100)), double3(randomTranslation(100)));
+		data.emplace_back(segs);
+	}
+
+	auto time = getTime();
+	for(int n = 0; n < 100; n++)
+		int hash_value = hash(data);
+	time = getTime() - time;
+	double bytes = 100.0 * double(data.size() * data[0].size()) * sizeof(Segment3<double>);
+	xmlPrint("Hashing time: % ns / byte\n", time * pow(10.0, 9) / bytes);
+
+	// TODO: better test ?
+}
+
 void testMain() {
 	FBox box(0, -100, 0, 1200, 100, 720);
 	FBox temp(32, 0, 32, 64, 0.5f, 64);
@@ -213,6 +232,7 @@ void testMain() {
 	testIntersections();
 	test2DIntersections();
 	testVectorAngles();
+	testHash();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec)

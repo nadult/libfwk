@@ -1,3 +1,5 @@
+- split fwk_math into several different files ?
+- list all member which are treated specially by libfwk (tied, Scalar, vector_size, etc.)
 - minimize use of asRay(), check all places
 - Differentiate ranges continuous in memory (Range<> and CRange<>) from all the other ranges;
   currently you can construct Range<> from std::map, which doesn't make sense...
@@ -12,9 +14,7 @@
 
 - better std::pair ?
 - Maybe<pair<>> in vecMinMax ?
-- use std::sqrtf, etc.
 - extendible xml:: toString fromString ?
-- hashing functions for basic types
 - better tests for vector? Use tests from libc++ or something?
 - rapidxml is allocating with std::new (exceptions aren't caught)
 - Add asserts ASSERT_NE _LT, etc.

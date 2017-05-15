@@ -448,10 +448,6 @@ namespace detail {
 		enum { value = sizeof(test<T>(nullptr)) == 1 };
 	};
 
-	struct ValidType {
-		template <class A> using Arg = A;
-	};
-
 	// TODO: Maybe this is not necessary, just specify all classes which should be treated
 	// as vectors or other math objects (similarly to MakeVector)
 
@@ -984,7 +980,9 @@ class Matrix3 {
 	const float3 &operator[](int n) const { return v[n]; }
 	float3 &operator[](int n) { return v[n]; }
 
-  protected:
+	VEC_RANGE()
+
+  private:
 	float3 v[3];
 };
 
@@ -1044,7 +1042,9 @@ class Matrix4 {
 	const Matrix4 operator-(const Matrix4 &) const;
 	const Matrix4 operator*(float)const;
 
-  protected:
+	VEC_RANGE()
+
+  private:
 	float4 v[4];
 };
 
@@ -1084,11 +1084,14 @@ class AxisAngle {
 	float angle() const { return m_angle; }
 	const float3 axis() const { return m_axis; }
 
-  protected:
+	FWK_ORDER_BY(AxisAngle, m_axis, m_angle);
+
+  private:
 	float3 m_axis;
 	float m_angle;
 };
 
+// TODO: float4 should be a member not a parent
 class Quat : public float4 {
   public:
 	Quat() : float4(0, 0, 0, 1) {}
@@ -1115,6 +1118,8 @@ class Quat : public float4 {
 	operator AxisAngle() const;
 
 	const Quat operator*(const Quat &)const;
+
+	FWK_ORDER_BY(Quat, x, y, z, w);
 };
 
 inline float dot(const Quat &lhs, const Quat &rhs) { return dot(float4(lhs), float4(rhs)); }
@@ -1133,6 +1138,8 @@ struct AffineTrans {
 				const float3 &scale = float3(1.0f, 1.0f, 1.0f))
 		: translation(pos), scale(scale), rotation(rot) {}
 	operator Matrix4() const;
+
+	FWK_ORDER_BY(AffineTrans, translation, scale, rotation);
 
 	float3 translation;
 	float3 scale;
@@ -1196,7 +1203,7 @@ class Triangle {
 	array<Edge, 3> edges() const { return {{Edge(a(), b()), Edge(b(), c()), Edge(c(), a())}}; }
 	array<float, 3> angles() const;
 
-  protected:
+  private:
 	float3 m_point;
 	float3 m_edge[2];
 	float3 m_normal;
@@ -1237,7 +1244,9 @@ class Plane {
 	SideTestResult sideTest(CRange<float3> verts) const;
 	Plane operator-() const { return Plane(-m_nrm, -m_dist); }
 
-  protected:
+	FWK_ORDER_BY(Plane, m_nrm, m_dist);
+
+  private:
 	float3 m_nrm;
 	float m_dist;
 };
@@ -1270,6 +1279,8 @@ class Tetrahedron {
 	const float3 &corner(int idx) const { return m_verts[idx]; }
 	const auto &verts() const { return m_verts; }
 	float3 center() const { return (m_verts[0] + m_verts[1] + m_verts[2] + m_verts[3]) * 0.25f; }
+
+	FWK_ORDER_BY(Tetrahedron, m_verts);
 
   private:
 	array<float3, 4> m_verts;
@@ -1354,7 +1365,7 @@ template <class Real, int N> class TRay {
 
 	FWK_ORDER_BY(TRay, m_origin, m_dir);
 
-  protected:
+  private:
 	Point m_origin;
 	Vector m_dir;
 };
@@ -1533,7 +1544,7 @@ class Frustum {
 	Plane &operator[](int idx) { return m_planes[idx]; }
 	int size() const { return planes_count; }
 
-  protected:
+  private:
 	std::array<Plane, planes_count> m_planes;
 };
 
@@ -1554,6 +1565,8 @@ class Cylinder {
 	Cylinder operator+(const float3 &offset) const {
 		return Cylinder(m_pos + offset, m_radius, m_height);
 	}
+
+	FWK_ORDER_BY(Cylinder, m_pos, m_radius, m_height);
 
   private:
 	float3 m_pos;
@@ -1612,6 +1625,62 @@ class Random {
   private:
 	std::default_random_engine m_engine;
 };
+
+template <class Value = int> struct Hash {
+	// Source: Blender
+	static Value hashCombine(Value hash_a, Value hash_b) {
+		return hash_a ^ (hash_b + 0x9e3779b9 + (hash_a << 6) + (hash_a >> 2));
+	}
+
+	template <class T> static EnableIfScalar<Value, T> hash(T scalar) {
+		return std::hash<T>()(scalar);
+	}
+
+	template <class Arg, class T>
+	using EnableIfRangeNotTied =
+		typename std::conditional<IsRange<T>::value && !isTied<T>(), detail::ValidType,
+								  NotARange>::type::template Arg<Arg>;
+
+	template <class T> static EnableIfRangeNotTied<Value, T> hash(const T &trange) {
+		auto range = makeConstRange(trange);
+		if(range.empty())
+			return 0;
+		auto out = hash(range[0]);
+		for(int n = 1; n < range.size(); n++)
+			out = hashCombine(out, hash(range[n]));
+		return out;
+	}
+
+	template <class T>
+	static typename std::enable_if<std::is_enum<T>::value, Value>::type hash(const T val) {
+		return hash((int)val);
+	}
+	template <class T1, class T2> static Value hash(const std::pair<T1, T2> &pair) {
+		return hashCombine(hash(pair.first), hash(pair.second));
+	}
+	template <class... Types> static Value hash(const std::tuple<Types...> &tuple) {
+		return hashTuple<0>(tuple);
+	}
+	template <class T> static EnableIfTied<Value, T> hash(const T &object) {
+		return hashTuple<0>(object.tied());
+	}
+
+	template <int N, class... Types>
+	static auto hashTuple(const std::tuple<Types...> &tuple) ->
+		typename std::enable_if<N + 1 == sizeof...(Types), Value>::type {
+		return hash(std::get<N>(tuple));
+	}
+
+	template <int N, class... Types>
+	static auto hashTuple(const std::tuple<Types...> &tuple) ->
+		typename std::enable_if<N + 1 < sizeof...(Types), Value>::type {
+		return hashCombine(hash(std::get<N>(tuple)), hashTuple<N + 1>(tuple));
+	}
+
+	template <class T> auto operator()(const T &value) const { return hash(value); }
+};
+
+template <class T> int hash(const T &value) { return Hash<int>()(value); }
 
 static_assert(sizeof(Matrix3) == sizeof(float3) * 3, "Wrong size of Matrix3 class");
 static_assert(sizeof(Matrix4) == sizeof(float4) * 4, "Wrong size of Matrix4 class");
