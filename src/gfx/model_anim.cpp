@@ -10,11 +10,11 @@ namespace fwk {
 
 void ModelAnim::transToXML(const AffineTrans &trans, const AffineTrans &default_trans,
 						   XMLNode node) {
-	if(!areSimilar(trans.translation, default_trans.translation))
+	if(!areClose(trans.translation, default_trans.translation))
 		node.addAttrib("pos", trans.translation);
-	if(!areSimilar(trans.scale, default_trans.scale))
+	if(!areClose(trans.scale, default_trans.scale))
 		node.addAttrib("scale", trans.scale);
-	if(!areSimilar((float4)trans.rotation, (float4)default_trans.rotation))
+	if(!areClose((float4)trans.rotation, (float4)default_trans.rotation))
 		node.addAttrib("rot", trans.rotation);
 }
 

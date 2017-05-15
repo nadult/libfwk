@@ -46,42 +46,7 @@ float blendAngles(float initial, float target, float step) {
 	return initial;
 }
 
-float vectorToAngle(const float2 &vec1, const float2 &vec2) {
-	// DASSERT(distance(prev, cur) > fconstant::epsilon && distance(cur, next) >
-	// fconstant::epsilon);
-	float vcross = -cross(-vec1, vec2);
-	float vdot = dot(vec2, vec1);
-
-	float ang = atan2(vcross, vdot);
-	if(ang < 0.0f)
-		ang = fconstant::pi * 2.0f + ang;
-	DASSERT(!isnan(ang));
-	return ang;
-}
-
-template <class Vec, class Real = typename Vec::Scalar>
-Real angleBetween(const Vec &prev, const Vec &cur, const Vec &next) {
-	// DASSERT(distance(prev, cur) > fconstant::epsilon && distance(cur, next) >
-	// fconstant::epsilon);
-	Real vcross = -cross(normalize(cur - prev), normalize(next - cur));
-	Real vdot = dot(normalize(next - cur), normalize(prev - cur));
-
-	Real ang = atan2(vcross, vdot);
-	if(ang < 0.0f)
-		ang = constant<Real>::pi * 2.0 + ang;
-	DASSERT(!isnan(ang));
-	return ang;
-}
-
-float angleBetween(const float2 &prev, const float2 &cur, const float2 &next) {
-	return angleBetween<float2>(prev, cur, next);
-}
-
-double angleBetween(const double2 &prev, const double2 &cur, const double2 &next) {
-	return 0.0f; // angleBetween<double2>(prev, cur, next);
-}
-
-float fixAngle(float angle) {
+float normalizeAngle(float angle) {
 	angle = fmodf(angle, 2.0f * fconstant::pi);
 	if(angle < 0.0f)
 		angle += 2.0f * fconstant::pi;

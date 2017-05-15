@@ -162,6 +162,20 @@ void test2DIntersections() {
 	ASSERT(!intersection(seg5, seg4).second);
 }
 
+void testVectorAngles() {
+	float2 v1(1, 0), v2 = normalize(float2(10, 10));
+
+	assertCloseEnough(radToDeg(angleBetween(v1, v2)), 45.0f);
+	assertCloseEnough(radToDeg(angleBetween(v2, v1)), 315.0f);
+	assertCloseEnough(angleBetween(v1, v1), 0.0f);
+
+	float2 p1(-4, 4), p2(0, 0), p3(4, 4);
+
+	// TODO: verify that it should be like this
+	assertCloseEnough(angleBetween(p1, p2, p3), degToRad(270.0f));
+	assertCloseEnough(angleBetween(p1, p2, p1), degToRad(0.0f));
+}
+
 static_assert(isVector<short2>(), "");
 static_assert(isVector<float4>(), "");
 static_assert(!isVector<vector<int>>(), "");
@@ -179,6 +193,7 @@ void testMain() {
 	testRays();
 	testIntersections();
 	test2DIntersections();
+	testVectorAngles();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec)

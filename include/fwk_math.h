@@ -692,11 +692,6 @@ template <class T> MakeVector<T, 3> asXZY(const T &xz, AsVectorScalar<T, 2> y) {
 
 template <class T> AsVector<T, 3> asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-// TODO: remove it?
-template <class T> bool areSimilar(const T &a, const T &b, float epsilon = fconstant::epsilon) {
-	return distanceSq(a, b) < epsilon;
-}
-
 template <class T> AsRealVector<T, 2> inv(const T &v) {
 	const auto one = constant<typename T::Scalar>::one;
 	return {one / v.x, one / v.y};
@@ -719,24 +714,44 @@ template <class T> AsVector<T, 3> cross(const T &a, const T &b) {
 }
 
 float vectorToAngle(const float2 &normalized_vector);
-const float2 angleToVector(float radians);
-const float2 rotateVector(const float2 &vec, float radians);
+double vectorToAngle(const double2 &normalized_vector);
 
-const float3 rotateVector(const float3 &pos, const float3 &axis, float angle);
-template <class TVec> bool isNormalized(const TVec &vec) {
-	auto length_sq = lengthSq(vec);
-	return length_sq >= 1.0f - fconstant::epsilon && length_sq <= 1.0f + fconstant::epsilon;
+float2 angleToVector(float radians);
+double2 angleToVector(double radians);
+
+float2 rotateVector(const float2 &vec, float radians);
+float3 rotateVector(const float3 &pos, const float3 &axis, float angle);
+
+float angleBetween(const float2 &vec1, const float2 &vec2);
+double angleBetween(const double2 &vec1, const double2 &vec2);
+
+float angleBetween(const float2 &prev, const float2 &cur, const float2 &next);
+double angleBetween(const double2 &prev, const double2 &cur, const double2 &next);
+
+// TODO: remove it?
+template <class T>
+EnableIfRealVector<bool, T>
+areClose(const T &a, const T &b,
+		 typename T::Scalar epsilon_sq = constant<typename T::Scalar>::epsilon) {
+	return distanceSq(a, b) < epsilon_sq;
 }
+
+// TODO: we can't really check it properly for floating-point's...
+template <class T> EnableIfRealVector<bool, T> isNormalized(const T &vec) {
+	using Real = typename T::Scalar;
+	auto length_sq = lengthSq(vec);
+	return length_sq >= constant<Real>::one - constant<Real>::epsilon &&
+		   length_sq <= constant<Real>::one + constant<Real>::epsilon;
+}
+
+template <class T> EnableIfVector<bool, T> isZero(const T &vec) { return vec == T(); }
 
 float frand();
 float angleDistance(float a, float b);
 float blendAngles(float initial, float target, float step);
 
-float angleBetween(const float2 &prev, const float2 &cur, const float2 &next);
-double angleBetween(const double2 &prev, const double2 &cur, const double2 &next);
-
-float vectorToAngle(const float2 &vec1, const float2 &vec2);
-float fixAngle(float angle);
+// Returns angle in range <0, 2 * PI)
+float normalizeAngle(float angle);
 
 bool isnan(float);
 bool isnan(double);
@@ -1517,7 +1532,10 @@ class Random {
 		return out;
 	}
 	template <class T> AsRealVector<T> sampleUnitHemisphere() {
-		return normalize(sampleUnitSphere<T>());
+		auto point = sampleUnitSphere<T>();
+		while(isZero(point))
+			point = sampleUnitSphere<T>();
+		return normalize(point);
 	}
 
 	template <class T> AsRealVector<T> sampleUnitSphere() {
