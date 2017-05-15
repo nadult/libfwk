@@ -124,14 +124,14 @@ template <class T, int min_size = 0> class Range {
 template <class T, int min_size = 0> using CRange = Range<const T, min_size>;
 
 template <class T> struct IsRange {
-	template <class T1,
-			  typename Base = typename std::remove_pointer<decltype(((T1 *)nullptr)->data())>::type,
-			  typename TRange = decltype(Range<Base>(*(T1 *)nullptr))>
-	constexpr static bool converts(T1 *) {
-		return true;
-	}
-	constexpr static bool converts(...) { return false; }
-	enum { value = converts((T *)nullptr) };
+	template <class U,
+			  class Base = typename std::remove_pointer<decltype(((U *)nullptr)->data())>::type,
+			  class = typename std::enable_if<
+				  std::is_convertible<decltype(((U *)nullptr)->size()), int>::value, int>::type,
+			  class TRange = decltype(Range<Base>(*(U *)nullptr))>
+	static int converts(U *);
+	template <class U> static void converts(...);
+	enum { value = std::is_same<int, decltype(converts<T>(nullptr))>::value };
 };
 
 template <class T> struct ContainerBaseType {
