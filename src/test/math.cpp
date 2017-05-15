@@ -181,6 +181,10 @@ void testMain() {
 	test2DIntersections();
 
 	float3 vec(0, 0, 1);
+	for(auto &s : vec)
+		s += 12.0f;
+	assertEqual(vec, float3(12, 12, 13));
+	static_assert(std::is_same<decltype(makeRange(vec)), Range<float>>::value, "");
 
 	auto float_len = length(float3(1, 2, 3));
 	auto double_len = length(int3(2, 3, 4));

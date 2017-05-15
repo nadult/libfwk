@@ -17,6 +17,15 @@ template <int N> struct NotAVectorN;
 
 namespace detail {
 
+#define VEC_RANGE()                                                                                \
+	auto begin() { return v; }                                                                     \
+	auto end() { return v + vector_size; }                                                         \
+	auto begin() const { return v; }                                                               \
+	auto end() const { return v + vector_size; }                                                   \
+	auto data() { return v; }                                                                      \
+	auto data() const { return v; }                                                                \
+	constexpr auto size() const { return vector_size; }
+
 	template <class T> using IsReal = std::is_floating_point<T>;
 	template <class T> using IsIntegral = std::is_integral<T>;
 
@@ -161,10 +170,11 @@ struct short2 {
 	short2 operator%(short s) const { return short2(x % s, y % s); }
 	short2 operator-() const { return short2(-x, -y); }
 
-	operator Range<short, 2>() { return v; }
-	operator CRange<short, 2>() { return v; }
+	short &operator[](int idx) { return v[idx]; }
+	const short &operator[](int idx) const { return v[idx]; }
 
-	FWK_ORDER_BY(short2, x, y);
+	FWK_ORDER_BY(short2, x, y)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -195,10 +205,8 @@ struct int2 {
 	int &operator[](int idx) { return v[idx]; }
 	const int &operator[](int idx) const { return v[idx]; }
 
-	operator Range<int, 2>() { return v; }
-	operator CRange<int, 2>() const { return v; }
-
-	FWK_ORDER_BY(int2, x, y);
+	FWK_ORDER_BY(int2, x, y)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -229,10 +237,8 @@ struct int3 {
 	int &operator[](int idx) { return v[idx]; }
 	const int &operator[](int idx) const { return v[idx]; }
 
-	operator Range<int, 3>() { return v; }
-	operator CRange<int, 3>() const { return v; }
-
-	FWK_ORDER_BY(int3, x, y, z);
+	FWK_ORDER_BY(int3, x, y, z)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -257,10 +263,8 @@ struct int4 {
 	int &operator[](int idx) { return v[idx]; }
 	const int &operator[](int idx) const { return v[idx]; }
 
-	operator Range<int, 4>() { return v; }
-	operator CRange<int, 4>() const { return v; }
-
-	FWK_ORDER_BY(int4, x, y, z, w);
+	FWK_ORDER_BY(int4, x, y, z, w)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -291,10 +295,8 @@ struct float2 {
 	float &operator[](int idx) { return v[idx]; }
 	const float &operator[](int idx) const { return v[idx]; }
 
-	operator Range<float, 2>() { return v; }
-	operator CRange<float, 2>() const { return v; }
-
-	FWK_ORDER_BY(float2, x, y);
+	FWK_ORDER_BY(float2, x, y)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -330,10 +332,8 @@ struct float3 {
 	float2 xz() const { return {x, z}; }
 	float2 yz() const { return {y, z}; }
 
-	operator Range<float, 3>() { return v; }
-	operator CRange<float, 3>() const { return v; }
-
-	FWK_ORDER_BY(float3, x, y, z);
+	FWK_ORDER_BY(float3, x, y, z)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -380,10 +380,8 @@ struct float4 {
 	float2 yz() const { return {y, z}; }
 	float3 xyz() const { return {x, y, z}; }
 
-	operator Range<float, 4>() { return v; }
-	operator CRange<float, 4>() const { return v; }
-
-	FWK_ORDER_BY(float4, x, y, z, w);
+	FWK_ORDER_BY(float4, x, y, z, w)
+	VEC_RANGE()
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -420,10 +418,8 @@ struct double2 {
 	double &operator[](int idx) { return v[idx]; }
 	const double &operator[](int idx) const { return v[idx]; }
 
-	operator Range<double, 2>() { return v; }
-	operator CRange<double, 2>() const { return v; }
-
-	FWK_ORDER_BY(double2, x, y);
+	FWK_ORDER_BY(double2, x, y)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -461,10 +457,8 @@ struct double3 {
 	double2 xz() const { return double2(x, z); }
 	double2 yz() const { return double2(y, z); }
 
-	operator Range<double, 3>() { return v; }
-	operator CRange<double, 3>() const { return v; }
-
-	FWK_ORDER_BY(double3, x, y, z);
+	FWK_ORDER_BY(double3, x, y, z)
+	VEC_RANGE()
 
 	union {
 		struct {
@@ -513,10 +507,8 @@ struct double4 {
 	double2 yz() const { return double2(y, z); }
 	double3 xyz() const { return double3(x, y, z); }
 
-	operator Range<double, 4>() { return v; }
-	operator CRange<double, 4>() const { return v; }
-
-	FWK_ORDER_BY(double4, x, y, z, w);
+	FWK_ORDER_BY(double4, x, y, z, w)
+	VEC_RANGE()
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -1519,5 +1511,7 @@ SERIALIZE_AS_POD(Matrix3)
 SERIALIZE_AS_POD(Quat)
 SERIALIZE_AS_POD(Ray)
 SERIALIZE_AS_POD(Segment)
+
+#undef VEC_RANGE
 
 #endif

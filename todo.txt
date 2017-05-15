@@ -1,3 +1,5 @@
+- Differentiate ranges continuous in memory (Range<> and CRange<>) from all the other ranges;
+  currently you can construct Range<> from std::map, which doesn't make sense...
 - Maybe<pair<>> in vecMinMax ?
 - use std::sqrtf, etc.
 - extendible xml:: toString fromString ?

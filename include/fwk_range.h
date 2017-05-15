@@ -138,8 +138,6 @@ template <class T> struct ContainerBaseType {
 	using type = typename std::remove_reference<decltype(*begin(*((T *)0)))>::type;
 };
 
-// TODO: makeRange from a pair of iterators
-
 template <class Container> auto makeRange(Container &container) {
 	using type = typename std::remove_pointer<decltype(container.data())>::type;
 	return Range<type>(container.data(), container.size(), typename Range<type>::NoAsserts());
@@ -150,6 +148,7 @@ template <class Container> auto makeRange(const Container &container) {
 	return CRange<type>(container.data(), container.size(), typename Range<type>::NoAsserts());
 }
 
+// TODO: this may cause problems (if you pass iterators from std::map for example)
 template <class Iter> auto makeRange(const Iter &begin, const Iter &end) {
 	using BaseType = typename std::remove_reference<decltype(*begin)>::type;
 	return Range<BaseType>(&*begin, &*end);
