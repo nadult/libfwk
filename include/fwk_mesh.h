@@ -171,8 +171,8 @@ class Mesh : public immutable_base<Mesh> {
 	vector<Mesh> split(int max_vertices) const;
 	static Mesh merge(vector<Mesh>);
 
-	float intersect(const Segment &) const;
-	float intersect(const Segment &, const AnimatedData &) const;
+	float intersect(const Segment3<float> &) const;
+	float intersect(const Segment3<float> &, const AnimatedData &) const;
 
 	AnimatedData animate(PPose) const;
 	static Mesh apply(Mesh, AnimatedData);
@@ -418,32 +418,12 @@ class DynamicMesh {
 	}
 
 	FBox box(EdgeId) const;
-	Segment segment(EdgeId) const;
+	Segment3<float> segment(EdgeId) const;
 	Triangle triangle(PolyId) const;
 
 	float3 simplex(VertexId id) const { return point(id); }
-	Segment simplex(EdgeId id) const { return segment(id); }
+	Segment3<float> simplex(EdgeId id) const { return segment(id); }
 	Triangle simplex(PolyId id) const { return triangle(id); }
-
-	template <class TSimplex> float sdistance(const Simplex &gsimplex, TSimplex tsimplex) const {
-		if(gsimplex.isVertex())
-			return distance(point(gsimplex.asVertex()), simplex(tsimplex));
-		else if(gsimplex.isEdge())
-			return distance(segment(gsimplex.asEdge()), simplex(tsimplex));
-		else
-			FATAL("simplex type not supported");
-		return fconstant::inf;
-	}
-
-	float sdistance(const Simplex &a, const Simplex &b) const {
-		if(b.isVertex())
-			return sdistance(a, b.asVertex());
-		else if(b.isEdge())
-			return sdistance(a, b.asEdge());
-		else
-			FATAL("simplex type not supported");
-		return fconstant::inf;
-	}
 
 	Projection edgeProjection(EdgeId, PolyId) const;
 
@@ -709,7 +689,7 @@ class AnimatedModel {
 
 	Mesh toMesh() const;
 	FBox boundingBox() const;
-	float intersect(const Segment &) const;
+	float intersect(const Segment3<float> &) const;
 	vector<DrawCall> genDrawCalls(const MaterialSet &, const Matrix4 & = Matrix4::identity()) const;
 
   private:

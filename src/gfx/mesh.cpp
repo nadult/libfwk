@@ -284,7 +284,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 	return out;
 }
 
-float Mesh::intersect(const Segment &segment) const {
+float Mesh::intersect(const Segment3<float> &segment) const {
 	float min_isect = fconstant::inf;
 
 	const auto &positions = m_buffers.positions;
@@ -295,7 +295,7 @@ float Mesh::intersect(const Segment &segment) const {
 	return min_isect;
 }
 
-float Mesh::intersect(const Segment &segment, const AnimatedData &anim_data) const {
+float Mesh::intersect(const Segment3<float> &segment, const AnimatedData &anim_data) const {
 	if(anim_data.empty())
 		return intersect(segment);
 

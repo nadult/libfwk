@@ -1332,25 +1332,34 @@ const Plane operator*(const Matrix4 &, const Plane &);
 // TODO: change name to distance
 float dot(const Plane &, const float3 &point);
 
-class Ray {
+template <class Real, int N> class TRay {
   public:
-	Ray(const float3 &origin, const float3 &dir);
-	Ray(const Matrix4 &screen_to_world, const float2 &screen_pos);
-	Ray(const float3 &origin, const float3 &dir, const float3 &idir)
-		: m_origin(origin), m_dir(dir), m_inv_dir(idir) {}
-	Ray() : Ray(float3(), float3(0, 0, 1)) {}
+	static_assert(isReal<Real>(), "Ray cannot be constructed using integral numbers as base type");
+	using Scalar = Real;
+	using Vector = MakeVector<Real, N>;
+	using Point = Vector;
 
-	const float3 &dir() const { return m_dir; }
-	const float3 &invDir() const { return m_inv_dir; }
-	const float3 &origin() const { return m_origin; }
+	TRay(const Vector &origin, const Vector &dir) : m_origin(origin), m_dir(dir) {
+		DASSERT(!isZero(m_dir));
+		DASSERT(isNormalized(m_dir));
+	}
+
+	const auto &dir() const { return m_dir; }
+	const auto &origin() const { return m_origin; }
+	auto invDir() const { return inv(m_dir); }
 	const float3 at(float t) const { return m_origin + m_dir * t; }
-	const Ray operator-() const { return Ray(m_origin, -m_dir, -m_inv_dir); }
+
+	// TODO: should we allow empty rays?
+	bool empty() const { return isZero(m_dir); }
+
+	FWK_ORDER_BY(TRay, m_origin, m_dir);
 
   protected:
-	float3 m_origin;
-	float3 m_dir;
-	float3 m_inv_dir;
+	Point m_origin;
+	Vector m_dir;
 };
+
+using Ray = TRay<float, 3>;
 
 template <class Scalar_, int N> struct ParametricPoint {
 	using Scalar = Scalar_;
@@ -1366,56 +1375,49 @@ template <class Scalar_, int N> struct ParametricPoint {
 	Scalar param;
 };
 
-template <class Scalar_, int N> struct TSegment {
-	using Scalar = Scalar_;
-	using Vector = MakeVector<Scalar, N>;
+template <class Real, int N> struct Segment {
+	static_assert(isReal<Real>(),
+				  "Segment cannot be constructed using integral numbers as base type");
+	using Scalar = Real;
+	using Vector = MakeVector<Real, N>;
 	using Point = Vector;
 
-	static_assert(isVector<Point>(), "Template parameter of Segment<> should be a vector");
-
-	TSegment() : from(), to() {}
-	TSegment(const Point &a, const Point &b) : from(a), to(b) {}
-	TSegment(const pair<Point, Point> &pair) : TSegment(pair.first, pair.second) {}
+	Segment() : from(), to() {}
+	Segment(const Point &a, const Point &b) : from(a), to(b) {}
+	Segment(const pair<Point, Point> &pair) : Segment(pair.first, pair.second) {}
 
 	template <class U>
-	TSegment(const TSegment<U, N> &rhs) : TSegment(Point(rhs.from), Point(rhs.to)) {}
+	Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
 
 	bool empty() const { return from == to; }
+	Maybe<TRay<Real, N>> asRay() const {
+		if(empty())
+			return none;
+		return TRay<Real, N>(from, normalize(to - from));
+	}
 
-	EnableIfReal<Scalar, Scalar> length() const { return distance(from, to); }
-	Scalar lengthSq() const { return distanceSq(from, to); }
-	Vector at(Scalar param) const { return from + (to - from) * param; }
+	auto length() const { return fwk::distance(from, to); }
+	Real lengthSq() const { return fwk::distanceSq(from, to); }
+
+	Vector at(Real param) const { return from + (to - from) * param; }
 
 	const Point &operator[](int n) const { return v[n]; }
 	Point &operator[](int n) { return v[n]; }
 
-	using PPoint = ParametricPoint<Scalar, N>;
+	using PPoint = ParametricPoint<Real, N>;
 
-	// TODO: some functions should be enabled only for Real segments
-	EnableIfReal<PPoint, Scalar> closestPointTo(const Point &point) const {
-		auto vec = to - from;
-		auto t = dot(point - from, vec) / fwk::lengthSq(vec);
-		t = clamp(t, Scalar(0), Scalar(1));
-		return {from + vec * t, t};
-	}
+	PPoint closestPoint(const Point &) const;
+	PPoint closestPoint(const Segment &) const;
+	pair<PPoint, PPoint> closestPoints(const Segment &) const;
 
-	// Source:: Realtime Collision Detection by Christer Ericson
-	EnableIfReal<Scalar, Scalar> distanceToSq(const Point &point) const {
-		auto ab = to - from, ac = point - from, bc = point - to;
-		auto e = dot(ac, ab);
-		if(e <= Scalar(0))
-			return dot(ac, ac);
-		auto f = dot(ab, ab);
-		if(e >= f)
-			return dot(bc, bc);
-		return dot(ac, ac) - e * e / f;
-	}
-	EnableIfReal<Scalar, Scalar> distanceTo(const Point &point) const {
-		return std::sqrt(distanceToSq(point));
-	}
+	Real distanceSq(const Point &) const;
+	Real distanceSq(const Segment &) const;
+
+	Real distance(const Point &point) const { return std::sqrt(distanceSq(point)); }
+	Real distance(const Segment &seg) const { return std::sqrt(distanceSq(seg)); }
 
 	VEC_RANGE()
-	FWK_ORDER_BY(TSegment, from, to)
+	FWK_ORDER_BY(Segment, from, to)
 
 	union {
 		struct {
@@ -1425,22 +1427,8 @@ template <class Scalar_, int N> struct TSegment {
 	};
 };
 
-class Segment : public Ray {
-  public:
-	Segment(const float3 &start, const float3 &end);
-	Segment(const pair<float3, float3> &pair) : Segment(pair.first, pair.second) {}
-	Segment() : Segment(float3(), float3(0, 0, 1)) {}
-
-	float length() const { return m_length; }
-	float3 end() const { return m_end; }
-
-  private:
-	float3 m_end;
-	float m_length;
-};
-
-template <class T> using Segment2 = TSegment<T, 2>;
-template <class T> using Segment3 = TSegment<T, 3>;
+template <class T> using Segment2 = Segment<T, 2>;
+template <class T> using Segment3 = Segment<T, 3>;
 
 template <class T> EnableIfScalar<Segment2<T>, T> asXZ(const Segment3<T> &segment) {
 	return {segment.from.xz(), segment.to.xz()};
@@ -1452,53 +1440,46 @@ Segment2Isect<float> intersection(const Segment2<float> &, const Segment2<float>
 Segment2Isect<double> intersection(const Segment2<double> &, const Segment2<double> &);
 
 float distance(const Ray &ray, const float3 &point);
-float distance(const Segment &, const float3 &point);
-float distance(const Segment &, const Segment &);
-inline float distance(const float3 &point, const Segment &segment) {
-	return distance(segment, point);
-}
 float distance(const Ray &, const Ray &);
-float distance(const Triangle &tri, const Segment &);
+float distance(const Triangle &tri, const Segment3<float> &);
 
-float3 closestPoint(const Segment &, const float3 &point);
 float3 closestPoint(const Ray &, const float3 &point);
 float3 closestPoint(const Triangle &, const float3 &point);
 float3 closestPoint(const Plane &, const float3 &point);
 
 pair<float3, float3> closestPoints(const Ray &, const Ray &);
-pair<float3, float3> closestPoints(const Segment &, const Segment &);
 
 // returns infinity if doesn't intersect
 pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);
-pair<float, float> intersectionRange(const Segment &, const Box<float3> &box);
+pair<float, float> intersectionRange(const Segment3<float> &, const Box<float3> &box);
 
-pair<Segment, bool> intersectionSegment(const Triangle &, const Triangle &);
+pair<Segment3<float>, bool> intersectionSegment(const Triangle &, const Triangle &);
 
 inline float intersection(const Ray &ray, const Box<float3> &box) {
 	return intersectionRange(ray, box).first;
 }
 
-inline float intersection(const Segment &segment, const Box<float3> &box) {
+inline float intersection(const Segment3<float> &segment, const Box<float3> &box) {
 	return intersectionRange(segment, box).first;
 }
 
 float intersection(const Ray &, const Triangle &);
-float intersection(const Segment &, const Triangle &);
+float intersection(const Segment3<float> &, const Triangle &);
 
-const Segment operator*(const Matrix4 &, const Segment &);
+Segment3<float> operator*(const Matrix4 &, const Segment3<float> &);
 
-float intersection(const Segment &, const Plane &);
+float intersection(const Segment3<float> &, const Plane &);
 float intersection(const Ray &, const Plane &);
 
-inline float intersection(const Plane &plane, const Segment &segment) {
+inline float intersection(const Plane &plane, const Segment3<float> &segment) {
 	return intersection(segment, plane);
 }
 inline float intersection(const Plane &plane, const Ray &ray) { return intersection(ray, plane); }
-inline float intersection(const Triangle &tri, const Segment &segment) {
+inline float intersection(const Triangle &tri, const Segment3<float> &segment) {
 	return intersection(segment, tri);
 }
 
-bool intersection(const Plane &, const Plane &, Ray &out);
+Maybe<Ray> intersection(const Plane &, const Plane &);
 
 class Projection {
   public:
@@ -1513,7 +1494,7 @@ class Projection {
 	float3 unprojectVector(const float3 &) const;
 
 	Triangle project(const Triangle &) const;
-	Segment project(const Segment &) const;
+	Segment3<float> project(const Segment3<float> &) const;
 
 	// TODO: maybe those operators aren't such a good idea?
 	template <class T> auto operator*(const T &obj) const { return project(obj); }
@@ -1651,7 +1632,11 @@ SERIALIZE_AS_POD(Matrix4)
 SERIALIZE_AS_POD(Matrix3)
 SERIALIZE_AS_POD(Quat)
 SERIALIZE_AS_POD(Ray)
-SERIALIZE_AS_POD(Segment)
+
+SERIALIZE_AS_POD(Segment2<float>)
+SERIALIZE_AS_POD(Segment3<float>)
+SERIALIZE_AS_POD(Segment2<double>)
+SERIALIZE_AS_POD(Segment3<double>)
 
 #undef VEC_RANGE
 

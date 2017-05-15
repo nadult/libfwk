@@ -840,7 +840,7 @@ class LineBuffer {
 			 const Matrix4 &matrix = Matrix4::identity());
 	void add(CRange<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 	void add(CRange<float3>, IColor, const Matrix4 &matrix = Matrix4::identity());
-	void add(CRange<Segment>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CRange<Segment3<float>>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 	void addBox(const FBox &bbox, IColor color, const Matrix4 &matrix = Matrix4::identity());
 	void clear();
 

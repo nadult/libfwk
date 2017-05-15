@@ -64,28 +64,30 @@ void testMatrices() {
 
 void testRays() {
 	Triangle tri(float3(0, 0, 4), float3(0, 2, 4), float3(2, 0, 4));
-	Segment segment1(float3(0.5, 0.5, 0), float3(0.5, 0.5, 10));
-	Segment segment2(float3(1.3, 1.3, 0), float3(1.0, 1.0, 10));
+	Segment3<float> segment1(float3(0.5, 0.5, 0), float3(0.5, 0.5, 10));
+	Segment3<float> segment2(float3(1.3, 1.3, 0), float3(1.0, 1.0, 10));
 
-	assertCloseEnough(intersection(segment1, tri), 4.0f);
+	assertCloseEnough(intersection(segment1, tri), 0.4f);
 	assertEqual(intersection(segment2, tri), fconstant::inf);
 	assertCloseEnough(tri.surfaceArea(), 2.0f);
 
-	Segment segment3(float3(1, 1, 0), float3(4, 4, 0));
+	Segment3<float> segment3(float3(1, 1, 0), float3(4, 4, 0));
 	float3 p1(4, 1, 0), p2(0.5, 0.5, 0), p3(5, 4, 0);
-	assertCloseEnough(closestPoint(segment3, p1), float3(2.5, 2.5, 0));
-	assertCloseEnough(closestPoint(segment3, p2), float3(1, 1, 0));
-	assertCloseEnough(closestPoint(segment3, p3), float3(4, 4, 0));
+	assertCloseEnough(segment3.closestPoint(p1).point, float3(2.5, 2.5, 0));
+	assertCloseEnough(segment3.closestPoint(p2).point, float3(1, 1, 0));
+	assertCloseEnough(segment3.closestPoint(p3).point, float3(4, 4, 0));
 
-	assertCloseEnough(closestPoint(Ray(segment3), p1), float3(2.5, 2.5, 0));
-	assertCloseEnough(closestPoint(Ray(segment3), p2), float3(0.5, 0.5, 0));
-	assertCloseEnough(closestPoint(Ray(segment3), p3), float3(4.5, 4.5, 0));
+	auto ray = *segment3.asRay();
+	assertCloseEnough(closestPoint(ray, p1), float3(2.5, 2.5, 0));
+	assertCloseEnough(closestPoint(ray, p2), float3(0.5, 0.5, 0));
+	assertCloseEnough(closestPoint(ray, p3), float3(4.5, 4.5, 0));
 
-	Segment segment4(float3(3, 2, 0), float3(6, 5, 0));
-	Segment segment5(float3(6, 7, 0), float3(8, 5, 0));
-	assertCloseEnough(distance(segment3, segment4), sqrtf(2.0f) / 2.0f);
-	assertCloseEnough(distance(segment4, segment5), sqrtf(2.0f));
-	assertCloseEnough(distance(Ray(segment4), Ray(segment5)), 0.0f);
+	Segment3<float> segment4(float3(3, 2, 0), float3(6, 5, 0));
+	Segment3<float> segment5(float3(6, 7, 0), float3(8, 5, 0));
+	auto ray4 = *segment4.asRay(), ray5 = *segment5.asRay();
+	assertCloseEnough(segment3.distance(segment4), sqrtf(2.0f) / 2.0f);
+	assertCloseEnough(segment4.distance(segment5), sqrtf(2.0f));
+	assertCloseEnough(distance(ray4, ray5), 0.0f);
 }
 
 void testIntersections() {
@@ -94,7 +96,7 @@ void testIntersections() {
 	assertEqual(distance(Cylinder(float3(2, 2, 2), 1.5, 2.0), float3(2, 5, 2)), 1.0f);
 
 	Triangle tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
-	Segment seg(float3(1, 1, -1), float3(1, 1, 1));
+	Segment3<float> seg(float3(1, 1, -1), float3(1, 1, 1));
 
 	assertEqual(intersection(tri, seg), fconstant::inf);
 	assertEqual(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
@@ -168,7 +170,7 @@ void test2DIntersections() {
 	ASSERT(intersection(s4, Segment2<double>({0, 3}, {6, -1})) == none);
 	ASSERT(intersection(s6, Segment2<double>({-1, -1}, {-1, -1})) == double2(-1, -1));
 
-	ASSERT(s6.closestPointTo({0.5, 2.5}) == (ParametricPoint<double, 2>({1.5, 1.5}, 0.5)));
+	ASSERT(s6.closestPoint({0.5, 2.5}) == (ParametricPoint<double, 2>({1.5, 1.5}, 0.5)));
 
 	auto time = getTime();
 	for(int n = 0; n < 500000; n++) {

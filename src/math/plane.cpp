@@ -54,23 +54,22 @@ float dot(const Plane &plane, const float3 &point) {
 	return dot(plane.normal(), point) - plane.distance();
 }
 
-bool intersection(const Plane &plane0, const Plane &plane1, Ray &line) {
+Maybe<Ray> intersection(const Plane &plane0, const Plane &plane1) {
 	// Source: Free Magic Library
 	float n00 = lengthSq(plane0.normal());
 	float n01 = dot(plane0.normal(), plane1.normal());
 	float n11 = lengthSq(plane1.normal());
 	float det = n00 * n11 - n01 * n01;
 
-	if(fabsf(det) < fconstant::epsilon)
-		return false;
+	if(det == 0.0f)
+		return none;
 
 	float inv_det = 1.0f / det;
 	float c0 = (n11 * plane0.distance() - n01 * plane1.distance()) * inv_det;
 	float c1 = (n00 * plane1.distance() - n01 * plane0.distance()) * inv_det;
 
-	line = Ray(float3(plane0.normal() * c0 + plane1.normal() * c1),
+	return Ray(float3(plane0.normal() * c0 + plane1.normal() * c1),
 			   normalize(cross(plane0.normal(), plane1.normal())));
-	return true;
 }
 
 float3 closestPoint(const Plane &plane, const float3 &point) {

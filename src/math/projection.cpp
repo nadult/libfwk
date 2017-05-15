@@ -23,7 +23,7 @@ Triangle Projection::project(const Triangle &tri) const {
 	return Triangle(project(tri.a()), project(tri.b()), project(tri.c()));
 }
 
-Segment Projection::project(const Segment &seg) const {
-	return Segment(project(seg.origin()), project(seg.end()));
+Segment3<float> Projection::project(const Segment3<float> &seg) const {
+	return {project(seg.from), project(seg.to)};
 }
 }

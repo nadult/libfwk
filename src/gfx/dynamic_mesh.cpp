@@ -588,7 +588,7 @@ void DynamicMesh::setValue(PolyId poly, int value) {
 	m_polys[poly].value = value;
 }
 
-Segment DynamicMesh::segment(EdgeId id) const { return Segment(point(id.a), point(id.b)); }
+Segment3<float> DynamicMesh::segment(EdgeId id) const { return {point(id.a), point(id.b)}; }
 
 FBox DynamicMesh::box(EdgeId id) const {
 	auto p1 = point(id.a), p2 = point(id.b);
@@ -602,7 +602,8 @@ Triangle DynamicMesh::triangle(PolyId id) const {
 }
 
 Projection DynamicMesh::edgeProjection(EdgeId edge, PolyId poly) const {
-	Ray ray(segment(edge));
+	DASSERT(!segment(edge).empty());
+	Ray ray(*segment(edge).asRay());
 	float3 far_point = point(otherVertex(poly, edge));
 	float3 edge_point = closestPoint(ray, far_point);
 	return Projection(point(edge.a), normalize(edge_point - far_point), ray.dir());

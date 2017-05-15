@@ -70,7 +70,7 @@ template <class K> float2 fromCGAL(const CGAL::Point_2<K> &p) {
 	return float2(CGAL::to_double(p.x()), CGAL::to_double(p.y()));
 }
 
-pair<Segment, bool> intersectionSegment(const Triangle &a, const Triangle &b) {
+pair<Segment3<float>, bool> intersectionSegment(const Triangle &a, const Triangle &b) {
 	using K = CGAL::Exact_predicates_exact_constructions_kernel;
 	using Point = K::Point_3;
 	using Segment = K::Segment_3;
@@ -90,13 +90,14 @@ pair<Segment, bool> intersectionSegment(const Triangle &a, const Triangle &b) {
 			if(auto *s = boost::get<Segment>(&*isect)) {
 				float len = sqrtf(CGAL::to_double(s->squared_length()));
 				if(len > fconstant::epsilon)
-					return make_pair(fwk::Segment(fromCGAL(s->min()), fromCGAL(s->max())), true);
+					return make_pair(fwk::Segment3<float>(fromCGAL(s->min()), fromCGAL(s->max())),
+									 true);
 			}
 		}
 	} catch(...) {
 	}
 
-	return make_pair(fwk::Segment(), false);
+	return make_pair(fwk::Segment3<float>(), false);
 }
 
 bool areIntersecting(const Triangle2D &a, const Triangle2D &b) {
@@ -150,21 +151,23 @@ Triangle operator*(const Matrix4 &mat, const Triangle &tri) {
 float distance(const Triangle &a, const Triangle &b) {
 	float min_dist = fconstant::inf;
 	for(int n = 0; n < 3 && min_dist > fconstant::epsilon; n++)
-		min_dist = min(min_dist, distance(b, Segment(a[n], a[(n + 1) % 3])));
+		min_dist = min(min_dist, distance(b, Segment3<float>(a[n], a[(n + 1) % 3])));
 	for(int n = 0; n < 3 && min_dist > fconstant::epsilon; n++)
-		min_dist = min(min_dist, distance(a, Segment(b[n], b[(n + 1) % 3])));
+		min_dist = min(min_dist, distance(a, Segment3<float>(b[n], b[(n + 1) % 3])));
 	return min_dist;
 }
 
-float distance(const Triangle &tri, const Segment &seg) {
+float distance(const Triangle &tri, const Segment3<float> &seg) {
+	if(seg.empty())
+		return distance(tri, seg.from);
+
 	float isect = intersection(tri, seg);
 	if(isect < fconstant::inf)
 		return 0.0f;
 
-	float plane_isect = intersection(Plane(tri), (Ray)seg);
-	float3 point = plane_isect < 0.0f ? seg.origin() : plane_isect > seg.length()
-														   ? seg.end()
-														   : seg.at(plane_isect);
+	float plane_isect = intersection(Plane(tri), *seg.asRay()) / seg.length();
+	float3 point =
+		plane_isect < 0.0f ? seg.from : plane_isect > 1.0f ? seg.to : seg.at(plane_isect);
 	return distance(tri, point);
 }
 

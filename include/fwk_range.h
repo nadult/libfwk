@@ -43,13 +43,15 @@ template <class T> using CRangeIterator = RangeIterator<const T>;
 
 template <class T> class PodArray;
 
+struct RangeNoAssertsTag {};
+
 // Simple wrapper class for ranges of values
 // The user is responsible for making sure, that the values
 // exist while Range pointing to them is in use
 // TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
 template <class T, int min_size = 0> class Range {
   public:
-	struct NoAsserts {};
+	using NoAsserts = RangeNoAssertsTag;
 	using value_type = typename std::remove_const<T>::type;
 	enum { is_const = std::is_const<T>::value, minimum_size = min_size };
 	using vector_type =
@@ -127,8 +129,7 @@ template <class T> struct IsRange {
 	template <class U,
 			  class Base = typename std::remove_pointer<decltype(((U *)nullptr)->data())>::type,
 			  class = typename std::enable_if<
-				  std::is_convertible<decltype(((U *)nullptr)->size()), int>::value, int>::type,
-			  class TRange = decltype(Range<Base>(*(U *)nullptr))>
+				  std::is_convertible<decltype(((U *)nullptr)->size()), int>::value, int>::type>
 	static int converts(U *);
 	template <class U> static void converts(...);
 	enum { value = std::is_same<int, decltype(converts<T>(nullptr))>::value };
@@ -360,10 +361,10 @@ auto merge(
 		IsRange<typename std::remove_pointer<decltype(((Container *)0)->data())>::type>::value,
 		void *>::type = nullptr) {
 	auto range = makeRange(ranges);
-	using Base = typename decltype(makeRange(*range.data()))::value_type;
+	using Base = typename decltype(makeConstRange(*range.data()))::value_type;
 
 	vector<Base> out;
-	size_t total_size = 0;
+	int total_size = 0;
 	for(const auto &elem : range)
 		total_size += makeConstRange(elem).size();
 	out.reserve(total_size);

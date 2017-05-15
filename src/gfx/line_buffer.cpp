@@ -50,10 +50,8 @@ void LineBuffer::add(CRange<float3> verts, IColor color, const Matrix4 &matrix) 
 	insertBack(inst.positions, verts);
 }
 
-void LineBuffer::add(CRange<Segment> segs, PMaterial material, const Matrix4 &matrix) {
-	vector<float3> verts;
-	for(const auto &seg : segs)
-		insertBack(verts, {seg.origin(), seg.end()});
+void LineBuffer::add(CRange<Segment3<float>> segs, PMaterial material, const Matrix4 &matrix) {
+	vector<float3> verts = merge(segs);
 	add(verts, material, matrix);
 }
 
