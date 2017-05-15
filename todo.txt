@@ -41,7 +41,7 @@
 - add clang's small vector
 - think about usefulness of const correctness; in some cases were just wasting time
 - separate align function for fonts
-- DEFINE_ENUM in class scope
+- DEFINE_ENUM in class scope (it's not that easy...)
 - Hide HAlign, VAlign inside fontstyle?
 - removeIndicies should use materialset
 - make makeUnique not use resize (use erase)

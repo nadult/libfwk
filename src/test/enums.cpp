@@ -11,6 +11,9 @@ void testMain() {
 
 	EnumMap<SomeEnum, int> array{{1, 2, 3, 4}};
 
+	static_assert(!IsEnum<int>::value, "");
+	static_assert(IsEnum<SomeEnum>::value, "");
+
 	ASSERT(array[SomeEnum::foo_bar] == 3);
 	string text;
 	for(auto elem : all<SomeEnum>())

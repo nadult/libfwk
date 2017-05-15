@@ -549,14 +549,19 @@ template <class Type> class EnumRange {
 		return fwk::CRange<const char *, size>(s_strings, size);                                   \
 	}
 
+struct NotAnEnum;
+
 template <class T> struct IsEnum {
 	template <class C> static auto test(int) -> decltype(enumStrings(C()));
 	template <class C> static auto test(...) -> void;
+	struct RetOk {
+		template <class A> using Arg = A;
+	};
 	enum { value = !std::is_same<void, decltype(test<T>(0))>::value };
+	using Ret = typename std::conditional<value, RetOk, NotAnEnum>::type;
 };
 
-template <class T, class Result>
-using EnableIfEnum = typename std::enable_if<IsEnum<T>::value, Result>::type;
+template <class T, class Result> using EnableIfEnum = typename IsEnum<T>::Ret::template Arg<Result>;
 
 template <class T> static auto fromString(const char *str) -> EnableIfEnum<T, T> {
 	return T(fwk::enumFromString(str, enumStrings(T()), true));
