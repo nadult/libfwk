@@ -14,12 +14,12 @@ namespace fwk {
 
 #define VEC_RANGE()                                                                                \
 	auto begin() { return v; }                                                                     \
-	auto end() { return v + vector_size; }                                                         \
+	auto end() { return v + arraySize(v); }                                                        \
 	auto begin() const { return v; }                                                               \
-	auto end() const { return v + vector_size; }                                                   \
+	auto end() const { return v + arraySize(v); }                                                  \
 	auto data() { return v; }                                                                      \
 	auto data() const { return v; }                                                                \
-	constexpr auto size() const { return vector_size; }
+	constexpr auto size() const { return arraySize(v); }
 
 // TODO: make sure that all classes / structures here have proper default constructor (for
 // example AxisAngle requires fixing)
@@ -430,6 +430,9 @@ namespace detail {
 
 	template <class T> using IsReal = std::is_floating_point<T>;
 	template <class T> using IsIntegral = std::is_integral<T>;
+	template <class T> struct IsScalar {
+		enum { value = std::is_floating_point<T>::value || std::is_integral<T>::value };
+	};
 
 	template <class T> struct IsRealObject {
 		template <class U>
@@ -488,6 +491,7 @@ namespace detail {
 		enum { value = VectorInfo<T, N>::size > 0 };
 	};
 
+	// TODO: better name? also differentiate from fwk::vector
 	template <class T, int N> struct MakeVector { using type = NotAVector; };
 	template <> struct MakeVector<short, 2> { using type = short2; };
 	template <> struct MakeVector<int, 2> { using type = int2; };
@@ -499,11 +503,19 @@ namespace detail {
 	template <> struct MakeVector<double, 2> { using type = double2; };
 	template <> struct MakeVector<double, 3> { using type = double3; };
 	template <> struct MakeVector<double, 4> { using type = double4; };
+
+	template <class T> struct GetScalar {
+		template <class U>
+		static auto test(U *) -> typename std::enable_if<IsScalar<U>::value, U>::type;
+		template <class U> static auto test(U *) -> typename U::Scalar;
+		template <class U> static void test(...);
+		using type = decltype(test<T>(nullptr));
+	};
 }
 
 template <class T> constexpr bool isReal() { return detail::IsReal<T>::value; }
 template <class T> constexpr bool isIntegral() { return detail::IsIntegral<T>::value; }
-template <class T> constexpr bool isScalar() { return isReal<T>() || isIntegral<T>(); }
+template <class T> constexpr bool isScalar() { return detail::IsScalar<T>::value; }
 
 template <class T> constexpr bool isRealObject() { return detail::IsRealObject<T>::value; }
 template <class T> constexpr bool isIntegralObject() { return detail::IsIntegralObject<T>::value; }
@@ -549,8 +561,14 @@ template <class T, int N = 0>
 using AsIntegralVector = typename detail::VectorInfo<T, N>::IntegralRet::Vector;
 
 template <class T, int N>
-using MakeVector = typename detail::MakeVector<
-	typename std::conditional<isVector<T>(), typename T::Scalar, T>::type, N>::type;
+using MakeVector = typename detail::MakeVector<typename detail::GetScalar<T>::type, N>::type;
+
+template <class T> using Vector2 = MakeVector<T, 2>;
+template <class T> using Vector3 = MakeVector<T, 3>;
+template <class T> using Vector4 = MakeVector<T, 4>;
+
+template <class T> struct ToReal { using type = double; };
+template <> struct ToReal<float> { using type = float; };
 
 template <class T, class T1> const AsMathObject<T> &operator+=(T &a, const T1 &b) {
 	return a = a + b;
@@ -680,13 +698,9 @@ template <class T> AsVector<T, 4> vabs(const T &v) {
 	return T(std::abs(v.x), std::abs(v.y), std::abs(v.z), std::abs(v.w));
 }
 
-template <class T> EnableIfVector<MakeVector<T, 3>, T, 2> asXZ(const T &v) {
-	return {v[0], 0, v[1]};
-}
-template <class T> EnableIfVector<MakeVector<T, 3>, T, 2> asXY(const T &v) {
-	return {v[0], v[1], 0};
-}
-template <class T> MakeVector<T, 3> asXZY(const T &xz, AsVectorScalar<T, 2> y) {
+template <class T> EnableIfVector<Vector3<T>, T, 2> asXZ(const T &v) { return {v[0], 0, v[1]}; }
+template <class T> EnableIfVector<Vector3<T>, T, 2> asXY(const T &v) { return {v[0], v[1], 0}; }
+template <class T> Vector3<T> asXZY(const T &xz, AsVectorScalar<T, 2> y) {
 	return {xz[0], y, xz[1]};
 }
 
@@ -712,6 +726,8 @@ template <class T> AsVectorScalar<T, 2> cross(const T &a, const T &b) {
 template <class T> AsVector<T, 3> cross(const T &a, const T &b) {
 	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
+
+template <class T> AsVector<T, 2> perpendicular(const T &v) { return {v.y, -v.x}; }
 
 float vectorToAngle(const float2 &normalized_vector);
 double vectorToAngle(const double2 &normalized_vector);
@@ -1336,18 +1352,78 @@ class Ray {
 	float3 m_inv_dir;
 };
 
-struct Segment2D {
-	Segment2D() = default;
-	Segment2D(const float2 &a, const float2 &b) : start(a), end(b) {}
-	Segment2D(const pair<float2, float2> &pair) : Segment2D(pair.first, pair.second) {}
+template <class Scalar_, int N> struct ParametricPoint {
+	using Scalar = Scalar_;
+	using Vector = MakeVector<Scalar, N>;
 
-	bool empty() const { return length() < fconstant::epsilon; }
-	float length() const { return distance(start, end); }
+	ParametricPoint(Vector point, Scalar param) : point(point), param(param) {}
 
-	float2 start, end;
+	operator Vector() const { return point; }
+
+	FWK_ORDER_BY(ParametricPoint, point, param);
+
+	Vector point;
+	Scalar param;
 };
 
-inline float length(const Segment2D &seg) { return distance(seg.start, seg.end); }
+template <class Scalar_, int N> struct TSegment {
+	using Scalar = Scalar_;
+	using Vector = MakeVector<Scalar, N>;
+	using Point = Vector;
+
+	static_assert(isVector<Point>(), "Template parameter of Segment<> should be a vector");
+
+	TSegment() : from(), to() {}
+	TSegment(const Point &a, const Point &b) : from(a), to(b) {}
+	TSegment(const pair<Point, Point> &pair) : TSegment(pair.first, pair.second) {}
+
+	template <class U>
+	TSegment(const TSegment<U, N> &rhs) : TSegment(Point(rhs.from), Point(rhs.to)) {}
+
+	bool empty() const { return from == to; }
+
+	EnableIfReal<Scalar, Scalar> length() const { return distance(from, to); }
+	Scalar lengthSq() const { return distanceSq(from, to); }
+	Vector at(Scalar param) const { return from + (to - from) * param; }
+
+	const Point &operator[](int n) const { return v[n]; }
+	Point &operator[](int n) { return v[n]; }
+
+	using PPoint = ParametricPoint<Scalar, N>;
+
+	// TODO: some functions should be enabled only for Real segments
+	EnableIfReal<PPoint, Scalar> closestPointTo(const Point &point) const {
+		auto vec = to - from;
+		auto t = dot(point - from, vec) / fwk::lengthSq(vec);
+		t = clamp(t, Scalar(0), Scalar(1));
+		return {from + vec * t, t};
+	}
+
+	// Source:: Realtime Collision Detection by Christer Ericson
+	EnableIfReal<Scalar, Scalar> distanceToSq(const Point &point) const {
+		auto ab = to - from, ac = point - from, bc = point - to;
+		auto e = dot(ac, ab);
+		if(e <= Scalar(0))
+			return dot(ac, ac);
+		auto f = dot(ab, ab);
+		if(e >= f)
+			return dot(bc, bc);
+		return dot(ac, ac) - e * e / f;
+	}
+	EnableIfReal<Scalar, Scalar> distanceTo(const Point &point) const {
+		return std::sqrt(distanceToSq(point));
+	}
+
+	VEC_RANGE()
+	FWK_ORDER_BY(TSegment, from, to)
+
+	union {
+		struct {
+			Point from, to;
+		};
+		Point v[2];
+	};
+};
 
 class Segment : public Ray {
   public:
@@ -1357,23 +1433,23 @@ class Segment : public Ray {
 
 	float length() const { return m_length; }
 	float3 end() const { return m_end; }
-	Segment2D xz() const { return Segment2D(origin().xz(), end().xz()); }
 
   private:
 	float3 m_end;
 	float m_length;
 };
 
-struct ClipResult {
-	ClipResult(Segment2D a = Segment2D(), Segment2D b = Segment2D(), Segment2D c = Segment2D())
-		: inside(a), outside_front(b), outside_back(c) {}
-	Segment2D inside;
-	Segment2D outside_front;
-	Segment2D outside_back;
-};
+template <class T> using Segment2 = TSegment<T, 2>;
+template <class T> using Segment3 = TSegment<T, 3>;
 
-pair<float2, bool> intersection(const Segment2D &, const Segment2D &);
-ClipResult clip(const Triangle2D &, const Segment2D &);
+template <class T> EnableIfScalar<Segment2<T>, T> asXZ(const Segment3<T> &segment) {
+	return {segment.from.xz(), segment.to.xz()};
+}
+
+template <class T> using Segment2Isect = Variant<None, Segment2<T>, Vector2<T>>;
+
+Segment2Isect<float> intersection(const Segment2<float> &, const Segment2<float> &);
+Segment2Isect<double> intersection(const Segment2<double> &, const Segment2<double> &);
 
 float distance(const Ray &ray, const float3 &point);
 float distance(const Segment &, const float3 &point);

@@ -2,6 +2,7 @@
 
    This file is part of libfwk.*/
 
+#include "fwk_variant.h"
 #include "testing.h"
 
 float3 randomTranslation(float magnitude) {
@@ -106,12 +107,6 @@ void testIntersections() {
 				  float3(-2.500000, 0.000000, 4.330130));
 	ASSERT(areIntersecting(tri1, tri2));*/
 
-	// TODO: 2d Segment intersections
-	/*	Segment2D seg1(float2(-100, -100), float2(100, 100));
-		Segment2D seg2(float2(-100, -99), float2(100, 99));
-		auto isect = intersection(seg1, seg2);
-		xmlPrint("% %\n", isect.first, isect.second);*/
-
 	Tetrahedron tet({0, 0, 0}, {1, 0, 0}, {0, 0, 1}, {0.25, 1, 0.25});
 	assertEqual(tet.volume(), 1.0f / 6.0f);
 
@@ -140,26 +135,48 @@ void testIntersections() {
 		}*/
 }
 
+template <class T> void print(Segment2Isect<T> isect) {
+	if(isect.template is<Segment2<T>>()) {
+		auto seg = isect.template get<Segment2<T>>();
+		xmlPrint("Segment(% - %)\n", seg.from, seg.to);
+	} else if(isect.template is<Vector2<T>>()) {
+		auto vec = isect.template get<Vector2<T>>();
+		xmlPrint("Vector %\n", vec);
+	} else
+		xmlPrint("Empty\n");
+}
+
 void test2DIntersections() {
-	Triangle2D tri(float2(1, 2), float2(5, 3), float2(3, 5));
-	Segment2D seg(float2(3, 1), float2(3, 6));
-	auto result = clip(tri, seg);
-	assertEqual(result.inside.start, float2(3, 2.5f));
-	assertEqual(result.inside.end, float2(3, 5));
-	assertEqual(result.outside_front.start, float2(3, 1));
-	assertEqual(result.outside_front.end, float2(3, 2.5f));
-	assertEqual(result.outside_back.start, float2(3, 5));
-	assertEqual(result.outside_back.end, float2(3, 6));
+	Segment2<float> s1({1, 4}, {4, 1});
+	Segment2<float> s2({3, 2}, {5, 0});
 
-	Segment2D seg1({0, 2}, {3, 2}), seg2({1, 1}, {1, 3}), seg3({1.00001, 3}, {3, 3});
-	assertEqual(intersection(seg1, seg2).first, float2(1, 2));
-	ASSERT(!intersection(seg1, seg3).second);
-	ASSERT(!intersection(seg2, seg3).second);
+	Segment2<double> s3({3, 2}, {5, 0});
+	Segment2<double> s4({1, 4}, {4, 1});
 
-	Segment2D seg4({-3.788882, -9.852953}, {-3.870192, -10.849642});
-	Segment2D seg5({-3.723713, -9.857805}, {-3.771331, -9.854259});
-	ASSERT(!intersection(seg4, seg5).second);
-	ASSERT(!intersection(seg5, seg4).second);
+	Segment2<double> s5({1, 7}, {1, 4});
+	Segment2<double> s6({-1, -1}, {4, 4});
+
+	//	print(intersection(s1, s2));
+	//	print(intersection(s3, s4));
+	//	print(intersection(s6, Segment2<double>({-1, -1}, {-1, -1})));
+
+	ASSERT(intersection(s1, s2) == Segment2<float>({3, 2}, {4, 1}));
+	ASSERT(intersection(s3, s4) == Segment2<double>({3, 2}, {4, 1}));
+	ASSERT(intersection(s5, s4) == double2(1, 4));
+	ASSERT(intersection(s6, s4) == double2(2.5, 2.5));
+	ASSERT(intersection(s6, Segment2<double>({4.1, 4.1}, {5, 5})) == none);
+	ASSERT(intersection(s4, Segment2<double>({0, 3}, {6, -1})) == none);
+	ASSERT(intersection(s6, Segment2<double>({-1, -1}, {-1, -1})) == double2(-1, -1));
+
+	ASSERT(s6.closestPointTo({0.5, 2.5}) == (ParametricPoint<double, 2>({1.5, 1.5}, 0.5)));
+
+	auto time = getTime();
+	for(int n = 0; n < 500000; n++) {
+		intersection(s3, s4);
+		intersection(s6, s4);
+	}
+	time = getTime() - time;
+	xmlPrint("Isect time: % ns / segment pair\n", time * 1000);
 }
 
 void testVectorAngles() {

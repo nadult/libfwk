@@ -7,6 +7,7 @@
   which will work automatically for float2, array<int>, vector<float3>, PodArray<char>, string
 - fix isNormalized, areClose ?
 - check if double constants are correct
+- printing for Variant ?
 
 - Maybe<pair<>> in vecMinMax ?
 - use std::sqrtf, etc.

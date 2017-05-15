@@ -66,6 +66,8 @@ using i32 = int;
 template <class... T> struct Undefined;
 template <size_t... S> struct UndefinedSize;
 
+template <typename... Types> class Variant;
+
 template <class T1, class T2> bool operator==(const shared_ptr<T1> &lhs, const T2 *rhs) {
 	return lhs.get() == rhs;
 }
