@@ -12,11 +12,6 @@
 
 namespace fwk {
 
-struct NotAVector;
-template <int N> struct NotAVectorN;
-
-namespace detail {
-
 #define VEC_RANGE()                                                                                \
 	auto begin() { return v; }                                                                     \
 	auto end() { return v + vector_size; }                                                         \
@@ -25,87 +20,6 @@ namespace detail {
 	auto data() { return v; }                                                                      \
 	auto data() const { return v; }                                                                \
 	constexpr auto size() const { return vector_size; }
-
-	template <class T> using IsReal = std::is_floating_point<T>;
-	template <class T> using IsIntegral = std::is_integral<T>;
-
-	template <class T> struct IsRealObject {
-		template <class U>
-		static typename std::enable_if<IsReal<typename U::Scalar>::value, char>::type test(U *);
-		template <class U> static long test(...);
-		enum { value = sizeof(test<T>(nullptr)) == 1 };
-	};
-
-	template <class T> struct IsIntegralObject {
-		template <class U>
-		static typename std::enable_if<IsIntegral<typename U::Scalar>::value, char>::type test(U *);
-		template <class U> static long test(...);
-		enum { value = sizeof(test<T>(nullptr)) == 1 };
-	};
-
-	template <class T, int N> struct VectorInfo {
-		template <class U> struct RetOk {
-			using Scalar = typename U::Scalar;
-			using Vector = U;
-			template <class A> using Arg = A;
-
-			enum {
-				size = U::vector_size,
-				is_real = std::is_floating_point<Scalar>::value,
-				is_integral = std::is_integral<Scalar>::value
-			};
-		};
-		using RetError = typename std::conditional<N == 0, NotAVector, NotAVectorN<N>>::type;
-		struct Zero {
-			enum { size = 0, is_real = 0, is_integral = 0 };
-		};
-
-		template <class U>
-		static constexpr auto test(int) ->
-			typename std::conditional<(sizeof(typename U::Scalar) > 0) &&
-										  (U::vector_size == N || N == 0),
-									  RetOk<U>, RetError>::type;
-		template <class U> static constexpr RetError test(...);
-
-		using Ret = decltype(test<T>(0));
-		using Get =
-			typename std::conditional<std::is_same<Ret, RetError>::value, Zero, RetOk<T>>::type;
-
-		using IntegralRet = typename std::conditional<Get::is_integral, Ret, RetError>::type;
-		using RealRet = typename std::conditional<Get::is_real, Ret, RetError>::type;
-	};
-
-	template <class T, int N = 0> struct IsVector {
-		enum { value = VectorInfo<T, N>::size > 0 };
-	};
-}
-
-template <class T, int N = 0> using AsVectorScalar = typename detail::VectorInfo<T, N>::Ret::Scalar;
-template <class T, int N = 0> using AsVector = typename detail::VectorInfo<T, N>::Ret::Vector;
-template <class Arg, class T, int N = 0>
-using EnableIfVector = typename detail::VectorInfo<T, N>::Ret::template Arg<Arg>;
-template <class Arg, class T, int N = 0>
-using EnableIfRealVector = typename detail::VectorInfo<T, N>::RealRet::template Arg<Arg>;
-
-template <class T, int N = 0>
-using AsRealVector = typename detail::VectorInfo<T, N>::RealRet::Vector;
-template <class T, int N = 0>
-using AsIntegralVector = typename detail::VectorInfo<T, N>::IntegralRet::Vector;
-
-template <class T> constexpr bool isReal() { return detail::IsReal<T>::value; }
-template <class T> constexpr bool isIntegral() { return detail::IsIntegral<T>::value; }
-template <class T> constexpr bool isRealObject() { return detail::IsRealObject<T>::value; }
-template <class T> constexpr bool isIntegralObject() { return detail::IsIntegralObject<T>::value; }
-
-template <class T, int N = 0> constexpr bool isVector() {
-	return detail::VectorInfo<T, N>::Get::size > 0;
-}
-template <class T, int N = 0> constexpr bool isRealVector() {
-	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_real;
-}
-template <class T, int N = 0> constexpr bool isIntegralVector() {
-	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_integral;
-}
 
 // TODO: make sure that all classes / structures here have proper default constructor (for
 // example AxisAngle requires fixing)
@@ -128,7 +42,7 @@ namespace dconstant {
 }
 
 template <class Real> struct constant {
-	static_assert(isReal<Real>(), "");
+	static_assert(std::is_floating_point<Real>::value, "");
 
 	static const constexpr Real one = 1.0;
 	static const constexpr Real pi = 3.14159265358979;
@@ -137,23 +51,6 @@ template <class Real> struct constant {
 	static const constexpr Real isect_epsilon = 0.000000001;
 	static Real inf() { return std::numeric_limits<Real>::infinity(); }
 };
-
-template <class T> inline const T clamp(T obj, T tmin, T tmax) { return min(tmax, max(tmin, obj)); }
-
-template <class Real> Real degToRad(Real v) {
-	return v * (Real(2.0) * constant<Real>::pi / Real(360.0));
-}
-
-template <class Real> Real radToDeg(Real v) {
-	return v * (Real(360.0) / (2.0 * constant<Real>::pi));
-}
-
-// Return angle in range (0; 2 * PI)
-float normalizeAngle(float radians);
-
-template <class Obj, class Scalar> inline Obj lerp(const Obj &a, const Obj &b, const Scalar &x) {
-	return (b - a) * x + a;
-}
 
 struct short2 {
 	using Scalar = short;
@@ -522,26 +419,180 @@ struct double4 {
 	};
 };
 
-template <class T, int N> struct MakeVectorT { using type = NotAVector; };
-template <> struct MakeVectorT<short, 2> { using type = short2; };
-template <> struct MakeVectorT<int, 2> { using type = int2; };
-template <> struct MakeVectorT<int, 3> { using type = int3; };
-template <> struct MakeVectorT<int, 4> { using type = int4; };
-template <> struct MakeVectorT<float, 2> { using type = float2; };
-template <> struct MakeVectorT<float, 3> { using type = float3; };
-template <> struct MakeVectorT<float, 4> { using type = float4; };
-template <> struct MakeVectorT<double, 2> { using type = double2; };
-template <> struct MakeVectorT<double, 3> { using type = double3; };
-template <> struct MakeVectorT<double, 4> { using type = double4; };
-template <class T, int N>
-using MakeVector =
-	typename MakeVectorT<typename std::conditional<isVector<T>(), typename T::Scalar, T>::type,
-						 N>::type;
+struct NotAReal;
+struct NotAIntegral;
+struct NotAScalar;
+struct NotAMathObject;
+struct NotAVector;
+template <int N> struct NotAVectorN;
 
-template <class T, class T1> const T &operator+=(T &a, const T1 &b) { return a = a + b; }
-template <class T, class T1> const T &operator-=(T &a, const T1 &b) { return a = a - b; }
-template <class T, class T1> const T &operator*=(T &a, const T1 &b) { return a = a * b; }
-template <class T, class T1> const T &operator/=(T &a, const T1 &b) { return a = a / b; }
+namespace detail {
+
+	template <class T> using IsReal = std::is_floating_point<T>;
+	template <class T> using IsIntegral = std::is_integral<T>;
+
+	template <class T> struct IsRealObject {
+		template <class U>
+		static typename std::enable_if<IsReal<typename U::Scalar>::value, char>::type test(U *);
+		template <class U> static long test(...);
+		enum { value = sizeof(test<T>(nullptr)) == 1 };
+	};
+
+	template <class T> struct IsIntegralObject {
+		template <class U>
+		static typename std::enable_if<IsIntegral<typename U::Scalar>::value, char>::type test(U *);
+		template <class U> static long test(...);
+		enum { value = sizeof(test<T>(nullptr)) == 1 };
+	};
+
+	struct ValidType {
+		template <class A> using Arg = A;
+	};
+
+	// TODO: Maybe this is not necessary, just specify all classes which should be treated
+	// as vectors or other math objects (similarly to MakeVector)
+
+	template <class T, int N> struct VectorInfo {
+		template <class U> struct RetOk {
+			using Scalar = typename U::Scalar;
+			using Vector = U;
+			template <class A> using Arg = A;
+
+			enum {
+				size = U::vector_size,
+				is_real = std::is_floating_point<Scalar>::value,
+				is_integral = std::is_integral<Scalar>::value
+			};
+		};
+		using RetError = typename std::conditional<N == 0, NotAVector, NotAVectorN<N>>::type;
+		struct Zero {
+			enum { size = 0, is_real = 0, is_integral = 0 };
+		};
+
+		template <class U>
+		static constexpr auto test(int) ->
+			typename std::conditional<(sizeof(typename U::Scalar) > 0) &&
+										  (U::vector_size == N || N == 0),
+									  RetOk<U>, RetError>::type;
+		template <class U> static constexpr RetError test(...);
+
+		using Ret = decltype(test<T>(0));
+		using Get =
+			typename std::conditional<std::is_same<Ret, RetError>::value, Zero, RetOk<T>>::type;
+
+		using IntegralRet = typename std::conditional<Get::is_integral, Ret, RetError>::type;
+		using RealRet = typename std::conditional<Get::is_real, Ret, RetError>::type;
+	};
+
+	template <class T, int N = 0> struct IsVector {
+		enum { value = VectorInfo<T, N>::size > 0 };
+	};
+
+	template <class T, int N> struct MakeVector { using type = NotAVector; };
+	template <> struct MakeVector<short, 2> { using type = short2; };
+	template <> struct MakeVector<int, 2> { using type = int2; };
+	template <> struct MakeVector<int, 3> { using type = int3; };
+	template <> struct MakeVector<int, 4> { using type = int4; };
+	template <> struct MakeVector<float, 2> { using type = float2; };
+	template <> struct MakeVector<float, 3> { using type = float3; };
+	template <> struct MakeVector<float, 4> { using type = float4; };
+	template <> struct MakeVector<double, 2> { using type = double2; };
+	template <> struct MakeVector<double, 3> { using type = double3; };
+	template <> struct MakeVector<double, 4> { using type = double4; };
+}
+
+template <class T> constexpr bool isReal() { return detail::IsReal<T>::value; }
+template <class T> constexpr bool isIntegral() { return detail::IsIntegral<T>::value; }
+template <class T> constexpr bool isScalar() { return isReal<T>() || isIntegral<T>(); }
+
+template <class T> constexpr bool isRealObject() { return detail::IsRealObject<T>::value; }
+template <class T> constexpr bool isIntegralObject() { return detail::IsIntegralObject<T>::value; }
+template <class T> constexpr bool isMathObject() {
+	return isRealObject<T>() || isIntegralObject<T>();
+}
+template <class T, int N = 0> constexpr bool isVector() {
+	return detail::VectorInfo<T, N>::Get::size > 0;
+}
+template <class T, int N = 0> constexpr bool isRealVector() {
+	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_real;
+}
+template <class T, int N = 0> constexpr bool isIntegralVector() {
+	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_integral;
+}
+
+template <class Arg, class T>
+using EnableIfScalar = typename std::conditional<isScalar<T>(), detail::ValidType,
+												 NotAScalar>::type::template Arg<Arg>;
+template <class Arg, class T>
+using EnableIfReal = typename std::conditional<std::is_floating_point<T>::value, detail::ValidType,
+											   NotAReal>::type::template Arg<Arg>;
+template <class Arg, class T>
+using EnableIfIntegral = typename std::conditional<std::is_integral<T>::value, detail::ValidType,
+												   NotAIntegral>::type::template Arg<Arg>;
+
+template <class Arg, class T>
+using EnableIfMathObject = typename std::conditional<isMathObject<T>(), detail::ValidType,
+													 NotAMathObject>::type::template Arg<Arg>;
+template <class T> using AsMathObject = EnableIfMathObject<T, T>;
+
+template <class Arg, class T, int N = 0>
+using EnableIfVector = typename detail::VectorInfo<T, N>::Ret::template Arg<Arg>;
+template <class Arg, class T, int N = 0>
+using EnableIfRealVector = typename detail::VectorInfo<T, N>::RealRet::template Arg<Arg>;
+
+template <class T, int N = 0> using AsVectorScalar = typename detail::VectorInfo<T, N>::Ret::Scalar;
+template <class T, int N = 0> using AsVector = typename detail::VectorInfo<T, N>::Ret::Vector;
+
+template <class T, int N = 0>
+using AsRealVector = typename detail::VectorInfo<T, N>::RealRet::Vector;
+template <class T, int N = 0>
+using AsIntegralVector = typename detail::VectorInfo<T, N>::IntegralRet::Vector;
+
+template <class T, int N>
+using MakeVector = typename detail::MakeVector<
+	typename std::conditional<isVector<T>(), typename T::Scalar, T>::type, N>::type;
+
+template <class T, class T1> const AsMathObject<T> &operator+=(T &a, const T1 &b) {
+	return a = a + b;
+}
+template <class T, class T1> const AsMathObject<T> &operator-=(T &a, const T1 &b) {
+	return a = a - b;
+}
+template <class T, class T1> const AsMathObject<T> &operator*=(T &a, const T1 &b) {
+	return a = a * b;
+}
+template <class T, class T1> const AsMathObject<T> &operator/=(T &a, const T1 &b) {
+	return a = a / b;
+}
+
+template <class T> EnableIfMathObject<bool, T> operator>(const T &a, const T &b) { return b < a; }
+
+template <class T> EnableIfMathObject<bool, T> operator>=(const T &a, const T &b) {
+	return !(a < b);
+}
+
+template <class T> EnableIfMathObject<bool, T> operator<=(const T &a, const T &b) {
+	return !(b < a);
+}
+
+template <class T> EnableIfScalar<T, T> clamp(const T &obj, const T &tmin, const T &tmax) {
+	return min(tmax, max(tmin, obj));
+}
+
+template <class Real> EnableIfReal<Real, Real> degToRad(Real v) {
+	return v * (Real(2.0) * constant<Real>::pi / Real(360.0));
+}
+
+template <class Real> EnableIfReal<Real, Real> radToDeg(Real v) {
+	return v * (Real(360.0) / (Real(2.0) * constant<Real>::pi));
+}
+
+// Return angle in range (0; 2 * PI)
+float normalizeAngle(float radians);
+
+template <class Obj, class Scalar> inline Obj lerp(const Obj &a, const Obj &b, const Scalar &x) {
+	return (b - a) * x + a;
+}
 
 template <class T> AsVector<T> operator*(typename T::Scalar s, const T &v) { return v * s; }
 
@@ -690,12 +741,8 @@ float fixAngle(float angle);
 bool isnan(float);
 bool isnan(double);
 
-// TODO: fix makeRange (begin(), end())
 template <class T> EnableIfRealVector<bool, T> isnan(const T &v) {
-	for(int n = 0; n < T::vector_size; n++)
-		if(isnan(v[n]))
-			return true;
-	return false;
+	return anyOf(v, [](auto s) { return isnan(s); });
 }
 
 class Matrix3;

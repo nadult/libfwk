@@ -185,6 +185,7 @@ void testMain() {
 		s += 12.0f;
 	assertEqual(vec, float3(12, 12, 13));
 	static_assert(std::is_same<decltype(makeRange(vec)), Range<float>>::value, "");
+	ASSERT(!isnan(vec) && !isnan(double3(vec)));
 
 	auto float_len = length(float3(1, 2, 3));
 	auto double_len = length(int3(2, 3, 4));
