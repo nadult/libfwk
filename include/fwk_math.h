@@ -19,7 +19,7 @@ namespace fwk {
 	auto end() const { return v + arraySize(v); }                                                  \
 	auto data() { return v; }                                                                      \
 	auto data() const { return v; }                                                                \
-	constexpr auto size() const { return arraySize(v); }
+	constexpr int size() const { return arraySize(v); }
 
 // TODO: make sure that all classes / structures here have proper default constructor (for
 // example AxisAngle requires fixing)
@@ -56,8 +56,8 @@ struct short2 {
 	using Scalar = short;
 	enum { vector_size = 2 };
 
-	short2(short x, short y) : x(x), y(y) {}
-	short2() : x(0), y(0) {}
+	constexpr short2(short x, short y) : x(x), y(y) {}
+	constexpr short2() : x(0), y(0) {}
 
 	short2 operator+(const short2 &rhs) const { return short2(x + rhs.x, y + rhs.y); }
 	short2 operator-(const short2 &rhs) const { return short2(x - rhs.x, y - rhs.y); }
@@ -85,9 +85,9 @@ struct int2 {
 	using Scalar = int;
 	enum { vector_size = 2 };
 
-	int2(short2 rhs) : x(rhs.x), y(rhs.y) {}
-	int2(int x, int y) : x(x), y(y) {}
-	int2() : x(0), y(0) {}
+	constexpr int2(short2 rhs) : x(rhs.x), y(rhs.y) {}
+	constexpr int2(int x, int y) : x(x), y(y) {}
+	constexpr int2() : x(0), y(0) {}
 
 	operator short2() const { return short2(x, y); }
 
@@ -117,8 +117,8 @@ struct int3 {
 	using Scalar = int;
 	enum { vector_size = 3 };
 
-	int3(int x, int y, int z) : x(x), y(y), z(z) {}
-	int3() : x(0), y(0), z(0) {}
+	constexpr int3(int x, int y, int z) : x(x), y(y), z(z) {}
+	constexpr int3() : x(0), y(0), z(0) {}
 
 	int3 operator+(const int3 &rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
 	int3 operator-(const int3 &rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
@@ -149,8 +149,8 @@ struct int4 {
 	using Scalar = int;
 	enum { vector_size = 4 };
 
-	int4(int x, int y, int z, int w) : x(x), y(y), z(z), w(w) {}
-	int4() : x(0), y(0), z(0), w(0) {}
+	constexpr int4(int x, int y, int z, int w) : x(x), y(y), z(z), w(w) {}
+	constexpr int4() : x(0), y(0), z(0), w(0) {}
 
 	int4 operator+(const int4 rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w}; }
 	int4 operator-(const int4 rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w}; }
@@ -175,8 +175,8 @@ struct float2 {
 	using Scalar = float;
 	enum { vector_size = 2 };
 
-	float2(float x, float y) : x(x), y(y) {}
-	float2() : x(0.0f), y(0.0f) {}
+	constexpr float2(float x, float y) : x(x), y(y) {}
+	constexpr float2() : x(0.0f), y(0.0f) {}
 
 	explicit float2(const int2 &vec) : x(vec.x), y(vec.y) {}
 	explicit operator int2() const { return {(int)x, (int)y}; }
@@ -207,9 +207,9 @@ struct float3 {
 	using Scalar = float;
 	enum { vector_size = 3 };
 
-	float3(float x, float y, float z) : x(x), y(y), z(z) {}
-	float3(const float2 &xy, float z) : x(xy.x), y(xy.y), z(z) {}
-	float3() : x(0.0f), y(0.0f), z(0.0f) {}
+	constexpr float3(float x, float y, float z) : x(x), y(y), z(z) {}
+	constexpr float3(const float2 &xy, float z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr float3() : x(0.0f), y(0.0f), z(0.0f) {}
 
 	explicit float3(const int3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
 	explicit operator int3() const { return {(int)x, (int)y, (int)z}; }
@@ -245,10 +245,10 @@ struct float4 {
 	enum { vector_size = 4 };
 
 	float4(CRange<float, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
-	float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
-	float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-	float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
-	float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+	constexpr float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
+	constexpr float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	constexpr float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	constexpr float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
 	explicit float4(const int4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
 	explicit operator int4() const { return {(int)x, (int)y, (int)z, (int)w}; }
@@ -296,8 +296,8 @@ struct double2 {
 	using Scalar = double;
 	enum { vector_size = 2 };
 
-	double2(double x, double y) : x(x), y(y) {}
-	double2() : x(0.0f), y(0.0f) {}
+	constexpr double2(double x, double y) : x(x), y(y) {}
+	constexpr double2() : x(0.0f), y(0.0f) {}
 
 	explicit double2(const int2 &vec) : x(vec.x), y(vec.y) {}
 	explicit double2(const float2 &vec) : x(vec.x), y(vec.y) {}
@@ -330,9 +330,9 @@ struct double3 {
 	using Scalar = double;
 	enum { vector_size = 3 };
 
-	double3(double x, double y, double z) : x(x), y(y), z(z) {}
-	double3(const double2 &xy, double z) : x(xy.x), y(xy.y), z(z) {}
-	double3() : x(0.0f), y(0.0f), z(0.0f) {}
+	constexpr double3(double x, double y, double z) : x(x), y(y), z(z) {}
+	constexpr double3(const double2 &xy, double z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr double3() : x(0.0f), y(0.0f), z(0.0f) {}
 
 	explicit double3(const int3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
 	explicit double3(const float3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
@@ -370,10 +370,10 @@ struct double4 {
 	enum { vector_size = 4 };
 
 	double4(CRange<double, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
-	double4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
-	double4(const double3 &xyz, double w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-	double4(const double2 &xy, double z, double w) : x(xy.x), y(xy.y), z(z), w(w) {}
-	double4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+	constexpr double4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
+	constexpr double4(const double3 &xyz, double w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	constexpr double4(const double2 &xy, double z, double w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	constexpr double4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
 	explicit double4(const int4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
 	explicit double4(const float4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
