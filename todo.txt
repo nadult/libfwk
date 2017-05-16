@@ -15,6 +15,7 @@
 - Mouse grabbing doesnt work
 - Fix pch when using g++
 - SERIALIZE_AS_POD cathces fwk namespace
+- model_viewer.exe displays models in different order (findFiles function must be working differently)
 
 - better std::pair ?
 - Maybe<pair<>> in vecMinMax ?
