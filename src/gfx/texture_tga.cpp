@@ -63,11 +63,11 @@ namespace {
 
 		if(bpp == 3) {
 			for(int y = hdr.height - 1; y >= 0; y--) {
-				char line[max_width * 3];
+				unsigned char line[max_width * 3];
 				sr.loadData(line, hdr.width * 3);
 				IColor *dst = &out_data[y * hdr.width];
 				for(int x = 0; x < hdr.width; x++)
-					dst[x] = IColor(line[x * 3 + 2], line[x * 3 + 1], line[x * 3 + 0]);
+					dst[x] = IColor(line[x * 3 + 0], line[x * 3 + 1], line[x * 3 + 2]);
 			}
 		} else if(bpp == 4) {
 			for(int y = hdr.height - 1; y >= 0; y--) {

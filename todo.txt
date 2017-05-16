@@ -12,6 +12,10 @@
 - check if double constants are correct
 - printing for Variant ?
 
+- Mouse grabbing doesnt work
+- Fix pch when using g++
+- SERIALIZE_AS_POD cathces fwk namespace
+
 - better std::pair ?
 - Maybe<pair<>> in vecMinMax ?
 - extendible xml:: toString fromString ?
