@@ -45,10 +45,12 @@ namespace xml_conversions {
 		template <> float2 fromString<float2>(TextParser &);
 		template <> float3 fromString<float3>(TextParser &);
 		template <> float4 fromString<float4>(TextParser &);
+		template <> DRect fromString<DRect>(TextParser &);
 		template <> FRect fromString<FRect>(TextParser &);
 		template <> IRect fromString<IRect>(TextParser &);
 		template <> FBox fromString<FBox>(TextParser &);
 		template <> IBox fromString<IBox>(TextParser &);
+		template <> DBox fromString<DBox>(TextParser &);
 		template <> Matrix4 fromString<Matrix4>(TextParser &);
 		template <> Quat fromString<Quat>(TextParser &);
 
@@ -94,10 +96,12 @@ namespace xml_conversions {
 		void toString(const float2 &value, TextFormatter &out);
 		void toString(const float3 &value, TextFormatter &out);
 		void toString(const float4 &value, TextFormatter &out);
+		void toString(const DRect &value, TextFormatter &out);
 		void toString(const FRect &value, TextFormatter &out);
 		void toString(const IRect &value, TextFormatter &out);
 		void toString(const FBox &value, TextFormatter &out);
 		void toString(const IBox &value, TextFormatter &out);
+		void toString(const DBox &value, TextFormatter &out);
 		void toString(const Matrix4 &value, TextFormatter &out);
 		void toString(const Quat &value, TextFormatter &out);
 
@@ -105,8 +109,7 @@ namespace xml_conversions {
 
 		template <class T> struct ConvertibleToString {
 			template <class C>
-			static auto test(int) -> decltype(
-				fwk::xml_conversions::detail::toString(*(const C *)0, *(TextFormatter *)0));
+			static auto test(int) -> decltype(toString(*(const C *)0, *(TextFormatter *)0));
 			template <class C> static auto test(...) -> char;
 			enum { value = !std::is_same<char, decltype(test<T>(0))>::value };
 		};
@@ -114,9 +117,7 @@ namespace xml_conversions {
 		template <class T> struct SelectPrinter {
 			static_assert(ConvertibleToString<T>::value,
 						  "Missing toString(T, TextFormatter&) for given type");
-			static void print(const T &value, TextFormatter &out) {
-				return fwk::xml_conversions::detail::toString(value, out);
-			}
+			static void print(const T &value, TextFormatter &out) { return toString(value, out); }
 		};
 
 		template <class T> struct SelectPrinter<vector<T>> {

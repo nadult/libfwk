@@ -55,8 +55,9 @@ float AnimatedModel::intersect(const Segment3<float> &segment) const {
 FBox AnimatedModel::boundingBox() const {
 	FBox out;
 	for(auto mesh_data : m_meshes) {
-		FBox bbox = mesh_data.transform * mesh_data.mesh->boundingBox(mesh_data.anim_data);
-		out = out.empty() ? bbox : sum(out, bbox);
+		FBox bbox = encloseTransformed(mesh_data.mesh->boundingBox(mesh_data.anim_data),
+									   mesh_data.transform);
+		out = encloseNotEmpty(out, bbox);
 	}
 
 	return out;

@@ -65,7 +65,7 @@ void Renderer2D::setViewPos(const float2 &view_pos) {
 }
 
 Matrix4 Renderer2D::simpleProjectionMatrix(const IRect &viewport) {
-	return ortho(viewport.min.x, viewport.max.x, viewport.min.y, viewport.max.y, -1.0f, 1.0f);
+	return ortho(viewport.x(), viewport.ex(), viewport.y(), viewport.ey(), -1.0f, 1.0f);
 }
 
 Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_at) {
@@ -218,7 +218,7 @@ void Renderer2D::clear() {
 }
 
 void Renderer2D::render() {
-	glViewport(m_viewport.min.x, m_viewport.min.y, m_viewport.width(), m_viewport.height());
+	glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDisable(GL_CULL_FACE);
@@ -251,9 +251,9 @@ void Renderer2D::render() {
 
 				if(element.scissor_rect_id != -1) {
 					IRect rect = m_scissor_rects[element.scissor_rect_id];
-					int min_y = m_viewport.height() - rect.max.y;
-					rect = IRect(rect.min.x, max(0, min_y), rect.max.x, min_y + rect.height());
-					glScissor(rect.min.x, rect.min.y, rect.width(), rect.height());
+					int min_y = m_viewport.height() - rect.ey();
+					rect = {{rect.x(), max(0, min_y)}, {rect.ex(), min_y + rect.height()}};
+					glScissor(rect.x(), rect.y(), rect.width(), rect.height());
 				}
 
 				prev_scissor_rect = element.scissor_rect_id;

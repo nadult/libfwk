@@ -8,9 +8,8 @@ This file is part of libfwk.*/
 namespace fwk {
 
 Mesh Mesh::makeRect(const FRect &xz_rect, float y) {
-	auto positions = {
-		float3(xz_rect.min[0], y, xz_rect.min[1]), float3(xz_rect.max[0], y, xz_rect.min[1]),
-		float3(xz_rect.max[0], y, xz_rect.max[1]), float3(xz_rect.min[0], y, xz_rect.max[1])};
+	auto positions = {float3(xz_rect.x(), y, xz_rect.y()), float3(xz_rect.ex(), y, xz_rect.y()),
+					  float3(xz_rect.ex(), y, xz_rect.ey()), float3(xz_rect.x(), y, xz_rect.ey())};
 	auto normals = vector<float3>(4, float3(0, 1, 0));
 	auto tex_coords = vector<float2>{{0, 0}, {1, 0}, {1, 1}, {0, 1}};
 	return Mesh({move(positions), move(normals), move(tex_coords)},

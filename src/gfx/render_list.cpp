@@ -148,7 +148,7 @@ namespace {
 }
 
 void RenderList::render() {
-	glViewport(m_viewport.min.x, m_viewport.min.y, m_viewport.width(), m_viewport.height());
+	glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);

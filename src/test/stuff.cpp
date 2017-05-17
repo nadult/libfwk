@@ -2,8 +2,8 @@
 
    This file is part of libfwk. */
 
-#include "testing.h"
 #include "fwk_cache.h"
+#include "testing.h"
 
 void testTextFormatter() {
 	TextFormatter fmt;
@@ -41,10 +41,10 @@ void testXMLConverters() {
 	testClassConversions(float3(45, 67, 1.5));
 	testClassConversions(float4(1, 1.5, 5.5, 12.5));
 
-	testClassConversions(IRect(1, 2, 3, 4));
-	testClassConversions(FRect(0, 0.5, 2, 2.5));
-	testClassConversions(IBox(0, 0, 0, 30, 30, 30));
-	testClassConversions(FBox(10, 20, 30, 100, 200, 300));
+	testClassConversions(IRect({1, 2}, {3, 4}));
+	testClassConversions(FRect({0, 0.5}, {2, 2.5}));
+	testClassConversions(IBox({0, 0, 0}, {30, 30, 30}));
+	testClassConversions(FBox({10, 20, 30}, {100, 200, 300}));
 	testClassConversions(Matrix4::identity());
 	testClassConversions(Quat(1.0, 0.0f, 0.0f, 2.0f));
 

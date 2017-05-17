@@ -218,7 +218,7 @@ class Viewer {
 		auto extents = m_font->evalExtents(fmt.text());
 		renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
 								  {IColor(0, 0, 0, 80)});
-		m_font->draw(renderer_2d, FRect(5, 5, 300, 100), style, fmt.text());
+		m_font->draw(renderer_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
 
 		renderer_3d.render();
 		renderer_2d.render();
@@ -276,8 +276,7 @@ int safe_main(int argc, char **argv) {
 		if(FilePath(model_argument).isDirectory()) {
 			model_argument += "*.model";
 			multiple_files = true;
-		}
-		else {
+		} else {
 			files = {make_pair(model_argument, tex_argument)};
 		}
 	}

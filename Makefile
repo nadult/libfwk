@@ -18,7 +18,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=base vector backtrace filesystem filesystem_linux filesystem_windows input profiler stream xml xml_conversions \
-           math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rect math/vector \
+           math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream \
 		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \

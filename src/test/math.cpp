@@ -223,9 +223,9 @@ void testHash() {
 }
 
 void testMain() {
-	FBox box(0, -100, 0, 1200, 100, 720);
-	FBox temp(32, 0, 32, 64, 0.5f, 64);
-	ASSERT(areOverlapping(box, temp));
+	FBox box({0, -100, 0}, {1200, 100, 720});
+	FBox temp({32, 0, 32}, {64, 0.5f, 64});
+	ASSERT(overlaps(box, temp));
 
 	testMatrices();
 	testRays();

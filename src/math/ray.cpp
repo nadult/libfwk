@@ -55,18 +55,18 @@ pair<float, float> intersectionRange(const Ray &ray, const Box<float3> &box) {
 	float3 inv_dir = ray.invDir();
 	float3 origin = ray.origin();
 
-	float l1 = inv_dir.x * (box.min.x - origin.x);
-	float l2 = inv_dir.x * (box.max.x - origin.x);
+	float l1 = inv_dir.x * (box.x() - origin.x);
+	float l2 = inv_dir.x * (box.ex() - origin.x);
 	float lmin = min(l1, l2);
 	float lmax = max(l1, l2);
 
-	l1 = inv_dir.y * (box.min.y - origin.y);
-	l2 = inv_dir.y * (box.max.y - origin.y);
+	l1 = inv_dir.y * (box.y() - origin.y);
+	l2 = inv_dir.y * (box.ey() - origin.y);
 	lmin = max(lmin, min(l1, l2));
 	lmax = min(lmax, max(l1, l2));
 
-	l1 = inv_dir.z * (box.min.z - origin.z);
-	l2 = inv_dir.z * (box.max.z - origin.z);
+	l1 = inv_dir.z * (box.z() - origin.z);
+	l2 = inv_dir.z * (box.ez() - origin.z);
 	lmin = max(lmin, min(l1, l2));
 	lmax = min(lmax, max(l1, l2));
 

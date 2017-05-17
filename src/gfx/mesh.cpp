@@ -11,7 +11,7 @@ Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> mate
 	for(const auto &indices : m_indices)
 		DASSERT(indices.empty() || (int)indices.indexRange().second < m_buffers.size());
 	DASSERT(m_material_names.empty() || m_material_names.size() == m_indices.size());
-	m_bounding_box = FBox(m_buffers.positions);
+	m_bounding_box = enclose(m_buffers.positions);
 }
 
 static vector<MeshIndices> loadIndices(const XMLNode &node) {
@@ -159,7 +159,7 @@ Mesh Mesh::merge(vector<Mesh> meshes) {
 
 Mesh Mesh::transform(const Matrix4 &mat, Mesh mesh) {
 	mesh.m_buffers = MeshBuffers::transform(mat, move(mesh.m_buffers));
-	mesh.m_bounding_box = FBox(mesh.positions());
+	mesh.m_bounding_box = enclose(mesh.positions());
 	return mesh;
 }
 
@@ -204,7 +204,7 @@ Mesh::AnimatedData Mesh::animate(PPose pose) const {
 
 	auto mapped_pose = m_buffers.mapPose(pose);
 	auto positions = m_buffers.animatePositions(mapped_pose);
-	FBox bbox = FBox(positions);
+	FBox bbox = enclose(positions);
 	return AnimatedData{bbox, move(positions), m_buffers.animateNormals(mapped_pose)};
 }
 
@@ -272,12 +272,12 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 				const auto &indices = m_indices[n];
 				string mat_name = m_material_names.empty() ? "" : m_material_names[n];
 				out.emplace_back(varray, indices.type(), range.second, range.first,
-								 materials[mat_name], matrix, matrix * bbox);
+								 materials[mat_name], matrix, encloseTransformed(bbox, matrix));
 			}
 		} else {
 			auto varray = VertexArray::make({vertices, colors, tex_coords});
 			out.emplace_back(varray, PrimitiveType::triangles, triangleCount() * 3, 0,
-							 materials.defaultMat(), matrix, matrix * bbox);
+							 materials.defaultMat(), matrix, encloseTransformed(bbox, matrix));
 		}
 	}
 

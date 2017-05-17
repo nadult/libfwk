@@ -43,15 +43,13 @@ template <class T> using CRangeIterator = RangeIterator<const T>;
 
 template <class T> class PodArray;
 
-struct RangeNoAssertsTag {};
-
 // Simple wrapper class for ranges of values
 // The user is responsible for making sure, that the values
 // exist while Range pointing to them is in use
 // TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
 template <class T, int min_size = 0> class Range {
   public:
-	using NoAsserts = RangeNoAssertsTag;
+	using NoAsserts = detail::NoAssertsTag;
 	using value_type = typename std::remove_const<T>::type;
 	enum { is_const = std::is_const<T>::value, minimum_size = min_size };
 	using vector_type =
@@ -127,9 +125,11 @@ template <class T, int min_size = 0> using CRange = Range<const T, min_size>;
 
 struct NotARange;
 
-template <class T> struct IsRange {
+template <class T, class RequiredType = void> struct IsRange {
 	template <class U,
 			  class Base = typename std::remove_pointer<decltype(((U *)nullptr)->data())>::type,
+			  class = typename std::enable_if<std::is_same<Base, RequiredType>::value ||
+											  std::is_same<void, RequiredType>::value>::type,
 			  class = typename std::enable_if<
 				  std::is_convertible<decltype(((U *)nullptr)->size()), int>::value, int>::type>
 	static int converts(U *);
@@ -137,9 +137,12 @@ template <class T> struct IsRange {
 	enum { value = std::is_same<int, decltype(converts<T>(nullptr))>::value };
 };
 
-template <class Arg, class T>
-using EnableIfRange = typename std::conditional<IsRange<T>::value, detail::ValidType,
-												NotARange>::type::template Arg<Arg>;
+template <class T>
+using RangeBase = typename std::remove_const<
+	typename std::remove_reference<decltype(*((T *)nullptr)->data())>::type>::type;
+
+template <class Arg, class T, class Req = void>
+using EnableIfRange = EnableIf<IsRange<T, Req>::value, Arg, NotARange>;
 
 template <class T> struct ContainerBaseType {
 	using type = typename std::remove_reference<decltype(*begin(*((T *)0)))>::type;

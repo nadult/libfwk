@@ -3,44 +3,22 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
-#include "fwk_xml.h"
 
 namespace fwk {
 
-template <class TVec3> Box<TVec3>::Box(CRange<Vec3> points) { *this = vecMinMax(points); }
-
-const Box<int3> enclosingIBox(const Box<float3> &fbox) {
-	return Box<int3>(floorf(fbox.min.x), floorf(fbox.min.y), floorf(fbox.min.z), ceilf(fbox.max.x),
-					 ceilf(fbox.max.y), ceilf(fbox.max.z));
-};
-
-const FBox operator*(const Matrix4 &mat, const FBox &box) {
-	return vecMinMax(transform(box.corners(), [&](auto pt) { return mulPoint(mat, pt); }));
-}
-
-bool areOverlapping(const FBox &a, const FBox &b) {
-	// TODO: these epsilons shouldnt be here...
-	for(int n = 0; n < 3; n++)
-		if(b.min[n] >= a.max[n] - fconstant::epsilon || a.min[n] >= b.max[n] - fconstant::epsilon)
-			return false;
-	return true;
-}
-
-bool areOverlapping(const IBox &a, const IBox &b) {
-	for(int n = 0; n < 3; n++)
-		if(b.min[n] >= a.max[n] || a.min[n] >= b.max[n])
-			return false;
-	return true;
+FBox encloseTransformed(const FBox &box, const Matrix4 &mat) {
+	auto points = transform(box.corners(), [&](auto pt) { return mulPoint(mat, pt); });
+	return enclose(makeConstRange(points));
 }
 
 array<Plane, 6> planes(const FBox &box) {
 	array<Plane, 6> out;
-	out[0] = Plane({-1, 0, 0}, -box.min.x);
-	out[1] = Plane({1, 0, 0}, box.max.x);
-	out[2] = Plane({0, -1, 0}, -box.min.y);
-	out[3] = Plane({0, 1, 0}, box.max.y);
-	out[4] = Plane({0, 0, -1}, -box.min.z);
-	out[5] = Plane({0, 0, 1}, box.max.z);
+	out[0] = Plane({-1, 0, 0}, -box.x());
+	out[1] = Plane({1, 0, 0}, box.ex());
+	out[2] = Plane({0, -1, 0}, -box.y());
+	out[3] = Plane({0, 1, 0}, box.ey());
+	out[4] = Plane({0, 0, -1}, -box.z());
+	out[5] = Plane({0, 0, 1}, box.ez());
 	return out;
 }
 
@@ -55,13 +33,4 @@ array<pair<float3, float3>, 12> edges(const FBox &box) {
 		out[n] = make_pair(corners[indices[n][0]], corners[indices[n][1]]);
 	return out;
 }
-
-float distance(const Box<float3> &a, const Box<float3> &b) {
-	float3 p1 = vclamp(b.center(), a.min, a.max);
-	float3 p2 = vclamp(p1, b.min, b.max);
-	return distance(p1, p2);
-}
-
-template struct Box<int3>;
-template struct Box<float3>;
 }

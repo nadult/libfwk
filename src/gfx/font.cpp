@@ -44,9 +44,9 @@ FontCore::FontCore(const XMLNode &font_node) {
 		Glyph chr;
 		int id = char_node.attrib<int>("id");
 		chr.character = id;
-		chr.tex_pos = int2(char_node.attrib<int>("x"), char_node.attrib<int>("y"));
-		chr.size = int2(char_node.attrib<int>("width"), char_node.attrib<int>("height"));
-		chr.offset = int2(char_node.attrib<int>("xoffset"), char_node.attrib<int>("yoffset"));
+		chr.tex_pos = short2(char_node.attrib<int>("x"), char_node.attrib<int>("y"));
+		chr.size = short2(char_node.attrib<int>("width"), char_node.attrib<int>("height"));
+		chr.offset = short2(char_node.attrib<int>("xoffset"), char_node.attrib<int>("yoffset"));
 		chr.x_advance = char_node.attrib<int>("xadvance");
 		m_glyphs[id] = chr;
 
@@ -77,21 +77,17 @@ FontCore::FontCore(const XMLNode &font_node) {
 }
 
 void FontCore::computeRect() {
-	m_max_rect = IRect(0, 0, 0, 0);
-	for(auto &it : m_glyphs) {
-		IRect rect = IRect(int2(it.second.size)) + it.second.offset;
-		m_max_rect = sum(m_max_rect, rect);
-	}
+	m_max_rect = {};
+	for(auto &it : m_glyphs)
+		m_max_rect = enclose(m_max_rect, IRect(it.second.size) + it.second.offset);
 }
 
 IRect FontCore::evalExtents(const wstring &text) const {
-	IRect rect(0, 0, 0, 0);
-	int2 pos(0, 0);
+	IRect rect;
+	int2 pos;
 
-	if(text.empty()) {
-		rect = m_max_rect;
-		rect.setWidth(0);
-	}
+	if(text.empty())
+		rect = IRect({0, m_max_rect.height()}) + m_max_rect.min();
 
 	for(int n = 0; n < (int)text.size(); n++) {
 		if(text[n] == '\n') {
@@ -109,9 +105,10 @@ IRect FontCore::evalExtents(const wstring &text) const {
 		const Glyph &glyph = char_it->second;
 
 		IRect new_rect = m_max_rect + pos;
-		new_rect.setWidth(text[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x);
+		int new_width = text[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x;
+		new_rect = IRect({new_width, new_rect.height()}) + new_rect.min();
 
-		rect = n == 0 ? new_rect : rect + new_rect;
+		rect = n == 0 ? new_rect : enclose(rect, new_rect);
 		if(n + 1 < (int)text.size()) {
 			pos.x += glyph.x_advance;
 			auto kerning_it = m_kernings.find(make_pair((int)text[n], (int)text[n + 1]));
@@ -184,17 +181,16 @@ Font::Font(PFontCore core, PTexture texture) : m_core(core), m_texture(texture) 
 
 FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 				 const wstring &text) const {
-	float2 pos = rect.min;
+	float2 pos = rect.min();
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
 		FRect extents = (FRect)m_core->evalExtents(text);
 		float2 center = rect.center() - extents.center();
 
-		pos.x = style.halign == HAlign::left ? rect.min.x : style.halign == HAlign::center
-																? center.x
-																: rect.max.x - extents.max.x;
-		pos.y = style.valign == VAlign::top ? rect.min.y : style.valign == VAlign::center
-															   ? center.y
-															   : rect.max.y - extents.max.y;
+		bool hleft = style.halign == HAlign::left, hcenter = style.halign == HAlign::center;
+		bool vtop = style.valign == VAlign::top, vcenter = style.valign == VAlign::center;
+
+		pos.x = hleft ? rect.x() : hcenter ? center.x : rect.ex() - extents.ex();
+		pos.y = vtop ? rect.y() : vcenter ? center.y : rect.ey() - extents.ey();
 	}
 
 	pos = float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
@@ -205,11 +201,8 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 	pos_buf.resize(quad_count * 4);
 	uv_buf.resize(quad_count * 4);
 
-	FRect out_rect;
-	for(int n = 0; n < quad_count * 4; n++) {
-		out_rect.min = vmin(out_rect.min, pos_buf[n]);
-		out_rect.max = vmax(out_rect.max, pos_buf[n]);
-	}
+	FRect out_rect = enclose(CRange<float2>(pos_buf.data(), pos_buf.data() + quad_count * 4));
+
 	out_rect += pos;
 	// TODO: increase out_rect when rendering with shadow?
 

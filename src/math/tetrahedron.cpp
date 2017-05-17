@@ -7,9 +7,9 @@
 
 #ifdef CGAL_ENABLED
 #include <CGAL/Simple_cartesian.h>
-#include <CGAL/intersections.h>
 #include <CGAL/Tetrahedron_3.h>
 #include <CGAL/Triangle_3.h>
+#include <CGAL/intersections.h>
 #endif
 
 namespace fwk {
@@ -110,9 +110,4 @@ Tetrahedron fixVolume(const Tetrahedron &tet) {
 }
 
 bool areIntersecting(const Tetrahedron &a, const Tetrahedron &b) { return satTest(a, b); }
-
-bool areIntersecting(const Tetrahedron &tet, const FBox &box) {
-	xmlPrint("% : % %\n", tet.verts(), box.min, box.max);
-	return areOverlapping(FBox(verts(tet)), box) && satTest(tet, box);
-}
 }

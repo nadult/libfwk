@@ -74,25 +74,37 @@ namespace xml_conversions {
 		template <> FRect fromString(TextParser &parser) {
 			float out[4];
 			parser.parseFloats(out);
-			return FRect(out[0], out[1], out[2], out[3]);
+			return {{out[0], out[1]}, {out[2], out[3]}};
 		}
 
 		template <> IRect fromString(TextParser &parser) {
 			int out[4];
 			parser.parseInts(out);
-			return IRect(out[0], out[1], out[2], out[3]);
+			return {{out[0], out[1]}, {out[2], out[3]}};
+		}
+
+		template <> DRect fromString(TextParser &parser) {
+			double out[4];
+			parser.parseDoubles(out);
+			return {{out[0], out[1]}, {out[2], out[3]}};
 		}
 
 		template <> FBox fromString(TextParser &parser) {
 			float out[6];
 			parser.parseFloats(out);
-			return FBox(out[0], out[1], out[2], out[3], out[4], out[5]);
+			return {{out[0], out[1], out[2]}, {out[3], out[4], out[5]}};
 		}
 
 		template <> IBox fromString(TextParser &parser) {
 			int out[6];
 			parser.parseInts(out);
-			return IBox(out[0], out[1], out[2], out[3], out[4], out[5]);
+			return {{out[0], out[1], out[2]}, {out[3], out[4], out[5]}};
+		}
+
+		template <> DBox fromString(TextParser &parser) {
+			double out[6];
+			parser.parseDoubles(out);
+			return {{out[0], out[1], out[2]}, {out[3], out[4], out[5]}};
 		}
 
 		template <> Matrix4 fromString(TextParser &parser) {
@@ -218,21 +230,30 @@ namespace xml_conversions {
 		}
 
 		void toString(const FRect &rect, TextFormatter &out) {
-			float values[4] = {rect.min.x, rect.min.y, rect.max.x, rect.max.y};
+			float values[4] = {rect.x(), rect.y(), rect.ex(), rect.ey()};
+			doublesToString(makeRange(values), out);
+		}
+
+		void toString(const DRect &rect, TextFormatter &out) {
+			double values[4] = {rect.x(), rect.y(), rect.ex(), rect.ey()};
 			doublesToString(makeRange(values), out);
 		}
 
 		void toString(const IRect &rect, TextFormatter &out) {
-			out("%d %d %d %d", rect.min.x, rect.min.y, rect.max.x, rect.max.y);
+			out("%d %d %d %d", rect.x(), rect.y(), rect.ex(), rect.ey());
 		}
 
 		void toString(const IBox &box, TextFormatter &out) {
-			out("%d %d %d %d %d %d", box.min.x, box.min.y, box.min.z, box.max.x, box.max.y,
-				box.max.z);
+			out("%d %d %d %d %d %d", box.x(), box.y(), box.z(), box.ex(), box.ey(), box.ez());
 		}
 
 		void toString(const FBox &box, TextFormatter &out) {
-			float values[6] = {box.min.x, box.min.y, box.min.z, box.max.x, box.max.y, box.max.z};
+			float values[6] = {box.x(), box.y(), box.z(), box.ex(), box.ey(), box.ez()};
+			doublesToString(makeRange(values), out);
+		}
+
+		void toString(const DBox &box, TextFormatter &out) {
+			double values[6] = {box.x(), box.y(), box.z(), box.ex(), box.ey(), box.ez()};
 			doublesToString(makeRange(values), out);
 		}
 

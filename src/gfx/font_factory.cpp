@@ -178,8 +178,8 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 		short2 bearing(glyph->metrics.horiBearingX / 64, -glyph->metrics.horiBearingY / 64);
 		short advance = glyph->metrics.horiAdvance / 64;
 
-		glyphs.emplace_back(FontCore::Glyph{character, {0, 0}, tex.size(), bearing, advance},
-							move(tex));
+		glyphs.emplace_back(
+			FontCore::Glyph{character, {0, 0}, (short2)tex.size(), bearing, advance}, move(tex));
 	}
 
 	FontCore out;
@@ -189,16 +189,16 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	for(auto &glyph : glyphs)
 		out.m_glyphs[glyph.first.character] = glyph.first;
 
-	out.m_max_rect = IRect(0, 0, 0, 0);
+	out.m_max_rect = {};
 
 	for(auto &glyph : glyphs) {
-		IRect rect = IRect((int2)glyph.first.size) + int2(glyph.first.offset);
-		out.m_max_rect = sum(out.m_max_rect, rect);
+		IRect rect = IRect(glyph.first.size) + glyph.first.offset;
+		out.m_max_rect = enclose(out.m_max_rect, rect);
 	}
 	out.m_line_height = face->size->metrics.height / 64;
 
 	for(auto &glyph : out.m_glyphs)
-		glyph.second.offset.y -= out.m_max_rect.min.y;
+		glyph.second.offset.y -= out.m_max_rect.y();
 	out.computeRect();
 
 	// TODO: optimize

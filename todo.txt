@@ -1,3 +1,11 @@
+- box ranges...
+- intersection -> intersect ?
+- inset & enlarge na zewnątrz ?
+- kolejność argumentów w EnableIfach
+- no need to define data() and size() for ranges ?
+- IfRange is wrong (int v[10])
+- rethink parsing Rects & Boxes
+  when parsing data, DASSERTS in constructor should be ASSERT (or add asserts in parsers)
 - split fwk_math into several different files ?
 - list all member which are treated specially by libfwk (tied, Scalar, vector_size, etc.)
 - minimize use of asRay(), check all places

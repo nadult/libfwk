@@ -213,7 +213,7 @@ void Model::drawNodes(RenderList &out, PPose pose, FColor node_color, FColor lin
 	auto node_mat = make_immutable<Material>(node_color, Material::flag_ignore_depth);
 	auto line_mat = make_immutable<Material>(line_color, Material::flag_ignore_depth);
 
-	Mesh bbox_mesh = Mesh::makeBBox(FBox{-0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f} * node_scale);
+	Mesh bbox_mesh = Mesh::makeBBox(FBox{{-0.3f, -0.3f, -0.3f}, {0.3f, 0.3f, 0.3f}} * node_scale);
 	auto bbox_draw = bbox_mesh.genDrawCalls(node_mat);
 
 	out.pushViewMatrix();

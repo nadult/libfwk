@@ -28,10 +28,8 @@ bool areIntersecting(const Cylinder &lhs, const Cylinder &rhs) {
 }
 
 bool areIntersecting(const FBox &box, const Cylinder &cylinder) {
-	float2 box_point = cylinder.pos().xz();
-	box_point = vmax(box_point, box.min.xz());
-	box_point = vmin(box_point, box.max.xz());
+	float2 box_point = box.xz().closestPoint(cylinder.pos().xz());
 	return distanceSq(box_point, cylinder.pos().xz()) < cylinder.radius() &&
-		   box.min.y <= cylinder.pos().y + cylinder.height() && cylinder.pos().y <= box.max.y;
+		   box.y() <= cylinder.pos().y + cylinder.height() && cylinder.pos().y <= box.ey();
 }
 }

@@ -83,10 +83,12 @@ template <class T1, class T2> struct IsPod<pair<T1, T2>> {
 	enum { value = IsPod<T1>::value && IsPod<T2>::value };
 };
 
+struct DisabledType;
 struct IsNotTied;
 
 namespace detail {
 
+	struct NoAssertsTag {};
 	struct ValidType {
 		template <class A> using Arg = A;
 	};
@@ -109,10 +111,13 @@ namespace detail {
 	};
 }
 
+template <bool cond, class ValidArg, class InvalidArg = DisabledType>
+using EnableIf =
+	typename std::conditional<cond, detail::ValidType, InvalidArg>::type::template Arg<ValidArg>;
+
 template <class T> constexpr bool isTied() { return detail::HasTiedFunction<T>::value; }
 template <class Arg, class T>
-using EnableIfTied = typename std::conditional<detail::HasTiedFunction<T>::value, detail::ValidType,
-											   IsNotTied>::type::template Arg<Arg>;
+using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::value, Arg, IsNotTied>;
 
 #define FWK_TIE_MEMBERS(...)                                                                       \
 	auto tied() const { return std::tie(__VA_ARGS__); }

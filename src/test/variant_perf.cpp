@@ -101,7 +101,7 @@ template <template <typename...> class T> void testVariantBigger(const char *nam
 		if(t % 3 == 0)
 			variant = Matrix4::identity();
 		else if(t % 3 == 1) {
-			variant = IRect(10, 10, 20, 20);
+			variant = IRect({10, 10}, {20, 20});
 		} else
 			variant = "Hello world";
 		values.emplace_back(variant);

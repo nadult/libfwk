@@ -745,7 +745,7 @@ class Renderer2D : public MatrixStack {
 					   const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const SimpleMaterial &mat) {
-		addFilledRect(rect, FRect(0, 0, 1, 1), mat);
+		addFilledRect(rect, FRect({1, 1}), mat);
 	}
 	void addFilledRect(const IRect &rect, const SimpleMaterial &mat) {
 		addFilledRect(FRect(rect), mat);
