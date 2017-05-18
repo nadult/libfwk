@@ -62,11 +62,11 @@ float3 rotateVector(const float3 &pos, const float3 &axis, float radians) {
 }
 
 template <class Vec, class Real = typename Vec::Scalar>
-float angleBetween(const Vec &vec1, const Vec &vec2) {
-	float vcross = -cross(-vec1, vec2);
-	float vdot = dot(vec2, vec1);
+Real angleBetween(const Vec &vec1, const Vec &vec2) {
+	Real vcross = -cross(-vec1, vec2);
+	Real vdot = dot(vec2, vec1);
 
-	float ang = atan2(vcross, vdot);
+	Real ang = atan2(vcross, vdot);
 	if(ang < Real(0))
 		ang = constant<Real>::pi * Real(2) + ang;
 	DASSERT(!isnan(ang));
