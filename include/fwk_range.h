@@ -107,6 +107,15 @@ template <class T, int min_size = 0> class Range {
 	auto begin() const noexcept { return RangeIterator<T>(m_data); }
 	auto end() const noexcept { return RangeIterator<T>(m_data + m_size); }
 
+	const T &front() const {
+		PASSERT(m_size > 0);
+		return m_data[0];
+	}
+	const T &back() const {
+		PASSERT(m_size > 0);
+		return m_data[m_size - 1];
+	}
+
 	T *data() const noexcept { return m_data; }
 	int size() const noexcept { return m_size; }
 	bool empty() const noexcept { return m_size == 0; }
