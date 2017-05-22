@@ -2,8 +2,8 @@
 
    This file is part of libfwk.*/
 
-#include "testing.h"
 #include "fwk_mesh.h"
+#include "testing.h"
 #include <tuple>
 
 string mainPath(string file_name) {
@@ -37,6 +37,10 @@ void testMain() {
 	Loader(mesh_path) >> doc;
 	PModel model = PModel(Model::loadFromXML(doc.child()));
 	remove(mesh_path.c_str());
+
+	auto tmesh = AnimatedModel(*model, model->defaultPose()).toMesh();
+	auto tmesh_soup = Mesh::makePolySoup(tmesh.tris());
+	ASSERT(tmesh.triangleCount() == tmesh_soup.triangleCount());
 
 	int cube_id = model->findNodeId("cube");
 	int plane_id = model->findNodeId("plane");

@@ -39,7 +39,6 @@
 - dont use printf, make TextFormatter use xmlVersions, add formatRange(..) which adds, [], ();
   what about other goodies from printfs?
 - max & min should accept multiple arguments and ranges
-- findMax / findMin suck; remove them?
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
 - Add UnorderedVector and SortedVector classes

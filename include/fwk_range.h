@@ -260,46 +260,6 @@ template <class Range1, class Range2> auto setUnion(const Range1 &a, const Range
 	return out;
 }
 
-template <class Range, class Func> auto findMin(const Range &range, const Func &func) {
-	using Value = decltype(func(range[0]));
-
-	if(range.empty())
-		return make_pair(-1, Value());
-
-	int best_index = 0;
-	Value best_val = func(range[0]);
-
-	for(int n = 1; n < (int)range.size(); n++) {
-		auto val = func(range[n]);
-		if(val < best_val) {
-			best_val = val;
-			best_index = n;
-		}
-	}
-
-	return make_pair(best_index, best_val);
-}
-
-template <class Range, class Func> auto findMax(const Range &range, const Func &func) {
-	using Value = decltype(func(range[0]));
-
-	if(range.empty())
-		return make_pair(-1, Value());
-
-	int best_index = 0;
-	Value best_val = func(range[0]);
-
-	for(int n = 1; n < (int)range.size(); n++) {
-		auto val = func(range[n]);
-		if(val > best_val) {
-			best_val = val;
-			best_index = n;
-		}
-	}
-
-	return make_pair(best_index, best_val);
-}
-
 template <class T> pair<T, T> minMax(CRange<T> range) {
 	if(range.empty())
 		return make_pair(T(), T());

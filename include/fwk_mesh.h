@@ -35,6 +35,8 @@ struct MeshBuffers {
 	struct VertexWeight {
 		VertexWeight(float weight = 0.0f, int node_id = 0) : weight(weight), node_id(node_id) {}
 
+		FWK_ORDER_BY(VertexWeight, weight, node_id);
+
 		float weight;
 		int node_id;
 	};
@@ -63,6 +65,8 @@ struct MeshBuffers {
 	vector<Matrix4> mapPose(PPose skinning_pose) const;
 
 	static MeshBuffers transform(const Matrix4 &, MeshBuffers);
+
+	FWK_ORDER_BY(MeshBuffers, positions, normals, tex_coords, colors, weights, node_names);
 
 	vector<float3> positions;
 	vector<float3> normals;
@@ -103,6 +107,8 @@ class MeshIndices {
 	static MeshIndices applyOffset(MeshIndices, uint offset);
 
 	vector<MeshIndices> split(uint max_vertices, vector<vector<uint>> &out_mappings) const;
+
+	FWK_ORDER_BY(MeshIndices, m_data, m_type);
 
   private:
 	vector<uint> m_data;

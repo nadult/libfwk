@@ -135,12 +135,21 @@ Mesh Mesh::makePolySoup(CRange<Triangle> rtris) {
 		uint off = positions.size();
 		int inds[3];
 		for(auto vert : tri.verts()) {
-			auto result = findMin(positions, [vert](auto v) { return distanceSq(v, vert); });
+			float min_dist = fconstant::inf;
+			int min_idx = -1;
+
+			for(int n = 0; n < positions.size(); n++) {
+				auto dist = distanceSq(positions[n], vert);
+				if(dist < min_dist) {
+					min_dist = dist;
+					min_idx = n;
+				}
+			}
 
 			int index = 0;
-			if(result.first != -1 && sqrtf(result.second) < fconstant::epsilon)
-				index = result.first;
-			else {
+			if(min_idx != -1 && min_dist < fconstant::epsilon) {
+				index = min_idx;
+			} else {
 				index = positions.size();
 				positions.emplace_back(vert);
 			}
