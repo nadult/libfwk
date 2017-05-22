@@ -186,6 +186,28 @@ template <class Value> class Maybe {
 		return std::forward<U>(dflt);
 	}
 
+	bool operator==(const Value &rhs) const { return hasValue() && value() == rhs; }
+
+	bool operator==(const Maybe &rhs) const {
+		if(hasValue() != rhs.hasValue())
+			return false;
+		if(hasValue())
+			return value() == rhs.value();
+		return true;
+	}
+
+	bool operator<(const Maybe &rhs) const {
+		if(hasValue() != rhs.hasValue())
+			return hasValue() < rhs.hasValue();
+		if(hasValue())
+			return value() < rhs.value();
+		return false;
+	}
+
+	bool operator>(const Maybe &rhs) const { return rhs < *this; }
+	bool operator<=(const Maybe &rhs) const { return !(rhs < *this); }
+	bool operator>=(const Maybe &rhs) const { return !(*this < rhs); }
+
   private:
 	void require_value() const {
 		if(!storage_.hasValue)
@@ -259,45 +281,9 @@ template <class T, class Opt = Maybe<typename std::decay<T>::type>> Opt makeMayb
 	return Opt(std::forward<T>(v));
 }
 
-template <class V> bool operator==(const Maybe<V> &a, const V &b) {
-	return a.hasValue() && a.value() == b;
-}
-
-template <class V> bool operator!=(const Maybe<V> &a, const V &b) { return !(a == b); }
-
 template <class V> bool operator==(const V &a, const Maybe<V> &b) {
 	return b.hasValue() && b.value() == a;
 }
-
-template <class V> bool operator!=(const V &a, const Maybe<V> &b) { return !(a == b); }
-
-template <class V> bool operator==(const Maybe<V> &a, const Maybe<V> &b) {
-	if(a.hasValue() != b.hasValue()) {
-		return false;
-	}
-	if(a.hasValue()) {
-		return a.value() == b.value();
-	}
-	return true;
-}
-
-template <class V> bool operator!=(const Maybe<V> &a, const Maybe<V> &b) { return !(a == b); }
-
-template <class V> bool operator<(const Maybe<V> &a, const Maybe<V> &b) {
-	if(a.hasValue() != b.hasValue()) {
-		return a.hasValue() < b.hasValue();
-	}
-	if(a.hasValue()) {
-		return a.value() < b.value();
-	}
-	return false;
-}
-
-template <class V> bool operator>(const Maybe<V> &a, const Maybe<V> &b) { return b < a; }
-
-template <class V> bool operator<=(const Maybe<V> &a, const Maybe<V> &b) { return !(b < a); }
-
-template <class V> bool operator>=(const Maybe<V> &a, const Maybe<V> &b) { return !(a < b); }
 
 // Suppress comparability of Maybe<T> with T, despite implicit conversion.
 template <class V> bool operator<(const Maybe<V> &, const V &other) = delete;
