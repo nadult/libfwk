@@ -293,6 +293,11 @@ void assertFailed(const char *file, int line, const char *text) {
 #else
 	auto bt = Backtrace::get(1).analyze(true);
 	printf("%s\nBacktrace:\n%s", buffer, bt.c_str());
+
+	try {
+		throw "Debugger can catch this";
+	} catch(...) {
+	}
 #endif
 	exit(1);
 }
