@@ -44,11 +44,6 @@ const None none = nullptr;
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif // __GNUC__
 
-class MaybeEmptyException : public std::runtime_error {
-  public:
-	MaybeEmptyException() : std::runtime_error("Empty Maybe cannot be unwrapped") {}
-};
-
 template <class Value> class Maybe {
   public:
 	typedef Value value_type;
