@@ -83,6 +83,7 @@ template <class T1, class T2> struct IsPod<pair<T1, T2>> {
 	enum { value = IsPod<T1>::value && IsPod<T2>::value };
 };
 
+struct EnabledType {};
 struct DisabledType;
 struct IsNotTied;
 
@@ -111,13 +112,12 @@ namespace detail {
 	};
 }
 
-template <bool cond, class ValidArg, class InvalidArg = DisabledType>
+template <bool cond, class InvalidArg = DisabledType>
 using EnableIf =
-	typename std::conditional<cond, detail::ValidType, InvalidArg>::type::template Arg<ValidArg>;
+	typename std::conditional<cond, detail::ValidType, InvalidArg>::type::template Arg<EnabledType>;
 
 template <class T> constexpr bool isTied() { return detail::HasTiedFunction<T>::value; }
-template <class Arg, class T>
-using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::value, Arg, IsNotTied>;
+template <class T> using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::value, IsNotTied>;
 
 #define FWK_TIE_MEMBERS(...)                                                                       \
 	auto tied() const { return std::tie(__VA_ARGS__); }
@@ -590,59 +590,55 @@ template <class Type> class EnumRange {
 
 struct NotAnEnum;
 
-template <class T> struct IsEnum {
-	template <class C> static auto test(int) -> decltype(enumStrings(C()));
-	template <class C> static auto test(...) -> void;
-	struct RetOk {
-		template <class A> using Arg = A;
+namespace detail {
+	template <class T> struct IsEnum {
+		template <class C> static auto test(int) -> decltype(enumStrings(C()));
+		template <class C> static auto test(...) -> void;
+		enum { value = !std::is_same<void, decltype(test<T>(0))>::value };
 	};
-	enum { value = !std::is_same<void, decltype(test<T>(0))>::value };
-	using Ret = typename std::conditional<value, RetOk, NotAnEnum>::type;
-};
+}
 
-template <class T, class Result> using EnableIfEnum = typename IsEnum<T>::Ret::template Arg<Result>;
+template <class T> constexpr bool isEnum() { return detail::IsEnum<T>::value; }
 
-template <class T> static auto fromString(const char *str) -> EnableIfEnum<T, T> {
+template <class T> using EnableIfEnum = EnableIf<isEnum<T>(), NotAnEnum>;
+
+template <class T, EnableIfEnum<T>...> static T fromString(const char *str) {
 	return T(fwk::enumFromString(str, enumStrings(T()), true));
 }
 
-template <class T> static auto fromString(const string &str) -> EnableIfEnum<T, T> {
+template <class T, EnableIfEnum<T>...> static T fromString(const string &str) {
 	return fromString<T>(str.c_str());
 }
 
-template <class T> static auto tryFromString(const char *str) -> EnableIfEnum<T, Maybe<T>> {
+template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(const char *str) {
 	int ret = fwk::enumFromString(str, enumStrings(T()), false);
 	if(ret == -1)
 		return none;
 	return T(ret);
 }
 
-template <class T> static auto tryFromString(const string &str) -> EnableIfEnum<T, Maybe<T>> {
+template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(const string &str) {
 	return tryFromString<T>(str.c_str());
 }
-template <class T> static auto toString(T value) -> EnableIfEnum<T, const char *> {
+template <class T, EnableIfEnum<T>...> static const char *toString(T value) {
 	return enumStrings(T())[(int)value];
 }
 
-template <class T> constexpr auto count() -> EnableIfEnum<T, int> {
+template <class T, EnableIfEnum<T>...> constexpr int count() {
 	return decltype(enumStrings(T()))::minimum_size;
 }
 
-template <class T> auto all() -> EnableIfEnum<T, EnumRange<T>> {
-	return EnumRange<T>(0, count<T>());
-}
+template <class T, EnableIfEnum<T>...> auto all() { return EnumRange<T>(0, count<T>()); }
 
-template <class T> auto next(T value) -> EnableIfEnum<T, T> {
-	return T((int(value) + 1) % count<T>());
-}
+template <class T, EnableIfEnum<T>...> T next(T value) { return T((int(value) + 1) % count<T>()); }
 
-template <class T> auto prev(T value) -> EnableIfEnum<T, T> {
+template <class T, EnableIfEnum<T>...> T prev(T value) {
 	return T((int(value) + (count<T> - 1)) % count<T>());
 }
 
 template <class Enum, class T> class EnumMap {
   public:
-	static_assert(IsEnum<Enum>::value,
+	static_assert(isEnum<Enum>(),
 				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM");
 
 	EnumMap(CRange<pair<Enum, T>> pairs) {

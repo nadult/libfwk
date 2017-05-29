@@ -438,8 +438,7 @@ struct NotAReal;
 struct NotAIntegral;
 struct NotAScalar;
 struct NotAMathObject;
-struct NotAVector;
-template <int N> struct NotAVectorN;
+template <int N> struct NotAVector;
 
 namespace detail {
 
@@ -478,7 +477,7 @@ namespace detail {
 				is_integral = std::is_integral<Scalar>::value
 			};
 		};
-		using RetError = typename std::conditional<N == 0, NotAVector, NotAVectorN<N>>::type;
+		using RetError = NotAVector<N>;
 		struct Zero {
 			enum { size = 0, is_real = 0, is_integral = 0 };
 		};
@@ -493,9 +492,6 @@ namespace detail {
 		using Ret = decltype(test<T>(0));
 		using Get =
 			typename std::conditional<std::is_same<Ret, RetError>::value, Zero, RetOk<T>>::type;
-
-		using IntegralRet = typename std::conditional<Get::is_integral, Ret, RetError>::type;
-		using RealRet = typename std::conditional<Get::is_real, Ret, RetError>::type;
 	};
 
 	template <class T, int N = 0> struct IsVector {
@@ -503,7 +499,7 @@ namespace detail {
 	};
 
 	// TODO: better name? also differentiate from fwk::vector
-	template <class T, int N> struct MakeVector { using type = NotAVector; };
+	template <class T, int N> struct MakeVector { using type = NotAVector<0>; };
 	template <> struct MakeVector<short, 2> { using type = short2; };
 	template <> struct MakeVector<int, 2> { using type = int2; };
 	template <> struct MakeVector<int, 3> { using type = int3; };
@@ -543,30 +539,17 @@ template <class T, int N = 0> constexpr bool isIntegralVector() {
 	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_integral;
 }
 
-template <class Arg, class T> using EnableIfScalar = EnableIf<isScalar<T>(), Arg, NotAScalar>;
-template <class Arg, class T>
-using EnableIfReal = EnableIf<std::is_floating_point<T>::value, Arg, NotAReal>;
-template <class Arg, class T>
-using EnableIfIntegral = EnableIf<std::is_integral<T>::value, Arg, NotAIntegral>;
+template <class T> using EnableIfScalar = EnableIf<isScalar<T>(), NotAScalar>;
+template <class T> using EnableIfReal = EnableIf<std::is_floating_point<T>::value, NotAReal>;
+template <class T> using EnableIfIntegral = EnableIf<std::is_integral<T>::value, NotAIntegral>;
 
-template <class Arg, class T>
-using EnableIfMathObject = EnableIf<isMathObject<T>(), Arg, NotAMathObject>;
-template <class T> using AsMathObject = EnableIfMathObject<T, T>;
+template <class T> using EnableIfMathObject = EnableIf<isMathObject<T>(), NotAMathObject>;
 
-template <class Arg, class T, int N = 0>
-using EnableIfVector = typename detail::VectorInfo<T, N>::Ret::template Arg<Arg>;
-template <class Arg, class T, int N = 0>
-using EnableIfRealVector = typename detail::VectorInfo<T, N>::RealRet::template Arg<Arg>;
-template <class Arg, class T, int N = 0>
-using EnableIfIntegralVector = typename detail::VectorInfo<T, N>::IntegralRet::template Arg<Arg>;
-
-template <class T, int N = 0> using AsVectorScalar = typename detail::VectorInfo<T, N>::Ret::Scalar;
-template <class T, int N = 0> using AsVector = typename detail::VectorInfo<T, N>::Ret::Vector;
-
+template <class T, int N = 0> using EnableIfVector = EnableIf<isVector<T, N>(), NotAVector<N>>;
 template <class T, int N = 0>
-using AsRealVector = typename detail::VectorInfo<T, N>::RealRet::Vector;
+using EnableIfRealVector = EnableIf<isRealVector<T, N>(), NotAVector<N>>;
 template <class T, int N = 0>
-using AsIntegralVector = typename detail::VectorInfo<T, N>::IntegralRet::Vector;
+using EnableIfIntegralVector = EnableIf<isIntegralVector<T, N>(), NotAVector<N>>;
 
 template <class T, int N>
 using MakeVector = typename detail::MakeVector<typename detail::GetScalar<T>::type, N>::type;
@@ -578,38 +561,40 @@ template <class T> using Vector4 = MakeVector<T, 4>;
 template <class T> struct ToReal { using type = double; };
 template <> struct ToReal<float> { using type = float; };
 
-template <class T, class T1> const AsMathObject<T> &operator+=(T &a, const T1 &b) {
-	return a = a + b;
+template <class T, class T1, EnableIfMathObject<T>...> void operator+=(T &a, const T1 &b) {
+	a = a + b;
 }
-template <class T, class T1> const AsMathObject<T> &operator-=(T &a, const T1 &b) {
-	return a = a - b;
+template <class T, class T1, EnableIfMathObject<T>...> void operator-=(T &a, const T1 &b) {
+	a = a - b;
 }
-template <class T, class T1> const AsMathObject<T> &operator*=(T &a, const T1 &b) {
-	return a = a * b;
+template <class T, class T1, EnableIfMathObject<T>...> void operator*=(T &a, const T1 &b) {
+	a = a * b;
 }
-template <class T, class T1> const AsMathObject<T> &operator/=(T &a, const T1 &b) {
-	return a = a / b;
+template <class T, class T1, EnableIfMathObject<T>...> void operator/=(T &a, const T1 &b) {
+	a = a / b;
 }
 
-template <class T> EnableIfMathObject<bool, T> operator>(const T &a, const T &b) { return b < a; }
+template <class T, EnableIfMathObject<T>...> bool operator>(const T &a, const T &b) {
+	return b < a;
+}
 
-template <class T> EnableIfMathObject<bool, T> operator>=(const T &a, const T &b) {
+template <class T, EnableIfMathObject<T>...> bool operator>=(const T &a, const T &b) {
 	return !(a < b);
 }
 
-template <class T> EnableIfMathObject<bool, T> operator<=(const T &a, const T &b) {
+template <class T, EnableIfMathObject<T>...> bool operator<=(const T &a, const T &b) {
 	return !(b < a);
 }
 
-template <class T> EnableIfScalar<T, T> clamp(const T &obj, const T &tmin, const T &tmax) {
+template <class T, EnableIfScalar<T>...> T clamp(const T &obj, const T &tmin, const T &tmax) {
 	return min(tmax, max(tmin, obj));
 }
 
-template <class Real> EnableIfReal<Real, Real> degToRad(Real v) {
+template <class Real, EnableIfReal<Real>...> Real degToRad(Real v) {
 	return v * (Real(2.0) * constant<Real>::pi / Real(360.0));
 }
 
-template <class Real> EnableIfReal<Real, Real> radToDeg(Real v) {
+template <class Real, EnableIfReal<Real>...> Real radToDeg(Real v) {
 	return v * (Real(360.0) / (Real(2.0) * constant<Real>::pi));
 }
 
@@ -620,37 +605,39 @@ template <class Obj, class Scalar> inline Obj lerp(const Obj &a, const Obj &b, c
 	return (b - a) * x + a;
 }
 
-template <class T> AsVector<T> operator*(typename T::Scalar s, const T &v) { return v * s; }
+template <class T, EnableIfVector<T>...> T operator*(typename T::Scalar s, const T &v) {
+	return v * s;
+}
 
-template <class T> AsVector<T, 2> vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 2>...> T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]));
 }
 
-template <class T> AsVector<T, 3> vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 3>...> T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]));
 }
 
-template <class T> AsVector<T, 4> vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 4>...> T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]), min(lhs[3], rhs[3]));
 }
 
-template <class T> AsVector<T, 2> vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 2>...> T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]));
 }
 
-template <class T> AsVector<T, 3> vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 3>...> T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]));
 }
 
-template <class T> AsVector<T, 4> vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 4>...> T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]), max(lhs[3], rhs[3]));
 }
 
-template <class T> AsVector<T> vclamp(const T &vec, const T &tmin, const T &tmax) {
+template <class T, EnableIfVector<T>...> T vclamp(const T &vec, const T &tmin, const T &tmax) {
 	return vmin(tmax, vmax(tmin, vec));
 }
 
-template <class T> EnableIfVector<pair<T, T>, T> vecMinMax(CRange<T> range) {
+template <class T, EnableIfVector<T>...> pair<T, T> vecMinMax(CRange<T> range) {
 	if(range.empty())
 		return make_pair(T(), T());
 	T tmin = range[0], tmax = range[0];
@@ -661,93 +648,93 @@ template <class T> EnableIfVector<pair<T, T>, T> vecMinMax(CRange<T> range) {
 	return make_pair(tmin, tmax);
 }
 
-template <class TRange, class T = typename ContainerBaseType<TRange>::type>
-EnableIfVector<pair<T, T>, T> vecMinMax(const TRange &range) {
+template <class TRange, class T = typename ContainerBaseType<TRange>::type, EnableIfVector<T>...>
+pair<T, T> vecMinMax(const TRange &range) {
 	return vecMinMax(makeRange(range));
 }
 
-template <class T> AsRealVector<T> vfloor(T vec) {
+template <class T, EnableIfVector<T>...> T vfloor(T vec) {
 	for(int n = 0; n < T::vector_size; n++)
 		vec[n] = std::floor(vec[n]);
 	return vec;
 }
 
-template <class T> AsRealVector<T> vceil(T vec) {
+template <class T, EnableIfVector<T>...> T vceil(T vec) {
 	for(int n = 0; n < T::vector_size; n++)
 		vec[n] = std::ceil(vec[n]);
 	return vec;
 }
 
-template <class T> AsVectorScalar<T, 2> dot(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 2>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs.x * rhs.x + lhs.y * rhs.y;
 }
 
-template <class T> AsVectorScalar<T, 3> dot(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 3>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
-template <class T> AsVectorScalar<T, 4> dot(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T, 4>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
-template <class T>
-EnableIfVector<decltype(std::sqrt(AsVectorScalar<T>())), T> length(const T &vec) {
+template <class T, EnableIfVector<T>...> auto length(const T &vec) {
 	return std::sqrt(dot(vec, vec));
 }
 
-template <class T> AsVectorScalar<T> lengthSq(const T &vec) { return dot(vec, vec); }
+template <class T, EnableIfVector<T>...> auto lengthSq(const T &vec) { return dot(vec, vec); }
 
-template <class T>
-EnableIfVector<decltype(std::sqrt(AsVectorScalar<T>())), T> distance(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T>...> auto distance(const T &lhs, const T &rhs) {
 	return length(lhs - rhs);
 }
 
-template <class T> AsVectorScalar<T> distanceSq(const T &lhs, const T &rhs) {
+template <class T, EnableIfVector<T>...> auto distanceSq(const T &lhs, const T &rhs) {
 	return lengthSq(lhs - rhs);
 }
 
-template <class T> AsRealVector<T> normalize(const T &v) { return v / length(v); }
+template <class T, EnableIfRealVector<T>...> T normalize(const T &v) { return v / length(v); }
 
-template <class T> AsVector<T, 2> vabs(const T &v) { return {std::abs(v.x), std::abs(v.y)}; }
+template <class T, EnableIfVector<T, 2>...> T vabs(const T &v) {
+	return {std::abs(v.x), std::abs(v.y)};
+}
 
-template <class T> AsVector<T, 3> vabs(const T &v) {
+template <class T, EnableIfVector<T, 3>...> T vabs(const T &v) {
 	return {std::abs(v.x), std::abs(v.y), std::abs(v.z)};
 }
 
-template <class T> AsVector<T, 4> vabs(const T &v) {
+template <class T, EnableIfVector<T, 4>...> T vabs(const T &v) {
 	return T(std::abs(v.x), std::abs(v.y), std::abs(v.z), std::abs(v.w));
 }
 
-template <class T> EnableIfVector<Vector3<T>, T, 2> asXZ(const T &v) { return {v[0], 0, v[1]}; }
-template <class T> EnableIfVector<Vector3<T>, T, 2> asXY(const T &v) { return {v[0], v[1], 0}; }
-template <class T> Vector3<T> asXZY(const T &xz, AsVectorScalar<T, 2> y) {
+template <class T, EnableIfVector<T, 2>...> Vector3<T> asXZ(const T &v) { return {v[0], 0, v[1]}; }
+template <class T, EnableIfVector<T, 2>...> Vector3<T> asXY(const T &v) { return {v[0], v[1], 0}; }
+template <class T, EnableIfVector<T, 2>...> Vector3<T> asXZY(const T &xz, typename T::Scalar y) {
 	return {xz[0], y, xz[1]};
 }
 
-template <class T> AsVector<T, 3> asXZY(const T &v) { return {v[0], v[2], v[1]}; }
+template <class T, EnableIfVector<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-template <class T> AsRealVector<T, 2> inv(const T &v) {
+template <class T, EnableIfRealVector<T, 2>...> T inv(const T &v) {
 	using Scalar = typename T::Scalar;
 	return {Scalar(1) / v.x, Scalar(1) / v.y};
 }
-template <class T> AsRealVector<T, 3> inv(const T &v) {
+template <class T, EnableIfRealVector<T, 3>...> T inv(const T &v) {
 	using Scalar = typename T::Scalar;
 	return {Scalar(1) / v.x, Scalar(1) / v.y, Scalar(1) / v.z};
 }
-template <class T> AsRealVector<T, 4> inv(const T &v) {
+template <class T, EnableIfRealVector<T, 4>...> T inv(const T &v) {
 	using Scalar = typename T::Scalar;
 	return {Scalar(1) / v.x, Scalar(1) / v.y, Scalar(1) / v.z, Scalar(1) / v.w};
 }
 
-template <class T> AsVectorScalar<T, 2> cross(const T &a, const T &b) {
+template <class T, EnableIfVector<T, 2>...> auto cross(const T &a, const T &b) {
 	return a.x * b.y - a.y * b.x;
 }
 
-template <class T> AsVector<T, 3> cross(const T &a, const T &b) {
+template <class T, EnableIfVector<T, 3>...> T cross(const T &a, const T &b) {
 	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
 
-template <class T> AsVector<T, 2> perpendicular(const T &v) { return {v.y, -v.x}; }
+template <class T, EnableIfVector<T, 2>...> T perpendicular(const T &v) { return {v.y, -v.x}; }
 
 float vectorToAngle(const float2 &normalized_vector);
 double vectorToAngle(const double2 &normalized_vector);
@@ -765,22 +752,21 @@ float angleBetween(const float2 &prev, const float2 &cur, const float2 &next);
 double angleBetween(const double2 &prev, const double2 &cur, const double2 &next);
 
 // TODO: remove it?
-template <class T>
-EnableIfRealVector<bool, T>
-areClose(const T &a, const T &b,
-		 typename T::Scalar epsilon_sq = constant<typename T::Scalar>::epsilon) {
+template <class T, EnableIfRealVector<T>...>
+bool areClose(const T &a, const T &b,
+			  typename T::Scalar epsilon_sq = constant<typename T::Scalar>::epsilon) {
 	return distanceSq(a, b) < epsilon_sq;
 }
 
 // TODO: we can't really check it properly for floating-point's...
-template <class T> EnableIfRealVector<bool, T> isNormalized(const T &vec) {
+template <class T, EnableIfRealVector<T>...> bool isNormalized(const T &vec) {
 	using Real = typename T::Scalar;
 	auto length_sq = lengthSq(vec);
 	return length_sq >= Real(1) - constant<Real>::epsilon &&
 		   length_sq <= Real(1) + constant<Real>::epsilon;
 }
 
-template <class T> EnableIfVector<bool, T> isZero(const T &vec) { return vec == T(); }
+template <class T, EnableIfVector<T>...> bool isZero(const T &vec) { return vec == T(); }
 
 float frand();
 float angleDistance(float a, float b);
@@ -792,7 +778,7 @@ float normalizeAngle(float angle);
 bool isnan(float);
 bool isnan(double);
 
-template <class T> EnableIfRealVector<bool, T> isnan(const T &v) {
+template <class T, EnableIfRealVector<T>...> bool isnan(const T &v) {
 	return anyOf(v, [](auto s) { return isnan(s); });
 }
 
@@ -817,9 +803,10 @@ template <class Vector_> class Box {
 
 	enum { dim_size = Vector::vector_size, num_corners = 1 << dim_size };
 
-	template <class T, int size, class Arg>
-	using EnableMember =
-		EnableIf<std::is_same<T, Vector>::value && dim_size == size, Arg, DisabledInThisDimension>;
+	template <class T, int size>
+	using EnableIfSize =
+		EnableIf<std::is_same<T, Vector>::value && dim_size == size, DisabledInThisDimension>;
+#define ENABLE_IF_SIZE(n) template <class T = Vector, EnableIfSize<T, n>...>
 
 	// min <= max in all dimensions; can be empty
 	bool validRange(const Point &min, const Point &max) const {
@@ -837,6 +824,13 @@ template <class Vector_> class Box {
 		return false;
 	}
 
+	ENABLE_IF_SIZE(2)
+	Box(Scalar min_x, Scalar min_y, Scalar max_x, Scalar max_y)
+		: Box({min_x, min_y}, {max_x, max_y}) {}
+	ENABLE_IF_SIZE(3)
+	Box(Scalar min_x, Scalar min_y, Scalar min_z, Scalar max_x, Scalar max_y, Scalar max_z)
+		: Box({min_x, min_y, min_z}, {max_x, max_y, max_z}) {}
+
 	Box(Point min, Point max) : m_min(min), m_max(max) { DASSERT(validRange(min, max)); }
 	explicit Box(Vector size) : Box(Vector(), size) {}
 	Box(const pair<Vector, Vector> &min_max) : Box(min_max.first, min_max.second) {}
@@ -853,22 +847,18 @@ template <class Vector_> class Box {
 
 	Scalar x() const { return m_min[0]; }
 	Scalar y() const { return m_min[1]; }
-	template <class T = Vector> EnableMember<T, 3, Scalar> z() const { return m_min[2]; }
+	ENABLE_IF_SIZE(3) Scalar z() const { return m_min[2]; }
 
 	Scalar ex() const { return m_max[0]; }
 	Scalar ey() const { return m_max[1]; }
-	template <class T = Vector> EnableMember<T, 3, Scalar> ez() const { return m_max[2]; }
+	ENABLE_IF_SIZE(3) Scalar ez() const { return m_max[2]; }
 
 	Scalar width() const { return size(0); }
 	Scalar height() const { return size(1); }
-	template <class T = Vector> EnableMember<T, 3, Scalar> depth() const { return size(2); }
+	ENABLE_IF_SIZE(3) Scalar depth() const { return size(2); }
 
-	template <class T = Vector> EnableMember<T, 2, Scalar> surfaceArea() const {
-		return width() * height();
-	}
-	template <class T = Vector> EnableMember<T, 3, Scalar> volume() const {
-		return width() * height() * depth();
-	}
+	ENABLE_IF_SIZE(2) Scalar surfaceArea() const { return width() * height(); }
+	ENABLE_IF_SIZE(3) Scalar volume() const { return width() * height() * depth(); }
 
 	Scalar size(int axis) const { return m_max[axis] - m_min[axis]; }
 	Vector size() const { return m_max - m_min; }
@@ -902,26 +892,26 @@ template <class Vector_> class Box {
 
 	bool contains(const Box &box) const { return box == intersection(box); }
 
-	template <class T = Vector> EnableMember<T, 2, bool> containsPixel(const T &pos) const {
+	ENABLE_IF_SIZE(2) bool containsPixel(const T &pos) const {
 		for(int i = 0; i < dim_size; i++)
 			if(!(pos[i] >= m_min[i] && pos[i] + Scalar(1) <= m_max[i]))
 				return false;
 		return true;
 	}
 
-	template <class T = Vector> EnableMember<T, 2, bool> pixelCount(int axis) const {
+	ENABLE_IF_SIZE(2) bool pixelCount(int axis) const {
 		return max(size(axis) - Scalar(1), Scalar(0));
 	}
 
-	template <class T = Vector> EnableMember<T, 2, T> pixelCount() const {
+	ENABLE_IF_SIZE(2) T pixelCount() const {
 		return vmax(size() - Vector(Scalar(1)), T(Scalar(0)));
 	}
 
-	template <class T = Vector> EnableMember<T, 2, array<Point, 4>> corners() const {
+	ENABLE_IF_SIZE(2) array<Point, 4> corners() const {
 		return {{m_min, {m_min.x, m_max.y}, m_max, {m_max.x, m_min.y}}};
 	}
 
-	template <class T = Vector> EnableMember<T, 3, array<Point, num_corners>> corners() const {
+	ENABLE_IF_SIZE(3) array<Point, num_corners> corners() const {
 		array<Vector, num_corners> out;
 		for(int n = 0; n < num_corners; n++)
 			for(int i = 0; i < dim_size; i++) {
@@ -983,15 +973,11 @@ template <class Vector_> class Box {
 	auto begin() const { return m_v; }
 	auto end() const { return m_v + arraySize(m_v); }
 
-	template <class T = Vector> EnableMember<T, 3, Box<Vector2>> xz() const {
-		return {m_min.xz(), m_max.xz()};
-	}
-	template <class T = Vector> EnableMember<T, 3, Box<Vector2>> xy() const {
-		return {m_min.xy(), m_max.xy()};
-	}
-	template <class T = Vector> EnableMember<T, 3, Box<Vector2>> yz() const {
-		return {m_min.yz(), m_max.yz()};
-	}
+	ENABLE_IF_SIZE(3) Box<Vector2> xz() const { return {m_min.xz(), m_max.xz()}; }
+	ENABLE_IF_SIZE(3) Box<Vector2> xy() const { return {m_min.xy(), m_max.xy()}; }
+	ENABLE_IF_SIZE(3) Box<Vector2> yz() const { return {m_min.yz(), m_max.yz()}; }
+
+#undef ENABLE_IF_SIZE
 
   private:
 	union {
@@ -1009,18 +995,16 @@ using IBox = Box<int3>;
 using FBox = Box<float3>;
 using DBox = Box<double3>;
 
-template <class TRange, class = EnableIfRange<void *, TRange>,
-		  class = EnableIfVector<void *, RangeBase<TRange>>>
+template <class TRange, EnableIfRange<TRange>..., EnableIfVector<RangeBase<TRange>>...>
 auto enclose(TRange points) -> Box<RangeBase<TRange>> {
 	return {vecMinMax(points)};
 }
 
-template <class T>
-EnableIfRealVector<Box<MakeVector<int, T::vector_size>>, T> encloseIntegral(const Box<T> &box) {
+template <class T, EnableIfRealVector<T>...> auto encloseIntegral(const Box<T> &box) {
 	using IVec = MakeVector<int, T::vector_size>;
 	T min = vfloor(box.min());
 	T max = vceil(box.max());
-	return {IVec(min), IVec(max)};
+	return Box<IVec>{IVec(min), IVec(max)};
 }
 
 template <class T> Box<T> enclose(const Box<T> &lhs, const Box<T> &rhs) {
@@ -1544,7 +1528,7 @@ template <class Real, int N> struct Segment {
 template <class T> using Segment2 = Segment<T, 2>;
 template <class T> using Segment3 = Segment<T, 3>;
 
-template <class T> EnableIfScalar<Segment2<T>, T> asXZ(const Segment3<T> &segment) {
+template <class T, EnableIfScalar<T>...> Segment2<T> asXZ(const Segment3<T> &segment) {
 	return {segment.from.xz(), segment.to.xz()};
 }
 
@@ -1698,20 +1682,20 @@ class Random {
 	float uniform(float min, float max);
 	double uniform(double min, double max);
 
-	template <class T> AsRealVector<T> sampleBox(const T &min, const T &max) {
+	template <class T, EnableIfVector<T>...> T sampleBox(const T &min, const T &max) {
 		T out;
 		for(int n = 0; n < T::vector_size; n++)
 			out[n] = uniform(min[n], max[n]);
 		return out;
 	}
-	template <class T> AsRealVector<T> sampleUnitHemisphere() {
+	template <class T, EnableIfVector<T>...> T sampleUnitHemisphere() {
 		auto point = sampleUnitSphere<T>();
 		while(isZero(point))
 			point = sampleUnitSphere<T>();
 		return normalize(point);
 	}
 
-	template <class T> AsRealVector<T> sampleUnitSphere() {
+	template <class T, EnableIfVector<T>...> T sampleUnitSphere() {
 		using Scalar = typename T::Scalar;
 		T one;
 		for(int n = 0; n < T::vector_size; n++)
@@ -1735,14 +1719,12 @@ template <class Value = int> struct Hash {
 		return hash_a ^ (hash_b + 0x9e3779b9 + (hash_a << 6) + (hash_a >> 2));
 	}
 
-	template <class T> static EnableIfScalar<Value, T> hash(T scalar) {
+	template <class T, EnableIfScalar<T>...> static Value hash(T scalar) {
 		return std::hash<T>()(scalar);
 	}
 
-	template <class Arg, class T>
-	using EnableIfRangeNotTied = EnableIf<IsRange<T>::value && !isTied<T>(), Arg, NotARange>;
-
-	template <class T> static EnableIfRangeNotTied<Value, T> hash(const T &trange) {
+	template <class T, EnableIf<IsRange<T>::value && !isTied<T>(), NotARange>...>
+	static Value hash(const T &trange) {
 		auto range = makeConstRange(trange);
 		if(range.empty())
 			return 0;
@@ -1762,7 +1744,7 @@ template <class Value = int> struct Hash {
 	template <class... Types> static Value hash(const std::tuple<Types...> &tuple) {
 		return hashTuple<0>(tuple);
 	}
-	template <class T> static EnableIfTied<Value, T> hash(const T &object) {
+	template <class T, EnableIfTied<T>...> static Value hash(const T &object) {
 		return hashTuple<0>(object.tied());
 	}
 

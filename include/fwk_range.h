@@ -150,8 +150,8 @@ template <class T>
 using RangeBase = typename std::remove_const<
 	typename std::remove_reference<decltype(*((T *)nullptr)->data())>::type>::type;
 
-template <class Arg, class T, class Req = void>
-using EnableIfRange = EnableIf<IsRange<T, Req>::value, Arg, NotARange>;
+template <class T, class Req = void>
+using EnableIfRange = EnableIf<IsRange<T, Req>::value, NotARange>;
 
 template <class T> struct ContainerBaseType {
 	using type = typename std::remove_reference<decltype(*begin(*((T *)0)))>::type;

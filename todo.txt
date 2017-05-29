@@ -1,3 +1,6 @@
+- isEnum<>() -> isEnum<> (constexpr int)
+- hash for custom types (like TaggedId<>)
+- indexRange( size ), indexRange( range ) == indexRange( range.size() )
 - box ranges...
 - intersection -> intersect ?
 - inset & enlarge na zewnątrz ?
