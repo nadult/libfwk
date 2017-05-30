@@ -1,3 +1,8 @@
+- Add function for registering some information when assertion fails or exception is thrown or whatever
+  like: ASSERT_INFO("While parsing file: %s", file_name.c_str());
+- Improve assertions (they should give more information when breaking)...
+  But how to do it properly?
+
 - isEnum<>() -> isEnum<> (constexpr int)
 - hash for custom types (like TaggedId<>)
 - indexRange( size ), indexRange( range ) == indexRange( range.size() )
@@ -33,10 +38,7 @@
 - extendible xml:: toString fromString ?
 - better tests for vector? Use tests from libc++ or something?
 - rapidxml is allocating with std::new (exceptions aren't caught)
-- Add asserts ASSERT_NE _LT, etc.
 - Add some PASSERTs to fwk vector?
-- Add function for registering some information when assertion fails or exception is thrown or whatever
-  like: ASSERT_INFO("While parsing file: %s", file_name.c_str());
 - Make custom string class (not a template)
 - Variant uses operator new for non-POD types...
 - dont use printf, make TextFormatter use xmlVersions, add formatRange(..) which adds, [], ();
