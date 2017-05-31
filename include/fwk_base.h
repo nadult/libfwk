@@ -296,16 +296,19 @@ template <class T> class immutable_weak_ptr {
 // TODO: use lib-lldb
 class Backtrace {
   public:
-	Backtrace(std::vector<void *> addresses = {}, std::vector<string> symbols = {});
-	static Backtrace get(size_t skip = 0, void *context = nullptr);
+	Backtrace(std::vector<void *> addresses, std::vector<string> symbols, pair<string, bool>);
+	Backtrace(std::vector<void *> addresses, std::vector<string> symbols);
+	Backtrace() = default;
+
+	// If available, gdb backtraces will be used (which are more accurate)
+	static Backtrace get(size_t skip = 0, void *context = nullptr, bool use_gdb = true);
+
 	static pair<string, bool> gdbBacktrace(int skip_frames = 0) NOINLINE;
 
 	// When filter is true, analyzer uses c++filt program to demangle C++
 	// names; it also shortens some of the common long class names, like
 	// std::basic_string<...> to fwk::string
-	//
-	// If available, gdb backtraces will be used (which are more accurate)
-	string analyze(bool filter, bool use_gdb = true) const;
+	string analyze(bool filter) const;
 	auto size() const { return m_addresses.size(); }
 
   private:
@@ -313,6 +316,8 @@ class Backtrace {
 
 	std::vector<void *> m_addresses;
 	std::vector<string> m_symbols;
+	pair<string, bool> m_gdb_result;
+	bool m_use_gdb = false;
 };
 
 class Exception : public std::exception {

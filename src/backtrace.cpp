@@ -218,8 +218,12 @@ namespace {
 
 Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}
+Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols,
+					 pair<string, bool> gdb_result)
+	: m_addresses(move(addresses)), m_symbols(move(symbols)), m_gdb_result(move(gdb_result)),
+	  m_use_gdb(true) {}
 
-Backtrace Backtrace::get(size_t skip, void *context_) {
+Backtrace Backtrace::get(size_t skip, void *context_, bool use_gdb) {
 	std::vector<void *> addrs;
 	std::vector<string> symbols;
 
@@ -268,7 +272,7 @@ Backtrace Backtrace::get(size_t skip, void *context_) {
 	char **strings = backtrace_symbols(addresses, size);
 
 	try {
-		for(size_t i = skip; i < size; i++) {
+		for(size_t i = max<int>(0, skip - 1); i < size; i++) {
 			addrs.emplace_back(addresses[i]);
 			symbols.emplace_back(string(strings[i]));
 		}
@@ -279,7 +283,12 @@ Backtrace Backtrace::get(size_t skip, void *context_) {
 	free(strings);
 #endif
 
-	return Backtrace(move(addrs), move(symbols));
+#ifdef FWK_TARGET_LINUX
+	if(use_gdb)
+		return {move(addrs), move(symbols), gdbBacktrace(skip)};
+#endif
+
+	return {move(addrs), move(symbols)};
 }
 
 pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
@@ -301,18 +310,9 @@ pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
 #endif
 }
 
-string Backtrace::analyze(bool filter, bool use_gdb) const {
+string Backtrace::analyze(bool filter) const {
 	TextFormatter formatter;
 	std::vector<string> file_lines;
-
-#ifdef FWK_TARGET_LINUX
-	pair<string, bool> gdb_backtrace;
-	if(use_gdb) {
-		gdb_backtrace = gdbBacktrace(1);
-		if(gdb_backtrace.second)
-			return gdb_backtrace.first;
-	}
-#endif
 
 #if defined(FWK_TARGET_HTML5)
 #elif defined(FWK_TARGET_LINUX)
@@ -338,8 +338,12 @@ string Backtrace::analyze(bool filter, bool use_gdb) const {
 
 	string out;
 #ifdef FWK_TARGET_LINUX
-	if(!gdb_backtrace.second && use_gdb)
-		out += gdb_backtrace.first + "\n";
+	if(m_use_gdb) {
+		if(!m_gdb_result.second)
+			out += m_gdb_result.first + "\n";
+		else
+			return m_gdb_result.first;
+	}
 #endif
 
 	out += formatter.text();

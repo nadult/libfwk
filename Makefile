@@ -36,9 +36,11 @@ ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
 DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d) $(BUILD_DIR)/fwk.h.d
 
 LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
+LINUX_SHARED_DWO:=$(SHARED_SRC:%=$(BUILD_DIR)/%.dwo)
 MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o)
 
 LINUX_OBJECTS:=$(LINUX_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.o)
+LINUX_DWO:=$(LINUX_SHARED_DWO) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.dwo)
 MINGW_OBJECTS:=$(MINGW_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%_.o)
 
 LINUX_PROGRAMS:=$(PROGRAM_SRC:%=%)
@@ -118,7 +120,7 @@ lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 	cat $^ > $@
 
 clean:
-	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
+	-rm -f $(LINUX_OBJECTS) $(LINUX_DWO) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
 		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp $(PCH_FILE)
 	-rmdir test temp lib tools
