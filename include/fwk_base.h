@@ -298,11 +298,14 @@ class Backtrace {
   public:
 	Backtrace(std::vector<void *> addresses = {}, std::vector<string> symbols = {});
 	static Backtrace get(size_t skip = 0, void *context = nullptr);
+	static pair<string, bool> gdbBacktrace(int skip_frames = 0) NOINLINE;
 
 	// When filter is true, analyzer uses c++filt program to demangle C++
 	// names; it also shortens some of the common long class names, like
 	// std::basic_string<...> to fwk::string
-	string analyze(bool filter) const;
+	//
+	// If available, gdb backtraces will be used (which are more accurate)
+	string analyze(bool filter, bool use_gdb = true) const;
 	auto size() const { return m_addresses.size(); }
 
   private:
