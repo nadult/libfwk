@@ -108,8 +108,10 @@ namespace {
 				continue;
 
 			auto tokens = split(line.c_str());
-			if(tokens.size() > 3)
-				tokens.erase(tokens.begin(), tokens.begin() + 3);
+			if(tokens.size() > 3) {
+				int count = tokens[2] == "in" ? 3 : 1;
+				tokens.erase(tokens.begin(), tokens.begin() + count);
+			}
 
 			string function, file_line;
 
