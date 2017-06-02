@@ -97,7 +97,8 @@ template <class R> static Segment2Isect<R> isect(const Segment2<R> &seg1, const 
 	auto vec2 = seg2.to - seg2.from;
 	R length_sq = lengthSq(vec1);
 
-	if(dot(vec1, perpendicular(vec2)) == R(0)) {
+	auto tdot = dot(vec1, perpendicular(vec2));
+	if(tdot == R(0)) {
 		// lines are parallel
 		if(dot(seg2.from - seg1.from, perpendicular(vec2)) == R(0)) {
 			// lines are the same
@@ -119,16 +120,13 @@ template <class R> static Segment2Isect<R> isect(const Segment2<R> &seg1, const 
 		return none;
 	}
 
-	Vector3<R> affine1[2] = {{seg1.from, R(1)}, {seg1.to, R(1)}};
-	Vector3<R> affine2[2] = {{seg2.from, R(1)}, {seg2.to, R(1)}};
+	auto diff = seg2.from - seg1.from;
+	auto idot = R(1) / tdot;
+	auto t1 = dot(diff, perpendicular(vec2)) * idot;
+	auto t2 = dot(diff, perpendicular(vec1)) * idot;
+	auto point = seg1.from + t1 * vec1;
 
-	auto aline1 = cross(affine1[0], affine1[1]);
-	auto aline2 = cross(affine2[0], affine2[1]);
-	auto apoint = cross(aline1, aline2);
-	auto point = apoint.xy() / apoint.z;
-
-	R t = dot(point - seg1.from, vec1) / length_sq;
-	if(t >= R(0) && t <= R(1))
+	if(t1 >= R(0) && t1 <= R(1) && t2 >= R(0) && t2 <= R(1))
 		return point;
 	return none;
 }

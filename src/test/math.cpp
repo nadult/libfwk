@@ -172,6 +172,10 @@ void test2DIntersections() {
 
 	ASSERT(s6.closestPoint({0.5, 2.5}) == (ParametricPoint<double, 2>({1.5, 1.5}, 0.5)));
 
+	Segment2<double> seg1({-5.6, -9.1}, {-4.2, -9.5});
+	Segment2<double> seg2({-4.1, -9.4}, {-2.4, -9.2});
+	ASSERT(intersection(seg1, seg2) == none);
+
 	auto time = getTime();
 	for(int n = 0; n < 500000; n++) {
 		intersection(s3, s4);
