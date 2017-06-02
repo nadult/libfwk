@@ -26,7 +26,7 @@ namespace detail {
 
 #define ASSERT_EQ(expr1, expr2) ASSERT_BINARY(expr1, expr2, ==)
 #define ASSERT_NE(expr1, expr2) ASSERT_BINARY(expr1, expr2, !=)
-#define ASSERT_GR(expr1, expr2) ASSERT_BINARY(expr1, expr2, >)
+#define ASSERT_GT(expr1, expr2) ASSERT_BINARY(expr1, expr2, >)
 #define ASSERT_LT(expr1, expr2) ASSERT_BINARY(expr1, expr2, <)
 #define ASSERT_LE(expr1, expr2) ASSERT_BINARY(expr1, expr2, <=)
 #define ASSERT_GE(expr1, expr2) ASSERT_BINARY(expr1, expr2, >=)
@@ -34,14 +34,14 @@ namespace detail {
 #ifdef NDEBUG
 #define DASSERT_EQ(expr1, expr2) ((void)0)
 #define DASSERT_NE(expr1, expr2) ((void)0)
-#define DASSERT_GR(expr1, expr2) ((void)0)
+#define DASSERT_GT(expr1, expr2) ((void)0)
 #define DASSERT_LT(expr1, expr2) ((void)0)
 #define DASSERT_LE(expr1, expr2) ((void)0)
 #define DASSERT_GE(expr1, expr2) ((void)0)
 #else
 #define DASSERT_EQ(expr1, expr2) ASSERT_EQ(expr1, expr2)
 #define DASSERT_NE(expr1, expr2) ASSERT_NE(expr1, expr2)
-#define DASSERT_GR(expr1, expr2) ASSERT_GR(expr1, expr2)
+#define DASSERT_GT(expr1, expr2) ASSERT_GT(expr1, expr2)
 #define DASSERT_LT(expr1, expr2) ASSERT_LT(expr1, expr2)
 #define DASSERT_LE(expr1, expr2) ASSERT_LE(expr1, expr2)
 #define DASSERT_GE(expr1, expr2) ASSERT_GE(expr1, expr2)
