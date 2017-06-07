@@ -16,6 +16,15 @@ namespace detail {
 							const char *str2, const T &v1, const T &v2) {
 		assertFailed(file, line, xmlFormat("%:% % %:%", str1, v1, op, str2, v2).c_str());
 	}
+
+	template <class T>
+	void assertFailedHint(const char *file, int line, const char *str, const char *hint,
+						  const T &hint_val) NOINLINE NORETURN;
+	template <class T>
+	void assertFailedHint(const char *file, int line, const char *str, const char *hint,
+						  const T &hint_val) {
+		assertFailed(file, line, xmlFormat("% | %:%", str, hint, hint_val).c_str());
+	}
 }
 
 #define ASSERT_BINARY(expr1, expr2, op)                                                            \
@@ -31,6 +40,11 @@ namespace detail {
 #define ASSERT_LE(expr1, expr2) ASSERT_BINARY(expr1, expr2, <=)
 #define ASSERT_GE(expr1, expr2) ASSERT_BINARY(expr1, expr2, >=)
 
+#define ASSERT_HINT(expr, hint)                                                                    \
+	((expr) || (fwk::detail::assertFailedHint(__FILE__, __LINE__, FWK_STRINGIZE(expr),             \
+											  FWK_STRINGIZE(hint), (hint)),                        \
+				0))
+
 #ifdef NDEBUG
 #define DASSERT_EQ(expr1, expr2) ((void)0)
 #define DASSERT_NE(expr1, expr2) ((void)0)
@@ -45,6 +59,8 @@ namespace detail {
 #define DASSERT_LT(expr1, expr2) ASSERT_LT(expr1, expr2)
 #define DASSERT_LE(expr1, expr2) ASSERT_LE(expr1, expr2)
 #define DASSERT_GE(expr1, expr2) ASSERT_GE(expr1, expr2)
+
+#define DASSERT_HINT(expr, hint) ASSERT_HINT(expr, hint)
 #endif
 }
 
