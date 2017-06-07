@@ -726,15 +726,19 @@ template <class T, EnableIfRealVector<T, 4>...> T inv(const T &v) {
 	return {Scalar(1) / v.x, Scalar(1) / v.y, Scalar(1) / v.z, Scalar(1) / v.w};
 }
 
-template <class T, EnableIfVector<T, 2>...> auto cross(const T &a, const T &b) {
-	return a.x * b.y - a.y * b.x;
-}
-
+// Right-handed coordinate system
 template <class T, EnableIfVector<T, 3>...> T cross(const T &a, const T &b) {
 	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
 
-template <class T, EnableIfVector<T, 2>...> T perpendicular(const T &v) { return {v.y, -v.x}; }
+// Default orientation in all vector-related operations
+// (cross products, rotations, etc.) is counter-clockwise.
+
+template <class T, EnableIfVector<T, 2>...> auto cross(const T &a, const T &b) {
+	return a.x * b.y - a.y * b.x;
+}
+
+template <class T, EnableIfVector<T, 2>...> T perpendicular(const T &v) { return {-v.y, v.x}; }
 
 float vectorToAngle(const float2 &normalized_vector);
 double vectorToAngle(const double2 &normalized_vector);
@@ -745,11 +749,14 @@ double2 angleToVector(double radians);
 float2 rotateVector(const float2 &vec, float radians);
 float3 rotateVector(const float3 &pos, const float3 &axis, float angle);
 
+// Returns CCW angle from vec1 to vec2 in range <0; 2*PI)
 float angleBetween(const float2 &vec1, const float2 &vec2);
 double angleBetween(const double2 &vec1, const double2 &vec2);
 
-float angleBetween(const float2 &prev, const float2 &cur, const float2 &next);
-double angleBetween(const double2 &prev, const double2 &cur, const double2 &next);
+// Returns positive value if vector turned left, negative if it turned right;
+// Returned angle is in range <-PI, PI>
+float angleTowards(const float2 &prev, const float2 &cur, const float2 &next);
+double angleTowards(const double2 &prev, const double2 &cur, const double2 &next);
 
 // TODO: remove it?
 template <class T, EnableIfRealVector<T>...>
@@ -1582,7 +1589,7 @@ Maybe<Ray> intersection(const Plane &, const Plane &);
 class Projection {
   public:
 	Projection(const float3 &origin, const float3 &vec_x, const float3 &vec_y);
-	// X: edge1 Y: normal
+	// X: edge1 Y: -normal
 	Projection(const Triangle &tri);
 
 	float3 project(const float3 &) const;

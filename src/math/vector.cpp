@@ -3,10 +3,12 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+
 #include <cmath>
 #ifdef _WIN32
 #include <float.h>
 #endif
+#include "fwk_assert.h"
 
 #if defined(FWK_TARGET_MSVC) || defined(FWK_TARGET_MINGW)
 void sincosf(float rad, float *s, float *c) {
@@ -62,39 +64,31 @@ float3 rotateVector(const float3 &pos, const float3 &axis, float radians) {
 }
 
 template <class Vec, class Real = typename Vec::Scalar>
-Real angleBetween(const Vec &vec1, const Vec &vec2) {
-	Real vcross = -cross(-vec1, vec2);
-	Real vdot = dot(vec2, vec1);
-
-	Real ang = atan2(vcross, vdot);
-	if(ang < Real(0))
-		ang = constant<Real>::pi * Real(2) + ang;
-	DASSERT(!isnan(ang));
-	return ang;
+Real angleTowards(const Vec &prev, const Vec &cur, const Vec &next) {
+	DASSERT_NE(prev, cur);
+	DASSERT_NE(cur, next);
+	Vec vec1 = normalize(cur - prev), vec2 = normalize(next - cur);
+	return atan2(cross(vec1, vec2), dot(vec1, vec2));
 }
 
-// TODO: write this in terms of angleBetween(v1, v2)
 template <class Vec, class Real = typename Vec::Scalar>
-Real angleBetween(const Vec &prev, const Vec &cur, const Vec &next) {
-	DASSERT(cur != prev && cur != next);
-	Real vcross = -cross(normalize(cur - prev), normalize(next - cur));
-	Real vdot = dot(normalize(next - cur), normalize(prev - cur));
-
-	Real ang = atan2(vcross, vdot);
-	if(ang < 0.0f)
-		ang = constant<Real>::pi * 2.0 + ang;
-	DASSERT(!isnan(ang));
+Real angleBetween(const Vec &vec1, const Vec &vec2) {
+	DASSERT_HINT(isNormalized(vec1), vec1);
+	DASSERT_HINT(isNormalized(vec2), vec2);
+	auto ang = atan2(cross(vec1, vec2), dot(vec1, vec2));
+	if(ang < Real(0))
+		ang += constant<Real>::pi * Real(2);
 	return ang;
 }
 
 float angleBetween(const float2 &a, const float2 &b) { return angleBetween<float2>(a, b); }
 double angleBetween(const double2 &a, const double2 &b) { return angleBetween<double2>(a, b); }
 
-float angleBetween(const float2 &p, const float2 &c, const float2 &n) {
-	return angleBetween<float2>(p, c, n);
+float angleTowards(const float2 &p, const float2 &c, const float2 &n) {
+	return angleTowards<float2>(p, c, n);
 }
 
-double angleBetween(const double2 &p, const double2 &c, const double2 &n) {
-	return angleBetween<double2>(p, c, n);
+double angleTowards(const double2 &p, const double2 &c, const double2 &n) {
+	return angleTowards<double2>(p, c, n);
 }
 }

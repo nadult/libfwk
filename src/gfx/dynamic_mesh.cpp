@@ -430,7 +430,7 @@ vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 				if(normal.y < 0.0f)
 					swap(vector1, vector2);
 
-				float angle = angleBetween(vector1, float2(0, 0), vector2);
+				float angle = angleTowards(vector1, float2(0, 0), vector2);
 				//				xmlPrint("% - %: ang:% nrm:%\n", vector1, vector2, angle, normal);
 				if(angle < min_angle) {
 					min_angle = angle;

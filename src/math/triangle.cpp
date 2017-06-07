@@ -263,8 +263,11 @@ array<float, 3> Triangle::angles() const {
 	float2 pverts[3];
 	for(int i = 0; i < 3; i++)
 		pverts[i] = (proj * verts[i]).xz();
+	float2 dirs[3];
+	for(int i = 0; i < 3; i++)
+		dirs[i] = normalize(pverts[i] - pverts[(i + 2) % 3]);
 	for(int n = 0; n < 3; n++)
-		out[n] = angleBetween(pverts[(n + 2) % 3], pverts[n], pverts[(n + 1) % 3]);
+		out[n] = fconstant::pi * 2.0f - angleBetween(-dirs[n], dirs[(n + 1) % 3]);
 
 	return out;
 }

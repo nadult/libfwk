@@ -63,13 +63,19 @@ void testMatrices() {
 }
 
 void testRays() {
-	Triangle tri(float3(0, 0, 4), float3(0, 2, 4), float3(2, 0, 4));
+	Triangle tri1(float3(0, 0, 4), float3(0, 2, 4), float3(2, 0, 4));
+	Triangle tri2(float3(1, 0, 1), float3(6, 0, 1), float3(1, 0, 6));
+
 	Segment3<float> segment1(float3(0.5, 0.5, 0), float3(0.5, 0.5, 10));
 	Segment3<float> segment2(float3(1.3, 1.3, 0), float3(1.0, 1.0, 10));
 
-	assertCloseEnough(intersection(segment1, tri), 0.4f);
-	assertEqual(intersection(segment2, tri), fconstant::inf);
-	assertCloseEnough(tri.surfaceArea(), 2.0f);
+	assertCloseEnough(intersection(segment1, tri1), 0.4f);
+	assertEqual(intersection(segment2, tri1), fconstant::inf);
+	assertCloseEnough(tri1.surfaceArea(), 2.0f);
+
+	auto angles1 = tri1.angles(), angles2 = tri2.angles();
+	assertCloseEnough(float3(angles2[0], angles2[1], angles2[2]),
+					  float3(0.5f, 0.25f, 0.25f) * fconstant::pi);
 
 	Segment3<float> segment3(float3(1, 1, 0), float3(4, 4, 0));
 	float3 p1(4, 1, 0), p2(0.5, 0.5, 0), p3(5, 4, 0);
@@ -192,11 +198,18 @@ void testVectorAngles() {
 	assertCloseEnough(radToDeg(angleBetween(v2, v1)), 315.0f);
 	assertCloseEnough(angleBetween(v1, v1), 0.0f);
 
-	float2 p1(-4, 4), p2(0, 0), p3(4, 4);
+	assertCloseEnough(rotateVector(float2(1, 0), fconstant::pi * 0.5f), float2(0, 1));
+	assertCloseEnough(angleToVector(fconstant::pi), float2(-1, 0));
 
-	// TODO: verify that it should be like this
-	assertCloseEnough(angleBetween(p1, p2, p3), degToRad(270.0f));
-	assertCloseEnough(angleBetween(p1, p2, p1), degToRad(0.0f));
+	assertCloseEnough(angleTowards(float2(-4, 4), float2(0, 0), float2(4, 4)), degToRad(90.0f));
+	assertCloseEnough(angleTowards(float2(-4, 4), float2(0, 0), float2(-4, 4)), degToRad(180.0f));
+
+	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(-1, 0)), degToRad(135.0f));
+	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(-1, 2)), degToRad(45.0f));
+	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(0, 2)), degToRad(0.0f));
+	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(1, 2)), degToRad(-45.0f));
+	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(1, 0)), degToRad(-135.0f));
+	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(0, 0)), degToRad(-180.0f));
 }
 
 static_assert(isVector<short2>(), "");
