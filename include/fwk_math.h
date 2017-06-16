@@ -12,7 +12,10 @@
 
 namespace fwk {
 
-#define VEC_RANGE()                                                                                \
+using llint = long long;
+using qint = __int128_t;
+
+#define FWK_VEC_RANGE()                                                                            \
 	auto begin() { return v; }                                                                     \
 	auto end() { return v + arraySize(v); }                                                        \
 	auto begin() const { return v; }                                                               \
@@ -73,7 +76,7 @@ struct short2 {
 	const short &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(short2, x, y)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -106,7 +109,7 @@ struct int2 {
 	const int &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(int2, x, y)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -141,7 +144,7 @@ struct int3 {
 	const int &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(int3, x, y, z)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -170,13 +173,85 @@ struct int4 {
 	const int &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(int4, x, y, z, w)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
 			int x, y, z, w;
 		};
 		int v[4];
+	};
+};
+
+struct llint2 {
+	using Scalar = llint;
+	enum { vector_size = 2 };
+
+	constexpr llint2(short2 rhs) : x(rhs.x), y(rhs.y) {}
+	constexpr llint2(int2 rhs) : x(rhs.x), y(rhs.y) {}
+	constexpr llint2(llint x, llint y) : x(x), y(y) {}
+	constexpr llint2() : x(0), y(0) {}
+
+	explicit llint2(int t) : x(t), y(t) {}
+	explicit operator short2() const { return short2(x, y); }
+	explicit operator int2() const { return int2(x, y); }
+
+	llint2 operator+(const llint2 &rhs) const { return {x + rhs.x, y + rhs.y}; }
+	llint2 operator-(const llint2 &rhs) const { return {x - rhs.x, y - rhs.y}; }
+	llint2 operator*(const llint2 &rhs) const { return {x * rhs.x, y * rhs.y}; }
+	llint2 operator*(int s) const { return {x * s, y * s}; }
+	llint2 operator/(int s) const { return {x / s, y / s}; }
+	llint2 operator%(int s) const { return {x % s, y % s}; }
+	llint2 operator-() const { return {-x, -y}; }
+
+	llint &operator[](int idx) { return v[idx]; }
+	const llint &operator[](int idx) const { return v[idx]; }
+
+	FWK_ORDER_BY(llint2, x, y)
+	FWK_VEC_RANGE()
+
+	union {
+		struct {
+			llint x, y;
+		};
+		llint v[2];
+	};
+};
+
+struct qint2 {
+	using Scalar = qint;
+	enum { vector_size = 2 };
+
+	constexpr qint2(short2 rhs) : x(rhs.x), y(rhs.y) {}
+	constexpr qint2(int2 rhs) : x(rhs.x), y(rhs.y) {}
+	constexpr qint2(llint2 rhs) : x(rhs.x), y(rhs.y) {}
+	constexpr qint2(qint x, qint y) : x(x), y(y) {}
+	constexpr qint2() : x(0), y(0) {}
+
+	explicit qint2(int t) : x(t), y(t) {}
+	explicit operator short2() const { return short2(x, y); }
+	explicit operator int2() const { return int2(x, y); }
+	explicit operator llint2() const { return llint2(x, y); }
+
+	qint2 operator+(const qint2 &rhs) const { return {x + rhs.x, y + rhs.y}; }
+	qint2 operator-(const qint2 &rhs) const { return {x - rhs.x, y - rhs.y}; }
+	qint2 operator*(const qint2 &rhs) const { return {x * rhs.x, y * rhs.y}; }
+	qint2 operator*(int s) const { return {x * s, y * s}; }
+	qint2 operator/(int s) const { return {x / s, y / s}; }
+	qint2 operator%(int s) const { return {x % s, y % s}; }
+	qint2 operator-() const { return {-x, -y}; }
+
+	qint &operator[](int idx) { return v[idx]; }
+	const qint &operator[](int idx) const { return v[idx]; }
+
+	FWK_ORDER_BY(qint2, x, y)
+	FWK_VEC_RANGE()
+
+	union {
+		struct {
+			qint x, y;
+		};
+		qint v[2];
 	};
 };
 
@@ -203,7 +278,7 @@ struct float2 {
 	const float &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(float2, x, y)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -241,7 +316,7 @@ struct float3 {
 	float2 yz() const { return {y, z}; }
 
 	FWK_ORDER_BY(float3, x, y, z)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -290,7 +365,7 @@ struct float4 {
 	float3 xyz() const { return {x, y, z}; }
 
 	FWK_ORDER_BY(float4, x, y, z, w)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -329,7 +404,7 @@ struct double2 {
 	const double &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(double2, x, y)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -369,7 +444,7 @@ struct double3 {
 	double2 yz() const { return double2(y, z); }
 
 	FWK_ORDER_BY(double3, x, y, z)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -420,7 +495,7 @@ struct double4 {
 	double3 xyz() const { return double3(x, y, z); }
 
 	FWK_ORDER_BY(double4, x, y, z, w)
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -442,10 +517,12 @@ template <int N> struct NotAVector;
 
 namespace detail {
 
+	template <class T> struct IsIntegral : public std::is_integral<T> {};
+	template <> struct IsIntegral<qint> : public std::true_type {};
+
 	template <class T> using IsReal = std::is_floating_point<T>;
-	template <class T> using IsIntegral = std::is_integral<T>;
 	template <class T> struct IsScalar {
-		enum { value = std::is_floating_point<T>::value || std::is_integral<T>::value };
+		enum { value = std::is_floating_point<T>::value || IsIntegral<T>::value };
 	};
 
 	template <class T> struct IsRealObject {
@@ -504,6 +581,9 @@ namespace detail {
 	template <> struct MakeVector<int, 2> { using type = int2; };
 	template <> struct MakeVector<int, 3> { using type = int3; };
 	template <> struct MakeVector<int, 4> { using type = int4; };
+	template <> struct MakeVector<llint, 2> { using type = llint2; };
+	template <> struct MakeVector<qint, 2> { using type = qint2; };
+
 	template <> struct MakeVector<float, 2> { using type = float2; };
 	template <> struct MakeVector<float, 3> { using type = float3; };
 	template <> struct MakeVector<float, 4> { using type = float4; };
@@ -653,13 +733,13 @@ pair<T, T> vecMinMax(const TRange &range) {
 	return vecMinMax(makeRange(range));
 }
 
-template <class T, EnableIfVector<T>...> T vfloor(T vec) {
+template <class T, EnableIfRealVector<T>...> T vfloor(T vec) {
 	for(int n = 0; n < T::vector_size; n++)
 		vec[n] = std::floor(vec[n]);
 	return vec;
 }
 
-template <class T, EnableIfVector<T>...> T vceil(T vec) {
+template <class T, EnableIfRealVector<T>...> T vceil(T vec) {
 	for(int n = 0; n < T::vector_size; n++)
 		vec[n] = std::ceil(vec[n]);
 	return vec;
@@ -677,13 +757,13 @@ template <class T, EnableIfVector<T, 4>...> auto dot(const T &lhs, const T &rhs)
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
-template <class T, EnableIfVector<T>...> auto length(const T &vec) {
+template <class T, EnableIfRealVector<T>...> auto length(const T &vec) {
 	return std::sqrt(dot(vec, vec));
 }
 
 template <class T, EnableIfVector<T>...> auto lengthSq(const T &vec) { return dot(vec, vec); }
 
-template <class T, EnableIfVector<T>...> auto distance(const T &lhs, const T &rhs) {
+template <class T, EnableIfRealVector<T>...> auto distance(const T &lhs, const T &rhs) {
 	return length(lhs - rhs);
 }
 
@@ -794,26 +874,25 @@ class Matrix4;
 
 struct DisabledInThisDimension;
 
+template <class T, int N>
+using EnableInDimension = EnableIf<isVector<T, N>(), DisabledInThisDimension>;
+#define ENABLE_IF_SIZE(n) template <class U = Vector, EnableInDimension<U, n>...>
+
 // Axis-aligned box (or rect in 2D case)
 // Invariant: min <= max (use validRange)
-template <class Vector_> class Box {
+template <class T> class Box {
 	using NoAsserts = detail::NoAssertsTag;
-	Box(Vector_ min, Vector_ max, NoAsserts) : m_min(min), m_max(max) {}
+	Box(T min, T max, NoAsserts) : m_min(min), m_max(max) {}
 
   public:
-	static_assert(isVector<Vector_>(), "");
+	static_assert(isVector<T>(), "");
 
-	using Scalar = typename Vector_::Scalar;
-	using Vector = Vector_;
+	using Scalar = typename T::Scalar;
+	using Vector = T;
 	using Vector2 = fwk::Vector2<Scalar>;
 	using Point = Vector;
 
 	enum { dim_size = Vector::vector_size, num_corners = 1 << dim_size };
-
-	template <class T, int size>
-	using EnableIfSize =
-		EnableIf<std::is_same<T, Vector>::value && dim_size == size, DisabledInThisDimension>;
-#define ENABLE_IF_SIZE(n) template <class T = Vector, EnableIfSize<T, n>...>
 
 	// min <= max in all dimensions; can be empty
 	bool validRange(const Point &min, const Point &max) const {
@@ -984,8 +1063,6 @@ template <class Vector_> class Box {
 	ENABLE_IF_SIZE(3) Box<Vector2> xy() const { return {m_min.xy(), m_max.xy()}; }
 	ENABLE_IF_SIZE(3) Box<Vector2> yz() const { return {m_min.yz(), m_max.yz()}; }
 
-#undef ENABLE_IF_SIZE
-
   private:
 	union {
 		struct {
@@ -1075,7 +1152,7 @@ class Matrix3 {
 	const float3 &operator[](int n) const { return v[n]; }
 	float3 &operator[](int n) { return v[n]; }
 
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
   private:
 	float3 v[3];
@@ -1137,7 +1214,7 @@ class Matrix4 {
 	const Matrix4 operator-(const Matrix4 &) const;
 	const Matrix4 operator*(float)const;
 
-	VEC_RANGE()
+	FWK_VEC_RANGE()
 
   private:
 	float4 v[4];
@@ -1480,48 +1557,107 @@ template <class Scalar_, int N> struct ParametricPoint {
 	Scalar param;
 };
 
-template <class Real, int N> struct Segment {
-	static_assert(isReal<Real>(),
-				  "Segment cannot be constructed using integral numbers as base type");
-	using Scalar = Real;
-	using Vector = MakeVector<Real, N>;
+enum class SegmentIsectClass { shared_endpoints, point, segment, none };
+
+template <class T, int N> struct ISegment {
+	static_assert(isIntegral<T>(), "");
+	static_assert(N >= 2 && N <= 4, "");
+
+	using Vector = MakeVector<T, N>;
+	using Scalar = T;
 	using Point = Vector;
+	using IsectClass = SegmentIsectClass;
+	enum { dim_size = N };
+
+	ISegment() : from(), to() {}
+	ISegment(const Point &a, const Point &b) : from(a), to(b) {}
+	ISegment(const pair<Point, Point> &pair) : ISegment(pair.first, pair.second) {}
+
+	template <class U>
+	ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
+
+	bool empty() const { return from == to; }
+
+	const Point &operator[](int n) const { return v[n]; }
+	Point &operator[](int n) { return v[n]; }
+
+	bool sharedEndPoints(const ISegment &rhs) const {
+		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
+	}
+
+	// To avoid overflow use type with at leeast 2x more bits
+	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const ISegment &) const;
+
+	FWK_VEC_RANGE()
+	FWK_ORDER_BY(ISegment, from, to)
+
+	union {
+		struct {
+			Point from, to;
+		};
+		Point v[2];
+	};
+};
+
+template <class T> using ISegment2 = ISegment<T, 2>;
+template <class T> using ISegment3 = ISegment<T, 3>;
+
+template <class T, int N> struct Segment {
+	static_assert(isReal<T>(), "use ISegment for integer-based segments");
+	static_assert(N >= 2 && N <= 4, "");
+
+	using Vector = MakeVector<T, N>;
+	using Scalar = T;
+	using Point = Vector;
+	enum { dim_size = N };
 
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
 	Segment(const pair<Point, Point> &pair) : Segment(pair.first, pair.second) {}
 
 	template <class U>
-	Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
+	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
+
+	template <class U> explicit operator ISegment<U, N>() const {
+		using IVector = MakeVector<U, N>;
+		return {IVector(from), IVector(to)};
+	}
+	template <class U>
+	explicit Segment(const ISegment<U, N> &iseg) : from(iseg.from), to(iseg.to) {}
 
 	bool empty() const { return from == to; }
-	Maybe<TRay<Real, N>> asRay() const {
+
+	Maybe<TRay<T, N>> asRay() const {
 		if(empty())
 			return none;
-		return TRay<Real, N>(from, normalize(to - from));
+		return TRay<T, N>(from, normalize(to - from));
 	}
 
 	auto length() const { return fwk::distance(from, to); }
-	Real lengthSq() const { return fwk::distanceSq(from, to); }
+	T lengthSq() const { return fwk::distanceSq(from, to); }
 
-	Vector at(Real param) const { return from + (to - from) * param; }
+	Vector at(T param) const { return from + (to - from) * param; }
 
 	const Point &operator[](int n) const { return v[n]; }
 	Point &operator[](int n) { return v[n]; }
 
-	using PPoint = ParametricPoint<Real, N>;
+	using PPoint = ParametricPoint<T, N>;
 
 	PPoint closestPoint(const Point &) const;
 	PPoint closestPoint(const Segment &) const;
 	pair<PPoint, PPoint> closestPoints(const Segment &) const;
 
-	Real distanceSq(const Point &) const;
-	Real distanceSq(const Segment &) const;
+	T distanceSq(const Point &) const;
+	T distanceSq(const Segment &) const;
 
-	Real distance(const Point &point) const { return std::sqrt(distanceSq(point)); }
-	Real distance(const Segment &seg) const { return std::sqrt(distanceSq(seg)); }
+	T distance(const Point &point) const { return std::sqrt(distanceSq(point)); }
+	T distance(const Segment &seg) const { return std::sqrt(distanceSq(seg)); }
 
-	VEC_RANGE()
+	bool sharedEndPoints(const Segment &rhs) const {
+		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
+	}
+
+	FWK_VEC_RANGE()
 	FWK_ORDER_BY(Segment, from, to)
 
 	union {
@@ -1780,6 +1916,9 @@ SERIALIZE_AS_POD(short2)
 SERIALIZE_AS_POD(int2)
 SERIALIZE_AS_POD(int3)
 SERIALIZE_AS_POD(int4)
+SERIALIZE_AS_POD(llint2)
+SERIALIZE_AS_POD(qint2)
+
 SERIALIZE_AS_POD(float2)
 SERIALIZE_AS_POD(float3)
 SERIALIZE_AS_POD(float4)
@@ -1797,6 +1936,10 @@ SERIALIZE_AS_POD(Segment3<float>)
 SERIALIZE_AS_POD(Segment2<double>)
 SERIALIZE_AS_POD(Segment3<double>)
 
-#undef VEC_RANGE
+SERIALIZE_AS_POD(ISegment2<int>)
+SERIALIZE_AS_POD(ISegment2<llint>)
+SERIALIZE_AS_POD(ISegment2<qint>)
+
+#undef ENABLE_IF_SIZE
 
 #endif

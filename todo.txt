@@ -1,4 +1,10 @@
+- profiler sux; fix it?
+- same algorithms on top of dynamic or static structure: ImmutableGraph, MutableGraph share with shared interface ?
+- remove math.h, etc from includes for ; On the other hand: they will end up in PCH anyway
+- operator== for CRanges ?
+
 - ref(vector) returns vector<> with reference flag acts as a reference to a vector
+- TaggedId<Type>: id for accessing vector<Type> ? generalize it somehow ?
 
 - Add function for registering some information when assertion fails or exception is thrown or whatever
   like: ASSERT_INFO("While parsing file: %s", file_name.c_str());

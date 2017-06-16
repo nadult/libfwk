@@ -50,15 +50,6 @@ inline void assertCloseEnough(const Quat &a, const Quat &b) {
 		reportError(a, b);
 }
 
-template <class T> void assertEqual(const T &a, const T &b) {
-	if(!(a == b)) {
-		TextFormatter atext, btext;
-		xml_conversions::toString(a, atext);
-		xml_conversions::toString(b, btext);
-		THROW("Error:  %s != %s", atext.text(), btext.text());
-	}
-}
-
 void testMain();
 
 int main(int argc, char **argv) {

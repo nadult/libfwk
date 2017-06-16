@@ -2,6 +2,7 @@
 
    This file is part of libfwk.*/
 
+#include "fwk_assert.h"
 #include "fwk_variant.h"
 #include "testing.h"
 
@@ -70,7 +71,7 @@ void testRays() {
 	Segment3<float> segment2(float3(1.3, 1.3, 0), float3(1.0, 1.0, 10));
 
 	assertCloseEnough(intersection(segment1, tri1), 0.4f);
-	assertEqual(intersection(segment2, tri1), fconstant::inf);
+	ASSERT_EQ(intersection(segment2, tri1), fconstant::inf);
 	assertCloseEnough(tri1.surfaceArea(), 2.0f);
 
 	auto angles1 = tri1.angles(), angles2 = tri2.angles();
@@ -97,16 +98,16 @@ void testRays() {
 }
 
 void testIntersections() {
-	assertEqual(distance(Cylinder(float3(1, 2, 3), 0.5, 2.0), float3(2, 2, 3)), 0.5f);
-	assertEqual(distance(Cylinder(float3(1, 1, 1), 1.5, 2.0), float3(2, 1, 1)), 0.0f);
-	assertEqual(distance(Cylinder(float3(2, 2, 2), 1.5, 2.0), float3(2, 5, 2)), 1.0f);
+	ASSERT_EQ(distance(Cylinder(float3(1, 2, 3), 0.5, 2.0), float3(2, 2, 3)), 0.5f);
+	ASSERT_EQ(distance(Cylinder(float3(1, 1, 1), 1.5, 2.0), float3(2, 1, 1)), 0.0f);
+	ASSERT_EQ(distance(Cylinder(float3(2, 2, 2), 1.5, 2.0), float3(2, 5, 2)), 1.0f);
 
 	Triangle tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
 	Segment3<float> seg(float3(1, 1, -1), float3(1, 1, 1));
 
-	assertEqual(intersection(tri, seg), fconstant::inf);
-	assertEqual(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
-	assertEqual(distance(tri, seg), sqrtf(2.0f) / 2.0f);
+	ASSERT_EQ(intersection(tri, seg), fconstant::inf);
+	ASSERT_EQ(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
+	ASSERT_EQ(distance(tri, seg), sqrtf(2.0f) / 2.0f);
 
 	/*
 	Triangle tri1(float3(4.330130, 10.000000, 2.500000), float3(-4.330130, 10.000000, 2.500000),
@@ -116,15 +117,15 @@ void testIntersections() {
 	ASSERT(areIntersecting(tri1, tri2));*/
 
 	Tetrahedron tet({0, 0, 0}, {1, 0, 0}, {0, 0, 1}, {0.25, 1, 0.25});
-	assertEqual(tet.volume(), 1.0f / 6.0f);
+	ASSERT_EQ(tet.volume(), 1.0f / 6.0f);
 
 	FBox bbox1({0, 0, 0}, {1, 1, 1});
 	FBox bbox2({0.49, 0, 0.49}, {1, 1, 1});
 	FBox bbox3({0.45, 0.5, 0.45}, {2, 2, 2});
 
-	//	assertEqual(areIntersecting(tet, bbox1), true);
-	//	assertEqual(areIntersecting(tet, bbox2), true);
-	//	assertEqual(areIntersecting(tet, bbox3), false);
+	//	ASSERT_EQ(areIntersecting(tet, bbox1), true);
+	//	ASSERT_EQ(areIntersecting(tet, bbox2), true);
+	//	ASSERT_EQ(areIntersecting(tet, bbox3), false);
 
 	// TODO: fix sat
 	/*	for(int n = 0; n < 10000; n++) {
@@ -135,7 +136,7 @@ void testIntersections() {
 			FBox box1(makeRange({points[0], points[1]}));
 			FBox box2(makeRange({points[2], points[3]}));
 			try {
-				assertEqual(areOverlapping(box1, box2), satTest(box1, box2));
+				ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
 			} catch(const Exception &ex) {
 				xmlPrint("Box1: %\nBox2: %\n", box1, box2);
 				throw;
@@ -182,13 +183,28 @@ void test2DIntersections() {
 	Segment2<double> seg2({-4.1, -9.4}, {-2.4, -9.2});
 	ASSERT(intersection(seg1, seg2) == none);
 
+	ISegment2<qint> iseg1({0, 0}, {943782983, 999999999}), iseg2({0, 1}, {1000000123, 2});
+	ISegment2<qint> iseg3({-1, 0}, {943782982, 999999999}),
+		iseg4({-123456789, 934567893}, {985473892, -848372819});
+	ASSERT(iseg1.classifyIsect(iseg2) == SegmentIsectClass::point);
+	ASSERT(iseg1.classifyIsect(iseg3) == SegmentIsectClass::none);
+	ASSERT(iseg1.classifyIsect(iseg4) == SegmentIsectClass::point);
+
 	auto time = getTime();
 	for(int n = 0; n < 500000; n++) {
 		intersection(s3, s4);
 		intersection(s6, s4);
 	}
 	time = getTime() - time;
-	xmlPrint("Isect time: % ns / segment pair\n", time * 1000);
+	xmlPrint("Isect time: % ns / Segment<double> pair\n", time * 1000);
+
+	time = getTime();
+	for(int n = 0; n < 500000; n++) {
+		iseg1.classifyIsect(iseg2);
+		iseg1.classifyIsect(iseg4);
+	}
+	time = getTime() - time;
+	xmlPrint("Isect time: % ns / ISegment<qint> pair\n", time * 1000);
 }
 
 void testVectorAngles() {
@@ -254,20 +270,20 @@ void testMain() {
 	float3 vec(0, 0, 1);
 	for(auto &s : vec)
 		s += 12.0f;
-	assertEqual(vec, float3(12, 12, 13));
+	ASSERT_EQ(vec, float3(12, 12, 13));
 	static_assert(std::is_same<decltype(makeRange(vec)), Range<float>>::value, "");
 	ASSERT(!isnan(vec) && !isnan(double3(vec)));
 
 	auto float_len = length(float3(1, 2, 3));
-	auto double_len = length(int3(2, 3, 4));
+	auto double_len = length((double3)int3(2, 3, 4));
 	auto int_dot = dot(int2(10, 20), int2(30, 40));
-	assertEqual(vabs(float2(-10.5f, 13.125f)), float2(10.5f, 13.125f));
+	ASSERT_EQ(vabs(float2(-10.5f, 13.125f)), float2(10.5f, 13.125f));
 
 	static_assert(std::is_same<decltype(float_len), float>::value, "");
 	static_assert(std::is_same<decltype(double_len), double>::value, "");
 	static_assert(std::is_same<decltype(int_dot), int>::value, "");
 
-	assertEqual(xmlFormat("%", double3(1, 2, 3)), xmlFormat("%", float3(1, 2, 3)));
+	ASSERT_EQ(xmlFormat("%", double3(1, 2, 3)), xmlFormat("%", float3(1, 2, 3)));
 
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));

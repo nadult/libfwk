@@ -10,10 +10,51 @@
 
 namespace fwk {
 
-template <class Real, int N>
-auto Segment<Real, N>::closestPoint(const Point &point) const -> PPoint {
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const {
+	if(sharedEndPoints(rhs))
+		return SegmentIsectClass::shared_endpoints;
+
+	auto vec1 = to - from;
+	auto vec2 = rhs.to - rhs.from;
+
+	auto tdot = dot(vec1, perpendicular(vec2));
+	if(tdot == T(0)) {
+		// lines are parallel
+		if(dot(rhs.from - from, perpendicular(vec2)) == T(0)) {
+			// lines are the same
+			T length_sq = lengthSq(vec1);
+			T t1 = dot(rhs.from - from, vec1);
+			T t2 = dot(rhs.to - from, vec1);
+
+			if(t2 < t1)
+				swap(t1, t2);
+			t1 = max(t1, T(0));
+			t2 = min(t2, T(length_sq));
+
+			if(t2 < T(0) || t1 > length_sq)
+				return SegmentIsectClass::none;
+			if(t1 == t2)
+				return SegmentIsectClass::point;
+			return SegmentIsectClass::segment;
+		}
+
+		return SegmentIsectClass::none;
+	}
+
+	auto diff = rhs.from - from;
+	auto t1 = dot(diff, perpendicular(vec2));
+	auto t2 = dot(diff, perpendicular(vec1));
+
+	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
+		return SegmentIsectClass::point;
+	return SegmentIsectClass::none;
+}
+
+template <class T, int N> auto Segment<T, N>::closestPoint(const Point &point) const -> PPoint {
 	if(empty())
-		return {from, Real(0)};
+		return {from, T(0)};
 
 	auto vec = to - from;
 	auto t = dot(point - from, vec) / fwk::lengthSq(vec);
@@ -21,17 +62,16 @@ auto Segment<Real, N>::closestPoint(const Point &point) const -> PPoint {
 	return {from + vec * t, t};
 }
 
-template <class Real, int N>
-auto Segment<Real, N>::closestPoint(const Segment &seg) const -> PPoint {
+template <class T, int N> auto Segment<T, N>::closestPoint(const Segment &seg) const -> PPoint {
 	return closestPoints(seg).first;
 }
 
 // Source: Real-time collision detection (page 150)
-template <class Real, int N>
-auto Segment<Real, N>::closestPoints(const Segment &rhs) const -> pair<PPoint, PPoint> {
+template <class T, int N>
+auto Segment<T, N>::closestPoints(const Segment &rhs) const -> pair<PPoint, PPoint> {
 	if(empty()) {
 		auto point2 = rhs.closestPoint(from);
-		return {PPoint{from, Real(0)}, point2};
+		return {PPoint{from, T(0)}, point2};
 	}
 
 	auto r = from - rhs.from;
@@ -43,10 +83,10 @@ auto Segment<Real, N>::closestPoints(const Segment &rhs) const -> pair<PPoint, P
 	auto b = dot(d1, d2);
 	auto denom = a * e - b * b;
 
-	Real s = 0, t = 0;
+	T s = 0, t = 0;
 
-	if(denom != Real(0)) {
-		s = clamp((b * f - c * e) / denom, Real(0), Real(1));
+	if(denom != T(0)) {
+		s = clamp((b * f - c * e) / denom, T(0), T(1));
 	} else {
 		// TODO: handle it properly
 		s = 0;
@@ -54,19 +94,19 @@ auto Segment<Real, N>::closestPoints(const Segment &rhs) const -> pair<PPoint, P
 
 	t = (b * s + f) / e;
 
-	if(t < Real(0)) {
+	if(t < T(0)) {
 		t = 0;
-		s = clamp(-c / a, Real(0), Real(1));
-	} else if(t > Real(1)) {
+		s = clamp(-c / a, T(0), T(1));
+	} else if(t > T(1)) {
 		t = 1;
-		s = clamp((b - c) / a, Real(0), Real(1));
+		s = clamp((b - c) / a, T(0), T(1));
 	}
 
 	return make_pair(PPoint{at(s), s}, PPoint{rhs.at(t), t});
 }
 
 // Source: Real-time collision detection (page 130)
-template <class Real, int N> Real Segment<Real, N>::distanceSq(const Point &point) const {
+template <class T, int N> T Segment<T, N>::distanceSq(const Point &point) const {
 	// TODO: verify this
 	auto ab = to - from, ac = point - from, bc = point - to;
 	auto e = dot(ac, ab);
@@ -78,11 +118,12 @@ template <class Real, int N> Real Segment<Real, N>::distanceSq(const Point &poin
 	return dot(ac, ac) - e * e / f;
 }
 
-template <class Real, int N> Real Segment<Real, N>::distanceSq(const Segment &rhs) const {
+template <class T, int N> T Segment<T, N>::distanceSq(const Segment &rhs) const {
 	auto points = closestPoints(rhs);
 	return fwk::distanceSq(points.first.point, points.second.point);
 }
 
+// Jak opisać dokładność tej funkcji ?
 template <class R> static Segment2Isect<R> isect(const Segment2<R> &seg1, const Segment2<R> &seg2) {
 	if(seg1.empty()) {
 		if(seg2.empty()) {
@@ -95,10 +136,11 @@ template <class R> static Segment2Isect<R> isect(const Segment2<R> &seg1, const 
 
 	auto vec1 = seg1.to - seg1.from;
 	auto vec2 = seg2.to - seg2.from;
-	R length_sq = lengthSq(vec1);
 
 	auto tdot = dot(vec1, perpendicular(vec2));
 	if(tdot == R(0)) {
+		R length_sq = lengthSq(vec1);
+
 		// lines are parallel
 		if(dot(seg2.from - seg1.from, perpendicular(vec2)) == R(0)) {
 			// lines are the same
@@ -138,6 +180,14 @@ Segment2Isect<float> intersection(const Segment2<float> &lhs, const Segment2<flo
 Segment2Isect<double> intersection(const Segment2<double> &lhs, const Segment2<double> &rhs) {
 	return isect(lhs, rhs);
 }
+
+template struct ISegment<int, 2>;
+template struct ISegment<llint, 2>;
+template struct ISegment<qint, 2>;
+
+template SegmentIsectClass ISegment<int, 2>::classifyIsect(const ISegment<int, 2> &) const;
+template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const ISegment<llint, 2> &) const;
+template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const ISegment<qint, 2> &) const;
 
 template struct Segment<float, 2>;
 template struct Segment<float, 3>;
