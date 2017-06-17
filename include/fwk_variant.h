@@ -523,9 +523,40 @@ struct static_none_of : std::is_same<std::tuple<std::false_type, typename Predic
                                      std::tuple<typename Predicate<Ts>::type..., std::false_type>>
 {};
 
+
+template <typename... Fns>
+struct visitor;
+
+template <typename Fn>
+struct visitor<Fn> : Fn
+{
+    using type = Fn;
+    using Fn::operator();
+
+    visitor(Fn fn) : Fn(fn) {}
+};
+
+template <typename Fn, typename... Fns>
+struct visitor<Fn, Fns...> : Fn, visitor<Fns...>
+{
+    using type = visitor;
+    using Fn::operator();
+    using visitor<Fns...>::operator();
+
+    visitor(Fn fn, Fns... fns) : Fn(fn), visitor<Fns...>(fns...) {}
+};
+
+template <typename... Fns>
+visitor<Fns...> make_visitor(Fns... fns)
+{
+    return visitor<Fns...>(fns...);
+}
+
 } // namespace detail
 
 struct no_init {};
+
+struct TypeNotInVariant;
 
 template <typename... Types>
 class Variant
@@ -533,6 +564,9 @@ class Variant
     static_assert(sizeof...(Types) > 0, "Template parameter type list of variant can not be empty");
 	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
     static_assert(detail::static_none_of<std::is_reference, Types...>::value, "Variant can not hold reference types. Maybe use std::reference?");
+
+	template <class T>
+	using EnableIfValidType = EnableIf<(detail::direct_type<T, Types...>::index != -1), TypeNotInVariant>;
 
 #ifdef NDEBUG
 	enum { ndebug_access = true };
@@ -655,10 +689,9 @@ public:
         new (&data) T(std::forward<Args>(args)...);
         type_index = detail::direct_type<T, Types...>::index;
     }
+
     // get<T>()
-    template <typename T, typename std::enable_if<
-                          (detail::direct_type<T, Types...>::index != -1)
-                          >::type* = nullptr>
+    template <typename T, EnableIfValidType<T>...>
     VARIANT_INLINE T & get()
     {
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
@@ -667,9 +700,7 @@ public:
 			FATAL("Bad variant access in get()");
     }
 
-    template <typename T, typename std::enable_if<
-                          (detail::direct_type<T, Types...>::index != -1)
-                          >::type* = nullptr>
+    template <typename T, EnableIfValidType<T>...>
     VARIANT_INLINE T const& get() const
     {
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
@@ -679,30 +710,47 @@ public:
     }
 
     // get<T>() - T stored as std::reference_wrapper<T>
-    template <typename T, typename std::enable_if<
-                          (detail::direct_type<std::reference_wrapper<T>, Types...>::index != -1)
-                          >::type* = nullptr>
-    VARIANT_INLINE T& get()
-    {
+    template <typename T, EnableIfValidType<std::reference_wrapper<T>>...>
+    VARIANT_INLINE T& get() {
         if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
         else
 			FATAL("Bad variant access in get()");
     }
 
-    template <typename T,typename std::enable_if<
-                         (detail::direct_type<std::reference_wrapper<T const>, Types...>::index != -1)
-                         >::type* = nullptr>
-    VARIANT_INLINE T const& get() const
-    {
+    template <typename T, EnableIfValidType<std::reference_wrapper<const T>>...>
+    VARIANT_INLINE T const& get() const {
         if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
         else
 			FATAL("Bad variant access in get()");
     }
 
-    VARIANT_INLINE int which() const noexcept
-    {
+	template <typename T, EnableIfValidType<T>...>
+    VARIANT_INLINE operator T *() const {
+        return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T *>(&data) : nullptr;
+    }
+
+	template <typename T, EnableIfValidType<T>...>
+    VARIANT_INLINE operator const T *() const {
+        return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T const*>(&data) : nullptr;
+    }
+
+	template <typename T, EnableIfValidType<std::reference_wrapper<T>>...>
+    VARIANT_INLINE operator T*() {
+        if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index)
+            return &(*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
+		return nullptr;
+    }
+
+    template <typename T, EnableIfValidType<std::reference_wrapper<const T>>...>
+    VARIANT_INLINE operator const T*() const {
+        if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index)
+            return &(*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
+		return nullptr;
+    }
+
+    VARIANT_INLINE int which() const noexcept {
         return (int)sizeof...(Types) - type_index - 1;
     }
 
@@ -710,17 +758,13 @@ public:
     // unary
     template <typename F, typename V, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
     auto VARIANT_INLINE
-    static visit(V const& v, F && f)
-        -> decltype(detail::dispatcher<F, V, R, Types...>::apply_const(v, std::forward<F>(f)))
-    {
+    static visit(V const& v, F && f) {
         return detail::dispatcher<F, V, R, Types...>::apply_const(v, std::forward<F>(f));
     }
     // non-const
     template <typename F, typename V, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
     auto VARIANT_INLINE
-    static visit(V & v, F && f)
-        -> decltype(detail::dispatcher<F, V, R, Types...>::apply(v, std::forward<F>(f)))
-    {
+    static visit(V & v, F && f) {
         return detail::dispatcher<F, V, R, Types...>::apply(v, std::forward<F>(f));
     }
 
@@ -728,42 +772,44 @@ public:
     // const
     template <typename F, typename V, typename R = typename detail::result_of_binary_visit<F, first_type>::type>
     auto VARIANT_INLINE
-    static binary_visit(V const& v0, V const& v1, F && f)
-        -> decltype(detail::binary_dispatcher<F, V, R, Types...>::apply_const(v0, v1, std::forward<F>(f)))
-    {
+    static binary_visit(V const& v0, V const& v1, F && f) {
         return detail::binary_dispatcher<F, V, R, Types...>::apply_const(v0, v1, std::forward<F>(f));
     }
     // non-const
     template <typename F, typename V, typename R = typename detail::result_of_binary_visit<F, first_type>::type>
     auto VARIANT_INLINE
-    static binary_visit(V& v0, V& v1, F && f)
-        -> decltype(detail::binary_dispatcher<F, V, R, Types...>::apply(v0, v1, std::forward<F>(f)))
-    {
+    static binary_visit(V& v0, V& v1, F && f) {
         return detail::binary_dispatcher<F, V, R, Types...>::apply(v0, v1, std::forward<F>(f));
     }
 
-    ~Variant() noexcept // no-throw destructor
-    {
+
+    // unary
+    template <typename... Fs>
+    auto VARIANT_INLINE match(Fs&&... fs) const {
+        return visit(*this, detail::make_visitor(std::forward<Fs>(fs)...));
+    }
+    // non-const
+    template <typename... Fs>
+    auto VARIANT_INLINE match(Fs&&... fs) {
+        return visit(*this, detail::make_visitor(std::forward<Fs>(fs)...));
+    }
+
+    ~Variant() noexcept { // no-throw destructor
         helper_type::destroy(type_index, &data);
     }
 
-    VARIANT_INLINE bool operator==(Variant const& rhs) const
-    {
+    VARIANT_INLINE bool operator==(Variant const& rhs) const {
         DASSERT(valid() && rhs.valid());
         if (this->which() != rhs.which())
-        {
             return false;
-        }
         detail::comparer<Variant, detail::equal_comp> visitor(*this);
         return visit(rhs, visitor);
     }
-    VARIANT_INLINE bool operator<(Variant const& rhs) const
-    {
+
+    VARIANT_INLINE bool operator<(Variant const& rhs) const {
         DASSERT(valid() && rhs.valid());
         if (this->which() != rhs.which())
-        {
             return this->which() < rhs.which();
-        }
         detail::comparer<Variant, detail::less_comp> visitor(*this);
         return visit(rhs, visitor);
     }
@@ -787,28 +833,24 @@ auto VARIANT_INLINE apply_visitor(F && f, V & v) -> decltype(V::visit(v, std::fo
 // binary visitor interface
 // const
 template <typename F, typename V>
-auto VARIANT_INLINE apply_visitor(F && f, V const& v0, V const& v1) -> decltype(V::binary_visit(v0, v1, std::forward<F>(f)))
-{
+auto VARIANT_INLINE apply_visitor(F && f, V const& v0, V const& v1) {
     return V::binary_visit(v0, v1, std::forward<F>(f));
 }
 
 // non-const
 template <typename F, typename V>
-auto VARIANT_INLINE apply_visitor(F && f, V & v0, V & v1) -> decltype(V::binary_visit(v0, v1, std::forward<F>(f)))
-{
+auto VARIANT_INLINE apply_visitor(F && f, V & v0, V & v1) {
     return V::binary_visit(v0, v1, std::forward<F>(f));
 }
 
 // getter interface
 template <typename ResultType, typename T>
-ResultType & get(T & var)
-{
+ResultType & get(T & var) {
     return var.template get<ResultType>();
 }
 
 template <typename ResultType, typename T>
-ResultType const& get(T const& var)
-{
+ResultType const& get(T const& var) {
     return var.template get<ResultType>();
 }
 
