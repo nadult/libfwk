@@ -1543,20 +1543,6 @@ template <class Real, int N> class TRay {
 
 using Ray = TRay<float, 3>;
 
-template <class Scalar_, int N> struct ParametricPoint {
-	using Scalar = Scalar_;
-	using Vector = MakeVector<Scalar, N>;
-
-	ParametricPoint(Vector point, Scalar param) : point(point), param(param) {}
-
-	operator Vector() const { return point; }
-
-	FWK_ORDER_BY(ParametricPoint, point, param);
-
-	Vector point;
-	Scalar param;
-};
-
 enum class SegmentIsectClass { shared_endpoints, point, segment, none };
 
 template <class T, int N> struct ISegment {
@@ -1627,26 +1613,17 @@ template <class T, int N> struct Segment {
 
 	bool empty() const { return from == to; }
 
-	Maybe<TRay<T, N>> asRay() const {
-		if(empty())
-			return none;
-		return TRay<T, N>(from, normalize(to - from));
-	}
+	Maybe<TRay<T, N>> asRay() const;
 
 	auto length() const { return fwk::distance(from, to); }
 	T lengthSq() const { return fwk::distanceSq(from, to); }
 
+	// 0.0 -> from; 1.0 -> to
 	Vector at(T param) const { return from + (to - from) * param; }
 	Segment subSegment(T p1, T p2) const { return Segment(at(p1), at(p2)); }
 
 	const Point &operator[](int n) const { return v[n]; }
 	Point &operator[](int n) { return v[n]; }
-
-	using PPoint = ParametricPoint<T, N>;
-
-	PPoint closestPoint(const Point &) const;
-	PPoint closestPoint(const Segment &) const;
-	pair<PPoint, PPoint> closestPoints(const Segment &) const;
 
 	T distanceSq(const Point &) const;
 	T distanceSq(const Segment &) const;
@@ -1669,6 +1646,14 @@ template <class T, int N> struct Segment {
 
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;
 	ENABLE_IF_SIZE(2) Isect isect(const Segment &) const;
+
+	T closestPointParam(const Point &) const;
+	T closestPointParam(const Segment &) const;
+	pair<T, T> closestPointParams(const Segment &) const;
+
+	Vector closestPoint(const Point &pt) const;
+	Vector closestPoint(const Segment &) const;
+	pair<Vector, Vector> closestPoints(const Segment &rhs) const;
 
 	ENABLE_IF_SIZE(3) Segment<T, 2> xz() const { return {from.xz(), to.xz()}; }
 	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }

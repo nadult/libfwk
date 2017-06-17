@@ -80,9 +80,9 @@ void testRays() {
 
 	Segment3<float> segment3(float3(1, 1, 0), float3(4, 4, 0));
 	float3 p1(4, 1, 0), p2(0.5, 0.5, 0), p3(5, 4, 0);
-	assertCloseEnough(segment3.closestPoint(p1).point, float3(2.5, 2.5, 0));
-	assertCloseEnough(segment3.closestPoint(p2).point, float3(1, 1, 0));
-	assertCloseEnough(segment3.closestPoint(p3).point, float3(4, 4, 0));
+	assertCloseEnough(segment3.closestPoint(p1), float3(2.5, 2.5, 0));
+	assertCloseEnough(segment3.closestPoint(p2), float3(1, 1, 0));
+	assertCloseEnough(segment3.closestPoint(p3), float3(4, 4, 0));
 
 	auto ray = *segment3.asRay();
 	assertCloseEnough(closestPoint(ray, p1), float3(2.5, 2.5, 0));
@@ -175,7 +175,7 @@ void test2DIntersections() {
 	ASSERT(s4.isect({{0, 3}, {6, -1}}) == none);
 	ASSERT(s6.isect({{-1, -1}, {-1, -1}}) == double2(-1, -1));
 
-	ASSERT(s6.closestPoint({0.5, 2.5}) == (ParametricPoint<double, 2>({1.5, 1.5}, 0.5)));
+	ASSERT_EQ(s6.closestPointParam({0.5, 2.5}), 0.5);
 
 	Segment2<double> seg1({-5.6, -9.1}, {-4.2, -9.5});
 	Segment2<double> seg2({-4.1, -9.4}, {-2.4, -9.2});

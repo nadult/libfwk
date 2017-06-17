@@ -58,27 +58,31 @@ SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const
 	return SegmentIsectClass::none;
 }
 
-template <class T, int N> auto Segment<T, N>::closestPoint(const Point &point) const -> PPoint {
+template <class T, int N> Maybe<TRay<T, N>> Segment<T, N>::asRay() const {
 	if(empty())
-		return {from, T(0)};
+		return none;
+	return TRay<T, N>(from, normalize(to - from));
+}
+
+template <class T, int N> T Segment<T, N>::closestPointParam(const Point &point) const {
+	if(empty())
+		return T(0);
 
 	auto vec = to - from;
 	auto t = dot(point - from, vec) / fwk::lengthSq(vec);
-	t = clamp(t, Scalar(0), Scalar(1));
-	return {from + vec * t, t};
+	return clamp(t, Scalar(0), Scalar(1));
 }
 
-template <class T, int N> auto Segment<T, N>::closestPoint(const Segment &seg) const -> PPoint {
-	return closestPoints(seg).first;
+template <class T, int N> T Segment<T, N>::closestPointParam(const Segment &seg) const {
+	if(empty())
+		return T(0);
+	return closestPointParams(seg).first;
 }
 
 // Source: Real-time collision detection (page 150)
-template <class T, int N>
-auto Segment<T, N>::closestPoints(const Segment &rhs) const -> pair<PPoint, PPoint> {
-	if(empty()) {
-		auto point2 = rhs.closestPoint(from);
-		return {PPoint{from, T(0)}, point2};
-	}
+template <class T, int N> pair<T, T> Segment<T, N>::closestPointParams(const Segment &rhs) const {
+	if(empty())
+		return {T(0), rhs.closestPointParam(from)};
 
 	auto r = from - rhs.from;
 	auto d1 = to - from, d2 = rhs.to - rhs.from;
@@ -108,7 +112,21 @@ auto Segment<T, N>::closestPoints(const Segment &rhs) const -> pair<PPoint, PPoi
 		s = clamp((b - c) / a, T(0), T(1));
 	}
 
-	return make_pair(PPoint{at(s), s}, PPoint{rhs.at(t), t});
+	return {s, t};
+}
+
+template <class T, int N> auto Segment<T, N>::closestPoint(const Point &pt) const -> Vector {
+	return at(closestPointParam(pt));
+}
+
+template <class T, int N> auto Segment<T, N>::closestPoint(const Segment &seg) const -> Vector {
+	return at(closestPointParam(seg));
+}
+
+template <class T, int N>
+auto Segment<T, N>::closestPoints(const Segment &rhs) const -> pair<Vector, Vector> {
+	auto params = closestPointParams(rhs);
+	return {at(params.first), rhs.at(params.second)};
 }
 
 // Source: Real-time collision detection (page 130)
@@ -126,7 +144,7 @@ template <class T, int N> T Segment<T, N>::distanceSq(const Point &point) const 
 
 template <class T, int N> T Segment<T, N>::distanceSq(const Segment &rhs) const {
 	auto points = closestPoints(rhs);
-	return fwk::distanceSq(points.first.point, points.second.point);
+	return fwk::distanceSq(points.first, points.second);
 }
 
 // Jak opisać dokładność tej funkcji ?

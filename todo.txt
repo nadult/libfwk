@@ -5,6 +5,8 @@
 
 - ref(vector) returns vector<> with reference flag acts as a reference to a vector
 - TaggedId<Type>: id for accessing vector<Type> ? generalize it somehow ?
+- Tagged Value, Tagged Pair
+- Tagged Type
 
 - Add function for registering some information when assertion fails or exception is thrown or whatever
   like: ASSERT_INFO("While parsing file: %s", file_name.c_str());
