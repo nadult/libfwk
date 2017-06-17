@@ -144,14 +144,12 @@ void testIntersections() {
 		}*/
 }
 
-template <class T> void print(Segment2Isect<T> isect) {
-	if(isect.template is<Segment2<T>>()) {
-		auto seg = isect.template get<Segment2<T>>();
-		xmlPrint("Segment(% - %)\n", seg.from, seg.to);
-	} else if(isect.template is<Vector2<T>>()) {
-		auto vec = isect.template get<Vector2<T>>();
-		xmlPrint("Vector %\n", vec);
-	} else
+template <class T> void print(const typename Segment2<T>::Isect &isect) {
+	if(const Segment2<T> *seg = isect)
+		xmlPrint("Segment(% - %)\n", seg->from, seg->to);
+	else if(const Vector2<T> *vec = isect)
+		xmlPrint("Vector %\n", *vec);
+	else
 		xmlPrint("Empty\n");
 }
 
@@ -169,19 +167,19 @@ void test2DIntersections() {
 	//	print(intersection(s3, s4));
 	//	print(intersection(s6, Segment2<double>({-1, -1}, {-1, -1})));
 
-	ASSERT(intersection(s1, s2) == Segment2<float>({3, 2}, {4, 1}));
-	ASSERT(intersection(s3, s4) == Segment2<double>({3, 2}, {4, 1}));
-	ASSERT(intersection(s5, s4) == double2(1, 4));
-	ASSERT(intersection(s6, s4) == double2(2.5, 2.5));
-	ASSERT(intersection(s6, Segment2<double>({4.1, 4.1}, {5, 5})) == none);
-	ASSERT(intersection(s4, Segment2<double>({0, 3}, {6, -1})) == none);
-	ASSERT(intersection(s6, Segment2<double>({-1, -1}, {-1, -1})) == double2(-1, -1));
+	ASSERT(s1.isect(s2) == Segment2<float>({3, 2}, {4, 1}));
+	ASSERT(s3.isect(s4) == Segment2<double>({3, 2}, {4, 1}));
+	ASSERT(s5.isect(s4) == double2(1, 4));
+	ASSERT(s6.isect(s4) == double2(2.5, 2.5));
+	ASSERT(s6.isect({{4.1, 4.1}, {5, 5}}) == none);
+	ASSERT(s4.isect({{0, 3}, {6, -1}}) == none);
+	ASSERT(s6.isect({{-1, -1}, {-1, -1}}) == double2(-1, -1));
 
 	ASSERT(s6.closestPoint({0.5, 2.5}) == (ParametricPoint<double, 2>({1.5, 1.5}, 0.5)));
 
 	Segment2<double> seg1({-5.6, -9.1}, {-4.2, -9.5});
 	Segment2<double> seg2({-4.1, -9.4}, {-2.4, -9.2});
-	ASSERT(intersection(seg1, seg2) == none);
+	ASSERT(seg1.isect(seg2) == none);
 
 	ISegment2<qint> iseg1({0, 0}, {943782983, 999999999}), iseg2({0, 1}, {1000000123, 2});
 	ISegment2<qint> iseg3({-1, 0}, {943782982, 999999999}),
@@ -192,8 +190,8 @@ void test2DIntersections() {
 
 	auto time = getTime();
 	for(int n = 0; n < 500000; n++) {
-		intersection(s3, s4);
-		intersection(s6, s4);
+		s3.isect(s4);
+		s6.isect(s4);
 	}
 	time = getTime() - time;
 	xmlPrint("Isect time: % ns / Segment<double> pair\n", time * 1000);

@@ -47,6 +47,12 @@ SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const
 	auto t1 = dot(diff, perpendicular(vec2));
 	auto t2 = dot(diff, perpendicular(vec1));
 
+	if(tdot < T(0)) {
+		t1 = -t1;
+		t2 = -t2;
+		tdot = -tdot;
+	}
+
 	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
 		return SegmentIsectClass::point;
 	return SegmentIsectClass::none;
@@ -124,75 +130,90 @@ template <class T, int N> T Segment<T, N>::distanceSq(const Segment &rhs) const 
 }
 
 // Jak opisać dokładność tej funkcji ?
-template <class R> static Segment2Isect<R> isect(const Segment2<R> &seg1, const Segment2<R> &seg2) {
-	if(seg1.empty()) {
-		if(seg2.empty()) {
-			if(seg1.to == seg2.to)
-				return seg1.to;
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
+	if(empty()) {
+		if(rhs.empty()) {
+			if(to == rhs.to)
+				return PointParam{T(1)};
 			return none;
 		}
-		return isect(seg2, seg1);
+		return rhs.isectParam(*this);
 	}
 
-	auto vec1 = seg1.to - seg1.from;
-	auto vec2 = seg2.to - seg2.from;
+	auto vec1 = to - from;
+	auto vec2 = rhs.to - rhs.from;
 
 	auto tdot = dot(vec1, perpendicular(vec2));
-	if(tdot == R(0)) {
-		R length_sq = lengthSq(vec1);
+	if(tdot == T(0)) {
+		T length_sq = fwk::lengthSq(vec1);
 
 		// lines are parallel
-		if(dot(seg2.from - seg1.from, perpendicular(vec2)) == R(0)) {
+		if(dot(rhs.from - from, perpendicular(vec2)) == T(0)) {
 			// lines are the same
-			R t1 = dot(seg2.from - seg1.from, vec1) / length_sq;
-			R t2 = dot(seg2.to - seg1.from, vec1) / length_sq;
+			T t1 = dot(rhs.from - from, vec1);
+			T t2 = dot(rhs.to - from, vec1);
 
 			if(t2 < t1)
 				swap(t1, t2);
-			t1 = max(t1, R(0));
-			t2 = min(t2, R(1));
+			t1 = max(t1, T(0));
+			t2 = min(t2, length_sq);
 
-			if(t2 < R(0) || t1 > R(1))
+			if(t2 < T(0) || t1 > length_sq)
 				return none;
 			if(t1 == t2)
-				return seg1.from + vec1 * t1;
-			return Segment2<R>(seg1.from + vec1 * t1, seg1.from + vec1 * t2);
+				return PointParam{t1 / length_sq};
+			return SubSegmentParam{t1 / length_sq, t2 / length_sq};
 		}
 
 		return none;
 	}
 
-	auto diff = seg2.from - seg1.from;
-	auto idot = R(1) / tdot;
-	auto t1 = dot(diff, perpendicular(vec2)) * idot;
-	auto t2 = dot(diff, perpendicular(vec1)) * idot;
-	auto point = seg1.from + t1 * vec1;
+	auto diff = rhs.from - from;
+	auto t1 = dot(diff, perpendicular(vec2));
+	auto t2 = dot(diff, perpendicular(vec1));
+	if(tdot < T(0)) {
+		t1 = -t1;
+		t2 = -t2;
+		tdot = -tdot;
+	}
 
-	if(t1 >= R(0) && t1 <= R(1) && t2 >= R(0) && t2 <= R(1))
-		return point;
+	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
+		return PointParam{t1 / tdot};
 	return none;
 }
 
-Segment2Isect<float> intersection(const Segment2<float> &lhs, const Segment2<float> &rhs) {
-	return isect(lhs, rhs);
-}
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+auto Segment<T, N>::isect(const Segment &rhs) const -> Isect {
+	auto pisect = isectParam(rhs);
 
-Segment2Isect<double> intersection(const Segment2<double> &lhs, const Segment2<double> &rhs) {
-	return isect(lhs, rhs);
+	if(const PointParam *pt = pisect)
+		return at(pt->param);
+	if(const SubSegmentParam *seg = pisect)
+		return subSegment(seg->pmin, seg->pmax);
+	return none;
 }
 
 template struct ISegment<int, 2>;
 template struct ISegment<llint, 2>;
 template struct ISegment<qint, 2>;
 
-template SegmentIsectClass ISegment<int, 2>::classifyIsect(const ISegment<int, 2> &) const;
-template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const ISegment<llint, 2> &) const;
-template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const ISegment<qint, 2> &) const;
+template SegmentIsectClass ISegment<int, 2>::classifyIsect(const ISegment &) const;
+template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const ISegment &) const;
+template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const ISegment &) const;
 
 template struct Segment<float, 2>;
 template struct Segment<float, 3>;
 template struct Segment<double, 2>;
 template struct Segment<double, 3>;
+
+template auto Segment<float, 2>::isectParam(const Segment &) const -> IsectParam;
+template auto Segment<double, 2>::isectParam(const Segment &) const -> IsectParam;
+
+template auto Segment<float, 2>::isect(const Segment &) const -> Isect;
+template auto Segment<double, 2>::isect(const Segment &) const -> Isect;
 
 // TODO: proper intersections (not based on rays)
 pair<float, float> intersectionRange(const Segment<float, 3> &segment, const Box<float3> &box) {

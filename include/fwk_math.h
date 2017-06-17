@@ -1637,6 +1637,7 @@ template <class T, int N> struct Segment {
 	T lengthSq() const { return fwk::distanceSq(from, to); }
 
 	Vector at(T param) const { return from + (to - from) * param; }
+	Segment subSegment(T p1, T p2) const { return Segment(at(p1), at(p2)); }
 
 	const Point &operator[](int n) const { return v[n]; }
 	Point &operator[](int n) { return v[n]; }
@@ -1657,6 +1658,22 @@ template <class T, int N> struct Segment {
 		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
 	}
 
+	struct PointParam {
+		T param;
+	};
+	struct SubSegmentParam {
+		T pmin, pmax;
+	};
+	using IsectParam = Variant<None, PointParam, SubSegmentParam>;
+	using Isect = Variant<None, Segment, Vector>;
+
+	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;
+	ENABLE_IF_SIZE(2) Isect isect(const Segment &) const;
+
+	ENABLE_IF_SIZE(3) Segment<T, 2> xz() const { return {from.xz(), to.xz()}; }
+	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }
+	ENABLE_IF_SIZE(3) Segment<T, 2> yz() const { return {from.yz(), to.yz()}; }
+
 	FWK_VEC_RANGE()
 	FWK_ORDER_BY(Segment, from, to)
 
@@ -1670,15 +1687,6 @@ template <class T, int N> struct Segment {
 
 template <class T> using Segment2 = Segment<T, 2>;
 template <class T> using Segment3 = Segment<T, 3>;
-
-template <class T, EnableIfScalar<T>...> Segment2<T> asXZ(const Segment3<T> &segment) {
-	return {segment.from.xz(), segment.to.xz()};
-}
-
-template <class T> using Segment2Isect = Variant<None, Segment2<T>, Vector2<T>>;
-
-Segment2Isect<float> intersection(const Segment2<float> &, const Segment2<float> &);
-Segment2Isect<double> intersection(const Segment2<double> &, const Segment2<double> &);
 
 float distance(const Ray &ray, const float3 &point);
 float distance(const Ray &, const Ray &);
