@@ -4,6 +4,7 @@
 - operator== for CRanges ?
 
 - ref(vector) returns vector<> with reference flag acts as a reference to a vector
+  keeping ref(vector) in local context can be more efficient than keeping reference
 - TaggedId<Type>: id for accessing vector<Type> ? generalize it somehow ?
 - Tagged Value, Tagged Pair
 - Tagged Type

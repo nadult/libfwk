@@ -1571,7 +1571,7 @@ template <class T, int N> struct ISegment {
 		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
 	}
 
-	// To avoid overflow use type with at leeast 2x more bits
+	// To avoid overflow use type with at least 2x more bits
 	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const ISegment &) const;
 
 	FWK_VEC_RANGE()
@@ -1635,13 +1635,7 @@ template <class T, int N> struct Segment {
 		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
 	}
 
-	struct PointParam {
-		T param;
-	};
-	struct SubSegmentParam {
-		T pmin, pmax;
-	};
-	using IsectParam = Variant<None, PointParam, SubSegmentParam>;
+	using IsectParam = Variant<None, T, pair<T, T>>;
 	using Isect = Variant<None, Segment, Vector>;
 
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;

@@ -154,10 +154,13 @@ auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
 	if(empty()) {
 		if(rhs.empty()) {
 			if(to == rhs.to)
-				return PointParam{T(1)};
+				return T(0);
 			return none;
 		}
-		return rhs.isectParam(*this);
+
+		if(rhs.closestPoint(from) == from)
+			return T(0);
+		return none;
 	}
 
 	auto vec1 = to - from;
@@ -165,10 +168,10 @@ auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
 
 	auto tdot = dot(vec1, perpendicular(vec2));
 	if(tdot == T(0)) {
-		T length_sq = fwk::lengthSq(vec1);
-
 		// lines are parallel
 		if(dot(rhs.from - from, perpendicular(vec2)) == T(0)) {
+			T length_sq = fwk::lengthSq(vec1);
+
 			// lines are the same
 			T t1 = dot(rhs.from - from, vec1);
 			T t2 = dot(rhs.to - from, vec1);
@@ -177,12 +180,14 @@ auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
 				swap(t1, t2);
 			t1 = max(t1, T(0));
 			t2 = min(t2, length_sq);
+			auto ilen = T(1) / length_sq;
 
 			if(t2 < T(0) || t1 > length_sq)
 				return none;
-			if(t1 == t2)
-				return PointParam{t1 / length_sq};
-			return SubSegmentParam{t1 / length_sq, t2 / length_sq};
+			if(t2 == t1)
+				return t1;
+
+			return make_pair(t1 * ilen, t2 * ilen);
 		}
 
 		return none;
@@ -198,7 +203,7 @@ auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
 	}
 
 	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
-		return PointParam{t1 / tdot};
+		return t1 / tdot;
 	return none;
 }
 
@@ -207,10 +212,10 @@ template <class U, EnableInDimension<U, 2>...>
 auto Segment<T, N>::isect(const Segment &rhs) const -> Isect {
 	auto pisect = isectParam(rhs);
 
-	if(const PointParam *pt = pisect)
-		return at(pt->param);
-	if(const SubSegmentParam *seg = pisect)
-		return subSegment(seg->pmin, seg->pmax);
+	if(const T *pt = pisect)
+		return at(*pt);
+	if(const pair<T, T> *seg = pisect)
+		return subSegment(seg->first, seg->second);
 	return none;
 }
 

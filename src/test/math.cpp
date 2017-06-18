@@ -144,7 +144,7 @@ void testIntersections() {
 		}*/
 }
 
-template <class T> void print(const typename Segment2<T>::Isect &isect) {
+template <class T> void print(const typename Segment<T, 2>::Isect &isect) {
 	if(const Segment2<T> *seg = isect)
 		xmlPrint("Segment(% - %)\n", seg->from, seg->to);
 	else if(const Vector2<T> *vec = isect)
