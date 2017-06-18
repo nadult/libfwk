@@ -52,6 +52,7 @@ namespace detail {
 #define DASSERT_LT(expr1, expr2) ((void)0)
 #define DASSERT_LE(expr1, expr2) ((void)0)
 #define DASSERT_GE(expr1, expr2) ((void)0)
+#define DASSERT_HINT(expr, hint) ((void)0)
 #else
 #define DASSERT_EQ(expr1, expr2) ASSERT_EQ(expr1, expr2)
 #define DASSERT_NE(expr1, expr2) ASSERT_NE(expr1, expr2)
