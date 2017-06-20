@@ -911,10 +911,10 @@ template <class T> class Box {
 	}
 
 	ENABLE_IF_SIZE(2)
-	Box(Scalar min_x, Scalar min_y, Scalar max_x, Scalar max_y)
+	explicit Box(Scalar min_x, Scalar min_y, Scalar max_x, Scalar max_y)
 		: Box({min_x, min_y}, {max_x, max_y}) {}
 	ENABLE_IF_SIZE(3)
-	Box(Scalar min_x, Scalar min_y, Scalar min_z, Scalar max_x, Scalar max_y, Scalar max_z)
+	explicit Box(Scalar min_x, Scalar min_y, Scalar min_z, Scalar max_x, Scalar max_y, Scalar max_z)
 		: Box({min_x, min_y, min_z}, {max_x, max_y, max_z}) {}
 
 	Box(Point min, Point max) : m_min(min), m_max(max) { DASSERT(validRange(min, max)); }
@@ -1559,9 +1559,9 @@ template <class T, int N> struct ISegment {
 	ISegment(const Point &a, const Point &b) : from(a), to(b) {}
 	ISegment(const pair<Point, Point> &pair) : ISegment(pair.first, pair.second) {}
 
-	ENABLE_IF_SIZE(2) ISegment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
+	ENABLE_IF_SIZE(2) explicit ISegment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
 	ENABLE_IF_SIZE(3)
-	ISegment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
+	explicit ISegment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
 	template <class U>
 	ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
@@ -1577,6 +1577,7 @@ template <class T, int N> struct ISegment {
 
 	// Computations performed on qints; you have to be careful if values are greater than 32 bits
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
+	bool testIsect(const Box<Vector> &) const;
 
 	FWK_VEC_RANGE()
 	FWK_ORDER_BY(ISegment, from, to)
@@ -1606,9 +1607,9 @@ template <class T, int N> struct Segment {
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
 	Segment(const pair<Point, Point> &pair) : Segment(pair.first, pair.second) {}
 
-	ENABLE_IF_SIZE(2) Segment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
+	ENABLE_IF_SIZE(2) explicit Segment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
 	ENABLE_IF_SIZE(3)
-	Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
+	explicit Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
 	template <class U>
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
@@ -1647,10 +1648,16 @@ template <class T, int N> struct Segment {
 	using IsectParam = SegmentIsectParam<T>;
 	using Isect = Variant<None, Segment, Vector>;
 
+	Isect at(const IsectParam &) const;
+
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;
 	ENABLE_IF_SIZE(2) Isect isect(const Segment &) const;
 
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Segment &) const;
+	bool testIsect(const Box<Vector> &) const;
+
+	IsectParam isectParam(const Box<Vector> &) const;
+	Isect isect(const Box<Vector> &) const;
 
 	T closestPointParam(const Point &) const;
 	T closestPointParam(const Segment &) const;

@@ -171,9 +171,9 @@ void test2DIntersections() {
 	ASSERT(s3.isect(s4) == Segment2<double>(3, 2, 4, 1));
 	ASSERT(s5.isect(s4) == double2(1, 4));
 	ASSERT(s6.isect(s4) == double2(2.5, 2.5));
-	ASSERT(s6.isect({4.1, 4.1, 5, 5}) == none);
-	ASSERT(s4.isect({0, 3, 6, -1}) == none);
-	ASSERT(s6.isect({-1, -1, -1, -1}) == double2(-1, -1));
+	ASSERT(s6.isect(Segment2<double>{4.1, 4.1, 5, 5}) == none);
+	ASSERT(s4.isect(Segment2<double>{0, 3, 6, -1}) == none);
+	ASSERT(s6.isect(Segment2<double>{-1, -1, -1, -1}) == double2(-1, -1));
 
 	ASSERT_EQ(s6.closestPointParam({0.5, 2.5}), 0.5);
 

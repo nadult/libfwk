@@ -12,6 +12,8 @@ namespace fwk {
 
 template <class Seg>
 static SegmentIsectClass classifyIsect(const Seg &, const Seg &) __attribute__((always_inline));
+template <class Seg, class Box>
+static SegmentIsectClass classifyIsect(const Seg &, const Box &) __attribute__((always_inline));
 
 template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, const Seg &rhs) {
 	using T = typename Seg::Scalar;
@@ -19,7 +21,7 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 
 	if(lhs.empty()) {
 		if(rhs.empty())
-			return lhs.from == rhs.from? IClass::point : IClass::none;
+			return lhs.from == rhs.from ? IClass::point : IClass::none;
 		return classifyIsect(rhs, lhs);
 	}
 
@@ -68,6 +70,38 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 	return IClass::none;
 }
 
+template <class T> static T abs(T val) { return std::abs(val); }
+template <> qint abs(qint val) { return val < 0 ? -val : val; }
+
+// Source: RTCD, page: 183
+template <class Seg, class Box> static bool testIsect(const Seg &seg, const Box &box) {
+	using T = typename Seg::Scalar;
+	using Vec = typename Seg::Vector;
+	using IClass = SegmentIsectClass;
+	enum { dim_size = Seg::dim_size };
+
+	auto c = box.center();
+	auto e = box.max() - c;
+	auto m = (seg.from + seg.to) / T(2);
+	auto d = seg.to - m;
+	m = m - c;
+
+	Vec ad;
+	for(int i = 0; i < dim_size; i++) {
+		ad[i] = abs(d[i]);
+		if(abs(m[i]) > e[i] + ad[i])
+			return false;
+	}
+
+	if(dim_size > 2)
+		FATAL("Please fix me");
+
+	//TODO: proper solution for 3D and test if segment is touching...
+	if(abs(m.x * d.y - m.y * d.x) > e.x * ad.y + e.y * ad.x)
+		return false;
+	return true;
+}
+
 template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
 SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const {
@@ -78,6 +112,16 @@ template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
 SegmentIsectClass Segment<T, N>::classifyIsect(const Segment<T, N> &rhs) const {
 	return fwk::classifyIsect(*this, rhs);
+}
+
+template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
+	using QVec = MakeVector<qint, N>;
+	return fwk::testIsect(ISegment<qint, N>{QVec(from) * 2, QVec(to) * 2},
+						  Box<QVec>{QVec(box.min()) * 2, QVec(box.max()) * 2});
+}
+
+template <class T, int N> bool Segment<T, N>::testIsect(const Box<Vector> &box) const {
+	return fwk::testIsect(*this, box);
 }
 
 template <class T, int N> Maybe<TRay<T, N>> Segment<T, N>::asRay() const {
@@ -169,6 +213,14 @@ template <class T, int N> T Segment<T, N>::distanceSq(const Segment &rhs) const 
 	return fwk::distanceSq(points.first, points.second);
 }
 
+template <class T, int N> auto Segment<T, N>::at(const IsectParam &pisect) const -> Isect {
+	if(const T *pt = pisect)
+		return at(*pt);
+	if(const pair<T, T> *seg = pisect)
+		return subSegment(seg->first, seg->second);
+	return none;
+}
+
 // Jak opisać dokładność tej funkcji ?
 template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
@@ -232,13 +284,17 @@ auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
 template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
 auto Segment<T, N>::isect(const Segment &rhs) const -> Isect {
-	auto pisect = isectParam(rhs);
+	return at(isectParam(rhs));
+}
 
-	if(const T *pt = pisect)
-		return at(*pt);
-	if(const pair<T, T> *seg = pisect)
-		return subSegment(seg->first, seg->second);
+template <class T, int N>
+auto Segment<T, N>::isectParam(const Box<Vector> &box) const -> IsectParam {
+	FATAL("Write me please");
 	return none;
+}
+
+template <class T, int N> auto Segment<T, N>::isect(const Box<Vector> &box) const -> Isect {
+	return at(isectParam(box));
 }
 
 template struct ISegment<int, 2>;
