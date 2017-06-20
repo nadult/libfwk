@@ -142,8 +142,27 @@ namespace {
 			s_user_ctrlc_func();
 	}
 
-	void segfaultHandler(int, siginfo_t *, void *) {
-		printf("Segmentation fault!\n");
+	struct SignalInfo {
+		int num;
+		const char *message;
+	}
+	static const s_signal_infos[] = {
+		{ SIGSEGV, "Segmentation fault" },
+		{ SIGILL, "Illegal instruction" },
+		{ SIGFPE, "Invalid floating-point operation"},
+		{ SIGBUS, "Bus error" }};
+
+	void segfaultHandler(int, siginfo_t *sig_info, void *) {
+		const char *message = nullptr;
+		for(const auto &info : s_signal_infos)
+			if(info.num == sig_info->si_signo)
+				message = info.message;
+
+		if(message)
+			printf("%s!\n", message);
+		else
+			printf("Signal caught: %d!\n", (int)sig_info->si_signo);
+
 		printf("Backtrace:\n%s\n", Backtrace::get(2).analyze(true).c_str());
 		exit(1);
 	}
@@ -154,8 +173,9 @@ namespace {
 			sa.sa_flags = SA_SIGINFO;
 			sigemptyset(&sa.sa_mask);
 			sa.sa_sigaction = segfaultHandler;
-			if(sigaction(SIGSEGV, &sa, NULL) == -1)
-				FATAL("Error while attaching segfault handler");
+			for(const auto &info : s_signal_infos)
+				if(sigaction(info.num, &sa, NULL) == -1)
+					FATAL("Error while attaching signal handler: %d", info.num);
 		}
 	} s_auto_sig_handler;
 

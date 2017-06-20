@@ -2,6 +2,7 @@
 - same algorithms on top of dynamic or static structure: ImmutableGraph, MutableGraph share with shared interface ?
 - remove math.h, etc from includes for ; On the other hand: they will end up in PCH anyway
 - operator== for CRanges ?
+- toString, fromString for enums ?
 
 - ref(vector) returns vector<> with reference flag acts as a reference to a vector
   keeping ref(vector) in local context can be more efficient than keeping reference
