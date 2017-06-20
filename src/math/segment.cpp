@@ -15,9 +15,16 @@ static SegmentIsectClass classifyIsect(const Seg &, const Seg &) __attribute__((
 
 template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, const Seg &rhs) {
 	using T = typename Seg::Scalar;
+	using IClass = SegmentIsectClass;
+
+	if(lhs.empty()) {
+		if(rhs.empty())
+			return lhs.from == rhs.from? IClass::point : IClass::none;
+		return classifyIsect(rhs, lhs);
+	}
 
 	if(lhs.sharedEndPoints(rhs))
-		return SegmentIsectClass::shared_endpoints;
+		return IClass::shared_endpoints;
 
 	auto vec1 = lhs.to - lhs.from;
 	auto vec2 = rhs.to - rhs.from;
@@ -37,13 +44,13 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 			t2 = min(t2, T(length_sq));
 
 			if(t2 < T(0) || t1 > length_sq)
-				return SegmentIsectClass::none;
+				return IClass::none;
 			if(t1 == t2)
-				return SegmentIsectClass::point;
-			return SegmentIsectClass::segment;
+				return IClass::point;
+			return IClass::segment;
 		}
 
-		return SegmentIsectClass::none;
+		return IClass::none;
 	}
 
 	auto diff = rhs.from - lhs.from;
@@ -57,8 +64,8 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 	}
 
 	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
-		return SegmentIsectClass::point;
-	return SegmentIsectClass::none;
+		return IClass::point;
+	return IClass::none;
 }
 
 template <class T, int N>

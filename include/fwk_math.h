@@ -1548,7 +1548,7 @@ template <class T> using SegmentIsectParam = Variant<None, T, pair<T, T>>;
 
 template <class T, int N> struct ISegment {
 	static_assert(isIntegral<T>(), "");
-	static_assert(N >= 2 && N <= 4, "");
+	static_assert(N >= 2 && N <= 3, "");
 
 	using Vector = MakeVector<T, N>;
 	using Scalar = T;
@@ -1558,6 +1558,10 @@ template <class T, int N> struct ISegment {
 	ISegment() : from(), to() {}
 	ISegment(const Point &a, const Point &b) : from(a), to(b) {}
 	ISegment(const pair<Point, Point> &pair) : ISegment(pair.first, pair.second) {}
+
+	ENABLE_IF_SIZE(2) ISegment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
+	ENABLE_IF_SIZE(3)
+	ISegment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
 	template <class U>
 	ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
@@ -1589,8 +1593,9 @@ template <class T> using ISegment2 = ISegment<T, 2>;
 template <class T> using ISegment3 = ISegment<T, 3>;
 
 template <class T, int N> struct Segment {
-	static_assert(isReal<T>(), "use ISegment for integer-based segments");
-	static_assert(N >= 2 && N <= 4, "");
+	static_assert(!isIntegral<T>(), "use ISegment for integer-based segments");
+	static_assert(isReal<T>(), "");
+	static_assert(N >= 2 && N <= 3, "");
 
 	using Vector = MakeVector<T, N>;
 	using Scalar = T;
@@ -1600,6 +1605,10 @@ template <class T, int N> struct Segment {
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
 	Segment(const pair<Point, Point> &pair) : Segment(pair.first, pair.second) {}
+
+	ENABLE_IF_SIZE(2) Segment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
+	ENABLE_IF_SIZE(3)
+	Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
 	template <class U>
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}

@@ -67,8 +67,8 @@ void testRays() {
 	Triangle tri1(float3(0, 0, 4), float3(0, 2, 4), float3(2, 0, 4));
 	Triangle tri2(float3(1, 0, 1), float3(6, 0, 1), float3(1, 0, 6));
 
-	Segment3<float> segment1(float3(0.5, 0.5, 0), float3(0.5, 0.5, 10));
-	Segment3<float> segment2(float3(1.3, 1.3, 0), float3(1.0, 1.0, 10));
+	Segment3<float> segment1(0.5, 0.5, 0, 0.5, 0.5, 10);
+	Segment3<float> segment2(1.3, 1.3, 0, 1.0, 1.0, 10);
 
 	assertCloseEnough(intersection(segment1, tri1), 0.4f);
 	ASSERT_EQ(intersection(segment2, tri1), fconstant::inf);
@@ -89,8 +89,8 @@ void testRays() {
 	assertCloseEnough(closestPoint(ray, p2), float3(0.5, 0.5, 0));
 	assertCloseEnough(closestPoint(ray, p3), float3(4.5, 4.5, 0));
 
-	Segment3<float> segment4(float3(3, 2, 0), float3(6, 5, 0));
-	Segment3<float> segment5(float3(6, 7, 0), float3(8, 5, 0));
+	Segment3<float> segment4({3, 2, 0}, {6, 5, 0});
+	Segment3<float> segment5({6, 7, 0}, {8, 5, 0});
 	auto ray4 = *segment4.asRay(), ray5 = *segment5.asRay();
 	assertCloseEnough(segment3.distance(segment4), sqrtf(2.0f) / 2.0f);
 	assertCloseEnough(segment4.distance(segment5), sqrtf(2.0f));
@@ -103,7 +103,7 @@ void testIntersections() {
 	ASSERT_EQ(distance(Cylinder(float3(2, 2, 2), 1.5, 2.0), float3(2, 5, 2)), 1.0f);
 
 	Triangle tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
-	Segment3<float> seg(float3(1, 1, -1), float3(1, 1, 1));
+	Segment3<float> seg(1, 1, -1, 1, 1, 1);
 
 	ASSERT_EQ(intersection(tri, seg), fconstant::inf);
 	ASSERT_EQ(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
@@ -154,39 +154,42 @@ template <class T> void print(const typename Segment<T, 2>::Isect &isect) {
 }
 
 void test2DIntersections() {
-	Segment2<float> s1({1, 4}, {4, 1});
-	Segment2<float> s2({3, 2}, {5, 0});
+	Segment2<float> s1(1, 4, 4, 1);
+	Segment2<float> s2(3, 2, 5, 0);
 
-	Segment2<double> s3({3, 2}, {5, 0});
-	Segment2<double> s4({1, 4}, {4, 1});
+	Segment2<double> s3(3, 2, 5, 0);
+	Segment2<double> s4(1, 4, 4, 1);
 
-	Segment2<double> s5({1, 7}, {1, 4});
-	Segment2<double> s6({-1, -1}, {4, 4});
+	Segment2<double> s5(1, 7, 1, 4);
+	Segment2<double> s6(-1, -1, 4, 4);
 
 	//	print(intersection(s1, s2));
 	//	print(intersection(s3, s4));
 	//	print(intersection(s6, Segment2<double>({-1, -1}, {-1, -1})));
 
-	ASSERT(s1.isect(s2) == Segment2<float>({3, 2}, {4, 1}));
-	ASSERT(s3.isect(s4) == Segment2<double>({3, 2}, {4, 1}));
+	ASSERT(s1.isect(s2) == Segment2<float>(3, 2, 4, 1));
+	ASSERT(s3.isect(s4) == Segment2<double>(3, 2, 4, 1));
 	ASSERT(s5.isect(s4) == double2(1, 4));
 	ASSERT(s6.isect(s4) == double2(2.5, 2.5));
-	ASSERT(s6.isect({{4.1, 4.1}, {5, 5}}) == none);
-	ASSERT(s4.isect({{0, 3}, {6, -1}}) == none);
-	ASSERT(s6.isect({{-1, -1}, {-1, -1}}) == double2(-1, -1));
+	ASSERT(s6.isect({4.1, 4.1, 5, 5}) == none);
+	ASSERT(s4.isect({0, 3, 6, -1}) == none);
+	ASSERT(s6.isect({-1, -1, -1, -1}) == double2(-1, -1));
 
 	ASSERT_EQ(s6.closestPointParam({0.5, 2.5}), 0.5);
 
-	Segment2<double> seg1({-5.6, -9.1}, {-4.2, -9.5});
-	Segment2<double> seg2({-4.1, -9.4}, {-2.4, -9.2});
+	Segment2<double> seg1(-5.6, -9.1, -4.2, -9.5);
+	Segment2<double> seg2(-4.1, -9.4, -2.4, -9.2);
 	ASSERT(seg1.isect(seg2) == none);
 
-	ISegment2<qint> iseg1({0, 0}, {943782983, 999999999}), iseg2({0, 1}, {1000000123, 2});
-	ISegment2<qint> iseg3({-1, 0}, {943782982, 999999999}),
-		iseg4({-123456789, 934567893}, {985473892, -848372819});
+	ISegment2<int> iseg1(0, 0, 943782983, 999999999), iseg2(0, 1, 1000000123, 2);
+	ISegment2<int> iseg3(-1, 0, 943782982, 999999999),
+		iseg4(-123456789, 934567893, 985473892, -848372819);
 	ASSERT(iseg1.classifyIsect(iseg2) == SegmentIsectClass::point);
 	ASSERT(iseg1.classifyIsect(iseg3) == SegmentIsectClass::none);
 	ASSERT(iseg1.classifyIsect(iseg4) == SegmentIsectClass::point);
+
+	ISegment2<int> seg5(1, 1, 4, 4);
+	ASSERT(seg5.classifyIsect(ISegment2<int>(3, 3, 3, 3)) == SegmentIsectClass::point);
 
 	auto time = getTime();
 	for(int n = 0; n < 500000; n++) {
