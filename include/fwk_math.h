@@ -1543,7 +1543,8 @@ template <class Real, int N> class TRay {
 
 using Ray = TRay<float, 3>;
 
-enum class SegmentIsectClass { shared_endpoints, point, segment, none };
+DEFINE_ENUM(SegmentIsectClass, shared_endpoints, point, segment, none);
+template <class T> using SegmentIsectParam = Variant<None, T, pair<T, T>>;
 
 template <class T, int N> struct ISegment {
 	static_assert(isIntegral<T>(), "");
@@ -1552,7 +1553,6 @@ template <class T, int N> struct ISegment {
 	using Vector = MakeVector<T, N>;
 	using Scalar = T;
 	using Point = Vector;
-	using IsectClass = SegmentIsectClass;
 	enum { dim_size = N };
 
 	ISegment() : from(), to() {}
@@ -1571,8 +1571,8 @@ template <class T, int N> struct ISegment {
 		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
 	}
 
-	// To avoid overflow use type with at least 2x more bits
-	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const ISegment &) const;
+	// Computations performed on qints; you have to be careful if values are greater than 32 bits
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
 
 	FWK_VEC_RANGE()
 	FWK_ORDER_BY(ISegment, from, to)
@@ -1635,11 +1635,13 @@ template <class T, int N> struct Segment {
 		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
 	}
 
-	using IsectParam = Variant<None, T, pair<T, T>>;
+	using IsectParam = SegmentIsectParam<T>;
 	using Isect = Variant<None, Segment, Vector>;
 
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;
 	ENABLE_IF_SIZE(2) Isect isect(const Segment &) const;
+
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Segment &) const;
 
 	T closestPointParam(const Point &) const;
 	T closestPointParam(const Segment &) const;

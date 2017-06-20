@@ -10,23 +10,26 @@
 
 namespace fwk {
 
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const {
-	if(sharedEndPoints(rhs))
+template <class Seg>
+static SegmentIsectClass classifyIsect(const Seg &, const Seg &) __attribute__((always_inline));
+
+template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, const Seg &rhs) {
+	using T = typename Seg::Scalar;
+
+	if(lhs.sharedEndPoints(rhs))
 		return SegmentIsectClass::shared_endpoints;
 
-	auto vec1 = to - from;
+	auto vec1 = lhs.to - lhs.from;
 	auto vec2 = rhs.to - rhs.from;
 
 	auto tdot = dot(vec1, perpendicular(vec2));
 	if(tdot == T(0)) {
 		// lines are parallel
-		if(dot(rhs.from - from, perpendicular(vec2)) == T(0)) {
+		if(dot(rhs.from - lhs.from, perpendicular(vec2)) == T(0)) {
 			// lines are the same
 			T length_sq = lengthSq(vec1);
-			T t1 = dot(rhs.from - from, vec1);
-			T t2 = dot(rhs.to - from, vec1);
+			T t1 = dot(rhs.from - lhs.from, vec1);
+			T t2 = dot(rhs.to - lhs.from, vec1);
 
 			if(t2 < t1)
 				swap(t1, t2);
@@ -43,7 +46,7 @@ SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const
 		return SegmentIsectClass::none;
 	}
 
-	auto diff = rhs.from - from;
+	auto diff = rhs.from - lhs.from;
 	auto t1 = dot(diff, perpendicular(vec2));
 	auto t2 = dot(diff, perpendicular(vec1));
 
@@ -56,6 +59,18 @@ SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const
 	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
 		return SegmentIsectClass::point;
 	return SegmentIsectClass::none;
+}
+
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+SegmentIsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const {
+	return fwk::classifyIsect(ISegment<qint, 2>(*this), ISegment<qint, 2>(rhs));
+}
+
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+SegmentIsectClass Segment<T, N>::classifyIsect(const Segment<T, N> &rhs) const {
+	return fwk::classifyIsect(*this, rhs);
 }
 
 template <class T, int N> Maybe<TRay<T, N>> Segment<T, N>::asRay() const {
@@ -237,6 +252,9 @@ template auto Segment<double, 2>::isectParam(const Segment &) const -> IsectPara
 
 template auto Segment<float, 2>::isect(const Segment &) const -> Isect;
 template auto Segment<double, 2>::isect(const Segment &) const -> Isect;
+
+template SegmentIsectClass Segment<float, 2>::classifyIsect(const Segment &) const;
+template SegmentIsectClass Segment<double, 2>::classifyIsect(const Segment &) const;
 
 // TODO: proper intersections (not based on rays)
 pair<float, float> intersectionRange(const Segment<float, 3> &segment, const Box<float3> &box) {
