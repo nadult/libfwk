@@ -56,10 +56,20 @@ float2 rotateVector(const float2 &vec, float radians) {
 	return float2(c * vec.x - s * vec.y, c * vec.y + s * vec.x);
 }
 
+double2 rotateVector(const double2 &vec, double radians) {
+	double s, c;
+	sincos(radians, &s, &c);
+	return double2(c * vec.x - s * vec.y, c * vec.y + s * vec.x);
+}
+
 float3 rotateVector(const float3 &pos, const float3 &axis, float radians) {
 	float s, c;
 	sincosf(radians, &s, &c);
-
+	return pos * c + cross(axis, pos) * s + axis * dot(axis, pos) * (1 - c);
+}
+double3 rotateVector(const double3 &pos, const double3 &axis, double radians) {
+	double s, c;
+	sincos(radians, &s, &c);
 	return pos * c + cross(axis, pos) * s + axis * dot(axis, pos) * (1 - c);
 }
 

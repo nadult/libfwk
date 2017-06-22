@@ -827,7 +827,9 @@ float2 angleToVector(float radians);
 double2 angleToVector(double radians);
 
 float2 rotateVector(const float2 &vec, float radians);
+double2 rotateVector(const double2 &vec, double radians);
 float3 rotateVector(const float3 &pos, const float3 &axis, float angle);
+double3 rotateVector(const double3 &pos, const double3 &axis, double angle);
 
 // Returns CCW angle from vec1 to vec2 in range <0; 2*PI)
 float angleBetween(const float2 &vec1, const float2 &vec2);
