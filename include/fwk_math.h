@@ -264,6 +264,7 @@ struct float2 {
 
 	explicit float2(float t) : x(t), y(t) {}
 	explicit float2(const int2 &vec) : x(vec.x), y(vec.y) {}
+	explicit operator short2() const { return {(short)x, (short)y}; }
 	explicit operator int2() const { return {(int)x, (int)y}; }
 
 	float2 operator+(const float2 &rhs) const { return {x + rhs.x, y + rhs.y}; }
@@ -389,7 +390,8 @@ struct double2 {
 	double2(const int2 &vec) : x(vec.x), y(vec.y) {}
 	explicit double2(double t) : x(t), y(t) {}
 	explicit double2(const float2 &vec) : x(vec.x), y(vec.y) {}
-	explicit operator int2() const { return int2((int)x, (int)y); }
+	explicit operator int2() const { return {(int)x, (int)y}; }
+	explicit operator short2() const { return {(short)x, (short)y}; }
 	explicit operator float2() const { return {(float)x, (float)y}; }
 
 	double2 operator+(const double2 &rhs) const { return double2(x + rhs.x, y + rhs.y); }
@@ -913,10 +915,10 @@ template <class T> class Box {
 	}
 
 	ENABLE_IF_SIZE(2)
-	explicit Box(Scalar min_x, Scalar min_y, Scalar max_x, Scalar max_y)
+	Box(Scalar min_x, Scalar min_y, Scalar max_x, Scalar max_y)
 		: Box({min_x, min_y}, {max_x, max_y}) {}
 	ENABLE_IF_SIZE(3)
-	explicit Box(Scalar min_x, Scalar min_y, Scalar min_z, Scalar max_x, Scalar max_y, Scalar max_z)
+	Box(Scalar min_x, Scalar min_y, Scalar min_z, Scalar max_x, Scalar max_y, Scalar max_z)
 		: Box({min_x, min_y, min_z}, {max_x, max_y, max_z}) {}
 
 	Box(Point min, Point max) : m_min(min), m_max(max) { DASSERT(validRange(min, max)); }

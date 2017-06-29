@@ -1,3 +1,10 @@
+- fix segment: classifyIsect
+- toString(bool [4] ) ?
+- enum to flags ?
+- FCOLOr sux (operations only on alpha part or only on color part)
+- segment, box::empty -> degenerate ?
+- isnan checks in all math classes (paranoid in vectors as well ?)
+- copyable_ptr (unique_ptr but with copying ability (why the hell it doesn't have it?))
 - profiler sux; fix it?
 - same algorithms on top of dynamic or static structure: ImmutableGraph, MutableGraph share with shared interface ?
 - remove math.h, etc from includes for ; On the other hand: they will end up in PCH anyway

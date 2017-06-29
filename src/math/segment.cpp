@@ -19,6 +19,7 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 	using T = typename Seg::Scalar;
 	using IClass = SegmentIsectClass;
 
+	// TODO: what if one vertex is shared and another vertex is lying on the segment?
 	if(lhs.empty()) {
 		if(rhs.empty())
 			return lhs.from == rhs.from ? IClass::point : IClass::none;
