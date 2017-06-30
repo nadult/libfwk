@@ -22,13 +22,23 @@ static SegmentIsectClass classifyIsect(const Seg &seg, const Point &point) {
 
 	if(isOneOf(point, seg.from, seg.to))
 		return IClass::shared_endpoints;
-
-	auto ab = seg.to - seg.from, ac = point - seg.from;
-	auto e = dot(ac, ab);
-	auto f = dot(ab, ab);
-	if(e < T(0) || e > f)
+	if(seg.empty())
 		return IClass::none;
-	return dot(ac, ac) * f == e * e ? IClass::point : IClass::none;
+
+	auto vec = seg.to - seg.from;
+	if(cross(point - seg.from, vec) == T(0)) {
+		// point lies on the line
+		T length_sq = lengthSq(vec);
+		T t = dot(point - seg.from, vec);
+
+		if(t < T(0) || t > length_sq)
+			return IClass::none;
+		if(t == T(0) || t == length_sq)
+			return IClass::shared_endpoints;
+		return IClass::point;
+	}
+
+	return IClass::none;
 }
 
 template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, const Seg &rhs) {

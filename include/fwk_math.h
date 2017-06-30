@@ -1570,7 +1570,8 @@ template <class T, int N> struct ISegment {
 		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
 	}
 
-	// Computations performed on qints; you have to be careful if values are greater than 32 bits
+	// Computations performed on qints;
+	// You have to be careful if values are greater than 32 bits
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
 	bool testIsect(const Box<Vector> &) const;
