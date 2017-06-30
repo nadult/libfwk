@@ -1,3 +1,11 @@
+- problem: Vector2,3,4 with unions dont work with compilcated base types (like boost::multiprecision::cpp_int
+  or gmp ints...)
+  Options:
+  - .x, .y -> .x(), .y()
+  - remove vector access, [](int i) { return i == 0? x : y; }
+- qint based on boost multiprecision is MUCH slower under mingw for some reason
+
+- qint under mingw ?
 - cleanup in range names ? linear_range ? function should try to convert to crange and if fails -> not a linear range
 - iterators for boxes
 - change order in FWK_ORDER_BY for vectors ?

@@ -2,6 +2,7 @@
 
    This file is part of libfwk. */
 
+#include "fwk_math_ext.h"
 #include "fwk_xml.h"
 #include <cfloat>
 
@@ -161,6 +162,36 @@ namespace xml_conversions {
 		void toString(unsigned long value, TextFormatter &out) { out("%lu", value); }
 		void toString(long long value, TextFormatter &out) { out("%lld", value); }
 		void toString(unsigned long long value, TextFormatter &out) { out("%llu", value); }
+		void toString(qint value, TextFormatter &out) {
+			// Max digits: about 36
+			char buffer[64];
+			int pos = 0;
+
+			bool sign = value < 0;
+			if(value < 0)
+				value = -value;
+
+			while(value > 0) {
+				int digit(value % 10);
+				value /= 10;
+				buffer[pos++] = '0' + digit;
+			}
+
+			if(pos == 0)
+				buffer[pos++] = '0';
+			if(sign)
+				buffer[pos++] = '-';
+			buffer[pos] = 0;
+
+			std::reverse(buffer, buffer + pos);
+			out("%s", buffer);
+		}
+
+		void toString(qint2 value, TextFormatter &out) {
+			toString(value[0], out);
+			out(" ");
+			toString(value[1], out);
+		}
 
 		void toString(const int2 &value, TextFormatter &out) { out("%d %d", value.x, value.y); }
 		void toString(const int3 &value, TextFormatter &out) {

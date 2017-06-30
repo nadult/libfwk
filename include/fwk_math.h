@@ -12,9 +12,6 @@
 
 namespace fwk {
 
-using llint = long long;
-using qint = __int128_t;
-
 #define FWK_VEC_RANGE()                                                                            \
 	auto begin() { return v; }                                                                     \
 	auto end() { return v + arraySize(v); }                                                        \
@@ -180,78 +177,6 @@ struct int4 {
 			int x, y, z, w;
 		};
 		int v[4];
-	};
-};
-
-struct llint2 {
-	using Scalar = llint;
-	enum { vector_size = 2 };
-
-	constexpr llint2(short2 rhs) : x(rhs.x), y(rhs.y) {}
-	constexpr llint2(int2 rhs) : x(rhs.x), y(rhs.y) {}
-	constexpr llint2(llint x, llint y) : x(x), y(y) {}
-	constexpr llint2() : x(0), y(0) {}
-
-	explicit llint2(int t) : x(t), y(t) {}
-	explicit operator short2() const { return short2(x, y); }
-	explicit operator int2() const { return int2(x, y); }
-
-	llint2 operator+(const llint2 &rhs) const { return {x + rhs.x, y + rhs.y}; }
-	llint2 operator-(const llint2 &rhs) const { return {x - rhs.x, y - rhs.y}; }
-	llint2 operator*(const llint2 &rhs) const { return {x * rhs.x, y * rhs.y}; }
-	llint2 operator*(int s) const { return {x * s, y * s}; }
-	llint2 operator/(int s) const { return {x / s, y / s}; }
-	llint2 operator%(int s) const { return {x % s, y % s}; }
-	llint2 operator-() const { return {-x, -y}; }
-
-	llint &operator[](int idx) { return v[idx]; }
-	const llint &operator[](int idx) const { return v[idx]; }
-
-	FWK_ORDER_BY(llint2, x, y)
-	FWK_VEC_RANGE()
-
-	union {
-		struct {
-			llint x, y;
-		};
-		llint v[2];
-	};
-};
-
-struct qint2 {
-	using Scalar = qint;
-	enum { vector_size = 2 };
-
-	constexpr qint2(short2 rhs) : x(rhs.x), y(rhs.y) {}
-	constexpr qint2(int2 rhs) : x(rhs.x), y(rhs.y) {}
-	constexpr qint2(llint2 rhs) : x(rhs.x), y(rhs.y) {}
-	constexpr qint2(qint x, qint y) : x(x), y(y) {}
-	constexpr qint2() : x(0), y(0) {}
-
-	explicit qint2(int t) : x(t), y(t) {}
-	explicit operator short2() const { return short2(x, y); }
-	explicit operator int2() const { return int2(x, y); }
-	explicit operator llint2() const { return llint2(x, y); }
-
-	qint2 operator+(const qint2 &rhs) const { return {x + rhs.x, y + rhs.y}; }
-	qint2 operator-(const qint2 &rhs) const { return {x - rhs.x, y - rhs.y}; }
-	qint2 operator*(const qint2 &rhs) const { return {x * rhs.x, y * rhs.y}; }
-	qint2 operator*(int s) const { return {x * s, y * s}; }
-	qint2 operator/(int s) const { return {x / s, y / s}; }
-	qint2 operator%(int s) const { return {x % s, y % s}; }
-	qint2 operator-() const { return {-x, -y}; }
-
-	qint &operator[](int idx) { return v[idx]; }
-	const qint &operator[](int idx) const { return v[idx]; }
-
-	FWK_ORDER_BY(qint2, x, y)
-	FWK_VEC_RANGE()
-
-	union {
-		struct {
-			qint x, y;
-		};
-		qint v[2];
 	};
 };
 
@@ -520,7 +445,6 @@ template <int N> struct NotAVector;
 namespace detail {
 
 	template <class T> struct IsIntegral : public std::is_integral<T> {};
-	template <> struct IsIntegral<qint> : public std::true_type {};
 
 	template <class T> using IsReal = std::is_floating_point<T>;
 	template <class T> struct IsScalar {
@@ -583,8 +507,6 @@ namespace detail {
 	template <> struct MakeVector<int, 2> { using type = int2; };
 	template <> struct MakeVector<int, 3> { using type = int3; };
 	template <> struct MakeVector<int, 4> { using type = int4; };
-	template <> struct MakeVector<llint, 2> { using type = llint2; };
-	template <> struct MakeVector<qint, 2> { using type = qint2; };
 
 	template <> struct MakeVector<float, 2> { using type = float2; };
 	template <> struct MakeVector<float, 3> { using type = float3; };
@@ -732,15 +654,15 @@ template <class T, EnableIfRealVector<T>...> T vceil(T vec) {
 }
 
 template <class T, EnableIfVector<T, 2>...> auto dot(const T &lhs, const T &rhs) {
-	return lhs.x * rhs.x + lhs.y * rhs.y;
+	return lhs[0] * rhs[0] + lhs[1] * rhs[1];
 }
 
 template <class T, EnableIfVector<T, 3>...> auto dot(const T &lhs, const T &rhs) {
-	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+	return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2];
 }
 
 template <class T, EnableIfVector<T, 4>...> auto dot(const T &lhs, const T &rhs) {
-	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
+	return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2] + lhs[3] * rhs[3];
 }
 
 template <class T, EnableIfRealVector<T>...> auto length(const T &vec) {
@@ -760,15 +682,15 @@ template <class T, EnableIfVector<T>...> auto distanceSq(const T &lhs, const T &
 template <class T, EnableIfRealVector<T>...> T normalize(const T &v) { return v / length(v); }
 
 template <class T, EnableIfVector<T, 2>...> T vabs(const T &v) {
-	return {std::abs(v.x), std::abs(v.y)};
+	return {std::abs(v[0]), std::abs(v[1])};
 }
 
 template <class T, EnableIfVector<T, 3>...> T vabs(const T &v) {
-	return {std::abs(v.x), std::abs(v.y), std::abs(v.z)};
+	return {std::abs(v[0]), std::abs(v[1]), std::abs(v[2])};
 }
 
 template <class T, EnableIfVector<T, 4>...> T vabs(const T &v) {
-	return T(std::abs(v.x), std::abs(v.y), std::abs(v.z), std::abs(v.w));
+	return T(std::abs(v[0]), std::abs(v[1]), std::abs(v[2]), std::abs(v[3]));
 }
 
 template <class T, EnableIfVector<T, 2>...> Vector3<T> asXZ(const T &v) { return {v[0], 0, v[1]}; }
@@ -781,15 +703,15 @@ template <class T, EnableIfVector<T, 3>...> T asXZY(const T &v) { return {v[0], 
 
 template <class T, EnableIfRealVector<T, 2>...> T inv(const T &v) {
 	using Scalar = typename T::Scalar;
-	return {Scalar(1) / v.x, Scalar(1) / v.y};
+	return {Scalar(1) / v[0], Scalar(1) / v[1]};
 }
 template <class T, EnableIfRealVector<T, 3>...> T inv(const T &v) {
 	using Scalar = typename T::Scalar;
-	return {Scalar(1) / v.x, Scalar(1) / v.y, Scalar(1) / v.z};
+	return {Scalar(1) / v[0], Scalar(1) / v[1], Scalar(1) / v[2]};
 }
 template <class T, EnableIfRealVector<T, 4>...> T inv(const T &v) {
 	using Scalar = typename T::Scalar;
-	return {Scalar(1) / v.x, Scalar(1) / v.y, Scalar(1) / v.z, Scalar(1) / v.w};
+	return {Scalar(1) / v[0], Scalar(1) / v[1], Scalar(1) / v[2], Scalar(1) / v[3]};
 }
 
 // Right-handed coordinate system
@@ -801,10 +723,10 @@ template <class T, EnableIfVector<T, 3>...> T cross(const T &a, const T &b) {
 // (cross products, rotations, etc.) is counter-clockwise.
 
 template <class T, EnableIfVector<T, 2>...> auto cross(const T &a, const T &b) {
-	return a.x * b.y - a.y * b.x;
+	return a[0] * b[1] - a[1] * b[0];
 }
 
-template <class T, EnableIfVector<T, 2>...> T perpendicular(const T &v) { return {-v.y, v.x}; }
+template <class T, EnableIfVector<T, 2>...> T perpendicular(const T &v) { return {-v[1], v[0]}; }
 
 float vectorToAngle(const float2 &normalized_vector);
 double vectorToAngle(const double2 &normalized_vector);
@@ -981,7 +903,7 @@ template <class T> class Box {
 	}
 
 	ENABLE_IF_SIZE(2) array<Point, 4> corners() const {
-		return {{m_min, {m_min.x, m_max.y}, m_max, {m_max.x, m_min.y}}};
+		return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
 	}
 
 	ENABLE_IF_SIZE(3) array<Point, num_corners> corners() const {
@@ -1563,9 +1485,6 @@ template <class T, int N> struct ISegment {
 
 	bool empty() const { return from == to; }
 
-	const Point &operator[](int n) const { return v[n]; }
-	Point &operator[](int n) { return v[n]; }
-
 	bool sharedEndPoints(const ISegment &rhs) const {
 		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
 	}
@@ -1574,17 +1493,11 @@ template <class T, int N> struct ISegment {
 	// You have to be careful if values are greater than 32 bits
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
-	bool testIsect(const Box<Vector> &) const;
+	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
 
-	FWK_VEC_RANGE()
 	FWK_ORDER_BY(ISegment, from, to)
 
-	union {
-		struct {
-			Point from, to;
-		};
-		Point v[2];
-	};
+	Point from, to;
 };
 
 template <class T> using ISegment2 = ISegment<T, 2>;
@@ -1629,9 +1542,6 @@ template <class T, int N> struct Segment {
 	Vector at(T param) const { return from + (to - from) * param; }
 	Segment subSegment(T p1, T p2) const { return Segment(at(p1), at(p2)); }
 
-	const Point &operator[](int n) const { return v[n]; }
-	Point &operator[](int n) { return v[n]; }
-
 	T distanceSq(const Point &) const;
 	T distanceSq(const Segment &) const;
 
@@ -1652,7 +1562,7 @@ template <class T, int N> struct Segment {
 
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Segment &) const;
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
-	bool testIsect(const Box<Vector> &) const;
+	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
 
 	IsectParam isectParam(const Box<Vector> &) const;
 	Isect isect(const Box<Vector> &) const;
@@ -1669,15 +1579,9 @@ template <class T, int N> struct Segment {
 	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }
 	ENABLE_IF_SIZE(3) Segment<T, 2> yz() const { return {from.yz(), to.yz()}; }
 
-	FWK_VEC_RANGE()
 	FWK_ORDER_BY(Segment, from, to)
 
-	union {
-		struct {
-			Point from, to;
-		};
-		Point v[2];
-	};
+	Point from, to;
 };
 
 template <class T> using Segment2 = Segment<T, 2>;
@@ -1919,8 +1823,6 @@ SERIALIZE_AS_POD(short2)
 SERIALIZE_AS_POD(int2)
 SERIALIZE_AS_POD(int3)
 SERIALIZE_AS_POD(int4)
-SERIALIZE_AS_POD(llint2)
-SERIALIZE_AS_POD(qint2)
 
 SERIALIZE_AS_POD(float2)
 SERIALIZE_AS_POD(float3)
@@ -1938,10 +1840,7 @@ SERIALIZE_AS_POD(Segment2<float>)
 SERIALIZE_AS_POD(Segment3<float>)
 SERIALIZE_AS_POD(Segment2<double>)
 SERIALIZE_AS_POD(Segment3<double>)
-
 SERIALIZE_AS_POD(ISegment2<int>)
-SERIALIZE_AS_POD(ISegment2<llint>)
-SERIALIZE_AS_POD(ISegment2<qint>)
 
 #undef ENABLE_IF_SIZE
 

@@ -3,6 +3,7 @@
    This file is part of libfwk.*/
 
 #include "fwk_math.h"
+#include "fwk_math_ext.h"
 #include "fwk_variant.h"
 #include "fwk_xml.h"
 #include <cmath>
@@ -101,7 +102,7 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 }
 
 template <class T> static T abs(T val) { return std::abs(val); }
-template <> qint abs(qint val) { return val < 0 ? -val : val; }
+template <> qint abs(qint val) { return val < qint(0) ? -val : val; }
 
 // Source: RTCD, page: 183
 template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
@@ -122,11 +123,7 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 			return false;
 	}
 
-	if(dim_size > 2)
-		FATAL("Please fix me");
-
-	//TODO: proper solution for 3D and test if segment is touching...
-	if(abs(m.x * d.y - m.y * d.x) > e.x * ad.y + e.y * ad.x)
+	if(abs(cross(m, d)) > cross(e, ad))
 		return false;
 	return true;
 }
@@ -154,13 +151,17 @@ template <class U, EnableInDimension<U, 2>...>
 SegmentIsectClass Segment<T, N>::classifyIsect(const Point &point) const {
 	return fwk::classifyIsect(*this, point);
 }
-template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
 	using QVec = MakeVector<qint, N>;
 	return fwk::testIsect(ISegment<qint, N>{QVec(from) * 2, QVec(to) * 2},
 						  Box<QVec>{QVec(box.min()) * 2, QVec(box.max()) * 2});
 }
 
-template <class T, int N> bool Segment<T, N>::testIsect(const Box<Vector> &box) const {
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+bool Segment<T, N>::testIsect(const Box<Vector> &box) const {
 	return fwk::testIsect(*this, box);
 }
 
@@ -349,6 +350,10 @@ template SegmentIsectClass ISegment<int, 2>::classifyIsect(const Point &) const;
 template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const Point &) const;
 template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const Point &) const;
 
+template bool ISegment<int, 2>::testIsect(const Box<Vector> &) const;
+template bool ISegment<llint, 2>::testIsect(const Box<Vector> &) const;
+template bool ISegment<qint, 2>::testIsect(const Box<Vector> &) const;
+
 template struct Segment<float, 2>;
 template struct Segment<float, 3>;
 template struct Segment<double, 2>;
@@ -365,6 +370,9 @@ template SegmentIsectClass Segment<double, 2>::classifyIsect(const Segment &) co
 
 template SegmentIsectClass Segment<float, 2>::classifyIsect(const Point &) const;
 template SegmentIsectClass Segment<double, 2>::classifyIsect(const Point &) const;
+
+template bool Segment<float, 2>::testIsect(const Box<Vector> &) const;
+template bool Segment<double, 2>::testIsect(const Box<Vector> &) const;
 
 // TODO: proper intersections (not based on rays)
 pair<float, float> intersectionRange(const Segment<float, 3> &segment, const Box<float3> &box) {
