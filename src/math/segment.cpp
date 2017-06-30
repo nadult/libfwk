@@ -10,24 +10,38 @@
 
 namespace fwk {
 
-template <class Seg>
-static SegmentIsectClass classifyIsect(const Seg &, const Seg &) __attribute__((always_inline));
-template <class Seg, class Box>
-static SegmentIsectClass classifyIsect(const Seg &, const Box &) __attribute__((always_inline));
+#ifdef __clang__
+template <class Seg> static SegmentIsectClass classifyIsect(const Seg &, const Seg &) ALWAYS_INLINE;
+template <class Seg, class Box> static bool testIsect(const Seg &, const Box &) ALWAYS_INLINE;
+#endif
+
+template <class Seg, class Point>
+static SegmentIsectClass classifyIsect(const Seg &seg, const Point &point) {
+	using T = typename Seg::Scalar;
+	using IClass = SegmentIsectClass;
+
+	if(isOneOf(point, seg.from, seg.to))
+		return IClass::shared_endpoints;
+
+	auto ab = seg.to - seg.from, ac = point - seg.from;
+	auto e = dot(ac, ab);
+	auto f = dot(ab, ab);
+	if(e < T(0) || e > f)
+		return IClass::none;
+	return dot(ac, ac) * f == e * e ? IClass::point : IClass::none;
+}
 
 template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, const Seg &rhs) {
 	using T = typename Seg::Scalar;
 	using IClass = SegmentIsectClass;
 
-	// TODO: what if one vertex is shared and another vertex is lying on the segment?
 	if(lhs.empty()) {
 		if(rhs.empty())
-			return lhs.from == rhs.from ? IClass::point : IClass::none;
-		return classifyIsect(rhs, lhs);
+			return lhs.from == rhs.from ? IClass::shared_endpoints : IClass::none;
+		return classifyIsect(rhs, lhs.from);
 	}
-
-	if(lhs.sharedEndPoints(rhs))
-		return IClass::shared_endpoints;
+	if(rhs.empty())
+		return classifyIsect(lhs, rhs.from);
 
 	auto vec1 = lhs.to - lhs.from;
 	auto vec2 = rhs.to - rhs.from;
@@ -48,6 +62,8 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 
 			if(t2 < T(0) || t1 > length_sq)
 				return IClass::none;
+			if(isOneOf(t1, T(0), length_sq) && isOneOf(t2, T(0), length_sq))
+				return IClass::shared_endpoints;
 			if(t1 == t2)
 				return IClass::point;
 			return IClass::segment;
@@ -55,6 +71,9 @@ template <class Seg> static SegmentIsectClass classifyIsect(const Seg &lhs, cons
 
 		return IClass::none;
 	}
+
+	if(lhs.sharedEndPoints(rhs))
+		return IClass::shared_endpoints;
 
 	auto diff = rhs.from - lhs.from;
 	auto t1 = dot(diff, perpendicular(vec2));
@@ -75,10 +94,9 @@ template <class T> static T abs(T val) { return std::abs(val); }
 template <> qint abs(qint val) { return val < 0 ? -val : val; }
 
 // Source: RTCD, page: 183
-template <class Seg, class Box> static bool testIsect(const Seg &seg, const Box &box) {
+template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 	using T = typename Seg::Scalar;
 	using Vec = typename Seg::Vector;
-	using IClass = SegmentIsectClass;
 	enum { dim_size = Seg::dim_size };
 
 	auto c = box.center();
@@ -115,6 +133,17 @@ SegmentIsectClass Segment<T, N>::classifyIsect(const Segment<T, N> &rhs) const {
 	return fwk::classifyIsect(*this, rhs);
 }
 
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+SegmentIsectClass ISegment<T, N>::classifyIsect(const Point &point) const {
+	return fwk::classifyIsect(ISegment<qint, 2>(*this), qint2(point));
+}
+
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+SegmentIsectClass Segment<T, N>::classifyIsect(const Point &point) const {
+	return fwk::classifyIsect(*this, point);
+}
 template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
 	using QVec = MakeVector<qint, N>;
 	return fwk::testIsect(ISegment<qint, N>{QVec(from) * 2, QVec(to) * 2},
@@ -306,6 +335,10 @@ template SegmentIsectClass ISegment<int, 2>::classifyIsect(const ISegment &) con
 template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const ISegment &) const;
 template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const ISegment &) const;
 
+template SegmentIsectClass ISegment<int, 2>::classifyIsect(const Point &) const;
+template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const Point &) const;
+template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const Point &) const;
+
 template struct Segment<float, 2>;
 template struct Segment<float, 3>;
 template struct Segment<double, 2>;
@@ -319,6 +352,9 @@ template auto Segment<double, 2>::isect(const Segment &) const -> Isect;
 
 template SegmentIsectClass Segment<float, 2>::classifyIsect(const Segment &) const;
 template SegmentIsectClass Segment<double, 2>::classifyIsect(const Segment &) const;
+
+template SegmentIsectClass Segment<float, 2>::classifyIsect(const Point &) const;
+template SegmentIsectClass Segment<double, 2>::classifyIsect(const Point &) const;
 
 // TODO: proper intersections (not based on rays)
 pair<float, float> intersectionRange(const Segment<float, 3> &segment, const Box<float3> &box) {

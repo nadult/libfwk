@@ -2,7 +2,6 @@
 - iterators for boxes
 - change order in FWK_ORDER_BY for vectors ?
 - move box to fwk_box ?
-- fix segment: classifyIsect
 - toString(bool [4] ) ?
 - enum to flags ?
 - FCOLOr sux (operations only on alpha part or only on color part)

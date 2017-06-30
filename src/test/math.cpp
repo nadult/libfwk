@@ -28,9 +28,6 @@ void testMatrices() {
 	float3 up(0, 1, 0);
 	float angle = fconstant::pi * 0.25f;
 
-	float3 rot_a = mulNormal(rotation(up, angle), float3(1, 0, 0));
-	float3 rot_b = mulNormal(rotation(up, angle), float3(0, 0, 1));
-
 	for(int n = 0; n < 100; n++) {
 		float3 trans = randomTranslation(100.0f);
 		float3 scale = randomScale();
@@ -74,7 +71,7 @@ void testRays() {
 	ASSERT_EQ(intersection(segment2, tri1), fconstant::inf);
 	assertCloseEnough(tri1.surfaceArea(), 2.0f);
 
-	auto angles1 = tri1.angles(), angles2 = tri2.angles();
+	auto angles2 = tri2.angles();
 	assertCloseEnough(float3(angles2[0], angles2[1], angles2[2]),
 					  float3(0.5f, 0.25f, 0.25f) * fconstant::pi);
 
@@ -181,31 +178,42 @@ void test2DIntersections() {
 	Segment2<double> seg2(-4.1, -9.4, -2.4, -9.2);
 	ASSERT(seg1.isect(seg2) == none);
 
-	ISegment2<int> iseg1(0, 0, 943782983, 999999999), iseg2(0, 1, 1000000123, 2);
-	ISegment2<int> iseg3(-1, 0, 943782982, 999999999),
-		iseg4(-123456789, 934567893, 985473892, -848372819);
-	ASSERT(iseg1.classifyIsect(iseg2) == SegmentIsectClass::point);
-	ASSERT(iseg1.classifyIsect(iseg3) == SegmentIsectClass::none);
-	ASSERT(iseg1.classifyIsect(iseg4) == SegmentIsectClass::point);
+	using ISeg = ISegment2<int>;
+	using IClass = SegmentIsectClass;
 
-	ISegment2<int> seg5(1, 1, 4, 4);
-	ASSERT(seg5.classifyIsect(ISegment2<int>(3, 3, 3, 3)) == SegmentIsectClass::point);
+	ISeg iseg1(0, 0, 943782983, 999999999), iseg2(0, 1, 1000000123, 2);
+	ISeg iseg3(-1, 0, 943782982, 999999999), iseg4(-123456789, 934567893, 985473892, -848372819);
+	ASSERT(iseg1.classifyIsect(iseg2) == IClass::point);
+	ASSERT(iseg1.classifyIsect(iseg3) == IClass::none);
+	ASSERT(iseg1.classifyIsect(iseg4) == IClass::point);
+
+	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 0, 5, 0)) == IClass::segment);
+	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(10, 0, 11, 0)) == IClass::shared_endpoints);
+	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(-1, 0, 0, 0)) == IClass::shared_endpoints);
+	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 10, 0, 0)) == IClass::shared_endpoints);
+	ASSERT(ISeg(0, 0, 2, 0).classifyIsect(int2(1, 0)) == IClass::point);
+	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(3, 3)) == IClass::point);
+	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(5, 5)) == IClass::shared_endpoints);
+	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(2, 3)) == IClass::none);
+
+	ISeg seg5(1, 1, 4, 4);
+	ASSERT(seg5.classifyIsect(ISeg(3, 3, 3, 3)) == IClass::point);
 
 	auto time = getTime();
-	for(int n = 0; n < 500000; n++) {
+	for(int n = 0; n < 50000; n++) {
 		s3.isect(s4);
 		s6.isect(s4);
 	}
 	time = getTime() - time;
-	xmlPrint("Isect time: % ns / Segment<double> pair\n", time * 1000);
+	xmlPrint("Isect time: % ns / Segment<double> pair\n", time * 10000);
 
 	time = getTime();
-	for(int n = 0; n < 500000; n++) {
+	for(int n = 0; n < 50000; n++) {
 		iseg1.classifyIsect(iseg2);
 		iseg1.classifyIsect(iseg4);
 	}
 	time = getTime() - time;
-	xmlPrint("Isect time: % ns / ISegment<qint> pair\n", time * 1000);
+	xmlPrint("Isect time: % ns / ISegment<qint> pair\n", time * 10000);
 }
 
 void testVectorAngles() {

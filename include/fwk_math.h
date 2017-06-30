@@ -1572,6 +1572,7 @@ template <class T, int N> struct ISegment {
 
 	// Computations performed on qints; you have to be careful if values are greater than 32 bits
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
 	bool testIsect(const Box<Vector> &) const;
 
 	FWK_VEC_RANGE()
@@ -1649,6 +1650,7 @@ template <class T, int N> struct Segment {
 	ENABLE_IF_SIZE(2) Isect isect(const Segment &) const;
 
 	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Segment &) const;
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
 	bool testIsect(const Box<Vector> &) const;
 
 	IsectParam isectParam(const Box<Vector> &) const;

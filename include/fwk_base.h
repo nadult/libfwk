@@ -33,9 +33,11 @@
 #define NORETURN
 #define NOINLINE
 #define __restrict__ __restrict
+#define ALWAYS_INLINE
 #else
 #define NORETURN __attribute__((noreturn))
 #define NOINLINE __attribute__((noinline))
+#define ALWAYS_INLINE __attribute__((always_inline))
 #endif
 
 namespace fwk {
