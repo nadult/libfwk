@@ -996,8 +996,17 @@ template <class T, EnableIfVector<T>...> Box<T> enclose(CRange<T> points) {
 	return {tmin, tmax};
 }
 
+template <class T> Box<T> enclose(CRange<Box<T>> boxes) {
+	if(boxes.empty())
+		return {};
+	auto out = boxes[0];
+	for(int i = 1; i < boxes.size(); i++)
+		out = enclose(out, boxes[i]);
+	return out;
+}
+
 template <class TRange, EnableIfRange<TRange>..., EnableIfVector<RangeBase<TRange>>...>
-auto enclose(TRange points) -> Box<RangeBase<TRange>> {
+auto enclose(const TRange &points) -> Box<RangeBase<TRange>> {
 	return enclose(makeConstRange(points));
 }
 
@@ -1586,6 +1595,14 @@ template <class T, int N> struct Segment {
 
 template <class T> using Segment2 = Segment<T, 2>;
 template <class T> using Segment3 = Segment<T, 3>;
+
+template <class T, int N> Box<MakeVector<T, N>> enclose(const Segment<T, N> &seg) {
+	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
+}
+
+template <class T, int N> Box<MakeVector<T, N>> enclose(const ISegment<T, N> &seg) {
+	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
+}
 
 float distance(const Ray &ray, const float3 &point);
 float distance(const Ray &, const Ray &);
