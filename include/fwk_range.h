@@ -9,38 +9,6 @@
 
 namespace fwk {
 
-template <class T> class RangeIterator : public std::iterator<std::random_access_iterator_tag, T> {
-  public:
-	constexpr RangeIterator(T *pointer) noexcept : m_pointer(pointer) {}
-	constexpr auto operator+(int offset) const noexcept {
-		return RangeIterator(m_pointer + offset);
-	}
-	constexpr auto operator-(int offset) const noexcept {
-		return RangeIterator(m_pointer - offset);
-	}
-
-	constexpr int operator-(const RangeIterator &rhs) const noexcept {
-		return m_pointer - rhs.m_pointer;
-	}
-	constexpr T &operator*() const noexcept { return *m_pointer; }
-	constexpr T &operator->() const noexcept { return *m_pointer; }
-	constexpr bool operator==(const RangeIterator &rhs) const noexcept {
-		return m_pointer == rhs.m_pointer;
-	}
-	constexpr bool operator<(const RangeIterator &rhs) const noexcept {
-		return m_pointer < rhs.m_pointer;
-	}
-	RangeIterator &operator++() noexcept {
-		m_pointer++;
-		return *this;
-	}
-
-  private:
-	T *m_pointer;
-};
-
-template <class T> using CRangeIterator = RangeIterator<const T>;
-
 template <class T> class PodArray;
 
 // Simple wrapper class for ranges of values
@@ -100,12 +68,12 @@ template <class T, int min_size = 0> class Range {
 		: m_data(range.data()), m_size(range.size()) {}
 
 	Range(const std::initializer_list<T> &list) : Range(list.begin(), list.end()) {}
-	operator vector<value_type>() const { return vector<value_type>(cbegin(), cend()); }
+	operator vector<value_type>() const { return vector<value_type>(begin(), end()); }
 
-	auto cbegin() const noexcept { return CRangeIterator<T>(m_data); }
-	auto cend() const noexcept { return CRangeIterator<T>(m_data + m_size); }
-	auto begin() const noexcept { return RangeIterator<T>(m_data); }
-	auto end() const noexcept { return RangeIterator<T>(m_data + m_size); }
+	const T *begin() const noexcept { return m_data; }
+	const T *end() const noexcept { return m_data + m_size; }
+	T *begin() noexcept { return m_data; }
+	T *end() noexcept { return m_data + m_size; }
 
 	const T &front() const {
 		PASSERT(m_size > 0);
@@ -126,8 +94,8 @@ template <class T, int min_size = 0> class Range {
 	}
 
   private:
-	T *const m_data;
-	const int m_size;
+	T *m_data;
+	int m_size;
 };
 
 template <class T, int min_size = 0> using CRange = Range<const T, min_size>;
