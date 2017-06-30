@@ -1,14 +1,20 @@
-#include <vector>
-#include <array>
-#include <string>
-#include <exception>
-#include <type_traits>
-#include <memory>
-#include <map>
-#include <cstring>
-#include <cstdlib>
 #include <algorithm>
+#include <array>
 #include <atomic>
+#include <cstring>
+#include <ctime>
+#include <cwchar>
+#include <exception>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
 
 #ifndef BOOST_PP_VARIADICS
 #define BOOST_PP_VARIADICS 1
@@ -19,6 +25,5 @@
 #endif
 
 #include <boost/preprocessor/list/to_tuple.hpp>
+#include <boost/preprocessor/list/transform.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
-
-#include <boost/optional.hpp>

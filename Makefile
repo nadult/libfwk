@@ -1,9 +1,12 @@
 MINGW_PREFIX=i686-w64-mingw32.static-
 BUILD_DIR=build
-LINUX_CXX=g++ -rdynamic
-INCLUDE_PCH_PARAM=
+LINUX_CXX=g++
 
 -include Makefile.local
+
+ifneq (,$(findstring clang,$(LINUX_CXX)))
+CLANG=yes
+endif
 
 _dummy := $(shell [ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR))
 _dummy := $(shell [ -d $(BUILD_DIR)/gfx ] || mkdir -p $(BUILD_DIR)/gfx)
@@ -33,7 +36,6 @@ PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
-DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d) $(BUILD_DIR)/fwk.h.d
 
 LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
 LINUX_SHARED_DWO:=$(SHARED_SRC:%=$(BUILD_DIR)/%.dwo)
@@ -80,14 +82,27 @@ MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CON
 HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)
 
-PCH_FILE=$(BUILD_DIR)/fwk.h.pch
-PCH_INCLUDE=src/pch.h
+PCH_FILE_SRC=src/pch.h
 
-$(PCH_FILE): $(PCH_INCLUDE)
-	clang -x c++-header -MMD $(LINUX_FLAGS) $^ -emit-pch -o $@
+PCH_FILE_H=$(BUILD_DIR)/pch.h
+PCH_FILE_GCH=$(BUILD_DIR)/pch.h.gch
+PCH_FILE_PCH=$(BUILD_DIR)/pch.h.pch
 
-$(LINUX_OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE)
-	$(LINUX_CXX) -MMD $(LINUX_FLAGS) $(INCLUDE_PCH_PARAM) $(PCH_FILE) -c src/$*.cpp -o $@
+ifdef CLANG
+PCH_INCLUDE=-include-pch $(PCH_FILE_PCH)
+PCH_FILE_MAIN=$(PCH_FILE_PCH)
+else
+PCH_INCLUDE=-I$(BUILD_DIR) -include $(PCH_FILE_H)
+PCH_FILE_MAIN=$(PCH_FILE_GCH)
+endif
+
+$(PCH_FILE_H): $(PCH_FILE_SRC)
+	cp $^ $@
+$(PCH_FILE_MAIN): $(PCH_FILE_H)
+	$(LINUX_CXX) -x c++-header -MMD $(LINUX_FLAGS) $^ -o $@
+
+$(LINUX_OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE_MAIN)
+	$(LINUX_CXX) -MMD $(LINUX_FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@
 
 $(MINGW_OBJECTS): $(BUILD_DIR)/%_.o: src/%.cpp
 	$(MINGW_CXX) -MMD $(MINGW_FLAGS) -c src/$*.cpp -o $@
@@ -119,10 +134,13 @@ lib/libfwk.cpp: $(SHARED_SRC:%=src/%.cpp)
 lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 	cat $^ > $@
 
+DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d) $(PCH_FILE_H).d
+
 clean:
 	-rm -f $(LINUX_OBJECTS) $(LINUX_DWO) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
-		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp $(PCH_FILE)
+		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp \
+		$(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
 	-rmdir test temp lib tools
 	find $(BUILD_DIR) -type d -empty -delete
 
