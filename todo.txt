@@ -1,3 +1,7 @@
+- cleanup in range names ? linear_range ? function should try to convert to crange and if fails -> not a linear range
+- iterators for boxes
+- change order in FWK_ORDER_BY for vectors ?
+- move box to fwk_box ?
 - fix segment: classifyIsect
 - toString(bool [4] ) ?
 - enum to flags ?
@@ -54,7 +58,6 @@
 - model_viewer.exe displays models in different order (findFiles function must be working differently)
 
 - better std::pair ?
-- Maybe<pair<>> in vecMinMax ?
 - extendible xml:: toString fromString ?
 - better tests for vector? Use tests from libc++ or something?
 - rapidxml is allocating with std::new (exceptions aren't caught)

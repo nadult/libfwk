@@ -719,22 +719,6 @@ template <class T, EnableIfVector<T>...> T vclamp(const T &vec, const T &tmin, c
 	return vmin(tmax, vmax(tmin, vec));
 }
 
-template <class T, EnableIfVector<T>...> pair<T, T> vecMinMax(CRange<T> range) {
-	if(range.empty())
-		return make_pair(T(), T());
-	T tmin = range[0], tmax = range[0];
-	for(int n = 1; n < range.size(); n++) {
-		tmin = vmin(tmin, range[n]);
-		tmax = vmax(tmax, range[n]);
-	}
-	return make_pair(tmin, tmax);
-}
-
-template <class TRange, class T = typename ContainerBaseType<TRange>::type, EnableIfVector<T>...>
-pair<T, T> vecMinMax(const TRange &range) {
-	return vecMinMax(makeRange(range));
-}
-
 template <class T, EnableIfRealVector<T>...> T vfloor(T vec) {
 	for(int n = 0; n < T::vector_size; n++)
 		vec[n] = std::floor(vec[n]);
@@ -889,7 +873,7 @@ template <class T> class Box {
 	Box(T min, T max, NoAsserts) : m_min(min), m_max(max) {}
 
   public:
-	static_assert(isVector<T>(), "");
+	static_assert(isVector<T>(), "Box<> has to be based on a vector");
 
 	using Scalar = typename T::Scalar;
 	using Vector = T;
@@ -923,7 +907,6 @@ template <class T> class Box {
 
 	Box(Point min, Point max) : m_min(min), m_max(max) { DASSERT(validRange(min, max)); }
 	explicit Box(Vector size) : Box(Vector(), size) {}
-	Box(const pair<Vector, Vector> &min_max) : Box(min_max.first, min_max.second) {}
 	Box() : m_min(), m_max() {}
 
 	template <class TVector>
@@ -1060,9 +1043,6 @@ template <class T> class Box {
 
 	FWK_ORDER_BY(Box, m_min, m_max);
 
-	auto begin() const { return m_v; }
-	auto end() const { return m_v + arraySize(m_v); }
-
 	ENABLE_IF_SIZE(3) Box<Vector2> xz() const { return {m_min.xz(), m_max.xz()}; }
 	ENABLE_IF_SIZE(3) Box<Vector2> xy() const { return {m_min.xy(), m_max.xy()}; }
 	ENABLE_IF_SIZE(3) Box<Vector2> yz() const { return {m_min.yz(), m_max.yz()}; }
@@ -1083,9 +1063,20 @@ using IBox = Box<int3>;
 using FBox = Box<float3>;
 using DBox = Box<double3>;
 
+template <class T, EnableIfVector<T>...> Box<T> enclose(CRange<T> points) {
+	if(points.empty())
+		return {};
+	T tmin = points[0], tmax = points[0];
+	for(int n = 1; n < points.size(); n++) {
+		tmin = vmin(tmin, points[n]);
+		tmax = vmax(tmax, points[n]);
+	}
+	return {tmin, tmax};
+}
+
 template <class TRange, EnableIfRange<TRange>..., EnableIfVector<RangeBase<TRange>>...>
 auto enclose(TRange points) -> Box<RangeBase<TRange>> {
-	return {vecMinMax(points)};
+	return enclose(makeConstRange(points));
 }
 
 template <class T, EnableIfRealVector<T>...> auto encloseIntegral(const Box<T> &box) {
