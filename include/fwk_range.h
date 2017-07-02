@@ -188,6 +188,35 @@ template <class Range, class Functor> bool allOf(const Range &range, Functor fun
 	return std::all_of(begin(range), end(range), functor);
 }
 
+template <class T> constexpr bool isOneOf(const T &value) { return false; }
+
+template <class T1, class T2, int N> inline bool isOneOf(const T1 &value, CRange<T2, N> vec) {
+	for(const auto &item : vec)
+		if(value == item)
+			return true;
+	return false;
+}
+
+template <class T1, class T2> inline bool isOneOf(const T1 &value, const vector<T2> &vec) {
+	for(const auto &item : vec)
+		if(value == item)
+			return true;
+	return false;
+}
+
+template <class T1, class T2, size_t S>
+inline bool isOneOf(const T1 &value, const array<T2, S> &arr) {
+	for(const auto &item : arr)
+		if(value == item)
+			return true;
+	return false;
+}
+
+template <class T, class Arg1, class... Args>
+constexpr bool isOneOf(const T &value, const Arg1 &arg1, const Args &... args) {
+	return value == arg1 || isOneOf(value, args...);
+}
+
 template <class T> void makeUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
 	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());

@@ -407,35 +407,6 @@ double getTime();
 
 namespace fwk {
 
-template <class T> inline constexpr bool isOneOf(const T &value) { return false; }
-
-template <class T, class Arg1, class... Args>
-inline constexpr bool isOneOf(const T &value, const Arg1 &arg1, const Args &... args) {
-	return value == arg1 || isOneOf(value, args...);
-}
-
-template <class T1, class T2> inline bool isOneOf(const T1 &value, const vector<T2> &vec) {
-	for(const auto &item : vec)
-		if(value == item)
-			return true;
-	return false;
-}
-
-template <class T1, class T2, size_t S>
-inline bool isOneOf(const T1 &value, const array<T2, S> &arr) {
-	for(const auto &item : arr)
-		if(value == item)
-			return true;
-	return false;
-}
-
-template <class T1, class T2> inline bool isOneOf(const T1 &value, const CRange<T2> &vec) {
-	for(const auto &item : vec)
-		if(value == item)
-			return true;
-	return false;
-}
-
 template <class T> inline T max(T a, T b) { return a < b ? b : a; }
 template <class T> inline T min(T a, T b) { return b < a ? b : a; }
 
@@ -1432,8 +1403,8 @@ namespace FindFiles {
 
 		recursive = 4,
 
-		relative = 8,		 // all paths relative to given path
-		absolute = 16,		 // all paths absolute
+		relative = 8, // all paths relative to given path
+		absolute = 16, // all paths absolute
 		include_parent = 32, // include '..'
 	};
 };

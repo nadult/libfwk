@@ -1,8 +1,17 @@
+- use std::filesystem ?
+- Box<T, N> as other classes ?
+- Fix isOneOf, remove FWK_VEC_RANGE -> vec.values()
+- move SerializeAsPod to namespace detail
+- copyright info
+- instantiator
+- make default serialize_as_pod be based on is_trivially_copyable / etc.
+  or maybe not (pointers...)
 - qint based on boost multiprecision is MUCH slower under mingw for some reason
 - cleanup in range names ? linear_range ? function should try to convert to crange and if fails -> not a linear range
 - iterators for boxes
 - change order in FWK_ORDER_BY for vectors ?
 - move box to fwk_box ?
+- isOneOf based on ranges
 
 - toString:
   - bool values[4]
