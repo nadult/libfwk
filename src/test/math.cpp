@@ -61,14 +61,14 @@ void testMatrices() {
 }
 
 void testRays() {
-	Triangle tri1(float3(0, 0, 4), float3(0, 2, 4), float3(2, 0, 4));
-	Triangle tri2(float3(1, 0, 1), float3(6, 0, 1), float3(1, 0, 6));
+	Triangle3F tri1(float3(0, 0, 4), float3(0, 2, 4), float3(2, 0, 4));
+	Triangle3F tri2(float3(1, 0, 1), float3(6, 0, 1), float3(1, 0, 6));
 
 	Segment3<float> segment1(0.5, 0.5, 0, 0.5, 0.5, 10);
 	Segment3<float> segment2(1.3, 1.3, 0, 1.0, 1.0, 10);
 
-	assertCloseEnough(intersection(segment1, tri1), 0.4f);
-	ASSERT_EQ(intersection(segment2, tri1), fconstant::inf);
+	assertCloseEnough(segment1.isectParam(tri1).closest(), 0.4f);
+	ASSERT(!segment2.isectParam(tri1));
 	assertCloseEnough(tri1.surfaceArea(), 2.0f);
 
 	auto angles2 = tri2.angles();
@@ -82,16 +82,16 @@ void testRays() {
 	assertCloseEnough(segment3.closestPoint(p3), float3(4, 4, 0));
 
 	auto ray = *segment3.asRay();
-	assertCloseEnough(closestPoint(ray, p1), float3(2.5, 2.5, 0));
-	assertCloseEnough(closestPoint(ray, p2), float3(0.5, 0.5, 0));
-	assertCloseEnough(closestPoint(ray, p3), float3(4.5, 4.5, 0));
+	assertCloseEnough(ray.closestPoint(p1), float3(2.5, 2.5, 0));
+	assertCloseEnough(ray.closestPoint(p2), float3(0.5, 0.5, 0));
+	assertCloseEnough(ray.closestPoint(p3), float3(4.5, 4.5, 0));
 
 	Segment3<float> segment4({3, 2, 0}, {6, 5, 0});
 	Segment3<float> segment5({6, 7, 0}, {8, 5, 0});
 	auto ray4 = *segment4.asRay(), ray5 = *segment5.asRay();
 	assertCloseEnough(segment3.distance(segment4), sqrtf(2.0f) / 2.0f);
 	assertCloseEnough(segment4.distance(segment5), sqrtf(2.0f));
-	assertCloseEnough(distance(ray4, ray5), 0.0f);
+	assertCloseEnough(ray4.distance(ray5), 0.0f);
 }
 
 void testIntersections() {
@@ -99,17 +99,16 @@ void testIntersections() {
 	ASSERT_EQ(distance(Cylinder(float3(1, 1, 1), 1.5, 2.0), float3(2, 1, 1)), 0.0f);
 	ASSERT_EQ(distance(Cylinder(float3(2, 2, 2), 1.5, 2.0), float3(2, 5, 2)), 1.0f);
 
-	Triangle tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
+	Triangle3F tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
 	Segment3<float> seg(1, 1, -1, 1, 1, 1);
 
-	ASSERT_EQ(intersection(tri, seg), fconstant::inf);
-	ASSERT_EQ(distance(tri, float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
-	ASSERT_EQ(distance(tri, seg), sqrtf(2.0f) / 2.0f);
+	ASSERT(!seg.isectParam(tri));
+	ASSERT_EQ(tri.distance(float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
 
 	/*
-	Triangle tri1(float3(4.330130, 10.000000, 2.500000), float3(-4.330130, 10.000000, 2.500000),
+	Triangle3F tri1(float3(4.330130, 10.000000, 2.500000), float3(-4.330130, 10.000000, 2.500000),
 				  float3(0.000000, 1.730360, 0.000000));
-	Triangle tri2(float3(-2.500000, 0.000000, -4.330130), float3(4.330130, 10.000000, 2.500000),
+	Triangle3F tri2(float3(-2.500000, 0.000000, -4.330130), float3(4.330130, 10.000000, 2.500000),
 				  float3(-2.500000, 0.000000, 4.330130));
 	ASSERT(areIntersecting(tri1, tri2));*/
 

@@ -73,8 +73,8 @@ vector<Mesh::TriIndices> Mesh::trisIndices() const {
 	return out;
 }
 
-vector<Triangle> Mesh::tris() const {
-	vector<Triangle> out;
+vector<Triangle3F> Mesh::tris() const {
+	vector<Triangle3F> out;
 	out.reserve(triangleCount());
 
 	const auto &verts = positions();
@@ -288,9 +288,9 @@ float Mesh::intersect(const Segment3<float> &segment) const {
 	float min_isect = fconstant::inf;
 
 	const auto &positions = m_buffers.positions;
-	if(intersection(segment, boundingBox()) < fconstant::inf)
-		for(Triangle triangle : tris())
-			min_isect = min(min_isect, intersection(segment, triangle));
+	if(segment.isectParam(boundingBox()))
+		for(Triangle3F triangle : tris())
+			min_isect = min(min_isect, segment.isectParam(triangle).closest());
 
 	return min_isect;
 }
@@ -303,9 +303,9 @@ float Mesh::intersect(const Segment3<float> &segment, const AnimatedData &anim_d
 	const auto &positions = anim_data.positions;
 
 	float min_isect = fconstant::inf;
-	if(intersection(segment, anim_data.bounding_box) < fconstant::inf)
+	if(segment.isectParam(anim_data.bounding_box))
 		for(const auto &tri : tris())
-			min_isect = min(min_isect, intersection(segment, tri));
+			min_isect = min(min_isect, segment.isectParam(tri).closest());
 	return min_isect;
 }
 

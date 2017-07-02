@@ -782,6 +782,61 @@ template <class T, EnableIfRealVector<T>...> bool isnan(const T &v) {
 class Matrix3;
 class Matrix4;
 
+template <class T> class Box;
+
+template <class T, int N> class Triangle;
+template <class T, int N> class Plane;
+template <class T, int N> class Ray;
+template <class T, int N> class Segment;
+template <class T, int N> class ISegment;
+
+template <class T> using ISegment2 = ISegment<T, 2>;
+template <class T> using ISegment3 = ISegment<T, 3>;
+template <class T> using Segment2 = Segment<T, 2>;
+template <class T> using Segment3 = Segment<T, 3>;
+
+template <class T> using Triangle2 = Triangle<T, 2>;
+template <class T> using Triangle3 = Triangle<T, 3>;
+
+template <class T> using Plane2 = Plane<T, 2>;
+template <class T> using Plane3 = Plane<T, 3>;
+
+template <class T> using Ray2 = Ray<T, 2>;
+template <class T> using Ray3 = Ray<T, 3>;
+
+template <class T> using Box2 = Box<MakeVector<T, 2>>;
+template <class T> using Box3 = Box<MakeVector<T, 3>>;
+
+// TODO:
+// Triangle3f, Triangle3d or Triangle3D Triangle3F
+using Triangle3F = Triangle<float, 3>;
+using Triangle3D = Triangle<double, 3>;
+using Triangle2F = Triangle<float, 2>;
+using Triangle2D = Triangle<double, 2>;
+using Plane3F = Plane<float, 3>;
+using Plane3D = Plane<double, 3>;
+using Plane2F = Plane<float, 2>;
+using Plane2D = Plane<double, 2>;
+using Segment3F = Segment<float, 3>;
+using Segment3D = Segment<double, 3>;
+using Segment2F = Segment<float, 2>;
+using Segment2D = Segment<double, 2>;
+using Ray3F = Ray<float, 3>;
+using Ray3D = Ray<double, 3>;
+using Ray2F = Ray<float, 2>;
+using Ray2D = Ray<double, 2>;
+
+using Segment3I = ISegment<int, 3>;
+using Segment2I = ISegment<int, 2>;
+
+using IRect = Box<int2>;
+using FRect = Box<float2>;
+using DRect = Box<double2>;
+
+using IBox = Box<int3>;
+using FBox = Box<float3>;
+using DBox = Box<double3>;
+
 struct DisabledInThisDimension;
 
 template <class T, int N>
@@ -978,13 +1033,6 @@ template <class T> class Box {
 	};
 };
 
-using IRect = Box<int2>;
-using FRect = Box<float2>;
-using DRect = Box<double2>;
-using IBox = Box<int3>;
-using FBox = Box<float3>;
-using DBox = Box<double3>;
-
 template <class T, EnableIfVector<T>...> Box<T> enclose(CRange<T> points) {
 	if(points.empty())
 		return {};
@@ -1054,6 +1102,43 @@ template <class T> bool touches(const Box<T> &lhs, const Box<T> &rhs) {
 }
 
 FBox encloseTransformed(const FBox &, const Matrix4 &);
+
+template <class T> struct Interval {
+	static_assert(isScalar<T>(), "");
+
+	Interval(T min, T max) : min(min), max(max) {}
+	Interval(const pair<T, T> &pair) : min(pair.first), max(pair.second) {}
+	explicit Interval(T point) : min(point), max(point) {}
+	Interval() : min(0), max(0) {}
+
+	Interval operator*(T val) const {
+		if(val < T(0))
+			return {max * val, min * val};
+		return {min * val, max * val};
+	}
+	Interval operator/(T val) const { return (*this) * (T(1) / val); }
+	Interval operator+(T val) const { return {min + val, max + val}; }
+	Interval operator-(T val) const { return {min - val, max - val}; }
+
+	template <class U = T, EnableIfReal<U>...> static Interval inf() {
+		return {constant<T>::inf()};
+	}
+
+	T size() const { return max - min; }
+	bool valid() const { return min <= max; }
+
+	Maybe<Interval> isect(const Interval &rhs) const {
+		if(min > rhs.max || rhs.max < min)
+			return none;
+		return {fwk::max(min, rhs.min), fwk::min(max, rhs.max)};
+	}
+
+	Interval enclose(const Interval &rhs) const {
+		return {fwk::min(min, rhs.min), fwk::max(max, rhs.max)};
+	}
+
+	T min, max;
+};
 
 // Stored just like in OpenGL:
 // Column major order, vector post multiplication
@@ -1173,6 +1258,11 @@ inline const Matrix4 scaling(float x, float y, float z) { return scaling(float3(
 inline const Matrix4 scaling(float s) { return scaling(s, s, s); }
 inline const Matrix4 translation(float x, float y, float z) { return translation(float3(x, y, z)); }
 
+// TODO: different name? transformPoints ?
+Triangle3F operator*(const Matrix4 &, const Triangle3F &);
+Plane3F operator*(const Matrix4 &, const Plane3F &);
+Segment3F operator*(const Matrix4 &, const Segment3F &);
+
 class AxisAngle {
   public:
 	AxisAngle() {}
@@ -1247,106 +1337,337 @@ struct AffineTrans {
 AffineTrans operator*(const AffineTrans &, const AffineTrans &);
 AffineTrans lerp(const AffineTrans &, const AffineTrans &, float t);
 
-struct Triangle2D {
-	Triangle2D() : m_points({{float2(), float2(), float2()}}) {}
-	Triangle2D(const float2 &a, const float2 &b, const float2 &c) : m_points({{a, b, c}}) {}
+// TODO: fix it simplar to IsectParam ?
+DEFINE_ENUM(SegmentIsectClass, shared_endpoints, point, segment, none);
 
-	const float2 &operator[](int idx) const { return m_points[idx]; }
-	float2 center() const { return (m_points[0] + m_points[1] + m_points[2]) / 3.0f; }
-
-  private:
-	array<float2, 3> m_points;
-};
-
-class Triangle {
+template <class T> class IsectParam {
   public:
-	Triangle(const float3 &a, const float3 &b, const float3 &c);
-	Triangle() : Triangle(float3(), float3(), float3()) {}
-	using Edge = pair<float3, float3>;
+	IsectParam(T point) : m_interval(point) {}
+	IsectParam(T min, T max) : m_interval(min, max) {}
+	IsectParam(Interval<T> interval) : m_interval(interval) {}
+	IsectParam() : m_interval(constant<T>::inf(), -constant<T>::inf()) {}
 
-	float3 operator[](int idx) const {
-		DASSERT(idx >= 0 && idx < 3);
-		return idx == 0 ? a() : idx == 1 ? b() : c();
-	}
+	bool isPoint() const { return m_interval.min == m_interval.max; }
+	bool isInterval() const { return m_interval.max > m_interval.min; }
+	bool isEmpty() const { return !m_interval.valid(); }
+	explicit operator bool() const { return !isEmpty(); }
 
-	bool isValid() const {
-		FATAL("TODO: write me");
-		return false;
-	}
-
-	float3 a() const { return m_point; }
-	float3 b() const { return m_point + m_edge[0]; }
-	float3 c() const { return m_point + m_edge[1]; }
-	float3 center() const { return m_point + (m_edge[0] + m_edge[1]) * (1.0f / 3.0f); }
-	float3 cross() const { return m_normal * m_length; }
-
-	Triangle operator*(float scale) const {
-		return Triangle(a() * scale, b() * scale, c() * scale);
-	}
-	Triangle operator*(const float3 &scale) const {
-		return Triangle(a() * scale, b() * scale, c() * scale);
-	}
-	Triangle inverse() const { return Triangle(c(), b(), a()); }
-
-	Triangle2D xz() const { return Triangle2D(a().xz(), b().xz(), c().xz()); }
-
-	float3 barycentric(const float3 &point) const;
-	vector<float3> pickPoints(float density) const;
-
-	float3 edge1() const { return m_edge[0]; }
-	float3 edge2() const { return m_edge[1]; }
-	float3 normal() const { return m_normal; }
-	float surfaceArea() const { return m_length * 0.5f; }
-	array<float3, 3> verts() const { return {{a(), b(), c()}}; }
-	array<Edge, 3> edges() const { return {{Edge(a(), b()), Edge(b(), c()), Edge(c(), a())}}; }
-	array<float, 3> angles() const;
+	const Interval<T> &asInterval() const { return m_interval; }
+	T asPoint() const { return m_interval.min; }
+	T closest() const { return m_interval.min; }
+	T farthest() const { return m_interval.max; }
 
   private:
-	float3 m_point;
-	float3 m_edge[2];
-	float3 m_normal;
-	float m_length;
+	Interval<T> m_interval;
 };
 
-Triangle operator*(const Matrix4 &, const Triangle &);
+template <class T, int N> class Ray {
+  public:
+	static_assert(isReal<T>(), "Ray cannot be constructed using integral numbers as base type");
+	using Scalar = T;
+	using Vector = MakeVector<T, N>;
+	using Point = Vector;
+	using Segment = Segment<T, N>;
+	using IsectParam = IsectParam<T>;
+	using Isect = Variant<None, Point, Segment>;
 
-float distance(const Triangle &, const Triangle &);
-float distance(const Triangle &, const float3 &);
+	Ray(const Vector &origin, const Vector &dir) : m_origin(origin), m_dir(dir) {
+		DASSERT(!isZero(m_dir));
+		DASSERT(isNormalized(m_dir));
+	}
 
-bool areIntersecting(const Triangle &, const Triangle &);
-bool areIntersecting(const Triangle2D &, const Triangle2D &);
-float distance(const Triangle2D &, const float2 &point);
+	const Vector &dir() const { return m_dir; }
+	const Point &origin() const { return m_origin; }
+	auto invDir() const { return inv(m_dir); }
+	const Point at(T t) const { return m_origin + m_dir * t; }
+
+	// TODO: should we allow empty rays?
+	bool empty() const { return isZero(m_dir); }
+
+	T distance(const Point &) const;
+	T distance(const Ray &) const;
+
+	T closestPointParam(const Point &) const;
+	Point closestPoint(const Point &) const;
+	pair<T, T> closestPointsParam(const Ray &) const;
+	pair<Point, Point> closestPoints(const Ray &) const;
+
+	IsectParam isectParam(const Box<Vector> &) const;
+	ENABLE_IF_SIZE(3) IsectParam isectParam(const Plane<T, N> &) const;
+	ENABLE_IF_SIZE(3) IsectParam isectParam(const Triangle<T, N> &) const;
+
+	FWK_ORDER_BY(Ray, m_origin, m_dir);
+
+  private:
+	Point m_origin;
+	Vector m_dir;
+};
+template <class T, int N> class ISegment {
+  public:
+	static_assert(isIntegral<T>(), "");
+	static_assert(N >= 2 && N <= 3, "");
+
+	using Vector = MakeVector<T, N>;
+	using Scalar = T;
+	using Point = Vector;
+	enum { dim_size = N };
+
+	ISegment() : from(), to() {}
+	ISegment(const Point &a, const Point &b) : from(a), to(b) {}
+	ISegment(const pair<Point, Point> &pair) : ISegment(pair.first, pair.second) {}
+
+	ENABLE_IF_SIZE(2) explicit ISegment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
+	ENABLE_IF_SIZE(3)
+	explicit ISegment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
+
+	template <class U>
+	ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
+
+	bool empty() const { return from == to; }
+
+	bool sharedEndPoints(const ISegment &rhs) const {
+		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
+	}
+
+	// Computations performed on qints;
+	// You have to be careful if values are greater than 32 bits
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
+	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
+
+	FWK_ORDER_BY(ISegment, from, to)
+
+	Point from, to;
+};
+
+template <class T, int N> class Segment {
+  public:
+	static_assert(!isIntegral<T>(), "use ISegment for integer-based segments");
+	static_assert(isReal<T>(), "");
+	static_assert(N >= 2 && N <= 3, "");
+
+	using Vector = MakeVector<T, N>;
+	using Scalar = T;
+	using Point = Vector;
+	using IsectParam = IsectParam<T>;
+	using Isect = Variant<None, Point, Segment>;
+	enum { dim_size = N };
+
+	Segment() : from(), to() {}
+	Segment(const Point &a, const Point &b) : from(a), to(b) {}
+	Segment(const pair<Point, Point> &pair) : Segment(pair.first, pair.second) {}
+
+	ENABLE_IF_SIZE(2) explicit Segment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
+	ENABLE_IF_SIZE(3)
+	explicit Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
+
+	template <class U>
+	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
+
+	template <class U> explicit operator ISegment<U, N>() const {
+		using IVector = MakeVector<U, N>;
+		return {IVector(from), IVector(to)};
+	}
+	template <class U>
+	explicit Segment(const ISegment<U, N> &iseg) : from(iseg.from), to(iseg.to) {}
+
+	bool empty() const { return from == to; }
+
+	Maybe<Ray<T, N>> asRay() const;
+
+	auto length() const { return fwk::distance(from, to); }
+	T lengthSq() const { return fwk::distanceSq(from, to); }
+
+	// 0.0 -> from; 1.0 -> to
+	Vector at(T param) const { return from + (to - from) * param; }
+	Segment subSegment(Interval<T> interval) const { return {at(interval.min), at(interval.max)}; }
+
+	T distanceSq(const Point &) const;
+	T distanceSq(const Segment &) const;
+
+	T distance(const Point &point) const { return std::sqrt(distanceSq(point)); }
+	T distance(const Segment &seg) const { return std::sqrt(distanceSq(seg)); }
+
+	bool sharedEndPoints(const Segment &rhs) const {
+		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
+	}
+
+	Isect at(const IsectParam &) const;
+
+	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;
+	ENABLE_IF_SIZE(2) Isect isect(const Segment &segment) const { return at(isectParam(segment)); }
+
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Segment &) const;
+	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
+	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
+
+	ENABLE_IF_SIZE(3) IsectParam isectParam(const Triangle<T, N> &) const;
+	ENABLE_IF_SIZE(3) IsectParam isectParam(const Plane<T, N> &) const;
+	IsectParam isectParam(const Box<Vector> &) const;
+
+	Isect isect(const Box<Vector> &box) const { return at(isectParam(box)); }
+
+	T closestPointParam(const Point &) const;
+	T closestPointParam(const Segment &) const;
+	pair<T, T> closestPointParams(const Segment &) const;
+
+	Vector closestPoint(const Point &pt) const;
+	Vector closestPoint(const Segment &) const;
+	pair<Vector, Vector> closestPoints(const Segment &rhs) const;
+
+	ENABLE_IF_SIZE(3) Segment<T, 2> xz() const { return {from.xz(), to.xz()}; }
+	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }
+	ENABLE_IF_SIZE(3) Segment<T, 2> yz() const { return {from.yz(), to.yz()}; }
+
+	FWK_ORDER_BY(Segment, from, to)
+
+	Point from, to;
+};
+
+namespace detail {
+	template <class T, int N, EnableIfIntegral<T>...> auto makeSegment(T) -> ISegment<T, N>;
+	template <class T, int N, EnableIfReal<T>...> auto makeSegment(T) -> Segment<T, N>;
+}
+template <class T, int N> using MakeSegment = decltype(detail::makeSegment<T, N>(T()));
+
+template <class T, int N> Box<MakeVector<T, N>> enclose(const Segment<T, N> &seg) {
+	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
+}
+
+template <class T, int N> Box<MakeVector<T, N>> enclose(const ISegment<T, N> &seg) {
+	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
+}
+
+template <class T, int N> class Triangle {
+  public:
+	static_assert(isReal<T>(), "Triangle<> should be based on reals");
+
+	enum { dim_size = N };
+	static_assert(dim_size >= 2 && dim_size <= 3, "Only 2D & 3D triangles are supported");
+
+	using Vector = MakeVector<T, N>;
+	using Point = Vector;
+	using Scalar = T;
+	using Segment = Segment<T, N>;
+	using Ray = Ray<T, N>;
+
+	Triangle(const Point &a, const Point &b, const Point &c) : v{a, b, c} {}
+	Triangle() = default;
+
+	bool degenerate() const { return v[0] == v[1] || v[1] == v[2] || v[2] == v[0]; }
+	bool isPoint() const { return v[0] == v[1] && v[0] == v[2]; }
+	bool isSegment() const { return degenerate() && !isPoint(); }
+
+	bool adjacent(const Triangle &rhs) const {
+		return anyOf(v, [&](auto v) { return isOneOf(v, rhs.verts()); });
+	}
+
+	// Edge1: b - a;  Edge2: c - a
+
+	Point a() const { return v[0]; }
+	Point b() const { return v[1]; }
+	Point c() const { return v[2]; }
+
+	Segment ab() const { return {v[0], v[1]}; }
+	Segment bc() const { return {v[1], v[2]}; }
+	Segment ca() const { return {v[2], v[0]}; }
+	Segment edge(int idx) const {
+		DASSERT(idx >= 0 && idx <= 3);
+		return {v[idx], v[(idx + 1) % 3]};
+	}
+
+	Point center() const { return (v[0] + v[1] + v[2]) * (T(1) / T(3)); }
+
+	Triangle flipped() const { return Triangle(v[2], v[1], v[0]); }
+
+	ENABLE_IF_SIZE(3) Triangle2<T> xz() const { return {asXZ(v[0]), asXZ(v[1]), asXZ(v[2])}; }
+	ENABLE_IF_SIZE(3) Triangle2<T> xy() const { return {asXY(v[0]), asXY(v[1]), asXY(v[2])}; }
+	ENABLE_IF_SIZE(3) Triangle2<T> yz() const { return {asYZ(v[0]), asYZ(v[1]), asYZ(v[2])}; }
+	ENABLE_IF_SIZE(3) Triangle2<T> projection2D() const;
+
+	ENABLE_IF_SIZE(3) Vector normal() const;
+	ENABLE_IF_SIZE(3) Vector barycentric(const Point &point) const;
+	vector<Point> sampleEven(float density) const;
+
+	T surfaceArea() const;
+
+	CRange<Point, 3> verts() const { return {v}; }
+	auto edges() const {
+		return indexRange(0, 3, [&](int i) { return edge(i); });
+	}
+	array<T, 3> angles() const;
+
+	const Point &operator[](int idx) const { return v[idx]; }
+
+	T distance(const Point &) const;
+	Point closestPoint(const Point &) const;
+
+	ENABLE_IF_SIZE(3) Maybe<Segment> isect(const Triangle &) const;
+
+	bool areIntersecting(const Triangle &) const;
+
+	FWK_VEC_RANGE();
+	FWK_ORDER_BY(Triangle, v[0], v[1], v[2]);
+
+  private:
+	Point v[3];
+};
+
+// returns infinity if doesn't intersect
 
 // dot(plane.normal(), pointOnPlane) == plane.distance();
-class Plane {
+template <class T, int N> class Plane {
   public:
-	Plane() : m_nrm(0, 0, 1), m_dist(0) {}
-	Plane(const float3 &normal, float distance) : m_nrm(normal), m_dist(distance) {}
-	Plane(const float3 &normal, const float3 &point) : m_nrm(normal), m_dist(dot(point, normal)) {}
+	static_assert(isReal<T>(), "Plane<> should be based on reals");
+	enum { dim_size = N };
+
+	using Vector = MakeVector<T, N>;
+	using Point = Vector;
+	using Scalar = T;
+	using Segment = Segment<T, N>;
+	using Ray = Ray<T, N>;
+	using Triangle = Triangle<T, N>;
+
+	Plane() { m_normal[dim_size - 1] = T(1); }
+	Plane(const Vector &normal, T distance) : m_normal(normal), m_distance0(distance) {
+		DASSERT(isNormalized(normal));
+	}
+	Plane(const Vector &normal, const Point &point)
+		: m_normal(normal), m_distance0(dot(point, normal)) {
+		DASSERT(isNormalized(normal));
+	}
 
 	// TODO: should triangle be CW or CCW?
-	explicit Plane(const Triangle &);
-	Plane(const float3 &a, const float3 &b, const float3 &c) : Plane(Triangle(a, b, c)) {}
+	// TODO: CCW triangle should point up?
+	ENABLE_IF_SIZE(3) explicit Plane(const Triangle &);
+	ENABLE_IF_SIZE(3)
+	Plane(const Point &a, const Point &b, const Point &c) : Plane(Triangle(a, b, c)) {}
 
-	const float3 &normal() const { return m_nrm; }
+	const Vector &normal() const { return m_normal; }
 
-	// distance from if dir is normalized then it is a distance
-	// from plane to point (0, 0, 0)
-	float distance() const { return m_dist; }
+	// distance from plane to point (0, 0, 0)
+	// TODO: better name
+	T distance0() const { return m_distance0; }
+
+	T signedDistance(const Point &) const;
+	Point closestPoint(const Point &point) const;
+
+	// TODO: line would be better here...
+	ENABLE_IF_SIZE(3) Maybe<Ray> isect(const Plane &) const;
 
 	enum SideTestResult {
 		all_negative = -1,
 		both_sides = 0,
 		all_positive = 1,
 	};
-	SideTestResult sideTest(CRange<float3> verts) const;
-	Plane operator-() const { return Plane(-m_nrm, -m_dist); }
+	SideTestResult sideTest(CRange<Point>) const;
+	Plane operator-() const { return Plane(-m_normal, -m_distance0); }
 
-	FWK_ORDER_BY(Plane, m_nrm, m_dist);
+	FWK_ORDER_BY(Plane, m_normal, m_distance0);
 
   private:
-	float3 m_nrm;
-	float m_dist;
+	Vector m_normal;
+	T m_distance0;
 };
 
 class Tetrahedron {
@@ -1361,15 +1682,15 @@ class Tetrahedron {
 
 	static array<FaceIndices, 4> faces();
 
-	array<Plane, 4> planes() const;
-	array<Triangle, 4> tris() const;
+	array<Plane3F, 4> planes() const;
+	array<Triangle3F, 4> tris() const;
 	array<Edge, 6> edges() const;
 
 	float volume() const;
 	float surfaceArea() const;
 	float inscribedSphereRadius() const;
 
-	bool isIntersecting(const Triangle &) const;
+	bool isIntersecting(const Triangle3F &) const;
 	bool isInside(const float3 &vec) const;
 	bool isValid() const;
 
@@ -1416,11 +1737,11 @@ template <class Convex1, class Convex2> bool satTest(const Convex1 &a, const Con
 		for(const auto &edge_b : b_edges) {
 			float3 nrm_b = normalize(edge_b.second - edge_b.first);
 			float3 plane_nrm = normalize(cross(nrm_a, nrm_b));
-			int side_a = Plane(plane_nrm, edge_a.first).sideTest(a_verts);
+			int side_a = Plane3F(plane_nrm, edge_a.first).sideTest(a_verts);
 			if(side_a == 0)
 				continue;
 
-			int side_b = Plane(plane_nrm, edge_a.first).sideTest(b_verts);
+			int side_b = Plane3F(plane_nrm, edge_a.first).sideTest(b_verts);
 			if(side_b == 0)
 				continue;
 
@@ -1434,223 +1755,11 @@ template <class Convex1, class Convex2> bool satTest(const Convex1 &a, const Con
 
 bool areIntersecting(const Tetrahedron &, const Tetrahedron &);
 
-const Plane normalize(const Plane &);
-const Plane operator*(const Matrix4 &, const Plane &);
-
-// TODO: change name to distance
-float dot(const Plane &, const float3 &point);
-
-template <class Real, int N> class TRay {
-  public:
-	static_assert(isReal<Real>(), "Ray cannot be constructed using integral numbers as base type");
-	using Scalar = Real;
-	using Vector = MakeVector<Real, N>;
-	using Point = Vector;
-
-	TRay(const Vector &origin, const Vector &dir) : m_origin(origin), m_dir(dir) {
-		DASSERT(!isZero(m_dir));
-		DASSERT(isNormalized(m_dir));
-	}
-
-	const auto &dir() const { return m_dir; }
-	const auto &origin() const { return m_origin; }
-	auto invDir() const { return inv(m_dir); }
-	const float3 at(float t) const { return m_origin + m_dir * t; }
-
-	// TODO: should we allow empty rays?
-	bool empty() const { return isZero(m_dir); }
-
-	FWK_ORDER_BY(TRay, m_origin, m_dir);
-
-  private:
-	Point m_origin;
-	Vector m_dir;
-};
-
-using Ray = TRay<float, 3>;
-
-DEFINE_ENUM(SegmentIsectClass, shared_endpoints, point, segment, none);
-template <class T> using SegmentIsectParam = Variant<None, T, pair<T, T>>;
-
-template <class T, int N> struct ISegment {
-	static_assert(isIntegral<T>(), "");
-	static_assert(N >= 2 && N <= 3, "");
-
-	using Vector = MakeVector<T, N>;
-	using Scalar = T;
-	using Point = Vector;
-	enum { dim_size = N };
-
-	ISegment() : from(), to() {}
-	ISegment(const Point &a, const Point &b) : from(a), to(b) {}
-	ISegment(const pair<Point, Point> &pair) : ISegment(pair.first, pair.second) {}
-
-	ENABLE_IF_SIZE(2) explicit ISegment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
-	ENABLE_IF_SIZE(3)
-	explicit ISegment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
-
-	template <class U>
-	ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
-
-	bool empty() const { return from == to; }
-
-	bool sharedEndPoints(const ISegment &rhs) const {
-		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
-	}
-
-	// Computations performed on qints;
-	// You have to be careful if values are greater than 32 bits
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
-	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
-
-	FWK_ORDER_BY(ISegment, from, to)
-
-	Point from, to;
-};
-
-template <class T> using ISegment2 = ISegment<T, 2>;
-template <class T> using ISegment3 = ISegment<T, 3>;
-
-template <class T, int N> struct Segment {
-	static_assert(!isIntegral<T>(), "use ISegment for integer-based segments");
-	static_assert(isReal<T>(), "");
-	static_assert(N >= 2 && N <= 3, "");
-
-	using Vector = MakeVector<T, N>;
-	using Scalar = T;
-	using Point = Vector;
-	enum { dim_size = N };
-
-	Segment() : from(), to() {}
-	Segment(const Point &a, const Point &b) : from(a), to(b) {}
-	Segment(const pair<Point, Point> &pair) : Segment(pair.first, pair.second) {}
-
-	ENABLE_IF_SIZE(2) explicit Segment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
-	ENABLE_IF_SIZE(3)
-	explicit Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
-
-	template <class U>
-	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
-
-	template <class U> explicit operator ISegment<U, N>() const {
-		using IVector = MakeVector<U, N>;
-		return {IVector(from), IVector(to)};
-	}
-	template <class U>
-	explicit Segment(const ISegment<U, N> &iseg) : from(iseg.from), to(iseg.to) {}
-
-	bool empty() const { return from == to; }
-
-	Maybe<TRay<T, N>> asRay() const;
-
-	auto length() const { return fwk::distance(from, to); }
-	T lengthSq() const { return fwk::distanceSq(from, to); }
-
-	// 0.0 -> from; 1.0 -> to
-	Vector at(T param) const { return from + (to - from) * param; }
-	Segment subSegment(T p1, T p2) const { return Segment(at(p1), at(p2)); }
-
-	T distanceSq(const Point &) const;
-	T distanceSq(const Segment &) const;
-
-	T distance(const Point &point) const { return std::sqrt(distanceSq(point)); }
-	T distance(const Segment &seg) const { return std::sqrt(distanceSq(seg)); }
-
-	bool sharedEndPoints(const Segment &rhs) const {
-		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
-	}
-
-	using IsectParam = SegmentIsectParam<T>;
-	using Isect = Variant<None, Segment, Vector>;
-
-	Isect at(const IsectParam &) const;
-
-	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;
-	ENABLE_IF_SIZE(2) Isect isect(const Segment &) const;
-
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Segment &) const;
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
-	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
-
-	IsectParam isectParam(const Box<Vector> &) const;
-	Isect isect(const Box<Vector> &) const;
-
-	T closestPointParam(const Point &) const;
-	T closestPointParam(const Segment &) const;
-	pair<T, T> closestPointParams(const Segment &) const;
-
-	Vector closestPoint(const Point &pt) const;
-	Vector closestPoint(const Segment &) const;
-	pair<Vector, Vector> closestPoints(const Segment &rhs) const;
-
-	ENABLE_IF_SIZE(3) Segment<T, 2> xz() const { return {from.xz(), to.xz()}; }
-	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }
-	ENABLE_IF_SIZE(3) Segment<T, 2> yz() const { return {from.yz(), to.yz()}; }
-
-	FWK_ORDER_BY(Segment, from, to)
-
-	Point from, to;
-};
-
-template <class T> using Segment2 = Segment<T, 2>;
-template <class T> using Segment3 = Segment<T, 3>;
-
-template <class T, int N> Box<MakeVector<T, N>> enclose(const Segment<T, N> &seg) {
-	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
-}
-
-template <class T, int N> Box<MakeVector<T, N>> enclose(const ISegment<T, N> &seg) {
-	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
-}
-
-float distance(const Ray &ray, const float3 &point);
-float distance(const Ray &, const Ray &);
-float distance(const Triangle &tri, const Segment3<float> &);
-
-float3 closestPoint(const Ray &, const float3 &point);
-float3 closestPoint(const Triangle &, const float3 &point);
-float3 closestPoint(const Plane &, const float3 &point);
-
-pair<float3, float3> closestPoints(const Ray &, const Ray &);
-
-// returns infinity if doesn't intersect
-pair<float, float> intersectionRange(const Ray &, const Box<float3> &box);
-pair<float, float> intersectionRange(const Segment3<float> &, const Box<float3> &box);
-
-pair<Segment3<float>, bool> intersectionSegment(const Triangle &, const Triangle &);
-
-inline float intersection(const Ray &ray, const Box<float3> &box) {
-	return intersectionRange(ray, box).first;
-}
-
-inline float intersection(const Segment3<float> &segment, const Box<float3> &box) {
-	return intersectionRange(segment, box).first;
-}
-
-float intersection(const Ray &, const Triangle &);
-float intersection(const Segment3<float> &, const Triangle &);
-
-Segment3<float> operator*(const Matrix4 &, const Segment3<float> &);
-
-float intersection(const Segment3<float> &, const Plane &);
-float intersection(const Ray &, const Plane &);
-
-inline float intersection(const Plane &plane, const Segment3<float> &segment) {
-	return intersection(segment, plane);
-}
-inline float intersection(const Plane &plane, const Ray &ray) { return intersection(ray, plane); }
-inline float intersection(const Triangle &tri, const Segment3<float> &segment) {
-	return intersection(segment, tri);
-}
-
-Maybe<Ray> intersection(const Plane &, const Plane &);
-
 class Projection {
   public:
 	Projection(const float3 &origin, const float3 &vec_x, const float3 &vec_y);
 	// X: edge1 Y: -normal
-	Projection(const Triangle &tri);
+	Projection(const Triangle3F &tri);
 
 	float3 project(const float3 &) const;
 	float3 unproject(const float3 &) const;
@@ -1658,7 +1767,7 @@ class Projection {
 	float3 projectVector(const float3 &) const;
 	float3 unprojectVector(const float3 &) const;
 
-	Triangle project(const Triangle &) const;
+	Triangle3F project(const Triangle3F &) const;
 	Segment3<float> project(const Segment3<float> &) const;
 
 	// TODO: maybe those operators aren't such a good idea?
@@ -1686,7 +1795,7 @@ class Frustum {
 
 	Frustum() = default;
 	Frustum(const Matrix4 &view_projection);
-	Frustum(CRange<Plane, planes_count>);
+	Frustum(CRange<Plane3F, planes_count>);
 
 	bool isIntersecting(const float3 &point) const;
 	bool isIntersecting(const FBox &box) const;
@@ -1694,12 +1803,12 @@ class Frustum {
 	// TODO: clang crashes on this (in full opt with -DNDEBUG)
 	bool isIntersecting(CRange<float3> points) const;
 
-	const Plane &operator[](int idx) const { return m_planes[idx]; }
-	Plane &operator[](int idx) { return m_planes[idx]; }
+	const Plane3F &operator[](int idx) const { return m_planes[idx]; }
+	Plane3F &operator[](int idx) { return m_planes[idx]; }
 	int size() const { return planes_count; }
 
   private:
-	std::array<Plane, planes_count> m_planes;
+	std::array<Plane3F, planes_count> m_planes;
 };
 
 const Frustum operator*(const Matrix4 &, const Frustum &);
@@ -1732,7 +1841,7 @@ float distance(const Cylinder &, const float3 &);
 bool areIntersecting(const Cylinder &, const Cylinder &);
 bool areIntersecting(const FBox &, const Cylinder &);
 
-array<Plane, 6> planes(const FBox &);
+array<Plane3F, 6> planes(const FBox &);
 array<pair<float3, float3>, 12> edges(const FBox &);
 array<float3, 8> verts(const FBox &);
 
@@ -1851,7 +1960,7 @@ SERIALIZE_AS_POD(FBox)
 SERIALIZE_AS_POD(Matrix4)
 SERIALIZE_AS_POD(Matrix3)
 SERIALIZE_AS_POD(Quat)
-SERIALIZE_AS_POD(Ray)
+SERIALIZE_AS_POD(Ray3F)
 
 SERIALIZE_AS_POD(Segment2<float>)
 SERIALIZE_AS_POD(Segment3<float>)

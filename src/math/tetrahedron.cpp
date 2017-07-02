@@ -25,19 +25,19 @@ array<array<int, 3>, 4> Tetrahedron::faces() {
 	return out;
 }
 
-array<Plane, 4> Tetrahedron::planes() const {
+array<Plane3F, 4> Tetrahedron::planes() const {
 	auto faces = Tetrahedron::faces();
-	array<Plane, 4> out;
+	array<Plane3F, 4> out;
 	for(int n = 0; n < 4; n++)
-		out[n] = Plane(m_verts[faces[n][0]], m_verts[faces[n][1]], m_verts[faces[n][2]]);
+		out[n] = Plane3F(m_verts[faces[n][0]], m_verts[faces[n][1]], m_verts[faces[n][2]]);
 	return out;
 }
 
-array<Triangle, 4> Tetrahedron::tris() const {
+array<Triangle3F, 4> Tetrahedron::tris() const {
 	auto faces = Tetrahedron::faces();
-	array<Triangle, 4> out;
+	array<Triangle3F, 4> out;
 	for(int n = 0; n < 4; n++)
-		out[n] = Triangle(m_verts[faces[n][0]], m_verts[faces[n][1]], m_verts[faces[n][2]]);
+		out[n] = Triangle3F(m_verts[faces[n][0]], m_verts[faces[n][1]], m_verts[faces[n][2]]);
 	return out;
 }
 
@@ -50,7 +50,7 @@ array<Tetrahedron::Edge, 6> Tetrahedron::edges() const {
 }
 
 #ifdef CGAL_ENABLED
-bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
+bool Tetrahedron::isIntersecting(const Triangle3F &triangle) const {
 	using K = CGAL::Simple_cartesian<double>;
 	using Point = K::Point_3;
 
@@ -69,7 +69,8 @@ bool Tetrahedron::isIntersecting(const Triangle &triangle) const {
 
 	try {
 		return CGAL::do_intersect(tet, tri);
-	} catch(...) {}
+	} catch(...) {
+	}
 
 	return true;
 }
@@ -98,7 +99,7 @@ bool Tetrahedron::isValid() const {
 
 bool Tetrahedron::isInside(const float3 &point) const {
 	for(const auto &plane : planes())
-		if(dot(plane, point) > 0.0f)
+		if(plane.signedDistance(point) > 0.0f)
 			return false;
 	return true;
 }

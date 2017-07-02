@@ -595,17 +595,17 @@ FBox DynamicMesh::box(EdgeId id) const {
 	return FBox(vmin(p1, p2), vmax(p1, p2));
 }
 
-Triangle DynamicMesh::triangle(PolyId id) const {
+Triangle3F DynamicMesh::triangle(PolyId id) const {
 	DASSERT(isValid(id) && vertexCount(id) == 3);
 	const auto &vids = m_polys[id].verts;
-	return Triangle(m_verts[vids[0]], m_verts[vids[1]], m_verts[vids[2]]);
+	return Triangle3F(m_verts[vids[0]], m_verts[vids[1]], m_verts[vids[2]]);
 }
 
 Projection DynamicMesh::edgeProjection(EdgeId edge, PolyId poly) const {
 	DASSERT(!segment(edge).empty());
-	Ray ray(*segment(edge).asRay());
+	auto ray = *segment(edge).asRay();
 	float3 far_point = point(otherVertex(poly, edge));
-	float3 edge_point = closestPoint(ray, far_point);
+	float3 edge_point = ray.closestPoint(far_point);
 	return Projection(point(edge.a), normalize(edge_point - far_point), ray.dir());
 }
 
@@ -624,7 +624,7 @@ float3 closestPoint(const DynamicMesh &mesh, const float3 &point) {
 	float3 out;
 
 	for(auto poly : mesh.polys()) {
-		auto ppoint = closestPoint(mesh.triangle(poly), point);
+		auto ppoint = mesh.triangle(poly).closestPoint(point);
 		auto dist_sq = distanceSq(point, ppoint);
 		if(dist_sq < min_dist_sq) {
 			min_dist_sq = dist_sq;

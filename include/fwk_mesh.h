@@ -127,12 +127,12 @@ class Mesh : public immutable_base<Mesh> {
 	Mesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
-	static Mesh makePolySoup(CRange<Triangle>);
+	static Mesh makePolySoup(CRange<Triangle3F>);
 	static Mesh makeRect(const FRect &xz_rect, float y);
 	static Mesh makeBBox(const FBox &bbox);
 	static Mesh makeCylinder(const Cylinder &, int num_sides);
 	static Mesh makeTetrahedron(const Tetrahedron &);
-	static Mesh makePlane(const Plane &, const float3 &start, float extent);
+	static Mesh makePlane(const Plane3F &, const float3 &start, float extent);
 
 	struct AnimatedData {
 		bool empty() const { return positions.empty(); }
@@ -171,7 +171,7 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	using TriIndices = MeshIndices::TriIndices;
-	vector<Triangle> tris() const;
+	vector<Triangle3F> tris() const;
 	vector<TriIndices> trisIndices() const;
 
 	vector<Mesh> split(int max_vertices) const;
@@ -425,11 +425,11 @@ class DynamicMesh {
 
 	FBox box(EdgeId) const;
 	Segment3<float> segment(EdgeId) const;
-	Triangle triangle(PolyId) const;
+	Triangle3F triangle(PolyId) const;
 
 	float3 simplex(VertexId id) const { return point(id); }
 	Segment3<float> simplex(EdgeId id) const { return segment(id); }
-	Triangle simplex(PolyId id) const { return triangle(id); }
+	Triangle3F simplex(PolyId id) const { return triangle(id); }
 
 	Projection edgeProjection(EdgeId, PolyId) const;
 

@@ -90,7 +90,7 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 	for(int n = 0; n < 4; n++) {
 		int inds[4] = {n, (n + 1) % 4, (n + 2) % 4, (n + 3) % 4};
 
-		if(dot(Plane(tet[inds[0]], tet[inds[1]], tet[inds[2]]), tet[inds[3]]) > 0.0f)
+		if(Plane3F(tet[inds[0]], tet[inds[1]], tet[inds[2]]).signedDistance(tet[inds[3]]) > 0.0f)
 			swap(inds[1], inds[2]);
 		insertBack(indices, {inds[0], inds[1], inds[2]});
 	}
@@ -98,20 +98,20 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 	return Mesh({positions, {}, {}}, {{indices}});
 }
 
-Mesh Mesh::makePlane(const Plane &plane, const float3 &start, float size) {
+Mesh Mesh::makePlane(const Plane3F &plane, const float3 &start, float size) {
 	DASSERT(size > fconstant::epsilon);
 	FATAL("Test me");
 
 	float3 p[3] = {{-size, -size, -size}, {size, size, size}, {size, -size, size}};
 	for(int i = 0; i < 3; i++)
-		p[i] = closestPoint(plane, p[i]);
+		p[i] = plane.closestPoint(p[i]);
 	if(distance(p[0], p[1]) < distance(p[0], p[2]))
 		p[1] = p[2];
 
 	float3 pnormal1 = normalize(p[1] - p[0]);
 	float3 pnormal2 = cross(plane.normal(), pnormal1);
 
-	float3 center = closestPoint(plane, start);
+	float3 center = plane.closestPoint(start);
 	float3 corners[4] = {
 		center - pnormal1 * size - pnormal2 * size, center + pnormal1 * size - pnormal2 * size,
 		center + pnormal1 * size + pnormal2 * size, center - pnormal1 * size + pnormal2 * size,
@@ -121,11 +121,11 @@ Mesh Mesh::makePlane(const Plane &plane, const float3 &start, float size) {
 	return Mesh({vector<float3>(corners, corners + 4), {}, {}}, {{indices}});
 }
 
-Mesh Mesh::makePolySoup(CRange<Triangle> rtris) {
+Mesh Mesh::makePolySoup(CRange<Triangle3F> rtris) {
 	vector<float3> positions;
 	vector<uint> indices;
 
-	vector<Triangle> tris = rtris;
+	vector<Triangle3F> tris = rtris;
 	std::sort(begin(tris), end(tris), [](const auto &a, const auto &b) {
 		auto ca = a.center(), cb = b.center();
 		return std::tie(ca.x, ca.y, ca.z) < std::tie(cb.x, cb.y, cb.z);

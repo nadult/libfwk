@@ -6,7 +6,10 @@
 
 namespace fwk {
 
-static const Plane makePlane(const float4 &vec) { return normalize(Plane(vec.xyz(), -vec.w)); }
+static Plane3F makePlane(const float4 &vec) {
+	float mul = 1.0f / length(vec.xyz());
+	return Plane3F(vec.xyz() * mul, -vec.w * mul);
+}
 
 Frustum::Frustum(const Matrix4 &view_proj) {
 	Matrix4 t = transpose(view_proj);
@@ -24,14 +27,14 @@ Frustum::Frustum(const Matrix4 &view_proj) {
 		m_planes[n] = m_planes[n];
 }
 
-Frustum::Frustum(CRange<Plane, planes_count> planes) {
+Frustum::Frustum(CRange<Plane3F, planes_count> planes) {
 	for(int n = 0; n < planes_count; n++)
 		m_planes[n] = planes[n];
 }
 
 bool Frustum::isIntersecting(const float3 &point) const {
 	for(int n = 0; n < planes_count; n++)
-		if(dot(m_planes[n], point) <= 0)
+		if(m_planes[n].signedDistance(point) <= 0) //TODO: < ?
 			return false;
 	return true;
 }
@@ -40,7 +43,7 @@ bool Frustum::isIntersecting(CRange<float3> points) const {
 	for(const auto &plane : m_planes) {
 		bool all_outside = true;
 		for(const auto &point : points)
-			if(dot(plane, point) > 0.0f) {
+			if(plane.signedDistance(point) > 0.0f) {
 				all_outside = false;
 				break;
 			}

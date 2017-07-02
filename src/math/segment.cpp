@@ -165,10 +165,10 @@ bool Segment<T, N>::testIsect(const Box<Vector> &box) const {
 	return fwk::testIsect(*this, box);
 }
 
-template <class T, int N> Maybe<TRay<T, N>> Segment<T, N>::asRay() const {
+template <class T, int N> Maybe<Ray<T, N>> Segment<T, N>::asRay() const {
 	if(empty())
 		return none;
-	return TRay<T, N>(from, normalize(to - from));
+	return Ray<T, N>(from, normalize(to - from));
 }
 
 template <class T, int N> T Segment<T, N>::closestPointParam(const Point &point) const {
@@ -255,27 +255,27 @@ template <class T, int N> T Segment<T, N>::distanceSq(const Segment &rhs) const 
 }
 
 template <class T, int N> auto Segment<T, N>::at(const IsectParam &pisect) const -> Isect {
-	if(const T *pt = pisect)
-		return at(*pt);
-	if(const pair<T, T> *seg = pisect)
-		return subSegment(seg->first, seg->second);
+	if(pisect.isPoint())
+		return at(pisect.asPoint());
+	if(pisect.isInterval())
+		return subSegment(pisect.asInterval());
 	return none;
 }
 
 // Jak opisać dokładność tej funkcji ?
 template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
-auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
+IsectParam<T> Segment<T, N>::isectParam(const Segment &rhs) const {
 	if(empty()) {
 		if(rhs.empty()) {
 			if(to == rhs.to)
 				return T(0);
-			return none;
+			return {};
 		}
 
 		if(rhs.closestPoint(from) == from)
 			return T(0);
-		return none;
+		return {};
 	}
 
 	auto vec1 = to - from;
@@ -298,14 +298,14 @@ auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
 			auto ilen = T(1) / length_sq;
 
 			if(t2 < T(0) || t1 > length_sq)
-				return none;
+				return {};
 			if(t2 == t1)
 				return t1;
 
-			return make_pair(t1 * ilen, t2 * ilen);
+			return {t1 * ilen, t2 * ilen};
 		}
 
-		return none;
+		return {};
 	}
 
 	auto diff = rhs.from - from;
@@ -319,28 +319,42 @@ auto Segment<T, N>::isectParam(const Segment &rhs) const -> IsectParam {
 
 	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
 		return t1 / tdot;
-	return none;
+	return {};
+}
+
+// TODO: don't use rays here
+template <class T, int N> IsectParam<T> Segment<T, N>::isectParam(const Box<Vector> &box) const {
+	if(empty())
+		return box.contains(from) ? T(0) : IsectParam();
+
+	auto param = asRay()->isectParam(box).asInterval() / length();
+	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
+}
+
+// TODO: proper intersections (not based on rays)
+template <class T, int N>
+template <class U, EnableInDimension<U, 3>...>
+IsectParam<T> Segment<T, N>::isectParam(const Plane<T, N> &plane) const {
+	if(empty())
+		return plane.signedDistance(from) == T(0) ? T(0) : IsectParam();
+
+	auto param = asRay()->isectParam(plane).asInterval() / length();
+	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
 }
 
 template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-auto Segment<T, N>::isect(const Segment &rhs) const -> Isect {
-	return at(isectParam(rhs));
+template <class U, EnableInDimension<U, 3>...>
+IsectParam<T> Segment<T, N>::isectParam(const Triangle<T, N> &tri) const {
+	if(empty())
+		return tri.distance(from) == T(0) ? T(0) : IsectParam();
+
+	auto param = asRay()->isectParam(tri).asInterval() / length();
+	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
 }
 
-template <class T, int N>
-auto Segment<T, N>::isectParam(const Box<Vector> &box) const -> IsectParam {
-	FATAL("Write me please");
-	return none;
-}
-
-template <class T, int N> auto Segment<T, N>::isect(const Box<Vector> &box) const -> Isect {
-	return at(isectParam(box));
-}
-
-template struct ISegment<int, 2>;
-template struct ISegment<llint, 2>;
-template struct ISegment<qint, 2>;
+template class ISegment<int, 2>;
+template class ISegment<llint, 2>;
+template class ISegment<qint, 2>;
 
 template SegmentIsectClass ISegment<int, 2>::classifyIsect(const ISegment &) const;
 template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const ISegment &) const;
@@ -354,13 +368,19 @@ template bool ISegment<int, 2>::testIsect(const Box<Vector> &) const;
 template bool ISegment<llint, 2>::testIsect(const Box<Vector> &) const;
 template bool ISegment<qint, 2>::testIsect(const Box<Vector> &) const;
 
-template struct Segment<float, 2>;
-template struct Segment<float, 3>;
-template struct Segment<double, 2>;
-template struct Segment<double, 3>;
+template class Segment<float, 2>;
+template class Segment<float, 3>;
+template class Segment<double, 2>;
+template class Segment<double, 3>;
 
 template auto Segment<float, 2>::isectParam(const Segment &) const -> IsectParam;
 template auto Segment<double, 2>::isectParam(const Segment &) const -> IsectParam;
+
+template auto Segment<float, 3>::isectParam(const Triangle3<float> &) const -> IsectParam;
+template auto Segment<double, 3>::isectParam(const Triangle3<double> &) const -> IsectParam;
+
+template auto Segment<float, 3>::isectParam(const Plane3<float> &) const -> IsectParam;
+template auto Segment<double, 3>::isectParam(const Plane3<double> &) const -> IsectParam;
 
 template auto Segment<float, 2>::isect(const Segment &) const -> Isect;
 template auto Segment<double, 2>::isect(const Segment &) const -> Isect;
@@ -373,32 +393,6 @@ template SegmentIsectClass Segment<double, 2>::classifyIsect(const Point &) cons
 
 template bool Segment<float, 2>::testIsect(const Box<Vector> &) const;
 template bool Segment<double, 2>::testIsect(const Box<Vector> &) const;
-
-// TODO: proper intersections (not based on rays)
-pair<float, float> intersectionRange(const Segment<float, 3> &segment, const Box<float3> &box) {
-	DASSERT(!segment.empty());
-
-	auto len = segment.length();
-	auto pair = intersectionRange(*segment.asRay(), box);
-	pair.first /= len;
-	pair.second /= len;
-
-	pair.second = min(pair.second, 1.0f);
-	return pair.first <= pair.second ? pair : make_pair(fconstant::inf, fconstant::inf);
-}
-
-float intersection(const Segment<float, 3> &segment, const Triangle &tri) {
-	DASSERT(!segment.empty());
-
-	float isect = intersection(*segment.asRay(), tri) / segment.length();
-	return isect < 0.0f || isect > 1.0f ? fconstant::inf : isect;
-}
-
-float intersection(const Segment<float, 3> &segment, const Plane &plane) {
-	DASSERT(!segment.empty());
-	float dist = intersection(*segment.asRay(), plane) / segment.length();
-	return dist < 0.0f || dist > 1.0f ? fconstant::inf : dist;
-}
 
 Segment<float, 3> operator*(const Matrix4 &mat, const Segment<float, 3> &segment) {
 	return {mulPoint(mat, segment.from), mulPoint(mat, segment.to)};

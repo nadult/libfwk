@@ -11,14 +11,14 @@ FBox encloseTransformed(const FBox &box, const Matrix4 &mat) {
 	return enclose(makeConstRange(points));
 }
 
-array<Plane, 6> planes(const FBox &box) {
-	array<Plane, 6> out;
-	out[0] = Plane({-1, 0, 0}, -box.x());
-	out[1] = Plane({1, 0, 0}, box.ex());
-	out[2] = Plane({0, -1, 0}, -box.y());
-	out[3] = Plane({0, 1, 0}, box.ey());
-	out[4] = Plane({0, 0, -1}, -box.z());
-	out[5] = Plane({0, 0, 1}, box.ez());
+array<Plane3F, 6> planes(const FBox &box) {
+	array<Plane3F, 6> out;
+	out[0] = {{-1, 0, 0}, -box.x()};
+	out[1] = {{1, 0, 0}, box.ex()};
+	out[2] = {{0, -1, 0}, -box.y()};
+	out[3] = {{0, 1, 0}, box.ey()};
+	out[4] = {{0, 0, -1}, -box.z()};
+	out[5] = {{0, 0, 1}, box.ez()};
 	return out;
 }
 
