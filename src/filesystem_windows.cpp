@@ -1,6 +1,5 @@
-/* Copyright (C) 2015 Krzysztof Jakubowski <nadult@fastmail.fm>
-
-   This file is part of libfwk. */
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN

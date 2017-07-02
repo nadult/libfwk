@@ -1,6 +1,5 @@
-/* Copyright (C) 2015 Krzysztof Jakubowski <nadult@fastmail.fm>
-
-   This file is part of libfwk.*/
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
 
 #include "fwk_math.h"
 

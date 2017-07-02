@@ -1,3 +1,6 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #include "fwk_base.h"
 #ifdef FWK_TARGET_LINUX
 #include <malloc.h>

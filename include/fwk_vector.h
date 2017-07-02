@@ -1,4 +1,8 @@
-#pragma once
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
+#ifndef FWK_VECTOR_H
+#define FWK_VECTOR_H
 
 #include "fwk_base.h"
 
@@ -324,3 +328,5 @@ template <class T> class Vector {
 template <class T> using vector = Vector<T>;
 #endif
 }
+
+#endif

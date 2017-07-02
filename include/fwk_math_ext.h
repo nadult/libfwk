@@ -1,6 +1,5 @@
-/* Copyright (C) 2015 - 2017 Krzysztof Jakubowski <nadult@fastmail.fm>
-
-   This file is part of libfwk.*/
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
 
 #ifndef FWK_MATH_EXT_H
 #define FWK_MATH_EXT_H
