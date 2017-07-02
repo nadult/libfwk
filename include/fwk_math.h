@@ -11,15 +11,6 @@
 
 namespace fwk {
 
-#define FWK_VEC_RANGE()                                                                            \
-	auto begin() { return v; }                                                                     \
-	auto end() { return v + arraySize(v); }                                                        \
-	auto begin() const { return v; }                                                               \
-	auto end() const { return v + arraySize(v); }                                                  \
-	auto data() { return v; }                                                                      \
-	auto data() const { return v; }                                                                \
-	constexpr int size() const { return arraySize(v); }
-
 // TODO: make sure that all classes / structures here have proper default constructor (for
 // example AxisAngle requires fixing)
 
@@ -71,8 +62,10 @@ struct short2 {
 	short &operator[](int idx) { return v[idx]; }
 	const short &operator[](int idx) const { return v[idx]; }
 
+	Range<short, 2> values() { return v; }
+	CRange<short, 2> values() const { return v; }
+
 	FWK_ORDER_BY(short2, x, y)
-	FWK_VEC_RANGE()
 
 	union {
 		struct {
@@ -105,7 +98,9 @@ struct int2 {
 	const int &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(int2, x, y)
-	FWK_VEC_RANGE()
+
+	Range<int, 2> values() { return v; }
+	CRange<int, 2> values() const { return v; }
 
 	union {
 		struct {
@@ -140,7 +135,9 @@ struct int3 {
 	const int &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(int3, x, y, z)
-	FWK_VEC_RANGE()
+
+	Range<int, 3> values() { return v; }
+	CRange<int, 3> values() const { return v; }
 
 	union {
 		struct {
@@ -169,7 +166,9 @@ struct int4 {
 	const int &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(int4, x, y, z, w)
-	FWK_VEC_RANGE()
+
+	Range<int, 4> values() { return v; }
+	CRange<int, 4> values() const { return v; }
 
 	union {
 		struct {
@@ -203,7 +202,9 @@ struct float2 {
 	const float &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(float2, x, y)
-	FWK_VEC_RANGE()
+
+	Range<float, 2> values() { return v; }
+	CRange<float, 2> values() const { return v; }
 
 	union {
 		struct {
@@ -241,7 +242,9 @@ struct float3 {
 	float2 yz() const { return {y, z}; }
 
 	FWK_ORDER_BY(float3, x, y, z)
-	FWK_VEC_RANGE()
+
+	Range<float, 3> values() { return v; }
+	CRange<float, 3> values() const { return v; }
 
 	union {
 		struct {
@@ -290,7 +293,9 @@ struct float4 {
 	float3 xyz() const { return {x, y, z}; }
 
 	FWK_ORDER_BY(float4, x, y, z, w)
-	FWK_VEC_RANGE()
+
+	Range<float, 4> values() { return v; }
+	CRange<float, 4> values() const { return v; }
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -330,7 +335,9 @@ struct double2 {
 	const double &operator[](int idx) const { return v[idx]; }
 
 	FWK_ORDER_BY(double2, x, y)
-	FWK_VEC_RANGE()
+
+	Range<double, 2> values() { return v; }
+	CRange<double, 2> values() const { return v; }
 
 	union {
 		struct {
@@ -370,7 +377,9 @@ struct double3 {
 	double2 yz() const { return double2(y, z); }
 
 	FWK_ORDER_BY(double3, x, y, z)
-	FWK_VEC_RANGE()
+
+	Range<double, 3> values() { return v; }
+	CRange<double, 3> values() const { return v; }
 
 	union {
 		struct {
@@ -421,7 +430,9 @@ struct double4 {
 	double3 xyz() const { return double3(x, y, z); }
 
 	FWK_ORDER_BY(double4, x, y, z, w)
-	FWK_VEC_RANGE()
+
+	Range<double, 4> values() { return v; }
+	CRange<double, 4> values() const { return v; }
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -775,7 +786,7 @@ bool isnan(float);
 bool isnan(double);
 
 template <class T, EnableIfRealVector<T>...> bool isnan(const T &v) {
-	return anyOf(v, [](auto s) { return isnan(s); });
+	return anyOf(v.values(), [](auto s) { return isnan(s); });
 }
 
 class Matrix3;
@@ -1162,7 +1173,8 @@ class Matrix3 {
 	const float3 &operator[](int n) const { return v[n]; }
 	float3 &operator[](int n) { return v[n]; }
 
-	FWK_VEC_RANGE()
+	Range<float3, 3> values() { return v; }
+	CRange<float3, 3> values() const { return v; }
 
   private:
 	float3 v[3];
@@ -1224,7 +1236,8 @@ class Matrix4 {
 	const Matrix4 operator-(const Matrix4 &) const;
 	const Matrix4 operator*(float)const;
 
-	FWK_VEC_RANGE()
+	Range<float4, 4> values() { return v; }
+	CRange<float4, 4> values() const { return v; }
 
   private:
 	float4 v[4];
@@ -1558,7 +1571,7 @@ template <class T, int N> class Triangle {
 	bool isSegment() const { return degenerate() && !isPoint(); }
 
 	bool adjacent(const Triangle &rhs) const {
-		return anyOf(v, [&](auto v) { return isOneOf(v, rhs.verts()); });
+		return anyOf(v, [&](auto v) { return isOneOf(v, rhs.points()); });
 	}
 
 	// Edge1: b - a;  Edge2: c - a
@@ -1590,7 +1603,8 @@ template <class T, int N> class Triangle {
 
 	T surfaceArea() const;
 
-	CRange<Point, 3> verts() const { return {v}; }
+	CRange<Point, 3> points() const { return {v}; }
+
 	auto edges() const {
 		return indexRange(0, 3, [&](int i) { return edge(i); });
 	}
@@ -1605,7 +1619,6 @@ template <class T, int N> class Triangle {
 
 	bool areIntersecting(const Triangle &) const;
 
-	FWK_VEC_RANGE();
 	FWK_ORDER_BY(Triangle, v[0], v[1], v[2]);
 
   private:

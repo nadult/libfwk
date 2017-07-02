@@ -275,10 +275,10 @@ void testMain() {
 	testHash();
 
 	float3 vec(0, 0, 1);
-	for(auto &s : vec)
+	for(auto &s : vec.values())
 		s += 12.0f;
 	ASSERT_EQ(vec, float3(12, 12, 13));
-	static_assert(std::is_same<decltype(makeRange(vec)), Range<float>>::value, "");
+	static_assert(std::is_same<decltype(vec.values()), Range<float, 3>>::value, "");
 	ASSERT(!isnan(vec) && !isnan(double3(vec)));
 
 	auto float_len = length(float3(1, 2, 3));

@@ -321,7 +321,7 @@ IsectParam<T> Segment<T, N>::isectParam(const Segment &rhs) const {
 	return {};
 }
 
-// TODO: don't use rays here
+// TODO: don't use rays here (we could avoid sqrt)
 template <class T, int N> IsectParam<T> Segment<T, N>::isectParam(const Box<Vector> &box) const {
 	if(empty())
 		return box.contains(from) ? T(0) : IsectParam();

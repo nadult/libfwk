@@ -133,12 +133,12 @@ Mesh Mesh::makePolySoup(CRange<Triangle3F> rtris) {
 	for(const auto &tri : tris) {
 		uint off = positions.size();
 		int inds[3];
-		for(auto vert : tri.verts()) {
+		for(auto point : tri.points()) {
 			float min_dist = fconstant::inf;
 			int min_idx = -1;
 
 			for(int n = 0; n < positions.size(); n++) {
-				auto dist = distanceSq(positions[n], vert);
+				auto dist = distanceSq(positions[n], point);
 				if(dist < min_dist) {
 					min_dist = dist;
 					min_idx = n;
@@ -150,7 +150,7 @@ Mesh Mesh::makePolySoup(CRange<Triangle3F> rtris) {
 				index = min_idx;
 			} else {
 				index = positions.size();
-				positions.emplace_back(vert);
+				positions.emplace_back(point);
 			}
 			indices.emplace_back((uint)index);
 		}
