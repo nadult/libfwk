@@ -1,4 +1,3 @@
-- remove cgal stuff
 - use std::variant ?
 - use std::filesystem ?
 - Box<T, N> as other classes ?

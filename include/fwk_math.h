@@ -1690,7 +1690,6 @@ class Tetrahedron {
 	float surfaceArea() const;
 	float inscribedSphereRadius() const;
 
-	bool isIntersecting(const Triangle3F &) const;
 	bool isInside(const float3 &vec) const;
 	bool isValid() const;
 
