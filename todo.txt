@@ -1,3 +1,4 @@
+- use std::variant ?
 - use std::filesystem ?
 - Box<T, N> as other classes ?
 - Fix isOneOf, remove FWK_VEC_RANGE -> vec.values()

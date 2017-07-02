@@ -402,8 +402,11 @@ double getTime();
 #ifndef FWK_STD_VECTOR
 #include "fwk_vector.h"
 #endif
+
 #include "fwk_maybe.h"
 #include "fwk_range.h"
+
+#include "fwk_index_range.h"
 
 namespace fwk {
 
