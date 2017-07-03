@@ -120,7 +120,7 @@ Mesh Mesh::makePlane(const Plane3F &plane, const float3 &start, float size) {
 	return Mesh({vector<float3>(corners, corners + 4), {}, {}}, {{indices}});
 }
 
-Mesh Mesh::makePolySoup(CRange<Triangle3F> rtris) {
+Mesh Mesh::makePolySoup(CSpan<Triangle3F> rtris) {
 	vector<float3> positions;
 	vector<uint> indices;
 

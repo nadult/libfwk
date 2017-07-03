@@ -3,7 +3,8 @@
 ## WTF is libfwt?
 
 FWT is a sweet (IMVHO) abbreviation for framework. It is basically a set of classes
-and functions which I use in most of my projects.
+and functions which I use in most of my projects. It requires fairly new g++ (7.1) or
+clang (4.0).
 
 TODO: write more detailed description.
 
@@ -38,9 +39,12 @@ TODO: write me
 
 ## Compilation
 
-libfwt requires C++14 support.
+libfwt requires C++14 support. It also uses some features from C++17:  
+- constexpr if  
+- simplified static assert  
 
-To compile simply run make. If you want to cross-compile for mingw32,
+To compile simply run make. With Makefile.local you can override some basic variables
+like LINUX\_CXX, FLAGS or BUILD\_DIR. If you want to cross-compile for mingw32,
 simply override MINGW\_PREFIX in Makefile.local with proper prefix.
 There is also an option to compile for the web (using emscripten).
 

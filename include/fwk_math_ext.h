@@ -50,8 +50,8 @@ struct llint2 {
 
 	FWK_ORDER_BY(llint2, x, y)
 
-	Range<llint, 2> values() { return v; }
-	CRange<llint, 2> values() const { return v; }
+	Span<llint, 2> values() { return v; }
+	CSpan<llint, 2> values() const { return v; }
 
 	union {
 		struct {
@@ -89,8 +89,8 @@ struct qint2 {
 
 	FWK_ORDER_BY(qint2, v[0], v[1])
 
-	Range<qint, 2> values() { return v; }
-	CRange<qint, 2> values() const { return v; }
+	Span<qint, 2> values() { return v; }
+	CSpan<qint, 2> values() const { return v; }
 
 	qint &x() { return v[0]; }
 	qint &y() { return v[1]; }

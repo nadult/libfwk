@@ -206,7 +206,7 @@ class DTexture : public immutable_base<DTexture> {
 	DTexture(const string &name, Stream &);
 	DTexture(Format format, const int2 &size, const Config & = Config());
 	DTexture(Format format, const Texture &, const Config & = Config());
-	DTexture(Format format, const int2 &size, CRange<float4>, const Config & = Config());
+	DTexture(Format format, const int2 &size, CSpan<float4>, const Config & = Config());
 	DTexture(const Texture &, const Config & = Config());
 
 	// TODO: think about this:
@@ -380,23 +380,23 @@ class VertexBuffer : public immutable_base<VertexBuffer> {
 	}
 
 	template <class T>
-	VertexBuffer(CRange<T> data)
+	VertexBuffer(CSpan<T> data)
 		: VertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
-	template <class Range, typename = typename std::enable_if<IsRange<Range>::value>::type>
-	VertexBuffer(const Range &range) : VertexBuffer(makeRange(range)) {}
+	template <class TSpan, EnableIfSpan<TSpan>...>
+	VertexBuffer(const TSpan &span) : VertexBuffer(makeSpan(span)) {}
 
 	template <class T> vector<T> getData() const {
 		ASSERT(TVertexDataType<T>().type == m_data_type.type);
 		ASSERT(sizeof(T) == m_vertex_size);
 		vector<T> out(m_size);
-		download(reinterpretRange<char>(Range<T>(out)));
+		download(Span<T>(out).template reinterpret<char>());
 		return out;
 	}
 
 	int size() const { return m_size; }
 
   private:
-	void download(Range<char> out, int src_offset = 0) const;
+	void download(Span<char> out, int src_offset = 0) const;
 
 	unsigned m_handle;
 	int m_size, m_vertex_size;
@@ -615,11 +615,11 @@ class ProgramBinder {
 	~ProgramBinder();
 
 	void setUniform(const char *name, float);
-	void setUniform(const char *name, CRange<float>);
-	void setUniform(const char *name, CRange<float2>);
-	void setUniform(const char *name, CRange<float3>);
-	void setUniform(const char *name, CRange<float4>);
-	void setUniform(const char *name, CRange<Matrix4>);
+	void setUniform(const char *name, CSpan<float>);
+	void setUniform(const char *name, CSpan<float2>);
+	void setUniform(const char *name, CSpan<float3>);
+	void setUniform(const char *name, CSpan<float4>);
+	void setUniform(const char *name, CSpan<Matrix4>);
 
 	void setUniform(const char *name, int);
 	void setUniform(const char *name, const int2 &);
@@ -740,7 +740,7 @@ class Renderer2D : public MatrixStack {
 
 	void render();
 
-	void addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<FColor, 4>,
+	void addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4>,
 					   const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, const SimpleMaterial &);
 	void addFilledRect(const FRect &rect, const SimpleMaterial &mat) {
@@ -767,10 +767,10 @@ class Renderer2D : public MatrixStack {
 	};
 
 	// tex_coord & color can be empty
-	void addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>,
+	void addQuads(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColor>,
 				  const SimpleMaterial &);
-	void addLines(CRange<float2> pos, CRange<FColor>, FColor mat_color);
-	void addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>,
+	void addLines(CSpan<float2> pos, CSpan<FColor>, FColor mat_color);
+	void addTris(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColor>,
 				 const SimpleMaterial &material);
 
 	Maybe<IRect> scissorRect() const;
@@ -781,7 +781,7 @@ class Renderer2D : public MatrixStack {
 
   private:
 	struct DrawChunk {
-		void appendVertices(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor>, FColor);
+		void appendVertices(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColor>, FColor);
 
 		vector<float2> positions;
 		vector<float2> tex_coords;
@@ -811,7 +811,7 @@ class SpriteBuffer {
 	};
 
 	SpriteBuffer(const MatrixStack &);
-	void add(CRange<float3> verts, CRange<float2> tex_coords, CRange<IColor> colors, PMaterial,
+	void add(CSpan<float3> verts, CSpan<float2> tex_coords, CSpan<IColor> colors, PMaterial,
 			 const Matrix4 &matrix = Matrix4::identity());
 	void clear();
 
@@ -835,11 +835,10 @@ class LineBuffer {
 	};
 
 	LineBuffer(const MatrixStack &);
-	void add(CRange<float3>, CRange<IColor>, PMaterial,
-			 const Matrix4 &matrix = Matrix4::identity());
-	void add(CRange<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-	void add(CRange<float3>, IColor, const Matrix4 &matrix = Matrix4::identity());
-	void add(CRange<Segment3<float>>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CSpan<float3>, CSpan<IColor>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CSpan<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CSpan<float3>, IColor, const Matrix4 &matrix = Matrix4::identity());
+	void add(CSpan<Segment3<float>>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
 	void addBox(const FBox &bbox, IColor color, const Matrix4 &matrix = Matrix4::identity());
 	void clear();
 
@@ -881,8 +880,8 @@ class RenderList : public MatrixStack {
 
 	void add(DrawCall);
 	void add(DrawCall, const Matrix4 &);
-	void add(CRange<DrawCall>);
-	void add(CRange<DrawCall>, const Matrix4 &);
+	void add(CSpan<DrawCall>);
+	void add(CSpan<DrawCall>, const Matrix4 &);
 
 	const auto &drawCalls() const { return m_draw_calls; }
 	const auto &sprites() const { return m_sprites; }
@@ -951,7 +950,7 @@ class FontCore : public immutable_base<FontCore> {
 
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
-	int genQuads(const wstring &, Range<float2> out_pos, Range<float2> out_uv) const;
+	int genQuads(const wstring &, Span<float2> out_pos, Span<float2> out_uv) const;
 
 	// TODO: better representation? hash table maybe?
 	std::map<int, Glyph> m_glyphs;

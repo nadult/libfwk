@@ -62,8 +62,8 @@ struct short2 {
 	short &operator[](int idx) { return v[idx]; }
 	const short &operator[](int idx) const { return v[idx]; }
 
-	Range<short, 2> values() { return v; }
-	CRange<short, 2> values() const { return v; }
+	Span<short, 2> values() { return v; }
+	CSpan<short, 2> values() const { return v; }
 
 	FWK_ORDER_BY(short2, x, y)
 
@@ -99,8 +99,8 @@ struct int2 {
 
 	FWK_ORDER_BY(int2, x, y)
 
-	Range<int, 2> values() { return v; }
-	CRange<int, 2> values() const { return v; }
+	Span<int, 2> values() { return v; }
+	CSpan<int, 2> values() const { return v; }
 
 	union {
 		struct {
@@ -136,8 +136,8 @@ struct int3 {
 
 	FWK_ORDER_BY(int3, x, y, z)
 
-	Range<int, 3> values() { return v; }
-	CRange<int, 3> values() const { return v; }
+	Span<int, 3> values() { return v; }
+	CSpan<int, 3> values() const { return v; }
 
 	union {
 		struct {
@@ -167,8 +167,8 @@ struct int4 {
 
 	FWK_ORDER_BY(int4, x, y, z, w)
 
-	Range<int, 4> values() { return v; }
-	CRange<int, 4> values() const { return v; }
+	Span<int, 4> values() { return v; }
+	CSpan<int, 4> values() const { return v; }
 
 	union {
 		struct {
@@ -203,8 +203,8 @@ struct float2 {
 
 	FWK_ORDER_BY(float2, x, y)
 
-	Range<float, 2> values() { return v; }
-	CRange<float, 2> values() const { return v; }
+	Span<float, 2> values() { return v; }
+	CSpan<float, 2> values() const { return v; }
 
 	union {
 		struct {
@@ -243,8 +243,8 @@ struct float3 {
 
 	FWK_ORDER_BY(float3, x, y, z)
 
-	Range<float, 3> values() { return v; }
-	CRange<float, 3> values() const { return v; }
+	Span<float, 3> values() { return v; }
+	CSpan<float, 3> values() const { return v; }
 
 	union {
 		struct {
@@ -258,7 +258,7 @@ struct float4 {
 	using Scalar = float;
 	enum { vector_size = 4 };
 
-	float4(CRange<float, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
+	float4(CSpan<float, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
 	constexpr float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 	constexpr float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
 	constexpr float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
@@ -294,8 +294,8 @@ struct float4 {
 
 	FWK_ORDER_BY(float4, x, y, z, w)
 
-	Range<float, 4> values() { return v; }
-	CRange<float, 4> values() const { return v; }
+	Span<float, 4> values() { return v; }
+	CSpan<float, 4> values() const { return v; }
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -336,8 +336,8 @@ struct double2 {
 
 	FWK_ORDER_BY(double2, x, y)
 
-	Range<double, 2> values() { return v; }
-	CRange<double, 2> values() const { return v; }
+	Span<double, 2> values() { return v; }
+	CSpan<double, 2> values() const { return v; }
 
 	union {
 		struct {
@@ -378,8 +378,8 @@ struct double3 {
 
 	FWK_ORDER_BY(double3, x, y, z)
 
-	Range<double, 3> values() { return v; }
-	CRange<double, 3> values() const { return v; }
+	Span<double, 3> values() { return v; }
+	CSpan<double, 3> values() const { return v; }
 
 	union {
 		struct {
@@ -393,7 +393,7 @@ struct double4 {
 	using Scalar = double;
 	enum { vector_size = 4 };
 
-	double4(CRange<double, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
+	double4(CSpan<double, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
 	constexpr double4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
 	explicit constexpr double4(double t) : x(t), y(t), z(t), w(t) {}
 	constexpr double4(const double3 &xyz, double w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
@@ -431,8 +431,8 @@ struct double4 {
 
 	FWK_ORDER_BY(double4, x, y, z, w)
 
-	Range<double, 4> values() { return v; }
-	CRange<double, 4> values() const { return v; }
+	Span<double, 4> values() { return v; }
+	CSpan<double, 4> values() const { return v; }
 
 	// TODO: when adding support for SSE, make sure to also write
 	// default constructors and operator=, becuase compiler might have some trouble
@@ -1043,7 +1043,7 @@ template <class T> class Box {
 	};
 };
 
-template <class T, EnableIfVector<T>...> Box<T> enclose(CRange<T> points) {
+template <class T, EnableIfVector<T>...> Box<T> enclose(CSpan<T> points) {
 	if(points.empty())
 		return {};
 	T tmin = points[0], tmax = points[0];
@@ -1054,7 +1054,7 @@ template <class T, EnableIfVector<T>...> Box<T> enclose(CRange<T> points) {
 	return {tmin, tmax};
 }
 
-template <class T> Box<T> enclose(CRange<Box<T>> boxes) {
+template <class T> Box<T> enclose(CSpan<Box<T>> boxes) {
 	if(boxes.empty())
 		return {};
 	auto out = boxes[0];
@@ -1063,9 +1063,9 @@ template <class T> Box<T> enclose(CRange<Box<T>> boxes) {
 	return out;
 }
 
-template <class TRange, EnableIfRange<TRange>..., EnableIfVector<RangeBase<TRange>>...>
-auto enclose(const TRange &points) -> Box<RangeBase<TRange>> {
-	return enclose(makeConstRange(points));
+template <class TRange, class T = RangeBase<TRange>, EnableIfVector<T>...>
+Box<T> enclose(const TRange &points) {
+	return enclose(makeCSpan(points));
 }
 
 template <class T, EnableIfRealVector<T>...> auto encloseIntegral(const Box<T> &box) {
@@ -1173,8 +1173,8 @@ class Matrix3 {
 	const float3 &operator[](int n) const { return v[n]; }
 	float3 &operator[](int n) { return v[n]; }
 
-	Range<float3, 3> values() { return v; }
-	CRange<float3, 3> values() const { return v; }
+	Span<float3, 3> values() { return v; }
+	CSpan<float3, 3> values() const { return v; }
 
   private:
 	float3 v[3];
@@ -1217,9 +1217,9 @@ class Matrix4 {
 		v[2] = col2;
 		v[3] = col3;
 	}
-	Matrix4(CRange<float, 16> values) { // TODO: use range<float, 16>
+	Matrix4(CSpan<float, 16> values) {
 		for(int n = 0; n < 4; n++)
-			v[n] = float4(CRange<float, 4>(values.data() + n * 4, 4));
+			v[n] = float4(CSpan<float, 4>(values.data() + n * 4, 4));
 	}
 
 	static const Matrix4 identity();
@@ -1236,8 +1236,8 @@ class Matrix4 {
 	const Matrix4 operator-(const Matrix4 &) const;
 	const Matrix4 operator*(float)const;
 
-	Range<float4, 4> values() { return v; }
-	CRange<float4, 4> values() const { return v; }
+	Span<float4, 4> values() { return v; }
+	CSpan<float4, 4> values() const { return v; }
 
   private:
 	float4 v[4];
@@ -1603,7 +1603,7 @@ template <class T, int N> class Triangle {
 
 	T surfaceArea() const;
 
-	CRange<Point, 3> points() const { return {v}; }
+	CSpan<Point, 3> points() const { return {v}; }
 
 	auto edges() const {
 		return indexRange(0, 3, [&](int i) { return edge(i); });
@@ -1672,7 +1672,7 @@ template <class T, int N> class Plane {
 		both_sides = 0,
 		all_positive = 1,
 	};
-	SideTestResult sideTest(CRange<Point>) const;
+	SideTestResult sideTest(CSpan<Point>) const;
 	Plane operator-() const { return Plane(-m_normal, -m_distance0); }
 
 	FWK_ORDER_BY(Plane, m_normal, m_distance0);
@@ -1688,7 +1688,7 @@ class Tetrahedron {
 	using Edge = pair<float3, float3>;
 
 	Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4);
-	Tetrahedron(CRange<float3, 4> points)
+	Tetrahedron(CSpan<float3, 4> points)
 		: Tetrahedron(points[0], points[1], points[2], points[3]) {}
 	Tetrahedron() : Tetrahedron(float3(), float3(), float3(), float3()) {}
 
@@ -1806,13 +1806,13 @@ class Frustum {
 
 	Frustum() = default;
 	Frustum(const Matrix4 &view_projection);
-	Frustum(CRange<Plane3F, planes_count>);
+	Frustum(CSpan<Plane3F, planes_count>);
 
 	bool isIntersecting(const float3 &point) const;
 	bool isIntersecting(const FBox &box) const;
 
 	// TODO: clang crashes on this (in full opt with -DNDEBUG)
-	bool isIntersecting(CRange<float3> points) const;
+	bool isIntersecting(CSpan<float3> points) const;
 
 	const Plane3F &operator[](int idx) const { return m_planes[idx]; }
 	Plane3F &operator[](int idx) { return m_planes[idx]; }
@@ -1910,14 +1910,14 @@ template <class Value = int> struct Hash {
 		return std::hash<T>()(scalar);
 	}
 
-	template <class T, EnableIf<IsRange<T>::value && !isTied<T>(), NotARange>...>
-	static Value hash(const T &trange) {
-		auto range = makeConstRange(trange);
-		if(range.empty())
+	template <class T, EnableIf<isRange<T>() && !isTied<T>(), NotARange>...>
+	static Value hash(const T &range) {
+		if(empty(range))
 			return 0;
-		auto out = hash(range[0]);
-		for(int n = 1; n < range.size(); n++)
-			out = hashCombine(out, hash(range[n]));
+		auto it = begin(range);
+		auto out = hash(*it);
+		for(++it; it != end(range); ++it)
+			out = hashCombine(out, hash(*it));
 		return out;
 	}
 

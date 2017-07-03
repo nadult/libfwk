@@ -201,7 +201,7 @@ namespace xml_conversions {
 		}
 
 		template <class Base, int min_size>
-		static void doublesToString(CRange<Base, min_size> in, TextFormatter &out) {
+		static void doublesToString(CSpan<Base, min_size> in, TextFormatter &out) {
 			for(int n = 0; n < in.size(); n++) {
 				char buffer[DBL_MAX_10_EXP + 2];
 				// TODO: save floats accurately?
@@ -219,54 +219,59 @@ namespace xml_conversions {
 			}
 		}
 
+		template <class TSpan, EnableIfSpan<TSpan>...>
+		static void doublesToString(const TSpan &span, TextFormatter &out) {
+			doublesToString(makeSpan(span), out);
+		}
+
 		void toString(double value, TextFormatter &out) {
 			double values[1] = {value};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(float value, TextFormatter &out) {
 			float values[1] = {value};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const float2 &value, TextFormatter &out) {
 			float values[2] = {value.x, value.y};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const float3 &value, TextFormatter &out) {
 			float values[3] = {value.x, value.y, value.z};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const float4 &value, TextFormatter &out) {
 			float values[4] = {value.x, value.y, value.z, value.w};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const double2 &value, TextFormatter &out) {
 			double values[2] = {value.x, value.y};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const double3 &value, TextFormatter &out) {
 			double values[3] = {value.x, value.y, value.z};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const double4 &value, TextFormatter &out) {
 			double values[4] = {value.x, value.y, value.z, value.w};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const FRect &rect, TextFormatter &out) {
 			float values[4] = {rect.x(), rect.y(), rect.ex(), rect.ey()};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const DRect &rect, TextFormatter &out) {
 			double values[4] = {rect.x(), rect.y(), rect.ex(), rect.ey()};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const IRect &rect, TextFormatter &out) {
@@ -279,20 +284,20 @@ namespace xml_conversions {
 
 		void toString(const FBox &box, TextFormatter &out) {
 			float values[6] = {box.x(), box.y(), box.z(), box.ex(), box.ey(), box.ez()};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const DBox &box, TextFormatter &out) {
 			double values[6] = {box.x(), box.y(), box.z(), box.ex(), box.ey(), box.ez()};
-			doublesToString(makeRange(values), out);
+			doublesToString(values, out);
 		}
 
 		void toString(const Matrix4 &value, TextFormatter &out) {
-			doublesToString(CRange<float>(&value[0].x, 16), out);
+			doublesToString(CSpan<float>(&value[0].x, 16), out);
 		}
 
 		void toString(const Quat &value, TextFormatter &out) {
-			doublesToString(makeRange(value.v), out);
+			doublesToString(value.values(), out);
 		}
 	}
 }

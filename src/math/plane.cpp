@@ -10,7 +10,7 @@ template <class U, EnableInDimension<U, 3>...>
 Plane<T, N>::Plane(const Triangle &tri)
 	: m_normal(tri.normal()), m_distance0(dot(tri.a(), m_normal)) {}
 
-template <class T, int N> auto Plane<T, N>::sideTest(CRange<Point> verts) const -> SideTestResult {
+template <class T, int N> auto Plane<T, N>::sideTest(CSpan<Point> verts) const -> SideTestResult {
 	int positive = 0, negative = 0;
 	for(const auto &vert : verts) {
 		float tdot = signedDistance(vert);

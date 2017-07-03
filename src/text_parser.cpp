@@ -35,7 +35,7 @@ namespace {
 	}
 
 	template <class Func, class T>
-	void parseMultiple(const char **ptr, Range<T> out, Func func, const char *type_name) {
+	void parseMultiple(const char **ptr, Span<T> out, Func func, const char *type_name) {
 		char *end_ptr = const_cast<char *>(*ptr);
 		errno = 0;
 		for(int n = 0; n < out.size(); n++) {
@@ -85,14 +85,14 @@ float TextParser::parseFloat() { return parseSingle(&m_current, strtof, "float")
 double TextParser::parseDouble() { return parseSingle(&m_current, strtod, "double"); }
 uint TextParser::parseUint() { return parseSingle(&m_current, strtoul, "uint"); }
 
-void TextParser::parseInts(Range<int> out) { parseMultiple(&m_current, out, strtol, "int"); }
-void TextParser::parseFloats(Range<float> out) { parseMultiple(&m_current, out, strtof, "float"); }
-void TextParser::parseDoubles(Range<double> out) {
+void TextParser::parseInts(Span<int> out) { parseMultiple(&m_current, out, strtol, "int"); }
+void TextParser::parseFloats(Span<float> out) { parseMultiple(&m_current, out, strtof, "float"); }
+void TextParser::parseDoubles(Span<double> out) {
 	parseMultiple(&m_current, out, strtod, "double");
 }
-void TextParser::parseUints(Range<uint> out) { parseMultiple(&m_current, out, strtoul, "uint"); }
+void TextParser::parseUints(Span<uint> out) { parseMultiple(&m_current, out, strtoul, "uint"); }
 
-void TextParser::parseStrings(Range<string> out) {
+void TextParser::parseStrings(Span<string> out) {
 	// TODO: what if we have empty string on input?
 	const char *iptr = m_current;
 	int count = 0;

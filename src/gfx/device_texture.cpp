@@ -34,7 +34,7 @@ DTexture::DTexture(Format format, const Texture &tex, const Config &config)
 	: DTexture(format, tex.size(), config) {
 	upload(tex);
 }
-DTexture::DTexture(Format format, const int2 &size, CRange<float4> data, const Config &config)
+DTexture::DTexture(Format format, const int2 &size, CSpan<float4> data, const Config &config)
 	: DTexture(format, size, config) {
 	DASSERT(data.size() >= size.x * size.y);
 	upload(TextureFormatId::rgba_f32, data.data(), size);

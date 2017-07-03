@@ -95,12 +95,12 @@ void RenderList::add(DrawCall draw_call, const Matrix4 &matrix) {
 	m_draw_calls.emplace_back(move(draw_call));
 }
 
-void RenderList::add(CRange<DrawCall> draws) {
+void RenderList::add(CSpan<DrawCall> draws) {
 	for(auto draw : draws)
 		add(draw);
 }
 
-void RenderList::add(CRange<DrawCall> draws, const Matrix4 &mat) {
+void RenderList::add(CSpan<DrawCall> draws, const Matrix4 &mat) {
 	for(auto draw : draws)
 		add(draw, mat);
 }

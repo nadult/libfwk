@@ -166,7 +166,7 @@ void Mesh::removeNormals() { m_buffers.normals.clear(); }
 void Mesh::removeTexCoords() { m_buffers.tex_coords.clear(); }
 void Mesh::removeColors() { m_buffers.colors.clear(); }
 
-void Mesh::removeIndices(CRange<pair<string, IColor>> color_map) {
+void Mesh::removeIndices(CSpan<pair<string, IColor>> color_map) {
 	if(hasIndices()) {
 		auto mapping = fwk::merge(trisIndices());
 		vector<IColor> colors;

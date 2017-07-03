@@ -1,18 +1,17 @@
+- const in ranges, how to deal with it properly ?
+- isOneOf iscomparable
 - use std::variant ?
 - use std::filesystem ?
 - Box<T, N> as other classes ?
-- Fix isOneOf, remove FWK_VEC_RANGE -> vec.values()
 - move SerializeAsPod to namespace detail
 - copyright info
 - instantiator
 - make default serialize_as_pod be based on is_trivially_copyable / etc.
   or maybe not (pointers...)
 - qint based on boost multiprecision is MUCH slower under mingw for some reason
-- cleanup in range names ? linear_range ? function should try to convert to crange and if fails -> not a linear range
 - iterators for boxes
 - change order in FWK_ORDER_BY for vectors ?
 - move box to fwk_box ?
-- isOneOf based on ranges
 
 - toString:
   - bool values[4]
@@ -51,19 +50,11 @@
 - inset & enlarge na zewnątrz ?
 - kolejność argumentów w EnableIfach
 - no need to define data() and size() for ranges ?
-- IfRange is wrong (int v[10])
 - rethink parsing Rects & Boxes
   when parsing data, DASSERTS in constructor should be ASSERT (or add asserts in parsers)
 - split fwk_math into several different files ?
 - list all member which are treated specially by libfwk (tied, Scalar, vector_size, etc.)
 - minimize use of asRay(), check all places
-- Differentiate ranges continuous in memory (Range<> and CRange<>) from all the other ranges;
-  currently you can construct Range<> from std::map, which doesn't make sense...
-  two types: LinearRange<> GenericRange<>
-  both should have contstructors accepting everything that constitutes a range
-  then we can have functions like:
-  makeSorted(Range<T> range) { std::sort(begin(range), end(range)); }
-  which will work automatically for float2, array<int>, vector<float3>, PodArray<char>, string
 - fix isNormalized, areClose ?
 - check if double constants are correct
 - printing for Variant ?
@@ -121,8 +112,6 @@
 - __attribute__((cold)) on throwException (all code that leads to it
   should be inside cold section)
 - clamp doesn't work properly when max < min
-
-- consider using Niebler's ranges
 
 - Fix satTest (when edges from two objects are the same, you will get 0 normals)
 

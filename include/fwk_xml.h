@@ -104,7 +104,7 @@ namespace xml_conversions {
 		void toString(const Matrix4 &value, TextFormatter &out);
 		void toString(const Quat &value, TextFormatter &out);
 
-		template <class T> void rangeToString(CRange<T>, TextFormatter &);
+		template <class T> void rangeToString(CSpan<T>, TextFormatter &);
 
 		template <class T> struct ConvertibleToString {
 			template <class C>
@@ -131,7 +131,7 @@ namespace xml_conversions {
 			}
 		};
 
-		template <class T> void rangeToString(CRange<T> range, TextFormatter &out) {
+		template <class T> void rangeToString(CSpan<T> range, TextFormatter &out) {
 			for(int n = 0; n < (int)range.size(); n++) {
 				SelectPrinter<T>::print(range[n], out);
 				if(n + 1 < (int)range.size())

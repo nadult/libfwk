@@ -162,7 +162,7 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	return MeshBuffers{out_positions, out_normals, out_tex_coords, out_colors};
 }
 
-vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {
+vector<float3> MeshBuffers::animatePositions(CSpan<Matrix4> matrices) const {
 	DASSERT(matrices.size() == (int)node_names.size());
 	vector<float3> out(positions.size());
 
@@ -177,7 +177,7 @@ vector<float3> MeshBuffers::animatePositions(CRange<Matrix4> matrices) const {
 	return out;
 }
 
-vector<float3> MeshBuffers::animateNormals(CRange<Matrix4> matrices) const {
+vector<float3> MeshBuffers::animateNormals(CSpan<Matrix4> matrices) const {
 	DASSERT(matrices.size() == (int)node_names.size());
 	vector<float3> out(normals.size());
 

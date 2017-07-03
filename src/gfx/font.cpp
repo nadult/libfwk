@@ -119,7 +119,7 @@ IRect FontCore::evalExtents(const wstring &text) const {
 	return rect;
 }
 
-int FontCore::genQuads(const wstring &text, Range<float2> out_pos, Range<float2> out_uv) const {
+int FontCore::genQuads(const wstring &text, Span<float2> out_pos, Span<float2> out_uv) const {
 	DASSERT(out_pos.size() == out_uv.size());
 	DASSERT(out_pos.size() % 4 == 0);
 
@@ -200,7 +200,7 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 	pos_buf.resize(quad_count * 4);
 	uv_buf.resize(quad_count * 4);
 
-	FRect out_rect = enclose(CRange<float2>(pos_buf.data(), pos_buf.data() + quad_count * 4));
+	FRect out_rect = enclose(CSpan<float2>(pos_buf.data(), pos_buf.data() + quad_count * 4));
 
 	out_rect += pos;
 	// TODO: increase out_rect when rendering with shadow?

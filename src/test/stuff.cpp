@@ -66,8 +66,8 @@ void testPathOperations() {
 	// TODO: write me
 }
 
-void testFunc1(Range<int, 5>) {}
-void testFunc2(CRange<int, 5>) {}
+void testFunc1(Span<int, 5>) {}
+void testFunc2(CSpan<int, 5>) {}
 
 void testRanges() {
 	array<int, 5> tab1;

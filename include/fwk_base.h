@@ -484,7 +484,7 @@ class StringRef {
 		m_data = str;
 		m_length = strlen(str);
 	}
-	// TODO: conversion from CRange<char>? but what about null-termination
+	// TODO: conversion from CSpan<char>? but what about null-termination
 	StringRef() : m_data(""), m_length(0) {}
 
 	explicit operator const char *() const { return m_data; }
@@ -528,7 +528,7 @@ inline bool caseLess(const StringRef a, const StringRef b) { return a.caseCompar
 wstring toWideString(StringRef, bool throw_on_invalid = true);
 string fromWideString(const wstring &, bool throw_on_invalid = true);
 
-int enumFromString(const char *str, CRange<const char *> enum_strings, bool throw_on_invalid);
+int enumFromString(const char *str, CSpan<const char *> enum_strings, bool throw_on_invalid);
 
 template <class Type> class EnumRange {
   public:
@@ -569,7 +569,7 @@ template <class Type> class EnumRange {
 	inline auto enumStrings(Type) {                                                                \
 		static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};                  \
 		constexpr int size = fwk::arraySize(s_strings);                                            \
-		return fwk::CRange<const char *, size>(s_strings, size);                                   \
+		return fwk::CSpan<const char *, size>(s_strings, size);                                    \
 	}
 
 struct NotAnEnum;
@@ -625,7 +625,7 @@ template <class Enum, class T> class EnumMap {
 	static_assert(isEnum<Enum>(),
 				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM");
 
-	EnumMap(CRange<pair<Enum, T>> pairs) {
+	EnumMap(CSpan<pair<Enum, T>> pairs) {
 #ifndef NDEBUG
 		bool enum_used[count<Enum>()] = {
 			false,
@@ -643,20 +643,20 @@ template <class Enum, class T> class EnumMap {
 		}
 		DASSERT(enum_count == count<Enum>() && "Invalid number of pairs specified");
 	}
-	EnumMap(CRange<pair<Enum, T>> pairs, T default_value) {
+	EnumMap(CSpan<pair<Enum, T>> pairs, T default_value) {
 		m_data.fill(default_value);
 		for(auto &pair : pairs)
 			m_data[(int)pair.first] = pair.second;
 	}
-	EnumMap(CRange<T> values) {
+	EnumMap(CSpan<T> values) {
 		DASSERT(values.size() == (int)m_data.size() && "Invalid number of values specified");
 		std::copy(values.begin(), values.end(), m_data.begin());
 	}
 	explicit EnumMap(const T &default_value = T()) { m_data.fill(default_value); }
-	EnumMap(std::initializer_list<pair<Enum, T>> list) : EnumMap(CRange<pair<Enum, T>>(list)) {}
+	EnumMap(std::initializer_list<pair<Enum, T>> list) : EnumMap(CSpan<pair<Enum, T>>(list)) {}
 	EnumMap(std::initializer_list<pair<Enum, T>> list, T default_value)
-		: EnumMap(CRange<pair<Enum, T>>(list), default_value) {}
-	EnumMap(std::initializer_list<T> values) : EnumMap(CRange<T>(values)) {}
+		: EnumMap(CSpan<pair<Enum, T>>(list), default_value) {}
+	EnumMap(std::initializer_list<T> values) : EnumMap(CSpan<T>(values)) {}
 
 	const T &operator[](Enum index) const { return m_data[(int)index]; }
 	T &operator[](Enum index) { return m_data[(int)index]; }
@@ -1135,6 +1135,9 @@ template <class T> class PodArray {
 	int size() const { return m_size; }
 	int dataSize() const { return m_size * (int)sizeof(T); }
 
+	operator Span<T>() { return {m_data, m_size}; }
+	operator CSpan<T>() const { return {m_data, m_size}; }
+
   private:
 	T *m_data;
 	int m_size;
@@ -1247,11 +1250,11 @@ class TextParser {
 	uint parseUint();
 	string parseString();
 
-	void parseInts(Range<int> out);
-	void parseFloats(Range<float> out);
-	void parseDoubles(Range<double> out);
-	void parseUints(Range<uint> out);
-	void parseStrings(Range<string> out);
+	void parseInts(Span<int> out);
+	void parseFloats(Span<float> out);
+	void parseDoubles(Span<double> out);
+	void parseUints(Span<uint> out);
+	void parseStrings(Span<string> out);
 
 	bool hasAnythingLeft();
 	int countElements() const;

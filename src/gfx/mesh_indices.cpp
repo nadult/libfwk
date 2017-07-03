@@ -12,7 +12,7 @@ MeshIndices::MeshIndices(vector<uint> indices, Type type) : m_data(move(indices)
 
 MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices->getData(), type) {}
 MeshIndices::MeshIndices(const vector<TriIndices> &indices)
-	: MeshIndices(reinterpretRange<uint>(CRange<TriIndices>(indices))) {}
+	: MeshIndices(CSpan<TriIndices>(indices).reinterpret<uint>()) {}
 
 MeshIndices MeshIndices::makeRange(int count, uint first, Type ptype) {
 	DASSERT(count >= 0);
@@ -23,9 +23,9 @@ MeshIndices MeshIndices::makeRange(int count, uint first, Type ptype) {
 
 MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
 							   vector<pair<uint, uint>> &index_ranges) {
-	auto type = std::all_of(begin(set), end(set), [](auto &inds) {
-		return inds.type() == Type::triangle_strip;
-	}) ? Type::triangle_strip : Type::triangles;
+	bool all_strips = std::all_of(begin(set), end(set),
+								  [](auto &inds) { return inds.type() == Type::triangle_strip; });
+	auto type = all_strips ? Type::triangle_strip : Type::triangles;
 
 	vector<uint> merged;
 	index_ranges.clear();

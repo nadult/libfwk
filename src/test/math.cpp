@@ -128,8 +128,8 @@ void testIntersections() {
 			for(int i = 0; i < 4; i++)
 				points[i] = float3(int3(randomTranslation(100.0f)));
 
-			FBox box1(makeRange({points[0], points[1]}));
-			FBox box2(makeRange({points[2], points[3]}));
+			FBox box1(makeSpan({points[0], points[1]}));
+			FBox box2(makeSpan({points[2], points[3]}));
 			try {
 				ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
 			} catch(const Exception &ex) {
@@ -278,7 +278,7 @@ void testMain() {
 	for(auto &s : vec.values())
 		s += 12.0f;
 	ASSERT_EQ(vec, float3(12, 12, 13));
-	static_assert(std::is_same<decltype(vec.values()), Range<float, 3>>::value, "");
+	static_assert(std::is_same<decltype(vec.values()), Span<float, 3>>::value, "");
 	ASSERT(!isnan(vec) && !isnan(double3(vec)));
 
 	auto float_len = length(float3(1, 2, 3));

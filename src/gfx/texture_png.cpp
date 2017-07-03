@@ -77,7 +77,7 @@ namespace {
 			png_read_image(m_struct, &row_pointers[0]);
 		}
 
-		void operator>>(Range<IColor> out) const {
+		void operator>>(Span<IColor> out) const {
 			DASSERT(out.size() >= m_width * m_height);
 			vector<u8> temp;
 			temp.resize(m_width * m_height * 4);

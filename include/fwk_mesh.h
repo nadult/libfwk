@@ -52,8 +52,8 @@ struct MeshBuffers {
 	MeshBuffers(const XMLNode &node);
 	void saveToXML(XMLNode) const;
 
-	vector<float3> animatePositions(CRange<Matrix4>) const;
-	vector<float3> animateNormals(CRange<Matrix4>) const;
+	vector<float3> animatePositions(CSpan<Matrix4>) const;
+	vector<float3> animateNormals(CSpan<Matrix4>) const;
 
 	int size() const { return (int)positions.size(); }
 	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
@@ -126,7 +126,7 @@ class Mesh : public immutable_base<Mesh> {
 	Mesh(const XMLNode &);
 	void saveToXML(XMLNode) const;
 
-	static Mesh makePolySoup(CRange<Triangle3F>);
+	static Mesh makePolySoup(CSpan<Triangle3F>);
 	static Mesh makeRect(const FRect &xz_rect, float y);
 	static Mesh makeBBox(const FBox &bbox);
 	static Mesh makeCylinder(const Cylinder &, int num_sides);
@@ -166,7 +166,7 @@ class Mesh : public immutable_base<Mesh> {
 	void removeNormals();
 	void removeTexCoords();
 	void removeColors();
-	void removeIndices(CRange<pair<string, IColor>> color_map = {});
+	void removeIndices(CSpan<pair<string, IColor>> color_map = {});
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	using TriIndices = MeshIndices::TriIndices;
@@ -199,8 +199,8 @@ class Mesh : public immutable_base<Mesh> {
 // Some indices in the middle may be invalid
 class DynamicMesh {
   public:
-	DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris, int poly_value = 0);
-	DynamicMesh(CRange<float3> verts, CRange<vector<uint>> polys, int poly_value = 0);
+	DynamicMesh(CSpan<float3> verts, CSpan<array<uint, 3>> tris, int poly_value = 0);
+	DynamicMesh(CSpan<float3> verts, CSpan<vector<uint>> polys, int poly_value = 0);
 	explicit DynamicMesh(const Mesh &mesh) : DynamicMesh(mesh.positions(), mesh.trisIndices()) {}
 	DynamicMesh() : DynamicMesh({}, vector<vector<uint>>{}) {}
 	explicit operator Mesh() const;
@@ -240,7 +240,7 @@ class DynamicMesh {
 		VertexId a, b;
 	};
 
-	DynamicMesh extract(CRange<PolyId>) const;
+	DynamicMesh extract(CSpan<PolyId>) const;
 	vector<DynamicMesh> separateSurfaces() const;
 
 	bool isValid(VertexId) const;
@@ -317,7 +317,7 @@ class DynamicMesh {
 	}
 
 	// TODO: we need overlap tests as well
-	bool isClosedOrientableSurface(CRange<PolyId>) const;
+	bool isClosedOrientableSurface(CSpan<PolyId>) const;
 
 	// Basically it means that it is a union of closed orientable surfaces
 	bool representsVolume() const;
@@ -326,7 +326,7 @@ class DynamicMesh {
 	bool isTriangular() const;
 
 	VertexId addVertex(const float3 &pos);
-	PolyId addPoly(CRange<VertexId, 3>, int value = 0);
+	PolyId addPoly(CSpan<VertexId, 3>, int value = 0);
 	PolyId addPoly(VertexId v0, VertexId v1, VertexId v2, int value = 0) {
 		return addPoly({v0, v1, v2}, value);
 	}
@@ -369,19 +369,19 @@ class DynamicMesh {
 		return out;
 	}
 
-	static DynamicMesh merge(CRange<DynamicMesh>);
+	static DynamicMesh merge(CSpan<DynamicMesh>);
 
-	VertexId merge(CRange<VertexId>);
-	VertexId merge(CRange<VertexId>, const float3 &target_pos);
+	VertexId merge(CSpan<VertexId>);
+	VertexId merge(CSpan<VertexId>, const float3 &target_pos);
 
 	void split(EdgeId, VertexId);
 	void move(VertexId, const float3 &new_pos);
 
-	vector<PolyId> inverse(CRange<PolyId>) const;
-	vector<VertexId> inverse(CRange<VertexId>) const;
+	vector<PolyId> inverse(CSpan<PolyId>) const;
+	vector<VertexId> inverse(CSpan<VertexId>) const;
 
 	vector<VertexId> verts() const;
-	vector<VertexId> verts(CRange<PolyId>) const;
+	vector<VertexId> verts(CSpan<PolyId>) const;
 	vector<VertexId> verts(PolyId) const;
 	array<VertexId, 2> verts(EdgeId) const;
 

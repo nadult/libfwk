@@ -9,7 +9,7 @@ using VertexId = DynamicMesh::VertexId;
 using PolyId = DynamicMesh::PolyId;
 using EdgeId = DynamicMesh::EdgeId;
 
-DynamicMesh::DynamicMesh(CRange<float3> verts, CRange<vector<uint>> polys, int poly_value)
+DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<vector<uint>> polys, int poly_value)
 	: m_num_verts(0), m_num_polys(0) {
 	for(auto vert : verts)
 		addVertex(vert);
@@ -17,7 +17,7 @@ DynamicMesh::DynamicMesh(CRange<float3> verts, CRange<vector<uint>> polys, int p
 		addPoly(transform<VertexId>(poly), poly_value);
 }
 
-DynamicMesh::DynamicMesh(CRange<float3> verts, CRange<array<uint, 3>> tris, int poly_value)
+DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<array<uint, 3>> tris, int poly_value)
 	: m_num_verts(0), m_num_polys(0) {
 	for(auto vert : verts)
 		addVertex(vert);
@@ -49,7 +49,7 @@ DynamicMesh::operator Mesh() const {
 	return Mesh(std::move(out_verts), {std::move(out_tris)});
 }
 
-DynamicMesh DynamicMesh::extract(CRange<PolyId> selection) const {
+DynamicMesh DynamicMesh::extract(CSpan<PolyId> selection) const {
 	auto used_verts = verts(selection);
 	vector<int> vert_map(m_verts.size(), -1);
 	for(int n = 0; n < (int)used_verts.size(); n++)
@@ -81,7 +81,7 @@ vector<DynamicMesh> DynamicMesh::separateSurfaces() const {
 }
 
 // More about manifolds: http://www.cs.mtu.edu/~shene/COURSES/cs3621/SLIDES/Mesh.pdf
-bool DynamicMesh::isClosedOrientableSurface(CRange<PolyId> subset) const {
+bool DynamicMesh::isClosedOrientableSurface(CSpan<PolyId> subset) const {
 	vector<char> selection(polyIdCount(), false);
 	for(auto poly : subset)
 		selection[poly] = true;
@@ -167,7 +167,7 @@ VertexId DynamicMesh::addVertex(const float3 &pos) {
 	return VertexId(index);
 }
 
-PolyId DynamicMesh::addPoly(CRange<VertexId, 3> indices, int value) {
+PolyId DynamicMesh::addPoly(CSpan<VertexId, 3> indices, int value) {
 	for(int i1 = 0; i1 < (int)indices.size(); i1++) {
 		DASSERT(isValid(indices[i1]));
 		for(int i2 = i1 + 1; i2 < (int)indices.size(); i2++)
@@ -229,14 +229,14 @@ void DynamicMesh::remove(PolyId id) {
 	m_num_polys--;
 }
 
-VertexId DynamicMesh::merge(CRange<VertexId> range) {
+VertexId DynamicMesh::merge(CSpan<VertexId> range) {
 	float3 sum;
 	for(auto vert : range)
 		sum += point(vert);
 	return merge(range, sum / float(range.size()));
 }
 
-VertexId DynamicMesh::merge(CRange<VertexId> range, const float3 &target_pos) {
+VertexId DynamicMesh::merge(CSpan<VertexId> range, const float3 &target_pos) {
 	VertexId new_vert = addVertex(target_pos);
 
 	vector<PolyId> sel_polys;
@@ -287,7 +287,7 @@ void DynamicMesh::split(EdgeId edge, VertexId vert) {
 
 	for(auto poly_id : epolys) {
 		auto pverts = m_polys[poly_id].verts;
-		if(isOneOf(vert, pverts)) {
+		if(isOneOf<int>(vert, pverts)) {
 			remove(poly_id);
 			continue;
 		}
@@ -317,11 +317,11 @@ void DynamicMesh::move(VertexId vertex_id, const float3 &new_pos) {
 	m_verts[vertex_id] = new_pos;
 }
 
-vector<PolyId> DynamicMesh::inverse(CRange<PolyId> filter) const {
+vector<PolyId> DynamicMesh::inverse(CSpan<PolyId> filter) const {
 	return setDifference(polys(), filter);
 }
 
-vector<VertexId> DynamicMesh::inverse(CRange<VertexId> filter) const {
+vector<VertexId> DynamicMesh::inverse(CSpan<VertexId> filter) const {
 	return setDifference(verts(), filter);
 }
 
@@ -334,7 +334,7 @@ vector<VertexId> DynamicMesh::verts() const {
 	return out;
 }
 
-vector<VertexId> DynamicMesh::verts(CRange<PolyId> polys) const {
+vector<VertexId> DynamicMesh::verts(CSpan<PolyId> polys) const {
 	vector<VertexId> out;
 	for(auto poly : polys)
 		insertBack(out, verts(poly));
@@ -613,7 +613,7 @@ int DynamicMesh::polyCount(VertexId vertex_id) const {
 	return (int)m_adjacency[vertex_id].size();
 }
 
-DynamicMesh DynamicMesh::merge(CRange<DynamicMesh> meshes) {
+DynamicMesh DynamicMesh::merge(CSpan<DynamicMesh> meshes) {
 	// TODO: values are ignored...
 	return DynamicMesh(Mesh::merge(vector<Mesh>(begin(meshes), end(meshes))));
 }

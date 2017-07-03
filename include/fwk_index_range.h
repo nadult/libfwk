@@ -8,7 +8,7 @@
 
 namespace fwk {
 
-// TODO: better name to differentiate from Range<> and CRange<>
+// TODO: better name to differentiate from Range<> and CSpan<>
 // Or maybe simply rename Range<> to something else ?
 //
 // IndexRange has to exist as long as any of the iterators belonging to it

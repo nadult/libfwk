@@ -18,8 +18,8 @@ VertexBuffer::VertexBuffer(const void *data, int size, int vertex_size, VertexDa
 	glBufferData(GL_ARRAY_BUFFER, m_size * m_vertex_size, data, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-	
-void VertexBuffer::download(Range<char> out, int src_offset) const {
+
+void VertexBuffer::download(Span<char> out, int src_offset) const {
 	DASSERT(out.size() + src_offset <= m_size * m_vertex_size);
 	glBindBuffer(GL_ARRAY_BUFFER, m_handle);
 	glGetBufferSubData(GL_ARRAY_BUFFER, src_offset, out.size(), out.data());

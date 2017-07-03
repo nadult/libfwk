@@ -89,28 +89,28 @@ void ProgramBinder::setUniform(const char *name, float v) {
 	glUniform1f(glGetUniformLocation(id(), name), v);
 }
 
-void ProgramBinder::setUniform(const char *name, CRange<float> range) {
+void ProgramBinder::setUniform(const char *name, CSpan<float> range) {
 	bind();
 	glUniform1fv(glGetUniformLocation(id(), name), range.size(), range.data());
 }
 
-void ProgramBinder::setUniform(const char *name, CRange<Matrix4> range) {
+void ProgramBinder::setUniform(const char *name, CSpan<Matrix4> range) {
 	bind();
 	glUniformMatrix4fv(glGetUniformLocation(id(), name), range.size(), false,
 					   (float *)range.data());
 }
 
-void ProgramBinder::setUniform(const char *name, CRange<float2> range) {
+void ProgramBinder::setUniform(const char *name, CSpan<float2> range) {
 	bind();
 	glUniform2fv(glGetUniformLocation(id(), name), range.size(), (float *)range.data());
 }
 
-void ProgramBinder::setUniform(const char *name, CRange<float3> range) {
+void ProgramBinder::setUniform(const char *name, CSpan<float3> range) {
 	bind();
 	glUniform3fv(glGetUniformLocation(id(), name), range.size(), (float *)range.data());
 }
 
-void ProgramBinder::setUniform(const char *name, CRange<float4> range) {
+void ProgramBinder::setUniform(const char *name, CSpan<float4> range) {
 	bind();
 	glUniform4fv(glGetUniformLocation(id(), name), range.size(), (float *)range.data());
 }

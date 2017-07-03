@@ -6,8 +6,7 @@
 namespace fwk {
 
 FBox encloseTransformed(const FBox &box, const Matrix4 &mat) {
-	auto points = transform(box.corners(), [&](auto pt) { return mulPoint(mat, pt); });
-	return enclose(makeConstRange(points));
+	return enclose(transform(box.corners(), [&](auto pt) { return mulPoint(mat, pt); }));
 }
 
 array<Plane3F, 6> planes(const FBox &box) {

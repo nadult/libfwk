@@ -92,7 +92,7 @@ Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType pri
 	return elems.back();
 }
 
-void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CRange<FColor, 4> colors,
+void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4> colors,
 							   const SimpleMaterial &material) {
 	addQuads(rect.corners(), tex_rect.corners(), colors, material);
 }
@@ -125,8 +125,8 @@ void Renderer2D::addLine(const float2 &p1, const float2 &p2, FColor color) {
 	elem.num_indices += 2;
 }
 
-void Renderer2D::DrawChunk::appendVertices(CRange<float2> positions_, CRange<float2> tex_coords_,
-										   CRange<FColor> colors_, FColor mat_color) {
+void Renderer2D::DrawChunk::appendVertices(CSpan<float2> positions_, CSpan<float2> tex_coords_,
+										   CSpan<FColor> colors_, FColor mat_color) {
 	DASSERT(colors.size() == positions.size() || colors.empty());
 	DASSERT(tex_coords.size() == positions.size() || tex_coords.empty());
 
@@ -142,7 +142,7 @@ void Renderer2D::DrawChunk::appendVertices(CRange<float2> positions_, CRange<flo
 		insertBack(tex_coords, tex_coords_);
 }
 
-void Renderer2D::addLines(CRange<float2> pos, CRange<FColor> color, FColor mat_color) {
+void Renderer2D::addLines(CSpan<float2> pos, CSpan<FColor> color, FColor mat_color) {
 	DASSERT(pos.size() % 2 == 0);
 
 	auto &chunk = allocChunk(pos.size());
@@ -155,7 +155,7 @@ void Renderer2D::addLines(CRange<float2> pos, CRange<FColor> color, FColor mat_c
 	elem.num_indices += (int)pos.size();
 }
 
-void Renderer2D::addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor> color,
+void Renderer2D::addQuads(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColor> color,
 						  const SimpleMaterial &material) {
 	DASSERT(pos.size() % 4 == 0);
 
@@ -173,7 +173,7 @@ void Renderer2D::addQuads(CRange<float2> pos, CRange<float2> tex_coord, CRange<F
 	elem.num_indices += num_quads * 6;
 }
 
-void Renderer2D::addTris(CRange<float2> pos, CRange<float2> tex_coord, CRange<FColor> color,
+void Renderer2D::addTris(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColor> color,
 						 const SimpleMaterial &material) {
 	DASSERT(pos.size() % 3 == 0);
 

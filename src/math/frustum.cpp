@@ -26,7 +26,7 @@ Frustum::Frustum(const Matrix4 &view_proj) {
 		m_planes[n] = m_planes[n];
 }
 
-Frustum::Frustum(CRange<Plane3F, planes_count> planes) {
+Frustum::Frustum(CSpan<Plane3F, planes_count> planes) {
 	for(int n = 0; n < planes_count; n++)
 		m_planes[n] = planes[n];
 }
@@ -38,7 +38,7 @@ bool Frustum::isIntersecting(const float3 &point) const {
 	return true;
 }
 
-bool Frustum::isIntersecting(CRange<float3> points) const {
+bool Frustum::isIntersecting(CSpan<float3> points) const {
 	for(const auto &plane : m_planes) {
 		bool all_outside = true;
 		for(const auto &point : points)

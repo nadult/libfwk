@@ -353,7 +353,7 @@ static const char *strcasestr(const char *a, const char *b) {
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
-int enumFromString(const char *str, CRange<const char *> strings, bool throw_on_invalid) {
+int enumFromString(const char *str, CSpan<const char *> strings, bool throw_on_invalid) {
 	DASSERT(str);
 	for(int n = 0; n < strings.size(); n++)
 		if(strcmp(str, strings[n]) == 0)

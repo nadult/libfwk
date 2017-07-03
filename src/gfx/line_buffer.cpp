@@ -24,7 +24,7 @@ LineBuffer::Instance &LineBuffer::instance(FColor col, uint flags, Matrix4 matri
 	return *inst;
 }
 
-void LineBuffer::add(CRange<float3> verts, CRange<IColor> colors, PMaterial mat,
+void LineBuffer::add(CSpan<float3> verts, CSpan<IColor> colors, PMaterial mat,
 					 const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 	DASSERT(colors.size() == verts.size() || colors.empty());
@@ -35,7 +35,7 @@ void LineBuffer::add(CRange<float3> verts, CRange<IColor> colors, PMaterial mat,
 	insertBack(inst.colors, colors);
 }
 
-void LineBuffer::add(CRange<float3> verts, PMaterial material, const Matrix4 &matrix) {
+void LineBuffer::add(CSpan<float3> verts, PMaterial material, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 	DASSERT(material);
 
@@ -43,13 +43,13 @@ void LineBuffer::add(CRange<float3> verts, PMaterial material, const Matrix4 &ma
 	insertBack(inst.positions, verts);
 }
 
-void LineBuffer::add(CRange<float3> verts, IColor color, const Matrix4 &matrix) {
+void LineBuffer::add(CSpan<float3> verts, IColor color, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 	auto &inst = instance(color, 0u, matrix, false);
 	insertBack(inst.positions, verts);
 }
 
-void LineBuffer::add(CRange<Segment3<float>> segs, PMaterial material, const Matrix4 &matrix) {
+void LineBuffer::add(CSpan<Segment3<float>> segs, PMaterial material, const Matrix4 &matrix) {
 	vector<float3> verts;
 	verts.reserve(segs.size() * 2);
 	for(const auto &seg : segs) {
