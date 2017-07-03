@@ -41,6 +41,8 @@
 
 namespace fwk {
 
+using std::min;
+using std::max;
 using std::string;
 using std::array;
 using std::swap;
@@ -66,23 +68,29 @@ using u32 = unsigned;
 using i32 = int;
 
 template <class... T> struct Undefined;
-template <size_t... S> struct UndefinedSize;
+template <int... V> struct UndefinedVal;
+
+template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
+
+template <class T1, class T2> constexpr bool isSame() { return std::is_same<T1, T2>::value; }
+template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
+
+template <bool value, class T1, class T2>
+using Conditional = typename std::conditional<value, T1, T2>::type;
+template <class T> using RemoveConst = typename std::remove_const<T>::type;
 
 template <typename... Types> class Variant;
 
+/*
 template <class T1, class T2> bool operator==(const shared_ptr<T1> &lhs, const T2 *rhs) {
 	return lhs.get() == rhs;
 }
 template <class T1, class T2> bool operator==(const T1 *lhs, const shared_ptr<T2> &rhs) {
 	return lhs == rhs.get();
 }
+*/
 
-template <class T> struct IsPod {
-	enum { value = std::is_pod<T>::value };
-};
-template <class T1, class T2> struct IsPod<pair<T1, T2>> {
-	enum { value = IsPod<T1>::value && IsPod<T2>::value };
-};
+template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
 struct EnabledType {};
 struct DisabledType;
@@ -348,15 +356,6 @@ class Exception : public std::exception {
 	FWK_UNLIST(BOOST_PP_LIST_TO_TUPLE(                                                             \
 		BOOST_PP_LIST_TRANSFORM(FWK_STRINGIZE_OP_, _, BOOST_PP_VARIADIC_TO_LIST(__VA_ARGS__))))
 
-template <class... Args> auto countArguments(Args...) {
-	struct Info {
-		enum { value = sizeof...(Args) };
-	};
-	return Info();
-}
-
-#define COUNT_ARGUMENTS(...) decltype(countArguments(__VA_ARGS__))::value
-
 #ifdef __clang__
 __attribute__((__format__(__printf__, 3, 4)))
 #endif
@@ -409,64 +408,7 @@ double getTime();
 
 namespace fwk {
 
-template <class T> inline T max(T a, T b) { return a < b ? b : a; }
-template <class T> inline T min(T a, T b) { return b < a ? b : a; }
-
-template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
-
-template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
-
 void logError(const string &error);
-
-template <class A, class B> class Indexer;
-
-template <class Target, class Indices>
-class IndexIterator
-	: public std::iterator<std::random_access_iterator_tag, typename Target::value_type> {
-	using Index = typename Indices::const_iterator;
-
-  protected:
-	constexpr IndexIterator(Index idx, Target &target) noexcept : m_idx(idx), m_target(target) {}
-	friend class Indexer<Target, Indices>;
-
-  public:
-	constexpr auto operator+(int offset) const noexcept {
-		return IndexIterator(m_idx + offset, m_target);
-	}
-	constexpr auto operator-(int offset) const noexcept { return operator+(-offset); }
-
-	constexpr int operator-(const IndexIterator &rhs) const noexcept { return m_idx - rhs.m_idx; }
-	constexpr auto &operator*() const noexcept { return m_target[*m_idx]; }
-	constexpr bool operator==(const IndexIterator &rhs) const noexcept {
-		return m_idx == rhs.m_idx;
-	}
-	constexpr bool operator<(const IndexIterator &rhs) const noexcept { return m_idx < rhs.m_idx; }
-	IndexIterator &operator++() {
-		m_idx++;
-		return *this;
-	}
-
-  private:
-	Index m_idx;
-	Target &m_target;
-};
-template <class Target, class Indices> class Indexer {
-  public:
-	Indexer(Target &target, const Indices &indices) : m_target(target), m_indices(indices) {}
-
-	int size() const { return m_indices.size(); }
-	auto begin() const { return IndexIterator<Target, Indices>(std::begin(m_indices), m_target); }
-	auto end() const { return IndexIterator<Target, Indices>(std::end(m_indices), m_target); }
-
-  private:
-	Target &m_target;
-	const Indices &m_indices;
-};
-
-template <class Target, class Indices>
-auto indexWith(const Target &target, const Indices &indices) {
-	return Indexer<const Target, Indices>(target, indices);
-}
 
 // TODO: change name to borrowedstring ? (like in Rust)
 // TODO: move to string_ref.cpp
@@ -678,7 +620,7 @@ template <class Enum, class T> class EnumMap {
 	}
 
   private:
-	std::array<T, count<Enum>()> m_data;
+	array<T, count<Enum>()> m_data;
 };
 
 #define SAFE_ARRAY(declaration, size, ...)                                                         \

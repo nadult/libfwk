@@ -1,6 +1,7 @@
 MINGW_PREFIX=i686-w64-mingw32.static-
 BUILD_DIR=build
 LINUX_CXX=g++
+FLAGS=-O3
 
 -include Makefile.local
 

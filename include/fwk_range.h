@@ -9,18 +9,11 @@
 namespace fwk {
 
 // TODO: make it not depend on fwk_base ?
-//TODO: rename to fwk_ranges; move out fwk_span ?
-//TODO: fwk_concepts ?
+// TODO: rename to fwk_ranges; move out fwk_span ?
+// TODO: fwk_concepts ?
 
 struct NotARange;
 struct NotASpan;
-
-template <class T1, class T2> constexpr bool isSame() { return std::is_same<T1, T2>::value; }
-template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
-
-template <bool value, class T1, class T2>
-using Conditional = typename std::conditional<value, T1, T2>::type;
-template <class T> using RemoveConst = typename std::remove_const<T>::type;
 
 namespace detail {
 
@@ -30,12 +23,12 @@ namespace detail {
 
 	template <class T, class ReqType = void> struct RangeInfo {
 		template <class It, class Val> struct ValidInfo {
-			using Iterator = It;
+			using Iter = It;
 			using Value = Val;
 		};
 
 		struct InvalidInfo {
-			using Iterator = void;
+			using Iter = void;
 			using Value = void;
 		};
 		template <
@@ -157,7 +150,7 @@ template <class T, int min_size = 0> class Span {
   public:
 	using NoAsserts = detail::NoAssertsTag;
 	using value_type = RemoveConst<T>;
-	enum { is_const = std::is_const<T>::value, minimum_size = min_size };
+	enum { is_const = isConst<T>(), minimum_size = min_size };
 	using vector_type = Conditional<is_const, const vector<value_type>, vector<value_type>>;
 	static_assert(min_size >= 0, "min_size should be >= 0");
 
@@ -239,7 +232,7 @@ template <class T, int min_size = 0> class Span {
 
 	template <class U, EnableIf<compatibleSizes(sizeof(T), sizeof(U))>...>
 	auto reinterpret() const {
-		using out_type = Conditional<std::is_const<T>::value, const U, U>;
+		using out_type = Conditional<isConst<T>(), const U, U>;
 		auto new_size = size_t(m_size) * sizeof(T) / sizeof(U);
 		return Span<out_type>(reinterpret_cast<out_type *>(m_data), new_size);
 	}
@@ -368,9 +361,8 @@ vector<T> transform(const TRange &range) {
 	return vector<T>(begin(range), end(range));
 }
 
-template <class T, class U, size_t size>
-std::array<T, size> transform(const std::array<U, size> &range) {
-	std::array<T, size> out;
+template <class T, class U, size_t size> array<T, size> transform(const array<U, size> &range) {
+	array<T, size> out;
 	for(size_t i = 0; i < size; i++)
 		out[i] = T(range[i]);
 	return out;
