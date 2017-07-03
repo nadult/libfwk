@@ -1379,8 +1379,8 @@ template <class T, int N> class Ray {
 	using Scalar = T;
 	using Vector = MakeVector<T, N>;
 	using Point = Vector;
-	using Segment = Segment<T, N>;
-	using IsectParam = IsectParam<T>;
+	using Segment = fwk::Segment<T, N>;
+	using IsectParam = fwk::IsectParam<T>;
 	using Isect = Variant<None, Point, Segment>;
 
 	Ray(const Vector &origin, const Vector &dir) : m_origin(origin), m_dir(dir) {
@@ -1461,7 +1461,7 @@ template <class T, int N> class Segment {
 	using Vector = MakeVector<T, N>;
 	using Scalar = T;
 	using Point = Vector;
-	using IsectParam = IsectParam<T>;
+	using IsectParam = fwk::IsectParam<T>;
 	using Isect = Variant<None, Point, Segment>;
 	enum { dim_size = N };
 
@@ -1560,8 +1560,8 @@ template <class T, int N> class Triangle {
 	using Vector = MakeVector<T, N>;
 	using Point = Vector;
 	using Scalar = T;
-	using Segment = Segment<T, N>;
-	using Ray = Ray<T, N>;
+	using Segment = fwk::Segment<T, N>;
+	using Ray = fwk::Ray<T, N>;
 
 	Triangle(const Point &a, const Point &b, const Point &c) : v{a, b, c} {}
 	Triangle() = default;
@@ -1636,9 +1636,9 @@ template <class T, int N> class Plane {
 	using Vector = MakeVector<T, N>;
 	using Point = Vector;
 	using Scalar = T;
-	using Segment = Segment<T, N>;
-	using Ray = Ray<T, N>;
-	using Triangle = Triangle<T, N>;
+	using Segment = fwk::Segment<T, N>;
+	using Ray = fwk::Ray<T, N>;
+	using Triangle = fwk::Triangle<T, N>;
 
 	Plane() { m_normal[dim_size - 1] = T(1); }
 	Plane(const Vector &normal, T distance) : m_normal(normal), m_distance0(distance) {

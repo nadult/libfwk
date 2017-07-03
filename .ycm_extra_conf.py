@@ -59,6 +59,7 @@ flags = [
 '-isystem', '/usr/include',
 '-isystem', '/usr/local/include',
 '-isystem', '/usr/include/SDL2',
+'-isystem', '/usr/include/freetype2',
 ]
 
 

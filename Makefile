@@ -89,17 +89,17 @@ PCH_FILE_GCH=$(BUILD_DIR)/pch.h.gch
 PCH_FILE_PCH=$(BUILD_DIR)/pch.h.pch
 
 ifdef CLANG
-PCH_INCLUDE=-include-pch $(PCH_FILE_PCH)
-PCH_FILE_MAIN=$(PCH_FILE_PCH)
+	PCH_INCLUDE=-include-pch $(PCH_FILE_PCH)
+	PCH_FILE_MAIN=$(PCH_FILE_PCH)
 else
-PCH_INCLUDE=-I$(BUILD_DIR) -include $(PCH_FILE_H)
-PCH_FILE_MAIN=$(PCH_FILE_GCH)
+	PCH_INCLUDE=-I$(BUILD_DIR) -include $(PCH_FILE_H)
+	PCH_FILE_MAIN=$(PCH_FILE_GCH)
 endif
 
 $(PCH_FILE_H): $(PCH_FILE_SRC)
 	cp $^ $@
 $(PCH_FILE_MAIN): $(PCH_FILE_H)
-	$(LINUX_CXX) -x c++-header -MMD $(LINUX_FLAGS) $^ -o $@
+	$(LINUX_CXX) -x c++-header -MMD $(LINUX_FLAGS) $(PCH_FILE_H) -o $@
 
 $(LINUX_OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE_MAIN)
 	$(LINUX_CXX) -MMD $(LINUX_FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@
