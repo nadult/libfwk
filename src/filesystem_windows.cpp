@@ -1,14 +1,18 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#if !(defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC))
+#error "This file should only be compiled for MinGW or MSVC targets"
+#endif
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 #include "fwk_base.h"
 #include <cstdio>
 #include <cstring>
 #include <sys/stat.h>
-#include <windows.h>
 
 namespace fwk {
 

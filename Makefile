@@ -1,4 +1,4 @@
-MINGW_PREFIX=i686-w64-mingw32.static-
+MINGW_PREFIX=x86_64-w64-mingw32.static.posix-
 BUILD_DIR=build
 LINUX_CXX=g++
 FLAGS=-O3
@@ -21,7 +21,7 @@ _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
-SHARED_SRC=base vector backtrace filesystem filesystem_linux filesystem_windows input profiler stream xml xml_conversions \
+SHARED_SRC=base vector backtrace filesystem filesystem_linux input profiler stream xml xml_conversions \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   text_formatter text_parser audio/device audio/sound audio/ogg_stream \
@@ -37,10 +37,11 @@ PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
+WINDOWS_SRC=system_windows filesystem_windows
 
 LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
 LINUX_SHARED_DWO:=$(SHARED_SRC:%=$(BUILD_DIR)/%.dwo)
-MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o)
+MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o) $(WINDOWS_SRC:%=$(BUILD_DIR)/%_.o)
 
 LINUX_OBJECTS:=$(LINUX_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.o)
 LINUX_DWO:=$(LINUX_SHARED_DWO) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.dwo)

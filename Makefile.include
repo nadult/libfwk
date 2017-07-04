@@ -11,17 +11,23 @@ LINUX_PKG_CONFIG=pkg-config
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
 FWK_LIBS=freetype2 sdl2 libpng vorbisfile 
-LINUX_FWK_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk -lopenal -lGL \
-			   -lGLU -lrt
-MINGW_FWK_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk_win32 -lOpenAL32 \
-			   -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32 -limagehlp
+LINUX_FWK_FLAGS=-std=c++1z -DFWK_TARGET_LINUX #$(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
+MINGW_FWK_FLAGS=-std=c++1z -DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
 
+LINUX_FWK_LIBS_=-lopenal -lGL -lGLU -lrt
+MINGW_FWK_LIBS_=-lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32 -limagehlp
+
+LINUX_FWK_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk $(LINUX_FWK_LIBS_)
+MINGW_FWK_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk_win32 $(MINGW_FWK_LIBS_)
 FWK_INCLUDES=-I$(FWK_DIR)/include
 
-HTML5_FWK_FLAGS=-std=c++14 -DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -I$(FWK_DIR)/src $(FWK_INCLUDES) \
+HTML5_FWK_FLAGS=-std=c++1z -DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -I$(FWK_DIR)/src $(FWK_INCLUDES) \
 				-s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1
-FULL_FWK_FLAGS=-std=c++14 -I$(FWK_DIR)/src $(FWK_INCLUDES) $(shell $(LINUX_PKG_CONFIG) --cflags --libs $(FWK_LIBS)) \
-			   -DPNG_SKIP_SETJMP_CHECK -lopenal -lGL -lGLU -lrt
+LINUX_WPO_FWK_FLAGS=$(LINUX_FWK_FLAGS) -I$(FWK_DIR)/src $(FWK_INCLUDES) $(shell $(LINUX_PKG_CONFIG) --libs --cflags $(FWK_LIBS)) \
+			   -DPNG_SKIP_SETJMP_CHECK $(LINUX_FWK_LIBS_)
+MINGW_WPO_FWK_FLAGS=$(MINGW_FWK_FLAGS) -I$(FWK_DIR)/src $(FWK_INCLUDES) $(shell $(MINGW_PKG_CONFIG) --libs --cflags $(FWK_LIBS)) \
+			   -DPNG_SKIP_SETJMP_CHECK $(MINGW_FWK_LIBS_)
+MINGW_WPO_FWK_SRC_FILES=$(FWK_DIR)/src/system_windows.cpp $(FWK_DIR)/src/filesystem_windows.cpp
 
 $(LINUX_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk.a

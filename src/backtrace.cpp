@@ -13,13 +13,9 @@
 
 #ifdef FWK_TARGET_LINUX
 #include <execinfo.h>
+
 #include <dlfcn.h>
 #include <unistd.h>
-#endif
-
-#ifdef FWK_TARGET_MINGW
-#include <windows.h>
-#include <imagehlp.h>
 #endif
 
 namespace fwk {
@@ -214,6 +210,8 @@ namespace {
 	};
 }
 
+void winGetBacktrace(std::vector<void *> &addrs, int skip, void *context);
+
 Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}
 Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols,
@@ -226,45 +224,8 @@ Backtrace Backtrace::get(size_t skip, void *context_, bool use_gdb) {
 	std::vector<string> symbols;
 
 #if defined(FWK_TARGET_MINGW)
-	if(!context_) {
-		addrs.resize(64);
-		int count = CaptureStackBackTrace(max(0, (int)skip - 1), addrs.size(), &addrs[0], 0);
-		addrs.resize(count);
-	} else {
-		CONTEXT *context = static_cast<CONTEXT *>(context_);
-		SymInitialize(GetCurrentProcess(), 0, true);
-
-		STACKFRAME frame;
-		memset(&frame, 0, sizeof(frame));
-
-#ifdef AMD64
-		frame.AddrPC.Offset = context->Rip;
-		frame.AddrStack.Offset = context->Rsp;
-		frame.AddrFrame.Offset = context->Rsp;
-#else
-		frame.AddrPC.Offset = context->Eip;
-		frame.AddrStack.Offset = context->Esp;
-		frame.AddrFrame.Offset = context->Ebp;
-#endif
-		frame.AddrPC.Mode = AddrModeFlat;
-		frame.AddrStack.Mode = AddrModeFlat;
-		frame.AddrFrame.Mode = AddrModeFlat;
-
-#ifdef AMD64
-		while(StackWalk64(IMAGE_FILE_MACHINE_AMD64,
-#else
-		while(StackWalk(IMAGE_FILE_MACHINE_I386,
-#endif
-						  GetCurrentProcess(), GetCurrentThread(), &frame, context, 0,
-						  SymFunctionTableAccess, SymGetModuleBase, 0)) {
-			addrs.emplace_back((void *)frame.AddrPC.Offset);
-		}
-
-		SymCleanup(GetCurrentProcess());
-	}
-
+	winGetBacktrace(addrs, skip, context_);
 #elif defined(FWK_TARGET_LINUX)
-
 	void *addresses[64];
 	size_t size = ::backtrace(addresses, arraySize(addresses));
 	char **strings = backtrace_symbols(addresses, size);

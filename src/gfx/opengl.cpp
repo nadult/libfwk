@@ -10,11 +10,6 @@
 
 #include "fwk.h"
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include "windows.h"
-#endif
-
 #include "fwk_opengl.h"
 #include <cstring>
 
@@ -25,14 +20,7 @@
 
 namespace fwk {
 
-#ifdef FWK_TARGET_MINGW
-static PROC loadFunction(const char *name) {
-	PROC func = wglGetProcAddress(name);
-	if(!func)
-		THROW("Error while importing OpenGL function: %s", name);
-	return func;
-}
-#endif
+void *winLoadFunction(const char *name);
 
 static EnumMap<OpenglExtension, bool> s_is_extension_supported;
 
@@ -64,7 +52,7 @@ void initializeOpenGL() {
 		s_is_extension_supported[elem] = strstr(strings, toString(elem)) != nullptr;
 
 #ifdef FWK_TARGET_MINGW
-#define LOAD(func) (func = (decltype(func))loadFunction(#func));
+#define LOAD(func) (func = (decltype(func))winLoadFunction(#func));
 	LOAD(glCompressedTexImage3D);
 	LOAD(glCompressedTexImage2D);
 	LOAD(glCompressedTexImage1D);

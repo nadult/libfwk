@@ -8,20 +8,11 @@
 #include <cstring>
 #include <stdarg.h>
 
-#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
-#include <ctime>
-#include <windows.h>
-#else
-#include <signal.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-#endif
-
 #ifdef FWK_TARGET_LINUX
 #include <dlfcn.h>
 #include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
 #endif
 
 #ifdef FWK_TARGET_HTML5
@@ -78,63 +69,11 @@ string fromWideString(const std::wstring &text, bool throw_on_invalid) {
 	return string(buffer.data(), buffer.data() + size);
 }
 
+#if defined(FWK_TARGET_LINUX)
+
 namespace {
 
 	void (*s_user_ctrlc_func)() = 0;
-
-#if defined(FWK_TARGET_MINGW)
-
-	BOOL handleControlC(DWORD type) {
-		if(type == CTRL_C_EVENT && s_user_ctrlc_func) {
-			s_user_ctrlc_func();
-			return TRUE;
-		}
-
-		return FALSE;
-	}
-
-	const char *exceptionName(DWORD code) {
-		switch(code) {
-#define CASE(code)                                                                                 \
-	case code:                                                                                     \
-		return #code;
-			CASE(EXCEPTION_ACCESS_VIOLATION)
-			CASE(EXCEPTION_ARRAY_BOUNDS_EXCEEDED)
-			CASE(EXCEPTION_BREAKPOINT)
-			CASE(EXCEPTION_DATATYPE_MISALIGNMENT)
-			CASE(EXCEPTION_FLT_DENORMAL_OPERAND)
-			CASE(EXCEPTION_FLT_DIVIDE_BY_ZERO)
-			CASE(EXCEPTION_FLT_INEXACT_RESULT)
-			CASE(EXCEPTION_FLT_INVALID_OPERATION)
-			CASE(EXCEPTION_FLT_OVERFLOW)
-			CASE(EXCEPTION_FLT_STACK_CHECK)
-			CASE(EXCEPTION_FLT_UNDERFLOW)
-			CASE(EXCEPTION_ILLEGAL_INSTRUCTION)
-			CASE(EXCEPTION_IN_PAGE_ERROR)
-			CASE(EXCEPTION_INT_DIVIDE_BY_ZERO)
-			CASE(EXCEPTION_INT_OVERFLOW)
-			CASE(EXCEPTION_INVALID_DISPOSITION)
-			CASE(EXCEPTION_NONCONTINUABLE_EXCEPTION)
-			CASE(EXCEPTION_PRIV_INSTRUCTION)
-			CASE(EXCEPTION_SINGLE_STEP)
-			CASE(EXCEPTION_STACK_OVERFLOW)
-#undef CASE
-		default:
-			return "UNKNOWN";
-		}
-	}
-
-	LONG WINAPI windows_exception_handler(EXCEPTION_POINTERS *info) {
-		printf("Signal received: %s\n", exceptionName(info->ExceptionRecord->ExceptionCode));
-		printf("Backtrace:\n%s\n", Backtrace::get(2, info->ContextRecord).analyze(false).c_str());
-		return EXCEPTION_EXECUTE_HANDLER;
-	}
-
-	struct AutoSigHandler {
-		AutoSigHandler() { SetUnhandledExceptionFilter(windows_exception_handler); }
-	} s_auto_sig_handler;
-
-#elif defined(FWK_TARGET_LINUX)
 
 	void handleControlC(int) {
 		if(s_user_ctrlc_func)
@@ -177,23 +116,19 @@ namespace {
 					FATAL("Error while attaching signal handler: %d", info.num);
 		}
 	} s_auto_sig_handler;
-
-#endif
 }
 
 void handleCtrlC(void (*handler)()) {
 	s_user_ctrlc_func = handler;
-#if defined(FWK_TARGET_MINGW)
-	SetConsoleCtrlHandler((PHANDLER_ROUTINE)handleControlC, TRUE);
-#elif defined(FWK_TARGET_LINUX)
 	struct sigaction sig_int_handler;
 
 	sig_int_handler.sa_handler = handleControlC;
 	sigemptyset(&sig_int_handler.sa_mask);
 	sig_int_handler.sa_flags = 0;
 	sigaction(SIGINT, &sig_int_handler, NULL);
-#endif
 }
+
+#endif
 
 #ifdef FWK_TARGET_MSVC
 #define popen _popen
@@ -215,33 +150,19 @@ pair<string, bool> execCommand(const string &cmd) {
 	return make_pair(result, ret == 0);
 }
 
+#ifndef _WIN32
 void sleep(double sec) {
 	if(sec <= 0)
 		return;
-#ifdef _WIN32
-	// TODO: check accuracy
-	SleepEx(int(sec * 1e3), true);
-#else
 	usleep(int(sec * 1e6));
-#endif
 }
 
 double getTime() {
-#ifdef _WIN32
-	__int64 tmp;
-	QueryPerformanceFrequency((LARGE_INTEGER *)&tmp);
-	double freq = double(tmp == 0 ? 1 : tmp);
-	if(QueryPerformanceCounter((LARGE_INTEGER *)&tmp))
-		return double(tmp) / freq;
-
-	clock_t c = clock();
-	return double(c) / double(CLOCKS_PER_SEC);
-#else
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_nsec / 1.0e9 + ts.tv_sec;
-#endif
 }
+#endif
 
 Exception::Exception(string text) : m_text(move(text)), m_backtrace(Backtrace::get(2)) {}
 Exception::Exception(string text, Backtrace bt) : m_text(move(text)), m_backtrace(move(bt)) {}
