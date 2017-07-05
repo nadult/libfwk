@@ -53,6 +53,8 @@ like LINUX\_CXX, FLAGS or BUILD\_DIR. If you want to cross-compile for mingw32,
 simply override MINGW\_PREFIX in Makefile.local with proper prefix.
 There is also an option to compile for the web (using emscripten).
 
+TODO: how to build mingw with mxe (and which version)
+
 ## License
 
 Whole library is licensed under Boost Software license (see license.txt).

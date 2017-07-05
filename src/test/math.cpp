@@ -194,6 +194,9 @@ void test2DIntersections() {
 	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(5, 5)) == IClass::shared_endpoints);
 	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(2, 3)) == IClass::none);
 
+	ASSERT(!ISeg(-1, 0, 10, 2).testIsect(IRect(1, 1, 4, 4)));
+	ASSERT(ISeg(-3, 0, 10, 2).testIsect(IRect(1, 1, 4, 4)));
+
 	ISeg seg5(1, 1, 4, 4);
 	ASSERT(seg5.classifyIsect(ISeg(3, 3, 3, 3)) == IClass::point);
 

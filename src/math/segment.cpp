@@ -109,11 +109,9 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 	using Vec = typename Seg::Vector;
 	enum { dim_size = Seg::dim_size };
 
-	auto c = box.center();
-	auto e = box.max() - c;
-	auto m = (seg.from + seg.to) / T(2);
-	auto d = seg.to - m;
-	m = m - c;
+	auto e = box.size();
+	auto d = seg.to - seg.from;
+	auto m = (seg.from + seg.to) - (box.max() + box.min());
 
 	Vec ad;
 	for(int i = 0; i < dim_size; i++) {
@@ -122,9 +120,7 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 			return false;
 	}
 
-	if(abs(cross(m, d)) > cross(e, ad))
-		return false;
-	return true;
+	return abs(cross(m, d)) <= e[0] * ad[1] + e[1] * ad[0];
 }
 
 template <class T, int N>
@@ -154,8 +150,7 @@ template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
 bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
 	using QVec = MakeVector<qint, N>;
-	return fwk::testIsect(ISegment<qint, N>{QVec(from) * 2, QVec(to) * 2},
-						  Box<QVec>{QVec(box.min()) * 2, QVec(box.max()) * 2});
+	return fwk::testIsect(ISegment<qint, N>{from, to}, Box<QVec>{box.min(), box.max()});
 }
 
 template <class T, int N>
