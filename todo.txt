@@ -1,3 +1,4 @@
+- make sure that there are no side-effects of running two main loops
 - Box<T, N> as other classes ?
 - move SerializeAsPod to namespace detail
 - make default serialize_as_pod be based on is_trivially_copyable / etc.

@@ -225,6 +225,27 @@ class Viewer {
 
 	const IRect &viewport() const { return m_viewport; }
 
+	bool mainLoop(GfxDevice &device) {
+		IColor nice_background(200, 200, 255);
+		GfxDevice::clearColor(nice_background);
+		GfxDevice::clearDepth(1.0f);
+
+		float time_diff = 1.0f / 60.0f;
+		handleInput(device, time_diff);
+		tick(time_diff);
+		updateViewport();
+		draw();
+
+		auto *profiler = Profiler::instance();
+		profiler->nextFrame();
+
+		return true;
+	}
+
+	static bool mainLoop(GfxDevice &device, void *this_ptr) {
+		return ((Viewer *)this_ptr)->mainLoop(device);
+	}
+
   private:
 	vector<Model> m_models;
 	unique_ptr<Font> m_font;
@@ -236,27 +257,6 @@ class Viewer {
 	ViewConfig m_view_config;
 	ViewConfig m_target_view;
 };
-
-static Viewer *s_viewer = nullptr;
-
-bool main_loop(GfxDevice &device) {
-	DASSERT(s_viewer);
-
-	IColor nice_background(200, 200, 255);
-	GfxDevice::clearColor(nice_background);
-	GfxDevice::clearDepth(1.0f);
-
-	float time_diff = 1.0f / 60.0f;
-	s_viewer->handleInput(device, time_diff);
-	s_viewer->tick(time_diff);
-	s_viewer->updateViewport();
-	s_viewer->draw();
-
-	auto *profiler = Profiler::instance();
-	profiler->nextFrame();
-
-	return true;
-}
 
 int safe_main(int argc, char **argv) {
 	double time = getTime();
@@ -311,9 +311,7 @@ int safe_main(int argc, char **argv) {
 
 	double init_time = getTime();
 	Viewer viewer(files);
-	s_viewer = &viewer;
-
-	gfx_device.runMainLoop(main_loop);
+	gfx_device.runMainLoop(Viewer::mainLoop, &viewer);
 
 	return 0;
 }

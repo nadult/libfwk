@@ -14,6 +14,11 @@ Supported platforms: linux, windows (using mingw), browser (using emscripten)
 
 TODO: write me
 
+
+## Examples
+
+Some examples are available in src/test/ and src/tools.
+
 ## Dependencies
 
 * **SDL2**   
@@ -48,4 +53,6 @@ like LINUX\_CXX, FLAGS or BUILD\_DIR. If you want to cross-compile for mingw32,
 simply override MINGW\_PREFIX in Makefile.local with proper prefix.
 There is also an option to compile for the web (using emscripten).
 
+## License
 
+Whole library is licensed under Boost Software license (see license.txt).

@@ -78,7 +78,7 @@ struct GfxDevice::WindowImpl {
 	uint flags;
 };
 
-GfxDevice::GfxDevice() : m_main_loop_function(nullptr), m_input_impl(make_unique<InputImpl>()) {
+GfxDevice::GfxDevice() : m_input_impl(make_unique<InputImpl>()) {
 	s_instance = this;
 
 	if(SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -155,19 +155,23 @@ bool GfxDevice::pollEvents() {
 #ifdef __EMSCRIPTEN__
 void GfxDevice::emscriptenCallback() {
 	GfxDevice &inst = instance();
-	DASSERT(inst.m_main_loop_function);
+	DASSERT(!inst.m_main_loop_stack.empty());
+	auto stack_top = inst.m_main_loop_stack.front();
 	double time = getTime();
 	inst.m_frame_time = inst.m_last_time < 0.0 ? 0.0 : time - inst.m_last_time;
 	inst.m_last_time = time;
 
 	inst.pollEvents();
-	inst.m_main_loop_function(inst);
+	stack_top.first(inst, stack_top.second);
 }
 #endif
 
-void GfxDevice::runMainLoop(MainLoopFunction function) {
-	m_main_loop_function = function;
+void GfxDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
+	ASSERT(main_loop_func);
+	m_main_loop_stack.emplace_back(main_loop_func, arg);
 #ifdef __EMSCRIPTEN__
+	if(m_main_loop_stack.size() > 1)
+		FATAL("Emscripten doesn't support multiple main loops");
 	emscripten_set_main_loop(emscriptenCallback, 0, 1);
 #else
 	while(pollEvents()) {
@@ -175,12 +179,12 @@ void GfxDevice::runMainLoop(MainLoopFunction function) {
 		m_frame_time = m_last_time < 0.0 ? 0.0 : time - m_last_time;
 		m_last_time = time;
 
-		if(!function(*this))
+		if(!main_loop_func(*this, arg))
 			break;
 		SDL_GL_SwapWindow(m_window_impl->window);
 	}
 #endif
-	m_main_loop_function = nullptr;
+	m_main_loop_stack.pop_back();
 }
 
 void GfxDevice::grabMouse(bool grab) {

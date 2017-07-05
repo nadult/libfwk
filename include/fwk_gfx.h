@@ -299,8 +299,8 @@ class GfxDevice {
 	const InputState &inputState() const;
 	const vector<InputEvent> &inputEvents() const;
 
-	using MainLoopFunction = bool (*)(GfxDevice &device);
-	void runMainLoop(MainLoopFunction);
+	using MainLoopFunction = bool (*)(GfxDevice &device, void *argument);
+	void runMainLoop(MainLoopFunction, void *argument = nullptr);
 
 	static void clearColor(FColor);
 	static void clearDepth(float depth_value);
@@ -313,7 +313,7 @@ class GfxDevice {
 #ifdef __EMSCRIPTEN__
 	static void emscriptenCallback();
 #endif
-	MainLoopFunction m_main_loop_function;
+	vector<pair<MainLoopFunction, void *>> m_main_loop_stack;
 
 	struct InputImpl;
 	unique_ptr<InputImpl> m_input_impl;

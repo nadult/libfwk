@@ -5,7 +5,7 @@
 
 using namespace fwk;
 
-bool mainLoop(GfxDevice &device) {
+bool mainLoop(GfxDevice &device, void *) {
 	static vector<float2> positions;
 
 	for(auto &event : device.inputEvents()) {
@@ -52,8 +52,8 @@ int safe_main(int argc, char **argv) {
 	int2 res(800, 600);
 
 	GfxDevice gfx_device;
-	gfx_device.createWindow("foo", res, GfxDevice::flag_multisampling | GfxDevice::flag_resizable |
-											GfxDevice::flag_vsync);
+	auto flags = GfxDevice::flag_multisampling | GfxDevice::flag_resizable | GfxDevice::flag_vsync;
+	gfx_device.createWindow("foo", res, flags);
 	gfx_device.runMainLoop(mainLoop);
 
 	return 0;
