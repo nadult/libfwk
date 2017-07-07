@@ -267,4 +267,18 @@ void Renderer2D::render() {
 
 	clear();
 }
+
+vector<pair<FRect, Matrix4>> Renderer2D::drawRects() const {
+	vector<pair<FRect, Matrix4>> out;
+	for(const auto &chunk : m_chunks) {
+		for(const auto &elem : chunk.elements) {
+			FRect erect =
+				enclose(CSpan<float2>(&chunk.positions[elem.first_index],
+									  &chunk.positions[elem.first_index + elem.num_indices]));
+			out.emplace_back(erect, elem.matrix);
+		}
+	}
+
+	return out;
+}
 }
