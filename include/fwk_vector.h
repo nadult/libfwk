@@ -10,6 +10,8 @@ namespace fwk {
 
 #ifndef FWK_STD_VECTOR
 
+template <class T> class PodArray;
+
 class BaseVector {
   public:
 	using MoveDestroyFunc = void (*)(void *, void *, int);
@@ -323,6 +325,7 @@ template <class T> class Vector {
 	}
 
 	BaseVector m_base;
+	friend class PodArray<T>;
 };
 
 template <class T> using vector = Vector<T>;

@@ -1055,6 +1055,17 @@ template <class T> class PodArray {
 		fwk::swap(m_size, rhs.m_size);
 	}
 
+#ifndef FWK_STD_VECTOR
+	void swap(Vector<T> &rhs) { // TODO: some capacity may be wasted
+		char *cur_data = reinterpret_cast<char *>(m_data);
+		int cur_size = m_size;
+		m_data = reinterpret_cast<T *>(rhs.m_base.data);
+		m_size = rhs.m_base.size;
+		rhs.m_base.data = cur_data;
+		rhs.m_base.size = rhs.m_base.capacity = cur_size;
+	}
+#endif
+
 	void clear() {
 		m_size = 0;
 		free(m_data);
