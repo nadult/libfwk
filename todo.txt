@@ -1,3 +1,6 @@
+- consider dropping exceptions altogether (find alternatives for situations in which you're using them)
+- isnan wszedzie, zeby nie marnowac czasu na glupie debugowanie...
+- attach GDB on Ctrl-C
 - make sure that there are no side-effects of running two main loops
 - distanceSq -> quadrance ?
 - Box<T, N> as other classes ?

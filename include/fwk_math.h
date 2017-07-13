@@ -1897,6 +1897,7 @@ class Random {
 	Quat uniformRotation(float3 axis);
 
   private:
+	// TODO: use mersenne twister ?
 	std::default_random_engine m_engine;
 };
 
