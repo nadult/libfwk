@@ -113,6 +113,21 @@ template <class TRange, EnableIfRange<TRange>...> int size(const TRange &range) 
 	return std::distance(begin(range), end(range));
 }
 
+template <class TRange, EnableIfRange<TRange>...,
+		  class Ret = decltype(*begin(std::declval<TRange>()))>
+Ret front(TRange &&range) {
+	DASSERT(!empty(range));
+	return *begin(range);
+}
+
+template <class TRange, EnableIfRange<TRange>...,
+		  class Ret = decltype(*begin(std::declval<TRange>()))>
+Ret back(TRange &&range) {
+	DASSERT(!empty(range));
+	auto it = end(range);
+	return *--it;
+}
+
 template <class TRange, class TBase = RemoveConst<RangeBase<TRange>>, class T = TBase>
 auto accumulate(const TRange &range, T value = T()) {
 	for(const auto &elem : range)
