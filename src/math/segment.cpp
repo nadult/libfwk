@@ -105,7 +105,6 @@ template <> qint abs(qint val) { return val < qint(0) ? -val : val; }
 
 // Source: RTCD, page: 183
 template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
-	using T = typename Seg::Scalar;
 	using Vec = typename Seg::Vector;
 	enum { dim_size = Seg::dim_size };
 
@@ -346,18 +345,22 @@ IsectParam<T> Segment<T, N>::isectParam(const Triangle<T, N> &tri) const {
 	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
 }
 
+template class ISegment<short, 2>;
 template class ISegment<int, 2>;
 template class ISegment<llint, 2>;
 template class ISegment<qint, 2>;
 
+template SegmentIsectClass ISegment<short, 2>::classifyIsect(const ISegment &) const;
 template SegmentIsectClass ISegment<int, 2>::classifyIsect(const ISegment &) const;
 template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const ISegment &) const;
 template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const ISegment &) const;
 
+template SegmentIsectClass ISegment<short, 2>::classifyIsect(const Point &) const;
 template SegmentIsectClass ISegment<int, 2>::classifyIsect(const Point &) const;
 template SegmentIsectClass ISegment<llint, 2>::classifyIsect(const Point &) const;
 template SegmentIsectClass ISegment<qint, 2>::classifyIsect(const Point &) const;
 
+template bool ISegment<short, 2>::testIsect(const Box<Vector> &) const;
 template bool ISegment<int, 2>::testIsect(const Box<Vector> &) const;
 template bool ISegment<llint, 2>::testIsect(const Box<Vector> &) const;
 template bool ISegment<qint, 2>::testIsect(const Box<Vector> &) const;

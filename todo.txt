@@ -1,3 +1,5 @@
+- length_sq in ISegment ?
+- fix problems with abs for all basic types (llint, qint, llint2, ...)
 - consider dropping exceptions altogether (find alternatives for situations in which you're using them)
 - isnan wszedzie, zeby nie marnowac czasu na glupie debugowanie...
 - attach GDB on Ctrl-C
