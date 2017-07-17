@@ -290,6 +290,19 @@ template <class T> class Vector {
 		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
 	}
 
+	constexpr static bool compatibleSizes(size_t a, size_t b) {
+		return a > b ? a % b == 0 : b % a == 0;
+	}
+
+	template <class U> Vector<U> reinterpret() {
+		static_assert(compatibleSizes(sizeof(T), sizeof(U)),
+					  "Incompatible sizes; are you sure, you want to do this cast?");
+
+		m_base.size = (int)(size_t(m_base.size) * sizeof(T) / sizeof(U));
+		auto *rcurrent = reinterpret_cast<Vector<U> *>(this);
+		return Vector<U>(move(*rcurrent));
+	}
+
   private:
 	constexpr bool trivialCopy() const { return std::is_trivially_copyable<T>::value; }
 	constexpr bool trivialCopyConstruct() const {

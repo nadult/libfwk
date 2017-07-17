@@ -1,3 +1,6 @@
+- Promienie bazujące na intach mogą być zaprezentowane za pomocą segmentów; dzięki temu nie
+  potrzebne są Rationale
+
 - length_sq in ISegment ?
 - fix problems with abs for all basic types (llint, qint, llint2, ...)
 - consider dropping exceptions altogether (find alternatives for situations in which you're using them)

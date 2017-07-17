@@ -160,7 +160,6 @@ constexpr bool isOneOf(const T &value, const Arg1 &arg1, const Args &... args) {
 // Span is a range of elements spanning continuous range of memory (like vector, array, etc.).
 // Span is very light-weight: it keeps a pointer and a size; User is responsible for making sure
 //   that the container with values exist as long as Span exists.
-// TODO: add possiblity to reinterpret Range of uchars into range of chars, etc.
 template <class T, int min_size = 0> class Span {
   public:
 	using NoAsserts = detail::NoAssertsTag;
