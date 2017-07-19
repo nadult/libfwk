@@ -289,6 +289,12 @@ void testMain() {
 	auto int_dot = dot(int2(10, 20), int2(30, 40));
 	ASSERT_EQ(vabs(float2(-10.5f, 13.125f)), float2(10.5f, 13.125f));
 
+	IRect rect(0, 0, 2, 3);
+	vector<int2> points;
+	for(auto pt : rect)
+		points.emplace_back(pt);
+	ASSERT_EQ(points, vector<int2>({{0, 0}, {1, 0}, {0, 1}, {1, 1}, {0, 2}, {1, 2}}));
+
 	static_assert(std::is_same<decltype(float_len), float>::value, "");
 	static_assert(std::is_same<decltype(double_len), double>::value, "");
 	static_assert(std::is_same<decltype(int_dot), int>::value, "");
