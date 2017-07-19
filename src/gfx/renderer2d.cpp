@@ -272,9 +272,15 @@ vector<pair<FRect, Matrix4>> Renderer2D::drawRects() const {
 	vector<pair<FRect, Matrix4>> out;
 	for(const auto &chunk : m_chunks) {
 		for(const auto &elem : chunk.elements) {
-			FRect erect =
-				enclose(CSpan<float2>(&chunk.positions[elem.first_index],
-									  &chunk.positions[elem.first_index + elem.num_indices]));
+			const uint *inds = &chunk.indices[elem.first_index];
+			uint min_index = inds[0], max_index = inds[0];
+			for(int i : intRange(elem.num_indices)) {
+				max_index = max(max_index, inds[i]);
+				min_index = min(min_index, inds[i]);
+			}
+
+			FRect erect = enclose(
+				CSpan<float2>(&chunk.positions[min_index], &chunk.positions[max_index + 1]));
 			out.emplace_back(erect, elem.matrix);
 		}
 	}
