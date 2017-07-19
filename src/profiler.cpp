@@ -75,6 +75,13 @@ void Profiler::nextFrame(double expected_time) {
 		m_frame_limit += 30;
 }
 
+static string formatTime(double sec) {
+	double ms = sec * 1000.0;
+	double us = ms * 1000.0;
+	bool print_ms = ms > 0.5;
+	return format("%.2f %s", print_ms ? ms : us, print_ms ? "ms" : "us");
+}
+
 const string Profiler::getStats(const char *filter) {
 	TextFormatter out;
 
@@ -84,6 +91,7 @@ const string Profiler::getStats(const char *filter) {
 	vector<pair<bool, string>> lines;
 	for(auto &timer : m_timers) {
 		double shown_value = 0.0;
+		double total = 0.0;
 		if(timer.display_time < 0.0)
 			timer.display_time = cur_time;
 
@@ -101,6 +109,9 @@ const string Profiler::getStats(const char *filter) {
 			if(cur_time - timer.display_time > 10.0) {
 				continue;
 			}
+
+			for(auto value : timer.values)
+				total += value.second;
 			shown_value = timer.values.back().second;
 		} else {
 			double sum = 0.0, count = 0.0;
@@ -118,11 +129,12 @@ const string Profiler::getStats(const char *filter) {
 			timer.values = move(filtered_values);
 		}
 
-		double ms = shown_value * 1000.0;
-		double us = ms * 1000.0;
-		bool print_ms = ms > 0.5;
-		lines.emplace_back(timer.is_rare, format("%s: %.2f %s\n", timer.name.c_str(),
-												 print_ms ? ms : us, print_ms ? "ms" : "us"));
+		TextFormatter line;
+		line("%s: %s", timer.name.c_str(), formatTime(shown_value).c_str());
+		if(total != 0.0 && total != shown_value)
+			line(" [%s]", formatTime(total).c_str());
+		line("\n");
+		lines.emplace_back(timer.is_rare, line.text());
 	}
 
 	for(const auto &counter : m_counters) {
