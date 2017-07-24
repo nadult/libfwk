@@ -38,24 +38,24 @@ struct GfxDevice::InputImpl {
 
 struct GfxDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, const int2 &size, uint flags) : flags(flags) {
+	WindowImpl(const string &name, const int2 &size, OptFlags flags) : flags(flags) {
 		int sdl_flags = SDL_WINDOW_OPENGL;
-		DASSERT(!((flags & flag_fullscreen) && (flags & flag_fullscreen_desktop)));
+		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
 
 		int pos_x = 20, pos_y = 50;
-		if(flags & flag_fullscreen)
+		if(flags & Opt::fullscreen)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN;
-		if(flags & flag_fullscreen_desktop)
+		if(flags & Opt::fullscreen_desktop)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-		if(flags & flag_resizable)
+		if(flags & Opt::resizable)
 			sdl_flags |= SDL_WINDOW_RESIZABLE;
-		if(flags & flag_maximized) {
+		if(flags & Opt::maximized) {
 			sdl_flags |= SDL_WINDOW_MAXIMIZED;
 			pos_x = pos_y = 0;
 		}
-		if(flags & flag_centered)
+		if(flags & Opt::centered)
 			pos_x = pos_y = SDL_WINDOWPOS_CENTERED;
-		if(flags & flag_multisampling) {
+		if(flags & Opt::multisampling) {
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 		}
@@ -75,7 +75,7 @@ struct GfxDevice::WindowImpl {
 
 	SDL_Window *window;
 	SDL_GLContext gl_context;
-	uint flags;
+	OptFlags flags;
 };
 
 GfxDevice::GfxDevice() : m_input_impl(make_unique<InputImpl>()) {
@@ -94,11 +94,11 @@ GfxDevice::~GfxDevice() {
 	SDL_Quit();
 }
 
-void GfxDevice::createWindow(const string &name, const int2 &size, uint flags) {
+void GfxDevice::createWindow(const string &name, const int2 &size, OptFlags flags) {
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
 	m_window_impl = make_unique<WindowImpl>(name, size, flags);
 
-	SDL_GL_SetSwapInterval(flags & flag_vsync ? -1 : 0);
+	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
 	initializeOpenGL();
 }
 
@@ -109,20 +109,22 @@ void GfxDevice::setWindowSize(const int2 &size) {
 		SDL_SetWindowSize(m_window_impl->window, size.x, size.y);
 }
 
-void GfxDevice::setWindowFullscreen(uint flags) {
-	DASSERT(flags == 0 || flags == flag_fullscreen || flags == flag_fullscreen_desktop);
+void GfxDevice::setWindowFullscreen(OptFlags flags) {
+	DASSERT(!flags || flags == Opt::fullscreen || flags == Opt::fullscreen_desktop);
 
 	if(m_window_impl) {
-		uint sdl_flags = flags & flag_fullscreen
+		uint sdl_flags = flags & Opt::fullscreen
 							 ? SDL_WINDOW_FULLSCREEN
-							 : flags & flag_fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+							 : flags & Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
 		SDL_SetWindowFullscreen(m_window_impl->window, sdl_flags);
-		uint mask = flag_fullscreen | flag_fullscreen_desktop;
+		auto mask = Opt::fullscreen | Opt::fullscreen_desktop;
 		m_window_impl->flags = (m_window_impl->flags & ~mask) | (mask & flags);
 	}
 }
 
-uint GfxDevice::windowFlags() const { return m_window_impl ? m_window_impl->flags : 0; }
+auto GfxDevice::windowFlags() const -> OptFlags {
+	return m_window_impl ? m_window_impl->flags : OptFlags();
+}
 
 int2 GfxDevice::windowSize() const {
 	int2 out;

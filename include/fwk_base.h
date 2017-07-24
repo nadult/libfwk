@@ -66,9 +66,11 @@ using u16 = unsigned short;
 using i16 = short;
 using u32 = unsigned;
 using i32 = int;
+using u64 = unsigned long long;
+using i64 = long long;
 
 template <class... T> struct Undefined;
-template <int... V> struct UndefinedVal;
+template <long long... V> struct UndefinedVal;
 
 template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
 
@@ -510,6 +512,7 @@ template <class Type> class EnumRange {
 	enum class Type : unsigned char { __VA_ARGS__ };                                               \
 	inline auto enumStrings(Type) {                                                                \
 		static const char *const s_strings[] = {FWK_STRINGIZE_LIST(__VA_ARGS__)};                  \
+		static_assert(fwk::arraySize(s_strings) <= 64, "Maximum number of enum elements is 64");   \
 		constexpr int size = fwk::arraySize(s_strings);                                            \
 		return fwk::CSpan<const char *, size>(s_strings, size);                                    \
 	}
@@ -560,6 +563,82 @@ template <class T, EnableIfEnum<T>...> T next(T value) { return T((int(value) + 
 
 template <class T, EnableIfEnum<T>...> T prev(T value) {
 	return T((int(value) + (count<T> - 1)) % count<T>());
+}
+
+template <class T, EnableIfEnum<T>...>
+using BestFlagsBase =
+	Conditional<count<T>() <= 8, u8,
+				Conditional<count<T>() <= 16, u16, Conditional<count<T>() <= 32, u32, u64>>>;
+
+template <class T, class Base = BestFlagsBase<T>> struct EnumFlags {
+	enum { max_flags = fwk::count<T>() };
+	static constexpr const Base mask =
+		(Base(1) << (max_flags - 1)) - Base(1) + (Base(1) << (max_flags - 1));
+
+	static_assert(isEnum<T>(), "Flag<> should be based on fwk-enum");
+	static_assert(std::is_unsigned<Base>::value, "");
+	static_assert(fwk::count<T>() <= sizeof(Base) * 8, "");
+
+	constexpr EnumFlags() : bits(0) {}
+	constexpr EnumFlags(T value) : bits(Base(1) << uint(value)) {}
+	constexpr explicit EnumFlags(Base bits) : bits(bits) {}
+	template <class TBase> constexpr EnumFlags(EnumFlags<T, TBase> rhs) : bits(rhs.bits) {}
+
+	constexpr EnumFlags operator|(const EnumFlags &rhs) const { return EnumFlags(bits | rhs.bits); }
+	constexpr EnumFlags operator&(const EnumFlags &rhs) const { return EnumFlags(bits & rhs.bits); }
+	constexpr EnumFlags operator^(const EnumFlags &rhs) const { return EnumFlags(bits ^ rhs.bits); }
+	constexpr EnumFlags operator~() const { return EnumFlags((~bits) & (mask)); }
+
+	constexpr void operator|=(const EnumFlags &rhs) { bits |= rhs.bits; }
+	constexpr void operator&=(const EnumFlags &rhs) { bits &= rhs.bits; }
+	constexpr void operator^=(const EnumFlags &rhs) { bits ^= rhs.bits; }
+
+	constexpr bool operator==(T rhs) const { return bits == (Base(1) << int(rhs)); }
+	constexpr bool operator==(EnumFlags rhs) const { return bits == rhs.bits; }
+
+	constexpr explicit operator bool() const { return bits != 0; }
+
+	Base bits;
+};
+
+template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> flag(T val) {
+	return EnumFlags<T>(val);
+}
+
+template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator|(T lhs, T rhs) {
+	return EnumFlags<T>(lhs) | rhs;
+}
+
+template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator&(T lhs, T rhs) {
+	return EnumFlags<T>(lhs) & rhs;
+}
+
+template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator^(T lhs, T rhs) {
+	return EnumFlags<T>(lhs) ^ rhs;
+}
+
+template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator~(T bit) {
+	return ~EnumFlags<T>(bit);
+}
+
+namespace detail {
+	template <class T> struct IsEnumFlags {
+		enum { value = 0 };
+	};
+	template <class T, class Base> struct IsEnumFlags<EnumFlags<T, Base>> {
+		enum { value = 1 };
+	};
+}
+
+template <class T> constexpr bool isEnumFlags() { return detail::IsEnumFlags<T>::value; }
+
+template <class T> using EnableIfEnumFlags = EnableIf<detail::IsEnumFlags<T>::value>;
+
+template <class TFlags, EnableIfEnumFlags<TFlags>...> constexpr int countBits(const TFlags &flags) {
+	int out = 0;
+	for(int i = 0; i < TFlags::max_flags; i++)
+		out += flags.bits & (1 << i) ? 1 : 0;
+	return out;
 }
 
 template <class Enum, class T> class EnumMap {

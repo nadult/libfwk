@@ -259,6 +259,10 @@ class DTexture : public immutable_base<DTexture> {
 using PTexture = immutable_ptr<DTexture>;
 using STexture = shared_ptr<DTexture>;
 
+DEFINE_ENUM(GfxDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
+			maximized);
+using GfxDeviceFlags = EnumFlags<GfxDeviceOpt>;
+
 // Once created (by calling instance first time, it will exist
 // till the end of the application).
 class GfxDevice {
@@ -267,28 +271,20 @@ class GfxDevice {
 	~GfxDevice();
 
 	static GfxDevice &instance();
+	using Opt = GfxDeviceOpt;
+	using OptFlags = GfxDeviceFlags;
 
-	enum {
-		flag_multisampling = 1u,
-		flag_fullscreen = 2u,
-		flag_fullscreen_desktop = 4u,
-		flag_resizable = 8u,
-		flag_centered = 16u,
-		flag_vsync = 32u,
-		flag_maximized = 64u,
-	};
-
-	void createWindow(const string &name, const int2 &size, uint flags);
+	void createWindow(const string &name, const int2 &size, OptFlags);
 	void destroyWindow();
 	void printDeviceInfo();
 
 	void setWindowSize(const int2 &);
 	int2 windowSize() const;
 
-	void setWindowFullscreen(uint flags);
-	uint windowFlags() const;
+	void setWindowFullscreen(OptFlags);
+	OptFlags windowFlags() const;
 	bool isWindowFullscreen() const {
-		return windowFlags() & (flag_fullscreen | flag_fullscreen_desktop);
+		return (bool)(windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop));
 	}
 
 	double frameTime() const { return m_frame_time; }

@@ -1,4 +1,5 @@
 - można robić struktury drzewiaste bazujące na wektorach!
+- type-punning warnings in variant when compiling under mingw
 
 - Promienie bazujące na intach mogą być zaprezentowane za pomocą segmentów; dzięki temu nie
   potrzebne są Rationale
@@ -27,7 +28,6 @@
   - to xml, to text, separator support for ranges ?
   - think it through
 
-- enum to flags ?
 - FCOLOr sux (operations only on alpha part or only on color part)
 - segment, box::empty -> degenerate ?
 - isnan checks in all math classes (paranoid in vectors as well ?)

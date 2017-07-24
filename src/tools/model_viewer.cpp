@@ -306,7 +306,7 @@ int safe_main(int argc, char **argv) {
 
 	Profiler profiler;
 	GfxDevice gfx_device;
-	uint flags = GfxDevice::flag_resizable | GfxDevice::flag_multisampling | GfxDevice::flag_vsync;
+	auto flags = GfxDeviceOpt::resizable | GfxDeviceOpt::multisampling | GfxDeviceOpt::vsync;
 	gfx_device.createWindow("libfwk::model_viewer", resolution, flags);
 
 	double init_time = getTime();
