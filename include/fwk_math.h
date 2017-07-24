@@ -1206,13 +1206,11 @@ class Matrix3 {
 	Span<float3, 3> values() { return v; }
 	CSpan<float3, 3> values() const { return v; }
 
+	FWK_ORDER_BY(Matrix3, v[0], v[1], v[2]);
+
   private:
 	float3 v[3];
 };
-
-inline bool operator==(const Matrix3 &lhs, const Matrix3 &rhs) {
-	return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
-}
 
 const Matrix3 transpose(const Matrix3 &);
 
@@ -1269,13 +1267,11 @@ class Matrix4 {
 	Span<float4, 4> values() { return v; }
 	CSpan<float4, 4> values() const { return v; }
 
+	FWK_ORDER_BY(Matrix4, v[0], v[1], v[2], v[3]);
+
   private:
 	float4 v[4];
 };
-
-inline bool operator==(const Matrix4 &lhs, const Matrix4 &rhs) {
-	return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
-}
 
 const Matrix4 operator*(const Matrix4 &, const Matrix4 &);
 const float4 operator*(const Matrix4 &, const float4 &);

@@ -1,3 +1,5 @@
+- można robić struktury drzewiaste bazujące na wektorach!
+
 - Promienie bazujące na intach mogą być zaprezentowane za pomocą segmentów; dzięki temu nie
   potrzebne są Rationale
 

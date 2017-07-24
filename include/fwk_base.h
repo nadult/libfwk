@@ -1320,7 +1320,7 @@ class FilePath {
 	const char *c_str() const { return m_path.c_str(); }
 	int size() const { return (int)m_path.size(); }
 
-	bool operator<(const FilePath &rhs) const { return m_path < rhs.m_path; }
+	FWK_ORDER_BY(FilePath, m_path);
 
   private:
 	struct Element {
@@ -1340,10 +1340,6 @@ class FilePath {
 
 	string m_path; // its always non-empty
 };
-
-inline bool operator==(const FilePath &lhs, const FilePath &rhs) {
-	return (const string &)lhs == (const string &)rhs;
-}
 
 struct FileEntry {
 	FilePath path;
