@@ -1,3 +1,4 @@
+- konwersja vector na bool (czy pusty)
 - można robić struktury drzewiaste bazujące na wektorach!
 - type-punning warnings in variant when compiling under mingw
 

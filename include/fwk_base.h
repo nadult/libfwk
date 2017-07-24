@@ -598,6 +598,8 @@ template <class T, class Base = BestFlagsBase<T>> struct EnumFlags {
 
 	constexpr explicit operator bool() const { return bits != 0; }
 
+	static constexpr EnumFlags all() { return EnumFlags(mask); }
+
 	Base bits;
 };
 

@@ -177,7 +177,7 @@ void test2DIntersections() {
 	ASSERT(seg1.isect(seg2) == none);
 
 	using ISeg = ISegment2<int>;
-	using IClass = SegmentIsectClass;
+	using IClass = IsectClass;
 
 	ISeg iseg1(0, 0, 943782983, 999999999), iseg2(0, 1, 1000000123, 2);
 	ISeg iseg3(-1, 0, 943782982, 999999999), iseg4(-123456789, 934567893, 985473892, -848372819);
@@ -186,12 +186,12 @@ void test2DIntersections() {
 	ASSERT(iseg1.classifyIsect(iseg4) == IClass::point);
 
 	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 0, 5, 0)) == IClass::segment);
-	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(10, 0, 11, 0)) == IClass::shared_endpoints);
-	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(-1, 0, 0, 0)) == IClass::shared_endpoints);
-	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 10, 0, 0)) == IClass::shared_endpoints);
+	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(10, 0, 11, 0)) == IClass::adjacent);
+	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(-1, 0, 0, 0)) == IClass::adjacent);
+	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 10, 0, 0)) == IClass::adjacent);
 	ASSERT(ISeg(0, 0, 2, 0).classifyIsect(int2(1, 0)) == IClass::point);
 	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(3, 3)) == IClass::point);
-	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(5, 5)) == IClass::shared_endpoints);
+	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(5, 5)) == IClass::adjacent);
 	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(2, 3)) == IClass::none);
 
 	ASSERT(!ISeg(-1, 0, 10, 2).testIsect(IRect(1, 1, 4, 4)));

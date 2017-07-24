@@ -1375,8 +1375,8 @@ struct AffineTrans {
 AffineTrans operator*(const AffineTrans &, const AffineTrans &);
 AffineTrans lerp(const AffineTrans &, const AffineTrans &, float t);
 
-// TODO: fix it simplar to IsectParam ?
-DEFINE_ENUM(SegmentIsectClass, shared_endpoints, point, segment, none);
+DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
+using IsectFlags = EnumFlags<IsectClass>;
 
 template <class T> class IsectParam {
   public:
@@ -1463,14 +1463,13 @@ template <class T, int N> class ISegment {
 
 	bool empty() const { return from == to; }
 
-	bool sharedEndPoints(const ISegment &rhs) const {
-		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
-	}
+	bool adjacent(const Point &point) const { return isOneOf(point, from, to); }
+	bool adjacent(const ISegment &rhs) const { return adjacent(rhs.from) || adjacent(rhs.to); }
 
 	// Computations performed on qints;
 	// You have to be careful if values are greater than 32 bits
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const ISegment &) const;
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
+	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const ISegment &) const;
+	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const Point &) const;
 	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
 
 	FWK_ORDER_BY(ISegment, from, to)
@@ -1526,17 +1525,16 @@ template <class T, int N> class Segment {
 	T distance(const Point &point) const { return std::sqrt(distanceSq(point)); }
 	T distance(const Segment &seg) const { return std::sqrt(distanceSq(seg)); }
 
-	bool sharedEndPoints(const Segment &rhs) const {
-		return isOneOf(from, rhs.from, rhs.to) || isOneOf(to, rhs.from, rhs.to);
-	}
+	bool adjacent(const Point &point) const { return isOneOf(point, from, to); }
+	bool adjacent(const Segment &rhs) const { return adjacent(rhs.from) || adjacent(rhs.to); }
 
 	Isect at(const IsectParam &) const;
 
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Segment &) const;
 	ENABLE_IF_SIZE(2) Isect isect(const Segment &segment) const { return at(isectParam(segment)); }
 
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Segment &) const;
-	ENABLE_IF_SIZE(2) SegmentIsectClass classifyIsect(const Point &) const;
+	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const Segment &) const;
+	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const Point &) const;
 	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
 
 	ENABLE_IF_SIZE(3) IsectParam isectParam(const Triangle<T, N> &) const;
