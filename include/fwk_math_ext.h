@@ -104,12 +104,30 @@ namespace detail {
 	template <> struct IsIntegral<qint> : public std::true_type {};
 	template <> struct MakeVector<llint, 2> { using type = llint2; };
 	template <> struct MakeVector<qint, 2> { using type = qint2; };
+
+	template <class T, class Enable = void> struct PromoteIntegral { using type = T; };
+	template <class T> struct PromoteIntegral<T, EnableIfVector<T>> {
+		using type = MakeVector<typename PromoteIntegral<typename T::Scalar>::type, T::vector_size>;
+	};
+
+#define PROMOTION(base, promoted)                                                                  \
+	template <> struct PromoteIntegral<base> { using type = promoted; };
+
+	PROMOTION(short, int);
+	PROMOTION(int, llint);
+	PROMOTION(llint, qint);
+
+#undef PROMOTION
 }
+
+template <class T> using PromoteIntegral = typename detail::PromoteIntegral<T>::type;
 
 namespace xml_conversions {
 	namespace detail {
-		void toString(qint value, TextFormatter &out);
-		void toString(qint2 value, TextFormatter &out);
+		void toString(llint, TextFormatter &out);
+		void toString(const llint2 &, TextFormatter &out);
+		void toString(qint, TextFormatter &out);
+		void toString(const qint2 &, TextFormatter &out);
 	}
 }
 }

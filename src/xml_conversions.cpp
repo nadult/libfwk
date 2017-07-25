@@ -186,10 +186,13 @@ namespace xml_conversions {
 			out("%s", buffer);
 		}
 
-		void toString(qint2 value, TextFormatter &out) {
+		void toString(const qint2 &value, TextFormatter &out) {
 			toString(value[0], out);
 			out(" ");
 			toString(value[1], out);
+		}
+		void toString(const llint2 &value, TextFormatter &out) {
+			out("%lld %lld", value.x, value.y);
 		}
 
 		void toString(const int2 &value, TextFormatter &out) { out("%d %d", value.x, value.y); }
