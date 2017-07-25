@@ -1920,6 +1920,10 @@ class Random {
 	Quat uniformRotation();
 	Quat uniformRotation(float3 axis);
 
+	template <class T> void permute(Span<T> span) {
+		std::random_shuffle(begin(span), end(span), [this](int v) { return uniform(v); });
+	}
+
   private:
 	// TODO: use mersenne twister ?
 	std::default_random_engine m_engine;
