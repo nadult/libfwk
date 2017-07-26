@@ -1,6 +1,5 @@
 - konwersja vector na bool (czy pusty)
 - można robić struktury drzewiaste bazujące na wektorach!
-- type-punning warnings in variant when compiling under mingw
 
 - Promienie bazujące na intach mogą być zaprezentowane za pomocą segmentów; dzięki temu nie
   potrzebne są Rationale
@@ -17,7 +16,6 @@
 - make default serialize_as_pod be based on is_trivially_copyable / etc.
   or maybe not (pointers...)
 - qint based on boost multiprecision is MUCH slower under mingw for some reason
-- iterators for boxes
 - change order in FWK_ORDER_BY for vectors ?
 - move box to fwk_box ?
 - warning in Variant (type punning) on g++ mingw

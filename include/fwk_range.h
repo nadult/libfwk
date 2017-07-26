@@ -382,10 +382,19 @@ template <class T, class U, size_t size> array<T, size> transform(const array<U,
 	return out;
 }
 
+template <class TRange, class Pred, class T = RangeBase<TRange>>
+int countIf(const TRange &range, const Pred &pred) {
+	int out = 0;
+	for(const auto &elem : range)
+		if(pred(elem))
+			out++;
+	return out;
+}
+
 template <class TRange, class Filter, class T = RangeBase<TRange>>
-vector<T> filter(const TRange &range, const Filter &filter) {
+vector<T> filter(const TRange &range, const Filter &filter, Maybe<int> reserve = none) {
 	vector<T> out;
-	out.reserve(range.size());
+	out.reserve(reserve ? *reserve : range.size());
 	for(const auto &elem : range)
 		if(filter(elem))
 			out.emplace_back(elem);
