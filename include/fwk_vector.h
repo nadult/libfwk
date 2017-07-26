@@ -134,6 +134,7 @@ template <class T> class Vector {
 		if(this == &rhs)
 			return;
 		m_base.swap(rhs.m_base);
+		rhs.clear();
 	}
 
 	bool validIndex(int idx) { return idx >= 0 && idx < m_base.size; }
