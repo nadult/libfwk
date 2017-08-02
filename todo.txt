@@ -1,3 +1,8 @@
+- fwk_assert powinno być ogólno dostępne, tak żeby wszędzie z tego korzystać
+- DASSERTY często nie wystarczają; chcielibyśmy mieć dokładniesze informacje (jakie dane konkretnie są zepsute?)
+- możliwość dodania suffixa do ścieżki FilePath (+em?)
+- specjalizacje dla Maybe: niektóre typy mogą mieć zdefiniowane niepoprawne wartości
+  które można używać zamiast boola!
 - konwersja vector na bool (czy pusty)
 - można robić struktury drzewiaste bazujące na wektorach!
 
