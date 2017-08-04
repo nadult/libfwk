@@ -105,9 +105,20 @@ namespace detail {
 	template <> struct MakeVector<llint, 2> { using type = llint2; };
 	template <> struct MakeVector<qint, 2> { using type = qint2; };
 
-	template <class T, class Enable = void> struct PromoteIntegral { using type = T; };
-	template <class T> struct PromoteIntegral<T, EnableIfVector<T>> {
-		using type = MakeVector<typename PromoteIntegral<typename T::Scalar>::type, T::vector_size>;
+	template <class T, class Enable = void> struct PromoteIntegral {
+	  private:
+		static auto resolve() {
+			if
+				constexpr(isVector<T>()) {
+					using Promoted = typename PromoteIntegral<typename T::Scalar>::type;
+					return fwk::MakeVector<Promoted, T::vector_size>();
+				}
+			else
+				return T();
+		}
+
+	  public:
+		using type = decltype(resolve());
 	};
 
 #define PROMOTION(base, promoted)                                                                  \
