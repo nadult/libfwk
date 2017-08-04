@@ -581,6 +581,7 @@ template <class T, class Base_ = BestFlagsBase<T>> struct EnumFlags {
 	static_assert(fwk::count<T>() <= sizeof(Base) * 8, "");
 
 	constexpr EnumFlags() : bits(0) {}
+	constexpr EnumFlags(None) : bits(0) {}
 	constexpr EnumFlags(T value) : bits(Base(1) << uint(value)) {}
 	constexpr explicit EnumFlags(Base bits) : bits(bits) {}
 	template <class TBase> constexpr EnumFlags(EnumFlags<T, TBase> rhs) : bits(rhs.bits) {}
@@ -596,6 +597,7 @@ template <class T, class Base_ = BestFlagsBase<T>> struct EnumFlags {
 
 	constexpr bool operator==(T rhs) const { return bits == (Base(1) << int(rhs)); }
 	constexpr bool operator==(EnumFlags rhs) const { return bits == rhs.bits; }
+	constexpr bool operator<(EnumFlags rhs) const { return bits < rhs.bits; }
 
 	constexpr explicit operator bool() const { return bits != 0; }
 
