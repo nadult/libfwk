@@ -22,6 +22,7 @@ struct FColor {
 	FColor(const FColor &col, float a) : r(col.r), g(col.g), b(col.b), a(a) {}
 	FColor(const float3 &rgb, float a = 1.0) : r(rgb[0]), g(rgb[1]), b(rgb[2]), a(a) {}
 	FColor(ColorId);
+
 	operator float4() const { return float4(v); }
 
 	float3 rgb() const { return float3(r, g, b); }
@@ -36,9 +37,7 @@ struct FColor {
 		return FColor(r + rhs.r, g + rhs.g, b + rhs.b, a + rhs.a);
 	}
 
-	auto tied() const { return std::tie(r, g, b, a); }
-	bool operator<(const FColor &rhs) const { return tied() < rhs.tied(); }
-	bool operator==(const FColor &rhs) const { return tied() == rhs.tied(); }
+	FWK_ORDER_BY(FColor, r, g, b, a);
 
 	union {
 		struct {
@@ -68,12 +67,11 @@ struct IColor {
 	IColor(ColorId color_id) : IColor(FColor(color_id)) {}
 	IColor() : IColor(0, 0, 0) {}
 
-	operator FColor() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
-	operator int4() const { return int4(r, g, b, a); }
+	operator FColor() const { return FColor(r, g, b, a) * (1.0f / 255.0f); }
+	explicit operator int4() const { return int4(r, g, b, a); }
+	explicit operator float4() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
 
-	auto tied() const { return std::tie(r, g, b, a); }
-	bool operator<(const IColor &rhs) const { return tied() < rhs.tied(); }
-	bool operator==(const IColor &rhs) const { return tied() == rhs.tied(); }
+	FWK_ORDER_BY(IColor, r, g, b, a);
 
 	IColor bgra() const { return IColor(b, g, r, a); }
 
@@ -653,51 +651,45 @@ class SimpleMaterial {
 	FColor m_color;
 };
 
-// TODO: no need to make it immutable, it should be able to store STexture as well
-class Material : public immutable_base<Material> {
+DEFINE_ENUM(MaterialOpt, blended, two_sided, clear_depth, ignore_depth);
+using MaterialFlags = EnumFlags<MaterialOpt>;
+
+// TODO: FlatMaterial (without textures)
+
+class Material {
   public:
-	enum Flags {
-		flag_blended = 0x0001u,
-		flag_two_sided = 0x0002u,
-		flag_clear_depth = 0x0004u,
-		flag_ignore_depth = 0x0008u,
+	using Flags = MaterialFlags;
 
-		flag_custom_mask = 0xffff0000u,
-		flag_custom_shift = 16,
-	};
+	explicit Material(vector<PTexture> textures, IColor color = ColorId::white, Flags flags = none,
+					  u16 custom_flags = 0);
+	explicit Material(IColor color, Flags flags = none, u16 custom_flags = 0);
+	Material() : Material(ColorId::white) {}
 
-	Material(vector<PTexture> textures, FColor color = ColorId::white, uint flags = 0);
-	Material(PTexture texture, FColor color = ColorId::white, uint flags = 0);
-	Material(FColor color = ColorId::white, uint flags = 0);
+	PTexture texture() const { return textures.empty() ? PTexture() : textures.front(); }
 
-	PTexture texture() const { return m_textures.empty() ? PTexture() : m_textures.front(); }
-	const vector<PTexture> &textures() const { return m_textures; }
-	FColor color() const { return m_color; }
-	uint flags() const { return m_flags; }
+	FWK_ORDER_BY(Material, textures, color, custom_flags, flags);
 
-	bool operator<(const Material &rhs) const;
-
-  protected:
-	vector<PTexture> m_textures;
-	FColor m_color;
-	uint m_flags;
+	// invariant: allOf(m_textures, [](auto &tex) { return tex != nullptr; })
+	vector<PTexture> textures;
+	IColor color;
+	u16 custom_flags;
+	Flags flags;
 };
-
-using PMaterial = immutable_ptr<Material>;
 
 class MaterialSet {
   public:
-	MaterialSet(PMaterial default_mat, std::map<string, PMaterial> = {});
+	explicit MaterialSet(const Material &default_mat, std::map<string, Material> = {});
 	~MaterialSet();
 
 	auto defaultMat() const { return m_default; }
-	PMaterial operator[](const string &name) const;
-	vector<PMaterial> operator()(const vector<string> &names) const;
+	const Material &operator[](const string &name) const;
+	vector<Material> operator()(CSpan<string> names) const;
 	const auto &map() const { return m_map; }
 
   private:
-	PMaterial m_default;
-	std::map<string, PMaterial> m_map;
+	Material m_default;
+	// TODO: hash_map
+	std::map<string, Material> m_map;
 };
 
 class MatrixStack {
@@ -801,21 +793,21 @@ class SpriteBuffer {
   public:
 	struct Instance {
 		Matrix4 matrix;
-		PMaterial material;
+		Material material;
 		vector<float3> positions;
 		vector<float2> tex_coords;
 		vector<IColor> colors;
 	};
 
 	SpriteBuffer(const MatrixStack &);
-	void add(CSpan<float3> verts, CSpan<float2> tex_coords, CSpan<IColor> colors, PMaterial,
+	void add(CSpan<float3> verts, CSpan<float2> tex_coords, CSpan<IColor> colors, const Material &,
 			 const Matrix4 &matrix = Matrix4::identity());
 	void clear();
 
 	const auto &instances() const { return m_instances; }
 
   private:
-	Instance &instance(PMaterial, Matrix4, bool has_colors, bool has_tex_coords);
+	Instance &instance(const Material &, Matrix4, bool has_colors, bool has_tex_coords);
 
 	vector<Instance> m_instances;
 	const MatrixStack &m_matrix_stack;
@@ -827,22 +819,23 @@ class LineBuffer {
 		Matrix4 matrix;
 		vector<float3> positions;
 		vector<IColor> colors;
-		uint material_flags;
-		FColor material_color;
+		MaterialFlags material_flags;
+		IColor material_color;
 	};
 
 	LineBuffer(const MatrixStack &);
-	void add(CSpan<float3>, CSpan<IColor>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
-	void add(CSpan<float3>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CSpan<float3>, CSpan<IColor>, const Material &,
+			 const Matrix4 &matrix = Matrix4::identity());
+	void add(CSpan<float3>, const Material &, const Matrix4 &matrix = Matrix4::identity());
 	void add(CSpan<float3>, IColor, const Matrix4 &matrix = Matrix4::identity());
-	void add(CSpan<Segment3<float>>, PMaterial, const Matrix4 &matrix = Matrix4::identity());
+	void add(CSpan<Segment3<float>>, const Material &, const Matrix4 &matrix = Matrix4::identity());
 	void addBox(const FBox &bbox, IColor color, const Matrix4 &matrix = Matrix4::identity());
 	void clear();
 
 	const auto &instances() const { return m_instances; }
 
   private:
-	Instance &instance(FColor, uint, Matrix4, bool has_colors);
+	Instance &instance(IColor, MaterialFlags, Matrix4, bool has_colors);
 
 	vector<Instance> m_instances;
 	const MatrixStack &m_matrix_stack;
@@ -851,13 +844,13 @@ class LineBuffer {
 class DrawCall {
   public:
 	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset,
-			 PMaterial = PMaterial(), Matrix4 = Matrix4::identity(), Maybe<FBox> = none);
+			 const Material & = Material(), Matrix4 = Matrix4::identity(), Maybe<FBox> = none);
 
 	void issue() const;
 
 	Matrix4 matrix;
 	Maybe<FBox> bbox;
-	PMaterial material;
+	Material material;
 
   private:
 	PVertexArray m_vertex_array;

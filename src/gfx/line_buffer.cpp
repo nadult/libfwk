@@ -7,7 +7,7 @@ namespace fwk {
 
 LineBuffer::LineBuffer(const MatrixStack &stack) : m_matrix_stack(stack) {}
 
-LineBuffer::Instance &LineBuffer::instance(FColor col, uint flags, Matrix4 matrix,
+LineBuffer::Instance &LineBuffer::instance(IColor col, MaterialFlags flags, Matrix4 matrix,
 										   bool has_colors) {
 	Instance *inst = m_instances.empty() ? nullptr : &m_instances.back();
 	matrix = m_matrix_stack.viewMatrix() * matrix;
@@ -24,32 +24,30 @@ LineBuffer::Instance &LineBuffer::instance(FColor col, uint flags, Matrix4 matri
 	return *inst;
 }
 
-void LineBuffer::add(CSpan<float3> verts, CSpan<IColor> colors, PMaterial mat,
+void LineBuffer::add(CSpan<float3> verts, CSpan<IColor> colors, const Material &mat,
 					 const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
 	DASSERT(colors.size() == verts.size() || colors.empty());
-	DASSERT(mat);
 
-	auto &inst = instance(mat->color(), mat->flags(), matrix, true);
+	auto &inst = instance(mat.color, mat.flags, matrix, true);
 	insertBack(inst.positions, verts);
 	insertBack(inst.colors, colors);
 }
 
-void LineBuffer::add(CSpan<float3> verts, PMaterial material, const Matrix4 &matrix) {
+void LineBuffer::add(CSpan<float3> verts, const Material &material, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
-	DASSERT(material);
 
-	auto &inst = instance(material->color(), material->flags(), matrix, false);
+	auto &inst = instance(material.color, material.flags, matrix, false);
 	insertBack(inst.positions, verts);
 }
 
 void LineBuffer::add(CSpan<float3> verts, IColor color, const Matrix4 &matrix) {
 	DASSERT(verts.size() % 2 == 0);
-	auto &inst = instance(color, 0u, matrix, false);
+	auto &inst = instance(color, none, matrix, false);
 	insertBack(inst.positions, verts);
 }
 
-void LineBuffer::add(CSpan<Segment3<float>> segs, PMaterial material, const Matrix4 &matrix) {
+void LineBuffer::add(CSpan<Segment3<float>> segs, const Material &material, const Matrix4 &matrix) {
 	vector<float3> verts;
 	verts.reserve(segs.size() * 2);
 	for(const auto &seg : segs) {

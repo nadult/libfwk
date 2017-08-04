@@ -9,7 +9,7 @@
 namespace fwk {
 
 DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType primitive_type, int vertex_count,
-				   int index_offset, PMaterial material, Matrix4 matrix, Maybe<FBox> bbox)
+				   int index_offset, const Material &material, Matrix4 matrix, Maybe<FBox> bbox)
 	: matrix(matrix), bbox(bbox), material(material), m_vertex_array(move(vertex_array)),
 	  m_primitive_type(primitive_type), m_vertex_count(vertex_count), m_index_offset(index_offset) {
 	DASSERT(m_vertex_array);
@@ -68,8 +68,8 @@ static const char *vertex_shader_src =
 struct ProgramFactory {
 	PProgram operator()(const string &name) const {
 		const char *src =
-			name == "tex" ? fragment_shader_tex_src : name == "flat" ? fragment_shader_flat_src
-																	 : fragment_shader_simple_src;
+			name == "tex" ? fragment_shader_tex_src
+						  : name == "flat" ? fragment_shader_flat_src : fragment_shader_simple_src;
 
 		Shader vertex_shader(ShaderType::vertex, vertex_shader_src, "", name);
 		Shader fragment_shader(ShaderType::fragment, src, "", name);
@@ -114,27 +114,30 @@ namespace {
 			::glDisable(what);
 	}
 
-	struct DeviceConfig {
-		DeviceConfig() : flags(~0u) { update(0); }
+	using MatFlags = MaterialFlags;
+	using MatOpt = MaterialOpt;
 
-		void update(uint new_flags) {
-			if((new_flags & Material::flag_blended) != (flags & Material::flag_blended)) {
-				if(new_flags & Material::flag_blended)
+	struct DeviceConfig {
+		DeviceConfig() : flags(MatFlags::all()) { update(none); }
+
+		void update(MatFlags new_flags) {
+			if((new_flags & MatOpt::blended) != (flags & MatOpt::blended)) {
+				if(new_flags & MatOpt::blended)
 					glEnable(GL_BLEND);
 				else
 					glDisable(GL_BLEND);
 			}
-			if((new_flags & Material::flag_two_sided) != (flags & Material::flag_two_sided)) {
-				if(new_flags & Material::flag_two_sided)
+			if((new_flags & MatOpt::two_sided) != (flags & MatOpt::two_sided)) {
+				if(new_flags & MatOpt::two_sided)
 					glDisable(GL_CULL_FACE);
 				else
 					glEnable(GL_CULL_FACE);
 			}
-			if((new_flags & Material::flag_clear_depth) && !(flags & Material::flag_clear_depth)) {
+			if((new_flags & MatOpt::clear_depth) && !(flags & MatOpt::clear_depth)) {
 				GfxDevice::clearDepth(1.0f);
 			}
-			if((new_flags & Material::flag_ignore_depth) != (flags & Material::flag_ignore_depth)) {
-				bool do_enable = !(new_flags & Material::flag_ignore_depth);
+			if((new_flags & MatOpt::ignore_depth) != (flags & MatOpt::ignore_depth)) {
+				bool do_enable = !(new_flags & MatOpt::ignore_depth);
 				glDepthMask(do_enable);
 				enable(GL_DEPTH_TEST, do_enable);
 			}
@@ -142,7 +145,7 @@ namespace {
 			flags = new_flags;
 		}
 
-		uint flags;
+		MatFlags flags;
 	};
 }
 
@@ -158,21 +161,21 @@ void RenderList::render() {
 	auto flat_program = s_mgr["flat"];
 
 	for(const auto &draw_call : m_draw_calls) {
-		auto mat = draw_call.material;
-		if(mat)
-			DTexture::bind(mat->textures());
-		PProgram program = mat && mat->texture() ? tex_program : flat_program;
+		auto &mat = draw_call.material;
+		if(!mat.textures.empty())
+			DTexture::bind(mat.textures);
+		PProgram program = !mat.textures.empty() ? tex_program : flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
 		binder.setUniform("proj_view_matrix", projectionMatrix() * draw_call.matrix);
-		binder.setUniform("mesh_color", (float4)(mat ? mat->color() : ColorId::white));
-		dev_config.update(mat ? mat->flags() : 0);
+		binder.setUniform("mesh_color", (float4)FColor(mat.color));
+		dev_config.update(mat.flags);
 
 		draw_call.issue();
 	}
 
-	dev_config.update(Material::flag_blended | Material::flag_two_sided);
+	dev_config.update(MatOpt::blended | MatOpt::two_sided);
 	glDepthMask(0);
 	renderSprites();
 
@@ -199,15 +202,15 @@ void RenderList::renderSprites() {
 		VertexArray sprite_array({pos, col, tex});
 
 		const auto &mat = sprite.material;
-		DTexture::bind(mat->textures());
-		PProgram program = mat->texture() ? tex_program : flat_program;
+		DTexture::bind(mat.textures);
+		PProgram program = mat.texture() ? tex_program : flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
-		if(mat->texture())
+		if(mat.texture())
 			binder.setUniform("tex", 0);
 		binder.setUniform("proj_view_matrix", projectionMatrix() * sprite.matrix);
-		binder.setUniform("mesh_color", (float4)mat->color());
+		binder.setUniform("mesh_color", (float4)mat.color);
 		sprite_array.draw(PrimitiveType::triangles, sprite_array.size(), 0);
 	}
 }
@@ -223,7 +226,7 @@ void RenderList::renderLines() {
 		VertexArray line_array({pos, col, VertexArraySource(float2(0, 0))});
 
 		binder.setUniform("mesh_color", (float4)inst.material_color);
-		enable(GL_DEPTH_TEST, !(inst.material_flags & Material::flag_ignore_depth));
+		enable(GL_DEPTH_TEST, !(inst.material_flags & MatOpt::ignore_depth));
 		binder.setUniform("proj_view_matrix", projectionMatrix() * inst.matrix);
 		line_array.draw(PrimitiveType::lines, line_array.size(), 0);
 	}

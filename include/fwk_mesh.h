@@ -656,7 +656,7 @@ class Model : public immutable_base<Model> {
 
 	Matrix4 nodeTrans(const string &name, PPose) const;
 
-	void drawNodes(RenderList &, PPose, FColor node_color, FColor line_color,
+	void drawNodes(RenderList &, PPose, IColor node_color, IColor line_color,
 				   float node_scale = 1.0f, const Matrix4 &matrix = Matrix4::identity()) const;
 
 	void clearDrawingCache() const;

@@ -32,7 +32,8 @@
   - to xml, to text, separator support for ranges ?
   - think it through
 
-- FCOLOr sux (operations only on alpha part or only on color part)
+- cleanup colors (where ICOLOR, where FColor should be used); Conversion ColorId -> IColor
+  FCOLOr sux (operations only on alpha part or only on color part)
 - segment, box::empty -> degenerate ?
 - isnan checks in all math classes (paranoid in vectors as well ?)
 - copyable_ptr (unique_ptr but with copying ability (why the hell it doesn't have it?))

@@ -7,7 +7,7 @@ namespace fwk {
 
 SpriteBuffer::SpriteBuffer(const MatrixStack &stack) : m_matrix_stack(stack) {}
 
-SpriteBuffer::Instance &SpriteBuffer::instance(PMaterial mat, Matrix4 matrix, bool has_colors,
+SpriteBuffer::Instance &SpriteBuffer::instance(const Material &mat, Matrix4 matrix, bool has_colors,
 											   bool has_tex_coords) {
 	Instance *inst = m_instances.empty() ? nullptr : &m_instances.back();
 	matrix = m_matrix_stack.viewMatrix() * matrix;
@@ -24,7 +24,7 @@ SpriteBuffer::Instance &SpriteBuffer::instance(PMaterial mat, Matrix4 matrix, bo
 }
 
 void SpriteBuffer::add(CSpan<float3> verts, CSpan<float2> tex_coords, CSpan<IColor> colors,
-					   PMaterial material, const Matrix4 &matrix) {
+					   const Material &material, const Matrix4 &matrix) {
 	DASSERT(tex_coords.empty() || tex_coords.size() == verts.size());
 	DASSERT(colors.empty() || colors.size() == verts.size());
 	auto &inst = instance(material, matrix, !colors.empty(), !tex_coords.empty());

@@ -205,15 +205,15 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 		}
 }
 
-void Model::drawNodes(RenderList &out, PPose pose, FColor node_color, FColor line_color,
+void Model::drawNodes(RenderList &out, PPose pose, IColor node_color, IColor line_color,
 					  float node_scale, const Matrix4 &matrix) const {
 	// TODO: move this to model viewer
 	DASSERT(valid(pose));
-	auto node_mat = make_immutable<Material>(node_color, Material::flag_ignore_depth);
-	auto line_mat = make_immutable<Material>(line_color, Material::flag_ignore_depth);
+	Material node_mat(node_color, MaterialOpt::ignore_depth);
+	Material line_mat(line_color, MaterialOpt::ignore_depth);
 
 	Mesh bbox_mesh = Mesh::makeBBox(FBox{{-0.3f, -0.3f, -0.3f}, {0.3f, 0.3f, 0.3f}} * node_scale);
-	auto bbox_draw = bbox_mesh.genDrawCalls(node_mat);
+	auto bbox_draw = bbox_mesh.genDrawCalls(MaterialSet{node_mat});
 
 	out.pushViewMatrix();
 	out.mulViewMatrix(matrix);

@@ -7,21 +7,21 @@
 namespace fwk {
 
 FColor::FColor(ColorId color_id) {
-	static EnumMap<ColorId, float4> map = {{
+	static EnumMap<ColorId, FColor> map = {{
 		{ColorId::white, FColor(1.0f, 1.0f, 1.0f)},
 		{ColorId::gray, FColor(0.5f, 0.5f, 0.5f)},
-		{ColorId::yellow, FColor(1.0f, 1.0f, 0)},
-		{ColorId::cyan, FColor(0, 1.0f, 1.0f)},
-		{ColorId::magneta, FColor(1.0f, 0, 1.0f)},
-		{ColorId::purple, FColor(0.5f, 0, 0.5f)},
+		{ColorId::yellow, FColor(1.0f, 1.0f, 0.0f)},
+		{ColorId::cyan, FColor(0.0f, 1.0f, 1.0f)},
+		{ColorId::magneta, FColor(1.0f, 0.0f, 1.0f)},
+		{ColorId::purple, FColor(0.5f, 0.0f, 0.5f)},
 		{ColorId::brown, FColor(0.647f, 0.164f, 0.164f)},
-		{ColorId::orange, FColor(1.0f, 0xA5, 0)},
-		{ColorId::gold, FColor(1.0f, 0.843f, 0)},
-		{ColorId::red, FColor(1.0f, 0, 0)},
-		{ColorId::green, FColor(0, 1.0f, 0)},
-		{ColorId::blue, FColor(0, 0, 1.0f)},
-		{ColorId::black, FColor(0, 0, 0)},
-		{ColorId::transparent, FColor(0, 0, 0, 0)},
+		{ColorId::orange, FColor(1.0f, 0.647f, 0.0f)},
+		{ColorId::gold, FColor(1.0f, 0.843f, 0.0f)},
+		{ColorId::red, FColor(1.0f, 0.0f, 0.0f)},
+		{ColorId::green, FColor(0.0f, 1.0f, 0.0f)},
+		{ColorId::blue, FColor(0.0f, 0.0f, 1.0f)},
+		{ColorId::black, FColor(0.0f, 0.0f, 0.0f)},
+		{ColorId::transparent, FColor(0.0f, 0.0f, 0.0f, 0.0f)},
 	}};
 	*this = map[color_id];
 }

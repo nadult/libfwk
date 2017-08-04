@@ -29,16 +29,17 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 class Viewer {
   public:
 	struct Model {
-		Model(PModel model, PMaterial default_mat, PTexture tex, string mname, string tname)
+		Model(PModel model, const Material &default_mat, PTexture tex, string mname, string tname)
 			: m_model(std::move(model)), m_materials(default_mat), m_model_name(mname),
 			  m_tex_name(tname), m_num_segments(0) {
-			std::map<string, PMaterial> map;
+			std::map<string, Material> map;
 
 			for(const auto &def : m_model->materialDefs()) {
-				map[def.name] = tex ? make_immutable<Material>(tex, def.diffuse)
-									: make_immutable<Material>(def.diffuse);
+				map[def.name] =
+					tex ? Material({tex}, IColor(def.diffuse)) : Material(IColor(def.diffuse));
 			}
 			m_materials = MaterialSet(default_mat, map);
+			map.clear();
 		}
 
 		PPose animatePose(int anim_id, float anim_pos) const {
@@ -74,10 +75,10 @@ class Viewer {
 			fmt("Parts: %d  Verts: %d Faces: %d\n", num_parts, num_verts, num_faces);
 		}
 
-		auto makeMat(IColor col, bool line) {
-			uint flags =
-				col.a != 255 || line ? Material::flag_blended | Material::flag_ignore_depth : 0;
-			return make_immutable<Material>(col, flags);
+		Material makeMat(IColor col, bool line) {
+			auto flags =
+				col.a != 255 || line ? MaterialOpt::blended | MaterialOpt::ignore_depth : none;
+			return Material{col, flags};
 		}
 
 		PModel m_model;
@@ -87,7 +88,7 @@ class Viewer {
 		int m_num_segments;
 	};
 
-	void makeMaterials(PMaterial default_mat, Model &model) {}
+	void makeMaterials(Material default_mat, Model &model) {}
 
 	void updateViewport() { m_viewport = IRect(GfxDevice::instance().windowSize()); }
 
@@ -104,7 +105,7 @@ class Viewer {
 					   (getTime() - time) * 1000.0f);
 			}
 
-			PMaterial default_mat = make_immutable<Material>(tex);
+			Material default_mat = tex ? Material({tex}) : Material();
 
 			double time = getTime();
 			auto model = s_models[file_name.first];
