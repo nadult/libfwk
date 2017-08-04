@@ -852,6 +852,8 @@ class DrawCall {
 	Maybe<FBox> bbox;
 	Material material;
 
+	auto primitiveType() const { return m_primitive_type; }
+
   private:
 	PVertexArray m_vertex_array;
 	PrimitiveType m_primitive_type;

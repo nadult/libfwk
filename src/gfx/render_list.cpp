@@ -19,60 +19,63 @@ void DrawCall::issue() const {
 	m_vertex_array->draw(m_primitive_type, m_vertex_count, m_index_offset);
 }
 
-static const char *fragment_shader_simple_src =
-	"#version 100\n"
-	"varying lowp vec4 color;							\n"
-	"void main() {										\n"
-	"  gl_FragColor = color;							\n"
-	"}													\n";
+static const char *fsh_simple_src =
+	"varying lowp vec4 color;\n"
+	"void main() {\n"
+	"  gl_FragColor = color;\n"
+	"}\n";
 
-static const char *fragment_shader_tex_src =
-	"#version 100\n"
-	"uniform sampler2D tex; 											\n"
-	"varying lowp vec4 color;											\n"
-	"varying mediump vec2 tex_coord;									\n"
-	"void main() {														\n"
-	"  gl_FragColor = color * texture2D(tex, tex_coord);				\n"
-	"}																	\n";
+static const char *fsh_tex_src =
+	"uniform sampler2D tex; \n"
+	"varying lowp vec4 color;\n"
+	"varying mediump vec2 tex_coord;\n"
+	"void main() {\n"
+	"  gl_FragColor = color * texture2D(tex, tex_coord);\n"
+	"}\n";
 
-static const char *fragment_shader_flat_src =
-	"#version 100															\n"
-	"#extension GL_OES_standard_derivatives : enable						\n"
-	"																		\n"
-	"varying lowp vec4 color;												\n"
-	"varying mediump vec3 tpos;												\n"
-	"																		\n"
-	"void main() {															\n"
-	"	mediump vec3 normal = normalize(cross(dFdx(tpos), dFdy(tpos)));		\n"
-	"	mediump float shade = abs(dot(normal, vec3(0, 0, 1))) * 0.5 + 0.5;	\n"
-	"	gl_FragColor = color * shade;										\n"
-	"}																		\n";
+static const char *fsh_flat_src =
+	"#extension GL_OES_standard_derivatives : enable\n"
+	"\n"
+	"varying lowp vec4 color;\n"
+	"varying mediump vec3 tpos;\n"
+	"\n"
+	"void main() {\n"
+	"   #ifdef SHADE\n"
+	"     mediump vec3 normal = normalize(cross(dFdx(tpos), dFdy(tpos)));\n"
+	"     mediump float shade = abs(dot(normal, vec3(0, 0, 1))) * 0.5 + 0.5;\n"
+	"     gl_FragColor = color * shade;\n"
+	"   #else\n"
+	"     gl_FragColor = color;\n"
+	"   #endif\n"
+	"}\n";
 
-static const char *vertex_shader_src =
-	"#version 100\n"
-	"uniform mat4 proj_view_matrix;										\n"
-	"uniform vec4 mesh_color;											\n"
-	"attribute vec3 in_pos;												\n"
-	"attribute vec4 in_color;											\n"
-	"attribute vec2 in_tex_coord;										\n"
-	"varying vec2 tex_coord;  											\n"
-	"varying vec4 color;  												\n"
-	" varying vec3 tpos;												\n"
-	"void main() {														\n"
-	"  gl_Position = proj_view_matrix * vec4(in_pos, 1.0);				\n"
-	"  tpos = gl_Position.xyz;											\n"
-	"  tex_coord = in_tex_coord;										\n"
-	"  color = in_color * mesh_color;									\n"
-	"} 																	\n";
+static const char *vsh_src =
+	"uniform mat4 proj_view_matrix;\n"
+	"uniform vec4 mesh_color;\n"
+	"attribute vec3 in_pos;\n"
+	"attribute vec4 in_color;\n"
+	"attribute vec2 in_tex_coord;\n"
+	"varying vec2 tex_coord;\n"
+	"varying vec4 color;\n"
+	" varying vec3 tpos;\n"
+	"void main() {\n"
+	"  gl_Position = proj_view_matrix * vec4(in_pos, 1.0);\n"
+	"  tpos = gl_Position.xyz;\n"
+	"  tex_coord = in_tex_coord;\n"
+	"  color = in_color * mesh_color;\n"
+	"}\n";
 
 struct ProgramFactory {
 	PProgram operator()(const string &name) const {
-		const char *src =
-			name == "tex" ? fragment_shader_tex_src
-						  : name == "flat" ? fragment_shader_flat_src : fragment_shader_simple_src;
+		const char *src = name == "tex" ? fsh_tex_src : fsh_simple_src;
+		if(name.find("flat") != string::npos)
+			src = fsh_flat_src;
+		bool shade = name.find("shade") != string::npos;
 
-		Shader vertex_shader(ShaderType::vertex, vertex_shader_src, "", name);
-		Shader fragment_shader(ShaderType::fragment, src, "", name);
+		string macros = shade ? "#version 100\n#define SHADE\n" : "#version 100\n";
+
+		Shader vertex_shader(ShaderType::vertex, vsh_src, macros, name);
+		Shader fragment_shader(ShaderType::fragment, src, macros, name);
 		return make_immutable<Program>(vertex_shader, fragment_shader,
 									   vector<string>{"in_pos", "in_color", "in_tex_coord"});
 	}
@@ -159,12 +162,15 @@ void RenderList::render() {
 	DeviceConfig dev_config;
 	auto tex_program = s_mgr["tex"];
 	auto flat_program = s_mgr["flat"];
+	auto flat_shade_program = s_mgr["flat_shade"];
 
 	for(const auto &draw_call : m_draw_calls) {
 		auto &mat = draw_call.material;
 		if(!mat.textures.empty())
 			DTexture::bind(mat.textures);
-		PProgram program = !mat.textures.empty() ? tex_program : flat_program;
+		PProgram program = !mat.textures.empty() ? tex_program : flat_shade_program;
+		if(draw_call.primitiveType() == PrimitiveType::lines)
+			program = flat_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
@@ -218,6 +224,8 @@ void RenderList::renderSprites() {
 void RenderList::renderLines() {
 	DTexture::unbind();
 	ProgramBinder binder(s_mgr["simple"]);
+	binder.bind();
+
 	for(const auto &inst : m_lines.instances()) {
 		auto pos = make_immutable<VertexBuffer>(inst.positions);
 		auto col = inst.colors.empty()
