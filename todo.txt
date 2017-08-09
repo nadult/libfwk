@@ -1,3 +1,8 @@
+-  make Triangle it modifiable? some other classes don't keep any invariants either?
+   but on the other hand, we could add some checks for nans and infinities...
+   add type: FiniteFloat (float which is not a nan and is not an infinity)
+
+- konwersja kolor na bool (!= ColorId::transparent)
 - fwk_assert powinno być ogólno dostępne, tak żeby wszędzie z tego korzystać
 - DASSERTY często nie wystarczają; chcielibyśmy mieć dokładniesze informacje (jakie dane konkretnie są zepsute?)
 - możliwość dodania suffixa do ścieżki FilePath (+em?)

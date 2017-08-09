@@ -1093,7 +1093,7 @@ template <class T> Box<T> enclose(CSpan<Box<T>> boxes) {
 	return out;
 }
 
-template <class TRange, class T = RangeBase<TRange>, EnableIfVector<T>...>
+template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfVector<T>...>
 Box<T> enclose(const TRange &points) {
 	return enclose(makeCSpan(points));
 }
@@ -1616,9 +1616,9 @@ template <class T, int N> class Triangle {
 
 	Triangle flipped() const { return Triangle(v[2], v[1], v[0]); }
 
-	ENABLE_IF_SIZE(3) Triangle2<T> xz() const { return {asXZ(v[0]), asXZ(v[1]), asXZ(v[2])}; }
-	ENABLE_IF_SIZE(3) Triangle2<T> xy() const { return {asXY(v[0]), asXY(v[1]), asXY(v[2])}; }
-	ENABLE_IF_SIZE(3) Triangle2<T> yz() const { return {asYZ(v[0]), asYZ(v[1]), asYZ(v[2])}; }
+	ENABLE_IF_SIZE(3) Triangle2<T> xz() const { return {v[0].xz(), v[1].xz(), v[2].xz()}; }
+	ENABLE_IF_SIZE(3) Triangle2<T> xy() const { return {v[0].xy(), v[1].xy(), v[2].xy()}; }
+	ENABLE_IF_SIZE(3) Triangle2<T> yz() const { return {v[0].yz(), v[1].yz(), v[2].yz()}; }
 	ENABLE_IF_SIZE(3) Triangle2<T> projection2D() const;
 
 	ENABLE_IF_SIZE(3) Vector normal() const;
@@ -1648,6 +1648,10 @@ template <class T, int N> class Triangle {
   private:
 	Point v[3];
 };
+
+template <class T, int N> Box<MakeVector<T, N>> enclose(const Triangle<T, N> &tri) {
+	return enclose(tri.points());
+}
 
 // returns infinity if doesn't intersect
 
