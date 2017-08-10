@@ -100,10 +100,57 @@ struct qint2 {
 	qint v[2];
 };
 
+template <class Scalar_> struct vector3 {
+	using Scalar = Scalar_;
+	enum { vector_size = 3 };
+
+	constexpr vector3(Scalar x, Scalar y, Scalar z) : x(x), y(y), z(z) {}
+	constexpr vector3(const float2 &xy, Scalar z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr vector3() : x(0.0f), y(0.0f), z(0.0f) {}
+
+	explicit vector3(Scalar t) : x(t), y(t), z(t) {}
+	template <class V, EnableIfVector<V, 3>...>
+	explicit vector3(const V &vec) : x(vec[0]), y(vec[1]), z(vec[2]) {}
+
+	vector3 operator*(const vector3 &rhs) const { return {x * rhs.x, y * rhs.y, z * rhs.z}; }
+	vector3 operator/(const vector3 &rhs) const { return {x / rhs.x, y / rhs.y, z / rhs.z}; }
+	vector3 operator+(const vector3 &rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
+	vector3 operator-(const vector3 &rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
+	vector3 operator*(Scalar s) const { return {x * s, y * s, z * s}; }
+	vector3 operator/(Scalar s) const { return {x / s, y / s, z / s}; }
+	vector3 operator-() const { return {-x, -y, -z}; }
+
+	Scalar &operator[](int idx) { return v[idx]; }
+	const Scalar &operator[](int idx) const { return v[idx]; }
+
+	float2 xy() const { return {x, y}; }
+	float2 xz() const { return {x, z}; }
+	float2 yz() const { return {y, z}; }
+
+	FWK_ORDER_BY(vector3, x, y, z)
+
+	Span<Scalar, 3> values() { return v; }
+	CSpan<Scalar, 3> values() const { return v; }
+
+	union {
+		struct {
+			Scalar x, y, z;
+		};
+		Scalar v[3];
+	};
+};
+
+using short3 = vector3<short>;
+using llint3 = vector3<llint>;
+using qint3 = vector3<qint>;
+
 namespace detail {
 	template <> struct IsIntegral<qint> : public std::true_type {};
 	template <> struct MakeVector<llint, 2> { using type = llint2; };
 	template <> struct MakeVector<qint, 2> { using type = qint2; };
+	template <> struct MakeVector<short, 3> { using type = short3; };
+	template <> struct MakeVector<llint, 3> { using type = llint3; };
+	template <> struct MakeVector<qint, 3> { using type = qint3; };
 
 	template <class T, class Enable = void> struct PromoteIntegral {
 	  private:

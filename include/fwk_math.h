@@ -1470,7 +1470,7 @@ template <class T, int N> class ISegment {
 	// You have to be careful if values are greater than 32 bits
 	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const ISegment &) const;
 	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const Point &) const;
-	ENABLE_IF_SIZE(2) bool testIsect(const Box<Vector> &) const;
+	bool testIsect(const Box<Vector> &) const;
 
 	FWK_ORDER_BY(ISegment, from, to)
 
@@ -1576,8 +1576,6 @@ template <class T, int N> Box<MakeVector<T, N>> enclose(const ISegment<T, N> &se
 
 template <class T, int N> class Triangle {
   public:
-	static_assert(isReal<T>(), "Triangle<> should be based on reals");
-
 	enum { dim_size = N };
 	static_assert(dim_size >= 2 && dim_size <= 3, "Only 2D & 3D triangles are supported");
 

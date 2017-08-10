@@ -120,7 +120,18 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 			return false;
 	}
 
-	return abs(cross(m, d)) <= e[0] * ad[1] + e[1] * ad[0];
+	if
+		constexpr(dim_size == 2) { return abs(cross(m, d)) <= e[0] * ad[1] + e[1] * ad[0]; }
+	else {
+		// TODO: test it
+		if(abs(m.z * d.z - m.z * d.y) > e.y * ad.z + e.z * ad.y)
+			return false;
+		if(abs(m.z * d.x - m.x * d.z) > e.x * ad.z + e.z * ad.x)
+			return false;
+		if(abs(m.x * d.y - m.y * d.x) > e.x * ad.y + e.y * ad.x)
+			return false;
+		return true;
+	}
 }
 
 template <class T, int N>
@@ -146,11 +157,9 @@ template <class U, EnableInDimension<U, 2>...>
 IsectClass Segment<T, N>::classifyIsect(const Point &point) const {
 	return fwk::classifyIsect(*this, point);
 }
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
+template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
 	using QVec = MakeVector<qint, N>;
-	return fwk::testIsect(ISegment<qint, N>{from, to}, Box<QVec>{box.min(), box.max()});
+	return fwk::testIsect(ISegment<qint, N>(*this), Box<QVec>(box));
 }
 
 template <class T, int N>
@@ -351,6 +360,11 @@ template class ISegment<int, 2>;
 template class ISegment<llint, 2>;
 template class ISegment<qint, 2>;
 
+template class ISegment<short, 3>;
+template class ISegment<int, 3>;
+template class ISegment<llint, 3>;
+template class ISegment<qint, 3>;
+
 template IsectClass ISegment<short, 2>::classifyIsect(const ISegment &) const;
 template IsectClass ISegment<int, 2>::classifyIsect(const ISegment &) const;
 template IsectClass ISegment<llint, 2>::classifyIsect(const ISegment &) const;
@@ -360,11 +374,6 @@ template IsectClass ISegment<short, 2>::classifyIsect(const Point &) const;
 template IsectClass ISegment<int, 2>::classifyIsect(const Point &) const;
 template IsectClass ISegment<llint, 2>::classifyIsect(const Point &) const;
 template IsectClass ISegment<qint, 2>::classifyIsect(const Point &) const;
-
-template bool ISegment<short, 2>::testIsect(const Box<Vector> &) const;
-template bool ISegment<int, 2>::testIsect(const Box<Vector> &) const;
-template bool ISegment<llint, 2>::testIsect(const Box<Vector> &) const;
-template bool ISegment<qint, 2>::testIsect(const Box<Vector> &) const;
 
 template class Segment<float, 2>;
 template class Segment<float, 3>;
