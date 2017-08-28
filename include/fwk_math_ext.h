@@ -111,11 +111,13 @@ template <class Scalar_> struct vector3 {
 	explicit vector3(Scalar t) : x(t), y(t), z(t) {}
 	template <class V, EnableIfVector<V, 3>...>
 	explicit vector3(const V &vec) : x(vec[0]), y(vec[1]), z(vec[2]) {}
+	explicit operator double3() const { return {double(x), double(y), double(z)}; }
+	explicit operator int3() const { return {int(x), int(y), int(z)}; }
 
-	vector3 operator*(const vector3 &rhs) const { return {x * rhs.x, y * rhs.y, z * rhs.z}; }
-	vector3 operator/(const vector3 &rhs) const { return {x / rhs.x, y / rhs.y, z / rhs.z}; }
-	vector3 operator+(const vector3 &rhs) const { return {x + rhs.x, y + rhs.y, z + rhs.z}; }
-	vector3 operator-(const vector3 &rhs) const { return {x - rhs.x, y - rhs.y, z - rhs.z}; }
+	vector3 operator*(const vector3 &rhs) const { return vector3(x * rhs.x, y * rhs.y, z * rhs.z); }
+	vector3 operator/(const vector3 &rhs) const { return vector3(x / rhs.x, y / rhs.y, z / rhs.z); }
+	vector3 operator+(const vector3 &rhs) const { return vector3(x + rhs.x, y + rhs.y, z + rhs.z); }
+	vector3 operator-(const vector3 &rhs) const { return vector3(x - rhs.x, y - rhs.y, z - rhs.z); }
 	vector3 operator*(Scalar s) const { return {x * s, y * s, z * s}; }
 	vector3 operator/(Scalar s) const { return {x / s, y / s, z / s}; }
 	vector3 operator-() const { return {-x, -y, -z}; }
