@@ -1,3 +1,4 @@
+- qint toString still doesn't work...
 - fwk::abs , fwk::sqrt, fwk::... ?
 - ujednolicić: Ray3F, IBox
 - inRange(value, begin, end): value >= begin && value < end

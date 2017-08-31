@@ -1073,29 +1073,21 @@ template <class T> class Box {
 	};
 };
 
-template <class T, EnableIfVector<T>...> Box<T> enclose(CSpan<T> points) {
-	if(points.empty())
-		return {};
-	T tmin = points[0], tmax = points[0];
-	for(int n = 1; n < points.size(); n++) {
-		tmin = vmin(tmin, points[n]);
-		tmax = vmax(tmax, points[n]);
-	}
-	return {tmin, tmax};
-}
-
-template <class T> Box<T> enclose(CSpan<Box<T>> boxes) {
-	if(boxes.empty())
-		return {};
-	auto out = boxes[0];
-	for(int i = 1; i < boxes.size(); i++)
-		out = enclose(out, boxes[i]);
-	return out;
-}
+template <class T> Box<T> enclose(const Box<T> &box) { return box; }
 
 template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfVector<T>...>
 Box<T> enclose(const TRange &points) {
-	return enclose(makeCSpan(points));
+	if(empty(points))
+		return {};
+
+	auto it = begin(points);
+	T tmin = *it, tmax = *it;
+	while(it != end(points)) {
+		tmin = vmin(tmin, *it);
+		tmax = vmax(tmax, *it);
+		++it;
+	}
+	return {tmin, tmax};
 }
 
 template <class T, EnableIfRealVector<T>...> auto encloseIntegral(const Box<T> &box) {
@@ -1883,6 +1875,33 @@ bool areIntersecting(const FBox &, const Cylinder &);
 array<Plane3F, 6> planes(const FBox &);
 array<pair<float3, float3>, 12> edges(const FBox &);
 array<float3, 8> verts(const FBox &);
+
+template <class T> constexpr bool isEnclosable() {
+	if
+		constexpr(isMathObject<T>() && !isVector<T>()) {
+			return isSame<decltype(enclose(std::declval<T>())), Box<typename T::Vector>>();
+		}
+	else {
+		return false;
+	}
+}
+
+template <class TRange, class T = RangeBase<TRange>, EnableIf<isEnclosable<T>()>...>
+auto enclose(const TRange &objects) {
+	using Box = decltype(enclose(std::declval<T>()));
+	if(objects.empty())
+		return Box();
+
+	auto it = begin(objects);
+	auto out = enclose(*it++);
+
+	while(it != end(objects)) {
+		auto enclosed = enclose(*it);
+		out = {vmin(out.min(), enclosed.min()), vmax(out.max(), enclosed.max())};
+		++it;
+	}
+	return out;
+}
 
 using RandomSeed = unsigned long;
 
