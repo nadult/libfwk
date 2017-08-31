@@ -114,14 +114,14 @@ template <class Index> SimpleIndexRange<Index> indexRange(int count) { return {0
 
 template <class Index, class Range, EnableIfRange<Range>...>
 SimpleIndexRange<Index> indexRange(const Range &range) {
-	return {0, size(range)};
+	return {0, fwk::size(range)};
 }
 
 inline SimpleIndexRange<int> intRange(int min, int max) { return {min, max}; }
 inline SimpleIndexRange<int> intRange(int size) { return {0, size}; }
 
 template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(const T &range) {
-	return {0, size(range)};
+	return {0, fwk::size(range)};
 }
 }
 
