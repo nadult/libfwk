@@ -1,3 +1,5 @@
+- fwk::abs , fwk::sqrt, fwk::... ?
+- ujednolicić: Ray3F, IBox
 - inRange(value, begin, end): value >= begin && value < end
 - inv -> vinv
 - porównania rationali można wykonać w takiej samej dokładności (RTCD: 457)

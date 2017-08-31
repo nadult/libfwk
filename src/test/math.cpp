@@ -217,6 +217,16 @@ void test2DIntersections() {
 	xmlPrint("Isect time: % ns / ISegment<qint> pair\n", time * 10000);
 }
 
+void test3DIntersections() {
+	Triangle3D tri1(double3(-1, 0, -1), double3(1, 0, -1), double3(1, 0, 1));
+	Box3<double> box1(double3(-1, -1, -1), double3(1, 1, 1));
+	ASSERT(tri1.testIsect(box1));
+
+	Triangle3D tri0(double3(0, 0, 3), double3(4, 0, 1), double3(5, 0, 4));
+	Box3<double> box0(double3(0, -0.001, 0), double3(3, 1, 2));
+	ASSERT(tri0.testIsect(box0));
+}
+
 void testVectorAngles() {
 	float2 v1(1, 0), v2 = normalize(float2(10, 10));
 
@@ -274,6 +284,7 @@ void testMain() {
 	testRays();
 	testIntersections();
 	test2DIntersections();
+	test3DIntersections();
 	testVectorAngles();
 	testHash();
 

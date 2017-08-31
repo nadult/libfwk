@@ -1584,6 +1584,7 @@ template <class T, int N> class Triangle {
 	using Scalar = T;
 	using Segment = fwk::Segment<T, N>;
 	using Ray = fwk::Ray<T, N>;
+	using Box = fwk::Box<Vector>;
 
 	Triangle(const Point &a, const Point &b, const Point &c) : v{a, b, c} {}
 	Triangle() = default;
@@ -1640,6 +1641,7 @@ template <class T, int N> class Triangle {
 	ENABLE_IF_SIZE(3) Maybe<Segment> isect(const Triangle &) const;
 
 	bool areIntersecting(const Triangle &) const;
+	ENABLE_IF_SIZE(3) bool testIsect(const Box &) const;
 
 	FWK_ORDER_BY(Triangle, v[0], v[1], v[2]);
 

@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_math.h"
+#include "fwk_math_ext.h"
 #include "fwk_xml.h"
 
 #include "fwk_profile.h"
@@ -156,6 +157,137 @@ template <class T, int N> array<T, 3> Triangle<T, N>::angles() const {
 	}
 }
 
+template <class T> bool testPlaneBox(const Plane3<T> &plane, const Box3<T> &box) {
+	bool side[2] = {false, false};
+	for(auto pt : box.corners())
+		side[plane.signedDistance(pt) < 0.0f] = true;
+	if(!side[0] || !side[1])
+		return false;
+	return true;
+}
+
+// TODO: move these outside
+template <class T> T max3(const T &a, const T &b, const T &c) { return max(max(a, b), c); }
+template <class T> T min3(const T &a, const T &b, const T &c) { return min(min(a, b), c); }
+
+template <class T> static T abs(T val) { return std::abs(val); }
+template <> qint abs(qint val) { return val < qint(0) ? -val : val; }
+
+// Source: RTCD
+template <class T, int N>
+template <class U, EnableInDimension<U, 3>...>
+bool Triangle<T, N>::testIsect(const Box &box) const {
+	using PT = PromoteIntegral<T>;
+	using PT2 = PromoteIntegral<PT>;
+	using PTVec = MakeVector<PT, 3>;
+	using PTVec2 = MakeVector<PT2, 3>;
+
+	// box *= 2
+	// tri *= 2
+	auto e = (box.max() - box.min()); //calculate the half-length-vectors
+	auto c = (box.max() + box.min()); //the center is relative to the PIVOT
+
+	//move everything so that the boxcenter is in (0,0,0)
+	auto v0 = v[0] * 2 - c;
+	auto v1 = v[1] * 2 - c;
+	auto v2 = v[2] * 2 - c;
+
+	//compute triangle edges
+	PTVec f0(v1 - v0);
+	PTVec f1(v2 - v1);
+	PTVec f2(v0 - v2);
+
+	PT p0, p1, p2, r, fex, fey, fez;
+	fex = std::abs(f0.x);
+	fey = std::abs(f0.y);
+	fez = std::abs(f0.z);
+
+	p0 = f0.z * v0.y - f0.y * v0.z;
+	p2 = f0.z * v2.y - f0.y * v2.z;
+	r = fez * e.y + fey * e.z;
+	if(max(-max(p0, p2), min(p0, p2)) > r)
+		return false;
+
+	p0 = -f0.z * v0.x + f0.x * v0.z;
+	p2 = -f0.z * v2.x + f0.x * v2.z;
+	r = fez * e.x + fex * e.z;
+	if(max(-max(p0, p2), min(p0, p2)) > r)
+		return false;
+
+	p1 = f0.y * v1.x - f0.x * v1.y;
+	p2 = f0.y * v2.x - f0.x * v2.y;
+	r = fey * e.x + fex * e.y;
+	if(max(-max(p1, p2), min(p1, p2)) > r)
+		return false;
+
+	fex = std::abs(f1.x);
+	fey = std::abs(f1.y);
+	fez = std::abs(f1.z);
+
+	p0 = f1.z * v0.y - f1.y * v0.z;
+	p2 = f1.z * v2.y - f1.y * v2.z;
+	r = fez * e.y + fey * e.z;
+	if(max(-max(p0, p2), min(p0, p2)) > r)
+		return false;
+
+	p0 = -f1.z * v0.x + f1.x * v0.z;
+	p2 = -f1.z * v2.x + f1.x * v2.z;
+	r = fez * e.x + fex * e.z;
+	if(max(-max(p0, p2), min(p0, p2)) > r)
+		return false;
+
+	p0 = f1.y * v0.x - f1.x * v0.y;
+	p1 = f1.y * v1.x - f1.x * v1.y;
+	r = fey * e.x + fex * e.y;
+	if(max(-max(p0, p1), min(p0, p1)) > r)
+		return false;
+
+	fex = std::abs(f2.x);
+	fey = std::abs(f2.y);
+	fez = std::abs(f2.z);
+
+	p0 = f2.z * v0.y - f2.y * v0.z;
+	p1 = f2.z * v1.y - f2.y * v1.z;
+	r = fez * e.y + fey * e.z;
+	if(max(-max(p0, p1), min(p0, p1)) > r)
+		return false;
+
+	p0 = -f2.z * v0.x + f2.x * v0.z;
+	p1 = -f2.z * v1.x + f2.x * v1.z;
+	r = fez * e.x + fex * e.z;
+	if(max(-max(p0, p1), min(p0, p1)) > r)
+		return false;
+
+	p1 = f2.y * v1.x - f2.x * v1.y;
+	p2 = f2.y * v2.x - f2.x * v2.y;
+	r = fey * e.x + fex * e.y;
+	if(max(-max(p1, p2), min(p1, p2)) > r)
+		return false;
+
+	// Test the three axes corresponding to the face normals of AABB b (category 1).
+	// Exit if...
+	// ... [-e0, e0] and [min(v0.x,v1.x,v2.x), max(v0.x,v1.x,v2.x)] do not overlap
+	if(max3(v0.x, v1.x, v2.x) < -e.x || min3(v0.x, v1.x, v2.x) > e.x)
+		return false;
+	// ... [-e1, e1] and [min(v0.y,v1.y,v2.y), max(v0.y,v1.y,v2.y)] do not overlap
+	if(max3(v0.y, v1.y, v2.y) < -e.y || min3(v0.y, v1.y, v2.y) > e.y)
+		return false;
+	// ... [-e2, e2] and [min(v0.z,v1.z,v2.z), max(v0.z,v1.z,v2.z)] do not overlap
+	if(max3(v0.z, v1.z, v2.z) < -e.z || min3(v0.z, v1.z, v2.z) > e.z)
+		return false;
+
+	PTVec plane_nrm = cross(f0, f1);
+	PT2 plane_d = dot(PTVec2(plane_nrm), PTVec2(v0));
+
+	auto pr = PT2(e[0]) * fwk::abs(plane_nrm[0]) + PT2(e[1]) * fwk::abs(plane_nrm[1]) +
+			  PT2(e[2]) * fwk::abs(plane_nrm[2]);
+
+	// Compute the projection interval radius of b onto L(t) = b.c + t * p.n
+	// Compute distance of box center from plane
+	// Intersection occurs when distance s falls within [-r,+r] interval
+	return fwk::abs(plane_d) <= pr;
+}
+
 template class Triangle<float, 2>;
 template class Triangle<float, 3>;
 template class Triangle<double, 2>;
@@ -163,4 +295,8 @@ template class Triangle<double, 3>;
 
 template float3 Triangle3<float>::normal() const;
 template double3 Triangle3<double>::normal() const;
+
+template bool Triangle3<double>::testIsect(const DBox &) const;
+template bool Triangle3<float>::testIsect(const FBox &) const;
+template bool Triangle3<int>::testIsect(const IBox &) const;
 }
