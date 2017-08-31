@@ -1,3 +1,9 @@
+- inRange(value, begin, end): value >= begin && value < end
+- inv -> vinv
+- porównania rationali można wykonać w takiej samej dokładności (RTCD: 457)
+- remove int2, short2, etc and simply use templates ? check if it affects compilation performance
+  remove unions? use x(), y(), z() instead of .x, .y, .z ?
+
 -  make Triangle it modifiable? some other classes don't keep any invariants either?
    but on the other hand, we could add some checks for nans and infinities...
    add type: FiniteFloat (float which is not a nan and is not an infinity)

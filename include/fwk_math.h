@@ -554,8 +554,8 @@ template <class T, int N = 0> constexpr bool isIntegralVector() {
 }
 
 template <class T> using EnableIfScalar = EnableIf<isScalar<T>(), NotAScalar>;
-template <class T> using EnableIfReal = EnableIf<std::is_floating_point<T>::value, NotAReal>;
-template <class T> using EnableIfIntegral = EnableIf<std::is_integral<T>::value, NotAIntegral>;
+template <class T> using EnableIfReal = EnableIf<isReal<T>(), NotAReal>;
+template <class T> using EnableIfIntegral = EnableIf<isIntegral<T>(), NotAIntegral>;
 
 template <class T> using EnableIfMathObject = EnableIf<isMathObject<T>(), NotAMathObject>;
 
