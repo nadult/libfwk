@@ -304,6 +304,36 @@ template <class T> class immutable_weak_ptr {
 	int m_mutation_counter;
 };
 
+// T definition is not required, you just have to make sure
+// that size is at least as big as sizeof(T)
+// It's similar to unique_ptr but it keeps the data in-place
+// TODO: better name ?
+template <class T, unsigned size> struct StaticPimpl {
+	template <class... Args> StaticPimpl(Args &&... args) {
+		new(data) T(std::forward<Args>(args)...);
+	}
+	StaticPimpl(const StaticPimpl &rhs) { new(data) T(*rhs); }
+	StaticPimpl(StaticPimpl &&rhs) { new(data) T(move(*rhs)); }
+	~StaticPimpl() { (**this).~T(); }
+
+	void operator=(const StaticPimpl &rhs) { **this = *rhs; }
+	void operator=(StaticPimpl &&rhs) { **this = move(*rhs); }
+
+	const T &operator*() const {
+		static_assert(sizeof(T) <= size);
+		return reinterpret_cast<const T &>(*this);
+	}
+	T &operator*() {
+		static_assert(sizeof(T) <= size);
+		return reinterpret_cast<T &>(*this);
+	}
+	T *operator->() { return &operator*(); }
+	const T *operator->() const { return &operator*(); }
+
+  private:
+	char data[size];
+};
+
 // TODO: use lib-lldb
 class Backtrace {
   public:

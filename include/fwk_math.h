@@ -7,7 +7,6 @@
 #include "fwk_base.h"
 #include <cmath>
 #include <limits>
-#include <random>
 
 namespace fwk {
 
@@ -1908,6 +1907,12 @@ using RandomSeed = unsigned long;
 class Random {
   public:
 	Random(RandomSeed = 123);
+	Random(const Random &);
+	Random(Random &&);
+	~Random();
+
+	Random &operator=(const Random &);
+	Random &operator=(Random &&);
 
 	RandomSeed operator()();
 
@@ -1948,8 +1953,8 @@ class Random {
 	}
 
   private:
-	// TODO: use mersenne twister ?
-	std::default_random_engine m_engine;
+	struct Engine;
+	StaticPimpl<Engine, 8> m_engine;
 };
 
 template <class Value = int> struct Hash {
