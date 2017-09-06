@@ -32,18 +32,18 @@ FColor mulAlpha(FColor color, float alpha_mul) {
 }
 
 FColor desaturate(FColor col, float value) {
-	float avg = sqrtf(col.r * col.r * 0.299f + col.g * col.g * 0.587f + col.b * col.b * 0.114f);
+	float avg = std::sqrt(col.r * col.r * 0.299f + col.g * col.g * 0.587f + col.b * col.b * 0.114f);
 	return lerp(col, FColor(avg, avg, avg, col.a), value);
 }
 
 FColor srgbToLinear(const FColor &c) {
 	float exp = 2.2;
-	return FColor(powf(c.r, exp), powf(c.g, exp), powf(c.b, exp), c.a);
+	return FColor(std::pow(c.r, exp), std::pow(c.g, exp), std::pow(c.b, exp), c.a);
 }
 
 FColor linearToSrgb(const FColor &c) {
 	float exp = 1.0f / 2.2f;
-	return FColor(powf(c.r, exp), powf(c.g, exp), powf(c.b, exp), c.a);
+	return FColor(std::pow(c.r, exp), std::pow(c.g, exp), std::pow(c.b, exp), c.a);
 }
 
 // Source: blender
@@ -77,7 +77,7 @@ float3 rgbToHsv(float3 rgb) {
 
 	float chroma = rgb[0] - min_gb;
 
-	return float3(fabsf(k + (rgb[1] - rgb[2]) / (6.0f * chroma + 1e-20f)),
+	return float3(fwk::abs(k + (rgb[1] - rgb[2]) / (6.0f * chroma + 1e-20f)),
 				  chroma / (rgb[0] + 1e-20f), rgb[0]);
 }
 }

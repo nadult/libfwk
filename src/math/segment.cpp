@@ -100,9 +100,6 @@ template <class Seg> static IsectClass classifyIsect(const Seg &lhs, const Seg &
 	return IClass::none;
 }
 
-template <class T> static T abs(T val) { return std::abs(val); }
-template <> qint abs(qint val) { return val < qint(0) ? -val : val; }
-
 // Source: RTCD, page: 183
 // TODO: make it return IsectClass
 template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {

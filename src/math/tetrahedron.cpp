@@ -59,7 +59,7 @@ bool Tetrahedron::isValid() const {
 	for(int n = 0; n < 4; n++)
 		if(distance(m_verts[n], m_verts[(n + 1) % 4]) < fconstant::epsilon)
 			return false;
-	return volume() > pow(fconstant::epsilon, 3);
+	return volume() > std::pow(fconstant::epsilon, 3);
 }
 
 bool Tetrahedron::isInside(const float3 &point) const {

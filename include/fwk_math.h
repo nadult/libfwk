@@ -41,6 +41,9 @@ template <class Real> struct constant {
 	static Real inf() { return std::numeric_limits<Real>::infinity(); }
 };
 
+pair<float, float> sincos(float radians);
+pair<double, double> sincos(double radians);
+
 bool isnan(float);
 bool isnan(double);
 
@@ -663,15 +666,41 @@ template <class T, EnableIfVector<T>...> T vclamp(const T &vec, const T &tmin, c
 	return vmin(tmax, vmax(tmin, vec));
 }
 
+inline float floor(float value) { return std::floor(value); }
+inline double floor(double value) { return std::floor(value); }
+
+inline float ceil(float value) { return std::ceil(value); }
+inline double ceil(double value) { return std::ceil(value); }
+
+inline float abs(float value) { return std::abs(value); }
+inline double abs(double value) { return std::abs(value); }
+
+template <class T, EnableIfIntegral<T>...> T abs(T value) { return value < T(0) ? -value : value; }
+
+// Nonstandard behaviour: rounding half up (0.5 -> 1, -0.5 -> 0)
+template <class T, EnableIfReal<T>...> T round(T value) { return floor(value + T(0.5)); }
+
 template <class T, EnableIfRealVector<T>...> T vfloor(T vec) {
 	for(int n = 0; n < T::vector_size; n++)
-		vec[n] = std::floor(vec[n]);
+		vec[n] = floor(vec[n]);
 	return vec;
 }
 
 template <class T, EnableIfRealVector<T>...> T vceil(T vec) {
 	for(int n = 0; n < T::vector_size; n++)
-		vec[n] = std::ceil(vec[n]);
+		vec[n] = ceil(vec[n]);
+	return vec;
+}
+
+template <class T, EnableIfRealVector<T>...> T vround(T vec) {
+	for(int n = 0; n < T::vector_size; n++)
+		vec[n] = round(vec[n]);
+	return vec;
+}
+
+template <class T, EnableIfVector<T>...> T vabs(T vec) {
+	for(int n = 0; n < T::vector_size; n++)
+		vec[n] = abs(vec[n]);
 	return vec;
 }
 
@@ -703,17 +732,6 @@ template <class T, EnableIfVector<T>...> auto distanceSq(const T &lhs, const T &
 
 template <class T, EnableIfRealVector<T>...> T normalize(const T &v) { return v / length(v); }
 
-template <class T, EnableIfVector<T, 2>...> T vabs(const T &v) {
-	return {std::abs(v[0]), std::abs(v[1])};
-}
-
-template <class T, EnableIfVector<T, 3>...> T vabs(const T &v) {
-	return {std::abs(v[0]), std::abs(v[1]), std::abs(v[2])};
-}
-
-template <class T, EnableIfVector<T, 4>...> T vabs(const T &v) {
-	return T(std::abs(v[0]), std::abs(v[1]), std::abs(v[2]), std::abs(v[3]));
-}
 
 template <class T, EnableIfVector<T, 2>...> Vector3<T> asXZ(const T &v) { return {v[0], 0, v[1]}; }
 template <class T, EnableIfVector<T, 2>...> Vector3<T> asXY(const T &v) { return {v[0], v[1], 0}; }

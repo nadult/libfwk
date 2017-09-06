@@ -50,8 +50,8 @@ const float3 operator*(const Matrix3 &lhs, const float3 &rhs) {
 }
 
 const Matrix3 rotation(const float3 &axis, float radians) {
-	float cos = cosf(radians), sin = sinf(radians);
-	float oneMinusCos = 1.0f - cos;
+	auto sc = sincos(radians);
+	float oneMinusCos = 1.0f - sc.second;
 
 	float xx = axis[0] * axis[0];
 	float yy = axis[1] * axis[1];
@@ -59,13 +59,13 @@ const Matrix3 rotation(const float3 &axis, float radians) {
 	float xym = axis[0] * axis[1] * oneMinusCos;
 	float xzm = axis[0] * axis[2] * oneMinusCos;
 	float yzm = axis[1] * axis[2] * oneMinusCos;
-	float xSin = axis[0] * sin;
-	float ySin = axis[1] * sin;
-	float zSin = axis[2] * sin;
+	float xSin = axis[0] * sc.first;
+	float ySin = axis[1] * sc.first;
+	float zSin = axis[2] * sc.first;
 
-	return transpose({xx * oneMinusCos + cos, xym - zSin, xzm + ySin},
-					 {xym + zSin, yy * oneMinusCos + cos, yzm - xSin},
-					 {xzm - ySin, yzm + xSin, zz * oneMinusCos + cos});
+	return transpose({xx * oneMinusCos + sc.second, xym - zSin, xzm + ySin},
+					 {xym + zSin, yy * oneMinusCos + sc.second, yzm - xSin},
+					 {xzm - ySin, yzm + xSin, zz * oneMinusCos + sc.second});
 }
 
 const Matrix3 scaling(const float3 &v) {

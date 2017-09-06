@@ -88,8 +88,8 @@ void testRays() {
 	Segment3<float> segment4({3, 2, 0}, {6, 5, 0});
 	Segment3<float> segment5({6, 7, 0}, {8, 5, 0});
 	auto ray4 = *segment4.asRay(), ray5 = *segment5.asRay();
-	assertCloseEnough(segment3.distance(segment4), sqrtf(2.0f) / 2.0f);
-	assertCloseEnough(segment4.distance(segment5), sqrtf(2.0f));
+	assertCloseEnough(segment3.distance(segment4), std::sqrt(2.0f) / 2.0f);
+	assertCloseEnough(segment4.distance(segment5), std::sqrt(2.0f));
 	assertCloseEnough(ray4.distance(ray5), 0.0f);
 }
 
@@ -102,7 +102,7 @@ void testIntersections() {
 	Segment3<float> seg(1, 1, -1, 1, 1, 1);
 
 	ASSERT(!seg.isectParam(tri));
-	ASSERT_EQ(tri.distance(float3(1, 1, 0)), sqrtf(2.0f) / 2.0f);
+	ASSERT_EQ(tri.distance(float3(1, 1, 0)), std::sqrt(2.0f) / 2.0f);
 
 	/*
 	Triangle3F tri1(float3(4.330130, 10.000000, 2.500000), float3(-4.330130, 10.000000, 2.500000),

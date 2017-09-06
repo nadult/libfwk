@@ -175,7 +175,7 @@ const Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_f
 	float rad = fov * 0.5f;
 	float delta_z = z_far - z_near;
 
-	float sin = ::sin(rad);
+	float sin = std::sin(rad);
 
 	Matrix4 out = Matrix4::identity();
 	if(delta_z != 0.0f && sin != 0.0f && aspect_ratio != 0.0f) {

@@ -9,20 +9,6 @@
 #endif
 #include "fwk_assert.h"
 
-#if defined(FWK_TARGET_MSVC) || defined(FWK_TARGET_MINGW)
-void sincosf(float rad, float *s, float *c) {
-	DASSERT(s && c);
-	*s = sin(rad);
-	*c = cos(rad);
-}
-
-void sincos(double rad, double *s, double *c) {
-	DASSERT(s && c);
-	*s = sin(rad);
-	*c = cos(rad);
-}
-#endif
-
 namespace fwk {
 
 float vectorToAngle(const float2 &normalized_vec) {
@@ -38,38 +24,32 @@ double vectorToAngle(const double2 &normalized_vec) {
 }
 
 float2 angleToVector(float radians) {
-	float s, c;
-	sincosf(radians, &s, &c);
-	return float2(c, s);
+	auto sc = sincos(radians);
+	return float2(sc.second, sc.first);
 }
 
 double2 angleToVector(double radians) {
-	double s, c;
-	sincos(radians, &s, &c);
-	return double2(c, s);
+	auto sc = sincos(radians);
+	return double2(sc.second, sc.first);
 }
 
 float2 rotateVector(const float2 &vec, float radians) {
-	float s, c;
-	sincosf(radians, &s, &c);
-	return float2(c * vec.x - s * vec.y, c * vec.y + s * vec.x);
+	auto sc = sincos(radians);
+	return float2(sc.second * vec.x - sc.first * vec.y, sc.second * vec.y + sc.first * vec.x);
 }
 
 double2 rotateVector(const double2 &vec, double radians) {
-	double s, c;
-	sincos(radians, &s, &c);
-	return double2(c * vec.x - s * vec.y, c * vec.y + s * vec.x);
+	auto sc = sincos(radians);
+	return double2(sc.second * vec.x - sc.first * vec.y, sc.second * vec.y + sc.first * vec.x);
 }
 
 float3 rotateVector(const float3 &pos, const float3 &axis, float radians) {
-	float s, c;
-	sincosf(radians, &s, &c);
-	return pos * c + cross(axis, pos) * s + axis * dot(axis, pos) * (1 - c);
+	auto sc = sincos(radians);
+	return pos * sc.second + cross(axis, pos) * sc.first + axis * dot(axis, pos) * (1 - sc.second);
 }
 double3 rotateVector(const double3 &pos, const double3 &axis, double radians) {
-	double s, c;
-	sincos(radians, &s, &c);
-	return pos * c + cross(axis, pos) * s + axis * dot(axis, pos) * (1 - c);
+	auto sc = sincos(radians);
+	return pos * sc.second + cross(axis, pos) * sc.first + axis * dot(axis, pos) * (1 - sc.second);
 }
 
 template <class Vec, class Real = typename Vec::Scalar>

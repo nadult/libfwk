@@ -28,7 +28,7 @@ Quat::Quat(const Matrix3 &mat) {
 		biggestIndex = 3;
 	}
 
-	float biggestVal = sqrt(fourBiggestSquaredMinus1 + float(1)) * float(0.5);
+	float biggestVal = std::sqrt(fourBiggestSquaredMinus1 + float(1)) * float(0.5);
 	float mult = 0.25 / biggestVal;
 
 	switch(biggestIndex) {
@@ -80,33 +80,27 @@ Quat::operator Matrix3() const {
 	return out;
 }
 
-#ifdef FWK_TARGET_MSVC
-static void sincosf(float deg, float *s, float *c) {
-	*s = sinf(deg);
-	*c = cosf(deg);
-}
-#endif
-
 const Quat Quat::fromYawPitchRoll(float y, float p, float r) {
 	float cy, cp, cr, sy, sp, sr;
-	sincosf(y * 0.5f, &cy, &sy); // TODO: swap c&s?
-	sincosf(p * 0.5f, &cp, &sp);
-	sincosf(r * 0.5f, &cr, &sr);
+
+	// TODO: wrong order?
+	std::tie(cy, sy) = sincos(y * 0.5f);
+	std::tie(cp, sp) = sincos(p * 0.5f);
+	std::tie(cr, sr) = sincos(r * 0.5f);
 
 	return Quat(cy * cp * sr - sy * sp * cr, cy * sp * cr + sy * cp * sr,
 				sy * cp * cr - cy * sp * sr, cy * cp * cr + sy * sp * sr);
 }
 
 Quat::Quat(const AxisAngle &aa) {
-	float s, c;
-	sincosf(0.5f * aa.angle(), &s, &c);
-	*this = normalize(Quat(float4(s * aa.axis()[0], s * aa.axis()[1], s * aa.axis()[2], c)));
+	auto sc = sincos(0.5f * aa.angle());
+	*this = normalize(Quat(float4(aa.axis() * sc.first, sc.second)));
 }
 
 Quat::operator AxisAngle() const {
-	float sqrLen = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+	float sqrLen = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 
-	return sqrLen > 0 ? AxisAngle(float3(v[0], v[1], v[2]) / sqrLen, 2.0f * acos(v[3]))
+	return sqrLen > 0 ? AxisAngle(float3(v[0], v[1], v[2]) / sqrLen, 2.0f * std::acos(v[3]))
 					  : AxisAngle(float3(0.0f, 1.0f, 0.0f), 0.0f);
 }
 
@@ -119,7 +113,7 @@ const Quat Quat::operator*(const Quat &q) const {
 
 const Quat inverse(const Quat &q) { return conjugate(q) * (1.0f / dot(q, q)); }
 
-const Quat normalize(const Quat &q) { return Quat(float4(q) / sqrtf(dot(q, q))); }
+const Quat normalize(const Quat &q) { return Quat(float4(q) / std::sqrt(dot(q, q))); }
 
 const Quat slerp(const Quat &lhs, Quat rhs, float t) {
 	float qdot = dot(lhs, rhs);
@@ -146,7 +140,7 @@ const Quat slerp(const Quat &lhs, Quat rhs, float t) {
 float distance(const Quat &lhs, const Quat &rhs) { return 2.0f * (1.0f - dot(lhs, rhs)); }
 
 const Quat rotationBetween(const float3 &v1, const float3 &v2) {
-	return normalize(Quat(cross(v1, v2), sqrt(lengthSq(v1) * lengthSq(v2)) + dot(v1, v2)));
+	return normalize(Quat(cross(v1, v2), std::sqrt(lengthSq(v1) * lengthSq(v2)) + dot(v1, v2)));
 }
 
 const Quat conjugate(const Quat &q) { return Quat(-q.xyz(), q.w); }

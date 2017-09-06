@@ -49,8 +49,9 @@ Mesh Mesh::makeCylinder(const Cylinder &cylinder, int num_sides) {
 	vector<float3> positions(num_sides * 2);
 	for(int n = 0; n < num_sides; n++) {
 		float angle = n * fconstant::pi * 2.0f / float(num_sides);
-		float px = cosf(angle) * cylinder.radius();
-		float pz = sinf(angle) * cylinder.radius();
+		auto sc = sincos(angle);
+		float px = sc.second * cylinder.radius();
+		float pz = sc.first * cylinder.radius();
 		float3 offset = cylinder.pos();
 
 		positions[n] = float3(px, 0.0f, pz) + offset;

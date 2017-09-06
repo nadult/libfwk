@@ -170,9 +170,6 @@ template <class T> bool testPlaneBox(const Plane3<T> &plane, const Box3<T> &box)
 template <class T> T max3(const T &a, const T &b, const T &c) { return max(max(a, b), c); }
 template <class T> T min3(const T &a, const T &b, const T &c) { return min(min(a, b), c); }
 
-template <class T> static T abs(T val) { return std::abs(val); }
-template <> qint abs(qint val) { return val < qint(0) ? -val : val; }
-
 // Source: RTCD
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
@@ -198,9 +195,9 @@ bool Triangle<T, N>::testIsect(const Box &box) const {
 	PTVec f2(v0 - v2);
 
 	PT p0, p1, p2, r, fex, fey, fez;
-	fex = std::abs(f0.x);
-	fey = std::abs(f0.y);
-	fez = std::abs(f0.z);
+	fex = abs(f0.x);
+	fey = abs(f0.y);
+	fez = abs(f0.z);
 
 	p0 = f0.z * v0.y - f0.y * v0.z;
 	p2 = f0.z * v2.y - f0.y * v2.z;
@@ -220,9 +217,9 @@ bool Triangle<T, N>::testIsect(const Box &box) const {
 	if(max(-max(p1, p2), min(p1, p2)) > r)
 		return false;
 
-	fex = std::abs(f1.x);
-	fey = std::abs(f1.y);
-	fez = std::abs(f1.z);
+	fex = abs(f1.x);
+	fey = abs(f1.y);
+	fez = abs(f1.z);
 
 	p0 = f1.z * v0.y - f1.y * v0.z;
 	p2 = f1.z * v2.y - f1.y * v2.z;
@@ -242,9 +239,9 @@ bool Triangle<T, N>::testIsect(const Box &box) const {
 	if(max(-max(p0, p1), min(p0, p1)) > r)
 		return false;
 
-	fex = std::abs(f2.x);
-	fey = std::abs(f2.y);
-	fez = std::abs(f2.z);
+	fex = abs(f2.x);
+	fey = abs(f2.y);
+	fez = abs(f2.z);
 
 	p0 = f2.z * v0.y - f2.y * v0.z;
 	p1 = f2.z * v1.y - f2.y * v1.z;
@@ -285,7 +282,7 @@ bool Triangle<T, N>::testIsect(const Box &box) const {
 	// Compute the projection interval radius of b onto L(t) = b.c + t * p.n
 	// Compute distance of box center from plane
 	// Intersection occurs when distance s falls within [-r,+r] interval
-	return fwk::abs(plane_d) <= pr;
+	return abs(plane_d) <= pr;
 }
 
 template class Triangle<float, 2>;
