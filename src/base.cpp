@@ -30,9 +30,7 @@ void *SimpleAllocatorBase::allocateBytes(size_t count) noexcept {
 		try {
 			string text = bt.analyze(false);
 			printf("%s\n", text.c_str());
-		} catch(const Exception &ex) {
-			printf("Failed:\n%s\n", ex.what());
-		}
+		} catch(const Exception &ex) { printf("Failed:\n%s\n", ex.what()); }
 		exit(1);
 	}
 
@@ -176,9 +174,7 @@ const char *Exception::what() const noexcept {
 		int len = min((int)strlen(fmt.text()), (int)arraySize(buffer) - 1);
 		memcpy(buffer, fmt.text(), len);
 		buffer[len] = 0;
-	} catch(...) {
-		return text();
-	}
+	} catch(...) { return text(); }
 	return buffer;
 }
 
@@ -236,8 +232,7 @@ void assertFailed(const char *file, int line, const char *text) {
 
 	try {
 		throw "Debugger can catch this";
-	} catch(...) {
-	}
+	} catch(...) {}
 #endif
 	exit(1);
 }

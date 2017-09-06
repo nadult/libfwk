@@ -48,9 +48,9 @@ bool isnan(float);
 bool isnan(double);
 
 #ifdef FWK_CHECK_NANS
-#define CHECK_NANS()	{DASSERT(!anyOf(v, [](auto s) { return isnan(s); }));}
+#define CHECK_NANS() DASSERT(!anyOf(v, [](auto s) { return isnan(s); }))
 #else
-#define CHECK_NANS()	{}
+#define CHECK_NANS()
 #endif
 
 struct short2 {
@@ -269,9 +269,7 @@ struct float4 {
 	using Scalar = float;
 	enum { vector_size = 4 };
 
-	constexpr float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {
-		CHECK_NANS();
-	}
+	constexpr float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) { CHECK_NANS(); }
 	float4(CSpan<float, 4> v) : float4(v[0], v[1], v[2], v[3]) {}
 	constexpr float4(const float3 &xyz, float w) : float4(xyz.x, xyz.y, xyz.z, w) {}
 	constexpr float4(const float2 &xy, float z, float w) : float4(xy.x, xy.y, z, w) {}
@@ -731,7 +729,6 @@ template <class T, EnableIfVector<T>...> auto distanceSq(const T &lhs, const T &
 }
 
 template <class T, EnableIfRealVector<T>...> T normalize(const T &v) { return v / length(v); }
-
 
 template <class T, EnableIfVector<T, 2>...> Vector3<T> asXZ(const T &v) { return {v[0], 0, v[1]}; }
 template <class T, EnableIfVector<T, 2>...> Vector3<T> asXY(const T &v) { return {v[0], v[1], 0}; }
