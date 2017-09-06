@@ -41,6 +41,15 @@ template <class Real> struct constant {
 	static Real inf() { return std::numeric_limits<Real>::infinity(); }
 };
 
+bool isnan(float);
+bool isnan(double);
+
+#ifdef FWK_CHECK_NANS
+#define CHECK_NANS()	{DASSERT(!anyOf(v, [](auto s) { return isnan(s); }));}
+#else
+#define CHECK_NANS()	{}
+#endif
+
 struct short2 {
 	using Scalar = short;
 	enum { vector_size = 2 };
@@ -181,7 +190,7 @@ struct float2 {
 	using Scalar = float;
 	enum { vector_size = 2 };
 
-	constexpr float2(float x, float y) : x(x), y(y) {}
+	constexpr float2(float x, float y) : x(x), y(y) { CHECK_NANS(); }
 	constexpr float2() : x(0.0f), y(0.0f) {}
 
 	explicit float2(float t) : x(t), y(t) {}
@@ -217,8 +226,8 @@ struct float3 {
 	using Scalar = float;
 	enum { vector_size = 3 };
 
-	constexpr float3(float x, float y, float z) : x(x), y(y), z(z) {}
-	constexpr float3(const float2 &xy, float z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr float3(float x, float y, float z) : x(x), y(y), z(z) { CHECK_NANS(); }
+	constexpr float3(const float2 &xy, float z) : x(xy.x), y(xy.y), z(z) { CHECK_NANS(); }
 	constexpr float3() : x(0.0f), y(0.0f), z(0.0f) {}
 
 	explicit float3(float t) : x(t), y(t), z(t) {}
@@ -257,13 +266,15 @@ struct float4 {
 	using Scalar = float;
 	enum { vector_size = 4 };
 
-	float4(CSpan<float, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
-	constexpr float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
-	constexpr float4(const float3 &xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-	constexpr float4(const float2 &xy, float z, float w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	constexpr float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {
+		CHECK_NANS();
+	}
+	float4(CSpan<float, 4> v) : float4(v[0], v[1], v[2], v[3]) {}
+	constexpr float4(const float3 &xyz, float w) : float4(xyz.x, xyz.y, xyz.z, w) {}
+	constexpr float4(const float2 &xy, float z, float w) : float4(xy.x, xy.y, z, w) {}
 	constexpr float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
-	explicit float4(float t) : x(t), y(t), z(t), w(t) {}
+	explicit float4(float t) : float4(t, t, t, t) {}
 	explicit float4(const int4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
 	explicit operator int4() const { return {(int)x, (int)y, (int)z, (int)w}; }
 
@@ -312,12 +323,12 @@ struct double2 {
 	using Scalar = double;
 	enum { vector_size = 2 };
 
-	constexpr double2(double x, double y) : x(x), y(y) {}
+	constexpr double2(double x, double y) : x(x), y(y) { CHECK_NANS(); }
 	constexpr double2() : x(0.0f), y(0.0f) {}
 
 	double2(const int2 &vec) : x(vec.x), y(vec.y) {}
-	explicit double2(double t) : x(t), y(t) {}
-	explicit double2(const float2 &vec) : x(vec.x), y(vec.y) {}
+	explicit double2(double t) : double2(t, t) {}
+	explicit double2(const float2 &vec) : double2(vec.x, vec.y) {}
 	explicit operator int2() const { return {(int)x, (int)y}; }
 	explicit operator short2() const { return {(short)x, (short)y}; }
 	explicit operator float2() const { return {(float)x, (float)y}; }
@@ -350,13 +361,13 @@ struct double3 {
 	using Scalar = double;
 	enum { vector_size = 3 };
 
-	constexpr double3(double x, double y, double z) : x(x), y(y), z(z) {}
-	constexpr double3(const double2 &xy, double z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr double3(double x, double y, double z) : x(x), y(y), z(z) { CHECK_NANS(); }
+	constexpr double3(const double2 &xy, double z) : double3(xy.x, xy.y, z) {}
 	constexpr double3() : x(0.0f), y(0.0f), z(0.0f) {}
 
 	double3(const int3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
-	explicit double3(double t) : x(t), y(t), z(t) {}
-	explicit double3(const float3 &vec) : x(vec.x), y(vec.y), z(vec.z) {}
+	explicit double3(double t) : double3(t, t, t) {}
+	explicit double3(const float3 &vec) : double3(vec.x, vec.y, vec.z) {}
 	explicit operator int3() const { return {(int)x, (int)y, (int)z}; }
 	explicit operator float3() const { return {(float)x, (float)y, (float)z}; }
 
@@ -393,14 +404,16 @@ struct double4 {
 	enum { vector_size = 4 };
 
 	double4(CSpan<double, 4> v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) {}
-	constexpr double4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
-	explicit constexpr double4(double t) : x(t), y(t), z(t), w(t) {}
-	constexpr double4(const double3 &xyz, double w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-	constexpr double4(const double2 &xy, double z, double w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	constexpr double4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {
+		CHECK_NANS();
+	}
+	explicit constexpr double4(double t) : double4(t, t, t, t) {}
+	constexpr double4(const double3 &xyz, double w) : double4(xyz.x, xyz.y, xyz.z, w) {}
+	constexpr double4(const double2 &xy, double z, double w) : double4(xy.x, xy.y, z, w) {}
 	constexpr double4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
 
 	double4(const int4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
-	explicit double4(const float4 &vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w) {}
+	explicit double4(const float4 &vec) : double4(vec.x, vec.y, vec.z, vec.w) {}
 	explicit operator int4() const { return {(int)x, (int)y, (int)z, (int)w}; }
 	explicit operator float4() const { return {(float)x, (float)y, (float)z, (float)w}; }
 
@@ -780,9 +793,6 @@ float blendAngles(float initial, float target, float step);
 
 // Returns angle in range <0, 2 * PI)
 float normalizeAngle(float angle);
-
-bool isnan(float);
-bool isnan(double);
 
 template <class T, EnableIfRealVector<T>...> bool isnan(const T &v) {
 	return anyOf(v.values(), [](auto s) { return isnan(s); });
@@ -2037,5 +2047,6 @@ SERIALIZE_AS_POD(Segment3<double>)
 SERIALIZE_AS_POD(ISegment2<int>)
 
 #undef ENABLE_IF_SIZE
+#undef CHECK_NANS
 
 #endif
