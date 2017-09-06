@@ -5,8 +5,6 @@
 #include "fwk_math_ext.h"
 #include "fwk_variant.h"
 #include "fwk_xml.h"
-#include <cmath>
-#include <cstdlib>
 
 namespace fwk {
 

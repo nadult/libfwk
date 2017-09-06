@@ -2,7 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_math.h"
-#include "fwk_xml.h"
+
+#include <cmath>
 
 namespace fwk {
 Tetrahedron::Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4)

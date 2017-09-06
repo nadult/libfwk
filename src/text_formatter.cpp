@@ -2,11 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_base.h"
-#include <cstdio>
-#include <stdarg.h>
+
 #include <cstring>
-#include <cstdlib>
-#include <cstdarg>
+#include <stdarg.h>
 
 namespace fwk {
 

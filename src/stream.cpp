@@ -2,10 +2,10 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_xml.h"
-#include <cstdio>
+
 #include <cstring>
-#include <limits>
 #include <iostream>
+#include <limits>
 
 #ifdef FWK_TARGET_HTML5
 #include "emscripten.h"

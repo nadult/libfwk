@@ -3,8 +3,6 @@
 
 #include "fwk_math.h"
 #include "fwk_xml.h"
-#include <cmath>
-#include <cstdlib>
 
 namespace fwk {
 

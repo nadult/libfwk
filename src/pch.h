@@ -3,7 +3,6 @@
 #include <atomic>
 #include <cstring>
 #include <ctime>
-#include <cwchar>
 #include <exception>
 #include <functional>
 #include <iostream>

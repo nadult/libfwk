@@ -7,7 +7,6 @@
 #include "fwk_base.h"
 #include "fwk_math.h"
 #include "fwk_xml.h"
-#include <cmath>
 
 using namespace fwk;
 

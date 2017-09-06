@@ -3,7 +3,6 @@
 
 #include "fwk_math.h"
 
-#include <cmath>
 #ifdef _WIN32
 #include <float.h>
 #endif
