@@ -280,7 +280,7 @@ vector<pair<FRect, Matrix4>> Renderer2D::drawRects() const {
 			}
 
 			FRect erect = enclose(
-				CSpan<float2>(&chunk.positions[min_index], &chunk.positions[max_index + 1]));
+				CSpan<float2>(&chunk.positions[min_index], &chunk.positions[max_index] + 1));
 			out.emplace_back(erect, elem.matrix);
 		}
 	}

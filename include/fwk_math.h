@@ -1104,7 +1104,7 @@ template <class T> Box<T> enclose(const Box<T> &box) { return box; }
 
 template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfVector<T>...>
 Box<T> enclose(const TRange &points) {
-	if(empty(points))
+	if(fwk::empty(points))
 		return {};
 
 	auto it = begin(points);
