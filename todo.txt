@@ -2,7 +2,6 @@
   +=, !=, >=, etc for given object
 
 - drop exception support
-- inv -> vinv
 - include fwk_assert in fwk.h
 - make it 64 bit only (drop boost::mpc and add x,y,z in vector3?) fix qint2 as well
 - #define constexpr_if ?? maybe just download latest clang format ?
@@ -14,7 +13,6 @@
 - qint toString still doesn't work...
 - ujednolicić: Ray3F, IBox
 - inRange(value, begin, end): value >= begin && value < end
-- inv -> vinv
 - porównania rationali można wykonać w takiej samej dokładności (RTCD: 457)
 - remove int2, short2, etc and simply use templates ? check if it affects compilation performance
   remove unions? use x(), y(), z() instead of .x, .y, .z ?

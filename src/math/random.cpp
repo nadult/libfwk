@@ -26,6 +26,11 @@ int Random::uniform(int min, int max) {
 	return std::uniform_int_distribution<int>(min, max)(*m_engine);
 }
 
+long long Random::uniform(long long min, long long max) {
+	DASSERT(max >= min);
+	return std::uniform_int_distribution<long long>(min, max)(*m_engine);
+}
+
 float Random::uniform(float min, float max) {
 	DASSERT(max >= min);
 	return std::uniform_real_distribution<float>(min, max)(*m_engine);

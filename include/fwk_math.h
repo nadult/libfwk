@@ -1949,6 +1949,9 @@ class Random {
 
 	int uniform(int min, int max);
 	int uniform(int up_to) { return uniform(0, up_to - 1); }
+	long long uniform(long long min, long long max);
+	long long uniform(long long up_to) { return uniform(0ll, up_to - 1ll); }
+
 	float uniform(float min, float max);
 	double uniform(double min, double max);
 
