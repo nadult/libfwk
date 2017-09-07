@@ -1,5 +1,17 @@
+- MathObject concept is not so useful: figure out a better way to automatically generate
+  +=, !=, >=, etc for given object
+
+- drop exception support
+- inv -> vinv
+- include fwk_assert in fwk.h
+- make it 64 bit only (drop boost::mpc and add x,y,z in vector3?) fix qint2 as well
+- #define constexpr_if ?? maybe just download latest clang format ?
+- function arguments could have invariants in them:
+  T Segment::at(Checked<double, [](double v) { return v >= 0.0 && v <= 1.0; })> {}
+
+- Still more advanced asserts would be useful?
+- check if gdb is already attached and behave properly in such cases
 - qint toString still doesn't work...
-- fwk::abs , fwk::sqrt, fwk::... ?
 - ujednolicić: Ray3F, IBox
 - inRange(value, begin, end): value >= begin && value < end
 - inv -> vinv

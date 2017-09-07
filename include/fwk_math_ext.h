@@ -102,10 +102,11 @@ struct qint2 {
 
 template <class Scalar_> struct vector3 {
 	using Scalar = Scalar_;
+	using Vector2 = MakeVector<Scalar, 2>;
 	enum { vector_size = 3 };
 
 	constexpr vector3(Scalar x, Scalar y, Scalar z) : x(x), y(y), z(z) {}
-	constexpr vector3(const float2 &xy, Scalar z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr vector3(const Vector2 &xy, Scalar z) : x(xy.x), y(xy.y), z(z) {}
 	constexpr vector3() : x(0.0f), y(0.0f), z(0.0f) {}
 
 	explicit vector3(Scalar t) : x(t), y(t), z(t) {}
@@ -125,9 +126,9 @@ template <class Scalar_> struct vector3 {
 	Scalar &operator[](int idx) { return v[idx]; }
 	const Scalar &operator[](int idx) const { return v[idx]; }
 
-	float2 xy() const { return {x, y}; }
-	float2 xz() const { return {x, z}; }
-	float2 yz() const { return {y, z}; }
+	Vector2 xy() const { return {x, y}; }
+	Vector2 xz() const { return {x, z}; }
+	Vector2 yz() const { return {y, z}; }
 
 	FWK_ORDER_BY(vector3, x, y, z)
 

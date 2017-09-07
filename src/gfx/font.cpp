@@ -123,7 +123,7 @@ int FontCore::genQuads(const wstring &text, Span<float2> out_pos, Span<float2> o
 	DASSERT(out_pos.size() == out_uv.size());
 	DASSERT(out_pos.size() % 4 == 0);
 
-	const float2 tex_scale = inv(float2(m_texture_size));
+	const float2 tex_scale = vinv(float2(m_texture_size));
 	int count = min((int)text.size(), out_pos.size() / 4);
 	float2 pos(0, 0);
 

@@ -468,22 +468,16 @@ template <int N> struct NotAVector;
 namespace detail {
 
 	template <class T> struct IsIntegral : public std::is_integral<T> {};
+	template <class T> struct IsRational : public std::false_type {};
+	template <class T> struct IsReal : public std::is_floating_point<T> {};
 
-	template <class T> using IsReal = std::is_floating_point<T>;
 	template <class T> struct IsScalar {
-		enum { value = std::is_floating_point<T>::value || IsIntegral<T>::value };
+		enum { value = IsReal<T>::value || IsIntegral<T>::value || IsRational<T>::value };
 	};
 
-	template <class T> struct IsRealObject {
+	template <class T, template <class> class Trait> struct ScalarTrait {
 		template <class U>
-		static typename std::enable_if<IsReal<typename U::Scalar>::value, char>::type test(U *);
-		template <class U> static long test(...);
-		enum { value = sizeof(test<T>(nullptr)) == 1 };
-	};
-
-	template <class T> struct IsIntegralObject {
-		template <class U>
-		static typename std::enable_if<IsIntegral<typename U::Scalar>::value, char>::type test(U *);
+		static typename std::enable_if<Trait<typename U::Scalar>::value, char>::type test(U *);
 		template <class U> static long test(...);
 		enum { value = sizeof(test<T>(nullptr)) == 1 };
 	};
@@ -499,13 +493,14 @@ namespace detail {
 
 			enum {
 				size = U::vector_size,
-				is_real = std::is_floating_point<Scalar>::value,
-				is_integral = std::is_integral<Scalar>::value
+				is_real = IsReal<Scalar>::value,
+				is_integral = IsIntegral<Scalar>::value,
+				is_rational = IsRational<Scalar>::value
 			};
 		};
 		using RetError = NotAVector<N>;
 		struct Zero {
-			enum { size = 0, is_real = 0, is_integral = 0 };
+			enum { size = 0, is_real = 0, is_integral = 0, is_rational = 0 };
 		};
 
 		template <class U>
@@ -551,16 +546,28 @@ template <class T> constexpr bool isReal() { return detail::IsReal<T>::value; }
 template <class T> constexpr bool isIntegral() { return detail::IsIntegral<T>::value; }
 template <class T> constexpr bool isScalar() { return detail::IsScalar<T>::value; }
 
-template <class T> constexpr bool isRealObject() { return detail::IsRealObject<T>::value; }
-template <class T> constexpr bool isIntegralObject() { return detail::IsIntegralObject<T>::value; }
-template <class T> constexpr bool isMathObject() {
-	return isRealObject<T>() || isIntegralObject<T>();
+template <class T> constexpr bool isRealObject() {
+	return detail::ScalarTrait<T, detail::IsReal>::value;
 }
+template <class T> constexpr bool isIntegralObject() {
+	return detail::ScalarTrait<T, detail::IsIntegral>::value;
+}
+template <class T> constexpr bool isRationalObject() {
+	return detail::ScalarTrait<T, detail::IsRational>::value;
+}
+template <class T> constexpr bool isMathObject() {
+	return detail::ScalarTrait<T, detail::IsScalar>::value;
+}
+
 template <class T, int N = 0> constexpr bool isVector() {
 	return detail::VectorInfo<T, N>::Get::size > 0;
 }
 template <class T, int N = 0> constexpr bool isRealVector() {
 	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_real;
+}
+template <class T, int N = 0> constexpr bool isRationalOrRealVector() {
+	using VecInfo = typename detail::VectorInfo<T, N>::Get;
+	return VecInfo::size > 0 && (VecInfo::is_rational || VecInfo::is_real);
 }
 template <class T, int N = 0> constexpr bool isIntegralVector() {
 	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_integral;
@@ -575,6 +582,8 @@ template <class T> using EnableIfMathObject = EnableIf<isMathObject<T>(), NotAMa
 template <class T, int N = 0> using EnableIfVector = EnableIf<isVector<T, N>(), NotAVector<N>>;
 template <class T, int N = 0>
 using EnableIfRealVector = EnableIf<isRealVector<T, N>(), NotAVector<N>>;
+template <class T, int N = 0>
+using EnableIfRationalOrRealVector = EnableIf<isRationalOrRealVector<T, N>(), NotAVector<N>>;
 template <class T, int N = 0>
 using EnableIfIntegralVector = EnableIf<isIntegralVector<T, N>(), NotAVector<N>>;
 
@@ -664,42 +673,53 @@ template <class T, EnableIfVector<T>...> T vclamp(const T &vec, const T &tmin, c
 	return vmin(tmax, vmax(tmin, vec));
 }
 
-inline float floor(float value) { return std::floor(value); }
-inline double floor(double value) { return std::floor(value); }
+inline double inv(double s) { return 1.0 / s; }
+inline float inv(float s) { return 1.0f / s; }
 
-inline float ceil(float value) { return std::ceil(value); }
-inline double ceil(double value) { return std::ceil(value); }
+using std::floor;
+using std::ceil;
 
-inline float abs(float value) { return std::abs(value); }
-inline double abs(double value) { return std::abs(value); }
+inline int abs(int s) { return std::abs(s); }
+inline double abs(double s) { return std::abs(s); }
+inline float abs(float s) { return std::abs(s); }
 
-template <class T, EnableIfIntegral<T>...> T abs(T value) { return value < T(0) ? -value : value; }
+template <class T, EnableIfScalar<T>...> T abs(T value) { return value < T(0) ? -value : value; }
 
 // Nonstandard behaviour: rounding half up (0.5 -> 1, -0.5 -> 0)
 template <class T, EnableIfReal<T>...> T round(T value) { return floor(value + T(0.5)); }
 
-template <class T, EnableIfRealVector<T>...> T vfloor(T vec) {
-	for(int n = 0; n < T::vector_size; n++)
-		vec[n] = floor(vec[n]);
-	return vec;
+template <class TVec, class TFunc, EnableIfVector<TVec, 2>...>
+auto transform(const TVec &vec, const TFunc &func) {
+	using TOut = MakeVector<decltype(func(vec[0])), 2>;
+	return TOut{func(vec[0]), func(vec[1])};
 }
 
-template <class T, EnableIfRealVector<T>...> T vceil(T vec) {
-	for(int n = 0; n < T::vector_size; n++)
-		vec[n] = ceil(vec[n]);
-	return vec;
+template <class TVec, class TFunc, EnableIfVector<TVec, 3>...>
+auto transform(const TVec &vec, const TFunc &func) {
+	using TOut = MakeVector<decltype(func(vec[0])), 3>;
+	return TOut{func(vec[0]), func(vec[1]), func(vec[2])};
 }
 
-template <class T, EnableIfRealVector<T>...> T vround(T vec) {
-	for(int n = 0; n < T::vector_size; n++)
-		vec[n] = round(vec[n]);
-	return vec;
+template <class TVec, class TFunc, EnableIfVector<TVec, 4>...>
+auto transform(const TVec &vec, const TFunc &func) {
+	using TOut = MakeVector<decltype(func(vec[0])), 4>;
+	return TOut{func(vec[0]), func(vec[1]), func(vec[2]), func(vec[3])};
+}
+
+template <class T, EnableIfRationalOrRealVector<T>...> auto vfloor(const T &vec) {
+	return transform(vec, [](const auto &t) { return floor(t); });
+}
+
+template <class T, EnableIfRationalOrRealVector<T>...> auto vceil(T vec) {
+	return transform(vec, [](const auto &t) { return ceil(t); });
+}
+
+template <class T, EnableIfRationalOrRealVector<T>...> auto vround(T vec) {
+	return transform(vec, [](const auto &t) { return round(t); });
 }
 
 template <class T, EnableIfVector<T>...> T vabs(T vec) {
-	for(int n = 0; n < T::vector_size; n++)
-		vec[n] = abs(vec[n]);
-	return vec;
+	return transform(vec, [](const auto &t) { return abs(t); });
 }
 
 template <class T, EnableIfVector<T, 2>...> auto dot(const T &lhs, const T &rhs) {
@@ -738,17 +758,8 @@ template <class T, EnableIfVector<T, 2>...> Vector3<T> asXZY(const T &xz, typena
 
 template <class T, EnableIfVector<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-template <class T, EnableIfRealVector<T, 2>...> T inv(const T &v) {
-	using Scalar = typename T::Scalar;
-	return {Scalar(1) / v[0], Scalar(1) / v[1]};
-}
-template <class T, EnableIfRealVector<T, 3>...> T inv(const T &v) {
-	using Scalar = typename T::Scalar;
-	return {Scalar(1) / v[0], Scalar(1) / v[1], Scalar(1) / v[2]};
-}
-template <class T, EnableIfRealVector<T, 4>...> T inv(const T &v) {
-	using Scalar = typename T::Scalar;
-	return {Scalar(1) / v[0], Scalar(1) / v[1], Scalar(1) / v[2], Scalar(1) / v[3]};
+template <class T, EnableIfRealVector<T>...> T vinv(const T &vec) {
+	return transform(vec, [](const auto &v) { return inv(v); });
 }
 
 // Right-handed coordinate system
@@ -976,20 +987,15 @@ template <class T> class Box {
 
 	bool contains(const Box &box) const { return box == intersection(box); }
 
-	ENABLE_IF_SIZE(2) bool containsPixel(const T &pos) const {
+	bool containsPixel(const T &pos) const {
 		for(int i = 0; i < dim_size; i++)
 			if(!(pos[i] >= m_min[i] && pos[i] + Scalar(1) <= m_max[i]))
 				return false;
 		return true;
 	}
 
-	ENABLE_IF_SIZE(2) bool pixelCount(int axis) const {
-		return max(size(axis) - Scalar(1), Scalar(0));
-	}
-
-	ENABLE_IF_SIZE(2) T pixelCount() const {
-		return vmax(size() - Vector(Scalar(1)), T(Scalar(0)));
-	}
+	Scalar pixelCount(int axis) const { return max(size(axis) - Scalar(1), Scalar(0)); }
+	T pixelCount() const { return vmax(size() - Vector(Scalar(1)), T(Scalar(0))); }
 
 	ENABLE_IF_SIZE(2) array<Point, 4> corners() const {
 		return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
@@ -1432,7 +1438,7 @@ template <class T, int N> class Ray {
 
 	const Vector &dir() const { return m_dir; }
 	const Point &origin() const { return m_origin; }
-	auto invDir() const { return inv(m_dir); }
+	auto invDir() const { return vinv(m_dir); }
 	const Point at(T t) const { return m_origin + m_dir * t; }
 
 	// TODO: should we allow empty rays?

@@ -53,7 +53,7 @@ template <class T, int N> T Ray<T, N>::distance(const Ray &rhs) const {
 }
 
 template <class T, int N> IsectParam<T> Ray<T, N>::isectParam(const Box<Vector> &box) const {
-	Vector inv_dir = inv(m_dir);
+	Vector inv_dir = vinv(m_dir);
 
 	T l1 = inv_dir.x * (box.x() - m_origin.x);
 	T l2 = inv_dir.x * (box.ex() - m_origin.x);
