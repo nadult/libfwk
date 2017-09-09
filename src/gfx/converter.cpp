@@ -72,9 +72,9 @@ string Converter::exportFromBlender(const string &file_name, string &target_file
 	}
 
 	Saver(temp_script_name).saveData(script.data(), script.size());
-	auto result = execCommand(format("\"%s\" %s --background --python %s 2>&1",
-									 m_settings.blender_path.c_str(), file_name.c_str(),
-									 temp_script_name.c_str()));
+	auto result = execCommand(stdFormat("\"%s\" %s --background --python %s 2>&1",
+										m_settings.blender_path.c_str(), file_name.c_str(),
+										temp_script_name.c_str()));
 
 	remove(temp_script_name.c_str());
 

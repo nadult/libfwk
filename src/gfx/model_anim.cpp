@@ -18,7 +18,6 @@ void ModelAnim::transToXML(const AffineTrans &trans, const AffineTrans &default_
 }
 
 AffineTrans ModelAnim::transFromXML(XMLNode node, const AffineTrans &default_trans) {
-	using namespace xml_conversions;
 	float3 pos = default_trans.translation, scale = default_trans.scale;
 	Quat rot = default_trans.rotation;
 
@@ -33,8 +32,6 @@ AffineTrans ModelAnim::transFromXML(XMLNode node, const AffineTrans &default_tra
 
 ModelAnim::Channel::Channel(const XMLNode &node, const AffineTrans &default_trans)
 	: default_trans(default_trans), node_name(node.attrib("name")) {
-	using namespace xml_conversions;
-
 	trans = transFromXML(node, default_trans);
 	if(XMLNode pos_node = node.child("pos"))
 		translation_track = fromString<vector<float3>>(pos_node.value());
@@ -49,17 +46,15 @@ ModelAnim::Channel::Channel(const XMLNode &node, const AffineTrans &default_tran
 void ModelAnim::Channel::saveToXML(XMLNode node) const {
 	node.addAttrib("name", node.own(node_name));
 
-	using namespace xml_conversions;
-
 	transToXML(trans, default_trans, node);
 	if(!translation_track.empty())
-		node.addChild("pos", node.own(toString(translation_track)));
+		node.addChild("pos", translation_track);
 	if(!scaling_track.empty())
-		node.addChild("scale", node.own(toString(scaling_track)));
+		node.addChild("scale", scaling_track);
 	if(!rotation_track.empty())
-		node.addChild("rot", node.own(toString(rotation_track)));
+		node.addChild("rot", rotation_track);
 	if(!time_track.empty())
-		node.addChild("time", node.own(toString(time_track)));
+		node.addChild("time", time_track);
 }
 
 AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
@@ -94,7 +89,7 @@ ModelAnim::ModelAnim(const XMLNode &node, PPose default_pose)
 
 	XMLNode shared_track = node.child("shared_time_track");
 	ASSERT(shared_track);
-	m_shared_time_track = xml_conversions::fromString<vector<float>>(shared_track.value());
+	m_shared_time_track = fromString<vector<float>>(shared_track.value());
 
 	verifyData();
 }
@@ -104,7 +99,7 @@ void ModelAnim::saveToXML(XMLNode node) const {
 	node.addAttrib("name", node.own(m_name));
 	for(const auto &channel : m_channels)
 		channel.saveToXML(node.addChild("channel"));
-	node.addChild("shared_time_track", node.own(xml_conversions::toString(m_shared_time_track)));
+	node.addChild("shared_time_track", m_shared_time_track);
 }
 
 AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {

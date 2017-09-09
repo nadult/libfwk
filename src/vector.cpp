@@ -31,7 +31,7 @@ void BaseVector::swap(BaseVector &rhs) noexcept {
 	fwk::swap(capacity, rhs.capacity);
 }
 
-int BaseVector::growCapacity(int obj_size) const noexcept {
+int BaseVector::growCapacity(int capacity, int obj_size) noexcept {
 	if(capacity == 0)
 		return obj_size > 64 ? 1 : 64 / obj_size;
 	if(capacity > 4096 * 32 / obj_size)
@@ -39,8 +39,8 @@ int BaseVector::growCapacity(int obj_size) const noexcept {
 	return (capacity * 3 + 1) / 2;
 }
 
-int BaseVector::insertCapacity(int obj_size, int min_size) const noexcept {
-	int cap = growCapacity(obj_size);
+int BaseVector::insertCapacity(int capacity, int obj_size, int min_size) noexcept {
+	int cap = growCapacity(capacity, obj_size);
 	return cap > min_size ? cap : min_size;
 }
 
@@ -60,14 +60,14 @@ void BaseVector::reallocate(int obj_size, MoveDestroyFunc move_destroy_func, int
 }
 
 void BaseVector::grow(int obj_size, MoveDestroyFunc move_destroy_func) {
-	reallocate(obj_size, move_destroy_func, growCapacity(obj_size));
+	reallocate(obj_size, move_destroy_func, growCapacity(capacity, obj_size));
 }
 
 void BaseVector::resizePartial(int obj_size, DestroyFunc destroy_func,
 							   MoveDestroyFunc move_destroy_func, int new_size) {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
-		reallocate(obj_size, move_destroy_func, insertCapacity(obj_size, new_size));
+		reallocate(obj_size, move_destroy_func, insertCapacity(capacity, obj_size, new_size));
 
 	if(size > new_size)
 		destroy_func(data + size_t(obj_size) * new_size, size - new_size);
@@ -78,7 +78,7 @@ void BaseVector::assignPartial(int obj_size, DestroyFunc destroy_func, int new_s
 	clear(destroy_func);
 	if(new_size > capacity) {
 		BaseVector new_base;
-		new_base.alloc(obj_size, new_size, insertCapacity(obj_size, new_size));
+		new_base.alloc(obj_size, new_size, insertCapacity(capacity, obj_size, new_size));
 		swap(new_base);
 		return;
 	}
@@ -96,7 +96,7 @@ void BaseVector::insertPartial(int obj_size, MoveDestroyFunc move_destroy_func, 
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
-		reallocate(obj_size, move_destroy_func, insertCapacity(obj_size, new_size));
+		reallocate(obj_size, move_destroy_func, insertCapacity(capacity, obj_size, new_size));
 
 	int move_count = size - index;
 	if(move_count > 0)
@@ -153,13 +153,13 @@ void BaseVector::reallocatePod(int obj_size, int new_capacity) noexcept {
 
 void BaseVector::growPod(int obj_size) noexcept {
 	int current = capacity;
-	reallocatePod(obj_size, growCapacity(obj_size));
+	reallocatePod(obj_size, growCapacity(capacity, obj_size));
 }
 
 void BaseVector::resizePodPartial(int obj_size, int new_size) noexcept {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
-		reallocatePod(obj_size, insertCapacity(obj_size, new_size));
+		reallocatePod(obj_size, insertCapacity(capacity, obj_size, new_size));
 	size = new_size;
 }
 
@@ -167,7 +167,7 @@ void BaseVector::assignPartialPod(int obj_size, int new_size) noexcept {
 	clearPod();
 	if(new_size > capacity) {
 		BaseVector new_base;
-		new_base.alloc(obj_size, new_size, insertCapacity(obj_size, new_size));
+		new_base.alloc(obj_size, new_size, insertCapacity(capacity, obj_size, new_size));
 		swap(new_base);
 		return;
 	}
@@ -183,7 +183,7 @@ void BaseVector::insertPodPartial(int obj_size, int index, int count) noexcept {
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
-		reallocatePod(obj_size, insertCapacity(obj_size, new_size));
+		reallocatePod(obj_size, insertCapacity(capacity, obj_size, new_size));
 
 	int move_count = size - index;
 	if(move_count > 0)

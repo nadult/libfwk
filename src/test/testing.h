@@ -32,10 +32,7 @@ template <class T> inline bool closeEnough(const T &a, const T &b) {
 }
 
 template <class T> void reportError(const T &a, const T &b) {
-	TextFormatter atext, btext;
-	xml_conversions::toString(a, atext);
-	xml_conversions::toString(b, btext);
-	THROW("Error:  %s != %s", atext.text(), btext.text());
+	THROW("Error:  %s != %s", toString(a).c_str(), toString(b).c_str());
 }
 
 template <class T> void assertCloseEnough(const T &a, const T &b) {

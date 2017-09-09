@@ -102,12 +102,11 @@ MeshBuffers::MeshBuffers(const XMLNode &node)
 				  node.childValue<vector<string>>("node_names", {})) {}
 
 void MeshBuffers::saveToXML(XMLNode node) const {
-	using namespace xml_conversions;
-	node.addChild("positions", node.own(toString(positions)));
+	node.addChild("positions", positions);
 	if(!tex_coords.empty())
-		node.addChild("tex_coords", node.own(toString(tex_coords)));
+		node.addChild("tex_coords", tex_coords);
 	if(!normals.empty())
-		node.addChild("normals", node.own(toString(normals)));
+		node.addChild("normals", normals);
 
 	if(!weights.empty()) {
 		vector<int> counts;

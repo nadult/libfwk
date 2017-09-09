@@ -133,7 +133,7 @@ void testIntersections() {
 			try {
 				ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
 			} catch(const Exception &ex) {
-				xmlPrint("Box1: %\nBox2: %\n", box1, box2);
+				print("Box1: %\nBox2: %\n", box1, box2);
 				throw;
 			}
 		}*/
@@ -141,11 +141,11 @@ void testIntersections() {
 
 template <class T> void print(const typename Segment<T, 2>::Isect &isect) {
 	if(const Segment2<T> *seg = isect)
-		xmlPrint("Segment(% - %)\n", seg->from, seg->to);
+		print("Segment(% - %)\n", seg->from, seg->to);
 	else if(const Vector2<T> *vec = isect)
-		xmlPrint("Vector %\n", *vec);
+		print("Vector %\n", *vec);
 	else
-		xmlPrint("Empty\n");
+		print("Empty\n");
 }
 
 void test2DIntersections() {
@@ -206,7 +206,7 @@ void test2DIntersections() {
 		s6.isect(s4);
 	}
 	time = getTime() - time;
-	xmlPrint("Isect time: % ns / Segment<double> pair\n", time * 10000);
+	print("Isect time: % ns / Segment<double> pair\n", time * 10000);
 
 	time = getTime();
 	for(int n = 0; n < 50000; n++) {
@@ -214,7 +214,7 @@ void test2DIntersections() {
 		iseg1.classifyIsect(iseg4);
 	}
 	time = getTime() - time;
-	xmlPrint("Isect time: % ns / ISegment<qint> pair\n", time * 10000);
+	print("Isect time: % ns / ISegment<qint> pair\n", time * 10000);
 }
 
 void test3DIntersections() {
@@ -270,7 +270,7 @@ void testHash() {
 		int hash_value = hash(data);
 	time = getTime() - time;
 	double bytes = 100.0 * double(data.size() * data[0].size()) * sizeof(Segment3<double>);
-	xmlPrint("Hashing time: % ns / byte\n", time * pow(10.0, 9) / bytes);
+	print("Hashing time: % ns / byte\n", time * pow(10.0, 9) / bytes);
 
 	// TODO: better test ?
 }
@@ -310,7 +310,7 @@ void testMain() {
 	static_assert(std::is_same<decltype(double_len), double>::value, "");
 	static_assert(std::is_same<decltype(int_dot), int>::value, "");
 
-	ASSERT_EQ(xmlFormat("%", double3(1, 2, 3)), xmlFormat("%", float3(1, 2, 3)));
+	ASSERT_EQ(format("%", double3(1, 2, 3)), format("%", float3(1, 2, 3)));
 
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));

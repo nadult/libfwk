@@ -5,7 +5,9 @@
 #define FWK_XML_H
 
 #include "fwk_base.h"
+#include "fwk_format.h"
 #include "fwk_math.h"
+#include "fwk_parse.h"
 
 #ifndef RAPIDXML_HPP_INCLUDED
 
@@ -17,165 +19,6 @@ template <class Ch> class xml_document;
 #endif
 
 namespace fwk {
-
-namespace xml_conversions {
-
-	template <class T> TextFormatter toString(const T &value);
-
-	namespace detail {
-
-		template <class T> T fromString(TextParser &) {
-			static_assert(sizeof(T) < 0,
-						  "xml_conversions::fromString unimplemented for given type");
-		}
-
-		template <> string fromString<string>(TextParser &);
-		template <> bool fromString<bool>(TextParser &);
-		template <> int fromString<int>(TextParser &);
-		template <> int2 fromString<int2>(TextParser &);
-		template <> int3 fromString<int3>(TextParser &);
-		template <> int4 fromString<int4>(TextParser &);
-		template <> uint fromString<uint>(TextParser &);
-		template <> double fromString<double>(TextParser &);
-		template <> double2 fromString<double2>(TextParser &);
-		template <> double3 fromString<double3>(TextParser &);
-		template <> double4 fromString<double4>(TextParser &);
-		template <> float fromString<float>(TextParser &);
-		template <> float2 fromString<float2>(TextParser &);
-		template <> float3 fromString<float3>(TextParser &);
-		template <> float4 fromString<float4>(TextParser &);
-		template <> DRect fromString<DRect>(TextParser &);
-		template <> FRect fromString<FRect>(TextParser &);
-		template <> IRect fromString<IRect>(TextParser &);
-		template <> FBox fromString<FBox>(TextParser &);
-		template <> IBox fromString<IBox>(TextParser &);
-		template <> DBox fromString<DBox>(TextParser &);
-		template <> Matrix4 fromString<Matrix4>(TextParser &);
-		template <> Quat fromString<Quat>(TextParser &);
-
-		template <class T> vector<T> vectorFromString(TextParser &parser) {
-			vector<T> out;
-			while(parser.hasAnythingLeft())
-				out.emplace_back(fromString<T>(parser));
-			return out;
-		}
-
-		template <> vector<float> vectorFromString<float>(TextParser &);
-		template <> vector<double> vectorFromString<double>(TextParser &);
-		template <> vector<int> vectorFromString<int>(TextParser &);
-		template <> vector<uint> vectorFromString<uint>(TextParser &);
-		template <> vector<string> vectorFromString<string>(TextParser &);
-
-		template <class T> struct SelectParser {
-			static T parse(TextParser &parser) { return fromString<T>(parser); }
-		};
-
-		template <class T> struct SelectParser<vector<T>> {
-			static vector<T> parse(TextParser &parser) { return vectorFromString<T>(parser); }
-		};
-
-		void toString(const char *value, TextFormatter &out);
-		void toString(const string &value, TextFormatter &out);
-
-		void toString(bool value, TextFormatter &out);
-		void toString(int value, TextFormatter &out);
-		void toString(uint value, TextFormatter &out);
-		void toString(unsigned long value, TextFormatter &out);
-		void toString(long long value, TextFormatter &out);
-		void toString(unsigned long long value, TextFormatter &out);
-
-		void toString(const int2 &value, TextFormatter &out);
-		void toString(const int3 &value, TextFormatter &out);
-		void toString(const int4 &value, TextFormatter &out);
-		void toString(double value, TextFormatter &out);
-		void toString(const double2 &value, TextFormatter &out);
-		void toString(const double3 &value, TextFormatter &out);
-		void toString(const double4 &value, TextFormatter &out);
-		void toString(float value, TextFormatter &out);
-		void toString(const float2 &value, TextFormatter &out);
-		void toString(const float3 &value, TextFormatter &out);
-		void toString(const float4 &value, TextFormatter &out);
-		void toString(const DRect &value, TextFormatter &out);
-		void toString(const FRect &value, TextFormatter &out);
-		void toString(const IRect &value, TextFormatter &out);
-		void toString(const FBox &value, TextFormatter &out);
-		void toString(const IBox &value, TextFormatter &out);
-		void toString(const DBox &value, TextFormatter &out);
-		void toString(const Matrix4 &value, TextFormatter &out);
-		void toString(const Quat &value, TextFormatter &out);
-
-		template <class T> void rangeToString(CSpan<T>, TextFormatter &);
-
-		template <class T> struct ConvertibleToString {
-			template <class C>
-			static auto test(int) -> decltype(toString(*(const C *)0, *(TextFormatter *)0));
-			template <class C> static auto test(...) -> char;
-			enum { value = !std::is_same<char, decltype(test<T>(0))>::value };
-		};
-
-		template <class T> struct SelectPrinter {
-			static_assert(ConvertibleToString<T>::value,
-						  "Missing toString(T, TextFormatter&) for given type");
-			static void print(const T &value, TextFormatter &out) { return toString(value, out); }
-		};
-
-		template <class T> struct SelectPrinter<vector<T>> {
-			static void print(const vector<T> &value, TextFormatter &out) {
-				return rangeToString<T>(value, out);
-			}
-		};
-
-		template <class T, size_t S> struct SelectPrinter<array<T, S>> {
-			static void print(const array<T, S> &value, TextFormatter &out) {
-				return rangeToString<T>(value, out);
-			}
-		};
-
-		template <class T> void rangeToString(CSpan<T> range, TextFormatter &out) {
-			for(int n = 0; n < (int)range.size(); n++) {
-				SelectPrinter<T>::print(range[n], out);
-				if(n + 1 < (int)range.size())
-					out(" ");
-			}
-		}
-	}
-
-	template <class T> T fromString(TextParser &parser) {
-		return detail::SelectParser<T>::parse(parser);
-	}
-
-	template <class T> T fromString(const char *input) {
-		TextParser parser(input);
-		return detail::SelectParser<T>::parse(parser);
-	}
-
-	template <class T> T fromString(const string &input) {
-		TextParser parser(input.c_str());
-		return detail::SelectParser<T>::parse(parser);
-	}
-
-	template <class T> void toString(const T &value, TextFormatter &out) {
-		detail::SelectPrinter<T>::print(value, out);
-	}
-
-	template <class T> TextFormatter toString(const T &value) {
-		TextFormatter out;
-		detail::SelectPrinter<T>::print(value, out);
-		return out;
-	}
-}
-
-template <class... Args> string xmlFormat(const char *format, const Args &... args) {
-	vector<string> strings = {xml_conversions::toString(args).text()...};
-	return simpleFormat(format, strings);
-}
-
-template <class... Args>
-void xmlPrint(const char *format, Args &&... args) __attribute__((noinline));
-
-template <class... Args> void xmlPrint(const char *format, Args &&... args) {
-	printf("%s", xmlFormat(format, std::forward<Args>(args)...).c_str());
-}
 
 class XMLNode {
   public:
@@ -193,7 +36,7 @@ class XMLNode {
 
 	template <class T> T attrib(const char *name) const {
 		try {
-			return xml_conversions::fromString<T>(attrib(name));
+			return fromString<T>(attrib(name));
 		} catch(const Exception &ex) {
 			parsingError(name, ex.what());
 			return T();
@@ -202,7 +45,7 @@ class XMLNode {
 
 	template <class T> T attrib(const char *name, T default_value) const {
 		const char *value = hasAttrib(name);
-		return value ? xml_conversions::fromString<T>(value) : default_value;
+		return value ? fromString<T>(value) : default_value;
 	}
 
 	// When adding new nodes, you have to make sure that strings given as
@@ -212,9 +55,9 @@ class XMLNode {
 	void addAttrib(const char *name, int value);
 
 	template <class T> void addAttrib(const char *name, const T &value) {
-		TextFormatter formatter;
-		xml_conversions::toString(value, formatter);
-		addAttrib(name, own(formatter.text()));
+		TextFormatter formatter(256, {FormatMode::plain});
+		format(formatter, value);
+		addAttrib(name, own(formatter));
 	}
 
 	XMLNode addChild(const char *name, const char *value = nullptr);
@@ -222,9 +65,9 @@ class XMLNode {
 	XMLNode child(const char *name = nullptr) const;
 
 	template <class T> XMLNode addChild(const char *name, const T &value) {
-		TextFormatter formatter;
-		xml_conversions::toString(value, formatter);
-		return addChild(name, own(formatter.text()));
+		TextFormatter formatter(256, {FormatMode::plain});
+		format(formatter, value);
+		return addChild(name, own(formatter));
 	}
 
 	void next() { *this = sibling(name()); }
@@ -233,7 +76,7 @@ class XMLNode {
 
 	template <class T> T value() const {
 		try {
-			return xml_conversions::fromString<T>(value());
+			return fromString<T>(value());
 		} catch(const Exception &ex) {
 			parsingError(nullptr, ex.what());
 			return T();

@@ -459,8 +459,8 @@ class DynamicMesh {
 			if(coincident(exclude, edge))
 				continue;
 			if(distance(point(edge.a), point(edge.b)) < fconstant::epsilon)
-				xmlPrint("Invalid edge: % - % (%) (%)\n", edge.a.id, edge.b.id, point(edge.a),
-						 point(edge.b));
+				print("Invalid edge: % - % | % %\n", edge.a.id, edge.b.id, point(edge.a),
+					  point(edge.b));
 			float dist = distance(simplex, segment(edge));
 			if(dist < min_dist) {
 				out = edge;

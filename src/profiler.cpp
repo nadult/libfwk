@@ -3,6 +3,7 @@
 
 #include "fwk_profile.h"
 
+#include "fwk_format.h"
 #include "fwk_opengl.h"
 #include <cstdio>
 #include <cstring>
@@ -79,7 +80,7 @@ static string formatTime(double sec) {
 	double ms = sec * 1000.0;
 	double us = ms * 1000.0;
 	bool print_ms = ms > 0.5;
-	return format("%.2f %s", print_ms ? ms : us, print_ms ? "ms" : "us");
+	return stdFormat("%.2f %s", print_ms ? ms : us, print_ms ? "ms" : "us");
 }
 
 const string Profiler::getStats(const char *filter) {
@@ -141,9 +142,9 @@ const string Profiler::getStats(const char *filter) {
 		if(counter.name.find(filter) != string::npos) {
 			bool in_kilos = counter.value > 1000 * 10;
 			lines.emplace_back(false,
-							   format("%s: %lld%s\n", counter.name.c_str(),
-									  in_kilos ? (counter.value + 500) / 1000 : counter.value,
-									  in_kilos ? "k" : ""));
+							   stdFormat("%s: %lld%s\n", counter.name.c_str(),
+										 in_kilos ? (counter.value + 500) / 1000 : counter.value,
+										 in_kilos ? "k" : ""));
 		}
 	}
 

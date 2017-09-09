@@ -461,8 +461,7 @@ class StringRef {
 	// TODO: conversion from CSpan<char>? but what about null-termination
 	StringRef() : m_data(""), m_length(0) {}
 
-	explicit operator const char *() const { return m_data; }
-	explicit operator string() const { return string(m_data, m_data + m_length); }
+	operator string() const { return string(m_data, m_data + m_length); }
 	const char *c_str() const { return m_data; }
 
 	int size() const { return m_length; }
@@ -487,6 +486,17 @@ class StringRef {
   private:
 	const char *m_data;
 	int m_length;
+};
+
+struct Tokenizer {
+	explicit Tokenizer(const char *str, char delim = ' ') : m_str(str), m_delim(delim) {}
+
+	StringRef next();
+	bool finished() const { return *m_str == 0; }
+
+  private:
+	const char *m_str;
+	char m_delim;
 };
 
 inline bool caseEqual(const StringRef a, const StringRef b) {
@@ -1284,62 +1294,6 @@ class BitVector {
 	int m_size;
 };
 
-class TextFormatter {
-  public:
-	// You can specify initial buffer size. Don't worry though, buffer
-	// will be resized if needed
-	explicit TextFormatter(int size = 256);
-
-#ifdef __clang__
-	__attribute__((__format__(__printf__, 2, 3)))
-#endif
-	void
-	operator()(const char *format, ...);
-
-	const char *text() const { return m_data.data(); }
-	int length() const { return m_offset; }
-	operator StringRef() const { return StringRef(text(), length()); }
-
-  private:
-	int m_offset;
-	PodArray<char> m_data;
-};
-
-// Parsing white-space separated elements
-class TextParser {
-  public:
-	TextParser(const char *input) : m_current(input) { DASSERT(m_current); }
-
-	bool parseBool();
-	int parseInt();
-	float parseFloat();
-	double parseDouble();
-	uint parseUint();
-	string parseString();
-
-	void parseInts(Span<int> out);
-	void parseFloats(Span<float> out);
-	void parseDoubles(Span<double> out);
-	void parseUints(Span<uint> out);
-	void parseStrings(Span<string> out);
-
-	bool hasAnythingLeft();
-	int countElements() const;
-	bool isFinished() const { return !*m_current; }
-
-  private:
-	const char *m_current;
-};
-
-#ifdef __clang__
-__attribute__((__format__(__printf__, 1, 2)))
-#endif
-string
-format(const char *format, ...);
-
-// Converting % to argument
-string simpleFormat(const char *format, const vector<string> &args);
-
 struct ListNode {
 	ListNode() : next(-1), prev(-1) {}
 	bool empty() const { return next == -1 && prev == -1; }
@@ -1490,6 +1444,9 @@ pair<string, bool> execCommand(const string &cmd);
 
 class XMLNode;
 class XMLDocument;
+
+class TextFormatter;
+class TextParser;
 }
 
 #endif

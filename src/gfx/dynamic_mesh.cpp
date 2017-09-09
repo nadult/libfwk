@@ -283,7 +283,7 @@ void DynamicMesh::split(EdgeId edge, VertexId vert) {
 
 	auto epolys = polys(edge);
 	auto &vadjacency = m_adjacency[vert];
-	xmlPrint("split %-%: v:%\n", (int)edge.a, (int)edge.b, (int)vert);
+	print("split %-%: v:%\n", (int)edge.a, (int)edge.b, (int)vert);
 
 	for(auto poly_id : epolys) {
 		auto pverts = m_polys[poly_id].verts;
@@ -291,7 +291,7 @@ void DynamicMesh::split(EdgeId edge, VertexId vert) {
 			remove(poly_id);
 			continue;
 		}
-		xmlPrint("Splitting: %\n", transform<int>(pverts));
+		print("Splitting: %\n", transform<int>(pverts));
 
 		int idx = -1;
 
@@ -430,7 +430,7 @@ vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 					swap(vector1, vector2);
 
 				float angle = angleTowards(vector1, float2(0, 0), vector2);
-				//				xmlPrint("% - %: ang:% nrm:%\n", vector1, vector2, angle, normal);
+				//				print("% - %: ang:% nrm:%\n", vector1, vector2, angle, normal);
 				if(angle < min_angle) {
 					min_angle = angle;
 					best_face = eface;
@@ -441,7 +441,7 @@ vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 		}
 	}
 	//	printf("Extracted: %d/%d\n", (int)out.size(), (int)polys().size());
-	//	xmlPrint("%\n", vector<int>(begin(out), end(out)));
+	//	print("%\n", vector<int>(begin(out), end(out)));
 
 	return out;
 }

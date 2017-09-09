@@ -4,7 +4,7 @@
 #ifndef FWK_ASSERT_H
 #define FWK_ASSERT_H
 
-#include "fwk_xml.h"
+#include "fwk_format.h"
 
 namespace fwk {
 
@@ -17,7 +17,7 @@ namespace detail {
 	template <class T>
 	void assertFailedBinary(const char *file, int line, const char *op, const char *str1,
 							const char *str2, const T &v1, const T &v2) {
-		assertFailed(file, line, xmlFormat("%:% % %:%", str1, v1, op, str2, v2).c_str());
+		assertFailed(file, line, format("%:% % %:%", str1, v1, op, str2, v2).c_str());
 	}
 
 	template <class T>
@@ -26,7 +26,7 @@ namespace detail {
 	template <class T>
 	void assertFailedHint(const char *file, int line, const char *str, const char *hint,
 						  const T &hint_val) {
-		assertFailed(file, line, xmlFormat("% | %:%", str, hint, hint_val).c_str());
+		assertFailed(file, line, format("% | %:%", str, hint, hint_val).c_str());
 	}
 }
 

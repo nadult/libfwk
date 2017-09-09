@@ -2,6 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_base.h"
+
+#include "fwk_format.h"
 #include <cstdio>
 
 #include <errno.h>
@@ -186,7 +188,7 @@ namespace {
 			auto colon_pos = file_line.find(':');
 			string file = nicePath(file_line.substr(0, colon_pos));
 			int line = colon_pos == string::npos ? 0 : atoi(&file_line[colon_pos + 1]);
-			file_line = file.empty() ? "?" : format("%s:%d", file.c_str(), line);
+			file_line = file.empty() ? "?" : stdFormat("%s:%d", file.c_str(), line);
 		}
 		return file_lines;
 	}
@@ -290,7 +292,7 @@ string Backtrace::analyze(bool filter) const {
 			const char *file_line = i < file_lines.size() ? file_lines[i].c_str() : "";
 			tstring = tstring.substr(0, tstring.find('['));
 
-			string fmt = format("%%%ds %%s\n", max_len);
+			string fmt = stdFormat("%%%ds %%s\n", max_len);
 			formatter(fmt.c_str(), file_line, tstring.c_str());
 		}
 	}

@@ -32,8 +32,8 @@ class BaseVector {
 	void alloc(int, int size, int capacity) noexcept;
 	void swap(BaseVector &) noexcept;
 
-	int growCapacity(int) const noexcept;
-	int insertCapacity(int, int min) const noexcept;
+	static int growCapacity(int current, int obj_size) noexcept;
+	static int insertCapacity(int current, int obj_size, int min_size) noexcept;
 
 	void copyConstruct(int, CopyFunc, char *, int size);
 	void grow(int, MoveDestroyFunc);
@@ -162,7 +162,7 @@ template <class T> class Vector {
 	void clear() { m_base.clear(&Vector::destroy); }
 
 	void reserve(int new_capacity) {
-		int new_cap = m_base.insertCapacity(sizeof(T), new_capacity);
+		int new_cap = m_base.insertCapacity(m_base.capacity, sizeof(T), new_capacity);
 		if(std::is_trivially_move_constructible<T>::value &&
 		   std::is_trivially_destructible<T>::value)
 			m_base.reallocatePod(sizeof(T), new_capacity);

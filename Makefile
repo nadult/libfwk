@@ -21,10 +21,10 @@ _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
-SHARED_SRC=base vector backtrace filesystem filesystem_linux input profiler stream xml xml_conversions \
+SHARED_SRC=base vector backtrace filesystem filesystem_linux input profiler stream xml \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
-		   text_formatter text_parser audio/device audio/sound audio/ogg_stream \
+		   format parse audio/device audio/sound audio/ogg_stream \
 		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \
 		   gfx/material gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model \
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \

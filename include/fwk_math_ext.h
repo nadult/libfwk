@@ -183,14 +183,7 @@ namespace detail {
 
 template <class T> using PromoteIntegral = typename detail::PromoteIntegral<T>::type;
 
-namespace xml_conversions {
-	namespace detail {
-		void toString(llint, TextFormatter &out);
-		void toString(const llint2 &, TextFormatter &out);
-		void toString(qint, TextFormatter &out);
-		void toString(const qint2 &, TextFormatter &out);
-	}
-}
+void format(TextFormatter &, qint);
 }
 
 #endif

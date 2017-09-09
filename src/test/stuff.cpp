@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk_assert.h"
 #include "fwk_cache.h"
 #include "testing.h"
 
@@ -11,19 +12,15 @@ void testTextFormatter() {
 }
 
 template <class T> void testClassConversions(T value) {
-	using namespace xml_conversions;
-
-	string str = toString(value).text();
-	ASSERT(fromString<T>(str.c_str()) == value);
+	string str = toString(value);
+	ASSERT_EQ(fromString<T>(str.c_str()), value);
 
 	vector<T> vec = {value, value, value, value};
-	string vec_str = toString(vec).text();
-	ASSERT(fromString<vector<T>>(vec_str.c_str()) == vec);
+	string vec_str = toString(vec);
+	ASSERT_EQ(fromString<vector<T>>(vec_str.c_str()), vec);
 }
 
 void testXMLConverters() {
-	using namespace xml_conversions;
-
 	ASSERT(TextParser("1 2 aa bb cc 4d").countElements() == 6);
 
 	testClassConversions(99);
@@ -51,12 +48,12 @@ void testXMLConverters() {
 	ASSERT(fromString<float2>("100 \r\t\n  1") == float2(100, 1));
 
 	ASSERT(fromString<vector<float2>>("1 2 4 5.5") == vector<float2>({{1, 2}, {4, 5.5}}));
-	ASSERT(toString(vector<int>().size()).text() == string("0"));
+	ASSERT(toString(vector<int>().size()) == string("0"));
 
-	ASSERT(toString(vector<int>({4, 5, 6, 7, 8})).text() == string("4 5 6 7 8"));
-	ASSERT(toString(vector<float>({1, 2, 3, 4.5, 5.5, 6})).text() == string("1 2 3 4.5 5.5 6"));
-	ASSERT(toString("foo").text() == string("foo"));
-	ASSERT(toString(short(10)).text() == string("10"));
+	ASSERT(toString(vector<int>({4, 5, 6, 7, 8})) == "4 5 6 7 8");
+	ASSERT(toString(vector<float>({1, 2, 3, 4.5, 5.5, 6})) == "1 2 3 4.5 5.5 6");
+	ASSERT(toString("foo") == "foo");
+	ASSERT(toString(short(10)) == "10");
 
 	ASSERT_EXCEPTION(fromString<vector<int>>("1 2a 3"));
 	ASSERT_EXCEPTION(fromString<bool>("foobar"));

@@ -12,6 +12,8 @@
 #include "fwk_mesh.h"
 #include "fwk_profile.h"
 #include "fwk_variant.h"
+#include "fwk_format.h"
+#include "fwk_parse.h"
 #include "fwk_xml.h"
 
 #endif

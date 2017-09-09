@@ -29,8 +29,8 @@ void testSplittingMerging() {
 
 void testMain() {
 	string mesh_path = mainPath("test/test.model");
-	string command = format("%s %s %s", mainPath("tools/model_convert").c_str(),
-							mainPath("data/test.blend").c_str(), mesh_path.c_str());
+	auto command =
+		format("% % %", mainPath("tools/model_convert"), mainPath("data/test.blend"), mesh_path);
 	execCommand(command);
 	XMLDocument doc;
 	Loader(mesh_path) >> doc;

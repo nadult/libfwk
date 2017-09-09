@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_base.h"
+#include "fwk_format.h"
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -65,6 +66,15 @@ string fromWideString(const std::wstring &text, bool throw_on_invalid) {
 		return string();
 	}
 	return string(buffer.data(), buffer.data() + size);
+}
+
+StringRef Tokenizer::next() {
+	const char *start = m_str;
+	while(*m_str && *m_str != m_delim)
+		m_str++;
+	const char *end = m_str++;
+
+	return {start, (int)(end - start)};
 }
 
 #if defined(FWK_TARGET_LINUX)
@@ -171,8 +181,8 @@ const char *Exception::what() const noexcept {
 	try {
 		TextFormatter fmt;
 		fmt("%s\nBacktrace:\n%s", text(), backtrace().c_str());
-		int len = min((int)strlen(fmt.text()), (int)arraySize(buffer) - 1);
-		memcpy(buffer, fmt.text(), len);
+		int len = min(fmt.length(), (int)arraySize(buffer) - 1);
+		memcpy(buffer, fmt.c_str(), len);
 		buffer[len] = 0;
 	} catch(...) { return text(); }
 	return buffer;
@@ -279,7 +289,7 @@ int enumFromString(const char *str, CSpan<const char *> strings, bool throw_on_i
 		TextFormatter all_strings;
 		for(int i = 0; i < strings.size(); i++)
 			all_strings("%s%s", strings[i], i + 1 < strings.size() ? " " : "");
-		THROW("Error when parsing enum: couldn't match \"%s\" to (%s)", str, all_strings.text());
+		THROW("Error when parsing enum: couldn't match \"%s\" to (%s)", str, all_strings.c_str());
 	}
 
 	return -1;
@@ -298,32 +308,6 @@ void BitVector::resize(int new_size, bool clear_value) {
 
 void BitVector::clear(bool value) {
 	memset(m_data.data(), value ? 0xff : 0, m_data.size() * sizeof(base_type));
-}
-
-string format(const char *format, ...) {
-	char buffer[4096];
-	va_list ap;
-	va_start(ap, format);
-	vsnprintf(buffer, sizeof(buffer), format, ap);
-	va_end(ap);
-	return string(buffer);
-}
-
-string simpleFormat(const char *format, const vector<string> &args) {
-	TextFormatter out;
-
-	DASSERT(std::count(format, format + strlen(format), '%') == (int)args.size());
-	int arg_id = 0;
-	for(const char *c = format; *c; c++) {
-		if(*c == '%') {
-			out("%s", arg_id >= args.size() ? "" : args[arg_id].c_str());
-			arg_id++;
-		} else {
-			out("%c", *c);
-		}
-	}
-
-	return out.text();
 }
 
 int StringRef::compare(const StringRef &rhs) const { return strcmp(m_data, rhs.m_data); }

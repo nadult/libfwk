@@ -1,3 +1,5 @@
+- cleanup in naming in TextFormatter (doFormat by default, stdFormat, ...)
+- fwk.h
 - MathObject concept is not so useful: figure out a better way to automatically generate
   +=, !=, >=, etc for given object
 
@@ -61,6 +63,8 @@
 - segment, box::empty -> degenerate ?
 - isnan checks in all math classes (paranoid in vectors as well ?)
 - copyable_ptr (unique_ptr but with copying ability (why the hell it doesn't have it?))
+- XML parsing can be really slow when errors are encoutered 
+- TextFormatter based on SmallVector...
 - profiler sux; fix it?
 - same algorithms on top of dynamic or static structure: ImmutableGraph, MutableGraph share with shared interface ?
 - remove math.h, etc from includes for ; On the other hand: they will end up in PCH anyway
@@ -121,7 +125,6 @@
 - makeRange z initializer_listy ?
 - klasa do flag (bazująca na zwykłym enumie)
 
-- Fix copyrights
 - Rename InputEvent::***Event -> InputEvent::***
 - support for multiple armatures in exporter; support for animation without armatures
 - make AnimaedMesh similar to AnimatedModel

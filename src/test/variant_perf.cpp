@@ -84,7 +84,7 @@ template <template <typename...> class T> void testVariantSimple(const char *nam
 		sum += visitor.size;
 	}
 
-	xmlPrint("Result: % Size: %\n", sum, sizeof(Type));
+	print("Result: % Size: %\n", sum, sizeof(Type));
 }
 
 template <template <typename...> class T> void testVariantBigger(const char *name) {
@@ -117,7 +117,7 @@ template <template <typename...> class T> void testVariantBigger(const char *nam
 		sum += visitor.size;
 	}
 
-	xmlPrint("Result: % Size: %\n", sum, sizeof(Type));
+	print("Result: % Size: %\n", sum, sizeof(Type));
 }
 
 int main() {
