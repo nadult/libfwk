@@ -7,8 +7,14 @@
 
 void testTextFormatter() {
 	TextFormatter fmt;
-	fmt("%d %x %s", 11, 0x20, "foobar");
+	fmt.stdFormat("%d %x %s", 11, 0x20, "foobar");
 	ASSERT(fmt.text() == string("11 20 foobar"));
+
+	bool array_of_bools[4] = {false, true, false, true};
+	ASSERT_EQ(toString(array_of_bools), string("false true false true"));
+
+	pair<int, double> some_pair = {10, 12.5};
+	ASSERT_EQ(toString(some_pair), string("10 12.5"));
 }
 
 template <class T> void testClassConversions(T value) {

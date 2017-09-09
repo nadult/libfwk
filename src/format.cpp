@@ -28,17 +28,15 @@ void TextFormatter::reserve(int capacity) {
 	new_data.swap(m_data);
 }
 
-void TextFormatter::operator()(const char *format, ...) {
+void TextFormatter::stdFormat(const char *format, ...) {
 	while(true) {
 		va_list ap;
 		va_start(ap, format);
 		int ret = vsnprintf(&m_data[m_offset], m_data.size() - m_offset, format, ap);
 		va_end(ap);
 
-		if(ret < 0) {
-			m_data[m_offset] = 0;
-			THROW("TextFormatter: error while encoding");
-		}
+		if(ret < 0)
+			FATAL("Error in vsnprintf(\"%s\"): errno: %s(%d)", format, strerror(errno), errno);
 
 		int new_offset = m_offset + ret;
 		if(new_offset + 1 <= m_data.size()) {
@@ -65,8 +63,13 @@ void TextFormatter::append(StringRef text) {
 	m_data[m_offset] = 0;
 }
 
+void TextFormatter::append(char c) {
+	char buf[2] = {c, 0};
+	append(buf);
+}
+
 void TextFormatter::append(double value) {
-	appendFmt(m_options.precision == FormatPrecision::maximum ? "%.17f" : "%f", value);
+	stdFormat(m_options.precision == FormatPrecision::maximum ? "%.17f" : "%f", value);
 
 	int pos = m_offset - 1;
 	while(pos >= 0 && m_data[pos] == '0')
@@ -77,7 +80,7 @@ void TextFormatter::append(double value) {
 }
 
 void TextFormatter::append(float value) {
-	appendFmt(m_options.precision == FormatPrecision::maximum ? "%.9f" : "%f", value);
+	stdFormat(m_options.precision == FormatPrecision::maximum ? "%.9f" : "%f", value);
 
 	int pos = m_offset - 1;
 	while(pos >= 0 && m_data[pos] == '0')
@@ -87,12 +90,12 @@ void TextFormatter::append(float value) {
 	m_data[m_offset = pos + 1] = 0;
 }
 
-void TextFormatter::append(int value) { appendFmt("%d", value); }
-void TextFormatter::append(uint value) { appendFmt("%u", value); }
-void TextFormatter::append(long value) { appendFmt("%ld", value); }
-void TextFormatter::append(unsigned long value) { appendFmt("%lu", value); }
-void TextFormatter::append(long long value) { appendFmt("%lld", value); }
-void TextFormatter::append(unsigned long long value) { appendFmt("%llu", value); }
+void TextFormatter::append(int value) { stdFormat("%d", value); }
+void TextFormatter::append(uint value) { stdFormat("%u", value); }
+void TextFormatter::append(long value) { stdFormat("%ld", value); }
+void TextFormatter::append(unsigned long value) { stdFormat("%lu", value); }
+void TextFormatter::append(long long value) { stdFormat("%lld", value); }
+void TextFormatter::append(unsigned long long value) { stdFormat("%llu", value); }
 void TextFormatter::append(bool value) { append(value ? "true" : "false"); }
 
 void TextFormatter::trim(int count) {
@@ -119,18 +122,6 @@ void TextFormatter::checkArgumentCount(const char *str, int num_arg) {
 			  num_arg, num_percent, str);
 }
 
-void TextFormatter::openGroup(FormatGroup group) {
-	if(m_options.mode == FormatMode::plain)
-		return;
-	append(group == FormatGroup::range ? "[" : "(");
-}
-
-void TextFormatter::closeGroup(FormatGroup group) {
-	if(m_options.mode == FormatMode::plain)
-		return;
-	append(group == FormatGroup::range ? "]" : ")");
-}
-
 string stdFormat(const char *format, ...) {
 	char buffer[4096];
 	va_list ap;
@@ -141,6 +132,7 @@ string stdFormat(const char *format, ...) {
 }
 
 void format(TextFormatter &out, const char *value) { out.append(value); }
+void format(TextFormatter &out, StringRef value) { out.append(value); }
 void format(TextFormatter &out, const string &value) { out.append(value); }
 
 void format(TextFormatter &out, bool value) { out.append(value); }
@@ -153,14 +145,14 @@ void format(TextFormatter &out, double value) { out.append(value); }
 void format(TextFormatter &out, float value) { out.append(value); }
 
 void format(TextFormatter &out, const int2 &value) {
-	out.appendFmt(out.options().mode == FormatMode::plain ? "%d %d" : "(%d, %d)", value.x, value.y);
+	out.stdFormat(out.options().mode == FormatMode::plain ? "%d %d" : "(%d, %d)", value.x, value.y);
 }
 void format(TextFormatter &out, const int3 &value) {
-	out.appendFmt(out.options().mode == FormatMode::plain ? "%d %d %d" : "(%d, %d, %d)", value.x,
+	out.stdFormat(out.options().mode == FormatMode::plain ? "%d %d %d" : "(%d, %d, %d)", value.x,
 				  value.y, value.z);
 }
 void format(TextFormatter &out, const int4 &value) {
-	out.appendFmt(out.options().mode == FormatMode::plain ? "%d %d %d %d" : "(%d, %d, %d, %d)",
+	out.stdFormat(out.options().mode == FormatMode::plain ? "%d %d %d %d" : "(%d, %d, %d, %d)",
 				  value.x, value.y, value.z, value.w);
 }
 
@@ -179,8 +171,8 @@ void format(TextFormatter &out, const DBox &value) { format<double3>(out, value)
 void format(TextFormatter &out, const IBox &value) { format<int3>(out, value); }
 
 void format(TextFormatter &out, const Matrix4 &matrix) {
-	out.doFormat(out.isStructured() ? "(%; %; %; %)" : "% % % %", matrix[0], matrix[1], matrix[2],
-				 matrix[3]);
+	out(out.isStructured() ? "(%; %; %; %)" : "% % % %", matrix[0], matrix[1], matrix[2],
+		matrix[3]);
 }
 
 void format(TextFormatter &out, const Quat &value) { format<float4>(out, float4(value)); }
@@ -207,6 +199,6 @@ void format(TextFormatter &out, qint value) {
 	buffer[pos] = 0;
 
 	std::reverse(buffer, buffer + pos);
-	out.appendFmt("%s", buffer);
+	out.append(buffer);
 }
 }

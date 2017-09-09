@@ -80,6 +80,7 @@ template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
 template <bool value, class T1, class T2>
 using Conditional = typename std::conditional<value, T1, T2>::type;
 template <class T> using RemoveConst = typename std::remove_const<T>::type;
+template <class T> using RemoveReference = typename std::remove_reference<T>::type;
 
 template <typename... Types> class Variant;
 

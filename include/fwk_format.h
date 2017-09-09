@@ -12,8 +12,6 @@ namespace fwk {
 DEFINE_ENUM(FormatMode, plain, structured);
 DEFINE_ENUM(FormatPrecision, adaptive, maximum);
 
-DEFINE_ENUM(FormatGroup, range, vector, structure);
-
 struct FormatOptions {
 	FormatMode mode = FormatMode::plain;
 	FormatPrecision precision = FormatPrecision::adaptive;
@@ -34,14 +32,9 @@ class TextFormatter {
 	TextFormatter(const TextFormatter &);
 	~TextFormatter();
 
-#ifdef __clang__
-	__attribute__((__format__(__printf__, 2, 3)))
-#endif
-	void
-	operator()(const char *format, ...);
-
 	void append(StringRef);
 	void append(const char *str) { append(StringRef(str)); }
+	void append(char);
 	void append(double);
 	void append(float);
 	void append(int);
@@ -66,45 +59,39 @@ class TextFormatter {
 	bool isStructured() const { return m_options.mode == FormatMode::structured; }
 	bool isPlain() const { return m_options.mode == FormatMode::plain; }
 
-	void openGroup(FormatGroup);
-	void closeGroup(FormatGroup);
-
-	// TODO: better naming
-	template <class... Args> void doFormat(const char *format_str, Args &&...);
-
-	template <class... Args> void appendFmt(const char *format_str, Args &&... args) {
-		while(true) {
-			int ret = snprintf(&m_data[m_offset], m_data.size() - m_offset, format_str,
-							   std::forward<Args>(args)...);
-			if(ret < 0)
-				FATAL("Error while snprintfing");
-
-			int new_offset = ret + m_offset;
-			if((new_offset + 1 <= m_data.size())) {
-				m_offset = new_offset;
-				return;
-			}
-
-			reserve(new_offset + 1);
-		}
+	// TODO: escapable % ?
+	template <class... Args> void operator()(const char *format_str, Args &&... args) {
+#ifndef NDEBUG
+		constexpr int num_arguments = ((isFormatType<Args>() ? 0 : 1) + ... + 0);
+		checkArgumentCount(format_str, num_arguments);
+#endif
+		(..., processArgument<Args>(format_str, std::forward<Args>(args)));
+		append(format_str);
 	}
+
+#ifdef __clang__
+	__attribute__((__format__(__printf__, 2, 3)))
+#endif
+	void
+	stdFormat(const char *format, ...);
 
   private:
 	static void checkArgumentCount(const char *format_str, int num_arg);
 	const char *nextElement(const char *format_str);
 
-	template <class Arg> void processArgument(const char *&format_str, Arg &&arg);
+	template <class Arg> void processArgument(const char *&format_str, Arg &&arg) {
+		if
+			constexpr(isFormatType<Arg>()) { m_options.set(std::forward<Arg>(arg)); }
+		else {
+			format_str = nextElement(format_str);
+			format(*this, std::forward<Arg>(arg));
+		}
+	}
 
 	PodArray<char> m_data;
 	int m_offset;
 	FormatOptions m_options;
 };
-
-// Czy te funkcje są odkryte czy nie?
-// Czy robie na f-ptrach ? PO CO?
-// Czy martwię się wydajnością? NIE, to co mamy jest wystaczające
-
-// TODO: te funkcje powinny sie nazywac inaczej...
 
 void format(TextFormatter &, StringRef);
 void format(TextFormatter &, const char *);
@@ -156,11 +143,10 @@ template <class T> using EnableIfFormattible = EnableIf<Formattible<T>::value, N
 
 template <class TRange, class T = RangeBase<TRange>, EnableIfFormattible<T>...>
 void format(TextFormatter &out, const TRange &range) {
-	bool is_structured = out.options().mode == FormatMode::structured;
+	const char *separator = out.isStructured() ? ", " : " ";
 
-	const char *separator = is_structured ? ", " : " ";
-
-	out.openGroup(FormatGroup::range);
+	if(out.isStructured())
+		out.append("[");
 	auto it = begin(range), it_end = end(range);
 	while(it != it_end) {
 		format(out, *it);
@@ -168,29 +154,37 @@ void format(TextFormatter &out, const TRange &range) {
 		if(it != it_end)
 			out.append(separator);
 	}
-	out.closeGroup(FormatGroup::range);
+	if(out.isStructured())
+		out.append("]");
 }
 
 template <class TVector, EnableIfVector<TVector>...>
 void format(TextFormatter &out, const TVector &vec) {
 	enum { N = TVector::vector_size };
 	if
-		constexpr(N == 2) out.doFormat(out.isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
+		constexpr(N == 2) out(out.isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
 	else if(N == 3)
-		out.doFormat(out.isStructured() ? "(%, %, %)" : "% % %", vec[0], vec[1], vec[2]);
+		out(out.isStructured() ? "(%, %, %)" : "% % %", vec[0], vec[1], vec[2]);
 	else if(N == 4)
-		out.doFormat(out.isStructured() ? "(%, %, %, %)" : "% % % %", vec[0], vec[1], vec[2],
-					 vec[3]);
+		out(out.isStructured() ? "(%, %, %, %)" : "% % % %", vec[0], vec[1], vec[2], vec[3]);
 	else
 		static_assert((N >= 2 && N <= 4), "Vector size not supported");
 }
 
 template <class T> void format(TextFormatter &out, const Box<T> &box) {
-	out.doFormat(out.isStructured() ? "(%; %)" : "% %", box.min(), box.max());
+	out(out.isStructured() ? "(%; %)" : "% %", box.min(), box.max());
+}
+
+template <class T1, class T2> void format(TextFormatter &out, const pair<T1, T2> &pair) {
+	out(out.isStructured() ? "(%; %)" : "% %", pair.first, pair.second);
+}
+
+template <class T, EnableIfEnum<T>...> void format(TextFormatter &out, T value) {
+	out.append(toString(value));
 }
 
 // TODO: default formatting mode ???
-template <class T, EnableIf<!isEnum<T>()>...> string toString(T value) {
+template <class T, EnableIf<!isEnum<RemoveReference<T>>()>...> string toString(T &&value) {
 	TextFormatter out;
 	format(out, std::forward<T>(value));
 	return out.text();
@@ -204,40 +198,20 @@ stdFormat(const char *format, ...);
 
 template <class... Args> string format(const char *str, Args &&... args) {
 	TextFormatter out;
-	out.doFormat(str, std::forward<Args>(args)...);
+	out(str, std::forward<Args>(args)...);
 	return out.text();
 }
 
 template <class... Args> void print(const char *str, Args &&... args) {
 	TextFormatter out(1024, {FormatMode::structured});
-	out.doFormat(str, std::forward<Args>(args)...);
+	out(str, std::forward<Args>(args)...);
 	fputs(out.c_str(), stdout);
 }
 
 template <class... Args> void printPlain(const char *str, Args &&... args) {
 	TextFormatter out(1024);
-	out.doFormat(str, std::forward<Args>(args)...);
+	out(str, std::forward<Args>(args)...);
 	fputs(out.c_str(), stdout);
-}
-
-// TODO: escapable % ?
-template <class... Args> void TextFormatter::doFormat(const char *format_str, Args &&... args) {
-	constexpr int num_arguments = ((isFormatType<Args>() ? 0 : 1) + ... + 0);
-#ifndef NDEBUG
-	checkArgumentCount(format_str, num_arguments);
-#endif
-
-	(..., processArgument<Args>(format_str, std::forward<Args>(args)));
-	append(format_str);
-}
-
-template <class Arg> void TextFormatter::processArgument(const char *&format_str, Arg &&arg) {
-	if
-		constexpr(isFormatType<Arg>()) { m_options.set(std::forward<Arg>(arg)); }
-	else {
-		format_str = nextElement(format_str);
-		format(*this, std::forward<Arg>(arg));
-	}
 }
 }
 

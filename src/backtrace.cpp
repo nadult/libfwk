@@ -38,9 +38,9 @@ namespace {
 		TextFormatter command;
 		command("addr2line ");
 		for(auto address : addresses)
-			command("%p ", address);
-		command("%s-e %s 2>/dev/null", funcs ? "-f -p " : "",
-				executablePath().relative(FilePath::current()).c_str());
+			command.stdFormat("%p ", address);
+		command("%-e % 2>/dev/null", funcs ? "-f -p " : "",
+				executablePath().relative(FilePath::current()));
 		return command.text();
 	}
 
@@ -279,8 +279,7 @@ string Backtrace::analyze(bool filter) const {
 #elif defined(FWK_TARGET_LINUX)
 	file_lines = analyzeAddresses(m_addresses);
 #elif defined(FWK_TARGET_MINGW)
-	formatter("Please run following command:\n%s | c++filt\n",
-			  analyzeCommand(m_addresses, true).c_str());
+	formatter("Please run following command:\n% | c++filt\n", analyzeCommand(m_addresses, true));
 #endif
 	if(!file_lines.empty()) {
 		int max_len = 0;
@@ -293,7 +292,7 @@ string Backtrace::analyze(bool filter) const {
 			tstring = tstring.substr(0, tstring.find('['));
 
 			string fmt = stdFormat("%%%ds %%s\n", max_len);
-			formatter(fmt.c_str(), file_line, tstring.c_str());
+			formatter.stdFormat(fmt.c_str(), file_line, tstring.c_str());
 		}
 	}
 

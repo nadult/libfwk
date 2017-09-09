@@ -71,8 +71,8 @@ class Viewer {
 					num_faces += node->mesh()->triangleCount();
 				}
 			FBox bbox = boundingBox();
-			fmt("Size: %.2f %.2f %.2f\n\n", bbox.width(), bbox.height(), bbox.depth());
-			fmt("Parts: %d  Verts: %d Faces: %d\n", num_parts, num_verts, num_faces);
+			fmt("Size: %\n\n", FormatMode::structured, bbox.size());
+			fmt("Parts: %  Verts: % Faces: %\n", num_parts, num_verts, num_faces);
 		}
 
 		Material makeMat(IColor col, bool line) {
@@ -175,7 +175,7 @@ class Viewer {
 			fcounts[dmesh.polyCount(vert)]++;
 		out("Faces/vert: ");
 		for(auto it : fcounts)
-			out("%d:%d ", it.first, it.second);
+			out("%:% ", it.first, it.second);
 		out("\n");
 	}
 
@@ -197,13 +197,11 @@ class Viewer {
 		renderer_3d.lines().addBox(model.boundingBox(pose), {ColorId::green}, matrix);
 
 		TextFormatter fmt;
-		fmt("Model: %s (%d / %d)\n", model.m_model_name.c_str(), m_current_model + 1,
-			(int)m_models.size());
-		// fmt("Texture: %s\n", !model.m_tex_name.empty() ? model.m_tex_name.c_str() : "none");
+		fmt("Model: % (% / %)\n", model.m_model_name, m_current_model + 1, m_models.size());
+		// fmt("Texture: %s\n", !model.m_tex_name.empty() ? model.m_tex_name : "none");
 		string anim_name =
 			m_current_anim == -1 ? "none" : model.m_model->anim(m_current_anim).name();
-		fmt("Animation: %s (%d / %d)\n", anim_name.c_str(), m_current_anim + 1,
-			(int)model.m_model->animCount());
+		fmt("Animation: % (% / %)\n", anim_name, m_current_anim + 1, model.m_model->animCount());
 		fmt("Help:\n");
 		fmt("M: change model\n");
 		fmt("A: change animation\n");
@@ -212,7 +210,7 @@ class Viewer {
 		fmt("pgup/pgdn: zoom\n\n");
 
 		model.printModelStats(fmt);
-		fmt("%s", Profiler::instance()->getStats("X").c_str());
+		fmt("%", Profiler::instance()->getStats("X"));
 
 		FontStyle style{ColorId::white, ColorId::black};
 		auto extents = m_font->evalExtents(fmt.text());

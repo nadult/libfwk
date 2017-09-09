@@ -141,13 +141,13 @@ PPose ModelAnim::animatePose(PPose initial_pose, double anim_pos) const {
 
 string ModelAnim::print() const {
 	TextFormatter out;
-	out("Anim: %s:", m_name.c_str());
+	out("Anim: %:", m_name);
 	for(const auto &channel : m_channels) {
 		const auto &time_track =
 			channel.time_track.empty() ? m_shared_time_track : channel.time_track;
-		out("  %12s: %d|", channel.node_name.c_str(), (int)time_track.size());
+		out.stdFormat("  %12s: %d|", channel.node_name.c_str(), (int)time_track.size());
 		for(float time : time_track)
-			out("%6.3f ", time);
+			out.stdFormat("%6.3f ", time);
 		out("\n");
 	}
 	return out.text();

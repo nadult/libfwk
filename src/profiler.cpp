@@ -102,7 +102,7 @@ const string Profiler::getStats(const char *filter) {
 		}
 
 		if(timer.values.empty()) {
-			out("%s: no samples\n", timer.name.c_str());
+			out("%: no samples\n", timer.name);
 			continue;
 		}
 
@@ -131,9 +131,9 @@ const string Profiler::getStats(const char *filter) {
 		}
 
 		TextFormatter line;
-		line("%s: %s", timer.name.c_str(), formatTime(shown_value).c_str());
+		line("%: %", timer.name.c_str(), formatTime(shown_value));
 		if(total != 0.0 && total != shown_value)
-			line(" [%s]", formatTime(total).c_str());
+			line(" [%]", formatTime(total));
 		line("\n");
 		lines.emplace_back(timer.is_rare, line.text());
 	}
@@ -150,7 +150,7 @@ const string Profiler::getStats(const char *filter) {
 
 	makeSorted(lines);
 	for(auto &pair : lines)
-		out("%s", pair.second.c_str());
+		out.append(pair.second);
 	lines.clear();
 
 	return out.text();

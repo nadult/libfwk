@@ -180,7 +180,7 @@ const char *Exception::what() const noexcept {
 
 	try {
 		TextFormatter fmt;
-		fmt("%s\nBacktrace:\n%s", text(), backtrace().c_str());
+		fmt("%\nBacktrace:\n%", text(), backtrace());
 		int len = min(fmt.length(), (int)arraySize(buffer) - 1);
 		memcpy(buffer, fmt.c_str(), len);
 		buffer[len] = 0;
@@ -286,10 +286,8 @@ int enumFromString(const char *str, CSpan<const char *> strings, bool throw_on_i
 			return n;
 
 	if(throw_on_invalid) {
-		TextFormatter all_strings;
-		for(int i = 0; i < strings.size(); i++)
-			all_strings("%s%s", strings[i], i + 1 < strings.size() ? " " : "");
-		THROW("Error when parsing enum: couldn't match \"%s\" to (%s)", str, all_strings.c_str());
+		THROW("Error when parsing enum: couldn't match \"%s\" to (%s)", str,
+			  toString(strings).c_str());
 	}
 
 	return -1;

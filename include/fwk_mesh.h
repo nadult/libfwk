@@ -295,7 +295,7 @@ class DynamicMesh {
 			out("(");
 			for(int i = 0; i < m_size; i++) {
 				auto pt = mesh.point(m_verts[i]);
-				out("%f:%f:%f%c", pt.x, pt.y, pt.z, i + 1 == m_size ? ')' : ' ');
+				out("%:%:%%", pt.x, pt.y, pt.z, i + 1 == m_size ? ')' : ' ');
 			}
 			return (string)out.text();
 		}

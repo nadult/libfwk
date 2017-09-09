@@ -24,8 +24,8 @@ void Stream::handleException(const Exception &ex) {
 	m_exception_thrown = 1;
 
 	TextFormatter out;
-	out("While %s stream \"%s\" at position %lld/%lld:\n%s",
-		(m_is_loading ? "loading from" : "saving to"), name(), m_pos, m_size, ex.text());
+	out("While % stream \"%\" at position %/%:\n%", (m_is_loading ? "loading from" : "saving to"),
+		name(), m_pos, m_size, ex.text());
 
 #ifdef FWK_TARGET_HTML5
 	printf("%s\n", out.text());

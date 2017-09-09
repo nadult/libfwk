@@ -1,4 +1,8 @@
-- cleanup in naming in TextFormatter (doFormat by default, stdFormat, ...)
+- IMprove asserts:
+  - _eq(string(), "") should work
+
+- Use Formattible in more places?
+- format for all math objects
 - fwk.h
 - MathObject concept is not so useful: figure out a better way to automatically generate
   +=, !=, >=, etc for given object
@@ -12,7 +16,6 @@
 
 - Still more advanced asserts would be useful?
 - check if gdb is already attached and behave properly in such cases
-- qint toString still doesn't work...
 - ujednolicić: Ray3F, IBox
 - inRange(value, begin, end): value >= begin && value < end
 - porównania rationali można wykonać w takiej samej dokładności (RTCD: 457)
@@ -24,24 +27,23 @@
    add type: FiniteFloat (float which is not a nan and is not an infinity)
 
 - konwersja kolor na bool (!= ColorId::transparent)
+- wolna konwersja kolorów z ColorId
 - fwk_assert powinno być ogólno dostępne, tak żeby wszędzie z tego korzystać
 - DASSERTY często nie wystarczają; chcielibyśmy mieć dokładniesze informacje (jakie dane konkretnie są zepsute?)
 - możliwość dodania suffixa do ścieżki FilePath (+em?)
 - specjalizacje dla Maybe: niektóre typy mogą mieć zdefiniowane niepoprawne wartości
   które można używać zamiast boola!
 - konwersja vector na bool (czy pusty)
-- można robić struktury drzewiaste bazujące na wektorach!
+- można robić struktury drzewiaste bazujące na wektorach! (tak jak robiłeś listę bazując na dwóch wektorach, tak samo
+  możesz zrobić z drzewem)
 
 - Promienie bazujące na intach mogą być zaprezentowane za pomocą segmentów; dzięki temu nie
   potrzebne są Rationale
 
 - length_sq in ISegment ?
-- fix problems with abs for all basic types (llint, qint, llint2, ...)
 - consider dropping exceptions altogether (find alternatives for situations in which you're using them)
-- isnan wszedzie, zeby nie marnowac czasu na glupie debugowanie...
 - attach GDB on Ctrl-C
 - make sure that there are no side-effects of running two main loops
-- distanceSq -> quadrance ?
 - Box<T, N> as other classes ?
 - move SerializeAsPod to namespace detail
 - make default serialize_as_pod be based on is_trivially_copyable / etc.
@@ -50,13 +52,6 @@
 - change order in FWK_ORDER_BY for vectors ?
 - move box to fwk_box ?
 - warning in Variant (type punning) on g++ mingw
-
-- toString:
-  - bool values[4]
-  - pair<>
-  - Ranges in general
-  - to xml, to text, separator support for ranges ?
-  - think it through
 
 - cleanup colors (where ICOLOR, where FColor should be used); Conversion ColorId -> IColor
   FCOLOr sux (operations only on alpha part or only on color part)
@@ -69,7 +64,7 @@
 - same algorithms on top of dynamic or static structure: ImmutableGraph, MutableGraph share with shared interface ?
 - remove math.h, etc from includes for ; On the other hand: they will end up in PCH anyway
 - operator== for CRanges ?
-- toString, fromString for enums ?
+- fromString for enums ?
 
 - ref(vector) returns vector<> with reference flag acts as a reference to a vector
   keeping ref(vector) in local context can be more efficient than keeping reference
@@ -104,14 +99,11 @@
 - model_viewer.exe displays models in different order (findFiles function must be working differently)
 
 - better std::pair ?
-- extendible xml:: toString fromString ?
 - better tests for vector? Use tests from libc++ or something?
 - rapidxml is allocating with std::new (exceptions aren't caught)
 - Add some PASSERTs to fwk vector?
 - Make custom string class (not a template)
 - Variant uses operator new for non-POD types...
-- dont use printf, make TextFormatter use xmlVersions, add formatRange(..) which adds, [], ();
-  what about other goodies from printfs?
 - max & min should accept multiple arguments and ranges
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
@@ -172,7 +164,6 @@
 - ModelNodes should be more flexible when creating (no need for empty root node, nodes with empty names should be ok, etc.)
 
 - when printing strings to XML, library should check if restricted characters are not used by accident (&, <, >)
-- separate XMLFormatter from TextFormatter
 
 - Fix texture loaders so that they wont have to be inlined in texture.cpp
 - Add tests for SimpleMesh operations
