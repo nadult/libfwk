@@ -228,9 +228,10 @@ template <class T, int min_size = 0> class Span {
 	T *data() const noexcept { return m_data; }
 	int size() const noexcept { return m_size; }
 	bool empty() const noexcept { return m_size == 0; }
+	bool inRange(int idx) const noexcept { return fwk::inRange(idx, 0, m_size); }
 
 	T &operator[](int idx) const {
-		PASSERT(idx >= 0 && idx < m_size);
+		PASSERT(inRange(idx));
 		return m_data[idx];
 	}
 

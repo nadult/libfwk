@@ -105,8 +105,14 @@ struct int2 {
 	int2 operator%(int s) const { return {x % s, y % s}; }
 	int2 operator-() const { return {-x, -y}; }
 
-	int &operator[](int idx) { return v[idx]; }
-	const int &operator[](int idx) const { return v[idx]; }
+	int &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 2));
+		return v[idx];
+	}
+	const int &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 2));
+		return v[idx];
+	}
 
 	FWK_ORDER_BY(int2, x, y)
 
@@ -142,8 +148,14 @@ struct int3 {
 	int2 xz() const { return {x, z}; }
 	int2 yz() const { return {y, z}; }
 
-	int &operator[](int idx) { return v[idx]; }
-	const int &operator[](int idx) const { return v[idx]; }
+	int &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 3));
+		return v[idx];
+	}
+	const int &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 3));
+		return v[idx];
+	}
 
 	FWK_ORDER_BY(int3, x, y, z)
 
@@ -173,8 +185,14 @@ struct int4 {
 	int4 operator/(int s) const { return {x / s, y / s, z / s, w / s}; }
 	int4 operator-() const { return {-x, -y, -z, -w}; }
 
-	int &operator[](int idx) { return v[idx]; }
-	const int &operator[](int idx) const { return v[idx]; }
+	int &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 4));
+		return v[idx];
+	}
+	const int &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 4));
+		return v[idx];
+	}
 
 	FWK_ORDER_BY(int4, x, y, z, w)
 
@@ -209,8 +227,14 @@ struct float2 {
 	float2 operator/(float s) const { return *this * (1.0f / s); }
 	float2 operator-() const { return {-x, -y}; }
 
-	float &operator[](int idx) { return v[idx]; }
-	const float &operator[](int idx) const { return v[idx]; }
+	float &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 2));
+		return v[idx];
+	}
+	const float &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 2));
+		return v[idx];
+	}
 
 	FWK_ORDER_BY(float2, x, y)
 
@@ -245,8 +269,14 @@ struct float3 {
 	float3 operator/(float s) const { return *this * (1.0f / s); }
 	float3 operator-() const { return {-x, -y, -z}; }
 
-	float &operator[](int idx) { return v[idx]; }
-	const float &operator[](int idx) const { return v[idx]; }
+	float &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 3));
+		return v[idx];
+	}
+	const float &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 3));
+		return v[idx];
+	}
 
 	float2 xy() const { return {x, y}; }
 	float2 xz() const { return {x, z}; }
@@ -295,8 +325,14 @@ struct float4 {
 	float4 operator/(float s) const { return *this * (1.0f / s); }
 	float4 operator-() const { return {-x, -y, -z, -w}; }
 
-	float &operator[](int idx) { return v[idx]; }
-	const float &operator[](int idx) const { return v[idx]; }
+	float &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 4));
+		return v[idx];
+	}
+	const float &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 4));
+		return v[idx];
+	}
 
 	float2 xy() const { return {x, y}; }
 	float2 xz() const { return {x, z}; }
@@ -342,8 +378,14 @@ struct double2 {
 	double2 operator/(double s) const { return *this * (1.0f / s); }
 	double2 operator-() const { return double2(-x, -y); }
 
-	double &operator[](int idx) { return v[idx]; }
-	const double &operator[](int idx) const { return v[idx]; }
+	double &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 2));
+		return v[idx];
+	}
+	const double &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 2));
+		return v[idx];
+	}
 
 	FWK_ORDER_BY(double2, x, y)
 
@@ -380,8 +422,14 @@ struct double3 {
 	double3 operator/(double s) const { return *this * (1.0f / s); }
 	double3 operator-() const { return double3(-x, -y, -z); }
 
-	double &operator[](int idx) { return v[idx]; }
-	const double &operator[](int idx) const { return v[idx]; }
+	double &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 3));
+		return v[idx];
+	}
+	const double &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 3));
+		return v[idx];
+	}
 
 	double2 xy() const { return double2(x, y); }
 	double2 xz() const { return double2(x, z); }
@@ -434,8 +482,14 @@ struct double4 {
 	double4 operator/(double s) const { return *this * (1.0f / s); }
 	double4 operator-() const { return double4(-x, -y, -z, -w); }
 
-	double &operator[](int idx) { return v[idx]; }
-	const double &operator[](int idx) const { return v[idx]; }
+	double &operator[](int idx) {
+		PASSERT(inRange(idx, 0, 4));
+		return v[idx];
+	}
+	const double &operator[](int idx) const {
+		PASSERT(inRange(idx, 0, 4));
+		return v[idx];
+	}
 
 	double2 xy() const { return double2(x, y); }
 	double2 xz() const { return double2(x, z); }

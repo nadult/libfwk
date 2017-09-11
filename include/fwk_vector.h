@@ -137,16 +137,16 @@ template <class T> class Vector {
 		rhs.clear();
 	}
 
-	bool validIndex(int idx) const { return idx >= 0 && idx < m_base.size; }
+	bool inRange(int idx) const { return idx >= 0 && idx < m_base.size; }
 	const T *data() const { return reinterpret_cast<const T *>(m_base.data); }
 	T *data() { return reinterpret_cast<T *>(m_base.data); }
 
 	T &operator[](int idx) {
-		PASSERT(validIndex(idx));
+		PASSERT(inRange(idx));
 		return data()[idx];
 	}
 	const T &operator[](int idx) const {
-		PASSERT(validIndex(idx));
+		PASSERT(inRange(idx));
 		return data()[idx];
 	}
 

@@ -1,3 +1,4 @@
+- Protection from FATAL, THROW and failed assertions when Bactraces are generated ?
 - Use Formattible in more places?
 - format for all math objects
 - MathObject concept is not so useful: figure out a better way to automatically generate

@@ -74,6 +74,11 @@ template <long long... V> struct UndefinedVal;
 
 template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
 
+template <class T, class T1, class T2>
+constexpr bool inRange(const T &value, const T1 &begin, const T2 &end) {
+	return value >= begin && value < end;
+}
+
 template <class T1, class T2> constexpr bool isSame() { return std::is_same<T1, T2>::value; }
 template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
 
@@ -83,15 +88,6 @@ template <class T> using RemoveConst = typename std::remove_const<T>::type;
 template <class T> using RemoveReference = typename std::remove_reference<T>::type;
 
 template <typename... Types> class Variant;
-
-/*
-template <class T1, class T2> bool operator==(const shared_ptr<T1> &lhs, const T2 *rhs) {
-	return lhs.get() == rhs;
-}
-template <class T1, class T2> bool operator==(const T1 *lhs, const shared_ptr<T2> &rhs) {
-	return lhs == rhs.get();
-}
-*/
 
 template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
@@ -451,7 +447,7 @@ class StringRef {
   public:
 	StringRef(const string &str) : m_data(str.c_str()), m_length((int)str.size()) {}
 	StringRef(const char *str, int length) : m_data(str ? str : ""), m_length(length) {
-		PASSERT((int)strlen(str) == length);
+		PASSERT((int)strlen(str) >= length);
 	}
 	StringRef(const char *str) {
 		if(!str)
@@ -1197,6 +1193,7 @@ template <class T> class PodArray {
 		m_data = nullptr;
 	}
 	bool empty() const { return m_size == 0; }
+	bool inRange(int index) const { return fwk::inRange(index, 0, m_size); }
 
 	T *data() { return m_data; }
 	const T *data() const { return m_data; }
@@ -1207,8 +1204,14 @@ template <class T> class PodArray {
 	T *end() { return m_data + m_size; }
 	const T *end() const { return m_data + m_size; }
 
-	T &operator[](int idx) { return m_data[idx]; }
-	const T &operator[](int idx) const { return m_data[idx]; }
+	T &operator[](int idx) {
+		PASSERT(inRange(idx));
+		return m_data[idx];
+	}
+	const T &operator[](int idx) const {
+		PASSERT(inRange(idx));
+		return m_data[idx];
+	}
 
 	int size() const { return m_size; }
 	int dataSize() const { return m_size * (int)sizeof(T); }
@@ -1281,10 +1284,14 @@ class BitVector {
 	PodArray<base_type> &data() { return m_data; }
 
 	bool operator[](int idx) const {
+		PASSERT(inRange(idx, 0, m_size));
 		return m_data[idx >> base_shift] & (1 << (idx & (base_size - 1)));
 	}
 
-	Bit operator[](int idx) { return Bit(m_data[idx >> base_shift], idx & (base_size - 1)); }
+	Bit operator[](int idx) {
+		PASSERT(inRange(idx, 0, m_size));
+		return Bit(m_data[idx >> base_shift], idx & (base_size - 1));
+	}
 
 	bool any(int base_idx) const { return m_data[base_idx] != base_type(0); }
 
