@@ -10,13 +10,13 @@ namespace fwk {
 
 namespace detail {
 
-	template <class T>
-	void assertFailedBinary(const char *, int, const char *, const char *, const char *, const T &,
-							const T &) NOINLINE NORETURN;
+	template <class T1, class T2>
+	void assertFailedBinary(const char *, int, const char *, const char *, const char *, const T1 &,
+							const T2 &) NOINLINE NORETURN;
 
-	template <class T>
+	template <class T1, class T2>
 	void assertFailedBinary(const char *file, int line, const char *op, const char *str1,
-							const char *str2, const T &v1, const T &v2) {
+							const char *str2, const T1 &v1, const T2 &v2) {
 		assertFailed(file, line, format("%:% % %:%", str1, v1, op, str2, v2).c_str());
 	}
 

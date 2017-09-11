@@ -1,14 +1,9 @@
-- IMprove asserts:
-  - _eq(string(), "") should work
-
 - Use Formattible in more places?
 - format for all math objects
-- fwk.h
 - MathObject concept is not so useful: figure out a better way to automatically generate
   +=, !=, >=, etc for given object
 
 - drop exception support
-- include fwk_assert in fwk.h
 - make it 64 bit only (drop boost::mpc and add x,y,z in vector3?) fix qint2 as well
 - #define constexpr_if ?? maybe just download latest clang format ?
 - function arguments could have invariants in them:

@@ -15,5 +15,6 @@
 #include "fwk_format.h"
 #include "fwk_parse.h"
 #include "fwk_xml.h"
+#include "fwk_assert.h"
 
 #endif

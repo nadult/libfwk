@@ -11,10 +11,10 @@ void testTextFormatter() {
 	ASSERT(fmt.text() == string("11 20 foobar"));
 
 	bool array_of_bools[4] = {false, true, false, true};
-	ASSERT_EQ(toString(array_of_bools), string("false true false true"));
+	ASSERT_EQ(toString(array_of_bools), "false true false true");
 
 	pair<int, double> some_pair = {10, 12.5};
-	ASSERT_EQ(toString(some_pair), string("10 12.5"));
+	ASSERT_EQ(toString(some_pair), "10 12.5");
 }
 
 template <class T> void testClassConversions(T value) {
@@ -50,16 +50,16 @@ void testXMLConverters() {
 	testClassConversions(Matrix4::identity());
 	testClassConversions(Quat(1.0, 0.0f, 0.0f, 2.0f));
 
-	ASSERT(fromString<vector<int>>("1 2 3 4 5") == vector<int>({1, 2, 3, 4, 5}));
-	ASSERT(fromString<float2>("100 \r\t\n  1") == float2(100, 1));
+	ASSERT_EQ(fromString<vector<int>>("1 2 3 4 5"), vector<int>({1, 2, 3, 4, 5}));
+	ASSERT_EQ(fromString<float2>("100 \r\t\n  1"), float2(100, 1));
 
-	ASSERT(fromString<vector<float2>>("1 2 4 5.5") == vector<float2>({{1, 2}, {4, 5.5}}));
-	ASSERT(toString(vector<int>().size()) == string("0"));
+	ASSERT_EQ(fromString<vector<float2>>("1 2 4 5.5"), vector<float2>({{1, 2}, {4, 5.5}}));
+	ASSERT_EQ(toString(vector<int>().size()), "0");
 
-	ASSERT(toString(vector<int>({4, 5, 6, 7, 8})) == "4 5 6 7 8");
-	ASSERT(toString(vector<float>({1, 2, 3, 4.5, 5.5, 6})) == "1 2 3 4.5 5.5 6");
-	ASSERT(toString("foo") == "foo");
-	ASSERT(toString(short(10)) == "10");
+	ASSERT_EQ(toString(vector<int>({4, 5, 6, 7, 8})), "4 5 6 7 8");
+	ASSERT_EQ(toString(vector<float>({1, 2, 3, 4.5, 5.5, 6})), "1 2 3 4.5 5.5 6");
+	ASSERT_EQ(toString("foo"), "foo");
+	ASSERT_EQ(toString(short(10)), "10");
 
 	ASSERT_EXCEPTION(fromString<vector<int>>("1 2a 3"));
 	ASSERT_EXCEPTION(fromString<bool>("foobar"));
