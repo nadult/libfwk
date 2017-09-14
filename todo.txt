@@ -1,3 +1,7 @@
+- Box & EnableInDimension doesn't support 4th dimension
+- Overloading format(TextFormatter&, T) in some namespace may cause trouble when calling
+  format from fwk...
+
 - Protection from FATAL, THROW and failed assertions when Bactraces are generated ?
 - Use Formattible in more places?
 - format for all math objects

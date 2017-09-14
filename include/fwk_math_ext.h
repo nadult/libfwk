@@ -212,6 +212,7 @@ using qint4 = vector4<qint>;
 
 namespace detail {
 	template <> struct IsIntegral<qint> : public std::true_type {};
+
 	template <> struct MakeVector<llint, 2> { using type = llint2; };
 	template <> struct MakeVector<qint, 2> { using type = qint2; };
 	template <> struct MakeVector<short, 3> { using type = short3; };
@@ -221,33 +222,61 @@ namespace detail {
 	template <> struct MakeVector<llint, 4> { using type = llint4; };
 	template <> struct MakeVector<qint, 4> { using type = qint4; };
 
-	template <class T, class Enable = void> struct PromoteIntegral {
-	  private:
-		static auto resolve() {
-			if
-				constexpr(isVector<T>()) {
-					using Promoted = typename PromoteIntegral<typename T::Scalar>::type;
-					return fwk::MakeVector<Promoted, T::vector_size>();
-				}
-			else
-				return T();
-		}
+	template <class T, class Enable = void> struct Promotion { using type = T; };
 
-	  public:
-		using type = decltype(resolve());
+	template <class From, class To> struct PreciseConversion {
+		static constexpr bool resolve() {
+			if
+				constexpr(isSame<From, To>()) return true;
+			using PFrom = typename Promotion<From>::type;
+			if
+				constexpr(!isSame<PFrom, From>()) return PreciseConversion<PFrom, To>::value;
+			return false;
+		}
+		enum { value = resolve() };
 	};
 
 #define PROMOTION(base, promoted)                                                                  \
-	template <> struct PromoteIntegral<base> { using type = promoted; };
+	template <> struct Promotion<base> { using type = promoted; };
+#define PRECISE(from, to)                                                                          \
+	template <> struct PreciseConversion<from, to> {                                               \
+		enum { value = true };                                                                     \
+	};
 
 	PROMOTION(short, int);
 	PROMOTION(int, llint);
 	PROMOTION(llint, qint);
+	PROMOTION(float, double);
+
+	PRECISE(short, float)
+	PRECISE(int, double)
+	PRECISE(float, double)
+
+// TODO: long doubles support?
 
 #undef PROMOTION
+#undef PRECISE
+
+	template <class T> auto promote() {
+		if
+			constexpr(isVector<T>()) {
+				using Promoted = typename Promotion<typename T::Scalar>::type;
+				return fwk::MakeVector<Promoted, T::vector_size>();
+			}
+		else
+			return typename detail::Promotion<T>::type();
+	}
 }
 
-template <class T> using PromoteIntegral = typename detail::PromoteIntegral<T>::type;
+template <class From, class To> constexpr bool preciseConversion() {
+	if
+		constexpr(isVector<From>() && isVector<To>()) return From::vector_size == To::vector_size &&
+			detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
+	return detail::PreciseConversion<From, To>::value;
+};
+
+template <class T> using Promote = decltype(detail::promote<T>());
+template <class T> using PromoteIntegral = Conditional<isIntegral<T>(), Promote<T>, T>;
 
 void format(TextFormatter &, qint);
 }

@@ -598,6 +598,7 @@ namespace detail {
 
 template <class T> constexpr bool isReal() { return detail::IsReal<T>::value; }
 template <class T> constexpr bool isIntegral() { return detail::IsIntegral<T>::value; }
+template <class T> constexpr bool isRational() { return detail::IsRational<T>::value; }
 template <class T> constexpr bool isScalar() { return detail::IsScalar<T>::value; }
 
 template <class T> constexpr bool isRealObject() {
@@ -625,6 +626,9 @@ template <class T, int N = 0> constexpr bool isRationalOrRealVector() {
 }
 template <class T, int N = 0> constexpr bool isIntegralVector() {
 	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_integral;
+}
+template <class T, int N = 0> constexpr bool isRationalVector() {
+	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_rational;
 }
 
 template <class T> using EnableIfScalar = EnableIf<isScalar<T>(), NotAScalar>;

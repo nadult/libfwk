@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_assert.h"
+#include "fwk_math_ext.h"
 #include "fwk_variant.h"
 #include "testing.h"
 
@@ -275,6 +276,14 @@ void testHash() {
 	// TODO: better test ?
 }
 
+void testTraits() {
+	static_assert(preciseConversion<qint, qint>());
+	static_assert(preciseConversion<int2, llint2>());
+	static_assert(!preciseConversion<llint2, double2>());
+	static_assert(isSame<Promote<llint>, qint>());
+	static_assert(isSame<Promote<float>, double>());
+}
+
 void testMain() {
 	FBox box({0, -100, 0}, {1200, 100, 720});
 	FBox temp({32, 0, 32}, {64, 0.5f, 64});
@@ -287,6 +296,7 @@ void testMain() {
 	test3DIntersections();
 	testVectorAngles();
 	testHash();
+	testTraits();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec.values())
