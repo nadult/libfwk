@@ -282,6 +282,9 @@ void testTraits() {
 	static_assert(!preciseConversion<llint2, double2>());
 	static_assert(isSame<Promote<llint>, qint>());
 	static_assert(isSame<Promote<float>, double>());
+
+	static_assert(isSame<PromoteIntegral<float>, float>());
+	static_assert(isSame<PromoteIntegral<int2>, llint2>());
 }
 
 void testMain() {

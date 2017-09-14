@@ -1,3 +1,6 @@
+- Improve commiting process? That would require working on branches and rebasing stuff
+  from time to time; But the only reason is to keep the history clean...
+
 - Box & EnableInDimension doesn't support 4th dimension
 - Overloading format(TextFormatter&, T) in some namespace may cause trouble when calling
   format from fwk...

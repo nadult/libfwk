@@ -275,7 +275,8 @@ template <class From, class To> constexpr bool preciseConversion() {
 };
 
 template <class T> using Promote = decltype(detail::promote<T>());
-template <class T> using PromoteIntegral = Conditional<isIntegral<T>(), Promote<T>, T>;
+template <class T>
+using PromoteIntegral = Conditional<isIntegral<T>() || isIntegralVector<T>(), Promote<T>, T>;
 
 void format(TextFormatter &, qint);
 }
