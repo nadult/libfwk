@@ -517,7 +517,7 @@ struct NotAReal;
 struct NotAIntegral;
 struct NotAScalar;
 struct NotAMathObject;
-template <int N> struct NotAVector;
+template <int N> struct NotAValidVector;
 
 namespace detail {
 
@@ -552,7 +552,7 @@ namespace detail {
 				is_rational = IsRational<Scalar>::value
 			};
 		};
-		using RetError = NotAVector<N>;
+		using RetError = NotAValidVector<N>;
 		struct Zero {
 			enum { size = 0, is_real = 0, is_integral = 0, is_rational = 0 };
 		};
@@ -574,7 +574,7 @@ namespace detail {
 	};
 
 	// TODO: better name? also differentiate from fwk::vector
-	template <class T, int N> struct MakeVector { using type = NotAVector<0>; };
+	template <class T, int N> struct MakeVector { using type = NotAValidVector<0>; };
 	template <> struct MakeVector<short, 2> { using type = short2; };
 	template <> struct MakeVector<int, 2> { using type = int2; };
 	template <> struct MakeVector<int, 3> { using type = int3; };
@@ -633,13 +633,13 @@ template <class T> using EnableIfIntegral = EnableIf<isIntegral<T>(), NotAIntegr
 
 template <class T> using EnableIfMathObject = EnableIf<isMathObject<T>(), NotAMathObject>;
 
-template <class T, int N = 0> using EnableIfVector = EnableIf<isVector<T, N>(), NotAVector<N>>;
+template <class T, int N = 0> using EnableIfVector = EnableIf<isVector<T, N>(), NotAValidVector<N>>;
 template <class T, int N = 0>
-using EnableIfRealVector = EnableIf<isRealVector<T, N>(), NotAVector<N>>;
+using EnableIfRealVector = EnableIf<isRealVector<T, N>(), NotAValidVector<N>>;
 template <class T, int N = 0>
-using EnableIfRationalOrRealVector = EnableIf<isRationalOrRealVector<T, N>(), NotAVector<N>>;
+using EnableIfRationalOrRealVector = EnableIf<isRationalOrRealVector<T, N>(), NotAValidVector<N>>;
 template <class T, int N = 0>
-using EnableIfIntegralVector = EnableIf<isIntegralVector<T, N>(), NotAVector<N>>;
+using EnableIfIntegralVector = EnableIf<isIntegralVector<T, N>(), NotAValidVector<N>>;
 
 template <class T, int N>
 using MakeVector = typename detail::MakeVector<typename detail::GetScalar<T>::type, N>::type;
