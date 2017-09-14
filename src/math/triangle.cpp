@@ -26,8 +26,8 @@ Triangle3F operator*(const Matrix4 &mat, const Triangle3F &tri) {
 }
 
 template <class T, int N> T Triangle<T, N>::surfaceArea() const {
-	if
-		constexpr(N == 2) return std::abs(cross(v[1] - v[0], v[2] - v[0])) / T(2);
+	if constexpr(N == 2)
+		return std::abs(cross(v[1] - v[0], v[2] - v[0])) / T(2);
 	else
 		return length(cross(v[1] - v[0], v[2] - v[0])) / T(2);
 }
@@ -66,11 +66,10 @@ template <class T, int N> auto Triangle<T, N>::sampleEven(float density) const -
 template <class T, int N>
 // Source: realtimecollisiondetection (book)
 auto Triangle<T, N>::closestPoint(const Point &point) const -> Point {
-	if
-		constexpr(dim_size == 2) {
-			// TODO: optimize me
-			return Triangle3<T>{asXZ(v[0]), asXZ(v[1]), asXZ(v[2])}.closestPoint(asXZ(point)).xz();
-		}
+	if constexpr(dim_size == 2) {
+		// TODO: optimize me
+		return Triangle3<T>{asXZ(v[0]), asXZ(v[1]), asXZ(v[2])}.closestPoint(asXZ(point)).xz();
+	}
 
 	// Check if P in vertex region outside A
 	Vector ab = v[1] - v[0];
@@ -130,21 +129,19 @@ template <class T, int N> T Triangle<T, N>::distance(const Point &point) const {
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
 Triangle2<T> Triangle<T, N>::projection2D() const {
-	if
-		constexpr(!std::is_same<T, float>::value) {
-			FATAL("Please fix me!");
-			return {};
-		}
-	else {
+	if constexpr(!std::is_same<T, float>::value) {
+		FATAL("Please fix me!");
+		return {};
+	} else {
 		Projection proj(*this);
 		return {(proj * v[0]).xz(), (proj * v[1]).xz(), (proj * v[2]).xz()};
 	}
 }
 
 template <class T, int N> array<T, 3> Triangle<T, N>::angles() const {
-	if
-		constexpr(dim_size == 3) { return projection2D().angles(); }
-	else {
+	if constexpr(dim_size == 3) {
+		return projection2D().angles();
+	} else {
 		array<T, 3> out;
 		// TODO: verify this
 		Vector dirs[3];

@@ -65,13 +65,12 @@ template <class T, int N> IsectParam<T> Ray<T, N>::isectParam(const Box<Vector> 
 	lmin = max(lmin, min(l1, l2));
 	lmax = min(lmax, max(l1, l2));
 
-	if
-		constexpr(N == 3) {
-			l1 = inv_dir.z * (box.z() - m_origin.z);
-			l2 = inv_dir.z * (box.ez() - m_origin.z);
-			lmin = max(lmin, min(l1, l2));
-			lmax = min(lmax, max(l1, l2));
-		}
+	if constexpr(N == 3) {
+		l1 = inv_dir.z * (box.z() - m_origin.z);
+		l2 = inv_dir.z * (box.ez() - m_origin.z);
+		lmin = max(lmin, min(l1, l2));
+		lmax = min(lmax, max(l1, l2));
+	}
 
 	if(lmin > lmax)
 		return {};

@@ -226,11 +226,11 @@ namespace detail {
 
 	template <class From, class To> struct PreciseConversion {
 		static constexpr bool resolve() {
-			if
-				constexpr(isSame<From, To>()) return true;
+			if constexpr(isSame<From, To>())
+				return true;
 			using PFrom = typename Promotion<From>::type;
-			if
-				constexpr(!isSame<PFrom, From>()) return PreciseConversion<PFrom, To>::value;
+			if constexpr(!isSame<PFrom, From>())
+				return PreciseConversion<PFrom, To>::value;
 			return false;
 		}
 		enum { value = resolve() };
@@ -252,26 +252,25 @@ namespace detail {
 	PRECISE(int, double)
 	PRECISE(float, double)
 
-// TODO: long doubles support?
+	// TODO: long doubles support?
 
 #undef PROMOTION
 #undef PRECISE
 
 	template <class T> auto promote() {
-		if
-			constexpr(isVector<T>()) {
-				using Promoted = typename Promotion<typename T::Scalar>::type;
-				return fwk::MakeVector<Promoted, T::vector_size>();
-			}
-		else
+		if constexpr(isVector<T>()) {
+			using Promoted = typename Promotion<typename T::Scalar>::type;
+			return fwk::MakeVector<Promoted, T::vector_size>();
+		} else {
 			return typename detail::Promotion<T>::type();
+		}
 	}
 }
 
 template <class From, class To> constexpr bool preciseConversion() {
-	if
-		constexpr(isVector<From>() && isVector<To>()) return From::vector_size == To::vector_size &&
-			detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
+	if constexpr(isVector<From>() && isVector<To>())
+		return From::vector_size == To::vector_size &&
+			   detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
 	return detail::PreciseConversion<From, To>::value;
 };
 

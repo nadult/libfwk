@@ -734,8 +734,8 @@ template <class T, EnableIfVector<T>...> T vclamp(const T &vec, const T &tmin, c
 inline double inv(double s) { return 1.0 / s; }
 inline float inv(float s) { return 1.0f / s; }
 
-using std::floor;
 using std::ceil;
+using std::floor;
 
 inline int abs(int s) { return std::abs(s); }
 inline double abs(double s) { return std::abs(s); }
@@ -1969,11 +1969,9 @@ array<pair<float3, float3>, 12> edges(const FBox &);
 array<float3, 8> verts(const FBox &);
 
 template <class T> constexpr bool isEnclosable() {
-	if
-		constexpr(isMathObject<T>() && !isVector<T>()) {
-			return isSame<decltype(enclose(std::declval<T>())), Box<typename T::Vector>>();
-		}
-	else {
+	if constexpr(isMathObject<T>() && !isVector<T>()) {
+		return isSame<decltype(enclose(std::declval<T>())), Box<typename T::Vector>>();
+	} else {
 		return false;
 	}
 }

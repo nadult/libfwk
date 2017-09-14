@@ -10,7 +10,6 @@
 
 - drop exception support
 - make it 64 bit only (drop boost::mpc and add x,y,z in vector3?) fix qint2 as well
-- #define constexpr_if ?? maybe just download latest clang format ?
 - function arguments could have invariants in them:
   T Segment::at(Checked<double, [](double v) { return v >= 0.0 && v <= 1.0; })> {}
 

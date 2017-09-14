@@ -80,9 +80,9 @@ class TextFormatter {
 	const char *nextElement(const char *format_str);
 
 	template <class Arg> void processArgument(const char *&format_str, Arg &&arg) {
-		if
-			constexpr(isFormatType<Arg>()) { m_options.set(std::forward<Arg>(arg)); }
-		else {
+		if constexpr(isFormatType<Arg>()) {
+			m_options.set(std::forward<Arg>(arg));
+		} else {
 			format_str = nextElement(format_str);
 			format(*this, std::forward<Arg>(arg));
 		}
@@ -161,8 +161,8 @@ void format(TextFormatter &out, const TRange &range) {
 template <class TVector, EnableIfVector<TVector>...>
 void format(TextFormatter &out, const TVector &vec) {
 	enum { N = TVector::vector_size };
-	if
-		constexpr(N == 2) out(out.isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
+	if constexpr(N == 2)
+		out(out.isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
 	else if(N == 3)
 		out(out.isStructured() ? "(%, %, %)" : "% % %", vec[0], vec[1], vec[2]);
 	else if(N == 4)

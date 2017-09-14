@@ -89,15 +89,15 @@ template <class T> using RangeIter = typename detail::RangeInfo<T>::MaybeInfo::I
 template <class T> using SpanBase = typename detail::SpanInfo<T>::MaybeInfo::Value;
 
 template <class TSpan, class Base = SpanBase<TSpan>> Base *data(TSpan &range) {
-	if
-		constexpr(detail::SpanInfo<TSpan>::Info::has_data) return range.data();
+	if constexpr(detail::SpanInfo<TSpan>::Info::has_data)
+		return range.data();
 	else
 		return begin(range);
 }
 
 template <class TSpan, class Base = SpanBase<TSpan>> const Base *data(const TSpan &range) {
-	if
-		constexpr(detail::SpanInfo<TSpan>::Info::has_data) return range.data();
+	if constexpr(detail::SpanInfo<TSpan>::Info::has_data)
+		return range.data();
 	else
 		return begin(range);
 }

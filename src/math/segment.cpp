@@ -115,9 +115,9 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 			return false;
 	}
 
-	if
-		constexpr(dim_size == 2) { return abs(cross(m, d)) <= e[0] * ad[1] + e[1] * ad[0]; }
-	else {
+	if constexpr(dim_size == 2) {
+		return abs(cross(m, d)) <= e[0] * ad[1] + e[1] * ad[0];
+	} else {
 		// TODO: test it
 		if(abs(m.z * d.z - m.z * d.y) > e.y * ad.z + e.z * ad.y)
 			return false;
