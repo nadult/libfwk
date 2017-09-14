@@ -1539,7 +1539,7 @@ template <class T, int N> class ISegment {
 	explicit ISegment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
 	template <class U>
-	ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
+	explicit ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
 
 	bool empty() const { return from == to; }
 
@@ -1668,6 +1668,10 @@ template <class T, int N> class Triangle {
 
 	Triangle(const Point &a, const Point &b, const Point &c) : v{a, b, c} {}
 	Triangle() = default;
+
+	template <class VT>
+	explicit Triangle(const Triangle<VT, N> &rhs)
+		: v{Vector(rhs[0]), Vector(rhs[1]), Vector(rhs[2])} {}
 
 	bool degenerate() const { return v[0] == v[1] || v[1] == v[2] || v[2] == v[0]; }
 	bool isPoint() const { return v[0] == v[1] && v[0] == v[2]; }
