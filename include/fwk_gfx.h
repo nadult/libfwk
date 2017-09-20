@@ -930,7 +930,7 @@ class FontCore : public immutable_base<FontCore> {
 		short x_advance;
 	};
 
-	IRect evalExtents(const wstring &) const;
+	IRect evalExtents(const string32 &) const;
 	int lineHeight() const { return m_line_height; }
 
   private:
@@ -942,7 +942,7 @@ class FontCore : public immutable_base<FontCore> {
 
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
-	int genQuads(const wstring &, Span<float2> out_pos, Span<float2> out_uv) const;
+	int genQuads(const string32 &, Span<float2> out_pos, Span<float2> out_uv) const;
 
 	// TODO: better representation? hash table maybe?
 	std::map<int, Glyph> m_glyphs;
@@ -962,23 +962,31 @@ class Font {
 	using Style = FontStyle;
 	Font(PFontCore font, PTexture texture);
 
-	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, const wstring &text) const;
-	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, const wstring &text) const {
+	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, const string32 &text) const;
+	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, const string32 &text) const {
 		return draw(out, FRect(pos, pos), style, text);
 	}
 
 	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, StringRef text_utf8) const {
-		return draw(out, rect, style, toWideString(text_utf8));
+		if(auto text = toUTF32(text_utf8))
+			return draw(out, rect, style, *text);
+		return {};
 	}
 	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, StringRef text_utf8) const {
-		return draw(out, FRect(pos, pos), style, toWideString(text_utf8));
+		if(auto text = toUTF32(text_utf8))
+			return draw(out, FRect(pos, pos), style, *text);
+		return {};
 	}
 
 	auto core() const { return m_core; }
 	auto texture() const { return m_texture; }
 
-	IRect evalExtents(const wstring &text) const { return m_core->evalExtents(text); }
-	IRect evalExtents(StringRef text) const { return m_core->evalExtents(toWideString(text)); }
+	IRect evalExtents(const string32 &text) const { return m_core->evalExtents(text); }
+	IRect evalExtents(StringRef text_utf8) const {
+		if(auto text = toUTF32(text_utf8))
+			return m_core->evalExtents(*text);
+		return {};
+	}
 	int lineHeight() const { return m_core->lineHeight(); }
 
   private:

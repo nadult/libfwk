@@ -38,36 +38,6 @@ void *SimpleAllocatorBase::allocateBytes(size_t count) noexcept {
 	return out;
 }
 
-wstring toWideString(StringRef text, bool throw_on_invalid) {
-	mbstate_t ps;
-	memset(&ps, 0, sizeof(ps));
-	const char *str = text.c_str();
-	PodArray<wchar_t> buffer(text.size());
-
-	auto size = mbsrtowcs(buffer.data(), &str, buffer.size(), &ps);
-	if(size == (size_t)-1) {
-		if(throw_on_invalid)
-			THROW("Error when converting string to wide string");
-		return wstring();
-	}
-	return wstring(buffer.data(), buffer.data() + size);
-}
-
-string fromWideString(const std::wstring &text, bool throw_on_invalid) {
-	PodArray<char> buffer(text.size() * 4);
-	mbstate_t ps;
-	memset(&ps, 0, sizeof(ps));
-
-	const wchar_t *src = text.c_str();
-	auto size = wcsrtombs(buffer.data(), &src, buffer.size(), &ps);
-	if(size == (size_t)-1) {
-		if(throw_on_invalid)
-			THROW("Error while converting wide string to string");
-		return string();
-	}
-	return string(buffer.data(), buffer.data() + size);
-}
-
 StringRef Tokenizer::next() {
 	const char *start = m_str;
 	while(*m_str && *m_str != m_delim)

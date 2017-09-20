@@ -155,7 +155,7 @@ class InputState {
 	bool isKeyUp(int key) const;
 	bool isKeyPressed(int key) const;
 	bool isKeyDownAuto(int key, int period = 1, int delay = 12) const;
-	const wstring &text() const { return m_text; }
+	const string32 &text() const { return m_text; }
 
 	bool isMouseButtonDown(InputButton) const;
 	bool isMouseButtonUp(InputButton) const;
@@ -171,7 +171,7 @@ class InputState {
 
 	using KeyStatus = pair<int, int>;
 	vector<KeyStatus> m_keys;
-	wstring m_text;
+	string32 m_text;
 
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;

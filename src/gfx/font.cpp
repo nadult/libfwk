@@ -81,7 +81,7 @@ void FontCore::computeRect() {
 		m_max_rect = enclose(m_max_rect, IRect(it.second.size) + it.second.offset);
 }
 
-IRect FontCore::evalExtents(const wstring &text) const {
+IRect FontCore::evalExtents(const string32 &text) const {
 	IRect rect;
 	int2 pos;
 
@@ -119,7 +119,7 @@ IRect FontCore::evalExtents(const wstring &text) const {
 	return rect;
 }
 
-int FontCore::genQuads(const wstring &text, Span<float2> out_pos, Span<float2> out_uv) const {
+int FontCore::genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv) const {
 	DASSERT(out_pos.size() == out_uv.size());
 	DASSERT(out_pos.size() % 4 == 0);
 
@@ -179,7 +179,7 @@ Font::Font(PFontCore core, PTexture texture) : m_core(core), m_texture(texture) 
 }
 
 FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
-				 const wstring &text) const {
+				 const string32 &text) const {
 	float2 pos = rect.min();
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
 		FRect extents = (FRect)m_core->evalExtents(text);

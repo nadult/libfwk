@@ -137,12 +137,13 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	if(FT_Set_Pixel_Sizes(face, 0, size) != 0)
 		THROW("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
 
-	wstring ansi_charset;
+	string32 ansi_charset;
 	{
 		vector<char> chars;
 		for(char c = 32; c < 127; c++)
 			chars.emplace_back(c);
-		ansi_charset = toWideString(string(begin(chars), end(chars)));
+		if(auto text = toUTF32(string(begin(chars), end(chars))))
+			ansi_charset = move(*text);
 	}
 
 	vector<pair<FontCore::Glyph, Texture>> glyphs;

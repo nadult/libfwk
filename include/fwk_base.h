@@ -48,6 +48,7 @@ using std::array;
 using std::swap;
 using std::move;
 using std::pair;
+using string32 = std::u32string;
 using std::wstring;
 using std::unique_ptr;
 using std::shared_ptr;
@@ -502,12 +503,14 @@ inline bool caseEqual(const StringRef a, const StringRef b) {
 inline bool caseNEqual(const StringRef a, const StringRef b) { return !caseEqual(a, b); }
 inline bool caseLess(const StringRef a, const StringRef b) { return a.caseCompare(b) < 0; }
 
-// To properly handle all characters you have to set locale:
-// setlocale(LC_ALL, "en_US.UTF8");
-// setlocale(LC_NUMERIC, "C");
-// TODO: make these functions locale-independent and just use UTF-8 everywhere
-wstring toWideString(StringRef, bool throw_on_invalid = true);
-string fromWideString(const wstring &, bool throw_on_invalid = true);
+// TODO: StringRef for string32 ?
+Maybe<string32> toUTF32(StringRef);
+Maybe<string> toUTF8(const string32 &);
+
+// Returns size of buffer big enough for conversion
+// 0 may be returned is string is invalid
+int utf8Length(const string32 &);
+int utf32Length(const string &);
 
 int enumFromString(const char *str, CSpan<const char *> enum_strings, bool throw_on_invalid);
 

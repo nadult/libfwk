@@ -188,10 +188,10 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 		case SDL_TEXTINPUT: {
 			// TODO: Should we call SDL_StartTextInput before?
 			int len = strnlen(event.text.text, arraySize(event.text.text));
-			auto text = toWideString(string(event.text.text, event.text.text + len), false);
-			if(!text.empty()) {
-				m_text += text;
-				for(auto ch : text)
+			auto text = toUTF32({event.text.text, len});
+			if(text) {
+				m_text += *text;
+				for(auto ch : *text)
 					events.emplace_back(ch);
 			}
 			break;
