@@ -301,6 +301,9 @@ class GfxDevice {
 
 	string extensions() const;
 
+	string clipboardText() const;
+	void setClipboardText(StringRef);
+
   private:
 	bool pollEvents();
 

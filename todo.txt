@@ -1,3 +1,4 @@
+- Mouse Position should be -1/-1 or none when mouse is outside of window ?
 - Improve commiting process? That would require working on branches and rebasing stuff
   from time to time; But the only reason is to keep the history clean...
 

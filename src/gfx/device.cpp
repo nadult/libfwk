@@ -202,6 +202,13 @@ const vector<InputEvent> &GfxDevice::inputEvents() const { return m_input_impl->
 
 string GfxDevice::extensions() const { return (const char *)glGetString(GL_EXTENSIONS); }
 
+string GfxDevice::clipboardText() const {
+	auto ret = SDL_GetClipboardText();
+	return ret ? string(ret) : string();
+}
+
+void GfxDevice::setClipboardText(StringRef ref) { SDL_SetClipboardText(ref.c_str()); }
+
 void GfxDevice::clearColor(FColor col) {
 	glClearColor(col.r, col.g, col.b, col.a);
 	glClear(GL_COLOR_BUFFER_BIT);
