@@ -2015,6 +2015,9 @@ class Random {
 	float uniform(float min, float max);
 	double uniform(double min, double max);
 
+	float normal(float mean, float stddev);
+	double normal(double mean, double stddev);
+
 	template <class T, EnableIfVector<T>...> T sampleBox(const T &min, const T &max) {
 		T out;
 		for(int n = 0; n < T::vector_size; n++)

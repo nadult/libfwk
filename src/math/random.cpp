@@ -41,6 +41,16 @@ double Random::uniform(double min, double max) {
 	return std::uniform_real_distribution<double>(min, max)(*m_engine);
 }
 
+float Random::normal(float mean, float stddev) {
+	DASSERT(stddev > 0.0f);
+	return std::normal_distribution<float>(mean, stddev)(*m_engine);
+}
+
+double Random::normal(double mean, double stddev) {
+	DASSERT(stddev > 0.0);
+	return std::normal_distribution<double>(mean, stddev)(*m_engine);
+}
+
 Quat Random::uniformRotation() { return uniformRotation(sampleUnitHemisphere<float3>()); }
 
 Quat Random::uniformRotation(float3 axis) {
