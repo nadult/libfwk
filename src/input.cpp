@@ -1,12 +1,12 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_input.h"
 #include "fwk_gfx.h"
+#include "fwk_input.h"
 
+#include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
-#include <SDL.h>
 
 namespace fwk {
 
@@ -73,11 +73,12 @@ InputEvent::InputEvent(Type mouse_type, InputButton button)
 
 InputEvent::InputEvent(wchar_t kchar) : m_char(kchar), m_type(key_char) {}
 
-void InputEvent::init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel) {
+void InputEvent::init(InputModifiers modifiers, const int2 &mouse_pos, const int2 &mouse_move,
+					  int mouse_wheel) {
 	m_mouse_pos = mouse_pos;
 	m_mouse_move = mouse_move;
 	m_mouse_wheel = mouse_wheel;
-	m_modifiers = flags;
+	m_modifiers = modifiers;
 }
 
 int InputEvent::key() const { return isOneOf(m_type, key_down, key_up, key_pressed) ? m_key : 0; }
@@ -244,16 +245,20 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 	}
 
 	SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
-	int modifiers = 0;
 
+	EnumMap<InputModifier, int> mod_map = {
+		{InputModifier::lshift, InputKey::lshift}, {InputModifier::rshift, InputKey::rshift},
+		{InputModifier::lalt, InputKey::lalt},	 {InputModifier::ralt, InputKey::ralt},
+		{InputModifier::lctrl, InputKey::lctrl},   {InputModifier::rctrl, InputKey::rctrl}};
+
+	InputModifiers modifiers;
 	for(const auto &key_state : m_keys) {
 		if(key_state.second >= 1)
 			events.emplace_back(InputEvent::key_pressed, key_state.first, key_state.second);
 		if(key_state.second >= 0) {
-			modifiers |= (key_state.first == InputKey::lshift ? InputEvent::mod_lshift : 0) |
-						 (key_state.first == InputKey::rshift ? InputEvent::mod_rshift : 0) |
-						 (key_state.first == InputKey::lctrl ? InputEvent::mod_lctrl : 0) |
-						 (key_state.first == InputKey::lalt ? InputEvent::mod_lalt : 0);
+			for(auto mod : all<InputModifier>())
+				if(key_state.first == mod_map[mod])
+					modifiers |= mod;
 		}
 	}
 

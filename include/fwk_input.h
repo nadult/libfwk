@@ -83,6 +83,8 @@ namespace InputKey {
 }
 
 DEFINE_ENUM(InputButton, left, right, middle);
+DEFINE_ENUM(InputModifier, lshift, rshift, lctrl, rctrl, lalt, ralt);
+using InputModifiers = EnumFlags<InputModifier>;
 
 class InputEvent {
   public:
@@ -100,19 +102,12 @@ class InputEvent {
 		mouse_over, // dummy event, generated only to conveniently handle mouse input
 	};
 
-	enum Modifier {
-		mod_lshift = 1,
-		mod_rshift = 2,
-		mod_lctrl = 4,
-		mod_lalt = 8,
-	};
-
 	InputEvent(Type type);
 	InputEvent(Type key_type, int key, int iter);
 	InputEvent(Type mouse_type, InputButton button);
 	InputEvent(wchar_t);
 
-	void init(int flags, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
+	void init(InputModifiers, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
 	void offset(const int2 &offset) { m_mouse_pos += offset; }
 
 	Type type() const { return m_type; }
@@ -137,13 +132,15 @@ class InputEvent {
 	const int2 &mouseMove() const { return m_mouse_move; }
 	int mouseWheel() const { return (int)m_mouse_wheel; }
 
-	bool hasModifier(Modifier modifier) const { return m_modifiers & modifier; }
+	InputModifiers mods() const { return m_modifiers; }
+	bool pressed(InputModifiers mod) const { return (m_modifiers & mod) == mod; }
 
   private:
 	wchar_t m_char;
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;
-	int m_key, m_iteration, m_modifiers;
+	int m_key, m_iteration;
+	InputModifiers m_modifiers;
 	Type m_type;
 };
 

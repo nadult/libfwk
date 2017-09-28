@@ -1,3 +1,5 @@
+- constexpr intiializer_list in EnumMap
+- naming: rotateVector(pos)
 - mulPoint, mulNormal: better names
 - StaticPimpl alignment
 - fix interval::valid

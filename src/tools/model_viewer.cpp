@@ -126,7 +126,7 @@ class Viewer {
 		float scale = 0.0f;
 
 		for(const auto &event : device.inputEvents()) {
-			bool shift = event.hasModifier(InputEvent::mod_lshift);
+			bool shift = event.pressed(InputModifier::lshift);
 
 			if(event.keyPressed(InputKey::left))
 				x_rot -= time_diff * 2.0f;
