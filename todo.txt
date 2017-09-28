@@ -1,3 +1,4 @@
+- fix interval::valid
 - subRange dla vectora i spana
 - invalid<Type>() could return invalid value (otherwise not accepted, but useful for Maybe)
 - Size<Type> can be used instead of sizeof(); it can be specialized thus decreasing dependencies

@@ -1226,9 +1226,14 @@ FBox encloseTransformed(const FBox &, const Matrix4 &);
 template <class T> struct Interval {
 	static_assert(isScalar<T>(), "");
 
-	Interval(T min, T max) : min(min), max(max) {}
-	Interval(const pair<T, T> &pair) : min(pair.first), max(pair.second) {}
-	explicit Interval(T point) : min(point), max(point) {}
+	Interval(T min, T max) : min(min), max(max) {
+#ifdef FWK_CHECK_NANS
+		DASSERT(!isnan(min) && !isnan(max));
+#endif
+	}
+
+	Interval(const pair<T, T> &pair) : Interval(pair.first, pair.second) {}
+	explicit Interval(T point) : Interval(point, point) {}
 	Interval() : min(0), max(0) {}
 
 	Interval operator*(T val) const {
@@ -1246,6 +1251,7 @@ template <class T> struct Interval {
 
 	T size() const { return max - min; }
 	bool valid() const { return min <= max; }
+	bool empty() const { return !(max > min); }
 
 	Maybe<Interval> isect(const Interval &rhs) const {
 		if(min > rhs.max || rhs.max < min)
@@ -1467,7 +1473,7 @@ template <class T> class IsectParam {
 
 	bool isPoint() const { return m_interval.min == m_interval.max; }
 	bool isInterval() const { return m_interval.max > m_interval.min; }
-	bool isEmpty() const { return !m_interval.valid(); }
+	bool isEmpty() const { return m_interval.empty(); }
 	explicit operator bool() const { return !isEmpty(); }
 
 	const Interval<T> &asInterval() const { return m_interval; }
@@ -1691,8 +1697,8 @@ template <class T, int N> class Triangle {
 	Segment bc() const { return {v[1], v[2]}; }
 	Segment ca() const { return {v[2], v[0]}; }
 	Segment edge(int idx) const {
-		DASSERT(idx >= 0 && idx <= 3);
-		return {v[idx], v[(idx + 1) % 3]};
+		PASSERT(idx >= 0 && idx <= 3);
+		return {v[idx], v[idx == 3 ? 0 : idx + 1]};
 	}
 
 	Point center() const { return (v[0] + v[1] + v[2]) * (T(1) / T(3)); }
