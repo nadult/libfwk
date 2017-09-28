@@ -192,6 +192,26 @@ void RenderList::render() {
 	DTexture::unbind();
 }
 
+vector<FBox> RenderList::renderBoxes() const {
+	vector<FBox> out;
+	out.reserve(m_draw_calls.size() + m_lines.instances().size() + m_sprites.instances().size());
+
+	for(auto &dc : m_draw_calls)
+		if(dc.bbox)
+			out.emplace_back(*dc.bbox);
+
+	for(auto &inst : m_lines.instances()) {
+		auto bbox = encloseTransformed(enclose(inst.positions), inst.matrix);
+		out.emplace_back(bbox);
+	}
+	for(auto &inst : m_sprites.instances()) {
+		auto bbox = encloseTransformed(enclose(inst.positions), inst.matrix);
+		out.emplace_back(bbox);
+	}
+
+	return out;
+}
+
 void RenderList::renderSprites() {
 	auto tex_program = s_mgr["tex"];
 	auto flat_program = s_mgr["flat"];

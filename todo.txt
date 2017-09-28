@@ -1,3 +1,7 @@
+- subRange dla vectora i spana
+- invalid<Type>() could return invalid value (otherwise not accepted, but useful for Maybe)
+- Size<Type> can be used instead of sizeof(); it can be specialized thus decreasing dependencies
+
 - Mouse Position should be -1/-1 or none when mouse is outside of window ?
 - Improve commiting process? That would require working on branches and rebasing stuff
   from time to time; But the only reason is to keep the history clean...

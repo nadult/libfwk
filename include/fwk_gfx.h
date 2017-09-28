@@ -852,7 +852,7 @@ class DrawCall {
 	void issue() const;
 
 	Matrix4 matrix;
-	Maybe<FBox> bbox;
+	Maybe<FBox> bbox; // transformed by matrix
 	Material material;
 
 	auto primitiveType() const { return m_primitive_type; }
@@ -883,6 +883,9 @@ class RenderList : public MatrixStack {
 	const auto &lines() const { return m_lines; }
 	auto &sprites() { return m_sprites; }
 	auto &lines() { return m_lines; }
+
+	// Draw calls without bbox argument specified will be ignored
+	vector<FBox> renderBoxes() const;
 
   protected:
 	void renderLines();
