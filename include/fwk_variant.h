@@ -727,7 +727,7 @@ public:
     }
 
 	template <typename T, EnableIfValidType<T>...>
-    VARIANT_INLINE operator T *() const {
+    VARIANT_INLINE operator T *() {
         return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T *>(&data) : nullptr;
     }
 

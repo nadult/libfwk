@@ -1,3 +1,5 @@
+- mulPoint, mulNormal: better names
+- StaticPimpl alignment
 - fix interval::valid
 - subRange dla vectora i spana
 - invalid<Type>() could return invalid value (otherwise not accepted, but useful for Maybe)
