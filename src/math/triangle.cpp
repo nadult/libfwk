@@ -163,10 +163,6 @@ template <class T> bool testPlaneBox(const Plane3<T> &plane, const Box3<T> &box)
 	return true;
 }
 
-// TODO: move these outside
-template <class T> T max3(const T &a, const T &b, const T &c) { return max(max(a, b), c); }
-template <class T> T min3(const T &a, const T &b, const T &c) { return min(min(a, b), c); }
-
 // Source: RTCD
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
@@ -261,13 +257,13 @@ bool Triangle<T, N>::testIsect(const Box &box) const {
 	// Test the three axes corresponding to the face normals of AABB b (category 1).
 	// Exit if...
 	// ... [-e0, e0] and [min(v0.x,v1.x,v2.x), max(v0.x,v1.x,v2.x)] do not overlap
-	if(max3(v0.x, v1.x, v2.x) < -e.x || min3(v0.x, v1.x, v2.x) > e.x)
+	if(max(v0.x, v1.x, v2.x) < -e.x || min(v0.x, v1.x, v2.x) > e.x)
 		return false;
 	// ... [-e1, e1] and [min(v0.y,v1.y,v2.y), max(v0.y,v1.y,v2.y)] do not overlap
-	if(max3(v0.y, v1.y, v2.y) < -e.y || min3(v0.y, v1.y, v2.y) > e.y)
+	if(max(v0.y, v1.y, v2.y) < -e.y || min(v0.y, v1.y, v2.y) > e.y)
 		return false;
 	// ... [-e2, e2] and [min(v0.z,v1.z,v2.z), max(v0.z,v1.z,v2.z)] do not overlap
-	if(max3(v0.z, v1.z, v2.z) < -e.z || min3(v0.z, v1.z, v2.z) > e.z)
+	if(max(v0.z, v1.z, v2.z) < -e.z || min(v0.z, v1.z, v2.z) > e.z)
 		return false;
 
 	PTVec plane_nrm = cross(f0, f1);

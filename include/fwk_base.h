@@ -41,17 +41,14 @@
 
 namespace fwk {
 
-using std::min;
-using std::max;
-using std::string;
 using std::array;
-using std::swap;
 using std::move;
 using std::pair;
+using std::string;
+using std::swap;
 using string32 = std::u32string;
-using std::wstring;
-using std::unique_ptr;
 using std::shared_ptr;
+using std::unique_ptr;
 
 using std::begin;
 using std::end;
@@ -91,6 +88,20 @@ template <class T> using RemoveReference = typename std::remove_reference<T>::ty
 template <typename... Types> class Variant;
 
 template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
+
+template <class T, class... Args>
+constexpr const T &max(const T &arg1, const T &arg2, const Args &... args) {
+	if constexpr(sizeof...(Args) > 0)
+		return max(max(arg1, arg2), args...);
+	return (arg2 < arg1) ? arg1 : arg2;
+}
+
+template <class T, class... Args>
+constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
+	if constexpr(sizeof...(Args) > 0)
+		return min(min(arg1, arg2), args...);
+	return (arg1 < arg2) ? arg1 : arg2;
+}
 
 struct EnabledType {};
 struct DisabledType;

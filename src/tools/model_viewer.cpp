@@ -49,10 +49,7 @@ class Viewer {
 		auto animate(PPose pose) const { return AnimatedModel(*m_model, pose); }
 		FBox boundingBox(PPose pose = PPose()) const { return animate(pose).boundingBox(); }
 
-		float scale() const {
-			auto bbox = boundingBox();
-			return 4.0f / max(bbox.width(), max(bbox.height(), bbox.depth()));
-		}
+		float scale() const { return 4.0f / max(boundingBox().size().values()); }
 
 		void drawModel(RenderList &out, PPose pose, bool show_nodes, const Matrix4 &matrix) {
 			out.add(animate(pose).genDrawCalls(m_materials, matrix));

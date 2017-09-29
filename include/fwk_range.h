@@ -149,6 +149,14 @@ inline bool isOneOf(const T &value, const TRange &range) {
 	return anyOf(range, [&](const auto &v) { return value == v; });
 }
 
+template <class TRange, class T = RangeBase<TRange>> constexpr const T &max(const TRange &range) {
+	return *std::max_element(begin(range), end(range));
+}
+
+template <class TRange, class T = RangeBase<TRange>> constexpr const T &min(const TRange &range) {
+	return *std::min_element(begin(range), end(range));
+}
+
 // TODO: add isComparable
 template <class T> constexpr bool isOneOf(const T &value) { return false; }
 
