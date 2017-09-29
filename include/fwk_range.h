@@ -348,6 +348,15 @@ void insertBack(vector<T1> &into, const std::initializer_list<T2> &from) {
 	into.insert(end(into), begin(from), end(from));
 }
 
+template <class T1, class Range> void insertFront(vector<T1> &into, const Range &from) {
+	into.insert(begin(into), begin(from), end(from));
+}
+
+template <class T1, class T2>
+void insertFront(vector<T1> &into, const std::initializer_list<T2> &from) {
+	into.insert(begin(into), begin(from), end(from));
+}
+
 template <class Container, class Range> void insert(Container &into, const Range &from) {
 	into.insert(begin(from), end(from));
 }
