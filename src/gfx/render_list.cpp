@@ -192,22 +192,18 @@ void RenderList::render() {
 	DTexture::unbind();
 }
 
-vector<FBox> RenderList::renderBoxes() const {
-	vector<FBox> out;
+vector<pair<FBox, Matrix4>> RenderList::renderBoxes() const {
+	vector<pair<FBox, Matrix4>> out;
 	out.reserve(m_draw_calls.size() + m_lines.instances().size() + m_sprites.instances().size());
 
 	for(auto &dc : m_draw_calls)
 		if(dc.bbox)
-			out.emplace_back(*dc.bbox);
+			out.emplace_back(*dc.bbox, dc.matrix);
 
-	for(auto &inst : m_lines.instances()) {
-		auto bbox = encloseTransformed(enclose(inst.positions), inst.matrix);
-		out.emplace_back(bbox);
-	}
-	for(auto &inst : m_sprites.instances()) {
-		auto bbox = encloseTransformed(enclose(inst.positions), inst.matrix);
-		out.emplace_back(bbox);
-	}
+	for(auto &inst : m_lines.instances())
+		out.emplace_back(enclose(inst.positions), inst.matrix);
+	for(auto &inst : m_sprites.instances())
+		out.emplace_back(enclose(inst.positions), inst.matrix);
 
 	return out;
 }

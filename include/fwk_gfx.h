@@ -769,7 +769,7 @@ class Renderer2D : public MatrixStack {
 
 	void clear();
 	const IRect &viewport() const { return m_viewport; }
-	vector<pair<FRect, Matrix4>> drawRects() const;
+	vector<pair<FRect, Matrix4>> renderRects() const;
 
   private:
 	struct DrawChunk {
@@ -885,7 +885,7 @@ class RenderList : public MatrixStack {
 	auto &lines() { return m_lines; }
 
 	// Draw calls without bbox argument specified will be ignored
-	vector<FBox> renderBoxes() const;
+	vector<pair<FBox, Matrix4>> renderBoxes() const;
 
   protected:
 	void renderLines();

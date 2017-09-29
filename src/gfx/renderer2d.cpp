@@ -268,7 +268,7 @@ void Renderer2D::render() {
 	clear();
 }
 
-vector<pair<FRect, Matrix4>> Renderer2D::drawRects() const {
+vector<pair<FRect, Matrix4>> Renderer2D::renderRects() const {
 	vector<pair<FRect, Matrix4>> out;
 	for(const auto &chunk : m_chunks) {
 		for(const auto &elem : chunk.elements) {
