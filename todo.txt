@@ -1,3 +1,4 @@
+- isDegenerate w trójkątach, segmentach, etc.
 - encloseTransformed wrong order
 - constexpr intiializer_list in EnumMap
 - naming: rotateVector(pos)
