@@ -25,7 +25,7 @@ SHARED_SRC=base vector backtrace filesystem filesystem_linux input profiler stre
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   format parse audio/device audio/sound audio/ogg_stream \
-		   gfx/color gfx/device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \
+		   gfx/color gfx/gfx_device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \
 		   gfx/material gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/program_binder \
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
