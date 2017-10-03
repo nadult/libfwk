@@ -1,8 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_xml.h"
+#include "fwk_base.h"
 
+#include "fwk_assert.h"
 #include <cstring>
 #include <iostream>
 #include <limits>
@@ -42,7 +43,9 @@ void Stream::loadData(void *ptr, int bytes) {
 
 	try {
 		DASSERT(isLoading() && ptr);
-		DASSERT(bytes >= 0 && m_pos + bytes <= m_size);
+		DASSERT_GE(bytes, 0);
+		if(m_size != -1)
+			DASSERT_LE(m_pos + bytes, m_size);
 		v_load(ptr, bytes);
 	} catch(const Exception &ex) {
 		handleException(ex);
@@ -63,7 +66,7 @@ void Stream::saveData(const void *ptr, int bytes) {
 
 void Stream::seek(long long pos) {
 	try {
-		DASSERT(pos >= 0 && pos <= m_size);
+		DASSERT(m_size != -1 && pos >= 0 && pos <= m_size);
 		v_seek(pos);
 	} catch(const Exception &ex) {
 		handleException(ex);
