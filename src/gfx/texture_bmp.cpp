@@ -4,8 +4,7 @@
 #include "fwk/gfx/texture.h"
 
 namespace fwk {
-namespace {
-
+namespace detail {
 	void loadBMP(Stream &sr, PodArray<IColor> &out_data, int2 &out_size) {
 		enum { maxwidth = 2048 };
 
@@ -100,7 +99,5 @@ namespace {
 			}
 		}
 	}
-
-	Texture::RegisterLoader bmp_loader("bmp", loadBMP);
 }
 }

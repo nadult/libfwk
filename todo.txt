@@ -180,7 +180,6 @@
 
 - when printing strings to XML, library should check if restricted characters are not used by accident (&, <, >)
 
-- Fix texture loaders so that they wont have to be inlined in texture.cpp
 - Add tests for SimpleMesh operations
 
 - Clang 3.6 Crashes when compiling frustum.cpp with -O2/-O3 and DNDEBUG

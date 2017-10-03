@@ -4,12 +4,18 @@
 #include "fwk/gfx/texture.h"
 #include <cstring>
 
-// Yeah, there are no external symbols in those files, only loaders
-// and for some reason loaders won't be registered... (linker optimization?)
-#include "gfx/texture_bmp.cpp"
-#include "gfx/texture_png.cpp"
-
 namespace fwk {
+
+namespace detail {
+
+	void loadBMP(Stream &, PodArray<IColor> &, int2 &);
+	void loadPNG(Stream &, PodArray<IColor> &, int2 &);
+	void loadTGA(Stream &, PodArray<IColor> &, int2 &);
+}
+
+Texture::RegisterLoader s_bmp_loader("bmp", detail::loadBMP);
+Texture::RegisterLoader s_tga_loader("tga", detail::loadTGA);
+Texture::RegisterLoader s_png_loader("png", detail::loadPNG);
 
 Texture::Texture() {}
 Texture::Texture(int2 size) : m_data(size.x * size.y), m_size(size) {}

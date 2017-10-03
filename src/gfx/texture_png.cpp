@@ -5,7 +5,7 @@
 #include <png.h>
 
 namespace fwk {
-namespace {
+namespace detail {
 
 	class PngLoader {
 	  public:
@@ -157,12 +157,10 @@ namespace {
 		out_data.resize(out_size.x * out_size.y);
 		loader >> out_data;
 	}
-
-	Texture::RegisterLoader png_loader("png", loadPNG);
 }
 
 void HeightMap16bit::load(Stream &stream) {
-	PngLoader loader(stream);
+	detail::PngLoader loader(stream);
 	size = loader.size();
 	loader >> data;
 }
