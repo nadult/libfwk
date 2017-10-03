@@ -1,10 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_gfx.h"
-#include "fwk_xml.h"
-#include <algorithm>
-#include <unordered_map>
+#include "fwk/gfx/material.h"
+#include "fwk/gfx/material_set.h"
 
 namespace fwk {
 

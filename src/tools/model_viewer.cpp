@@ -1,7 +1,16 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk.h"
+#include "fwk/gfx/material_set.h"
+#include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/render_list.h"
+#include "fwk/gfx/renderer2d.h"
+#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/font.h"
+#include "fwk_mesh.h"
+#include "fwk_input.h"
+#include "fwk_profile.h"
 
 using namespace fwk;
 

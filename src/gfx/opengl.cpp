@@ -8,8 +8,6 @@
 
 #define EXT_API
 
-#include "fwk.h"
-
 #include "fwk_opengl.h"
 #include <cstring>
 

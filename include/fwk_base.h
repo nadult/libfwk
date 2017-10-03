@@ -27,6 +27,30 @@
 #define ALWAYS_INLINE __attribute__((always_inline))
 #endif
 
+#define FWK_MOVABLE_CLASS(Class)                                                                   \
+	~Class();                                                                                      \
+	Class(const Class &) = delete;                                                                 \
+	Class(Class &&);                                                                               \
+	Class &operator=(const Class &) = delete;                                                      \
+	Class &operator=(Class &&);
+
+#define FWK_MOVABLE_CLASS_IMPL(Class)                                                              \
+	Class::~Class() = default;                                                                     \
+	Class::Class(Class &&) = default;                                                              \
+	Class &Class::operator=(Class &&) = default;
+
+#define FWK_COPYABLE_CLASS(Class)                                                                  \
+	~Class();                                                                                      \
+	Class(const Class &);                                                                          \
+	Class(Class &&);                                                                               \
+	Class &operator=(const Class &);                                                               \
+	Class &operator=(Class &&);
+
+#define FWK_COPYABLE_CLASS_IMPL(Class)                                                             \
+	FWK_MOVABLE_CLASS_IMPL(Class)                                                                  \
+	Class::Class(const Class &) = default;                                                         \
+	Class &Class::operator=(const Class &) = default;
+
 namespace fwk {
 
 using std::array;
@@ -191,8 +215,6 @@ template <class T> class immutable_base : public std::enable_shared_from_this<co
 // TODO: make it work without immutable_base
 template <class T> class immutable_ptr {
   public:
-	static_assert(std::is_base_of<immutable_base<T>, T>::value, "");
-
 	immutable_ptr(const T &rhs) : m_ptr(make_shared<const T>(rhs)) { incCounter(); }
 	immutable_ptr(T &&rhs) : m_ptr(make_shared<const T>(move(rhs))) { incCounter(); }
 
@@ -236,6 +258,7 @@ template <class T> class immutable_ptr {
 	friend class immutable_weak_ptr<T>;
 
 	void incCounter() {
+		static_assert(std::is_base_of<immutable_base<T>, T>::value, "");
 		const immutable_base<T> *base = m_ptr.get();
 		const_cast<immutable_base<T> *>(base)->m_mutation_counter++;
 	}

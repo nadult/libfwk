@@ -1,6 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/material.h"
+#include "fwk/gfx/material_set.h"
+#include "fwk/gfx/render_list.h"
 #include "fwk_mesh.h"
 #include <algorithm>
 

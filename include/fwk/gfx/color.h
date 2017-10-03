@@ -1,10 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_COLOR_H
-#define FWK_COLOR_H
+#pragma once
 
 #include "fwk_math.h"
+#include <fwk/gfx_base.h>
 
 namespace fwk {
 
@@ -78,10 +78,7 @@ struct IColor {
 		u8 rgba[4];
 	};
 };
-
 }
 
 SERIALIZE_AS_POD(FColor)
 SERIALIZE_AS_POD(IColor)
-
-#endif

@@ -1,3 +1,5 @@
+- use std decay instead of remove_const, remove_ref, etc.
+- drop the fucking shared_ptrs
 - isDegenerate w trójkątach, segmentach, etc.
 - encloseTransformed wrong order
 - constexpr intiializer_list in EnumMap

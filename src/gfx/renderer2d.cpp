@@ -1,8 +1,14 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_gfx.h"
-#include "fwk_mesh.h"
+#include "fwk/gfx/renderer2d.h"
+#include "fwk/gfx/shader.h"
+#include "fwk/gfx/index_buffer.h"
+#include "fwk/gfx/vertex_buffer.h"
+#include "fwk/gfx/program.h"
+#include "fwk/gfx/program_binder.h"
+#include "fwk/gfx/vertex_array.h"
+#include "fwk/gfx/dtexture.h"
 #include "fwk_opengl.h"
 #include "fwk_xml.h"
 #include <algorithm>
@@ -58,6 +64,8 @@ Renderer2D::Renderer2D(const IRect &viewport)
 	m_tex_program = mgr["with_texture"];
 	m_flat_program = mgr["without_texture"];
 }
+
+Renderer2D::~Renderer2D() = default;
 
 void Renderer2D::setViewPos(const float2 &view_pos) {
 	MatrixStack::setViewMatrix(simpleViewMatrix(m_viewport, view_pos));

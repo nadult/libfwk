@@ -1,20 +1,12 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_FORWARD_DECLS_H
-#define FWK_FORWARD_DECLS_H
+#pragma once
 
 #include "fwk_base.h"
 
 namespace fwk {
 
-// Audio
-class Sound;
-class DSound;
-class OggStream;
-class AudioDevice;
-
-// GFX:
 class TextureFormat;
 class Texture;
 class DTexture;
@@ -40,27 +32,10 @@ class RenderList;
 class FontCore;
 class Font;
 class FontFactory;
-class SDLKeyMap;
-class InputEvent;
-class InputState;
-class Matrix3;
-class Matrix4;
-class Matrix3;
-class Matrix4;
-class AxisAngle;
-class Quat;
-class Tetrahedron;
-class Projection;
-class Frustum;
-class Cylinder;
-class Random;
 
-struct HeightMap16bit;
-struct TextureConfig;
-struct RectStyle;
-struct VertexDataType;
-struct FrameBufferTarget;
-struct FontStyle;
+struct FColor;
+struct IColor;
+enum class ColorId : unsigned char;
 
 enum class TextureFormatId : unsigned char;
 enum class GfxDeviceOpt : unsigned char;
@@ -68,29 +43,36 @@ enum class PrimitiveType : unsigned char;
 enum class ShaderType : unsigned char;
 enum class MaterialOpt : unsigned char;
 
-using PProgram = immutable_ptr<Program>;
+struct HeightMap16bit;
+struct TextureConfig;
+struct VertexDataType;
+struct FrameBufferTarget;
+struct FontStyle;
+
+using PTexture = immutable_ptr<DTexture>;
+using STexture = shared_ptr<DTexture>;
+
+using PVertexBuffer = immutable_ptr<VertexBuffer>;
+using PIndexBuffer = immutable_ptr<IndexBuffer>;
+
+using PVertexArray = immutable_ptr<VertexArray>;
+using SRenderBuffer = shared_ptr<RenderBuffer>;
 using SFrameBuffer = shared_ptr<FrameBuffer>;
 
-// Mesh:
-class MeshIndices;
-class Mesh;
-class DynamicMesh;
-class Model;
-class ModelAnim;
-class ModelNode;
-class ModelNode;
-class RenderList;
-class Model;
-class AnimatedModel;
+using PProgram = immutable_ptr<Program>;
+using PFontCore = immutable_ptr<FontCore>;
 
-// XML:
-class XMLNode;
-class XMLDocument;
+DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
-// Other:
-class Converter;
-class TextParser;
-class Profiler;
+enum class HAlign {
+	left,
+	center,
+	right,
+};
+
+enum class VAlign {
+	top,
+	center,
+	bottom,
+};
 }
-
-#endif

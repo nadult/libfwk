@@ -166,7 +166,7 @@ EXT_API void(EXT_ENTRY *glDrawBuffers)(GLsizei n, const GLenum *bufs);
 
 #ifndef FWK_OPENGL_H_ONLY_EXTENSIONS
 
-#include "fwk_gfx.h"
+#include "fwk/gfx_base.h"
 
 namespace fwk {
 

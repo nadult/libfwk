@@ -3,7 +3,9 @@
 
 #define SDL_MAIN_HANDLED
 
-#include "fwk_gfx.h"
+#include "fwk/gfx/gfx_device.h"
+
+#include "fwk/gfx/color.h"
 #include "fwk_input.h"
 #include "fwk_opengl.h"
 #include <SDL.h>

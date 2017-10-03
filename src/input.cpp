@@ -1,7 +1,6 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_gfx.h"
 #include "fwk_input.h"
 
 #include <SDL.h>

@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "fwk_gfx.h"
+#include "fwk/gfx/color.h"
+#include "fwk/gfx_base.h"
 #include "fwk_xml.h"
 
 namespace fwk {

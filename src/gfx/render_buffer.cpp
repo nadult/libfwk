@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_gfx.h"
+#include "fwk/gfx/render_buffer.h"
 #include "fwk_opengl.h"
 
 namespace fwk {

@@ -1,17 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_gfx.h"
-
-namespace fwk {
-
-FontCore::FontCore() {
-	m_texture_size = int2(2, 2);
-	m_max_rect = IRect(int2(8, 8));
-	m_line_height = 8;
-	m_glyphs[' '] = FontCore::Glyph{' ', short2(0, 0), short2(2, 2), short2(0, 0), 2};
-}
-}
+#include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/font.h"
+#include "fwk/gfx/texture.h"
 
 #ifdef FWK_TARGET_HTML5
 
@@ -182,25 +174,11 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 			FontCore::Glyph{character, {0, 0}, (short2)tex.size(), bearing, advance}, move(tex));
 	}
 
-	FontCore out;
 	auto atlas = makeTextureAtlas(glyphs);
-	out.m_texture_size = atlas.size();
 
-	for(auto &glyph : glyphs)
-		out.m_glyphs[glyph.first.character] = glyph.first;
+	auto oglyphs = transform(glyphs, [](auto &pair) { return pair.first; });
 
-	out.m_max_rect = {};
-
-	for(auto &glyph : glyphs) {
-		IRect rect = IRect(glyph.first.size) + glyph.first.offset;
-		out.m_max_rect = enclose(out.m_max_rect, rect);
-	}
-	out.m_line_height = face->size->metrics.height / 64;
-
-	for(auto &glyph : out.m_glyphs)
-		glyph.second.offset.y -= out.m_max_rect.y();
-	out.computeRect();
-
+	vector<FontCore::Kerning> okernings;
 	// TODO: optimize
 	if(FT_HAS_KERNING(face))
 		for(auto left : ansi_charset)
@@ -210,8 +188,10 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 
 				int2 kerning(vector.x / 64, vector.y / 64);
 				if(kerning.x != 0)
-					out.m_kernings[make_pair(int(left), int(right))] = kerning.x;
+					okernings.emplace_back(FontCore::Kerning{int(left), int(right), kerning.x});
 			}
+
+	FontCore out(oglyphs, okernings, atlas.size(), face->size->metrics.height / 64);
 
 	return {PFontCore(move(out)), make_immutable<DTexture>(atlas)};
 }

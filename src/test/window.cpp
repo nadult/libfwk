@@ -1,7 +1,12 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk.h"
+#include <fwk/gfx/dtexture.h>
+#include <fwk/gfx/font.h>
+#include <fwk/gfx/gfx_device.h>
+#include <fwk/gfx/renderer2d.h>
+#include <fwk_base.h>
+#include <fwk_input.h>
 
 using namespace fwk;
 

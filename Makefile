@@ -29,7 +29,8 @@ SHARED_SRC=base vector backtrace filesystem filesystem_linux input profiler stre
 		   gfx/material gfx/matrix_stack gfx/opengl gfx/texture gfx/texture_format gfx/texture_tga gfx/model \
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
-		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/sprite_buffer gfx/line_buffer 
+		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/sprite_buffer gfx/line_buffer \
+		   gfx/draw_call gfx/program_binder
 TESTS_SRC=test/streams test/stuff test/math test/window test/enums test/models test/vector test/vector_perf \
 			test/variant_perf
 TOOLS_SRC=tools/model_convert tools/model_viewer
