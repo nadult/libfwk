@@ -18,9 +18,6 @@
 
 #pragma once
 
-#include <cstddef>
-#include <new>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -44,37 +41,40 @@ const None none = nullptr;
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif // __GNUC__
 
-template <class Value> class Maybe {
+template <class T> class Maybe {
   public:
-	typedef Value value_type;
+	typedef T value_type;
 
-	static_assert(!std::is_reference<Value>::value, "Maybe may not be used with reference types");
-	static_assert(!std::is_abstract<Value>::value, "Maybe may not be used with abstract types");
+	static_assert(!std::is_reference<T>::value, "Maybe may not be used with reference types");
+	static_assert(!std::is_abstract<T>::value, "Maybe may not be used with abstract types");
 
 	Maybe() noexcept {}
 
-	Maybe(const Maybe &src) noexcept(std::is_nothrow_copy_constructible<Value>::value) {
-		if(src.hasValue()) {
+	Maybe(const Maybe &src) noexcept(std::is_nothrow_copy_constructible<T>::value) {
+		if(src.hasValue())
 			construct(src.value());
-		}
 	}
 
-	Maybe(Maybe &&src) noexcept(std::is_nothrow_move_constructible<Value>::value) {
+	Maybe(Maybe &&src) noexcept(std::is_nothrow_move_constructible<T>::value) {
 		if(src.hasValue()) {
 			construct(std::move(src.value()));
 			src.clear();
 		}
 	}
 
+	~Maybe() {
+		if constexpr(!std::is_trivially_destructible<T>::value)
+			if(m_has_value)
+				m_value.~T();
+	}
+
 	/* implicit */ Maybe(const None &) noexcept {}
 
-	/* implicit */ Maybe(Value &&newValue) noexcept(
-		std::is_nothrow_move_constructible<Value>::value) {
+	/* implicit */ Maybe(T &&newValue) noexcept(std::is_nothrow_move_constructible<T>::value) {
 		construct(std::move(newValue));
 	}
 
-	/* implicit */ Maybe(const Value &newValue) noexcept(
-		std::is_nothrow_copy_constructible<Value>::value) {
+	/* implicit */ Maybe(const T &newValue) noexcept(std::is_nothrow_copy_constructible<T>::value) {
 		construct(newValue);
 	}
 
@@ -92,27 +92,24 @@ template <class Value> class Maybe {
 	}
 
 	void assign(const Maybe &src) {
-		if(src.hasValue()) {
+		if(src.hasValue())
 			assign(src.value());
-		} else {
+		else
 			clear();
-		}
 	}
 
-	void assign(Value &&newValue) {
-		if(hasValue()) {
-			storage_.value = std::move(newValue);
-		} else {
+	void assign(T &&newValue) {
+		if(hasValue())
+			m_value = std::move(newValue);
+		else
 			construct(std::move(newValue));
-		}
 	}
 
-	void assign(const Value &newValue) {
-		if(hasValue()) {
-			storage_.value = newValue;
-		} else {
+	void assign(const T &newValue) {
+		if(hasValue())
+			m_value = newValue;
+		else
 			construct(newValue);
-		}
 	}
 
 	template <class Arg> Maybe &operator=(Arg &&arg) {
@@ -120,14 +117,12 @@ template <class Value> class Maybe {
 		return *this;
 	}
 
-	Maybe &operator=(Maybe &&other) noexcept(std::is_nothrow_move_assignable<Value>::value) {
-
+	Maybe &operator=(Maybe &&other) noexcept(std::is_nothrow_move_assignable<T>::value) {
 		assign(std::move(other));
 		return *this;
 	}
 
-	Maybe &operator=(const Maybe &other) noexcept(std::is_nothrow_copy_assignable<Value>::value) {
-
+	Maybe &operator=(const Maybe &other) noexcept(std::is_nothrow_copy_assignable<T>::value) {
 		assign(other);
 		return *this;
 	}
@@ -137,56 +132,61 @@ template <class Value> class Maybe {
 		construct(std::forward<Args>(args)...);
 	}
 
-	void clear() { storage_.clear(); }
-
-	const Value &value() const & {
-		require_value();
-		return storage_.value;
+	void clear() {
+		if constexpr(!std::is_trivially_destructible<T>::value) {
+			if(m_has_value) {
+				m_value.~T();
+				m_has_value = false;
+			}
+		} else {
+			m_has_value = false;
+		}
 	}
 
-	Value &value() & {
+	const T &value() const & {
 		require_value();
-		return storage_.value;
+		return m_value;
 	}
 
-	Value value() && {
+	T &value() & {
 		require_value();
-		return std::move(storage_.value);
+		return m_value;
 	}
 
-	const Value *get_pointer() const & { return storage_.hasValue ? &storage_.value : nullptr; }
-	Value *get_pointer() & { return storage_.hasValue ? &storage_.value : nullptr; }
-	Value *get_pointer() && = delete;
+	T value() && {
+		require_value();
+		return std::move(m_value);
+	}
 
-	bool hasValue() const { return storage_.hasValue; }
+	const T *get_pointer() const & { return m_has_value ? &m_value : nullptr; }
+	T *get_pointer() & { return m_has_value ? &m_value : nullptr; }
+	T *get_pointer() && = delete;
+
+	bool hasValue() const { return m_has_value; }
 
 	explicit operator bool() const { return hasValue(); }
 
-	const Value &operator*() const & { return value(); }
-	Value &operator*() & { return value(); }
-	Value operator*() && { return std::move(value()); }
+	const T &operator*() const & { return value(); }
+	T &operator*() & { return value(); }
+	T operator*() && { return std::move(value()); }
 
-	const Value *operator->() const { return &value(); }
-	Value *operator->() { return &value(); }
+	const T *operator->() const { return &value(); }
+	T *operator->() { return &value(); }
 
 	// Return a copy of the value if set, or a given default if not.
-	template <class U> Value value_or(U &&dflt) const & {
-		if(storage_.hasValue) {
-			return storage_.value;
-		}
-
+	template <class U> T value_or(U &&dflt) const & {
+		if(m_has_value)
+			return m_value;
 		return std::forward<U>(dflt);
 	}
 
-	template <class U> Value value_or(U &&dflt) && {
-		if(storage_.hasValue) {
-			return std::move(storage_.value);
-		}
-
+	template <class U> T value_or(U &&dflt) && {
+		if(m_has_value)
+			return std::move(m_value);
 		return std::forward<U>(dflt);
 	}
 
-	bool operator==(const Value &rhs) const { return hasValue() && value() == rhs; }
+	bool operator==(const T &rhs) const { return hasValue() && value() == rhs; }
 
 	bool operator==(const Maybe &rhs) const {
 		if(hasValue() != rhs.hasValue())
@@ -208,55 +208,32 @@ template <class Value> class Maybe {
 	bool operator<=(const Maybe &rhs) const { return !(rhs < *this); }
 	bool operator>=(const Maybe &rhs) const { return !(*this < rhs); }
 
+	// Suppress comparability of Maybe<T> with T, despite implicit conversion.
+	bool operator<(const T &other) = delete;
+	bool operator<=(const T &other) = delete;
+	bool operator>=(const T &other) = delete;
+	bool operator>(const T &other) = delete;
+
   private:
 	void require_value() const {
-		if(!storage_.hasValue)
+#ifndef NDEBUG
+		if(!m_has_value)
 			FATAL("Dereferencing empty Maybe");
+#endif
 	}
 
 	template <class... Args> void construct(Args &&... args) {
-		const void *ptr = &storage_.value;
+		const void *ptr = &m_value;
 		// for supporting const types
-		new(const_cast<void *>(ptr)) Value(std::forward<Args>(args)...);
-		storage_.hasValue = true;
+		new(const_cast<void *>(ptr)) T(std::forward<Args>(args)...);
+		m_has_value = true;
 	}
 
-	struct StorageTriviallyDestructible {
-		// uninitialized
-		union {
-			Value value;
-		};
-		bool hasValue;
-
-		StorageTriviallyDestructible() : hasValue{false} {}
-
-		void clear() { hasValue = false; }
+	// uninitialized
+	union {
+		T m_value;
 	};
-
-	struct StorageNonTriviallyDestructible {
-		// uninitialized
-		union {
-			Value value;
-		};
-		bool hasValue;
-
-		StorageNonTriviallyDestructible() : hasValue{false} {}
-
-		~StorageNonTriviallyDestructible() { clear(); }
-
-		void clear() {
-			if(hasValue) {
-				hasValue = false;
-				value.~Value();
-			}
-		}
-	};
-
-	using Storage = typename std::conditional<std::is_trivially_destructible<Value>::value,
-											  StorageTriviallyDestructible,
-											  StorageNonTriviallyDestructible>::type;
-
-	Storage storage_;
+	bool m_has_value = false;
 };
 
 #if defined(__GNUC__) && !defined(__clang__)
@@ -286,10 +263,6 @@ template <class V> bool operator==(const V &a, const Maybe<V> &b) {
 }
 
 // Suppress comparability of Maybe<T> with T, despite implicit conversion.
-template <class V> bool operator<(const Maybe<V> &, const V &other) = delete;
-template <class V> bool operator<=(const Maybe<V> &, const V &other) = delete;
-template <class V> bool operator>=(const Maybe<V> &, const V &other) = delete;
-template <class V> bool operator>(const Maybe<V> &, const V &other) = delete;
 template <class V> bool operator<(const V &other, const Maybe<V> &) = delete;
 template <class V> bool operator<=(const V &other, const Maybe<V> &) = delete;
 template <class V> bool operator>=(const V &other, const Maybe<V> &) = delete;
