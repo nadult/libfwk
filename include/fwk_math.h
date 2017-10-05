@@ -2052,7 +2052,10 @@ class Random {
 	Quat uniformRotation(float3 axis);
 
 	template <class T> void permute(Span<T> span) {
-		std::random_shuffle(begin(span), end(span), [this](int v) { return uniform(v); });
+		for(int i = span.size() - 1; i > 0; i--) {
+			using fwk::swap;
+			swap(span[i], span[uniform(0, i)]);
+		}
 	}
 
   private:
