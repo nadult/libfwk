@@ -272,6 +272,7 @@ void BitVector::resize(int new_size, bool clear_value) {
 		memset(new_data.data() + m_data.size(), clear_value ? 0xff : 0,
 			   (new_data.size() - m_data.size()) * sizeof(base_type));
 	m_data.swap(new_data);
+	m_size = new_size;
 }
 
 void BitVector::clear(bool value) {
