@@ -13,7 +13,6 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
-#include <vector>
 
 #if _MSC_VER
 #define NOINLINE
@@ -170,10 +169,6 @@ template <class T> using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::val
 	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
 	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
 	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
-
-#ifdef FWK_STD_VECTOR
-template <class T> using vector = std::vector<T, SimpleAllocator<T>>;
-#endif
 
 template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
@@ -385,12 +380,9 @@ double getTime();
 #endif
 }
 
-#ifndef FWK_STD_VECTOR
-#include "fwk_vector.h"
-#endif
-
 #include "fwk_maybe.h"
 #include "fwk_range.h"
+#include "fwk_vector.h"
 
 #include "fwk_index_range.h"
 
@@ -1196,7 +1188,6 @@ template <class T> class PodArray {
 		fwk::swap(m_size, rhs.m_size);
 	}
 
-#ifndef FWK_STD_VECTOR
 	void swap(Vector<T> &rhs) { // TODO: some capacity may be wasted
 		char *cur_data = reinterpret_cast<char *>(m_data);
 		int cur_size = m_size;
@@ -1205,7 +1196,6 @@ template <class T> class PodArray {
 		rhs.m_base.data = cur_data;
 		rhs.m_base.size = rhs.m_base.capacity = cur_size;
 	}
-#endif
 
 	void clear() {
 		m_size = 0;

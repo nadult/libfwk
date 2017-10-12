@@ -6,7 +6,6 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/rollback.h"
 #include <cstring>
-#include <iostream>
 #include <limits>
 
 #ifdef FWK_TARGET_HTML5

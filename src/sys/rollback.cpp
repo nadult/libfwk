@@ -9,7 +9,6 @@
 #include <csetjmp>
 #include <mutex>
 #include <sys/types.h>
-#include <thread>
 
 namespace fwk {
 namespace detail {

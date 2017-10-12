@@ -1,14 +1,11 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_VECTOR_H
-#define FWK_VECTOR_H
+#pragma once
 
 #include "fwk_base.h"
 
 namespace fwk {
-
-#ifndef FWK_STD_VECTOR
 
 template <class T> class PodArray;
 
@@ -347,7 +344,4 @@ template <class T> class Vector {
 };
 
 template <class T> using vector = Vector<T>;
-#endif
 }
-
-#endif

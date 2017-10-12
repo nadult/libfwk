@@ -2,8 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/sys/assert.h"
-#include "fwk/sys/error.h"
 #include "fwk/sys/backtrace.h"
+#include "fwk/sys/error.h"
 #include "fwk/sys/rollback.h"
 #include <cstdarg>
 

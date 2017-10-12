@@ -5,6 +5,7 @@
 #define FWK_RANGE_H
 
 #include "fwk_base.h"
+#include "fwk_vector.h"
 
 namespace fwk {
 

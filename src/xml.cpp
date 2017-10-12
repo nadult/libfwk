@@ -19,7 +19,6 @@
 #include "rapidxml/rapidxml_print.hpp"
 #include <cstdio>
 #include <cstring>
-#include <sstream>
 
 using namespace rapidxml;
 
