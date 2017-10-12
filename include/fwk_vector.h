@@ -18,44 +18,43 @@ class BaseVector {
 	using DestroyFunc = void (*)(void *, int);
 	using CopyFunc = void (*)(void *, const void *, int);
 
-	~BaseVector() noexcept;
-
-	void zero() noexcept {
+	~BaseVector();
+	void zero() {
 		data = nullptr;
 		size = capacity = 0;
 	}
-	void moveConstruct(BaseVector &&rhs) noexcept {
+	void moveConstruct(BaseVector &&rhs) {
 		data = rhs.data;
 		size = rhs.size;
 		capacity = rhs.capacity;
 		rhs.zero();
 	}
-	void alloc(int, int size, int capacity) noexcept;
-	void swap(BaseVector &) noexcept;
+	void alloc(int, int size, int capacity);
+	void swap(BaseVector &);
 
-	static int growCapacity(int current, int obj_size) noexcept;
-	static int insertCapacity(int current, int obj_size, int min_size) noexcept;
+	static int growCapacity(int current, int obj_size);
+	static int insertCapacity(int current, int obj_size, int min_size);
 
 	void copyConstruct(int, CopyFunc, char *, int size);
 	void grow(int, MoveDestroyFunc);
 	void reallocate(int, MoveDestroyFunc move_destroy_func, int new_capacity);
-	void clear(DestroyFunc destroy_func) noexcept;
+	void clear(DestroyFunc destroy_func);
 	void erase(int, DestroyFunc, MoveDestroyFunc, int index, int count);
 	void resizePartial(int, DestroyFunc, MoveDestroyFunc, int new_size);
 	void insertPartial(int, MoveDestroyFunc, int offset, int count);
 	void insert(int, MoveDestroyFunc, CopyFunc, int offset, const void *, int count);
-	void assignPartial(int, DestroyFunc, int new_size) noexcept;
+	void assignPartial(int, DestroyFunc, int new_size);
 	void assign(int, DestroyFunc, CopyFunc, const void *, int size);
 
-	void copyConstructPod(int, char *, int size) noexcept;
-	void growPod(int) noexcept;
-	void reallocatePod(int, int new_capacity) noexcept;
-	void clearPod() noexcept { size = 0; }
-	void erasePod(int, int index, int count) noexcept;
-	void resizePodPartial(int, int new_size) noexcept;
-	void insertPodPartial(int, int offset, int count) noexcept;
-	void insertPod(int, int offset, const void *, int count) noexcept;
-	void assignPartialPod(int, int new_size) noexcept;
+	void copyConstructPod(int, char *, int size);
+	void growPod(int);
+	void reallocatePod(int, int new_capacity);
+	void clearPod() { size = 0; }
+	void erasePod(int, int index, int count);
+	void resizePodPartial(int, int new_size);
+	void insertPodPartial(int, int offset, int count);
+	void insertPod(int, int offset, const void *, int count);
+	void assignPartialPod(int, int new_size);
 	void assignPod(int, const void *, int size);
 
 	char *data;

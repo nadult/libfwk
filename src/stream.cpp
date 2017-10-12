@@ -197,7 +197,7 @@ FileStream::FileStream(const char *file_name, bool is_loading)
 	m_rb_index = RollbackContext::atRollback(rbFree, m_file);
 }
 
-FileStream::~FileStream() throw() {
+FileStream::~FileStream() {
 	if(m_file) {
 		RollbackContext::removeAtRollback(m_rb_index);
 		fclose((FILE *)m_file);
@@ -226,7 +226,7 @@ void FileStream::v_seek(long long pos) {
 	m_pos = pos;
 }
 
-const char *FileStream::name() const throw() { return m_name.c_str(); }
+const char *FileStream::name() const { return m_name.c_str(); }
 
 MemoryLoader::MemoryLoader(const char *data, long long size) : Stream(true), m_data(data) {
 	ASSERT(size >= 0);

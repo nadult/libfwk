@@ -210,9 +210,9 @@ template <class T> class immutable_ptr {
 	immutable_ptr &operator=(const immutable_ptr &) = default;
 	immutable_ptr &operator=(immutable_ptr &&) = default;
 
-	const T &operator*() const noexcept { return m_ptr.operator*(); }
-	const T *operator->() const noexcept { return m_ptr.operator->(); }
-	const T *get() const noexcept { return m_ptr.get(); }
+	const T &operator*() const { return m_ptr.operator*(); }
+	const T *operator->() const { return m_ptr.operator->(); }
+	const T *get() const { return m_ptr.get(); }
 
 	// It will make a copy if the pointer is not unique
 	T *mutate() {
@@ -224,10 +224,10 @@ template <class T> class immutable_ptr {
 		return const_cast<T *>(m_ptr.get());
 	}
 
-	explicit operator bool() const noexcept { return !!m_ptr.get(); }
-	bool operator==(const T *rhs) const noexcept { return m_ptr == rhs; }
-	bool operator==(const immutable_ptr &rhs) const noexcept { return m_ptr == rhs.m_ptr; }
-	bool operator<(const immutable_ptr &rhs) const noexcept { return m_ptr < rhs.m_ptr; }
+	explicit operator bool() const { return !!m_ptr.get(); }
+	bool operator==(const T *rhs) const { return m_ptr == rhs; }
+	bool operator==(const immutable_ptr &rhs) const { return m_ptr == rhs.m_ptr; }
+	bool operator<(const immutable_ptr &rhs) const { return m_ptr < rhs.m_ptr; }
 
 	auto getKey() const { return (long long)*m_ptr.get(); }
 	auto getWeakPtr() const { return std::weak_ptr<const T>(m_ptr); }
@@ -239,7 +239,7 @@ template <class T> class immutable_ptr {
 	template <class T1, class... Args> friend immutable_ptr<T1> make_immutable(Args &&...);
 	template <class T1> friend immutable_ptr<T1> make_immutable(T1 &&);
 	template <class T1, class U>
-	friend immutable_ptr<T1> static_pointer_cast(const immutable_ptr<U> &) noexcept;
+	friend immutable_ptr<T1> static_pointer_cast(const immutable_ptr<U> &);
 	friend class immutable_base<T>;
 	friend class immutable_weak_ptr<T>;
 
@@ -276,8 +276,7 @@ template <class T, class... Args> immutable_ptr<T> make_immutable(Args &&... arg
 	return ret;
 }
 
-template <class T, class U>
-immutable_ptr<T> static_pointer_cast(const immutable_ptr<U> &cp) noexcept {
+template <class T, class U> immutable_ptr<T> static_pointer_cast(const immutable_ptr<U> &cp) {
 	return immutable_ptr<T>(static_pointer_cast<const T>(cp.m_ptr));
 }
 
@@ -294,16 +293,16 @@ template <class T> class immutable_weak_ptr {
 		return immutable_ptr<T>();
 	}
 
-	bool operator==(const immutable_weak_ptr &rhs) const noexcept {
+	bool operator==(const immutable_weak_ptr &rhs) const {
 		return !m_ptr.owner_before(rhs.m_ptr) && !rhs.m_ptr.owner_before(m_ptr) &&
 			   m_mutation_counter == rhs.m_mutation_counter;
 	}
-	bool operator<(const immutable_weak_ptr &rhs) const noexcept {
+	bool operator<(const immutable_weak_ptr &rhs) const {
 		if(m_mutation_counter == rhs.m_mutation_counter)
 			return m_ptr.owner_before(rhs.m_ptr);
 		return m_mutation_counter < rhs.m_mutation_counter;
 	}
-	bool expired() const noexcept { return m_ptr.expired(); }
+	bool expired() const { return m_ptr.expired(); }
 
   private:
 	std::weak_ptr<const T> m_ptr;
@@ -788,12 +787,12 @@ template <class T> struct SerializeAsPod;
 class Stream {
   public:
 	Stream(bool is_loading);
-	virtual ~Stream() noexcept {}
+	virtual ~Stream() {}
 
-	virtual const char *name() const noexcept { return ""; }
+	virtual const char *name() const { return ""; }
 
-	long long size() const noexcept { return m_size; }
-	long long pos() const noexcept { return m_pos; }
+	long long size() const { return m_size; }
+	long long pos() const { return m_pos; }
 
 	void saveData(const void *ptr, int bytes);
 	void loadData(void *ptr, int bytes);
@@ -802,9 +801,9 @@ class Stream {
 	int loadString(char *buffer, int size);
 	void saveString(const char *, int size = 0);
 
-	bool isLoading() const noexcept { return m_is_loading; }
-	bool isSaving() const noexcept { return !m_is_loading; }
-	bool allOk() const noexcept { return !m_error_handled; }
+	bool isLoading() const { return m_is_loading; }
+	bool isSaving() const { return !m_is_loading; }
+	bool allOk() const { return !m_error_handled; }
 
 	//! Serializes 32-bit signature; While saving, it simply writes it to stream,
 	//! while loading it CHECKs if loaded signature is equal to sig
@@ -996,12 +995,12 @@ class FileStream : public Stream {
 	FileStream(const char *file_name, bool is_loading);
 	FileStream(const string &file_name, bool is_loading)
 		: FileStream(file_name.c_str(), is_loading) {}
-	~FileStream() noexcept;
+	~FileStream();
 
 	FileStream(const FileStream &) = delete;
 	void operator=(const FileStream &) = delete;
 
-	const char *name() const noexcept override;
+	const char *name() const override;
 
   protected:
 	void v_load(void *, int) override;

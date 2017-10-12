@@ -497,8 +497,7 @@ template <typename Variant, typename Comp>
 class comparer
 {
 public:
-    explicit comparer(Variant const& lhs) noexcept
-        : lhs_(lhs) {}
+    explicit comparer(Variant const& lhs): lhs_(lhs) {}
     comparer & operator=(comparer const&) = delete;
     // visitor
     template <typename T>
@@ -587,21 +586,18 @@ private:
 
 public:
     VARIANT_INLINE Variant()
-        noexcept(std::is_nothrow_default_constructible<first_type>::value)
         : type_index((int)sizeof...(Types) - 1)
     {
         static_assert(std::is_default_constructible<first_type>::value, "First type in variant must be default constructible to allow default construction of variant");
         new (&data) first_type();
     }
 
-    VARIANT_INLINE Variant(no_init) noexcept
-        : type_index(-1) {}
+    VARIANT_INLINE Variant(no_init) : type_index(-1) {}
 
     // http://isocpp.org/blog/2012/11/universal-references-in-c11-scott-meyers
     template <typename T, typename Traits = detail::value_traits<T, Types...>,
                           typename Enable = typename std::enable_if<Traits::is_valid>::type>
     VARIANT_INLINE Variant(T && val)
-        noexcept(std::is_nothrow_constructible<typename Traits::target_type, T && >::value)
         : type_index(Traits::index)
     {
         new (&data) typename Traits::target_type(std::forward<T>(val));
@@ -614,7 +610,6 @@ public:
     }
 
     VARIANT_INLINE Variant(Variant<Types...> && old)
-        noexcept(std::is_nothrow_move_constructible<std::tuple<Types...>>::value)
         : type_index(old.type_index)
     {
         helper_type::move(old.type_index, &old.data, &data);
@@ -653,7 +648,7 @@ public:
     // conversions
     // move-assign
     template <typename T>
-    VARIANT_INLINE Variant<Types...>& operator=(T && rhs) noexcept
+    VARIANT_INLINE Variant<Types...>& operator=(T && rhs)
     {
         Variant<Types...> temp(std::forward<T>(rhs));
         move_assign(std::move(temp));
@@ -750,7 +745,7 @@ public:
 		return nullptr;
     }
 
-    VARIANT_INLINE int which() const noexcept {
+    VARIANT_INLINE int which() const {
         return (int)sizeof...(Types) - type_index - 1;
     }
 
@@ -794,7 +789,7 @@ public:
         return visit(*this, detail::make_visitor(std::forward<Fs>(fs)...));
     }
 
-    ~Variant() noexcept { // no-throw destructor
+    ~Variant() {
         helper_type::destroy(type_index, &data);
     }
 

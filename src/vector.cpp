@@ -8,7 +8,7 @@
 namespace fwk {
 
 #ifndef FWK_STD_VECTOR
-void BaseVector::alloc(int obj_size, int size_, int capacity_) noexcept {
+void BaseVector::alloc(int obj_size, int size_, int capacity_) {
 	size = size_;
 	capacity = capacity_;
 	auto nbytes = size_t(capacity) * obj_size;
@@ -16,18 +16,18 @@ void BaseVector::alloc(int obj_size, int size_, int capacity_) noexcept {
 	if(nbytes && !data)
 		FATAL("Error while allocating memory: %d * %d bytes", capacity, obj_size);
 }
-BaseVector::~BaseVector() noexcept {
+BaseVector::~BaseVector() {
 	if(data)
 		fwk::deallocate(data);
 }
 
-void BaseVector::swap(BaseVector &rhs) noexcept {
+void BaseVector::swap(BaseVector &rhs) {
 	fwk::swap(data, rhs.data);
 	fwk::swap(size, rhs.size);
 	fwk::swap(capacity, rhs.capacity);
 }
 
-int BaseVector::growCapacity(int capacity, int obj_size) noexcept {
+int BaseVector::growCapacity(int capacity, int obj_size) {
 	if(capacity == 0)
 		return obj_size > 64 ? 1 : 64 / obj_size;
 	if(capacity > 4096 * 32 / obj_size)
@@ -35,7 +35,7 @@ int BaseVector::growCapacity(int capacity, int obj_size) noexcept {
 	return (capacity * 3 + 1) / 2;
 }
 
-int BaseVector::insertCapacity(int capacity, int obj_size, int min_size) noexcept {
+int BaseVector::insertCapacity(int capacity, int obj_size, int min_size) {
 	int cap = growCapacity(capacity, obj_size);
 	return cap > min_size ? cap : min_size;
 }
@@ -70,7 +70,7 @@ void BaseVector::resizePartial(int obj_size, DestroyFunc destroy_func,
 	size = new_size;
 }
 
-void BaseVector::assignPartial(int obj_size, DestroyFunc destroy_func, int new_size) noexcept {
+void BaseVector::assignPartial(int obj_size, DestroyFunc destroy_func, int new_size) {
 	clear(destroy_func);
 	if(new_size > capacity) {
 		BaseVector new_base;
@@ -107,7 +107,7 @@ void BaseVector::insert(int obj_size, MoveDestroyFunc move_destroy_func, CopyFun
 	copy_func(data + size_t(obj_size) * index, ptr, count);
 }
 
-void BaseVector::clear(DestroyFunc destroy_func) noexcept {
+void BaseVector::clear(DestroyFunc destroy_func) {
 	destroy_func(data, size);
 	size = 0;
 }
@@ -124,12 +124,12 @@ void BaseVector::erase(int obj_size, DestroyFunc destroy_func, MoveDestroyFunc m
 	size -= count;
 }
 
-void BaseVector::copyConstructPod(int obj_size, char *ptr, int size) noexcept {
+void BaseVector::copyConstructPod(int obj_size, char *ptr, int size) {
 	alloc(obj_size, size, size);
 	memcpy(data, ptr, size_t(obj_size) * size);
 }
 
-void BaseVector::reallocatePod(int obj_size, int new_capacity) noexcept {
+void BaseVector::reallocatePod(int obj_size, int new_capacity) {
 	if(new_capacity <= capacity)
 		return;
 
@@ -141,19 +141,19 @@ void BaseVector::reallocatePod(int obj_size, int new_capacity) noexcept {
 	swap(new_base);
 }
 
-void BaseVector::growPod(int obj_size) noexcept {
+void BaseVector::growPod(int obj_size) {
 	int current = capacity;
 	reallocatePod(obj_size, growCapacity(capacity, obj_size));
 }
 
-void BaseVector::resizePodPartial(int obj_size, int new_size) noexcept {
+void BaseVector::resizePodPartial(int obj_size, int new_size) {
 	DASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocatePod(obj_size, insertCapacity(capacity, obj_size, new_size));
 	size = new_size;
 }
 
-void BaseVector::assignPartialPod(int obj_size, int new_size) noexcept {
+void BaseVector::assignPartialPod(int obj_size, int new_size) {
 	clearPod();
 	if(new_size > capacity) {
 		BaseVector new_base;
@@ -169,7 +169,7 @@ void BaseVector::assignPod(int obj_size, const void *ptr, int new_size) {
 	memcpy(data, ptr, size_t(obj_size) * size);
 }
 
-void BaseVector::insertPodPartial(int obj_size, int index, int count) noexcept {
+void BaseVector::insertPodPartial(int obj_size, int index, int count) {
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
@@ -182,12 +182,12 @@ void BaseVector::insertPodPartial(int obj_size, int index, int count) noexcept {
 	size = new_size;
 }
 
-void BaseVector::insertPod(int obj_size, int index, const void *ptr, int count) noexcept {
+void BaseVector::insertPod(int obj_size, int index, const void *ptr, int count) {
 	insertPodPartial(obj_size, index, count);
 	memcpy(data + size_t(obj_size) * index, ptr, size_t(obj_size) * count);
 }
 
-void BaseVector::erasePod(int obj_size, int index, int count) noexcept {
+void BaseVector::erasePod(int obj_size, int index, int count) {
 	DASSERT(index >= 0 && count >= 0 && index + count <= size);
 	int move_start = index + count;
 	int move_count = size - move_start;

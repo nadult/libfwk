@@ -223,10 +223,10 @@ template <class T, int min_size = 0> class Span {
 			  EnableIf<isSame<Base, T>() && !isSame<TSpan, Span>()>...>
 	Span(TSpan &rhs) : Span(fwk::data(rhs), fwk::size(rhs)) {}
 
-	const T *begin() const noexcept { return m_data; }
-	const T *end() const noexcept { return m_data + m_size; }
-	T *begin() noexcept { return m_data; }
-	T *end() noexcept { return m_data + m_size; }
+	const T *begin() const { return m_data; }
+	const T *end() const { return m_data + m_size; }
+	T *begin() { return m_data; }
+	T *end() { return m_data + m_size; }
 
 	const T &front() const {
 		PASSERT(m_size > 0);
@@ -237,10 +237,10 @@ template <class T, int min_size = 0> class Span {
 		return m_data[m_size - 1];
 	}
 
-	T *data() const noexcept { return m_data; }
-	int size() const noexcept { return m_size; }
-	bool empty() const noexcept { return m_size == 0; }
-	bool inRange(int idx) const noexcept { return fwk::inRange(idx, 0, m_size); }
+	T *data() const { return m_data; }
+	int size() const { return m_size; }
+	bool empty() const { return m_size == 0; }
+	bool inRange(int idx) const { return fwk::inRange(idx, 0, m_size); }
 
 	T &operator[](int idx) const {
 		PASSERT(inRange(idx));

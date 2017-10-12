@@ -48,14 +48,14 @@ template <class T> class Maybe {
 	static_assert(!std::is_reference<T>::value, "Maybe may not be used with reference types");
 	static_assert(!std::is_abstract<T>::value, "Maybe may not be used with abstract types");
 
-	Maybe() noexcept {}
+	Maybe() {}
 
-	Maybe(const Maybe &src) noexcept(std::is_nothrow_copy_constructible<T>::value) {
+	Maybe(const Maybe &src) {
 		if(src.hasValue())
 			construct(src.value());
 	}
 
-	Maybe(Maybe &&src) noexcept(std::is_nothrow_move_constructible<T>::value) {
+	Maybe(Maybe &&src) {
 		if(src.hasValue()) {
 			construct(std::move(src.value()));
 			src.clear();
@@ -68,15 +68,9 @@ template <class T> class Maybe {
 				m_value.~T();
 	}
 
-	/* implicit */ Maybe(const None &) noexcept {}
-
-	/* implicit */ Maybe(T &&newValue) noexcept(std::is_nothrow_move_constructible<T>::value) {
-		construct(std::move(newValue));
-	}
-
-	/* implicit */ Maybe(const T &newValue) noexcept(std::is_nothrow_copy_constructible<T>::value) {
-		construct(newValue);
-	}
+	/* implicit */ Maybe(const None &) {}
+	/* implicit */ Maybe(T &&newValue) { construct(std::move(newValue)); }
+	/* implicit */ Maybe(const T &newValue) { construct(newValue); }
 
 	void assign(const None &) { clear(); }
 
@@ -117,12 +111,12 @@ template <class T> class Maybe {
 		return *this;
 	}
 
-	Maybe &operator=(Maybe &&other) noexcept(std::is_nothrow_move_assignable<T>::value) {
+	Maybe &operator=(Maybe &&other) {
 		assign(std::move(other));
 		return *this;
 	}
 
-	Maybe &operator=(const Maybe &other) noexcept(std::is_nothrow_copy_assignable<T>::value) {
+	Maybe &operator=(const Maybe &other) {
 		assign(other);
 		return *this;
 	}
