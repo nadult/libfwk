@@ -4,6 +4,7 @@
 #include "fwk/format.h"
 
 #include "fwk/sys/backtrace.h"
+#include "fwk/sys/rollback.h"
 #include <cstdio>
 
 #include <errno.h>
@@ -343,5 +344,16 @@ string Backtrace::filter(const string &input) {
 #endif
 
 	return input;
+}
+
+void Backtrace::validateMemory() {
+	vector<const void *> pointers;
+	pointers.emplace_back(m_addresses.data());
+	pointers.emplace_back(m_symbols.data());
+	pointers.emplace_back(m_gdb_result.first.data());
+	for(auto &symbol : m_symbols)
+		pointers.emplace_back(symbol.data());
+	if(RollbackContext::willRollback(pointers))
+		FATAL("Bactrace improperly allocated: will be freed on rollback");
 }
 }

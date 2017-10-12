@@ -4,8 +4,9 @@
 #ifndef FWK_XML_H
 #define FWK_XML_H
 
-#include "fwk_base.h"
 #include "fwk/format.h"
+#include "fwk/sys/assert.h"
+#include "fwk_base.h"
 #include "fwk_math.h"
 #include "fwk_parse.h"
 

@@ -8,7 +8,7 @@ DEFINE_ENUM(SomeEnum, foo, bar, foo_bar, last);
 void testMain() {
 	ASSERT(bool() == false);
 	ASSERT(fromString<SomeEnum>("foo") == SomeEnum::foo);
-	ASSERT_EXCEPTION(fromString<SomeEnum>("something else"));
+	//ASSERT_EXCEPTION(fromString<SomeEnum>("something else"));
 	ASSERT(!tryFromString<SomeEnum>("something else"));
 	ASSERT(string("foo_bar") == toString(SomeEnum::foo_bar));
 

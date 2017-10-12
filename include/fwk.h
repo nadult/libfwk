@@ -6,8 +6,8 @@
 // This header includes everything
 // You can use it for convenience, but it comes with a cost
 
-#include "fwk_assert.h"
 #include "fwk_base.h"
+#include "fwk/sys/assert.h"
 #include "fwk/format.h"
 #include "fwk_input.h"
 #include "fwk_math.h"

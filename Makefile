@@ -23,7 +23,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=base vector filesystem filesystem_linux input profiler stream strings xml \
-		   sys/memory sys/error sys/backtrace \
+		   sys/error sys/assert sys/memory sys/backtrace sys/rollback \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   format parse audio/device audio/sound audio/ogg_stream \
@@ -34,7 +34,7 @@ SHARED_SRC=base vector filesystem filesystem_linux input profiler stream strings
 		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/sprite_buffer gfx/line_buffer \
 		   gfx/texture gfx/texture_format gfx/texture_tga   gfx/texture_png gfx/texture_bmp
 TESTS_SRC=test/streams test/stuff test/math test/window test/enums test/models test/vector test/vector_perf \
-			test/variant_perf
+			test/variant_perf test/rollback_test
 TOOLS_SRC=tools/model_convert tools/model_viewer
 PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
@@ -71,8 +71,8 @@ MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
 LIBS=freetype2 sdl2 libpng vorbisfile
-LINUX_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt -lm -lstdc++
-MINGW_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32\
+LINUX_LIBS=-pthread $(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt -lm -lstdc++
+MINGW_LIBS=-pthread $(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32\
 		   -lws2_32 -limagehlp
 
 INCLUDES=-Iinclude/ -Isrc/
@@ -82,9 +82,9 @@ NICE_FLAGS=-std=c++1z -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wer
 		   -Wuninitialized -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
 		   -Wparentheses -Wno-overloaded-virtual -Wno-undefined-inline #-Werror
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
-LINUX_FLAGS=-DFWK_TARGET_LINUX -ggdb -gsplit-dwarf $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
+LINUX_FLAGS=-DFWK_TARGET_LINUX -pthread -ggdb -gsplit-dwarf $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
 			$(INCLUDES) $(FLAGS)
-MINGW_FLAGS=-DFWK_TARGET_MINGW -ggdb -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
+MINGW_FLAGS=-DFWK_TARGET_MINGW -pthread -ggdb -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
 			$(NICE_FLAGS) $(INCLUDES) $(FLAGS)
 HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)

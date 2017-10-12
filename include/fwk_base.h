@@ -17,12 +17,10 @@
 #include <vector>
 
 #if _MSC_VER
-#define NORETURN
 #define NOINLINE
 #define __restrict__ __restrict
 #define ALWAYS_INLINE
 #else
-#define NORETURN __attribute__((noreturn))
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))
 #endif
@@ -87,10 +85,13 @@ using i32 = int;
 using u64 = unsigned long long;
 using i64 = long long;
 
+struct Empty {};
+
 template <class... T> struct Undefined;
 template <long long... V> struct UndefinedVal;
+template <class T> using UndefinedSize = UndefinedVal<sizeof(T)>;
 
-template <class T, int size> constexpr int arraySize(T (&)[size]) noexcept { return size; }
+template <class T, int size> constexpr int arraySize(T (&)[size]) { return size; }
 
 template <class T, class T1, class T2>
 constexpr bool inRange(const T &value, const T1 &begin, const T2 &end) {
@@ -348,33 +349,32 @@ template <class T, unsigned size> struct StaticPimpl {
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
 
-#ifdef __clang__
-__attribute__((__format__(__printf__, 3, 4)))
-#endif
-void throwException(const char *file, int line, const char *fmt, ...);
-#ifdef __clang__
-__attribute__((__format__(__printf__, 3, 4)))
-#endif
-void fatalError(const char *file, int line, const char *fmt, ...) NORETURN;
-void assertFailed(const char *file, int line, const char *str) NORETURN;
-void checkFailed(const char *file, int line, const char *str);
+// TODO: move FATAL, check, etc to fwk_assert ?
+// TODO: use StringRef -> CString
+[[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
+[[noreturn]] void assertFailed(const char *file, int line, const char *str);
+[[noreturn]] void checkFailed(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
+
 void handleCtrlC(void (*handler)());
 void handleSegFault();
+
 void sleep(double sec);
 double getTime();
 
 // TODO: maybe FILE / LINE is not required if we have backtraces?
 
 #define FATAL(...) fwk::fatalError(__FILE__, __LINE__, __VA_ARGS__)
-#define THROW(...) fwk::throwException(__FILE__, __LINE__, __VA_ARGS__)
-
-// TODO: add fatal exception and use it for asserts
-// TODO: add special assert for verifying input files, which throws normal exception
 
 #define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 
-// Use this for checking input; It will throw on error, so that recovery is possible
-#define CHECK(expr) (!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0))
+#define THROW(...) FATAL(__VA_ARGS__)
+
+// TODO: Error messages using fwk format ?
+#define CHECK_FAILED(...) fwk::checkFailed(__FILE__, __LINE__, __VA_ARGS__)
+// Use this for checking input; If rollback mode is on, it will cause rollback()
+// Otherwise it works just like an assert
+#define CHECK(expr)                                                                                \
+	(!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, "%s", FWK_STRINGIZE(expr)), 0))
 
 #ifdef NDEBUG
 #define DASSERT(expr) ((void)0)

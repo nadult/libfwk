@@ -36,6 +36,8 @@ class Backtrace {
 	auto size() const { return m_addresses.size(); }
 	bool empty() const { return m_addresses.empty() && m_gdb_result.first.empty(); }
 
+	void validateMemory();
+
   private:
 	static string filter(const string &);
 

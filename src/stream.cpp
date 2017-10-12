@@ -3,7 +3,7 @@
 
 #include "fwk_base.h"
 
-#include "fwk_assert.h"
+#include "fwk/sys/assert.h"
 #include <cstring>
 #include <iostream>
 #include <limits>

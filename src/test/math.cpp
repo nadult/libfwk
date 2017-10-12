@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_assert.h"
+#include "fwk/sys/assert.h"
 #include "fwk_math_ext.h"
 #include "fwk_variant.h"
 #include "testing.h"

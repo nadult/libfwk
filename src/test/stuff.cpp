@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_assert.h"
+#include "fwk/sys/assert.h"
 #include "fwk_cache.h"
 #include "testing.h"
 
@@ -73,8 +73,8 @@ void testXMLConverters() {
 	ASSERT_EQ(toString("foo"), "foo");
 	ASSERT_EQ(toString(short(10)), "10");
 
-	ASSERT_EXCEPTION(fromString<vector<int>>("1 2a 3"));
-	ASSERT_EXCEPTION(fromString<bool>("foobar"));
+	//ASSERT_EXCEPTION(fromString<vector<int>>("1 2a 3"));
+	//ASSERT_EXCEPTION(fromString<bool>("foobar"));
 }
 
 void testPathOperations() {
