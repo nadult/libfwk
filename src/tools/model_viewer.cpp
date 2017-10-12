@@ -1,15 +1,15 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/material_set.h"
-#include "fwk/gfx/gfx_device.h"
-#include "fwk/gfx/render_list.h"
-#include "fwk/gfx/renderer2d.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/font.h"
-#include "fwk_mesh.h"
+#include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/material_set.h"
+#include "fwk/gfx/render_list.h"
+#include "fwk/gfx/renderer2d.h"
 #include "fwk_input.h"
+#include "fwk_mesh.h"
 #include "fwk_profile.h"
 
 using namespace fwk;
@@ -124,7 +124,7 @@ class Viewer {
 		m_font = make_unique<Font>(factory.makeFont(font_path, 14, false));
 
 		if(m_models.empty())
-			THROW("No models loaded\n");
+			CHECK_FAILED("No models loaded\n");
 	}
 
 	void handleInput(GfxDevice &device, float time_diff) {
@@ -263,7 +263,7 @@ class Viewer {
 	ViewConfig m_target_view;
 };
 
-int safe_main(int argc, char **argv) {
+int main(int argc, char **argv) {
 	double time = getTime();
 	int2 resolution(1200, 700);
 
@@ -319,13 +319,4 @@ int safe_main(int argc, char **argv) {
 	gfx_device.runMainLoop(Viewer::mainLoop, &viewer);
 
 	return 0;
-}
-
-int main(int argc, char **argv) {
-	try {
-		return safe_main(argc, argv);
-	} catch(const Exception &ex) {
-		printf("%s\n", ex.what());
-		return 1;
-	}
 }

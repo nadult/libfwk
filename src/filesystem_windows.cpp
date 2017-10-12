@@ -33,13 +33,13 @@ FilePath::Element FilePath::extractRoot(const char *str) {
 FilePath FilePath::current() {
 	char buf[MAX_PATH];
 	if(!GetCurrentDirectory(sizeof(buf), buf))
-		THROW("Error in GetCurrentDirectory");
+		CHECK_FAILED("Error in GetCurrentDirectory");
 	return FilePath(buf);
 }
 
 void FilePath::setCurrent(const FilePath &path) {
 	if(!SetCurrentDirectory(path.c_str()))
-		THROW("Error in SetCurrentDirectory(%s)", path.c_str());
+		CHECK_FAILED("Error in SetCurrentDirectory(%s)", path.c_str());
 }
 
 bool FilePath::isRegularFile() const {

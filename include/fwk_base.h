@@ -8,7 +8,6 @@
 #include <array>
 #include <atomic>
 #include <cstring>
-#include <exception>
 #include <map>
 #include <memory>
 #include <string>
@@ -367,8 +366,6 @@ double getTime();
 
 #define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 
-#define THROW(...) FATAL(__VA_ARGS__)
-
 // TODO: Error messages using fwk format ?
 #define CHECK_FAILED(...) fwk::checkFailed(__FILE__, __LINE__, __VA_ARGS__)
 // Use this for checking input; If rollback mode is on, it will cause rollback()
@@ -396,13 +393,11 @@ double getTime();
 #include "fwk_maybe.h"
 #include "fwk_range.h"
 
-#include "fwk/sys/backtrace.h"
 #include "fwk_index_range.h"
 
 namespace fwk {
 
 class Backtrace;
-class Exception;
 
 void logError(const string &error);
 
@@ -809,11 +804,10 @@ class Stream {
 
 	bool isLoading() const noexcept { return m_is_loading; }
 	bool isSaving() const noexcept { return !m_is_loading; }
-	bool allOk() const noexcept { return !m_exception_thrown; }
+	bool allOk() const noexcept { return !m_error_handled; }
 
 	//! Serializes 32-bit signature; While saving, it simply writes it to stream,
-	//! while loading it checks if loaded signature is equal to sig, if not
-	//! it throws an exception
+	//! while loading it CHECKs if loaded signature is equal to sig
 	void signature(u32 sig);
 
 	// Max length: 32
@@ -841,7 +835,7 @@ class Stream {
 		return *this;
 	}
 
-	void handleException(const Exception &) NOINLINE;
+	static string handleError(void *stream_ptr, void *) NOINLINE;
 
   private:
 	template <class... Args> struct SumSize {
@@ -881,20 +875,8 @@ class Stream {
 	};
 
 	template <class T, bool pod> struct Serialization {
-		static void doLoad(T &obj, Stream &sr) {
-			try {
-				obj.load(sr);
-			} catch(const Exception &ex) {
-				sr.handleException(ex);
-			}
-		}
-		static void doSave(const T &obj, Stream &sr) {
-			try {
-				obj.save(sr);
-			} catch(const Exception &ex) {
-				sr.handleException(ex);
-			}
-		}
+		static void doLoad(T &obj, Stream &sr) { obj.load(sr); }
+		static void doSave(const T &obj, Stream &sr) { obj.save(sr); }
 	};
 
 	template <class T> struct Serialization<T, true> {
@@ -927,12 +909,12 @@ class Stream {
 	friend class Saver;
 
   protected:
-	virtual void v_load(void *, int) { FATAL("v_load unimplemented"); }
-	virtual void v_save(const void *, int) { FATAL("v_save unimplemented"); }
-	virtual void v_seek(long long pos) { m_pos = pos; }
+	virtual void v_load(void *, int);
+	virtual void v_save(const void *, int);
+	virtual void v_seek(long long pos);
 
 	long long m_size, m_pos;
-	bool m_exception_thrown, m_is_loading;
+	bool m_error_handled, m_is_loading;
 };
 
 // You can derive your classes from this
@@ -973,11 +955,8 @@ void saveToStream(const string &, Stream &);
 template <class T> void loadFromStream(vector<T> &v, Stream &sr) {
 	u32 size;
 	sr.loadData(&size, sizeof(size));
-	try {
-		v.resize(size);
-	} catch(Exception &ex) {
-		sr.handleException(ex);
-	}
+	// TODO: check for vector size ?
+	v.resize(size);
 
 	if(SerializeAsPod<T>::value)
 		sr.loadData(&v[0], sizeof(T) * size);
@@ -989,8 +968,7 @@ template <class T> void loadFromStream(vector<T> &v, Stream &sr) {
 template <class T> void saveToStream(const vector<T> &v, Stream &sr) {
 	u32 size;
 	size = u32(v.size());
-	if(size_t(size) != size_t(v.size()))
-		sr.handleException(Exception("Vector size too big (> 2^32) for serializer to handle"));
+	ASSERT(size == size_t(v.size()));
 	sr.saveData(&size, sizeof(size));
 
 	if(SerializeAsPod<T>::value)
@@ -1029,9 +1007,11 @@ class FileStream : public Stream {
 	void v_load(void *, int) override;
 	void v_save(const void *, int) override;
 	void v_seek(long long) override;
+	static void rbFree(void *);
 
 	void *m_file;
 	string m_name;
+	int m_rb_index = -1;
 };
 
 class Loader : public FileStream {

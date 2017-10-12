@@ -25,7 +25,7 @@ Sound::Sound(Stream &sr) {
 	ASSERT(block_align == channels * (bits / 8));
 
 	if(format != 1)
-		THROW("Unknown format (only PCM is supported)");
+		FATAL("Unknown format (only PCM is supported)");
 
 	sr.seek(sr.pos() + chunk_size[1] - 16);
 
@@ -34,7 +34,7 @@ Sound::Sound(Stream &sr) {
 	sr >> size;
 
 	if(channels > 2 || (bits != 8 && bits != 16))
-		THROW("Unsupported format (bits: %d channels: %d)", bits, channels);
+		FATAL("Unsupported format (bits: %d channels: %d)", bits, channels);
 
 	m_data.resize(size);
 	sr.loadData(m_data.data(), size);

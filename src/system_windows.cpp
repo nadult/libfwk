@@ -3,8 +3,10 @@
 #include "fwk/sys/backtrace.h"
 
 #if !(defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC))
+
 #error "This file should only be compiled for MinGW or MSVC targets"
-#endif
+
+#else
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -83,7 +85,7 @@ void handleCtrlC(void (*handler)()) {
 void *winLoadFunction(const char *name) {
 	PROC func = wglGetProcAddress(name);
 	if(!func)
-		THROW("Error while importing OpenGL function: %s", name);
+		FATAL("Error while importing OpenGL function: %s", name);
 	return (void *)func;
 }
 
@@ -144,3 +146,5 @@ double getTime() {
 	return double(c) / double(CLOCKS_PER_SEC);
 }
 }
+
+#endif

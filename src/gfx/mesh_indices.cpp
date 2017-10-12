@@ -162,7 +162,7 @@ MeshIndices MeshIndices::changeType(MeshIndices indices, Type new_type) {
 		return indices;
 
 	if(new_type == Type::triangle_strip)
-		THROW("Please write me");
+		FATAL("Please write me");
 	if(new_type == Type::triangles) {
 		auto tris = indices.trisIndices();
 		indices.m_data.reserve(tris.size() * 3);

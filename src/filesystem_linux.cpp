@@ -32,13 +32,13 @@ FilePath FilePath::current() {
 	char buffer[512];
 	char *name = getcwd(buffer, sizeof(buffer) - 1);
 	if(!name)
-		THROW("Error in getcwd: %s", strerror(errno));
+		CHECK_FAILED("Error in getcwd: %s", strerror(errno));
 	return FilePath(name);
 }
 
 void FilePath::setCurrent(const FilePath &path) {
 	if(chdir(path.c_str()) != 0)
-		THROW("Error in chdir: %s", strerror(errno));
+		CHECK_FAILED("Error in chdir: %s", strerror(errno));
 }
 
 bool FilePath::isRegularFile() const {
@@ -65,7 +65,7 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 	bool is_root = path.isRoot();
 	bool ignore_parent = !(flags & FindFiles::include_parent) || is_root;
 
-	try {
+	{
 		struct dirent *dirp;
 
 		while((dirp = readdir(dp))) {
@@ -115,10 +115,9 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 				findFiles(out, path / FilePath(dirp->d_name), append / FilePath(dirp->d_name),
 						  flags);
 		}
-	} catch(...) {
-		closedir(dp);
-		throw;
 	}
+
+	// TODO: finally: closedir ?
 	closedir(dp);
 }
 

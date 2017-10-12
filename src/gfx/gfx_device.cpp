@@ -19,7 +19,7 @@
 namespace fwk {
 
 static void reportSDLError(const char *func_name) {
-	THROW("Error on %s: %s", func_name, SDL_GetError());
+	FATAL("Error on %s: %s", func_name, SDL_GetError());
 }
 
 void initializeOpenGL();

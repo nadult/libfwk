@@ -46,20 +46,4 @@ class Backtrace {
 	pair<string, bool> m_gdb_result;
 	bool m_use_gdb = false;
 };
-
-class Exception : public std::exception {
-  public:
-	explicit Exception(string text);
-	explicit Exception(string text, Backtrace);
-	~Exception() noexcept = default;
-
-	const char *what() const noexcept override;
-	const char *text() const noexcept { return m_text.c_str(); }
-	string backtrace(bool filter = true) const { return m_backtrace.analyze(filter); }
-	const Backtrace &backtraceData() const { return m_backtrace; }
-
-  protected:
-	string m_text;
-	Backtrace m_backtrace;
-};
 }

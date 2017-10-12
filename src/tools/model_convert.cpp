@@ -34,7 +34,7 @@ void printHelp(const char *app_name) {
 		   app_name, app_name, app_name, app_name);
 }
 
-int safe_main(int argc, char **argv) {
+int main(int argc, char **argv) {
 	vector<string> params;
 	if(argc == 1) {
 		printHelp(argv[0]);
@@ -105,13 +105,4 @@ int safe_main(int argc, char **argv) {
 	}
 
 	return 0;
-}
-
-int main(int argc, char **argv) {
-	try {
-		return safe_main(argc, argv);
-	} catch(const Exception &ex) {
-		printf("%s\n", ex.what());
-		return 1;
-	}
 }

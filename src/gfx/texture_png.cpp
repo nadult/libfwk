@@ -15,7 +15,7 @@ namespace detail {
 			stream.loadData(signature, sig_size);
 			stream.seek(stream.pos() - sig_size);
 			if(png_sig_cmp(signature, 0, sig_size))
-				THROW("Wrong PNG file signature");
+				FATAL("Wrong PNG file signature");
 
 			m_struct =
 				png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, errorCallback, warningCallback);
@@ -23,7 +23,7 @@ namespace detail {
 
 			if(!m_struct || !m_info) {
 				finalCleanup();
-				THROW("Error while initializing PNGLoader");
+				FATAL("Error while initializing PNGLoader");
 			}
 
 			png_set_read_fn(m_struct, this, readCallback);
@@ -94,10 +94,10 @@ namespace detail {
 
 			if(m_color_type == PNG_COLOR_TYPE_PALETTE) {
 				if(m_channels != 1)
-					THROW("Only 8-bit palettes are supported");
+					FATAL("Only 8-bit palettes are supported");
 
 				if(!png_get_PLTE(m_struct, m_info, &palette, &numPalette))
-					THROW("Error while retrieving PNG palette");
+					FATAL("Error while retrieving PNG palette");
 
 				if(png_get_valid(m_struct, m_info, PNG_INFO_tRNS))
 					png_get_tRNS(m_struct, m_info, &trans, &numTrans, 0);
@@ -139,7 +139,7 @@ namespace detail {
 		}
 
 		static void errorCallback(png_structp png_ptr, png_const_charp message) {
-			THROW("LibPNG Error: %s", message);
+			FATAL("LibPNG Error: %s", message);
 		}
 
 		static void warningCallback(png_structp png_ptr, png_const_charp message) {}

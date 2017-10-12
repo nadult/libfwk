@@ -11,8 +11,8 @@ LINUX_PKG_CONFIG=pkg-config
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
 FWK_LIBS=freetype2 sdl2 libpng vorbisfile 
-LINUX_FWK_FLAGS=-std=c++1z -DFWK_TARGET_LINUX #$(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
-MINGW_FWK_FLAGS=-std=c++1z -DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
+LINUX_FWK_FLAGS=-std=c++1z -fno-exceptions -DFWK_TARGET_LINUX #$(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
+MINGW_FWK_FLAGS=-std=c++1z -fno-exceptions -DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
 
 LINUX_FWK_LIBS_=-lopenal -lGL -lGLU -lrt
 MINGW_FWK_LIBS_=-lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32 -limagehlp

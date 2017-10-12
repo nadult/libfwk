@@ -3,6 +3,8 @@
 
 #include "fwk_mesh.h"
 
+#include "fwk/sys/rollback.h"
+
 namespace fwk {
 
 #define CVT_PRINT(...)                                                                             \
@@ -32,7 +34,7 @@ FileType Converter::classify(const string &name) {
 			return type;
 	}
 
-	THROW("Unsupported file type: %s\n", name.c_str());
+	CHECK_FAILED("Unsupported file type: %s\n", name.c_str());
 	return FileType();
 }
 
@@ -50,7 +52,7 @@ string Converter::locateBlender() {
 		}
 	}
 
-	THROW("Cannot find blender");
+	FATAL("Cannot find blender");
 	return "";
 #else
 	return "blender";
@@ -79,8 +81,8 @@ string Converter::exportFromBlender(const string &file_name, string &target_file
 	remove(temp_script_name.c_str());
 
 	if(!result.second)
-		THROW("Error while exporting from blender (file: %s):\n%s", file_name.c_str(),
-			  result.first.c_str());
+		CHECK_FAILED("Error while exporting from blender (file: %s):\n%s", file_name.c_str(),
+					 result.first.c_str());
 
 	if(m_settings.blender_output)
 		CVT_PRINT("%s\n", result.first.c_str());
@@ -103,13 +105,12 @@ pair<PModel, string> Converter::loadModel(FileType file_type, Stream &stream) {
 		string temp_file_name;
 		auto blender_result = exportFromBlender(stream.name(), temp_file_name);
 
-		try {
-			Loader loader(temp_file_name);
-			out = loadModel(FileType::fwk_model, loader);
-			remove(temp_file_name.c_str());
-		} catch(const Exception &ex) {
-			THROW("%s\nBlender output:\n%s", ex.what(), blender_result.c_str());
-		}
+		ON_ASSERT(([](const string &bresult) { return format("Blender output:\n%", bresult); }),
+				  blender_result);
+
+		Loader loader(temp_file_name);
+		out = loadModel(FileType::fwk_model, loader);
+		remove(temp_file_name.c_str());
 	}
 
 	return out;
@@ -122,11 +123,12 @@ void Converter::saveModel(PModel model, const string &node_name, FileType file_t
 		XMLNode node = doc.addChild(doc.own(node_name));
 		model->saveToXML(node);
 		stream << doc;
-	} else
-		THROW("Unsupported file type for saving: %s", toString(file_type));
+	} else {
+		CHECK_FAILED("Unsupported file type for saving: %s", toString(file_type));
+	}
 }
 
-void Converter::operator()(const string &from, const string &to) {
+bool Converter::operator()(const string &from, const string &to) {
 	auto from_type = classify(from);
 	auto to_type = classify(to);
 
@@ -136,18 +138,22 @@ void Converter::operator()(const string &from, const string &to) {
 	   m_settings.just_export) {
 		string target_name = to;
 		exportFromBlender(from, target_name);
-		return;
+		return true;
 	}
 
 	Loader loader(from);
 	Saver saver(to);
 
-	CVT_PRINT("Loading: %s (format: %s)\n", from.c_str(), toString(from_type));
-	auto pair = loadModel(from_type, loader);
-	CVT_PRINT(" Nodes: %d  Anims: %d\n", (int)pair.first->nodes().size(),
-			  (int)pair.first->anims().size());
-	CVT_PRINT(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
+	auto func = [&]() {
+		CVT_PRINT("Loading: %s (format: %s)\n", from.c_str(), toString(from_type));
+		auto pair = loadModel(from_type, loader);
+		CVT_PRINT(" Nodes: %d  Anims: %d\n", (int)pair.first->nodes().size(),
+				  (int)pair.first->anims().size());
+		CVT_PRINT(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
 
-	saveModel(pair.first, pair.second, to_type, saver);
+		saveModel(pair.first, pair.second, to_type, saver);
+	};
+
+	return RollbackContext::tryAndHandle(func);
 }
 }

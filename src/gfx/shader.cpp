@@ -29,7 +29,7 @@ Shader::Shader(Type type, const string &source, const string &predefined_macros,
 	for(char c : full_source) {
 		bool is_valid = (c >= 32 && c <= 125) || c == '\t' || c == '\n';
 		if(!is_valid)
-			THROW("Invalid character in shader source (ascii: %d)\n", (int)c);
+			CHECK_FAILED("Invalid character in shader source (ascii: %d)\n", (int)c);
 	}
 
 	GLint length = (GLint)full_source.size();
@@ -48,7 +48,7 @@ Shader::Shader(Type type, const string &source, const string &predefined_macros,
 	if(status != GL_TRUE) {
 		char buf[4096];
 		glGetShaderInfoLog(m_id, sizeof(buf), 0, buf);
-		THROW("Compilation error of '%s':\n%s", name.c_str(), buf);
+		CHECK_FAILED("Compilation error of '%s':\n%s", name.c_str(), buf);
 	}
 }
 

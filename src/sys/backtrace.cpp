@@ -1,17 +1,16 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/format.h"
-
 #include "fwk/sys/backtrace.h"
-#include "fwk/sys/rollback.h"
-#include <cstdio>
 
+#include "fwk/format.h"
+#include "fwk/sys/rollback.h"
+
+#include <cstdio>
 #include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #ifdef FWK_TARGET_LINUX

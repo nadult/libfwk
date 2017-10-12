@@ -714,7 +714,7 @@ template <class T> class XMLLoader : public ResourceLoader<T> {
 		Loader(ResourceLoader<T>::fileName(name)) >> doc;
 		XMLNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child)
-			THROW("Cannot find node '%s' in XML document", m_node_name.c_str());
+			CHECK_FAILED("Cannot find node '%s' in XML document", m_node_name.c_str());
 		return immutable_ptr<T>(T::loadFromXML(child));
 	}
 
@@ -738,7 +738,7 @@ class Converter {
 
 	Converter(Settings);
 
-	void operator()(const string &from, const string &to);
+	bool operator()(const string &from, const string &to);
 
 	static string locateBlender();
 	static FileType classify(const string &name);

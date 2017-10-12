@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/texture.h"
+#include "fwk/sys/assert.h"
 #include "fwk_opengl.h"
 
 namespace fwk {
@@ -11,7 +12,13 @@ DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
 	DASSERT(size.x >= 0 && size.y >= 0);
 
-	try {
+	ON_ASSERT(([](const Format &fmt, const int2 &size) {
+				  return fwk::format("DTexture::DTexture() error; format: % size: %", size,
+									 fmt.id());
+			  }),
+			  format, size);
+
+	{
 		glGenTextures(1, &m_id);
 		testGlError("glGenTextures");
 
@@ -20,12 +27,9 @@ DTexture::DTexture(Format format, const int2 &size, const Config &config)
 					 format.glFormat(), format.glType(), 0);
 		m_has_mipmaps = false;
 		testGlError("glTexImage2D");
-
-	} catch(const Exception &ex) {
-		glDeleteTextures(1, &m_id);
-		THROW("Error while creating texture (width: %d height: %d format: %s): %s", m_size.x,
-			  m_size.y, toString(format.id()), ex.what());
 	}
+	// TODO: finally
+	// glDeleteTextures(1, &m_id);
 
 	updateConfig();
 }

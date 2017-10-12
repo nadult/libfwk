@@ -78,7 +78,7 @@ MINGW_LIBS=-pthread $(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldso
 INCLUDES=-Iinclude/ -Isrc/
 
 # Clang gives no warnings for uninitialized class members!
-NICE_FLAGS=-std=c++1z -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder \
+NICE_FLAGS=-std=c++1z -fno-exceptions -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder \
 		   -Wuninitialized -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
 		   -Wparentheses -Wno-overloaded-virtual -Wno-undefined-inline #-Werror
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2

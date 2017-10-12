@@ -131,12 +131,7 @@ void testIntersections() {
 
 			FBox box1(makeSpan({points[0], points[1]}));
 			FBox box2(makeSpan({points[2], points[3]}));
-			try {
-				ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
-			} catch(const Exception &ex) {
-				print("Box1: %\nBox2: %\n", box1, box2);
-				throw;
-			}
+			ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
 		}*/
 }
 

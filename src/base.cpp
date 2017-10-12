@@ -1,8 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/format.h"
 #include "fwk_base.h"
+
+#include "fwk/format.h"
+#include "fwk/sys/backtrace.h"
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -101,7 +103,7 @@ void handleCtrlC(void (*handler)()) {
 pair<string, bool> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");
 	if(!pipe)
-		THROW("error while executing command: '%s'", cmd.c_str());
+		CHECK_FAILED("error while executing command: '%s'", cmd.c_str());
 	char buffer[1024];
 	std::string result = "";
 	while(!feof(pipe)) {
@@ -126,22 +128,6 @@ double getTime() {
 }
 #endif
 
-Exception::Exception(string text) : m_text(move(text)), m_backtrace(Backtrace::get(2)) {}
-Exception::Exception(string text, Backtrace bt) : m_text(move(text)), m_backtrace(move(bt)) {}
-
-const char *Exception::what() const noexcept {
-	static char thread_local buffer[4096];
-
-	try {
-		TextFormatter fmt;
-		fmt("%\nBacktrace:\n%", text(), backtrace());
-		int len = min(fmt.length(), (int)arraySize(buffer) - 1);
-		memcpy(buffer, fmt.c_str(), len);
-		buffer[len] = 0;
-	} catch(...) { return text(); }
-	return buffer;
-}
-
 #if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
 
 static int strcasecmp(const char *a, const char *b) { return _stricmp(a, b); }
@@ -162,17 +148,15 @@ static const char *strcasestr(const char *a, const char *b) {
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
-int enumFromString(const char *str, CSpan<const char *> strings, bool throw_on_invalid) {
+int enumFromString(const char *str, CSpan<const char *> strings, bool check_if_invalid) {
 	DASSERT(str);
 	for(int n = 0; n < strings.size(); n++)
 		if(strcmp(str, strings[n]) == 0)
 			return n;
 
-	if(throw_on_invalid) {
-		THROW("Error when parsing enum: couldn't match \"%s\" to (%s)", str,
-			  toString(strings).c_str());
-	}
-
+	if(check_if_invalid)
+		CHECK_FAILED("Error when parsing enum: couldn't match \"%s\" to (%s)", str,
+					 toString(strings).c_str());
 	return -1;
 }
 

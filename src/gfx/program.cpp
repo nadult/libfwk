@@ -14,8 +14,7 @@ Program::Program(const Shader &vertex, const Shader &fragment,
 
 	m_id = glCreateProgram();
 	testGlError("Error while creating shader program");
-
-	try {
+	{
 		glAttachShader(m_id, vertex.id());
 		testGlError("Error while attaching vertex shader to program");
 		glAttachShader(m_id, fragment.id());
@@ -28,11 +27,10 @@ Program::Program(const Shader &vertex, const Shader &fragment,
 
 		glLinkProgram(m_id);
 		testGlError("Error while linking program");
-
-	} catch(...) {
-		glDeleteProgram(m_id);
-		throw;
 	}
+
+	// TODO: finally:
+	// glDeleteProgram(m_id);
 }
 
 static Shader loadShader(const string &file_name, const string &predefined_macros,

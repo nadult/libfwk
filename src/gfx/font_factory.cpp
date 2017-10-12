@@ -48,9 +48,9 @@ class FontFactory::Impl {
 		FT_Error error = FT_New_Face(library, path.c_str(), 0, &face);
 
 		if(error == FT_Err_Unknown_File_Format)
-			THROW("Error while loading font face '%s': unknown file format", path.c_str());
+			CHECK_FAILED("Error while loading font face '%s': unknown file format", path.c_str());
 		else if(error != 0)
-			THROW("Error while loading font face '%s'", path.c_str());
+			CHECK_FAILED("Error while loading font face '%s'", path.c_str());
 		faces[path] = face;
 		return face;
 	}
@@ -58,7 +58,7 @@ class FontFactory::Impl {
 
 FontFactory::FontFactory() : m_impl(make_unique<Impl>()) {
 	if(FT_Init_FreeType(&m_impl->library) != 0)
-		THROW("Error while initializing FreeType");
+		FATAL("Error while initializing FreeType");
 }
 
 FontFactory::~FontFactory() {
@@ -127,7 +127,7 @@ Texture makeTextureAtlas(vector<GlyphPair> &glyphs) {
 Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	FT_Face face = m_impl->getFace(path);
 	if(FT_Set_Pixel_Sizes(face, 0, size) != 0)
-		THROW("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
+		FATAL("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
 
 	string32 ansi_charset;
 	{

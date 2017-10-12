@@ -12,7 +12,7 @@ namespace detail {
 			char sig[2];
 			sr >> sig;
 			if(sig[0] != 'B' || sig[1] != 'M')
-				THROW("Wrong BMP file signature");
+				CHECK_FAILED("Wrong BMP file signature");
 		}
 
 		int offset;
@@ -47,13 +47,13 @@ namespace detail {
 					sr.seek(sr.pos() + hSize - 40);
 
 				if(compr != 0)
-					THROW("Compressed bitmaps not supported");
+					CHECK_FAILED("Compressed bitmaps not supported");
 			}
 
 			if(bpp != 24 && bpp != 32 && bpp != 8)
-				THROW("%d-bit bitmaps are not supported (only 8, 24 and 32)", bpp);
+				CHECK_FAILED("%d-bit bitmaps are not supported (only 8, 24 and 32)", bpp);
 			if(width > maxwidth)
-				THROW("Bitmap is too wide (%d pixels): max width is %d", width, (int)maxwidth);
+				CHECK_FAILED("Bitmap is too wide (%d pixels): max width is %d", width, (int)maxwidth);
 		}
 
 		int bytesPerPixel = bpp / 8;

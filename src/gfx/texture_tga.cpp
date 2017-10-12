@@ -37,17 +37,21 @@ namespace detail {
 
 	void loadTGA(Stream &sr, PodArray<IColor> &out_data, int2 &out_size) {
 		TGAHeader hdr;
-		enum { max_width = 2048 };
+		enum { max_width = 4096, max_height = 4096 };
 
 		sr >> hdr;
 
 		if(hdr.data_type_code != 2)
-			THROW("Only uncompressed RGB data type is supported (id:%d)", (int)hdr.data_type_code);
+			CHECK_FAILED("Only uncompressed RGB data type is supported (id:%d)",
+						 (int)hdr.data_type_code);
 		if(hdr.bits_per_pixel != 24 && hdr.bits_per_pixel != 32)
-			THROW("Only 24 and 32-bit tga files are supported (bpp:%d)", (int)hdr.bits_per_pixel);
+			CHECK_FAILED("Only 24 and 32-bit tga files are supported (bpp:%d)",
+						 (int)hdr.bits_per_pixel);
 		if(hdr.width > max_width)
-			THROW("Bitmap is too wide (%d pixels): max width is %d", (int)hdr.width,
-				  (int)max_width);
+			CHECK_FAILED("Bitmap is too wide (%d pixels): max width is %d", (int)hdr.width,
+						 (int)max_width);
+		CHECK(inRange(hdr.width, 0, max_width + 1));
+		CHECK(inRange(hdr.height, 0, max_height + 1));
 
 		sr.seek(sr.pos() + hdr.id_length);
 
@@ -57,7 +61,7 @@ namespace detail {
 
 		bool v_flip = hdr.image_descriptor & 16;
 		bool h_flip = hdr.image_descriptor & 32;
-		ASSERT(!v_flip && !h_flip && "TODO");
+		CHECK(!v_flip && !h_flip && "v_flip & h_flip are not supported");
 
 		if(bpp == 3) {
 			for(int y = hdr.height - 1; y >= 0; y--) {

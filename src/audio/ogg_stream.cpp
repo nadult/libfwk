@@ -10,7 +10,7 @@ struct OggStream::Impl {
 	Impl(const char *file_name) {
 		memset(&vorbis_file, 0, sizeof(vorbis_file));
 		if(ov_fopen(file_name, &vorbis_file) != 0)
-			THROW("Error while opening ogg stream: %s\n", file_name);
+			FATAL("Error while opening ogg stream: %s\n", file_name);
 	}
 	~Impl() { ov_clear(&vorbis_file); }
 
@@ -40,7 +40,7 @@ Sound OggStream::makeSound() const {
 		int bit_stream = 0;
 		int ret = ov_read(vf, buffer, sizeof(buffer), 0, 2, 1, &bit_stream);
 		if(ret < 0)
-			THROW("Error while reading from ogg stream: %s", m_file_name.c_str());
+			FATAL("Error while reading from ogg stream: %s", m_file_name.c_str());
 		if(!ret)
 			break;
 		data.insert(end(data), buffer, buffer + ret);

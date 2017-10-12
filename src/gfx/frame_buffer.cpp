@@ -1,8 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/frame_buffer.h"
 #include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/frame_buffer.h"
 #include "fwk_opengl.h"
 #include <numeric>
 
@@ -33,7 +33,7 @@ FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
 		DASSERT(color.size() == m_colors.front().size());
 	DASSERT((int)m_colors.size() <= GL_MAX_COLOR_ATTACHMENTS);
 
-	try {
+	{
 		glGenFramebuffers(1, &m_id);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_id);
 
@@ -53,16 +53,16 @@ FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
 				ret == GL_FRAMEBUFFER_UNSUPPORTED
 					? "\nunsupported combination of internal formats for attached images"
 					: "unknown";
-			THROW("Error while initializing framebuffer:%s", err_code);
+			FATAL("Error while initializing framebuffer:%s", err_code);
 		}
 
 		GLenum indices[GL_MAX_COLOR_ATTACHMENTS];
 		std::iota(begin(indices), end(indices), GL_COLOR_ATTACHMENT0);
 		glDrawBuffers(m_colors.size(), indices);
-	} catch(...) {
-		glDeleteFramebuffers(1, &m_id);
-		throw;
 	}
+
+	// TODO: finally:
+	// glDeleteFramebuffers(1, &m_id);
 	unbind();
 }
 

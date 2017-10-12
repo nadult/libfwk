@@ -73,8 +73,8 @@ void testXMLConverters() {
 	ASSERT_EQ(toString("foo"), "foo");
 	ASSERT_EQ(toString(short(10)), "10");
 
-	//ASSERT_EXCEPTION(fromString<vector<int>>("1 2a 3"));
-	//ASSERT_EXCEPTION(fromString<bool>("foobar"));
+	ASSERT_FAIL(fromString<vector<int>>("1 2a 3"));
+	ASSERT_FAIL(fromString<bool>("foobar"));
 }
 
 void testPathOperations() {

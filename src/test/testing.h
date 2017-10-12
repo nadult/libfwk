@@ -6,19 +6,15 @@
 
 #include "fwk_base.h"
 #include "fwk_math.h"
+#include "fwk/sys/rollback.h"
 #include "fwk_xml.h"
 
 using namespace fwk;
 
-#define ASSERT_EXCEPTION(code)                                                                     \
+#define ASSERT_FAIL(code)                                                                          \
 	{                                                                                              \
-		bool exception_thrown = false;                                                             \
-		try {                                                                                      \
-			code;                                                                                  \
-		} catch(...) {                                                                             \
-			exception_thrown = true;                                                               \
-		}                                                                                          \
-		ASSERT(exception_thrown);                                                                  \
+		auto result = RollbackContext::begin([&]() { code; });                                     \
+		ASSERT(!result);                                                                           \
 	}
 
 inline float relativeDifference(float a, float b) {
@@ -32,7 +28,7 @@ template <class T> inline bool closeEnough(const T &a, const T &b) {
 }
 
 template <class T> void reportError(const T &a, const T &b) {
-	THROW("Error:  %s != %s", toString(a).c_str(), toString(b).c_str());
+	FATAL("Error:  %s != %s", toString(a).c_str(), toString(b).c_str());
 }
 
 template <class T> void assertCloseEnough(const T &a, const T &b) {
@@ -48,13 +44,8 @@ inline void assertCloseEnough(const Quat &a, const Quat &b) {
 void testMain();
 
 int main(int argc, char **argv) {
-	try {
-		testMain();
-		printf("%s: OK\n", argv[0]);
-	} catch(const Exception &ex) {
-		printf("%s: FAILED\n%s\n", argv[0], ex.what());
-		return 1;
-	}
+	testMain();
+	printf("%s: OK\n", argv[0]);
 	return 0;
 }
 

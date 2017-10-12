@@ -249,12 +249,12 @@ double lastModificationTime(const FilePath &file_name) {
 #ifdef _WIN32
 	struct _stat64 attribs;
 	if(_stat64(file_name.c_str(), &attribs) != 0)
-		THROW("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+		CHECK_FAILED("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
 	return double(attribs.st_mtime);
 #else
 	struct stat attribs;
 	if(stat(file_name.c_str(), &attribs) != 0)
-		THROW("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+		CHECK_FAILED("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
 	return double(attribs.st_mtim.tv_sec) + double(attribs.st_mtim.tv_nsec) * 0.000000001;
 #endif
 }
@@ -274,7 +274,7 @@ void mkdirRecursive(const FilePath &path) {
 #endif
 
 	if(ret != 0)
-		THROW("Cannot create directory: \"%s\" error: %s\n", path.c_str(), strerror(errno));
+		CHECK_FAILED("Cannot create directory: \"%s\" error: %s\n", path.c_str(), strerror(errno));
 }
 
 vector<string> findFiles(const string &prefix, const string &suffix) {

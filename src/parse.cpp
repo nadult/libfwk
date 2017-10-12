@@ -15,13 +15,14 @@ namespace fwk {
 
 namespace {
 
-	static void throwError(const char *input, const char *type_name, int count) NOINLINE;
-	void throwError(const char *input, const char *type_name, int count) {
+	static void reportError(const char *input, const char *type_name, int count) NOINLINE;
+	void reportError(const char *input, const char *type_name, int count) {
 		string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
 		size_t max_len = 32;
 		string short_input =
 			strlen(input) > max_len ? string(input, input + max_len) + "..." : string(input);
-		THROW("Error while parsing %s from \"%s\"", what.c_str(), short_input.c_str());
+		CHECK_FAILED("Error while parsing %s%s from \"%s\"", what.c_str(), count > 1 ? "s" : "",
+					 short_input.c_str());
 	}
 
 	auto strtol(const char *ptr, char **end_ptr) { return ::strtol(ptr, end_ptr, 0); }
@@ -32,7 +33,7 @@ namespace {
 		errno = 0;
 		auto value = func(*ptr, &end_ptr);
 		if(errno != 0 || end_ptr == *ptr)
-			throwError(*ptr, type_name, 1);
+			reportError(*ptr, type_name, 1);
 		*ptr = end_ptr;
 		return value;
 	}
@@ -44,7 +45,7 @@ namespace {
 		for(int n = 0; n < out.size(); n++) {
 			auto value = func(*ptr, &end_ptr);
 			if(errno != 0 || end_ptr == *ptr)
-				throwError(*ptr, type_name, out.size() - n);
+				reportError(*ptr, type_name, out.size() - n);
 			out[n] = value;
 			*ptr = end_ptr;
 		}
@@ -73,7 +74,7 @@ bool TextParser::parseBool() {
 	if(isOneOf(str, "true", "1"))
 		return true;
 	if(!isOneOf(str, "false", "0"))
-		THROW("Error while parsing bool from \"%s\"", str.c_str());
+		CHECK_FAILED("Error while parsing bool from \"%s\"", str.c_str());
 	return false;
 }
 
@@ -112,7 +113,7 @@ void TextParser::parseStrings(Span<string> out) {
 	}
 
 	if(count < out.size())
-		throwError(m_current, "string", out.size());
+		reportError(m_current, "string", out.size());
 	m_current = iptr;
 }
 

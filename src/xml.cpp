@@ -2,16 +2,34 @@
 // This file is part of libfwk. See license.txt for details.
 
 #define RAPIDXML_NO_STREAMS
+#define RAPIDXML_NO_STDLIB
+#define RAPIDXML_NO_EXCEPTIONS
+
+#include <cstdlib>
+#include <new>
+
+#ifdef assert
+#undef assert
+#endif
+
+#define assert DASSERT
+
+#include "fwk_xml.h"
 #include "rapidxml/rapidxml.hpp"
 #include "rapidxml/rapidxml_print.hpp"
-#include "fwk_xml.h"
-#include <sstream>
-#include <cstring>
 #include <cstdio>
+#include <cstring>
+#include <sstream>
 
 using namespace rapidxml;
 
 typedef xml_attribute<> XMLAttrib;
+
+namespace rapidxml {
+void parse_error_handler(const char *what, void *where) {
+	CHECK_FAILED("XML parsing error: %s at %s\n", what, where);
+}
+}
 
 namespace fwk {
 
@@ -27,12 +45,13 @@ void XMLNode::addAttrib(const char *name, const char *value) {
 	m_ptr->append_attribute(m_doc->allocate_attribute(name, value));
 }
 
-void XMLNode::parsingError(const char *attrib_name, const char *error_message) const {
-	if(attrib_name)
-		THROW("Error while parsing attribute value: %s in node: %s\n%s", attrib_name, name(),
-			  error_message);
-	else
-		THROW("Error while parsing value in node: %s\n%s", name(), error_message);
+string XMLNode::attribError(const XMLNode &node, const char *attrib_name) {
+	return format("XMLNode: Error while parsing attribute value: % in node: %", attrib_name,
+				  node.name());
+}
+
+string XMLNode::valueError(const XMLNode &node) {
+	return format("XMLNode: Error while parsing value in node: %", node.name());
 }
 
 const char *XMLNode::hasAttrib(const char *name) const {
@@ -43,7 +62,7 @@ const char *XMLNode::hasAttrib(const char *name) const {
 const char *XMLNode::attrib(const char *name) const {
 	XMLAttrib *attrib = m_ptr->first_attribute(name);
 	if(!attrib || !attrib->value())
-		THROW("attribute not found: %s in node: %s\n", name, this->name());
+		CHECK_FAILED("attribute not found: %s in node: %s\n", name, this->name());
 	return attrib->value();
 }
 
@@ -69,9 +88,7 @@ XMLNode XMLNode::sibling(const char *name) const {
 XMLNode XMLNode::child(const char *name) const { return XMLNode(m_ptr->first_node(name), m_doc); }
 
 XMLDocument::XMLDocument() : m_ptr(make_unique<xml_document<>>()) {}
-XMLDocument::XMLDocument(Stream &stream) :XMLDocument() {
-	stream >> *this;
-}
+XMLDocument::XMLDocument(Stream &stream) : XMLDocument() { stream >> *this; }
 
 XMLDocument::XMLDocument(XMLDocument &&) = default;
 XMLDocument::~XMLDocument() = default;
@@ -108,12 +125,8 @@ void XMLDocument::load(Stream &sr) {
 	sr.loadData(xml_string, sr.size());
 	xml_string[sr.size()] = 0;
 
-	try {
-		m_ptr->parse<0>(xml_string);
-	} catch(const parse_error &ex) {
-		THROW("rapidxml exception caught: %s at: %d", ex.what(),
-			  (int)(size_t)(ex.where<char>() - xml_string));
-	}
+	// TODO: ON_ASSERT here ?
+	m_ptr->parse<0>(xml_string);
 }
 
 void XMLDocument::save(Stream &sr) const {

@@ -30,7 +30,7 @@ const char *errorToString(int id) {
 void testError(const char *message) {
 	int last_error = alGetError();
 	if(last_error != AL_NO_ERROR)
-		THROW("%s. %s", message, errorToString(last_error));
+		FATAL("%s. %s", message, errorToString(last_error));
 }
 
 void uploadToBuffer(const Sound &sound, unsigned buffer_id) {
@@ -49,13 +49,8 @@ DSound::DSound(const Sound &sound) {
 	alGetError();
 	alGenBuffers(1, &m_id);
 	testError("Error while creating audio buffer.");
-
-	try {
-		uploadToBuffer(sound, m_id);
-	} catch(...) {
-		alDeleteBuffers(1, &m_id);
-		throw;
-	}
+	// TODO: finally: alDeleteBuffers
+	uploadToBuffer(sound, m_id);
 }
 
 DSound::DSound(DSound &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
@@ -70,24 +65,17 @@ struct AudioDevice::Impl {
 		: device(nullptr), context(nullptr), sources(max_sources, 0), free_sources(max_sources, 0),
 		  num_free_sources(0), last_time(0.0) {
 		if(!(device = alcOpenDevice(0)))
-			THROW("Error in alcOpenDevice");
-		try {
-			if(!(context = alcCreateContext(device, 0)))
-				THROW("Error in alcCreateContext");
-			alcMakeContextCurrent(context);
+			FATAL("Error in alcOpenDevice");
+		if(!(context = alcCreateContext(device, 0)))
+			FATAL("Error in alcCreateContext");
+		alcMakeContextCurrent(context);
 
-			alGetError();
-			alGenSources(sources.size(), sources.data());
-			testError("Error while creating audio sources.");
+		alGetError();
+		alGenSources(sources.size(), sources.data());
+		testError("Error while creating audio sources.");
 
-			alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
-			alSpeedOfSound(16.666666f * 343.3);
-		} catch(...) {
-			if(context)
-				alcDestroyContext(context);
-			alcCloseDevice(device);
-			throw;
-		}
+		alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
+		alSpeedOfSound(16.666666f * 343.3);
 	}
 
 	ALCdevice *device;

@@ -36,12 +36,8 @@ class XMLNode {
 	const char *attrib(const char *name, const char *default_value) const;
 
 	template <class T> T attrib(const char *name) const {
-		try {
-			return fromString<T>(attrib(name));
-		} catch(const Exception &ex) {
-			parsingError(name, ex.what());
-			return T();
-		}
+		ON_ASSERT(attribError, *this, name);
+		return fromString<T>(attrib(name));
 	}
 
 	template <class T> T attrib(const char *name, T default_value) const {
@@ -76,12 +72,8 @@ class XMLNode {
 	const char *value() const;
 
 	template <class T> T value() const {
-		try {
-			return fromString<T>(value());
-		} catch(const Exception &ex) {
-			parsingError(nullptr, ex.what());
-			return T();
-		}
+		ON_ASSERT(valueError, *this);
+		return fromString<T>(value());
 	}
 	template <class T> T value(T default_value) const {
 		const char *val = value();
@@ -103,7 +95,8 @@ class XMLNode {
   protected:
 	XMLNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc)
 		: m_ptr(ptr), m_doc(doc) {}
-	void parsingError(const char *attrib_name, const char *error_message) const;
+	static string attribError(const XMLNode &, const char *);
+	static string valueError(const XMLNode &);
 	friend class XMLDocument;
 
 	rapidxml::xml_node<char> *m_ptr;

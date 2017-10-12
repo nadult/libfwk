@@ -53,7 +53,7 @@ bool mainLoop(GfxDevice &device, void *) {
 	return true;
 }
 
-int safe_main(int argc, char **argv) {
+int main(int argc, char **argv) {
 	double time = getTime();
 	int2 res(800, 600);
 
@@ -63,13 +63,4 @@ int safe_main(int argc, char **argv) {
 	gfx_device.runMainLoop(mainLoop);
 
 	return 0;
-}
-
-int main(int argc, char **argv) {
-	try {
-		return safe_main(argc, argv);
-	} catch(const Exception &ex) {
-		printf("%s\n", ex.what());
-		return 1;
-	}
 }

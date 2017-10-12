@@ -33,7 +33,7 @@ void initializeOpenGL() {
 	auto context = emscripten_webgl_get_current_context();
 	for(auto ext : must_haves)
 		if(!emscripten_webgl_enable_extension(context, ext))
-			THROW("OpenGL Extension not supported: %s", ext);
+			FATAL("OpenGL Extension not supported: %s", ext);
 	for(auto ext : optionals)
 		emscripten_webgl_enable_extension(context, ext);
 #else
@@ -42,7 +42,7 @@ void initializeOpenGL() {
 	glGetIntegerv(GL_MINOR_VERSION, &minor);
 	int version = major * 100 + minor;
 	if(version < 300)
-		THROW("Minimum required OpenGL version: 3.0");
+		FATAL("Minimum required OpenGL version: 3.0");
 #endif
 
 	const char *strings = (const char *)glGetString(GL_EXTENSIONS);
@@ -174,7 +174,7 @@ void testGlError(const char *msg) {
 #undef CASE
 	}
 
-	THROW("%s: %s", msg, err_code);
+	FATAL("%s: %s", msg, err_code);
 #endif
 }
 
