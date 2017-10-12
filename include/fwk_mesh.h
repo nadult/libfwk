@@ -5,7 +5,9 @@
 
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
+#include "fwk/resource_manager.h"
 #include "fwk_xml.h"
+#include <map>
 
 namespace fwk {
 

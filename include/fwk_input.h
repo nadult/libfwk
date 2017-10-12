@@ -6,6 +6,7 @@
 
 #include "fwk_base.h"
 #include "fwk_math.h"
+#include <map>
 
 namespace fwk {
 

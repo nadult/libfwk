@@ -5,6 +5,7 @@
 #define FWK_CACHE_H
 
 #include "fwk_base.h"
+#include <map>
 #include <mutex>
 
 namespace fwk {
