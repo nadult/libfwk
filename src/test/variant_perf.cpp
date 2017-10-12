@@ -6,34 +6,15 @@
 #include <iostream>
 #include <string>
 
-#include <boost/date_time/microsec_time_clock.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/variant.hpp>
 
 #include "fwk_base.h"
 #include "fwk_math.h"
 #include "fwk_variant.h"
 #include "fwk_xml.h"
+#include "timer.h"
 
-class TestTimer {
-  public:
-	TestTimer(const std::string &name) __attribute__((noinline))
-	: name(name), start(boost::date_time::microsec_clock<boost::posix_time::ptime>::local_time()) {}
-
-	~TestTimer() __attribute__((noinline)) {
-		using namespace std;
-		using namespace boost;
-
-		posix_time::ptime now(date_time::microsec_clock<posix_time::ptime>::local_time());
-		posix_time::time_duration d = now - start;
-
-		cout << name << " completed in " << d.total_milliseconds() / 1000.0 << " seconds" << endl;
-	}
-
-  private:
-	std::string name;
-	boost::posix_time::ptime start;
-};
+using fwk::TestTimer;
 
 class SizeVisitor : public boost::static_visitor<> {
   public:
