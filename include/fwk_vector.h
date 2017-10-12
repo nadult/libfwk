@@ -160,6 +160,10 @@ template <class T> class Vector {
 	bool empty() const { return m_base.size == 0; }
 
 	void clear() { m_base.clear(&Vector::destroy); }
+	void free() {
+		Vector empty;
+		m_base.swap(empty.m_base);
+	}
 
 	void reserve(int new_capacity) {
 		int new_cap = m_base.insertCapacity(m_base.capacity, sizeof(T), new_capacity);
