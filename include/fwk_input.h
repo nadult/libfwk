@@ -6,7 +6,6 @@
 
 #include "fwk_base.h"
 #include "fwk_math.h"
-#include <map>
 
 namespace fwk {
 
@@ -14,12 +13,13 @@ class SDLKeyMap {
   public:
 	SDLKeyMap();
 	~SDLKeyMap();
+
 	int to(int) const;
 	int from(int) const;
 
   private:
-	std::map<int, int> m_key_map;
-	std::map<int, int> m_inv_map;
+	vector<pair<int, int>> m_fwk_to_sdl;
+	vector<pair<int, int>> m_sdl_to_fwk;
 };
 
 namespace InputKey {
@@ -75,7 +75,7 @@ namespace InputKey {
 		kp_multiply,
 		kp_subtract,
 		kp_add,
-		//		kp_decimal,
+		//	kp_decimal,
 		kp_period,
 		kp_enter,
 

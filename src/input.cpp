@@ -10,11 +10,8 @@
 namespace fwk {
 
 SDLKeyMap::SDLKeyMap() {
-	struct Pair {
-		int key, sdl_key;
-	} pairs[] = {
-#define PAIR(input_key, sdl_key)                                                                   \
-	{ InputKey::input_key, SDLK_##sdl_key }
+#define PAIR(input_key, sdl_key) {(int)InputKey::input_key, (int)SDLK_##sdl_key}
+	m_fwk_to_sdl = vector<pair<int, int>>{
 		PAIR(space, SPACE), PAIR(esc, ESCAPE), PAIR(f1, F1), PAIR(f2, F2), PAIR(f3, F3),
 		PAIR(f4, F4), PAIR(f5, F5), PAIR(f6, F6), PAIR(f7, F7), PAIR(f8, F8), PAIR(f9, F9),
 		PAIR(f10, F10), PAIR(f11, F11), PAIR(f12, F12), PAIR(up, UP), PAIR(down, DOWN),
@@ -25,26 +22,26 @@ SDLKeyMap::SDLKeyMap() {
 		PAIR(kp_0, KP_0), PAIR(kp_1, KP_1), PAIR(kp_2, KP_2), PAIR(kp_3, KP_3), PAIR(kp_4, KP_4),
 		PAIR(kp_5, KP_5), PAIR(kp_6, KP_6), PAIR(kp_7, KP_7), PAIR(kp_8, KP_8), PAIR(kp_9, KP_9),
 		PAIR(kp_divide, KP_DIVIDE), PAIR(kp_multiply, KP_MULTIPLY), PAIR(kp_subtract, KP_MINUS),
-		PAIR(kp_add, KP_PLUS),
+		PAIR(kp_add, KP_PLUS), PAIR(kp_enter, KP_ENTER), PAIR(kp_period, KP_PERIOD),
 		//	PAIR(kp_decimal, KP_DECIMAL),
-		PAIR(kp_enter, KP_ENTER), PAIR(kp_period, KP_PERIOD),
-#undef PAIR
 	};
+#undef PAIR
 
-	for(int n = 0; n < arraySize(pairs); n++) {
-		m_key_map[pairs[n].key] = pairs[n].sdl_key;
-		m_inv_map[pairs[n].sdl_key] = pairs[n].key;
-	}
+	m_sdl_to_fwk = transform(m_fwk_to_sdl,
+							 [](const auto &p) { return make_pair(p.second, p.first); });
+	makeSorted(m_fwk_to_sdl);
+	makeSorted(m_sdl_to_fwk);
 }
 
 SDLKeyMap::~SDLKeyMap() = default;
 
 int SDLKeyMap::to(int key_code) const {
-	DASSERT(key_code >= 0);
 	if(key_code >= 32 && key_code <= 126)
 		return key_code;
-	auto it = m_key_map.find(key_code);
-	DASSERT(it != m_key_map.end());
+
+	DASSERT(key_code >= InputKey::special && key_code < InputKey::count);
+	auto it = std::upper_bound(begin(m_fwk_to_sdl), end(m_fwk_to_sdl), make_pair(key_code, 0));
+	DASSERT(it != m_fwk_to_sdl.end());
 	return it->second;
 }
 
@@ -52,8 +49,10 @@ int SDLKeyMap::from(int key_code) const {
 	DASSERT(key_code >= 0);
 	if(key_code >= 32 && key_code <= 126)
 		return key_code;
-	auto it = m_inv_map.find(key_code);
-	return it == m_inv_map.end() ? -1 : it->second;
+
+	auto it = std::upper_bound(begin(m_sdl_to_fwk), end(m_sdl_to_fwk), make_pair(key_code, 0));
+	DASSERT(it != m_sdl_to_fwk.end());
+	return it == m_sdl_to_fwk.end() ? -1 : it->second;
 }
 
 InputEvent::InputEvent(Type type) : m_char(0), m_type(type) {
@@ -153,9 +152,10 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 			if(key_state.second >= 0)
 				key_state.second++;
 
-		m_keys.resize(std::remove_if(m_keys.begin(), m_keys.end(), [](const pair<int, int> &state) {
-						  return state.second == -1;
-					  }) - m_keys.begin());
+		m_keys.resize(
+			std::remove_if(m_keys.begin(), m_keys.end(),
+						   [](const pair<int, int> &state) { return state.second == -1; }) -
+			m_keys.begin());
 
 		for(auto &state : m_mouse_buttons) {
 			if(state == 1)
