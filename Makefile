@@ -58,6 +58,8 @@ HTML5_PROGRAMS_SRC:=$(PROGRAM_SRC:%=%.html.cpp)
 all: lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
 tools: $(TOOLS_SRC)
 tests: $(TESTS_SRC)
+tools_mingw: $(TOOLS_SRC:%=%.exe)
+tests_mingw: $(TESTS_SRC:%=%.exe)
 
 LINUX_AR =ar
 LINUX_STRIP=strip
