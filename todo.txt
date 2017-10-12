@@ -17,8 +17,6 @@
   from time to time; But the only reason is to keep the history clean...
 
 - Box & EnableInDimension doesn't support 4th dimension
-- Overloading format(TextFormatter&, T) in some namespace may cause trouble when calling
-  format from fwk...
 
 - Protection from FATAL, THROW and failed assertions when Bactraces are generated ?
 - Use Formattible in more places?
@@ -26,7 +24,6 @@
 - MathObject concept is not so useful: figure out a better way to automatically generate
   +=, !=, >=, etc for given object
 
-- drop exception support
 - make it 64 bit only (drop boost::mpc and add x,y,z in vector3?) fix qint2 as well
 - function arguments could have invariants in them:
   T Segment::at(Checked<double, [](double v) { return v >= 0.0 && v <= 1.0; })> {}
@@ -34,7 +31,6 @@
 - Still more advanced asserts would be useful?
 - check if gdb is already attached and behave properly in such cases
 - ujednolicić: Ray3F, IBox
-- inRange(value, begin, end): value >= begin && value < end
 - porównania rationali można wykonać w takiej samej dokładności (RTCD: 457)
 - remove int2, short2, etc and simply use templates ? check if it affects compilation performance
   remove unions? use x(), y(), z() instead of .x, .y, .z ?
@@ -58,9 +54,7 @@
   potrzebne są Rationale
 
 - length_sq in ISegment ?
-- consider dropping exceptions altogether (find alternatives for situations in which you're using them)
 - attach GDB on Ctrl-C
-- make sure that there are no side-effects of running two main loops
 - Box<T, N> as other classes ?
 - move SerializeAsPod to namespace detail
 - make default serialize_as_pod be based on is_trivially_copyable / etc.

@@ -35,7 +35,7 @@ namespace detail {
 		u8 image_descriptor;
 	};
 
-	void loadTGA(Stream &sr, PodArray<IColor> &out_data, int2 &out_size) {
+	void loadTGA(Stream &sr, PodVector<IColor> &out_data, int2 &out_size) {
 		TGAHeader hdr;
 		enum { max_width = 4096, max_height = 4096 };
 

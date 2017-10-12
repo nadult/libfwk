@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/index_buffer.h"
+#include "fwk/pod_vector.h"
 #include "fwk_opengl.h"
 
 namespace fwk {
@@ -23,12 +24,12 @@ IndexBuffer::IndexBuffer(const vector<uint> &indices) : m_handle(0), m_size((int
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_handle);
 	if(is_small) {
-		PodArray<u8> data(indices.size());
+		PodVector<u8> data(indices.size());
 		for(int n = 0; n < data.size(); n++)
 			data[n] = indices[n];
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_size * m_index_size, data.data(), GL_STATIC_DRAW);
 	} else {
-		PodArray<u16> data(indices.size());
+		PodVector<u16> data(indices.size());
 		for(int n = 0; n < data.size(); n++)
 			data[n] = indices[n];
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_size * m_index_size, data.data(), GL_STATIC_DRAW);
@@ -40,12 +41,12 @@ vector<uint> IndexBuffer::getData() const {
 	vector<uint> out(m_size);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_handle);
 	if(m_index_type == type_ubyte) {
-		PodArray<u8> data(m_size);
+		PodVector<u8> data(m_size);
 		glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, m_size * m_index_size, data.data());
 		for(int n = 0; n < data.size(); n++)
 			out[n] = data[n];
 	} else { // ushort
-		PodArray<u16> data(m_size);
+		PodVector<u16> data(m_size);
 		glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, m_size * m_index_size, data.data());
 		for(int n = 0; n < data.size(); n++)
 			out[n] = data[n];

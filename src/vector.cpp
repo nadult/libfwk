@@ -7,7 +7,6 @@
 // TODO: more aggressive inlining here improves perf
 namespace fwk {
 
-#ifndef FWK_STD_VECTOR
 void BaseVector::alloc(int obj_size, int size_, int capacity_) {
 	size = size_;
 	capacity = capacity_;
@@ -15,10 +14,6 @@ void BaseVector::alloc(int obj_size, int size_, int capacity_) {
 	data = (char *)fwk::allocate(nbytes);
 	if(nbytes && !data)
 		FATAL("Error while allocating memory: %d * %d bytes", capacity, obj_size);
-}
-BaseVector::~BaseVector() {
-	if(data)
-		fwk::deallocate(data);
 }
 
 void BaseVector::swap(BaseVector &rhs) {
@@ -61,7 +56,7 @@ void BaseVector::grow(int obj_size, MoveDestroyFunc move_destroy_func) {
 
 void BaseVector::resizePartial(int obj_size, DestroyFunc destroy_func,
 							   MoveDestroyFunc move_destroy_func, int new_size) {
-	DASSERT(new_size >= 0);
+	PASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocate(obj_size, move_destroy_func, insertCapacity(capacity, obj_size, new_size));
 
@@ -147,7 +142,7 @@ void BaseVector::growPod(int obj_size) {
 }
 
 void BaseVector::resizePodPartial(int obj_size, int new_size) {
-	DASSERT(new_size >= 0);
+	PASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocatePod(obj_size, insertCapacity(capacity, obj_size, new_size));
 	size = new_size;
@@ -197,5 +192,17 @@ void BaseVector::erasePod(int obj_size, int index, int count) {
 	size -= count;
 }
 
-#endif
+void BaseVector::loadPod(int obj_size, Stream &sr, int max_size) {
+	i32 size;
+	sr >> size;
+	CHECK(size >= 0 && size <= max_size);
+
+	resizePodPartial(obj_size, size);
+	sr.loadData(data, size_t(obj_size) * size);
+}
+
+void BaseVector::savePod(int obj_size, Stream &sr) const {
+	sr << size;
+	sr.saveData(data, sizeof(obj_size) * size);
+}
 }

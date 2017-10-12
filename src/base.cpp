@@ -160,22 +160,6 @@ int enumFromString(const char *str, CSpan<const char *> strings, bool check_if_i
 	return -1;
 }
 
-BitVector::BitVector(int size) : m_data((size + base_size - 1) / base_size), m_size(size) {}
-
-void BitVector::resize(int new_size, bool clear_value) {
-	PodArray<u32> new_data(new_size);
-	memcpy(new_data.data(), m_data.data(), sizeof(base_type) * min(new_size, m_data.size()));
-	if(new_data.size() > m_data.size())
-		memset(new_data.data() + m_data.size(), clear_value ? 0xff : 0,
-			   (new_data.size() - m_data.size()) * sizeof(base_type));
-	m_data.swap(new_data);
-	m_size = new_size;
-}
-
-void BitVector::clear(bool value) {
-	memset(m_data.data(), value ? 0xff : 0, m_data.size() * sizeof(base_type));
-}
-
 int StringRef::compare(const StringRef &rhs) const { return strcmp(m_data, rhs.m_data); }
 int StringRef::caseCompare(const StringRef &rhs) const { return strcasecmp(m_data, rhs.m_data); }
 }

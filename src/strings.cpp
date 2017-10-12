@@ -1,4 +1,9 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #include "fwk_base.h"
+
+#include "fwk/pod_vector.h"
 
 // Source: libc++: https://github.com/llvm-mirror/libcxx/blob/master/src/locale.cpp
 
@@ -196,7 +201,7 @@ Maybe<string32> toUTF32(StringRef text) {
 	const uint8_t *end = start + text.size();
 
 	int len = utf8_to_ucs4_length(CSpan<uint8_t>(start, text.size()));
-	PodArray<uint32_t> buffer(len);
+	PodVector<uint32_t> buffer(len);
 
 	auto *ostart = buffer.begin();
 	auto *oend = buffer.end();
@@ -212,7 +217,7 @@ Maybe<string> toUTF8(const string32 &text) {
 	const uint32_t *end = start + text.size();
 
 	int len = ucs4_to_utf8_length(CSpan<uint32_t>(start, text.size()));
-	PodArray<uint8_t> buffer(len);
+	PodVector<uint8_t> buffer(len);
 
 	auto *ostart = buffer.begin();
 	auto *oend = buffer.end();

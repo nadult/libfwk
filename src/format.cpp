@@ -22,10 +22,7 @@ TextFormatter::~TextFormatter() = default;
 void TextFormatter::reserve(int capacity) {
 	if(capacity <= m_data.size())
 		return;
-
-	PodArray<char> new_data(BaseVector::insertCapacity(m_data.size(), 1, capacity));
-	memcpy(new_data.data(), m_data.data(), m_offset + 1);
-	new_data.swap(m_data);
+	m_data.resize(BaseVector::insertCapacity(m_data.size(), 1, capacity));
 }
 
 void TextFormatter::append_(const char *format_str, int arg_count, const Func *funcs, va_list ap) {

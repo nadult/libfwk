@@ -151,7 +151,7 @@ namespace detail {
 		int m_width, m_height;
 	};
 
-	void loadPNG(Stream &stream, PodArray<IColor> &out_data, int2 &out_size) {
+	void loadPNG(Stream &stream, PodVector<IColor> &out_data, int2 &out_size) {
 		PngLoader loader(stream);
 		out_size = loader.size();
 		out_data.resize(out_size.x * out_size.y);

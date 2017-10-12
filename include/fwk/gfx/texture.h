@@ -5,6 +5,7 @@
 
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/texture_format.h"
+#include "fwk/pod_vector.h"
 #include "fwk_base.h"
 #include "fwk_math.h"
 
@@ -51,7 +52,7 @@ class Texture {
 	void save(Stream &) const;
 	void swap(Texture &);
 
-	using Loader = void (*)(Stream &, PodArray<IColor> &out_data, int2 &out_size);
+	using Loader = void (*)(Stream &, PodVector<IColor> &out_data, int2 &out_size);
 	struct RegisterLoader {
 		RegisterLoader(const char *locase_ext, Loader);
 	};
@@ -77,7 +78,7 @@ class Texture {
 	const IColor operator[](int idx) const { return m_data[idx]; }
 
   private:
-	PodArray<IColor> m_data;
+	PodVector<IColor> m_data;
 	int2 m_size;
 };
 }

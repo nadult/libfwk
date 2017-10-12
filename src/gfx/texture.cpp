@@ -8,9 +8,9 @@ namespace fwk {
 
 namespace detail {
 
-	void loadBMP(Stream &, PodArray<IColor> &, int2 &);
-	void loadPNG(Stream &, PodArray<IColor> &, int2 &);
-	void loadTGA(Stream &, PodArray<IColor> &, int2 &);
+	void loadBMP(Stream &, PodVector<IColor> &, int2 &);
+	void loadPNG(Stream &, PodVector<IColor> &, int2 &);
+	void loadTGA(Stream &, PodVector<IColor> &, int2 &);
 }
 
 Texture::Texture() {}

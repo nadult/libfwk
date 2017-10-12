@@ -4,6 +4,7 @@
 #ifndef FWK_FORMAT_H
 #define FWK_FORMAT_H
 
+#include "fwk/pod_vector.h"
 #include "fwk_base.h"
 #include "fwk_math.h"
 
@@ -208,7 +209,7 @@ class TextFormatter {
 	}
 
 	// TODO: It would be better to have string type internally
-	PodArray<char> m_data;
+	PodVector<char> m_data;
 	int m_offset;
 	FormatOptions m_options;
 };

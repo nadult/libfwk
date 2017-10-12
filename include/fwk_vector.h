@@ -7,7 +7,8 @@
 
 namespace fwk {
 
-template <class T> class PodArray;
+class Stream;
+template <class T> class PodVector;
 
 class BaseVector {
   public:
@@ -15,7 +16,7 @@ class BaseVector {
 	using DestroyFunc = void (*)(void *, int);
 	using CopyFunc = void (*)(void *, const void *, int);
 
-	~BaseVector();
+	~BaseVector() { fwk::deallocate(data); }
 	void zero() {
 		data = nullptr;
 		size = capacity = 0;
@@ -53,6 +54,9 @@ class BaseVector {
 	void insertPod(int, int offset, const void *, int count);
 	void assignPartialPod(int, int new_size);
 	void assignPod(int, const void *, int size);
+
+	void loadPod(int, Stream &, int max_size);
+	void savePod(int, Stream &) const;
 
 	char *data;
 	int size, capacity;
@@ -134,7 +138,7 @@ template <class T> class Vector {
 		rhs.clear();
 	}
 
-	bool inRange(int idx) const { return idx >= 0 && idx < m_base.size; }
+	bool inRange(int idx) const { return fwk::inRange(idx, 0, m_base.size); }
 	const T *data() const { return reinterpret_cast<const T *>(m_base.data); }
 	T *data() { return reinterpret_cast<T *>(m_base.data); }
 
@@ -279,10 +283,10 @@ template <class T> class Vector {
 		return begin() + offset;
 	}
 
-	auto begin() { return data(); }
-	auto end() { return data() + size(); }
-	auto begin() const { return data(); }
-	auto end() const { return data() + size(); }
+	T *begin() { return data(); }
+	T *end() { return data() + m_base.size; }
+	const T *begin() const { return data(); }
+	const T *end() const { return data() + m_base.size; }
 
 	bool operator==(const Vector &rhs) const {
 		return size() == rhs.size() && std::equal(begin(), end(), rhs.begin(), rhs.end());
@@ -340,7 +344,7 @@ template <class T> class Vector {
 	}
 
 	BaseVector m_base;
-	friend class PodArray<T>;
+	friend class PodVector<T>;
 };
 
 template <class T> using vector = Vector<T>;
