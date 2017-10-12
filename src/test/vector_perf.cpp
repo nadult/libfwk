@@ -2,9 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include <cstdlib>
-
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "fwk_base.h"
 #include "fwk_math.h"

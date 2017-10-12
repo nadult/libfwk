@@ -28,6 +28,11 @@ void testSplittingMerging() {
 }
 
 void testMain() {
+#ifndef FWK_TARGET_LINUX
+	printf("TODO: models test not supported on mingw\n");
+	return;
+#endif
+
 	string mesh_path = mainPath("test/test.model");
 	auto command =
 		format("% % %", mainPath("tools/model_convert"), mainPath("data/test.blend"), mesh_path);

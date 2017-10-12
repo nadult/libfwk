@@ -4,6 +4,7 @@
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/font.h"
 #include "fwk/gfx/texture.h"
+#include <map>
 
 #ifdef FWK_TARGET_HTML5
 

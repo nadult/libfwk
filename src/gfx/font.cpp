@@ -6,6 +6,7 @@
 #include "fwk/gfx/renderer2d.h"
 #include "fwk_opengl.h"
 #include "fwk_xml.h"
+#include <map>
 
 namespace fwk {
 

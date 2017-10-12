@@ -6,7 +6,7 @@
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/render_list.h"
 #include "fwk_mesh.h"
-#include <algorithm>
+#include <map>
 
 namespace fwk {
 

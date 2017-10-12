@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/gfx/material.h"
+#include <map>
 
 namespace fwk {
 
