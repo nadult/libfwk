@@ -18,12 +18,15 @@ struct HeightMap16bit {
 	int2 size;
 };
 
+DEFINE_ENUM(TextureFileType, tga, png, bmp);
+
 // simple RGBA32 texture
 class Texture {
   public:
+	using FileType = TextureFileType;
 	// TODO: make it initialize with black or something by default
 	Texture(int2);
-	Texture(Stream &);
+	Texture(Stream &, Maybe<TextureFileType> = none);
 	Texture();
 
 	// data is not preserved
@@ -44,7 +47,7 @@ class Texture {
 	TextureFormat format() const { return TextureFormatId::rgba; }
 
 	// Loading from TGA, BMP, PNG, DDS
-	void load(Stream &);
+	void load(Stream &, Maybe<FileType> = none);
 	void save(Stream &) const;
 	void swap(Texture &);
 

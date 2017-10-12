@@ -13,13 +13,9 @@ namespace detail {
 	void loadTGA(Stream &, PodArray<IColor> &, int2 &);
 }
 
-Texture::RegisterLoader s_bmp_loader("bmp", detail::loadBMP);
-Texture::RegisterLoader s_tga_loader("tga", detail::loadTGA);
-Texture::RegisterLoader s_png_loader("png", detail::loadPNG);
-
 Texture::Texture() {}
 Texture::Texture(int2 size) : m_data(size.x * size.y), m_size(size) {}
-Texture::Texture(Stream &sr) : Texture() { load(sr); }
+Texture::Texture(Stream &sr, Maybe<FileType> ft) : Texture() { load(sr, ft); }
 
 void Texture::resize(int2 size) {
 	m_size = size;
@@ -72,30 +68,47 @@ bool Texture::testPixelAlpha(const int2 &pos) const {
 	return (*this)(pos.x, pos.y).a > 0;
 }
 
-// TODO: make it thread safe
 using TextureLoaders = vector<pair<string, Texture::Loader>>;
-
 static TextureLoaders &loaders() {
 	static TextureLoaders s_loaders;
 	return s_loaders;
 }
 
-void Texture::load(Stream &sr) {
+void Texture::load(Stream &sr, Maybe<FileType> ft) {
 	string file_name = sr.name();
 	auto dot_pos = file_name.rfind('.');
-	string ext = toLower(dot_pos == string::npos ? string() : file_name.substr(dot_pos + 1));
 
-	Texture::Loader loader = nullptr;
-	for(const auto &it : loaders())
-		if(it.first == ext) {
-			loader = it.second;
-			break;
+	if(!ft) {
+		string ext = toLower(dot_pos == string::npos ? string() : file_name.substr(dot_pos + 1));
+		if(ext.empty())
+			FATAL("No extension information: don't know which loader to use");
+		ft = tryFromString<FileType>(ext.c_str());
+		if(!ft) {
+			for(auto &loader : loaders())
+				if(loader.first == ext) {
+					loader.second(sr, m_data, m_size);
+					DASSERT(m_size.x >= 0 && m_size.y >= 0);
+					return;
+				}
+
+			FATAL("Extension '%s' is not supported", ext.c_str());
 		}
+	}
 
-	if(!loader)
-		THROW("Extension '%s' is not supported", ext.c_str());
+	switch(*ft) {
+	case FileType::tga:
+		detail::loadTGA(sr, m_data, m_size);
+		break;
 
-	loader(sr, m_data, m_size);
+	case FileType::bmp:
+		detail::loadBMP(sr, m_data, m_size);
+		break;
+
+	case FileType::png:
+		detail::loadPNG(sr, m_data, m_size);
+		break;
+	}
+
 	DASSERT(m_size.x >= 0 && m_size.y >= 0);
 }
 
