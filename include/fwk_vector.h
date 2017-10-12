@@ -18,7 +18,8 @@ class BaseVector {
 	using DestroyFunc = void (*)(void *, int);
 	using CopyFunc = void (*)(void *, const void *, int);
 
-	~BaseVector() noexcept { ::free(data); }
+	~BaseVector() noexcept;
+
 	void zero() noexcept {
 		data = nullptr;
 		size = capacity = 0;

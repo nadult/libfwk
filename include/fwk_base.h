@@ -51,6 +51,8 @@
 	Class::Class(const Class &) = default;                                                         \
 	Class &Class::operator=(const Class &) = default;
 
+#include "fwk/sys/memory.h"
+
 namespace fwk {
 
 using std::array;
@@ -157,33 +159,6 @@ template <class T> using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::val
 	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
 	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
 	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
-
-class SimpleAllocatorBase {
-  public:
-	void *allocateBytes(size_t count) noexcept;
-	void deallocateBytes(void *ptr) noexcept { free(ptr); }
-};
-
-// TODO: in multithreaded env consider: tbb::scalable_allocator
-template <class T> class SimpleAllocator : public SimpleAllocatorBase {
-  public:
-	using value_type = T;
-
-	SimpleAllocator() = default;
-	template <typename U> SimpleAllocator(const SimpleAllocator<U> &other) {}
-
-	T *allocate(size_t count) noexcept {
-		return static_cast<T *>(allocateBytes(count * sizeof(T)));
-	}
-
-	size_t max_size() const noexcept { return std::numeric_limits<size_t>::max() / sizeof(T); }
-
-	template <class Other> struct rebind { using other = SimpleAllocator<Other>; };
-
-	void deallocate(T *ptr, size_t) noexcept { deallocateBytes(ptr); }
-	template <class U> bool operator==(const SimpleAllocator<U> &rhs) const { return true; }
-	template <class Other> bool operator==(const Other &rhs) const { return false; }
-};
 
 #ifdef FWK_STD_VECTOR
 template <class T> using vector = std::vector<T, SimpleAllocator<T>>;
@@ -1121,6 +1096,7 @@ class MemorySaver : public Stream {
 	char *m_data;
 };
 
+// TODO: move it to fwk_resource_manager
 template <class T> class ResourceLoader {
   public:
 	ResourceLoader(const string &file_prefix, const string &file_suffix)
@@ -1232,11 +1208,11 @@ template <class T> class PodArray {
 	PodArray() : m_data(nullptr), m_size(0) {}
 	explicit PodArray(int size) : m_data(nullptr), m_size(0) { resize(size); }
 	PodArray(const PodArray &rhs) : m_size(rhs.m_size) {
-		m_data = (T *)malloc(m_size * sizeof(T));
+		m_data = (T *)allocate(m_size * sizeof(T));
 		memcpy(m_data, rhs.m_data, sizeof(T) * m_size);
 	}
 	PodArray(const T *data, int data_size) : m_size(data_size) {
-		m_data = (T *)malloc(m_size * sizeof(T));
+		m_data = (T *)allocate(m_size * sizeof(T));
 		memcpy(m_data, data, data_size * sizeof(T));
 	}
 	PodArray(PodArray &&rhs) : m_size(rhs.m_size), m_data(rhs.m_data) {
@@ -1282,7 +1258,7 @@ template <class T> class PodArray {
 
 	void clear() {
 		m_size = 0;
-		free(m_data);
+		fwk::deallocate(m_data);
 		m_data = nullptr;
 	}
 	bool empty() const { return m_size == 0; }
@@ -1341,7 +1317,7 @@ template <class T> void PodArray<T>::resize(int new_size) {
 	clear();
 	m_size = new_size;
 	if(new_size)
-		m_data = (T *)malloc(new_size * sizeof(T));
+		m_data = (T *)fwk::allocate(new_size * sizeof(T));
 }
 
 class BitVector {

@@ -2,13 +2,6 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_base.h"
-#ifdef FWK_TARGET_LINUX
-#include <malloc.h>
-static size_t usableSize(void *ptr, size_t size) { return malloc_usable_size(ptr); }
-#else
-static size_t usableSize(void *, size_t size) { return size; }
-#endif
-#include <stdio.h>
 
 // TODO: there is still space for improvement (perf-wise) here
 // TODO: more aggressive inlining here improves perf
@@ -19,10 +12,13 @@ void BaseVector::alloc(int obj_size, int size_, int capacity_) noexcept {
 	size = size_;
 	capacity = capacity_;
 	auto nbytes = size_t(capacity) * obj_size;
-	data = (char *)malloc(nbytes);
+	data = (char *)fwk::allocate(nbytes);
 	if(nbytes && !data)
 		FATAL("Error while allocating memory: %d * %d bytes", capacity, obj_size);
-	capacity = usableSize(data, nbytes) / obj_size;
+}
+BaseVector::~BaseVector() noexcept {
+	if(data)
+		fwk::deallocate(data);
 }
 
 void BaseVector::swap(BaseVector &rhs) noexcept {
@@ -137,13 +133,7 @@ void BaseVector::reallocatePod(int obj_size, int new_capacity) noexcept {
 	if(new_capacity <= capacity)
 		return;
 
-	if(0 && data && size_t(capacity - size) * 16 < size_t(capacity)) {
-		data = (char *)realloc(data, size_t(obj_size) * new_capacity);
-		if(!data)
-			FATAL("Error while re-allocating memory: %d * %d bytes", new_capacity, obj_size);
-		capacity = usableSize(data, size_t(obj_size) * new_capacity) / obj_size;
-		return;
-	}
+	// TODO: realloc ?
 
 	BaseVector new_base;
 	new_base.alloc(obj_size, size, new_capacity);
