@@ -39,8 +39,9 @@ bool mainLoop(GfxDevice &device, void *) {
 	static PFontCore font_core;
 	static PTexture font_texture;
 	if(!font_core) {
-		Loader font_ldr("data/liberation_16.fnt");
-		Loader tex_ldr("data/liberation_16_0.tga");
+		auto data_path = FilePath(executablePath()).parent().parent() / "data";
+		Loader font_ldr(data_path / "liberation_16.fnt");
+		Loader tex_ldr(data_path / "liberation_16_0.tga");
 		font_core = make_immutable<FontCore>("", font_ldr);
 		font_texture = make_immutable<DTexture>("", tex_ldr);
 	}
