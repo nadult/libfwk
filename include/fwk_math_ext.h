@@ -278,7 +278,7 @@ template <class T> using Promote = decltype(detail::promote<T>());
 template <class T>
 using PromoteIntegral = Conditional<isIntegral<T>() || isIntegralVector<T>(), Promote<T>, T>;
 
-void format(TextFormatter &, qint);
+TextFormatter &operator<<(TextFormatter &, qint);
 }
 
 #endif

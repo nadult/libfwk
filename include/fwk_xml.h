@@ -5,7 +5,7 @@
 #define FWK_XML_H
 
 #include "fwk_base.h"
-#include "fwk_format.h"
+#include "fwk/format.h"
 #include "fwk_math.h"
 #include "fwk_parse.h"
 
@@ -56,7 +56,7 @@ class XMLNode {
 
 	template <class T> void addAttrib(const char *name, const T &value) {
 		TextFormatter formatter(256, {FormatMode::plain});
-		format(formatter, value);
+		formatter << value;
 		addAttrib(name, own(formatter));
 	}
 
@@ -66,7 +66,7 @@ class XMLNode {
 
 	template <class T> XMLNode addChild(const char *name, const T &value) {
 		TextFormatter formatter(256, {FormatMode::plain});
-		format(formatter, value);
+		formatter << value;
 		return addChild(name, own(formatter));
 	}
 

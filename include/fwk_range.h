@@ -79,6 +79,10 @@ namespace detail {
 	};
 }
 
+template <class T, class Req = void> constexpr bool isSpan() {
+	return detail::SpanInfo<T, Req>::value;
+}
+
 template <class T, class Req = void>
 using EnableIfRange = EnableIf<detail::RangeInfo<T, Req>::value, NotARange>;
 template <class T, class Req = void>

@@ -8,7 +8,7 @@
 
 #include "fwk_assert.h"
 #include "fwk_base.h"
-#include "fwk_format.h"
+#include "fwk/format.h"
 #include "fwk_input.h"
 #include "fwk_math.h"
 #include "fwk_maybe.h"

@@ -27,6 +27,12 @@
 #define ALWAYS_INLINE __attribute__((always_inline))
 #endif
 
+#ifdef __clang__
+#define ATTRIB_PRINTF(fmt, next) __attribute__((__format__(__printf__, fmt, next)))
+#else
+#define ATTRIB_PRINTF(fmt, next)
+#endif
+
 #define FWK_MOVABLE_CLASS(Class)                                                                   \
 	~Class();                                                                                      \
 	Class(const Class &) = delete;                                                                 \
@@ -144,6 +150,11 @@ namespace detail {
 		template <class C> static auto test(...) -> std::false_type;
 		enum { value = std::is_same<std::true_type, decltype(test<T>(0))>::value };
 	};
+
+	template <class...> struct Conjunction : std::true_type {};
+	template <class B1> struct Conjunction<B1> : B1 {};
+	template <class B1, class... Bn>
+	struct Conjunction<B1, Bn...> : std::conditional_t<bool(B1::value), Conjunction<Bn...>, B1> {};
 }
 
 template <bool cond, class InvalidArg = DisabledType>

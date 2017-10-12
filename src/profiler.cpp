@@ -3,7 +3,7 @@
 
 #include "fwk_profile.h"
 
-#include "fwk_format.h"
+#include "fwk/format.h"
 #include "fwk_opengl.h"
 #include <cstdio>
 #include <cstring>
@@ -150,7 +150,7 @@ const string Profiler::getStats(const char *filter) {
 
 	makeSorted(lines);
 	for(auto &pair : lines)
-		out.append(pair.second);
+		out << pair.second;
 	lines.clear();
 
 	return out.text();

@@ -13,6 +13,12 @@ void testTextFormatter() {
 	bool array_of_bools[4] = {false, true, false, true};
 	ASSERT_EQ(toString(array_of_bools), "false true false true");
 
+	string array_of_strings1[3] = {"heeloo", "yallala", "foobar!"};
+	ASSERT_EQ(toString(array_of_strings1), "heeloo yallala foobar!");
+
+	StringRef array_of_strings2[3] = {"heeloo", "yallala", "foobar!"};
+	ASSERT_EQ(toString(array_of_strings2), "heeloo yallala foobar!");
+
 	pair<int, double> some_pair = {10, 12.5};
 	ASSERT_EQ(toString(some_pair), "10 12.5");
 }
@@ -50,6 +56,12 @@ void testXMLConverters() {
 	testClassConversions(Matrix4::identity());
 	testClassConversions(Quat(1.0, 0.0f, 0.0f, 2.0f));
 
+	struct MyClass {
+		double x = 16.128;
+		operator double() const { return x; }
+	};
+
+	ASSERT_EQ(toString(MyClass()), "16.128");
 	ASSERT_EQ(fromString<vector<int>>("1 2 3 4 5"), vector<int>({1, 2, 3, 4, 5}));
 	ASSERT_EQ(fromString<float2>("100 \r\t\n  1"), float2(100, 1));
 
