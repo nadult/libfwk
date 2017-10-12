@@ -1,25 +1,30 @@
-# libfwt
+# libfwk
 
-## WTF is libfwt?
+## WTF is libfwk?
 
-FWT is a sweet (IMVHO) abbreviation for framework. It is basically a set of classes
-and functions which I use in most of my projects. It requires fairly new g++ (7.1) or
-clang (4.0).
+FWK is a sweet (IMVHO) abbreviation for framework. It is basically a set of classes
+and functions which I use in most of my projects (mostly game-related). It's trying
+to be light, super easy to use and performant where it matters.
 
 TODO: write more detailed description.
 
 ## Features
 
-Supported platforms: linux, windows (using mingw), browser (using emscripten)
+- OpenGL & SDL2 based
+- Supported platforms: linux, windows (using mingw)
+- Doesn't use exceptions
 
-TODO: write me
+TODO: more details
 
+## Examples & projects based on libfwk
 
-## Examples
+* Some examples are available in src/test/ and src/tools.
+* FreeFT [https://github.com/nadult/freeft](https://github.com/nadult/freeft)
 
-Some examples are available in src/test/ and src/tools.
+## Requirements & dependencies
 
-## Dependencies
+It requires a linux environment with fairly new G++ (7.1) or Clang (4.0).
+Code is written in C++14 with some C++17 features used. 
 
 * **SDL2**   
 	[https://www.libsdl.org/](https://www.libsdl.org/)
@@ -44,14 +49,11 @@ Some examples are available in src/test/ and src/tools.
 
 ## Compilation
 
-libfwt requires C++14 support. It also uses some features from C++17:  
-- constexpr if  
-- simplified static assert  
-
 To compile simply run make. With Makefile.local you can override some basic variables
 like LINUX\_CXX, FLAGS or BUILD\_DIR. If you want to cross-compile for mingw32,
 simply override MINGW\_PREFIX in Makefile.local with proper prefix.
-There is also an option to compile for the web (using emscripten).
+There is also an option to compile for the web (using emscripten) although it's not
+fully supported.
 
 TODO: how to build mingw with mxe (and which version)
 
