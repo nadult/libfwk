@@ -23,7 +23,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=base vector backtrace filesystem filesystem_linux input profiler stream strings xml \
-		   sys/memory \
+		   sys/memory sys/error \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   format parse audio/device audio/sound audio/ogg_stream \
