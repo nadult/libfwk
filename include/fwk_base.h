@@ -345,49 +345,6 @@ template <class T, unsigned size> struct StaticPimpl {
 	char data[size];
 };
 
-// TODO: use lib-lldb
-class Backtrace {
-  public:
-	Backtrace(std::vector<void *> addresses, std::vector<string> symbols, pair<string, bool>);
-	Backtrace(std::vector<void *> addresses, std::vector<string> symbols);
-	Backtrace() = default;
-
-	// If available, gdb backtraces will be used (which are more accurate)
-	static Backtrace get(size_t skip = 0, void *context = nullptr, bool use_gdb = true);
-
-	static pair<string, bool> gdbBacktrace(int skip_frames = 0) NOINLINE;
-
-	// When filter is true, analyzer uses c++filt program to demangle C++
-	// names; it also shortens some of the common long class names, like
-	// std::basic_string<...> to fwk::string
-	string analyze(bool filter) const;
-	auto size() const { return m_addresses.size(); }
-
-  private:
-	static string filter(const string &);
-
-	std::vector<void *> m_addresses;
-	std::vector<string> m_symbols;
-	pair<string, bool> m_gdb_result;
-	bool m_use_gdb = false;
-};
-
-class Exception : public std::exception {
-  public:
-	explicit Exception(string text);
-	explicit Exception(string text, Backtrace);
-	~Exception() noexcept = default;
-
-	const char *what() const noexcept override;
-	const char *text() const noexcept { return m_text.c_str(); }
-	string backtrace(bool filter = true) const { return m_backtrace.analyze(filter); }
-	const Backtrace &backtraceData() const { return m_backtrace; }
-
-  protected:
-	string m_text;
-	Backtrace m_backtrace;
-};
-
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
 
@@ -439,13 +396,17 @@ double getTime();
 #include "fwk_maybe.h"
 #include "fwk_range.h"
 
+#include "fwk/sys/backtrace.h"
 #include "fwk_index_range.h"
 
 namespace fwk {
 
+class Backtrace;
+class Exception;
+
 void logError(const string &error);
 
-// TODO: change name to borrowedstring ? (like in Rust)
+// TODO: change name to CString
 // TODO: move to string_ref.cpp
 // Simple reference to string
 // User have to make sure that referenced data is alive as long as StringRef

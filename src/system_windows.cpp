@@ -1,5 +1,7 @@
 #include "fwk_base.h"
 
+#include "fwk/sys/backtrace.h"
+
 #if !(defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC))
 #error "This file should only be compiled for MinGW or MSVC targets"
 #endif
@@ -85,7 +87,7 @@ void *winLoadFunction(const char *name) {
 	return (void *)func;
 }
 
-void winGetBacktrace(std::vector<void *> &addrs, int skip, void *context_) {
+void winGetBacktrace(vector<void *> &addrs, int skip, void *context_) {
 	if(!context_) {
 		addrs.resize(64);
 		int count = CaptureStackBackTrace(max(0, (int)skip - 1), addrs.size(), &addrs[0], 0);

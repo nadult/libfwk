@@ -1,9 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_base.h"
-
 #include "fwk/format.h"
+
+#include "fwk/sys/backtrace.h"
 #include <cstdio>
 
 #include <errno.h>
@@ -34,7 +34,10 @@ namespace {
 		return file_path;
 	}
 
-	string analyzeCommand(std::vector<void *> addresses, bool funcs = false) {
+	string analyzeCommand(CSpan<void *> addresses, bool funcs = false) {
+		if(addresses.empty())
+			return {};
+
 		TextFormatter command;
 		command("addr2line ");
 		for(auto address : addresses)
@@ -45,8 +48,8 @@ namespace {
 	}
 
 	// Source: https://stackoverflow.com/questions/53849/how-do-i-tokenize-a-string-in-c
-	std::vector<string> split(const char *str, char c = ' ') {
-		std::vector<string> result;
+	vector<string> split(const char *str, char c = ' ') {
+		vector<string> result;
 
 		do {
 			const char *begin = str;
@@ -70,19 +73,15 @@ namespace {
 
 	Maybe<int> consoleColumns() {
 		auto result = execCommand("tput cols");
-		try {
-			if(!result.second)
-				return none;
-			int val = stoi(result.first);
-			return val;
-		} catch(...) {
-		}
-		return none;
+		if(!result.second)
+			return none;
+		int val = stoi(result.first);
+		return val;
 	}
 
 	string filterGdb(string input, int skip_frames) {
 		auto lines = split(input.c_str(), '\n');
-		std::vector<string> out_lines;
+		vector<string> out_lines;
 		bool found_first = false;
 
 		struct Entry {
@@ -92,7 +91,7 @@ namespace {
 			string simple;
 		};
 
-		std::vector<Entry> entries;
+		vector<Entry> entries;
 
 		for(auto line : lines) {
 			if(line[0] == '#' && line.find("gdbBacktrace") != string::npos) {
@@ -171,9 +170,9 @@ namespace {
 		return out;
 	}
 
-	std::vector<string> analyzeAddresses(std::vector<void *> addresses) {
+	vector<string> analyzeAddresses(vector<void *> addresses) {
 		string result = execCommand(analyzeCommand(addresses)).first;
-		std::vector<string> file_lines;
+		vector<string> file_lines;
 		while(!result.empty()) {
 			auto pos = result.find('\n');
 			file_lines.emplace_back(result.substr(0, pos));
@@ -198,7 +197,7 @@ namespace {
 		int src_len = strlen(src);
 
 		auto pos = str.find(src);
-		while(pos != std::string::npos) {
+		while(pos != string::npos) {
 			str = str.substr(0, pos) + dst + str.substr(pos + src_len);
 			pos = str.find(src);
 		}
@@ -206,46 +205,54 @@ namespace {
 
 	// TODO: these don't work too good
 	const char *s_filtered_names[] = {
-		"unsigned int", "uint",
-		"std::basic_string<char, std::char_traits<char>, std::allocator<char> >", "fwk::string",
-		"std::", "", "fwk::", "",
+		"unsigned int",
+		"uint",
+		"std::basic_string<char, std::char_traits<char>, std::allocator<char> >",
+		"fwk::string",
+		"std::",
+		"",
+		"fwk::",
+		"",
 	};
 }
 
-void winGetBacktrace(std::vector<void *> &addrs, int skip, void *context);
+void winGetBacktrace(vector<void *> &addrs, int skip, void *context);
 
-Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols)
+__thread BacktraceMode Backtrace::t_default_mode = Mode::fast;
+
+Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}
-Backtrace::Backtrace(std::vector<void *> addresses, std::vector<string> symbols,
+Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols,
 					 pair<string, bool> gdb_result)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)), m_gdb_result(move(gdb_result)),
 	  m_use_gdb(true) {}
 
-Backtrace Backtrace::get(size_t skip, void *context_, bool use_gdb) {
-	std::vector<void *> addrs;
-	std::vector<string> symbols;
+Backtrace Backtrace::get(size_t skip, void *context_, Maybe<Mode> mode) {
+	vector<void *> addrs;
+	vector<string> symbols;
+
+	if(!mode)
+		mode = t_default_mode;
+	if(mode == Mode::disabled)
+		return {};
 
 #if defined(FWK_TARGET_MINGW)
 	winGetBacktrace(addrs, skip, context_);
 #elif defined(FWK_TARGET_LINUX)
+	// TODO: backtrace_symbols should be deferred
 	void *addresses[64];
 	size_t size = ::backtrace(addresses, arraySize(addresses));
 	char **strings = backtrace_symbols(addresses, size);
 
-	try {
-		for(size_t i = max<int>(0, skip - 1); i < size; i++) {
-			addrs.emplace_back(addresses[i]);
-			symbols.emplace_back(string(strings[i]));
-		}
-	} catch(...) {
-		free(strings);
-		return Backtrace();
+	for(size_t i = max<int>(0, skip - 1); i < size; i++) {
+		addrs.emplace_back(addresses[i]);
+		symbols.emplace_back(string(strings[i]));
 	}
-	free(strings);
+	::free(strings);
 #endif
 
 #ifdef FWK_TARGET_LINUX
-	if(use_gdb)
+	if(*mode == Mode::full)
 		return {move(addrs), move(symbols), gdbBacktrace(skip)};
 #endif
 
@@ -253,6 +260,8 @@ Backtrace Backtrace::get(size_t skip, void *context_, bool use_gdb) {
 }
 
 pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
+	printf("Generating GDB backtrace\n");
+
 #ifdef FWK_TARGET_LINUX
 	auto pid = getpid();
 	char cmd[256];
@@ -273,7 +282,7 @@ pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
 
 string Backtrace::analyze(bool filter) const {
 	TextFormatter formatter;
-	std::vector<string> file_lines;
+	vector<string> file_lines;
 
 #if defined(FWK_TARGET_HTML5)
 #elif defined(FWK_TARGET_LINUX)
@@ -286,7 +295,7 @@ string Backtrace::analyze(bool filter) const {
 		for(const auto &file_line : file_lines)
 			max_len = max(max_len, (int)file_line.size());
 
-		for(size_t i = 0; i < size(); i++) {
+		for(int i = 0; i < size(); i++) {
 			string tstring = i < m_symbols.size() ? m_symbols[i] : "";
 			const char *file_line = i < file_lines.size() ? file_lines[i].c_str() : "";
 			tstring = tstring.substr(0, tstring.find('['));
@@ -316,18 +325,13 @@ string Backtrace::filter(const string &input) {
 
 	FILE *file = popen(command.c_str(), "r");
 	if(file) {
-		std::vector<char> buf;
-		try {
-			while(!feof(file) && buf.size() < 1024 * 16) {
-				buf.push_back(fgetc(file));
-				if((u8)buf.back() == 255) {
-					buf.pop_back();
-					break;
-				}
+		vector<char> buf;
+		while(!feof(file) && buf.size() < 1024 * 16) {
+			buf.push_back(fgetc(file));
+			if((u8)buf.back() == 255) {
+				buf.pop_back();
+				break;
 			}
-		} catch(...) {
-			fclose(file);
-			throw;
 		}
 		fclose(file);
 

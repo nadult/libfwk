@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk_base.h"
+#include "fwk/sys/backtrace.h"
 
 namespace fwk {
 
