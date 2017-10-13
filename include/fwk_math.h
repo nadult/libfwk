@@ -1699,7 +1699,7 @@ template <class T, int N> class Triangle {
 	Segment ca() const { return {v[2], v[0]}; }
 	Segment edge(int idx) const {
 		PASSERT(idx >= 0 && idx <= 3);
-		return {v[idx], v[idx == 3 ? 0 : idx + 1]};
+		return {v[idx], v[idx == 2 ? 0 : idx + 1]};
 	}
 
 	Point center() const { return (v[0] + v[1] + v[2]) * (T(1) / T(3)); }
@@ -2076,7 +2076,7 @@ template <class Value = int> struct Hash {
 
 	template <class T, EnableIf<isRange<T>() && !isTied<T>(), NotARange>...>
 	static Value hash(const T &range) {
-		if(empty(range))
+		if(fwk::empty(range))
 			return 0;
 		auto it = begin(range);
 		auto out = hash(*it);
