@@ -5,6 +5,7 @@
 
 #include "fwk/filesystem.h"
 #include "fwk/gfx/texture.h"
+#include "fwk/math/random.h"
 #include "fwk/sys/rollback.h"
 #include "fwk/sys/stream.h"
 #include <algorithm>

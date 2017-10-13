@@ -171,41 +171,6 @@ template <class T> using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::val
 template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
 
-template <class T, int size, int minimum_size> constexpr inline void validateSize() {
-	static_assert(size >= minimum_size, "Invalid size");
-}
-
-// T definition is not required, you just have to make sure
-// that size is at least as big as sizeof(T)
-// It's similar to unique_ptr but it keeps the data in-place
-// TODO: better name ?
-template <class T, unsigned size> struct StaticPimpl {
-	template <class... Args> StaticPimpl(Args &&... args) {
-		validateSize<T, size, sizeof(T)>();
-		new(data) T(std::forward<Args>(args)...);
-	}
-	StaticPimpl(const StaticPimpl &rhs) { new(data) T(*rhs); }
-	StaticPimpl(StaticPimpl &&rhs) { new(data) T(move(*rhs)); }
-	~StaticPimpl() { (**this).~T(); }
-
-	void operator=(const StaticPimpl &rhs) { **this = *rhs; }
-	void operator=(StaticPimpl &&rhs) { **this = move(*rhs); }
-
-	const T &operator*() const {
-		validateSize<T, size, sizeof(T)>();
-		return reinterpret_cast<const T &>(*this);
-	}
-	T &operator*() {
-		validateSize<T, size, sizeof(T)>();
-		return reinterpret_cast<T &>(*this);
-	}
-	T *operator->() { return &operator*(); }
-	const T *operator->() const { return &operator*(); }
-
-  private:
-	char data[size];
-};
-
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
 

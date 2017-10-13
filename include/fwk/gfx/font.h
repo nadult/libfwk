@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/cstring.h"
+#include "fwk/flat_impl.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
 #include "fwk/sys/immutable_ptr.h"
@@ -49,7 +50,7 @@ class FontCore : public immutable_base<FontCore> {
 	FontCore(CSpan<Glyph>, CSpan<Kerning>, int2, int);
 
 	struct Impl;
-	StaticPimpl<Impl, 192> m_impl;
+	FlatImpl<Impl, 192> m_impl;
 
 	friend class FontFactory;
 	friend class Font;

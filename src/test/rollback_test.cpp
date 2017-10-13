@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/math/random.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/rollback.h"
 #include "testing.h"

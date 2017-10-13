@@ -16,7 +16,9 @@
 #include "fwk/sys/rollback.h"
 #include "fwk/sys/stream.h"
 
+#include "fwk/cstring.h"
 #include "fwk/format.h"
+
 #include "fwk_input.h"
 #include "fwk_math.h"
 #include "fwk_maybe.h"
@@ -25,6 +27,8 @@
 #include "fwk_profile.h"
 #include "fwk_variant.h"
 #include "fwk_xml.h"
+
+#include "fwk/math/random.h"
 
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
