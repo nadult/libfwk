@@ -1,24 +1,23 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_base.h"
-#include "fwk_math.h"
-#include <cstring>
-#include <cstdio>
+#include "fwk/filesystem.h"
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
 
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #ifdef _WIN32
 
-#include <io.h>
 #include <direct.h>
+#include <io.h>
 
 #else
 
-#include <unistd.h>
 #include <errno.h>
+#include <unistd.h>
 
 #endif
 

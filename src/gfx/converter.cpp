@@ -3,6 +3,7 @@
 
 #include "fwk_mesh.h"
 
+#include "fwk/filesystem.h"
 #include "fwk/sys/rollback.h"
 
 namespace fwk {
@@ -22,7 +23,8 @@ Converter::Converter(Settings settings) : m_settings(settings) {
 }
 
 const EnumMap<FileType, string> Converter::s_extensions = {
-	{FileType::fwk_model, ".model"}, {FileType::blender, ".blend"},
+	{FileType::fwk_model, ".model"},
+	{FileType::blender, ".blend"},
 };
 
 FileType Converter::classify(const string &name) {

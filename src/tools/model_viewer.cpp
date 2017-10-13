@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/filesystem.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/font.h"

@@ -3,6 +3,7 @@
 
 #include "fwk/sys/backtrace.h"
 
+#include "fwk/filesystem.h"
 #include "fwk/format.h"
 #include "fwk/sys/rollback.h"
 

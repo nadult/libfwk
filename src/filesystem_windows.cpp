@@ -9,10 +9,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "fwk_base.h"
+#include "fwk/filesystem.h"
 #include <cstdio>
 #include <cstring>
 #include <sys/stat.h>
+
+// TODO: verify that it works on different drives?
 
 namespace fwk {
 

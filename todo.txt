@@ -1,3 +1,4 @@
+- inline HashMap::s_empty_node crashes Clang when compiling voronoiDiagram...
 - proper FIFO support for streams
 - use std decay instead of remove_const, remove_ref, etc.
 - drop the fucking shared_ptrs
