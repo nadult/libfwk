@@ -101,7 +101,7 @@ void TextFormatter::stdFormat(const char *format, ...) {
 	}
 }
 
-TextFormatter &TextFormatter::operator<<(StringRef text) {
+TextFormatter &TextFormatter::operator<<(CString text) {
 	if(text.empty())
 		return *this;
 
@@ -116,8 +116,8 @@ TextFormatter &TextFormatter::operator<<(StringRef text) {
 	return *this;
 }
 
-TextFormatter &TextFormatter::operator<<(const char *str) { return *this << StringRef(str); }
-TextFormatter &TextFormatter::operator<<(const string &str) { return *this << StringRef(str); }
+TextFormatter &TextFormatter::operator<<(const char *str) { return *this << CString(str); }
+TextFormatter &TextFormatter::operator<<(const string &str) { return *this << CString(str); }
 
 TextFormatter &TextFormatter::operator<<(char c) {
 	if(c) {
@@ -189,7 +189,7 @@ const char *TextFormatter::nextElement(const char *format_str) {
 		format_str++;
 	const char *end = format_str++;
 
-	*this << StringRef(start, (int)(end - start));
+	*this << CString(start, (int)(end - start));
 	return format_str;
 }
 

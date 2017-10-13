@@ -4,6 +4,7 @@
 #ifndef FWK_FORMAT_H
 #define FWK_FORMAT_H
 
+#include "fwk/cstring.h"
 #include "fwk/pod_vector.h"
 #include "fwk_base.h"
 #include "fwk_math.h"
@@ -92,14 +93,14 @@ namespace detail {
 
 	inline TFValue getTFValue(const char *str) { return TFValue(str); }
 	inline TFValue getTFValue(const string &str) { return TFValue(str.c_str()); }
-	inline TFValue getTFValue(StringRef str) { return TFValue(str.c_str()); }
+	inline TFValue getTFValue(CString str) { return TFValue(str.c_str()); }
 
 	template <int N> constexpr auto getTFFunc(char (&str)[N]) {
 		return AppendAccess<const char *>();
 	}
 	constexpr auto getTFFunc(const char *) { return AppendAccess<const char *>(); }
 	constexpr auto getTFFunc(const string &) { return AppendAccess<const char *>(); }
-	constexpr auto getTFFunc(const StringRef &) { return AppendAccess<const char *>(); }
+	constexpr auto getTFFunc(const CString &) { return AppendAccess<const char *>(); }
 
 	template <class T> constexpr TFFunc getTFFunc() {
 		return decltype(getTFFunc(std::declval<const T &>()))::func();
@@ -127,7 +128,7 @@ class TextFormatter {
 	TextFormatter(const TextFormatter &);
 	~TextFormatter();
 
-	TextFormatter &operator<<(StringRef);
+	TextFormatter &operator<<(CString);
 	TextFormatter &operator<<(const char *);
 	TextFormatter &operator<<(const string &);
 	template <int N> TextFormatter &operator<<(const char (&str)[N]) {
@@ -151,7 +152,7 @@ class TextFormatter {
 	void trim(int count);
 
 	const char *c_str() const { return m_data.data(); }
-	StringRef text() const { return {m_data.data(), m_offset}; }
+	CString text() const { return {m_data.data(), m_offset}; }
 	int length() const { return m_offset; }
 
 	const FormatOptions &options() const { return m_options; }

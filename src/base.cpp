@@ -3,6 +3,7 @@
 
 #include "fwk_base.h"
 
+#include "fwk/enum.h"
 #include "fwk/format.h"
 #include "fwk/sys/backtrace.h"
 #include <cstdarg>
@@ -23,15 +24,6 @@
 #endif
 
 namespace fwk {
-
-StringRef Tokenizer::next() {
-	const char *start = m_str;
-	while(*m_str && *m_str != m_delim)
-		m_str++;
-	const char *end = m_str++;
-
-	return {start, (int)(end - start)};
-}
 
 #if defined(FWK_TARGET_LINUX)
 
@@ -128,24 +120,6 @@ double getTime() {
 }
 #endif
 
-#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
-
-static int strcasecmp(const char *a, const char *b) { return _stricmp(a, b); }
-
-static const char *strcasestr(const char *a, const char *b) {
-	DASSERT(a && b);
-
-	while(*a) {
-		if(strcasecmp(a, b) == 0)
-			return a;
-		a++;
-	}
-
-	return nullptr;
-}
-
-#endif
-
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
 int enumFromString(const char *str, CSpan<const char *> strings, bool check_if_invalid) {
@@ -159,7 +133,4 @@ int enumFromString(const char *str, CSpan<const char *> strings, bool check_if_i
 					 toString(strings).c_str());
 	return -1;
 }
-
-int StringRef::compare(const StringRef &rhs) const { return strcmp(m_data, rhs.m_data); }
-int StringRef::caseCompare(const StringRef &rhs) const { return strcasecmp(m_data, rhs.m_data); }
 }

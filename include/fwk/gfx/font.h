@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/cstring.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
 #include "fwk/sys/immutable_ptr.h"
@@ -65,12 +66,12 @@ class Font {
 		return draw(out, FRect(pos, pos), style, text);
 	}
 
-	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, StringRef text_utf8) const {
+	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, CString text_utf8) const {
 		if(auto text = toUTF32(text_utf8))
 			return draw(out, rect, style, *text);
 		return {};
 	}
-	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, StringRef text_utf8) const {
+	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, CString text_utf8) const {
 		if(auto text = toUTF32(text_utf8))
 			return draw(out, FRect(pos, pos), style, *text);
 		return {};
@@ -80,7 +81,7 @@ class Font {
 	auto texture() const { return m_texture; }
 
 	IRect evalExtents(const string32 &text) const { return m_core->evalExtents(text); }
-	IRect evalExtents(StringRef text_utf8) const {
+	IRect evalExtents(CString text_utf8) const {
 		if(auto text = toUTF32(text_utf8))
 			return m_core->evalExtents(*text);
 		return {};

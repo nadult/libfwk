@@ -210,7 +210,7 @@ template <class T, unsigned size> struct StaticPimpl {
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
 
 // TODO: move FATAL, check, etc to fwk_assert ?
-// TODO: use StringRef -> CString
+// TODO: use CString -> CString
 [[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
 [[noreturn]] void assertFailed(const char *file, int line, const char *str);
 [[noreturn]] void checkFailed(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
@@ -260,78 +260,6 @@ class Backtrace;
 
 void logError(const string &error);
 
-// TODO: change name to CString
-// TODO: move to string_ref.cpp
-// Simple reference to string
-// User have to make sure that referenced data is alive as long as StringRef
-class StringRef {
-  public:
-	StringRef(const string &str) : m_data(str.c_str()), m_length((int)str.size()) {}
-	StringRef(const char *str, int length) : m_data(str ? str : ""), m_length(length) {
-		PASSERT((int)strlen(str) >= length);
-	}
-	StringRef(const char *str) {
-		if(!str)
-			str = "";
-		m_data = str;
-		m_length = strlen(str);
-	}
-	// TODO: conversion from CSpan<char>? but what about null-termination
-	StringRef() : m_data(""), m_length(0) {}
-
-	operator string() const { return string(m_data, m_data + m_length); }
-	const char *c_str() const { return m_data; }
-
-	int size() const { return m_length; }
-	int length() const { return m_length; }
-	bool empty() const { return m_length == 0; }
-	int compare(const StringRef &rhs) const;
-	int caseCompare(const StringRef &rhs) const;
-
-	const char *begin() const { return m_data; }
-	const char *end() const { return m_data + m_length; }
-
-	bool operator==(const StringRef &rhs) const {
-		return m_length == rhs.m_length && compare(rhs) == 0;
-	}
-	bool operator<(const StringRef &rhs) const { return compare(rhs) < 0; }
-
-	StringRef operator+(int offset) const {
-		DASSERT(offset >= 0 && offset <= m_length);
-		return StringRef(m_data + offset, m_length - offset);
-	}
-
-  private:
-	const char *m_data;
-	int m_length;
-};
-
-struct Tokenizer {
-	explicit Tokenizer(const char *str, char delim = ' ') : m_str(str), m_delim(delim) {}
-
-	StringRef next();
-	bool finished() const { return *m_str == 0; }
-
-  private:
-	const char *m_str;
-	char m_delim;
-};
-
-inline bool caseEqual(const StringRef a, const StringRef b) {
-	return a.size() == b.size() && a.caseCompare(b) == 0;
-}
-inline bool caseNEqual(const StringRef a, const StringRef b) { return !caseEqual(a, b); }
-inline bool caseLess(const StringRef a, const StringRef b) { return a.caseCompare(b) < 0; }
-
-// TODO: StringRef for string32 ?
-Maybe<string32> toUTF32(StringRef);
-Maybe<string> toUTF8(const string32 &);
-
-// Returns size of buffer big enough for conversion
-// 0 may be returned is string is invalid
-int utf8Length(const string32 &);
-int utf32Length(const string &);
-
 #define SAFE_ARRAY(declaration, size, ...)                                                         \
 	declaration[] = {__VA_ARGS__};                                                                 \
 	static_assert(COUNT_ARGUMENTS(__VA_ARGS__) == size, "Invalid number of elements in an array");
@@ -347,66 +275,9 @@ template <class T> struct SerializeAsPod;
 		};                                                                                         \
 	}
 
-struct ListNode {
-	ListNode() : next(-1), prev(-1) {}
-	bool empty() const { return next == -1 && prev == -1; }
-
-	int next, prev;
-};
-
-struct List {
-	List() : head(-1), tail(-1) {}
-	bool empty() const { return head == -1; }
-
-	int head, tail;
-};
-
-// TODO: add functions to remove head / tail
-
-template <class Object, ListNode Object::*member, class Container>
-void listInsert(Container &container, List &list, int idx) NOINLINE;
-
-template <class Object, ListNode Object::*member, class Container>
-void listRemove(Container &container, List &list, int idx) NOINLINE;
-
-// Assumes that node is disconnected
-template <class Object, ListNode Object::*member, class Container>
-void listInsert(Container &container, List &list, int idx) {
-	ListNode &node = container[idx].*member;
-	DASSERT(node.empty());
-
-	node.next = list.head;
-	if(list.head == -1)
-		list.tail = idx;
-	else
-		(container[list.head].*member).prev = idx;
-	list.head = idx;
-}
-
-// Assumes that node is on this list
-template <class Object, ListNode Object::*member, class Container>
-void listRemove(Container &container, List &list, int idx) {
-	ListNode &node = container[idx].*member;
-	int prev = node.prev, next = node.next;
-
-	if(prev == -1) {
-		list.head = next;
-	} else {
-		(container[node.prev].*member).next = next;
-		node.prev = -1;
-	}
-
-	if(next == -1) {
-		list.tail = prev;
-	} else {
-		(container[next].*member).prev = prev;
-		node.next = -1;
-	}
-}
-
-string toLower(const string &str);
 pair<string, bool> execCommand(const string &cmd);
 
+class CString;
 class FilePath;
 
 class XMLNode;

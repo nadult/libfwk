@@ -1,9 +1,41 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_base.h"
+#include "fwk/cstring.h"
 
 #include "fwk/pod_vector.h"
+
+namespace fwk {
+
+#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
+
+static int strcasecmp(const char *a, const char *b) { return _stricmp(a, b); }
+
+static const char *strcasestr(const char *a, const char *b) {
+	DASSERT(a && b);
+
+	while(*a) {
+		if(strcasecmp(a, b) == 0)
+			return a;
+		a++;
+	}
+
+	return nullptr;
+}
+
+#endif
+
+int CString::compare(const CString &rhs) const { return strcmp(m_data, rhs.m_data); }
+int CString::caseCompare(const CString &rhs) const { return strcasecmp(m_data, rhs.m_data); }
+
+CString Tokenizer::next() {
+	const char *start = m_str;
+	while(*m_str && *m_str != m_delim)
+		m_str++;
+	const char *end = m_str++;
+
+	return {start, (int)(end - start)};
+}
 
 // Source: libc++: https://github.com/llvm-mirror/libcxx/blob/master/src/locale.cpp
 
@@ -20,8 +52,6 @@
 // 010000 - 03FFFF  D800 - D8BF, DC00 - DFFF  F0 - F0, 90 - BF, 80 - BF, 80 - BF   196608
 // 040000 - 0FFFFF  D8C0 - DBBF, DC00 - DFFF  F1 - F3, 80 - BF, 80 - BF, 80 - BF   786432
 // 100000 - 10FFFF  DBC0 - DBFF, DC00 - DFFF  F4 - F4, 80 - 8F, 80 - BF, 80 - BF    65536
-
-namespace fwk {
 
 enum Result { ok, partial, error };
 static const unsigned long max_code = 0x10ffff;
@@ -196,7 +226,7 @@ int utf32Length(const string &str) {
 	return utf8_to_ucs4_length({reinterpret_cast<const uint8_t *>(str.data()), (int)str.size()});
 }
 
-Maybe<string32> toUTF32(StringRef text) {
+Maybe<string32> toUTF32(CString text) {
 	const uint8_t *start = reinterpret_cast<const uint8_t *>(text.c_str());
 	const uint8_t *end = start + text.size();
 

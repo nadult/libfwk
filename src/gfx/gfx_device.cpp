@@ -209,7 +209,7 @@ string GfxDevice::clipboardText() const {
 	return ret ? string(ret) : string();
 }
 
-void GfxDevice::setClipboardText(StringRef ref) { SDL_SetClipboardText(ref.c_str()); }
+void GfxDevice::setClipboardText(CString ref) { SDL_SetClipboardText(ref.c_str()); }
 
 void GfxDevice::clearColor(FColor col) {
 	glClearColor(col.r, col.g, col.b, col.a);

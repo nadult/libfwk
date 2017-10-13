@@ -16,7 +16,7 @@ void testTextFormatter() {
 	string array_of_strings1[3] = {"heeloo", "yallala", "foobar!"};
 	ASSERT_EQ(toString(array_of_strings1), "heeloo yallala foobar!");
 
-	StringRef array_of_strings2[3] = {"heeloo", "yallala", "foobar!"};
+	CString array_of_strings2[3] = {"heeloo", "yallala", "foobar!"};
 	ASSERT_EQ(toString(array_of_strings2), "heeloo yallala foobar!");
 
 	pair<int, double> some_pair = {10, 12.5};
