@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/enum.h"
 #include "fwk_base.h"
 #include <array>
 
