@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/enum_flags.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
 #include "fwk/sys/immutable_ptr.h"

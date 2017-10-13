@@ -1,10 +1,11 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/index_buffer.h"
 #include "fwk/gfx/vertex_array.h"
-#include "fwk/gfx/vertex_buffer.h"
 
+#include "fwk/enum_map.h"
+#include "fwk/gfx/index_buffer.h"
+#include "fwk/gfx/vertex_buffer.h"
 #include "fwk_opengl.h"
 #include "fwk_profile.h"
 #include <climits>

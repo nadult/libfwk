@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/enum_map.h"
 #include "testing.h"
 
 DEFINE_ENUM(SomeEnum, foo, bar, foo_bar, last);

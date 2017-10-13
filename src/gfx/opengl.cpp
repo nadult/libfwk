@@ -8,6 +8,7 @@
 
 #define EXT_API
 
+#include "fwk/enum_map.h"
 #include "fwk_opengl.h"
 #include <cstring>
 

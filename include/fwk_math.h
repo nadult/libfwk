@@ -4,6 +4,7 @@
 #ifndef FWK_MATH_H
 #define FWK_MATH_H
 
+#include "fwk/enum_flags.h"
 #include "fwk_base.h"
 #include <cmath>
 #include <limits>

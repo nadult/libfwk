@@ -3,6 +3,7 @@
 
 #include "fwk_mesh.h"
 
+#include "fwk/enum_map.h"
 #include "fwk/filesystem.h"
 #include "fwk/sys/rollback.h"
 

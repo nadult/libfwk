@@ -4,6 +4,8 @@
 #ifndef FWK_INPUT_H
 #define FWK_INPUT_H
 
+#include "fwk/enum_flags.h"
+#include "fwk/enum_map.h"
 #include "fwk_base.h"
 #include "fwk_math.h"
 

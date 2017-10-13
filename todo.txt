@@ -1,3 +1,6 @@
+- EnumFlags<> mask(EnnumFlags<>, condition)
+- HashMap forward declaration ?
+- Wstrict-overflow
 - inline HashMap::s_empty_node crashes Clang when compiling voronoiDiagram...
 - proper FIFO support for streams
 - use std decay instead of remove_const, remove_ref, etc.
@@ -80,6 +83,8 @@
 
 - ref(vector) returns vector<> with reference flag acts as a reference to a vector
   keeping ref(vector) in local context can be more efficient than keeping reference
+  that would require keeping ref_count in vector ?
+
 - TaggedId<Type>: id for accessing vector<Type> ? generalize it somehow ?
 - Tagged Value, Tagged Pair
 - Tagged Type

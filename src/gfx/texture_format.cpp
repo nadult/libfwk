@@ -2,6 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/texture_format.h"
+
+#include "fwk/enum_map.h"
 #include "fwk_opengl.h"
 
 namespace fwk {

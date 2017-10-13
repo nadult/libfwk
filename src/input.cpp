@@ -27,8 +27,8 @@ SDLKeyMap::SDLKeyMap() {
 	};
 #undef PAIR
 
-	m_sdl_to_fwk = transform(m_fwk_to_sdl,
-							 [](const auto &p) { return make_pair(p.second, p.first); });
+	m_sdl_to_fwk =
+		transform(m_fwk_to_sdl, [](const auto &p) { return make_pair(p.second, p.first); });
 	makeSorted(m_fwk_to_sdl);
 	makeSorted(m_sdl_to_fwk);
 }
