@@ -3,6 +3,8 @@
 
 #include "fwk_base.h"
 
+#include "fwk/sys/stream.h"
+
 // TODO: there is still space for improvement (perf-wise) here
 // TODO: more aggressive inlining here improves perf
 namespace fwk {

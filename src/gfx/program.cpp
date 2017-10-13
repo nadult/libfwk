@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/program.h"
 #include "fwk/gfx/shader.h"
+#include "fwk/sys/stream.h"
 #include "fwk_opengl.h"
 
 namespace fwk {

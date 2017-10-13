@@ -114,20 +114,14 @@
 - rapidxml is allocating with std::new (exceptions aren't caught)
 - Add some PASSERTs to fwk vector?
 - Make custom string class (not a template)
-- Variant uses operator new for non-POD types...
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
 - Add UnorderedVector and SortedVector classes
-- klasa flat_storage<Type, space> która nie wymaga definicji typu, ale space musi być większy niż sizeof(Type)
-  inaczej wywali się przy implementacji operator= i podobnych
 - use size_type inside
 - dodać irange do vector-a
 - vector[-1] indeksuje od konca?
 - shrink_to_fit dla vectora?
-- makeRange z initializer_listy ?
-- klasa do flag (bazująca na zwykłym enumie)
 
-- Rename InputEvent::***Event -> InputEvent::***
 - support for multiple armatures in exporter; support for animation without armatures
 - make AnimaedMesh similar to AnimatedModel
 - add class VertexArraySpec and use it to verify drawcalls
@@ -135,8 +129,6 @@
 - Separate model matrix from view matrix in MatrixStack?
 - MemorySaver should increase it's size if necessary
 - add StrongBaseType<> class
-- additional isnan checks?
-- add clang's small vector
 - think about usefulness of const correctness; in some cases were just wasting time
 - separate align function for fonts
 - DEFINE_ENUM in class scope (it's not that easy...)
@@ -147,7 +139,6 @@
 
 - more todos in the code
 - Saver, Loader -> SaveStream, LoadStream or similar
-- automatic operators: > >= <=
 - normalize -> normalized
 
 - __attribute__((cold)) on throwException (all code that leads to it

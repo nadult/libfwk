@@ -22,8 +22,8 @@ _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
-SHARED_SRC=base vector filesystem filesystem_linux input profiler stream strings xml \
-		   sys/error sys/assert sys/memory sys/backtrace sys/rollback \
+SHARED_SRC=base vector filesystem filesystem_linux input profiler strings xml \
+		   sys/error sys/assert sys/memory sys/backtrace sys/rollback sys/stream \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   format parse audio/device audio/sound audio/ogg_stream \

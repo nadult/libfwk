@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/sys/stream.h"
 #include "fwk_audio.h"
 
 namespace fwk {

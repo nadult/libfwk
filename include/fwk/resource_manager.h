@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/sys/stream.h"
 #include "fwk_base.h"
 
 #include <map>

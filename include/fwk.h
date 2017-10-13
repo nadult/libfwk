@@ -7,7 +7,15 @@
 // You can use it for convenience, but it comes with a cost
 
 #include "fwk_base.h"
+
 #include "fwk/sys/assert.h"
+#include "fwk/sys/backtrace.h"
+#include "fwk/sys/error.h"
+#include "fwk/sys/expected.h"
+#include "fwk/sys/memory.h"
+#include "fwk/sys/rollback.h"
+#include "fwk/sys/stream.h"
+
 #include "fwk/format.h"
 #include "fwk_input.h"
 #include "fwk_math.h"

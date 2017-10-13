@@ -14,6 +14,7 @@
 
 #define assert DASSERT
 
+#include "fwk/sys/stream.h"
 #include "fwk_xml.h"
 #include "rapidxml/rapidxml.hpp"
 #include "rapidxml/rapidxml_print.hpp"

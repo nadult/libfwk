@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/texture.h"
+#include "fwk/sys/stream.h"
 
 namespace fwk {
 

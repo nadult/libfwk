@@ -5,9 +5,9 @@
 
 #include "fwk/gfx/texture.h"
 #include "fwk/sys/rollback.h"
+#include "fwk/sys/stream.h"
 #include <algorithm>
 #include <cstring>
-#include <iostream>
 #include <memory>
 #include <unistd.h>
 

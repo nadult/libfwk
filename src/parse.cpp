@@ -4,12 +4,9 @@
 #include "fwk_parse.h"
 
 #include "fwk/format.h"
-
-#include <algorithm>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
 
 namespace fwk {
 
