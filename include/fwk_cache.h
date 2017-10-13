@@ -4,6 +4,7 @@
 #ifndef FWK_CACHE_H
 #define FWK_CACHE_H
 
+#include "fwk/sys/immutable_ptr.h"
 #include "fwk_base.h"
 #include <map>
 #include <mutex>

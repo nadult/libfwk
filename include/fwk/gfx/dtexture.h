@@ -5,6 +5,7 @@
 
 #include "fwk/gfx/texture_format.h"
 #include "fwk/gfx_base.h"
+#include "fwk/sys/immutable_ptr.h"
 #include "fwk_math.h"
 
 namespace fwk {

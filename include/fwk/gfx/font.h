@@ -5,6 +5,7 @@
 
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
+#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
