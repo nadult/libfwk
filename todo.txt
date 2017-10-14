@@ -1,3 +1,5 @@
+- MaybeEnum from fwk_enum
+- Rename test files to t_vector, t_stuff ? or lower priority to test in docplugin ?
 - EnumFlags<> mask(EnnumFlags<>, condition)
 - HashMap forward declaration ?
 - Wstrict-overflow

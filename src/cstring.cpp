@@ -4,6 +4,7 @@
 #include "fwk/cstring.h"
 
 #include "fwk/pod_vector.h"
+#include "fwk_maybe.h"
 
 namespace fwk {
 

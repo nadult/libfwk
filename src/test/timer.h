@@ -3,23 +3,21 @@
 //
 #pragma once
 
-#include "fwk_base.h"
+#include "fwk/sys_base.h"
 
 namespace fwk {
 
 class TestTimer {
   public:
-	TestTimer(const std::string &name) NOINLINE
-	: name(name), start(fwk::getTime()) {}
+	TestTimer(const string &name) NOINLINE : name(name), start(fwk::getTime()) {}
 
 	~TestTimer() NOINLINE {
-		double now = fwk::getTime();
+		double now = getTime();
 		printf("%s completed in %.4f seconds\n", name.c_str(), (now - start));
 	}
 
   private:
-	std::string name;
+	string name;
 	double start;
 };
-
 }

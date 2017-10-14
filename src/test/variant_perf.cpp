@@ -8,7 +8,6 @@
 
 #include <boost/variant.hpp>
 
-#include "fwk_base.h"
 #include "fwk_math.h"
 #include "fwk_variant.h"
 #include "fwk_xml.h"

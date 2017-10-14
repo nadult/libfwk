@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
+#include "fwk_vector.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>

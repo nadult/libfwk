@@ -1,8 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_BASE_H
-#define FWK_BASE_H
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -51,7 +50,18 @@
 	Class::Class(const Class &) = default;                                                         \
 	Class &Class::operator=(const Class &) = default;
 
-#include "fwk/sys/memory.h"
+#define FWK_TIE_MEMBERS(...)                                                                       \
+	auto tied() const { return std::tie(__VA_ARGS__); }
+
+// TODO: better way to implement this (without using tuple)
+#define FWK_ORDER_BY(name, ...)                                                                    \
+	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
+	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
+	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
+
+#define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
+#define FWK_STRINGIZE_(...) #__VA_ARGS__
+
 
 namespace fwk {
 
@@ -89,11 +99,6 @@ template <class T> using UndefinedSize = UndefinedVal<sizeof(T)>;
 
 template <class T, int size> constexpr int arraySize(T (&)[size]) { return size; }
 
-template <class T, class T1, class T2>
-constexpr bool inRange(const T &value, const T1 &begin, const T2 &end) {
-	return value >= begin && value < end;
-}
-
 template <class T1, class T2> constexpr bool isSame() { return std::is_same<T1, T2>::value; }
 template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
 
@@ -102,9 +107,12 @@ using Conditional = typename std::conditional<value, T1, T2>::type;
 template <class T> using RemoveConst = typename std::remove_const<T>::type;
 template <class T> using RemoveReference = typename std::remove_reference<T>::type;
 
-template <typename... Types> class Variant;
-
 template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
+
+template <class T, class T1, class T2>
+constexpr bool inRange(const T &value, const T1 &begin, const T2 &end) {
+	return value >= begin && value < end;
+}
 
 template <class T, class... Args>
 constexpr const T &max(const T &arg1, const T &arg2, const Args &... args) {
@@ -161,19 +169,6 @@ using EnableIf =
 template <class T> constexpr bool isTied() { return detail::HasTiedFunction<T>::value; }
 template <class T> using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::value, IsNotTied>;
 
-#define FWK_TIE_MEMBERS(...)                                                                       \
-	auto tied() const { return std::tie(__VA_ARGS__); }
-#define FWK_ORDER_BY(name, ...)                                                                    \
-	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
-	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
-	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
-
-template <class T> class immutable_ptr;
-template <class T> class immutable_weak_ptr;
-
-#define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
-#define FWK_STRINGIZE_(...) #__VA_ARGS__
-
 // TODO: move FATAL, check, etc to fwk_assert ?
 // TODO: use CString -> CString
 [[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
@@ -183,10 +178,11 @@ template <class T> class immutable_weak_ptr;
 void handleCtrlC(void (*handler)());
 void handleSegFault();
 
+pair<string, bool> execCommand(const string &cmd);
+void logError(const string &error);
+
 void sleep(double sec);
 double getTime();
-
-// TODO: maybe FILE / LINE is not required if we have backtraces?
 
 #define FATAL(...) fwk::fatalError(__FILE__, __LINE__, __VA_ARGS__)
 
@@ -210,27 +206,6 @@ double getTime();
 #else
 #define PASSERT(expr) ((void)0)
 #endif
-}
-
-#include "fwk_maybe.h"
-#include "fwk_range.h"
-#include "fwk_vector.h"
-
-#include "fwk/enum.h"
-#include "fwk_index_range.h"
-
-namespace fwk {
-
-class Backtrace;
-
-void logError(const string &error);
-
-#define SAFE_ARRAY(declaration, size, ...)                                                         \
-	declaration[] = {__VA_ARGS__};                                                                 \
-	static_assert(COUNT_ARGUMENTS(__VA_ARGS__) == size, "Invalid number of elements in an array");
-
-class Stream;
-template <class T> struct SerializeAsPod;
 
 // TODO: use std::is_trivially_copyable instead?
 #define SERIALIZE_AS_POD(type)                                                                     \
@@ -240,7 +215,24 @@ template <class T> struct SerializeAsPod;
 		};                                                                                         \
 	}
 
-pair<string, bool> execCommand(const string &cmd);
+class Backtrace;
+struct ErrorChunk;
+struct Error;
+class Stream;
+class FilePath;
+
+template <class T> class immutable_ptr;
+template <class T> class immutable_weak_ptr;
+
+class BaseVector;
+template <class T> class PodVector;
+template <class T> class Vector;
+template <class T> using vector = Vector<T>;
+
+template <class T> struct SerializeAsPod;
+
+template <typename... Types> class Variant;
+template <class T> class Maybe;
 
 class CString;
 class FilePath;
@@ -251,5 +243,3 @@ class XMLDocument;
 class TextFormatter;
 class TextParser;
 }
-
-#endif

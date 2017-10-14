@@ -2,8 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/sys/memory.h"
-#include "fwk_base.h"
 
+#include "fwk/sys_base.h"
 #include <cstdlib>
 #include <new>
 

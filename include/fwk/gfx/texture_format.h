@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "fwk_base.h"
+#include "fwk/sys_base.h"
+#include "fwk/enum.h"
 
 namespace fwk {
 

@@ -4,6 +4,7 @@
 #ifndef _WIN32
 
 #include "fwk/filesystem.h"
+#include "fwk_vector.h"
 #include <cstring>
 #include <dirent.h>
 #include <libgen.h>

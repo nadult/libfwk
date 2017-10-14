@@ -1,8 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_INDEX_RANGE_H
-#define FWK_INDEX_RANGE_H
+#pragma once
 
 #include "fwk_range.h"
 
@@ -124,5 +123,3 @@ template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(co
 	return {0, fwk::size(range)};
 }
 }
-
-#endif

@@ -4,12 +4,11 @@
 #ifndef FWK_RANGE_H
 #define FWK_RANGE_H
 
-#include "fwk_base.h"
+#include "fwk/sys_base.h"
 #include "fwk_vector.h"
 
 namespace fwk {
 
-// TODO: make it not depend on fwk_base ?
 // TODO: rename to fwk_ranges; move out fwk_span ?
 // TODO: fwk_concepts ?
 
@@ -415,9 +414,9 @@ int countIf(const TRange &range, const Pred &pred) {
 }
 
 template <class TRange, class Filter, class T = RangeBase<TRange>>
-vector<T> filter(const TRange &range, const Filter &filter, Maybe<int> reserve = none) {
+vector<T> filter(const TRange &range, const Filter &filter, int reserve = 0) {
 	vector<T> out;
-	out.reserve(reserve ? *reserve : range.size());
+	out.reserve(reserve >= 0 ? reserve : range.size());
 	for(const auto &elem : range)
 		if(filter(elem))
 			out.emplace_back(elem);

@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_base.h"
+#include "fwk_vector.h"
 
 #include "fwk/sys/stream.h"
 

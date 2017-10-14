@@ -1,12 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef TESTING_H
-#define TESTING_H
+#pragma once
 
-#include "fwk_base.h"
-#include "fwk_math.h"
 #include "fwk/sys/rollback.h"
+#include "fwk_math.h"
 #include "fwk_xml.h"
 
 using namespace fwk;
@@ -48,5 +46,3 @@ int main(int argc, char **argv) {
 	printf("%s: OK\n", argv[0]);
 	return 0;
 }
-
-#endif

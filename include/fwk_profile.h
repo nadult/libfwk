@@ -4,7 +4,8 @@
 #ifndef FWK_PROFILE_H
 #define FWK_PROFILE_H
 
-#include "fwk_base.h"
+#include "fwk/sys_base.h"
+#include "fwk_vector.h"
 
 namespace fwk {
 

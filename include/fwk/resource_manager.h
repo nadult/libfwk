@@ -5,7 +5,6 @@
 
 #include "fwk/sys/immutable_ptr.h"
 #include "fwk/sys/stream.h"
-#include "fwk_base.h"
 
 #include <map>
 

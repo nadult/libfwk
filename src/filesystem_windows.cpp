@@ -10,6 +10,7 @@
 #include <windows.h>
 
 #include "fwk/filesystem.h"
+#include "fwk_vector.h"
 #include <cstdio>
 #include <cstring>
 #include <sys/stat.h>

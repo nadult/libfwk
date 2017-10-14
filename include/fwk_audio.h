@@ -4,7 +4,7 @@
 #ifndef FWK_AUDIO_H
 #define FWK_AUDIO_H
 
-#include "fwk_base.h"
+#include "fwk/sys_base.h"
 #include "fwk_math.h"
 
 namespace fwk {

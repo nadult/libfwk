@@ -3,12 +3,10 @@
 
 #pragma once
 
-#include "fwk_base.h"
+#include "fwk/sys_base.h"
+#include "fwk/sys/memory.h"
 
 namespace fwk {
-
-class Stream;
-template <class T> class PodVector;
 
 class BaseVector {
   public:
@@ -347,5 +345,4 @@ template <class T> class Vector {
 	friend class PodVector<T>;
 };
 
-template <class T> using vector = Vector<T>;
 }

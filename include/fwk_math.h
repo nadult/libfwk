@@ -5,7 +5,9 @@
 #define FWK_MATH_H
 
 #include "fwk/enum_flags.h"
-#include "fwk_base.h"
+#include "fwk/sys_base.h"
+#include "fwk_maybe.h"
+#include "fwk_index_range.h"
 #include <cmath>
 #include <limits>
 

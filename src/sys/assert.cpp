@@ -35,7 +35,7 @@ static Error makeError(const char *file, int line, const char *main_message) {
 	int count = detail::t_on_assert_count - start;
 
 	chunks.reserve(count + 1);
-	for(int n : intRange(count)) {
+	for(int n = 0; n < count; n++) {
 		const auto &info = detail::t_on_assert_stack[start + n];
 		chunks.emplace_back(info.func(info.args));
 	}
