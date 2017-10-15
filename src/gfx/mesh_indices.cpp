@@ -13,7 +13,7 @@ MeshIndices::MeshIndices(vector<uint> indices, Type type) : m_data(move(indices)
 
 MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices->getData(), type) {}
 MeshIndices::MeshIndices(const vector<TriIndices> &indices)
-	: MeshIndices(CSpan<TriIndices>(indices).reinterpret<uint>()) {}
+	: MeshIndices(reinterpret<const uint>(makeSpan(indices))) {}
 
 MeshIndices MeshIndices::makeRange(int count, uint first, Type ptype) {
 	DASSERT(count >= 0);

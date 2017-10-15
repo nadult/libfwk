@@ -1,7 +1,13 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_math.h"
+#include "fwk/math/segment.h"
+
+#include "fwk/math/matrix4.h"
+#include "fwk/math/ray.h"
+#include "fwk/math/box.h"
+#include "fwk/math/plane.h"
+#include "fwk/math/triangle.h"
 #include "fwk_math_ext.h"
 #include "fwk_variant.h"
 #include "fwk_xml.h"

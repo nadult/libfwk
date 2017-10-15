@@ -1,7 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_math.h"
+#include "fwk/math/cylinder.h"
+
+#include "fwk/math/box.h"
 
 namespace fwk {
 
@@ -18,6 +20,10 @@ float distance(const Cylinder &cyl, const float3 &point) {
 	}
 
 	return distance(closest, point);
+}
+
+FBox Cylinder::enclosingBox() const {
+	return FBox({-m_radius, 0, -m_radius}, {m_radius, m_height, m_radius}) + m_pos;
 }
 
 bool areIntersecting(const Cylinder &lhs, const Cylinder &rhs) {

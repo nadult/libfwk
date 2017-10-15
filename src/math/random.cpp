@@ -3,6 +3,8 @@
 
 #include "fwk/math/random.h"
 
+#include "fwk/math/axis_angle.h"
+#include "fwk/math/quat.h"
 #include <random>
 
 namespace fwk {

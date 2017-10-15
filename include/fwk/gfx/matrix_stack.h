@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "fwk_math.h"
+#include "fwk/math/frustum.h"
+#include "fwk/math/matrix4.h"
 
 namespace fwk {
 

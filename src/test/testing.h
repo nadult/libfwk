@@ -3,9 +3,10 @@
 
 #pragma once
 
+#include "fwk/format.h"
+#include "fwk/math/quat.h"
 #include "fwk/sys/rollback.h"
-#include "fwk_math.h"
-#include "fwk_xml.h"
+#include "fwk_parse.h"
 
 using namespace fwk;
 

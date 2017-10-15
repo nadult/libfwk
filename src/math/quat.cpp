@@ -1,8 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_math.h"
-#include "fwk_xml.h"
+#include "fwk/math/axis_angle.h"
+#include "fwk/math/matrix3.h"
+#include "fwk/math/quat.h"
 
 namespace fwk {
 

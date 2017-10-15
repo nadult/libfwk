@@ -1,11 +1,12 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_math.h"
-#include "fwk_math_ext.h"
-#include "fwk_xml.h"
+#include "fwk/math/triangle.h"
 
-#include "fwk_profile.h"
+#include "fwk/math/box.h"
+#include "fwk/math/matrix4.h"
+#include "fwk/math/projection.h"
+#include "fwk_math_ext.h"
 
 namespace fwk {
 /*

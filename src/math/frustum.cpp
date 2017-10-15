@@ -1,7 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_math.h"
+#include "fwk/math/frustum.h"
+
+#include "fwk/math/box.h"
+#include "fwk/math/matrix4.h"
 
 namespace fwk {
 

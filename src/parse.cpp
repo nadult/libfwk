@@ -4,6 +4,9 @@
 #include "fwk_parse.h"
 
 #include "fwk/format.h"
+#include "fwk/math/box.h"
+#include "fwk/math/matrix4.h"
+#include "fwk/math/quat.h"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>

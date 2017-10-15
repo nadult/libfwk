@@ -1,4 +1,8 @@
+- VectorInfo which could be defined without class definition (it should be defined
+  for each basic type, advanced version would have to be redefined by user?)
 - MaybeEnum from fwk_enum
+- We could define Size<> for different classes and use it for example in CSpan<T>
+  without defining it; Think if this would be useful?
 - Rename test files to t_vector, t_stuff ? or lower priority to test in docplugin ?
 - EnumFlags<> mask(EnnumFlags<>, condition)
 - HashMap forward declaration ?

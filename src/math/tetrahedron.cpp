@@ -1,9 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_math.h"
+#include "fwk/math/tetrahedron.h"
 
-#include <cmath>
+#include "fwk/math/sat_test.h"
+#include "fwk/math/triangle.h"
 
 namespace fwk {
 Tetrahedron::Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4)

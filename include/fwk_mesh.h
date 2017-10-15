@@ -5,6 +5,12 @@
 
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
+#include "fwk/math/affine_trans.h"
+#include "fwk/math/box.h"
+#include "fwk/math/matrix4.h"
+#include "fwk/math/ray.h"
+#include "fwk/math/segment.h"
+#include "fwk/math/triangle.h"
 #include "fwk/resource_manager.h"
 #include "fwk/sys/immutable_ptr.h"
 #include "fwk_xml.h"

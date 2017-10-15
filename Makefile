@@ -26,6 +26,7 @@ SHARED_SRC=vector filesystem filesystem_linux input profiler cstring xml \
 		   sys_base sys/error sys/assert sys/memory sys/backtrace sys/rollback sys/stream \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
+		   math/affine_trans \
 		   format parse audio/device audio/sound audio/ogg_stream \
 		   gfx/color gfx/gfx_device gfx/device_texture gfx/font gfx/font_factory gfx/model_anim gfx/model_tree \
 		   gfx/material gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/program_binder \

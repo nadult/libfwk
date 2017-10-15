@@ -5,7 +5,8 @@
 
 #include "fwk/gfx/material.h"
 #include "fwk/gfx_base.h"
-#include "fwk_math.h"
+#include "fwk/math/box.h"
+#include "fwk/math/matrix4.h"
 
 namespace fwk {
 

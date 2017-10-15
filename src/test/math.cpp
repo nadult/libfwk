@@ -1,6 +1,16 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/math/affine_trans.h"
+#include "fwk/math/axis_angle.h"
+#include "fwk/math/box.h"
+#include "fwk/math/cylinder.h"
+#include "fwk/math/hash.h"
+#include "fwk/math/matrix4.h"
+#include "fwk/math/ray.h"
+#include "fwk/math/segment.h"
+#include "fwk/math/tetrahedron.h"
+#include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
 #include "fwk_math_ext.h"
 #include "fwk_variant.h"

@@ -2,7 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk_mesh.h"
-#include <algorithm>
+
+#include "fwk/math/cylinder.h"
+#include "fwk/math/tetrahedron.h"
 
 namespace fwk {
 

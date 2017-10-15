@@ -1,7 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_math.h"
+#include "fwk/math/projection.h"
+
+#include "fwk/math/segment.h"
+#include "fwk/math/triangle.h"
 
 namespace fwk {
 

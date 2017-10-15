@@ -9,6 +9,7 @@
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/render_list.h"
 #include "fwk/gfx/renderer2d.h"
+#include "fwk/math/axis_angle.h"
 #include "fwk/resource_manager.h"
 #include "fwk_input.h"
 #include "fwk_mesh.h"

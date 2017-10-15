@@ -3,6 +3,10 @@
 
 #include "fwk_mesh.h"
 
+#include "fwk/enum_flags.h"
+#include "fwk/math/projection.h"
+#include "fwk_index_range.h"
+
 namespace fwk {
 
 using VertexId = DynamicMesh::VertexId;

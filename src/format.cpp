@@ -3,6 +3,9 @@
 
 #include "fwk/format.h"
 
+#include "fwk/math/box.h"
+#include "fwk/math/matrix4.h"
+#include "fwk/math/quat.h"
 #include "fwk_math_ext.h"
 #include <cfloat>
 #include <cstring>

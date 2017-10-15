@@ -8,9 +8,10 @@
 
 #include <boost/variant.hpp>
 
-#include "fwk_math.h"
+#include "fwk/format.h"
+#include "fwk/math/box.h"
+#include "fwk/math/matrix4.h"
 #include "fwk_variant.h"
-#include "fwk_xml.h"
 #include "timer.h"
 
 using fwk::TestTimer;

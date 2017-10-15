@@ -67,7 +67,7 @@ class VertexBuffer : public immutable_base<VertexBuffer> {
 		ASSERT(TVertexDataType<T>().type == m_data_type.type);
 		ASSERT(sizeof(T) == m_vertex_size);
 		vector<T> out(m_size);
-		download(Span<T>(out).template reinterpret<char>());
+		download(reinterpret<char>(Span<T>(out)));
 		return out;
 	}
 

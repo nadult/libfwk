@@ -253,21 +253,21 @@ template <class T, int min_size = 0> class Span {
 		return {m_data + start, end - start};
 	}
 
-	constexpr static bool compatibleSizes(size_t a, size_t b) {
-		return a > b ? a % b == 0 : b % a == 0;
-	}
-
-	template <class U, EnableIf<compatibleSizes(sizeof(T), sizeof(U))>...>
-	auto reinterpret() const {
-		using out_type = Conditional<isConst<T>(), const U, U>;
-		auto new_size = size_t(m_size) * sizeof(T) / sizeof(U);
-		return Span<out_type>(reinterpret_cast<out_type *>(m_data), new_size);
-	}
-
   private:
 	T *m_data;
 	int m_size;
 };
+
+constexpr inline bool compatibleSizes(size_t a, size_t b) {
+	return a > b ? a % b == 0 : b % a == 0;
+}
+
+template <class U, class T, EnableIf<compatibleSizes(sizeof(T), sizeof(U))>...>
+auto reinterpret(Span<T> span) {
+	using out_type = Conditional<isConst<T>(), const U, U>;
+	auto new_size = size_t(span.size()) * sizeof(T) / sizeof(U);
+	return Span<out_type>(reinterpret_cast<out_type *>(span.data()), span.size());
+}
 
 template <class T, int min_size = 0> using CSpan = Span<const T, min_size>;
 

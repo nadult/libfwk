@@ -2,6 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/program_binder.h"
+
+#include "fwk/math/matrix4.h"
 #include "fwk_opengl.h"
 
 namespace fwk {

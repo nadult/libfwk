@@ -3,6 +3,8 @@
 
 #include "fwk/gfx/render_list.h"
 
+#include "fwk/math/segment.h"
+
 namespace fwk {
 
 LineBuffer::LineBuffer(const MatrixStack &stack) : m_matrix_stack(stack) {}
