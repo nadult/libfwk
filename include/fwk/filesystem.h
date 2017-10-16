@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/light_tuple.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {

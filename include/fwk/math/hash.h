@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/light_tuple.h"
 #include "fwk_math.h"
 
 namespace fwk {
@@ -35,23 +36,18 @@ template <class Value /*= int*/> struct Hash {
 	template <class T1, class T2> static Value hash(const std::pair<T1, T2> &pair) {
 		return hashCombine(hash(pair.first), hash(pair.second));
 	}
-	template <class... Types> static Value hash(const std::tuple<Types...> &tuple) {
+	template <class... Types> static Value hash(const LightTuple<Types...> &tuple) {
 		return hashTuple<0>(tuple);
 	}
 	template <class T, EnableIfTied<T>...> static Value hash(const T &object) {
 		return hashTuple<0>(object.tied());
 	}
 
-	template <int N, class... Types>
-	static auto hashTuple(const std::tuple<Types...> &tuple) ->
-		typename std::enable_if<N + 1 == sizeof...(Types), Value>::type {
-		return hash(std::get<N>(tuple));
-	}
-
-	template <int N, class... Types>
-	static auto hashTuple(const std::tuple<Types...> &tuple) ->
-		typename std::enable_if<N + 1 < sizeof...(Types), Value>::type {
-		return hashCombine(hash(std::get<N>(tuple)), hashTuple<N + 1>(tuple));
+	template <int N, class... Types> static auto hashTuple(const LightTuple<Types...> &tuple) {
+		if constexpr(N + 1 == sizeof...(Types))
+			return hash(get<N>(tuple));
+		else
+			return hashCombine(hash(get<N>(tuple)), hashTuple<N + 1>(tuple));
 	}
 
 	template <class T> auto operator()(const T &value) const { return hash(value); }

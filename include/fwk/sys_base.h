@@ -8,7 +8,6 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <type_traits>
 
 #if _MSC_VER
@@ -49,19 +48,8 @@
 	FWK_MOVABLE_CLASS_IMPL(Class)                                                                  \
 	Class::Class(const Class &) = default;                                                         \
 	Class &Class::operator=(const Class &) = default;
-
-#define FWK_TIE_MEMBERS(...)                                                                       \
-	auto tied() const { return std::tie(__VA_ARGS__); }
-
-// TODO: better way to implement this (without using tuple)
-#define FWK_ORDER_BY(name, ...)                                                                    \
-	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
-	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
-	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
-
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
-
 
 namespace fwk {
 
@@ -130,30 +118,12 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 
 struct EnabledType {};
 struct DisabledType;
-struct IsNotTied;
 
 namespace detail {
 
 	struct NoAssertsTag {};
 	struct ValidType {
 		template <class A> using Arg = A;
-	};
-
-	template <class T> struct IsRefTuple {
-		enum { value = 0 };
-		using type = std::false_type;
-	};
-
-	template <class... Members> struct IsRefTuple<std::tuple<Members &...>> {
-		enum { value = 1 };
-		using type = std::true_type;
-	};
-
-	template <class T> struct HasTiedFunction {
-		template <class C>
-		static auto test(int) -> typename IsRefTuple<decltype(((C *)nullptr)->tied())>::type;
-		template <class C> static auto test(...) -> std::false_type;
-		enum { value = std::is_same<std::true_type, decltype(test<T>(0))>::value };
 	};
 
 	template <class...> struct Conjunction : std::true_type {};
@@ -165,9 +135,6 @@ namespace detail {
 template <bool cond, class InvalidArg = DisabledType>
 using EnableIf =
 	typename std::conditional<cond, detail::ValidType, InvalidArg>::type::template Arg<EnabledType>;
-
-template <class T> constexpr bool isTied() { return detail::HasTiedFunction<T>::value; }
-template <class T> using EnableIfTied = EnableIf<detail::HasTiedFunction<T>::value, IsNotTied>;
 
 // TODO: move FATAL, check, etc to fwk_assert ?
 // TODO: use CString -> CString

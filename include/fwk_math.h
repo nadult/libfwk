@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/enum_flags.h"
+#include "fwk/light_tuple.h"
 #include "fwk/sys_base.h"
 #include "fwk_index_range.h"
 #include <cmath>
@@ -222,8 +223,7 @@ template <class T> using EnableIfIntegral = EnableIf<isIntegral<T>(), NotAIntegr
 template <class T> using EnableIfMathObject = EnableIf<isMathObject<T>(), NotAMathObject>;
 
 template <class T, int N = 0> using EnableIfVec = EnableIf<isVec<T, N>(), NotAValidVec<N>>;
-template <class T, int N = 0>
-using EnableIfRealVec = EnableIf<isRealVec<T, N>(), NotAValidVec<N>>;
+template <class T, int N = 0> using EnableIfRealVec = EnableIf<isRealVec<T, N>(), NotAValidVec<N>>;
 template <class T, int N = 0>
 using EnableIfRationalOrRealVec = EnableIf<isRationalOrRealVec<T, N>(), NotAValidVec<N>>;
 template <class T, int N = 0>

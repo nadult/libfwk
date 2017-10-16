@@ -3,8 +3,9 @@
 
 #pragma once
 
-#include "fwk/sys/error.h"
 #include "fwk/format.h"
+#include "fwk/light_tuple.h"
+#include "fwk/sys/error.h"
 
 namespace fwk {
 struct Error;
@@ -30,48 +31,18 @@ namespace detail {
 		assertFailed(file, line, format("% | %:%", str, hint, hint_val).c_str());
 	}
 
-	template <int N, class Arg0 = Empty, class Arg1 = Empty, class Arg2 = Empty, class Arg3 = Empty,
-			  class Arg4 = Empty, class Arg5 = Empty, class Arg6 = Empty, class Arg7 = Empty>
-	struct Fields {
-		enum { count = N };
-		Arg0 arg0 = Arg0();
-		Arg1 arg1 = Arg1();
-		Arg2 arg2 = Arg2();
-		Arg3 arg3 = Arg3();
-		Arg3 arg4 = Arg4();
-		Arg3 arg5 = Arg5();
-		Arg3 arg6 = Arg6();
-		Arg3 arg7 = Arg7();
-	};
-
 	template <class T> struct StoreType { using Type = const T &; };
 	template <class T> struct StoreType<T *> { using Type = const T *; };
 	template <int N> struct StoreType<char[N]> { using Type = const char *; };
 	template <int N> struct StoreType<const char[N]> { using Type = const char *; };
 
-	template <int N> struct GetField {};
-#define GET_FIELD(n)                                                                               \
-	template <> struct GetField<n> {                                                               \
-		template <class F> static const auto &get(const F &f) { return f.arg##n; }                 \
-	};
-	GET_FIELD(0)
-	GET_FIELD(1)
-	GET_FIELD(2)
-	GET_FIELD(3)
-	GET_FIELD(4)
-	GET_FIELD(5)
-	GET_FIELD(6)
-	GET_FIELD(7)
-#undef GET_FIELD
-
 	template <class... Args>
-	auto makeRefFields(const Args &...)
-		-> Fields<sizeof...(Args), typename StoreType<Args>::Type...>;
+	auto makeRefFields(const Args &...) -> LightTuple<typename StoreType<Args>::Type...>;
 
-	template <int N, class... Args, class Func, unsigned... IS, class Refs = Fields<N, Args...>>
+	template <class... Args, class Func, unsigned... IS, class Refs = LightTuple<Args...>>
 	ErrorChunk onAssertWrapper(const char *file, int line, const Func &func,
-							   const Fields<N, Args...> &refs, Seq<IS...>) {
-		return {func(GetField<IS>::get(refs)...), file, line};
+							   const LightTuple<Args...> &refs, Seq<IS...>) {
+		return {func(detail::GetField<IS>::get(refs)...), file, line};
 	}
 
 	struct OnAssertInfo {
