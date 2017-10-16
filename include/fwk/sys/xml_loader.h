@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "fwk/resource_manager.h"
-#include "fwk_xml.h"
+#include "fwk/sys/resource_manager.h"
+#include "fwk/sys/xml.h"
 
 namespace fwk {
 

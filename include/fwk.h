@@ -26,7 +26,7 @@
 #include "fwk_parse.h"
 #include "fwk_profile.h"
 #include "fwk_variant.h"
-#include "fwk_xml.h"
+#include "fwk/sys/xml.h"
 
 #include "fwk/math/random.h"
 

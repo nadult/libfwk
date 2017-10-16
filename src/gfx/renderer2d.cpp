@@ -9,9 +9,9 @@
 #include "fwk/gfx/shader.h"
 #include "fwk/gfx/vertex_array.h"
 #include "fwk/gfx/vertex_buffer.h"
-#include "fwk/resource_manager.h"
+#include "fwk/sys/resource_manager.h"
+#include "fwk/sys/xml.h"
 #include "fwk_opengl.h"
-#include "fwk_xml.h"
 
 namespace fwk {
 

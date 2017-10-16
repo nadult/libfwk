@@ -7,7 +7,7 @@
 #include "fwk/gfx/vertex_array.h"
 #include "fwk/gfx/vertex_buffer.h"
 #include "fwk/math/matrix4.h"
-#include "fwk_xml.h"
+#include "fwk/sys/xml.h"
 #include <numeric>
 
 namespace fwk {

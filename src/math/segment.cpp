@@ -9,7 +9,7 @@
 #include "fwk/math/ray.h"
 #include "fwk/math/triangle.h"
 #include "fwk_variant.h"
-#include "fwk_xml.h"
+#include "fwk/sys/xml.h"
 
 namespace fwk {
 

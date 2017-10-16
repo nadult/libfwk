@@ -10,7 +10,7 @@
 #include "fwk/gfx/vertex_buffer.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
-#include "fwk_xml.h"
+#include "fwk/sys/xml.h"
 
 namespace fwk {
 

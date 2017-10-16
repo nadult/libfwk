@@ -5,7 +5,7 @@
 
 #include "fwk/gfx/pose.h"
 #include "fwk_profile.h"
-#include "fwk_xml.h"
+#include "fwk/sys/xml.h"
 #include <algorithm>
 
 namespace fwk {

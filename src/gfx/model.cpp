@@ -9,7 +9,7 @@
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/pose.h"
 #include "fwk/gfx/render_list.h"
-#include "fwk_xml.h"
+#include "fwk/sys/xml.h"
 #include <map>
 
 namespace fwk {

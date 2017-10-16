@@ -9,7 +9,7 @@
 #include "fwk/math/cylinder.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/stream.h"
-#include "fwk_xml.h"
+#include "fwk/sys/xml.h"
 #include "testing.h"
 
 string mainPath(string file_name) {
