@@ -12,7 +12,6 @@
 #include "fwk/math/tetrahedron.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
-#include "fwk_math_ext.h"
 #include "fwk_variant.h"
 #include "testing.h"
 
@@ -148,7 +147,7 @@ void testIntersections() {
 template <class T> void print(const typename Segment<T, 2>::Isect &isect) {
 	if(const Segment2<T> *seg = isect)
 		print("Segment(% - %)\n", seg->from, seg->to);
-	else if(const Vector2<T> *vec = isect)
+	else if(const vector2<T> *vec = isect)
 		print("Vector %\n", *vec);
 	else
 		print("Empty\n");

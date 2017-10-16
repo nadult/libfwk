@@ -6,7 +6,6 @@
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/quat.h"
-#include "fwk_math_ext.h"
 #include <cfloat>
 #include <cstring>
 #include <stdarg.h>
@@ -259,43 +258,24 @@ TextFormatter &operator<<(TextFormatter &out, const int4 &value) {
 	return out;
 }
 
-TextFormatter &operator<<(TextFormatter &out, const float2 &value) {
-	return operator<<<float2>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const float3 &value) {
-	return operator<<<float3>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const float4 &value) {
-	return operator<<<float4>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const double2 &value) {
-	return operator<<<double2>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const double3 &value) {
-	return operator<<<double3>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const double4 &value) {
-	return operator<<<double4>(out, value);
-}
+template TextFormatter &operator<<(TextFormatter &, const vector2<int> &);
+template TextFormatter &operator<<(TextFormatter &, const vector3<int> &);
+template TextFormatter &operator<<(TextFormatter &, const vector4<int> &);
 
-TextFormatter &operator<<(TextFormatter &out, const FRect &value) {
-	return operator<<<float2>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const DRect &value) {
-	return operator<<<double2>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const IRect &value) {
-	return operator<<<int2>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const FBox &value) {
-	return operator<<<float3>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const DBox &value) {
-	return operator<<<double3>(out, value);
-}
-TextFormatter &operator<<(TextFormatter &out, const IBox &value) {
-	return operator<<<int3>(out, value);
-}
+template TextFormatter &operator<<(TextFormatter &, const vector2<float> &);
+template TextFormatter &operator<<(TextFormatter &, const vector3<float> &);
+template TextFormatter &operator<<(TextFormatter &, const vector4<float> &);
+
+template TextFormatter &operator<<(TextFormatter &, const vector2<double> &);
+template TextFormatter &operator<<(TextFormatter &, const vector3<double> &);
+template TextFormatter &operator<<(TextFormatter &, const vector4<double> &);
+
+template TextFormatter &operator<<(TextFormatter &, const Box<int2> &);
+template TextFormatter &operator<<(TextFormatter &, const Box<int3> &);
+template TextFormatter &operator<<(TextFormatter &, const Box<float2> &);
+template TextFormatter &operator<<(TextFormatter &, const Box<float3> &);
+template TextFormatter &operator<<(TextFormatter &, const Box<double2> &);
+template TextFormatter &operator<<(TextFormatter &, const Box<double3> &);
 
 TextFormatter &operator<<(TextFormatter &out, const Matrix4 &matrix) {
 	out(out.isStructured() ? "(%; %; %; %)" : "% % % %", matrix[0], matrix[1], matrix[2],
@@ -303,9 +283,7 @@ TextFormatter &operator<<(TextFormatter &out, const Matrix4 &matrix) {
 	return out;
 }
 
-TextFormatter &operator<<(TextFormatter &out, const Quat &value) {
-	return operator<<<float4>(out, float4(value));
-}
+TextFormatter &operator<<(TextFormatter &out, const Quat &value) { return out << float4(value); }
 
 TextFormatter &operator<<(TextFormatter &out, qint value) {
 	// Max digits: about 36

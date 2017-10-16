@@ -5,9 +5,9 @@
 #define FWK_FORMAT_H
 
 #include "fwk/cstring.h"
+#include "fwk/math/box.h"
 #include "fwk/pod_vector.h"
 #include "fwk/sys_base.h"
-#include "fwk_math.h"
 
 namespace fwk {
 
@@ -218,28 +218,10 @@ class TextFormatter {
 // To make new type formattable: simply overload operator<<:
 // TextFormatter &format(TextFormatter&, const MyNewType &rhs);
 
-TextFormatter &operator<<(TextFormatter &, const int2 &);
-TextFormatter &operator<<(TextFormatter &, const int3 &);
-TextFormatter &operator<<(TextFormatter &, const int4 &);
-
-TextFormatter &operator<<(TextFormatter &, const double2 &);
-TextFormatter &operator<<(TextFormatter &, const double3 &);
-TextFormatter &operator<<(TextFormatter &, const double4 &);
-
-TextFormatter &operator<<(TextFormatter &, const float2 &);
-TextFormatter &operator<<(TextFormatter &, const float3 &);
-TextFormatter &operator<<(TextFormatter &, const float4 &);
-
-TextFormatter &operator<<(TextFormatter &, const DRect &);
-TextFormatter &operator<<(TextFormatter &, const FRect &);
-TextFormatter &operator<<(TextFormatter &, const IRect &);
-
-TextFormatter &operator<<(TextFormatter &, const FBox &);
-TextFormatter &operator<<(TextFormatter &, const IBox &);
-TextFormatter &operator<<(TextFormatter &, const DBox &);
-
 TextFormatter &operator<<(TextFormatter &, const Matrix4 &);
 TextFormatter &operator<<(TextFormatter &, const Quat &);
+
+TextFormatter &operator<<(TextFormatter &, qint);
 
 template <class TSpan, class T = SpanBase<TSpan>, EnableIfFormattible<T>...>
 TextFormatter &operator<<(TextFormatter &out, const TSpan &span) {
@@ -295,6 +277,25 @@ TextFormatter &operator<<(TextFormatter &out, const pair<T1, T2> &pair) {
 	out(out.isStructured() ? "(%; %)" : "% %", pair.first, pair.second);
 	return out;
 }
+
+extern template TextFormatter &operator<<(TextFormatter &, const vector2<int> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vector3<int> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vector4<int> &);
+
+extern template TextFormatter &operator<<(TextFormatter &, const vector2<float> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vector3<float> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vector4<float> &);
+
+extern template TextFormatter &operator<<(TextFormatter &, const vector2<double> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vector3<double> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vector4<double> &);
+
+extern template TextFormatter &operator<<(TextFormatter &, const Box<int2> &);
+extern template TextFormatter &operator<<(TextFormatter &, const Box<int3> &);
+extern template TextFormatter &operator<<(TextFormatter &, const Box<float2> &);
+extern template TextFormatter &operator<<(TextFormatter &, const Box<float3> &);
+extern template TextFormatter &operator<<(TextFormatter &, const Box<double2> &);
+extern template TextFormatter &operator<<(TextFormatter &, const Box<double3> &);
 
 template <class T, EnableIfEnum<T>...> TextFormatter &operator<<(TextFormatter &out, T value) {
 	return out << toString(value);

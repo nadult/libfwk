@@ -21,7 +21,7 @@ template <class T> class Box {
 
 	using Scalar = typename T::Scalar;
 	using Vector = T;
-	using Vector2 = fwk::Vector2<Scalar>;
+	using Vector2 = vector2<Scalar>;
 	using Point = Vector;
 
 	enum { dim_size = Vector::vector_size, num_corners = 1 << dim_size };
@@ -317,6 +317,4 @@ auto enclose(const TRange &objects) {
 array<Plane3F, 6> planes(const FBox &);
 array<pair<float3, float3>, 12> edges(const FBox &);
 array<float3, 8> verts(const FBox &);
-
-
 }

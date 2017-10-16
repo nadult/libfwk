@@ -6,7 +6,6 @@
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/projection.h"
-#include "fwk_math_ext.h"
 
 namespace fwk {
 /*
