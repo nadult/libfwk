@@ -48,8 +48,8 @@ template <class T> struct Interval {
 		return {fwk::min(min, rhs.min), fwk::max(max, rhs.max)};
 	}
 
+	FWK_ORDER_BY(Interval, min, max);
+
 	T min, max;
 };
-
 }
-

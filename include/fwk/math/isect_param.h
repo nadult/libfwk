@@ -24,6 +24,8 @@ template <class T> class IsectParam {
 	T closest() const { return m_interval.min; }
 	T farthest() const { return m_interval.max; }
 
+	FWK_ORDER_BY(IsectParam, m_interval);
+
   private:
 	Interval<T> m_interval;
 };
