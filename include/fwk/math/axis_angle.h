@@ -4,7 +4,7 @@
 #pragma once
 
 #include "fwk/math/matrix3.h"
-#include "fwk_math.h"
+#include "fwk/math_base.h"
 
 namespace fwk {
 

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk_math.h"
+#include "fwk/math_base.h"
 #include <fwk/gfx_base.h>
 
 namespace fwk {

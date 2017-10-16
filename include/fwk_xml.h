@@ -7,7 +7,7 @@
 #include "fwk/format.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys_base.h"
-#include "fwk_math.h"
+#include "fwk/math_base.h"
 #include "fwk_parse.h"
 
 #ifndef RAPIDXML_HPP_INCLUDED
