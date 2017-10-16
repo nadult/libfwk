@@ -2,8 +2,14 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
+#include "fwk/gfx/animated_model.h"
+#include "fwk/gfx/mesh.h"
+#include "fwk/gfx/model.h"
+#include "fwk/gfx/pose.h"
 #include "fwk/math/cylinder.h"
-#include "fwk_mesh.h"
+#include "fwk/math/triangle.h"
+#include "fwk/sys/stream.h"
+#include "fwk_xml.h"
 #include "testing.h"
 
 string mainPath(string file_name) {

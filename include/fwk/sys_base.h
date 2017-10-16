@@ -221,4 +221,7 @@ class XMLDocument;
 
 class TextFormatter;
 class TextParser;
+
+template <class T> class ResourceLoader;
+template <class T, class Constructor = ResourceLoader<T>> class ResourceManager;
 }

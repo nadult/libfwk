@@ -1,9 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_mesh.h"
+#include "fwk/gfx/model_node.h"
+
+#include "fwk/hash_map.h"
 #include "fwk_xml.h"
-#include <algorithm>
 
 namespace fwk {
 

@@ -1,10 +1,11 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_mesh.h"
+#include "fwk/gfx/mesh.h"
 
 #include "fwk/math/cylinder.h"
 #include "fwk/math/tetrahedron.h"
+#include "fwk/math/triangle.h"
 
 namespace fwk {
 

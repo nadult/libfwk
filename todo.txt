@@ -1,3 +1,4 @@
+- ResourceManager & XML to sys ?
 - func_ref not used in macro...
 - MaybeEnum from fwk_enum
 - We could define Size<> for different classes and use it for example in CSpan<T>

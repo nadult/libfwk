@@ -33,6 +33,14 @@ class RenderList;
 class FontCore;
 class Font;
 class FontFactory;
+struct Pose;
+class MeshIndices;
+struct MeshBuffers;
+class Mesh;
+class DynamicMesh;
+class Model;
+class ModelNode;
+class ModelAnim;
 
 struct FColor;
 struct IColor;
@@ -62,6 +70,11 @@ using SFrameBuffer = shared_ptr<FrameBuffer>;
 
 using PProgram = immutable_ptr<Program>;
 using PFontCore = immutable_ptr<FontCore>;
+
+using PPose = immutable_ptr<Pose>;
+using PMesh = immutable_ptr<Mesh>;
+using PModel = immutable_ptr<Model>;
+using PModelNode = unique_ptr<ModelNode>;
 
 DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 

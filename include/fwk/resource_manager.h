@@ -28,7 +28,7 @@ template <class T> class ResourceLoader {
 	string m_file_prefix, m_file_suffix;
 };
 
-template <class T, class Constructor = ResourceLoader<T>> class ResourceManager {
+template <class T, class Constructor> class ResourceManager {
   public:
 	using PResource = immutable_ptr<T>;
 

@@ -2,17 +2,21 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
+#include "fwk/gfx/animated_model.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/dynamic_mesh.h"
 #include "fwk/gfx/font.h"
 #include "fwk/gfx/gfx_device.h"
 #include "fwk/gfx/material_set.h"
+#include "fwk/gfx/mesh.h"
+#include "fwk/gfx/model.h"
 #include "fwk/gfx/render_list.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/math/axis_angle.h"
 #include "fwk/resource_manager.h"
+#include "fwk/sys/xml_loader.h"
 #include "fwk_input.h"
-#include "fwk_mesh.h"
 #include "fwk_profile.h"
 
 using namespace fwk;

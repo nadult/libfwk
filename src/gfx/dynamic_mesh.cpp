@@ -1,10 +1,12 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_mesh.h"
+#include "fwk/gfx/dynamic_mesh.h"
 
 #include "fwk/enum_flags.h"
+#include "fwk/format.h"
 #include "fwk/math/projection.h"
+#include "fwk/math/ray.h"
 #include "fwk_index_range.h"
 
 namespace fwk {
@@ -12,6 +14,16 @@ namespace fwk {
 using VertexId = DynamicMesh::VertexId;
 using PolyId = DynamicMesh::PolyId;
 using EdgeId = DynamicMesh::EdgeId;
+
+string DynamicMesh::Simplex::print(const DynamicMesh &mesh) const {
+	TextFormatter out;
+	out("(");
+	for(int i = 0; i < m_size; i++) {
+		auto pt = mesh.point(m_verts[i]);
+		out("%:%:%%", pt.x, pt.y, pt.z, i + 1 == m_size ? ')' : ' ');
+	}
+	return (string)out.text();
+}
 
 DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<vector<uint>> polys, int poly_value)
 	: m_num_verts(0), m_num_polys(0) {

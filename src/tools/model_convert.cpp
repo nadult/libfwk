@@ -2,7 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
-#include "fwk_mesh.h"
+#include "fwk/gfx/converter.h"
 
 using namespace fwk;
 

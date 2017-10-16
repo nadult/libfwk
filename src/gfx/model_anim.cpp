@@ -1,8 +1,11 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_mesh.h"
+#include "fwk/gfx/model_anim.h"
+
+#include "fwk/gfx/pose.h"
 #include "fwk_profile.h"
+#include "fwk_xml.h"
 #include <algorithm>
 
 namespace fwk {

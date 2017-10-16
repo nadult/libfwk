@@ -1,11 +1,14 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_mesh.h"
+#include "fwk/gfx/converter.h"
 
+#include "fwk/cstring.h"
 #include "fwk/enum_map.h"
 #include "fwk/filesystem.h"
+#include "fwk/gfx/model.h"
 #include "fwk/sys/rollback.h"
+#include "fwk/sys/xml_loader.h"
 
 namespace fwk {
 
