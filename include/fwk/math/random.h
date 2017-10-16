@@ -33,23 +33,23 @@ class Random {
 	float normal(float mean, float stddev);
 	double normal(double mean, double stddev);
 
-	template <class T, EnableIfVector<T>...> T sampleBox(const T &min, const T &max) {
+	template <class T, EnableIfVec<T>...> T sampleBox(const T &min, const T &max) {
 		T out;
-		for(int n = 0; n < T::vector_size; n++)
+		for(int n = 0; n < T::vec_size; n++)
 			out[n] = uniform(min[n], max[n]);
 		return out;
 	}
-	template <class T, EnableIfVector<T>...> T sampleUnitHemisphere() {
+	template <class T, EnableIfVec<T>...> T sampleUnitHemisphere() {
 		auto point = sampleUnitSphere<T>();
 		while(isZero(point))
 			point = sampleUnitSphere<T>();
 		return normalize(point);
 	}
 
-	template <class T, EnableIfVector<T>...> T sampleUnitSphere() {
+	template <class T, EnableIfVec<T>...> T sampleUnitSphere() {
 		using Scalar = typename T::Scalar;
 		T one;
-		for(int n = 0; n < T::vector_size; n++)
+		for(int n = 0; n < T::vec_size; n++)
 			one[n] = Scalar(1);
 		auto out = sampleBox(-one, one);
 		while(lengthSq(out) > Scalar(1))

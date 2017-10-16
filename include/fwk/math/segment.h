@@ -14,7 +14,7 @@ template <class T, int N> class ISegment {
 	static_assert(isIntegral<T>(), "");
 	static_assert(N >= 2 && N <= 3, "");
 
-	using Vector = MakeVector<T, N>;
+	using Vector = MakeVec<T, N>;
 	using Scalar = T;
 	using Point = Vector;
 	enum { dim_size = N };
@@ -54,7 +54,7 @@ template <class T, int N> class Segment {
 	static_assert(isReal<T>(), "");
 	static_assert(N >= 2 && N <= 3, "");
 
-	using Vector = MakeVector<T, N>;
+	using Vector = MakeVec<T, N>;
 	using Scalar = T;
 	using Point = Vector;
 	using IsectParam = fwk::IsectParam<T>;
@@ -75,7 +75,7 @@ template <class T, int N> class Segment {
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
 
 	template <class U> explicit operator ISegment<U, N>() const {
-		using IVector = MakeVector<U, N>;
+		using IVector = MakeVec<U, N>;
 		return {IVector(from), IVector(to)};
 	}
 	template <class U>
@@ -139,11 +139,11 @@ namespace detail {
 }
 template <class T, int N> using MakeSegment = decltype(detail::makeSegment<T, N>(T()));
 
-template <class T, int N> Box<MakeVector<T, N>> enclose(const Segment<T, N> &seg) {
+template <class T, int N> Box<MakeVec<T, N>> enclose(const Segment<T, N> &seg) {
 	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
 }
 
-template <class T, int N> Box<MakeVector<T, N>> enclose(const ISegment<T, N> &seg) {
+template <class T, int N> Box<MakeVec<T, N>> enclose(const ISegment<T, N> &seg) {
 	return {vmin(seg.from, seg.to), vmax(seg.from, seg.to)};
 }
 

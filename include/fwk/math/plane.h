@@ -15,7 +15,7 @@ template <class T, int N> class Plane {
 	static_assert(isReal<T>(), "Plane<> should be based on reals");
 	enum { dim_size = N };
 
-	using Vector = MakeVector<T, N>;
+	using Vector = MakeVec<T, N>;
 	using Point = Vector;
 	using Scalar = T;
 	using Segment = fwk::Segment<T, N>;

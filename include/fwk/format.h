@@ -253,9 +253,9 @@ TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
 	return out;
 }
 
-template <class TVector, EnableIfVector<TVector>...>
+template <class TVector, EnableIfVec<TVector>...>
 TextFormatter &operator<<(TextFormatter &out, const TVector &vec) {
-	enum { N = TVector::vector_size };
+	enum { N = TVector::vec_size };
 	if constexpr(N == 2)
 		out(out.isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
 	else if(N == 3)
@@ -278,17 +278,17 @@ TextFormatter &operator<<(TextFormatter &out, const pair<T1, T2> &pair) {
 	return out;
 }
 
-extern template TextFormatter &operator<<(TextFormatter &, const vector2<int> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vector3<int> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vector4<int> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec2<int> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec3<int> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec4<int> &);
 
-extern template TextFormatter &operator<<(TextFormatter &, const vector2<float> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vector3<float> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vector4<float> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec2<float> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec3<float> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec4<float> &);
 
-extern template TextFormatter &operator<<(TextFormatter &, const vector2<double> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vector3<double> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vector4<double> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec2<double> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec3<double> &);
+extern template TextFormatter &operator<<(TextFormatter &, const vec4<double> &);
 
 extern template TextFormatter &operator<<(TextFormatter &, const Box<int2> &);
 extern template TextFormatter &operator<<(TextFormatter &, const Box<int3> &);

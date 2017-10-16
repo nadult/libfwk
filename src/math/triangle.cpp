@@ -169,8 +169,8 @@ template <class U, EnableInDimension<U, 3>...>
 bool Triangle<T, N>::testIsect(const Box &box) const {
 	using PT = PromoteIntegral<T>;
 	using PT2 = PromoteIntegral<PT>;
-	using PTVec = MakeVector<PT, 3>;
-	using PTVec2 = MakeVector<PT2, 3>;
+	using PTVec = MakeVec<PT, 3>;
+	using PTVec2 = MakeVec<PT2, 3>;
 
 	// box *= 2
 	// tri *= 2

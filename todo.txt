@@ -1,9 +1,4 @@
 - func_ref not used in macro...
-- rename toVector / fromVector functions ?
-- rename all functions to VEC, Vec, etc. in math 
-- jak odroznic wektory matematyczne od Vectora ?
-- VectorInfo which could be defined without class definition (it should be defined
-  for each basic type, advanced version would have to be redefined by user?)
 - MaybeEnum from fwk_enum
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?

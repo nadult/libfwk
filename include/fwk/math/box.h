@@ -17,14 +17,14 @@ template <class T> class Box {
 	Box(T min, T max, NoAsserts) : m_min(min), m_max(max) {}
 
   public:
-	static_assert(isVector<T>(), "Box<> has to be based on a vector");
+	static_assert(isVec<T>(), "Box<> has to be based on a vector");
 
 	using Scalar = typename T::Scalar;
 	using Vector = T;
-	using Vector2 = vector2<Scalar>;
+	using Vector2 = vec2<Scalar>;
 	using Point = Vector;
 
-	enum { dim_size = T::vector_size, num_corners = 1 << dim_size };
+	enum { dim_size = T::vec_size, num_corners = 1 << dim_size };
 
 	// min <= max in all dimensions; can be empty
 	bool validRange(const Point &min, const Point &max) const {
@@ -209,10 +209,10 @@ template <class T> class Box {
 
 	// TODO: we're acutally iterating over pixels here...
 	// how to make it more clear ?
-	template <class U = T, EnableIf<isIntegralVector<U, 2>()>...> Iter2D begin() const {
+	template <class U = T, EnableIf<isIntegralVec<U, 2>()>...> Iter2D begin() const {
 		return {m_min, m_min[0], m_max[0]};
 	}
-	template <class U = T, EnableIf<isIntegralVector<U, 2>()>...> Iter2D end() const {
+	template <class U = T, EnableIf<isIntegralVec<U, 2>()>...> Iter2D end() const {
 		return {T(m_min[0], m_max[1]), m_min[0], m_max[0]};
 	}
 
@@ -229,7 +229,7 @@ template <class T> class Box {
 
 template <class T> Box<T> enclose(const Box<T> &box) { return box; }
 
-template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfVector<T>...>
+template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfVec<T>...>
 Box<T> enclose(const TRange &points) {
 	if(fwk::empty(points))
 		return {};
@@ -244,8 +244,8 @@ Box<T> enclose(const TRange &points) {
 	return {tmin, tmax};
 }
 
-template <class T, EnableIfRealVector<T>...> auto encloseIntegral(const Box<T> &box) {
-	using IVec = MakeVector<int, T::vector_size>;
+template <class T, EnableIfRealVec<T>...> auto encloseIntegral(const Box<T> &box) {
+	using IVec = MakeVec<int, T::vec_size>;
 	T min = vfloor(box.min());
 	T max = vceil(box.max());
 	return Box<IVec>{IVec(min), IVec(max)};
@@ -290,7 +290,7 @@ template <class T> bool touches(const Box<T> &lhs, const Box<T> &rhs) {
 FBox encloseTransformed(const FBox &, const Matrix4 &);
 
 template <class T> constexpr bool isEnclosable() {
-	if constexpr(isMathObject<T>() && !isVector<T>()) {
+	if constexpr(isMathObject<T>() && !isVec<T>()) {
 		return isSame<decltype(enclose(std::declval<T>())), Box<typename T::Vector>>();
 	} else {
 		return false;

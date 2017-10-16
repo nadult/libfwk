@@ -147,7 +147,7 @@ void testIntersections() {
 template <class T> void print(const typename Segment<T, 2>::Isect &isect) {
 	if(const Segment2<T> *seg = isect)
 		print("Segment(% - %)\n", seg->from, seg->to);
-	else if(const vector2<T> *vec = isect)
+	else if(const vec2<T> *vec = isect)
 		print("Vector %\n", *vec);
 	else
 		print("Empty\n");
@@ -253,13 +253,13 @@ void testVectorAngles() {
 	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(0, 0)), degToRad(-180.0f));
 }
 
-static_assert(isVector<short2>(), "");
-static_assert(isVector<float4>(), "");
-static_assert(!isVector<vector<int>>(), "");
+static_assert(isVec<short2>(), "");
+static_assert(isVec<float4>(), "");
+static_assert(!isVec<vector<int>>(), "");
 
 static_assert(isRealObject<FRect>(), "");
 static_assert(isIntegralObject<IBox>(), "");
-static_assert(isIntegralVector<int3>(), "");
+static_assert(isIntegralVec<int3>(), "");
 
 void testHash() {
 	vector<vector<Segment3<double>>> data;

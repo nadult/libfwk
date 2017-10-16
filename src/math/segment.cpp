@@ -158,7 +158,7 @@ IsectClass Segment<T, N>::classifyIsect(const Point &point) const {
 	return fwk::classifyIsect(*this, point);
 }
 template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
-	using QVec = MakeVector<qint, N>;
+	using QVec = MakeVec<qint, N>;
 	return fwk::testIsect(ISegment<qint, N>(*this), Box<QVec>(box));
 }
 

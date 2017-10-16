@@ -16,7 +16,7 @@ template <class T, int N> class Triangle {
 	enum { dim_size = N };
 	static_assert(dim_size >= 2 && dim_size <= 3, "Only 2D & 3D triangles are supported");
 
-	using Vector = MakeVector<T, N>;
+	using Vector = MakeVec<T, N>;
 	using Point = Vector;
 	using Scalar = T;
 	using Segment = fwk::Segment<T, N>;
@@ -92,7 +92,7 @@ template <class T, int N> class Triangle {
 
 #undef ENABLE_IF_SIZE
 
-template <class T, int N> Box<MakeVector<T, N>> enclose(const Triangle<T, N> &tri) {
+template <class T, int N> Box<MakeVec<T, N>> enclose(const Triangle<T, N> &tri) {
 	return enclose(tri.points());
 }
 }

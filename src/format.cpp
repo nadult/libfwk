@@ -258,17 +258,17 @@ TextFormatter &operator<<(TextFormatter &out, const int4 &value) {
 	return out;
 }
 
-template TextFormatter &operator<<(TextFormatter &, const vector2<int> &);
-template TextFormatter &operator<<(TextFormatter &, const vector3<int> &);
-template TextFormatter &operator<<(TextFormatter &, const vector4<int> &);
+template TextFormatter &operator<<(TextFormatter &, const vec2<int> &);
+template TextFormatter &operator<<(TextFormatter &, const vec3<int> &);
+template TextFormatter &operator<<(TextFormatter &, const vec4<int> &);
 
-template TextFormatter &operator<<(TextFormatter &, const vector2<float> &);
-template TextFormatter &operator<<(TextFormatter &, const vector3<float> &);
-template TextFormatter &operator<<(TextFormatter &, const vector4<float> &);
+template TextFormatter &operator<<(TextFormatter &, const vec2<float> &);
+template TextFormatter &operator<<(TextFormatter &, const vec3<float> &);
+template TextFormatter &operator<<(TextFormatter &, const vec4<float> &);
 
-template TextFormatter &operator<<(TextFormatter &, const vector2<double> &);
-template TextFormatter &operator<<(TextFormatter &, const vector3<double> &);
-template TextFormatter &operator<<(TextFormatter &, const vector4<double> &);
+template TextFormatter &operator<<(TextFormatter &, const vec2<double> &);
+template TextFormatter &operator<<(TextFormatter &, const vec3<double> &);
+template TextFormatter &operator<<(TextFormatter &, const vec4<double> &);
 
 template TextFormatter &operator<<(TextFormatter &, const Box<int2> &);
 template TextFormatter &operator<<(TextFormatter &, const Box<int3> &);

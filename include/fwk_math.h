@@ -11,10 +11,6 @@
 
 namespace fwk {
 
-// Note: naming convention:
-// in math module we have vecs (vector2, vector3, vector4) not vectors
-// to differentiate from fwk::Vector
-
 // TODO: remove epsilons?
 namespace dconstant {
 	static constexpr const double pi = 3.14159265358979323846;
@@ -49,31 +45,31 @@ pair<double, double> sincos(double radians);
 bool isnan(float);
 bool isnan(double);
 
-template <class T> struct vector2;
-template <class T> struct vector3;
-template <class T> struct vector4;
+template <class T> struct vec2;
+template <class T> struct vec3;
+template <class T> struct vec4;
 
 using llint = long long;
 using qint = __int128_t;
 
-using short2 = vector2<short>;
-using short3 = vector3<short>;
-using short4 = vector4<short>;
-using int2 = vector2<int>;
-using int3 = vector3<int>;
-using int4 = vector4<int>;
-using float2 = vector2<float>;
-using float3 = vector3<float>;
-using float4 = vector4<float>;
-using double2 = vector2<double>;
-using double3 = vector3<double>;
-using double4 = vector4<double>;
-using llint2 = vector2<llint>;
-using llint3 = vector3<llint>;
-using llint4 = vector4<llint>;
-using qint2 = vector2<qint>;
-using qint3 = vector3<qint>;
-using qint4 = vector4<qint>;
+using short2 = vec2<short>;
+using short3 = vec3<short>;
+using short4 = vec4<short>;
+using int2 = vec2<int>;
+using int3 = vec3<int>;
+using int4 = vec4<int>;
+using float2 = vec2<float>;
+using float3 = vec3<float>;
+using float4 = vec4<float>;
+using double2 = vec2<double>;
+using double3 = vec3<double>;
+using double4 = vec4<double>;
+using llint2 = vec2<llint>;
+using llint3 = vec3<llint>;
+using llint4 = vec4<llint>;
+using qint2 = vec2<qint>;
+using qint3 = vec3<qint>;
+using qint4 = vec4<qint>;
 
 pair<float, float> sincos(float radians);
 pair<double, double> sincos(double radians);
@@ -97,13 +93,7 @@ struct NotAReal;
 struct NotAIntegral;
 struct NotAScalar;
 struct NotAMathObject;
-template <int N> struct NotAValidVector;
-
-struct NotAReal;
-struct NotAIntegral;
-struct NotAScalar;
-struct NotAMathObject;
-template <int N> struct NotAValidVector;
+template <int N> struct NotAValidVec;
 
 namespace detail {
 
@@ -123,14 +113,14 @@ namespace detail {
 		enum { value = sizeof(test<T>(nullptr)) == 1 };
 	};
 
-	template <class T, int N> struct MakeVector { using type = NotAValidVector<N>; };
-	template <class T> struct MakeVector<T, 2> { using type = vector2<T>; };
-	template <class T> struct MakeVector<T, 3> { using type = vector3<T>; };
-	template <class T> struct MakeVector<T, 4> { using type = vector4<T>; };
+	template <class T, int N> struct MakeVec { using type = NotAValidVec<N>; };
+	template <class T> struct MakeVec<T, 2> { using type = vec2<T>; };
+	template <class T> struct MakeVec<T, 3> { using type = vec3<T>; };
+	template <class T> struct MakeVec<T, 4> { using type = vec4<T>; };
 
 	template <class T> struct VecScalar {
 		template <class U> static auto test(U *) -> typename U::Scalar;
-		template <class U> static NotAValidVector<0> test(...);
+		template <class U> static NotAValidVec<0> test(...);
 		using type = decltype(test<T>(nullptr));
 	};
 
@@ -138,7 +128,7 @@ namespace detail {
 		template <int N> struct Size {
 			enum { value = N };
 		};
-		template <class U> static auto test(U *) -> Size<U::vector_size>;
+		template <class U> static auto test(U *) -> Size<U::vec_size>;
 		template <class U> static Size<0> test(...);
 		enum { value = decltype(test<T>(nullptr))::value };
 	};
@@ -181,7 +171,7 @@ namespace detail {
 	template <class T> auto promote() {
 		if constexpr(VecSize<T>::value > 0) {
 			using Promoted = typename Promotion<typename T::Scalar>::type;
-			return typename MakeVector<Promoted, T::vector_size>::type();
+			return typename MakeVec<Promoted, T::vec_size>::type();
 		} else {
 			return typename detail::Promotion<T>::type();
 		}
@@ -209,20 +199,20 @@ template <class T> constexpr bool isMathObject() {
 template <class T> constexpr int vec_size = detail::VecSize<T>::value;
 template <class T> using VecScalar = typename detail::VecScalar<T>::type;
 
-template <class T, int N = 0> constexpr bool isVector() {
+template <class T, int N = 0> constexpr bool isVec() {
 	return (vec_size<T> == N || N == 0) && vec_size<T>> 0;
 }
-template <class T, int N = 0> constexpr bool isRealVector() {
-	return isVector<T, N>() && isReal<VecScalar<T>>();
+template <class T, int N = 0> constexpr bool isRealVec() {
+	return isVec<T, N>() && isReal<VecScalar<T>>();
 }
-template <class T, int N = 0> constexpr bool isRationalOrRealVector() {
-	return isVector<T, N>() && (isReal<VecScalar<T>>() || isRational<VecScalar<T>>());
+template <class T, int N = 0> constexpr bool isRationalOrRealVec() {
+	return isVec<T, N>() && (isReal<VecScalar<T>>() || isRational<VecScalar<T>>());
 }
-template <class T, int N = 0> constexpr bool isIntegralVector() {
-	return isVector<T, N>() && isIntegral<VecScalar<T>>();
+template <class T, int N = 0> constexpr bool isIntegralVec() {
+	return isVec<T, N>() && isIntegral<VecScalar<T>>();
 }
-template <class T, int N = 0> constexpr bool isRationalVector() {
-	return isVector<T, N>() && isRational<VecScalar<T>>();
+template <class T, int N = 0> constexpr bool isRationalVec() {
+	return isVec<T, N>() && isRational<VecScalar<T>>();
 }
 
 template <class T> using EnableIfScalar = EnableIf<isScalar<T>(), NotAScalar>;
@@ -231,57 +221,57 @@ template <class T> using EnableIfIntegral = EnableIf<isIntegral<T>(), NotAIntegr
 
 template <class T> using EnableIfMathObject = EnableIf<isMathObject<T>(), NotAMathObject>;
 
-template <class T, int N = 0> using EnableIfVector = EnableIf<isVector<T, N>(), NotAValidVector<N>>;
+template <class T, int N = 0> using EnableIfVec = EnableIf<isVec<T, N>(), NotAValidVec<N>>;
 template <class T, int N = 0>
-using EnableIfRealVector = EnableIf<isRealVector<T, N>(), NotAValidVector<N>>;
+using EnableIfRealVec = EnableIf<isRealVec<T, N>(), NotAValidVec<N>>;
 template <class T, int N = 0>
-using EnableIfRationalOrRealVector = EnableIf<isRationalOrRealVector<T, N>(), NotAValidVector<N>>;
+using EnableIfRationalOrRealVec = EnableIf<isRationalOrRealVec<T, N>(), NotAValidVec<N>>;
 template <class T, int N = 0>
-using EnableIfIntegralVector = EnableIf<isIntegralVector<T, N>(), NotAValidVector<N>>;
+using EnableIfIntegralVec = EnableIf<isIntegralVec<T, N>(), NotAValidVec<N>>;
 
-template <class T, int N> using MakeVector = typename detail::MakeVector<T, N>::type;
+template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::type;
 
 template <class From, class To> constexpr bool preciseConversion() {
-	if constexpr(isVector<From>() && isVector<To>())
-		return From::vector_size == To::vector_size &&
+	if constexpr(isVec<From>() && isVec<To>())
+		return From::vec_size == To::vec_size &&
 			   detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
 	return detail::PreciseConversion<From, To>::value;
 };
 
 template <class T> using Promote = decltype(detail::promote<T>());
 template <class T>
-using PromoteIntegral = Conditional<isIntegral<T>() || isIntegralVector<T>(), Promote<T>, T>;
+using PromoteIntegral = Conditional<isIntegral<T>() || isIntegralVec<T>(), Promote<T>, T>;
 
 template <class T> struct ToReal { using type = double; };
 template <> struct ToReal<float> { using type = float; };
 template <> struct ToReal<short> { using type = float; };
 
-template <class T> struct vector2 {
+template <class T> struct vec2 {
 	using Scalar = T;
-	enum { vector_size = 2 };
+	enum { vec_size = 2 };
 
-	constexpr vector2(T x, T y) : x(x), y(y) {}
-	constexpr vector2() : x(0), y(0) {}
-	constexpr vector2(CSpan<T, 2> v) : vector2(v[0], v[1]) {}
+	constexpr vec2(T x, T y) : x(x), y(y) {}
+	constexpr vec2() : x(0), y(0) {}
+	constexpr vec2(CSpan<T, 2> v) : vec2(v[0], v[1]) {}
 
-	explicit vector2(T t) : x(t), y(t) {}
+	explicit vec2(T t) : x(t), y(t) {}
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
-	vector2(const vector2<U> &rhs) : vector2(T(rhs.x), T(rhs.y)) {}
+	vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
 	template <class U, EnableIf<!preciseConversion<U, T>()>...>
-	explicit vector2(const vector2<U> &rhs) : vector2(T(rhs.x), T(rhs.y)) {}
+	explicit vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
 
-	vector2 operator*(const vector2 &rhs) const { return vector2(x * rhs.x, y * rhs.y); }
-	vector2 operator/(const vector2 &rhs) const { return vector2(x / rhs.x, y / rhs.y); }
-	vector2 operator+(const vector2 &rhs) const { return vector2(x + rhs.x, y + rhs.y); }
-	vector2 operator-(const vector2 &rhs) const { return vector2(x - rhs.x, y - rhs.y); }
-	vector2 operator*(T s) const { return vector2(x * s, y * s); }
-	vector2 operator/(T s) const { return vector2(x / s, y / s); }
-	vector2 operator-() const { return vector2(-x, -y); }
+	vec2 operator*(const vec2 &rhs) const { return vec2(x * rhs.x, y * rhs.y); }
+	vec2 operator/(const vec2 &rhs) const { return vec2(x / rhs.x, y / rhs.y); }
+	vec2 operator+(const vec2 &rhs) const { return vec2(x + rhs.x, y + rhs.y); }
+	vec2 operator-(const vec2 &rhs) const { return vec2(x - rhs.x, y - rhs.y); }
+	vec2 operator*(T s) const { return vec2(x * s, y * s); }
+	vec2 operator/(T s) const { return vec2(x / s, y / s); }
+	vec2 operator-() const { return vec2(-x, -y); }
 
 	T &operator[](int idx) { return v[idx]; }
 	const T &operator[](int idx) const { return v[idx]; }
 
-	FWK_ORDER_BY(vector2, x, y)
+	FWK_ORDER_BY(vec2, x, y)
 
 	Span<T, 2> values() { return v; }
 	CSpan<T, 2> values() const { return v; }
@@ -294,37 +284,37 @@ template <class T> struct vector2 {
 	};
 };
 
-template <class T> struct vector3 {
+template <class T> struct vec3 {
 	using Scalar = T;
-	enum { vector_size = 3 };
+	enum { vec_size = 3 };
 
-	constexpr vector3(T x, T y, T z) : x(x), y(y), z(z) {}
-	constexpr vector3(const vector2<T> &xy, T z) : x(xy.x), y(xy.y), z(z) {}
-	constexpr vector3() : x(0), y(0), z(0) {}
-	constexpr vector3(CSpan<T, 3> v) : vector3(v[0], v[1], v[2]) {}
-	explicit vector3(T t) : x(t), y(t), z(t) {}
+	constexpr vec3(T x, T y, T z) : x(x), y(y), z(z) {}
+	constexpr vec3(const vec2<T> &xy, T z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr vec3() : x(0), y(0), z(0) {}
+	constexpr vec3(CSpan<T, 3> v) : vec3(v[0], v[1], v[2]) {}
+	explicit vec3(T t) : x(t), y(t), z(t) {}
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
-	vector3(const vector3<U> &rhs) : vector3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
+	vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
 	template <class U, EnableIf<!preciseConversion<U, T>()>...>
-	explicit vector3(const vector3<U> &rhs) : vector3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
+	explicit vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
 
-	vector3 operator*(const vector3 &rhs) const { return vector3(x * rhs.x, y * rhs.y, z * rhs.z); }
-	vector3 operator/(const vector3 &rhs) const { return vector3(x / rhs.x, y / rhs.y, z / rhs.z); }
-	vector3 operator+(const vector3 &rhs) const { return vector3(x + rhs.x, y + rhs.y, z + rhs.z); }
-	vector3 operator-(const vector3 &rhs) const { return vector3(x - rhs.x, y - rhs.y, z - rhs.z); }
-	vector3 operator*(T s) const { return vector3(x * s, y * s, z * s); }
-	vector3 operator/(T s) const { return vector3(x / s, y / s, z / s); }
-	vector3 operator-() const { return vector3(-x, -y, -z); }
+	vec3 operator*(const vec3 &rhs) const { return vec3(x * rhs.x, y * rhs.y, z * rhs.z); }
+	vec3 operator/(const vec3 &rhs) const { return vec3(x / rhs.x, y / rhs.y, z / rhs.z); }
+	vec3 operator+(const vec3 &rhs) const { return vec3(x + rhs.x, y + rhs.y, z + rhs.z); }
+	vec3 operator-(const vec3 &rhs) const { return vec3(x - rhs.x, y - rhs.y, z - rhs.z); }
+	vec3 operator*(T s) const { return vec3(x * s, y * s, z * s); }
+	vec3 operator/(T s) const { return vec3(x / s, y / s, z / s); }
+	vec3 operator-() const { return vec3(-x, -y, -z); }
 
 	T &operator[](int idx) { return v[idx]; }
 	const T &operator[](int idx) const { return v[idx]; }
 
-	vector2<T> xy() const { return {x, y}; }
-	vector2<T> xz() const { return {x, z}; }
-	vector2<T> yz() const { return {y, z}; }
+	vec2<T> xy() const { return {x, y}; }
+	vec2<T> xz() const { return {x, z}; }
+	vec2<T> yz() const { return {y, z}; }
 
-	FWK_ORDER_BY(vector3, x, y, z)
+	FWK_ORDER_BY(vec3, x, y, z)
 
 	Span<T, 3> values() { return v; }
 	CSpan<T, 3> values() const { return v; }
@@ -337,47 +327,47 @@ template <class T> struct vector3 {
 	};
 };
 
-template <class T> struct vector4 {
+template <class T> struct vec4 {
 	using Scalar = T;
-	enum { vector_size = 4 };
+	enum { vec_size = 4 };
 
-	constexpr vector4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
-	constexpr vector4(const vector2<T> &xy, T z, T w) : x(xy.x), y(xy.y), z(z), w(w) {}
-	constexpr vector4(const vector3<T> &xyz, T w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
-	constexpr vector4() : x(0), y(0), z(0), w(0) {}
-	constexpr vector4(CSpan<T, 4> v) : vector4(v[0], v[1], v[2], v[3]) {}
-	explicit vector4(T t) : x(t), y(t), z(t), w(t) {}
+	constexpr vec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
+	constexpr vec4(const vec2<T> &xy, T z, T w) : x(xy.x), y(xy.y), z(z), w(w) {}
+	constexpr vec4(const vec3<T> &xyz, T w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	constexpr vec4() : x(0), y(0), z(0), w(0) {}
+	constexpr vec4(CSpan<T, 4> v) : vec4(v[0], v[1], v[2], v[3]) {}
+	explicit vec4(T t) : x(t), y(t), z(t), w(t) {}
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
-	vector4(const vector4<U> &rhs) : vector4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
+	vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
 	template <class U, EnableIf<!preciseConversion<U, T>()>...>
-	explicit vector4(const vector4<U> &rhs) : vector4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
+	explicit vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
 
-	vector4 operator*(const vector4 &rhs) const {
-		return vector4(x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w);
+	vec4 operator*(const vec4 &rhs) const {
+		return vec4(x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w);
 	}
-	vector4 operator/(const vector4 &rhs) const {
-		return vector4(x / rhs.x, y / rhs.y, z / rhs.z, w / rhs.w);
+	vec4 operator/(const vec4 &rhs) const {
+		return vec4(x / rhs.x, y / rhs.y, z / rhs.z, w / rhs.w);
 	}
-	vector4 operator+(const vector4 &rhs) const {
-		return vector4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+	vec4 operator+(const vec4 &rhs) const {
+		return vec4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
 	}
-	vector4 operator-(const vector4 &rhs) const {
-		return vector4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
+	vec4 operator-(const vec4 &rhs) const {
+		return vec4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
 	}
-	vector4 operator*(T s) const { return vector4(x * s, y * s, z * s, w * s); }
-	vector4 operator/(T s) const { return vector4(x / s, y / s, z / s, w / s); }
-	vector4 operator-() const { return vector4(-x, -y, -z, -w); }
+	vec4 operator*(T s) const { return vec4(x * s, y * s, z * s, w * s); }
+	vec4 operator/(T s) const { return vec4(x / s, y / s, z / s, w / s); }
+	vec4 operator-() const { return vec4(-x, -y, -z, -w); }
 
 	T &operator[](int idx) { return v[idx]; }
 	const T &operator[](int idx) const { return v[idx]; }
 
-	vector2<T> xy() const { return {x, y}; }
-	vector2<T> xz() const { return {x, z}; }
-	vector2<T> yz() const { return {y, z}; }
-	vector3<T> xyz() const { return {x, y, z}; }
+	vec2<T> xy() const { return {x, y}; }
+	vec2<T> xz() const { return {x, z}; }
+	vec2<T> yz() const { return {y, z}; }
+	vec3<T> xyz() const { return {x, y, z}; }
 
-	FWK_ORDER_BY(vector4, x, y, z, w)
+	FWK_ORDER_BY(vec4, x, y, z, w)
 
 	Span<T, 3> values() { return v; }
 	CSpan<T, 3> values() const { return v; }
@@ -434,35 +424,35 @@ template <class Obj, class Scalar> inline Obj lerp(const Obj &a, const Obj &b, c
 	return (b - a) * x + a;
 }
 
-template <class T, EnableIfVector<T>...> T operator*(typename T::Scalar s, const T &v) {
+template <class T, EnableIfVec<T>...> T operator*(typename T::Scalar s, const T &v) {
 	return v * s;
 }
 
-template <class T, EnableIfVector<T, 2>...> T vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 2>...> T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]));
 }
 
-template <class T, EnableIfVector<T, 3>...> T vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 3>...> T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]));
 }
 
-template <class T, EnableIfVector<T, 4>...> T vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 4>...> T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]), min(lhs[3], rhs[3]));
 }
 
-template <class T, EnableIfVector<T, 2>...> T vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 2>...> T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]));
 }
 
-template <class T, EnableIfVector<T, 3>...> T vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 3>...> T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]));
 }
 
-template <class T, EnableIfVector<T, 4>...> T vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 4>...> T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]), max(lhs[3], rhs[3]));
 }
 
-template <class T, EnableIfVector<T>...> T vclamp(const T &vec, const T &tmin, const T &tmax) {
+template <class T, EnableIfVec<T>...> T vclamp(const T &vec, const T &tmin, const T &tmax) {
 	return vmin(tmax, vmax(tmin, vec));
 }
 
@@ -471,100 +461,100 @@ template <class T, EnableIfScalar<T>...> T abs(T value) { return value < T(0) ? 
 // Nonstandard behaviour: rounding half up (0.5 -> 1, -0.5 -> 0)
 template <class T, EnableIfReal<T>...> T round(T value) { return floor(value + T(0.5)); }
 
-template <class TVec, class TFunc, EnableIfVector<TVec, 2>...>
+template <class TVec, class TFunc, EnableIfVec<TVec, 2>...>
 auto transform(const TVec &vec, const TFunc &func) {
-	using TOut = MakeVector<decltype(func(vec[0])), 2>;
+	using TOut = MakeVec<decltype(func(vec[0])), 2>;
 	return TOut{func(vec[0]), func(vec[1])};
 }
 
-template <class TVec, class TFunc, EnableIfVector<TVec, 3>...>
+template <class TVec, class TFunc, EnableIfVec<TVec, 3>...>
 auto transform(const TVec &vec, const TFunc &func) {
-	using TOut = MakeVector<decltype(func(vec[0])), 3>;
+	using TOut = MakeVec<decltype(func(vec[0])), 3>;
 	return TOut{func(vec[0]), func(vec[1]), func(vec[2])};
 }
 
-template <class TVec, class TFunc, EnableIfVector<TVec, 4>...>
+template <class TVec, class TFunc, EnableIfVec<TVec, 4>...>
 auto transform(const TVec &vec, const TFunc &func) {
-	using TOut = MakeVector<decltype(func(vec[0])), 4>;
+	using TOut = MakeVec<decltype(func(vec[0])), 4>;
 	return TOut{func(vec[0]), func(vec[1]), func(vec[2]), func(vec[3])};
 }
 
-template <class T, EnableIfRationalOrRealVector<T>...> auto vfloor(const T &vec) {
+template <class T, EnableIfRationalOrRealVec<T>...> auto vfloor(const T &vec) {
 	return transform(vec, [](const auto &t) { return floor(t); });
 }
 
-template <class T, EnableIfRationalOrRealVector<T>...> auto vceil(T vec) {
+template <class T, EnableIfRationalOrRealVec<T>...> auto vceil(T vec) {
 	return transform(vec, [](const auto &t) { return ceil(t); });
 }
 
-template <class T, EnableIfRationalOrRealVector<T>...> auto vround(T vec) {
+template <class T, EnableIfRationalOrRealVec<T>...> auto vround(T vec) {
 	return transform(vec, [](const auto &t) { return round(t); });
 }
 
-template <class T, EnableIfVector<T>...> T vabs(T vec) {
+template <class T, EnableIfVec<T>...> T vabs(T vec) {
 	return transform(vec, [](const auto &t) { return abs(t); });
 }
 
-template <class T, EnableIfVector<T, 2>...> auto dot(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 2>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs[0] * rhs[0] + lhs[1] * rhs[1];
 }
 
-template <class T, EnableIfVector<T, 3>...> auto dot(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 3>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2];
 }
 
-template <class T, EnableIfVector<T, 4>...> auto dot(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T, 4>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2] + lhs[3] * rhs[3];
 }
 
-template <class T, EnableIfRealVector<T>...> auto length(const T &vec) {
+template <class T, EnableIfRealVec<T>...> auto length(const T &vec) {
 	return std::sqrt(dot(vec, vec));
 }
 
-template <class T, EnableIfVector<T>...> auto lengthSq(const T &vec) { return dot(vec, vec); }
+template <class T, EnableIfVec<T>...> auto lengthSq(const T &vec) { return dot(vec, vec); }
 
-template <class T, EnableIfRealVector<T>...> auto distance(const T &lhs, const T &rhs) {
+template <class T, EnableIfRealVec<T>...> auto distance(const T &lhs, const T &rhs) {
 	return length(lhs - rhs);
 }
 
-template <class T, EnableIfVector<T>...> auto distanceSq(const T &lhs, const T &rhs) {
+template <class T, EnableIfVec<T>...> auto distanceSq(const T &lhs, const T &rhs) {
 	return lengthSq(lhs - rhs);
 }
 
-template <class T, EnableIfRealVector<T>...> T normalize(const T &v) { return v / length(v); }
+template <class T, EnableIfRealVec<T>...> T normalize(const T &v) { return v / length(v); }
 
-template <class T, EnableIfVector<T, 2>...> auto asXZ(const T &v) {
-	using TOut = MakeVector<typename T::Scalar, 3>;
+template <class T, EnableIfVec<T, 2>...> auto asXZ(const T &v) {
+	using TOut = MakeVec<typename T::Scalar, 3>;
 	return TOut(v[0], 0, v[1]);
 }
-template <class T, EnableIfVector<T, 2>...> auto asXY(const T &v) {
-	using TOut = MakeVector<typename T::Scalar, 3>;
+template <class T, EnableIfVec<T, 2>...> auto asXY(const T &v) {
+	using TOut = MakeVec<typename T::Scalar, 3>;
 	return TOut(v[0], v[1], 0);
 }
-template <class T, EnableIfVector<T, 2>...> auto asXZY(const T &xz, typename T::Scalar y) {
-	using TOut = MakeVector<typename T::Scalar, 3>;
+template <class T, EnableIfVec<T, 2>...> auto asXZY(const T &xz, typename T::Scalar y) {
+	using TOut = MakeVec<typename T::Scalar, 3>;
 	return TOut(xz[0], y, xz[1]);
 }
 
-template <class T, EnableIfVector<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
+template <class T, EnableIfVec<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-template <class T, EnableIfRealVector<T>...> T vinv(const T &vec) {
+template <class T, EnableIfRealVec<T>...> T vinv(const T &vec) {
 	return transform(vec, [](const auto &v) { return inv(v); });
 }
 
 // Right-handed coordinate system
-template <class T, EnableIfVector<T, 3>...> T cross(const T &a, const T &b) {
+template <class T, EnableIfVec<T, 3>...> T cross(const T &a, const T &b) {
 	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
 
 // Default orientation in all vector-related operations
 // (cross products, rotations, etc.) is counter-clockwise.
 
-template <class T, EnableIfVector<T, 2>...> auto cross(const T &a, const T &b) {
+template <class T, EnableIfVec<T, 2>...> auto cross(const T &a, const T &b) {
 	return a[0] * b[1] - a[1] * b[0];
 }
 
-template <class T, EnableIfVector<T, 2>...> T perpendicular(const T &v) { return {-v[1], v[0]}; }
+template <class T, EnableIfVec<T, 2>...> T perpendicular(const T &v) { return {-v[1], v[0]}; }
 
 float vectorToAngle(const float2 &normalized_vector);
 double vectorToAngle(const double2 &normalized_vector);
@@ -587,21 +577,21 @@ float angleTowards(const float2 &prev, const float2 &cur, const float2 &next);
 double angleTowards(const double2 &prev, const double2 &cur, const double2 &next);
 
 // TODO: remove it?
-template <class T, EnableIfRealVector<T>...>
+template <class T, EnableIfRealVec<T>...>
 bool areClose(const T &a, const T &b,
 			  typename T::Scalar epsilon_sq = constant<typename T::Scalar>::epsilon) {
 	return distanceSq(a, b) < epsilon_sq;
 }
 
 // TODO: we can't really check it properly for floating-point's...
-template <class T, EnableIfRealVector<T>...> bool isNormalized(const T &vec) {
+template <class T, EnableIfRealVec<T>...> bool isNormalized(const T &vec) {
 	using Real = typename T::Scalar;
 	auto length_sq = lengthSq(vec);
 	return length_sq >= Real(1) - constant<Real>::epsilon &&
 		   length_sq <= Real(1) + constant<Real>::epsilon;
 }
 
-template <class T, EnableIfVector<T>...> bool isZero(const T &vec) { return vec == T(); }
+template <class T, EnableIfVec<T>...> bool isZero(const T &vec) { return vec == T(); }
 
 float frand();
 float angleDistance(float a, float b);
@@ -610,7 +600,7 @@ float blendAngles(float initial, float target, float step);
 // Returns angle in range <0, 2 * PI)
 float normalizeAngle(float angle);
 
-template <class T, EnableIfRealVector<T>...> bool isnan(const T &v) {
+template <class T, EnableIfRealVec<T>...> bool isnan(const T &v) {
 	return anyOf(v.values(), [](auto s) { return isnan(s); });
 }
 
@@ -641,8 +631,8 @@ template <class T> using Plane3 = Plane<T, 3>;
 template <class T> using Ray2 = Ray<T, 2>;
 template <class T> using Ray3 = Ray<T, 3>;
 
-template <class T> using Box2 = Box<MakeVector<T, 2>>;
-template <class T> using Box3 = Box<MakeVector<T, 3>>;
+template <class T> using Box2 = Box<MakeVec<T, 2>>;
+template <class T> using Box3 = Box<MakeVec<T, 3>>;
 
 // TODO:
 // Triangle3f, Triangle3d or Triangle3D Triangle3F
@@ -688,7 +678,7 @@ class Random;
 struct DisabledInThisDimension;
 
 template <class T, int N>
-using EnableInDimension = EnableIf<isVector<T, N>(), DisabledInThisDimension>;
+using EnableInDimension = EnableIf<isVec<T, N>(), DisabledInThisDimension>;
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
 using IsectFlags = EnumFlags<IsectClass>;
