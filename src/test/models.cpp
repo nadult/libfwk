@@ -5,7 +5,6 @@
 #include "fwk/math/cylinder.h"
 #include "fwk_mesh.h"
 #include "testing.h"
-#include <tuple>
 
 string mainPath(string file_name) {
 	FilePath exec(executablePath());

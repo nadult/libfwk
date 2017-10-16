@@ -126,11 +126,23 @@ namespace detail {
 		template <class A> using Arg = A;
 	};
 
+	template <int N, typename T, typename... Types> struct NthType {
+		using type = typename NthType<N - 1, Types...>::type;
+	};
+	template <typename T, typename... Types> struct NthType<0, T, Types...> { using type = T; };
+
+	template <class...> struct Disjunction : std::false_type {};
+	template <class B1> struct Disjunction<B1> : B1 {};
+	template <class B1, class... Bn>
+	struct Disjunction<B1, Bn...> : std::conditional_t<bool(B1::value), B1, Disjunction<Bn...>> {};
+
 	template <class...> struct Conjunction : std::true_type {};
 	template <class B1> struct Conjunction<B1> : B1 {};
 	template <class B1, class... Bn>
 	struct Conjunction<B1, Bn...> : std::conditional_t<bool(B1::value), Conjunction<Bn...>, B1> {};
 }
+
+template <int N, class... Args> using NthType = typename detail::NthType<N, Args...>::type;
 
 template <bool cond, class InvalidArg = DisabledType>
 using EnableIf =

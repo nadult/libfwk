@@ -8,6 +8,7 @@
 #include "fwk/sys_base.h"
 #include <map>
 #include <mutex>
+#include <tuple>
 
 namespace fwk {
 

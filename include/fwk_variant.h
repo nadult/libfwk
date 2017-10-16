@@ -32,10 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format off
 
 #include <new> // operator new
-#include <string>
-#include <tuple>
 #include <type_traits>
-#include <typeinfo>
 #include <utility>
 #include "fwk/sys_base.h"
 
@@ -106,7 +103,7 @@ struct value_traits
     static constexpr int index = is_direct ? direct_index : convertible_type<value_type, Types...>::index;
     static constexpr bool is_valid = index != -1;
     static constexpr int tindex = is_valid ? (int)sizeof...(Types) - index : 0;
-    using target_type = typename std::tuple_element<tindex, std::tuple<void, Types...>>::type;
+    using target_type = typename NthType<tindex, void, Types...>::type;
 };
 
 // check if T is in Types...
@@ -510,19 +507,6 @@ private:
     Variant const& lhs_;
 };
 
-// True if Predicate matches for all of the types Ts
-template <template<typename> class Predicate, typename... Ts>
-struct static_all_of : std::is_same<std::tuple<std::true_type, typename Predicate<Ts>::type...>,
-                                    std::tuple<typename Predicate<Ts>::type..., std::true_type>>
-{};
-
-// True if Predicate matches for none of the types Ts
-template <template<typename> class Predicate, typename... Ts>
-struct static_none_of : std::is_same<std::tuple<std::false_type, typename Predicate<Ts>::type...>,
-                                     std::tuple<typename Predicate<Ts>::type..., std::false_type>>
-{};
-
-
 template <typename... Fns>
 struct visitor;
 
@@ -562,7 +546,7 @@ class Variant
 {
     static_assert(sizeof...(Types) > 0, "Template parameter type list of variant can not be empty");
 	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
-    static_assert(detail::static_none_of<std::is_reference, Types...>::value, "Variant can not hold reference types. Maybe use std::reference?");
+    static_assert(!detail::Disjunction<std::is_reference<Types>...>::value, "Variant can not hold reference types. Maybe use std::reference?");
 
 	template <class T>
 	using EnableIfValidType = EnableIf<(detail::direct_type<T, Types...>::index != -1), TypeNotInVariant>;
@@ -577,7 +561,7 @@ private:
     static const int data_size = detail::static_max<(int)sizeof(Types)...>::value;
     static const int data_align = detail::static_max<(int)alignof(Types)...>::value;
 
-    using first_type = typename std::tuple_element<0, std::tuple<Types...>>::type;
+    using first_type = NthType<0, Types...>;
     using data_type = typename std::aligned_storage<data_size, data_align>::type;
     using helper_type = detail::variant_helper<Types...>;
 
