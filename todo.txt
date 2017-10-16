@@ -1,57 +1,60 @@
-- ResourceManager & XML to sys ?
-- func_ref not used in macro...
+ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
+ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
+
+
 - MaybeEnum from fwk_enum
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
 - Rename test files to t_vector, t_stuff ? or lower priority to test in docplugin ?
-- move Hash out of math
 - EnumFlags<> mask(EnnumFlags<>, condition)
 - HashMap forward declaration ?
 - Wstrict-overflow
-- inline HashMap::s_empty_node crashes Clang when compiling voronoiDiagram...
 - proper FIFO support for streams
-- use std decay instead of remove_const, remove_ref, etc.
 - drop the fucking shared_ptrs
-- isDegenerate w trójkątach, segmentach, etc.
-- encloseTransformed wrong order
-- constexpr intiializer_list in EnumMap
-- naming: rotateVector(pos)
-- mulPoint, mulNormal: better names
 - StaticPimpl alignment
 - fix interval::valid
 - subRange dla vectora i spana
 - invalid<Type>() could return invalid value (otherwise not accepted, but useful for Maybe)
 - Size<Type> can be used instead of sizeof(); it can be specialized thus decreasing dependencies
 
-- Mouse Position should be -1/-1 or none when mouse is outside of window ?
-- Improve commiting process? That would require working on branches and rebasing stuff
-  from time to time; But the only reason is to keep the history clean...
-
-- Box & EnableInDimension doesn't support 4th dimension
-
-- Protection from FATAL, THROW and failed assertions when Bactraces are generated ?
-- Use Formattible in more places?
-- format for all math objects
-- MathObject concept is not so useful: figure out a better way to automatically generate
-  +=, !=, >=, etc for given object
-
-- make it 64 bit only (drop boost::mpc and add x,y,z in vector3?) fix qint2 as well
 - function arguments could have invariants in them:
   T Segment::at(Checked<double, [](double v) { return v >= 0.0 && v <= 1.0; })> {}
 
 - Still more advanced asserts would be useful?
 - check if gdb is already attached and behave properly in such cases
-- ujednolicić: Ray3F, IBox
-- porównania rationali można wykonać w takiej samej dokładności (RTCD: 457)
-- remove int2, short2, etc and simply use templates ? check if it affects compilation performance
-  remove unions? use x(), y(), z() instead of .x, .y, .z ?
 
--  make Triangle it modifiable? some other classes don't keep any invariants either?
-   but on the other hand, we could add some checks for nans and infinities...
-   add type: FiniteFloat (float which is not a nan and is not an infinity)
+- Math:
+	- length_sq in ISegment ?
+	- Box<T, N> as other classes ?
+	- segment, box::empty -> degenerate ?
+	- isnan checks in all math classes (paranoid in vectors as well ?)
+	- ujednolicić: Ray3F, IBox
+	-  make Triangle it modifiable? some other classes don't keep any invariants either?
+	   but on the other hand, we could add some checks for nans and infinities...
+	   add type: FiniteFloat (float which is not a nan and is not an infinity)
+	- Box & EnableInDimension doesn't support 4th dimension
+	- box ranges...
+	- intersection -> intersect ?
+	- inset & enlarge na zewnątrz ?
+	- minimize use of asRay(), check all places
+	- fix isNormalized, areClose ?
+	- Think about accuracy of different math functions. Some of tem could be easily improved
+	- encloseTransformed wrong order
+	- naming: rotateVector(pos)
+	- isDegenerate w trójkątach, segmentach, etc.
+	- mulPoint, mulNormal: better names
 
-- konwersja kolor na bool (!= ColorId::transparent)
-- wolna konwersja kolorów z ColorId
+- Kolorki:
+	- konwersja kolor na bool (!= ColorId::transparent)
+	- wolna konwersja kolorów z ColorId
+	- cleanup colors (where ICOLOR, where FColor should be used); Conversion ColorId -> IColor
+	  FCOLOr sux (operations only on alpha part or only on color part)
+
+- Input:
+	- Mouse grabbing doesnt work
+	- Bug: keyDown(InputKey::tab) doesn't work
+	- Mouse Position should be -1/-1 or none when mouse is outside of window ?
+
 - fwk_assert powinno być ogólno dostępne, tak żeby wszędzie z tego korzystać
 - DASSERTY często nie wystarczają; chcielibyśmy mieć dokładniesze informacje (jakie dane konkretnie są zepsute?)
 - możliwość dodania suffixa do ścieżki FilePath (+em?)
@@ -64,24 +67,15 @@
 - Promienie bazujące na intach mogą być zaprezentowane za pomocą segmentów; dzięki temu nie
   potrzebne są Rationale
 
-- length_sq in ISegment ?
 - attach GDB on Ctrl-C
-- Box<T, N> as other classes ?
 - move SerializeAsPod to namespace detail
 - make default serialize_as_pod be based on is_trivially_copyable / etc.
   or maybe not (pointers...)
-- qint based on boost multiprecision is MUCH slower under mingw for some reason
 - change order in FWK_ORDER_BY for vectors ?
 - move box to fwk_box ?
 - warning in Variant (type punning) on g++ mingw
 
-- cleanup colors (where ICOLOR, where FColor should be used); Conversion ColorId -> IColor
-  FCOLOr sux (operations only on alpha part or only on color part)
-- segment, box::empty -> degenerate ?
-- isnan checks in all math classes (paranoid in vectors as well ?)
 - copyable_ptr (unique_ptr but with copying ability (why the hell it doesn't have it?))
-- XML parsing can be really slow when errors are encoutered 
-- TextFormatter based on SmallVector...
 - profiler sux; fix it?
 - same algorithms on top of dynamic or static structure: ImmutableGraph, MutableGraph share with shared interface ?
 - remove math.h, etc from includes for ; On the other hand: they will end up in PCH anyway
@@ -101,36 +95,18 @@
 - Improve assertions (they should give more information when breaking)...
   But how to do it properly?
 
-- isEnum<>() -> isEnum<> (constexpr int)
-- hash for custom types (like TaggedId<>)
-- indexRange( size ), indexRange( range ) == indexRange( range.size() )
-- box ranges...
-- intersection -> intersect ?
-- inset & enlarge na zewnątrz ?
-- kolejność argumentów w EnableIfach
-- no need to define data() and size() for ranges ?
-- rethink parsing Rects & Boxes
-  when parsing data, DASSERTS in constructor should be ASSERT (or add asserts in parsers)
-- split fwk_math into several different files ?
-- list all member which are treated specially by libfwk (tied, Scalar, vector_size, etc.)
-- minimize use of asRay(), check all places
-- fix isNormalized, areClose ?
 - check if double constants are correct
 - printing for Variant ?
 
-- Mouse grabbing doesnt work
 - SERIALIZE_AS_POD cathces fwk namespace
 - model_viewer.exe displays models in different order (findFiles function must be working differently)
 
 - better std::pair ?
 - better tests for vector? Use tests from libc++ or something?
-- rapidxml is allocating with std::new (exceptions aren't caught)
 - Add some PASSERTs to fwk vector?
 - Make custom string class (not a template)
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element
-- Add UnorderedVector and SortedVector classes
-- use size_type inside
 - dodać irange do vector-a
 - vector[-1] indeksuje od konca?
 - shrink_to_fit dla vectora?
@@ -144,7 +120,6 @@
 - add StrongBaseType<> class
 - think about usefulness of const correctness; in some cases were just wasting time
 - separate align function for fonts
-- DEFINE_ENUM in class scope (it's not that easy...)
 - Hide HAlign, VAlign inside fontstyle?
 - removeIndicies should use materialset
 - make makeUnique not use resize (use erase)
@@ -169,25 +144,11 @@
 - Fix TODO in filesystem_linux (regarding links).
 - In fact, just fix all TODOs
 - Think about moving globla functions to classes / namespaces (especially functions in fwk_profile.h)
-- Fix the namespace mess
-- Bug: keyDown(InputKey::tab) doesn't work
 - scanf's are very slow compared to strto*, maybe we should change printfs as well in text printer?
 
-- Add HTML5 build target for pre-commit tests
-
 - ModelNodes should be more flexible when creating (no need for empty root node, nodes with empty names should be ok, etc.)
-
-- when printing strings to XML, library should check if restricted characters are not used by accident (&, <, >)
-
-- Add tests for SimpleMesh operations
-
-- Clang 3.6 Crashes when compiling frustum.cpp with -O2/-O3 and DNDEBUG
-
 
 - tools/model_viewer crashes when wrong path is passed (for example folder instead of path to .model file)
 
 - When LLDB is attached, make it catch all throws automatically
-
-- Think about accuracy of different math functions. Some of tem could be easily improved
-
 - Serialization of floats to XML isn't accurate; fix it
