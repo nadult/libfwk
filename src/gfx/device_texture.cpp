@@ -12,11 +12,7 @@ DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
 	DASSERT(size.x >= 0 && size.y >= 0);
 
-	ON_ASSERT(([](const Format &fmt, const int2 &size) {
-				  return fwk::format("DTexture::DTexture() error; format: % size: %", size,
-									 fmt.id());
-			  }),
-			  format, size);
+	ON_ASSERT("DTexture::DTexture() error; format: % size: %", size, format.id());
 
 	{
 		glGenTextures(1, &m_id);

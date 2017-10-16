@@ -131,7 +131,7 @@ void assertTest2() {
 
 void assertTest1() {
 	string local_data = "middle message";
-	ON_ASSERT(([](const string &str) { return str; }), local_data);
+	ON_ASSERT_FUNC(([](const string &str) { return str; }), local_data);
 	assertTest2();
 }
 

@@ -45,6 +45,12 @@ namespace detail {
 		return {func(detail::GetField<IS>::get(refs)...), file, line};
 	}
 
+	template <class... Args, unsigned... IS, class Refs = LightTuple<Args...>>
+	ErrorChunk onAssertWrapperSimple(const char *file, int line, const char *fmt,
+									 const LightTuple<Args...> &refs, Seq<IS...>) {
+		return {format(fmt, detail::GetField<IS>::get(refs)...), file, line};
+	}
+
 	struct OnAssertInfo {
 		using FuncType = ErrorChunk (*)(const void *);
 		FuncType func;
@@ -74,25 +80,43 @@ namespace detail {
 //
 // Example use:
 //
-// ON_ASSERT(([](const MyClass &ref) { return ref.name(); }), *this);
+// ON_ASSERT_FUNC(([](const MyClass &ref) { return ref.name(); }), *this);
 //
 // void func(const char*, string&);
-// ON_ASSERT(func, "some string", &string_in_local_context);
+// ON_ASSERT_FUNC(func, "some string", &string_in_local_context);
 //
-#define ON_ASSERT(func_impl, ...)                                                                  \
-	const decltype(detail::makeRefFields(__VA_ARGS__)) _refs_##__LINE__{__VA_ARGS__};              \
-	{ /* TODO: use boost::function_traits to check function arity? */                              \
+// ON_ASSERT("Some text: % and: %", argument1, int3(20, 30, 40));
+//
+#define ON_ASSERT_FUNC(func_impl, ...)                                                             \
+	const decltype(detail::makeRefFields(__VA_ARGS__)) FWK_JOIN(_refs_, __LINE__){__VA_ARGS__};    \
+	{                                                                                              \
 		using namespace fwk::detail;                                                               \
-		using RefType = decltype(_refs_##__LINE__);                                                \
+		using RefType = decltype(FWK_JOIN(_refs_, __LINE__));                                      \
 		auto func = [](const void *prefs) -> ErrorChunk {                                          \
 			auto func_ref = (func_impl);                                                           \
-			return onAssertWrapper(__FILE__, __LINE__, func_impl, *(const RefType *)prefs,         \
+			return onAssertWrapper(__FILE__, __LINE__, func_ref, *(const RefType *)prefs,          \
 								   GenSeq<RefType::count>());                                      \
 		};                                                                                         \
 		PASSERT(t_on_assert_count < max_on_assert);                                                \
-		t_on_assert_stack[t_on_assert_count++] = {func, (const void *)(&_refs_##__LINE__)};        \
+		t_on_assert_stack[t_on_assert_count++] = {func,                                            \
+												  (const void *)(&FWK_JOIN(_refs_, __LINE__))};    \
 	}                                                                                              \
-	fwk::detail::OnAssertGuard _guard_##__LINE__;
+	fwk::detail::OnAssertGuard FWK_JOIN(_guard_, __LINE__);
+
+#define ON_ASSERT(format_str, ...)                                                                 \
+	const decltype(detail::makeRefFields(__VA_ARGS__)) FWK_JOIN(_refs_, __LINE__){__VA_ARGS__};    \
+	{                                                                                              \
+		using namespace fwk::detail;                                                               \
+		using RefType = decltype(FWK_JOIN(_refs_, __LINE__));                                      \
+		auto func = [](const void *prefs) -> ErrorChunk {                                          \
+			return onAssertWrapperSimple(__FILE__, __LINE__, format_str, *(const RefType *)prefs,  \
+										 GenSeq<RefType::count>());                                \
+		};                                                                                         \
+		PASSERT(t_on_assert_count < max_on_assert);                                                \
+		t_on_assert_stack[t_on_assert_count++] = {func,                                            \
+												  (const void *)(&FWK_JOIN(_refs_, __LINE__))};    \
+	}                                                                                              \
+	fwk::detail::OnAssertGuard FWK_JOIN(_guard_, __LINE__);
 
 #define ASSERT_BINARY(expr1, expr2, op)                                                            \
 	(((expr1)op(expr2) || (fwk::detail::assertFailedBinary(                                        \
@@ -131,6 +155,7 @@ namespace detail {
 #define DASSERT_GE(expr1, expr2) ASSERT_GE(expr1, expr2)
 
 #define DASSERT_HINT(expr, hint) ASSERT_HINT(expr, hint)
-#define ON_DASSERT(func, ...) ON_ASSERT(format, __VA_ARGS__)
+#define ON_DASSERT_FUNC(func, ...) ON_ASSERT(func, __VA_ARGS__)
+#define ON_DASSERT(format, ...) ON_ASSERT(format, __VA_ARGS__)
 #endif
 }

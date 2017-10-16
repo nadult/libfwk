@@ -48,8 +48,12 @@
 	FWK_MOVABLE_CLASS_IMPL(Class)                                                                  \
 	Class::Class(const Class &) = default;                                                         \
 	Class &Class::operator=(const Class &) = default;
+
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
+
+#define FWK_JOIN(a, b) FWK_JOIN_(a, b)
+#define FWK_JOIN_(a, b) a##b
 
 namespace fwk {
 
