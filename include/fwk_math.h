@@ -123,50 +123,24 @@ namespace detail {
 		enum { value = sizeof(test<T>(nullptr)) == 1 };
 	};
 
-	// TODO: Maybe this is not necessary, just specify all classes which should be treated
-	// as vectors or other math objects (similarly to MakeVector)
-
-	template <class T, int N> struct VectorInfo {
-		template <class U> struct RetOk {
-			using Scalar = typename U::Scalar;
-			using Vector = U;
-			template <class A> using Arg = A;
-
-			enum {
-				size = U::vector_size,
-				is_real = IsReal<Scalar>::value,
-				is_integral = IsIntegral<Scalar>::value,
-				is_rational = IsRational<Scalar>::value
-			};
-		};
-		using RetError = NotAValidVector<N>;
-		struct Zero {
-			enum { size = 0, is_real = 0, is_integral = 0, is_rational = 0 };
-		};
-
-		template <class U>
-		static constexpr auto test(int) ->
-			typename std::conditional<(sizeof(typename U::Scalar) > 0) &&
-										  (U::vector_size == N || N == 0),
-									  RetOk<U>, RetError>::type;
-		template <class U> static constexpr RetError test(...);
-
-		using Ret = decltype(test<T>(0));
-		using Get =
-			typename std::conditional<std::is_same<Ret, RetError>::value, Zero, RetOk<T>>::type;
-	};
-
-	template <class T, int N> struct MakeVector;
+	template <class T, int N> struct MakeVector { using type = NotAValidVector<N>; };
 	template <class T> struct MakeVector<T, 2> { using type = vector2<T>; };
 	template <class T> struct MakeVector<T, 3> { using type = vector3<T>; };
 	template <class T> struct MakeVector<T, 4> { using type = vector4<T>; };
 
-	template <class T> struct GetScalar {
-		template <class U>
-		static auto test(U *) -> typename std::enable_if<IsScalar<U>::value, U>::type;
+	template <class T> struct VecScalar {
 		template <class U> static auto test(U *) -> typename U::Scalar;
-		template <class U> static void test(...);
+		template <class U> static NotAValidVector<0> test(...);
 		using type = decltype(test<T>(nullptr));
+	};
+
+	template <class T> struct VecSize {
+		template <int N> struct Size {
+			enum { value = N };
+		};
+		template <class U> static auto test(U *) -> Size<U::vector_size>;
+		template <class U> static Size<0> test(...);
+		enum { value = decltype(test<T>(nullptr))::value };
 	};
 
 	template <class T, class Enable = void> struct Promotion { using type = T; };
@@ -205,7 +179,7 @@ namespace detail {
 #undef PRECISE
 
 	template <class T> auto promote() {
-		if constexpr(VectorInfo<T, 0>::Get::size > 0) {
+		if constexpr(VecSize<T>::value > 0) {
 			using Promoted = typename Promotion<typename T::Scalar>::type;
 			return typename MakeVector<Promoted, T::vector_size>::type();
 		} else {
@@ -232,21 +206,23 @@ template <class T> constexpr bool isMathObject() {
 	return detail::ScalarTrait<T, detail::IsScalar>::value;
 }
 
+template <class T> constexpr int vec_size = detail::VecSize<T>::value;
+template <class T> using VecScalar = typename detail::VecScalar<T>::type;
+
 template <class T, int N = 0> constexpr bool isVector() {
-	return detail::VectorInfo<T, N>::Get::size > 0;
+	return (vec_size<T> == N || N == 0) && vec_size<T>> 0;
 }
 template <class T, int N = 0> constexpr bool isRealVector() {
-	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_real;
+	return isVector<T, N>() && isReal<VecScalar<T>>();
 }
 template <class T, int N = 0> constexpr bool isRationalOrRealVector() {
-	using VecInfo = typename detail::VectorInfo<T, N>::Get;
-	return VecInfo::size > 0 && (VecInfo::is_rational || VecInfo::is_real);
+	return isVector<T, N>() && (isReal<VecScalar<T>>() || isRational<VecScalar<T>>());
 }
 template <class T, int N = 0> constexpr bool isIntegralVector() {
-	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_integral;
+	return isVector<T, N>() && isIntegral<VecScalar<T>>();
 }
 template <class T, int N = 0> constexpr bool isRationalVector() {
-	return detail::VectorInfo<T, N>::Get::size > 0 && detail::VectorInfo<T, N>::Get::is_rational;
+	return isVector<T, N>() && isRational<VecScalar<T>>();
 }
 
 template <class T> using EnableIfScalar = EnableIf<isScalar<T>(), NotAScalar>;
@@ -263,8 +239,7 @@ using EnableIfRationalOrRealVector = EnableIf<isRationalOrRealVector<T, N>(), No
 template <class T, int N = 0>
 using EnableIfIntegralVector = EnableIf<isIntegralVector<T, N>(), NotAValidVector<N>>;
 
-template <class T, int N>
-using MakeVector = typename detail::MakeVector<typename detail::GetScalar<T>::type, N>::type;
+template <class T, int N> using MakeVector = typename detail::MakeVector<T, N>::type;
 
 template <class From, class To> constexpr bool preciseConversion() {
 	if constexpr(isVector<From>() && isVector<To>())
@@ -558,15 +533,17 @@ template <class T, EnableIfVector<T>...> auto distanceSq(const T &lhs, const T &
 
 template <class T, EnableIfRealVector<T>...> T normalize(const T &v) { return v / length(v); }
 
-template <class T, EnableIfVector<T, 2>...> MakeVector<T, 3> asXZ(const T &v) {
-	return {v[0], 0, v[1]};
+template <class T, EnableIfVector<T, 2>...> auto asXZ(const T &v) {
+	using TOut = MakeVector<typename T::Scalar, 3>;
+	return TOut(v[0], 0, v[1]);
 }
-template <class T, EnableIfVector<T, 2>...> MakeVector<T, 3> asXY(const T &v) {
-	return {v[0], v[1], 0};
+template <class T, EnableIfVector<T, 2>...> auto asXY(const T &v) {
+	using TOut = MakeVector<typename T::Scalar, 3>;
+	return TOut(v[0], v[1], 0);
 }
-template <class T, EnableIfVector<T, 2>...>
-MakeVector<T, 3> asXZY(const T &xz, typename T::Scalar y) {
-	return {xz[0], y, xz[1]};
+template <class T, EnableIfVector<T, 2>...> auto asXZY(const T &xz, typename T::Scalar y) {
+	using TOut = MakeVector<typename T::Scalar, 3>;
+	return TOut(xz[0], y, xz[1]);
 }
 
 template <class T, EnableIfVector<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
