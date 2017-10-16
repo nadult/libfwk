@@ -24,7 +24,7 @@ template <class T> class Box {
 	using Vector2 = vector2<Scalar>;
 	using Point = Vector;
 
-	enum { dim_size = Vector::vector_size, num_corners = 1 << dim_size };
+	enum { dim_size = T::vector_size, num_corners = 1 << dim_size };
 
 	// min <= max in all dimensions; can be empty
 	bool validRange(const Point &min, const Point &max) const {
@@ -50,11 +50,13 @@ template <class T> class Box {
 		: Box({min_x, min_y, min_z}, {max_x, max_y, max_z}) {}
 
 	Box(Point min, Point max) : m_min(min), m_max(max) { DASSERT(validRange(min, max)); }
-	explicit Box(Vector size) : Box(Vector(), size) {}
+	explicit Box(T size) : Box(T(), size) {}
 	Box() : m_min(), m_max() {}
 
-	template <class TVector>
-	explicit Box(const Box<TVector> &irect) : Box(Vector(irect.min()), Vector(irect.max())) {}
+	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
+	template <class U, EnableIf<!preciseConversion<U, T>()>...>
+	explicit Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
 
 	Scalar min(int i) const { return m_min[i]; }
 	Scalar max(int i) const { return m_max[i]; }
@@ -78,13 +80,13 @@ template <class T> class Box {
 	ENABLE_IF_SIZE(3) Scalar volume() const { return width() * height() * depth(); }
 
 	Scalar size(int axis) const { return m_max[axis] - m_min[axis]; }
-	Vector size() const { return m_max - m_min; }
+	T size() const { return m_max - m_min; }
 	Point center() const { return (m_max + m_min) / Scalar(2); }
 
-	Box operator+(const Vector &offset) const { return Box(m_min + offset, m_max + offset); }
-	Box operator-(const Vector &offset) const { return Box(m_min - offset, m_max - offset); }
-	Box operator*(const Vector &scale) const {
-		Vector tmin = m_min * scale, tmax = m_max * scale;
+	Box operator+(const T &offset) const { return Box(m_min + offset, m_max + offset); }
+	Box operator-(const T &offset) const { return Box(m_min - offset, m_max - offset); }
+	Box operator*(const T &scale) const {
+		T tmin = m_min * scale, tmax = m_max * scale;
 		for(int n = 0; n < dim_size; n++)
 			if(scale[n] < Scalar(0))
 				swap(tmin[n], tmax[n]);
@@ -117,14 +119,14 @@ template <class T> class Box {
 	}
 
 	Scalar pixelCount(int axis) const { return max(size(axis) - Scalar(1), Scalar(0)); }
-	T pixelCount() const { return vmax(size() - Vector(Scalar(1)), T(Scalar(0))); }
+	T pixelCount() const { return vmax(size() - T(Scalar(1)), T(Scalar(0))); }
 
 	ENABLE_IF_SIZE(2) array<Point, 4> corners() const {
 		return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
 	}
 
 	ENABLE_IF_SIZE(3) array<Point, num_corners> corners() const {
-		array<Vector, num_corners> out;
+		array<T, num_corners> out;
 		for(int n = 0; n < num_corners; n++)
 			for(int i = 0; i < dim_size; i++) {
 				int bit = 1 << (dim_size - i - 1);
@@ -167,18 +169,16 @@ template <class T> class Box {
 	auto distance(const Point &point) const { return std::sqrt(distanceSq(point)); }
 	auto distance(const Box &box) const { return std::sqrt(distanceSq(box)); }
 
-	Box inset(const Vector &val_min, const Vector &val_max) const {
+	Box inset(const T &val_min, const T &val_max) const {
 		auto new_min = m_min + val_min, new_max = m_max - val_max;
 		return {vmin(new_min, new_max), vmax(new_min, new_max), NoAsserts()};
 	}
-	Box inset(const Vector &value) const { return inset(value, value); }
-	Box inset(Scalar value) const { return inset(Vector(value)); }
+	Box inset(const T &value) const { return inset(value, value); }
+	Box inset(Scalar value) const { return inset(T(value)); }
 
-	Box enlarge(const Vector &val_min, const Vector &val_max) const {
-		return inset(-val_min, -val_max);
-	}
-	Box enlarge(const Vector &value) const { return inset(-value); }
-	Box enlarge(Scalar value) const { return inset(Vector(-value)); }
+	Box enlarge(const T &val_min, const T &val_max) const { return inset(-val_min, -val_max); }
+	Box enlarge(const T &value) const { return inset(-value); }
+	Box enlarge(Scalar value) const { return inset(T(-value)); }
 
 	FWK_ORDER_BY(Box, m_min, m_max);
 
@@ -207,12 +207,12 @@ template <class T> class Box {
 		Scalar m_begin_x, m_end_x;
 	};
 
-	// TODO: were acutally iterating over pixels here...
+	// TODO: we're acutally iterating over pixels here...
 	// how to make it more clear ?
-	template <class U = Vector, EnableIf<isIntegralVector<U, 2>()>...> Iter2D begin() const {
+	template <class U = T, EnableIf<isIntegralVector<U, 2>()>...> Iter2D begin() const {
 		return {m_min, m_min[0], m_max[0]};
 	}
-	template <class U = Vector, EnableIf<isIntegralVector<U, 2>()>...> Iter2D end() const {
+	template <class U = T, EnableIf<isIntegralVector<U, 2>()>...> Iter2D end() const {
 		return {T(m_min[0], m_max[1]), m_min[0], m_max[0]};
 	}
 

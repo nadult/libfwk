@@ -27,7 +27,9 @@ template <class T, int N> class ISegment {
 	ENABLE_IF_SIZE(3)
 	explicit ISegment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
-	template <class U>
+	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	explicit ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
+	template <class U, EnableIf<!preciseConversion<U, T>()>...>
 	explicit ISegment(const ISegment<U, N> &rhs) : ISegment(Point(rhs.from), Point(rhs.to)) {}
 
 	bool empty() const { return from == to; }
@@ -67,7 +69,9 @@ template <class T, int N> class Segment {
 	ENABLE_IF_SIZE(3)
 	explicit Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
-	template <class U>
+	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
+	template <class U, EnableIf<!preciseConversion<U, T>()>...>
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
 
 	template <class U> explicit operator ISegment<U, N>() const {
