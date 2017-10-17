@@ -173,12 +173,7 @@ template <class T, EnableIfEnum<T>...> T prev(T value) {
 	return T((int(value) + (count<T> - 1)) % count<T>());
 }
 
-template <class T, EnableIfEnum<T>...>
-using BestFlagsBase =
-	Conditional<count<T>() <= 8, u8,
-				Conditional<count<T>() <= 16, u16, Conditional<count<T>() <= 32, u32, u64>>>;
-
-template <class T, class Base_ = BestFlagsBase<T>> struct EnumFlags;
+template <class T> struct EnumFlags;
 
 template <class Enum, class T> class EnumMap;
 }

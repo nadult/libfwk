@@ -8,10 +8,13 @@
 
 namespace fwk {
 
-template <class T, class Base_> struct EnumFlags {
-	using Base = Base_;
+template <class T> struct EnumFlags {
+	using Base =
+		Conditional<count<T>() <= 8, u8,
+					Conditional<count<T>() <= 16, u16, Conditional<count<T>() <= 32, u32, u64>>>;
+
 	enum { max_flags = fwk::count<T>() };
-	static constexpr const Base mask =
+	static constexpr Base mask =
 		(Base(1) << (max_flags - 1)) - Base(1) + (Base(1) << (max_flags - 1));
 
 	static_assert(isEnum<T>(), "EnumFlags<> should be based on fwk-enum");
@@ -22,7 +25,6 @@ template <class T, class Base_> struct EnumFlags {
 	constexpr EnumFlags(None) : bits(0) {}
 	constexpr EnumFlags(T value) : bits(Base(1) << uint(value)) {}
 	constexpr explicit EnumFlags(Base bits) : bits(bits) {}
-	template <class TBase> constexpr EnumFlags(EnumFlags<T, TBase> rhs) : bits(rhs.bits) {}
 
 	constexpr EnumFlags operator|(EnumFlags rhs) const { return EnumFlags(bits | rhs.bits); }
 	constexpr EnumFlags operator&(EnumFlags rhs) const { return EnumFlags(bits & rhs.bits); }
@@ -64,13 +66,18 @@ template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator~(T bit) {
 	return ~EnumFlags<T>(bit);
 }
 
+template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> mask(bool cond, T val) {
+	return cond ? val : EnumFlags<T>();
+}
+
+template <class C, class T, EnableIf<std::is_convertible<C, bool>::value>...>
+constexpr EnumFlags<T> mask(bool cond, EnumFlags<T> val) {
+	return cond ? val : EnumFlags<T>();
+}
+
 namespace detail {
-	template <class T> struct IsEnumFlags {
-		enum { value = 0 };
-	};
-	template <class T, class Base> struct IsEnumFlags<EnumFlags<T, Base>> {
-		enum { value = 1 };
-	};
+	template <class T> struct IsEnumFlags { static constexpr int value = 0; };
+	template <class T> struct IsEnumFlags<EnumFlags<T>> { static constexpr int value = 1; };
 }
 
 template <class T> constexpr bool isEnumFlags() { return detail::IsEnumFlags<T>::value; }

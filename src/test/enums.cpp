@@ -23,4 +23,6 @@ void testMain() {
 	for(auto elem : all<SomeEnum>())
 		text += toString(elem);
 	ASSERT(text == "foobarfoo_barlast");
+	ASSERT(mask(false, SomeEnum::foo) == none);
+	ASSERT(mask(true, SomeEnum::bar) == SomeEnum::bar);
 }
