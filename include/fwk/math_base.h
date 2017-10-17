@@ -40,12 +40,6 @@ template <class Real> struct constant {
 	static Real inf() { return std::numeric_limits<Real>::infinity(); }
 };
 
-pair<float, float> sincos(float radians);
-pair<double, double> sincos(double radians);
-
-bool isnan(float);
-bool isnan(double);
-
 template <class T> struct vec2;
 template <class T> struct vec3;
 template <class T> struct vec4;
@@ -77,8 +71,6 @@ pair<double, double> sincos(double radians);
 
 bool isnan(float);
 bool isnan(double);
-
-template <class... T> bool isnan(T... values) { return (... || isnan(values)); }
 
 inline int abs(int s) { return std::abs(s); }
 inline double abs(double s) { return std::abs(s); }
@@ -246,11 +238,32 @@ template <class T> struct ToReal { using type = double; };
 template <> struct ToReal<float> { using type = float; };
 template <> struct ToReal<short> { using type = float; };
 
+template <class T, class... Args> bool isnan(T val0, Args... vals) {
+	return isnan(val0) || isnan(vals...);
+}
+
+template <class T, EnableIfRealVec<T>...> bool isnan(const T &v) {
+	return anyOf(v.values(), [](auto s) { return isnan(s); });
+}
+
+template <class TRange, class T = RangeBase<TRange>, EnableIf<isReal<T>() || isRealVec<T>()>...>
+bool isnan(const TRange &range) {
+	return anyOf(range, [](const auto &elem) { return isnan(elem); });
+}
+
+#ifdef FWK_CHECK_NANS
+#define CHECK_NANS(...)                                                                            \
+	if constexpr(isReal<T>())                                                                      \
+	DASSERT(!isnan(__VA_ARGS__))
+#else
+#define CHECK_NANS(...)
+#endif
+
 template <class T> struct vec2 {
 	using Scalar = T;
 	enum { vec_size = 2 };
 
-	constexpr vec2(T x, T y) : x(x), y(y) {}
+	constexpr vec2(T x, T y) : x(x), y(y) { CHECK_NANS(x, y); }
 	constexpr vec2() : x(0), y(0) {}
 	constexpr vec2(CSpan<T, 2> v) : vec2(v[0], v[1]) {}
 
@@ -288,11 +301,11 @@ template <class T> struct vec3 {
 	using Scalar = T;
 	enum { vec_size = 3 };
 
-	constexpr vec3(T x, T y, T z) : x(x), y(y), z(z) {}
-	constexpr vec3(const vec2<T> &xy, T z) : x(xy.x), y(xy.y), z(z) {}
+	constexpr vec3(T x, T y, T z) : x(x), y(y), z(z) { CHECK_NANS(x, y, z); }
+	constexpr vec3(const vec2<T> &xy, T z) : x(xy.x), y(xy.y), z(z) { CHECK_NANS(z); }
 	constexpr vec3() : x(0), y(0), z(0) {}
 	constexpr vec3(CSpan<T, 3> v) : vec3(v[0], v[1], v[2]) {}
-	explicit vec3(T t) : x(t), y(t), z(t) {}
+	explicit vec3(T t) : x(t), y(t), z(t) { CHECK_NANS(t); }
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
@@ -331,12 +344,12 @@ template <class T> struct vec4 {
 	using Scalar = T;
 	enum { vec_size = 4 };
 
-	constexpr vec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
-	constexpr vec4(const vec2<T> &xy, T z, T w) : x(xy.x), y(xy.y), z(z), w(w) {}
-	constexpr vec4(const vec3<T> &xyz, T w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+	constexpr vec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) { CHECK_NANS(x, y, z, w); }
+	constexpr vec4(const vec2<T> &xy, T z, T w) : x(xy.x), y(xy.y), z(z), w(w) { CHECK_NANS(z, w); }
+	constexpr vec4(const vec3<T> &xyz, T w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) { CHECK_NANS(w); }
 	constexpr vec4() : x(0), y(0), z(0), w(0) {}
 	constexpr vec4(CSpan<T, 4> v) : vec4(v[0], v[1], v[2], v[3]) {}
-	explicit vec4(T t) : x(t), y(t), z(t), w(t) {}
+	explicit vec4(T t) : x(t), y(t), z(t), w(t) { CHECK_NANS(t); }
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
@@ -379,6 +392,8 @@ template <class T> struct vec4 {
 		T v[4];
 	};
 };
+
+#undef CHECK_NANS
 
 template <class T, class T1, EnableIfMathObject<T>...> void operator+=(T &a, const T1 &b) {
 	a = a + b;
@@ -599,10 +614,6 @@ float blendAngles(float initial, float target, float step);
 
 // Returns angle in range <0, 2 * PI)
 float normalizeAngle(float angle);
-
-template <class T, EnableIfRealVec<T>...> bool isnan(const T &v) {
-	return anyOf(v.values(), [](auto s) { return isnan(s); });
-}
 
 class Matrix3;
 class Matrix4;

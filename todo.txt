@@ -1,7 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-
+- fix mingw warnings (some of them are useful)
+- anyOf (and others) should be able to accept function pointer ?
 - MaybeEnum from fwk_enum
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
