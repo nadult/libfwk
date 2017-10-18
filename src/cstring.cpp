@@ -8,7 +8,7 @@
 
 namespace fwk {
 
-#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
+#if defined(FWK_TARGET_MINGW)
 
 static int strcasecmp(const char *a, const char *b) { return _stricmp(a, b); }
 

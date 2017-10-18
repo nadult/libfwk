@@ -10,14 +10,8 @@
 #include <string>
 #include <type_traits>
 
-#if _MSC_VER
-#define NOINLINE
-#define __restrict__ __restrict
-#define ALWAYS_INLINE
-#else
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))
-#endif
 
 #ifdef __clang__
 #define ATTRIB_PRINTF(fmt, next) __attribute__((__format__(__printf__, fmt, next)))

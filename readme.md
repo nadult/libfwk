@@ -11,7 +11,7 @@ TODO: write more detailed description.
 ## Features
 
 - OpenGL & SDL2 based
-- Supported platforms: linux, windows (using mingw)
+- Supported platforms: linux, windows (using MinGW32-W64)
 - Doesn't use exceptions
 
 TODO: more details
@@ -50,7 +50,7 @@ Code is written in C++14 with some C++17 features used.
 ## Compilation
 
 To compile simply run make. With Makefile.local you can override some basic variables
-like LINUX\_CXX, FLAGS or BUILD\_DIR. If you want to cross-compile for mingw32,
+like LINUX\_CXX, FLAGS or BUILD\_DIR. If you want to cross-compile for MinGW32-w64,
 simply override MINGW\_PREFIX in Makefile.local with proper prefix.
 There is also an option to compile for the web (using emscripten) although it's not
 fully supported.

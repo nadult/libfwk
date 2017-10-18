@@ -2,9 +2,9 @@
 
 #include "fwk/sys/backtrace.h"
 
-#if !(defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC))
+#if !defined(FWK_TARGET_MINGW)
 
-#error "This file should only be compiled for MinGW or MSVC targets"
+#error "This file should only be compiled for MinGW target"
 
 #else
 

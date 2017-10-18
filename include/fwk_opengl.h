@@ -10,9 +10,6 @@
 		#define APIENTRY __attribute__((__stdcall__))
 		#define WINGDIAPI __attribute__((dllimport))
 	#endif
-#elif defined(_MSC_VER)
-	#define WINGDIAPI __declspec(dllimport)
-	#define APIENTRY __stdcall
 #else
 	#define GL_GLEXT_PROTOTYPES 1
 #endif

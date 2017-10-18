@@ -1,8 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#if !(defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC))
-#error "This file should only be compiled for MinGW or MSVC targets"
+#if !defined(FWK_TARGET_MINGW)
+#error "This file should only be compiled for MinGW target"
 #endif
 
 #ifdef _WIN32
@@ -48,21 +48,13 @@ void FilePath::setCurrent(const FilePath &path) {
 bool FilePath::isRegularFile() const {
 	struct _stat buf;
 	_stat(c_str(), &buf);
-#ifdef FWK_TARGET_MSVC
-	return buf.st_mode & _S_IFREG;
-#else
 	return S_ISREG(buf.st_mode);
-#endif
 }
 
 bool FilePath::isDirectory() const {
 	struct _stat buf;
 	_stat(c_str(), &buf);
-#ifdef FWK_TARGET_MSVC
-	return buf.st_mode & _S_IFDIR;
-#else
 	return S_ISDIR(buf.st_mode);
-#endif
 }
 
 static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,

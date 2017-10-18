@@ -45,7 +45,7 @@ FileType Converter::classify(const string &name) {
 }
 
 string Converter::locateBlender() {
-#if defined(FWK_TARGET_MINGW) || defined(FWK_TARGET_MSVC)
+#if defined(FWK_TARGET_MINGW)
 	vector<string> pfiles = {"C:/program files/", "C:/program files (x86)/"};
 	for(auto pf : pfiles) {
 		for(auto dir : fwk::findFiles(pf, FindFiles::directory)) {

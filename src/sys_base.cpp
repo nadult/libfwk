@@ -86,11 +86,6 @@ void handleCtrlC(void (*handler)()) {
 
 #endif
 
-#ifdef FWK_TARGET_MSVC
-#define popen _popen
-#define pclose _pclose
-#endif
-
 // TODO: stdout and stderr returned separately?
 pair<string, bool> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");

@@ -8,23 +8,13 @@ namespace fwk {
 // TODO: tak czy ze wskaznikami?
 pair<float, float> sincos(float radians) {
 	pair<float, float> out;
-#if defined(FWK_TARGET_MSVC)
-	out.first = ::sinf(radians);
-	out.second = ::cosf(radians);
-#else
 	::sincosf(radians, &out.first, &out.second);
-#endif
 	return out;
 }
 
 pair<double, double> sincos(double radians) {
 	pair<double, double> out;
-#if defined(FWK_TARGET_MSVC)
-	out.first = ::sin(radians);
-	out.second = ::cos(radians);
-#else
 	::sincos(radians, &out.first, &out.second);
-#endif
 	return out;
 }
 

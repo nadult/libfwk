@@ -31,32 +31,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 // clang-format off
 
-#include <new> // operator new
+#include <new>
 #include <type_traits>
 #include <utility>
 #include "fwk/sys_base.h"
 
-#ifdef _MSC_VER
- // https://msdn.microsoft.com/en-us/library/bw1hbe6y.aspx
- #ifdef NDEBUG
-  #define VARIANT_INLINE __forceinline
- #else
-  #define VARIANT_INLINE inline
- #endif
+#ifdef NDEBUG
+	#define VARIANT_INLINE inline __attribute__((always_inline))
 #else
- #ifdef NDEBUG
-  #define VARIANT_INLINE inline __attribute__((always_inline))
- #else
-  #define VARIANT_INLINE inline
- #endif
+	#define VARIANT_INLINE inline
 #endif
-
-#define VARIANT_MAJOR_VERSION 0
-#define VARIANT_MINOR_VERSION 1
-#define VARIANT_PATCH_VERSION 0
-
-#define VARIANT_VERSION (VARIANT_MAJOR_VERSION*100000) + (VARIANT_MINOR_VERSION*100) + (VARIANT_PATCH_VERSION)
-
 
 namespace fwk {
 
