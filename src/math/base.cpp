@@ -5,24 +5,6 @@
 
 namespace fwk {
 
-bool isnan(float s) {
-#ifdef _WIN32
-	volatile float vs = s;
-	return vs != vs;
-#else
-	return std::isnan(s);
-#endif
-}
-
-bool isnan(double s) {
-#ifdef _WIN32
-	volatile double vs = s;
-	return vs != vs;
-#else
-	return std::isnan(s);
-#endif
-}
-
 // TODO: tak czy ze wskaznikami?
 pair<float, float> sincos(float radians) {
 	pair<float, float> out;

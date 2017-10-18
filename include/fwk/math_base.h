@@ -69,8 +69,8 @@ using qint4 = vec4<qint>;
 pair<float, float> sincos(float radians);
 pair<double, double> sincos(double radians);
 
-bool isnan(float);
-bool isnan(double);
+inline bool isnan(float v) { return std::isnan(v); }
+inline bool isnan(double v) { return std::isnan(v); }
 
 inline int abs(int s) { return std::abs(s); }
 inline double abs(double s) { return std::abs(s); }
