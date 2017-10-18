@@ -122,8 +122,8 @@ class HashMap {
 	const_iterator end() const { return const_iterator(m_nodes + m_capacity, this); }
 
 	mapped_type &operator[](const key_type &key) {
-		hash_value_t hash;
-		Node *n = find_for_insert(key, &hash);
+		hash_value_t hash = hashFunc(key);
+		Node *n = find_for_insert(key, hash);
 		if(n == 0 || !n->is_occupied())
 			return emplace_at(value_type(key, TValue()), n, hash).first->second;
 		return n->data.second;
@@ -169,8 +169,8 @@ class HashMap {
 		if(m_num_used * TLoadFactor4 >= m_capacity * 4)
 			grow();
 
-		hash_value_t hash;
-		Node *n = find_for_insert(v.first, &hash);
+		hash_value_t hash = hashFunc(v.first);
+		Node *n = find_for_insert(v.first, hash);
 		if(n->is_occupied()) {
 			DASSERT(hash == n->hash && v.first == n->data.first);
 			return ret_type_t(iterator(n, this), false);
@@ -279,12 +279,10 @@ class HashMap {
 		checkInvariant();
 		return {iterator(n, this), true};
 	}
-	Node *find_for_insert(const key_type &key, hash_value_t *out_hash) {
+	Node *find_for_insert(const key_type &key, hash_value_t hash) {
 		if(m_capacity == 0)
 			return 0;
 
-		const hash_value_t hash = hashFunc(key);
-		*out_hash = hash;
 		uint32 i = hash & m_capacity_mask;
 
 		Node *n = m_nodes + i;

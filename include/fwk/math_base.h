@@ -225,7 +225,7 @@ template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::type;
 
 template <class From, class To> constexpr bool preciseConversion() {
 	if constexpr(isVec<From>() && isVec<To>())
-		return From::vec_size == To::vec_size &&
+		return int(From::vec_size) == int(To::vec_size) &&
 			   detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
 	return detail::PreciseConversion<From, To>::value;
 };

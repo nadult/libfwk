@@ -439,7 +439,7 @@ vector<Base2> merge(const TRange &range_of_ranges) {
 template <class TRange, EnableIfRange<TRange>...> bool distinct(const TRange &range) {
 	vector<RemoveConst<RangeBase<TRange>>> temp(begin(range), end(range));
 	makeUnique(temp);
-	return temp.size() == range.size();
+	return fwk::size(temp) == fwk::size(range);
 }
 }
 

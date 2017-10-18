@@ -2,7 +2,6 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - try using -fsignaling-nans ?
-- fix mingw warnings (some of them are useful)
 - anyOf (and others) should be able to accept function pointer ?
 - MaybeEnum from fwk_enum
 - We could define Size<> for different classes and use it for example in CSpan<T>
@@ -74,7 +73,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   or maybe not (pointers...)
 - change order in FWK_ORDER_BY for vectors ?
 - move box to fwk_box ?
-- warning in Variant (type punning) on g++ mingw
 
 - copyable_ptr (unique_ptr but with copying ability (why the hell it doesn't have it?))
 - profiler sux; fix it?

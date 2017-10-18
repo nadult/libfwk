@@ -541,6 +541,11 @@ struct no_init {};
 
 struct TypeNotInVariant;
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#endif
+
 template <typename... Types>
 class Variant
 {
@@ -793,6 +798,10 @@ public:
         return visit(rhs, visitor);
     }
 };
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 // unary visitor interface
 // const
