@@ -196,6 +196,7 @@ class Backtrace;
 struct ErrorChunk;
 struct Error;
 class Stream;
+class FileStream;
 class FilePath;
 
 template <class T> class immutable_ptr;

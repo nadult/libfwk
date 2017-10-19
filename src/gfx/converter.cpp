@@ -96,7 +96,7 @@ string Converter::exportFromBlender(const string &file_name, string &target_file
 	return result.first;
 }
 
-pair<PModel, string> Converter::loadModel(FileType file_type, Stream &stream) {
+pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream) {
 	pair<PModel, string> out;
 
 	if(file_type == FileType::fwk_model) {
@@ -107,7 +107,6 @@ pair<PModel, string> Converter::loadModel(FileType file_type, Stream &stream) {
 		out = make_pair(immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name()));
 	} else {
 		DASSERT(file_type == FileType::blender);
-		CHECK(dynamic_cast<FileStream *>(&stream));
 		string temp_file_name;
 		auto blender_result = exportFromBlender(stream.name(), temp_file_name);
 
