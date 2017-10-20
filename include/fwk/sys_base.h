@@ -8,7 +8,8 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include <type_traits>
+
+#include <fwk/meta.h>
 
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))
@@ -85,14 +86,6 @@ template <class T> using UndefinedSize = UndefinedVal<sizeof(T)>;
 
 template <class T, int size> constexpr int arraySize(T (&)[size]) { return size; }
 
-template <class T1, class T2> constexpr bool isSame() { return std::is_same<T1, T2>::value; }
-template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
-
-template <bool value, class T1, class T2>
-using Conditional = typename std::conditional<value, T1, T2>::type;
-template <class T> using RemoveConst = typename std::remove_const<T>::type;
-template <class T> using RemoveReference = typename std::remove_reference<T>::type;
-
 template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
 template <class T, class T1, class T2>
@@ -113,38 +106,6 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 		return min(min(arg1, arg2), args...);
 	return (arg1 < arg2) ? arg1 : arg2;
 }
-
-struct EnabledType {};
-struct DisabledType;
-
-namespace detail {
-
-	struct NoAssertsTag {};
-	struct ValidType {
-		template <class A> using Arg = A;
-	};
-
-	template <int N, typename T, typename... Types> struct NthType {
-		using type = typename NthType<N - 1, Types...>::type;
-	};
-	template <typename T, typename... Types> struct NthType<0, T, Types...> { using type = T; };
-
-	template <class...> struct Disjunction : std::false_type {};
-	template <class B1> struct Disjunction<B1> : B1 {};
-	template <class B1, class... Bn>
-	struct Disjunction<B1, Bn...> : std::conditional_t<bool(B1::value), B1, Disjunction<Bn...>> {};
-
-	template <class...> struct Conjunction : std::true_type {};
-	template <class B1> struct Conjunction<B1> : B1 {};
-	template <class B1, class... Bn>
-	struct Conjunction<B1, Bn...> : std::conditional_t<bool(B1::value), Conjunction<Bn...>, B1> {};
-}
-
-template <int N, class... Args> using NthType = typename detail::NthType<N, Args...>::type;
-
-template <bool cond, class InvalidArg = DisabledType>
-using EnableIf =
-	typename std::conditional<cond, detail::ValidType, InvalidArg>::type::template Arg<EnabledType>;
 
 // TODO: move FATAL, check, etc to fwk_assert ?
 // TODO: use CString -> CString

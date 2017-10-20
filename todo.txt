@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- isSame, etc. -> is_same
+- Hash<> for user types (not only tied?)
 - example Makefile for test/window which uses Makefile.include ?
 - try using -fsignaling-nans ?
 - anyOf (and others) should be able to accept function pointer ?

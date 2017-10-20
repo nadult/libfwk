@@ -42,6 +42,7 @@ template <class Type> class EnumRange {
 
 namespace detail {
 
+	// TODO: move to meta ?
 	template <unsigned...> struct Seq { using type = Seq; };
 	template <unsigned N, unsigned... Is> struct GenSeqX : GenSeqX<N - 1, N - 1, Is...> {};
 	template <unsigned... Is> struct GenSeqX<0, Is...> : Seq<Is...> {};

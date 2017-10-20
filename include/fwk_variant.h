@@ -535,7 +535,7 @@ class Variant
 {
     static_assert(sizeof...(Types) > 0, "Template parameter type list of variant can not be empty");
 	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
-    static_assert(!detail::Disjunction<std::is_reference<Types>...>::value, "Variant can not hold reference types. Maybe use std::reference?");
+    static_assert(!Disjunction<std::is_reference<Types>...>::value, "Variant can not hold reference types. Maybe use std::reference?");
 
 	template <class T>
 	using EnableIfValidType = EnableIf<(detail::direct_type<T, Types...>::index != -1), TypeNotInVariant>;

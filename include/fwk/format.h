@@ -112,7 +112,7 @@ namespace detail {
 template <class T> constexpr bool isFormattible() { return detail::IsFormattible<T>::value; }
 
 template <class... Args> constexpr bool areFormattible() {
-	return detail::Conjunction<detail::IsFormattible<Args>...>::value;
+	return Conjunction<detail::IsFormattible<Args>...>::value;
 }
 
 template <class T>
