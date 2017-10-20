@@ -154,6 +154,7 @@ double getTime();
 	}
 
 class Backtrace;
+template <class> class Expected;
 struct ErrorChunk;
 struct Error;
 class Stream;

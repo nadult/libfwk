@@ -76,6 +76,8 @@ template <class T> class Expected {
 		return m_error;
 	}
 
+	const T &orElse(const T &on_error) const { return m_has_value ? m_value : on_error; }
+
   private:
 	union {
 		Error m_error;

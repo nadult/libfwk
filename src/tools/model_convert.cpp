@@ -2,7 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
+#include "fwk/format.h"
 #include "fwk/gfx/converter.h"
+#include "fwk/sys/expected.h"
 
 using namespace fwk;
 
@@ -96,7 +98,12 @@ int main(int argc, char **argv) {
 				string dst_name = tprefix + name + tsuffix;
 				FilePath dst_folder = FilePath(dst_name).parent();
 				if(!access(dst_folder))
-					mkdirRecursive(dst_folder);
+					if(auto result = mkdirRecursive(dst_folder); !result) {
+						print("%\nFailed to convert: '%' to: '%'\n", result.error(), src_name,
+							  dst_name);
+						continue;
+					}
+
 				converter(src_name, dst_name);
 			}
 		}

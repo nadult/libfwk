@@ -81,8 +81,8 @@ namespace FindFiles {
 
 		recursive = 4,
 
-		relative = 8,		 // all paths relative to given path
-		absolute = 16,		 // all paths absolute
+		relative = 8, // all paths relative to given path
+		absolute = 16, // all paths absolute
 		include_parent = 32, // include '..'
 	};
 };
@@ -91,8 +91,10 @@ vector<string> findFiles(const string &prefix, const string &suffix);
 vector<FileEntry> findFiles(const FilePath &path, int flags = FindFiles::regular_file);
 bool removeSuffix(string &str, const string &suffix);
 bool removePrefix(string &str, const string &prefix);
-void mkdirRecursive(const FilePath &path);
 bool access(const FilePath &);
-double lastModificationTime(const FilePath &);
+
+Expected<void> mkdirRecursive(const FilePath &path);
+Expected<double> lastModificationTime(const FilePath &);
+
 FilePath executablePath();
 }

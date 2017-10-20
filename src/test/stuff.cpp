@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/filesystem.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
@@ -82,6 +83,7 @@ void testXMLConverters() {
 }
 
 void testPathOperations() {
+	ASSERT(!mkdirRecursive("/totally_crazy_path/no_way_its_possible"));
 	// TODO: write me
 }
 

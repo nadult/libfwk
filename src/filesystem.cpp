@@ -2,6 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
+#include "fwk/format.h"
+#include "fwk/sys/expected.h"
 #include "fwk_vector.h"
 #include <algorithm>
 #include <cstdio>
@@ -245,27 +247,28 @@ bool access(const FilePath &path) {
 #endif
 }
 
-double lastModificationTime(const FilePath &file_name) {
+Expected<double> lastModificationTime(const FilePath &file_name) {
 #ifdef _WIN32
 	struct _stat64 attribs;
 	if(_stat64(file_name.c_str(), &attribs) != 0)
-		CHECK_FAILED("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+		return Error(format("stat failed for file %: %\n", file_name, strerror(errno)));
 	return double(attribs.st_mtime);
 #else
 	struct stat attribs;
 	if(stat(file_name.c_str(), &attribs) != 0)
-		CHECK_FAILED("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+		return Error(format("stat failed for file %: %\n", file_name, strerror(errno)));
 	return double(attribs.st_mtim.tv_sec) + double(attribs.st_mtim.tv_nsec) * 0.000000001;
 #endif
 }
 
-void mkdirRecursive(const FilePath &path) {
+Expected<void> mkdirRecursive(const FilePath &path) {
 	if(access(path))
-		return;
+		return {};
 
 	FilePath parent = path.parent();
 	if(!access(parent))
-		mkdirRecursive(parent);
+		if(auto result = mkdirRecursive(parent); !result)
+			return result;
 
 #ifdef _WIN32
 	int ret = mkdir(path.c_str());
@@ -274,7 +277,8 @@ void mkdirRecursive(const FilePath &path) {
 #endif
 
 	if(ret != 0)
-		CHECK_FAILED("Cannot create directory: \"%s\" error: %s\n", path.c_str(), strerror(errno));
+		return Error(format("Cannot create directory: \"%\" error: %\n", path, strerror(errno)));
+	return {};
 }
 
 vector<string> findFiles(const string &prefix, const string &suffix) {
