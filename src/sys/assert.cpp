@@ -27,7 +27,7 @@ static Error makeError(const char *file, int line, const char *main_message) {
 	s_assert_protect = true;
 
 	auto roll_status = RollbackContext::status();
-	auto bt = Backtrace::get(2, nullptr, roll_status.backtrace_mode);
+	auto bt = Backtrace::get(3, nullptr, roll_status.backtrace_mode);
 
 	vector<ErrorChunk> chunks;
 

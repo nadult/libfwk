@@ -125,13 +125,13 @@ double getTime();
 #define FATAL(...) fwk::fatalError(__FILE__, __LINE__, __VA_ARGS__)
 
 #define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
+#define ASSERT_FAILED(...) fwk::assertFailed(__FILE__, __LINE__, __VA_ARGS__)
 
-// TODO: Error messages using fwk format ?
-#define CHECK_FAILED(...) fwk::checkFailed(__FILE__, __LINE__, __VA_ARGS__)
-// Use this for checking input; If rollback mode is on, it will cause rollback()
+// Use CHECKs for checking input; If rollback mode is on, it will cause rollback()
 // Otherwise it works just like an assert
 #define CHECK(expr)                                                                                \
 	(!!(expr) || (fwk::checkFailed(__FILE__, __LINE__, "%s", FWK_STRINGIZE(expr)), 0))
+#define CHECK_FAILED(...) fwk::checkFailed(__FILE__, __LINE__, __VA_ARGS__)
 
 #ifdef NDEBUG
 #define DASSERT(expr) ((void)0)
