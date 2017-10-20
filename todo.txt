@@ -2,6 +2,7 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - isSame, etc. -> is_same
+- fix parsing ? strtol is used for ints, strtoll for unsigned ints..
 - Hash<> for user types (not only tied?)
 - example Makefile for test/window which uses Makefile.include ?
 - try using -fsignaling-nans ?

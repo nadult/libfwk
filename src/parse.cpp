@@ -27,6 +27,8 @@ namespace {
 
 	auto strtol(const char *ptr, char **end_ptr) { return ::strtol(ptr, end_ptr, 0); }
 	auto strtoul(const char *ptr, char **end_ptr) { return ::strtoul(ptr, end_ptr, 0); }
+	auto strtoll(const char *ptr, char **end_ptr) { return ::strtoll(ptr, end_ptr, 0); }
+	auto strtoull(const char *ptr, char **end_ptr) { return ::strtoull(ptr, end_ptr, 0); }
 
 	template <class Func> auto parseSingle(const char **ptr, Func func, const char *type_name) {
 		char *end_ptr = const_cast<char *>(*ptr);
@@ -84,12 +86,26 @@ string TextParser::parseString() {
 	return out[0];
 }
 
-int TextParser::parseInt() { return parseSingle(&m_current, strtol, "int"); }
+int TextParser::parseInt() {
+	long value = parseSingle(&m_current, strtol, "int");
+	if(sizeof(long) > sizeof(int) && (value < INT_MIN || value > INT_MAX))
+		CHECK_FAILED("Parsed value is too big");
+	return value;
+}
+long TextParser::parseLong() { return parseSingle(&m_current, strtol, "long"); }
+long long TextParser::parseLongLong() { return parseSingle(&m_current, strtoll, "long long"); }
+unsigned int TextParser::parseUInt() { return parseSingle(&m_current, strtoul, "unsigned int"); }
+unsigned long TextParser::parseULong() { return parseSingle(&m_current, strtoul, "unsigned long"); }
+unsigned long long TextParser::parseULongLong() {
+	return parseSingle(&m_current, strtoull, "unsigned long long");
+}
 float TextParser::parseFloat() { return parseSingle(&m_current, strtof, "float"); }
 double TextParser::parseDouble() { return parseSingle(&m_current, strtod, "double"); }
-uint TextParser::parseUint() { return parseSingle(&m_current, strtoul, "uint"); }
 
-void TextParser::parseInts(Span<int> out) { parseMultiple(&m_current, out, strtol, "int"); }
+void TextParser::parseInts(Span<int> out) {
+	// TODO: properly check int ranges
+	parseMultiple(&m_current, out, strtol, "int");
+}
 void TextParser::parseFloats(Span<float> out) { parseMultiple(&m_current, out, strtof, "float"); }
 void TextParser::parseDoubles(Span<double> out) {
 	parseMultiple(&m_current, out, strtod, "double");
@@ -129,8 +145,14 @@ namespace detail {
 
 	template <> string fromString(TextParser &parser) { return parser.parseString(); }
 	template <> bool fromString(TextParser &parser) { return parser.parseBool(); }
-	template <> uint fromString(TextParser &parser) { return parser.parseUint(); }
 	template <> int fromString(TextParser &parser) { return parser.parseInt(); }
+	template <> long fromString(TextParser &parser) { return parser.parseLong(); }
+	template <> long long fromString(TextParser &parser) { return parser.parseLongLong(); }
+	template <> unsigned int fromString(TextParser &parser) { return parser.parseUInt(); }
+	template <> unsigned long fromString(TextParser &parser) { return parser.parseULong(); }
+	template <> unsigned long long fromString(TextParser &parser) {
+		return parser.parseULongLong();
+	}
 	template <> float fromString(TextParser &parser) { return parser.parseFloat(); }
 	template <> double fromString(TextParser &parser) { return parser.parseDouble(); }
 

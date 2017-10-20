@@ -4,8 +4,8 @@
 #ifndef FWK_PARSE_H
 #define FWK_PARSE_H
 
-#include "fwk/sys_base.h"
 #include "fwk/math_base.h"
+#include "fwk/sys_base.h"
 
 namespace fwk {
 
@@ -17,9 +17,13 @@ class TextParser {
 
 	bool parseBool();
 	int parseInt();
+	long parseLong();
+	long long parseLongLong();
 	float parseFloat();
 	double parseDouble();
-	uint parseUint();
+	unsigned int parseUInt();
+	unsigned long parseULong();
+	unsigned long long parseULongLong();
 	string parseString();
 
 	void parseInts(Span<int> out);
@@ -45,15 +49,20 @@ namespace detail {
 	template <> string fromString<string>(TextParser &);
 	template <> bool fromString<bool>(TextParser &);
 	template <> int fromString<int>(TextParser &);
+	template <> long fromString<long>(TextParser &);
+	template <> long long fromString<long long>(TextParser &);
+	template <> unsigned int fromString<unsigned int>(TextParser &);
+	template <> unsigned long fromString<unsigned long>(TextParser &);
+	template <> unsigned long long fromString<unsigned long long>(TextParser &);
+	template <> double fromString<double>(TextParser &);
+	template <> float fromString<float>(TextParser &);
+
 	template <> int2 fromString<int2>(TextParser &);
 	template <> int3 fromString<int3>(TextParser &);
 	template <> int4 fromString<int4>(TextParser &);
-	template <> uint fromString<uint>(TextParser &);
-	template <> double fromString<double>(TextParser &);
 	template <> double2 fromString<double2>(TextParser &);
 	template <> double3 fromString<double3>(TextParser &);
 	template <> double4 fromString<double4>(TextParser &);
-	template <> float fromString<float>(TextParser &);
 	template <> float2 fromString<float2>(TextParser &);
 	template <> float3 fromString<float3>(TextParser &);
 	template <> float4 fromString<float4>(TextParser &);

@@ -77,6 +77,8 @@ void testXMLConverters() {
 
 	ASSERT_FAIL(fromString<vector<int>>("1 2a 3"));
 	ASSERT_FAIL(fromString<bool>("foobar"));
+	ASSERT_FAIL(fromString<int>("10000000000"));
+	ASSERT_EQ(fromString<long long>("1000000000000"), 1000000000000ll);
 }
 
 void testPathOperations() {
