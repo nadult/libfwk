@@ -1,9 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/sys/error.h"
-#include "fwk/sys/backtrace.h"
 #include "fwk/format.h"
+#include "fwk/sys/backtrace.h"
+#include "fwk/sys/error.h"
 #include "fwk/sys/rollback.h"
 
 namespace fwk {

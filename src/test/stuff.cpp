@@ -83,7 +83,9 @@ void testXMLConverters() {
 }
 
 void testPathOperations() {
+#ifdef FWK_TARGET_LINUX
 	ASSERT(!mkdirRecursive("/totally_crazy_path/no_way_its_possible"));
+#endif
 	// TODO: write me
 }
 

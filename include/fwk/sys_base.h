@@ -78,6 +78,10 @@ using i32 = int;
 using u64 = unsigned long long;
 using i64 = long long;
 
+template <class> class Expected;
+struct ErrorChunk;
+struct Error;
+
 struct Empty {};
 
 template <class... T> struct Undefined;
@@ -112,6 +116,7 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 [[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
 [[noreturn]] void assertFailed(const char *file, int line, const char *str);
 [[noreturn]] void checkFailed(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
+[[noreturn]] void checkFailed(const char *file, int line, const Error &);
 
 void handleCtrlC(void (*handler)());
 void handleSegFault();
@@ -154,9 +159,6 @@ double getTime();
 	}
 
 class Backtrace;
-template <class> class Expected;
-struct ErrorChunk;
-struct Error;
 class Stream;
 class FileStream;
 class FilePath;

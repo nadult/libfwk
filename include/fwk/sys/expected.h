@@ -77,6 +77,11 @@ template <class T> class Expected {
 	}
 
 	const T &orElse(const T &on_error) const { return m_has_value ? m_value : on_error; }
+	const T &checked() const {
+		if(!m_has_value)
+			checkFailed(__FILE__, __LINE__, m_error);
+		return m_value;
+	}
 
   private:
 	union {
@@ -102,6 +107,11 @@ template <> class Expected<void> {
 	}
 
 	explicit operator bool() const { return !m_has_error; }
+
+	void checked() const {
+		if(m_has_error)
+			checkFailed(__FILE__, __LINE__, m_error);
+	}
 
   private:
 	Error m_error;

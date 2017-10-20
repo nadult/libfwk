@@ -70,7 +70,8 @@ int main(int argc, char **argv) {
 	}
 
 	if(params.size() != 2) {
-		printf("Wrong number of parameters (see help)\n");
+		printf("Wrong number of parameters\nSee help; also, don't forget to put arguments with '*' "
+			   "in quotes\n");
 		exit(1);
 	}
 
@@ -99,8 +100,8 @@ int main(int argc, char **argv) {
 				FilePath dst_folder = FilePath(dst_name).parent();
 				if(!access(dst_folder))
 					if(auto result = mkdirRecursive(dst_folder); !result) {
-						print("%\nFailed to convert: '%' to: '%'\n", result.error(), src_name,
-							  dst_name);
+						print("Failed to convert: '%' to: '%':\n%\n", result.error(), src_name,
+							  dst_name, result.error());
 						continue;
 					}
 

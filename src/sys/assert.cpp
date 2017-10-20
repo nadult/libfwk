@@ -103,4 +103,9 @@ void checkFailed(const char *file, int line, const char *fmt, ...) {
 	exit(1);
 #endif
 }
+
+void checkFailed(const char *file, int line, const Error &error) {
+	// TODO: pass error to rollback ?
+	checkFailed(file, line, "%s", toString(error).c_str());
+}
 }
