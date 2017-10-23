@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- use DEFINE_ENUM for input key ? two functions would have to be provided: one for normal keys and one for specials
 - option to make Expected non ignorable ?
 - implicit conversion to bool for enum flags ?
 - lastModificationTime is not related to getTime

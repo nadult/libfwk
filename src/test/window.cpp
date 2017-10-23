@@ -6,8 +6,8 @@
 #include <fwk/gfx/font.h>
 #include <fwk/gfx/gfx_device.h>
 #include <fwk/gfx/renderer2d.h>
+#include <fwk/sys/input.h>
 #include <fwk/sys/stream.h>
-#include <fwk_input.h>
 
 using namespace fwk;
 

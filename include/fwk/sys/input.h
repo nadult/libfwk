@@ -1,8 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_INPUT_H
-#define FWK_INPUT_H
+#pragma once
 
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
@@ -179,5 +178,3 @@ class InputState {
 	bool m_is_initialized;
 };
 }
-
-#endif
