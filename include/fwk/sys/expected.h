@@ -71,6 +71,11 @@ template <class T> class Expected {
 		DASSERT(m_has_value);
 		return m_value;
 	}
+	Error &error() {
+		DASSERT(!m_has_value);
+		return m_error;
+	}
+
 	const Error &error() const {
 		DASSERT(!m_has_value);
 		return m_error;
@@ -99,6 +104,11 @@ template <> class Expected<void> {
 	void swap(Expected &rhs) {
 		fwk::swap(m_has_error, rhs.m_has_error);
 		fwk::swap(m_error, rhs.m_error);
+	}
+
+	Error &error() {
+		DASSERT(m_has_error);
+		return m_error;
 	}
 
 	const Error &error() const {
