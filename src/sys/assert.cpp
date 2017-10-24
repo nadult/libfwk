@@ -47,10 +47,12 @@ static Error makeError(const char *file, int line, const char *main_message) {
 }
 
 void fatalError(const char *file, int line, const char *fmt, ...) {
-	char buffer[4096];
+	char buffer[4096], *bptr = buffer;
+	bptr += snprintf(buffer, sizeof(buffer), "FATAL: ");
+
 	va_list ap;
 	va_start(ap, fmt);
-	vsnprintf(buffer, sizeof(buffer), fmt, ap);
+	vsnprintf(bptr, sizeof(buffer) - (bptr - buffer), fmt, ap);
 	va_end(ap);
 
 #ifdef FWK_TARGET_HTML5
@@ -80,10 +82,12 @@ void assertFailed(const char *file, int line, const char *text) {
 }
 
 void checkFailed(const char *file, int line, const char *fmt, ...) {
-	char buffer[4096];
+	char buffer[4096], *bptr = buffer;
+	bptr += snprintf(buffer, sizeof(buffer), "Check failed: ");
+
 	va_list ap;
 	va_start(ap, fmt);
-	vsnprintf(buffer, sizeof(buffer), fmt, ap);
+	vsnprintf(bptr, sizeof(buffer) - (bptr - buffer), fmt, ap);
 	va_end(ap);
 
 #ifdef FWK_TARGET_HTML5
