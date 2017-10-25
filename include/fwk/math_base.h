@@ -126,7 +126,7 @@ namespace detail {
 		enum { value = decltype(test<T>(nullptr))::value };
 	};
 
-	template <class T, class Enable = void> struct Promotion { using type = T; };
+	template <class T> struct Promotion { using type = T; };
 
 	template <class From, class To> struct PreciseConversion {
 		static constexpr bool resolve() {

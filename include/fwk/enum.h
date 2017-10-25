@@ -9,7 +9,7 @@
 
 namespace fwk {
 
-int enumFromString(const char *str, CSpan<const char *> enum_strings, bool throw_on_invalid);
+int enumFromString(const char *str, CSpan<const char *> enum_strings, bool check_if_invalid);
 
 template <class Type> class EnumRange {
   public:

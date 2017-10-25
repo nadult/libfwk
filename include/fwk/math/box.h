@@ -27,7 +27,7 @@ template <class T> class Box {
 	enum { dim_size = T::vec_size, num_corners = 1 << dim_size };
 
 	// min <= max in all dimensions; can be empty
-	bool validRange(const Point &min, const Point &max) const {
+	static bool validRange(const Point &min, const Point &max) {
 		for(int i = 0; i < dim_size; i++)
 			if(!(min[i] <= max[i]))
 				return false;
@@ -35,7 +35,7 @@ template <class T> class Box {
 	}
 
 	// min >= max in any dimension
-	bool emptyRange(const Point &min, const Point &max) const {
+	static bool emptyRange(const Point &min, const Point &max) {
 		for(int n = 0; n < dim_size; n++)
 			if(!(min[n] < max[n]))
 				return true;

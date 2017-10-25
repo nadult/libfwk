@@ -140,8 +140,6 @@ namespace detail {
 	};
 }
 
-template <class T> using EnableIfLightTuple = EnableIf<sizeof(T) == 13>;
-
 template <class... Args>
 constexpr bool operator<(const LightTuple<Args...> &lhs, const LightTuple<Args...> &rhs) {
 	return detail::cmpLess<0>(lhs, rhs);
