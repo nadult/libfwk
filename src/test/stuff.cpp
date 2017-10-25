@@ -125,6 +125,9 @@ void testMaybe() {
 	ASSERT(Maybe<int>(10) == 10);
 	ASSERT(Maybe<int>() < 10);
 
+	static_assert(sizeof(Maybe<IRect>) == sizeof(IRect));
+	static_assert(sizeof(Maybe<FormatMode>) == 1);
+
 	// TODO: write more
 }
 

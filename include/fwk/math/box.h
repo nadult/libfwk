@@ -53,6 +53,8 @@ template <class T> class Box {
 	explicit Box(T size) : Box(T(), size) {}
 	Box() : m_min(), m_max() {}
 
+	static Box makeInvalid() { return {T(), T(-1), NoAsserts()}; }
+
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
 	template <class U, EnableIf<!preciseConversion<U, T>()>...>
@@ -148,9 +150,6 @@ template <class T> class Box {
 	Maybe<Box> intersection(const Box &rhs) const {
 		auto tmin = vmax(m_min, rhs.m_min);
 		auto tmax = vmin(m_max, rhs.m_max);
-
-		if(!validRange(tmin, tmax))
-			return none;
 		return Box{tmin, tmax, NoAsserts()};
 	}
 
@@ -223,6 +222,11 @@ template <class T> class Box {
 		};
 		Point m_v[2];
 	};
+};
+
+template <class T> struct InvalidValue<Box<T>> {
+	static Box<T> make() { return Box<T>::makeInvalid(); }
+	static bool valid(const Box<T> &obj) { return Box<T>::validRange(obj.min(), obj.max()); }
 };
 
 #undef ENABLE_IF_SIZE
