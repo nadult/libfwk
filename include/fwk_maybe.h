@@ -23,12 +23,11 @@
 
 namespace fwk {
 
-namespace detail {
-	struct NoneHelper {};
-}
-
-typedef int detail::NoneHelper::*None;
-const None none = nullptr;
+struct None {
+	bool operator==(const None &) const { return true; }
+	bool operator<(const None &) const { return false; }
+};
+constexpr None none = {};
 
 // gcc-4.7 warns about use of uninitialized memory around the use of storage_
 // even though this is explicitly initialized at each point.
