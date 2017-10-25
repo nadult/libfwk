@@ -21,7 +21,7 @@
 
 #include "fwk_input.h"
 #include "fwk/math_base.h"
-#include "fwk_maybe.h"
+#include "fwk/maybe.h"
 #include "fwk_mesh.h"
 #include "fwk_parse.h"
 #include "fwk_profile.h"

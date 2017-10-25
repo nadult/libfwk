@@ -15,7 +15,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - example Makefile for test/window which uses Makefile.include ?
 - try using -fsignaling-nans ?
 - anyOf (and others) should be able to accept function pointer ?
-- MaybeEnum from fwk_enum
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
 - Rename test files to t_vector, t_stuff ? or lower priority to test in docplugin ?
@@ -26,7 +25,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - StaticPimpl alignment
 - fix interval::valid
 - subRange dla vectora i spana
-- invalid<Type>() could return invalid value (otherwise not accepted, but useful for Maybe)
 - Size<Type> can be used instead of sizeof(); it can be specialized thus decreasing dependencies
 
 - function arguments could have invariants in them:
@@ -70,8 +68,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - fwk_assert powinno być ogólno dostępne, tak żeby wszędzie z tego korzystać
 - DASSERTY często nie wystarczają; chcielibyśmy mieć dokładniesze informacje (jakie dane konkretnie są zepsute?)
 - możliwość dodania suffixa do ścieżki FilePath (+em?)
-- specjalizacje dla Maybe: niektóre typy mogą mieć zdefiniowane niepoprawne wartości
-  które można używać zamiast boola!
 - konwersja vector na bool (czy pusty)
 - można robić struktury drzewiaste bazujące na wektorach! (tak jak robiłeś listę bazując na dwóch wektorach, tak samo
   możesz zrobić z drzewem)

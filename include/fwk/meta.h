@@ -10,6 +10,8 @@ namespace fwk {
 struct EnabledType {};
 struct DisabledType;
 
+struct Empty {};
+
 template <class T, int N> struct IndexedType {
 	using type = T;
 	enum { value = N };

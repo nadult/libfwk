@@ -82,8 +82,6 @@ template <class> class Expected;
 struct ErrorChunk;
 struct Error;
 
-struct Empty {};
-
 template <class... T> struct Undefined;
 template <long long... V> struct UndefinedVal;
 template <class T> using UndefinedSize = UndefinedVal<sizeof(T)>;

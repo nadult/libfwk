@@ -116,9 +116,22 @@ void testCache() {
 	ASSERT(Cache::access<Object>(key) == obj2);
 }
 
+void testMaybe() {
+	Maybe<IRect> mrect;
+	mrect = IRect(0, 0, 10, 10).intersection(IRect(20, 20, 30, 30));
+	ASSERT(!mrect);
+	ASSERT(IRect(0, 0, 10, 10).intersection(IRect(1, 1, 20, 20)));
+
+	ASSERT(Maybe<int>(10) == 10);
+	ASSERT(Maybe<int>() < 10);
+
+	// TODO: write more
+}
+
 void testMain() {
 	testTextFormatter();
 	testXMLConverters();
 	testPathOperations();
 	testCache();
+	testMaybe();
 }
