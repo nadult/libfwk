@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Minor modifications by Krzysztof 'nadult' Jakubowski
+// Some modifications by Krzysztof 'nadult' Jakubowski
 
 #pragma once
 
@@ -30,16 +30,14 @@ namespace detail {
 typedef int detail::NoneHelper::*None;
 const None none = nullptr;
 
-/**
- * gcc-4.7 warns about use of uninitialized memory around the use of storage_
- * even though this is explicitly initialized at each point.
- */
+// gcc-4.7 warns about use of uninitialized memory around the use of storage_
+// even though this is explicitly initialized at each point.
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
 #pragma GCC diagnostic ignored "-Wpragmas"
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif // __GNUC__
+#endif
 
 template <class T> class Maybe {
   public:
@@ -51,13 +49,13 @@ template <class T> class Maybe {
 	Maybe() {}
 
 	Maybe(const Maybe &src) {
-		if(src.hasValue())
+		if(src.m_has_value)
 			construct(src.value());
 	}
 
 	Maybe(Maybe &&src) {
-		if(src.hasValue()) {
-			construct(std::move(src.value()));
+		if(src.m_has_value) {
+			construct(move(src.value()));
 			src.clear();
 		}
 	}
@@ -68,57 +66,44 @@ template <class T> class Maybe {
 				m_value.~T();
 	}
 
-	/* implicit */ Maybe(const None &) {}
-	/* implicit */ Maybe(T &&newValue) { construct(std::move(newValue)); }
-	/* implicit */ Maybe(const T &newValue) { construct(newValue); }
+	// Implicit constructors:
+	Maybe(const None &) {}
+	Maybe(T &&newValue) { construct(move(newValue)); }
+	Maybe(const T &newValue) { construct(newValue); }
 
-	void assign(const None &) { clear(); }
-
-	void assign(Maybe &&src) {
-		if(this != &src) {
-			if(src.hasValue()) {
-				assign(std::move(src.value()));
-				src.clear();
-			} else {
-				clear();
-			}
-		}
-	}
-
-	void assign(const Maybe &src) {
-		if(src.hasValue())
-			assign(src.value());
+	void operator=(T &&newValue) {
+		if(m_has_value)
+			m_value = move(newValue);
 		else
-			clear();
+			construct(move(newValue));
 	}
 
-	void assign(T &&newValue) {
-		if(hasValue())
-			m_value = std::move(newValue);
-		else
-			construct(std::move(newValue));
-	}
-
-	void assign(const T &newValue) {
-		if(hasValue())
+	void operator=(const T &newValue) {
+		if(m_has_value)
 			m_value = newValue;
 		else
 			construct(newValue);
 	}
 
-	template <class Arg> Maybe &operator=(Arg &&arg) {
-		assign(std::forward<Arg>(arg));
-		return *this;
+	void operator=(const None &) { clear(); }
+
+	void operator=(Maybe &&src) {
+		if(this == &src)
+			return;
+
+		if(src.m_has_value) {
+			*this = move(src.value());
+			src.clear();
+		} else {
+			clear();
+		}
 	}
 
-	Maybe &operator=(Maybe &&other) {
-		assign(std::move(other));
-		return *this;
-	}
-
-	Maybe &operator=(const Maybe &other) {
-		assign(other);
-		return *this;
+	void operator=(const Maybe &src) {
+		if(src.m_has_value)
+			*this = src.value();
+		else
+			clear();
 	}
 
 	template <class... Args> void emplace(Args &&... args) {
@@ -138,63 +123,61 @@ template <class T> class Maybe {
 	}
 
 	const T &value() const & {
-		require_value();
+		requireValue();
 		return m_value;
 	}
 
 	T &value() & {
-		require_value();
+		requireValue();
 		return m_value;
 	}
 
 	T value() && {
-		require_value();
-		return std::move(m_value);
+		requireValue();
+		return move(m_value);
 	}
 
-	const T *get_pointer() const & { return m_has_value ? &m_value : nullptr; }
-	T *get_pointer() & { return m_has_value ? &m_value : nullptr; }
-	T *get_pointer() && = delete;
+	const T *get() const & { return m_has_value ? &m_value : nullptr; }
+	T *get() & { return m_has_value ? &m_value : nullptr; }
+	T *get() && = delete;
 
-	bool hasValue() const { return m_has_value; }
-
-	explicit operator bool() const { return hasValue(); }
+	explicit operator bool() const { return m_has_value; }
 
 	const T &operator*() const & { return value(); }
 	T &operator*() & { return value(); }
-	T operator*() && { return std::move(value()); }
+	T operator*() && { return move(value()); }
 
 	const T *operator->() const { return &value(); }
 	T *operator->() { return &value(); }
 
 	// Return a copy of the value if set, or a given default if not.
-	template <class U> T value_or(U &&dflt) const & {
+	template <class U> T orElse(U &&on_empty) const & {
 		if(m_has_value)
 			return m_value;
-		return std::forward<U>(dflt);
+		return std::forward<U>(on_empty);
 	}
 
-	template <class U> T value_or(U &&dflt) && {
+	template <class U> T orElse(U &&on_empty) && {
 		if(m_has_value)
-			return std::move(m_value);
-		return std::forward<U>(dflt);
+			return move(m_value);
+		return std::forward<U>(on_empty);
 	}
 
-	bool operator==(const T &rhs) const { return hasValue() && value() == rhs; }
+	bool operator==(const T &rhs) const { return m_has_value && m_value == rhs; }
 
 	bool operator==(const Maybe &rhs) const {
-		if(hasValue() != rhs.hasValue())
+		if(m_has_value != rhs.m_has_value)
 			return false;
-		if(hasValue())
-			return value() == rhs.value();
+		if(m_has_value)
+			return m_value == rhs.m_value;
 		return true;
 	}
 
 	bool operator<(const Maybe &rhs) const {
-		if(hasValue() != rhs.hasValue())
-			return hasValue() < rhs.hasValue();
-		if(hasValue())
-			return value() < rhs.value();
+		if(m_has_value != rhs.m_has_value)
+			return m_has_value < rhs.m_has_value;
+		if(m_has_value)
+			return m_value < rhs.m_value;
 		return false;
 	}
 
@@ -208,8 +191,23 @@ template <class T> class Maybe {
 	bool operator>=(const T &other) = delete;
 	bool operator>(const T &other) = delete;
 
+	friend bool operator==(const T &a, const Maybe<T> &b) {
+		return b.m_has_value && b.m_value == a;
+	}
+
+	void swap(Maybe &rhs) {
+		if(m_has_value && rhs.m_has_value) {
+			// both full
+			using std::swap;
+			swap(m_value, rhs.m_value);
+		} else if(m_has_value || rhs.m_has_value) {
+			// fall back to default implementation if they're mixed.
+			std::swap(*this, rhs);
+		}
+	}
+
   private:
-	void require_value() const {
+	void requireValue() const {
 #ifndef NDEBUG
 		if(!m_has_value)
 			FATAL("Dereferencing empty Maybe");
@@ -234,26 +232,10 @@ template <class T> class Maybe {
 #pragma GCC diagnostic pop
 #endif
 
-template <class T> const T *get_pointer(const Maybe<T> &opt) { return opt.get_pointer(); }
-
-template <class T> T *get_pointer(Maybe<T> &opt) { return opt.get_pointer(); }
-
-template <class T> void swap(Maybe<T> &a, Maybe<T> &b) {
-	if(a.hasValue() && b.hasValue()) {
-		// both full
-		using std::swap;
-		swap(a.value(), b.value());
-	} else if(a.hasValue() || b.hasValue()) {
-		std::swap(a, b); // fall back to default implementation if they're mixed.
-	}
-}
+template <class T> void swap(Maybe<T> &a, Maybe<T> &b) { return a.swap(b); }
 
 template <class T, class Opt = Maybe<typename std::decay<T>::type>> Opt makeMaybe(T &&v) {
 	return Opt(std::forward<T>(v));
-}
-
-template <class V> bool operator==(const V &a, const Maybe<V> &b) {
-	return b.hasValue() && b.value() == a;
 }
 
 // Suppress comparability of Maybe<T> with T, despite implicit conversion.
