@@ -37,7 +37,7 @@ struct MeshBuffers {
 	int size() const { return (int)positions.size(); }
 	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
 
-	MeshBuffers remap(const vector<uint> &mapping) const;
+	MeshBuffers remap(const vector<int> &mapping) const;
 
 	// Pose must have configuration for each of the nodes in node_names
 	vector<Matrix4> mapPose(PPose skinning_pose) const;

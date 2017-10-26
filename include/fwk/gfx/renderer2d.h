@@ -71,7 +71,7 @@ class Renderer2D : public MatrixStack {
 		vector<float2> positions;
 		vector<float2> tex_coords;
 		vector<IColor> colors;
-		vector<uint> indices;
+		vector<int> indices;
 		vector<Element> elements;
 	};
 

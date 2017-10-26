@@ -29,7 +29,7 @@ namespace {
 		auto type = fromString<ModelNodeType>(xml_node.attrib("type", "generic"));
 		auto trans = ModelAnim::transFromXML(xml_node);
 		auto mesh_id = xml_node.attrib<int>("mesh_id", -1);
-		ASSERT(mesh_id >= -1 && mesh_id < (int)meshes.size());
+		ASSERT(mesh_id >= -1 && mesh_id < meshes.size());
 
 		vector<ModelNode::Property> props;
 		XMLNode prop_node = xml_node.child("property");
@@ -114,7 +114,7 @@ int Model::findNodeId(const string &name) const {
 void Model::updateNodes() {
 	m_nodes.clear();
 	m_root->dfs(m_nodes);
-	for(int n = 0; n < (int)m_nodes.size(); n++)
+	for(int n = 0; n < m_nodes.size(); n++)
 		m_nodes[n]->setId(n);
 	m_default_pose = fwk::defaultPose(m_root.get());
 }
@@ -187,7 +187,7 @@ void Model::drawNodes(RenderList &out, PPose pose, IColor node_color, IColor lin
 	auto transforms = global_pose->transforms();
 
 	vector<float3> positions(nodes().size());
-	for(int n = 0; n < (int)nodes().size(); n++)
+	for(int n = 0; n < nodes().size(); n++)
 		positions[n] = mulPoint(transforms[n], float3(0, 0, 0));
 	if(positions.size() % 2 == 1)
 		positions.pop_back();
@@ -222,7 +222,7 @@ Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
 PPose Model::globalPose(PPose pose) const {
 	DASSERT(valid(pose));
 	vector<Matrix4> out = pose->transforms();
-	for(int n = 0; n < (int)out.size(); n++)
+	for(int n = 0; n < out.size(); n++)
 		if(nodes()[n]->parent())
 			out[n] = out[nodes()[n]->parent()->id()] * out[n];
 	return make_immutable<Pose>(move(out), pose->nameMap());
@@ -230,19 +230,19 @@ PPose Model::globalPose(PPose pose) const {
 
 PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	DASSERT(valid(global_pose));
-	DASSERT(node_id >= 0 && node_id < (int)m_nodes.size());
+	DASSERT(node_id >= 0 && node_id < m_nodes.size());
 
 	Matrix4 pre = inverse(m_nodes[node_id]->globalTrans());
 	Matrix4 post = m_nodes[node_id]->globalTrans();
 
 	vector<Matrix4> out = global_pose->transforms();
-	for(int n = 0; n < (int)out.size(); n++)
+	for(int n = 0; n < out.size(); n++)
 		out[n] = pre * out[n] * m_nodes[n]->invGlobalTrans() * post;
 	return make_immutable<Pose>(move(out), global_pose->nameMap());
 }
 
 PPose Model::animatePose(int anim_id, double anim_pos) const {
-	DASSERT(anim_id >= -1 && anim_id < (int)m_anims.size());
+	DASSERT(anim_id >= -1 && anim_id < m_anims.size());
 
 	if(anim_id == -1)
 		return defaultPose();

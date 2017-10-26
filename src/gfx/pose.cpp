@@ -13,7 +13,7 @@ namespace fwk {
 
 static auto makeNameMap(const vector<string> &names) {
 	vector<pair<string, int>> out(names.size());
-	for(int n = 0; n < (int)names.size(); n++)
+	for(int n = 0; n < names.size(); n++)
 		out[n] = make_pair(names[n], n);
 	std::sort(begin(out), end(out));
 	return out;
@@ -31,11 +31,11 @@ vector<int> Pose::mapNames(const vector<string> &names) const {
 	int src_index = 0;
 	vector<int> out(names.size());
 
-	for(int n = 0; n < (int)dst_map.size(); n++) {
+	for(int n = 0; n < dst_map.size(); n++) {
 		const string &name = dst_map[n].first;
 		while(m_name_map[src_index].first != name) {
 			src_index++;
-			if(src_index == (int)m_name_map.size())
+			if(src_index == m_name_map.size())
 				FATAL("Cannot find node in pose: %s", name.c_str());
 		}
 
@@ -48,7 +48,7 @@ vector<Matrix4> Pose::mapTransforms(const vector<int> &mapping) const {
 	vector<Matrix4> out;
 	out.reserve(mapping.size());
 	for(auto it : mapping) {
-		DASSERT(it >= 0 && it < (int)m_transforms.size());
+		DASSERT(it >= 0 && it < m_transforms.size());
 		out.emplace_back(m_transforms[it]);
 	}
 	return out;

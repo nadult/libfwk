@@ -14,10 +14,10 @@ namespace fwk {
 // Some indices in the middle may be invalid
 class DynamicMesh {
   public:
-	DynamicMesh(CSpan<float3> verts, CSpan<array<uint, 3>> tris, int poly_value = 0);
-	DynamicMesh(CSpan<float3> verts, CSpan<vector<uint>> polys, int poly_value = 0);
+	DynamicMesh(CSpan<float3> verts, CSpan<array<int, 3>> tris, int poly_value = 0);
+	DynamicMesh(CSpan<float3> verts, CSpan<vector<int>> polys, int poly_value = 0);
 	explicit DynamicMesh(const Mesh &mesh) : DynamicMesh(mesh.positions(), mesh.trisIndices()) {}
-	DynamicMesh() : DynamicMesh({}, vector<vector<uint>>{}) {}
+	DynamicMesh() : DynamicMesh({}, vector<vector<int>>{}) {}
 	explicit operator Mesh() const;
 
 	struct VertexId {

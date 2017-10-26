@@ -12,18 +12,18 @@ class IndexBuffer : public immutable_base<IndexBuffer> {
   public:
 	enum { max_index_value = 65535 };
 
-	IndexBuffer(const vector<uint> &indices);
+	IndexBuffer(const vector<int> &indices);
 	~IndexBuffer();
 
 	void operator=(const IndexBuffer &) = delete;
 	IndexBuffer(const IndexBuffer &) = delete;
 
-	vector<uint> getData() const;
+	vector<int> getData() const;
 	int size() const { return m_size; }
 
   private:
 	enum IndexType {
-		type_uint,
+		type_int,
 		type_ubyte,
 		type_ushort,
 	};

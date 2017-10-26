@@ -25,7 +25,7 @@ string DynamicMesh::Simplex::print(const DynamicMesh &mesh) const {
 	return (string)out.text();
 }
 
-DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<vector<uint>> polys, int poly_value)
+DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<vector<int>> polys, int poly_value)
 	: m_num_verts(0), m_num_polys(0) {
 	for(auto vert : verts)
 		addVertex(vert);
@@ -33,7 +33,7 @@ DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<vector<uint>> polys, int pol
 		addPoly(transform<VertexId>(poly), poly_value);
 }
 
-DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<array<uint, 3>> tris, int poly_value)
+DynamicMesh::DynamicMesh(CSpan<float3> verts, CSpan<array<int, 3>> tris, int poly_value)
 	: m_num_verts(0), m_num_polys(0) {
 	for(auto vert : verts)
 		addVertex(vert);
@@ -50,13 +50,13 @@ DynamicMesh::operator Mesh() const {
 		out_verts.emplace_back(point(vert));
 	}
 
-	vector<array<uint, 3>> out_tris;
+	vector<array<int, 3>> out_tris;
 	for(auto poly : polys()) {
 		auto pverts = verts(poly);
 		// TODO: fixme
 		if(pverts.size() != 3)
 			continue;
-		array<uint, 3> tri;
+		array<int, 3> tri;
 		for(int i = 0; i < 3; i++)
 			tri[i] = vert_map[pverts[i]];
 		out_tris.emplace_back(tri);
@@ -74,10 +74,9 @@ DynamicMesh DynamicMesh::extract(CSpan<PolyId> selection) const {
 	vector<float3> out_verts;
 	for(auto id : used_verts)
 		out_verts.emplace_back(point(id));
-	vector<vector<uint>> out_polys;
+	vector<vector<int>> out_polys;
 	for(auto poly : selection)
-		out_polys.emplace_back(
-			transform(verts(poly), [&](auto vert) { return (uint)vert_map[vert]; }));
+		out_polys.emplace_back(transform(verts(poly), [&](auto vert) { return vert_map[vert]; }));
 	return DynamicMesh(std::move(out_verts), std::move(out_polys));
 }
 

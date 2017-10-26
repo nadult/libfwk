@@ -8,28 +8,28 @@
 
 namespace fwk {
 
-MeshIndices::MeshIndices(vector<uint> indices, Type type) : m_data(move(indices)), m_type(type) {
+MeshIndices::MeshIndices(vector<int> indices, Type type) : m_data(move(indices)), m_type(type) {
 	DASSERT(isSupported(m_type));
 }
 
 MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices->getData(), type) {}
 MeshIndices::MeshIndices(const vector<TriIndices> &indices)
-	: MeshIndices(reinterpret<const uint>(makeSpan(indices))) {}
+	: MeshIndices(reinterpret<const int>(makeSpan(indices))) {}
 
-MeshIndices MeshIndices::makeRange(int count, uint first, Type ptype) {
+MeshIndices MeshIndices::makeRange(int count, int first, Type ptype) {
 	DASSERT(count >= 0);
-	vector<uint> indices(count);
+	vector<int> indices(count);
 	std::iota(begin(indices), end(indices), first);
 	return MeshIndices(move(indices), ptype);
 }
 
 MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
-							   vector<pair<uint, uint>> &index_ranges) {
+							   vector<pair<int, int>> &index_ranges) {
 	bool all_strips = std::all_of(begin(set), end(set),
 								  [](auto &inds) { return inds.type() == Type::triangle_strip; });
 	auto type = all_strips ? Type::triangle_strip : Type::triangles;
 
-	vector<uint> merged;
+	vector<int> merged;
 	index_ranges.clear();
 
 	MeshIndices temp;
@@ -43,13 +43,13 @@ MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
 		}
 
 		if(type == Type::triangle_strip && !merged.empty() && !indices.empty()) {
-			uint prev = merged.back(), next = indices.m_data.front();
+			int prev = merged.back(), next = indices.m_data.front();
 
 			if(merged.size() % 2 == 1) {
-				uint indices[5] = {prev, prev, prev, next, next};
+				int indices[5] = {prev, prev, prev, next, next};
 				merged.insert(end(merged), begin(indices), end(indices));
 			} else {
-				uint indices[4] = {prev, prev, next, next};
+				int indices[4] = {prev, prev, next, next};
 				merged.insert(end(merged), begin(indices), end(indices));
 			}
 		}
@@ -61,8 +61,7 @@ MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
 	return MeshIndices(merged, type);
 }
 
-vector<MeshIndices> MeshIndices::split(uint max_vertices,
-									   vector<vector<uint>> &out_mappings) const {
+vector<MeshIndices> MeshIndices::split(int max_vertices, vector<vector<int>> &out_mappings) const {
 	if(m_type == Type::triangle_strip) {
 		// TODO: write me if needed
 		return changeType(*this, Type::triangles).split(max_vertices, out_mappings);
@@ -72,19 +71,19 @@ vector<MeshIndices> MeshIndices::split(uint max_vertices,
 	out_mappings.clear();
 
 	auto range = indexRange();
-	vector<uint> index_map(range.second - range.first + 1, ~0u);
+	vector<int> index_map(range.second - range.first + 1, -1);
 
 	int last_index = 0;
 	while(last_index + 2 < m_data.size()) {
-		uint num_vertices = 0;
-		vector<uint> mapping, indices;
+		int num_vertices = 0;
+		vector<int> mapping, indices;
 
 		while(last_index + 2 < m_data.size()) {
 			for(int j = 0; j < 3; j++) {
-				uint vindex = m_data[last_index + j];
-				uint iindex = vindex - range.first;
+				int vindex = m_data[last_index + j];
+				int iindex = vindex - range.first;
 
-				if(index_map[iindex] == ~0u) {
+				if(index_map[iindex] == -1) {
 					index_map[iindex] = num_vertices++;
 					mapping.emplace_back(vindex);
 				}
@@ -97,7 +96,7 @@ vector<MeshIndices> MeshIndices::split(uint max_vertices,
 		}
 
 		for(auto idx : mapping)
-			index_map[idx - range.first] = ~0u;
+			index_map[idx - range.first] = -1;
 
 		out.emplace_back(move(indices));
 		out_mappings.emplace_back(move(mapping));
@@ -106,7 +105,7 @@ vector<MeshIndices> MeshIndices::split(uint max_vertices,
 	return out;
 }
 
-MeshIndices MeshIndices::applyOffset(MeshIndices indices, uint offset) {
+MeshIndices MeshIndices::applyOffset(MeshIndices indices, int offset) {
 	if(offset > 0)
 		for(auto &elem : indices.m_data)
 			elem += offset;
@@ -118,11 +117,11 @@ int MeshIndices::triangleCount() const {
 	return m_type == Type::triangles ? index_count / 3 : max(0, index_count - 2);
 }
 
-pair<uint, uint> MeshIndices::indexRange() const {
+pair<int, int> MeshIndices::indexRange() const {
 	if(m_data.empty())
 		return make_pair(0, 0);
 
-	pair<uint, uint> out(m_data.front(), m_data.front());
+	pair<int, int> out(m_data.front(), m_data.front());
 	for(const auto idx : m_data) {
 		out.first = min(out.first, idx);
 		out.second = max(out.second, idx);
@@ -143,9 +142,9 @@ vector<MeshIndices::TriIndices> MeshIndices::trisIndices() const {
 		bool do_swap = false;
 
 		for(int n = 2; n < m_data.size(); n++) {
-			uint a = m_data[n - 2];
-			uint b = m_data[n - 1];
-			uint c = m_data[n];
+			int a = m_data[n - 2];
+			int b = m_data[n - 1];
+			int c = m_data[n];
 			if(do_swap)
 				swap(b, c);
 			do_swap ^= 1;

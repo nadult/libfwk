@@ -95,7 +95,7 @@ Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType pri
 	if(elems.empty() || elems.back().primitive_type != primitive_type ||
 	   elems.back().texture != texture || fullMatrix() != elems.back().matrix ||
 	   m_current_scissor_rect != elems.back().scissor_rect_id)
-		elems.emplace_back(Element{fullMatrix(), move(texture), (int)chunk.indices.size(), 0,
+		elems.emplace_back(Element{fullMatrix(), move(texture), chunk.indices.size(), 0,
 								   m_current_scissor_rect, primitive_type});
 	return elems.back();
 }
@@ -113,7 +113,7 @@ void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect,
 void Renderer2D::addRect(const FRect &rect, FColor color) {
 	auto &chunk = allocChunk(4);
 	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
-	int vertex_offset = (int)chunk.positions.size();
+	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices(rect.corners(), {}, {}, color);
 
 	const int num_indices = 8;
@@ -126,7 +126,7 @@ void Renderer2D::addRect(const FRect &rect, FColor color) {
 void Renderer2D::addLine(const float2 &p1, const float2 &p2, FColor color) {
 	auto &chunk = allocChunk(2);
 	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
-	int vertex_offset = (int)chunk.positions.size();
+	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices({p1, p2}, {}, {}, color);
 
 	insertBack(chunk.indices, {vertex_offset, vertex_offset + 1});
@@ -156,11 +156,11 @@ void Renderer2D::addLines(CSpan<float2> pos, CSpan<FColor> color, FColor mat_col
 	auto &chunk = allocChunk(pos.size());
 	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
 
-	int vertex_offset = (int)chunk.positions.size();
+	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices(pos, {}, color, mat_color);
-	for(int n = 0; n < (int)pos.size(); n++)
+	for(int n = 0; n < pos.size(); n++)
 		chunk.indices.emplace_back(vertex_offset + n);
-	elem.num_indices += (int)pos.size();
+	elem.num_indices += pos.size();
 }
 
 void Renderer2D::addQuads(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColor> color,
@@ -169,7 +169,7 @@ void Renderer2D::addQuads(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FCol
 
 	auto &chunk = allocChunk(pos.size());
 	Element &elem = makeElement(chunk, PrimitiveType::triangles, material.texture());
-	int vertex_offset = (int)chunk.positions.size();
+	int vertex_offset = chunk.positions.size();
 	int num_quads = pos.size() / 4;
 
 	chunk.appendVertices(pos, tex_coord, color, material.color());
@@ -189,7 +189,7 @@ void Renderer2D::addTris(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColo
 
 	auto &chunk = allocChunk(pos.size());
 	Element &elem = makeElement(chunk, PrimitiveType::triangles, material.texture());
-	int vertex_offset = (int)chunk.positions.size();
+	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices(pos, tex_coord, color, material.color());
 
 	for(int n = 0; n < num_tris; n++) {
@@ -214,7 +214,7 @@ void Renderer2D::setScissorRect(Maybe<IRect> rect) {
 	if(m_scissor_rects.empty() || m_current_scissor_rect == -1 ||
 	   m_scissor_rects[m_current_scissor_rect] != *rect) {
 		m_scissor_rects.emplace_back(*rect);
-		m_current_scissor_rect = (int)m_scissor_rects.size() - 1;
+		m_current_scissor_rect = m_scissor_rects.size() - 1;
 	}
 }
 
@@ -280,8 +280,8 @@ vector<pair<FRect, Matrix4>> Renderer2D::renderRects() const {
 	vector<pair<FRect, Matrix4>> out;
 	for(const auto &chunk : m_chunks) {
 		for(const auto &elem : chunk.elements) {
-			const uint *inds = &chunk.indices[elem.first_index];
-			uint min_index = inds[0], max_index = inds[0];
+			const int *inds = &chunk.indices[elem.first_index];
+			int min_index = inds[0], max_index = inds[0];
 			for(int i : intRange(elem.num_indices)) {
 				max_index = max(max_index, inds[i]);
 				min_index = min(min_index, inds[i]);

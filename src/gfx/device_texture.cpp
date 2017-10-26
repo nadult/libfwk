@@ -119,16 +119,16 @@ void DTexture::bind(const vector<immutable_ptr<DTexture>> &set) {
 void DTexture::bind(const vector<const DTexture *> &set) {
 	static int max_bind = 0;
 
-	for(int n = 0; n < (int)set.size(); n++) {
+	for(int n = 0; n < set.size(); n++) {
 		DASSERT(set[n]);
 		glActiveTexture(GL_TEXTURE0 + n);
 		::glBindTexture(GL_TEXTURE_2D, set[n]->m_id);
 	}
-	for(int n = (int)set.size(); n < max_bind; n++) {
+	for(int n = set.size(); n < max_bind; n++) {
 		glActiveTexture(GL_TEXTURE0 + n);
 		::glBindTexture(GL_TEXTURE_2D, 0);
 	}
-	max_bind = (int)set.size();
+	max_bind = set.size();
 	glActiveTexture(GL_TEXTURE0);
 }
 

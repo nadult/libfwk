@@ -11,19 +11,19 @@ namespace fwk {
 class MeshIndices {
   public:
 	using Type = PrimitiveType;
-	using TriIndices = array<uint, 3>;
+	using TriIndices = array<int, 3>;
 
 	static bool isSupported(Type type) {
 		return isOneOf(type, Type::triangles, Type::triangle_strip);
 	}
 
-	MeshIndices(vector<uint> = {}, Type ptype = Type::triangles);
+	MeshIndices(vector<int> = {}, Type ptype = Type::triangles);
 	MeshIndices(PIndexBuffer, Type ptype = Type::triangles);
 	MeshIndices(const vector<TriIndices> &);
 
-	static MeshIndices makeRange(int count, uint first = 0, Type ptype = Type::triangles);
+	static MeshIndices makeRange(int count, int first = 0, Type ptype = Type::triangles);
 
-	operator const vector<uint> &() const { return m_data; }
+	operator const vector<int> &() const { return m_data; }
 	Type type() const { return m_type; }
 
 	vector<TriIndices> trisIndices() const;
@@ -32,18 +32,18 @@ class MeshIndices {
 	int triangleCount() const;
 	int size() const { return (int)m_data.size(); }
 	bool empty() const { return m_data.empty(); }
-	pair<uint, uint> indexRange() const;
+	pair<int, int> indexRange() const;
 
 	static MeshIndices changeType(MeshIndices, Type new_type);
-	static MeshIndices merge(const vector<MeshIndices> &, vector<pair<uint, uint>> &index_ranges);
-	static MeshIndices applyOffset(MeshIndices, uint offset);
+	static MeshIndices merge(const vector<MeshIndices> &, vector<pair<int, int>> &index_ranges);
+	static MeshIndices applyOffset(MeshIndices, int offset);
 
-	vector<MeshIndices> split(uint max_vertices, vector<vector<uint>> &out_mappings) const;
+	vector<MeshIndices> split(int max_vertices, vector<vector<int>> &out_mappings) const;
 
 	FWK_ORDER_BY(MeshIndices, m_data, m_type);
 
   private:
-	vector<uint> m_data;
+	vector<int> m_data;
 	Type m_type;
 };
 }

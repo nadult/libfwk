@@ -29,7 +29,7 @@ Mesh Mesh::makeBBox(const FBox &bbox) {
 	positions.reserve(24);
 	tex_coords.reserve(24);
 
-	vector<uint> indices;
+	vector<int> indices;
 	indices.reserve(36);
 
 	for(int s = 0; s < 6; s++) {
@@ -64,21 +64,21 @@ Mesh Mesh::makeCylinder(const Cylinder &cylinder, int num_sides) {
 	// TODO: generate tex coords as well?
 	// TODO: create mapping functions (like in 3dsmax) and apply them afterwards
 
-	vector<uint> indices;
+	vector<int> indices;
 	indices.reserve(num_sides * 6 + (num_sides - 2) * 3 * 2);
 	for(int n = 0; n < num_sides; n++) {
-		uint i0 = n, i1 = (n + 1) % num_sides;
-		uint j0 = n + num_sides, j1 = i1 + num_sides;
+		int i0 = n, i1 = (n + 1) % num_sides;
+		int j0 = n + num_sides, j1 = i1 + num_sides;
 
 		indices.insert(end(indices), {i0, j1, i1, i0, j0, j1});
 	}
 
 	for(int t = 0; t < num_sides - 2; t++) {
-		uint i0 = 0, i1 = t + 1, i2 = t + 2;
+		int i0 = 0, i1 = t + 1, i2 = t + 2;
 		indices.insert(end(indices), {i0, i1, i2});
 	}
 	for(int t = 0; t < num_sides - 2; t++) {
-		uint i0 = 0 + num_sides, i1 = t + 1 + num_sides, i2 = t + 2 + num_sides;
+		int i0 = 0 + num_sides, i1 = t + 1 + num_sides, i2 = t + 2 + num_sides;
 		indices.insert(end(indices), {i0, i2, i1});
 	}
 
@@ -89,7 +89,7 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 	vector<float3> positions;
 	insertBack(positions, tet.verts());
 
-	vector<uint> indices;
+	vector<int> indices;
 	for(int n = 0; n < 4; n++) {
 		int inds[4] = {n, (n + 1) % 4, (n + 2) % 4, (n + 3) % 4};
 
@@ -116,26 +116,26 @@ Mesh Mesh::makePlane(const Plane3F &plane, const float3 &start, float size) {
 
 	float3 center = plane.closestPoint(start);
 	float3 corners[4] = {
-		center - pnormal1 * size - pnormal2 * size, center + pnormal1 * size - pnormal2 * size,
-		center + pnormal1 * size + pnormal2 * size, center - pnormal1 * size + pnormal2 * size,
+		center - pnormal1 * size - pnormal2 * size,
+		center + pnormal1 * size - pnormal2 * size,
+		center + pnormal1 * size + pnormal2 * size,
+		center - pnormal1 * size + pnormal2 * size,
 	};
 
-	vector<uint> indices = {0, 1, 2, 0, 2, 3};
+	vector<int> indices = {0, 1, 2, 0, 2, 3};
 	return Mesh({vector<float3>(corners, corners + 4), {}, {}}, {{indices}});
 }
 
 Mesh Mesh::makePolySoup(CSpan<Triangle3F> rtris) {
 	vector<float3> positions;
-	vector<uint> indices;
+	vector<int> indices;
 
 	vector<Triangle3F> tris = rtris;
-	std::sort(begin(tris), end(tris), [](const auto &a, const auto &b) {
-		auto ca = a.center(), cb = b.center();
-		return std::tie(ca.x, ca.y, ca.z) < std::tie(cb.x, cb.y, cb.z);
-	});
+	std::sort(begin(tris), end(tris),
+			  [](const auto &a, const auto &b) { return a.center() < b.center(); });
 
 	for(const auto &tri : tris) {
-		uint off = positions.size();
+		int off = positions.size();
 		int inds[3];
 		for(auto point : tri.points()) {
 			float min_dist = fconstant::inf;
@@ -156,7 +156,7 @@ Mesh Mesh::makePolySoup(CSpan<Triangle3F> rtris) {
 				index = positions.size();
 				positions.emplace_back(point);
 			}
-			indices.emplace_back((uint)index);
+			indices.emplace_back(index);
 		}
 	}
 

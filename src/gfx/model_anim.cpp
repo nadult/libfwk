@@ -4,9 +4,8 @@
 #include "fwk/gfx/model_anim.h"
 
 #include "fwk/gfx/pose.h"
-#include "fwk_profile.h"
 #include "fwk/sys/xml.h"
-#include <algorithm>
+#include "fwk_profile.h"
 
 namespace fwk {
 
@@ -106,12 +105,12 @@ void ModelAnim::saveToXML(XMLNode node) const {
 }
 
 AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
-	DASSERT(channel_id >= 0 && channel_id < (int)m_channels.size());
+	DASSERT(channel_id >= 0 && channel_id < m_channels.size());
 	const auto &channel = m_channels[channel_id];
 
 	const auto &times = channel.time_track.empty() ? m_shared_time_track : channel.time_track;
 
-	int frame0 = 0, frame1 = 0, frame_count = (int)times.size();
+	int frame0 = 0, frame1 = 0, frame_count = times.size();
 	// TODO: binary search
 	while(frame1 < frame_count && anim_pos > times[frame1]) {
 		frame0 = frame1;
@@ -134,7 +133,7 @@ PPose ModelAnim::animatePose(PPose initial_pose, double anim_pos) const {
 
 	auto mapping = initial_pose->mapNames(m_node_names);
 	auto matrices = initial_pose->transforms();
-	for(int n = 0; n < (int)m_channels.size(); n++) {
+	for(int n = 0; n < m_channels.size(); n++) {
 		const auto &channel = m_channels[n];
 		matrices[mapping[n]] = animateChannel(n, anim_pos);
 	}
@@ -148,7 +147,7 @@ string ModelAnim::print() const {
 	for(const auto &channel : m_channels) {
 		const auto &time_track =
 			channel.time_track.empty() ? m_shared_time_track : channel.time_track;
-		out.stdFormat("  %12s: %d|", channel.node_name.c_str(), (int)time_track.size());
+		out.stdFormat("  %12s: %d|", channel.node_name.c_str(), time_track.size());
 		for(float time : time_track)
 			out.stdFormat("%6.3f ", time);
 		out("\n");
@@ -157,7 +156,7 @@ string ModelAnim::print() const {
 }
 
 void ModelAnim::verifyData() const {
-	for(int n = 0; n < (int)m_channels.size(); n++) {
+	for(int n = 0; n < m_channels.size(); n++) {
 		const auto &channel = m_channels[n];
 		auto num_keys =
 			channel.time_track.empty() ? m_shared_time_track.size() : channel.time_track.size();

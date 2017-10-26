@@ -11,7 +11,7 @@ namespace fwk {
 
 namespace detail {
 	__thread OnAssertInfo t_on_assert_stack[64];
-	__thread uint t_on_assert_count = 0;
+	__thread int t_on_assert_count = 0;
 }
 
 static __thread bool s_assert_protect = false;

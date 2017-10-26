@@ -63,7 +63,7 @@ namespace detail {
 
 	// TODO: hide this properly (add interface)
 	extern __thread OnAssertInfo t_on_assert_stack[64];
-	extern __thread uint t_on_assert_count;
+	extern __thread int t_on_assert_count;
 
 	struct OnAssertGuard {
 		~OnAssertGuard() { t_on_assert_count--; }

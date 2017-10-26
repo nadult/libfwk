@@ -44,7 +44,7 @@ MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
 	for(const auto &vweights : weights)
 		for(auto vweight : vweights)
 			max_node_id = max(max_node_id, vweight.node_id);
-	ASSERT(max_node_id < (int)node_names.size());
+	ASSERT(max_node_id < node_names.size());
 }
 
 MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
@@ -57,7 +57,7 @@ MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertex
 template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
 	DASSERT(array);
 	const auto &sources = array->sources();
-	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < (int)sources.size()));
+	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < sources.size()));
 	return buffer_id == -1 ? PVertexBuffer() : sources[buffer_id].buffer();
 }
 
@@ -83,12 +83,12 @@ static auto parseVertexWeights(const XMLNode &node) {
 	auto node_ids = node_ids_node.value<vector<int>>();
 
 	ASSERT(weights.size() == node_ids.size());
-	ASSERT(std::accumulate(begin(counts), end(counts), 0) == (int)weights.size());
+	ASSERT(std::accumulate(begin(counts), end(counts), 0) == weights.size());
 
 	out.resize(counts.size());
 
 	int offset = 0, max_index = 0;
-	for(int n = 0; n < (int)counts.size(); n++) {
+	for(int n = 0; n < counts.size(); n++) {
 		auto &vweights = out[n];
 		vweights.resize(counts[n]);
 		for(int i = 0; i < counts[n]; i++) {
@@ -119,10 +119,10 @@ void MeshBuffers::saveToXML(XMLNode node) const {
 		vector<float> vweights;
 		vector<int> node_ids;
 
-		for(int n = 0; n < (int)weights.size(); n++) {
+		for(int n = 0; n < weights.size(); n++) {
 			const auto &in = weights[n];
-			counts.emplace_back((int)in.size());
-			for(int i = 0; i < (int)in.size(); i++) {
+			counts.emplace_back(in.size());
+			for(int i = 0; i < in.size(); i++) {
 				vweights.emplace_back(in[i].weight);
 				node_ids.emplace_back(in[i].node_id);
 			}
@@ -140,7 +140,7 @@ vector<Matrix4> MeshBuffers::mapPose(PPose pose) const {
 	return pose->mapTransforms(pose->mapNames(node_names));
 }
 
-MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
+MeshBuffers MeshBuffers::remap(const vector<int> &mapping) const {
 	if(hasSkin())
 		FATAL("FIXME");
 
@@ -149,29 +149,29 @@ MeshBuffers MeshBuffers::remap(const vector<uint> &mapping) const {
 	vector<float2> out_tex_coords(!tex_coords.empty() ? mapping.size() : 0);
 	vector<IColor> out_colors(!colors.empty() ? mapping.size() : 0);
 
-	uint num_vertices = positions.size();
-	DASSERT(allOf(mapping, [=](uint idx) { return idx < num_vertices; }));
+	int num_vertices = positions.size();
+	DASSERT(allOf(mapping, [=](int idx) { return idx < num_vertices; }));
 
-	for(int n = 0; n < (int)mapping.size(); n++)
+	for(int n = 0; n < mapping.size(); n++)
 		out_positions[n] = positions[mapping[n]];
 	if(!normals.empty())
-		for(int n = 0; n < (int)mapping.size(); n++)
+		for(int n = 0; n < mapping.size(); n++)
 			out_normals[n] = normals[mapping[n]];
 	if(!tex_coords.empty())
-		for(int n = 0; n < (int)mapping.size(); n++)
+		for(int n = 0; n < mapping.size(); n++)
 			out_tex_coords[n] = tex_coords[mapping[n]];
 	if(!colors.empty())
-		for(int n = 0; n < (int)mapping.size(); n++)
+		for(int n = 0; n < mapping.size(); n++)
 			out_colors[n] = colors[mapping[n]];
 
 	return MeshBuffers{out_positions, out_normals, out_tex_coords, out_colors};
 }
 
 vector<float3> MeshBuffers::animatePositions(CSpan<Matrix4> matrices) const {
-	DASSERT(matrices.size() == (int)node_names.size());
+	DASSERT(matrices.size() == node_names.size());
 	vector<float3> out(positions.size());
 
-	for(int v = 0; v < (int)size(); v++) {
+	for(int v = 0; v < size(); v++) {
 		const auto &vweights = weights[v];
 
 		float3 blend, pos = positions[v];
@@ -183,10 +183,10 @@ vector<float3> MeshBuffers::animatePositions(CSpan<Matrix4> matrices) const {
 }
 
 vector<float3> MeshBuffers::animateNormals(CSpan<Matrix4> matrices) const {
-	DASSERT(matrices.size() == (int)node_names.size());
+	DASSERT(matrices.size() == node_names.size());
 	vector<float3> out(normals.size());
 
-	for(int v = 0; v < (int)normals.size(); v++) {
+	for(int v = 0; v < normals.size(); v++) {
 		const auto &vweights = weights[v];
 
 		float3 blend, nrm = normals[v];

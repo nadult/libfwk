@@ -151,8 +151,8 @@ bool Converter::operator()(const string &from, const string &to) {
 	auto func = [&]() {
 		CVT_PRINT("Loading: %s (format: %s)\n", from.c_str(), toString(from_type));
 		auto pair = loadModel(from_type, loader);
-		CVT_PRINT(" Nodes: %d  Anims: %d\n", (int)pair.first->nodes().size(),
-				  (int)pair.first->anims().size());
+		CVT_PRINT(" Nodes: %d  Anims: %d\n", pair.first->nodes().size(),
+				  pair.first->anims().size());
 		CVT_PRINT(" Saving: %s (node: %s)\n\n", to.c_str(), pair.second.c_str());
 
 		saveModel(pair.first, pair.second, to_type, saver);

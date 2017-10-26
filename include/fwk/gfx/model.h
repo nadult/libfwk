@@ -59,7 +59,7 @@ class Model : public immutable_base<Model> {
 	void clearDrawingCache() const;
 
 	const ModelAnim &anim(int anim_id) const { return m_anims[anim_id]; }
-	int animCount() const { return (int)m_anims.size(); }
+	int animCount() const { return m_anims.size(); }
 
 	// Pass -1 to anim_id for bind position
 	PPose animatePose(int anim_id, double anim_pos) const;

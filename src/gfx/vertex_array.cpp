@@ -56,7 +56,7 @@ VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 	glGenVertexArrays(1, &m_handle);
 	glBindVertexArray(m_handle);
 
-	for(int n = 0; n < (int)m_sources.size(); n++)
+	for(int n = 0; n < m_sources.size(); n++)
 		bindVertexBuffer(n);
 	glBindVertexArray(0);
 // TODO: test for errors
@@ -108,11 +108,11 @@ void VertexArray::bind() const {
 	glBindVertexArray(m_handle);
 #else
 	int max_bind = 0;
-	for(int n = 0; n < (int)m_sources.size(); n++)
+	for(int n = 0; n < m_sources.size(); n++)
 		if(bindVertexBuffer(n))
 			max_bind = max(max_bind, n);
 
-	for(int n = (int)m_sources.size(); n <= s_max_bind; n++)
+	for(int n = m_sources.size(); n <= s_max_bind; n++)
 		glDisableVertexAttribArray(n);
 	s_max_bind = max_bind;
 #endif

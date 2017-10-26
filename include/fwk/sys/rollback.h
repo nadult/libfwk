@@ -39,7 +39,7 @@ class RollbackContext {
 	static void resume();
 
 	struct RollbackStatus {
-		uint on_assert_top;
+		int on_assert_top;
 		BacktraceMode backtrace_mode;
 	};
 	static RollbackStatus status();
