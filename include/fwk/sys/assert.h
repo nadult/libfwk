@@ -37,7 +37,7 @@ namespace detail {
 	template <int N> struct StoreType<const char[N]> { using Type = const char *; };
 
 	template <class... Args>
-	auto makeRefFields(const Args &...) -> LightTuple<typename StoreType<Args>::Type...>;
+	auto makeRefs(const Args &...) -> LightTuple<typename StoreType<Args>::Type...>;
 
 	template <class... Args, class Func, unsigned... IS, class Refs = LightTuple<Args...>>
 	ErrorChunk onAssertWrapper(const char *file, int line, const Func &func,
@@ -88,7 +88,7 @@ namespace detail {
 // ON_ASSERT("Some text: % and: %", argument1, int3(20, 30, 40));
 //
 #define ON_ASSERT_FUNC(func_impl, ...)                                                             \
-	const decltype(detail::makeRefFields(__VA_ARGS__)) FWK_JOIN(_refs_, __LINE__){__VA_ARGS__};    \
+	const decltype(fwk::detail::makeRefs(__VA_ARGS__)) FWK_JOIN(_refs_, __LINE__){__VA_ARGS__};    \
 	{                                                                                              \
 		using namespace fwk::detail;                                                               \
 		using RefType = decltype(FWK_JOIN(_refs_, __LINE__));                                      \
@@ -104,7 +104,7 @@ namespace detail {
 	fwk::detail::OnAssertGuard FWK_JOIN(_guard_, __LINE__);
 
 #define ON_ASSERT(format_str, ...)                                                                 \
-	const decltype(detail::makeRefFields(__VA_ARGS__)) FWK_JOIN(_refs_, __LINE__){__VA_ARGS__};    \
+	const decltype(fwk::detail::makeRefs(__VA_ARGS__)) FWK_JOIN(_refs_, __LINE__){__VA_ARGS__};    \
 	{                                                                                              \
 		using namespace fwk::detail;                                                               \
 		using RefType = decltype(FWK_JOIN(_refs_, __LINE__));                                      \

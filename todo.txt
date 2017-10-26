@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- XML should assert that string is owned or static...
+- clang++ by default; fix fwk.h
+- use type trai primitives __is_trivially_assignable ...
 - Range instead of loops with XMLNode::next()
 - Zastanów sie gdzie jeszcze warto by było dodać specyfikacje memberów (&, &&, const &)
 - use DEFINE_ENUM for input key ? two functions would have to be provided: one for normal keys and one for specials
