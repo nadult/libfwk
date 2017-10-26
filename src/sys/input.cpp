@@ -70,7 +70,7 @@ InputEvent::InputEvent(Type mouse_type, InputButton button)
 	DASSERT(isMouseEvent());
 }
 
-InputEvent::InputEvent(wchar_t kchar) : m_char(kchar), m_type(key_char) {}
+InputEvent::InputEvent(char32_t kchar) : m_char(kchar), m_type(key_char) {}
 
 void InputEvent::init(InputModifiers modifiers, const int2 &mouse_pos, const int2 &mouse_move,
 					  int mouse_wheel) {

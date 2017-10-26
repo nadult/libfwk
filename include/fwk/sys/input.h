@@ -5,8 +5,8 @@
 
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
-#include "fwk/sys_base.h"
 #include "fwk/math_base.h"
+#include "fwk/sys_base.h"
 
 namespace fwk {
 
@@ -107,7 +107,7 @@ class InputEvent {
 	InputEvent(Type type);
 	InputEvent(Type key_type, int key, int iter);
 	InputEvent(Type mouse_type, InputButton button);
-	InputEvent(wchar_t);
+	InputEvent(char32_t);
 
 	void init(InputModifiers, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
 	void offset(const int2 &offset) { m_mouse_pos += offset; }
@@ -124,7 +124,7 @@ class InputEvent {
 	bool keyPressed(int key) const;
 	bool keyDownAuto(int key, int period = 1, int delay = 12) const;
 
-	wchar_t keyChar() const { return m_char; }
+	char32_t keyChar() const { return m_char; }
 
 	bool mouseButtonDown(InputButton) const;
 	bool mouseButtonUp(InputButton) const;
@@ -138,7 +138,7 @@ class InputEvent {
 	bool pressed(InputModifiers mod) const { return (m_modifiers & mod) == mod; }
 
   private:
-	wchar_t m_char;
+	char32_t m_char;
 	int2 m_mouse_pos, m_mouse_move;
 	int m_mouse_wheel;
 	int m_key, m_iteration;

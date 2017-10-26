@@ -140,7 +140,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	}
 
 	vector<pair<FontCore::Glyph, Texture>> glyphs;
-	for(wchar_t character : ansi_charset) {
+	for(auto character : ansi_charset) {
 		FT_UInt index = FT_Get_Char_Index(face, character);
 		if(FT_Load_Glyph(face, index, FT_LOAD_DEFAULT) != 0)
 			continue;
@@ -172,7 +172,8 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 		short advance = glyph->metrics.horiAdvance / 64;
 
 		glyphs.emplace_back(
-			FontCore::Glyph{character, {0, 0}, (short2)tex.size(), bearing, advance}, move(tex));
+			FontCore::Glyph{(int)character, {0, 0}, (short2)tex.size(), bearing, advance},
+			move(tex));
 	}
 
 	auto atlas = makeTextureAtlas(glyphs);
