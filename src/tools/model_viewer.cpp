@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
 			model_argument += "*.model";
 			multiple_files = true;
 		} else {
-			files = {make_pair(model_argument, tex_argument)};
+			files = {{model_argument, tex_argument}};
 		}
 	}
 

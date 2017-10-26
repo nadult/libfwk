@@ -33,7 +33,7 @@ template <class Value /*= int*/> struct Hash {
 	static typename std::enable_if<std::is_enum<T>::value, Value>::type hash(const T val) {
 		return hash((int)val);
 	}
-	template <class T1, class T2> static Value hash(const std::pair<T1, T2> &pair) {
+	template <class T1, class T2> static Value hash(const pair<T1, T2> &pair) {
 		return hashCombine(hash(pair.first), hash(pair.second));
 	}
 	template <class... Types> static Value hash(const LightTuple<Types...> &tuple) {

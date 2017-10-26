@@ -125,7 +125,7 @@ class HashMap {
 		hash_value_t hash = hashFunc(key);
 		Node *n = find_for_insert(key, hash);
 		if(n == 0 || !n->is_occupied())
-			return emplace_at(value_type(key, TValue()), n, hash).first->second;
+			return emplace_at({key, TValue()}, n, hash).first->second;
 		return n->data.second;
 	}
 
@@ -164,7 +164,6 @@ class HashMap {
 	}
 
 	pair<iterator, bool> emplace(const value_type &v) {
-		typedef pair<iterator, bool> ret_type_t;
 		checkInvariant();
 		if(m_num_used * TLoadFactor4 >= m_capacity * 4)
 			grow();
@@ -173,7 +172,7 @@ class HashMap {
 		Node *n = find_for_insert(v.first, hash);
 		if(n->is_occupied()) {
 			DASSERT(hash == n->hash && v.first == n->data.first);
-			return ret_type_t(iterator(n, this), false);
+			return {iterator(n, this), false};
 		}
 		if(n->is_unused())
 			++m_num_used;
@@ -181,7 +180,7 @@ class HashMap {
 		n->hash = hash;
 		++m_size;
 		checkInvariant();
-		return ret_type_t(iterator(n, this), true);
+		return {iterator(n, this), true};
 	}
 
 	int erase(const key_type &key) {

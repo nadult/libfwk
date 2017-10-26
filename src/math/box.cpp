@@ -31,7 +31,7 @@ array<pair<float3, float3>, 12> edges(const FBox &box) {
 	int indices[12][2] = {{7, 3}, {3, 2}, {2, 6}, {6, 7}, {5, 1}, {1, 0},
 						  {0, 4}, {4, 5}, {5, 7}, {1, 3}, {0, 2}, {4, 6}};
 	for(int n = 0; n < 12; n++)
-		out[n] = make_pair(corners[indices[n][0]], corners[indices[n][1]]);
+		out[n] = {corners[indices[n][0]], corners[indices[n][1]]};
 	return out;
 }
 }

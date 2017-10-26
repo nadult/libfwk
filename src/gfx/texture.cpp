@@ -115,7 +115,7 @@ void Texture::load(Stream &sr, Maybe<FileType> ft) {
 
 Texture::RegisterLoader::RegisterLoader(const char *ext, Loader func) {
 	DASSERT(toLower(ext) == ext);
-	loaders().emplace_back(make_pair(ext, func));
+	loaders().emplace_back(ext, func);
 }
 
 void Texture::save(Stream &sr) const { saveTGA(sr); }

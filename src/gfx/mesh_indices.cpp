@@ -119,7 +119,7 @@ int MeshIndices::triangleCount() const {
 
 pair<int, int> MeshIndices::indexRange() const {
 	if(m_data.empty())
-		return make_pair(0, 0);
+		return {};
 
 	pair<int, int> out(m_data.front(), m_data.front());
 	for(const auto idx : m_data) {

@@ -4,8 +4,8 @@
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/font.h"
 #include "fwk/gfx/renderer2d.h"
-#include "fwk_opengl.h"
 #include "fwk/sys/xml.h"
+#include "fwk_opengl.h"
 #include <map>
 
 namespace fwk {
@@ -124,7 +124,7 @@ struct FontCore::Impl {
 			rect = n == 0 ? new_rect : enclose(rect, new_rect);
 			if(n + 1 < (int)text.size()) {
 				pos.x += glyph.x_advance;
-				auto kerning_it = m_kernings.find(make_pair((int)text[n], (int)text[n + 1]));
+				auto kerning_it = m_kernings.find({(int)text[n], (int)text[n + 1]});
 				if(kerning_it != m_kernings.end())
 					pos.x += kerning_it->second;
 			}
@@ -177,7 +177,7 @@ struct FontCore::Impl {
 
 			if(n + 1 < count) {
 				pos.x += glyph.x_advance;
-				auto kerning_it = m_kernings.find(make_pair((int)text[n], (int)text[n + 1]));
+				auto kerning_it = m_kernings.find({(int)text[n], (int)text[n + 1]});
 				if(kerning_it != m_kernings.end())
 					pos.x += kerning_it->second;
 			}

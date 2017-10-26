@@ -98,7 +98,7 @@ pair<string, bool> execCommand(const string &cmd) {
 			result += buffer;
 	}
 	int ret = pclose(pipe);
-	return make_pair(result, ret == 0);
+	return {result, ret == 0};
 }
 
 #ifndef _WIN32

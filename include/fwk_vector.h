@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "fwk/sys_base.h"
 #include "fwk/sys/memory.h"
+#include "fwk/sys_base.h"
 
 namespace fwk {
 
@@ -204,7 +204,7 @@ template <class T> class Vector {
 			else
 				m_base.grow(sizeof(T), &Vector::moveAndDestroy);
 		}
-		new(end()) T(std::forward<Args>(args)...);
+		new(end()) T{std::forward<Args>(args)...};
 		m_base.size++;
 	}
 	void push_back(const T &rhs) { emplace_back(rhs); }
@@ -344,5 +344,4 @@ template <class T> class Vector {
 	BaseVector m_base;
 	friend class PodVector<T>;
 };
-
 }

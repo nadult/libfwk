@@ -3,10 +3,10 @@
 
 #include "fwk/math/ray.h"
 
-#include "fwk/math/segment.h"
 #include "fwk/math/box.h"
-#include "fwk/math/triangle.h"
 #include "fwk/math/plane.h"
+#include "fwk/math/segment.h"
+#include "fwk/math/triangle.h"
 #include "fwk_variant.h"
 
 namespace fwk {
@@ -45,7 +45,7 @@ auto Ray<T, N>::closestPoints(const Ray &rhs) const -> pair<Point, Point> {
 		s2 = (a01 * b0 - b1) / det;
 	}
 
-	return make_pair(at(s1), rhs.at(s2));
+	return {at(s1), rhs.at(s2)};
 }
 
 template <class T, int N> T Ray<T, N>::distance(const Point &point) const {

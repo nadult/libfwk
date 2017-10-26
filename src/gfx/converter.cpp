@@ -104,7 +104,7 @@ pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream
 		stream >> doc;
 		XMLNode child = doc.child();
 		CHECK(child && "empty XML document");
-		out = make_pair(immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name()));
+		out = {immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name())};
 	} else {
 		DASSERT(file_type == FileType::blender);
 		string temp_file_name;

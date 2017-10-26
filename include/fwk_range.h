@@ -331,7 +331,7 @@ auto setUnion(const TRange1 &a, const TRange2 &b) {
 // TODO: move to interval ?
 template <class TRange, class T = RangeBase<TRange>> pair<T, T> minMax(const TRange &range) {
 	if(empty(range))
-		return make_pair(T(), T());
+		return {};
 	auto it = begin(range), it_end = end(range);
 	T tmin = *it;
 	T tmax = tmin;
@@ -340,7 +340,7 @@ template <class TRange, class T = RangeBase<TRange>> pair<T, T> minMax(const TRa
 		tmin = min(tmin, *it);
 		tmax = max(tmax, *it);
 	}
-	return make_pair(tmin, tmax);
+	return {tmin, tmax};
 }
 
 template <class T1, class Range> void insertBack(vector<T1> &into, const Range &from) {

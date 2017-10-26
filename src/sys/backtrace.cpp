@@ -270,14 +270,14 @@ pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
 	auto result = execCommand(cmd);
 
 	if(result.first.find("ptrace: Operation not permitted") != string::npos)
-		return make_pair("To use GDB stacktraces, you have to:\n"
-						 "1) set kernel.yama.ptrace_scope to 0 in: /etc/sysctl.d/10-ptrace.conf\n"
-						 "2) type: echo 0 > /proc/sys/kernel/yama/ptrace_scope\n",
-						 false);
+		return {"To use GDB stacktraces, you have to:\n"
+				"1) set kernel.yama.ptrace_scope to 0 in: /etc/sysctl.d/10-ptrace.conf\n"
+				"2) type: echo 0 > /proc/sys/kernel/yama/ptrace_scope\n",
+				false};
 
-	return make_pair(filterGdb(result.first, skip_frames), true);
+	return {filterGdb(result.first, skip_frames), true};
 #else
-	return make_pair("GDB-based backtraces are only supported on linux (for now)", false);
+	return {"GDB-based backtraces are only supported on linux (for now)", false};
 #endif
 }
 
