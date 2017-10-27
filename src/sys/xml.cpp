@@ -118,7 +118,14 @@ void XmlNode::addAttrib(const char *name, const char *value) {
 	touch(m_ptr, attrib);
 }
 
+static void checkNodeName(CString name) {
+	for(auto c : name)
+		if(!isalnum(c) && c != '_')
+			CHECK_FAILED("Invalid Xml node name: '%s' invalid char: '%c'", name.c_str(), c);
+}
+
 XmlNode XmlNode::addChild(const char *name, const char *value) {
+	checkNodeName(name);
 	xml_node<> *node = m_doc->allocate_node(node_element, name, value);
 	m_ptr->append_node(node);
 	touch(node);
@@ -146,6 +153,7 @@ XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 const char *XmlDocument::own(const char *str) { return m_ptr->allocate_string(str); }
 
 XmlNode XmlDocument::addChild(const char *name, const char *value) const {
+	checkNodeName(name);
 	xml_node<> *node = m_ptr->allocate_node(node_element, name, value);
 	m_ptr->append_node(node);
 	return XmlNode(node, m_ptr.get());
