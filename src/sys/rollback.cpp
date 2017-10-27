@@ -4,7 +4,7 @@
 #include "fwk/sys/rollback.h"
 
 #include "fwk/hash_map.h"
-#include "fwk/sys/assert.h"
+#include "fwk/sys/on_fail.h"
 #include <atomic>
 #include <csetjmp>
 #include <mutex>
@@ -15,6 +15,7 @@ namespace detail {
 	void *falloc(size_t);
 	void *falloc(size_t, size_t);
 	void ffree(void *);
+	extern __thread int t_on_fail_count;
 }
 
 namespace {
@@ -84,7 +85,7 @@ void RollbackContext::addLevel(Maybe<BacktraceMode> bm) {
 		s_num_active++;
 	}
 	is_disabled = true;
-	levels.emplace_back(detail::t_on_assert_count, bm ? *bm : Backtrace::t_default_mode);
+	levels.emplace_back(detail::t_on_fail_count, bm ? *bm : Backtrace::t_default_mode);
 	is_disabled = false;
 }
 
@@ -171,7 +172,7 @@ RollbackContext *RollbackContext::current() {
 }
 
 auto RollbackContext::status() -> RollbackStatus {
-	RollbackStatus out{detail::t_on_assert_count, Backtrace::t_default_mode};
+	RollbackStatus out{detail::t_on_fail_count, Backtrace::t_default_mode};
 
 	if(auto *context = current()) {
 		out.on_assert_top = context->levels.back().assert_stack_pos;
@@ -215,7 +216,7 @@ void RollbackContext::rollback(Error error) {
 	auto &level = context->levels.back();
 	error.validateMemory();
 	context->passed_error = move(error);
-	detail::t_on_assert_count = level.assert_stack_pos;
+	detail::t_on_fail_count = level.assert_stack_pos;
 
 	//printf("Rollback!! freeing: %d blocks\n", level.allocs.size());
 	for(auto &pair : level.callbacks)

@@ -3,6 +3,7 @@
 
 #include "fwk/math/random.h"
 #include "fwk/sys/assert.h"
+#include "fwk/sys/on_fail.h"
 #include "fwk/sys/rollback.h"
 #include "testing.h"
 
@@ -125,13 +126,13 @@ void multiRollbackTest(int nthreads, int repeats = 20, int inner_size = 1000,
 }
 
 void assertTest2() {
-	ASSERT(detail::t_on_assert_count == 1);
+	ASSERT(onFailStackSize() == 1);
 	CHECK_FAILED("inner message");
 }
 
 void assertTest1() {
 	string local_data = "middle message";
-	ON_ASSERT_FUNC(([](const string &str) { return str; }), local_data);
+	ON_FAIL_FUNC(([](const string &str) { return str; }), local_data);
 	assertTest2();
 }
 
@@ -139,7 +140,7 @@ void assertTest() {
 	auto result = RollbackContext::begin([]() { assertTest1(); });
 	ASSERT(!result);
 	string err_str = toString(result.error());
-	ASSERT(detail::t_on_assert_count == 0);
+	ASSERT(onFailStackSize() == 0);
 
 	ASSERT(err_str.find("middle") != string::npos);
 	ASSERT(err_str.find("inner") != string::npos);

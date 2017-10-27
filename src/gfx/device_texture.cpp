@@ -3,7 +3,7 @@
 
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/texture.h"
-#include "fwk/sys/assert.h"
+#include "fwk/sys/on_fail.h"
 #include "fwk_opengl.h"
 
 namespace fwk {
@@ -12,7 +12,7 @@ DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
 	DASSERT(size.x >= 0 && size.y >= 0);
 
-	ON_ASSERT("DTexture::DTexture() error; format: % size: %", size, format.id());
+	ON_FAIL("DTexture::DTexture() error; format: % size: %", size, format.id());
 
 	{
 		glGenTextures(1, &m_id);

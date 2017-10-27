@@ -101,8 +101,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - Tagged Value, Tagged Pair
 - Tagged Type
 
-- Add function for registering some information when assertion fails or exception is thrown or whatever
-  like: ASSERT_INFO("While parsing file: %s", file_name.c_str());
 - Improve assertions (they should give more information when breaking)...
   But how to do it properly?
 

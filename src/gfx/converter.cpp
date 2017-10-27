@@ -110,7 +110,7 @@ pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream
 		string temp_file_name;
 		auto blender_result = exportFromBlender(stream.name(), temp_file_name);
 
-		ON_ASSERT("Blender output:\n%", blender_result);
+		ON_FAIL("Blender output:\n%", blender_result);
 
 		Loader loader(temp_file_name);
 		out = loadModel(FileType::fwk_model, loader);

@@ -5,7 +5,7 @@
 #define FWK_XML_H
 
 #include "fwk/format.h"
-#include "fwk/sys/assert.h"
+#include "fwk/sys/on_fail.h"
 #include "fwk/sys_base.h"
 #include "fwk_parse.h"
 
@@ -35,7 +35,7 @@ class XMLNode {
 	const char *attrib(const char *name, const char *default_value) const;
 
 	template <class T> T attrib(const char *name) const {
-		ON_ASSERT_FUNC(attribError, *this, name);
+		ON_FAIL_FUNC(attribError, *this, name);
 		return fromString<T>(attrib(name));
 	}
 
@@ -71,7 +71,7 @@ class XMLNode {
 	const char *value() const;
 
 	template <class T> T value() const {
-		ON_ASSERT_FUNC(valueError, *this);
+		ON_FAIL_FUNC(valueError, *this);
 		return fromString<T>(value());
 	}
 	template <class T> T value(T default_value) const {
