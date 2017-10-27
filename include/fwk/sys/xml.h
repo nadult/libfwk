@@ -5,7 +5,6 @@
 #define FWK_XML_H
 
 #include "fwk/format.h"
-#include "fwk/sys/on_fail.h"
 #include "fwk/sys_base.h"
 #include "fwk_parse.h"
 
@@ -22,8 +21,8 @@ namespace fwk {
 
 class XMLNode {
   public:
-	XMLNode(const XMLNode &rhs) : m_ptr(rhs.m_ptr), m_doc(rhs.m_doc) {}
-	XMLNode() : m_ptr(nullptr), m_doc(nullptr) {}
+	XMLNode(const XMLNode &) = default;
+	XMLNode() = default;
 
 	// TODO: change to tryAttrib?
 	// Returns nullptr if not found
@@ -34,14 +33,11 @@ class XMLNode {
 	// If an attribute cannot be found then default_value will be returned
 	const char *attrib(const char *name, const char *default_value) const;
 
-	template <class T> T attrib(const char *name) const {
-		ON_FAIL_FUNC(attribError, *this, name);
-		return fromString<T>(attrib(name));
-	}
+	template <class T> T attrib(const char *name) const { return fromString<T>(attrib(name)); }
 
-	template <class T> T attrib(const char *name, T default_value) const {
+	template <class T, class RT = std::decay_t<T>> RT attrib(const char *name, T &&or_else) const {
 		const char *value = hasAttrib(name);
-		return value ? fromString<T>(value) : default_value;
+		return value ? fromString<RT>(value) : or_else;
 	}
 
 	// When adding new nodes, you have to make sure that strings given as
@@ -70,10 +66,7 @@ class XMLNode {
 
 	const char *value() const;
 
-	template <class T> T value() const {
-		ON_FAIL_FUNC(valueError, *this);
-		return fromString<T>(value());
-	}
+	template <class T> T value() const { return fromString<T>(value()); }
 	template <class T> T value(T default_value) const {
 		const char *val = value();
 		return val[0] ? value<T>() : default_value;
@@ -94,12 +87,10 @@ class XMLNode {
   protected:
 	XMLNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc)
 		: m_ptr(ptr), m_doc(doc) {}
-	static string attribError(const XMLNode &, const char *);
-	static string valueError(const XMLNode &);
 	friend class XMLDocument;
 
-	rapidxml::xml_node<char> *m_ptr;
-	rapidxml::xml_document<char> *m_doc;
+	rapidxml::xml_node<char> *m_ptr = nullptr;
+	rapidxml::xml_document<char> *m_doc = nullptr;
 };
 
 class XMLDocument {
@@ -124,8 +115,20 @@ class XMLDocument {
 	const char *own(const string &str) { return own(str.c_str()); }
 	const char *own(const TextFormatter &str) { return own(str.text()); }
 
+	string lastNodeInfo() const;
+
   protected:
 	unique_ptr<rapidxml::xml_document<char>> m_ptr;
+	CString m_xml_string;
+};
+
+// Use it to get information about currently parsed XML document on error
+class XMLOnFailGuard {
+  public:
+	XMLOnFailGuard(const XMLDocument &);
+	~XMLOnFailGuard();
+
+	const XMLDocument &m_document;
 };
 }
 

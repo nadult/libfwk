@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- XMLLoader error handling
+- SpanBase<> for all types with different min_sizes
+- Maybe kompilacja pod mingw
 - XML should assert that string is owned or static...
 - clang++ by default; fix fwk.h
 - use type trai primitives __is_trivially_assignable ...

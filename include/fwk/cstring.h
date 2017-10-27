@@ -46,6 +46,9 @@ class CString {
 		return CString(m_data + offset, m_length - offset);
 	}
 
+	// Returns pair: line & column
+	pair<int, int> utf8TextPos(const char *ptr) const;
+
   private:
 	const char *m_data;
 	int m_length;
@@ -71,6 +74,8 @@ inline bool caseLess(const CString a, const CString b) { return a.caseCompare(b)
 // TODO: CString for string32 ?
 Maybe<string32> toUTF32(CString);
 Maybe<string> toUTF8(const string32 &);
+
+Maybe<int> utf8CodePointLength(const uint8_t *);
 
 // Returns size of buffer big enough for conversion
 // 0 may be returned is string is invalid

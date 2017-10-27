@@ -3,8 +3,8 @@
 
 #include "fwk/cstring.h"
 
-#include "fwk/pod_vector.h"
 #include "fwk/maybe.h"
+#include "fwk/pod_vector.h"
 
 namespace fwk {
 
@@ -25,6 +25,27 @@ static const char *strcasestr(const char *a, const char *b) {
 }
 
 #endif
+
+pair<int, int> CString::utf8TextPos(const char *text) const {
+	if(empty() || text < begin() || text >= end())
+		return {};
+
+	auto pos = reinterpret_cast<const uint8_t *>(begin());
+	auto tpos = pos + (text - begin());
+
+	int line = 1, column = 1;
+	while(pos < tpos) {
+		if(*pos == '\n') {
+			line++;
+			column = 1;
+		} else {
+			column++;
+		}
+		pos += utf8CodePointLength(pos).orElse(1);
+	}
+
+	return {line, column};
+}
 
 int CString::compare(const CString &rhs) const { return strcmp(m_data, rhs.m_data); }
 int CString::caseCompare(const CString &rhs) const { return strcasecmp(m_data, rhs.m_data); }
@@ -135,6 +156,15 @@ static int utf8_to_ucs4_length(CSpan<uint8_t> string) {
 	}
 
 	return pos == string.size() ? length : 0;
+}
+
+Maybe<int> utf8CodePointLength(const uint8_t *ptr) {
+	PASSERT(ptr);
+
+	auto c = *ptr;
+	if(!c || (c < 0xC2 && c > 0x80))
+		return none;
+	return c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : c < 0xF5 ? 4 : 5;
 }
 
 static Result utf8_to_ucs4(const uint8_t *&frm, const uint8_t *frm_end, uint32_t *&to,

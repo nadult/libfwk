@@ -7,6 +7,7 @@
 #include "fwk/enum_map.h"
 #include "fwk/filesystem.h"
 #include "fwk/gfx/model.h"
+#include "fwk/sys/on_fail.h"
 #include "fwk/sys/rollback.h"
 #include "fwk/sys/xml_loader.h"
 
@@ -101,6 +102,8 @@ pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream
 
 	if(file_type == FileType::fwk_model) {
 		XMLDocument doc;
+		XMLOnFailGuard xml_guard(doc);
+
 		stream >> doc;
 		XMLNode child = doc.child();
 		CHECK(child && "empty XML document");

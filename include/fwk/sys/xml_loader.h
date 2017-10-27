@@ -15,6 +15,8 @@ template <class T> class XMLLoader : public ResourceLoader<T> {
 
 	immutable_ptr<T> operator()(const string &name) {
 		XMLDocument doc;
+		XMLOnFailGuard guard(doc);
+
 		Loader(ResourceLoader<T>::fileName(name)) >> doc;
 		XMLNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child)

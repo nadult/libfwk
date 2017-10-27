@@ -241,7 +241,7 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 template <class T> void swap(Maybe<T> &a, Maybe<T> &b) { return a.swap(b); }
 
-template <class T, class Opt = Maybe<typename std::decay<T>::type>> Opt makeMaybe(T &&v) {
+template <class T, class Opt = Maybe<std::decay_t<T>>> Opt makeMaybe(T &&v) {
 	return Opt(std::forward<T>(v));
 }
 }
