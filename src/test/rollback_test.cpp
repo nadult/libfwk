@@ -99,10 +99,11 @@ void testMallocs() {
 
 void simpleRollbackTest() {
 	auto simple_test = []() {
-		RollbackContext::begin([]() {
+		bool result = !!RollbackContext::begin([]() {
 			vector<int> a = {10};
 			RollbackContext::rollback(Error());
 		});
+		ASSERT(!result);
 	};
 
 	for(int n = 0; n < 10000; n++) {

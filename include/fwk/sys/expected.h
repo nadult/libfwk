@@ -7,7 +7,7 @@
 
 namespace fwk {
 
-template <class T> class Expected {
+template <class T> class[[nodiscard]] Expected {
   public:
 	static_assert(!isSame<T, Error>());
 
@@ -96,7 +96,7 @@ template <class T> class Expected {
 	bool m_has_value;
 };
 
-template <> class Expected<void> {
+template <> class[[nodiscard]] Expected<void> {
   public:
 	Expected() : m_has_error(false) {}
 	Expected(Error error) : m_error(move(error)), m_has_error(true) {}
