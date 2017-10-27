@@ -10,7 +10,7 @@
 namespace fwk {
 
 void ModelAnim::transToXML(const AffineTrans &trans, const AffineTrans &default_trans,
-						   XMLNode node) {
+						   XmlNode node) {
 	if(!areClose(trans.translation, default_trans.translation))
 		node.addAttrib("pos", trans.translation);
 	if(!areClose(trans.scale, default_trans.scale))
@@ -19,7 +19,7 @@ void ModelAnim::transToXML(const AffineTrans &trans, const AffineTrans &default_
 		node.addAttrib("rot", trans.rotation);
 }
 
-AffineTrans ModelAnim::transFromXML(XMLNode node, const AffineTrans &default_trans) {
+AffineTrans ModelAnim::transFromXML(CXmlNode node, const AffineTrans &default_trans) {
 	float3 pos = default_trans.translation, scale = default_trans.scale;
 	Quat rot = default_trans.rotation;
 
@@ -32,20 +32,20 @@ AffineTrans ModelAnim::transFromXML(XMLNode node, const AffineTrans &default_tra
 	return AffineTrans(pos, rot, scale);
 }
 
-ModelAnim::Channel::Channel(const XMLNode &node, const AffineTrans &default_trans)
+ModelAnim::Channel::Channel(CXmlNode node, const AffineTrans &default_trans)
 	: default_trans(default_trans), node_name(node.attrib("name")) {
 	trans = transFromXML(node, default_trans);
-	if(XMLNode pos_node = node.child("pos"))
+	if(auto pos_node = node.child("pos"))
 		translation_track = fromString<vector<float3>>(pos_node.value());
-	if(XMLNode scale_node = node.child("scale"))
+	if(auto scale_node = node.child("scale"))
 		scaling_track = fromString<vector<float3>>(scale_node.value());
-	if(XMLNode rot_node = node.child("rot"))
+	if(auto rot_node = node.child("rot"))
 		rotation_track = fromString<vector<Quat>>(rot_node.value());
-	if(XMLNode times_node = node.child("time"))
+	if(auto times_node = node.child("time"))
 		time_track = fromString<vector<float>>(times_node.value());
 }
 
-void ModelAnim::Channel::saveToXML(XMLNode node) const {
+void ModelAnim::Channel::saveToXML(XmlNode node) const {
 	node.addAttrib("name", node.own(node_name));
 
 	transToXML(trans, default_trans, node);
@@ -72,9 +72,9 @@ AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 	return out;
 }
 
-ModelAnim::ModelAnim(const XMLNode &node, PPose default_pose)
+ModelAnim::ModelAnim(CXmlNode node, PPose default_pose)
 	: m_name(node.attrib("name")), m_length(node.attrib<float>("length")) {
-	XMLNode channel_node = node.child("channel");
+	auto channel_node = node.child("channel");
 	while(channel_node) {
 		m_node_names.emplace_back(channel_node.attrib("name"));
 		channel_node.next();
@@ -89,14 +89,14 @@ ModelAnim::ModelAnim(const XMLNode &node, PPose default_pose)
 		channel_node.next();
 	}
 
-	XMLNode shared_track = node.child("shared_time_track");
+	auto shared_track = node.child("shared_time_track");
 	ASSERT(shared_track);
 	m_shared_time_track = fromString<vector<float>>(shared_track.value());
 
 	verifyData();
 }
 
-void ModelAnim::saveToXML(XMLNode node) const {
+void ModelAnim::saveToXML(XmlNode node) const {
 	node.addAttrib("length", m_length);
 	node.addAttrib("name", node.own(m_name));
 	for(const auto &channel : m_channels)

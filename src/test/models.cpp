@@ -44,7 +44,7 @@ void testMain() {
 	auto command =
 		format("% % %", mainPath("tools/model_convert"), mainPath("data/test.blend"), mesh_path);
 	execCommand(command);
-	XMLDocument doc;
+	XmlDocument doc;
 	Loader(mesh_path) >> doc;
 	PModel model = PModel(Model::loadFromXML(doc.child()));
 	remove(mesh_path.c_str());

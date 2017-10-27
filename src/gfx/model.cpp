@@ -14,17 +14,17 @@
 
 namespace fwk {
 
-MaterialDef::MaterialDef(const XMLNode &node)
+MaterialDef::MaterialDef(CXmlNode node)
 	: name(node.attrib("name")), diffuse(node.attrib("diffuse", float3(1, 1, 1))) {}
 
-void MaterialDef::saveToXML(XMLNode node) const {
+void MaterialDef::saveToXML(XmlNode node) const {
 	node.addAttrib("name", node.own(name));
 	node.addAttrib("diffuse", diffuse.rgb());
 }
 
 namespace {
 
-	PModelNode parseNode(vector<PMesh> &meshes, XMLNode xml_node) {
+	PModelNode parseNode(vector<PMesh> &meshes, CXmlNode xml_node) {
 		auto name = xml_node.attrib("name");
 		auto type = fromString<ModelNodeType>(xml_node.attrib("type", "generic"));
 		auto trans = ModelAnim::transFromXML(xml_node);
@@ -32,7 +32,7 @@ namespace {
 		ASSERT(mesh_id >= -1 && mesh_id < meshes.size());
 
 		vector<ModelNode::Property> props;
-		XMLNode prop_node = xml_node.child("property");
+		auto prop_node = xml_node.child("property");
 		while(prop_node) {
 			props.emplace_back(prop_node.attrib("name"), prop_node.attrib("value"));
 			prop_node.next();
@@ -40,7 +40,7 @@ namespace {
 
 		auto new_node = make_unique<ModelNode>(name, type, trans,
 											   mesh_id == -1 ? PMesh() : meshes[mesh_id], props);
-		XMLNode child_node = xml_node.child("node");
+		auto child_node = xml_node.child("node");
 		while(child_node) {
 			new_node->addChild(parseNode(meshes, child_node));
 			child_node.next();
@@ -73,8 +73,8 @@ Model::Model(PModelNode root, vector<ModelAnim> anims, vector<MaterialDef> mater
 
 Model::Model(const Model &rhs) : Model(rhs.m_root->clone(), rhs.m_anims, rhs.m_material_defs) {}
 
-Model Model::loadFromXML(const XMLNode &xml_node) {
-	XMLNode mesh_node = xml_node.child("mesh");
+Model Model::loadFromXML(CXmlNode xml_node) {
+	auto mesh_node = xml_node.child("mesh");
 	vector<PMesh> meshes;
 	while(mesh_node) {
 		meshes.emplace_back(make_immutable<Mesh>(mesh_node));
@@ -82,7 +82,7 @@ Model Model::loadFromXML(const XMLNode &xml_node) {
 	}
 
 	PModelNode root = make_unique<ModelNode>("");
-	XMLNode subnode = xml_node.child("node");
+	auto subnode = xml_node.child("node");
 	while(subnode) {
 		root->addChild(parseNode(meshes, subnode));
 		subnode.next();
@@ -90,14 +90,14 @@ Model Model::loadFromXML(const XMLNode &xml_node) {
 
 	auto default_pose = fwk::defaultPose(root.get());
 	vector<ModelAnim> anims;
-	XMLNode anim_node = xml_node.child("anim");
+	auto anim_node = xml_node.child("anim");
 	while(anim_node) {
 		anims.emplace_back(anim_node, default_pose);
 		anim_node.next();
 	}
 
 	vector<MaterialDef> material_defs;
-	XMLNode mat_node = xml_node.child("material");
+	auto mat_node = xml_node.child("material");
 	while(mat_node) {
 		material_defs.emplace_back(mat_node);
 		mat_node.next();
@@ -119,7 +119,7 @@ void Model::updateNodes() {
 	m_default_pose = fwk::defaultPose(m_root.get());
 }
 
-static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, XMLNode xml_node) {
+static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, XmlNode xml_node) {
 	xml_node.addAttrib("name", xml_node.own(node->name()));
 	if(node->type() != ModelNodeType::generic)
 		xml_node.addAttrib("type", toString(node->type()));
@@ -130,7 +130,7 @@ static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, 
 	auto props = node->properties();
 	std::sort(begin(props), end(props));
 	for(const auto &prop : props) {
-		XMLNode xml_prop = xml_node.addChild("property");
+		XmlNode xml_prop = xml_node.addChild("property");
 		xml_prop.addAttrib("name", xml_prop.own(prop.first));
 		xml_prop.addAttrib("value", xml_prop.own(prop.second));
 	}
@@ -139,7 +139,7 @@ static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, 
 		saveNode(meshes, child.get(), xml_node.addChild("node"));
 }
 
-void Model::saveToXML(XMLNode xml_node) const {
+void Model::saveToXML(XmlNode xml_node) const {
 	std::map<const Mesh *, int> mesh_ids;
 	for(const auto *node : m_nodes)
 		if(node->mesh() && mesh_ids.find(node->mesh().get()) == mesh_ids.end())

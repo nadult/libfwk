@@ -21,7 +21,7 @@
 using namespace fwk;
 
 namespace {
-ResourceManager<Model, XMLLoader<Model>> s_models("", "", "");
+ResourceManager<Model, XmlLoader<Model>> s_models("", "", "");
 ResourceManager<DTexture> s_textures("", "");
 
 string dataPath(string file_name) {

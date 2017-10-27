@@ -11,8 +11,8 @@ namespace fwk {
 
 struct MaterialDef {
 	MaterialDef(const string &name, FColor diffuse) : name(name), diffuse(diffuse) {}
-	MaterialDef(const XMLNode &);
-	void saveToXML(XMLNode) const;
+	MaterialDef(CXmlNode);
+	void saveToXML(XmlNode) const;
 
 	string name;
 	FColor diffuse;
@@ -27,8 +27,8 @@ class Model : public immutable_base<Model> {
 	~Model() = default;
 
 	Model(PModelNode, vector<ModelAnim> anims = {}, vector<MaterialDef> material_defs = {});
-	static Model loadFromXML(const XMLNode &);
-	void saveToXML(XMLNode) const;
+	static Model loadFromXML(CXmlNode);
+	void saveToXML(XmlNode) const;
 
 	// TODO: use this in transformation functions
 	// TODO: better name

@@ -101,11 +101,11 @@ pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream
 	pair<PModel, string> out;
 
 	if(file_type == FileType::fwk_model) {
-		XMLDocument doc;
-		XMLOnFailGuard xml_guard(doc);
+		XmlDocument doc;
+		XmlOnFailGuard xml_guard(doc);
 
 		stream >> doc;
-		XMLNode child = doc.child();
+		XmlNode child = doc.child();
 		CHECK(child && "empty XML document");
 		out = {immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name())};
 	} else {
@@ -126,8 +126,8 @@ pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream
 void Converter::saveModel(PModel model, const string &node_name, FileType file_type,
 						  Stream &stream) {
 	if(file_type == FileType::fwk_model) {
-		XMLDocument doc;
-		XMLNode node = doc.addChild(doc.own(node_name));
+		XmlDocument doc;
+		XmlNode node = doc.addChild(doc.own(node_name));
 		model->saveToXML(node);
 		stream << doc;
 	} else {

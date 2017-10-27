@@ -25,13 +25,13 @@
 using namespace rapidxml;
 
 namespace {
-struct XMLDebugHelper {
+struct XmlDebugHelper {
 	xml_node<> *last_node = nullptr;
 	xml_attribute<> *last_attrib = nullptr;
 	const char *pstring = nullptr;
 	int pstring_len = 0;
 };
-__thread XMLDebugHelper t_xml_debug;
+__thread XmlDebugHelper t_xml_debug;
 
 void touch(xml_node<> *ptr = nullptr, xml_attribute<> *attrib = nullptr) {
 	auto &helper = t_xml_debug;
@@ -63,28 +63,14 @@ void parse_error_handler(const char *what, void *where) {
 
 namespace fwk {
 
-const char *XMLNode::own(const char *str) { return m_doc->allocate_string(str); }
-
-void XMLNode::addAttrib(const char *name, int value) {
-	char str_value[32];
-	sprintf(str_value, "%d", value);
-	addAttrib(name, own(str_value));
-}
-
-void XMLNode::addAttrib(const char *name, const char *value) {
-	auto *attrib = m_doc->allocate_attribute(name, value);
-	m_ptr->append_attribute(attrib);
-	touch(m_ptr, attrib);
-}
-
-const char *XMLNode::hasAttrib(const char *name) const {
+const char *CXmlNode::hasAttrib(const char *name) const {
 	xml_attribute<> *attrib = m_ptr->first_attribute(name);
 	touch(m_ptr, attrib);
 
 	return attrib ? attrib->value() : nullptr;
 }
 
-const char *XMLNode::attrib(const char *name) const {
+const char *CXmlNode::attrib(const char *name) const {
 	xml_attribute<> *attrib = m_ptr->first_attribute(name);
 	touch(m_ptr, attrib);
 
@@ -93,67 +79,95 @@ const char *XMLNode::attrib(const char *name) const {
 	return attrib->value();
 }
 
-const char *XMLNode::attrib(const char *name, const char *default_value) const {
+const char *CXmlNode::attrib(const char *name, const char *default_value) const {
 	const char *value = hasAttrib(name);
 	return value ? value : default_value;
 }
 
-const char *XMLNode::name() const { return m_ptr->name(); }
+const char *CXmlNode::name() const { return m_ptr->name(); }
+const char *CXmlNode::value() const { return m_ptr->value(); }
 
-const char *XMLNode::value() const { return m_ptr->value(); }
+CXmlNode CXmlNode::sibling(const char *name) const {
+	auto *sibling = m_ptr->next_sibling(name);
+	touch(sibling ? sibling : m_ptr);
+	return {sibling};
+}
 
-XMLNode XMLNode::addChild(const char *name, const char *value) {
+CXmlNode CXmlNode::child(const char *name) const {
+	auto *child_node = m_ptr->first_node(name);
+	touch(child_node ? child_node : m_ptr);
+	return {child_node};
+}
+
+XmlNode::XmlNode(CXmlNode cnode) : CXmlNode(cnode) {
+	if(m_ptr)
+		m_doc = m_ptr->document();
+}
+
+const char *XmlNode::own(const char *str) { return m_doc->allocate_string(str); }
+
+void XmlNode::addAttrib(const char *name, int value) {
+	char str_value[32];
+	sprintf(str_value, "%d", value);
+	addAttrib(name, own(str_value));
+}
+
+void XmlNode::addAttrib(const char *name, const char *value) {
+	auto *attrib = m_doc->allocate_attribute(name, value);
+	m_ptr->append_attribute(attrib);
+	touch(m_ptr, attrib);
+}
+
+XmlNode XmlNode::addChild(const char *name, const char *value) {
 	xml_node<> *node = m_doc->allocate_node(node_element, name, value);
 	m_ptr->append_node(node);
 	touch(node);
 
-	return XMLNode(node, m_doc);
+	return XmlNode(node, m_doc);
 }
 
-XMLNode XMLNode::sibling(const char *name) const {
-	auto *sibling = m_ptr->next_sibling(name);
-	touch(sibling ? sibling : m_ptr);
-	return XMLNode(sibling, m_doc);
+XmlNode XmlNode::sibling(const char *name) const {
+	auto cnode = CXmlNode::sibling(name);
+	return {cnode.m_ptr, m_doc};
 }
 
-XMLNode XMLNode::child(const char *name) const {
-	auto *child_node = m_ptr->first_node(name);
-	touch(child_node ? child_node : m_ptr);
-	return XMLNode(child_node, m_doc);
+XmlNode XmlNode::child(const char *name) const {
+	auto cnode = CXmlNode::child(name);
+	return {cnode.m_ptr, m_doc};
 }
 
-XMLDocument::XMLDocument() : m_ptr(make_unique<xml_document<>>()) {}
-XMLDocument::XMLDocument(Stream &stream) : XMLDocument() { stream >> *this; }
+XmlDocument::XmlDocument() : m_ptr(make_unique<xml_document<>>()) {}
+XmlDocument::XmlDocument(Stream &stream) : XmlDocument() { stream >> *this; }
 
-XMLDocument::XMLDocument(XMLDocument &&) = default;
-XMLDocument::~XMLDocument() { untouch(m_ptr.get()); }
-XMLDocument &XMLDocument::operator=(XMLDocument &&) = default;
+XmlDocument::XmlDocument(XmlDocument &&) = default;
+XmlDocument::~XmlDocument() { untouch(m_ptr.get()); }
+XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 
-const char *XMLDocument::own(const char *str) { return m_ptr->allocate_string(str); }
+const char *XmlDocument::own(const char *str) { return m_ptr->allocate_string(str); }
 
-XMLNode XMLDocument::addChild(const char *name, const char *value) const {
+XmlNode XmlDocument::addChild(const char *name, const char *value) const {
 	xml_node<> *node = m_ptr->allocate_node(node_element, name, value);
 	m_ptr->append_node(node);
-	return XMLNode(node, m_ptr.get());
+	return XmlNode(node, m_ptr.get());
 }
 
-XMLNode XMLDocument::child(const char *name) const {
-	return XMLNode(m_ptr->first_node(name), m_ptr.get());
+XmlNode XmlDocument::child(const char *name) const {
+	return XmlNode(m_ptr->first_node(name), m_ptr.get());
 }
 
-void XMLDocument::load(const char *file_name) {
+void XmlDocument::load(const char *file_name) {
 	DASSERT(file_name);
 	Loader ldr(file_name);
 	ldr >> *this;
 }
 
-void XMLDocument::save(const char *file_name) const {
+void XmlDocument::save(const char *file_name) const {
 	DASSERT(file_name);
 	Saver svr(file_name);
 	svr << *this;
 }
 
-void XMLDocument::load(Stream &sr) {
+void XmlDocument::load(Stream &sr) {
 	untouch(m_ptr.get());
 	m_ptr->clear();
 
@@ -170,13 +184,13 @@ void XMLDocument::load(Stream &sr) {
 	t_xml_debug.pstring_len = 0;
 }
 
-void XMLDocument::save(Stream &sr) const {
+void XmlDocument::save(Stream &sr) const {
 	vector<char> buffer;
 	print(std::back_inserter(buffer), *m_ptr);
 	sr.saveData(&buffer[0], buffer.size());
 }
 
-string XMLDocument::lastNodeInfo() const {
+string XmlDocument::lastNodeInfo() const {
 	const auto &helper = t_xml_debug;
 	TextFormatter out;
 
@@ -200,11 +214,11 @@ string XMLDocument::lastNodeInfo() const {
 }
 
 static ErrorChunk xmlOnFail(const void *doc) {
-	return {reinterpret_cast<const XMLDocument *>(doc)->lastNodeInfo()};
+	return {reinterpret_cast<const XmlDocument *>(doc)->lastNodeInfo()};
 }
 
-XMLOnFailGuard::XMLOnFailGuard(const XMLDocument &doc) : m_document(doc) {
+XmlOnFailGuard::XmlOnFailGuard(const XmlDocument &doc) : m_document(doc) {
 	onFailPush({xmlOnFail, &m_document});
 }
-XMLOnFailGuard::~XMLOnFailGuard() { onFailPop(); }
+XmlOnFailGuard::~XmlOnFailGuard() { onFailPop(); }
 }

@@ -28,8 +28,8 @@ struct MeshBuffers {
 	MeshBuffers(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1,
 				int color_id = -1);
 
-	MeshBuffers(const XMLNode &node);
-	void saveToXML(XMLNode) const;
+	MeshBuffers(CXmlNode);
+	void saveToXML(XmlNode) const;
 
 	vector<float3> animatePositions(CSpan<Matrix4>) const;
 	vector<float3> animateNormals(CSpan<Matrix4>) const;

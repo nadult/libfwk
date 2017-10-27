@@ -26,8 +26,8 @@ struct FontStyle {
 class FontCore : public immutable_base<FontCore> {
   public:
 	FontCore(const string &name, Stream &);
-	FontCore(const XMLDocument &);
-	FontCore(const XMLNode &);
+	FontCore(const XmlDocument &);
+	FontCore(CXmlNode);
 	FWK_COPYABLE_CLASS(FontCore)
 
 	struct Glyph {

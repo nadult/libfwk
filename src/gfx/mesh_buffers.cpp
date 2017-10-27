@@ -67,12 +67,12 @@ MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, i
 		  extractBuffer<float3>(array, positions_id), extractBuffer<float3>(array, normals_id),
 		  extractBuffer<float2>(array, tex_coords_id), extractBuffer<IColor>(array, colors_id)) {}
 
-static auto parseVertexWeights(const XMLNode &node) {
+static auto parseVertexWeights(CXmlNode node) {
 	vector<vector<MeshBuffers::VertexWeight>> out;
 
-	XMLNode counts_node = node.child("vertex_weight_counts");
-	XMLNode weights_node = node.child("vertex_weights");
-	XMLNode node_ids_node = node.child("vertex_weight_node_ids");
+	auto counts_node = node.child("vertex_weight_counts");
+	auto weights_node = node.child("vertex_weights");
+	auto node_ids_node = node.child("vertex_weight_node_ids");
 
 	if(!counts_node && !weights_node && !node_ids_node)
 		return out;
@@ -101,13 +101,13 @@ static auto parseVertexWeights(const XMLNode &node) {
 	return out;
 }
 
-MeshBuffers::MeshBuffers(const XMLNode &node)
+MeshBuffers::MeshBuffers(CXmlNode node)
 	: MeshBuffers(node.childValue<vector<float3>>("positions", {}),
 				  node.childValue<vector<float3>>("normals", {}),
 				  node.childValue<vector<float2>>("tex_coords", {}), {}, parseVertexWeights(node),
 				  node.childValue<vector<string>>("node_names", {})) {}
 
-void MeshBuffers::saveToXML(XMLNode node) const {
+void MeshBuffers::saveToXML(XmlNode node) const {
 	node.addChild("positions", positions);
 	if(!tex_coords.empty())
 		node.addChild("tex_coords", tex_coords);

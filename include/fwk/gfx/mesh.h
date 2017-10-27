@@ -19,8 +19,8 @@ class Mesh : public immutable_base<Mesh> {
 	Mesh &operator=(Mesh &&) = default;
 	Mesh &operator=(const Mesh &) = default;
 
-	Mesh(const XMLNode &);
-	void saveToXML(XMLNode) const;
+	Mesh(CXmlNode);
+	void saveToXML(XmlNode) const;
 
 	static Mesh makePolySoup(CSpan<Triangle3F>);
 	static Mesh makeRect(const FRect &xz_rect, float y);

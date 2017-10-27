@@ -11,13 +11,13 @@
 namespace fwk {
 
 struct FontCore::Impl {
-	Impl(XMLNode font_node) {
+	Impl(CXmlNode font_node) {
 		ASSERT(font_node);
 
-		XMLNode info_node = font_node.child("info");
-		XMLNode pages_node = font_node.child("pages");
-		XMLNode chars_node = font_node.child("chars");
-		XMLNode common_node = font_node.child("common");
+		auto info_node = font_node.child("info");
+		auto pages_node = font_node.child("pages");
+		auto chars_node = font_node.child("chars");
+		auto common_node = font_node.child("common");
 		ASSERT(info_node && pages_node && chars_node && common_node);
 
 		m_face_name = info_node.attrib("face");
@@ -28,13 +28,13 @@ struct FontCore::Impl {
 		int page_count = common_node.attrib<int>("pages");
 		ASSERT(page_count == 1);
 
-		XMLNode first_page_node = pages_node.child("page");
+		auto first_page_node = pages_node.child("page");
 		ASSERT(first_page_node);
 		ASSERT(first_page_node.attrib<int>("id") == 0);
 
 		m_texture_name = first_page_node.attrib("file");
 		int chars_count = chars_node.attrib<int>("count");
-		XMLNode char_node = chars_node.child("char");
+		auto char_node = chars_node.child("char");
 
 		while(char_node) {
 			Glyph chr;
@@ -52,11 +52,11 @@ struct FontCore::Impl {
 		ASSERT(chars_count == 0);
 		ASSERT(m_glyphs.find((int)' ') != m_glyphs.end());
 
-		XMLNode kernings_node = font_node.child("kernings");
+		auto kernings_node = font_node.child("kernings");
 		if(kernings_node) {
 			int kernings_count = kernings_node.attrib<int>("count");
 
-			XMLNode kerning_node = kernings_node.child("kerning");
+			auto kerning_node = kernings_node.child("kerning");
 			while(kerning_node) {
 				int first = kerning_node.attrib<int>("first");
 				int second = kerning_node.attrib<int>("second");
@@ -205,9 +205,9 @@ FontStyle::FontStyle(FColor color, FColor shadow_color, HAlign halign, VAlign va
 FontStyle::FontStyle(FColor color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(ColorId::transparent), halign(halign), valign(valign) {}
 
-FontCore::FontCore(const string &name, Stream &stream) : FontCore(XMLDocument(stream)) {}
-FontCore::FontCore(const XMLDocument &doc) : FontCore(doc.child("font")) {}
-FontCore::FontCore(const XMLNode &font_node) : m_impl(font_node) {}
+FontCore::FontCore(const string &name, Stream &stream) : FontCore(XmlDocument(stream)) {}
+FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
+FontCore::FontCore(CXmlNode font_node) : m_impl(font_node) {}
 FontCore::FontCore(CSpan<Glyph> glyphs, CSpan<Kerning> kernings, int2 tex_size, int line_height)
 	: m_impl(move(glyphs), move(kernings), tex_size, line_height) {}
 FWK_COPYABLE_CLASS_IMPL(FontCore)

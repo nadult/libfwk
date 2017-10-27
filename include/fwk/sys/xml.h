@@ -1,8 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_XML_H
-#define FWK_XML_H
+#pragma once
 
 #include "fwk/format.h"
 #include "fwk/sys_base.h"
@@ -19,10 +18,11 @@ template <class Ch> class xml_document;
 
 namespace fwk {
 
-class XMLNode {
+// Immutable XmlNode
+class CXmlNode {
   public:
-	XMLNode(const XMLNode &) = default;
-	XMLNode() = default;
+	CXmlNode(const CXmlNode &) = default;
+	CXmlNode() = default;
 
 	// TODO: change to tryAttrib?
 	// Returns nullptr if not found
@@ -40,27 +40,8 @@ class XMLNode {
 		return value ? fromString<RT>(value) : or_else;
 	}
 
-	// When adding new nodes, you have to make sure that strings given as
-	// arguments will exist as long as XMLNode exists; use 'own' method
-	// to reallocate them in the memory pool if you're not sure
-	void addAttrib(const char *name, const char *value);
-	void addAttrib(const char *name, int value);
-
-	template <class T> void addAttrib(const char *name, const T &value) {
-		TextFormatter formatter(256, {FormatMode::plain});
-		formatter << value;
-		addAttrib(name, own(formatter));
-	}
-
-	XMLNode addChild(const char *name, const char *value = nullptr);
-	XMLNode sibling(const char *name = nullptr) const;
-	XMLNode child(const char *name = nullptr) const;
-
-	template <class T> XMLNode addChild(const char *name, const T &value) {
-		TextFormatter formatter(256, {FormatMode::plain});
-		formatter << value;
-		return addChild(name, own(formatter));
-	}
+	CXmlNode sibling(const char *name = nullptr) const;
+	CXmlNode child(const char *name = nullptr) const;
 
 	void next() { *this = sibling(name()); }
 
@@ -72,12 +53,49 @@ class XMLNode {
 		return val[0] ? value<T>() : default_value;
 	}
 	template <class T> T childValue(const char *child_name, T default_value) const {
-		XMLNode child_node = child(child_name);
+		CXmlNode child_node = child(child_name);
 		const char *val = child_node ? child_node.value() : "";
 		return val[0] ? child_node.value<T>() : default_value;
 	}
 
 	const char *name() const;
+	explicit operator bool() const { return m_ptr != nullptr; }
+
+  protected:
+	CXmlNode(rapidxml::xml_node<char> *ptr) : m_ptr(ptr) {}
+	friend class XmlDocument;
+	friend class XmlNode;
+
+	rapidxml::xml_node<char> *m_ptr = nullptr;
+};
+
+class XmlNode : public CXmlNode {
+  public:
+	explicit XmlNode(CXmlNode);
+	XmlNode(const XmlNode &) = default;
+	XmlNode() = default;
+
+	// When adding new nodes, you have to make sure that strings given as
+	// arguments will exist as long as XmlNode exists; use 'own' method
+	// to reallocate them in the memory pool if you're not sure
+	void addAttrib(const char *name, const char *value);
+	void addAttrib(const char *name, int value);
+
+	template <class T> void addAttrib(const char *name, const T &value) {
+		TextFormatter formatter(256, {FormatMode::plain});
+		formatter << value;
+		addAttrib(name, own(formatter));
+	}
+
+	XmlNode addChild(const char *name, const char *value = nullptr);
+	XmlNode sibling(const char *name = nullptr) const;
+	XmlNode child(const char *name = nullptr) const;
+
+	template <class T> XmlNode addChild(const char *name, const T &value) {
+		TextFormatter formatter(256, {FormatMode::plain});
+		formatter << value;
+		return addChild(name, own(formatter));
+	}
 
 	const char *own(const char *str);
 	const char *own(const string &str) { return own(str.c_str()); }
@@ -85,21 +103,20 @@ class XMLNode {
 	explicit operator bool() const { return m_ptr != nullptr; }
 
   protected:
-	XMLNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc)
-		: m_ptr(ptr), m_doc(doc) {}
-	friend class XMLDocument;
+	XmlNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc)
+		: CXmlNode(ptr), m_doc(doc) {}
+	friend class XmlDocument;
 
-	rapidxml::xml_node<char> *m_ptr = nullptr;
 	rapidxml::xml_document<char> *m_doc = nullptr;
 };
 
-class XMLDocument {
+class XmlDocument {
   public:
-	XMLDocument();
-	XMLDocument(Stream &);
-	XMLDocument(XMLDocument &&);
-	~XMLDocument();
-	XMLDocument &operator=(XMLDocument &&);
+	XmlDocument();
+	XmlDocument(Stream &);
+	XmlDocument(XmlDocument &&);
+	~XmlDocument();
+	XmlDocument &operator=(XmlDocument &&);
 
 	void load(const char *file_name);
 	void save(const char *file_name) const;
@@ -107,9 +124,9 @@ class XMLDocument {
 	void load(Stream &);
 	void save(Stream &) const;
 
-	XMLNode addChild(const char *name, const char *value = nullptr) const;
-	XMLNode child(const char *name = nullptr) const;
-	XMLNode child(const string &name) const { return child(name.c_str()); }
+	XmlNode addChild(const char *name, const char *value = nullptr) const;
+	XmlNode child(const char *name = nullptr) const;
+	XmlNode child(const string &name) const { return child(name.c_str()); }
 
 	const char *own(const char *str);
 	const char *own(const string &str) { return own(str.c_str()); }
@@ -123,13 +140,11 @@ class XMLDocument {
 };
 
 // Use it to get information about currently parsed XML document on error
-class XMLOnFailGuard {
+class XmlOnFailGuard {
   public:
-	XMLOnFailGuard(const XMLDocument &);
-	~XMLOnFailGuard();
+	XmlOnFailGuard(const XmlDocument &);
+	~XmlOnFailGuard();
 
-	const XMLDocument &m_document;
+	const XmlDocument &m_document;
 };
 }
-
-#endif

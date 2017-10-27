@@ -177,8 +177,9 @@ template <class T> class Maybe;
 class CString;
 class FilePath;
 
-class XMLNode;
-class XMLDocument;
+class CXmlNode;
+class XmlNode;
+class XmlDocument;
 
 class TextFormatter;
 class TextParser;

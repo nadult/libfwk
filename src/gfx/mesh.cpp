@@ -22,9 +22,9 @@ Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> mate
 	m_bounding_box = enclose(m_buffers.positions);
 }
 
-static vector<MeshIndices> loadIndices(const XMLNode &node) {
+static vector<MeshIndices> loadIndices(CXmlNode node) {
 	vector<MeshIndices> out;
-	XMLNode xml_indices = node.child("indices");
+	auto xml_indices = node.child("indices");
 	while(xml_indices) {
 		auto type = PrimitiveType::triangles;
 		if(const char *type_string = xml_indices.hasAttrib("type"))
@@ -35,15 +35,15 @@ static vector<MeshIndices> loadIndices(const XMLNode &node) {
 	return out;
 }
 
-Mesh::Mesh(const XMLNode &node)
+Mesh::Mesh(CXmlNode node)
 	: Mesh(MeshBuffers(node), loadIndices(node), node.childValue<vector<string>>("materials", {})) {
 }
 
-void Mesh::saveToXML(XMLNode node) const {
+void Mesh::saveToXML(XmlNode node) const {
 	m_buffers.saveToXML(node);
 	for(int n = 0; n < m_indices.size(); n++) {
 		const auto &indices = m_indices[n];
-		XMLNode xml_indices = node.addChild("indices", (vector<int>)indices);
+		XmlNode xml_indices = node.addChild("indices", (vector<int>)indices);
 		if(indices.type() != PrimitiveType::triangles)
 			xml_indices.addAttrib("type", toString(indices.type()));
 	}

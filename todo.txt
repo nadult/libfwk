@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Stream guard podobnie jak XMLGuard ?
 - XMLLoader error handling
 - SpanBase<> for all types with different min_sizes
 - Maybe kompilacja pod mingw
