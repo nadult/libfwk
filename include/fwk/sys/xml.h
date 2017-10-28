@@ -97,6 +97,14 @@ class XmlNode : public CXmlNode {
 		return addChild(name, own(formatter));
 	}
 
+	void setValue(const char *text);
+
+	template <class T> void setValue(const T &value) {
+		TextFormatter formatter(256, {FormatMode::plain});
+		formatter << value;
+		setValue(own(formatter));
+	}
+
 	const char *own(const char *str);
 	const char *own(const string &str) { return own(str.c_str()); }
 	const char *own(const TextFormatter &str) { return own(str.text()); }
@@ -124,7 +132,9 @@ class XmlDocument {
 	void load(Stream &);
 	void save(Stream &) const;
 
-	XmlNode addChild(const char *name, const char *value = nullptr) const;
+	XmlNode addChild(const char *name, const char *value = nullptr);
+
+	// TODO: const should return CXmlNode
 	XmlNode child(const char *name = nullptr) const;
 	XmlNode child(const string &name) const { return child(name.c_str()); }
 

@@ -133,6 +133,8 @@ XmlNode XmlNode::addChild(const char *name, const char *value) {
 	return XmlNode(node, m_doc);
 }
 
+void XmlNode::setValue(const char *text) { m_ptr->value(text); }
+
 XmlNode XmlNode::sibling(const char *name) const {
 	auto cnode = CXmlNode::sibling(name);
 	return {cnode.m_ptr, m_doc};
@@ -152,7 +154,7 @@ XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 
 const char *XmlDocument::own(const char *str) { return m_ptr->allocate_string(str); }
 
-XmlNode XmlDocument::addChild(const char *name, const char *value) const {
+XmlNode XmlDocument::addChild(const char *name, const char *value) {
 	checkNodeName(name);
 	xml_node<> *node = m_ptr->allocate_node(node_element, name, value);
 	m_ptr->append_node(node);
