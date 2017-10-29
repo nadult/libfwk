@@ -19,11 +19,10 @@
 #include "fwk/cstring.h"
 #include "fwk/format.h"
 
-#include "fwk_input.h"
+#include "fwk/sys/input.h"
 #include "fwk/math_base.h"
 #include "fwk/maybe.h"
-#include "fwk_mesh.h"
-#include "fwk_parse.h"
+#include "fwk/parse.h"
 #include "fwk_profile.h"
 #include "fwk_variant.h"
 #include "fwk/sys/xml.h"

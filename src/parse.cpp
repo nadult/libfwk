@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_parse.h"
+#include "fwk/parse.h"
 
 #include "fwk/format.h"
 #include "fwk/math/box.h"
@@ -10,19 +10,25 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 
 namespace fwk {
 
 namespace {
 
-	static void reportError(const char *input, const char *type_name, int count) NOINLINE;
-	void reportError(const char *input, const char *type_name, int count) {
+	static void reportParseError(CString, const char *, int) NOINLINE;
+	void reportParseError(CString str, const char *type_name, int count) {
 		string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
-		size_t max_len = 32;
-		string short_input =
-			strlen(input) > max_len ? string(input, input + max_len) + "..." : string(input);
+		auto short_str = str.limitSizeBack(40);
 		CHECK_FAILED("Error while parsing %s%s from \"%s\"", what.c_str(), count > 1 ? "s" : "",
-					 short_input.c_str());
+					 short_str.c_str());
+	}
+
+	static void reportOutOfRange(CString, const char *) NOINLINE;
+	void reportOutOfRange(CString str, const char *type_name) {
+		auto short_str = str.limitSizeBack(40);
+		CHECK_FAILED("Error while parsing %s: value out of range: \"%s\"", type_name,
+					 short_str.c_str());
 	}
 
 	auto strtol(const char *ptr, char **end_ptr) { return ::strtol(ptr, end_ptr, 0); }
@@ -30,14 +36,28 @@ namespace {
 	auto strtoll(const char *ptr, char **end_ptr) { return ::strtoll(ptr, end_ptr, 0); }
 	auto strtoull(const char *ptr, char **end_ptr) { return ::strtoull(ptr, end_ptr, 0); }
 
-	template <class Func> auto parseSingle(const char **ptr, Func func, const char *type_name) {
-		char *end_ptr = const_cast<char *>(*ptr);
+	template <class Func> auto parseSingle(TextParser &parser, Func func, const char *type_name) {
+		const char *str = parser.parseElement().c_str();
+		char *end_ptr = nullptr;
 		errno = 0;
-		auto value = func(*ptr, &end_ptr);
-		if(errno != 0 || end_ptr == *ptr)
-			reportError(*ptr, type_name, 1);
-		*ptr = end_ptr;
+		auto value = func(str, &end_ptr);
+		if(errno != 0 || end_ptr == str)
+			reportParseError(str, type_name, 1);
 		return value;
+	}
+
+	template <class T, class Func>
+	T parseSingleRanged(TextParser &parser, Func func, const char *type_name) {
+		auto element = parser.parseElement();
+
+		char *end_ptr = nullptr;
+		errno = 0;
+		auto value = func(element.c_str(), &end_ptr);
+		if(errno != 0 || end_ptr != element.end())
+			reportParseError(element, type_name, 1);
+		if(value < std::numeric_limits<T>::min() || value > std::numeric_limits<T>::max())
+			reportOutOfRange(element, type_name);
+		return T(value);
 	}
 
 	template <class Func, class T>
@@ -56,238 +76,252 @@ namespace {
 
 int TextParser::countElements() const {
 	int count = 0;
-	const char *string = m_current;
-	while(*string) {
-		while(isspace(*string))
-			string++;
-		if(*string) {
+	const char *ptr = m_current.c_str();
+	while(*ptr) {
+		while(isspace(*ptr))
+			ptr++;
+		if(*ptr) {
 			count++;
-			while(*string && !isspace(*string))
-				string++;
+			while(*ptr && !isspace(*ptr))
+				ptr++;
 		}
 	}
 	return count;
 }
 
-bool TextParser::parseBool() {
-	string str = parseString();
-	std::transform(begin(str), end(str), begin(str), ::tolower);
-
-	if(isOneOf(str, "true", "1"))
-		return true;
-	if(!isOneOf(str, "false", "0"))
-		CHECK_FAILED("Error while parsing bool from \"%s\"", str.c_str());
-	return false;
-}
-
-string TextParser::parseString() {
-	string out[1];
-	parseStrings(out);
-	return out[0];
-}
-
-int TextParser::parseInt() {
-	long value = parseSingle(&m_current, strtol, "int");
-	if(sizeof(long) > sizeof(int) && (value < INT_MIN || value > INT_MAX))
-		CHECK_FAILED("Parsed value is too big");
-	return value;
-}
-long TextParser::parseLong() { return parseSingle(&m_current, strtol, "long"); }
-long long TextParser::parseLongLong() { return parseSingle(&m_current, strtoll, "long long"); }
-unsigned int TextParser::parseUInt() { return parseSingle(&m_current, strtoul, "unsigned int"); }
-unsigned long TextParser::parseULong() { return parseSingle(&m_current, strtoul, "unsigned long"); }
-unsigned long long TextParser::parseULongLong() {
-	return parseSingle(&m_current, strtoull, "unsigned long long");
-}
-float TextParser::parseFloat() { return parseSingle(&m_current, strtof, "float"); }
-double TextParser::parseDouble() { return parseSingle(&m_current, strtod, "double"); }
-
-void TextParser::parseInts(Span<int> out) {
-	// TODO: properly check int ranges
-	parseMultiple(&m_current, out, strtol, "int");
-}
-void TextParser::parseFloats(Span<float> out) { parseMultiple(&m_current, out, strtof, "float"); }
-void TextParser::parseDoubles(Span<double> out) {
-	parseMultiple(&m_current, out, strtod, "double");
-}
-void TextParser::parseUints(Span<uint> out) { parseMultiple(&m_current, out, strtoul, "uint"); }
-
-void TextParser::parseStrings(Span<string> out) {
-	// TODO: what if we have empty string on input?
-	const char *iptr = m_current;
-	int count = 0;
-
-	while(*iptr && count < out.size()) {
-		while(isspace(*iptr))
-			iptr++;
-		if(!*iptr)
-			break;
-		const char *start = iptr;
-		while(*iptr && !isspace(*iptr))
-			iptr++;
-		out[count++] = string(start, iptr);
-	}
-
-	if(count < out.size())
-		reportError(m_current, "string", out.size());
-	m_current = iptr;
-}
-
-bool TextParser::hasAnythingLeft() {
-	const char *ptr = m_current;
+CString TextParser::parseElement() {
+	const char *ptr = m_current.c_str();
+	// TODO: czy powinien przeskakiwać puste znaki na początku i na końcu?
 	while(isspace(*ptr))
 		ptr++;
-	m_current = ptr;
-	return !isFinished();
+	auto *start = ptr;
+	while(!isspace(*ptr) && *ptr)
+		ptr++;
+	CString out(start, ptr);
+	while(isspace(*ptr))
+		ptr++;
+	m_current = {ptr, m_current.end()};
+	return out;
 }
 
-namespace detail {
+void TextParser::advanceWhitespace() {
+	const char *ptr = m_current.c_str();
+	while(isspace(*ptr))
+		ptr++;
+	m_current = {ptr, m_current.end()};
+}
 
-	template <> string fromString(TextParser &parser) { return parser.parseString(); }
-	template <> bool fromString(TextParser &parser) { return parser.parseBool(); }
-	template <> int fromString(TextParser &parser) { return parser.parseInt(); }
-	template <> long fromString(TextParser &parser) { return parser.parseLong(); }
-	template <> long long fromString(TextParser &parser) { return parser.parseLongLong(); }
-	template <> unsigned int fromString(TextParser &parser) { return parser.parseUInt(); }
-	template <> unsigned long fromString(TextParser &parser) { return parser.parseULong(); }
-	template <> unsigned long long fromString(TextParser &parser) {
-		return parser.parseULongLong();
-	}
-	template <> float fromString(TextParser &parser) { return parser.parseFloat(); }
-	template <> double fromString(TextParser &parser) { return parser.parseDouble(); }
+TextParser &TextParser::operator>>(CString &out) {
+	out = parseElement();
+	return *this;
+}
 
-	template <> int2 fromString(TextParser &parser) {
-		int2 out;
-		parser.parseInts(out.v);
-		return out;
-	}
+TextParser &TextParser::operator>>(string &out) {
+	out = parseElement();
+	return *this;
+}
 
-	template <> int3 fromString(TextParser &parser) {
-		int3 out;
-		parser.parseInts(out.v);
-		return out;
-	}
+TextParser &TextParser::operator>>(bool &out) {
+	auto element = parseElement();
 
-	template <> int4 fromString(TextParser &parser) {
-		int4 out;
-		parser.parseInts(out.v);
-		return out;
-	}
+	if(element.caseCompare("true") == 0 || element == "1")
+		out = true;
+	else if(element.caseCompare("false") == 0 || element == "0")
+		out = false;
+	else
+		CHECK_FAILED("Error while parsing bool from \"%s\"", element.c_str());
 
-	template <> float2 fromString(TextParser &parser) {
-		float2 out;
-		parser.parseFloats(out.v);
-		return out;
-	}
+	return *this;
+}
 
-	template <> float3 fromString(TextParser &parser) {
-		float3 out;
-		parser.parseFloats(out.v);
-		return out;
-	}
+TextParser &TextParser::operator>>(double &out) {
+	out = parseSingle(*this, strtod, "double");
+	return *this;
+}
 
-	template <> float4 fromString(TextParser &parser) {
-		float4 out;
-		parser.parseFloats(out.v);
-		return out;
-	}
+TextParser &TextParser::operator>>(float &out) {
+	out = parseSingle(*this, strtof, "float");
+	return *this;
+}
 
-	template <> double2 fromString(TextParser &parser) {
-		double2 out;
-		parser.parseDoubles(out.v);
-		return out;
-	}
+TextParser &TextParser::operator>>(short &out) {
+	out = parseSingleRanged<short>(*this, strtol, "short");
+	return *this;
+}
 
-	template <> double3 fromString(TextParser &parser) {
-		double3 out;
-		parser.parseDoubles(out.v);
-		return out;
-	}
+TextParser &TextParser::operator>>(unsigned short &out) {
+	out = parseSingleRanged<unsigned short>(*this, strtol, "unsigned short");
+	return *this;
+}
 
-	template <> double4 fromString(TextParser &parser) {
-		double4 out;
-		parser.parseDoubles(out.v);
-		return out;
-	}
+TextParser &TextParser::operator>>(int &out) {
+	out = parseSingleRanged<int>(*this, strtol, "int");
+	return *this;
+}
 
-	template <> FRect fromString(TextParser &parser) {
-		float out[4];
-		parser.parseFloats(out);
-		return {{out[0], out[1]}, {out[2], out[3]}};
-	}
+TextParser &TextParser::operator>>(unsigned int &out) {
+	out = parseSingleRanged<unsigned int>(*this, strtoul, "unsigned int");
+	return *this;
+}
 
-	template <> IRect fromString(TextParser &parser) {
-		int out[4];
-		parser.parseInts(out);
-		return {{out[0], out[1]}, {out[2], out[3]}};
-	}
+TextParser &TextParser::operator>>(long &out) {
+	out = parseSingleRanged<long>(*this, strtol, "long");
+	return *this;
+}
 
-	template <> DRect fromString(TextParser &parser) {
-		double out[4];
-		parser.parseDoubles(out);
-		return {{out[0], out[1]}, {out[2], out[3]}};
-	}
+TextParser &TextParser::operator>>(unsigned long &out) {
+	out = parseSingleRanged<unsigned long>(*this, strtoul, "unsigned long");
+	return *this;
+}
 
-	template <> FBox fromString(TextParser &parser) {
-		float out[6];
-		parser.parseFloats(out);
-		return {{out[0], out[1], out[2]}, {out[3], out[4], out[5]}};
-	}
+TextParser &TextParser::operator>>(long long &out) {
+	out = parseSingleRanged<long long>(*this, strtoll, "long long");
+	return *this;
+}
 
-	template <> IBox fromString(TextParser &parser) {
-		int out[6];
-		parser.parseInts(out);
-		return {{out[0], out[1], out[2]}, {out[3], out[4], out[5]}};
-	}
+TextParser &TextParser::operator>>(unsigned long long &out) {
+	out = parseSingleRanged<unsigned long long>(*this, strtoull, "unsigned long long");
+	return *this;
+}
 
-	template <> DBox fromString(TextParser &parser) {
-		double out[6];
-		parser.parseDoubles(out);
-		return {{out[0], out[1], out[2]}, {out[3], out[4], out[5]}};
-	}
+void TextParser::parseInts(Span<int> out) { parseSpan(out); }
+void TextParser::parseFloats(Span<float> out) { parseSpan(out); }
+void TextParser::parseDoubles(Span<double> out) { parseSpan(out); }
 
-	template <> Matrix4 fromString(TextParser &parser) {
-		float out[16];
-		parser.parseFloats(out);
-		return Matrix4(
-			float4(out[0], out[1], out[2], out[3]), float4(out[4], out[5], out[6], out[7]),
-			float4(out[8], out[9], out[10], out[11]), float4(out[12], out[13], out[14], out[15]));
+void TextParser::parseNotEmpty(Span<CString> out) {
+	for(int n = 0; n < out.size(); n++) {
+		*this >> out[n];
+		if(out[n].empty())
+			CHECK_FAILED("Error while parsing a range of %d not-empty strings (parsed: %d)",
+						 out.size(), n);
 	}
+}
 
-	template <> Quat fromString(TextParser &parser) {
-		float out[4];
-		parser.parseFloats(out);
-		return Quat(out[0], out[1], out[2], out[3]);
+void TextParser::parseNotEmpty(Span<string> out) {
+	for(int n = 0; n < out.size(); n++) {
+		*this >> out[n];
+		if(out[n].empty())
+			CHECK_FAILED("Error while parsing a range of %d not-empty strings (parsed: %d)",
+						 out.size(), n);
 	}
+}
 
-	template <> vector<string> vectorFromString<string>(TextParser &parser) {
-		vector<string> out(parser.countElements());
-		parser.parseStrings(out);
-		return out;
-	}
+TextParser &operator>>(TextParser &parser, int2 &out) {
+	parser.parseInts(out.v);
+	return parser;
+}
 
-	template <> vector<float> vectorFromString<float>(TextParser &parser) {
-		vector<float> out(parser.countElements());
-		parser.parseFloats(out);
-		return out;
-	}
+TextParser &operator>>(TextParser &parser, int3 &out) {
+	parser.parseInts(out.v);
+	return parser;
+}
 
-	template <> vector<double> vectorFromString<double>(TextParser &parser) {
-		vector<double> out(parser.countElements());
-		parser.parseDoubles(out);
-		return out;
-	}
+TextParser &operator>>(TextParser &parser, int4 &out) {
+	parser.parseInts(out.v);
+	return parser;
+}
 
-	template <> vector<int> vectorFromString<int>(TextParser &parser) {
-		vector<int> out(parser.countElements());
-		parser.parseInts(out);
-		return out;
-	}
+TextParser &operator>>(TextParser &parser, double2 &out) {
+	parser.parseDoubles(out.v);
+	return parser;
+}
 
-	template <> vector<uint> vectorFromString<uint>(TextParser &parser) {
-		vector<uint> out(parser.countElements());
-		parser.parseUints(out);
-		return out;
-	}
+TextParser &operator>>(TextParser &parser, double3 &out) {
+	parser.parseDoubles(out.v);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, double4 &out) {
+	parser.parseDoubles(out.v);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, float2 &out) {
+	parser.parseFloats(out.v);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, float3 &out) {
+	parser.parseFloats(out.v);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, float4 &out) {
+	parser.parseFloats(out.v);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, DRect &out) {
+	double val[4];
+	parser.parseDoubles(val);
+	out = {val[0], val[1], val[2], val[3]};
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, FRect &out) {
+	float val[4];
+	parser.parseFloats(val);
+	out = {val[0], val[1], val[2], val[3]};
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, IRect &out) {
+	int val[4];
+	parser.parseInts(val);
+	out = {val[0], val[1], val[2], val[3]};
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, FBox &out) {
+	float val[6];
+	parser.parseFloats(val);
+	out = {val[0], val[1], val[2], val[3], val[4], val[5]};
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, IBox &out) {
+	int val[6];
+	parser.parseInts(val);
+	out = {val[0], val[1], val[2], val[3], val[4], val[5]};
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, DBox &out) {
+	double val[6];
+	parser.parseDoubles(val);
+	out = {val[0], val[1], val[2], val[3], val[4], val[5]};
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, Matrix4 &out) {
+	float val[16];
+	parser.parseFloats(val);
+	out = Matrix4(val);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, Quat &out) {
+	float val[4];
+	parser.parseFloats(val);
+	out = {val[0], val[1], val[2], val[3]};
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, vector<string> &out) {
+	out.resize(parser.countElements());
+	parser.parseSpan(out);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, vector<int> &out) {
+	out.resize(parser.countElements());
+	parser.parseSpan(out);
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, vector<float> &out) {
+	out.resize(parser.countElements());
+	parser.parseSpan(out);
+	return parser;
 }
 }

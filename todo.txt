@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Objects could keep information whether they own the data or not
+  ref-counting is not required (user is till responsible for not releasing string is some CString
+  is still pointing to it)
 - Stream guard podobnie jak XMLGuard ?
 - XMLLoader error handling
 - SpanBase<> for all types with different min_sizes

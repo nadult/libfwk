@@ -64,6 +64,10 @@ void testXMLConverters() {
 	testClassConversions(Matrix4::identity());
 	testClassConversions(Quat(1.0, 0.0f, 0.0f, 2.0f));
 
+	static_assert(isParsable<vector<DBox>>());
+	static_assert(isParsable<vector<DRect>>());
+	static_assert(!isParsable<vector<vector<int>>>());
+
 	struct MyClass {
 		double x = 16.128;
 		operator double() const { return x; }
@@ -84,6 +88,8 @@ void testXMLConverters() {
 	ASSERT_FAIL(fromString<vector<int>>("1 2a 3"));
 	ASSERT_FAIL(fromString<bool>("foobar"));
 	ASSERT_FAIL(fromString<int>("10000000000"));
+	ASSERT_FAIL(fromString<short>("32768"));
+	ASSERT_FAIL(fromString<unsigned short>("-1"));
 	ASSERT_EQ(fromString<long long>("1000000000000"), 1000000000000ll);
 }
 
