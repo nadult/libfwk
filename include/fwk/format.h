@@ -215,7 +215,7 @@ class TextFormatter {
 	FormatOptions m_options;
 };
 
-// To make new type formattable: simply overload operator<<:
+// To make new type formattible: simply overload operator<<:
 // TextFormatter &operator<<(TextFormatter&, const MyNewType &rhs);
 
 TextFormatter &operator<<(TextFormatter &, const Matrix4 &);

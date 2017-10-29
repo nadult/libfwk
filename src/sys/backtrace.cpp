@@ -147,13 +147,9 @@ namespace {
 
 		int max_lsize = 0, max_fsize = 0;
 		for(auto &e : entries) {
-
-			if((int)e.file.size() > limit_file_size)
-				e.file = "..." + e.file.substr(e.file.size() - (limit_file_size - 3), string::npos);
-			if((int)e.line.size() > limit_line_size)
-				e.line = e.line.substr(0, limit_line_size - 3) + "...";
-			if((int)e.function.size() > limit_func_size)
-				e.function = e.function.substr(0, limit_func_size - 3) + "...";
+			e.file = CString(e.file).limitSizeFront(limit_file_size);
+			e.line = CString(e.line).limitSizeBack(limit_line_size);
+			e.function = CString(e.function).limitSizeBack(limit_func_size);
 
 			max_lsize = max(max_lsize, (int)e.line.size());
 			max_fsize = max(max_fsize, (int)e.file.size());

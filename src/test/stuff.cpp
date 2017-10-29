@@ -35,6 +35,11 @@ template <class T> void testClassConversions(T value) {
 	ASSERT_EQ(fromString<vector<T>>(vec_str.c_str()), vec);
 }
 
+void testString() {
+	ASSERT_EQ(CString("random text").limitSizeFront(8), "...dom t");
+	ASSERT_EQ(CString("random text").limitSizeBack(8), "rando...");
+}
+
 void testXMLConverters() {
 	ASSERT(TextParser("1 2 aa bb cc 4d").countElements() == 6);
 
@@ -132,6 +137,7 @@ void testMaybe() {
 }
 
 void testMain() {
+	testString();
 	testTextFormatter();
 	testXMLConverters();
 	testPathOperations();

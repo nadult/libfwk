@@ -47,6 +47,27 @@ pair<int, int> CString::utf8TextPos(const char *text) const {
 	return {line, column};
 }
 
+string CString::limitSizeBack(int max_size, CString suffix) const {
+	PASSERT(suffix.size() <= max_size);
+	if(m_length <= max_size)
+		return *this;
+	string out = substr(0, max_size);
+	int spos = max_size - suffix.size();
+	for(int n = 0; n < suffix.size(); n++)
+		out[spos + n] = suffix[n];
+	return out;
+}
+
+string CString::limitSizeFront(int max_size, CString prefix) const {
+	PASSERT(prefix.size() <= max_size);
+	if(m_length <= max_size)
+		return *this;
+	string out = substr(0, max_size);
+	for(int n = 0; n < prefix.size(); n++)
+		out[n] = prefix[n];
+	return out;
+}
+
 int CString::compare(const CString &rhs) const { return strcmp(m_data, rhs.m_data); }
 int CString::caseCompare(const CString &rhs) const { return strcasecmp(m_data, rhs.m_data); }
 

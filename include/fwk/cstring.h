@@ -15,11 +15,9 @@ class CString {
 	CString(const char *str, int length) : m_data(str ? str : ""), m_length(length) {
 		PASSERT((int)strlen(str) >= length);
 	}
-	CString(const char *str) {
-		if(!str)
-			str = "";
-		m_data = str;
-		m_length = strlen(str);
+	CString(const char *str) : m_data(str ? str : "") { m_length = strlen(m_data); }
+	CString(const char *begin, const char *end) : m_data(begin), m_length(end - begin) {
+		PASSERT(end >= begin);
 	}
 	// TODO: conversion from CSpan<char>? but what about null-termination
 	CString() : m_data(""), m_length(0) {}
@@ -32,6 +30,7 @@ class CString {
 	bool empty() const { return m_length == 0; }
 	int compare(const CString &rhs) const;
 	int caseCompare(const CString &rhs) const;
+	bool inRange(int pos) const { return pos >= 0 && pos < m_length; }
 
 	const char *begin() const { return m_data; }
 	const char *end() const { return m_data + m_length; }
@@ -41,13 +40,29 @@ class CString {
 	}
 	bool operator<(const CString &rhs) const { return compare(rhs) < 0; }
 
-	CString operator+(int offset) const {
+	CString advance(int offset) const {
 		DASSERT(offset >= 0 && offset <= m_length);
 		return CString(m_data + offset, m_length - offset);
+	}
+	char operator[](int pos) const {
+		PASSERT(inRange(pos));
+		return m_data[pos];
 	}
 
 	// Returns pair: line & column
 	pair<int, int> utf8TextPos(const char *ptr) const;
+
+	CString substr(int pos) const {
+		PASSERT(pos >= 0 && pos <= m_length);
+		return {m_data + pos, m_length - pos};
+	}
+	CString substr(int pos, int sub_length) const {
+		PASSERT(pos >= 0 && sub_length >= 0 && pos + sub_length <= m_length);
+		return {m_data + pos, sub_length};
+	}
+
+	string limitSizeBack(int max_size, CString suffix = "...") const;
+	string limitSizeFront(int max_size, CString prefix = "...") const;
 
   private:
 	const char *m_data;
