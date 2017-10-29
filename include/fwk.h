@@ -24,7 +24,7 @@
 #include "fwk/maybe.h"
 #include "fwk/parse.h"
 #include "fwk_profile.h"
-#include "fwk_variant.h"
+#include "fwk/variant.h"
 #include "fwk/sys/xml.h"
 
 #include "fwk/math/random.h"

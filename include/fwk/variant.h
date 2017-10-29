@@ -104,20 +104,6 @@ struct has_type<T, First, Types...>
 template <typename T>
 struct has_type<T> : std::false_type {};
 
-template <typename T, typename... Types>
-struct is_valid_type;
-
-template <typename T, typename First, typename... Types>
-struct is_valid_type<T, First, Types...>
-{
-    static constexpr bool value = std::is_convertible<T, First>::value
-        || is_valid_type<T, Types...>::value;
-};
-
-template <typename T>
-struct is_valid_type<T> : std::false_type {};
-
-
 template <typename T, typename R = void>
 struct enable_if_type { using type = R; };
 
@@ -521,8 +507,6 @@ visitor<Fns...> make_visitor(Fns... fns)
 
 } // namespace detail
 
-struct no_init {};
-
 struct TypeNotInVariant;
 
 #if defined(__GNUC__) && !defined(__clang__)
@@ -564,8 +548,6 @@ public:
         static_assert(std::is_default_constructible<first_type>::value, "First type in variant must be default constructible to allow default construction of variant");
         new (&data) first_type();
     }
-
-    VARIANT_INLINE Variant(no_init) : type_index(-1) {}
 
     // http://isocpp.org/blog/2012/11/universal-references-in-c11-scott-meyers
     template <typename T, typename Traits = detail::value_traits<T, Types...>,
@@ -644,16 +626,10 @@ public:
         return type_index == detail::direct_type<T, Types...>::index;
     }
 
-    VARIANT_INLINE bool valid() const
-    {
-        return type_index != -1;
-    }
-
     template <typename T, typename... Args>
     VARIANT_INLINE void set(Args &&... args)
     {
         helper_type::destroy(type_index, &data);
-        type_index = -1;
         new (&data) T(std::forward<Args>(args)...);
         type_index = detail::direct_type<T, Types...>::index;
     }
@@ -767,7 +743,6 @@ public:
     }
 
     VARIANT_INLINE bool operator==(Variant const& rhs) const {
-        DASSERT(valid() && rhs.valid());
         if (this->which() != rhs.which())
             return false;
         detail::comparer<Variant, detail::equal_comp> visitor(*this);
@@ -775,7 +750,6 @@ public:
     }
 
     VARIANT_INLINE bool operator<(Variant const& rhs) const {
-        DASSERT(valid() && rhs.valid());
         if (this->which() != rhs.which())
             return this->which() < rhs.which();
         detail::comparer<Variant, detail::less_comp> visitor(*this);

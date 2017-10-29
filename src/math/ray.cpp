@@ -7,7 +7,7 @@
 #include "fwk/math/plane.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
-#include "fwk_variant.h"
+#include "fwk/variant.h"
 
 namespace fwk {
 

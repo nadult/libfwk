@@ -8,7 +8,7 @@
 #include "fwk/math/plane.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/triangle.h"
-#include "fwk_variant.h"
+#include "fwk/variant.h"
 #include "fwk/sys/xml.h"
 
 namespace fwk {

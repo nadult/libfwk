@@ -12,7 +12,7 @@
 #include "fwk/math/tetrahedron.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
-#include "fwk_variant.h"
+#include "fwk/variant.h"
 #include "testing.h"
 
 float3 randomTranslation(float magnitude) {
