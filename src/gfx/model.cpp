@@ -74,6 +74,7 @@ Model::Model(PModelNode root, vector<ModelAnim> anims, vector<MaterialDef> mater
 Model::Model(const Model &rhs) : Model(rhs.m_root->clone(), rhs.m_anims, rhs.m_material_defs) {}
 
 Model Model::loadFromXML(CXmlNode xml_node) {
+	DASSERT(xml_node);
 	auto mesh_node = xml_node.child("mesh");
 	vector<PMesh> meshes;
 	while(mesh_node) {

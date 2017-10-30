@@ -4,9 +4,9 @@
 #ifndef FWK_FORMAT_H
 #define FWK_FORMAT_H
 
-#include "fwk/str.h"
 #include "fwk/math/box.h"
 #include "fwk/pod_vector.h"
+#include "fwk/str.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -130,6 +130,7 @@ class TextFormatter {
 	TextFormatter &operator<<(Str);
 	TextFormatter &operator<<(const char *);
 	TextFormatter &operator<<(const string &);
+	TextFormatter &operator<<(ZStr str) { return *this << Str(str); }
 	template <int N> TextFormatter &operator<<(const char (&str)[N]) { return *this << Str(str); }
 
 	// char is treated as a single character, not like a number!

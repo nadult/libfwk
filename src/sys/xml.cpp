@@ -126,7 +126,8 @@ void XmlNode::addAttrib(const char *name, const char *value) {
 static void checkNodeName(ZStr name) {
 	for(auto c : name)
 		if(!isalnum(c) && c != '_')
-			CHECK_FAILED("Invalid Xml node name: '%s' invalid char: '%c'", name.c_str(), c);
+			CHECK_FAILED("Invalid Xml node name: '%s' invalid char: '%c'",
+						 name.limitSizeBack(40).c_str(), c);
 }
 
 XmlNode XmlNode::addChild(const char *name, const char *value) {
