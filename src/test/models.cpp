@@ -3,6 +3,7 @@
 
 #include "fwk/filesystem.h"
 #include "fwk/gfx/animated_model.h"
+#include "fwk/gfx/converter.h"
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/model.h"
 #include "fwk/gfx/pose.h"
@@ -40,10 +41,14 @@ void testMain() {
 	return;
 #endif
 
-	string mesh_path = mainPath("test/test.model");
-	auto command =
-		format("% % %", mainPath("tools/model_convert"), mainPath("data/test.blend"), mesh_path);
-	execCommand(command);
+	Converter::Settings settings;
+	settings.export_script_path = mainPath("data/export_fwk_model.py");
+	settings.print_output = false;
+	Converter cvt(settings);
+	auto mesh_path = mainPath("test/test.model");
+	auto result = cvt(mainPath("data/test.blend"), mesh_path);
+	ASSERT(result);
+
 	XmlDocument doc;
 	Loader(mesh_path) >> doc;
 	PModel model = PModel(Model::loadFromXML(doc.child()));
