@@ -3,7 +3,7 @@
 
 #include "fwk/sys/input.h"
 
-#include "fwk/cstring.h"
+#include "fwk/str.h"
 #include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>

@@ -51,7 +51,7 @@ void untouch(xml_document<> *ptr) {
 }
 namespace rapidxml {
 void parse_error_handler(const char *what, void *where) {
-	fwk::CString parsed_text(t_xml_debug.pstring, t_xml_debug.pstring_len);
+	fwk::Str parsed_text(t_xml_debug.pstring, t_xml_debug.pstring_len);
 	auto pos = parsed_text.utf8TextPos((const char *)where);
 	fwk::TextFormatter fmt;
 	fmt("XML parsing error: %", what);
@@ -104,7 +104,12 @@ XmlNode::XmlNode(CXmlNode cnode) : CXmlNode(cnode) {
 		m_doc = m_ptr->document();
 }
 
-const char *XmlNode::own(const char *str) { return m_doc->allocate_string(str); }
+const char *XmlNode::own(Str str) {
+	char *ptr = m_doc->allocate_string(nullptr, str.size() + 1);
+	memcpy(ptr, str.data(), str.size());
+	ptr[str.size()] = 0;
+	return ptr;
+}
 
 void XmlNode::addAttrib(const char *name, int value) {
 	char str_value[32];
@@ -118,7 +123,7 @@ void XmlNode::addAttrib(const char *name, const char *value) {
 	touch(m_ptr, attrib);
 }
 
-static void checkNodeName(CString name) {
+static void checkNodeName(ZStr name) {
 	for(auto c : name)
 		if(!isalnum(c) && c != '_')
 			CHECK_FAILED("Invalid Xml node name: '%s' invalid char: '%c'", name.c_str(), c);
@@ -152,7 +157,12 @@ XmlDocument::XmlDocument(XmlDocument &&) = default;
 XmlDocument::~XmlDocument() { untouch(m_ptr.get()); }
 XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 
-const char *XmlDocument::own(const char *str) { return m_ptr->allocate_string(str); }
+const char *XmlDocument::own(Str str) {
+	char *ptr = m_ptr->allocate_string(nullptr, str.size() + 1);
+	memcpy(ptr, str.data(), str.size());
+	ptr[str.size()] = 0;
+	return ptr;
+}
 
 XmlNode XmlDocument::addChild(const char *name, const char *value) {
 	checkNodeName(name);

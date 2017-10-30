@@ -16,7 +16,7 @@
 #include "fwk/sys/rollback.h"
 #include "fwk/sys/stream.h"
 
-#include "fwk/cstring.h"
+#include "fwk/str.h"
 #include "fwk/format.h"
 
 #include "fwk/sys/input.h"

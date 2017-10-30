@@ -4,8 +4,8 @@
 #pragma once
 
 #include "fwk/format.h"
-#include "fwk/sys_base.h"
 #include "fwk/parse.h"
+#include "fwk/sys_base.h"
 
 #ifndef RAPIDXML_HPP_INCLUDED
 
@@ -105,8 +105,7 @@ class XmlNode : public CXmlNode {
 		setValue(own(formatter));
 	}
 
-	const char *own(const char *str);
-	const char *own(const string &str) { return own(str.c_str()); }
+	const char *own(Str);
 	const char *own(const TextFormatter &str) { return own(str.text()); }
 	explicit operator bool() const { return m_ptr != nullptr; }
 
@@ -138,15 +137,14 @@ class XmlDocument {
 	XmlNode child(const char *name = nullptr) const;
 	XmlNode child(const string &name) const { return child(name.c_str()); }
 
-	const char *own(const char *str);
-	const char *own(const string &str) { return own(str.c_str()); }
+	const char *own(Str);
 	const char *own(const TextFormatter &str) { return own(str.text()); }
 
 	string lastNodeInfo() const;
 
   protected:
 	unique_ptr<rapidxml::xml_document<char>> m_ptr;
-	CString m_xml_string;
+	Str m_xml_string;
 };
 
 // Use it to get information about currently parsed XML document on error

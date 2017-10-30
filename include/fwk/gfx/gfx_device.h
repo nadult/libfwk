@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/cstring.h"
+#include "fwk/str.h"
 #include "fwk/enum_flags.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
@@ -58,7 +58,7 @@ class GfxDevice {
 	string extensions() const;
 
 	string clipboardText() const;
-	void setClipboardText(CString);
+	void setClipboardText(ZStr);
 
   private:
 	bool pollEvents();

@@ -3,7 +3,7 @@
 
 #include "fwk/gfx/converter.h"
 
-#include "fwk/cstring.h"
+#include "fwk/str.h"
 #include "fwk/enum_map.h"
 #include "fwk/filesystem.h"
 #include "fwk/gfx/model.h"

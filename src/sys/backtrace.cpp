@@ -147,9 +147,9 @@ namespace {
 
 		int max_lsize = 0, max_fsize = 0;
 		for(auto &e : entries) {
-			e.file = CString(e.file).limitSizeFront(limit_file_size);
-			e.line = CString(e.line).limitSizeBack(limit_line_size);
-			e.function = CString(e.function).limitSizeBack(limit_func_size);
+			e.file = Str(e.file).limitSizeFront(limit_file_size);
+			e.line = Str(e.line).limitSizeBack(limit_line_size);
+			e.function = Str(e.function).limitSizeBack(limit_func_size);
 
 			max_lsize = max(max_lsize, (int)e.line.size());
 			max_fsize = max(max_fsize, (int)e.file.size());

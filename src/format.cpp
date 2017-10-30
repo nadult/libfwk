@@ -103,7 +103,7 @@ void TextFormatter::stdFormat(const char *format, ...) {
 	}
 }
 
-TextFormatter &TextFormatter::operator<<(CString text) {
+TextFormatter &TextFormatter::operator<<(Str text) {
 	if(text.empty())
 		return *this;
 
@@ -111,15 +111,15 @@ TextFormatter &TextFormatter::operator<<(CString text) {
 	if(new_size > m_data.size())
 		reserve(new_size);
 
-	memcpy(&m_data[m_offset], text.c_str(), text.size());
+	memcpy(&m_data[m_offset], text.data(), text.size());
 	m_offset += text.size();
 	m_data[m_offset] = 0;
 
 	return *this;
 }
 
-TextFormatter &TextFormatter::operator<<(const char *str) { return *this << CString(str); }
-TextFormatter &TextFormatter::operator<<(const string &str) { return *this << CString(str); }
+TextFormatter &TextFormatter::operator<<(const char *str) { return *this << Str(str); }
+TextFormatter &TextFormatter::operator<<(const string &str) { return *this << Str(str); }
 
 TextFormatter &TextFormatter::operator<<(char c) {
 	if(c) {
@@ -191,7 +191,7 @@ const char *TextFormatter::nextElement(const char *format_str) {
 		format_str++;
 	const char *end = format_str++;
 
-	*this << CString(start, (int)(end - start));
+	*this << Str(start, end);
 	return format_str;
 }
 
@@ -229,6 +229,7 @@ namespace detail {
 
 	PASS_POINTER(double)
 	PASS_POINTER(float)
+	PASS_POINTER(Str)
 
 	PASS_FORMAT_OPTS(FormatOptions)
 	PASS_FORMAT_OPTS(FormatMode)

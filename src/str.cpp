@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/cstring.h"
+#include "fwk/str.h"
 
 #include "fwk/maybe.h"
 #include "fwk/pod_vector.h"
@@ -26,7 +26,7 @@ static const char *strcasestr(const char *a, const char *b) {
 
 #endif
 
-pair<int, int> CString::utf8TextPos(const char *text) const {
+pair<int, int> Str::utf8TextPos(const char *text) const {
 	if(empty() || text < begin() || text >= end())
 		return {};
 
@@ -41,15 +41,15 @@ pair<int, int> CString::utf8TextPos(const char *text) const {
 		} else {
 			column++;
 		}
-		pos += utf8CodePointLength(pos).orElse(1);
+		pos += utf8CodePointLength(*pos).orElse(1);
 	}
 
 	return {line, column};
 }
 
-string CString::limitSizeBack(int max_size, CString suffix) const {
+string Str::limitSizeBack(int max_size, Str suffix) const {
 	PASSERT(suffix.size() <= max_size);
-	if(m_length <= max_size)
+	if(m_size <= max_size)
 		return *this;
 	string out = substr(0, max_size);
 	int spos = max_size - suffix.size();
@@ -58,9 +58,9 @@ string CString::limitSizeBack(int max_size, CString suffix) const {
 	return out;
 }
 
-string CString::limitSizeFront(int max_size, CString prefix) const {
+string Str::limitSizeFront(int max_size, Str prefix) const {
 	PASSERT(prefix.size() <= max_size);
-	if(m_length <= max_size)
+	if(m_size <= max_size)
 		return *this;
 	string out = substr(0, max_size);
 	for(int n = 0; n < prefix.size(); n++)
@@ -68,10 +68,10 @@ string CString::limitSizeFront(int max_size, CString prefix) const {
 	return out;
 }
 
-int CString::compare(const CString &rhs) const { return strcmp(m_data, rhs.m_data); }
-int CString::caseCompare(const CString &rhs) const { return strcasecmp(m_data, rhs.m_data); }
+int Str::compare(const Str &rhs) const { return strcmp(m_data, rhs.m_data); }
+int Str::compareIgnoreCase(const Str &rhs) const { return strcasecmp(m_data, rhs.m_data); }
 
-CString Tokenizer::next() {
+Str Tokenizer::next() {
 	const char *start = m_str;
 	while(*m_str && *m_str != m_delim)
 		m_str++;
@@ -179,10 +179,7 @@ static int utf8_to_ucs4_length(CSpan<uint8_t> string) {
 	return pos == string.size() ? length : 0;
 }
 
-Maybe<int> utf8CodePointLength(const uint8_t *ptr) {
-	PASSERT(ptr);
-
-	auto c = *ptr;
+Maybe<int> utf8CodePointLength(unsigned char c) {
 	if(!c || (c < 0xC2 && c > 0x80))
 		return none;
 	return c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : c < 0xF5 ? 4 : 5;
@@ -278,8 +275,8 @@ int utf32Length(const string &str) {
 	return utf8_to_ucs4_length({reinterpret_cast<const uint8_t *>(str.data()), (int)str.size()});
 }
 
-Maybe<string32> toUTF32(CString text) {
-	const uint8_t *start = reinterpret_cast<const uint8_t *>(text.c_str());
+Maybe<string32> toUTF32(Str text) {
+	const uint8_t *start = reinterpret_cast<const uint8_t *>(text.begin());
 	const uint8_t *end = start + text.size();
 
 	int len = utf8_to_ucs4_length(CSpan<uint8_t>(start, text.size()));

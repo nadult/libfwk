@@ -16,16 +16,16 @@ namespace fwk {
 
 namespace {
 
-	static void reportParseError(CString, const char *, int) NOINLINE;
-	void reportParseError(CString str, const char *type_name, int count) {
+	static void reportParseError(Str, const char *, int) NOINLINE;
+	void reportParseError(Str str, const char *type_name, int count) {
 		string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
 		auto short_str = str.limitSizeBack(40);
 		CHECK_FAILED("Error while parsing %s%s from \"%s\"", what.c_str(), count > 1 ? "s" : "",
 					 short_str.c_str());
 	}
 
-	static void reportOutOfRange(CString, const char *) NOINLINE;
-	void reportOutOfRange(CString str, const char *type_name) {
+	static void reportOutOfRange(Str, const char *) NOINLINE;
+	void reportOutOfRange(Str str, const char *type_name) {
 		auto short_str = str.limitSizeBack(40);
 		CHECK_FAILED("Error while parsing %s: value out of range: \"%s\"", type_name,
 					 short_str.c_str());
@@ -37,7 +37,7 @@ namespace {
 	auto strtoull(const char *ptr, char **end_ptr) { return ::strtoull(ptr, end_ptr, 0); }
 
 	template <class Func> auto parseSingle(TextParser &parser, Func func, const char *type_name) {
-		const char *str = parser.parseElement().c_str();
+		const char *str = parser.parseElement().data();
 		char *end_ptr = nullptr;
 		errno = 0;
 		auto value = func(str, &end_ptr);
@@ -52,25 +52,12 @@ namespace {
 
 		char *end_ptr = nullptr;
 		errno = 0;
-		auto value = func(element.c_str(), &end_ptr);
+		auto value = func(element.data(), &end_ptr);
 		if(errno != 0 || end_ptr != element.end())
 			reportParseError(element, type_name, 1);
 		if(value < std::numeric_limits<T>::min() || value > std::numeric_limits<T>::max())
 			reportOutOfRange(element, type_name);
 		return T(value);
-	}
-
-	template <class Func, class T>
-	void parseMultiple(const char **ptr, Span<T> out, Func func, const char *type_name) {
-		char *end_ptr = const_cast<char *>(*ptr);
-		errno = 0;
-		for(int n = 0; n < out.size(); n++) {
-			auto value = func(*ptr, &end_ptr);
-			if(errno != 0 || end_ptr == *ptr)
-				reportError(*ptr, type_name, out.size() - n);
-			out[n] = value;
-			*ptr = end_ptr;
-		}
 	}
 }
 
@@ -89,15 +76,16 @@ int TextParser::countElements() const {
 	return count;
 }
 
-CString TextParser::parseElement() {
-	const char *ptr = m_current.c_str();
+Str TextParser::parseElement() {
+	const char *ptr = m_current.data();
+
 	// TODO: czy powinien przeskakiwać puste znaki na początku i na końcu?
 	while(isspace(*ptr))
 		ptr++;
 	auto *start = ptr;
 	while(!isspace(*ptr) && *ptr)
 		ptr++;
-	CString out(start, ptr);
+	Str out(start, ptr);
 	while(isspace(*ptr))
 		ptr++;
 	m_current = {ptr, m_current.end()};
@@ -111,7 +99,7 @@ void TextParser::advanceWhitespace() {
 	m_current = {ptr, m_current.end()};
 }
 
-TextParser &TextParser::operator>>(CString &out) {
+TextParser &TextParser::operator>>(Str &out) {
 	out = parseElement();
 	return *this;
 }
@@ -124,12 +112,12 @@ TextParser &TextParser::operator>>(string &out) {
 TextParser &TextParser::operator>>(bool &out) {
 	auto element = parseElement();
 
-	if(element.caseCompare("true") == 0 || element == "1")
+	if(element.compareIgnoreCase("true") == 0 || element == "1")
 		out = true;
-	else if(element.caseCompare("false") == 0 || element == "0")
+	else if(element.compareIgnoreCase("false") == 0 || element == "0")
 		out = false;
 	else
-		CHECK_FAILED("Error while parsing bool from \"%s\"", element.c_str());
+		CHECK_FAILED("Error while parsing bool from \"%s\"", string(element).c_str());
 
 	return *this;
 }
@@ -188,7 +176,7 @@ void TextParser::parseInts(Span<int> out) { parseSpan(out); }
 void TextParser::parseFloats(Span<float> out) { parseSpan(out); }
 void TextParser::parseDoubles(Span<double> out) { parseSpan(out); }
 
-void TextParser::parseNotEmpty(Span<CString> out) {
+void TextParser::parseNotEmpty(Span<Str> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
 		if(out[n].empty())

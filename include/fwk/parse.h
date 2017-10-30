@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/cstring.h"
+#include "fwk/str.h"
 #include "fwk/math_base.h"
 #include "fwk/sys_base.h"
 
@@ -21,12 +21,18 @@ namespace detail {
 		enum { value = std::is_same<decltype(test(std::declval<T &>())), TextParser &>::value };
 	};
 
-	template <class T> struct VariableParseElements { enum { value = false }; };
-	template<class T> struct VariableParseElements<vector<T>> { enum { value = true }; };
+	template <class T> struct VariableParseElements {
+		enum { value = false };
+	};
+	template <class T> struct VariableParseElements<vector<T>> {
+		enum { value = true };
+	};
 }
 
 template <class T> constexpr bool isParsable() { return detail::IsParsable<T>::value; }
-template <class T> constexpr bool hasVariableParseElements() { return detail::VariableParseElements<T>::value; };
+template <class T> constexpr bool hasVariableParseElements() {
+	return detail::VariableParseElements<T>::value;
+};
 
 template <class... Args> constexpr bool areParsable() {
 	return Conjunction<detail::IsParsable<Args>...>::value;
@@ -40,10 +46,10 @@ template <class... Args> using EnableIfParsableN = EnableIf<areParsable<Args...>
 // TODO: strings with whitespace in them
 class TextParser {
   public:
-	TextParser(CString str) : m_current(str) {}
+	TextParser(ZStr str) : m_current(str) {}
 
 	// This will work even when parser is empty
-	TextParser &operator>>(CString &);
+	TextParser &operator>>(Str &);
 	TextParser &operator>>(string &);
 
 	TextParser &operator>>(bool &);
@@ -64,20 +70,19 @@ class TextParser {
 			*this >> elem;
 	}
 
-	void parseNotEmpty(Span<CString>);
+	void parseNotEmpty(Span<Str>);
 	void parseNotEmpty(Span<string>);
 	void parseInts(Span<int>);
 	void parseFloats(Span<float>);
 	void parseDoubles(Span<double>);
 
-	const char *c_str() const { return m_current.c_str(); }
-	CString current() const { return m_current; }
+	Str current() const { return m_current; }
 	void advance(int offset) { m_current = m_current.advance(offset); }
 
 	bool empty() const { return m_current.empty(); }
 
 	// Also skips whitespace on both sides
-	CString parseElement();
+	Str parseElement();
 	void advanceWhitespace();
 	int countElements() const;
 
@@ -85,7 +90,7 @@ class TextParser {
 	void parseStrings(Span<string> out);
 
   private:
-	CString m_current;
+	ZStr m_current;
 };
 
 // To make new type parsable: simply overload operator<<:
@@ -126,7 +131,7 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) {
 
 // TODO: parsing types from math
 
-template <class T, EnableIfParsable<T>...> T fromString(CString str) {
+template <class T, EnableIfParsable<T>...> T fromString(ZStr str) {
 	TextParser parser(str);
 	T out;
 	parser >> out;

@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/cstring.h"
+#include "fwk/str.h"
 #include "fwk/gfx/texture.h"
 #include "fwk/sys/stream.h"
 
