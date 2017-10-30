@@ -47,6 +47,7 @@ int RollbackContext::atRollback(AtRollback func, void *arg) {
 		if(auto &level = context->levels.back(); level.pause_counter == 0) {
 			context->is_disabled = true;
 			int index = level.callbacks.size();
+			// TODO: freelist
 			level.callbacks.emplace_back(func, arg);
 			context->is_disabled = false;
 			return index;
@@ -219,8 +220,10 @@ void RollbackContext::rollback(Error error) {
 	detail::t_on_fail_count = level.assert_stack_pos;
 
 	//printf("Rollback!! freeing: %d blocks\n", level.allocs.size());
-	for(auto &pair : level.callbacks)
-		pair.first(pair.second);
+	for(auto &pair : level.callbacks) {
+		if(pair.first)
+			pair.first(pair.second);
+	}
 
 	for(auto &pair : level.allocs) {
 		fwk::detail::ffree((void *)pair.first);
