@@ -66,6 +66,19 @@ template <class T> class Box {
 	const Point &min() const { return m_min; }
 	const Point &max() const { return m_max; }
 
+	void setMin(const T &min) {
+		m_min = min;
+		DASSERT(validRange(m_min, m_max));
+	}
+	void setMax(const T &max) {
+		m_max = max;
+		DASSERT(validRange(m_min, m_max));
+	}
+	void setSize(const T &size) {
+		m_max = m_min + size;
+		DASSERT(validRange(m_min, m_max));
+	}
+
 	Scalar x() const { return m_min[0]; }
 	Scalar y() const { return m_min[1]; }
 	ENABLE_IF_SIZE(3) Scalar z() const { return m_min[2]; }
