@@ -80,6 +80,7 @@ class XmlNode : public CXmlNode {
 	// to reallocate them in the memory pool if you're not sure
 	void addAttrib(const char *name, const char *value);
 	void addAttrib(const char *name, int value);
+	void addAttrib(const char *name, Str value);
 
 	template <class T> void addAttrib(const char *name, const T &value) {
 		TextFormatter formatter(256, {FormatMode::plain});
@@ -120,6 +121,7 @@ class XmlNode : public CXmlNode {
 class XmlDocument {
   public:
 	XmlDocument();
+	XmlDocument(ZStr file_name);
 	XmlDocument(Stream &);
 	XmlDocument(XmlDocument &&);
 	~XmlDocument();

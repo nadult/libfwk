@@ -117,6 +117,13 @@ void XmlNode::addAttrib(const char *name, int value) {
 	addAttrib(name, own(str_value));
 }
 
+void XmlNode::addAttrib(const char *name, Str value) {
+	// FIXME: check it
+	auto *attrib = m_doc->allocate_attribute(name, value.data(), 0, value.size());
+	m_ptr->append_attribute(attrib);
+	touch(m_ptr, attrib);
+}
+
 void XmlNode::addAttrib(const char *name, const char *value) {
 	auto *attrib = m_doc->allocate_attribute(name, value);
 	m_ptr->append_attribute(attrib);
@@ -152,7 +159,11 @@ XmlNode XmlNode::child(const char *name) const {
 }
 
 XmlDocument::XmlDocument() : m_ptr(make_unique<xml_document<>>()) {}
-XmlDocument::XmlDocument(Stream &stream) : XmlDocument() { stream >> *this; }
+XmlDocument::XmlDocument(ZStr file_name) : XmlDocument() {
+	Loader loader(file_name);
+	loader >> *this;
+}
+XmlDocument::XmlDocument(Stream &stream) : XmlDocument() { stream << *this; }
 
 XmlDocument::XmlDocument(XmlDocument &&) = default;
 XmlDocument::~XmlDocument() { untouch(m_ptr.get()); }

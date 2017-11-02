@@ -88,7 +88,7 @@ Str TextParser::parseElement() {
 	Str out(start, ptr);
 	while(isspace(*ptr))
 		ptr++;
-	m_current = {ptr, m_current.end()};
+	m_current = ZStr(ptr, m_current.end() - ptr);
 	return out;
 }
 
@@ -96,7 +96,7 @@ void TextParser::advanceWhitespace() {
 	const char *ptr = m_current.c_str();
 	while(isspace(*ptr))
 		ptr++;
-	m_current = {ptr, m_current.end()};
+	m_current = ZStr(ptr, m_current.end() - ptr);
 }
 
 TextParser &TextParser::operator>>(Str &out) {

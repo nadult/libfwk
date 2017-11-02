@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "fwk/enum.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -14,7 +13,7 @@ namespace fwk {
 class Str {
   public:
 	Str(const string &str) : m_data(str.c_str()), m_size((int)str.size()) {}
-	Str(const char *str, int length) : m_data(str ? str : ""), m_size(length) {
+	Str(const char *str, int size) : m_data(str ? str : ""), m_size(size) {
 		PASSERT((int)strlen(str) >= length);
 	}
 	template <int N>
@@ -67,6 +66,9 @@ class Str {
 	string limitSizeFront(int max_size, Str prefix = "...") const;
 
   protected:
+	struct NoChecks {};
+	Str(const char *data, int size, NoChecks) : m_data(data), m_size(size) {}
+
 	const char *m_data;
 	int m_size;
 };
@@ -74,7 +76,12 @@ class Str {
 // Zero terminated Str
 class ZStr : public Str {
   public:
-	using Str::Str;
+	ZStr(const string &str) : Str(str) {}
+	ZStr(const char *str, int size) : Str(str, size, NoChecks()) {
+		PASSERT((int)strlen(str) == length);
+	}
+	template <int N> ZStr(const char (&zero_terminated)[N]) : Str(zero_terminated) {}
+	ZStr(const char *str) : Str(str) {}
 	ZStr(const Str &) = delete;
 
 	using Str::operator==;
