@@ -10,15 +10,11 @@ namespace fwk {
 
 using RandomSeed = unsigned long;
 
+struct RandomEngine;
 class Random {
   public:
 	Random(RandomSeed = 123);
-	Random(const Random &);
-	Random(Random &&);
-	~Random();
-
-	Random &operator=(const Random &);
-	Random &operator=(Random &&);
+	FWK_COPYABLE_CLASS(Random);
 
 	RandomSeed operator()();
 
@@ -68,7 +64,6 @@ class Random {
 	}
 
   private:
-	struct Engine;
-	FlatImpl<Engine, 8> m_engine;
+	FlatImpl<RandomEngine, 8> m_engine;
 };
 }

@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "fwk/str.h"
 #include "fwk/flat_impl.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
+#include "fwk/str.h"
 #include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
@@ -40,8 +40,8 @@ class FontCore : public immutable_base<FontCore> {
 
 	int genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv) const;
 	IRect evalExtents(const string32 &) const;
-	int lineHeight() const;
-	const string &textureName() const;
+	int lineHeight() const { return m_line_height; }
+	const string &textureName() const { return m_texture_name; }
 
   private:
 	struct Kerning {
@@ -49,9 +49,16 @@ class FontCore : public immutable_base<FontCore> {
 		int value;
 	};
 	FontCore(CSpan<Glyph>, CSpan<Kerning>, int2, int);
+	void computeRect();
 
-	struct Impl;
-	FlatImpl<Impl, 192> m_impl;
+	FlatImpl<HashMap<int, Glyph>> m_glyphs;
+	FlatImpl<HashMap<pair<int, int>, int>> m_kernings;
+	string m_texture_name;
+	int2 m_texture_size;
+
+	string m_face_name;
+	IRect m_max_rect;
+	int m_line_height;
 
 	friend class FontFactory;
 	friend class Font;

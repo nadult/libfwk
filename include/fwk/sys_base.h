@@ -168,6 +168,7 @@ class BaseVector;
 template <class T> class PodVector;
 template <class T> class Vector;
 template <class T> using vector = Vector<T>;
+template <class T> constexpr int type_size<Vector<T>> = 16;
 
 template <class T> struct SerializeAsPod;
 
@@ -192,4 +193,5 @@ template <class T> class ResourceLoader;
 template <class T, class Constructor = ResourceLoader<T>> class ResourceManager;
 
 template <class Key, class Value> class HashMap;
+template <class Key, class Value> constexpr int type_size<HashMap<Key, Value>> =  32;
 }

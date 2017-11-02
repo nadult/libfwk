@@ -3,42 +3,42 @@
 
 #pragma once
 
-#include <utility>
+#include "fwk/meta.h"
 
 namespace fwk {
 
-template <class T, int size, int minimum_size> constexpr inline void validateSize() {
-	static_assert(size >= minimum_size, "Invalid size");
-}
+template <class T, int specified, int required> struct InvalidFlatImplSize;
+template <class T, int specified, int required> struct InvalidFlatImplAlignment;
 
-// T definition is not required, you just have to make sure
-// that size is at least as big as sizeof(T)
-// It's similar to unique_ptr but it keeps the data in-place
-// TODO: better name ?
-template <class T, unsigned size> struct FlatImpl {
-	template <class... Args> FlatImpl(Args &&... args) {
-		validateSize<T, size, sizeof(T)>();
-		new(data) T(std::forward<Args>(args)...);
-	}
-	FlatImpl(const FlatImpl &rhs) { new(data) T(*rhs); }
-	FlatImpl(FlatImpl &&rhs) { new(data) T(move(*rhs)); }
-	~FlatImpl() { (**this).~T(); }
-
-	void operator=(const FlatImpl &rhs) { **this = *rhs; }
-	void operator=(FlatImpl &&rhs) { **this = move(*rhs); }
-
-	const T &operator*() const {
-		validateSize<T, size, sizeof(T)>();
-		return reinterpret_cast<const T &>(*this);
-	}
-	T &operator*() {
-		validateSize<T, size, sizeof(T)>();
-		return reinterpret_cast<T &>(*this);
-	}
-	T *operator->() { return &operator*(); }
-	const T *operator->() const { return &operator*(); }
+template <class T, int size, int align> struct alignas(align) FlatProxy {
+	FlatProxy() = delete;
+	FlatProxy(const FlatProxy &) = delete;
+	void operator=(const FlatProxy &) = delete;
 
   private:
 	char data[size];
 };
+
+namespace detail {
+	template <class T, int size, int align, int req_size, int req_align>
+	using ValidateFlatImpl = Conditional<
+		size != req_size, InvalidFlatImplSize<T, size, req_size>,
+		Conditional<align != req_align, InvalidFlatImplAlignment<T, align, req_align>, T>>;
+
+	template <class T, int size, int align> struct FlatImplSelect {
+		template <class C>
+		static auto test(int) -> ValidateFlatImpl<C, size, align, sizeof(C), alignof(C)>;
+		template <class C> static auto test(...) -> FlatProxy<T, size, align>;
+
+		using type = decltype(test<T>(0));
+		enum { value = !std::is_same<void, type>::value };
+	};
+}
+
+// 0-overhead Pimpl; When T is defined it evaluates to T, otherwise to FlatProxy<T>;
+// You have to exactly know T's size and alignment; in .cpp file you have to make sure
+// that T is defined before FlatImpl<T> is instantiated.
+// Limitation: it doesn't work for private members.
+template <class T, int size = type_size<T>, int alignment = 8>
+using FlatImpl = typename detail::FlatImplSelect<T, size, alignment>::type;
 }

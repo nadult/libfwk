@@ -1,17 +1,20 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/hash_map.h"
+
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/font.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/sys/xml.h"
 #include "fwk_opengl.h"
-#include <map>
 
 namespace fwk {
 
-struct FontCore::Impl {
-	Impl(CXmlNode font_node) {
+FontCore::FontCore(const string &name, Stream &stream) : FontCore(XmlDocument(stream)) {}
+FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
+
+	FontCore::FontCore(CXmlNode font_node) {
 		ASSERT(font_node);
 
 		auto info_node = font_node.child("info");
@@ -71,7 +74,7 @@ struct FontCore::Impl {
 
 		computeRect();
 	}
-	Impl(CSpan<Glyph> glyphs, CSpan<Kerning> kernings, int2 tex_size, int line_height)
+	FontCore::FontCore(CSpan<Glyph> glyphs, CSpan<Kerning> kernings, int2 tex_size, int line_height)
 		: m_texture_size(tex_size), m_line_height(line_height) {
 		for(auto &glyph : glyphs)
 			m_glyphs[glyph.character] = glyph;
@@ -89,13 +92,15 @@ struct FontCore::Impl {
 		computeRect();
 	}
 
-	void computeRect() {
+	FWK_COPYABLE_CLASS_IMPL(FontCore)
+
+	void FontCore::computeRect() {
 		m_max_rect = {};
 		for(auto &it : m_glyphs)
 			m_max_rect = enclose(m_max_rect, IRect(it.second.size) + it.second.offset);
 	}
 
-	IRect evalExtents(const string32 &text) const {
+	IRect FontCore::evalExtents(const string32 &text) const {
 		IRect rect;
 		int2 pos;
 
@@ -135,7 +140,7 @@ struct FontCore::Impl {
 
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
-	int genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv) const {
+	int FontCore::genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv) const {
 		DASSERT(out_pos.size() == out_uv.size());
 		DASSERT(out_pos.size() % 4 == 0);
 
@@ -188,41 +193,16 @@ struct FontCore::Impl {
 		return offset / 4;
 	}
 
-	// TODO: better representation? hash table maybe?
-	std::map<int, Glyph> m_glyphs;
-	std::map<pair<int, int>, int> m_kernings;
-	string m_texture_name;
-	int2 m_texture_size;
-
-	string m_face_name;
-	IRect m_max_rect;
-	int m_line_height;
-};
-
 FontStyle::FontStyle(FColor color, FColor shadow_color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(shadow_color), halign(halign), valign(valign) {}
 
 FontStyle::FontStyle(FColor color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(ColorId::transparent), halign(halign), valign(valign) {}
 
-FontCore::FontCore(const string &name, Stream &stream) : FontCore(XmlDocument(stream)) {}
-FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
-FontCore::FontCore(CXmlNode font_node) : m_impl(font_node) {}
-FontCore::FontCore(CSpan<Glyph> glyphs, CSpan<Kerning> kernings, int2 tex_size, int line_height)
-	: m_impl(move(glyphs), move(kernings), tex_size, line_height) {}
-FWK_COPYABLE_CLASS_IMPL(FontCore)
-
-IRect FontCore::evalExtents(const string32 &text) const { return m_impl->evalExtents(text); }
-int FontCore::lineHeight() const { return m_impl->m_line_height; }
-const string &FontCore::textureName() const { return m_impl->m_texture_name; }
-int FontCore::genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv) const {
-	return m_impl->genQuads(text, out_pos, out_uv);
-}
-
 Font::Font(PFontCore core, PTexture texture) : m_core(core), m_texture(texture) {
 	DASSERT(m_core);
 	DASSERT(m_texture);
-	DASSERT(m_texture->size() == m_core->m_impl->m_texture_size);
+	DASSERT(m_texture->size() == m_core->m_texture_size);
 }
 FWK_COPYABLE_CLASS_IMPL(Font)
 

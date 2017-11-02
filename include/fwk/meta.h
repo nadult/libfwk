@@ -54,6 +54,14 @@ namespace detail {
 	};
 }
 
+template <class Lhs, class... RhsArgs> struct IsOneOf { static constexpr bool value = false; };
+template <class Lhs, class Rhs, class... RhsArgs> struct IsOneOf<Lhs, Rhs, RhsArgs...> {
+	static constexpr bool value = IsOneOf<Lhs, RhsArgs...>::value;
+};
+template <class Lhs, class... RhsArgs> struct IsOneOf<Lhs, Lhs, RhsArgs...> {
+	static constexpr bool value = true;
+};
+
 template <int N, class... Args> using NthType = typename detail::NthType<N, Args...>::type;
 
 template <bool cond, class InvalidArg = DisabledType>
@@ -74,4 +82,6 @@ using detail::Conjunction;
 using detail::Disjunction;
 
 template <class... Types> using IndexedTypes = typename detail::MakeIndexedTypes<0, Types...>::type;
+
+template <class T> constexpr int type_size = sizeof(T);
 }
