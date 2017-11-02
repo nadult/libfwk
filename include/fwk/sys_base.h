@@ -190,4 +190,6 @@ class InputState;
 
 template <class T> class ResourceLoader;
 template <class T, class Constructor = ResourceLoader<T>> class ResourceManager;
+
+template <class Key, class Value> class HashMap;
 }

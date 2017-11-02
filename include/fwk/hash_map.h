@@ -11,14 +11,9 @@ namespace fwk {
 // Licensed under MIT license
 //
 // Slightly modified & adapted for libfwk by Krzysztof Jakubowski
-
-// TLoadFactor4 - controls hash map load. 4 means 100% load, ie. hashmap will grow
-// when number of items == capacity. Default value of 6 means it grows when
-// number of items == capacity * 3/2 (6/4). Higher load == tighter maps, but bigger
-// risk of collisions.
-template <typename TKey, typename TValue, class THashFunc = Hash<int>, int TLoadFactor4 = 6>
-class HashMap {
+template <typename TKey, typename TValue> class HashMap {
   public:
+	using THashFunc = Hash<int>;
 	using value_type = pair<TKey, TValue>;
 	using uint32 = unsigned int;
 	using hash_value_t = uint32;
@@ -45,12 +40,10 @@ class HashMap {
 	  public:
 		typedef std::forward_iterator_tag iterator_category;
 
-		explicit node_iterator(TNodePtr node, const HashMap *map) : m_node(node), m_map(map) { /**/
-		}
+		explicit node_iterator(TNodePtr node, const HashMap *map) : m_node(node), m_map(map) {}
 		template <typename UNodePtr, typename UPtr, typename URef>
 		node_iterator(const node_iterator<UNodePtr, UPtr, URef> &rhs)
-			: m_node(rhs.node()), m_map(rhs.get_map()) { /**/
-		}
+			: m_node(rhs.node()), m_map(rhs.get_map()) {}
 
 		TRef operator*() const {
 			PASSERT(m_node);
@@ -107,6 +100,13 @@ class HashMap {
 	}
 	HashMap(const HashMap &rhs) { *this = rhs; }
 	~HashMap() { deleteNodes(); }
+
+	// Load factor controls hash map load. 4 means 100% load, ie. hashmap will grow
+	// when number of items == capacity. Default value of 6 means it grows when
+	// number of items == capacity * 3/2 (6/4). Higher load == tighter maps, but bigger
+	// risk of collisions.
+	void setLoadFactor4(int load_factor4) { m_load_factor4 = load_factor4; }
+	int loadFactor4() const { return m_load_factor4; }
 
 	iterator begin() {
 		iterator it(m_nodes, this);
@@ -165,7 +165,7 @@ class HashMap {
 
 	pair<iterator, bool> emplace(const value_type &v) {
 		checkInvariant();
-		if(m_num_used * TLoadFactor4 >= m_capacity * 4)
+		if(m_num_used * m_load_factor4 >= m_capacity * 4)
 			grow();
 
 		hash_value_t hash = hashFunc(v.first);
@@ -266,7 +266,7 @@ class HashMap {
 	}
 	pair<iterator, bool> emplace_at(const value_type &v, Node *n, hash_value_t hash) {
 		checkInvariant();
-		if(n == 0 || m_num_used * TLoadFactor4 >= m_capacity * 4)
+		if(n == 0 || m_num_used * m_load_factor4 >= m_capacity * 4)
 			return emplace(v);
 
 		DASSERT(!n->is_occupied());
@@ -410,11 +410,10 @@ class HashMap {
 	int m_capacity = 0;
 	uint32 m_capacity_mask = 0;
 	int m_num_used = 0;
+	int m_load_factor4 = 6;
 	THashFunc m_hash_func;
 };
 
-// Holy ...
-template <typename TKey, typename TValue, class THashFunc, int TLoadFactor4>
-typename HashMap<TKey, TValue, THashFunc, TLoadFactor4>::Node
-	HashMap<TKey, TValue, THashFunc, TLoadFactor4>::s_empty_node;
+template <typename TKey, typename TValue>
+typename HashMap<TKey, TValue>::Node HashMap<TKey, TValue>::s_empty_node;
 }
