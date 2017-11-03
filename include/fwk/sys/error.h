@@ -35,6 +35,9 @@ struct Error {
 	void operator+=(const Chunk &);
 	Error operator+(const Chunk &) const;
 
+	// Explicit copy
+	Error copy() const;
+
 	void print() const;
 	void validateMemory();
 	bool empty() const { return chunks.empty() && !backtrace; }

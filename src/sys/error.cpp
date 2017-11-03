@@ -56,4 +56,6 @@ void Error::validateMemory() {
 	if(backtrace)
 		backtrace->validateMemory();
 }
+
+Error Error::copy() const { return {chunks, backtrace}; }
 }
