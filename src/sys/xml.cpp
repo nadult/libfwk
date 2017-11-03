@@ -163,7 +163,7 @@ XmlDocument::XmlDocument(ZStr file_name) : XmlDocument() {
 	Loader loader(file_name);
 	loader >> *this;
 }
-XmlDocument::XmlDocument(Stream &stream) : XmlDocument() { stream << *this; }
+XmlDocument::XmlDocument(Stream &stream) : XmlDocument() { stream >> *this; }
 
 XmlDocument::XmlDocument(XmlDocument &&) = default;
 XmlDocument::~XmlDocument() { untouch(m_ptr.get()); }
