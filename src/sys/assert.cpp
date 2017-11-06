@@ -32,7 +32,7 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 
 void assertFailed(const char *file, int line, const char *text) {
 	char buffer[4096];
-	snprintf(buffer, sizeof(buffer), "%s:%d: Assertion failed: %s", file, line, text);
+	snprintf(buffer, sizeof(buffer), "Assertion failed: %s", text);
 
 #ifdef FWK_TARGET_HTML5
 	printf("%s\n", buffer);

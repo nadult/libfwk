@@ -62,7 +62,7 @@ string Str::limitSizeFront(int max_size, Str prefix) const {
 	PASSERT(prefix.size() <= max_size);
 	if(m_size <= max_size)
 		return *this;
-	string out = substr(0, max_size);
+	string out = substr(m_size - max_size, max_size);
 	for(int n = 0; n < prefix.size(); n++)
 		out[n] = prefix[n];
 	return out;
