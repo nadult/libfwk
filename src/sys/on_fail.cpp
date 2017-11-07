@@ -15,17 +15,19 @@ namespace detail {
 	__thread int t_on_fail_count = 0;
 }
 
+using namespace fwk::detail;
+
 void onFailPush(OnFailInfo info) {
 	PASSERT(t_on_fail_count < max_on_assert);
-	detail::t_on_fail_stack[detail::t_on_fail_count++] = info;
+	t_on_fail_stack[t_on_fail_count++] = info;
 }
 
 void onFailPop() {
 	PASSERT(t_on_fail_count > 0);
-	detail::t_on_fail_count--;
+	t_on_fail_count--;
 }
 
-int onFailStackSize() { return detail::t_on_fail_count; }
+int onFailStackSize() { return t_on_fail_count; }
 
 static __thread bool s_fail_protect = false;
 
@@ -45,11 +47,11 @@ Error onFailMakeError(const char *file, int line, const char *main_message) {
 	vector<ErrorChunk> chunks;
 
 	int start = 0; //roll_status.on_assert_top;
-	int count = detail::t_on_fail_count - start;
+	int count = t_on_fail_count - start;
 
 	chunks.reserve(count + 1);
 	for(int n = 0; n < count; n++) {
-		const auto &info = detail::t_on_fail_stack[start + n];
+		const auto &info = t_on_fail_stack[start + n];
 		chunks.emplace_back(info.func(info.args));
 	}
 	chunks.emplace_back(main_message, file, line);

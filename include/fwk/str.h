@@ -14,11 +14,7 @@ class Str {
   public:
 	Str(const string &str) : m_data(str.c_str()), m_size((int)str.size()) {}
 	Str(const char *str, int size) : m_data(str ? str : ""), m_size(size) {
-		PASSERT((int)strlen(str) >= length);
-	}
-	template <int N>
-	Str(const char (&zero_terminated)[N]) : m_data(zero_terminated), m_size(N - 1) {
-		PASSERT((int)strlen(m_data) == N - 1);
+		PASSERT((int)strlen(str) >= size);
 	}
 	Str(const char *str) : m_data(str ? str : "") { m_size = strlen(m_data); }
 	Str(const char *begin, const char *end) : m_data(begin), m_size(end - begin) {
@@ -78,9 +74,8 @@ class ZStr : public Str {
   public:
 	ZStr(const string &str) : Str(str) {}
 	ZStr(const char *str, int size) : Str(str, size, NoChecks()) {
-		PASSERT((int)strlen(str) == length);
+		PASSERT((int)strlen(str) == size);
 	}
-	template <int N> ZStr(const char (&zero_terminated)[N]) : Str(zero_terminated) {}
 	ZStr(const char *str) : Str(str) {}
 	ZStr(const Str &) = delete;
 
