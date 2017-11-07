@@ -15,6 +15,7 @@
 
 namespace fwk {
 
+// clang-format off
 static const char *fsh_simple_src =
 	"varying lowp vec4 color;\n"
 	"void main() {\n"
@@ -60,6 +61,7 @@ static const char *vsh_src =
 	"  tex_coord = in_tex_coord;\n"
 	"  color = in_color * mesh_color;\n"
 	"}\n";
+// clang-format on
 
 struct ProgramFactory {
 	PProgram operator()(const string &name) const {
@@ -159,6 +161,7 @@ void RenderList::render() {
 	auto tex_program = s_mgr["tex"];
 	auto flat_program = s_mgr["flat"];
 	auto flat_shade_program = s_mgr["flat_shade"];
+	auto simple_program = s_mgr["simple"];
 
 	for(const auto &draw_call : m_draw_calls) {
 		auto &mat = draw_call.material;
@@ -166,7 +169,7 @@ void RenderList::render() {
 			DTexture::bind(mat.textures);
 		PProgram program = !mat.textures.empty() ? tex_program : flat_shade_program;
 		if(draw_call.primitiveType() == PrimitiveType::lines)
-			program = flat_program;
+			program = simple_program;
 
 		ProgramBinder binder(program);
 		binder.bind();
@@ -238,17 +241,11 @@ void RenderList::renderLines() {
 	ProgramBinder binder(s_mgr["simple"]);
 	binder.bind();
 
-	for(const auto &inst : m_lines.instances()) {
-		auto pos = make_immutable<VertexBuffer>(inst.positions);
-		auto col = inst.colors.empty()
-					   ? VertexArraySource(FColor(ColorId::white))
-					   : VertexArraySource(make_immutable<VertexBuffer>(inst.colors));
-		VertexArray line_array({pos, col, VertexArraySource(float2(0, 0))});
-
-		binder.setUniform("mesh_color", (float4)inst.material_color);
-		enable(GL_DEPTH_TEST, !(inst.material_flags & MatOpt::ignore_depth));
-		binder.setUniform("proj_view_matrix", projectionMatrix() * inst.matrix);
-		line_array.draw(PrimitiveType::lines, line_array.size(), 0);
+	for(auto &dc : m_lines.drawCalls()) {
+		binder.setUniform("mesh_color", (float4)dc.material.color);
+		binder.setUniform("proj_view_matrix", projectionMatrix() * dc.matrix);
+		enable(GL_DEPTH_TEST, !(dc.material.flags & MatOpt::ignore_depth));
+		dc.issue();
 	}
 }
 

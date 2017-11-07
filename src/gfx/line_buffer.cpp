@@ -1,8 +1,12 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/render_list.h"
+#include "fwk/gfx/line_buffer.h"
 
+#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/vertex_array.h"
+#include "fwk/gfx/vertex_buffer.h"
+#include "fwk/math/box.h"
 #include "fwk/math/segment.h"
 
 namespace fwk {
@@ -69,4 +73,16 @@ void LineBuffer::addBox(const FBox &bbox, IColor color, const Matrix4 &matrix) {
 }
 
 void LineBuffer::clear() { m_instances.clear(); }
+
+vector<DrawCall> LineBuffer::drawCalls() const {
+	return transform(m_instances, [](const Instance &inst) {
+		auto pos = make_immutable<VertexBuffer>(inst.positions);
+		auto col = inst.colors.empty()
+					   ? VertexArraySource(FColor(ColorId::white))
+					   : VertexArraySource(make_immutable<VertexBuffer>(inst.colors));
+		auto line_array = VertexArray::make({pos, col, VertexArraySource(float2(0, 0))});
+		return DrawCall(line_array, PrimitiveType::lines, line_array->size(), 0,
+						Material(inst.material_color, inst.material_flags), inst.matrix);
+	});
+}
 }
