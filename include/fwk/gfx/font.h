@@ -102,19 +102,4 @@ class Font {
 	PFontCore m_core;
 	PTexture m_texture;
 };
-
-class FontFactory {
-  public:
-	FontFactory();
-	~FontFactory();
-
-	FontFactory(FontFactory const &) = delete;
-	void operator=(FontFactory const &) = delete;
-
-	Font makeFont(string const &path, int size_in_pixels, bool lcd_mode = false);
-
-  private:
-	class Impl;
-	UniquePtr<Impl> m_impl;
-};
 }

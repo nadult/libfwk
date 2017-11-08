@@ -1,7 +1,6 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-- pousuwać unique_ptr i użyć flatimpl
 - format for Variant & maybe
 - make RandomSeed not unsigned
 - execCommand doesn't retturn error status sometimes?

@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include "fwk/str.h"
 #include "fwk/enum_flags.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
+#include "fwk/str.h"
 #include "fwk/unique_ptr.h"
 
 namespace fwk {
@@ -64,7 +64,6 @@ class GfxDevice {
   private:
 	bool pollEvents();
 
-	// TODO: Pimpl
 #ifdef __EMSCRIPTEN__
 	static void emscriptenCallback();
 #endif

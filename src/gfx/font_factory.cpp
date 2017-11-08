@@ -1,10 +1,11 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/hash_map.h"
+
 #include "fwk/gfx/dtexture.h"
-#include "fwk/gfx/font.h"
+#include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/texture.h"
-#include <map>
 
 #ifdef FWK_TARGET_HTML5
 
@@ -28,47 +29,41 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 #include FT_FREETYPE_H
 #endif
 
-#include <algorithm>
 #include <cstdarg>
 #include <cstring>
 #include <cwchar>
 
 namespace fwk {
 
-class FontFactory::Impl {
-  public:
-	FT_Library library;
-	std::map<string, FT_Face> faces;
-
-	FT_Face getFace(const string &path) {
-		auto it = faces.find(path);
-		if(it != faces.end())
-			return it->second;
-
-		FT_Face face;
-		FT_Error error = FT_New_Face(library, path.c_str(), 0, &face);
-
-		if(error == FT_Err_Unknown_File_Format)
-			CHECK_FAILED("Error while loading font face '%s': unknown file format", path.c_str());
-		else if(error != 0)
-			CHECK_FAILED("Error while loading font face '%s'", path.c_str());
-		faces[path] = face;
-		return face;
-	}
-};
-
-FontFactory::FontFactory() : m_impl(uniquePtr<Impl>()) {
-	if(FT_Init_FreeType(&m_impl->library) != 0)
+FontFactory::FontFactory() {
+	if(FT_Init_FreeType((FT_Library *)&m_library) != 0)
 		FATAL("Error while initializing FreeType");
 }
 
 FontFactory::~FontFactory() {
-	for(auto face : m_impl->faces)
-		FT_Done_Face(face.second);
-	FT_Done_FreeType(m_impl->library);
+	for(auto face : m_faces)
+		FT_Done_Face((FT_Face)face.second);
+	FT_Done_FreeType((FT_Library)m_library);
 }
 
-static Texture makeTextureAtlas(vector<pair<FontCore::Glyph, Texture>> &glyphs, int2 atlas_size) {
+void *FontFactory::getFace(const string &path) {
+	auto it = m_faces.find(path);
+	if(it != m_faces.end())
+		return it->second;
+
+	FT_Face face;
+	FT_Error error = FT_New_Face((FT_Library)m_library, path.c_str(), 0, &face);
+
+	if(error == FT_Err_Unknown_File_Format)
+		CHECK_FAILED("Error while loading font face '%s': unknown file format", path.c_str());
+	else if(error != 0)
+		CHECK_FAILED("Error while loading font face '%s'", path.c_str());
+	m_faces[path] = face;
+	return face;
+}
+
+Texture FontFactory::makeTextureAtlas(vector<pair<FontCore::Glyph, Texture>> &glyphs,
+									  int2 atlas_size) {
 	const int border = 2;
 
 	bool all_fits = true;
@@ -116,9 +111,7 @@ static Texture makeTextureAtlas(vector<pair<FontCore::Glyph, Texture>> &glyphs, 
 	return atlas;
 }
 
-using GlyphPair = pair<FontCore::Glyph, Texture>;
-
-Texture makeTextureAtlas(vector<GlyphPair> &glyphs) {
+Texture FontFactory::makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	std::sort(begin(glyphs), end(glyphs), [](const GlyphPair &a, const GlyphPair &b) {
 		return a.first.size.y < b.first.size.y;
 	});
@@ -126,7 +119,7 @@ Texture makeTextureAtlas(vector<GlyphPair> &glyphs) {
 }
 
 Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
-	FT_Face face = m_impl->getFace(path);
+	auto face = (FT_Face)getFace(path);
 	if(FT_Set_Pixel_Sizes(face, 0, size) != 0)
 		FATAL("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
 

@@ -6,7 +6,7 @@
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/dynamic_mesh.h"
-#include "fwk/gfx/font.h"
+#include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/gfx_device.h"
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/mesh.h"
