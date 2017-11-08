@@ -44,11 +44,9 @@ ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
 WINDOWS_SRC=system_windows filesystem_windows
 
 LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
-LINUX_SHARED_DWO:=$(SHARED_SRC:%=$(BUILD_DIR)/%.dwo)
 MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o) $(WINDOWS_SRC:%=$(BUILD_DIR)/%_.o)
 
 LINUX_OBJECTS:=$(LINUX_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.o)
-LINUX_DWO:=$(LINUX_SHARED_DWO) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.dwo)
 MINGW_OBJECTS:=$(MINGW_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%_.o)
 
 LINUX_PROGRAMS:=$(PROGRAM_SRC:%=%)
@@ -83,7 +81,7 @@ NICE_FLAGS=-std=c++1z -fno-exceptions -Wall -Wextra -Woverloaded-virtual -Wnon-v
 		   -Wuninitialized -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
 		   -Wparentheses -Wno-overloaded-virtual -Wno-undefined-inline #-Werror
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
-LINUX_FLAGS=-DFWK_TARGET_LINUX -pthread -ggdb -gsplit-dwarf $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
+LINUX_FLAGS=-DFWK_TARGET_LINUX -pthread -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
 			$(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW -pthread -ggdb -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
 			$(NICE_FLAGS) $(INCLUDES) $(FLAGS)
@@ -145,7 +143,7 @@ lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d) $(PCH_FILE_H).d
 
 clean:
-	-rm -f $(LINUX_OBJECTS) $(LINUX_DWO) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
+	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
 		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp \
 		$(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
