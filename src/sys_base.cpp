@@ -117,9 +117,9 @@ double getTime() {
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
-int enumFromString(const char *str, CSpan<const char *> strings, bool check_if_invalid) {
+int enumFromString(const char *str, const char *const *strings, int count, bool check_if_invalid) {
 	DASSERT(str);
-	for(int n = 0; n < strings.size(); n++)
+	for(int n = 0; n < count; n++)
 		if(strcmp(str, strings[n]) == 0)
 			return n;
 

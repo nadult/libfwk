@@ -8,6 +8,7 @@
 
 #include <boost/variant.hpp>
 
+#include "fwk/enum.h"
 #include "fwk/format.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"

@@ -5,11 +5,10 @@
 
 #include "fwk/maybe.h"
 #include "fwk/sys_base.h"
-#include "fwk_range.h"
 
 namespace fwk {
 
-int enumFromString(const char *str, CSpan<const char *> enum_strings, bool check_if_invalid);
+int enumFromString(const char *str, const char *const *strings, int count, bool check_if_invalid);
 
 template <class Type> class EnumRange {
   public:
@@ -41,89 +40,77 @@ template <class Type> class EnumRange {
 };
 
 namespace detail {
+	template <const char *(*func)(), int TK> struct EnumStrings {
+		static constexpr const char *init_str = func();
 
-	// TODO: move to meta ?
-	template <unsigned...> struct Seq { using type = Seq; };
-	template <unsigned N, unsigned... Is> struct GenSeqX : GenSeqX<N - 1, N - 1, Is...> {};
-	template <unsigned... Is> struct GenSeqX<0, Is...> : Seq<Is...> {};
-	template <unsigned N> using GenSeq = typename GenSeqX<N>::type;
-
-	template <int N> struct Buffer { char data[N + 1]; };
-	template <int N> struct Offsets { const char *data[N]; };
-
-	constexpr bool isWhiteSpace(char c) {
-		return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
-	}
-
-	constexpr const char *skipZeros(const char *t) {
-		while(!*t)
-			t++;
-		return t;
-	}
-	constexpr const char *skipToken(const char *t) {
-		while(*t)
-			t++;
-		return t;
-	}
-
-	constexpr int countTokens(const char *t) {
-		while(isWhiteSpace(*t))
-			t++;
-		if(!*t)
-			return 0;
-
-		int out = 1;
-		while(*t) {
-			if(*t == ',')
-				out++;
-			t++;
+		static constexpr int len(const char *ptr) {
+			int len = 0;
+			while(ptr[len])
+				len++;
+			return len;
 		}
-		return out;
-	}
 
-	template <unsigned N> struct OffsetsGen : public OffsetsGen<N - 1> {
-		constexpr OffsetsGen(const char *current_ptr)
-			: OffsetsGen<N - 1>(skipZeros(skipToken(current_ptr))), ptr(current_ptr) {}
-		const char *ptr;
+		static constexpr int N = len(init_str);
+		static constexpr int K = TK;
+
+		static_assert(K <= 64, "Maximum number of enum elements is 64");
+
+		static constexpr bool isWhiteSpace(char c) {
+			return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
+		}
+
+		template <int N> struct Buffer {
+			constexpr Buffer(const char *ptr) : data{} {
+				for(int n = 0; n < N; n++)
+					data[n] = isWhiteSpace(ptr[n]) ? 0 : ptr[n];
+				data[N] = 0;
+			}
+
+			char data[N + 1];
+		};
+
+		template <int N> struct Offsets {
+			constexpr Offsets(const char *ptr) : data{} {
+				bool prev_zero = true;
+				int k = 0;
+				for(int n = 0; n < N; n++) {
+					if(ptr[n]) {
+						if(prev_zero)
+							data[k++] = ptr + n;
+						prev_zero = false;
+					} else {
+						prev_zero = true;
+					}
+				}
+			}
+
+			const char *data[K];
+		};
+
+		static constexpr Buffer<N> buffer = {init_str};
+		static constexpr Offsets<N> offsets = {buffer.data};
 	};
-
-	template <> struct OffsetsGen<1> {
-		constexpr OffsetsGen(const char *ptr) : ptr(ptr) {}
-		const char *ptr;
-	};
-
-	template <int N, unsigned... IS>
-	constexpr Buffer<N> zeroWhiteSpace(const char (&t)[N], Seq<IS...>) {
-		return {{(isWhiteSpace(t[IS]) ? '\0' : t[IS])...}};
-	}
-
-	template <int N> constexpr Buffer<N> zeroWhiteSpace(const char (&t)[N]) {
-		return zeroWhiteSpace(t, GenSeq<N>());
-	}
-
-	template <class T, unsigned... IS> constexpr auto makeOffsets(T t, Seq<IS...>) {
-		constexpr const char *start = skipZeros(t());
-		constexpr unsigned num_tokens = sizeof...(IS);
-		constexpr const auto oseq = OffsetsGen<num_tokens>(start);
-		return Offsets<sizeof...(IS)>{{((const OffsetsGen<num_tokens - IS> &)oseq).ptr...}};
-	}
 }
 
 // Safe enum class
 // Initially initializes to 0 (first element). Converts to int, can be easily used as
-// an index into some array. Can be converted to/from strings, which are automatically generated
-// from enum names. fwk enum cannot be defined in class or function scope. Some examples are
-// available in src/test/enums.cpp.
+// an index into some array. Can be converted to/from strings, which are automatically
+// generated from enum names. fwk enum cannot be defined in function scope. Some examples
+// are available in src/test/enums.cpp.
 #define DEFINE_ENUM(id, ...)                                                                       \
 	enum class id : unsigned char { __VA_ARGS__ };                                                 \
 	inline auto enumStrings(id) {                                                                  \
-		using namespace fwk::detail;                                                               \
-		static constexpr const auto s_buffer = zeroWhiteSpace(#__VA_ARGS__);                       \
-		static constexpr const auto s_offsets =                                                    \
-			makeOffsets([] { return s_buffer.data; }, GenSeq<countTokens(#__VA_ARGS__)>());        \
-		constexpr int size = fwk::arraySize(s_offsets.data);                                       \
-		static_assert(size <= 64, "Maximum number of enum elements is 64");                        \
-		return fwk::CSpan<const char *, size>(s_offsets.data, size);                               \
+		enum temp { __VA_ARGS__, _enum_count };                                                    \
+		constexpr const char *(*func)() = [] { return #__VA_ARGS__; };                             \
+		return fwk::detail::EnumStrings<func, _enum_count>();                                      \
+	}
+
+#define DEFINE_ENUM_MEMBER(id, ...)                                                                \
+	enum class id : unsigned char { __VA_ARGS__ };                                                 \
+	inline friend auto enumStrings(id) {                                                           \
+		enum temp { __VA_ARGS__, _enum_count };                                                    \
+		constexpr const char *(*func)() = [] { return #__VA_ARGS__; };                             \
+		return fwk::detail::EnumStrings<func, _enum_count>();                                      \
 	}
 
 struct NotAnEnum;
@@ -141,7 +128,8 @@ template <class T> constexpr bool isEnum() { return detail::IsEnum<T>::value; }
 template <class T> using EnableIfEnum = EnableIf<isEnum<T>(), NotAnEnum>;
 
 template <class T, EnableIfEnum<T>...> static T fromString(const char *str) {
-	return T(fwk::enumFromString(str, enumStrings(T()), true));
+	using Strings = decltype(enumStrings(T()));
+	return T(fwk::enumFromString(str, Strings::offsets.data, Strings::K, true));
 }
 
 template <class T, EnableIfEnum<T>...> static T fromString(const string &str) {
@@ -149,7 +137,8 @@ template <class T, EnableIfEnum<T>...> static T fromString(const string &str) {
 }
 
 template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(const char *str) {
-	int ret = fwk::enumFromString(str, enumStrings(T()), false);
+	using Strings = decltype(enumStrings(T()));
+	int ret = fwk::enumFromString(str, Strings::offsets.data, Strings::K, false);
 	if(ret == -1)
 		return none;
 	return T(ret);
@@ -159,11 +148,11 @@ template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(const strin
 	return tryFromString<T>(str.c_str());
 }
 template <class T, EnableIfEnum<T>...> static const char *toString(T value) {
-	return enumStrings(T())[(int)value];
+	return decltype(enumStrings(T()))::offsets.data[(int)value];
 }
 
 template <class T, EnableIfEnum<T>...> constexpr int count() {
-	return decltype(enumStrings(T()))::minimum_size;
+	return decltype(enumStrings(T()))::K;
 }
 
 template <class T, EnableIfEnum<T>...> auto all() { return EnumRange<T>(0, count<T>()); }

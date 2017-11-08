@@ -52,6 +52,11 @@ namespace detail {
 		using rest = typename MakeIndexedTypes<N + 1, Args...>::type;
 		using type = typename MergeTypes<IndexedType<Arg0, N>, rest>::type;
 	};
+
+	template <unsigned...> struct Seq { using type = Seq; };
+	template <unsigned N, unsigned... Is> struct GenSeqX : GenSeqX<N - 1, N - 1, Is...> {};
+	template <unsigned... Is> struct GenSeqX<0, Is...> : Seq<Is...> {};
+	template <unsigned N> using GenSeq = typename GenSeqX<N>::type;
 }
 
 template <class Lhs, class... RhsArgs> struct IsOneOf { static constexpr bool value = false; };

@@ -5,6 +5,7 @@
 
 #include "fwk/gfx_base.h"
 #include "fwk/sys/immutable_ptr.h"
+#include "fwk_vector.h"
 
 namespace fwk {
 
