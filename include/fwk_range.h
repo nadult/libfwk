@@ -46,6 +46,7 @@ namespace detail {
 		using MaybeInfo = Conditional<value, Info, NotARange>;
 	};
 
+	// TODO: don't use Req parameter here, it causes unnecessary instantiations
 	template <class T, class ReqType = void> struct SpanInfo {
 		template <class Val, bool has_data_> struct ValidInfo {
 			enum { is_const = std::is_const<Val>::value, has_data = has_data_ };
@@ -77,10 +78,6 @@ namespace detail {
 		enum { value = !isSame<Info, InvalidInfo>() };
 		using MaybeInfo = Conditional<value, Info, NotASpan>;
 	};
-}
-
-template <class T, class Req = void> constexpr bool isSpan() {
-	return detail::SpanInfo<T, Req>::value;
 }
 
 template <class T, class Req = void>
