@@ -13,9 +13,7 @@ namespace fwk {
 class Str {
   public:
 	Str(const string &str) : m_data(str.c_str()), m_size((int)str.size()) {}
-	Str(const char *str, int size) : m_data(str ? str : ""), m_size(size) {
-		PASSERT((int)strlen(str) >= size);
-	}
+	Str(const char *str, int size) : m_data(str ? str : ""), m_size(size) {}
 	Str(const char *str) : m_data(str ? str : "") { m_size = strlen(m_data); }
 	Str(const char *begin, const char *end) : m_data(begin), m_size(end - begin) {
 		PASSERT(end >= begin);
@@ -73,9 +71,7 @@ class Str {
 class ZStr : public Str {
   public:
 	ZStr(const string &str) : Str(str) {}
-	ZStr(const char *str, int size) : Str(str, size, NoChecks()) {
-		PASSERT((int)strlen(str) == size);
-	}
+	ZStr(const char *str, int size) : Str(str, size) {}
 	ZStr(const char *str) : Str(str) {}
 	ZStr(const Str &) = delete;
 
