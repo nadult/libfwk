@@ -6,7 +6,7 @@
 #    exit 1;
 #fi
 
-git diff --cached --name-only --diff-filter=ACMRT | grep "\.\([ch]\|cpp\)$" | xargs -n1 git diff --cached .gitignore | grep "FIXME" > /dev/null
+git diff --cached --name-only --diff-filter=ACMRT | grep "\.\([ch]\|cpp\)$" | xargs -n1 git diff --cached .gitignore | grep "^+.*FIXME" > /dev/null
 if [ $? -ne 1 ]
 then
     echo "commit contains FIXME"
