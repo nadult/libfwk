@@ -80,7 +80,7 @@ struct GfxDevice::WindowImpl {
 	OptFlags flags;
 };
 
-GfxDevice::GfxDevice() : m_input_impl(make_unique<InputImpl>()) {
+GfxDevice::GfxDevice() : m_input_impl(uniquePtr<InputImpl>()) {
 	s_instance = this;
 
 	if(SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -98,7 +98,7 @@ GfxDevice::~GfxDevice() {
 
 void GfxDevice::createWindow(const string &name, const int2 &size, OptFlags flags) {
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
-	m_window_impl = make_unique<WindowImpl>(name, size, flags);
+	m_window_impl = uniquePtr<WindowImpl>(name, size, flags);
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
 	initializeOpenGL();

@@ -6,6 +6,7 @@
 #include "fwk/format.h"
 #include "fwk/parse.h"
 #include "fwk/sys_base.h"
+#include "fwk/unique_ptr.h"
 
 #ifndef RAPIDXML_HPP_INCLUDED
 
@@ -145,7 +146,7 @@ class XmlDocument {
 	string lastNodeInfo() const;
 
   protected:
-	unique_ptr<rapidxml::xml_document<char>> m_ptr;
+	UniquePtr<rapidxml::xml_document<char>> m_ptr;
 	Str m_xml_string;
 };
 

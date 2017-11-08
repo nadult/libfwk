@@ -127,7 +127,7 @@ class Viewer {
 
 		FontFactory factory;
 		auto font_path = dataPath("LiberationSans-Regular.ttf");
-		m_font = make_unique<Font>(factory.makeFont(font_path, 14, false));
+		m_font = uniquePtr<Font>(factory.makeFont(font_path, 14, false));
 
 		if(m_models.empty())
 			CHECK_FAILED("No models loaded\n");
@@ -259,7 +259,7 @@ class Viewer {
 
   private:
 	vector<Model> m_models;
-	unique_ptr<Font> m_font;
+	UniquePtr<Font> m_font;
 
 	IRect m_viewport;
 	int m_current_model, m_current_anim;

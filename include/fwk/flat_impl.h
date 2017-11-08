@@ -53,6 +53,7 @@ namespace detail {
 // You have to exactly know T's size and alignment; in .cpp file you have to make sure
 // that T is defined before FlatImpl<T> is instantiated.
 // Limitation: it doesn't work for private members.
+// Use it for big types which are rarely instantiated.
 template <class T, int size = type_size<T>, int alignment = 8>
 using FlatImpl =
 	typename detail::FlatImplSelect<T, size, alignment, detail::ArgsDefined<T>::value>::type;

@@ -45,7 +45,7 @@ PModelNode ModelNode::removeChild(const ModelNode *child_to_remove) {
 	return PModelNode();
 }
 
-PModelNode ModelNode::clone() const { return make_unique<ModelNode>(*this); }
+PModelNode ModelNode::clone() const { return uniquePtr<ModelNode>(*this); }
 
 void ModelNode::setTrans(const AffineTrans &trans) {
 	m_trans = trans;

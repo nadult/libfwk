@@ -59,13 +59,11 @@ using std::string;
 using std::swap;
 using string32 = std::u32string;
 using std::shared_ptr;
-using std::unique_ptr;
 
 using std::begin;
 using std::end;
 using std::make_pair;
 using std::make_shared;
-using std::make_unique;
 
 // TODO: use types from cstdint
 using uint = unsigned int;
@@ -193,5 +191,7 @@ template <class T> class ResourceLoader;
 template <class T, class Constructor = ResourceLoader<T>> class ResourceManager;
 
 template <class Key, class Value> class HashMap;
-template <class Key, class Value> constexpr int type_size<HashMap<Key, Value>> =  32;
+template <class Key, class Value> constexpr int type_size<HashMap<Key, Value>> = 32;
+
+template <class T> class UniquePtr;
 }

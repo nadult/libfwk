@@ -18,7 +18,7 @@ struct OggStream::Impl {
 };
 
 OggStream::OggStream(const char *file_name)
-	: m_file_name(file_name), m_impl(make_unique<Impl>(file_name)) {}
+	: m_file_name(file_name), m_impl(uniquePtr<Impl>(file_name)) {}
 OggStream::~OggStream() {}
 
 Sound OggStream::makeSound() const {

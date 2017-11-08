@@ -74,7 +74,7 @@ using PFontCore = immutable_ptr<FontCore>;
 using PPose = immutable_ptr<Pose>;
 using PMesh = immutable_ptr<Mesh>;
 using PModel = immutable_ptr<Model>;
-using PModelNode = unique_ptr<ModelNode>;
+using PModelNode = UniquePtr<ModelNode>;
 
 DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 

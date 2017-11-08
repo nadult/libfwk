@@ -158,7 +158,7 @@ XmlNode XmlNode::child(const char *name) const {
 	return {cnode.m_ptr, m_doc};
 }
 
-XmlDocument::XmlDocument() : m_ptr(make_unique<xml_document<>>()) {}
+XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {}
 XmlDocument::XmlDocument(ZStr file_name) : XmlDocument() {
 	Loader loader(file_name);
 	loader >> *this;

@@ -6,6 +6,7 @@
 
 #include "fwk/sys_base.h"
 #include "fwk/math_base.h"
+#include "fwk/unique_ptr.h"
 
 namespace fwk {
 
@@ -65,7 +66,7 @@ class OggStream {
   protected:
 	string m_file_name;
 	struct Impl;
-	unique_ptr<Impl> m_impl;
+	UniquePtr<Impl> m_impl;
 };
 
 struct SoundPos {
@@ -110,7 +111,7 @@ class AudioDevice {
 	uint prepSource(uint buffer_id);
 
 	struct Impl;
-	unique_ptr<Impl> m_impl;
+	UniquePtr<Impl> m_impl;
 
 	float m_max_distance;
 	float3 m_listener_pos;

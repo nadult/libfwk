@@ -38,7 +38,7 @@ namespace {
 			prop_node.next();
 		}
 
-		auto new_node = make_unique<ModelNode>(name, type, trans,
+		auto new_node = uniquePtr<ModelNode>(name, type, trans,
 											   mesh_id == -1 ? PMesh() : meshes[mesh_id], props);
 		auto child_node = xml_node.child("node");
 		while(child_node) {
@@ -82,7 +82,7 @@ Model Model::loadFromXML(CXmlNode xml_node) {
 		mesh_node.next();
 	}
 
-	PModelNode root = make_unique<ModelNode>("");
+	PModelNode root = uniquePtr<ModelNode>("");
 	auto subnode = xml_node.child("node");
 	while(subnode) {
 		root->addChild(parseNode(meshes, subnode));

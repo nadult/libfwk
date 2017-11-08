@@ -5,6 +5,7 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/sys/rollback.h"
+#include "fwk/unique_ptr.h"
 #include "testing.h"
 
 #include <mutex>
@@ -46,7 +47,7 @@ vector<int> processingFunction(int tid, int seed, int isize, int osize) {
 	vector<vector<int>> others;
 
 	RollbackContext::pause();
-	static vector<unique_ptr<Entity>> ents[16];
+	static vector<UniquePtr<Entity>> ents[16];
 	ents[tid].clear();
 	RollbackContext::resume();
 
@@ -55,7 +56,7 @@ vector<int> processingFunction(int tid, int seed, int isize, int osize) {
 
 		RollbackContext::pause();
 		// Without pause this could cause a Segfault:
-		ents[tid].emplace_back(make_unique<Entity>(tid));
+		ents[tid].emplace_back(uniquePtr<Entity>(tid));
 		RollbackContext::resume();
 
 		others.emplace_back(values);

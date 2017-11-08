@@ -9,6 +9,7 @@
 #include "fwk/math/box.h"
 #include "fwk/str.h"
 #include "fwk/sys/immutable_ptr.h"
+#include "fwk/unique_ptr.h"
 
 namespace fwk {
 
@@ -114,6 +115,6 @@ class FontFactory {
 
   private:
 	class Impl;
-	unique_ptr<Impl> m_impl;
+	UniquePtr<Impl> m_impl;
 };
 }

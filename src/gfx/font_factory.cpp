@@ -57,7 +57,7 @@ class FontFactory::Impl {
 	}
 };
 
-FontFactory::FontFactory() : m_impl(make_unique<Impl>()) {
+FontFactory::FontFactory() : m_impl(uniquePtr<Impl>()) {
 	if(FT_Init_FreeType(&m_impl->library) != 0)
 		FATAL("Error while initializing FreeType");
 }
