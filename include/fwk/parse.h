@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "fwk/str.h"
 #include "fwk/math_base.h"
+#include "fwk/str.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -88,6 +88,12 @@ class TextParser {
 
 	void parseUints(Span<uint> out);
 	void parseStrings(Span<string> out);
+
+	template <class T, EnableIfParsable<T>...> T parse() {
+		T value;
+		*this >> value;
+		return value;
+	}
 
   private:
 	ZStr m_current;

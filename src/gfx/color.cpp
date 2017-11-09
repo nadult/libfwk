@@ -2,7 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/enum_map.h"
+#include "fwk/format.h"
 #include "fwk/gfx/color.h"
+#include "fwk/parse.h"
 
 namespace fwk {
 
@@ -79,5 +81,18 @@ float3 rgbToHsv(float3 rgb) {
 
 	return float3(fwk::abs(k + (rgb[1] - rgb[2]) / (6.0f * chroma + 1e-20f)),
 				  chroma / (rgb[0] + 1e-20f), rgb[0]);
+}
+
+TextFormatter &operator<<(TextFormatter &fmt, const FColor &col) { return fmt << float4(col); }
+TextFormatter &operator<<(TextFormatter &fmt, const IColor &col) { return fmt << int4(col); }
+
+TextParser &operator>>(TextParser &parser, FColor &col) {
+	col = parser.parse<float4>();
+	return parser;
+}
+
+TextParser &operator>>(TextParser &parser, IColor &col) {
+	col = parser.parse<int4>();
+	return parser;
 }
 }

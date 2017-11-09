@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- We could define Size<> for different classes and use it for example in CSpan<T>
+  without defining it; Think if this would be useful?
+- clang++ by default; fix fwk.h
 - type_info do assertów ?
 - FlatImpl const refs to Base type ?
 - format for Variant & maybe
@@ -14,14 +17,13 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - SpanBase<> for all types with different min_sizes
 - Maybe kompilacja pod mingw
 - XML should assert that string is owned or static...
-- clang++ by default; fix fwk.h
 - use type trai primitives __is_trivially_assignable ...
 - Range instead of loops with XMLNode::next()
 - Zastanów sie gdzie jeszcze warto by było dodać specyfikacje memberów (&, &&, const &)
 - use DEFINE_ENUM for input key ? two functions would have to be provided: one for normal keys and one for specials
 - implicit conversion to bool for enum flags ?
 - lastModificationTime is not related to getTime
-- Vector::reinterpret moves ?!?!?
+- Vector::reinterpret moves ?!?!?; change it to ink ?
 - assert shouldnt print itself in backtrace
 - std format in ASSERT, FAILED & CHECK ?
 - isSame, etc. -> is_same
@@ -30,8 +32,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - example Makefile for test/window which uses Makefile.include ?
 - try using -fsignaling-nans ?
 - anyOf (and others) should be able to accept function pointer ?
-- We could define Size<> for different classes and use it for example in CSpan<T>
-  without defining it; Think if this would be useful?
 - Rename test files to t_vector, t_stuff ? or lower priority to test in docplugin ?
 - HashMap forward declaration ?
 - Wstrict-overflow

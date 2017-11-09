@@ -65,6 +65,8 @@ class FilePath {
 	string m_path; // its always non-empty
 };
 
+TextParser &operator>>(TextParser &, FilePath &);
+
 struct FileEntry {
 	FilePath path;
 	bool is_dir;

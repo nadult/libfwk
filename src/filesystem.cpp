@@ -3,9 +3,10 @@
 
 #include "fwk/filesystem.h"
 #include "fwk/format.h"
+#include "fwk/parse.h"
 #include "fwk/sys/expected.h"
 #include "fwk_vector.h"
-#include <algorithm>
+
 #include <cstdio>
 #include <cstring>
 
@@ -300,5 +301,12 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 	}
 
 	return out;
+}
+
+TextParser &operator>>(TextParser &parser, FilePath &path) {
+	string text;
+	parser >> text;
+	path = move(text);
+	return parser;
 }
 }

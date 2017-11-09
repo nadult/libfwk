@@ -78,6 +78,11 @@ struct IColor {
 		u8 rgba[4];
 	};
 };
+
+TextFormatter &operator<<(TextFormatter &, const FColor &);
+TextFormatter &operator<<(TextFormatter &, const IColor &);
+TextParser &operator>>(TextParser &, FColor &);
+TextParser &operator>>(TextParser &, IColor &);
 }
 
 SERIALIZE_AS_POD(FColor)
