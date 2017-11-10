@@ -31,17 +31,16 @@ namespace detail {
 			using Iter = void;
 			using Value = void;
 		};
-		template <
-			class U, class It1 = decltype(begin(std::declval<U &>())),
-			class It2 = decltype(end(std::declval<U &>())),
-			class Base1 = typename std::remove_reference<decltype(*std::declval<It1 &>())>::type,
-			class Base2 = typename std::remove_reference<decltype(*std::declval<It2 &>())>::type,
-			EnableIf<(isSame<RemoveConst<Base1>, ReqType>() || isSame<void, ReqType>()) &&
-					 isSame<Base1, Base2>()>...>
+		template <class U, class It1 = decltype(begin(declval<U &>())),
+				  class It2 = decltype(end(declval<U &>())),
+				  class Base1 = typename std::remove_reference<decltype(*declval<It1 &>())>::type,
+				  class Base2 = typename std::remove_reference<decltype(*declval<It2 &>())>::type,
+				  EnableIf<(isSame<RemoveConst<Base1>, ReqType>() || isSame<void, ReqType>()) &&
+						   isSame<Base1, Base2>()>...>
 		static auto test(U &) -> ValidInfo<It1, Base1>;
 		template <class U> static InvalidInfo test(...);
 
-		using Info = decltype(test<T>(std::declval<T &>()));
+		using Info = decltype(test<T>(declval<T &>()));
 		enum { value = !isSame<Info, InvalidInfo>() };
 		using MaybeInfo = Conditional<value, Info, NotARange>;
 	};
@@ -58,8 +57,8 @@ namespace detail {
 			using Value = void;
 		};
 
-		template <class U, class It1 = decltype(begin(std::declval<U &>())),
-				  class It2 = decltype(end(std::declval<U &>())),
+		template <class U, class It1 = decltype(begin(declval<U &>())),
+				  class It2 = decltype(end(declval<U &>())),
 				  EnableIf<isSame<It1, It2>() && std::is_pointer<It1>::value>...,
 				  class Base = typename std::remove_pointer<It1>::type,
 				  EnableIf<(isSame<Base, ReqType>() || isSame<void, ReqType>())>...>
@@ -67,14 +66,14 @@ namespace detail {
 
 		template <
 			class U,
-			class Base = typename std::remove_pointer<decltype(std::declval<U &>().data())>::type,
+			class Base = typename std::remove_pointer<decltype(declval<U &>().data())>::type,
 			EnableIf<isSame<RemoveConst<Base>, ReqType>() || isSame<void, ReqType>()>...,
-			EnableIf<std::is_convertible<decltype(std::declval<U &>().size()), int>::value, int>...>
+			EnableIf<std::is_convertible<decltype(declval<U &>().size()), int>::value, int>...>
 		static auto test(PriorityTag<0>, U &) -> ValidInfo<Base, true>;
 
 		template <class U> static InvalidInfo test(...);
 
-		using Info = decltype(test<T>(PriorityTag<1>(), std::declval<T &>()));
+		using Info = decltype(test<T>(PriorityTag<1>(), declval<T &>()));
 		enum { value = !isSame<Info, InvalidInfo>() };
 		using MaybeInfo = Conditional<value, Info, NotASpan>;
 	};
@@ -114,15 +113,13 @@ template <class TRange, EnableIfRange<TRange>...> int size(const TRange &range) 
 	return std::distance(begin(range), end(range));
 }
 
-template <class TRange, EnableIfRange<TRange>...,
-		  class Ret = decltype(*begin(std::declval<TRange>()))>
+template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(declval<TRange>()))>
 Ret front(TRange &&range) {
 	DASSERT(!empty(range));
 	return *begin(range);
 }
 
-template <class TRange, EnableIfRange<TRange>...,
-		  class Ret = decltype(*begin(std::declval<TRange>()))>
+template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(declval<TRange>()))>
 Ret back(TRange &&range) {
 	DASSERT(!empty(range));
 	auto it = end(range);

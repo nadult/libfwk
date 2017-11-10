@@ -16,9 +16,9 @@ namespace detail {
 
 	template <class T> struct IsParsable {
 		template <class U>
-		static auto test(U &) -> decltype(std::declval<TextParser &>() >> std::declval<U &>());
+		static auto test(U &) -> decltype(declval<TextParser &>() >> declval<U &>());
 		static char test(...);
-		enum { value = std::is_same<decltype(test(std::declval<T &>())), TextParser &>::value };
+		enum { value = isSame<decltype(test(declval<T &>())), TextParser &>() };
 	};
 
 	template <class T> struct VariableParseElements {

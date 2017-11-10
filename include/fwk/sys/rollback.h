@@ -16,7 +16,7 @@ using AtRollback = void (*)(void *);
 // TODO: make a list of functions / objects usable while rollbacking ?
 class RollbackContext {
   public:
-	template <class T> using ResultOf = decltype(std::declval<T>()());
+	template <class T> using ResultOf = decltype(declval<T>()());
 
 	// TODO: jak się zabezpieczyć przed błędami związanymi ze złymi dowiązaniami?
 

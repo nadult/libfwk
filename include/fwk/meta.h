@@ -19,6 +19,8 @@ template <class T, int N> struct IndexedType {
 
 template <class... Args> struct Types {};
 
+template <class T> auto declval() -> T;
+
 namespace detail {
 
 	struct NoAssertsTag {};

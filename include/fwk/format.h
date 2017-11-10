@@ -37,12 +37,9 @@ namespace detail {
 
 	template <class T> struct IsFormattible {
 		template <class U>
-		static auto test(const U &)
-			-> decltype(std::declval<TextFormatter &>() << std::declval<const U &>());
+		static auto test(const U &) -> decltype(declval<TextFormatter &>() << declval<const U &>());
 		static char test(...);
-		enum {
-			value = std::is_same<decltype(test(std::declval<const T &>())), TextFormatter &>::value
-		};
+		enum { value = isSame<decltype(test(declval<const T &>())), TextFormatter &>() };
 	};
 
 	template <class T> void append(TextFormatter &fmt, TFValue val) {
@@ -102,7 +99,7 @@ namespace detail {
 	constexpr auto getTFFunc(const string &) { return AppendAccess<const char *>(); }
 
 	template <class T> constexpr TFFunc getTFFunc() {
-		return decltype(getTFFunc(std::declval<const T &>()))::func();
+		return decltype(getTFFunc(declval<const T &>()))::func();
 	}
 
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc);
