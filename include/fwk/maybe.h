@@ -10,6 +10,7 @@ namespace fwk {
 
 // fwk::Maybe evolved from folly::Optional
 // Link: https://github.com/facebook/folly
+// License is available in third_party/
 
 struct None {
 	bool operator==(const None &) const { return true; }
