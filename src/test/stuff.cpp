@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
+#include "fwk/flat_impl.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
@@ -149,4 +150,8 @@ void testMain() {
 	testPathOperations();
 	testCache();
 	testMaybe();
+
+	struct Undef;
+	static_assert(!fwk::detail::FullyDefined<Vector<Vector<Vector<UniquePtr<Undef>>>>>::value);
+	static_assert(fwk::detail::FullyDefined<pair<Vector<int>, Vector<int>>>::value);
 }

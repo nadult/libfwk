@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Problem with FlatImpl: what happens when we're compiling with WPO ?
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
 - clang++ by default; fix fwk.h

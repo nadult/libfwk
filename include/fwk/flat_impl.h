@@ -27,9 +27,14 @@ namespace detail {
 		static constexpr bool value = !std::is_same<void, decltype(test<T>(0))>::value;
 	};
 
-	template <class T> struct ArgsDefined { static constexpr bool value = true; };
-	template <template <class...> class T, class... Args> struct ArgsDefined<T<Args...>> {
-		static constexpr bool value = Conjunction<IsDefined<Args>...>::value;
+	template <class T> struct FullyDefined { static constexpr bool value = IsDefined<T>::value; };
+	template <template <class...> class T, class... Args> struct FullyDefined<T<Args...>> {
+		static constexpr bool eval() {
+			if constexpr(Conjunction<FullyDefined<Args>...>::value)
+				return IsDefined<T<Args...>>::value;
+			return false;
+		};
+		static constexpr bool value = eval();
 	};
 
 	template <class T, int size, int align, int req_size, int req_align>
@@ -56,5 +61,5 @@ namespace detail {
 // Use it for big types which are rarely instantiated.
 template <class T, int size = type_size<T>, int alignment = 8>
 using FlatImpl =
-	typename detail::FlatImplSelect<T, size, alignment, detail::ArgsDefined<T>::value>::type;
+	typename detail::FlatImplSelect<T, size, alignment, detail::FullyDefined<T>::value>::type;
 }
