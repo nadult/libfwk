@@ -75,7 +75,7 @@ const char *CXmlNode::attrib(const char *name) const {
 	touch(m_ptr, attrib);
 
 	if(!attrib || !attrib->value())
-		CHECK_FAILED("attribute not found: %s in node: %s\n", name, this->name());
+		CHECK_FAILED("attribute '%s' not found in node: %s\n", name, this->name());
 	return attrib->value();
 }
 

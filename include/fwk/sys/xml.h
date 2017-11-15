@@ -88,6 +88,10 @@ class XmlNode : public CXmlNode {
 		formatter << value;
 		addAttrib(name, own(formatter));
 	}
+	template <class T> void addAttrib(const char *name, const T &value, const T &default_value) {
+		if(value != default_value)
+			addAttrib(name, value);
+	}
 
 	XmlNode addChild(const char *name, const char *value = nullptr);
 	XmlNode sibling(const char *name = nullptr) const;
