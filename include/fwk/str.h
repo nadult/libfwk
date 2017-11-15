@@ -73,6 +73,7 @@ class ZStr : public Str {
 	ZStr(const string &str) : Str(str) {}
 	ZStr(const char *str, int size) : Str(str, size) {}
 	ZStr(const char *str) : Str(str) {}
+	ZStr() {}
 	ZStr(const Str &) = delete;
 
 	using Str::operator==;
