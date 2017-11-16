@@ -57,7 +57,7 @@ namespace {
 		else
 			printf("Signal caught: %d!\n", (int)sig_info->si_signo);
 
-		printf("Backtrace:\n%s\n", Backtrace::get(2).analyze(true).c_str());
+		printf("Backtrace:\n%s\n", Backtrace::get(2, nullptr, BacktraceMode::full).analyze(true).c_str());
 		exit(1);
 	}
 
