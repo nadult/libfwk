@@ -24,7 +24,7 @@ Error::Error(Chunk chunk, Maybe<Backtrace> bt) : backtrace(move(bt)) {
 Error::Error(vector<Chunk> chunks, Maybe<Backtrace> bt)
 	: chunks(move(chunks)), backtrace(move(bt)) {}
 Error::Error() = default;
-FWK_MOVABLE_CLASS_IMPL(Error)
+FWK_COPYABLE_CLASS_IMPL(Error)
 
 void Error::operator+=(const Chunk &chunk) { chunks.emplace_back(chunk); }
 
@@ -56,6 +56,4 @@ void Error::validateMemory() {
 	if(backtrace)
 		backtrace->validateMemory();
 }
-
-Error Error::copy() const { return {chunks, backtrace}; }
 }
