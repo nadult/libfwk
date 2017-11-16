@@ -88,7 +88,7 @@ template <template <typename...> class T> void testVariantBigger(const char *nam
 		else if(t % 3 == 1) {
 			variant = IRect({10, 10}, {20, 20});
 		} else
-			variant = "Hello world";
+			variant = string("Hello world");
 		values.emplace_back(variant);
 	}
 

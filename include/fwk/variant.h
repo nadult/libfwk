@@ -62,34 +62,6 @@ struct direct_type<T>
     static constexpr int index = -1;
 };
 
-template <typename T, typename... Types>
-struct convertible_type;
-
-template <typename T, typename First, typename... Types>
-struct convertible_type<T, First, Types...>
-{
-    static constexpr int index = std::is_convertible<T, First>::value
-        ? (int)sizeof...(Types) : convertible_type<T, Types...>::index;
-};
-
-template <typename T>
-struct convertible_type<T>
-{
-    static constexpr int index = -1;
-};
-
-template <typename T, typename... Types>
-struct value_traits
-{
-    using value_type = typename std::remove_reference<T>::type;
-    static constexpr int direct_index = direct_type<value_type, Types...>::index;
-    static constexpr bool is_direct = direct_index != -1;
-    static constexpr int index = is_direct ? direct_index : convertible_type<value_type, Types...>::index;
-    static constexpr bool is_valid = index != -1;
-    static constexpr int tindex = is_valid ? (int)sizeof...(Types) - index : 0;
-    using target_type = typename NthType<tindex, void, Types...>::type;
-};
-
 // check if T is in Types...
 template <typename T, typename... Types>
 struct has_type;
@@ -549,13 +521,9 @@ public:
         new (&data) first_type();
     }
 
-    // http://isocpp.org/blog/2012/11/universal-references-in-c11-scott-meyers
-    template <typename T, typename Traits = detail::value_traits<T, Types...>,
-                          typename Enable = typename std::enable_if<Traits::is_valid>::type>
-    VARIANT_INLINE Variant(T && val)
-        : type_index(Traits::index)
-    {
-        new (&data) typename Traits::target_type(std::forward<T>(val));
+    template <class T, class DT = std::decay_t<T>, int index = detail::direct_type<DT, Types...>::index, EnableIf<index != -1>...>
+    VARIANT_INLINE Variant(T && val) : type_index(index) {
+        new (&data) DT(std::forward<T>(val));
     }
 
     VARIANT_INLINE Variant(Variant<Types...> const& old)
@@ -725,7 +693,6 @@ public:
     static binary_visit(V& v0, V& v1, F && f) {
         return detail::binary_dispatcher<F, V, R, Types...>::apply(v0, v1, std::forward<F>(f));
     }
-
 
     // unary
     template <typename... Fs>

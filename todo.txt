@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- refactor Variant a bit
 - RollbackError type ?
 - Use AnyStorage for Any & Variant ?
 - Problem with FlatImpl: what happens when we're compiling with WPO ?
