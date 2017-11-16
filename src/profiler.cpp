@@ -10,15 +10,13 @@
 
 namespace fwk {
 
-static Profiler *s_profiler_instance = nullptr;
+__thread Profiler *Profiler::t_instance = nullptr;
 
 Profiler::Profiler() : m_frame_count(0), m_frame_limit(0), m_last_frame_time(-1.0) {
-	DASSERT(!s_profiler_instance);
-	s_profiler_instance = this;
+	DASSERT(!t_instance);
+	t_instance = this;
 }
-Profiler::~Profiler() { s_profiler_instance = nullptr; }
-
-Profiler *Profiler::instance() { return s_profiler_instance; }
+Profiler::~Profiler() { t_instance = nullptr; }
 
 Profiler::Timer &Profiler::accessTimer(const char *name) {
 	for(auto &timer : m_timers)

@@ -21,7 +21,7 @@ class Profiler {
 	Profiler();
 	~Profiler();
 
-	static Profiler *instance();
+	static Profiler *instance() { return t_instance; }
 	static double getTime();
 	static void openglFinish();
 
@@ -56,6 +56,7 @@ class Profiler {
 	vector<Counter> m_counters;
 	long long m_frame_count, m_frame_limit;
 	double m_last_frame_time;
+	static __thread Profiler *t_instance;
 };
 
 struct ScopedProfile {
