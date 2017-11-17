@@ -203,12 +203,13 @@ void XmlDocument::load(Stream &sr) {
 	untouch(m_ptr.get());
 	m_ptr->clear();
 
-	int size = sr.size();
+	auto size = sr.size();
+	CHECK("Please keep it reasonable" && size < 1024 * 1024 * 64);
 	char *xml_string = m_ptr->allocate_string(0, size + 1);
 	sr.loadData(xml_string, size);
 	xml_string[size] = 0;
 
-	m_xml_string = {xml_string, size};
+	m_xml_string = {xml_string, (int)size};
 	t_xml_debug.pstring = xml_string;
 	t_xml_debug.pstring_len = size;
 	m_ptr->parse<0>(xml_string);
