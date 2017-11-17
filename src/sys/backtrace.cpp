@@ -80,27 +80,59 @@ namespace {
 		return val;
 	}
 
-	string filterGdb(string input, int skip_frames) {
-		auto lines = split(input.c_str(), '\n');
-		vector<string> out_lines;
-		bool found_first = false;
+	struct Entry {
+		string file, line;
+		string function;
 
-		struct Entry {
-			string file, line;
-			string function;
+		string simple;
+	};
 
-			string simple;
-		};
-
+	struct GdbThreadInfo {
+		string header;
+		vector<string> lines;
 		vector<Entry> entries;
+		bool is_main = false;
+	};
 
-		for(auto line : lines) {
-			if(line[0] == '#' && line.find("gdbBacktrace") != string::npos) {
-				found_first = true;
+	vector<GdbThreadInfo> splitGdbInput(string input) {
+		auto lines = split(input.c_str(), '\n');
+
+		vector<GdbThreadInfo> out;
+		GdbThreadInfo current;
+
+		for(auto &line : lines) {
+			if(line.find("Thread") == 0) {
+				if(!current.lines.empty())
+					out.emplace_back(move(current));
+				current = {};
+				current.header = line;
 				continue;
 			}
+			if(line[0] == '#')
+				current.lines.emplace_back(line);
+		}
 
-			if(!found_first || line[0] != '#' || skip_frames-- > 0)
+		if(!current.lines.empty())
+			out.emplace_back(move(current));
+		return out;
+	}
+
+	int mainThreadPos(const GdbThreadInfo &info) {
+		for(int n = 0; n < info.lines.size(); n++) {
+			const auto &line = info.lines[n];
+			if(line[0] == '#' && line.find("fwk::Backtrace::gdbBacktrace") != string::npos)
+				return n;
+		}
+		return -1;
+	}
+
+	void processThreadInfo(GdbThreadInfo &info, int skip_frames) {
+		int main_pos = mainThreadPos(info);
+		info.is_main = main_pos != -1;
+		skip_frames = main_pos == -1 ? 0 : main_pos + skip_frames;
+
+		for(auto line : info.lines) {
+			if(line[0] != '#' || skip_frames-- > 0)
 				continue;
 
 			auto tokens = split(line.c_str());
@@ -134,8 +166,18 @@ namespace {
 				}
 			}
 
-			entries.emplace_back(new_entry);
+			info.entries.emplace_back(new_entry);
 		}
+	}
+
+	string filterGdb(string input, int skip_frames) {
+		string out;
+
+		auto tinfos = splitGdbInput(input);
+		int main_thread_pos = -1;
+		for(auto &tinfo : tinfos)
+			processThreadInfo(tinfo, skip_frames);
+		std::reverse(begin(tinfos), end(tinfos));
 
 		int num_columns = 120;
 		if(auto cols = consoleColumns())
@@ -146,24 +188,38 @@ namespace {
 		int limit_file_size = max(16, num_columns - limit_line_size - limit_func_size);
 
 		int max_lsize = 0, max_fsize = 0;
-		for(auto &e : entries) {
-			e.file = Str(e.file).limitSizeFront(limit_file_size);
-			e.line = Str(e.line).limitSizeBack(limit_line_size);
-			e.function = Str(e.function).limitSizeBack(limit_func_size);
+		for(auto &tinfo : tinfos)
+			for(auto &e : tinfo.entries) {
+				e.file = Str(e.file).limitSizeFront(limit_file_size);
+				e.line = Str(e.line).limitSizeBack(limit_line_size);
+				e.function = Str(e.function).limitSizeBack(limit_func_size);
 
-			max_lsize = max(max_lsize, (int)e.line.size());
-			max_fsize = max(max_fsize, (int)e.file.size());
+				max_lsize = max(max_lsize, (int)e.line.size());
+				max_fsize = max(max_fsize, (int)e.file.size());
+			}
+
+		bool show_headers = tinfos.size() > 1;
+		for(auto &tinfo : tinfos) {
+			string tout;
+			if(show_headers)
+				tout += string("---- ") + (tinfo.is_main ? "(CURRENT) " : "") + tinfo.header + "\n";
+
+			for(auto &e : tinfo.entries) {
+				if(e.file.empty() || e.line.empty() || e.function.empty()) {
+					tout += string(max_fsize + max_lsize + 2, ' ') +
+							Str(e.simple).limitSizeBack(limit_func_size) + "\n";
+				} else {
+					tout += string(max(max_fsize - (int)e.file.size(), 0), ' ') + e.file + ":" +
+							e.line + string(max(max_lsize - (int)e.line.size(), 0), ' ') + " " +
+							e.function + "\n";
+				}
+			}
+
+			if(&tinfo != &tinfos.back())
+				tout += "\n";
+			out += tout;
 		}
 
-		string out;
-		for(auto &e : entries) {
-			if(e.file.empty() || e.line.empty() || e.function.empty())
-				out += ">> " + e.simple + "\n";
-			else
-				out += string(max(max_fsize - (int)e.file.size(), 0), ' ') + e.file + ":" + e.line +
-					   string(max(max_lsize - (int)e.line.size(), 0), ' ') + " " + e.function +
-					   "\n";
-		}
 		return out;
 	}
 
