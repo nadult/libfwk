@@ -8,8 +8,10 @@
 namespace fwk {
 
 IndexBuffer::IndexBuffer(const vector<int> &indices) : m_handle(0), m_size(indices.size()) {
+	PASSERT_GFX_THREAD();
 	if(!m_size)
 		return;
+
 	int max_index_value = 0;
 	for(auto idx : indices)
 		max_index_value = max(max_index_value, idx);
@@ -38,6 +40,7 @@ IndexBuffer::IndexBuffer(const vector<int> &indices) : m_handle(0), m_size(indic
 }
 
 vector<int> IndexBuffer::getData() const {
+	PASSERT_GFX_THREAD();
 	vector<int> out(m_size);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_handle);
 	if(m_index_type == type_ubyte) {
@@ -56,6 +59,7 @@ vector<int> IndexBuffer::getData() const {
 }
 
 IndexBuffer::~IndexBuffer() {
+	PASSERT_GFX_THREAD();
 	if(m_handle)
 		glDeleteBuffers(1, &m_handle);
 }

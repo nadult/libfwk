@@ -11,6 +11,7 @@ namespace fwk {
 DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
 	DASSERT(size.x >= 0 && size.y >= 0);
+	PASSERT_GFX_THREAD();
 
 	ON_FAIL("DTexture::DTexture() error; format: % size: %", size, format.id());
 
@@ -52,6 +53,7 @@ DTexture::DTexture(DTexture &&rhs)
 }*/
 
 DTexture::~DTexture() {
+	PASSERT_GFX_THREAD();
 	if(m_id)
 		glDeleteTextures(1, &m_id);
 }
@@ -105,7 +107,10 @@ void DTexture::download(Texture &target) const {
 	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), target.data());
 }
 
-void DTexture::bind() const { ::glBindTexture(GL_TEXTURE_2D, m_id); }
+void DTexture::bind() const {
+	PASSERT_GFX_THREAD();
+	::glBindTexture(GL_TEXTURE_2D, m_id);
+}
 
 void DTexture::bind(const vector<immutable_ptr<DTexture>> &set) {
 	vector<const DTexture *> temp;
@@ -132,5 +137,8 @@ void DTexture::bind(const vector<const DTexture *> &set) {
 	glActiveTexture(GL_TEXTURE0);
 }
 
-void DTexture::unbind() { ::glBindTexture(GL_TEXTURE_2D, 0); }
+void DTexture::unbind() {
+	PASSERT_GFX_THREAD();
+	::glBindTexture(GL_TEXTURE_2D, 0);
+}
 }

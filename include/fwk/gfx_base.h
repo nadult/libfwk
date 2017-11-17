@@ -89,4 +89,18 @@ enum class VAlign {
 	center,
 	bottom,
 };
+
+// All OpenGL operations should be performed on the same thread
+// This function makes sure that this is the case
+void assertGfxThread();
+
+// Will return false if no GfxDevice is present
+bool onGfxThread();
+
+#ifdef FWK_PARANOID
+#define PASSERT_GFX_THREAD() assertGfxThread()
+#else
+#define PASSERT_GFX_THREAD()
+#endif
+
 }

@@ -120,6 +120,7 @@ void handleSegFault();
 pair<string, bool> execCommand(const string &cmd);
 void logError(const string &error);
 
+int threadId();
 void sleep(double sec);
 double getTime();
 
@@ -140,7 +141,7 @@ double getTime();
 #define DASSERT(expr) ASSERT(expr)
 #endif
 
-#if defined(FWK_PARANOID) && !defined(NDEBUG)
+#if defined(FWK_PARANOID)
 #define PASSERT(expr) ASSERT(expr)
 #else
 #define PASSERT(expr) ((void)0)

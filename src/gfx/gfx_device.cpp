@@ -27,6 +27,15 @@ void initializeOpenGL();
 // TODO: Something is corrupting this memory when running under emscripten
 static GfxDevice *s_instance = nullptr;
 
+static volatile int s_gfx_thread_id = -1;
+
+bool onGfxThread() { return threadId() == s_gfx_thread_id; }
+
+void assertGfxThread() {
+	if(s_gfx_thread_id != -1 && threadId() != s_gfx_thread_id)
+		ASSERT_FAILED("Calling gfx-related function on a wrong thread");
+}
+
 GfxDevice &GfxDevice::instance() {
 	DASSERT(s_instance);
 	return *s_instance;
@@ -81,7 +90,9 @@ struct GfxDevice::WindowImpl {
 };
 
 GfxDevice::GfxDevice() : m_input_impl(uniquePtr<InputImpl>()) {
+	ASSERT("Only one instance of GfxDevice can be created at a time" && !s_instance);
 	s_instance = this;
+	s_gfx_thread_id = threadId();
 
 	if(SDL_Init(SDL_INIT_VIDEO) != 0)
 		reportSDLError("SDL_Init");
@@ -91,12 +102,15 @@ GfxDevice::GfxDevice() : m_input_impl(uniquePtr<InputImpl>()) {
 }
 
 GfxDevice::~GfxDevice() {
+	PASSERT_GFX_THREAD();
 	m_window_impl.reset();
 	s_instance = nullptr;
+	s_gfx_thread_id = -1;
 	SDL_Quit();
 }
 
 void GfxDevice::createWindow(const string &name, const int2 &size, OptFlags flags) {
+	assertGfxThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
 	m_window_impl = uniquePtr<WindowImpl>(name, size, flags);
 
@@ -171,6 +185,7 @@ void GfxDevice::emscriptenCallback() {
 #endif
 
 void GfxDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
+	PASSERT_GFX_THREAD();
 	ASSERT(main_loop_func);
 	m_main_loop_stack.emplace_back(main_loop_func, arg);
 #ifdef __EMSCRIPTEN__

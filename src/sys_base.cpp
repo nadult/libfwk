@@ -16,6 +16,8 @@
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <signal.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 
@@ -57,7 +59,8 @@ namespace {
 		else
 			printf("Signal caught: %d!\n", (int)sig_info->si_signo);
 
-		printf("Backtrace:\n%s\n", Backtrace::get(2, nullptr, BacktraceMode::full).analyze(true).c_str());
+		printf("Backtrace:\n%s\n",
+			   Backtrace::get(2, nullptr, BacktraceMode::full).analyze(true).c_str());
 		exit(1);
 	}
 
@@ -84,6 +87,7 @@ void handleCtrlC(void (*handler)()) {
 	sigaction(SIGINT, &sig_int_handler, NULL);
 }
 
+int threadId() { return syscall(SYS_gettid); }
 #endif
 
 // TODO: stdout and stderr returned separately?

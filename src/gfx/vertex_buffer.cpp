@@ -8,6 +8,7 @@ namespace fwk {
 
 VertexBuffer::VertexBuffer(const void *data, int size, int vertex_size, VertexDataType data_type)
 	: m_handle(0), m_size(size), m_vertex_size(vertex_size), m_data_type(data_type) {
+	PASSERT_GFX_THREAD();
 	if(!m_size)
 		return;
 
@@ -20,6 +21,7 @@ VertexBuffer::VertexBuffer(const void *data, int size, int vertex_size, VertexDa
 }
 
 void VertexBuffer::download(Span<char> out, int src_offset) const {
+	PASSERT_GFX_THREAD();
 	DASSERT(out.size() + src_offset <= m_size * m_vertex_size);
 	glBindBuffer(GL_ARRAY_BUFFER, m_handle);
 	glGetBufferSubData(GL_ARRAY_BUFFER, src_offset, out.size(), out.data());
@@ -27,6 +29,7 @@ void VertexBuffer::download(Span<char> out, int src_offset) const {
 }
 
 VertexBuffer::~VertexBuffer() {
+	PASSERT_GFX_THREAD();
 	if(m_handle)
 		glDeleteBuffers(1, &m_handle);
 }

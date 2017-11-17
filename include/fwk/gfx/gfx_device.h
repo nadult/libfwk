@@ -18,8 +18,6 @@ DEFINE_ENUM(GfxDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizab
 			maximized);
 using GfxDeviceFlags = EnumFlags<GfxDeviceOpt>;
 
-// Once created (by calling instance first time, it will exist
-// till the end of the application).
 class GfxDevice {
   public:
 	GfxDevice();

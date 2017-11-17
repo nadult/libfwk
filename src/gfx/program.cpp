@@ -10,6 +10,7 @@ namespace fwk {
 
 Program::Program(const Shader &vertex, const Shader &fragment,
 				 const vector<string> &location_names) {
+	PASSERT_GFX_THREAD();
 	DASSERT(vertex.type() == ShaderType::vertex && vertex.isValid());
 	DASSERT(fragment.type() == ShaderType::fragment && fragment.isValid());
 
@@ -46,6 +47,7 @@ Program::Program(const string &vsh_file_name, const string &fsh_file_name,
 			  loadShader(fsh_file_name, predefined_macros, ShaderType::fragment), location_names) {}
 
 Program::~Program() {
+	PASSERT_GFX_THREAD();
 	if(m_id)
 		glDeleteProgram(m_id);
 }

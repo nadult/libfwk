@@ -44,6 +44,7 @@ static int sourcesMaxSize(const vector<VertexArraySource> &sources) {
 
 VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 	: m_sources(move(sources)), m_index_buffer(ib) {
+	PASSERT_GFX_THREAD();
 	if(ib) {
 		m_size = ib->size();
 		if(sourcesMaxSize(m_sources) == 0)
@@ -64,6 +65,7 @@ VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 }
 
 VertexArray::~VertexArray() {
+	PASSERT_GFX_THREAD();
 #if OPENGL_VERSION >= 0x30
 	if(m_handle)
 		glDeleteVertexArrays(1, &m_handle);
