@@ -24,7 +24,7 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	onFailMakeError(file, line, buffer).print();
+	onFailMakeError(file, line, buffer, false).print();
 	asm("int $3");
 #endif
 	exit(1);
@@ -39,7 +39,7 @@ void assertFailed(const char *file, int line, const char *text) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	onFailMakeError(file, line, buffer).print();
+	onFailMakeError(file, line, buffer, false).print();
 	asm("int $3");
 #endif
 	exit(1);
@@ -60,7 +60,7 @@ void checkFailed(const char *file, int line, const char *fmt, ...) {
 	emscripten_force_exit(1);
 #else
 	RollbackContext::pause();
-	auto error = onFailMakeError(file, line, buffer);
+	auto error = onFailMakeError(file, line, buffer, true);
 	RollbackContext::resume();
 
 	if(RollbackContext::canRollback())
