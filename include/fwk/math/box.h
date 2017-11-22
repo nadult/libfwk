@@ -198,36 +198,6 @@ template <class T> class Box {
 	ENABLE_IF_SIZE(3) Box<Vector2> xy() const { return {m_min.xy(), m_max.xy()}; }
 	ENABLE_IF_SIZE(3) Box<Vector2> yz() const { return {m_min.yz(), m_max.yz()}; }
 
-	class Iter2D {
-	  public:
-		Iter2D(T pos, Scalar begin_x, Scalar end_x)
-			: m_pos(pos), m_begin_x(begin_x), m_end_x(end_x) {}
-		auto operator*() const { return m_pos; }
-		const Iter2D &operator++() {
-			m_pos[0]++;
-			if(m_pos[0] >= m_end_x) {
-				m_pos[0] = m_begin_x;
-				m_pos[1]++;
-			}
-			return *this;
-		}
-
-		FWK_ORDER_BY(Iter2D, m_pos.y, m_pos.x);
-
-	  private:
-		T m_pos;
-		Scalar m_begin_x, m_end_x;
-	};
-
-	// TODO: we're acutally iterating over pixels here...
-	// how to make it more clear ?
-	template <class U = T, EnableIf<isIntegralVec<U, 2>()>...> Iter2D begin() const {
-		return {m_min, m_min[0], m_max[0]};
-	}
-	template <class U = T, EnableIf<isIntegralVec<U, 2>()>...> Iter2D end() const {
-		return {T(m_min[0], m_max[1]), m_min[0], m_max[0]};
-	}
-
   private:
 	union {
 		struct {

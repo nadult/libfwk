@@ -3,7 +3,7 @@
 
 #include "fwk/math/affine_trans.h"
 #include "fwk/math/axis_angle.h"
-#include "fwk/math/box.h"
+#include "fwk/math/box_iter.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/matrix4.h"
@@ -319,7 +319,7 @@ void testMain() {
 
 	IRect rect(0, 0, 2, 3);
 	vector<int2> points;
-	for(auto pt : rect)
+	for(auto pt : pixels(rect))
 		points.emplace_back(pt);
 	ASSERT_EQ(points, vector<int2>({{0, 0}, {1, 0}, {0, 1}, {1, 1}, {0, 2}, {1, 2}}));
 

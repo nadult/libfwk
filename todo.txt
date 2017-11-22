@@ -5,6 +5,7 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - Problem with FlatImpl: what happens when we're compiling with WPO ?
 - refactor Variant a bit
 - RollbackError type ?
+- sprawdz wersje gcc / clang na poczatku
 - Use AnyStorage for Any & Variant ?
 - A lot of functions can run in two modes:
   - assuming that everything will succeeed (fails on CHECK / ASSERT if it doesnt)
