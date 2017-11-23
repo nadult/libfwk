@@ -1,6 +1,11 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- dontROllback can be implemented for vector & string
+- we could do some ownership-related stuff similarly to dontRollback:
+  it would be better if we had member information: we could iterate over all members
+
+- DEFINE_ENUM in private namespace under gcc (no linkage)
 - Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
 - Problem with FlatImpl: what happens when we're compiling with WPO ?
 - refactor Variant a bit
@@ -17,7 +22,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
-- clang++ by default; fix fwk.h
 - type_info do assertów ?
 - FlatImpl const refs to Base type ?
 - format for Variant & maybe

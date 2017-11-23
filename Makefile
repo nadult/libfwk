@@ -1,6 +1,6 @@
 MINGW_PREFIX=x86_64-w64-mingw32.static.posix-
 BUILD_DIR=build
-LINUX_CXX=g++
+LINUX_CXX=clang++
 FLAGS=-O3
 
 -include Makefile.local
