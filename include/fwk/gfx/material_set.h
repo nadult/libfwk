@@ -3,24 +3,24 @@
 
 #pragma once
 
+#include "fwk/fwd_member.h"
 #include "fwk/gfx/material.h"
-#include <map>
 
 namespace fwk {
 
 class MaterialSet {
   public:
-	explicit MaterialSet(const Material &default_mat, std::map<string, Material> = {});
-	~MaterialSet();
+	MaterialSet(const Material &default_mat, HashMap<string, Material>);
+	explicit MaterialSet(const Material &default_mat);
+	FWK_COPYABLE_CLASS(MaterialSet);
 
 	auto defaultMat() const { return m_default; }
 	const Material &operator[](const string &name) const;
 	vector<Material> operator()(CSpan<string> names) const;
-	const auto &map() const { return m_map; }
+	const HashMap<string, Material> &map() const;
 
   private:
 	Material m_default;
-	// TODO: hash_map; or maybe even simple vector...
-	std::map<string, Material> m_map;
+	FwdMember<HashMap<string, Material>> m_map;
 };
 }

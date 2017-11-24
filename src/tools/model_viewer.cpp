@@ -47,7 +47,7 @@ class Viewer {
 		Model(PModel model, const Material &default_mat, PTexture tex, string mname, string tname)
 			: m_model(std::move(model)), m_materials(default_mat), m_model_name(mname),
 			  m_tex_name(tname), m_num_segments(0) {
-			std::map<string, Material> map;
+			HashMap<string, Material> map;
 
 			for(const auto &def : m_model->materialDefs()) {
 				map[def.name] =
