@@ -11,6 +11,7 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - FwdMember const refs to Base type ?
 - refactor Variant a bit
 - RollbackError type ?
+- Rollback::pause / resume better names ?
 - sprawdz wersje gcc / clang na poczatku
 - Use AnyStorage for Any & Variant ?
 - A lot of functions can run in two modes:

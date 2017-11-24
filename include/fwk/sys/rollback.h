@@ -33,8 +33,8 @@ class RollbackContext {
 	static void removeAtRollback(int index);
 
 	// Allocations won't be registered for garbage collection when paused
-	// Typically each pause should to be matched with resume
-	// Calling rollback while paused is illegal
+	// Typically each pause should be matched with resume on the same level
+	// User have to be careful in case of multiple rollbacks
 	static void pause();
 	static void resume();
 

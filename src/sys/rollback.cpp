@@ -193,11 +193,7 @@ void RollbackContext::resume() {
 		context->levels.back().pause_counter--;
 }
 
-bool RollbackContext::canRollback() {
-	if(auto *context = current())
-		return context->levels.back().pause_counter == 0;
-	return false;
-}
+bool RollbackContext::canRollback() { return !!current(); }
 
 bool RollbackContext::willRollback(CSpan<const void *> pointers) {
 	if(auto *context = current()) {

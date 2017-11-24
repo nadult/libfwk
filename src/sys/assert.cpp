@@ -61,8 +61,6 @@ void checkFailed(const char *file, int line, const char *fmt, ...) {
 #else
 	RollbackContext::pause();
 	auto error = onFailMakeError(file, line, buffer, true);
-	RollbackContext::resume();
-
 	if(RollbackContext::canRollback())
 		RollbackContext::rollback(move(error));
 
