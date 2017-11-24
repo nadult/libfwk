@@ -2,7 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/filesystem.h"
-#include "fwk/flat_impl.h"
+#include "fwk/fwd_member.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"

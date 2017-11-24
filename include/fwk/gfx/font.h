@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/flat_impl.h"
+#include "fwk/fwd_member.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
@@ -52,8 +52,8 @@ class FontCore : public immutable_base<FontCore> {
 	FontCore(CSpan<Glyph>, CSpan<Kerning>, int2, int);
 	void computeRect();
 
-	FlatImpl<HashMap<int, Glyph>> m_glyphs;
-	FlatImpl<HashMap<pair<int, int>, int>> m_kernings;
+	FwdMember<HashMap<int, Glyph>> m_glyphs;
+	FwdMember<HashMap<pair<int, int>, int>> m_kernings;
 	string m_texture_name;
 	int2 m_texture_size;
 

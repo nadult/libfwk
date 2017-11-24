@@ -7,7 +7,8 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - DEFINE_ENUM in private namespace under gcc (no linkage)
 - Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
-- Problem with FlatImpl: what happens when we're compiling with WPO ?
+- Problem with FwdMember: what happens when we're compiling with WPO ?
+- FwdMember const refs to Base type ?
 - refactor Variant a bit
 - RollbackError type ?
 - sprawdz wersje gcc / clang na poczatku
@@ -18,12 +19,10 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   Consistent solution for that would be useful...
 
 - consistent naming for functions (filter, unique) and transforms (makeFiltered, makeUnique)
-- better name for FlatImpl ? but it also should be short...
 
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
 - type_info do assertów ?
-- FlatImpl const refs to Base type ?
 - format for Variant & maybe
 - make RandomSeed not unsigned
 - execCommand doesn't retturn error status sometimes?

@@ -7,13 +7,13 @@
 
 namespace fwk {
 
-template <class T, int specified, int required> struct InvalidFlatImplSize;
-template <class T, int specified, int required> struct InvalidFlatImplAlignment;
+template <class T, int specified, int required> struct InvalidFwdMemberSize;
+template <class T, int specified, int required> struct InvalidFwdMemberAlignment;
 
-template <class T, int size, int align> struct alignas(align) FlatProxy {
-	FlatProxy() = delete;
-	FlatProxy(const FlatProxy &) = delete;
-	void operator=(const FlatProxy &) = delete;
+template <class T, int size, int align> struct alignas(align) FwdMemberMockup {
+	FwdMemberMockup() = delete;
+	FwdMemberMockup(const FwdMemberMockup &) = delete;
+	void operator=(const FwdMemberMockup &) = delete;
 
   private:
 	char data[size];
@@ -38,28 +38,28 @@ namespace detail {
 	};
 
 	template <class T, int size, int align, int req_size, int req_align>
-	using ValidateFlatImpl = Conditional<
-		size != req_size, InvalidFlatImplSize<T, size, req_size>,
-		Conditional<align != req_align, InvalidFlatImplAlignment<T, align, req_align>, T>>;
+	using ValidateFwdMember = Conditional<
+		size != req_size, InvalidFwdMemberSize<T, size, req_size>,
+		Conditional<align != req_align, InvalidFwdMemberAlignment<T, align, req_align>, T>>;
 
-	template <class T, int size, int align, bool defined_params> struct FlatImplSelect {
+	template <class T, int size, int align, bool defined_params> struct FwdMemberSelect {
 		template <class C>
-		static auto test(int) -> ValidateFlatImpl<C, size, align, sizeof(C), alignof(C)>;
-		template <class C> static auto test(...) -> FlatProxy<T, size, align>;
+		static auto test(int) -> ValidateFwdMember<C, size, align, sizeof(C), alignof(C)>;
+		template <class C> static auto test(...) -> FwdMemberMockup<T, size, align>;
 		using type = decltype(test<T>(0));
 	};
 
-	template <class T, int size, int align> struct FlatImplSelect<T, size, align, false> {
-		using type = FlatProxy<T, size, align>;
+	template <class T, int size, int align> struct FwdMemberSelect<T, size, align, false> {
+		using type = FwdMemberMockup<T, size, align>;
 	};
 }
 
-// 0-overhead Pimpl; When T is defined it evaluates to T, otherwise to FlatProxy<T>;
+// 0-overhead Pimpl; When T is defined it evaluates to T, otherwise to FwdMemberMockup<T>;
 // You have to exactly know T's size and alignment; in .cpp file you have to make sure
-// that T is defined before FlatImpl<T> is instantiated.
+// that T is defined before FwdMember<T> is instantiated.
 // Limitation: it doesn't work for private members.
 // Use it for big types which are rarely instantiated.
 template <class T, int size = type_size<T>, int alignment = 8>
-using FlatImpl =
-	typename detail::FlatImplSelect<T, size, alignment, detail::FullyDefined<T>::value>::type;
+using FwdMember =
+	typename detail::FwdMemberSelect<T, size, alignment, detail::FullyDefined<T>::value>::type;
 }

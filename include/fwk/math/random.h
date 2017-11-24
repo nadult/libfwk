@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/flat_impl.h"
+#include "fwk/fwd_member.h"
 #include "fwk/math_base.h"
 
 namespace fwk {
@@ -64,6 +64,6 @@ class Random {
 	}
 
   private:
-	FlatImpl<RandomEngine, 8> m_engine;
+	FwdMember<RandomEngine, 8> m_engine;
 };
 }

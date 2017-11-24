@@ -22,6 +22,6 @@ class FontFactory {
 	Texture makeTextureAtlas(vector<GlyphPair> &);
 
 	void *m_library;
-	FlatImpl<HashMap<string, void *>> m_faces;
+	FwdMember<HashMap<string, void *>> m_faces;
 };
 }
