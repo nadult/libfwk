@@ -105,8 +105,8 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 		Maybe<FBox> bbox;
 		if(compute_bboxes)
 			bbox = this->bbox(elem);
-		out.emplace_back(array, PrimitiveType::lines, num_verts, elem.first_index,
-						 m_materials[elem.material_idx], m_matrices[elem.matrix_idx], bbox);
+		out.emplace_back(array, pt, num_verts, elem.first_index, m_materials[elem.material_idx],
+						 m_matrices[elem.matrix_idx], bbox);
 	}
 	return out;
 }

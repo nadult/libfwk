@@ -4,7 +4,6 @@
 #pragma once
 
 #include "fwk/gfx/color.h"
-#include "fwk/gfx/line_buffer.h"
 #include "fwk/gfx/material.h"
 #include "fwk/gfx/matrix_stack.h"
 #include "fwk/math/box.h"
@@ -52,20 +51,16 @@ class RenderList : public MatrixStack {
 
 	const auto &drawCalls() const { return m_draw_calls; }
 	const auto &sprites() const { return m_sprites; }
-	const auto &lines() const { return m_lines; }
 	auto &sprites() { return m_sprites; }
-	auto &lines() { return m_lines; }
 
 	// Draw calls without bbox argument specified will be ignored
 	vector<pair<FBox, Matrix4>> renderBoxes() const;
 
   protected:
-	void renderLines();
 	void renderSprites();
 
 	vector<DrawCall> m_draw_calls;
 	SpriteBuffer m_sprites;
-	LineBuffer m_lines;
 	IRect m_viewport;
 };
 }

@@ -44,6 +44,12 @@ void LineBuffer::operator()(const FBox &bbox, IColor color) {
 	(*this)(verts, color);
 }
 
+void LineBuffer::operator()(const FBox &bbox, const Matrix4 &matrix, IColor color) {
+	(*this)(bbox, color);
+	for(auto &vec : Span<float3>(m_positions.end() - 24, m_positions.end()))
+		vec = mulPoint(matrix, vec);
+}
+
 void LineBuffer::reserve(int num_lines, int num_elem) {
 	ElementBuffer::reserve(num_lines * 2, num_elem);
 }

@@ -8,11 +8,13 @@
 #include "fwk/gfx/dynamic_mesh.h"
 #include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/line_buffer.h"
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/model.h"
 #include "fwk/gfx/render_list.h"
 #include "fwk/gfx/renderer2d.h"
+#include "fwk/gfx/triangle_buffer.h"
 #include "fwk/math/axis_angle.h"
 #include "fwk/sys/input.h"
 #include "fwk/sys/xml_loader.h"
@@ -66,12 +68,12 @@ class Viewer {
 
 		float scale() const { return 4.0f / max(boundingBox().size().values()); }
 
-		void drawModel(RenderList &out, PPose pose, bool show_nodes, const Matrix4 &matrix) {
+		void drawModel(RenderList &out, PPose pose, const Matrix4 &matrix) {
 			out.add(animate(pose).genDrawCalls(m_materials, matrix));
+		}
 
-			if(show_nodes)
-				m_model->drawNodes(out, pose, ColorId::green, ColorId::yellow, 0.1f / scale(),
-								   matrix);
+		void drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose) {
+			m_model->drawNodes(tris, lines, pose, ColorId::green, ColorId::yellow, 0.1f / scale());
 		}
 
 		void printModelStats(TextFormatter &fmt) const {
@@ -205,10 +207,15 @@ class Viewer {
 		auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
 					  translation(-model.boundingBox().center());
 
-		model.drawModel(renderer_3d, pose, m_show_nodes, matrix);
+		TriangleBuffer tris;
+		LineBuffer lines;
+		tris.setTrans(matrix);
+		lines.setTrans(matrix);
 
-		renderer_3d.lines().setTrans(renderer_3d.viewMatrix() * matrix);
-		renderer_3d.lines()(model.boundingBox(pose), ColorId::green);
+		model.drawModel(renderer_3d, pose, matrix);
+		if(m_show_nodes)
+			model.drawNodes(tris, lines, pose);
+		lines(model.boundingBox(pose), ColorId::green);
 
 		TextFormatter fmt;
 		fmt("Model: % (% / %)\n", model.m_model_name, m_current_model + 1, m_models.size());
@@ -231,6 +238,9 @@ class Viewer {
 		renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
 								  {IColor(0, 0, 0, 80)});
 		m_font->draw(renderer_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
+
+		renderer_3d.add(tris.drawCalls());
+		renderer_3d.add(lines.drawCalls());
 
 		renderer_3d.render();
 		renderer_2d.render();

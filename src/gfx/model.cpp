@@ -4,11 +4,13 @@
 #include "fwk/gfx/model.h"
 
 #include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/line_buffer.h"
 #include "fwk/gfx/material.h"
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/pose.h"
 #include "fwk/gfx/render_list.h"
+#include "fwk/gfx/triangle_buffer.h"
 #include "fwk/sys/xml.h"
 #include <map>
 
@@ -171,18 +173,17 @@ void Model::join(const string &local_name, const Model &other, const string &oth
 		}
 }
 
-void Model::drawNodes(RenderList &out, PPose pose, IColor node_color, IColor line_color,
-					  float node_scale, const Matrix4 &matrix) const {
+void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose, IColor node_color,
+					  IColor line_color, float node_scale) const {
 	// TODO: move this to model viewer
 	DASSERT(valid(pose));
 	Material node_mat(node_color, MaterialOpt::ignore_depth);
 	Material line_mat(line_color, MaterialOpt::ignore_depth);
 
-	Mesh bbox_mesh = Mesh::makeBBox(FBox{{-0.3f, -0.3f, -0.3f}, {0.3f, 0.3f, 0.3f}} * node_scale);
-	auto bbox_draw = bbox_mesh.genDrawCalls(MaterialSet{node_mat});
+	tris.setMaterial(node_mat);
+	lines.setMaterial(line_mat);
 
-	out.pushViewMatrix();
-	out.mulViewMatrix(matrix);
+	FBox bbox = FBox(float3(-0.3f), float3(0.3f)) * node_scale;
 
 	auto global_pose = globalPose(pose);
 	auto transforms = global_pose->transforms();
@@ -191,17 +192,14 @@ void Model::drawNodes(RenderList &out, PPose pose, IColor node_color, IColor lin
 	for(int n = 0; n < nodes().size(); n++)
 		positions[n] = mulPoint(transforms[n], float3(0, 0, 0));
 
-	out.lines().setMaterial(line_mat);
 	for(const auto *node : nodes()) {
 		if(node != m_root.get())
-			out.add(bbox_draw, translation(positions[node->id()]));
+			tris(bbox, translation(positions[node->id()]));
 		if(node->parent() && node->parent() != m_nodes.front()) {
 			float3 line[2] = {positions[node->id()], positions[node->parent()->id()]};
-			out.lines()(line);
+			lines(line);
 		}
 	}
-
-	out.popViewMatrix();
 }
 
 void Model::printHierarchy() const {

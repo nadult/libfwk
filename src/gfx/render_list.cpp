@@ -184,22 +184,18 @@ void RenderList::render() {
 	glDepthMask(0);
 	renderSprites();
 
-	glDepthMask(1);
-	renderLines();
-
 	clear();
 	DTexture::unbind();
 }
 
 vector<pair<FBox, Matrix4>> RenderList::renderBoxes() const {
 	vector<pair<FBox, Matrix4>> out;
-	out.reserve(m_draw_calls.size() + m_lines.size() + m_sprites.instances().size());
+	out.reserve(m_draw_calls.size() + m_sprites.instances().size());
 
 	for(auto &dc : m_draw_calls)
 		if(dc.bbox)
 			out.emplace_back(*dc.bbox, dc.matrix);
 
-	insertBack(out, m_lines.drawBoxes());
 	for(auto &inst : m_sprites.instances())
 		out.emplace_back(enclose(inst.positions), inst.matrix);
 
@@ -235,22 +231,8 @@ void RenderList::renderSprites() {
 	}
 }
 
-void RenderList::renderLines() {
-	DTexture::unbind();
-	ProgramBinder binder(s_mgr["simple"]);
-	binder.bind();
-
-	for(auto &dc : m_lines.drawCalls()) {
-		binder.setUniform("mesh_color", (float4)dc.material.color);
-		binder.setUniform("proj_view_matrix", projectionMatrix() * dc.matrix);
-		enable(GL_DEPTH_TEST, !(dc.material.flags & MatOpt::ignore_depth));
-		dc.issue();
-	}
-}
-
 void RenderList::clear() {
 	m_draw_calls.clear();
 	m_sprites.clear();
-	m_lines.clear();
 }
 }

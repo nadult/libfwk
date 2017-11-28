@@ -16,6 +16,7 @@ class LineBuffer : public ElementBuffer {
 	void operator()(CSpan<Segment3<float>>, CSpan<IColor>);
 	void operator()(CSpan<Segment3<float>>, IColor = ColorId::white);
 	void operator()(const FBox &, IColor color = ColorId::white);
+	void operator()(const FBox &, const Matrix4 &, IColor color = ColorId::white);
 
 	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
 
