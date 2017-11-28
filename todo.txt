@@ -1,11 +1,19 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-- dontROllback can be implemented for vector & string
+- filter w miejscu; niemutowalne może być bardzokosztowne (np. kopiuje cały VoxelMap)
+
+- DEFINE_ENUM_MEMBER doesnt work with EnumFlags<>
+- DEFINE_ENUM in private namespace under gcc (no linkage)
+- use DEFINE_ENUM for input key ? two functions would have to be provided: one for normal keys and one for specials
+- implicit conversion to bool for enum flags ?
+
+- dontRollback can be implemented for vector & string
 - we could do some ownership-related stuff similarly to dontRollback:
   it would be better if we had member information: we could iterate over all members
 
-- DEFINE_ENUM in private namespace under gcc (no linkage)
+- insertBack with move ?
+
 - Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
 - Problem with FwdMember: what happens when we're compiling with WPO ?
 - FwdMember const refs to Base type ?
@@ -38,8 +46,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - use type trai primitives __is_trivially_assignable ...
 - Range instead of loops with XMLNode::next()
 - Zastanów sie gdzie jeszcze warto by było dodać specyfikacje memberów (&, &&, const &)
-- use DEFINE_ENUM for input key ? two functions would have to be provided: one for normal keys and one for specials
-- implicit conversion to bool for enum flags ?
 - lastModificationTime is not related to getTime
 - Vector::reinterpret moves ?!?!?; change it to ink ?
 - assert shouldnt print itself in backtrace
@@ -120,7 +126,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - same algorithms on top of dynamic or static structure: ImmutableGraph, MutableGraph share with shared interface ?
 - remove math.h, etc from includes for ; On the other hand: they will end up in PCH anyway
 - operator== for CRanges ?
-- fromString for enums ?
 
 - ref(vector) returns vector<> with reference flag acts as a reference to a vector
   keeping ref(vector) in local context can be more efficient than keeping reference
