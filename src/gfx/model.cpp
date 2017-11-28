@@ -190,8 +190,6 @@ void Model::drawNodes(RenderList &out, PPose pose, IColor node_color, IColor lin
 	vector<float3> positions(nodes().size());
 	for(int n = 0; n < nodes().size(); n++)
 		positions[n] = mulPoint(transforms[n], float3(0, 0, 0));
-	if(positions.size() % 2 == 1)
-		positions.pop_back();
 
 	out.lines().setMaterial(line_mat);
 	for(const auto *node : nodes()) {
