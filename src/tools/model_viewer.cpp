@@ -206,7 +206,9 @@ class Viewer {
 					  translation(-model.boundingBox().center());
 
 		model.drawModel(renderer_3d, pose, m_show_nodes, matrix);
-		renderer_3d.lines().addBox(model.boundingBox(pose), {ColorId::green}, matrix);
+
+		renderer_3d.lines().setTrans(renderer_3d.viewMatrix() * matrix);
+		renderer_3d.lines()(model.boundingBox(pose), ColorId::green);
 
 		TextFormatter fmt;
 		fmt("Model: % (% / %)\n", model.m_model_name, m_current_model + 1, m_models.size());

@@ -193,12 +193,13 @@ void Model::drawNodes(RenderList &out, PPose pose, IColor node_color, IColor lin
 	if(positions.size() % 2 == 1)
 		positions.pop_back();
 
+	out.lines().setMaterial(line_mat);
 	for(const auto *node : nodes()) {
 		if(node != m_root.get())
 			out.add(bbox_draw, translation(positions[node->id()]));
 		if(node->parent() && node->parent() != m_nodes.front()) {
 			float3 line[2] = {positions[node->id()], positions[node->parent()->id()]};
-			out.lines().add(line, line_mat);
+			out.lines()(line);
 		}
 	}
 

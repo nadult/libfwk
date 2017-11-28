@@ -4,85 +4,51 @@
 #include "fwk/gfx/line_buffer.h"
 
 #include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/vertex_array.h"
-#include "fwk/gfx/vertex_buffer.h"
 #include "fwk/math/box.h"
 #include "fwk/math/segment.h"
+#include "fwk/sys/assert.h"
 
 namespace fwk {
 
-LineBuffer::LineBuffer(const MatrixStack &stack) : m_matrix_stack(stack) {}
-
-LineBuffer::Instance &LineBuffer::instance(IColor col, MaterialFlags flags, Matrix4 matrix,
-										   bool has_colors) {
-	Instance *inst = m_instances.empty() ? nullptr : &m_instances.back();
-	matrix = m_matrix_stack.viewMatrix() * matrix;
-
-	if(!inst || has_colors != !inst->colors.empty() || col != inst->material_color ||
-	   flags != inst->material_flags || matrix != inst->matrix) {
-		m_instances.emplace_back(Instance());
-		inst = &m_instances.back();
-		inst->matrix = matrix;
-		inst->material_color = col;
-		inst->material_flags = flags;
-	}
-
-	return *inst;
-}
-
-void LineBuffer::add(CSpan<float3> verts, CSpan<IColor> colors, const Material &mat,
-					 const Matrix4 &matrix) {
+void LineBuffer::operator()(CSpan<float3> verts, CSpan<IColor> colors) {
 	DASSERT(verts.size() % 2 == 0);
-	DASSERT(colors.size() == verts.size() || colors.empty());
-
-	auto &inst = instance(mat.color, mat.flags, matrix, true);
-	insertBack(inst.positions, verts);
-	insertBack(inst.colors, colors);
+	DASSERT_EQ(colors.size(), verts.size());
+	insertBack(m_positions, verts);
+	insertBack(m_colors, colors);
 }
 
-void LineBuffer::add(CSpan<float3> verts, const Material &material, const Matrix4 &matrix) {
+void LineBuffer::operator()(CSpan<float3> verts, IColor color) {
 	DASSERT(verts.size() % 2 == 0);
-
-	auto &inst = instance(material.color, material.flags, matrix, false);
-	insertBack(inst.positions, verts);
+	insertBack(m_positions, verts);
+	m_colors.resize(m_colors.size() + verts.size(), color);
 }
 
-void LineBuffer::add(CSpan<float3> verts, IColor color, const Matrix4 &matrix) {
-	DASSERT(verts.size() % 2 == 0);
-	auto &inst = instance(color, none, matrix, false);
-	insertBack(inst.positions, verts);
+void LineBuffer::operator()(CSpan<Segment3F> segs, CSpan<IColor> colors) {
+	static_assert(sizeof(Segment3F) == sizeof(float3) * 2);
+	insertBack(m_positions, reinterpret<float3>(segs));
+	m_colors.reserve(m_colors.size() + colors.size() * 2);
+	for(auto col : colors)
+		insertBack(m_colors, {col, col});
 }
 
-void LineBuffer::add(CSpan<Segment3<float>> segs, const Material &material, const Matrix4 &matrix) {
-	vector<float3> verts;
-	verts.reserve(segs.size() * 2);
-	for(const auto &seg : segs) {
-		verts.emplace_back(seg.from);
-		verts.emplace_back(seg.to);
-	}
-	add(verts, material, matrix);
+void LineBuffer::operator()(CSpan<Segment3<float>> segs, IColor color) {
+	(*this)(reinterpret<float3>(segs), color);
 }
 
-void LineBuffer::addBox(const FBox &bbox, IColor color, const Matrix4 &matrix) {
-	auto verts = bbox.corners();
+void LineBuffer::operator()(const FBox &bbox, IColor color) {
+	auto corners = bbox.corners();
 	int indices[] = {0, 1, 1, 3, 3, 2, 2, 0, 4, 5, 5, 7, 7, 6, 6, 4, 0, 4, 1, 5, 3, 7, 2, 6};
-	float3 out_verts[arraySize(indices)];
+	float3 verts[arraySize(indices)];
 	for(int i = 0; i < arraySize(indices); i++)
-		out_verts[i] = verts[indices[i]];
-	add(out_verts, color, matrix);
+		verts[i] = corners[indices[i]];
+	(*this)(verts, color);
 }
 
-void LineBuffer::clear() { m_instances.clear(); }
+void LineBuffer::reserve(int num_lines, int num_elem) {
+	ElementBuffer::reserve(num_lines * 2, num_elem);
+}
 
-vector<DrawCall> LineBuffer::drawCalls() const {
-	return transform(m_instances, [](const Instance &inst) {
-		auto pos = make_immutable<VertexBuffer>(inst.positions);
-		auto col = inst.colors.empty()
-					   ? VertexArraySource(FColor(ColorId::white))
-					   : VertexArraySource(make_immutable<VertexBuffer>(inst.colors));
-		auto line_array = VertexArray::make({pos, col, VertexArraySource(float2(0, 0))});
-		return DrawCall(line_array, PrimitiveType::lines, line_array->size(), 0,
-						Material(inst.material_color, inst.material_flags), inst.matrix);
-	});
+vector<DrawCall> LineBuffer::drawCalls(bool compute_boxes) const {
+	return ElementBuffer::drawCalls(PrimitiveType::lines, compute_boxes);
 }
 }

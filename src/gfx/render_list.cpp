@@ -82,7 +82,7 @@ struct ProgramFactory {
 static ResourceManager<Program, ProgramFactory> s_mgr;
 
 RenderList::RenderList(const IRect &viewport, const Matrix4 &projection_matrix)
-	: MatrixStack(projection_matrix), m_sprites(*this), m_lines(*this), m_viewport(viewport) {}
+	: MatrixStack(projection_matrix), m_sprites(*this), m_viewport(viewport) {}
 
 RenderList::~RenderList() = default;
 
@@ -193,14 +193,13 @@ void RenderList::render() {
 
 vector<pair<FBox, Matrix4>> RenderList::renderBoxes() const {
 	vector<pair<FBox, Matrix4>> out;
-	out.reserve(m_draw_calls.size() + m_lines.instances().size() + m_sprites.instances().size());
+	out.reserve(m_draw_calls.size() + m_lines.size() + m_sprites.instances().size());
 
 	for(auto &dc : m_draw_calls)
 		if(dc.bbox)
 			out.emplace_back(*dc.bbox, dc.matrix);
 
-	for(auto &inst : m_lines.instances())
-		out.emplace_back(enclose(inst.positions), inst.matrix);
+	insertBack(out, m_lines.drawBoxes());
 	for(auto &inst : m_sprites.instances())
 		out.emplace_back(enclose(inst.positions), inst.matrix);
 

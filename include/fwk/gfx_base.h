@@ -26,8 +26,6 @@ class Material;
 class MaterialSet;
 class MatrixStack;
 class Renderer2D;
-class SpriteBuffer;
-class LineBuffer;
 class DrawCall;
 class RenderList;
 class FontCore;
@@ -41,6 +39,10 @@ class DynamicMesh;
 class Model;
 class ModelNode;
 class ModelAnim;
+
+class TriangleBuffer;
+class SpriteBuffer;
+class LineBuffer;
 
 struct FColor;
 struct IColor;
