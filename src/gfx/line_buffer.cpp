@@ -6,6 +6,7 @@
 #include "fwk/gfx/draw_call.h"
 #include "fwk/math/box.h"
 #include "fwk/math/segment.h"
+#include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
 
 namespace fwk {
@@ -31,6 +32,11 @@ void LineBuffer::operator()(CSpan<Segment3F> segs, CSpan<IColor> colors) {
 		insertBack(m_colors, {col, col});
 }
 
+void LineBuffer::operator()(const Segment3<float> &seg, IColor color) {
+	insertBack(m_positions, {seg.from, seg.to});
+	m_colors.resize(m_colors.size() + 2, color);
+}
+
 void LineBuffer::operator()(CSpan<Segment3<float>> segs, IColor color) {
 	(*this)(reinterpret<float3>(segs), color);
 }
@@ -48,6 +54,11 @@ void LineBuffer::operator()(const FBox &bbox, const Matrix4 &matrix, IColor colo
 	(*this)(bbox, color);
 	for(auto &vec : Span<float3>(m_positions.end() - 24, m_positions.end()))
 		vec = mulPoint(matrix, vec);
+}
+
+void LineBuffer::operator()(const Triangle3F &tri, IColor color) {
+	insertBack(m_positions, {tri[0], tri[1], tri[1], tri[2], tri[2], tri[0]});
+	m_colors.resize(m_colors.size() + 6, color);
 }
 
 void LineBuffer::reserve(int num_lines, int num_elem) {

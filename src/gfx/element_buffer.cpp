@@ -18,17 +18,27 @@ ElementBuffer::ElementBuffer() { clear(); }
 FWK_COPYABLE_CLASS_IMPL(ElementBuffer);
 
 void ElementBuffer::setTrans(Matrix4 mat) {
-	if(mat == m_matrices.back())
+	if(m_elements.back().num_vertices == 0 &&
+	   m_elements.back().matrix_idx + 1 == m_matrices.size()) {
+		m_matrices.back() = mat;
 		return;
-	m_matrices.emplace_back(mat);
-	addElement();
+	}
+	if(mat != m_matrices.back()) {
+		m_matrices.emplace_back(mat);
+		addElement();
+	}
 }
 
 void ElementBuffer::setMaterial(Material mat) {
-	if(mat == m_materials.back())
+	if(m_elements.back().num_vertices == 0 &&
+	   m_elements.back().matrix_idx + 1 == m_materials.size()) {
+		m_materials.back() = mat;
 		return;
-	m_materials.emplace_back(mat);
-	addElement();
+	}
+	if(mat != m_materials.back()) {
+		m_materials.emplace_back(mat);
+		addElement();
+	}
 }
 
 void ElementBuffer::reserve(int num_tris, int num_elements) {
