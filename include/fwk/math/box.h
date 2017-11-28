@@ -143,10 +143,8 @@ template <class T> class Box {
 	ENABLE_IF_SIZE(3) array<Point, num_corners> corners() const {
 		array<T, num_corners> out;
 		for(int n = 0; n < num_corners; n++)
-			for(int i = 0; i < dim_size; i++) {
-				int bit = 1 << (dim_size - i - 1);
-				out[n][i] = (n & bit ? m_min : m_max)[i];
-			}
+			for(int i = 0; i < dim_size; i++)
+				out[n][i] = (n & (1 << i) ? m_max : m_min)[i];
 		return out;
 	}
 
