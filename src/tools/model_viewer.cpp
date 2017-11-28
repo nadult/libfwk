@@ -135,7 +135,7 @@ class Viewer {
 			CHECK_FAILED("No models loaded\n");
 	}
 
-	void handleInput(GfxDevice &device, float time_diff) {
+	bool handleInput(GfxDevice &device, float time_diff) {
 		float x_rot = 0.0f, y_rot = 0.0f;
 		float scale = 0.0f;
 
@@ -168,12 +168,15 @@ class Viewer {
 			}
 			if(event.keyDown('s'))
 				m_show_nodes ^= 1;
+			if(event.keyDown(InputKey::esc))
+				return false;
 		}
 
 		Quat rot = normalize(Quat(AxisAngle({0, 1, 0}, x_rot)) * Quat(AxisAngle({1, 0, 0}, y_rot)));
 
 		m_target_view.zoom = clamp(m_target_view.zoom * (1.0f + scale), 0.2f, 4.0f);
 		m_target_view.rot = normalize(rot * m_target_view.rot);
+		return true;
 	}
 
 	void tick(float time_diff) {
@@ -254,7 +257,8 @@ class Viewer {
 		GfxDevice::clearDepth(1.0f);
 
 		float time_diff = 1.0f / 60.0f;
-		handleInput(device, time_diff);
+		if(!handleInput(device, time_diff))
+			return false;
 		tick(time_diff);
 		updateViewport();
 		draw();
