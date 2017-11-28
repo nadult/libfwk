@@ -1,7 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/render_list.h"
+#include "fwk/gfx/sprite_buffer.h"
+
+#include "fwk/gfx/matrix_stack.h"
 
 namespace fwk {
 
