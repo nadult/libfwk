@@ -14,9 +14,9 @@ _dummy := $(shell [ -d $(BUILD_DIR)/gfx ] || mkdir -p $(BUILD_DIR)/gfx)
 _dummy := $(shell [ -d $(BUILD_DIR)/audio ] || mkdir -p $(BUILD_DIR)/audio)
 _dummy := $(shell [ -d $(BUILD_DIR)/math ] || mkdir -p $(BUILD_DIR)/math)
 _dummy := $(shell [ -d $(BUILD_DIR)/sys ] || mkdir -p $(BUILD_DIR)/sys)
-_dummy := $(shell [ -d $(BUILD_DIR)/test ] || mkdir -p $(BUILD_DIR)/test)
+_dummy := $(shell [ -d $(BUILD_DIR)/tests ] || mkdir -p $(BUILD_DIR)/tests)
 _dummy := $(shell [ -d $(BUILD_DIR)/tools ] || mkdir -p $(BUILD_DIR)/tools)
-_dummy := $(shell [ -d test ] || mkdir -p test)
+_dummy := $(shell [ -d tests ] || mkdir -p tests)
 _dummy := $(shell [ -d tools ] || mkdir -p tools)
 _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d temp ] || mkdir -p temp)
@@ -36,8 +36,8 @@ SHARED_SRC=vector filesystem filesystem_linux profiler str sys_base \
 		   gfx/texture gfx/texture_format gfx/texture_tga gfx/texture_png gfx/texture_bmp \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer
 
-TESTS_SRC=test/streams test/stuff test/math test/window test/enums test/models test/vector test/vector_perf \
-			test/variant_perf test/rollback_test
+TESTS_SRC=tests/streams tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
+			tests/variant_perf tests/rollback_test
 TOOLS_SRC=tools/model_convert tools/model_viewer
 PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
@@ -149,7 +149,7 @@ clean:
 		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
 		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp \
 		$(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
-	-rmdir test temp lib tools
+	-rmdir tests temp lib tools
 	find $(BUILD_DIR) -type d -empty -delete
 
 .PHONY: clean tools

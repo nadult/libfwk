@@ -1,6 +1,6 @@
 set -e
 make -j8 tests_mingw tools_mingw
-cd test
+cd tests
 wine ./streams.exe
 wine ./stuff.exe
 wine ./math.exe

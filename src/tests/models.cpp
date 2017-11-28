@@ -45,7 +45,7 @@ void testMain() {
 	settings.export_script_path = mainPath("data/export_fwk_model.py");
 	settings.print_output = false;
 	Converter cvt(settings);
-	auto mesh_path = mainPath("test/test.model");
+	auto mesh_path = mainPath("tests/test.model");
 	auto result = cvt(mainPath("data/test.blend"), mesh_path);
 	ASSERT(result);
 

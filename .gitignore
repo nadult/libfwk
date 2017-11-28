@@ -1,7 +1,7 @@
 *.swp
 /build
 /lib
-/test
+/tests
 /tools
 /temp
 /.ycm_extra_conf.pyc

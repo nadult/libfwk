@@ -1,6 +1,6 @@
 set -e
 make -j8 tests tools
-cd test
+cd tests
 ./streams
 ./stuff
 ./math
