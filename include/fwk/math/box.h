@@ -13,8 +13,7 @@ namespace fwk {
 // Axis-aligned box (or rect in 2D case)
 // Invariant: min <= max (use validRange)
 template <class T> class Box {
-	using NoAsserts = detail::NoAssertsTag;
-	Box(T min, T max, NoAsserts) : m_min(min), m_max(max) {}
+	Box(T min, T max, NoAssertsTag) : m_min(min), m_max(max) {}
 
   public:
 	static_assert(isVec<T>(), "Box<> has to be based on a vector");
@@ -53,7 +52,7 @@ template <class T> class Box {
 	explicit Box(T size) : Box(T(), size) {}
 	Box() : m_min(), m_max() {}
 
-	static Box makeInvalid() { return {T(), T(-1), NoAsserts()}; }
+	static Box makeInvalid() { return {T(), T(-1), no_asserts_tag}; }
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
@@ -105,14 +104,14 @@ template <class T> class Box {
 		for(int n = 0; n < dim_size; n++)
 			if(scale[n] < Scalar(0))
 				swap(tmin[n], tmax[n]);
-		return {tmin, tmax, NoAsserts()};
+		return {tmin, tmax, no_asserts_tag};
 	}
 
 	Box operator*(Scalar scale) const {
 		auto tmin = m_min * scale, tmax = m_max * scale;
 		if(scale < Scalar(0))
 			swap(tmin, tmax);
-		return {tmin, tmax, NoAsserts()};
+		return {tmin, tmax, no_asserts_tag};
 	}
 
 	bool empty() const { return emptyRange(m_min, m_max); }
@@ -153,7 +152,7 @@ template <class T> class Box {
 		auto tmax = vmin(m_max, rhs.m_max);
 
 		if(!emptyRange(tmin, tmax))
-			return Box{tmin, tmax, NoAsserts()};
+			return Box{tmin, tmax, no_asserts_tag};
 		return Box{};
 	}
 
@@ -161,7 +160,7 @@ template <class T> class Box {
 	Maybe<Box> intersection(const Box &rhs) const {
 		auto tmin = vmax(m_min, rhs.m_min);
 		auto tmax = vmin(m_max, rhs.m_max);
-		return Box{tmin, tmax, NoAsserts()};
+		return Box{tmin, tmax, no_asserts_tag};
 	}
 
 	Point closestPoint(const Point &point) const { return vmin(vmax(point, m_min), m_max); }
@@ -181,7 +180,7 @@ template <class T> class Box {
 
 	Box inset(const T &val_min, const T &val_max) const {
 		auto new_min = m_min + val_min, new_max = m_max - val_max;
-		return {vmin(new_min, new_max), vmax(new_min, new_max), NoAsserts()};
+		return {vmin(new_min, new_max), vmax(new_min, new_max), no_asserts_tag};
 	}
 	Box inset(const T &value) const { return inset(value, value); }
 	Box inset(Scalar value) const { return inset(T(value)); }

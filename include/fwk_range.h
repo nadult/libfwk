@@ -168,13 +168,12 @@ constexpr bool isOneOf(const T &value, const Arg1 &arg1, const Args &... args) {
 //   that the container with values exist as long as Span exists.
 template <class T, int min_size = 0> class Span {
   public:
-	using NoAsserts = detail::NoAssertsTag;
 	using value_type = RemoveConst<T>;
 	enum { is_const = isConst<T>(), minimum_size = min_size };
 	using vector_type = Conditional<is_const, const vector<value_type>, vector<value_type>>;
 	static_assert(min_size >= 0, "min_size should be >= 0");
 
-	Span(T *data, int size, NoAsserts) : m_data(data), m_size(size) {
+	Span(T *data, int size, NoAssertsTag) : m_data(data), m_size(size) {
 		if(min_size > 0)
 			DASSERT(m_size >= min_size);
 	}
@@ -188,8 +187,10 @@ template <class T, int min_size = 0> class Span {
 		static_assert(min_size == 0, "Cannot construct empty Span which has minimum_size > 0");
 	}
 
-	Span(T *begin, T *end) : Span(begin, (int)(end - begin), NoAsserts()) { DASSERT(end >= begin); }
-	Span(vector_type &vec) : Span(vec.data(), vec.size(), NoAsserts()) {}
+	Span(T *begin, T *end) : Span(begin, (int)(end - begin), no_asserts_tag) {
+		DASSERT(end >= begin);
+	}
+	Span(vector_type &vec) : Span(vec.data(), vec.size(), no_asserts_tag) {}
 	template <int N> Span(value_type (&array)[N]) : m_data(array), m_size(N) {
 		static_assert(N >= min_size);
 	}

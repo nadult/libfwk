@@ -21,9 +21,11 @@ template <class... Args> struct Types {};
 
 template <class T> auto declval() -> T;
 
+struct NoAssertsTag {};
+constexpr NoAssertsTag no_asserts_tag;
+
 namespace detail {
 
-	struct NoAssertsTag {};
 	struct ValidType {
 		template <class A> using Arg = A;
 	};
