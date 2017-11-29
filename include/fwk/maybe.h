@@ -163,10 +163,14 @@ template <class T> class Maybe : public MaybeStorage<T> {
 	Maybe(const None &) {}
 
 #ifndef __clang__
-	Maybe(Maybe&& rhs) : MaybeStorage<T>(move(rhs)) {}
+	Maybe(Maybe &&rhs) : MaybeStorage<T>(move(rhs)) {}
 	Maybe(const Maybe &rhs) : MaybeStorage<T>(rhs) {}
 	Maybe &operator=(const Maybe &rhs) {
 		MaybeStorage<T>::operator=(rhs);
+		return *this;
+	}
+	Maybe &operator=(Maybe &&rhs) {
+		MaybeStorage<T>::operator=(move(rhs));
 		return *this;
 	}
 #endif
