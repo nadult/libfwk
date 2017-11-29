@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- maybe xml
 - filter w miejscu; niemutowalne może być bardzokosztowne (np. kopiuje cały VoxelMap)
 
 - DEFINE_ENUM_MEMBER doesnt work with EnumFlags<>

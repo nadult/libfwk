@@ -161,22 +161,18 @@ template <class T> class Maybe : public MaybeStorage<T> {
 	static_assert(!std::is_abstract<T>::value, "Maybe may not be used with abstract types");
 
 	Maybe(const None &) {}
+	Maybe() {}
 
-#ifndef __clang__
-	Maybe(Maybe &&rhs) : MaybeStorage<T>(move(rhs)) {}
-	Maybe(const Maybe &rhs) : MaybeStorage<T>(rhs) {}
-	Maybe &operator=(const Maybe &rhs) {
-		MaybeStorage<T>::operator=(rhs);
-		return *this;
-	}
-	Maybe &operator=(Maybe &&rhs) {
-		MaybeStorage<T>::operator=(move(rhs));
-		return *this;
-	}
-#endif
+	Maybe(Maybe &&rhs) = default;
+	Maybe(const Maybe &rhs) = default;
+	Maybe(T &&value) : MaybeStorage<T>(move(value)) {}
+	Maybe(const T &value) : MaybeStorage<T>(value) {}
 
-	using MaybeStorage<T>::MaybeStorage;
-	using MaybeStorage<T>::operator=;
+	Maybe &operator=(const Maybe &rhs) = default;
+	Maybe &operator=(Maybe &&rhs) = default;
+	void operator=(T &&new_value) { MaybeStorage<T>::operator=(move(new_value)); }
+	void operator=(const T &new_value) { MaybeStorage<T>::operator=(new_value); }
+
 	using MaybeStorage<T>::hasValue;
 
 	explicit operator bool() const { return hasValue(); }
