@@ -86,7 +86,9 @@ void RollbackContext::addLevel(Maybe<BacktraceMode> bm) {
 		s_num_active++;
 	}
 	is_disabled = true;
-	levels.emplace_back(detail::t_on_fail_count, bm ? *bm : Backtrace::t_default_mode);
+	if(!bm)
+		bm = levels.empty() ? Backtrace::t_default_mode : levels.back().backtrace_mode;
+	levels.emplace_back(detail::t_on_fail_count, *bm);
 	is_disabled = false;
 }
 
