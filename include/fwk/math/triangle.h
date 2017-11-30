@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include "fwk/math/segment.h"
 #include "fwk/math_base.h"
 #include "fwk/maybe.h"
-#include "fwk/math/segment.h"
 
 namespace fwk {
 
@@ -51,6 +51,9 @@ template <class T, int N> class Triangle {
 		PASSERT(idx >= 0 && idx <= 3);
 		return {v[idx], v[idx == 2 ? 0 : idx + 1]};
 	}
+
+	Triangle operator+(const Vector &off) const { return {v[0] + off, v[1] + off, v[2] + off}; }
+	Triangle operator-(const Vector &off) const { return {v[0] - off, v[1] - off, v[2] - off}; }
 
 	Point center() const { return (v[0] + v[1] + v[2]) * (T(1) / T(3)); }
 
