@@ -276,7 +276,7 @@ template <class TSpan, class T = SpanBase<TSpan>> CSpan<T> makeCSpan(const TSpan
 
 template <class T> void makeUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
-	vec.resize(std::unique(begin(vec), end(vec)) - vec.begin());
+	vec.erase(std::unique(begin(vec), end(vec)), end(vec));
 }
 
 template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!isConst<T>()>...>
@@ -292,8 +292,8 @@ auto setDifference(const TRange1 &a, const TRange2 &b) {
 	VecType va(begin(a), end(a)), vb(begin(b), end(b));
 	makeSorted(va);
 	makeSorted(vb);
-	auto it = std::set_difference(begin(va), end(va), begin(vb), end(vb), begin(out));
-	out.resize(it - begin(out));
+	auto new_end = std::set_difference(begin(va), end(va), begin(vb), end(vb), begin(out));
+	out.erase(new_end, end(out));
 	return out;
 }
 
@@ -305,8 +305,8 @@ auto setIntersection(const TRange1 &a, const TRange2 &b) {
 	VecType va(begin(a), end(a)), vb(begin(b), end(b));
 	makeSorted(va);
 	makeSorted(vb);
-	auto it = std::set_intersection(begin(va), end(va), begin(vb), end(vb), begin(out));
-	out.resize(it - begin(out));
+	auto new_end = std::set_intersection(begin(va), end(va), begin(vb), end(vb), begin(out));
+	out.erase(new_end, end(out));
 	return out;
 }
 
@@ -318,8 +318,8 @@ auto setUnion(const TRange1 &a, const TRange2 &b) {
 	VecType va(begin(a), end(a)), vb(begin(b), end(b));
 	makeSorted(va);
 	makeSorted(vb);
-	auto it = std::set_union(begin(va), end(va), begin(vb), end(vb), begin(out));
-	out.resize(it - begin(out));
+	auto new_end = std::set_union(begin(va), end(va), begin(vb), end(vb), begin(out));
+	out.erase(new_end, end(out));
 	return out;
 }
 
@@ -416,6 +416,21 @@ vector<T> filter(const TRange &range, const Filter &filter, int reserve = 0) {
 		if(filter(elem))
 			out.emplace_back(elem);
 	return out;
+}
+
+template <class T, class Filter> void makeFiltered(vector<T> &vec, const Filter &filter) {
+	auto first = begin(vec), end = vec.end();
+	while(first != end && filter(*first))
+		++first;
+
+	if(first == end)
+		return;
+
+	for(auto it = first; ++it != end;)
+		if(filter(*it))
+			*first++ = move(*it);
+
+	vec.erase(first, end);
 }
 
 template <class TRange, class Base1 = RangeBase<TRange>,

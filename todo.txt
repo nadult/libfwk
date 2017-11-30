@@ -1,6 +1,10 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Better error merging?
+- Problem: w ASSERTACH chcemy zawrzeć jak najwęcej informacji a z drugiej strony,
+  chcemy, żeby kod był jak najprostszy, czyli np. używamy funkcji valid(id), która
+  wszystko chowa..
 - maybe xml
 - filter w miejscu; niemutowalne może być bardzokosztowne (np. kopiuje cały VoxelMap)
 
