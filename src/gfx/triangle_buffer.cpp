@@ -44,6 +44,11 @@ void TriangleBuffer::operator()(const FBox &box, const Matrix4 &matrix, IColor c
 		vec = mulPoint(matrix, vec);
 }
 
+void TriangleBuffer::operator()(CSpan<FBox> boxes, IColor color) {
+	for(auto &box : boxes)
+		(*this)(box, color);
+}
+
 void TriangleBuffer::reserve(int num_tris, int num_elem) {
 	ElementBuffer::reserve(num_tris * 3, num_elem);
 }

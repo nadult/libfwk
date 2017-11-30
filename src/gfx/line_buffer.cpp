@@ -61,6 +61,15 @@ void LineBuffer::operator()(const Triangle3F &tri, IColor color) {
 	m_colors.resize(m_colors.size() + 6, color);
 }
 
+void LineBuffer::operator()(CSpan<FBox> boxes, IColor color) {
+	for(auto &box : boxes)
+		(*this)(box, color);
+}
+
+void LineBuffer::operator()(CSpan<Triangle3F> tris, IColor color) {
+	for(auto &tri : tris)
+		(*this)(tri, color);
+}
 void LineBuffer::reserve(int num_lines, int num_elem) {
 	ElementBuffer::reserve(num_lines * 2, num_elem);
 }

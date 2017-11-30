@@ -14,7 +14,9 @@ class TriangleBuffer : public ElementBuffer {
 	void operator()(const Triangle3F &, IColor = ColorId::white);
 	void operator()(const FBox &, IColor = ColorId::white);
 	void operator()(const FBox &, const Matrix4 &, IColor = ColorId::white);
+
 	void operator()(CSpan<Triangle3F>, IColor = ColorId::white);
+	void operator()(CSpan<FBox>, IColor = ColorId::white);
 
 	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
 	void reserve(int num_tris, int num_elem);
