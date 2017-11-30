@@ -31,9 +31,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   - assuming that everything will succeeed (fails on CHECK / ASSERT if it doesnt)
   - allows for failure, returns Expected<>
   Consistent solution for that would be useful...
-
-- consistent naming for functions (filter, unique) and transforms (makeFiltered, makeUnique)
-
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
 - type_info do assertów ?

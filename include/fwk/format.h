@@ -120,7 +120,7 @@ using EnableIfFormattibleN = EnableIf<areFormattible<Args...>(), NotFormattible>
 // TODO: better name
 class TextFormatter {
   public:
-	explicit TextFormatter(int initial_size = 256, FormatOptions = {});
+	explicit TextFormatter(int capacity = 256, FormatOptions = {});
 	TextFormatter(const TextFormatter &);
 	~TextFormatter();
 
@@ -148,7 +148,8 @@ class TextFormatter {
 
 	const char *c_str() const { return m_data.data(); }
 	ZStr text() const { return {m_data.data(), m_offset}; }
-	int length() const { return m_offset; }
+	int size() const { return m_offset; }
+	bool empty() const { return m_offset == 0; }
 
 	const FormatOptions &options() const { return m_options; }
 	FormatOptions &options() { return m_options; }

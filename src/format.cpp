@@ -12,9 +12,9 @@
 
 namespace fwk {
 
-TextFormatter::TextFormatter(int size, FormatOptions options)
-	: m_data(size), m_offset(0), m_options(options) {
-	DASSERT(size > 0);
+TextFormatter::TextFormatter(int capacity, FormatOptions options)
+	: m_data(capacity), m_offset(0), m_options(options) {
+	DASSERT(capacity > 0);
 	m_data[0] = 0;
 }
 
