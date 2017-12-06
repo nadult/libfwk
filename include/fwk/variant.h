@@ -521,7 +521,7 @@ public:
         new (&data) first_type();
     }
 
-    template <class T, class DT = std::decay_t<T>, int index = detail::direct_type<DT, Types...>::index, EnableIf<index != -1>...>
+    template <class T, class DT = Decay<T>, int index = detail::direct_type<DT, Types...>::index, EnableIf<index != -1>...>
     VARIANT_INLINE Variant(T && val) : type_index(index) {
         new (&data) DT(std::forward<T>(val));
     }

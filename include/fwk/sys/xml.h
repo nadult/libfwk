@@ -36,7 +36,7 @@ class CXmlNode {
 
 	template <class T> T attrib(const char *name) const { return fromString<T>(attrib(name)); }
 
-	template <class T, class RT = std::decay_t<T>> RT attrib(const char *name, T &&or_else) const {
+	template <class T, class RT = Decay<T>> RT attrib(const char *name, T &&or_else) const {
 		const char *value = hasAttrib(name);
 		return value ? fromString<RT>(value) : or_else;
 	}

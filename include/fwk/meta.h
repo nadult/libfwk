@@ -93,4 +93,6 @@ using detail::Disjunction;
 template <class... Types> using IndexedTypes = typename detail::MakeIndexedTypes<0, Types...>::type;
 
 template <class T> constexpr int type_size = sizeof(T);
+
+template <class T> using Decay = std::decay_t<T>;
 }
