@@ -16,7 +16,12 @@ struct None {
 	bool operator==(const None &) const { return true; }
 	bool operator<(const None &) const { return false; }
 };
+struct Invalid {
+	bool operator==(const Invalid &) const { return true; }
+	bool operator<(const Invalid &) const { return false; }
+};
 constexpr None none = {};
+constexpr Invalid invalid = {};
 
 // When specializing this for your type you have to:
 // - provide method: static T make();
