@@ -274,6 +274,14 @@ TextFormatter &operator<<(TextFormatter &out, const pair<T1, T2> &pair) {
 	return out;
 }
 
+template <class T> TextFormatter &operator<<(TextFormatter &out, const Maybe<T> &maybe) {
+	if(maybe)
+		out << *maybe;
+	else
+		out << "none";
+	return out;
+}
+
 extern template TextFormatter &operator<<(TextFormatter &, const vec2<int> &);
 extern template TextFormatter &operator<<(TextFormatter &, const vec3<int> &);
 extern template TextFormatter &operator<<(TextFormatter &, const vec4<int> &);
