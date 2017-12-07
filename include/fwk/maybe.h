@@ -12,6 +12,14 @@ namespace fwk {
 // Link: https://github.com/facebook/folly
 // License is available in third_party/
 
+// Objects which can hold invalid values are perfect for Maybe;
+// Provide:
+// - constructor which takes Invalid()
+// - const member function valid()
+// Also make sure that operator= works interchangably between valid & invalid objects
+//
+// For such objects sizeof(Maybe<T>) == sizeof(T)
+
 struct None {
 	bool operator==(const None &) const { return true; }
 	bool operator<(const None &) const { return false; }
@@ -23,14 +31,19 @@ struct Invalid {
 constexpr None none = {};
 constexpr Invalid invalid = {};
 
-// When specializing this for your type you have to:
-// - provide method: static T make();
-// - provide method: static bool valid(const T&)
-// - make sure that operator= works interchangably between valid & invalid values
-template <class T, class Enable = EnabledType> struct InvalidValue {
-	static constexpr None make() { return none; }
-	static constexpr bool valid(None) { return false; }
-};
+namespace detail {
+	template <class T, class Enable = EnabledType> struct InvalidValue {
+		static constexpr None make() { return none; }
+		static constexpr bool valid(None) { return false; }
+	};
+
+	template <class T>
+	struct InvalidValue<T, EnableIf<isSame<decltype(declval<const T &>().valid()), bool>() &&
+									std::is_convertible<Invalid, T>::value>> {
+		static constexpr T make() { return T(invalid); }
+		static constexpr bool valid(const T &val) { return val.valid(); }
+	};
+}
 
 // Generic storage
 template <class T, class Enabled = EnabledType> struct MaybeStorage {
@@ -128,7 +141,8 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 };
 
 // Storage for types which can hold invalid values inside them
-template <class T> class MaybeStorage<T, EnableIf<isSame<decltype(InvalidValue<T>::make()), T>()>> {
+template <class T>
+class MaybeStorage<T, EnableIf<isSame<decltype(detail::InvalidValue<T>::make()), T>()>> {
   public:
 	MaybeStorage() : m_value(Inval::make()) {}
 	MaybeStorage(T &&value) : m_value(move(value)) {}
@@ -151,7 +165,7 @@ template <class T> class MaybeStorage<T, EnableIf<isSame<decltype(InvalidValue<T
 	}
 
   protected:
-	using Inval = InvalidValue<T>;
+	using Inval = detail::InvalidValue<T>;
 
 	T m_value;
 };
@@ -257,7 +271,7 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 template <class T> void swap(Maybe<T> &a, Maybe<T> &b) { return a.swap(b); }
 
-template <class T, class Opt = Maybe<Decay<T>>> Opt makeMaybe(T &&v) {
-	return Opt(std::forward<T>(v));
+template <class T, class TMaybe = Maybe<Decay<T>>> TMaybe makeMaybe(T &&v) {
+	return TMaybe(std::forward<T>(v));
 }
 }

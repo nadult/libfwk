@@ -163,7 +163,7 @@ template <class T, EnableIfEnum<T>...> T prev(T value) {
 	return T((int(value) + (count<T> - 1)) % count<T>());
 }
 
-template <class T> struct InvalidValue<T, EnableIfEnum<T>> {
+template <class T> struct detail::InvalidValue<T, EnableIfEnum<T>> {
 	static T make() { return T(255); }
 	static constexpr bool valid(const T &rhs) { return int(rhs) != 255; }
 };

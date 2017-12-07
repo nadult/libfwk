@@ -52,8 +52,6 @@ template <class T> class Box {
 	explicit Box(T size) : Box(T(), size) {}
 	Box() : m_min(), m_max() {}
 
-	static Box makeInvalid() { return {T(), T(-1), no_asserts_tag}; }
-
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
 	template <class U, EnableIf<!preciseConversion<U, T>()>...>
@@ -195,6 +193,9 @@ template <class T> class Box {
 	ENABLE_IF_SIZE(3) Box<Vector2> xy() const { return {m_min.xy(), m_max.xy()}; }
 	ENABLE_IF_SIZE(3) Box<Vector2> yz() const { return {m_min.yz(), m_max.yz()}; }
 
+	Box(Invalid) : m_min(), m_max(-1) {}
+	bool valid() const { return validRange(m_min, m_max); } // Invariant
+
   private:
 	union {
 		struct {
@@ -202,11 +203,6 @@ template <class T> class Box {
 		};
 		Point m_v[2];
 	};
-};
-
-template <class T> struct InvalidValue<Box<T>> {
-	static Box<T> make() { return Box<T>::makeInvalid(); }
-	static bool valid(const Box<T> &obj) { return Box<T>::validRange(obj.min(), obj.max()); }
 };
 
 #undef ENABLE_IF_SIZE
