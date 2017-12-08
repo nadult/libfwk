@@ -3,9 +3,11 @@
 
 #include "fwk/filesystem.h"
 #include "fwk/fwd_member.h"
+#include "fwk/hash_map.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
+#include "fwk/type_info_gen.h"
 #include "fwk_cache.h"
 #include "testing.h"
 
@@ -143,6 +145,23 @@ void testMaybe() {
 	// TODO: write more
 }
 
+void testTypeInfo() {
+	ASSERT_EQ(typeInfo<float const &>().name(), string("float const&"));
+	ASSERT_EQ(typeInfo<int volatile const &>().name(), string("int const volatile&"));
+	ASSERT_EQ(typeInfo<vector<const int *> const &>().name(),
+			  string("fwk::Vector<int const*> const&"));
+	ASSERT_EQ(typeInfo<int const *const *&>().referenceBase()->pointerBase()->name(),
+			  string("int const* const"));
+	ASSERT_EQ(typeInfo<double *volatile>().asConst().name(), string("double* const volatile"));
+	ASSERT_EQ(typeInfo<double &>().asConst().name(), string("double&"));
+}
+
+void testFwdMember() {
+	struct Undef;
+	static_assert(!fwk::detail::FullyDefined<Vector<Vector<Vector<UniquePtr<Undef>>>>>::value);
+	static_assert(fwk::detail::FullyDefined<pair<Vector<int>, Vector<int>>>::value);
+}
+
 void testMain() {
 	testString();
 	testTextFormatter();
@@ -150,8 +169,6 @@ void testMain() {
 	testPathOperations();
 	testCache();
 	testMaybe();
-
-	struct Undef;
-	static_assert(!fwk::detail::FullyDefined<Vector<Vector<Vector<UniquePtr<Undef>>>>>::value);
-	static_assert(fwk::detail::FullyDefined<pair<Vector<int>, Vector<int>>>::value);
+	testTypeInfo();
+	testFwdMember();
 }

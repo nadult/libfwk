@@ -1,9 +1,17 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Odpalanie plugina do RTTI w trakcie kompilacji; Ale to co ten plugin wygenerował
+  też trzeba będzie skompilować i w jakiś sposób podlinkować;
+  Powiedzmy, że miałbym ...
+
 - Brak konieczności specjalizacji InvalidType<>: automatic specialization for types
   constructible from Invalid with method valid()...
   TODO: comparisions between valid & invalid values ? maybe not necessary
+- nie przesadzaj z enkapsulacją? Czy zdażyło ci się chociaż raz spowodować buga
+  przez dostęp do zmiennej z implementacji? TODO: zastanow sie
+
+- pair -> Pair; make_pair -> pair
 - Better error merging?
 - Problem: w ASSERTACH chcemy zawrzeć jak najwęcej informacji a z drugiej strony,
   chcemy, żeby kod był jak najprostszy, czyli np. używamy funkcji valid(id), która
