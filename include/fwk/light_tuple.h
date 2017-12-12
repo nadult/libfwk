@@ -13,6 +13,7 @@ namespace detail {
 #define GET_FIELD(n)                                                                               \
 	template <> struct GetField<n> {                                                               \
 		template <class F> static const auto &get(const F &f) { return f.arg##n; }                 \
+		template <class F> static auto &get(F &f) { return f.arg##n; }                             \
 	};
 	GET_FIELD(0)
 	GET_FIELD(1)
@@ -104,6 +105,9 @@ struct LightTuple<Arg0, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7> {
 };
 
 template <int N, class... Args> const auto &get(const LightTuple<Args...> &tuple) {
+	return detail::GetField<N>::get(tuple);
+}
+template <int N, class... Args> auto &get(LightTuple<Args...> &tuple) {
 	return detail::GetField<N>::get(tuple);
 }
 
