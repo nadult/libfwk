@@ -506,6 +506,9 @@ private:
     static const int data_size = detail::static_max<(int)sizeof(Types)...>::value;
     static const int data_align = detail::static_max<(int)alignof(Types)...>::value;
 
+    template <class T>
+    static constexpr int typeIndex() { return detail::direct_type<T, Types...>::index; }
+
     using first_type = NthType<0, Types...>;
     using data_type = typename std::aligned_storage<data_size, data_align>::type;
     using helper_type = detail::variant_helper<Types...>;
@@ -521,7 +524,7 @@ public:
         new (&data) first_type();
     }
 
-    template <class T, class DT = Decay<T>, int index = detail::direct_type<DT, Types...>::index, EnableIf<index != -1>...>
+    template <class T, class DT = Decay<T>, int index = typeIndex<DT>(), EnableIf<index != -1>...>
     VARIANT_INLINE Variant(T && val) : type_index(index) {
         new (&data) DT(std::forward<T>(val));
     }
@@ -568,23 +571,31 @@ public:
         return *this;
     }
 
-    // conversions
-    // move-assign
-    template <typename T>
-    VARIANT_INLINE Variant<Types...>& operator=(T && rhs)
-    {
-        Variant<Types...> temp(std::forward<T>(rhs));
-        move_assign(std::move(temp));
-        return *this;
+    template <typename T, class DT = Decay<T>, int index = typeIndex<DT>(),
+        EnableIf<index != -1>...>
+    void operator=(T &&rhs) {
+        if constexpr(std::is_move_assignable<T>::value)
+            if(index == type_index) {
+                reinterpret_cast<DT &>(data) = move(rhs);
+                return;
+            }
+
+        helper_type::destroy(type_index, &data);
+        type_index = index;
+        new(&data) DT(move(rhs));
     }
 
-    // copy-assign
-    template <typename T>
-    VARIANT_INLINE Variant<Types...>& operator=(T const& rhs)
-    {
-        Variant<Types...> temp(rhs);
-        copy_assign(temp);
-        return *this;
+    template <typename T, int index = typeIndex<T>(), EnableIf<index != -1>...>
+    void operator=(const T &rhs) {
+        if constexpr(std::is_move_assignable<T>::value)
+            if(index == type_index) {
+                reinterpret_cast<T &>(data) = rhs;
+                return;
+            }
+
+        helper_type::destroy(type_index, &data);
+        type_index = index;
+        new(&data) T(rhs);
     }
 
     template <typename T>

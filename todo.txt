@@ -33,7 +33,7 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
 - Problem with FwdMember: what happens when we're compiling with WPO ?
 - FwdMember const refs to Base type ?
-- refactor Variant a bit
+- refactor & cleanup Variant a bit; Turn to tabs, not spaces ?
 - RollbackError type ?
 - Rollback::pause / resume better names ?
 - sprawdz wersje gcc / clang na poczatku
