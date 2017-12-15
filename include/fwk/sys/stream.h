@@ -228,7 +228,6 @@ class FileStream : public Stream {
 
 	void *m_file;
 	string m_name;
-	int m_rb_index = -1;
 };
 
 class Loader : public FileStream {

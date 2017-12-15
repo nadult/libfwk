@@ -31,6 +31,7 @@ class RollbackContext {
 	// Nothing will be regustered if no RollbackContext is active
 	static int atRollback(AtRollback func, void *arg);
 	static void removeAtRollback(int index);
+	static void removeAtRollback(AtRollback, void*);
 
 	// Allocations won't be registered for garbage collection when paused
 	// Typically each pause should be matched with resume on the same level

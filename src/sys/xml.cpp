@@ -15,6 +15,7 @@
 #define assert DASSERT
 
 #include "fwk/sys/on_fail.h"
+#include "fwk/sys/rollback.h"
 #include "fwk/sys/stream.h"
 #include "fwk/sys/xml.h"
 #include "rapidxml/rapidxml.hpp"
@@ -39,6 +40,8 @@ void touch(xml_node<> *ptr = nullptr, xml_attribute<> *attrib = nullptr) {
 	helper.last_attrib = attrib;
 }
 
+// Note: In case of adding remove node functionality
+// untouch(xml_node<>) should be added as well
 void untouch(xml_document<> *ptr) {
 	if(ptr) {
 		auto &helper = t_xml_debug;
@@ -158,7 +161,11 @@ XmlNode XmlNode::child(const char *name) const {
 	return {cnode.m_ptr, m_doc};
 }
 
-XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {}
+static void cleanOnRollback(void *arg) { untouch((xml_document<> *)arg); }
+
+XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {
+	RollbackContext::atRollback(cleanOnRollback, m_ptr.get());
+}
 XmlDocument::XmlDocument(ZStr file_name) : XmlDocument() {
 	Loader loader(file_name);
 	loader >> *this;
@@ -166,7 +173,10 @@ XmlDocument::XmlDocument(ZStr file_name) : XmlDocument() {
 XmlDocument::XmlDocument(Stream &stream) : XmlDocument() { stream >> *this; }
 
 XmlDocument::XmlDocument(XmlDocument &&) = default;
-XmlDocument::~XmlDocument() { untouch(m_ptr.get()); }
+XmlDocument::~XmlDocument() {
+	untouch(m_ptr.get());
+	RollbackContext::removeAtRollback(cleanOnRollback, m_ptr.get());
+}
 XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 
 const char *XmlDocument::own(Str str) {

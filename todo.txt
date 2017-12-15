@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Box: setSize -> resize
 - Odpalanie plugina do RTTI w trakcie kompilacji; Ale to co ten plugin wygenerował
   też trzeba będzie skompilować i w jakiś sposób podlinkować;
   Powiedzmy, że miałbym ...

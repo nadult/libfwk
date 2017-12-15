@@ -66,6 +66,17 @@ void RollbackContext::removeAtRollback(int index) {
 		}
 }
 
+void RollbackContext::removeAtRollback(AtRollback func, void *arg) {
+	if(auto *context = current())
+		if(auto &level = context->levels.back(); level.pause_counter == 0) {
+			for(auto &cb : level.callbacks)
+				if(cb == make_pair(func, arg)) {
+					cb.first = nullptr;
+					return;
+				}
+		}
+}
+
 RollbackContext *RollbackContext::addContext(Maybe<BacktraceMode> bm) {
 	RollbackContext *context = t_context;
 	if(!context)

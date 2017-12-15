@@ -193,12 +193,12 @@ FileStream::FileStream(const char *file_name, bool is_loading)
 	}
 	m_size = pos;
 	fseek((FILE *)m_file, 0, SEEK_SET);
-	m_rb_index = RollbackContext::atRollback(rbFree, m_file);
+	RollbackContext::atRollback(rbFree, m_file);
 }
 
 FileStream::~FileStream() {
 	if(m_file) {
-		RollbackContext::removeAtRollback(m_rb_index);
+		RollbackContext::removeAtRollback(rbFree, m_file);
 		fclose((FILE *)m_file);
 	}
 }
