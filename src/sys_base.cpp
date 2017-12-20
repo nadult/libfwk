@@ -127,9 +127,11 @@ int enumFromString(const char *str, const char *const *strings, int count, bool 
 		if(strcmp(str, strings[n]) == 0)
 			return n;
 
-	if(check_if_invalid)
+	if(check_if_invalid) {
+		auto stringized = toString(CSpan<const char *>(strings, count));
 		CHECK_FAILED("Error when parsing enum: couldn't match \"%s\" to (%s)", str,
-					 toString(strings).c_str());
+					 stringized.c_str());
+	}
 	return -1;
 }
 }

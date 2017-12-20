@@ -160,7 +160,7 @@ template <class T, EnableIfEnum<T>...> auto all() { return EnumRange<T>(0, count
 template <class T, EnableIfEnum<T>...> T next(T value) { return T((int(value) + 1) % count<T>()); }
 
 template <class T, EnableIfEnum<T>...> T prev(T value) {
-	return T((int(value) + (count<T> - 1)) % count<T>());
+	return T((int(value) + (count<T>() - 1)) % count<T>());
 }
 
 template <class T> struct detail::InvalidValue<T, EnableIfEnum<T>> {
