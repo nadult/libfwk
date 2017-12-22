@@ -319,7 +319,7 @@ void testMain() {
 
 	IRect rect(0, 0, 2, 3);
 	vector<int2> points;
-	for(auto pt : pixels(rect))
+	for(auto pt : cells(rect))
 		points.emplace_back(pt);
 	ASSERT_EQ(points, vector<int2>({{0, 0}, {1, 0}, {0, 1}, {1, 1}, {0, 2}, {1, 2}}));
 

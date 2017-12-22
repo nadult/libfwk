@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- add .clang-format ?
 - enum all & count could be constexpr vars
 - Box: setSize -> resize
 - Odpalanie plugina do RTTI w trakcie kompilacji; Ale to co ten plugin wygenerował

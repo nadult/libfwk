@@ -7,8 +7,7 @@
 
 namespace fwk {
 
-// TODO: better name ?
-template <class T> struct BoxPixels {
+template <class T> struct BoxCells {
 	static_assert(isIntegralVec<T, 2>());
 
 	using Scalar = typename T::Scalar;
@@ -44,10 +43,8 @@ template <class T> struct BoxPixels {
 	T m_min, m_max;
 };
 
-// TODO: better name ? unitSq ? unitCube ?
-// Iterate over pixels
-template <class T, EnableIf<isIntegralVec<T, 2>()>...> BoxPixels<T> pixels(const Box<T> &box) {
+// Iterate over unit-sized cells of given box
+template <class T, EnableIf<isIntegralVec<T, 2>()>...> BoxCells<T> cells(const Box<T> &box) {
 	return {box.min(), box.max()};
 }
-
 }
