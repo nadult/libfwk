@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- HashMap::keys(), ::values() ?
 - add .clang-format ?
 - enum all & count could be constexpr vars
 - Box: setSize -> resize

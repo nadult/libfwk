@@ -68,8 +68,8 @@ string Str::limitSizeFront(int max_size, Str prefix) const {
 	return out;
 }
 
-int Str::compare(const Str &rhs) const { return strcmp(m_data, rhs.m_data); }
-int Str::compareIgnoreCase(const Str &rhs) const { return strcasecmp(m_data, rhs.m_data); }
+int Str::compare(const Str &rhs) const { return strncmp(m_data, rhs.m_data, m_size); }
+int Str::compareIgnoreCase(const Str &rhs) const { return strncasecmp(m_data, rhs.m_data, m_size); }
 
 Str Tokenizer::next() {
 	const char *start = m_str;
