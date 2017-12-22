@@ -26,7 +26,10 @@ template <class T> struct BoxCells {
 			return *this;
 		}
 
-		FWK_ORDER_BY(Iter2D, m_pos.y, m_pos.x);
+		bool operator==(const Iter2D &rhs) const { return m_pos == rhs.m_pos; }
+		bool operator<(const Iter2D &rhs) const {
+			return m_pos[1] == rhs.m_pos[1] ? m_pos[0] < rhs.m_pos[0] : m_pos[1] < rhs.m_pos[1];
+		}
 
 	  private:
 		T m_pos;

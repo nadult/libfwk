@@ -123,15 +123,15 @@ template <class T> class Box {
 
 	bool contains(const Box &box) const { return box == intersection(box); }
 
-	bool containsPixel(const T &pos) const {
+	bool containsCell(const T &pos) const {
 		for(int i = 0; i < dim_size; i++)
 			if(!(pos[i] >= m_min[i] && pos[i] + Scalar(1) <= m_max[i]))
 				return false;
 		return true;
 	}
 
-	Scalar pixelCount(int axis) const { return max(size(axis) - Scalar(1), Scalar(0)); }
-	T pixelCount() const { return vmax(size() - T(Scalar(1)), T(Scalar(0))); }
+	Scalar cellCount(int axis) const { return max(size(axis) - Scalar(1), Scalar(0)); }
+	T cellCount() const { return vmax(size() - T(Scalar(1)), T(Scalar(0))); }
 
 	ENABLE_IF_SIZE(2) array<Point, 4> corners() const {
 		return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
