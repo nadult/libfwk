@@ -4,11 +4,11 @@
 #pragma once
 
 #include "fwk/maybe.h"
-#include "fwk/sys_base.h"
+#include "fwk/str.h"
 
 namespace fwk {
 
-int enumFromString(const char *str, const char *const *strings, int count, bool check_if_invalid);
+int enumFromString(Str, const char *const *strings, int count, bool check_if_invalid);
 
 template <class Type> class EnumRange {
   public:
@@ -127,16 +127,12 @@ template <class T> constexpr bool isEnum() { return detail::IsEnum<T>::value; }
 
 template <class T> using EnableIfEnum = EnableIf<isEnum<T>(), NotAnEnum>;
 
-template <class T, EnableIfEnum<T>...> static T fromString(const char *str) {
+template <class T, EnableIfEnum<T>...> static T fromString(Str str) {
 	using Strings = decltype(enumStrings(T()));
 	return T(fwk::enumFromString(str, Strings::offsets.data, Strings::K, true));
 }
 
-template <class T, EnableIfEnum<T>...> static T fromString(const string &str) {
-	return fromString<T>(str.c_str());
-}
-
-template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(const char *str) {
+template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(Str str) {
 	using Strings = decltype(enumStrings(T()));
 	int ret = fwk::enumFromString(str, Strings::offsets.data, Strings::K, false);
 	if(ret == -1)
@@ -144,9 +140,6 @@ template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(const char 
 	return T(ret);
 }
 
-template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(const string &str) {
-	return tryFromString<T>(str.c_str());
-}
 template <class T, EnableIfEnum<T>...> static const char *toString(T value) {
 	return decltype(enumStrings(T()))::offsets.data[(int)value];
 }

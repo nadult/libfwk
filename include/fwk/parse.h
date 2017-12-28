@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/enum.h"
 #include "fwk/math_base.h"
 #include "fwk/str.h"
 #include "fwk/sys_base.h"
@@ -135,9 +136,13 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) {
 	return parser;
 }
 
+template <class T, EnableIfEnum<T>...> TextParser &operator>>(TextParser &parser, T &value) {
+	value = fromString<T>(parser.parseElement());
+	return parser;
+}
 // TODO: parsing types from math
 
-template <class T, EnableIfParsable<T>...> T fromString(ZStr str) {
+template <class T, EnableIf<isParsable<T>() && !isEnum<T>()>...> T fromString(ZStr str) {
 	TextParser parser(str);
 	T out;
 	parser >> out;

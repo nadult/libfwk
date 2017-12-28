@@ -121,15 +121,14 @@ double getTime() {
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 
-int enumFromString(const char *str, const char *const *strings, int count, bool check_if_invalid) {
-	DASSERT(str);
+int enumFromString(Str str, const char *const *strings, int count, bool check_if_invalid) {
 	for(int n = 0; n < count; n++)
-		if(strcmp(str, strings[n]) == 0)
+		if(str == strings[n])
 			return n;
 
 	if(check_if_invalid) {
 		auto stringized = toString(CSpan<const char *>(strings, count));
-		CHECK_FAILED("Error when parsing enum: couldn't match \"%s\" to (%s)", str,
+		CHECK_FAILED("Error when parsing enum: couldn't match \"%s\" to (%s)", string(str).c_str(),
 					 stringized.c_str());
 	}
 	return -1;

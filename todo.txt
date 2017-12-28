@@ -1,6 +1,10 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- problem: asserty cały czas dają za mało informacji (trzeba często dodawać printfy)
+  może po prostu znajdź jakiś sensowny debugger? pod visualem jak kod jest zoptymalizowany
+  to też nie działa...
+- wyciagnij implementacje << z formatu do math_base / box
 - HashMap::keys(), ::values() ?
 - add .clang-format ?
 - enum all & count could be constexpr vars
