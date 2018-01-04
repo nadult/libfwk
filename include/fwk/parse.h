@@ -136,10 +136,6 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) {
 	return parser;
 }
 
-template <class T, EnableIfEnum<T>...> TextParser &operator>>(TextParser &parser, T &value) {
-	value = fromString<T>(parser.parseElement());
-	return parser;
-}
 // TODO: parsing types from math
 
 template <class T, EnableIf<isParsable<T>() && !isEnum<T>()>...> T fromString(ZStr str) {

@@ -8,7 +8,13 @@
 
 namespace fwk {
 
-int enumFromString(Str, const char *const *strings, int count, bool check_if_invalid);
+namespace detail {
+
+	int parseEnum(Str, const char *const *strings, int count, bool check_if_invalid);
+	int parseEnum(TextParser &, const char *const *strings, int count);
+	unsigned long long parseFlags(TextParser &, const char *const *strings, int count);
+	void formatFlags(unsigned long long, TextFormatter &, const char *const *strings, int count);
+}
 
 template <class Type> class EnumRange {
   public:
@@ -129,12 +135,12 @@ template <class T> using EnableIfEnum = EnableIf<isEnum<T>(), NotAnEnum>;
 
 template <class T, EnableIfEnum<T>...> static T fromString(Str str) {
 	using Strings = decltype(enumStrings(T()));
-	return T(fwk::enumFromString(str, Strings::offsets.data, Strings::K, true));
+	return T(fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, true));
 }
 
 template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(Str str) {
 	using Strings = decltype(enumStrings(T()));
-	int ret = fwk::enumFromString(str, Strings::offsets.data, Strings::K, false);
+	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
 	if(ret == -1)
 		return none;
 	return T(ret);
@@ -160,6 +166,12 @@ template <class T> struct detail::InvalidValue<T, EnableIfEnum<T>> {
 	static T make() { return T(255); }
 	static constexpr bool valid(const T &rhs) { return int(rhs) != 255; }
 };
+
+template <class T, EnableIfEnum<T>...> TextParser &operator>>(TextParser &parser, T &value) {
+	using Strings = decltype(enumStrings(T()));
+	value = T(fwk::detail::parseEnum(parser, Strings::offsets.data, Strings::K));
+	return parser;
+}
 
 template <class T> struct EnumFlags;
 

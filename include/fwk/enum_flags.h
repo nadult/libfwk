@@ -90,4 +90,16 @@ template <class TFlags, EnableIfEnumFlags<TFlags>...> constexpr int countBits(co
 		out += flags.bits & (typename TFlags::Base(1) << i) ? 1 : 0;
 	return out;
 }
+
+template <class T> TextParser &operator>>(TextParser &parser, EnumFlags<T> &value) {
+	using Strings = decltype(enumStrings(T()));
+	value.bits = fwk::detail::parseFlags(parser, Strings::offsets.data, Strings::K);
+	return parser;
+}
+
+template <class T> TextFormatter &operator<<(TextFormatter &formatter, EnumFlags<T> value) {
+	using Strings = decltype(enumStrings(T()));
+	fwk::detail::formatFlags(value.bits, formatter, Strings::offsets.data, Strings::K);
+	return formatter;
+}
 }

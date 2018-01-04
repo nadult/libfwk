@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
 #include "fwk/sys/assert.h"
 #include "testing.h"
@@ -23,8 +24,8 @@ void testMain() {
 
 	EnumMap<SomeEnum, int> array{{1, 2, 3, 4}};
 
-	static_assert(!isEnum<int>(), "");
-	static_assert(isEnum<SomeEnum>(), "");
+	static_assert(!isEnum<int>());
+	static_assert(isEnum<SomeEnum>());
 
 	ASSERT(array[SomeEnum::foo_bar] == 3);
 	string text;
@@ -32,5 +33,10 @@ void testMain() {
 		text += toString(elem);
 	ASSERT_EQ(text, "foobarfoo_barlast");
 	ASSERT(mask(false, SomeEnum::foo) == none);
-	ASSERT(mask(true, SomeEnum::bar) == SomeEnum::bar);
+	ASSERT_EQ(mask(true, SomeEnum::bar), SomeEnum::bar);
+
+	static_assert(isFormattible<EnumFlags<SomeEnum>>());
+
+	ASSERT_EQ(toString(SomeEnum::foo | SomeEnum::bar | SomeEnum::foo_bar), "foo|bar|foo_bar");
+	ASSERT_EQ(fromString<EnumFlags<SomeEnum>>("bar|foo"), SomeEnum::bar | SomeEnum::foo);
 }
