@@ -59,6 +59,10 @@ class Str {
 	string limitSizeBack(int max_size, Str suffix = "...") const;
 	string limitSizeFront(int max_size, Str prefix = "...") const;
 
+	// Returns -1 on failure
+	int find(char c) const;
+	int find(Str) const;
+
   protected:
 	struct NoChecks {};
 	Str(const char *data, int size, NoChecks) : m_data(data), m_size(size) {}

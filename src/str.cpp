@@ -71,6 +71,26 @@ string Str::limitSizeFront(int max_size, Str prefix) const {
 int Str::compare(const Str &rhs) const { return strncmp(m_data, rhs.m_data, m_size); }
 int Str::compareIgnoreCase(const Str &rhs) const { return strncasecmp(m_data, rhs.m_data, m_size); }
 
+int Str::find(char c) const {
+	for(int n = 0; n < m_size; n++)
+		if(m_data[n] == c)
+			return n;
+	return -1;
+}
+
+int Str::find(Str str) const {
+#ifdef FWK_TARGET_MINGW
+	// TODO: slow
+	for(int n = 0; n < m_size - str.m_size + 1; n++)
+		if(strncmp(m_data + n, str.m_data, str.m_size) == 0)
+			return n;
+	return -1;
+#else
+	auto *ptr = (const char *)memmem(m_data, m_size, str.m_data, str.m_size);
+	return ptr ? ptr - m_data : -1;
+#endif
+}
+
 Str Tokenizer::next() {
 	const char *start = m_str;
 	while(*m_str && *m_str != m_delim)
