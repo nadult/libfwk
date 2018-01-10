@@ -14,6 +14,7 @@ template <class T, int size, int align> struct alignas(align) FwdMemberMockup {
 	FwdMemberMockup() = delete;
 	FwdMemberMockup(const FwdMemberMockup &) = delete;
 	void operator=(const FwdMemberMockup &) = delete;
+	FwdMemberMockup *operator&() const = delete;
 
   private:
 	char data[size];
