@@ -22,8 +22,7 @@ class RollbackContext {
 
 	// TODO: MAKE SURE ROLLBACK DOESN'T ALLOCATE EVERY TIME
 
-	// Make sure that Errors passed here have memory allocated between pause() & resume()
-	[[noreturn]] static void rollback(Error);
+	[[noreturn]] static void rollback(const Error &);
 	static bool canRollback();
 
 	// You can register/unregister a function to be called during rollback
@@ -31,7 +30,7 @@ class RollbackContext {
 	// Nothing will be regustered if no RollbackContext is active
 	static int atRollback(AtRollback func, void *arg);
 	static void removeAtRollback(int index);
-	static void removeAtRollback(AtRollback, void*);
+	static void removeAtRollback(AtRollback, void *);
 
 	// Allocations won't be registered for garbage collection when paused
 	// Typically each pause should be matched with resume on the same level
@@ -67,7 +66,8 @@ class RollbackContext {
 		if(setjmp(context->jmpBuf())) {
 			auto error = move(context->passed_error);
 			context->dropContext();
-			return move(error);
+			Expected<ResultOf<T>> out(error);
+			return out;
 		}
 
 		if constexpr(std::is_void<ResultOf<T>>::value) {
@@ -77,7 +77,7 @@ class RollbackContext {
 		} else {
 			auto value = func();
 			context->dropContext();
-			return move(value);
+			return value;
 		}
 	}
 
@@ -97,6 +97,7 @@ class RollbackContext {
 
 	vector<Level> levels;
 	bool is_disabled = false;
+	bool is_rolling_back = false;
 	bool allocation_warning = false;
 	Error passed_error;
 

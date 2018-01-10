@@ -37,7 +37,6 @@ struct Error {
 	Error operator+(const Chunk &) const;
 
 	void print() const;
-	void validateMemory();
 	bool empty() const { return chunks.empty() && !backtrace; }
 
 	vector<Chunk> chunks;

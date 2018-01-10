@@ -47,17 +47,4 @@ TextFormatter &operator<<(TextFormatter &out, const Error &error) {
 }
 
 void Error::print() const { fwk::print("%\n", *this); }
-
-void Error::validateMemory() {
-	vector<const void *> pointers;
-	//TODO: data() doesn't necessarily point to the beginning of allocated memory
-	//TODO: how to do this properly?
-	pointers.emplace_back(chunks.data());
-	for(auto &chunk : chunks)
-		pointers.emplace_back(chunk.message.data());
-	if(RollbackContext::willRollback(pointers))
-		FATAL("Bactrace improperly allocated: will be freed on rollback");
-	if(backtrace)
-		backtrace->validateMemory();
-}
 }

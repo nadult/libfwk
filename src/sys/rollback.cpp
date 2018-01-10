@@ -206,7 +206,10 @@ void RollbackContext::resume() {
 		context->levels.back().pause_counter--;
 }
 
-bool RollbackContext::canRollback() { return !!current(); }
+bool RollbackContext::canRollback() {
+	auto *context = current();
+	return context && !context->is_rolling_back;
+}
 
 bool RollbackContext::willRollback(CSpan<const void *> pointers) {
 	if(auto *context = current()) {
@@ -219,13 +222,14 @@ bool RollbackContext::willRollback(CSpan<const void *> pointers) {
 	return false;
 }
 
-void RollbackContext::rollback(Error error) {
+void RollbackContext::rollback(const Error &error) {
 	auto *context = current();
 	ASSERT(canRollback());
+	context->is_rolling_back = true;
 
 	auto &level = context->levels.back();
-	error.validateMemory();
-	context->passed_error = move(error);
+	level.pause_counter++;
+	context->passed_error = error;
 	detail::t_on_fail_count = level.assert_stack_pos;
 
 	//printf("Rollback!! freeing: %d blocks\n", level.allocs.size());

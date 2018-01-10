@@ -59,10 +59,9 @@ void checkFailed(const char *file, int line, const char *fmt, ...) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	RollbackContext::pause();
 	auto error = onFailMakeError(file, line, buffer, true);
 	if(RollbackContext::canRollback())
-		RollbackContext::rollback(move(error));
+		RollbackContext::rollback(error);
 
 	error.print();
 	asm("int $3");

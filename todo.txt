@@ -1,9 +1,12 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Shouldn't we register allocations at higher level when current rollback is paused?
+  especially when we're passing Errors; how should it work in Streams and similar classes?
+- RollbackError type ?
+- Rollback::pause / resume better names ?
+
 - tests for Any & UniquePtr
-- unique_ptr copyable if not polymorphic
-- move unique_ptr to sys/?
 - Error moze zawierać Any? trzebaby sportować: Any, xml_tools, ClonePtr, 
 - Expected can return Any ?
 - merge Error & ErrorChunk ?
@@ -40,18 +43,12 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - use DEFINE_ENUM for input key ? two functions would have to be provided: one for normal keys and one for specials
 - implicit conversion to bool for enum flags ?
 
-- dontRollback can be implemented for vector & string; This requires custom string class...
-- we could do some ownership-related stuff similarly to dontRollback:
-  it would be better if we had member information: we could iterate over all members
-
 - insertBack with move ?
 
 - Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
 - Problem with FwdMember: what happens when we're compiling with WPO ?
 - FwdMember const refs to Base type ?
 - refactor & cleanup Variant a bit; Turn to tabs, not spaces ?
-- RollbackError type ?
-- Rollback::pause / resume better names ?
 - sprawdz wersje gcc / clang na poczatku
 - Use AnyStorage for Any & Variant ?
 - A lot of functions can run in two modes:
