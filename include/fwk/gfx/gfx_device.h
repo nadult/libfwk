@@ -7,7 +7,7 @@
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
 #include "fwk/str.h"
-#include "fwk/unique_ptr.h"
+#include "fwk/sys/unique_ptr.h"
 
 namespace fwk {
 

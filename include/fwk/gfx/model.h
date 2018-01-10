@@ -6,7 +6,7 @@
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/model_anim.h"
 #include "fwk/gfx/model_node.h"
-#include "fwk/unique_ptr.h"
+#include "fwk/sys/unique_ptr.h"
 
 namespace fwk {
 

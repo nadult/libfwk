@@ -5,7 +5,7 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/sys/rollback.h"
-#include "fwk/unique_ptr.h"
+#include "fwk/sys/unique_ptr.h"
 #include "testing.h"
 
 #include <mutex>

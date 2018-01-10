@@ -5,8 +5,7 @@
 
 #include "fwk/format.h"
 #include "fwk/parse.h"
-#include "fwk/sys_base.h"
-#include "fwk/unique_ptr.h"
+#include "fwk/sys/unique_ptr.h"
 
 #ifndef RAPIDXML_HPP_INCLUDED
 

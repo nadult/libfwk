@@ -4,10 +4,10 @@
 #pragma once
 
 #include "fwk/sys/expected.h"
+#include "fwk/sys/unique_ptr.h"
 #include "fwk/sys/xml.h"
 #include "fwk/sys/xml_traits.h"
 #include "fwk/type_info_gen.h"
-#include "fwk/unique_ptr.h"
 
 // TODO: interaction with maybe ?
 // TODO: text format ?
