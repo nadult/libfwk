@@ -9,7 +9,6 @@
 #include "fwk/math/box.h"
 #include "fwk/str.h"
 #include "fwk/sys/immutable_ptr.h"
-#include "fwk/unique_ptr.h"
 
 namespace fwk {
 

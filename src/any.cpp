@@ -55,7 +55,7 @@ Any::Any(CXmlNode node, ZStr type_name) {
 		auto it = type_infos.find(type_info->id());
 		CHECK("Type-id not found; Given type not registered or is not XML-Constructible" &&
 			  it != type_infos.end() && it->second.first);
-		m_model = ClonePtr<AnyBase>(it->second.first(node));
+		m_model = it->second.first(node);
 		m_type = it->first;
 	}
 }

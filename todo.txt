@@ -1,7 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-- tests for Any
+- tests for Any & UniquePtr
 - unique_ptr copyable if not polymorphic
 - move unique_ptr to sys/?
 - Error moze zawierać Any? trzebaby sportować: Any, xml_tools, ClonePtr, 

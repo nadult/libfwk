@@ -1,3 +1,6 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #pragma once
 
 #include <fwk/meta.h>
@@ -5,6 +8,16 @@
 
 namespace fwk {
 
+template <class T> struct HasCloneMethod {
+	template <class U> static auto test(const U &) -> decltype(declval<const U &>().clone());
+	static char test(...);
+	static constexpr bool value = std::is_same<T *, decltype(test(declval<const T &>()))>::value;
+};
+
+// Improved unique_ptr (unique pointer to object)
+// To copy UniquePtr<T> one of the following conditions must be met:
+// - T is copy constructible and is not polymorphic
+// - T has clone() method which returns pointer to newly allocated T
 template <typename T> class UniquePtr {
   public:
 	static_assert(!std::is_array<T>::value, "Just use a vector...");
@@ -22,9 +35,16 @@ template <typename T> class UniquePtr {
 		return *this;
 	}
 
+	UniquePtr(const UniquePtr &rhs) : m_ptr(rhs.clone()) {}
+	~UniquePtr() { reset(); }
+
 	template <class U, EnableIf<std::is_convertible<U *, T *>::value>...>
 	UniquePtr &operator=(UniquePtr<U> &&rhs) {
 		reset(rhs.release());
+		return *this;
+	}
+	UniquePtr &operator=(const UniquePtr &rhs) {
+		m_ptr = rhs.clone();
 		return *this;
 	}
 
@@ -32,12 +52,10 @@ template <typename T> class UniquePtr {
 		reset();
 		return *this;
 	}
-
-	~UniquePtr() { reset(); }
-
-	UniquePtr(const UniquePtr &) = delete;
-	UniquePtr &operator=(const UniquePtr &) = delete;
-	UniquePtr &operator=(T *) = delete;
+	UniquePtr &operator=(T *ptr) {
+		reset(ptr);
+		return *this;
+	}
 
 	void reset(T *ptr = nullptr) {
 		if(ptr != m_ptr) {
@@ -61,6 +79,20 @@ template <typename T> class UniquePtr {
 	explicit operator bool() const { return m_ptr != nullptr; }
 
   private:
+	T *clone() const {
+		if constexpr(std::is_copy_constructible<T>::value && !std::is_polymorphic<T>::value) {
+			return m_ptr ? new T(*m_ptr) : nullptr;
+		} else {
+			static_assert(HasCloneMethod<T>::value, "T cannot be copied; Please provide clone() "
+													"method or copy constructor (if T is not "
+													"polymorphic)");
+
+			if constexpr(HasCloneMethod<T>::value)
+				return m_ptr ? m_ptr->clone() : nullptr;
+			return nullptr;
+		}
+	}
+
 	T *m_ptr = nullptr;
 };
 

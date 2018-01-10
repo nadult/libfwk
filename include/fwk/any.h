@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "fwk/sys/clone_ptr.h"
 #include "fwk/sys/expected.h"
 #include "fwk/sys/xml.h"
 #include "fwk/sys/xml_traits.h"
 #include "fwk/type_info_gen.h"
+#include "fwk/unique_ptr.h"
 
 // TODO: interaction with maybe ?
 // TODO: text format ?
@@ -130,7 +130,7 @@ class Any {
 	friend class AnyRef;
 
 	// TODO: Inlined for small types ?
-	ClonePtr<detail::AnyBase> m_model;
+	UniquePtr<detail::AnyBase> m_model;
 	TypeInfo m_type;
 };
 }
