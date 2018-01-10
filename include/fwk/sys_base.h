@@ -195,4 +195,12 @@ template <class Key, class Value> class HashMap;
 template <class Key, class Value> constexpr int type_size<HashMap<Key, Value>> = 32;
 
 template <class T> class UniquePtr;
+
+template <class T> class ClonePtr;
+
+class Any;
+class AnyRef;
+
+template <> constexpr int type_size<AnyRef> = 16;
+template <> constexpr int type_size<Any> = 16;
 }
