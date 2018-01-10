@@ -186,7 +186,7 @@ namespace detail {
 
 		static void errorCallback(png_structp png_ptr, png_const_charp message) {
 			if(auto *loader = s_loader)
-				loader->m_error = Error({message});
+				loader->m_error = Error(message);
 		}
 		static void warningCallback(png_structp png_ptr, png_const_charp message) {}
 

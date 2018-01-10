@@ -18,6 +18,10 @@ TextFormatter &operator<<(TextFormatter &out, const ErrorChunk &chunk) {
 	return out;
 }
 
+Error::Error(string message, const char *file, int line) {
+	chunks.emplace_back(move(message), file, line);
+}
+
 Error::Error(Chunk chunk, Maybe<Backtrace> bt) : backtrace(move(bt)) {
 	chunks.emplace_back(move(chunk));
 }

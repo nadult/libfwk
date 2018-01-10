@@ -27,6 +27,7 @@ struct ErrorChunk {
 struct Error {
 	using Chunk = ErrorChunk;
 
+	Error(string message, const char *file = nullptr, int line = 0);
 	Error(Chunk, Maybe<Backtrace> = none);
 	Error(vector<Chunk>, Maybe<Backtrace> = none);
 	Error();
