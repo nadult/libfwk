@@ -43,8 +43,8 @@ class ModelAnim;
 class TriangleBuffer;
 class SpriteBuffer;
 class LineBuffer;
-template <> constexpr int type_size<TriangleBuffer> = 80;
-template <> constexpr int type_size<LineBuffer> = 80;
+template <> constexpr int type_size<TriangleBuffer> = 104;
+template <> constexpr int type_size<LineBuffer> = 104;
 
 struct FColor;
 struct IColor;
@@ -106,5 +106,4 @@ bool onGfxThread();
 #else
 #define PASSERT_GFX_THREAD()
 #endif
-
 }

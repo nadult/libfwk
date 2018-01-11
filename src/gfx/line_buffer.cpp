@@ -11,6 +11,8 @@
 
 namespace fwk {
 
+LineBuffer::LineBuffer() { DASSERT(m_flags == Opt::colors); }
+
 void LineBuffer::operator()(CSpan<float3> verts, CSpan<IColor> colors) {
 	DASSERT(verts.size() % 2 == 0);
 	DASSERT_EQ(colors.size(), verts.size());
@@ -70,6 +72,58 @@ void LineBuffer::operator()(CSpan<Triangle3F> tris, IColor color) {
 	for(auto &tri : tris)
 		(*this)(tri, color);
 }
+
+void LineBuffer::operator()(const FRect &rect, IColor color) {
+	auto corners = rect.corners();
+	array<int, 8> indices{{0, 1, 1, 2, 2, 3, 3, 0}};
+
+	insertBack(m_positions, transform(indices, [&](int i) { return float3(corners[i], 0.0f); }));
+	m_colors.resize(m_positions.size(), color);
+}
+
+void LineBuffer::operator()(const Triangle2F &tri, IColor color) {
+	float3 points[6];
+	for(int i = 0; i < 3; i++) {
+		points[i * 2 + 0] = float3(tri[i], 0.0f);
+		points[i * 2 + 1] = float3(tri[(i + 1) % 3], 0.0f);
+	}
+	insertBack(m_positions, points);
+	m_colors.resize(m_positions.size(), color);
+}
+
+void LineBuffer::operator()(const IRect &rect, IColor color) { (*this)(FRect(rect), color); }
+
+void LineBuffer::operator()(const Segment2<float> seg, IColor color) {
+	(*this)(Segment3F(float3(seg.from, 0.0f), float3(seg.to, 0.0f)), color);
+}
+
+void LineBuffer::operator()(const ISegment2<int> seg, IColor color) {
+	(*this)(Segment2F(seg), color);
+}
+
+void LineBuffer::operator()(CSpan<float2> pos, CSpan<IColor> colors) {
+	DASSERT(pos.size() % 2 == 0);
+	DASSERT(colors.empty() || colors.size() == pos.size());
+
+	m_positions.reserve(m_positions.size() + pos.size());
+	for(auto p : pos)
+		m_positions.emplace_back(p, 0.0f);
+
+	if(!colors.empty())
+		insertBack(m_colors, colors);
+	else
+		m_colors.resize(m_positions.size(), ColorId::white);
+}
+
+void LineBuffer::operator()(CSpan<float2> pos, IColor color) {
+	DASSERT(pos.size() % 2 == 0);
+
+	m_positions.reserve(m_positions.size() + pos.size());
+	for(auto p : pos)
+		m_positions.emplace_back(p, 0.0f);
+	m_colors.resize(m_positions.size(), color);
+}
+
 void LineBuffer::reserve(int num_lines, int num_elem) {
 	ElementBuffer::reserve(num_lines * 2, num_elem);
 }

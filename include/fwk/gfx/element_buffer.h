@@ -8,10 +8,18 @@
 
 namespace fwk {
 
+DEFINE_ENUM(ElementBufferOpt, colors, tex_coords);
+
 class ElementBuffer {
   public:
-	ElementBuffer();
+	using Opt = ElementBufferOpt;
+	using Flags = EnumFlags<Opt>;
+
+	ElementBuffer(Flags flags = Opt::colors);
 	FWK_COPYABLE_CLASS(ElementBuffer);
+
+	// TODO: option to set command_id (simple integer) which can be stored in DrawCall;
+	// it can be used to attach additional data to each DrawCall (for example: scissor rects)
 
 	void setMaterial(Material);
 	void setTrans(Matrix4);
@@ -37,9 +45,11 @@ class ElementBuffer {
 
 	vector<float3> m_positions;
 	vector<IColor> m_colors;
+	vector<float2> m_tex_coords;
 	vector<Element> m_elements;
 
 	vector<Material> m_materials;
 	vector<Matrix4> m_matrices;
+	Flags m_flags;
 };
 }

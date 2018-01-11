@@ -13,7 +13,7 @@
 
 namespace fwk {
 
-ElementBuffer::ElementBuffer() { clear(); }
+ElementBuffer::ElementBuffer(Flags flags) : m_flags(flags) { clear(); }
 
 FWK_COPYABLE_CLASS_IMPL(ElementBuffer);
 
@@ -43,7 +43,10 @@ void ElementBuffer::setMaterial(Material mat) {
 
 void ElementBuffer::reserve(int num_tris, int num_elements) {
 	m_positions.reserve(num_tris * 3);
-	m_colors.reserve(num_tris * 3);
+	if(m_flags & Opt::colors)
+		m_colors.reserve(num_tris * 3);
+	if(m_flags & Opt::tex_coords)
+		m_tex_coords.reserve(num_tris * 3);
 	m_elements.reserve(num_elements);
 }
 
@@ -52,6 +55,7 @@ void ElementBuffer::clear() {
 	m_materials.clear();
 	m_positions.clear();
 	m_colors.clear();
+	m_tex_coords.clear();
 	m_elements.clear();
 
 	m_matrices.emplace_back(Matrix4::identity());
@@ -96,9 +100,13 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 	if(m_positions.empty())
 		return out;
 
-	auto array =
-		VertexArray::make({make_immutable<VertexBuffer>(m_positions),
-						   make_immutable<VertexBuffer>(m_colors), VertexArraySource(float2())});
+	VertexArraySource pos_source = make_immutable<VertexBuffer>(m_positions);
+	auto color_source =
+		m_flags & Opt::colors ? VertexBuffer::make(m_colors) : VertexArraySource(float4(1.0f));
+	auto uv_source =
+		m_flags & Opt::tex_coords ? VertexBuffer::make(m_tex_coords) : VertexArraySource(float2());
+
+	auto array = VertexArray::make({pos_source, color_source, uv_source});
 
 	for(const auto &elem : m_elements) {
 		int num_verts = numVerts(elem);
@@ -107,7 +115,10 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 
 		int end_index = num_verts + elem.first_index;
 		DASSERT_LE(end_index, m_positions.size());
-		DASSERT_LE(end_index, m_colors.size());
+		if(m_flags & Opt::colors)
+			DASSERT_LE(end_index, m_colors.size());
+		if(m_flags & Opt::tex_coords)
+			DASSERT_LE(end_index, m_tex_coords.size());
 #ifdef FWK_CHECK_NANS
 		DASSERT(!isnan(m_positions));
 #endif

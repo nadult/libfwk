@@ -10,19 +10,28 @@
 
 namespace fwk {
 
+TriangleBuffer::TriangleBuffer(Flags flags) : ElementBuffer(flags) {}
+
 vector<DrawCall> TriangleBuffer::drawCalls(bool compute_boxes) const {
 	return ElementBuffer::drawCalls(PrimitiveType::triangles, compute_boxes);
 }
 
+void TriangleBuffer::fillBuffers(IColor color) {
+	if(m_flags & Opt::colors)
+		m_colors.resize(m_positions.size(), color);
+	if(m_flags & Opt::tex_coords)
+		m_tex_coords.resize(m_positions.size(), float2());
+}
+
 void TriangleBuffer::operator()(const Triangle3F &tri, IColor color) {
 	insertBack(m_positions, tri.points());
-	m_colors.resize(m_colors.size() + 3, color);
+	fillBuffers(color);
 }
 
 void TriangleBuffer::operator()(CSpan<Triangle3F> tris, IColor color) {
 	static_assert(sizeof(Triangle3F) == sizeof(float3) * 3);
 	insertBack(m_positions, reinterpret<float3>(tris));
-	m_colors.resize(m_colors.size() + tris.size() * 3, color);
+	fillBuffers(color);
 }
 
 void TriangleBuffer::operator()(const FBox &box, IColor color) {
@@ -35,7 +44,7 @@ void TriangleBuffer::operator()(const FBox &box, IColor color) {
 		for(int i = 0; i < 3; i++)
 			points[n * 3 + i] = corners[indices[n][i]];
 	insertBack(m_positions, points);
-	m_colors.resize(m_colors.size() + 36, color);
+	fillBuffers(color);
 }
 
 void TriangleBuffer::operator()(const FBox &box, const Matrix4 &matrix, IColor color) {
@@ -47,6 +56,86 @@ void TriangleBuffer::operator()(const FBox &box, const Matrix4 &matrix, IColor c
 void TriangleBuffer::operator()(CSpan<FBox> boxes, IColor color) {
 	for(auto &box : boxes)
 		(*this)(box, color);
+}
+
+void TriangleBuffer::operator()(const FRect &rect, const FRect &tex_rect, CSpan<IColor, 4> colors) {
+	auto pos = rect.corners();
+
+	array<int, 6> indices{{0, 1, 2, 0, 2, 3}};
+	insertBack(m_positions, transform(indices, [&](int i) { return float3(pos[i], 0.0f); }));
+	if(m_flags & Opt::colors)
+		insertBack(m_colors, transform(indices, [&](int i) { return colors[i]; }));
+	if(m_flags & Opt::tex_coords) {
+		auto uv = tex_rect.corners();
+		insertBack(m_tex_coords, transform(indices, [&](int i) { return uv[i]; }));
+	}
+}
+
+void TriangleBuffer::operator()(const FRect &rect, const FRect &tex_rect, IColor color) {
+	(*this)(rect, tex_rect, {color, color, color, color});
+}
+
+void TriangleBuffer::operator()(const Triangle2F &tri, IColor color) {
+	m_positions.reserve(m_positions.size() + 3);
+	for(auto p : tri.points())
+		m_positions.emplace_back(p, 0.0f);
+	m_colors.resize(m_positions.size(), color);
+}
+
+void TriangleBuffer::operator()(const FRect &rect, IColor color) {
+	(*this)(rect, FRect({1, 1}), color);
+}
+
+void TriangleBuffer::operator()(const IRect &rect, IColor color) {
+	(*this)(FRect(rect), FRect({1, 1}), color);
+}
+
+void TriangleBuffer::quads(CSpan<float2> pos, CSpan<float2> tex_coords, CSpan<IColor> colors) {
+	DASSERT(pos.size() % 4 == 0);
+	DASSERT(tex_coords.empty() || tex_coords.size() == pos.size());
+	DASSERT(colors.empty() || colors.size() == pos.size());
+
+	array<int, 6> indices{{0, 1, 2, 0, 2, 3}};
+
+	for(int n : intRange(pos.size() / 4)) {
+		insertBack(m_positions,
+				   transform(indices, [&](int i) { return float3(pos[n * 4 + i], 0.0f); }));
+
+		if((m_flags & Opt::colors) && !colors.empty())
+			insertBack(m_colors, transform(indices, [&](int i) { return colors[n * 4 + i]; }));
+		if((m_flags & Opt::tex_coords) && !tex_coords.empty())
+			insertBack(m_tex_coords,
+					   transform(indices, [&](int i) { return tex_coords[n * 4 + i]; }));
+	}
+
+	fillBuffers(ColorId::white);
+}
+
+void TriangleBuffer::operator()(CSpan<float2> pos, CSpan<float2> tex_coords, CSpan<IColor> colors) {
+	DASSERT(pos.size() % 3 == 0);
+	DASSERT(tex_coords.empty() || tex_coords.size() == pos.size());
+	DASSERT(colors.empty() || colors.size() == pos.size());
+
+	m_positions.reserve(m_positions.size() + pos.size());
+	for(auto p : pos)
+		m_positions.emplace_back(p, 0.0f);
+	if((m_flags & Opt::colors) && !colors.empty())
+		insertBack(m_colors, colors);
+	if((m_flags & Opt::tex_coords) && !tex_coords.empty())
+		insertBack(m_tex_coords, tex_coords);
+	fillBuffers(ColorId::white);
+}
+
+void TriangleBuffer::operator()(CSpan<float2> pos, CSpan<float2> tex_coords, IColor color) {
+	DASSERT(pos.size() % 3 == 0);
+	DASSERT(tex_coords.empty() || tex_coords.size() == pos.size());
+
+	m_positions.reserve(m_positions.size() + pos.size());
+	for(auto p : pos)
+		m_positions.emplace_back(p, 0.0f);
+	if((m_flags & Opt::tex_coords) && !tex_coords.empty())
+		insertBack(m_tex_coords, tex_coords);
+	fillBuffers(color);
 }
 
 void TriangleBuffer::reserve(int num_tris, int num_elem) {
