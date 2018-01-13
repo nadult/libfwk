@@ -71,7 +71,7 @@ template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> mask(bool cond, T 
 }
 
 template <class C, class T, EnableIf<std::is_convertible<C, bool>::value>...>
-constexpr EnumFlags<T> mask(bool cond, EnumFlags<T> val) {
+constexpr EnumFlags<T> mask(C cond, EnumFlags<T> val) {
 	return cond ? val : EnumFlags<T>();
 }
 
