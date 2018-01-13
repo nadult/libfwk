@@ -18,8 +18,7 @@ ElementBuffer::ElementBuffer(Flags flags) : m_flags(flags) { clear(); }
 FWK_COPYABLE_CLASS_IMPL(ElementBuffer);
 
 void ElementBuffer::setTrans(Matrix4 mat) {
-	if(m_elements.back().num_vertices == 0 &&
-	   m_elements.back().matrix_idx + 1 == m_matrices.size()) {
+	if(emptyElement() && m_elements.back().matrix_idx == m_matrix_lock) {
 		m_matrices.back() = mat;
 		return;
 	}
@@ -30,8 +29,7 @@ void ElementBuffer::setTrans(Matrix4 mat) {
 }
 
 void ElementBuffer::setMaterial(Material mat) {
-	if(m_elements.back().num_vertices == 0 &&
-	   m_elements.back().matrix_idx + 1 == m_materials.size()) {
+	if(emptyElement() && m_elements.back().material_idx == m_material_lock) {
 		m_materials.back() = mat;
 		return;
 	}
@@ -67,12 +65,14 @@ void ElementBuffer::addElement() {
 	auto &back = m_elements.back();
 	int material_idx = m_materials.size() - 1;
 	int matrix_idx = m_matrices.size() - 1;
-	if(back.num_vertices == 0) {
+	if(emptyElement()) {
 		back.matrix_idx = matrix_idx;
 		back.material_idx = material_idx;
 		return;
 	}
 	back.num_vertices = m_positions.size() - back.first_index;
+	m_matrix_lock = m_matrices.size();
+	m_material_lock = m_materials.size();
 	m_elements.emplace_back(m_positions.size(), 0, matrix_idx, material_idx);
 }
 
@@ -129,6 +129,7 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 		out.emplace_back(array, pt, num_verts, elem.first_index, m_materials[elem.material_idx],
 						 m_matrices[elem.matrix_idx], bbox);
 	}
+
 	return out;
 }
 }

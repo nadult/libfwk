@@ -38,7 +38,8 @@ class FontCore : public immutable_base<FontCore> {
 		short x_advance;
 	};
 
-	int genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv) const;
+	int genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv,
+				 float2 offset) const;
 	IRect evalExtents(const string32 &) const;
 	int lineHeight() const { return m_line_height; }
 	const string &textureName() const { return m_texture_name; }
@@ -71,16 +72,22 @@ class Font {
 	FWK_COPYABLE_CLASS(Font)
 
 	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, const string32 &text) const;
-	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, const string32 &text) const {
+	FRect draw(TriangleBuffer &, const FRect &rect, const Style &style, const string32 &text) const;
+
+	template <class Output>
+	FRect draw(Output &out, const float2 &pos, const Style &style, const string32 &text) const {
 		return draw(out, FRect(pos, pos), style, text);
 	}
 
-	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, Str text_utf8) const {
+	template <class Output>
+	FRect draw(Output &out, const FRect &rect, const Style &style, Str text_utf8) const {
 		if(auto text = toUTF32(text_utf8))
 			return draw(out, rect, style, *text);
 		return {};
 	}
-	FRect draw(Renderer2D &out, const float2 &pos, const Style &style, Str text_utf8) const {
+
+	template <class Output>
+	FRect draw(Output &out, const float2 &pos, const Style &style, Str text_utf8) const {
 		if(auto text = toUTF32(text_utf8))
 			return draw(out, FRect(pos, pos), style, *text);
 		return {};
@@ -98,6 +105,8 @@ class Font {
 	int lineHeight() const { return m_core->lineHeight(); }
 
   private:
+	float2 drawPos(const string32 &text, const FRect &, const FontStyle &) const;
+
 	PFontCore m_core;
 	PTexture m_texture;
 };

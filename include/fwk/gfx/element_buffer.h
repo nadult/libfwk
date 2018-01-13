@@ -39,6 +39,7 @@ class ElementBuffer {
 	int numVerts(const Element &elem) const {
 		return elem.num_vertices == 0 ? m_positions.size() - elem.first_index : elem.num_vertices;
 	}
+	bool emptyElement() const { return m_elements.back().first_index == m_positions.size(); }
 
 	void addElement();
 	vector<DrawCall> drawCalls(PrimitiveType, bool compute_bboxes) const;
@@ -50,6 +51,7 @@ class ElementBuffer {
 
 	vector<Material> m_materials;
 	vector<Matrix4> m_matrices;
+	int m_matrix_lock = 0, m_material_lock = 0;
 	Flags m_flags;
 };
 }

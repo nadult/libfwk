@@ -43,8 +43,8 @@ class ModelAnim;
 class TriangleBuffer;
 class SpriteBuffer;
 class LineBuffer;
-template <> constexpr int type_size<TriangleBuffer> = 104;
-template <> constexpr int type_size<LineBuffer> = 104;
+template <> constexpr int type_size<TriangleBuffer> = 112;
+template <> constexpr int type_size<LineBuffer> = 112;
 
 struct FColor;
 struct IColor;

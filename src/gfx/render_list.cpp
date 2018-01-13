@@ -54,7 +54,7 @@ static const char *vsh_src =
 	"attribute vec2 in_tex_coord;\n"
 	"varying vec2 tex_coord;\n"
 	"varying vec4 color;\n"
-	" varying vec3 tpos;\n"
+	"varying vec3 tpos;\n"
 	"void main() {\n"
 	"  gl_Position = proj_view_matrix * vec4(in_pos, 1.0);\n"
 	"  tpos = gl_Position.xyz;\n"
@@ -150,7 +150,7 @@ namespace {
 	};
 }
 
-void RenderList::render() {
+void RenderList::render(bool mode_2d) {
 	glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH_TEST);
@@ -159,15 +159,15 @@ void RenderList::render() {
 
 	DeviceConfig dev_config;
 	auto tex_program = s_mgr["tex"];
-	auto flat_program = s_mgr["flat"];
-	auto flat_shade_program = s_mgr["flat_shade"];
+	auto flat_program = mode_2d ? s_mgr["flat"] : s_mgr["flat_shade"];
 	auto simple_program = s_mgr["simple"];
 
 	for(const auto &draw_call : m_draw_calls) {
 		auto &mat = draw_call.material;
 		if(!mat.textures.empty())
 			DTexture::bind(mat.textures);
-		PProgram program = !mat.textures.empty() ? tex_program : flat_shade_program;
+
+		PProgram program = mat.textures.empty() ? flat_program : tex_program;
 		if(draw_call.primitiveType() == PrimitiveType::lines)
 			program = simple_program;
 
@@ -175,7 +175,9 @@ void RenderList::render() {
 		binder.bind();
 		binder.setUniform("proj_view_matrix", projectionMatrix() * draw_call.matrix);
 		binder.setUniform("mesh_color", (float4)FColor(mat.color));
-		dev_config.update(mat.flags);
+		auto flags =
+			mat.flags | mask(mode_2d, MatOpt::blended | MatOpt::ignore_depth | MatOpt::two_sided);
+		dev_config.update(flags);
 
 		draw_call.issue();
 	}

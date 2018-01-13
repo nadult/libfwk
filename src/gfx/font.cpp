@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/triangle_buffer.h"
 #include "fwk/hash_map.h"
 
 #include "fwk/gfx/dtexture.h"
@@ -14,6 +15,7 @@ namespace fwk {
 FontCore::FontCore(const string &name, Stream &stream) : FontCore(XmlDocument(stream)) {}
 FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
 
+// clang-format off
 	FontCore::FontCore(CXmlNode font_node) {
 		ASSERT(font_node);
 
@@ -140,18 +142,18 @@ FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
 
 	// Returns number of quads generated
 	// For every quad it generates: 4 vectors in each buffer
-	int FontCore::genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv) const {
+	int FontCore::genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv, float2 pos) const {
 		DASSERT(out_pos.size() == out_uv.size());
 		DASSERT(out_pos.size() % 4 == 0);
 
 		const float2 tex_scale = vinv(float2(m_texture_size));
 		int count = min((int)text.size(), out_pos.size() / 4);
-		float2 pos(0, 0);
+		float min_x = pos.x;
 
 		int offset = 0;
 		for(int n = 0; n < count; n++) {
 			if(text[n] == '\n') {
-				pos.x = 0;
+				pos.x = min_x;
 				pos.y += m_line_height;
 				continue;
 			}
@@ -192,6 +194,7 @@ FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
 
 		return offset / 4;
 	}
+// clang-format on
 
 FontStyle::FontStyle(FColor color, FColor shadow_color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(shadow_color), halign(halign), valign(valign) {}
@@ -206,8 +209,7 @@ Font::Font(PFontCore core, PTexture texture) : m_core(core), m_texture(texture) 
 }
 FWK_COPYABLE_CLASS_IMPL(Font)
 
-FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
-				 const string32 &text) const {
+float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &style) const {
 	float2 pos = rect.min();
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
 		FRect extents = (FRect)m_core->evalExtents(text);
@@ -220,29 +222,50 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 		pos.y = vtop ? rect.y() : vcenter ? center.y : rect.ey() - extents.ey();
 	}
 
-	pos = float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
+	return float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
+}
 
-	vector<float2> pos_buf(text.length() * 4);
-	vector<float2> uv_buf(text.length() * 4);
-	int quad_count = m_core->genQuads(text, pos_buf, uv_buf);
-	pos_buf.resize(quad_count * 4);
-	uv_buf.resize(quad_count * 4);
+FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
+				 const string32 &text) const {
+	auto pos = drawPos(text, rect, style);
 
-	FRect out_rect = enclose(CSpan<float2>(pos_buf.data(), pos_buf.data() + quad_count * 4));
+	PodVector<float2> pos_buf(text.length() * 4), uv_buf(text.length() * 4);
+	int num_verts = m_core->genQuads(text, pos_buf, uv_buf, pos) * 4;
+	CSpan<float2> positions(pos_buf.data(), num_verts), uvs(uv_buf.data(), num_verts);
 
-	out_rect += pos;
-	// TODO: increase out_rect when rendering with shadow?
+	if(style.shadow_color != ColorId::transparent) {
+		out.setTrans(translation(float3(1.0f, 1.0f, 0.0f)));
+		out.setMaterial(Material({m_texture}, (IColor)style.shadow_color));
+		out.quads(positions, uvs, {});
+	}
 
-	out.pushViewMatrix();
-	out.mulViewMatrix(translation(float3(pos + float2(1.0f, 1.0f), 0.0f)));
+	out.setTrans(Matrix4::identity());
+	out.setMaterial(Material({m_texture}, (IColor)style.text_color));
+	out.quads(positions, uvs, {});
 
-	if(style.shadow_color != ColorId::transparent)
-		out.addQuads(pos_buf, uv_buf, {}, {m_texture, style.shadow_color});
+	out.setMaterial(Material(ColorId::white));
 
-	out.mulViewMatrix(translation(float3(-1.0f, -1.0f, 0.0f)));
-	out.addQuads(pos_buf, uv_buf, {}, {m_texture, style.text_color});
-	out.popViewMatrix();
+	return enclose(positions);
+}
 
-	return out_rect;
+FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
+				 const string32 &text) const {
+	auto pos = drawPos(text, rect, style);
+
+	PodVector<float2> pos_buf(text.length() * 4), uv_buf(text.length() * 4);
+	int num_verts = m_core->genQuads(text, pos_buf, uv_buf, pos) * 4;
+	CSpan<float2> positions(pos_buf.data(), num_verts), uvs(uv_buf.data(), num_verts);
+
+	if(style.shadow_color != ColorId::transparent) {
+		out.pushViewMatrix();
+		out.mulViewMatrix(translation(float3(1.0f, 1.0f, 0.0f)));
+		// TODO: increase out_rect when rendering with shadow?
+		// TODO: shadows could use same set of vertex data
+		out.addQuads(positions, uvs, {}, {m_texture, style.shadow_color});
+		out.popViewMatrix();
+	}
+	out.addQuads(positions, uvs, {}, {m_texture, style.text_color});
+
+	return enclose(positions);
 }
 }
