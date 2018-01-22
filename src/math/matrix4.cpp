@@ -5,33 +5,33 @@
 
 namespace fwk {
 
-const Matrix4 Matrix4::identity() {
+Matrix4 Matrix4::identity() {
 	return Matrix4({1.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f, 0.0f},
 				   {0.0f, 0.0f, 0.0f, 1.0f});
 }
 
-const Matrix4 Matrix4::operator+(const Matrix4 &rhs) const {
+Matrix4 Matrix4::operator+(const Matrix4 &rhs) const {
 	Matrix4 out;
 	for(int n = 0; n < 4; n++)
 		out[n] = v[n] + rhs[n];
 	return out;
 }
 
-const Matrix4 Matrix4::operator-(const Matrix4 &rhs) const {
+Matrix4 Matrix4::operator-(const Matrix4 &rhs) const {
 	Matrix4 out;
 	for(int n = 0; n < 4; n++)
 		out[n] = v[n] + rhs[n];
 	return out;
 }
 
-const Matrix4 Matrix4::operator*(float s) const {
+Matrix4 Matrix4::operator*(float s) const {
 	Matrix4 out;
 	for(int n = 0; n < 4; n++)
 		out[n] = v[n] * s;
 	return out;
 }
 
-const Matrix4 operator*(const Matrix4 &lhs, const Matrix4 &rhs) {
+Matrix4 operator*(const Matrix4 &lhs, const Matrix4 &rhs) {
 	Matrix4 tlhs = transpose(lhs);
 	return Matrix4(float4(dot(rhs[0], tlhs[0]), dot(rhs[0], tlhs[1]), dot(rhs[0], tlhs[2]),
 						  dot(rhs[0], tlhs[3])),
@@ -43,38 +43,38 @@ const Matrix4 operator*(const Matrix4 &lhs, const Matrix4 &rhs) {
 						  dot(rhs[3], tlhs[3])));
 }
 
-const float4 operator*(const Matrix4 &matrix, const float4 &vector) {
+float4 operator*(const Matrix4 &matrix, const float4 &vector) {
 	return float4(dot(matrix.row(0), vector), dot(matrix.row(1), vector),
 				  dot(matrix.row(2), vector), dot(matrix.row(3), vector));
 }
 
-const float3 mulPoint(const Matrix4 &mat, const float3 &pt) {
+float3 mulPoint(const Matrix4 &mat, const float3 &pt) {
 	float4 tmp = mat * float4(pt, 1.0f);
 	return tmp.xyz() / tmp.w;
 }
 
-const float3 mulPointAffine(const Matrix4 &affine_mat, const float3 &pt) {
+float3 mulPointAffine(const Matrix4 &affine_mat, const float3 &pt) {
 	return float3(dot(affine_mat.row(0).xyz(), pt), dot(affine_mat.row(1).xyz(), pt),
 				  dot(affine_mat.row(2).xyz(), pt)) +
 		   affine_mat[3].xyz();
 }
 
-const float3 mulNormal(const Matrix4 &inverse_transpose, const float3 &nrm) {
+float3 mulNormal(const Matrix4 &inverse_transpose, const float3 &nrm) {
 	float4 tmp = inverse_transpose * float4(nrm, 0.0f);
 	return tmp.xyz();
 }
 
-const float3 mulNormalAffine(const Matrix4 &affine_mat, const float3 &nrm) {
+float3 mulNormalAffine(const Matrix4 &affine_mat, const float3 &nrm) {
 	return float3(dot(affine_mat.row(0).xyz(), nrm), dot(affine_mat.row(1).xyz(), nrm),
 				  dot(affine_mat.row(2).xyz(), nrm));
 }
 
-const Matrix4 transpose(const float4 &a, const float4 &b, const float4 &c, const float4 &d) {
+Matrix4 transpose(const float4 &a, const float4 &b, const float4 &c, const float4 &d) {
 	return Matrix4({a[0], b[0], c[0], d[0]}, {a[1], b[1], c[1], d[1]}, {a[2], b[2], c[2], d[2]},
 				   {a[3], b[3], c[3], d[3]});
 }
 
-const Matrix4 inverse(const Matrix4 &mat) {
+Matrix4 inverse(const Matrix4 &mat) {
 	Matrix4 out;
 
 	float t[12], m[16];
@@ -154,24 +154,24 @@ const Matrix4 inverse(const Matrix4 &mat) {
 	return out;
 }
 
-const Matrix4 transpose(const Matrix4 &m) {
+Matrix4 transpose(const Matrix4 &m) {
 	return Matrix4(
 		float4(m[0][0], m[1][0], m[2][0], m[3][0]), float4(m[0][1], m[1][1], m[2][1], m[3][1]),
 		float4(m[0][2], m[1][2], m[2][2], m[3][2]), float4(m[0][3], m[1][3], m[2][3], m[3][3]));
 }
 
-const Matrix4 translation(const float3 &v) {
+Matrix4 translation(const float3 &v) {
 	return Matrix4(float4(1.0f, 0.0f, 0.0f, 0.0f), float4(0.0f, 1.0f, 0.0f, 0.0f),
 				   float4(0.0f, 0.0f, 1.0f, 0.0f), float4(v[0], v[1], v[2], 1.0f));
 }
 
-const Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up) {
+Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up) {
 	float3 front = normalize(target - eye);
 	float3 side = normalize(cross(front, up));
 	return transpose(side, cross(side, front), -front) * translation(-eye);
 }
 
-const Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {
+Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {
 	float rad = fov * 0.5f;
 	float delta_z = z_far - z_near;
 
@@ -191,7 +191,7 @@ const Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_f
 	return out;
 }
 
-const Matrix4 ortho(float left, float right, float top, float bottom, float near, float far) {
+Matrix4 ortho(float left, float right, float top, float bottom, float near, float far) {
 	Matrix4 out = Matrix4::identity();
 	float ix = 1.0f / (right - left);
 	float iy = 1.0f / (bottom - top);
