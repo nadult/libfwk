@@ -22,8 +22,6 @@ struct ErrorChunk {
 	friend TextFormatter &operator<<(TextFormatter &, const ErrorChunk &);
 };
 
-// Be careful when passing Error & ErrorChunk through rollback mechanism
-// You have to make sure that they are created when rollback mechanism is disabled
 struct Error {
 	using Chunk = ErrorChunk;
 
@@ -36,11 +34,14 @@ struct Error {
 	void operator+=(const Chunk &);
 	Error operator+(const Chunk &) const;
 
+	Error &operator<<(Any);
+
 	void print() const;
 	bool empty() const { return chunks.empty() && !backtrace; }
 
 	vector<Chunk> chunks;
 	Maybe<Backtrace> backtrace;
+	vector<Any> values;
 
 	friend TextFormatter &operator<<(TextFormatter &, const Error &);
 };

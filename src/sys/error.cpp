@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/any.h"
 #include "fwk/format.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/error.h"
@@ -36,6 +37,11 @@ Error Error::operator+(const Chunk &chunk) const {
 	auto new_chunks = chunks;
 	new_chunks.emplace_back(chunk);
 	return {move(new_chunks)};
+}
+
+Error &Error::operator<<(Any value) {
+	values.emplace_back(move(value));
+	return *this;
 }
 
 TextFormatter &operator<<(TextFormatter &out, const Error &error) {

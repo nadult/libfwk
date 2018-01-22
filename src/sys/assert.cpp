@@ -69,8 +69,22 @@ void checkFailed(const char *file, int line, const char *fmt, ...) {
 #endif
 }
 
-void checkFailed(const char *file, int line, const Error &error) {
-	// TODO: pass error to rollback ?
-	checkFailed(file, line, "%s", toString(error).c_str());
+void checkFailed(const char *file, int line, Error error) {
+	string text = format("Check failed: %", error);
+
+#ifdef FWK_TARGET_HTML5
+	printf("%s\n", text.c_str());
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_force_exit(1);
+#else
+	auto error2 = onFailMakeError(file, line, text.c_str(), true);
+	error2.values.swap(error.values);
+	if(RollbackContext::canRollback())
+		RollbackContext::rollback(error2);
+
+	error2.print();
+	asm("int $3");
+	exit(1);
+#endif
 }
 }

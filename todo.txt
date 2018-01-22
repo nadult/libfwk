@@ -1,15 +1,17 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- DrawCalls should have command_id index ?
+- Remove Renderer2D (use RenderList); better control over which shader is being used ?
 - Shouldn't we register allocations at higher level when current rollback is paused?
   especially when we're passing Errors; how should it work in Streams and similar classes?
+  Also: shouldn't allocations be moved to upper level when lower level is dropped (without rollbacking)?
+  Also: when object is registered on ROllbackCContext on one thread and then used on another thread ?
 - RollbackError type ?
 - Rollback::pause / resume better names ?
 
+- Expected should hold UniquePtr to Error (Error is too big)
 - tests for Any & UniquePtr
-- Error moze zawierać Any? trzebaby sportować: Any, xml_tools, ClonePtr, 
-- Expected can return Any ?
-- merge Error & ErrorChunk ?
 - backtraces on mingw dont work too good...
 - ElementBuffer::bbox is causing problems if data is broken in some way; What should we do about it?
 - problem: asserty cały czas dają za mało informacji (trzeba często dodawać printfy)
@@ -24,9 +26,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   też trzeba będzie skompilować i w jakiś sposób podlinkować;
   Powiedzmy, że miałbym ...
 
-- Brak konieczności specjalizacji InvalidType<>: automatic specialization for types
-  constructible from Invalid with method valid()...
-  TODO: comparisions between valid & invalid values ? maybe not necessary
 - nie przesadzaj z enkapsulacją? Czy zdażyło ci się chociaż raz spowodować buga
   przez dostęp do zmiennej z implementacji? TODO: zastanow sie
 
