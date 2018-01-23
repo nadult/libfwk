@@ -677,18 +677,15 @@ public:
         return (int)sizeof...(Types) - type_index - 1;
     }
 
-    // visitor
-    // unary
-    template <typename F, typename V, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
+    template <typename F, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
     auto VARIANT_INLINE
-    static visit(V const& v, F && f) {
-        return detail::dispatcher<F, V, R, Types...>::apply_const(v, std::forward<F>(f));
+    visit(F && f) const {
+        return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply_const(*this, std::forward<F>(f));
     }
-    // non-const
-    template <typename F, typename V, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
+    template <typename F, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
     auto VARIANT_INLINE
-    static visit(V & v, F && f) {
-        return detail::dispatcher<F, V, R, Types...>::apply(v, std::forward<F>(f));
+    visit(F && f) {
+        return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply(*this, std::forward<F>(f));
     }
 
     // binary
@@ -708,12 +705,12 @@ public:
     // unary
     template <typename... Fs>
     auto VARIANT_INLINE match(Fs&&... fs) const {
-        return visit(*this, detail::make_visitor(std::forward<Fs>(fs)...));
+        return visit(detail::make_visitor(std::forward<Fs>(fs)...));
     }
     // non-const
     template <typename... Fs>
     auto VARIANT_INLINE match(Fs&&... fs) {
-        return visit(*this, detail::make_visitor(std::forward<Fs>(fs)...));
+        return visit(detail::make_visitor(std::forward<Fs>(fs)...));
     }
 
     ~Variant() {
@@ -724,14 +721,14 @@ public:
         if (this->which() != rhs.which())
             return false;
         detail::comparer<Variant, detail::equal_comp> visitor(*this);
-        return visit(rhs, visitor);
+        return rhs.visit(visitor);
     }
 
     VARIANT_INLINE bool operator<(Variant const& rhs) const {
         if (this->which() != rhs.which())
             return this->which() < rhs.which();
         detail::comparer<Variant, detail::less_comp> visitor(*this);
-        return visit(rhs, visitor);
+        return rhs.visit(visitor);
     }
 };
 
@@ -739,35 +736,16 @@ public:
 #pragma GCC diagnostic pop
 #endif
 
-// unary visitor interface
-// const
 template <typename F, typename V>
-auto VARIANT_INLINE apply_visitor(F && f, V const& v) -> decltype(V::visit(v, std::forward<F>(f)))
-{
-    return V::visit(v, std::forward<F>(f));
-}
-
-// non-const
-template <typename F, typename V>
-auto VARIANT_INLINE apply_visitor(F && f, V & v) -> decltype(V::visit(v, std::forward<F>(f)))
-{
-    return V::visit(v, std::forward<F>(f));
-}
-
-// binary visitor interface
-// const
-template <typename F, typename V>
-auto VARIANT_INLINE apply_visitor(F && f, V const& v0, V const& v1) {
+auto VARIANT_INLINE visit(F && f, V const& v0, V const& v1) {
     return V::binary_visit(v0, v1, std::forward<F>(f));
 }
 
-// non-const
 template <typename F, typename V>
-auto VARIANT_INLINE apply_visitor(F && f, V & v0, V & v1) {
+auto VARIANT_INLINE visit(F && f, V & v0, V & v1) {
     return V::binary_visit(v0, v1, std::forward<F>(f));
 }
 
-// getter interface
 template <typename ResultType, typename T>
 ResultType & get(T & var) {
     return var.template get<ResultType>();

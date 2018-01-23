@@ -30,7 +30,7 @@ auto visit(boost::variant<Types...> &variant, Visitor &visitor) {
 
 template <class Visitor, typename... Types>
 auto visit(fwk::Variant<Types...> &variant, Visitor &visitor) {
-	fwk::apply_visitor(visitor, variant);
+	variant.visit(visitor);
 }
 
 DEFINE_ENUM(enum1, aa, bb, cc);
