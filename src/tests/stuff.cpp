@@ -58,6 +58,7 @@ void testVariant() {
 
 	auto temp = parse<Var1>(node);
 	ASSERT(temp == var);
+	ASSERT_EQ(toString(temp), "woohoo");
 }
 
 void testXMLConverters() {

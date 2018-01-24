@@ -48,9 +48,10 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
 - Problem with FwdMember: what happens when we're compiling with WPO ?
 - FwdMember const refs to Base type ?
+- Any -> Variant && Variant -> Any
 - refactor & cleanup Variant a bit; Turn to tabs, not spaces ?
-- sprawdz wersje gcc / clang na poczatku
 - Use AnyStorage for Any & Variant ?
+- sprawdz wersje gcc / clang na poczatku
 - A lot of functions can run in two modes:
   - assuming that everything will succeeed (fails on CHECK / ASSERT if it doesnt)
   - allows for failure, returns Expected<>
@@ -58,7 +59,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?
 - type_info do assertów ?
-- format for Variant & maybe
 - make RandomSeed not unsigned
 - execCommand doesn't retturn error status sometimes?
 - Objects could keep information whether they own the data or not

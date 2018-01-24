@@ -743,6 +743,7 @@ public:
 #pragma GCC diagnostic pop
 #endif
 
+
 template <typename F, typename V>
 auto VARIANT_INLINE visit(F && f, V const& v0, V const& v1) {
     return V::binary_visit(v0, v1, std::forward<F>(f));
@@ -762,6 +763,8 @@ template <typename ResultType, typename T>
 ResultType const& get(T const& var) {
     return var.template get<ResultType>();
 }
+
+// clang-format on
 
 template <class T> constexpr bool is_variant = detail::IsVariant<T>::value;
 
@@ -795,11 +798,19 @@ namespace detail {
 	struct VariantCExp<Variant<Types...>> : public VariantC<Variant<Types...>, Types...> {};
 }
 
-template <class... Types, EnableIf<(... && xml_parsable<Types>)>...> auto parse(CXmlNode node, Type<Variant<Types...>>) {
+template <class... Types, EnableIf<(... && xml_parsable<Types>)>...>
+auto parse(CXmlNode node, Type<Variant<Types...>>) {
 	return detail::VariantCExp<Variant<Types...>>::load(node.attrib("_variant_type_id"), node);
 }
 
-template <class ...Types, EnableIf<(... && xml_saveable<Types>)>...> void save(XmlNode node, const Variant<Types...> &value) {
+template <class... Types, EnableIf<(... && xml_saveable<Types>)>...>
+void save(XmlNode node, const Variant<Types...> &value) {
 	detail::VariantCExp<Variant<Types...>>::save_(value, node);
+}
+
+template <class... Types, EnableIf<(... && formattible<Types>)>...>
+TextFormatter &operator<<(TextFormatter &out, const Variant<Types...> &variant) {
+	variant.visit([&](const auto &value) { out << value; });
+	return out;
 }
 }
