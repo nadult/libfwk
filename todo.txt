@@ -11,7 +11,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - RollbackError type ?
 - Rollback::pause / resume better names ?
 
-- Expected should hold UniquePtr to Error (Error is too big)
 - tests for Any & UniquePtr
 - backtraces on mingw dont work too good...
 - ElementBuffer::bbox is causing problems if data is broken in some way; What should we do about it?
