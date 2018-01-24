@@ -73,4 +73,9 @@ Any Any::tryConstruct(CXmlNode node) {
 Any Any::tryConstruct(CXmlNode node, ZStr type_name) {
 	return RollbackContext::begin([&] { return Any(node, type_name); });
 }
+
+void Any::swap(Any &rhs) {
+	fwk::swap(m_model, rhs.m_model);
+	fwk::swap(m_type, rhs.m_type);
+}
 }

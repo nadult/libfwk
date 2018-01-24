@@ -124,6 +124,7 @@ class Any {
 	// TODO: return expected void ?
 	void save(XmlNode node, bool save_type_name = true) const;
 	bool xmlEnabled() const;
+	void swap(Any &);
 
   private:
 	friend class AnyRef;

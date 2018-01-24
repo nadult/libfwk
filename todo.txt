@@ -49,7 +49,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - Problem with FwdMember: what happens when we're compiling with WPO ?
 - FwdMember const refs to Base type ?
 - Any -> Variant && Variant -> Any
-- refactor & cleanup Variant a bit; Turn to tabs, not spaces ?
 - Use AnyStorage for Any & Variant ?
 - sprawdz wersje gcc / clang na poczatku
 - A lot of functions can run in two modes:
