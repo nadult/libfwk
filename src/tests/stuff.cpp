@@ -84,9 +84,9 @@ void testXMLConverters() {
 	testClassConversions(Matrix4::identity());
 	testClassConversions(Quat(1.0, 0.0f, 0.0f, 2.0f));
 
-	static_assert(isParsable<vector<DBox>>());
-	static_assert(isParsable<vector<DRect>>());
-	static_assert(!isParsable<vector<vector<int>>>());
+	static_assert(parsable<vector<DBox>>);
+	static_assert(parsable<vector<DRect>>);
+	static_assert(!parsable<vector<vector<int>>>);
 
 	struct MyClass {
 		double x = 16.128;

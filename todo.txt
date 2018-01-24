@@ -1,10 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-isParsable -> is_parsable ?
-- merge xml_traits, variant_xml
 - nie przesadzaj z czasami kompilacji w libfwk; 
-
 - DrawCalls should have command_id index ?
 - Remove Renderer2D (use RenderList); better control over which shader is being used ?
 - Shouldn't we register allocations at higher level when current rollback is paused?

@@ -23,10 +23,6 @@ struct FormatOptions {
 	void set(FormatPrecision tprecision) { precision = tprecision; }
 };
 
-template <class T> constexpr static bool isFormatType() {
-	return isSame<T, FormatOptions>() || isSame<T, FormatMode>() || isSame<T, FormatPrecision>();
-}
-
 struct NotFormattible;
 
 namespace detail {
@@ -105,16 +101,10 @@ namespace detail {
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc);
 }
 
-template <class T> constexpr bool isFormattible() { return detail::IsFormattible<T>::value; }
+template <class T> constexpr bool formattible = detail::IsFormattible<T>::value;
 
-template <class... Args> constexpr bool areFormattible() {
-	return Conjunction<detail::IsFormattible<Args>...>::value;
-}
-
-template <class T>
-using EnableIfFormattible = EnableIf<detail::IsFormattible<T>::value, NotFormattible>;
 template <class... Args>
-using EnableIfFormattibleN = EnableIf<areFormattible<Args...>(), NotFormattible>;
+using EnableIfFormattible = EnableIf<(... && formattible<Args>), NotFormattible>;
 
 // TODO: escapable % ?
 // TODO: better name
@@ -157,7 +147,7 @@ class TextFormatter {
 	bool isStructured() const { return m_options.mode == FormatMode::structured; }
 	bool isPlain() const { return m_options.mode == FormatMode::plain; }
 
-	template <class... Args, EnableIfFormattibleN<Args...>...>
+	template <class... Args, EnableIfFormattible<Args...>...>
 	void operator()(const char *format_str, const Args &... args) {
 		append_(format_str, sizeof...(Args), getFuncs<Args...>(), detail::getTFValue(args)...);
 	}
@@ -184,18 +174,18 @@ class TextFormatter {
 
 	const char *nextElement(const char *format_str);
 
-	template <class... T, EnableIfFormattibleN<T...>...>
+	template <class... T, EnableIfFormattible<T...>...>
 	friend string format(const char *str, T &&... args) {
 		return strFormat_(str, sizeof...(T), getFuncs<T...>(), detail::getTFValue(args)...);
 	}
 
-	template <class... T, EnableIfFormattibleN<T...>...>
+	template <class... T, EnableIfFormattible<T...>...>
 	friend void print(const char *str, T &&... args) {
 		print_(FormatMode::structured, str, sizeof...(T), getFuncs<T...>(),
 			   detail::getTFValue(args)...);
 	}
 
-	template <class... T, EnableIfFormattibleN<T...>...>
+	template <class... T, EnableIfFormattible<T...>...>
 	friend void printPlain(const char *str, T &&... args) {
 		print_(FormatMode::plain, str, sizeof...(T), getFuncs<T...>(), detail::getTFValue(args)...);
 	}
@@ -310,9 +300,9 @@ string stdFormat(const char *format, ...) ATTRIB_PRINTF(1, 2);
 template <class T, EnableIf<!isEnum<RemoveReference<T>>()>..., EnableIfFormattible<T>...>
 string toString(T &&value);
 
-template <class... T, EnableIfFormattibleN<T...>...> string format(const char *str, T &&...);
-template <class... T, EnableIfFormattibleN<T...>...> void print(const char *str, T &&...);
-template <class... T, EnableIfFormattibleN<T...>...> void printPlain(const char *str, T &&...);
+template <class... T, EnableIfFormattible<T...>...> string format(const char *str, T &&...);
+template <class... T, EnableIfFormattible<T...>...> void print(const char *str, T &&...);
+template <class... T, EnableIfFormattible<T...>...> void printPlain(const char *str, T &&...);
 }
 
 #endif
