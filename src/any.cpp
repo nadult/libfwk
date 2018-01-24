@@ -31,7 +31,6 @@ using namespace detail;
 
 Any::Any() = default;
 Any::Any(Expected<Any> &&rhs) {
-
 	if(rhs)
 		*this = move(*rhs);
 	else
@@ -50,11 +49,13 @@ Any::Any(CXmlNode node, ZStr type_name) {
 		auto &type_infos = anyTypeInfos();
 		auto type_info = typeInfo(type_name.c_str());
 		if(!type_info)
-			CHECK_FAILED("Type not found: '%s'", type_name.c_str());
+			CHECK_FAILED("No type-info for: '%s'", type_name.c_str());
 
 		auto it = type_infos.find(type_info->id());
-		CHECK("Type-id not found; Given type not registered or is not XML-Constructible" &&
-			  it != type_infos.end() && it->second.first);
+		if(it == type_infos.end())
+			CHECK_FAILED("Type not found: %s", type_name.c_str());
+		if(!it->second.first)
+			CHECK_FAILED("Type '%s' is not XML-constructible", type_name.c_str());
 		m_model = it->second.first(node);
 		m_type = it->first;
 	}
