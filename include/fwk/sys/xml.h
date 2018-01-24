@@ -161,4 +161,62 @@ class XmlOnFailGuard {
 
 	const XmlDocument &m_document;
 };
+
+namespace detail {
+	template <class T> struct XmlTraits {
+		template <class C> static auto testC(int) -> decltype(C(declval<CXmlNode>()));
+		template <class C> static auto testC(...) -> Empty;
+
+		template <class C>
+		static auto testS(int) -> decltype(declval<const C &>().save(declval<XmlNode>()));
+		template <class C> static auto testS(...) -> Empty;
+
+		static constexpr bool constructible = !isSame<decltype(testC<T>(0)), Empty>();
+		static constexpr bool saveable = !isSame<decltype(testS<T>(0)), Empty>();
+
+		template <class C>
+		static auto testFP(int) -> decltype(parse(declval<CXmlNode>(), Type<C>()));
+		template <class C> static auto testFP(...) -> Empty;
+
+		template <class C>
+		static auto testFS(int) -> decltype(save(declval<XmlNode>(), declval<const C &>()));
+		template <class C> static auto testFS(...) -> Empty;
+
+		static constexpr bool func_parsable = !isSame<decltype(testFP<T>(0)), Empty>();
+		static constexpr bool func_saveable = !isSame<decltype(testFS<T>(0)), Empty>();
+	};
+}
+
+// To make type xml_saveable, you have to satisfy one of these conditions:
+// - provide save(XmlNode, const T&)
+// - provide T::save(XmlNode) const
+// - make sure that T is formattible
+template <class T>
+constexpr bool xml_saveable = detail::XmlTraits<T>::saveable ||
+							  isFormattible<T>() || detail::XmlTraits<T>::func_saveable;
+
+// To make type xml_constructible, you have to satisfy one of these conditions:
+// - provide constructor T(CXmlNode)
+// - provide parse(CXmlNode, Type<T>, CXmlNode) -> T
+// - make sure that T is parsable
+template <class T>
+constexpr bool xml_parsable = detail::XmlTraits<T>::constructible ||
+							  isParsable<T>() || detail::XmlTraits<T>::func_parsable;
+
+template <class T, EnableIf<xml_parsable<T>>...> T parse(CXmlNode node) {
+	if constexpr(detail::XmlTraits<T>::func_parsable)
+		return parse(node, Type<T>());
+	else if constexpr(detail::XmlTraits<T>::constructible)
+		return T(node);
+	else
+		return node.value<T>();
+}
+
+template <class T, EnableIf<detail::XmlTraits<T>::saveable || isFormattible<T>()>...>
+void save(XmlNode node, const T &value) {
+	if constexpr(detail::XmlTraits<T>::saveable)
+		value.save(node);
+	else
+		node.setValue(value);
+}
 }

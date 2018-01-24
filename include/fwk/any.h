@@ -6,7 +6,6 @@
 #include "fwk/sys/expected.h"
 #include "fwk/sys/unique_ptr.h"
 #include "fwk/sys/xml.h"
-#include "fwk/sys/xml_traits.h"
 #include "fwk/type_info_gen.h"
 
 // TODO: interaction with maybe ?
@@ -41,13 +40,13 @@ namespace detail {
 		T value;
 
 		static AnyXmlConstructor makeConstructor() {
-			if constexpr(xml_constructible<T>)
-				return [](CXmlNode n) -> AnyBase * { return new AnyModel<T>(construct<T>(n)); };
+			if constexpr(xml_parsable<T>)
+				return [](CXmlNode n) -> AnyBase * { return new AnyModel<T>(parse<T>(n)); };
 			return nullptr;
 		}
 		static AnyXmlSaver makeSaver() {
 			if constexpr(xml_saveable<T>)
-				return [](const void *v, XmlNode n) { save(*(const T *)v, n); };
+				return [](const void *v, XmlNode n) { save(n, *(const T *)v); };
 			return nullptr;
 		}
 

@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include <utility>
 #include "fwk/sys_base.h"
+#include "fwk/sys/xml.h"
+#include "fwk/type_info_gen.h"
 
 #ifdef NDEBUG
 	#define VARIANT_INLINE inline __attribute__((always_inline))
@@ -45,6 +47,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace fwk {
 
 namespace detail {
+
+template <class T>
+struct IsVariant { enum { value = false }; };
+template <class... Types>
+struct IsVariant<fwk::Variant<Types...>> { enum { value = true }; };
 
 template <typename T, typename... Types>
 struct direct_type;
@@ -756,4 +763,43 @@ ResultType const& get(T const& var) {
     return var.template get<ResultType>();
 }
 
+template <class T> constexpr bool is_variant = detail::IsVariant<T>::value;
+
+namespace detail {
+	template <class T, class... Types> struct VariantC {
+		static T load(ZStr type_name, CXmlNode node) {
+			CHECK_FAILED("Invalid type_name: %s", type_name.c_str());
+		}
+		static void save_(const T &variant, XmlNode node) {}
+	};
+
+	template <class T, class T1, class... Types> struct VariantC<T, T1, Types...> {
+		static T load(ZStr type_name, CXmlNode node) ALWAYS_INLINE {
+			if(type_name == typeName<T1>())
+				return parse<T1>(node);
+			return VariantC<T, Types...>::load(type_name, node);
+		}
+		static void save_(const T &variant, XmlNode node) {
+			if(variant.template is<T1>()) {
+				node.addAttrib("_variant_type_id", typeName<T1>());
+				const T1 *value = variant;
+				save(node, *value);
+			} else {
+				VariantC<T, Types...>::save_(variant, node);
+			}
+		}
+	};
+
+	template <class T> struct VariantCExp {};
+	template <class... Types>
+	struct VariantCExp<Variant<Types...>> : public VariantC<Variant<Types...>, Types...> {};
+}
+
+template <class... Types, EnableIf<(... && xml_parsable<Types>)>...> auto parse(CXmlNode node, Type<Variant<Types...>>) {
+	return detail::VariantCExp<Variant<Types...>>::load(node.attrib("_variant_type_id"), node);
+}
+
+template <class ...Types, EnableIf<(... && xml_saveable<Types>)>...> void save(XmlNode node, const Variant<Types...> &value) {
+	detail::VariantCExp<Variant<Types...>>::save_(value, node);
+}
 }

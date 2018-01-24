@@ -8,6 +8,7 @@
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
 #include "fwk/type_info_gen.h"
+#include "fwk/variant.h"
 #include "fwk_cache.h"
 #include "testing.h"
 
@@ -43,6 +44,20 @@ void testString() {
 	ASSERT_EQ(Str("random text").limitSizeBack(8), "rando...");
 	ASSERT_EQ(Str("foo bar").find("bar"), 4);
 	ASSERT_EQ(Str("foo | bar").find('|'), 4);
+}
+
+void testVariant() {
+	using Var1 = Variant<string, FBox>;
+	Var1 var = string("woohoo");
+	XmlDocument doc;
+	auto node = doc.addChild("node");
+	save(node, var);
+
+	static_assert(xml_parsable<Var1>);
+	static_assert(xml_saveable<Var1>);
+
+	auto temp = parse<Var1>(node);
+	ASSERT(temp == var);
 }
 
 void testXMLConverters() {
@@ -173,4 +188,5 @@ void testMain() {
 	testMaybe();
 	testTypeInfo();
 	testFwdMember();
+	testVariant();
 }

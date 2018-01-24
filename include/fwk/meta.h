@@ -17,6 +17,7 @@ template <class T, int N> struct IndexedType {
 	enum { value = N };
 };
 
+template <class T> struct Type {};
 template <class... Args> struct Types {};
 
 template <class T> auto declval() -> T;
