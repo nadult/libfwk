@@ -127,6 +127,24 @@ void multiRollbackTest(int nthreads, int repeats = 20, int inner_size = 1000,
 	print("Multi-thread(%) rollback test: % sec\n", nthreads, time);
 }
 
+vector<int> layeredRollbackTest(int level = 11) {
+	auto result = RollbackContext::begin([=]() -> vector<int> {
+		if(level == 0)
+			return vector<int>{{10, 20, 30, 40, 50}};
+		return layeredRollbackTest(level - 1);
+	});
+
+	if(result) {
+		if(level < 10) {
+			// Making sure that memory allocated under nested RollbackContext
+			// will be inherited by higher context
+			ASSERT(RollbackContext::willRollback({result->data()}));
+		}
+		return move(*result);
+	}
+	return {};
+}
+
 void assertTest2() {
 	ASSERT(onFailStackSize() == 1);
 	CHECK_FAILED("inner message");
@@ -152,4 +170,5 @@ void testMain() {
 	simpleRollbackTest();
 	multiRollbackTest(4);
 	assertTest();
+	layeredRollbackTest();
 }

@@ -42,7 +42,7 @@ struct RollbackContext::Level {
 	BacktraceMode backtrace_mode;
 };
 
-int RollbackContext::atRollback(AtRollback func, void *arg) {
+void RollbackContext::atRollback(AtRollback func, void *arg) {
 	if(auto *context = current())
 		if(auto &level = context->levels.back(); level.pause_counter == 0) {
 			context->is_disabled = true;
@@ -50,19 +50,6 @@ int RollbackContext::atRollback(AtRollback func, void *arg) {
 			// TODO: freelist
 			level.callbacks.emplace_back(func, arg);
 			context->is_disabled = false;
-			return index;
-		}
-	return -1;
-}
-
-void RollbackContext::removeAtRollback(int index) {
-	if(index == -1)
-		return;
-
-	if(auto *context = current())
-		if(auto &level = context->levels.back(); level.pause_counter == 0) {
-			DASSERT(level.callbacks.inRange(index));
-			level.callbacks[index].first = nullptr;
 		}
 }
 
@@ -87,6 +74,8 @@ RollbackContext *RollbackContext::addContext(Maybe<BacktraceMode> bm) {
 }
 
 void RollbackContext::addLevel(Maybe<BacktraceMode> bm) {
+	DASSERT(levels.size() <= 256 && "Please keep it reasonable");
+
 	if(levels.empty()) {
 		std::lock_guard<std::mutex> lock(s_alloc_funcs_mutex);
 		if(s_num_active == 0) {
@@ -117,6 +106,14 @@ void RollbackContext::dropContext() {
 
 void RollbackContext::dropLevel() {
 	is_disabled = true;
+	if(levels.size() >= 2) {
+		auto &cur = levels.back();
+		auto &prev = levels[levels.size() - 2];
+
+		for(auto &alloc : cur.allocs)
+			prev.allocs[alloc.first] = alloc.second;
+		insertBack(prev.callbacks, cur.callbacks);
+	}
 	levels.pop_back();
 	is_disabled = false;
 
@@ -233,9 +230,10 @@ void RollbackContext::rollback(const Error &error) {
 	detail::t_on_fail_count = level.assert_stack_pos;
 
 	//printf("Rollback!! freeing: %d blocks\n", level.allocs.size());
-	for(auto &pair : level.callbacks) {
-		if(pair.first)
-			pair.first(pair.second);
+	for(int n = level.callbacks.size() - 1; n >= 0; n--) {
+		auto &cb = level.callbacks[n];
+		if(cb.first)
+			cb.first(cb.second);
 	}
 
 	for(auto &pair : level.allocs) {

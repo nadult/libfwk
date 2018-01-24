@@ -25,16 +25,16 @@ class RollbackContext {
 	[[noreturn]] static void rollback(const Error &);
 	static bool canRollback();
 
-	// You can register/unregister a function to be called during rollback
-	// There are no guarantees about the order in which they will be called
-	// Nothing will be regustered if no RollbackContext is active
-	static int atRollback(AtRollback func, void *arg);
-	static void removeAtRollback(int index);
+	// You can register/unregister a callback function to be called during rollback
+	// Callbacks will be called in reverse order on rollback
+	// Nothing will be registered if no RollbackContext is active
+	static void atRollback(AtRollback func, void *arg);
 	static void removeAtRollback(AtRollback, void *);
 
 	// Allocations won't be registered for garbage collection when paused
 	// Typically each pause should be matched with resume on the same level
 	// User have to be careful in case of multiple rollbacks
+	// TODO: functions which use pause lose composability
 	static void pause();
 	static void resume();
 
