@@ -38,12 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fwk/sys/xml.h"
 #include "fwk/type_info_gen.h"
 
-#ifdef NDEBUG
-	#define VARIANT_INLINE inline __attribute__((always_inline))
-#else
-	#define VARIANT_INLINE inline
-#endif
-
 namespace fwk {
 
 namespace detail {
@@ -120,7 +114,7 @@ struct variant_helper;
 template <typename T, typename... Types>
 struct variant_helper<T, Types...>
 {
-    VARIANT_INLINE static void destroy(int type_index, void * data)
+    static void destroy(int type_index, void * data)
     {
         if (type_index == (int)sizeof...(Types))
         {
@@ -132,7 +126,7 @@ struct variant_helper<T, Types...>
         }
     }
 
-    VARIANT_INLINE static void move(int old_type_index, void * old_value, void * new_value)
+    static void move(int old_type_index, void * old_value, void * new_value)
     {
         if (old_type_index == (int)sizeof...(Types))
         {
@@ -144,7 +138,7 @@ struct variant_helper<T, Types...>
         }
     }
 
-    VARIANT_INLINE static void copy(int old_type_index, const void * old_value, void * new_value)
+    static void copy(int old_type_index, const void * old_value, void * new_value)
     {
         if (old_type_index == (int)sizeof...(Types))
         {
@@ -161,9 +155,9 @@ struct variant_helper<T, Types...>
 template <>
 struct variant_helper<>
 {
-    VARIANT_INLINE static void destroy(int, void *) {}
-    VARIANT_INLINE static void move(int, void *, void *) {}
-    VARIANT_INLINE static void copy(int, const void *, void *) {}
+    static void destroy(int, void *) {}
+    static void move(int, void *, void *) {}
+    static void copy(int, const void *, void *) {}
 };
 
 template <typename T>
@@ -194,7 +188,7 @@ struct dispatcher;
 template <typename F, typename V, typename R, typename T, typename... Types>
 struct dispatcher<F, V, R, T, Types...>
 {
-    VARIANT_INLINE static R apply_const(V const& v, F && f)
+    static R apply_const(V const& v, F && f)
     {
         if (v. template is<T>())
         {
@@ -206,7 +200,7 @@ struct dispatcher<F, V, R, T, Types...>
         }
     }
 
-    VARIANT_INLINE static R apply(V & v, F && f)
+    static R apply(V & v, F && f)
     {
         if (v. template is<T>())
         {
@@ -222,12 +216,12 @@ struct dispatcher<F, V, R, T, Types...>
 template <typename F, typename V, typename R, typename T>
 struct dispatcher<F, V, R, T>
 {
-    VARIANT_INLINE static R apply_const(V const& v, F && f)
+    static R apply_const(V const& v, F && f)
     {
         return f(unwrapper<T>::apply_const(v. template get<T>()));
     }
 
-    VARIANT_INLINE static R apply(V & v, F && f)
+    static R apply(V & v, F && f)
     {
         return f(unwrapper<T>::apply(v. template get<T>()));
     }
@@ -337,7 +331,7 @@ private:
     char type_index;
 
 public:
-    VARIANT_INLINE Variant()
+    Variant()
         : type_index((int)sizeof...(Types) - 1)
     {
         static_assert(std::is_default_constructible<first_type>::value, "First type in variant must be default constructible to allow default construction of variant");
@@ -345,24 +339,24 @@ public:
     }
 
     template <class T, class DT = Decay<T>, int index = typeIndex<DT>(), EnableIf<index != -1>...>
-    VARIANT_INLINE Variant(T && val) : type_index(index) {
+    Variant(T && val) : type_index(index) {
         new (&data) DT(std::forward<T>(val));
     }
 
-    VARIANT_INLINE Variant(Variant<Types...> const& old)
+    Variant(Variant<Types...> const& old)
         : type_index(old.type_index)
     {
         helper_type::copy(old.type_index, &old.data, &data);
     }
 
-    VARIANT_INLINE Variant(Variant<Types...> && old)
+    Variant(Variant<Types...> && old)
         : type_index(old.type_index)
     {
         helper_type::move(old.type_index, &old.data, &data);
     }
 
 private:
-    VARIANT_INLINE void copy_assign(Variant<Types...> const& rhs)
+    void copy_assign(Variant<Types...> const& rhs)
     {
         helper_type::destroy(type_index, &data);
         type_index = -1;
@@ -370,7 +364,7 @@ private:
         type_index = rhs.type_index;
     }
 
-    VARIANT_INLINE void move_assign(Variant<Types...> && rhs)
+    void move_assign(Variant<Types...> && rhs)
     {
         helper_type::destroy(type_index, &data);
         type_index = -1;
@@ -379,13 +373,13 @@ private:
     }
 
 public:
-    VARIANT_INLINE Variant<Types...>& operator=(Variant<Types...> &&  other)
+    Variant<Types...>& operator=(Variant<Types...> &&  other)
     {
         move_assign(std::move(other));
         return *this;
     }
 
-    VARIANT_INLINE Variant<Types...>& operator=(Variant<Types...> const& other)
+    Variant<Types...>& operator=(Variant<Types...> const& other)
     {
         copy_assign(other);
         return *this;
@@ -419,14 +413,14 @@ public:
     }
 
     template <typename T>
-    VARIANT_INLINE bool is() const
+    bool is() const
     {
         static_assert(detail::has_type<T, Types...>::value, "invalid type in T in `is<T>()` for this variant");
         return type_index == detail::direct_type<T, Types...>::index;
     }
 
     template <typename T, typename... Args>
-    VARIANT_INLINE void set(Args &&... args)
+    void set(Args &&... args)
     {
         helper_type::destroy(type_index, &data);
         new (&data) T(std::forward<Args>(args)...);
@@ -435,7 +429,7 @@ public:
 
     // get<T>()
     template <typename T, EnableIfValidType<T>...>
-    VARIANT_INLINE T & get()
+    T & get()
     {
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T*>(&data);
@@ -444,7 +438,7 @@ public:
     }
 
     template <typename T, EnableIfValidType<T>...>
-    VARIANT_INLINE T const& get() const
+    T const& get() const
     {
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T const*>(&data);
@@ -454,7 +448,7 @@ public:
 
     // get<T>() - T stored as std::reference_wrapper<T>
     template <typename T, EnableIfValidType<std::reference_wrapper<T>>...>
-    VARIANT_INLINE T& get() {
+    T& get() {
         if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
         else
@@ -462,7 +456,7 @@ public:
     }
 
     template <typename T, EnableIfValidType<std::reference_wrapper<const T>>...>
-    VARIANT_INLINE T const& get() const {
+    T const& get() const {
         if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
         else
@@ -470,50 +464,48 @@ public:
     }
 
 	template <typename T, EnableIfValidType<T>...>
-    VARIANT_INLINE operator T *() {
+    operator T *() {
         return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T *>(&data) : nullptr;
     }
 
 	template <typename T, EnableIfValidType<T>...>
-    VARIANT_INLINE operator const T *() const {
+    operator const T *() const {
         return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T const*>(&data) : nullptr;
     }
 
 	template <typename T, EnableIfValidType<std::reference_wrapper<T>>...>
-    VARIANT_INLINE operator T*() {
+    operator T*() {
         if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index)
             return &(*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
 		return nullptr;
     }
 
     template <typename T, EnableIfValidType<std::reference_wrapper<const T>>...>
-    VARIANT_INLINE operator const T*() const {
+    operator const T*() const {
         if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index)
             return &(*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
 		return nullptr;
     }
 
-    VARIANT_INLINE int which() const {
+    int which() const {
         return (int)sizeof...(Types) - type_index - 1;
     }
 
     template <typename F, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
-    auto VARIANT_INLINE
-    visit(F && f) const {
+    auto     visit(F && f) const {
         return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply_const(*this, std::forward<F>(f));
     }
     template <typename F, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
-    auto VARIANT_INLINE
-    visit(F && f) {
+    auto     visit(F && f) {
         return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply(*this, std::forward<F>(f));
     }
 
     template <typename... Fs>
-    auto VARIANT_INLINE match(Fs&&... fs) const {
+    auto match(Fs&&... fs) const {
         return visit(detail::make_visitor(std::forward<Fs>(fs)...));
     }
     template <typename... Fs>
-    auto VARIANT_INLINE match(Fs&&... fs) {
+    auto match(Fs&&... fs) {
         return visit(detail::make_visitor(std::forward<Fs>(fs)...));
     }
 
@@ -521,14 +513,14 @@ public:
         helper_type::destroy(type_index, &data);
     }
 
-    VARIANT_INLINE bool operator==(Variant const& rhs) const {
+    bool operator==(Variant const& rhs) const {
         if (this->which() != rhs.which())
             return false;
         detail::comparer<Variant, detail::equal_comp> visitor(*this);
         return rhs.visit(visitor);
     }
 
-    VARIANT_INLINE bool operator<(Variant const& rhs) const {
+    bool operator<(Variant const& rhs) const {
         if (this->which() != rhs.which())
             return this->which() < rhs.which();
         detail::comparer<Variant, detail::less_comp> visitor(*this);
