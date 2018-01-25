@@ -13,7 +13,8 @@ template <class T> struct Interval {
 
 	Interval(T min, T max) : min(min), max(max) {
 #ifdef FWK_CHECK_NANS
-		DASSERT(!isnan(min) && !isnan(max));
+		if constexpr(isReal<T>())
+			DASSERT(!isnan(min) && !isnan(max));
 #endif
 	}
 
