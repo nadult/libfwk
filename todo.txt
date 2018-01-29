@@ -53,6 +53,7 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - A lot of functions can run in two modes:
   - assuming that everything will succeeed (fails on CHECK / ASSERT if it doesnt)
   - allows for failure, returns Expected<>
+  - Expected<>.checked(): better name ?
   Consistent solution for that would be useful...
 - We could define Size<> for different classes and use it for example in CSpan<T>
   without defining it; Think if this would be useful?

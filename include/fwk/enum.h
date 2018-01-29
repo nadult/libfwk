@@ -98,11 +98,9 @@ namespace detail {
 	};
 }
 
-// Safe enum class
-// Initially initializes to 0 (first element). Converts to int, can be easily used as
-// an index into some array. Can be converted to/from strings, which are automatically
-// generated from enum names. fwk enum cannot be defined in function scope. Some examples
-// are available in src/test/enums.cpp.
+// Improved enum class: provides range access, counting, iteration. Can be converted to/from strings,
+// which are automatically generated from enum names. fwk enum cannot be defined in function scope.
+// Some examples are available in src/test/enums.cpp.
 #define DEFINE_ENUM(id, ...)                                                                       \
 	enum class id : unsigned char { __VA_ARGS__ };                                                 \
 	inline auto enumStrings(id) {                                                                  \
@@ -147,7 +145,10 @@ template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(Str str) {
 }
 
 template <class T, EnableIfEnum<T>...> static const char *toString(T value) {
-	return decltype(enumStrings(T()))::offsets.data[(int)value];
+	using Strings = decltype(enumStrings(T()));
+	int ivalue = (int)value;
+	PASSERT(ivalue >= 0 && ivalue < Strings::K);
+	return Strings::offsets.data[ivalue];
 }
 
 template <class T, EnableIfEnum<T>...> constexpr int count() {
