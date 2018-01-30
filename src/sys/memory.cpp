@@ -7,6 +7,13 @@
 #include <cstdlib>
 #include <new>
 
+#ifdef FWK_TARGET_HTML5
+void *aligned_alloc(size_t alignment, size_t size) {
+	// TODO: do this properly; although it shouldnt matter on thiis platform
+	return malloc(size);
+}
+#endif
+
 namespace fwk {
 
 namespace detail {

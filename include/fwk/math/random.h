@@ -64,6 +64,6 @@ class Random {
 	}
 
   private:
-	FwdMember<RandomEngine, 8> m_engine;
+	FwdMember<RandomEngine, sizeof(void *)> m_engine;
 };
 }

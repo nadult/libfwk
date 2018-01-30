@@ -1,12 +1,15 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#ifndef FWK_MATH_RANDOM_CPP
+#define FWK_MATH_RANDOM_CPP
+
 #include <random>
 
 namespace fwk {
 
 // TODO: use Mersenne twister ?
-struct alignas(8) RandomEngine : public std::default_random_engine {};
+struct alignas(void *) RandomEngine : public std::default_random_engine {};
 }
 
 #include "fwk/math/random.h"
@@ -57,3 +60,5 @@ Quat Random::uniformRotation(float3 axis) {
 	return (Quat)AxisAngle(axis, uniform(0.0f, fconstant::pi * 2.0f));
 }
 }
+
+#endif

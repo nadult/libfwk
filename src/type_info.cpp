@@ -46,11 +46,9 @@ namespace detail {
 	}
 }
 
-using namespace detail;
+TypeInfo::TypeInfo() : m_data(&detail::TypeData<void>::data) {}
 
-TypeInfo::TypeInfo() : m_data(&TypeData<void>::data) {}
-
-const char *TypeInfo::name() const { return typeNames()[id()].c_str(); }
+const char *TypeInfo::name() const { return detail::typeNames()[id()].c_str(); }
 
 TypeInfo TypeInfo::asConst() const {
 	if(m_data->is_const || !m_data->const_or_not)
@@ -74,11 +72,11 @@ fwk::TextFormatter &operator<<(fwk::TextFormatter &fmt, const TypeInfo &type_inf
 	return (fmt << type_info.name());
 }
 
-const HashMap<string, TypeId> &TypeInfo::nameToId() { return invTypeNames(); }
-const HashMap<TypeId, string> &TypeInfo::idToName() { return typeNames(); }
+const HashMap<string, TypeId> &TypeInfo::nameToId() { return detail::invTypeNames(); }
+const HashMap<TypeId, string> &TypeInfo::idToName() { return detail::typeNames(); }
 
 Maybe<TypeInfo> typeInfo(const char *type_name) {
-	auto &map = invTypeNames();
+	auto &map = detail::invTypeNames();
 	auto it = map.find(type_name);
 	if(it != map.end())
 		return TypeInfo(it->second);

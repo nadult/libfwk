@@ -11,13 +11,15 @@
 
 namespace fwk {
 
-class FontFactory::Impl {};
 FontFactory::FontFactory() = default;
 FontFactory::~FontFactory() = default;
 
 Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
+	vector<FontCore::Glyph> glyphs;
+	vector<FontCore::Kerning> kernings;
+
 	// TODO: add support for freetype / somehow use html fonts
-	FontCore core;
+	FontCore core(glyphs, kernings, int2(256, 256), 10);
 	return Font(PFontCore(move(core)), make_immutable<DTexture>(Texture({2, 2})));
 }
 }

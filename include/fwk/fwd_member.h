@@ -60,7 +60,7 @@ namespace detail {
 // that T is defined before FwdMember<T> is instantiated.
 // Limitation: it doesn't work for private members.
 // Use it for big types which are rarely instantiated.
-template <class T, int size = type_size<T>, int alignment = 8>
+template <class T, int size = type_size<T>, int alignment = sizeof(void *)>
 using FwdMember =
 	typename detail::FwdMemberSelect<T, size, alignment, detail::FullyDefined<T>::value>::type;
 }

@@ -27,8 +27,6 @@ namespace detail {
 	}
 }
 
-using namespace detail;
-
 Any::Any() = default;
 Any::Any(Expected<Any> &&rhs) {
 	if(rhs)
@@ -46,7 +44,7 @@ Any::Any(const Expected<Any> &rhs) {
 FWK_COPYABLE_CLASS_IMPL(Any);
 Any::Any(CXmlNode node, ZStr type_name) {
 	if(!type_name.empty()) {
-		auto &type_infos = anyTypeInfos();
+		auto &type_infos = detail::anyTypeInfos();
 		auto type_info = typeInfo(type_name.c_str());
 		if(!type_info)
 			CHECK_FAILED("No type-info for: '%s'", type_name.c_str());

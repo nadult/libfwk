@@ -74,7 +74,7 @@ void checkFailed(const char *file, int line, Error error) {
 
 #ifdef FWK_TARGET_HTML5
 	printf("%s\n", text.c_str());
-	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", text.c_str());
 	emscripten_force_exit(1);
 #else
 	auto error2 = onFailMakeError(file, line, text.c_str(), true);

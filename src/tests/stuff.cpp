@@ -10,7 +10,7 @@
 #include "fwk/type_info_gen.h"
 #include "fwk/variant.h"
 #include "fwk_cache.h"
-#include "testing.h"
+#include "tests/testing.h"
 
 void testTextFormatter() {
 	TextFormatter fmt;

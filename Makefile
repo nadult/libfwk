@@ -123,7 +123,7 @@ $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
 #	$(MINGW_STRIP) $@
 
 $(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp)
-	cat $^ > $@
+	cat src/html_pre_include.cpp $^ > $@
 
 $(HTML5_PROGRAMS): %.html: %.html.cpp
 	emcc $(HTML5_FLAGS) $^ -o $@

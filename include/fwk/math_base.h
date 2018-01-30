@@ -10,6 +10,14 @@
 #include <cmath>
 #include <limits>
 
+#ifndef __x86_64
+#define FWK_USE_BOOST_MPC_INT
+#endif
+
+#ifdef FWK_USE_BOOST_MPC_INT
+#include <boost/multiprecision/cpp_int.hpp>
+#endif
+
 namespace fwk {
 
 // TODO: remove epsilons?
@@ -45,7 +53,11 @@ template <class T> struct vec3;
 template <class T> struct vec4;
 
 using llint = long long;
+#ifdef FWK_USE_BOOST_MPC_INT
+using qint = boost::multiprecision::int128_t;
+#else
 using qint = __int128_t;
+#endif
 
 using short2 = vec2<short>;
 using short3 = vec3<short>;
@@ -267,6 +279,12 @@ template <class T> struct vec2 {
 	constexpr vec2() : x(0), y(0) {}
 	constexpr vec2(CSpan<T, 2> v) : vec2(v[0], v[1]) {}
 
+	vec2(const vec2 &rhs) : x(rhs.x), y(rhs.y) {}
+	void operator=(const vec2 &rhs) {
+		x = rhs.x;
+		y = rhs.y;
+	}
+
 	explicit vec2(T t) : x(t), y(t) {}
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
@@ -306,6 +324,13 @@ template <class T> struct vec3 {
 	constexpr vec3() : x(0), y(0), z(0) {}
 	constexpr vec3(CSpan<T, 3> v) : vec3(v[0], v[1], v[2]) {}
 	explicit vec3(T t) : x(t), y(t), z(t) { CHECK_NANS(t); }
+
+	vec3(const vec3 &rhs) : x(rhs.x), y(rhs.y), z(rhs.z) {}
+	void operator=(const vec3 &rhs) {
+		x = rhs.x;
+		y = rhs.y;
+		z = rhs.z;
+	}
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
@@ -350,6 +375,14 @@ template <class T> struct vec4 {
 	constexpr vec4() : x(0), y(0), z(0), w(0) {}
 	constexpr vec4(CSpan<T, 4> v) : vec4(v[0], v[1], v[2], v[3]) {}
 	explicit vec4(T t) : x(t), y(t), z(t), w(t) { CHECK_NANS(t); }
+
+	vec4(const vec4 &rhs) : x(rhs.x), y(rhs.y), z(rhs.z), w(rhs.w) {}
+	void operator=(const vec4 &rhs) {
+		x = rhs.x;
+		y = rhs.y;
+		z = rhs.z;
+		w = rhs.w;
+	}
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}

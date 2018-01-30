@@ -23,6 +23,10 @@
 
 #ifdef FWK_TARGET_HTML5
 #include "emscripten.h"
+
+namespace fwk {
+int threadId() { return 0; }
+}
 #endif
 
 namespace fwk {
@@ -120,5 +124,4 @@ double getTime() {
 #endif
 
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
-
 }

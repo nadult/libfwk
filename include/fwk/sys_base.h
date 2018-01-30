@@ -192,7 +192,8 @@ template <class T> class ResourceLoader;
 template <class T, class Constructor = ResourceLoader<T>> class ResourceManager;
 
 template <class Key, class Value> class HashMap;
-template <class Key, class Value> constexpr int type_size<HashMap<Key, Value>> = 32;
+template <class Key, class Value>
+constexpr int type_size<HashMap<Key, Value>> = sizeof(void *) == 4 ? 28 : 32;
 
 template <class T> class UniquePtr;
 

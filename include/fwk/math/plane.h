@@ -63,4 +63,6 @@ template <class T, int N> class Plane {
 	Vector m_normal;
 	T m_distance0;
 };
+
+#undef ENABLE_IF_SIZE
 }

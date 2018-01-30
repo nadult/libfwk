@@ -13,8 +13,6 @@ namespace detail {
 	AnyTypeInfo &anyTypeInfos();
 }
 
-using namespace detail;
-
 AnyRef::AnyRef(const Any &rhs)
 	: m_ptr(rhs.m_model.get() ? rhs.m_model->ptr() : nullptr), m_type(rhs.m_type) {}
 
@@ -25,7 +23,7 @@ FWK_COPYABLE_CLASS_IMPL(AnyRef);
 
 void AnyRef::save(XmlNode node, bool save_type) const {
 	if(m_ptr) {
-		auto &type_infos = anyTypeInfos();
+		auto &type_infos = detail::anyTypeInfos();
 		auto it = type_infos.find(m_type.id());
 		if(it == type_infos.end() || !it->second.second) {
 			CHECK_FAILED("Error while saving %s to xml", m_type.name());
@@ -37,7 +35,7 @@ void AnyRef::save(XmlNode node, bool save_type) const {
 }
 
 bool AnyRef::xmlEnabled() const {
-	auto &type_infos = anyTypeInfos();
+	auto &type_infos = detail::anyTypeInfos();
 	auto it = type_infos.find(m_type.id());
 	ASSERT(it != type_infos.end());
 	return it->second.first && it->second.second;
