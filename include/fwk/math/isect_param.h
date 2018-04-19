@@ -16,8 +16,8 @@ template <class T> class IsectParam {
 
 	bool isPoint() const { return m_interval.min == m_interval.max; }
 	bool isInterval() const { return m_interval.max > m_interval.min; }
-	bool isEmpty() const { return m_interval.empty(); }
-	explicit operator bool() const { return !isEmpty(); }
+	bool valid() const { return m_interval.valid(); }
+	explicit operator bool() const { return valid(); }
 
 	const Interval<T> &asInterval() const { return m_interval; }
 	T asPoint() const { return m_interval.min; }
@@ -29,5 +29,4 @@ template <class T> class IsectParam {
   private:
 	Interval<T> m_interval;
 };
-
 }
