@@ -22,7 +22,7 @@ void onFailPush(OnFailInfo info) {
 }
 
 void onFailPop() {
-	PASSERT(t_on_fail_count > 0);
+	PASSERT(detail::t_on_fail_count > 0);
 	detail::t_on_fail_count--;
 }
 
