@@ -66,6 +66,11 @@ template <class T, int N> class Triangle {
 
 	ENABLE_IF_SIZE(3) Vector normal() const;
 	ENABLE_IF_SIZE(3) Vector barycentric(const Point &point) const;
+
+	// x coordinate is 1 if point is at b()
+	// y coordinate is 1 if point is at c()
+	// 1-x-y is 1 is point is at a()
+	ENABLE_IF_SIZE(2) Vector barycentric(const Point &point) const;
 	vector<Point> sampleEven(float density) const;
 
 	T surfaceArea() const;

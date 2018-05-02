@@ -46,7 +46,19 @@ auto Triangle<T, N>::barycentric(const Point &point) const -> Vector {
 	T tw = dot(fwk::cross(v[1] - v[0], diff), nrm);
 	T tv = dot(fwk::cross(v[2] - v[0], diff), nrm);
 	T tu = T(1) - tw - tv;
+	// TODO: this is untested
 	return {tu, tv, tw};
+}
+
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+auto Triangle<T, N>::barycentric(const Point &point) const -> Vector {
+	// Source: Geometric Tools
+	Vector diff[3] = {v[1] - v[0], v[2] - v[0], point - v[0]};
+
+	auto det = dot(diff[0], perpendicular(diff[1]));
+	DASSERT(det != 0.0);
+	return {dot(diff[2], perpendicular(diff[1])) / det, dot(diff[0], perpendicular(diff[2])) / det};
 }
 
 template <class T, int N> auto Triangle<T, N>::sampleEven(float density) const -> vector<Point> {
@@ -289,4 +301,7 @@ template double3 Triangle3<double>::normal() const;
 template bool Triangle3<double>::testIsect(const DBox &) const;
 template bool Triangle3<float>::testIsect(const FBox &) const;
 template bool Triangle3<int>::testIsect(const IBox &) const;
+
+template double2 Triangle2<double>::barycentric(const double2 &) const;
+template float2 Triangle2<float>::barycentric(const float2 &) const;
 }
