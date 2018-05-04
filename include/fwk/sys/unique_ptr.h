@@ -44,7 +44,7 @@ template <typename T> class UniquePtr {
 		return *this;
 	}
 	UniquePtr &operator=(const UniquePtr &rhs) {
-		m_ptr = rhs.clone();
+		reset(rhs.clone());
 		return *this;
 	}
 
