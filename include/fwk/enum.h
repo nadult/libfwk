@@ -163,6 +163,15 @@ template <class T, EnableIfEnum<T>...> T prev(T value) {
 	return T((int(value) + (count<T>() - 1)) % count<T>());
 }
 
+template <int offset, class T, EnableIfEnum<T>...> T next(T value) {
+	static_assert(offset >= 0);
+	return T((int(value) + offset) % count<T>());
+}
+template <int offset, class T, EnableIfEnum<T>...> T prev(T value) {
+	static_assert(offset >= 0 && offset <= count<T>());
+	return T((int(value) + (count<T>() - offset)) % count<T>());
+}
+
 template <class T> struct detail::InvalidValue<T, EnableIfEnum<T>> {
 	static T make() { return T(255); }
 	static constexpr bool valid(const T &rhs) { return int(rhs) != 255; }
