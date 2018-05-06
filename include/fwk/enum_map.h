@@ -67,6 +67,9 @@ template <class Enum, class T> class EnumMap {
 			m_data[n] = value;
 	}
 
+	const T *data() const { return m_data.data(); }
+	T *data() { return m_data.data(); }
+
   private:
 	array<T, count<Enum>()> m_data;
 };
