@@ -5,6 +5,7 @@
 
 #include "fwk/light_tuple.h"
 #include "fwk/math_base.h"
+#include "fwk/maybe.h"
 
 namespace fwk {
 
@@ -48,6 +49,10 @@ template <class Value /*= int*/> struct Hash {
 			return hash(get<N>(tuple));
 		else
 			return hashCombine(hash(get<N>(tuple)), hashTuple<N + 1>(tuple));
+	}
+
+	template <class T> static Value hash(const Maybe<T> &maybe) {
+		return maybe ? hash(*maybe) : Value(0x31337);
 	}
 
 	template <class T> auto operator()(const T &value) const { return hash(value); }

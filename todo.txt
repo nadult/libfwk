@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- funkcje haszujące nie powinny być w jednym pliku, ale w poszczególnych klasach;
+  Można zrobić podobnie jak z formaterami, że się overloaduje jakąś funkcję i już
+
 - nie przesadzaj z czasami kompilacji w libfwk; 
 - DrawCalls should have command_id index ?
 - Remove Renderer2D (use RenderList); better control over which shader is being used ?
