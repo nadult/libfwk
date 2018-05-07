@@ -64,6 +64,13 @@ template <typename T> class UniquePtr {
 		}
 	}
 
+	template <typename... Args> void emplace(Args &&... args) {
+		reset(new T(std::forward<Args>(args)...));
+	}
+	template <class T1, typename... Args> void emplace(Args &&... args) {
+		reset(new T1(std::forward<Args>(args)...));
+	}
+
 	T *release() {
 		auto ret = m_ptr;
 		m_ptr = nullptr;
