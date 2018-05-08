@@ -3,16 +3,19 @@
 
 #include "fwk/math/plane.h"
 
-#include "fwk/math/triangle.h"
-#include "fwk/math/ray.h"
 #include "fwk/math/matrix4.h"
+#include "fwk/math/ray.h"
+#include "fwk/math/triangle.h"
 
 namespace fwk {
 
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
-Plane<T, N>::Plane(const Triangle &tri)
-	: m_normal(tri.normal()), m_distance0(dot(tri.a(), m_normal)) {}
+Plane<T, N>::Plane(const Triangle &tri) {
+	DASSERT(!tri.degenerate());
+	m_normal = tri.normal();
+	m_distance0 = dot(tri.a(), m_normal);
+}
 
 template <class T, int N> auto Plane<T, N>::sideTest(CSpan<Point> verts) const -> SideTestResult {
 	int positive = 0, negative = 0;
