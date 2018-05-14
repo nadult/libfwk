@@ -62,6 +62,10 @@ template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator^(T lhs, T
 	return EnumFlags<T>(lhs) ^ rhs;
 }
 
+template <class T> constexpr EnumFlags<T> operator|(T lhs, EnumFlags<T> rhs) { return rhs | lhs; }
+template <class T> constexpr EnumFlags<T> operator&(T lhs, EnumFlags<T> rhs) { return rhs & lhs; }
+template <class T> constexpr EnumFlags<T> operator^(T lhs, EnumFlags<T> rhs) { return rhs ^ lhs; }
+
 template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator~(T bit) {
 	return ~EnumFlags<T>(bit);
 }
