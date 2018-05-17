@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- nie da się rozszerzać parsera o typy których nie da się domyślnie konstruować...
+- dodać type_align, można by tego używać w SmallVector, np.
 - konieczność konwersji flag na boola jest słaba... może explicit nie jest potrzbeny?
 - funkcje haszujące nie powinny być w jednym pliku, ale w poszczególnych klasach;
   Można zrobić podobnie jak z formaterami, że się overloaduje jakąś funkcję i już

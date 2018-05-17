@@ -92,6 +92,9 @@ class TextParser {
 // To make new type parsable: simply overload operator<<:
 // TextParser &operator>>(TextParser&, MyNewType &rhs);
 
+TextParser &operator>>(TextParser &, short2 &);
+TextParser &operator>>(TextParser &, short3 &);
+TextParser &operator>>(TextParser &, short4 &);
 TextParser &operator>>(TextParser &, int2 &);
 TextParser &operator>>(TextParser &, int3 &);
 TextParser &operator>>(TextParser &, int4 &);

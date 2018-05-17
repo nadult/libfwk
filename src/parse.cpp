@@ -194,6 +194,16 @@ void TextParser::parseNotEmpty(Span<string> out) {
 	}
 }
 
+TextParser &operator>>(TextParser &parser, short2 &out) { return parser >> out.x >> out.y; }
+
+TextParser &operator>>(TextParser &parser, short3 &out) {
+	return parser >> out.x >> out.y >> out.z;
+}
+
+TextParser &operator>>(TextParser &parser, short4 &out) {
+	return parser >> out.x >> out.y >> out.z >> out.w;
+}
+
 TextParser &operator>>(TextParser &parser, int2 &out) {
 	parser.parseInts(out.v);
 	return parser;
