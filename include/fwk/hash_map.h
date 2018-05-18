@@ -26,13 +26,16 @@ template <typename TKey, typename TValue> class HashMap {
 		static const hash_value_t kDeletedHash = 0xFFFFFFFE;
 
 		Node() : hash(kUnusedHash) {}
+		~Node() {}
 
 		bool is_unused() const { return hash == kUnusedHash; }
 		bool is_deleted() const { return hash == kDeletedHash; }
 		bool is_occupied() const { return hash < kDeletedHash; }
 
 		hash_value_t hash;
-		value_type data;
+		union {
+			value_type data;
+		};
 	};
 	template <typename TNodePtr, typename TPtr, typename TRef> class node_iterator {
 		friend class HashMap;
