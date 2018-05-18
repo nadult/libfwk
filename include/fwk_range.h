@@ -288,12 +288,13 @@ template <class TRange1, class TRange2, class T1 = RangeBase<TRange1>,
 		  class T2 = RangeBase<TRange2>>
 auto setDifference(const TRange1 &a, const TRange2 &b) {
 	using VecType = vector<RemoveConst<T1>>;
-	VecType out(a.size());
+	VecType out;
+	out.reserve(a.size());
+
 	VecType va(begin(a), end(a)), vb(begin(b), end(b));
 	makeSorted(va);
 	makeSorted(vb);
-	auto new_end = std::set_difference(begin(va), end(va), begin(vb), end(vb), begin(out));
-	out.erase(new_end, end(out));
+	std::set_difference(begin(va), end(va), begin(vb), end(vb), std::back_inserter(out));
 	return out;
 }
 
@@ -301,12 +302,13 @@ template <class TRange1, class TRange2, class T1 = RangeBase<TRange1>,
 		  class T2 = RangeBase<TRange2>>
 auto setIntersection(const TRange1 &a, const TRange2 &b) {
 	using VecType = vector<RemoveConst<T1>>;
-	VecType out(std::min(a.size(), b.size()));
+	VecType out;
+	out.reserve(std::min(a.size(), b.size()));
+
 	VecType va(begin(a), end(a)), vb(begin(b), end(b));
 	makeSorted(va);
 	makeSorted(vb);
-	auto new_end = std::set_intersection(begin(va), end(va), begin(vb), end(vb), begin(out));
-	out.erase(new_end, end(out));
+	std::set_intersection(begin(va), end(va), begin(vb), end(vb), std::back_inserter(out));
 	return out;
 }
 
@@ -314,12 +316,12 @@ template <class TRange1, class TRange2, class T1 = RangeBase<TRange1>,
 		  class T2 = RangeBase<TRange2>>
 auto setUnion(const TRange1 &a, const TRange2 &b) {
 	using VecType = vector<RemoveConst<T1>>;
-	VecType out(a.size() + b.size());
+	VecType out;
+	out.reserve(a.size() + b.size());
 	VecType va(begin(a), end(a)), vb(begin(b), end(b));
 	makeSorted(va);
 	makeSorted(vb);
-	auto new_end = std::set_union(begin(va), end(va), begin(vb), end(vb), begin(out));
-	out.erase(new_end, end(out));
+	std::set_union(begin(va), end(va), begin(vb), end(vb), std::back_inserter(out));
 	return out;
 }
 

@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- konwersja vector<> na bool (.empty())
+- translacja nazw debugowych ? jakaś możliwość rejestracji template-ów?
+- valid(), Invalid -> validMaybe(), InvalidMaybe ?
 - nie da się rozszerzać parsera o typy których nie da się domyślnie konstruować...
 - dodać type_align, można by tego używać w SmallVector, np.
 - konieczność konwersji flag na boola jest słaba... może explicit nie jest potrzbeny?
