@@ -19,7 +19,7 @@ template <class Value /*= int*/> struct Hash {
 		return std::hash<T>()(scalar);
 	}
 
-	template <class T, EnableIf<isRange<T>() && !isTied<T>(), NotARange>...>
+	template <class T, EnableIf<isRange<T>() && !has_tied_member<T>, NotARange>...>
 	static Value hash(const T &range) {
 		if(fwk::empty(range))
 			return 0;
@@ -40,7 +40,7 @@ template <class Value /*= int*/> struct Hash {
 	template <class... Types> static Value hash(const LightTuple<Types...> &tuple) {
 		return hashTuple<0>(tuple);
 	}
-	template <class T, EnableIfTied<T>...> static Value hash(const T &object) {
+	template <class T, EnableIf<has_tied_member<T>>...> static Value hash(const T &object) {
 		return hashTuple<0>(object.tied());
 	}
 

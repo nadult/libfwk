@@ -126,19 +126,19 @@ namespace detail {
 		return true;
 	}
 
-	template <class T> struct IsRefTuple {
+	template <class T> struct IsTuple {
 		enum { value = 0 };
 		using type = std::false_type;
 	};
 
-	template <class... Members> struct IsRefTuple<LightTuple<Members &...>> {
+	template <class... Members> struct IsTuple<LightTuple<Members...>> {
 		enum { value = 1 };
 		using type = std::true_type;
 	};
 
 	template <class T> struct HasTiedMember {
 		template <class C>
-		static auto test(int) -> typename IsRefTuple<decltype(((C *)nullptr)->tied())>::type;
+		static auto test(int) -> typename IsTuple<decltype(((C *)nullptr)->tied())>::type;
 		template <class C> static auto test(...) -> std::false_type;
 		enum { value = std::is_same<std::true_type, decltype(test<T>(0))>::value };
 	};
@@ -158,16 +158,21 @@ template <class... Args> constexpr auto tie(const Args &... args) {
 	return LightTuple<const Args &...>{args...};
 }
 
+template <class... Args> constexpr auto tuple(Args &&... args) {
+	return LightTuple<Decay<std::remove_reference_t<Args>>...>{std::forward<Args>(args)...};
+}
+
+// Do not use it with bitfields! It will make a const ref to temporary
+// Unfortunately there is no good way to protect yourself from this (thanks, C++ authors!)
 #define FWK_TIE_MEMBERS(...)                                                                       \
-	auto tied() const { return tie(__VA_ARGS__); }
+	auto tied() const { return fwk::tie(__VA_ARGS__); }
 
 #define FWK_ORDER_BY(name, ...)                                                                    \
 	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
 	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
 	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
 
-struct IsNotTied;
+struct NoTiedMember;
 
-template <class T> constexpr bool isTied() { return detail::HasTiedMember<T>::value; }
-template <class T> using EnableIfTied = EnableIf<detail::HasTiedMember<T>::value, IsNotTied>;
+template <class T> constexpr bool has_tied_member = detail::HasTiedMember<T>::value;
 }
