@@ -81,7 +81,7 @@ void FilePath::simplify(const vector<Element> &src, vector<Element> &dst) {
 	for(int n = 0; n < (int)src.size(); n++) {
 		if(src[n].isDot())
 			continue;
-		if(src[n].isDots() && !dst.empty() && !dst.back().isDots()) {
+		if(src[n].isDots() && dst && !dst.back().isDots()) {
 			DASSERT(!dst.back().isRoot());
 			dst.pop_back();
 		} else
@@ -94,7 +94,7 @@ void FilePath::construct(const vector<Element> &input) {
 	elements.reserve(input.size());
 	simplify(input, elements);
 
-	if(elements.empty()) {
+	if(!elements) {
 		m_path = ".";
 		return;
 	}

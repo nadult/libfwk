@@ -18,7 +18,7 @@ Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> mate
 	: m_buffers(move(buffers)), m_indices(move(indices)), m_material_names(move(material_names)) {
 	for(const auto &indices : m_indices)
 		DASSERT(indices.empty() || indices.indexRange().second < m_buffers.size());
-	DASSERT(m_material_names.empty() || m_material_names.size() == m_indices.size());
+	DASSERT(!m_material_names || m_material_names.size() == m_indices.size());
 	m_bounding_box = enclose(m_buffers.positions);
 }
 
@@ -47,7 +47,7 @@ void Mesh::saveToXML(XmlNode node) const {
 		if(indices.type() != PrimitiveType::triangles)
 			xml_indices.addAttrib("type", toString(indices.type()));
 	}
-	if(!m_material_names.empty())
+	if(m_material_names)
 		node.addChild("materials", m_material_names);
 }
 
@@ -102,7 +102,7 @@ vector<Mesh> Mesh::split(int max_vertices) const {
 		vector<vector<int>> mappings;
 		vector<MeshIndices> new_indices = sub_indices.split(max_vertices, mappings);
 
-		string mat_name = m_material_names.empty() ? "" : m_material_names[n];
+		string mat_name = !m_material_names ? "" : m_material_names[n];
 		for(int i = 0; i < new_indices.size(); i++)
 			out.emplace_back(
 				Mesh(m_buffers.remap(mappings[i]), {move(new_indices[i])}, {mat_name}));
@@ -121,12 +121,12 @@ Mesh Mesh::merge(vector<Mesh> meshes) {
 
 	if(meshes.size() == 1)
 		return move(meshes.front());
-	if(meshes.empty())
+	if(!meshes)
 		return Mesh();
 
 	int num_vertices = 0;
-	bool has_tex_coords = meshes.empty() ? false : meshes.front().hasTexCoords();
-	bool has_normals = meshes.empty() ? false : meshes.front().hasNormals();
+	bool has_tex_coords = meshes ? meshes.front().hasTexCoords() : false;
+	bool has_normals = meshes ? meshes.front().hasNormals() : false;
 
 	for(const auto &mesh : meshes) {
 		num_vertices += mesh.vertexCount();
@@ -155,7 +155,7 @@ Mesh Mesh::merge(vector<Mesh> meshes) {
 
 		for(int n = 0; n < mesh.indices().size(); n++) {
 			out_indices.emplace_back(MeshIndices::applyOffset(move(mesh.indices()[n]), offset));
-			out_materials.emplace_back(mesh.materialNames().empty() ? "" : mesh.materialNames()[n]);
+			out_materials.emplace_back(mesh.materialNames() ? mesh.materialNames()[n] : "");
 		}
 
 		offset += mesh.vertexCount();
@@ -180,7 +180,7 @@ void Mesh::removeIndices(CSpan<pair<string, IColor>> color_map) {
 		auto mapping = fwk::merge(trisIndices());
 		vector<IColor> colors;
 
-		if(!color_map.empty()) {
+		if(color_map) {
 			removeColors();
 			colors.resize(mapping.size());
 
@@ -278,7 +278,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 			for(int n = 0; n < m_indices.size(); n++) {
 				const auto &range = merged_ranges[n];
 				const auto &indices = m_indices[n];
-				string mat_name = m_material_names.empty() ? "" : m_material_names[n];
+				string mat_name = m_material_names ? m_material_names[n] : "";
 				out.emplace_back(varray, indices.type(), range.second, range.first,
 								 materials[mat_name], matrix, encloseTransformed(bbox, matrix));
 			}

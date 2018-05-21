@@ -35,10 +35,10 @@ MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
 	// TODO: when loading from file, we want to use ASSERT, otherwise DASSERT
 	// In general if data is marked as untrusted, then we have to check.
 
-	DASSERT(tex_coords.empty() || positions.size() == tex_coords.size());
-	DASSERT(normals.empty() || positions.size() == normals.size());
-	DASSERT(colors.empty() || positions.size() == colors.size());
-	DASSERT(weights.empty() || positions.size() == weights.size());
+	DASSERT(!tex_coords || positions.size() == tex_coords.size());
+	DASSERT(!normals || positions.size() == normals.size());
+	DASSERT(!colors || positions.size() == colors.size());
+	DASSERT(!weights || positions.size() == weights.size());
 
 	int max_node_id = -1;
 	for(const auto &vweights : weights)
@@ -109,12 +109,12 @@ MeshBuffers::MeshBuffers(CXmlNode node)
 
 void MeshBuffers::saveToXML(XmlNode node) const {
 	node.addChild("positions", positions);
-	if(!tex_coords.empty())
+	if(tex_coords)
 		node.addChild("tex_coords", tex_coords);
-	if(!normals.empty())
+	if(normals)
 		node.addChild("normals", normals);
 
-	if(!weights.empty()) {
+	if(weights) {
 		vector<int> counts;
 		vector<float> vweights;
 		vector<int> node_ids;
@@ -132,7 +132,7 @@ void MeshBuffers::saveToXML(XmlNode node) const {
 		node.addChild("vertex_weights", vweights);
 		node.addChild("vertex_weight_node_ids", node_ids);
 	}
-	if(!node_names.empty())
+	if(node_names)
 		node.addChild("node_names", node_names);
 }
 
@@ -145,22 +145,22 @@ MeshBuffers MeshBuffers::remap(const vector<int> &mapping) const {
 		FATAL("FIXME");
 
 	vector<float3> out_positions(mapping.size());
-	vector<float3> out_normals(!normals.empty() ? mapping.size() : 0);
-	vector<float2> out_tex_coords(!tex_coords.empty() ? mapping.size() : 0);
-	vector<IColor> out_colors(!colors.empty() ? mapping.size() : 0);
+	vector<float3> out_normals(normals ? mapping.size() : 0);
+	vector<float2> out_tex_coords(tex_coords ? mapping.size() : 0);
+	vector<IColor> out_colors(colors ? mapping.size() : 0);
 
 	int num_vertices = positions.size();
 	DASSERT(allOf(mapping, [=](int idx) { return idx < num_vertices; }));
 
 	for(int n = 0; n < mapping.size(); n++)
 		out_positions[n] = positions[mapping[n]];
-	if(!normals.empty())
+	if(normals)
 		for(int n = 0; n < mapping.size(); n++)
 			out_normals[n] = normals[mapping[n]];
-	if(!tex_coords.empty())
+	if(tex_coords)
 		for(int n = 0; n < mapping.size(); n++)
 			out_tex_coords[n] = tex_coords[mapping[n]];
-	if(!colors.empty())
+	if(colors)
 		for(int n = 0; n < mapping.size(); n++)
 			out_colors[n] = colors[mapping[n]];
 

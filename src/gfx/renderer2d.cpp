@@ -81,8 +81,7 @@ Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_a
 }
 
 Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {
-	if(m_chunks.empty() ||
-	   m_chunks.back().positions.size() + num_verts > IndexBuffer::max_index_value)
+	if(!m_chunks || m_chunks.back().positions.size() + num_verts > IndexBuffer::max_index_value)
 		m_chunks.emplace_back();
 	return m_chunks.back();
 }
@@ -92,8 +91,8 @@ Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType pri
 	// TODO: merging won't work for triangle strip (have to add some more indices)
 	auto &elems = chunk.elements;
 
-	if(elems.empty() || elems.back().primitive_type != primitive_type ||
-	   elems.back().texture != texture || fullMatrix() != elems.back().matrix ||
+	if(!elems || elems.back().primitive_type != primitive_type || elems.back().texture != texture ||
+	   fullMatrix() != elems.back().matrix ||
 	   m_current_scissor_rect != elems.back().scissor_rect_id)
 		elems.emplace_back(Element{fullMatrix(), move(texture), chunk.indices.size(), 0,
 								   m_current_scissor_rect, primitive_type});
@@ -135,19 +134,19 @@ void Renderer2D::addLine(const float2 &p1, const float2 &p2, FColor color) {
 
 void Renderer2D::DrawChunk::appendVertices(CSpan<float2> positions_, CSpan<float2> tex_coords_,
 										   CSpan<FColor> colors_, FColor mat_color) {
-	DASSERT(colors.size() == positions.size() || colors.empty());
-	DASSERT(tex_coords.size() == positions.size() || tex_coords.empty());
+	DASSERT(colors.size() == positions.size() || !colors);
+	DASSERT(tex_coords.size() == positions.size() || !tex_coords);
 
 	insertBack(positions, positions_);
-	if(colors_.empty())
-		colors.resize(positions.size(), IColor(mat_color));
-	else
+	if(colors_)
 		for(auto col : colors_)
 			colors.emplace_back(col * mat_color);
-	if(tex_coords_.empty())
-		tex_coords.resize(positions.size(), float2());
 	else
+		colors.resize(positions.size(), IColor(mat_color));
+	if(tex_coords_)
 		insertBack(tex_coords, tex_coords_);
+	else
+		tex_coords.resize(positions.size(), float2());
 }
 
 void Renderer2D::addLines(CSpan<float2> pos, CSpan<FColor> color, FColor mat_color) {
@@ -211,7 +210,7 @@ void Renderer2D::setScissorRect(Maybe<IRect> rect) {
 		m_current_scissor_rect = -1;
 		return;
 	}
-	if(m_scissor_rects.empty() || m_current_scissor_rect == -1 ||
+	if(!m_scissor_rects || m_current_scissor_rect == -1 ||
 	   m_scissor_rects[m_current_scissor_rect] != *rect) {
 		m_scissor_rects.emplace_back(*rect);
 		m_current_scissor_rect = m_scissor_rects.size() - 1;

@@ -49,24 +49,24 @@ void ModelAnim::Channel::saveToXML(XmlNode node) const {
 	node.addAttrib("name", node.own(node_name));
 
 	transToXML(trans, default_trans, node);
-	if(!translation_track.empty())
+	if(translation_track)
 		node.addChild("pos", translation_track);
-	if(!scaling_track.empty())
+	if(scaling_track)
 		node.addChild("scale", scaling_track);
-	if(!rotation_track.empty())
+	if(rotation_track)
 		node.addChild("rot", rotation_track);
-	if(!time_track.empty())
+	if(time_track)
 		node.addChild("time", time_track);
 }
 
 AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 	AffineTrans out = trans;
 
-	if(!translation_track.empty())
+	if(translation_track)
 		out.translation = lerp(translation_track[frame0], translation_track[frame1], t);
-	if(!scaling_track.empty())
+	if(scaling_track)
 		out.scale = lerp(scaling_track[frame0], scaling_track[frame1], t);
-	if(!rotation_track.empty())
+	if(rotation_track)
 		out.rotation = slerp(rotation_track[frame0], rotation_track[frame1], t);
 
 	return out;
@@ -108,7 +108,7 @@ AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
 	DASSERT(channel_id >= 0 && channel_id < m_channels.size());
 	const auto &channel = m_channels[channel_id];
 
-	const auto &times = channel.time_track.empty() ? m_shared_time_track : channel.time_track;
+	const auto &times = channel.time_track ? channel.time_track : m_shared_time_track;
 
 	int frame0 = 0, frame1 = 0, frame_count = times.size();
 	// TODO: binary search
@@ -145,8 +145,7 @@ string ModelAnim::print() const {
 	TextFormatter out;
 	out("Anim: %:", m_name);
 	for(const auto &channel : m_channels) {
-		const auto &time_track =
-			channel.time_track.empty() ? m_shared_time_track : channel.time_track;
+		const auto &time_track = channel.time_track ? channel.time_track : m_shared_time_track;
 		out.stdFormat("  %12s: %d|", channel.node_name.c_str(), time_track.size());
 		for(float time : time_track)
 			out.stdFormat("%6.3f ", time);
@@ -158,11 +157,10 @@ string ModelAnim::print() const {
 void ModelAnim::verifyData() const {
 	for(int n = 0; n < m_channels.size(); n++) {
 		const auto &channel = m_channels[n];
-		auto num_keys =
-			channel.time_track.empty() ? m_shared_time_track.size() : channel.time_track.size();
-		ASSERT(channel.translation_track.size() == num_keys || channel.translation_track.empty());
-		ASSERT(channel.rotation_track.size() == num_keys || channel.rotation_track.empty());
-		ASSERT(channel.scaling_track.size() == num_keys || channel.scaling_track.empty());
+		auto num_keys = channel.time_track ? channel.time_track.size() : m_shared_time_track.size();
+		ASSERT(channel.translation_track.size() == num_keys || !channel.translation_track);
+		ASSERT(channel.rotation_track.size() == num_keys || !channel.rotation_track);
+		ASSERT(channel.scaling_track.size() == num_keys || !channel.scaling_track);
 	}
 }
 }

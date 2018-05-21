@@ -31,7 +31,7 @@ class MeshIndices {
 	// Does not exclude degenerate triangles
 	int triangleCount() const;
 	int size() const { return (int)m_data.size(); }
-	bool empty() const { return m_data.empty(); }
+	bool empty() const { return !m_data; }
 	pair<int, int> indexRange() const;
 
 	static MeshIndices changeType(MeshIndices, Type new_type);

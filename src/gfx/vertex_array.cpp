@@ -35,7 +35,7 @@ int VertexArray::Source::maxSize() const {
 }
 
 static int sourcesMaxSize(const vector<VertexArraySource> &sources) {
-	int size = sources.empty() ? 0 : INT_MAX;
+	int size = sources ? INT_MAX : 0;
 
 	for(const auto &source : sources)
 		size = min(size, source.maxSize());

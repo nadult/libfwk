@@ -37,7 +37,7 @@ struct Error {
 	Error &operator<<(Any);
 
 	void print() const;
-	bool empty() const { return chunks.empty() && !backtrace; }
+	bool empty() const { return !chunks && !backtrace; }
 
 	vector<Chunk> chunks;
 	Maybe<Backtrace> backtrace;

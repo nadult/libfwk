@@ -164,10 +164,10 @@ void RenderList::render(bool mode_2d) {
 
 	for(const auto &draw_call : m_draw_calls) {
 		auto &mat = draw_call.material;
-		if(!mat.textures.empty())
+		if(mat.textures)
 			DTexture::bind(mat.textures);
 
-		PProgram program = mat.textures.empty() ? flat_program : tex_program;
+		PProgram program = mat.textures ? tex_program : flat_program;
 		if(draw_call.primitiveType() == PrimitiveType::lines)
 			program = simple_program;
 

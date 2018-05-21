@@ -1,7 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-- konwersja vector<> na bool (.empty())
+- move light tuple operators inside LightTuple
+- EnumMap: wywalanie sie w czasie kompilacji przy błędach
 - translacja nazw debugowych ? jakaś możliwość rejestracji template-ów?
 - valid(), Invalid -> validMaybe(), InvalidMaybe ?
 - nie da się rozszerzać parsera o typy których nie da się domyślnie konstruować...
@@ -141,7 +142,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - fwk_assert powinno być ogólno dostępne, tak żeby wszędzie z tego korzystać
 - DASSERTY często nie wystarczają; chcielibyśmy mieć dokładniesze informacje (jakie dane konkretnie są zepsute?)
 - możliwość dodania suffixa do ścieżki FilePath (+em?)
-- konwersja vector na bool (czy pusty)
 - można robić struktury drzewiaste bazujące na wektorach! (tak jak robiłeś listę bazując na dwóch wektorach, tak samo
   możesz zrobić z drzewem)
 

@@ -36,7 +36,7 @@ class Backtrace {
 	// std::basic_string<...> to fwk::string
 	string analyze(bool filter) const;
 	auto size() const { return m_addresses.size(); }
-	bool empty() const { return m_addresses.empty() && m_gdb_result.first.empty(); }
+	bool empty() const { return !m_addresses && m_gdb_result.first.empty(); }
 
   private:
 	static string filter(const string &);

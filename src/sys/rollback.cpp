@@ -76,7 +76,7 @@ RollbackContext *RollbackContext::addContext(Maybe<BacktraceMode> bm) {
 void RollbackContext::addLevel(Maybe<BacktraceMode> bm) {
 	DASSERT(levels.size() <= 256 && "Please keep it reasonable");
 
-	if(levels.empty()) {
+	if(!levels) {
 		std::lock_guard<std::mutex> lock(s_alloc_funcs_mutex);
 		if(s_num_active == 0) {
 			fwk::detail::g_alloc = rbAlloc;
@@ -87,7 +87,7 @@ void RollbackContext::addLevel(Maybe<BacktraceMode> bm) {
 	}
 	is_disabled = true;
 	if(!bm)
-		bm = levels.empty() ? Backtrace::t_default_mode : levels.back().backtrace_mode;
+		bm = levels ? levels.back().backtrace_mode : Backtrace::t_default_mode;
 	levels.emplace_back(detail::t_on_fail_count, *bm);
 	is_disabled = false;
 }
@@ -97,7 +97,7 @@ void RollbackContext::dropContext() {
 
 	// TODO: Don't reallocate all the time
 	// if it's fast it will be useful in wider range of contexts
-	if(levels.empty()) {
+	if(!levels) {
 		t_context = nullptr;
 		this->~RollbackContext();
 		fwk::detail::ffree(this);
@@ -117,7 +117,7 @@ void RollbackContext::dropLevel() {
 	levels.pop_back();
 	is_disabled = false;
 
-	if(levels.empty()) {
+	if(!levels) {
 		std::lock_guard<std::mutex> lock(s_alloc_funcs_mutex);
 		s_num_active--;
 		if(s_num_active == 0) {

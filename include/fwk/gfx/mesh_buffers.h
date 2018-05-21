@@ -35,7 +35,7 @@ struct MeshBuffers {
 	vector<float3> animateNormals(CSpan<Matrix4>) const;
 
 	int size() const { return (int)positions.size(); }
-	bool hasSkin() const { return !weights.empty() && !node_names.empty(); }
+	bool hasSkin() const { return weights && node_names; }
 
 	MeshBuffers remap(const vector<int> &mapping) const;
 

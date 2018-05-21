@@ -97,7 +97,7 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 	vector<DrawCall> out;
 	out.reserve(m_elements.size());
 
-	if(m_positions.empty())
+	if(!m_positions)
 		return out;
 
 	VertexArraySource pos_source = make_immutable<VertexBuffer>(m_positions);

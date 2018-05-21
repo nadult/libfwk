@@ -3,10 +3,10 @@
 
 #include "fwk/gfx/converter.h"
 
-#include "fwk/str.h"
 #include "fwk/enum_map.h"
 #include "fwk/filesystem.h"
 #include "fwk/gfx/model.h"
+#include "fwk/str.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/sys/rollback.h"
 #include "fwk/sys/xml_loader.h"
@@ -51,11 +51,9 @@ string Converter::locateBlender() {
 	for(auto pf : pfiles) {
 		for(auto dir : fwk::findFiles(pf, FindFiles::directory)) {
 			string folder_name = toLower(dir.path.fileName());
-			if(folder_name.find("blender") != string::npos) {
-				auto files = fwk::findFiles(dir.path, "blender.exe");
-				if(!files.empty())
+			if(folder_name.find("blender") != string::npos)
+				if(auto files = fwk::findFiles(dir.path, "blender.exe"))
 					return string(dir.path) + files[0] + "blender.exe";
-			}
 		}
 	}
 

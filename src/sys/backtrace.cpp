@@ -36,7 +36,7 @@ namespace {
 	}
 
 	string analyzeCommand(CSpan<void *> addresses, bool funcs = false) {
-		if(addresses.empty())
+		if(!addresses)
 			return {};
 
 		TextFormatter command;
@@ -102,7 +102,7 @@ namespace {
 
 		for(auto &line : lines) {
 			if(line.find("Thread") == 0) {
-				if(!current.lines.empty())
+				if(current.lines)
 					out.emplace_back(move(current));
 				current = {};
 				current.header = line;
@@ -112,7 +112,7 @@ namespace {
 				current.lines.emplace_back(line);
 		}
 
-		if(!current.lines.empty())
+		if(current.lines)
 			out.emplace_back(move(current));
 		return out;
 	}
@@ -343,7 +343,7 @@ string Backtrace::analyze(bool filter) const {
 #elif defined(FWK_TARGET_MINGW)
 	formatter("Please run following command:\n% | c++filt\n", analyzeCommand(m_addresses, true));
 #endif
-	if(!file_lines.empty()) {
+	if(file_lines) {
 		int max_len = 0;
 		for(const auto &file_line : file_lines)
 			max_len = max(max_len, (int)file_line.size());

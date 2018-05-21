@@ -42,7 +42,7 @@ MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
 			DASSERT(indices.size() % 3 == 0);
 		}
 
-		if(type == Type::triangle_strip && !merged.empty() && !indices.empty()) {
+		if(type == Type::triangle_strip && merged && !indices.empty()) {
 			int prev = merged.back(), next = indices.m_data.front();
 
 			if(merged.size() % 2 == 1) {
@@ -118,7 +118,7 @@ int MeshIndices::triangleCount() const {
 }
 
 pair<int, int> MeshIndices::indexRange() const {
-	if(m_data.empty())
+	if(!m_data)
 		return {};
 
 	pair<int, int> out(m_data.front(), m_data.front());

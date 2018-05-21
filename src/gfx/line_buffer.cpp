@@ -103,13 +103,13 @@ void LineBuffer::operator()(const ISegment2<int> seg, IColor color) {
 
 void LineBuffer::operator()(CSpan<float2> pos, CSpan<IColor> colors) {
 	DASSERT(pos.size() % 2 == 0);
-	DASSERT(colors.empty() || colors.size() == pos.size());
+	DASSERT(!colors || colors.size() == pos.size());
 
 	m_positions.reserve(m_positions.size() + pos.size());
 	for(auto p : pos)
 		m_positions.emplace_back(p, 0.0f);
 
-	if(!colors.empty())
+	if(colors)
 		insertBack(m_colors, colors);
 	else
 		m_colors.resize(m_positions.size(), ColorId::white);

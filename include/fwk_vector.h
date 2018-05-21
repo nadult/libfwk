@@ -156,7 +156,9 @@ template <class T> class Vector {
 
 	int size() const { return m_base.size; }
 	int capacity() const { return m_base.capacity; }
+
 	bool empty() const { return m_base.size == 0; }
+	explicit operator bool() const { return m_base.size > 0; }
 
 	void clear() { m_base.clear(&Vector::destroy); }
 	void free() {

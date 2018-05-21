@@ -40,7 +40,7 @@ class Material {
 	explicit Material(IColor color, Flags flags = none, u16 custom_flags = 0);
 	Material() : Material(ColorId::white) {}
 
-	PTexture texture() const { return textures.empty() ? PTexture() : textures.front(); }
+	PTexture texture() const { return textures ? textures.front() : PTexture(); }
 
 	FWK_ORDER_BY(Material, textures, color, custom_flags, flags);
 

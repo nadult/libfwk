@@ -234,8 +234,10 @@ template <class T, int min_size = 0> class Span {
 
 	T *data() const { return m_data; }
 	int size() const { return m_size; }
-	bool empty() const { return m_size == 0; }
 	bool inRange(int idx) const { return fwk::inRange(idx, 0, m_size); }
+
+	bool empty() const { return m_size == 0; }
+	explicit operator bool() const { return m_size > 0; }
 
 	T &operator[](int idx) const {
 		PASSERT(inRange(idx));

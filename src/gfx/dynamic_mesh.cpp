@@ -157,7 +157,7 @@ bool DynamicMesh::isValid(VertexId id) const {
 	return id.id >= 0 && id.id < (int)m_verts.size() && !isnan(m_verts[id].x);
 }
 bool DynamicMesh::isValid(PolyId id) const {
-	return id.id >= 0 && id.id < (int)m_polys.size() && !m_polys[id].verts.empty();
+	return id.id >= 0 && id.id < (int)m_polys.size() && m_polys[id].verts;
 }
 bool DynamicMesh::isValid(EdgeId id) const {
 	return isValid(id.a) && isValid(id.b) && id.a != id.b;
@@ -167,15 +167,15 @@ VertexId DynamicMesh::addVertex(const float3 &pos) {
 	DASSERT(!isnan(pos));
 
 	int index = -1;
-	if(m_free_verts.empty()) {
-		index = (int)m_verts.size();
-		m_verts.emplace_back(pos);
-		m_adjacency.emplace_back(vector<int>());
-	} else {
+	if(m_free_verts) {
 		index = m_free_verts.back();
 		m_free_verts.pop_back();
 		m_verts[index] = pos;
-		DASSERT(m_adjacency[index].empty());
+		DASSERT(!m_adjacency[index]);
+	} else {
+		index = (int)m_verts.size();
+		m_verts.emplace_back(pos);
+		m_adjacency.emplace_back(vector<int>());
 	}
 
 	m_num_verts++;
@@ -190,14 +190,14 @@ PolyId DynamicMesh::addPoly(CSpan<VertexId, 3> indices, int value) {
 	}
 
 	int index = -1;
-	if(m_free_polys.empty()) {
-		index = (int)m_polys.size();
-		m_polys.emplace_back(Poly{vector<int>(begin(indices), end(indices)), value});
-	} else {
+	if(m_free_polys) {
 		index = m_free_polys.back();
 		m_free_polys.pop_back();
-		DASSERT(m_polys[index].verts.empty());
+		DASSERT(!m_polys[index].verts);
 		m_polys[index] = Poly{vector<int>(begin(indices), end(indices)), value};
+	} else {
+		index = (int)m_polys.size();
+		m_polys.emplace_back(Poly{vector<int>(begin(indices), end(indices)), value});
 	}
 
 	for(auto i : indices) {
@@ -216,7 +216,7 @@ PolyId DynamicMesh::addPoly(CSpan<VertexId, 3> indices, int value) {
 void DynamicMesh::remove(VertexId id) {
 	DASSERT(isValid(id));
 
-	while(!m_adjacency[id].empty())
+	while(m_adjacency[id])
 		remove(PolyId(m_adjacency[id].back()));
 
 	m_verts[id].x = NAN;
@@ -371,7 +371,7 @@ vector<PolyId> DynamicMesh::polys() const {
 	vector<PolyId> out;
 	out.reserve(m_num_polys);
 	for(int i = 0; i < polyIdCount(); i++)
-		if(!m_polys[i].verts.empty())
+		if(m_polys[i].verts)
 			out.emplace_back(i);
 	return out;
 }
@@ -409,7 +409,7 @@ vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 	vector<char> visited(polyIdCount(), 0);
 
 	vector<PolyId> list = {representative};
-	while(!list.empty()) {
+	while(list) {
 		PolyId face = list.back();
 		list.pop_back();
 

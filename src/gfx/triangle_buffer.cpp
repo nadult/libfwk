@@ -92,8 +92,8 @@ void TriangleBuffer::operator()(const IRect &rect, IColor color) {
 
 void TriangleBuffer::quads(CSpan<float2> pos, CSpan<float2> tex_coords, CSpan<IColor> colors) {
 	DASSERT(pos.size() % 4 == 0);
-	DASSERT(tex_coords.empty() || tex_coords.size() == pos.size());
-	DASSERT(colors.empty() || colors.size() == pos.size());
+	DASSERT(!tex_coords || tex_coords.size() == pos.size());
+	DASSERT(!colors || colors.size() == pos.size());
 
 	array<int, 6> indices{{0, 1, 2, 0, 2, 3}};
 
@@ -101,9 +101,9 @@ void TriangleBuffer::quads(CSpan<float2> pos, CSpan<float2> tex_coords, CSpan<IC
 		insertBack(m_positions,
 				   transform(indices, [&](int i) { return float3(pos[n * 4 + i], 0.0f); }));
 
-		if((m_flags & Opt::colors) && !colors.empty())
+		if((m_flags & Opt::colors) && colors)
 			insertBack(m_colors, transform(indices, [&](int i) { return colors[n * 4 + i]; }));
-		if((m_flags & Opt::tex_coords) && !tex_coords.empty())
+		if((m_flags & Opt::tex_coords) && tex_coords)
 			insertBack(m_tex_coords,
 					   transform(indices, [&](int i) { return tex_coords[n * 4 + i]; }));
 	}
@@ -113,27 +113,27 @@ void TriangleBuffer::quads(CSpan<float2> pos, CSpan<float2> tex_coords, CSpan<IC
 
 void TriangleBuffer::operator()(CSpan<float2> pos, CSpan<float2> tex_coords, CSpan<IColor> colors) {
 	DASSERT(pos.size() % 3 == 0);
-	DASSERT(tex_coords.empty() || tex_coords.size() == pos.size());
-	DASSERT(colors.empty() || colors.size() == pos.size());
+	DASSERT(!tex_coords || tex_coords.size() == pos.size());
+	DASSERT(!colors || colors.size() == pos.size());
 
 	m_positions.reserve(m_positions.size() + pos.size());
 	for(auto p : pos)
 		m_positions.emplace_back(p, 0.0f);
-	if((m_flags & Opt::colors) && !colors.empty())
+	if((m_flags & Opt::colors) && colors)
 		insertBack(m_colors, colors);
-	if((m_flags & Opt::tex_coords) && !tex_coords.empty())
+	if((m_flags & Opt::tex_coords) && tex_coords)
 		insertBack(m_tex_coords, tex_coords);
 	fillBuffers(ColorId::white);
 }
 
 void TriangleBuffer::operator()(CSpan<float2> pos, CSpan<float2> tex_coords, IColor color) {
 	DASSERT(pos.size() % 3 == 0);
-	DASSERT(tex_coords.empty() || tex_coords.size() == pos.size());
+	DASSERT(!tex_coords || tex_coords.size() == pos.size());
 
 	m_positions.reserve(m_positions.size() + pos.size());
 	for(auto p : pos)
 		m_positions.emplace_back(p, 0.0f);
-	if((m_flags & Opt::tex_coords) && !tex_coords.empty())
+	if((m_flags & Opt::tex_coords) && tex_coords)
 		insertBack(m_tex_coords, tex_coords);
 	fillBuffers(color);
 }

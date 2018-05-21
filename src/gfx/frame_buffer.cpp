@@ -28,7 +28,7 @@ static void attach(int type, const FrameBufferTarget &target) {
 FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
 	: m_colors(move(colors)), m_depth(move(depth)), m_id(0) {
 	PASSERT_GFX_THREAD();
-	DASSERT(!m_colors.empty() && m_colors.front());
+	DASSERT(m_colors && m_colors.front());
 	DASSERT(!m_depth || m_depth.size() == m_colors.front().size());
 	for(const auto &color : m_colors)
 		DASSERT(color.size() == m_colors.front().size());

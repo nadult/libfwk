@@ -99,7 +99,7 @@ const string Profiler::getStats(const char *filter) {
 			timer.last_frame_time = 0.0;
 		}
 
-		if(timer.values.empty()) {
+		if(!timer.values) {
 			out("%: no samples\n", timer.name);
 			continue;
 		}

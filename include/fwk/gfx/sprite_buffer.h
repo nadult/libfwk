@@ -26,7 +26,7 @@ class SpriteBuffer {
 	const auto &instances() const { return m_instances; }
 
   private:
-	Instance &instance(const Material &, Matrix4, bool has_colors, bool has_tex_coords);
+	Instance &instance(const Material &, Matrix4, bool empty_colors, bool has_tex_coords);
 
 	vector<Instance> m_instances;
 	const MatrixStack &m_matrix_stack;
