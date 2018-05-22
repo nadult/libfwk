@@ -250,6 +250,15 @@ template <class T, int min_size = 0> class Span {
 		return {m_data + start, end - start};
 	}
 
+	bool operator==(Span rhs) const {
+		if(m_size != rhs.m_size)
+			return false;
+		for(int n = 0; n < m_size; n++)
+			if(m_data[n] != rhs.m_data[n])
+				return false;
+		return true;
+	}
+
   private:
 	T *m_data;
 	int m_size;
