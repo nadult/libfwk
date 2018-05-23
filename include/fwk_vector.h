@@ -56,6 +56,18 @@ class BaseVector {
 	void loadPod(int, Stream &, int max_size);
 	void savePod(int, Stream &) const;
 
+	void checkIndex(int index) const {
+		if(index < 0 || index >= size)
+			invalidIndex(index);
+	}
+	void checkNotEmpty() const {
+		if(size == 0)
+			invalidEmpty();
+	}
+
+	[[noreturn]] void invalidIndex(int index) const;
+	[[noreturn]] void invalidEmpty() const;
+
 	char *data;
 	int size, capacity;
 };
@@ -141,18 +153,30 @@ template <class T> class Vector {
 	T *data() { return reinterpret_cast<T *>(m_base.data); }
 
 	T &operator[](int idx) {
-		PASSERT(inRange(idx));
+		IF_PARANOID(m_base.checkIndex(idx));
 		return data()[idx];
 	}
 	const T &operator[](int idx) const {
-		PASSERT(inRange(idx));
+		IF_PARANOID(m_base.checkIndex(idx));
 		return data()[idx];
 	}
 
-	const T &front() const { return data()[0]; }
-	T &front() { return data()[0]; }
-	const T &back() const { return data()[m_base.size - 1]; }
-	T &back() { return data()[m_base.size - 1]; }
+	const T &front() const {
+		IF_PARANOID(m_base.checkNotEmpty());
+		return data()[0];
+	}
+	T &front() {
+		IF_PARANOID(m_base.checkNotEmpty());
+		return data()[0];
+	}
+	const T &back() const {
+		IF_PARANOID(m_base.checkNotEmpty());
+		return data()[m_base.size - 1];
+	}
+	T &back() {
+		IF_PARANOID(m_base.checkNotEmpty());
+		return data()[m_base.size - 1];
+	}
 
 	int size() const { return m_base.size; }
 	int capacity() const { return m_base.capacity; }
@@ -220,7 +244,7 @@ template <class T> class Vector {
 			m_base.erase(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, it - begin(), 1);
 	}
 	void pop_back() {
-		PASSERT(size() > 0);
+		IF_PARANOID(m_base.checkNotEmpty());
 		back().~T();
 		m_base.size--;
 	}

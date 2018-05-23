@@ -207,4 +207,10 @@ void BaseVector::savePod(int obj_size, Stream &sr) const {
 	sr << size;
 	sr.saveData(data, sizeof(obj_size) * size);
 }
+
+void BaseVector::invalidIndex(int index) const {
+	FATAL("Index %d out of range: [%d - %d]", index, 0, size);
+}
+
+void BaseVector::invalidEmpty() const { FATAL("Accessing empty vector"); }
 }

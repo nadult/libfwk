@@ -143,8 +143,10 @@ double getTime();
 
 #if defined(FWK_PARANOID)
 #define PASSERT(expr) ASSERT(expr)
+#define IF_PARANOID(...) __VA_ARGS__
 #else
 #define PASSERT(expr) ((void)0)
+#define IF_PARANOID(...) ((void)0)
 #endif
 
 // TODO: use std::is_trivially_copyable instead?

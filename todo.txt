@@ -180,7 +180,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - better std::pair ?
 - better tests for vector? Use tests from libc++ or something?
-- Add some PASSERTs to fwk vector?
 - Make custom string class (not a template)
 - separate vector allocator specialized with element size
   this allocator could also store some data before first element

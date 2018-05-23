@@ -62,11 +62,11 @@ template <class T> class PodVector {
 	const T *end() const { return data() + m_base.size; }
 
 	T &operator[](int idx) {
-		PASSERT(inRange(idx));
+		IF_PARANOID(m_base.checkIndex(idx));
 		return data()[idx];
 	}
 	const T &operator[](int idx) const {
-		PASSERT(inRange(idx));
+		IF_PARANOID(m_base.checkIndex(idx));
 		return data()[idx];
 	}
 
