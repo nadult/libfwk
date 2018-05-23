@@ -80,9 +80,10 @@ template <class> class Expected;
 struct ErrorChunk;
 struct Error;
 
-template <class... T> struct Undefined;
-template <long long... V> struct UndefinedVal;
-template <class T> using UndefinedSize = UndefinedVal<sizeof(T)>;
+// Use these to print values and type names in error messages
+template <class... T> struct Undef;
+template <auto... V> struct UndefVal;
+template <class T> using UndefSize = UndefVal<sizeof(T)>;
 
 template <class T, int size> constexpr int arraySize(T (&)[size]) { return size; }
 
