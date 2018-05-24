@@ -138,8 +138,10 @@ double getTime();
 
 #ifdef NDEBUG
 #define DASSERT(expr) ((void)0)
+#define IF_DEBUG(...) ((void)0)
 #else
 #define DASSERT(expr) ASSERT(expr)
+#define IF_DEBUG(...) __VA_ARGS__
 #endif
 
 #if defined(FWK_PARANOID)
