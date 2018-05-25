@@ -199,8 +199,8 @@ template <class T> class Box {
 	ENABLE_IF_SIZE(3) Box<Vector2> xy() const { return {m_min.xy(), m_max.xy()}; }
 	ENABLE_IF_SIZE(3) Box<Vector2> yz() const { return {m_min.yz(), m_max.yz()}; }
 
-	Box(Invalid) : m_min(), m_max(-1) {}
-	bool valid() const { return validRange(m_min, m_max); } // Invariant
+	Box(EmptyMaybe) : m_min(), m_max(-1) {}
+	bool validMaybe() const { return validRange(m_min, m_max); } // Invariant
 
   private:
 	union {

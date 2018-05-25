@@ -14,8 +14,8 @@ namespace fwk {
 
 // Objects which can hold invalid values are perfect for Maybe;
 // Provide:
-// - constructor which takes Invalid()
-// - const member function valid()
+// - constructor which takes EmptyMaybe()
+// - const member function validMaybe()
 // Also make sure that operator= works interchangably between valid & invalid objects
 //
 // For such objects sizeof(Maybe<T>) == sizeof(T)
@@ -24,24 +24,23 @@ struct None {
 	bool operator==(const None &) const { return true; }
 	bool operator<(const None &) const { return false; }
 };
-struct Invalid {
-	bool operator==(const Invalid &) const { return true; }
-	bool operator<(const Invalid &) const { return false; }
+struct EmptyMaybe {
+	bool operator==(const EmptyMaybe &) const { return true; }
+	bool operator<(const EmptyMaybe &) const { return false; }
 };
 constexpr None none = {};
-constexpr Invalid invalid = {};
 
 namespace detail {
-	template <class T, class Enable = EnabledType> struct InvalidValue {
+	template <class T, class Enable = EnabledType> struct EmptyMaybe {
 		static constexpr None make() { return none; }
 		static constexpr bool valid(None) { return false; }
 	};
 
 	template <class T>
-	struct InvalidValue<T, EnableIf<isSame<decltype(declval<const T &>().valid()), bool>() &&
-									std::is_convertible<Invalid, T>::value>> {
-		static constexpr T make() { return T(invalid); }
-		static constexpr bool valid(const T &val) { return val.valid(); }
+	struct EmptyMaybe<T, EnableIf<isSame<decltype(declval<const T &>().validMaybe()), bool>() &&
+									std::is_convertible<fwk::EmptyMaybe, T>::value>> {
+		static constexpr T make() { return T(fwk::EmptyMaybe()); }
+		static constexpr bool valid(const T &val) { return val.validMaybe(); }
 	};
 }
 
@@ -142,9 +141,9 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 
 // Storage for types which can hold invalid values inside them
 template <class T>
-class MaybeStorage<T, EnableIf<isSame<decltype(detail::InvalidValue<T>::make()), T>()>> {
+class MaybeStorage<T, EnableIf<isSame<decltype(detail::EmptyMaybe<T>::make()), T>()>> {
   public:
-	MaybeStorage() : m_value(Inval::make()) {}
+	MaybeStorage() : m_value(Empty::make()) {}
 	MaybeStorage(T &&value) : m_value(move(value)) {}
 	MaybeStorage(const T &value) : m_value(value) {}
 
@@ -152,7 +151,7 @@ class MaybeStorage<T, EnableIf<isSame<decltype(detail::InvalidValue<T>::make()),
 	MaybeStorage(MaybeStorage &&src) = default;
 	~MaybeStorage() = default;
 
-	bool hasValue() const { return Inval::valid(m_value); }
+	bool hasValue() const { return Empty::valid(m_value); }
 
 	void operator=(T &&new_value) { m_value = move(new_value); }
 	void operator=(const T &new_value) { m_value = new_value; }
@@ -165,7 +164,7 @@ class MaybeStorage<T, EnableIf<isSame<decltype(detail::InvalidValue<T>::make()),
 	}
 
   protected:
-	using Inval = detail::InvalidValue<T>;
+	using Empty = detail::EmptyMaybe<T>;
 
 	T m_value;
 };

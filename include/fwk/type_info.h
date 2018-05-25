@@ -19,7 +19,6 @@ namespace detail {
 }
 
 using TypeId = long long;
-struct Invalid;
 
 struct TypeInfo {
 	using Data = detail::TypeInfoData;
@@ -49,8 +48,8 @@ struct TypeInfo {
 	bool operator==(const TypeInfo &rhs) const { return m_data == rhs.m_data; }
 	bool operator<(const TypeInfo &rhs) const { return m_data < rhs.m_data; }
 
-	TypeInfo(Invalid) : m_data(nullptr) {}
-	bool valid() const { return m_data != nullptr; }
+	TypeInfo(EmptyMaybe) : m_data(nullptr) {}
+	bool validMaybe() const { return m_data != nullptr; }
 
 	static const HashMap<string, TypeId> &nameToId();
 	static const HashMap<TypeId, string> &idToName();

@@ -1,10 +1,11 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-- move light tuple operators inside LightTuple
 - EnumMap: wywalanie sie w czasie kompilacji przy błędach
+  problem jest taki, że konstruktor template <int N> (const (T&)[N]) ma niższy
+  lub taki sam priorytet co (CSpan<T>)...
+
 - translacja nazw debugowych ? jakaś możliwość rejestracji template-ów?
-- valid(), Invalid -> validMaybe(), InvalidMaybe ?
 - nie da się rozszerzać parsera o typy których nie da się domyślnie konstruować...
 - dodać type_align, można by tego używać w SmallVector, np.
 - konieczność konwersji flag na boola jest słaba... może explicit nie jest potrzbeny?
@@ -76,7 +77,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - Stream guard podobnie jak XMLGuard ?
 - XMLLoader error handling
 - SpanBase<> for all types with different min_sizes
-- Maybe kompilacja pod mingw
 - XML should assert that string is owned or static...
 - use type trai primitives __is_trivially_assignable ...
 - Range instead of loops with XMLNode::next()
