@@ -250,11 +250,12 @@ template <class T, int min_size = 0> class Span {
 		return {m_data + start, end - start};
 	}
 
-	bool operator==(Span rhs) const {
-		if(m_size != rhs.m_size)
+	template <class U, EnableIf<isSame<RemoveConst<U>, value_type>()>...>
+	bool operator==(Span<U> rhs) const {
+		if(m_size != rhs.size())
 			return false;
 		for(int n = 0; n < m_size; n++)
-			if(m_data[n] != rhs.m_data[n])
+			if(m_data[n] != rhs[n])
 				return false;
 		return true;
 	}
