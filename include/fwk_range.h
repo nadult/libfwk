@@ -374,9 +374,9 @@ template <class Container, class Range> void insert(Container &into, const Range
 }
 
 template <class TRange, EnableIfRange<TRange>..., class TSpan, EnableIfSpan<TSpan>...>
-void copy(const TRange &range, const TSpan &span) {
-	DASSERT(fwk::size(span) >= fwk::size(range));
-	return std::copy(begin(range), end(range), begin(span));
+void copy(const TRange &src, const TSpan &dst) {
+	DASSERT(fwk::size(dst) >= fwk::size(src));
+	return std::copy(begin(src), end(src), begin(dst));
 }
 
 template <class TRange, class Func, EnableIfRange<TRange>...>
