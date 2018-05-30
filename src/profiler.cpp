@@ -82,8 +82,6 @@ static string formatTime(double sec) {
 }
 
 const string Profiler::getStats(const char *filter) {
-	TextFormatter out;
-
 	double cur_time = getTime();
 	long long min_frame = m_frame_limit - 30;
 
@@ -99,10 +97,8 @@ const string Profiler::getStats(const char *filter) {
 			timer.last_frame_time = 0.0;
 		}
 
-		if(!timer.values) {
-			out("%: no samples\n", timer.name);
+		if(!timer.values)
 			continue;
-		}
 
 		if(timer.is_rare) {
 			if(cur_time - timer.display_time > 10.0) {
@@ -147,6 +143,7 @@ const string Profiler::getStats(const char *filter) {
 	}
 
 	makeSorted(lines);
+	TextFormatter out;
 	for(auto &pair : lines)
 		out << pair.second;
 	lines.clear();
