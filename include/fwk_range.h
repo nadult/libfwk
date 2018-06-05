@@ -380,6 +380,12 @@ void copy(const TRange &src, const TSpan &dst) {
 	return std::copy(begin(src), end(src), begin(dst));
 }
 
+template <class TRange, EnableIfRange<TRange>..., class T>
+void fill(TRange &range, const T &value) {
+	std::fill(begin(range), end(range), value);
+}
+
+
 template <class TRange, class Func, EnableIfRange<TRange>...>
 auto transform(const TRange &range, const Func &func) {
 	using Value = decltype(func(*range.begin()));

@@ -56,7 +56,7 @@ class RollbackContext {
 	// - it's illegal to create shared pointers to objects out of the execution scope
 	// - it's OK to use standard containers like vector, string, HashMap, etc.
 	// - it's OK to construct FileStreams in rollback mode
-	// - you have to very careful with shared_ptr, static members, File handles, etc.
+	// - you have to be very careful with shared_ptr, static members, File handles, etc.
 	// - IDEALLY func performs pure computation which doesn't modify anything outside of itself
 	// TODO: label NoShared?
 	// TODO: add support within shared_ptr, etc. classes...
