@@ -52,11 +52,8 @@ template <class T> class Box {
 	explicit Box(T size) : Box(T(), size) {}
 	Box() : m_min(), m_max() {}
 
-	Box(const Box &rhs) : m_min(rhs.m_min), m_max(rhs.m_max) {}
-	void operator=(const Box &rhs) {
-		m_min = rhs.m_min;
-		m_max = rhs.m_max;
-	}
+	Box(const Box &) = default;
+	Box &operator=(const Box &) = default;
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}

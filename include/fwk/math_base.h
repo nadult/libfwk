@@ -279,11 +279,8 @@ template <class T> struct vec2 {
 	constexpr vec2() : x(0), y(0) {}
 	constexpr vec2(CSpan<T, 2> v) : vec2(v[0], v[1]) {}
 
-	vec2(const vec2 &rhs) : x(rhs.x), y(rhs.y) {}
-	void operator=(const vec2 &rhs) {
-		x = rhs.x;
-		y = rhs.y;
-	}
+	vec2(const vec2 &) = default;
+	vec2 &operator=(const vec2 &) = default;
 
 	explicit vec2(T t) : x(t), y(t) {}
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
@@ -325,12 +322,8 @@ template <class T> struct vec3 {
 	constexpr vec3(CSpan<T, 3> v) : vec3(v[0], v[1], v[2]) {}
 	explicit vec3(T t) : x(t), y(t), z(t) { CHECK_NANS(t); }
 
-	vec3(const vec3 &rhs) : x(rhs.x), y(rhs.y), z(rhs.z) {}
-	void operator=(const vec3 &rhs) {
-		x = rhs.x;
-		y = rhs.y;
-		z = rhs.z;
-	}
+	vec3(const vec3 &) = default;
+	vec3 &operator=(const vec3 &) = default;
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
@@ -376,13 +369,8 @@ template <class T> struct vec4 {
 	constexpr vec4(CSpan<T, 4> v) : vec4(v[0], v[1], v[2], v[3]) {}
 	explicit vec4(T t) : x(t), y(t), z(t), w(t) { CHECK_NANS(t); }
 
-	vec4(const vec4 &rhs) : x(rhs.x), y(rhs.y), z(rhs.z), w(rhs.w) {}
-	void operator=(const vec4 &rhs) {
-		x = rhs.x;
-		y = rhs.y;
-		z = rhs.z;
-		w = rhs.w;
-	}
+	vec4(const vec4 &) = default;
+	vec4 &operator=(const vec4 &) = default;
 
 	template <class U, EnableIf<preciseConversion<U, T>()>...>
 	vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
