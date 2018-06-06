@@ -264,6 +264,27 @@ TextFormatter &operator<<(TextFormatter &out, const pair<T1, T2> &pair) {
 	return out;
 }
 
+namespace detail {
+	template <int N, class... Args>
+	void formatTuple(TextFormatter &out, const LightTuple<Args...> &tuple) {
+		out << get<N>(tuple);
+		if constexpr(N + 1 < sizeof...(Args)) {
+			out << (out.isStructured() ? "; " : " ");
+			formatTuple<N + 1>(out, tuple);
+		}
+	}
+}
+
+template <class... Args>
+TextFormatter &operator<<(TextFormatter &out, const LightTuple<Args...> &tuple) {
+	if(out.isStructured())
+		out << '(';
+	detail::formatTuple<0>(out, tuple);
+	if(out.isStructured())
+		out << ')';
+	return out;
+}
+
 template <class T> TextFormatter &operator<<(TextFormatter &out, const Maybe<T> &maybe) {
 	if(maybe)
 		out << *maybe;
