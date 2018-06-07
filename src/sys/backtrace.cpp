@@ -313,7 +313,7 @@ Backtrace Backtrace::get(size_t skip, void *context_, Maybe<Mode> mode) {
 }
 
 pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
-	printf("Generating GDB backtrace\n");
+	printf("Generating GDB backtrace; Warning: sometimes GDB lies...\n");
 
 #ifdef FWK_TARGET_LINUX
 	auto pid = getpid();
