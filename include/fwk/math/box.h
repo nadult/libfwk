@@ -133,9 +133,6 @@ template <class T> class Box {
 		return true;
 	}
 
-	Scalar cellCount(int axis) const { return max(size(axis) - Scalar(1), Scalar(0)); }
-	T cellCount() const { return vmax(size() - T(Scalar(1)), T(Scalar(0))); }
-
 	ENABLE_IF_SIZE(2) array<Point, 4> corners() const {
 		return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
 	}

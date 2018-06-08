@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- transform może konwertować do tego samego typu kontenera (array, vector, smallvector)?
+
 - EnumMap: wywalanie sie w czasie kompilacji przy błędach
   problem jest taki, że konstruktor template <int N> (const (T&)[N]) ma niższy
   lub taki sam priorytet co (CSpan<T>)...
