@@ -73,7 +73,9 @@ template <class T> class PodVector {
 	int size() const { return m_base.size; }
 	long long byteSize() const { return m_base.size * (long long)sizeof(T); }
 	int capacity() const { return m_base.capacity; }
+
 	bool empty() const { return m_base.size == 0; }
+	explicit operator bool() const { return m_base.size > 0; }
 
 	operator Span<T>() { return {data(), m_base.size}; }
 	operator CSpan<T>() const { return {data(), m_base.size}; }
