@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/math/matrix4.h"
+#include <emmintrin.h>
 
 namespace fwk {
 
@@ -49,8 +50,22 @@ float4 operator*(const Matrix4 &matrix, const float4 &vector) {
 }
 
 float3 mulPoint(const Matrix4 &mat, const float3 &pt) {
+#ifdef __SSE2__
+	auto r0 = _mm_loadu_ps(mat[0].v);
+	auto r1 = _mm_loadu_ps(mat[1].v);
+	auto r2 = _mm_loadu_ps(mat[2].v);
+	auto r3 = _mm_loadu_ps(mat[3].v);
+
+	alignas(16) float out[4];
+	__m128 result = _mm_add_ps(
+		_mm_add_ps(_mm_mul_ps(r0, _mm_set1_ps(pt[0])), _mm_mul_ps(r1, _mm_set1_ps(pt[1]))),
+		_mm_add_ps(_mm_mul_ps(r2, _mm_set1_ps(pt[2])), _mm_mul_ps(r3, _mm_set1_ps(1.0f))));
+	_mm_store_ps(&out[0], result);
+	return float3(out[0], out[1], out[2]) / out[3];
+#else
 	float4 tmp = mat * float4(pt, 1.0f);
 	return tmp.xyz() / tmp.w;
+#endif
 }
 
 float3 mulPointAffine(const Matrix4 &affine_mat, const float3 &pt) {
