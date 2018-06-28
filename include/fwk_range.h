@@ -260,6 +260,11 @@ template <class T, int min_size = 0> class Span {
 		return true;
 	}
 
+	template <class U, EnableIf<isSame<RemoveConst<U>, value_type>()>...>
+	bool operator<(Span<U> rhs) const {
+		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
+	}
+
   private:
 	T *m_data;
 	int m_size;
