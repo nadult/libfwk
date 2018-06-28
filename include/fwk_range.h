@@ -375,16 +375,15 @@ template <class Container, class Range> void insert(Container &into, const Range
 }
 
 template <class TRange, EnableIfRange<TRange>..., class TSpan, EnableIfSpan<TSpan>...>
-void copy(const TRange &src, const TSpan &dst) {
+void copy(TSpan &dst, const TRange &src) {
 	DASSERT(fwk::size(dst) >= fwk::size(src));
-	return std::copy(begin(src), end(src), begin(dst));
+	std::copy(begin(src), end(src), begin(dst));
 }
 
 template <class TRange, EnableIfRange<TRange>..., class T>
 void fill(TRange &range, const T &value) {
 	std::fill(begin(range), end(range), value);
 }
-
 
 template <class TRange, class Func, EnableIfRange<TRange>...>
 auto transform(const TRange &range, const Func &func) {
