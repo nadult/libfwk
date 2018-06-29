@@ -121,9 +121,9 @@ struct NotAnEnum;
 
 namespace detail {
 	template <class T> struct IsEnum {
-		template <class C> static auto test(int) -> decltype(enumStrings(C()));
+		template <class C> static auto test(int) -> decltype(enumStrings(declval<C>()));
 		template <class C> static auto test(...) -> void;
-		enum { value = !std::is_same<void, decltype(test<T>(0))>::value };
+		static constexpr bool value = !std::is_same<void, decltype(test<T>(0))>::value;
 	};
 }
 
