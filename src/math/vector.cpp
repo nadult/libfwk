@@ -11,13 +11,13 @@
 namespace fwk {
 
 float vectorToAngle(const float2 &normalized_vec) {
-	DASSERT(isNormalized(normalized_vec));
+	DASSERT_HINT(isNormalized(normalized_vec), normalized_vec);
 	float ang = std::acos(normalized_vec.x);
 	return normalized_vec.y < 0 ? 2.0f * fconstant::pi - ang : ang;
 }
 
 double vectorToAngle(const double2 &normalized_vec) {
-	DASSERT(isNormalized(normalized_vec));
+	DASSERT_HINT(isNormalized(normalized_vec), normalized_vec);
 	double ang = std::acos(normalized_vec.x);
 	return normalized_vec.y < 0.0 ? 2.0 * dconstant::pi - ang : ang;
 }
