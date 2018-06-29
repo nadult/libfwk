@@ -30,7 +30,7 @@ void TriangleBuffer::operator()(const Triangle3F &tri, IColor color) {
 
 void TriangleBuffer::operator()(CSpan<Triangle3F> tris, IColor color) {
 	static_assert(sizeof(Triangle3F) == sizeof(float3) * 3);
-	insertBack(m_positions, reinterpret<float3>(tris));
+	insertBack(m_positions, tris.reinterpret<float3>());
 	fillBuffers(color);
 }
 

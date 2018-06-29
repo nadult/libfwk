@@ -265,31 +265,33 @@ template <class T, int min_size = 0> class Span {
 		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
 	}
 
+	template <class U> auto reinterpret() const {
+		static_assert(compatibleSizes(sizeof(T), sizeof(U)),
+					  "Incompatible sizes; are you sure, you want to do this cast?");
+		using out_type = Conditional<isConst<T>(), const U, U>;
+		auto new_size = size_t(m_size) * sizeof(T) / sizeof(U);
+		return Span<out_type>(reinterpret_cast<out_type *>(m_data), m_size);
+	}
+
   private:
 	T *m_data;
 	int m_size;
 };
 
-constexpr inline bool compatibleSizes(size_t a, size_t b) {
-	return a > b ? a % b == 0 : b % a == 0;
-}
-
-template <class U, class T, EnableIf<compatibleSizes(sizeof(T), sizeof(U))>...>
-auto reinterpret(Span<T> span) {
-	using out_type = Conditional<isConst<T>(), const U, U>;
-	auto new_size = size_t(span.size()) * sizeof(T) / sizeof(U);
-	return Span<out_type>(reinterpret_cast<out_type *>(span.data()), span.size());
-}
-
 template <class T, int min_size = 0> using CSpan = Span<const T, min_size>;
 
-template <class TSpan, class T = SpanBase<TSpan>> Span<T> makeSpan(TSpan &span) {
+template <class TSpan, class T = SpanBase<TSpan>> Span<T> span(TSpan &span) {
 	return Span<T>(span);
 }
 
-template <class TSpan, class T = SpanBase<TSpan>> CSpan<T> makeCSpan(const TSpan &span) {
+template <class TSpan, class T = SpanBase<TSpan>> CSpan<T> cspan(const TSpan &span) {
 	return CSpan<T>(span);
 }
+
+template <class T> Span<T> span(T *ptr, int size) { return Span<T>(ptr, size); }
+template <class T> Span<T> span(T *begin, const T *end) { return Span<T>(begin, end); }
+
+template <class T> CSpan<T> span(const std::initializer_list<T> &list) { return CSpan<T>(list); }
 
 template <class T> void makeUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));

@@ -4,8 +4,8 @@
 #pragma once
 
 #include "fwk/gfx_base.h"
-#include "fwk/sys/immutable_ptr.h"
 #include "fwk/math_base.h"
+#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
@@ -61,13 +61,13 @@ class VertexBuffer : public immutable_base<VertexBuffer> {
 	VertexBuffer(CSpan<T> data)
 		: VertexBuffer(data.data(), data.size(), (int)sizeof(T), TVertexDataType<T>()) {}
 	template <class TSpan, EnableIfSpan<TSpan>...>
-	VertexBuffer(const TSpan &span) : VertexBuffer(makeSpan(span)) {}
+	VertexBuffer(const TSpan &span) : VertexBuffer(fwk::span(span)) {}
 
 	template <class T> vector<T> getData() const {
 		ASSERT(TVertexDataType<T>().type == m_data_type.type);
 		ASSERT(sizeof(T) == m_vertex_size);
 		vector<T> out(m_size);
-		download(reinterpret<char>(Span<T>(out)));
+		download(span(out).template reinterpret<char>());
 		return out;
 	}
 

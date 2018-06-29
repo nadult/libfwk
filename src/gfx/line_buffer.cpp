@@ -28,7 +28,7 @@ void LineBuffer::operator()(CSpan<float3> verts, IColor color) {
 
 void LineBuffer::operator()(CSpan<Segment3F> segs, CSpan<IColor> colors) {
 	static_assert(sizeof(Segment3F) == sizeof(float3) * 2);
-	insertBack(m_positions, reinterpret<float3>(segs));
+	insertBack(m_positions, segs.reinterpret<float3>());
 	m_colors.reserve(m_colors.size() + colors.size() * 2);
 	for(auto col : colors)
 		insertBack(m_colors, {col, col});
@@ -40,7 +40,7 @@ void LineBuffer::operator()(const Segment3<float> &seg, IColor color) {
 }
 
 void LineBuffer::operator()(CSpan<Segment3<float>> segs, IColor color) {
-	(*this)(reinterpret<float3>(segs), color);
+	(*this)(segs.reinterpret<float3>(), color);
 }
 
 void LineBuffer::operator()(const FBox &bbox, IColor color) {

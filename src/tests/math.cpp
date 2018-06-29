@@ -132,16 +132,17 @@ void testIntersections() {
 	//	ASSERT_EQ(areIntersecting(tet, bbox2), true);
 	//	ASSERT_EQ(areIntersecting(tet, bbox3), false);
 
-	// TODO: fix sat
-	/*	for(int n = 0; n < 10000; n++) {
-			float3 points[4];
-			for(int i = 0; i < 4; i++)
-				points[i] = float3(int3(randomTranslation(100.0f)));
+	for(int n = 0; n < 1000; n++) {
+		float3 points[4];
+		for(int i = 0; i < 4; i++)
+			points[i] = float3(int3(randomTranslation(100.0f)));
 
-			FBox box1(makeSpan({points[0], points[1]}));
-			FBox box2(makeSpan({points[2], points[3]}));
-			ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
-		}*/
+		FBox box1 = enclose(span({points[0], points[1]}));
+		FBox box2 = enclose(span({points[2], points[3]}));
+
+		// TODO: fix sat
+		//ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
+	}
 }
 
 template <class T> void print(const typename Segment<T, 2>::Isect &isect) {

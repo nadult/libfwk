@@ -8,6 +8,8 @@
 
 namespace fwk {
 
+constexpr bool compatibleSizes(size_t a, size_t b) { return a > b ? a % b == 0 : b % a == 0; }
+
 class BaseVector {
   public:
 	using MoveDestroyFunc = void (*)(void *, void *, int);
@@ -318,10 +320,6 @@ template <class T> class Vector {
 
 	bool operator<(const Vector &rhs) const {
 		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
-	}
-
-	constexpr static bool compatibleSizes(size_t a, size_t b) {
-		return a > b ? a % b == 0 : b % a == 0;
 	}
 
 	template <class U> Vector<U> reinterpret() {

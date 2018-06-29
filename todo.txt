@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- CHECK(equal, a, b) -> fwk::assert::equal(a, b) ? ... : else print(args...)
 - zapisywanie pozycji okna
 - assert_in_range
 - transform może konwertować do tego samego typu kontenera (array, vector, smallvector)?
