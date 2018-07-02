@@ -41,7 +41,7 @@ namespace {
 		}
 
 		auto new_node = uniquePtr<ModelNode>(name, type, trans,
-											   mesh_id == -1 ? PMesh() : meshes[mesh_id], props);
+											 mesh_id == -1 ? PMesh() : meshes[mesh_id], props);
 		auto child_node = xml_node.child("node");
 		while(child_node) {
 			new_node->addChild(parseNode(meshes, child_node));
@@ -230,7 +230,7 @@ PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	DASSERT(valid(global_pose));
 	DASSERT(node_id >= 0 && node_id < m_nodes.size());
 
-	Matrix4 pre = inverse(m_nodes[node_id]->globalTrans());
+	Matrix4 pre = inverseOrZero(m_nodes[node_id]->globalTrans());
 	Matrix4 post = m_nodes[node_id]->globalTrans();
 
 	vector<Matrix4> out = global_pose->transforms();

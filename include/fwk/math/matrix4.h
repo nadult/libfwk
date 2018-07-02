@@ -31,6 +31,7 @@ class Matrix4 {
 	}
 
 	static Matrix4 identity();
+	static Matrix4 zero();
 
 	float4 row(int n) const { return float4(v[0][n], v[1][n], v[2][n], v[3][n]); }
 
@@ -46,6 +47,8 @@ class Matrix4 {
 
 	Span<float4, 4> values() { return v; }
 	CSpan<float4, 4> values() const { return v; }
+
+	bool invert(const Matrix4 &);
 
 	FWK_ORDER_BY(Matrix4, v[0], v[1], v[2], v[3]);
 
@@ -66,7 +69,8 @@ float3 mulNormalAffine(const Matrix4 &affine_mat, const float3 &);
 // Equivalent to creating the matrix with column{0,1,2,3} as rows
 Matrix4 transpose(const float4 &col0, const float4 &col1, const float4 &col2, const float4 &col3);
 Matrix4 transpose(const Matrix4 &);
-Matrix4 inverse(const Matrix4 &);
+
+Matrix4 inverseOrZero(const Matrix4 &);
 
 Matrix4 translation(const float3 &);
 Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up);

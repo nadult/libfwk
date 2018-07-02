@@ -10,7 +10,7 @@ namespace fwk {
 
 ModelNode::ModelNode(const string &name, Type type, const AffineTrans &trans, PMesh mesh,
 					 vector<Property> props)
-	: m_properties(move(props)), m_name(name), m_trans(trans), m_inv_trans(inverse(trans)),
+	: m_properties(move(props)), m_name(name), m_trans(trans), m_inv_trans(inverseOrZero(trans)),
 	  m_mesh(move(mesh)), m_type(type), m_id(-1), m_parent(nullptr) {}
 
 ModelNode::ModelNode(const ModelNode &rhs)
@@ -49,7 +49,7 @@ PModelNode ModelNode::clone() const { return uniquePtr<ModelNode>(*this); }
 
 void ModelNode::setTrans(const AffineTrans &trans) {
 	m_trans = trans;
-	m_inv_trans = inverse(trans);
+	m_inv_trans = inverseOrZero(trans);
 }
 
 void ModelNode::dfs(vector<ModelNode *> &out) {

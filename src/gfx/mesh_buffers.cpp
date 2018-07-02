@@ -20,7 +20,7 @@ namespace {
 	}
 
 	vector<float3> transformNormals(const Matrix4 &mat, vector<float3> normals) {
-		Matrix4 nrm_mat = transpose(inverse(mat));
+		Matrix4 nrm_mat = transpose(inverseOrZero(mat));
 		for(auto &nrm : normals)
 			nrm = mulNormal(nrm_mat, nrm);
 		return normals;
