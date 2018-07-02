@@ -43,6 +43,8 @@ template <class T, int N> class ISegment {
 	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const Point &) const;
 	bool testIsect(const Box<Vector> &) const;
 
+	void operator>>(TextFormatter &) const;
+
 	FWK_ORDER_BY(ISegment, from, to)
 
 	Point from, to;
@@ -127,6 +129,8 @@ template <class T, int N> class Segment {
 	ENABLE_IF_SIZE(3) Segment<T, 2> xz() const { return {from.xz(), to.xz()}; }
 	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }
 	ENABLE_IF_SIZE(3) Segment<T, 2> yz() const { return {from.yz(), to.yz()}; }
+
+	void operator>>(TextFormatter &) const;
 
 	FWK_ORDER_BY(Segment, from, to)
 

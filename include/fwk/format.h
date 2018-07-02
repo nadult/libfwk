@@ -38,6 +38,13 @@ namespace detail {
 		enum { value = isSame<decltype(test(declval<const T &>())), TextFormatter &>() };
 	};
 
+	template <class T> struct IsRightFormattible {
+		template <class U>
+		static auto test(const U &) -> decltype(declval<const U &>() >> declval<TextFormatter &>());
+		static char test(...);
+		enum { value = isSame<decltype(test(declval<const T &>())), void>() };
+	};
+
 	template <class T> void append(TextFormatter &fmt, TFValue val) {
 		const T &ref = *reinterpret_cast<const T *>(val);
 		fmt << ref;
@@ -203,11 +210,19 @@ class TextFormatter {
 
 // To make new type formattible: simply overload operator<<:
 // TextFormatter &operator<<(TextFormatter&, const MyNewType &rhs);
+// alternatively (can be a member function):
+// void operator>>(const MyNewType&, TextFormatter&);
 
 TextFormatter &operator<<(TextFormatter &, const Matrix4 &);
 TextFormatter &operator<<(TextFormatter &, const Quat &);
 
 TextFormatter &operator<<(TextFormatter &, qint);
+
+template <class T, EnableIf<detail::IsRightFormattible<T>::value>...>
+TextFormatter &operator<<(TextFormatter &fmt, const T &rhs) {
+	rhs >> fmt;
+	return fmt;
+}
 
 template <class TSpan, class T = SpanBase<TSpan>, EnableIfFormattible<T>...>
 TextFormatter &operator<<(TextFormatter &out, const TSpan &span) {

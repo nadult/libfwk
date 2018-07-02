@@ -23,13 +23,11 @@ template <class T> struct Interval {
 	Interval() : min(0), max(0) {}
 
 	Interval operator*(T val) const {
-		if(val < T(0))
-			return {max * val, min * val};
-		return {min * val, max * val};
+		return val < T(0) ? Interval(max * val, min * val) : Interval(min * val, max * val);
 	}
 	Interval operator/(T val) const { return (*this) * (T(1) / val); }
-	Interval operator+(T val) const { return {min + val, max + val}; }
-	Interval operator-(T val) const { return {min - val, max - val}; }
+	Interval operator+(T val) const { return Interval(min + val, max + val); }
+	Interval operator-(T val) const { return Interval(min - val, max - val); }
 
 	template <class U = T, EnableIfReal<U>...> static Interval inf() {
 		return {constant<T>::inf()};
@@ -42,12 +40,16 @@ template <class T> struct Interval {
 	Maybe<Interval> isect(const Interval &rhs) const {
 		if(min > rhs.max || rhs.max < min)
 			return none;
-		return {fwk::max(min, rhs.min), fwk::min(max, rhs.max)};
+		return Interval{fwk::max(min, rhs.min), fwk::min(max, rhs.max)};
 	}
 
 	Interval enclose(const Interval &rhs) const {
 		return {fwk::min(min, rhs.min), fwk::max(max, rhs.max)};
 	}
+
+	Interval enclose(T point) const { return {fwk::min(min, point), fwk::max(max, point)}; }
+
+	void operator>>(TextFormatter &) const;
 
 	FWK_ORDER_BY(Interval, min, max);
 

@@ -8,8 +8,8 @@
 #include "fwk/math/plane.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/triangle.h"
-#include "fwk/variant.h"
 #include "fwk/sys/xml.h"
+#include "fwk/variant.h"
 
 namespace fwk {
 
@@ -353,6 +353,14 @@ IsectParam<T> Segment<T, N>::isectParam(const Triangle<T, N> &tri) const {
 
 	auto param = asRay()->isectParam(tri).asInterval() / length();
 	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
+}
+
+template <class T, int N> void ISegment<T, N>::operator>>(TextFormatter &fmt) const {
+	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
+}
+
+template <class T, int N> void Segment<T, N>::operator>>(TextFormatter &fmt) const {
+	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
 }
 
 template class ISegment<short, 2>;
