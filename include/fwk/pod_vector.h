@@ -77,8 +77,8 @@ template <class T> class PodVector {
 	bool empty() const { return m_base.size == 0; }
 	explicit operator bool() const { return m_base.size > 0; }
 
-	operator Span<T>() { return {data(), m_base.size}; }
-	operator CSpan<T>() const { return {data(), m_base.size}; }
+	operator Span<T>() { return Span<T>(data(), m_base.size); }
+	operator CSpan<T>() const { return CSpan<T>(data(), m_base.size); }
 
   private:
 	BaseVector m_base;
