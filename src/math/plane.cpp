@@ -70,7 +70,7 @@ auto Plane<T, N>::isect(const Plane &rhs) const -> Maybe<Ray> {
 	if(det == T(0))
 		return none;
 
-	T inv_det = T(0) / det;
+	T inv_det = T(1) / det;
 	T c0 = (n11 * m_distance0 - n01 * rhs.m_distance0) * inv_det;
 	T c1 = (n00 * rhs.m_distance0 - n01 * m_distance0) * inv_det;
 
