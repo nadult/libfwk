@@ -17,5 +17,18 @@ void DrawCall::issue() const {
 	m_vertex_array->draw(m_primitive_type, m_vertex_count, m_index_offset);
 }
 
+int DrawCall::primitiveCount() const {
+	switch(m_primitive_type) {
+	case PrimitiveType::triangles:
+		return m_vertex_count / 3;
+	case PrimitiveType::triangle_strip:
+		return max(0, m_vertex_count - 2);
+	case PrimitiveType::lines:
+		return m_vertex_count / 2;
+	case PrimitiveType::points:
+		return m_vertex_count;
+	}
+}
+
 FWK_COPYABLE_CLASS_IMPL(DrawCall);
 }

@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "fwk/sys_base.h"
 #include "fwk/enum.h"
+#include "fwk/sys_base.h"
 
 namespace fwk {
 
-DEFINE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, rgb, rgb_f16, rgb_f32, luminance, dxt1, dxt3,
-			dxt5, depth, depth_stencil);
+DEFINE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, rgb, rgb_f16, rgb_f32, r32i, r32ui,
+			luminance, dxt1, dxt3, dxt5, depth, depth_stencil);
 
 class TextureFormat {
   public:

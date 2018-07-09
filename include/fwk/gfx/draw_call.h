@@ -23,6 +23,7 @@ class DrawCall {
 	Material material;
 
 	auto primitiveType() const { return m_primitive_type; }
+	int primitiveCount() const;
 
   private:
 	PVertexArray m_vertex_array;
