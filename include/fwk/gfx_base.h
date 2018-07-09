@@ -18,6 +18,7 @@ class VertexArraySource;
 class VertexArray;
 class RenderBuffer;
 class FrameBuffer;
+class ShaderStorage;
 class Shader;
 class Program;
 class ProgramBinder;
@@ -71,6 +72,7 @@ using PIndexBuffer = immutable_ptr<IndexBuffer>;
 using PVertexArray = immutable_ptr<VertexArray>;
 using SRenderBuffer = shared_ptr<RenderBuffer>;
 using SFrameBuffer = shared_ptr<FrameBuffer>;
+using SShaderStorage = shared_ptr<ShaderStorage>;
 
 using PProgram = immutable_ptr<Program>;
 using PFontCore = immutable_ptr<FontCore>;
