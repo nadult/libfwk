@@ -107,6 +107,12 @@ void DTexture::download(Texture &target) const {
 	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), target.data());
 }
 
+void DTexture::download(Span<char> bytes) const {
+	bind();
+	DASSERT(bytes.size() >= m_size.x * m_size.y);
+	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), bytes.data());
+}
+
 void DTexture::bind() const {
 	PASSERT_GFX_THREAD();
 	::glBindTexture(GL_TEXTURE_2D, m_id);
@@ -135,6 +141,18 @@ void DTexture::bind(const vector<const DTexture *> &set) {
 	}
 	max_bind = set.size();
 	glActiveTexture(GL_TEXTURE0);
+}
+
+void DTexture::clear(float4 value) {
+	DASSERT(sizeof(value) >= m_format.bytesPerPixel());
+	bind();
+	glClearTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), &value);
+}
+
+void DTexture::clear(int value) {
+	DASSERT(sizeof(value) >= m_format.bytesPerPixel());
+	bind();
+	glClearTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), &value);
 }
 
 void DTexture::unbind() {

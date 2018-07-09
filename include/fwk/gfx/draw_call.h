@@ -25,7 +25,6 @@ class DrawCall {
 	auto primitiveType() const { return m_primitive_type; }
 	int primitiveCount() const;
 
-  private:
 	PVertexArray m_vertex_array;
 	PrimitiveType m_primitive_type;
 	int m_vertex_count, m_index_offset;

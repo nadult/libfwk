@@ -5,8 +5,8 @@
 
 #include "fwk/gfx/texture_format.h"
 #include "fwk/gfx_base.h"
-#include "fwk/sys/immutable_ptr.h"
 #include "fwk/math_base.h"
+#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
@@ -62,6 +62,10 @@ class DTexture : public immutable_base<DTexture> {
 	void upload(Format, const void *pixels, const int2 &dimensions,
 				const int2 &target_pos = int2());
 	void download(Texture &target) const;
+	void download(Span<char>) const;
+
+	void clear(float4);
+	void clear(int);
 
 	int width() const { return m_size.x; }
 	int height() const { return m_size.y; }

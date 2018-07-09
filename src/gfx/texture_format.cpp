@@ -87,8 +87,8 @@ namespace {
 		{Id::rgb, FormatDesc(DDSId::unknown, 3, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)},
 		{Id::rgb_f16, FormatDesc(DDSId::unknown, 6, GL_RGB16F, GL_RGB, GL_FLOAT)},
 		{Id::rgb_f32, FormatDesc(DDSId::unknown, 12, GL_RGB32F, GL_RGB, GL_FLOAT)},
-		{Id::r32i, FormatDesc(DDSId::unknown, 4, GL_R32I, GL_R, GL_INT)},
-		{Id::r32ui, FormatDesc(DDSId::unknown, 4, GL_R32UI, GL_R, GL_INT)},
+		{Id::r32i, FormatDesc(DDSId::unknown, 4, GL_R32I, GL_RED_INTEGER, GL_INT)},
+		{Id::r32ui, FormatDesc(DDSId::unknown, 4, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT)},
 		{Id::luminance, FormatDesc(DDSId::L8, 1, GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE)},
 
 		{Id::dxt1, FormatDesc(DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true)},
