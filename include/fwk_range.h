@@ -270,7 +270,7 @@ template <class T, int min_size = 0> class Span {
 					  "Incompatible sizes; are you sure, you want to do this cast?");
 		using out_type = Conditional<isConst<T>(), const U, U>;
 		auto new_size = size_t(m_size) * sizeof(T) / sizeof(U);
-		return Span<out_type>(reinterpret_cast<out_type *>(m_data), m_size);
+		return Span<out_type>(reinterpret_cast<out_type *>(m_data), new_size);
 	}
 
   private:
