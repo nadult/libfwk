@@ -11,6 +11,7 @@ namespace fwk {
 
 class Program : public immutable_base<Program> {
   public:
+	explicit Program(const Shader &compute);
 	Program(const Shader &vertex, const Shader &fragment,
 			const vector<string> &location_names = {});
 	Program(const string &vsh_file_name, const string &fsh_file_name,

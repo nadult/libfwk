@@ -2,6 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/shader.h"
+
+#include "fwk/enum_map.h"
 #include "fwk/sys/stream.h"
 #include "fwk_opengl.h"
 
@@ -17,11 +19,14 @@ static string loadSource(Stream &stream) {
 	return text;
 }
 
+static const EnumMap<ShaderType, int> gl_type_map{
+	{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
+
 Shader::Shader(Type type, Stream &sr, const string &predefined_macros)
 	: Shader(type, loadSource(sr), predefined_macros, sr.name()) {}
 Shader::Shader(Type type, const string &source, const string &predefined_macros,
 			   const string &name) {
-	m_id = glCreateShader(type == Type::vertex ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
+	m_id = glCreateShader(gl_type_map[type]);
 	testGlError("glCreateShader");
 
 	string full_source =
@@ -61,8 +66,11 @@ Shader::~Shader() {
 Shader::Shader(Shader &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
 
 ShaderType Shader::type() const {
-	GLint type;
-	glGetShaderiv(m_id, GL_SHADER_TYPE, &type);
-	return type == GL_VERTEX_SHADER ? Type::vertex : Type::fragment;
+	GLint gl_type;
+	glGetShaderiv(m_id, GL_SHADER_TYPE, &gl_type);
+	for(auto type : all<Type>())
+		if(gl_type_map[type] == gl_type)
+			return type;
+	FATAL("Invalid shader type");
 }
 }

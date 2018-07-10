@@ -7,7 +7,7 @@
 
 namespace fwk {
 
-DEFINE_ENUM(ShaderType, vertex, fragment);
+DEFINE_ENUM(ShaderType, vertex, fragment, compute);
 
 class Shader {
   public:

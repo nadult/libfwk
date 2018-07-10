@@ -8,6 +8,23 @@
 
 namespace fwk {
 
+Program::Program(const Shader &compute) {
+	PASSERT_GFX_THREAD();
+	DASSERT(compute.type() == ShaderType::compute && compute.isValid());
+
+	m_id = glCreateProgram();
+	testGlError("Error while creating shader program");
+	{
+		glAttachShader(m_id, compute.id());
+		testGlError("Error while attaching vertex shader to program");
+		glLinkProgram(m_id);
+		testGlError("Error while linking program");
+	}
+
+	// TODO: finally:
+	// glDeleteProgram(m_id);
+}
+
 Program::Program(const Shader &vertex, const Shader &fragment,
 				 const vector<string> &location_names) {
 	PASSERT_GFX_THREAD();
