@@ -28,6 +28,7 @@ int DrawCall::primitiveCount() const {
 	case PrimitiveType::points:
 		return m_vertex_count;
 	}
+	return 0;
 }
 
 FWK_COPYABLE_CLASS_IMPL(DrawCall);

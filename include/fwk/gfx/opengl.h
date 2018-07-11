@@ -5,11 +5,11 @@
 #define FWK_GFX_OPENGL_H
 
 #ifdef __MINGW32__
-	#ifndef _WINDOWS_
-		#define _WINDOWS_
-		#define APIENTRY __attribute__((__stdcall__))
-		#define WINGDIAPI __attribute__((dllimport))
-	#endif
+#ifndef _WINDOWS_
+#define _WINDOWS_
+#define APIENTRY __attribute__((__stdcall__))
+#define WINGDIAPI __attribute__((dllimport))
+#endif
 #else
 #define GL_GLEXT_PROTOTYPES 1
 #endif
@@ -154,6 +154,40 @@ EXT_API void(EXT_ENTRY *glFramebufferRenderbuffer)(GLenum target, GLenum attachm
 EXT_API void(EXT_ENTRY *glFramebufferTexture2D)(GLenum target, GLenum attachment, GLenum textarget,
 												GLuint texture, GLint level);
 EXT_API void(EXT_ENTRY *glDrawBuffers)(GLsizei n, const GLenum *bufs);
+
+EXT_API void(EXT_ENTRY *glClearTexImage)(GLuint texture, GLint level, GLenum format, GLenum type,
+										 const void *data);
+EXT_API void(EXT_ENTRY *glClearTexSubImage)(GLuint texture, GLint level, GLint xoffset,
+											GLint yoffset, GLint zoffset, GLsizei width,
+											GLsizei height, GLsizei depth, GLenum format,
+											GLenum type, const void *data);
+
+EXT_API void(EXT_ENTRY *glBindImageTexture)(GLuint unit, GLuint texture, GLint level,
+											GLboolean layered, GLint layer, GLenum access,
+											GLenum format);
+EXT_API void(EXT_ENTRY *glMemoryBarrier)(GLbitfield barriers);
+
+EXT_API void(EXT_ENTRY *glClearBufferData)(GLenum target, GLenum internalformat, GLenum format,
+										   GLenum type, const void *data);
+EXT_API void(EXT_ENTRY *glClearBufferSubData)(GLenum target, GLenum internalformat, GLintptr offset,
+											  GLsizeiptr size, GLenum format, GLenum type,
+											  const void *data);
+
+EXT_API void(EXT_ENTRY *glBindBufferRange)(GLenum target, GLuint index, GLuint buffer,
+										   GLintptr offset, GLsizeiptr size);
+EXT_API void(EXT_ENTRY *glBindBufferBase)(GLenum target, GLuint index, GLuint buffer);
+
+EXT_API void(EXT_ENTRY *glDispatchCompute)(GLuint num_groups_x, GLuint num_groups_y,
+										   GLuint num_groups_z);
+EXT_API void(EXT_ENTRY *glDispatchComputeIndirect)(GLintptr indirect);
+
+EXT_API void(EXT_ENTRY *glClearBufferiv)(GLenum buffer, GLint drawbuffer, const GLint *value);
+EXT_API void(EXT_ENTRY *glClearBufferuiv)(GLenum buffer, GLint drawbuffer, const GLuint *value);
+EXT_API void(EXT_ENTRY *glClearBufferfv)(GLenum buffer, GLint drawbuffer, const GLfloat *value);
+EXT_API void(EXT_ENTRY *glClearBufferfi)(GLenum buffer, GLint drawbuffer, GLfloat depth,
+										 GLint stencil);
+
+EXT_API void(EXT_ENTRY *glBlendEquation)(GLenum mode);
 }
 
 #undef EXT_API

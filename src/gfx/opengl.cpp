@@ -150,6 +150,28 @@ void initializeOpenGL() {
 	LOAD(glFramebufferTexture2D);
 	LOAD(glDrawBuffers);
 
+	LOAD(glClearTexImage);
+	LOAD(glClearTexSubImage);
+
+	LOAD(glBindImageTexture);
+	LOAD(glMemoryBarrier);
+
+	LOAD(glClearBufferData);
+	LOAD(glClearBufferSubData);
+
+	LOAD(glBindBufferRange);
+	LOAD(glBindBufferBase);
+
+	LOAD(glDispatchCompute);
+	LOAD(glDispatchComputeIndirect);
+
+	LOAD(glClearBufferiv);
+	LOAD(glClearBufferuiv);
+	LOAD(glClearBufferfv);
+	LOAD(glClearBufferfi);
+
+	LOAD(glBlendEquation);
+
 #undef LOAD
 #endif
 }
