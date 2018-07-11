@@ -2,8 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/index_buffer.h"
+
+#include "fwk/gfx/opengl.h"
 #include "fwk/pod_vector.h"
-#include "fwk_opengl.h"
 
 namespace fwk {
 

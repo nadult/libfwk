@@ -1,17 +1,18 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/render_list.h"
+
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/opengl.h"
 #include "fwk/gfx/program.h"
 #include "fwk/gfx/program_binder.h"
-#include "fwk/gfx/render_list.h"
 #include "fwk/gfx/shader.h"
 #include "fwk/gfx/vertex_array.h"
 #include "fwk/gfx/vertex_buffer.h"
 #include "fwk/sys/resource_manager.h"
-#include "fwk_opengl.h"
 
 namespace fwk {
 

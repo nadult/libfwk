@@ -1,8 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_OPENGL_H
-#define FWK_OPENGL_H
+#ifndef FWK_GFX_OPENGL_H
+#define FWK_GFX_OPENGL_H
 
 #ifdef __MINGW32__
 	#ifndef _WINDOWS_
@@ -11,7 +11,7 @@
 		#define WINGDIAPI __attribute__((dllimport))
 	#endif
 #else
-	#define GL_GLEXT_PROTOTYPES 1
+#define GL_GLEXT_PROTOTYPES 1
 #endif
 
 #include <GL/gl.h>
@@ -161,7 +161,7 @@ EXT_API void(EXT_ENTRY *glDrawBuffers)(GLsizei n, const GLenum *bufs);
 
 #endif
 
-#ifndef FWK_OPENGL_H_ONLY_EXTENSIONS
+#ifndef FWK_GFX_OPENGL_H_ONLY_EXTENSIONS
 
 #include "fwk/gfx_base.h"
 

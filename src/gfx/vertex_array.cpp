@@ -5,8 +5,8 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/gfx/index_buffer.h"
+#include "fwk/gfx/opengl.h"
 #include "fwk/gfx/vertex_buffer.h"
-#include "fwk_opengl.h"
 #include "fwk_profile.h"
 #include <climits>
 

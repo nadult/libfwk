@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/index_buffer.h"
+#include "fwk/gfx/opengl.h"
 #include "fwk/gfx/program.h"
 #include "fwk/gfx/program_binder.h"
 #include "fwk/gfx/renderer2d.h"
@@ -11,7 +12,6 @@
 #include "fwk/gfx/vertex_buffer.h"
 #include "fwk/sys/resource_manager.h"
 #include "fwk/sys/xml.h"
-#include "fwk_opengl.h"
 
 namespace fwk {
 

@@ -1,9 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/frame_buffer.h"
-#include "fwk_opengl.h"
+
+#include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/opengl.h"
 #include <numeric>
 
 namespace fwk {

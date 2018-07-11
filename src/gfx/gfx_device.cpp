@@ -6,8 +6,8 @@
 #include "fwk/gfx/gfx_device.h"
 
 #include "fwk/gfx/color.h"
+#include "fwk/gfx/opengl.h"
 #include "fwk/sys/input.h"
-#include "fwk_opengl.h"
 #include <SDL.h>
 #include <SDL_video.h>
 #include <memory.h>

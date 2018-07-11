@@ -1,15 +1,16 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifdef FWK_OPENGL_H
-#define FWK_OPENGL_H_ONLY_EXTENSIONS
-#undef FWK_OPENGL_H
+#ifdef FWK_GFX_OPENGL_H
+#define FWK_GFX_OPENGL_H_ONLY_EXTENSIONS
+#undef FWK_GFX_OPENGL_H
 #endif
 
 #define EXT_API
 
+#include "fwk/gfx/opengl.h"
+
 #include "fwk/enum_map.h"
-#include "fwk_opengl.h"
 #include <cstring>
 
 #ifdef __EMSCRIPTEN__

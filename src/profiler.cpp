@@ -4,7 +4,7 @@
 #include "fwk_profile.h"
 
 #include "fwk/format.h"
-#include "fwk_opengl.h"
+#include "fwk/gfx/opengl.h"
 #include <cstdio>
 #include <cstring>
 

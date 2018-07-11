@@ -2,7 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/render_buffer.h"
-#include "fwk_opengl.h"
+
+#include "fwk/gfx/opengl.h"
 
 namespace fwk {
 

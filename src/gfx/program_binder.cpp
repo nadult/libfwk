@@ -3,8 +3,8 @@
 
 #include "fwk/gfx/program_binder.h"
 
+#include "fwk/gfx/opengl.h"
 #include "fwk/math/matrix4.h"
-#include "fwk_opengl.h"
 
 namespace fwk {
 

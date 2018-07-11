@@ -4,7 +4,7 @@
 #include "fwk/gfx/texture_format.h"
 
 #include "fwk/enum_map.h"
-#include "fwk_opengl.h"
+#include "fwk/gfx/opengl.h"
 
 namespace fwk {
 

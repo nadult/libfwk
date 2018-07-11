@@ -2,9 +2,10 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/dtexture.h"
+
+#include "fwk/gfx/opengl.h"
 #include "fwk/gfx/texture.h"
 #include "fwk/sys/on_fail.h"
-#include "fwk_opengl.h"
 
 namespace fwk {
 

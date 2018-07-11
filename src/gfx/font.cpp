@@ -4,11 +4,12 @@
 #include "fwk/gfx/triangle_buffer.h"
 #include "fwk/hash_map.h"
 
-#include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/font.h"
+
+#include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/opengl.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/sys/xml.h"
-#include "fwk_opengl.h"
 
 namespace fwk {
 

@@ -4,7 +4,7 @@
 #include "fwk/gfx/shader_storage.h"
 
 #include "fwk/format.h"
-#include "fwk_opengl.h"
+#include "fwk/gfx/opengl.h"
 
 namespace fwk {
 
