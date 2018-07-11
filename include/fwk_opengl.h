@@ -169,7 +169,10 @@ namespace fwk {
 
 void testGlError(const char *);
 
-DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic);
+DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic,
+			nv_conservative_raster);
+
+const char *glName(OpenglExtension);
 bool isExtensionSupported(OpenglExtension);
 }
 

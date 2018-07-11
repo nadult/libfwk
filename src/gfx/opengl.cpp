@@ -23,20 +23,24 @@ void *winLoadFunction(const char *name);
 
 static EnumMap<OpenglExtension, bool> s_is_extension_supported;
 
+static EnumMap<OpenglExtension, const char *> s_ext_names = {
+	"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc", "NV_conservative_raster"};
+
+const char *glName(OpenglExtension ext) { return s_ext_names[ext]; }
+
 void initializeOpenGL() {
 #ifdef __EMSCRIPTEN__
 	const char *must_haves[] = {"EXT_shader_texture_lod",   "OES_element_index_uint",
 								"OES_standard_derivatives", "OES_texture_float",
 								"OES_texture_half_float",   "OES_vertex_array_object",
 								"WEBGL_depth_texture",		"WEBGL_draw_buffers"};
-	const char *optionals[] = {"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc"};
 
 	auto context = emscripten_webgl_get_current_context();
 	for(auto ext : must_haves)
 		if(!emscripten_webgl_enable_extension(context, ext))
 			FATAL("OpenGL Extension not supported: %s", ext);
-	for(auto ext : optionals)
-		emscripten_webgl_enable_extension(context, ext);
+	for(auto ext : all<OpenglExtension>())
+		emscripten_webgl_enable_extension(context, s_ext_names[ext]);
 #else
 	int major = 0, minor = 0;
 	glGetIntegerv(GL_MAJOR_VERSION, &major);
@@ -46,12 +50,13 @@ void initializeOpenGL() {
 		FATAL("Minimum required OpenGL version: 3.0");
 #endif
 
-	const char *strings = (const char *)glGetString(GL_EXTENSIONS);
-	for(auto elem : all<OpenglExtension>())
-		s_is_extension_supported[elem] = strstr(strings, toString(elem)) != nullptr;
+	auto ext_strings = (const char *)glGetString(GL_EXTENSIONS);
+	for(auto ext : all<OpenglExtension>())
+		s_is_extension_supported[ext] = strstr(ext_strings, s_ext_names[ext]) != nullptr;
 
 #ifdef FWK_TARGET_MINGW
 #define LOAD(func) (func = (decltype(func))winLoadFunction(#func));
+
 	LOAD(glCompressedTexImage3D);
 	LOAD(glCompressedTexImage2D);
 	LOAD(glCompressedTexImage1D);
@@ -145,7 +150,6 @@ void initializeOpenGL() {
 	LOAD(glDrawBuffers);
 
 #undef LOAD
-
 #endif
 }
 
