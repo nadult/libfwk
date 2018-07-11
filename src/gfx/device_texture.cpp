@@ -144,13 +144,13 @@ void DTexture::bind(const vector<const DTexture *> &set) {
 }
 
 void DTexture::clear(float4 value) {
-	DASSERT(sizeof(value) >= m_format.bytesPerPixel());
+	DASSERT((int)sizeof(value) >= m_format.bytesPerPixel());
 	bind();
 	glClearTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), &value);
 }
 
 void DTexture::clear(int value) {
-	DASSERT(sizeof(value) >= m_format.bytesPerPixel());
+	DASSERT((int)sizeof(value) >= m_format.bytesPerPixel());
 	bind();
 	glClearTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), &value);
 }

@@ -234,12 +234,6 @@ bool removePrefix(string &str, const string &prefix) {
 	return false;
 }
 
-string toLower(const string &str) {
-	string out(str);
-	std::transform(out.begin(), out.end(), out.begin(), ::tolower);
-	return out;
-}
-
 bool access(const FilePath &path) {
 #ifdef _WIN32
 	return _access(path.c_str(), 0) == 0;

@@ -326,4 +326,10 @@ Maybe<string> toUTF8(const string32 &text) {
 		return none;
 	return string(buffer.begin(), buffer.end());
 }
+
+string toLower(const string &str) {
+	string out(str);
+	std::transform(out.begin(), out.end(), out.begin(), ::tolower);
+	return out;
+}
 }
