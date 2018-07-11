@@ -278,7 +278,7 @@ template <class T> constexpr bool isEnclosable() {
 }
 
 template <class TRange, class T = RangeBase<TRange>, EnableIf<isEnclosable<T>()>...>
-auto enclose(const TRange &objects) {
+auto encloseRange(const TRange &objects) {
 	using Box = decltype(enclose(declval<T>()));
 	if(objects.empty())
 		return Box();

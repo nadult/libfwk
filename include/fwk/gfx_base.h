@@ -51,6 +51,8 @@ struct FColor;
 struct IColor;
 enum class ColorId : unsigned char;
 
+struct ColoredTriangle;
+
 enum class TextureFormatId : unsigned char;
 enum class GfxDeviceOpt : unsigned char;
 enum class PrimitiveType : unsigned char;

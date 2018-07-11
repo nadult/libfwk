@@ -32,7 +32,7 @@ SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_in
 		   gfx/material gfx/material_set gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/program_binder gfx/pose \
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
-		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/shader_storage \
+		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/shader_storage gfx/colored_triangle \
 		   gfx/texture gfx/texture_format gfx/texture_tga gfx/texture_png gfx/texture_bmp \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer
 

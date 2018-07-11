@@ -21,6 +21,8 @@ class AnimatedModel {
 	Mesh toMesh() const;
 	FBox boundingBox() const;
 	float intersect(const Segment3<float> &) const;
+
+	// Generates DrawCalls suitable for RenderList
 	vector<DrawCall> genDrawCalls(const MaterialSet &, const Matrix4 & = Matrix4::identity()) const;
 
   private:

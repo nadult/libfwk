@@ -79,6 +79,8 @@ class Mesh : public immutable_base<Mesh> {
 	static Mesh apply(Mesh, AnimatedData);
 
 	vector<float3> lines() const;
+
+	// Generates DrawCalls suitable for RenderList
 	vector<DrawCall> genDrawCalls(const MaterialSet &, const AnimatedData *anim_data = nullptr,
 								  const Matrix4 & = Matrix4::identity()) const;
 

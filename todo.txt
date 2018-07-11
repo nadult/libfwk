@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Domyślne atrybuty vertexów nie są częścią VAO!!!
 - FrameBuffer -> Framebuffer
 - plane_count we frustum
 - lepsze interfajsy do wejścia

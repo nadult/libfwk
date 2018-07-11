@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/render_list.h"
 
+#include "fwk/gfx/colored_triangle.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gfx_device.h"
@@ -199,6 +200,39 @@ vector<pair<FBox, Matrix4>> RenderList::renderBoxes() const {
 	for(auto &dc : m_draw_calls)
 		if(dc.bbox)
 			out.emplace_back(*dc.bbox, dc.matrix);
+	return out;
+}
+
+DrawCall RenderList::makeDrawCall(CSpan<float3> vertices, CSpan<float2> tex_coords,
+								  CSpan<IColor> colors) {
+	auto vert = make_immutable<VertexBuffer>(vertices);
+	auto tex =
+		tex_coords ? make_immutable<VertexBuffer>(tex_coords) : VertexArraySource(float2(0, 0));
+	auto col =
+		colors ? make_immutable<VertexBuffer>(colors) : VertexArraySource(FColor(ColorId::white));
+
+	auto varray = VertexArray::make({vert, col, tex});
+	return {varray, PrimitiveType::triangles, vertices.size(), 0};
+}
+
+DrawCall RenderList::makeDrawCall(CSpan<ColoredTriangle> tris, Maybe<FBox> bbox) {
+	vector<float3> positions;
+	vector<IColor> colors;
+
+	positions.reserve(tris.size() * 3);
+	colors.reserve(tris.size() * 3);
+	for(auto &tri : tris)
+		for(int i = 0; i < 3; i++) {
+			positions.emplace_back(tri[i]);
+			colors.emplace_back(tri.colors[i]);
+		}
+
+	auto varray = VertexArray::make({make_immutable<VertexBuffer>(positions),
+									 make_immutable<VertexBuffer>(colors),
+									 VertexArraySource(float2(0.0f, 0.0f))});
+
+	DrawCall out(varray, PrimitiveType::triangles, tris.size() * 3, 0);
+	out.bbox = bbox ? *bbox : enclose(positions);
 	return out;
 }
 
