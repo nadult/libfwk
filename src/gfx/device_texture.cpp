@@ -101,6 +101,12 @@ void DTexture::upload(Format format, const void *pixels, const int2 &size, const
 					format.glType(), pixels);
 }
 
+void DTexture::upload(CSpan<char> bytes) {
+	DASSERT(bytes.size() >= m_format.evalImageSize(m_size.x, m_size.y));
+	glTexImage2D(GL_TEXTURE_2D, 0, m_format.glInternal(), m_size.x, m_size.y, 0,
+				 m_format.glFormat(), m_format.glType(), bytes.data());
+}
+
 void DTexture::download(Texture &target) const {
 	bind();
 	DASSERT(m_format == target.format());
@@ -110,7 +116,7 @@ void DTexture::download(Texture &target) const {
 
 void DTexture::download(Span<char> bytes) const {
 	bind();
-	DASSERT(bytes.size() >= m_size.x * m_size.y);
+	DASSERT(bytes.size() >= m_format.evalImageSize(m_size.x, m_size.y));
 	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), bytes.data());
 }
 
@@ -146,14 +152,20 @@ void DTexture::bind(const vector<const DTexture *> &set) {
 
 void DTexture::clear(float4 value) {
 	DASSERT((int)sizeof(value) >= m_format.bytesPerPixel());
-	bind();
-	glClearTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), &value);
+	glClearTexImage(m_id, 0, m_format.glFormat(), m_format.glType(), &value);
 }
 
 void DTexture::clear(int value) {
 	DASSERT((int)sizeof(value) >= m_format.bytesPerPixel());
-	bind();
-	glClearTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), &value);
+	glClearTexImage(m_id, 0, m_format.glFormat(), m_format.glType(), &value);
+}
+
+static int gl_access[] = {GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE};
+
+void DTexture::bindImage(int unit, AccessMode access, int level) {
+	DASSERT(unit >= 0);
+	glBindImageTexture(unit, m_id, level, GL_FALSE, 0, gl_access[(int)access],
+					   m_format.glInternal());
 }
 
 void DTexture::unbind() {

@@ -5,6 +5,7 @@
 
 #include "fwk/format.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/gfx/texture_format.h"
 
 namespace fwk {
 
@@ -33,5 +34,12 @@ void ShaderStorage::download(Span<char> data) const {
 
 void ShaderStorage::bind(int binding_index) {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding_index, m_handle);
+}
+
+void ShaderStorage::clear(TextureFormat fmt, int value) {
+	DASSERT(sizeof(value) >= fmt.bytesPerPixel());
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_handle);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, fmt.glInternal(), fmt.glFormat(), fmt.glType(),
+					  &value);
 }
 }

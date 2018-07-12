@@ -87,6 +87,8 @@ using PModelNode = UniquePtr<ModelNode>;
 
 DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
+DEFINE_ENUM(AccessMode, read_only, write_only, read_write);
+
 enum class HAlign {
 	left,
 	center,

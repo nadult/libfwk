@@ -58,11 +58,19 @@ class DTexture : public immutable_base<DTexture> {
 	static void bind(const vector<immutable_ptr<DTexture>> &);
 	static void unbind();
 
+	void bindImage(int unit, AccessMode access, int level = 0);
+
 	void upload(const Texture &src, const int2 &target_pos = int2());
 	void upload(Format, const void *pixels, const int2 &dimensions,
 				const int2 &target_pos = int2());
+	void upload(CSpan<char>);
+	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
+
 	void download(Texture &target) const;
 	void download(Span<char>) const;
+	template <class T> void download(Span<T> data) const {
+		download(data.template reinterpret<char>());
+	}
 
 	void clear(float4);
 	void clear(int);

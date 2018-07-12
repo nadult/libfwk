@@ -26,6 +26,8 @@ class ShaderStorage : public immutable_base<ShaderStorage> {
 	void upload(CSpan<char>);
 	void download(Span<char>) const;
 
+	void clear(TextureFormat, int);
+
 	void bind(int binding_index);
 
 	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
