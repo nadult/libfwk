@@ -202,9 +202,10 @@ EXT_API void(EXT_ENTRY *glBlendEquation)(GLenum mode);
 namespace fwk {
 
 void testGlError(const char *);
+bool installOpenglDebugHandler();
 
 DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic,
-			nv_conservative_raster);
+			nv_conservative_raster, debug);
 
 const char *glName(OpenglExtension);
 bool isExtensionSupported(OpenglExtension);

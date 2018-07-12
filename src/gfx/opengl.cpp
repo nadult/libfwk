@@ -11,6 +11,7 @@
 #include "fwk/gfx/opengl.h"
 
 #include "fwk/enum_map.h"
+#include "fwk/format.h"
 #include <cstring>
 
 #ifdef __EMSCRIPTEN__
@@ -24,8 +25,9 @@ void *winLoadFunction(const char *name);
 
 static EnumMap<OpenglExtension, bool> s_is_extension_supported;
 
-static EnumMap<OpenglExtension, const char *> s_ext_names = {
-	"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc", "NV_conservative_raster"};
+static EnumMap<OpenglExtension, const char *> s_ext_names = {"EXT_texture_filter_anisotropic",
+															 "WEBGL_compressed_texture_s3tc",
+															 "NV_conservative_raster", "KHR_debug"};
 
 const char *glName(OpenglExtension ext) { return s_ext_names[ext]; }
 
@@ -176,6 +178,8 @@ void initializeOpenGL() {
 #endif
 }
 
+bool isExtensionSupported(OpenglExtension ext) { return s_is_extension_supported[ext]; }
+
 // TODO: think of better error handling
 void testGlError(const char *msg) {
 #ifndef FWK_TARGET_HTML5
@@ -206,7 +210,85 @@ void testGlError(const char *msg) {
 #endif
 }
 
-bool isExtensionSupported(OpenglExtension ext) { return s_is_extension_supported[ext]; }
+static const char *debugSourceText(GLenum source) {
+	switch(source) {
+#define CASE(suffix, text)                                                                         \
+	case GL_DEBUG_SOURCE_##suffix:                                                                 \
+		return text;
+		CASE(API, "API")
+		CASE(WINDOW_SYSTEM, "window system")
+		CASE(SHADER_COMPILER, "shader compiler")
+		CASE(THIRD_PARTY, "third party")
+		CASE(APPLICATION, "application")
+		CASE(OTHER, "other")
+#undef CASE
+	}
+
+	return "unknown";
+}
+
+static const char *debugTypeText(GLenum type) {
+	switch(type) {
+#define CASE(suffix, text)                                                                         \
+	case GL_DEBUG_TYPE_##suffix:                                                                   \
+		return text;
+		CASE(ERROR, "error")
+		CASE(DEPRECATED_BEHAVIOR, "deprecated behavior")
+		CASE(UNDEFINED_BEHAVIOR, "undefined behavior")
+		CASE(PORTABILITY, "portability issue")
+		CASE(PERFORMANCE, "performance issue")
+		CASE(MARKER, "marker")
+		CASE(PUSH_GROUP, "push group")
+		CASE(POP_GROUP, "pop group")
+		CASE(OTHER, "other issue")
+#undef CASE
+	}
+
+	return "unknown";
+}
+
+static const char *debugSeverityText(GLenum severity) {
+	switch(severity) {
+#define CASE(suffix, text)                                                                         \
+	case GL_DEBUG_SEVERITY_##suffix:                                                               \
+		return text;
+		CASE(HIGH, "HIGH")
+		CASE(MEDIUM, "medium")
+		CASE(LOW, "low")
+		CASE(NOTIFICATION, "notification")
+#undef CASE
+	}
+
+	return "unknown";
+}
+
+static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+										 GLsizei length, const GLchar *message,
+										 const void *userParam) {
+	// ignore non-significant error/warning codes
+	if(id == 131169 || id == 131185 || id == 131218 || id == 131204)
+		return;
+
+	TextFormatter fmt;
+	fmt("Opengl % [%] ID:% Source:%\n", debugTypeText(type), debugSeverityText(severity), id,
+		debugSourceText(source));
+	fmt("%", message);
+
+	if(severity == GL_DEBUG_SEVERITY_HIGH)
+		FATAL("%s", fmt.text().c_str());
+	print("%\n", fmt.text());
+}
+
+bool installOpenglDebugHandler() {
+	if(!isExtensionSupported(OpenglExtension::debug))
+		return false;
+
+	glEnable(GL_DEBUG_OUTPUT);
+	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+	glDebugMessageCallback(debugOutputCallback, nullptr);
+	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+	return true;
+}
 }
 
 #undef EXT_API

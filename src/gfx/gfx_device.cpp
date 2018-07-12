@@ -116,6 +116,8 @@ void GfxDevice::createWindow(const string &name, const int2 &size, OptFlags flag
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
 	initializeOpenGL();
+	if(flags & Opt::opengl_debug_handler)
+		installOpenglDebugHandler();
 }
 
 void GfxDevice::destroyWindow() { m_window_impl.reset(); }

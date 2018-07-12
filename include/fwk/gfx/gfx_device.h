@@ -15,7 +15,7 @@ class InputState;
 class InputEvent;
 
 DEFINE_ENUM(GfxDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
-			maximized);
+			maximized, opengl_debug_handler);
 using GfxDeviceFlags = EnumFlags<GfxDeviceOpt>;
 
 class GfxDevice {
