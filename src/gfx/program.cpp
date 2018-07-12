@@ -5,6 +5,7 @@
 
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/shader.h"
+#include "fwk/pod_vector.h"
 #include "fwk/sys/stream.h"
 
 namespace fwk {
@@ -18,8 +19,7 @@ Program::Program(const Shader &compute) {
 	{
 		glAttachShader(m_id, compute.id());
 		testGlError("Error while attaching vertex shader to program");
-		glLinkProgram(m_id);
-		testGlError("Error while linking program");
+		link();
 	}
 
 	// TODO: finally:
@@ -45,12 +45,55 @@ Program::Program(const Shader &vertex, const Shader &fragment,
 			testGlError("Error while binding attribute");
 		}
 
-		glLinkProgram(m_id);
-		testGlError("Error while linking program");
+		link();
 	}
 
 	// TODO: finally:
 	// glDeleteProgram(m_id);
+}
+
+Program::Program(const Shader &vertex, const Shader &geom, const Shader &fragment,
+				 const vector<string> &location_names) {
+	PASSERT_GFX_THREAD();
+	DASSERT(vertex.type() == ShaderType::vertex && vertex.isValid());
+	DASSERT(geom.type() == ShaderType::geometry && geom.isValid());
+	DASSERT(fragment.type() == ShaderType::fragment && fragment.isValid());
+
+	m_id = glCreateProgram();
+	testGlError("Error while creating shader program");
+	{
+		glAttachShader(m_id, vertex.id());
+		testGlError("Error while attaching vertex shader to program");
+		glAttachShader(m_id, geom.id());
+		testGlError("Error while attaching geometry shader to program");
+		glAttachShader(m_id, fragment.id());
+		testGlError("Error while attaching fragment shader to program");
+
+		for(int l = 0; l < location_names.size(); l++) {
+			glBindAttribLocation(m_id, l, location_names[l].c_str());
+			testGlError("Error while binding attribute");
+		}
+
+		link();
+	}
+
+	// TODO: finally:
+	// glDeleteProgram(m_id);
+}
+
+void Program::link() {
+	glLinkProgram(m_id);
+	auto err = glGetError();
+
+	GLint param;
+	glGetProgramiv(m_id, GL_LINK_STATUS, &param);
+	if(param == GL_FALSE) {
+		glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &param);
+		PodVector<char> buffer(param);
+		glGetProgramInfoLog(m_id, buffer.size(), 0, buffer.data());
+		buffer[buffer.size() - 1] = 0;
+		CHECK_FAILED("Error while linking program:\n%s", buffer.data());
+	}
 }
 
 static Shader loadShader(const string &file_name, const string &predefined_macros,

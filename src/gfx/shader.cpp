@@ -20,7 +20,7 @@ static string loadSource(Stream &stream) {
 }
 
 static const EnumMap<ShaderType, int> gl_type_map{
-	{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
+	{GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
 
 Shader::Shader(Type type, Stream &sr, const string &predefined_macros)
 	: Shader(type, loadSource(sr), predefined_macros, sr.name()) {}

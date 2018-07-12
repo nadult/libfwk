@@ -14,6 +14,8 @@ class Program : public immutable_base<Program> {
 	explicit Program(const Shader &compute);
 	Program(const Shader &vertex, const Shader &fragment,
 			const vector<string> &location_names = {});
+	Program(const Shader &vertex, const Shader &geom, const Shader &fragment,
+			const vector<string> &location_names = {});
 	Program(const string &vsh_file_name, const string &fsh_file_name,
 			const string &predefined_macros, const vector<string> &location_names = {});
 	~Program();
@@ -25,6 +27,8 @@ class Program : public immutable_base<Program> {
 	string getInfo() const;
 
   private:
+	void link();
+
 	uint m_id;
 };
 }
