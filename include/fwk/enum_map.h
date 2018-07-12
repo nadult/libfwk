@@ -47,7 +47,7 @@ template <class Enum, class T> class EnumMap {
 		std::copy(values.begin(), values.end(), m_data.begin());
 	}
 	explicit EnumMap(const T &default_value) { m_data.fill(default_value); }
-	EnumMap() : EnumMap(T()) {}
+	EnumMap() : m_data() {}
 
 	EnumMap(std::initializer_list<pair<Enum, T>> list) : EnumMap(CSpan<pair<Enum, T>>(list)) {}
 	EnumMap(std::initializer_list<pair<Enum, T>> list, T default_value)
