@@ -25,9 +25,9 @@ void *winLoadFunction(const char *name);
 
 static EnumMap<OpenglExtension, bool> s_is_extension_supported;
 
-static EnumMap<OpenglExtension, const char *> s_ext_names = {"EXT_texture_filter_anisotropic",
-															 "WEBGL_compressed_texture_s3tc",
-															 "NV_conservative_raster", "KHR_debug"};
+static EnumMap<OpenglExtension, const char *> s_ext_names = {
+	"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc", "NV_conservative_raster",
+	"KHR_debug", "ARB_timer_query"};
 
 const char *glName(OpenglExtension ext) { return s_ext_names[ext]; }
 

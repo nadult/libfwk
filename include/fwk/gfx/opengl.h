@@ -205,7 +205,7 @@ void testGlError(const char *);
 bool installOpenglDebugHandler();
 
 DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic,
-			nv_conservative_raster, debug);
+			nv_conservative_raster, debug, timer_query);
 
 const char *glName(OpenglExtension);
 bool isExtensionSupported(OpenglExtension);

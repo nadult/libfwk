@@ -40,6 +40,7 @@ class DynamicMesh;
 class Model;
 class ModelNode;
 class ModelAnim;
+struct OpenglQuery;
 
 class TriangleBuffer;
 class SpriteBuffer;

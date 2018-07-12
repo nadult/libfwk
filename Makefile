@@ -33,7 +33,7 @@ SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_in
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
 		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/frame_buffer gfx/shader \
 		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/shader_storage gfx/colored_triangle \
-		   gfx/texture gfx/texture_format gfx/texture_tga gfx/texture_png gfx/texture_bmp \
+		   gfx/texture gfx/texture_format gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/opengl_query \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer
 
 TESTS_SRC=tests/streams tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
