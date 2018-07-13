@@ -207,7 +207,10 @@ bool installOpenglDebugHandler();
 DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic,
 			nv_conservative_raster, debug, timer_query);
 
-const char *glName(OpenglExtension);
+DEFINE_ENUM(OpenglVendor, intel, nvidia, amd, other);
+
+OpenglVendor openglVendor();
+const char *openglName(OpenglExtension);
 bool isExtensionSupported(OpenglExtension);
 }
 

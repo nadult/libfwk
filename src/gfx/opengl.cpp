@@ -12,6 +12,7 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/format.h"
+#include "fwk/str.h"
 #include <cstring>
 
 #ifdef __EMSCRIPTEN__
@@ -29,7 +30,11 @@ static EnumMap<OpenglExtension, const char *> s_ext_names = {
 	"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc", "NV_conservative_raster",
 	"KHR_debug", "ARB_timer_query"};
 
-const char *glName(OpenglExtension ext) { return s_ext_names[ext]; }
+static OpenglVendor s_opengl_vendor;
+
+OpenglVendor openglVendor() { return s_opengl_vendor; }
+const char *openglName(OpenglExtension ext) { return s_ext_names[ext]; }
+bool isExtensionSupported(OpenglExtension ext) { return s_is_extension_supported[ext]; }
 
 void initializeOpenGL() {
 #ifdef __EMSCRIPTEN__
@@ -52,6 +57,16 @@ void initializeOpenGL() {
 	if(version < 300)
 		FATAL("Minimum required OpenGL version: 3.0");
 #endif
+
+	auto vendor = toLower((const char *)glGetString(GL_VENDOR));
+	if(vendor.find("intel") != string::npos)
+		s_opengl_vendor = OpenglVendor::intel;
+	else if(vendor.find("nvidia") != string::npos)
+		s_opengl_vendor = OpenglVendor::nvidia;
+	else if(vendor.find("amd") != string::npos)
+		s_opengl_vendor = OpenglVendor::amd;
+	else
+		s_opengl_vendor = OpenglVendor::other;
 
 	auto ext_strings = (const char *)glGetString(GL_EXTENSIONS);
 	for(auto ext : all<OpenglExtension>())
@@ -178,8 +193,6 @@ void initializeOpenGL() {
 #endif
 }
 
-bool isExtensionSupported(OpenglExtension ext) { return s_is_extension_supported[ext]; }
-
 // TODO: think of better error handling
 void testGlError(const char *msg) {
 #ifndef FWK_TARGET_HTML5
@@ -266,15 +279,21 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 										 GLsizei length, const GLchar *message,
 										 const void *userParam) {
 	// ignore non-significant error/warning codes
-	if(id == 131169 || id == 131185 || id == 131218 || id == 131204)
-		return;
+	if(s_opengl_vendor == OpenglVendor::nvidia) {
+		if(id == 131169 || id == 131185 || id == 131218 || id == 131204)
+			return;
+	} else if(s_opengl_vendor == OpenglVendor::intel) {
+		Str msg((const char *)message);
+		if(msg.find("warning: extension") != -1 && msg.find("unsupported in") != -1)
+			return;
+	}
 
 	TextFormatter fmt;
 	fmt("Opengl % [%] ID:% Source:%\n", debugTypeText(type), debugSeverityText(severity), id,
 		debugSourceText(source));
 	fmt("%", message);
 
-	if(severity == GL_DEBUG_SEVERITY_HIGH)
+	if(severity == GL_DEBUG_SEVERITY_HIGH && type != GL_DEBUG_TYPE_OTHER)
 		FATAL("%s", fmt.text().c_str());
 	print("%\n", fmt.text());
 }
@@ -287,6 +306,8 @@ bool installOpenglDebugHandler() {
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(debugOutputCallback, nullptr);
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr,
+						  GL_FALSE);
 	return true;
 }
 }

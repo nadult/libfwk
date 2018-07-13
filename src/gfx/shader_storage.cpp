@@ -37,7 +37,7 @@ void ShaderStorage::bind(int binding_index) {
 }
 
 void ShaderStorage::clear(TextureFormat fmt, int value) {
-	DASSERT(sizeof(value) >= fmt.bytesPerPixel());
+	DASSERT((int)sizeof(value) >= fmt.bytesPerPixel());
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_handle);
 	glClearBufferData(GL_SHADER_STORAGE_BUFFER, fmt.glInternal(), fmt.glFormat(), fmt.glType(),
 					  &value);

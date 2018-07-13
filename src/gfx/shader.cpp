@@ -5,6 +5,7 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/sys/on_fail.h"
 #include "fwk/sys/stream.h"
 
 namespace fwk {
@@ -31,6 +32,7 @@ Shader::Shader(Type type, const string &source, const string &predefined_macros,
 
 	string full_source =
 		predefined_macros.empty() ? source : predefined_macros + "\n#line 0\n" + source;
+	ON_FAIL("Shader type: %", type);
 
 	for(char c : full_source) {
 		bool is_valid = (c >= 32 && c <= 125) || c == '\t' || c == '\n';
