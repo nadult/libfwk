@@ -91,7 +91,15 @@ template <class T> class Box {
 	Scalar height() const { return size(1); }
 	ENABLE_IF_SIZE(3) Scalar depth() const { return size(2); }
 
-	ENABLE_IF_SIZE(2) auto surfaceArea() const { return width() * height(); }
+	auto surfaceArea() const {
+		if constexpr(dim_size == 2)
+			return width() * height();
+		else if constexpr(dim_size == 3) {
+			auto w = width(), h = height(), d = depth();
+			return (w * h + h * d + w * d) * Scalar(2);
+		}
+	}
+
 	ENABLE_IF_SIZE(3) auto volume() const { return width() * height() * depth(); }
 
 	Scalar size(int axis) const { return m_max[axis] - m_min[axis]; }
