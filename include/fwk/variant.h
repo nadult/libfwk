@@ -434,7 +434,7 @@ public:
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T*>(&data);
         else
-			FATAL("Bad variant access in get()");
+			FWK_FATAL("Bad variant access in get()");
     }
 
     template <typename T, EnableIfValidType<T>...>
@@ -443,7 +443,7 @@ public:
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T const*>(&data);
         else
-			FATAL("Bad variant access in get()");
+			FWK_FATAL("Bad variant access in get()");
     }
 
     // get<T>() - T stored as std::reference_wrapper<T>
@@ -452,7 +452,7 @@ public:
         if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
         else
-			FATAL("Bad variant access in get()");
+			FWK_FATAL("Bad variant access in get()");
     }
 
     template <typename T, EnableIfValidType<std::reference_wrapper<const T>>...>
@@ -460,7 +460,7 @@ public:
         if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index || ndebug_access)
             return (*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
         else
-			FATAL("Bad variant access in get()");
+			FWK_FATAL("Bad variant access in get()");
     }
 
 	template <typename T, EnableIfValidType<T>...>

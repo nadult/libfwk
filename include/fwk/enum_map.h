@@ -24,12 +24,13 @@ template <class Enum, class T> class EnumMap {
 		for(auto &pair : pairs) {
 			auto bit = 1ull << int(pair.first);
 			if(flags & bit)
-				FATAL("Enum entry duplicated: %s", toString(pair.first));
+				FWK_FATAL("Enum entry duplicated: %s", toString(pair.first));
 			flags |= bit;
 		}
 
 		if(pairs.size() != size_)
-			FATAL("Invalid number of entries specified: %d (expected: %d)", pairs.size(), size_);
+			FWK_FATAL("Invalid number of entries specified: %d (expected: %d)", pairs.size(),
+					  size_);
 	}
 
 	EnumMap(CSpan<pair<Enum, T>> pairs) {

@@ -38,7 +38,7 @@ namespace detail {
 
 	template <class T>
 	struct EmptyMaybe<T, EnableIf<isSame<decltype(declval<const T &>().validMaybe()), bool>() &&
-									std::is_convertible<fwk::EmptyMaybe, T>::value>> {
+								  std::is_convertible<fwk::EmptyMaybe, T>::value>> {
 		static constexpr T make() { return T(fwk::EmptyMaybe()); }
 		static constexpr bool valid(const T &val) { return val.validMaybe(); }
 	};
@@ -263,7 +263,7 @@ template <class T> class Maybe : public MaybeStorage<T> {
 	void requireValue() const {
 #ifndef NDEBUG
 		if(!MaybeStorage<T>::hasValue())
-			FATAL("Dereferencing empty Maybe");
+			FWK_FATAL("Dereferencing empty Maybe");
 #endif
 	}
 };

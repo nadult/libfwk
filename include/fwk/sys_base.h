@@ -108,7 +108,7 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 	return (arg1 < arg2) ? arg1 : arg2;
 }
 
-// TODO: move FATAL, check, etc to fwk_assert ?
+// TODO: move FWK_FATAL, check, etc to fwk_assert ?
 // TODO: use Str ?
 [[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
 [[noreturn]] void assertFailed(const char *file, int line, const char *str);
@@ -125,7 +125,7 @@ int threadId();
 void sleep(double sec);
 double getTime();
 
-#define FATAL(...) fwk::fatalError(__FILE__, __LINE__, __VA_ARGS__)
+#define FWK_FATAL(...) fwk::fatalError(__FILE__, __LINE__, __VA_ARGS__)
 
 #define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 #define ASSERT_FAILED(...) fwk::assertFailed(__FILE__, __LINE__, __VA_ARGS__)
