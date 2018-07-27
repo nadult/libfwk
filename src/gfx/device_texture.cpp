@@ -14,7 +14,7 @@ DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	DASSERT(size.x >= 0 && size.y >= 0);
 	PASSERT_GFX_THREAD();
 
-	ON_FAIL("DTexture::DTexture() error; format: % size: %", size, format.id());
+	ON_FAIL("DTexture::DTexture() error; format: % size: %", format.id(), size);
 
 	{
 		glGenTextures(1, &m_id);
