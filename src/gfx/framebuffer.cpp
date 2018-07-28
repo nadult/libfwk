@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/frame_buffer.h"
+#include "fwk/gfx/framebuffer.h"
 
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/opengl.h"
@@ -9,15 +9,15 @@
 
 namespace fwk {
 
-FrameBufferTarget::operator bool() const { return texture || render_buffer; }
-TextureFormat FrameBufferTarget::format() const {
+FramebufferTarget::operator bool() const { return texture || render_buffer; }
+TextureFormat FramebufferTarget::format() const {
 	return texture ? texture->format() : render_buffer ? render_buffer->format() : TextureFormat();
 }
-int2 FrameBufferTarget::size() const {
+int2 FramebufferTarget::size() const {
 	return texture ? texture->size() : render_buffer ? render_buffer->size() : int2();
 }
 
-static void attach(int type, const FrameBufferTarget &target) {
+static void attach(int type, const FramebufferTarget &target) {
 	DASSERT(target);
 	if(target.render_buffer)
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, type, GL_RENDERBUFFER,
@@ -26,7 +26,7 @@ static void attach(int type, const FrameBufferTarget &target) {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, target.texture->id(), 0);
 }
 
-FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
+Framebuffer::Framebuffer(vector<Target> colors, Target depth)
 	: m_colors(move(colors)), m_depth(move(depth)), m_id(0) {
 	PASSERT_GFX_THREAD();
 	DASSERT(m_colors && m_colors.front());
@@ -68,15 +68,15 @@ FrameBuffer::FrameBuffer(vector<Target> colors, Target depth)
 	unbind();
 }
 
-FrameBuffer::FrameBuffer(Target color, Target depth)
-	: FrameBuffer(vector<Target>{move(color)}, move(depth)) {}
+Framebuffer::Framebuffer(Target color, Target depth)
+	: Framebuffer(vector<Target>{move(color)}, move(depth)) {}
 
-FrameBuffer::~FrameBuffer() {
+Framebuffer::~Framebuffer() {
 	PASSERT_GFX_THREAD();
 	glDeleteFramebuffers(1, &m_id);
 }
 
-int2 FrameBuffer::size() const { return m_colors.front().size(); }
-void FrameBuffer::bind() { glBindFramebuffer(GL_FRAMEBUFFER, m_id); }
-void FrameBuffer::unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+int2 Framebuffer::size() const { return m_colors.front().size(); }
+void Framebuffer::bind() { glBindFramebuffer(GL_FRAMEBUFFER, m_id); }
+void Framebuffer::unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 }

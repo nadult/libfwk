@@ -17,7 +17,7 @@ class IndexBuffer;
 class VertexArraySource;
 class VertexArray;
 class RenderBuffer;
-class FrameBuffer;
+class Framebuffer;
 class ShaderStorage;
 class Shader;
 class Program;
@@ -63,7 +63,7 @@ enum class MaterialOpt : unsigned char;
 struct HeightMap16bit;
 struct TextureConfig;
 struct VertexDataType;
-struct FrameBufferTarget;
+struct FramebufferTarget;
 struct FontStyle;
 
 using PTexture = immutable_ptr<DTexture>;
@@ -74,7 +74,7 @@ using PIndexBuffer = immutable_ptr<IndexBuffer>;
 
 using PVertexArray = immutable_ptr<VertexArray>;
 using SRenderBuffer = shared_ptr<RenderBuffer>;
-using SFrameBuffer = shared_ptr<FrameBuffer>;
+using SFramebuffer = shared_ptr<Framebuffer>;
 using SShaderStorage = shared_ptr<ShaderStorage>;
 
 using PProgram = immutable_ptr<Program>;
