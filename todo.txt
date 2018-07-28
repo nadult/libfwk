@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- więcej funkcji do enclose ?
 - device_texture.cpp -> dtexture.cpp
 - glDebugMessageCallback mingw
 - Domyślne atrybuty vertexów nie są częścią VAO!!!

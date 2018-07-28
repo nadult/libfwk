@@ -290,8 +290,11 @@ template <class TSpan, class T = SpanBase<TSpan>> CSpan<T> cspan(const TSpan &sp
 
 template <class T> Span<T> span(T *ptr, int size) { return Span<T>(ptr, size); }
 template <class T> Span<T> span(T *begin, const T *end) { return Span<T>(begin, end); }
-
 template <class T> CSpan<T> span(const std::initializer_list<T> &list) { return CSpan<T>(list); }
+
+template <class T> Span<T> cspan(T *ptr, int size) { return CSpan<T>(ptr, size); }
+template <class T> Span<T> cspan(T *begin, const T *end) { return CSpan<T>(begin, end); }
+template <class T> CSpan<T> cspan(const std::initializer_list<T> &list) { return CSpan<T>(list); }
 
 template <class T> void makeUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
