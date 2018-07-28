@@ -36,7 +36,7 @@ const Matrix4 &MatrixStack::fullMatrix() const {
 	return m_full_matrix;
 }
 
-const Frustum MatrixStack::frustum() const {
+Frustum MatrixStack::frustum() const {
 	if(m_is_frustum_dirty) {
 		m_frustum = Frustum(fullMatrix());
 		m_is_frustum_dirty = false;

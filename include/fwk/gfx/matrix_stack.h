@@ -21,7 +21,7 @@ class MatrixStack {
 	const Matrix4 &projectionMatrix() const { return m_projection_matrix; }
 	const Matrix4 &fullMatrix() const;
 
-	const Frustum frustum() const;
+	Frustum frustum() const;
 
   private:
 	vector<Matrix4> m_matrix_stack;

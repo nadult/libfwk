@@ -16,52 +16,46 @@ static Plane3F makePlane(const float4 &vec) {
 Frustum::Frustum(const Matrix4 &view_proj) {
 	Matrix4 t = transpose(view_proj);
 
-	m_planes[id_left] = makePlane(t[3] + t[0]);
-	m_planes[id_right] = makePlane(t[3] - t[0]);
+	planes[PlaneId::left] = makePlane(t[3] + t[0]);
+	planes[PlaneId::right] = makePlane(t[3] - t[0]);
 
-	m_planes[id_up] = makePlane(t[3] - t[1]);
-	m_planes[id_down] = makePlane(t[3] + t[1]);
+	planes[PlaneId::up] = makePlane(t[3] - t[1]);
+	planes[PlaneId::down] = makePlane(t[3] + t[1]);
 
-	//	m_planes[id_front]	= makePlane(t[3] - t[2]);
-	//	m_planes[id_back]	= makePlane(t[3] + t[2]);
-
-	for(int n = 0; n < planes_count; n++)
-		m_planes[n] = m_planes[n];
+	//	planes[PlaneId::front]	= makePlane(t[3] - t[2]);
+	//	planes[PlaneId::back]	= makePlane(t[3] + t[2]);
 }
 
-Frustum::Frustum(CSpan<Plane3F, planes_count> planes) {
-	for(int n = 0; n < planes_count; n++)
-		m_planes[n] = planes[n];
-}
+Frustum::Frustum(CSpan<Plane3F, plane_count> planes) : planes(planes) {}
 
-bool Frustum::isIntersecting(const float3 &point) const {
-	for(int n = 0; n < planes_count; n++)
-		if(m_planes[n].signedDistance(point) <= 0) //TODO: < ?
+bool Frustum::testIsect(const float3 &point) const {
+	for(auto &plane : planes)
+		if(plane.signedDistance(point) <= 0.0f) //TODO: < ?
 			return false;
 	return true;
 }
 
-bool Frustum::isIntersecting(CSpan<float3> points) const {
-	for(const auto &plane : m_planes) {
+// TODO: clang crashes on this (in full opt with -DNDEBUG)
+bool Frustum::testIsect(CSpan<float3> points) const {
+	for(auto &plane : planes) {
 		bool all_outside = true;
-		for(const auto &point : points)
+		for(auto &point : points)
 			if(plane.signedDistance(point) > 0.0f) {
 				all_outside = false;
 				break;
 			}
-
 		if(all_outside)
 			return false;
 	}
 	return true;
 }
 
-bool Frustum::isIntersecting(const FBox &box) const { return isIntersecting(box.corners()); }
+bool Frustum::testIsect(const FBox &box) const { return testIsect(box.corners()); }
 
 const Frustum operator*(const Matrix4 &matrix, const Frustum &frustum) {
 	Frustum out;
-	for(size_t n = 0; n < Frustum::planes_count; n++)
-		out[n] = matrix * frustum[n];
+	for(auto pid : all<FrustumPlaneId>())
+		out[pid] = matrix * frustum[pid];
 	return out;
 }
 }

@@ -3,40 +3,41 @@
 
 #pragma once
 
+#include "fwk/enum_map.h"
 #include "fwk/math/plane.h"
 
 namespace fwk {
 
+DEFINE_ENUM(FrustumPlaneId, left, right, up, down);
+
 // Basically, a set of planes
 class Frustum {
   public:
-	enum {
-		id_left,
-		id_right,
-		id_up,
-		id_down,
-		//	id_front,
-		//	id_back
-
-		planes_count,
-	};
+	using PlaneId = FrustumPlaneId;
+	static constexpr int plane_count = count<PlaneId>();
 
 	Frustum() = default;
 	Frustum(const Matrix4 &view_projection);
-	Frustum(CSpan<Plane3F, planes_count>);
+	Frustum(CSpan<Plane3F, plane_count>);
+	Frustum(EnumMap<PlaneId, Plane3F>);
 
-	bool isIntersecting(const float3 &point) const;
-	bool isIntersecting(const FBox &box) const;
+	bool testIsect(const float3 &point) const;
+	bool testIsect(const FBox &box) const;
+	bool testIsect(CSpan<float3> points) const;
 
-	// TODO: clang crashes on this (in full opt with -DNDEBUG)
-	bool isIntersecting(CSpan<float3> points) const;
+	const Plane3F &operator[](int idx) const {
+		PASSERT(idx >= 0 && idx < plane_count);
+		return planes[PlaneId(idx)];
+	}
+	Plane3F &operator[](int idx) {
+		PASSERT(idx >= 0 && idx < plane_count);
+		return planes[PlaneId(idx)];
+	}
 
-	const Plane3F &operator[](int idx) const { return m_planes[idx]; }
-	Plane3F &operator[](int idx) { return m_planes[idx]; }
-	int size() const { return planes_count; }
+	const Plane3F &operator[](PlaneId id) const { return planes[id]; }
+	Plane3F &operator[](PlaneId id) { return planes[id]; }
 
-  private:
-	array<Plane3F, planes_count> m_planes;
+	EnumMap<PlaneId, Plane3F> planes;
 };
 
 const Frustum operator*(const Matrix4 &, const Frustum &);

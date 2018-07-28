@@ -3,7 +3,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - więcej funkcji do enclose ?
 - Domyślne atrybuty vertexów nie są częścią VAO!!!
-- plane_count we frustum
 - lepsze interfajsy do wejścia
 - CHECK(equal, a, b) -> fwk::assert::equal(a, b) ? ... : else print(args...)
 - zapisywanie pozycji okna
