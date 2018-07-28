@@ -189,6 +189,19 @@ void initializeOpenGL() {
 
 	LOAD(glBlendEquation);
 
+	LOAD(glDebugMessageCallback);
+	LOAD(glDebugMessageControl);
+	LOAD(glDebugMessageInsert);
+
+	LOAD(glGenQueries);
+	LOAD(glDeleteQueries);
+	LOAD(glIsQuery);
+	LOAD(glBeginQuery);
+	LOAD(glEndQuery);
+	LOAD(glGetQueryiv);
+	LOAD(glGetQueryObjectiv);
+	LOAD(glGetQueryObjectuiv);
+
 #undef LOAD
 #endif
 }

@@ -188,6 +188,21 @@ EXT_API void(EXT_ENTRY *glClearBufferfi)(GLenum buffer, GLint drawbuffer, GLfloa
 										 GLint stencil);
 
 EXT_API void(EXT_ENTRY *glBlendEquation)(GLenum mode);
+
+EXT_API void(EXT_ENTRY *glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam);
+EXT_API void(EXT_ENTRY *glDebugMessageControl)(GLenum source, GLenum type, GLenum severity,
+											   GLsizei count, const GLuint *ids, GLboolean enabled);
+EXT_API void(EXT_ENTRY *glDebugMessageInsert)(GLenum source, GLenum type, GLuint id,
+											  GLenum severity, GLsizei length, const GLchar *buf);
+
+EXT_API void(EXT_ENTRY *glGenQueries)(GLsizei n, GLuint *ids);
+EXT_API void(EXT_ENTRY *glDeleteQueries)(GLsizei n, const GLuint *ids);
+EXT_API GLboolean(EXT_ENTRY *glIsQuery)(GLuint id);
+EXT_API void(EXT_ENTRY *glBeginQuery)(GLenum target, GLuint id);
+EXT_API void(EXT_ENTRY *glEndQuery)(GLenum target);
+EXT_API void(EXT_ENTRY *glGetQueryiv)(GLenum target, GLenum pname, GLint *params);
+EXT_API void(EXT_ENTRY *glGetQueryObjectiv)(GLuint id, GLenum pname, GLint *params);
+EXT_API void(EXT_ENTRY *glGetQueryObjectuiv)(GLuint id, GLenum pname, GLuint *params);
 }
 
 #undef EXT_API
