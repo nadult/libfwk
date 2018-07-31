@@ -34,12 +34,6 @@ Shader::Shader(Type type, const string &source, const string &predefined_macros,
 		predefined_macros.empty() ? source : predefined_macros + "\n#line 0\n" + source;
 	ON_FAIL("Shader type: %", type);
 
-	for(char c : full_source) {
-		bool is_valid = (c >= 32 && c <= 125) || c == '\t' || c == '\n';
-		if(!is_valid)
-			CHECK_FAILED("Invalid character in shader source (ascii: %d)\n", (int)c);
-	}
-
 	GLint length = (GLint)full_source.size();
 	const char *string = full_source.data();
 
