@@ -9,7 +9,9 @@
 namespace fwk {
 
 DEFINE_ENUM(TextureFormatId, rgba, rgba_f16, rgba_f32, rgb, rgb_f16, rgb_f32, r32i, r32ui,
-			luminance, dxt1, dxt3, dxt5, depth, depth_stencil);
+			luminance, dxt1, dxt3, dxt5, depth16, depth24, depth32, depth32f, depth_stencil);
+
+bool hasDepthComponent(TextureFormatId);
 
 class TextureFormat {
   public:

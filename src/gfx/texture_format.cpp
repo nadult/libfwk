@@ -67,6 +67,10 @@ enum class DDSId {
 
 using Id = TextureFormatId;
 
+bool hasDepthComponent(TextureFormatId id) {
+	return isOneOf(id, Id::depth16, Id::depth24, Id::depth32, Id::depth32f, Id::depth_stencil);
+}
+
 namespace {
 	struct FormatDesc {
 		FormatDesc() = default;
@@ -95,8 +99,14 @@ namespace {
 		{Id::dxt3, FormatDesc(DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true)},
 		{Id::dxt5, FormatDesc(DDSId::DXT5, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0, true)},
 
-		{Id::depth, FormatDesc(DDSId::unknown, 4, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT,
-							   GL_UNSIGNED_SHORT)},
+		{Id::depth16, FormatDesc(DDSId::unknown, 2, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT,
+								 GL_UNSIGNED_SHORT)},
+		{Id::depth24,
+		 FormatDesc(DDSId::unknown, 3, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE)},
+		{Id::depth32,
+		 FormatDesc(DDSId::unknown, 4, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT)},
+		{Id::depth32f,
+		 FormatDesc(DDSId::unknown, 4, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT)},
 		// TODO: WebGL requires 16bits
 		{Id::depth_stencil, FormatDesc(DDSId::unknown, 4, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
 									   GL_UNSIGNED_INT_24_8)},

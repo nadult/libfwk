@@ -23,6 +23,8 @@ struct FramebufferTarget {
 
 class Framebuffer {
   public:
+	static constexpr int max_color_attachments = 8;
+
 	using Target = FramebufferTarget;
 	Framebuffer(vector<Target> colors, Target depth = Target());
 	Framebuffer(Target color, Target depth = Target());
@@ -44,6 +46,7 @@ class Framebuffer {
 
   private:
 	vector<Target> m_colors;
+	int2 m_size;
 	Target m_depth;
 	uint m_id;
 };

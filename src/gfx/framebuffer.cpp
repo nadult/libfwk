@@ -29,11 +29,18 @@ static void attach(int type, const FramebufferTarget &target) {
 Framebuffer::Framebuffer(vector<Target> colors, Target depth)
 	: m_colors(move(colors)), m_depth(move(depth)), m_id(0) {
 	PASSERT_GFX_THREAD();
-	DASSERT(m_colors && m_colors.front());
-	DASSERT(!m_depth || m_depth.size() == m_colors.front().size());
-	for(const auto &color : m_colors)
-		DASSERT(color.size() == m_colors.front().size());
-	DASSERT((int)m_colors.size() <= GL_MAX_COLOR_ATTACHMENTS);
+
+	if(m_colors) {
+		m_size = m_colors.front().size();
+		for(const auto &color : m_colors)
+			DASSERT(color && color.size() == m_size);
+		DASSERT(!m_depth || m_depth.size() == m_size);
+		DASSERT(m_colors.size() <= max_color_attachments);
+		// TODO: properly test that number of attachments is <= GL_MAX_COLOR_ATTACHMENTS
+	} else if(m_depth) {
+		m_size = m_depth.size();
+		DASSERT(hasDepthComponent(m_depth.format().id()));
+	}
 
 	{
 		glGenFramebuffers(1, &m_id);
@@ -41,12 +48,11 @@ Framebuffer::Framebuffer(vector<Target> colors, Target depth)
 
 		if(m_depth) {
 			auto format = m_depth.format();
-			DASSERT(isOneOf(format, TextureFormatId::depth, TextureFormatId::depth_stencil));
 			bool has_stencil = format == TextureFormatId::depth_stencil;
 			attach(has_stencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT, m_depth);
 		}
 
-		for(int n = 0; n < (int)m_colors.size(); n++)
+		for(int n = 0; n < m_colors.size(); n++)
 			attach(GL_COLOR_ATTACHMENT0 + n, m_colors[n]);
 
 		auto ret = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -58,9 +64,13 @@ Framebuffer::Framebuffer(vector<Target> colors, Target depth)
 			FATAL("Error while initializing framebuffer:%s", err_code);
 		}
 
-		GLenum indices[GL_MAX_COLOR_ATTACHMENTS];
-		std::iota(begin(indices), end(indices), GL_COLOR_ATTACHMENT0);
-		glDrawBuffers(m_colors.size(), indices);
+		if(m_colors) {
+			GLenum indices[max_color_attachments];
+			std::iota(begin(indices), end(indices), GL_COLOR_ATTACHMENT0);
+			glDrawBuffers(m_colors.size(), indices);
+		} else {
+			glDrawBuffer(GL_NONE);
+		}
 	}
 
 	// TODO: finally:
@@ -76,7 +86,7 @@ Framebuffer::~Framebuffer() {
 	glDeleteFramebuffers(1, &m_id);
 }
 
-int2 Framebuffer::size() const { return m_colors.front().size(); }
+int2 Framebuffer::size() const { return m_size; }
 void Framebuffer::bind() { glBindFramebuffer(GL_FRAMEBUFFER, m_id); }
 void Framebuffer::unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 }
