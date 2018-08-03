@@ -14,6 +14,7 @@ struct TextureConfig {
 	enum Flags {
 		flag_wrapped = 1u,
 		flag_filtered = 2u,
+		flag_immutable_format = 4u,
 	};
 
 	TextureConfig(uint flags = 0) : flags(flags) {}
@@ -30,9 +31,10 @@ class DTexture : public immutable_base<DTexture> {
 
 	DTexture();
 	DTexture(const string &name, Stream &);
-	DTexture(Format format, const int2 &size, const Config & = Config());
-	DTexture(Format format, const Texture &, const Config & = Config());
-	DTexture(Format format, const int2 &size, CSpan<float4>, const Config & = Config());
+	DTexture(Format, const int2 &size, const Config & = Config());
+	DTexture(Format, const Texture &, const Config & = Config());
+	DTexture(Format, const int2 &size, CSpan<float4>, const Config & = Config());
+	DTexture(Format, const DTexture &view_source);
 	DTexture(const Texture &, const Config & = Config());
 
 	// TODO: think about this:
@@ -53,6 +55,8 @@ class DTexture : public immutable_base<DTexture> {
 
 	void bind() const;
 
+	bool hasImmutableFormat() const;
+
 	// TODO: one overload should be enough
 	static void bind(const vector<const DTexture *> &);
 	static void bind(const vector<immutable_ptr<DTexture>> &);
@@ -72,6 +76,8 @@ class DTexture : public immutable_base<DTexture> {
 		download(data.template reinterpret<char>());
 	}
 
+	void copy(const DTexture &source, IRect src_rect, int2 target_pos);
+
 	void clear(float4);
 	void clear(int);
 
@@ -79,12 +85,16 @@ class DTexture : public immutable_base<DTexture> {
 	int height() const { return m_size.y; }
 	int2 size() const { return m_size; }
 
+	IRect rect() const;
+	bool contains(const IRect &) const;
+
 	Format format() const { return m_format; }
 
 	int id() const { return m_id; }
 	// bool isValid() const { return m_id > 0; }
 
   private:
+	void updateStorage();
 	void updateConfig();
 
 	uint m_id;

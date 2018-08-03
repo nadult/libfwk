@@ -203,6 +203,22 @@ EXT_API void(EXT_ENTRY *glEndQuery)(GLenum target);
 EXT_API void(EXT_ENTRY *glGetQueryiv)(GLenum target, GLenum pname, GLint *params);
 EXT_API void(EXT_ENTRY *glGetQueryObjectiv)(GLuint id, GLenum pname, GLint *params);
 EXT_API void(EXT_ENTRY *glGetQueryObjectuiv)(GLuint id, GLenum pname, GLuint *params);
+
+EXT_API void(EXT_ENTRY *glCopyImageSubData)(GLuint srcName, GLenum srcTarget, GLint srcLevel,
+											GLint srcX, GLint srcY, GLint srcZ, GLuint dstName,
+											GLenum dstTarget, GLint dstLevel, GLint dstX,
+											GLint dstY, GLint dstZ, GLsizei srcWidth,
+											GLsizei srcHeight, GLsizei srcDepth);
+
+EXT_API void(EXT_ENTRY *glTextureView)(GLuint texture, GLenum target, GLuint origtexture,
+									   GLenum internalformat, GLuint minlevel, GLuint numlevels,
+									   GLuint minlayer, GLuint numlayers);
+EXT_API void(EXT_ENTRY *glTexStorage1D)(GLenum target, GLsizei levels, GLenum internalformat,
+										GLsizei width);
+EXT_API void(EXT_ENTRY *glTexStorage2D)(GLenum target, GLsizei levels, GLenum internalformat,
+										GLsizei width, GLsizei height);
+EXT_API void(EXT_ENTRY *glTexStorage3D)(GLenum target, GLsizei levels, GLenum internalformat,
+										GLsizei width, GLsizei height, GLsizei depth);
 }
 
 #undef EXT_API
@@ -220,7 +236,7 @@ void testGlError(const char *);
 bool installOpenglDebugHandler();
 
 DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic,
-			nv_conservative_raster, debug, timer_query);
+			nv_conservative_raster, debug, timer_query, copy_image, texture_view, texture_storage);
 
 DEFINE_ENUM(OpenglVendor, intel, nvidia, amd, other);
 

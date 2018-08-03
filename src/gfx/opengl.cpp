@@ -26,9 +26,15 @@ void *winLoadFunction(const char *name);
 
 static EnumMap<OpenglExtension, bool> s_is_extension_supported;
 
-static EnumMap<OpenglExtension, const char *> s_ext_names = {
-	"EXT_texture_filter_anisotropic", "WEBGL_compressed_texture_s3tc", "NV_conservative_raster",
-	"KHR_debug", "ARB_timer_query"};
+using ExtNames = EnumMap<OpenglExtension, const char *>;
+static ExtNames s_ext_names = {"EXT_texture_filter_anisotropic",
+							   "WEBGL_compressed_texture_s3tc",
+							   "NV_conservative_raster",
+							   "KHR_debug",
+							   "ARB_timer_query",
+							   "ARB_copy_image",
+							   "ARB_texture_view",
+							   "ARB_texture_storage"};
 
 static OpenglVendor s_opengl_vendor;
 
@@ -201,6 +207,12 @@ void initializeOpenGL() {
 	LOAD(glGetQueryiv);
 	LOAD(glGetQueryObjectiv);
 	LOAD(glGetQueryObjectuiv);
+
+	LOAD(glCopyImageSubData);
+	LOAD(glTextureView);
+	LOAD(glTexStorage1D);
+	LOAD(glTexStorage2D);
+	LOAD(glTexStorage3D);
 
 #undef LOAD
 #endif

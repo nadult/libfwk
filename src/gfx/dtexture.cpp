@@ -19,10 +19,12 @@ DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	{
 		glGenTextures(1, &m_id);
 		testGlError("glGenTextures");
+		updateStorage();
 
 		bind();
-		glTexImage2D(GL_TEXTURE_2D, 0, format.glInternal(), m_size.x, m_size.y, 0,
-					 format.glFormat(), format.glType(), 0);
+		if(!(config.flags & TextureConfig::flag_immutable_format))
+			glTexImage2D(GL_TEXTURE_2D, 0, format.glInternal(), m_size.x, m_size.y, 0,
+						 format.glFormat(), format.glType(), 0);
 		m_has_mipmaps = false;
 		testGlError("glTexImage2D");
 	}
@@ -44,6 +46,22 @@ DTexture::DTexture(Format format, const int2 &size, CSpan<float4> data, const Co
 }
 DTexture::DTexture(const Texture &tex, const Config &config)
 	: DTexture(tex.format(), tex, config) {}
+
+DTexture::DTexture(Format fmt, const DTexture &view_source)
+	: m_size(view_source.size()), m_format(fmt), m_has_mipmaps(false) {
+	glGenTextures(1, &m_id);
+	testGlError("glGenTextures");
+
+	glTextureView(m_id, GL_TEXTURE_2D, view_source.m_id, fmt.glInternal(), 0, 1, 0, 1);
+	testGlError("glTextureView");
+}
+
+bool DTexture::hasImmutableFormat() const {
+	GLint ret;
+	bind();
+	glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_IMMUTABLE_FORMAT, &ret);
+	return ret != 0;
+}
 
 /*
 DTexture::DTexture(DTexture &&rhs)
@@ -71,6 +89,14 @@ void DTexture::generateMipmaps() {
 	glGenerateMipmap(GL_TEXTURE_2D);
 	m_has_mipmaps = true;
 	updateConfig();
+}
+
+void DTexture::updateStorage() {
+	if(!(m_config.flags & Config::flag_immutable_format))
+		return;
+	bind();
+	glTexStorage2D(GL_TEXTURE_2D, 1, m_format.glInternal(), m_size.x, m_size.y);
+	testGlError("glTexStorage2D");
 }
 
 void DTexture::updateConfig() {
@@ -118,6 +144,16 @@ void DTexture::download(Span<char> bytes) const {
 	bind();
 	DASSERT(bytes.size() >= m_format.evalImageSize(m_size.x, m_size.y));
 	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), bytes.data());
+}
+
+void DTexture::copy(const DTexture &source, IRect src_rect, int2 target_pos) {
+	DASSERT(source.contains(src_rect));
+	IRect target_rect(target_pos, target_pos + src_rect.size());
+	DASSERT(contains(target_rect));
+
+	glCopyImageSubData(source.m_id, GL_TEXTURE_2D, 0, src_rect.x(), src_rect.y(), 0, m_id,
+					   GL_TEXTURE_2D, 0, target_pos.x, target_pos.y, 0, src_rect.width(),
+					   src_rect.height(), 0);
 }
 
 void DTexture::bind() const {
@@ -172,4 +208,7 @@ void DTexture::unbind() {
 	PASSERT_GFX_THREAD();
 	::glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+IRect DTexture::rect() const { return IRect(m_size); }
+bool DTexture::contains(const IRect &rect) const { return IRect(m_size).contains(rect); }
 }
