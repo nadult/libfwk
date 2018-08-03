@@ -9,8 +9,8 @@
 
 namespace fwk {
 
-DTexture::DTexture(Format format, const int2 &size, const Config &config)
-	: m_id(0), m_size(size), m_format(format), m_config(config), m_has_mipmaps(false) {
+DTexture::DTexture(Format format, const int2 &size, Flags flags)
+	: m_id(0), m_size(size), m_format(format), m_flags(flags), m_has_mipmaps(false) {
 	DASSERT(size.x >= 0 && size.y >= 0);
 	PASSERT_GFX_THREAD();
 
@@ -19,33 +19,36 @@ DTexture::DTexture(Format format, const int2 &size, const Config &config)
 	{
 		glGenTextures(1, &m_id);
 		testGlError("glGenTextures");
-		updateStorage();
 
 		bind();
-		if(!(config.flags & TextureConfig::flag_immutable_format))
+		if(flags & Opt::immutable) {
+			glTexStorage2D(GL_TEXTURE_2D, 1, m_format.glInternal(), m_size.x, m_size.y);
+			testGlError("glTexStorage2D");
+		} else {
 			glTexImage2D(GL_TEXTURE_2D, 0, format.glInternal(), m_size.x, m_size.y, 0,
 						 format.glFormat(), format.glType(), 0);
+		}
+
 		m_has_mipmaps = false;
 		testGlError("glTexImage2D");
 	}
 	// TODO: finally
 	// glDeleteTextures(1, &m_id);
 
-	updateConfig();
+	updateParams();
 }
 
 DTexture::DTexture(const string &name, Stream &stream) : DTexture(Texture(stream)) {}
-DTexture::DTexture(Format format, const Texture &tex, const Config &config)
-	: DTexture(format, tex.size(), config) {
+DTexture::DTexture(Format format, const Texture &tex, Flags flags)
+	: DTexture(format, tex.size(), flags) {
 	upload(tex);
 }
-DTexture::DTexture(Format format, const int2 &size, CSpan<float4> data, const Config &config)
-	: DTexture(format, size, config) {
+DTexture::DTexture(Format format, const int2 &size, CSpan<float4> data, Flags flags)
+	: DTexture(format, size, flags) {
 	DASSERT(data.size() >= size.x * size.y);
 	upload(TextureFormatId::rgba_f32, data.data(), size);
 }
-DTexture::DTexture(const Texture &tex, const Config &config)
-	: DTexture(tex.format(), tex, config) {}
+DTexture::DTexture(const Texture &tex, Flags flags) : DTexture(tex.format(), tex, flags) {}
 
 DTexture::DTexture(Format fmt, const DTexture &view_source)
 	: m_size(view_source.size()), m_format(fmt), m_has_mipmaps(false) {
@@ -77,42 +80,35 @@ DTexture::~DTexture() {
 		glDeleteTextures(1, &m_id);
 }
 
-void DTexture::setConfig(const Config &config) {
-	if(m_config != config) {
-		m_config = config;
-		updateConfig();
+void DTexture::setFlags(Flags flags) {
+	if(m_flags != flags) {
+		DASSERT((flags & Opt::immutable) == (m_flags & Opt::immutable));
+		m_flags = flags;
+		updateParams();
 	}
 }
 
-void DTexture::generateMipmaps() {
-	bind();
-	glGenerateMipmap(GL_TEXTURE_2D);
-	m_has_mipmaps = true;
-	updateConfig();
-}
-
-void DTexture::updateStorage() {
-	if(!(m_config.flags & Config::flag_immutable_format))
-		return;
-	bind();
-	glTexStorage2D(GL_TEXTURE_2D, 1, m_format.glInternal(), m_size.x, m_size.y);
-	testGlError("glTexStorage2D");
-}
-
-void DTexture::updateConfig() {
+void DTexture::updateParams() {
 	bind();
 
-	int wrapping = m_config.flags & Config::flag_wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+	int wrapping = m_flags & Opt::wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
 
-	int filter = m_config.flags & Config::flag_filtered ? GL_LINEAR : GL_NEAREST;
+	int filter = m_flags & Opt::filtered ? GL_LINEAR : GL_NEAREST;
 	int min_filter = m_has_mipmaps
 						 ? filter == GL_LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST
 						 : filter;
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+}
+
+void DTexture::generateMipmaps() {
+	bind();
+	glGenerateMipmap(GL_TEXTURE_2D);
+	m_has_mipmaps = true;
+	updateParams();
 }
 
 void DTexture::upload(const Texture &src, const int2 &target_pos) {

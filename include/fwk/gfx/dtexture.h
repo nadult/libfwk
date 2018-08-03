@@ -10,32 +10,23 @@
 
 namespace fwk {
 
-struct TextureConfig {
-	enum Flags {
-		flag_wrapped = 1u,
-		flag_filtered = 2u,
-		flag_immutable_format = 4u,
-	};
-
-	TextureConfig(uint flags = 0) : flags(flags) {}
-	bool operator==(const TextureConfig &rhs) const { return flags == rhs.flags; }
-
-	uint flags;
-};
+DEFINE_ENUM(TextureOpt, wrapped, filtered, immutable);
+using TextureFlags = EnumFlags<TextureOpt>;
 
 // Device texture
 class DTexture : public immutable_base<DTexture> {
   public:
 	using Format = TextureFormat;
-	using Config = TextureConfig;
+	using Opt = TextureOpt;
+	using Flags = TextureFlags;
 
 	DTexture();
 	DTexture(const string &name, Stream &);
-	DTexture(Format, const int2 &size, const Config & = Config());
-	DTexture(Format, const Texture &, const Config & = Config());
-	DTexture(Format, const int2 &size, CSpan<float4>, const Config & = Config());
+	DTexture(Format, const int2 &size, Flags = {});
+	DTexture(Format, const Texture &, Flags = {});
+	DTexture(Format, const int2 &size, CSpan<float4>, Flags = {});
 	DTexture(Format, const DTexture &view_source);
-	DTexture(const Texture &, const Config & = Config());
+	DTexture(const Texture &, Flags = {});
 
 	// TODO: think about this:
 	// some opengl handle may be assigned to something, example:
@@ -47,8 +38,8 @@ class DTexture : public immutable_base<DTexture> {
 	void operator=(const DTexture &) = delete;
 	~DTexture();
 
-	void setConfig(const Config &);
-	const Config &config() const { return m_config; }
+	void setFlags(Flags);
+	Flags flags() const { return m_flags; }
 
 	bool hasMipmaps() const { return m_has_mipmaps; }
 	void generateMipmaps();
@@ -94,13 +85,12 @@ class DTexture : public immutable_base<DTexture> {
 	// bool isValid() const { return m_id > 0; }
 
   private:
-	void updateStorage();
-	void updateConfig();
+	void updateParams();
 
 	uint m_id;
 	int2 m_size;
 	Format m_format;
-	Config m_config;
+	Flags m_flags;
 	bool m_has_mipmaps;
 };
 }
