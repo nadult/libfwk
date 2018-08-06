@@ -12,6 +12,7 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/format.h"
+#include "fwk/parse.h"
 #include "fwk/str.h"
 #include <cstring>
 
@@ -24,31 +25,40 @@ namespace fwk {
 
 void *winLoadFunction(const char *name);
 
-static EnumMap<OpenglExtension, bool> s_is_extension_supported;
+static OpenglInfo s_info;
+const OpenglInfo *const opengl_info = &s_info;
 
-using ExtNames = EnumMap<OpenglExtension, const char *>;
-static ExtNames s_ext_names = {"EXT_texture_filter_anisotropic",
-							   "WEBGL_compressed_texture_s3tc",
-							   "NV_conservative_raster",
-							   "KHR_debug",
-							   "ARB_timer_query",
-							   "ARB_copy_image",
-							   "ARB_texture_view",
-							   "ARB_texture_storage"};
+string OpenglInfo::toString() const {
+	return format(
+		"Vendor: %\nRenderer: %\nProfile: %\nExtensions: %\nVersion: % (%)\nGLSL version: % (%)\n",
+		vendor, renderer, profile, extensions, version, version_full, glsl_version,
+		glsl_version_full);
+}
 
-static OpenglVendor s_opengl_vendor;
+bool OpenglInfo::hasExtension(Str name) const {
+	auto it = std::lower_bound(begin(extensions), end(extensions), name,
+							   [](Str a, Str b) { return a < b; });
 
-OpenglVendor openglVendor() { return s_opengl_vendor; }
-const char *openglName(OpenglExtension ext) { return s_ext_names[ext]; }
-bool isExtensionSupported(OpenglExtension ext) { return s_is_extension_supported[ext]; }
+	return it != end(extensions) && Str(*it) == name;
+}
 
-void initializeOpenGL() {
+void initializeOpenGL(OpenglProfile profile) {
+	using Feature = OpenglFeature;
+	using Vendor = OpenglVendor;
+	using Profile = OpenglProfile;
+
+	int major = 0, minor = 0;
+	glGetIntegerv(GL_MAJOR_VERSION, &major);
+	glGetIntegerv(GL_MINOR_VERSION, &minor);
+	s_info.version = float(major) + float(minor) * 0.1f;
+
 #ifdef __EMSCRIPTEN__
 	const char *must_haves[] = {"EXT_shader_texture_lod",   "OES_element_index_uint",
 								"OES_standard_derivatives", "OES_texture_float",
 								"OES_texture_half_float",   "OES_vertex_array_object",
 								"WEBGL_depth_texture",		"WEBGL_draw_buffers"};
 
+	// TODO: fix it
 	auto context = emscripten_webgl_get_current_context();
 	for(auto ext : must_haves)
 		if(!emscripten_webgl_enable_extension(context, ext))
@@ -56,27 +66,71 @@ void initializeOpenGL() {
 	for(auto ext : all<OpenglExtension>())
 		emscripten_webgl_enable_extension(context, s_ext_names[ext]);
 #else
-	int major = 0, minor = 0;
-	glGetIntegerv(GL_MAJOR_VERSION, &major);
-	glGetIntegerv(GL_MINOR_VERSION, &minor);
-	int version = major * 100 + minor;
-	if(version < 300)
+	if(s_info.version < 3.0f)
 		FATAL("Minimum required OpenGL version: 3.0");
 #endif
 
 	auto vendor = toLower((const char *)glGetString(GL_VENDOR));
 	if(vendor.find("intel") != string::npos)
-		s_opengl_vendor = OpenglVendor::intel;
+		s_info.vendor = Vendor::intel;
 	else if(vendor.find("nvidia") != string::npos)
-		s_opengl_vendor = OpenglVendor::nvidia;
+		s_info.vendor = Vendor::nvidia;
 	else if(vendor.find("amd") != string::npos)
-		s_opengl_vendor = OpenglVendor::amd;
+		s_info.vendor = Vendor::amd;
 	else
-		s_opengl_vendor = OpenglVendor::other;
+		s_info.vendor = Vendor::other;
+	s_info.profile = profile;
+	s_info.renderer = (const char *)glGetString(GL_RENDERER);
 
-	auto ext_strings = (const char *)glGetString(GL_EXTENSIONS);
-	for(auto ext : all<OpenglExtension>())
-		s_is_extension_supported[ext] = strstr(ext_strings, s_ext_names[ext]) != nullptr;
+	GLint num;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &num);
+	s_info.extensions.reserve(num);
+	s_info.extensions.clear();
+
+	for(int n = 0; n < num; n++) {
+		const char *ogl_ext = (const char *)glGetStringi(GL_EXTENSIONS, n);
+		if(strncmp(ogl_ext, "GL_", 3) == 0)
+			ogl_ext += 3;
+		s_info.extensions.emplace_back(ogl_ext);
+	}
+
+	{
+		auto *ver = (const char *)glGetString(GL_VERSION);
+		auto *glsl_ver = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
+
+		s_info.version_full = ver;
+		s_info.glsl_version_full = glsl_ver;
+
+		auto parse = [](const char *text) {
+			TextParser parser(text);
+			while(!parser.empty()) {
+				Str val;
+				parser >> val;
+				if(isdigit(val[0]))
+					return fromString<float>(string(val));
+			}
+			return 0.0f;
+		};
+		s_info.glsl_version = parse(glsl_ver);
+		// TODO: multiple GLSL versions can be supported
+	}
+
+	bool core_430 = profile == Profile::core && s_info.version >= 4.3;
+	bool core_300 = profile == Profile::core && s_info.version >= 3.0;
+	bool core_330 = profile == Profile::core && s_info.version >= 3.3;
+
+	if(core_300 || s_info.hasExtension("ARB_vertex_array_object"))
+		s_info.features |= Feature::vertex_array_object;
+	if(core_430 || s_info.hasExtension("KHR_debug"))
+		s_info.features |= Feature::debug;
+	if(core_330 || s_info.hasExtension("ARB_timer_query"))
+		s_info.features |= Feature::timer_query;
+	if(s_info.hasExtension("ARB_copy_image"))
+		s_info.features |= Feature::copy_image;
+	if(s_info.hasExtension("ARB_texture_view"))
+		s_info.features |= Feature::texture_storage;
+	if(s_info.hasExtension("ARB_texture_storage"))
+		s_info.features |= Feature::texture_storage;
 
 #ifdef FWK_TARGET_MINGW
 #define LOAD(func) (func = (decltype(func))winLoadFunction(#func));
@@ -304,10 +358,10 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 										 GLsizei length, const GLchar *message,
 										 const void *userParam) {
 	// ignore non-significant error/warning codes
-	if(s_opengl_vendor == OpenglVendor::nvidia) {
+	if(s_info.vendor == OpenglVendor::nvidia) {
 		if(id == 131169 || id == 131185 || id == 131218 || id == 131204)
 			return;
-	} else if(s_opengl_vendor == OpenglVendor::intel) {
+	} else if(s_info.vendor == OpenglVendor::intel) {
 		Str msg((const char *)message);
 		if(msg.find("warning: extension") != -1 && msg.find("unsupported in") != -1)
 			return;
@@ -324,7 +378,7 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 }
 
 bool installOpenglDebugHandler() {
-	if(!isExtensionSupported(OpenglExtension::debug))
+	if(!s_info.hasFeature(OpenglFeature::debug))
 		return false;
 
 	glEnable(GL_DEBUG_OUTPUT);

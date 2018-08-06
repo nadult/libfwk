@@ -15,7 +15,7 @@ class InputState;
 class InputEvent;
 
 DEFINE_ENUM(GfxDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
-			maximized, opengl_debug_handler);
+			maximized, opengl_debug_handler, opengl_es_profile);
 using GfxDeviceFlags = EnumFlags<GfxDeviceOpt>;
 
 class GfxDevice {
@@ -25,17 +25,17 @@ class GfxDevice {
 
 	static GfxDevice &instance();
 	using Opt = GfxDeviceOpt;
-	using OptFlags = GfxDeviceFlags;
+	using Flags = GfxDeviceFlags;
 
-	void createWindow(const string &name, const int2 &size, OptFlags);
+	void createWindow(const string &name, const int2 &size, Flags, double opengl_version = 3.1);
 	void destroyWindow();
 	void printDeviceInfo();
 
 	void setWindowSize(const int2 &);
 	int2 windowSize() const;
 
-	void setWindowFullscreen(OptFlags);
-	OptFlags windowFlags() const;
+	void setWindowFullscreen(Flags);
+	Flags windowFlags() const;
 	bool isWindowFullscreen() const {
 		return (bool)(windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop));
 	}

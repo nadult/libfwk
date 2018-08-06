@@ -2,9 +2,11 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include <fwk/filesystem.h>
+#include <fwk/format.h>
 #include <fwk/gfx/dtexture.h>
 #include <fwk/gfx/font.h>
 #include <fwk/gfx/gfx_device.h>
+#include <fwk/gfx/opengl.h>
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/sys/input.h>
 #include <fwk/sys/stream.h>
@@ -59,8 +61,11 @@ int main(int argc, char **argv) {
 	int2 res(800, 600);
 
 	GfxDevice gfx_device;
-	auto flags = GfxDeviceOpt::multisampling | GfxDeviceOpt::resizable | GfxDeviceOpt::vsync;
+	auto flags = GfxDeviceOpt::multisampling | GfxDeviceOpt::resizable | GfxDeviceOpt::vsync |
+				 GfxDeviceOpt::opengl_debug_handler;
 	gfx_device.createWindow("foo", res, flags);
+
+	print("OpenGL info:\n%\n", opengl_info->toString());
 	gfx_device.runMainLoop(mainLoop);
 
 	return 0;

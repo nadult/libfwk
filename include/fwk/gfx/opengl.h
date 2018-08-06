@@ -228,21 +228,45 @@ EXT_API void(EXT_ENTRY *glTexStorage3D)(GLenum target, GLsizei levels, GLenum in
 
 #ifndef FWK_GFX_OPENGL_H_ONLY_EXTENSIONS
 
+#include "fwk/enum_flags.h"
 #include "fwk/gfx_base.h"
+#include "fwk_vector.h"
 
 namespace fwk {
 
 void testGlError(const char *);
 bool installOpenglDebugHandler();
 
-DEFINE_ENUM(OpenglExtension, compressed_texture_s3tc, texture_filter_anisotropic,
-			nv_conservative_raster, debug, timer_query, copy_image, texture_view, texture_storage);
-
 DEFINE_ENUM(OpenglVendor, intel, nvidia, amd, other);
+DEFINE_ENUM(OpenglProfile, core, compatibility, es);
 
-OpenglVendor openglVendor();
-const char *openglName(OpenglExtension);
-bool isExtensionSupported(OpenglExtension);
+DEFINE_ENUM(OpenglFeature, vertex_array_object, debug, timer_query, copy_image, texture_view,
+			texture_storage);
+using OpenglFeatures = EnumFlags<OpenglFeature>;
+
+struct OpenglInfo {
+	OpenglVendor vendor;
+	OpenglProfile profile;
+
+	// All extensions without the GL_ prefix
+	vector<string> extensions;
+
+	OpenglFeatures features;
+
+	bool hasExtension(Str) const;
+	bool hasFeature(OpenglFeature feature) const { return (bool)(features & feature); }
+
+	string renderer;
+	string version_full;
+	string glsl_version_full;
+
+	float version;
+	float glsl_version;
+
+	string toString() const;
+};
+
+extern const OpenglInfo *const opengl_info;
 }
 
 #endif

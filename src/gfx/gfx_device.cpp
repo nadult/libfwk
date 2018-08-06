@@ -22,7 +22,7 @@ static void reportSDLError(const char *func_name) {
 	FATAL("Error on %s: %s", func_name, SDL_GetError());
 }
 
-void initializeOpenGL();
+void initializeOpenGL(OpenglProfile);
 
 // TODO: Something is corrupting this memory when running under emscripten
 static GfxDevice *s_instance = nullptr;
@@ -49,7 +49,7 @@ struct GfxDevice::InputImpl {
 
 struct GfxDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, const int2 &size, OptFlags flags) : flags(flags) {
+	WindowImpl(const string &name, const int2 &size, Flags flags, double ogl_ver) : flags(flags) {
 		int sdl_flags = SDL_WINDOW_OPENGL;
 		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
 
@@ -71,6 +71,15 @@ struct GfxDevice::WindowImpl {
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 		}
 
+		bool opengl_es = (bool)(flags & Opt::opengl_es_profile);
+		int ver_major = int(ogl_ver);
+		int ver_minor = int((ogl_ver - float(ver_major)) * 10.0);
+		int profile = opengl_es ? SDL_GL_CONTEXT_PROFILE_ES : SDL_GL_CONTEXT_PROFILE_CORE;
+
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, ver_major);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, ver_minor);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
+
 		window = SDL_CreateWindow(name.c_str(), pos_x, pos_y, size.x, size.y, sdl_flags);
 		if(!window)
 			reportSDLError("SDL_CreateWindow");
@@ -86,7 +95,7 @@ struct GfxDevice::WindowImpl {
 
 	SDL_Window *window;
 	SDL_GLContext gl_context;
-	OptFlags flags;
+	Flags flags;
 };
 
 GfxDevice::GfxDevice() : m_input_impl(uniquePtr<InputImpl>()) {
@@ -109,13 +118,13 @@ GfxDevice::~GfxDevice() {
 	SDL_Quit();
 }
 
-void GfxDevice::createWindow(const string &name, const int2 &size, OptFlags flags) {
+void GfxDevice::createWindow(const string &name, const int2 &size, Flags flags, double ogl_ver) {
 	assertGfxThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
-	m_window_impl = uniquePtr<WindowImpl>(name, size, flags);
+	m_window_impl = uniquePtr<WindowImpl>(name, size, flags, ogl_ver);
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
-	initializeOpenGL();
+	initializeOpenGL(flags & Opt::opengl_es_profile ? OpenglProfile::es : OpenglProfile::core);
 	if(flags & Opt::opengl_debug_handler)
 		installOpenglDebugHandler();
 }
@@ -127,7 +136,7 @@ void GfxDevice::setWindowSize(const int2 &size) {
 		SDL_SetWindowSize(m_window_impl->window, size.x, size.y);
 }
 
-void GfxDevice::setWindowFullscreen(OptFlags flags) {
+void GfxDevice::setWindowFullscreen(Flags flags) {
 	DASSERT(!flags || flags == Opt::fullscreen || flags == Opt::fullscreen_desktop);
 
 	if(m_window_impl) {
@@ -140,8 +149,8 @@ void GfxDevice::setWindowFullscreen(OptFlags flags) {
 	}
 }
 
-auto GfxDevice::windowFlags() const -> OptFlags {
-	return m_window_impl ? m_window_impl->flags : OptFlags();
+auto GfxDevice::windowFlags() const -> Flags {
+	return m_window_impl ? m_window_impl->flags : Flags();
 }
 
 int2 GfxDevice::windowSize() const {

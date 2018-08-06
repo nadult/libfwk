@@ -1,6 +1,14 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+TODO: which OpenGL version are we targeting ?
+- Opengl 3.3
+- Opengl ES 2.0 ?
+- Opengl 4.5 ?
+- check emscripten
+
+- cos sie popieprzylo z YCMem
+
 - vec2<>, vec3<>, should support unsigned types ?
   maybe add uvec2<> ?
 - TextureFormat -> ... ? to jest też używane we framebufferach i innych miejscach
