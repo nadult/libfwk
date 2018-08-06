@@ -19,9 +19,7 @@ static const int gl_index_data_type[] = {GL_UNSIGNED_INT, GL_UNSIGNED_BYTE, GL_U
 static const EnumMap<PrimitiveType, int> gl_primitives{
 	{GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP}};
 
-#if OPENGL_VERSION < 0x30
 int VertexArray::s_max_bind = 0;
-#endif
 
 VertexArraySource::VertexArraySource(PVertexBuffer buffer, int offset)
 	: m_buffer(move(buffer)), m_offset(offset) {
@@ -43,7 +41,7 @@ static int sourcesMaxSize(const vector<VertexArraySource> &sources) {
 }
 
 VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
-	: m_sources(move(sources)), m_index_buffer(ib) {
+	: m_sources(move(sources)), m_index_buffer(ib), m_handle(0) {
 	PASSERT_GFX_THREAD();
 	if(ib) {
 		m_size = ib->size();
@@ -53,23 +51,20 @@ VertexArray::VertexArray(vector<Source> sources, PIndexBuffer ib)
 		m_size = sourcesMaxSize(m_sources);
 	}
 
-#if OPENGL_VERSION >= 0x30
-	glGenVertexArrays(1, &m_handle);
-	glBindVertexArray(m_handle);
-
-	for(int n = 0; n < m_sources.size(); n++)
-		bindVertexBuffer(n);
-	glBindVertexArray(0);
-// TODO: test for errors
-#endif
+	if(opengl_info->hasFeature(OpenglFeature::vertex_array_object)) {
+		glGenVertexArrays(1, &m_handle);
+		glBindVertexArray(m_handle);
+		for(int n = 0; n < m_sources.size(); n++)
+			bindVertexBuffer(n);
+		glBindVertexArray(0);
+	}
 }
 
 VertexArray::~VertexArray() {
-	PASSERT_GFX_THREAD();
-#if OPENGL_VERSION >= 0x30
-	if(m_handle)
+	if(m_handle) {
+		PASSERT_GFX_THREAD();
 		glDeleteVertexArrays(1, &m_handle);
-#endif
+	}
 }
 
 static int countTriangles(PrimitiveType prim_type, int num_indices) {
@@ -106,18 +101,18 @@ void VertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
 }
 
 void VertexArray::bind() const {
-#if OPENGL_VERSION >= 0x30
-	glBindVertexArray(m_handle);
-#else
-	int max_bind = 0;
-	for(int n = 0; n < m_sources.size(); n++)
-		if(bindVertexBuffer(n))
-			max_bind = max(max_bind, n);
+	if(m_handle) {
+		glBindVertexArray(m_handle);
+	} else {
+		int max_bind = 0;
+		for(int n = 0; n < m_sources.size(); n++)
+			if(bindVertexBuffer(n))
+				max_bind = max(max_bind, n);
 
-	for(int n = m_sources.size(); n <= s_max_bind; n++)
-		glDisableVertexAttribArray(n);
-	s_max_bind = max_bind;
-#endif
+		for(int n = m_sources.size(); n <= s_max_bind; n++)
+			glDisableVertexAttribArray(n);
+		s_max_bind = max_bind;
+	}
 }
 
 bool VertexArray::bindVertexBuffer(int n) const {
@@ -142,9 +137,8 @@ bool VertexArray::bindVertexBuffer(int n) const {
 }
 
 void VertexArray::unbind() {
-#if OPENGL_VERSION >= 0x30
-	glBindVertexArray(0);
-#endif
+	if(opengl_info->hasFeature(OpenglFeature::vertex_array_object))
+		glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 }

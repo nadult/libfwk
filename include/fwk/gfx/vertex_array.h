@@ -5,11 +5,12 @@
 
 #include "fwk/gfx/color.h"
 #include "fwk/gfx_base.h"
-#include "fwk/sys/immutable_ptr.h"
 #include "fwk/math_base.h"
+#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
+// TODO: rewrite this...
 class VertexArraySource {
   public:
 	VertexArraySource(PVertexBuffer buffer, int offset = 0);
@@ -65,10 +66,7 @@ class VertexArray : public immutable_base<VertexArray> {
 	vector<Source> m_sources;
 	PIndexBuffer m_index_buffer;
 	int m_size;
-#if OPENGL_VERSION >= 0x30
 	unsigned m_handle;
-#else
 	static int s_max_bind;
-#endif
 };
 }
