@@ -57,11 +57,12 @@ class VertexArray : public immutable_base<VertexArray> {
 	PIndexBuffer indexBuffer() const { return m_index_buffer; }
 	int size() const { return m_size; }
 
+	void bind() const;
+	static void unbind();
+
   private:
 	void init();
-	void bind() const;
 	bool bindVertexBuffer(int n) const;
-	static void unbind();
 
 	vector<Source> m_sources;
 	PIndexBuffer m_index_buffer;
