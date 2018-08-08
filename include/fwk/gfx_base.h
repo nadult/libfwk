@@ -41,6 +41,7 @@ class Model;
 class ModelNode;
 class ModelAnim;
 struct OpenglQuery;
+class Buffer;
 
 class TriangleBuffer;
 class SpriteBuffer;
@@ -76,6 +77,7 @@ using PVertexArray = immutable_ptr<VertexArray>;
 using SRenderBuffer = shared_ptr<RenderBuffer>;
 using SFramebuffer = shared_ptr<Framebuffer>;
 using SShaderStorage = shared_ptr<ShaderStorage>;
+using SBuffer = shared_ptr<Buffer>;
 
 using PProgram = immutable_ptr<Program>;
 using PFontCore = immutable_ptr<FontCore>;
@@ -88,6 +90,10 @@ using PModelNode = UniquePtr<ModelNode>;
 DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
 DEFINE_ENUM(AccessMode, read_only, write_only, read_write);
+
+DEFINE_ENUM(BufferType, array, element_array, copy_read, copy_write, pixel_unpack, pixel_pack,
+			query, texture, transform_fedback, uniform, draw_indirect, atomic_counter,
+			dispatch_indirect, shader_storage);
 
 enum class HAlign {
 	left,

@@ -142,6 +142,8 @@ void initializeOpenGL(OpenglProfile profile) {
 		s_info.features |= Feature::texture_storage;
 	if(s_info.hasExtension("ARB_texture_storage"))
 		s_info.features |= Feature::texture_storage;
+	if(s_info.hasExtension("ARB_shader_draw_parameters"))
+		s_info.features |= Feature::shader_draw_parameters;
 
 #ifdef FWK_TARGET_MINGW
 #define LOAD(func) (func = (decltype(func))winLoadFunction(#func));

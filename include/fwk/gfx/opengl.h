@@ -242,7 +242,7 @@ DEFINE_ENUM(OpenglVendor, intel, nvidia, amd, other);
 DEFINE_ENUM(OpenglProfile, core, compatibility, es);
 
 DEFINE_ENUM(OpenglFeature, vertex_array_object, debug, timer_query, copy_image, texture_view,
-			texture_storage);
+			texture_storage, shader_draw_parameters);
 using OpenglFeatures = EnumFlags<OpenglFeature>;
 
 DEFINE_ENUM(OpenglLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
