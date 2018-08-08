@@ -229,6 +229,7 @@ EXT_API void(EXT_ENTRY *glTexStorage3D)(GLenum target, GLsizei levels, GLenum in
 #ifndef FWK_GFX_OPENGL_H_ONLY_EXTENSIONS
 
 #include "fwk/enum_flags.h"
+#include "fwk/enum_map.h"
 #include "fwk/gfx_base.h"
 #include "fwk_vector.h"
 
@@ -244,6 +245,9 @@ DEFINE_ENUM(OpenglFeature, vertex_array_object, debug, timer_query, copy_image, 
 			texture_storage);
 using OpenglFeatures = EnumFlags<OpenglFeature>;
 
+DEFINE_ENUM(OpenglLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
+			max_texture_size);
+
 struct OpenglInfo {
 	OpenglVendor vendor;
 	OpenglProfile profile;
@@ -252,6 +256,7 @@ struct OpenglInfo {
 	vector<string> extensions;
 
 	OpenglFeatures features;
+	EnumMap<OpenglLimit, int> limits;
 
 	bool hasExtension(Str) const;
 	bool hasFeature(OpenglFeature feature) const { return (bool)(features & feature); }

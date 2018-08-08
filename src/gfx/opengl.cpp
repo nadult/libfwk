@@ -28,11 +28,20 @@ void *winLoadFunction(const char *name);
 static OpenglInfo s_info;
 const OpenglInfo *const opengl_info = &s_info;
 
+static EnumMap<OpenglLimit, int> s_limit_map = {GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES,
+												GL_MAX_UNIFORM_BLOCK_SIZE, GL_MAX_TEXTURE_SIZE};
+
 string OpenglInfo::toString() const {
-	return format(
-		"Vendor: %\nRenderer: %\nProfile: %\nExtensions: %\nVersion: % (%)\nGLSL version: % (%)\n",
+	TextFormatter out;
+	out("Vendor: %\nRenderer: %\nProfile: %\nExtensions: %\nVersion: % (%)\nGLSL version: % (%)\n",
 		vendor, renderer, profile, extensions, version, version_full, glsl_version,
 		glsl_version_full);
+
+	out("Limits:\n");
+	for(auto limit : all<OpenglLimit>())
+		out("  %: %\n", limit, limits[limit]);
+
+	return out.text();
 }
 
 bool OpenglInfo::hasExtension(Str name) const {
@@ -94,6 +103,8 @@ void initializeOpenGL(OpenglProfile profile) {
 		s_info.extensions.emplace_back(ogl_ext);
 	}
 
+	for(auto limit : all<OpenglLimit>())
+		glGetIntegerv(s_limit_map[limit], &s_info.limits[limit]);
 	{
 		auto *ver = (const char *)glGetString(GL_VERSION);
 		auto *glsl_ver = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
