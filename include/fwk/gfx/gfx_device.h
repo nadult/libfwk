@@ -15,7 +15,7 @@ class InputState;
 class InputEvent;
 
 DEFINE_ENUM(GfxDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
-			maximized, opengl_debug_handler, opengl_es_profile);
+			maximized, opengl_debug_handler);
 using GfxDeviceFlags = EnumFlags<GfxDeviceOpt>;
 
 class GfxDevice {
@@ -27,7 +27,8 @@ class GfxDevice {
 	using Opt = GfxDeviceOpt;
 	using Flags = GfxDeviceFlags;
 
-	void createWindow(const string &name, const int2 &size, Flags, double opengl_version = 3.1);
+	void createWindow(const string &name, const int2 &size, Flags,
+					  OpenglProfile profile = OpenglProfile::core, double opengl_version = 3.1);
 	void destroyWindow();
 	void printDeviceInfo();
 

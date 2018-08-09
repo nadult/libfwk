@@ -74,9 +74,6 @@ void initializeOpenGL(OpenglProfile profile) {
 			FATAL("OpenGL Extension not supported: %s", ext);
 	for(auto ext : all<OpenglExtension>())
 		emscripten_webgl_enable_extension(context, s_ext_names[ext]);
-#else
-	if(s_info.version < 3.0f)
-		FATAL("Minimum required OpenGL version: 3.0");
 #endif
 
 	auto vendor = toLower((const char *)glGetString(GL_VENDOR));

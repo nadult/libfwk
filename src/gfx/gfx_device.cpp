@@ -49,7 +49,9 @@ struct GfxDevice::InputImpl {
 
 struct GfxDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, const int2 &size, Flags flags, double ogl_ver) : flags(flags) {
+	WindowImpl(const string &name, const int2 &size, Flags flags, OpenglProfile gl_profile,
+			   double ogl_ver)
+		: flags(flags) {
 		int sdl_flags = SDL_WINDOW_OPENGL;
 		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
 
@@ -71,10 +73,12 @@ struct GfxDevice::WindowImpl {
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 		}
 
-		bool opengl_es = (bool)(flags & Opt::opengl_es_profile);
 		int ver_major = int(ogl_ver);
 		int ver_minor = int((ogl_ver - float(ver_major)) * 10.0);
-		int profile = opengl_es ? SDL_GL_CONTEXT_PROFILE_ES : SDL_GL_CONTEXT_PROFILE_CORE;
+		int profile = gl_profile == OpenglProfile::compatibility
+						  ? SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
+						  : gl_profile == OpenglProfile::es ? SDL_GL_CONTEXT_PROFILE_ES
+															: SDL_GL_CONTEXT_PROFILE_CORE;
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, ver_major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, ver_minor);
@@ -118,13 +122,14 @@ GfxDevice::~GfxDevice() {
 	SDL_Quit();
 }
 
-void GfxDevice::createWindow(const string &name, const int2 &size, Flags flags, double ogl_ver) {
+void GfxDevice::createWindow(const string &name, const int2 &size, Flags flags,
+							 OpenglProfile profile, double ogl_ver) {
 	assertGfxThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
-	m_window_impl = uniquePtr<WindowImpl>(name, size, flags, ogl_ver);
+	m_window_impl = uniquePtr<WindowImpl>(name, size, flags, profile, ogl_ver);
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
-	initializeOpenGL(flags & Opt::opengl_es_profile ? OpenglProfile::es : OpenglProfile::core);
+	initializeOpenGL(profile);
 	if(flags & Opt::opengl_debug_handler)
 		installOpenglDebugHandler();
 }

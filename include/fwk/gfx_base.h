@@ -95,6 +95,8 @@ DEFINE_ENUM(BufferType, array, element_array, copy_read, copy_write, pixel_unpac
 			query, texture, transform_fedback, uniform, draw_indirect, atomic_counter,
 			dispatch_indirect, shader_storage);
 
+DEFINE_ENUM(OpenglProfile, core, compatibility, es);
+
 enum class HAlign {
 	left,
 	center,
