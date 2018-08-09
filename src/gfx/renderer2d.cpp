@@ -87,15 +87,15 @@ Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {
 }
 
 Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType primitive_type,
-											 shared_ptr<const DTexture> texture) {
+											 shared_ptr<const DTexture> texture, BlendingMode bm) {
 	// TODO: merging won't work for triangle strip (have to add some more indices)
 	auto &elems = chunk.elements;
 
 	if(!elems || elems.back().primitive_type != primitive_type || elems.back().texture != texture ||
-	   fullMatrix() != elems.back().matrix ||
+	   elems.back().blending_mode != bm || fullMatrix() != elems.back().matrix ||
 	   m_current_scissor_rect != elems.back().scissor_rect_id)
 		elems.emplace_back(Element{fullMatrix(), move(texture), chunk.indices.size(), 0,
-								   m_current_scissor_rect, primitive_type});
+								   m_current_scissor_rect, primitive_type, bm});
 	return elems.back();
 }
 
@@ -167,7 +167,8 @@ void Renderer2D::addQuads(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FCol
 	DASSERT(pos.size() % 4 == 0);
 
 	auto &chunk = allocChunk(pos.size());
-	Element &elem = makeElement(chunk, PrimitiveType::triangles, material.texture());
+	Element &elem =
+		makeElement(chunk, PrimitiveType::triangles, material.texture(), material.blendingMode());
 	int vertex_offset = chunk.positions.size();
 	int num_quads = pos.size() / 4;
 
@@ -187,7 +188,8 @@ void Renderer2D::addTris(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColo
 	int num_tris = pos.size() / 3;
 
 	auto &chunk = allocChunk(pos.size());
-	Element &elem = makeElement(chunk, PrimitiveType::triangles, material.texture());
+	Element &elem =
+		makeElement(chunk, PrimitiveType::triangles, material.texture(), material.blendingMode());
 	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices(pos, tex_coord, color, material.color());
 
@@ -233,6 +235,8 @@ void Renderer2D::render() {
 	glDisable(GL_SCISSOR_TEST);
 
 	int prev_scissor_rect = -1;
+	auto bm = BlendingMode::normal;
+
 	for(const auto &chunk : m_chunks) {
 		VertexArray array({make_immutable<VertexBuffer>(chunk.positions),
 						   make_immutable<VertexBuffer>(chunk.colors),
@@ -248,6 +252,13 @@ void Renderer2D::render() {
 			binder.setUniform("proj_view_matrix", element.matrix);
 			if(element.texture)
 				element.texture->bind();
+			if(bm != element.blending_mode) {
+				bm = element.blending_mode;
+				if(bm == BlendingMode::normal)
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				else if(bm == BlendingMode::additive)
+					glBlendFunc(GL_ONE, GL_ONE);
+			}
 
 			if(element.scissor_rect_id != prev_scissor_rect) {
 				if(element.scissor_rect_id == -1)
@@ -270,6 +281,7 @@ void Renderer2D::render() {
 	}
 
 	glDisable(GL_SCISSOR_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	DTexture::unbind();
 
 	clear();
