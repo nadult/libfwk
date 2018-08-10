@@ -2,10 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/vertex_array.h"
 
-#include "fwk/gfx/buffer.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/gfx/vertex_array.h"
 
 namespace fwk {
 
@@ -38,24 +37,5 @@ void DrawCall::issue() const {
 
 int DrawCall::primitiveCount() const {
 	return fwk::primitiveCount(m_primitive_type, m_vertex_count);
-}
-
-MultiDrawCall::MultiDrawCall(PVertexArray vao, SBuffer buffer, PrimitiveType prim, int cmd_count_,
-							 const Material &material, Matrix4 matrix)
-	: matrix(matrix), material(material), vao(move(vao)), cmd_buffer(move(buffer)),
-	  cmd_count(cmd_count_), prim_type(prim) {
-	DASSERT(vao && cmd_buffer);
-	DASSERT(cmd_buffer->type() == BufferType::draw_indirect);
-	if(cmd_count < 0)
-		cmd_count = cmd_buffer->size() / sizeof(DrawIndirectCommand);
-}
-
-FWK_COPYABLE_CLASS_IMPL(MultiDrawCall);
-
-void MultiDrawCall::issue() const {
-	vao->bind();
-	cmd_buffer->bind();
-	glMultiDrawArraysIndirect(GL_TRIANGLES, nullptr, cmd_count, sizeof(DrawIndirectCommand));
-	cmd_buffer->unbind();
 }
 }

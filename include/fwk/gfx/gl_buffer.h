@@ -4,9 +4,8 @@
 #pragma once
 
 #include "fwk/enum_flags.h"
+#include "fwk/gfx/gl_storage.h"
 #include "fwk/gfx_base.h"
-#include "fwk/sys/immutable_ptr.h"
-#include "fwk_range.h"
 
 namespace fwk {
 
@@ -14,20 +13,33 @@ DEFINE_ENUM(MapBit, read, write, invalidate_range, invalidate_buffer, flush_expl
 			persistent, coherent);
 using MapFlags = EnumFlags<MapBit>;
 
-// TODO: better name ?
-// GfxBuffer ? TextureFormat similarly: GfxFormat ?
-class Buffer : public immutable_base<Buffer> {
+DEFINE_ENUM(BufferUsage, stream_draw, stream_read, stream_copy, static_draw, static_read,
+			static_copy, dynamic_draw, dynamic_read, dynamic_copy);
+
+DEFINE_ENUM(ImmBufferOpt, map_read, map_write, map_persistent, map_coherent, dynamic_storage,
+			client_storage);
+using ImmBufferFlags = EnumFlags<ImmBufferOpt>;
+
+DEF_GL_PTR(PBuffer, buffer)
+
+class GlBuffer {
   public:
 	using Type = BufferType;
 
-	template <class T> Buffer(CSpan<T> data) : Buffer() { upload(data); }
-	Buffer(int size) : Buffer() { resize(size); }
-
-	Buffer();
-	~Buffer();
+	GlBuffer(Type);
+	template <class T> GlBuffer(Type type, CSpan<T> data) : GlBuffer(type) { upload(data); }
+	GlBuffer(Type type, int size) : GlBuffer(type) { resize(size); }
+	GlBuffer(Type, int size, ImmBufferFlags);
+	~GlBuffer();
 
 	void operator=(const Buffer &) = delete;
-	Buffer(const Buffer &) = delete;
+	GlBuffer(const GlBuffer &) = delete;
+
+	template <class... Args> static PBuffer make(Args &&... args) {
+		return PBuffer(storage.make(std::forward<Args>(args)...));
+	}
+
+	int id() const { return storage.glId(this); }
 
 	void resize(int new_size);
 	void upload(CSpan<char>);
@@ -60,18 +72,22 @@ class Buffer : public immutable_base<Buffer> {
 	void flushMapped(i64 offset, i64 size);
 
 	int size() const { return m_size; }
-	int id() const { return m_handle; }
 	Type type() const { return m_type; }
 
 	void bind() const;
 	void unbind() const;
 	static void unbind(Type);
 
+	// TODO: size<Type>(): sizeof(Type) to jednostka
+
 	void bindIndex(int binding_index);
 
+	void validate();
+
   private:
-	unsigned m_handle;
-	int m_size;
+	static constexpr auto &storage = PBuffer::g_storage;
+
+	int m_size = 0;
 	Type m_type;
 };
 }

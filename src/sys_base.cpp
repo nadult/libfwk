@@ -91,6 +91,7 @@ void handleCtrlC(void (*handler)()) {
 	sigaction(SIGINT, &sig_int_handler, NULL);
 }
 
+// TODO: use tls to store this value
 int threadId() { return syscall(SYS_gettid); }
 #endif
 

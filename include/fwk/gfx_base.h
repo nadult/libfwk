@@ -28,6 +28,7 @@ class MaterialSet;
 class MatrixStack;
 class Renderer2D;
 class DrawCall;
+class MultiDrawCall;
 class RenderList;
 class FontCore;
 class Font;
