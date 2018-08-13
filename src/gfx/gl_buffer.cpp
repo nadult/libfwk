@@ -96,6 +96,16 @@ void GlBuffer::flushMapped(i64 offset, i64 size) {
 	glFlushMappedBufferRange(s_types[m_type], offset, size);
 }
 
+void GlBuffer::copyTo(PBuffer target, int read_offset, int write_offset, int size) const {
+	// TODO: remove these types from BufferTypes ?
+	// TODO: additional checking
+	glBindBuffer(GL_COPY_READ_BUFFER, id());
+	glBindBuffer(GL_COPY_WRITE_BUFFER, target.id());
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, read_offset, write_offset, size);
+	glBindBuffer(GL_COPY_READ_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
 void GlBuffer::bind() const { glBindBuffer(s_types[m_type], id()); }
 void GlBuffer::unbind() const { glBindBuffer(s_types[m_type], 0); }
 void GlBuffer::unbind(Type type) { glBindBuffer(s_types[type], 0); }

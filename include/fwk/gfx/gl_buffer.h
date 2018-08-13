@@ -53,6 +53,8 @@ class GlBuffer {
 		download(data.template reinterpret<char>());
 	}
 
+	void copyTo(PBuffer target, int read_offset, int write_offset, int size) const;
+
 	template <class T> vector<T> download() const { return download<T>(m_size / sizeof(T)); }
 
 	template <class T> vector<T> download(int count) const {
