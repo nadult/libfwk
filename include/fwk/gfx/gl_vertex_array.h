@@ -73,12 +73,16 @@ class GlVertexArray {
 	void bind() const;
 	static void unbind();
 
-	CSpan<PBuffer> buffers() const { return {m_vertex_buffers, m_size}; }
-	CSpan<VertexAttrib> attribs() const { return {m_attribs, m_size}; }
+	CSpan<PBuffer> buffers() const { return {m_vertex_buffers, m_num_attribs}; }
+	CSpan<VertexAttrib> attribs() const { return {m_attribs, m_num_attribs}; }
 
 	PBuffer indexBuffer() const { return m_index_buffer; }
 	IndexDataType indexDataType() const { return m_index_data_type; }
-	int size() const { return m_size; }
+
+	int numAttribs() const { return m_num_attribs; }
+	int size() const;
+
+	// TODO: size() should return number of vertices
 
   private:
 	static constexpr auto &storage = PVertexArray2::g_storage;
@@ -89,7 +93,7 @@ class GlVertexArray {
 	PBuffer m_vertex_buffers[max_attribs];
 	VertexAttrib m_attribs[max_attribs];
 	PBuffer m_index_buffer;
-	unsigned char m_size = 0;
+	unsigned char m_num_attribs = 0;
 	IndexDataType m_index_data_type;
 	const bool m_has_vao = false;
 };

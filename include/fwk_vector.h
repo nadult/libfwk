@@ -33,6 +33,10 @@ class BaseVector {
 	static int growCapacity(int current, int obj_size);
 	static int insertCapacity(int current, int obj_size, int min_size);
 
+	template <class T> static int insertCapacity(int current, int min_size) {
+		return insertCapacity(current, (int)sizeof(T), min_size);
+	}
+
 	void copyConstruct(int, CopyFunc, char *, int size);
 	void grow(int, MoveDestroyFunc);
 	void reallocate(int, MoveDestroyFunc move_destroy_func, int new_capacity);

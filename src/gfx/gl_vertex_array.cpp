@@ -35,7 +35,7 @@ GlVertexArray::GlVertexArray()
 GlVertexArray::~GlVertexArray() = default;
 
 void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs) {
-	m_size = buffers.size();
+	m_num_attribs = buffers.size();
 	DASSERT(buffers.size() == attribs.size());
 	DASSERT(buffers.size() <= max_attribs);
 	for(auto &buffer : buffers)
@@ -58,9 +58,14 @@ void GlVertexArray::fill() {
 		return;
 
 	glBindVertexArray(id());
-	for(int n : intRange(m_size))
+	for(int n : intRange(m_num_attribs))
 		bindVertexBuffer(n);
 	glBindVertexArray(0);
+}
+
+int GlVertexArray::size() const {
+	DASSERT(m_num_attribs > 0);
+	return m_vertex_buffers[0]->size() / m_attribs[0].dataSize();
 }
 
 static int countTriangles(PrimitiveType prim_type, int num_indices) {
@@ -75,7 +80,7 @@ void GlVertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
 	if(!num_vertices)
 		return;
 	DASSERT(offset >= 0 && num_vertices >= 0);
-	//DASSERT(num_vertices + offset <= m_size); // TODO: different size
+	//DASSERT(num_vertices + offset <= m_num_attribs); // TODO: different size
 
 	bind();
 
@@ -101,9 +106,9 @@ void GlVertexArray::bind() const {
 		glBindVertexArray(id());
 	} else {
 		// TODO: s_max_bind ?
-		for(int n : intRange(m_size))
+		for(int n : intRange(m_num_attribs))
 			bindVertexBuffer(n);
-		for(int n = m_size; n < max_attribs; n++)
+		for(int n = m_num_attribs; n < max_attribs; n++)
 			glDisableVertexAttribArray(n);
 	}
 }

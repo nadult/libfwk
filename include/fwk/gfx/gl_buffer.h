@@ -9,12 +9,12 @@
 
 namespace fwk {
 
-DEFINE_ENUM(MapBit, read, write, invalidate_range, invalidate_buffer, flush_explicit, unsychronized,
+DEFINE_ENUM(MapOpt, read, write, invalidate_range, invalidate_buffer, flush_explicit, unsychronized,
 			persistent, coherent);
-using MapFlags = EnumFlags<MapBit>;
+using MapFlags = EnumFlags<MapOpt>;
 
-DEFINE_ENUM(BufferUsage, stream_draw, stream_read, stream_copy, static_draw, static_read,
-			static_copy, dynamic_draw, dynamic_read, dynamic_copy);
+DEFINE_ENUM(UsageOpt, stream_draw, stream_read, stream_copy, static_draw, static_read, static_copy,
+			dynamic_draw, dynamic_read, dynamic_copy);
 
 DEFINE_ENUM(ImmBufferOpt, map_read, map_write, map_persistent, map_coherent, dynamic_storage,
 			client_storage);
@@ -68,10 +68,19 @@ class GlBuffer {
 	bool unmap();
 	static bool unmap(Type);
 
+	// TODO: do we really need 64-bit numbers here ?
 	void *map(i64 offset, i64 size, MapFlags);
 	void flushMapped(i64 offset, i64 size);
 
 	int size() const { return m_size; }
+
+	template <class T> T *map(AccessMode mode) { return (T *)map(mode); }
+	template <class T> T *map(int first, int count, MapFlags flags) {
+		return (T *)map(i64(first) * sizeof(T), i64(count) * sizeof(T), flags);
+	}
+
+	template <class T> int size() const { return size() / sizeof(T); }
+
 	Type type() const { return m_type; }
 
 	void bind() const;

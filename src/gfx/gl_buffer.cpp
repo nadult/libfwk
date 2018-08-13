@@ -81,7 +81,7 @@ bool GlBuffer::unmap() {
 bool GlBuffer::unmap(Type type) { return glUnmapBuffer(s_types[type]); }
 
 void *GlBuffer::map(i64 offset, i64 size, MapFlags flags) {
-	PASSERT(flags & (MapBit::read | MapBit::write));
+	PASSERT(flags & (MapOpt::read | MapOpt::write));
 	DASSERT(offset >= 0 && offset + size <= m_size);
 	bind();
 	return glMapBufferRange(s_types[m_type], offset, size, flags.bits);

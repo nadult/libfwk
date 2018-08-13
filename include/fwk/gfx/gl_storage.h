@@ -93,6 +93,8 @@ template <class T> class GlRef {
 
   private:
 	static GlStorage<T> g_storage;
+	// TODO: direct pointers to objects  & counters data?
+	// all the rest doesn't really have to be exposed
 
 	friend T;
 	GlRef(int id) : m_id(id) { incRefs(); }
