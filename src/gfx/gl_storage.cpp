@@ -12,7 +12,7 @@
 
 namespace fwk {
 
-template <GlTypeId type_id> struct Internal {
+template <class T> struct Internal {
 	// Only for big numbers; small are mapped directly
 	HashMap<int, int> to_gl, from_gl;
 	vector<uint> dummies;
@@ -33,31 +33,31 @@ template <GlTypeId type_id> struct Internal {
 	void freeDummy(uint id) { dummies.emplace_back(id); }
 };
 
-template <GlTypeId type_id> static Internal<type_id> s_internal;
+template <class T> static Internal<T> s_internal;
 
-template <GlTypeId type_id> int GlStorage<type_id>::allocGL() {
+template <class T> int GlStorage<T>::allocGL() {
 	GLuint value;
 #define CASE(otype, func)                                                                          \
-	if constexpr(type_id == GlTypeId::otype)                                                       \
+	if constexpr(isSame<T, otype>())                                                               \
 		func(1, &value);
 
-	CASE(buffer, glGenBuffers)
-	CASE(query, glGenQueries)
-	CASE(program_pipeline, glGenProgramPipelines)
-	CASE(transform_feedback, glGenTransformFeedbacks)
-	CASE(sampler, glGenSamplers)
-	CASE(texture, glGenTextures)
-	CASE(renderbuffer, glGenRenderbuffers)
-	CASE(framebuffer, glGenFramebuffers)
+	CASE(GlBuffer, glGenBuffers)
+	CASE(GlQuery, glGenQueries)
+	CASE(GlProgramPipeline, glGenProgramPipelines)
+	CASE(GlTransformFeedback, glGenTransformFeedbacks)
+	CASE(GlSampler, glGenSamplers)
+	CASE(GlTexture, glGenTextures)
+	CASE(GlRenderbuffer, glGenRenderbuffers)
+	CASE(GlFramebuffer, glGenFramebuffers)
 
-	if constexpr(type_id == GlTypeId::vertex_array) {
+	if constexpr(isSame<T, GlVertexArray>()) {
 		if(opengl_info->hasFeature(OpenglFeature::vertex_array_object))
 			glGenVertexArrays(1, &value);
 		else
-			value = s_internal<type_id>.allocDummy();
+			value = s_internal<T>.allocDummy();
 	}
 
-	if constexpr(isOneOf(type_id, GlTypeId::shader, GlTypeId::program))
+	if constexpr(IsOneOf<T, GlShader, GlProgram>::value)
 		FATAL("Use custom function for shaders & programs");
 #undef CASE
 
@@ -65,64 +65,64 @@ template <GlTypeId type_id> int GlStorage<type_id>::allocGL() {
 	return (int)value;
 }
 
-template <GlTypeId type_id> void GlStorage<type_id>::freeGL(int id) {
+template <class T> void GlStorage<T>::freeGL(int id) {
 	GLuint value = id;
 
 #define CASE(otype, func)                                                                          \
-	if constexpr(type_id == GlTypeId::otype)                                                       \
+	if constexpr(isSame<T, otype>())                                                               \
 		func(1, &value);
 
-	CASE(buffer, glDeleteBuffers)
-	CASE(query, glDeleteQueries)
-	CASE(program_pipeline, glDeleteProgramPipelines)
-	CASE(transform_feedback, glDeleteTransformFeedbacks)
-	CASE(sampler, glDeleteSamplers)
-	CASE(texture, glDeleteTextures)
-	CASE(renderbuffer, glDeleteRenderbuffers)
-	CASE(framebuffer, glDeleteFramebuffers)
+	CASE(GlBuffer, glDeleteBuffers)
+	CASE(GlQuery, glDeleteQueries)
+	CASE(GlProgramPipeline, glDeleteProgramPipelines)
+	CASE(GlTransformFeedback, glDeleteTransformFeedbacks)
+	CASE(GlSampler, glDeleteSamplers)
+	CASE(GlTexture, glDeleteTextures)
+	CASE(GlRenderbuffer, glDeleteRenderbuffers)
+	CASE(GlFramebuffer, glDeleteFramebuffers)
 
-	if constexpr(type_id == GlTypeId::vertex_array) {
+	if constexpr(isSame<T, GlVertexArray>()) {
 		if(opengl_info->hasFeature(OpenglFeature::vertex_array_object))
 			glDeleteVertexArrays(1, &value);
 		else
-			s_internal<type_id>.freeDummy(value);
+			s_internal<T>.freeDummy(value);
 	}
 
-	if constexpr(type_id == GlTypeId::shader)
+	if constexpr(isSame<T, GlShader>())
 		glDeleteShader(value);
-	if constexpr(type_id == GlTypeId::program)
+	if constexpr(isSame<T, GlProgram>())
 		glDeleteProgram(value);
 #undef CASE
 }
 
-template <GlTypeId type_id> int GlStorage<type_id>::bigIdFromGL(int id) const {
-	auto &map = s_internal<type_id>.from_gl;
+template <class T> int GlStorage<T>::bigIdFromGL(int id) const {
+	auto &map = s_internal<T>.from_gl;
 	auto it = map.find(id);
 	PASSERT(it != map.end());
 	return it->second;
 }
 
-template <GlTypeId type_id> int GlStorage<type_id>::bigIdToGL(int id) const {
-	auto &map = s_internal<type_id>.to_gl;
+template <class T> int GlStorage<T>::bigIdToGL(int id) const {
+	auto &map = s_internal<T>.to_gl;
 	auto it = map.find(id);
 	PASSERT(it != map.end());
 	return it->second;
 }
 
-template <GlTypeId type_id> void GlStorage<type_id>::mapBigId(int obj_id, int gl_id) {
-	s_internal<type_id>.from_gl[gl_id] = obj_id;
-	s_internal<type_id>.to_gl[obj_id] = gl_id;
+template <class T> void GlStorage<T>::mapBigId(int obj_id, int gl_id) {
+	s_internal<T>.from_gl[gl_id] = obj_id;
+	s_internal<T>.to_gl[obj_id] = gl_id;
 }
 
-template <GlTypeId type_id> void GlStorage<type_id>::clearBigId(int obj_id) {
-	auto &map = s_internal<type_id>.to_gl;
+template <class T> void GlStorage<T>::clearBigId(int obj_id) {
+	auto &map = s_internal<T>.to_gl;
 	auto it = map.find(obj_id);
 	PASSERT(it != map.end());
-	s_internal<type_id>.from_gl.erase(it->second);
+	s_internal<T>.from_gl.erase(it->second);
 	map.erase(it);
 }
 
-template <GlTypeId type_id> int GlStorage<type_id>::allocId(int gl_id) {
+template <class T> int GlStorage<T>::allocId(int gl_id) {
 	if(gl_id >= big_id) {
 		if(first_free == 0)
 			resizeBuffers(max(big_id + 1024, counters.size() + 1));
@@ -139,7 +139,7 @@ template <GlTypeId type_id> int GlStorage<type_id>::allocId(int gl_id) {
 	}
 }
 
-template <GlTypeId type_id> void GlStorage<type_id>::freeId(int obj_id) {
+template <class T> void GlStorage<T>::freeId(int obj_id) {
 	if(obj_id < big_id) {
 		PASSERT(counters[obj_id] == 0);
 	} else {
@@ -149,7 +149,7 @@ template <GlTypeId type_id> void GlStorage<type_id>::freeId(int obj_id) {
 	}
 }
 
-template <GlTypeId type_id> void GlStorage<type_id>::resizeBuffers(int new_size) {
+template <class T> void GlStorage<T>::resizeBuffers(int new_size) {
 	int old_size = objects.size();
 	new_size = BaseVector::insertCapacity(old_size, sizeof(T), new_size);
 
@@ -185,16 +185,16 @@ template <GlTypeId type_id> void GlStorage<type_id>::resizeBuffers(int new_size)
 	new_counters.unsafeSwap(counters);
 }
 
-template <GlTypeId type_id> void GlStorage<type_id>::destroy(int obj_id) {
+template <class T> void GlStorage<T>::destroy(int obj_id) {
 	DASSERT(counters[obj_id] == 0);
 	objects[obj_id].~T();
 	freeGL(toGL(obj_id));
 	freeId(obj_id);
 }
 
-template <GlTypeId type_id> GlPtr<type_id>::~GlPtr() { decRefs(); }
+template <class T> GlRef<T>::~GlRef() { decRefs(); }
 
-template <GlTypeId type_id> void GlPtr<type_id>::operator=(const GlPtr &rhs) {
+template <class T> void GlRef<T>::operator=(const GlRef &rhs) {
 	if(&rhs == this)
 		return;
 	decRefs();
@@ -202,7 +202,7 @@ template <GlTypeId type_id> void GlPtr<type_id>::operator=(const GlPtr &rhs) {
 	incRefs();
 }
 
-template <GlTypeId type_id> void GlPtr<type_id>::operator=(GlPtr &&rhs) {
+template <class T> void GlRef<T>::operator=(GlRef &&rhs) {
 	if(&rhs == this)
 		return;
 	decRefs();
@@ -210,26 +210,26 @@ template <GlTypeId type_id> void GlPtr<type_id>::operator=(GlPtr &&rhs) {
 	rhs.m_id = 0;
 }
 
-template <GlTypeId type_id> void GlPtr<type_id>::reset() {
+template <class T> void GlRef<T>::reset() {
 	if(m_id) {
 		decRefs();
 		m_id = 0;
 	}
 }
 
-template <GlTypeId type_id> void GlPtr<type_id>::decRefs() {
+template <class T> void GlRef<T>::decRefs() {
 	if(m_id && --g_storage.counters[m_id] == 0)
 		g_storage.destroy(m_id);
 }
 
-template <GlTypeId type_id> GlStorage<type_id> GlPtr<type_id>::g_storage;
+template <class T> GlStorage<T> GlRef<T>::g_storage;
 
-#define INSTANTIATE(id)                                                                            \
-	template class GlStorage<GlTypeId::id>;                                                        \
-	template class GlPtr<GlTypeId::id>;
+#define INSTANTIATE(type)                                                                          \
+	template class GlStorage<type>;                                                                \
+	template class GlRef<type>;
 
-INSTANTIATE(buffer)
-INSTANTIATE(vertex_array)
+INSTANTIATE(GlBuffer)
+INSTANTIATE(GlVertexArray)
 
 #undef INSTANTIATE
 }

@@ -48,8 +48,6 @@ struct IndexBufferDef {
 	IndexDataType data_type;
 };
 
-DEF_GL_PTR(PVertexArray2, vertex_array)
-
 class GlVertexArray {
   public:
 	static constexpr int max_attribs = 7;

@@ -3,41 +3,24 @@
 
 #pragma once
 
-#include "fwk/gfx/gl_object.h"
+#include "fwk/gfx_base.h"
 #include "fwk/pod_vector.h"
 #include "fwk_range.h"
 
-#include "fwk/format.h"
-
 namespace fwk {
-
-template <GlTypeId> class GlPtr;
-
-// TODO: is this mapping really necessary ?
-#define DEF_GL_PTR(name, id)                                                                       \
-	struct name : public GlPtr<GlTypeId::id> {                                                     \
-		using Super = GlPtr<GlTypeId::id>;                                                         \
-		using Super::GlPtr;                                                                        \
-		using Super::operator=;                                                                    \
-	};
 
 // When using GlObjects, you have to keep in mind, that:
 // - when new object is created, previous object may be moved in memory
-//   that's why it's better not to keep pointers or references to those
-//   objects, but GlPtr;
-// - both GlPtr and GlObjects have to be managed on gfx thread
+//   that's why it's better not to keep pointers or references to those objects, but GlRef
+// - both GlRef and GlObjects have to be managed on gfx thread
 //
-// - GlObjects are freed when their reference count drops to 0 (No GlPtrs pointing to it exists).
-template <GlTypeId type_id_> class GlStorage {
+// - GlObjects are freed when their reference count drops to 0 (No GlRefs pointing to it exists).
+template <class T> class GlStorage {
   public:
-	using T = GlIdToType<type_id_>;
-	static constexpr GlTypeId type_id = type_id_;
-
 	// Big ids are really worst-case scenario
 	// In their case object_id doesn't have to be equal to gl_id
 	// big_id value should be tuned so that most of the OpenGL id's are smaller than that
-	static constexpr int big_id =
-		isOneOf(type_id, GlTypeId::buffer, GlTypeId::texture) ? 1 << 16 : 1 << 10;
+	static constexpr int big_id = IsOneOf<T, GlBuffer, GlTexture>::value ? 1 << 16 : 1 << 10;
 
 	bool contains(const T *ptr) const { return ptr >= objects.data() && ptr + 1 <= objects.end(); }
 	int objectId(const T *ptr) const { return int(ptr - objects.data()); }
@@ -76,22 +59,18 @@ template <GlTypeId type_id_> class GlStorage {
 	int first_free = 0;
 };
 
-// TODO: it's not really a pointer; choose a better name ?
 // Identifies object stored in GlStorage
-// Reference counted; object is destroyed when there is no GLPtrs pointing to it
-template <GlTypeId type_id_> class GlPtr {
+// Reference counted; object is destroyed when there is no GlRefs pointing to it
+template <class T> class GlRef {
   public:
-	using T = GlIdToType<type_id_>;
-	static constexpr GlTypeId type_id = type_id_;
+	GlRef() : m_id(0) {}
+	GlRef(const GlRef &rhs) : m_id(rhs.m_id) { incRefs(); }
+	GlRef(GlRef &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
+	~GlRef();
 
-	GlPtr() : m_id(0) {}
-	GlPtr(const GlPtr &rhs) : m_id(rhs.m_id) { incRefs(); }
-	GlPtr(GlPtr &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
-	~GlPtr();
-
-	void operator=(const GlPtr &);
-	void operator=(GlPtr &&);
-	void swap(GlPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
+	void operator=(const GlRef &);
+	void operator=(GlRef &&);
+	void swap(GlRef &rhs) { fwk::swap(m_id, rhs.m_id); }
 
 	T &operator*() const {
 		PASSERT(m_id);
@@ -109,10 +88,10 @@ template <GlTypeId type_id_> class GlPtr {
 	void reset();
 
   private:
-	static GlStorage<type_id_> g_storage;
+	static GlStorage<T> g_storage;
 
 	friend T;
-	GlPtr(int id) : m_id(id) { incRefs(); }
+	GlRef(int id) : m_id(id) { incRefs(); }
 
 	void decRefs();
 	void incRefs() {
@@ -123,8 +102,8 @@ template <GlTypeId type_id_> class GlPtr {
 	int m_id;
 };
 
-#define EXTERN_STORAGE(id) extern template GlStorage<GlTypeId::id> GlPtr<GlTypeId::id>::g_storage;
-EXTERN_STORAGE(buffer)
-EXTERN_STORAGE(vertex_array)
+#define EXTERN_STORAGE(type) extern template GlStorage<type> GlRef<type>::g_storage;
+EXTERN_STORAGE(GlBuffer)
+EXTERN_STORAGE(GlVertexArray)
 #undef EXTERN_STORAGE
 }

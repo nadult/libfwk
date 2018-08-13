@@ -68,6 +68,26 @@ struct VertexDataType;
 struct FramebufferTarget;
 struct FontStyle;
 
+class GlBuffer;
+class GlFramebuffer;
+class GlProgram;
+class GlProgramPipeline;
+class GlQuery;
+class GlRenderbuffer;
+class GlSampler;
+class GlShader;
+class GlTexture;
+class GlVertexArray;
+class GlTransformFeedback;
+
+template <class T> class GlStorage;
+template <class T> class GlRef;
+
+using PBuffer = GlRef<GlBuffer>;
+using PVertexArray2 = GlRef<GlVertexArray>;
+// TODO: more definitions
+// TODO: consistent naming
+
 using PTexture = immutable_ptr<DTexture>;
 using STexture = shared_ptr<DTexture>;
 

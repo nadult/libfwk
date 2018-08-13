@@ -20,8 +20,6 @@ DEFINE_ENUM(ImmBufferOpt, map_read, map_write, map_persistent, map_coherent, dyn
 			client_storage);
 using ImmBufferFlags = EnumFlags<ImmBufferOpt>;
 
-DEF_GL_PTR(PBuffer, buffer)
-
 class GlBuffer {
   public:
 	using Type = BufferType;
