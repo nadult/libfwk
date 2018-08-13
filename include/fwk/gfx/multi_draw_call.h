@@ -37,6 +37,7 @@ class MultiDrawCall {
 	PVertexArray2 vao;
 	PBuffer cmd_buffer;
 	PBuffer matrix_buffer;
+	PBuffer color_buffer;
 	int cmd_count;
 	PrimitiveType prim_type;
 };
