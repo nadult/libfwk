@@ -87,6 +87,10 @@ template <class T> class GlRef {
 	int refCount() const { return g_storage.counters[m_id]; }
 	void reset();
 
+	template <class... Args> void emplace(Args &&... args) {
+		*this = T::make(std::forward<Args>(args)...);
+	}
+
   private:
 	static GlStorage<T> g_storage;
 
