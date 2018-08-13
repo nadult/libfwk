@@ -105,10 +105,16 @@ template <GlTypeId type_id_> class GlPtr {
 	}
 	void swap(GlPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
 
-	T &operator*() const { return g_storage.objects[m_id]; }
-	T *operator->() const { return &g_storage.objects[m_id]; }
+	T &operator*() const {
+		PASSERT(m_id);
+		return g_storage.objects[m_id];
+	}
+	T *operator->() const {
+		PASSERT(m_id);
+		return &g_storage.objects[m_id];
+	}
 
-	int glId() const { return g_storage.toGL(m_id); }
+	int id() const { return g_storage.toGL(m_id); }
 	explicit operator bool() const { return m_id != 0; }
 
 	int refCount() const { return g_storage.counters[m_id]; }
