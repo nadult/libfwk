@@ -17,7 +17,7 @@ MultiDrawCall::MultiDrawCall(PVertexArray2 vao, PBuffer buffer, PrimitiveType pr
 	if(cmd_count < 0)
 		cmd_count = cmd_buffer->size() / sizeof(DrawIndirectCommand);
 	else
-		DASSERT(cmd_buffer->size() >= cmd_count * sizeof(DrawIndirectCommand));
+		DASSERT(cmd_buffer->size() >= int(cmd_count * sizeof(DrawIndirectCommand)));
 }
 
 FWK_COPYABLE_CLASS_IMPL(MultiDrawCall);

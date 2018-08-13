@@ -4,7 +4,6 @@
 #include "fwk/gfx/gl_vertex_array.h"
 
 #include "fwk/enum_map.h"
-#include "fwk/gfx/gl_storage_impl.h"
 #include "fwk/gfx/index_buffer.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/vertex_buffer.h"
@@ -12,10 +11,6 @@
 #include <climits>
 
 namespace fwk {
-
-// TODO: consider moving this out of here; it creates a ot of problably unnecessary inlined code...
-template class GlStorage<GlTypeId::vertex_array>;
-template class GlPtr<GlTypeId::vertex_array>;
 
 struct VertexDataInfo {
 	int size;

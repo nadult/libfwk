@@ -4,14 +4,10 @@
 #include "fwk/gfx/gl_buffer.h"
 
 #include "fwk/enum_map.h"
-#include "fwk/gfx/gl_storage_impl.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/texture_format.h"
 
 namespace fwk {
-
-template class GlStorage<GlTypeId::buffer>;
-template class GlPtr<GlTypeId::buffer>;
 
 static const EnumMap<BufferType, int> s_types = {
 	GL_ARRAY_BUFFER,

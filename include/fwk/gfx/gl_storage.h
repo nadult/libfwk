@@ -87,22 +87,10 @@ template <GlTypeId type_id_> class GlPtr {
 	GlPtr() : m_id(0) {}
 	GlPtr(const GlPtr &rhs) : m_id(rhs.m_id) { incRefs(); }
 	GlPtr(GlPtr &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
-	~GlPtr() { decRefs(); }
+	~GlPtr();
 
-	void operator=(const GlPtr &rhs) {
-		if(&rhs == this)
-			return;
-		decRefs();
-		m_id = rhs.m_id;
-		incRefs();
-	}
-	void operator=(GlPtr &&rhs) {
-		if(&rhs == this)
-			return;
-		decRefs();
-		m_id = rhs.m_id;
-		rhs.m_id = 0;
-	}
+	void operator=(const GlPtr &);
+	void operator=(GlPtr &&);
 	void swap(GlPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
 
 	T &operator*() const {
@@ -118,13 +106,7 @@ template <GlTypeId type_id_> class GlPtr {
 	explicit operator bool() const { return m_id != 0; }
 
 	int refCount() const { return g_storage.counters[m_id]; }
-
-	void reset() {
-		if(m_id) {
-			decRefs();
-			m_id = 0;
-		}
-	}
+	void reset();
 
   private:
 	static GlStorage<type_id_> g_storage;
@@ -132,11 +114,7 @@ template <GlTypeId type_id_> class GlPtr {
 	friend T;
 	GlPtr(int id) : m_id(id) { incRefs(); }
 
-	// TODO: hide this in implementation ?
-	void decRefs() {
-		if(m_id && --g_storage.counters[m_id] == 0)
-			g_storage.destroy(m_id);
-	}
+	void decRefs();
 	void incRefs() {
 		if(m_id)
 			g_storage.counters[m_id]++;
@@ -144,4 +122,9 @@ template <GlTypeId type_id_> class GlPtr {
 
 	int m_id;
 };
+
+#define EXTERN_STORAGE(id) extern template GlStorage<GlTypeId::id> GlPtr<GlTypeId::id>::g_storage;
+EXTERN_STORAGE(buffer)
+EXTERN_STORAGE(vertex_array)
+#undef EXTERN_STORAGE
 }

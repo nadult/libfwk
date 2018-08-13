@@ -7,6 +7,9 @@
 #include "fwk/gfx/opengl.h"
 #include "fwk/hash_map.h"
 
+#include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_vertex_array.h"
+
 namespace fwk {
 
 template <GlTypeId type_id> struct Internal {
@@ -189,5 +192,44 @@ template <GlTypeId type_id> void GlStorage<type_id>::destroy(int obj_id) {
 	freeId(obj_id);
 }
 
+template <GlTypeId type_id> GlPtr<type_id>::~GlPtr() { decRefs(); }
+
+template <GlTypeId type_id> void GlPtr<type_id>::operator=(const GlPtr &rhs) {
+	if(&rhs == this)
+		return;
+	decRefs();
+	m_id = rhs.m_id;
+	incRefs();
+}
+
+template <GlTypeId type_id> void GlPtr<type_id>::operator=(GlPtr &&rhs) {
+	if(&rhs == this)
+		return;
+	decRefs();
+	m_id = rhs.m_id;
+	rhs.m_id = 0;
+}
+
+template <GlTypeId type_id> void GlPtr<type_id>::reset() {
+	if(m_id) {
+		decRefs();
+		m_id = 0;
+	}
+}
+
+template <GlTypeId type_id> void GlPtr<type_id>::decRefs() {
+	if(m_id && --g_storage.counters[m_id] == 0)
+		g_storage.destroy(m_id);
+}
+
 template <GlTypeId type_id> GlStorage<type_id> GlPtr<type_id>::g_storage;
+
+#define INSTANTIATE(id)                                                                            \
+	template class GlStorage<GlTypeId::id>;                                                        \
+	template class GlPtr<GlTypeId::id>;
+
+INSTANTIATE(buffer)
+INSTANTIATE(vertex_array)
+
+#undef INSTANTIATE
 }
