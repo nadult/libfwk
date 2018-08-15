@@ -4,7 +4,9 @@
 #include "fwk/gfx/gl_vertex_array.h"
 
 #include "fwk/enum_map.h"
+#include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/index_buffer.h"
+#include "fwk/gfx/multi_draw_call.h" // TODO: only for DrawIndirectCommand
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/vertex_buffer.h"
 #include "fwk_profile.h"
@@ -99,6 +101,23 @@ void GlVertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
 		FWK_PROFILE_COUNTER("Gfx::tris", countTriangles(pt, num_vertices));
 		glDrawArrays(gl_primitives[pt], offset, num_vertices);
 	}
+}
+
+void GlVertexArray::drawIndirect(PrimitiveType pt, PBuffer cmd_buffer, int num_commands,
+								 int offset) const {
+	DASSERT(cmd_buffer && cmd_buffer->type() == BufferType::draw_indirect);
+
+	if(num_commands == -1)
+		num_commands = cmd_buffer->size<DrawIndirectCommand>();
+	if(m_index_buffer)
+		FATAL("write me");
+
+	bind();
+	// TODO: how to count triangles ?
+	cmd_buffer->bind();
+	glMultiDrawArraysIndirect(GL_TRIANGLES, (void *)(long long)offset, num_commands,
+							  sizeof(DrawIndirectCommand));
+	cmd_buffer->unbind();
 }
 
 void GlVertexArray::bind() const {

@@ -70,6 +70,12 @@ class GlVertexArray {
 	void draw(PrimitiveType, int num_vertices, int offset = 0) const;
 	void draw(PrimitiveType primitive_type) const { draw(primitive_type, size()); }
 
+	// TODO: offset type: Size<DrawIndirectCommand>(); But what if the user would like
+	// to offset by smaller number of bytes ?
+	// Size<> default converts only if can divide with modulus == 0
+	void drawIndirect(PrimitiveType, PBuffer command_buffer, int num_commands = -1,
+					  int offset = 0) const;
+
 	void bind() const;
 	static void unbind();
 

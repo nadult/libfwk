@@ -26,18 +26,16 @@ static_assert(sizeof(DrawIndirectCommand) == 16);
 
 class MultiDrawCall {
   public:
-	MultiDrawCall(PVertexArray2, PBuffer, PrimitiveType, int cmd_count = -1,
-				  const Material & = Material(), Matrix4 = Matrix4::identity());
+	MultiDrawCall(PVertexArray2, PBuffer, PrimitiveType, int cmd_count = -1);
 	FWK_COPYABLE_CLASS(MultiDrawCall);
 
 	void issue() const;
 
-	Matrix4 matrix;
-	Material material;
 	PVertexArray2 vao;
 	PBuffer cmd_buffer;
 	PBuffer matrix_buffer;
 	PBuffer color_buffer;
+	PBuffer id_buffer;
 	int cmd_count;
 	PrimitiveType prim_type;
 };
