@@ -1,6 +1,11 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- hashCombine should be available
+- hash(a, b, c) as well ?
+- vector should be able to perform assignment of object which cannot
+  be assigned by destruction & reconstruction
+
 TODO: which OpenGL version are we targeting ?
 - Opengl 3.3
 - Opengl ES 2.0 ?

@@ -48,6 +48,8 @@ struct IndexBufferDef {
 	IndexDataType data_type;
 };
 
+int dataSize(IndexDataType);
+
 class GlVertexArray {
   public:
 	static constexpr int max_attribs = 7;
@@ -67,6 +69,7 @@ class GlVertexArray {
 		return PVertexArray2(storage.make(std::forward<Args>(args)...));
 	}
 
+	// TODO: what offset means? make it type safe
 	void draw(PrimitiveType, int num_vertices, int offset = 0) const;
 	void draw(PrimitiveType primitive_type) const { draw(primitive_type, size()); }
 

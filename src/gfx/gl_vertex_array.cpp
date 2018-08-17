@@ -25,7 +25,12 @@ static const EnumMap<VertexDataType_, VertexDataInfo> data_info = {
 
 int dataSize(VertexDataType_ type) { return data_info[type].size; }
 
-static const int gl_index_data_type[] = {GL_UNSIGNED_INT, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT};
+static const EnumMap<IndexDataType, int> gl_index_data_type{GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT,
+															GL_UNSIGNED_INT};
+
+int dataSize(IndexDataType itype) {
+	return itype == IndexDataType::uint8 ? 1 : itype == IndexDataType::uint16 ? 2 : 4;
+}
 
 static const EnumMap<PrimitiveType, int> gl_primitives{
 	{GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP}};
@@ -66,6 +71,8 @@ void GlVertexArray::fill() {
 }
 
 int GlVertexArray::size() const {
+	if(m_index_buffer)
+		return m_index_buffer->size() / dataSize(m_index_data_type);
 	DASSERT(m_num_attribs > 0);
 	return m_vertex_buffers[0]->size() / m_attribs[0].dataSize();
 }
@@ -88,7 +95,10 @@ void GlVertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
 
 	FWK_PROFILE_COUNTER("Gfx::draw_calls", 1);
 	if(m_index_buffer) {
-		FATAL("Writeme");
+		m_index_buffer->bind();
+		glDrawElements(gl_primitives[pt], num_vertices, gl_index_data_type[m_index_data_type],
+					   (void *)(long long)offset);
+		m_index_buffer->unbind();
 		/*
 		FWK_PROFILE_COUNTER("Gfx::tris", countTriangles(pt, num_vertices));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer->m_handle);
