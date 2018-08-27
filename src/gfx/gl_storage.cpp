@@ -130,6 +130,7 @@ template <class T> int GlStorage<T>::allocId(int gl_id) {
 		PASSERT(obj_id != 0);
 		first_free = counters[obj_id];
 		counters[obj_id] = 0;
+		mapBigId(obj_id, gl_id);
 		return obj_id;
 	} else {
 		if(gl_id >= counters.size())
@@ -169,7 +170,7 @@ template <class T> void GlStorage<T>::resizeBuffers(int new_size) {
 	int last_free = first_free;
 	while(last_free != 0) {
 		prev_free = last_free;
-		last_free = counters[last_free];
+		last_free = new_counters[last_free];
 	}
 
 	int begin_list = max(big_id, old_size);
@@ -177,7 +178,7 @@ template <class T> void GlStorage<T>::resizeBuffers(int new_size) {
 		if(prev_free == 0)
 			first_free = n;
 		else
-			counters[prev_free] = n;
+			new_counters[prev_free] = n;
 		prev_free = n;
 	}
 

@@ -38,6 +38,11 @@ static const EnumMap<PrimitiveType, int> gl_primitives{
 GlVertexArray::GlVertexArray()
 	: m_has_vao(opengl_info->hasFeature(OpenglFeature::vertex_array_object)) {
 	DASSERT(storage.contains(this));
+	if(!m_has_vao) {
+		FATAL("check if this mode works");
+		// TODO: is it possible to render without VAO in Opengl > 3.0 ?
+		// is this even an option ?
+	}
 }
 GlVertexArray::~GlVertexArray() = default;
 
