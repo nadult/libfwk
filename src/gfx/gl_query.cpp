@@ -1,16 +1,16 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/opengl_query.h"
+#include "fwk/gfx/gl_query.h"
 
 #include "fwk/enum_map.h"
 
 namespace fwk {
 
-OpenglQuery::OpenglQuery() { glGenQueries(1, &handle); }
-OpenglQuery::~OpenglQuery() { glDeleteQueries(1, &handle); }
+GlQuery::GlQuery() { glGenQueries(1, &handle); }
+GlQuery::~GlQuery() { glDeleteQueries(1, &handle); }
 
-Maybe<int> OpenglQuery::getValue() const {
+Maybe<int> GlQuery::getValue() const {
 	if(!has_value)
 		return none;
 
@@ -19,7 +19,7 @@ Maybe<int> OpenglQuery::getValue() const {
 	return value == -1 ? Maybe<int>() : value;
 }
 
-int OpenglQuery::waitForValue() const {
+int GlQuery::waitForValue() const {
 	if(!has_value)
 		return -1;
 	int value = -1;
@@ -27,13 +27,13 @@ int OpenglQuery::waitForValue() const {
 	return value;
 }
 
-static const EnumMap<OpenglQueryType, int> s_query_types{
+static const EnumMap<GlQueryType, int> s_query_types{
 	{GL_SAMPLES_PASSED, GL_ANY_SAMPLES_PASSED, GL_ANY_SAMPLES_PASSED_CONSERVATIVE,
 	 GL_PRIMITIVES_GENERATED, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, GL_TIME_ELAPSED}};
 
-OpenglQueryScope::OpenglQueryScope(OpenglQuery &query, OpenglQueryType type) : type(type) {
+GlQueryScope::GlQueryScope(GlQuery &query, GlQueryType type) : type(type) {
 	glBeginQuery(s_query_types[type], query.handle);
 	query.has_value = true;
 }
-OpenglQueryScope::~OpenglQueryScope() { glEndQuery(s_query_types[type]); }
+GlQueryScope::~GlQueryScope() { glEndQuery(s_query_types[type]); }
 }
