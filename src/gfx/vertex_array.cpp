@@ -7,7 +7,6 @@
 #include "fwk/gfx/index_buffer.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/vertex_buffer.h"
-#include "fwk_profile.h"
 #include <climits>
 
 namespace fwk {
@@ -83,17 +82,13 @@ void VertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
 
 	bind();
 
-	FWK_PROFILE_COUNTER("Gfx::draw_calls", 1);
 	if(m_index_buffer) {
-		FWK_PROFILE_COUNTER("Gfx::tris", countTriangles(pt, num_vertices));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer->m_handle);
 		glDrawElements(gl_primitives[pt], num_vertices,
 					   gl_index_data_type[m_index_buffer->m_index_type],
 					   (void *)(size_t)(offset * m_index_buffer->m_index_size));
-		testGlError("glDrawElements");
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	} else {
-		FWK_PROFILE_COUNTER("Gfx::tris", countTriangles(pt, num_vertices));
 		glDrawArrays(gl_primitives[pt], offset, num_vertices);
 	}
 
