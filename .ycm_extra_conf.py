@@ -58,8 +58,11 @@ flags = [
 '-x', 'c++',
 '-I', 'src/',
 '-I', 'include/',
-'-isystem', '/usr/include',
+'-isystem', '/usr/include/c++/8',
+'-isystem', '/usr/include/c++/8/x86_64-pc-linux-gnu',
+'-isystem', '/usr/include/c++/8/backward',
 '-isystem', '/usr/local/include',
+'-isystem', '/usr/include',
 '-isystem', '/usr/include/SDL2',
 '-isystem', '/usr/include/freetype2',
 ]
