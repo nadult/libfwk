@@ -68,6 +68,7 @@ class Mesh : public immutable_base<Mesh> {
 	using TriIndices = MeshIndices::TriIndices;
 	vector<Triangle3F> tris() const;
 	vector<TriIndices> trisIndices() const;
+	vector<ColoredTriangle> coloredTris(CSpan<IColor>) const;
 
 	vector<Mesh> split(int max_vertices) const;
 	static Mesh merge(vector<Mesh>);

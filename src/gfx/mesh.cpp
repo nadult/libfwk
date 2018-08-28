@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/mesh.h"
 
+#include "fwk/gfx/colored_triangle.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/index_buffer.h"
 #include "fwk/gfx/material_set.h"
@@ -10,6 +11,7 @@
 #include "fwk/gfx/vertex_buffer.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
+#include "fwk/sys/assert.h"
 #include "fwk/sys/xml.h"
 
 namespace fwk {
@@ -43,7 +45,7 @@ void Mesh::saveToXML(XmlNode node) const {
 	m_buffers.saveToXML(node);
 	for(int n = 0; n < m_indices.size(); n++) {
 		const auto &indices = m_indices[n];
-		XmlNode xml_indices = node.addChild("indices", (vector<int>)indices);
+		XmlNode xml_indices = node.addChild("indices", indices.data());
 		if(indices.type() != PrimitiveType::triangles)
 			xml_indices.addAttrib("type", toString(indices.type()));
 	}
@@ -88,6 +90,27 @@ vector<Triangle3F> Mesh::tris() const {
 	const auto &verts = positions();
 	for(const auto &inds : trisIndices())
 		out.emplace_back(verts[inds[0]], verts[inds[1]], verts[inds[2]]);
+	return out;
+}
+
+vector<ColoredTriangle> Mesh::coloredTris(CSpan<IColor> colors) const {
+	vector<ColoredTriangle> out;
+	out.reserve(triangleCount());
+
+	const auto &verts = positions();
+	if(hasIndices()) {
+		DASSERT_EQ(colors.size(), m_indices.size());
+		int mat_id = 0;
+		for(const auto &indices : m_indices) {
+			for(auto &inds : indices.trisIndices())
+				out.emplace_back(verts[inds[0]], verts[inds[1]], verts[inds[2]], colors[mat_id]);
+			mat_id++;
+		}
+	} else {
+		DASSERT(colors);
+		for(int n = 0, count = triangleCount(); n < count; n++)
+			out.emplace_back(verts[n * 3 + 0], verts[n * 3 + 1], verts[n * 3 + 2], colors[0]);
+	}
 	return out;
 }
 
@@ -272,7 +295,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 			vector<pair<int, int>> merged_ranges;
 			auto merged_indices = MeshIndices::merge(m_indices, merged_ranges);
 
-			auto indices = make_immutable<IndexBuffer>(merged_indices);
+			auto indices = make_immutable<IndexBuffer>(merged_indices.data());
 			auto varray = VertexArray::make({vertices, colors, tex_coords}, move(indices));
 
 			for(int n = 0; n < m_indices.size(); n++) {

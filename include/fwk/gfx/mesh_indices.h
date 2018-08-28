@@ -23,7 +23,7 @@ class MeshIndices {
 
 	static MeshIndices makeRange(int count, int first = 0, Type ptype = Type::triangles);
 
-	operator const vector<int> &() const { return m_data; }
+	const auto &data() const { return m_data; }
 	Type type() const { return m_type; }
 
 	vector<TriIndices> trisIndices() const;
