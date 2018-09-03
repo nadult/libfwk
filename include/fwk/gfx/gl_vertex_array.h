@@ -70,8 +70,9 @@ class GlVertexArray {
 	}
 
 	// TODO: what offset means? make it type safe
-	void draw(PrimitiveType, int num_vertices, int offset = 0) const;
+	void draw(PrimitiveType, int num_elements, int offset = 0) const;
 	void draw(PrimitiveType primitive_type) const { draw(primitive_type, size()); }
+	void drawInstanced(PrimitiveType, int num_elements, int num_instances, int offset = 0);
 
 	// TODO: offset type: Size<DrawIndirectCommand>(); But what if the user would like
 	// to offset by smaller number of bytes ?

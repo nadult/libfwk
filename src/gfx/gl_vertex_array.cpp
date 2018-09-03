@@ -89,21 +89,43 @@ static int countTriangles(PrimitiveType prim_type, int num_indices) {
 	return 0;
 }
 
-void GlVertexArray::draw(PrimitiveType pt, int num_vertices, int offset) const {
-	if(!num_vertices)
+void GlVertexArray::draw(PrimitiveType pt, int num_elements, int offset) const {
+	if(!num_elements)
 		return;
-	DASSERT(offset >= 0 && num_vertices >= 0);
-	//DASSERT(num_vertices + offset <= m_num_attribs); // TODO: different size
+	DASSERT(offset >= 0 && num_elements >= 0);
+	// TODO: more checks
+	//DASSERT(num_elements + offset <= size());
 
 	bind();
 
 	if(m_index_buffer) {
 		m_index_buffer->bind();
-		glDrawElements(gl_primitives[pt], num_vertices, gl_index_data_type[m_index_data_type],
+		glDrawElements(gl_primitives[pt], num_elements, gl_index_data_type[m_index_data_type],
 					   (void *)(long long)offset);
 		m_index_buffer->unbind();
 	} else {
-		glDrawArrays(gl_primitives[pt], offset, num_vertices);
+		glDrawArrays(gl_primitives[pt], offset, num_elements);
+	}
+}
+
+void GlVertexArray::drawInstanced(PrimitiveType pt, int num_elements, int num_instances,
+								  int offset) {
+	if(!num_elements)
+		return;
+	DASSERT(offset >= 0 && num_elements >= 0);
+	// TODO: more checks
+	//DASSERT(num_elements + offset <= size());
+
+	bind();
+
+	if(m_index_buffer) {
+		m_index_buffer->bind();
+		glDrawElementsInstanced(gl_primitives[pt], num_elements,
+								gl_index_data_type[m_index_data_type], (void *)(long long)offset,
+								num_instances);
+		m_index_buffer->unbind();
+	} else {
+		glDrawArraysInstanced(gl_primitives[pt], offset, num_elements, num_instances);
 	}
 }
 
