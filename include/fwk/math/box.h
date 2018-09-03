@@ -8,6 +8,24 @@
 
 namespace fwk {
 
+// min <= max in all dimensions; can be empty
+template <class Point> static bool validBoxRange(const Point &min, const Point &max) {
+	static constexpr int dim_size = Point::vec_size;
+	for(int i = 0; i < dim_size; i++)
+		if(!(min[i] <= max[i]))
+			return false;
+	return true;
+}
+
+template <class Point> void checkBoxRange(const Point &min, const Point &max) {
+	ASSERT(validBoxRange(min, max));
+}
+
+void checkBoxRange(const float2 &, const float2 &);
+void checkBoxRange(const float3 &, const float3 &);
+void checkBoxRange(const int2 &, const int2 &);
+void checkBoxRange(const int3 &, const int3 &);
+
 #define ENABLE_IF_SIZE(n) template <class U = Vector, EnableInDimension<U, n>...>
 
 // Axis-aligned box (or rect in 2D case)
@@ -25,13 +43,7 @@ template <class T> class Box {
 
 	enum { dim_size = T::vec_size, num_corners = 1 << dim_size };
 
-	// min <= max in all dimensions; can be empty
-	static bool validRange(const Point &min, const Point &max) {
-		for(int i = 0; i < dim_size; i++)
-			if(!(min[i] <= max[i]))
-				return false;
-		return true;
-	}
+	static bool validRange(const Point &min, const Point &max) { return validBoxRange(min, max); }
 
 	// min >= max in any dimension
 	static bool emptyRange(const Point &min, const Point &max) {
@@ -48,7 +60,7 @@ template <class T> class Box {
 	Box(Scalar min_x, Scalar min_y, Scalar min_z, Scalar max_x, Scalar max_y, Scalar max_z)
 		: Box({min_x, min_y, min_z}, {max_x, max_y, max_z}) {}
 
-	Box(Point min, Point max) : m_min(min), m_max(max) { DASSERT(validRange(min, max)); }
+	Box(Point min, Point max) : m_min(min), m_max(max) { IF_DEBUG(checkBoxRange(min, max)); }
 	explicit Box(T size) : Box(T(), size) {}
 	Box() : m_min(), m_max() {}
 
@@ -68,15 +80,15 @@ template <class T> class Box {
 
 	void setMin(const T &min) {
 		m_min = min;
-		DASSERT(validRange(m_min, m_max));
+		IF_DEBUG(checkBoxRange(m_min, m_max));
 	}
 	void setMax(const T &max) {
 		m_max = max;
-		DASSERT(validRange(m_min, m_max));
+		IF_DEBUG(checkBoxRange(m_min, m_max));
 	}
 	void setSize(const T &size) {
 		m_max = m_min + size;
-		DASSERT(validRange(m_min, m_max));
+		IF_DEBUG(checkBoxRange(m_min, m_max));
 	}
 
 	Scalar x() const { return m_min[0]; }

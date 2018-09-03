@@ -3,10 +3,21 @@
 
 #include "fwk/math/box.h"
 
+#include "fwk/format.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/plane.h"
 
 namespace fwk {
+
+template <class T> void checkBoxRangeDetailed(const T &min, const T &max) {
+	if(!validBoxRange(min, max))
+		FATAL("Invalid box range: %s", format("% - %", min, max).c_str());
+}
+
+void checkBoxRange(const float2 &min, const float2 &max) { return checkBoxRangeDetailed(min, max); }
+void checkBoxRange(const float3 &min, const float3 &max) { return checkBoxRangeDetailed(min, max); }
+void checkBoxRange(const int2 &min, const int2 &max) { return checkBoxRangeDetailed(min, max); }
+void checkBoxRange(const int3 &min, const int3 &max) { return checkBoxRangeDetailed(min, max); }
 
 FBox encloseTransformed(const FBox &box, const Matrix4 &mat) {
 	return enclose(transform(box.corners(), [&](auto pt) { return mulPoint(mat, pt); }));

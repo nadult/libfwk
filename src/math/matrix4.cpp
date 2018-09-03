@@ -36,7 +36,9 @@ Matrix4 Matrix4::operator*(float s) const {
 }
 
 Matrix4 operator*(const Matrix4 &lhs, const Matrix4 &rhs) {
+	// This is vectorized by default
 	Matrix4 tlhs = transpose(lhs);
+
 	return Matrix4(float4(dot(rhs[0], tlhs[0]), dot(rhs[0], tlhs[1]), dot(rhs[0], tlhs[2]),
 						  dot(rhs[0], tlhs[3])),
 				   float4(dot(rhs[1], tlhs[0]), dot(rhs[1], tlhs[1]), dot(rhs[1], tlhs[2]),
