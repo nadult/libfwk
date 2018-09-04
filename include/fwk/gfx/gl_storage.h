@@ -91,6 +91,9 @@ template <class T> class GlRef {
 		*this = T::make(std::forward<Args>(args)...);
 	}
 
+	bool operator==(const GlRef &rhs) const { return m_id == rhs.m_id; }
+	bool operator<(const GlRef &rhs) const { return m_id < rhs.m_id; }
+
   private:
 	static GlStorage<T> g_storage;
 	// TODO: direct pointers to objects  & counters data?
