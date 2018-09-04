@@ -16,13 +16,19 @@ DEFINE_ENUM(VertexDataType_, int8, uint8, int16, uint16, int32, uint32, float16,
 constexpr bool isIntegral(VertexDataType_ type) { return type <= VertexDataType_::uint32; }
 int dataSize(VertexDataType_ type);
 
+DEFINE_ENUM(VertexAttribOpt, normalized, as_integer);
+
 struct VertexAttrib {
 	using DataType = VertexDataType_;
+	using Opt = VertexAttribOpt;
+	using Flags = EnumFlags<Opt>;
 
-	VertexAttrib(DataType type, int size, int padding = 0, bool normalized = false)
-		: type(type), size(size), padding(padding), normalized(normalized) {
-		if(!isIntegral(type))
-			PASSERT(!normalized);
+	VertexAttrib(DataType type, int size, int padding = 0, Flags flags = {})
+		: type(type), size(size), padding(padding), flags(flags) {
+		if(flags & (Opt::normalized | Opt::as_integer))
+			PASSERT(isIntegral(type));
+		if(flags & Opt::normalized)
+			PASSERT(!(flags & Opt::as_integer));
 		PASSERT(size >= 0 && size <= 255);
 		PASSERT(padding >= 0 && padding <= 255);
 	}
@@ -33,7 +39,7 @@ struct VertexAttrib {
 	DataType type = DataType::uint8;
 	unsigned char size = 1;
 	unsigned char padding = 0;
-	bool normalized = false;
+	Flags flags = {};
 };
 
 struct VertexBufferDef {

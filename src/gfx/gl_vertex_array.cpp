@@ -162,8 +162,14 @@ void GlVertexArray::bindVertexBuffer(int n) const {
 	glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffers[n]->id());
 
 	auto &attrib = m_attribs[n];
-	glVertexAttribPointer(n, attrib.size, data_info[attrib.type].gl_type,
-						  attrib.normalized ? GL_TRUE : GL_FALSE, attrib.dataSize(), 0);
+	auto gl_type = data_info[attrib.type].gl_type;
+
+	if(attrib.flags & VertexAttribOpt::as_integer)
+		glVertexAttribIPointer(n, attrib.size, gl_type, attrib.dataSize(), 0);
+	else {
+		auto normalized = attrib.flags & VertexAttribOpt::normalized ? GL_TRUE : GL_FALSE;
+		glVertexAttribPointer(n, attrib.size, gl_type, normalized, attrib.dataSize(), 0);
+	}
 	glEnableVertexAttribArray(n);
 }
 
