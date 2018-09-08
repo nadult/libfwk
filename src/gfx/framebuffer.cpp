@@ -23,7 +23,28 @@ static void attach(int type, const FramebufferTarget &target) {
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, type, GL_RENDERBUFFER,
 								  target.render_buffer->id());
 	else
-		glFramebufferTexture2D(GL_FRAMEBUFFER, type, GL_TEXTURE_2D, target.texture->id(), 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, type, target.texture->glType(), target.texture->id(),
+							   0);
+}
+
+static const char *fboError(int error_code) {
+	switch(error_code) {
+#define CASE(code)                                                                                 \
+	case code:                                                                                     \
+		return #code;
+		CASE(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT)
+		CASE(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)
+		CASE(GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER)
+		CASE(GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER)
+		CASE(GL_FRAMEBUFFER_UNSUPPORTED)
+		CASE(GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE)
+		CASE(GL_TEXTURE_FIXED_SAMPLE_LOCATIONS)
+		CASE(GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS)
+#undef CASE
+	default:
+		break;
+	}
+	return "UNKNOWN";
 }
 
 Framebuffer::Framebuffer(vector<Target> colors, Target depth)
@@ -56,13 +77,8 @@ Framebuffer::Framebuffer(vector<Target> colors, Target depth)
 			attach(GL_COLOR_ATTACHMENT0 + n, m_colors[n]);
 
 		auto ret = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if(ret != GL_FRAMEBUFFER_COMPLETE) {
-			const char *err_code =
-				ret == GL_FRAMEBUFFER_UNSUPPORTED
-					? "\nunsupported combination of internal formats for attached images"
-					: "unknown";
-			FATAL("Error while initializing framebuffer:%s", err_code);
-		}
+		if(ret != GL_FRAMEBUFFER_COMPLETE)
+			FATAL("Error while initializing framebuffer: %s", fboError(ret));
 
 		if(m_colors) {
 			GLenum indices[max_color_attachments];

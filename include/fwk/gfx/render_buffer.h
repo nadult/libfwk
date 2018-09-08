@@ -12,6 +12,7 @@ class RenderBuffer {
   public:
 	using Format = TextureFormat;
 	RenderBuffer(TextureFormat, const int2 &size);
+	RenderBuffer(TextureFormat, const int2 &, int multisample_count);
 	~RenderBuffer();
 
 	void operator=(const RenderBuffer &) = delete;

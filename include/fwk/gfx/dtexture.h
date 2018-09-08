@@ -10,7 +10,7 @@
 
 namespace fwk {
 
-DEFINE_ENUM(TextureOpt, wrapped, filtered, immutable);
+DEFINE_ENUM(TextureOpt, multisample, wrapped, filtered, immutable);
 using TextureFlags = EnumFlags<TextureOpt>;
 
 // Device texture
@@ -22,6 +22,7 @@ class DTexture : public immutable_base<DTexture> {
 
 	DTexture();
 	DTexture(const string &name, Stream &);
+	DTexture(Format, const int2 &size, int multisample_count, Flags = Opt::multisample);
 	DTexture(Format, const int2 &size, Flags = {});
 	DTexture(Format, const Texture &, Flags = {});
 	DTexture(Format, const int2 &size, CSpan<float4>, Flags = {});
@@ -82,6 +83,7 @@ class DTexture : public immutable_base<DTexture> {
 	Format format() const { return m_format; }
 
 	int id() const { return m_id; }
+	int glType() const;
 	// bool isValid() const { return m_id > 0; }
 
   private:

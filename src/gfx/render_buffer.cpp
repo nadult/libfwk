@@ -22,6 +22,22 @@ RenderBuffer::RenderBuffer(Format format, const int2 &size)
 	// glDeleteRenderbuffers(1, &m_id);
 }
 
+RenderBuffer::RenderBuffer(TextureFormat format, const int2 &size, int multisample_count)
+	: m_size(size), m_format(format), m_id(0) {
+	PASSERT_GFX_THREAD();
+
+	{
+		glGenRenderbuffers(1, &m_id);
+		glBindRenderbuffer(GL_RENDERBUFFER, m_id);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample_count, format.glInternal(),
+										 m_size.x, m_size.y);
+		testGlError("glRenderBufferStorage");
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+	}
+	// TODO: Finally:
+	// glDeleteRenderbuffers(1, &m_id);
+}
+
 RenderBuffer::~RenderBuffer() {
 	PASSERT_GFX_THREAD();
 	if(m_id)

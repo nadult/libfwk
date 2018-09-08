@@ -9,8 +9,33 @@
 
 namespace fwk {
 
+DTexture::DTexture(Format format, const int2 &size, int multisample_count, Flags flags)
+	: m_id(0), m_size(size), m_format(format), m_flags(flags), m_has_mipmaps(false) {
+	DASSERT(flags & Opt::multisample);
+	DASSERT(size.x >= 0 && size.y >= 0);
+	PASSERT_GFX_THREAD();
+
+	ON_FAIL("DTexture::DTexture() error; format: % size: %", format.id(), size);
+
+	glGenTextures(1, &m_id);
+	bind();
+	if(flags & Opt::immutable)
+		glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, multisample_count,
+								  m_format.glInternal(), m_size.x, m_size.y, GL_TRUE);
+	else
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, multisample_count, format.glInternal(),
+								m_size.x, m_size.y, GL_TRUE);
+
+	m_has_mipmaps = false;
+	// TODO: finally
+	// glDeleteTextures(1, &m_id);
+
+	updateParams();
+}
+
 DTexture::DTexture(Format format, const int2 &size, Flags flags)
 	: m_id(0), m_size(size), m_format(format), m_flags(flags), m_has_mipmaps(false) {
+	DASSERT(!(flags & Opt::multisample));
 	DASSERT(size.x >= 0 && size.y >= 0);
 	PASSERT_GFX_THREAD();
 
@@ -36,6 +61,10 @@ DTexture::DTexture(Format format, const int2 &size, Flags flags)
 	// glDeleteTextures(1, &m_id);
 
 	updateParams();
+}
+
+int DTexture::glType() const {
+	return m_flags & Opt::multisample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 }
 
 DTexture::DTexture(const string &name, Stream &stream) : DTexture(Texture(stream)) {}
@@ -89,23 +118,26 @@ void DTexture::setFlags(Flags flags) {
 }
 
 void DTexture::updateParams() {
+	if(m_flags & Opt::multisample)
+		return;
 	bind();
 
 	int wrapping = m_flags & Opt::wrapped ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
+	glTexParameteri(glType(), GL_TEXTURE_WRAP_S, wrapping);
+	glTexParameteri(glType(), GL_TEXTURE_WRAP_T, wrapping);
 
 	int filter = m_flags & Opt::filtered ? GL_LINEAR : GL_NEAREST;
 	int min_filter = m_has_mipmaps
 						 ? filter == GL_LINEAR ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST
 						 : filter;
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+	glTexParameteri(glType(), GL_TEXTURE_MAG_FILTER, filter);
+	glTexParameteri(glType(), GL_TEXTURE_MIN_FILTER, min_filter);
 }
 
 void DTexture::generateMipmaps() {
 	bind();
+	DASSERT(!(m_flags & Opt::multisample));
 	glGenerateMipmap(GL_TEXTURE_2D);
 	m_has_mipmaps = true;
 	updateParams();
@@ -119,27 +151,27 @@ void DTexture::upload(Format format, const void *pixels, const int2 &size, const
 	bind();
 	DASSERT(size.x + target_pos.x <= m_size.x && size.y + target_pos.y <= m_size.y);
 
-	glTexSubImage2D(GL_TEXTURE_2D, 0, target_pos.x, target_pos.y, size.x, size.y, format.glFormat(),
+	glTexSubImage2D(glType(), 0, target_pos.x, target_pos.y, size.x, size.y, format.glFormat(),
 					format.glType(), pixels);
 }
 
 void DTexture::upload(CSpan<char> bytes) {
 	DASSERT(bytes.size() >= m_format.evalImageSize(m_size.x, m_size.y));
-	glTexImage2D(GL_TEXTURE_2D, 0, m_format.glInternal(), m_size.x, m_size.y, 0,
-				 m_format.glFormat(), m_format.glType(), bytes.data());
+	glTexImage2D(glType(), 0, m_format.glInternal(), m_size.x, m_size.y, 0, m_format.glFormat(),
+				 m_format.glType(), bytes.data());
 }
 
 void DTexture::download(Texture &target) const {
 	bind();
 	DASSERT(m_format == target.format());
 	target.resize(m_size);
-	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), target.data());
+	glGetTexImage(glType(), 0, m_format.glFormat(), m_format.glType(), target.data());
 }
 
 void DTexture::download(Span<char> bytes) const {
 	bind();
 	DASSERT(bytes.size() >= m_format.evalImageSize(m_size.x, m_size.y));
-	glGetTexImage(GL_TEXTURE_2D, 0, m_format.glFormat(), m_format.glType(), bytes.data());
+	glGetTexImage(glType(), 0, m_format.glFormat(), m_format.glType(), bytes.data());
 }
 
 void DTexture::copy(const DTexture &source, IRect src_rect, int2 target_pos) {
@@ -147,14 +179,14 @@ void DTexture::copy(const DTexture &source, IRect src_rect, int2 target_pos) {
 	IRect target_rect(target_pos, target_pos + src_rect.size());
 	DASSERT(contains(target_rect));
 
-	glCopyImageSubData(source.m_id, GL_TEXTURE_2D, 0, src_rect.x(), src_rect.y(), 0, m_id,
-					   GL_TEXTURE_2D, 0, target_pos.x, target_pos.y, 0, src_rect.width(),
+	glCopyImageSubData(source.m_id, source.glType(), 0, src_rect.x(), src_rect.y(), 0, m_id,
+					   glType(), 0, target_pos.x, target_pos.y, 0, src_rect.width(),
 					   src_rect.height(), 0);
 }
 
 void DTexture::bind() const {
 	PASSERT_GFX_THREAD();
-	::glBindTexture(GL_TEXTURE_2D, m_id);
+	::glBindTexture(glType(), m_id);
 }
 
 void DTexture::bind(const vector<immutable_ptr<DTexture>> &set) {
@@ -169,10 +201,11 @@ void DTexture::bind(const vector<immutable_ptr<DTexture>> &set) {
 void DTexture::bind(const vector<const DTexture *> &set) {
 	static int max_bind = 0;
 
+	// TODO: handle multisampled ?
 	for(int n = 0; n < set.size(); n++) {
 		DASSERT(set[n]);
 		glActiveTexture(GL_TEXTURE0 + n);
-		::glBindTexture(GL_TEXTURE_2D, set[n]->m_id);
+		::glBindTexture(set[n]->glType(), set[n]->m_id);
 	}
 	for(int n = set.size(); n < max_bind; n++) {
 		glActiveTexture(GL_TEXTURE0 + n);
@@ -202,6 +235,7 @@ void DTexture::bindImage(int unit, AccessMode access, int level) {
 
 void DTexture::unbind() {
 	PASSERT_GFX_THREAD();
+	// TODO: unbind multisample ?
 	::glBindTexture(GL_TEXTURE_2D, 0);
 }
 
