@@ -23,6 +23,7 @@ class ProgramBinder {
 	void setUniform(const char *name, CSpan<Matrix4>);
 
 	void setUniform(const char *name, int);
+	void setUniform(const char *name, uint);
 	void setUniform(const char *name, const int2 &);
 	void setUniform(const char *name, const int3 &);
 	void setUniform(const char *name, const int4 &);
