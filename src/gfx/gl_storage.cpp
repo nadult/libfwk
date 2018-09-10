@@ -128,6 +128,7 @@ template <class T> int GlStorage<T>::allocId(int gl_id) {
 			resizeBuffers(max(big_id + 1024, counters.size() + 1));
 		int obj_id = first_free;
 		PASSERT(obj_id != 0);
+		PASSERT(first_free >= 0 && first_free < counters.size());
 		first_free = counters[obj_id];
 		counters[obj_id] = 0;
 		mapBigId(obj_id, gl_id);

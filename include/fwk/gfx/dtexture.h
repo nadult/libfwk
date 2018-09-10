@@ -88,6 +88,7 @@ class DTexture : public immutable_base<DTexture> {
 
   private:
 	void updateParams();
+	void initialize(int msaa_samples);
 
 	uint m_id;
 	int2 m_size;

@@ -9,58 +9,45 @@
 
 namespace fwk {
 
-DTexture::DTexture(Format format, const int2 &size, int multisample_count, Flags flags)
-	: m_id(0), m_size(size), m_format(format), m_flags(flags), m_has_mipmaps(false) {
-	DASSERT(flags & Opt::multisample);
-	DASSERT(size.x >= 0 && size.y >= 0);
+void DTexture::initialize(int msaa_samples) {
+	ON_FAIL("DTexture::initialize() error; format: % size: %", m_format.id(), m_size);
+	DASSERT(m_size.x >= 0 && m_size.y >= 0);
 	PASSERT_GFX_THREAD();
 
-	ON_FAIL("DTexture::DTexture() error; format: % size: %", format.id(), size);
+	if(msaa_samples > 1)
+		m_flags |= Opt::multisample;
 
 	glGenTextures(1, &m_id);
 	bind();
-	if(flags & Opt::immutable)
-		glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, multisample_count,
-								  m_format.glInternal(), m_size.x, m_size.y, GL_TRUE);
-	else
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, multisample_count, format.glInternal(),
-								m_size.x, m_size.y, GL_TRUE);
 
-	m_has_mipmaps = false;
+	if(m_flags & Opt::multisample) {
+		if(m_flags & Opt::immutable)
+			glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
+									  m_format.glInternal(), m_size.x, m_size.y, GL_TRUE);
+		else
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa_samples, m_format.glInternal(),
+									m_size.x, m_size.y, GL_TRUE);
+	} else {
+		if(m_flags & Opt::immutable)
+			glTexStorage2D(GL_TEXTURE_2D, 1, m_format.glInternal(), m_size.x, m_size.y);
+		else
+			glTexImage2D(GL_TEXTURE_2D, 0, m_format.glInternal(), m_size.x, m_size.y, 0,
+						 m_format.glFormat(), m_format.glType(), 0);
+	}
+
 	// TODO: finally
 	// glDeleteTextures(1, &m_id);
-
 	updateParams();
+}
+
+DTexture::DTexture(Format format, const int2 &size, int multisample_count, Flags flags)
+	: m_id(0), m_size(size), m_format(format), m_flags(flags), m_has_mipmaps(false) {
+	initialize(multisample_count);
 }
 
 DTexture::DTexture(Format format, const int2 &size, Flags flags)
 	: m_id(0), m_size(size), m_format(format), m_flags(flags), m_has_mipmaps(false) {
-	DASSERT(!(flags & Opt::multisample));
-	DASSERT(size.x >= 0 && size.y >= 0);
-	PASSERT_GFX_THREAD();
-
-	ON_FAIL("DTexture::DTexture() error; format: % size: %", format.id(), size);
-
-	{
-		glGenTextures(1, &m_id);
-		testGlError("glGenTextures");
-
-		bind();
-		if(flags & Opt::immutable) {
-			glTexStorage2D(GL_TEXTURE_2D, 1, m_format.glInternal(), m_size.x, m_size.y);
-			testGlError("glTexStorage2D");
-		} else {
-			glTexImage2D(GL_TEXTURE_2D, 0, format.glInternal(), m_size.x, m_size.y, 0,
-						 format.glFormat(), format.glType(), 0);
-		}
-
-		m_has_mipmaps = false;
-		testGlError("glTexImage2D");
-	}
-	// TODO: finally
-	// glDeleteTextures(1, &m_id);
-
-	updateParams();
+	initialize(1);
 }
 
 int DTexture::glType() const {
