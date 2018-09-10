@@ -7,6 +7,7 @@
 
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/math/box.h"
 #include "fwk/sys/input.h"
 #include <SDL.h>
 #include <SDL_video.h>
@@ -139,6 +140,22 @@ void GfxDevice::destroyWindow() { m_window_impl.reset(); }
 void GfxDevice::setWindowSize(const int2 &size) {
 	if(m_window_impl)
 		SDL_SetWindowSize(m_window_impl->window, size.x, size.y);
+}
+
+void GfxDevice::setWindowRect(IRect rect) {
+	if(m_window_impl) {
+		SDL_SetWindowSize(m_window_impl->window, rect.width(), rect.height());
+		SDL_SetWindowPosition(m_window_impl->window, rect.x(), rect.y());
+	}
+}
+
+IRect GfxDevice::windowRect() const {
+	int2 pos, size;
+	if(m_window_impl) {
+		size = windowSize();
+		SDL_GetWindowPosition(m_window_impl->window, &pos.x, &pos.y);
+	}
+	return IRect(pos, pos + size);
 }
 
 void GfxDevice::setWindowFullscreen(Flags flags) {

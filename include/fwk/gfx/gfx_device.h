@@ -35,6 +35,9 @@ class GfxDevice {
 	void setWindowSize(const int2 &);
 	int2 windowSize() const;
 
+	void setWindowRect(IRect);
+	IRect windowRect() const;
+
 	void setWindowFullscreen(Flags);
 	Flags windowFlags() const;
 	bool isWindowFullscreen() const {
