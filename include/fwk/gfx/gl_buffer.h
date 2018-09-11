@@ -42,6 +42,7 @@ class GlBuffer {
 	void resize(int new_size);
 	void upload(CSpan<char>);
 	void download(Span<char>) const;
+	void invalidate();
 
 	void clear(TextureFormat, int);
 

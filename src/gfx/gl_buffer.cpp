@@ -80,6 +80,8 @@ bool GlBuffer::unmap() {
 }
 bool GlBuffer::unmap(Type type) { return glUnmapBuffer(s_types[type]); }
 
+void GlBuffer::invalidate() { glInvalidateBufferData(id()); }
+
 void *GlBuffer::map(i64 offset, i64 size, MapFlags flags) {
 	PASSERT(flags & (MapOpt::read | MapOpt::write));
 	DASSERT(offset >= 0 && offset + size <= m_size);
