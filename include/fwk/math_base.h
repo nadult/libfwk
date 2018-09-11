@@ -263,6 +263,13 @@ bool isnan(const TRange &range) {
 	return anyOf(range, [](const auto &elem) { return isnan(elem); });
 }
 
+template <class T, EnableIf<isIntegral<T>()>...> T nextPow2(T val) {
+	T out = 1;
+	while(out < val)
+		out *= 2;
+	return out;
+}
+
 #ifdef FWK_CHECK_NANS
 #define CHECK_NANS(...)                                                                            \
 	if constexpr(isReal<T>())                                                                      \
