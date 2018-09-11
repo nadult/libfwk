@@ -115,5 +115,6 @@ Maybe<int> utf8CodePointLength(unsigned char);
 // 0 may be returned is string is invalid
 int utf8Length(const string32 &);
 int utf32Length(const string &);
-string toLower(const string &str);
+string toLower(const string &);
+string toUpper(const string &);
 }

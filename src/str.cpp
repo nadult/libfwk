@@ -332,4 +332,10 @@ string toLower(const string &str) {
 	std::transform(out.begin(), out.end(), out.begin(), ::tolower);
 	return out;
 }
+
+string toUpper(const string &str) {
+	string out(str);
+	std::transform(out.begin(), out.end(), out.begin(), ::toupper);
+	return out;
+}
 }
