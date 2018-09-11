@@ -21,6 +21,9 @@ struct FramebufferTarget {
 	SRenderBuffer render_buffer;
 };
 
+DEFINE_ENUM(FramebufferElement, color, depth, stencil);
+using FramebufferBits = EnumFlags<FramebufferElement>;
+
 class Framebuffer {
   public:
 	static constexpr int max_color_attachments = 8;
@@ -39,6 +42,11 @@ class Framebuffer {
 
 	void bind();
 	static void unbind();
+
+	void copyTo(const Framebuffer *, IRect src_rect, IRect dst_rect, FramebufferBits,
+				bool interpolate);
+	static void copy(int src_id, int dst_id, IRect src_rect, IRect dst_rect, FramebufferBits,
+					 bool interpolate);
 
 	const auto &colors() const { return m_colors; }
 	const Target &depth() const { return m_depth; }

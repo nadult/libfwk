@@ -5,6 +5,7 @@
 
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/math/box.h"
 #include <numeric>
 
 namespace fwk {
@@ -105,4 +106,22 @@ Framebuffer::~Framebuffer() {
 int2 Framebuffer::size() const { return m_size; }
 void Framebuffer::bind() { glBindFramebuffer(GL_FRAMEBUFFER, m_id); }
 void Framebuffer::unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+
+void Framebuffer::copyTo(const Framebuffer *dst, IRect src_rect, IRect dst_rect,
+						 FramebufferBits bits, bool interpolate) {
+	copy(m_id, dst ? dst->m_id : 0, src_rect, dst_rect, bits, interpolate);
+}
+
+void Framebuffer::copy(int src_id, int dst_id, IRect src_rect, IRect dst_rect, FramebufferBits bits,
+					   bool interpolate) {
+	uint mask = (bits & FramebufferElement::color ? GL_COLOR_BUFFER_BIT : 0) |
+				(bits & FramebufferElement::depth ? GL_DEPTH_BUFFER_BIT : 0) |
+				(bits & FramebufferElement::stencil ? GL_STENCIL_BUFFER_BIT : 0);
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, src_id);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst_id);
+	glBlitFramebuffer(src_rect.x(), src_rect.y(), src_rect.ex(), src_rect.ey(), dst_rect.x(),
+					  dst_rect.y(), dst_rect.ex(), dst_rect.ey(), mask,
+					  interpolate ? GL_LINEAR : GL_NEAREST);
+}
 }

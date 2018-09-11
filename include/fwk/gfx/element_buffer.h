@@ -26,6 +26,7 @@ class ElementBuffer {
 	void reserve(int num_vertices, int num_elements);
 	void clear();
 
+	bool empty() const { return m_elements.empty(); }
 	int size() const { return m_elements.size(); }
 	vector<pair<FBox, Matrix4>> drawBoxes() const;
 
