@@ -46,6 +46,9 @@ Program::Program(const Shader &vertex, const Shader &fragment,
 		}
 
 		link();
+
+		glDetachShader(m_id, vertex.id());
+		glDetachShader(m_id, fragment.id());
 	}
 
 	// TODO: finally:
@@ -75,6 +78,10 @@ Program::Program(const Shader &vertex, const Shader &geom, const Shader &fragmen
 		}
 
 		link();
+
+		glDetachShader(m_id, vertex.id());
+		glDetachShader(m_id, geom.id());
+		glDetachShader(m_id, fragment.id());
 	}
 
 	// TODO: finally:
