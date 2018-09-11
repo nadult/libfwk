@@ -93,9 +93,15 @@ FBox ElementBuffer::bbox(const Element &elem) const {
 	return encloseTransformed(enclose(verts), m_matrices[elem.matrix_idx]);
 }
 
+bool ElementBuffer::empty() const { return size() == 0; }
+int ElementBuffer::size() const {
+	int out = m_elements.size();
+	return emptyElement() ? out - 1 : out;
+}
+
 vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes) const {
 	vector<DrawCall> out;
-	out.reserve(m_elements.size());
+	out.reserve(size());
 
 	if(!m_positions)
 		return out;
