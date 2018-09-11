@@ -41,6 +41,13 @@ template <class T> struct EnumFlags {
 
 	constexpr explicit operator bool() const { return bits != 0; }
 
+	void setIf(EnumFlags flags, bool condition) {
+		if(condition)
+			bits |= flags.bits;
+		else
+			bits &= ~(flags.bits);
+	}
+
 	static constexpr EnumFlags all() { return EnumFlags(mask); }
 
 	Base bits;
