@@ -7,6 +7,7 @@
 
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/gfx/texture_format.h"
 #include "fwk/math/box.h"
 #include "fwk/sys/input.h"
 #include <SDL.h>
@@ -47,6 +48,20 @@ struct GfxDevice::InputImpl {
 	vector<InputEvent> events;
 	SDLKeyMap key_map;
 };
+
+static Maybe<TextureFormatId> sdlPixelFormat(uint pf) {
+	switch(pf) {
+#define CASE(sdl_type, id)                                                                         \
+	case SDL_PIXELFORMAT_##sdl_type:                                                               \
+		return TextureFormatId::id;
+		CASE(RGBA8888, rgba)
+		CASE(BGRA8888, bgra)
+#undef CASE
+	default:
+		break;
+	}
+	return none;
+}
 
 struct GfxDevice::WindowImpl {
   public:
@@ -92,7 +107,10 @@ struct GfxDevice::WindowImpl {
 			SDL_DestroyWindow(window);
 			reportSDLError("SDL_GL_CreateContext");
 		}
+
+		pixel_format = sdlPixelFormat(SDL_GetWindowPixelFormat(window));
 	}
+
 	~WindowImpl() {
 		SDL_GL_DeleteContext(gl_context);
 		SDL_DestroyWindow(window);
@@ -100,6 +118,7 @@ struct GfxDevice::WindowImpl {
 
 	SDL_Window *window;
 	SDL_GLContext gl_context;
+	Maybe<TextureFormatId> pixel_format;
 	Flags flags;
 };
 
@@ -156,6 +175,10 @@ IRect GfxDevice::windowRect() const {
 		SDL_GetWindowPosition(m_window_impl->window, &pos.x, &pos.y);
 	}
 	return IRect(pos, pos + size);
+}
+
+Maybe<TextureFormatId> GfxDevice::pixelFormat() const {
+	return m_window_impl ? m_window_impl->pixel_format : none;
 }
 
 void GfxDevice::setWindowFullscreen(Flags flags) {

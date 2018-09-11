@@ -34,6 +34,7 @@ class GfxDevice {
 
 	void setWindowSize(const int2 &);
 	int2 windowSize() const;
+	Maybe<TextureFormatId> pixelFormat() const;
 
 	void setWindowRect(IRect);
 	IRect windowRect() const;
