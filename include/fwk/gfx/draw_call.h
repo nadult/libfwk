@@ -10,6 +10,14 @@
 
 namespace fwk {
 
+struct DrawIndirectCommand {
+	uint count;
+	uint instance_count;
+	uint first;
+	uint base_instance;
+};
+static_assert(sizeof(DrawIndirectCommand) == 16);
+
 class DrawCall {
   public:
 	DrawCall(PVertexArray, PrimitiveType, int vertex_count, int index_offset,

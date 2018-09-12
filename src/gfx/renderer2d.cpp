@@ -245,8 +245,7 @@ void Renderer2D::render() {
 
 		auto vao = GlVertexArray::make();
 		vao->set({move(pbuffer), move(cbuffer), move(tbuffer)},
-				 defaultVertexAttribs<float2, IColor, float2>(), move(ibuffer),
-				 IndexDataType::uint32);
+				 defaultVertexAttribs<float2, IColor, float2>(), move(ibuffer), IndexType::uint32);
 
 		for(const auto &element : chunk.elements) {
 			auto &program = (element.texture ? m_tex_program : m_flat_program);

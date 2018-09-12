@@ -40,7 +40,7 @@ SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_in
 		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/shader_storage gfx/colored_triangle \
 		   gfx/texture gfx/texture_format gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_query \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array \
-		   gfx/gl_storage gfx/multi_draw_call
+		   gfx/gl_storage
 
 TESTS_SRC=tests/streams tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
 			tests/variant_perf tests/rollback_test

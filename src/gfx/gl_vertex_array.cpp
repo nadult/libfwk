@@ -4,31 +4,42 @@
 #include "fwk/gfx/gl_vertex_array.h"
 
 #include "fwk/enum_map.h"
+#include "fwk/format.h"
+#include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/index_buffer.h"
-#include "fwk/gfx/multi_draw_call.h" // TODO: only for DrawIndirectCommand
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/vertex_buffer.h"
 #include <climits>
 
 namespace fwk {
 
+VertexAttrib::VertexAttrib(DataType type, int size, int padding, Flags flags)
+	: type(type), size(size), padding(padding), flags(flags) {
+	if(flags & (Opt::normalized | Opt::as_integer))
+		PASSERT(isIntegral(type));
+	if(flags & Opt::normalized)
+		PASSERT(!(flags & Opt::as_integer));
+	PASSERT(size >= 1 && size <= 255);
+	PASSERT(padding >= 0 && padding <= 255);
+}
+
 struct VertexDataInfo {
 	int size;
 	int gl_type;
 };
 
-static const EnumMap<VertexDataType_, VertexDataInfo> data_info = {
+static const EnumMap<VertexBaseType, VertexDataInfo> data_info = {
 	{1, GL_BYTE}, {1, GL_UNSIGNED_BYTE}, {2, GL_SHORT},		 {2, GL_UNSIGNED_SHORT},
 	{4, GL_INT},  {4, GL_UNSIGNED_INT},  {2, GL_HALF_FLOAT}, {4, GL_FLOAT}};
 
-int dataSize(VertexDataType_ type) { return data_info[type].size; }
+int dataSize(VertexBaseType type) { return data_info[type].size; }
 
-static const EnumMap<IndexDataType, int> gl_index_type{GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT,
-													   GL_UNSIGNED_INT};
+static const EnumMap<IndexType, int> gl_index_type{GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT,
+												   GL_UNSIGNED_INT};
 
-int dataSize(IndexDataType itype) {
-	return itype == IndexDataType::uint8 ? 1 : itype == IndexDataType::uint16 ? 2 : 4;
+int dataSize(IndexType itype) {
+	return itype == IndexType::uint8 ? 1 : itype == IndexType::uint16 ? 2 : 4;
 }
 
 static const EnumMap<PrimitiveType, int> gl_primitives{
@@ -57,7 +68,7 @@ void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs) {
 }
 
 void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs, PBuffer ibuffer,
-						IndexDataType itype) {
+						IndexType itype) {
 	set(buffers, attribs);
 	m_index_buffer = move(ibuffer);
 	m_index_type = itype;

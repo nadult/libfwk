@@ -11,33 +11,25 @@
 
 namespace fwk {
 
-// TODO: VertexBaseType ?
-DEFINE_ENUM(VertexDataType_, int8, uint8, int16, uint16, int32, uint32, float16, float32);
+DEFINE_ENUM(VertexBaseType, int8, uint8, int16, uint16, int32, uint32, float16, float32);
+DEFINE_ENUM(IndexType, uint8, uint16, uint32);
 
-// TODO: IndexType ? GlIndexType ?
-DEFINE_ENUM(IndexDataType, uint8, uint16, uint32);
+constexpr bool isIntegral(VertexBaseType type) { return type <= VertexBaseType::uint32; }
 
-constexpr bool isIntegral(VertexDataType_ type) { return type <= VertexDataType_::uint32; }
-
-int dataSize(VertexDataType_);
-int dataSize(IndexDataType);
+int dataSize(VertexBaseType);
+int dataSize(IndexType);
 
 DEFINE_ENUM(VertexAttribOpt, normalized, as_integer);
+using VertexAttribFlags = EnumFlags<VertexAttribOpt>;
 
 struct VertexAttrib {
-	using DataType = VertexDataType_;
+	using DataType = VertexBaseType;
 	using Opt = VertexAttribOpt;
 	using Flags = EnumFlags<Opt>;
 
-	VertexAttrib(DataType type, int size, int padding = 0, Flags flags = {})
-		: type(type), size(size), padding(padding), flags(flags) {
-		if(flags & (Opt::normalized | Opt::as_integer))
-			PASSERT(isIntegral(type));
-		if(flags & Opt::normalized)
-			PASSERT(!(flags & Opt::as_integer));
-		PASSERT(size >= 0 && size <= 255);
-		PASSERT(padding >= 0 && padding <= 255);
-	}
+	constexpr VertexAttrib(DataType type, int size, int padding, Flags flags, NoAssertsTag)
+		: type(type), size(size), padding(padding), flags(flags) {}
+	VertexAttrib(DataType type, int size, int padding = 0, Flags flags = {});
 	VertexAttrib() = default;
 
 	int dataSize() const { return fwk::dataSize(type) * size + padding; }
@@ -50,56 +42,64 @@ struct VertexAttrib {
 
 namespace detail {
 
-	template <class T> VertexDataType_ vertexDataType() {
-#define CASE(type, value) else if constexpr(isSame<T, type>()) return VertexDataType_::value;
-		if constexpr(false) {
-		}
-		CASE(int, int32)
-		CASE(uint, uint32)
-		CASE(short, int16)
-		CASE(unsigned short, uint16)
-		CASE(char, int8)
-		CASE(unsigned char, uint8)
+	template <class T>
+	static constexpr bool valid_vb_type = IsOneOf<T, i8, u8, i16, u16, i32, u32, float>::value;
+
+	template <class T, EnableIf<valid_vb_type<T>>...> constexpr VertexBaseType vbType() {
+#define CASE(type, value)                                                                          \
+	if constexpr(isSame<T, type>())                                                                \
+		return VertexBaseType::value;
+		CASE(i8, int8)
+		CASE(u8, uint8)
+		CASE(i16, int16)
+		CASE(u16, uint16)
+		CASE(i32, int32)
+		CASE(u32, uint32)
 		CASE(float, float32)
-		else static_assert("Invalid data type");
 #undef CASE
+		return VertexBaseType::float32;
 	}
 
-	template <class T> struct DefaultVertexAttrib {
-		static VertexAttrib make() { return {vertexDataType<T>(), 1}; }
-	};
-	template <class T> struct DefaultVertexAttrib<vec2<T>> {
-		static VertexAttrib make() { return {vertexDataType<T>(), 2}; }
-	};
-	template <class T> struct DefaultVertexAttrib<vec3<T>> {
-		static VertexAttrib make() { return {vertexDataType<T>(), 3}; }
-	};
-	template <class T> struct DefaultVertexAttrib<vec4<T>> {
-		static VertexAttrib make() { return {vertexDataType<T>(), 4}; }
-	};
-	template <> struct DefaultVertexAttrib<IColor> {
-		static VertexAttrib make() {
-			return {VertexDataType_::uint8, 4, 0, VertexAttribOpt::normalized};
+	template <VertexBaseType bt, int size, int padding, int bits>
+	static constexpr VertexAttrib default_va{bt, size, padding, VertexAttribFlags{bits},
+											 no_asserts_tag};
+
+	template <class T, int size = 1> constexpr const VertexAttrib *defaultVABase() {
+		if constexpr(valid_vb_type<T> && size >= 1 && size <= 4) {
+			constexpr auto base_type = vbType<T>();
+			constexpr auto flags =
+				isIntegral(base_type) ? VertexAttribOpt::as_integer : VertexAttrib::Flags();
+			return &default_va<base_type, size, 0, flags.bits>;
 		}
-	};
+		return nullptr;
+	}
+
+	template <class T> constexpr const VertexAttrib *defaultVA() {
+		if constexpr(isVec<T>())
+			return defaultVABase<fwk::VecScalar<T>, vec_size<T>>();
+		if constexpr(isSame<T, IColor>()) {
+			return &default_va<VertexBaseType::uint8, 4, 0, flag(VertexAttribOpt::normalized).bits>;
+		}
+
+		return defaultVABase<T, 1>();
+	}
 }
 
+template <class T>
+static constexpr bool has_default_vertex_attrib = detail::defaultVA<T>() != nullptr;
+
+// Default vertex attribs:
+// - all standard vector types (float2, float3, int3, etc.)
+// - base types
+// - integer types will be treated as such (no normalization)
+// - IColor (will be treated as normalized vec4)
 template <class T> VertexAttrib defaultVertexAttrib() {
-	return detail::DefaultVertexAttrib<T>::make();
+	static_assert(has_default_vertex_attrib<T>);
+	return *detail::defaultVA<T>();
 };
 
 template <class... Args> vector<VertexAttrib> defaultVertexAttribs() {
-	return {detail::DefaultVertexAttrib<Args>::make()...};
-};
-
-struct VertexBufferDef {
-	PBuffer buffer;
-	VertexAttrib attrib;
-};
-
-struct IndexBufferDef {
-	PBuffer buffer;
-	IndexDataType data_type;
+	return {defaultVertexAttrib<Args>()...};
 };
 
 class GlVertexArray {
@@ -112,7 +112,7 @@ class GlVertexArray {
 	~GlVertexArray();
 
 	void set(CSpan<PBuffer>, CSpan<VertexAttrib>);
-	void set(CSpan<PBuffer>, CSpan<VertexAttrib>, PBuffer, IndexDataType);
+	void set(CSpan<PBuffer>, CSpan<VertexAttrib>, PBuffer, IndexType);
 
 	void operator=(const GlVertexArray &) = delete;
 	GlVertexArray(const GlVertexArray &) = delete;
@@ -139,7 +139,7 @@ class GlVertexArray {
 	CSpan<VertexAttrib> attribs() const { return {m_attribs, m_num_attribs}; }
 
 	PBuffer indexBuffer() const { return m_index_buffer; }
-	IndexDataType indexType() const { return m_index_type; }
+	IndexType indexType() const { return m_index_type; }
 
 	int numAttribs() const { return m_num_attribs; }
 	int size() const;
@@ -156,7 +156,7 @@ class GlVertexArray {
 	VertexAttrib m_attribs[max_attribs];
 	PBuffer m_index_buffer;
 	unsigned char m_num_attribs = 0;
-	IndexDataType m_index_type;
+	IndexType m_index_type;
 	const bool m_has_vao = false;
 };
 }
