@@ -2,14 +2,14 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/index_buffer.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/program.h"
 #include "fwk/gfx/program_binder.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/gfx/shader.h"
-#include "fwk/gfx/vertex_array.h"
-#include "fwk/gfx/vertex_buffer.h"
 #include "fwk/sys/resource_manager.h"
 #include "fwk/sys/xml.h"
 
@@ -238,10 +238,15 @@ void Renderer2D::render() {
 	auto bm = BlendingMode::normal;
 
 	for(const auto &chunk : m_chunks) {
-		VertexArray array({make_immutable<VertexBuffer>(chunk.positions),
-						   make_immutable<VertexBuffer>(chunk.colors),
-						   make_immutable<VertexBuffer>(chunk.tex_coords)},
-						  make_immutable<IndexBuffer>(chunk.indices));
+		auto pbuffer = GlBuffer::make(BufferType::array, chunk.positions);
+		auto cbuffer = GlBuffer::make(BufferType::array, chunk.colors);
+		auto tbuffer = GlBuffer::make(BufferType::array, chunk.tex_coords);
+		auto ibuffer = GlBuffer::make(BufferType::element_array, chunk.indices);
+
+		auto vao = GlVertexArray::make();
+		vao->set({move(pbuffer), move(cbuffer), move(tbuffer)},
+				 defaultVertexAttribs<float2, IColor, float2>(), move(ibuffer),
+				 IndexDataType::uint32);
 
 		for(const auto &element : chunk.elements) {
 			auto &program = (element.texture ? m_tex_program : m_flat_program);
@@ -276,7 +281,7 @@ void Renderer2D::render() {
 				prev_scissor_rect = element.scissor_rect_id;
 			}
 
-			array.draw(element.primitive_type, element.num_indices, element.first_index);
+			vao->draw(element.primitive_type, element.num_indices, element.first_index);
 		}
 	}
 

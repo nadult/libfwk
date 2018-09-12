@@ -26,6 +26,9 @@ class GlBuffer {
 
 	GlBuffer(Type);
 	template <class T> GlBuffer(Type type, CSpan<T> data) : GlBuffer(type) { upload(data); }
+	template <class TSpan, class T = SpanBase<TSpan>>
+	GlBuffer(Type type, const TSpan &span) : GlBuffer(type, cspan(span)) {}
+
 	GlBuffer(Type type, int size) : GlBuffer(type) { resize(size); }
 	GlBuffer(Type, int size, ImmBufferFlags);
 	~GlBuffer();
@@ -47,6 +50,9 @@ class GlBuffer {
 	void clear(TextureFormat, int);
 
 	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
+	template <class TSpan, class T = SpanBase<TSpan>> void upload(const TSpan &data) {
+		upload<T>(cspan(data));
+	}
 
 	template <class T> void download(Span<T> data) const {
 		download(data.template reinterpret<char>());

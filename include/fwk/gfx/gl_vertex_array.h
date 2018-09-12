@@ -11,10 +11,16 @@
 
 namespace fwk {
 
+// TODO: VertexBaseType ?
 DEFINE_ENUM(VertexDataType_, int8, uint8, int16, uint16, int32, uint32, float16, float32);
 
+// TODO: IndexType ? GlIndexType ?
+DEFINE_ENUM(IndexDataType, uint8, uint16, uint32);
+
 constexpr bool isIntegral(VertexDataType_ type) { return type <= VertexDataType_::uint32; }
-int dataSize(VertexDataType_ type);
+
+int dataSize(VertexDataType_);
+int dataSize(IndexDataType);
 
 DEFINE_ENUM(VertexAttribOpt, normalized, as_integer);
 
@@ -42,19 +48,59 @@ struct VertexAttrib {
 	Flags flags = {};
 };
 
+namespace detail {
+
+	template <class T> VertexDataType_ vertexDataType() {
+#define CASE(type, value) else if constexpr(isSame<T, type>()) return VertexDataType_::value;
+		if constexpr(false) {
+		}
+		CASE(int, int32)
+		CASE(uint, uint32)
+		CASE(short, int16)
+		CASE(unsigned short, uint16)
+		CASE(char, int8)
+		CASE(unsigned char, uint8)
+		CASE(float, float32)
+		else static_assert("Invalid data type");
+#undef CASE
+	}
+
+	template <class T> struct DefaultVertexAttrib {
+		static VertexAttrib make() { return {vertexDataType<T>(), 1}; }
+	};
+	template <class T> struct DefaultVertexAttrib<vec2<T>> {
+		static VertexAttrib make() { return {vertexDataType<T>(), 2}; }
+	};
+	template <class T> struct DefaultVertexAttrib<vec3<T>> {
+		static VertexAttrib make() { return {vertexDataType<T>(), 3}; }
+	};
+	template <class T> struct DefaultVertexAttrib<vec4<T>> {
+		static VertexAttrib make() { return {vertexDataType<T>(), 4}; }
+	};
+	template <> struct DefaultVertexAttrib<IColor> {
+		static VertexAttrib make() {
+			return {VertexDataType_::uint8, 4, 0, VertexAttribOpt::normalized};
+		}
+	};
+}
+
+template <class T> VertexAttrib defaultVertexAttrib() {
+	return detail::DefaultVertexAttrib<T>::make();
+};
+
+template <class... Args> vector<VertexAttrib> defaultVertexAttribs() {
+	return {detail::DefaultVertexAttrib<Args>::make()...};
+};
+
 struct VertexBufferDef {
 	PBuffer buffer;
 	VertexAttrib attrib;
 };
 
-DEFINE_ENUM(IndexDataType, uint8, uint16, uint32);
-
 struct IndexBufferDef {
 	PBuffer buffer;
 	IndexDataType data_type;
 };
-
-int dataSize(IndexDataType);
 
 class GlVertexArray {
   public:
@@ -76,7 +122,7 @@ class GlVertexArray {
 	}
 
 	// TODO: what offset means? make it type safe
-	void draw(PrimitiveType, int num_elements, int offset = 0) const;
+	void draw(PrimitiveType, int num_elements, int element_offset = 0) const;
 	void draw(PrimitiveType primitive_type) const { draw(primitive_type, size()); }
 	void drawInstanced(PrimitiveType, int num_elements, int num_instances, int offset = 0);
 
@@ -93,7 +139,7 @@ class GlVertexArray {
 	CSpan<VertexAttrib> attribs() const { return {m_attribs, m_num_attribs}; }
 
 	PBuffer indexBuffer() const { return m_index_buffer; }
-	IndexDataType indexDataType() const { return m_index_data_type; }
+	IndexDataType indexType() const { return m_index_type; }
 
 	int numAttribs() const { return m_num_attribs; }
 	int size() const;
@@ -110,7 +156,7 @@ class GlVertexArray {
 	VertexAttrib m_attribs[max_attribs];
 	PBuffer m_index_buffer;
 	unsigned char m_num_attribs = 0;
-	IndexDataType m_index_data_type;
+	IndexDataType m_index_type;
 	const bool m_has_vao = false;
 };
 }

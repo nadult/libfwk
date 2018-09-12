@@ -24,8 +24,8 @@ static const EnumMap<VertexDataType_, VertexDataInfo> data_info = {
 
 int dataSize(VertexDataType_ type) { return data_info[type].size; }
 
-static const EnumMap<IndexDataType, int> gl_index_data_type{GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT,
-															GL_UNSIGNED_INT};
+static const EnumMap<IndexDataType, int> gl_index_type{GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT,
+													   GL_UNSIGNED_INT};
 
 int dataSize(IndexDataType itype) {
 	return itype == IndexDataType::uint8 ? 1 : itype == IndexDataType::uint16 ? 2 : 4;
@@ -60,7 +60,7 @@ void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs, PBu
 						IndexDataType itype) {
 	set(buffers, attribs);
 	m_index_buffer = move(ibuffer);
-	m_index_data_type = itype;
+	m_index_type = itype;
 	DASSERT(m_index_buffer && m_index_buffer->type() == BufferType::element_array);
 }
 
@@ -76,7 +76,7 @@ void GlVertexArray::fill() {
 
 int GlVertexArray::size() const {
 	if(m_index_buffer)
-		return m_index_buffer->size() / dataSize(m_index_data_type);
+		return m_index_buffer->size() / dataSize(m_index_type);
 	DASSERT(m_num_attribs > 0);
 	return m_vertex_buffers[0]->size() / m_attribs[0].dataSize();
 }
@@ -89,22 +89,23 @@ static int countTriangles(PrimitiveType prim_type, int num_indices) {
 	return 0;
 }
 
-void GlVertexArray::draw(PrimitiveType pt, int num_elements, int offset) const {
+void GlVertexArray::draw(PrimitiveType pt, int num_elements, int element_offset) const {
 	if(!num_elements)
 		return;
-	DASSERT(offset >= 0 && num_elements >= 0);
+	DASSERT(element_offset >= 0 && num_elements >= 0);
 	// TODO: more checks
-	//DASSERT(num_elements + offset <= size());
+	DASSERT(num_elements + element_offset <= size());
 
 	bind();
 
 	if(m_index_buffer) {
+		int offset = element_offset * dataSize(m_index_type);
 		m_index_buffer->bind();
-		glDrawElements(gl_primitives[pt], num_elements, gl_index_data_type[m_index_data_type],
+		glDrawElements(gl_primitives[pt], num_elements, gl_index_type[m_index_type],
 					   (void *)(long long)offset);
 		m_index_buffer->unbind();
 	} else {
-		glDrawArrays(gl_primitives[pt], offset, num_elements);
+		glDrawArrays(gl_primitives[pt], element_offset, num_elements);
 	}
 }
 
@@ -114,15 +115,14 @@ void GlVertexArray::drawInstanced(PrimitiveType pt, int num_elements, int num_in
 		return;
 	DASSERT(offset >= 0 && num_elements >= 0);
 	// TODO: more checks
-	//DASSERT(num_elements + offset <= size());
+	DASSERT(num_elements + offset <= size());
 
 	bind();
 
 	if(m_index_buffer) {
 		m_index_buffer->bind();
-		glDrawElementsInstanced(gl_primitives[pt], num_elements,
-								gl_index_data_type[m_index_data_type], (void *)(long long)offset,
-								num_instances);
+		glDrawElementsInstanced(gl_primitives[pt], num_elements, gl_index_type[m_index_type],
+								(void *)(long long)offset, num_instances);
 		m_index_buffer->unbind();
 	} else {
 		glDrawArraysInstanced(gl_primitives[pt], offset, num_elements, num_instances);
