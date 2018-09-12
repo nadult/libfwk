@@ -71,6 +71,8 @@ Model::Model(PModelNode root, vector<ModelAnim> anims, vector<MaterialDef> mater
 	ASSERT(m_root->name() == "" && m_root->localTrans() == AffineTrans() && !m_root->mesh());
 	// TODO: verify data
 	updateNodes();
+	for(auto &anim : m_anims)
+		anim.setDefaultPose(m_default_pose);
 }
 
 Model::Model(const Model &rhs) : Model(rhs.m_root->clone(), rhs.m_anims, rhs.m_material_defs) {}
@@ -217,6 +219,13 @@ Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
 	return Matrix4::identity();
 }
 
+PPose Model::globalPose(vector<Matrix4> out) const {
+	for(int n = 0; n < out.size(); n++)
+		if(nodes()[n]->parent())
+			out[n] = out[nodes()[n]->parent()->id()] * out[n];
+	return make_immutable<Pose>(move(out), m_default_pose->nameMap());
+}
+
 PPose Model::globalPose(PPose pose) const {
 	DASSERT(valid(pose));
 	vector<Matrix4> out = pose->transforms();
@@ -237,6 +246,13 @@ PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	for(int n = 0; n < out.size(); n++)
 		out[n] = pre * out[n] * m_nodes[n]->invGlobalTrans() * post;
 	return make_immutable<Pose>(move(out), global_pose->nameMap());
+}
+
+vector<Matrix4> Model::animatePoseFast(int anim_id, double anim_pos) const {
+	DASSERT(anim_id >= -1 && anim_id < m_anims.size());
+	if(anim_id == -1)
+		return m_default_pose->transforms();
+	return m_anims[anim_id].animateDefaultPose(anim_pos);
 }
 
 PPose Model::animatePose(int anim_id, double anim_pos) const {

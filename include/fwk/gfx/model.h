@@ -64,7 +64,10 @@ class Model : public immutable_base<Model> {
 
 	// Pass -1 to anim_id for bind position
 	PPose animatePose(int anim_id, double anim_pos) const;
+	vector<Matrix4> animatePoseFast(int anim_id, double anim_pos) const;
+
 	PPose defaultPose() const { return m_default_pose; }
+	PPose globalPose(vector<Matrix4>) const;
 	PPose globalPose(PPose local_pose) const;
 	PPose meshSkinningPose(PPose global_pose, int node_id) const;
 	bool valid(PPose) const;

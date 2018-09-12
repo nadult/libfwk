@@ -126,6 +126,22 @@ AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
 	return channel.blend(frame0, frame1, blend_factor);
 }
 
+void ModelAnim::setDefaultPose(PPose pose) {
+	m_default_matrices = pose->transforms();
+	m_default_mapping = pose->mapNames(m_node_names);
+}
+
+vector<Matrix4> ModelAnim::animateDefaultPose(double anim_pos) const {
+	if(anim_pos >= m_length)
+		anim_pos -= double(int(anim_pos / m_length)) * m_length;
+	auto matrices = m_default_matrices;
+	for(int n = 0; n < m_channels.size(); n++) {
+		const auto &channel = m_channels[n];
+		matrices[m_default_mapping[n]] = animateChannel(n, anim_pos);
+	}
+	return matrices;
+}
+
 PPose ModelAnim::animatePose(PPose initial_pose, double anim_pos) const {
 	DASSERT(initial_pose);
 	if(anim_pos >= m_length)

@@ -23,6 +23,9 @@ class ModelAnim {
 
 	PPose animatePose(PPose initial_pose, double anim_time) const;
 
+	void setDefaultPose(PPose);
+	vector<Matrix4> animateDefaultPose(double anim_time) const;
+
   protected:
 	string m_name;
 
@@ -43,6 +46,9 @@ class ModelAnim {
 		vector<float> time_track;
 		string node_name;
 	};
+
+	vector<Matrix4> m_default_matrices;
+	vector<int> m_default_mapping;
 
 	// TODO: information about whether its looped or not
 	vector<Channel> m_channels;
