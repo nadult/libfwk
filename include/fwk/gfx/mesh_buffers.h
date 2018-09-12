@@ -4,8 +4,7 @@
 #pragma once
 
 #include "fwk/gfx/color.h"
-#include "fwk/gfx/gl_storage.h"
-#include "fwk/sys/immutable_ptr.h"
+#include "fwk/gfx/gl_ref.h"
 
 namespace fwk {
 

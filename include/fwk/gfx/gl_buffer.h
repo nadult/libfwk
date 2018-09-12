@@ -4,7 +4,7 @@
 #pragma once
 
 #include "fwk/enum_flags.h"
-#include "fwk/gfx/gl_storage.h"
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx_base.h"
 
 namespace fwk {

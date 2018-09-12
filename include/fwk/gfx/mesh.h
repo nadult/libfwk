@@ -7,6 +7,7 @@
 #include "fwk/gfx/mesh_indices.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
+#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 

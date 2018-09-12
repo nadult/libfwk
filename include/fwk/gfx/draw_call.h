@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/gfx/gl_storage.h"
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/material.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"

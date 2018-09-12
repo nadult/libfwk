@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/gl_storage.h"
 
 #include "fwk/format.h"
