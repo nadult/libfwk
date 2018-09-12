@@ -190,9 +190,11 @@ void DTexture::bind(const vector<const DTexture *> &set) {
 
 	// TODO: handle multisampled ?
 	for(int n = 0; n < set.size(); n++) {
-		DASSERT(set[n]);
 		glActiveTexture(GL_TEXTURE0 + n);
-		::glBindTexture(set[n]->glType(), set[n]->m_id);
+		if(set[n])
+			::glBindTexture(set[n]->glType(), set[n]->m_id);
+		else
+			::glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	for(int n = set.size(); n < max_bind; n++) {
 		glActiveTexture(GL_TEXTURE0 + n);
