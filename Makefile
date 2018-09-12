@@ -5,8 +5,13 @@ FLAGS=-O3
 
 -include Makefile.local
 
+ifndef LINUX_LINK
+	LINUX_LINK=$(LINUX_CXX)
+endif
+
 ifneq (,$(findstring clang,$(LINUX_CXX)))
-CLANG=yes
+	CLANG=yes
+	LINUX_LINK+=-fuse-ld=gold
 endif
 
 _dummy := $(shell [ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR))
@@ -118,7 +123,7 @@ $(MINGW_OBJECTS): $(BUILD_DIR)/%_.o: src/%.cpp
 	$(MINGW_CXX) -MMD $(MINGW_FLAGS) -c src/$*.cpp -o $@
 
 $(LINUX_PROGRAMS): %:     $(LINUX_SHARED_OBJECTS) $(BUILD_DIR)/%.o
-	$(LINUX_CXX) -MMD -o $@ $^ -rdynamic $(LINUX_LIBS) $(LIBS_$@)
+	$(LINUX_LINK) -MMD -o $@ $^ -rdynamic $(LINUX_LIBS) $(LIBS_$@)
 
 $(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
 	$(MINGW_CXX) -MMD -o $@ $^ $(MINGW_LIBS) $(LIBS_$*)
