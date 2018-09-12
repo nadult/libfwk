@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/gfx/program.h"
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/math_base.h"
 
 namespace fwk {
@@ -40,6 +40,6 @@ class ProgramBinder {
 
   protected:
 	PProgram m_program;
-	unsigned id() const { return m_program->id(); }
+	unsigned id() const { return m_program.id(); }
 };
 }

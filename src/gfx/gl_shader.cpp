@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/shader.h"
+#include "fwk/gfx/gl_shader.h"
 
 #include "fwk/enum_map.h"
 #include "fwk/gfx/opengl.h"
@@ -9,6 +9,8 @@
 #include "fwk/sys/stream.h"
 
 namespace fwk {
+
+GL_CLASS_IMPL(GlShader)
 
 static string loadSource(Stream &stream) {
 	string text;
@@ -23,12 +25,16 @@ static string loadSource(Stream &stream) {
 static const EnumMap<ShaderType, int> gl_type_map{
 	{GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
 
-Shader::Shader(Type type, Stream &sr, const string &predefined_macros)
-	: Shader(type, loadSource(sr), predefined_macros, sr.name()) {}
-Shader::Shader(Type type, const string &source, const string &predefined_macros,
-			   const string &name) {
-	m_id = glCreateShader(gl_type_map[type]);
-	testGlError("glCreateShader");
+PShader GlShader::make(Type type, Stream &sr, const string &predefined_macros) {
+	return make(type, loadSource(sr), predefined_macros, sr.name());
+}
+
+PShader GlShader::make(Type type, const string &source, const string &predefined_macros,
+					   const string &name) {
+	int gl_id = glCreateShader(gl_type_map[type]);
+	int obj_id = storage.allocId(gl_id);
+	new(&storage.objects[obj_id]) GlShader();
+	PShader ref(obj_id);
 
 	string full_source =
 		predefined_macros.empty() ? source : predefined_macros + "\n#line 0\n" + source;
@@ -37,33 +43,28 @@ Shader::Shader(Type type, const string &source, const string &predefined_macros,
 	GLint length = (GLint)full_source.size();
 	const char *string = full_source.data();
 
-	glShaderSource(m_id, 1, &string, &length);
+	glShaderSource(gl_id, 1, &string, &length);
 	testGlError("glShaderSource");
 
-	glCompileShader(m_id);
+	glCompileShader(gl_id);
 	testGlError("Error in glCompileShader");
 
 	GLint status;
-	glGetShaderiv(m_id, GL_COMPILE_STATUS, &status);
+	glGetShaderiv(gl_id, GL_COMPILE_STATUS, &status);
 	testGlError("glGetShaderiv\n");
 
 	if(status != GL_TRUE) {
 		char buf[4096];
-		glGetShaderInfoLog(m_id, sizeof(buf), 0, buf);
+		glGetShaderInfoLog(gl_id, sizeof(buf), 0, buf);
 		CHECK_FAILED("Compilation error of '%s':\n%s", name.c_str(), buf);
 	}
+
+	return ref;
 }
 
-Shader::~Shader() {
-	if(m_id)
-		glDeleteShader(m_id);
-}
-
-Shader::Shader(Shader &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
-
-ShaderType Shader::type() const {
+ShaderType GlShader::type() const {
 	GLint gl_type;
-	glGetShaderiv(m_id, GL_SHADER_TYPE, &gl_type);
+	glGetShaderiv(id(), GL_SHADER_TYPE, &gl_type);
 	for(auto type : all<Type>())
 		if(gl_type_map[type] == gl_type)
 			return type;

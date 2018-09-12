@@ -9,6 +9,8 @@
 
 namespace fwk {
 
+GL_CLASS_IMPL(GlBuffer)
+
 static const EnumMap<BufferType, int> s_types = {
 	GL_ARRAY_BUFFER,
 	GL_ELEMENT_ARRAY_BUFFER,
@@ -28,9 +30,6 @@ static const EnumMap<BufferType, int> s_types = {
 
 static const EnumMap<AccessMode, int> s_access_modes = {GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE};
 
-GlBuffer::GlBuffer(Type type) : m_type(type) { DASSERT(storage.contains(this)); }
-GlBuffer::~GlBuffer() {}
-
 static int toGL(ImmBufferFlags flags) {
 	// 0x001, 0x002: GL_MAP_READ_BIT, GL_MAP_WRITE_BIT,
 	// 0x040, 0x080: GL_MAP_PERSISTENT_BIT, GL_MAP_COHERENT_BIT
@@ -38,10 +37,24 @@ static int toGL(ImmBufferFlags flags) {
 	return (flags.bits & 0x3) | ((flags.bits & ~0x3) << 4);
 }
 
-GlBuffer::GlBuffer(Type type, int size, ImmBufferFlags flags) : GlBuffer(type) {
-	bind();
-	glBufferStorage(s_types[m_type], size, nullptr, toGL(flags));
-	m_size = size;
+PBuffer GlBuffer::make(Type type) {
+	PBuffer ref(storage.make());
+	ref->m_type = type;
+	return ref;
+}
+
+PBuffer GlBuffer::make(Type type, int size) {
+	auto ref = make(type);
+	ref->resize(size);
+	return ref;
+}
+
+PBuffer GlBuffer::make(Type type, int size, ImmBufferFlags flags) {
+	auto ref = make(type);
+	ref->bind();
+	glBufferStorage(s_types[ref->m_type], size, nullptr, toGL(flags));
+	ref->m_size = size;
+	return ref;
 }
 
 void GlBuffer::resize(int new_size) {

@@ -3,13 +3,13 @@
 
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_program.h"
+#include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/program.h"
 #include "fwk/gfx/program_binder.h"
 #include "fwk/gfx/renderer2d.h"
-#include "fwk/gfx/shader.h"
-#include "fwk/sys/resource_manager.h"
+#include "fwk/hash_map.h"
 #include "fwk/sys/xml.h"
 
 namespace fwk {
@@ -44,24 +44,30 @@ static const char *vertex_shader_2d_src =
 	"	color = in_color;												\n"
 	"} 																	\n";
 
-struct ProgramFactory2D {
-	PProgram operator()(const string &name) const {
-		const char *src =
-			name == "with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
-		Shader vertex_shader(ShaderType::vertex, vertex_shader_2d_src, "", name);
-		Shader fragment_shader(ShaderType::fragment, src, "", name);
+// TODO: allow to store GlRefs after Opengl context was destroyed?
+// what if it is recreated?
+static HashMap<string, PProgram> s_programs;
 
-		return make_immutable<Program>(vertex_shader, fragment_shader,
-									   vector<string>{"in_pos", "in_color", "in_tex_coord"});
-	}
-};
+static PProgram getProgram(const string &name) {
+	auto it = s_programs.find(name);
+	if(it != s_programs.end())
+		return it->second;
+
+	const char *src =
+		name == "with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
+	auto vsh = GlShader::make(ShaderType::vertex, vertex_shader_2d_src, "", name);
+	auto fsh = GlShader::make(ShaderType::fragment, src, "", name);
+
+	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"});
+	s_programs[name] = out;
+	return out;
+}
 
 Renderer2D::Renderer2D(const IRect &viewport)
 	: MatrixStack(simpleProjectionMatrix(viewport), simpleViewMatrix(viewport, float2(0, 0))),
 	  m_viewport(viewport), m_current_scissor_rect(-1) {
-	static ResourceManager<Program, ProgramFactory2D> mgr;
-	m_tex_program = mgr["with_texture"];
-	m_flat_program = mgr["without_texture"];
+	m_tex_program = getProgram("with_texture");
+	m_flat_program = getProgram("without_texture");
 }
 
 Renderer2D::~Renderer2D() = default;

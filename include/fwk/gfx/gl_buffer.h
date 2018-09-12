@@ -21,26 +21,23 @@ DEFINE_ENUM(ImmBufferOpt, map_read, map_write, map_persistent, map_coherent, dyn
 using ImmBufferFlags = EnumFlags<ImmBufferOpt>;
 
 class GlBuffer {
+	GL_CLASS_DECL(GlBuffer)
   public:
 	using Type = BufferType;
 
-	GlBuffer(Type);
-	template <class T> GlBuffer(Type type, CSpan<T> data) : GlBuffer(type) { upload(data); }
-	template <class TSpan, class T = SpanBase<TSpan>>
-	GlBuffer(Type type, const TSpan &span) : GlBuffer(type, cspan(span)) {}
+	static PBuffer make(Type);
+	static PBuffer make(Type type, int size);
+	static PBuffer make(Type, int size, ImmBufferFlags);
 
-	GlBuffer(Type type, int size) : GlBuffer(type) { resize(size); }
-	GlBuffer(Type, int size, ImmBufferFlags);
-	~GlBuffer();
-
-	void operator=(const Buffer &) = delete;
-	GlBuffer(const GlBuffer &) = delete;
-
-	template <class... Args> static PBuffer make(Args &&... args) {
-		return PBuffer(storage.make(std::forward<Args>(args)...));
+	template <class T> static PBuffer make(Type type, CSpan<T> data) {
+		auto ref = make(type);
+		ref->upload(data);
+		return ref;
 	}
-
-	int id() const { return storage.glId(this); }
+	template <class TSpan, class T = SpanBase<TSpan>>
+	static PBuffer make(Type type, const TSpan &span) {
+		return make(type, cspan(span));
+	}
 
 	void resize(int new_size);
 	void upload(CSpan<char>);
@@ -101,8 +98,6 @@ class GlBuffer {
 	void validate();
 
   private:
-	static constexpr auto &storage = PBuffer::g_storage;
-
 	int m_size = 0;
 	Type m_type;
 };

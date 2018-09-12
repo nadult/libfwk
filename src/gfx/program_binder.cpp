@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/program_binder.h"
 
+#include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/math/matrix4.h"
 

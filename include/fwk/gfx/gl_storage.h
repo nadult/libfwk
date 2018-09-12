@@ -57,4 +57,21 @@ template <class T> class GlStorage {
 	PodVector<T> objects;
 	int first_free = 0;
 };
+
+#define GL_CLASS_DECL(name)                                                                        \
+  private:                                                                                         \
+	name();                                                                                        \
+	~name();                                                                                       \
+	name(const name &) = delete;                                                                   \
+	void operator=(const name &) = delete;                                                         \
+	static constexpr auto &storage = GlRef<name>::g_storage;                                       \
+	friend GlStorage<name>;                                                                        \
+                                                                                                   \
+  public:                                                                                          \
+	using Ref = GlRef<name>;                                                                       \
+	int id() const { return storage.glId(this); }
+
+#define GL_CLASS_IMPL(name)                                                                        \
+	name::name() = default;                                                                        \
+	name::~name() = default;
 }

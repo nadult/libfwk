@@ -1,6 +1,13 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Czy legalne jest niszczenie obiektów opengl po zniszczeniu kontekstu ?
+  może dałoby się to łatwo załatwić?
+
+- Ważne: dodaj w GlStorage i paru innych miejscach? checki (w trybie debug?)
+  sprawdzające czy dany kod nie odpala się w rollbackowym kontekscie (bo to nielegalne)
+- new type: not-null GlRef ?
+
 - hashCombine should be available
 - hash(a, b, c) as well ?
 - vector should be able to perform assignment of object which cannot

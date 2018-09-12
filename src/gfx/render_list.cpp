@@ -8,12 +8,12 @@
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gfx_device.h"
 #include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_program.h"
+#include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/program.h"
 #include "fwk/gfx/program_binder.h"
-#include "fwk/gfx/shader.h"
-#include "fwk/sys/resource_manager.h"
+#include "fwk/hash_map.h"
 
 namespace fwk {
 
@@ -65,23 +65,28 @@ static const char *vsh_src =
 	"}\n";
 // clang-format on
 
-struct ProgramFactory {
-	PProgram operator()(const string &name) const {
-		const char *src = name == "tex" ? fsh_tex_src : fsh_simple_src;
-		if(name.find("flat") != string::npos)
-			src = fsh_flat_src;
-		bool shade = name.find("shade") != string::npos;
+// TODO: allow to store GlRefs after Opengl context was destroyed?
+// what if it is recreated?
+static HashMap<string, PProgram> s_programs;
 
-		string macros = shade ? "#version 100\n#define SHADE\n" : "#version 100\n";
+static PProgram getProgram(const string &name) {
+	auto it = s_programs.find(name);
+	if(it != s_programs.end())
+		return it->second;
 
-		Shader vertex_shader(ShaderType::vertex, vsh_src, macros, name);
-		Shader fragment_shader(ShaderType::fragment, src, macros, name);
-		return make_immutable<Program>(vertex_shader, fragment_shader,
-									   vector<string>{"in_pos", "in_color", "in_tex_coord"});
-	}
-};
+	const char *src = name == "tex" ? fsh_tex_src : fsh_simple_src;
+	if(name.find("flat") != string::npos)
+		src = fsh_flat_src;
+	bool shade = name.find("shade") != string::npos;
 
-static ResourceManager<Program, ProgramFactory> s_mgr;
+	string macros = shade ? "#version 100\n#define SHADE\n" : "#version 100\n";
+
+	auto vsh = GlShader::make(ShaderType::vertex, vsh_src, macros, name);
+	auto fsh = GlShader::make(ShaderType::fragment, src, macros, name);
+	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"});
+	s_programs[name] = out;
+	return out;
+}
 
 RenderList::RenderList(const IRect &viewport, const Matrix4 &projection_matrix)
 	: MatrixStack(projection_matrix), m_viewport(viewport) {}
@@ -160,9 +165,9 @@ void RenderList::render(bool mode_2d) {
 	glDepthMask(1);
 
 	DeviceConfig dev_config;
-	auto tex_program = s_mgr["tex"];
-	auto flat_program = mode_2d ? s_mgr["flat"] : s_mgr["flat_shade"];
-	auto simple_program = s_mgr["simple"];
+	auto tex_program = getProgram("tex");
+	auto flat_program = mode_2d ? getProgram("flat") : getProgram("flat_shade");
+	auto simple_program = getProgram("simple");
 
 	for(const auto &draw_call : m_draw_calls) {
 		auto &mat = draw_call.material;

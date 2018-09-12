@@ -103,24 +103,17 @@ template <class... Args> vector<VertexAttrib> defaultVertexAttribs() {
 };
 
 class GlVertexArray {
+	GL_CLASS_DECL(GlVertexArray)
   public:
 	static constexpr int max_attribs = 7;
-
-	int id() const { return m_has_vao ? storage.glId(this) : 0; }
-
-	GlVertexArray();
-	~GlVertexArray();
-
-	void set(CSpan<PBuffer>, CSpan<VertexAttrib>);
-	void set(CSpan<PBuffer>, CSpan<VertexAttrib>, PBuffer, IndexType);
-	void setIndices(PBuffer, IndexType);
-
-	void operator=(const GlVertexArray &) = delete;
-	GlVertexArray(const GlVertexArray &) = delete;
 
 	template <class... Args> static PVertexArray make(Args &&... args) {
 		return PVertexArray(storage.make(std::forward<Args>(args)...));
 	}
+
+	void set(CSpan<PBuffer>, CSpan<VertexAttrib>);
+	void set(CSpan<PBuffer>, CSpan<VertexAttrib>, PBuffer, IndexType);
+	void setIndices(PBuffer, IndexType);
 
 	// TODO: what offset means? make it type safe
 	void draw(PrimitiveType, int num_elements, int element_offset = 0) const;
@@ -148,8 +141,6 @@ class GlVertexArray {
 	// TODO: size() should return number of vertices
 
   private:
-	static constexpr auto &storage = PVertexArray::g_storage;
-
 	void fill();
 	void bindVertexBuffer(int n) const;
 

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/gfx/color.h"
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/material.h"
 #include "fwk/gfx/matrix_stack.h"
 #include "fwk/math/box.h"

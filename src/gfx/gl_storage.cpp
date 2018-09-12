@@ -9,6 +9,8 @@
 #include "fwk/hash_map.h"
 
 #include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_program.h"
+#include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/gl_vertex_array.h"
 
 namespace fwk {
@@ -38,6 +40,7 @@ template <class T> static Internal<T> s_internal;
 
 template <class T> int GlStorage<T>::allocGL() {
 	GLuint value;
+	PASSERT_GFX_THREAD();
 #define CASE(otype, func)                                                                          \
 	if constexpr(isSame<T, otype>())                                                               \
 		func(1, &value);
@@ -51,16 +54,18 @@ template <class T> int GlStorage<T>::allocGL() {
 	CASE(GlRenderbuffer, glGenRenderbuffers)
 	CASE(GlFramebuffer, glGenFramebuffers)
 
+#undef CASE
+
 	if constexpr(isSame<T, GlVertexArray>()) {
 		if(opengl_info->hasFeature(OpenglFeature::vertex_array_object))
 			glGenVertexArrays(1, &value);
 		else
 			value = s_internal<T>.allocDummy();
 	}
-
-	if constexpr(IsOneOf<T, GlShader, GlProgram>::value)
+	if constexpr(isSame<T, GlProgram>())
+		value = glCreateProgram();
+	if constexpr(isSame<T, GlShader>())
 		FATAL("Use custom function for shaders & programs");
-#undef CASE
 
 	DASSERT(GLuint(int(value)) == value);
 	return (int)value;
@@ -68,6 +73,7 @@ template <class T> int GlStorage<T>::allocGL() {
 
 template <class T> void GlStorage<T>::freeGL(int id) {
 	GLuint value = id;
+	PASSERT_GFX_THREAD();
 
 #define CASE(otype, func)                                                                          \
 	if constexpr(isSame<T, otype>())                                                               \
@@ -88,7 +94,6 @@ template <class T> void GlStorage<T>::freeGL(int id) {
 		else
 			s_internal<T>.freeDummy(value);
 	}
-
 	if constexpr(isSame<T, GlShader>())
 		glDeleteShader(value);
 	if constexpr(isSame<T, GlProgram>())
@@ -233,6 +238,8 @@ template <class T> GlStorage<T> GlRef<T>::g_storage;
 
 INSTANTIATE(GlBuffer)
 INSTANTIATE(GlVertexArray)
+INSTANTIATE(GlProgram)
+INSTANTIATE(GlShader)
 
 #undef INSTANTIATE
 }

@@ -60,5 +60,7 @@ template <class T> class GlRef {
 #define EXTERN_STORAGE(type) extern template GlStorage<type> GlRef<type>::g_storage;
 EXTERN_STORAGE(GlBuffer)
 EXTERN_STORAGE(GlVertexArray)
+EXTERN_STORAGE(GlProgram)
+EXTERN_STORAGE(GlShader)
 #undef EXTERN_STORAGE
 }

@@ -14,9 +14,6 @@ class DTexture;
 class GfxDevice;
 class RenderBuffer;
 class Framebuffer;
-class ShaderStorage;
-class Shader;
-class Program;
 class ProgramBinder;
 class SimpleMaterial;
 class Material;
@@ -82,6 +79,8 @@ template <class T> class GlRef;
 
 using PBuffer = GlRef<GlBuffer>;
 using PVertexArray = GlRef<GlVertexArray>;
+using PProgram = GlRef<GlProgram>;
+using PShader = GlRef<GlShader>;
 // TODO: more definitions
 // TODO: consistent naming
 
@@ -90,10 +89,7 @@ using STexture = shared_ptr<DTexture>;
 
 using SRenderBuffer = shared_ptr<RenderBuffer>;
 using SFramebuffer = shared_ptr<Framebuffer>;
-using SShaderStorage = shared_ptr<ShaderStorage>;
-using SBuffer = shared_ptr<Buffer>;
 
-using PProgram = immutable_ptr<Program>;
 using PFontCore = immutable_ptr<FontCore>;
 
 using PPose = immutable_ptr<Pose>;
