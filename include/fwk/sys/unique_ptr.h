@@ -79,8 +79,14 @@ template <typename T> class UniquePtr {
 
 	void swap(UniquePtr &rhs) { std::swap(m_ptr, rhs.m_ptr); }
 
-	T &operator*() const { return *m_ptr; }
-	T *operator->() const { return m_ptr; }
+	T &operator*() const {
+		PASSERT(m_ptr);
+		return *m_ptr;
+	}
+	T *operator->() const {
+		PASSERT(m_ptr);
+		return m_ptr;
+	}
 	T *get() const { return m_ptr; }
 
 	explicit operator bool() const { return m_ptr != nullptr; }
