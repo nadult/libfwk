@@ -5,8 +5,7 @@
 
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/material.h"
-#include "fwk/gfx/vertex_array.h"
-#include "fwk/gfx/vertex_buffer.h"
+#include "fwk/gfx/render_list.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
@@ -106,13 +105,7 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 	if(!m_positions)
 		return out;
 
-	VertexArraySource pos_source = make_immutable<VertexBuffer>(m_positions);
-	auto color_source =
-		m_flags & Opt::colors ? VertexBuffer::make(m_colors) : VertexArraySource(float4(1.0f));
-	auto uv_source =
-		m_flags & Opt::tex_coords ? VertexBuffer::make(m_tex_coords) : VertexArraySource(float2());
-
-	auto array = VertexArray::make({pos_source, color_source, uv_source});
+	auto vao = RenderList::makeVao(m_positions, m_colors, m_tex_coords);
 
 	for(const auto &elem : m_elements) {
 		int num_verts = numVerts(elem);
@@ -132,7 +125,7 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 		Maybe<FBox> bbox;
 		if(compute_bboxes)
 			bbox = this->bbox(elem);
-		out.emplace_back(array, pt, num_verts, elem.first_index, m_materials[elem.material_idx],
+		out.emplace_back(vao, pt, num_verts, elem.first_index, m_materials[elem.material_idx],
 						 m_matrices[elem.matrix_idx], bbox);
 	}
 

@@ -3,9 +3,9 @@
 
 #include "fwk/gfx/mesh_buffers.h"
 
+#include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/pose.h"
-#include "fwk/gfx/vertex_array.h"
-#include "fwk/gfx/vertex_buffer.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/xml.h"
 #include <numeric>
@@ -47,18 +47,16 @@ MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
 	ASSERT(max_node_id < node_names.size());
 }
 
-MeshBuffers::MeshBuffers(PVertexBuffer positions, PVertexBuffer normals, PVertexBuffer tex_coords,
-						 PVertexBuffer colors)
-	: MeshBuffers((DASSERT(positions), positions->getData<float3>()),
-				  normals ? normals->getData<float3>() : vector<float3>(),
-				  tex_coords ? tex_coords->getData<float2>() : vector<float2>(),
-				  colors ? colors->getData<IColor>() : vector<IColor>()) {}
+MeshBuffers::MeshBuffers(PBuffer positions, PBuffer normals, PBuffer tex_coords, PBuffer colors)
+	: MeshBuffers((DASSERT(positions), positions->download<float3>()),
+				  normals ? normals->download<float3>() : vector<float3>(),
+				  tex_coords ? tex_coords->download<float2>() : vector<float2>(),
+				  colors ? colors->download<IColor>() : vector<IColor>()) {}
 
-template <class T> static PVertexBuffer extractBuffer(PVertexArray array, int buffer_id) {
+template <class T> static PBuffer extractBuffer(PVertexArray array, int buffer_id) {
 	DASSERT(array);
-	const auto &sources = array->sources();
-	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < sources.size()));
-	return buffer_id == -1 ? PVertexBuffer() : sources[buffer_id].buffer();
+	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < array->buffers().size()));
+	return buffer_id == -1 ? PBuffer() : array->buffers()[buffer_id];
 }
 
 MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, int tex_coords_id,

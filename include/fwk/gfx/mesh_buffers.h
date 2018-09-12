@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/gfx/color.h"
+#include "fwk/gfx/gl_storage.h"
 #include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
@@ -23,8 +24,8 @@ struct MeshBuffers {
 	MeshBuffers(vector<float3> positions, vector<float3> normals = {},
 				vector<float2> tex_coords = {}, vector<IColor> colors = {},
 				vector<vector<VertexWeight>> weights = {}, vector<string> node_names = {});
-	MeshBuffers(PVertexBuffer positions, PVertexBuffer normals = PVertexBuffer(),
-				PVertexBuffer tex_coords = PVertexBuffer(), PVertexBuffer colors = PVertexBuffer());
+	MeshBuffers(PBuffer positions, PBuffer normals = {}, PBuffer tex_coords = {},
+				PBuffer colors = {});
 	MeshBuffers(PVertexArray, int positions_id, int normals_id = -1, int tex_coords_id = -1,
 				int color_id = -1);
 

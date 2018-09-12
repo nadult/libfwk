@@ -4,7 +4,6 @@
 #pragma once
 
 #include "fwk/gfx/color.h"
-#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
@@ -18,7 +17,7 @@ class MeshIndices {
 	}
 
 	MeshIndices(vector<int> = {}, Type ptype = Type::triangles);
-	MeshIndices(PIndexBuffer, Type ptype = Type::triangles);
+	MeshIndices(PBuffer, IndexType, Type ptype = Type::triangles);
 	MeshIndices(const vector<TriIndices> &);
 
 	static MeshIndices makeRange(int count, int first = 0, Type ptype = Type::triangles);

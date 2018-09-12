@@ -36,11 +36,10 @@ SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_in
 		   gfx/color gfx/gfx_device gfx/dtexture gfx/font gfx/font_factory gfx/model_anim gfx/model_node \
 		   gfx/material gfx/material_set gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/program_binder gfx/pose \
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
-		   gfx/vertex_array gfx/vertex_buffer gfx/index_buffer gfx/render_buffer gfx/framebuffer gfx/shader \
+		   gfx/render_buffer gfx/framebuffer gfx/shader gfx/gl_storage \
 		   gfx/program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/shader_storage gfx/colored_triangle \
 		   gfx/texture gfx/texture_format gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_query \
-		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array \
-		   gfx/gl_storage
+		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array
 
 TESTS_SRC=tests/streams tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
 			tests/variant_perf tests/rollback_test

@@ -7,12 +7,12 @@
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/program.h"
 #include "fwk/gfx/program_binder.h"
 #include "fwk/gfx/shader.h"
-#include "fwk/gfx/vertex_array.h"
-#include "fwk/gfx/vertex_buffer.h"
 #include "fwk/sys/resource_manager.h"
 
 namespace fwk {
@@ -170,7 +170,7 @@ void RenderList::render(bool mode_2d) {
 			DTexture::bind(mat.textures);
 
 		PProgram program = mat.textures ? tex_program : flat_program;
-		if(draw_call.primitiveType() == PrimitiveType::lines)
+		if(draw_call.primitive_type == PrimitiveType::lines)
 			program = simple_program;
 
 		ProgramBinder binder(program);
@@ -203,16 +203,33 @@ vector<pair<FBox, Matrix4>> RenderList::renderBoxes() const {
 	return out;
 }
 
-DrawCall RenderList::makeDrawCall(CSpan<float3> vertices, CSpan<float2> tex_coords,
-								  CSpan<IColor> colors) {
-	auto vert = make_immutable<VertexBuffer>(vertices);
-	auto tex =
-		tex_coords ? make_immutable<VertexBuffer>(tex_coords) : VertexArraySource(float2(0, 0));
-	auto col =
-		colors ? make_immutable<VertexBuffer>(colors) : VertexArraySource(FColor(ColorId::white));
+PVertexArray RenderList::makeVao(CSpan<float3> vertices, CSpan<IColor> colors,
+								 CSpan<float2> tex_coords) {
+	auto pbuffer = GlBuffer::make(BufferType::array, vertices);
+	DASSERT(colors.empty() || colors.size() == vertices.size());
+	DASSERT(tex_coords.empty() || tex_coords.size() == vertices.size());
 
-	auto varray = VertexArray::make({vert, col, tex});
-	return {varray, PrimitiveType::triangles, vertices.size(), 0};
+	vector<IColor> temp;
+	if(colors.empty()) {
+		// TODO: add GlBuffer::fill()
+		temp.resize(vertices.size(), ColorId::white);
+		colors = temp;
+	}
+	auto cbuffer = GlBuffer::make(BufferType::array, colors);
+
+	auto vao = GlVertexArray::make();
+	if(tex_coords) {
+		auto tbuffer = GlBuffer::make(BufferType::array, tex_coords);
+		vao->set({pbuffer, cbuffer, tbuffer}, defaultVertexAttribs<float3, IColor, float2>());
+	} else {
+		vao->set({pbuffer, cbuffer}, defaultVertexAttribs<float3, IColor>());
+	}
+	return vao;
+}
+
+DrawCall RenderList::makeDrawCall(CSpan<float3> vertices, CSpan<IColor> colors,
+								  CSpan<float2> tex_coords) {
+	return {makeVao(vertices, colors, tex_coords), PrimitiveType::triangles, vertices.size(), 0};
 }
 
 DrawCall RenderList::makeDrawCall(CSpan<ColoredTriangle> tris, Maybe<FBox> bbox) {
@@ -226,12 +243,7 @@ DrawCall RenderList::makeDrawCall(CSpan<ColoredTriangle> tris, Maybe<FBox> bbox)
 			positions.emplace_back(tri[i]);
 			colors.emplace_back(tri.colors[i]);
 		}
-
-	auto varray = VertexArray::make({make_immutable<VertexBuffer>(positions),
-									 make_immutable<VertexBuffer>(colors),
-									 VertexArraySource(float2(0.0f, 0.0f))});
-
-	DrawCall out(varray, PrimitiveType::triangles, tris.size() * 3, 0);
+	DrawCall out(makeVao(positions, colors), PrimitiveType::triangles, positions.size(), 0);
 	out.bbox = bbox ? *bbox : enclose(positions);
 	return out;
 }

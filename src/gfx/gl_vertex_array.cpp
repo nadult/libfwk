@@ -7,9 +7,7 @@
 #include "fwk/format.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/gl_buffer.h"
-#include "fwk/gfx/index_buffer.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/vertex_buffer.h"
 #include <climits>
 
 namespace fwk {
@@ -70,6 +68,10 @@ void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs) {
 void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs, PBuffer ibuffer,
 						IndexType itype) {
 	set(buffers, attribs);
+	setIndices(ibuffer, itype);
+}
+
+void GlVertexArray::setIndices(PBuffer ibuffer, IndexType itype) {
 	m_index_buffer = move(ibuffer);
 	m_index_type = itype;
 	DASSERT(m_index_buffer && m_index_buffer->type() == BufferType::element_array);

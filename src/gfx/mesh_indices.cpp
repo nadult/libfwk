@@ -3,7 +3,8 @@
 
 #include "fwk/gfx/mesh_indices.h"
 
-#include "fwk/gfx/index_buffer.h"
+#include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_vertex_array.h"
 #include <numeric>
 
 namespace fwk {
@@ -12,7 +13,10 @@ MeshIndices::MeshIndices(vector<int> indices, Type type) : m_data(move(indices))
 	DASSERT(isSupported(m_type));
 }
 
-MeshIndices::MeshIndices(PIndexBuffer indices, Type type) : MeshIndices(indices->getData(), type) {}
+MeshIndices::MeshIndices(PBuffer indices, IndexType itype, Type ptype)
+	: MeshIndices(indices->download<int>(), ptype) {
+	DASSERT(itype == IndexType::uint32);
+}
 MeshIndices::MeshIndices(const vector<TriIndices> &indices)
 	: MeshIndices(span(indices).reinterpret<int>()) {}
 

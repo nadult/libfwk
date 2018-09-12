@@ -5,10 +5,9 @@
 
 #include "fwk/gfx/colored_triangle.h"
 #include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/index_buffer.h"
+#include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/material_set.h"
-#include "fwk/gfx/vertex_array.h"
-#include "fwk/gfx/vertex_buffer.h"
+#include "fwk/gfx/render_list.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
@@ -269,47 +268,26 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 			anim_data = nullptr;
 	}
 
-	if(hasIndices() && m_buffers.positions.size() > IndexBuffer::max_index_value) {
-		vector<Mesh> parts;
+	CSpan<float3> verts = anim_data ? anim_data->positions : m_buffers.positions;
+	auto vao = RenderList::makeVao(verts, m_buffers.colors, m_buffers.tex_coords);
+	FBox bbox = anim_data ? anim_data->bounding_box : m_bounding_box;
 
-		if(anim_data) {
-			auto animated = apply(*this, *anim_data);
-			parts = animated.split(IndexBuffer::max_index_value);
-		} else {
-			parts = split(IndexBuffer::max_index_value);
+	if(hasIndices()) {
+		vector<pair<int, int>> merged_ranges;
+		auto merged_indices = MeshIndices::merge(m_indices, merged_ranges);
+		vao->setIndices(GlBuffer::make(BufferType::element_array, merged_indices.data()),
+						IndexType::uint32);
+
+		for(int n = 0; n < m_indices.size(); n++) {
+			const auto &range = merged_ranges[n];
+			const auto &indices = m_indices[n];
+			string mat_name = m_material_names ? m_material_names[n] : "";
+			out.emplace_back(vao, indices.type(), range.second, range.first, materials[mat_name],
+							 matrix, encloseTransformed(bbox, matrix));
 		}
-
-		for(auto &part : parts)
-			insertBack(out, part.genDrawCalls(materials, nullptr, matrix));
 	} else {
-		// TODO: normals
-		auto vertices =
-			make_immutable<VertexBuffer>(anim_data ? anim_data->positions : m_buffers.positions);
-		auto tex_coords = hasTexCoords() ? make_immutable<VertexBuffer>(m_buffers.tex_coords)
-										 : VertexArraySource(float2(0, 0));
-		auto colors = hasColors() ? make_immutable<VertexBuffer>(m_buffers.colors)
-								  : VertexArraySource(FColor(ColorId::white));
-		FBox bbox = anim_data ? anim_data->bounding_box : m_bounding_box;
-
-		if(hasIndices()) {
-			vector<pair<int, int>> merged_ranges;
-			auto merged_indices = MeshIndices::merge(m_indices, merged_ranges);
-
-			auto indices = make_immutable<IndexBuffer>(merged_indices.data());
-			auto varray = VertexArray::make({vertices, colors, tex_coords}, move(indices));
-
-			for(int n = 0; n < m_indices.size(); n++) {
-				const auto &range = merged_ranges[n];
-				const auto &indices = m_indices[n];
-				string mat_name = m_material_names ? m_material_names[n] : "";
-				out.emplace_back(varray, indices.type(), range.second, range.first,
-								 materials[mat_name], matrix, encloseTransformed(bbox, matrix));
-			}
-		} else {
-			auto varray = VertexArray::make({vertices, colors, tex_coords});
-			out.emplace_back(varray, PrimitiveType::triangles, triangleCount() * 3, 0,
-							 materials.defaultMat(), matrix, encloseTransformed(bbox, matrix));
-		}
+		out.emplace_back(vao, PrimitiveType::triangles, triangleCount() * 3, 0,
+						 materials.defaultMat(), matrix, encloseTransformed(bbox, matrix));
 	}
 
 	return out;

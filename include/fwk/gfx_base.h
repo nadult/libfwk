@@ -12,10 +12,6 @@ class TextureFormat;
 class Texture;
 class DTexture;
 class GfxDevice;
-class VertexBuffer;
-class IndexBuffer;
-class VertexArraySource;
-class VertexArray;
 class RenderBuffer;
 class Framebuffer;
 class ShaderStorage;
@@ -60,6 +56,8 @@ enum class GfxDeviceOpt : unsigned char;
 enum class PrimitiveType : unsigned char;
 enum class ShaderType : unsigned char;
 enum class MaterialOpt : unsigned char;
+enum class IndexType : unsigned char;
+enum class VertexBaseType : unsigned char;
 
 struct HeightMap16bit;
 struct TextureConfig;
@@ -83,17 +81,13 @@ template <class T> class GlStorage;
 template <class T> class GlRef;
 
 using PBuffer = GlRef<GlBuffer>;
-using PVertexArray2 = GlRef<GlVertexArray>;
+using PVertexArray = GlRef<GlVertexArray>;
 // TODO: more definitions
 // TODO: consistent naming
 
 using PTexture = immutable_ptr<DTexture>;
 using STexture = shared_ptr<DTexture>;
 
-using PVertexBuffer = immutable_ptr<VertexBuffer>;
-using PIndexBuffer = immutable_ptr<IndexBuffer>;
-
-using PVertexArray = immutable_ptr<VertexArray>;
 using SRenderBuffer = shared_ptr<RenderBuffer>;
 using SFramebuffer = shared_ptr<Framebuffer>;
 using SShaderStorage = shared_ptr<ShaderStorage>;

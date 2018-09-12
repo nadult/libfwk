@@ -3,8 +3,8 @@
 
 #pragma once
 
+#include "fwk/gfx/gl_storage.h"
 #include "fwk/gfx/material.h"
-#include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 
@@ -30,11 +30,10 @@ class DrawCall {
 	Maybe<FBox> bbox; // transformed by matrix
 	Material material;
 
-	auto primitiveType() const { return m_primitive_type; }
 	int primitiveCount() const;
 
-	PVertexArray m_vertex_array;
-	PrimitiveType m_primitive_type;
-	int m_vertex_count, m_index_offset;
+	PVertexArray vao;
+	PrimitiveType primitive_type;
+	int vertex_count, index_offset;
 };
 }

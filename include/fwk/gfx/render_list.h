@@ -31,8 +31,10 @@ class RenderList : public MatrixStack {
 	void add(CSpan<DrawCall>);
 	void add(CSpan<DrawCall>, const Matrix4 &);
 
-	static DrawCall makeDrawCall(CSpan<float3> vertices, CSpan<float2> tex_coords,
-								 CSpan<IColor> colors);
+	static PVertexArray makeVao(CSpan<float3> vertices, CSpan<IColor> colors,
+								CSpan<float2> tex_coords = {});
+	static DrawCall makeDrawCall(CSpan<float3> vertices, CSpan<IColor> colors,
+								 CSpan<float2> tex_coords = {});
 	static DrawCall makeDrawCall(CSpan<ColoredTriangle>, Maybe<FBox>);
 
 	const auto &drawCalls() const { return m_draw_calls; }

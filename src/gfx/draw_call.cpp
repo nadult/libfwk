@@ -3,8 +3,8 @@
 
 #include "fwk/gfx/draw_call.h"
 
+#include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/vertex_array.h"
 
 namespace fwk {
 
@@ -22,20 +22,15 @@ static int primitiveCount(PrimitiveType type, int vertex_count) {
 	return 0;
 }
 
-DrawCall::DrawCall(PVertexArray vertex_array, PrimitiveType primitive_type, int vertex_count,
+DrawCall::DrawCall(PVertexArray vao, PrimitiveType primitive_type, int vertex_count,
 				   int index_offset, const Material &material, Matrix4 matrix, Maybe<FBox> bbox)
-	: matrix(matrix), bbox(bbox), material(material), m_vertex_array(move(vertex_array)),
-	  m_primitive_type(primitive_type), m_vertex_count(vertex_count), m_index_offset(index_offset) {
-	DASSERT(m_vertex_array);
+	: matrix(matrix), bbox(bbox), material(material), vao(move(vao)),
+	  primitive_type(primitive_type), vertex_count(vertex_count), index_offset(index_offset) {
+	DASSERT(this->vao);
 }
 
 FWK_COPYABLE_CLASS_IMPL(DrawCall);
 
-void DrawCall::issue() const {
-	m_vertex_array->draw(m_primitive_type, m_vertex_count, m_index_offset);
-}
-
-int DrawCall::primitiveCount() const {
-	return fwk::primitiveCount(m_primitive_type, m_vertex_count);
-}
+void DrawCall::issue() const { vao->draw(primitive_type, vertex_count, index_offset); }
+int DrawCall::primitiveCount() const { return fwk::primitiveCount(primitive_type, vertex_count); }
 }

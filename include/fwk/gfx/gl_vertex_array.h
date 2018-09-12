@@ -113,12 +113,13 @@ class GlVertexArray {
 
 	void set(CSpan<PBuffer>, CSpan<VertexAttrib>);
 	void set(CSpan<PBuffer>, CSpan<VertexAttrib>, PBuffer, IndexType);
+	void setIndices(PBuffer, IndexType);
 
 	void operator=(const GlVertexArray &) = delete;
 	GlVertexArray(const GlVertexArray &) = delete;
 
-	template <class... Args> static PVertexArray2 make(Args &&... args) {
-		return PVertexArray2(storage.make(std::forward<Args>(args)...));
+	template <class... Args> static PVertexArray make(Args &&... args) {
+		return PVertexArray(storage.make(std::forward<Args>(args)...));
 	}
 
 	// TODO: what offset means? make it type safe
@@ -147,7 +148,7 @@ class GlVertexArray {
 	// TODO: size() should return number of vertices
 
   private:
-	static constexpr auto &storage = PVertexArray2::g_storage;
+	static constexpr auto &storage = PVertexArray::g_storage;
 
 	void fill();
 	void bindVertexBuffer(int n) const;

@@ -4,7 +4,6 @@
 #include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_vertex_array.h"
-#include "fwk/gfx/index_buffer.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/program.h"
 #include "fwk/gfx/program_binder.h"
@@ -81,7 +80,7 @@ Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_a
 }
 
 Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {
-	if(!m_chunks || m_chunks.back().positions.size() + num_verts > IndexBuffer::max_index_value)
+	if(!m_chunks || m_chunks.back().positions.size() + num_verts > 65535)
 		m_chunks.emplace_back();
 	return m_chunks.back();
 }
