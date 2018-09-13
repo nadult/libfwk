@@ -5,6 +5,7 @@
 
 #include "fwk/fwd_member.h"
 #include "fwk/gfx/color.h"
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
 #include "fwk/str.h"

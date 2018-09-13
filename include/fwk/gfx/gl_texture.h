@@ -3,41 +3,31 @@
 
 #pragma once
 
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/texture_format.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
-#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
 DEFINE_ENUM(TextureOpt, multisample, wrapped, filtered, immutable);
 using TextureFlags = EnumFlags<TextureOpt>;
 
-// Device texture
-class DTexture : public immutable_base<DTexture> {
+class GlTexture {
+	GL_CLASS_DECL(GlTexture)
   public:
 	using Format = TextureFormat;
 	using Opt = TextureOpt;
 	using Flags = TextureFlags;
 
-	DTexture();
-	DTexture(const string &name, Stream &);
-	DTexture(Format, const int2 &size, int multisample_count, Flags = Opt::multisample);
-	DTexture(Format, const int2 &size, Flags = {});
-	DTexture(Format, const Texture &, Flags = {});
-	DTexture(Format, const int2 &size, CSpan<float4>, Flags = {});
-	DTexture(Format, const DTexture &view_source);
-	DTexture(const Texture &, Flags = {});
-
-	// TODO: think about this:
-	// some opengl handle may be assigned to something, example:
-	// texture assigned to FBO; At the same time FBO keeps shared_ptr to this texture
-	//  DTexture(DTexture &&);
-
-	void operator=(DTexture &&) = delete;
-	DTexture(const DTexture &) = delete;
-	void operator=(const DTexture &) = delete;
-	~DTexture();
+	// TODO: cleanup these
+	static PTexture make(const string &name, Stream &);
+	static PTexture make(Format, const int2 &size, int multisample_count, Flags = Opt::multisample);
+	static PTexture make(Format, const int2 &size, Flags = {});
+	static PTexture make(Format, const Texture &, Flags = {});
+	static PTexture make(Format, const int2 &size, CSpan<float4>, Flags = {});
+	static PTexture make(Format, PTexture view_source);
+	static PTexture make(const Texture &, Flags = {});
 
 	void setFlags(Flags);
 	Flags flags() const { return m_flags; }
@@ -49,9 +39,7 @@ class DTexture : public immutable_base<DTexture> {
 
 	bool hasImmutableFormat() const;
 
-	// TODO: one overload should be enough
-	static void bind(const vector<const DTexture *> &);
-	static void bind(const vector<immutable_ptr<DTexture>> &);
+	static void bind(CSpan<PTexture>);
 	static void unbind();
 
 	void bindImage(int unit, AccessMode access, int level = 0);
@@ -68,7 +56,7 @@ class DTexture : public immutable_base<DTexture> {
 		download(data.template reinterpret<char>());
 	}
 
-	void copy(const DTexture &source, IRect src_rect, int2 target_pos);
+	void copyTo(PTexture, IRect src_rect, int2 dst_pos) const;
 
 	void clear(float4);
 	void clear(int);
@@ -82,18 +70,16 @@ class DTexture : public immutable_base<DTexture> {
 
 	Format format() const { return m_format; }
 
-	int id() const { return m_id; }
 	int glType() const;
-	// bool isValid() const { return m_id > 0; }
 
   private:
 	void updateParams();
 	void initialize(int msaa_samples);
+	GlTexture(Format, int2, Flags);
 
-	uint m_id;
 	int2 m_size;
 	Format m_format;
 	Flags m_flags;
-	bool m_has_mipmaps;
+	bool m_has_mipmaps = false;
 };
 }

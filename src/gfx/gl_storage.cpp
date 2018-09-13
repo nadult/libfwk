@@ -9,8 +9,11 @@
 #include "fwk/hash_map.h"
 
 #include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_framebuffer.h"
 #include "fwk/gfx/gl_program.h"
+#include "fwk/gfx/gl_renderbuffer.h"
 #include "fwk/gfx/gl_shader.h"
+#include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/gl_vertex_array.h"
 
 namespace fwk {
@@ -240,6 +243,9 @@ INSTANTIATE(GlBuffer)
 INSTANTIATE(GlVertexArray)
 INSTANTIATE(GlProgram)
 INSTANTIATE(GlShader)
+INSTANTIATE(GlFramebuffer)
+INSTANTIATE(GlRenderbuffer)
+INSTANTIATE(GlTexture)
 
 #undef INSTANTIATE
 }

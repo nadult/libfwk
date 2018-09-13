@@ -5,11 +5,11 @@
 
 #include "fwk/gfx/colored_triangle.h"
 #include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gfx_device.h"
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/gl_shader.h"
+#include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/program_binder.h"
@@ -172,7 +172,7 @@ void RenderList::render(bool mode_2d) {
 	for(const auto &draw_call : m_draw_calls) {
 		auto &mat = draw_call.material;
 		if(mat.textures)
-			DTexture::bind(mat.textures);
+			GlTexture::bind(mat.textures);
 
 		PProgram program = mat.textures ? tex_program : flat_program;
 		if(draw_call.primitive_type == PrimitiveType::lines)
@@ -196,7 +196,7 @@ void RenderList::render(bool mode_2d) {
 	*/
 
 	clear();
-	DTexture::unbind();
+	GlTexture::unbind();
 }
 
 vector<pair<FBox, Matrix4>> RenderList::renderBoxes() const {
@@ -270,7 +270,7 @@ void RenderList::renderSprites() {
 		VertexArray sprite_array({pos, col, tex});
 
 		const auto &mat = sprite.material;
-		DTexture::bind(mat.textures);
+		GlTexture::bind(mat.textures);
 		PProgram program = mat.texture() ? tex_program : flat_program;
 
 		ProgramBinder binder(program);

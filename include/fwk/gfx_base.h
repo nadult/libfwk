@@ -10,10 +10,7 @@ namespace fwk {
 
 class TextureFormat;
 class Texture;
-class DTexture;
 class GfxDevice;
-class RenderBuffer;
-class Framebuffer;
 class ProgramBinder;
 class SimpleMaterial;
 class Material;
@@ -81,17 +78,13 @@ using PBuffer = GlRef<GlBuffer>;
 using PVertexArray = GlRef<GlVertexArray>;
 using PProgram = GlRef<GlProgram>;
 using PShader = GlRef<GlShader>;
+using PTexture = GlRef<GlTexture>;
+using PRenderbuffer = GlRef<GlRenderbuffer>;
+using PFramebuffer = GlRef<GlFramebuffer>;
 // TODO: more definitions
 // TODO: consistent naming
 
-using PTexture = immutable_ptr<DTexture>;
-using STexture = shared_ptr<DTexture>;
-
-using SRenderBuffer = shared_ptr<RenderBuffer>;
-using SFramebuffer = shared_ptr<Framebuffer>;
-
 using PFontCore = immutable_ptr<FontCore>;
-
 using PPose = immutable_ptr<Pose>;
 using PMesh = immutable_ptr<Mesh>;
 using PModel = immutable_ptr<Model>;

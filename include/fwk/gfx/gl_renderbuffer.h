@@ -3,28 +3,25 @@
 
 #pragma once
 
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/texture_format.h"
+#include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
 
 namespace fwk {
 
-class RenderBuffer {
+class GlRenderbuffer {
+	GL_CLASS_DECL(GlRenderbuffer)
   public:
 	using Format = TextureFormat;
-	RenderBuffer(TextureFormat, const int2 &size);
-	RenderBuffer(TextureFormat, const int2 &, int multisample_count);
-	~RenderBuffer();
-
-	void operator=(const RenderBuffer &) = delete;
-	RenderBuffer(const RenderBuffer &) = delete;
+	static PRenderbuffer make(TextureFormat, const int2 &size);
+	static PRenderbuffer make(TextureFormat, const int2 &, int multisample_count);
 
 	Format format() const { return m_format; }
-	uint id() const { return m_id; }
 	int2 size() const { return m_size; }
 
   private:
 	int2 m_size;
 	Format m_format;
-	uint m_id;
 };
 }

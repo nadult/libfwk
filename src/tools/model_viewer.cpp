@@ -4,10 +4,10 @@
 #include "fwk/filesystem.h"
 #include "fwk/gfx/animated_model.h"
 #include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/dynamic_mesh.h"
 #include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/line_buffer.h"
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/mesh.h"
@@ -24,7 +24,7 @@ using namespace fwk;
 
 namespace {
 ResourceManager<Model, XmlLoader<Model>> s_models("", "", "");
-ResourceManager<DTexture> s_textures("", "");
+HashMap<string, PTexture> s_textures;
 
 string dataPath(string file_name) {
 	FilePath exec(executablePath());
@@ -114,7 +114,14 @@ class Viewer {
 			PTexture tex;
 			if(!file_name.second.empty() && access(file_name.second)) {
 				double time = getTime();
-				tex = s_textures[file_name.second];
+				auto it = s_textures.find(file_name.second);
+				if(it == s_textures.end()) {
+					Loader ldr(file_name.second);
+					tex.emplace(file_name.second, ldr);
+					s_textures[file_name.second] = tex;
+				} else {
+					tex = it->second;
+				}
 				printf("Loaded texture %s: %.2f ms\n", file_name.second.c_str(),
 					   (getTime() - time) * 1000.0f);
 			}

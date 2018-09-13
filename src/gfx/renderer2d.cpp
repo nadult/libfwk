@@ -1,10 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/gl_shader.h"
+#include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/program_binder.h"
@@ -92,7 +92,7 @@ Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {
 }
 
 Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType primitive_type,
-											 shared_ptr<const DTexture> texture, BlendingMode bm) {
+											 PTexture texture, BlendingMode bm) {
 	// TODO: merging won't work for triangle strip (have to add some more indices)
 	auto &elems = chunk.elements;
 
@@ -291,7 +291,7 @@ void Renderer2D::render() {
 
 	glDisable(GL_SCISSOR_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	DTexture::unbind();
+	GlTexture::unbind();
 
 	clear();
 }

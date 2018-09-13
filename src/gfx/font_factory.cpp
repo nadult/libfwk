@@ -3,8 +3,8 @@
 
 #include "fwk/hash_map.h"
 
-#include "fwk/gfx/dtexture.h"
 #include "fwk/gfx/font_factory.h"
+#include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/texture.h"
 
 #ifdef FWK_TARGET_HTML5
@@ -20,7 +20,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 
 	// TODO: add support for freetype / somehow use html fonts
 	FontCore core(glyphs, kernings, int2(256, 256), 10);
-	return Font(PFontCore(move(core)), make_immutable<DTexture>(Texture({2, 2})));
+	return Font(PFontCore(move(core)), GlTexture::make(Texture({2, 2})));
 }
 }
 
@@ -190,7 +190,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 
 	FontCore out(oglyphs, okernings, atlas.size(), face->size->metrics.height / 64);
 
-	return {PFontCore(move(out)), make_immutable<DTexture>(atlas)};
+	return {PFontCore(move(out)), GlTexture::make(atlas)};
 }
 }
 

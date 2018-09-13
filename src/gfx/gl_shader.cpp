@@ -44,14 +44,10 @@ PShader GlShader::make(Type type, const string &source, const string &predefined
 	const char *string = full_source.data();
 
 	glShaderSource(gl_id, 1, &string, &length);
-	testGlError("glShaderSource");
-
 	glCompileShader(gl_id);
-	testGlError("Error in glCompileShader");
 
 	GLint status;
 	glGetShaderiv(gl_id, GL_COMPILE_STATUS, &status);
-	testGlError("glGetShaderiv\n");
 
 	if(status != GL_TRUE) {
 		char buf[4096];

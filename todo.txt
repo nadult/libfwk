@@ -20,7 +20,7 @@ TODO: which OpenGL version are we targeting ?
 - check emscripten
 
 - cos sie popieprzylo z YCMem na laptopie
-- glGetUniformLocation może wrócić -1, trzeba to obsłużyć!!!
+- glGetUniformLocation może zwrócić -1, trzeba to obsłużyć!!!
 - mozliwosc przypisanie none do unique_ptr
 
 - vec2<>, vec3<>, should support unsigned types ?

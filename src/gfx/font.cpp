@@ -6,7 +6,7 @@
 
 #include "fwk/gfx/font.h"
 
-#include "fwk/gfx/dtexture.h"
+#include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/sys/xml.h"

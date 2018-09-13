@@ -45,7 +45,7 @@ class Renderer2D : public MatrixStack {
 
 	struct Element {
 		Matrix4 matrix;
-		shared_ptr<const DTexture> texture;
+		PTexture texture;
 		int first_index, num_indices;
 		int scissor_rect_id;
 		PrimitiveType primitive_type;
@@ -78,8 +78,7 @@ class Renderer2D : public MatrixStack {
 	};
 
 	DrawChunk &allocChunk(int num_verts);
-	Element &makeElement(DrawChunk &, PrimitiveType, shared_ptr<const DTexture>,
-						 BlendingMode = BlendingMode::normal);
+	Element &makeElement(DrawChunk &, PrimitiveType, PTexture, BlendingMode = BlendingMode::normal);
 
 	vector<DrawChunk> m_chunks;
 	vector<IRect> m_scissor_rects;

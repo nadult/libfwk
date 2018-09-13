@@ -3,9 +3,9 @@
 
 #include <fwk/filesystem.h>
 #include <fwk/format.h>
-#include <fwk/gfx/dtexture.h>
 #include <fwk/gfx/font.h>
 #include <fwk/gfx/gfx_device.h>
+#include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/opengl.h>
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/sys/input.h>
@@ -46,7 +46,7 @@ bool mainLoop(GfxDevice &device, void *) {
 		Loader font_ldr(data_path / "liberation_16.fnt");
 		Loader tex_ldr(data_path / "liberation_16_0.tga");
 		font_core = make_immutable<FontCore>("", font_ldr);
-		font_texture = make_immutable<DTexture>("", tex_ldr);
+		font_texture.emplace("", tex_ldr);
 	}
 	Font(font_core, font_texture)
 		.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, "Hello world!");
