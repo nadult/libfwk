@@ -81,6 +81,7 @@ using PShader = GlRef<GlShader>;
 using PTexture = GlRef<GlTexture>;
 using PRenderbuffer = GlRef<GlRenderbuffer>;
 using PFramebuffer = GlRef<GlFramebuffer>;
+using PQuery = GlRef<GlQuery>;
 // TODO: more definitions
 // TODO: consistent naming
 

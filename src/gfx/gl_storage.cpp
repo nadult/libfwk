@@ -11,6 +11,7 @@
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_framebuffer.h"
 #include "fwk/gfx/gl_program.h"
+#include "fwk/gfx/gl_query.h"
 #include "fwk/gfx/gl_renderbuffer.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/gl_texture.h"
@@ -246,6 +247,7 @@ INSTANTIATE(GlShader)
 INSTANTIATE(GlFramebuffer)
 INSTANTIATE(GlRenderbuffer)
 INSTANTIATE(GlTexture)
+INSTANTIATE(GlQuery)
 
 #undef INSTANTIATE
 }
