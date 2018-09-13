@@ -4,7 +4,7 @@
 #include <fwk/filesystem.h>
 #include <fwk/format.h>
 #include <fwk/gfx/font.h>
-#include <fwk/gfx/gfx_device.h>
+#include <fwk/gfx/gl_device.h>
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/opengl.h>
 #include <fwk/gfx/renderer2d.h>
@@ -13,7 +13,7 @@
 
 using namespace fwk;
 
-bool mainLoop(GfxDevice &device, void *) {
+bool mainLoop(GlDevice &device, void *) {
 	static vector<float2> positions;
 
 	for(auto &event : device.inputEvents()) {
@@ -27,8 +27,8 @@ bool mainLoop(GfxDevice &device, void *) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	GfxDevice::clearColor(IColor(50, 0, 50));
-	Renderer2D renderer(IRect(GfxDevice::instance().windowSize()));
+	clearColor(IColor(50, 0, 50));
+	Renderer2D renderer(IRect(GlDevice::instance().windowSize()));
 
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
@@ -60,13 +60,13 @@ int main(int argc, char **argv) {
 	double time = getTime();
 	int2 res(800, 600);
 
-	GfxDevice gfx_device;
-	auto flags = GfxDeviceOpt::multisampling | GfxDeviceOpt::resizable | GfxDeviceOpt::vsync |
-				 GfxDeviceOpt::opengl_debug_handler;
-	gfx_device.createWindow("foo", res, flags);
+	GlDevice gl_device;
+	auto flags = GlDeviceOpt::multisampling | GlDeviceOpt::resizable | GlDeviceOpt::vsync |
+				 GlDeviceOpt::opengl_debug_handler;
+	gl_device.createWindow("foo", res, flags);
 
 	print("OpenGL info:\n%\n", opengl_info->toString());
-	gfx_device.runMainLoop(mainLoop);
+	gl_device.runMainLoop(mainLoop);
 
 	return 0;
 }

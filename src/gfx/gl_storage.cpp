@@ -43,7 +43,7 @@ template <class T> static Internal<T> s_internal;
 
 template <class T> int GlStorage<T>::allocGL() {
 	GLuint value;
-	PASSERT_GFX_THREAD();
+	PASSERT_GL_THREAD();
 #define CASE(otype, func)                                                                          \
 	if constexpr(isSame<T, otype>())                                                               \
 		func(1, &value);
@@ -76,7 +76,7 @@ template <class T> int GlStorage<T>::allocGL() {
 
 template <class T> void GlStorage<T>::freeGL(int id) {
 	GLuint value = id;
-	PASSERT_GFX_THREAD();
+	PASSERT_GL_THREAD();
 
 #define CASE(otype, func)                                                                          \
 	if constexpr(isSame<T, otype>())                                                               \

@@ -6,12 +6,13 @@
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dynamic_mesh.h"
 #include "fwk/gfx/font_factory.h"
-#include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/line_buffer.h"
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/model.h"
+#include "fwk/gfx/opengl.h"
 #include "fwk/gfx/render_list.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/gfx/triangle_buffer.h"
@@ -104,7 +105,7 @@ class Viewer {
 
 	void makeMaterials(Material default_mat, Model &model) {}
 
-	void updateViewport() { m_viewport = IRect(GfxDevice::instance().windowSize()); }
+	void updateViewport() { m_viewport = IRect(GlDevice::instance().windowSize()); }
 
 	Viewer(const vector<pair<string, string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
@@ -142,7 +143,7 @@ class Viewer {
 			CHECK_FAILED("No models loaded\n");
 	}
 
-	bool handleInput(GfxDevice &device, float time_diff) {
+	bool handleInput(GlDevice &device, float time_diff) {
 		float x_rot = 0.0f, y_rot = 0.0f;
 		float scale = 0.0f;
 
@@ -258,10 +259,10 @@ class Viewer {
 
 	const IRect &viewport() const { return m_viewport; }
 
-	bool mainLoop(GfxDevice &device) {
+	bool mainLoop(GlDevice &device) {
 		IColor nice_background(200, 200, 255);
-		GfxDevice::clearColor(nice_background);
-		GfxDevice::clearDepth(1.0f);
+		clearColor(nice_background);
+		clearDepth(1.0f);
 
 		float time_diff = 1.0f / 60.0f;
 		if(!handleInput(device, time_diff))
@@ -276,7 +277,7 @@ class Viewer {
 		return true;
 	}
 
-	static bool mainLoop(GfxDevice &device, void *this_ptr) {
+	static bool mainLoop(GlDevice &device, void *this_ptr) {
 		return ((Viewer *)this_ptr)->mainLoop(device);
 	}
 
@@ -339,8 +340,8 @@ int main(int argc, char **argv) {
 	}
 
 	Profiler profiler;
-	GfxDevice gfx_device;
-	auto flags = GfxDeviceOpt::resizable | GfxDeviceOpt::multisampling | GfxDeviceOpt::vsync;
+	GlDevice gfx_device;
+	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::multisampling | GlDeviceOpt::vsync;
 	gfx_device.createWindow("libfwk::model_viewer", resolution, flags);
 
 	double init_time = getTime();

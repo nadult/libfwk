@@ -12,6 +12,7 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/format.h"
+#include "fwk/gfx/color.h"
 #include "fwk/parse.h"
 #include "fwk/str.h"
 #include <cstring>
@@ -398,6 +399,19 @@ bool installOpenglDebugHandler() {
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr,
 						  GL_FALSE);
 	return true;
+}
+
+void clearColor(FColor col) {
+	glClearColor(col.r, col.g, col.b, col.a);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void clearColor(IColor col) { clearColor(FColor(col)); }
+
+void clearDepth(float value) {
+	glClearDepth(value);
+	glDepthMask(1);
+	glClear(GL_DEPTH_BUFFER_BIT);
 }
 }
 

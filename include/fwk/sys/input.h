@@ -166,7 +166,7 @@ class InputState {
 
   private:
 	vector<InputEvent> pollEvents(const SDLKeyMap &);
-	friend class GfxDevice;
+	friend class GlDevice;
 
 	using KeyStatus = pair<int, int>;
 	vector<KeyStatus> m_keys;

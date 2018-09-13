@@ -14,7 +14,7 @@ GL_CLASS_IMPL(GlTexture)
 void GlTexture::initialize(int msaa_samples) {
 	ON_FAIL("GlTexture::initialize() error; format: % size: %", m_format.id(), m_size);
 	DASSERT(m_size.x >= 0 && m_size.y >= 0);
-	PASSERT_GFX_THREAD();
+	PASSERT_GL_THREAD();
 
 	if(msaa_samples > 1)
 		m_flags |= Opt::multisample;
@@ -162,7 +162,7 @@ void GlTexture::copyTo(PTexture dst, IRect src_rect, int2 dst_pos) const {
 }
 
 void GlTexture::bind() const {
-	PASSERT_GFX_THREAD();
+	PASSERT_GL_THREAD();
 	::glBindTexture(glType(), id());
 }
 
@@ -204,7 +204,7 @@ void GlTexture::bindImage(int unit, AccessMode access, int level) {
 }
 
 void GlTexture::unbind() {
-	PASSERT_GFX_THREAD();
+	PASSERT_GL_THREAD();
 	// TODO: unbind multisample ?
 	::glBindTexture(GL_TEXTURE_2D, 0);
 }

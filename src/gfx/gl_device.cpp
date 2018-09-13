@@ -3,9 +3,8 @@
 
 #define SDL_MAIN_HANDLED
 
-#include "fwk/gfx/gfx_device.h"
+#include "fwk/gfx/gl_device.h"
 
-#include "fwk/gfx/color.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/texture_format.h"
 #include "fwk/math/box.h"
@@ -27,23 +26,23 @@ static void reportSDLError(const char *func_name) {
 void initializeOpenGL(OpenglProfile);
 
 // TODO: Something is corrupting this memory when running under emscripten
-static GfxDevice *s_instance = nullptr;
+static GlDevice *s_instance = nullptr;
 
-static volatile int s_gfx_thread_id = -1;
+static volatile int s_gl_thread_id = -1;
 
-bool onGfxThread() { return threadId() == s_gfx_thread_id; }
+bool onGlThread() { return threadId() == s_gl_thread_id; }
 
-void assertGfxThread() {
-	if(s_gfx_thread_id != -1 && threadId() != s_gfx_thread_id)
-		ASSERT_FAILED("Calling gfx-related function on a wrong thread");
+void assertGlThread() {
+	if(s_gl_thread_id != -1 && threadId() != s_gl_thread_id)
+		ASSERT_FAILED("Calling OpenGL-related function on a wrong thread");
 }
 
-GfxDevice &GfxDevice::instance() {
+GlDevice &GlDevice::instance() {
 	DASSERT(s_instance);
 	return *s_instance;
 }
 
-struct GfxDevice::InputImpl {
+struct GlDevice::InputImpl {
 	InputState state;
 	vector<InputEvent> events;
 	SDLKeyMap key_map;
@@ -63,7 +62,7 @@ static Maybe<TextureFormatId> sdlPixelFormat(uint pf) {
 	return none;
 }
 
-struct GfxDevice::WindowImpl {
+struct GlDevice::WindowImpl {
   public:
 	WindowImpl(const string &name, const int2 &size, Flags flags, OpenglProfile gl_profile,
 			   double ogl_ver)
@@ -122,10 +121,10 @@ struct GfxDevice::WindowImpl {
 	Flags flags;
 };
 
-GfxDevice::GfxDevice() : m_input_impl(uniquePtr<InputImpl>()) {
-	ASSERT("Only one instance of GfxDevice can be created at a time" && !s_instance);
+GlDevice::GlDevice() : m_input_impl(uniquePtr<InputImpl>()) {
+	ASSERT("Only one instance of GlDevice can be created at a time" && !s_instance);
 	s_instance = this;
-	s_gfx_thread_id = threadId();
+	s_gl_thread_id = threadId();
 
 	if(SDL_Init(SDL_INIT_VIDEO) != 0)
 		reportSDLError("SDL_Init");
@@ -134,17 +133,17 @@ GfxDevice::GfxDevice() : m_input_impl(uniquePtr<InputImpl>()) {
 	m_frame_time = 0.0;
 }
 
-GfxDevice::~GfxDevice() {
-	PASSERT_GFX_THREAD();
+GlDevice::~GlDevice() {
+	PASSERT_GL_THREAD();
 	m_window_impl.reset();
 	s_instance = nullptr;
-	s_gfx_thread_id = -1;
+	s_gl_thread_id = -1;
 	SDL_Quit();
 }
 
-void GfxDevice::createWindow(const string &name, const int2 &size, Flags flags,
-							 OpenglProfile profile, double ogl_ver) {
-	assertGfxThread();
+void GlDevice::createWindow(const string &name, const int2 &size, Flags flags,
+							OpenglProfile profile, double ogl_ver) {
+	assertGlThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
 	m_window_impl = uniquePtr<WindowImpl>(name, size, flags, profile, ogl_ver);
 
@@ -154,21 +153,21 @@ void GfxDevice::createWindow(const string &name, const int2 &size, Flags flags,
 		installOpenglDebugHandler();
 }
 
-void GfxDevice::destroyWindow() { m_window_impl.reset(); }
+void GlDevice::destroyWindow() { m_window_impl.reset(); }
 
-void GfxDevice::setWindowSize(const int2 &size) {
+void GlDevice::setWindowSize(const int2 &size) {
 	if(m_window_impl)
 		SDL_SetWindowSize(m_window_impl->window, size.x, size.y);
 }
 
-void GfxDevice::setWindowRect(IRect rect) {
+void GlDevice::setWindowRect(IRect rect) {
 	if(m_window_impl) {
 		SDL_SetWindowSize(m_window_impl->window, rect.width(), rect.height());
 		SDL_SetWindowPosition(m_window_impl->window, rect.x(), rect.y());
 	}
 }
 
-IRect GfxDevice::windowRect() const {
+IRect GlDevice::windowRect() const {
 	int2 pos, size;
 	if(m_window_impl) {
 		size = windowSize();
@@ -177,11 +176,11 @@ IRect GfxDevice::windowRect() const {
 	return IRect(pos, pos + size);
 }
 
-Maybe<TextureFormatId> GfxDevice::pixelFormat() const {
+Maybe<TextureFormatId> GlDevice::pixelFormat() const {
 	return m_window_impl ? m_window_impl->pixel_format : none;
 }
 
-void GfxDevice::setWindowFullscreen(Flags flags) {
+void GlDevice::setWindowFullscreen(Flags flags) {
 	DASSERT(!flags || flags == Opt::fullscreen || flags == Opt::fullscreen_desktop);
 
 	if(m_window_impl) {
@@ -194,18 +193,18 @@ void GfxDevice::setWindowFullscreen(Flags flags) {
 	}
 }
 
-auto GfxDevice::windowFlags() const -> Flags {
+auto GlDevice::windowFlags() const -> Flags {
 	return m_window_impl ? m_window_impl->flags : Flags();
 }
 
-int2 GfxDevice::windowSize() const {
+int2 GlDevice::windowSize() const {
 	int2 out;
 	if(m_window_impl)
 		SDL_GetWindowSize(m_window_impl->window, &out.x, &out.y);
 	return out;
 }
 
-void GfxDevice::printDeviceInfo() {
+void GlDevice::printDeviceInfo() {
 	int max_tex_size;
 
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
@@ -218,7 +217,7 @@ void GfxDevice::printDeviceInfo() {
 		   vendor, renderer, max_tex_size);
 }
 
-bool GfxDevice::pollEvents() {
+bool GlDevice::pollEvents() {
 	m_input_impl->events = m_input_impl->state.pollEvents(m_input_impl->key_map);
 	for(const auto &event : m_input_impl->events)
 		if(event.type() == InputEvent::quit)
@@ -227,8 +226,8 @@ bool GfxDevice::pollEvents() {
 }
 
 #ifdef __EMSCRIPTEN__
-void GfxDevice::emscriptenCallback() {
-	GfxDevice &inst = instance();
+void GlDevice::emscriptenCallback() {
+	GlDevice &inst = instance();
 	DASSERT(!inst.m_main_loop_stack.empty());
 	auto stack_top = inst.m_main_loop_stack.front();
 	double time = getTime();
@@ -240,8 +239,8 @@ void GfxDevice::emscriptenCallback() {
 }
 #endif
 
-void GfxDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
-	PASSERT_GFX_THREAD();
+void GlDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
+	PASSERT_GL_THREAD();
 	ASSERT(main_loop_func);
 	m_main_loop_stack.emplace_back(main_loop_func, arg);
 #ifdef __EMSCRIPTEN__
@@ -262,34 +261,23 @@ void GfxDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 	m_main_loop_stack.pop_back();
 }
 
-void GfxDevice::grabMouse(bool grab) {
+void GlDevice::grabMouse(bool grab) {
 	if(m_window_impl)
 		SDL_SetWindowGrab(m_window_impl->window, grab ? SDL_TRUE : SDL_FALSE);
 }
 
-void GfxDevice::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
+void GlDevice::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
 
-const InputState &GfxDevice::inputState() const { return m_input_impl->state; }
+const InputState &GlDevice::inputState() const { return m_input_impl->state; }
 
-const vector<InputEvent> &GfxDevice::inputEvents() const { return m_input_impl->events; }
+const vector<InputEvent> &GlDevice::inputEvents() const { return m_input_impl->events; }
 
-string GfxDevice::extensions() const { return (const char *)glGetString(GL_EXTENSIONS); }
+string GlDevice::extensions() const { return (const char *)glGetString(GL_EXTENSIONS); }
 
-string GfxDevice::clipboardText() const {
+string GlDevice::clipboardText() const {
 	auto ret = SDL_GetClipboardText();
 	return ret ? string(ret) : string();
 }
 
-void GfxDevice::setClipboardText(ZStr str) { SDL_SetClipboardText(str.c_str()); }
-
-void GfxDevice::clearColor(FColor col) {
-	glClearColor(col.r, col.g, col.b, col.a);
-	glClear(GL_COLOR_BUFFER_BIT);
-}
-
-void GfxDevice::clearDepth(float depth_value) {
-	glClearDepth(depth_value);
-	glDepthMask(1);
-	glClear(GL_DEPTH_BUFFER_BIT);
-}
+void GlDevice::setClipboardText(ZStr str) { SDL_SetClipboardText(str.c_str()); }
 }

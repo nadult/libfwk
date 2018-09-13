@@ -5,7 +5,6 @@
 
 #include "fwk/gfx/colored_triangle.h"
 #include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/gfx_device.h"
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/gl_shader.h"
@@ -142,7 +141,7 @@ namespace {
 					glEnable(GL_CULL_FACE);
 			}
 			if((new_flags & MatOpt::clear_depth) && !(flags & MatOpt::clear_depth)) {
-				GfxDevice::clearDepth(1.0f);
+				clearDepth(1.0f);
 			}
 			if((new_flags & MatOpt::ignore_depth) != (flags & MatOpt::ignore_depth)) {
 				bool do_enable = !(new_flags & MatOpt::ignore_depth);

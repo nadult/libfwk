@@ -10,7 +10,7 @@ namespace fwk {
 
 class TextureFormat;
 class Texture;
-class GfxDevice;
+class GlDevice;
 class ProgramBinder;
 class SimpleMaterial;
 class Material;
@@ -46,7 +46,7 @@ enum class ColorId : unsigned char;
 struct ColoredTriangle;
 
 enum class TextureFormatId : unsigned char;
-enum class GfxDeviceOpt : unsigned char;
+enum class GlDeviceOpt : unsigned char;
 enum class PrimitiveType : unsigned char;
 enum class ShaderType : unsigned char;
 enum class MaterialOpt : unsigned char;
@@ -114,14 +114,14 @@ enum class VAlign {
 
 // All OpenGL operations should be performed on the same thread
 // This function makes sure that this is the case
-void assertGfxThread();
+void assertGlThread();
 
-// Will return false if no GfxDevice is present
-bool onGfxThread();
+// Will return false if no GlDevice is present
+bool onGlThread();
 
 #ifdef FWK_PARANOID
-#define PASSERT_GFX_THREAD() assertGfxThread()
+#define PASSERT_GL_THREAD() assertGlThread()
 #else
-#define PASSERT_GFX_THREAD()
+#define PASSERT_GL_THREAD()
 #endif
 }

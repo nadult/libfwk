@@ -14,18 +14,18 @@ namespace fwk {
 class InputState;
 class InputEvent;
 
-DEFINE_ENUM(GfxDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
+DEFINE_ENUM(GlDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
 			maximized, opengl_debug_handler);
-using GfxDeviceFlags = EnumFlags<GfxDeviceOpt>;
+using GlDeviceFlags = EnumFlags<GlDeviceOpt>;
 
-class GfxDevice {
+class GlDevice {
   public:
-	GfxDevice();
-	~GfxDevice();
+	GlDevice();
+	~GlDevice();
 
-	static GfxDevice &instance();
-	using Opt = GfxDeviceOpt;
-	using Flags = GfxDeviceFlags;
+	static GlDevice &instance();
+	using Opt = GlDeviceOpt;
+	using Flags = GlDeviceFlags;
 
 	void createWindow(const string &name, const int2 &size, Flags,
 					  OpenglProfile profile = OpenglProfile::core, double opengl_version = 3.1);
@@ -53,11 +53,8 @@ class GfxDevice {
 	const InputState &inputState() const;
 	const vector<InputEvent> &inputEvents() const;
 
-	using MainLoopFunction = bool (*)(GfxDevice &device, void *argument);
+	using MainLoopFunction = bool (*)(GlDevice &device, void *argument);
 	void runMainLoop(MainLoopFunction, void *argument = nullptr);
-
-	static void clearColor(FColor);
-	static void clearDepth(float depth_value);
 
 	string extensions() const;
 

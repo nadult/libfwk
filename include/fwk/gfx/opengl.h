@@ -270,6 +270,10 @@ struct OpenglInfo {
 	string toString() const;
 };
 
+void clearColor(FColor);
+void clearColor(IColor);
+void clearDepth(float);
+
 extern const OpenglInfo *const opengl_info;
 }
 
