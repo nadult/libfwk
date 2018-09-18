@@ -65,4 +65,26 @@ namespace detail {
 
 #define DASSERT_HINT(expr, hint) ASSERT_HINT(expr, hint)
 #endif
+
+#if defined(FWK_PARANOID)
+
+#define PASSERT_EQ(expr1, expr2) ASSERT_EQ(expr1, expr2)
+#define PASSERT_NE(expr1, expr2) ASSERT_NE(expr1, expr2)
+#define PASSERT_GT(expr1, expr2) ASSERT_GT(expr1, expr2)
+#define PASSERT_LT(expr1, expr2) ASSERT_LT(expr1, expr2)
+#define PASSERT_LE(expr1, expr2) ASSERT_LE(expr1, expr2)
+#define PASSERT_GE(expr1, expr2) ASSERT_GE(expr1, expr2)
+#define PASSERT_HINT(expr, hint) ASSERT_HINT(expr, hint)
+
+#else
+
+#define PASSERT_EQ(expr1, expr2) ((void)0)
+#define PASSERT_NE(expr1, expr2) ((void)0)
+#define PASSERT_GT(expr1, expr2) ((void)0)
+#define PASSERT_LT(expr1, expr2) ((void)0)
+#define PASSERT_LE(expr1, expr2) ((void)0)
+#define PASSERT_GE(expr1, expr2) ((void)0)
+#define PASSERT_HINT(expr, hint) ((void)0)
+
+#endif
 }
