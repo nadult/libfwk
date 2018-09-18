@@ -7,6 +7,7 @@ namespace fwk {
 // Identifies object stored in GlStorage
 // Reference counted; object is destroyed when there is no GlRefs pointing to it
 // Objects are stored in a vector (they may move when new object is created)
+// All refs should be destroyed before GlDevice
 template <class T> class GlRef {
   public:
 	GlRef() : m_id(0) {}

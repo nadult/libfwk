@@ -35,7 +35,9 @@ static volatile int s_gl_thread_id = -1;
 bool onGlThread() { return threadId() == s_gl_thread_id; }
 
 void assertGlThread() {
-	if(s_gl_thread_id != -1 && threadId() != s_gl_thread_id)
+	if(s_gl_thread_id == -1)
+		ASSERT_FAILED("No OpenGL device present");
+	if(threadId() != s_gl_thread_id)
 		ASSERT_FAILED("Calling OpenGL-related function on a wrong thread");
 }
 

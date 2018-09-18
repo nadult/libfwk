@@ -43,7 +43,7 @@ template <class T> struct Internal {
 template <class T> static Internal<T> s_internal;
 
 template <class T> int GlStorage<T>::allocGL() {
-	GLuint value;
+	GLuint value = 0;
 	PASSERT_GL_THREAD();
 #define CASE(otype, func)                                                                          \
 	if constexpr(isSame<T, otype>())                                                               \
@@ -133,6 +133,7 @@ template <class T> void GlStorage<T>::clearBigId(int obj_id) {
 }
 
 template <class T> int GlStorage<T>::allocId(int gl_id) {
+	PASSERT(gl_id >= 0);
 	if(gl_id >= big_id) {
 		if(first_free == 0)
 			resizeBuffers(max(big_id + 1024, counters.size() + 1));
