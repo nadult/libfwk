@@ -7,6 +7,7 @@
 #include "fwk/format.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/hash_map.h"
+#include "fwk/sys/assert.h"
 
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_framebuffer.h"
@@ -139,8 +140,10 @@ template <class T> int GlStorage<T>::allocId(int gl_id) {
 			resizeBuffers(max(big_id + 1024, counters.size() + 1));
 		int obj_id = first_free;
 		PASSERT(obj_id != 0);
-		PASSERT(first_free >= 0 && first_free < counters.size());
+		PASSERT_GT(first_free, 0);
+		PASSERT_LT(first_free, counters.size());
 		first_free = counters[obj_id];
+
 		counters[obj_id] = 0;
 		mapBigId(obj_id, gl_id);
 		return obj_id;
@@ -193,6 +196,7 @@ template <class T> void GlStorage<T>::resizeBuffers(int new_size) {
 			new_counters[prev_free] = n;
 		prev_free = n;
 	}
+	new_counters[prev_free] = 0;
 
 	new_objects.swap(objects);
 	new_counters.unsafeSwap(counters);
