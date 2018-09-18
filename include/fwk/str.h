@@ -20,6 +20,7 @@ class Str {
 	}
 	Str() : m_data(""), m_size(0) {}
 
+	explicit operator bool() const { return m_size > 0; }
 	operator string() const { return string(m_data, m_data + m_size); }
 
 	int size() const { return m_size; }
