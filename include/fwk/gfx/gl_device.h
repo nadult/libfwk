@@ -61,6 +61,9 @@ class GlDevice {
 	string clipboardText() const;
 	void setClipboardText(ZStr);
 
+	PProgram cacheFindProgram(Str) const;
+	void cacheAddProgram(Str, PProgram);
+
   private:
 	bool pollEvents();
 

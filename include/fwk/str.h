@@ -63,6 +63,8 @@ class Str {
 	int find(char c) const;
 	int find(Str) const;
 
+	bool contains(Str str) const { return find(str) != -1; }
+
   protected:
 	struct NoChecks {};
 	Str(const char *data, int size, NoChecks) : m_data(data), m_size(size) {}

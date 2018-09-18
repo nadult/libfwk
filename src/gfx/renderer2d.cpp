@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/gl_texture.h"
@@ -44,30 +45,25 @@ static const char *vertex_shader_2d_src =
 	"	color = in_color;												\n"
 	"} 																	\n";
 
-// TODO: allow to store GlRefs after Opengl context was destroyed?
-// what if it is recreated?
-static HashMap<string, PProgram> s_programs;
-
-static PProgram getProgram(const string &name) {
-	auto it = s_programs.find(name);
-	if(it != s_programs.end())
-		return it->second;
+static PProgram getProgram(Str name) {
+	if(auto out = GlDevice::instance().cacheFindProgram(name))
+		return out;
 
 	const char *src =
-		name == "with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
+		name == "2d_with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
 	auto vsh = GlShader::make(ShaderType::vertex, vertex_shader_2d_src, "", name);
 	auto fsh = GlShader::make(ShaderType::fragment, src, "", name);
 
 	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"});
-	s_programs[name] = out;
+	GlDevice::instance().cacheAddProgram(name, out);
 	return out;
 }
 
 Renderer2D::Renderer2D(const IRect &viewport)
 	: MatrixStack(simpleProjectionMatrix(viewport), simpleViewMatrix(viewport, float2(0, 0))),
 	  m_viewport(viewport), m_current_scissor_rect(-1) {
-	m_tex_program = getProgram("with_texture");
-	m_flat_program = getProgram("without_texture");
+	m_tex_program = getProgram("2d_with_texture");
+	m_flat_program = getProgram("2d_without_texture");
 }
 
 Renderer2D::~Renderer2D() = default;

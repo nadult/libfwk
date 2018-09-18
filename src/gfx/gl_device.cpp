@@ -5,8 +5,10 @@
 
 #include "fwk/gfx/gl_device.h"
 
+#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/texture_format.h"
+#include "fwk/hash_map.h"
 #include "fwk/math/box.h"
 #include "fwk/sys/input.h"
 #include <SDL.h>
@@ -118,6 +120,7 @@ struct GlDevice::WindowImpl {
 	SDL_Window *window;
 	SDL_GLContext gl_context;
 	Maybe<TextureFormatId> pixel_format;
+	HashMap<string, PProgram> program_cache;
 	Flags flags;
 };
 
@@ -280,4 +283,18 @@ string GlDevice::clipboardText() const {
 }
 
 void GlDevice::setClipboardText(ZStr str) { SDL_SetClipboardText(str.c_str()); }
+
+PProgram GlDevice::cacheFindProgram(Str name) const {
+	if(!m_window_impl)
+		return {};
+	auto &cache = m_window_impl->program_cache;
+	auto it = cache.find(name);
+	return it == cache.end() ? PProgram() : it->second;
+}
+
+void GlDevice::cacheAddProgram(Str name, PProgram program) {
+	DASSERT(program);
+	if(m_window_impl)
+		m_window_impl->program_cache[name] = program;
+}
 }

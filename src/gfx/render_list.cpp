@@ -6,6 +6,7 @@
 #include "fwk/gfx/colored_triangle.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/gl_buffer.h"
+#include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/gl_texture.h"
@@ -64,26 +65,21 @@ static const char *vsh_src =
 	"}\n";
 // clang-format on
 
-// TODO: allow to store GlRefs after Opengl context was destroyed?
-// what if it is recreated?
-static HashMap<string, PProgram> s_programs;
-
-static PProgram getProgram(const string &name) {
-	auto it = s_programs.find(name);
-	if(it != s_programs.end())
-		return it->second;
+static PProgram getProgram(Str name) {
+	if(auto out = GlDevice::instance().cacheFindProgram(name))
+		return out;
 
 	const char *src = name == "tex" ? fsh_tex_src : fsh_simple_src;
-	if(name.find("flat") != string::npos)
+	if(name.contains("flat"))
 		src = fsh_flat_src;
-	bool shade = name.find("shade") != string::npos;
+	bool shade = name.contains("shade");
 
 	string macros = shade ? "#version 100\n#define SHADE\n" : "#version 100\n";
 
 	auto vsh = GlShader::make(ShaderType::vertex, vsh_src, macros, name);
 	auto fsh = GlShader::make(ShaderType::fragment, src, macros, name);
 	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"});
-	s_programs[name] = out;
+	GlDevice::instance().cacheAddProgram(name, out);
 	return out;
 }
 
