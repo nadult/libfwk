@@ -27,6 +27,11 @@ void TextFormatter::reserve(int capacity) {
 	m_data.resize(BaseVector::insertCapacity(m_data.size(), 1, capacity));
 }
 
+void TextFormatter::clear() {
+	m_data[0] = 0;
+	m_offset = 0;
+}
+
 void TextFormatter::append_(const char *format_str, int arg_count, const Func *funcs, va_list ap) {
 	static const Func opt_funcs[] = {detail::append<FormatOptions>, detail::append<FormatMode>,
 									 detail::append<FormatPrecision>};

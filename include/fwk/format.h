@@ -147,6 +147,7 @@ class TextFormatter {
 	ZStr text() const { return {m_data.data(), m_offset}; }
 	int size() const { return m_offset; }
 	bool empty() const { return m_offset == 0; }
+	void clear();
 
 	const FormatOptions &options() const { return m_options; }
 	FormatOptions &options() { return m_options; }
