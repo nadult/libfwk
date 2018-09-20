@@ -32,6 +32,9 @@ class GlDevice {
 	void destroyWindow();
 	void printDeviceInfo();
 
+	int swapInterval();
+	void setSwapInterval(int);
+
 	void setWindowSize(const int2 &);
 	int2 windowSize() const;
 	Maybe<TextureFormatId> pixelFormat() const;

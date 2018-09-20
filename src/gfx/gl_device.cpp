@@ -222,6 +222,9 @@ void GlDevice::printDeviceInfo() {
 		   vendor, renderer, max_tex_size);
 }
 
+int GlDevice::swapInterval() { return SDL_GL_GetSwapInterval(); }
+void GlDevice::setSwapInterval(int value) { SDL_GL_SetSwapInterval(value); }
+
 bool GlDevice::pollEvents() {
 	m_input_impl->events = m_input_impl->state.pollEvents(m_input_impl->key_map);
 	for(const auto &event : m_input_impl->events)
