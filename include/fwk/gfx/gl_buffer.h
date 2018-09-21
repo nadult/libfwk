@@ -13,12 +13,12 @@ DEFINE_ENUM(MapOpt, read, write, invalidate_range, invalidate_buffer, flush_expl
 			persistent, coherent);
 using MapFlags = EnumFlags<MapOpt>;
 
-DEFINE_ENUM(UsageOpt, stream_draw, stream_read, stream_copy, static_draw, static_read, static_copy,
-			dynamic_draw, dynamic_read, dynamic_copy);
-
 DEFINE_ENUM(ImmBufferOpt, map_read, map_write, map_persistent, map_coherent, dynamic_storage,
 			client_storage);
 using ImmBufferFlags = EnumFlags<ImmBufferOpt>;
+
+DEFINE_ENUM(BufferUsage, stream_draw, stream_read, stream_copy, static_draw, static_read,
+			static_copy, dynamic_draw, dynamic_read, dynamic_copy);
 
 class GlBuffer {
 	GL_CLASS_DECL(GlBuffer)
@@ -26,7 +26,7 @@ class GlBuffer {
 	using Type = BufferType;
 
 	static PBuffer make(Type);
-	static PBuffer make(Type type, int size);
+	static PBuffer make(Type type, int size, BufferUsage = BufferUsage::dynamic_copy);
 	static PBuffer make(Type, int size, ImmBufferFlags);
 
 	template <class T> static PBuffer make(Type type, CSpan<T> data) {
@@ -39,7 +39,7 @@ class GlBuffer {
 		return make(type, cspan(span));
 	}
 
-	void resize(int new_size);
+	void resize(int new_size, BufferUsage = BufferUsage::dynamic_copy);
 	void upload(CSpan<char>);
 	void download(Span<char>) const;
 	void invalidate();

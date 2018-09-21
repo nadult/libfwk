@@ -28,6 +28,11 @@ static const EnumMap<BufferType, int> s_types = {
 	GL_SHADER_STORAGE_BUFFER,
 };
 
+static const EnumMap<BufferUsage, int> s_usages = {
+	GL_STREAM_DRAW, GL_STREAM_READ,  GL_STREAM_COPY,  GL_STATIC_DRAW,  GL_STATIC_READ,
+	GL_STATIC_COPY, GL_DYNAMIC_DRAW, GL_DYNAMIC_READ, GL_DYNAMIC_COPY,
+};
+
 static const EnumMap<AccessMode, int> s_access_modes = {GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE};
 
 static int toGL(ImmBufferFlags flags) {
@@ -43,9 +48,9 @@ PBuffer GlBuffer::make(Type type) {
 	return ref;
 }
 
-PBuffer GlBuffer::make(Type type, int size) {
+PBuffer GlBuffer::make(Type type, int size, BufferUsage usage) {
 	auto ref = make(type);
-	ref->resize(size);
+	ref->resize(size, usage);
 	return ref;
 }
 
@@ -57,10 +62,10 @@ PBuffer GlBuffer::make(Type type, int size, ImmBufferFlags flags) {
 	return ref;
 }
 
-void GlBuffer::resize(int new_size) {
+void GlBuffer::resize(int new_size, BufferUsage usage) {
 	DASSERT(new_size >= 0);
 	bind();
-	glBufferData(s_types[m_type], new_size, 0, GL_DYNAMIC_COPY);
+	glBufferData(s_types[m_type], new_size, 0, s_usages[usage]);
 	m_size = new_size;
 }
 
