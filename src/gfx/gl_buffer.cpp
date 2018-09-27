@@ -130,6 +130,10 @@ void GlBuffer::bindIndex(int binding_index) {
 	glBindBufferBase(s_types[m_type], binding_index, id());
 }
 
+void GlBuffer::bindIndexAs(int binding_index, BufferType type) {
+	glBindBufferBase(s_types[type], binding_index, id());
+}
+
 void GlBuffer::validate() {
 	int bsize = 0, busage = 0;
 	glGetBufferParameteriv(s_types[m_type], GL_BUFFER_SIZE, &bsize);

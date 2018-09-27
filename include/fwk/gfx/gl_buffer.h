@@ -94,6 +94,7 @@ class GlBuffer {
 	// TODO: size<Type>(): sizeof(Type) to jednostka
 
 	void bindIndex(int binding_index);
+	void bindIndexAs(int, BufferType);
 
 	void validate();
 
