@@ -13,7 +13,6 @@ namespace fwk {
 // Slightly modified & adapted for libfwk by Krzysztof Jakubowski
 template <typename TKey, typename TValue> class HashMap {
   public:
-	using THashFunc = Hash<int>;
 	using value_type = pair<TKey, TValue>;
 	using uint32 = unsigned int;
 	using hash_value_t = uint32;
@@ -98,9 +97,6 @@ template <typename TKey, typename TValue> class HashMap {
 	// TODO: move constructors, etc.
 	HashMap() {}
 	explicit HashMap(int initial_bucket_count) { reserve(initial_bucket_count); }
-	HashMap(int initial_bucket_count, const THashFunc &hashFunc) : m_hash_func(hashFunc) {
-		reserve(initial_bucket_count);
-	}
 	HashMap(const HashMap &rhs) { *this = rhs; }
 	~HashMap() { deleteNodes(); }
 
@@ -157,7 +153,6 @@ template <typename TKey, typename TValue> class HashMap {
 			swap(m_capacity, rhs.m_capacity);
 			swap(m_capacity_mask, rhs.m_capacity_mask);
 			swap(m_num_used, rhs.m_num_used);
-			swap(m_hash_func, rhs.m_hash_func);
 			checkInvariant();
 		}
 	}
@@ -393,7 +388,7 @@ template <typename TKey, typename TValue> class HashMap {
 	}
 
 	hash_value_t hashFunc(const key_type &key) const {
-		const hash_value_t h = m_hash_func(key) & 0xFFFFFFFD;
+		const hash_value_t h = hash(key) & 0xFFFFFFFD;
 		//DASSERT(h < node::kDeletedHash);
 		return h;
 	}
@@ -414,7 +409,6 @@ template <typename TKey, typename TValue> class HashMap {
 	uint32 m_capacity_mask = 0;
 	int m_num_used = 0;
 	int m_load_factor4 = 6;
-	THashFunc m_hash_func;
 };
 
 template <typename TKey, typename TValue>

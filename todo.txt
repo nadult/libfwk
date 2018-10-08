@@ -11,8 +11,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   sprawdzające czy dany kod nie odpala się w rollbackowym kontekscie (bo to nielegalne)
 - new type: not-null GlRef ?
 
-- hashCombine should be available
-- hash(a, b, c) as well ?
 - vector should be able to perform assignment of object which cannot
   be assigned by destruction & reconstruction
 

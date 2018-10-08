@@ -9,18 +9,22 @@
 
 namespace fwk {
 
-template <class Value /*= int*/> struct Hash {
+template <class T> T hashCombine(T hash1, T hash2) {
 	// Source: Blender
-	static Value hashCombine(Value hash_a, Value hash_b) {
-		return hash_a ^ (hash_b + 0x9e3779b9 + (hash_a << 6) + (hash_a >> 2));
-	}
+	return hash1 ^ (hash2 + 0x9e3779b9 + (hash1 << 6) + (hash1 >> 2));
+}
 
-	template <class T, EnableIfScalar<T>...> static Value hash(T scalar) {
+template <class T, class... Args> T hashCombine(T hash1, T hash2, Args... hashes) {
+	return hashCombine(hash1, hashCombine<T>(hash2, hashes...));
+}
+
+template <class Value /*= int*/> struct Hash {
+	template <class T, EnableIfScalar<T>...> static Value compute(T scalar) {
 		return std::hash<T>()(scalar);
 	}
 
 	template <class T, EnableIf<isRange<T>() && !has_tied_member<T>, NotARange>...>
-	static Value hash(const T &range) {
+	static Value compute(const T &range) {
 		if(fwk::empty(range))
 			return 0;
 		auto it = begin(range);
@@ -31,32 +35,37 @@ template <class Value /*= int*/> struct Hash {
 	}
 
 	template <class T>
-	static typename std::enable_if<std::is_enum<T>::value, Value>::type hash(const T val) {
-		return hash((int)val);
+	static typename std::enable_if<std::is_enum<T>::value, Value>::type compute(const T val) {
+		return compute((int)val);
 	}
-	template <class T1, class T2> static Value hash(const pair<T1, T2> &pair) {
-		return hashCombine(hash(pair.first), hash(pair.second));
+	template <class T1, class T2> static Value compute(const pair<T1, T2> &pair) {
+		return hashCombine(compute(pair.first), compute(pair.second));
 	}
-	template <class... Types> static Value hash(const LightTuple<Types...> &tuple) {
-		return hashTuple<0>(tuple);
+	template <class... Types> static Value compute(const LightTuple<Types...> &tuple) {
+		return computeTuple<0>(tuple);
 	}
-	template <class T, EnableIf<has_tied_member<T>>...> static Value hash(const T &object) {
-		return hashTuple<0>(object.tied());
+	template <class T, EnableIf<has_tied_member<T>>...> static Value compute(const T &object) {
+		return computeTuple<0>(object.tied());
 	}
 
-	template <int N, class... Types> static auto hashTuple(const LightTuple<Types...> &tuple) {
+	template <int N, class... Types> static auto computeTuple(const LightTuple<Types...> &tuple) {
 		if constexpr(N + 1 == sizeof...(Types))
 			return hash(get<N>(tuple));
 		else
-			return hashCombine(hash(get<N>(tuple)), hashTuple<N + 1>(tuple));
+			return hashCombine(hash(get<N>(tuple)), computeTuple<N + 1>(tuple));
 	}
 
-	template <class T> static Value hash(const Maybe<T> &maybe) {
-		return maybe ? hash(*maybe) : Value(0x31337);
+	template <class T> static Value compute(const Maybe<T> &maybe) {
+		return maybe ? compute(*maybe) : Value(0x31337);
 	}
 
-	template <class T> auto operator()(const T &value) const { return hash(value); }
+	template <class T> Value operator()(const T &v) const { return compute(v); }
 };
 
-template <class T> int hash(const T &value) { return Hash<int>()(value); }
+template <class T> int hash(const T &value) { return Hash<int>::compute(value); }
+template <class V, class T> V hash(const T &value) { return Hash<V>::compute(value); }
+
+template <class V, class... Args> V hashMany(Args &&... args) {
+	return hashCombine<V>(hash<V, Args>(args)...);
+}
 }
