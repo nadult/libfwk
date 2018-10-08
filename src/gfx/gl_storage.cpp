@@ -18,6 +18,8 @@
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/gl_vertex_array.h"
 
+#include "fwk/sys/rollback.h"
+
 namespace fwk {
 
 template <class T> struct Internal {
@@ -135,6 +137,9 @@ template <class T> void GlStorage<T>::clearBigId(int obj_id) {
 
 template <class T> int GlStorage<T>::allocId(int gl_id) {
 	PASSERT(gl_id >= 0);
+	IF_PARANOID(ASSERT(!RollbackContext::canRollback() &&
+					   "It's illegal to allocate GL objects in rollback mode"));
+
 	if(gl_id >= big_id) {
 		if(first_free == 0)
 			resizeBuffers(max(big_id + 1024, counters.size() + 1));

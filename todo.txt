@@ -4,11 +4,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - przydałby się lepszy listnode...
 - mozliwosc dodatkowych checków w BaseVectorze na początku i koncu bufora (wykrywanie pisania po pamieci)
 - subRange w wektorze ? a może lepiej funkcję zewnętrzną ?
-- Czy legalne jest niszczenie obiektów opengl po zniszczeniu kontekstu ?
-  może dałoby się to łatwo załatwić?
-
-- Ważne: dodaj w GlStorage i paru innych miejscach? checki (w trybie debug?)
-  sprawdzające czy dany kod nie odpala się w rollbackowym kontekscie (bo to nielegalne)
 - new type: not-null GlRef ?
 
 - vector should be able to perform assignment of object which cannot
