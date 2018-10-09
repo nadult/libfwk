@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/gl_framebuffer.h"
 
+#include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/gl_renderbuffer.h"
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/opengl.h"
@@ -13,8 +14,8 @@
 namespace fwk {
 
 FramebufferTarget::operator bool() const { return texture || rbo; }
-TextureFormat FramebufferTarget::format() const {
-	return texture ? texture->format() : rbo ? rbo->format() : TextureFormat();
+GlFormat FramebufferTarget::format() const {
+	return texture ? texture->format() : rbo ? rbo->format() : GlFormat();
 }
 int2 FramebufferTarget::size() const {
 	return texture ? texture->size() : rbo ? rbo->size() : int2();
@@ -69,13 +70,13 @@ PFramebuffer GlFramebuffer::make(CSpan<Target> colors, Target depth) {
 		ref->m_size = depth.size();
 	}
 	if(depth)
-		DASSERT(hasDepthComponent(depth.format().id()));
+		DASSERT(hasDepthComponent(depth.format()));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, ref.id());
 
 	if(depth) {
 		auto format = depth.format();
-		bool has_stencil = format == TextureFormatId::depth_stencil;
+		bool has_stencil = format == GlFormat::depth_stencil;
 		attach(has_stencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT, depth);
 	}
 

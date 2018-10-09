@@ -16,7 +16,7 @@ struct FramebufferTarget {
 	FramebufferTarget(PRenderbuffer rbo) : rbo(move(rbo)) {}
 
 	operator bool() const;
-	TextureFormat format() const;
+	GlFormat format() const;
 	int2 size() const;
 
 	PTexture texture;

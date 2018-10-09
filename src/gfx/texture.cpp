@@ -1,8 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/str.h"
+#include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/texture.h"
+#include "fwk/str.h"
 #include "fwk/sys/stream.h"
 
 namespace fwk {
@@ -17,6 +18,8 @@ namespace detail {
 Texture::Texture() {}
 Texture::Texture(int2 size) : m_data(size.x * size.y), m_size(size) {}
 Texture::Texture(Stream &sr, Maybe<FileType> ft) : Texture() { load(sr, ft); }
+
+GlFormat Texture::format() const { return GlFormat::rgba; }
 
 void Texture::resize(int2 size) {
 	m_size = size;

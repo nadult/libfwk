@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/gl_texture.h"
 
+#include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/texture.h"
 #include "fwk/sys/on_fail.h"
@@ -12,7 +13,7 @@ namespace fwk {
 GL_CLASS_IMPL(GlTexture)
 
 void GlTexture::initialize(int msaa_samples) {
-	ON_FAIL("GlTexture::initialize() error; format: % size: %", m_format.id(), m_size);
+	ON_FAIL("GlTexture::initialize() error; format: % size: %", m_format, m_size);
 	DASSERT(m_size.x >= 0 && m_size.y >= 0);
 	PASSERT_GL_THREAD();
 
@@ -24,16 +25,16 @@ void GlTexture::initialize(int msaa_samples) {
 	if(m_flags & Opt::multisample) {
 		if(m_flags & Opt::immutable)
 			glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
-									  m_format.glInternal(), m_size.x, m_size.y, GL_TRUE);
+									  glInternalFormat(m_format), m_size.x, m_size.y, GL_TRUE);
 		else
-			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa_samples, m_format.glInternal(),
-									m_size.x, m_size.y, GL_TRUE);
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
+									glInternalFormat(m_format), m_size.x, m_size.y, GL_TRUE);
 	} else {
 		if(m_flags & Opt::immutable)
-			glTexStorage2D(GL_TEXTURE_2D, 1, m_format.glInternal(), m_size.x, m_size.y);
+			glTexStorage2D(GL_TEXTURE_2D, 1, glInternalFormat(m_format), m_size.x, m_size.y);
 		else
-			glTexImage2D(GL_TEXTURE_2D, 0, m_format.glInternal(), m_size.x, m_size.y, 0,
-						 m_format.glFormat(), m_format.glType(), 0);
+			glTexImage2D(GL_TEXTURE_2D, 0, glInternalFormat(m_format), m_size.x, m_size.y, 0,
+						 glPixelFormat(m_format), glDataType(m_format), 0);
 	}
 
 	updateParams();
@@ -65,7 +66,7 @@ PTexture GlTexture::make(Format format, const Texture &tex, Flags flags) {
 PTexture GlTexture::make(Format format, const int2 &size, CSpan<float4> data, Flags flags) {
 	DASSERT(data.size() >= size.x * size.y);
 	PTexture ref = make(format, size, flags);
-	ref->upload(TextureFormatId::rgba_f32, data.data(), size);
+	ref->upload(Format::rgba_f32, data.data(), size);
 	return ref;
 }
 
@@ -74,7 +75,7 @@ PTexture GlTexture::make(const Texture &tex, Flags flags) { return make(tex.form
 PTexture GlTexture::make(Format format, PTexture view_source) {
 	DASSERT(view_source);
 	PTexture ref(storage.make(format, view_source->size(), Flags()));
-	glTextureView(ref.id(), GL_TEXTURE_2D, view_source.id(), format.glInternal(), 0, 1, 0, 1);
+	glTextureView(ref.id(), GL_TEXTURE_2D, view_source.id(), glInternalFormat(format), 0, 1, 0, 1);
 	return ref;
 }
 
@@ -128,27 +129,27 @@ void GlTexture::upload(Format format, const void *pixels, const int2 &size,
 	bind();
 	DASSERT(size.x + target_pos.x <= m_size.x && size.y + target_pos.y <= m_size.y);
 
-	glTexSubImage2D(glType(), 0, target_pos.x, target_pos.y, size.x, size.y, format.glFormat(),
-					format.glType(), pixels);
+	glTexSubImage2D(glType(), 0, target_pos.x, target_pos.y, size.x, size.y, glPixelFormat(format),
+					glDataType(format), pixels);
 }
 
 void GlTexture::upload(CSpan<char> bytes) {
-	DASSERT(bytes.size() >= m_format.evalImageSize(m_size.x, m_size.y));
-	glTexImage2D(glType(), 0, m_format.glInternal(), m_size.x, m_size.y, 0, m_format.glFormat(),
-				 m_format.glType(), bytes.data());
+	DASSERT(bytes.size() >= evalImageSize(m_format, m_size.x, m_size.y));
+	glTexImage2D(glType(), 0, glInternalFormat(m_format), m_size.x, m_size.y, 0,
+				 glPixelFormat(m_format), glDataType(m_format), bytes.data());
 }
 
 void GlTexture::download(Texture &target) const {
 	bind();
 	DASSERT(m_format == target.format());
 	target.resize(m_size);
-	glGetTexImage(glType(), 0, m_format.glFormat(), m_format.glType(), target.data());
+	glGetTexImage(glType(), 0, glPixelFormat(m_format), glDataType(m_format), target.data());
 }
 
 void GlTexture::download(Span<char> bytes) const {
 	bind();
-	DASSERT(bytes.size() >= m_format.evalImageSize(m_size.x, m_size.y));
-	glGetTexImage(glType(), 0, m_format.glFormat(), m_format.glType(), bytes.data());
+	DASSERT(bytes.size() >= evalImageSize(m_format, m_size.x, m_size.y));
+	glGetTexImage(glType(), 0, glPixelFormat(m_format), glDataType(m_format), bytes.data());
 }
 
 void GlTexture::copyTo(PTexture dst, IRect src_rect, int2 dst_pos) const {
@@ -186,13 +187,13 @@ void GlTexture::bind(CSpan<PTexture> set) {
 }
 
 void GlTexture::clear(float4 value) {
-	DASSERT((int)sizeof(value) >= m_format.bytesPerPixel());
-	glClearTexImage(id(), 0, m_format.glFormat(), m_format.glType(), &value);
+	DASSERT((int)sizeof(value) >= bytesPerPixel(m_format));
+	glClearTexImage(id(), 0, glPixelFormat(m_format), glDataType(m_format), &value);
 }
 
 void GlTexture::clear(int value) {
-	DASSERT((int)sizeof(value) >= m_format.bytesPerPixel());
-	glClearTexImage(id(), 0, m_format.glFormat(), m_format.glType(), &value);
+	DASSERT((int)sizeof(value) >= bytesPerPixel(m_format));
+	glClearTexImage(id(), 0, glPixelFormat(m_format), glDataType(m_format), &value);
 }
 
 static int gl_access[] = {GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE};
@@ -200,7 +201,7 @@ static int gl_access[] = {GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE};
 void GlTexture::bindImage(int unit, AccessMode access, int level) {
 	DASSERT(unit >= 0);
 	glBindImageTexture(unit, id(), level, GL_FALSE, 0, gl_access[(int)access],
-					   m_format.glInternal());
+					   glInternalFormat(m_format));
 }
 
 void GlTexture::unbind() {

@@ -4,10 +4,9 @@
 #pragma once
 
 #include "fwk/gfx/color.h"
-#include "fwk/gfx/texture_format.h"
+#include "fwk/math_base.h"
 #include "fwk/pod_vector.h"
 #include "fwk/sys_base.h"
-#include "fwk/math_base.h"
 
 namespace fwk {
 
@@ -44,8 +43,7 @@ class Texture {
 
 	bool empty() const { return m_data.empty(); }
 	bool testPixelAlpha(const int2 &) const;
-
-	TextureFormat format() const { return TextureFormatId::rgba; }
+	GlFormat format() const;
 
 	// Loading from TGA, BMP, PNG, DDS
 	void load(Stream &, Maybe<FileType> = none);

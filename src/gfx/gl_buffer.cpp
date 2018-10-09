@@ -4,8 +4,8 @@
 #include "fwk/gfx/gl_buffer.h"
 
 #include "fwk/enum_map.h"
+#include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/texture_format.h"
 
 namespace fwk {
 
@@ -81,10 +81,11 @@ void GlBuffer::download(Span<char> data) const {
 	glGetBufferSubData(s_types[m_type], 0, data.size(), data.data());
 }
 
-void GlBuffer::clear(TextureFormat fmt, int value) {
-	DASSERT((int)sizeof(value) >= fmt.bytesPerPixel());
+void GlBuffer::clear(GlFormat fmt, int value) {
+	DASSERT((int)sizeof(value) >= bytesPerPixel(fmt));
 	bind();
-	glClearBufferData(s_types[m_type], fmt.glInternal(), fmt.glFormat(), fmt.glType(), &value);
+	glClearBufferData(s_types[m_type], glInternalFormat(fmt), glPixelFormat(fmt), glDataType(fmt),
+					  &value);
 }
 
 void *GlBuffer::map(AccessMode mode) {

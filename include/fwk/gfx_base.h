@@ -8,7 +8,6 @@
 
 namespace fwk {
 
-class TextureFormat;
 class Texture;
 class GlDevice;
 class ProgramBinder;
@@ -45,7 +44,7 @@ enum class ColorId : unsigned char;
 
 struct ColoredTriangle;
 
-enum class TextureFormatId : unsigned char;
+enum class GlFormat : unsigned char;
 enum class GlDeviceOpt : unsigned char;
 enum class PrimitiveType : unsigned char;
 enum class ShaderType : unsigned char;

@@ -4,7 +4,6 @@
 #pragma once
 
 #include "fwk/gfx/gl_ref.h"
-#include "fwk/gfx/texture_format.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
 
@@ -16,7 +15,7 @@ using TextureFlags = EnumFlags<TextureOpt>;
 class GlTexture {
 	GL_CLASS_DECL(GlTexture)
   public:
-	using Format = TextureFormat;
+	using Format = GlFormat;
 	using Opt = TextureOpt;
 	using Flags = TextureFlags;
 

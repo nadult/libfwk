@@ -1,13 +1,14 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/texture_format.h"
+#include "fwk/gfx/gl_format.h"
 
 #include "fwk/enum_map.h"
 #include "fwk/gfx/opengl.h"
 
 namespace fwk {
 
+// TODO: is this needed ?
 enum class DDSId {
 	unknown = 0,
 
@@ -65,9 +66,9 @@ enum class DDSId {
 	A32B32G32R32F = 116,
 };
 
-using Id = TextureFormatId;
+using Id = GlFormat;
 
-bool hasDepthComponent(TextureFormatId id) {
+bool hasDepthComponent(GlFormat id) {
 	return isOneOf(id, Id::depth16, Id::depth24, Id::depth32, Id::depth32f, Id::depth_stencil);
 }
 
@@ -75,12 +76,12 @@ namespace {
 	struct FormatDesc {
 		FormatDesc() = default;
 		FormatDesc(DDSId dds_id, int bpp, int i, int f, int t, bool is_compressed = false)
-			: dds_id(dds_id), bytes_per_pixel(bpp), internal(i), gFormat(f), type(t),
-			  is_compressed(is_compressed) {}
+			: dds_id(dds_id), bytes_per_pixel(bpp), internal_format(i), pixel_format(f),
+			  data_type(t), is_compressed(is_compressed) {}
 
 		DDSId dds_id = DDSId::unknown;
 		int bytes_per_pixel = 0;
-		int internal = 0, gFormat = 0, type = 0;
+		int internal_format = 0, pixel_format = 0, data_type = 0;
 		bool is_compressed = false;
 	};
 
@@ -115,36 +116,36 @@ namespace {
 	}};
 }
 
-int TextureFormat::glInternal() const { return descs[m_id].internal; }
-int TextureFormat::glFormat() const { return descs[m_id].gFormat; }
-int TextureFormat::glType() const { return descs[m_id].type; }
-bool TextureFormat::isCompressed() const { return descs[m_id].is_compressed; }
-int TextureFormat::bytesPerPixel() const { return descs[m_id].bytes_per_pixel; }
+int glInternalFormat(Id id) { return descs[id].internal_format; }
+int glPixelFormat(Id id) { return descs[id].pixel_format; }
+int glDataType(Id id) { return descs[id].data_type; }
+bool isCompressed(Id id) { return descs[id].is_compressed; }
+int bytesPerPixel(Id id) { return descs[id].bytes_per_pixel; }
 
-bool TextureFormat::isSupported() const {
-	if(m_id == Id::dxt1)
+bool isSupported(Id id) {
+	if(id == Id::dxt1)
 		return false; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC)||glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_DXT1);
-	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
+	if(isOneOf(id, Id::dxt3, Id::dxt5))
 		return false; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC);
 
 	return true;
 }
 
-int TextureFormat::evalImageSize(int width, int height) const {
-	if(m_id == Id::dxt1)
+int evalImageSize(Id id, int width, int height) {
+	if(id == Id::dxt1)
 		return ((width + 3) / 4) * ((height + 3) / 4) * 8;
-	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
+	if(isOneOf(id, Id::dxt3, Id::dxt5))
 		return ((width + 3) / 4) * ((height + 3) / 4) * 16;
 
-	return width * height * descs[m_id].bytes_per_pixel;
+	return width * height * descs[id].bytes_per_pixel;
 }
 
-int TextureFormat::evalLineSize(int width) const {
-	if(m_id == Id::dxt1)
+int evalLineSize(Id id, int width) {
+	if(id == Id::dxt1)
 		return ((width + 3) / 4) * 8;
-	if(isOneOf(m_id, Id::dxt3, Id::dxt5))
+	if(isOneOf(id, Id::dxt3, Id::dxt5))
 		return ((width + 3) / 4) * 16;
 
-	return width * descs[m_id].bytes_per_pixel;
+	return width * descs[id].bytes_per_pixel;
 }
 }

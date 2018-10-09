@@ -5,9 +5,9 @@
 
 #include "fwk/gfx/gl_device.h"
 
+#include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/texture_format.h"
 #include "fwk/hash_map.h"
 #include "fwk/math/box.h"
 #include "fwk/sys/input.h"
@@ -52,11 +52,11 @@ struct GlDevice::InputImpl {
 	SDLKeyMap key_map;
 };
 
-static Maybe<TextureFormatId> sdlPixelFormat(uint pf) {
+static Maybe<GlFormat> sdlPixelFormat(uint pf) {
 	switch(pf) {
 #define CASE(sdl_type, id)                                                                         \
 	case SDL_PIXELFORMAT_##sdl_type:                                                               \
-		return TextureFormatId::id;
+		return GlFormat::id;
 		CASE(RGBA8888, rgba)
 		CASE(BGRA8888, bgra)
 #undef CASE
@@ -121,7 +121,7 @@ struct GlDevice::WindowImpl {
 
 	SDL_Window *window;
 	SDL_GLContext gl_context;
-	Maybe<TextureFormatId> pixel_format;
+	Maybe<GlFormat> pixel_format;
 	HashMap<string, PProgram> program_cache;
 	Flags flags;
 };
@@ -181,7 +181,7 @@ IRect GlDevice::windowRect() const {
 	return IRect(pos, pos + size);
 }
 
-Maybe<TextureFormatId> GlDevice::pixelFormat() const {
+Maybe<GlFormat> GlDevice::pixelFormat() const {
 	return m_window_impl ? m_window_impl->pixel_format : none;
 }
 

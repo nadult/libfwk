@@ -44,7 +44,7 @@ class GlBuffer {
 	void download(Span<char>) const;
 	void invalidate();
 
-	void clear(TextureFormat, int);
+	void clear(GlFormat, int);
 
 	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
 	template <class TSpan, class T = SpanBase<TSpan>> void upload(const TSpan &data) {

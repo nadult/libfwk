@@ -20,7 +20,6 @@ TODO: which OpenGL version are we targeting ?
 
 - vec2<>, vec3<>, should support unsigned types ?
   maybe add uvec2<> ?
-- TextureFormat -> ... ? to jest też używane we framebufferach i innych miejscach
   może to się jakoś inaczej powinno nazywać ?
 - max/min wartości openglowe łatwo pobieralne
 - nazwy rozszerzen (enumow) dokladnie tak jak w oglu (i nie trzeba mapy nazw)
