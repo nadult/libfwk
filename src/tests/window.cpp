@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 				 GlDeviceOpt::opengl_debug_handler;
 	gl_device.createWindow("foo", res, flags);
 
-	print("OpenGL info:\n%\n", opengl_info->toString());
+	print("OpenGL info:\n%\n", gl_info->toString());
 	gl_device.runMainLoop(mainLoop);
 
 	return 0;

@@ -64,7 +64,7 @@ template <class T> int GlStorage<T>::allocGL() {
 #undef CASE
 
 	if constexpr(isSame<T, GlVertexArray>()) {
-		if(opengl_info->hasFeature(OpenglFeature::vertex_array_object))
+		if(gl_info->hasFeature(GlFeature::vertex_array_object))
 			glGenVertexArrays(1, &value);
 		else
 			value = s_internal<T>.allocDummy();
@@ -96,7 +96,7 @@ template <class T> void GlStorage<T>::freeGL(int id) {
 	CASE(GlFramebuffer, glDeleteFramebuffers)
 
 	if constexpr(isSame<T, GlVertexArray>()) {
-		if(opengl_info->hasFeature(OpenglFeature::vertex_array_object))
+		if(gl_info->hasFeature(GlFeature::vertex_array_object))
 			glDeleteVertexArrays(1, &value);
 		else
 			s_internal<T>.freeDummy(value);

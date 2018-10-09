@@ -236,29 +236,29 @@ EXT_API void(EXT_ENTRY *glTexStorage3D)(GLenum target, GLsizei levels, GLenum in
 namespace fwk {
 
 void testGlError(const char *);
-bool installOpenglDebugHandler();
+bool installGlDebugHandler();
 
-DEFINE_ENUM(OpenglVendor, intel, nvidia, amd, other);
-
-DEFINE_ENUM(OpenglFeature, vertex_array_object, debug, timer_query, copy_image, texture_view,
+DEFINE_ENUM(GlVendor, intel, nvidia, amd, other);
+DEFINE_ENUM(GlFeature, vertex_array_object, debug, timer_query, copy_image, texture_view,
 			texture_storage, shader_draw_parameters);
-using OpenglFeatures = EnumFlags<OpenglFeature>;
+using GlFeatures = EnumFlags<GlFeature>;
 
-DEFINE_ENUM(OpenglLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
+// TODO: remove max_ ?
+DEFINE_ENUM(GlLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
 			max_texture_size);
 
-struct OpenglInfo {
-	OpenglVendor vendor;
-	OpenglProfile profile;
+struct GlInfo {
+	GlVendor vendor;
+	GlProfile profile;
 
 	// All extensions without the GL_ prefix
 	vector<string> extensions;
 
-	OpenglFeatures features;
-	EnumMap<OpenglLimit, int> limits;
+	GlFeatures features;
+	EnumMap<GlLimit, int> limits;
 
 	bool hasExtension(Str) const;
-	bool hasFeature(OpenglFeature feature) const { return (bool)(features & feature); }
+	bool hasFeature(GlFeature feature) const { return (bool)(features & feature); }
 
 	string renderer;
 	string version_full;
@@ -274,7 +274,7 @@ void clearColor(FColor);
 void clearColor(IColor);
 void clearDepth(float);
 
-extern const OpenglInfo *const opengl_info;
+extern const GlInfo *const gl_info;
 }
 
 #endif

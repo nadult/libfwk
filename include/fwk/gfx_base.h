@@ -59,6 +59,7 @@ struct VertexDataType;
 struct FramebufferTarget;
 struct FontStyle;
 
+// All of these are based on GlStorage:
 class GlBuffer;
 class GlFramebuffer;
 class GlProgram;
@@ -99,7 +100,7 @@ DEFINE_ENUM(BufferType, array, element_array, copy_read, copy_write, pixel_unpac
 			query, texture, transform_fedback, uniform, draw_indirect, atomic_counter,
 			dispatch_indirect, shader_storage);
 
-DEFINE_ENUM(OpenglProfile, core, compatibility, es);
+DEFINE_ENUM(GlProfile, core, compatibility, es);
 
 enum class HAlign {
 	left,

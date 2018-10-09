@@ -25,7 +25,7 @@ static void reportSDLError(const char *func_name) {
 	FATAL("Error on %s: %s", func_name, SDL_GetError());
 }
 
-void initializeOpenGL(OpenglProfile);
+void initializeGl(GlProfile);
 
 // TODO: Something is corrupting this memory when running under emscripten
 static GlDevice *s_instance = nullptr;
@@ -68,7 +68,7 @@ static Maybe<TextureFormatId> sdlPixelFormat(uint pf) {
 
 struct GlDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, const int2 &size, Flags flags, OpenglProfile gl_profile,
+	WindowImpl(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
 			   double ogl_ver)
 		: flags(flags) {
 		int sdl_flags = SDL_WINDOW_OPENGL;
@@ -94,10 +94,10 @@ struct GlDevice::WindowImpl {
 
 		int ver_major = int(ogl_ver);
 		int ver_minor = int((ogl_ver - float(ver_major)) * 10.0);
-		int profile = gl_profile == OpenglProfile::compatibility
+		int profile = gl_profile == GlProfile::compatibility
 						  ? SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
-						  : gl_profile == OpenglProfile::es ? SDL_GL_CONTEXT_PROFILE_ES
-															: SDL_GL_CONTEXT_PROFILE_CORE;
+						  : gl_profile == GlProfile::es ? SDL_GL_CONTEXT_PROFILE_ES
+														: SDL_GL_CONTEXT_PROFILE_CORE;
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, ver_major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, ver_minor);
@@ -146,16 +146,16 @@ GlDevice::~GlDevice() {
 	SDL_Quit();
 }
 
-void GlDevice::createWindow(const string &name, const int2 &size, Flags flags,
-							OpenglProfile profile, double ogl_ver) {
+void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, GlProfile profile,
+							double ogl_ver) {
 	assertGlThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
 	m_window_impl = uniquePtr<WindowImpl>(name, size, flags, profile, ogl_ver);
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
-	initializeOpenGL(profile);
+	initializeGl(profile);
 	if(flags & Opt::opengl_debug_handler)
-		installOpenglDebugHandler();
+		installGlDebugHandler();
 }
 
 void GlDevice::destroyWindow() { m_window_impl.reset(); }

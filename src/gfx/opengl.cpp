@@ -26,36 +26,36 @@ namespace fwk {
 
 void *winLoadFunction(const char *name);
 
-static OpenglInfo s_info;
-const OpenglInfo *const opengl_info = &s_info;
+static GlInfo s_info;
+const GlInfo *const gl_info = &s_info;
 
-static EnumMap<OpenglLimit, int> s_limit_map = {GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES,
-												GL_MAX_UNIFORM_BLOCK_SIZE, GL_MAX_TEXTURE_SIZE};
+static EnumMap<GlLimit, int> s_limit_map = {GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES,
+											GL_MAX_UNIFORM_BLOCK_SIZE, GL_MAX_TEXTURE_SIZE};
 
-string OpenglInfo::toString() const {
+string GlInfo::toString() const {
 	TextFormatter out;
 	out("Vendor: %\nRenderer: %\nProfile: %\nExtensions: %\nVersion: % (%)\nGLSL version: % (%)\n",
 		vendor, renderer, profile, extensions, version, version_full, glsl_version,
 		glsl_version_full);
 
 	out("Limits:\n");
-	for(auto limit : all<OpenglLimit>())
+	for(auto limit : all<GlLimit>())
 		out("  %: %\n", limit, limits[limit]);
 
 	return out.text();
 }
 
-bool OpenglInfo::hasExtension(Str name) const {
+bool GlInfo::hasExtension(Str name) const {
 	auto it = std::lower_bound(begin(extensions), end(extensions), name,
 							   [](Str a, Str b) { return a < b; });
 
 	return it != end(extensions) && Str(*it) == name;
 }
 
-void initializeOpenGL(OpenglProfile profile) {
-	using Feature = OpenglFeature;
-	using Vendor = OpenglVendor;
-	using Profile = OpenglProfile;
+void initializeGl(GlProfile profile) {
+	using Feature = GlFeature;
+	using Vendor = GlVendor;
+	using Profile = GlProfile;
 
 	int major = 0, minor = 0;
 	glGetIntegerv(GL_MAJOR_VERSION, &major);
@@ -73,7 +73,7 @@ void initializeOpenGL(OpenglProfile profile) {
 	for(auto ext : must_haves)
 		if(!emscripten_webgl_enable_extension(context, ext))
 			FATAL("OpenGL Extension not supported: %s", ext);
-	for(auto ext : all<OpenglExtension>())
+	for(auto ext : all<GlExtension>())
 		emscripten_webgl_enable_extension(context, s_ext_names[ext]);
 #endif
 
@@ -101,7 +101,7 @@ void initializeOpenGL(OpenglProfile profile) {
 		s_info.extensions.emplace_back(ogl_ext);
 	}
 
-	for(auto limit : all<OpenglLimit>())
+	for(auto limit : all<GlLimit>())
 		glGetIntegerv(s_limit_map[limit], &s_info.limits[limit]);
 	{
 		auto *ver = (const char *)glGetString(GL_VERSION);
@@ -369,10 +369,10 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 										 GLsizei length, const GLchar *message,
 										 const void *userParam) {
 	// ignore non-significant error/warning codes
-	if(s_info.vendor == OpenglVendor::nvidia) {
+	if(s_info.vendor == GlVendor::nvidia) {
 		if(id == 131169 || id == 131185 || id == 131218 || id == 131204)
 			return;
-	} else if(s_info.vendor == OpenglVendor::intel) {
+	} else if(s_info.vendor == GlVendor::intel) {
 		Str msg((const char *)message);
 		if(msg.find("warning: extension") != -1 && msg.find("unsupported in") != -1)
 			return;
@@ -388,8 +388,8 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 	print("%\n", fmt.text());
 }
 
-bool installOpenglDebugHandler() {
-	if(!s_info.hasFeature(OpenglFeature::debug))
+bool installGlDebugHandler() {
+	if(!s_info.hasFeature(GlFeature::debug))
 		return false;
 
 	glEnable(GL_DEBUG_OUTPUT);

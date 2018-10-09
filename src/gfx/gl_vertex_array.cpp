@@ -44,7 +44,7 @@ static const EnumMap<PrimitiveType, int> gl_primitives{
 	{GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP}};
 
 GlVertexArray::GlVertexArray()
-	: m_has_vao(opengl_info->hasFeature(OpenglFeature::vertex_array_object)) {
+	: m_has_vao(gl_info->hasFeature(GlFeature::vertex_array_object)) {
 	if(!m_has_vao) {
 		FATAL("check if this mode works");
 		// TODO: is it possible to render without VAO in Opengl > 3.0 ?
@@ -186,7 +186,7 @@ void GlVertexArray::bindVertexBuffer(int n) const {
 }
 
 void GlVertexArray::unbind() {
-	if(opengl_info->hasFeature(OpenglFeature::vertex_array_object))
+	if(gl_info->hasFeature(GlFeature::vertex_array_object))
 		glBindVertexArray(0);
 	// TODO: this is wrong (what about disabling attribs?)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);

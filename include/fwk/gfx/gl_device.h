@@ -28,7 +28,7 @@ class GlDevice {
 	using Flags = GlDeviceFlags;
 
 	void createWindow(const string &name, const int2 &size, Flags,
-					  OpenglProfile profile = OpenglProfile::core, double opengl_version = 3.1);
+					  GlProfile profile = GlProfile::core, double gl_version = 3.1);
 	void destroyWindow();
 	void printDeviceInfo();
 
