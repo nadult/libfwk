@@ -3,7 +3,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - przydałby się lepszy listnode...
 - mozliwosc dodatkowych checków w BaseVectorze na początku i koncu bufora (wykrywanie pisania po pamieci)
-- subRange w wektorze ? a może lepiej funkcję zewnętrzną ?
 - new type: not-null GlRef ?
 
 - vector should be able to perform assignment of object which cannot
@@ -124,14 +123,11 @@ TODO: which OpenGL version are we targeting ?
 - try using -fsignaling-nans ?
 - anyOf (and others) should be able to accept function pointer ?
 - Rename test files to t_vector, t_stuff ? or lower priority to test in docplugin ?
-- HashMap forward declaration ?
 - Wstrict-overflow
 - proper FIFO support for streams
 - drop the fucking shared_ptrs
-- StaticPimpl alignment
+- FwdMember: better support for alignment?
 - fix interval::valid
-- subRange dla vectora i spana
-- Size<Type> can be used instead of sizeof(); it can be specialized thus decreasing dependencies
 
 - function arguments could have invariants in them:
   T Segment::at(Checked<double, [](double v) { return v >= 0.0 && v <= 1.0; })> {}

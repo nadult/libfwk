@@ -202,8 +202,6 @@ constexpr int type_size<HashMap<Key, Value>> = sizeof(void *) == 4 ? 28 : 32;
 
 template <class T> class UniquePtr;
 
-template <class T> class ClonePtr;
-
 class Any;
 class AnyRef;
 

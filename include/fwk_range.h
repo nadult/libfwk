@@ -244,6 +244,11 @@ template <class T, int min_size = 0> class Span {
 		return m_data[idx];
 	}
 
+	Span subSpan(int start) const {
+		DASSERT(start >= 0 && start < m_size);
+		return {m_data + start, m_size - start};
+	}
+
 	Span subSpan(int start, int end) const {
 		DASSERT(start >= 0 && start < end);
 		DASSERT(end <= m_size);
@@ -295,6 +300,14 @@ template <class T> CSpan<T> span(const std::initializer_list<T> &list) { return 
 template <class T> Span<T> cspan(T *ptr, int size) { return CSpan<T>(ptr, size); }
 template <class T> Span<T> cspan(T *begin, const T *end) { return CSpan<T>(begin, end); }
 template <class T> CSpan<T> cspan(const std::initializer_list<T> &list) { return CSpan<T>(list); }
+
+template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int start) {
+	return span(v).subSpan(start);
+}
+
+template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int start, int end) {
+	return span(v).subSpan(start, end);
+}
 
 template <class T> void makeUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));

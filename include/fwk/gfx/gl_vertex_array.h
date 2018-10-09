@@ -7,7 +7,6 @@
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
-#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
