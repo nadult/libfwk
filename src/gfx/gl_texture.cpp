@@ -159,7 +159,7 @@ void GlTexture::copyTo(PTexture dst, IRect src_rect, int2 dst_pos) const {
 	DASSERT(dst->contains(dst_rect));
 
 	glCopyImageSubData(id(), glType(), 0, src_rect.x(), src_rect.y(), 0, dst.id(), dst->glType(), 0,
-					   dst_pos.x, dst_pos.y, 0, src_rect.width(), src_rect.height(), 0);
+					   dst_pos.x, dst_pos.y, 0, src_rect.width(), src_rect.height(), 1);
 }
 
 void GlTexture::bind() const {
