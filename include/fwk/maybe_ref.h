@@ -3,12 +3,19 @@
 
 #pragma once
 
+#include "fwk/maybe.h"
 #include "fwk/meta.h"
 
 namespace fwk {
 
 template <class T> class MaybeRef {
   public:
+	enum { is_const = isConst<T>() };
+
+	MaybeRef(Maybe<T> &rhs) : m_ptr(rhs ? rhs.get() : nullptr) {}
+	template <class U = T, EnableIf<isConst<U>()>...>
+	MaybeRef(const Maybe<RemoveConst<T>> &rhs) : m_ptr(rhs ? rhs.get() : nullptr) {}
+
 	MaybeRef(T &ref) : m_ptr(&ref) {}
 	MaybeRef(T *ptr) : m_ptr(ptr) {}
 	MaybeRef(None) {}
