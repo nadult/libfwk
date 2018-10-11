@@ -178,6 +178,8 @@ template <class T> struct SerializeAsPod;
 
 template <typename... Types> class Variant;
 template <class T> class Maybe;
+template <class T> class MaybeRef;
+template <class T> using MaybeCRef = MaybeRef<const T>;
 
 class Str;
 class ZStr;

@@ -12,6 +12,12 @@ struct DisabledType;
 
 struct Empty {};
 
+struct None {
+	bool operator==(const None &) const { return true; }
+	bool operator<(const None &) const { return false; }
+};
+constexpr None none = {};
+
 template <class T, int N> struct IndexedType {
 	using type = T;
 	enum { value = N };

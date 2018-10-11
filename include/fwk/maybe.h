@@ -20,15 +20,10 @@ namespace fwk {
 //
 // For such objects sizeof(Maybe<T>) == sizeof(T)
 
-struct None {
-	bool operator==(const None &) const { return true; }
-	bool operator<(const None &) const { return false; }
-};
 struct EmptyMaybe {
 	bool operator==(const EmptyMaybe &) const { return true; }
 	bool operator<(const EmptyMaybe &) const { return false; }
 };
-constexpr None none = {};
 
 namespace detail {
 	template <class T, class Enable = EnabledType> struct EmptyMaybe {
