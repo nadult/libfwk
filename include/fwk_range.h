@@ -297,8 +297,8 @@ template <class T> Span<T> span(T *ptr, int size) { return Span<T>(ptr, size); }
 template <class T> Span<T> span(T *begin, const T *end) { return Span<T>(begin, end); }
 template <class T> CSpan<T> span(const std::initializer_list<T> &list) { return CSpan<T>(list); }
 
-template <class T> Span<T> cspan(T *ptr, int size) { return CSpan<T>(ptr, size); }
-template <class T> Span<T> cspan(T *begin, const T *end) { return CSpan<T>(begin, end); }
+template <class T> CSpan<T> cspan(T *ptr, int size) { return CSpan<T>(ptr, size); }
+template <class T> CSpan<T> cspan(T *begin, const T *end) { return CSpan<T>(begin, end); }
 template <class T> CSpan<T> cspan(const std::initializer_list<T> &list) { return CSpan<T>(list); }
 
 template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int start) {
@@ -401,6 +401,13 @@ template <class TRange, EnableIfRange<TRange>..., class TSpan, EnableIfSpan<TSpa
 void copy(TSpan &dst, const TRange &src) {
 	DASSERT(fwk::size(dst) >= fwk::size(src));
 	std::copy(begin(src), end(src), begin(dst));
+}
+
+template <class T, class TRange, class T1 = RemoveConst<RangeBase<TRange>>,
+		  EnableIf<isSame<T, T1>()>...>
+void copy(T *dst, const TRange &src) {
+	PASSERT(dst);
+	std::copy(begin(src), end(src), dst);
 }
 
 template <class TRange, EnableIfRange<TRange>..., class T>
