@@ -82,6 +82,9 @@ class GlBuffer {
 	template <class T> T *map(int first, int count, MapFlags flags) {
 		return (T *)map(i64(first) * sizeof(T), i64(count) * sizeof(T), flags);
 	}
+	template <class T> void flushMapped(int first, int count) {
+		flushMapped(i64(first) * sizeof(T), i64(count) * sizeof(T));
+	}
 
 	template <class T> int size() const { return size() / sizeof(T); }
 
