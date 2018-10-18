@@ -70,14 +70,18 @@ PFramebuffer GlFramebuffer::make(CSpan<Target> colors, Target depth) {
 		ref->m_size = depth.size();
 	}
 	if(depth)
-		DASSERT(hasDepthComponent(depth.format()));
+		DASSERT(hasDepthComponent(depth.format()) || hasStencilComponent(depth.format()));
 
 	glBindFramebuffer(GL_FRAMEBUFFER, ref.id());
 
 	if(depth) {
 		auto format = depth.format();
-		bool has_stencil = format == GlFormat::depth_stencil;
-		attach(has_stencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT, depth);
+		bool has_depth = hasDepthComponent(format);
+		bool has_stencil = hasStencilComponent(format);
+		if(has_depth)
+			attach(has_stencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT, depth);
+		else
+			attach(GL_STENCIL_ATTACHMENT, depth);
 	}
 
 	for(int n = 0; n < ref->m_num_colors; n++)

@@ -9,7 +9,7 @@
 
 namespace fwk {
 
-DEFINE_ENUM(TextureOpt, multisample, wrapped, filtered, immutable);
+DEFINE_ENUM(TextureOpt, multisample, wrapped, filtered, immutable, sample_stencil);
 using TextureFlags = EnumFlags<TextureOpt>;
 
 class GlTexture {
@@ -80,5 +80,6 @@ class GlTexture {
 	Format m_format;
 	Flags m_flags;
 	bool m_has_mipmaps = false;
+	bool m_stencil_sample = false;
 };
 }

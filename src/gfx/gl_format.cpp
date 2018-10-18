@@ -72,6 +72,8 @@ bool hasDepthComponent(GlFormat id) {
 	return isOneOf(id, Id::depth16, Id::depth24, Id::depth32, Id::depth32f, Id::depth_stencil);
 }
 
+bool hasStencilComponent(GlFormat id) { return isOneOf(id, Id::depth_stencil, Id::stencil); }
+
 namespace {
 	struct FormatDesc {
 		FormatDesc() = default;
@@ -113,6 +115,8 @@ namespace {
 		// TODO: WebGL requires 16bits
 		{Id::depth_stencil, FormatDesc(DDSId::unknown, 4, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
 									   GL_UNSIGNED_INT_24_8)},
+		{Id::stencil,
+		 FormatDesc(DDSId::unknown, 1, GL_STENCIL_INDEX8, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE)},
 	}};
 }
 

@@ -95,6 +95,19 @@ void GlTexture::setFlags(Flags flags) {
 }
 
 void GlTexture::updateParams() {
+	if(m_flags & Opt::sample_stencil) {
+		PASSERT(m_format == GlFormat::depth_stencil);
+
+		if(!m_stencil_sample) {
+			glTexParameteri(glType(), GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX);
+			m_stencil_sample = true;
+		}
+	} else if(m_stencil_sample) {
+		glTexParameteri(glType(), GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
+		m_stencil_sample = false;
+	}
+
+	// TODO: fix this
 	if(m_flags & Opt::multisample)
 		return;
 	bind();
