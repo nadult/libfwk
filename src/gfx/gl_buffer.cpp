@@ -128,10 +128,12 @@ void GlBuffer::unbind() const { glBindBuffer(s_types[m_type], 0); }
 void GlBuffer::unbind(Type type) { glBindBuffer(s_types[type], 0); }
 
 void GlBuffer::bindIndex(int binding_index) {
+	PASSERT(binding_index >= 0);
 	glBindBufferBase(s_types[m_type], binding_index, id());
 }
 
 void GlBuffer::bindIndexAs(int binding_index, BufferType type) {
+	PASSERT(binding_index >= 0);
 	glBindBufferBase(s_types[type], binding_index, id());
 }
 

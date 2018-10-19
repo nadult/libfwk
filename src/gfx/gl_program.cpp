@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/gl_program.h"
 
+#include "fwk/format.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/pod_vector.h"
@@ -78,5 +79,37 @@ string GlProgram::getInfo() const {
 	char buf[4096];
 	glGetProgramInfoLog(id(), 4096, 0, buf);
 	return string(buf);
+}
+
+static const EnumMap<ProgramBindingType, int> binding_type_map = {
+	GL_SHADER_STORAGE_BLOCK,
+	GL_UNIFORM_BLOCK,
+	GL_ATOMIC_COUNTER_BUFFER,
+	GL_TRANSFORM_FEEDBACK_BUFFER,
+};
+
+vector<pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const {
+	int num = 0, max_name = 0;
+	auto type_id = binding_type_map[type];
+
+	glGetProgramInterfaceiv(id(), type_id, GL_ACTIVE_RESOURCES, &num);
+	glGetProgramInterfaceiv(id(), type_id, GL_MAX_NAME_LENGTH, &max_name);
+
+	vector<pair<string, int>> out;
+	out.reserve(num);
+
+	vector<char> buffer(max_name + 1);
+	for(int n = 0; n < num; n++) {
+		GLenum props[1] = {GL_BUFFER_BINDING};
+		int values[1] = {0};
+		glGetProgramResourceiv(id(), GL_SHADER_STORAGE_BLOCK, n, 1, props, 1, nullptr, values);
+
+		int length = 0;
+		glGetProgramResourceName(id(), GL_SHADER_STORAGE_BLOCK, n, buffer.size(), &length,
+								 buffer.data());
+		out.emplace_back(string(buffer.data(), (size_t)length), values[0]);
+	}
+
+	return out;
 }
 }
