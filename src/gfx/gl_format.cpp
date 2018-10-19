@@ -88,6 +88,7 @@ namespace {
 	};
 
 	const EnumMap<Id, FormatDesc> descs{{
+		// TODO: clean this up
 		{Id::rgba, FormatDesc(DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE)},
 		{Id::bgra, FormatDesc(DDSId::A8R8G8B8, 4, GL_BGRA, GL_BGRA, GL_UNSIGNED_BYTE)},
 		{Id::rgba_f16, FormatDesc(DDSId::A16B16G16R16F, 8, GL_RGBA16F, GL_RGBA, GL_FLOAT)},

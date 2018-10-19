@@ -41,7 +41,7 @@ class GlTexture {
 	static void bind(CSpan<PTexture>);
 	static void unbind();
 
-	void bindImage(int unit, AccessMode access, int level = 0);
+	void bindImage(int unit, AccessMode access, int level = 0, Maybe<int> target_format = none);
 
 	void upload(const Texture &src, const int2 &target_pos = int2());
 	void upload(Format, const void *pixels, const int2 &dimensions,

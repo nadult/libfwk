@@ -211,10 +211,10 @@ void GlTexture::clear(int value) {
 
 static int gl_access[] = {GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE};
 
-void GlTexture::bindImage(int unit, AccessMode access, int level) {
+void GlTexture::bindImage(int unit, AccessMode access, int level, Maybe<int> target_format) {
 	DASSERT(unit >= 0);
 	glBindImageTexture(unit, id(), level, GL_FALSE, 0, gl_access[(int)access],
-					   glInternalFormat(m_format));
+					   target_format.orElse(glInternalFormat(m_format)));
 }
 
 void GlTexture::unbind() {
