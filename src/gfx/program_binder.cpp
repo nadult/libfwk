@@ -80,17 +80,17 @@ void ProgramBinder::setUniform(const char *name, uint v) {
 
 void ProgramBinder::setUniform(const char *name, const int2 &v) {
 	bind();
-	glUniform1iv(glGetUniformLocation(id(), name), 2, &v[0]);
+	glUniform2i(glGetUniformLocation(id(), name), v[0], v[1]);
 }
 
 void ProgramBinder::setUniform(const char *name, const int3 &v) {
 	bind();
-	glUniform1iv(glGetUniformLocation(id(), name), 3, &v[0]);
+	glUniform3i(glGetUniformLocation(id(), name), v[0], v[1], v[2]);
 }
 
 void ProgramBinder::setUniform(const char *name, const int4 &v) {
 	bind();
-	glUniform1iv(glGetUniformLocation(id(), name), 4, &v[0]);
+	glUniform4i(glGetUniformLocation(id(), name), v[0], v[1], v[2], v[3]);
 }
 
 void ProgramBinder::setUniform(const char *name, const float2 &v) {
