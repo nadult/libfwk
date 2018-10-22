@@ -81,6 +81,15 @@ string GlProgram::getInfo() const {
 	return string(buf);
 }
 
+vector<char> GlProgram::getBinary() const {
+	int size = 0;
+	glGetProgramiv(id(), GL_PROGRAM_BINARY_LENGTH, &size);
+	vector<char> out(size);
+	GLenum format;
+	glGetProgramBinary(id(), size, nullptr, &format, out.data());
+	return out;
+}
+
 static const EnumMap<ProgramBindingType, int> binding_type_map = {
 	GL_SHADER_STORAGE_BLOCK,
 	GL_UNIFORM_BLOCK,
