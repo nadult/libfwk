@@ -13,7 +13,9 @@
 
 using namespace fwk;
 
-bool mainLoop(GlDevice &device, void *) {
+bool mainLoop(GlDevice &device, void *font_ptr) {
+	Font &font = *(Font *)font_ptr;
+
 	static vector<float2> positions;
 
 	for(auto &event : device.inputEvents()) {
@@ -39,8 +41,15 @@ bool mainLoop(GlDevice &device, void *) {
 		renderer.addRect(rect, border_color);
 	}
 
-	static PFontCore font_core;
-	static PTexture font_texture;
+	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, "Hello world!");
+	renderer.render();
+
+	return true;
+}
+
+Font loadFont() {
+	PFontCore font_core;
+	PTexture font_texture;
 	if(!font_core) {
 		auto data_path = FilePath(executablePath()).parent().parent() / "data";
 		Loader font_ldr(data_path / "liberation_16.fnt");
@@ -48,12 +57,7 @@ bool mainLoop(GlDevice &device, void *) {
 		font_core = make_immutable<FontCore>("", font_ldr);
 		font_texture.emplace("", tex_ldr);
 	}
-	Font(font_core, font_texture)
-		.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, "Hello world!");
-
-	renderer.render();
-
-	return true;
+	return {font_core, font_texture};
 }
 
 int main(int argc, char **argv) {
@@ -66,7 +70,9 @@ int main(int argc, char **argv) {
 	gl_device.createWindow("foo", res, flags);
 
 	print("OpenGL info:\n%\n", gl_info->toString());
-	gl_device.runMainLoop(mainLoop);
+
+	auto font = loadFont();
+	gl_device.runMainLoop(mainLoop, &font);
 
 	return 0;
 }
