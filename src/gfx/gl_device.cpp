@@ -115,6 +115,7 @@ struct GlDevice::WindowImpl {
 	}
 
 	~WindowImpl() {
+		program_cache.clear();
 		SDL_GL_DeleteContext(gl_context);
 		SDL_DestroyWindow(window);
 	}
