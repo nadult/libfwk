@@ -8,7 +8,6 @@
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/program_binder.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/hash_map.h"
 #include "fwk/sys/xml.h"
@@ -63,6 +62,7 @@ Renderer2D::Renderer2D(const IRect &viewport)
 	: MatrixStack(simpleProjectionMatrix(viewport), simpleViewMatrix(viewport, float2(0, 0))),
 	  m_viewport(viewport), m_current_scissor_rect(-1) {
 	m_tex_program = getProgram("2d_with_texture");
+	m_tex_program["tex"] = 0;
 	m_flat_program = getProgram("2d_without_texture");
 }
 
@@ -250,11 +250,8 @@ void Renderer2D::render() {
 
 		for(const auto &element : chunk.elements) {
 			auto &program = (element.texture ? m_tex_program : m_flat_program);
-			ProgramBinder binder(program);
-			binder.bind();
-			if(element.texture)
-				binder.setUniform("tex", 0);
-			binder.setUniform("proj_view_matrix", element.matrix);
+			program["proj_view_matrix"] = element.matrix;
+
 			if(element.texture)
 				element.texture->bind();
 			if(bm != element.blending_mode) {
@@ -281,6 +278,7 @@ void Renderer2D::render() {
 				prev_scissor_rect = element.scissor_rect_id;
 			}
 
+			program->use();
 			vao->draw(element.primitive_type, element.num_indices, element.first_index);
 		}
 	}

@@ -38,6 +38,19 @@ template <class T> class GlRef {
 		*this = T::make(std::forward<Args>(args)...);
 	}
 
+	template <class... Args,
+			  class Ret = decltype(declval<T &>()(std::forward<Args>(declval<Args &&>())...))>
+	Ret operator()(Args &&... args) const {
+		PASSERT(m_id);
+		return g_storage.objects[m_id](std::forward<Args>(args)...);
+	}
+
+	template <class Arg, class Ret = decltype(declval<T &>()[std::forward<Arg>(declval<Arg &&>())])>
+	Ret operator[](Arg &&arg) const {
+		PASSERT(m_id);
+		return g_storage.objects[m_id][std::forward<Arg>(arg)];
+	}
+
 	bool operator==(const GlRef &rhs) const { return m_id == rhs.m_id; }
 	bool operator<(const GlRef &rhs) const { return m_id < rhs.m_id; }
 

@@ -3,15 +3,92 @@
 
 #include "fwk/gfx/gl_program.h"
 
-#include "fwk/format.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/math/matrix4.h"
 #include "fwk/pod_vector.h"
 #include "fwk/sys/stream.h"
 
 namespace fwk {
 
-GL_CLASS_IMPL(GlProgram)
+namespace {
+
+	void (*glProgramUniform1fv_)(GLuint, GLint, GLsizei, const GLfloat *);
+	void (*glProgramUniform2fv_)(GLuint, GLint, GLsizei, const GLfloat *);
+	void (*glProgramUniform3fv_)(GLuint, GLint, GLsizei, const GLfloat *);
+	void (*glProgramUniform4fv_)(GLuint, GLint, GLsizei, const GLfloat *);
+	void (*glProgramUniform1iv_)(GLuint, GLint, GLsizei, const GLint *);
+	void (*glProgramUniform2iv_)(GLuint, GLint, GLsizei, const GLint *);
+	void (*glProgramUniform3iv_)(GLuint, GLint, GLsizei, const GLint *);
+	void (*glProgramUniform4iv_)(GLuint, GLint, GLsizei, const GLint *);
+	void (*glProgramUniform1uiv_)(GLuint, GLint, GLsizei, const GLuint *);
+	void (*glProgramUniform2uiv_)(GLuint, GLint, GLsizei, const GLuint *);
+	void (*glProgramUniform3uiv_)(GLuint, GLint, GLsizei, const GLuint *);
+	void (*glProgramUniform4uiv_)(GLuint, GLint, GLsizei, const GLuint *);
+
+	void (*glProgramUniformMatrix2fv_)(GLuint, GLint, GLsizei, GLboolean, const GLfloat *);
+	void (*glProgramUniformMatrix3fv_)(GLuint, GLint, GLsizei, GLboolean, const GLfloat *);
+	void (*glProgramUniformMatrix4fv_)(GLuint, GLint, GLsizei, GLboolean, const GLfloat *);
+}
+
+void initializeGlProgramFuncs() {
+	if(gl_info->features & GlFeature::separate_shader_objects) {
+		glProgramUniform1fv_ = glProgramUniform1fv;
+		glProgramUniform2fv_ = glProgramUniform2fv;
+		glProgramUniform3fv_ = glProgramUniform3fv;
+		glProgramUniform4fv_ = glProgramUniform4fv;
+
+		glProgramUniform1iv_ = glProgramUniform1iv;
+		glProgramUniform2iv_ = glProgramUniform2iv;
+		glProgramUniform3iv_ = glProgramUniform3iv;
+		glProgramUniform4iv_ = glProgramUniform4iv;
+
+		glProgramUniform1uiv_ = glProgramUniform1uiv;
+		glProgramUniform2uiv_ = glProgramUniform2uiv;
+		glProgramUniform3uiv_ = glProgramUniform3uiv;
+		glProgramUniform4uiv_ = glProgramUniform4uiv;
+
+		glProgramUniformMatrix2fv_ = glProgramUniformMatrix2fv;
+		glProgramUniformMatrix3fv_ = glProgramUniformMatrix3fv;
+		glProgramUniformMatrix4fv_ = glProgramUniformMatrix4fv;
+	} else {
+#define ASSIGN(suffix, type)                                                                       \
+	glProgramUniform##suffix##_ = [](GLuint prog, GLint location, GLsizei count,                   \
+									 const type *data) {                                           \
+		glUseProgram(prog);                                                                        \
+		glUniform##suffix(location, count, data);                                                  \
+	}
+
+		ASSIGN(1fv, GLfloat);
+		ASSIGN(2fv, GLfloat);
+		ASSIGN(3fv, GLfloat);
+		ASSIGN(4fv, GLfloat);
+
+		ASSIGN(1iv, GLint);
+		ASSIGN(2iv, GLint);
+		ASSIGN(3iv, GLint);
+		ASSIGN(4iv, GLint);
+
+		ASSIGN(1uiv, GLuint);
+		ASSIGN(2uiv, GLuint);
+		ASSIGN(3uiv, GLuint);
+		ASSIGN(4uiv, GLuint);
+#undef ASSIGN
+
+#define ASSIGN_MAT(size)                                                                           \
+	glProgramUniformMatrix##size##fv_ = [](GLuint prog, GLint location, GLsizei count,             \
+										   GLboolean trans, const GLfloat *data) {                 \
+		glUseProgram(prog);                                                                        \
+		glUniformMatrix##size##fv(location, count, trans, data);                                   \
+	}
+		ASSIGN_MAT(2);
+		ASSIGN_MAT(3);
+		ASSIGN_MAT(4);
+#undef ASSIGN_MAT
+	}
+}
+
+GL_CLASS_IMPL(GlProgram);
 
 PProgram GlProgram::make(PShader compute) {
 	PProgram ref(storage.make());
@@ -57,11 +134,17 @@ void GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
 		PodVector<char> buffer(param);
 		glGetProgramInfoLog(id(), buffer.size(), 0, buffer.data());
 		buffer[buffer.size() - 1] = 0;
+		// TODO: better way to handle errors
+		// Rollback isn't very compatible with OpenGL
 		CHECK_FAILED("Error while linking program:\n%s", buffer.data());
 	}
 
 	for(auto &shader : shaders)
 		glDetachShader(id(), shader.id());
+	loadUniformInfo();
+
+	IF_GL_CHECKS(m_uniforms_to_init = m_uniforms.size();
+				 m_init_map.resize(m_uniforms.size(), false);)
 }
 
 static auto loadShader(const string &file_name, const string &predefined_macros, ShaderType type) {
@@ -121,4 +204,122 @@ vector<pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const 
 
 	return out;
 }
+
+Maybe<int> GlProgram::findUniform(ZStr str) const {
+	for(int n : intRange(m_uniforms))
+		if(str == m_uniforms[n].name)
+			return n;
+	return none;
+}
+
+void GlProgram::loadUniformInfo() {
+	if(m_uniforms)
+		return;
+
+	int count = 0, max_len = 0;
+	glGetProgramiv(id(), GL_ACTIVE_UNIFORMS, &count);
+	glGetProgramiv(id(), GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_len);
+
+	m_uniforms.reserve(count);
+	vector<char> data(max_len);
+
+	for(int n = 0; n < count; n++) {
+		int length = 0, size = 0;
+		GLenum type;
+		glGetActiveUniform(id(), n, data.size(), &length, &size, &type, data.data());
+		int location = glGetUniformLocation(id(), data.data());
+		m_uniforms.emplace_back(string(data.data(), length), (int)type, size, location);
+	}
+}
+
+void GlProgram::use() { glUseProgram(id()); }
+void GlProgram::unbind() { glUseProgram(0); }
+
+#ifdef FWK_CHECK_OPENGL
+void GlProgram::validateAllUniformsSet() const {
+	if(m_uniforms_to_init) {
+		for(int n = 0; n < m_uniforms.size(); n++)
+			if(!m_init_map[n])
+				FATAL("Uniform not set: %s", m_uniforms[n].name.c_str());
+	}
+}
+#endif
+
+void GlProgram::uniformNotFound(ZStr name) const { FATAL("Uniform not found: %s", name.c_str()); }
+
+void GlProgram::setUniformInitialized(int program_id, int location) {
+#ifdef FWK_CHECK_OPENGL
+	auto &program = GlRef<GlProgram>::g_storage.objects[program_id];
+	if(program.m_uniforms_to_init) {
+		for(int n = 0; n < program.m_uniforms.size(); n++)
+			if(program.m_uniforms[n].location == location && !program.m_init_map[n]) {
+				program.m_init_map[n] = true;
+				program.m_uniforms_to_init--;
+				break;
+			}
+	}
+#endif
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<float> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform1fv_(program_id, location, range.size(), range.data());
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<float2> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform2fv_(program_id, location, range.size(), &range.data()->x);
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<float3> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform3fv_(program_id, location, range.size(), &range.data()->x);
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<float4> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform4fv_(program_id, location, range.size(), &range.data()->x);
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<int> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform1iv_(program_id, location, range.size(), range.data());
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<int2> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform2iv_(program_id, location, range.size(), &range.data()->x);
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<int3> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform3iv_(program_id, location, range.size(), &range.data()->x);
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<int4> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform4iv_(program_id, location, range.size(), &range.data()->x);
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<uint> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniform1uiv_(program_id, location, range.size(), range.data());
+}
+
+void GlProgram::UniformSetter::operator=(CSpan<Matrix4> range) {
+	setUniformInitialized(program_id, location);
+	glProgramUniformMatrix4fv_(program_id, location, range.size(), false,
+							   (const float *)range.data());
+}
+
+void GlProgram::UniformSetter::operator=(float value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(int value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(uint value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const int2 &value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const int3 &value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const int4 &value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const float2 &value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const float3 &value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const float4 &value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const Matrix4 &value) { *this = cspan(&value, 1); }
 }

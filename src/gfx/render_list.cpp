@@ -12,7 +12,6 @@
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/program_binder.h"
 #include "fwk/hash_map.h"
 
 namespace fwk {
@@ -173,14 +172,14 @@ void RenderList::render(bool mode_2d) {
 		if(draw_call.primitive_type == PrimitiveType::lines)
 			program = simple_program;
 
-		ProgramBinder binder(program);
-		binder.bind();
-		binder.setUniform("proj_view_matrix", projectionMatrix() * draw_call.matrix);
-		binder.setUniform("mesh_color", (float4)FColor(mat.color));
+		program["proj_view_matrix"] = projectionMatrix() * draw_call.matrix;
+		program["mesh_color"] = (float4)FColor(mat.color);
+
 		auto flags =
 			mat.flags | mask(mode_2d, MatOpt::blended | MatOpt::ignore_depth | MatOpt::two_sided);
 		dev_config.update(flags);
 
+		program->use();
 		draw_call.issue();
 	}
 

@@ -26,6 +26,7 @@ static void reportSDLError(const char *func_name) {
 }
 
 void initializeGl(GlProfile);
+void initializeGlProgramFuncs();
 
 // TODO: Something is corrupting this memory when running under emscripten
 static GlDevice *s_instance = nullptr;
@@ -155,6 +156,8 @@ void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, G
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
 	initializeGl(profile);
+	initializeGlProgramFuncs();
+
 	if(flags & Opt::opengl_debug_handler)
 		installGlDebugHandler();
 }

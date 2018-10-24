@@ -8,6 +8,14 @@
 
 namespace fwk {
 
+#if defined(FWK_CHECK_OPENGL)
+#define GL_ASSERT(expr) ASSERT(expr)
+#define IF_GL_CHECKS(...) __VA_ARGS__
+#else
+#define GL_ASSERT(expr) ((void)0)
+#define IF_GL_CHECKS(...)
+#endif
+
 class Texture;
 class GlDevice;
 class ProgramBinder;

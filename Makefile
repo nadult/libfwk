@@ -34,7 +34,7 @@ SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_in
 		   math/affine_trans \
 		   format parse audio/device audio/sound audio/ogg_stream \
 		   gfx/color gfx/gl_device gfx/font gfx/font_factory gfx/model_anim gfx/model_node \
-		   gfx/material gfx/material_set gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/program_binder gfx/pose \
+		   gfx/material gfx/material_set gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/pose \
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
 		   gfx/gl_texture gfx/gl_renderbuffer gfx/gl_framebuffer gfx/gl_shader gfx/gl_storage \
 		   gfx/gl_program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/colored_triangle \
