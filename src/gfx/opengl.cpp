@@ -29,8 +29,9 @@ void *winLoadFunction(const char *name);
 static GlInfo s_info;
 const GlInfo *const gl_info = &s_info;
 
-static EnumMap<GlLimit, int> s_limit_map = {GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES,
-											GL_MAX_UNIFORM_BLOCK_SIZE, GL_MAX_TEXTURE_SIZE};
+static EnumMap<GlLimit, int> s_limit_map = {
+	GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES, GL_MAX_UNIFORM_BLOCK_SIZE,
+	GL_MAX_TEXTURE_SIZE,	 GL_MAX_UNIFORM_LOCATIONS, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS};
 
 string GlInfo::toString() const {
 	TextFormatter out;
@@ -125,6 +126,7 @@ void initializeGl(GlProfile profile) {
 	}
 
 	bool core_430 = profile == Profile::core && s_info.version >= 4.3;
+	bool core_410 = profile == Profile::core && s_info.version >= 4.1;
 	bool core_300 = profile == Profile::core && s_info.version >= 3.0;
 	bool core_330 = profile == Profile::core && s_info.version >= 3.3;
 
@@ -142,6 +144,8 @@ void initializeGl(GlProfile profile) {
 		s_info.features |= Feature::texture_storage;
 	if(s_info.hasExtension("ARB_shader_draw_parameters"))
 		s_info.features |= Feature::shader_draw_parameters;
+	if(core_410 || s_info.hasExtension("ARB_separate_shader_objects"))
+		s_info.features |= Feature::separate_shader_objects;
 
 #ifdef FWK_TARGET_MINGW
 #define LOAD(func) (func = (decltype(func))winLoadFunction(#func));
@@ -196,6 +200,7 @@ void initializeGl(GlProfile profile) {
 	LOAD(glLinkProgram);
 	LOAD(glShaderSource);
 	LOAD(glUseProgram);
+
 	LOAD(glUniform1f);
 	LOAD(glUniform2f);
 	LOAD(glUniform3f);
@@ -204,6 +209,11 @@ void initializeGl(GlProfile profile) {
 	LOAD(glUniform2i);
 	LOAD(glUniform3i);
 	LOAD(glUniform4i);
+	LOAD(glUniform1ui);
+	LOAD(glUniform2ui);
+	LOAD(glUniform3ui);
+	LOAD(glUniform4ui);
+
 	LOAD(glUniform1fv);
 	LOAD(glUniform2fv);
 	LOAD(glUniform3fv);
@@ -212,9 +222,44 @@ void initializeGl(GlProfile profile) {
 	LOAD(glUniform2iv);
 	LOAD(glUniform3iv);
 	LOAD(glUniform4iv);
+	LOAD(glUniform1uiv);
+	LOAD(glUniform2uiv);
+	LOAD(glUniform3uiv);
+	LOAD(glUniform4uiv);
+
 	LOAD(glUniformMatrix2fv);
 	LOAD(glUniformMatrix3fv);
 	LOAD(glUniformMatrix4fv);
+
+	LOAD(glProgramUniform1f);
+	LOAD(glProgramUniform2f);
+	LOAD(glProgramUniform3f);
+	LOAD(glProgramUniform4f);
+	LOAD(glProgramUniform1i);
+	LOAD(glProgramUniform2i);
+	LOAD(glProgramUniform3i);
+	LOAD(glProgramUniform4i);
+	LOAD(glProgramUniform1ui);
+	LOAD(glProgramUniform2ui);
+	LOAD(glProgramUniform3ui);
+	LOAD(glProgramUniform4ui);
+
+	LOAD(glProgramUniform1fv);
+	LOAD(glProgramUniform2fv);
+	LOAD(glProgramUniform3fv);
+	LOAD(glProgramUniform4fv);
+	LOAD(glProgramUniform1iv);
+	LOAD(glProgramUniform2iv);
+	LOAD(glProgramUniform3iv);
+	LOAD(glProgramUniform4iv);
+	LOAD(glProgramUniform1uiv);
+	LOAD(glProgramUniform2uiv);
+	LOAD(glProgramUniform3uiv);
+	LOAD(glProgramUniform4uiv);
+
+	LOAD(glProgramUniformMatrix2fv);
+	LOAD(glProgramUniformMatrix3fv);
+	LOAD(glProgramUniformMatrix4fv);
 
 	LOAD(glValidateProgram);
 	LOAD(glVertexAttribPointer);

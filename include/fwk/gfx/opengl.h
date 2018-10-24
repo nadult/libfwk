@@ -104,15 +104,19 @@ EXT_API void(EXT_ENTRY *glShaderSource)(GLuint shader, GLsizei count, const GLch
 										const GLint *length);
 EXT_API void(EXT_ENTRY *glUseProgram)(GLuint program);
 
-EXT_API void(EXT_ENTRY *glUniform1f)(GLint location, GLfloat v0);
-EXT_API void(EXT_ENTRY *glUniform2f)(GLint location, GLfloat v0, GLfloat v1);
-EXT_API void(EXT_ENTRY *glUniform3f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
-EXT_API void(EXT_ENTRY *glUniform4f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2,
-									 GLfloat v3);
-EXT_API void(EXT_ENTRY *glUniform1i)(GLint location, GLint v0);
-EXT_API void(EXT_ENTRY *glUniform2i)(GLint location, GLint v0, GLint v1);
-EXT_API void(EXT_ENTRY *glUniform3i)(GLint location, GLint v0, GLint v1, GLint v2);
-EXT_API void(EXT_ENTRY *glUniform4i)(GLint location, GLint v0, GLint v1, GLint v2, GLint v3);
+EXT_API void(EXT_ENTRY *glUniform1f)(GLint location, GLfloat);
+EXT_API void(EXT_ENTRY *glUniform2f)(GLint location, GLfloat, GLfloat);
+EXT_API void(EXT_ENTRY *glUniform3f)(GLint location, GLfloat, GLfloat, GLfloat);
+EXT_API void(EXT_ENTRY *glUniform4f)(GLint location, GLfloat, GLfloat, GLfloat, GLfloat);
+EXT_API void(EXT_ENTRY *glUniform1i)(GLint location, GLint);
+EXT_API void(EXT_ENTRY *glUniform2i)(GLint location, GLint, GLint);
+EXT_API void(EXT_ENTRY *glUniform3i)(GLint location, GLint, GLint, GLint);
+EXT_API void(EXT_ENTRY *glUniform4i)(GLint location, GLint, GLint, GLint, GLint);
+GLAPI void APIENTRY glUniform1ui(GLint location, GLuint);
+GLAPI void APIENTRY glUniform2ui(GLint location, GLuint, GLuint);
+GLAPI void APIENTRY glUniform3ui(GLint location, GLuint, GLuint, GLuint);
+GLAPI void APIENTRY glUniform4ui(GLint location, GLuint, GLuint, GLuint, GLuint);
+
 EXT_API void(EXT_ENTRY *glUniform1fv)(GLint location, GLsizei count, const GLfloat *value);
 EXT_API void(EXT_ENTRY *glUniform2fv)(GLint location, GLsizei count, const GLfloat *value);
 EXT_API void(EXT_ENTRY *glUniform3fv)(GLint location, GLsizei count, const GLfloat *value);
@@ -121,12 +125,64 @@ EXT_API void(EXT_ENTRY *glUniform1iv)(GLint location, GLsizei count, const GLint
 EXT_API void(EXT_ENTRY *glUniform2iv)(GLint location, GLsizei count, const GLint *value);
 EXT_API void(EXT_ENTRY *glUniform3iv)(GLint location, GLsizei count, const GLint *value);
 EXT_API void(EXT_ENTRY *glUniform4iv)(GLint location, GLsizei count, const GLint *value);
+GLAPI void APIENTRY glUniform1uiv(GLint location, GLsizei count, const GLuint *value);
+GLAPI void APIENTRY glUniform2uiv(GLint location, GLsizei count, const GLuint *value);
+GLAPI void APIENTRY glUniform3uiv(GLint location, GLsizei count, const GLuint *value);
+GLAPI void APIENTRY glUniform4uiv(GLint location, GLsizei count, const GLuint *value);
+
 EXT_API void(EXT_ENTRY *glUniformMatrix2fv)(GLint location, GLsizei count, GLboolean transpose,
 											const GLfloat *value);
 EXT_API void(EXT_ENTRY *glUniformMatrix3fv)(GLint location, GLsizei count, GLboolean transpose,
 											const GLfloat *value);
 EXT_API void(EXT_ENTRY *glUniformMatrix4fv)(GLint location, GLsizei count, GLboolean transpose,
 											const GLfloat *value);
+
+EXT_API void(EXT_ENTRY *glProgramUniform1f)(GLuint program, GLint loc, GLfloat);
+EXT_API void(EXT_ENTRY *glProgramUniform2f)(GLuint program, GLint loc, GLfloat, GLfloat);
+EXT_API void(EXT_ENTRY *glProgramUniform3f)(GLuint program, GLint loc, GLfloat, GLfloat, GLfloat);
+EXT_API void(EXT_ENTRY *glProgramUniform4f)(GLuint program, GLint loc, GLfloat, GLfloat, GLfloat,
+											GLfloat);
+EXT_API void(EXT_ENTRY *glProgramUniform1i)(GLuint program, GLint loc, GLint);
+EXT_API void(EXT_ENTRY *glProgramUniform2i)(GLuint program, GLint loc, GLint, GLint);
+EXT_API void(EXT_ENTRY *glProgramUniform3i)(GLuint program, GLint loc, GLint, GLint, GLint);
+EXT_API void(EXT_ENTRY *glProgramUniform4i)(GLuint program, GLint loc, GLint, GLint, GLint, GLint);
+EXT_API void(EXT_ENTRY *glProgramUniform1ui)(GLuint program, GLint loc, GLuint);
+EXT_API void(EXT_ENTRY *glProgramUniform2ui)(GLuint program, GLint loc, GLuint, GLuint);
+EXT_API void(EXT_ENTRY *glProgramUniform3ui)(GLuint program, GLint loc, GLuint, GLuint, GLuint);
+EXT_API void(EXT_ENTRY *glProgramUniform4ui)(GLuint program, GLint loc, GLuint, GLuint, GLuint,
+											 GLuint);
+
+EXT_API void(EXT_ENTRY *glProgramUniform1fv)(GLuint program, GLint location, GLsizei count,
+											 const GLfloat *value);
+EXT_API void(EXT_ENTRY *glProgramUniform2fv)(GLuint program, GLint location, GLsizei count,
+											 const GLfloat *value);
+EXT_API void(EXT_ENTRY *glProgramUniform3fv)(GLuint program, GLint location, GLsizei count,
+											 const GLfloat *value);
+EXT_API void(EXT_ENTRY *glProgramUniform4fv)(GLuint program, GLint location, GLsizei count,
+											 const GLfloat *value);
+EXT_API void(EXT_ENTRY *glProgramUniform1iv)(GLuint program, GLint location, GLsizei count,
+											 const GLint *value);
+EXT_API void(EXT_ENTRY *glProgramUniform2iv)(GLuint program, GLint location, GLsizei count,
+											 const GLint *value);
+EXT_API void(EXT_ENTRY *glProgramUniform3iv)(GLuint program, GLint location, GLsizei count,
+											 const GLint *value);
+EXT_API void(EXT_ENTRY *glProgramUniform4iv)(GLuint program, GLint location, GLsizei count,
+											 const GLint *value);
+EXT_API void(EXT_ENTRY *glProgramUniform1uiv)(GLuint program, GLint location, GLsizei count,
+											  const GLuint *value);
+EXT_API void(EXT_ENTRY *glProgramUniform2uiv)(GLuint program, GLint location, GLsizei count,
+											  const GLuint *value);
+EXT_API void(EXT_ENTRY *glProgramUniform3uiv)(GLuint program, GLint location, GLsizei count,
+											  const GLuint *value);
+EXT_API void(EXT_ENTRY *glProgramUniform4uiv)(GLuint program, GLint location, GLsizei count,
+											  const GLuint *value);
+
+EXT_API void(EXT_ENTRY *glProgramUniformMatrix2fv)(GLuint program, GLint location, GLsizei count,
+												   GLboolean transpose, const GLfloat *value);
+EXT_API void(EXT_ENTRY *glProgramUniformMatrix3fv)(GLuint program, GLint location, GLsizei count,
+												   GLboolean transpose, const GLfloat *value);
+EXT_API void(EXT_ENTRY *glProgramUniformMatrix4fv)(GLuint program, GLint location, GLsizei count,
+												   GLboolean transpose, const GLfloat *value);
 
 EXT_API void(EXT_ENTRY *glValidateProgram)(GLuint program);
 EXT_API void(EXT_ENTRY *glVertexAttribPointer)(GLuint index, GLint size, GLenum type,
@@ -240,12 +296,12 @@ bool installGlDebugHandler();
 
 DEFINE_ENUM(GlVendor, intel, nvidia, amd, other);
 DEFINE_ENUM(GlFeature, vertex_array_object, debug, timer_query, copy_image, texture_view,
-			texture_storage, shader_draw_parameters);
+			texture_storage, shader_draw_parameters, separate_shader_objects);
 using GlFeatures = EnumFlags<GlFeature>;
 
 // TODO: remove max_ ?
 DEFINE_ENUM(GlLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
-			max_texture_size);
+			max_texture_size, max_uniform_locations, max_ssbo_bindings);
 
 struct GlInfo {
 	GlVendor vendor;
