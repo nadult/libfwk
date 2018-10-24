@@ -35,14 +35,10 @@ import ycm_core
 # compilation database set (by default, one is not set).
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
-'-Wall',
-'-Wextra',
-'-Werror',
-'-Wno-unused-parameter',
-'-Wno-unused-variable',
+'-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unused-variable',
 '-fexceptions',
 '-DNDEBUG',
-'-DFWK_TARGET_LINUX',
+'-DFWK_TARGET_LINUX', '-DFWK_PARANOID', '-DFWK_CHECK_OPENGL', '-DFWK_CHECK_NANS',
 '-DFATAL=FWK_FATAL',
 # THIS IS IMPORTANT! Without a "-std=<something>" flag, clang won't know which
 # language to use when compiling headers. So it will guess. Badly. So C++
