@@ -91,10 +91,11 @@ class GlProgram {
 	void use();
 	static void unbind();
 
+	// TODO: this is not very useful, because some uniforms can be set from inside of shader
 #ifdef FWK_CHECK_OPENGL
-	void validateAllUniformsSet() const;
+	static void checkUniformsInitialized();
 #else
-	void validateAllUniformsSet() const {}
+	static void checkUniformsInitialized() {}
 #endif
 
   private:

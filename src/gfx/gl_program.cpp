@@ -88,7 +88,16 @@ void initializeGlProgramFuncs() {
 	}
 }
 
-GL_CLASS_IMPL(GlProgram);
+IF_GL_CHECKS(static int s_current_debug_id = 0;)
+
+GlProgram::GlProgram() = default;
+GlProgram::GlProgram(GlProgram &&) = default;
+GlProgram::~GlProgram() {
+#ifdef FWK_CHECK_OPENGL
+	if(s_current_debug_id == id())
+		s_current_debug_id = 0;
+#endif
+}
 
 PProgram GlProgram::make(PShader compute) {
 	PProgram ref(storage.make());
@@ -232,15 +241,25 @@ void GlProgram::loadUniformInfo() {
 	}
 }
 
-void GlProgram::use() { glUseProgram(id()); }
-void GlProgram::unbind() { glUseProgram(0); }
+void GlProgram::use() {
+	IF_GL_CHECKS(s_current_debug_id = id();)
+	glUseProgram(id());
+}
+void GlProgram::unbind() {
+	IF_GL_CHECKS(s_current_debug_id = 0;)
+	glUseProgram(0);
+}
 
 #ifdef FWK_CHECK_OPENGL
-void GlProgram::validateAllUniformsSet() const {
-	if(m_uniforms_to_init) {
-		for(int n = 0; n < m_uniforms.size(); n++)
-			if(!m_init_map[n])
-				FATAL("Uniform not set: %s", m_uniforms[n].name.c_str());
+void GlProgram::checkUniformsInitialized() {
+	if(s_current_debug_id) {
+		auto &ref = GlRef<GlProgram>::g_storage.objects[s_current_debug_id];
+
+		if(ref.m_uniforms_to_init) {
+			for(int n = 0; n < ref.m_uniforms.size(); n++)
+				if(!ref.m_init_map[n])
+					FATAL("Uniform not set: %s", ref.m_uniforms[n].name.c_str());
+		}
 	}
 }
 #endif

@@ -1,8 +1,10 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Maybe<T, invalid_value>
+- spany w serializerach i streamach
+- resize jak w wektorach do glbuffera ?
 - byteSize to zła nazwa; numBytes, byteCount, dataSize ?
-- copy ze zwykłym pointerem?
 - zastanów się, czy dałoby się robić serializację i obliczenia bez rollbacku (jakaś wydajniejsza forma expected?)
   błędu nie trzeba zwracać razem z typem, można ustawiać jakąs flagę w zmiennej statycznej (thread local)
   problem: niektóre obiekty będą w zepsutym stanie, jak sobie z tym radzić?
