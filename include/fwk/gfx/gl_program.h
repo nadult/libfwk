@@ -104,8 +104,6 @@ class GlProgram {
 	static void setUniformInitialized(int, int);
 
 	vector<UniformInfo> m_uniforms;
-
-	// TODO: make sure that libfwk & target program is compiled with the same flags
 	IF_GL_CHECKS(vector<bool> m_init_map; int m_uniforms_to_init = 0;)
 };
 }

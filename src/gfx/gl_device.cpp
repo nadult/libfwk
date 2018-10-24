@@ -21,6 +21,8 @@
 
 namespace fwk {
 
+static const DebugFlagsCheck debug_flags_check;
+
 static void reportSDLError(const char *func_name) {
 	FATAL("Error on %s: %s", func_name, SDL_GetError());
 }
@@ -128,8 +130,13 @@ struct GlDevice::WindowImpl {
 	Flags flags;
 };
 
-GlDevice::GlDevice() : m_input_impl(uniquePtr<InputImpl>()) {
+GlDevice::GlDevice(DebugFlagsCheck check) : m_input_impl(uniquePtr<InputImpl>()) {
 	ASSERT("Only one instance of GlDevice can be created at a time" && !s_instance);
+	printf("%d %d\n", check.opengl, debug_flags_check.opengl);
+	if(check.opengl != debug_flags_check.opengl)
+		FATAL("If libfwk is compiled with FWK_CHECK_OPENGL then target program must be compiled "
+			  "with this flag as well (and vice-versa)");
+
 	s_instance = this;
 	s_gl_thread_id = threadId();
 

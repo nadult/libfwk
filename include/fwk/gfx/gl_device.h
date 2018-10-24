@@ -14,13 +14,21 @@ namespace fwk {
 class InputState;
 class InputEvent;
 
+struct DebugFlagsCheck {
+#ifdef FWK_CHECK_OPENGL
+	bool opengl = true;
+#else
+	bool opengl = false;
+#endif
+};
+
 DEFINE_ENUM(GlDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
 			maximized, opengl_debug_handler);
 using GlDeviceFlags = EnumFlags<GlDeviceOpt>;
 
 class GlDevice {
   public:
-	GlDevice();
+	GlDevice(DebugFlagsCheck = {});
 	~GlDevice();
 
 	static GlDevice &instance();
