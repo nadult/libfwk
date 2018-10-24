@@ -64,6 +64,7 @@ template <class T> class GlStorage {
 	name();                                                                                        \
 	~name();                                                                                       \
 	name(const name &) = delete;                                                                   \
+	name(name &&);                                                                                 \
 	void operator=(const name &) = delete;                                                         \
 	static constexpr auto &storage = GlRef<name>::g_storage;                                       \
 	friend GlStorage<name>;                                                                        \
@@ -74,5 +75,6 @@ template <class T> class GlStorage {
 
 #define GL_CLASS_IMPL(name)                                                                        \
 	name::name() = default;                                                                        \
-	name::~name() = default;
+	name::~name() = default;                                                                       \
+	name::name(name &&) = default;
 }

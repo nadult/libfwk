@@ -174,12 +174,27 @@ template <class T> void GlStorage<T>::resizeBuffers(int new_size) {
 	int old_size = objects.size();
 	new_size = BaseVector::insertCapacity<T>(old_size, new_size);
 
-	PodVector<int> new_counters(new_size);
 	PodVector<T> new_objects(new_size);
 
-	// TODO: copy (in a normal way) only objects which exist
+	if(objects) {
+		vector<bool> is_allocated(objects.size(), true);
+		for(int n = 0; n < min(big_id, objects.size()); n++)
+			is_allocated[n] = counters[n] > 0;
+		is_allocated[0] = false;
+		int free_id = first_free;
+		while(free_id) {
+			is_allocated[free_id] = false;
+			free_id = counters[free_id];
+		}
+		for(int n = 0; n < objects.size(); n++)
+			if(is_allocated[n]) {
+				new(&new_objects[n]) T(move(objects[n]));
+				objects[n].~T();
+			}
+	}
+
+	PodVector<int> new_counters(new_size);
 	memcpy(new_counters.data(), counters.data(), sizeof(int) * counters.size());
-	memcpy(new_objects.data(), objects.data(), sizeof(T) * objects.size());
 
 	int end_fill = min(new_size, big_id);
 	for(int n = old_size; n < end_fill; n++)

@@ -43,14 +43,14 @@ int dataSize(IndexType itype) {
 static const EnumMap<PrimitiveType, int> gl_primitives{
 	{GL_POINTS, GL_LINES, GL_TRIANGLES, GL_TRIANGLE_STRIP}};
 
-GlVertexArray::GlVertexArray()
-	: m_has_vao(gl_info->hasFeature(GlFeature::vertex_array_object)) {
+GlVertexArray::GlVertexArray() : m_has_vao(gl_info->hasFeature(GlFeature::vertex_array_object)) {
 	if(!m_has_vao) {
 		FATAL("check if this mode works");
 		// TODO: is it possible to render without VAO in Opengl > 3.0 ?
 		// is this even an option ?
 	}
 }
+GlVertexArray::GlVertexArray(GlVertexArray &&) = default;
 GlVertexArray::~GlVertexArray() = default;
 
 void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs) {
