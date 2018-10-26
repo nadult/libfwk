@@ -52,6 +52,8 @@ template <class T, int N> class Triangle {
 		return {v[idx], v[idx == 2 ? 0 : idx + 1]};
 	}
 
+	Triangle operator*(float s) const { return {v[0] * s, v[1] * s, v[2] * s}; }
+	Triangle operator*(const Vector &s) const { return {v[0] * s, v[1] * s, v[2] * s}; }
 	Triangle operator+(const Vector &off) const { return {v[0] + off, v[1] + off, v[2] + off}; }
 	Triangle operator-(const Vector &off) const { return {v[0] - off, v[1] - off, v[2] - off}; }
 
