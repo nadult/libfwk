@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/gl_program.h"
 
+#include "fwk/format.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/math/matrix4.h"
@@ -264,7 +265,15 @@ void GlProgram::checkUniformsInitialized() {
 }
 #endif
 
-void GlProgram::uniformNotFound(ZStr name) const { FATAL("Uniform not found: %s", name.c_str()); }
+void GlProgram::uniformNotFound(ZStr name) const {
+	TextFormatter text;
+	text("Uniform not found: % (Available uniforms: ", name);
+	for(int n : intRange(m_uniforms))
+		text("%%", m_uniforms[n].name, n + 1 == m_uniforms.size() ? "" : " ");
+	text(")");
+
+	FATAL("%s", text.c_str());
+}
 
 void GlProgram::setUniformInitialized(int program_id, int location) {
 #ifdef FWK_CHECK_OPENGL
