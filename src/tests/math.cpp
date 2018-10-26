@@ -223,9 +223,10 @@ void test2DIntersections() {
 	print("Isect time: % ns / ISegment<qint> pair\n", time * 10000);
 
 	Triangle2F tri(float2(0, 0), float2(5, 0), float2(2, 4));
-	ASSERT_EQ(tri.barycentric(float2(2, 4)), float2(0, 1));
-	ASSERT_EQ(tri.barycentric(float2(3.5, 2)), float2(0.5, 0.5));
-	ASSERT_EQ(tri.barycentric(float2(2, 0)), float2(0.4, 0));
+	using f2 = pair<float, float>;
+	ASSERT_EQ(tri.barycentric(float2(2, 4)), f2(0, 1));
+	ASSERT_EQ(tri.barycentric(float2(3.5, 2)), f2(0.5, 0.5));
+	ASSERT_EQ(tri.barycentric(float2(2, 0)), f2(0.4, 0));
 }
 
 void test3DIntersections() {

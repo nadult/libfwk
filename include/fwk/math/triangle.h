@@ -67,12 +67,14 @@ template <class T, int N> class Triangle {
 	ENABLE_IF_SIZE(3) Triangle2<T> projection2D() const;
 
 	ENABLE_IF_SIZE(3) Vector normal() const;
-	ENABLE_IF_SIZE(3) Vector barycentric(const Point &point) const;
 
-	// x coordinate is 1 if point is at b()
-	// y coordinate is 1 if point is at c()
-	// 1-x-y is 1 is point is at a()
-	ENABLE_IF_SIZE(2) Vector barycentric(const Point &point) const;
+	// first coordinate (V)  is 1 if point is at b()
+	// second coordinate (W) is 1 if point is at c()
+	// U = (1 - V -  W)      is 1 is point is at a()
+	pair<T, T> barycentric(const Point &point) const;
+
+	ENABLE_IF_SIZE(2) bool contains(const Point &) const;
+
 	vector<Point> sampleEven(float density) const;
 
 	T surfaceArea() const;
