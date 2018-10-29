@@ -39,7 +39,15 @@ class GlBuffer {
 		return make(type, cspan(span));
 	}
 
-	void resize(int new_size, BufferUsage = BufferUsage::dynamic_copy);
+	void recreate(int new_size, BufferUsage = BufferUsage::dynamic_copy);
+
+	// Increases size, using BaseVector::insertCapacity(), so it may allocate
+	// more memory than necessary; old data will be copied to newly created buffer
+	static void upsize(PBuffer &, int minimum_count, int type_size = 1);
+	template <class T> static void upsize(PBuffer &buf, int minimum_count) {
+		upsize(buf, minimum_count, sizeof(T));
+	}
+
 	void upload(CSpan<char>);
 	void download(Span<char>) const;
 	void invalidate();
@@ -71,6 +79,9 @@ class GlBuffer {
 	void *map(AccessMode);
 	bool unmap();
 	static bool unmap(Type);
+
+	// Will also bind buffer
+	bool isMapped() const;
 
 	// TODO: do we really need 64-bit numbers here ?
 	void *map(i64 offset, i64 size, MapFlags);
@@ -104,5 +115,7 @@ class GlBuffer {
   private:
 	int m_size = 0;
 	Type m_type;
+	Maybe<BufferUsage> m_usage;
+	ImmBufferFlags m_imm_flags;
 };
 }

@@ -50,7 +50,7 @@ PBuffer GlBuffer::make(Type type) {
 
 PBuffer GlBuffer::make(Type type, int size, BufferUsage usage) {
 	auto ref = make(type);
-	ref->resize(size, usage);
+	ref->recreate(size, usage);
 	return ref;
 }
 
@@ -62,11 +62,31 @@ PBuffer GlBuffer::make(Type type, int size, ImmBufferFlags flags) {
 	return ref;
 }
 
-void GlBuffer::resize(int new_size, BufferUsage usage) {
+void GlBuffer::recreate(int new_size, BufferUsage usage) {
 	DASSERT(new_size >= 0);
 	bind();
 	glBufferData(s_types[m_type], new_size, 0, s_usages[usage]);
 	m_size = new_size;
+}
+
+void GlBuffer::upsize(PBuffer &buf, int new_count, int type_size) {
+	auto &ref = *buf;
+	int current_count = ref.m_size / type_size;
+	if(current_count >= new_count)
+		return;
+
+	new_count = BaseVector::insertCapacity(current_count, type_size, new_count);
+	PBuffer new_buf;
+
+	if(ref.m_usage)
+		new_buf = make(ref.m_type, new_count * type_size, *ref.m_usage);
+	else
+		new_buf = make(ref.m_type, new_count * type_size, ref.m_imm_flags);
+
+	if(ref.isMapped())
+		ref.unmap();
+	ref.copyTo(new_buf, 0, 0, ref.m_size);
+	buf = move(new_buf);
 }
 
 void GlBuffer::upload(CSpan<char> data) {
@@ -98,6 +118,13 @@ bool GlBuffer::unmap() {
 	return glUnmapBuffer(s_types[m_type]);
 }
 bool GlBuffer::unmap(Type type) { return glUnmapBuffer(s_types[type]); }
+
+bool GlBuffer::isMapped() const {
+	int ret = 0;
+	bind();
+	glGetBufferParameteriv(s_types[m_type], GL_BUFFER_MAPPED, &ret);
+	return ret != 0;
+}
 
 void GlBuffer::invalidate() { glInvalidateBufferData(id()); }
 
