@@ -197,7 +197,7 @@ template <class T> class Vector {
 	}
 
 	void reserve(int new_capacity) {
-		int new_cap = m_base.insertCapacity(m_base.capacity, sizeof(T), new_capacity);
+		new_capacity = m_base.insertCapacity(m_base.capacity, sizeof(T), new_capacity);
 		if(std::is_trivially_move_constructible<T>::value &&
 		   std::is_trivially_destructible<T>::value)
 			m_base.reallocatePod(sizeof(T), new_capacity);
