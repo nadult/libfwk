@@ -55,6 +55,17 @@ class GlTexture {
 		download(data.template reinterpret<char>());
 	}
 
+	template <class T> vector<T> download() const { return download<T>(byteSize() / sizeof(T)); }
+
+	template <class T> vector<T> download(int count) const {
+		DASSERT(count >= 0 && count <= int(byteSize() / sizeof(T)));
+		PodVector<T> out(count);
+		download<T>(out);
+		vector<T> vout;
+		out.unsafeSwap(vout);
+		return vout;
+	}
+
 	void copyTo(PTexture, IRect src_rect, int2 dst_pos) const;
 
 	void clear(float4);
@@ -63,6 +74,7 @@ class GlTexture {
 	int width() const { return m_size.x; }
 	int height() const { return m_size.y; }
 	int2 size() const { return m_size; }
+	int byteSize() const;
 
 	IRect rect() const;
 	bool contains(const IRect &) const;

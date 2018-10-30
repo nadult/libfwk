@@ -1,6 +1,12 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- 2D span bazujący na liniowym spanie
+- resize -> recreate w PodVectorze ?
+- rozwiaz problem uniformów
+- check do FWK_CHECK_OPENGL jest jakis zjebany...
+- Triangle: containment test ?
+- problemy z kompilacją jak się nie używa clang+-6.0 (undefined symbol s_internal w GlStorage)
 - Maybe<T, invalid_value>
 - spany w serializerach i streamach
 - resize jak w wektorach do glbuffera ?
