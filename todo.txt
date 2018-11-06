@@ -8,12 +8,8 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   Podobnie można by podglądać w danym momencie teksturki, bufory, etc.
   Ale kluczowy tutaj byłby sposób wypisywania tych danych
 
-- uniformy: możliwośc włączenia warningów dla uniformów które są ustawione a nie są aktywne
-  więcej niż to nie będziemy w stanie zrobić
-
 - 2D span bazujący na liniowym spanie
 - resize -> recreate w PodVectorze ?
-- rozwiaz problem uniformów
 - check do FWK_CHECK_OPENGL jest jakis zjebany...
 - Triangle: containment test ?
 - problemy z kompilacją jak się nie używa clang+-6.0 (undefined symbol s_internal w GlStorage)
@@ -43,7 +39,6 @@ TODO: which OpenGL version are we targeting ?
 - check emscripten
 
 - cos sie popieprzylo z YCMem na laptopie
-- glGetUniformLocation może zwrócić -1, trzeba to obsłużyć!!!
 - mozliwosc przypisanie none do unique_ptr
 
 - vec2<>, vec3<>, should support unsigned types ?

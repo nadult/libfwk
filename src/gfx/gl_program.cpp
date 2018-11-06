@@ -90,16 +90,7 @@ void initializeGlProgramFuncs() {
 	}
 }
 
-IF_GL_CHECKS(static int s_current_debug_id = 0;)
-
-GlProgram::GlProgram() = default;
-GlProgram::GlProgram(GlProgram &&) = default;
-GlProgram::~GlProgram() {
-#ifdef FWK_CHECK_OPENGL
-	if(s_current_debug_id == id())
-		s_current_debug_id = 0;
-#endif
-}
+GL_CLASS_IMPL(GlProgram)
 
 PProgram GlProgram::make(PShader compute) {
 	PProgram ref(storage.make());
@@ -159,9 +150,6 @@ void GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
 	for(auto &shader : shaders)
 		glDetachShader(id(), shader.id());
 	loadUniformInfo();
-
-	IF_GL_CHECKS(m_uniforms_to_init = m_uniforms.size();
-				 m_init_map.resize(m_uniforms.size(), false);)
 }
 
 static auto loadShader(const string &file_name, const string &predefined_macros, ShaderType type) {
@@ -249,14 +237,8 @@ void GlProgram::loadUniformInfo() {
 	}
 }
 
-void GlProgram::use() {
-	IF_GL_CHECKS(s_current_debug_id = id();)
-	glUseProgram(id());
-}
-void GlProgram::unbind() {
-	IF_GL_CHECKS(s_current_debug_id = 0;)
-	glUseProgram(0);
-}
+void GlProgram::use() { glUseProgram(id()); }
+void GlProgram::unbind() { glUseProgram(0); }
 
 auto GlProgram::operator[](ZStr name) -> UniformSetter {
 	int loc = location(name);
@@ -269,81 +251,43 @@ auto GlProgram::operator[](ZStr name) -> UniformSetter {
 	return {id(), loc};
 }
 
-#ifdef FWK_CHECK_OPENGL
-void GlProgram::checkUniformsInitialized() {
-	if(s_current_debug_id) {
-		auto &ref = GlRef<GlProgram>::g_storage.objects[s_current_debug_id];
-
-		if(ref.m_uniforms_to_init) {
-			for(int n = 0; n < ref.m_uniforms.size(); n++)
-				if(!ref.m_init_map[n])
-					FATAL("Uniform not set: %s", ref.m_uniforms[n].name.c_str());
-		}
-	}
-}
-#endif
-
-void GlProgram::setUniformInitialized(int program_id, int location) {
-#ifdef FWK_CHECK_OPENGL
-	auto &program = GlRef<GlProgram>::g_storage.objects[program_id];
-	if(program.m_uniforms_to_init) {
-		for(int n = 0; n < program.m_uniforms.size(); n++)
-			if(program.m_uniforms[n].location == location && !program.m_init_map[n]) {
-				program.m_init_map[n] = true;
-				program.m_uniforms_to_init--;
-				break;
-			}
-	}
-#endif
-}
-
 void GlProgram::UniformSetter::operator=(CSpan<float> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform1fv_(program_id, location, range.size(), range.data());
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<float2> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform2fv_(program_id, location, range.size(), &range.data()->x);
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<float3> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform3fv_(program_id, location, range.size(), &range.data()->x);
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<float4> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform4fv_(program_id, location, range.size(), &range.data()->x);
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<int> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform1iv_(program_id, location, range.size(), range.data());
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<int2> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform2iv_(program_id, location, range.size(), &range.data()->x);
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<int3> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform3iv_(program_id, location, range.size(), &range.data()->x);
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<int4> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform4iv_(program_id, location, range.size(), &range.data()->x);
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<uint> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniform1uiv_(program_id, location, range.size(), range.data());
 }
 
 void GlProgram::UniformSetter::operator=(CSpan<Matrix4> range) {
-	setUniformInitialized(program_id, location);
 	glProgramUniformMatrix4fv_(program_id, location, range.size(), false,
 							   (const float *)range.data());
 }

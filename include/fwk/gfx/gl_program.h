@@ -78,13 +78,6 @@ class GlProgram {
 	void use();
 	static void unbind();
 
-	// TODO: this is not very useful, because some uniforms can be set from inside of shader
-#ifdef FWK_CHECK_OPENGL
-	static void checkUniformsInitialized();
-#else
-	static void checkUniformsInitialized() {}
-#endif
-
 	u64 hash() const { return m_hash; }
 	ZStr name() const { return m_name; }
 
@@ -96,6 +89,5 @@ class GlProgram {
 	vector<UniformInfo> m_uniforms;
 	u64 m_hash;
 	string m_name;
-	IF_GL_CHECKS(vector<bool> m_init_map; int m_uniforms_to_init = 0;)
 };
 }
