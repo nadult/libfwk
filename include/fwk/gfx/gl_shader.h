@@ -21,5 +21,12 @@ class GlShader {
 
 	Type type() const;
 	string source() const;
+
+	u64 hash() const { return m_hash; }
+	ZStr name() const { return m_name; }
+
+  private:
+	string m_name;
+	u64 m_hash;
 };
 }

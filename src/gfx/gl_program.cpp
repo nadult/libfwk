@@ -6,6 +6,7 @@
 #include "fwk/format.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/math/hash.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/pod_vector.h"
 #include "fwk/sys/stream.h"
@@ -129,8 +130,14 @@ PProgram GlProgram::make(PShader vertex, PShader geom, PShader fragment,
 }
 
 void GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
-	for(auto &shader : shaders)
+	m_hash = fwk::hash<u64>(loc_names);
+
+	for(auto &shader : shaders) {
 		glAttachShader(id(), shader.id());
+		m_hash = hashCombine(m_hash, shader->hash());
+		if(shader->name() && m_name.empty())
+			m_name = shader->name();
+	}
 	for(int l = 0; l < loc_names.size(); l++)
 		glBindAttribLocation(id(), l, loc_names[l].c_str());
 
@@ -251,6 +258,17 @@ void GlProgram::unbind() {
 	glUseProgram(0);
 }
 
+auto GlProgram::operator[](ZStr name) -> UniformSetter {
+	int loc = location(name);
+	if((gl_debug_flags & GlDebug::not_active_uniforms) && loc == -1) {
+		TextFormatter key, msg;
+		key("% %", m_hash, name);
+		msg("Program %: Uniform % not active", m_name, name);
+		log(msg.text(), key.text());
+	}
+	return {id(), loc};
+}
+
 #ifdef FWK_CHECK_OPENGL
 void GlProgram::checkUniformsInitialized() {
 	if(s_current_debug_id) {
@@ -264,16 +282,6 @@ void GlProgram::checkUniformsInitialized() {
 	}
 }
 #endif
-
-void GlProgram::uniformNotFound(ZStr name) const {
-	TextFormatter text;
-	text("Uniform not found: % (Available uniforms: ", name);
-	for(int n : intRange(m_uniforms))
-		text("%%", m_uniforms[n].name, n + 1 == m_uniforms.size() ? "" : " ");
-	text(")");
-
-	FATAL("%s", text.c_str());
-}
 
 void GlProgram::setUniformInitialized(int program_id, int location) {
 #ifdef FWK_CHECK_OPENGL

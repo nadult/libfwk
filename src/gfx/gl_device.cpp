@@ -163,6 +163,8 @@ void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, G
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
 	initializeGl(profile);
 	initializeGlProgramFuncs();
+	if(flags & Opt::full_debug)
+		gl_debug_flags = GlDebugFlags::all();
 
 	if(flags & Opt::opengl_debug_handler)
 		installGlDebugHandler();

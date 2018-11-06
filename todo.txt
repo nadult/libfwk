@@ -1,6 +1,16 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- jakieś narzędzie/klasa do przekazywania zmiennych przez makro definicje do shaderów
+- przydałoby się jakies narzędzie do wglądu do danych (mini debugger, żeby nie trzeba było co chwila robić
+  printów w różnych miejscach); Razem z perfem mógłbym rejestrowac typy i referencje do nich i z poziomu
+  perf analizera mogłbym się wpinać w dane konkretnych wektorów, etc.?
+  Podobnie można by podglądać w danym momencie teksturki, bufory, etc.
+  Ale kluczowy tutaj byłby sposób wypisywania tych danych
+
+- uniformy: możliwośc włączenia warningów dla uniformów które są ustawione a nie są aktywne
+  więcej niż to nie będziemy w stanie zrobić
+
 - 2D span bazujący na liniowym spanie
 - resize -> recreate w PodVectorze ?
 - rozwiaz problem uniformów

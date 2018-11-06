@@ -5,6 +5,7 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/math/hash.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/sys/stream.h"
 
@@ -43,6 +44,9 @@ PShader GlShader::make(Type type, const string &source, const string &predefined
 	GLint length = (GLint)full_source.size();
 	const char *string = full_source.data();
 
+	ref->m_hash = fwk::hash<u64>(full_source);
+	ref->m_name = name;
+
 	glShaderSource(gl_id, 1, &string, &length);
 	glCompileShader(gl_id);
 
@@ -53,6 +57,7 @@ PShader GlShader::make(Type type, const string &source, const string &predefined
 		char buf[4096];
 		glGetShaderInfoLog(gl_id, sizeof(buf), 0, buf);
 		CHECK_FAILED("Compilation error of '%s':\n%s", name.c_str(), buf);
+		// TODO: allow shader to be in failed state; rollback isn't compatible with opengl
 	}
 
 	return ref;

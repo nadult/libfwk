@@ -28,6 +28,7 @@ void *winLoadFunction(const char *name);
 
 static GlInfo s_info;
 const GlInfo *const gl_info = &s_info;
+GlDebugFlags gl_debug_flags = none;
 
 static EnumMap<GlLimit, int> s_limit_map = {
 	GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES, GL_MAX_UNIFORM_BLOCK_SIZE,
@@ -430,7 +431,7 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 
 	if(severity == GL_DEBUG_SEVERITY_HIGH && type != GL_DEBUG_TYPE_OTHER)
 		FATAL("%s", fmt.text().c_str());
-	print("%\n", fmt.text());
+	log(fmt.text());
 }
 
 bool installGlDebugHandler() {

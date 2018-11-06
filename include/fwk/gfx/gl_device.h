@@ -23,7 +23,7 @@ struct DebugFlagsCheck {
 };
 
 DEFINE_ENUM(GlDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
-			maximized, opengl_debug_handler);
+			maximized, opengl_debug_handler, full_debug);
 using GlDeviceFlags = EnumFlags<GlDeviceOpt>;
 
 class GlDevice {

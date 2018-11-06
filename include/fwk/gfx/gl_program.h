@@ -72,21 +72,8 @@ class GlProgram {
 		int location;
 	};
 
-	// Uniform must be present & active
-	UniformSetter operator[](ZStr name) {
-		int loc = location(name);
-		if(loc == -1) // TODO: debug check?
-			uniformNotFound(name);
-		return {id(), loc};
-	}
-	UniformSetter operator[](int location) {
-		PASSERT(location >= 0);
-		return {id(), location};
-	}
-
-	// Uniform doesn't have to be active
-	UniformSetter operator()(ZStr name) { return {id(), location(name)}; }
-	UniformSetter operator()(int location) { return {id(), location}; }
+	UniformSetter operator[](ZStr name);
+	UniformSetter operator[](int location) { return {id(), location}; }
 
 	void use();
 	static void unbind();
@@ -98,13 +85,17 @@ class GlProgram {
 	static void checkUniformsInitialized() {}
 #endif
 
+	u64 hash() const { return m_hash; }
+	ZStr name() const { return m_name; }
+
   private:
 	void set(CSpan<PShader>, CSpan<string> loc_names);
 	void loadUniformInfo();
-	[[noreturn]] void uniformNotFound(ZStr) const;
 	static void setUniformInitialized(int, int);
 
 	vector<UniformInfo> m_uniforms;
+	u64 m_hash;
+	string m_name;
 	IF_GL_CHECKS(vector<bool> m_init_map; int m_uniforms_to_init = 0;)
 };
 }

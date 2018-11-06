@@ -299,9 +299,13 @@ DEFINE_ENUM(GlFeature, vertex_array_object, debug, timer_query, copy_image, text
 			texture_storage, shader_draw_parameters, separate_shader_objects);
 using GlFeatures = EnumFlags<GlFeature>;
 
-// TODO: remove max_ ?
+// TODO: rename to GlMax
 DEFINE_ENUM(GlLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
 			max_texture_size, max_uniform_locations, max_ssbo_bindings);
+
+DEFINE_ENUM(GlDebug, not_active_uniforms);
+using GlDebugFlags = EnumFlags<GlDebug>;
+extern GlDebugFlags gl_debug_flags;
 
 struct GlInfo {
 	GlVendor vendor;
