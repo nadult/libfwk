@@ -108,6 +108,13 @@ void GlBuffer::clear(GlFormat fmt, int value) {
 					  &value);
 }
 
+void GlBuffer::clear(GlFormat fmt, int value, int offset, int size) {
+	DASSERT((int)sizeof(value) >= bytesPerPixel(fmt));
+	bind();
+	glClearBufferSubData(s_types[m_type], glInternalFormat(fmt), offset, size, glPixelFormat(fmt),
+						 glDataType(fmt), &value);
+}
+
 void *GlBuffer::map(AccessMode mode) {
 	bind();
 	return glMapBuffer(s_types[m_type], s_access_modes[mode]);
