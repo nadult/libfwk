@@ -27,7 +27,7 @@ _dummy := $(shell [ -d lib ] || mkdir -p lib)
 _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
-SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_info any any_ref \
+SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_info any any_ref logger \
 		   sys/error sys/assert sys/on_fail sys/memory sys/backtrace sys/rollback sys/stream sys/xml sys/input \
            math/cylinder math/box math/frustum math/matrix3 math/matrix4 math/plane math/ray math/vector \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment math/interval \

@@ -209,4 +209,9 @@ class AnyRef;
 
 template <> constexpr int type_size<AnyRef> = 16;
 template <> constexpr int type_size<Any> = 16;
+
+// Implemented in logger.[h|cpp]
+void log(Str message, Str unique_key);
+void log(Str message);
+bool logKeyPresent(Str);
 }
