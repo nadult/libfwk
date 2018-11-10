@@ -134,7 +134,7 @@ template <class T, EnableIf<parsable<T> && !isEnum<T>()>...> T fromString(ZStr s
 	TextParser parser(str);
 	T out;
 	parser >> out;
-	CHECK("traling data left after parsing" && parser.empty());
+	CHECK("Trailing data left after parsing" && parser.empty());
 	return out;
 }
 }
