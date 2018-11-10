@@ -138,8 +138,16 @@ template <class Range, class Functor> bool anyOf(const Range &range, Functor fun
 	return std::any_of(begin(range), end(range), functor);
 }
 
-template <class Range, class Functor> bool allOf(const Range &range, Functor functor) {
+template <class TRange, class Functor, class T = RangeBase<TRange>,
+		  EnableIf<isSame<decltype(declval<const Functor &>()(declval<const T &>())), bool>()>...>
+bool allOf(const TRange &range, const Functor &functor) {
 	return std::all_of(begin(range), end(range), functor);
+}
+
+template <class TRange, class R, class T = RangeBase<TRange>,
+		  EnableIf<isSame<decltype(declval<const T &>() == declval<const R &>()), bool>()>...>
+bool allOf(const TRange &range, const R &ref) {
+	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
 
 template <class T, class TRange, EnableIfRange<TRange, T>...>
