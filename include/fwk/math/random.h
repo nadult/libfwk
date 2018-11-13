@@ -62,6 +62,10 @@ class Random {
 			swap(span[i], span[uniform(0, i)]);
 		}
 	}
+	template <class T> const T &choose(CSpan<T> span) {
+		DASSERT(span);
+		return span[uniform(0, span.size() - 1)];
+	}
 
   private:
 	FwdMember<RandomEngine, sizeof(void *)> m_engine;
