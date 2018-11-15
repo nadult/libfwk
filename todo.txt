@@ -1,6 +1,10 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- transform(array<>>) nie dziala za dobrze dla typow ktore nie mają domyślnego konstruktora
+- zaraz po odpaleniu programu, zanim jeszcze ruszymy myszą, jej pozycja jest błędna
+  jest to jakis bug w SDLu (SDL_GetMouseState zwraca złą pozycję); zauważalne na linuksie
+
 - funkcja extract member  albo transform to member ?
 - jakieś narzędzie/klasa do przekazywania zmiennych przez makro definicje do shaderów
 - przydałoby się jakies narzędzie do wglądu do danych (mini debugger, żeby nie trzeba było co chwila robić

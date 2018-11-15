@@ -405,10 +405,15 @@ template <class Container, class Range> void insert(Container &into, const Range
 	into.insert(begin(from), end(from));
 }
 
-template <class TRange, EnableIfRange<TRange>..., class TSpan, EnableIfSpan<TSpan>...>
-void copy(TSpan &dst, const TRange &src) {
+template <class T, class TRange, EnableIfRange<TRange>...>
+void copy(Span<T> dst, const TRange &src) {
 	DASSERT(fwk::size(dst) >= fwk::size(src));
 	std::copy(begin(src), end(src), begin(dst));
+}
+
+template <class TRange, EnableIfRange<TRange>..., class TSpan, EnableIfSpan<TSpan>...>
+void copy(TSpan &dst, const TRange &src) {
+	copy(span(dst), src);
 }
 
 template <class T, class TRange, class T1 = RemoveConst<RangeBase<TRange>>,
