@@ -23,6 +23,8 @@ namespace detail {
 	GET_FIELD(5)
 	GET_FIELD(6)
 	GET_FIELD(7)
+	GET_FIELD(8)
+	GET_FIELD(9)
 #undef GET_FIELD
 }
 
@@ -102,6 +104,37 @@ struct LightTuple<Arg0, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7> {
 	Arg5 arg5 = Arg5();
 	Arg6 arg6 = Arg6();
 	Arg7 arg7 = Arg7();
+};
+
+template <class Arg0, class Arg1, class Arg2, class Arg3, class Arg4, class Arg5, class Arg6,
+		  class Arg7, class Arg8>
+struct LightTuple<Arg0, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8> {
+	enum { count = 9 };
+	Arg0 arg0 = Arg0();
+	Arg1 arg1 = Arg1();
+	Arg2 arg2 = Arg2();
+	Arg3 arg3 = Arg3();
+	Arg4 arg4 = Arg4();
+	Arg5 arg5 = Arg5();
+	Arg6 arg6 = Arg6();
+	Arg7 arg7 = Arg7();
+	Arg8 arg8 = Arg8();
+};
+
+template <class Arg0, class Arg1, class Arg2, class Arg3, class Arg4, class Arg5, class Arg6,
+		  class Arg7, class Arg8, class Arg9>
+struct LightTuple<Arg0, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9> {
+	enum { count = 10 };
+	Arg0 arg0 = Arg0();
+	Arg1 arg1 = Arg1();
+	Arg2 arg2 = Arg2();
+	Arg3 arg3 = Arg3();
+	Arg4 arg4 = Arg4();
+	Arg5 arg5 = Arg5();
+	Arg6 arg6 = Arg6();
+	Arg7 arg7 = Arg7();
+	Arg8 arg8 = Arg8();
+	Arg9 arg9 = Arg9();
 };
 
 template <int N, class... Args> const auto &get(const LightTuple<Args...> &tuple) {
