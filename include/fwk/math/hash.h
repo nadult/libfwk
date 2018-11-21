@@ -59,6 +59,10 @@ template <class Value /*= int*/> struct Hash {
 		return maybe ? compute(*maybe) : Value(0x31337);
 	}
 
+	template <class... Types> static Value compute(const Variant<Types...> &var) {
+		return hashCombine(compute(var.which()), var.visit([](auto &val) { return compute(val); }));
+	}
+
 	template <class T> Value operator()(const T &v) const { return compute(v); }
 };
 

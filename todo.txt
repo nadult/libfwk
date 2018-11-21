@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- przeniesc definicje order_by do implementacji tam gdzie się da
+- nazwy dla tied-memberów (podobnie jak w enumach) dla automatycznej serializacji xml?
 - transform(array<>>) nie dziala za dobrze dla typow ktore nie mają domyślnego konstruktora
 - zaraz po odpaleniu programu, zanim jeszcze ruszymy myszą, jej pozycja jest błędna
   jest to jakis bug w SDLu (SDL_GetMouseState zwraca złą pozycję); zauważalne na linuksie
