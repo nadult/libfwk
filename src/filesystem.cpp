@@ -39,24 +39,21 @@ bool FilePath::Element::operator==(const Element &rhs) const {
 	return size == rhs.size && strncmp(ptr, rhs.ptr, size) == 0;
 }
 
-FilePath::FilePath(const char *path) {
+FilePath::FilePath(Str path) {
 	vector<Element> elements;
 	elements.reserve(32);
 	divide(path, elements);
 	construct(elements);
 }
-FilePath::FilePath(const string &path) {
-	vector<Element> elements;
-	elements.reserve(32);
-	divide(path.c_str(), elements);
-	construct(elements);
-}
+
 FilePath::FilePath(FilePath &&ref) { ref.m_path.swap(m_path); }
+FilePath::FilePath(const char *zstr) : FilePath(Str(zstr)) {}
+FilePath::FilePath(const string &str) : FilePath(Str(str)) {}
 FilePath::FilePath(const FilePath &rhs) : m_path(rhs.m_path) {}
 FilePath::FilePath() : m_path(".") {}
 
-void FilePath::divide(const char *ptr, vector<Element> &out) {
-	DASSERT(ptr);
+void FilePath::divide(Str str, vector<Element> &out) {
+	auto ptr = str.begin(), end = str.end();
 
 	Element root = extractRoot(ptr);
 	if(root.ptr) {
@@ -66,7 +63,7 @@ void FilePath::divide(const char *ptr, vector<Element> &out) {
 
 	const char *prev = ptr;
 	do {
-		if(*ptr == '/' || *ptr == '\\' || *ptr == 0) {
+		if(*ptr == '/' || *ptr == '\\' || ptr >= end) {
 			if(ptr - prev > 0)
 				out.push_back(Element{prev, (int)(ptr - prev)});
 			if(!*ptr)
@@ -297,10 +294,12 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 	return out;
 }
 
+TextFormatter &operator<<(TextFormatter &fmt, const FilePath &path) { return fmt << ZStr(path); }
+
 TextParser &operator>>(TextParser &parser, FilePath &path) {
 	string text;
 	parser >> text;
-	path = move(text);
+	path = text;
 	return parser;
 }
 }

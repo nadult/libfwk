@@ -179,17 +179,16 @@ void loadFromStream(string &v, Stream &sr) {
 
 void saveToStream(const string &v, Stream &sr) { sr.saveString(v.c_str(), v.size()); }
 
-FileStream::FileStream(const char *file_name, bool is_loading)
-	: Stream(is_loading), m_name(file_name) {
-	if(!(m_file = fopen(file_name, is_loading ? "rb" : "wb")))
-		CHECK_FAILED("Error while opening file \"%s\"", file_name);
+FileStream::FileStream(Str file_name, bool is_loading) : Stream(is_loading), m_name(file_name) {
+	if(!(m_file = fopen(m_name.c_str(), is_loading ? "rb" : "wb")))
+		CHECK_FAILED("Error while opening file \"%s\"", m_name.c_str());
 
 	fseek((FILE *)m_file, 0, SEEK_END);
 	auto pos = ftell((FILE *)m_file);
 
 	if(pos < -1) {
 		fclose((FILE *)m_file);
-		CHECK_FAILED("Trying to open a directory: \"%s\"", file_name);
+		CHECK_FAILED("Trying to open a directory: \"%s\"", m_name.c_str());
 	}
 	m_size = pos;
 	fseek((FILE *)m_file, 0, SEEK_SET);
@@ -225,7 +224,7 @@ void FileStream::v_seek(long long pos) {
 	m_pos = pos;
 }
 
-const char *FileStream::name() const { return m_name.c_str(); }
+ZStr FileStream::name() const { return m_name; }
 
 MemoryLoader::MemoryLoader(const char *data, long long size) : Stream(true), m_data(data) {
 	ASSERT(size >= 0);

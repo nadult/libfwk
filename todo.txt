@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Stream::signature should use span<>
+- czy rapidxml dobrze współpracuje z rollbackiem? np. czy nie ma leaków?
 - przeniesc definicje order_by do implementacji tam gdzie się da
 - nazwy dla tied-memberów (podobnie jak w enumach) dla automatycznej serializacji xml?
 - transform(array<>>) nie dziala za dobrze dla typow ktore nie mają domyślnego konstruktora

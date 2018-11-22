@@ -4,12 +4,14 @@
 #pragma once
 
 #include "fwk/light_tuple.h"
+#include "fwk/str.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
 
 class FilePath {
   public:
+	FilePath(Str);
 	FilePath(const char *);
 	FilePath(const string &);
 	FilePath(FilePath &&);
@@ -40,6 +42,8 @@ class FilePath {
 	static FilePath current();
 	static void setCurrent(const FilePath &);
 
+	operator ZStr() const { return m_path; }
+	operator Str() const { return m_path; }
 	operator const string &() const { return m_path; }
 	const char *c_str() const { return m_path.c_str(); }
 	int size() const { return (int)m_path.size(); }
@@ -58,13 +62,14 @@ class FilePath {
 	};
 
 	static Element extractRoot(const char *);
-	static void divide(const char *, vector<Element> &);
+	static void divide(Str, vector<Element> &);
 	static void simplify(const vector<Element> &src, vector<Element> &dst);
 	void construct(const vector<Element> &);
 
 	string m_path; // its always non-empty
 };
 
+TextFormatter &operator<<(TextFormatter &, const FilePath &);
 TextParser &operator>>(TextParser &, FilePath &);
 
 struct FileEntry {

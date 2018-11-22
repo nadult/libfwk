@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/str.h"
 #include "fwk/sys_base.h"
 #include "fwk_vector.h"
 
@@ -15,7 +16,7 @@ class Stream {
 	Stream(bool is_loading);
 	virtual ~Stream() {}
 
-	virtual const char *name() const { return ""; }
+	virtual ZStr name() const { return ""; }
 
 	long long size() const { return m_size; }
 	long long pos() const { return m_pos; }
@@ -210,15 +211,13 @@ template <class T> void saveToStream(const T &obj, Stream &sr) {
 // Buffered, stdio based
 class FileStream : public Stream {
   public:
-	FileStream(const char *file_name, bool is_loading);
-	FileStream(const string &file_name, bool is_loading)
-		: FileStream(file_name.c_str(), is_loading) {}
+	FileStream(Str file_name, bool is_loading);
 	~FileStream();
 
 	FileStream(const FileStream &) = delete;
 	void operator=(const FileStream &) = delete;
 
-	const char *name() const override;
+	ZStr name() const override;
 
   protected:
 	void v_load(void *, int) override;
@@ -232,14 +231,12 @@ class FileStream : public Stream {
 
 class Loader : public FileStream {
   public:
-	Loader(const char *file_name) : FileStream(file_name, true) {}
-	Loader(const string &file_name) : FileStream(file_name.c_str(), true) {}
+	Loader(Str file_name) : FileStream(file_name, true) {}
 };
 
 class Saver : public FileStream {
   public:
-	Saver(const char *file_name) : FileStream(file_name, false) {}
-	Saver(const string &file_name) : FileStream(file_name.c_str(), false) {}
+	Saver(Str file_name) : FileStream(file_name, false) {}
 };
 
 class MemoryLoader : public Stream {

@@ -166,7 +166,7 @@ static void cleanOnRollback(void *arg) { untouch((xml_document<> *)arg); }
 XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {
 	RollbackContext::atRollback(cleanOnRollback, m_ptr.get());
 }
-XmlDocument::XmlDocument(ZStr file_name) : XmlDocument() {
+XmlDocument::XmlDocument(Str file_name) : XmlDocument() {
 	Loader loader(file_name);
 	loader >> *this;
 }
@@ -197,13 +197,13 @@ XmlNode XmlDocument::child(const char *name) const {
 	return XmlNode(m_ptr->first_node(name), m_ptr.get());
 }
 
-void XmlDocument::load(const char *file_name) {
+void XmlDocument::load(Str file_name) {
 	DASSERT(file_name);
 	Loader ldr(file_name);
 	ldr >> *this;
 }
 
-void XmlDocument::save(const char *file_name) const {
+void XmlDocument::save(Str file_name) const {
 	DASSERT(file_name);
 	Saver svr(file_name);
 	svr << *this;

@@ -125,14 +125,14 @@ class XmlNode : public CXmlNode {
 class XmlDocument {
   public:
 	XmlDocument();
-	XmlDocument(ZStr file_name);
+	XmlDocument(Str file_name);
 	XmlDocument(Stream &);
 	XmlDocument(XmlDocument &&);
 	~XmlDocument();
 	XmlDocument &operator=(XmlDocument &&);
 
-	void load(const char *file_name);
-	void save(const char *file_name) const;
+	void load(Str file_name);
+	void save(Str file_name) const;
 
 	void load(Stream &);
 	void save(Stream &) const;
