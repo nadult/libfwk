@@ -423,6 +423,11 @@ void copy(T *dst, const TRange &src) {
 	std::copy(begin(src), end(src), dst);
 }
 
+template <class T, class T1, EnableIf<std::is_convertible_v<T1, T>>...>
+void fill(Span<T> span, const T1 &value) {
+	std::fill(begin(span), end(span), value);
+}
+
 template <class TRange, EnableIfRange<TRange>..., class T>
 void fill(TRange &range, const T &value) {
 	std::fill(begin(range), end(range), value);
