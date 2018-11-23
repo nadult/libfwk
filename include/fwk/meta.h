@@ -84,6 +84,11 @@ template <bool cond, class InvalidArg = DisabledType>
 using EnableIf =
 	typename std::conditional<cond, detail::ValidType, InvalidArg>::type::template Arg<EnabledType>;
 
+// TODO: doesn't work for automatic list initialization
+struct NotConstructible;
+template <class T, class... Args>
+using EnableIfConstructible = EnableIf<std::is_constructible<T, Args...>::value, NotConstructible>;
+
 template <class T1, class T2> constexpr bool isSame() { return std::is_same<T1, T2>::value; }
 template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
 
