@@ -75,6 +75,7 @@ class Str {
 };
 
 // Zero terminated Str
+// TODO: add terminating 0 checks ?
 class ZStr : public Str {
   public:
 	ZStr(const string &str) : Str(str) {}

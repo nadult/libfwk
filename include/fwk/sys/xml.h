@@ -25,40 +25,43 @@ class CXmlNode {
 	CXmlNode() = default;
 
 	// TODO: change to tryAttrib?
-	// Returns nullptr if not found
-	const char *hasAttrib(const char *name) const;
+	// Returns empty string if not found
+	ZStr hasAttrib(Str name) const;
 
 	// If an attribute cannot be found or properly parsed then exception is thrown
-	const char *attrib(const char *name) const;
+	ZStr attrib(Str name) const;
 	// If an attribute cannot be found then default_value will be returned
-	const char *attrib(const char *name, const char *default_value) const;
+	ZStr attrib(Str name, ZStr default_value) const;
+	ZStr attrib(Str name, const char *default_value) const {
+		return attrib(name, ZStr(default_value));
+	}
 
-	template <class T> T attrib(const char *name) const { return fromString<T>(attrib(name)); }
+	template <class T> T attrib(Str name) const { return fromString<T>(attrib(name)); }
 
-	template <class T, class RT = Decay<T>> RT attrib(const char *name, T &&or_else) const {
-		const char *value = hasAttrib(name);
+	template <class T, class RT = Decay<T>> RT attrib(Str name, T &&or_else) const {
+		ZStr value = hasAttrib(name);
 		return value ? fromString<RT>(value) : or_else;
 	}
 
-	CXmlNode sibling(const char *name = nullptr) const;
-	CXmlNode child(const char *name = nullptr) const;
+	CXmlNode sibling(Str name = {}) const;
+	CXmlNode child(Str name = {}) const;
 
 	void next() { *this = sibling(name()); }
 
-	const char *value() const;
+	ZStr value() const;
 
 	template <class T> T value() const { return fromString<T>(value()); }
 	template <class T> T value(T default_value) const {
-		const char *val = value();
-		return val[0] ? value<T>() : default_value;
+		ZStr val = value();
+		return val ? value<T>() : default_value;
 	}
-	template <class T> T childValue(const char *child_name, T default_value) const {
+	template <class T> T childValue(Str child_name, T default_value) const {
 		CXmlNode child_node = child(child_name);
-		const char *val = child_node ? child_node.value() : "";
-		return val[0] ? child_node.value<T>() : default_value;
+		ZStr val = child_node ? child_node.value() : "";
+		return val ? child_node.value<T>() : default_value;
 	}
 
-	const char *name() const;
+	ZStr name() const;
 	explicit operator bool() const { return m_ptr != nullptr; }
 
   protected:
@@ -78,31 +81,30 @@ class XmlNode : public CXmlNode {
 	// When adding new nodes, you have to make sure that strings given as
 	// arguments will exist as long as XmlNode exists; use 'own' method
 	// to reallocate them in the memory pool if you're not sure
-	void addAttrib(const char *name, const char *value);
-	void addAttrib(const char *name, int value);
-	void addAttrib(const char *name, Str value);
+	void addAttrib(Str name, Str value);
+	void addAttrib(Str name, int value);
 
-	template <class T> void addAttrib(const char *name, const T &value) {
+	template <class T> void addAttrib(Str name, const T &value) {
 		TextFormatter formatter(256, {FormatMode::plain});
 		formatter << value;
 		addAttrib(name, own(formatter));
 	}
-	template <class T> void addAttrib(const char *name, const T &value, const T &default_value) {
+	template <class T> void addAttrib(Str name, const T &value, const T &default_value) {
 		if(value != default_value)
 			addAttrib(name, value);
 	}
 
-	XmlNode addChild(const char *name, const char *value = nullptr);
-	XmlNode sibling(const char *name = nullptr) const;
-	XmlNode child(const char *name = nullptr) const;
+	XmlNode addChild(Str name, Str value = {});
+	XmlNode sibling(Str name = {}) const;
+	XmlNode child(Str name = {}) const;
 
-	template <class T> XmlNode addChild(const char *name, const T &value) {
+	template <class T> XmlNode addChild(Str name, const T &value) {
 		TextFormatter formatter(256, {FormatMode::plain});
 		formatter << value;
 		return addChild(name, own(formatter));
 	}
 
-	void setValue(const char *text);
+	void setValue(Str text);
 
 	template <class T> void setValue(const T &value) {
 		TextFormatter formatter(256, {FormatMode::plain});
@@ -110,8 +112,8 @@ class XmlNode : public CXmlNode {
 		setValue(own(formatter));
 	}
 
-	const char *own(Str);
-	const char *own(const TextFormatter &str) { return own(str.text()); }
+	Str own(Str);
+	Str own(const TextFormatter &str) { return own(str.text()); }
 	explicit operator bool() const { return m_ptr != nullptr; }
 
   protected:
@@ -137,14 +139,13 @@ class XmlDocument {
 	void load(Stream &);
 	void save(Stream &) const;
 
-	XmlNode addChild(const char *name, const char *value = nullptr);
+	XmlNode addChild(Str name, Str value = {});
 
 	// TODO: const should return CXmlNode
-	XmlNode child(const char *name = nullptr) const;
-	XmlNode child(const string &name) const { return child(name.c_str()); }
+	XmlNode child(Str name = {}) const;
 
-	const char *own(Str);
-	const char *own(const TextFormatter &str) { return own(str.text()); }
+	Str own(Str);
+	Str own(const TextFormatter &str) { return own(str.text()); }
 
 	string lastNodeInfo() const;
 

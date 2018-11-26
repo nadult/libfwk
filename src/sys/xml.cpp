@@ -66,38 +66,52 @@ void parse_error_handler(const char *what, void *where) {
 
 namespace fwk {
 
-const char *CXmlNode::hasAttrib(const char *name) const {
-	xml_attribute<> *attrib = m_ptr->first_attribute(name);
-	touch(m_ptr, attrib);
-
-	return attrib ? attrib->value() : nullptr;
+static void checkNodeName(Str name) {
+	if(!name)
+		CHECK_FAILED("Node names cannot be empty");
+	for(auto c : name)
+		if(!isalnum(c) && c != '_')
+			CHECK_FAILED("Invalid Xml node name: '%s' invalid char: '%c'",
+						 name.limitSizeBack(40).c_str(), c);
 }
 
-const char *CXmlNode::attrib(const char *name) const {
-	xml_attribute<> *attrib = m_ptr->first_attribute(name);
+static const char *strOrNull(Str str) { return str ? str.data() : nullptr; }
+
+ZStr CXmlNode::hasAttrib(Str name) const {
+	PASSERT(name);
+	xml_attribute<> *attrib = m_ptr->first_attribute(name.data(), name.size());
+	touch(m_ptr, attrib);
+
+	return attrib ? attrib->value() : ZStr();
+}
+
+ZStr CXmlNode::attrib(Str name) const {
+	PASSERT(name);
+	xml_attribute<> *attrib = m_ptr->first_attribute(name.data(), name.size());
 	touch(m_ptr, attrib);
 
 	if(!attrib || !attrib->value())
-		CHECK_FAILED("attribute '%s' not found in node: %s\n", name, this->name());
+		CHECK_FAILED("attribute '%s' not found in node: %s\n", string(name).c_str(),
+					 this->name().c_str());
 	return attrib->value();
 }
 
-const char *CXmlNode::attrib(const char *name, const char *default_value) const {
-	const char *value = hasAttrib(name);
+ZStr CXmlNode::attrib(Str name, ZStr default_value) const {
+	ZStr value = hasAttrib(name);
 	return value ? value : default_value;
 }
 
-const char *CXmlNode::name() const { return m_ptr->name(); }
-const char *CXmlNode::value() const { return m_ptr->value(); }
+ZStr CXmlNode::name() const { return {m_ptr->name(), (int)m_ptr->name_size()}; }
+ZStr CXmlNode::value() const { return {m_ptr->value(), (int)m_ptr->value_size()}; }
 
-CXmlNode CXmlNode::sibling(const char *name) const {
-	auto *sibling = m_ptr->next_sibling(name);
+CXmlNode CXmlNode::sibling(Str name) const {
+	auto *sibling = m_ptr->next_sibling(strOrNull(name), name.size());
 	touch(sibling ? sibling : m_ptr);
 	return {sibling};
 }
 
-CXmlNode CXmlNode::child(const char *name) const {
-	auto *child_node = m_ptr->first_node(name);
+CXmlNode CXmlNode::child(Str name) const {
+	auto *child_node = m_ptr->first_node(strOrNull(name), name.size());
 	touch(child_node ? child_node : m_ptr);
 	return {child_node};
 }
@@ -107,56 +121,45 @@ XmlNode::XmlNode(CXmlNode cnode) : CXmlNode(cnode) {
 		m_doc = m_ptr->document();
 }
 
-const char *XmlNode::own(Str str) {
+Str XmlNode::own(Str str) {
 	char *ptr = m_doc->allocate_string(nullptr, str.size() + 1);
 	memcpy(ptr, str.data(), str.size());
 	ptr[str.size()] = 0;
 	return ptr;
 }
 
-void XmlNode::addAttrib(const char *name, int value) {
+void XmlNode::addAttrib(Str name, int value) {
 	char str_value[32];
 	sprintf(str_value, "%d", value);
 	addAttrib(name, own(str_value));
 }
 
-void XmlNode::addAttrib(const char *name, Str value) {
-	// FIXME: check it
-	auto *attrib = m_doc->allocate_attribute(name, value.data(), 0, value.size());
+void XmlNode::addAttrib(Str name, Str value) {
+	CHECK(name && "Attrib names cannot be empty");
+	auto *attrib =
+		m_doc->allocate_attribute(name.data(), strOrNull(value), name.size(), value.size());
 	m_ptr->append_attribute(attrib);
 	touch(m_ptr, attrib);
 }
 
-void XmlNode::addAttrib(const char *name, const char *value) {
-	auto *attrib = m_doc->allocate_attribute(name, value);
-	m_ptr->append_attribute(attrib);
-	touch(m_ptr, attrib);
-}
-
-static void checkNodeName(ZStr name) {
-	for(auto c : name)
-		if(!isalnum(c) && c != '_')
-			CHECK_FAILED("Invalid Xml node name: '%s' invalid char: '%c'",
-						 name.limitSizeBack(40).c_str(), c);
-}
-
-XmlNode XmlNode::addChild(const char *name, const char *value) {
+XmlNode XmlNode::addChild(Str name, Str value) {
 	checkNodeName(name);
-	xml_node<> *node = m_doc->allocate_node(node_element, name, value);
+	xml_node<> *node = m_doc->allocate_node(node_element, name.data(), strOrNull(value),
+											name.size(), value.size());
 	m_ptr->append_node(node);
 	touch(node);
 
 	return XmlNode(node, m_doc);
 }
 
-void XmlNode::setValue(const char *text) { m_ptr->value(text); }
+void XmlNode::setValue(Str text) { m_ptr->value(text.data(), text.size()); }
 
-XmlNode XmlNode::sibling(const char *name) const {
+XmlNode XmlNode::sibling(Str name) const {
 	auto cnode = CXmlNode::sibling(name);
 	return {cnode.m_ptr, m_doc};
 }
 
-XmlNode XmlNode::child(const char *name) const {
+XmlNode XmlNode::child(Str name) const {
 	auto cnode = CXmlNode::child(name);
 	return {cnode.m_ptr, m_doc};
 }
@@ -179,22 +182,23 @@ XmlDocument::~XmlDocument() {
 }
 XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 
-const char *XmlDocument::own(Str str) {
+Str XmlDocument::own(Str str) {
 	char *ptr = m_ptr->allocate_string(nullptr, str.size() + 1);
 	memcpy(ptr, str.data(), str.size());
 	ptr[str.size()] = 0;
 	return ptr;
 }
 
-XmlNode XmlDocument::addChild(const char *name, const char *value) {
+XmlNode XmlDocument::addChild(Str name, Str value) {
 	checkNodeName(name);
-	xml_node<> *node = m_ptr->allocate_node(node_element, name, value);
+	xml_node<> *node = m_ptr->allocate_node(node_element, name.data(), strOrNull(value),
+											name.size(), value.size());
 	m_ptr->append_node(node);
 	return XmlNode(node, m_ptr.get());
 }
 
-XmlNode XmlDocument::child(const char *name) const {
-	return XmlNode(m_ptr->first_node(name), m_ptr.get());
+XmlNode XmlDocument::child(Str name) const {
+	return XmlNode(m_ptr->first_node(strOrNull(name), name.size()), m_ptr.get());
 }
 
 void XmlDocument::load(Str file_name) {

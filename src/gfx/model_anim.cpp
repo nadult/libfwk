@@ -23,11 +23,11 @@ AffineTrans ModelAnim::transFromXML(CXmlNode node, const AffineTrans &default_tr
 	float3 pos = default_trans.translation, scale = default_trans.scale;
 	Quat rot = default_trans.rotation;
 
-	if(auto *pos_string = node.hasAttrib("pos"))
+	if(auto pos_string = node.hasAttrib("pos"))
 		pos = fromString<float3>(pos_string);
-	if(auto *scale_string = node.hasAttrib("scale"))
+	if(auto scale_string = node.hasAttrib("scale"))
 		scale = fromString<float3>(scale_string);
-	if(auto *rot_string = node.hasAttrib("rot"))
+	if(auto rot_string = node.hasAttrib("rot"))
 		rot = fromString<Quat>(rot_string);
 	return AffineTrans(pos, rot, scale);
 }
