@@ -228,7 +228,7 @@ template <class T> class Vector {
 			new(data() + index++) T();
 	}
 
-	template <class... Args> void emplace_back(Args &&... args) {
+	template <class... Args> T &emplace_back(Args &&... args) {
 		if(m_base.size == m_base.capacity) {
 			if(std::is_trivially_move_constructible<T>::value &&
 			   std::is_trivially_destructible<T>::value)
@@ -237,7 +237,9 @@ template <class T> class Vector {
 				m_base.grow(sizeof(T), &Vector::moveAndDestroy);
 		}
 		new(end()) T{std::forward<Args>(args)...};
+		T &back = (reinterpret_cast<T *>(m_base.data))[m_base.size];
 		m_base.size++;
+		return back;
 	}
 	void push_back(const T &rhs) { emplace_back(rhs); }
 	void push_back(T &&rhs) { emplace_back(std::move(rhs)); }
