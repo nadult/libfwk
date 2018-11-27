@@ -94,8 +94,12 @@ class ZStr : public Str {
 	const char *c_str() const { return m_data; }
 };
 
+vector<string> tokenize(ZStr, char c = ' ');
+
 struct Tokenizer {
-	explicit Tokenizer(const char *str, char delim = ' ') : m_str(str), m_delim(delim) {}
+	explicit Tokenizer(const char *str, char delim = ' ') : m_str(str), m_delim(delim) {
+		DASSERT(delim);
+	}
 
 	Str next();
 	bool finished() const { return *m_str == 0; }

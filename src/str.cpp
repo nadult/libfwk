@@ -6,6 +6,8 @@
 #include "fwk/maybe.h"
 #include "fwk/pod_vector.h"
 
+#include "fwk/format.h"
+
 namespace fwk {
 
 #if defined(FWK_TARGET_MINGW)
@@ -91,11 +93,22 @@ int Str::find(Str str) const {
 #endif
 }
 
+vector<string> tokenize(ZStr str, char c) {
+	Tokenizer tok(str.c_str(), c);
+	vector<string> result;
+	result.reserve(std::count(begin(str), end(str), c) + 1);
+	while(!tok.finished())
+		result.emplace_back(tok.next());
+	return result;
+}
+
 Str Tokenizer::next() {
 	const char *start = m_str;
 	while(*m_str && *m_str != m_delim)
 		m_str++;
-	const char *end = m_str++;
+	const char *end = m_str;
+	if(*m_str)
+		m_str++;
 
 	return {start, (int)(end - start)};
 }

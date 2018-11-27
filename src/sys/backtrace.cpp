@@ -48,21 +48,6 @@ namespace {
 		return command.text();
 	}
 
-	// Source: https://stackoverflow.com/questions/53849/how-do-i-tokenize-a-string-in-c
-	vector<string> split(const char *str, char c = ' ') {
-		vector<string> result;
-
-		do {
-			const char *begin = str;
-			while(*str != c && *str)
-				str++;
-			if(begin != str)
-				result.emplace_back(string(begin, str));
-		} while(*str++ != 0);
-
-		return result;
-	}
-
 	template <class Iter> string mergeWithSpaces(Iter begin, Iter end) {
 		string out;
 		while(begin != end) {
@@ -95,7 +80,7 @@ namespace {
 	};
 
 	vector<GdbThreadInfo> splitGdbInput(string input) {
-		auto lines = split(input.c_str(), '\n');
+		auto lines = tokenize(input.c_str(), '\n');
 
 		vector<GdbThreadInfo> out;
 		GdbThreadInfo current;
@@ -135,7 +120,7 @@ namespace {
 			if(line[0] != '#' || skip_frames-- > 0)
 				continue;
 
-			auto tokens = split(line.c_str());
+			auto tokens = tokenize(line.c_str());
 			if(tokens.size() > 3) {
 				int count = tokens[2] == "in" ? 3 : 1;
 				tokens.erase(tokens.begin(), tokens.begin() + count);
@@ -159,7 +144,7 @@ namespace {
 				string file;
 				int line;
 
-				tokens = split(file_line.c_str(), ':');
+				tokens = tokenize(file_line.c_str(), ':');
 				if(tokens.size() == 2) {
 					new_entry.file = tokens[0];
 					new_entry.line = tokens[1];
