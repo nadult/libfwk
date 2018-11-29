@@ -148,7 +148,6 @@ TODO: which OpenGL version are we targeting ?
 - Vector::reinterpret moves ?!?!?; change it to ink ?
 - assert shouldnt print itself in backtrace
 - std format in ASSERT, FAILED & CHECK ?
-- isSame, etc. -> is_same
 - fix parsing ? strtol is used for ints, strtoll for unsigned ints..
 - Hash<> for user types (not only tied?)
 - example Makefile for test/window which uses Makefile.include ?

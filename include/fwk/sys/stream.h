@@ -64,15 +64,11 @@ class Stream {
 	static string handleError(void *stream_ptr, void *) NOINLINE;
 
   private:
-	template <class... Args> struct SumSize {
-		enum { value = 0 };
-	};
+	template <class... Args> struct SumSize { static constexpr int value = 0; };
 	template <class T, class... Args> struct SumSize<T, Args...> {
-		enum { value = sizeof(T) + SumSize<Args...>::value };
+		static constexpr int value = sizeof(T) + SumSize<Args...>::value;
 	};
-	template <class T> struct SumSize<T> {
-		enum { value = sizeof(T) };
-	};
+	template <class T> struct SumSize<T> { static constexpr int value = sizeof(T); };
 
 	template <class... Args> struct CopyTo {};
 	template <class T1> struct CopyTo<T1> {
@@ -154,17 +150,13 @@ template <class T> struct SerializeAsPod {
 	template <typename U> static char test(SFINAE<U, &U::save> *);
 	template <typename U> static long test(...);
 
-	enum { has_serialize_method = sizeof(test<T>(0)) == 1 };
-	enum {
-		value = std::is_base_of<TraitSerializeAsPod, T>::value ||
-				(std::is_pod<T>::value && !has_serialize_method)
-	};
-	enum { arraySize = 1 };
+	static constexpr bool has_serialize_method = sizeof(test<T>(0)) == 1;
+	static constexpr bool value = std::is_base_of<TraitSerializeAsPod, T>::value ||
+								  (std::is_pod<T>::value && !has_serialize_method);
 };
 
 template <class T, int size> struct SerializeAsPod<T[size]> {
-	enum { value = SerializeAsPod<T>::value };
-	enum { arraySize = size };
+	static constexpr bool value = SerializeAsPod<T>::value;
 };
 
 void loadFromStream(string &, Stream &);

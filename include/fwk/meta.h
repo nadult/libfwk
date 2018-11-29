@@ -20,7 +20,7 @@ constexpr None none = {};
 
 template <class T, int N> struct IndexedType {
 	using type = T;
-	enum { value = N };
+	static constexpr int value = N;
 };
 
 template <class T> struct Type {};

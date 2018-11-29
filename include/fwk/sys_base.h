@@ -155,9 +155,7 @@ double getTime();
 // TODO: use std::is_trivially_copyable instead?
 #define SERIALIZE_AS_POD(type)                                                                     \
 	namespace fwk {                                                                                \
-		template <> struct SerializeAsPod<type> {                                                  \
-			enum { value = 1 };                                                                    \
-		};                                                                                         \
+		template <> struct SerializeAsPod<type> { static constexpr bool value = true; };           \
 	}
 
 class Backtrace;

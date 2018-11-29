@@ -108,14 +108,15 @@ namespace detail {
 	template <> struct IsIntegral<qint> : public std::true_type {};
 
 	template <class T> struct IsScalar {
-		enum { value = IsReal<T>::value || IsIntegral<T>::value || IsRational<T>::value };
+		static constexpr bool value =
+			IsReal<T>::value || IsIntegral<T>::value || IsRational<T>::value;
 	};
 
 	template <class T, template <class> class Trait> struct ScalarTrait {
 		template <class U>
 		static typename std::enable_if<Trait<typename U::Scalar>::value, char>::type test(U *);
 		template <class U> static long test(...);
-		enum { value = sizeof(test<T>(nullptr)) == 1 };
+		static constexpr bool value = sizeof(test<T>(nullptr)) == 1;
 	};
 
 	template <class T, int N> struct MakeVec { using type = NotAValidVec<N>; };
@@ -130,12 +131,10 @@ namespace detail {
 	};
 
 	template <class T> struct VecSize {
-		template <int N> struct Size {
-			enum { value = N };
-		};
+		template <int N> struct Size { static constexpr int value = N; };
 		template <class U> static auto test(U *) -> Size<U::vec_size>;
 		template <class U> static Size<0> test(...);
-		enum { value = decltype(test<T>(nullptr))::value };
+		static constexpr int value = decltype(test<T>(nullptr))::value;
 	};
 
 	template <class T> struct Promotion { using type = T; };
@@ -149,15 +148,13 @@ namespace detail {
 				return PreciseConversion<PFrom, To>::value;
 			return false;
 		}
-		enum { value = resolve() };
+		static constexpr bool value = resolve();
 	};
 
 #define PROMOTION(base, promoted)                                                                  \
 	template <> struct Promotion<base> { using type = promoted; };
 #define PRECISE(from, to)                                                                          \
-	template <> struct PreciseConversion<from, to> {                                               \
-		enum { value = true };                                                                     \
-	};
+	template <> struct PreciseConversion<from, to> { static constexpr bool value = true; };
 
 	PROMOTION(short, int);
 	PROMOTION(int, llint);

@@ -41,7 +41,7 @@ namespace detail {
 		template <class U> static InvalidInfo test(...);
 
 		using Info = decltype(test<T>(DECLVAL(T &)));
-		enum { value = !is_same<Info, InvalidInfo> };
+		static constexpr bool value = !is_same<Info, InvalidInfo>;
 		using MaybeInfo = Conditional<value, Info, NotARange>;
 	};
 
@@ -72,7 +72,7 @@ namespace detail {
 		template <class U> static InvalidInfo test(...);
 
 		using Info = decltype(test<T>(PriorityTag<1>(), DECLVAL(T &)));
-		enum { value = !is_same<Info, InvalidInfo> };
+		static constexpr bool value = !is_same<Info, InvalidInfo>;
 		using MaybeInfo = Conditional<value, Info, NotASpan>;
 	};
 }
