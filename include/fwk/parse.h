@@ -19,7 +19,7 @@ namespace detail {
 		template <class U>
 		static auto test(U &) -> decltype(declval<TextParser &>() >> declval<U &>());
 		static char test(...);
-		enum { value = isSame<decltype(test(declval<T &>())), TextParser &>() };
+		enum { value = is_same<decltype(test(declval<T &>())), TextParser &> };
 	};
 
 	template <class T> struct VariableParseElements { static constexpr bool value = false; };

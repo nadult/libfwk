@@ -35,14 +35,14 @@ namespace detail {
 		template <class U>
 		static auto test(const U &) -> decltype(declval<TextFormatter &>() << declval<const U &>());
 		static char test(...);
-		enum { value = isSame<decltype(test(declval<const T &>())), TextFormatter &>() };
+		enum { value = is_same<decltype(test(declval<const T &>())), TextFormatter &> };
 	};
 
 	template <class T> struct IsRightFormattible {
 		template <class U>
 		static auto test(const U &) -> decltype(declval<const U &>() >> declval<TextFormatter &>());
 		static char test(...);
-		enum { value = isSame<decltype(test(declval<const T &>())), void>() };
+		enum { value = is_same<decltype(test(declval<const T &>())), void> };
 	};
 
 	template <class T> void append(TextFormatter &fmt, TFValue val) {

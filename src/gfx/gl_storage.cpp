@@ -49,7 +49,7 @@ template <class T> int GlStorage<T>::allocGL() {
 	GLuint value = 0;
 	PASSERT_GL_THREAD();
 #define CASE(otype, func)                                                                          \
-	if constexpr(isSame<T, otype>())                                                               \
+	if constexpr(is_same<T, otype>)                                                               \
 		func(1, &value);
 
 	CASE(GlBuffer, glGenBuffers)
@@ -63,15 +63,15 @@ template <class T> int GlStorage<T>::allocGL() {
 
 #undef CASE
 
-	if constexpr(isSame<T, GlVertexArray>()) {
+	if constexpr(is_same<T, GlVertexArray>) {
 		if(gl_info->hasFeature(GlFeature::vertex_array_object))
 			glGenVertexArrays(1, &value);
 		else
 			value = s_internal<T>.allocDummy();
 	}
-	if constexpr(isSame<T, GlProgram>())
+	if constexpr(is_same<T, GlProgram>)
 		value = glCreateProgram();
-	if constexpr(isSame<T, GlShader>())
+	if constexpr(is_same<T, GlShader>)
 		FATAL("Use custom function for shaders & programs");
 
 	DASSERT(GLuint(int(value)) == value);
@@ -83,7 +83,7 @@ template <class T> void GlStorage<T>::freeGL(int id) {
 	PASSERT_GL_THREAD();
 
 #define CASE(otype, func)                                                                          \
-	if constexpr(isSame<T, otype>())                                                               \
+	if constexpr(is_same<T, otype>)                                                               \
 		func(1, &value);
 
 	CASE(GlBuffer, glDeleteBuffers)
@@ -95,15 +95,15 @@ template <class T> void GlStorage<T>::freeGL(int id) {
 	CASE(GlRenderbuffer, glDeleteRenderbuffers)
 	CASE(GlFramebuffer, glDeleteFramebuffers)
 
-	if constexpr(isSame<T, GlVertexArray>()) {
+	if constexpr(is_same<T, GlVertexArray>) {
 		if(gl_info->hasFeature(GlFeature::vertex_array_object))
 			glDeleteVertexArrays(1, &value);
 		else
 			s_internal<T>.freeDummy(value);
 	}
-	if constexpr(isSame<T, GlShader>())
+	if constexpr(is_same<T, GlShader>)
 		glDeleteShader(value);
-	if constexpr(isSame<T, GlProgram>())
+	if constexpr(is_same<T, GlProgram>)
 		glDeleteProgram(value);
 #undef CASE
 }

@@ -89,8 +89,11 @@ struct NotConstructible;
 template <class T, class... Args>
 using EnableIfConstructible = EnableIf<std::is_constructible<T, Args...>::value, NotConstructible>;
 
-template <class T1, class T2> constexpr bool isSame() { return std::is_same<T1, T2>::value; }
-template <class T> constexpr bool isConst() { return std::is_const<T>::value; }
+template <class T1, class T2> constexpr bool is_same = false;
+template <class T> constexpr bool is_same<T, T> = true;
+
+template <class T1> constexpr bool is_const = false;
+template <class T> constexpr bool is_const<const T> = true;
 
 template <bool value, class T1, class T2>
 using Conditional = typename std::conditional<value, T1, T2>::type;

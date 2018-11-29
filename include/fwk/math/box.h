@@ -290,11 +290,10 @@ template <class T> bool touches(const Box<T> &lhs, const Box<T> &rhs) {
 FBox encloseTransformed(const FBox &, const Matrix4 &);
 
 template <class T> constexpr bool isEnclosable() {
-	if constexpr(isMathObject<T>() && !isVec<T>()) {
-		return isSame<decltype(enclose(declval<T>())), Box<typename T::Vector>>();
-	} else {
+	if constexpr(isMathObject<T>() && !isVec<T>())
+		return is_same<decltype(enclose(declval<T>())), Box<typename T::Vector>>;
+	else
 		return false;
-	}
 }
 
 template <class TRange, class T = RangeBase<TRange>, EnableIf<isEnclosable<T>()>...>

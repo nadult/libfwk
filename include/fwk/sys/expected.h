@@ -8,12 +8,13 @@
 
 namespace fwk {
 
-template <class T> class[[nodiscard]] Expected {
+template <class T>
+class [[nodiscard]] Expected {
   public:
-	static_assert(!isSame<T, Error>());
+	static_assert(!is_same<T, Error>);
 
 	Expected(const T &value) : m_value(value), m_has_value(true) {}
-	Expected(T &&value) : m_value(move(value)), m_has_value(true) {}
+	Expected(T && value) : m_value(move(value)), m_has_value(true) {}
 	Expected(Error error) : m_error(uniquePtr<Error>(move(error))), m_has_value(false) {}
 	~Expected() {
 		if(m_has_value)
@@ -28,14 +29,14 @@ template <class T> class[[nodiscard]] Expected {
 		else
 			new(&m_error) UniquePtr<Error>(rhs.m_error);
 	}
-	Expected(Expected &&rhs) : m_has_value(rhs.m_has_value) {
+	Expected(Expected && rhs) : m_has_value(rhs.m_has_value) {
 		if(m_has_value)
 			new(&m_value) T(move(rhs.m_value));
 		else
 			new(&m_error) UniquePtr<Error>(move(rhs.m_error));
 	}
 
-	void swap(Expected &rhs) {
+	void swap(Expected & rhs) {
 		Expected temp = move(*this);
 		*this = move(rhs);
 		rhs = move(temp);
@@ -97,14 +98,13 @@ template <class T> class[[nodiscard]] Expected {
 	bool m_has_value;
 };
 
-template <> class[[nodiscard]] Expected<void> {
+template <>
+class [[nodiscard]] Expected<void> {
   public:
 	Expected() {}
 	Expected(Error error) : m_error(uniquePtr<Error>(move(error))) {}
 
-	void swap(Expected &rhs) {
-		fwk::swap(m_error, rhs.m_error);
-	}
+	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
 
 	Error &error() {
 		DASSERT(m_error.get());
@@ -126,5 +126,4 @@ template <> class[[nodiscard]] Expected<void> {
   private:
 	UniquePtr<Error> m_error;
 };
-
 }

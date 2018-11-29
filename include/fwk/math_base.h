@@ -142,10 +142,10 @@ namespace detail {
 
 	template <class From, class To> struct PreciseConversion {
 		static constexpr bool resolve() {
-			if constexpr(isSame<From, To>())
+			if constexpr(is_same<From, To>)
 				return true;
 			using PFrom = typename Promotion<From>::type;
-			if constexpr(!isSame<PFrom, From>())
+			if constexpr(!is_same<PFrom, From>)
 				return PreciseConversion<PFrom, To>::value;
 			return false;
 		}

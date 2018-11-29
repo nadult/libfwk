@@ -46,7 +46,7 @@ namespace detail {
 
 	template <class T, EnableIf<valid_vb_type<T>>...> constexpr VertexBaseType vbType() {
 #define CASE(type, value)                                                                          \
-	if constexpr(isSame<T, type>())                                                                \
+	if constexpr(is_same<T, type>)                                                                 \
 		return VertexBaseType::value;
 		CASE(i8, int8)
 		CASE(u8, uint8)
@@ -76,7 +76,7 @@ namespace detail {
 	template <class T> constexpr const VertexAttrib *defaultVA() {
 		if constexpr(isVec<T>())
 			return defaultVABase<fwk::VecScalar<T>, vec_size<T>>();
-		if constexpr(isSame<T, IColor>()) {
+		if constexpr(is_same<T, IColor>) {
 			return &default_va<VertexBaseType::uint8, 4, 0, flag(VertexAttribOpt::normalized).bits>;
 		}
 

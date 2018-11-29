@@ -32,7 +32,7 @@ namespace detail {
 	};
 
 	template <class T>
-	struct EmptyMaybe<T, EnableIf<isSame<decltype(declval<const T &>().validMaybe()), bool>() &&
+	struct EmptyMaybe<T, EnableIf<is_same<decltype(declval<const T &>().validMaybe()), bool> &&
 								  std::is_convertible<fwk::EmptyMaybe, T>::value>> {
 		static constexpr T make() { return T(fwk::EmptyMaybe()); }
 		static constexpr bool valid(const T &val) { return val.validMaybe(); }
@@ -136,7 +136,7 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 
 // Storage for types which can hold invalid values inside them
 template <class T>
-class MaybeStorage<T, EnableIf<isSame<decltype(detail::EmptyMaybe<T>::make()), T>()>> {
+class MaybeStorage<T, EnableIf<is_same<decltype(detail::EmptyMaybe<T>::make()), T>>> {
   public:
 	MaybeStorage() : m_value(Empty::make()) {}
 	MaybeStorage(T &&value) : m_value(move(value)) {}

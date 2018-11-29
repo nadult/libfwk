@@ -35,20 +35,20 @@ namespace detail {
 				  class It2 = decltype(end(declval<U &>())),
 				  class Base1 = typename std::remove_reference<decltype(*declval<It1 &>())>::type,
 				  class Base2 = typename std::remove_reference<decltype(*declval<It2 &>())>::type,
-				  EnableIf<(isSame<RemoveConst<Base1>, ReqType>() || isSame<void, ReqType>()) &&
-						   isSame<Base1, Base2>()>...>
+				  EnableIf<(is_same<RemoveConst<Base1>, ReqType> ||
+							is_same<void, ReqType>)&&is_same<Base1, Base2>>...>
 		static auto test(U &) -> ValidInfo<It1, Base1>;
 		template <class U> static InvalidInfo test(...);
 
 		using Info = decltype(test<T>(declval<T &>()));
-		enum { value = !isSame<Info, InvalidInfo>() };
+		enum { value = !is_same<Info, InvalidInfo> };
 		using MaybeInfo = Conditional<value, Info, NotARange>;
 	};
 
 	// TODO: don't use Req parameter here, it causes unnecessary instantiations
 	template <class T, class ReqType = void> struct SpanInfo {
 		template <class Val, bool has_data_> struct ValidInfo {
-			enum { is_const = std::is_const<Val>::value, has_data = has_data_ };
+			enum { is_const = fwk::is_const<Val>, has_data = has_data_ };
 			using Value = Val;
 		};
 
@@ -59,22 +59,22 @@ namespace detail {
 
 		template <class U, class It1 = decltype(begin(declval<U &>())),
 				  class It2 = decltype(end(declval<U &>())),
-				  EnableIf<isSame<It1, It2>() && std::is_pointer<It1>::value>...,
+				  EnableIf<is_same<It1, It2> && std::is_pointer<It1>::value>...,
 				  class Base = typename std::remove_pointer<It1>::type,
-				  EnableIf<(isSame<Base, ReqType>() || isSame<void, ReqType>())>...>
+				  EnableIf<(is_same<Base, ReqType> || is_same<void, ReqType>)>...>
 		static auto test(PriorityTag<1>, U &) -> ValidInfo<Base, false>;
 
 		template <
 			class U,
 			class Base = typename std::remove_pointer<decltype(declval<U &>().data())>::type,
-			EnableIf<isSame<RemoveConst<Base>, ReqType>() || isSame<void, ReqType>()>...,
+			EnableIf<is_same<RemoveConst<Base>, ReqType> || is_same<void, ReqType>>...,
 			EnableIf<std::is_convertible<decltype(declval<U &>().size()), int>::value, int>...>
 		static auto test(PriorityTag<0>, U &) -> ValidInfo<Base, true>;
 
 		template <class U> static InvalidInfo test(...);
 
 		using Info = decltype(test<T>(PriorityTag<1>(), declval<T &>()));
-		enum { value = !isSame<Info, InvalidInfo>() };
+		enum { value = !is_same<Info, InvalidInfo> };
 		using MaybeInfo = Conditional<value, Info, NotASpan>;
 	};
 }
@@ -139,13 +139,13 @@ template <class Range, class Functor> bool anyOf(const Range &range, Functor fun
 }
 
 template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<isSame<decltype(declval<const Functor &>()(declval<const T &>())), bool>()>...>
+		  EnableIf<is_same<decltype(declval<const Functor &>()(declval<const T &>())), bool>>...>
 bool allOf(const TRange &range, const Functor &functor) {
 	return std::all_of(begin(range), end(range), functor);
 }
 
 template <class TRange, class R, class T = RangeBase<TRange>,
-		  EnableIf<isSame<decltype(declval<const T &>() == declval<const R &>()), bool>()>...>
+		  EnableIf<is_same<decltype(declval<const T &>() == declval<const R &>()), bool>>...>
 bool allOf(const TRange &range, const R &ref) {
 	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
@@ -177,7 +177,7 @@ constexpr bool isOneOf(const T &value, const Arg1 &arg1, const Args &... args) {
 template <class T, int min_size = 0> class Span {
   public:
 	using value_type = RemoveConst<T>;
-	enum { is_const = isConst<T>(), minimum_size = min_size };
+	enum { is_const = fwk::is_const<T>, minimum_size = min_size };
 	using vector_type = Conditional<is_const, const vector<value_type>, vector<value_type>>;
 	static_assert(min_size >= 0, "min_size should be >= 0");
 
@@ -216,14 +216,14 @@ template <class T, int min_size = 0> class Span {
 	template <int rhs_min_size, EnableIf<rhs_min_size >= min_size>...>
 	Span(Span<T, rhs_min_size> range) : m_data(range.data()), m_size(range.size()) {}
 
-	template <class U = T, EnableIf<isConst<U>()>...>
+	template <class U = T, EnableIf<fwk::is_const<U>>...>
 	Span(const Span<value_type, min_size> &range) : m_data(range.data()), m_size(range.size()) {}
 
 	Span(const std::initializer_list<T> &list) : Span(list.begin(), list.end()) {}
 	operator vector<value_type>() const { return vector<value_type>(begin(), end()); }
 
 	template <class TSpan, class Base = SpanBase<TSpan>,
-			  EnableIf<isSame<Base, T>() && !isSame<TSpan, Span>()>...>
+			  EnableIf<is_same<Base, T> && !is_same<TSpan, Span>>...>
 	Span(TSpan &rhs) : Span(fwk::data(rhs), fwk::size(rhs)) {}
 
 	const T *begin() const { return m_data; }
@@ -263,7 +263,7 @@ template <class T, int min_size = 0> class Span {
 		return {m_data + start, end - start};
 	}
 
-	template <class U, EnableIf<isSame<RemoveConst<U>, value_type>()>...>
+	template <class U, EnableIf<is_same<RemoveConst<U>, value_type>>...>
 	bool operator==(Span<U> rhs) const {
 		if(m_size != rhs.size())
 			return false;
@@ -273,7 +273,7 @@ template <class T, int min_size = 0> class Span {
 		return true;
 	}
 
-	template <class U, EnableIf<isSame<RemoveConst<U>, value_type>()>...>
+	template <class U, EnableIf<is_same<RemoveConst<U>, value_type>>...>
 	bool operator<(Span<U> rhs) const {
 		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
 	}
@@ -281,7 +281,7 @@ template <class T, int min_size = 0> class Span {
 	template <class U> auto reinterpret() const {
 		static_assert(compatibleSizes(sizeof(T), sizeof(U)),
 					  "Incompatible sizes; are you sure, you want to do this cast?");
-		using out_type = Conditional<isConst<T>(), const U, U>;
+		using out_type = Conditional<fwk::is_const<T>, const U, U>;
 		auto new_size = size_t(m_size) * sizeof(T) / sizeof(U);
 		return Span<out_type>(reinterpret_cast<out_type *>(m_data), new_size);
 	}
@@ -322,7 +322,7 @@ template <class T> void makeUnique(vector<T> &vec) {
 	vec.erase(std::unique(begin(vec), end(vec)), end(vec));
 }
 
-template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!isConst<T>()>...>
+template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!is_const<T>>...>
 void makeSorted(TSpan &span) {
 	std::sort(begin(span), end(span));
 }
@@ -417,7 +417,7 @@ void copy(TSpan &dst, const TRange &src) {
 }
 
 template <class T, class TRange, class T1 = RemoveConst<RangeBase<TRange>>,
-		  EnableIf<isSame<T, T1>()>...>
+		  EnableIf<is_same<T, T1>>...>
 void copy(T *dst, const TRange &src) {
 	PASSERT(dst);
 	std::copy(begin(src), end(src), dst);
