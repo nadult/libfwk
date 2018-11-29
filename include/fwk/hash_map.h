@@ -13,27 +13,28 @@ namespace fwk {
 // Slightly modified & adapted for libfwk by Krzysztof Jakubowski
 template <typename TKey, typename TValue> class HashMap {
   public:
-	using value_type = pair<TKey, TValue>;
-	using uint32 = unsigned int;
-	using hash_value_t = uint32;
+	using Key = TKey;
+	using Value = TValue;
+	using KeyValuePair = pair<TKey, TValue>;
+	using HashValue = u32;
 
   private:
 	struct Node {
 		// TODO: use single empty value; Use invalid<T>()
 		// TODO: remove hash for small types
-		static const hash_value_t kUnusedHash = 0xFFFFFFFF;
-		static const hash_value_t kDeletedHash = 0xFFFFFFFE;
+		static constexpr HashValue kUnusedHash = 0xFFFFFFFF;
+		static constexpr HashValue kDeletedHash = 0xFFFFFFFE;
 
 		Node() : hash(kUnusedHash) {}
 		~Node() {}
 
-		bool is_unused() const { return hash == kUnusedHash; }
-		bool is_deleted() const { return hash == kDeletedHash; }
-		bool is_occupied() const { return hash < kDeletedHash; }
+		bool isUnused() const { return hash == kUnusedHash; }
+		bool isDeleted() const { return hash == kDeletedHash; }
+		bool isOccupied() const { return hash < kDeletedHash; }
 
-		hash_value_t hash;
+		HashValue hash;
 		union {
-			value_type data;
+			KeyValuePair data;
 		};
 	};
 	template <typename TNodePtr, typename TPtr, typename TRef> class node_iterator {
@@ -76,7 +77,7 @@ template <typename TKey, typename TValue> class HashMap {
 			// @todo: save nodeEnd in constructor?
 			TNodePtr nodeEnd = m_map->m_nodes + m_map->capacity();
 			for(/**/; m_node < nodeEnd; ++m_node) {
-				if(m_node->is_occupied())
+				if(m_node->isOccupied())
 					break;
 			}
 		}
@@ -85,14 +86,10 @@ template <typename TKey, typename TValue> class HashMap {
 	};
 
   public:
-	typedef TKey key_type;
-	typedef TValue mapped_type;
-	typedef node_iterator<Node *, value_type *, value_type &> iterator;
-	typedef node_iterator<const Node *, const value_type *, const value_type &> const_iterator;
-	static const int kNodeSize = sizeof(Node);
-	static const int kInitialCapacity = 64;
-	static_assert((kInitialCapacity & (kInitialCapacity - 1)) == 0,
-				  "Initial capacity must be a power of 2");
+	using iterator = node_iterator<Node *, KeyValuePair *, KeyValuePair &>;
+	using const_iterator = node_iterator<const Node *, const KeyValuePair *, const KeyValuePair &>;
+	static constexpr int initial_capacity = 64;
+	static_assert(isPowerOfTwo(initial_capacity));
 
 	// TODO: move constructors, etc.
 	HashMap() {}
@@ -120,10 +117,10 @@ template <typename TKey, typename TValue> class HashMap {
 	iterator end() { return iterator(m_nodes + m_capacity, this); }
 	const_iterator end() const { return const_iterator(m_nodes + m_capacity, this); }
 
-	mapped_type &operator[](const key_type &key) {
-		hash_value_t hash = hashFunc(key);
+	Value &operator[](const Key &key) {
+		HashValue hash = hashFunc(key);
 		Node *n = find_for_insert(key, hash);
-		if(n == 0 || !n->is_occupied())
+		if(n == 0 || !n->isOccupied())
 			return emplace_at({key, TValue()}, n, hash).first->second;
 		return n->data.second;
 	}
@@ -161,29 +158,29 @@ template <typename TKey, typename TValue> class HashMap {
 		return emplace({key, value});
 	}
 
-	pair<iterator, bool> emplace(const value_type &v) {
+	pair<iterator, bool> emplace(const KeyValuePair &v) {
 		checkInvariant();
 		if(m_num_used * m_load_factor4 >= m_capacity * 4)
 			grow();
 
-		hash_value_t hash = hashFunc(v.first);
+		HashValue hash = hashFunc(v.first);
 		Node *n = find_for_insert(v.first, hash);
-		if(n->is_occupied()) {
+		if(n->isOccupied()) {
 			DASSERT(hash == n->hash && v.first == n->data.first);
 			return {iterator(n, this), false};
 		}
-		if(n->is_unused())
+		if(n->isUnused())
 			++m_num_used;
-		new(&n->data) value_type(v);
+		new(&n->data) KeyValuePair(v);
 		n->hash = hash;
 		++m_size;
 		checkInvariant();
 		return {iterator(n, this), true};
 	}
 
-	int erase(const key_type &key) {
+	int erase(const Key &key) {
 		Node *n = lookup(key);
-		if(n != (m_nodes + m_capacity) && n->is_occupied()) {
+		if(n != (m_nodes + m_capacity) && n->isOccupied()) {
 			eraseNode(n);
 			return 1;
 		}
@@ -197,18 +194,18 @@ template <typename TKey, typename TValue> class HashMap {
 		}
 	}
 	void erase(iterator from, iterator to) {
-		for(/**/; from != to; ++from) {
+		for(; from != to; ++from) {
 			Node *n = from.node();
-			if(n->is_occupied())
+			if(n->isOccupied())
 				eraseNode(n);
 		}
 	}
 
-	iterator find(const key_type &key) {
+	iterator find(const Key &key) {
 		Node *n = lookup(key);
 		return iterator(n, this);
 	}
-	const_iterator find(const key_type &key) const {
+	const_iterator find(const Key &key) const {
 		const Node *n = lookup(key);
 		return const_iterator(n, this);
 	}
@@ -217,8 +214,8 @@ template <typename TKey, typename TValue> class HashMap {
 		Node *endNode = m_nodes + m_capacity;
 		for(Node *iter = m_nodes; iter != endNode; ++iter) {
 			if(iter) {
-				if(iter->is_occupied())
-					iter->data.~value_type();
+				if(iter->isOccupied())
+					iter->data.~KeyValuePair();
 				// We can make them unused, because we clear whole hash_map,
 				// so we can guarantee there'll be no holes.
 				iter->hash = Node::kUnusedHash;
@@ -231,7 +228,7 @@ template <typename TKey, typename TValue> class HashMap {
 	// TODO: something is wrong here (when reserving space in voxelizer/tri_points procedure
 	// slows down drastically (slower the bigger reserve))
 	void reserve(int min_size) {
-		int newCapacity = (m_capacity == 0 ? kInitialCapacity : m_capacity);
+		int newCapacity = (m_capacity == 0 ? initial_capacity : m_capacity);
 		while(newCapacity < min_size)
 			newCapacity *= 2;
 		if(newCapacity > m_capacity)
@@ -242,16 +239,32 @@ template <typename TKey, typename TValue> class HashMap {
 	int size() const { return m_size; }
 	bool empty() const { return size() == 0; }
 
-	int nonempty_bucket_count() const { return m_num_used; }
-	int used_memory() const { return capacity() * kNodeSize; }
+	int nonemptyBucketCount() const { return m_num_used; }
+	int usedMemory() const { return capacity() * sizeof(Node); }
+
+	vector<Value> values() const {
+		vector<Value> out;
+		out.reserve(size());
+		for(auto &pair : *this)
+			out.emplace_back(pair.second);
+		return out;
+	}
+
+	vector<Key> keys() const {
+		vector<Key> out;
+		out.reserve(size());
+		for(auto &pair : *this)
+			out.emplace_back(pair.first);
+		return out;
+	}
 
   private:
 	void grow() {
-		const int newCapacity = (m_capacity == 0 ? kInitialCapacity : m_capacity * 2);
+		const int newCapacity = (m_capacity == 0 ? initial_capacity : m_capacity * 2);
 		grow(newCapacity);
 	}
 	void grow(int new_capacity) {
-		DASSERT((new_capacity & (new_capacity - 1)) == 0); // Must be power-of-two
+		DASSERT(isPowerOfTwo(new_capacity));
 		Node *newNodes = allocateNodes(new_capacity);
 		rehash(new_capacity, newNodes, m_capacity, m_nodes, true);
 		if(m_nodes != &s_empty_node)
@@ -262,59 +275,59 @@ template <typename TKey, typename TValue> class HashMap {
 		m_num_used = m_size;
 		DASSERT(m_num_used < m_capacity);
 	}
-	pair<iterator, bool> emplace_at(const value_type &v, Node *n, hash_value_t hash) {
+	pair<iterator, bool> emplace_at(const KeyValuePair &v, Node *n, HashValue hash) {
 		checkInvariant();
 		if(n == 0 || m_num_used * m_load_factor4 >= m_capacity * 4)
 			return emplace(v);
 
-		DASSERT(!n->is_occupied());
-		if(n->is_unused())
+		DASSERT(!n->isOccupied());
+		if(n->isUnused())
 			++m_num_used;
-		new(&n->data) value_type(v);
+		new(&n->data) KeyValuePair(v);
 		n->hash = hash;
 		++m_size;
 		checkInvariant();
 		return {iterator(n, this), true};
 	}
-	Node *find_for_insert(const key_type &key, hash_value_t hash) {
+	Node *find_for_insert(const Key &key, HashValue hash) {
 		if(m_capacity == 0)
 			return 0;
 
-		uint32 i = hash & m_capacity_mask;
+		u32 i = hash & m_capacity_mask;
 
 		Node *n = m_nodes + i;
 		if(n->hash == hash && key == n->data.first)
 			return n;
 
 		Node *freeNode(0);
-		if(n->is_deleted())
+		if(n->isDeleted())
 			freeNode = n;
-		uint32 numProbes(0);
+		u32 numProbes(0);
 		// Guarantees loop termination.
 		DASSERT(m_num_used < m_capacity);
-		while(!n->is_unused()) {
+		while(!n->isUnused()) {
 			// TODO: try quadratic probing?
 			++numProbes;
 			i = (i + numProbes) & m_capacity_mask;
 			n = m_nodes + i;
 			if(compare_key(n, key, hash))
 				return n;
-			if(n->is_deleted() && freeNode == 0)
+			if(n->isDeleted() && freeNode == 0)
 				freeNode = n;
 		}
 		return freeNode ? freeNode : n;
 	}
-	Node *lookup(const key_type &key) const {
-		const hash_value_t hash = hashFunc(key);
-		uint32 i = hash & m_capacity_mask;
+	Node *lookup(const Key &key) const {
+		const HashValue hash = hashFunc(key);
+		u32 i = hash & m_capacity_mask;
 		Node *n = m_nodes + i;
 		if(n->hash == hash && key == n->data.first)
 			return n;
 
-		uint32 numProbes(0);
+		u32 numProbes(0);
 		// Guarantees loop termination.
 		DASSERT(m_capacity == 0 || m_num_used < m_capacity);
-		while(!n->is_unused()) {
+		while(!n->isUnused()) {
 			++numProbes;
 			i = (i + numProbes) & m_capacity_mask;
 			n = m_nodes + i;
@@ -332,23 +345,23 @@ template <typename TKey, typename TValue> class HashMap {
 
 		const Node *it = nodes;
 		const Node *itEnd = nodes + capacity;
-		const uint32 mask = new_capacity - 1;
+		const u32 mask = new_capacity - 1;
 		while(it != itEnd) {
-			if(it->is_occupied()) {
-				const hash_value_t hash = it->hash;
-				uint32 i = hash & mask;
+			if(it->isOccupied()) {
+				const HashValue hash = it->hash;
+				u32 i = hash & mask;
 
 				Node *n = new_nodes + i;
-				uint32 numProbes(0);
-				while(!n->is_unused()) {
+				u32 numProbes(0);
+				while(!n->isUnused()) {
 					++numProbes;
 					i = (i + numProbes) & mask;
 					n = new_nodes + i;
 				}
-				new(&n->data) value_type(it->data);
+				new(&n->data) KeyValuePair(it->data);
 				n->hash = hash;
 				if(destruct_original)
-					it->data.~value_type();
+					it->data.~KeyValuePair();
 			}
 			++it;
 		}
@@ -367,8 +380,8 @@ template <typename TKey, typename TValue> class HashMap {
 		Node *it = m_nodes;
 		Node *itEnd = it + m_capacity;
 		while(it != itEnd) {
-			if(it && it->is_occupied())
-				it->data.~value_type();
+			if(it && it->isOccupied())
+				it->data.~KeyValuePair();
 			++it;
 		}
 		if(m_nodes != &s_empty_node)
@@ -381,23 +394,23 @@ template <typename TKey, typename TValue> class HashMap {
 
 	void eraseNode(Node *n) {
 		DASSERT(!empty());
-		DASSERT(n->is_occupied());
-		n->data.~value_type();
+		DASSERT(n->isOccupied());
+		n->data.~KeyValuePair();
 		n->hash = Node::kDeletedHash;
 		--m_size;
 	}
 
-	hash_value_t hashFunc(const key_type &key) const {
-		const hash_value_t h = hash(key) & 0xFFFFFFFD;
+	HashValue hashFunc(const Key &key) const {
+		const HashValue h = hash(key) & 0xFFFFFFFD;
 		//DASSERT(h < node::kDeletedHash);
 		return h;
 	}
 	void checkInvariant() const {
-		PASSERT((m_capacity & (m_capacity - 1)) == 0);
+		PASSERT(isPowerOfTwo(m_capacity));
 		PASSERT(m_num_used >= m_size);
 	}
 
-	bool compare_key(const Node *n, const key_type &key, hash_value_t hash) const {
+	bool compare_key(const Node *n, const Key &key, HashValue hash) const {
 		return (n->hash == hash && key == n->data.first);
 	}
 
@@ -406,7 +419,7 @@ template <typename TKey, typename TValue> class HashMap {
 	Node *m_nodes = &s_empty_node;
 	int m_size = 0;
 	int m_capacity = 0;
-	uint32 m_capacity_mask = 0;
+	u32 m_capacity_mask = 0;
 	int m_num_used = 0;
 	int m_load_factor4 = 6;
 };

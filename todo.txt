@@ -92,7 +92,6 @@ TODO: which OpenGL version are we targeting ?
   może po prostu znajdź jakiś sensowny debugger? pod visualem jak kod jest zoptymalizowany
   to też nie działa...
 - wyciagnij implementacje << z formatu do math_base / box
-- HashMap::keys(), ::values() ?
 - add .clang-format ?
 - enum all & count could be constexpr vars
 - Box: setSize -> resize

@@ -640,6 +640,10 @@ float blendAngles(float initial, float target, float step);
 // Returns angle in range <0, 2 * PI)
 float normalizeAngle(float angle);
 
+template <class T, EnableIf<isIntegral<T>()>...> constexpr bool isPowerOfTwo(T value) {
+	return (value & (value - 1)) == 0;
+}
+
 class Matrix3;
 class Matrix4;
 

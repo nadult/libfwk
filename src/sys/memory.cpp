@@ -3,6 +3,7 @@
 
 #include "fwk/sys/memory.h"
 
+#include "fwk/math_base.h"
 #include "fwk/sys_base.h"
 #include <cstdlib>
 #include <new>
@@ -25,7 +26,7 @@ namespace detail {
 	}
 
 	void *falloc(size_t size, size_t alignment) {
-		DASSERT((alignment & (alignment - 1)) == 0);
+		DASSERT(isPowerOfTwo(alignment));
 #ifdef FWK_TARGET_MINGW
 		auto ptr = _aligned_malloc(size, alignment);
 #else
