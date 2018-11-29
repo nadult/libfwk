@@ -141,17 +141,19 @@ template <class T> class Vector {
 		resize(size, value);
 	}
 
-	void operator=(const Vector &rhs) {
+	const Vector &operator=(const Vector &rhs) {
 		if(this == &rhs)
-			return;
+			return *this;
 		assign(rhs.begin(), rhs.end());
+		return *this;
 	}
 
-	void operator=(Vector &&rhs) {
+	const Vector &operator=(Vector &&rhs) {
 		if(this == &rhs)
-			return;
+			return *this;
 		m_base.swap(rhs.m_base);
 		rhs.clear();
+		return *this;
 	}
 
 	bool inRange(int idx) const { return fwk::inRange(idx, 0, m_base.size); }
