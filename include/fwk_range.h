@@ -33,8 +33,8 @@ namespace detail {
 		};
 		template <class U, class It1 = decltype(begin(DECLVAL(U &))),
 				  class It2 = decltype(end(DECLVAL(U &))),
-				  class Base1 = typename std::remove_reference<decltype(*DECLVAL(It1 &))>::type,
-				  class Base2 = typename std::remove_reference<decltype(*DECLVAL(It2 &))>::type,
+				  class Base1 = RemoveReference<decltype(*DECLVAL(It1 &))>,
+				  class Base2 = RemoveReference<decltype(*DECLVAL(It2 &))>,
 				  EnableIf<(is_same<RemoveConst<Base1>, ReqType> ||
 							is_same<void, ReqType>)&&is_same<Base1, Base2>>...>
 		static auto test(U &) -> ValidInfo<It1, Base1>;
@@ -60,12 +60,11 @@ namespace detail {
 		template <class U, class It1 = decltype(begin(DECLVAL(U &))),
 				  class It2 = decltype(end(DECLVAL(U &))),
 				  EnableIf<is_same<It1, It2> && std::is_pointer<It1>::value>...,
-				  class Base = typename std::remove_pointer<It1>::type,
+				  class Base = RemovePointer<It1>,
 				  EnableIf<(is_same<Base, ReqType> || is_same<void, ReqType>)>...>
 		static auto test(PriorityTag<1>, U &) -> ValidInfo<Base, false>;
 
-		template <class U,
-				  class Base = typename std::remove_pointer<decltype(DECLVAL(U &).data())>::type,
+		template <class U, class Base = RemovePointer<decltype(DECLVAL(U &).data())>,
 				  EnableIf<is_same<RemoveConst<Base>, ReqType> || is_same<void, ReqType>>...,
 				  EnableIf<std::is_convertible<decltype(DECLVAL(U &).size()), int>::value, int>...>
 		static auto test(PriorityTag<0>, U &) -> ValidInfo<Base, true>;

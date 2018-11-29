@@ -24,8 +24,7 @@ namespace detail {
 			return 0;
 		}
 
-		using ConstOrNot =
-			Conditional<std::is_const<T>::value, typename std::remove_const<T>::type, const T>;
+		using ConstOrNot = Conditional<is_const<T>, RemoveConst<T>, const T>;
 
 		static constexpr const TypeInfoData *constOrNot() {
 			if constexpr(!std::is_reference<T>())
@@ -35,27 +34,27 @@ namespace detail {
 
 		static constexpr const TypeInfoData *pointerBase() {
 			if constexpr(std::is_pointer<T>())
-				return &TypeData<std::remove_pointer_t<T>>::data;
+				return &TypeData<RemovePointer<T>>::data;
 			return nullptr;
 		}
 		static constexpr const TypeInfoData *referenceBase() {
 			if constexpr(std::is_reference<T>())
-				return &TypeData<std::remove_reference_t<T>>::data;
+				return &TypeData<RemoveReference<T>>::data;
 			return nullptr;
 		}
 
 		static constexpr TypeInfoData data = {
-			constOrNot(),   pointerBase(),			 referenceBase(),			getSize(),
-			getAlignment(), std::is_const<T>::value, std::is_volatile<T>::value};
+			constOrNot(),   pointerBase(), referenceBase(),			  getSize(),
+			getAlignment(), is_const<T>,   std::is_volatile<T>::value};
 		static inline int reg_name = (addTypeName(data, typeid(T).name()), 0);
 
 		// This is unfortunate, but necessary...
 		static void invokeReg() {
 			auto dummy1 = reg_name;
 			if constexpr(std::is_pointer<T>())
-				TypeData<std::remove_pointer_t<T>>::invokeReg();
+				TypeData<RemovePointer<T>>::invokeReg();
 			if constexpr(std::is_reference<T>())
-				TypeData<std::remove_reference_t<T>>::invokeReg();
+				TypeData<RemoveReference<T>>::invokeReg();
 			else
 				auto dummy2 = TypeData<ConstOrNot>::reg_name;
 		}

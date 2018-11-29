@@ -35,7 +35,7 @@ class AnyRef {
 		return *(const T *)m_ptr;
 	}
 
-	template <typename T, EnableIf<!std::is_const<T>::value>...> operator T *() {
+	template <typename T, EnableIf<!is_const<T>>...> operator T *() {
 		return m_type == typeInfo<T>() ? (T *)m_ptr : nullptr;
 	}
 

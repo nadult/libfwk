@@ -25,7 +25,7 @@ namespace detail {
 	template <class T> struct IsDefined {
 		template <class C> static auto test(int) -> IndexedType<C, sizeof(C)>;
 		template <class C> static auto test(...) -> void;
-		static constexpr bool value = !std::is_same<void, decltype(test<T>(0))>::value;
+		static constexpr bool value = !is_same<void, decltype(test<T>(0))>;
 	};
 
 	template <class T> struct FullyDefined { static constexpr bool value = IsDefined<T>::value; };

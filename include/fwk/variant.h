@@ -42,10 +42,6 @@ namespace fwk {
 
 namespace detail {
 
-template <class T>
-struct IsVariant { enum { value = false }; };
-template <class... Types>
-struct IsVariant<fwk::Variant<Types...>> { enum { value = true }; };
 
 template <typename T, typename... Types>
 struct direct_type;
@@ -53,7 +49,7 @@ struct direct_type;
 template <typename T, typename First, typename... Types>
 struct direct_type<T, First, Types...>
 {
-    static constexpr int index = std::is_same<T, First>::value
+    static constexpr int index = is_same<T, First>
         ? (int)sizeof...(Types) : direct_type<T, Types...>::index;
 };
 
@@ -62,20 +58,6 @@ struct direct_type<T>
 {
     static constexpr int index = -1;
 };
-
-// check if T is in Types...
-template <typename T, typename... Types>
-struct has_type;
-
-template <typename T, typename First, typename... Types>
-struct has_type<T, First, Types...>
-{
-    static constexpr bool value = std::is_same<T, First>::value
-        || has_type<T, Types...>::value;
-};
-
-template <typename T>
-struct has_type<T> : std::false_type {};
 
 template <typename T, typename R = void>
 struct enable_if_type { using type = R; };
@@ -300,6 +282,9 @@ struct TypeNotInVariant;
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
 
+template <class T> static constexpr bool is_variant = false;
+template <class... Types> static constexpr bool is_variant<Variant<Types...>> = true;
+
 template <typename... Types>
 class Variant
 {
@@ -415,7 +400,7 @@ public:
     template <typename T>
     bool is() const
     {
-        static_assert(detail::has_type<T, Types...>::value, "invalid type in T in `is<T>()` for this variant");
+        static_assert(is_one_of<T, Types...>, "invalid type in T in `is<T>()` for this variant");
         return type_index == detail::direct_type<T, Types...>::index;
     }
 
@@ -543,8 +528,6 @@ ResultType const& get(T const& var) {
 }
 
 // clang-format on
-
-template <class T> constexpr bool is_variant = detail::IsVariant<T>::value;
 
 namespace detail {
 	template <class T, class... Types> struct VariantC {

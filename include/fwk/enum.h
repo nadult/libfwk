@@ -123,7 +123,7 @@ namespace detail {
 	template <class T> struct IsEnum {
 		template <class C> static auto test(int) -> decltype(enumStrings(DECLVAL(C)));
 		template <class C> static auto test(...) -> void;
-		static constexpr bool value = !std::is_same<void, decltype(test<T>(0))>::value;
+		static constexpr bool value = !is_same<void, decltype(test<T>(0))>;
 	};
 }
 

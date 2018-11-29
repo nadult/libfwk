@@ -319,7 +319,7 @@ void testMain() {
 	for(auto &s : vec.values())
 		s += 12.0f;
 	ASSERT_EQ(vec, float3(12, 12, 13));
-	static_assert(std::is_same<decltype(vec.values()), Span<float, 3>>::value, "");
+	static_assert(is_same<decltype(vec.values()), Span<float, 3>>, "");
 	ASSERT(!isnan(vec) && !isnan(double3(vec)));
 
 	auto float_len = length(float3(1, 2, 3));
@@ -333,9 +333,9 @@ void testMain() {
 		points.emplace_back(pt);
 	ASSERT_EQ(points, vector<int2>({{0, 0}, {1, 0}, {0, 1}, {1, 1}, {0, 2}, {1, 2}}));
 
-	static_assert(std::is_same<decltype(float_len), float>::value, "");
-	static_assert(std::is_same<decltype(double_len), double>::value, "");
-	static_assert(std::is_same<decltype(int_dot), int>::value, "");
+	static_assert(is_same<decltype(float_len), float>, "");
+	static_assert(is_same<decltype(double_len), double>, "");
+	static_assert(is_same<decltype(int_dot), int>, "");
 
 	ASSERT_EQ(format("%", double3(1, 2, 3)), format("%", float3(1, 2, 3)));
 

@@ -145,7 +145,7 @@ template <class T, int N> T Triangle<T, N>::distance(const Point &point) const {
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
 Triangle2<T> Triangle<T, N>::projection2D() const {
-	if constexpr(!std::is_same<T, float>::value) {
+	if constexpr(!is_same<T, float>) {
 		FATAL("Please fix me!");
 		return {};
 	} else {

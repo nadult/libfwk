@@ -98,6 +98,7 @@ using Conditional = typename std::conditional<value, T1, T2>::type;
 
 template <class T> using RemoveConst = typename std::remove_const<T>::type;
 template <class T> using RemoveReference = typename std::remove_reference<T>::type;
+template <class T> using RemovePointer = typename std::remove_pointer<T>::type;
 
 // TODO: template variables
 using detail::Conjunction;

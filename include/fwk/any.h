@@ -107,7 +107,7 @@ class Any {
 		return *(T *)m_model->ptr();
 	}
 
-	template <typename T, EnableIf<!std::is_const<T>::value>...> operator T *() {
+	template <typename T, EnableIf<!is_const<T>>...> operator T *() {
 		return m_type == typeInfo<T>() ? (T *)m_model->ptr() : nullptr;
 	}
 

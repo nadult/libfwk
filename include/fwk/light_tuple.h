@@ -144,6 +144,9 @@ template <int N, class... Args> auto &get(LightTuple<Args...> &tuple) {
 	return detail::GetField<N>::get(tuple);
 }
 
+template <class T> static constexpr bool is_tuple = false;
+template <class... T> static constexpr bool is_tuple<LightTuple<T...>> = true;
+
 namespace detail {
 	template <int TN, class LT> bool cmpLess(const LT &lhs, const LT &rhs) {
 		if constexpr(LT::count > TN + 1)
@@ -159,21 +162,10 @@ namespace detail {
 		return true;
 	}
 
-	template <class T> struct IsTuple {
-		enum { value = 0 };
-		using type = std::false_type;
-	};
-
-	template <class... Members> struct IsTuple<LightTuple<Members...>> {
-		enum { value = 1 };
-		using type = std::true_type;
-	};
-
 	template <class T> struct HasTiedMember {
-		template <class C>
-		static auto test(int) -> typename IsTuple<decltype(((C *)nullptr)->tied())>::type;
-		template <class C> static auto test(...) -> std::false_type;
-		enum { value = std::is_same<std::true_type, decltype(test<T>(0))>::value };
+		template <class C> static auto test(int) -> decltype(DECLVAL(C &).tied());
+		template <class C> static void test(...);
+		static constexpr bool value = is_tuple<decltype(test<T>(0))>;
 	};
 }
 
@@ -192,7 +184,7 @@ template <class... Args> constexpr auto tie(const Args &... args) {
 }
 
 template <class... Args> constexpr auto tuple(Args &&... args) {
-	return LightTuple<Decay<std::remove_reference_t<Args>>...>{std::forward<Args>(args)...};
+	return LightTuple<Decay<RemoveReference<Args>>...>{std::forward<Args>(args)...};
 }
 
 // Do not use it with bitfields! It will make a const ref to temporary
