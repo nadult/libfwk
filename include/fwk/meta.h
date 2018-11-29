@@ -27,6 +27,7 @@ template <class T> struct Type {};
 template <class... Args> struct Types {};
 
 template <class T> auto declval() -> T;
+#define DECLVAL(type) declval<type>()
 
 struct NoAssertsTag {};
 constexpr NoAssertsTag no_asserts_tag;

@@ -9,9 +9,9 @@
 namespace fwk {
 
 template <class T> struct HasCloneMethod {
-	template <class U> static auto test(const U &) -> decltype(declval<const U &>().clone());
+	template <class U> static auto test(const U &) -> decltype(DECLVAL(const U &).clone());
 	static char test(...);
-	static constexpr bool value = std::is_same<T *, decltype(test(declval<const T &>()))>::value;
+	static constexpr bool value = is_same<T *, decltype(test(DECLVAL(const T &)))>;
 };
 
 // Improved unique_ptr (unique pointer to object)

@@ -291,14 +291,14 @@ FBox encloseTransformed(const FBox &, const Matrix4 &);
 
 template <class T> constexpr bool isEnclosable() {
 	if constexpr(isMathObject<T>() && !isVec<T>())
-		return is_same<decltype(enclose(declval<T>())), Box<typename T::Vector>>;
+		return is_same<decltype(enclose(DECLVAL(T))), Box<typename T::Vector>>;
 	else
 		return false;
 }
 
 template <class TRange, class T = RangeBase<TRange>, EnableIf<isEnclosable<T>()>...>
 auto encloseRange(const TRange &objects) {
-	using Box = decltype(enclose(declval<T>()));
+	using Box = decltype(enclose(DECLVAL(T)));
 	if(objects.empty())
 		return Box();
 

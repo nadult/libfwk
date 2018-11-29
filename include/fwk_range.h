@@ -31,16 +31,16 @@ namespace detail {
 			using Iter = void;
 			using Value = void;
 		};
-		template <class U, class It1 = decltype(begin(declval<U &>())),
-				  class It2 = decltype(end(declval<U &>())),
-				  class Base1 = typename std::remove_reference<decltype(*declval<It1 &>())>::type,
-				  class Base2 = typename std::remove_reference<decltype(*declval<It2 &>())>::type,
+		template <class U, class It1 = decltype(begin(DECLVAL(U &))),
+				  class It2 = decltype(end(DECLVAL(U &))),
+				  class Base1 = typename std::remove_reference<decltype(*DECLVAL(It1 &))>::type,
+				  class Base2 = typename std::remove_reference<decltype(*DECLVAL(It2 &))>::type,
 				  EnableIf<(is_same<RemoveConst<Base1>, ReqType> ||
 							is_same<void, ReqType>)&&is_same<Base1, Base2>>...>
 		static auto test(U &) -> ValidInfo<It1, Base1>;
 		template <class U> static InvalidInfo test(...);
 
-		using Info = decltype(test<T>(declval<T &>()));
+		using Info = decltype(test<T>(DECLVAL(T &)));
 		enum { value = !is_same<Info, InvalidInfo> };
 		using MaybeInfo = Conditional<value, Info, NotARange>;
 	};
@@ -57,23 +57,22 @@ namespace detail {
 			using Value = void;
 		};
 
-		template <class U, class It1 = decltype(begin(declval<U &>())),
-				  class It2 = decltype(end(declval<U &>())),
+		template <class U, class It1 = decltype(begin(DECLVAL(U &))),
+				  class It2 = decltype(end(DECLVAL(U &))),
 				  EnableIf<is_same<It1, It2> && std::is_pointer<It1>::value>...,
 				  class Base = typename std::remove_pointer<It1>::type,
 				  EnableIf<(is_same<Base, ReqType> || is_same<void, ReqType>)>...>
 		static auto test(PriorityTag<1>, U &) -> ValidInfo<Base, false>;
 
-		template <
-			class U,
-			class Base = typename std::remove_pointer<decltype(declval<U &>().data())>::type,
-			EnableIf<is_same<RemoveConst<Base>, ReqType> || is_same<void, ReqType>>...,
-			EnableIf<std::is_convertible<decltype(declval<U &>().size()), int>::value, int>...>
+		template <class U,
+				  class Base = typename std::remove_pointer<decltype(DECLVAL(U &).data())>::type,
+				  EnableIf<is_same<RemoveConst<Base>, ReqType> || is_same<void, ReqType>>...,
+				  EnableIf<std::is_convertible<decltype(DECLVAL(U &).size()), int>::value, int>...>
 		static auto test(PriorityTag<0>, U &) -> ValidInfo<Base, true>;
 
 		template <class U> static InvalidInfo test(...);
 
-		using Info = decltype(test<T>(PriorityTag<1>(), declval<T &>()));
+		using Info = decltype(test<T>(PriorityTag<1>(), DECLVAL(T &)));
 		enum { value = !is_same<Info, InvalidInfo> };
 		using MaybeInfo = Conditional<value, Info, NotASpan>;
 	};
@@ -113,13 +112,13 @@ template <class TRange, EnableIfRange<TRange>...> int size(const TRange &range) 
 	return std::distance(begin(range), end(range));
 }
 
-template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(declval<TRange>()))>
+template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(DECLVAL(TRange)))>
 Ret front(TRange &&range) {
 	DASSERT(!empty(range));
 	return *begin(range);
 }
 
-template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(declval<TRange>()))>
+template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(DECLVAL(TRange)))>
 Ret back(TRange &&range) {
 	DASSERT(!empty(range));
 	auto it = end(range);
@@ -139,13 +138,13 @@ template <class Range, class Functor> bool anyOf(const Range &range, Functor fun
 }
 
 template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<is_same<decltype(declval<const Functor &>()(declval<const T &>())), bool>>...>
+		  EnableIf<is_same<decltype(DECLVAL(const Functor &)(DECLVAL(const T &))), bool>>...>
 bool allOf(const TRange &range, const Functor &functor) {
 	return std::all_of(begin(range), end(range), functor);
 }
 
 template <class TRange, class R, class T = RangeBase<TRange>,
-		  EnableIf<is_same<decltype(declval<const T &>() == declval<const R &>()), bool>>...>
+		  EnableIf<is_same<decltype(DECLVAL(const T &) == DECLVAL(const R &)), bool>>...>
 bool allOf(const TRange &range, const R &ref) {
 	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }

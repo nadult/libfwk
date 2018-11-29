@@ -39,13 +39,13 @@ template <class T> class GlRef {
 	}
 
 	template <class... Args,
-			  class Ret = decltype(declval<T &>()(std::forward<Args>(declval<Args &&>())...))>
+			  class Ret = decltype(DECLVAL(T &)(std::forward<Args>(DECLVAL(Args &&))...))>
 	Ret operator()(Args &&... args) const {
 		PASSERT(m_id);
 		return g_storage.objects[m_id](std::forward<Args>(args)...);
 	}
 
-	template <class Arg, class Ret = decltype(declval<T &>()[std::forward<Arg>(declval<Arg &&>())])>
+	template <class Arg, class Ret = decltype(DECLVAL(T &)[std::forward<Arg>(DECLVAL(Arg &&))])>
 	Ret operator[](Arg &&arg) const {
 		PASSERT(m_id);
 		return g_storage.objects[m_id][std::forward<Arg>(arg)];

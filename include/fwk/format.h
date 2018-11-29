@@ -33,16 +33,16 @@ namespace detail {
 
 	template <class T> struct IsFormattible {
 		template <class U>
-		static auto test(const U &) -> decltype(declval<TextFormatter &>() << declval<const U &>());
+		static auto test(const U &) -> decltype(DECLVAL(TextFormatter &) << DECLVAL(const U &));
 		static char test(...);
-		enum { value = is_same<decltype(test(declval<const T &>())), TextFormatter &> };
+		enum { value = is_same<decltype(test(DECLVAL(const T &))), TextFormatter &> };
 	};
 
 	template <class T> struct IsRightFormattible {
 		template <class U>
-		static auto test(const U &) -> decltype(declval<const U &>() >> declval<TextFormatter &>());
+		static auto test(const U &) -> decltype(DECLVAL(const U &) >> DECLVAL(TextFormatter &));
 		static char test(...);
-		enum { value = is_same<decltype(test(declval<const T &>())), void> };
+		enum { value = is_same<decltype(test(DECLVAL(const T &))), void> };
 	};
 
 	template <class T> void append(TextFormatter &fmt, TFValue val) {
@@ -102,7 +102,7 @@ namespace detail {
 	constexpr auto getTFFunc(const string &) { return AppendAccess<const char *>(); }
 
 	template <class T> constexpr TFFunc getTFFunc() {
-		return decltype(getTFFunc(declval<const T &>()))::func();
+		return decltype(getTFFunc(DECLVAL(const T &)))::func();
 	}
 
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc);

@@ -165,22 +165,21 @@ class XmlOnFailGuard {
 
 namespace detail {
 	template <class T> struct XmlTraits {
-		template <class C> static auto testC(int) -> decltype(C(declval<CXmlNode>()));
+		template <class C> static auto testC(int) -> decltype(C(DECLVAL(CXmlNode)));
 		template <class C> static auto testC(...) -> Empty;
 
 		template <class C>
-		static auto testS(int) -> decltype(declval<const C &>().save(declval<XmlNode>()));
+		static auto testS(int) -> decltype(DECLVAL(const C &).save(DECLVAL(XmlNode)));
 		template <class C> static auto testS(...) -> Empty;
 
 		static constexpr bool constructible = !is_same<decltype(testC<T>(0)), Empty>;
 		static constexpr bool saveable = !is_same<decltype(testS<T>(0)), Empty>;
 
-		template <class C>
-		static auto testFP(int) -> decltype(parse(declval<CXmlNode>(), Type<C>()));
+		template <class C> static auto testFP(int) -> decltype(parse(DECLVAL(CXmlNode), Type<C>()));
 		template <class C> static auto testFP(...) -> Empty;
 
 		template <class C>
-		static auto testFS(int) -> decltype(save(declval<XmlNode>(), declval<const C &>()));
+		static auto testFS(int) -> decltype(save(DECLVAL(XmlNode), DECLVAL(const C &)));
 		template <class C> static auto testFS(...) -> Empty;
 
 		static constexpr bool func_parsable = !is_same<decltype(testFP<T>(0)), Empty>;

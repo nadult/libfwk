@@ -32,7 +32,7 @@ namespace detail {
 	};
 
 	template <class T>
-	struct EmptyMaybe<T, EnableIf<is_same<decltype(declval<const T &>().validMaybe()), bool> &&
+	struct EmptyMaybe<T, EnableIf<is_same<decltype(DECLVAL(const T &).validMaybe()), bool> &&
 								  std::is_convertible<fwk::EmptyMaybe, T>::value>> {
 		static constexpr T make() { return T(fwk::EmptyMaybe()); }
 		static constexpr bool valid(const T &val) { return val.validMaybe(); }
