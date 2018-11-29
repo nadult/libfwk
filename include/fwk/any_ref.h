@@ -14,7 +14,7 @@ class AnyRef {
 	FWK_COPYABLE_CLASS(AnyRef);
 
 	template <class T> AnyRef(const T &ref) : m_ptr((void *)&ref), m_type(typeInfo<T>()) {
-		static_assert(!IsOneOf<T, Any, AnyRef>::value);
+		static_assert(!is_one_of<T, Any, AnyRef>);
 		auto dummy = detail::AnyModel<T>::reg_dummy;
 	}
 

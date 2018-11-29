@@ -42,7 +42,7 @@ struct VertexAttrib {
 namespace detail {
 
 	template <class T>
-	static constexpr bool valid_vb_type = IsOneOf<T, i8, u8, i16, u16, i32, u32, float>::value;
+	static constexpr bool valid_vb_type = is_one_of<T, i8, u8, i16, u16, i32, u32, float>;
 
 	template <class T, EnableIf<valid_vb_type<T>>...> constexpr VertexBaseType vbType() {
 #define CASE(type, value)                                                                          \

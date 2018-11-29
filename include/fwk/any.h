@@ -63,7 +63,7 @@ class Any {
 
 	template <class T, class DT = Decay<T>>
 	Any(T value) : m_model(uniquePtr<Model<DT>>(move(value))), m_type(typeInfo<T>()) {
-		static_assert(!IsOneOf<DT, Any, AnyRef>::value);
+		static_assert(!is_one_of<DT, Any, AnyRef>);
 		static_assert(std::is_copy_constructible<T>::value);
 		static_assert(std::is_destructible<T>::value);
 	}

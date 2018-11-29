@@ -70,13 +70,10 @@ namespace detail {
 	template <unsigned N> using GenSeq = typename GenSeqX<N>::type;
 }
 
-template <class Lhs, class... RhsArgs> struct IsOneOf { static constexpr bool value = false; };
-template <class Lhs, class Rhs, class... RhsArgs> struct IsOneOf<Lhs, Rhs, RhsArgs...> {
-	static constexpr bool value = IsOneOf<Lhs, RhsArgs...>::value;
-};
-template <class Lhs, class... RhsArgs> struct IsOneOf<Lhs, Lhs, RhsArgs...> {
-	static constexpr bool value = true;
-};
+template <class Lhs, class... RhsArgs> static constexpr bool is_one_of = false;
+template <class Lhs, class Rhs, class... RhsArgs>
+static constexpr bool is_one_of<Lhs, Rhs, RhsArgs...> = is_one_of<Lhs, RhsArgs...>;
+template <class Lhs, class... RhsArgs> static constexpr bool is_one_of<Lhs, Lhs, RhsArgs...> = true;
 
 template <int N, class... Args> using NthType = typename detail::NthType<N, Args...>::type;
 

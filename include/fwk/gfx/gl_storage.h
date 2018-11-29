@@ -20,7 +20,7 @@ template <class T> class GlStorage {
 	// Big ids are really worst-case scenario
 	// In their case object_id doesn't have to be equal to gl_id
 	// big_id value should be tuned so that most of the OpenGL id's are smaller than that
-	static constexpr int big_id = IsOneOf<T, GlBuffer, GlTexture>::value ? 1 << 16 : 1 << 10;
+	static constexpr int big_id = is_one_of<T, GlBuffer, GlTexture> ? 1 << 16 : 1 << 10;
 
 	bool contains(const T *ptr) const { return ptr >= objects.data() && ptr + 1 <= objects.end(); }
 	int objectId(const T *ptr) const { return int(ptr - objects.data()); }
