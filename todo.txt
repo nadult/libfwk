@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- resize-able GlBuffer (similar to Vector)
 - formatowanie any powoduje konwersję na const char * :D
 - Stream::signature should use span<>
 - czy rapidxml dobrze współpracuje z rollbackiem? np. czy nie ma leaków?
@@ -25,9 +26,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - problemy z kompilacją jak się nie używa clang+-6.0 (undefined symbol s_internal w GlStorage)
 - Maybe<T, invalid_value>
 - spany w serializerach i streamach
-- resize jak w wektorach do glbuffera ?
-- byteSize to zła nazwa; numBytes, byteCount, dataSize ? sizeBytes? Problem: to może oznaczać size() tylko w bajtach,
-  ale mi czasami chodzi tak naprawdę o capacity; I często chodzi mi o wielkość w głąb (jeśli jest owning pointer)
 - zastanów się, czy dałoby się robić serializację i obliczenia bez rollbacku (jakaś wydajniejsza forma expected?)
   błędu nie trzeba zwracać razem z typem, można ustawiać jakąs flagę w zmiennej statycznej (thread local)
   problem: niektóre obiekty będą w zepsutym stanie, jak sobie z tym radzić?

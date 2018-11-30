@@ -21,7 +21,7 @@ template <class T> class PodVector {
 		m_base.zero();
 		m_base.resizePodPartial(sizeof(T), size);
 	}
-	PodVector(CSpan<T> span) : PodVector(span.size()) { memcpy(data(), span.data(), byteSize()); }
+	PodVector(CSpan<T> span) : PodVector(span.size()) { copy(data(), span); }
 	PodVector(const PodVector &rhs) : PodVector(CSpan<T>(rhs)) {}
 	PodVector(PodVector &&rhs) { m_base.moveConstruct(move(rhs.m_base)); }
 	~PodVector() {}
@@ -30,7 +30,7 @@ template <class T> class PodVector {
 		if(&rhs == this)
 			return;
 		resize(rhs.m_base.size);
-		memcpy(data(), rhs.data(), byteSize());
+		copy(data(), rhs);
 	}
 	void operator=(PodVector &&rhs) {
 		if(&rhs == this)
@@ -71,8 +71,8 @@ template <class T> class PodVector {
 	}
 
 	int size() const { return m_base.size; }
-	long long byteSize() const { return m_base.size * (long long)sizeof(T); }
 	int capacity() const { return m_base.capacity; }
+	i64 usedMemory() const { return m_base.capacity * (i64)sizeof(T); }
 
 	bool empty() const { return m_base.size == 0; }
 	explicit operator bool() const { return m_base.size > 0; }

@@ -89,6 +89,7 @@ class GlBuffer {
 	void flushMapped(i64 offset, i64 size);
 
 	int size() const { return m_size; }
+	int usedMemory() const { return m_size; }
 
 	template <class T> T *map(AccessMode mode) { return (T *)map(mode); }
 	template <class T> T *map(int first, int count, MapFlags flags) {

@@ -417,8 +417,10 @@ void copy(TSpan &dst, const TRange &src) {
 template <class T, class TRange, class T1 = RemoveConst<RangeBase<TRange>>,
 		  EnableIf<is_same<T, T1>>...>
 void copy(T *dst, const TRange &src) {
-	PASSERT(dst);
-	std::copy(begin(src), end(src), dst);
+	if(size(src) > 0) {
+		PASSERT(dst);
+		std::copy(begin(src), end(src), dst);
+	}
 }
 
 template <class T, class T1, EnableIf<std::is_convertible_v<T1, T>>...>

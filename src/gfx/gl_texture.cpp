@@ -79,7 +79,7 @@ PTexture GlTexture::make(Format format, PTexture view_source) {
 	return ref;
 }
 
-int GlTexture::byteSize() const { return m_size.x * m_size.y * bytesPerPixel(m_format); }
+int GlTexture::usedMemory() const { return m_size.x * m_size.y * bytesPerPixel(m_format); }
 
 bool GlTexture::hasImmutableFormat() const {
 	GLint ret;
