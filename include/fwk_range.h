@@ -193,10 +193,8 @@ template <class T, int min_size = 0> class Span {
 		static_assert(min_size == 0, "Cannot construct empty Span which has minimum_size > 0");
 	}
 
-	Span(T *begin, T *end) : Span(begin, (int)(end - begin), no_asserts_tag) {
-		DASSERT(end >= begin);
-	}
-	Span(vector_type &vec) : Span(vec.data(), vec.size(), no_asserts_tag) {}
+	Span(T *begin, T *end) : Span(begin, (int)(end - begin), no_asserts) { DASSERT(end >= begin); }
+	Span(vector_type &vec) : Span(vec.data(), vec.size(), no_asserts) {}
 	template <int N> Span(value_type (&array)[N]) : m_data(array), m_size(N) {
 		static_assert(N >= min_size);
 	}

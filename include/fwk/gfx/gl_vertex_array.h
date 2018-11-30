@@ -61,7 +61,7 @@ namespace detail {
 
 	template <VertexBaseType bt, int size, int padding, int bits>
 	static constexpr VertexAttrib default_va{bt, size, padding, VertexAttribFlags{bits},
-											 no_asserts_tag};
+											 no_asserts};
 
 	template <class T, int size = 1> constexpr const VertexAttrib *defaultVABase() {
 		if constexpr(valid_vb_type<T> && size >= 1 && size <= 4) {

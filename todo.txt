@@ -31,9 +31,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   problem: niektóre obiekty będą w zepsutym stanie, jak sobie z tym radzić?
   problem: na każdym poziomie musze sprawdzać, czy coś się nie wypieprzyło
 
-- no_asserts_tag -> no_asserts ?
-- add NoInit, no_init ?
-
 - przydałby się lepszy listnode...
 - mozliwosc dodatkowych checków w BaseVectorze na początku i koncu bufora (wykrywanie pisania po pamieci)
 - new type: not-null GlRef ?

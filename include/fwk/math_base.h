@@ -282,6 +282,7 @@ template <class T> struct vec2 {
 	constexpr vec2(T x, T y) : x(x), y(y) { CHECK_NANS(x, y); }
 	constexpr vec2() : x(0), y(0) {}
 	constexpr vec2(CSpan<T, 2> v) : vec2(v[0], v[1]) {}
+	constexpr vec2(NoInitTag) {}
 
 	vec2(const vec2 &) = default;
 	vec2 &operator=(const vec2 &) = default;
@@ -325,6 +326,7 @@ template <class T> struct vec3 {
 	constexpr vec3() : x(0), y(0), z(0) {}
 	constexpr vec3(CSpan<T, 3> v) : vec3(v[0], v[1], v[2]) {}
 	explicit vec3(T t) : x(t), y(t), z(t) { CHECK_NANS(t); }
+	constexpr vec3(NoInitTag) {}
 
 	vec3(const vec3 &) = default;
 	vec3 &operator=(const vec3 &) = default;
@@ -372,6 +374,7 @@ template <class T> struct vec4 {
 	constexpr vec4() : x(0), y(0), z(0), w(0) {}
 	constexpr vec4(CSpan<T, 4> v) : vec4(v[0], v[1], v[2], v[3]) {}
 	explicit vec4(T t) : x(t), y(t), z(t), w(t) { CHECK_NANS(t); }
+	constexpr vec4(NoInitTag) {}
 
 	vec4(const vec4 &) = default;
 	vec4 &operator=(const vec4 &) = default;

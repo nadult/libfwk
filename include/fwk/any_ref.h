@@ -49,7 +49,7 @@ class AnyRef {
 	AnyRef reinterpret(TypeInfo other, NoAssertsTag) const { return {m_ptr, other}; }
 	AnyRef reinterpret(TypeInfo other) const {
 		DASSERT(other.size() == m_type.size());
-		return reinterpret(other, no_asserts_tag);
+		return reinterpret(other, no_asserts);
 	}
 
   private:

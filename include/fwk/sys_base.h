@@ -76,6 +76,12 @@ using i32 = int;
 using u64 = unsigned long long;
 using i64 = long long;
 
+struct NoAssertsTag {};
+constexpr NoAssertsTag no_asserts;
+
+struct NoInitTag {};
+constexpr NoInitTag no_init;
+
 template <class> class Expected;
 struct ErrorChunk;
 struct Error;
