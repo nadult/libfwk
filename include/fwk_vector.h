@@ -74,8 +74,8 @@ class BaseVector {
 	[[noreturn]] void invalidIndex(int index) const;
 	[[noreturn]] void invalidEmpty() const;
 
-	char *data;
 	int size, capacity;
+	char *data;
 };
 
 template <class T> class Vector {
