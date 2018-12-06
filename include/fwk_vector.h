@@ -80,15 +80,15 @@ class BaseVector {
 
 template <class T> class Vector {
   public:
-	typedef T value_type;
-	typedef value_type &reference;
-	typedef const value_type &const_reference;
-	typedef T *iterator;
-	typedef const T *const_iterator;
-	typedef int size_type;
-	typedef typename std::make_signed<size_type>::type difference_type;
-	typedef std::reverse_iterator<iterator> reverse_iterator;
-	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+	using value_type = T;
+	using reference = value_type &;
+	using const_reference = const value_type &;
+	using iterator = T *;
+	using const_iterator = const T *;
+	using size_type = int;
+	using difference_type = int;
+	using reverse_iterator = std::reverse_iterator<iterator>;
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	template <typename _InIter>
 	using RequireInputIter = typename std::enable_if<
@@ -117,7 +117,7 @@ template <class T> class Vector {
 	void swap(Vector &rhs) { m_base.swap(rhs.m_base); }
 
 	template <class Iter, typename = RequireInputIter<Iter>> void assign(Iter first, Iter last) {
-		if(std::is_trivially_destructible<T>::value)
+		if(trivial_destruction)
 			m_base.assignPartialPod(sizeof(T), last - first);
 		else
 			m_base.assignPartial(sizeof(T), &Vector::destroy, last - first);
@@ -129,8 +129,7 @@ template <class T> class Vector {
 	}
 
 	void assign(const_iterator first, const_iterator last) {
-		if(std::is_trivially_copy_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value)
+		if(trivial_copy_constr && trivial_destruction)
 			m_base.assignPod(sizeof(T), first, last - first);
 		else
 			m_base.assign(sizeof(T), &Vector::destroy, &Vector::copy, first, last - first);
@@ -201,8 +200,7 @@ template <class T> class Vector {
 
 	void reserve(int new_capacity) {
 		new_capacity = m_base.insertCapacity(m_base.capacity, sizeof(T), new_capacity);
-		if(std::is_trivially_move_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value)
+		if(trivial_move_constr && trivial_destruction)
 			m_base.reallocatePod(sizeof(T), new_capacity);
 		else
 			m_base.reallocate(sizeof(T), &Vector::moveAndDestroy, new_capacity);
@@ -210,9 +208,7 @@ template <class T> class Vector {
 
 	void resize(int new_size, T default_value) {
 		int index = m_base.size;
-		if(std::is_trivially_move_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value &&
-		   std::is_trivially_copy_constructible<T>::value)
+		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
 			m_base.resizePodPartial(sizeof(T), new_size);
 		else
 			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
@@ -221,9 +217,7 @@ template <class T> class Vector {
 	}
 	void resize(int new_size) {
 		int index = m_base.size;
-		if(std::is_trivially_move_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value &&
-		   std::is_trivially_copy_constructible<T>::value)
+		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
 			m_base.resizePodPartial(sizeof(T), new_size);
 		else
 			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
@@ -233,8 +227,7 @@ template <class T> class Vector {
 
 	template <class... Args> T &emplace_back(Args &&... args) {
 		if(m_base.size == m_base.capacity) {
-			if(std::is_trivially_move_constructible<T>::value &&
-			   std::is_trivially_destructible<T>::value)
+			if(trivial_move_constr && trivial_destruction)
 				m_base.growPod(sizeof(T));
 			else
 				m_base.grow(sizeof(T), &Vector::moveAndDestroy);
@@ -248,8 +241,7 @@ template <class T> class Vector {
 	void push_back(T &&rhs) { emplace_back(std::move(rhs)); }
 
 	void erase(const_iterator it) {
-		if(std::is_trivially_move_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value)
+		if(trivial_move_constr && trivial_destruction)
 			m_base.erasePod(sizeof(T), it - begin(), 1);
 		else
 			m_base.erase(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, it - begin(), 1);
@@ -261,8 +253,7 @@ template <class T> class Vector {
 	}
 
 	void erase(const_iterator a, const_iterator b) {
-		if(std::is_trivially_move_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value)
+		if(trivial_move_constr && trivial_destruction)
 			m_base.erasePod(sizeof(T), a - begin(), b - a);
 		else
 			m_base.erase(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, a - begin(), b - a);
@@ -274,8 +265,7 @@ template <class T> class Vector {
 
 	template <class Iter> iterator insert(const const_iterator pos, Iter first, Iter last) {
 		int offset = pos - begin();
-		if(std::is_trivially_move_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value)
+		if(trivial_move_constr && trivial_destruction)
 			m_base.insertPodPartial(sizeof(T), offset, std::distance(first, last));
 		else
 			m_base.insertPartial(sizeof(T), &Vector::moveAndDestroyBackwards, offset,
@@ -290,9 +280,7 @@ template <class T> class Vector {
 
 	iterator insert(const const_iterator pos, const_iterator first, const_iterator last) {
 		if(pos == end() && last - first <= m_base.capacity - m_base.size) {
-			if(std::is_trivially_move_constructible<T>::value &&
-			   std::is_trivially_destructible<T>::value &&
-			   std::is_trivially_copy_constructible<T>::value)
+			if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
 				memcpy(end(), first, (last - first) * sizeof(T));
 			else
 				copy(end(), first, last - first);
@@ -302,9 +290,7 @@ template <class T> class Vector {
 		}
 
 		int offset = pos - begin();
-		if(std::is_trivially_move_constructible<T>::value &&
-		   std::is_trivially_destructible<T>::value &&
-		   std::is_trivially_copy_constructible<T>::value)
+		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
 			m_base.insertPod(sizeof(T), offset, first, last - first);
 		else
 			m_base.insert(sizeof(T), &Vector::moveAndDestroyBackwards, &Vector::copy, offset, first,
@@ -341,10 +327,9 @@ template <class T> class Vector {
 	}
 
   private:
-	constexpr bool trivialCopy() const { return std::is_trivially_copyable<T>::value; }
-	constexpr bool trivialCopyConstruct() const {
-		return std::is_trivially_copy_constructible<T>::value;
-	}
+	static constexpr bool trivial_move_constr = std::is_trivially_move_constructible<T>::value;
+	static constexpr bool trivial_copy_constr = std::is_trivially_copy_constructible<T>::value;
+	static constexpr bool trivial_destruction = std::is_trivially_destructible<T>::value;
 
 	static void copy(void *vdst, const void *vsrc, int count) {
 		const T *__restrict__ src = (T *)vsrc;
