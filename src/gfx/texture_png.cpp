@@ -8,6 +8,7 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/rollback.h"
 #include "fwk/sys/stream.h"
+#include "fwk/sys/memory.h"
 
 namespace fwk {
 namespace detail {

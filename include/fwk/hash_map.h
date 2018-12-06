@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/math/hash.h"
+#include "fwk/sys/memory.h"
 
 namespace fwk {
 

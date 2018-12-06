@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "fwk/sys/memory.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -16,7 +15,8 @@ class BaseVector {
 	using DestroyFunc = void (*)(void *, int);
 	using CopyFunc = void (*)(void *, const void *, int);
 
-	~BaseVector() { fwk::deallocate(data); }
+	~BaseVector() { free(); }
+	void free();
 	void zero() {
 		data = nullptr;
 		size = capacity = 0;
@@ -37,7 +37,6 @@ class BaseVector {
 		return insertCapacity(current, (int)sizeof(T), min_size);
 	}
 
-	void copyConstruct(int, CopyFunc, char *, int size);
 	void grow(int, MoveDestroyFunc);
 	void reallocate(int, MoveDestroyFunc move_destroy_func, int new_capacity);
 	void clear(DestroyFunc destroy_func);
@@ -48,7 +47,6 @@ class BaseVector {
 	void assignPartial(int, DestroyFunc, int new_size);
 	void assign(int, DestroyFunc, CopyFunc, const void *, int size);
 
-	void copyConstructPod(int, char *, int size);
 	void growPod(int);
 	void reallocatePod(int, int new_capacity);
 	void clearPod() { size = 0; }
