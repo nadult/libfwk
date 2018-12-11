@@ -41,6 +41,7 @@ template <class T, int N> class Ray {
 	pair<Point, Point> closestPoints(const Ray &) const;
 
 	IsectParam isectParam(const Box<Vector> &) const;
+	ENABLE_IF_SIZE(2) IsectParam isectParam(const Ray &) const;
 	ENABLE_IF_SIZE(3) IsectParam isectParam(const Plane<T, N> &) const;
 	ENABLE_IF_SIZE(3) IsectParam isectParam(const Triangle<T, N> &) const;
 

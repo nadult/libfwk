@@ -82,6 +82,25 @@ template <class T, int N> IsectParam<T> Ray<T, N>::isectParam(const Box<Vector> 
 	return {lmin, lmax};
 }
 
+// TODO: at(IsectParam): should be able to return Ray as well (with infinite interval)?
+
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+IsectParam<T> Ray<T, N>::isectParam(const Ray &rhs) const {
+	DASSERT(!empty() && !rhs.empty());
+
+	auto tdot = dot(m_dir, perpendicular(rhs.m_dir));
+	auto diff = rhs.m_origin - m_origin;
+
+	if(tdot == T(0)) {
+		if(dot(diff, perpendicular(rhs.m_dir)) == T(0))
+			return {-constant<T>::inf(), constant<T>::inf()};
+		return {};
+	}
+
+	return dot(diff, perpendicular(rhs.m_dir)) / tdot;
+}
+
 // Moller-Trombore, source: wikipedia
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
@@ -142,6 +161,8 @@ template class Ray<double, 3>;
 template class Ray<float, 2>;
 template class Ray<double, 2>;
 
+template auto Ray<float, 2>::isectParam(const Ray<float, 2> &) const -> IsectParam;
+template auto Ray<double, 2>::isectParam(const Ray<double, 2> &) const -> IsectParam;
 template auto Ray<float, 3>::isectParam(const Plane<float, 3> &) const -> IsectParam;
 template auto Ray<double, 3>::isectParam(const Plane<double, 3> &) const -> IsectParam;
 template auto Ray<float, 3>::isectParam(const Triangle<float, 3> &) const -> IsectParam;

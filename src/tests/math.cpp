@@ -176,6 +176,13 @@ void test2DIntersections() {
 	ASSERT(s4.isect(Segment2<double>{0, 3, 6, -1}) == none);
 	ASSERT(s6.isect(Segment2<double>{-1, -1, -1, -1}) == double2(-1, -1));
 
+	auto r4 = s4.asRay();
+	auto r6 = s6.asRay();
+	ASSERT(r4 && r6);
+	ASSERT(!(Segment2<double>{-1, -1, -1, -1}).asRay());
+	auto isect_param = r4->isectParam(*r6);
+	ASSERT(isect_param.isPoint() && r4->at(isect_param.asPoint()) == double2(2.5, 2.5));
+
 	ASSERT_EQ(s6.closestPointParam({0.5, 2.5}), 0.5);
 
 	Segment2<double> seg1(-5.6, -9.1, -4.2, -9.5);
