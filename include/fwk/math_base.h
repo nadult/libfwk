@@ -619,6 +619,28 @@ double angleBetween(const double2 &vec1, const double2 &vec2);
 float angleTowards(const float2 &prev, const float2 &cur, const float2 &next);
 double angleTowards(const double2 &prev, const double2 &cur, const double2 &next);
 
+// Returns true if v2 is CCW to v1
+template <class T> bool ccwSide(const vec2<T> &v1, const vec2<T> &v2) {
+	using PV = vec2<Promote<T>>;
+	return cross<PV>(v1, v2) > 0;
+}
+
+template <class T> bool cwSide(const vec2<T> &v1, const vec2<T> &v2) {
+	using PV = vec2<Promote<T>>;
+	return cross<PV>(v1, v2) < 0;
+}
+
+// Returns true if (point - from) is CCW to (to - from)
+template <class T> bool ccwSide(const vec2<T> &from, const vec2<T> &to, const vec2<T> &point) {
+	using PV = vec2<Promote<T>>;
+	return dot<PV>(perpendicular(to - from), point - from) > 0;
+}
+
+template <class T> bool cwSide(const vec2<T> &from, const vec2<T> &to, const vec2<T> &point) {
+	using PV = vec2<Promote<T>>;
+	return dot<PV>(perpendicular(to - from), point - from) < 0;
+}
+
 // TODO: remove it?
 template <class T, EnableIfRealVec<T>...>
 bool areClose(const T &a, const T &b,

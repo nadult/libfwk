@@ -346,6 +346,11 @@ void testMain() {
 
 	ASSERT_EQ(format("%", double3(1, 2, 3)), format("%", float3(1, 2, 3)));
 
+	ASSERT(ccwSide(int2{0, 0}, {2, 0}, {0, 1}));
+	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
+	for(int i : intRange(6))
+		ASSERT(ccwSide(vectors[i], vectors[(i + 1) % 6]));
+
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));
 	Quat p = normalize(pow(rot, 1.0f));
