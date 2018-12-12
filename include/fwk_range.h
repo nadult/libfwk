@@ -131,9 +131,16 @@ auto accumulate(const TRange &range, T value = T()) {
 	return value;
 }
 
-// TODO: write more of these
-template <class Range, class Functor> bool anyOf(const Range &range, Functor functor) {
+template <class TRange, class Functor, class T = RangeBase<TRange>,
+		  EnableIf<is_same<decltype(DECLVAL(const Functor &)(DECLVAL(const T &))), bool>>...>
+bool anyOf(const TRange &range, const Functor &functor) {
 	return std::any_of(begin(range), end(range), functor);
+}
+
+template <class TRange, class R, class T = RangeBase<TRange>,
+		  EnableIf<is_same<decltype(DECLVAL(const T &) == DECLVAL(const R &)), bool>>...>
+bool anyOf(const TRange &range, const R &ref) {
+	return std::any_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
 
 template <class TRange, class Functor, class T = RangeBase<TRange>,
@@ -149,8 +156,8 @@ bool allOf(const TRange &range, const R &ref) {
 }
 
 template <class T, class TRange, EnableIfRange<TRange, T>...>
-inline bool isOneOf(const T &value, const TRange &range) {
-	return anyOf(range, [&](const auto &v) { return value == v; });
+bool isOneOf(const T &value, const TRange &range) {
+	return anyOf(range, value);
 }
 
 template <class TRange, class T = RangeBase<TRange>> constexpr const T &max(const TRange &range) {
