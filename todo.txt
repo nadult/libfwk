@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- makeUnique -> makeSortedUnique; add sortedUnique, unique
+- transformSmall, transformArray, transformStatic
+  transform czasami jest w stanie się zmapować na powyższe ?
 - resize-able GlBuffer (similar to Vector)
 - formatowanie any powoduje konwersję na const char * :D
 - Stream::signature should use span<>

@@ -197,6 +197,8 @@ template <class T> class Vector {
 	}
 
 	void reserve(int new_capacity) {
+		if(new_capacity <= capacity())
+			return;
 		new_capacity = m_base.insertCapacity(m_base.capacity, sizeof(T), new_capacity);
 		if(trivial_move_constr && trivial_destruction)
 			m_base.reallocatePod(sizeof(T), new_capacity);
