@@ -80,6 +80,7 @@ void TriangleBuffer::operator()(const Triangle2F &tri, IColor color) {
 	for(auto p : tri.points())
 		m_positions.emplace_back(p, 0.0f);
 	m_colors.resize(m_positions.size(), color);
+	m_tex_coords.resize(m_positions.size(), float2());
 }
 
 void TriangleBuffer::operator()(const FRect &rect, IColor color) {
