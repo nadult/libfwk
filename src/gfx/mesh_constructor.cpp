@@ -66,10 +66,8 @@ Mesh Mesh::makeCylinder(const Cylinder &cylinder, int num_sides) {
 
 	vector<int> indices;
 	indices.reserve(num_sides * 6 + (num_sides - 2) * 3 * 2);
-	for(int n = 0; n < num_sides; n++) {
-		int i0 = n, i1 = (n + 1) % num_sides;
-		int j0 = n + num_sides, j1 = i1 + num_sides;
-
+	for(auto [i0, i1] : pairsRange(num_sides)) {
+		int j0 = i0 + num_sides, j1 = i1 + num_sides;
 		indices.insert(end(indices), {i0, j1, i1, i0, j0, j1});
 	}
 

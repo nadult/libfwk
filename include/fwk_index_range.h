@@ -13,6 +13,7 @@ namespace fwk {
 // IndexRange has to exist as long as any of the iterators belonging to it
 template <class Func> class IndexRange {
   public:
+	using Value = decltype(DECLVAL(Func)(0));
 	IndexRange(int start, int end, Func func) : it_start(start), it_end(end), func(move(func)) {
 		DASSERT(start <= end);
 	}
@@ -21,7 +22,7 @@ template <class Func> class IndexRange {
 	  public:
 		using difference_type = int;
 		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = decltype((*((Func *)nullptr))(0));
+		using value_type = Value;
 		using reference = value_type &;
 		using pointer = value_type *;
 
@@ -31,7 +32,7 @@ template <class Func> class IndexRange {
 			index++;
 			return *this;
 		}
-		auto operator*() const { return func(index); }
+		Value operator*() const { return func(index); }
 		constexpr int operator-(Iter it) const { return index - it.index; }
 
 		constexpr bool operator!=(const Iter &rhs) const { return index != rhs.index; }
@@ -121,5 +122,31 @@ inline SimpleIndexRange<int> intRange(int size) { return {0, size}; }
 
 template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(const T &range) {
 	return {0, fwk::size(range)};
+}
+
+template <class T = int> auto pairsRange(int start, int end) {
+	return IndexRange(start, end, [=](int idx) {
+		int next = idx + 1;
+		return make_pair(T(idx), T(next < end ? next : start));
+	});
+}
+
+template <class T = int> auto triplesRange(int start, int end) {
+	PASSERT(end - start >= 3);
+	return IndexRange(start, end, [=](int idx) {
+		int next = idx + 1, next2 = idx + 2;
+		return tuple(T(idx), next < end ? next : start, next2 < end ? next2 : start - end + next2);
+	});
+}
+
+template <class T = int> auto pairsRange(int count) { return pairsRange<T>(0, count); }
+template <class T = int> auto triplesRange(int count) { return triplesRange<T>(0, count); }
+
+template <class T = int, class R, EnableIfRange<R>...> auto pairsRange(const R &range) {
+	return pairsRange<T>(0, fwk::size(range));
+}
+
+template <class T = int, class R, EnableIfRange<R>...> auto triplesRange(const R &range) {
+	return triplesRange<T>(0, fwk::size(range));
 }
 }

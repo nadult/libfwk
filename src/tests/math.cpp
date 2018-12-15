@@ -348,8 +348,8 @@ void testMain() {
 
 	ASSERT(ccwSide(int2{0, 0}, {2, 0}, {0, 1}));
 	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
-	for(int i : intRange(6))
-		ASSERT(ccwSide(vectors[i], vectors[(i + 1) % 6]));
+	for(auto [i, j] : pairsRange(6))
+		ASSERT(ccwSide(vectors[i], vectors[j]));
 
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));
