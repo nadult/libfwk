@@ -87,6 +87,8 @@ using EnableIfConstructible = EnableIf<std::is_constructible<T, Args...>::value,
 template <class T1, class T2> constexpr bool is_same = false;
 template <class T> constexpr bool is_same<T, T> = true;
 
+template <class T1, class T2> constexpr bool is_convertible = std::is_convertible<T1, T2>::value;
+
 template <class T1> constexpr bool is_const = false;
 template <class T> constexpr bool is_const<const T> = true;
 

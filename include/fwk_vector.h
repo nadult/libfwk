@@ -88,10 +88,10 @@ template <class T> class Vector {
 	using reverse_iterator = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-	template <typename _InIter>
-	using RequireInputIter = typename std::enable_if<
-		std::is_convertible<typename std::iterator_traits<_InIter>::iterator_category,
-							std::input_iterator_tag>::value>::type;
+	template <typename It>
+	using RequireInputIter =
+		typename std::enable_if<is_convertible<typename std::iterator_traits<It>::iterator_category,
+											   std::input_iterator_tag>>::type;
 
 	Vector() { m_base.zero(); }
 	~Vector() { destroy(m_base.data, m_base.size); }

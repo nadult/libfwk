@@ -62,7 +62,7 @@ namespace detail {
 
 		template <class U, class Base = RemovePointer<decltype(DECLVAL(U &).data())>,
 				  EnableIf<is_same<RemoveConst<Base>, ReqType> || is_same<void, ReqType>>...,
-				  EnableIf<std::is_convertible<decltype(DECLVAL(U &).size()), int>::value, int>...>
+				  EnableIf<is_convertible<decltype(DECLVAL(U &).size()), int>, int>...>
 		static auto test(PriorityTag0, U &) -> ValidInfo<Base, true>;
 
 		template <class U> static InvalidInfo test(...);
@@ -424,7 +424,7 @@ void copy(T *dst, const TRange &src) {
 	}
 }
 
-template <class T, class T1, EnableIf<std::is_convertible_v<T1, T>>...>
+template <class T, class T1, EnableIf<is_convertible<T1, T>>...>
 void fill(Span<T> span, const T1 &value) {
 	std::fill(begin(span), end(span), value);
 }

@@ -27,7 +27,7 @@ template <typename T> class UniquePtr {
 	explicit UniquePtr(T *ptr) : m_ptr(ptr) {}
 	UniquePtr(UniquePtr &&x) : m_ptr(x.release()) {}
 
-	template <class U, EnableIf<std::is_convertible<U *, T *>::value>...>
+	template <class U, EnableIf<is_convertible<U *, T *>>...>
 	UniquePtr(UniquePtr<U> &&rhs) : m_ptr(rhs.release()) {}
 
 	UniquePtr &operator=(UniquePtr &&rhs) {
@@ -38,7 +38,7 @@ template <typename T> class UniquePtr {
 	UniquePtr(const UniquePtr &rhs) : m_ptr(rhs.clone()) {}
 	~UniquePtr() { reset(); }
 
-	template <class U, EnableIf<std::is_convertible<U *, T *>::value>...>
+	template <class U, EnableIf<is_convertible<U *, T *>>...>
 	UniquePtr &operator=(UniquePtr<U> &&rhs) {
 		reset(rhs.release());
 		return *this;
