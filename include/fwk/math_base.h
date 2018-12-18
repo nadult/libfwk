@@ -753,9 +753,6 @@ using EnableInDimension = EnableIf<isVec<T, N>(), DisabledInThisDimension>;
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
 using IsectFlags = EnumFlags<IsectClass>;
-
-template <class ValueType = int> struct Hash;
-template <class T> int hash(const T &);
 }
 
 SERIALIZE_AS_POD(short2)

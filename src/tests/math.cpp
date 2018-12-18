@@ -285,7 +285,15 @@ void testHash() {
 	}
 
 	ASSERT_EQ(hashMany<u64>(1.0f, 2.0f, 3.0f),
-			  hashCombine<u64>(hash<u64>(1.0f), hash<u64>(2.0f), hash<u64>(3.0f)));
+			  combineHash<u64>(hash<u64>(1.0f), hash<u64>(2.0f), hash<u64>(3.0f)));
+
+	struct Dummy {
+		int hash() const { return 123; }
+	};
+	ASSERT_EQ(hash(Dummy()), (uint)Dummy().hash());
+
+	enum class eval { a, b, c };
+	auto ehash = hash(eval::a);
 
 	auto time = getTime();
 	for(int n = 0; n < 100; n++)

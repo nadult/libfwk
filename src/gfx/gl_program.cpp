@@ -125,7 +125,7 @@ void GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
 
 	for(auto &shader : shaders) {
 		glAttachShader(id(), shader.id());
-		m_hash = hashCombine(m_hash, shader->hash());
+		m_hash = combineHash(m_hash, shader->hash());
 		if(shader->name() && m_name.empty())
 			m_name = shader->name();
 	}
