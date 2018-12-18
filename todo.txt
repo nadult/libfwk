@@ -1,7 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- tied support in format (with priorities?)
 - Maybe w przypadku obiektów które mają niepoprawne wartości mogłoby też mieć szybsze porównania
+  tylko, że none nie byłoby zawsze < niż dowolna wartość...
 - simplyify indexRanges, add pairRange
 - makeUnique -> makeSortedUnique; add sortedUnique, unique
 - transformSmall, transformArray, transformStatic
@@ -67,6 +69,7 @@ TODO: which OpenGL version are we targeting ?
 - EnumMap: wywalanie sie w czasie kompilacji przy błędach
   problem jest taki, że konstruktor template <int N> (const (T&)[N]) ma niższy
   lub taki sam priorytet co (CSpan<T>)...
+  może da się zamieszać ze special / general ?
 
 - translacja nazw debugowych ? jakaś możliwość rejestracji template-ów?
 - nie da się rozszerzać parsera o typy których nie da się domyślnie konstruować...

@@ -190,20 +190,9 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 	explicit operator bool() const { return hasValue(); }
 
-	const T &value() const & {
-		requireValue();
-		return m_value;
-	}
-
-	T &value() & {
-		requireValue();
-		return m_value;
-	}
-
-	T value() && {
-		requireValue();
-		return move(m_value);
-	}
+	const T &value() const & { return requireValue(), m_value; }
+	T &value() & { return requireValue(), m_value; }
+	T value() && { return requireValue(), move(m_value); }
 
 	const T *get() const & { return hasValue() ? &m_value : nullptr; }
 	T *get() & { return hasValue() ? &m_value : nullptr; }

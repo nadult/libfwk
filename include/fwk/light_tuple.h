@@ -192,10 +192,13 @@ template <class... Args> constexpr auto tuple(Args &&... args) {
 #define FWK_TIE_MEMBERS(...)                                                                       \
 	auto tied() const { return fwk::tie(__VA_ARGS__); }
 
-#define FWK_ORDER_BY(name, ...)                                                                    \
-	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
+#define FWK_TIED_COMPARES(name)                                                                    \
 	bool operator==(const name &rhs) const { return tied() == rhs.tied(); }                        \
 	bool operator<(const name &rhs) const { return tied() < rhs.tied(); }
+
+#define FWK_ORDER_BY(name, ...)                                                                    \
+	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
+	FWK_TIED_COMPARES(name)
 
 struct NoTiedMember;
 
