@@ -178,12 +178,12 @@ vector<char> GlProgram::getBinary() const {
 	return out;
 }
 
-static const EnumMap<ProgramBindingType, int> binding_type_map = {
+static const EnumMap<ProgramBindingType, int> binding_type_map = {{
 	GL_SHADER_STORAGE_BLOCK,
 	GL_UNIFORM_BLOCK,
 	GL_ATOMIC_COUNTER_BUFFER,
 	GL_TRANSFORM_FEEDBACK_BUFFER,
-};
+}};
 
 vector<pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const {
 	int num = 0, max_name = 0;

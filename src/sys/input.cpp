@@ -246,10 +246,10 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 
 	SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
 
-	EnumMap<InputModifier, int> mod_map = {
+	EnumMap<InputModifier, int> mod_map = {{
 		{InputModifier::lshift, InputKey::lshift}, {InputModifier::rshift, InputKey::rshift},
 		{InputModifier::lalt, InputKey::lalt},	 {InputModifier::ralt, InputKey::ralt},
-		{InputModifier::lctrl, InputKey::lctrl},   {InputModifier::rctrl, InputKey::rctrl}};
+		{InputModifier::lctrl, InputKey::lctrl},   {InputModifier::rctrl, InputKey::rctrl}}};
 
 	InputModifiers modifiers;
 	for(const auto &key_state : m_keys) {

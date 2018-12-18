@@ -11,7 +11,7 @@ namespace fwk {
 
 GL_CLASS_IMPL(GlBuffer)
 
-static const EnumMap<BufferType, int> s_types = {
+static const EnumMap<BufferType, int> s_types = {{
 	GL_ARRAY_BUFFER,
 	GL_ELEMENT_ARRAY_BUFFER,
 	GL_COPY_READ_BUFFER,
@@ -26,14 +26,14 @@ static const EnumMap<BufferType, int> s_types = {
 	GL_ATOMIC_COUNTER_BUFFER,
 	GL_DISPATCH_INDIRECT_BUFFER,
 	GL_SHADER_STORAGE_BUFFER,
-};
+}};
 
-static const EnumMap<BufferUsage, int> s_usages = {
+static const EnumMap<BufferUsage, int> s_usages = {{
 	GL_STREAM_DRAW, GL_STREAM_READ,  GL_STREAM_COPY,  GL_STATIC_DRAW,  GL_STATIC_READ,
 	GL_STATIC_COPY, GL_DYNAMIC_DRAW, GL_DYNAMIC_READ, GL_DYNAMIC_COPY,
-};
+}};
 
-static const EnumMap<AccessMode, int> s_access_modes = {GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE};
+static const EnumMap<AccessMode, int> s_access_modes = {{GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE}};
 
 static int toGL(ImmBufferFlags flags) {
 	// 0x001, 0x002: GL_MAP_READ_BIT, GL_MAP_WRITE_BIT,

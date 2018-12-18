@@ -27,14 +27,14 @@ struct VertexDataInfo {
 	int gl_type;
 };
 
-static const EnumMap<VertexBaseType, VertexDataInfo> data_info = {
+static const EnumMap<VertexBaseType, VertexDataInfo> data_info = {{
 	{1, GL_BYTE}, {1, GL_UNSIGNED_BYTE}, {2, GL_SHORT},		 {2, GL_UNSIGNED_SHORT},
-	{4, GL_INT},  {4, GL_UNSIGNED_INT},  {2, GL_HALF_FLOAT}, {4, GL_FLOAT}};
+	{4, GL_INT},  {4, GL_UNSIGNED_INT},  {2, GL_HALF_FLOAT}, {4, GL_FLOAT}}};
 
 int dataSize(VertexBaseType type) { return data_info[type].size; }
 
-static const EnumMap<IndexType, int> gl_index_type{GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT,
-												   GL_UNSIGNED_INT};
+static const EnumMap<IndexType, int> gl_index_type = {{
+	GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT}};
 
 int dataSize(IndexType itype) {
 	return itype == IndexType::uint8 ? 1 : itype == IndexType::uint16 ? 2 : 4;

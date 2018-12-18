@@ -15,7 +15,7 @@ template <class Enum, class T> class EnumMap {
 	static constexpr int size_ = count<Enum>();
 
 	static_assert(isEnum<Enum>(),
-				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM");
+				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM*");
 
 	static void checkPairs(CSpan<pair<Enum, T>> pairs) {
 		unsigned long long flags = 0;
@@ -33,27 +33,49 @@ template <class Enum, class T> class EnumMap {
 					  size_);
 	}
 
-	EnumMap(CSpan<pair<Enum, T>> pairs) {
+	// ---------------------------------------------------------------
+	// ----- Initializers with all values specified ------------------
+
+	template <class U, int N, EnableIf<std::is_convertible<U, T>::value>...>
+	EnumMap(CSpan<U, N> values) {
+		DASSERT(values.size() == size_ && "Invalid number of values specified");
+		std::copy(values.begin(), values.end(), m_data.begin());
+	}
+	template <class U, int N, EnableIf<std::is_convertible<U, T>::value>...>
+	EnumMap(CSpan<pair<Enum, U>, N> pairs) {
 		IF_DEBUG(checkPairs(pairs));
 		for(auto &pair : pairs)
 			m_data[(int)pair.first] = pair.second;
 	}
+	template <class USpan, class U = SpanBase<USpan>,
+			  EnableIf<(std::is_convertible<U, T>::value ||
+						std::is_convertible<U, pair<Enum, T>>::value)>...>
+	EnumMap(const USpan &span) : EnumMap(cspan(span)) {}
+
+	template <int N> EnumMap(const pair<Enum, T> (&arr)[N]) : EnumMap(CSpan<pair<Enum, T>>(arr)) {
+		static_assert(N == size_, "Invalid number of enum-value pairs specified");
+	}
+
+	template <int N> EnumMap(const T (&arr)[N]) : EnumMap(CSpan<T>(arr)) {
+		static_assert(N == size_, "Invalid number of values specified");
+	}
+
+	// ---------------------------------------------------------------
+	// ----- Initializers with default value -------------------------
+
 	EnumMap(CSpan<pair<Enum, T>> pairs, T default_value) {
 		m_data.fill(default_value);
 		for(auto &pair : pairs)
 			m_data[(int)pair.first] = pair.second;
 	}
-	EnumMap(CSpan<T> values) {
-		DASSERT(values.size() == size_ && "Invalid number of values specified");
-		std::copy(values.begin(), values.end(), m_data.begin());
-	}
-	explicit EnumMap(const T &default_value) { m_data.fill(default_value); }
-	EnumMap() : m_data() {}
-
-	EnumMap(std::initializer_list<pair<Enum, T>> list) : EnumMap(CSpan<pair<Enum, T>>(list)) {}
 	EnumMap(std::initializer_list<pair<Enum, T>> list, T default_value)
 		: EnumMap(CSpan<pair<Enum, T>>(list), default_value) {}
-	EnumMap(std::initializer_list<T> values) : EnumMap(CSpan<T>(values)) {}
+	explicit EnumMap(const T &default_value) { m_data.fill(default_value); }
+
+	EnumMap() : m_data() {}
+
+	// ---------------------------------------------------------------
+	// ----- Functions & accessors -----------------------------------
 
 	const T &operator[](Enum index) const { return m_data[(int)index]; }
 	T &operator[](Enum index) { return m_data[(int)index]; }

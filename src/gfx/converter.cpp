@@ -27,10 +27,10 @@ Converter::Converter(Settings settings) : m_settings(settings) {
 	ASSERT(!m_settings.export_script_path.empty());
 }
 
-const EnumMap<FileType, string> Converter::s_extensions = {
+const EnumMap<FileType, string> Converter::s_extensions = {{
 	{FileType::fwk_model, ".model"},
 	{FileType::blender, ".blend"},
-};
+}};
 
 FileType Converter::classify(const string &name) {
 	string iname = toLower(name);
