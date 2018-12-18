@@ -82,6 +82,12 @@ constexpr NoAssertsTag no_asserts;
 struct NoInitTag {};
 constexpr NoInitTag no_init;
 
+struct InvalidTag {};
+constexpr InvalidTag invalid;
+
+struct SentinelTag {};
+constexpr SentinelTag sentinel;
+
 template <class> class Expected;
 struct ErrorChunk;
 struct Error;
