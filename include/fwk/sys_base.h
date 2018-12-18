@@ -88,6 +88,14 @@ constexpr InvalidTag invalid;
 struct SentinelTag {};
 constexpr SentinelTag sentinel;
 
+// Idea from: Range V3
+struct PriorityTag0 {};
+struct PriorityTag1 : PriorityTag0 {};
+struct PriorityTag2 : PriorityTag1 {};
+struct PriorityTag3 : PriorityTag2 {};
+struct PriorityTag4 : PriorityTag3 {};
+using PriorityTagMax = PriorityTag4;
+
 template <class> class Expected;
 struct ErrorChunk;
 struct Error;

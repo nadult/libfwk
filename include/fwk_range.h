@@ -17,10 +17,6 @@ struct NotASpan;
 
 namespace detail {
 
-	// Idea from: Range V3
-	template <int I> struct PriorityTag : PriorityTag<I - 1> {};
-	template <> struct PriorityTag<0> {};
-
 	template <class T, class ReqType = void> struct RangeInfo {
 		template <class It, class Val> struct ValidInfo {
 			using Iter = It;
@@ -62,16 +58,16 @@ namespace detail {
 				  EnableIf<is_same<It1, It2> && std::is_pointer<It1>::value>...,
 				  class Base = RemovePointer<It1>,
 				  EnableIf<(is_same<Base, ReqType> || is_same<void, ReqType>)>...>
-		static auto test(PriorityTag<1>, U &) -> ValidInfo<Base, false>;
+		static auto test(PriorityTag1, U &) -> ValidInfo<Base, false>;
 
 		template <class U, class Base = RemovePointer<decltype(DECLVAL(U &).data())>,
 				  EnableIf<is_same<RemoveConst<Base>, ReqType> || is_same<void, ReqType>>...,
 				  EnableIf<std::is_convertible<decltype(DECLVAL(U &).size()), int>::value, int>...>
-		static auto test(PriorityTag<0>, U &) -> ValidInfo<Base, true>;
+		static auto test(PriorityTag0, U &) -> ValidInfo<Base, true>;
 
 		template <class U> static InvalidInfo test(...);
 
-		using Info = decltype(test<T>(PriorityTag<1>(), DECLVAL(T &)));
+		using Info = decltype(test<T>(PriorityTag1(), DECLVAL(T &)));
 		static constexpr bool value = !is_same<Info, InvalidInfo>;
 		using MaybeInfo = Conditional<value, Info, NotASpan>;
 	};
