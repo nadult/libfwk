@@ -56,32 +56,13 @@ class [[nodiscard]] Expected {
 
 	explicit operator bool() const { return m_has_value; }
 
-	T *operator->() {
-		DASSERT(m_has_value);
-		return &m_value;
-	}
-	const T *operator->() const {
-		DASSERT(m_has_value);
-		return &m_value;
-	}
+	T *operator->() { return DASSERT(m_has_value), &m_value; }
+	const T *operator->() const { return DASSERT(m_has_value), &m_value; }
+	T &operator*() { return DASSERT(m_has_value), m_value; }
+	const T &operator*() const { return DASSERT(m_has_value), m_value; }
 
-	T &operator*() {
-		DASSERT(m_has_value);
-		return m_value;
-	}
-	const T &operator*() const {
-		DASSERT(m_has_value);
-		return m_value;
-	}
-	Error &error() {
-		DASSERT(!m_has_value);
-		return *m_error;
-	}
-
-	const Error &error() const {
-		DASSERT(!m_has_value);
-		return *m_error;
-	}
+	Error &error() { return DASSERT(!m_has_value), *m_error; }
+	const Error &error() const { return DASSERT(!m_has_value), *m_error; }
 
 	const T &orElse(const T &on_error) const { return m_has_value ? m_value : on_error; }
 	const T &checked() const {
@@ -106,15 +87,8 @@ class [[nodiscard]] Expected<void> {
 
 	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
 
-	Error &error() {
-		DASSERT(m_error.get());
-		return *m_error;
-	}
-
-	const Error &error() const {
-		DASSERT(m_error.get());
-		return *m_error;
-	}
+	Error &error() { return DASSERT(m_error.get()), *m_error; }
+	const Error &error() const { return DASSERT(m_error.get()), *m_error; }
 
 	explicit operator bool() const { return !m_error.get(); }
 
