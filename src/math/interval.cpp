@@ -4,6 +4,7 @@
 #include "fwk/math/interval.h"
 
 #include "fwk/format.h"
+#include "fwk/math/rational.h"
 
 namespace fwk {
 
@@ -17,6 +18,9 @@ INSTANTIATE(short)
 INSTANTIATE(int)
 INSTANTIATE(float)
 INSTANTIATE(double)
+INSTANTIATE(Rational<int>)
+INSTANTIATE(Rational<i64>)
+INSTANTIATE(Rational<qint>)
 
 #undef INSTANTIATE
 }

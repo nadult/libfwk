@@ -52,6 +52,10 @@ template <class T> struct vec2;
 template <class T> struct vec3;
 template <class T> struct vec4;
 
+template <class T> struct Rational;
+template <class T> struct Rational2;
+template <class T> struct Rational3;
+
 using llint = long long;
 #ifdef FWK_USE_BOOST_MPC_INT
 using qint = boost::multiprecision::int128_t;
@@ -106,6 +110,7 @@ namespace detail {
 	template <class T> struct IsRational : public std::false_type {};
 	template <class T> struct IsReal : public std::is_floating_point<T> {};
 	template <> struct IsIntegral<qint> : public std::true_type {};
+	template <class T> struct IsRational<Rational<T>> : public std::true_type {};
 
 	template <class T> struct IsScalar {
 		static constexpr bool value =
@@ -522,6 +527,23 @@ auto transform(const TVec &vec, const TFunc &func) {
 	return TOut{func(vec[0]), func(vec[1]), func(vec[2]), func(vec[3])};
 }
 
+template <class T, EnableIfIntegral<T>...> T ratioFloor(T value, T div) {
+	return value < T(0) ? (value - div + T(1)) / div : value / div;
+}
+
+template <class T, EnableIfIntegral<T>...> T ratioCeil(T value, T div) {
+	return value > T(0) ? (value + div - T(1)) / div : value / div;
+}
+
+template <class TVec, class T, EnableIfIntegralVec<TVec>...>
+auto ratioFloor(const TVec &vec, T div) {
+	return fwk::transform(vec, [=](const auto &t) { return ratioFloor(t, div); });
+}
+
+template <class TVec, class T, EnableIfIntegralVec<TVec>...>
+auto ratioCeil(const TVec &vec, T div) {
+	return fwk::transform(vec, [=](const auto &t) { return ratioCeil(t, div); });
+}
 template <class T, EnableIfRationalOrRealVec<T>...> auto vfloor(const T &vec) {
 	return transform(vec, [](const auto &t) { return floor(t); });
 }

@@ -163,6 +163,50 @@ template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box)
 }
 
 template <class T, int N>
+template <class U, EnableInDimension<U, 3>...>
+auto ISegment<T, N>::isectParam(const Triangle3<T> &tri) const -> pair<IsectParam, bool> {
+	// TODO: use this in real segment
+	int3 ab = int3(tri[1]) - int3(tri[0]);
+	int3 ac = int3(tri[2]) - int3(tri[0]);
+
+	int3 qp = int3(from) - int3(to);
+	llint3 n = cross(llint3(ab), llint3(ac));
+
+	qint d = dot<qint3>(qint3(qp), qint3(n));
+	//	print("n: % % %\n", n[0], n[1], n[2]);
+
+	if(d == 0)
+		return {}; // segment parallel: ignore
+
+	int3 ap = int3(from) - int3(tri[0]);
+	qint t = dot(qint3(ap), qint3(n));
+
+	bool is_front = d > 0;
+	if(d < 0) {
+		t = -t;
+		d = -d;
+	}
+
+	if(t < 0 || t > d)
+		return {};
+
+	llint3 e = cross(llint3(qp), llint3(ap));
+	if(!is_front)
+		e = -e;
+	qint v = dot(qint3(ac), qint3(e));
+
+	if(v < 0 || v > d)
+		return {};
+	qint w = -dot(qint3(ab), qint3(e));
+
+	if(w < 0 || v + w > d)
+		return {};
+
+	Rational<PPScalar> out(t, d);
+	return {out, is_front};
+}
+
+template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
 bool Segment<T, N>::testIsect(const Box<Vector> &box) const {
 	return fwk::testIsect(*this, box);
@@ -382,6 +426,9 @@ template IsectClass ISegment<short, 2>::classifyIsect(const Point &) const;
 template IsectClass ISegment<int, 2>::classifyIsect(const Point &) const;
 template IsectClass ISegment<llint, 2>::classifyIsect(const Point &) const;
 template IsectClass ISegment<qint, 2>::classifyIsect(const Point &) const;
+
+template pair<IsectParam<Rational<qint>>, bool>
+ISegment<int, 3>::isectParam(const Triangle3<int> &) const;
 
 template class Segment<float, 2>;
 template class Segment<float, 3>;

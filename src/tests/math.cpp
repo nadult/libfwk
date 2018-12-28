@@ -5,8 +5,11 @@
 #include "fwk/math/axis_angle.h"
 #include "fwk/math/box_iter.h"
 #include "fwk/math/cylinder.h"
+#include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/matrix4.h"
+#include "fwk/math/random.h"
+#include "fwk/math/rational.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/tetrahedron.h"
@@ -316,6 +319,89 @@ void testTraits() {
 	static_assert(is_same<PromoteIntegral<int2>, llint2>);
 }
 
+void testRational() {
+	Random rand;
+	for(int n = 0; n < 100000; n++) {
+		Rational<int> a(rand.uniform(-1000000, 1000000), rand.uniform(1, 1000000));
+		Rational<int> b(rand.uniform(-1000000, 1000000), rand.uniform(1, 1000000));
+		DASSERT((a < b) == (double(a) < double(b)));
+	}
+
+	int iters = 100000;
+	long long max = 1000000000000000000ll;
+
+	vector<pair<qint, qint>> qnumbers;
+	vector<pair<llint, llint>> lnumbers;
+	for(int n : intRange(iters)) {
+		qint v1 = qint(rand.uniform(0ll, max)) * rand.uniform(1ll, max);
+		qint v2 = qint(rand.uniform(0ll, max)) * rand.uniform(1ll, max);
+		lnumbers.emplace_back(rand.uniform(0ll, max), rand.uniform(1ll, max));
+		qnumbers.emplace_back(v1, v2);
+	}
+
+	print("GCD timings:\n");
+	{
+		double time1 = getTime();
+		int sum1 = 0;
+		for(auto &pair : lnumbers)
+			sum1 += gcdEuclid(pair.first, pair.second);
+		time1 = getTime() - time1;
+
+		double time2 = getTime();
+		int sum2 = 0;
+		for(auto &pair : lnumbers)
+			sum2 += gcd(pair.first, pair.second);
+		time2 = getTime() - time2;
+
+		print(" 64bit euclideanGCD: % ns (%)\n", time1 * 1000000000.0 / double(iters), sum1);
+		print(" 64bit binaryGCD:    % ns (%)\n", time2 * 1000000000.0 / double(iters), sum2);
+	}
+
+	{
+		double time1 = getTime();
+		int sum1 = 0;
+		for(auto &pair : qnumbers)
+			sum1 += gcdEuclid(pair.first, pair.second);
+		time1 = getTime() - time1;
+
+		double time2 = getTime();
+		int sum2 = 0;
+		for(auto &pair : qnumbers)
+			sum2 += gcd(pair.first, pair.second);
+		time2 = getTime() - time2;
+
+		print("128bit EuclideanGCD: % ns (%)\n", time1 * 1000000000.0 / double(iters), sum1);
+		print("128bit binaryGCD:    % ns (%)\n", time2 * 1000000000.0 / double(iters), sum2);
+	}
+
+	{
+		double time = getTime();
+		int sum = 0;
+		for(auto &pair : qnumbers) {
+			sum += pair.first / pair.second;
+			sum += pair.second / pair.first;
+		}
+		time = getTime() - time;
+		print("Div time: % ns (%)\n", time * 1000000000.0 / double(iters * 2), sum);
+	}
+
+	{
+		double time = getTime();
+		int sum = 0;
+		for(auto &pair : qnumbers) {
+			sum += pair.first * pair.second;
+		}
+		time = getTime() - time;
+		print("Mul time: % ns (%)\n", time * 1000000000.0 / double(iters), sum);
+	}
+
+	Triangle3<int> tri(int3(0, 0, 0), int3(1000, 0, 0), int3(0, 0, 1000));
+	ISegment3<int> seg{int3(200, 1000, 200), int3(200, -1000, 200)};
+
+	auto result = seg.isectParam(tri);
+	ASSERT_EQ(result.first.closest(), Rational<qint>(1, 2));
+}
+
 void testMain() {
 	FBox box({0, -100, 0}, {1200, 100, 720});
 	FBox temp({32, 0, 32}, {64, 0.5f, 64});
@@ -358,6 +444,8 @@ void testMain() {
 	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
 	for(auto [i, j] : pairsRange(6))
 		ASSERT(ccwSide(vectors[i], vectors[j]));
+
+	testRational();
 
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));

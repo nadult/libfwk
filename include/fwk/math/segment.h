@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/math/isect_param.h"
+#include "fwk/math/rational.h"
 
 namespace fwk {
 
@@ -16,7 +17,12 @@ template <class T, int N> class ISegment {
 
 	using Vector = MakeVec<T, N>;
 	using Scalar = T;
+	using PScalar = Promote<Scalar>;
+	using PPScalar = Promote<PScalar>;
+	// TODO: check if PScalar has enough bits for intersections
+
 	using Point = Vector;
+	using IsectParam = fwk::IsectParam<Rational<PPScalar>>;
 	enum { dim_size = N };
 
 	ISegment() : from(), to() {}
@@ -42,6 +48,8 @@ template <class T, int N> class ISegment {
 	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const ISegment &) const;
 	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const Point &) const;
 	bool testIsect(const Box<Vector> &) const;
+
+	ENABLE_IF_SIZE(3) pair<IsectParam, bool> isectParam(const Triangle3<T> &) const;
 
 	void operator>>(TextFormatter &) const;
 
