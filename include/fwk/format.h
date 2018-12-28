@@ -108,7 +108,9 @@ namespace detail {
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc);
 }
 
-template <class T> constexpr bool formattible = detail::IsFormattible<T>::value;
+template <class T>
+constexpr bool formattible =
+	detail::IsFormattible<T>::value || detail::IsRightFormattible<T>::value;
 
 template <class... Args>
 using EnableIfFormattible = EnableIf<(... && formattible<Args>), NotFormattible>;
@@ -255,9 +257,9 @@ TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
 	return out;
 }
 
-template <class TVector, EnableIfVec<TVector>...>
-TextFormatter &operator<<(TextFormatter &out, const TVector &vec) {
-	enum { N = TVector::vec_size };
+template <class TVec, EnableIf<isVec<TVec>() && !detail::IsRightFormattible<TVec>::value>...>
+TextFormatter &operator<<(TextFormatter &out, const TVec &vec) {
+	enum { N = TVec::vec_size };
 	if constexpr(N == 2)
 		out(out.isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
 	else if(N == 3)
