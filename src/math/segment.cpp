@@ -134,6 +134,72 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 	}
 }
 
+template <class T, class PT, class Ret, class Seg> Ret isect2D(const Seg &lhs, const Seg &rhs) {
+	using Vec = MakeVec<T, 2>;
+	using PVec = MakeVec<PT, 2>;
+	using RT = Conditional<isIntegral<T>(), Rational<PT>, PT>;
+
+	if(lhs.empty()) {
+		if(rhs.empty()) {
+			if(lhs.to == rhs.to)
+				return RT(0);
+			return {};
+		}
+
+		if(rhs.classifyIsect(lhs.from) != IsectClass::none)
+			return RT(0);
+		return {};
+	}
+
+	auto vec1 = lhs.to - lhs.from;
+	auto vec2 = rhs.to - rhs.from;
+
+	auto divide = [](PT num, PT den) {
+		if constexpr(isIntegral<T>())
+			return RT(num, den);
+		else
+			return num / den;
+	};
+
+	PT tdot = dot<PVec>(vec1, perpendicular(vec2));
+	if(tdot == PT(0)) {
+		// lines are parallel
+		if(dot<PVec>(rhs.from - lhs.from, perpendicular(vec2)) == PT(0)) {
+			PT length_sq = fwk::lengthSq<PVec>(vec1);
+
+			// lines are the same
+			PT t1 = dot<PVec>(rhs.from - lhs.from, vec1);
+			PT t2 = dot<PVec>(rhs.to - lhs.from, vec1);
+
+			if(t2 < t1)
+				swap(t1, t2);
+			t1 = max(t1, PT(0));
+			t2 = min(t2, length_sq);
+
+			if(t2 < PT(0) || t1 > length_sq)
+				return {};
+			if(t2 == t1)
+				return RT(t1);
+
+			return {divide(t1, length_sq), divide(t2, length_sq)};
+		}
+
+		return {};
+	}
+
+	auto diff = rhs.from - lhs.from;
+	auto t1 = dot<PVec>(diff, perpendicular(vec2));
+	auto t2 = dot<PVec>(diff, perpendicular(vec1));
+	if(tdot < PT(0)) {
+		t1 = -t1;
+		t2 = -t2;
+		tdot = -tdot;
+	}
+
+	if(t1 >= PT(0) && t1 <= tdot && t2 >= PT(0) && t2 <= tdot)
+		return divide(t1, tdot);
+	return {};
+}
 template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
 IsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const {
@@ -164,7 +230,7 @@ template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box)
 
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
-auto ISegment<T, N>::isectParam(const Triangle3<T> &tri) const -> pair<IsectParam, bool> {
+auto ISegment<T, N>::isectParam(const Triangle3<T> &tri) const -> pair<PPIsectParam, bool> {
 	// TODO: use this in real segment
 	int3 ab = int3(tri[1]) - int3(tri[0]);
 	int3 ac = int3(tri[2]) - int3(tri[0]);
@@ -204,6 +270,27 @@ auto ISegment<T, N>::isectParam(const Triangle3<T> &tri) const -> pair<IsectPara
 
 	Rational<PPScalar> out(t, d);
 	return {out, is_front};
+}
+
+template <class T, int N>
+template <class U, EnableInDimension<U, 2>...>
+auto ISegment<T, N>::isectParam(const ISegment &rhs) const -> PIsectParam {
+	return isect2D<T, PScalar, PIsectParam>(*this, rhs);
+}
+
+template <class T, int N>
+auto ISegment<T, N>::closestPointParam(const Point &point) const -> PRScalar {
+	if(empty())
+		return PRScalar(0);
+
+	using PVec = Promote<Vector>;
+	auto vec = to - from;
+	auto t = PRScalar(dot<PVec>(point - from, vec), fwk::lengthSq<PVec>(vec));
+	if(t.num() < 0)
+		return PRScalar(0);
+	if(t.num() > t.den())
+		return PRScalar(1);
+	return t;
 }
 
 template <class T, int N>
@@ -313,60 +400,7 @@ template <class T, int N> auto Segment<T, N>::at(const IsectParam &pisect) const
 template <class T, int N>
 template <class U, EnableInDimension<U, 2>...>
 IsectParam<T> Segment<T, N>::isectParam(const Segment &rhs) const {
-	if(empty()) {
-		if(rhs.empty()) {
-			if(to == rhs.to)
-				return T(0);
-			return {};
-		}
-
-		if(rhs.closestPoint(from) == from)
-			return T(0);
-		return {};
-	}
-
-	auto vec1 = to - from;
-	auto vec2 = rhs.to - rhs.from;
-
-	auto tdot = dot(vec1, perpendicular(vec2));
-	if(tdot == T(0)) {
-		// lines are parallel
-		if(dot(rhs.from - from, perpendicular(vec2)) == T(0)) {
-			T length_sq = fwk::lengthSq(vec1);
-
-			// lines are the same
-			T t1 = dot(rhs.from - from, vec1);
-			T t2 = dot(rhs.to - from, vec1);
-
-			if(t2 < t1)
-				swap(t1, t2);
-			t1 = max(t1, T(0));
-			t2 = min(t2, length_sq);
-			auto ilen = T(1) / length_sq;
-
-			if(t2 < T(0) || t1 > length_sq)
-				return {};
-			if(t2 == t1)
-				return t1;
-
-			return {t1 * ilen, t2 * ilen};
-		}
-
-		return {};
-	}
-
-	auto diff = rhs.from - from;
-	auto t1 = dot(diff, perpendicular(vec2));
-	auto t2 = dot(diff, perpendicular(vec1));
-	if(tdot < T(0)) {
-		t1 = -t1;
-		t2 = -t2;
-		tdot = -tdot;
-	}
-
-	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
-		return t1 / tdot;
-	return {};
+	return isect2D<T, T, IsectParam>(*this, rhs);
 }
 
 // TODO: don't use rays here (we could avoid sqrt)
@@ -429,6 +463,8 @@ template IsectClass ISegment<qint, 2>::classifyIsect(const Point &) const;
 
 template pair<IsectParam<Rational<qint>>, bool>
 ISegment<int, 3>::isectParam(const Triangle3<int> &) const;
+
+template IsectParam<Rational<llint>> ISegment<int, 2>::isectParam(const ISegment &) const;
 
 template class Segment<float, 2>;
 template class Segment<float, 3>;

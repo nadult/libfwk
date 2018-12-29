@@ -10,6 +10,7 @@
 #include "fwk/math/matrix4.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rational.h"
+#include "fwk/math/rational2.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/tetrahedron.h"
@@ -237,6 +238,11 @@ void test2DIntersections() {
 	ASSERT_EQ(tri.barycentric(float2(2, 4)), f2(0, 1));
 	ASSERT_EQ(tri.barycentric(float2(3.5, 2)), f2(0.5, 0.5));
 	ASSERT_EQ(tri.barycentric(float2(2, 0)), f2(0.4, 0));
+
+	ISeg seg6(1, 1, 3, 4), seg7(1, 4, 4, 3);
+	auto t = seg6.isectParam(seg7).asPoint();
+	auto pt = Rational2<llint>(seg6.from) + Rational2<llint>(seg6.to - seg6.from) * t;
+	ASSERT_EQ(pt, Rational2<llint>({29, 38}, 11));
 }
 
 void test3DIntersections() {

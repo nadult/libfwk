@@ -1,6 +1,9 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- when formatting values for assert, use structured mode ?
+- formattible -> is_formattible
+- IsIntegral, etc -> is_integral value
 - drop gdb in favor of lldb
 - tied support in format (with priorities?)
 - Maybe w przypadku obiektów które mają niepoprawne wartości mogłoby też mieć szybsze porównania

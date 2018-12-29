@@ -14,16 +14,20 @@ template <class T, int N> class ISegment {
   public:
 	static_assert(isIntegral<T>(), "");
 	static_assert(N >= 2 && N <= 3, "");
+	static constexpr int dim_size = N;
 
 	using Vector = MakeVec<T, N>;
 	using Scalar = T;
 	using PScalar = Promote<Scalar>;
 	using PPScalar = Promote<PScalar>;
+	using PRScalar = Rational<PScalar>;
+	using PPRScalar = Rational<PPScalar>;
 	// TODO: check if PScalar has enough bits for intersections
+	// TODO: safe promote: generates error if cannot promote?
 
 	using Point = Vector;
-	using IsectParam = fwk::IsectParam<Rational<PPScalar>>;
-	enum { dim_size = N };
+	using PIsectParam = fwk::IsectParam<PRScalar>;
+	using PPIsectParam = fwk::IsectParam<PPRScalar>;
 
 	ISegment() : from(), to() {}
 	ISegment(const Point &a, const Point &b) : from(a), to(b) {}
@@ -49,7 +53,10 @@ template <class T, int N> class ISegment {
 	ENABLE_IF_SIZE(2) IsectClass classifyIsect(const Point &) const;
 	bool testIsect(const Box<Vector> &) const;
 
-	ENABLE_IF_SIZE(3) pair<IsectParam, bool> isectParam(const Triangle3<T> &) const;
+	ENABLE_IF_SIZE(3) pair<PPIsectParam, bool> isectParam(const Triangle3<T> &) const;
+	ENABLE_IF_SIZE(2) PIsectParam isectParam(const ISegment &) const;
+
+	PRScalar closestPointParam(const Point &) const;
 
 	void operator>>(TextFormatter &) const;
 
@@ -63,13 +70,13 @@ template <class T, int N> class Segment {
 	static_assert(!isIntegral<T>(), "use ISegment for integer-based segments");
 	static_assert(isReal<T>(), "");
 	static_assert(N >= 2 && N <= 3, "");
+	static constexpr int dim_size = N;
 
 	using Vector = MakeVec<T, N>;
 	using Scalar = T;
 	using Point = Vector;
 	using IsectParam = fwk::IsectParam<T>;
 	using Isect = Variant<None, Point, Segment>;
-	enum { dim_size = N };
 
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
