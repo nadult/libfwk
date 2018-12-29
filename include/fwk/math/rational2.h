@@ -14,7 +14,7 @@ namespace fwk {
 #endif
 
 template <class T> struct Rational2 {
-	static_assert(isIntegral<T>());
+	static_assert(is_integral<T>);
 
 	enum { vec_size = 2 };
 	using Scalar = Rational<T>;

@@ -276,13 +276,13 @@ void testVectorAngles() {
 	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(0, 0)), degToRad(-180.0f));
 }
 
-static_assert(isVec<short2>(), "");
-static_assert(isVec<float4>(), "");
-static_assert(!isVec<vector<int>>(), "");
+static_assert(is_vec<short2>, "");
+static_assert(is_vec<float4>, "");
+static_assert(!is_vec<vector<int>>, "");
 
-static_assert(isRealObject<FRect>(), "");
-static_assert(isIntegralObject<IBox>(), "");
-static_assert(isIntegralVec<int3>(), "");
+static_assert(is_real_object<FRect>, "");
+static_assert(is_integral_object<IBox>, "");
+static_assert(is_integral_vec<int3>, "");
 
 void testHash() {
 	vector<vector<Segment3<double>>> data;

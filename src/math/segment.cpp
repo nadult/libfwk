@@ -137,7 +137,7 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 template <class T, class PT, class Ret, class Seg> Ret isect2D(const Seg &lhs, const Seg &rhs) {
 	using Vec = MakeVec<T, 2>;
 	using PVec = MakeVec<PT, 2>;
-	using RT = Conditional<isIntegral<T>(), Rational<PT>, PT>;
+	using RT = Conditional<is_integral<T>, Rational<PT>, PT>;
 
 	if(lhs.empty()) {
 		if(rhs.empty()) {
@@ -155,7 +155,7 @@ template <class T, class PT, class Ret, class Seg> Ret isect2D(const Seg &lhs, c
 	auto vec2 = rhs.to - rhs.from;
 
 	auto divide = [](PT num, PT den) {
-		if constexpr(isIntegral<T>())
+		if constexpr(is_integral<T>)
 			return RT(num, den);
 		else
 			return num / den;

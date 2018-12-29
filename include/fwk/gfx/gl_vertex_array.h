@@ -74,7 +74,7 @@ namespace detail {
 	}
 
 	template <class T> constexpr const VertexAttrib *defaultVA() {
-		if constexpr(isVec<T>())
+		if constexpr(is_vec<T>)
 			return defaultVABase<fwk::VecScalar<T>, vec_size<T>>();
 		if constexpr(is_same<T, IColor>) {
 			return &default_va<VertexBaseType::uint8, 4, 0, flag(VertexAttribOpt::normalized).bits>;

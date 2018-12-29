@@ -16,7 +16,7 @@ namespace fwk {
 // Rational -> Ratio ?
 // Add funcs ratioFloor, ratioCeil, etc ?
 template <class T> struct Rational3 {
-	static_assert(isIntegral<T>());
+	static_assert(is_integral<T>);
 
 	enum { vec_size = 3 };
 	using Scalar = Rational<T>;

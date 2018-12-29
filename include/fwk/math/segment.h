@@ -12,7 +12,7 @@ namespace fwk {
 
 template <class T, int N> class ISegment {
   public:
-	static_assert(isIntegral<T>(), "");
+	static_assert(is_integral<T>, "");
 	static_assert(N >= 2 && N <= 3, "");
 	static constexpr int dim_size = N;
 
@@ -67,8 +67,8 @@ template <class T, int N> class ISegment {
 
 template <class T, int N> class Segment {
   public:
-	static_assert(!isIntegral<T>(), "use ISegment for integer-based segments");
-	static_assert(isReal<T>(), "");
+	static_assert(!is_integral<T>, "use ISegment for integer-based segments");
+	static_assert(is_real<T>, "");
 	static_assert(N >= 2 && N <= 3, "");
 	static constexpr int dim_size = N;
 

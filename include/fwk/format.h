@@ -257,7 +257,7 @@ TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
 	return out;
 }
 
-template <class TVec, EnableIf<isVec<TVec>() && !detail::IsRightFormattible<TVec>::value>...>
+template <class TVec, EnableIf<is_vec<TVec> && !detail::IsRightFormattible<TVec>::value>...>
 TextFormatter &operator<<(TextFormatter &out, const TVec &vec) {
 	enum { N = TVec::vec_size };
 	if constexpr(N == 2)

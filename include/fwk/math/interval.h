@@ -9,11 +9,11 @@
 namespace fwk {
 
 template <class T> struct Interval {
-	static_assert(isScalar<T>(), "");
+	static_assert(is_scalar<T>, "");
 
 	Interval(T min, T max) : min(min), max(max) {
 #ifdef FWK_CHECK_NANS
-		if constexpr(isReal<T>())
+		if constexpr(is_real<T>)
 			DASSERT(!isnan(min) && !isnan(max));
 #endif
 	}

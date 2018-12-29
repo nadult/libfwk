@@ -11,7 +11,7 @@ namespace fwk {
 
 template <class T, int N> class Ray {
   public:
-	static_assert(isReal<T>(), "Ray cannot be constructed using integral numbers as base type");
+	static_assert(is_real<T>, "Ray cannot be constructed using integral numbers as base type");
 	using Scalar = T;
 	using Vector = MakeVec<T, N>;
 	using Point = Vector;

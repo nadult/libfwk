@@ -16,7 +16,7 @@ namespace fwk {
 // Warning: these operations are far from optimal, if you know the numbers then
 // you can perform computations using less operations and bits;
 template <class T> struct Rational {
-	static_assert(isIntegral<T>());
+	static_assert(is_integral<T>);
 
 	// TODO: paranoid overflow checks ?
 	constexpr Rational(T num, T den, NoAssertsTag) : m_num(num), m_den(den) { CHECK_NAN(); }

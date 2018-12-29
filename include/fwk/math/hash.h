@@ -69,7 +69,7 @@ H computeHash(const T &object, PriorityTag2) {
 }
 
 template <class H, class T, class Ret = decltype(DECLVAL(const T &).hash()),
-		  EnableIf<isIntegral<Ret>()>...>
+		  EnableIfIntegral<Ret>...>
 H computeHash(const T &object, PriorityTag3) {
 	return object.hash();
 }

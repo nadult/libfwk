@@ -8,7 +8,7 @@
 namespace fwk {
 
 template <class T> struct BoxCells {
-	static_assert(isIntegralVec<T, 2>());
+	static_assert(is_integral_vec<T, 2>);
 
 	using Scalar = typename T::Scalar;
 
@@ -36,10 +36,10 @@ template <class T> struct BoxCells {
 		Scalar m_begin_x, m_end_x;
 	};
 
-	template <class U = T, EnableIf<isIntegralVec<U, 2>()>...> Iter2D begin() const {
+	template <class U = T, EnableIfIntegralVec<U, 2>...> Iter2D begin() const {
 		return {m_min, m_min[0], m_max[0]};
 	}
-	template <class U = T, EnableIf<isIntegralVec<U, 2>()>...> Iter2D end() const {
+	template <class U = T, EnableIfIntegralVec<U, 2>...> Iter2D end() const {
 		return {T(m_min[0], m_max[1]), m_min[0], m_max[0]};
 	}
 
@@ -47,7 +47,7 @@ template <class T> struct BoxCells {
 };
 
 // Iterate over unit-sized cells of given box
-template <class T, EnableIf<isIntegralVec<T, 2>()>...> BoxCells<T> cells(const Box<T> &box) {
+template <class T, EnableIfIntegralVec<T, 2>...> BoxCells<T> cells(const Box<T> &box) {
 	return {box.min(), box.max()};
 }
 }

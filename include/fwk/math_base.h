@@ -185,60 +185,59 @@ namespace detail {
 	}
 }
 
-template <class T> constexpr bool isReal() { return detail::IsReal<T>::value; }
-template <class T> constexpr bool isIntegral() { return detail::IsIntegral<T>::value; }
-template <class T> constexpr bool isRational() { return detail::IsRational<T>::value; }
-template <class T> constexpr bool isScalar() { return detail::IsScalar<T>::value; }
+template <class T> static constexpr bool is_real = detail::IsReal<T>::value;
+template <class T> static constexpr bool is_integral = detail::IsIntegral<T>::value;
+template <class T> static constexpr bool is_rational = detail::IsRational<T>::value;
+template <class T> static constexpr bool is_scalar = detail::IsScalar<T>::value;
 
-template <class T> constexpr bool isRealObject() {
-	return detail::ScalarTrait<T, detail::IsReal>::value;
-}
-template <class T> constexpr bool isIntegralObject() {
-	return detail::ScalarTrait<T, detail::IsIntegral>::value;
-}
-template <class T> constexpr bool isRationalObject() {
-	return detail::ScalarTrait<T, detail::IsRational>::value;
-}
-template <class T> constexpr bool isMathObject() {
-	return detail::ScalarTrait<T, detail::IsScalar>::value;
-}
+template <class T>
+static constexpr bool is_real_object = detail::ScalarTrait<T, detail::IsReal>::value;
+
+template <class T>
+static constexpr bool is_integral_object = detail::ScalarTrait<T, detail::IsIntegral>::value;
+
+template <class T>
+static constexpr bool is_rational_object = detail::ScalarTrait<T, detail::IsRational>::value;
+
+template <class T>
+static constexpr bool is_math_object = detail::ScalarTrait<T, detail::IsScalar>::value;
 
 template <class T> constexpr int vec_size = detail::VecSize<T>::value;
 template <class T> using VecScalar = typename detail::VecScalar<T>::type;
 
-template <class T, int N = 0> constexpr bool isVec() {
-	return (vec_size<T> == N || N == 0) && vec_size<T>> 0;
-}
-template <class T, int N = 0> constexpr bool isRealVec() {
-	return isVec<T, N>() && isReal<VecScalar<T>>();
-}
-template <class T, int N = 0> constexpr bool isRationalOrRealVec() {
-	return isVec<T, N>() && (isReal<VecScalar<T>>() || isRational<VecScalar<T>>());
-}
-template <class T, int N = 0> constexpr bool isIntegralVec() {
-	return isVec<T, N>() && isIntegral<VecScalar<T>>();
-}
-template <class T, int N = 0> constexpr bool isRationalVec() {
-	return isVec<T, N>() && isRational<VecScalar<T>>();
-}
-
-template <class T> using EnableIfScalar = EnableIf<isScalar<T>(), NotAScalar>;
-template <class T> using EnableIfReal = EnableIf<isReal<T>(), NotAReal>;
-template <class T> using EnableIfIntegral = EnableIf<isIntegral<T>(), NotAIntegral>;
-
-template <class T> using EnableIfMathObject = EnableIf<isMathObject<T>(), NotAMathObject>;
-
-template <class T, int N = 0> using EnableIfVec = EnableIf<isVec<T, N>(), NotAValidVec<N>>;
-template <class T, int N = 0> using EnableIfRealVec = EnableIf<isRealVec<T, N>(), NotAValidVec<N>>;
 template <class T, int N = 0>
-using EnableIfRationalOrRealVec = EnableIf<isRationalOrRealVec<T, N>(), NotAValidVec<N>>;
+static constexpr bool is_vec = (vec_size<T> == N || N == 0) && vec_size<T>> 0;
+
 template <class T, int N = 0>
-using EnableIfIntegralVec = EnableIf<isIntegralVec<T, N>(), NotAValidVec<N>>;
+static constexpr bool is_real_vec = is_vec<T, N> &&is_real<VecScalar<T>>;
+
+template <class T, int N = 0>
+static constexpr bool is_rational_or_real_vec = is_vec<T, N> && (is_real<VecScalar<T>> ||
+																 is_rational<VecScalar<T>>);
+
+template <class T, int N = 0>
+static constexpr bool is_integral_vec = is_vec<T, N> &&is_integral<VecScalar<T>>;
+
+template <class T, int N = 0>
+static constexpr bool is_rational_vec = is_vec<T, N> &&is_rational<VecScalar<T>>;
+
+template <class T> using EnableIfScalar = EnableIf<is_scalar<T>, NotAScalar>;
+template <class T> using EnableIfReal = EnableIf<is_real<T>, NotAReal>;
+template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotAIntegral>;
+
+template <class T> using EnableIfMathObject = EnableIf<is_math_object<T>, NotAMathObject>;
+
+template <class T, int N = 0> using EnableIfVec = EnableIf<is_vec<T, N>, NotAValidVec<N>>;
+template <class T, int N = 0> using EnableIfRealVec = EnableIf<is_real_vec<T, N>, NotAValidVec<N>>;
+template <class T, int N = 0>
+using EnableIfRationalOrRealVec = EnableIf<is_rational_or_real_vec<T, N>, NotAValidVec<N>>;
+template <class T, int N = 0>
+using EnableIfIntegralVec = EnableIf<is_integral_vec<T, N>, NotAValidVec<N>>;
 
 template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::type;
 
 template <class From, class To> constexpr bool preciseConversion() {
-	if constexpr(isVec<From>() && isVec<To>())
+	if constexpr(is_vec<From> && is_vec<To>)
 		return int(From::vec_size) == int(To::vec_size) &&
 			   detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
 	return detail::PreciseConversion<From, To>::value;
@@ -246,7 +245,7 @@ template <class From, class To> constexpr bool preciseConversion() {
 
 template <class T> using Promote = decltype(detail::promote<T>());
 template <class T>
-using PromoteIntegral = Conditional<isIntegral<T>() || isIntegralVec<T>(), Promote<T>, T>;
+using PromoteIntegral = Conditional<is_integral<T> || is_integral_vec<T>, Promote<T>, T>;
 
 template <class T> struct ToReal { using type = double; };
 template <> struct ToReal<float> { using type = float; };
@@ -260,12 +259,12 @@ template <class T, EnableIfRealVec<T>...> bool isnan(const T &v) {
 	return anyOf(v.values(), [](auto s) { return isnan(s); });
 }
 
-template <class TRange, class T = RangeBase<TRange>, EnableIf<isReal<T>() || isRealVec<T>()>...>
+template <class TRange, class T = RangeBase<TRange>, EnableIf<is_real<T> || is_real_vec<T>>...>
 bool isnan(const TRange &range) {
 	return anyOf(range, [](const auto &elem) { return isnan(elem); });
 }
 
-template <class T, EnableIf<isIntegral<T>()>...> T nextPow2(T val) {
+template <class T, EnableIfIntegral<T>...> T nextPow2(T val) {
 	T out = 1;
 	while(out < val)
 		out *= 2;
@@ -274,7 +273,7 @@ template <class T, EnableIf<isIntegral<T>()>...> T nextPow2(T val) {
 
 #ifdef FWK_CHECK_NANS
 #define CHECK_NANS(...)                                                                            \
-	if constexpr(isReal<T>())                                                                      \
+	if constexpr(is_real<T>)                                                                       \
 	DASSERT(!isnan(__VA_ARGS__))
 #else
 #define CHECK_NANS(...)
@@ -687,9 +686,10 @@ float blendAngles(float initial, float target, float step);
 // Returns angle in range <0, 2 * PI)
 float normalizeAngle(float angle);
 
-template <class T, EnableIf<isIntegral<T>()>...> constexpr bool isPowerOfTwo(T value) {
+template <class T, EnableIfIntegral<T>...> constexpr bool isPowerOfTwo(T value) {
 	return (value & (value - 1)) == 0;
 }
+
 constexpr int countLeadingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
 constexpr int countLeadingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
 constexpr int countTrailingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
@@ -770,8 +770,7 @@ class Random;
 
 struct DisabledInThisDimension;
 
-template <class T, int N>
-using EnableInDimension = EnableIf<isVec<T, N>(), DisabledInThisDimension>;
+template <class T, int N> using EnableInDimension = EnableIf<is_vec<T, N>, DisabledInThisDimension>;
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
 using IsectFlags = EnumFlags<IsectClass>;
