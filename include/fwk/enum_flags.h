@@ -17,7 +17,7 @@ template <class T> struct EnumFlags {
 	static constexpr Base mask =
 		(Base(1) << (max_flags - 1)) - Base(1) + (Base(1) << (max_flags - 1));
 
-	static_assert(isEnum<T>(), "EnumFlags<> should be based on fwk-enum");
+	static_assert(is_enum<T>, "EnumFlags<> should be based on fwk-enum");
 	static_assert(std::is_unsigned<Base>::value, "");
 	static_assert(fwk::count<T>() <= sizeof(Base) * 8, "");
 
@@ -86,14 +86,9 @@ constexpr EnumFlags<T> mask(C cond, EnumFlags<T> val) {
 	return cond ? val : EnumFlags<T>();
 }
 
-namespace detail {
-	template <class T> struct IsEnumFlags { static constexpr int value = 0; };
-	template <class T> struct IsEnumFlags<EnumFlags<T>> { static constexpr int value = 1; };
-}
-
-template <class T> constexpr bool isEnumFlags() { return detail::IsEnumFlags<T>::value; }
-
-template <class T> using EnableIfEnumFlags = EnableIf<detail::IsEnumFlags<T>::value>;
+template <class T> constexpr bool is_enum_flags = false;
+template <class T> constexpr bool is_enum_flags<EnumFlags<T>> = true;
+template <class T> using EnableIfEnumFlags = EnableIf<is_enum_flags<T>>;
 
 template <class TFlags, EnableIfEnumFlags<TFlags>...> constexpr int countBits(const TFlags &flags) {
 	int out = 0;

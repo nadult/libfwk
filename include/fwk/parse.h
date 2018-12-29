@@ -130,7 +130,7 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) {
 
 // TODO: parsing types from math
 
-template <class T, EnableIf<is_parsable<T> && !isEnum<T>()>...> T fromString(ZStr str) {
+template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr str) {
 	TextParser parser(str);
 	T out;
 	parser >> out;

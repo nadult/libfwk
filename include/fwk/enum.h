@@ -127,9 +127,9 @@ namespace detail {
 	};
 }
 
-template <class T> constexpr bool isEnum() { return detail::IsEnum<T>::value; }
+template <class T> constexpr bool is_enum = detail::IsEnum<T>::value;
 
-template <class T> using EnableIfEnum = EnableIf<isEnum<T>(), NotAnEnum>;
+template <class T> using EnableIfEnum = EnableIf<is_enum<T>, NotAnEnum>;
 
 template <class T, EnableIfEnum<T>...> static T fromString(Str str) {
 	using Strings = decltype(enumStrings(T()));

@@ -200,7 +200,7 @@ class TextFormatter {
 		print_(FormatMode::plain, str, sizeof...(T), getFuncs<T...>(), detail::getTFValue(args)...);
 	}
 
-	template <class T, EnableIf<!isEnum<RemoveReference<T>>()>..., EnableIfFormattible<T>...>
+	template <class T, EnableIf<!is_enum<RemoveReference<T>>>..., EnableIfFormattible<T>...>
 	friend string toString(T &&value) {
 		return toString_(detail::getTFFunc<T>(), detail::getTFValue(value));
 	}
@@ -336,7 +336,7 @@ template <class T, EnableIfEnum<T>...> TextFormatter &operator<<(TextFormatter &
 
 string stdFormat(const char *format, ...) ATTRIB_PRINTF(1, 2);
 
-template <class T, EnableIf<!isEnum<RemoveReference<T>>()>..., EnableIfFormattible<T>...>
+template <class T, EnableIf<!is_enum<RemoveReference<T>>>..., EnableIfFormattible<T>...>
 string toString(T &&value);
 
 template <class... T, EnableIfFormattible<T...>...> string format(const char *str, T &&...);

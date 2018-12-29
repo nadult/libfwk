@@ -14,7 +14,7 @@ template <class Enum, class T> class EnumMap {
   public:
 	static constexpr int size_ = count<Enum>();
 
-	static_assert(isEnum<Enum>(),
+	static_assert(is_enum<Enum>,
 				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM*");
 
 	static void checkPairs(CSpan<pair<Enum, T>> pairs) {
