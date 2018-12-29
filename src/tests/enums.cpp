@@ -35,7 +35,7 @@ void testMain() {
 	ASSERT(mask(false, SomeEnum::foo) == none);
 	ASSERT_EQ(mask(true, SomeEnum::bar), SomeEnum::bar);
 
-	static_assert(formattible<EnumFlags<SomeEnum>>);
+	static_assert(is_formattible<EnumFlags<SomeEnum>>);
 
 	ASSERT_EQ(toString(SomeEnum::foo | SomeEnum::bar | SomeEnum::foo_bar), "foo|bar|foo_bar");
 	ASSERT_EQ(fromString<EnumFlags<SomeEnum>>("bar|foo"), SomeEnum::bar | SomeEnum::foo);

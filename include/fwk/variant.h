@@ -559,17 +559,17 @@ namespace detail {
 	struct VariantCExp<Variant<Types...>> : public VariantC<Variant<Types...>, Types...> {};
 }
 
-template <class... Types, class Enable = EnableIf<(... && xml_parsable<Types>)>>
+template <class... Types, class Enable = EnableIf<(... && is_xml_parsable<Types>)>>
 auto parse(CXmlNode node, Type<Variant<Types...>>) {
 	return detail::VariantCExp<Variant<Types...>>::load(node.attrib("_variant_type_id"), node);
 }
 
-template <class... Types, class Enable = EnableIf<(... && xml_saveable<Types>)>>
+template <class... Types, class Enable = EnableIf<(... && is_xml_saveable<Types>)>>
 void save(XmlNode node, const Variant<Types...> &value) {
 	detail::VariantCExp<Variant<Types...>>::save_(value, node);
 }
 
-template <class... Types, class Enable = EnableIf<(... && formattible<Types>)>>
+template <class... Types, class Enable = EnableIf<(... && is_formattible<Types>)>>
 TextFormatter &operator<<(TextFormatter &out, const Variant<Types...> &variant) {
 	variant.visit([&](const auto &value) { out << value; });
 	return out;

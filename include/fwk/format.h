@@ -109,11 +109,11 @@ namespace detail {
 }
 
 template <class T>
-constexpr bool formattible =
+constexpr bool is_formattible =
 	detail::IsFormattible<T>::value || detail::IsRightFormattible<T>::value;
 
 template <class... Args>
-using EnableIfFormattible = EnableIf<(... && formattible<Args>), NotFormattible>;
+using EnableIfFormattible = EnableIf<(... && is_formattible<Args>), NotFormattible>;
 
 // TODO: escapable % ?
 // TODO: better name

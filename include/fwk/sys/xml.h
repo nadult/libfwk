@@ -192,18 +192,18 @@ namespace detail {
 // - provide T::save(XmlNode) const
 // - make sure that T is formattible
 template <class T>
-constexpr bool xml_saveable =
-	detail::XmlTraits<T>::saveable || formattible<T> || detail::XmlTraits<T>::func_saveable;
+constexpr bool is_xml_saveable =
+	detail::XmlTraits<T>::saveable || is_formattible<T> || detail::XmlTraits<T>::func_saveable;
 
 // To make type xml_constructible, you have to satisfy one of these conditions:
 // - provide constructor T(CXmlNode)
 // - provide parse(CXmlNode, Type<T>, CXmlNode) -> T
 // - make sure that T is parsable
 template <class T>
-constexpr bool xml_parsable =
-	detail::XmlTraits<T>::constructible || parsable<T> || detail::XmlTraits<T>::func_parsable;
+constexpr bool is_xml_parsable =
+	detail::XmlTraits<T>::constructible || is_parsable<T> || detail::XmlTraits<T>::func_parsable;
 
-template <class T, EnableIf<xml_parsable<T>>...> T parse(CXmlNode node) {
+template <class T, EnableIf<is_xml_parsable<T>>...> T parse(CXmlNode node) {
 	if constexpr(detail::XmlTraits<T>::func_parsable)
 		return parse(node, Type<T>());
 	else if constexpr(detail::XmlTraits<T>::constructible)
@@ -212,7 +212,7 @@ template <class T, EnableIf<xml_parsable<T>>...> T parse(CXmlNode node) {
 		return node.value<T>();
 }
 
-template <class T, EnableIf<detail::XmlTraits<T>::saveable || formattible<T>>...>
+template <class T, EnableIf<detail::XmlTraits<T>::saveable || is_formattible<T>>...>
 void save(XmlNode node, const T &value) {
 	if constexpr(detail::XmlTraits<T>::saveable)
 		value.save(node);

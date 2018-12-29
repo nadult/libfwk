@@ -53,8 +53,8 @@ void testVariant() {
 	auto node = doc.addChild("node");
 	save(node, var);
 
-	static_assert(xml_parsable<Var1>);
-	static_assert(xml_saveable<Var1>);
+	static_assert(is_xml_parsable<Var1>);
+	static_assert(is_xml_saveable<Var1>);
 
 	auto temp = parse<Var1>(node);
 	ASSERT(temp == var);
@@ -85,9 +85,9 @@ void testXMLConverters() {
 	testClassConversions(Matrix4::identity());
 	testClassConversions(Quat(1.0, 0.0f, 0.0f, 2.0f));
 
-	static_assert(parsable<vector<DBox>>);
-	static_assert(parsable<vector<DRect>>);
-	static_assert(!parsable<vector<vector<int>>>);
+	static_assert(is_parsable<vector<DBox>>);
+	static_assert(is_parsable<vector<DRect>>);
+	static_assert(!is_parsable<vector<vector<int>>>);
 
 	struct MyClass {
 		double x = 16.128;

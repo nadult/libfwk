@@ -40,12 +40,12 @@ namespace detail {
 		T value;
 
 		static AnyXmlConstructor makeConstructor() {
-			if constexpr(xml_parsable<T>)
+			if constexpr(is_xml_parsable<T>)
 				return [](CXmlNode n) -> AnyBase * { return new AnyModel<T>(parse<T>(n)); };
 			return nullptr;
 		}
 		static AnyXmlSaver makeSaver() {
-			if constexpr(xml_saveable<T>)
+			if constexpr(is_xml_saveable<T>)
 				return [](const void *v, XmlNode n) { save(n, *(const T *)v); };
 			return nullptr;
 		}
