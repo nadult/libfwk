@@ -29,7 +29,7 @@ template <class H, class T> H computeHash(const T &value, PriorityTag0) {
 	return H(std::hash<T>()(value));
 }
 
-template <class H, class TRange, EnableIf<isRange<TRange>()>...>
+template <class H, class TRange, EnableIf<is_range<TRange>>...>
 H computeHash(const TRange &range, PriorityTag1) {
 	if(fwk::empty(range))
 		return 0x31337;

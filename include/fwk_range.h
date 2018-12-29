@@ -73,6 +73,9 @@ namespace detail {
 	};
 }
 
+template <class T> constexpr bool is_range = detail::RangeInfo<T>::value;
+template <class T> constexpr bool is_span = detail::SpanInfo<T>::value;
+
 template <class T, class Req = void>
 using EnableIfRange = EnableIf<detail::RangeInfo<T, Req>::value, NotARange>;
 template <class T, class Req = void>
@@ -95,9 +98,6 @@ template <class TSpan, class Base = SpanBase<TSpan>> const Base *data(const TSpa
 	else
 		return begin(range);
 }
-
-template <class T> constexpr bool isRange() { return detail::RangeInfo<T>::value; }
-template <class T> constexpr bool isSpan() { return detail::SpanInfo<T>::value; }
 
 template <class TRange, EnableIfRange<TRange>...> bool empty(const TRange &range) {
 	return begin(range) == end(range);

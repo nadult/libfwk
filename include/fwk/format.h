@@ -239,7 +239,7 @@ TextFormatter &operator<<(TextFormatter &out, const TSpan &span) {
 }
 
 template <class TRange, class T = RangeBase<TRange>, EnableIfFormattible<T>...,
-		  EnableIf<!isSpan<TRange>()>...>
+		  EnableIf<!is_span<TRange>>...>
 TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
 	const char *separator = out.isStructured() ? ", " : " ";
 
