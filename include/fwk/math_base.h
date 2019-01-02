@@ -618,7 +618,7 @@ template <class T, EnableIfVec<T, 2>...> auto cross(const T &a, const T &b) {
 	return a[0] * b[1] - a[1] * b[0];
 }
 
-template <class T, EnableIfVec<T, 2>...> T perpendicular(const T &v) { return {-v[1], v[0]}; }
+template <class T, EnableIfVec<T, 2>...> T perpendicular(const T &v) { return T(-v[1], v[0]); }
 
 float vectorToAngle(const float2 &normalized_vector);
 double vectorToAngle(const double2 &normalized_vector);

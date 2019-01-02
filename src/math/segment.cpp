@@ -465,6 +465,7 @@ template pair<IsectParam<Rational<qint>>, bool>
 ISegment<int, 3>::isectParam(const Triangle3<int> &) const;
 
 template IsectParam<Rational<llint>> ISegment<int, 2>::isectParam(const ISegment &) const;
+template IsectParam<Rational<int>> ISegment<short, 2>::isectParam(const ISegment &) const;
 
 template class Segment<float, 2>;
 template class Segment<float, 3>;
