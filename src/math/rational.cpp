@@ -115,6 +115,8 @@ template <class T> void Rational<T>::operator>>(TextFormatter &out) const {
 template <class T> bool Rational<T>::operator<(const Rational<T> &rhs) const {
 	using PInt = Promote<T>;
 
+	// TODO: is comparison with inifinity / nan working ?
+	// TODO: report errors when nans are present?
 	if constexpr(is_same<PInt, T>)
 		return order(rhs) == -1;
 	else {

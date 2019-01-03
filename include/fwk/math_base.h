@@ -708,10 +708,7 @@ template <class T, int N> class Triangle;
 template <class T, int N> class Plane;
 template <class T, int N> class Ray;
 template <class T, int N> class Segment;
-template <class T, int N> class ISegment;
 
-template <class T> using ISegment2 = ISegment<T, 2>;
-template <class T> using ISegment3 = ISegment<T, 3>;
 template <class T> using Segment2 = Segment<T, 2>;
 template <class T> using Segment3 = Segment<T, 3>;
 
@@ -746,8 +743,8 @@ using Ray3D = Ray<double, 3>;
 using Ray2F = Ray<float, 2>;
 using Ray2D = Ray<double, 2>;
 
-using Segment3I = ISegment<int, 3>;
-using Segment2I = ISegment<int, 2>;
+using Segment3I = Segment<int, 3>;
+using Segment2I = Segment<int, 2>;
 
 using IRect = Box<int2>;
 using FRect = Box<float2>;
@@ -797,4 +794,4 @@ SERIALIZE_AS_POD(Segment2<float>)
 SERIALIZE_AS_POD(Segment3<float>)
 SERIALIZE_AS_POD(Segment2<double>)
 SERIALIZE_AS_POD(Segment3<double>)
-SERIALIZE_AS_POD(ISegment2<int>)
+SERIALIZE_AS_POD(Segment2<int>)

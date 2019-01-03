@@ -80,8 +80,8 @@ void testRays() {
 	Segment3<float> segment1(0.5, 0.5, 0, 0.5, 0.5, 10);
 	Segment3<float> segment2(1.3, 1.3, 0, 1.0, 1.0, 10);
 
-	assertCloseEnough(segment1.isectParam(tri1).closest(), 0.4f);
-	ASSERT(!segment2.isectParam(tri1));
+	assertCloseEnough(segment1.isectParam(tri1).first.closest(), 0.4f);
+	ASSERT(!segment2.isectParam(tri1).first);
 	assertCloseEnough(tri1.surfaceArea(), 2.0f);
 
 	auto angles2 = tri2.angles();
@@ -115,7 +115,7 @@ void testIntersections() {
 	Triangle3F tri(float3(0, 0, 0), float3(1, 0, 0), float3(0, 1, 0));
 	Segment3<float> seg(1, 1, -1, 1, 1, 1);
 
-	ASSERT(!seg.isectParam(tri));
+	ASSERT(!seg.isectParam(tri).first);
 	ASSERT_EQ(tri.distance(float3(1, 1, 0)), std::sqrt(2.0f) / 2.0f);
 
 	/*
@@ -193,7 +193,7 @@ void test2DIntersections() {
 	Segment2<double> seg2(-4.1, -9.4, -2.4, -9.2);
 	ASSERT(seg1.isect(seg2) == none);
 
-	using ISeg = ISegment2<int>;
+	using ISeg = Segment2<int>;
 	using IClass = IsectClass;
 
 	ISeg iseg1(0, 0, 943782983, 999999999), iseg2(0, 1, 1000000123, 2);
@@ -202,14 +202,14 @@ void test2DIntersections() {
 	ASSERT(iseg1.classifyIsect(iseg3) == IClass::none);
 	ASSERT(iseg1.classifyIsect(iseg4) == IClass::point);
 
-	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 0, 5, 0)) == IClass::segment);
-	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(10, 0, 11, 0)) == IClass::adjacent);
-	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(-1, 0, 0, 0)) == IClass::adjacent);
-	ASSERT(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 10, 0, 0)) == IClass::adjacent);
-	ASSERT(ISeg(0, 0, 2, 0).classifyIsect(int2(1, 0)) == IClass::point);
-	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(3, 3)) == IClass::point);
-	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(5, 5)) == IClass::adjacent);
-	ASSERT(ISeg(0, 0, 5, 5).classifyIsect(int2(2, 3)) == IClass::none);
+	ASSERT_EQ(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 0, 5, 0)), IClass::segment);
+	ASSERT_EQ(ISeg(0, 0, 10, 0).classifyIsect(ISeg(10, 0, 11, 0)), IClass::adjacent);
+	ASSERT_EQ(ISeg(0, 0, 10, 0).classifyIsect(ISeg(-1, 0, 0, 0)), IClass::adjacent);
+	ASSERT_EQ(ISeg(0, 0, 10, 0).classifyIsect(ISeg(0, 10, 0, 0)), IClass::adjacent);
+	ASSERT_EQ(ISeg(0, 0, 2, 0).classifyIsect(int2(1, 0)), IClass::point);
+	ASSERT_EQ(ISeg(0, 0, 5, 5).classifyIsect(int2(3, 3)), IClass::point);
+	ASSERT_EQ(ISeg(0, 0, 5, 5).classifyIsect(int2(5, 5)), IClass::adjacent);
+	ASSERT_EQ(ISeg(0, 0, 5, 5).classifyIsect(int2(2, 3)), IClass::none);
 
 	ASSERT(!ISeg(-1, 0, 10, 2).testIsect(IRect(1, 1, 4, 4)));
 	ASSERT(ISeg(-3, 0, 10, 2).testIsect(IRect(1, 1, 4, 4)));
@@ -231,7 +231,7 @@ void test2DIntersections() {
 		iseg1.classifyIsect(iseg4);
 	}
 	time = getTime() - time;
-	print("Isect time: % ns / ISegment<qint> pair\n", time * 10000);
+	print("Isect time: % ns / ISegment<int> pair\n", time * 10000);
 
 	Triangle2F tri(float2(0, 0), float2(5, 0), float2(2, 4));
 	using f2 = pair<float, float>;
@@ -402,7 +402,7 @@ void testRational() {
 	}
 
 	Triangle3<int> tri(int3(0, 0, 0), int3(1000, 0, 0), int3(0, 0, 1000));
-	ISegment3<int> seg{int3(200, 1000, 200), int3(200, -1000, 200)};
+	Segment3<int> seg{int3(200, 1000, 200), int3(200, -1000, 200)};
 
 	auto result = seg.isectParam(tri);
 	ASSERT_EQ(result.first.closest(), Rational<qint>(1, 2));

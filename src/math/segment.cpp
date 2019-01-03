@@ -13,114 +13,258 @@
 
 namespace fwk {
 
-#ifdef __clang__
-template <class Seg> static IsectClass classifyIsect(const Seg &, const Seg &) ALWAYS_INLINE;
-template <class Seg, class Box> static bool testIsect(const Seg &, const Box &) ALWAYS_INLINE;
-#endif
-
-template <class Seg, class Point>
-static IsectClass classifyIsect(const Seg &seg, const Point &point) {
-	using T = typename Seg::Scalar;
-	using IClass = IsectClass;
-
-	if(isOneOf(point, seg.from, seg.to))
-		return IClass::adjacent;
-	if(seg.empty())
-		return IClass::none;
-
-	auto vec = seg.to - seg.from;
-	if(cross(point - seg.from, vec) == T(0)) {
-		// point lies on the line
-		T length_sq = lengthSq(vec);
-		T t = dot(point - seg.from, vec);
-
-		if(t < T(0) || t > length_sq)
-			return IClass::none;
-		if(t == T(0) || t == length_sq)
-			return IClass::adjacent;
-		return IClass::point;
-	}
-
-	return IClass::none;
+template <class T, int N>
+template <class U, EnableIfReal<U>...>
+Maybe<Ray<T, N>> Segment<T, N>::asRay() const {
+	if(empty())
+		return none;
+	return Ray<T, N>(from, normalize(to - from));
 }
 
-template <class Seg> static IsectClass classifyIsect(const Seg &lhs, const Seg &rhs) {
-	using T = typename Seg::Scalar;
-	using IClass = IsectClass;
+// Source: RTCD (page 130)
+template <class T, int N> auto Segment<T, N>::distanceSq(const Point &point) const -> PPRT {
+	// TODO: verify this
+	auto ab = to - from, ac = point - from, bc = point - to;
+	PT e = dot<PVec>(ac, ab);
+	if(e <= PT(0))
+		return dot<PVec>(ac, ac);
+	PT f = dot<PVec>(ab, ab);
+	if(e >= f)
+		return dot<PVec>(bc, bc);
 
-	if(lhs.empty()) {
-		if(rhs.empty())
-			return lhs.from == rhs.from ? IClass::adjacent : IClass::none;
-		return classifyIsect(rhs, lhs.from);
+	return PPRT(dot<PVec>(ac, ac)) - divide(PPT(e) * e, f);
+}
+
+template <class T, int N> auto Segment<T, N>::distanceSq(const Segment &rhs) const -> PReal {
+	auto points = closestPoints(rhs);
+	return fwk::distanceSq(PRealVec(points.first), PRealVec(points.second));
+}
+
+template <class T, int N> auto Segment<T, N>::at(const IsectParam &pisect) const -> Isect {
+	if constexpr(is_real<T>) {
+		if(pisect.isPoint())
+			return at(pisect.asPoint());
+		if(pisect.isInterval())
+			return subSegment(pisect.asInterval());
 	}
-	if(rhs.empty())
-		return classifyIsect(lhs, rhs.from);
+	return none;
+}
 
-	auto vec1 = lhs.to - lhs.from;
-	auto vec2 = rhs.to - rhs.from;
+// Jak opisać dokładność tej funkcji ?
+template <class T, int N> auto Segment<T, N>::isectParam(const Segment &rhs) const -> PRIsectParam {
+	if constexpr(N == 2) {
+		if(empty()) {
+			if(rhs.empty()) {
+				if(to == rhs.to)
+					return PRT(0);
+				return {};
+			}
 
-	auto tdot = dot(vec1, perpendicular(vec2));
-	if(tdot == T(0)) {
-		// lines are parallel
-		if(dot(rhs.from - lhs.from, perpendicular(vec2)) == T(0)) {
-			// lines are the same
-			T length_sq = lengthSq(vec1);
-			T t1 = dot(rhs.from - lhs.from, vec1);
-			T t2 = dot(rhs.to - lhs.from, vec1);
-
-			if(t2 < t1)
-				swap(t1, t2);
-			t1 = max(t1, T(0));
-			t2 = min(t2, T(length_sq));
-
-			if(t2 < T(0) || t1 > length_sq)
-				return IClass::none;
-			if(isOneOf(t1, T(0), length_sq) && isOneOf(t2, T(0), length_sq))
-				return IClass::adjacent;
-			if(t1 == t2)
-				return IClass::point;
-			return IClass::segment;
+			if(rhs.classifyIsect(from) != IsectClass::none)
+				return PRT(0);
+			return {};
 		}
 
-		return IClass::none;
+		auto vec1 = to - from;
+		auto vec2 = rhs.to - rhs.from;
+
+		auto divide = [](PT num, PT den) {
+			if constexpr(is_integral<T>)
+				return PRT(num, den);
+			else
+				return num / den;
+		};
+
+		PT tdot = dot<PVec>(vec1, perpendicular(vec2));
+		if(tdot == PT(0)) {
+			// lines are parallel
+			if(dot<PVec>(rhs.from - from, perpendicular(vec2)) == PT(0)) {
+				PT length_sq = fwk::lengthSq<PVec>(vec1);
+
+				// lines are the same
+				PT t1 = dot<PVec>(rhs.from - from, vec1);
+				PT t2 = dot<PVec>(rhs.to - from, vec1);
+
+				if(t2 < t1)
+					swap(t1, t2);
+				t1 = max(t1, PT(0));
+				t2 = min(t2, length_sq);
+
+				if(t2 < PT(0) || t1 > length_sq)
+					return {};
+				if(t2 == t1)
+					return divide(t1, length_sq);
+
+				return {divide(t1, length_sq), divide(t2, length_sq)};
+			}
+
+			return {};
+		}
+
+		auto diff = rhs.from - from;
+		auto t1 = dot<PVec>(diff, perpendicular(vec2));
+		auto t2 = dot<PVec>(diff, perpendicular(vec1));
+		if(tdot < PT(0)) {
+			t1 = -t1;
+			t2 = -t2;
+			tdot = -tdot;
+		}
+
+		if(t1 >= PT(0) && t1 <= tdot && t2 >= PT(0) && t2 <= tdot)
+			return divide(t1, tdot);
+		return {};
+	} else {
+		FATAL("write me please");
+		return {};
+	}
+}
+
+// TODO: don't use rays here (we could avoid sqrt)
+template <class T, int N>
+auto Segment<T, N>::isectParam(const Box<Vec> &box) const -> PRIsectParam {
+	if constexpr(is_real<T>) {
+		if(empty())
+			return box.contains(from) ? T(0) : IsectParam();
+		auto param = asRay()->isectParam(box).asInterval() / length();
+		return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
+	} else {
+		FATAL("write me please");
+		return {};
+	}
+}
+
+// TODO: proper intersections (not based on rays)
+template <class T, int N>
+template <class U, EnableIfReal<U>...>
+IsectParam<T> Segment<T, N>::isectParam(const Plane<T, N> &plane) const {
+	if constexpr(N == 2) {
+		FATAL("write me");
+		return {};
+	} else {
+		if(empty())
+			return plane.signedDistance(from) == T(0) ? T(0) : IsectParam();
+		auto param = asRay()->isectParam(plane).asInterval() / length();
+		return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
+	}
+}
+
+template <class T, int N>
+auto Segment<T, N>::isectParam(const Triangle<T, N> &tri) const -> pair<PPRIsectParam, bool> {
+	if constexpr(N == 3) {
+		// TODO: use this in real segment
+		Vec ab = tri[1] - tri[0];
+		Vec ac = tri[2] - tri[0];
+
+		Vec qp = from - to;
+		PVec n = cross<PVec>(ab, ac);
+
+		PPT d = dot<PPVec>(qp, n);
+		//	print("n: % % %\n", n[0], n[1], n[2]);
+
+		if(d == 0)
+			return {}; // segment parallel: ignore
+
+		Vec ap = from - tri[0];
+		PPT t = dot<PPVec>(ap, n);
+
+		bool is_front = d > 0;
+		if(d < 0) {
+			t = -t;
+			d = -d;
+		}
+
+		if(t < 0 || t > d)
+			return {};
+
+		PVec e = cross<PVec>(qp, ap);
+		if(!is_front)
+			e = -e;
+		PPT v = dot<PPVec>(ac, e);
+
+		if(v < 0 || v > d)
+			return {};
+		PPT w = -dot<PPVec>(ab, e);
+
+		if(w < 0 || v + w > d)
+			return {};
+
+		return {PPRIsectParam(divide<PPT>(t, d)), is_front};
+	} else {
+		FATAL("write me please");
+		return {};
+	}
+}
+
+template <class T, int N> auto Segment<T, N>::isect(const Segment &segment) const -> Isect {
+	if constexpr(is_real<T>)
+		return at(isectParam(segment));
+
+	FATAL("write me");
+	return {};
+}
+
+template <class T, int N> auto Segment<T, N>::isect(const Box<Vec> &box) const -> Isect {
+	if constexpr(is_real<T>)
+		return at(isectParam(box));
+
+	FATAL("write me");
+	return {};
+}
+
+template <class T, int N> IsectClass Segment<T, N>::classifyIsect(const Point &point) const {
+	if constexpr(N == 2) {
+		if(isOneOf(point, from, to))
+			return IsectClass::adjacent;
+		if(empty())
+			return IsectClass::none;
+
+		PVec vec = to - from;
+		if(cross<PVec>(point - from, vec) == PT(0)) {
+			// point lies on the line
+			PT length_sq = fwk::lengthSq(vec);
+			PT t = dot<PVec>(point - from, vec);
+
+			if(t < PT(0) || t > length_sq)
+				return IsectClass::none;
+			if(t == PT(0) || t == length_sq)
+				return IsectClass::adjacent;
+			return IsectClass::point;
+		}
+	} else {
+		FATAL("write me please");
 	}
 
-	if(lhs.adjacent(rhs))
-		return IClass::adjacent;
+	return IsectClass::none;
+}
 
-	auto diff = rhs.from - lhs.from;
-	auto t1 = dot(diff, perpendicular(vec2));
-	auto t2 = dot(diff, perpendicular(vec1));
-
-	if(tdot < T(0)) {
-		t1 = -t1;
-		t2 = -t2;
-		tdot = -tdot;
+template <class T, int N> IsectClass Segment<T, N>::classifyIsect(const Segment &rhs) const {
+	// TODO: what if segments overlap with points ?
+	PRIsectParam param = isectParam(rhs);
+	if(param.isInterval())
+		return IsectClass::segment;
+	if(param.isPoint()) {
+		if(isOneOf(param.closest(), 0, 1))
+			return IsectClass::adjacent; // TODO: different kind of adjacency
+		return IsectClass::point;
 	}
-
-	if(t1 >= T(0) && t1 <= tdot && t2 >= T(0) && t2 <= tdot)
-		return IClass::point;
-	return IClass::none;
+	return IsectClass::none;
 }
 
 // Source: RTCD, page: 183
 // TODO: make it return IsectClass
-template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
-	using Vec = typename Seg::Vector;
-	enum { dim_size = Seg::dim_size };
+template <class T, int N> bool Segment<T, N>::testIsect(const Box<Vec> &box) const {
+	PVec e = box.size();
+	PVec d = to - from;
+	PVec m = PVec(from + to) - PVec(box.max() + box.min());
 
-	auto e = box.size();
-	auto d = seg.to - seg.from;
-	auto m = (seg.from + seg.to) - (box.max() + box.min());
-
-	Vec ad;
-	for(int i = 0; i < dim_size; i++) {
+	PVec ad;
+	for(int i = 0; i < N; i++) {
 		ad[i] = abs(d[i]);
 		if(abs(m[i]) > e[i] + ad[i])
 			return false;
 	}
 
-	if constexpr(dim_size == 2) {
+	if constexpr(N == 2) {
 		return abs(cross(m, d)) <= e[0] * ad[1] + e[1] * ad[0];
 	} else {
 		// TODO: test it
@@ -134,364 +278,111 @@ template <class Seg, class Box> bool testIsect(const Seg &seg, const Box &box) {
 	}
 }
 
-template <class T, class PT, class Ret, class Seg> Ret isect2D(const Seg &lhs, const Seg &rhs) {
-	using Vec = MakeVec<T, 2>;
-	using PVec = MakeVec<PT, 2>;
-	using RT = Conditional<is_integral<T>, Rational<PT>, PT>;
+template <class T, int N> auto Segment<T, N>::closestPointParam(const Point &point) const -> PRT {
+	if constexpr(is_integral<T>) {
+		if(empty())
+			return PRT(0);
 
-	if(lhs.empty()) {
-		if(rhs.empty()) {
-			if(lhs.to == rhs.to)
-				return RT(0);
-			return {};
-		}
+		PVec vec = to - from;
+		auto t = PRT(dot<PVec>(point - from, vec), fwk::lengthSq<PVec>(vec));
+		if(t.num() < 0)
+			return PRT(0);
+		if(t.num() > t.den())
+			return PRT(1);
+		return t;
 
-		if(rhs.classifyIsect(lhs.from) != IsectClass::none)
-			return RT(0);
-		return {};
+		if(empty())
+			return T(0);
+	} else {
+		auto vec = to - from;
+		auto t = dot(point - from, vec) / fwk::lengthSq(vec);
+		return clamp(t, Scalar(0), Scalar(1));
 	}
-
-	auto vec1 = lhs.to - lhs.from;
-	auto vec2 = rhs.to - rhs.from;
-
-	auto divide = [](PT num, PT den) {
-		if constexpr(is_integral<T>)
-			return RT(num, den);
-		else
-			return num / den;
-	};
-
-	PT tdot = dot<PVec>(vec1, perpendicular(vec2));
-	if(tdot == PT(0)) {
-		// lines are parallel
-		if(dot<PVec>(rhs.from - lhs.from, perpendicular(vec2)) == PT(0)) {
-			PT length_sq = fwk::lengthSq<PVec>(vec1);
-
-			// lines are the same
-			PT t1 = dot<PVec>(rhs.from - lhs.from, vec1);
-			PT t2 = dot<PVec>(rhs.to - lhs.from, vec1);
-
-			if(t2 < t1)
-				swap(t1, t2);
-			t1 = max(t1, PT(0));
-			t2 = min(t2, length_sq);
-
-			if(t2 < PT(0) || t1 > length_sq)
-				return {};
-			if(t2 == t1)
-				return RT(t1);
-
-			return {divide(t1, length_sq), divide(t2, length_sq)};
-		}
-
-		return {};
-	}
-
-	auto diff = rhs.from - lhs.from;
-	auto t1 = dot<PVec>(diff, perpendicular(vec2));
-	auto t2 = dot<PVec>(diff, perpendicular(vec1));
-	if(tdot < PT(0)) {
-		t1 = -t1;
-		t2 = -t2;
-		tdot = -tdot;
-	}
-
-	if(t1 >= PT(0) && t1 <= tdot && t2 >= PT(0) && t2 <= tdot)
-		return divide(t1, tdot);
-	return {};
-}
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-IsectClass ISegment<T, N>::classifyIsect(const ISegment<T, N> &rhs) const {
-	return fwk::classifyIsect(ISegment<qint, 2>(*this), ISegment<qint, 2>(rhs));
 }
 
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-IsectClass Segment<T, N>::classifyIsect(const Segment<T, N> &rhs) const {
-	return fwk::classifyIsect(*this, rhs);
-}
-
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-IsectClass ISegment<T, N>::classifyIsect(const Point &point) const {
-	return fwk::classifyIsect(ISegment<qint, 2>(*this), qint2(point));
-}
-
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-IsectClass Segment<T, N>::classifyIsect(const Point &point) const {
-	return fwk::classifyIsect(*this, point);
-}
-template <class T, int N> bool ISegment<T, N>::testIsect(const Box<Vector> &box) const {
-	using QVec = MakeVec<qint, N>;
-	return fwk::testIsect(ISegment<qint, N>(*this), Box<QVec>(box));
-}
-
-template <class T, int N>
-template <class U, EnableInDimension<U, 3>...>
-auto ISegment<T, N>::isectParam(const Triangle3<T> &tri) const -> pair<PPIsectParam, bool> {
-	// TODO: use this in real segment
-	int3 ab = int3(tri[1]) - int3(tri[0]);
-	int3 ac = int3(tri[2]) - int3(tri[0]);
-
-	int3 qp = int3(from) - int3(to);
-	llint3 n = cross(llint3(ab), llint3(ac));
-
-	qint d = dot<qint3>(qint3(qp), qint3(n));
-	//	print("n: % % %\n", n[0], n[1], n[2]);
-
-	if(d == 0)
-		return {}; // segment parallel: ignore
-
-	int3 ap = int3(from) - int3(tri[0]);
-	qint t = dot(qint3(ap), qint3(n));
-
-	bool is_front = d > 0;
-	if(d < 0) {
-		t = -t;
-		d = -d;
-	}
-
-	if(t < 0 || t > d)
-		return {};
-
-	llint3 e = cross(llint3(qp), llint3(ap));
-	if(!is_front)
-		e = -e;
-	qint v = dot(qint3(ac), qint3(e));
-
-	if(v < 0 || v > d)
-		return {};
-	qint w = -dot(qint3(ab), qint3(e));
-
-	if(w < 0 || v + w > d)
-		return {};
-
-	Rational<PPScalar> out(t, d);
-	return {out, is_front};
-}
-
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-auto ISegment<T, N>::isectParam(const ISegment &rhs) const -> PIsectParam {
-	return isect2D<T, PScalar, PIsectParam>(*this, rhs);
-}
-
-template <class T, int N>
-auto ISegment<T, N>::closestPointParam(const Point &point) const -> PRScalar {
-	if(empty())
-		return PRScalar(0);
-
-	using PVec = Promote<Vector>;
-	auto vec = to - from;
-	auto t = PRScalar(dot<PVec>(point - from, vec), fwk::lengthSq<PVec>(vec));
-	if(t.num() < 0)
-		return PRScalar(0);
-	if(t.num() > t.den())
-		return PRScalar(1);
-	return t;
-}
-
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-bool Segment<T, N>::testIsect(const Box<Vector> &box) const {
-	return fwk::testIsect(*this, box);
-}
-
-template <class T, int N> Maybe<Ray<T, N>> Segment<T, N>::asRay() const {
-	if(empty())
-		return none;
-	return Ray<T, N>(from, normalize(to - from));
-}
-
-template <class T, int N> T Segment<T, N>::closestPointParam(const Point &point) const {
-	if(empty())
-		return T(0);
-
-	auto vec = to - from;
-	auto t = dot(point - from, vec) / fwk::lengthSq(vec);
-	return clamp(t, Scalar(0), Scalar(1));
-}
-
-template <class T, int N> T Segment<T, N>::closestPointParam(const Segment &seg) const {
+template <class T, int N> auto Segment<T, N>::closestPointParam(const Segment &seg) const -> PPRT {
 	if(empty())
 		return T(0);
 	return closestPointParams(seg).first;
 }
 
 // Source: Real-time collision detection (page 150)
-template <class T, int N> pair<T, T> Segment<T, N>::closestPointParams(const Segment &rhs) const {
+template <class T, int N>
+auto Segment<T, N>::closestPointParams(const Segment &rhs) const -> pair<PPRT, PPRT> {
 	if(empty())
-		return {T(0), rhs.closestPointParam(from)};
+		return {PPRT(0), PPRT(rhs.closestPointParam(from))};
 
-	auto r = from - rhs.from;
-	auto d1 = to - from, d2 = rhs.to - rhs.from;
-	auto a = dot(d1, d1), e = dot(d2, d2);
-	auto f = dot(d2, r);
+	PVec r = from - rhs.from;
+	PVec d1 = to - from, d2 = rhs.to - rhs.from;
+	PT a = dot(d1, d1), e = dot(d2, d2);
+	PT f = dot(d2, r);
 
-	auto c = dot(d1, r);
-	auto b = dot(d1, d2);
-	auto denom = a * e - b * b;
+	PT c = dot(d1, r);
+	PT b = dot(d1, d2);
+	PPT denom = PPT(a) * e - PPT(b) * b;
 
-	T s = 0, t = 0;
+	PPRT s = 0, t = 0;
 
-	if(denom != T(0)) {
-		s = clamp((b * f - c * e) / denom, T(0), T(1));
+	if(denom != PPT(0)) {
+		PPT num_s = PPT(b) * f - PPT(c) * e;
+		PPT num_t = PPT(a) * f - PPT(b) * c;
+		s = clamp01(divide(num_s, denom));
+		t = clamp01(divide(num_t, denom));
 	} else {
-		// TODO: handle it properly
 		s = 0;
+		t = (PPRT)divide(f, e);
 	}
 
-	t = (b * s + f) / e;
-
-	if(t < T(0)) {
+	if(t < PPT(0)) {
 		t = 0;
-		s = clamp(-c / a, T(0), T(1));
-	} else if(t > T(1)) {
+		s = clamp01(divide(PPT(-c), a));
+	} else if(t > PPT(1)) {
 		t = 1;
-		s = clamp((b - c) / a, T(0), T(1));
+		s = clamp01(divide(PPT(b - c), a));
 	}
 
 	return {s, t};
 }
 
-template <class T, int N> auto Segment<T, N>::closestPoint(const Point &pt) const -> Vector {
+template <class T, int N> auto Segment<T, N>::closestPoint(const Point &pt) const -> PRealVec {
 	return at(closestPointParam(pt));
 }
 
-template <class T, int N> auto Segment<T, N>::closestPoint(const Segment &seg) const -> Vector {
+template <class T, int N> auto Segment<T, N>::closestPoint(const Segment &seg) const -> PRealVec {
 	return at(closestPointParam(seg));
 }
 
 template <class T, int N>
-auto Segment<T, N>::closestPoints(const Segment &rhs) const -> pair<Vector, Vector> {
+auto Segment<T, N>::closestPoints(const Segment &rhs) const -> pair<PRealVec, PRealVec> {
 	auto params = closestPointParams(rhs);
+	auto params2 = rhs.closestPointParams(*this);
 	return {at(params.first), rhs.at(params.second)};
 }
-
-// Source: Real-time collision detection (page 130)
-template <class T, int N> T Segment<T, N>::distanceSq(const Point &point) const {
-	// TODO: verify this
-	auto ab = to - from, ac = point - from, bc = point - to;
-	auto e = dot(ac, ab);
-	if(e <= Scalar(0))
-		return dot(ac, ac);
-	auto f = dot(ab, ab);
-	if(e >= f)
-		return dot(bc, bc);
-	return dot(ac, ac) - e * e / f;
-}
-
-template <class T, int N> T Segment<T, N>::distanceSq(const Segment &rhs) const {
-	auto points = closestPoints(rhs);
-	return fwk::distanceSq(points.first, points.second);
-}
-
-template <class T, int N> auto Segment<T, N>::at(const IsectParam &pisect) const -> Isect {
-	if(pisect.isPoint())
-		return at(pisect.asPoint());
-	if(pisect.isInterval())
-		return subSegment(pisect.asInterval());
-	return none;
-}
-
-// Jak opisać dokładność tej funkcji ?
-template <class T, int N>
-template <class U, EnableInDimension<U, 2>...>
-IsectParam<T> Segment<T, N>::isectParam(const Segment &rhs) const {
-	return isect2D<T, T, IsectParam>(*this, rhs);
-}
-
-// TODO: don't use rays here (we could avoid sqrt)
-template <class T, int N> IsectParam<T> Segment<T, N>::isectParam(const Box<Vector> &box) const {
-	if(empty())
-		return box.contains(from) ? T(0) : IsectParam();
-
-	auto param = asRay()->isectParam(box).asInterval() / length();
-	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
-}
-
-// TODO: proper intersections (not based on rays)
-template <class T, int N>
-template <class U, EnableInDimension<U, 3>...>
-IsectParam<T> Segment<T, N>::isectParam(const Plane<T, N> &plane) const {
-	if(empty())
-		return plane.signedDistance(from) == T(0) ? T(0) : IsectParam();
-
-	auto param = asRay()->isectParam(plane).asInterval() / length();
-	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
-}
-
-template <class T, int N>
-template <class U, EnableInDimension<U, 3>...>
-IsectParam<T> Segment<T, N>::isectParam(const Triangle<T, N> &tri) const {
-	if(empty())
-		return tri.distance(from) == T(0) ? T(0) : IsectParam();
-
-	auto param = asRay()->isectParam(tri).asInterval() / length();
-	return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
-}
-
-template <class T, int N> void ISegment<T, N>::operator>>(TextFormatter &fmt) const {
-	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
-}
-
 template <class T, int N> void Segment<T, N>::operator>>(TextFormatter &fmt) const {
 	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
 }
 
-template class ISegment<short, 2>;
-template class ISegment<int, 2>;
-template class ISegment<llint, 2>;
-template class ISegment<qint, 2>;
+template class Segment<short, 2>;
+template class Segment<int, 2>;
+template class Segment<llint, 2>;
 
-template class ISegment<short, 3>;
-template class ISegment<int, 3>;
-template class ISegment<llint, 3>;
-template class ISegment<qint, 3>;
-
-template IsectClass ISegment<short, 2>::classifyIsect(const ISegment &) const;
-template IsectClass ISegment<int, 2>::classifyIsect(const ISegment &) const;
-template IsectClass ISegment<llint, 2>::classifyIsect(const ISegment &) const;
-template IsectClass ISegment<qint, 2>::classifyIsect(const ISegment &) const;
-
-template IsectClass ISegment<short, 2>::classifyIsect(const Point &) const;
-template IsectClass ISegment<int, 2>::classifyIsect(const Point &) const;
-template IsectClass ISegment<llint, 2>::classifyIsect(const Point &) const;
-template IsectClass ISegment<qint, 2>::classifyIsect(const Point &) const;
-
-template pair<IsectParam<Rational<qint>>, bool>
-ISegment<int, 3>::isectParam(const Triangle3<int> &) const;
-
-template IsectParam<Rational<llint>> ISegment<int, 2>::isectParam(const ISegment &) const;
-template IsectParam<Rational<int>> ISegment<short, 2>::isectParam(const ISegment &) const;
+template class Segment<short, 3>;
+template class Segment<int, 3>;
+template class Segment<llint, 3>;
 
 template class Segment<float, 2>;
 template class Segment<float, 3>;
 template class Segment<double, 2>;
 template class Segment<double, 3>;
 
-template auto Segment<float, 2>::isectParam(const Segment &) const -> IsectParam;
-template auto Segment<double, 2>::isectParam(const Segment &) const -> IsectParam;
+template Maybe<Ray<float, 2>> Segment<float, 2>::asRay() const;
+template Maybe<Ray<double, 2>> Segment<double, 2>::asRay() const;
 
-template auto Segment<float, 3>::isectParam(const Triangle3<float> &) const -> IsectParam;
-template auto Segment<double, 3>::isectParam(const Triangle3<double> &) const -> IsectParam;
+template Maybe<Ray<float, 3>> Segment<float, 3>::asRay() const;
+template Maybe<Ray<double, 3>> Segment<double, 3>::asRay() const;
 
 template auto Segment<float, 3>::isectParam(const Plane3<float> &) const -> IsectParam;
 template auto Segment<double, 3>::isectParam(const Plane3<double> &) const -> IsectParam;
-
-template auto Segment<float, 2>::isect(const Segment &) const -> Isect;
-template auto Segment<double, 2>::isect(const Segment &) const -> Isect;
-
-template IsectClass Segment<float, 2>::classifyIsect(const Segment &) const;
-template IsectClass Segment<double, 2>::classifyIsect(const Segment &) const;
-
-template IsectClass Segment<float, 2>::classifyIsect(const Point &) const;
-template IsectClass Segment<double, 2>::classifyIsect(const Point &) const;
-
-template bool Segment<float, 2>::testIsect(const Box<Vector> &) const;
-template bool Segment<double, 2>::testIsect(const Box<Vector> &) const;
 
 Segment<float, 3> operator*(const Matrix4 &mat, const Segment<float, 3> &segment) {
 	return {mulPoint(mat, segment.from), mulPoint(mat, segment.to)};

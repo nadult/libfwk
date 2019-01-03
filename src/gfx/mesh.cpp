@@ -299,7 +299,7 @@ float Mesh::intersect(const Segment3<float> &segment) const {
 	const auto &positions = m_buffers.positions;
 	if(segment.isectParam(boundingBox()))
 		for(Triangle3F triangle : tris())
-			min_isect = min(min_isect, segment.isectParam(triangle).closest());
+			min_isect = min(min_isect, segment.isectParam(triangle).first.closest());
 
 	return min_isect;
 }
@@ -314,7 +314,7 @@ float Mesh::intersect(const Segment3<float> &segment, const AnimatedData &anim_d
 	float min_isect = fconstant::inf;
 	if(segment.isectParam(anim_data.bounding_box))
 		for(const auto &tri : tris())
-			min_isect = min(min_isect, segment.isectParam(tri).closest());
+			min_isect = min(min_isect, segment.isectParam(tri).first.closest());
 	return min_isect;
 }
 

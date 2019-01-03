@@ -97,7 +97,7 @@ void LineBuffer::operator()(const Segment2<float> seg, IColor color) {
 	(*this)(Segment3F(float3(seg.from, 0.0f), float3(seg.to, 0.0f)), color);
 }
 
-void LineBuffer::operator()(const ISegment2<int> seg, IColor color) {
+void LineBuffer::operator()(const Segment2<int> seg, IColor color) {
 	(*this)(Segment2F(seg), color);
 }
 

@@ -31,7 +31,7 @@ class LineBuffer : public ElementBuffer {
 	void operator()(const Triangle2F &, IColor = ColorId::white);
 
 	void operator()(const Segment2<float>, IColor = ColorId::white);
-	void operator()(const ISegment2<int>, IColor = ColorId::white);
+	void operator()(const Segment2<int>, IColor = ColorId::white);
 
 	void operator()(CSpan<float2> pos, CSpan<IColor>);
 	void operator()(CSpan<float2> pos, IColor = ColorId::white);
