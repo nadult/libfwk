@@ -13,16 +13,18 @@
 
 namespace fwk {
 
-template <class T, int N>
-template <class U, EnableIfReal<U>...>
-Maybe<Ray<T, N>> Segment<T, N>::asRay() const {
+#define TEMPLATE template <class T, int N>
+#define TEMPLATE_REAL TEMPLATE template <class U, EnableIfReal<U>...>
+#define TSEG Segment<T, N>
+
+TEMPLATE_REAL Maybe<Ray<T, N>> TSEG::asRay() const {
 	if(empty())
 		return none;
 	return Ray<T, N>(from, normalize(to - from));
 }
 
 // Source: RTCD (page 130)
-template <class T, int N> auto Segment<T, N>::distanceSq(const Point &point) const -> PPRT {
+TEMPLATE auto TSEG::distanceSq(const Point &point) const -> PPRT {
 	// TODO: verify this
 	auto ab = to - from, ac = point - from, bc = point - to;
 	PT e = dot<PVec>(ac, ab);
@@ -35,12 +37,12 @@ template <class T, int N> auto Segment<T, N>::distanceSq(const Point &point) con
 	return PPRT(dot<PVec>(ac, ac)) - divide(PPT(e) * e, f);
 }
 
-template <class T, int N> auto Segment<T, N>::distanceSq(const Segment &rhs) const -> PReal {
+TEMPLATE auto TSEG::distanceSq(const Segment &rhs) const -> PReal {
 	auto points = closestPoints(rhs);
 	return fwk::distanceSq(PRealVec(points.first), PRealVec(points.second));
 }
 
-template <class T, int N> auto Segment<T, N>::at(const IsectParam &pisect) const -> Isect {
+TEMPLATE auto TSEG::at(const IsectParam &pisect) const -> Isect {
 	if constexpr(is_real<T>) {
 		if(pisect.isPoint())
 			return at(pisect.asPoint());
@@ -51,7 +53,7 @@ template <class T, int N> auto Segment<T, N>::at(const IsectParam &pisect) const
 }
 
 // Jak opisać dokładność tej funkcji ?
-template <class T, int N> auto Segment<T, N>::isectParam(const Segment &rhs) const -> PRIsectParam {
+TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 	if constexpr(N == 2) {
 		if(empty()) {
 			if(rhs.empty()) {
@@ -120,8 +122,7 @@ template <class T, int N> auto Segment<T, N>::isectParam(const Segment &rhs) con
 }
 
 // TODO: don't use rays here (we could avoid sqrt)
-template <class T, int N>
-auto Segment<T, N>::isectParam(const Box<Vec> &box) const -> PRIsectParam {
+TEMPLATE auto TSEG::isectParam(const Box<Vec> &box) const -> PRIsectParam {
 	if constexpr(is_real<T>) {
 		if(empty())
 			return box.contains(from) ? T(0) : IsectParam();
@@ -134,9 +135,7 @@ auto Segment<T, N>::isectParam(const Box<Vec> &box) const -> PRIsectParam {
 }
 
 // TODO: proper intersections (not based on rays)
-template <class T, int N>
-template <class U, EnableIfReal<U>...>
-IsectParam<T> Segment<T, N>::isectParam(const Plane<T, N> &plane) const {
+TEMPLATE_REAL IsectParam<T> TSEG::isectParam(const Plane<T, N> &plane) const {
 	if constexpr(N == 2) {
 		FATAL("write me");
 		return {};
@@ -148,8 +147,7 @@ IsectParam<T> Segment<T, N>::isectParam(const Plane<T, N> &plane) const {
 	}
 }
 
-template <class T, int N>
-auto Segment<T, N>::isectParam(const Triangle<T, N> &tri) const -> pair<PPRIsectParam, bool> {
+TEMPLATE auto TSEG::isectParam(const Triangle<T, N> &tri) const -> pair<PPRIsectParam, bool> {
 	if constexpr(N == 3) {
 		// TODO: use this in real segment
 		Vec ab = tri[1] - tri[0];
@@ -195,7 +193,7 @@ auto Segment<T, N>::isectParam(const Triangle<T, N> &tri) const -> pair<PPRIsect
 	}
 }
 
-template <class T, int N> auto Segment<T, N>::isect(const Segment &segment) const -> Isect {
+TEMPLATE auto TSEG::isect(const Segment &segment) const -> Isect {
 	if constexpr(is_real<T>)
 		return at(isectParam(segment));
 
@@ -203,7 +201,7 @@ template <class T, int N> auto Segment<T, N>::isect(const Segment &segment) cons
 	return {};
 }
 
-template <class T, int N> auto Segment<T, N>::isect(const Box<Vec> &box) const -> Isect {
+TEMPLATE auto TSEG::isect(const Box<Vec> &box) const -> Isect {
 	if constexpr(is_real<T>)
 		return at(isectParam(box));
 
@@ -211,7 +209,7 @@ template <class T, int N> auto Segment<T, N>::isect(const Box<Vec> &box) const -
 	return {};
 }
 
-template <class T, int N> IsectClass Segment<T, N>::classifyIsect(const Point &point) const {
+TEMPLATE IsectClass TSEG::classifyIsect(const Point &point) const {
 	if constexpr(N == 2) {
 		if(isOneOf(point, from, to))
 			return IsectClass::adjacent;
@@ -237,7 +235,7 @@ template <class T, int N> IsectClass Segment<T, N>::classifyIsect(const Point &p
 	return IsectClass::none;
 }
 
-template <class T, int N> IsectClass Segment<T, N>::classifyIsect(const Segment &rhs) const {
+TEMPLATE IsectClass TSEG::classifyIsect(const Segment &rhs) const {
 	// TODO: what if segments overlap with points ?
 	PRIsectParam param = isectParam(rhs);
 	if(param.isInterval())
@@ -252,7 +250,7 @@ template <class T, int N> IsectClass Segment<T, N>::classifyIsect(const Segment 
 
 // Source: RTCD, page: 183
 // TODO: make it return IsectClass
-template <class T, int N> bool Segment<T, N>::testIsect(const Box<Vec> &box) const {
+TEMPLATE bool TSEG::testIsect(const Box<Vec> &box) const {
 	PVec e = box.size();
 	PVec d = to - from;
 	PVec m = PVec(from + to) - PVec(box.max() + box.min());
@@ -278,7 +276,7 @@ template <class T, int N> bool Segment<T, N>::testIsect(const Box<Vec> &box) con
 	}
 }
 
-template <class T, int N> auto Segment<T, N>::closestPointParam(const Point &point) const -> PRT {
+TEMPLATE auto TSEG::closestPointParam(const Point &point) const -> PRT {
 	if constexpr(is_integral<T>) {
 		if(empty())
 			return PRT(0);
@@ -300,15 +298,14 @@ template <class T, int N> auto Segment<T, N>::closestPointParam(const Point &poi
 	}
 }
 
-template <class T, int N> auto Segment<T, N>::closestPointParam(const Segment &seg) const -> PPRT {
+TEMPLATE auto TSEG::closestPointParam(const Segment &seg) const -> PPRT {
 	if(empty())
 		return T(0);
 	return closestPointParams(seg).first;
 }
 
 // Source: Real-time collision detection (page 150)
-template <class T, int N>
-auto Segment<T, N>::closestPointParams(const Segment &rhs) const -> pair<PPRT, PPRT> {
+TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> pair<PPRT, PPRT> {
 	if(empty())
 		return {PPRT(0), PPRT(rhs.closestPointParam(from))};
 
@@ -344,36 +341,32 @@ auto Segment<T, N>::closestPointParams(const Segment &rhs) const -> pair<PPRT, P
 	return {s, t};
 }
 
-template <class T, int N> auto Segment<T, N>::closestPoint(const Point &pt) const -> PRealVec {
+TEMPLATE auto TSEG::closestPoint(const Point &pt) const -> PRealVec {
 	return at(closestPointParam(pt));
 }
 
-template <class T, int N> auto Segment<T, N>::closestPoint(const Segment &seg) const -> PRealVec {
+TEMPLATE auto TSEG::closestPoint(const Segment &seg) const -> PRealVec {
 	return at(closestPointParam(seg));
 }
 
-template <class T, int N>
-auto Segment<T, N>::closestPoints(const Segment &rhs) const -> pair<PRealVec, PRealVec> {
+TEMPLATE auto TSEG::closestPoints(const Segment &rhs) const -> pair<PRealVec, PRealVec> {
 	auto params = closestPointParams(rhs);
 	auto params2 = rhs.closestPointParams(*this);
 	return {at(params.first), rhs.at(params.second)};
 }
-template <class T, int N> void Segment<T, N>::operator>>(TextFormatter &fmt) const {
+TEMPLATE void TSEG::operator>>(TextFormatter &fmt) const {
 	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
 }
 
-template class Segment<short, 2>;
-template class Segment<int, 2>;
-template class Segment<llint, 2>;
+#define INSTANTIATE(type)                                                                          \
+	template class Segment<type, 2>;                                                               \
+	template class Segment<type, 3>;
 
-template class Segment<short, 3>;
-template class Segment<int, 3>;
-template class Segment<llint, 3>;
-
-template class Segment<float, 2>;
-template class Segment<float, 3>;
-template class Segment<double, 2>;
-template class Segment<double, 3>;
+INSTANTIATE(short)
+INSTANTIATE(int)
+INSTANTIATE(llint)
+INSTANTIATE(float)
+INSTANTIATE(double)
 
 template Maybe<Ray<float, 2>> Segment<float, 2>::asRay() const;
 template Maybe<Ray<double, 2>> Segment<double, 2>::asRay() const;
