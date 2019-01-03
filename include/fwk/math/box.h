@@ -26,7 +26,7 @@ void checkBoxRange(const float3 &, const float3 &);
 void checkBoxRange(const int2 &, const int2 &);
 void checkBoxRange(const int3 &, const int3 &);
 
-#define ENABLE_IF_SIZE(n) template <class U = Vector, EnableInDimension<U, n>...>
+#define ENABLE_IF_SIZE(n) template <class U = Vec, EnableInDimension<U, n>...>
 
 // Axis-aligned box (or rect in 2D case)
 // Invariant: min <= max (use validRange)
@@ -34,12 +34,12 @@ template <class T> class Box {
 	Box(T min, T max, NoAssertsTag) : m_min(min), m_max(max) {}
 
   public:
-	static_assert(is_vec<T>, "Box<> has to be based on a vector");
+	static_assert(is_vec<T>, "Box<> has to be based on a vec<>");
 
 	using Scalar = typename T::Scalar;
-	using Vector = T;
-	using Vector2 = vec2<Scalar>;
-	using Point = Vector;
+	using Vec = T;
+	using Vec2 = vec2<Scalar>;
+	using Point = Vec;
 
 	enum { dim_size = T::vec_size, num_corners = 1 << dim_size };
 
@@ -210,9 +210,9 @@ template <class T> class Box {
 
 	FWK_ORDER_BY(Box, m_min, m_max);
 
-	ENABLE_IF_SIZE(3) Box<Vector2> xz() const { return {m_min.xz(), m_max.xz()}; }
-	ENABLE_IF_SIZE(3) Box<Vector2> xy() const { return {m_min.xy(), m_max.xy()}; }
-	ENABLE_IF_SIZE(3) Box<Vector2> yz() const { return {m_min.yz(), m_max.yz()}; }
+	ENABLE_IF_SIZE(3) Box<Vec2> xz() const { return {m_min.xz(), m_max.xz()}; }
+	ENABLE_IF_SIZE(3) Box<Vec2> xy() const { return {m_min.xy(), m_max.xy()}; }
+	ENABLE_IF_SIZE(3) Box<Vec2> yz() const { return {m_min.yz(), m_max.yz()}; }
 
 	Box(EmptyMaybe) : m_min(), m_max(-1) {}
 	bool validMaybe() const { return validRange(m_min, m_max); } // Invariant
@@ -292,7 +292,7 @@ FBox encloseTransformed(const FBox &, const Matrix4 &);
 
 template <class T> constexpr bool isEnclosable() {
 	if constexpr(is_math_object<T> && !is_vec<T>)
-		return is_same<decltype(enclose(DECLVAL(T))), Box<typename T::Vector>>;
+		return is_same<decltype(enclose(DECLVAL(T))), Box<typename T::Vec>>;
 	else
 		return false;
 }

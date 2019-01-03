@@ -34,7 +34,7 @@ template <class T, int N> T Triangle<T, N>::surfaceArea() const {
 
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
-auto Triangle<T, N>::normal() const -> Vector {
+auto Triangle<T, N>::normal() const -> Vec {
 	return normalize(cross(v[1] - v[0], v[2] - v[0]));
 }
 
@@ -42,14 +42,14 @@ template <class T, int N> pair<T, T> Triangle<T, N>::barycentric(const Point &po
 	if constexpr(N == 3) {
 		// TODO: this is untested
 		// TODO: what if point doesn't lie on the triangle plane?
-		Vector diff = point - v[0];
-		Vector nrm = normal();
+		Vec diff = point - v[0];
+		Vec nrm = normal();
 		T tw = dot(fwk::cross(v[1] - v[0], diff), nrm);
 		T tv = dot(fwk::cross(v[2] - v[0], diff), nrm);
 		return {tv, tw};
 	} else if constexpr(N == 2) {
 		// Source: Geometric Tools
-		Vector diff[3] = {v[1] - v[0], v[2] - v[0], point - v[0]};
+		Vec diff[3] = {v[1] - v[0], v[2] - v[0], point - v[0]};
 
 		auto det = dot(diff[0], perpendicular(diff[1]));
 		DASSERT(det != 0.0);
@@ -66,7 +66,7 @@ bool Triangle<T, N>::contains(const Point &point) const {
 }
 
 template <class T, int N> auto Triangle<T, N>::sampleEven(float density) const -> vector<Point> {
-	Vector vec1 = v[1] - v[0], vec2 = v[2] - v[0];
+	Vec vec1 = v[1] - v[0], vec2 = v[2] - v[0];
 	T stepx = T(1) / (length(vec1) * density);
 	T stepy = T(1) / (length(vec2) * density);
 	vector<Point> out;
@@ -88,16 +88,16 @@ auto Triangle<T, N>::closestPoint(const Point &point) const -> Point {
 	}
 
 	// Check if P in vertex region outside A
-	Vector ab = v[1] - v[0];
-	Vector ac = v[2] - v[0];
-	Vector ap = point - v[0];
+	Vec ab = v[1] - v[0];
+	Vec ac = v[2] - v[0];
+	Vec ap = point - v[0];
 	T d1 = dot(ab, ap);
 	T d2 = dot(ac, ap);
 	if(d1 <= T(0) && d2 <= T(0))
 		return v[0]; // barycentric coordinates (1,0,0)
 
 	// Check if P in vertex region outside B
-	Vector bp = point - v[1];
+	Vec bp = point - v[1];
 	T d3 = dot(ab, bp);
 	T d4 = dot(ac, bp);
 	if(d3 >= T(0) && d4 <= d3)
@@ -111,7 +111,7 @@ auto Triangle<T, N>::closestPoint(const Point &point) const -> Point {
 	}
 
 	// Check if P in vertex region outside C
-	Vector cp = point - v[2];
+	Vec cp = point - v[2];
 	T d5 = dot(ab, cp);
 	T d6 = dot(ac, cp);
 	if(d6 >= T(0) && d5 <= d6)
@@ -160,7 +160,7 @@ template <class T, int N> array<T, 3> Triangle<T, N>::angles() const {
 	} else {
 		array<T, 3> out;
 		// TODO: verify this
-		Vector dirs[3];
+		Vec dirs[3];
 		for(int i = 0; i < 3; i++)
 			dirs[i] = normalize(v[i] - v[(i + 2) % 3]);
 		for(int n = 0; n < 3; n++)

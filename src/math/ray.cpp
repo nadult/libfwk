@@ -32,7 +32,7 @@ template <class T, int N> auto Ray<T, N>::closestPoint(const Point &point) const
 // Algorithm idea: http://www.geometrictools.com/GTEngine/Include/Mathematics/GteDistLineLine.h
 template <class T, int N>
 auto Ray<T, N>::closestPoints(const Ray &rhs) const -> pair<Point, Point> {
-	Vector diff = m_origin - rhs.m_origin;
+	Vec diff = m_origin - rhs.m_origin;
 	T a01 = -dot(m_dir, rhs.m_dir);
 	T b0 = dot(diff, m_dir);
 	T s1 = -b0, s2 = 0;
@@ -57,8 +57,8 @@ template <class T, int N> T Ray<T, N>::distance(const Ray &rhs) const {
 	return fwk::distance(points.first, points.second);
 }
 
-template <class T, int N> IsectParam<T> Ray<T, N>::isectParam(const Box<Vector> &box) const {
-	Vector inv_dir = vinv(m_dir);
+template <class T, int N> IsectParam<T> Ray<T, N>::isectParam(const Box<Vec> &box) const {
+	Vec inv_dir = vinv(m_dir);
 
 	T l1 = inv_dir.x * (box.x() - m_origin.x);
 	T l2 = inv_dir.x * (box.ex() - m_origin.x);
@@ -105,10 +105,10 @@ IsectParam<T> Ray<T, N>::isectParam(const Ray &rhs) const {
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
 IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
-	Vector e1 = tri[1] - tri[0], e2 = tri[2] - tri[0];
+	Vec e1 = tri[1] - tri[0], e2 = tri[2] - tri[0];
 
 	// Begin calculating determinant - also used to calculate u parameter
-	Vector vp = cross(m_dir, e2);
+	Vec vp = cross(m_dir, e2);
 	T det = dot(e1, vp);
 
 	// if determinant is near zero, ray lies in plane of triangle
@@ -119,7 +119,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
 	T inv_det = T(1) / det;
 
 	// calculate distance from V1 to ray origin
-	Vector vt = m_origin - tri[0];
+	Vec vt = m_origin - tri[0];
 
 	// Calculate u parameter and test bound
 	T tu = dot(vt, vp) * inv_det;
@@ -128,7 +128,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
 		return {};
 
 	// Prepare to test v parameter
-	Vector vq = cross(vt, e1);
+	Vec vq = cross(vt, e1);
 
 	// Calculate V parameter and test bound
 	T tv = dot(m_dir, vq) * inv_det;

@@ -9,26 +9,25 @@
 
 namespace fwk {
 
-#define ENABLE_IF_SIZE(n) template <class U = Vector, EnableInDimension<U, n>...>
+#define ENABLE_IF_SIZE(n) template <class U = Vec, EnableInDimension<U, n>...>
 
 template <class T, int N> class Triangle {
   public:
 	enum { dim_size = N };
 	static_assert(dim_size >= 2 && dim_size <= 3, "Only 2D & 3D triangles are supported");
 
-	using Vector = MakeVec<T, N>;
-	using Point = Vector;
+	using Vec = MakeVec<T, N>;
+	using Point = Vec;
 	using Scalar = T;
 	using Segment = fwk::Segment<T, N>;
 	using Ray = fwk::Ray<T, N>;
-	using Box = fwk::Box<Vector>;
+	using Box = fwk::Box<Vec>;
 
 	Triangle(const Point &a, const Point &b, const Point &c) : v{a, b, c} {}
 	Triangle() = default;
 
 	template <class VT>
-	explicit Triangle(const Triangle<VT, N> &rhs)
-		: v{Vector(rhs[0]), Vector(rhs[1]), Vector(rhs[2])} {}
+	explicit Triangle(const Triangle<VT, N> &rhs) : v{Vec(rhs[0]), Vec(rhs[1]), Vec(rhs[2])} {}
 
 	bool degenerate() const { return v[0] == v[1] || v[1] == v[2] || v[2] == v[0]; }
 	bool isPoint() const { return v[0] == v[1] && v[0] == v[2]; }
@@ -53,9 +52,9 @@ template <class T, int N> class Triangle {
 	}
 
 	Triangle operator*(float s) const { return {v[0] * s, v[1] * s, v[2] * s}; }
-	Triangle operator*(const Vector &s) const { return {v[0] * s, v[1] * s, v[2] * s}; }
-	Triangle operator+(const Vector &off) const { return {v[0] + off, v[1] + off, v[2] + off}; }
-	Triangle operator-(const Vector &off) const { return {v[0] - off, v[1] - off, v[2] - off}; }
+	Triangle operator*(const Vec &s) const { return {v[0] * s, v[1] * s, v[2] * s}; }
+	Triangle operator+(const Vec &off) const { return {v[0] + off, v[1] + off, v[2] + off}; }
+	Triangle operator-(const Vec &off) const { return {v[0] - off, v[1] - off, v[2] - off}; }
 
 	Point center() const { return (v[0] + v[1] + v[2]) * (T(1) / T(3)); }
 
@@ -66,7 +65,7 @@ template <class T, int N> class Triangle {
 	ENABLE_IF_SIZE(3) Triangle2<T> yz() const { return {v[0].yz(), v[1].yz(), v[2].yz()}; }
 	ENABLE_IF_SIZE(3) Triangle2<T> projection2D() const;
 
-	ENABLE_IF_SIZE(3) Vector normal() const;
+	ENABLE_IF_SIZE(3) Vec normal() const;
 
 	// first coordinate (V)  is 1 if point is at b()
 	// second coordinate (W) is 1 if point is at c()

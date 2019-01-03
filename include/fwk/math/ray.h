@@ -7,24 +7,24 @@
 
 namespace fwk {
 
-#define ENABLE_IF_SIZE(n) template <class U = Vector, EnableInDimension<U, n>...>
+#define ENABLE_IF_SIZE(n) template <class U = Vec, EnableInDimension<U, n>...>
 
 template <class T, int N> class Ray {
   public:
 	static_assert(is_real<T>, "Ray cannot be constructed using integral numbers as base type");
 	using Scalar = T;
-	using Vector = MakeVec<T, N>;
-	using Point = Vector;
+	using Vec = MakeVec<T, N>;
+	using Point = Vec;
 	using Segment = fwk::Segment<T, N>;
 	using IsectParam = fwk::IsectParam<T>;
 	using Isect = Variant<None, Point, Segment>;
 
-	Ray(const Vector &origin, const Vector &dir) : m_origin(origin), m_dir(dir) {
+	Ray(const Vec &origin, const Vec &dir) : m_origin(origin), m_dir(dir) {
 		DASSERT(!isZero(m_dir));
 		DASSERT(isNormalized(m_dir));
 	}
 
-	const Vector &dir() const { return m_dir; }
+	const Vec &dir() const { return m_dir; }
 	const Point &origin() const { return m_origin; }
 	auto invDir() const { return vinv(m_dir); }
 	const Point at(T t) const { return m_origin + m_dir * t; }
@@ -40,7 +40,7 @@ template <class T, int N> class Ray {
 	pair<T, T> closestPointsParam(const Ray &) const;
 	pair<Point, Point> closestPoints(const Ray &) const;
 
-	IsectParam isectParam(const Box<Vector> &) const;
+	IsectParam isectParam(const Box<Vec> &) const;
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Ray &) const;
 	ENABLE_IF_SIZE(3) IsectParam isectParam(const Plane<T, N> &) const;
 	ENABLE_IF_SIZE(3) IsectParam isectParam(const Triangle<T, N> &) const;
@@ -49,7 +49,7 @@ template <class T, int N> class Ray {
 
   private:
 	Point m_origin;
-	Vector m_dir;
+	Vec m_dir;
 };
 
 #undef ENABLE_IF_SIZE
