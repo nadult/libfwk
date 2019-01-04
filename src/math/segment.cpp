@@ -52,8 +52,18 @@ TEMPLATE auto TSEG::at(const IsectParam &pisect) const -> Isect {
 	return none;
 }
 
-// Jak opisać dokładność tej funkcji ?
+// TODO: in case of floating-points accuracy can be improved
 TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
+	for(int n = 0; n < N; n++) {
+		auto lmin = min(from[n], to[n]);
+		auto lmax = max(from[n], to[n]);
+		auto rmin = min(rhs.from[n], rhs.to[n]);
+		auto rmax = max(rhs.from[n], rhs.to[n]);
+
+		if(lmin > rmax || rmin > lmax)
+			return {};
+	}
+
 	if constexpr(N == 2) {
 		if(empty()) {
 			if(rhs.empty()) {
@@ -69,13 +79,6 @@ TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 
 		auto vec1 = to - from;
 		auto vec2 = rhs.to - rhs.from;
-
-		auto divide = [](PT num, PT den) {
-			if constexpr(is_integral<T>)
-				return PRT(num, den);
-			else
-				return num / den;
-		};
 
 		PT tdot = dot<PVec>(vec1, perpendicular(vec2));
 		if(tdot == PT(0)) {
