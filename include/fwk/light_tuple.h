@@ -200,6 +200,15 @@ template <class... Args> constexpr auto tuple(Args &&... args) {
 	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
 	FWK_TIED_COMPARES(name)
 
+#define FWK_ORDER_BY_DEF(name)                                                                     \
+	bool name::operator==(const name &rhs) const { return tied() == rhs.tied(); }                  \
+	bool name::operator<(const name &rhs) const { return tied() < rhs.tied(); }
+
+#define FWK_ORDER_BY_DECL(name, ...)                                                               \
+	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
+	bool operator==(const name &) const;                                                           \
+	bool operator<(const name &) const;
+
 struct NoTiedMember;
 
 template <class T> constexpr bool has_tied_member = detail::HasTiedMember<T>::value;

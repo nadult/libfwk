@@ -200,4 +200,6 @@ MeshBuffers MeshBuffers::transform(const Matrix4 &matrix, MeshBuffers buffers) {
 	buffers.normals = transformNormals(matrix, move(buffers.normals));
 	return buffers;
 }
+
+FWK_ORDER_BY_DEF(MeshBuffers)
 }

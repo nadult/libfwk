@@ -24,7 +24,9 @@ template <class T> class IsectParam {
 	T closest() const { return m_interval.min; }
 	T farthest() const { return m_interval.max; }
 
-	FWK_ORDER_BY(IsectParam, m_interval);
+	void operator>>(TextFormatter &fmt) const { m_interval >> fmt; }
+	bool operator==(const IsectParam &rhs) const { return m_interval == rhs.m_interval; }
+	bool operator<(const IsectParam &rhs) const { return m_interval < rhs.m_interval; }
 
   private:
 	Interval<T> m_interval;
