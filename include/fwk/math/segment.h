@@ -4,7 +4,7 @@
 #pragma once
 
 #include "fwk/math/isect_param.h"
-#include "fwk/math/rationals.h"
+#include "fwk/math/rational.h"
 
 namespace fwk {
 

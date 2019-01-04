@@ -10,7 +10,6 @@
 #include "fwk/math/matrix4.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rational.h"
-#include "fwk/math/rational2.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/tetrahedron.h"
@@ -326,6 +325,14 @@ void testTraits() {
 }
 
 void testRational() {
+	ASSERT_GT(Rational<int>(1, 0), Rational<int>(100, 1));
+	ASSERT_LT(Rational<int>(-1, 0), Rational<int>(-1000, 2));
+	ASSERT_LT(Rational<int>(-1, 0), Rational<int>(1, 0));
+	ASSERT_NE(Rational<int>(1, 0), Rational<int>(-1, 0));
+
+	ASSERT_EQ(Rational2<int>({10, 20}, 10), Rational2<int>({5, 10}, 5));
+	ASSERT_EQ(double2(Rational2<int>({1, 2}, 10)), double2(0.1, 0.2));
+
 	Random rand;
 	for(int n = 0; n < 100000; n++) {
 		Rational<int> a(rand.uniform(-1000000, 1000000), rand.uniform(1, 1000000));
@@ -388,7 +395,7 @@ void testRational() {
 			sum += pair.second / pair.first;
 		}
 		time = getTime() - time;
-		print("Div time: % ns (%)\n", time * 1000000000.0 / double(iters * 2), sum);
+		print("QInt div time: % ns (%)\n", time * 1000000000.0 / double(iters * 2), sum);
 	}
 
 	{
@@ -398,7 +405,7 @@ void testRational() {
 			sum += pair.first * pair.second;
 		}
 		time = getTime() - time;
-		print("Mul time: % ns (%)\n", time * 1000000000.0 / double(iters), sum);
+		print("QInt mul time: % ns (%)\n", time * 1000000000.0 / double(iters), sum);
 	}
 
 	Triangle3<int> tri(int3(0, 0, 0), int3(1000, 0, 0), int3(0, 0, 1000));
@@ -413,6 +420,7 @@ void testMain() {
 	FBox temp({32, 0, 32}, {64, 0.5f, 64});
 	ASSERT(overlaps(box, temp));
 
+	testRational();
 	testMatrices();
 	testRays();
 	testIntersections();
@@ -450,8 +458,6 @@ void testMain() {
 	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
 	for(auto [i, j] : pairsRange(6))
 		ASSERT(ccwSide(vectors[i], vectors[j]));
-
-	testRational();
 
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));

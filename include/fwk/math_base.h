@@ -53,8 +53,8 @@ template <class T> struct vec3;
 template <class T> struct vec4;
 
 template <class T> struct Rational;
-template <class T> struct Rational2;
-template <class T> struct Rational3;
+template <class T> using Rational2 = Rational<vec2<T>>;
+template <class T> using Rational3 = Rational<vec3<T>>;
 
 using llint = long long;
 #ifdef FWK_USE_BOOST_MPC_INT
