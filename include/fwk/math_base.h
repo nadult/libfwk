@@ -414,8 +414,8 @@ template <class T> struct vec4 {
 
 	FWK_ORDER_BY(vec4, x, y, z, w)
 
-	Span<T, 3> values() { return v; }
-	CSpan<T, 3> values() const { return v; }
+	Span<T, 4> values() { return v; }
+	CSpan<T, 4> values() const { return v; }
 
 	union {
 		struct {
