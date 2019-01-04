@@ -333,6 +333,7 @@ string Backtrace::analyze(bool filter) const {
 		for(const auto &file_line : file_lines)
 			max_len = max(max_len, (int)file_line.size());
 
+		formatter("Simple bactrace (don't expect it to be accurate):\n");
 		for(int i = 0; i < size(); i++) {
 			string tstring = i < m_symbols.size() ? m_symbols[i] : "";
 			const char *file_line = i < file_lines.size() ? file_lines[i].c_str() : "";

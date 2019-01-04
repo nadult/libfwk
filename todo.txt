@@ -2,7 +2,6 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - serialize as pod should be template ?
-- Warn when simple backtrace is used
 - add #define TVAR(...) template <__VA_ARGS__> static constexpr ?
 - why enableif in Cells::begin() ?
 - when formatting values for assert, use structured mode ?
