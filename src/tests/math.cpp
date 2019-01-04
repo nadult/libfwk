@@ -314,9 +314,9 @@ void testHash() {
 }
 
 void testTraits() {
-	static_assert(preciseConversion<qint, qint>());
-	static_assert(preciseConversion<int2, llint2>());
-	static_assert(!preciseConversion<llint2, double2>());
+	static_assert(precise_conversion<qint, qint>);
+	static_assert(precise_conversion<int2, llint2>);
+	static_assert(!precise_conversion<llint2, double2>);
 	static_assert(is_same<Promote<llint>, qint>);
 	static_assert(is_same<Promote<float>, double>);
 

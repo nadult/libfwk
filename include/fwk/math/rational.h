@@ -47,9 +47,9 @@ template <class T> struct Rational {
 	explicit constexpr Rational(const Rational<U> &rhs)
 		: Rational(T(rhs.num()), TBase(rhs.den())) {}
 
-	template <class U, class UDen = TBase, EnableIf<preciseConversion<U, T>()>...>
+	template <class U, class UDen = TBase, EnableIf<precise_conversion<U, T>>...>
 	constexpr Rational(const U &num, UDen den = TBase(1)) : Rational(T(num), TBase(den)) {}
-	template <class U, class UDen = TBase, EnableIf<!preciseConversion<U, T>()>...>
+	template <class U, class UDen = TBase, EnableIf<!precise_conversion<U, T>>...>
 	constexpr explicit Rational(const U &num, UDen den = TBase(1)) : Rational(T(num), TBase(den)) {}
 
 	template <class RT, EnableIf<is_real<RT> && vec_size == 0>...> explicit operator RT() const {
@@ -73,13 +73,11 @@ template <class T> struct Rational {
 		return {(s.num() < 0 ? -m_num : m_num) * s.den(), m_den * fwk::abs(s.num()), no_asserts};
 	}
 
-	template <class IT, EnableIf<preciseConversion<IT, TBase>()>...>
-	Rational operator*(IT s) const {
+	template <class U, EnableIf<precise_conversion<U, TBase>>...> Rational operator*(U s) const {
 		return {m_num * s, m_den, no_sign_check};
 	}
 
-	template <class IT, EnableIf<preciseConversion<IT, TBase>()>...>
-	Rational operator/(IT s) const {
+	template <class U, EnableIf<precise_conversion<U, TBase>>...> Rational operator/(U s) const {
 		return {s < 0 ? -m_num : m_num, m_den * fwk::abs(s), no_sign_check};
 	}
 

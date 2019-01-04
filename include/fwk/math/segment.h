@@ -48,9 +48,9 @@ template <class T, int N> class Segment {
 	ENABLE_IF_SIZE(3)
 	explicit Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
-	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	template <class U, EnableIf<precise_conversion<U, T>>...>
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
-	template <class U, EnableIf<!preciseConversion<U, T>()>...>
+	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
 
 	bool empty() const { return from == to; }

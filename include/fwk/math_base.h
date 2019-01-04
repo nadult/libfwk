@@ -236,12 +236,13 @@ using EnableIfIntegralVec = EnableIf<is_integral_vec<T, N>, NotAValidVec<N>>;
 
 template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::type;
 
-template <class From, class To> constexpr bool preciseConversion() {
+template <class From, class To>
+static constexpr bool precise_conversion = []() {
 	if constexpr(is_vec<From> && is_vec<To>)
-		return int(From::vec_size) == int(To::vec_size) &&
+		return From::vec_size == To::vec_size &&
 			   detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
 	return detail::PreciseConversion<From, To>::value;
-};
+}();
 
 template <class T> using Promote = decltype(detail::promote<T>());
 template <class T>
@@ -292,9 +293,9 @@ template <class T> struct vec2 {
 	vec2 &operator=(const vec2 &) = default;
 
 	explicit vec2(T t) : x(t), y(t) {}
-	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	template <class U, EnableIf<precise_conversion<U, T>>...>
 	vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
-	template <class U, EnableIf<!preciseConversion<U, T>()>...>
+	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
 
 	vec2 operator*(const vec2 &rhs) const { return vec2(x * rhs.x, y * rhs.y); }
@@ -335,9 +336,9 @@ template <class T> struct vec3 {
 	vec3(const vec3 &) = default;
 	vec3 &operator=(const vec3 &) = default;
 
-	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	template <class U, EnableIf<precise_conversion<U, T>>...>
 	vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
-	template <class U, EnableIf<!preciseConversion<U, T>()>...>
+	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
 
 	vec3 operator*(const vec3 &rhs) const { return vec3(x * rhs.x, y * rhs.y, z * rhs.z); }
@@ -383,9 +384,9 @@ template <class T> struct vec4 {
 	vec4(const vec4 &) = default;
 	vec4 &operator=(const vec4 &) = default;
 
-	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	template <class U, EnableIf<precise_conversion<U, T>>...>
 	vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
-	template <class U, EnableIf<!preciseConversion<U, T>()>...>
+	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
 
 	vec4 operator*(const vec4 &rhs) const {

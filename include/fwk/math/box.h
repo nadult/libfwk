@@ -68,9 +68,9 @@ template <class T> class Box {
 	Box(const Box &) = default;
 	Box &operator=(const Box &) = default;
 
-	template <class U, EnableIf<preciseConversion<U, T>()>...>
+	template <class U, EnableIf<precise_conversion<U, T>>...>
 	Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
-	template <class U, EnableIf<!preciseConversion<U, T>()>...>
+	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
 
 	Scalar min(int i) const { return m_min[i]; }
