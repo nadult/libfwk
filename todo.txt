@@ -3,7 +3,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - serialize as pod should be template ?
 - add #define TVAR(...) template <__VA_ARGS__> static constexpr ?
-- why enableif in Cells::begin() ?
 - when formatting values for assert, use structured mode ?
 - drop gdb in favor of lldb
 - tied support in format (with priorities?)

@@ -36,12 +36,8 @@ template <class T> struct BoxCells {
 		Scalar m_begin_x, m_end_x;
 	};
 
-	template <class U = T, EnableIfIntegralVec<U, 2>...> Iter2D begin() const {
-		return {m_min, m_min[0], m_max[0]};
-	}
-	template <class U = T, EnableIfIntegralVec<U, 2>...> Iter2D end() const {
-		return {T(m_min[0], m_max[1]), m_min[0], m_max[0]};
-	}
+	Iter2D begin() const { return {m_min, m_min[0], m_max[0]}; }
+	Iter2D end() const { return {T(m_min[0], m_max[1]), m_min[0], m_max[0]}; }
 
 	T m_min, m_max;
 };
