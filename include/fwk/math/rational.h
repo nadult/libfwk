@@ -43,13 +43,15 @@ template <class T> struct Rational {
 	}
 	constexpr Rational() : m_num(0), m_den(1) {}
 
-	template <class U, EnableIf<is_convertible<U, T>>...>
+	template <class U, EnableIf<is_constructible<T, U>>...>
 	explicit constexpr Rational(const Rational<U> &rhs)
 		: Rational(T(rhs.num()), TBase(rhs.den())) {}
 
-	template <class U, class UDen = TBase, EnableIf<precise_conversion<U, T>>...>
+	template <class U, class UDen = TBase,
+			  EnableIf<is_convertible<U, T> && precise_conversion<U, T>>...>
 	constexpr Rational(const U &num, UDen den = TBase(1)) : Rational(T(num), TBase(den)) {}
-	template <class U, class UDen = TBase, EnableIf<!precise_conversion<U, T>>...>
+	template <class U, class UDen = TBase,
+			  EnableIf<is_constructible<U, T> && !precise_conversion<U, T>>...>
 	constexpr explicit Rational(const U &num, UDen den = TBase(1)) : Rational(T(num), TBase(den)) {}
 
 	template <class RT, EnableIf<is_real<RT> && vec_size == 0>...> explicit operator RT() const {
