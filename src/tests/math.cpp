@@ -8,6 +8,7 @@
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/matrix4.h"
+#include "fwk/math/obox.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rational.h"
 #include "fwk/math/ray.h"
@@ -146,6 +147,21 @@ void testIntersections() {
 		// TODO: fix sat
 		//ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
 	}
+}
+
+void testOBox() {
+	OBox<int2> box1({-1, 0}, {2, 3}, {1, -2});
+	OBox<int2> box2({3, 2}, {3, 7}, {9, 2});
+	OBox<int2> box3({2, 1}, {5, 2}, {1, 4});
+	OBox<int2> box4({8, 9}, {9, 10}, {11, 6});
+	OBox<int2> box5({5, 1}, {7, 1}, {5, 8});
+
+	ASSERT(box1.isIntersecting(box3));
+	ASSERT(box2.isIntersecting(box3));
+	ASSERT(box2.isIntersecting(box5));
+
+	ASSERT(!box2.isIntersecting(box4));
+	ASSERT(!box2.isIntersecting(box1)); // touches
 }
 
 template <class T> void print(const typename Segment<T, 2>::Isect &isect) {
@@ -429,6 +445,7 @@ void testMain() {
 	testVectorAngles();
 	testHash();
 	testTraits();
+	testOBox();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec.values())

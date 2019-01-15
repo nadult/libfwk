@@ -154,16 +154,16 @@ template <class T> class Box {
 		return true;
 	}
 
-	ENABLE_IF_SIZE(2) array<Point, 4> corners() const {
-		return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
-	}
-
-	ENABLE_IF_SIZE(3) array<Point, num_corners> corners() const {
-		array<T, num_corners> out;
-		for(int n = 0; n < num_corners; n++)
-			for(int i = 0; i < dim_size; i++)
-				out[n][i] = (n & (1 << i) ? m_max : m_min)[i];
-		return out;
+	array<Point, num_corners> corners() const {
+		if constexpr(dim_size == 2)
+			return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
+		else {
+			array<T, num_corners> out;
+			for(int n = 0; n < num_corners; n++)
+				for(int i = 0; i < dim_size; i++)
+					out[n][i] = (n & (1 << i) ? m_max : m_min)[i];
+			return out;
+		}
 	}
 
 	Box intersectionOrEmpty(const Box &rhs) const {
