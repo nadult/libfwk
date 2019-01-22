@@ -185,7 +185,7 @@ TextFormatter &TextFormatter::operator<<(unsigned long long value) {
 TextFormatter &TextFormatter::operator<<(bool value) { return *this << (value ? "true" : "false"); }
 
 void TextFormatter::trim(int count) {
-	PASSERT(count > m_offset);
+	PASSERT(count > 0 && count <= m_offset);
 	m_offset = max(0, m_offset - count);
 	m_data[m_offset] = 0;
 }
