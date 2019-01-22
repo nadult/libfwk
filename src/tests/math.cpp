@@ -289,6 +289,9 @@ void testVectorAngles() {
 	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(1, 2)), degToRad(-45.0f));
 	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(1, 0)), degToRad(-135.0f));
 	assertCloseEnough(angleTowards(float2(0, 0), float2(0, 1), float2(0, 0)), degToRad(-180.0f));
+
+	ASSERT(sameDirection(int2(2, 3), int2(4, 6)));
+	ASSERT(sameDirection(int3(-2, 5, 17), int3(-6, 15, 51)));
 }
 
 static_assert(is_vec<short2>, "");

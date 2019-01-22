@@ -663,6 +663,12 @@ template <class T> bool cwSide(const vec2<T> &from, const vec2<T> &to, const vec
 	return dot<PV>(perpendicular(to - from), point - from) < 0;
 }
 
+template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1, const TVec &vec2) {
+	using PT = PromoteIntegral<TVec>;
+	using TCross = Conditional<vec_size<TVec> == 2, typename PT::Scalar, PT>;
+	return cross<PT>(vec1, vec2) == TCross(0) && dot<PT>(vec1, vec2) > 0;
+}
+
 // TODO: remove it?
 template <class T, EnableIfRealVec<T>...>
 bool areClose(const T &a, const T &b,
