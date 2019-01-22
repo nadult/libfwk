@@ -316,9 +316,17 @@ template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int 
 	return span(v).subSpan(start, end);
 }
 
-template <class T> void makeUnique(vector<T> &vec) {
+template <class T> void makeSortedUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
 	vec.erase(std::unique(begin(vec), end(vec)), end(vec));
+}
+
+template <class TSpan, class T = RemoveConst<SpanBase<TSpan>>>
+vector<T> sortedUnique(const TSpan &span) {
+	vector<T> vec(span);
+	std::sort(begin(vec), end(vec));
+	vec.erase(std::unique(begin(vec), end(vec)), end(vec));
+	return vec;
 }
 
 template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!is_const<T>>...>
@@ -516,7 +524,7 @@ vector<Base2> merge(const TRange &range_of_ranges) {
 
 template <class TRange, EnableIfRange<TRange>...> bool distinct(const TRange &range) {
 	vector<RemoveConst<RangeBase<TRange>>> temp(begin(range), end(range));
-	makeUnique(temp);
+	makeSortedUnique(temp);
 	return fwk::size(temp) == fwk::size(range);
 }
 }

@@ -19,6 +19,5 @@ void testMain() {
 	ASSERT(toString(copy) == "10 20 30");
 
 	vector<string> vecs = {"xxx", "yyy", "zzz", "xxx", "abc", "abc", "zzz"};
-	makeUnique(vecs);
-	ASSERT(toString(vecs) == "abc xxx yyy zzz");
+	ASSERT(toString(sortedUnique(vecs)) == "abc xxx yyy zzz");
 }

@@ -10,7 +10,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - tied support in format (with priorities?)
 - Maybe w przypadku obiektów które mają niepoprawne wartości mogłoby też mieć szybsze porównania
   tylko, że none nie byłoby zawsze < niż dowolna wartość...
-- makeUnique -> makeSortedUnique; add sortedUnique, unique
 - transformSmall, transformArray, transformStatic
   transform czasami jest w stanie się zmapować na powyższe ?
 - resize-able GlBuffer (similar to Vector)

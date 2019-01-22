@@ -141,7 +141,7 @@ int DynamicMesh::eulerPoincare() const {
 		insertBack(all_edges, edges(poly));
 	for(auto &edge : all_edges)
 		edge = edge.ordered();
-	makeUnique(all_edges);
+	makeSortedUnique(all_edges);
 
 	return vertexCount() - (int)all_edges.size() + polyCount();
 }
@@ -257,7 +257,7 @@ VertexId DynamicMesh::merge(CSpan<VertexId> range, const float3 &target_pos) {
 	vector<PolyId> sel_polys;
 	for(auto vert : range)
 		insertBack(sel_polys, polys(vert));
-	makeUnique(sel_polys);
+	makeSortedUnique(sel_polys);
 
 	for(auto poly : sel_polys) {
 		auto untouched_verts = setDifference(verts(poly), range);
@@ -353,7 +353,7 @@ vector<VertexId> DynamicMesh::verts(CSpan<PolyId> polys) const {
 	vector<VertexId> out;
 	for(auto poly : polys)
 		insertBack(out, verts(poly));
-	makeUnique(out);
+	makeSortedUnique(out);
 	return out;
 }
 
@@ -381,7 +381,7 @@ vector<PolyId> DynamicMesh::coincidentPolys(PolyId id) const {
 	vector<PolyId> out;
 	for(auto vert : verts(id))
 		insertBack(out, polys(vert));
-	makeUnique(out);
+	makeSortedUnique(out);
 	auto it = std::find(begin(out), end(out), id);
 	out.erase(it);
 	return out;
@@ -467,7 +467,7 @@ vector<EdgeId> DynamicMesh::edges() const {
 	for(auto poly : polys())
 		for(auto edge : edges(poly))
 			out.emplace_back(edge.ordered());
-	makeUnique(out);
+	makeSortedUnique(out);
 	return out;
 }
 
@@ -487,7 +487,7 @@ vector<EdgeId> DynamicMesh::edges(VertexId id) const {
 	vector<EdgeId> out;
 	for(auto poly : polys(id))
 		insertBack(out, edges(poly));
-	makeUnique(out);
+	makeSortedUnique(out);
 	return out;
 }
 
