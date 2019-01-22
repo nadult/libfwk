@@ -11,6 +11,9 @@ int gcd(int, int);
 llint gcd(llint, llint);
 qint gcd(qint, qint);
 
+// Returns pairs: (prime, power)
+vector<pair<int, int>> extractPrimes(int);
+
 template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfIntegral<T>...>
 T gcd(const TRange &range) {
 	if(empty(range))

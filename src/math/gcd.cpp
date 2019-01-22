@@ -39,4 +39,20 @@ namespace {
 int gcd(int a, int b) { return gcdBinary<unsigned>(fwk::abs(a), fwk::abs(b)); }
 llint gcd(llint a, llint b) { return gcdBinary<unsigned long long>(fwk::abs(a), fwk::abs(b)); }
 qint gcd(qint a, qint b) { return gcdBinary<__uint128_t>(fwk::abs(a), fwk::abs(b)); }
+
+vector<pair<int, int>> extractPrimes(int value) {
+	vector<pair<int, int>> out;
+
+	for(int n = 2; n <= value; n++) {
+		int count = 0;
+		while(value % n == 0) {
+			count++;
+			value /= n;
+		}
+		if(count > 0)
+			out.emplace_back(n, count);
+	}
+
+	return out;
+}
 }

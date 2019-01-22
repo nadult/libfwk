@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- transform który jest w stanie rozbić krotkę na argumenty
+- PRINT(a, b, c) -> print("a:% b:% c:%", a, b, c)
 - serialize as pod should be template ?
 - add #define TVAR(...) template <__VA_ARGS__> static constexpr ?
 - when formatting values for assert, use structured mode ?
