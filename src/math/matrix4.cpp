@@ -235,4 +235,15 @@ Matrix4 ortho(float left, float right, float top, float bottom, float near, floa
 
 	return out;
 }
+
+Matrix4 projectionMatrix2D(const IRect &viewport, Orient2D orient) {
+	int y_min = orient == Orient2D::y_up ? viewport.ey() : viewport.y();
+	int y_max = orient == Orient2D::y_up ? viewport.y() : viewport.ey();
+	return ortho(viewport.x(), viewport.ex(), y_min, y_max, -1.0f, 1.0f);
+}
+
+Matrix4 viewMatrix2D(const IRect &viewport, const float2 &look_at) {
+	return translation(0, viewport.height(), 0) * scaling(1, -1, 1) *
+		   translation(-look_at.x, -look_at.y, 0.0f);
+}
 }

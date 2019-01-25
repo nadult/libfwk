@@ -13,12 +13,8 @@ namespace fwk {
 
 class Renderer2D : public MatrixStack {
   public:
-	Renderer2D(const IRect &viewport);
+	Renderer2D(const IRect &viewport, Orient2D);
 	~Renderer2D();
-
-	// Simple 2D view has (0, 0) in top left corner of the screen
-	static Matrix4 simpleProjectionMatrix(const IRect &viewport);
-	static Matrix4 simpleViewMatrix(const IRect &viewport, const float2 &view_pos);
 
 	void setViewPos(const float2 &view_pos);
 	void setViewPos(const int2 &view_pos) { setViewPos(float2(view_pos)); }

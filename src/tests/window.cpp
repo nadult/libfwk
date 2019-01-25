@@ -30,7 +30,7 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 		positions.erase(positions.begin());
 
 	clearColor(IColor(50, 0, 50));
-	Renderer2D renderer(IRect(GlDevice::instance().windowSize()));
+	Renderer2D renderer(IRect(GlDevice::instance().windowSize()), Orient2D::y_down);
 
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];

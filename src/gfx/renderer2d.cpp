@@ -58,8 +58,8 @@ static PProgram getProgram(Str name) {
 	return out;
 }
 
-Renderer2D::Renderer2D(const IRect &viewport)
-	: MatrixStack(simpleProjectionMatrix(viewport), simpleViewMatrix(viewport, float2(0, 0))),
+Renderer2D::Renderer2D(const IRect &viewport, Orient2D orient)
+	: MatrixStack(projectionMatrix2D(viewport, orient), viewMatrix2D(viewport, float2(0, 0))),
 	  m_viewport(viewport), m_current_scissor_rect(-1) {
 	m_tex_program = getProgram("2d_with_texture");
 	m_tex_program["tex"] = 0;
@@ -69,16 +69,7 @@ Renderer2D::Renderer2D(const IRect &viewport)
 Renderer2D::~Renderer2D() = default;
 
 void Renderer2D::setViewPos(const float2 &view_pos) {
-	MatrixStack::setViewMatrix(simpleViewMatrix(m_viewport, view_pos));
-}
-
-Matrix4 Renderer2D::simpleProjectionMatrix(const IRect &viewport) {
-	return ortho(viewport.x(), viewport.ex(), viewport.y(), viewport.ey(), -1.0f, 1.0f);
-}
-
-Matrix4 Renderer2D::simpleViewMatrix(const IRect &viewport, const float2 &look_at) {
-	return translation(0, viewport.height(), 0) * scaling(1, -1, 1) *
-		   translation(-look_at.x, -look_at.y, 0.0f);
+	MatrixStack::setViewMatrix(viewMatrix2D(m_viewport, view_pos));
 }
 
 Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {

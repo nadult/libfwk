@@ -77,6 +77,14 @@ Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up);
 Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far);
 Matrix4 ortho(float left, float right, float top, float bottom, float near, float far);
 
+DEFINE_ENUM(Orient2D, y_up, y_down);
+
+// Simple 2D view with point (0, 0) in corner:
+// - bottom left if orientation == Orient2D::y_up
+// - top left if orientation == Orient2D::y_down
+Matrix4 projectionMatrix2D(const IRect &viewport, Orient2D orientation);
+Matrix4 viewMatrix2D(const IRect &viewport, const float2 &view_pos);
+
 inline Matrix4 scaling(float x, float y, float z) { return scaling(float3(x, y, z)); }
 inline Matrix4 scaling(float s) { return scaling(s, s, s); }
 inline Matrix4 translation(float x, float y, float z) { return translation(float3(x, y, z)); }

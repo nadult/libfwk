@@ -208,7 +208,7 @@ class Viewer {
 		Matrix4 proj = perspective(degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(),
 								   1.0f, 10000.0f);
 		RenderList renderer_3d(m_viewport, proj);
-		Renderer2D renderer_2d(m_viewport);
+		Renderer2D renderer_2d(m_viewport, Orient2D::y_down);
 
 		renderer_3d.setViewMatrix(translation(0, 0, -5.0f));
 
