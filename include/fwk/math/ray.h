@@ -44,6 +44,9 @@ template <class T, int N> class Ray {
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Ray &) const;
 	ENABLE_IF_SIZE(3) IsectParam isectParam(const Plane<T, N> &) const;
 	ENABLE_IF_SIZE(3) IsectParam isectParam(const Triangle<T, N> &) const;
+	
+	Ray operator+(const Vec &vec) const { return {m_origin + vec, m_dir}; }
+	Ray operator-(const Vec &vec) const { return {m_origin - vec, m_dir}; }
 
 	FWK_ORDER_BY(Ray, m_origin, m_dir);
 
