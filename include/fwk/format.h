@@ -106,6 +106,7 @@ namespace detail {
 	}
 
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc);
+	string autoPrintFormat(const char *args);
 }
 
 template <class T>
@@ -342,6 +343,8 @@ string toString(T &&value);
 template <class... T, EnableIfFormattible<T...>...> string format(const char *str, T &&...);
 template <class... T, EnableIfFormattible<T...>...> void print(const char *str, T &&...);
 template <class... T, EnableIfFormattible<T...>...> void printPlain(const char *str, T &&...);
+
+#define FWK_PRINT(...) print(fwk::detail::autoPrintFormat(#__VA_ARGS__).c_str(), __VA_ARGS__)
 }
 
 #endif

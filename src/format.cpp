@@ -12,6 +12,34 @@
 
 namespace fwk {
 
+namespace detail {
+	string autoPrintFormat(const char *args) {
+		TextFormatter out;
+		// TODO: properly handle parenthesis, etc.
+		Tokenizer tok(args, ',');
+
+		while(!tok.finished()) {
+			auto elem = tok.next();
+
+			while(elem && isspace(elem[0]))
+				elem = elem.substr(1);
+			while(elem && isspace(elem[elem.size() - 1]))
+				elem = elem.substr(0, elem.size() - 1);
+
+			DASSERT(elem);
+			if(anyOf(elem, isspace))
+				out << '"' << elem << "\":% ";
+			else
+				out << elem << ":% ";
+		}
+
+		out.trim(1);
+		out << '\n';
+
+		return out.text();
+	}
+}
+
 TextFormatter::TextFormatter(int capacity, FormatOptions options)
 	: m_data(capacity), m_offset(0), m_options(options) {
 	DASSERT(capacity > 0);
