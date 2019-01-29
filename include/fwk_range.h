@@ -128,7 +128,7 @@ auto accumulate(const TRange &range, T value = T()) {
 }
 
 template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<is_same<decltype(DECLVAL(const Functor &)(DECLVAL(const T &))), bool>>...>
+		  EnableIf<is_convertible<decltype(DECLVAL(const Functor &)(DECLVAL(const T &))), bool>>...>
 bool anyOf(const TRange &range, const Functor &functor) {
 	return std::any_of(begin(range), end(range), functor);
 }
@@ -140,7 +140,7 @@ bool anyOf(const TRange &range, const R &ref) {
 }
 
 template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<is_same<decltype(DECLVAL(const Functor &)(DECLVAL(const T &))), bool>>...>
+		  EnableIf<is_convertible<decltype(DECLVAL(const Functor &)(DECLVAL(const T &))), bool>>...>
 bool allOf(const TRange &range, const Functor &functor) {
 	return std::all_of(begin(range), end(range), functor);
 }
