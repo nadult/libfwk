@@ -54,8 +54,11 @@ template <class T, int N> class Segment {
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
 
 	bool empty() const { return from == to; }
+	Vec dir() const { return to - from; }
 
 	template <class U = T, EnableIfReal<U>...> Maybe<Ray<T, N>> asRay() const;
+
+	Segment twin() const { return {to, from}; }
 
 	PReal length() const { return std::sqrt((PReal)lengthSq()); }
 	PT lengthSq() const { return fwk::distanceSq<PVec>(from, to); }

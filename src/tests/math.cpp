@@ -256,7 +256,7 @@ void test2DIntersections() {
 
 	ISeg seg6(1, 1, 3, 4), seg7(1, 4, 4, 3);
 	auto t = seg6.isectParam(seg7).asPoint();
-	auto pt = Rational2<llint>(seg6.from) + Rational2<llint>(seg6.to - seg6.from) * t;
+	auto pt = Rational2<llint>(seg6.from) + Rational2<llint>(seg6.dir()) * t;
 	ASSERT_EQ(pt, Rational2<llint>({29, 38}, 11));
 }
 

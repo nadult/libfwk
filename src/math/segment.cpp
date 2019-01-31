@@ -20,13 +20,13 @@ namespace fwk {
 TEMPLATE_REAL Maybe<Ray<T, N>> TSEG::asRay() const {
 	if(empty())
 		return none;
-	return Ray<T, N>(from, normalize(to - from));
+	return Ray<T, N>(from, normalize(dir()));
 }
 
 // Source: RTCD (page 130)
 TEMPLATE auto TSEG::distanceSq(const Point &point) const -> PPRT {
 	// TODO: verify this
-	auto ab = to - from, ac = point - from, bc = point - to;
+	auto ab = dir(), ac = point - from, bc = point - to;
 	PT e = dot<PVec>(ac, ab);
 	if(e <= PT(0))
 		return dot<PVec>(ac, ac);
@@ -77,8 +77,7 @@ TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 			return {};
 		}
 
-		auto vec1 = to - from;
-		auto vec2 = rhs.to - rhs.from;
+		auto vec1 = dir(), vec2 = rhs.dir();
 
 		PT tdot = dot<PVec>(vec1, perpendicular(vec2));
 		if(tdot == PT(0)) {
@@ -219,7 +218,7 @@ TEMPLATE IsectClass TSEG::classifyIsect(const Point &point) const {
 		if(empty())
 			return IsectClass::none;
 
-		PVec vec = to - from;
+		PVec vec = dir();
 		if(cross<PVec>(point - from, vec) == PT(0)) {
 			// point lies on the line
 			PT length_sq = fwk::lengthSq(vec);
@@ -255,7 +254,7 @@ TEMPLATE IsectClass TSEG::classifyIsect(const Segment &rhs) const {
 // TODO: make it return IsectClass
 TEMPLATE bool TSEG::testIsect(const Box<Vec> &box) const {
 	PVec e = box.size();
-	PVec d = to - from;
+	PVec d = dir();
 	PVec m = PVec(from + to) - PVec(box.max() + box.min());
 
 	PVec ad;
@@ -284,7 +283,7 @@ TEMPLATE auto TSEG::closestPointParam(const Point &point) const -> PRT {
 		if(empty())
 			return PRT(0);
 
-		PVec vec = to - from;
+		PVec vec = dir();
 		auto t = PRT(dot<PVec>(point - from, vec), fwk::lengthSq<PVec>(vec));
 		if(t.num() < 0)
 			return PRT(0);
@@ -295,7 +294,7 @@ TEMPLATE auto TSEG::closestPointParam(const Point &point) const -> PRT {
 		if(empty())
 			return T(0);
 	} else {
-		auto vec = to - from;
+		auto vec = dir();
 		auto t = dot(point - from, vec) / fwk::lengthSq(vec);
 		return clamp(t, Scalar(0), Scalar(1));
 	}
@@ -313,7 +312,7 @@ TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> pair<PPRT, P
 		return {PPRT(0), PPRT(rhs.closestPointParam(from))};
 
 	PVec r = from - rhs.from;
-	PVec d1 = to - from, d2 = rhs.to - rhs.from;
+	PVec d1 = dir(), d2 = rhs.dir();
 	PT a = dot(d1, d1), e = dot(d2, d2);
 	PT f = dot(d2, r);
 
