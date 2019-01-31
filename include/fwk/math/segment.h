@@ -49,7 +49,7 @@ template <class T, int N> class Segment {
 	explicit Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
 	template <class U, EnableIf<precise_conversion<U, T>>...>
-	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
+	Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
 	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit Segment(const Segment<U, N> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
 
