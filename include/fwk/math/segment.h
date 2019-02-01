@@ -109,6 +109,8 @@ template <class T, int N> class Segment {
 	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }
 	ENABLE_IF_SIZE(3) Segment<T, 2> yz() const { return {from.yz(), to.yz()}; }
 
+	Segment operator*(const Vec &vec) const { return {from * vec, to * vec}; }
+	Segment operator*(T scalar) const { return {from * scalar, to * scalar}; }
 	Segment operator+(const Vec &vec) const { return {from + vec, to + vec}; }
 	Segment operator-(const Vec &vec) const { return {from - vec, to - vec}; }
 
