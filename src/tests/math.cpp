@@ -351,6 +351,7 @@ void testRational() {
 
 	ASSERT_EQ(Rational2<int>({10, 20}, 10), Rational2<int>({5, 10}, 5));
 	ASSERT_EQ(double2(Rational2<int>({1, 2}, 10)), double2(0.1, 0.2));
+	ASSERT_EQ(Rational<int>::approximate(sqrt(3.0), 10, 10), Rational<int>(7, 4));
 
 	Random rand;
 	for(int n = 0; n < 100000; n++) {

@@ -146,15 +146,40 @@ template <class T> Rational<T> Rational<T>::normalized() const {
 	return t == 1 ? *this : Rational(m_num / t, m_den / t, no_sign_check);
 }
 
-template struct Rational<short>;
-template struct Rational<int>;
-template struct Rational<llint>;
-template struct Rational<qint>;
+template <class T>
+template <class U, EnableIfScalar<U>...>
+Rational<T> Rational<T>::approximate(double value, int max_num, int max_den) {
+	bool sign = false;
+	if(value < 0) {
+		sign = true;
+		value = -value;
+	}
 
-template int Rational<short>::order(const Rational &) const;
-template int Rational<int>::order(const Rational &) const;
-template int Rational<llint>::order(const Rational &) const;
-template int Rational<qint>::order(const Rational &) const;
+	Rational best = T(value);
+	double best_err = abs(double(best) - value);
+
+	for(int n : intRange(0, max_num))
+		for(int d : intRange(1, max_den)) {
+			Rational rat(n, d);
+			double err = abs(double(rat) - value);
+			if(err < best_err) {
+				best = rat;
+				best_err = err;
+			}
+		}
+
+	return sign ? -best : best;
+}
+
+#define INST_SCALAR(type)                                                                          \
+	template struct Rational<type>;                                                                \
+	template int Rational<type>::order(const Rational &) const;                                    \
+	template Rational<type> Rational<type>::approximate(double, int, int);
+
+INST_SCALAR(short)
+INST_SCALAR(int)
+INST_SCALAR(llint)
+INST_SCALAR(qint)
 
 template struct Rational<short2>;
 template struct Rational<int2>;

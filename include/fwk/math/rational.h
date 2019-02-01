@@ -102,6 +102,8 @@ template <class T> struct Rational {
 
 	Rational normalized() const;
 
+	IF_SCALAR static Rational approximate(double value, int max_num, int max_den);
+
 	// TODO: Shouldn't operations support these special states?
 	IF_SCALAR bool isInfinity() const { return m_num != 0 && m_den == 0; }
 	bool isNan() const {
