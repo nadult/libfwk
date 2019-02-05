@@ -40,10 +40,10 @@ int gcd(int a, int b) { return gcdBinary<unsigned>(fwk::abs(a), fwk::abs(b)); }
 llint gcd(llint a, llint b) { return gcdBinary<unsigned long long>(fwk::abs(a), fwk::abs(b)); }
 qint gcd(qint a, qint b) { return gcdBinary<__uint128_t>(fwk::abs(a), fwk::abs(b)); }
 
-vector<pair<int, int>> extractPrimes(int value) {
-	vector<pair<int, int>> out;
+template <class T> vector<pair<T, int>> extractPrimes(T value) {
+	vector<pair<T, int>> out;
 
-	for(int n = 2; n <= value; n++) {
+	for(T n = 2; n <= value; n++) {
 		int count = 0;
 		while(value % n == 0) {
 			count++;
@@ -55,4 +55,7 @@ vector<pair<int, int>> extractPrimes(int value) {
 
 	return out;
 }
+
+template vector<pair<int, int>> extractPrimes(int);
+template vector<pair<llint, int>> extractPrimes(llint);
 }
