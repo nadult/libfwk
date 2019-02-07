@@ -64,6 +64,7 @@ template <class T> class Box {
 	explicit Box(T size) : Box(T(), size) {}
 	Box() : m_min(), m_max() {}
 	Box(NoInitTag) {}
+	~Box() { m_min.~Point(), m_max.~Point(); }
 
 	Box(const Box &) = default;
 	Box &operator=(const Box &) = default;
