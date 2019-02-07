@@ -148,7 +148,7 @@ template <class T> Rational<T> Rational<T>::normalized() const {
 
 template <class T>
 template <class U, EnableIfScalar<U>...>
-Rational<T> Rational<T>::approximate(double value, int max_num, int max_den) {
+Rational<T> Rational<T>::approximate(double value, int max_num, bool upper_bound) {
 	bool sign = false;
 	if(value < 0) {
 		sign = true;
@@ -158,15 +158,21 @@ Rational<T> Rational<T>::approximate(double value, int max_num, int max_den) {
 	Rational best = T(value);
 	double best_err = abs(double(best) - value);
 
-	for(int n : intRange(0, max_num))
-		for(int d : intRange(1, max_den)) {
+	for(int n : intRange(0, max_num)) {
+		int avg_d = double(n) / value;
+		for(int d = avg_d - 1; d <= avg_d + 1; d++) {
 			Rational rat(n, d);
-			double err = abs(double(rat) - value);
-			if(err < best_err) {
-				best = rat;
-				best_err = err;
+			double drat = double(rat);
+
+			if((!upper_bound && drat <= value) || (upper_bound && drat >= value)) {
+				double err = abs(drat - value);
+				if(err < best_err) {
+					best = rat;
+					best_err = err;
+				}
 			}
 		}
+	}
 
 	return sign ? -best : best;
 }
@@ -174,7 +180,7 @@ Rational<T> Rational<T>::approximate(double value, int max_num, int max_den) {
 #define INST_SCALAR(type)                                                                          \
 	template struct Rational<type>;                                                                \
 	template int Rational<type>::order(const Rational &) const;                                    \
-	template Rational<type> Rational<type>::approximate(double, int, int);
+	template Rational<type> Rational<type>::approximate(double, int, bool);
 
 INST_SCALAR(short)
 INST_SCALAR(int)
