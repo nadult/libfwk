@@ -175,12 +175,18 @@ namespace detail {
 #undef PROMOTION
 #undef PRECISE
 
-	template <class T> auto promote() {
-		if constexpr(VecSize<T>::value > 0) {
-			using Promoted = typename Promotion<typename T::Scalar>::type;
-			return typename MakeVec<Promoted, T::vec_size>::type();
-		} else {
-			return typename detail::Promotion<T>::type();
+	template <class T, int count = 1> auto promote() {
+		static_assert(count >= 0);
+		if constexpr(count == 0)
+			return T();
+		else {
+			if constexpr(VecSize<T>::value > 0) {
+				using Promoted = typename Promotion<typename T::Scalar>::type;
+				using VecType = typename MakeVec<Promoted, T::vec_size>::type;
+				return promote<VecType, count - 1>();
+			} else {
+				return promote<typename detail::Promotion<T>::type, count - 1>();
+			}
 		}
 	}
 }
@@ -244,9 +250,10 @@ static constexpr bool precise_conversion = []() {
 	return detail::PreciseConversion<From, To>::value;
 }();
 
-template <class T> using Promote = decltype(detail::promote<T>());
-template <class T>
-using PromoteIntegral = Conditional<is_integral<T> || is_integral_vec<T>, Promote<T>, T>;
+// TODO: maybe Promote is not the best name?
+template <class T, int count = 1> using Promote = decltype(detail::promote<T, count>());
+template <class T, int count = 1>
+using PromoteIntegral = Conditional<is_integral<T> || is_integral_vec<T>, Promote<T, count>, T>;
 
 template <class T> struct ToReal { using type = double; };
 template <> struct ToReal<float> { using type = float; };
