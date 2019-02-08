@@ -9,7 +9,8 @@
 #include <memory>
 #include <string>
 
-#include <fwk/meta.h>
+#include "fwk/meta.h"
+#include "fwk/operators.h"
 
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))
@@ -106,8 +107,6 @@ template <auto... V> struct UndefVal;
 template <class T> using UndefSize = UndefVal<sizeof(T)>;
 
 template <class T, int size> constexpr int arraySize(T (&)[size]) { return size; }
-
-template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
 
 template <class T, class T1, class T2>
 constexpr bool inRange(const T &value, const T1 &begin, const T2 &end) {

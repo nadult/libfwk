@@ -76,7 +76,6 @@ using std::floor;
 struct NotAReal;
 struct NotAIntegral;
 struct NotAScalar;
-struct NotAMathObject;
 template <int N> struct NotAValidVec;
 
 namespace detail {
@@ -200,9 +199,6 @@ static constexpr bool is_integral_object = detail::ScalarTrait<T, detail::IsInte
 template <class T>
 static constexpr bool is_rational_object = detail::ScalarTrait<T, detail::IsRational>::value;
 
-template <class T>
-static constexpr bool is_math_object = detail::ScalarTrait<T, detail::IsScalar>::value;
-
 template <class T> constexpr int vec_size = detail::VecSize<T>::value;
 template <class T> using VecScalar = typename detail::VecScalar<T>::type;
 
@@ -226,8 +222,6 @@ template <class T> using EnableIfScalar = EnableIf<is_scalar<T>, NotAScalar>;
 template <class T> using EnableIfReal = EnableIf<is_real<T>, NotAReal>;
 template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotAIntegral>;
 
-template <class T> using EnableIfMathObject = EnableIf<is_math_object<T>, NotAMathObject>;
-
 template <class T, int N = 0> using EnableIfVec = EnableIf<is_vec<T, N>, NotAValidVec<N>>;
 template <class T, int N = 0> using EnableIfRealVec = EnableIf<is_real_vec<T, N>, NotAValidVec<N>>;
 template <class T, int N = 0>
@@ -246,6 +240,7 @@ static constexpr bool precise_conversion = []() {
 }();
 
 // TODO: maybe Promote is not the best name?
+// TODO: sometimes we want to raise an error if promotion is not available?
 template <class T, int count = 1> using Promote = decltype(detail::promote<T, count>());
 template <class T, int count = 1>
 using PromoteIntegral = Conditional<is_integral<T> || is_integral_vec<T>, Promote<T, count>, T>;
@@ -432,31 +427,6 @@ template <class T> struct vec4 {
 };
 
 #undef CHECK_NANS
-
-template <class T, class T1, EnableIfMathObject<T>...> void operator+=(T &a, const T1 &b) {
-	a = a + b;
-}
-template <class T, class T1, EnableIfMathObject<T>...> void operator-=(T &a, const T1 &b) {
-	a = a - b;
-}
-template <class T, class T1, EnableIfMathObject<T>...> void operator*=(T &a, const T1 &b) {
-	a = a * b;
-}
-template <class T, class T1, EnableIfMathObject<T>...> void operator/=(T &a, const T1 &b) {
-	a = a / b;
-}
-
-template <class T, EnableIfMathObject<T>...> bool operator>(const T &a, const T &b) {
-	return b < a;
-}
-
-template <class T, EnableIfMathObject<T>...> bool operator>=(const T &a, const T &b) {
-	return !(a < b);
-}
-
-template <class T, EnableIfMathObject<T>...> bool operator<=(const T &a, const T &b) {
-	return !(b < a);
-}
 
 template <class T, EnableIfScalar<T>...> T clamp(const T &obj, const T &tmin, const T &tmax) {
 	return min(tmax, max(tmin, obj));

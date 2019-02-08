@@ -291,14 +291,15 @@ template <class T> bool touches(const Box<T> &lhs, const Box<T> &rhs) {
 
 FBox encloseTransformed(const FBox &, const Matrix4 &);
 
-template <class T> constexpr bool isEnclosable() {
-	if constexpr(is_math_object<T> && !is_vec<T>)
-		return is_same<decltype(enclose(DECLVAL(T))), Box<typename T::Vec>>;
-	else
-		return false;
+namespace detail {
+	template <class L> struct IsEnclosable {
+		template <class U> static decltype(enclose(DECLVAL(const U &))) test(U *);
+		template <class U> static void test(...);
+		static constexpr bool value = !is_same<decltype(test<L>(nullptr)), void>;
+	};
 }
 
-template <class TRange, class T = RangeBase<TRange>, EnableIf<isEnclosable<T>()>...>
+template <class TRange, class T = RangeBase<TRange>, EnableIf<detail::IsEnclosable<T>::value>...>
 auto encloseRange(const TRange &objects) {
 	using Box = decltype(enclose(DECLVAL(T)));
 	if(objects.empty())
