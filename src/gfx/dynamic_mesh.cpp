@@ -7,6 +7,7 @@
 #include "fwk/format.h"
 #include "fwk/math/projection.h"
 #include "fwk/math/ray.h"
+#include "fwk/math/rotation.h"
 #include "fwk_index_range.h"
 
 namespace fwk {
@@ -430,10 +431,10 @@ vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 			//				continue;
 
 			PolyId best_face;
-			float min_angle = fconstant::inf;
+			float min_angle = inf;
 			auto proj = edgeProjection(edge, face);
 			auto normal = proj.projectVector(triangle(face).normal()).xz();
-			DASSERT(fabs(normal.y) > 1.0f - fconstant::epsilon);
+			DASSERT(isAlmostOne(normal.y));
 
 			for(auto eface : epolys) {
 				if(eface == face || isOneOf(edge, edges(eface)))
@@ -634,7 +635,7 @@ DynamicMesh DynamicMesh::merge(CSpan<DynamicMesh> meshes) {
 }
 
 float3 closestPoint(const DynamicMesh &mesh, const float3 &point) {
-	float min_dist_sq = fconstant::inf;
+	float min_dist_sq = inf;
 	float3 out;
 
 	for(auto poly : mesh.polys()) {

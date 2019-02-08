@@ -12,7 +12,7 @@ template <class T> class IsectParam {
 	IsectParam(T point) : m_interval(point) {}
 	IsectParam(T min, T max) : m_interval(min, max) {}
 	IsectParam(Interval<T> interval) : m_interval(interval) {}
-	IsectParam() : m_interval(constant<T>::inf(), -constant<T>::inf()) {}
+	IsectParam() : m_interval(inf, -T(inf)) {}
 
 	bool isPoint() const { return m_interval.min == m_interval.max; }
 	bool isInterval() const { return m_interval.max > m_interval.min; }

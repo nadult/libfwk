@@ -242,7 +242,7 @@ class DynamicMesh {
 	template <class Simplex, class MeshSimplex = VertexId>
 	auto closestVertex(const Simplex &simplex, MeshSimplex exclude = VertexId()) const {
 		VertexId out;
-		float min_dist = fconstant::inf;
+		float min_dist = inf;
 
 		for(auto vert : verts()) {
 			if(coincident(exclude, vert))
@@ -260,12 +260,12 @@ class DynamicMesh {
 	template <class Simplex, class MeshSimplex = EdgeId>
 	auto closestEdge(const Simplex &simplex, MeshSimplex exclude = EdgeId()) const {
 		EdgeId out;
-		float min_dist = fconstant::inf;
+		float min_dist = inf;
 
 		for(auto edge : edges()) {
 			if(coincident(exclude, edge))
 				continue;
-			if(distance(point(edge.a), point(edge.b)) < fconstant::epsilon)
+			if(distance(point(edge.a), point(edge.b)) < epsilon<float>)
 				print("Invalid edge: % - % | % %\n", edge.a.id, edge.b.id, point(edge.a),
 					  point(edge.b));
 			float dist = distance(simplex, segment(edge));

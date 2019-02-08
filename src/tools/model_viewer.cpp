@@ -17,6 +17,7 @@
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/gfx/triangle_buffer.h"
 #include "fwk/math/axis_angle.h"
+#include "fwk/math/rotation.h"
 #include "fwk/sys/input.h"
 #include "fwk/sys/xml_loader.h"
 #include "fwk_profile.h"

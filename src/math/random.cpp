@@ -15,6 +15,7 @@ struct alignas(void *) RandomEngine : public std::default_random_engine {};
 #include "fwk/math/random.h"
 
 #include "fwk/math/axis_angle.h"
+#include "fwk/math/constants.h"
 #include "fwk/math/quat.h"
 
 namespace fwk {
@@ -57,7 +58,7 @@ double Random::normal(double mean, double stddev) {
 Quat Random::uniformRotation() { return uniformRotation(sampleUnitHemisphere<float3>()); }
 
 Quat Random::uniformRotation(float3 axis) {
-	return (Quat)AxisAngle(axis, uniform(0.0f, fconstant::pi * 2.0f));
+	return (Quat)AxisAngle(axis, uniform(0.0f, pi * 2.0f));
 }
 }
 

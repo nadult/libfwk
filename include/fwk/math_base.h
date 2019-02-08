@@ -8,7 +8,6 @@
 #include "fwk/sys_base.h"
 #include "fwk_index_range.h"
 #include <cmath>
-#include <limits>
 
 #ifndef __x86_64
 #define FWK_USE_BOOST_MPC_INT
@@ -20,34 +19,6 @@
 
 namespace fwk {
 
-// TODO: remove epsilons?
-namespace dconstant {
-	static constexpr const double pi = 3.14159265358979323846;
-	static constexpr const double e = 2.7182818284590452354;
-	static constexpr const double epsilon = 0.0001;
-	static constexpr const double isect_epsilon = 0.000000001;
-	static const double inf = std::numeric_limits<double>::infinity();
-}
-
-namespace fconstant {
-	static constexpr const float pi = dconstant::pi;
-	static constexpr const float e = dconstant::e;
-	static constexpr const float epsilon = 0.0001f;
-	static constexpr const float isect_epsilon = 0.000000001f;
-	static const float inf = std::numeric_limits<float>::infinity();
-}
-
-template <class Real> struct constant {
-	static_assert(std::is_floating_point<Real>::value, "");
-
-	// TODO: long doubles support ?
-	static const constexpr Real pi = dconstant::pi;
-	static const constexpr Real e = dconstant::e;
-	static const constexpr Real epsilon = dconstant::epsilon;
-	static const constexpr Real isect_epsilon = dconstant::isect_epsilon;
-	static Real inf() { return std::numeric_limits<Real>::infinity(); }
-};
-
 template <class T> struct vec2;
 template <class T> struct vec3;
 template <class T> struct vec4;
@@ -55,6 +26,8 @@ template <class T> struct vec4;
 template <class T> struct Rational;
 template <class T> using Rational2 = Rational<vec2<T>>;
 template <class T> using Rational3 = Rational<vec3<T>>;
+
+template <class T> struct Ext24;
 
 using llint = long long;
 #ifdef FWK_USE_BOOST_MPC_INT
@@ -85,15 +58,17 @@ using qint4 = vec4<qint>;
 pair<float, float> sincos(float radians);
 pair<double, double> sincos(double radians);
 
+// TODO: why not using std:: ?
 inline bool isnan(float v) { return std::isnan(v); }
 inline bool isnan(double v) { return std::isnan(v); }
+inline bool isnan(long double v) { return std::isnan(v); }
 
+// TODO: why not templates?
 inline int abs(int s) { return std::abs(s); }
+inline long long abs(long long s) { return std::abs(s); }
 inline double abs(double s) { return std::abs(s); }
 inline float abs(float s) { return std::abs(s); }
-
-inline double inv(double s) { return 1.0 / s; }
-inline float inv(float s) { return 1.0f / s; }
+inline long double abs(long double s) { return std::abs(s); }
 
 using std::ceil;
 using std::floor;
@@ -108,15 +83,20 @@ namespace detail {
 
 	template <class T> struct IsIntegral : public std::is_integral<T> {};
 	template <class T> struct IsRational : public std::false_type {};
+	template <class T> struct IsExt24 : public std::false_type {};
 	template <class T> struct IsReal : public std::is_floating_point<T> {};
+
 	template <> struct IsIntegral<qint> : public std::true_type {};
 	template <class T> struct IsRational<Rational<T>> : public std::true_type {};
+	template <class T> struct IsExt24<Ext24<T>> : public std::true_type {};
 
 	template <class T> struct IsScalar {
 		static constexpr bool value =
 			IsReal<T>::value || IsIntegral<T>::value || IsRational<T>::value;
 	};
+	template <class T> struct IsScalar<Ext24<T>> { static constexpr bool value = true; };
 
+	// TODO: can you do without it ?
 	template <class T, template <class> class Trait> struct ScalarTrait {
 		template <class U>
 		static typename std::enable_if<Trait<typename U::Scalar>::value, char>::type test(U *);
@@ -134,6 +114,11 @@ namespace detail {
 		template <class U> static NotAValidVec<0> test(...);
 		using type = decltype(test<T>(nullptr));
 	};
+	template <class T> struct Ext24Base { using Type = void; };
+	template <class T> struct Ext24Base<Ext24<T>> { using Type = T; };
+
+	template <class T> struct RationalBase { using Type = void; };
+	template <class T> struct RationalBase<Rational<T>> { using Type = T; };
 
 	template <class T> struct VecSize {
 		template <int N> struct Size { static constexpr int value = N; };
@@ -165,12 +150,13 @@ namespace detail {
 	PROMOTION(int, llint);
 	PROMOTION(llint, qint);
 	PROMOTION(float, double);
+	PROMOTION(double, long double)
 
 	PRECISE(short, float)
 	PRECISE(int, double)
 	PRECISE(float, double)
 
-	// TODO: long doubles support?
+	// TODO: full long doubles support?
 
 #undef PROMOTION
 #undef PRECISE
@@ -181,9 +167,18 @@ namespace detail {
 			return T();
 		else {
 			if constexpr(VecSize<T>::value > 0) {
-				using Promoted = typename Promotion<typename T::Scalar>::type;
-				using VecType = typename MakeVec<Promoted, T::vec_size>::type;
-				return promote<VecType, count - 1>();
+				// TODO: generic function: BaseType<> ?
+				using BaseType = typename T::Scalar;
+				using Promoted = decltype(promote<BaseType, count>());
+				return typename MakeVec<Promoted, T::vec_size>::type();
+			} else if constexpr(IsRational<T>::value) {
+				using BaseType = typename RationalBase<T>::Type;
+				using Promoted = decltype(promote<BaseType, count>());
+				return Rational<Promoted>();
+			} else if constexpr(IsExt24<T>::value) {
+				using BaseType = typename Ext24Base<T>::Type;
+				using Promoted = decltype(promote<BaseType, count>());
+				return Ext24<Promoted>();
 			} else {
 				return promote<typename detail::Promotion<T>::type, count - 1>();
 			}
@@ -467,17 +462,6 @@ template <class T, EnableIfScalar<T>...> T clamp(const T &obj, const T &tmin, co
 	return min(tmax, max(tmin, obj));
 }
 
-template <class Real, EnableIfReal<Real>...> Real degToRad(Real v) {
-	return v * (Real(2.0) * constant<Real>::pi / Real(360.0));
-}
-
-template <class Real, EnableIfReal<Real>...> Real radToDeg(Real v) {
-	return v * (Real(360.0) / (Real(2.0) * constant<Real>::pi));
-}
-
-// Return angle in range (0; 2 * PI)
-float normalizeAngle(float radians);
-
 template <class Obj, class Scalar> inline Obj lerp(const Obj &a, const Obj &b, const Scalar &x) {
 	return (b - a) * x + a;
 }
@@ -515,6 +499,8 @@ template <class T, EnableIfVec<T>...> T vclamp(const T &vec, const T &tmin, cons
 }
 
 template <class T, EnableIfScalar<T>...> T abs(T value) { return value < T(0) ? -value : value; }
+
+template <class T, EnableIfReal<T>...> inline T inv(T s) { return T(1) / s; }
 
 // Nonstandard behaviour: rounding half up (0.5 -> 1, -0.5 -> 0)
 template <class T, EnableIfReal<T>...> T round(T value) { return floor(value + T(0.5)); }
@@ -631,25 +617,22 @@ template <class T, EnableIfVec<T, 2>...> auto cross(const T &a, const T &b) {
 
 template <class T, EnableIfVec<T, 2>...> T perpendicular(const T &v) { return T(-v[1], v[0]); }
 
-float vectorToAngle(const float2 &normalized_vector);
-double vectorToAngle(const double2 &normalized_vector);
+template <class T>
+static constexpr T epsilon = []() {
+	static_assert(is_real<T>);
+	// TODO: verify these values
+	return is_same<T, float> ? T(1E-6f) : is_same<T, double> ? T(1E-14) : T(1E-18L);
+}();
 
-float2 angleToVector(float radians);
-double2 angleToVector(double radians);
+template <class T> bool isAlmostOne(T value) {
+	auto diff = T(1) - value;
+	return diff < epsilon<T> && diff > -epsilon<T>;
+}
 
-float2 rotateVector(const float2 &vec, float radians);
-double2 rotateVector(const double2 &vec, double radians);
-float3 rotateVector(const float3 &pos, const float3 &axis, float angle);
-double3 rotateVector(const double3 &pos, const double3 &axis, double angle);
-
-// Returns CCW angle from vec1 to vec2 in range <0; 2*PI)
-float angleBetween(const float2 &vec1, const float2 &vec2);
-double angleBetween(const double2 &vec1, const double2 &vec2);
-
-// Returns positive value if vector turned left, negative if it turned right;
-// Returned angle is in range <-PI, PI>
-float angleTowards(const float2 &prev, const float2 &cur, const float2 &next);
-double angleTowards(const double2 &prev, const double2 &cur, const double2 &next);
+// TODO: we can't really check it properly for floating-point's...
+template <class T, EnableIfRealVec<T>...> bool isNormalized(const T &vec) {
+	return isAlmostOne(lengthSq(vec));
+}
 
 // Returns true if v2 is CCW to v1
 template <class T> bool ccwSide(const vec2<T> &v1, const vec2<T> &v2) {
@@ -679,29 +662,9 @@ template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1,
 	return cross<PT>(vec1, vec2) == TCross(0) && dot<PT>(vec1, vec2) > 0;
 }
 
-// TODO: remove it?
-template <class T, EnableIfRealVec<T>...>
-bool areClose(const T &a, const T &b,
-			  typename T::Scalar epsilon_sq = constant<typename T::Scalar>::epsilon) {
-	return distanceSq(a, b) < epsilon_sq;
-}
-
-// TODO: we can't really check it properly for floating-point's...
-template <class T, EnableIfRealVec<T>...> bool isNormalized(const T &vec) {
-	using Real = typename T::Scalar;
-	auto length_sq = lengthSq(vec);
-	return length_sq >= Real(1) - constant<Real>::epsilon &&
-		   length_sq <= Real(1) + constant<Real>::epsilon;
-}
-
 template <class T, EnableIfVec<T>...> bool isZero(const T &vec) { return vec == T(); }
 
 float frand();
-float angleDistance(float a, float b);
-float blendAngles(float initial, float target, float step);
-
-// Returns angle in range <0, 2 * PI)
-float normalizeAngle(float angle);
 
 template <class T, EnableIfIntegral<T>...> constexpr bool isPowerOfTwo(T value) {
 	return (value & (value - 1)) == 0;

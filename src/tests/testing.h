@@ -16,28 +16,24 @@ using namespace fwk;
 		ASSERT(!result);                                                                           \
 	}
 
-inline float relativeDifference(float a, float b) {
-	float magnitude = max(fabs(a), fabs(b));
-	return magnitude < fconstant::epsilon ? 0.0f : fabs(a - b) / magnitude;
+template <class T> inline double relativeDifference(const T &a, const T &b) {
+	if constexpr(is_scalar<T>) {
+		auto magnitude = max(fwk::abs(a), fwk::abs(b));
+		return magnitude < epsilon<T> ? T(0.0) : fwk::abs(a - b) / magnitude;
+	} else if constexpr(is_same<T, Quat>) {
+		return min(relativeDifference(float4(a), float4(b)),
+				   relativeDifference(-float4(a), float4(b)));
+	} else {
+		return distance<Promote<T>>(a, b);
+	}
 }
 
-inline bool closeEnough(float a, float b) { return relativeDifference(a, b) < fconstant::epsilon; }
-template <class T> inline bool closeEnough(const T &a, const T &b) {
-	return distance(a, b) < fconstant::epsilon;
-}
-
-template <class T> void reportError(const T &a, const T &b) {
-	FATAL("Error:  %s != %s", toString(a).c_str(), toString(b).c_str());
-}
-
-template <class T> void assertCloseEnough(const T &a, const T &b) {
-	if(!closeEnough(a, b))
-		reportError(a, b);
-}
-
-inline void assertCloseEnough(const Quat &a, const Quat &b) {
-	if(!closeEnough((float4)a, (float4)b) && !closeEnough(-(float4)a, (float4)b))
-		reportError(a, b);
+template <class T, class Base = Conditional<is_scalar<T>, T, VecScalar<T>>>
+void assertCloseEnough(const T &a, const T &b, double eps = epsilon<Base>) {
+	auto diff = relativeDifference(a, b);
+	if(diff > eps)
+		FATAL("Not close enough: %s : %s (difference: %.14f > %.14f)", toString(a).c_str(),
+			  toString(b).c_str(), diff, eps);
 }
 
 void testMain();

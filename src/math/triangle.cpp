@@ -6,6 +6,7 @@
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/projection.h"
+#include "fwk/math/rotation.h"
 
 namespace fwk {
 /*
@@ -164,7 +165,7 @@ template <class T, int N> array<T, 3> Triangle<T, N>::angles() const {
 		for(int i = 0; i < 3; i++)
 			dirs[i] = normalize(v[i] - v[(i + 2) % 3]);
 		for(int n = 0; n < 3; n++)
-			out[n] = constant<Scalar>::pi * Scalar(2) - angleBetween(-dirs[n], dirs[(n + 1) % 3]);
+			out[n] = pi * Scalar(2) - angleBetween(-dirs[n], dirs[(n + 1) % 3]);
 
 		return out;
 	}

@@ -9,13 +9,18 @@
 
 namespace fwk {
 
+template <class T> bool closeEnough(const T &a, const T &b) {
+	auto dist = distanceSq(a, b);
+	return dist < epsilon<decltype(dist)>;
+}
+
 void ModelAnim::transToXML(const AffineTrans &trans, const AffineTrans &default_trans,
 						   XmlNode node) {
-	if(!areClose(trans.translation, default_trans.translation))
+	if(!closeEnough(trans.translation, default_trans.translation))
 		node.addAttrib("pos", trans.translation);
-	if(!areClose(trans.scale, default_trans.scale))
+	if(!closeEnough(trans.scale, default_trans.scale))
 		node.addAttrib("scale", trans.scale);
-	if(!areClose((float4)trans.rotation, (float4)default_trans.rotation))
+	if(!closeEnough((float4)trans.rotation, (float4)default_trans.rotation))
 		node.addAttrib("rot", trans.rotation);
 }
 
@@ -121,7 +126,7 @@ AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
 	// TODO: fix timing
 
 	float diff = times[frame1] - times[frame0];
-	float blend_factor = diff < fconstant::epsilon ? 0.0f : (anim_pos - times[frame0]) / diff;
+	float blend_factor = diff < epsilon<float> ? 0.0f : (anim_pos - times[frame0]) / diff;
 
 	return channel.blend(frame0, frame1, blend_factor);
 }

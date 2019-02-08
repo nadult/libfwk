@@ -125,7 +125,7 @@ const Quat slerp(const Quat &lhs, Quat rhs, float t) {
 
 	float coeff0, coeff1;
 
-	if(1.0f - qdot > fconstant::epsilon) {
+	if(1.0f - qdot > epsilon<float>) {
 		float angle = acos(qdot);
 		float inv_sin = 1.0f / sin(angle);
 		coeff0 = sin((1.0f - t) * angle) * inv_sin;
@@ -150,7 +150,7 @@ const Quat conjugate(const Quat &q) { return Quat(-q.xyz(), q.w); }
  //TODO: fixme
 const Quat exp(const Quat &q) {
 	float r = length(q.xyz());
-	float s = r > fconstant::epsilon ? sin(r) / r : 1.0f;
+	float s = r > epsilon<float> ? sin(r) / r : 1.0f;
 
 	return Quat(q.xyz() * s, cosf(r));
 }

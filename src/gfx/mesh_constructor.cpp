@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/mesh.h"
 
+#include "fwk/math/constants.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/tetrahedron.h"
 #include "fwk/math/triangle.h"
@@ -51,7 +52,7 @@ Mesh Mesh::makeCylinder(const Cylinder &cylinder, int num_sides) {
 
 	vector<float3> positions(num_sides * 2);
 	for(int n = 0; n < num_sides; n++) {
-		float angle = n * fconstant::pi * 2.0f / float(num_sides);
+		float angle = float(n) * pi * 2.0f / float(num_sides);
 		auto sc = sincos(angle);
 		float px = sc.second * cylinder.radius();
 		float pz = sc.first * cylinder.radius();
@@ -100,7 +101,7 @@ Mesh Mesh::makeTetrahedron(const Tetrahedron &tet) {
 }
 
 Mesh Mesh::makePlane(const Plane3F &plane, const float3 &start, float size) {
-	DASSERT(size > fconstant::epsilon);
+	DASSERT(size > epsilon<float>);
 	FATAL("Test me");
 
 	float3 p[3] = {{-size, -size, -size}, {size, size, size}, {size, -size, size}};
@@ -136,7 +137,7 @@ Mesh Mesh::makePolySoup(CSpan<Triangle3F> rtris) {
 		int off = positions.size();
 		int inds[3];
 		for(auto point : tri.points()) {
-			float min_dist = fconstant::inf;
+			float min_dist = inf;
 			int min_idx = -1;
 
 			for(int n = 0; n < positions.size(); n++) {
@@ -148,7 +149,7 @@ Mesh Mesh::makePolySoup(CSpan<Triangle3F> rtris) {
 			}
 
 			int index = 0;
-			if(min_idx != -1 && min_dist < fconstant::epsilon) {
+			if(min_idx != -1 && min_dist < epsilon<float>) {
 				index = min_idx;
 			} else {
 				index = positions.size();

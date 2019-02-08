@@ -11,6 +11,8 @@
 
 namespace fwk {
 
+static constexpr RealConstant<NumberType::rational> isect_epsilon = 0.000000001;
+
 /*
 Ray::Ray(const Matrix4 &screen_to_world, const float2 &screen_pos) {
 	float3 p1 = mulPoint(screen_to_world, float3(screen_pos.x, screen_pos.y, 0.0f));
@@ -94,7 +96,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Ray &rhs) const {
 
 	if(tdot == T(0)) {
 		if(dot(diff, perpendicular(rhs.m_dir)) == T(0))
-			return {-constant<T>::inf(), constant<T>::inf()};
+			return {-inf, inf};
 		return {};
 	}
 
@@ -112,7 +114,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
 	T det = dot(e1, vp);
 
 	// if determinant is near zero, ray lies in plane of triangle
-	if(det > -fconstant::isect_epsilon && det < fconstant::isect_epsilon) {
+	if(det > T(-isect_epsilon) && det < T(isect_epsilon)) {
 		// TODO: fix this...
 		return {};
 	}
@@ -138,7 +140,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
 
 	T t = dot(e2, vq) * inv_det;
 
-	if(t > fconstant::epsilon)
+	if(t > epsilon<T>)
 		return t;
 
 	return {};
@@ -150,7 +152,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Plane<T, N> &plane) const {
 	// TODO: fix me
 	T ndot = dot(plane.normal(), m_dir);
 	if(ndot == T(0))
-		return fconstant::inf;
+		return T(inf);
 
 	return -plane.signedDistance(m_origin) / ndot;
 }

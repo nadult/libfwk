@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/math_base.h"
+#include "fwk/math/rotation.h"
 
 #ifdef _WIN32
 #include <float.h>
@@ -10,16 +10,45 @@
 
 namespace fwk {
 
+float angleDistance(float a, float b) {
+	float diff = fabs(a - b);
+	return min(diff, pi * 2.0f - diff);
+}
+
+float blendAngles(float initial, float target, float step) {
+	if(initial != target) {
+		float new_ang1 = initial + step, new_ang2 = initial - step;
+		if(new_ang1 < 0.0f)
+			new_ang1 += pi * 2.0f;
+		if(new_ang2 < 0.0f)
+			new_ang2 += pi * 2.0f;
+		float new_angle =
+			angleDistance(new_ang1, target) < angleDistance(new_ang2, target) ? new_ang1 : new_ang2;
+		if(angleDistance(initial, target) < step)
+			new_angle = target;
+		return new_angle;
+	}
+
+	return initial;
+}
+
+float normalizeAngle(float angle) {
+	angle = fmodf(angle, 2.0f * pi);
+	if(angle < 0.0f)
+		angle += 2.0f * pi;
+	return angle;
+}
+
 float vectorToAngle(const float2 &normalized_vec) {
 	DASSERT_HINT(isNormalized(normalized_vec), normalized_vec);
 	float ang = std::acos(normalized_vec.x);
-	return normalized_vec.y < 0 ? 2.0f * fconstant::pi - ang : ang;
+	return normalized_vec.y < 0 ? 2.0f * pi - ang : ang;
 }
 
 double vectorToAngle(const double2 &normalized_vec) {
 	DASSERT_HINT(isNormalized(normalized_vec), normalized_vec);
 	double ang = std::acos(normalized_vec.x);
-	return normalized_vec.y < 0.0 ? 2.0 * dconstant::pi - ang : ang;
+	return normalized_vec.y < 0.0 ? 2.0 * pi - ang : ang;
 }
 
 float2 angleToVector(float radians) {
@@ -65,7 +94,7 @@ Real angleBetween(const Vec &vec1, const Vec &vec2) {
 	DASSERT_HINT(isNormalized(vec2), vec2);
 	auto ang = atan2(cross(vec1, vec2), dot(vec1, vec2));
 	if(ang < Real(0))
-		ang += constant<Real>::pi * Real(2);
+		ang += pi * Real(2);
 	return ang;
 }
 

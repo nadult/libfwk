@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/math_base.h"
+#include "fwk/math/constants.h"
 #include "fwk/maybe.h"
 
 namespace fwk {
@@ -29,9 +29,7 @@ template <class T> struct Interval {
 	Interval operator+(T val) const { return Interval(min + val, max + val); }
 	Interval operator-(T val) const { return Interval(min - val, max - val); }
 
-	template <class U = T, EnableIfReal<U>...> static Interval inf() {
-		return {constant<T>::inf()};
-	}
+	template <class U = T, EnableIfReal<U>...> static Interval inf() { return {fwk::inf}; }
 
 	T size() const { return max - min; }
 	bool valid() const { return min <= max; }

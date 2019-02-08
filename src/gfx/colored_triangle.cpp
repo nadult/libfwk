@@ -4,13 +4,14 @@
 #include "fwk/gfx/colored_triangle.h"
 
 #include "fwk/math/box.h"
+#include "fwk/math/constants.h"
 #include "fwk/sys/stream.h"
 
 namespace fwk {
 
 FBox enclose(CSpan<ColoredTriangle> tris) {
 	if(tris) {
-		float3 min(fconstant::inf), max(-fconstant::inf);
+		float3 min(inf), max(-inf);
 		for(auto &tri : tris)
 			for(auto pt : tri.points()) {
 				min = vmin(min, pt);

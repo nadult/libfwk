@@ -6,6 +6,7 @@
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/model.h"
 #include "fwk/gfx/pose.h"
+#include "fwk/math/constants.h"
 #include "fwk/math/segment.h"
 
 namespace fwk {
@@ -43,12 +44,12 @@ Mesh AnimatedModel::toMesh() const {
 }
 
 float AnimatedModel::intersect(const Segment3<float> &segment) const {
-	float min_isect = fconstant::inf;
+	float min_isect = inf;
 
 	for(auto mesh_data : m_meshes) {
 		auto inv_segment = inverseOrZero(mesh_data.transform) * segment;
 		float inv_isect = mesh_data.mesh->intersect(inv_segment, mesh_data.anim_data);
-		if(inv_isect < fconstant::inf) {
+		if(inv_isect < inf) {
 			float3 point = mulPoint(mesh_data.transform, inv_segment.at(inv_isect));
 			min_isect = min(min_isect, distance(segment.from, point));
 		}

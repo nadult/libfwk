@@ -12,6 +12,7 @@
 #include "fwk/math/random.h"
 #include "fwk/math/rational.h"
 #include "fwk/math/ray.h"
+#include "fwk/math/rotation.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/tetrahedron.h"
 #include "fwk/math/triangle.h"
@@ -30,7 +31,7 @@ float3 randomScale() {
 Quat randomRotation() {
 	return normalize(Quat(AxisAngle(
 		normalize(float3(frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f, frand() * 2.0f - 1.0f)),
-		frand() * fconstant::pi * 2.0f)));
+		frand() * pi * 2.0f)));
 }
 
 AffineTrans randomTransform() {
@@ -39,7 +40,6 @@ AffineTrans randomTransform() {
 
 void testMatrices() {
 	float3 up(0, 1, 0);
-	float angle = fconstant::pi * 0.25f;
 
 	for(int n = 0; n < 100; n++) {
 		float3 trans = randomTranslation(100.0f);
@@ -48,8 +48,8 @@ void testMatrices() {
 
 		Matrix4 mat = translation(trans) * Matrix4(rot) * scaling(scale);
 		AffineTrans dec(mat);
-		assertCloseEnough(trans, dec.translation);
-		assertCloseEnough(scale, dec.scale);
+		assertCloseEnough(trans, dec.translation, 0.00001);
+		assertCloseEnough(scale, dec.scale, 0.00001);
 	}
 
 	for(int n = 0; n < 100; n++) {
@@ -85,8 +85,7 @@ void testRays() {
 	assertCloseEnough(tri1.surfaceArea(), 2.0f);
 
 	auto angles2 = tri2.angles();
-	assertCloseEnough(float3(angles2[0], angles2[1], angles2[2]),
-					  float3(0.5f, 0.25f, 0.25f) * fconstant::pi);
+	assertCloseEnough(float3(angles2[0], angles2[1], angles2[2]), float3(0.5f, 0.25f, 0.25f) * pi);
 
 	Segment3<float> segment3(float3(1, 1, 0), float3(4, 4, 0));
 	float3 p1(4, 1, 0), p2(0.5, 0.5, 0), p3(5, 4, 0);
@@ -95,9 +94,9 @@ void testRays() {
 	assertCloseEnough(segment3.closestPoint(p3), float3(4, 4, 0));
 
 	auto ray = *segment3.asRay();
-	assertCloseEnough(ray.closestPoint(p1), float3(2.5, 2.5, 0));
-	assertCloseEnough(ray.closestPoint(p2), float3(0.5, 0.5, 0));
-	assertCloseEnough(ray.closestPoint(p3), float3(4.5, 4.5, 0));
+	assertCloseEnough(ray.closestPoint(p1), float3(2.5, 2.5, 0), 0.00001);
+	assertCloseEnough(ray.closestPoint(p2), float3(0.5, 0.5, 0), 0.00001);
+	assertCloseEnough(ray.closestPoint(p3), float3(4.5, 4.5, 0), 0.00001);
 
 	Segment3<float> segment4({3, 2, 0}, {6, 5, 0});
 	Segment3<float> segment5({6, 7, 0}, {8, 5, 0});
@@ -127,7 +126,9 @@ void testIntersections() {
 
 	Tetrahedron tet({0, 0, 0}, {1, 0, 0}, {0, 0, 1}, {0.25, 1, 0.25});
 	ASSERT_EQ(tet.volume(), 1.0f / 6.0f);
+}
 
+void testBox() {
 	FBox bbox1({0, 0, 0}, {1, 1, 1});
 	FBox bbox2({0.49, 0, 0.49}, {1, 1, 1});
 	FBox bbox3({0.45, 0.5, 0.45}, {2, 2, 2});
@@ -147,6 +148,10 @@ void testIntersections() {
 		// TODO: fix sat
 		//ASSERT_EQ(areOverlapping(box1, box2), satTest(box1, box2));
 	}
+
+	FBox box({0, -100, 0}, {1200, 100, 720});
+	FBox temp({32, 0, 32}, {64, 0.5f, 64});
+	ASSERT(overlaps(box, temp));
 }
 
 void testOBox() {
@@ -277,8 +282,8 @@ void testVectorAngles() {
 	assertCloseEnough(radToDeg(angleBetween(v2, v1)), 315.0f);
 	assertCloseEnough(angleBetween(v1, v1), 0.0f);
 
-	assertCloseEnough(rotateVector(float2(1, 0), fconstant::pi * 0.5f), float2(0, 1));
-	assertCloseEnough(angleToVector(fconstant::pi), float2(-1, 0));
+	assertCloseEnough(rotateVector(float2(1, 0), pi * 0.5f), float2(0, 1));
+	assertCloseEnough(angleToVector((float)pi), float2(-1, 0));
 
 	assertCloseEnough(angleTowards(float2(-4, 4), float2(0, 0), float2(4, 4)), degToRad(90.0f));
 	assertCloseEnough(angleTowards(float2(-4, 4), float2(0, 0), float2(-4, 4)), degToRad(180.0f));
@@ -292,6 +297,13 @@ void testVectorAngles() {
 
 	ASSERT(sameDirection(int2(2, 3), int2(4, 6)));
 	ASSERT(sameDirection(int3(-2, 5, 17), int3(-6, 15, 51)));
+
+	Random rand;
+	for(int n : intRange(1000)) {
+		auto vec = rand.sampleBox(float3(-1000), float3(1000));
+		vec = normalize(vec);
+		ASSERT_HINT(isNormalized(vec), vec);
+	}
 }
 
 static_assert(is_vec<short2>, "");
@@ -341,6 +353,8 @@ void testTraits() {
 
 	static_assert(is_same<PromoteIntegral<float>, float>);
 	static_assert(is_same<PromoteIntegral<int2>, llint2>);
+
+	static_assert(is_same<Promote<Rational<int>, 2>, Rational<qint>>);
 }
 
 void testRational() {
@@ -435,11 +449,17 @@ void testRational() {
 	ASSERT_EQ(result.first.closest(), Rational<qint>(1, 2));
 }
 
-void testMain() {
-	FBox box({0, -100, 0}, {1200, 100, 720});
-	FBox temp({32, 0, 32}, {64, 0.5f, 64});
-	ASSERT(overlaps(box, temp));
+void testConsts() {
+	ASSERT_EQ(toString(double(-inf)), "-inf");
+	assertCloseEnough(double(sqrt2) * sqrt2, 2.0);
+	// TODO: full long double support
+	//assertCloseEnough((long double)sqrt6 * sqrt6, 6.0L);
+}
 
+void testMain() {
+	Backtrace::t_default_mode = BacktraceMode::full;
+
+	testConsts();
 	testRational();
 	testMatrices();
 	testRays();
@@ -449,6 +469,7 @@ void testMain() {
 	testVectorAngles();
 	testHash();
 	testTraits();
+	testBox();
 	testOBox();
 
 	float3 vec(0, 0, 1);

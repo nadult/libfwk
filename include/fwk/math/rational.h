@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/math_base.h"
+#include "fwk/math/constants.h"
 
 namespace fwk {
 
@@ -27,10 +27,11 @@ template <class T> struct Rational {
 
 	static constexpr int vec_size = is_vec<T> ? fwk::vec_size<T> : 0;
 	static_assert(isOneOf(vec_size, 0, 2, 3));
-	using TBase = Conditional<is_vec<T>, VecScalar<T>, T>;
+	using TBase = Conditional<is_vec<T>, VecScalar<T>, T>; // TODO: -> Base
 	using Scalar = Rational<TBase>;
 
 	// TODO: paranoid overflow checks ?
+	constexpr Rational(RealConstant<NumberType::infinity>) : m_num(1), m_den(0) {}
 	constexpr Rational(const T &num, TBase den, NoSignCheck) : m_num(num), m_den(den) {
 		CHECK_NAN();
 	}
@@ -141,10 +142,6 @@ template <class T> struct Rational {
 #undef IF_VEC
 #undef IF_VEC3
 #undef CHECK_NAN
-
-template <class T> struct constant<Rational<T>> {
-	static Rational<T> inf() { return {1, 0}; }
-};
 
 template <class T> T floor(const Rational<T> &value) {
 	return ratioFloor(value.num(), value.den());

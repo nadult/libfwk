@@ -8,6 +8,7 @@
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/render_list.h"
+#include "fwk/math/constants.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
@@ -294,7 +295,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 }
 
 float Mesh::intersect(const Segment3<float> &segment) const {
-	float min_isect = fconstant::inf;
+	float min_isect = inf;
 
 	const auto &positions = m_buffers.positions;
 	if(segment.isectParam(boundingBox()))
@@ -311,7 +312,7 @@ float Mesh::intersect(const Segment3<float> &segment, const AnimatedData &anim_d
 	DASSERT(valid(anim_data));
 	const auto &positions = anim_data.positions;
 
-	float min_isect = fconstant::inf;
+	float min_isect = inf;
 	if(segment.isectParam(anim_data.bounding_box))
 		for(const auto &tri : tris())
 			min_isect = min(min_isect, segment.isectParam(tri).first.closest());
