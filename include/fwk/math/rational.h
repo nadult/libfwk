@@ -23,7 +23,7 @@ static constexpr NoSignCheck no_sign_check;
 // Warning: these operations are far from optimal, if you know the numbers then
 // you can perform computations using less operations and bits;
 template <class T> struct Rational {
-	static_assert(is_integral<T> || is_integral_vec<T>);
+	static_assert(is_integral<T> || is_integral_vec<T> || is_ext24<T>);
 
 	static constexpr int vec_size = is_vec<T> ? fwk::vec_size<T> : 0;
 	static_assert(isOneOf(vec_size, 0, 2, 3));
@@ -44,7 +44,9 @@ template <class T> struct Rational {
 	}
 	constexpr Rational() : m_num(0), m_den(1) {}
 
-	template <class U, EnableIf<is_constructible<T, U>>...>
+	template <class U, EnableIf<precise_conversion<U, T>>...>
+	constexpr Rational(const Rational<U> &rhs) : Rational(T(rhs.num()), TBase(rhs.den())) {}
+	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit constexpr Rational(const Rational<U> &rhs)
 		: Rational(T(rhs.num()), TBase(rhs.den())) {}
 
@@ -86,24 +88,13 @@ template <class T> struct Rational {
 
 	Rational operator-() const { return {-m_num, m_den, no_sign_check}; }
 
-	void operator+=(const Rational &rhs) { *this = (*this + rhs); }
-	void operator-=(const Rational &rhs) { *this = (*this - rhs); }
-	void operator*=(const Rational &rhs) { *this = (*this * rhs); }
-
 	IF_SCALAR int order(const Rational &) const;
 	bool operator==(const Rational &) const;
 	bool operator<(const Rational &) const;
 
-	bool operator!=(const Rational &rhs) const { return !(*this == rhs); }
-	bool operator>(const Rational &rhs) const { return rhs < *this; }
-	bool operator<=(const Rational &rhs) const { return !(rhs < *this); }
-	bool operator>=(const Rational &rhs) const { return !(*this < rhs); }
-
 	void operator>>(TextFormatter &) const;
 
 	Rational normalized() const;
-
-	IF_SCALAR static Rational approximate(double value, int max_num, bool upper_bound);
 
 	// TODO: Shouldn't operations support these special states?
 	IF_SCALAR bool isInfinity() const { return m_num != 0 && m_den == 0; }
@@ -133,10 +124,27 @@ template <class T> struct Rational {
 	IF_VEC3 Rational2<T> xz() const { return {m_num.xz(), m_den, no_sign_check}; }
 	IF_VEC3 Rational2<T> yz() const { return {m_num.yz(), m_den, no_sign_check}; }
 
+	// TODO: its a mess with all different types
+	template <class U, EnableIf<is_constructible<U, T>>...>
+	friend bool operator<(const U &lhs, const Rational &rhs) {
+		return Rational(lhs) < rhs;
+	}
+	template <class U, EnableIf<is_constructible<U, T>>...>
+	friend bool operator==(const U &lhs, const Rational &rhs) {
+		return rhs == lhs;
+	}
+
   private:
 	T m_num;
 	TBase m_den;
 };
+
+template <class T, class U>
+static constexpr bool precise_conversion<T, Rational<U>> = precise_conversion<T, U>;
+template <class T, class U>
+static constexpr bool precise_conversion<Rational<T>, Rational<U>> = precise_conversion<T, U>;
+
+Rational<int> rationalApprox(double value, int max_num, bool upper_bound);
 
 #undef IF_SCALAR
 #undef IF_VEC
@@ -161,7 +169,7 @@ template <class T> T round(const Rational<T> &value) {
 }
 
 template <class T, EnableIfScalar<T>...> auto divide(const T &num, const T &den) {
-	if constexpr(is_integral<T>)
+	if constexpr(is_integral<T> || is_ext24<T>)
 		return Rational<T>(num, den);
 	else
 		return num / den;
@@ -177,9 +185,10 @@ template <class TV, class T1, class T = VecScalar<TV>> auto divide(const TV &num
 }
 
 template <class T> auto clamp01(const T &value) {
-	if constexpr(is_rational<T>)
-		return value.num() < 0 ? T(0) : value.num() > 1 ? T(1) : value;
-	else
+	if constexpr(is_rational<T>) {
+		using S = typename T::TBase;
+		return value.num() < S(0) ? T(0) : value.num() > S(1) ? T(1) : value;
+	} else
 		return clamp(value, T(0), T(1));
 }
 }

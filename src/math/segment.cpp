@@ -4,6 +4,7 @@
 #include "fwk/math/segment.h"
 
 #include "fwk/math/box.h"
+#include "fwk/math/ext24.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/plane.h"
 #include "fwk/math/ray.h"
@@ -167,7 +168,7 @@ TEMPLATE auto TSEG::isectParam(const Triangle<T, N> &tri) const -> pair<PPRIsect
 		Vec ap = from - tri[0];
 		PPT t = dot<PPVec>(ap, n);
 
-		bool is_front = d > 0;
+		bool is_front = d > PPT(0);
 		if(d < 0) {
 			t = -t;
 			d = -d;
@@ -292,11 +293,12 @@ TEMPLATE auto TSEG::closestPointParam(const Point &point) const -> PRT {
 		return t;
 
 		if(empty())
-			return T(0);
+			return PRT(0);
 	} else {
 		auto vec = dir();
 		auto t = dot(point - from, vec) / fwk::lengthSq(vec);
-		return clamp(t, Scalar(0), Scalar(1));
+
+		return clamp01(t);
 	}
 }
 
@@ -322,7 +324,7 @@ TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> pair<PPRT, P
 
 	PPRT s = 0, t = 0;
 
-	if(denom != PPT(0)) {
+	if(denom != PPRT(0)) {
 		PPT num_s = PPT(b) * f - PPT(c) * e;
 		PPT num_t = PPT(a) * f - PPT(b) * c;
 		s = clamp01(divide(num_s, denom));
@@ -335,7 +337,7 @@ TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> pair<PPRT, P
 	if(t < PPT(0)) {
 		t = 0;
 		s = clamp01(divide(PPT(-c), a));
-	} else if(t > PPT(1)) {
+	} else if(t > PPRT(1)) {
 		t = 1;
 		s = clamp01(divide(PPT(b - c), a));
 	}
@@ -369,6 +371,10 @@ INSTANTIATE(int)
 INSTANTIATE(llint)
 INSTANTIATE(float)
 INSTANTIATE(double)
+
+INSTANTIATE(Ext24<short>)
+INSTANTIATE(Ext24<int>)
+INSTANTIATE(Ext24<llint>)
 
 template Maybe<Ray<float, 2>> Segment<float, 2>::asRay() const;
 template Maybe<Ray<double, 2>> Segment<double, 2>::asRay() const;

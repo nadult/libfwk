@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/format.h"
+#include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/rational.h"
 
@@ -102,7 +103,14 @@ template <class T> Rational<T> Rational<T>::operator*(const Rational &rhs) const
 template <class T>
 template <class U, EnableIfScalar<U>...>
 int Rational<T>::order(const Rational &rhs) const {
-	return fwk::order(m_num, m_den, rhs.m_num, rhs.m_den);
+	if constexpr(is_ext24<T>) {
+		using PT = Promote<T>;
+		// TODO: handle infinities ?
+		auto left = PT(m_num) * rhs.m_den, right = PT(rhs.m_num) * m_den;
+		return (left - right).sign();
+	} else {
+		return fwk::order(m_num, m_den, rhs.m_num, rhs.m_den);
+	}
 }
 
 template <class T> bool Rational<T>::operator==(const Rational &rhs) const {
@@ -136,32 +144,45 @@ template <class T> bool Rational<T>::operator<(const Rational &rhs) const {
 }
 
 template <class T> Rational<T> Rational<T>::normalized() const {
-	TBase t;
-	if constexpr(vec_size == 0)
-		t = gcd(m_num, m_den);
-	else if constexpr(vec_size == 2)
-		t = gcd(cspan({m_num[0], m_num[1], m_den}));
-	else if constexpr(vec_size == 3)
-		t = gcd(cspan({m_num[0], m_num[1], m_num[2], m_den}));
-	return t == 1 ? *this : Rational(m_num / t, m_den / t, no_sign_check);
+
+	//	T common = gcd(cspan({num.a, num.b, num.c, num.d, den}));
+	//	if(common > 1)
+	//		return {num.a / common, num.b / common, num.c / common, num.d / common, den / common};
+
+	if constexpr(is_ext24<T>) {
+		if(m_den.isIntegral()) {
+			auto t = gcd(cspan({m_num[0], m_num[1], m_num[2], m_num[3], m_den[0]}));
+			return {m_num.intDivide(t), m_den[0] / t};
+		}
+
+		return *this;
+	} else {
+		TBase t;
+		if constexpr(vec_size == 0)
+			t = gcd(m_num, m_den);
+		else if constexpr(vec_size == 2)
+			t = gcd(cspan({m_num[0], m_num[1], m_den}));
+		else if constexpr(vec_size == 3)
+			t = gcd(cspan({m_num[0], m_num[1], m_num[2], m_den}));
+
+		return t == 1 ? *this : Rational(m_num / t, m_den / t, no_sign_check);
+	}
 }
 
-template <class T>
-template <class U, EnableIfScalar<U>...>
-Rational<T> Rational<T>::approximate(double value, int max_num, bool upper_bound) {
+Rational<int> rationalApprox(double value, int max_num, bool upper_bound) {
 	bool sign = false;
 	if(value < 0) {
 		sign = true;
 		value = -value;
 	}
 
-	Rational best = T(value);
+	Rational<int> best = int(value);
 	double best_err = abs(double(best) - value);
 
 	for(int n : intRange(0, max_num)) {
 		int avg_d = double(n) / value;
 		for(int d = avg_d - 1; d <= avg_d + 1; d++) {
-			Rational rat(n, d);
+			Rational<int> rat(n, d);
 			double drat = double(rat);
 
 			if((!upper_bound && drat <= value) || (upper_bound && drat >= value)) {
@@ -179,13 +200,17 @@ Rational<T> Rational<T>::approximate(double value, int max_num, bool upper_bound
 
 #define INST_SCALAR(type)                                                                          \
 	template struct Rational<type>;                                                                \
-	template int Rational<type>::order(const Rational &) const;                                    \
-	template Rational<type> Rational<type>::approximate(double, int, bool);
+	template int Rational<type>::order(const Rational &) const;
 
 INST_SCALAR(short)
 INST_SCALAR(int)
 INST_SCALAR(llint)
 INST_SCALAR(qint)
+
+INST_SCALAR(Ext24<short>)
+INST_SCALAR(Ext24<int>)
+INST_SCALAR(Ext24<llint>)
+INST_SCALAR(Ext24<qint>)
 
 template struct Rational<short2>;
 template struct Rational<int2>;

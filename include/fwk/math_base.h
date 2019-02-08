@@ -28,6 +28,7 @@ template <class T> using Rational2 = Rational<vec2<T>>;
 template <class T> using Rational3 = Rational<vec3<T>>;
 
 template <class T> struct Ext24;
+template <class T> using RatExt24 = Rational<Ext24<T>>;
 
 using llint = long long;
 #ifdef FWK_USE_BOOST_MPC_INT
@@ -185,10 +186,12 @@ namespace detail {
 	}
 }
 
+// TODO: pozamieniać to na NumberType ? real, integral, etc.
 template <class T> static constexpr bool is_real = detail::IsReal<T>::value;
 template <class T> static constexpr bool is_integral = detail::IsIntegral<T>::value;
 template <class T> static constexpr bool is_rational = detail::IsRational<T>::value;
 template <class T> static constexpr bool is_scalar = detail::IsScalar<T>::value;
+template <class T> static constexpr bool is_ext24 = detail::IsExt24<T>::value;
 
 template <class T>
 static constexpr bool is_real_object = detail::ScalarTrait<T, detail::IsReal>::value;

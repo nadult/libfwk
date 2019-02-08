@@ -5,6 +5,7 @@
 #include "fwk/math/axis_angle.h"
 #include "fwk/math/box_iter.h"
 #include "fwk/math/cylinder.h"
+#include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/matrix4.h"
@@ -355,6 +356,78 @@ void testTraits() {
 	static_assert(is_same<PromoteIntegral<int2>, llint2>);
 
 	static_assert(is_same<Promote<Rational<int>, 2>, Rational<qint>>);
+	static_assert(is_same<Promote<Ext24<short>, 2>, Ext24<llint>>);
+	static_assert(is_same<Promote<RatExt24<short>>, RatExt24<int>>);
+}
+
+template <class T> int approxSign(const Ext24<T> &ext) {
+	using LD = long double;
+	return LD(ext.b) * sqrt2 + LD(ext.c) * sqrt3 + LD(ext.d) * sqrt6 + LD(ext.a) < 0 ? -1 : 1;
+}
+
+void testExt24() {
+	Random rand;
+	for(int n = 0; n < 100000; n++) {
+		int b = rand.uniform(-500000000, 500000000);
+		int c = rand.uniform(-500000000, 500000000);
+		int d = rand.uniform(-500000000, 500000000);
+		int a = -int(b * sqrtl(2) + c * sqrtl(3) + d * sqrtl(6));
+		if(allOf(cspan({a, b, c, d}), 0))
+			continue;
+
+		Ext24 ext(a, b, c, d);
+		int sign = ext.sign();
+		if(sign != approxSign(ext)) {
+			print("ERROR: % + % * sq2 + % * sq3 + % * sq6 = % (sign: %)\n", a, b, c, d,
+				  a + b * sqrt(2) + c * sqrt(3) + d * sqrt(6), sign);
+			//quadSignPrint(a, b, c, d);
+			print("\n\n");
+		}
+	}
+
+	{
+		int a = 128;
+		int b = 23;
+		int c = 99;
+		double time = getTime();
+		int iters = 1000000;
+		int sum = 0;
+		for(int n : intRange(iters)) {
+			int d = n - iters / 16;
+			sum += Ext24(a, b, c, d).sign();
+		}
+		print("Quad24::compare: % ns [%]\n", (getTime() - time) * 1000000000.0 / double(iters),
+			  sum);
+	}
+
+	using Ex = Ext24<int>;
+	using ExVec = MakeVec<Ext24<int>, 2>;
+	Segment2<Ex> seg1{ExVec{ext_sqrt3<int>, 1}, ExVec{0, -2}};
+	Segment2<Ex> seg2{ExVec{-Ex(ext_sqrt3<int>), -1}, ExVec{ext_sqrt3<int>, -1}};
+
+	int iters = 100000;
+	RatExt24<llint> sum = 0;
+
+	double time = getTime();
+	for(int n = 0; n < iters; n++) {
+		auto result = seg1.isectParam(seg2);
+		auto pt = result.asPoint();
+		sum += result.asPoint().den();
+	}
+	time = getTime() - time;
+	print("Isect time: % ns / Segment2<Ext24<int>> pair\n", time * 1000000000.0 / double(iters));
+	ASSERT_EQ(sum, ext_sqrt3<int> * (iters * 6));
+
+	ASSERT_EQ((ext_sqrt3<int> * 2 + 1 + ext_sqrt6<int> * 6) *
+				  (ext_sqrt2<int> * 10 - ext_sqrt3<int> * 4),
+			  Ext24<int>(-24, -62, 116, 20));
+
+	auto result = seg1.isectParam(seg2);
+	print("% <> %: %\n", seg1, seg2, result.closest().normalized());
+
+	Ex nums[] = {{1, 5, 0, 0}, {1, 2, 3, 0}, {1, 0, 0, 1}, {128, 535, 780, -323}};
+	for(auto num : nums)
+		print("1 / % = % -> %\n", num, num.intDenomInverse(), num.intDenomInverse().normalized());
 }
 
 void testRational() {
@@ -365,7 +438,7 @@ void testRational() {
 
 	ASSERT_EQ(Rational2<int>({10, 20}, 10), Rational2<int>({5, 10}, 5));
 	ASSERT_EQ(double2(Rational2<int>({1, 2}, 10)), double2(0.1, 0.2));
-	ASSERT_EQ(Rational<int>::approximate(sqrt(3.0), 10, 10), Rational<int>(7, 4));
+	ASSERT_EQ(rationalApprox(sqrt(3.0), 10, 10), Rational<int>(7, 4));
 
 	Random rand;
 	for(int n = 0; n < 100000; n++) {
@@ -471,6 +544,7 @@ void testMain() {
 	testTraits();
 	testBox();
 	testOBox();
+	testExt24();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec.values())

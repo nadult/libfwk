@@ -13,7 +13,7 @@ namespace fwk {
 // Results are exact only when computing on integers
 template <class T, int N> class Segment {
   public:
-	static_assert(is_integral<T> || is_real<T>, "");
+	static_assert(is_integral<T> || is_real<T> || is_ext24<T>, "");
 	static_assert(N >= 2 && N <= 3, "");
 	static constexpr int dim_size = N;
 
@@ -23,22 +23,26 @@ template <class T, int N> class Segment {
 	using Isect = Variant<None, Point, Segment>;
 	using IsectParam = fwk::IsectParam<T>;
 
+	template <class U> using Promote = Conditional<is_real<T>, U, fwk::Promote<U>>;
+
 	// Promotion works only for integrals
-	using PT = PromoteIntegral<T>;
-	using PPT = PromoteIntegral<PT>;
-	using PRT = Conditional<is_integral<T>, Rational<PT>, T>;
-	using PPRT = Conditional<is_integral<T>, Rational<PPT>, T>;
-	using PVec = PromoteIntegral<Vec>;
-	using PPVec = PromoteIntegral<PVec>;
-	using PRVec =
-		Conditional<is_integral<T>, Conditional<N == 2, Rational2<PT>, Rational3<PT>>, Vec>;
+	// TODO: this is a mess, clean it up
+	using PT = Promote<T>;
+	using PPT = Promote<PT>;
+
+	using PRT = Conditional<!is_real<T>, Rational<PT>, PT>;
+	using PPRT = Conditional<!is_real<T>, Rational<PPT>, PPT>;
+	using PVec = MakeVec<PT, N>;
+	using PPVec = MakeVec<PPT, N>;
+	using PRVec = Conditional<!is_real<T>, Conditional<N == 2, Rational2<PT>, Rational3<PT>>, Vec>;
 	using PPRVec =
-		Conditional<is_integral<T>, Conditional<N == 2, Rational2<PPT>, Rational3<PPT>>, Vec>;
+		Conditional<!is_real<T>, Conditional<N == 2, Rational2<PPT>, Rational3<PPT>>, Vec>;
+
 	using PRIsectParam = fwk::IsectParam<PRT>;
 	using PPRIsectParam = fwk::IsectParam<PPRT>;
 
-	using PReal = Conditional<is_integral<T>, double, T>;
-	using PRealVec = Conditional<is_integral<T>, MakeVec<double, N>, Vec>;
+	using PReal = Conditional<!is_real<T>, double, T>;
+	using PRealVec = Conditional<!is_real<T>, MakeVec<double, N>, Vec>;
 
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
