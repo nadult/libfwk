@@ -49,6 +49,7 @@ namespace {
 		return left == right ? 0 : left < right ? -1 : 1;
 	}
 
+	// Sign of: a + b * sqrt(2) + c * sqrt(3) + d * sqrt(6)
 	template <class T> int quadSignSlow(T a, T b, T c, T d) NOINLINE;
 	template <class T> int quadSignSlow(T a, T b, T c, T d) {
 		T s1 = sign1(a, d);
@@ -101,54 +102,17 @@ namespace {
 
 		return left == right ? 0 : left < right ? -1 : 1;
 	}
-
-	// Sign of: a + b * sqrt(2) + c * sqrt(3) + d * sqrt(6)
-	template <class T> int quadSign(T a, T b, T c, T d) NOINLINE;
-	template <class T> int quadSign(T a, T b, T c, T d) {
-		// TODO: first approx with doubles? but how can we be sure of result ?
-		// TODO: use wide int for bigger input types
-
-		// TODO: what to do when we have llints ? use wide int?
-
-		if constexpr(sizeof(T) <= sizeof(int)) {
-			// TODO: verify this...
-			auto appr = sqrt2 * double(b) + sqrt3 * double(c) + sqrt6 * double(d) + a;
-			return appr < 0 ? -1 : 1;
-		}
-
-		// Checking with rational approximations:
-		using PT = Promote<T, is_same<T, short> ? 2 : 1>;
-		PT bnum = 888515016;
-		PT cnum = 1088204209;
-		PT dnum = 1538953151;
-		PT denom = 628274993;
-
-		PT bsign = b < 0, csign = c < 0, dsign = d < 0;
-		PT min = PT(a) * denom + PT(b) * (bnum + bsign) + PT(c) * (cnum + csign) +
-				 PT(d) * (dnum + dsign);
-		if(min > 0)
-			return 1;
-		PT max = PT(a) * denom + PT(b) * (bnum + 1 - bsign) + PT(c) * (cnum + 1 - csign) +
-				 PT(d) * (dnum + 1 - dsign);
-		if(max < 0)
-			return -1;
-
-		if(b == 0 && c == 0 && d == 0)
-			return a < 0 ? -1 : 1;
-
-		return quadSignSlow(a, b, c, d);
-	}
 }
 
 template <class T> Ext24<T> Ext24<T>::operator*(const Ext24 &rhs) const {
 	T x1 = a, x2 = b, x3 = c, x4 = d;
 	T y1 = rhs.a, y2 = rhs.b, y3 = rhs.c, y4 = rhs.d;
 
-	if((bits | rhs.bits) == 5) {
+	// TODO: better filtering
+	if((b | rhs.b) == 0 && (d | rhs.d) == 0) {
 		T new_a = x1 * y1 + x3 * y3 * 3;
 		T new_c = x1 * y3 + x3 * y1;
-		int new_bits = (new_a == 0 ? 1 : 0) | (new_c == 0 ? 4 : 0);
-		return Ext24(new_a, 0, new_c, 0, new_bits);
+		return Ext24(new_a, 0, new_c, 0);
 	} else {
 		// clang-format off
 		T new_a = x1 * y1 + x2 * y2 * 2 + x3 * y3 * 3 + x4 * y4 * 6;
@@ -192,7 +156,38 @@ template <class T> bool Ext24<T>::operator==(const Ext24 &rhs) const {
 template <class T> int Ext24<T>::sign() const {
 	if(*this == Ext24())
 		return 0;
-	return quadSign(a, b, c, d);
+	// TODO: first approx with doubles? but how can we be sure of result ?
+	// TODO: use wide int for bigger input types
+
+	// TODO: what to do when we have llints ? use wide int?
+
+	if constexpr(sizeof(T) <= sizeof(int)) {
+		// TODO: verify this...
+		auto appr = sqrt2 * double(b) + sqrt3 * double(c) + sqrt6 * double(d) + a;
+		return appr < 0 ? -1 : 1;
+	}
+
+	// Checking with rational approximations:
+	using PT = Promote<T, is_same<T, short> ? 2 : 1>;
+	PT bnum = 888515016;
+	PT cnum = 1088204209;
+	PT dnum = 1538953151;
+	PT denom = 628274993;
+
+	PT bsign = b < 0, csign = c < 0, dsign = d < 0;
+	PT min =
+		PT(a) * denom + PT(b) * (bnum + bsign) + PT(c) * (cnum + csign) + PT(d) * (dnum + dsign);
+	if(min > 0)
+		return 1;
+	PT max = PT(a) * denom + PT(b) * (bnum + 1 - bsign) + PT(c) * (cnum + 1 - csign) +
+			 PT(d) * (dnum + 1 - dsign);
+	if(max < 0)
+		return -1;
+
+	if(b == 0 && c == 0 && d == 0)
+		return a < 0 ? -1 : 1;
+
+	return quadSignSlow(a, b, c, d);
 }
 
 template <class T> void Ext24<T>::operator>>(TextFormatter &fmt) const {

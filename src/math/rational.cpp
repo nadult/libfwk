@@ -151,8 +151,8 @@ template <class T> Rational<T> Rational<T>::normalized() const {
 
 	if constexpr(is_ext24<T>) {
 		if(m_den.isIntegral()) {
-			auto t = gcd(cspan({m_num[0], m_num[1], m_num[2], m_num[3], m_den[0]}));
-			return {m_num.intDivide(t), m_den[0] / t};
+			auto t = gcd(cspan({m_num.a, m_num.b, m_num.c, m_num.d, m_den.a}));
+			return {m_num.intDivide(t), m_den.a / t};
 		}
 
 		return *this;

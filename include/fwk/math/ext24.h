@@ -15,6 +15,7 @@ namespace fwk {
 //
 // Segment intersection based on Ext24<int> is about 2x-3x slower than with integers and about 5x slower than with floats
 // CGAL's CORE::Real is much slower though (about 100x, 1000x with conversion of coords to doubles)
+// TODO: it got slower after moving to libfwk, investigate why
 template <class T> struct alignas(16) Ext24 {
 	// TODO: ogarnąć nazwenictwo
 	using Base = T;
@@ -23,11 +24,9 @@ template <class T> struct alignas(16) Ext24 {
 
 	static_assert(is_integral<T>);
 
-	constexpr Ext24(T one, T sq2, T sq3, T sq6, u8 bits)
-		: a(one), b(sq2), c(sq3), d(sq6), bits(bits) {}
-	constexpr Ext24() : Ext24(0, 0, 0, 0, 0) {}
-	constexpr Ext24(T integral) : a(integral), b(0), c(0), d(0), bits(1) {}
-	constexpr Ext24(T one, T sq2, T sq3, T sq6) : a(one), b(sq2), c(sq3), d(sq6) { updateBits(); }
+	constexpr Ext24() : Ext24(0, 0, 0, 0) {}
+	constexpr Ext24(T integral) : a(integral), b(0), c(0), d(0) {}
+	constexpr Ext24(T one, T sq2, T sq3, T sq6) : a(one), b(sq2), c(sq3), d(sq6) {}
 
 	template <class U, EnableIf<precise_conversion<U, T>>...>
 	Ext24(const Ext24<U> &rhs) : a(rhs.a), b(rhs.b), c(rhs.c), d(rhs.d) {}
@@ -40,9 +39,9 @@ template <class T> struct alignas(16) Ext24 {
 	Ext24 operator-(const Ext24 &rhs) const {
 		return Ext24(a - rhs.a, b - rhs.b, c - rhs.c, d - rhs.d);
 	}
-	Ext24 operator-() const { return Ext24(-a, -b, -c, -d, bits); }
+	Ext24 operator-() const { return Ext24(-a, -b, -c, -d); }
 
-	Ext24 operator*(T s) const { return Ext24(a * s, b * s, c * s, d * s, s == 0 ? 0 : bits); }
+	Ext24 operator*(T s) const { return Ext24(a * s, b * s, c * s, d * s); }
 	Ext24 intDivide(T s) const { return PASSERT(s != 0), Ext24(a / s, b / s, c / s, d / s); }
 
 	// Problemem jest ciągłe przerzucanie z rejestrów sse/avx do pamięci na poziomie funkcji
@@ -59,12 +58,8 @@ template <class T> struct alignas(16) Ext24 {
 	explicit operator double() const;
 	explicit operator float() const { return (float)(double)*this; }
 
-	bool isIntegral() const { return (bits & ~1) == 0; }
+	bool isIntegral() const { return b == 0 && c == 0 && d == 0; }
 	bool isReal() const { return !isIntegral(); }
-
-	constexpr void updateBits() {
-		bits = (a != 0 ? 1 : 0) | (b != 0 ? 2 : 0) | (c != 0 ? 4 : 0) | (d != 0 ? 8 : 0);
-	}
 
 	int sign() const;
 	int compare(const Ext24 &rhs) const { return (*this - rhs).sign(); }
@@ -83,7 +78,6 @@ template <class T> struct alignas(16) Ext24 {
 		};
 		T v[4];
 	};
-	u8 bits; // TODO: od razu wyliczanie znaku ? nie zawsze potrzenujemy...
 };
 
 // TODO: handle it properly? but how? its getting complicated
