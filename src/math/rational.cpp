@@ -144,15 +144,21 @@ template <class T> bool Rational<T>::operator<(const Rational &rhs) const {
 }
 
 template <class T> Rational<T> Rational<T>::normalized() const {
-
-	//	T common = gcd(cspan({num.a, num.b, num.c, num.d, den}));
-	//	if(common > 1)
-	//		return {num.a / common, num.b / common, num.c / common, num.d / common, den / common};
-
-	if constexpr(is_ext24<T>) {
+	// TODO: more normalization is possible for Ext24 (denominator can be turned into integer)
+	// Should we create another normalization func?
+	if constexpr(is_ext24<TBase>) {
 		if(m_den.isIntegral()) {
-			auto t = gcd(cspan({m_num.a, m_num.b, m_num.c, m_num.d, m_den.a}));
-			return {m_num.intDivide(t), m_den.a / t};
+			TBase t;
+			if constexpr(vec_size == 0) {
+				auto t = gcd(cspan({m_num.a, m_num.b, m_num.c, m_num.d, m_den.a}));
+				return {m_num.intDivide(t), m_den.a / t};
+			} else if constexpr(vec_size == 2) {
+				auto &x = m_num[0], &y = m_num[1];
+				auto t = gcd(cspan({x.a, x.b, x.c, x.d, y.a, y.b, y.c, y.d, m_den.a}));
+				auto dx = x.intDivide(t);
+				auto dy = y.intDivide(t);
+				return {{dx, dy}, m_den.a / t};
+			}
 		}
 
 		return *this;
@@ -211,6 +217,11 @@ INST_SCALAR(Ext24<short>)
 INST_SCALAR(Ext24<int>)
 INST_SCALAR(Ext24<llint>)
 INST_SCALAR(Ext24<qint>)
+
+template struct Rational<vec2<Ext24<short>>>;
+template struct Rational<vec2<Ext24<int>>>;
+template struct Rational<vec2<Ext24<llint>>>;
+template struct Rational<vec2<Ext24<qint>>>;
 
 template struct Rational<short2>;
 template struct Rational<int2>;

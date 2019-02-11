@@ -29,6 +29,8 @@ template <class T> using Rational3 = Rational<vec3<T>>;
 
 template <class T> struct Ext24;
 template <class T> using RatExt24 = Rational<Ext24<T>>;
+template <class T> using Rat2Ext24 = Rational2<Ext24<T>>;
+template <class T> using Rat3Ext24 = Rational3<Ext24<T>>;
 
 using llint = long long;
 #ifdef FWK_USE_BOOST_MPC_INT

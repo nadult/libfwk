@@ -23,11 +23,13 @@ static constexpr NoSignCheck no_sign_check;
 // Warning: these operations are far from optimal, if you know the numbers then
 // you can perform computations using less operations and bits;
 template <class T> struct Rational {
-	static_assert(is_integral<T> || is_integral_vec<T> || is_ext24<T>);
+	static_assert(is_scalar<T> || is_vec<T>);
 
 	static constexpr int vec_size = is_vec<T> ? fwk::vec_size<T> : 0;
 	static_assert(isOneOf(vec_size, 0, 2, 3));
 	using TBase = Conditional<is_vec<T>, VecScalar<T>, T>; // TODO: -> Base
+	static_assert(is_integral<TBase> || is_ext24<TBase> || is_ext24<T>);
+
 	using Scalar = Rational<TBase>;
 
 	// TODO: paranoid overflow checks ?
@@ -125,14 +127,18 @@ template <class T> struct Rational {
 	IF_VEC3 Rational2<T> yz() const { return {m_num.yz(), m_den, no_sign_check}; }
 
 	// TODO: its a mess with all different types
-	template <class U, EnableIf<is_constructible<U, T>>...>
-	friend bool operator<(const U &lhs, const Rational &rhs) {
-		return Rational(lhs) < rhs;
-	}
-	template <class U, EnableIf<is_constructible<U, T>>...>
-	friend bool operator==(const U &lhs, const Rational &rhs) {
-		return rhs == lhs;
-	}
+#define LEFT_SCALAR                                                                                \
+	template <class U, EnableIf<(is_scalar<U> && !is_rational<U>) || is_vec<U>>...> friend
+
+	// TODO: promotion to bigger type?
+	LEFT_SCALAR bool operator<(const U &l, const Rational &r) { return Rational<U>(l) < r; }
+	LEFT_SCALAR bool operator==(const U &l, const Rational &r) { return Rational<U>(l) == r; }
+
+	LEFT_SCALAR auto operator+(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) + rhs; }
+	LEFT_SCALAR auto operator-(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) - rhs; }
+	LEFT_SCALAR auto operator*(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) * rhs; }
+	LEFT_SCALAR auto operator/(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) / rhs; }
+#undef LEFT_SCALAR
 
   private:
 	T m_num;

@@ -422,12 +422,28 @@ void testExt24() {
 				  (ext_sqrt2<int> * 10 - ext_sqrt3<int> * 4),
 			  Ext24<int>(-24, -62, 116, 20));
 
-	auto result = seg1.isectParam(seg2);
-	print("% <> %: %\n", seg1, seg2, result.closest().normalized());
+	auto isect_pos = seg1.isectParam(seg2).closest();
+	auto isect_normalized = isect_pos.num() * RatExt24<llint>(isect_pos.den().intDenomInverse());
+	ASSERT_EQ(isect_normalized, RatExt24<llint>(2, 3));
 
-	Ex nums[] = {{1, 5, 0, 0}, {1, 2, 3, 0}, {1, 0, 0, 1}, {128, 535, 780, -323}};
-	for(auto num : nums)
-		print("1 / % = % -> %\n", num, num.intDenomInverse(), num.intDenomInverse().normalized());
+	ASSERT_EQ(Ex(1, 5, 0, 0).intDenomInverse(), Ex(-1, 5, 0, 0) / 49);
+	ASSERT_EQ(Ex(1, 0, 0, 1).intDenomInverse(), Ex(-1, 0, 0, 1) / 5);
+	ASSERT_EQ(Ex(100, 100, 101, 0).intDenomInverse(),
+			  Ex(4060300, 2060300, -60903, -2020000) / 799636391);
+
+	{ // Testing rotations
+		Rat2Ext24<int> vec({1, 0}, 1), vec_sum;
+		auto prev = rotateVector(vec, -15);
+
+		for(int n = 0; n < 24; n++) {
+			auto rvec = rotateVector(vec, n * 15);
+			auto angle_diff = angleBetween(double2(prev), double2(rvec));
+			assertCloseEnough(angle_diff, degToRad(15.0));
+			vec_sum += rvec;
+			prev = rvec;
+		}
+		ASSERT_EQ(vec_sum, Rat2Ext24<int>());
+	}
 }
 
 void testRational() {

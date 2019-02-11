@@ -33,13 +33,13 @@ template <class T> struct alignas(16) Ext24 {
 	template <class U, EnableIf<!precise_conversion<U, T>>...>
 	explicit Ext24(const Ext24<U> &rhs) : a(rhs.a), b(rhs.b), c(rhs.c), d(rhs.d) {}
 
-	Ext24 operator+(const Ext24 &rhs) const {
+	constexpr Ext24 operator+(const Ext24 &rhs) const {
 		return Ext24(a + rhs.a, b + rhs.b, c + rhs.c, d + rhs.d);
 	}
-	Ext24 operator-(const Ext24 &rhs) const {
+	constexpr Ext24 operator-(const Ext24 &rhs) const {
 		return Ext24(a - rhs.a, b - rhs.b, c - rhs.c, d - rhs.d);
 	}
-	Ext24 operator-() const { return Ext24(-a, -b, -c, -d); }
+	constexpr Ext24 operator-() const { return Ext24(-a, -b, -c, -d); }
 
 	Ext24 operator*(T s) const { return Ext24(a * s, b * s, c * s, d * s); }
 	Ext24 intDivide(T s) const { return PASSERT(s != 0), Ext24(a / s, b / s, c / s, d / s); }
@@ -58,6 +58,7 @@ template <class T> struct alignas(16) Ext24 {
 	explicit operator double() const;
 	explicit operator float() const { return (float)(double)*this; }
 
+	T asIntegral() const { return a; }
 	bool isIntegral() const { return b == 0 && c == 0 && d == 0; }
 	bool isReal() const { return !isIntegral(); }
 
@@ -79,6 +80,12 @@ template <class T> struct alignas(16) Ext24 {
 		T v[4];
 	};
 };
+
+template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &);
+
+// Angles must be a multiply of 15
+template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &, int degrees);
+Rat2Ext24<short> angleToVector(int degrees);
 
 // TODO: handle it properly? but how? its getting complicated
 template <class T, class U>

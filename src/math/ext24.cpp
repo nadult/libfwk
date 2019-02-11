@@ -235,8 +235,74 @@ template <class T> void Ext24<T>::operator>>(TextFormatter &fmt) const {
 	}
 }
 
-template struct Ext24<short>;
-template struct Ext24<int>;
-template struct Ext24<llint>;
-template struct Ext24<qint>;
+struct Ext24Vec {
+	Ext24<short> x, y;
+	short divisor = 0;
+};
+
+static constexpr array<Ext24Vec, 24> vectors = []() {
+	array<Ext24Vec, 24> out;
+
+	// clang-format off
+	out[0] = {{1,  0,  0,  0}, {0,  0,  0,  0}, 1}; //  0
+	out[1] = {{0,  1,  0,  1}, {0, -1,  0,  1}, 4}; // 15
+	out[2] = {{0,  0,  1,  0}, {1,  0,  0,  0}, 2}; // 30
+	out[3] = {{0,  1,  0,  0}, {0,  1,  0,  0}, 2}; // 45
+	out[4] = {{1,  0,  0,  0}, {0,  0,  1,  0}, 2}; // 60
+	out[5] = {{0, -1,  0,  1}, {0,  1,  0,  1}, 4}; // 75
+	out[6] = {{0,  0,  0,  0}, {1,  0,  0,  0}, 1}; // 90
+	// clang-format on
+
+	for(int n = 1; n <= 6; n++)
+		out[n + 6] = {-out[6 - n].x, out[6 - n].y, out[6 - n].divisor};
+	for(int n = 1; n < 12; n++)
+		out[n + 12] = {out[12 - n].x, -out[12 - n].y, out[12 - n].divisor};
+
+	return out;
+}();
+
+Rat2Ext24<short> angleToVector(int angle) {
+	DASSERT(angle % 15 == 0);
+	angle = angle % 360;
+	if(angle < 0)
+		angle += 360;
+
+	auto &vec = vectors[angle / 15];
+	return {{vec.x, vec.y}, vec.divisor};
+}
+
+template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &vec, int degs) {
+	Rat2Ext24<T> rot(angleToVector(degs));
+
+	auto nx = rot.numX() * vec.numX() - rot.numY() * vec.numY();
+	auto ny = rot.numX() * vec.numY() + rot.numY() * vec.numX();
+	return {{nx, ny}, vec.den() * rot.den()};
+}
+
+template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &vec) {
+	auto nvec = vec.normalized();
+	if(!nvec.den().isIntegral())
+		return none;
+
+	auto den = nvec.den().asIntegral();
+	for(int n = 0; n < 4; n++)
+		if(fwk::abs(nvec.numX()[n]) > 4 || fwk::abs(nvec.numY()[n]) > 4)
+			return none;
+
+	Ext24<short> vx(nvec.numX()), vy(nvec.numY());
+	for(int n : intRange(vectors))
+		if(vectors[n].x == vx && vectors[n].y == vy && vectors[n].divisor == den)
+			return n * 15;
+	return none;
+}
+
+#define INSTANTIATE(type)                                                                          \
+	template struct Ext24<type>;                                                                   \
+	template Maybe<int> vectorToAngle(const Rat2Ext24<type> &);                                    \
+	template Rat2Ext24<type> rotateVector(const Rat2Ext24<type> &, int);
+
+INSTANTIATE(short)
+INSTANTIATE(int)
+INSTANTIATE(llint)
+INSTANTIATE(qint)
 }
