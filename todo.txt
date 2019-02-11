@@ -1,8 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- boost::debug::attach_debugger();
 - zdefiniować, I, F, D, S, LL, ULL, US; Chyba lepiej I8, U8...
-- porównanie string <-> Str
 - iteracja po zaznaczonych bitach w EnumFlags
 - jakoś zaznaczyć, że pairsRange jest zawinięte; może dodać opcję bez zawijania ?
 - transform który jest w stanie rozbić krotkę na argumenty

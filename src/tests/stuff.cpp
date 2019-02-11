@@ -44,6 +44,7 @@ void testString() {
 	ASSERT_EQ(Str("random text").limitSizeBack(8), "rando...");
 	ASSERT_EQ(Str("foo bar").find("bar"), 4);
 	ASSERT_EQ(Str("foo | bar").find('|'), 4);
+	ASSERT_EQ(string("foo"), Str("foo"));
 }
 
 void testVariant() {

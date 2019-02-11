@@ -66,6 +66,9 @@ class Str {
 
 	bool contains(Str str) const { return find(str) != -1; }
 
+	friend bool operator==(const string &lhs, Str rhs) { return Str(lhs) == rhs; }
+	friend bool operator<(const string &lhs, Str rhs) { return Str(lhs) < rhs; }
+
   protected:
 	struct NoChecks {};
 	Str(const char *data, int size, NoChecks) : m_data(data), m_size(size) {}
