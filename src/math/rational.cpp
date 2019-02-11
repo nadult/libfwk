@@ -179,7 +179,7 @@ Rational<int> rationalApprox(double value, int max_num, bool upper_bound) {
 	Rational<int> best = int(value);
 	double best_err = abs(double(best) - value);
 
-	for(int n : intRange(0, max_num)) {
+	for(int n : intRange(1, max_num)) {
 		int avg_d = double(n) / value;
 		for(int d = avg_d - 1; d <= avg_d + 1; d++) {
 			Rational<int> rat(n, d);
