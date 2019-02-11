@@ -199,14 +199,21 @@ template <class T> void Ext24<T>::operator>>(TextFormatter &fmt) const {
 
 		vector<string> elements;
 
+		auto fmt_element = [](T value, int sq) {
+			if(value == 1)
+				return format("\u221A%", sq);
+			return format("%\u221A%", value, sq);
+		};
+
 		if(a != 0)
 			elements.emplace_back(toString(a));
 		if(b != 0)
-			elements.emplace_back(format("%*\u221A2", b));
+			elements.emplace_back(fmt_element(b, 2));
 		if(c != 0)
-			elements.emplace_back(format("%*\u221A3", c));
+			elements.emplace_back(fmt_element(c, 3));
 		if(d != 0)
-			elements.emplace_back(format("%*\u221A6", d));
+			elements.emplace_back(fmt_element(d, 6));
+
 		if(elements.size() == 0)
 			fmt << "0";
 		else if(elements.size() == 1)
