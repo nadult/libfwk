@@ -153,6 +153,8 @@ template <class T> bool Ext24<T>::operator==(const Ext24 &rhs) const {
 	return a == rhs.a && b == rhs.b && c == rhs.c && d == rhs.d;
 }
 
+template <class T> T Ext24<T>::gcd() const { return fwk::gcd(v); }
+
 template <class T> int Ext24<T>::sign() const {
 	if(*this == Ext24())
 		return 0;
@@ -240,6 +242,19 @@ struct Ext24Vec {
 	short divisor = 0;
 };
 
+struct Ext24Tan {
+	Ext24<short> num;
+	short den = 0;
+};
+
+static constexpr Ext24Tan vector_tans[5] = {
+	{{2, 0, -1, 0}, 1},
+	{{0, 0, 1, 0}, 3},
+	{{1, 0, 0, 0}, 1},
+	{{0, 0, 1, 0}, 1},
+	{{2, 0, 1, 0}, 1},
+};
+
 static constexpr array<Ext24Vec, 24> vectors = []() {
 	array<Ext24Vec, 24> out;
 
@@ -261,18 +276,20 @@ static constexpr array<Ext24Vec, 24> vectors = []() {
 	return out;
 }();
 
-Rat2Ext24<short> angleToVector(int angle) {
+Rat2Ext24<short> angleToVectorExt24(int angle, int scale) {
 	DASSERT(angle % 15 == 0);
 	angle = angle % 360;
 	if(angle < 0)
 		angle += 360;
 
 	auto &vec = vectors[angle / 15];
-	return {{vec.x, vec.y}, vec.divisor};
+	int div = gcd(scale, vec.divisor);
+	scale /= div;
+	return {{vec.x * scale, vec.y * scale}, vec.divisor / div};
 }
 
 template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &vec, int degs) {
-	Rat2Ext24<T> rot(angleToVector(degs));
+	Rat2Ext24<T> rot(angleToVectorExt24(degs));
 
 	auto nx = rot.numX() * vec.numX() - rot.numY() * vec.numY();
 	auto ny = rot.numX() * vec.numY() + rot.numY() * vec.numX();
@@ -280,19 +297,29 @@ template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &vec, int degs) 
 }
 
 template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &vec) {
-	auto nvec = vec.normalized();
-	if(!nvec.den().isIntegral())
-		return none;
-
-	auto den = nvec.den().asIntegral();
-	for(int n = 0; n < 4; n++)
-		if(fwk::abs(nvec.numX()[n]) > 4 || fwk::abs(nvec.numY()[n]) > 4)
+	if(vec.numX() == 0) {
+		if(vec.numY() == 0)
 			return none;
+		return vec.numY() < T(0)? 270 : 90;
+	}
+	if(vec.numY() == 0)
+		return vec.numX() < T(0)? 180 : 0;
+	
+	int sign_x = vec.numX().sign();
+	int sign_y = vec.numY().sign();
+	auto div = abs(vec.numY() / vec.numX());
 
-	Ext24<short> vx(nvec.numX()), vy(nvec.numY());
-	for(int n : intRange(vectors))
-		if(vectors[n].x == vx && vectors[n].y == vy && vectors[n].divisor == den)
-			return n * 15;
+	for(int n : intRange(vector_tans)) {
+		auto cur = RatExt24<T>(vector_tans[n].num, vector_tans[n].den);
+		if(div == cur) {
+			bool neg = (sign_x < 0) ^ (sign_y < 0);
+			int quad = sign_x < 0? (sign_y < 0? 2 : 1) : (sign_y < 0? 3 : 0);
+			int angle = quad * 6 + (neg? 5 - n : n + 1);
+			return angle * 15;
+		}
+
+	}
+
 	return none;
 }
 

@@ -8,6 +8,9 @@
 
 namespace fwk {
 
+// TODO: problem: często nie chcemy obliczać na rationalach, ale w konkretnej skali
+// jak to sensownie obsługiwać?
+
 // Allows exact representation of a number of form:
 // a + b * sqrt(2) + c * sqrt(3) + d * sqrt(6)
 // where a, b, c, d are integers
@@ -59,6 +62,8 @@ template <class T> struct alignas(16) Ext24 {
 	explicit operator float() const { return (float)(double)*this; }
 
 	T asIntegral() const { return a; }
+	T gcd() const;
+
 	bool isIntegral() const { return b == 0 && c == 0 && d == 0; }
 	bool isReal() const { return !isIntegral(); }
 
@@ -85,7 +90,7 @@ template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &);
 
 // Angles must be a multiply of 15
 template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &, int degrees);
-Rat2Ext24<short> angleToVector(int degrees);
+Rat2Ext24<short> angleToVectorExt24(int degrees, int scale = 1);
 
 // TODO: handle it properly? but how? its getting complicated
 template <class T, class U>

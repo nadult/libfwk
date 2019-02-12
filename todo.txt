@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- konstruktory dla vec2, vec3, vec4? 
 - vec2, vec3: unie i możliwość używania złożonych typów jako parametrów (boost int128) wymagają
   customowego destruktora, przez co vec2<> nie jest typem literalnym i nie można go używać w wyrażeniach constexpr
 - boost::debug::attach_debugger();
