@@ -18,7 +18,7 @@ enum class BacktraceMode {
 // TODO: use lib-lldb
 class Backtrace {
   public:
-	Backtrace(vector<void *> addresses, vector<string> symbols, pair<string, bool>);
+	Backtrace(vector<void *> addresses, vector<string> symbols, Pair<string, bool>);
 	Backtrace(vector<void *> addresses, vector<string> symbols);
 	Backtrace() = default;
 
@@ -29,7 +29,7 @@ class Backtrace {
 	// If available, gdb backtraces will be used (which are more accurate)
 	static Backtrace get(size_t skip = 0, void *context = nullptr, Maybe<Mode> = none);
 
-	static pair<string, bool> gdbBacktrace(int skip_frames = 0) NOINLINE;
+	static Pair<string, bool> gdbBacktrace(int skip_frames = 0) NOINLINE;
 
 	// When filter is true, analyzer uses c++filt program to demangle C++
 	// names; it also shortens some of the common long class names, like
@@ -43,7 +43,7 @@ class Backtrace {
 
 	vector<void *> m_addresses;
 	vector<string> m_symbols;
-	pair<string, bool> m_gdb_result;
+	Pair<string, bool> m_gdb_result;
 	bool m_use_gdb = false;
 };
 }

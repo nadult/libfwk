@@ -63,7 +63,7 @@ class Mesh : public immutable_base<Mesh> {
 	void removeNormals();
 	void removeTexCoords();
 	void removeColors();
-	void removeIndices(CSpan<pair<string, IColor>> color_map = {});
+	void removeIndices(CSpan<Pair<string, IColor>> color_map = {});
 	static Mesh transform(const Matrix4 &, Mesh);
 
 	using TriIndices = MeshIndices::TriIndices;

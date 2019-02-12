@@ -11,8 +11,9 @@
 namespace fwk {
 
 SDLKeyMap::SDLKeyMap() {
+	// clang-format off
 #define PAIR(input_key, sdl_key) {(int)InputKey::input_key, (int)SDLK_##sdl_key}
-	m_fwk_to_sdl = vector<pair<int, int>>{
+	m_fwk_to_sdl = vector<Pair<int>>{
 		PAIR(space, SPACE), PAIR(esc, ESCAPE), PAIR(f1, F1), PAIR(f2, F2), PAIR(f3, F3),
 		PAIR(f4, F4), PAIR(f5, F5), PAIR(f6, F6), PAIR(f7, F7), PAIR(f8, F8), PAIR(f9, F9),
 		PAIR(f10, F10), PAIR(f11, F11), PAIR(f12, F12), PAIR(up, UP), PAIR(down, DOWN),
@@ -27,9 +28,9 @@ SDLKeyMap::SDLKeyMap() {
 		//	PAIR(kp_decimal, KP_DECIMAL),
 	};
 #undef PAIR
+	// clang-format on
 
-	m_sdl_to_fwk =
-		transform(m_fwk_to_sdl, [](const auto &p) { return make_pair(p.second, p.first); });
+	m_sdl_to_fwk = transform(m_fwk_to_sdl, [](const auto &p) { return pair(p.second, p.first); });
 	makeSorted(m_fwk_to_sdl);
 	makeSorted(m_sdl_to_fwk);
 }
@@ -41,7 +42,7 @@ int SDLKeyMap::to(int key_code) const {
 		return key_code;
 
 	DASSERT(key_code >= InputKey::special && key_code < InputKey::count);
-	auto it = std::upper_bound(begin(m_fwk_to_sdl), end(m_fwk_to_sdl), make_pair(key_code, 0));
+	auto it = std::upper_bound(begin(m_fwk_to_sdl), end(m_fwk_to_sdl), pair(key_code, 0));
 	DASSERT(it != m_fwk_to_sdl.end());
 	return it->second;
 }
@@ -51,7 +52,7 @@ int SDLKeyMap::from(int key_code) const {
 	if(key_code >= 32 && key_code <= 126)
 		return key_code;
 
-	auto it = std::upper_bound(begin(m_sdl_to_fwk), end(m_sdl_to_fwk), make_pair(key_code, 0));
+	auto it = std::upper_bound(begin(m_sdl_to_fwk), end(m_sdl_to_fwk), pair(key_code, 0));
 	DASSERT(it != m_sdl_to_fwk.end());
 	return it == m_sdl_to_fwk.end() ? -1 : it->second;
 }
@@ -153,10 +154,9 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 			if(key_state.second >= 0)
 				key_state.second++;
 
-		m_keys.resize(
-			std::remove_if(m_keys.begin(), m_keys.end(),
-						   [](const pair<int, int> &state) { return state.second == -1; }) -
-			m_keys.begin());
+		m_keys.resize(std::remove_if(m_keys.begin(), m_keys.end(),
+									 [](const Pair<int> &state) { return state.second == -1; }) -
+					  m_keys.begin());
 
 		for(auto &state : m_mouse_buttons) {
 			if(state == 1)
@@ -246,10 +246,12 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 
 	SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
 
-	EnumMap<InputModifier, int> mod_map = {{
-		{InputModifier::lshift, InputKey::lshift}, {InputModifier::rshift, InputKey::rshift},
-		{InputModifier::lalt, InputKey::lalt},	 {InputModifier::ralt, InputKey::ralt},
-		{InputModifier::lctrl, InputKey::lctrl},   {InputModifier::rctrl, InputKey::rctrl}}};
+	EnumMap<InputModifier, int> mod_map = {{{InputModifier::lshift, InputKey::lshift},
+											{InputModifier::rshift, InputKey::rshift},
+											{InputModifier::lalt, InputKey::lalt},
+											{InputModifier::ralt, InputKey::ralt},
+											{InputModifier::lctrl, InputKey::lctrl},
+											{InputModifier::rctrl, InputKey::rctrl}}};
 
 	InputModifiers modifiers;
 	for(const auto &key_state : m_keys) {

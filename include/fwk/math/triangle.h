@@ -70,7 +70,7 @@ template <class T, int N> class Triangle {
 	// first coordinate (V)  is 1 if point is at b()
 	// second coordinate (W) is 1 if point is at c()
 	// U = (1 - V -  W)      is 1 is point is at a()
-	pair<T, T> barycentric(const Point &point) const;
+	Pair<T> barycentric(const Point &point) const;
 
 	ENABLE_IF_SIZE(2) bool contains(const Point &) const;
 

@@ -17,7 +17,7 @@ template <class Enum, class T> class EnumMap {
 	static_assert(is_enum<Enum>,
 				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM*");
 
-	static void checkPairs(CSpan<pair<Enum, T>> pairs) {
+	static void checkPairs(CSpan<Pair<Enum, T>> pairs) {
 		unsigned long long flags = 0;
 		static_assert(size_ <= 64);
 
@@ -41,16 +41,16 @@ template <class Enum, class T> class EnumMap {
 		std::copy(values.begin(), values.end(), m_data.begin());
 	}
 	template <class U, int N, EnableIf<is_convertible<U, T>>...>
-	EnumMap(CSpan<pair<Enum, U>, N> pairs) {
+	EnumMap(CSpan<Pair<Enum, U>, N> pairs) {
 		IF_DEBUG(checkPairs(pairs));
 		for(auto &pair : pairs)
 			m_data[(int)pair.first] = pair.second;
 	}
 	template <class USpan, class U = SpanBase<USpan>,
-			  EnableIf<is_convertible<U, T> || is_convertible<U, pair<Enum, T>>>...>
+			  EnableIf<is_convertible<U, T> || is_convertible<U, Pair<Enum, T>>>...>
 	EnumMap(const USpan &span) : EnumMap(cspan(span)) {}
 
-	template <int N> EnumMap(const pair<Enum, T> (&arr)[N]) : EnumMap(CSpan<pair<Enum, T>>(arr)) {
+	template <int N> EnumMap(const Pair<Enum, T> (&arr)[N]) : EnumMap(CSpan<Pair<Enum, T>>(arr)) {
 		static_assert(N == size_, "Invalid number of enum-value pairs specified");
 	}
 
@@ -61,13 +61,13 @@ template <class Enum, class T> class EnumMap {
 	// ---------------------------------------------------------------
 	// ----- Initializers with default value -------------------------
 
-	EnumMap(CSpan<pair<Enum, T>> pairs, T default_value) {
+	EnumMap(CSpan<Pair<Enum, T>> pairs, T default_value) {
 		m_data.fill(default_value);
 		for(auto &pair : pairs)
 			m_data[(int)pair.first] = pair.second;
 	}
-	EnumMap(std::initializer_list<pair<Enum, T>> list, T default_value)
-		: EnumMap(CSpan<pair<Enum, T>>(list), default_value) {}
+	EnumMap(std::initializer_list<Pair<Enum, T>> list, T default_value)
+		: EnumMap(CSpan<Pair<Enum, T>>(list), default_value) {}
 	explicit EnumMap(const T &default_value) { m_data.fill(default_value); }
 
 	EnumMap() : m_data() {}

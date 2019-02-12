@@ -108,7 +108,7 @@ class Viewer {
 
 	void updateViewport() { m_viewport = IRect(GlDevice::instance().windowSize()); }
 
-	Viewer(const vector<pair<string, string>> &file_names)
+	Viewer(const vector<Pair<string>> &file_names)
 		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
 		updateViewport();
 
@@ -304,7 +304,7 @@ int main(int argc, char **argv) {
 	}
 
 	string model_argument = argv[1], tex_argument = argc > 2 ? argv[2] : "";
-	vector<pair<string, string>> files;
+	vector<Pair<string>> files;
 
 	bool multiple_files = model_argument.find('*') != string::npos;
 	if(!multiple_files) {

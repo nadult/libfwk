@@ -185,14 +185,14 @@ static const EnumMap<ProgramBindingType, int> binding_type_map = {{
 	GL_TRANSFORM_FEEDBACK_BUFFER,
 }};
 
-vector<pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const {
+vector<Pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const {
 	int num = 0, max_name = 0;
 	auto type_id = binding_type_map[type];
 
 	glGetProgramInterfaceiv(id(), type_id, GL_ACTIVE_RESOURCES, &num);
 	glGetProgramInterfaceiv(id(), type_id, GL_MAX_NAME_LENGTH, &max_name);
 
-	vector<pair<string, int>> out;
+	vector<Pair<string, int>> out;
 	out.reserve(num);
 
 	vector<char> buffer(max_name + 1);

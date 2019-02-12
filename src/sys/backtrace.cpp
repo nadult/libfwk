@@ -261,7 +261,7 @@ __thread BacktraceMode Backtrace::t_default_mode = Mode::fast;
 Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}
 Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols,
-					 pair<string, bool> gdb_result)
+					 Pair<string, bool> gdb_result)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)), m_gdb_result(move(gdb_result)),
 	  m_use_gdb(true) {}
 
@@ -297,7 +297,7 @@ Backtrace Backtrace::get(size_t skip, void *context_, Maybe<Mode> mode) {
 	return {move(addrs), move(symbols)};
 }
 
-pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
+Pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
 	printf("Generating GDB backtrace; Warning: sometimes GDB lies...\n");
 
 #ifdef FWK_TARGET_LINUX

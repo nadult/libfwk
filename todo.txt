@@ -109,7 +109,6 @@ TODO: which OpenGL version are we targeting ?
 - nie przesadzaj z enkapsulacją? Czy zdażyło ci się chociaż raz spowodować buga
   przez dostęp do zmiennej z implementacji? TODO: zastanow sie
 
-- pair -> Pair; make_pair -> pair
 - Better error merging?
 - Problem: w ASSERTACH chcemy zawrzeć jak najwęcej informacji a z drugiej strony,
   chcemy, żeby kod był jak najprostszy, czyli np. używamy funkcji valid(id), która

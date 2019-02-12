@@ -36,8 +36,8 @@ array<Plane3F, 6> planes(const FBox &box) {
 
 array<float3, 8> verts(const FBox &box) { return box.corners(); }
 
-array<pair<float3, float3>, 12> edges(const FBox &box) {
-	array<pair<float3, float3>, 12> out;
+array<Pair<float3>, 12> edges(const FBox &box) {
+	array<Pair<float3>, 12> out;
 	auto corners = box.corners();
 	int indices[12][2] = {{7, 3}, {3, 2}, {2, 6}, {6, 7}, {5, 1}, {1, 0},
 						  {0, 4}, {4, 5}, {5, 7}, {1, 3}, {0, 2}, {4, 6}};

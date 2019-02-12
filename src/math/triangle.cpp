@@ -39,7 +39,7 @@ auto Triangle<T, N>::normal() const -> Vec {
 	return normalize(cross(v[1] - v[0], v[2] - v[0]));
 }
 
-template <class T, int N> pair<T, T> Triangle<T, N>::barycentric(const Point &point) const {
+template <class T, int N> Pair<T> Triangle<T, N>::barycentric(const Point &point) const {
 	if constexpr(N == 3) {
 		// TODO: this is untested
 		// TODO: what if point doesn't lie on the triangle plane?

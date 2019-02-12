@@ -127,7 +127,7 @@ template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(co
 template <class T = int> auto pairsRange(int start, int end) {
 	return IndexRange(start, end, [=](int idx) {
 		int next = idx + 1;
-		return make_pair(T(idx), T(next < end ? next : start));
+		return pair(T(idx), T(next < end ? next : start));
 	});
 }
 

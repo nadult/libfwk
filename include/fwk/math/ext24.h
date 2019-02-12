@@ -19,7 +19,7 @@ namespace fwk {
 // Segment intersection based on Ext24<int> is about 2x-3x slower than with integers and about 5x slower than with floats
 // CGAL's CORE::Real is much slower though (about 100x, 1000x with conversion of coords to doubles)
 // TODO: it got slower after moving to libfwk, investigate why
-template <class T> struct alignas(16) Ext24 {
+template <class T> struct Ext24 {
 	// TODO: ogarnąć nazwenictwo
 	using Base = T;
 	using PT = Promote<T>;

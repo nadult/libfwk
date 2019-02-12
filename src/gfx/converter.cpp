@@ -95,8 +95,8 @@ string Converter::exportFromBlender(const string &file_name, string &target_file
 	return result.first;
 }
 
-pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream) {
-	pair<PModel, string> out;
+Pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream) {
+	Pair<PModel, string> out;
 
 	if(file_type == FileType::fwk_model) {
 		XmlDocument doc;

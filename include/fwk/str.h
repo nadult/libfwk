@@ -46,7 +46,7 @@ class Str {
 	}
 
 	// Returns pair: line & column
-	pair<int, int> utf8TextPos(const char *ptr) const;
+	Pair<int> utf8TextPos(const char *ptr) const;
 
 	Str substr(int pos) const {
 		PASSERT(pos >= 0 && pos <= m_size);

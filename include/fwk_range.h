@@ -376,7 +376,7 @@ auto setUnion(const TRange1 &a, const TRange2 &b) {
 }
 
 // TODO: move to interval ?
-template <class TRange, class T = RangeBase<TRange>> pair<T, T> minMax(const TRange &range) {
+template <class TRange, class T = RangeBase<TRange>> Pair<T> minMax(const TRange &range) {
 	if(empty(range))
 		return {};
 	auto it = begin(range), it_end = end(range);

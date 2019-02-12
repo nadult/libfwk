@@ -255,7 +255,7 @@ void test2DIntersections() {
 	print("Isect time: % ns / ISegment<int> pair\n", time * 10000);
 
 	Triangle2F tri(float2(0, 0), float2(5, 0), float2(2, 4));
-	using f2 = pair<float, float>;
+	using f2 = Pair<float>;
 	ASSERT_EQ(tri.barycentric(float2(2, 4)), f2(0, 1));
 	ASSERT_EQ(tri.barycentric(float2(3.5, 2)), f2(0.5, 0.5));
 	ASSERT_EQ(tri.barycentric(float2(2, 0)), f2(0.4, 0));
@@ -466,8 +466,8 @@ void testRational() {
 	int iters = 100000;
 	long long max = 1000000000000000000ll;
 
-	vector<pair<qint, qint>> qnumbers;
-	vector<pair<llint, llint>> lnumbers;
+	vector<Pair<qint>> qnumbers;
+	vector<Pair<llint>> lnumbers;
 	for(int n : intRange(iters)) {
 		qint v1 = qint(rand.uniform(0ll, max)) * rand.uniform(1ll, max);
 		qint v2 = qint(rand.uniform(0ll, max)) * rand.uniform(1ll, max);

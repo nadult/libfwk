@@ -85,7 +85,7 @@ const string Profiler::getStats(const char *filter) {
 	double cur_time = getTime();
 	long long min_frame = m_frame_limit - 30;
 
-	vector<pair<bool, string>> lines;
+	vector<Pair<bool, string>> lines;
 	for(auto &timer : m_timers) {
 		double shown_value = 0.0;
 		double total = 0.0;
@@ -110,7 +110,7 @@ const string Profiler::getStats(const char *filter) {
 			shown_value = timer.values.back().second;
 		} else {
 			double sum = 0.0, count = 0.0;
-			vector<pair<long long, double>> filtered_values;
+			vector<Pair<long long, double>> filtered_values;
 
 			for(auto value : timer.values)
 				if(value.first >= min_frame) {

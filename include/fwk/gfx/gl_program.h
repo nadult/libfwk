@@ -23,7 +23,7 @@ class GlProgram {
 	static PProgram make(const string &vsh_file_name, const string &fsh_file_name,
 						 const string &predefined_macros, CSpan<string> location_names = {});
 
-	vector<pair<string, int>> getBindings(ProgramBindingType) const;
+	vector<Pair<string, int>> getBindings(ProgramBindingType) const;
 	vector<char> getBinary() const;
 	string getInfo() const;
 

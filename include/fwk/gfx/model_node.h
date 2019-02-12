@@ -17,7 +17,7 @@ class ModelNode {
   public:
 	using Type = ModelNodeType;
 
-	using Property = pair<string, string>;
+	using Property = Pair<string, string>;
 	using PropertyMap = HashMap<string, string>;
 
 	ModelNode(const string &name, Type type = Type::generic,

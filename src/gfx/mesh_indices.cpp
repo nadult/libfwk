@@ -27,8 +27,7 @@ MeshIndices MeshIndices::makeRange(int count, int first, Type ptype) {
 	return MeshIndices(move(indices), ptype);
 }
 
-MeshIndices MeshIndices::merge(const vector<MeshIndices> &set,
-							   vector<pair<int, int>> &index_ranges) {
+MeshIndices MeshIndices::merge(const vector<MeshIndices> &set, vector<Pair<int>> &index_ranges) {
 	bool all_strips = std::all_of(begin(set), end(set),
 								  [](auto &inds) { return inds.type() == Type::triangle_strip; });
 	auto type = all_strips ? Type::triangle_strip : Type::triangles;
@@ -121,11 +120,11 @@ int MeshIndices::triangleCount() const {
 	return m_type == Type::triangles ? index_count / 3 : max(0, index_count - 2);
 }
 
-pair<int, int> MeshIndices::indexRange() const {
+Pair<int> MeshIndices::indexRange() const {
 	if(!m_data)
 		return {};
 
-	pair<int, int> out(m_data.front(), m_data.front());
+	Pair<int> out(m_data.front(), m_data.front());
 	for(const auto idx : m_data) {
 		out.first = min(out.first, idx);
 		out.second = max(out.second, idx);

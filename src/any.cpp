@@ -11,7 +11,7 @@
 namespace fwk {
 namespace detail {
 
-	using AnyTypeInfo = HashMap<TypeId, pair<AnyXmlConstructor, AnyXmlSaver>>;
+	using AnyTypeInfo = HashMap<TypeId, Pair<AnyXmlConstructor, AnyXmlSaver>>;
 
 	AnyTypeInfo &anyTypeInfos() {
 		static AnyTypeInfo map(256);

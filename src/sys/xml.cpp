@@ -58,7 +58,7 @@ void parse_error_handler(const char *what, void *where) {
 	auto pos = parsed_text.utf8TextPos((const char *)where);
 	fwk::TextFormatter fmt;
 	fmt("XML parsing error: %", what);
-	if(pos != fwk::pair<int, int>())
+	if(pos != fwk::Pair<int>())
 		fmt(" at: line:% col:%", pos.first, pos.second);
 	CHECK_FAILED("%s", fmt.c_str());
 }
@@ -245,14 +245,14 @@ string XmlDocument::lastNodeInfo() const {
 		auto nname = helper.last_node->name();
 		auto pos = m_xml_string.utf8TextPos(nname);
 		out("Last XML node: '%'", nname);
-		if(pos != pair<int, int>())
+		if(pos != Pair<int>())
 			out(" at: line:% col:%", pos.first, pos.second);
 
 		if(helper.last_attrib) {
 			auto name = helper.last_attrib->name();
 			auto pos = m_xml_string.utf8TextPos(name);
 			out("\nLast XML attribute: '%'", name);
-			if(pos != pair<int, int>())
+			if(pos != Pair<int>())
 				out(" at: line:% col:%", pos.first, pos.second);
 		}
 	}

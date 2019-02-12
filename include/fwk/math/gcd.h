@@ -12,7 +12,7 @@ llint gcd(llint, llint);
 qint gcd(qint, qint);
 
 // Returns pairs: (prime, power)
-template <class T> vector<pair<T, int>> extractPrimes(T);
+template <class T> vector<Pair<T, int>> extractPrimes(T);
 
 template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfIntegral<T>...>
 T gcd(const TRange &range) {

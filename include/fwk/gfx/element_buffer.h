@@ -28,7 +28,7 @@ class ElementBuffer {
 
 	bool empty() const;
 	int size() const;
-	vector<pair<FBox, Matrix4>> drawBoxes() const;
+	vector<Pair<FBox, Matrix4>> drawBoxes() const;
 
   protected:
 	struct Element {

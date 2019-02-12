@@ -119,7 +119,7 @@ class DynamicMesh {
 		return true;
 	}
 
-	template <class T1, class T2> bool isValid(const pair<T1, T2> &simplex_pair) const {
+	template <class T1, class T2> bool isValid(const Pair<T1, T2> &simplex_pair) const {
 		return isValid(simplex_pair.first) && isValid(simplex_pair.second);
 	}
 
@@ -141,12 +141,12 @@ class DynamicMesh {
 	void remove(VertexId);
 	void remove(PolyId);
 
-	static pair<Simplex, Simplex> makeSimplexPair(const Simplex &a, const Simplex &b) {
-		return a < b ? make_pair(b, a) : make_pair(a, b);
+	static Pair<Simplex> makeSimplexPair(const Simplex &a, const Simplex &b) {
+		return a < b ? pair(b, a) : pair(a, b);
 	}
 
 	template <class TSimplex> auto nearbyVerts(TSimplex simplex_id, float tolerance) const {
-		vector<pair<Simplex, Simplex>> out;
+		vector<Pair<Simplex>> out;
 		DASSERT(isValid(simplex_id));
 
 		for(auto vert : verts())
@@ -157,7 +157,7 @@ class DynamicMesh {
 	}
 
 	template <class TSimplex> auto nearbyEdges(TSimplex simplex_id, float tolerance) const {
-		vector<pair<Simplex, Simplex>> out;
+		vector<Pair<Simplex>> out;
 		DASSERT(isValid(simplex_id));
 
 		for(auto edge : edges())
@@ -170,7 +170,7 @@ class DynamicMesh {
 	template <class TSimplex> auto nearbyPairs(TSimplex simplex_id, float tolerance) const {
 		DASSERT(isValid(simplex_id));
 
-		vector<pair<Simplex, Simplex>> out;
+		vector<Pair<Simplex>> out;
 		insertBack(out, nearbyVerts(simplex_id, tolerance));
 		insertBack(out, nearbyEdges(simplex_id, tolerance));
 		return out;

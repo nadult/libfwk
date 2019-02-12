@@ -10,7 +10,7 @@ namespace fwk {
 class Tetrahedron {
   public:
 	using FaceIndices = array<int, 3>;
-	using Edge = pair<float3, float3>;
+	using Edge = Pair<float3>;
 
 	Tetrahedron(const float3 &p1, const float3 &p2, const float3 &p3, const float3 &p4);
 	Tetrahedron(CSpan<float3, 4> points)

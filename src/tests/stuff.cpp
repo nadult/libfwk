@@ -26,7 +26,7 @@ void testTextFormatter() {
 	Str array_of_strings2[3] = {"heeloo", "yallala", "foobar!"};
 	ASSERT_EQ(toString(array_of_strings2), "heeloo yallala foobar!");
 
-	pair<int, double> some_pair = {10, 12.5};
+	Pair<int, double> some_pair = {10, 12.5};
 	ASSERT_EQ(toString(some_pair), "10 12.5");
 }
 
@@ -178,7 +178,7 @@ void testTypeInfo() {
 void testFwdMember() {
 	struct Undef;
 	static_assert(!fwk::detail::FullyDefined<Vector<Vector<Vector<UniquePtr<Undef>>>>>::value);
-	static_assert(fwk::detail::FullyDefined<pair<Vector<int>, Vector<int>>>::value);
+	static_assert(fwk::detail::FullyDefined<Pair<Vector<int>, Vector<int>>>::value);
 }
 
 void testMain() {

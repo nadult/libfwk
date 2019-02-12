@@ -12,7 +12,7 @@
 namespace fwk {
 
 static auto makeNameMap(const vector<string> &names) {
-	vector<pair<string, int>> out(names.size());
+	vector<Pair<string, int>> out(names.size());
 	for(int n = 0; n < names.size(); n++)
 		out[n] = {names[n], n};
 	std::sort(begin(out), end(out));

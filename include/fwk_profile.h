@@ -36,7 +36,7 @@ class Profiler {
 		Timer(const string &name) : name(name) {}
 
 		string name;
-		vector<pair<long long, double>> values;
+		vector<Pair<long long, double>> values;
 		double last_frame_time = 0.0;
 		double display_time = -1.0;
 		bool is_rare = false;

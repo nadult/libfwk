@@ -60,7 +60,7 @@ class Renderer2D : public MatrixStack {
 
 	void clear();
 	const IRect &viewport() const { return m_viewport; }
-	vector<pair<FRect, Matrix4>> renderRects() const;
+	vector<Pair<FRect, Matrix4>> renderRects() const;
 
   private:
 	struct DrawChunk {

@@ -58,8 +58,8 @@ using qint2 = vec2<qint>;
 using qint3 = vec3<qint>;
 using qint4 = vec4<qint>;
 
-pair<float, float> sincos(float radians);
-pair<double, double> sincos(double radians);
+Pair<float> sincos(float radians);
+Pair<double> sincos(double radians);
 
 // TODO: why not using std:: ?
 inline bool isnan(float v) { return std::isnan(v); }

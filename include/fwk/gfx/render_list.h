@@ -41,7 +41,7 @@ class RenderList : public MatrixStack {
 	const IRect &viewport() const { return m_viewport; }
 
 	// Draw calls without bbox argument specified will be ignored
-	vector<pair<FBox, Matrix4>> renderBoxes() const;
+	vector<Pair<FBox, Matrix4>> renderBoxes() const;
 
   protected:
 	vector<DrawCall> m_draw_calls;

@@ -46,7 +46,7 @@ template <class T, int N> class Segment {
 
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
-	Segment(const pair<Point, Point> &pair) : Segment(pair.first, pair.second) {}
+	Segment(const Pair<Point> &pair) : Segment(pair.first, pair.second) {}
 
 	ENABLE_IF_SIZE(2) explicit Segment(T x1, T y1, T x2, T y2) : from(x1, y1), to(x2, y2) {}
 	ENABLE_IF_SIZE(3)
@@ -90,7 +90,7 @@ template <class T, int N> class Segment {
 	Isect at(const IsectParam &) const;
 
 	PRIsectParam isectParam(const Segment &) const;
-	pair<PPRIsectParam, bool> isectParam(const Triangle<T, N> &) const;
+	Pair<PPRIsectParam, bool> isectParam(const Triangle<T, N> &) const;
 	PRIsectParam isectParam(const Box<Vec> &) const;
 	template <class U = T, EnableIfReal<U>...> IsectParam isectParam(const Plane<T, N> &) const;
 
@@ -103,11 +103,11 @@ template <class T, int N> class Segment {
 
 	PRT closestPointParam(const Point &) const;
 	PPRT closestPointParam(const Segment &) const;
-	pair<PPRT, PPRT> closestPointParams(const Segment &) const;
+	Pair<PPRT> closestPointParams(const Segment &) const;
 
 	PRealVec closestPoint(const Point &pt) const;
 	PRealVec closestPoint(const Segment &) const;
-	pair<PRealVec, PRealVec> closestPoints(const Segment &rhs) const;
+	Pair<PRealVec> closestPoints(const Segment &rhs) const;
 
 	ENABLE_IF_SIZE(3) Segment<T, 2> xz() const { return {from.xz(), to.xz()}; }
 	ENABLE_IF_SIZE(3) Segment<T, 2> xy() const { return {from.xy(), to.xy()}; }

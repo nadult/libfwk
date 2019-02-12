@@ -34,7 +34,7 @@ struct RollbackContext::Level {
 	// for example: keep a simple list of allocations and at the and
 	// sort and subtract list of allocs from list of frees;
 	HashMap<unsigned long long, int> allocs;
-	vector<pair<AtRollback, void *>> callbacks;
+	vector<Pair<AtRollback, void *>> callbacks;
 
 	std::jmp_buf env;
 	int pause_counter = 0;
@@ -57,7 +57,7 @@ void RollbackContext::removeAtRollback(AtRollback func, void *arg) {
 	if(auto *context = current())
 		if(auto &level = context->levels.back(); level.pause_counter == 0) {
 			for(auto &cb : level.callbacks)
-				if(cb == make_pair(func, arg)) {
+				if(cb == pair(func, arg)) {
 					cb.first = nullptr;
 					return;
 				}

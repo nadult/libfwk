@@ -281,8 +281,8 @@ void Renderer2D::render() {
 	clear();
 }
 
-vector<pair<FRect, Matrix4>> Renderer2D::renderRects() const {
-	vector<pair<FRect, Matrix4>> out;
+vector<Pair<FRect, Matrix4>> Renderer2D::renderRects() const {
+	vector<Pair<FRect, Matrix4>> out;
 	for(const auto &chunk : m_chunks) {
 		for(const auto &elem : chunk.elements) {
 			const int *inds = &chunk.indices[elem.first_index];

@@ -81,7 +81,7 @@ class GlDevice {
 #ifdef __EMSCRIPTEN__
 	static void emscriptenCallback();
 #endif
-	vector<pair<MainLoopFunction, void *>> m_main_loop_stack;
+	vector<Pair<MainLoopFunction, void *>> m_main_loop_stack;
 
 	struct InputImpl;
 	UniquePtr<InputImpl> m_input_impl;

@@ -16,7 +16,7 @@ template <typename TKey, typename TValue> class HashMap {
   public:
 	using Key = TKey;
 	using Value = TValue;
-	using KeyValuePair = pair<TKey, TValue>;
+	using KeyValuePair = Pair<TKey, TValue>;
 	using HashValue = u32;
 
   private:
@@ -155,11 +155,11 @@ template <typename TKey, typename TValue> class HashMap {
 		}
 	}
 
-	pair<iterator, bool> emplace(const TKey &key, const TValue &value) {
+	Pair<iterator, bool> emplace(const TKey &key, const TValue &value) {
 		return emplace({key, value});
 	}
 
-	pair<iterator, bool> emplace(const KeyValuePair &v) {
+	Pair<iterator, bool> emplace(const KeyValuePair &v) {
 		checkInvariant();
 		if(m_num_used * m_load_factor4 >= m_capacity * 4)
 			grow();
@@ -276,7 +276,7 @@ template <typename TKey, typename TValue> class HashMap {
 		m_num_used = m_size;
 		DASSERT(m_num_used < m_capacity);
 	}
-	pair<iterator, bool> emplace_at(const KeyValuePair &v, Node *n, HashValue hash) {
+	Pair<iterator, bool> emplace_at(const KeyValuePair &v, Node *n, HashValue hash) {
 		checkInvariant();
 		if(n == 0 || m_num_used * m_load_factor4 >= m_capacity * 4)
 			return emplace(v);

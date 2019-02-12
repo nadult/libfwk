@@ -30,7 +30,7 @@ class Converter {
 	static FileType classify(const string &name);
 
 	string exportFromBlender(const string &file_name, string &target_file_name);
-	pair<PModel, string> loadModel(FileType file_type, FileStream &stream);
+	Pair<PModel, string> loadModel(FileType file_type, FileStream &stream);
 	void saveModel(PModel model, const string &node_name, FileType file_type, Stream &stream);
 
   private:

@@ -19,8 +19,8 @@ class SDLKeyMap {
 	int from(int) const;
 
   private:
-	vector<pair<int, int>> m_fwk_to_sdl;
-	vector<pair<int, int>> m_sdl_to_fwk;
+	vector<Pair<int>> m_fwk_to_sdl;
+	vector<Pair<int>> m_sdl_to_fwk;
 };
 
 namespace InputKey {
@@ -168,8 +168,7 @@ class InputState {
 	vector<InputEvent> pollEvents(const SDLKeyMap &);
 	friend class GlDevice;
 
-	using KeyStatus = pair<int, int>;
-	vector<KeyStatus> m_keys;
+	vector<Pair<int>> m_keys;
 	string32 m_text;
 
 	int2 m_mouse_pos, m_mouse_move;

@@ -198,7 +198,7 @@ void Mesh::removeNormals() { m_buffers.normals.clear(); }
 void Mesh::removeTexCoords() { m_buffers.tex_coords.clear(); }
 void Mesh::removeColors() { m_buffers.colors.clear(); }
 
-void Mesh::removeIndices(CSpan<pair<string, IColor>> color_map) {
+void Mesh::removeIndices(CSpan<Pair<string, IColor>> color_map) {
 	if(hasIndices()) {
 		auto mapping = fwk::merge(trisIndices());
 		vector<IColor> colors;
@@ -274,7 +274,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 	FBox bbox = anim_data ? anim_data->bounding_box : m_bounding_box;
 
 	if(hasIndices()) {
-		vector<pair<int, int>> merged_ranges;
+		vector<Pair<int>> merged_ranges;
 		auto merged_indices = MeshIndices::merge(m_indices, merged_ranges);
 		vao->setIndices(GlBuffer::make(BufferType::element_array, merged_indices.data()),
 						IndexType::uint32);

@@ -18,7 +18,7 @@ template <class T> struct Interval {
 #endif
 	}
 
-	Interval(const pair<T, T> &pair) : Interval(pair.first, pair.second) {}
+	Interval(const Pair<T> &pair) : Interval(pair.first, pair.second) {}
 	explicit Interval(T point) : Interval(point, point) {}
 	Interval() : min(0), max(0) {}
 

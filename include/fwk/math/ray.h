@@ -36,8 +36,8 @@ template <class T, int N> class Ray {
 
 	T closestPointParam(const Point &) const;
 	Point closestPoint(const Point &) const;
-	pair<T, T> closestPointsParam(const Ray &) const;
-	pair<Point, Point> closestPoints(const Ray &) const;
+	Pair<T> closestPointsParam(const Ray &) const;
+	Pair<Point> closestPoints(const Ray &) const;
 
 	IsectParam isectParam(const Box<Vec> &) const;
 	ENABLE_IF_SIZE(2) IsectParam isectParam(const Ray &) const;

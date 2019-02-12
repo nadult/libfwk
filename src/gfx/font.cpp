@@ -67,7 +67,7 @@ FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
 				int first = kerning_node.attrib<int>("first");
 				int second = kerning_node.attrib<int>("second");
 				int value = kerning_node.attrib<int>("amount");
-				m_kernings[make_pair(first, second)] = value;
+				m_kernings[pair(first, second)] = value;
 				kernings_count--;
 
 				kerning_node = kerning_node.sibling("kerning");
@@ -82,7 +82,7 @@ FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
 		for(auto &glyph : glyphs)
 			m_glyphs[glyph.character] = glyph;
 		for(auto &kerning : kernings)
-			m_kernings[make_pair(kerning.left, kerning.right)] = kerning.value;
+			m_kernings[pair(kerning.left, kerning.right)] = kerning.value;
 		m_max_rect = {};
 
 		for(auto &glyph : m_glyphs) {

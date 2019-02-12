@@ -278,7 +278,7 @@ template <class T> TextFormatter &operator<<(TextFormatter &out, const Box<T> &b
 }
 
 template <class T1, class T2>
-TextFormatter &operator<<(TextFormatter &out, const pair<T1, T2> &pair) {
+TextFormatter &operator<<(TextFormatter &out, const Pair<T1, T2> &pair) {
 	out(out.isStructured() ? "(%; %)" : "% %", pair.first, pair.second);
 	return out;
 }

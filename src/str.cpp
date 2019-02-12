@@ -28,7 +28,7 @@ static const char *strcasestr(const char *a, const char *b) {
 
 #endif
 
-pair<int, int> Str::utf8TextPos(const char *text) const {
+Pair<int> Str::utf8TextPos(const char *text) const {
 	if(empty() || text < begin() || text >= end())
 		return {};
 

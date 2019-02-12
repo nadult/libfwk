@@ -32,8 +32,7 @@ template <class T, int N> auto Ray<T, N>::closestPoint(const Point &point) const
 }
 
 // Algorithm idea: http://www.geometrictools.com/GTEngine/Include/Mathematics/GteDistLineLine.h
-template <class T, int N>
-auto Ray<T, N>::closestPoints(const Ray &rhs) const -> pair<Point, Point> {
+template <class T, int N> auto Ray<T, N>::closestPoints(const Ray &rhs) const -> Pair<Point> {
 	Vec diff = m_origin - rhs.m_origin;
 	T a01 = -dot(m_dir, rhs.m_dir);
 	T b0 = dot(diff, m_dir);

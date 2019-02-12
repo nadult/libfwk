@@ -10,7 +10,7 @@ namespace fwk {
 
 struct Pose : public immutable_base<Pose> {
   public:
-	using NameMap = vector<pair<string, int>>;
+	using NameMap = vector<Pair<string, int>>;
 
 	Pose(vector<Matrix4> transforms = {}, NameMap = {});
 	Pose(vector<Matrix4> transforms, const vector<string> &names);

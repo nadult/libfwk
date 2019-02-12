@@ -64,7 +64,7 @@ void *FontFactory::getFace(const string &path) {
 	return face;
 }
 
-Texture FontFactory::makeTextureAtlas(vector<pair<FontCore::Glyph, Texture>> &glyphs,
+Texture FontFactory::makeTextureAtlas(vector<Pair<FontCore::Glyph, Texture>> &glyphs,
 									  int2 atlas_size) {
 	const int border = 2;
 
@@ -134,7 +134,7 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 			ansi_charset = move(*text);
 	}
 
-	vector<pair<FontCore::Glyph, Texture>> glyphs;
+	vector<Pair<FontCore::Glyph, Texture>> glyphs;
 	for(auto character : ansi_charset) {
 		FT_UInt index = FT_Get_Char_Index(face, character);
 		if(FT_Load_Glyph(face, index, FT_LOAD_DEFAULT) != 0)

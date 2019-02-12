@@ -16,7 +16,7 @@ class FontFactory {
 
   private:
 	void *getFace(const string &);
-	using GlyphPair = pair<FontCore::Glyph, Texture>;
+	using GlyphPair = Pair<FontCore::Glyph, Texture>;
 
 	Texture makeTextureAtlas(vector<GlyphPair> &, int2 atlas_size);
 	Texture makeTextureAtlas(vector<GlyphPair> &);

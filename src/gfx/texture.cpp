@@ -72,7 +72,7 @@ bool Texture::testPixelAlpha(const int2 &pos) const {
 	return (*this)(pos.x, pos.y).a > 0;
 }
 
-using TextureLoaders = vector<pair<string, Texture::Loader>>;
+using TextureLoaders = vector<Pair<string, Texture::Loader>>;
 static TextureLoaders &loaders() {
 	static TextureLoaders s_loaders;
 	return s_loaders;

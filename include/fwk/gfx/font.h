@@ -54,7 +54,7 @@ class FontCore : public immutable_base<FontCore> {
 	void computeRect();
 
 	FwdMember<HashMap<int, Glyph>> m_glyphs;
-	FwdMember<HashMap<pair<int, int>, int>> m_kernings;
+	FwdMember<HashMap<Pair<int>, int>> m_kernings;
 	string m_texture_name;
 	int2 m_texture_size;
 

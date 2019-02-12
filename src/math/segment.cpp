@@ -150,7 +150,7 @@ TEMPLATE_REAL IsectParam<T> TSEG::isectParam(const Plane<T, N> &plane) const {
 	}
 }
 
-TEMPLATE auto TSEG::isectParam(const Triangle<T, N> &tri) const -> pair<PPRIsectParam, bool> {
+TEMPLATE auto TSEG::isectParam(const Triangle<T, N> &tri) const -> Pair<PPRIsectParam, bool> {
 	if constexpr(N == 3) {
 		// TODO: use this in real segment
 		Vec ab = tri[1] - tri[0];
@@ -309,7 +309,7 @@ TEMPLATE auto TSEG::closestPointParam(const Segment &seg) const -> PPRT {
 }
 
 // Source: Real-time collision detection (page 150)
-TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> pair<PPRT, PPRT> {
+TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> Pair<PPRT> {
 	if(empty())
 		return {PPRT(0), PPRT(rhs.closestPointParam(from))};
 
@@ -353,7 +353,7 @@ TEMPLATE auto TSEG::closestPoint(const Segment &seg) const -> PRealVec {
 	return at(closestPointParam(seg));
 }
 
-TEMPLATE auto TSEG::closestPoints(const Segment &rhs) const -> pair<PRealVec, PRealVec> {
+TEMPLATE auto TSEG::closestPoints(const Segment &rhs) const -> Pair<PRealVec> {
 	auto params = closestPointParams(rhs);
 	auto params2 = rhs.closestPointParams(*this);
 	return {at(params.first), rhs.at(params.second)};

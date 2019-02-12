@@ -6,14 +6,14 @@
 namespace fwk {
 
 // TODO: tak czy ze wskaznikami?
-pair<float, float> sincos(float radians) {
-	pair<float, float> out;
+Pair<float> sincos(float radians) {
+	Pair<float> out;
 	::sincosf(radians, &out.first, &out.second);
 	return out;
 }
 
-pair<double, double> sincos(double radians) {
-	pair<double, double> out;
+Pair<double> sincos(double radians) {
+	Pair<double> out;
 	::sincos(radians, &out.first, &out.second);
 	return out;
 }

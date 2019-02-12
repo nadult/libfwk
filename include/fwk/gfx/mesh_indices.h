@@ -31,10 +31,10 @@ class MeshIndices {
 	int triangleCount() const;
 	int size() const { return (int)m_data.size(); }
 	bool empty() const { return !m_data; }
-	pair<int, int> indexRange() const;
+	Pair<int> indexRange() const;
 
 	static MeshIndices changeType(MeshIndices, Type new_type);
-	static MeshIndices merge(const vector<MeshIndices> &, vector<pair<int, int>> &index_ranges);
+	static MeshIndices merge(const vector<MeshIndices> &, vector<Pair<int>> &index_ranges);
 	static MeshIndices applyOffset(MeshIndices, int offset);
 
 	vector<MeshIndices> split(int max_vertices, vector<vector<int>> &out_mappings) const;

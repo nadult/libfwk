@@ -75,8 +75,8 @@ void ElementBuffer::addElement() {
 	m_elements.emplace_back(m_positions.size(), 0, matrix_idx, material_idx);
 }
 
-vector<pair<FBox, Matrix4>> ElementBuffer::drawBoxes() const {
-	vector<pair<FBox, Matrix4>> out;
+vector<Pair<FBox, Matrix4>> ElementBuffer::drawBoxes() const {
+	vector<Pair<FBox, Matrix4>> out;
 	out.reserve(m_elements.size());
 
 	for(const auto &elem : m_elements) {

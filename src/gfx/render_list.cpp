@@ -193,8 +193,8 @@ void RenderList::render(bool mode_2d) {
 	GlTexture::unbind();
 }
 
-vector<pair<FBox, Matrix4>> RenderList::renderBoxes() const {
-	vector<pair<FBox, Matrix4>> out;
+vector<Pair<FBox, Matrix4>> RenderList::renderBoxes() const {
+	vector<Pair<FBox, Matrix4>> out;
 	out.reserve(m_draw_calls.size());
 	for(auto &dc : m_draw_calls)
 		if(dc.bbox)

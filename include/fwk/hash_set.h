@@ -151,7 +151,7 @@ template <class TKey> class HashSet {
 		}
 	}
 
-	pair<iterator, bool> emplace(const Key &key) {
+	Pair<iterator, bool> emplace(const Key &key) {
 		checkInvariant();
 		if(m_num_used * m_load_factor4 >= m_capacity * 4)
 			grow();
@@ -261,7 +261,7 @@ template <class TKey> class HashSet {
 		m_num_used = m_size;
 		DASSERT(m_num_used < m_capacity);
 	}
-	pair<iterator, bool> emplace_at(const Key &v, Node *n, HashValue hash) {
+	Pair<iterator, bool> emplace_at(const Key &v, Node *n, HashValue hash) {
 		checkInvariant();
 		if(n == 0 || m_num_used * m_load_factor4 >= m_capacity * 4)
 			return emplace(v);

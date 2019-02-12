@@ -55,7 +55,6 @@ namespace fwk {
 
 using std::array;
 using std::move;
-using std::pair;
 using std::string;
 using std::swap;
 using string32 = std::u32string;
@@ -63,8 +62,10 @@ using std::shared_ptr;
 
 using std::begin;
 using std::end;
-using std::make_pair;
 using std::make_shared;
+
+template <class T1, class T2 = T1> using Pair = std::pair<T1, T2>;
+using std::pair;
 
 // TODO: use types from cstdint
 using uint = unsigned int;
@@ -78,15 +79,13 @@ using u64 = unsigned long long;
 using i64 = long long;
 
 struct NoAssertsTag {};
-constexpr NoAssertsTag no_asserts;
-
 struct NoInitTag {};
-constexpr NoInitTag no_init;
-
 struct InvalidTag {};
-constexpr InvalidTag invalid;
-
 struct SentinelTag {};
+
+constexpr NoAssertsTag no_asserts;
+constexpr NoInitTag no_init;
+constexpr InvalidTag invalid;
 constexpr SentinelTag sentinel;
 
 // Idea from: Range V3
@@ -137,7 +136,7 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 void handleCtrlC(void (*handler)());
 void handleSegFault();
 
-pair<string, bool> execCommand(const string &cmd);
+Pair<string, bool> execCommand(const string &cmd);
 void logError(const string &error);
 
 int threadId();

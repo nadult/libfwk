@@ -40,7 +40,7 @@ H computeHash(const TRange &range, PriorityTag1) {
 	return out;
 }
 
-template <class H, class T1, class T2> H computeHash(const pair<T1, T2> &pair, PriorityTag1) {
+template <class H, class T1, class T2> H computeHash(const Pair<T1, T2> &pair, PriorityTag1) {
 	return combineHash(computeHash<H>(pair.first), computeHash<H>(pair.second));
 }
 

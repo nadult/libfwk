@@ -45,12 +45,10 @@ namespace {
 	struct SignalInfo {
 		int num;
 		const char *message;
-	}
-	static const s_signal_infos[] = {
-		{ SIGSEGV, "Segmentation fault" },
-		{ SIGILL, "Illegal instruction" },
-		{ SIGFPE, "Invalid floating-point operation"},
-		{ SIGBUS, "Bus error" }};
+	} static const s_signal_infos[] = {{SIGSEGV, "Segmentation fault"},
+									   {SIGILL, "Illegal instruction"},
+									   {SIGFPE, "Invalid floating-point operation"},
+									   {SIGBUS, "Bus error"}};
 
 	void segfaultHandler(int, siginfo_t *sig_info, void *) {
 		const char *message = nullptr;
@@ -96,7 +94,7 @@ int threadId() { return syscall(SYS_gettid); }
 #endif
 
 // TODO: stdout and stderr returned separately?
-pair<string, bool> execCommand(const string &cmd) {
+Pair<string, bool> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");
 	if(!pipe)
 		CHECK_FAILED("error while executing command: '%s'", cmd.c_str());
