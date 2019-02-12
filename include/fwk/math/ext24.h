@@ -63,6 +63,7 @@ template <class T> struct Ext24 {
 
 	T asIntegral() const { return a; }
 	T gcd() const;
+	llint hash() const;
 
 	bool isIntegral() const { return b == 0 && c == 0 && d == 0; }
 	bool isReal() const { return !isIntegral(); }

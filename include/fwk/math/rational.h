@@ -113,6 +113,8 @@ template <class T> struct Rational {
 	const T &num() const { return m_num; }
 	IF_VEC TBase num(int idx) const { return m_num[idx]; }
 
+	llint hash() const;
+
 	IF_VEC Scalar operator[](int idx) const { return {m_num[idx], m_den, no_sign_check}; }
 	IF_VEC Scalar x() const { return {m_num.x, m_den, no_sign_check}; }
 	IF_VEC Scalar y() const { return {m_num.y, m_den, no_sign_check}; }

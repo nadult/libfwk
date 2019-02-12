@@ -4,6 +4,7 @@
 #include "fwk/format.h"
 #include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
+#include "fwk/math/hash.h"
 #include "fwk/math/rational.h"
 
 using ld = long double;
@@ -154,6 +155,7 @@ template <class T> bool Ext24<T>::operator==(const Ext24 &rhs) const {
 }
 
 template <class T> T Ext24<T>::gcd() const { return fwk::gcd(v); }
+template <class T> llint Ext24<T>::hash() const { return hashMany<llint>(a, b, c, d); }
 
 template <class T> int Ext24<T>::sign() const {
 	if(*this == Ext24())

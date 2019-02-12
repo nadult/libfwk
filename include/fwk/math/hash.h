@@ -26,7 +26,10 @@ template <class H, class T> H computeHash(const T &value) {
 // you can use them to properly specialize for your classes
 
 template <class H, class T> H computeHash(const T &value, PriorityTag0) {
-	return H(std::hash<T>()(value));
+	if constexpr(is_same<T, qint>)
+		return combineHash<H>(computeHash<H>(llint(value)), computeHash<H>(llint(value >> 64)));
+	else
+		return H(std::hash<T>()(value));
 }
 
 template <class H, class TRange, EnableIf<is_range<TRange>>...>

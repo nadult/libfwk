@@ -4,6 +4,7 @@
 #include "fwk/format.h"
 #include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
+#include "fwk/math/hash.h"
 #include "fwk/math/rational.h"
 
 namespace fwk {
@@ -174,6 +175,8 @@ template <class T> Rational<T> Rational<T>::normalized() const {
 		return t == 1 ? *this : Rational(m_num / t, m_den / t, no_sign_check);
 	}
 }
+
+template <class T> llint Rational<T>::hash() const { return hashMany<llint>(m_num, m_den); }
 
 Rational<int> rationalApprox(double value, int max_num, bool upper_bound) {
 	bool sign = false;
