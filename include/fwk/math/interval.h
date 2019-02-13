@@ -13,7 +13,7 @@ template <class T> struct Interval {
 
 	Interval(T min, T max) : min(min), max(max) {
 #ifdef FWK_CHECK_NANS
-		if constexpr(is_real<T>)
+		if constexpr(is_fpt<T>)
 			DASSERT(!isnan(min) && !isnan(max));
 #endif
 	}
@@ -28,8 +28,6 @@ template <class T> struct Interval {
 	Interval operator/(T val) const { return (*this) * (T(1) / val); }
 	Interval operator+(T val) const { return Interval(min + val, max + val); }
 	Interval operator-(T val) const { return Interval(min - val, max - val); }
-
-	template <class U = T, EnableIfReal<U>...> static Interval inf() { return {fwk::inf}; }
 
 	T size() const { return max - min; }
 	bool valid() const { return min <= max; }

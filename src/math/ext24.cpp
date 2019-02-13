@@ -287,7 +287,7 @@ Rat2Ext24<short> angleToVectorExt24(int angle, int scale) {
 	auto &vec = vectors[angle / 15];
 	int div = gcd(scale, vec.divisor);
 	scale /= div;
-	return {{vec.x * scale, vec.y * scale}, vec.divisor / div};
+	return {{vec.x * scale, vec.y * scale}, short(vec.divisor / div), no_sign_check};
 }
 
 template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &vec, int degs) {
@@ -302,11 +302,11 @@ template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &vec) {
 	if(vec.numX() == 0) {
 		if(vec.numY() == 0)
 			return none;
-		return vec.numY() < T(0)? 270 : 90;
+		return vec.numY() < T(0) ? 270 : 90;
 	}
 	if(vec.numY() == 0)
-		return vec.numX() < T(0)? 180 : 0;
-	
+		return vec.numX() < T(0) ? 180 : 0;
+
 	int sign_x = vec.numX().sign();
 	int sign_y = vec.numY().sign();
 	auto div = abs(vec.numY() / vec.numX());
@@ -315,11 +315,10 @@ template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &vec) {
 		auto cur = RatExt24<T>(vector_tans[n].num, vector_tans[n].den);
 		if(div == cur) {
 			bool neg = (sign_x < 0) ^ (sign_y < 0);
-			int quad = sign_x < 0? (sign_y < 0? 2 : 1) : (sign_y < 0? 3 : 0);
-			int angle = quad * 6 + (neg? 5 - n : n + 1);
+			int quad = sign_x < 0 ? (sign_y < 0 ? 2 : 1) : (sign_y < 0 ? 3 : 0);
+			int angle = quad * 6 + (neg ? 5 - n : n + 1);
 			return angle * 15;
 		}
-
 	}
 
 	return none;

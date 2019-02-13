@@ -70,17 +70,17 @@ namespace detail {
 				isIntegral(base_type) ? VertexAttribOpt::as_integer : VertexAttrib::Flags();
 			return &default_va<base_type, size, 0, flags.bits>;
 		}
+
 		return nullptr;
 	}
 
 	template <class T> constexpr const VertexAttrib *defaultVA() {
 		if constexpr(is_vec<T>)
-			return defaultVABase<fwk::VecScalar<T>, vec_size<T>>();
-		if constexpr(is_same<T, IColor>) {
+			return defaultVABase<typename Scalar<T>::Type, dim<T>>();
+		else if constexpr(is_same<T, IColor>)
 			return &default_va<VertexBaseType::uint8, 4, 0, flag(VertexAttribOpt::normalized).bits>;
-		}
-
-		return defaultVABase<T, 1>();
+		else
+			return defaultVABase<T, 1>();
 	}
 }
 

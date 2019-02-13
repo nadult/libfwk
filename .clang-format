@@ -5,7 +5,8 @@ TabWidth: 4
 UseTab: Always
 ColumnLimit: 100
 
-#AlignAfterOpenBracket: false
+#AlwaysBreakTemplateDeclarations: Multiline
+#AlignAfterOpenBracket: DontAlign
 AlignTrailingComments: false
 ReflowComments: false
 AllowShortBlocksOnASingleLine: false

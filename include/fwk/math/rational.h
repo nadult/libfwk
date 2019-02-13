@@ -13,32 +13,28 @@ namespace fwk {
 #define CHECK_NAN()
 #endif
 
-#define IF_SCALAR template <class U = T, EnableIfScalar<U>...>
-#define IF_VEC template <class U = T, EnableIfVec<U>...>
-#define IF_VEC3 template <class U = T, EnableIfVec<U, 3>...>
+#define IF_SCALAR template <class U = Num, EnableIf<fwk::dim<U> == 0>...>
+#define IF_VEC template <class U = Num, EnableIf<fwk::dim<U> >= 2>...>
+#define IF_VEC3 template <class U = Num, EnableIf<fwk::dim<U> == 3>...>
 
 struct NoSignCheck {};
 static constexpr NoSignCheck no_sign_check;
 
 // Warning: these operations are far from optimal, if you know the numbers then
 // you can perform computations using less operations and bits;
-template <class T> struct Rational {
-	static_assert(is_scalar<T> || is_vec<T>);
+template <class T, int N> struct Rational {
+	static_assert(is_integral<T> || is_ext24<T>);
+	static constexpr int dim = N;
 
-	static constexpr int vec_size = is_vec<T> ? fwk::vec_size<T> : 0;
-	static_assert(isOneOf(vec_size, 0, 2, 3));
-	using TBase = Conditional<is_vec<T>, VecScalar<T>, T>; // TODO: -> Base
-	static_assert(is_integral<TBase> || is_ext24<TBase> || is_ext24<T>);
-
-	using Scalar = Rational<TBase>;
+	using Scalar = Rational<T>;
+	using Num = Conditional<(N > 0), fwk::MakeVec<T, N>, T>;
+	using Den = T;
 
 	// TODO: paranoid overflow checks ?
 	constexpr Rational(RealConstant<NumberType::infinity>) : m_num(1), m_den(0) {}
-	constexpr Rational(const T &num, TBase den, NoSignCheck) : m_num(num), m_den(den) {
-		CHECK_NAN();
-	}
-	constexpr Rational(const T &num, TBase den) : m_num(num), m_den(den) {
-		if(den < TBase(0)) {
+	constexpr Rational(const Num &n, const T &d, NoSignCheck) : m_num(n), m_den(d) { CHECK_NAN(); }
+	constexpr Rational(const Num &n, const T &d) : m_num(n), m_den(d) {
+		if(d < T(0)) {
 			m_num = -m_num;
 			m_den = -m_den;
 		}
@@ -47,26 +43,21 @@ template <class T> struct Rational {
 	constexpr Rational() : m_num(0), m_den(1) {}
 
 	template <class U, EnableIf<precise_conversion<U, T>>...>
-	constexpr Rational(const Rational<U> &rhs) : Rational(T(rhs.num()), TBase(rhs.den())) {}
+	constexpr Rational(const Rational<U, N> &rhs) : Rational(Num(rhs.num()), T(rhs.den())) {}
 	template <class U, EnableIf<!precise_conversion<U, T>>...>
-	explicit constexpr Rational(const Rational<U> &rhs)
-		: Rational(T(rhs.num()), TBase(rhs.den())) {}
+	explicit constexpr Rational(const Rational<U, N> &rhs)
+		: Rational(Num(rhs.num()), T(rhs.den())) {}
 
-	template <class U, class UDen = TBase,
-			  EnableIf<is_convertible<U, T> && precise_conversion<U, T>>...>
-	constexpr Rational(const U &num, UDen den = TBase(1)) : Rational(T(num), TBase(den)) {}
-	template <class U, class UDen = TBase,
-			  EnableIf<is_constructible<U, T> && !precise_conversion<U, T>>...>
-	constexpr explicit Rational(const U &num, UDen den = TBase(1)) : Rational(T(num), TBase(den)) {}
+	template <class UNum = Num, class UDen = T,
+			  EnableIf<precise_conversion<Base<UNum>, T> && precise_conversion<UDen, T>>...>
+	constexpr Rational(const UNum &num, const UDen &den = T(1)) : Rational(Num(num), T(den)) {}
+	template <class UNum = Num, class UDen = T,
+			  EnableIf<!precise_conversion<Base<UNum>, T> || !precise_conversion<UDen, T>>...>
+	constexpr explicit Rational(const UNum &num, const UDen &den = T(1))
+		: Rational(Num(num), T(den)) {}
 
-	template <class RT, EnableIf<is_real<RT> && vec_size == 0>...> explicit operator RT() const {
-		return RT(m_num) / RT(m_den);
-	}
-
-	template <class RVec, class RT = VecScalar<RVec>,
-			  EnableIf<is_real<RT> && fwk::vec_size<RVec> == vec_size>...>
-	explicit operator RVec() const {
-		return RVec(m_num) / RT(m_den);
+	template <class RT, EnableIf<is_fpt<Base<RT>>>...> explicit operator RT() const {
+		return RT(m_num) / Base<RT>(m_den);
 	}
 
 	Rational operator+(const Rational &) const;
@@ -80,11 +71,11 @@ template <class T> struct Rational {
 		return {(s.num() < 0 ? -m_num : m_num) * s.den(), m_den * fwk::abs(s.num()), no_asserts};
 	}
 
-	template <class U, EnableIf<precise_conversion<U, TBase>>...> Rational operator*(U s) const {
+	template <class U, EnableIf<precise_conversion<U, T>>...> Rational operator*(U s) const {
 		return {m_num * s, m_den, no_sign_check};
 	}
 
-	template <class U, EnableIf<precise_conversion<U, TBase>>...> Rational operator/(U s) const {
+	template <class U, EnableIf<precise_conversion<U, T>>...> Rational operator/(U s) const {
 		return {s < 0 ? -m_num : m_num, m_den * fwk::abs(s), no_sign_check};
 	}
 
@@ -101,17 +92,17 @@ template <class T> struct Rational {
 	// TODO: Shouldn't operations support these special states?
 	IF_SCALAR bool isInfinity() const { return m_num != 0 && m_den == 0; }
 	bool isNan() const {
-		if constexpr(vec_size == 0)
+		if constexpr(dim == 0)
 			return m_num == 0 && m_den == 0;
-		else if constexpr(vec_size > 0)
+		else
 			return anyOf(m_num.values(), 0) && m_den == 0;
 	}
 
 	IF_SCALAR bool isNegative() const { return m_num < 0; }
 
-	TBase den() const { return m_den; }
-	const T &num() const { return m_num; }
-	IF_VEC TBase num(int idx) const { return m_num[idx]; }
+	const Den &den() const { return m_den; }
+	const Num &num() const { return m_num; }
+	IF_VEC T num(int idx) const { return m_num[idx]; }
 
 	llint hash() const;
 
@@ -120,9 +111,9 @@ template <class T> struct Rational {
 	IF_VEC Scalar y() const { return {m_num.y, m_den, no_sign_check}; }
 	IF_VEC3 Scalar z() const { return {m_num.z, m_den, no_sign_check}; }
 
-	IF_VEC TBase numX() const { return m_num.x; }
-	IF_VEC TBase numY() const { return m_num.y; }
-	IF_VEC3 TBase numZ() const { return m_num.z; }
+	IF_VEC T numX() const { return m_num.x; }
+	IF_VEC T numY() const { return m_num.y; }
+	IF_VEC3 T numZ() const { return m_num.z; }
 
 	IF_VEC3 Rational2<T> xy() const { return {m_num.xy(), m_den, no_sign_check}; }
 	IF_VEC3 Rational2<T> xz() const { return {m_num.xz(), m_den, no_sign_check}; }
@@ -143,8 +134,8 @@ template <class T> struct Rational {
 #undef LEFT_SCALAR
 
   private:
-	T m_num;
-	TBase m_den;
+	Num m_num;
+	Den m_den;
 };
 
 template <class T, class U>
@@ -176,25 +167,29 @@ template <class T> T round(const Rational<T> &value) {
 		return floor(Rational<T>{value.num() * 2 + value.den(), value.den() * 2});
 }
 
-template <class T, EnableIfScalar<T>...> auto divide(const T &num, const T &den) {
+// TODO: ratDivide
+template <class T, class T1, EnableIf<dim<T> == 0>...> auto divide(const T &num, const T1 &den) {
+	static_assert(precise_conversion<T1, T>);
 	if constexpr(is_integral<T> || is_ext24<T>)
 		return Rational<T>(num, den);
 	else
 		return num / den;
 }
 
-template <class TV, class T1, class T = VecScalar<TV>> auto divide(const TV &num, const T1 &den) {
-	if constexpr(is_integral<T> && vec_size<TV> == 2)
+template <class T, class T1, EnableIf<(dim<T>> 0)>...> auto divide(const T &num, const T1 &den) {
+	static_assert(precise_conversion<T1, Scalar<T>>);
+	constexpr bool make_rational = is_integral<Scalar<T>> || is_ext24<Scalar<T>>;
+	if constexpr(make_rational && dim<T> == 2)
 		return Rational2<T>(num, den);
-	else if constexpr(is_integral<T> && vec_size<TV> == 3)
+	else if constexpr(make_rational && dim<T> == 3)
 		return Rational3<T>(num, den);
 	else
 		return num / den;
 }
 
-template <class T> auto clamp01(const T &value) {
+template <class T, EnableIf<is_scalar<T>>...> auto clamp01(const T &value) {
 	if constexpr(is_rational<T>) {
-		using S = typename T::TBase;
+		using S = typename T::Num;
 		return value.num() < S(0) ? T(0) : value.num() > S(1) ? T(1) : value;
 	} else
 		return clamp(value, T(0), T(1));

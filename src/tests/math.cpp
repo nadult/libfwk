@@ -307,13 +307,12 @@ void testVectorAngles() {
 	}
 }
 
-static_assert(is_vec<short2>, "");
-static_assert(is_vec<float4>, "");
-static_assert(!is_vec<vector<int>>, "");
+static_assert(is_vec<short2>);
+static_assert(is_vec<float4>);
+static_assert(!is_vec<vector<int>>);
 
-static_assert(is_real_object<FRect>, "");
-static_assert(is_integral_object<IBox>, "");
-static_assert(is_integral_vec<int3>, "");
+static_assert(is_same<Scalar<FRect>, float>);
+static_assert(is_integral<Base<IBox>>);
 
 void testHash() {
 	vector<vector<Segment3<double>>> data;

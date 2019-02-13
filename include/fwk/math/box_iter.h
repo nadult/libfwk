@@ -8,7 +8,7 @@
 namespace fwk {
 
 template <class T> struct BoxCells {
-	static_assert(is_integral_vec<T, 2>);
+	static_assert(is_vec<T, 2>);
 
 	using Scalar = typename T::Scalar;
 

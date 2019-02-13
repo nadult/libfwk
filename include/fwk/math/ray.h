@@ -11,7 +11,8 @@ namespace fwk {
 
 template <class T, int N> class Ray {
   public:
-	static_assert(is_real<T>, "Ray cannot be constructed using integral numbers as base type");
+	static_assert(is_fpt<T>);
+
 	using Scalar = T;
 	using Vec = MakeVec<T, N>;
 	using Point = Vec;
@@ -29,7 +30,7 @@ template <class T, int N> class Ray {
 	const Point at(T t) const { return m_origin + m_dir * t; }
 
 	// TODO: should we allow empty rays?
-	bool empty() const { return isZero(m_dir); }
+	bool empty() const { return m_dir == Vec(); }
 
 	T distance(const Point &) const;
 	T distance(const Ray &) const;

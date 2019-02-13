@@ -85,25 +85,27 @@ template <class T> static int order(T lnum, T lden, T rnum, T rden) {
 	return 1;
 }
 
-template <class T> Rational<T> Rational<T>::operator+(const Rational &rhs) const {
+#define TEMPLATE template <class T, int N>
+#define TRATIONAL Rational<T, N>
+
+TEMPLATE TRATIONAL TRATIONAL::operator+(const Rational &rhs) const {
 	if(m_den == rhs.m_den)
-		return {m_num + rhs.m_num, TBase(m_den), no_sign_check};
-	return {m_num * rhs.m_den + rhs.m_num * m_den, TBase(m_den * rhs.m_den), no_sign_check};
+		return {m_num + rhs.m_num, T(m_den), no_sign_check};
+	return {m_num * rhs.m_den + rhs.m_num * m_den, T(m_den * rhs.m_den), no_sign_check};
 }
 
-template <class T> Rational<T> Rational<T>::operator-(const Rational &rhs) const {
+TEMPLATE TRATIONAL TRATIONAL::operator-(const Rational &rhs) const {
 	if(m_den == rhs.m_den)
-		return {m_num - rhs.m_num, TBase(m_den), no_sign_check};
-	return {m_num * rhs.m_den - rhs.m_num * m_den, TBase(m_den * rhs.m_den), no_sign_check};
+		return {m_num - rhs.m_num, T(m_den), no_sign_check};
+	return {m_num * rhs.m_den - rhs.m_num * m_den, T(m_den * rhs.m_den), no_sign_check};
 }
 
-template <class T> Rational<T> Rational<T>::operator*(const Rational &rhs) const {
-	return {m_num * rhs.m_num, TBase(m_den * rhs.m_den), no_sign_check};
+TEMPLATE TRATIONAL TRATIONAL::operator*(const Rational &rhs) const {
+	return {m_num * rhs.m_num, T(m_den * rhs.m_den), no_sign_check};
 }
 
-template <class T>
-template <class U, EnableIfScalar<U>...>
-int Rational<T>::order(const Rational &rhs) const {
+TEMPLATE
+template <class U, EnableIf<fwk::dim<U> == 0>...> int TRATIONAL::order(const Rational &rhs) const {
 	if constexpr(is_ext24<T>) {
 		using PT = Promote<T>;
 		// TODO: handle infinities ?
@@ -114,69 +116,68 @@ int Rational<T>::order(const Rational &rhs) const {
 	}
 }
 
-template <class T> bool Rational<T>::operator==(const Rational &rhs) const {
-	if constexpr(vec_size == 0)
+TEMPLATE bool TRATIONAL::operator==(const Rational &rhs) const {
+	if constexpr(dim == 0)
 		return order(rhs) == 0;
-	else if constexpr(vec_size > 0) {
+	else if constexpr(dim > 0) {
 		// TODO: sometimes we want different kind of comparison: i.e. when one number
 		//       is normalized and the other one is not then they are different
-		for(int n = 0; n < vec_size; n++)
+		for(int n = 0; n < dim; n++)
 			if((*this)[n].order(rhs[n]) != 0)
 				return false;
 		return true;
 	}
 }
 
-template <class T> void Rational<T>::operator>>(TextFormatter &out) const {
+TEMPLATE void TRATIONAL::operator>>(TextFormatter &out) const {
 	out(out.isStructured() ? "%/%" : "% %", num(), den());
 }
 
-template <class T> bool Rational<T>::operator<(const Rational &rhs) const {
-	if constexpr(vec_size == 0) {
+TEMPLATE bool TRATIONAL::operator<(const Rational &rhs) const {
+	if constexpr(dim == 0) {
 		return order(rhs) == -1;
-	} else if constexpr(vec_size > 0) {
+	} else if constexpr(dim > 0) {
 		// TODO: sometimes we want different kind of comparison: i.e. when one number
 		//       is normalized and the other one is not then they are different
-		for(int n = 0; n < vec_size; n++)
+		for(int n = 0; n < dim; n++)
 			if(int cmp = (*this)[n].order(rhs[n]))
 				return cmp == -1;
 		return false;
 	}
 }
 
-template <class T> Rational<T> Rational<T>::normalized() const {
+TEMPLATE TRATIONAL TRATIONAL::normalized() const {
 	// TODO: more normalization is possible for Ext24 (denominator can be turned into integer)
 	// Should we create another normalization func?
-	if constexpr(is_ext24<TBase>) {
+	if constexpr(is_ext24<T>) {
 		if(m_den.isIntegral()) {
-			TBase t;
-			if constexpr(vec_size == 0) {
-				auto t = gcd(cspan({m_num.a, m_num.b, m_num.c, m_num.d, m_den.a}));
-				return {m_num.intDivide(t), m_den.a / t};
-			} else if constexpr(vec_size == 2) {
+			using S = Base<T>;
+			if constexpr(dim == 0) {
+				S t = gcd(cspan({m_num.a, m_num.b, m_num.c, m_num.d, m_den.a}));
+				return {m_num.intDivide(t), S(m_den.a / t), no_sign_check};
+			} else if constexpr(dim == 2) {
 				auto &x = m_num[0], &y = m_num[1];
-				auto t = gcd(cspan({x.a, x.b, x.c, x.d, y.a, y.b, y.c, y.d, m_den.a}));
-				auto dx = x.intDivide(t);
-				auto dy = y.intDivide(t);
-				return {{dx, dy}, m_den.a / t};
+				S t = gcd(cspan({x.a, x.b, x.c, x.d, y.a, y.b, y.c, y.d, m_den.a}));
+				auto dx = x.intDivide(t), dy = y.intDivide(t);
+				return {{dx, dy}, S(m_den.a / t), no_sign_check};
 			}
 		}
 
 		return *this;
 	} else {
-		TBase t;
-		if constexpr(vec_size == 0)
+		T t;
+		if constexpr(dim == 0)
 			t = gcd(m_num, m_den);
-		else if constexpr(vec_size == 2)
+		else if constexpr(dim == 2)
 			t = gcd(cspan({m_num[0], m_num[1], m_den}));
-		else if constexpr(vec_size == 3)
+		else if constexpr(dim == 3)
 			t = gcd(cspan({m_num[0], m_num[1], m_num[2], m_den}));
 
 		return t == 1 ? *this : Rational(m_num / t, m_den / t, no_sign_check);
 	}
 }
 
-template <class T> llint Rational<T>::hash() const { return hashMany<llint>(m_num, m_den); }
+TEMPLATE llint TRATIONAL::hash() const { return hashMany<llint>(m_num, m_den); }
 
 Rational<int> rationalApprox(double value, int max_num, bool upper_bound) {
 	bool sign = false;
@@ -207,32 +208,23 @@ Rational<int> rationalApprox(double value, int max_num, bool upper_bound) {
 	return sign ? -best : best;
 }
 
+#define INST_VEC(type, size) template struct Rational<type, size>;
 #define INST_SCALAR(type)                                                                          \
 	template struct Rational<type>;                                                                \
 	template int Rational<type>::order(const Rational &) const;
 
-INST_SCALAR(short)
-INST_SCALAR(int)
-INST_SCALAR(llint)
-INST_SCALAR(qint)
+#define INST_ALL_SIZES(type)                                                                       \
+	INST_SCALAR(type)                                                                              \
+	INST_VEC(type, 2)                                                                              \
+	INST_VEC(type, 3)
 
-INST_SCALAR(Ext24<short>)
-INST_SCALAR(Ext24<int>)
-INST_SCALAR(Ext24<llint>)
-INST_SCALAR(Ext24<qint>)
+INST_ALL_SIZES(short)
+INST_ALL_SIZES(int)
+INST_ALL_SIZES(llint)
+INST_ALL_SIZES(qint)
 
-template struct Rational<vec2<Ext24<short>>>;
-template struct Rational<vec2<Ext24<int>>>;
-template struct Rational<vec2<Ext24<llint>>>;
-template struct Rational<vec2<Ext24<qint>>>;
-
-template struct Rational<short2>;
-template struct Rational<int2>;
-template struct Rational<llint2>;
-template struct Rational<qint2>;
-
-template struct Rational<short3>;
-template struct Rational<int3>;
-template struct Rational<llint3>;
-template struct Rational<qint3>;
+INST_ALL_SIZES(Ext24<short>)
+INST_ALL_SIZES(Ext24<int>)
+INST_ALL_SIZES(Ext24<llint>)
+INST_ALL_SIZES(Ext24<qint>)
 }

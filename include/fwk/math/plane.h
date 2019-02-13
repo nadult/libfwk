@@ -12,7 +12,7 @@ namespace fwk {
 // dot(plane.normal(), pointOnPlane) == plane.distance();
 template <class T, int N> class Plane {
   public:
-	static_assert(is_real<T>, "Plane<> should be based on reals");
+	static_assert(is_fpt<T>);
 	enum { dim_size = N };
 
 	using Vec = MakeVec<T, N>;

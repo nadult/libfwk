@@ -8,13 +8,8 @@
 
 namespace fwk {
 
-template <class Real, EnableIfReal<Real>...> Real degToRad(Real v) {
-	return v * Real((2.0 * pi) / 360.0);
-}
-
-template <class Real, EnableIfReal<Real>...> Real radToDeg(Real v) {
-	return v * Real(360.0 / (2.0 * pi));
-}
+template <class T, EnableIf<is_fpt<T>>...> T degToRad(T v) { return v * T((2.0 * pi) / 360.0); }
+template <class T, EnableIf<is_fpt<T>>...> T radToDeg(T v) { return v * T(360.0 / (2.0 * pi)); }
 
 // Return angle in range (0; 2 * PI)
 float normalizeAngle(float radians); // TODO: clampAngle ?

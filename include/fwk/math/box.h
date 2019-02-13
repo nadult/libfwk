@@ -246,11 +246,11 @@ Box<T> enclose(const TRange &points) {
 	return {tmin, tmax};
 }
 
-template <class T, EnableIfRealVec<T>...> auto encloseIntegral(const Box<T> &box) {
-	using IVec = MakeVec<int, T::vec_size>;
+template <class T, EnableIfVec<T>...> auto encloseIntegral(const Box<T> &box) {
+	using IVec = MakeVec<int, dim<T>>;
 	T min = vfloor(box.min());
 	T max = vceil(box.max());
-	return Box<IVec>{IVec(min), IVec(max)};
+	return Box{IVec(min), IVec(max)};
 }
 
 template <class T> Box<T> enclose(const Box<T> &lhs, const Box<T> &rhs) {

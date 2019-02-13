@@ -19,18 +19,26 @@
 
 namespace fwk {
 
+template <int N> struct NotAValidVec;
+
+struct NotFloatingPoint;
+struct NotIntegral;
+
+// -------------------------------------------------------------------------------------------
+// ---  Type forward declarations  -----------------------------------------------------------
+
 template <class T> struct vec2;
 template <class T> struct vec3;
 template <class T> struct vec4;
 
-template <class T> struct Rational;
-template <class T> using Rational2 = Rational<vec2<T>>;
-template <class T> using Rational3 = Rational<vec3<T>>;
+template <class T, int N = 0> struct Rational;
+template <class T> using Rational2 = Rational<T, 2>;
+template <class T> using Rational3 = Rational<T, 3>;
 
 template <class T> struct Ext24;
 template <class T> using RatExt24 = Rational<Ext24<T>>;
-template <class T> using Rat2Ext24 = Rational2<Ext24<T>>;
-template <class T> using Rat3Ext24 = Rational3<Ext24<T>>;
+template <class T> using Rat2Ext24 = Rational<Ext24<T>, 2>;
+template <class T> using Rat3Ext24 = Rational<Ext24<T>, 3>;
 
 using llint = long long;
 #ifdef FWK_USE_BOOST_MPC_INT
@@ -58,76 +66,142 @@ using qint2 = vec2<qint>;
 using qint3 = vec3<qint>;
 using qint4 = vec4<qint>;
 
-Pair<float> sincos(float radians);
-Pair<double> sincos(double radians);
+template <class T> class Box;
+template <class T> struct Interval;
+template <class T> class IsectParam;
 
-// TODO: why not using std:: ?
-inline bool isnan(float v) { return std::isnan(v); }
-inline bool isnan(double v) { return std::isnan(v); }
-inline bool isnan(long double v) { return std::isnan(v); }
+template <class T, int N> class Triangle;
+template <class T, int N> class Plane;
+template <class T, int N> class Ray;
+template <class T, int N> class Segment;
 
-// TODO: why not templates?
-inline int abs(int s) { return std::abs(s); }
-inline long long abs(long long s) { return std::abs(s); }
-inline double abs(double s) { return std::abs(s); }
-inline float abs(float s) { return std::abs(s); }
-inline long double abs(long double s) { return std::abs(s); }
+template <class T> using Segment2 = Segment<T, 2>;
+template <class T> using Segment3 = Segment<T, 3>;
 
-using std::ceil;
-using std::floor;
+template <class T> using Triangle2 = Triangle<T, 2>;
+template <class T> using Triangle3 = Triangle<T, 3>;
 
-struct NotAReal;
-struct NotAIntegral;
-struct NotAScalar;
-template <int N> struct NotAValidVec;
+template <class T> using Plane2 = Plane<T, 2>;
+template <class T> using Plane3 = Plane<T, 3>;
+
+template <class T> using Ray2 = Ray<T, 2>;
+template <class T> using Ray3 = Ray<T, 3>;
+
+template <class T> using Box2 = Box<vec2<T>>;
+template <class T> using Box3 = Box<vec3<T>>;
+
+// TODO:
+// Triangle3f, Triangle3d or Triangle3D Triangle3F
+using Triangle3F = Triangle<float, 3>;
+using Triangle3D = Triangle<double, 3>;
+using Triangle2F = Triangle<float, 2>;
+using Triangle2D = Triangle<double, 2>;
+using Plane3F = Plane<float, 3>;
+using Plane3D = Plane<double, 3>;
+using Plane2F = Plane<float, 2>;
+using Plane2D = Plane<double, 2>;
+using Segment3F = Segment<float, 3>;
+using Segment3D = Segment<double, 3>;
+using Segment2F = Segment<float, 2>;
+using Segment2D = Segment<double, 2>;
+using Ray3F = Ray<float, 3>;
+using Ray3D = Ray<double, 3>;
+using Ray2F = Ray<float, 2>;
+using Ray2D = Ray<double, 2>;
+
+using Segment3I = Segment<int, 3>;
+using Segment2I = Segment<int, 2>;
+
+using IRect = Box<int2>;
+using FRect = Box<float2>;
+using DRect = Box<double2>;
+
+using IBox = Box<int3>;
+using FBox = Box<float3>;
+using DBox = Box<double3>;
+
+class Matrix3;
+class Matrix4;
+class Cylinder;
+class Frustum;
+class Quat;
+class AxisAngle;
+class AffineTrans;
+class Projection;
+class Tetrahedron;
+class Random;
+
+// -------------------------------------------------------------------------------------------
+// ---  Type information ---------------------------------------------------------------------
 
 namespace detail {
 
-	template <class T> struct IsIntegral : public std::is_integral<T> {};
-	template <class T> struct IsRational : public std::false_type {};
-	template <class T> struct IsExt24 : public std::false_type {};
-	template <class T> struct IsReal : public std::is_floating_point<T> {};
+	template <class T, int N> struct MakeVec { using Type = NotAValidVec<N>; };
+	template <class T> struct MakeVec<T, 2> { using Type = vec2<T>; };
+	template <class T> struct MakeVec<T, 3> { using Type = vec3<T>; };
+	template <class T> struct MakeVec<T, 4> { using Type = vec4<T>; };
 
-	template <> struct IsIntegral<qint> : public std::true_type {};
-	template <class T> struct IsRational<Rational<T>> : public std::true_type {};
-	template <class T> struct IsExt24<Ext24<T>> : public std::true_type {};
-
-	template <class T> struct IsScalar {
-		static constexpr bool value =
-			IsReal<T>::value || IsIntegral<T>::value || IsRational<T>::value;
+	template <class T> struct Scalar {
+		using Type = Conditional<is_one_of<T, Matrix3, Matrix4, Cylinder, Frustum, Quat, AxisAngle,
+										   Projection, Tetrahedron>,
+								 float, T>;
 	};
-	template <class T> struct IsScalar<Ext24<T>> { static constexpr bool value = true; };
+	template <class T> struct Scalar<vec2<T>> { using Type = T; };
+	template <class T> struct Scalar<vec3<T>> { using Type = T; };
+	template <class T> struct Scalar<vec4<T>> { using Type = T; };
+	template <class T> struct Scalar<Interval<T>> { using Type = T; };
+	template <class T> struct Scalar<IsectParam<T>> { using Type = T; };
+	template <class T> struct Scalar<Box<T>> { using Type = typename Scalar<T>::Type; };
+	template <class T, int N> struct Scalar<Triangle<T, N>> { using Type = T; };
+	template <class T, int N> struct Scalar<Plane<T, N>> { using Type = T; };
+	template <class T, int N> struct Scalar<Segment<T, N>> { using Type = T; };
+	template <class T, int N> struct Scalar<Ray<T, N>> { using Type = T; };
+	template <class T, int N> struct Scalar<Rational<T, N>> { using Type = Rational<T>; };
 
-	// TODO: can you do without it ?
-	template <class T, template <class> class Trait> struct ScalarTrait {
-		template <class U>
-		static typename std::enable_if<Trait<typename U::Scalar>::value, char>::type test(U *);
-		template <class U> static long test(...);
-		static constexpr bool value = sizeof(test<T>(nullptr)) == 1;
+	template <class T> struct ScBase { using Type = T; };
+	template <class T, int N> struct ScBase<Rational<T, N>> {
+		using Type = typename ScBase<T>::Type;
 	};
+	template <class T> struct ScBase<Ext24<T>> { using Type = typename ScBase<T>::Type; };
 
-	template <class T, int N> struct MakeVec { using type = NotAValidVec<N>; };
-	template <class T> struct MakeVec<T, 2> { using type = vec2<T>; };
-	template <class T> struct MakeVec<T, 3> { using type = vec3<T>; };
-	template <class T> struct MakeVec<T, 4> { using type = vec4<T>; };
+	template <class T> struct RatSize { static constexpr int value = -1; };
+	template <class T, int N> struct RatSize<Rational<T, N>> { static constexpr int value = N; };
 
-	template <class T> struct VecScalar {
-		template <class U> static auto test(U *) -> typename U::Scalar;
-		template <class U> static NotAValidVec<0> test(...);
-		using type = decltype(test<T>(nullptr));
-	};
-	template <class T> struct Ext24Base { using Type = void; };
-	template <class T> struct Ext24Base<Ext24<T>> { using Type = T; };
+	// TODO: should Base, dim work for Segment, Box, etc. ?
+	// If it will then, we have to modify is_vec, etc.
+	// If we had field, Base<> would be easy
+}
 
-	template <class T> struct RationalBase { using Type = void; };
-	template <class T> struct RationalBase<Rational<T>> { using Type = T; };
+template <class T> static constexpr int dim = 0;
+template <class T> static constexpr int dim<vec2<T>> = 2;
+template <class T> static constexpr int dim<vec3<T>> = 3;
+template <class T> static constexpr int dim<vec4<T>> = 4;
+template <class T, int N> static constexpr int dim<Rational<T, N>> = N;
 
-	template <class T> struct VecSize {
-		template <int N> struct Size { static constexpr int value = N; };
-		template <class U> static auto test(U *) -> Size<U::vec_size>;
-		template <class U> static Size<0> test(...);
-		static constexpr int value = decltype(test<T>(nullptr))::value;
-	};
+template <class T>
+static constexpr bool is_integral = std::is_integral<T>::value || is_same<T, qint>;
+template <class T> static constexpr bool is_fpt = std::is_floating_point<T>::value;
+template <class T> static constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
+
+template <class T> static constexpr bool is_rational = detail::RatSize<T>::value != -1;
+template <class T, int ReqN = 0>
+static constexpr bool is_rational_vec = detail::RatSize<T>::value > 0 &&
+										(ReqN == 0 || ReqN == detail::RatSize<T>::value);
+
+template <class T> static constexpr bool is_ext24 = false;
+template <class T> static constexpr bool is_ext24<Ext24<T>> = true;
+template <class T, int ReqN = 0>
+static constexpr bool is_vec = ((dim<T>) > 0) && !is_rational<T> && (ReqN == 0 || ReqN == dim<T>);
+
+template <class T> static constexpr bool is_scalar = is_fundamental<T> || is_ext24<T>;
+template <class T> static constexpr bool is_scalar<Rational<T, 0>> = true;
+
+template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::Type;
+
+template <class T> using Scalar = typename detail::Scalar<T>::Type;
+template <class T> using Base = typename detail::ScBase<Scalar<T>>::Type;
+
+namespace detail {
 
 	template <class T> struct Promotion { using type = T; };
 
@@ -156,7 +230,9 @@ namespace detail {
 
 	PRECISE(short, float)
 	PRECISE(int, double)
+	PRECISE(long long, long double)
 	PRECISE(float, double)
+	PRECISE(double, long double)
 
 	// TODO: full long doubles support?
 
@@ -168,18 +244,14 @@ namespace detail {
 		if constexpr(count == 0)
 			return T();
 		else {
-			if constexpr(VecSize<T>::value > 0) {
-				// TODO: generic function: BaseType<> ?
-				using BaseType = typename T::Scalar;
-				using Promoted = decltype(promote<BaseType, count>());
-				return typename MakeVec<Promoted, T::vec_size>::type();
-			} else if constexpr(IsRational<T>::value) {
-				using BaseType = typename RationalBase<T>::Type;
-				using Promoted = decltype(promote<BaseType, count>());
-				return Rational<Promoted>();
-			} else if constexpr(IsExt24<T>::value) {
-				using BaseType = typename Ext24Base<T>::Type;
-				using Promoted = decltype(promote<BaseType, count>());
+			if constexpr(is_vec<T>) {
+				using Promoted = decltype(promote<fwk::Scalar<T>, count>());
+				return fwk::MakeVec<Promoted, dim<T>>();
+			} else if constexpr(is_rational<T>) {
+				using Promoted = decltype(promote<typename T::Den, count>());
+				return Rational<Promoted, dim<T>>();
+			} else if constexpr(is_ext24<T>) {
+				using Promoted = decltype(promote<Base<T>, count>());
 				return Ext24<Promoted>();
 			} else {
 				return promote<typename detail::Promotion<T>::type, count - 1>();
@@ -188,84 +260,92 @@ namespace detail {
 	}
 }
 
-// TODO: pozamieniać to na NumberType ? real, integral, etc.
-template <class T> static constexpr bool is_real = detail::IsReal<T>::value;
-template <class T> static constexpr bool is_integral = detail::IsIntegral<T>::value;
-template <class T> static constexpr bool is_rational = detail::IsRational<T>::value;
-template <class T> static constexpr bool is_scalar = detail::IsScalar<T>::value;
-template <class T> static constexpr bool is_ext24 = detail::IsExt24<T>::value;
+template <class T> using EnableIfFpt = EnableIf<is_fpt<T>, NotFloatingPoint>;
+template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotIntegral>;
 
-template <class T>
-static constexpr bool is_real_object = detail::ScalarTrait<T, detail::IsReal>::value;
-
-template <class T>
-static constexpr bool is_integral_object = detail::ScalarTrait<T, detail::IsIntegral>::value;
-
-template <class T>
-static constexpr bool is_rational_object = detail::ScalarTrait<T, detail::IsRational>::value;
-
-template <class T> constexpr int vec_size = detail::VecSize<T>::value;
-template <class T> using VecScalar = typename detail::VecScalar<T>::type;
-
-template <class T, int N = 0>
-static constexpr bool is_vec = (vec_size<T> == N || N == 0) && vec_size<T>> 0;
-
-template <class T, int N = 0>
-static constexpr bool is_real_vec = is_vec<T, N> &&is_real<VecScalar<T>>;
-
-template <class T, int N = 0>
-static constexpr bool is_rational_or_real_vec = is_vec<T, N> && (is_real<VecScalar<T>> ||
-																 is_rational<VecScalar<T>>);
-
-template <class T, int N = 0>
-static constexpr bool is_integral_vec = is_vec<T, N> &&is_integral<VecScalar<T>>;
-
-template <class T, int N = 0>
-static constexpr bool is_rational_vec = is_vec<T, N> &&is_rational<VecScalar<T>>;
-
-template <class T> using EnableIfScalar = EnableIf<is_scalar<T>, NotAScalar>;
-template <class T> using EnableIfReal = EnableIf<is_real<T>, NotAReal>;
-template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotAIntegral>;
-
-template <class T, int N = 0> using EnableIfVec = EnableIf<is_vec<T, N>, NotAValidVec<N>>;
-template <class T, int N = 0> using EnableIfRealVec = EnableIf<is_real_vec<T, N>, NotAValidVec<N>>;
-template <class T, int N = 0>
-using EnableIfRationalOrRealVec = EnableIf<is_rational_or_real_vec<T, N>, NotAValidVec<N>>;
-template <class T, int N = 0>
-using EnableIfIntegralVec = EnableIf<is_integral_vec<T, N>, NotAValidVec<N>>;
-
-template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::type;
+template <class T, int ReqN = 0> using EnableIfVec = EnableIf<is_vec<T, ReqN>, NotAValidVec<ReqN>>;
+template <class T, int ReqN = 0>
+using EnableIfFptVec = EnableIf<is_vec<T, ReqN> && is_fpt<Base<T>>, NotAValidVec<ReqN>>;
+template <class T, int ReqN = 0>
+using EnableIfIntegralVec = EnableIf<is_vec<T, ReqN> && is_integral<Base<T>>, NotAValidVec<ReqN>>;
 
 template <class From, class To>
-static constexpr bool precise_conversion = []() {
-	if constexpr(is_vec<From> && is_vec<To>)
-		return From::vec_size == To::vec_size &&
-			   detail::PreciseConversion<typename From::Scalar, typename To::Scalar>::value;
-	return detail::PreciseConversion<From, To>::value;
-}();
+static constexpr bool precise_conversion = detail::PreciseConversion<Base<From>, Base<To>>::value;
 
 // TODO: maybe Promote is not the best name?
 // TODO: sometimes we want to raise an error if promotion is not available?
 template <class T, int count = 1> using Promote = decltype(detail::promote<T, count>());
 template <class T, int count = 1>
-using PromoteIntegral = Conditional<is_integral<T> || is_integral_vec<T>, Promote<T, count>, T>;
+using PromoteIntegral = Conditional<is_integral<Base<T>>, Promote<T, count>, T>;
 
 template <class T> struct ToReal { using type = double; };
 template <> struct ToReal<float> { using type = float; };
 template <> struct ToReal<short> { using type = float; };
 
-template <class T, class... Args> bool isnan(T val0, Args... vals) {
-	return isnan(val0) || isnan(vals...);
+// -------------------------------------------------------------------------------------------
+// ---  Basic math functions  ----------------------------------------------------------------
+
+Pair<float> sincos(float radians);
+Pair<double> sincos(double radians);
+
+// TODO: why not templates?
+inline int abs(int s) { return std::abs(s); }
+inline long long abs(long long s) { return std::abs(s); }
+inline double abs(double s) { return std::abs(s); }
+inline float abs(float s) { return std::abs(s); }
+inline long double abs(long double s) { return std::abs(s); }
+template <class T, EnableIf<is_scalar<T>>...> T abs(T value) {
+	return value < T(0) ? -value : value;
 }
 
-template <class T, EnableIfRealVec<T>...> bool isnan(const T &v) {
-	return anyOf(v.values(), [](auto s) { return isnan(s); });
+using std::ceil;
+using std::floor;
+
+// Nonstandard behaviour: rounding half up (0.5 -> 1, -0.5 -> 0)
+template <class T, EnableIfFpt<T>...> T round(T value) { return floor(value + T(0.5)); }
+
+template <class T, EnableIfFpt<T>...> inline T inv(T s) { return T(1) / s; }
+
+template <class T, EnableIf<is_scalar<T>>...> T clamp(const T &v, const T &tmin, const T &tmax) {
+	return min(tmax, max(tmin, v));
 }
 
-template <class TRange, class T = RangeBase<TRange>, EnableIf<is_real<T> || is_real_vec<T>>...>
-bool isnan(const TRange &range) {
-	return anyOf(range, [](const auto &elem) { return isnan(elem); });
+template <class T, class Scalar> inline T lerp(const T &a, const T &b, const Scalar &x) {
+	return (b - a) * x + a;
 }
+
+template <class T, EnableIfIntegral<T>...> T ratioFloor(T value, T div) {
+	return value < T(0) ? (value - div + T(1)) / div : value / div;
+}
+
+template <class T, EnableIfIntegral<T>...> T ratioCeil(T value, T div) {
+	return value > T(0) ? (value + div - T(1)) / div : value / div;
+}
+
+template <class T>
+static constexpr T epsilon = []() {
+	static_assert(is_fpt<T>);
+	// TODO: verify these values
+	return is_same<T, float> ? T(1E-6f) : is_same<T, double> ? T(1E-14) : T(1E-18L);
+}();
+
+template <class T> bool isAlmostOne(T value) {
+	auto diff = T(1) - value;
+	return diff < epsilon<T> && diff > -epsilon<T>;
+}
+
+float frand();
+
+template <class T, EnableIfIntegral<T>...> constexpr bool isPowerOfTwo(T value) {
+	return (value & (value - 1)) == 0;
+}
+
+constexpr int countLeadingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
+constexpr int countLeadingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
+constexpr int countTrailingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
+constexpr int countTrailingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
+constexpr int countBits(uint value) { return __builtin_popcount(value); }
+constexpr int countBits(u64 value) { return __builtin_popcountll(value); }
 
 template <class T, EnableIfIntegral<T>...> T nextPow2(T val) {
 	T out = 1;
@@ -274,9 +354,22 @@ template <class T, EnableIfIntegral<T>...> T nextPow2(T val) {
 	return out;
 }
 
+using std::isnan;
+template <class T, class... TV> bool isnan(T v0, TV... vn) { return isnan(v0) || isnan(vn...); }
+template <class T, EnableIfFptVec<T>...> bool isnan(const T &v) {
+	return anyOf(v.values(), [](auto s) { return isnan(s); });
+}
+template <class TRange, class T = RangeBase<TRange>, EnableIf<is_fpt<Base<T>>>...>
+bool isnan(const TRange &range) {
+	return anyOf(range, [](auto s) { return isnan(s); });
+}
+
+// -------------------------------------------------------------------------------------------
+// ---  Basic vector class templates  --------------------------------------------------------
+
 #ifdef FWK_CHECK_NANS
 #define CHECK_NANS(...)                                                                            \
-	if constexpr(is_real<T>)                                                                       \
+	if constexpr(is_fpt<T>)                                                                        \
 	DASSERT(!isnan(__VA_ARGS__))
 #else
 #define CHECK_NANS(...)
@@ -431,18 +524,31 @@ template <class T> struct vec4 {
 	};
 };
 
-#undef CHECK_NANS
-
-template <class T, EnableIfScalar<T>...> T clamp(const T &obj, const T &tmin, const T &tmax) {
-	return min(tmax, max(tmin, obj));
-}
-
-template <class Obj, class Scalar> inline Obj lerp(const Obj &a, const Obj &b, const Scalar &x) {
-	return (b - a) * x + a;
-}
-
 template <class T, EnableIfVec<T>...> T operator*(typename T::Scalar s, const T &v) {
 	return v * s;
+}
+
+#undef CHECK_NANS
+
+// -------------------------------------------------------------------------------------------
+// ---  Vector versions of basic math functions  ---------------------------------------------
+
+template <class TVec, class TFunc, EnableIfVec<TVec, 2>...>
+auto transform(const TVec &vec, const TFunc &func) {
+	using TOut = MakeVec<decltype(func(vec[0])), 2>;
+	return TOut{func(vec[0]), func(vec[1])};
+}
+
+template <class TVec, class TFunc, EnableIfVec<TVec, 3>...>
+auto transform(const TVec &vec, const TFunc &func) {
+	using TOut = MakeVec<decltype(func(vec[0])), 3>;
+	return TOut{func(vec[0]), func(vec[1]), func(vec[2])};
+}
+
+template <class TVec, class TFunc, EnableIfVec<TVec, 4>...>
+auto transform(const TVec &vec, const TFunc &func) {
+	using TOut = MakeVec<decltype(func(vec[0])), 4>;
+	return TOut{func(vec[0]), func(vec[1]), func(vec[2]), func(vec[3])};
 }
 
 template <class T, EnableIfVec<T, 2>...> T vmin(const T &lhs, const T &rhs) {
@@ -473,63 +579,33 @@ template <class T, EnableIfVec<T>...> T vclamp(const T &vec, const T &tmin, cons
 	return vmin(tmax, vmax(tmin, vec));
 }
 
-template <class T, EnableIfScalar<T>...> T abs(T value) { return value < T(0) ? -value : value; }
-
-template <class T, EnableIfReal<T>...> inline T inv(T s) { return T(1) / s; }
-
-// Nonstandard behaviour: rounding half up (0.5 -> 1, -0.5 -> 0)
-template <class T, EnableIfReal<T>...> T round(T value) { return floor(value + T(0.5)); }
-
-template <class TVec, class TFunc, EnableIfVec<TVec, 2>...>
-auto transform(const TVec &vec, const TFunc &func) {
-	using TOut = MakeVec<decltype(func(vec[0])), 2>;
-	return TOut{func(vec[0]), func(vec[1])};
+template <class T, EnableIfVec<T>...> auto vfloor(const T &v) {
+	return transform(v, [](auto s) { return floor(s); });
 }
-
-template <class TVec, class TFunc, EnableIfVec<TVec, 3>...>
-auto transform(const TVec &vec, const TFunc &func) {
-	using TOut = MakeVec<decltype(func(vec[0])), 3>;
-	return TOut{func(vec[0]), func(vec[1]), func(vec[2])};
+template <class T, EnableIfVec<T>...> auto vceil(const T &v) {
+	return transform(v, [](auto s) { return ceil(s); });
 }
-
-template <class TVec, class TFunc, EnableIfVec<TVec, 4>...>
-auto transform(const TVec &vec, const TFunc &func) {
-	using TOut = MakeVec<decltype(func(vec[0])), 4>;
-	return TOut{func(vec[0]), func(vec[1]), func(vec[2]), func(vec[3])};
+template <class T, EnableIfVec<T>...> auto vround(const T &v) {
+	return transform(v, [](auto s) { return round(s); });
 }
-
-template <class T, EnableIfIntegral<T>...> T ratioFloor(T value, T div) {
-	return value < T(0) ? (value - div + T(1)) / div : value / div;
+template <class T, EnableIfVec<T>...> T vabs(const T &v) {
+	return transform(v, [](auto s) { return abs(s); });
 }
-
-template <class T, EnableIfIntegral<T>...> T ratioCeil(T value, T div) {
-	return value > T(0) ? (value + div - T(1)) / div : value / div;
+template <class T, EnableIfFptVec<T>...> T vinv(const T &vec) {
+	return transform(vec, [](auto v) { return inv(v); });
 }
 
 template <class TVec, class T, EnableIfIntegralVec<TVec>...>
-auto ratioFloor(const TVec &vec, T div) {
-	return fwk::transform(vec, [=](const auto &t) { return ratioFloor(t, div); });
+auto vratioFloor(const TVec &v, T div) {
+	return transform(v, [=](auto t) { return ratioFloor(t, div); });
 }
 
-template <class TVec, class T, EnableIfIntegralVec<TVec>...>
-auto ratioCeil(const TVec &vec, T div) {
-	return fwk::transform(vec, [=](const auto &t) { return ratioCeil(t, div); });
-}
-template <class T, EnableIfRationalOrRealVec<T>...> auto vfloor(const T &vec) {
-	return transform(vec, [](const auto &t) { return floor(t); });
+template <class TVec, class T, EnableIfIntegralVec<TVec>...> auto vratioCeil(const TVec &v, T div) {
+	return transform(v, [=](auto t) { return ratioCeil(t, div); });
 }
 
-template <class T, EnableIfRationalOrRealVec<T>...> auto vceil(T vec) {
-	return transform(vec, [](const auto &t) { return ceil(t); });
-}
-
-template <class T, EnableIfRationalOrRealVec<T>...> auto vround(T vec) {
-	return transform(vec, [](const auto &t) { return round(t); });
-}
-
-template <class T, EnableIfVec<T>...> T vabs(T vec) {
-	return transform(vec, [](const auto &t) { return abs(t); });
-}
+// -------------------------------------------------------------------------------------------
+// ---  Vector functions  --------------------------------------------------------------------
 
 template <class T, EnableIfVec<T, 2>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs[0] * rhs[0] + lhs[1] * rhs[1];
@@ -543,13 +619,13 @@ template <class T, EnableIfVec<T, 4>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2] + lhs[3] * rhs[3];
 }
 
-template <class T, EnableIfRealVec<T>...> auto length(const T &vec) {
+template <class T, EnableIfFptVec<T>...> auto length(const T &vec) {
 	return std::sqrt(dot(vec, vec));
 }
 
 template <class T, EnableIfVec<T>...> auto lengthSq(const T &vec) { return dot(vec, vec); }
 
-template <class T, EnableIfRealVec<T>...> auto distance(const T &lhs, const T &rhs) {
+template <class T, EnableIfFptVec<T>...> auto distance(const T &lhs, const T &rhs) {
 	return length(lhs - rhs);
 }
 
@@ -557,7 +633,7 @@ template <class T, EnableIfVec<T>...> auto distanceSq(const T &lhs, const T &rhs
 	return lengthSq(lhs - rhs);
 }
 
-template <class T, EnableIfRealVec<T>...> T normalize(const T &v) { return v / length(v); }
+template <class T, EnableIfFptVec<T>...> T normalize(const T &v) { return v / length(v); }
 
 template <class T, EnableIfVec<T, 2>...> auto asXZ(const T &v) {
 	using TOut = MakeVec<typename T::Scalar, 3>;
@@ -574,10 +650,6 @@ template <class T, EnableIfVec<T, 2>...> auto asXZY(const T &xz, typename T::Sca
 
 template <class T, EnableIfVec<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-template <class T, EnableIfRealVec<T>...> T vinv(const T &vec) {
-	return transform(vec, [](const auto &v) { return inv(v); });
-}
-
 // Right-handed coordinate system
 template <class T, EnableIfVec<T, 3>...> T cross(const T &a, const T &b) {
 	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
@@ -592,20 +664,8 @@ template <class T, EnableIfVec<T, 2>...> auto cross(const T &a, const T &b) {
 
 template <class T, EnableIfVec<T, 2>...> T perpendicular(const T &v) { return T(-v[1], v[0]); }
 
-template <class T>
-static constexpr T epsilon = []() {
-	static_assert(is_real<T>);
-	// TODO: verify these values
-	return is_same<T, float> ? T(1E-6f) : is_same<T, double> ? T(1E-14) : T(1E-18L);
-}();
-
-template <class T> bool isAlmostOne(T value) {
-	auto diff = T(1) - value;
-	return diff < epsilon<T> && diff > -epsilon<T>;
-}
-
 // TODO: we can't really check it properly for floating-point's...
-template <class T, EnableIfRealVec<T>...> bool isNormalized(const T &vec) {
+template <class T, EnableIfFptVec<T>...> bool isNormalized(const T &vec) {
 	return isAlmostOne(lengthSq(vec));
 }
 
@@ -633,96 +693,16 @@ template <class T> bool cwSide(const vec2<T> &from, const vec2<T> &to, const vec
 
 template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1, const TVec &vec2) {
 	using PT = PromoteIntegral<TVec>;
-	using TCross = Conditional<vec_size<TVec> == 2, typename PT::Scalar, PT>;
+	using TCross = Conditional<dim<TVec> == 2, Scalar<PT>, PT>;
 	return cross<PT>(vec1, vec2) == TCross(0) && dot<PT>(vec1, vec2) > 0;
 }
 
-template <class T, EnableIfVec<T>...> bool isZero(const T &vec) { return vec == T(); }
-
-float frand();
-
-template <class T, EnableIfIntegral<T>...> constexpr bool isPowerOfTwo(T value) {
-	return (value & (value - 1)) == 0;
-}
-
-constexpr int countLeadingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
-constexpr int countLeadingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
-constexpr int countTrailingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
-constexpr int countTrailingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
-constexpr int countBits(uint value) { return __builtin_popcount(value); }
-constexpr int countBits(u64 value) { return __builtin_popcountll(value); }
-
-class Matrix3;
-class Matrix4;
-
-template <class T> class Box;
-template <class T> struct Interval;
-template <class T> class IsectParam;
-
-template <class T, int N> class Triangle;
-template <class T, int N> class Plane;
-template <class T, int N> class Ray;
-template <class T, int N> class Segment;
-
-template <class T> using Segment2 = Segment<T, 2>;
-template <class T> using Segment3 = Segment<T, 3>;
-
-template <class T> using Triangle2 = Triangle<T, 2>;
-template <class T> using Triangle3 = Triangle<T, 3>;
-
-template <class T> using Plane2 = Plane<T, 2>;
-template <class T> using Plane3 = Plane<T, 3>;
-
-template <class T> using Ray2 = Ray<T, 2>;
-template <class T> using Ray3 = Ray<T, 3>;
-
-template <class T> using Box2 = Box<MakeVec<T, 2>>;
-template <class T> using Box3 = Box<MakeVec<T, 3>>;
-
-// TODO:
-// Triangle3f, Triangle3d or Triangle3D Triangle3F
-using Triangle3F = Triangle<float, 3>;
-using Triangle3D = Triangle<double, 3>;
-using Triangle2F = Triangle<float, 2>;
-using Triangle2D = Triangle<double, 2>;
-using Plane3F = Plane<float, 3>;
-using Plane3D = Plane<double, 3>;
-using Plane2F = Plane<float, 2>;
-using Plane2D = Plane<double, 2>;
-using Segment3F = Segment<float, 3>;
-using Segment3D = Segment<double, 3>;
-using Segment2F = Segment<float, 2>;
-using Segment2D = Segment<double, 2>;
-using Ray3F = Ray<float, 3>;
-using Ray3D = Ray<double, 3>;
-using Ray2F = Ray<float, 2>;
-using Ray2D = Ray<double, 2>;
-
-using Segment3I = Segment<int, 3>;
-using Segment2I = Segment<int, 2>;
-
-using IRect = Box<int2>;
-using FRect = Box<float2>;
-using DRect = Box<double2>;
-
-using IBox = Box<int3>;
-using FBox = Box<float3>;
-using DBox = Box<double3>;
-
-class Cylinder;
-class Frustum;
-class Matrix3;
-class Matrix4;
-class Quat;
-class AxisAngle;
-class AffineTrans;
-class Projection;
-class Tetrahedron;
-class Random;
+// -------------------------------------------------------------------------------------------
+// ---  Additional declarations  -------------------------------------------------------------
 
 struct DisabledInThisDimension;
 
-template <class T, int N> using EnableInDimension = EnableIf<is_vec<T, N>, DisabledInThisDimension>;
+template <class T, int N> using EnableInDimension = EnableIf<dim<T> == N, DisabledInThisDimension>;
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
 using IsectFlags = EnumFlags<IsectClass>;

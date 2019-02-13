@@ -65,7 +65,7 @@ Quat::operator Matrix3() const {
 	float qwx(w * x);
 	float qwy(w * y);
 	float qwz(w * z);
-	float mul = 2.0f / length(*this);
+	float mul = 2.0f / length(float4(*this));
 
 	out[0][0] = 1 - mul * (qyy + qzz);
 	out[0][1] = mul * (qxy + qwz);

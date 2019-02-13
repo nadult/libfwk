@@ -28,7 +28,7 @@ template <class T> inline double relativeDifference(const T &a, const T &b) {
 	}
 }
 
-template <class T, class Base = Conditional<is_scalar<T>, T, VecScalar<T>>>
+template <class T, class Base = Scalar<T>>
 void assertCloseEnough(const T &a, const T &b, double eps = epsilon<Base>) {
 	auto diff = relativeDifference(a, b);
 	if(diff > eps)

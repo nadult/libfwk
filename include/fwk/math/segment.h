@@ -11,10 +11,15 @@ namespace fwk {
 #define ENABLE_IF_SIZE(n) template <class U = Vec, EnableInDimension<U, n>...>
 
 // Results are exact only when computing on integers
+// TODO: makes no sense if we want to use rationals as base...
+// TODO: czy lepsze jest divide, przerobienie dzielenia w int2 ?
 template <class T, int N> class Segment {
   public:
-	static_assert(is_integral<T> || is_real<T> || is_ext24<T>, "");
-	static_assert(N >= 2 && N <= 3, "");
+	static_assert(is_scalar<T>);
+
+	// TODO: check if it works for rationals...
+	// TODO: passing rational as T to rational should eratse it
+	static_assert(N >= 2 && N <= 3);
 	static constexpr int dim_size = N;
 
 	using Vec = MakeVec<T, N>;
@@ -23,26 +28,26 @@ template <class T, int N> class Segment {
 	using Isect = Variant<None, Point, Segment>;
 	using IsectParam = fwk::IsectParam<T>;
 
-	template <class U> using Promote = Conditional<is_real<T>, U, fwk::Promote<U>>;
+	template <class U> using Promote = Conditional<is_fpt<T>, U, fwk::Promote<U>>;
 
 	// Promotion works only for integrals
 	// TODO: this is a mess, clean it up
 	using PT = Promote<T>;
 	using PPT = Promote<PT>;
 
-	using PRT = Conditional<!is_real<T>, Rational<PT>, PT>;
-	using PPRT = Conditional<!is_real<T>, Rational<PPT>, PPT>;
+	using PRT = Conditional<!is_fpt<T>, Rational<PT>, PT>;
+	using PPRT = Conditional<!is_fpt<T>, Rational<PPT>, PPT>;
 	using PVec = MakeVec<PT, N>;
 	using PPVec = MakeVec<PPT, N>;
-	using PRVec = Conditional<!is_real<T>, Conditional<N == 2, Rational2<PT>, Rational3<PT>>, Vec>;
+	using PRVec = Conditional<!is_fpt<T>, Conditional<N == 2, Rational2<PT>, Rational3<PT>>, Vec>;
 	using PPRVec =
-		Conditional<!is_real<T>, Conditional<N == 2, Rational2<PPT>, Rational3<PPT>>, Vec>;
+		Conditional<!is_fpt<T>, Conditional<N == 2, Rational2<PPT>, Rational3<PPT>>, Vec>;
 
 	using PRIsectParam = fwk::IsectParam<PRT>;
 	using PPRIsectParam = fwk::IsectParam<PPRT>;
 
-	using PReal = Conditional<!is_real<T>, double, T>;
-	using PRealVec = Conditional<!is_real<T>, MakeVec<double, N>, Vec>;
+	using PReal = Conditional<!is_fpt<T>, double, T>;
+	using PRealVec = Conditional<!is_fpt<T>, MakeVec<double, N>, Vec>;
 
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
@@ -60,7 +65,7 @@ template <class T, int N> class Segment {
 	bool empty() const { return from == to; }
 	Vec dir() const { return to - from; }
 
-	template <class U = T, EnableIfReal<U>...> Maybe<Ray<T, N>> asRay() const;
+	template <class U = T, EnableIfFpt<U>...> Maybe<Ray<T, N>> asRay() const;
 
 	Segment twin() const { return {to, from}; }
 
@@ -92,7 +97,7 @@ template <class T, int N> class Segment {
 	PRIsectParam isectParam(const Segment &) const;
 	Pair<PPRIsectParam, bool> isectParam(const Triangle<T, N> &) const;
 	PRIsectParam isectParam(const Box<Vec> &) const;
-	template <class U = T, EnableIfReal<U>...> IsectParam isectParam(const Plane<T, N> &) const;
+	template <class U = T, EnableIfFpt<U>...> IsectParam isectParam(const Plane<T, N> &) const;
 
 	Isect isect(const Segment &segment) const;
 	Isect isect(const Box<Vec> &box) const;

@@ -16,21 +16,21 @@ template <NumberType type = NumberType::real> struct RealConstant {
 	}
 	constexpr RealConstant operator-() const { return {val, !sign}; }
 
-#define IF_REAL template <class T, EnableIf<is_real<T>>...>
+#define IF_FPT template <class T, EnableIf<is_fpt<T>>...>
 
-	IF_REAL constexpr T operator*(T val) const { return T(*this) * val; }
-	IF_REAL constexpr T operator/(T val) const { return T(*this) / val; }
-	IF_REAL constexpr T operator-(T val) const { return T(*this) - val; }
-	IF_REAL constexpr T operator+(T val) const { return T(*this) + val; }
-	IF_REAL constexpr bool operator<(T val) const { return T(*this) < val; }
+	IF_FPT constexpr T operator*(T val) const { return T(*this) * val; }
+	IF_FPT constexpr T operator/(T val) const { return T(*this) / val; }
+	IF_FPT constexpr T operator-(T val) const { return T(*this) - val; }
+	IF_FPT constexpr T operator+(T val) const { return T(*this) + val; }
+	IF_FPT constexpr bool operator<(T val) const { return T(*this) < val; }
 
-	IF_REAL friend constexpr T operator*(T v, const RealConstant &rc) { return v * T(rc); }
-	IF_REAL friend constexpr T operator/(T v, const RealConstant &rc) { return v / T(rc); }
-	IF_REAL friend constexpr T operator-(T v, const RealConstant &rc) { return v - T(rc); }
-	IF_REAL friend constexpr T operator+(T v, const RealConstant &rc) { return v + T(rc); }
-	IF_REAL friend constexpr bool operator<(T v, const RealConstant &rc) { return v < T(rc); }
+	IF_FPT friend constexpr T operator*(T v, const RealConstant &rc) { return v * T(rc); }
+	IF_FPT friend constexpr T operator/(T v, const RealConstant &rc) { return v / T(rc); }
+	IF_FPT friend constexpr T operator-(T v, const RealConstant &rc) { return v - T(rc); }
+	IF_FPT friend constexpr T operator+(T v, const RealConstant &rc) { return v + T(rc); }
+	IF_FPT friend constexpr bool operator<(T v, const RealConstant &rc) { return v < T(rc); }
 
-#undef IF_REAL
+#undef IF_FPT
 
 	long double val;
 	bool sign;

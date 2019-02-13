@@ -15,7 +15,7 @@
 namespace fwk {
 
 #define TEMPLATE template <class T, int N>
-#define TEMPLATE_REAL TEMPLATE template <class U, EnableIfReal<U>...>
+#define TEMPLATE_REAL TEMPLATE template <class U, EnableIfFpt<U>...>
 #define TSEG Segment<T, N>
 
 TEMPLATE_REAL Maybe<Ray<T, N>> TSEG::asRay() const {
@@ -44,7 +44,7 @@ TEMPLATE auto TSEG::distanceSq(const Segment &rhs) const -> PReal {
 }
 
 TEMPLATE auto TSEG::at(const IsectParam &pisect) const -> Isect {
-	if constexpr(is_real<T>) {
+	if constexpr(is_fpt<T>) {
 		if(pisect.isPoint())
 			return at(pisect.asPoint());
 		if(pisect.isInterval())
@@ -126,7 +126,7 @@ TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 
 // TODO: don't use rays here (we could avoid sqrt)
 TEMPLATE auto TSEG::isectParam(const Box<Vec> &box) const -> PRIsectParam {
-	if constexpr(is_real<T>) {
+	if constexpr(is_fpt<T>) {
 		if(empty())
 			return box.contains(from) ? T(0) : IsectParam();
 		auto param = asRay()->isectParam(box).asInterval() / length();
@@ -197,7 +197,7 @@ TEMPLATE auto TSEG::isectParam(const Triangle<T, N> &tri) const -> Pair<PPRIsect
 }
 
 TEMPLATE auto TSEG::isect(const Segment &segment) const -> Isect {
-	if constexpr(is_real<T>)
+	if constexpr(is_fpt<T>)
 		return at(isectParam(segment));
 
 	FATAL("write me");
@@ -205,7 +205,7 @@ TEMPLATE auto TSEG::isect(const Segment &segment) const -> Isect {
 }
 
 TEMPLATE auto TSEG::isect(const Box<Vec> &box) const -> Isect {
-	if constexpr(is_real<T>)
+	if constexpr(is_fpt<T>)
 		return at(isectParam(box));
 
 	FATAL("write me");
@@ -297,7 +297,6 @@ TEMPLATE auto TSEG::closestPointParam(const Point &point) const -> PRT {
 	} else {
 		auto vec = dir();
 		auto t = dot(point - from, vec) / fwk::lengthSq(vec);
-
 		return clamp01(t);
 	}
 }

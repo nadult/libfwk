@@ -37,7 +37,7 @@ class Random {
 	}
 	template <class T, EnableIfVec<T>...> T sampleUnitHemisphere() {
 		auto point = sampleUnitSphere<T>();
-		while(isZero(point))
+		while(point == T())
 			point = sampleUnitSphere<T>();
 		return normalize(point);
 	}
