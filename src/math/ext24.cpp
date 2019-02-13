@@ -9,6 +9,35 @@
 
 using ld = long double;
 
+// Może zróbmy typ Exact<> ?
+//   wymiary:
+//   - wymiarowość: skalar, 2, 3, 4  (1 wymiar)
+//   - wymierny lub całkowity        (funkcje num / den sa dostępne lub nie)
+//   - z rozszerzeniem lub bez       (2 wymiar)
+//
+//   promocje rozszerzalności przy podstawowych operacjach, przy obrotach
+//   promocja wymierności przy podstawowych operacjach, przy dzieleniu
+
+//   ExactType: ext_rational, ext, rational
+//   Exact<short, 2, ExactType::ext_rational> ?
+//   Exact<short, 2>, ExactR<short, 2>, ExactE<short, 2>, ExactRE<int, 0>, ExactRE<int>
+//
+//   W środku mógłby miec __m128i, __m256i;
+//
+//   kompletna wielkość zależałaby od wszystkich parametrów:
+//     num_dimensions * num_elements + num_elements * has_denominator
+//     np. 4 * 4 + 4 * 1 = 20; Jak to zmieścić w __m128i / __m256i ?
+//     short: 3x __m128i albo 2x __m256i
+//     int: 5x __m128i albo 3x __m256i
+//     llint: 10x __m128i, 5x __m256i
+//     qint: 10x __m256i
+//
+//   Możemy do Ext24 dodać obsługe Rationala, wektorów i zrobić z tego Exact;
+//   Samego rationala możemy zostawić i usunąc z niego obsługe Ext24;
+//
+// MakeRat<> tworzy rationala lub nie
+// Dodatkowo konstruktory rat(), vec() ?
+
 namespace fwk {
 namespace {
 
