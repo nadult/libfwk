@@ -14,14 +14,14 @@
 
 namespace fwk {
 
-#define TEMPLATE template <class T, int N>
+#define TEMPLATE template <class TVec>
 #define TEMPLATE_REAL TEMPLATE template <class U, EnableIfFpt<U>...>
-#define TSEG Segment<T, N>
+#define TSEG Segment<TVec>
 
-TEMPLATE_REAL Maybe<Ray<T, N>> TSEG::asRay() const {
+TEMPLATE_REAL auto TSEG::asRay() const -> Maybe<Ray<T, dim>> {
 	if(empty())
 		return none;
-	return Ray<T, N>(from, normalize(dir()));
+	return Ray<T, dim>(from, normalize(dir()));
 }
 
 // Source: RTCD (page 130)
@@ -55,7 +55,7 @@ TEMPLATE auto TSEG::at(const IsectParam &pisect) const -> Isect {
 
 // TODO: in case of floating-points accuracy can be improved
 TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
-	for(int n = 0; n < N; n++) {
+	for(int n = 0; n < dim; n++) {
 		auto lmin = min(from[n], to[n]);
 		auto lmax = max(from[n], to[n]);
 		auto rmin = min(rhs.from[n], rhs.to[n]);
@@ -65,7 +65,7 @@ TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 			return {};
 	}
 
-	if constexpr(N == 2) {
+	if constexpr(dim == 2) {
 		if(empty()) {
 			if(rhs.empty()) {
 				if(to == rhs.to)
@@ -138,8 +138,8 @@ TEMPLATE auto TSEG::isectParam(const Box<Vec> &box) const -> PRIsectParam {
 }
 
 // TODO: proper intersections (not based on rays)
-TEMPLATE_REAL IsectParam<T> TSEG::isectParam(const Plane<T, N> &plane) const {
-	if constexpr(N == 2) {
+TEMPLATE_REAL auto TSEG::isectParam(const Plane<T, dim> &plane) const -> IsectParam {
+	if constexpr(dim == 2) {
 		FATAL("write me");
 		return {};
 	} else {
@@ -150,8 +150,8 @@ TEMPLATE_REAL IsectParam<T> TSEG::isectParam(const Plane<T, N> &plane) const {
 	}
 }
 
-TEMPLATE auto TSEG::isectParam(const Triangle<T, N> &tri) const -> Pair<PPRIsectParam, bool> {
-	if constexpr(N == 3) {
+TEMPLATE auto TSEG::isectParam(const Triangle<T, dim> &tri) const -> Pair<PPRIsectParam, bool> {
+	if constexpr(dim == 3) {
 		// TODO: use this in real segment
 		Vec ab = tri[1] - tri[0];
 		Vec ac = tri[2] - tri[0];
@@ -213,7 +213,7 @@ TEMPLATE auto TSEG::isect(const Box<Vec> &box) const -> Isect {
 }
 
 TEMPLATE IsectClass TSEG::classifyIsect(const Point &point) const {
-	if constexpr(N == 2) {
+	if constexpr(dim == 2) {
 		if(isOneOf(point, from, to))
 			return IsectClass::adjacent;
 		if(empty())
@@ -259,21 +259,21 @@ TEMPLATE bool TSEG::testIsect(const Box<Vec> &box) const {
 	PVec m = PVec(from + to) - PVec(box.max() + box.min());
 
 	PVec ad;
-	for(int i = 0; i < N; i++) {
+	for(int i = 0; i < dim; i++) {
 		ad[i] = abs(d[i]);
 		if(abs(m[i]) > e[i] + ad[i])
 			return false;
 	}
 
-	if constexpr(N == 2) {
+	if constexpr(dim == 2) {
 		return abs(cross(m, d)) <= e[0] * ad[1] + e[1] * ad[0];
 	} else {
 		// TODO: test it
-		if(abs(m.z * d.z - m.z * d.y) > e.y * ad.z + e.z * ad.y)
+		if(abs(m[1] * d[2] - m[2] * d[1]) > e[1] * ad[2] + e[2] * ad[1])
 			return false;
-		if(abs(m.z * d.x - m.x * d.z) > e.x * ad.z + e.z * ad.x)
+		if(abs(m[2] * d[0] - m[0] * d[2]) > e[0] * ad[2] + e[2] * ad[0])
 			return false;
-		if(abs(m.x * d.y - m.y * d.x) > e.x * ad.y + e.y * ad.x)
+		if(abs(m[0] * d[1] - m[1] * d[0]) > e[0] * ad[1] + e[1] * ad[0])
 			return false;
 		return true;
 	}
@@ -361,30 +361,38 @@ TEMPLATE void TSEG::operator>>(TextFormatter &fmt) const {
 	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
 }
 
-#define INSTANTIATE(type)                                                                          \
-	template class Segment<type, 2>;                                                               \
-	template class Segment<type, 3>;
+#define INSTANTIATE_VEC(type)                                                                      \
+	template class Segment<vec2<type>>;                                                            \
+	template class Segment<vec3<type>>;
 
-INSTANTIATE(short)
-INSTANTIATE(int)
-INSTANTIATE(llint)
-INSTANTIATE(float)
-INSTANTIATE(double)
+#define INSTANTIATE_RAT(type)                                                                      \
+	template class Segment<Rational<type, 2>>;                                                     \
+	template class Segment<Rational<type, 3>>;
 
-INSTANTIATE(Ext24<short>)
-INSTANTIATE(Ext24<int>)
-INSTANTIATE(Ext24<llint>)
+INSTANTIATE_VEC(short)
+INSTANTIATE_VEC(int)
+INSTANTIATE_VEC(llint)
+INSTANTIATE_VEC(float)
+INSTANTIATE_VEC(double)
 
-template Maybe<Ray<float, 2>> Segment<float, 2>::asRay() const;
-template Maybe<Ray<double, 2>> Segment<double, 2>::asRay() const;
+INSTANTIATE_VEC(Ext24<short>)
+INSTANTIATE_VEC(Ext24<int>)
+INSTANTIATE_VEC(Ext24<llint>)
 
-template Maybe<Ray<float, 3>> Segment<float, 3>::asRay() const;
-template Maybe<Ray<double, 3>> Segment<double, 3>::asRay() const;
+INSTANTIATE_RAT(short)
+INSTANTIATE_RAT(int)
+INSTANTIATE_RAT(llint)
 
-template auto Segment<float, 3>::isectParam(const Plane3<float> &) const -> IsectParam;
-template auto Segment<double, 3>::isectParam(const Plane3<double> &) const -> IsectParam;
+template Maybe<Ray<float, 2>> Segment<float2>::asRay() const;
+template Maybe<Ray<double, 2>> Segment<double2>::asRay() const;
 
-Segment<float, 3> operator*(const Matrix4 &mat, const Segment<float, 3> &segment) {
+template Maybe<Ray<float, 3>> Segment<float3>::asRay() const;
+template Maybe<Ray<double, 3>> Segment<double3>::asRay() const;
+
+template auto Segment<float3>::isectParam(const Plane3<float> &) const -> IsectParam;
+template auto Segment<double3>::isectParam(const Plane3<double> &) const -> IsectParam;
+
+Segment<float3> operator*(const Matrix4 &mat, const Segment<float3> &segment) {
 	return {mulPoint(mat, segment.from), mulPoint(mat, segment.to)};
 }
 }

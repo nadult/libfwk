@@ -64,6 +64,16 @@ template <class T, int N> struct Rational {
 	Rational operator-(const Rational &) const;
 	Rational operator*(const Rational &)const;
 
+	template <class U, EnableIf<precise_conversion<U, T>>...>
+	Rational operator*(const Rational<U> &s) const {
+		return {Num(m_num * s.num()), Den(m_den * s.den()), no_sign_check};
+	}
+
+	template <class U, EnableIf<precise_conversion<U, T>>...>
+	Rational operator/(const Rational<U> &s) const {
+		return {Num(m_num * s.den()), Den(m_den * s.num())};
+	}
+
 	IF_VEC Rational operator*(const Scalar &s) const {
 		return {m_num * s.num(), m_den * s.den(), no_sign_check};
 	}
@@ -190,6 +200,11 @@ template <class T, EnableIf<is_scalar<T>>...> auto clamp01(const T &value) {
 }
 
 template <class T> Rational<T, 2> perpendicular(const Rational<T, 2> &v) {
-	return {{-v.numY(), v.numX()}, v.den(), no_sign_check};
+	return {{T(-v.numY()), v.numX()}, v.den(), no_sign_check};
+}
+
+template <class T, EnableIf<is_rational<T> && is_vec<T>>...> auto cross(const T &a, const T &b) {
+	using Ret = Rational<RemoveRat<T>, dim<T> == 3 ? 3 : 0>;
+	return Ret{cross(a.num(), b.num()), a.den() * b.den()};
 }
 }

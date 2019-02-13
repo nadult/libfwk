@@ -73,10 +73,10 @@ template <class T> class IsectParam;
 template <class T, int N> class Triangle;
 template <class T, int N> class Plane;
 template <class T, int N> class Ray;
-template <class T, int N> class Segment;
+template <class T> class Segment;
 
-template <class T> using Segment2 = Segment<T, 2>;
-template <class T> using Segment3 = Segment<T, 3>;
+template <class T> using Segment2 = Segment<vec2<T>>;
+template <class T> using Segment3 = Segment<vec3<T>>;
 
 template <class T> using Triangle2 = Triangle<T, 2>;
 template <class T> using Triangle3 = Triangle<T, 3>;
@@ -100,17 +100,17 @@ using Plane3F = Plane<float, 3>;
 using Plane3D = Plane<double, 3>;
 using Plane2F = Plane<float, 2>;
 using Plane2D = Plane<double, 2>;
-using Segment3F = Segment<float, 3>;
-using Segment3D = Segment<double, 3>;
-using Segment2F = Segment<float, 2>;
-using Segment2D = Segment<double, 2>;
+using Segment3F = Segment<float3>;
+using Segment3D = Segment<double3>;
+using Segment2F = Segment<float2>;
+using Segment2D = Segment<double2>;
 using Ray3F = Ray<float, 3>;
 using Ray3D = Ray<double, 3>;
 using Ray2F = Ray<float, 2>;
 using Ray2D = Ray<double, 2>;
 
-using Segment3I = Segment<int, 3>;
-using Segment2I = Segment<int, 2>;
+using Segment3I = Segment<int3>;
+using Segment2I = Segment<int2>;
 
 using IRect = Box<int2>;
 using FRect = Box<float2>;
@@ -136,11 +136,6 @@ class Random;
 
 namespace detail {
 
-	template <class T, int N> struct MakeVec { using Type = NotAValidVec<N>; };
-	template <class T> struct MakeVec<T, 2> { using Type = vec2<T>; };
-	template <class T> struct MakeVec<T, 3> { using Type = vec3<T>; };
-	template <class T> struct MakeVec<T, 4> { using Type = vec4<T>; };
-
 	template <class T> struct Scalar {
 		using Type = If<is_one_of<T, Matrix3, Matrix4, Cylinder, Frustum, Quat, AxisAngle,
 								  Projection, Tetrahedron>,
@@ -151,10 +146,10 @@ namespace detail {
 	template <class T> struct Scalar<vec4<T>> { using Type = T; };
 	template <class T> struct Scalar<Interval<T>> { using Type = T; };
 	template <class T> struct Scalar<IsectParam<T>> { using Type = T; };
+	template <class T> struct Scalar<Segment<T>> { using Type = typename Scalar<T>::Type; };
 	template <class T> struct Scalar<Box<T>> { using Type = typename Scalar<T>::Type; };
 	template <class T, int N> struct Scalar<Triangle<T, N>> { using Type = T; };
 	template <class T, int N> struct Scalar<Plane<T, N>> { using Type = T; };
-	template <class T, int N> struct Scalar<Segment<T, N>> { using Type = T; };
 	template <class T, int N> struct Scalar<Ray<T, N>> { using Type = T; };
 	template <class T, int N> struct Scalar<Rational<T, N>> { using Type = Rational<T>; };
 
@@ -166,6 +161,26 @@ namespace detail {
 
 	template <class T> struct RatSize { static constexpr int value = -1; };
 	template <class T, int N> struct RatSize<Rational<T, N>> { static constexpr int value = N; };
+
+	template <class T> struct RemoveExt24 { using Type = T; };
+	template <class T> struct RemoveExt24<Ext24<T>> { using Type = T; };
+
+	template <class T> struct RemoveRat { using Type = T; };
+	template <class T, int N> struct RemoveRat<Rational<T, N>> { using Type = T; };
+
+	template <class T, int N> struct MakeVec {
+		using Type = If<N == 2, vec2<T>, If<N == 3, vec3<T>, If<N == 4, vec4<T>, NotAValidVec<N>>>>;
+	};
+	template <class T> struct MakeVec<T, 0> { using Type = T; };
+	template <class T, int RN, int N> struct MakeVec<Rational<T, RN>, N> {
+		using Type = Rational<T, N>;
+	};
+
+	template <class T, int N> struct MakeRat {
+		using Scalar = typename Scalar<T>::Type;
+		static constexpr bool is_fpt = std::is_floating_point<typename ScBase<Scalar>::Type>::value;
+		using Type = If<is_fpt, typename MakeVec<T, N>::Type, Rational<Scalar, N>>;
+	};
 
 	// TODO: should Base, dim work for Segment, Box, etc. ?
 	// If it will then, we have to modify is_vec, etc.
@@ -192,10 +207,16 @@ static constexpr bool is_vec = ((dim<T>) > 0) && (ReqN == 0 || ReqN == dim<T>);
 template <class T> static constexpr bool is_scalar = is_fundamental<T> || is_ext24<T>;
 template <class T> static constexpr bool is_scalar<Rational<T, 0>> = true;
 
-template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::Type;
+template <class T> using RemoveRat = typename detail::RemoveRat<T>::Type;
+template <class T> using RemoveExt24 = typename detail::RemoveExt24<T>::Type;
 
 template <class T> using Scalar = typename detail::Scalar<T>::Type;
 template <class T> using Base = typename detail::ScBase<Scalar<T>>::Type;
+
+template <class T, int ReqN = -1>
+using MakeVec = typename detail::MakeVec<T, ReqN == -1 ? dim<T> : ReqN>::Type;
+template <class T, int ReqN = -1>
+using MakeRat = typename detail::MakeRat<RemoveRat<T>, ReqN == -1 ? dim<T> : ReqN>::Type;
 
 template <class T> using EnableIfFpt = EnableIf<is_fpt<T>, NotFloatingPoint>;
 template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotIntegral>;
@@ -265,14 +286,11 @@ static constexpr bool precise_conversion = []() {
 }();
 
 template <class T, class U>
-static constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<T, U>;
-template <class T, class U>
-static constexpr bool precise_conversion<Ext24<T>, Ext24<U>> = precise_conversion<T, U>;
+static constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<RemoveExt24<T>, U>;
 
-template <class T, class U>
-static constexpr bool precise_conversion<T, Rational<U>> = precise_conversion<T, U>;
 template <class T, class U, int N>
-static constexpr bool precise_conversion<Rational<T, N>, Rational<U, N>> = precise_conversion<T, U>;
+static constexpr bool precise_conversion<T, Rational<U, N>> =
+	dim<T> == N &&precise_conversion<Scalar<RemoveRat<T>>, U>;
 
 template <class T, class U>
 static constexpr bool precise_conversion<vec2<T>, vec2<U>> = precise_conversion<T, U>;
@@ -280,10 +298,6 @@ template <class T, class U>
 static constexpr bool precise_conversion<vec3<T>, vec3<U>> = precise_conversion<T, U>;
 template <class T, class U>
 static constexpr bool precise_conversion<vec4<T>, vec4<U>> = precise_conversion<T, U>;
-
-template <class T, class U, int N>
-static constexpr bool precise_conversion<T, Rational<U, N>> =
-	dim<T> == N &&precise_conversion<Scalar<T>, U>;
 
 #define PRECISE(from, to) template <> static constexpr bool precise_conversion<from, to> = true;
 
@@ -665,14 +679,15 @@ template <class T, EnableIfVec<T, 2>...> auto asXZY(const T &xz, typename T::Sca
 template <class T, EnableIfVec<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
 // Right-handed coordinate system
-template <class T, EnableIfVec<T, 3>...> T cross(const T &a, const T &b) {
+template <class T, EnableIf<is_vec<T, 3> && !is_rational<T>>...> T cross(const T &a, const T &b) {
 	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
 
 // Default orientation in all vector-related operations
 // (cross products, rotations, etc.) is counter-clockwise.
 
-template <class T, EnableIfVec<T, 2>...> auto cross(const T &a, const T &b) {
+template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...>
+auto cross(const T &a, const T &b) {
 	return a[0] * b[1] - a[1] * b[0];
 }
 

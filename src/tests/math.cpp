@@ -170,15 +170,6 @@ void testOBox() {
 	ASSERT(!box2.isIntersecting(box1)); // touches
 }
 
-template <class T> void print(const typename Segment<T, 2>::Isect &isect) {
-	if(const Segment2<T> *seg = isect)
-		print("Segment(% - %)\n", seg->from, seg->to);
-	else if(const vec2<T> *vec = isect)
-		print("Vector %\n", *vec);
-	else
-		print("Empty\n");
-}
-
 void test2DIntersections() {
 	Segment2<float> s1(1, 4, 4, 1);
 	Segment2<float> s2(3, 2, 5, 0);
@@ -188,10 +179,6 @@ void test2DIntersections() {
 
 	Segment2<double> s5(1, 7, 1, 4);
 	Segment2<double> s6(-1, -1, 4, 4);
-
-	//	print(intersection(s1, s2));
-	//	print(intersection(s3, s4));
-	//	print(intersection(s6, Segment2<double>({-1, -1}, {-1, -1})));
 
 	ASSERT(s1.isect(s2) == Segment2<float>(3, 2, 4, 1));
 	ASSERT(s3.isect(s4) == Segment2<double>(3, 2, 4, 1));
@@ -264,6 +251,13 @@ void test2DIntersections() {
 	auto t = seg6.isectParam(seg7).asPoint();
 	auto pt = Rational2<llint>(seg6.from) + Rational2<llint>(seg6.dir()) * t;
 	ASSERT_EQ(pt, Rational2<llint>({29, 38}, 11));
+
+	using RPos = Rational2<int>;
+	Segment rseg1{RPos{{1, 1}, 1}, RPos{{4, 2}, 6}};
+	Segment rseg2{RPos{{2, 4}, 3}, RPos{{1, 0}, 1}};
+	auto rt = Rational<int>(rseg1.isectParam(rseg2).closest());
+	auto rpos = rseg1.from + rseg1.dir() * rt;
+	ASSERT_EQ(rpos, RPos({5, 4}, 6));
 }
 
 void test3DIntersections() {
@@ -365,6 +359,9 @@ void testTraits() {
 
 	static_assert(is_vec<Rational<int, 2>>);
 	static_assert(is_rational<Rational<int, 2>>);
+
+	static_assert(is_same<RemoveRat<Rational<Ext24<short>>>, Ext24<short>>);
+	static_assert(is_same<MakeRat<vec2<int>>, Rational2<int>>);
 }
 
 template <class T> int approxSign(const Ext24<T> &ext) {

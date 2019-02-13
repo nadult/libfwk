@@ -10,8 +10,8 @@ namespace fwk {
 
 // min <= max in all dimensions; can be empty
 template <class Point> static bool validBoxRange(const Point &min, const Point &max) {
-	static constexpr int dim_size = Point::vec_size;
-	for(int i = 0; i < dim_size; i++)
+	static constexpr int dim = Point::vec_size;
+	for(int i = 0; i < dim; i++)
 		if(!(min[i] <= max[i]))
 			return false;
 	return true;
@@ -34,6 +34,8 @@ template <class T> class Box {
 	Box(T min, T max, NoAssertsTag) : m_min(min), m_max(max) {}
 
   public:
+	static constexpr int dim = fwk::dim<T>;
+	static constexpr int num_corners = 1 << dim;
 	static_assert(is_vec<T>, "Box<> has to be based on a vec<>");
 
 	using Scalar = typename T::Scalar;
@@ -41,13 +43,11 @@ template <class T> class Box {
 	using Vec2 = vec2<Scalar>;
 	using Point = Vec;
 
-	enum { dim_size = T::vec_size, num_corners = 1 << dim_size };
-
 	static bool validRange(const Point &min, const Point &max) { return validBoxRange(min, max); }
 
 	// min >= max in any dimension
 	static bool emptyRange(const Point &min, const Point &max) {
-		for(int n = 0; n < dim_size; n++)
+		for(int n = 0; n < dim; n++)
 			if(!(min[n] < max[n]))
 				return true;
 		return false;
@@ -106,9 +106,9 @@ template <class T> class Box {
 	ENABLE_IF_SIZE(3) Scalar depth() const { return size(2); }
 
 	auto surfaceArea() const {
-		if constexpr(dim_size == 2)
+		if constexpr(dim == 2)
 			return width() * height();
-		else if constexpr(dim_size == 3) {
+		else if constexpr(dim == 3) {
 			auto w = width(), h = height(), d = depth();
 			return (w * h + h * d + w * d) * Scalar(2);
 		}
@@ -124,7 +124,7 @@ template <class T> class Box {
 	Box operator-(const T &offset) const { return Box(m_min - offset, m_max - offset); }
 	Box operator*(const T &scale) const {
 		T tmin = m_min * scale, tmax = m_max * scale;
-		for(int n = 0; n < dim_size; n++)
+		for(int n = 0; n < dim; n++)
 			if(scale[n] < Scalar(0))
 				swap(tmin[n], tmax[n]);
 		return {tmin, tmax, no_asserts};
@@ -140,7 +140,7 @@ template <class T> class Box {
 	bool empty() const { return emptyRange(m_min, m_max); }
 
 	bool contains(const Point &point) const {
-		for(int i = 0; i < dim_size; i++)
+		for(int i = 0; i < dim; i++)
 			if(!(point[i] >= m_min[i] && point[i] <= m_max[i]))
 				return false;
 		return true;
@@ -149,19 +149,19 @@ template <class T> class Box {
 	bool contains(const Box &box) const { return box == intersection(box); }
 
 	bool containsCell(const T &pos) const {
-		for(int i = 0; i < dim_size; i++)
+		for(int i = 0; i < dim; i++)
 			if(!(pos[i] >= m_min[i] && pos[i] + Scalar(1) <= m_max[i]))
 				return false;
 		return true;
 	}
 
 	array<Point, num_corners> corners() const {
-		if constexpr(dim_size == 2)
+		if constexpr(dim == 2)
 			return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};
 		else {
 			array<T, num_corners> out;
 			for(int n = 0; n < num_corners; n++)
-				for(int i = 0; i < dim_size; i++)
+				for(int i = 0; i < dim; i++)
 					out[n][i] = (n & (1 << i) ? m_max : m_min)[i];
 			return out;
 		}

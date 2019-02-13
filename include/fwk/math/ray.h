@@ -16,7 +16,7 @@ template <class T, int N> class Ray {
 	using Scalar = T;
 	using Vec = MakeVec<T, N>;
 	using Point = Vec;
-	using Segment = fwk::Segment<T, N>;
+	using Segment = fwk::Segment<Vec>;
 	using IsectParam = fwk::IsectParam<T>;
 	using Isect = Variant<None, Point, Segment>;
 

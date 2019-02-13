@@ -19,7 +19,7 @@ template <class T, int N> class Triangle {
 	using Vec = MakeVec<T, N>;
 	using Point = Vec;
 	using Scalar = T;
-	using Segment = fwk::Segment<T, N>;
+	using Segment = fwk::Segment<Vec>;
 	using Ray = fwk::Ray<T, N>;
 	using Box = fwk::Box<Vec>;
 
