@@ -35,7 +35,7 @@ TEMPLATE auto TSEG::distanceSq(const Point &point) const -> PPRT {
 	if(e >= f)
 		return dot<PVec>(bc, bc);
 
-	return PPRT(dot<PVec>(ac, ac)) - divide(PPT(e) * e, f);
+	return PPRT(dot<PVec>(ac, ac)) - ratDivide(PPT(e) * e, f);
 }
 
 TEMPLATE auto TSEG::distanceSq(const Segment &rhs) const -> PReal {
@@ -98,9 +98,9 @@ TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 				if(t2 < PT(0) || t1 > length_sq)
 					return {};
 				if(t2 == t1)
-					return divide(t1, length_sq);
+					return ratDivide(t1, length_sq);
 
-				return {divide(t1, length_sq), divide(t2, length_sq)};
+				return {ratDivide(t1, length_sq), ratDivide(t2, length_sq)};
 			}
 
 			return {};
@@ -116,7 +116,7 @@ TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 		}
 
 		if(t1 >= PT(0) && t1 <= tdot && t2 >= PT(0) && t2 <= tdot)
-			return divide(t1, tdot);
+			return ratDivide(t1, tdot);
 		return {};
 	} else {
 		FATAL("write me please");
@@ -189,7 +189,7 @@ TEMPLATE auto TSEG::isectParam(const Triangle<T, N> &tri) const -> Pair<PPRIsect
 		if(w < 0 || v + w > d)
 			return {};
 
-		return {PPRIsectParam(divide<PPT>(t, d)), is_front};
+		return {PPRIsectParam(ratDivide<PPT>(t, d)), is_front};
 	} else {
 		FATAL("write me please");
 		return {};
@@ -296,7 +296,7 @@ TEMPLATE auto TSEG::closestPointParam(const Point &point) const -> PRT {
 			return PRT(0);
 	} else {
 		auto vec = dir();
-		auto t = dot(point - from, vec) / fwk::lengthSq(vec);
+		auto t = ratDivide(dot(point - from, vec), fwk::lengthSq(vec));
 		return clamp01(t);
 	}
 }
@@ -326,19 +326,19 @@ TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> Pair<PPRT> {
 	if(denom != PPRT(0)) {
 		PPT num_s = PPT(b) * f - PPT(c) * e;
 		PPT num_t = PPT(a) * f - PPT(b) * c;
-		s = clamp01(divide(num_s, denom));
-		t = clamp01(divide(num_t, denom));
+		s = clamp01(ratDivide(num_s, denom));
+		t = clamp01(ratDivide(num_t, denom));
 	} else {
 		s = 0;
-		t = (PPRT)divide(f, e);
+		t = (PPRT)ratDivide(f, e);
 	}
 
 	if(t < PPT(0)) {
 		t = 0;
-		s = clamp01(divide(PPT(-c), a));
+		s = clamp01(ratDivide(PPT(-c), a));
 	} else if(t > PPRT(1)) {
 		t = 1;
-		s = clamp01(divide(PPT(b - c), a));
+		s = clamp01(ratDivide(PPT(b - c), a));
 	}
 
 	return {s, t};

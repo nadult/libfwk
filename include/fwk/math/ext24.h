@@ -50,11 +50,6 @@ template <class T> struct Ext24 {
 	// Problemem jest ciągłe przerzucanie z rejestrów sse/avx do pamięci na poziomie funkcji
 	Ext24 operator*(const Ext24 &rhs) const;
 
-	// TODO: intDiv zamiast / ? podobnie w int2, etc. ?
-	// Kiedy tworzymy rational a kiedy dzielimy całkowicie ?
-
-	RatExt24<T> operator/(const Ext24 &rhs) const { return {*this, rhs}; }
-
 	// Inverse with integral denominator; Warning: requires 4x as many bits
 	RatExt24<PPT> intDenomInverse() const;
 

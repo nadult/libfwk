@@ -425,10 +425,10 @@ void testExt24() {
 	auto isect_normalized = isect_pos.num() * RatExt24<llint>(isect_pos.den().intDenomInverse());
 	ASSERT_EQ(isect_normalized, RatExt24<llint>(2, 3));
 
-	ASSERT_EQ(Ex(1, 5, 0, 0).intDenomInverse(), Ex(-1, 5, 0, 0) / 49);
-	ASSERT_EQ(Ex(1, 0, 0, 1).intDenomInverse(), Ex(-1, 0, 0, 1) / 5);
+	ASSERT_EQ(Ex(1, 5, 0, 0).intDenomInverse(), ratDivide(Ex(-1, 5, 0, 0), 49));
+	ASSERT_EQ(Ex(1, 0, 0, 1).intDenomInverse(), ratDivide(Ex(-1, 0, 0, 1), 5));
 	ASSERT_EQ(Ex(100, 100, 101, 0).intDenomInverse(),
-			  Ex(4060300, 2060300, -60903, -2020000) / 799636391);
+			  ratDivide(Ex(4060300, 2060300, -60903, -2020000), 799636391));
 
 	{ // Testing rotations
 		Rat2Ext24<int> vec({1, 0}, 1), vec_sum;

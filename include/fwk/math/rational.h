@@ -167,8 +167,7 @@ template <class T> T round(const Rational<T> &value) {
 		return floor(Rational<T>{value.num() * 2 + value.den(), value.den() * 2});
 }
 
-// TODO: ratDivide
-template <class T, class T1, EnableIf<dim<T> == 0>...> auto divide(const T &num, const T1 &den) {
+template <class T, class T1, EnableIf<dim<T> == 0>...> auto ratDivide(const T &num, const T1 &den) {
 	static_assert(precise_conversion<T1, T>);
 	if constexpr(is_integral<T> || is_ext24<T>)
 		return Rational<T>(num, den);
@@ -176,7 +175,7 @@ template <class T, class T1, EnableIf<dim<T> == 0>...> auto divide(const T &num,
 		return num / den;
 }
 
-template <class T, class T1, EnableIf<(dim<T>> 0)>...> auto divide(const T &num, const T1 &den) {
+template <class T, class T1, EnableIf<(dim<T>> 0)>...> auto ratDivide(const T &num, const T1 &den) {
 	static_assert(precise_conversion<T1, Scalar<T>>);
 	constexpr bool make_rational = is_integral<Scalar<T>> || is_ext24<Scalar<T>>;
 	if constexpr(make_rational && dim<T> == 2)

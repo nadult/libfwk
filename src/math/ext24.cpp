@@ -309,7 +309,7 @@ template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &vec) {
 
 	int sign_x = vec.numX().sign();
 	int sign_y = vec.numY().sign();
-	auto div = abs(vec.numY() / vec.numX());
+	auto div = abs(ratDivide(vec.numY(), vec.numX()));
 
 	for(int n : intRange(vector_tans)) {
 		auto cur = RatExt24<T>(vector_tans[n].num, vector_tans[n].den);

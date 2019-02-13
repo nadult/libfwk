@@ -12,7 +12,6 @@ namespace fwk {
 
 // Results are exact only when computing on integers
 // TODO: makes no sense if we want to use rationals as base...
-// TODO: czy lepsze jest divide, przerobienie dzielenia w int2 ?
 template <class T, int N> class Segment {
   public:
 	static_assert(is_scalar<T>);
