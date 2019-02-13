@@ -169,7 +169,7 @@ namespace detail {
 
 	// TODO: should Base, dim work for Segment, Box, etc. ?
 	// If it will then, we have to modify is_vec, etc.
-	// If we had field, Base<> would be easy
+	// If we had a field class, Base<> would be easy
 }
 
 template <class T> static constexpr int dim = 0;
@@ -182,16 +182,12 @@ template <class T>
 static constexpr bool is_integral = std::is_integral<T>::value || is_same<T, qint>;
 template <class T> static constexpr bool is_fpt = std::is_floating_point<T>::value;
 template <class T> static constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
-template <class T> static constexpr bool is_rational = detail::RatSize<T>::value == 0;
-
-template <class T, int ReqN = 0>
-static constexpr bool is_rational_vec = detail::RatSize<T>::value > 0 &&
-										(ReqN == 0 || ReqN == detail::RatSize<T>::value);
+template <class T> static constexpr bool is_rational = detail::RatSize<T>::value != -1;
 
 template <class T> static constexpr bool is_ext24 = false;
 template <class T> static constexpr bool is_ext24<Ext24<T>> = true;
 template <class T, int ReqN = 0>
-static constexpr bool is_vec = ((dim<T>) > 0) && !is_rational<T> && (ReqN == 0 || ReqN == dim<T>);
+static constexpr bool is_vec = ((dim<T>) > 0) && (ReqN == 0 || ReqN == dim<T>);
 
 template <class T> static constexpr bool is_scalar = is_fundamental<T> || is_ext24<T>;
 template <class T> static constexpr bool is_scalar<Rational<T, 0>> = true;
@@ -206,9 +202,9 @@ template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotIntegral
 
 template <class T, int ReqN = 0> using EnableIfVec = EnableIf<is_vec<T, ReqN>, NotAValidVec<ReqN>>;
 template <class T, int ReqN = 0>
-using EnableIfFptVec = EnableIf<is_vec<T, ReqN> && is_fpt<Base<T>>, NotAValidVec<ReqN>>;
+using EnableIfFptVec = EnableIf<is_vec<T, ReqN> && is_fpt<Scalar<T>>, NotAValidVec<ReqN>>;
 template <class T, int ReqN = 0>
-using EnableIfIntegralVec = EnableIf<is_vec<T, ReqN> && is_integral<Base<T>>, NotAValidVec<ReqN>>;
+using EnableIfIntegralVec = EnableIf<is_vec<T, ReqN> && is_integral<Scalar<T>>, NotAValidVec<ReqN>>;
 
 template <class T> struct ToFpt { using type = double; };
 template <> struct ToFpt<float> { using type = float; };
@@ -237,12 +233,12 @@ namespace detail {
 		if constexpr(count == 0)
 			return DECLVAL(T);
 		else {
-			if constexpr(is_vec<T>) {
-				using Promoted = decltype(promote<fwk::Scalar<T>, count>());
-				return fwk::MakeVec<Promoted, dim<T>>();
-			} else if constexpr(is_rational<T>) {
+			if constexpr(is_rational<T>) {
 				using Promoted = decltype(promote<typename T::Den, count>());
 				return Rational<Promoted, dim<T>>();
+			} else if constexpr(is_vec<T>) {
+				using Promoted = decltype(promote<fwk::Scalar<T>, count>());
+				return fwk::MakeVec<Promoted, dim<T>>();
 			} else if constexpr(is_ext24<T>) {
 				using Promoted = decltype(promote<Base<T>, count>());
 				return Ext24<Promoted>();
@@ -680,7 +676,9 @@ template <class T, EnableIfVec<T, 2>...> auto cross(const T &a, const T &b) {
 	return a[0] * b[1] - a[1] * b[0];
 }
 
-template <class T, EnableIfVec<T, 2>...> T perpendicular(const T &v) { return T(-v[1], v[0]); }
+template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...> T perpendicular(const T &v) {
+	return T(-v[1], v[0]);
+}
 
 // TODO: we can't really check it properly for floating-point's...
 template <class T, EnableIfFptVec<T>...> bool isNormalized(const T &vec) {

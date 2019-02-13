@@ -362,6 +362,9 @@ void testTraits() {
 	static_assert(is_same<Promote<Rational<int>, 2>, Rational<qint>>);
 	static_assert(is_same<Promote<Ext24<short>, 2>, Ext24<llint>>);
 	static_assert(is_same<Promote<RatExt24<short>>, RatExt24<int>>);
+
+	static_assert(is_vec<Rational<int, 2>>);
+	static_assert(is_rational<Rational<int, 2>>);
 }
 
 template <class T> int approxSign(const Ext24<T> &ext) {

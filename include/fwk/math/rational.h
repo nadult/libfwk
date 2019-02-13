@@ -49,10 +49,10 @@ template <class T, int N> struct Rational {
 		: Rational(Num(rhs.num()), T(rhs.den())) {}
 
 	template <class UNum = Num, class UDen = T,
-			  EnableIf<precise_conversion<Base<UNum>, T> && precise_conversion<UDen, T>>...>
+			  EnableIf<precise_conversion<UNum, Num> && precise_conversion<UDen, Den>>...>
 	constexpr Rational(const UNum &num, const UDen &den = T(1)) : Rational(Num(num), T(den)) {}
 	template <class UNum = Num, class UDen = T,
-			  EnableIf<!precise_conversion<Base<UNum>, T> || !precise_conversion<UDen, T>>...>
+			  EnableIf<!precise_conversion<UNum, Num> || !precise_conversion<UDen, Den>>...>
 	constexpr explicit Rational(const UNum &num, const UDen &den = T(1))
 		: Rational(Num(num), T(den)) {}
 
@@ -121,16 +121,16 @@ template <class T, int N> struct Rational {
 
 	// TODO: its a mess with all different types
 #define LEFT_SCALAR                                                                                \
-	template <class U, EnableIf<(is_scalar<U> && !is_rational<U>) || is_vec<U>>...> friend
+	template <class U, EnableIf<!is_rational<U> && (is_scalar<U> || is_vec<U>)>...> friend
 
 	// TODO: promotion to bigger type?
-	LEFT_SCALAR bool operator<(const U &l, const Rational &r) { return Rational<U>(l) < r; }
-	LEFT_SCALAR bool operator==(const U &l, const Rational &r) { return Rational<U>(l) == r; }
+	LEFT_SCALAR bool operator<(const U &l, const Rational &r) { return Rational(l) < r; }
+	LEFT_SCALAR bool operator==(const U &l, const Rational &r) { return Rational(l) == r; }
 
-	LEFT_SCALAR auto operator+(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) + rhs; }
-	LEFT_SCALAR auto operator-(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) - rhs; }
-	LEFT_SCALAR auto operator*(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) * rhs; }
-	LEFT_SCALAR auto operator/(const U &lhs, const Rational &rhs) { return Rational<U>(lhs) / rhs; }
+	LEFT_SCALAR auto operator+(const U &lhs, const Rational &rhs) { return Rational(lhs) + rhs; }
+	LEFT_SCALAR auto operator-(const U &lhs, const Rational &rhs) { return Rational(lhs) - rhs; }
+	LEFT_SCALAR auto operator*(const U &lhs, const Rational &rhs) { return Rational(lhs) * rhs; }
+	LEFT_SCALAR auto operator/(const U &lhs, const Rational &rhs) { return Rational(lhs) / rhs; }
 #undef LEFT_SCALAR
 
   private:
@@ -187,5 +187,9 @@ template <class T, EnableIf<is_scalar<T>>...> auto clamp01(const T &value) {
 		return value.num() < S(0) ? T(0) : value.num() > S(1) ? T(1) : value;
 	} else
 		return clamp(value, T(0), T(1));
+}
+
+template <class T> Rational<T, 2> perpendicular(const Rational<T, 2> &v) {
+	return {{-v.numY(), v.numX()}, v.den(), no_sign_check};
 }
 }
