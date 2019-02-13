@@ -88,12 +88,6 @@ template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &);
 template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &, int degrees);
 Rat2Ext24<short> angleToVectorExt24(int degrees, int scale = 1);
 
-// TODO: handle it properly? but how? its getting complicated
-template <class T, class U>
-static constexpr bool precise_conversion<T, Ext24<U>> = is_integral<T> &&precise_conversion<T, U>;
-template <class T, class U>
-static constexpr bool precise_conversion<Ext24<T>, Ext24<U>> = precise_conversion<T, U>;
-
 // TODO: static or not?
 template <class T> static constexpr Ext24<T> ext_sqrt2(0, 1, 0, 0);
 template <class T> static constexpr Ext24<T> ext_sqrt3(0, 0, 1, 0);

@@ -138,11 +138,6 @@ template <class T, int N> struct Rational {
 	Den m_den;
 };
 
-template <class T, class U>
-static constexpr bool precise_conversion<T, Rational<U>> = precise_conversion<T, U>;
-template <class T, class U>
-static constexpr bool precise_conversion<Rational<T>, Rational<U>> = precise_conversion<T, U>;
-
 Rational<int> rationalApprox(double value, int max_num, bool upper_bound);
 
 #undef IF_SCALAR

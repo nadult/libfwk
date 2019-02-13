@@ -348,6 +348,11 @@ void testTraits() {
 	static_assert(precise_conversion<qint, qint>);
 	static_assert(precise_conversion<int2, llint2>);
 	static_assert(!precise_conversion<llint2, double2>);
+	static_assert(precise_conversion<int, llint>);
+	static_assert(precise_conversion<int3, Rational<Ext24<llint>, 3>>);
+	static_assert(!precise_conversion<Rational<Ext24<int>, 2>, vec2<Ext24<llint>>>);
+	static_assert(!precise_conversion<Rational<int, 2>, Rational<int, 3>>);
+
 	static_assert(is_same<Promote<llint>, qint>);
 	static_assert(is_same<Promote<float>, double>);
 

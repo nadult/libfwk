@@ -182,8 +182,8 @@ template <class T>
 static constexpr bool is_integral = std::is_integral<T>::value || is_same<T, qint>;
 template <class T> static constexpr bool is_fpt = std::is_floating_point<T>::value;
 template <class T> static constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
+template <class T> static constexpr bool is_rational = detail::RatSize<T>::value == 0;
 
-template <class T> static constexpr bool is_rational = detail::RatSize<T>::value != -1;
 template <class T, int ReqN = 0>
 static constexpr bool is_rational_vec = detail::RatSize<T>::value > 0 &&
 										(ReqN == 0 || ReqN == detail::RatSize<T>::value);
@@ -201,26 +201,28 @@ template <class T, int N> using MakeVec = typename detail::MakeVec<T, N>::Type;
 template <class T> using Scalar = typename detail::Scalar<T>::Type;
 template <class T> using Base = typename detail::ScBase<Scalar<T>>::Type;
 
+template <class T> using EnableIfFpt = EnableIf<is_fpt<T>, NotFloatingPoint>;
+template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotIntegral>;
+
+template <class T, int ReqN = 0> using EnableIfVec = EnableIf<is_vec<T, ReqN>, NotAValidVec<ReqN>>;
+template <class T, int ReqN = 0>
+using EnableIfFptVec = EnableIf<is_vec<T, ReqN> && is_fpt<Base<T>>, NotAValidVec<ReqN>>;
+template <class T, int ReqN = 0>
+using EnableIfIntegralVec = EnableIf<is_vec<T, ReqN> && is_integral<Base<T>>, NotAValidVec<ReqN>>;
+
+template <class T> struct ToFpt { using type = double; };
+template <> struct ToFpt<float> { using type = float; };
+template <> struct ToFpt<short> { using type = float; };
+template <> struct ToFpt<llint> { using type = long double; };
+
+// -------------------------------------------------------------------------------------------
+// ---  Specifying promotions & precise conversion rules -------------------------------------
+
 namespace detail {
-
 	template <class T> struct Promotion { using type = T; };
-
-	template <class From, class To> struct PreciseConversion {
-		static constexpr bool resolve() {
-			if constexpr(is_same<From, To>)
-				return true;
-			using PFrom = typename Promotion<From>::type;
-			if constexpr(!is_same<PFrom, From>)
-				return PreciseConversion<PFrom, To>::value;
-			return false;
-		}
-		static constexpr bool value = resolve();
-	};
 
 #define PROMOTION(base, promoted)                                                                  \
 	template <> struct Promotion<base> { using type = promoted; };
-#define PRECISE(from, to)                                                                          \
-	template <> struct PreciseConversion<from, to> { static constexpr bool value = true; };
 
 	PROMOTION(short, int);
 	PROMOTION(int, llint);
@@ -228,21 +230,12 @@ namespace detail {
 	PROMOTION(float, double);
 	PROMOTION(double, long double)
 
-	PRECISE(short, float)
-	PRECISE(int, double)
-	PRECISE(long long, long double)
-	PRECISE(float, double)
-	PRECISE(double, long double)
-
-	// TODO: full long doubles support?
-
 #undef PROMOTION
-#undef PRECISE
 
 	template <class T, int count = 1> auto promote() {
 		static_assert(count >= 0);
 		if constexpr(count == 0)
-			return T();
+			return DECLVAL(T);
 		else {
 			if constexpr(is_vec<T>) {
 				using Promoted = decltype(promote<fwk::Scalar<T>, count>());
@@ -260,27 +253,52 @@ namespace detail {
 	}
 }
 
-template <class T> using EnableIfFpt = EnableIf<is_fpt<T>, NotFloatingPoint>;
-template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotIntegral>;
-
-template <class T, int ReqN = 0> using EnableIfVec = EnableIf<is_vec<T, ReqN>, NotAValidVec<ReqN>>;
-template <class T, int ReqN = 0>
-using EnableIfFptVec = EnableIf<is_vec<T, ReqN> && is_fpt<Base<T>>, NotAValidVec<ReqN>>;
-template <class T, int ReqN = 0>
-using EnableIfIntegralVec = EnableIf<is_vec<T, ReqN> && is_integral<Base<T>>, NotAValidVec<ReqN>>;
-
-template <class From, class To>
-static constexpr bool precise_conversion = detail::PreciseConversion<Base<From>, Base<To>>::value;
-
 // TODO: maybe Promote is not the best name?
 // TODO: sometimes we want to raise an error if promotion is not available?
 template <class T, int count = 1> using Promote = decltype(detail::promote<T, count>());
 template <class T, int count = 1>
 using PromoteIntegral = If<is_integral<Base<T>>, Promote<T, count>, T>;
 
-template <class T> struct ToReal { using type = double; };
-template <> struct ToReal<float> { using type = float; };
-template <> struct ToReal<short> { using type = float; };
+template <class From, class To>
+static constexpr bool precise_conversion = []() {
+	if constexpr(is_same<From, To>)
+		return true;
+	else if constexpr(!is_same<Promote<From>, From>)
+		return precise_conversion<Promote<From>, To>;
+	return false;
+}();
+
+template <class T, class U>
+static constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<T, U>;
+template <class T, class U>
+static constexpr bool precise_conversion<Ext24<T>, Ext24<U>> = precise_conversion<T, U>;
+
+template <class T, class U>
+static constexpr bool precise_conversion<T, Rational<U>> = precise_conversion<T, U>;
+template <class T, class U, int N>
+static constexpr bool precise_conversion<Rational<T, N>, Rational<U, N>> = precise_conversion<T, U>;
+
+template <class T, class U>
+static constexpr bool precise_conversion<vec2<T>, vec2<U>> = precise_conversion<T, U>;
+template <class T, class U>
+static constexpr bool precise_conversion<vec3<T>, vec3<U>> = precise_conversion<T, U>;
+template <class T, class U>
+static constexpr bool precise_conversion<vec4<T>, vec4<U>> = precise_conversion<T, U>;
+
+template <class T, class U, int N>
+static constexpr bool precise_conversion<T, Rational<U, N>> =
+	dim<T> == N &&precise_conversion<Scalar<T>, U>;
+
+#define PRECISE(from, to) template <> static constexpr bool precise_conversion<from, to> = true;
+
+PRECISE(short, float)
+PRECISE(int, double)
+PRECISE(long long, long double)
+PRECISE(float, double)
+PRECISE(double, long double)
+// TODO: full long doubles support?
+
+#undef PRECISE
 
 // -------------------------------------------------------------------------------------------
 // ---  Basic math functions  ----------------------------------------------------------------
