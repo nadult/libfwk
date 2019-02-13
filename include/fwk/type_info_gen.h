@@ -24,7 +24,7 @@ namespace detail {
 			return 0;
 		}
 
-		using ConstOrNot = Conditional<is_const<T>, RemoveConst<T>, const T>;
+		using ConstOrNot = If<is_const<T>, RemoveConst<T>, const T>;
 
 		static constexpr const TypeInfoData *constOrNot() {
 			if constexpr(!std::is_reference<T>())

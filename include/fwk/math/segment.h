@@ -28,26 +28,25 @@ template <class T, int N> class Segment {
 	using Isect = Variant<None, Point, Segment>;
 	using IsectParam = fwk::IsectParam<T>;
 
-	template <class U> using Promote = Conditional<is_fpt<T>, U, fwk::Promote<U>>;
+	template <class U> using Promote = If<is_fpt<T>, U, fwk::Promote<U>>;
 
 	// Promotion works only for integrals
 	// TODO: this is a mess, clean it up
 	using PT = Promote<T>;
 	using PPT = Promote<PT>;
 
-	using PRT = Conditional<!is_fpt<T>, Rational<PT>, PT>;
-	using PPRT = Conditional<!is_fpt<T>, Rational<PPT>, PPT>;
+	using PRT = If<!is_fpt<T>, Rational<PT>, PT>;
+	using PPRT = If<!is_fpt<T>, Rational<PPT>, PPT>;
 	using PVec = MakeVec<PT, N>;
 	using PPVec = MakeVec<PPT, N>;
-	using PRVec = Conditional<!is_fpt<T>, Conditional<N == 2, Rational2<PT>, Rational3<PT>>, Vec>;
-	using PPRVec =
-		Conditional<!is_fpt<T>, Conditional<N == 2, Rational2<PPT>, Rational3<PPT>>, Vec>;
+	using PRVec = If<!is_fpt<T>, If<N == 2, Rational2<PT>, Rational3<PT>>, Vec>;
+	using PPRVec = If<!is_fpt<T>, If<N == 2, Rational2<PPT>, Rational3<PPT>>, Vec>;
 
 	using PRIsectParam = fwk::IsectParam<PRT>;
 	using PPRIsectParam = fwk::IsectParam<PPRT>;
 
-	using PReal = Conditional<!is_fpt<T>, double, T>;
-	using PRealVec = Conditional<!is_fpt<T>, MakeVec<double, N>, Vec>;
+	using PReal = If<!is_fpt<T>, double, T>;
+	using PRealVec = If<!is_fpt<T>, MakeVec<double, N>, Vec>;
 
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}

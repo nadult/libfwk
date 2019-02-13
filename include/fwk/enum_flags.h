@@ -9,9 +9,7 @@
 namespace fwk {
 
 template <class T> struct EnumFlags {
-	using Base =
-		Conditional<count<T>() <= 8, u8,
-					Conditional<count<T>() <= 16, u16, Conditional<count<T>() <= 32, u32, u64>>>;
+	using Base = If<count<T>() <= 8, u8, If<count<T>() <= 16, u16, If<count<T>() <= 32, u32, u64>>>;
 
 	enum { max_flags = fwk::count<T>() };
 	static constexpr Base mask =

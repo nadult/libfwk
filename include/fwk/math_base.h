@@ -142,9 +142,9 @@ namespace detail {
 	template <class T> struct MakeVec<T, 4> { using Type = vec4<T>; };
 
 	template <class T> struct Scalar {
-		using Type = Conditional<is_one_of<T, Matrix3, Matrix4, Cylinder, Frustum, Quat, AxisAngle,
-										   Projection, Tetrahedron>,
-								 float, T>;
+		using Type = If<is_one_of<T, Matrix3, Matrix4, Cylinder, Frustum, Quat, AxisAngle,
+								  Projection, Tetrahedron>,
+						float, T>;
 	};
 	template <class T> struct Scalar<vec2<T>> { using Type = T; };
 	template <class T> struct Scalar<vec3<T>> { using Type = T; };
@@ -276,7 +276,7 @@ static constexpr bool precise_conversion = detail::PreciseConversion<Base<From>,
 // TODO: sometimes we want to raise an error if promotion is not available?
 template <class T, int count = 1> using Promote = decltype(detail::promote<T, count>());
 template <class T, int count = 1>
-using PromoteIntegral = Conditional<is_integral<Base<T>>, Promote<T, count>, T>;
+using PromoteIntegral = If<is_integral<Base<T>>, Promote<T, count>, T>;
 
 template <class T> struct ToReal { using type = double; };
 template <> struct ToReal<float> { using type = float; };
@@ -693,7 +693,7 @@ template <class T> bool cwSide(const vec2<T> &from, const vec2<T> &to, const vec
 
 template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1, const TVec &vec2) {
 	using PT = PromoteIntegral<TVec>;
-	using TCross = Conditional<dim<TVec> == 2, Scalar<PT>, PT>;
+	using TCross = If<dim<TVec> == 2, Scalar<PT>, PT>;
 	return cross<PT>(vec1, vec2) == TCross(0) && dot<PT>(vec1, vec2) > 0;
 }
 

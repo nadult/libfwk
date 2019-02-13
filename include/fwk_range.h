@@ -38,7 +38,7 @@ namespace detail {
 
 		using Info = decltype(test<T>(DECLVAL(T &)));
 		static constexpr bool value = !is_same<Info, InvalidInfo>;
-		using MaybeInfo = Conditional<value, Info, NotARange>;
+		using MaybeInfo = If<value, Info, NotARange>;
 	};
 
 	// TODO: don't use Req parameter here, it causes unnecessary instantiations
@@ -69,7 +69,7 @@ namespace detail {
 
 		using Info = decltype(test<T>(PriorityTag1(), DECLVAL(T &)));
 		static constexpr bool value = !is_same<Info, InvalidInfo>;
-		using MaybeInfo = Conditional<value, Info, NotASpan>;
+		using MaybeInfo = If<value, Info, NotASpan>;
 	};
 }
 
@@ -179,7 +179,7 @@ template <class T, int min_size = 0> class Span {
   public:
 	using value_type = RemoveConst<T>;
 	enum { is_const = fwk::is_const<T>, minimum_size = min_size };
-	using vector_type = Conditional<is_const, const vector<value_type>, vector<value_type>>;
+	using vector_type = If<is_const, const vector<value_type>, vector<value_type>>;
 	static_assert(min_size >= 0, "min_size should be >= 0");
 
 	Span(T *data, int size, NoAssertsTag) : m_data(data), m_size(size) {
@@ -280,7 +280,7 @@ template <class T, int min_size = 0> class Span {
 	template <class U> auto reinterpret() const {
 		static_assert(compatibleSizes(sizeof(T), sizeof(U)),
 					  "Incompatible sizes; are you sure, you want to do this cast?");
-		using out_type = Conditional<fwk::is_const<T>, const U, U>;
+		using out_type = If<fwk::is_const<T>, const U, U>;
 		auto new_size = size_t(m_size) * sizeof(T) / sizeof(U);
 		return Span<out_type>(reinterpret_cast<out_type *>(m_data), new_size);
 	}

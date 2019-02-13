@@ -39,9 +39,9 @@ namespace detail {
 	};
 
 	template <class T, int size, int align, int req_size, int req_align>
-	using ValidateFwdMember = Conditional<
-		size != req_size, InvalidFwdMemberSize<T, size, req_size>,
-		Conditional<align != req_align, InvalidFwdMemberAlignment<T, align, req_align>, T>>;
+	using ValidateFwdMember =
+		If<size != req_size, InvalidFwdMemberSize<T, size, req_size>,
+		   If<align != req_align, InvalidFwdMemberAlignment<T, align, req_align>, T>>;
 
 	template <class T, int size, int align, bool defined_params> struct FwdMemberSelect {
 		template <class C>

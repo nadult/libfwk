@@ -27,7 +27,7 @@ template <class T, int N> struct Rational {
 	static constexpr int dim = N;
 
 	using Scalar = Rational<T>;
-	using Num = Conditional<(N > 0), fwk::MakeVec<T, N>, T>;
+	using Num = If<(N > 0), fwk::MakeVec<T, N>, T>;
 	using Den = T;
 
 	// TODO: paranoid overflow checks ?

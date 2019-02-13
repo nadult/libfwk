@@ -95,8 +95,7 @@ template <class T> constexpr bool is_same<T, T> = true;
 template <class T1> constexpr bool is_const = false;
 template <class T> constexpr bool is_const<const T> = true;
 
-template <bool value, class T1, class T2>
-using Conditional = typename std::conditional<value, T1, T2>::type;
+template <bool value, class T1, class T2> using If = typename std::conditional<value, T1, T2>::type;
 
 template <class T> using RemoveConst = typename std::remove_const<T>::type;
 template <class T> using RemoveReference = typename std::remove_reference<T>::type;
