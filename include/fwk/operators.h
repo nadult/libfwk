@@ -26,6 +26,10 @@ namespace detail {
 		template <class U> static void test(...);
 		using Type = decltype(test<L>(nullptr));
 	};
+
+	template <class L, class R>
+	static constexpr bool can_auto_compare = is_same<typename LessResult<L, R>::Type, bool> &&
+											 (!std::is_scalar_v<L> || !std::is_scalar_v<R>);
 }
 
 #define OP_RESULT(name)                                                                            \
@@ -55,22 +59,23 @@ template <class L, class R, EnableIf<is_same<MulResult<L, R>, L> && !std::is_sca
 void operator*=(L &a, const R &b) {
 	a = a * b;
 }
+
 template <class L, class R, EnableIf<is_same<DivResult<L, R>, L> && !std::is_scalar_v<L>>...>
 void operator/=(L &a, const R &b) {
 	a = a / b;
 }
 
-template <class L, class R, EnableIf<is_same<LessResult<R, L>, bool> && !std::is_scalar_v<L>>...>
+template <class L, class R, EnableIf<detail::can_auto_compare<R, L>>...>
 bool operator>(const L &a, const R &b) {
 	return b < a;
 }
 
-template <class L, class R, EnableIf<is_same<LessResult<L, R>, bool> && !std::is_scalar_v<L>>...>
+template <class L, class R, EnableIf<detail::can_auto_compare<L, R>>...>
 bool operator>=(const L &a, const R &b) {
 	return !(a < b);
 }
 
-template <class L, class R, EnableIf<is_same<LessResult<R, L>, bool> && !std::is_scalar_v<L>>...>
+template <class L, class R, EnableIf<detail::can_auto_compare<R, L>>...>
 bool operator<=(const L &a, const R &b) {
 	return !(b < a);
 }
