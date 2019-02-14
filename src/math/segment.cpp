@@ -383,6 +383,10 @@ INSTANTIATE_RAT(short)
 INSTANTIATE_RAT(int)
 INSTANTIATE_RAT(llint)
 
+INSTANTIATE_RAT(Ext24<short>)
+INSTANTIATE_RAT(Ext24<int>)
+INSTANTIATE_RAT(Ext24<llint>)
+
 template Maybe<Ray<float, 2>> Segment<float2>::asRay() const;
 template Maybe<Ray<double, 2>> Segment<double2>::asRay() const;
 

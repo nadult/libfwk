@@ -108,7 +108,13 @@ TEMPLATE
 template <class U, EnableIf<fwk::dim<U> == 0>...> int TRATIONAL::order(const Rational &rhs) const {
 	if constexpr(is_ext24<T>) {
 		using PT = Promote<T>;
-		// TODO: handle infinities ?
+		// Handling infinities
+		if(m_den == 0 || rhs.m_den == 0) {
+			int lval = m_den == 0 ? m_num < 0 ? -1 : 1 : 0;
+			int rval = rhs.m_den == 0 ? rhs.m_num < 0 ? -1 : 1 : 0;
+			return lval < rval ? -1 : lval > rval ? 1 : 0;
+		}
+
 		auto left = PT(m_num) * rhs.m_den, right = PT(rhs.m_num) * m_den;
 		return (left - right).sign();
 	} else {
