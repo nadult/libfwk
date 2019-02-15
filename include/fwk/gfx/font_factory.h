@@ -16,7 +16,7 @@ class FontFactory {
 	static string32 basicMathCharset();
 
 	Font makeFont(ZStr path, int size_px, bool lcd_mode = false) {
-		return makeFont(path, ansiCharset(), lcd_mode);
+		return makeFont(path, ansiCharset(), size_px, lcd_mode);
 	}
 
 	Font makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode = false);
