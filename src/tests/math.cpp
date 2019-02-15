@@ -493,8 +493,9 @@ void testRational() {
 			sum2 += gcd(pair.first, pair.second);
 		time2 = getTime() - time2;
 
-		print(" 64bit euclideanGCD: % ns (%)\n", time1 * 1000000000.0 / double(iters), sum1);
-		print(" 64bit binaryGCD:    % ns (%)\n", time2 * 1000000000.0 / double(iters), sum2);
+		print(" 64bit euclideanGCD: % ns\n", time1 * 1000000000.0 / double(iters));
+		print(" 64bit binaryGCD:    % ns\n", time2 * 1000000000.0 / double(iters));
+		ASSERT_EQ(sum1, sum2);
 	}
 
 	{
@@ -510,8 +511,9 @@ void testRational() {
 			sum2 += gcd(pair.first, pair.second);
 		time2 = getTime() - time2;
 
-		print("128bit EuclideanGCD: % ns (%)\n", time1 * 1000000000.0 / double(iters), sum1);
-		print("128bit binaryGCD:    % ns (%)\n", time2 * 1000000000.0 / double(iters), sum2);
+		print("128bit EuclideanGCD: % ns\n", time1 * 1000000000.0 / double(iters));
+		print("128bit binaryGCD:    % ns\n", time2 * 1000000000.0 / double(iters));
+		ASSERT_EQ(sum1, sum2);
 	}
 
 	{
