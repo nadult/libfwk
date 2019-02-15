@@ -54,6 +54,7 @@ template <class T> struct Ext24 {
 	RatExt24<PPT> intDenomInverse() const;
 
 	explicit operator double() const;
+	explicit operator T() const;
 	explicit operator float() const { return (float)(double)*this; }
 
 	T asIntegral() const { return a; }
@@ -73,6 +74,14 @@ template <class T> struct Ext24 {
 
 	const T &operator[](int idx) const { return PASSERT(idx >= 0 && idx < 4), v[idx]; }
 	T &operator[](int idx) { return PASSERT(idx >= 0 && idx < 4), v[idx]; }
+
+#define LEFT_SCALAR template <class U, EnableIf<is_constructible<Ext24, U>>...> friend
+
+	LEFT_SCALAR bool operator<(const U &l, const Ext24 &r) { return Ext24{l} < r; }
+	LEFT_SCALAR bool operator==(const U &l, const Ext24 &r) { return Ext24{l} == r; }
+	LEFT_SCALAR auto operator*(const U &l, const Ext24 &r) { return Ext24{l} * r; }
+
+#undef LEFT_SCALAR
 
 	union {
 		struct {

@@ -579,27 +579,33 @@ auto transform(const TVec &vec, const TFunc &func) {
 	return TOut{func(vec[0]), func(vec[1]), func(vec[2]), func(vec[3])};
 }
 
-template <class T, EnableIfVec<T, 2>...> T vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...>
+T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]));
 }
 
-template <class T, EnableIfVec<T, 3>...> T vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIf<is_vec<T, 3> && !is_rational<T>>...>
+T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]));
 }
 
-template <class T, EnableIfVec<T, 4>...> T vmin(const T &lhs, const T &rhs) {
+template <class T, EnableIf<is_vec<T, 4> && !is_rational<T>>...>
+T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]), min(lhs[3], rhs[3]));
 }
 
-template <class T, EnableIfVec<T, 2>...> T vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...>
+T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]));
 }
 
-template <class T, EnableIfVec<T, 3>...> T vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIf<is_vec<T, 3> && !is_rational<T>>...>
+T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]));
 }
 
-template <class T, EnableIfVec<T, 4>...> T vmax(const T &lhs, const T &rhs) {
+template <class T, EnableIf<is_vec<T, 4> && !is_rational<T>>...>
+T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]), max(lhs[3], rhs[3]));
 }
 
@@ -701,25 +707,21 @@ template <class T, EnableIfFptVec<T>...> bool isNormalized(const T &vec) {
 }
 
 // Returns true if v2 is CCW to v1
-template <class T> bool ccwSide(const vec2<T> &v1, const vec2<T> &v2) {
-	using PV = vec2<Promote<T>>;
-	return cross<PV>(v1, v2) > 0;
+template <class T, EnableIfVec<T, 2>...> bool ccwSide(const T &v1, const T &v2) {
+	return cross<Promote<T>>(v1, v2) > 0;
 }
 
-template <class T> bool cwSide(const vec2<T> &v1, const vec2<T> &v2) {
-	using PV = vec2<Promote<T>>;
-	return cross<PV>(v1, v2) < 0;
+template <class T, EnableIfVec<T, 2>...> bool cwSide(const T &v1, const T &v2) {
+	return cross<Promote<T>>(v1, v2) < 0;
 }
 
 // Returns true if (point - from) is CCW to (to - from)
-template <class T> bool ccwSide(const vec2<T> &from, const vec2<T> &to, const vec2<T> &point) {
-	using PV = vec2<Promote<T>>;
-	return dot<PV>(perpendicular(to - from), point - from) > 0;
+template <class T, EnableIfVec<T, 2>...> bool ccwSide(const T &from, const T &to, const T &point) {
+	return dot<Promote<T>>(perpendicular(to - from), point - from) > 0;
 }
 
-template <class T> bool cwSide(const vec2<T> &from, const vec2<T> &to, const vec2<T> &point) {
-	using PV = vec2<Promote<T>>;
-	return dot<PV>(perpendicular(to - from), point - from) < 0;
+template <class T, EnableIfVec<T, 2>...> bool cwSide(const T &from, const T &to, const T &point) {
+	return dot<Promote<T>>(perpendicular(to - from), point - from) < 0;
 }
 
 template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1, const TVec &vec2) {

@@ -179,6 +179,10 @@ template <class T> Ext24<T>::operator double() const {
 	return double(a) + double(b) * sqrt2 + double(c) * sqrt3 + double(d) * sqrt6;
 }
 
+template <class T> Ext24<T>::operator T() const {
+	return a + T(double(b) * sqrt2 + double(c) * sqrt3 + double(d) * sqrt6);
+}
+
 template <class T> bool Ext24<T>::operator==(const Ext24 &rhs) const {
 	return a == rhs.a && b == rhs.b && c == rhs.c && d == rhs.d;
 }

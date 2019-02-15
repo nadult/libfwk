@@ -542,6 +542,9 @@ void testRational() {
 
 	auto result = seg.isectParam(tri);
 	ASSERT_EQ(result.first.closest(), Rational<qint>(1, 2));
+
+	Rational2<int> p1({1, 5}, 13), p2({2, 1}, 3);
+	ASSERT_EQ(vmin(p1, p2), Rational2<int>({3, 13}, 39));
 }
 
 void testConsts() {

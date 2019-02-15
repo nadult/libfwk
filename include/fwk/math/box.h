@@ -10,8 +10,7 @@ namespace fwk {
 
 // min <= max in all dimensions; can be empty
 template <class Point> static bool validBoxRange(const Point &min, const Point &max) {
-	static constexpr int dim = Point::vec_size;
-	for(int i = 0; i < dim; i++)
+	for(int i = 0; i < dim<Point>; i++)
 		if(!(min[i] <= max[i]))
 			return false;
 	return true;

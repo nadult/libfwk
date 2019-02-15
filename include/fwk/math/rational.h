@@ -207,4 +207,16 @@ template <class T, EnableIf<is_rational<T> && is_vec<T>>...> auto cross(const T 
 	using Ret = Rational<RemoveRat<T>, dim<T> == 3 ? 3 : 0>;
 	return Ret{cross(a.num(), b.num()), a.den() * b.den()};
 }
+
+// TODO: properly handle situations where a lot more bits is needed
+template <class T, EnableIf<is_rational<T> && is_vec<T>>...> T vmin(const T &lhs, const T &rhs) {
+	auto lnum = lhs.num() * rhs.den(), rnum = rhs.num() * lhs.den();
+	return T(vmin(lnum, rnum), lhs.den() * rhs.den());
+}
+
+template <class T, EnableIf<is_rational<T> && is_vec<T>>...> T vmax(const T &lhs, const T &rhs) {
+	auto lnum = lhs.num() * rhs.den(), rnum = rhs.num() * lhs.den();
+	return T(vmax(lnum, rnum), lhs.den() * rhs.den());
+}
+
 }
