@@ -3,9 +3,30 @@
 
 #include "fwk/hash_map.h"
 
+#include "fwk/format.h"
 #include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/texture.h"
+
+namespace fwk {
+
+string32 FontFactory::ansiCharset() {
+	vector<char> chars;
+	for(char c = 32; c < 127; c++)
+		chars.emplace_back(c);
+	auto text = toUTF32(string(begin(chars), end(chars)));
+	ASSERT(text);
+	return *text;
+}
+
+string32 FontFactory::basicMathCharset() {
+	string utf8_text = "\u2219\u221A\u221e\u2248\u2260\u2264\u2265";
+	auto text = toUTF32(utf8_text);
+	ASSERT(text);
+	return *text;
+}
+
+}
 
 #ifdef FWK_TARGET_HTML5
 
@@ -14,7 +35,7 @@ namespace fwk {
 FontFactory::FontFactory() = default;
 FontFactory::~FontFactory() = default;
 
-Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
+Font FontFactory::makeFont(ZStr path, const string32 &charset, int size, bool lcd_mode) {
 	vector<FontCore::Glyph> glyphs;
 	vector<FontCore::Kerning> kernings;
 
@@ -48,7 +69,7 @@ FontFactory::~FontFactory() {
 	FT_Done_FreeType((FT_Library)m_library);
 }
 
-void *FontFactory::getFace(const string &path) {
+void *FontFactory::getFace(ZStr path) {
 	auto it = m_faces.find(path);
 	if(it != m_faces.end())
 		return it->second;
@@ -120,22 +141,13 @@ Texture FontFactory::makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	return makeTextureAtlas(glyphs, {256, 256});
 }
 
-Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
+Font FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode) {
 	auto face = (FT_Face)getFace(path);
-	if(FT_Set_Pixel_Sizes(face, 0, size) != 0)
+	if(FT_Set_Pixel_Sizes(face, 0, size_px) != 0)
 		FATAL("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
 
-	string32 ansi_charset;
-	{
-		vector<char> chars;
-		for(char c = 32; c < 127; c++)
-			chars.emplace_back(c);
-		if(auto text = toUTF32(string(begin(chars), end(chars))))
-			ansi_charset = move(*text);
-	}
-
 	vector<Pair<FontCore::Glyph, Texture>> glyphs;
-	for(auto character : ansi_charset) {
+	for(auto character : charset) {
 		FT_UInt index = FT_Get_Char_Index(face, character);
 		if(FT_Load_Glyph(face, index, FT_LOAD_DEFAULT) != 0)
 			continue;
@@ -178,8 +190,8 @@ Font FontFactory::makeFont(const string &path, int size, bool lcd_mode) {
 	vector<FontCore::Kerning> okernings;
 	// TODO: optimize
 	if(FT_HAS_KERNING(face))
-		for(auto left : ansi_charset)
-			for(auto right : ansi_charset) {
+		for(auto left : charset)
+			for(auto right : charset) {
 				FT_Vector vector;
 				FT_Get_Kerning(face, left, right, FT_KERNING_DEFAULT, &vector);
 

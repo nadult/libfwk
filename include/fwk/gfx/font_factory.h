@@ -12,10 +12,17 @@ class FontFactory {
 	FontFactory(FontFactory const &) = delete;
 	void operator=(FontFactory const &) = delete;
 
-	Font makeFont(const string &path, int size_in_pixels, bool lcd_mode = false);
+	static string32 ansiCharset();
+	static string32 basicMathCharset();
+
+	Font makeFont(ZStr path, int size_px, bool lcd_mode = false) {
+		return makeFont(path, ansiCharset(), lcd_mode);
+	}
+
+	Font makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode = false);
 
   private:
-	void *getFace(const string &);
+	void *getFace(ZStr);
 	using GlyphPair = Pair<FontCore::Glyph, Texture>;
 
 	Texture makeTextureAtlas(vector<GlyphPair> &, int2 atlas_size);
