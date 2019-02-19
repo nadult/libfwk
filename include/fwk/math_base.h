@@ -134,10 +134,16 @@ using DBox = Box<double3>;
 using RatS = Rational<short>;
 using RatI = Rational<int>;
 using RatL = Rational<llint>;
+using RatES = Rational<Ext24<short>>;
+using RatEI = Rational<Ext24<int>>;
+using RatEL = Rational<Ext24<llint>>;
 
 using Rat2S = Rational2<short>;
 using Rat2I = Rational2<int>;
 using Rat2L = Rational2<llint>;
+using Rat2ES = Rational2<Ext24<short>>;
+using Rat2EI = Rational2<Ext24<int>>;
+using Rat2EL = Rational2<Ext24<llint>>;
 
 class Matrix3;
 class Matrix4;
