@@ -8,6 +8,7 @@
 #include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
+#include "fwk/math/line.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/obox.h"
 #include "fwk/math/random.h"
@@ -252,12 +253,12 @@ void test2DIntersections() {
 	auto pt = Rational2<llint>(seg6.from) + Rational2<llint>(seg6.dir()) * t;
 	ASSERT_EQ(pt, Rational2<llint>({29, 38}, 11));
 
-	using RPos = Rational2<int>;
-	Segment rseg1{RPos{{1, 1}, 1}, RPos{{4, 2}, 6}};
-	Segment rseg2{RPos{{2, 4}, 3}, RPos{{1, 0}, 1}};
-	auto rt = Rational<int>(rseg1.isectParam(rseg2).closest());
-	auto rpos = rseg1.from + rseg1.dir() * rt;
-	ASSERT_EQ(rpos, RPos({5, 4}, 6));
+	ASSERT_EQ(Rational<int>(-1, 0), (Rational<int>)-inf);
+	ASSERT_EQ(1.0f / 0.0f, (float)inf);
+
+	Line2I line1({0, 1}, {2, 1}), line2({5, 0}, {-1, 2});
+	Rational<llint> line_pos(9, 5);
+	ASSERT_EQ(line1.isectParam(line2).closest(), line_pos);
 }
 
 void test3DIntersections() {

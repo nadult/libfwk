@@ -136,7 +136,19 @@ TEMPLATE bool TRATIONAL::operator==(const Rational &rhs) const {
 }
 
 TEMPLATE void TRATIONAL::operator>>(TextFormatter &out) const {
-	out(out.isStructured() ? "%/%" : "% %", num(), den());
+	// TODO: option to disable special characters ?
+	if(out.isStructured()) {
+		if(*this == inf)
+			out << "\u221E";
+		else if(*this == -inf)
+			out << "-\u221E";
+		else if(den() == 1)
+			out << num();
+		else
+			out("%/%", num(), den());
+	} else {
+		out("% %", num(), den());
+	}
 }
 
 TEMPLATE bool TRATIONAL::operator<(const Rational &rhs) const {

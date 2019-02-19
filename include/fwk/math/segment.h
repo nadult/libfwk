@@ -14,6 +14,11 @@ namespace fwk {
 template <class TVec> class Segment {
   public:
 	static_assert(is_vec<TVec>);
+
+	// When computing on integers, you need 2x as many bits to represent 2D segment intersection
+	// With rationals it's 4x as much (rational addition / subtraction in general case requires multiplication)
+	static_assert(!is_rational<TVec>, "Complex computations on rationals are not supported");
+
 	static constexpr int dim = fwk::dim<TVec>;
 	static_assert(dim >= 2 && dim <= 3);
 
@@ -30,6 +35,7 @@ template <class TVec> class Segment {
 	using PT = Promote<T>;
 	using PPT = Promote<PT>;
 
+	// TODO: computations on rationals can overflow (I didn't promote when adding/subtracting)
 	using PRT = MakeRat<PT>;
 	using PPRT = MakeRat<PPT>;
 	using PVec = MakeVec<PT, dim>;

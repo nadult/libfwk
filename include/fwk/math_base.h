@@ -114,7 +114,10 @@ using Ray2F = Ray<float, 2>;
 using Ray2D = Ray<double, 2>;
 
 using Segment3I = Segment<int3>;
+
+using Segment2S = Segment<short2>;
 using Segment2I = Segment<int2>;
+using Segment2L = Segment<llint2>;
 
 using Line2S = Line<short2>;
 using Line2I = Line<int2>;
@@ -127,6 +130,14 @@ using DRect = Box<double2>;
 using IBox = Box<int3>;
 using FBox = Box<float3>;
 using DBox = Box<double3>;
+
+using RatS = Rational<short>;
+using RatI = Rational<int>;
+using RatL = Rational<llint>;
+
+using Rat2S = Rational2<short>;
+using Rat2I = Rational2<int>;
+using Rat2L = Rational2<llint>;
 
 class Matrix3;
 class Matrix4;

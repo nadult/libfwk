@@ -22,6 +22,9 @@ static constexpr NoSignCheck no_sign_check;
 
 // Warning: these operations are far from optimal, if you know the numbers then
 // you can perform computations using less operations and bits;
+//
+// TODO: Problem additon, min/max for vectors require multiplication (to find common divisor)
+// Be careful not to overflow when performing operations on rationals
 template <class T, int N> struct Rational {
 	static_assert(is_integral<T> || is_ext24<T>);
 	static constexpr int dim = N;
@@ -31,7 +34,7 @@ template <class T, int N> struct Rational {
 	using Den = T;
 
 	// TODO: paranoid overflow checks ?
-	constexpr Rational(RealConstant<NumberType::infinity>) : m_num(1), m_den(0) {}
+	constexpr Rational(RealConstant<NumberType::infinity> v) : m_num(v.sign ? -1 : 1), m_den(0) {}
 	constexpr Rational(const Num &n, const T &d, NoSignCheck) : m_num(n), m_den(d) { CHECK_NAN(); }
 	constexpr Rational(const Num &n, const T &d) : m_num(n), m_den(d) {
 		if(d < T(0)) {

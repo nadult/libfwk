@@ -365,10 +365,6 @@ TEMPLATE void TSEG::operator>>(TextFormatter &fmt) const {
 	template class Segment<vec2<type>>;                                                            \
 	template class Segment<vec3<type>>;
 
-#define INSTANTIATE_RAT(type)                                                                      \
-	template class Segment<Rational<type, 2>>;                                                     \
-	template class Segment<Rational<type, 3>>;
-
 INSTANTIATE_VEC(short)
 INSTANTIATE_VEC(int)
 INSTANTIATE_VEC(llint)
@@ -378,14 +374,6 @@ INSTANTIATE_VEC(double)
 INSTANTIATE_VEC(Ext24<short>)
 INSTANTIATE_VEC(Ext24<int>)
 INSTANTIATE_VEC(Ext24<llint>)
-
-INSTANTIATE_RAT(short)
-INSTANTIATE_RAT(int)
-INSTANTIATE_RAT(llint)
-
-INSTANTIATE_RAT(Ext24<short>)
-INSTANTIATE_RAT(Ext24<int>)
-INSTANTIATE_RAT(Ext24<llint>)
 
 template Maybe<Ray<float, 2>> Segment<float2>::asRay() const;
 template Maybe<Ray<double, 2>> Segment<double2>::asRay() const;
