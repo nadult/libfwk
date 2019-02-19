@@ -74,9 +74,13 @@ template <class T, int N> class Triangle;
 template <class T, int N> class Plane;
 template <class T, int N> class Ray;
 template <class T> class Segment;
+template <class T> class Line;
 
 template <class T> using Segment2 = Segment<vec2<T>>;
 template <class T> using Segment3 = Segment<vec3<T>>;
+
+template <class T> using Line2 = Line<vec2<T>>;
+template <class T> using Line3 = Line<vec3<T>>;
 
 template <class T> using Triangle2 = Triangle<T, 2>;
 template <class T> using Triangle3 = Triangle<T, 3>;
@@ -111,6 +115,10 @@ using Ray2D = Ray<double, 2>;
 
 using Segment3I = Segment<int3>;
 using Segment2I = Segment<int2>;
+
+using Line2S = Line<short2>;
+using Line2I = Line<int2>;
+using Line2L = Line<llint2>;
 
 using IRect = Box<int2>;
 using FRect = Box<float2>;
