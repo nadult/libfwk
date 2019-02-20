@@ -22,8 +22,8 @@ TEMPLATE auto PSEG::normalizeLine(BVec &origin, BVec &dir) -> Pair<Base<TBase>> 
 		// Normalizing origin
 		for(int n : intRange(4))
 			if(dir[axis][n] != 0) {
-				auto div = fwk::abs(origin[axis][n] / dir[axis][n]);
-				if(!off || div < *off)
+				auto div = origin[axis][n] / dir[axis][n];
+				if(!off || abs(div) < abs(*off))
 					off = div;
 			}
 		PASSERT(off);

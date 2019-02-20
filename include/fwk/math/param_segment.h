@@ -27,6 +27,7 @@ template <class TBase, class TParam> struct ParamSegment {
 	static Pair<Base<TBase>> normalizeLine(BVec &origin, BVec &dir);
 	static bool isNormalized(const BVec &origin, const BVec &dir);
 
+	ParamSegment() : dir(1), from_t(0), to_t(1) {}
 	ParamSegment(const Segment<BVec> &segment) : origin(segment.from), dir(segment.dir()) {
 		auto [off, mul] = normalizeLine(origin, dir);
 		from_t = TParam(off);
@@ -53,6 +54,8 @@ template <class TBase, class TParam> struct ParamSegment {
 	PVec at(TParam t) const { return PVec(origin) + PVec(dir) * t; }
 	PVec from() const { return at(from_t); }
 	PVec to() const { return at(to_t); }
+
+	ParamSegment twin() const { return {origin, -dir, -to_t, -from_t}; }
 
 	void operator>>(TextFormatter &out) const;
 
