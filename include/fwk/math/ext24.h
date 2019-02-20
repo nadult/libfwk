@@ -45,7 +45,7 @@ template <class T> struct Ext24 {
 	constexpr Ext24 operator-() const { return Ext24(-a, -b, -c, -d); }
 
 	Ext24 operator*(T s) const { return Ext24(a * s, b * s, c * s, d * s); }
-	Ext24 intDivide(T s) const { return PASSERT(s != 0), Ext24(a / s, b / s, c / s, d / s); }
+	Ext24 operator/(T s) const { return PASSERT(s != 0), Ext24(a / s, b / s, c / s, d / s); }
 
 	// Problemem jest ciągłe przerzucanie z rejestrów sse/avx do pamięci na poziomie funkcji
 	Ext24 operator*(const Ext24 &rhs) const;

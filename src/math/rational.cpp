@@ -172,12 +172,11 @@ TEMPLATE TRATIONAL TRATIONAL::normalized() const {
 			using S = Base<T>;
 			if constexpr(dim == 0) {
 				S t = gcd(cspan({m_num.a, m_num.b, m_num.c, m_num.d, m_den.a}));
-				return {m_num.intDivide(t), S(m_den.a / t), no_sign_check};
+				return {m_num / t, S(m_den.a / t), no_sign_check};
 			} else if constexpr(dim == 2) {
 				auto &x = m_num[0], &y = m_num[1];
 				S t = gcd(cspan({x.a, x.b, x.c, x.d, y.a, y.b, y.c, y.d, m_den.a}));
-				auto dx = x.intDivide(t), dy = y.intDivide(t);
-				return {{dx, dy}, S(m_den.a / t), no_sign_check};
+				return {{x / t, y / t}, S(m_den.a / t), no_sign_check};
 			}
 		}
 

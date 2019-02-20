@@ -13,7 +13,7 @@ TEMPLATE auto PSEG::normalizeLine(BVec &origin, BVec &dir) -> Pair<Base<TBase>> 
 	if constexpr(is_ext24<TBase>) {
 		int sign = dir.x.sign();
 		auto mul = gcd(dir.x.gcd(), dir.y.gcd());
-		dir = {dir.x.intDivide(mul), dir.y.intDivide(mul)};
+		dir = {dir.x / mul, dir.y / mul};
 
 		Maybe<Base<TBase>> off;
 
