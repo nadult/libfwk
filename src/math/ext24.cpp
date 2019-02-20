@@ -180,7 +180,8 @@ template <class T> Ext24<T>::operator double() const {
 }
 
 template <class T> Ext24<T>::operator T() const {
-	return a + T(double(b) * sqrt2 + double(c) * sqrt3 + double(d) * sqrt6);
+	using RT = If<is_one_of<T, int, short>, double, long double>; // TODO: still not accurate
+	return a + T(RT(b) * sqrt2 + RT(c) * sqrt3 + RT(d) * sqrt6);
 }
 
 template <class T> bool Ext24<T>::operator==(const Ext24 &rhs) const {
