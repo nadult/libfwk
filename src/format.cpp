@@ -26,8 +26,11 @@ namespace detail {
 			while(elem && isspace(elem[elem.size() - 1]))
 				elem = elem.substr(0, elem.size() - 1);
 
+			// TODO: handle % in elems
 			DASSERT(elem);
-			if(anyOf(elem, isspace))
+			if(elem[0] == '"' && elem[elem.size() - 1] == '"')
+				out << "%";
+			else if(anyOf(elem, isspace))
 				out << '"' << elem << "\":% ";
 			else
 				out << elem << ":% ";

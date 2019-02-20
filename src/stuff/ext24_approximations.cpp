@@ -28,7 +28,7 @@ void computeRationalApproximations() {
 					 fwk::abs(double(r3) - sqrt_3) / sqrt_3 +
 					 fwk::abs(double(r6) - sqrt_6) / sqrt_6;
 		if(err < best_err) {
-			FWK_PRINT(r2, r3, r6, err * 1000000.0, d);
+			DUMP(r2, r3, r6, err * 1000000.0, d);
 			br2 = r2;
 			br3 = r3;
 			br6 = r6;
@@ -44,8 +44,8 @@ void computeRationalApproximations() {
 	auto rat_sq2_up = Rational<int>{br2.num() + 1, br2.den()};
 	auto rat_sq3_up = Rational<int>{br3.num() + 1, br3.den()};
 	auto rat_sq6_up = Rational<int>{br6.num() + 1, br6.den()};
-	FWK_PRINT(rat_sq2_down, double(rat_sq2_down) * 1000, rat_sq2_up, double(rat_sq2_up) * 1000);
-	FWK_PRINT(rat_sq3_down, double(rat_sq3_down) * 1000, rat_sq3_up, double(rat_sq3_up) * 1000);
-	FWK_PRINT(rat_sq6_down, double(rat_sq6_down) * 1000, rat_sq6_up, double(rat_sq6_up) * 1000);
+	DUMP(rat_sq2_down, double(rat_sq2_down) * 1000, rat_sq2_up, double(rat_sq2_up) * 1000);
+	DUMP(rat_sq3_down, double(rat_sq3_down) * 1000, rat_sq3_up, double(rat_sq3_up) * 1000);
+	DUMP(rat_sq6_down, double(rat_sq6_down) * 1000, rat_sq6_up, double(rat_sq6_up) * 1000);
 }
 }

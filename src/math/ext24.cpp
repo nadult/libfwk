@@ -118,16 +118,16 @@ namespace {
 		int result1 = left1 < right1 ? -1 : 1;
 		int result2 = left2 < right2 ? -1 : 1;
 
-		FWK_PRINT(left0, right0, result0);
-		FWK_PRINT(left1, right1, result1);
-		FWK_PRINT(left2, right2, result2);
+		DUMP(left0, right0, result0);
+		DUMP(left1, right1, result1);
+		DUMP(left2, right2, result2);
 
-		FWK_PRINT(left, right);
-		FWK_PRINT(a, a2, a4);
-		FWK_PRINT(b, b2, b4);
-		FWK_PRINT(c, c2, c4);
-		FWK_PRINT(d, d2, d4);
-		FWK_PRINT(s1, s2, s3, s4);
+		DUMP(left, right);
+		DUMP(a, a2, a4);
+		DUMP(b, b2, b4);
+		DUMP(c, c2, c4);
+		DUMP(d, d2, d4);
+		DUMP(s1, s2, s3, s4);
 	}*/
 
 		return left == right ? 0 : left < right ? -1 : 1;

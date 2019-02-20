@@ -457,18 +457,18 @@ void testParamSegment() {
 	PSeg seg1(Segment2S({3, 4}, {4, 6}));
 	PSeg seg2(Segment2S({0, -2}, {-2, -6}));
 
-	//FWK_PRINT(seg1, seg1.from(), seg1.to());
-	//FWK_PRINT(seg2, seg2.from(), seg2.to());
+	//DUMP(seg1, seg1.from(), seg1.to());
+	//DUMP(seg2, seg2.from(), seg2.to());
 	ASSERT(seg1.sameLine(seg2));
 
 	PSeg seg3(Segment2S({3, 4}, {6, 5})), seg4(Segment2S({7, 1}, {6, 5}));
 	auto isect = seg3.isect(seg4);
 	ASSERT_EQ(isect.closest(), 2);
-	//FWK_PRINT(seg3, seg4, isect);
+	//DUMP(seg3, seg4, isect);
 
 	PSeg seg5(Segment2S({-1, 1}, {-2, 4})), seg6(Segment2S({-3, 7}, {0, -2}));
-	//FWK_PRINT(seg5, seg5.from(), seg5.to());
-	//FWK_PRINT(seg6, seg6.from(), seg6.to());
+	//DUMP(seg5, seg5.from(), seg5.to());
+	//DUMP(seg6, seg6.from(), seg6.to());
 	ASSERT(seg5.sameLine(seg6));
 
 	PSeg seg7(Line2S({0, 3}, {3, 1}), RatI(13, 9), RatI(27, 7));
@@ -476,10 +476,10 @@ void testParamSegment() {
 
 	auto isect2 = seg3.isect(seg7);
 	auto isect3 = seg3.isect(seg8);
-	//FWK_PRINT(seg7, seg8, isect2, isect3);
+	//DUMP(seg7, seg8, isect2, isect3);
 	ASSERT_EQ(isect2, isect3);
 	ASSERT_EQ(isect2, IsectParam<RatI>({13, 9}, 2));
-	//FWK_PRINT(isect2, isect3);
+	//DUMP(isect2, isect3);
 
 	using PSegE = ParamSegment<Ext24<short>, RatEI>;
 	using SegE = Segment2<Ext24<short>>;
@@ -488,7 +488,7 @@ void testParamSegment() {
 	PSegE eseg2(SegE({ext_sqrt3<short>, 3}, {0, -4}));
 	auto eisect = eseg1.isect(eseg2);
 	ASSERT_EQ(eseg1.at(eisect.closest()), Rat2EI({ext_sqrt3<int> * 2, 2}, 3));
-	//FWK_PRINT(eseg1, eseg2, eisect);
+	//DUMP(eseg1, eseg2, eisect);
 
 	PSegE eseg3(
 		SegE({ext_sqrt2<short> + 24, 12}, {ext_sqrt2<short> * 13 + 38, ext_sqrt3<short> * 6 + 10}));
