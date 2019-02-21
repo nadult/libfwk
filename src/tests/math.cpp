@@ -14,6 +14,7 @@
 #include "fwk/math/param_segment.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rational.h"
+#include "fwk/math/rational_angle.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/rotation.h"
 #include "fwk/math/segment.h"
@@ -592,6 +593,47 @@ void testRational() {
 	ASSERT_EQ(vmin(p1, p2), Rational2<int>({3, 13}, 39));
 }
 
+void testRationalAngles() {
+	for(int n = 0; n < 24; n++) {
+		vec2<Ext24<short>> vec = angleToVectorExt24(n * 15, 4).num();
+
+		RationalAngle ang(vec);
+		auto real_ang = radToDeg(double(ang));
+		assertCloseEnough(real_ang, double(n * 15));
+		assertCloseEnough(radToDeg(double(-ang)), double(360 - n * 15));
+
+		//print("%  ang:% vec:%\n", stdFormat("%3d -> %3d", n * 15, (int)round(real_ang)), ang, vec);
+	}
+
+	Random rand;
+	for(int n = 0; n < 100000; n++) {
+		auto vec1 = rand.sampleBox(int2(-20), int2(20));
+		auto vec2 = rand.sampleBox(int2(-20), int2(20));
+
+		if(vec1 == int2() || vec2 == int2())
+			continue;
+
+		auto real_ang1 = vectorToAngle(normalize(double2(vec1)));
+		auto real_ang2 = vectorToAngle(normalize(double2(vec2)));
+
+		if(real_ang1 != real_ang2 && relativeDifference(real_ang1, real_ang2) < epsilon<double>)
+			continue;
+
+		RationalAngle ang1(vec1);
+		RationalAngle ang2(vec2);
+
+		auto result_real = real_ang1 < real_ang2;
+		auto result_rational = ang1 < ang2;
+		if(result_real != result_rational) {
+			print("Error for % - % (real: % - %: %) (rat: % - %: %)\n", vec1, vec2,
+				  radToDeg(real_ang1), radToDeg(real_ang2), result_real ? "less" : "not less", ang1,
+				  ang2, result_rational ? "less" : "not less");
+		}
+
+		ASSERT_EQ(result_real, result_rational);
+	}
+}
+
 void testConsts() {
 	ASSERT_EQ(toString(double(-inf)), "-inf");
 	assertCloseEnough(double(sqrt2) * sqrt2, 2.0);
@@ -616,6 +658,7 @@ void testMain() {
 	testOBox();
 	testExt24();
 	testParamSegment();
+	testRationalAngles();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec.values())

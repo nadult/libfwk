@@ -1,6 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- Formatting math objects first to expression, then to string (expression handles special chars, parentheses, additions, etc.)
 - Obsługa % w DUMP i w formatowaniu
 - isectParam -> isect, isect -> isectPoint ? It's not always point...
 - konstruktory dla vec2, vec3, vec4? 

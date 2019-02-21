@@ -25,7 +25,7 @@ template <class T> struct Ext24 {
 	using PT = Promote<T>;
 	using PPT = Promote<T, 2>;
 
-	static_assert(is_integral<T>);
+	static_assert(is_integral<T> && is_scalar<T>);
 
 	constexpr Ext24() : Ext24(0, 0, 0, 0) {}
 	constexpr Ext24(T integral) : a(integral), b(0), c(0), d(0) {}
