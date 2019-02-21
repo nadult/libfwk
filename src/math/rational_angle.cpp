@@ -8,27 +8,12 @@
 
 namespace fwk {
 
-template <class T> RationalAngle<T>::RationalAngle(T vec) {
+template <class T> RationalAngle<T>::RationalAngle(T vec) : quadrant(fwk::quadrant(vec)) {
 	PASSERT(vec != T());
-
-	if constexpr(is_rational<T>) {
-		int xsign = vec.numX() == 0 ? 0 : vec.numX() < 0 ? -1 : 1;
-		int ysign = vec.numY() == 0 ? 0 : vec.numY() < 0 ? -1 : 1;
-
-		PASSERT(xsign != 0 || ysign != 0);
-		quadrant = xsign >= 0 ? ysign < 0 ? 3 : 0 : ysign < 0 ? 2 : 1;
-
+	if constexpr(is_rational<T>)
 		slope = ratDivide(vec.numY(), vec.numX());
-
-	} else {
-		int xsign = vec.x == 0 ? 0 : vec.x < 0 ? -1 : 1;
-		int ysign = vec.y == 0 ? 0 : vec.y < 0 ? -1 : 1;
-
-		PASSERT(xsign != 0 || ysign != 0);
-		quadrant = xsign >= 0 ? ysign < 0 ? 3 : 0 : ysign < 0 ? 2 : 1;
-
+	else
 		slope = ratDivide(vec.y, vec.x);
-	}
 }
 
 template <class T> RationalAngle<T>::operator double() const {

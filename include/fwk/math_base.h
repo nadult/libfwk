@@ -665,6 +665,9 @@ template <class TVec, class T, EnableIfIntegralVec<TVec>...> auto vratioCeil(con
 
 // -------------------------------------------------------------------------------------------
 // ---  Vector functions  --------------------------------------------------------------------
+//
+// Default orientation in all vector-related operations (rotations, cross products, etc.) is counter-clockwise.
+// In 3D cross products define a right-handed coordinate system.
 
 template <class T, EnableIfVec<T, 2>...> auto dot(const T &lhs, const T &rhs) {
 	return lhs[0] * rhs[0] + lhs[1] * rhs[1];
@@ -709,13 +712,9 @@ template <class T, EnableIfVec<T, 2>...> auto asXZY(const T &xz, typename T::Sca
 
 template <class T, EnableIfVec<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-// Right-handed coordinate system
 template <class T, EnableIf<is_vec<T, 3> && !is_rational<T>>...> T cross(const T &a, const T &b) {
 	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
-
-// Default orientation in all vector-related operations
-// (cross products, rotations, etc.) is counter-clockwise.
 
 template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...>
 auto cross(const T &a, const T &b) {
@@ -753,6 +752,11 @@ template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1,
 	using PT = PromoteIntegral<TVec>;
 	using TCross = If<dim<TVec> == 2, Scalar<PT>, PT>;
 	return cross<PT>(vec1, vec2) == TCross(0) && dot<PT>(vec1, vec2) > 0;
+}
+
+template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...> int quadrant(const T &vec) {
+	int quad = (vec[1] < 0 ? 2 : 0) + (vec[0] < 0 ? 1 : 0);
+	return quad & 2 ? quad ^ 1 : quad;
 }
 
 // -------------------------------------------------------------------------------------------
