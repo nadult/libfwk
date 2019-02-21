@@ -8,11 +8,13 @@
 namespace fwk {
 
 template <class T> struct RationalAngle {
-	static_assert(is_vec<T>);
+	static_assert(is_vec<T> && !is_rational<T>);
 
 	using Scalar = MakeRat<fwk::Scalar<T>>;
 
 	RationalAngle(T);
+	RationalAngle(const Rational<fwk::Scalar<T>> &vec) : RationalAngle(T(vec.num())) {}
+
 	RationalAngle() : slope(0), quadrant(0) {}
 	RationalAngle(const Scalar &slope, int quadrant) : slope(slope), quadrant(quadrant) {
 		PASSERT(quadrant >= 0 && quadrant <= 3);

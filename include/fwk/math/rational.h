@@ -222,9 +222,4 @@ template <class T, EnableIf<is_rational<T> && is_vec<T>>...> T vmax(const T &lhs
 	return T(vmax(lnum, rnum), lhs.den() * rhs.den());
 }
 
-template <class T, EnableIf<is_vec<T, 2> && is_rational<T>>...> int quadrant(const T &vec) {
-	int quad = (vec.numY() < 0 ? 2 : 0) + (vec.numX() < 0 ? 1 : 0);
-	return quad & 2 ? quad ^ 1 : quad;
-}
-
 }

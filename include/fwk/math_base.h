@@ -730,35 +730,6 @@ template <class T, EnableIfFptVec<T>...> bool isNormalized(const T &vec) {
 	return isAlmostOne(lengthSq(vec));
 }
 
-// Returns true if v2 is CCW to v1
-template <class T, EnableIfVec<T, 2>...> bool ccwSide(const T &v1, const T &v2) {
-	return cross<Promote<T>>(v1, v2) > 0;
-}
-
-template <class T, EnableIfVec<T, 2>...> bool cwSide(const T &v1, const T &v2) {
-	return cross<Promote<T>>(v1, v2) < 0;
-}
-
-// Returns true if (point - from) is CCW to (to - from)
-template <class T, EnableIfVec<T, 2>...> bool ccwSide(const T &from, const T &to, const T &point) {
-	return dot<Promote<T>>(perpendicular(to - from), point - from) > 0;
-}
-
-template <class T, EnableIfVec<T, 2>...> bool cwSide(const T &from, const T &to, const T &point) {
-	return dot<Promote<T>>(perpendicular(to - from), point - from) < 0;
-}
-
-template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1, const TVec &vec2) {
-	using PT = PromoteIntegral<TVec>;
-	using TCross = If<dim<TVec> == 2, Scalar<PT>, PT>;
-	return cross<PT>(vec1, vec2) == TCross(0) && dot<PT>(vec1, vec2) > 0;
-}
-
-template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...> int quadrant(const T &vec) {
-	int quad = (vec[1] < 0 ? 2 : 0) + (vec[0] < 0 ? 1 : 0);
-	return quad & 2 ? quad ^ 1 : quad;
-}
-
 // -------------------------------------------------------------------------------------------
 // ---  Additional declarations  -------------------------------------------------------------
 

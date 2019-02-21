@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/math/direction.h"
 #include "fwk/math_base.h"
 #include "fwk/maybe.h"
 

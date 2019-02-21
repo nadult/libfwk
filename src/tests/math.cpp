@@ -5,6 +5,7 @@
 #include "fwk/math/axis_angle.h"
 #include "fwk/math/box_iter.h"
 #include "fwk/math/cylinder.h"
+#include "fwk/math/direction.h"
 #include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
@@ -641,6 +642,23 @@ void testConsts() {
 	//assertCloseEnough((long double)sqrt6 * sqrt6, 6.0L);
 }
 
+void testDirections() {
+	ASSERT(ccwSide(int2{0, 0}, {2, 0}, {0, 1}));
+	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
+	for(auto [i, j] : pairsRange(6))
+		ASSERT(ccwSide(vectors[i], vectors[j]));
+
+	int2 vecs1[] = {{1, 0}, {3, 2}, {1, 4}, {-3, 3}, {-2, 0}, {-3, -2}, {3, -2}};
+	int2 vecs2[] = {{1, 0}, {-4, 0}, {-3, -2}};
+
+	for(int n : intRange(vecs1))
+		ASSERT_EQ(ccwNext<int2>(vecs1[n], vecs1), (n + 1) % arraySize(vecs1));
+	for(int n : intRange(vecs2))
+		ASSERT_EQ(ccwNext<int2>(vecs2[n], vecs2), (n + 1) % arraySize(vecs2));
+
+	ASSERT_EQ(ccwNext<int2>(int2(1, 0), cspan({int2(1, 0)})), 0);
+}
+
 void testMain() {
 	Backtrace::t_default_mode = BacktraceMode::full;
 
@@ -659,6 +677,7 @@ void testMain() {
 	testExt24();
 	testParamSegment();
 	testRationalAngles();
+	testDirections();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec.values())
@@ -683,11 +702,6 @@ void testMain() {
 	static_assert(is_same<decltype(int_dot), int>, "");
 
 	ASSERT_EQ(format("%", double3(1, 2, 3)), format("%", float3(1, 2, 3)));
-
-	ASSERT(ccwSide(int2{0, 0}, {2, 0}, {0, 1}));
-	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
-	for(auto [i, j] : pairsRange(6))
-		ASSERT(ccwSide(vectors[i], vectors[j]));
 
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));
