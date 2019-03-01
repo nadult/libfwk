@@ -344,19 +344,6 @@ TEMPLATE auto TSEG::closestPointParams(const Segment &rhs) const -> Pair<PPRT> {
 	return {s, t};
 }
 
-TEMPLATE auto TSEG::closestPoint(const Point &pt) const -> PRealVec {
-	return at(closestPointParam(pt));
-}
-
-TEMPLATE auto TSEG::closestPoint(const Segment &seg) const -> PRealVec {
-	return at(closestPointParam(seg));
-}
-
-TEMPLATE auto TSEG::closestPoints(const Segment &rhs) const -> Pair<PRealVec> {
-	auto params = closestPointParams(rhs);
-	auto params2 = rhs.closestPointParams(*this);
-	return {at(params.first), rhs.at(params.second)};
-}
 TEMPLATE void TSEG::operator>>(TextFormatter &fmt) const {
 	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
 }

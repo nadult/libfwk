@@ -72,12 +72,17 @@ template <class TVec> class Segment {
 	PReal length() const { return std::sqrt((PReal)lengthSq()); }
 	PT lengthSq() const { return fwk::distanceSq<PVec>(from, to); }
 
-	// 0.0 -> from; 1.0 -> to
-	// TODO: do this properly (with rationals)
-	template <class U> PRealVec at(U param) const {
-		return PRealVec(from) + PRealVec(to - from) * PReal(param);
+	// from + dir() * param
+	template <class U, EnableIf<is_scalar<U>>...> auto at(U param) const {
+		if constexpr(is_integral<Base<U>>)
+			static_assert(precise_conversion<T, U>);
+		using OVec = MakeVec<Promote<U>, dim>;
+
+		if constexpr(is_rational<U>)
+			return ratDivide(OVec(from) * param.den() + OVec(dir()) * param.num(), param.den());
+		else
+			return OVec(from) + OVec(dir()) * param;
 	}
-	// TODO: at with rational args
 
 	template <class U> Segment<PRealVec> subSegment(Interval<U> interval) const {
 		return {at(interval.min), at(interval.max)};
@@ -110,9 +115,13 @@ template <class TVec> class Segment {
 	PPRT closestPointParam(const Segment &) const;
 	Pair<PPRT> closestPointParams(const Segment &) const;
 
-	PRealVec closestPoint(const Point &pt) const;
-	PRealVec closestPoint(const Segment &) const;
-	Pair<PRealVec> closestPoints(const Segment &rhs) const;
+	auto closestPoint(const Point &pt) const { return at(closestPointParam(pt)); }
+	auto closestPoint(const Segment &seg) const { return at(closestPointParam(seg)); }
+	auto closestPoints(const Segment &rhs) const {
+		auto params = closestPointParams(rhs);
+		auto params2 = rhs.closestPointParams(*this);
+		return pair{at(params.first), rhs.at(params.second)};
+	}
 
 	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> xz() const { return {from.xz(), to.xz()}; }
 	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> xy() const { return {from.xy(), to.xy()}; }
