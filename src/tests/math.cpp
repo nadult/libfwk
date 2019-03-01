@@ -12,7 +12,6 @@
 #include "fwk/math/line.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/obox.h"
-#include "fwk/math/param_segment.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rational.h"
 #include "fwk/math/rational_angle.h"
@@ -461,35 +460,6 @@ void testExt24() {
 	}
 }
 
-void testParamSegment() {
-	using PSeg = ParamSegment<short, RatI>;
-	PSeg seg1(Segment2S({3, 4}, {4, 6}));
-	PSeg seg2(Segment2S({0, -2}, {-2, -6}));
-
-	//DUMP(seg1, seg1.from(), seg1.to());
-	//DUMP(seg2, seg2.from(), seg2.to());
-	ASSERT(seg1.sameLine(seg2));
-
-	PSeg seg3(Segment2S({3, 4}, {6, 5})), seg4(Segment2S({7, 1}, {6, 5}));
-	auto isect = seg3.isect(seg4);
-	ASSERT_EQ(isect.closest(), 2);
-	//DUMP(seg3, seg4, isect);
-
-	PSeg seg5(Segment2S({-1, 1}, {-2, 4})), seg6(Segment2S({-3, 7}, {0, -2}));
-	//DUMP(seg5, seg5.from(), seg5.to());
-	//DUMP(seg6, seg6.from(), seg6.to());
-	ASSERT(seg5.sameLine(seg6));
-
-	PSeg seg7(Line2S({0, 3}, {3, 1}), RatI(13, 9), RatI(27, 7));
-	PSeg seg8(Line2S({0, 3}, {3, 1}), RatI(27, 7), RatI(13, 9));
-
-	auto isect2 = seg3.isect(seg7);
-	auto isect3 = seg3.isect(seg8);
-	//DUMP(seg7, seg8, isect2, isect3);
-	ASSERT_EQ(isect2, isect3);
-	ASSERT_EQ(isect2, IsectParam<RatI>({13, 9}, 2));
-	//DUMP(isect2, isect3);
-}
 
 void testRational() {
 	ASSERT_GT(Rational<int>(1, 0), Rational<int>(100, 1));
@@ -669,7 +639,6 @@ void testMain() {
 	testBox();
 	testOBox();
 	testExt24();
-	testParamSegment();
 	testRationalAngles();
 	testDirections();
 
