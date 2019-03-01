@@ -7,6 +7,9 @@
 
 namespace fwk {
 
+// TODO: można wyznaczyć spread między kątami
+// to by nam pewnie pozwoliło napisac funkcje: ccwAngle(v1, v2), cwAngle(v1, v2)
+
 template <class T> struct RationalAngle {
 	static_assert(is_vec<T> && !is_rational<T>);
 

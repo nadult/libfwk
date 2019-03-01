@@ -77,9 +77,13 @@ template <class T> struct Ext24 {
 
 #define LEFT_SCALAR template <class U, EnableIf<is_constructible<Ext24, U>>...> friend
 
-	LEFT_SCALAR bool operator<(const U &l, const Ext24 &r) { return Ext24{l} < r; }
-	LEFT_SCALAR bool operator==(const U &l, const Ext24 &r) { return Ext24{l} == r; }
-	LEFT_SCALAR auto operator*(const U &l, const Ext24 &r) { return Ext24{l} * r; }
+	template <class U>
+	using Bigger = Ext24<If<precise_conversion<fwk::Base<U>, T>, T, fwk::Base<U>>>;
+
+	// TODO: do the same in rationals
+	LEFT_SCALAR bool operator<(const U &l, const Ext24 &r) { return Bigger<U>(l) < Bigger<U>(r); }
+	LEFT_SCALAR bool operator==(const U &l, const Ext24 &r) { return Bigger<U>(l) == Bigger<U>(r); }
+	LEFT_SCALAR auto operator*(const U &l, const Ext24 &r) { return Bigger<U>(l) * Bigger<U>(r); }
 
 #undef LEFT_SCALAR
 

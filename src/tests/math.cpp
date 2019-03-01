@@ -452,6 +452,13 @@ void testExt24() {
 		}
 		ASSERT_EQ(vec_sum, Rat2Ext24<int>());
 	}
+
+	for(int n = 0; n < 1000; n++) {
+		Ext24<int> v(rand.uniform(-100, 100), rand.uniform(-100, 100), rand.uniform(-100, 100),
+					 rand.uniform(-100, 100));
+		auto inv = v.intDenomInverse();
+		ASSERT_EQ(v * inv, 1);
+	}
 }
 
 void testParamSegment() {
@@ -482,19 +489,6 @@ void testParamSegment() {
 	ASSERT_EQ(isect2, isect3);
 	ASSERT_EQ(isect2, IsectParam<RatI>({13, 9}, 2));
 	//DUMP(isect2, isect3);
-
-	using PSegE = ParamSegment<Ext24<short>, RatEI>;
-	using SegE = Segment2<Ext24<short>>;
-
-	PSegE eseg1(SegE({ext_sqrt3<short> * 2, 2}, {-ext_sqrt3<short> * 2, -2}));
-	PSegE eseg2(SegE({ext_sqrt3<short>, 3}, {0, -4}));
-	auto eisect = eseg1.isect(eseg2);
-	ASSERT_EQ(eseg1.at(eisect.closest()), Rat2EI({ext_sqrt3<int> * 2, 2}, 3));
-	//DUMP(eseg1, eseg2, eisect);
-
-	PSegE eseg3(
-		SegE({ext_sqrt2<short> + 24, 12}, {ext_sqrt2<short> * 13 + 38, ext_sqrt3<short> * 6 + 10}));
-	ASSERT_EQ(eseg3.to_t, 2);
 }
 
 void testRational() {

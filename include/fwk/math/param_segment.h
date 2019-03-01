@@ -6,6 +6,8 @@
 
 namespace fwk {
 
+// TODO: remove it? it makes no sense if it doesn't work for Ext24...
+
 // Parametrized segment represented as line + two parameters
 // Line is normalized so that if two lines overlap then their origin & dir
 // are the same except dir sign.
@@ -13,6 +15,7 @@ namespace fwk {
 template <class TBase, class TParam> struct ParamSegment {
 	static_assert(!is_rational<TBase> && is_scalar<TBase>);
 	static_assert(is_rational<TParam> && is_scalar<TParam>);
+	static_assert(!is_ext24<Base<TBase>>, "Normalization doesn't work for Ext24...");
 
 	using BVec = vec2<TBase>;
 	using PVec = Promote<MakeVec<TParam, 2>>; // TODO: is this promotion needed ?
@@ -29,6 +32,7 @@ template <class TBase, class TParam> struct ParamSegment {
 
 	ParamSegment() : dir(1), from_t(0), to_t(1) {}
 	ParamSegment(const Segment<BVec> &segment) : origin(segment.from), dir(segment.dir()) {
+		PASSERT(dir != BVec());
 		auto [off, mul] = normalizeLine(origin, dir);
 		from_t = TParam(off);
 		to_t = TParam(off + mul);

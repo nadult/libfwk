@@ -11,7 +11,6 @@ namespace fwk {
 
 TEMPLATE auto PSEG::normalizeLine(BVec &origin, BVec &dir) -> Pair<Base<TBase>> {
 	if constexpr(is_ext24<TBase>) {
-		int sign = dir.x.sign();
 		auto mul = gcd(dir.x.gcd(), dir.y.gcd());
 		dir = {dir.x / mul, dir.y / mul};
 
@@ -26,13 +25,15 @@ TEMPLATE auto PSEG::normalizeLine(BVec &origin, BVec &dir) -> Pair<Base<TBase>> 
 				if(!off || abs(div) < abs(*off))
 					off = div;
 			}
+
+		// TODO: problem: this won't work; factorisation (if possible) of Ext24<> is hard
+		// and there are probably multiple ways in which one can factorize such number...
 		PASSERT(off);
 
 		origin -= dir * *off;
 		return {*off, mul};
 
 	} else {
-		int sign = dir.x < 0 ? -1 : 1;
 		auto mul = gcd(dir.x, dir.y);
 		dir /= mul;
 
@@ -53,6 +54,7 @@ TEMPLATE auto PSEG::isect(const ParamSegment &rhs) const -> IsectParam {
 	using PBVec = Promote<BVec>;
 	auto tdot = dot<PBVec>(dir, perpendicular(rhs.dir));
 	if(tdot == 0) {
+		// TODO: dałoby sie zrobić tak, żeby normalizacja nie była potrzebna?
 		// lines are parallel
 		if(origin == rhs.origin) {
 			// same line
@@ -85,8 +87,5 @@ TEMPLATE void PSEG::operator>>(TextFormatter &out) const {
 
 template struct ParamSegment<short, Rational<int>>;
 template struct ParamSegment<int, Rational<llint>>;
-
-template struct ParamSegment<Ext24<short>, Rational<Ext24<int>>>;
-template struct ParamSegment<Ext24<int>, Rational<Ext24<llint>>>;
 
 }
