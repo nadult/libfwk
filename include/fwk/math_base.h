@@ -395,8 +395,8 @@ template <class T, EnableIfIntegral<T>...> constexpr bool isPowerOfTwo(T value) 
 
 constexpr int countLeadingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
 constexpr int countLeadingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
-constexpr int countTrailingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
-constexpr int countTrailingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
+constexpr int countTrailingZeros(uint value) { return value ? __builtin_ctz(value) : 32; }
+constexpr int countTrailingZeros(u64 value) { return value ? __builtin_ctzll(value) : 64; }
 constexpr int countBits(uint value) { return __builtin_popcount(value); }
 constexpr int countBits(u64 value) { return __builtin_popcountll(value); }
 

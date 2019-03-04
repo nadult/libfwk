@@ -666,6 +666,9 @@ void testMain() {
 
 	ASSERT_EQ(format("%", double3(1, 2, 3)), format("%", float3(1, 2, 3)));
 
+	static_assert(countTrailingZeros(16u) == 4);
+	static_assert(countLeadingZeros(16u) == 27);
+
 	/*
 	Quat rot = normalize(Quat::fromYawPitchRoll(0.5, 1.2, 0.3));
 	Quat p = normalize(pow(rot, 1.0f));
