@@ -1,9 +1,7 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
-- Args -> TV, V ?
 - vector concept and algorithms for it (downsize, upsize, shrinkToFit, etc.)
-- why not add implicit conversion enum flags -> bool ?
 - TODO: hashMap where [] doesnt add new element
 - Formatting math objects first to expression, then to string (expression handles special chars, parentheses, additions, etc.)
 - Obsługa % w DUMP i w formatowaniu
@@ -76,7 +74,6 @@ TODO: which OpenGL version are we targeting ?
 - max/min wartości openglowe łatwo pobieralne
 - nazwy rozszerzen (enumow) dokladnie tak jak w oglu (i nie trzeba mapy nazw)
 - więcej funkcji do enclose ?
-- Domyślne atrybuty vertexów nie są częścią VAO!!!
 - lepsze interfajsy do wejścia
 - CHECK(equal, a, b) -> fwk::assert::equal(a, b) ? ... : else print(args...)
 - assert_in_range

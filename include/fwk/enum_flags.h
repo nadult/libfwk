@@ -37,7 +37,7 @@ template <class T> struct EnumFlags {
 	constexpr bool operator==(EnumFlags rhs) const { return bits == rhs.bits; }
 	constexpr bool operator<(EnumFlags rhs) const { return bits < rhs.bits; }
 
-	constexpr explicit operator bool() const { return bits != 0; }
+	constexpr operator bool() const { return bits != 0; }
 
 	void setIf(EnumFlags flags, bool condition) {
 		if(condition)

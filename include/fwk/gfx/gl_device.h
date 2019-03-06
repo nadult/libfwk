@@ -53,7 +53,7 @@ class GlDevice {
 	void setWindowFullscreen(Flags);
 	Flags windowFlags() const;
 	bool isWindowFullscreen() const {
-		return (bool)(windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop));
+		return windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop);
 	}
 
 	double frameTime() const { return m_frame_time; }
