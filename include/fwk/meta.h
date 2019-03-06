@@ -29,6 +29,13 @@ template <class... Args> struct Types {};
 template <class T> auto declval() -> T;
 #define DECLVAL(type) declval<type>()
 
+template <class Lhs, class... RhsArgs> static constexpr bool is_one_of = false;
+template <class Lhs, class Rhs, class... RhsArgs>
+static constexpr bool is_one_of<Lhs, Rhs, RhsArgs...> = is_one_of<Lhs, RhsArgs...>;
+template <class Lhs, class... RhsArgs> static constexpr bool is_one_of<Lhs, Lhs, RhsArgs...> = true;
+
+template <bool value, class T1, class T2> using If = typename std::conditional<value, T1, T2>::type;
+
 namespace detail {
 
 	struct ValidType {
@@ -66,12 +73,23 @@ namespace detail {
 	template <unsigned N, unsigned... Is> struct GenSeqX : GenSeqX<N - 1, N - 1, Is...> {};
 	template <unsigned... Is> struct GenSeqX<0, Is...> : Seq<Is...> {};
 	template <unsigned N> using GenSeq = typename GenSeqX<N>::type;
+
+	template <class TFrom, class TWhat> struct SubTypes;
+	template <class... VWhat> struct SubTypes<Types<>, Types<VWhat...>> { using Type = Types<>; };
+
+	template <class From, class... VFrom, class... VWhat>
+	struct SubTypes<Types<From, VFrom...>, Types<VWhat...>> {
+		using Rest = typename SubTypes<Types<VFrom...>, Types<VWhat...>>::Type;
+
+		template <class... VRest>
+		static constexpr auto result(Types<VRest...>)
+			-> If<is_one_of<From, VWhat...>, Rest, Types<From, VRest...>>;
+		using Type = decltype(result(Rest()));
+	};
 }
 
-template <class Lhs, class... RhsArgs> static constexpr bool is_one_of = false;
-template <class Lhs, class Rhs, class... RhsArgs>
-static constexpr bool is_one_of<Lhs, Rhs, RhsArgs...> = is_one_of<Lhs, RhsArgs...>;
-template <class Lhs, class... RhsArgs> static constexpr bool is_one_of<Lhs, Lhs, RhsArgs...> = true;
+template <class TFrom, class TWhat>
+using SubtractTypes = typename detail::SubTypes<TFrom, TWhat>::Type;
 
 template <int N, class... Args> using NthType = typename detail::NthType<N, Args...>::type;
 
@@ -95,17 +113,39 @@ template <class T> constexpr bool is_same<T, T> = true;
 template <class T1> constexpr bool is_const = false;
 template <class T> constexpr bool is_const<const T> = true;
 
-template <bool value, class T1, class T2> using If = typename std::conditional<value, T1, T2>::type;
-
 template <class T> using RemoveConst = typename std::remove_const<T>::type;
 template <class T> using RemoveReference = typename std::remove_reference<T>::type;
 template <class T> using RemovePointer = typename std::remove_pointer<T>::type;
+template <class T>
+using RemoveRefConst = typename std::remove_const<typename std::remove_reference<T>::type>::type;
 
 // TODO: template variables
 using detail::Conjunction;
 using detail::Disjunction;
 
 template <class... Types> using IndexedTypes = typename detail::MakeIndexedTypes<0, Types...>::type;
+
+template <class... Args> static constexpr int type_count = sizeof...(Args);
+template <class... Args> static constexpr int type_count<Types<Args...>> = sizeof...(Args);
+
+// In case of multiple types, returns first; If not found: -1
+template <class Arg, class... Args>
+constexpr int type_index = []() {
+	int result = -1, idx = 0;
+	(..., ((is_same<Arg, Args> &&result == -1 ? result = idx : 0), idx++));
+	return result;
+}();
+template <class Arg, class... Args>
+constexpr int type_index<Arg, Types<Args...>> = type_index<Arg, Args...>;
+
+template <class... Args>
+constexpr bool unique_types = []() {
+	bool unique = true;
+	int idx = 0;
+	(..., ((type_index<Args, Args...> != idx ? unique = false : 0), idx++));
+	return unique;
+}();
+template <class... Args> constexpr bool unique_types<Types<Args...>> = unique_types<Args...>;
 
 template <class T> constexpr int type_size = sizeof(T);
 

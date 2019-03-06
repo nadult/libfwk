@@ -143,6 +143,16 @@ template <int N, class... Args> const auto &get(const LightTuple<Args...> &tuple
 template <int N, class... Args> auto &get(LightTuple<Args...> &tuple) {
 	return detail::GetField<N>::get(tuple);
 }
+template <class T, class... Args> const auto &get(const LightTuple<Args...> &tuple) {
+	static constexpr int tidx = type_index<T, Args...>;
+	static_assert(tidx != -1, "Invalid type specified");
+	return detail::GetField<tidx>::get(tuple);
+}
+template <class T, class... Args> auto &get(LightTuple<Args...> &tuple) {
+	static constexpr int tidx = type_index<T, Args...>;
+	static_assert(tidx != -1, "Invalid type specified");
+	return detail::GetField<tidx>::get(tuple);
+}
 
 template <class T> static constexpr bool is_tuple = false;
 template <class... T> static constexpr bool is_tuple<LightTuple<T...>> = true;

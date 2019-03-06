@@ -12,6 +12,14 @@
 #include "fwk_cache.h"
 #include "tests/testing.h"
 
+void testTypes() {
+	static_assert(is_same<SubtractTypes<Types<int, float, char, llint>, Types<int, llint>>,
+						  Types<float, char>>);
+	static_assert(type_index<float, Types<int, float, float, char>> == 1);
+	static_assert(unique_types<float, char, int>);
+	static_assert(!unique_types<float, char, int, float>);
+}
+
 void testTextFormatter() {
 	TextFormatter fmt;
 	fmt.stdFormat("%d %x %s", 11, 0x20, "foobar");
@@ -191,4 +199,5 @@ void testMain() {
 	testTypeInfo();
 	testFwdMember();
 	testVariant();
+	testTypes();
 }
