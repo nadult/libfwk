@@ -36,6 +36,8 @@ void testTextFormatter() {
 
 	Pair<int, double> some_pair = {10, 12.5};
 	ASSERT_EQ(toString(some_pair), "10 12.5");
+
+	ASSERT_EQ(format("\\%%\\%%\\%", "foo", "bar"), "%foo%bar%");
 }
 
 template <class T> void testClassConversions(T value) {

@@ -18,6 +18,14 @@ namespace detail {
 		// TODO: properly handle parenthesis, etc.
 		Tokenizer tok(args, ',');
 
+		auto append_elem = [&](Str elem) {
+			for(auto c : elem)
+				if(c == '%')
+					out << "\\%";
+				else
+					out << c;
+		};
+
 		while(!tok.finished()) {
 			auto elem = tok.next();
 
@@ -30,10 +38,14 @@ namespace detail {
 			DASSERT(elem);
 			if(elem[0] == '"' && elem[elem.size() - 1] == '"')
 				out << "%";
-			else if(anyOf(elem, isspace))
-				out << '"' << elem << "\":% ";
-			else
-				out << elem << ":% ";
+			else if(anyOf(elem, isspace)) {
+				out << '"';
+				append_elem(elem);
+				out << "\":% ";
+			} else {
+				append_elem(elem);
+				out << ":% ";
+			}
 		}
 
 		out.trim(1);
@@ -63,6 +75,17 @@ void TextFormatter::clear() {
 	m_offset = 0;
 }
 
+static int countPercents(const char *ptr) {
+	int out = 0;
+	char prev = 0;
+	while(*ptr) {
+		if(*ptr == '%' && prev != '\\')
+			out++;
+		prev = *ptr++;
+	}
+	return out;
+}
+
 void TextFormatter::append_(const char *format_str, int arg_count, const Func *funcs, va_list ap) {
 	static const Func opt_funcs[] = {detail::append<FormatOptions>, detail::append<FormatMode>,
 									 detail::append<FormatPrecision>};
@@ -70,7 +93,7 @@ void TextFormatter::append_(const char *format_str, int arg_count, const Func *f
 #ifndef NDEBUG
 	DASSERT(format_str);
 
-	int num_percent = std::count(format_str, format_str + strlen(format_str), '%');
+	int num_percent = countPercents(format_str);
 	int num_format_args = 0;
 	for(int n = 0; n < arg_count; n++)
 		if(isOneOf(funcs[n], opt_funcs))
@@ -84,7 +107,12 @@ void TextFormatter::append_(const char *format_str, int arg_count, const Func *f
 			format_str = nextElement(format_str);
 		funcs[n](*this, arg);
 	}
-	*this << format_str;
+
+	while(*format_str) {
+		if(!(format_str[0] == '\\' && format_str[1] == '%'))
+			*this << *format_str;
+		format_str++;
+	}
 }
 
 void TextFormatter::append_(const char *format, int arg_count, const Func *funcs, ...) {
@@ -223,8 +251,15 @@ void TextFormatter::trim(int count) {
 
 const char *TextFormatter::nextElement(const char *format_str) {
 	const char *start = format_str;
+	char prev = 0;
 	while(*format_str && *format_str != '%')
-		format_str++;
+		prev = *format_str++;
+
+	if(prev == '\\' && *format_str == '%') {
+		*this << Str(start, format_str - 1) << '%';
+		return nextElement(format_str + 1);
+	}
+
 	const char *end = format_str++;
 
 	*this << Str(start, end);
