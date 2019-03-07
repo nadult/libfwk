@@ -2,9 +2,9 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - vector concept and algorithms for it (downsize, upsize, shrinkToFit, etc.)
+- HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
 - TODO: hashMap where [] doesnt add new element
 - Formatting math objects first to expression, then to string (expression handles special chars, parentheses, additions, etc.)
-- isectParam -> isect, isect -> isectPoint ? It's not always point...
 - konstruktory dla vec2, vec3, vec4? 
 - vec2, vec3: unie i możliwość używania złożonych typów jako parametrów (boost int128) wymagają
   customowego destruktora, przez co vec2<> nie jest typem literalnym i nie można go używać w wyrażeniach constexpr

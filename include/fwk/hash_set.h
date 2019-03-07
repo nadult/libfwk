@@ -116,11 +116,7 @@ template <class TKey> class HashSet {
 	iterator end() { return iterator(m_nodes + m_capacity, this); }
 	const_iterator end() const { return const_iterator(m_nodes + m_capacity, this); }
 
-	bool contains(const Key &key) const {
-		HashValue hash = hashFunc(key);
-		Node *n = find_for_insert(key, hash);
-		return n && n->isOccupied();
-	}
+	bool contains(const Key &key) const { return find(key) != end(); }
 
 	HashSet &operator=(const HashSet &rhs) {
 		checkInvariant();
