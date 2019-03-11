@@ -2,7 +2,6 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - operators.h -> operator ?
-- DECLARE_ENUM
 - pochować operator<< gdzie się da
 - ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?
 - vector concept and algorithms for it (downsize, upsize, shrinkToFit, etc.)

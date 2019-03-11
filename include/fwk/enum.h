@@ -117,6 +117,8 @@ namespace detail {
 		return fwk::detail::EnumStrings<func, _enum_count>();                                      \
 	}
 
+#define DECLARE_ENUM(name) enum class name : unsigned char;
+
 struct NotAnEnum;
 
 namespace detail {

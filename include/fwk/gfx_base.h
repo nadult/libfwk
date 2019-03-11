@@ -48,17 +48,17 @@ template <> constexpr int type_size<LineBuffer> = 112;
 
 struct FColor;
 struct IColor;
-enum class ColorId : unsigned char;
+DECLARE_ENUM(ColorId);
 
 struct ColoredTriangle;
 
-enum class GlFormat : unsigned char;
-enum class GlDeviceOpt : unsigned char;
-enum class PrimitiveType : unsigned char;
-enum class ShaderType : unsigned char;
-enum class MaterialOpt : unsigned char;
-enum class IndexType : unsigned char;
-enum class VertexBaseType : unsigned char;
+DECLARE_ENUM(GlFormat);
+DECLARE_ENUM(GlDeviceOpt);
+DECLARE_ENUM(PrimitiveType);
+DECLARE_ENUM(ShaderType);
+DECLARE_ENUM(MaterialOpt);
+DECLARE_ENUM(IndexType);
+DECLARE_ENUM(VertexBaseType);
 
 struct HeightMap16bit;
 struct TextureConfig;
