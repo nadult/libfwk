@@ -38,16 +38,18 @@ template <typename TKey, typename TValue> class HashMap {
 			KeyValuePair data;
 		};
 	};
-	template <typename TNodePtr, typename TPtr, typename TRef> class node_iterator {
+	template <bool is_const> class Iterator {
 		friend class HashMap;
 
 	  public:
-		typedef std::forward_iterator_tag iterator_category;
+		using TNodePtr = If<is_const, const Node *, Node *>;
+		using TPtr = If<is_const, const KeyValuePair *, KeyValuePair *>;
+		using TRef = If<is_const, const KeyValuePair &, KeyValuePair &>;
+		using iterator_category = std::forward_iterator_tag;
 
-		explicit node_iterator(TNodePtr node, const HashMap *map) : m_node(node), m_map(map) {}
-		template <typename UNodePtr, typename UPtr, typename URef>
-		node_iterator(const node_iterator<UNodePtr, UPtr, URef> &rhs)
-			: m_node(rhs.node()), m_map(rhs.get_map()) {}
+		explicit Iterator(TNodePtr node, const HashMap *map) : m_node(node), m_map(map) {}
+		template <bool rhs_is_const>
+		Iterator(const Iterator<rhs_is_const> &rhs) : m_node(rhs.node()), m_map(rhs.get_map()) {}
 
 		TRef operator*() const {
 			PASSERT(m_node);
@@ -56,20 +58,20 @@ template <typename TKey, typename TValue> class HashMap {
 		TPtr operator->() const { return &m_node->data; }
 		TNodePtr node() const { return m_node; }
 
-		node_iterator &operator++() {
+		Iterator &operator++() {
 			PASSERT(m_node);
 			++m_node;
 			move_to_next_occupied_node();
 			return *this;
 		}
-		node_iterator operator++(int) {
-			node_iterator copy(*this);
+		Iterator operator++(int) {
+			Iterator copy(*this);
 			++(*this);
 			return copy;
 		}
 
-		bool operator==(const node_iterator &rhs) const { return rhs.m_node == m_node; }
-		bool operator!=(const node_iterator &rhs) const { return !(rhs == *this); }
+		bool operator==(const Iterator &rhs) const { return rhs.m_node == m_node; }
+		bool operator!=(const Iterator &rhs) const { return !(rhs == *this); }
 
 		const HashMap *get_map() const { return m_map; }
 
@@ -87,8 +89,8 @@ template <typename TKey, typename TValue> class HashMap {
 	};
 
   public:
-	using iterator = node_iterator<Node *, KeyValuePair *, KeyValuePair &>;
-	using const_iterator = node_iterator<const Node *, const KeyValuePair *, const KeyValuePair &>;
+	using iterator = Iterator<false>;
+	using const_iterator = Iterator<true>;
 	static constexpr int initial_capacity = 64;
 	static_assert(isPowerOfTwo(initial_capacity));
 
