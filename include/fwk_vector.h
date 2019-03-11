@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/iterator.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -88,10 +89,8 @@ template <class T> class Vector {
 	using reverse_iterator = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-	template <typename It>
-	using RequireInputIter =
-		typename std::enable_if<is_convertible<typename std::iterator_traits<It>::iterator_category,
-											   std::input_iterator_tag>>::type;
+	template <class IT>
+	static constexpr bool is_input_iter = is_forward_iter<IT> &&is_constructible<T, IterBase<IT>>;
 
 	Vector() { m_base.zero(); }
 	~Vector() { destroy(m_base.data, m_base.size); }
@@ -105,7 +104,7 @@ template <class T> class Vector {
 		m_base.zero();
 		resize(size, value);
 	}
-	template <class Iter, typename = RequireInputIter<Iter>> Vector(Iter first, Iter last) {
+	template <class IT, EnableIf<is_input_iter<IT>>...> Vector(IT first, IT last) {
 		m_base.zero();
 		assign(first, last);
 	}
@@ -114,11 +113,11 @@ template <class T> class Vector {
 
 	void swap(Vector &rhs) { m_base.swap(rhs.m_base); }
 
-	template <class Iter, typename = RequireInputIter<Iter>> void assign(Iter first, Iter last) {
+	template <class IT, EnableIf<is_input_iter<IT>>...> void assign(IT first, IT last) {
 		if(trivial_destruction)
-			m_base.assignPartialPod(sizeof(T), last - first);
+			m_base.assignPartialPod(sizeof(T), fwk::distance(first, last));
 		else
-			m_base.assignPartial(sizeof(T), &Vector::destroy, last - first);
+			m_base.assignPartial(sizeof(T), &Vector::destroy, fwk::distance(first, last));
 		int offset = 0;
 		while(!(first == last)) {
 			new(data() + offset++) T(*first);
@@ -263,13 +262,14 @@ template <class T> class Vector {
 		return insert(pos, &value, (&value) + 1);
 	}
 
-	template <class Iter> iterator insert(const const_iterator pos, Iter first, Iter last) {
+	template <class IT, EnableIf<is_input_iter<IT>>...>
+	iterator insert(const const_iterator pos, IT first, IT last) {
 		int offset = pos - begin();
 		if(trivial_move_constr && trivial_destruction)
-			m_base.insertPodPartial(sizeof(T), offset, std::distance(first, last));
+			m_base.insertPodPartial(sizeof(T), offset, fwk::distance(first, last));
 		else
 			m_base.insertPartial(sizeof(T), &Vector::moveAndDestroyBackwards, offset,
-								 std::distance(first, last));
+								 fwk::distance(first, last));
 		int toffset = offset;
 		while(!(first == last)) {
 			new(data() + offset++) T(*first);

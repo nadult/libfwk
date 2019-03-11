@@ -104,7 +104,7 @@ template <class TRange, EnableIfRange<TRange>...> bool empty(const TRange &range
 }
 
 template <class TRange, EnableIfRange<TRange>...> int size(const TRange &range) {
-	return std::distance(begin(range), end(range));
+	return fwk::distance(begin(range), end(range));
 }
 
 template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(DECLVAL(TRange)))>
