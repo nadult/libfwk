@@ -34,12 +34,12 @@ void LineBuffer::operator()(CSpan<Segment3F> segs, CSpan<IColor> colors) {
 		insertBack(m_colors, {col, col});
 }
 
-void LineBuffer::operator()(const Segment3<float> &seg, IColor color) {
+void LineBuffer::operator()(const Segment3F &seg, IColor color) {
 	insertBack(m_positions, {seg.from, seg.to});
 	m_colors.resize(m_colors.size() + 2, color);
 }
 
-void LineBuffer::operator()(CSpan<Segment3<float>> segs, IColor color) {
+void LineBuffer::operator()(CSpan<Segment3F> segs, IColor color) {
 	(*this)(segs.reinterpret<float3>(), color);
 }
 
@@ -93,13 +93,11 @@ void LineBuffer::operator()(const Triangle2F &tri, IColor color) {
 
 void LineBuffer::operator()(const IRect &rect, IColor color) { (*this)(FRect(rect), color); }
 
-void LineBuffer::operator()(const Segment2<float> seg, IColor color) {
+void LineBuffer::operator()(const Segment2F seg, IColor color) {
 	(*this)(Segment3F(float3(seg.from, 0.0f), float3(seg.to, 0.0f)), color);
 }
 
-void LineBuffer::operator()(const Segment2<int> seg, IColor color) {
-	(*this)(Segment2F(seg), color);
-}
+void LineBuffer::operator()(const Segment2I seg, IColor color) { (*this)(Segment2F(seg), color); }
 
 void LineBuffer::operator()(CSpan<float2> pos, CSpan<IColor> colors) {
 	DASSERT(pos.size() % 2 == 0);

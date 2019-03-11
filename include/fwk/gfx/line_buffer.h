@@ -16,11 +16,11 @@ class LineBuffer : public ElementBuffer {
 
 	void operator()(CSpan<float3>, CSpan<IColor>);
 	void operator()(CSpan<float3>, IColor = ColorId::white);
-	void operator()(CSpan<Segment3<float>>, CSpan<IColor>);
-	void operator()(CSpan<Segment3<float>>, IColor = ColorId::white);
+	void operator()(CSpan<Segment3F>, CSpan<IColor>);
+	void operator()(CSpan<Segment3F>, IColor = ColorId::white);
 	void operator()(CSpan<FBox>, IColor = ColorId::white);
 	void operator()(CSpan<Triangle3F>, IColor = ColorId::white);
-	void operator()(const Segment3<float> &, IColor = ColorId::white);
+	void operator()(const Segment3F &, IColor = ColorId::white);
 	void operator()(const FBox &, IColor color = ColorId::white);
 	void operator()(const FBox &, const Matrix4 &, IColor color = ColorId::white);
 	void operator()(const Triangle3F &, IColor color = ColorId::white);
@@ -30,8 +30,8 @@ class LineBuffer : public ElementBuffer {
 	void operator()(const IRect &, IColor = ColorId::white);
 	void operator()(const Triangle2F &, IColor = ColorId::white);
 
-	void operator()(const Segment2<float>, IColor = ColorId::white);
-	void operator()(const Segment2<int>, IColor = ColorId::white);
+	void operator()(const Segment2F, IColor = ColorId::white);
+	void operator()(const Segment2I, IColor = ColorId::white);
 
 	void operator()(CSpan<float2> pos, CSpan<IColor>);
 	void operator()(CSpan<float2> pos, IColor = ColorId::white);
