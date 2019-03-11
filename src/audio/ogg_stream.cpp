@@ -17,8 +17,7 @@ struct OggStream::Impl {
 	OggVorbis_File vorbis_file;
 };
 
-OggStream::OggStream(const char *file_name)
-	: m_file_name(file_name), m_impl(uniquePtr<Impl>(file_name)) {}
+OggStream::OggStream(const char *file_name) : m_file_name(file_name), m_impl(file_name) {}
 OggStream::~OggStream() {}
 
 Sound OggStream::makeSound() const {

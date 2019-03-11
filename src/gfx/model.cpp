@@ -86,7 +86,7 @@ Model Model::loadFromXML(CXmlNode xml_node) {
 		mesh_node.next();
 	}
 
-	PModelNode root = uniquePtr<ModelNode>("");
+	PModelNode root("");
 	auto subnode = xml_node.child("node");
 	while(subnode) {
 		root->addChild(parseNode(meshes, subnode));

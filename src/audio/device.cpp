@@ -98,8 +98,7 @@ AudioDevice &AudioDevice::instance() {
 	return *s_device;
 }
 
-AudioDevice::AudioDevice(int max_sources)
-	: m_impl(uniquePtr<Impl>(max_sources)), m_max_distance(500.0f) {
+AudioDevice::AudioDevice(int max_sources) : m_impl(max_sources), m_max_distance(500.0f) {
 	ASSERT(!s_device);
 	s_device = this;
 	m_impl->last_time = getTime() - 1.0 / 60.0;

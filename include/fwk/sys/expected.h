@@ -8,14 +8,13 @@
 
 namespace fwk {
 
-template <class T>
-class [[nodiscard]] Expected {
+template <class T> class [[nodiscard]] Expected {
   public:
 	static_assert(!is_same<T, Error>);
 
 	Expected(const T &value) : m_value(value), m_has_value(true) {}
 	Expected(T && value) : m_value(move(value)), m_has_value(true) {}
-	Expected(Error error) : m_error(uniquePtr<Error>(move(error))), m_has_value(false) {}
+	Expected(Error error) : m_error(move(error)), m_has_value(false) {}
 	~Expected() {
 		if(m_has_value)
 			m_value.~T();
@@ -79,11 +78,10 @@ class [[nodiscard]] Expected {
 	bool m_has_value;
 };
 
-template <>
-class [[nodiscard]] Expected<void> {
+template <> class [[nodiscard]] Expected<void> {
   public:
 	Expected() {}
-	Expected(Error error) : m_error(uniquePtr<Error>(move(error))) {}
+	Expected(Error error) : m_error(move(error)) {}
 
 	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
 

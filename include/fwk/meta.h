@@ -36,6 +36,9 @@ template <class Lhs, class... RhsArgs> static constexpr bool is_one_of<Lhs, Lhs,
 
 template <bool value, class T1, class T2> using If = typename std::conditional<value, T1, T2>::type;
 
+template <class T1, class T2> constexpr bool is_same = false;
+template <class T> constexpr bool is_same<T, T> = true;
+
 namespace detail {
 
 	struct ValidType {
@@ -86,6 +89,14 @@ namespace detail {
 			-> If<is_one_of<From, VWhat...>, Rest, Types<From, VRest...>>;
 		using Type = decltype(result(Rest()));
 	};
+
+	template <class T, class... Args> struct IsConstr {
+		template <class... UArgs, class U>
+		static constexpr auto test(U *) -> decltype(U{DECLVAL(UArgs)...});
+		template <class... UArgs> static constexpr void test(...);
+		static constexpr bool value = !is_same<decltype(test<Args...>(DECLVAL(T *))), void>;
+	};
+
 }
 
 template <class TFrom, class TWhat>
@@ -99,16 +110,12 @@ using EnableIf =
 
 template <class T1, class T2> constexpr bool is_convertible = std::is_convertible<T1, T2>::value;
 
-// TODO: doesn't work for automatic list initialization
 template <class T, class... Args>
-static constexpr bool is_constructible = std::is_constructible<T, Args...>::value;
+static constexpr bool is_constructible = detail::IsConstr<T, Args...>::value;
 
 struct NotConstructible;
 template <class T, class... Args>
 using EnableIfConstructible = EnableIf<is_constructible<T, Args...>, NotConstructible>;
-
-template <class T1, class T2> constexpr bool is_same = false;
-template <class T> constexpr bool is_same<T, T> = true;
 
 template <class T1> constexpr bool is_const = false;
 template <class T> constexpr bool is_const<const T> = true;

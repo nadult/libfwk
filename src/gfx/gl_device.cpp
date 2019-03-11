@@ -158,7 +158,7 @@ void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, G
 							double ogl_ver) {
 	assertGlThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
-	m_window_impl = uniquePtr<WindowImpl>(name, size, flags, profile, ogl_ver);
+	m_window_impl = {name, size, flags, profile, ogl_ver};
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
 	initializeGl(profile);

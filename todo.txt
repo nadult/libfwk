@@ -1,6 +1,10 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- dodaj is_constructible które działa dla incjalizacji { }
+- DECLARE_ENUM
+- pochować operator<< gdzie się da
+- ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?
 - vector concept and algorithms for it (downsize, upsize, shrinkToFit, etc.)
 - HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
 - TODO: hashMap where [] doesnt add new element

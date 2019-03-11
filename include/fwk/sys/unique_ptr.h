@@ -30,6 +30,10 @@ template <typename T> class UniquePtr {
 	template <class U, EnableIf<is_convertible<U *, T *>>...>
 	UniquePtr(UniquePtr<U> &&rhs) : m_ptr(rhs.release()) {}
 
+	// At least one argument is required (otherwise default UniquePtr constructor will be selected)
+	template <class... Args, EnableIf<is_constructible<T, Args...>>...>
+	UniquePtr(Args &&... args) : m_ptr(new T{std::forward<Args>(args)...}) {}
+
 	UniquePtr &operator=(UniquePtr &&rhs) {
 		reset(rhs.release());
 		return *this;
@@ -64,10 +68,12 @@ template <typename T> class UniquePtr {
 		}
 	}
 
-	template <typename... Args> void emplace(Args &&... args) {
-		reset(new T(std::forward<Args>(args)...));
+	template <class... Args, EnableIf<is_constructible<T, Args...>>...>
+	void emplace(Args &&... args) {
+		reset(new T{std::forward<Args>(args)...});
 	}
-	template <class T1, typename... Args> void emplace(Args &&... args) {
+	template <class T1, class... Args, EnableIf<is_constructible<T1, Args...>>...>
+	void emplace(Args &&... args) {
 		reset(new T1(std::forward<Args>(args)...));
 	}
 

@@ -56,7 +56,7 @@ vector<int> processingFunction(int tid, int seed, int isize, int osize) {
 
 		RollbackContext::pause();
 		// Without pause this could cause a Segfault:
-		ents[tid].emplace_back(uniquePtr<Entity>(tid));
+		ents[tid].emplace_back(tid);
 		RollbackContext::resume();
 
 		others.emplace_back(values);
