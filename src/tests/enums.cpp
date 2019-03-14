@@ -7,6 +7,7 @@
 #include "testing.h"
 
 DEFINE_ENUM(SomeEnum, foo, bar, foo_bar, last);
+DEFINE_ENUM(BigEnum, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14);
 
 struct Temp {
 	struct Inside {
@@ -39,4 +40,11 @@ void testMain() {
 
 	ASSERT_EQ(toString(SomeEnum::foo | SomeEnum::bar | SomeEnum::foo_bar), "foo|bar|foo_bar");
 	ASSERT_EQ(fromString<EnumFlags<SomeEnum>>("bar|foo"), SomeEnum::bar | SomeEnum::foo);
+
+	vector<BigEnum> items = {{BigEnum::f1, BigEnum::f2, BigEnum::f4, BigEnum::f10, BigEnum::f13}};
+	EnumFlags<BigEnum> flags;
+	for(auto item : items)
+		flags |= item;
+	ASSERT_EQ(transform<BigEnum>(flags), items);
+	ASSERT_EQ(transform<BigEnum>(~flags).size(), count<BigEnum>() - items.size());
 }

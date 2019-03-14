@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "fwk/enum_flags.h"
+#include "fwk/enum.h"
 #include "fwk/light_tuple.h"
 #include "fwk/sys_base.h"
 #include "fwk_index_range.h"
@@ -738,7 +738,6 @@ struct DisabledInThisDimension;
 template <class T, int N> using EnableInDimension = EnableIf<dim<T> == N, DisabledInThisDimension>;
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
-using IsectFlags = EnumFlags<IsectClass>;
 }
 
 SERIALIZE_AS_POD(short2)

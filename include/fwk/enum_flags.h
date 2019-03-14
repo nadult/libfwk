@@ -4,20 +4,37 @@
 #pragma once
 
 #include "fwk/enum.h"
+#include "fwk/math_base.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
 
 template <class T> struct EnumFlags {
-	using Base = If<count<T>() <= 8, u8, If<count<T>() <= 16, u16, If<count<T>() <= 32, u32, u64>>>;
+	static constexpr int count = fwk::count<T>();
+	using Base = If<count <= 8, u8, If<count <= 16, u16, If<count <= 32, u32, u64>>>;
+	using BigBase = If<(count <= 32), u32, u64>;
 
-	enum { max_flags = fwk::count<T>() };
-	static constexpr Base mask =
-		(Base(1) << (max_flags - 1)) - Base(1) + (Base(1) << (max_flags - 1));
+	static constexpr Base mask = (Base(1) << (count - 1)) - Base(1) + (Base(1) << (count - 1));
 
 	static_assert(is_enum<T>, "EnumFlags<> should be based on fwk-enum");
 	static_assert(std::is_unsigned<Base>::value, "");
-	static_assert(fwk::count<T>() <= sizeof(Base) * 8, "");
+	static_assert(count <= sizeof(Base) * 8, "");
+
+	struct BitIter {
+		int bit;
+		BigBase bits;
+
+		T operator*() const { return PASSERT(bit >= 0 && bit < count), T(bit); }
+		bool operator==(const BitIter &rhs) const { return bit == rhs.bit; }
+		bool operator<(const BitIter &rhs) const { return bit < rhs.bit; }
+
+		const BitIter &operator++() {
+			bit++;
+			if(!(bits & (BigBase(1) << bit)))
+				bit = min(count, bit + countTrailingZeros(bits >> bit));
+			return *this;
+		}
+	};
 
 	constexpr EnumFlags() : bits(0) {}
 	constexpr EnumFlags(None) : bits(0) {}
@@ -38,6 +55,9 @@ template <class T> struct EnumFlags {
 	constexpr bool operator<(EnumFlags rhs) const { return bits < rhs.bits; }
 
 	constexpr operator bool() const { return bits != 0; }
+
+	auto begin() const { return BitIter{bits & 1 ? 0 : countTrailingZeros(BigBase(bits)), bits}; }
+	auto end() const { return BitIter{count, bits}; }
 
 	void setIf(EnumFlags flags, bool condition) {
 		if(condition)
@@ -86,13 +106,9 @@ constexpr EnumFlags<T> mask(C cond, EnumFlags<T> val) {
 
 template <class T> constexpr bool is_enum_flags = false;
 template <class T> constexpr bool is_enum_flags<EnumFlags<T>> = true;
-template <class T> using EnableIfEnumFlags = EnableIf<is_enum_flags<T>>;
 
-template <class TFlags, EnableIfEnumFlags<TFlags>...> constexpr int countBits(const TFlags &flags) {
-	int out = 0;
-	for(int i = 0; i < TFlags::max_flags; i++)
-		out += flags.bits & (typename TFlags::Base(1) << i) ? 1 : 0;
-	return out;
+template <class T> constexpr int countBits(const EnumFlags<T> &flags) {
+	return countBits(typename EnumFlags<T>::BigBase(flags.bits));
 }
 
 template <class T> TextParser &operator>>(TextParser &parser, EnumFlags<T> &value) {

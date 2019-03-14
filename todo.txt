@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- uporządkować inRange
+- StaticSpan ?
 - operators.h -> operator ?
 - pochować operator<< gdzie się da
 - ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?
@@ -13,7 +15,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   customowego destruktora, przez co vec2<> nie jest typem literalnym i nie można go używać w wyrażeniach constexpr
 - boost::debug::attach_debugger();
 - zdefiniować, I, F, D, S, LL, ULL, US; Chyba lepiej I8, U8...
-- iteracja po zaznaczonych bitach w EnumFlags
 - jakoś zaznaczyć, że pairsRange jest zawinięte; może dodać opcję bez zawijania ?
 - transform który jest w stanie rozbić krotkę na argumenty
 - serialize as pod should be template ?

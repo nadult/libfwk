@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/enum_flags.h"
 #include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
