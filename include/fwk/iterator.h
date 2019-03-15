@@ -4,7 +4,7 @@
 #pragma once
 
 #include "fwk/meta.h"
-#include "fwk/operators.h"
+#include "fwk/operator.h"
 #include "fwk/sys_base.h"
 #include <climits>
 
