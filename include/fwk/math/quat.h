@@ -1,7 +1,6 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-
 #pragma once
 
 #include "fwk/math_base.h"
@@ -35,6 +34,8 @@ class Quat : public float4 {
 	operator AxisAngle() const;
 
 	const Quat operator*(const Quat &)const;
+
+	void operator>>(TextFormatter &) const;
 
 	FWK_ORDER_BY(Quat, x, y, z, w);
 };

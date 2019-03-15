@@ -74,6 +74,11 @@ template <class T> struct EnumFlags {
 
 	static constexpr EnumFlags all() { return EnumFlags(mask); }
 
+	void operator>>(TextFormatter &formatter) const {
+		using Strings = decltype(enumStrings(T()));
+		fwk::detail::formatFlags(bits, formatter, Strings::offsets.data, Strings::K);
+	}
+
 	Base bits;
 };
 
@@ -123,9 +128,4 @@ template <class T> TextParser &operator>>(TextParser &parser, EnumFlags<T> &valu
 	return parser;
 }
 
-template <class T> TextFormatter &operator<<(TextFormatter &formatter, EnumFlags<T> value) {
-	using Strings = decltype(enumStrings(T()));
-	fwk::detail::formatFlags(value.bits, formatter, Strings::offsets.data, Strings::K);
-	return formatter;
-}
 }

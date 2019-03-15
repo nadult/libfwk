@@ -14,12 +14,11 @@ struct ErrorChunk {
 	FWK_COPYABLE_CLASS(ErrorChunk);
 
 	bool empty() const { return message.empty() && !file; }
+	void operator>>(TextFormatter &) const;
 
 	string message;
 	const char *file;
 	int line;
-
-	friend TextFormatter &operator<<(TextFormatter &, const ErrorChunk &);
 };
 
 struct Error {
@@ -39,10 +38,10 @@ struct Error {
 	void print() const;
 	bool empty() const { return !chunks && !backtrace; }
 
+	void operator>>(TextFormatter &) const;
+
 	vector<Chunk> chunks;
 	Maybe<Backtrace> backtrace;
 	vector<Any> values;
-
-	friend TextFormatter &operator<<(TextFormatter &, const Error &);
 };
 }

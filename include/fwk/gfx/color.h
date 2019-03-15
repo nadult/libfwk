@@ -33,6 +33,8 @@ struct FColor {
 		return FColor(r + rhs.r, g + rhs.g, b + rhs.b, a + rhs.a);
 	}
 
+	void operator>>(TextFormatter &) const;
+
 	FWK_ORDER_BY(FColor, r, g, b, a);
 
 	union {
@@ -67,9 +69,11 @@ struct IColor {
 	explicit operator int4() const { return int4(r, g, b, a); }
 	explicit operator float4() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
 
-	FWK_ORDER_BY(IColor, r, g, b, a);
-
 	IColor bgra() const { return IColor(b, g, r, a); }
+
+	void operator>>(TextFormatter &) const;
+
+	FWK_ORDER_BY(IColor, r, g, b, a);
 
 	union {
 		struct {
@@ -79,8 +83,6 @@ struct IColor {
 	};
 };
 
-TextFormatter &operator<<(TextFormatter &, const FColor &);
-TextFormatter &operator<<(TextFormatter &, const IColor &);
 TextParser &operator>>(TextParser &, FColor &);
 TextParser &operator>>(TextParser &, IColor &);
 }

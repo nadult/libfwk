@@ -50,6 +50,8 @@ class FilePath {
 
 	FWK_ORDER_BY(FilePath, m_path);
 
+	void operator>>(TextFormatter &) const;
+
   private:
 	struct Element {
 		bool isDot() const;
@@ -69,7 +71,6 @@ class FilePath {
 	string m_path; // its always non-empty
 };
 
-TextFormatter &operator<<(TextFormatter &, const FilePath &);
 TextParser &operator>>(TextParser &, FilePath &);
 
 struct FileEntry {

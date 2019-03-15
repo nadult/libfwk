@@ -4,8 +4,6 @@
 #include "fwk/format.h"
 
 #include "fwk/math/box.h"
-#include "fwk/math/matrix4.h"
-#include "fwk/math/quat.h"
 #include <cfloat>
 #include <cstring>
 #include <stdarg.h>
@@ -348,14 +346,6 @@ template TextFormatter &operator<<(TextFormatter &, const Box<float2> &);
 template TextFormatter &operator<<(TextFormatter &, const Box<float3> &);
 template TextFormatter &operator<<(TextFormatter &, const Box<double2> &);
 template TextFormatter &operator<<(TextFormatter &, const Box<double3> &);
-
-TextFormatter &operator<<(TextFormatter &out, const Matrix4 &matrix) {
-	out(out.isStructured() ? "(%; %; %; %)" : "% % % %", matrix[0], matrix[1], matrix[2],
-		matrix[3]);
-	return out;
-}
-
-TextFormatter &operator<<(TextFormatter &out, const Quat &value) { return out << float4(value); }
 
 TextFormatter &operator<<(TextFormatter &out, qint value) {
 	// Max digits: about 36

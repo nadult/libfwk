@@ -217,9 +217,6 @@ class TextFormatter {
 // alternatively (can be a member function):
 // void operator>>(const MyNewType&, TextFormatter&);
 
-TextFormatter &operator<<(TextFormatter &, const Matrix4 &);
-TextFormatter &operator<<(TextFormatter &, const Quat &);
-
 TextFormatter &operator<<(TextFormatter &, qint);
 
 template <class T, EnableIf<detail::IsRightFormattible<T>::value>...>
@@ -240,7 +237,7 @@ TextFormatter &operator<<(TextFormatter &out, const TSpan &span) {
 }
 
 template <class TRange, class T = RangeBase<TRange>, EnableIfFormattible<T>...,
-		  EnableIf<!is_span<TRange>>...>
+		  EnableIf<!is_span<TRange> && !detail::IsRightFormattible<TRange>::value>...>
 TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
 	const char *separator = out.isStructured() ? ", " : " ";
 

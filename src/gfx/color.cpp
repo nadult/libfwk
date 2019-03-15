@@ -83,8 +83,8 @@ float3 rgbToHsv(float3 rgb) {
 				  chroma / (rgb[0] + 1e-20f), rgb[0]);
 }
 
-TextFormatter &operator<<(TextFormatter &fmt, const FColor &col) { return fmt << float4(col); }
-TextFormatter &operator<<(TextFormatter &fmt, const IColor &col) { return fmt << int4(col); }
+void FColor::operator>>(TextFormatter &fmt) const { fmt << float4(*this); }
+void IColor::operator>>(TextFormatter &fmt) const { fmt << int4(*this); }
 
 TextParser &operator>>(TextParser &parser, FColor &col) {
 	col = parser.parse<float4>();

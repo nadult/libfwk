@@ -2,9 +2,10 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/math/matrix4.h"
-#include <emmintrin.h>
 
 #include "fwk/format.h"
+#include <emmintrin.h>
+
 namespace fwk {
 
 Matrix4 Matrix4::identity() {
@@ -246,4 +247,9 @@ Matrix4 viewMatrix2D(const IRect &viewport, const float2 &look_at) {
 	return translation(0, viewport.height(), 0) * scaling(1, -1, 1) *
 		   translation(-look_at.x, -look_at.y, 0.0f);
 }
+
+void Matrix4::operator>>(TextFormatter &out) const {
+	out(out.isStructured() ? "(%; %; %; %)" : "% % % %", v[0], v[1], v[2], v[3]);
+}
+
 }

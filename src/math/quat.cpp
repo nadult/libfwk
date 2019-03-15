@@ -1,9 +1,11 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/math/quat.h"
+
+#include "fwk/format.h"
 #include "fwk/math/axis_angle.h"
 #include "fwk/math/matrix3.h"
-#include "fwk/math/quat.h"
 
 namespace fwk {
 
@@ -146,6 +148,7 @@ const Quat rotationBetween(const float3 &v1, const float3 &v2) {
 
 const Quat conjugate(const Quat &q) { return Quat(-q.xyz(), q.w); }
 
+void Quat::operator>>(TextFormatter &out) const { out << float4(*this); }
 /*
  //TODO: fixme
 const Quat exp(const Quat &q) {

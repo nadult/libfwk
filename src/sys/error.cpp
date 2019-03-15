@@ -11,12 +11,11 @@ namespace fwk {
 
 FWK_COPYABLE_CLASS_IMPL(ErrorChunk)
 
-TextFormatter &operator<<(TextFormatter &out, const ErrorChunk &chunk) {
-	if(chunk.file)
-		out("%:%%", chunk.file, chunk.line, chunk.message.empty() ? "\n" : ": ");
-	if(!chunk.message.empty())
-		out("%\n", chunk.message);
-	return out;
+void ErrorChunk::operator>>(TextFormatter &out) const {
+	if(file)
+		out("%:%%", file, line, message.empty() ? "\n" : ": ");
+	if(!message.empty())
+		out("%\n", message);
 }
 
 Error::Error(string message, const char *file, int line) {
@@ -44,12 +43,11 @@ Error &Error::operator<<(Any value) {
 	return *this;
 }
 
-TextFormatter &operator<<(TextFormatter &out, const Error &error) {
-	for(auto &chunk : error.chunks)
+void Error::operator>>(TextFormatter &out) const {
+	for(auto &chunk : chunks)
 		out << chunk;
-	if(error.backtrace)
-		out("%\n", error.backtrace->analyze(true));
-	return out;
+	if(backtrace)
+		out("%\n", backtrace->analyze(true));
 }
 
 void Error::print() const { fwk::print("%\n", *this); }
