@@ -39,6 +39,10 @@ template <class T> struct EnumFlags {
 	constexpr EnumFlags() : bits(0) {}
 	constexpr EnumFlags(None) : bits(0) {}
 	constexpr EnumFlags(T value) : bits(Base(1) << uint(value)) {}
+	constexpr EnumFlags(CSpan<T> span) : bits(0) {
+		for(auto item : span)
+			*this |= item;
+	}
 	constexpr explicit EnumFlags(Base bits) : bits(bits) {}
 
 	constexpr EnumFlags operator|(EnumFlags rhs) const { return EnumFlags(bits | rhs.bits); }

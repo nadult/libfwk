@@ -8,7 +8,7 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?
 - vector concept and algorithms for it (downsize, upsize, shrinkToFit, etc.)
 - HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
-- TODO: hashMap where [] doesnt add new element
+- TODO: hashMap where [] doesnt add new element; improve searching, querying & replacing interface
 - Formatting math objects first to expression, then to string (expression handles special chars, parentheses, additions, etc.)
 - konstruktory dla vec2, vec3, vec4? 
 - vec2, vec3: unie i możliwość używania złożonych typów jako parametrów (boost int128) wymagają
