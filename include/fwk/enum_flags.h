@@ -56,7 +56,9 @@ template <class T> struct EnumFlags {
 
 	constexpr operator bool() const { return bits != 0; }
 
-	auto begin() const { return BitIter{bits & 1 ? 0 : countTrailingZeros(BigBase(bits)), bits}; }
+	auto begin() const {
+		return BitIter{bits & 1 ? 0 : bits ? countTrailingZeros(BigBase(bits)) : count, bits};
+	}
 	auto end() const { return BitIter{count, bits}; }
 
 	void setIf(EnumFlags flags, bool condition) {
