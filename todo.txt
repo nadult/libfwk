@@ -1,6 +1,8 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- dot<PT>, cross<PT> powodują problemy na GCC (cholera go wie czemu) (regresja w GCC 8.2, w *.3 powinno działać...)
+
 - uporządkować inRange
 - StaticSpan ?
 - ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?

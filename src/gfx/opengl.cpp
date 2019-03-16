@@ -149,7 +149,7 @@ void initializeGl(GlProfile profile) {
 		s_info.features |= Feature::separate_shader_objects;
 
 #ifdef FWK_TARGET_MINGW
-#define LOAD(func) (func = (decltype(func))winLoadFunction(#func));
+#define LOAD(func) (func = reinterpret_cast<decltype(func)>((u64)winLoadFunction(#func)));
 
 	LOAD(glCompressedTexImage3D);
 	LOAD(glCompressedTexImage2D);
@@ -324,6 +324,11 @@ void initializeGl(GlProfile profile) {
 	LOAD(glTexStorage1D);
 	LOAD(glTexStorage2D);
 	LOAD(glTexStorage3D);
+
+	LOAD(glGetProgramBinary);
+	LOAD(glGetProgramInterfaceiv);
+	LOAD(glGetProgramResourceName);
+	LOAD(glGetProgramResourceiv);
 
 #undef LOAD
 #endif

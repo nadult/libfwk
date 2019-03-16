@@ -324,7 +324,7 @@ static constexpr bool precise_conversion<vec3<T>, vec3<U>> = precise_conversion<
 template <class T, class U>
 static constexpr bool precise_conversion<vec4<T>, vec4<U>> = precise_conversion<T, U>;
 
-#define PRECISE(from, to) template <> static constexpr bool precise_conversion<from, to> = true;
+#define PRECISE(from, to) template <> constexpr bool precise_conversion<from, to> = true;
 
 PRECISE(short, float)
 PRECISE(int, double)

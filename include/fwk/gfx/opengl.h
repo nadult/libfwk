@@ -4,7 +4,7 @@
 #ifndef FWK_GFX_OPENGL_H
 #define FWK_GFX_OPENGL_H
 
-#ifdef __MINGW32__
+#ifdef FWK_TARGET_MINGW
 #ifndef _WINDOWS_
 #define _WINDOWS_
 #define APIENTRY __attribute__((__stdcall__))
@@ -17,15 +17,13 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#ifdef __MINGW32__
+#ifdef FWK_TARGET_MINGW
 
 #ifndef EXT_API
 #define EXT_API extern
 #endif
 
 #define EXT_ENTRY __stdcall
-
-extern "C" {
 
 EXT_API void(EXT_ENTRY *glCompressedTexImage3D)(GLenum target, GLint level, GLenum internalformat,
 												GLsizei width, GLsizei height, GLsizei depth,
@@ -112,10 +110,10 @@ EXT_API void(EXT_ENTRY *glUniform1i)(GLint location, GLint);
 EXT_API void(EXT_ENTRY *glUniform2i)(GLint location, GLint, GLint);
 EXT_API void(EXT_ENTRY *glUniform3i)(GLint location, GLint, GLint, GLint);
 EXT_API void(EXT_ENTRY *glUniform4i)(GLint location, GLint, GLint, GLint, GLint);
-GLAPI void APIENTRY glUniform1ui(GLint location, GLuint);
-GLAPI void APIENTRY glUniform2ui(GLint location, GLuint, GLuint);
-GLAPI void APIENTRY glUniform3ui(GLint location, GLuint, GLuint, GLuint);
-GLAPI void APIENTRY glUniform4ui(GLint location, GLuint, GLuint, GLuint, GLuint);
+EXT_API void(EXT_ENTRY *glUniform1ui)(GLint location, GLuint);
+EXT_API void(EXT_ENTRY *glUniform2ui)(GLint location, GLuint, GLuint);
+EXT_API void(EXT_ENTRY *glUniform3ui)(GLint location, GLuint, GLuint, GLuint);
+EXT_API void(EXT_ENTRY *glUniform4ui)(GLint location, GLuint, GLuint, GLuint, GLuint);
 
 EXT_API void(EXT_ENTRY *glUniform1fv)(GLint location, GLsizei count, const GLfloat *value);
 EXT_API void(EXT_ENTRY *glUniform2fv)(GLint location, GLsizei count, const GLfloat *value);
@@ -125,10 +123,10 @@ EXT_API void(EXT_ENTRY *glUniform1iv)(GLint location, GLsizei count, const GLint
 EXT_API void(EXT_ENTRY *glUniform2iv)(GLint location, GLsizei count, const GLint *value);
 EXT_API void(EXT_ENTRY *glUniform3iv)(GLint location, GLsizei count, const GLint *value);
 EXT_API void(EXT_ENTRY *glUniform4iv)(GLint location, GLsizei count, const GLint *value);
-GLAPI void APIENTRY glUniform1uiv(GLint location, GLsizei count, const GLuint *value);
-GLAPI void APIENTRY glUniform2uiv(GLint location, GLsizei count, const GLuint *value);
-GLAPI void APIENTRY glUniform3uiv(GLint location, GLsizei count, const GLuint *value);
-GLAPI void APIENTRY glUniform4uiv(GLint location, GLsizei count, const GLuint *value);
+EXT_API void(EXT_ENTRY *glUniform1uiv)(GLint location, GLsizei count, const GLuint *value);
+EXT_API void(EXT_ENTRY *glUniform2uiv)(GLint location, GLsizei count, const GLuint *value);
+EXT_API void(EXT_ENTRY *glUniform3uiv)(GLint location, GLsizei count, const GLuint *value);
+EXT_API void(EXT_ENTRY *glUniform4uiv)(GLint location, GLsizei count, const GLuint *value);
 
 EXT_API void(EXT_ENTRY *glUniformMatrix2fv)(GLint location, GLsizei count, GLboolean transpose,
 											const GLfloat *value);
@@ -275,7 +273,19 @@ EXT_API void(EXT_ENTRY *glTexStorage2D)(GLenum target, GLsizei levels, GLenum in
 										GLsizei width, GLsizei height);
 EXT_API void(EXT_ENTRY *glTexStorage3D)(GLenum target, GLsizei levels, GLenum internalformat,
 										GLsizei width, GLsizei height, GLsizei depth);
-}
+
+EXT_API void(EXT_ENTRY *glGetProgramBinary)(GLuint program, GLsizei bufSize, GLsizei *length,
+											GLenum *binaryFormat, void *binary);
+EXT_API void(EXT_ENTRY *glGetProgramInterfaceiv)(GLuint program, GLenum programInterface,
+												 GLenum pname, GLint *params);
+EXT_API void(EXT_ENTRY *glGetProgramResourceName)(GLuint program, GLenum programInterface,
+												  GLuint index, GLsizei bufSize, GLsizei *length,
+												  GLchar *name);
+EXT_API void(EXT_ENTRY *glGetProgramResourceiv)(GLuint program, GLenum programInterface,
+												GLuint index, GLsizei propCount,
+												const GLenum *props, GLsizei bufSize,
+												GLsizei *length, GLint *params);
+EXT_API const GLubyte *(EXT_ENTRY *glGetStringi)(GLenum name, GLuint index);
 
 #undef EXT_API
 #undef EXT_ENTRY

@@ -294,7 +294,7 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 	return out;
 }
 
-void FilePath::operator>>(TextFormatter &fmt) const { fmt << ZStr(*this); }
+void FilePath::operator>>(TextFormatter &fmt) const { fmt << operator ZStr(); }
 
 TextParser &operator>>(TextParser &parser, FilePath &path) {
 	string text;
