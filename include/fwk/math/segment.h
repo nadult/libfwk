@@ -102,7 +102,10 @@ template <class TVec> class Segment {
 	PRIsectParam isectParam(const Segment &) const;
 	Pair<PPRIsectParam, bool> isectParam(const Triangle<T, dim> &) const;
 	PRIsectParam isectParam(const Box<Vec> &) const;
-	template <class U = T, EnableIfFpt<U>...> IsectParam isectParam(const Plane<T, dim> &) const;
+
+	// TODO: gcc is causing compilation problems...
+	template <class U = T, EnableIfFpt<U>...>
+	IsectParam isectParamPlane(const Plane<T, dim> &) const;
 
 	Isect isect(const Segment &segment) const;
 	Isect isect(const Box<Vec> &box) const;
@@ -119,7 +122,6 @@ template <class TVec> class Segment {
 	auto closestPoint(const Segment &seg) const { return at(closestPointParam(seg)); }
 	auto closestPoints(const Segment &rhs) const {
 		auto params = closestPointParams(rhs);
-		auto params2 = rhs.closestPointParams(*this);
 		return pair{at(params.first), rhs.at(params.second)};
 	}
 

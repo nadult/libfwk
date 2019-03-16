@@ -137,7 +137,7 @@ TEMPLATE auto TSEG::isectParam(const Box<Vec> &box) const -> PRIsectParam {
 }
 
 // TODO: proper intersections (not based on rays)
-TEMPLATE_REAL auto TSEG::isectParam(const Plane<T, dim> &plane) const -> IsectParam {
+TEMPLATE_REAL auto TSEG::isectParamPlane(const Plane<T, dim> &plane) const -> IsectParam {
 	if constexpr(dim == 2) {
 		FATAL("write me");
 		return {};
@@ -363,8 +363,8 @@ template Maybe<Ray<double, 2>> Segment<double2>::asRay() const;
 template Maybe<Ray<float, 3>> Segment<float3>::asRay() const;
 template Maybe<Ray<double, 3>> Segment<double3>::asRay() const;
 
-template auto Segment<float3>::isectParam(const Plane3<float> &) const -> IsectParam;
-template auto Segment<double3>::isectParam(const Plane3<double> &) const -> IsectParam;
+template auto Segment<float3>::isectParamPlane(const Plane3<float> &) const -> IsectParam;
+template auto Segment<double3>::isectParamPlane(const Plane3<double> &) const -> IsectParam;
 
 Segment<float3> operator*(const Matrix4 &mat, const Segment<float3> &segment) {
 	return {mulPoint(mat, segment.from), mulPoint(mat, segment.to)};

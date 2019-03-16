@@ -198,6 +198,12 @@ EXT_API void(EXT_ENTRY *glDeleteRenderbuffers)(GLsizei n, const GLuint *renderbu
 EXT_API void(EXT_ENTRY *glGenRenderbuffers)(GLsizei n, GLuint *renderbuffers);
 EXT_API void(EXT_ENTRY *glRenderbufferStorage)(GLenum target, GLenum internalformat, GLsizei width,
 											   GLsizei height);
+EXT_API void(EXT_ENTRY *glRenderbufferStorageMultisample)(GLenum target, GLsizei samples,
+														  GLenum internalformat, GLsizei width,
+														  GLsizei height);
+EXT_API void(EXT_ENTRY *glBlitFramebuffer)(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+										   GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+										   GLbitfield mask, GLenum filter);
 
 EXT_API void(EXT_ENTRY *glBindFramebuffer)(GLenum target, GLuint framebuffer);
 EXT_API void(EXT_ENTRY *glDeleteFramebuffers)(GLsizei n, const GLuint *framebuffers);
@@ -273,6 +279,12 @@ EXT_API void(EXT_ENTRY *glTexStorage2D)(GLenum target, GLsizei levels, GLenum in
 										GLsizei width, GLsizei height);
 EXT_API void(EXT_ENTRY *glTexStorage3D)(GLenum target, GLsizei levels, GLenum internalformat,
 										GLsizei width, GLsizei height, GLsizei depth);
+EXT_API void(EXT_ENTRY *glTexStorage2DMultisample)(GLenum target, GLsizei samples,
+												   GLenum internalformat, GLsizei width,
+												   GLsizei height, GLboolean fixedsamplelocations);
+EXT_API void(EXT_ENTRY *glTexImage2DMultisample)(GLenum target, GLsizei samples,
+												 GLenum internalformat, GLsizei width,
+												 GLsizei height, GLboolean fixedsamplelocations);
 
 EXT_API void(EXT_ENTRY *glGetProgramBinary)(GLuint program, GLsizei bufSize, GLsizei *length,
 											GLenum *binaryFormat, void *binary);
@@ -286,6 +298,35 @@ EXT_API void(EXT_ENTRY *glGetProgramResourceiv)(GLuint program, GLenum programIn
 												const GLenum *props, GLsizei bufSize,
 												GLsizei *length, GLint *params);
 EXT_API const GLubyte *(EXT_ENTRY *glGetStringi)(GLenum name, GLuint index);
+
+EXT_API void(EXT_ENTRY *glDrawArraysInstanced)(GLenum mode, GLint first, GLsizei count,
+											   GLsizei instancecount);
+EXT_API void(EXT_ENTRY *glDrawElementsInstanced)(GLenum mode, GLsizei count, GLenum type,
+												 const void *indices, GLsizei instancecount);
+EXT_API void(EXT_ENTRY *glMultiDrawArraysIndirect)(GLenum mode, const void *indirect,
+												   GLsizei drawcount, GLsizei stride);
+EXT_API void(EXT_ENTRY *glVertexAttribIPointer)(GLuint index, GLint size, GLenum type,
+												GLsizei stride, const void *pointer);
+
+EXT_API void(EXT_ENTRY *glBufferStorage)(GLenum target, GLsizeiptr size, const void *data,
+										 GLbitfield flags);
+EXT_API void(EXT_ENTRY *glInvalidateBufferSubData)(GLuint buffer, GLintptr offset,
+												   GLsizeiptr length);
+EXT_API void(EXT_ENTRY *glInvalidateBufferData)(GLuint buffer);
+EXT_API void *(EXT_ENTRY *glMapBufferRange)(GLenum target, GLintptr offset, GLsizeiptr length,
+											GLbitfield access);
+EXT_API void(EXT_ENTRY *glFlushMappedBufferRange)(GLenum target, GLintptr offset,
+												  GLsizeiptr length);
+EXT_API void(EXT_ENTRY *glCopyBufferSubData)(GLenum readTarget, GLenum writeTarget,
+											 GLintptr readOffset, GLintptr writeOffset,
+											 GLsizeiptr size);
+
+EXT_API void(EXT_ENTRY *glGenTransformFeedbacks)(GLsizei n, GLuint *ids);
+EXT_API void(EXT_ENTRY *glGenProgramPipelines)(GLsizei n, GLuint *pipelines);
+EXT_API void(EXT_ENTRY *glGenSamplers)(GLsizei count, GLuint *samplers);
+EXT_API void(EXT_ENTRY *glDeleteSamplers)(GLsizei count, const GLuint *samplers);
+EXT_API void(EXT_ENTRY *glDeleteProgramPipelines)(GLsizei n, const GLuint *pipelines);
+EXT_API void(EXT_ENTRY *glDeleteTransformFeedbacks)(GLsizei n, const GLuint *ids);
 
 #undef EXT_API
 #undef EXT_ENTRY

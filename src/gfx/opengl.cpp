@@ -275,6 +275,8 @@ void initializeGl(GlProfile profile) {
 	LOAD(glDeleteRenderbuffers);
 	LOAD(glGenRenderbuffers);
 	LOAD(glRenderbufferStorage);
+	LOAD(glRenderbufferStorageMultisample);
+	LOAD(glBlitFramebuffer);
 
 	LOAD(glBindFramebuffer);
 	LOAD(glDeleteFramebuffers);
@@ -324,11 +326,32 @@ void initializeGl(GlProfile profile) {
 	LOAD(glTexStorage1D);
 	LOAD(glTexStorage2D);
 	LOAD(glTexStorage3D);
+	LOAD(glTexStorage2DMultisample);
+	LOAD(glTexImage2DMultisample);
 
 	LOAD(glGetProgramBinary);
 	LOAD(glGetProgramInterfaceiv);
 	LOAD(glGetProgramResourceName);
 	LOAD(glGetProgramResourceiv);
+
+	LOAD(glDrawArraysInstanced);
+	LOAD(glDrawElementsInstanced);
+	LOAD(glMultiDrawArraysIndirect);
+	LOAD(glVertexAttribIPointer);
+
+	LOAD(glBufferStorage);
+	LOAD(glInvalidateBufferSubData);
+	LOAD(glInvalidateBufferData);
+	LOAD(glMapBufferRange);
+	LOAD(glFlushMappedBufferRange);
+	LOAD(glCopyBufferSubData);
+
+	LOAD(glGenTransformFeedbacks);
+	LOAD(glGenProgramPipelines);
+	LOAD(glGenSamplers);
+	LOAD(glDeleteSamplers);
+	LOAD(glDeleteProgramPipelines);
+	LOAD(glDeleteTransformFeedbacks);
 
 #undef LOAD
 #endif
