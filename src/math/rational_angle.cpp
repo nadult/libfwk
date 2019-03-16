@@ -5,7 +5,6 @@
 
 #include "fwk/format.h"
 #include "fwk/math/direction.h"
-#include "fwk/math/ext24.h"
 
 namespace fwk {
 
@@ -27,8 +26,8 @@ template struct RationalAngle<short2>;
 template struct RationalAngle<int2>;
 template struct RationalAngle<llint2>;
 
-template struct RationalAngle<vec2<Ext24<short>>>;
-template struct RationalAngle<vec2<Ext24<int>>>;
-template struct RationalAngle<vec2<Ext24<llint>>>;
+//template struct RationalAngle<vec2<Ext24<short>>>;
+//template struct RationalAngle<vec2<Ext24<int>>>;
+//template struct RationalAngle<vec2<Ext24<llint>>>;
 
 }

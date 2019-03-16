@@ -2,7 +2,6 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/format.h"
-#include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/rational.h"
@@ -240,8 +239,8 @@ INST_ALL_SIZES(int)
 INST_ALL_SIZES(llint)
 INST_ALL_SIZES(qint)
 
-INST_ALL_SIZES(Ext24<short>)
-INST_ALL_SIZES(Ext24<int>)
-INST_ALL_SIZES(Ext24<llint>)
-INST_ALL_SIZES(Ext24<qint>)
+//INST_ALL_SIZES(Ext24<short>)
+//INST_ALL_SIZES(Ext24<int>)
+//INST_ALL_SIZES(Ext24<llint>)
+//INST_ALL_SIZES(Ext24<qint>)
 }

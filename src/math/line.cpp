@@ -3,7 +3,6 @@
 
 #include "fwk/math/line.h"
 
-#include "fwk/math/ext24.h"
 #include "fwk/sys/xml.h"
 #include "fwk/variant.h"
 
@@ -51,9 +50,5 @@ INSTANTIATE(int)
 INSTANTIATE(llint)
 INSTANTIATE(float)
 INSTANTIATE(double)
-
-INSTANTIATE(Ext24<short>)
-INSTANTIATE(Ext24<int>)
-INSTANTIATE(Ext24<llint>)
 
 }

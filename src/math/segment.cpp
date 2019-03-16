@@ -4,7 +4,6 @@
 #include "fwk/math/segment.h"
 
 #include "fwk/math/box.h"
-#include "fwk/math/ext24.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/plane.h"
 #include "fwk/math/ray.h"
@@ -357,10 +356,6 @@ INSTANTIATE_VEC(int)
 INSTANTIATE_VEC(llint)
 INSTANTIATE_VEC(float)
 INSTANTIATE_VEC(double)
-
-INSTANTIATE_VEC(Ext24<short>)
-INSTANTIATE_VEC(Ext24<int>)
-INSTANTIATE_VEC(Ext24<llint>)
 
 template Maybe<Ray<float, 2>> Segment<float2>::asRay() const;
 template Maybe<Ray<double, 2>> Segment<double2>::asRay() const;

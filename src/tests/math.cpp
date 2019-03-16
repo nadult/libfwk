@@ -367,6 +367,7 @@ void testTraits() {
 	static_assert(is_same<MakeRat<vec2<int>>, Rational2<int>>);
 }
 
+/*
 template <class T> int approxSign(const Ext24<T> &ext) {
 	using LD = long double;
 	return LD(ext.b) * sqrt2 + LD(ext.c) * sqrt3 + LD(ext.d) * sqrt6 + LD(ext.a) < 0 ? -1 : 1;
@@ -390,6 +391,17 @@ void testExt24() {
 			//quadSignPrint(a, b, c, d);
 			print("\n\n");
 		}
+	}
+
+	for(int n = 0; n < 24; n++) {
+		vec2<Ext24<short>> vec = angleToVectorExt24(n * 15, 4).num();
+
+		RationalAngle ang(vec);
+		auto real_ang = radToDeg(double(ang));
+		assertCloseEnough(real_ang, double(n * 15));
+		assertCloseEnough(radToDeg(double(-ang)), double(360 - n * 15));
+
+		//print("%  ang:% vec:%\n", stdFormat("%3d -> %3d", n * 15, (int)round(real_ang)), ang, vec);
 	}
 
 	{
@@ -458,8 +470,7 @@ void testExt24() {
 		auto inv = v.intDenomInverse();
 		ASSERT_EQ(v * inv, 1);
 	}
-}
-
+}*/
 
 void testRational() {
 	ASSERT_GT(Rational<int>(1, 0), Rational<int>(100, 1));
@@ -559,16 +570,6 @@ void testRational() {
 }
 
 void testRationalAngles() {
-	for(int n = 0; n < 24; n++) {
-		vec2<Ext24<short>> vec = angleToVectorExt24(n * 15, 4).num();
-
-		RationalAngle ang(vec);
-		auto real_ang = radToDeg(double(ang));
-		assertCloseEnough(real_ang, double(n * 15));
-		assertCloseEnough(radToDeg(double(-ang)), double(360 - n * 15));
-
-		//print("%  ang:% vec:%\n", stdFormat("%3d -> %3d", n * 15, (int)round(real_ang)), ang, vec);
-	}
 
 	Random rand;
 	for(int n = 0; n < 100000; n++) {
@@ -638,7 +639,7 @@ void testMain() {
 	testTraits();
 	testBox();
 	testOBox();
-	testExt24();
+	//testExt24();
 	testRationalAngles();
 	testDirections();
 
