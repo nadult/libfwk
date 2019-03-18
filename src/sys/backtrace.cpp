@@ -72,28 +72,35 @@ namespace {
 		string simple;
 	};
 
-	struct GdbThreadInfo {
+	struct ThreadInfo {
 		string header;
 		vector<string> lines;
 		vector<Entry> entries;
 		bool is_main = false;
 	};
 
-	vector<GdbThreadInfo> splitGdbInput(string input) {
+	vector<ThreadInfo> splitDebuggerInput(string input, bool lldb_mode) {
 		auto lines = tokenize(input.c_str(), '\n');
 
-		vector<GdbThreadInfo> out;
-		GdbThreadInfo current;
+		vector<ThreadInfo> out;
+		ThreadInfo current;
+
+		bool skip = lldb_mode;
 
 		for(auto &line : lines) {
-			if(line.find("Thread") == 0) {
+			if(lldb_mode && line.find("(lldb) thread backtrace all") == 0)
+				skip = false;
+			if(skip)
+				continue;
+
+			if(line.find(lldb_mode ? "* thread #" : "Thread") == 0) {
 				if(current.lines)
 					out.emplace_back(move(current));
 				current = {};
 				current.header = line;
 				continue;
 			}
-			if(line[0] == '#')
+			if(line.find(lldb_mode ? "frame #" : "#") == (lldb_mode ? 4 : 0))
 				current.lines.emplace_back(line);
 		}
 
@@ -102,26 +109,36 @@ namespace {
 		return out;
 	}
 
-	int mainThreadPos(const GdbThreadInfo &info) {
+	int mainThreadPos(const ThreadInfo &info) {
 		for(int n = 0; n < info.lines.size(); n++) {
 			const auto &line = info.lines[n];
-			if(line[0] == '#' && line.find("fwk::Backtrace::gdbBacktrace") != string::npos)
+			if(line.find("fwk::Backtrace::fullBacktrace") != string::npos)
 				return n;
 		}
 		return -1;
 	}
 
-	void processThreadInfo(GdbThreadInfo &info, int skip_frames) {
+	void processThreadInfo(ThreadInfo &info, int skip_frames, bool lldb_mode) {
 		int main_pos = mainThreadPos(info);
 		info.is_main = main_pos != -1;
 		skip_frames = main_pos == -1 ? 0 : main_pos + skip_frames;
 
 		for(auto line : info.lines) {
-			if(line[0] != '#' || skip_frames-- > 0)
+			if(skip_frames-- > 0)
 				continue;
 
 			auto tokens = tokenize(line.c_str());
-			if(tokens.size() > 3) {
+
+			if(lldb_mode) {
+				int cut = -1;
+				for(int n = 0; n < tokens.size(); n++)
+					if(tokens[n] == "frame") {
+						cut = n + 2;
+						break;
+					}
+				if(cut <= tokens.size())
+					tokens.erase(tokens.begin(), tokens.begin() + cut);
+			} else if(tokens.size() > 3) {
 				int count = tokens[2] == "in" ? 3 : 1;
 				tokens.erase(tokens.begin(), tokens.begin() + count);
 			}
@@ -130,7 +147,7 @@ namespace {
 
 			int split_pos = -1;
 			for(int i = tokens.size() - 1; i >= 0; i--)
-				if(tokens[i] == "at" && i > 0 && tokens[i - 1].back() == ')') {
+				if(tokens[i] == "at" && i > 0 && (tokens[i - 1].back() == ')' || lldb_mode)) {
 					split_pos = i;
 					break;
 				}
@@ -155,13 +172,14 @@ namespace {
 		}
 	}
 
-	string filterGdb(string input, int skip_frames) {
+	string filterDebuggerOutput(string input, int skip_frames, bool lldb_mode) {
 		string out;
 
-		auto tinfos = splitGdbInput(input);
+		auto tinfos = splitDebuggerInput(input, lldb_mode);
+
 		int main_thread_pos = -1;
 		for(auto &tinfo : tinfos)
-			processThreadInfo(tinfo, skip_frames);
+			processThreadInfo(tinfo, skip_frames, lldb_mode);
 		std::reverse(begin(tinfos), end(tinfos));
 
 		int num_columns = 120;
@@ -256,6 +274,7 @@ namespace {
 
 void winGetBacktrace(vector<void *> &addrs, int skip, void *context);
 
+string Backtrace::g_lldb_command;
 __thread BacktraceMode Backtrace::t_default_mode = Mode::fast;
 
 Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols)
@@ -291,28 +310,34 @@ Backtrace Backtrace::get(size_t skip, void *context_, Maybe<Mode> mode) {
 
 #ifdef FWK_TARGET_LINUX
 	if(*mode == Mode::full)
-		return {move(addrs), move(symbols), gdbBacktrace(skip)};
+		return {move(addrs), move(symbols), fullBacktrace(skip)};
 #endif
 
 	return {move(addrs), move(symbols)};
 }
 
-Pair<string, bool> Backtrace::gdbBacktrace(int skip_frames) {
-	printf("Generating GDB backtrace; Warning: sometimes GDB lies...\n");
+Pair<string, bool> Backtrace::fullBacktrace(int skip_frames) {
+	bool lldb_mode = !g_lldb_command.empty();
+	printf("Generating backtrace with %s; Warning: sometimes debuggers lie...\n",
+		   lldb_mode ? "LLDB" : "GDB");
 
 #ifdef FWK_TARGET_LINUX
 	auto pid = getpid();
-	char cmd[256];
-	snprintf(cmd, arraySize(cmd), "gdb 2>&1 -batch -p %d -ex 'thread apply all bt'", (int)pid);
+	string cmd;
+	if(lldb_mode)
+		cmd = format("% 2>&1 -batch -p % -o 'thread backtrace all'", g_lldb_command, (int)pid);
+	else
+		cmd = format("gdb 2>&1 -batch -p % -ex 'thread apply all bt'", (int)pid);
 	auto result = execCommand(cmd);
 
-	if(result.first.find("ptrace: Operation not permitted") != string::npos)
+	// TODO: check for errors from LLDB
+	if(!lldb_mode && result.first.find("ptrace: Operation not permitted") != string::npos)
 		return {"To use GDB stacktraces, you have to:\n"
 				"1) set kernel.yama.ptrace_scope to 0 in: /etc/sysctl.d/10-ptrace.conf\n"
 				"2) type: echo 0 > /proc/sys/kernel/yama/ptrace_scope\n",
 				false};
 
-	return {filterGdb(result.first, skip_frames), true};
+	return {filterDebuggerOutput(result.first, skip_frames, lldb_mode), true};
 #else
 	return {"GDB-based backtraces are only supported on linux (for now)", false};
 #endif
@@ -327,7 +352,8 @@ string Backtrace::analyze(bool filter) const {
 	file_lines = analyzeAddresses(m_addresses);
 #elif defined(FWK_TARGET_MINGW)
 	if(m_addresses)
-		formatter("Please run following command:\n% | c++filt\n", analyzeCommand(m_addresses, true));
+		formatter("Please run following command:\n% | c++filt\n",
+				  analyzeCommand(m_addresses, true));
 	else
 		formatter("Empty backtrace\n");
 #endif

@@ -11,7 +11,7 @@ namespace fwk {
 
 enum class BacktraceMode {
 	fast, // default
-	full, // using GDB to get accurate backtrace
+	full,
 	disabled
 };
 
@@ -24,12 +24,14 @@ class Backtrace {
 
 	using Mode = BacktraceMode;
 
+	// Setting this will enable LLDB backtraces instead of GDB
+	static string g_lldb_command;
 	static __thread Mode t_default_mode;
 
 	// If available, gdb backtraces will be used (which are more accurate)
 	static Backtrace get(size_t skip = 0, void *context = nullptr, Maybe<Mode> = none);
 
-	static Pair<string, bool> gdbBacktrace(int skip_frames = 0) NOINLINE;
+	static Pair<string, bool> fullBacktrace(int skip_frames = 0) NOINLINE;
 
 	// When filter is true, analyzer uses c++filt program to demangle C++
 	// names; it also shortens some of the common long class names, like
