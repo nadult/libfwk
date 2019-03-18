@@ -54,6 +54,8 @@ bool GlInfo::hasExtension(Str name) const {
 	return it != end(extensions) && Str(*it) == name;
 }
 
+static void loadExtensions();
+
 void initializeGl(GlProfile profile) {
 	using Feature = GlFeature;
 	using Vendor = GlVendor;
@@ -90,6 +92,8 @@ void initializeGl(GlProfile profile) {
 		s_info.vendor = Vendor::other;
 	s_info.profile = profile;
 	s_info.renderer = (const char *)glGetString(GL_RENDERER);
+
+	loadExtensions();
 
 	GLint num;
 	glGetIntegerv(GL_NUM_EXTENSIONS, &num);
@@ -147,7 +151,9 @@ void initializeGl(GlProfile profile) {
 		s_info.features |= Feature::shader_draw_parameters;
 	if(core_410 || s_info.hasExtension("ARB_separate_shader_objects"))
 		s_info.features |= Feature::separate_shader_objects;
+}
 
+void loadExtensions() {
 #ifdef FWK_TARGET_MINGW
 #define LOAD(func) (func = reinterpret_cast<decltype(func)>((u64)winLoadFunction(#func)));
 
@@ -352,6 +358,8 @@ void initializeGl(GlProfile profile) {
 	LOAD(glDeleteSamplers);
 	LOAD(glDeleteProgramPipelines);
 	LOAD(glDeleteTransformFeedbacks);
+
+	LOAD(glGetStringi);
 
 #undef LOAD
 #endif
