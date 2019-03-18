@@ -326,7 +326,10 @@ string Backtrace::analyze(bool filter) const {
 #elif defined(FWK_TARGET_LINUX)
 	file_lines = analyzeAddresses(m_addresses);
 #elif defined(FWK_TARGET_MINGW)
-	formatter("Please run following command:\n% | c++filt\n", analyzeCommand(m_addresses, true));
+	if(m_addresses)
+		formatter("Please run following command:\n% | c++filt\n", analyzeCommand(m_addresses, true));
+	else
+		formatter("Empty backtrace\n");
 #endif
 	if(file_lines) {
 		int max_len = 0;

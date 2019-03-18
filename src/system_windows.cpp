@@ -67,7 +67,9 @@ namespace {
 	}
 
 	LONG WINAPI windows_exception_handler(EXCEPTION_POINTERS *info) {
-		printf("Signal received: %s\n", exceptionName(info->ExceptionRecord->ExceptionCode));
+		printf("Signal received: %s (SegCs:0x%04X Addr:0x%p)\n",
+			   exceptionName(info->ExceptionRecord->ExceptionCode), info->ContextRecord->SegCs,
+			   info->ExceptionRecord->ExceptionAddress);
 		printf("Backtrace:\n%s\n", Backtrace::get(2, info->ContextRecord).analyze(false).c_str());
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
@@ -146,9 +148,7 @@ double getTime() {
 	return double(c) / double(CLOCKS_PER_SEC);
 }
 
-int threadId() {
-	return GetCurrentThreadId();
-}
+int threadId() { return GetCurrentThreadId(); }
 }
 
 #endif
