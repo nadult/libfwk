@@ -7,6 +7,21 @@
 
 namespace fwk {
 
+struct LessCompare {
+	template <class T> bool operator()(const T &a, const T &b) const { return a < b; }
+};
+struct GreaterCompare {
+	template <class T> bool operator()(const T &a, const T &b) const { return a > b; }
+};
+
+template <class TSpan, class T = SpanBase<TSpan>, class Func = LessCompare>
+void bubbleSort(TSpan &span, const Func &func = {}) {
+	for(int i = 0, size = fwk::size(span); i < size; i++)
+		for(int j = i + 1; j < size; j++)
+			if(func(span[j], span[i]))
+				swap(span[i], span[j]);
+}
+
 template <class T> void makeSortedUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
 	vec.erase(std::unique(begin(vec), end(vec)), end(vec));
