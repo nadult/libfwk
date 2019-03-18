@@ -3,6 +3,7 @@
 
 #include "fwk_profile.h"
 
+#include "fwk/algorithm.h"
 #include "fwk/format.h"
 #include "fwk/gfx/opengl.h"
 #include <cstdio>

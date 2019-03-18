@@ -3,6 +3,7 @@
 
 #include "fwk/math/box.h"
 
+#include "fwk/algorithm.h"
 #include "fwk/format.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/plane.h"

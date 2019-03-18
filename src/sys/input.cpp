@@ -3,6 +3,7 @@
 
 #include "fwk/sys/input.h"
 
+#include "fwk/algorithm.h"
 #include "fwk/str.h"
 #include <SDL.h>
 #include <SDL_keyboard.h>

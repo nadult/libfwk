@@ -3,6 +3,7 @@
 
 #include "fwk/sys/rollback.h"
 
+#include "fwk/algorithm.h"
 #include "fwk/hash_map.h"
 #include "fwk/sys/on_fail.h"
 #include <atomic>

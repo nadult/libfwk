@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "fwk/sys_base.h"
-#include "fwk_range.h"
+#include "fwk/algorithm.h"
 #include "fwk_vector.h"
 #include <limits.h>
 
