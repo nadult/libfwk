@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/operator.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -181,11 +182,13 @@ namespace detail {
 
 template <class... Args>
 constexpr bool operator<(const LightTuple<Args...> &lhs, const LightTuple<Args...> &rhs) {
+	static_assert((less_comparable<Args> && ...));
 	return detail::cmpLess<0>(lhs, rhs);
 }
 
 template <class... Args>
 constexpr bool operator==(const LightTuple<Args...> &lhs, const LightTuple<Args...> &rhs) {
+	static_assert((equality_comparable<Args> && ...));
 	return detail::cmpEqual<0>(lhs, rhs);
 }
 
@@ -198,7 +201,7 @@ template <class... Args> constexpr auto tuple(Args &&... args) {
 }
 
 // Do not use it with bitfields! It will make a const ref to temporary
-// Unfortunately there is no good way to protect yourself from this (thanks, C++ authors!)
+// Unfortunately there is no good way to protect yourself from this...
 #define FWK_TIE_MEMBERS(...)                                                                       \
 	auto tied() const { return fwk::tie(__VA_ARGS__); }
 

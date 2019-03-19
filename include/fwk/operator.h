@@ -12,7 +12,7 @@ namespace detail {
 	template <class L, class R> struct name##Result {                                              \
 		template <class U> static decltype(DECLVAL(const U &) op DECLVAL(const R &)) test(U *);    \
 		template <class U> static void test(...);                                                  \
-		using Type = decltype(test<L>(nullptr));                                                   \
+		using Type = decltype(test<Decay<L>>(nullptr));                                            \
 	};
 	OP_RESULT(Add, +)
 	OP_RESULT(Sub, -)
@@ -42,6 +42,10 @@ OP_RESULT(Less)
 OP_RESULT(Equal)
 OP_RESULT(Apply)
 #undef OP_RESULT
+
+template <class T>
+static constexpr bool equality_comparable = is_convertible<EqualResult<T, T>, bool>;
+template <class T> static constexpr bool less_comparable = is_convertible<LessResult<T, T>, bool>;
 
 // Automatic operators for user types: +=, -=, *=, /=, <=, >=, >, !=
 
