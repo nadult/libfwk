@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/colored_triangle.h"
 
+#include "fwk/format.h"
 #include "fwk/math/box.h"
 #include "fwk/math/constants.h"
 #include "fwk/sys/stream.h"
@@ -44,5 +45,13 @@ void ColoredTriangle::load(Stream &sr) {
 
 ColoredTriangle ColoredTriangle::flipped() const {
 	return {Triangle3F::flipped().points(), {colors[2], colors[1], colors[0]}};
+}
+
+void ColoredTriangle::operator>>(TextFormatter &out) const {
+	if(colors[0] == colors[1] && colors[0] == colors[2])
+		out(out.isStructured() ? "(%: %)" : "% %", (const Triangle3F &)*this, colors[0]);
+	else
+		out(out.isStructured() ? "(%: % % %)" : "% % % %", (const Triangle3F &)*this, colors[0],
+			colors[1], colors[2]);
 }
 }

@@ -3,6 +3,7 @@
 
 #include "fwk/math/triangle.h"
 
+#include "fwk/format.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/projection.h"
@@ -293,6 +294,13 @@ bool Triangle<T, N>::testIsect(const Box &box) const {
 	// Compute distance of box center from plane
 	// Intersection occurs when distance s falls within [-r,+r] interval
 	return abs(plane_d) <= pr;
+}
+
+template <class T, int N> void Triangle<T, N>::operator>>(TextFormatter &out) const {
+	if constexpr(N == 2)
+		out(out.isStructured() ? "(%, %)" : "% %", v[0], v[1]);
+	else
+		out(out.isStructured() ? "(%, %, %)" : "% % %", v[0], v[1], v[2]);
 }
 
 template class Triangle<float, 2>;

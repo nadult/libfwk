@@ -22,6 +22,8 @@ struct ColoredTriangle : public Triangle3F {
 	ColoredTriangle flipped() const;
 	void setColor(IColor col) { colors[0] = colors[1] = colors[2] = col; }
 
+	void operator>>(TextFormatter &) const;
+
 	array<IColor, 3> colors;
 };
 

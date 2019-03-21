@@ -95,6 +95,8 @@ template <class T, int N> class Triangle {
 	bool areIntersecting(const Triangle &) const;
 	ENABLE_IF_SIZE(3) bool testIsect(const Box &) const;
 
+	void operator>>(TextFormatter &) const;
+
 	FWK_ORDER_BY(Triangle, v[0], v[1], v[2]);
 
   private:
