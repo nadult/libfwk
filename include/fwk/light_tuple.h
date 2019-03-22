@@ -42,6 +42,12 @@ template <class Arg0> struct LightTuple<Arg0> {
 };
 template <class Arg0, class Arg1> struct LightTuple<Arg0, Arg1> {
 	enum { count = 2 };
+
+	template <class T, class U> void operator=(const Pair<T, U> &pair) {
+		arg0 = pair.first;
+		arg1 = pair.second;
+	}
+
 	Arg0 arg0 = Arg0();
 	Arg1 arg1 = Arg1();
 };
