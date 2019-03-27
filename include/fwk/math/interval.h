@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/format.h"
 #include "fwk/math/constants.h"
 #include "fwk/maybe.h"
 
@@ -43,12 +44,14 @@ template <class T> struct Interval {
 		return {fwk::min(min, rhs.min), fwk::max(max, rhs.max)};
 	}
 
-	bool touches(const Interval &rhs) const { return min <= rhs.max && rhs.max >= min; }
-	bool overlaps(const Interval &rhs) const { return min < rhs.max && rhs.max > min; }
+	bool touches(const Interval &rhs) const { return min <= rhs.max && max >= rhs.min; }
+	bool overlaps(const Interval &rhs) const { return min < rhs.max && max > rhs.min; }
 
 	Interval enclose(T point) const { return {fwk::min(min, point), fwk::max(max, point)}; }
 
-	void operator>>(TextFormatter &) const;
+	void operator>>(TextFormatter &out) const {
+		out(out.isStructured() ? "(%; %)" : "% %", min, max);
+	}
 
 	FWK_ORDER_BY(Interval, min, max);
 
