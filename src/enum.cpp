@@ -49,7 +49,7 @@ namespace detail {
 		bool previous = false;
 
 		for(int n : intRange(count))
-			if(bits & (1 << n)) {
+			if(bits & (1ull << n)) {
 				if(previous)
 					out << '|';
 				out << strings[n];
