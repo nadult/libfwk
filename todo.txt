@@ -1,11 +1,14 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- operacja shiftowania bitów (zamknięta)
 - dot<PT>, cross<PT> powodują problemy na GCC (cholera go wie czemu) (regresja w GCC 8.2, w *.3 powinno działać...)
 - empty backtraces on mingw
+- span z wymaganiem na minimalną wielkośc zastąpić static_spanem ?
 
+- is_same -> are_same albo same ?
 - uporządkować inRange
-- StaticSpan ?
+- StaticSpan + Array (z checkami na indeksach) ?
 - ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?
 - vector concept and algorithms for it (downsize, upsize, shrinkToFit, etc.)
 - HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map

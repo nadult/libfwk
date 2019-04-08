@@ -159,19 +159,23 @@ template <class T, EnableIfEnum<T>...> constexpr int count() {
 
 template <class T, EnableIfEnum<T>...> auto all() { return EnumRange<T>(0, count<T>()); }
 
-template <class T, EnableIfEnum<T>...> T next(T value) { return T((int(value) + 1) % count<T>()); }
+template <class T, EnableIfEnum<T>...> T next(T value) {
+	return T(int(value) == count<T>() - 1 ? 0 : int(value) + 1);
+}
 
 template <class T, EnableIfEnum<T>...> T prev(T value) {
-	return T((int(value) + (count<T>() - 1)) % count<T>());
+	return T(int(value) == 0 ? int(count<T>() - 1) : int(value) - 1);
 }
 
 template <int offset, class T, EnableIfEnum<T>...> T next(T value) {
-	static_assert(offset >= 0);
-	return T((int(value) + offset) % count<T>());
+	static_assert(offset >= 0 && offset <= count<T>());
+	int new_val = int(value) + offset;
+	return T(new_val >= count<T>() ? new_val - count<T>() : new_val);
 }
 template <int offset, class T, EnableIfEnum<T>...> T prev(T value) {
 	static_assert(offset >= 0 && offset <= count<T>());
-	return T((int(value) + (count<T>() - offset)) % count<T>());
+	int new_val = int(value) - offset;
+	return T(new_val < 0 ? new_val + count<T>() : new_val);
 }
 
 template <class T> struct detail::EmptyMaybe<T, EnableIfEnum<T>> {
