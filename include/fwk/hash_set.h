@@ -71,6 +71,7 @@ template <class TKey> class HashSet {
 		bool operator==(const Iterator &rhs) const { return rhs.m_node == m_node; }
 		bool operator!=(const Iterator &rhs) const { return !(rhs == *this); }
 
+		HashValue hash() const { return m_node->hash; }
 		const HashSet *get_map() const { return m_map; }
 
 	  private:
