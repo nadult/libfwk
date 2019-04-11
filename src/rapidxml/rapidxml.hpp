@@ -536,6 +536,9 @@ namespace rapidxml
             init();
         }
 
+        // Clears without deallocating memory
+        void release() { init(); }
+
         //! Sets or resets the user-defined memory allocation functions for the pool.
         //! This can only be called when no memory is allocated from the pool yet, otherwise results are undefined.
         //! Allocation function must not return invalid pointer on failure. It should either throw,
@@ -1312,6 +1315,12 @@ namespace rapidxml
                 attribute->m_parent = 0;
             m_first_attribute = 0;
         }
+
+        void release() {
+            m_first_node = m_last_node = nullptr;
+            m_first_attribute = m_last_attribute = nullptr;
+            m_prev_sibling = m_next_sibling = nullptr;
+        }
         
     private:
 
@@ -1417,6 +1426,11 @@ namespace rapidxml
             this->remove_all_nodes();
             this->remove_all_attributes();
             memory_pool<Ch>::clear();
+        }
+
+        void release() {
+            xml_node<Ch>::release();
+            memory_pool<Ch>::release();
         }
         
     private:

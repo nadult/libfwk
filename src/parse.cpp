@@ -20,15 +20,13 @@ namespace {
 	void reportParseError(Str str, const char *type_name, int count) {
 		string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
 		auto short_str = str.limitSizeBack(40);
-		CHECK_FAILED("Error while parsing %s%s from \"%s\"", what.c_str(), count > 1 ? "s" : "",
-					 short_str.c_str());
+		REG_ERROR("Error while parsing %% from \"%\"", what, count > 1 ? "s" : "", short_str);
 	}
 
 	static void reportOutOfRange(Str, const char *) NOINLINE;
 	void reportOutOfRange(Str str, const char *type_name) {
 		auto short_str = str.limitSizeBack(40);
-		CHECK_FAILED("Error while parsing %s: value out of range: \"%s\"", type_name,
-					 short_str.c_str());
+		REG_ERROR("Error while parsing %: value out of range: \"%\"", type_name, short_str);
 	}
 
 	auto strtol(const char *ptr, char **end_ptr) { return ::strtol(ptr, end_ptr, 0); }
@@ -99,6 +97,10 @@ void TextParser::advanceWhitespace() {
 	m_current = ZStr(ptr, m_current.end() - ptr);
 }
 
+void TextParser::errorTrailingData() {
+	REG_ERROR("Trailing data left after parsing: '%'", current().limitSizeBack(20));
+}
+
 TextParser &TextParser::operator>>(Str &out) {
 	out = parseElement();
 	return *this;
@@ -116,8 +118,10 @@ TextParser &TextParser::operator>>(bool &out) {
 		out = true;
 	else if(element.compareIgnoreCase("false") == 0 || element == "0")
 		out = false;
-	else
-		CHECK_FAILED("Error while parsing bool from \"%s\"", string(element).c_str());
+	else {
+		REG_ERROR("Error while parsing bool from \"%\"", element);
+		out = false;
+	}
 
 	return *this;
 }
@@ -180,8 +184,8 @@ void TextParser::parseNotEmpty(Span<Str> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
 		if(out[n].empty())
-			CHECK_FAILED("Error while parsing a range of %d not-empty strings (parsed: %d)",
-						 out.size(), n);
+			REG_ERROR("Error while parsing a range of % not-empty strings (parsed: %)", out.size(),
+					  n);
 	}
 }
 
@@ -189,8 +193,8 @@ void TextParser::parseNotEmpty(Span<string> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
 		if(out[n].empty())
-			CHECK_FAILED("Error while parsing a range of %d not-empty strings (parsed: %d)",
-						 out.size(), n);
+			REG_ERROR("Error while parsing a range of % not-empty strings (parsed: %)", out.size(),
+					  n);
 	}
 }
 

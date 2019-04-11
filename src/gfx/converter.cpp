@@ -99,10 +99,8 @@ Pair<PModel, string> Converter::loadModel(FileType file_type, FileStream &stream
 	Pair<PModel, string> out;
 
 	if(file_type == FileType::fwk_model) {
-		XmlDocument doc;
+		auto doc = move(XmlDocument::load(stream).get());
 		XmlOnFailGuard xml_guard(doc);
-
-		stream >> doc;
 		XmlNode child = doc.child();
 		CHECK(child && "empty XML document");
 		out = {immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name())};

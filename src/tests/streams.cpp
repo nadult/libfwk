@@ -210,7 +210,9 @@ void testMain() {
 
 	Object2 object2;
 	Loader ldr("temp.dat");
-	ASSERT_FAIL(ldr >> object2;); // Wrong signature
+	ldr >> object2;
+	ASSERT(anyErrors()); // Wrong signature
+	auto error = getSingleError();
 
 	// TODO: disable printing backtraces on rollbacks (only if user wants to?)
 	// TODO: fix this:

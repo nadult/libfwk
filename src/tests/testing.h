@@ -12,7 +12,7 @@ using namespace fwk;
 
 #define ASSERT_FAIL(code)                                                                          \
 	{                                                                                              \
-		auto result = RollbackContext::begin([&]() { code; });                                     \
+		auto result = ({ code; });                                                                 \
 		ASSERT(!result);                                                                           \
 	}
 

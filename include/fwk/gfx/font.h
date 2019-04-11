@@ -26,10 +26,11 @@ struct FontStyle {
 
 class FontCore : public immutable_base<FontCore> {
   public:
-	FontCore(const string &name, Stream &);
-	FontCore(const XmlDocument &);
-	FontCore(CXmlNode);
 	FWK_COPYABLE_CLASS(FontCore)
+
+	static Expected<FontCore> load(Str name, Stream &);
+	static Expected<FontCore> load(const XmlDocument &);
+	static Expected<FontCore> load(CXmlNode);
 
 	struct Glyph {
 		int character;
@@ -50,6 +51,7 @@ class FontCore : public immutable_base<FontCore> {
 		int left, right;
 		int value;
 	};
+	FontCore();
 	FontCore(CSpan<Glyph>, CSpan<Kerning>, int2, int);
 	void computeRect();
 

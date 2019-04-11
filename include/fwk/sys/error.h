@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/format.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys_base.h"
 
@@ -44,4 +45,35 @@ struct Error {
 	Maybe<Backtrace> backtrace;
 	vector<Any> values;
 };
+
+namespace detail {
+	extern __thread int t_num_errors;
+}
+
+// Simple per-thread error register
+// TODO: explain
+
+inline bool anyErrors() { return detail::t_num_errors > 0; }
+inline bool noErrors() { return detail::t_num_errors == 0; }
+inline int numErrors() { return detail::t_num_errors; }
+
+vector<Error> getErrors();
+Error getSingleError();
+void regError(Error, int bt_skip = 0);
+void regError(string, const char *file, int line);
+
+template <class... T, EnableIfFormattible<T...>...>
+void regError(const char *file, int line, const char *str, T &&... args) {
+	regError(format(str, std::forward<T>(args)...), file, line);
+}
+
+// TODO: naming
+#define REG_CHECK(expr)                                                                            \
+	{                                                                                              \
+		if(!(expr))                                                                                \
+			regError(FWK_STRINGIZE(expr), __FILE__, __LINE__);                                     \
+	}
+
+#define REG_ERROR(format, ...)                                                                     \
+	{ regError(__FILE__, __LINE__, format, __VA_ARGS__); }
 }

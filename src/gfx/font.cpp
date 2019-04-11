@@ -9,74 +9,89 @@
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/renderer2d.h"
+#include "fwk/sys/expected.h"
 #include "fwk/sys/xml.h"
 
 namespace fwk {
 
-FontCore::FontCore(const string &name, Stream &stream) : FontCore(XmlDocument(stream)) {}
-FontCore::FontCore(const XmlDocument &doc) : FontCore(doc.child("font")) {}
+Expected<FontCore> FontCore::load(Str name, Stream &stream) {
+	auto doc = XmlDocument::load(stream);
+	return doc ? load(*doc) : doc.error();
+}
+Expected<FontCore> FontCore::load(const XmlDocument &doc) {
+	return FontCore::load(doc.child("font"));
+}
+
+FontCore::FontCore() = default;
+
+Expected<FontCore> FontCore::load(CXmlNode font_node) {
+	EXPECT(font_node);
+
+	FontCore out;
+	auto info_node = font_node.child("info");
+	auto pages_node = font_node.child("pages");
+	auto chars_node = font_node.child("chars");
+	auto common_node = font_node.child("common");
+	EXPECT(info_node && pages_node && chars_node && common_node);
+
+	// TODO: co jak parsowanie się sfailuje? kazde parsowanie to potencjalny blad...
+	out.m_face_name = info_node.attrib("face");
+	out.m_texture_size = int2(common_node.attrib<int>("scaleW"), common_node.attrib<int>("scaleH"));
+	out.m_line_height = common_node.attrib<int>("lineHeight");
+	int text_base = common_node.attrib<int>("base");
+
+	int page_count = common_node.attrib<int>("pages");
+	EXPECT(page_count == 1);
+
+	auto first_page_node = pages_node.child("page");
+	EXPECT(first_page_node);
+	EXPECT(first_page_node.attrib<int>("id") == 0);
+
+	out.m_texture_name = first_page_node.attrib("file");
+	int chars_count = chars_node.attrib<int>("count");
+	auto char_node = chars_node.child("char");
+
+	while(char_node) {
+		Glyph chr;
+		int id = char_node.attrib<int>("id");
+		chr.character = id;
+		chr.tex_pos = short2(char_node.attrib<int>("x"), char_node.attrib<int>("y"));
+		chr.size = short2(char_node.attrib<int>("width"), char_node.attrib<int>("height"));
+		chr.offset = short2(char_node.attrib<int>("xoffset"), char_node.attrib<int>("yoffset"));
+		chr.x_advance = char_node.attrib<int>("xadvance");
+		out.m_glyphs[id] = chr;
+
+		EXPECT_NO_ERRORS();
+
+		chars_count--;
+		char_node = char_node.sibling("char");
+	}
+	EXPECT(chars_count == 0);
+	EXPECT(out.m_glyphs.find((int)' ') != out.m_glyphs.end());
+
+	auto kernings_node = font_node.child("kernings");
+	if(kernings_node) {
+		int kernings_count = kernings_node.attrib<int>("count");
+
+		auto kerning_node = kernings_node.child("kerning");
+		while(kerning_node) {
+			int first = kerning_node.attrib<int>("first");
+			int second = kerning_node.attrib<int>("second");
+			int value = kerning_node.attrib<int>("amount");
+			out.m_kernings[pair(first, second)] = value;
+			kernings_count--;
+
+			kerning_node = kerning_node.sibling("kerning");
+		}
+		EXPECT(kernings_count == 0);
+	}
+
+	EXPECT_NO_ERRORS();
+	out.computeRect();
+	return out;
+}
 
 // clang-format off
-	FontCore::FontCore(CXmlNode font_node) {
-		ASSERT(font_node);
-
-		auto info_node = font_node.child("info");
-		auto pages_node = font_node.child("pages");
-		auto chars_node = font_node.child("chars");
-		auto common_node = font_node.child("common");
-		ASSERT(info_node && pages_node && chars_node && common_node);
-
-		m_face_name = info_node.attrib("face");
-		m_texture_size = int2(common_node.attrib<int>("scaleW"), common_node.attrib<int>("scaleH"));
-		m_line_height = common_node.attrib<int>("lineHeight");
-		int text_base = common_node.attrib<int>("base");
-
-		int page_count = common_node.attrib<int>("pages");
-		ASSERT(page_count == 1);
-
-		auto first_page_node = pages_node.child("page");
-		ASSERT(first_page_node);
-		ASSERT(first_page_node.attrib<int>("id") == 0);
-
-		m_texture_name = first_page_node.attrib("file");
-		int chars_count = chars_node.attrib<int>("count");
-		auto char_node = chars_node.child("char");
-
-		while(char_node) {
-			Glyph chr;
-			int id = char_node.attrib<int>("id");
-			chr.character = id;
-			chr.tex_pos = short2(char_node.attrib<int>("x"), char_node.attrib<int>("y"));
-			chr.size = short2(char_node.attrib<int>("width"), char_node.attrib<int>("height"));
-			chr.offset = short2(char_node.attrib<int>("xoffset"), char_node.attrib<int>("yoffset"));
-			chr.x_advance = char_node.attrib<int>("xadvance");
-			m_glyphs[id] = chr;
-
-			chars_count--;
-			char_node = char_node.sibling("char");
-		}
-		ASSERT(chars_count == 0);
-		ASSERT(m_glyphs.find((int)' ') != m_glyphs.end());
-
-		auto kernings_node = font_node.child("kernings");
-		if(kernings_node) {
-			int kernings_count = kernings_node.attrib<int>("count");
-
-			auto kerning_node = kernings_node.child("kerning");
-			while(kerning_node) {
-				int first = kerning_node.attrib<int>("first");
-				int second = kerning_node.attrib<int>("second");
-				int value = kerning_node.attrib<int>("amount");
-				m_kernings[pair(first, second)] = value;
-				kernings_count--;
-
-				kerning_node = kerning_node.sibling("kerning");
-			}
-			ASSERT(kernings_count == 0);
-		}
-
-		computeRect();
-	}
 	FontCore::FontCore(CSpan<Glyph> glyphs, CSpan<Kerning> kernings, int2 tex_size, int line_height)
 		: m_texture_size(tex_size), m_line_height(line_height) {
 		for(auto &glyph : glyphs)

@@ -117,11 +117,11 @@ void testXMLConverters() {
 	ASSERT_EQ(toString("foo"), "foo");
 	ASSERT_EQ(toString(short(10)), "10");
 
-	ASSERT_FAIL(fromString<vector<int>>("1 2a 3"));
-	ASSERT_FAIL(fromString<bool>("foobar"));
-	ASSERT_FAIL(fromString<int>("10000000000"));
-	ASSERT_FAIL(fromString<short>("32768"));
-	ASSERT_FAIL(fromString<unsigned short>("-1"));
+	ASSERT_FAIL(tryFromString<vector<int>>("1 2a 3"));
+	ASSERT_FAIL(tryFromString<bool>("foobar"));
+	ASSERT_FAIL(tryFromString<int>("10000000000"));
+	ASSERT_FAIL(tryFromString<short>("32768"));
+	ASSERT_FAIL(tryFromString<unsigned short>("-1"));
 	ASSERT_EQ(fromString<long long>("1000000000000"), 1000000000000ll);
 }
 

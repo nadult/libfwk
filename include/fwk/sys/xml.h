@@ -28,7 +28,7 @@ class CXmlNode {
 	// Returns empty string if not found
 	ZStr hasAttrib(Str name) const;
 
-	// If an attribute cannot be found or properly parsed then exception is thrown
+	// If an attribute cannot be found or properly parsed then error will be registered
 	ZStr attrib(Str name) const;
 	// If an attribute cannot be found then default_value will be returned
 	ZStr attrib(Str name, ZStr default_value) const;
@@ -94,6 +94,7 @@ class XmlNode : public CXmlNode {
 			addAttrib(name, value);
 	}
 
+	static bool validNodeName(Str);
 	XmlNode addChild(Str name, Str value = {});
 	XmlNode sibling(Str name = {}) const;
 	XmlNode child(Str name = {}) const;
@@ -127,16 +128,14 @@ class XmlNode : public CXmlNode {
 class XmlDocument {
   public:
 	XmlDocument();
-	XmlDocument(Str file_name);
-	XmlDocument(Stream &);
 	XmlDocument(XmlDocument &&);
 	~XmlDocument();
 	XmlDocument &operator=(XmlDocument &&);
 
-	void load(Str file_name);
-	void save(Str file_name) const;
+	static Expected<XmlDocument> load(Str file_name);
+	static Expected<XmlDocument> load(Stream &stream);
 
-	void load(Stream &);
+	void save(Str file_name) const;
 	void save(Stream &) const;
 
 	XmlNode addChild(Str name, Str value = {});

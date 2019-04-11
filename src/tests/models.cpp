@@ -49,8 +49,7 @@ void testMain() {
 	auto result = cvt(mainPath("data/test.blend"), mesh_path);
 	ASSERT(result);
 
-	XmlDocument doc;
-	Loader(mesh_path) >> doc;
+	auto doc = move(XmlDocument::load(mesh_path).get());
 	PModel model = PModel(Model::loadFromXML(doc.child()));
 	remove(mesh_path.c_str());
 

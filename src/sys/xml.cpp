@@ -52,28 +52,8 @@ void untouch(xml_document<> *ptr) {
 	}
 }
 }
-namespace rapidxml {
-void parse_error_handler(const char *what, void *where) {
-	fwk::Str parsed_text(t_xml_debug.pstring, t_xml_debug.pstring_len);
-	auto pos = parsed_text.utf8TextPos((const char *)where);
-	fwk::TextFormatter fmt;
-	fmt("XML parsing error: %", what);
-	if(pos != fwk::Pair<int>())
-		fmt(" at: line:% col:%", pos.first, pos.second);
-	CHECK_FAILED("%s", fmt.c_str());
-}
-}
 
 namespace fwk {
-
-static void checkNodeName(Str name) {
-	if(!name)
-		CHECK_FAILED("Node names cannot be empty");
-	for(auto c : name)
-		if(!isalnum(c) && c != '_')
-			CHECK_FAILED("Invalid Xml node name: '%s' invalid char: '%c'",
-						 name.limitSizeBack(40).c_str(), c);
-}
 
 static const char *strOrNull(Str str) { return str ? str.data() : nullptr; }
 
@@ -90,9 +70,10 @@ ZStr CXmlNode::attrib(Str name) const {
 	xml_attribute<> *attrib = m_ptr->first_attribute(name.data(), name.size());
 	touch(m_ptr, attrib);
 
-	if(!attrib || !attrib->value())
-		CHECK_FAILED("attribute '%s' not found in node: %s\n", string(name).c_str(),
-					 this->name().c_str());
+	if(!attrib || !attrib->value()) {
+		REG_ERROR("attribute '%' not found in node: %\n", name, this->name());
+		return "";
+	}
 	return attrib->value();
 }
 
@@ -135,15 +116,24 @@ void XmlNode::addAttrib(Str name, int value) {
 }
 
 void XmlNode::addAttrib(Str name, Str value) {
-	CHECK(name && "Attrib names cannot be empty");
+	DASSERT(name && "Attrib names cannot be empty");
 	auto *attrib =
 		m_doc->allocate_attribute(name.data(), strOrNull(value), name.size(), value.size());
 	m_ptr->append_attribute(attrib);
 	touch(m_ptr, attrib);
 }
 
+bool XmlNode::validNodeName(Str name) {
+	if(!name)
+		return false;
+	for(auto c : name)
+		if(!isalnum(c) && c != '_')
+			return false;
+	return true;
+}
+
 XmlNode XmlNode::addChild(Str name, Str value) {
-	checkNodeName(name);
+	DASSERT(validNodeName(name));
 	xml_node<> *node = m_doc->allocate_node(node_element, name.data(), strOrNull(value),
 											name.size(), value.size());
 	m_ptr->append_node(node);
@@ -169,16 +159,13 @@ static void cleanOnRollback(void *arg) { untouch((xml_document<> *)arg); }
 XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {
 	RollbackContext::atRollback(cleanOnRollback, m_ptr.get());
 }
-XmlDocument::XmlDocument(Str file_name) : XmlDocument() {
-	Loader loader(file_name);
-	loader >> *this;
-}
-XmlDocument::XmlDocument(Stream &stream) : XmlDocument() { stream >> *this; }
 
 XmlDocument::XmlDocument(XmlDocument &&) = default;
 XmlDocument::~XmlDocument() {
-	untouch(m_ptr.get());
-	RollbackContext::removeAtRollback(cleanOnRollback, m_ptr.get());
+	if(m_ptr) {
+		untouch(m_ptr.get());
+		RollbackContext::removeAtRollback(cleanOnRollback, m_ptr.get());
+	}
 }
 XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 
@@ -190,7 +177,7 @@ Str XmlDocument::own(Str str) {
 }
 
 XmlNode XmlDocument::addChild(Str name, Str value) {
-	checkNodeName(name);
+	DASSERT(XmlNode::validNodeName(name));
 	xml_node<> *node = m_ptr->allocate_node(node_element, name.data(), strOrNull(value),
 											name.size(), value.size());
 	m_ptr->append_node(node);
@@ -201,10 +188,10 @@ XmlNode XmlDocument::child(Str name) const {
 	return XmlNode(m_ptr->first_node(strOrNull(name), name.size()), m_ptr.get());
 }
 
-void XmlDocument::load(Str file_name) {
+Expected<XmlDocument> XmlDocument::load(Str file_name) {
 	DASSERT(file_name);
 	Loader ldr(file_name);
-	ldr >> *this;
+	return load(ldr);
 }
 
 void XmlDocument::save(Str file_name) const {
@@ -212,23 +199,49 @@ void XmlDocument::save(Str file_name) const {
 	Saver svr(file_name);
 	svr << *this;
 }
+}
 
-void XmlDocument::load(Stream &sr) {
-	untouch(m_ptr.get());
-	m_ptr->clear();
+// This may be called only when parsing document
+void rapidxml::parse_error_handler(const char *what, void *where) {
+	fwk::Str parsed_text(t_xml_debug.pstring, t_xml_debug.pstring_len);
+	auto pos = parsed_text.utf8TextPos((const char *)where);
+	fwk::TextFormatter fmt;
+	fmt("XML parsing error: %", what);
+	if(pos != fwk::Pair<int>())
+		fmt(" at: line:% col:%", pos.first, pos.second);
+	CHECK_FAILED("%s", fmt.c_str());
+}
+
+namespace fwk {
+
+Expected<XmlDocument> XmlDocument::load(Stream &sr) {
+	XmlDocument doc;
 
 	auto size = sr.size();
-	CHECK("Please keep it reasonable" && size < 1024 * 1024 * 64);
-	char *xml_string = m_ptr->allocate_string(0, size + 1);
-	sr.loadData(xml_string, size);
-	xml_string[size] = 0;
+	int max_size = 1024 * 1024 * 64;
+	if(size >= max_size)
+		return Error(format("XML file too big: % > %", size, max_size));
 
-	m_xml_string = {xml_string, (int)size};
-	t_xml_debug.pstring = xml_string;
-	t_xml_debug.pstring_len = size;
-	m_ptr->parse<0>(xml_string);
+	// TODO: full rollback is not needed here?
+	auto result = RollbackContext::begin([&]() {
+		char *xml_string = doc.m_ptr->allocate_string(0, size + 1);
+		sr.loadData(xml_string, size);
+		xml_string[size] = 0;
+
+		doc.m_xml_string = {xml_string, (int)size};
+		t_xml_debug.pstring = xml_string;
+		t_xml_debug.pstring_len = size;
+		doc.m_ptr->parse<0>(xml_string);
+	});
+
 	t_xml_debug.pstring = nullptr;
 	t_xml_debug.pstring_len = 0;
+
+	if(!result) {
+		doc.m_ptr->release();
+		return result.error();
+	}
+	return move(doc);
 }
 
 void XmlDocument::save(Stream &sr) const {

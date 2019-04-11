@@ -8,6 +8,7 @@
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/opengl.h>
 #include <fwk/gfx/renderer2d.h>
+#include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/sys/stream.h>
 
@@ -54,7 +55,7 @@ Font loadFont() {
 		auto data_path = FilePath(executablePath()).parent().parent() / "data";
 		Loader font_ldr(data_path / "liberation_16.fnt");
 		Loader tex_ldr(data_path / "liberation_16_0.tga");
-		font_core = make_immutable<FontCore>("", font_ldr);
+		font_core = make_immutable<FontCore>(move(FontCore::load("", font_ldr).get()));
 		font_texture.emplace("", tex_ldr);
 	}
 	return {font_core, font_texture};

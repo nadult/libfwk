@@ -18,7 +18,11 @@ struct Temp {
 void testMain() {
 	ASSERT(bool() == false);
 	ASSERT_EQ(fromString<SomeEnum>("foo"), SomeEnum::foo);
-	ASSERT_FAIL(fromString<SomeEnum>("something else"));
+
+	fromString<SomeEnum>("something else");
+	ASSERT(anyErrors());
+	getSingleError();
+
 	ASSERT(!tryFromString<SomeEnum>("something else"));
 	ASSERT_EQ(string("foo_bar"), toString(SomeEnum::foo_bar));
 	ASSERT_EQ(toString(Temp::Inside::MemberEnum::ccc), string("ccc"));

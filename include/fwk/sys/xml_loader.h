@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/sys/expected.h"
 #include "fwk/sys/resource_manager.h"
 #include "fwk/sys/xml.h"
 
@@ -14,10 +15,8 @@ template <class T> class XmlLoader : public ResourceLoader<T> {
 		: ResourceLoader<T>(prefix, suffix), m_node_name(move(node_name)) {}
 
 	immutable_ptr<T> operator()(const string &name) {
-		XmlDocument doc;
+		auto doc = move(XmlDocument::load(ResourceLoader<T>::fileName(name)).get());
 		XmlOnFailGuard guard(doc);
-
-		Loader(ResourceLoader<T>::fileName(name)) >> doc;
 		XmlNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child)
 			CHECK_FAILED("Cannot find node '%s' in XML document", m_node_name.c_str());
