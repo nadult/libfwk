@@ -136,7 +136,6 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 void handleCtrlC(void (*handler)());
 void handleSegFault();
 
-Pair<string, bool> execCommand(const string &cmd);
 void logError(const string &error);
 
 int threadId();
@@ -177,7 +176,6 @@ double getTime();
 	}
 
 class Backtrace;
-class Stream;
 class FileStream;
 class FilePath;
 
@@ -199,7 +197,6 @@ template <class T> using MaybeCRef = MaybeRef<const T>;
 
 class Str;
 class ZStr;
-class FilePath;
 
 class CXmlNode;
 class XmlNode;

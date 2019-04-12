@@ -1,6 +1,39 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
+- New DataStream class:
+  - simple class which serializes to/from memory
+  - used for serialization of small-medium sized objects
+  - textures & big files should serialize to/from FileStream and maybe provile
+    interface to add/extract chunks of data to be serialized through Stream
+  - network serialization: first save to Stream, then use SocketStream to save whole DataStream
+  - maybe a single interface for XML & binary serialization ?
+  - find a better name?
+
+- Add _builtin_assume after assert ?
+- builtin_rotateleft, etc.
+	
+- Should EXPECT, Expected<> check for errors ? if data wasn't loaded properly verifying it makes no sense...
+  look at all places using Expected<>
+
+
+- przywrócić albo wywalić test stremów
+- remove immutable_ptr
+- cleanup...
+- zastanowic się jak ON_FAIL ma współpracować z wszystkimi innymi rzeczami?
+  z asercjami, logowaniem errorów i z czymś jeszcze?
+  jak bledy zalatwiamy za pomocą expected, to nie am ta metoda sensu
+  z drugiej storny, jeśli w przypadku zwracania expected czesto cos doklejamy, to przydaloby się coś w rodzaju ON_FAIL ?
+- obsluga bledow w converterze
+
+- Uproszczenie Rollbacku
+- Przerobienie Streamów na nowy system obsługi błedów
+- Expected<void>: check()
+- lepsze makra do errorów, tak, żeby FILE LINE były automatycznie dodawane
+- załadowanie stringa / vectora<charów> z całego pliku;
+- przeniesienie filesystem.h -> sys/file_system.h ?
+- ...
+
 - operacja shiftowania bitów (zamknięta)
 - dot<PT>, cross<PT> powodują problemy na GCC (cholera go wie czemu) (regresja w GCC 8.2, w *.3 powinno działać...)
 - empty backtraces on mingw

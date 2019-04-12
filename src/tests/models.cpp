@@ -9,7 +9,7 @@
 #include "fwk/gfx/pose.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/triangle.h"
-#include "fwk/sys/stream.h"
+#include "fwk/sys/file_stream.h"
 #include "fwk/sys/xml.h"
 #include "testing.h"
 

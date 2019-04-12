@@ -4,30 +4,22 @@
 #include "fwk/gfx/gl_shader.h"
 
 #include "fwk/enum_map.h"
+#include "fwk/filesystem.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/math/hash.h"
+#include "fwk/sys/expected.h"
 #include "fwk/sys/on_fail.h"
-#include "fwk/sys/stream.h"
 
 namespace fwk {
 
 GL_CLASS_IMPL(GlShader)
 
-static string loadSource(Stream &stream) {
-	string text;
-	text.resize(stream.size());
-	if(!text.empty()) {
-		stream.loadData(&text[0], text.size());
-		text[text.size()] = 0;
-	}
-	return text;
-}
-
 static const EnumMap<ShaderType, int> gl_type_map{
 	{GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
 
-PShader GlShader::make(Type type, Stream &sr, const string &predefined_macros) {
-	return make(type, loadSource(sr), predefined_macros, sr.name());
+// TODO: return Expected
+PShader GlShader::load(Type type, ZStr file_name, const string &predefined_macros) {
+	return make(type, loadFileString(file_name).get(), predefined_macros, file_name);
 }
 
 PShader GlShader::make(Type type, const string &source, const string &predefined_macros,

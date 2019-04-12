@@ -9,29 +9,45 @@
 
 namespace fwk {
 
+// TODO: jak zbierać różne błędy do kupy ?
+
+struct ErrorLoc {
+	const char *file = nullptr;
+	int line = 0;
+};
+
 struct ErrorChunk {
-	ErrorChunk(string message = {}, const char *file = nullptr, int line = 0)
-		: message(move(message)), file(file), line(line) {}
+	ErrorChunk(string message = {}) : message(move(message)) {}
+	ErrorChunk(ErrorLoc loc, string message = {}) : message(move(message)), loc(loc) {}
 	FWK_COPYABLE_CLASS(ErrorChunk);
 
-	bool empty() const { return message.empty() && !file; }
+	bool empty() const { return message.empty() && !loc.file; }
 	void operator>>(TextFormatter &) const;
 
 	string message;
-	const char *file;
-	int line;
+	ErrorLoc loc;
 };
 
 struct Error {
 	using Chunk = ErrorChunk;
 
-	Error(string message, const char *file = nullptr, int line = 0);
+	Error(ErrorLoc, string message);
+
+	template <class... T, EnableIfFormattible<T...>...>
+	Error(ErrorLoc loc, const char *fmt, T &&... args)
+		: Error(loc, format(fmt, std::forward<T>(args)...)) {}
+	template <class... T, EnableIfFormattible<T...>...>
+	Error(const char *fmt, T &&... args)
+		: Error(ErrorLoc(), format(fmt, std::forward<T>(args)...)) {}
+
 	Error(Chunk, Maybe<Backtrace> = none);
 	Error(vector<Chunk>, Maybe<Backtrace> = none);
 	Error();
 	FWK_COPYABLE_CLASS(Error);
 
 	void operator+=(const Chunk &);
+
+	// TODO: możliwość doklejenia też z drugiej strony?
 	Error operator+(const Chunk &) const;
 
 	Error &operator<<(Any);
@@ -60,12 +76,13 @@ inline int numErrors() { return detail::t_num_errors; }
 vector<Error> getErrors();
 Error getSingleError();
 void regError(Error, int bt_skip = 0);
-void regError(string, const char *file, int line);
 
 template <class... T, EnableIfFormattible<T...>...>
-void regError(const char *file, int line, const char *str, T &&... args) {
-	regError(format(str, std::forward<T>(args)...), file, line);
+void regError(ErrorLoc loc, const char *fmt, T &&... args) {
+	regError(loc, format(fmt, std::forward<T>(args)...));
 }
+
+#define ERROR(...) Error({__FILE__, __LINE__}, __VA_ARGS__)
 
 // TODO: naming
 #define REG_CHECK(expr)                                                                            \
@@ -74,6 +91,6 @@ void regError(const char *file, int line, const char *str, T &&... args) {
 			regError(FWK_STRINGIZE(expr), __FILE__, __LINE__);                                     \
 	}
 
-#define REG_ERROR(format, ...)                                                                     \
-	{ regError(__FILE__, __LINE__, format, __VA_ARGS__); }
+#define REG_ERROR(...)                                                                             \
+	{ regError(Error({__FILE__, __LINE__}, __VA_ARGS__)); }
 }

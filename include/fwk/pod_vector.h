@@ -9,8 +9,6 @@
 
 namespace fwk {
 
-class Stream;
-
 // Very simple and efficent vector for POD Types; Use with care:
 // - user is responsible for initialization of the data (when constructing and resizing)
 template <class T> class PodVector {
@@ -37,8 +35,6 @@ template <class T> class PodVector {
 		m_base.swap(rhs.m_base);
 		rhs.free();
 	}
-	void load(Stream &sr, int max_size = INT_MAX) { m_base.loadPod(sizeof(T), sr, max_size); }
-	void save(Stream &sr) const { m_base.savePod(sizeof(T), sr); }
 	void resize(int new_size) { m_base.resizePodPartial(sizeof(T), new_size); }
 
 	void swap(PodVector &rhs) { m_base.swap(rhs.m_base); }
@@ -78,6 +74,15 @@ template <class T> class PodVector {
 
 	operator Span<T>() { return Span<T>(data(), m_base.size); }
 	operator CSpan<T>() const { return CSpan<T>(data(), m_base.size); }
+
+	template <class U> PodVector<U> reinterpret() {
+		static_assert(compatibleSizes(sizeof(T), sizeof(U)),
+					  "Incompatible sizes; are you sure, you want to do this cast?");
+
+		m_base.size = (int)(size_t(m_base.size) * sizeof(T) / sizeof(U));
+		auto *rcurrent = reinterpret_cast<PodVector<U> *>(this);
+		return PodVector<U>(move(*rcurrent));
+	}
 
   private:
 	BaseVector m_base;

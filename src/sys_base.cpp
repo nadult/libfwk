@@ -93,21 +93,6 @@ void handleCtrlC(void (*handler)()) {
 int threadId() { return syscall(SYS_gettid); }
 #endif
 
-// TODO: stdout and stderr returned separately?
-Pair<string, bool> execCommand(const string &cmd) {
-	FILE *pipe = popen(cmd.c_str(), "r");
-	if(!pipe)
-		CHECK_FAILED("error while executing command: '%s'", cmd.c_str());
-	char buffer[1024];
-	std::string result = "";
-	while(!feof(pipe)) {
-		if(fgets(buffer, sizeof(buffer), pipe))
-			result += buffer;
-	}
-	int ret = pclose(pipe);
-	return {result, ret == 0};
-}
-
 #ifndef _WIN32
 void sleep(double sec) {
 	if(sec <= 0)

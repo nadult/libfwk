@@ -14,9 +14,10 @@
 
 #define assert DASSERT
 
+#include "fwk/filesystem.h"
+#include "fwk/sys/file_stream.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/sys/rollback.h"
-#include "fwk/sys/stream.h"
 #include "fwk/sys/xml.h"
 #include "rapidxml/rapidxml.hpp"
 #include "rapidxml/rapidxml_print.hpp"
@@ -188,16 +189,16 @@ XmlNode XmlDocument::child(Str name) const {
 	return XmlNode(m_ptr->first_node(strOrNull(name), name.size()), m_ptr.get());
 }
 
-Expected<XmlDocument> XmlDocument::load(Str file_name) {
-	DASSERT(file_name);
-	Loader ldr(file_name);
-	return load(ldr);
+Expected<XmlDocument> XmlDocument::load(ZStr file_name, int max_size) {
+	auto data = loadFile(file_name, max_size);
+	return data ? make(*data) : data.error();
 }
 
-void XmlDocument::save(Str file_name) const {
-	DASSERT(file_name);
-	Saver svr(file_name);
-	svr << *this;
+Expected<void> XmlDocument::save(ZStr file_name) const {
+	auto file = fileSaver(file_name);
+	if(!file)
+		return file.error();
+	return save(*file);
 }
 }
 
@@ -214,23 +215,18 @@ void rapidxml::parse_error_handler(const char *what, void *where) {
 
 namespace fwk {
 
-Expected<XmlDocument> XmlDocument::load(Stream &sr) {
+Expected<XmlDocument> XmlDocument::make(CSpan<char> data) {
 	XmlDocument doc;
 
-	auto size = sr.size();
-	int max_size = 1024 * 1024 * 64;
-	if(size >= max_size)
-		return Error(format("XML file too big: % > %", size, max_size));
-
-	// TODO: full rollback is not needed here?
+	// TODO: full rollback is not needed here? remove it
 	auto result = RollbackContext::begin([&]() {
-		char *xml_string = doc.m_ptr->allocate_string(0, size + 1);
-		sr.loadData(xml_string, size);
-		xml_string[size] = 0;
+		char *xml_string = doc.m_ptr->allocate_string(0, data.size() + 1);
+		copy(span(xml_string, data.size()), data);
+		xml_string[data.size()] = 0;
 
-		doc.m_xml_string = {xml_string, (int)size};
+		doc.m_xml_string = {xml_string, data.size()};
 		t_xml_debug.pstring = xml_string;
-		t_xml_debug.pstring_len = size;
+		t_xml_debug.pstring_len = data.size();
 		doc.m_ptr->parse<0>(xml_string);
 	});
 
@@ -244,10 +240,12 @@ Expected<XmlDocument> XmlDocument::load(Stream &sr) {
 	return move(doc);
 }
 
-void XmlDocument::save(Stream &sr) const {
+Expected<void> XmlDocument::save(FileStream &sr) const {
 	vector<char> buffer;
 	print(std::back_inserter(buffer), *m_ptr);
-	sr.saveData(&buffer[0], buffer.size());
+	sr.saveData(buffer);
+	EXPECT_NO_ERRORS();
+	return {};
 }
 
 string XmlDocument::lastNodeInfo() const {

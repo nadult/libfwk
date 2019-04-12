@@ -10,6 +10,8 @@ namespace fwk {
 
 DEFINE_ENUM(ModelFileType, fwk_model, blender);
 
+// TODO: think about a better way to gather & report errors
+
 class Converter {
   public:
 	using FileType = ModelFileType;
@@ -27,11 +29,11 @@ class Converter {
 	bool operator()(const string &from, const string &to);
 
 	static string locateBlender();
-	static FileType classify(const string &name);
+	static Maybe<FileType> classify(const string &name);
 
-	string exportFromBlender(const string &file_name, string &target_file_name);
-	Pair<PModel, string> loadModel(FileType file_type, FileStream &stream);
-	void saveModel(PModel model, const string &node_name, FileType file_type, Stream &stream);
+	Expected<string> exportFromBlender(const string &file_name, string &target_file_name);
+	Expected<Pair<PModel, string>> loadModel(FileType file_type, ZStr file_name);
+	bool saveModel(PModel model, const string &node_name, FileType file_type, ZStr file_name);
 
   private:
 	Settings m_settings;

@@ -3,8 +3,9 @@
 
 #pragma once
 
+#include "fwk/sys/expected.h"
+#include "fwk/sys/file_stream.h"
 #include "fwk/sys/immutable_ptr.h"
-#include "fwk/sys/stream.h"
 
 #include <map>
 
@@ -16,8 +17,12 @@ template <class T> class ResourceLoader {
 		: m_file_prefix(file_prefix), m_file_suffix(file_suffix) {}
 
 	immutable_ptr<T> operator()(const string &name) const {
-		Loader stream(fileName(name));
-		return make_immutable<T>(name, stream);
+		// TODO: fix it
+		auto file = fileLoader(name);
+		if(!file)
+			FWK_FATAL("Cannot load resource '%s':\n%s", name.c_str(),
+					  format("%", file.error()).c_str());
+		return make_immutable<T>(name, *file);
 	}
 
 	string fileName(const string &name) const { return m_file_prefix + name + m_file_suffix; }

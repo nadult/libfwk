@@ -4,7 +4,6 @@
 #include "fwk_vector.h"
 
 #include "fwk/sys/memory.h"
-#include "fwk/sys/stream.h"
 
 // TODO: there is still space for improvement (perf-wise) here
 // TODO: more aggressive inlining here improves perf
@@ -182,20 +181,6 @@ void BaseVector::erasePod(int obj_size, int index, int count) {
 		memmove(data + size_t(obj_size) * index, data + size_t(obj_size) * (index + count),
 				size_t(obj_size) * move_count);
 	size -= count;
-}
-
-void BaseVector::loadPod(int obj_size, Stream &sr, int max_size) {
-	i32 size;
-	sr >> size;
-	CHECK(size >= 0 && size <= max_size);
-
-	resizePodPartial(obj_size, size);
-	sr.loadData(data, size_t(obj_size) * size);
-}
-
-void BaseVector::savePod(int obj_size, Stream &sr) const {
-	sr << size;
-	sr.saveData(data, sizeof(obj_size) * size);
 }
 
 void BaseVector::invalidIndex(int index) const {

@@ -14,8 +14,8 @@
 
 namespace fwk {
 
-Expected<FontCore> FontCore::load(Str name, Stream &stream) {
-	auto doc = XmlDocument::load(stream);
+Expected<FontCore> FontCore::load(ZStr file_name) {
+	auto doc = XmlDocument::load(file_name);
 	return doc ? load(*doc) : doc.error();
 }
 Expected<FontCore> FontCore::load(const XmlDocument &doc) {

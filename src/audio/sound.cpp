@@ -1,8 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/sys/stream.h"
 #include "fwk_audio.h"
+
+#include "fwk/sys/expected.h"
+#include "fwk/sys/file_stream.h"
 
 namespace fwk {
 
@@ -10,50 +12,51 @@ Sound::Sound(vector<char> data, const SoundInfo &info) : m_data(data), m_info(in
 	// TODO: verification
 }
 
-Sound::Sound(Stream &sr) {
-	// TODO: use first constructor
+Expected<Sound> Sound::load(FileStream &sr) {
 	u32 chunk_size[2], size, frequency, byteRate;
 	u16 format, channels, block_align, bits;
 
 	// Chunk 0
-	sr.signature("RIFF", 4);
+	sr.signature("RIFF");
 	sr >> chunk_size[0];
-	sr.signature("WAVE", 4);
+	sr.signature("WAVE");
 
 	// Chunk 1
-	sr.signature("fmt ", 4);
+	sr.signature("fmt ");
 	sr.unpack(chunk_size[1], format, channels, frequency, byteRate, block_align, bits);
-	ASSERT(block_align == channels * (bits / 8));
 
-	if(format != 1)
-		FATAL("Unknown format (only PCM is supported)");
+	EXPECT_NO_ERRORS();
+	EXPECT(block_align == channels * (bits / 8));
+	EXPECT(format == 1 && "Only PCM format is supported");
 
 	sr.seek(sr.pos() + chunk_size[1] - 16);
 
 	// Chunk 2
-	sr.signature("data", 4);
+	sr.signature("data");
 	sr >> size;
 
 	if(channels > 2 || (bits != 8 && bits != 16))
-		FATAL("Unsupported format (bits: %d channels: %d)", bits, channels);
+		return ERROR("Unsupported format (bits: %d channels: %d)", bits, channels);
 
-	m_data.resize(size);
-	sr.loadData(m_data.data(), size);
-	m_info.sampling_freq = frequency;
-	m_info.bits = bits;
-	m_info.is_stereo = channels > 1;
+	vector<char> data(size);
+	sr.loadData(data);
+
+	Sound sound(move(data), {(int)frequency, bits, channels > 1});
+
+	EXPECT_NO_ERRORS();
+	return move(sound);
 }
 
-void Sound::save(Stream &sr) const {
+Expected<void> Sound::save(FileStream &sr) const {
 	u32 chunk_size[2] = {(u32)m_data.size() + 36, 16};
 
 	// Chunk 0
-	sr.signature("RIFF", 4);
+	sr.signature("RIFF");
 	sr << chunk_size[0];
-	sr.signature("WAVE", 4);
+	sr.signature("WAVE");
 
 	// Chunk 1
-	sr.signature("fmt ", 4);
+	sr.signature("fmt ");
 	sr << chunk_size[1];
 
 	int num_channels = m_info.is_stereo ? 2 : 1;
@@ -63,9 +66,12 @@ void Sound::save(Stream &sr) const {
 			u16(m_info.bits));
 
 	// Chunk 2
-	sr.signature("data", 4);
+	sr.signature("data");
 	sr << u32(m_data.size());
-	sr.saveData(m_data.data(), m_data.size());
+	sr.saveData(m_data);
+
+	EXPECT_NO_ERRORS();
+	return {};
 }
 
 double Sound::lengthInSeconds() const {

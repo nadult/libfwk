@@ -6,33 +6,39 @@
 #include <png.h>
 
 #include "fwk/sys/assert.h"
-#include "fwk/sys/rollback.h"
-#include "fwk/sys/stream.h"
+#include "fwk/sys/file_stream.h"
 #include "fwk/sys/memory.h"
+#include "fwk/sys/rollback.h"
 
 namespace fwk {
 namespace detail {
 
+#define FAIL_RET(...)                                                                              \
+	{                                                                                              \
+		fail(__VA_ARGS__);                                                                         \
+		return;                                                                                    \
+	}
+
 	struct PngLoader {
-		PngLoader(Stream &stream) : stream(stream) {
+		PngLoader(FileStream &stream) : stream(stream) {
 			s_loader = this;
 
 			enum { sig_size = 8 };
 			unsigned char signature[sig_size];
-			stream.loadData(signature, sig_size);
+			stream.loadData(signature);
 			stream.seek(stream.pos() - sig_size);
 			if(png_sig_cmp(signature, 0, sig_size))
-				fail("Wrong file signature");
+				FAIL_RET("Wrong file signature");
 
 			m_struct = png_create_read_struct_2(PNG_LIBPNG_VER_STRING, 0, errorCallback,
 												warningCallback, nullptr, mallocFunc, freeFunc);
 			m_info = png_create_info_struct(m_struct);
 
 			if(!m_struct || !m_info)
-				fail("Error while initializing libpng");
+				FAIL_RET("Error while initializing libpng");
 
 			if(setjmp(png_jmpbuf(m_struct)))
-				fail();
+				FAIL_RET();
 
 			png_set_read_fn(m_struct, this, readCallback);
 			png_read_info(m_struct, m_info);
@@ -63,7 +69,7 @@ namespace detail {
 			m_height = height;
 
 			if(!m_error.empty())
-				fail();
+				FAIL_RET();
 		}
 
 		~PngLoader() {
@@ -83,7 +89,7 @@ namespace detail {
 			vector<u8 *> row_pointers(m_height);
 
 			if(setjmp(png_jmpbuf(m_struct)))
-				fail();
+				FAIL_RET();
 
 				// TODO: why swap on mingw?
 #if defined(__LITTLE_ENDIAN__) || defined(FWK_TARGET_MINGW)
@@ -97,7 +103,7 @@ namespace detail {
 			png_read_image(m_struct, &row_pointers[0]);
 
 			if(!m_error.empty())
-				return fail();
+				FAIL_RET();
 		}
 
 		void operator>>(Span<IColor> out) {
@@ -113,17 +119,17 @@ namespace detail {
 			int numPalette = 0;
 
 			if(setjmp(png_jmpbuf(m_struct)))
-				fail();
+				FAIL_RET();
 
 			for(int y = 0; y < m_height; y++)
 				rowPointers[y] = &temp[m_width * 4 * y];
 
 			if(m_color_type == PNG_COLOR_TYPE_PALETTE) {
 				if(m_channels != 1)
-					return fail("Only 8-bit palettes are supported");
+					FAIL_RET("Only 8-bit palettes are supported");
 
 				if(!png_get_PLTE(m_struct, m_info, &palette, &numPalette))
-					return fail("Error while retrieving palette");
+					FAIL_RET("Error while retrieving palette");
 
 				if(png_get_valid(m_struct, m_info, PNG_INFO_tRNS))
 					png_get_tRNS(m_struct, m_info, &trans, &numTrans, 0);
@@ -157,17 +163,19 @@ namespace detail {
 			}
 
 			if(!m_error.empty())
-				fail();
+				FAIL_RET();
 		}
 
+#undef FAIL_RET
+
 	  private:
-		[[noreturn]] void fail(const char *text = "") {
+		void fail(const char *text = "") {
 			cleanup();
 
 			string msg = text;
 			if(!m_error.empty())
 				msg += "\n" + toString(m_error);
-			CHECK_FAILED("PNG loading error: %s", msg.c_str());
+			REG_ERROR("PNG loading error: %", msg);
 		}
 
 		void cleanup() {
@@ -179,7 +187,7 @@ namespace detail {
 		}
 		static void readCallback(png_structp png_ptr, png_bytep data, png_size_t length) {
 			auto *loader = static_cast<PngLoader *>(png_get_io_ptr(png_ptr));
-			loader->stream.loadData(data, length);
+			loader->stream.loadData(span((char *)data, length));
 		}
 
 		static void *mallocFunc(png_struct *, size_t count) { return fwk::allocate(count); }
@@ -194,7 +202,7 @@ namespace detail {
 		static __thread PngLoader *s_loader;
 
 		Error m_error;
-		Stream &stream;
+		FileStream &stream;
 		png_structp m_struct = nullptr;
 		png_infop m_info = nullptr;
 		int m_color_type, m_bit_depth, m_channels;
@@ -203,17 +211,22 @@ namespace detail {
 
 	__thread PngLoader *PngLoader::s_loader = nullptr;
 
-	void loadPNG(Stream &stream, PodVector<IColor> &out_data, int2 &out_size) {
+	Expected<Texture> loadPNG(FileStream &stream) {
 		PngLoader loader(stream);
-		out_size = loader.size();
-		out_data.resize(out_size.x * out_size.y);
-		loader >> out_data;
+		EXPECT_NO_ERRORS();
+		PodVector<IColor> data(loader.size().x * loader.size().y);
+		loader >> data;
+		EXPECT_NO_ERRORS();
+		return Texture{move(data), loader.size()};
 	}
 }
 
-void HeightMap16bit::load(Stream &stream) {
+Expected<HeightMap16bit> HeightMap16bit::load(FileStream &stream) {
 	detail::PngLoader loader(stream);
-	size = loader.size();
+	EXPECT_NO_ERRORS();
+	vector<u16> data(loader.size().x * loader.size().y);
 	loader >> data;
+	EXPECT_NO_ERRORS();
+	return HeightMap16bit{move(data), loader.size()};
 }
 }

@@ -55,7 +55,7 @@ Error onFailMakeError(const char *file, int line, const char *main_message, bool
 		const auto &info = t_on_fail_stack[start + n];
 		chunks.emplace_back(info.func(info.args));
 	}
-	chunks.emplace_back(main_message, file, line);
+	chunks.emplace_back(ErrorLoc{file, line}, main_message);
 	Error out(move(chunks), bt);
 
 	s_fail_protect = false;

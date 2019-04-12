@@ -5,6 +5,7 @@
 #include "fwk/format.h"
 #include "fwk/parse.h"
 #include "fwk/sys/expected.h"
+#include "fwk/sys/file_stream.h"
 #include "fwk_vector.h"
 
 #include <cstdio>
@@ -213,6 +214,15 @@ FilePath &FilePath::operator/=(const FilePath &other) {
 	return *this;
 }
 
+void FilePath::operator>>(TextFormatter &fmt) const { fmt << operator ZStr(); }
+
+TextParser &operator>>(TextParser &parser, FilePath &path) {
+	string text;
+	parser >> text;
+	path = text;
+	return parser;
+}
+
 bool removeSuffix(string &str, const string &suffix) {
 	if(str.size() >= suffix.size() && suffix == str.c_str() + str.size() - suffix.size()) {
 		str = str.substr(0, str.size() - suffix.size());
@@ -294,12 +304,59 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 	return out;
 }
 
-void FilePath::operator>>(TextFormatter &fmt) const { fmt << operator ZStr(); }
-
-TextParser &operator>>(TextParser &parser, FilePath &path) {
-	string text;
-	parser >> text;
-	path = text;
-	return parser;
+// TODO: stdout and stderr returned separately?
+Expected<Pair<string, int>> execCommand(const string &cmd) {
+	FILE *pipe = popen(cmd.c_str(), "r");
+	if(!pipe)
+		return ERROR("Error on popen '%': %", cmd, strerror(errno));
+	char buffer[1024];
+	std::string result = "";
+	while(!feof(pipe)) {
+		if(fgets(buffer, sizeof(buffer), pipe))
+			result += buffer;
+	}
+	int ret = pclose(pipe);
+	if(ret == -1)
+		return ERROR("Error on pclose '%': %", cmd, strerror(errno));
+	return pair{result, ret};
 }
+
+Expected<string> loadFileString(ZStr file_name, int max_size) {
+	auto file = fileLoader(file_name);
+	if(!file)
+		return file.error();
+
+	if(file->size() > max_size)
+		return ERROR("File '%' size too big: % > %", file_name, file->size(), max_size);
+	string out(file->size(), ' ');
+	file->loadData(out);
+	EXPECT_NO_ERRORS();
+	return out;
+}
+
+Expected<vector<char>> loadFile(ZStr file_name, int max_size) {
+	auto file = fileLoader(file_name);
+	if(!file)
+		return file.error();
+
+	if(file->size() > max_size)
+		return ERROR("File '%' size too big: % > %", file_name, file->size(), max_size);
+	PodVector<char> out(file->size());
+	file->loadData(out);
+	EXPECT_NO_ERRORS();
+	vector<char> vout;
+	out.unsafeSwap(vout);
+	return move(vout);
+}
+
+Expected<void> saveFile(ZStr file_name, CSpan<char> data) {
+	auto file = fileSaver(file_name);
+	if(!file)
+		return file.error();
+
+	file->saveData(data);
+	EXPECT_NO_ERRORS();
+	return {};
+}
+
 }

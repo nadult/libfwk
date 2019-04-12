@@ -6,6 +6,7 @@
 #include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/texture.h"
+#include "fwk/sys/expected.h"
 #include "fwk/sys/on_fail.h"
 
 namespace fwk {
@@ -55,7 +56,10 @@ PTexture GlTexture::make(Format format, const int2 &size, Flags flags) {
 	return ref;
 }
 
-PTexture GlTexture::make(const string &name, Stream &stream) { return make(Texture(stream)); }
+Expected<PTexture> GlTexture::load(ZStr file_name) {
+	auto tex = Texture::load(file_name);
+	return tex ? make(*tex) : Expected<PTexture>(tex.error());
+}
 
 PTexture GlTexture::make(Format format, const Texture &tex, Flags flags) {
 	PTexture ref = make(format, tex.size(), flags);

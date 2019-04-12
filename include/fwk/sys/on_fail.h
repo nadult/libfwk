@@ -20,13 +20,13 @@ namespace detail {
 	template <class... Args, class Func, unsigned... IS, class Refs = LightTuple<Args...>>
 	ErrorChunk onFailWrapper(const char *file, int line, const Func &func,
 							 const LightTuple<Args...> &refs, Seq<IS...>) {
-		return {func(detail::GetField<IS>::get(refs)...), file, line};
+		return {{file, line}, func(detail::GetField<IS>::get(refs)...)};
 	}
 
 	template <class... Args, unsigned... IS, class Refs = LightTuple<Args...>>
 	ErrorChunk onFailWrapperSimple(const char *file, int line, const char *fmt,
 								   const LightTuple<Args...> &refs, Seq<IS...>) {
-		return {format(fmt, detail::GetField<IS>::get(refs)...), file, line};
+		return {{file, line}, format(fmt, detail::GetField<IS>::get(refs)...)};
 	}
 }
 

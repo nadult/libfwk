@@ -86,6 +86,3 @@ struct IColor {
 TextParser &operator>>(TextParser &, FColor &);
 TextParser &operator>>(TextParser &, IColor &);
 }
-
-SERIALIZE_AS_POD(FColor)
-SERIALIZE_AS_POD(IColor)

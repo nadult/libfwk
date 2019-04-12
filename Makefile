@@ -29,7 +29,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_info any any_ref logger \
-		   sys/error sys/assert sys/on_fail sys/memory sys/backtrace sys/rollback sys/stream sys/xml sys/input \
+		   sys/error sys/assert sys/on_fail sys/memory sys/backtrace sys/rollback sys/file_stream sys/xml sys/input \
            math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   math/line math/affine_trans math/rational math/gcd math/rational_angle \
@@ -42,7 +42,7 @@ SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_in
 		   gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_format gfx/gl_query \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array
 
-TESTS_SRC=tests/streams tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
+TESTS_SRC=tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
 			tests/variant_perf tests/rollback_test
 TOOLS_SRC=tools/model_convert tools/model_viewer
 PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)

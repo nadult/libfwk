@@ -1,23 +1,31 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/texture.h"
+
+#include "fwk/gfx/gl_format.h"
 #include "fwk/str.h"
-#include "fwk/sys/stream.h"
+#include "fwk/sys/expected.h"
+#include "fwk/sys/file_stream.h"
 
 namespace fwk {
 
 namespace detail {
 
-	void loadBMP(Stream &, PodVector<IColor> &, int2 &);
-	void loadPNG(Stream &, PodVector<IColor> &, int2 &);
-	void loadTGA(Stream &, PodVector<IColor> &, int2 &);
+	Expected<Texture> loadBMP(FileStream &);
+	Expected<Texture> loadPNG(FileStream &);
+	Expected<Texture> loadTGA(FileStream &);
 }
 
 Texture::Texture() {}
-Texture::Texture(int2 size) : m_data(size.x * size.y), m_size(size) {}
-Texture::Texture(Stream &sr, Maybe<FileType> ft) : Texture() { load(sr, ft); }
+Texture::Texture(int2 size) : m_data(size.x * size.y), m_size(size) {
+	DASSERT(size.x >= 0 && size.y >= 0);
+}
+
+Texture::Texture(PodVector<IColor> data, int2 size) : m_data(move(data)), m_size(size) {
+	DASSERT(size.x >= 0 && size.y >= 0);
+	DASSERT(m_data.size() >= size.x * size.y);
+}
 
 GlFormat Texture::format() const { return GlFormat::rgba; }
 
@@ -78,48 +86,43 @@ static TextureLoaders &loaders() {
 	return s_loaders;
 }
 
-void Texture::load(Stream &sr, Maybe<FileType> ft) {
-	string file_name = sr.name();
-	auto dot_pos = file_name.rfind('.');
+Expected<Texture> Texture::load(ZStr file_name, Maybe<FileType> type) {
+	auto file = fileLoader(file_name);
+	return file ? load(*file, type) : file.error();
+	// TODO: when passing error forward, add information that we're loading a texture?
+}
 
-	if(!ft) {
+Expected<Texture> Texture::load(FileStream &sr, Maybe<FileType> type) {
+	if(!type) {
+		string file_name = sr.name();
+		auto dot_pos = file_name.rfind('.');
+
 		string ext = toLower(dot_pos == string::npos ? string() : file_name.substr(dot_pos + 1));
 		if(ext.empty())
-			FATAL("No extension information: don't know which loader to use");
-		ft = tryFromString<FileType>(ext.c_str());
-		if(!ft) {
-			for(auto &loader : loaders())
-				if(loader.first == ext) {
-					loader.second(sr, m_data, m_size);
-					DASSERT(m_size.x >= 0 && m_size.y >= 0);
-					return;
-				}
+			return ERROR("No extension information: don't know which loader to use");
 
-			FATAL("Extension '%s' is not supported", ext.c_str());
+		type = tryFromString<FileType>(ext.c_str());
+		if(!type) {
+			for(auto &loader : loaders())
+				if(loader.first == ext)
+					return loader.second(sr);
+
+			return ERROR("Extension '%' not supported", ext);
 		}
 	}
 
-	switch(*ft) {
+	switch(*type) {
 	case FileType::tga:
-		detail::loadTGA(sr, m_data, m_size);
-		break;
-
+		return detail::loadTGA(sr);
 	case FileType::bmp:
-		detail::loadBMP(sr, m_data, m_size);
-		break;
-
+		return detail::loadBMP(sr);
 	case FileType::png:
-		detail::loadPNG(sr, m_data, m_size);
-		break;
+		return detail::loadPNG(sr);
 	}
-
-	DASSERT(m_size.x >= 0 && m_size.y >= 0);
 }
 
 Texture::RegisterLoader::RegisterLoader(const char *ext, Loader func) {
 	DASSERT(toLower(ext) == ext);
 	loaders().emplace_back(ext, func);
 }
-
-void Texture::save(Stream &sr) const { saveTGA(sr); }
 }

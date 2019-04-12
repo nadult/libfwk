@@ -6,7 +6,6 @@
 #include "fwk/format.h"
 #include "fwk/math/box.h"
 #include "fwk/math/constants.h"
-#include "fwk/sys/stream.h"
 
 namespace fwk {
 
@@ -32,16 +31,6 @@ ColoredTriangle::ColoredTriangle(CSpan<float3, 3> pts, CSpan<IColor, 3> cols)
 
 ColoredTriangle::ColoredTriangle(Triangle3F tri, IColor col)
 	: ColoredTriangle(tri[0], tri[1], tri[2], col) {}
-
-void ColoredTriangle::save(Stream &sr) const {
-	sr.pack((*this)[0], (*this)[1], (*this)[2], colors[0], colors[1], colors[2]);
-}
-
-void ColoredTriangle::load(Stream &sr) {
-	float3 points[3];
-	sr.unpack(points[0], points[1], points[2], colors[0], colors[1], colors[2]);
-	*this = {points[0], points[1], points[2]};
-}
 
 ColoredTriangle ColoredTriangle::flipped() const {
 	return {Triangle3F::flipped().points(), {colors[2], colors[1], colors[0]}};

@@ -739,26 +739,3 @@ template <class T, int N> using EnableInDimension = EnableIf<dim<T> == N, Disabl
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
 }
-
-SERIALIZE_AS_POD(short2)
-SERIALIZE_AS_POD(int2)
-SERIALIZE_AS_POD(int3)
-SERIALIZE_AS_POD(int4)
-
-SERIALIZE_AS_POD(float2)
-SERIALIZE_AS_POD(float3)
-SERIALIZE_AS_POD(float4)
-SERIALIZE_AS_POD(IRect)
-SERIALIZE_AS_POD(FRect)
-SERIALIZE_AS_POD(IBox)
-SERIALIZE_AS_POD(FBox)
-SERIALIZE_AS_POD(Matrix4)
-SERIALIZE_AS_POD(Matrix3)
-SERIALIZE_AS_POD(Quat)
-SERIALIZE_AS_POD(Ray3F)
-
-SERIALIZE_AS_POD(Segment2<float>)
-SERIALIZE_AS_POD(Segment3<float>)
-SERIALIZE_AS_POD(Segment2<double>)
-SERIALIZE_AS_POD(Segment3<double>)
-SERIALIZE_AS_POD(Segment2<int>)

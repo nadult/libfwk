@@ -2,7 +2,8 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/texture.h"
-#include "fwk/sys/stream.h"
+#include "fwk/sys/expected.h"
+#include "fwk/sys/file_stream.h"
 
 namespace fwk {
 
@@ -10,13 +11,14 @@ namespace detail {
 	struct TGAHeader {
 		TGAHeader() { memset(this, 0, sizeof(TGAHeader)); }
 
-		void save(Stream &sr) const {
+		void save(FileStream &sr) const {
+			// TODO: this can be automated with structure binding
 			sr.pack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
 					color_map_depth, x_origin, y_origin, width, height, bits_per_pixel,
 					image_descriptor);
 		}
 
-		void load(Stream &sr) {
+		void load(FileStream &sr) {
 			sr.unpack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
 					  color_map_depth, x_origin, y_origin, width, height, bits_per_pixel,
 					  image_descriptor);
@@ -36,54 +38,56 @@ namespace detail {
 		u8 image_descriptor;
 	};
 
-	void loadTGA(Stream &sr, PodVector<IColor> &out_data, int2 &out_size) {
+	Expected<Texture> loadTGA(FileStream &sr) {
 		TGAHeader hdr;
 		enum { max_width = 4096, max_height = 4096 };
 
-		sr >> hdr;
+		hdr.load(sr);
+		EXPECT_NO_ERRORS();
 
 		if(hdr.data_type_code != 2)
-			CHECK_FAILED("Only uncompressed RGB data type is supported (id:%d)",
-						 (int)hdr.data_type_code);
+			return ERROR("Only uncompressed RGB data type is supported (id:%)", hdr.data_type_code);
 		if(hdr.bits_per_pixel != 24 && hdr.bits_per_pixel != 32)
-			CHECK_FAILED("Only 24 and 32-bit tga files are supported (bpp:%d)",
-						 (int)hdr.bits_per_pixel);
+			return ERROR("Only 24 and 32-bit tga files are supported (bpp:%)", hdr.bits_per_pixel);
 		if(hdr.width > max_width)
-			CHECK_FAILED("Bitmap is too wide (%d pixels): max width is %d", (int)hdr.width,
-						 (int)max_width);
-		CHECK(inRange(hdr.width, 0, max_width + 1));
-		CHECK(inRange(hdr.height, 0, max_height + 1));
+			return ERROR("Bitmap is too wide (% pixels): max width is %", hdr.width, max_width);
+
+		EXPECT(inRange(hdr.width, 0, max_width + 1));
+		EXPECT(inRange(hdr.height, 0, max_height + 1));
 
 		sr.seek(sr.pos() + hdr.id_length);
 
 		unsigned bpp = hdr.bits_per_pixel / 8;
-		out_data.resize(hdr.width * hdr.height);
-		out_size = int2(hdr.width, hdr.height);
+		PodVector<IColor> data(hdr.width * hdr.height);
+		int2 size(hdr.width, hdr.height);
 
 		bool v_flip = hdr.image_descriptor & 16;
 		bool h_flip = hdr.image_descriptor & 32;
-		CHECK(!v_flip && !h_flip && "v_flip & h_flip are not supported");
+		EXPECT(!v_flip && !h_flip && "v_flip & h_flip are not supported");
 
 		if(bpp == 3) {
 			for(int y = hdr.height - 1; y >= 0; y--) {
 				unsigned char line[max_width * 3];
-				sr.loadData(line, hdr.width * 3);
-				IColor *dst = &out_data[y * hdr.width];
+				sr.loadData(span(line, hdr.width * 3));
+				IColor *dst = &data[y * hdr.width];
 				for(int x = 0; x < hdr.width; x++)
 					dst[x] = IColor(line[x * 3 + 0], line[x * 3 + 1], line[x * 3 + 2]);
 			}
 		} else if(bpp == 4) {
 			for(int y = hdr.height - 1; y >= 0; y--) {
-				IColor *colors = &out_data[y * hdr.width];
-				sr.loadData(colors, hdr.width * 4);
+				IColor *colors = &data[y * hdr.width];
+				sr.loadData(span(colors, hdr.width));
 				for(int x = 0; x < hdr.width; x++)
 					colors[x] = colors[x].bgra();
 			}
 		}
+		EXPECT_NO_ERRORS();
+
+		return Texture(move(data), size);
 	}
 }
 
-void Texture::saveTGA(Stream &sr) const {
+Expected<void> Texture::saveTGA(FileStream &sr) const {
 	detail::TGAHeader header;
 
 	header.data_type_code = 2;
@@ -93,13 +97,21 @@ void Texture::saveTGA(Stream &sr) const {
 	header.bits_per_pixel = 32;
 	header.image_descriptor = 8;
 
-	sr << header;
+	header.save(sr);
 	vector<IColor> line(m_size.x);
 	for(int y = m_size.y - 1; y >= 0; y--) {
 		memcpy(&line[0], this->line(y), m_size.x * sizeof(IColor));
 		for(int x = 0; x < m_size.x; x++)
 			line[x] = IColor(line[x].b, line[x].g, line[x].r, line[x].a);
-		sr.saveData(&line[0], m_size.x * sizeof(IColor));
+		sr.saveData(cspan(&line[0], m_size.x));
 	}
+
+	EXPECT_NO_ERRORS();
+	return {};
+}
+
+Expected<void> Texture::saveTGA(ZStr file_name) const {
+	auto file = fileSaver(file_name);
+	return file ? saveTGA(*file) : file.error();
 }
 }

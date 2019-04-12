@@ -14,15 +14,13 @@ namespace fwk {
 FWK_COPYABLE_CLASS_IMPL(ErrorChunk)
 
 void ErrorChunk::operator>>(TextFormatter &out) const {
-	if(file)
-		out("%:%%", file, line, message.empty() ? "\n" : ": ");
+	if(loc.file)
+		out("%:%%", loc.file, loc.line, message.empty() ? "\n" : ": ");
 	if(!message.empty())
 		out("%\n", message);
 }
 
-Error::Error(string message, const char *file, int line) {
-	chunks.emplace_back(move(message), file, line);
-}
+Error::Error(ErrorLoc loc, string message) { chunks.emplace_back(loc, move(message)); }
 
 Error::Error(Chunk chunk, Maybe<Backtrace> bt) : backtrace(move(bt)) {
 	chunks.emplace_back(move(chunk));
@@ -101,7 +99,5 @@ void regError(Error error, int bt_skip) {
 	s_mutex.unlock();
 }
 
-void regError(string text, const char *file, int line) {
-	regError(Error(move(text), file, line), 1);
-}
+void regError(ErrorLoc loc, string text) { regError(Error(loc, move(text)), 1); }
 }

@@ -59,10 +59,9 @@ namespace {
 
 	Maybe<int> consoleColumns() {
 		auto result = execCommand("tput cols");
-		if(!result.second)
-			return none;
-		int val = stoi(result.first);
-		return val;
+		if(result && result->second == 0)
+			return stoi(result->first);
+		return none;
 	}
 
 	struct Entry {
@@ -227,7 +226,11 @@ namespace {
 	}
 
 	vector<string> analyzeAddresses(vector<void *> addresses) {
-		string result = execCommand(analyzeCommand(addresses)).first;
+		auto cmd_result = execCommand(analyzeCommand(addresses));
+		if(!cmd_result || cmd_result->second != 0)
+			return {};
+
+		string result = move(cmd_result->first);
 		vector<string> file_lines;
 		while(!result.empty()) {
 			auto pos = result.find('\n');
@@ -328,16 +331,19 @@ Pair<string, bool> Backtrace::fullBacktrace(int skip_frames) {
 		cmd = format("% 2>&1 -batch -p % -o 'thread backtrace all'", g_lldb_command, (int)pid);
 	else
 		cmd = format("gdb 2>&1 -batch -p % -ex 'thread apply all bt'", (int)pid);
+
 	auto result = execCommand(cmd);
+	if(!result)
+		return {format("Errors while retrieving backtrace:\n%", result.error()), false};
 
 	// TODO: check for errors from LLDB
-	if(!lldb_mode && result.first.find("ptrace: Operation not permitted") != string::npos)
+	if(!lldb_mode && result->first.find("ptrace: Operation not permitted") != string::npos)
 		return {"To use GDB stacktraces, you have to:\n"
 				"1) set kernel.yama.ptrace_scope to 0 in: /etc/sysctl.d/10-ptrace.conf\n"
 				"2) type: echo 0 > /proc/sys/kernel/yama/ptrace_scope\n",
 				false};
 
-	return {filterDebuggerOutput(result.first, skip_frames, lldb_mode), true};
+	return {filterDebuggerOutput(result->first, skip_frames, lldb_mode), true};
 #else
 	return {"GDB-based backtraces are only supported on linux (for now)", false};
 #endif

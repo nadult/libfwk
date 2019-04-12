@@ -118,8 +118,7 @@ class Viewer {
 				double time = getTime();
 				auto it = s_textures.find(file_name.second);
 				if(it == s_textures.end()) {
-					Loader ldr(file_name.second);
-					tex.emplace(file_name.second, ldr);
+					tex = GlTexture::load(file_name.second).get();
 					s_textures[file_name.second] = tex;
 				} else {
 					tex = it->second;

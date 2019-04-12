@@ -12,7 +12,7 @@ namespace fwk {
 
 struct HeightMap16bit {
   public:
-	void load(Stream &);
+	static Expected<HeightMap16bit> load(FileStream &);
 
 	vector<u16> data;
 	int2 size;
@@ -25,9 +25,19 @@ class Texture {
   public:
 	using FileType = TextureFileType;
 	// TODO: make it initialize with black or something by default
-	Texture(int2);
-	Texture(Stream &, Maybe<TextureFileType> = none);
+	explicit Texture(int2);
+	Texture(PodVector<IColor>, int2);
 	Texture();
+
+	// Loading from TGA, BMP, PNG, DDS
+	// TODO: loading from memory (through DataStream or something)
+	static Expected<Texture> load(ZStr file_name, Maybe<FileType> = none);
+	static Expected<Texture> load(FileStream &, Maybe<FileType> = none);
+
+	using Loader = Expected<Texture> (*)(FileStream &);
+	struct RegisterLoader {
+		RegisterLoader(const char *locase_ext, Loader);
+	};
 
 	// data is not preserved
 	// TODO: it should be or else remove this function
@@ -45,17 +55,10 @@ class Texture {
 	bool testPixelAlpha(const int2 &) const;
 	GlFormat format() const;
 
-	// Loading from TGA, BMP, PNG, DDS
-	void load(Stream &, Maybe<FileType> = none);
-	void save(Stream &) const;
 	void swap(Texture &);
 
-	using Loader = void (*)(Stream &, PodVector<IColor> &out_data, int2 &out_size);
-	struct RegisterLoader {
-		RegisterLoader(const char *locase_ext, Loader);
-	};
-
-	void saveTGA(Stream &) const;
+	Expected<void> saveTGA(FileStream &) const;
+	Expected<void> saveTGA(ZStr file_name) const;
 
 	IColor *data() { return m_data.data(); }
 	const IColor *data() const { return m_data.data(); }

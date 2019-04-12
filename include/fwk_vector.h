@@ -58,9 +58,6 @@ class BaseVector {
 	void assignPartialPod(int, int new_size);
 	void assignPod(int, const void *, int size);
 
-	void loadPod(int, Stream &, int max_size);
-	void savePod(int, Stream &) const;
-
 	void checkIndex(int index) const {
 		if(index < 0 || index >= size)
 			invalidIndex(index);

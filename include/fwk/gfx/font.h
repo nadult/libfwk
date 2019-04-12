@@ -28,7 +28,7 @@ class FontCore : public immutable_base<FontCore> {
   public:
 	FWK_COPYABLE_CLASS(FontCore)
 
-	static Expected<FontCore> load(Str name, Stream &);
+	static Expected<FontCore> load(ZStr file_name);
 	static Expected<FontCore> load(const XmlDocument &);
 	static Expected<FontCore> load(CXmlNode);
 

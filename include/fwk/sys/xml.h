@@ -127,16 +127,17 @@ class XmlNode : public CXmlNode {
 
 class XmlDocument {
   public:
+	static constexpr int default_max_file_size = 64 * 1024 * 1024;
 	XmlDocument();
 	XmlDocument(XmlDocument &&);
 	~XmlDocument();
 	XmlDocument &operator=(XmlDocument &&);
 
-	static Expected<XmlDocument> load(Str file_name);
-	static Expected<XmlDocument> load(Stream &stream);
+	static Expected<XmlDocument> load(ZStr file_name, int max_size = default_max_file_size);
+	static Expected<XmlDocument> make(CSpan<char> xml_data);
 
-	void save(Str file_name) const;
-	void save(Stream &) const;
+	Expected<void> save(ZStr file_name) const;
+	Expected<void> save(FileStream &) const;
 
 	XmlNode addChild(Str name, Str value = {});
 

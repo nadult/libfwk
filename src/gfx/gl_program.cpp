@@ -9,7 +9,6 @@
 #include "fwk/math/hash.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/pod_vector.h"
-#include "fwk/sys/stream.h"
 
 namespace fwk {
 
@@ -152,15 +151,11 @@ void GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
 	loadUniformInfo();
 }
 
-static auto loadShader(const string &file_name, const string &predefined_macros, ShaderType type) {
-	Loader loader(file_name);
-	return GlShader::make(type, loader, predefined_macros);
-}
-
 PProgram GlProgram::make(const string &vsh_file_name, const string &fsh_file_name,
 						 const string &predefined_macros, CSpan<string> location_names) {
-	return make(loadShader(vsh_file_name, predefined_macros, ShaderType::vertex),
-				loadShader(fsh_file_name, predefined_macros, ShaderType::fragment), location_names);
+	return make(GlShader::load(ShaderType::vertex, vsh_file_name, predefined_macros),
+				GlShader::load(ShaderType::fragment, fsh_file_name, predefined_macros),
+				location_names);
 }
 
 string GlProgram::getInfo() const {

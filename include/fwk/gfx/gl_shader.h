@@ -15,7 +15,7 @@ class GlShader {
   public:
 	using Type = ShaderType;
 
-	static PShader make(Type, Stream &, const string &predefined_macros = string());
+	static PShader load(Type, ZStr file_name, const string &predefined_macros = string());
 	static PShader make(Type, const string &source, const string &predefined_macros = {},
 						const string &name = {});
 

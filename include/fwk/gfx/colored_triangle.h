@@ -16,9 +16,6 @@ struct ColoredTriangle : public Triangle3F {
 	ColoredTriangle(Triangle3F, IColor = ColorId::white);
 	ColoredTriangle(CSpan<float3, 3>, CSpan<IColor, 3>);
 
-	void save(Stream &) const;
-	void load(Stream &);
-
 	ColoredTriangle flipped() const;
 	void setColor(IColor col) { colors[0] = colors[1] = colors[2] = col; }
 

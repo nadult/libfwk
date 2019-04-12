@@ -18,8 +18,8 @@ template <class T> class XmlLoader : public ResourceLoader<T> {
 		auto doc = move(XmlDocument::load(ResourceLoader<T>::fileName(name)).get());
 		XmlOnFailGuard guard(doc);
 		XmlNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
-		if(!child)
-			CHECK_FAILED("Cannot find node '%s' in XML document", m_node_name.c_str());
+		if(!child) // TODO: return Expected<>
+			FATAL("Cannot find node '%s' in XML document", m_node_name.c_str());
 		return immutable_ptr<T>(T::loadFromXML(child));
 	}
 

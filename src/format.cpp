@@ -96,7 +96,9 @@ void TextFormatter::append_(const char *format_str, int arg_count, const Func *f
 	for(int n = 0; n < arg_count; n++)
 		if(isOneOf(funcs[n], opt_funcs))
 			num_format_args++;
-	DASSERT(num_percent == arg_count - num_format_args && "Invalid nr of arguments passed");
+	if(num_percent != arg_count - num_format_args)
+		FATAL("Invalid nr of arguments passed: %d, expected: %d\nFormat string: %s",
+			  arg_count - num_format_args, num_percent, format_str);
 #endif
 
 	for(int n = 0; n < arg_count; n++) {

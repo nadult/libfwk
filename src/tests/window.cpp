@@ -10,7 +10,6 @@
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
-#include <fwk/sys/stream.h>
 
 using namespace fwk;
 
@@ -53,10 +52,9 @@ Font loadFont() {
 	PTexture font_texture;
 	if(!font_core) {
 		auto data_path = FilePath(executablePath()).parent().parent() / "data";
-		Loader font_ldr(data_path / "liberation_16.fnt");
-		Loader tex_ldr(data_path / "liberation_16_0.tga");
-		font_core = make_immutable<FontCore>(move(FontCore::load("", font_ldr).get()));
-		font_texture.emplace("", tex_ldr);
+		font_core =
+			make_immutable<FontCore>(move(FontCore::load(data_path / "liberation_16.fnt").get()));
+		font_texture = GlTexture::load(data_path / "liberation_16_0.tga").get();
 	}
 	return {font_core, font_texture};
 }

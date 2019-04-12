@@ -6,6 +6,7 @@
 #include "fwk/light_tuple.h"
 #include "fwk/str.h"
 #include "fwk/sys_base.h"
+#include "fwk_range.h"
 
 namespace fwk {
 
@@ -105,4 +106,11 @@ Expected<void> mkdirRecursive(const FilePath &path);
 Expected<double> lastModificationTime(const FilePath &);
 
 FilePath executablePath();
+
+// Returns pair: output + exit code
+Expected<Pair<string, int>> execCommand(const string &cmd);
+
+Expected<string> loadFileString(ZStr, int max_size = 64 * 1024 * 1024);
+Expected<vector<char>> loadFile(ZStr, int max_size = 64 * 1024 * 1024);
+Expected<void> saveFile(ZStr file_name, CSpan<char>);
 }
