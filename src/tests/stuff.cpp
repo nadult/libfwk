@@ -9,7 +9,6 @@
 #include "fwk/sys/assert.h"
 #include "fwk/type_info_gen.h"
 #include "fwk/variant.h"
-#include "fwk_cache.h"
 #include "tests/testing.h"
 
 void testTypes() {
@@ -144,21 +143,6 @@ void testRanges() {
 	// TODO: write me
 }
 
-struct Object : public immutable_base<Object> {
-	Object(int a) : a(a) {}
-	int a;
-};
-using PObject = immutable_ptr<Object>;
-
-void testCache() {
-	auto obj1 = PObject(10);
-	auto obj2 = PObject(20);
-
-	auto key = Cache::makeKey(obj1);
-	Cache::add(key, obj2);
-	ASSERT(Cache::access<Object>(key) == obj2);
-}
-
 void testMaybe() {
 	Maybe<IRect> mrect;
 	mrect = IRect(0, 0, 10, 10).intersection(IRect(20, 20, 30, 30));
@@ -196,7 +180,6 @@ void testMain() {
 	testTextFormatter();
 	testXMLConverters();
 	testPathOperations();
-	testCache();
 	testMaybe();
 	testTypeInfo();
 	testFwdMember();
