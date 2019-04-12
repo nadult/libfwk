@@ -16,9 +16,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 - Should EXPECT, Expected<> check for errors ? if data wasn't loaded properly verifying it makes no sense...
   look at all places using Expected<>
 
-
-- przywrócić albo wywalić test stremów
-- remove immutable_ptr
 - cleanup...
 - zastanowic się jak ON_FAIL ma współpracować z wszystkimi innymi rzeczami?
   z asercjami, logowaniem errorów i z czymś jeszcze?

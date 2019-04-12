@@ -73,6 +73,7 @@ inline bool anyErrors() { return detail::t_num_errors > 0; }
 inline bool noErrors() { return detail::t_num_errors == 0; }
 inline int numErrors() { return detail::t_num_errors; }
 
+// TODO: There should be at most 1 error
 vector<Error> getErrors();
 Error getSingleError();
 void regError(Error, int bt_skip = 0);
@@ -82,15 +83,15 @@ void regError(ErrorLoc loc, const char *fmt, T &&... args) {
 	regError(loc, format(fmt, std::forward<T>(args)...));
 }
 
-#define ERROR(...) Error({__FILE__, __LINE__}, __VA_ARGS__)
+#define ERROR(...) fwk::Error({__FILE__, __LINE__}, __VA_ARGS__)
 
 // TODO: naming
 #define REG_CHECK(expr)                                                                            \
 	{                                                                                              \
 		if(!(expr))                                                                                \
-			regError(FWK_STRINGIZE(expr), __FILE__, __LINE__);                                     \
+			fwk::regError(FWK_STRINGIZE(expr), __FILE__, __LINE__);                                \
 	}
 
 #define REG_ERROR(...)                                                                             \
-	{ regError(Error({__FILE__, __LINE__}, __VA_ARGS__)); }
+	{ fwk::regError(fwk::Error({__FILE__, __LINE__}, __VA_ARGS__)); }
 }

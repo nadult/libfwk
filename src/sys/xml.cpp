@@ -17,10 +17,10 @@
 #include "fwk/filesystem.h"
 #include "fwk/sys/file_stream.h"
 #include "fwk/sys/on_fail.h"
-#include "fwk/sys/rollback.h"
 #include "fwk/sys/xml.h"
 #include "rapidxml/rapidxml.hpp"
 #include "rapidxml/rapidxml_print.hpp"
+#include <csetjmp>
 #include <cstdio>
 #include <cstring>
 
@@ -31,6 +31,7 @@ struct XmlDebugHelper {
 	xml_node<> *last_node = nullptr;
 	xml_attribute<> *last_attrib = nullptr;
 	const char *pstring = nullptr;
+	std::jmp_buf jump_buffer = {};
 	int pstring_len = 0;
 };
 __thread XmlDebugHelper t_xml_debug;
@@ -155,18 +156,12 @@ XmlNode XmlNode::child(Str name) const {
 	return {cnode.m_ptr, m_doc};
 }
 
-static void cleanOnRollback(void *arg) { untouch((xml_document<> *)arg); }
-
-XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {
-	RollbackContext::atRollback(cleanOnRollback, m_ptr.get());
-}
+XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {}
 
 XmlDocument::XmlDocument(XmlDocument &&) = default;
 XmlDocument::~XmlDocument() {
-	if(m_ptr) {
+	if(m_ptr)
 		untouch(m_ptr.get());
-		RollbackContext::removeAtRollback(cleanOnRollback, m_ptr.get());
-	}
 }
 XmlDocument &XmlDocument::operator=(XmlDocument &&) = default;
 
@@ -210,7 +205,8 @@ void rapidxml::parse_error_handler(const char *what, void *where) {
 	fmt("XML parsing error: %", what);
 	if(pos != fwk::Pair<int>())
 		fmt(" at: line:% col:%", pos.first, pos.second);
-	CHECK_FAILED("%s", fmt.c_str());
+	REG_ERROR("%", fmt.text());
+	std::longjmp(t_xml_debug.jump_buffer, 1);
 }
 
 namespace fwk {
@@ -218,25 +214,27 @@ namespace fwk {
 Expected<XmlDocument> XmlDocument::make(CSpan<char> data) {
 	XmlDocument doc;
 
-	// TODO: full rollback is not needed here? remove it
-	auto result = RollbackContext::begin([&]() {
-		char *xml_string = doc.m_ptr->allocate_string(0, data.size() + 1);
-		copy(span(xml_string, data.size()), data);
-		xml_string[data.size()] = 0;
+	char *xml_string = doc.m_ptr->allocate_string(0, data.size() + 1);
+	copy(span(xml_string, data.size()), data);
+	xml_string[data.size()] = 0;
 
-		doc.m_xml_string = {xml_string, data.size()};
-		t_xml_debug.pstring = xml_string;
-		t_xml_debug.pstring_len = data.size();
+	doc.m_xml_string = {xml_string, data.size()};
+	t_xml_debug.pstring = xml_string;
+	t_xml_debug.pstring_len = data.size();
+
+	// TODO: verify that there are no leaks
+	if(setjmp(t_xml_debug.jump_buffer)) {
+		doc.m_ptr->release();
+		t_xml_debug.pstring = nullptr;
+		t_xml_debug.pstring_len = 0;
+		return getSingleError();
+	} else {
 		doc.m_ptr->parse<0>(xml_string);
-	});
+	}
 
 	t_xml_debug.pstring = nullptr;
 	t_xml_debug.pstring_len = 0;
 
-	if(!result) {
-		doc.m_ptr->release();
-		return result.error();
-	}
 	return move(doc);
 }
 
