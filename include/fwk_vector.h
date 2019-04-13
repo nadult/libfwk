@@ -324,9 +324,9 @@ template <class T> class Vector {
 	}
 
   private:
-	static constexpr bool trivial_move_constr = std::is_trivially_move_constructible<T>::value;
-	static constexpr bool trivial_copy_constr = std::is_trivially_copy_constructible<T>::value;
-	static constexpr bool trivial_destruction = std::is_trivially_destructible<T>::value;
+	static constexpr bool trivial_move_constr = std::is_trivially_move_constructible<T>::value,
+						  trivial_copy_constr = std::is_trivially_copy_constructible<T>::value,
+						  trivial_destruction = std::is_trivially_destructible<T>::value;
 
 	static void copy(void *vdst, const void *vsrc, int count) {
 		const T *__restrict__ src = (T *)vsrc;

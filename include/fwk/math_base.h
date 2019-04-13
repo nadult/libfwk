@@ -212,25 +212,24 @@ namespace detail {
 	// If we had a field class, Base<> would be easy
 }
 
-template <class T> static constexpr int dim = 0;
-template <class T> static constexpr int dim<vec2<T>> = 2;
-template <class T> static constexpr int dim<vec3<T>> = 3;
-template <class T> static constexpr int dim<vec4<T>> = 4;
-template <class T, int N> static constexpr int dim<Rational<T, N>> = N;
+template <class T> constexpr int dim = 0;
+template <class T> constexpr int dim<vec2<T>> = 2;
+template <class T> constexpr int dim<vec3<T>> = 3;
+template <class T> constexpr int dim<vec4<T>> = 4;
+template <class T, int N> constexpr int dim<Rational<T, N>> = N;
 
-template <class T>
-static constexpr bool is_integral = std::is_integral<T>::value || is_same<T, qint>;
-template <class T> static constexpr bool is_fpt = std::is_floating_point<T>::value;
-template <class T> static constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
-template <class T> static constexpr bool is_rational = detail::RatSize<T>::value != -1;
+template <class T> constexpr bool is_integral = std::is_integral<T>::value || is_same<T, qint>;
+template <class T> constexpr bool is_fpt = std::is_floating_point<T>::value;
+template <class T> constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
+template <class T> constexpr bool is_rational = detail::RatSize<T>::value != -1;
 
-template <class T> static constexpr bool is_ext24 = false;
-template <class T> static constexpr bool is_ext24<Ext24<T>> = true;
+template <class T> constexpr bool is_ext24 = false;
+template <class T> constexpr bool is_ext24<Ext24<T>> = true;
 template <class T, int ReqN = 0>
-static constexpr bool is_vec = ((dim<T>) > 0) && (ReqN == 0 || ReqN == dim<T>);
+constexpr bool is_vec = ((dim<T>) > 0) && (ReqN == 0 || ReqN == dim<T>);
 
-template <class T> static constexpr bool is_scalar = is_fundamental<T> || is_ext24<T>;
-template <class T> static constexpr bool is_scalar<Rational<T, 0>> = true;
+template <class T> constexpr bool is_scalar = is_fundamental<T> || is_ext24<T>;
+template <class T> constexpr bool is_scalar<Rational<T, 0>> = true;
 
 template <class T> using RemoveRat = typename detail::RemoveRat<T>::Type;
 template <class T> using RemoveExt24 = typename detail::RemoveExt24<T>::Type;
@@ -302,7 +301,7 @@ template <class T, int count = 1>
 using PromoteIntegral = If<is_integral<Base<T>>, Promote<T, count>, T>;
 
 template <class From, class To>
-static constexpr bool precise_conversion = []() {
+constexpr bool precise_conversion = []() {
 	if constexpr(is_same<From, To>)
 		return true;
 	else if constexpr(!is_same<Promote<From>, From>)
@@ -311,18 +310,18 @@ static constexpr bool precise_conversion = []() {
 }();
 
 template <class T, class U>
-static constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<RemoveExt24<T>, U>;
+constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<RemoveExt24<T>, U>;
 
 template <class T, class U, int N>
-static constexpr bool precise_conversion<T, Rational<U, N>> =
+constexpr bool precise_conversion<T, Rational<U, N>> =
 	dim<T> == N &&precise_conversion<Scalar<RemoveRat<T>>, U>;
 
 template <class T, class U>
-static constexpr bool precise_conversion<vec2<T>, vec2<U>> = precise_conversion<T, U>;
+constexpr bool precise_conversion<vec2<T>, vec2<U>> = precise_conversion<T, U>;
 template <class T, class U>
-static constexpr bool precise_conversion<vec3<T>, vec3<U>> = precise_conversion<T, U>;
+constexpr bool precise_conversion<vec3<T>, vec3<U>> = precise_conversion<T, U>;
 template <class T, class U>
-static constexpr bool precise_conversion<vec4<T>, vec4<U>> = precise_conversion<T, U>;
+constexpr bool precise_conversion<vec4<T>, vec4<U>> = precise_conversion<T, U>;
 
 #define PRECISE(from, to) template <> constexpr bool precise_conversion<from, to> = true;
 
@@ -376,7 +375,7 @@ template <class T, EnableIfIntegral<T>...> T ratioCeil(T value, T div) {
 }
 
 template <class T>
-static constexpr T epsilon = []() {
+constexpr T epsilon = []() {
 	static_assert(is_fpt<T>);
 	// TODO: verify these values
 	return is_same<T, float> ? T(1E-6f) : is_same<T, double> ? T(1E-14) : T(1E-18L);

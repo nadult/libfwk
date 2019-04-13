@@ -101,10 +101,9 @@ template <class T> Maybe<int> vectorToAngle(const Rat2Ext24<T> &);
 template <class T> Rat2Ext24<T> rotateVector(const Rat2Ext24<T> &, int degrees);
 Rat2Ext24<short> angleToVectorExt24(int degrees, int scale = 1);
 
-// TODO: static or not?
-template <class T> static constexpr Ext24<T> ext_sqrt2(0, 1, 0, 0);
-template <class T> static constexpr Ext24<T> ext_sqrt3(0, 0, 1, 0);
-template <class T> static constexpr Ext24<T> ext_sqrt6(0, 0, 0, 1);
+template <class T> constexpr Ext24<T> ext_sqrt2(0, 1, 0, 0);
+template <class T> constexpr Ext24<T> ext_sqrt3(0, 0, 1, 0);
+template <class T> constexpr Ext24<T> ext_sqrt6(0, 0, 0, 1);
 
 template <class T> Ext24<T> ext24(T v) { return Ext24<T>(v); }
 }

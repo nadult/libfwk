@@ -172,8 +172,8 @@ namespace detail {
 		static auto testS(int) -> decltype(DECLVAL(const C &).save(DECLVAL(XmlNode)));
 		template <class C> static auto testS(...) -> Empty;
 
-		static constexpr bool constructible = !is_same<decltype(testC<T>(0)), Empty>;
-		static constexpr bool saveable = !is_same<decltype(testS<T>(0)), Empty>;
+		static constexpr bool constructible = !is_same<decltype(testC<T>(0)), Empty>,
+							  saveable = !is_same<decltype(testS<T>(0)), Empty>;
 
 		template <class C> static auto testFP(int) -> decltype(parse(DECLVAL(CXmlNode), Type<C>()));
 		template <class C> static auto testFP(...) -> Empty;
@@ -182,8 +182,8 @@ namespace detail {
 		static auto testFS(int) -> decltype(save(DECLVAL(XmlNode), DECLVAL(const C &)));
 		template <class C> static auto testFS(...) -> Empty;
 
-		static constexpr bool func_parsable = !is_same<decltype(testFP<T>(0)), Empty>;
-		static constexpr bool func_saveable = !is_same<decltype(testFS<T>(0)), Empty>;
+		static constexpr bool func_parsable = !is_same<decltype(testFP<T>(0)), Empty>,
+							  func_saveable = !is_same<decltype(testFS<T>(0)), Empty>;
 	};
 }
 
