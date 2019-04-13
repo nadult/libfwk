@@ -108,4 +108,8 @@ template <class T, int N> class Triangle {
 template <class T, int N> Box<MakeVec<T, N>> enclose(const Triangle<T, N> &tri) {
 	return enclose(tri.points());
 }
+
+template <class T, int N>
+constexpr bool is_flat_data<Triangle<T, N>> = is_flat_data<T> &&
+											  sizeof(Triangle<T, N>) == sizeof(T) * N;
 }

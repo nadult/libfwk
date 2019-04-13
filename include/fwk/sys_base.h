@@ -169,12 +169,6 @@ double getTime();
 #define IF_PARANOID(...) ((void)0)
 #endif
 
-// TODO: use std::is_trivially_copyable instead?
-#define SERIALIZE_AS_POD(type)                                                                     \
-	namespace fwk {                                                                                \
-		template <> struct SerializeAsPod<type> { static constexpr bool value = true; };           \
-	}
-
 class Backtrace;
 class FileStream;
 class FilePath;
@@ -225,6 +219,9 @@ class AnyRef;
 
 template <> constexpr int type_size<AnyRef> = 16;
 template <> constexpr int type_size<Any> = 16;
+
+// This kind of data can be safely serialized to/from binary format, byte by byte
+template <class T> constexpr bool is_flat_data = std::is_arithmetic<T>::value;
 
 // Implemented in logger.[h|cpp]
 void log(Str message, Str unique_key);

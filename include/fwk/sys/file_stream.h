@@ -66,22 +66,26 @@ class FileStream {
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Saving/loading POD objects   ---------------------------------------------------------
+	//
+	// is_flat_data<T> has to be true for serialization to work
 
-	// TODO: this should only work for trivial or types which are marked as pod?
-	template <class T> FileStream &operator<<(const T &obj) {
+	template <class T, EnableIf<is_flat_data<T>>...> FileStream &operator<<(const T &obj) {
 		return saveData(cspan(&obj, 1)), *this;
 	}
-	template <class T> FileStream &operator>>(T &obj) { return loadData(span(&obj, 1)), *this; }
+	template <class T, EnableIf<is_flat_data<T>>...> FileStream &operator>>(T &obj) {
+		return loadData(span(&obj, 1)), *this;
+	}
 
 	// TODO: better name
-	template <class... Args> void unpack(Args &... args) {
+	template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...> void unpack(Args &... args) {
 		char buffer[(sizeof(Args) + ...)];
 		loadData(buffer);
 		int offset = 0;
 		((memcpy(&args, buffer + offset, sizeof(Args)), offset += sizeof(Args)), ...);
 	}
 
-	template <class... Args> void pack(const Args &... args) {
+	template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...>
+	void pack(const Args &... args) {
 		char buffer[(sizeof(Args) + ...)];
 		int offset = 0;
 		((memcpy(buffer + offset, &args, sizeof(Args)), offset += sizeof(Args)), ...);
@@ -104,10 +108,11 @@ class FileStream {
 	PodVector<char> loadVector(int max_size = default_max_vector_size, int element_size = 1);
 	void saveVector(CSpan<char>, int element_size = 1);
 
-	template <class T> PodVector<T> loadVector(int max_size = default_max_vector_size) {
+	template <class T, EnableIf<is_flat_data<T>>...>
+	PodVector<T> loadVector(int max_size = default_max_vector_size) {
 		return loadVector(max_size, sizeof(T)).template reinterpret<T>();
 	}
-	template <class T> void saveVector(CSpan<T> vec) {
+	template <class T, EnableIf<is_flat_data<T>>...> void saveVector(CSpan<T> vec) {
 		saveVector(vec.template reinterpret<char>(), sizeof(T));
 	}
 

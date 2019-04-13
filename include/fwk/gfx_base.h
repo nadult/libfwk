@@ -133,4 +133,8 @@ bool onGlThread();
 #else
 #define PASSERT_GL_THREAD()
 #endif
+
+template <> constexpr bool is_flat_data<ColoredTriangle> = true;
+template <> constexpr bool is_flat_data<IColor> = true;
+template <> constexpr bool is_flat_data<FColor> = true;
 }

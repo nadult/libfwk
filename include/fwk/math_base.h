@@ -737,5 +737,12 @@ struct DisabledInThisDimension;
 
 template <class T, int N> using EnableInDimension = EnableIf<dim<T> == N, DisabledInThisDimension>;
 
+template <class T>
+constexpr bool is_flat_data<vec2<T>> = is_flat_data<T> && sizeof(vec2<T>) == sizeof(T) * 2;
+template <class T>
+constexpr bool is_flat_data<vec3<T>> = is_flat_data<T> && sizeof(vec3<T>) == sizeof(T) * 3;
+template <class T>
+constexpr bool is_flat_data<vec4<T>> = is_flat_data<T> && sizeof(vec4<T>) == sizeof(T) * 4;
+
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
 }
