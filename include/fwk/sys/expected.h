@@ -115,6 +115,8 @@ class [[nodiscard]] Expected<void> {
 		if(m_error.get())
 			checkFailed(__FILE__, __LINE__, *m_error);
 	}
+	void ignore() const {}
+
 	void get() const { check(); }
 
   private:

@@ -25,17 +25,20 @@ namespace fwk {
 
 namespace {
 
-	string nicePath(const string &path) {
+	string nicePath(const string &path, const FilePath &current) {
 		if(path[0] == '?')
 			return "";
 		FilePath file_path(path);
-		FilePath relative_path = file_path.relative(FilePath::current());
+		if(file_path.isRelative())
+			return file_path;
+
+		FilePath relative_path = file_path.relative(current);
 		if(relative_path.size() < file_path.size())
 			file_path = relative_path;
 		return file_path;
 	}
 
-	string analyzeCommand(CSpan<void *> addresses, bool funcs = false) {
+	string analyzeCommand(CSpan<void *> addresses, const FilePath &current, bool funcs = false) {
 		if(!addresses)
 			return {};
 
@@ -43,8 +46,7 @@ namespace {
 		command("addr2line ");
 		for(auto address : addresses)
 			command.stdFormat("%p ", address);
-		command("%-e % 2>/dev/null", funcs ? "-f -p " : "",
-				executablePath().relative(FilePath::current()));
+		command("%-e % 2>/dev/null", funcs ? "-f -p " : "", executablePath().relative(current));
 		return command.text();
 	}
 
@@ -225,8 +227,8 @@ namespace {
 		return out;
 	}
 
-	vector<string> analyzeAddresses(vector<void *> addresses) {
-		auto cmd_result = execCommand(analyzeCommand(addresses));
+	vector<string> analyzeAddresses(vector<void *> addresses, const FilePath &current) {
+		auto cmd_result = execCommand(analyzeCommand(addresses, current));
 		if(!cmd_result || cmd_result->second != 0)
 			return {};
 
@@ -244,7 +246,7 @@ namespace {
 		// TODO: these are not exactly correct (inlining?)
 		for(auto &file_line : file_lines) {
 			auto colon_pos = file_line.find(':');
-			string file = nicePath(file_line.substr(0, colon_pos));
+			string file = nicePath(file_line.substr(0, colon_pos), current);
 			int line = colon_pos == string::npos ? 0 : atoi(&file_line[colon_pos + 1]);
 			file_line = file.empty() ? "?" : stdFormat("%s:%d", file.c_str(), line);
 		}
@@ -353,13 +355,17 @@ string Backtrace::analyze(bool filter) const {
 	TextFormatter formatter;
 	vector<string> file_lines;
 
+	auto current = FilePath::current();
+	if(!current)
+		return "BACKTRACE ERROR: Cannot analyze: error while reading current path\n";
+
 #if defined(FWK_TARGET_HTML5)
 #elif defined(FWK_TARGET_LINUX)
-	file_lines = analyzeAddresses(m_addresses);
+	file_lines = analyzeAddresses(m_addresses, *current);
 #elif defined(FWK_TARGET_MINGW)
 	if(m_addresses)
 		formatter("Please run following command:\n% | c++filt\n",
-				  analyzeCommand(m_addresses, true));
+				  analyzeCommand(m_addresses, *current, true));
 	else
 		formatter("Empty backtrace\n");
 #endif

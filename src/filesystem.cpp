@@ -150,8 +150,6 @@ bool FilePath::isRoot() const {
 bool FilePath::isAbsolute() const { return extractRoot(c_str()).size != 0; }
 
 FilePath FilePath::relative(const FilePath &ref) const {
-	if(!isAbsolute())
-		return absolute().relative(ref);
 	DASSERT(ref.isAbsolute());
 
 	vector<Element> celems, relems;
@@ -177,6 +175,11 @@ FilePath FilePath::relative(const FilePath &ref) const {
 	return out;
 }
 
+Expected<FilePath> FilePath::relativeToCurrent() const {
+	auto cur = current();
+	return cur ? relative(*cur) : Expected<FilePath>(cur.error());
+}
+
 bool FilePath::isRelative(const FilePath &ref) const {
 	DASSERT(ref.isAbsolute() && isAbsolute());
 
@@ -192,7 +195,13 @@ bool FilePath::isRelative(const FilePath &ref) const {
 	return true;
 }
 
-FilePath FilePath::absolute() const { return isAbsolute() ? *this : current() / *this; }
+FilePath FilePath::absolute(const FilePath &current) const {
+	return isAbsolute() ? *this : current / *this;
+}
+Expected<FilePath> FilePath::absolute() const {
+	auto cur = current();
+	return cur ? absolute(*cur) : Expected<FilePath>(cur.error());
+}
 
 FilePath FilePath::parent() const { return *this / ".."; }
 
@@ -284,7 +293,10 @@ Expected<void> mkdirRecursive(const FilePath &path) {
 }
 
 vector<string> findFiles(const string &prefix, const string &suffix) {
-	string full_prefix = FilePath(prefix).absolute();
+	auto abs_path = FilePath(prefix).absolute();
+	if(!abs_path)
+		return {};
+	string full_prefix = *abs_path;
 	if(prefix.back() == '/')
 		full_prefix.push_back('/');
 	FilePath path(prefix);
@@ -358,5 +370,4 @@ Expected<void> saveFile(ZStr file_name, CSpan<char> data) {
 	EXPECT_NO_ERRORS();
 	return {};
 }
-
 }

@@ -24,6 +24,7 @@ class FilePath {
 
 	bool isRoot() const;
 	bool isAbsolute() const;
+	bool isRelative() const { return !isAbsolute(); }
 	bool empty() const { return m_path.empty(); }
 
 	string fileName() const;
@@ -31,17 +32,20 @@ class FilePath {
 	bool isDirectory() const;
 	bool isRegularFile() const;
 
-	FilePath relative(const FilePath &relative_to = current()) const;
+	// Path should be absolute
+	FilePath relative(const FilePath &relative_to) const;
+	Expected<FilePath> relativeToCurrent() const;
 	bool isRelative(const FilePath &ancestor) const;
 
-	FilePath absolute() const;
+	FilePath absolute(const FilePath &current) const;
+	Expected<FilePath> absolute() const;
 	FilePath parent() const;
 
 	FilePath operator/(const FilePath &other) const;
 	FilePath &operator/=(const FilePath &other);
 
-	static FilePath current();
-	static void setCurrent(const FilePath &);
+	static Expected<FilePath> current();
+	static Expected<void> setCurrent(const FilePath &);
 
 	operator ZStr() const { return m_path; }
 	operator Str() const { return m_path; }

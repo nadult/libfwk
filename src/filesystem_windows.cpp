@@ -8,8 +8,10 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#undef ERROR
 
 #include "fwk/filesystem.h"
+#include "fwk/sys/expected.h"
 #include "fwk_vector.h"
 #include <cstdio>
 #include <cstring>
@@ -33,16 +35,17 @@ FilePath::Element FilePath::extractRoot(const char *str) {
 	return Element{nullptr, 0};
 }
 
-FilePath FilePath::current() {
+Expected<FilePath> FilePath::current() {
 	char buf[MAX_PATH];
 	if(!GetCurrentDirectory(sizeof(buf), buf))
-		CHECK_FAILED("Error in GetCurrentDirectory");
+		return ERROR("Error in GetCurrentDirectory");
 	return FilePath(buf);
 }
 
-void FilePath::setCurrent(const FilePath &path) {
+Expected<void> FilePath::setCurrent(const FilePath &path) {
 	if(!SetCurrentDirectory(path.c_str()))
-		CHECK_FAILED("Error in SetCurrentDirectory(%s)", path.c_str());
+		return ERROR("Error in SetCurrentDirectory(%)", path);
+	return {};
 }
 
 bool FilePath::isRegularFile() const {
@@ -96,10 +99,15 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 
 vector<FileEntry> findFiles(const FilePath &path, int flags) {
 	vector<FileEntry> out;
-	FilePath append =
-		flags & FindFiles::relative ? "." : flags & FindFiles::absolute ? path.absolute() : path;
 
-	findFiles(out, path.absolute(), append, flags);
+	auto abs_path = path.absolute();
+	if(!abs_path)
+		return {};
+
+	FilePath append =
+		flags & FindFiles::relative ? "." : flags & FindFiles::absolute ? *abs_path : path;
+
+	findFiles(out, *abs_path, append, flags);
 	return out;
 }
 }
