@@ -12,7 +12,7 @@ Sound::Sound(vector<char> data, const SoundInfo &info) : m_data(data), m_info(in
 	// TODO: verification
 }
 
-Expected<Sound> Sound::load(FileStream &sr) {
+Ex<Sound> Sound::load(FileStream &sr) {
 	u32 chunk_size[2], size, frequency, byteRate;
 	u16 format, channels, block_align, bits;
 
@@ -47,7 +47,7 @@ Expected<Sound> Sound::load(FileStream &sr) {
 	return move(sound);
 }
 
-Expected<void> Sound::save(FileStream &sr) const {
+Ex<void> Sound::save(FileStream &sr) const {
 	u32 chunk_size[2] = {(u32)m_data.size() + 36, 16};
 
 	// Chunk 0

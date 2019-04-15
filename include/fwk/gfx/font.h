@@ -28,9 +28,9 @@ class FontCore : public immutable_base<FontCore> {
   public:
 	FWK_COPYABLE_CLASS(FontCore)
 
-	static Expected<FontCore> load(ZStr file_name);
-	static Expected<FontCore> load(const XmlDocument &);
-	static Expected<FontCore> load(CXmlNode);
+	static Ex<FontCore> load(ZStr file_name);
+	static Ex<FontCore> load(const XmlDocument &);
+	static Ex<FontCore> load(CXmlNode);
 
 	struct Glyph {
 		int character;

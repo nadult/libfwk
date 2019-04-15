@@ -18,11 +18,11 @@ class FontFactory {
 	static string32 ansiCharset();
 	static string32 basicMathCharset();
 
-	Expected<Font> makeFont(ZStr path, int size_px, bool lcd_mode = false) {
+	Ex<Font> makeFont(ZStr path, int size_px, bool lcd_mode = false) {
 		return makeFont(path, ansiCharset(), size_px, lcd_mode);
 	}
 
-	Expected<Font> makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode = false);
+	Ex<Font> makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode = false);
 
   private:
 	using GlyphPair = Pair<FontCore::Glyph, Texture>;

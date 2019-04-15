@@ -211,7 +211,7 @@ namespace detail {
 
 	__thread PngLoader *PngLoader::s_loader = nullptr;
 
-	Expected<Texture> loadPNG(FileStream &stream) {
+	Ex<Texture> loadPNG(FileStream &stream) {
 		PngLoader loader(stream);
 		EXPECT_NO_ERRORS();
 		PodVector<IColor> data(loader.size().x * loader.size().y);
@@ -221,7 +221,7 @@ namespace detail {
 	}
 }
 
-Expected<HeightMap16bit> HeightMap16bit::load(FileStream &stream) {
+Ex<HeightMap16bit> HeightMap16bit::load(FileStream &stream) {
 	detail::PngLoader loader(stream);
 	EXPECT_NO_ERRORS();
 	vector<u16> data(loader.size().x * loader.size().y);

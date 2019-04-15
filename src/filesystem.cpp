@@ -175,9 +175,9 @@ FilePath FilePath::relative(const FilePath &ref) const {
 	return out;
 }
 
-Expected<FilePath> FilePath::relativeToCurrent() const {
+Ex<FilePath> FilePath::relativeToCurrent() const {
 	auto cur = current();
-	return cur ? relative(*cur) : Expected<FilePath>(cur.error());
+	return cur ? relative(*cur) : Ex<FilePath>(cur.error());
 }
 
 bool FilePath::isRelative(const FilePath &ref) const {
@@ -198,9 +198,9 @@ bool FilePath::isRelative(const FilePath &ref) const {
 FilePath FilePath::absolute(const FilePath &current) const {
 	return isAbsolute() ? *this : current / *this;
 }
-Expected<FilePath> FilePath::absolute() const {
+Ex<FilePath> FilePath::absolute() const {
 	auto cur = current();
-	return cur ? absolute(*cur) : Expected<FilePath>(cur.error());
+	return cur ? absolute(*cur) : Ex<FilePath>(cur.error());
 }
 
 FilePath FilePath::parent() const { return *this / ".."; }
@@ -258,7 +258,7 @@ bool access(const FilePath &path) {
 #endif
 }
 
-Expected<double> lastModificationTime(const FilePath &file_name) {
+Ex<double> lastModificationTime(const FilePath &file_name) {
 #ifdef _WIN32
 	struct _stat64 attribs;
 	if(_stat64(file_name.c_str(), &attribs) != 0)
@@ -272,7 +272,7 @@ Expected<double> lastModificationTime(const FilePath &file_name) {
 #endif
 }
 
-Expected<void> mkdirRecursive(const FilePath &path) {
+Ex<void> mkdirRecursive(const FilePath &path) {
 	if(access(path))
 		return {};
 
@@ -317,7 +317,7 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 }
 
 // TODO: stdout and stderr returned separately?
-Expected<Pair<string, int>> execCommand(const string &cmd) {
+Ex<Pair<string, int>> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");
 	if(!pipe)
 		return ERROR("Error on popen '%': %", cmd, strerror(errno));
@@ -333,7 +333,7 @@ Expected<Pair<string, int>> execCommand(const string &cmd) {
 	return pair{result, ret};
 }
 
-Expected<string> loadFileString(ZStr file_name, int max_size) {
+Ex<string> loadFileString(ZStr file_name, int max_size) {
 	auto file = fileLoader(file_name);
 	if(!file)
 		return file.error();
@@ -346,7 +346,7 @@ Expected<string> loadFileString(ZStr file_name, int max_size) {
 	return out;
 }
 
-Expected<vector<char>> loadFile(ZStr file_name, int max_size) {
+Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 	auto file = fileLoader(file_name);
 	if(!file)
 		return file.error();
@@ -361,7 +361,7 @@ Expected<vector<char>> loadFile(ZStr file_name, int max_size) {
 	return move(vout);
 }
 
-Expected<void> saveFile(ZStr file_name, CSpan<char> data) {
+Ex<void> saveFile(ZStr file_name, CSpan<char> data) {
 	auto file = fileSaver(file_name);
 	if(!file)
 		return file.error();

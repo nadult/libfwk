@@ -73,7 +73,7 @@ class Any {
 		static_assert(std::is_destructible<T>::value);
 	}
 
-	template <class T> Any(Expected<T> value) {
+	template <class T> Any(Ex<T> value) {
 		if(value) {
 			m_model = uniquePtr<Model<T>>(move(*value));
 			m_type = typeInfo<T>();
@@ -86,8 +86,8 @@ class Any {
 	Any();
 	Any(None) : Any() {}
 
-	Any(Expected<Any> &&);
-	Any(const Expected<Any> &);
+	Any(Ex<Any> &&);
+	Any(const Ex<Any> &);
 
 	template <class T> Any(const Maybe<T> &) = delete;
 

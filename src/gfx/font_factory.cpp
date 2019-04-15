@@ -159,8 +159,7 @@ Texture FontFactory::makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	return makeTextureAtlas(glyphs, {256, 256});
 }
 
-Expected<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px,
-									 bool lcd_mode) {
+Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode) {
 	DASSERT(size_px > 0);
 	DASSERT(size_px < 1000 && "Please keep it reasonable");
 

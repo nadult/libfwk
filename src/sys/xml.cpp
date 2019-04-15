@@ -184,12 +184,12 @@ XmlNode XmlDocument::child(Str name) const {
 	return XmlNode(m_ptr->first_node(strOrNull(name), name.size()), m_ptr.get());
 }
 
-Expected<XmlDocument> XmlDocument::load(ZStr file_name, int max_size) {
+Ex<XmlDocument> XmlDocument::load(ZStr file_name, int max_size) {
 	auto data = loadFile(file_name, max_size);
 	return data ? make(*data) : data.error();
 }
 
-Expected<void> XmlDocument::save(ZStr file_name) const {
+Ex<void> XmlDocument::save(ZStr file_name) const {
 	auto file = fileSaver(file_name);
 	if(!file)
 		return file.error();
@@ -211,7 +211,7 @@ void rapidxml::parse_error_handler(const char *what, void *where) {
 
 namespace fwk {
 
-Expected<XmlDocument> XmlDocument::make(CSpan<char> data) {
+Ex<XmlDocument> XmlDocument::make(CSpan<char> data) {
 	XmlDocument doc;
 
 	char *xml_string = doc.m_ptr->allocate_string(0, data.size() + 1);
@@ -238,7 +238,7 @@ Expected<XmlDocument> XmlDocument::make(CSpan<char> data) {
 	return move(doc);
 }
 
-Expected<void> XmlDocument::save(FileStream &sr) const {
+Ex<void> XmlDocument::save(FileStream &sr) const {
 	vector<char> buffer;
 	print(std::back_inserter(buffer), *m_ptr);
 	sr.saveData(buffer);

@@ -23,8 +23,8 @@ class Sound {
   public:
 	Sound(vector<char> data = {}, const SoundInfo & = SoundInfo());
 
-	static Expected<Sound> load(FileStream &);
-	Expected<void> save(FileStream &) const;
+	static Ex<Sound> load(FileStream &);
+	Ex<void> save(FileStream &) const;
 
 	const SoundInfo &info() const { return m_info; }
 	const auto &data() const { return m_data; }

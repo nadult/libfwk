@@ -125,7 +125,7 @@ class FileStream {
   private:
 	void reportError(string) NOINLINE;
 	FileStream();
-	friend Expected<FileStream> fileStream(ZStr, bool);
+	friend Ex<FileStream> fileStream(ZStr, bool);
 
 	string m_name;
 	void *m_file;
@@ -133,7 +133,6 @@ class FileStream {
 	bool m_is_loading, m_is_valid = true;
 };
 
-Expected<FileStream> fileLoader(ZStr file_name);
-Expected<FileStream> fileSaver(ZStr file_name);
-
+Ex<FileStream> fileLoader(ZStr file_name);
+Ex<FileStream> fileSaver(ZStr file_name);
 }

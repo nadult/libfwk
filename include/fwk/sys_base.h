@@ -97,6 +97,8 @@ struct PriorityTag4 : PriorityTag3 {};
 using PriorityTagMax = PriorityTag4;
 
 template <class> class Expected;
+template <class T> using Ex = Expected<T>;
+
 struct ErrorChunk;
 struct Error;
 

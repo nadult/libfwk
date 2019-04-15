@@ -14,17 +14,15 @@
 
 namespace fwk {
 
-Expected<FontCore> FontCore::load(ZStr file_name) {
+Ex<FontCore> FontCore::load(ZStr file_name) {
 	auto doc = XmlDocument::load(file_name);
 	return doc ? load(*doc) : doc.error();
 }
-Expected<FontCore> FontCore::load(const XmlDocument &doc) {
-	return FontCore::load(doc.child("font"));
-}
+Ex<FontCore> FontCore::load(const XmlDocument &doc) { return FontCore::load(doc.child("font")); }
 
 FontCore::FontCore() = default;
 
-Expected<FontCore> FontCore::load(CXmlNode font_node) {
+Ex<FontCore> FontCore::load(CXmlNode font_node) {
 	EXPECT(font_node);
 
 	FontCore out;

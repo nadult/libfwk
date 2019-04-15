@@ -8,7 +8,7 @@
 
 namespace fwk {
 namespace detail {
-	Expected<Texture> loadBMP(FileStream &sr) {
+	Ex<Texture> loadBMP(FileStream &sr) {
 
 		sr.signature("BM");
 

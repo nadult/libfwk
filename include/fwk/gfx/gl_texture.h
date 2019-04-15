@@ -21,7 +21,7 @@ class GlTexture {
 	using Flags = TextureFlags;
 
 	// TODO: cleanup these
-	static Expected<PTexture> load(ZStr file_name);
+	static Ex<PTexture> load(ZStr file_name);
 	static PTexture make(Format, const int2 &size, int multisample_count, Flags = Opt::multisample);
 	static PTexture make(Format, const int2 &size, Flags = {});
 	static PTexture make(Format, const Texture &, Flags = {});

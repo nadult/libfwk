@@ -63,7 +63,7 @@ string Converter::locateBlender() {
 #endif
 }
 
-Expected<string> Converter::exportFromBlender(const string &file_name, string &target_file_name) {
+Ex<string> Converter::exportFromBlender(const string &file_name, string &target_file_name) {
 	if(target_file_name.empty())
 		target_file_name = file_name + ".model";
 	string temp_script_name = file_name + ".py";
@@ -89,7 +89,7 @@ Expected<string> Converter::exportFromBlender(const string &file_name, string &t
 	return result->first;
 }
 
-Expected<Pair<PModel, string>> Converter::loadModel(FileType file_type, ZStr file_name) {
+Ex<Pair<PModel, string>> Converter::loadModel(FileType file_type, ZStr file_name) {
 	if(file_type == FileType::fwk_model) {
 		auto doc = move(XmlDocument::load(file_name).get());
 		XmlOnFailGuard xml_guard(doc);

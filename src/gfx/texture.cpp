@@ -12,9 +12,9 @@ namespace fwk {
 
 namespace detail {
 
-	Expected<Texture> loadBMP(FileStream &);
-	Expected<Texture> loadPNG(FileStream &);
-	Expected<Texture> loadTGA(FileStream &);
+	Ex<Texture> loadBMP(FileStream &);
+	Ex<Texture> loadPNG(FileStream &);
+	Ex<Texture> loadTGA(FileStream &);
 }
 
 Texture::Texture() {}
@@ -86,13 +86,13 @@ static TextureLoaders &loaders() {
 	return s_loaders;
 }
 
-Expected<Texture> Texture::load(ZStr file_name, Maybe<FileType> type) {
+Ex<Texture> Texture::load(ZStr file_name, Maybe<FileType> type) {
 	auto file = fileLoader(file_name);
 	return file ? load(*file, type) : file.error();
 	// TODO: when passing error forward, add information that we're loading a texture?
 }
 
-Expected<Texture> Texture::load(FileStream &sr, Maybe<FileType> type) {
+Ex<Texture> Texture::load(FileStream &sr, Maybe<FileType> type) {
 	if(!type) {
 		string file_name = sr.name();
 		auto dot_pos = file_name.rfind('.');

@@ -91,36 +91,36 @@ void initializeGlProgramFuncs() {
 
 GL_CLASS_IMPL(GlProgram)
 
-Expected<PProgram> GlProgram::make(PShader compute) {
+Ex<PProgram> GlProgram::make(PShader compute) {
 	PProgram ref(storage.make());
 	DASSERT(compute && compute->type() == ShaderType::compute);
 
 	auto ret = ref->set({compute}, {});
-	return ret ? ref : Expected<PProgram>(ret.error());
+	return ret ? ref : Ex<PProgram>(ret.error());
 }
 
-Expected<PProgram> GlProgram::make(PShader vertex, PShader fragment, CSpan<string> location_names) {
+Ex<PProgram> GlProgram::make(PShader vertex, PShader fragment, CSpan<string> location_names) {
 	PProgram ref(storage.make());
 	DASSERT(vertex && vertex->type() == ShaderType::vertex);
 	DASSERT(fragment && fragment->type() == ShaderType::fragment);
 
 	auto ret = ref->set({vertex, fragment}, location_names);
-	return ret ? ref : Expected<PProgram>(ret.error());
+	return ret ? ref : Ex<PProgram>(ret.error());
 }
 
-Expected<PProgram> GlProgram::make(PShader vertex, PShader geom, PShader fragment,
-								   CSpan<string> location_names) {
+Ex<PProgram> GlProgram::make(PShader vertex, PShader geom, PShader fragment,
+							 CSpan<string> location_names) {
 	PProgram ref(storage.make());
 	DASSERT(vertex && vertex->type() == ShaderType::vertex);
 	DASSERT(geom && geom->type() == ShaderType::geometry);
 	DASSERT(fragment && fragment->type() == ShaderType::fragment);
 
 	auto ret = ref->set({vertex, geom, fragment}, location_names);
-	return ret ? ref : Expected<PProgram>(ret.error());
+	return ret ? ref : Ex<PProgram>(ret.error());
 }
 
-Expected<PProgram> GlProgram::make(const string &vsh_file_name, const string &fsh_file_name,
-								   const string &predefined_macros, CSpan<string> location_names) {
+Ex<PProgram> GlProgram::make(const string &vsh_file_name, const string &fsh_file_name,
+							 const string &predefined_macros, CSpan<string> location_names) {
 	auto vsh = GlShader::load(ShaderType::vertex, vsh_file_name, predefined_macros);
 	if(!vsh)
 		return vsh.error();
@@ -130,7 +130,7 @@ Expected<PProgram> GlProgram::make(const string &vsh_file_name, const string &fs
 	return make(*vsh, *fsh, location_names);
 }
 
-Expected<void> GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
+Ex<void> GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
 	m_hash = fwk::hash<u64>(loc_names);
 
 	for(auto &shader : shaders) {

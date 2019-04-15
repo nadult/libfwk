@@ -17,14 +17,12 @@ DEFINE_ENUM(ProgramBindingType, shader_storage, uniform_block, atomic_counter, t
 class GlProgram {
 	GL_CLASS_DECL(GlProgram)
   public:
-	static Expected<PProgram> make(PShader compute);
-	static Expected<PProgram> make(PShader vertex, PShader fragment,
-								   CSpan<string> location_names = {});
-	static Expected<PProgram> make(PShader vertex, PShader geom, PShader fragment,
-								   CSpan<string> location_names = {});
-	static Expected<PProgram> make(const string &vsh_file_name, const string &fsh_file_name,
-								   const string &predefined_macros,
-								   CSpan<string> location_names = {});
+	static Ex<PProgram> make(PShader compute);
+	static Ex<PProgram> make(PShader vertex, PShader fragment, CSpan<string> location_names = {});
+	static Ex<PProgram> make(PShader vertex, PShader geom, PShader fragment,
+							 CSpan<string> location_names = {});
+	static Ex<PProgram> make(const string &vsh_file_name, const string &fsh_file_name,
+							 const string &predefined_macros, CSpan<string> location_names = {});
 
 	vector<Pair<string, int>> getBindings(ProgramBindingType) const;
 	vector<char> getBinary() const;
@@ -85,7 +83,7 @@ class GlProgram {
 	ZStr name() const { return m_name; }
 
   private:
-	Expected<void> set(CSpan<PShader>, CSpan<string> loc_names);
+	Ex<void> set(CSpan<PShader>, CSpan<string> loc_names);
 	void loadUniformInfo();
 	static void setUniformInitialized(int, int);
 

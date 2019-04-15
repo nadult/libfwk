@@ -17,13 +17,13 @@ GL_CLASS_IMPL(GlShader)
 static const EnumMap<ShaderType, int> gl_type_map{
 	{GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
 
-Expected<PShader> GlShader::load(Type type, ZStr file_name, const string &predefined_macros) {
+Ex<PShader> GlShader::load(Type type, ZStr file_name, const string &predefined_macros) {
 	auto text = loadFileString(file_name);
 	return text ? make(type, *text, predefined_macros, file_name) : text.error();
 }
 
-Expected<PShader> GlShader::make(Type type, const string &source, const string &predefined_macros,
-								 const string &name) {
+Ex<PShader> GlShader::make(Type type, const string &source, const string &predefined_macros,
+						   const string &name) {
 	int gl_id = glCreateShader(gl_type_map[type]);
 	int obj_id = storage.allocId(gl_id);
 	new(&storage.objects[obj_id]) GlShader();

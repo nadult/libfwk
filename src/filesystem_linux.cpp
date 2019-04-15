@@ -30,7 +30,7 @@ FilePath::Element FilePath::extractRoot(const char *str) {
 	return Element{nullptr, 0};
 }
 
-Expected<FilePath> FilePath::current() {
+Ex<FilePath> FilePath::current() {
 	char buffer[512];
 	char *name = getcwd(buffer, sizeof(buffer) - 1);
 	if(!name)
@@ -38,7 +38,7 @@ Expected<FilePath> FilePath::current() {
 	return FilePath(name);
 }
 
-Expected<void> FilePath::setCurrent(const FilePath &path) {
+Ex<void> FilePath::setCurrent(const FilePath &path) {
 	if(chdir(path.c_str()) != 0)
 		return ERROR("Error in chdir: %", strerror(errno));
 	return {};

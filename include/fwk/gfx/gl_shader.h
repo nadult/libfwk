@@ -15,9 +15,9 @@ class GlShader {
   public:
 	using Type = ShaderType;
 
-	static Expected<PShader> load(Type, ZStr file_name, const string &predefined_macros = string());
-	static Expected<PShader> make(Type, const string &source, const string &predefined_macros = {},
-								  const string &name = {});
+	static Ex<PShader> load(Type, ZStr file_name, const string &predefined_macros = string());
+	static Ex<PShader> make(Type, const string &source, const string &predefined_macros = {},
+							const string &name = {});
 
 	Type type() const;
 	string source() const;

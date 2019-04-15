@@ -273,7 +273,7 @@ void FileStream::signature(Str str) {
 	}
 }
 
-Expected<FileStream> fileStream(ZStr file_name, bool is_loading) {
+Ex<FileStream> fileStream(ZStr file_name, bool is_loading) {
 	auto *file = fopen(file_name.c_str(), is_loading ? "rb" : "wb");
 	if(!file)
 		return ERROR("Error while opening file \"%\"", file_name);
@@ -297,7 +297,6 @@ Expected<FileStream> fileStream(ZStr file_name, bool is_loading) {
 	return move(out);
 }
 
-Expected<FileStream> fileLoader(ZStr file_name) { return fileStream(file_name, true); }
-Expected<FileStream> fileSaver(ZStr file_name) { return fileStream(file_name, false); }
-
+Ex<FileStream> fileLoader(ZStr file_name) { return fileStream(file_name, true); }
+Ex<FileStream> fileSaver(ZStr file_name) { return fileStream(file_name, false); }
 }

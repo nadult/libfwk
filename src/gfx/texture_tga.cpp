@@ -38,7 +38,7 @@ namespace detail {
 		u8 image_descriptor;
 	};
 
-	Expected<Texture> loadTGA(FileStream &sr) {
+	Ex<Texture> loadTGA(FileStream &sr) {
 		TGAHeader hdr;
 		enum { max_width = 4096, max_height = 4096 };
 
@@ -87,7 +87,7 @@ namespace detail {
 	}
 }
 
-Expected<void> Texture::saveTGA(FileStream &sr) const {
+Ex<void> Texture::saveTGA(FileStream &sr) const {
 	detail::TGAHeader header;
 
 	header.data_type_code = 2;
@@ -110,7 +110,7 @@ Expected<void> Texture::saveTGA(FileStream &sr) const {
 	return {};
 }
 
-Expected<void> Texture::saveTGA(ZStr file_name) const {
+Ex<void> Texture::saveTGA(ZStr file_name) const {
 	auto file = fileSaver(file_name);
 	return file ? saveTGA(*file) : file.error();
 }

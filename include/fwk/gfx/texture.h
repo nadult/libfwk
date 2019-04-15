@@ -12,7 +12,7 @@ namespace fwk {
 
 struct HeightMap16bit {
   public:
-	static Expected<HeightMap16bit> load(FileStream &);
+	static Ex<HeightMap16bit> load(FileStream &);
 
 	vector<u16> data;
 	int2 size;
@@ -31,10 +31,10 @@ class Texture {
 
 	// Loading from TGA, BMP, PNG, DDS
 	// TODO: loading from memory (through DataStream or something)
-	static Expected<Texture> load(ZStr file_name, Maybe<FileType> = none);
-	static Expected<Texture> load(FileStream &, Maybe<FileType> = none);
+	static Ex<Texture> load(ZStr file_name, Maybe<FileType> = none);
+	static Ex<Texture> load(FileStream &, Maybe<FileType> = none);
 
-	using Loader = Expected<Texture> (*)(FileStream &);
+	using Loader = Ex<Texture> (*)(FileStream &);
 	struct RegisterLoader {
 		RegisterLoader(const char *locase_ext, Loader);
 	};
@@ -57,8 +57,8 @@ class Texture {
 
 	void swap(Texture &);
 
-	Expected<void> saveTGA(FileStream &) const;
-	Expected<void> saveTGA(ZStr file_name) const;
+	Ex<void> saveTGA(FileStream &) const;
+	Ex<void> saveTGA(ZStr file_name) const;
 
 	IColor *data() { return m_data.data(); }
 	const IColor *data() const { return m_data.data(); }

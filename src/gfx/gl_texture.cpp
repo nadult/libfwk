@@ -56,9 +56,9 @@ PTexture GlTexture::make(Format format, const int2 &size, Flags flags) {
 	return ref;
 }
 
-Expected<PTexture> GlTexture::load(ZStr file_name) {
+Ex<PTexture> GlTexture::load(ZStr file_name) {
 	auto tex = Texture::load(file_name);
-	return tex ? make(*tex) : Expected<PTexture>(tex.error());
+	return tex ? make(*tex) : Ex<PTexture>(tex.error());
 }
 
 PTexture GlTexture::make(Format format, const Texture &tex, Flags flags) {

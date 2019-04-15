@@ -35,14 +35,14 @@ FilePath::Element FilePath::extractRoot(const char *str) {
 	return Element{nullptr, 0};
 }
 
-Expected<FilePath> FilePath::current() {
+Ex<FilePath> FilePath::current() {
 	char buf[MAX_PATH];
 	if(!GetCurrentDirectory(sizeof(buf), buf))
 		return ERROR("Error in GetCurrentDirectory");
 	return FilePath(buf);
 }
 
-Expected<void> FilePath::setCurrent(const FilePath &path) {
+Ex<void> FilePath::setCurrent(const FilePath &path) {
 	if(!SetCurrentDirectory(path.c_str()))
 		return ERROR("Error in SetCurrentDirectory(%)", path);
 	return {};

@@ -27,13 +27,13 @@ namespace detail {
 }
 
 Any::Any() = default;
-Any::Any(Expected<Any> &&rhs) {
+Any::Any(Ex<Any> &&rhs) {
 	if(rhs)
 		*this = move(*rhs);
 	else
 		*this = move(rhs.error());
 }
-Any::Any(const Expected<Any> &rhs) {
+Any::Any(const Ex<Any> &rhs) {
 	if(rhs)
 		*this = *rhs;
 	else

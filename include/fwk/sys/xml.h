@@ -138,11 +138,11 @@ class XmlDocument {
 	~XmlDocument();
 	XmlDocument &operator=(XmlDocument &&);
 
-	static Expected<XmlDocument> load(ZStr file_name, int max_size = default_max_file_size);
-	static Expected<XmlDocument> make(CSpan<char> xml_data);
+	static Ex<XmlDocument> load(ZStr file_name, int max_size = default_max_file_size);
+	static Ex<XmlDocument> make(CSpan<char> xml_data);
 
-	Expected<void> save(ZStr file_name) const;
-	Expected<void> save(FileStream &) const;
+	Ex<void> save(ZStr file_name) const;
+	Ex<void> save(FileStream &) const;
 
 	XmlNode addChild(Str name, Str value = {});
 
