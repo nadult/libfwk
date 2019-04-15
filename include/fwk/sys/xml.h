@@ -18,6 +18,11 @@ template <class Ch> class xml_document;
 
 namespace fwk {
 
+// Error handling in XML:
+// - errors are stored in error registry (see sys/error.h)
+// - on any kind of error, default value is returned
+// - after parsing, user has to check for errors
+
 // Immutable XmlNode
 class CXmlNode {
   public:
@@ -172,7 +177,8 @@ namespace detail {
 		static auto testS(int) -> decltype(DECLVAL(const C &).save(DECLVAL(XmlNode)));
 		template <class C> static auto testS(...) -> Empty;
 
-		static constexpr bool constructible = !is_same<decltype(testC<T>(0)), Empty>,
+		static constexpr bool constructible =
+								  !is_same<decltype(testC<T>(0)), Empty> && !is_same<T, bool>,
 							  saveable = !is_same<decltype(testS<T>(0)), Empty>;
 
 		template <class C> static auto testFP(int) -> decltype(parse(DECLVAL(CXmlNode), Type<C>()));
@@ -196,8 +202,8 @@ constexpr bool is_xml_saveable =
 	detail::XmlTraits<T>::saveable || is_formattible<T> || detail::XmlTraits<T>::func_saveable;
 
 // To make type xml_constructible, you have to satisfy one of these conditions:
+// - provide parse(CXmlNode, Type<T>) -> T
 // - provide constructor T(CXmlNode)
-// - provide parse(CXmlNode, Type<T>, CXmlNode) -> T
 // - make sure that T is parsable
 template <class T>
 constexpr bool is_xml_parsable =

@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/any.h"
 #include "fwk/filesystem.h"
 #include "fwk/fwd_member.h"
 #include "fwk/hash_map.h"
@@ -69,6 +70,20 @@ void testVariant() {
 	auto temp = parse<Var1>(node);
 	ASSERT(temp == var);
 	ASSERT_EQ(toString(temp), "woohoo");
+}
+
+void testAny() {
+	XmlDocument doc;
+	auto node = doc.addChild("test");
+	Any any1(1234);
+	any1.save(node);
+	Any(false).save(doc.addChild("bool_node"));
+
+	Any any2(node);
+	ASSERT_EQ(any2.get<int>(), 1234);
+
+	Any any3(node, "bool");
+	ASSERT_EQ(any3.type(), typeInfo<Error>());
 }
 
 void testXMLConverters() {
@@ -177,6 +192,7 @@ void testFwdMember() {
 
 void testMain() {
 	testString();
+	testAny();
 	testTextFormatter();
 	testXMLConverters();
 	testPathOperations();

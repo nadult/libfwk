@@ -5,7 +5,6 @@
 
 #include "fwk/filesystem.h"
 #include "fwk/hash_map.h"
-#include "fwk/sys/rollback.h"
 
 namespace fwk {
 namespace detail {
@@ -25,9 +24,8 @@ void AnyRef::save(XmlNode node, bool save_type) const {
 	if(m_ptr) {
 		auto &type_infos = detail::anyTypeInfos();
 		auto it = type_infos.find(m_type.id());
-		if(it == type_infos.end() || !it->second.second) {
-			CHECK_FAILED("Error while saving %s to xml", m_type.name());
-		}
+		DASSERT(it != type_infos.end() && it->second.second && "Type is not XML-enabled");
+
 		it->second.second(m_ptr, node);
 		if(save_type)
 			node.addAttrib("_any_type", m_type.name());
@@ -37,7 +35,7 @@ void AnyRef::save(XmlNode node, bool save_type) const {
 bool AnyRef::xmlEnabled() const {
 	auto &type_infos = detail::anyTypeInfos();
 	auto it = type_infos.find(m_type.id());
-	ASSERT(it != type_infos.end());
+	DASSERT(it != type_infos.end());
 	return it->second.first && it->second.second;
 }
 }

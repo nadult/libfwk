@@ -8,7 +8,8 @@
 #include "fwk/sys/xml.h"
 #include "fwk/type_info_gen.h"
 
-// TODO: interaction with maybe ?
+// TODO: interaction with Maybe ?
+// TODO: conversion to Expected<T> and Expected<Any> ?
 // TODO: text format ?
 
 namespace fwk {
@@ -57,6 +58,10 @@ namespace detail {
 
 class AnyRef;
 
+// Can store any kind of value
+//
+// Supports serialization to/from XML. When some error happens during serialization,
+// Error will be constructed instead of some object which failed to load.
 class Any {
   public:
 	template <class T> using Model = detail::AnyModel<T>;
@@ -115,15 +120,14 @@ class Any {
 		return m_type.asConst() == typeInfo<const T>() ? (const T *)m_model->ptr() : nullptr;
 	}
 
-	// May return error
-	static Any tryConstruct(CXmlNode, ZStr type_name);
-	static Any tryConstruct(CXmlNode);
+	// May construct an Error
 	Any(CXmlNode, ZStr type_name);
 	Any(CXmlNode);
+	Any(XmlNode node) : Any(CXmlNode(node)) {}
 
-	// TODO: return expected void ?
 	void save(XmlNode node, bool save_type_name = true) const;
 	bool xmlEnabled() const;
+
 	void swap(Any &);
 
   private:

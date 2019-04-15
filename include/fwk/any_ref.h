@@ -43,6 +43,7 @@ class AnyRef {
 		return m_type.asConst() == typeInfo<const T>() ? (const T *)m_ptr : nullptr;
 	}
 
+	// Object has to be xmlEnabled()
 	void save(XmlNode, bool save_type_name = true) const;
 	bool xmlEnabled() const;
 
