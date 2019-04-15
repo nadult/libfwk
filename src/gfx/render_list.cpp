@@ -75,9 +75,9 @@ static PProgram getProgram(Str name) {
 
 	string macros = shade ? "#version 100\n#define SHADE\n" : "#version 100\n";
 
-	auto vsh = GlShader::make(ShaderType::vertex, vsh_src, macros, name);
-	auto fsh = GlShader::make(ShaderType::fragment, src, macros, name);
-	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"});
+	auto vsh = GlShader::make(ShaderType::vertex, vsh_src, macros, name).get();
+	auto fsh = GlShader::make(ShaderType::fragment, src, macros, name).get();
+	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"}).get();
 	GlDevice::instance().cacheAddProgram(name, out);
 	return out;
 }

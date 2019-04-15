@@ -91,35 +91,46 @@ void initializeGlProgramFuncs() {
 
 GL_CLASS_IMPL(GlProgram)
 
-PProgram GlProgram::make(PShader compute) {
+Expected<PProgram> GlProgram::make(PShader compute) {
 	PProgram ref(storage.make());
 	DASSERT(compute && compute->type() == ShaderType::compute);
 
-	ref->set({compute}, {});
-	return ref;
+	auto ret = ref->set({compute}, {});
+	return ret ? ref : Expected<PProgram>(ret.error());
 }
 
-PProgram GlProgram::make(PShader vertex, PShader fragment, CSpan<string> location_names) {
+Expected<PProgram> GlProgram::make(PShader vertex, PShader fragment, CSpan<string> location_names) {
 	PProgram ref(storage.make());
 	DASSERT(vertex && vertex->type() == ShaderType::vertex);
 	DASSERT(fragment && fragment->type() == ShaderType::fragment);
 
-	ref->set({vertex, fragment}, location_names);
-	return ref;
+	auto ret = ref->set({vertex, fragment}, location_names);
+	return ret ? ref : Expected<PProgram>(ret.error());
 }
 
-PProgram GlProgram::make(PShader vertex, PShader geom, PShader fragment,
-						 CSpan<string> location_names) {
+Expected<PProgram> GlProgram::make(PShader vertex, PShader geom, PShader fragment,
+								   CSpan<string> location_names) {
 	PProgram ref(storage.make());
 	DASSERT(vertex && vertex->type() == ShaderType::vertex);
 	DASSERT(geom && geom->type() == ShaderType::geometry);
 	DASSERT(fragment && fragment->type() == ShaderType::fragment);
 
-	ref->set({vertex, geom, fragment}, location_names);
-	return ref;
+	auto ret = ref->set({vertex, geom, fragment}, location_names);
+	return ret ? ref : Expected<PProgram>(ret.error());
 }
 
-void GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
+Expected<PProgram> GlProgram::make(const string &vsh_file_name, const string &fsh_file_name,
+								   const string &predefined_macros, CSpan<string> location_names) {
+	auto vsh = GlShader::load(ShaderType::vertex, vsh_file_name, predefined_macros);
+	if(!vsh)
+		return vsh.error();
+	auto fsh = GlShader::load(ShaderType::fragment, fsh_file_name, predefined_macros);
+	if(!fsh)
+		return fsh.error();
+	return make(*vsh, *fsh, location_names);
+}
+
+Expected<void> GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
 	m_hash = fwk::hash<u64>(loc_names);
 
 	for(auto &shader : shaders) {
@@ -141,21 +152,14 @@ void GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
 		PodVector<char> buffer(param);
 		glGetProgramInfoLog(id(), buffer.size(), 0, buffer.data());
 		buffer[buffer.size() - 1] = 0;
-		// TODO: better way to handle errors
-		// Rollback isn't very compatible with OpenGL
-		CHECK_FAILED("Error while linking program:\n%s", buffer.data());
+
+		return ERROR("Error while linking program:\n%", Str(buffer.data()));
 	}
 
 	for(auto &shader : shaders)
 		glDetachShader(id(), shader.id());
 	loadUniformInfo();
-}
-
-PProgram GlProgram::make(const string &vsh_file_name, const string &fsh_file_name,
-						 const string &predefined_macros, CSpan<string> location_names) {
-	return make(GlShader::load(ShaderType::vertex, vsh_file_name, predefined_macros),
-				GlShader::load(ShaderType::fragment, fsh_file_name, predefined_macros),
-				location_names);
+	return {};
 }
 
 string GlProgram::getInfo() const {

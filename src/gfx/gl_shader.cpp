@@ -17,13 +17,13 @@ GL_CLASS_IMPL(GlShader)
 static const EnumMap<ShaderType, int> gl_type_map{
 	{GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
 
-// TODO: return Expected
-PShader GlShader::load(Type type, ZStr file_name, const string &predefined_macros) {
-	return make(type, loadFileString(file_name).get(), predefined_macros, file_name);
+Expected<PShader> GlShader::load(Type type, ZStr file_name, const string &predefined_macros) {
+	auto text = loadFileString(file_name);
+	return text ? make(type, *text, predefined_macros, file_name) : text.error();
 }
 
-PShader GlShader::make(Type type, const string &source, const string &predefined_macros,
-					   const string &name) {
+Expected<PShader> GlShader::make(Type type, const string &source, const string &predefined_macros,
+								 const string &name) {
 	int gl_id = glCreateShader(gl_type_map[type]);
 	int obj_id = storage.allocId(gl_id);
 	new(&storage.objects[obj_id]) GlShader();
@@ -31,7 +31,6 @@ PShader GlShader::make(Type type, const string &source, const string &predefined
 
 	string full_source =
 		predefined_macros.empty() ? source : predefined_macros + "\n#line 0\n" + source;
-	ON_FAIL("Shader type: %", type);
 
 	GLint length = (GLint)full_source.size();
 	const char *string = full_source.data();
@@ -48,8 +47,7 @@ PShader GlShader::make(Type type, const string &source, const string &predefined
 	if(status != GL_TRUE) {
 		char buf[4096];
 		glGetShaderInfoLog(gl_id, sizeof(buf), 0, buf);
-		CHECK_FAILED("Compilation error of '%s':\n%s", name.c_str(), buf);
-		// TODO: allow shader to be in failed state; rollback isn't compatible with opengl
+		return ERROR("Compilation error of '%' (type: %):\n%", name, type, buf);
 	}
 
 	return ref;
@@ -61,6 +59,6 @@ ShaderType GlShader::type() const {
 	for(auto type : all<Type>())
 		if(gl_type_map[type] == gl_type)
 			return type;
-	FATAL("Invalid shader type");
+	FATAL("Invalid ShaderType");
 }
 }

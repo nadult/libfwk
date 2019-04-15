@@ -137,9 +137,6 @@ class Viewer {
 
 		auto font_path = dataPath("LiberationSans-Regular.ttf");
 		m_font.emplace(move(FontFactory().makeFont(font_path, 14, false).get()));
-
-		if(m_models.empty())
-			CHECK_FAILED("No models loaded\n");
 	}
 
 	bool handleInput(GlDevice &device, float time_diff) {
@@ -185,6 +182,8 @@ class Viewer {
 		m_target_view.rot = normalize(rot * m_target_view.rot);
 		return true;
 	}
+
+	bool valid() const { return !!m_models; }
 
 	void tick(float time_diff) {
 		m_view_config = lerp(m_view_config, m_target_view, 0.1f);
@@ -345,6 +344,11 @@ int main(int argc, char **argv) {
 
 	double init_time = getTime();
 	Viewer viewer(files);
+	if(!viewer.valid()) {
+		print("No models\n");
+		return 0;
+	}
+
 	gfx_device.runMainLoop(Viewer::mainLoop, &viewer);
 
 	return 0;

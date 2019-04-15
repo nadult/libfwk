@@ -119,6 +119,7 @@ Expected<Texture> Texture::load(FileStream &sr, Maybe<FileType> type) {
 	case FileType::png:
 		return detail::loadPNG(sr);
 	}
+	FATAL("Invalid FileType");
 }
 
 Texture::RegisterLoader::RegisterLoader(const char *ext, Loader func) {
