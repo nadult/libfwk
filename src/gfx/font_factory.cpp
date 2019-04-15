@@ -1,12 +1,13 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/hash_map.h"
+#include "fwk/gfx/font_factory.h"
 
 #include "fwk/format.h"
-#include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/texture.h"
+#include "fwk/hash_map.h"
+#include "fwk/sys/error.h"
 
 namespace fwk {
 
@@ -25,7 +26,6 @@ string32 FontFactory::basicMathCharset() {
 	ASSERT(text);
 	return *text;
 }
-
 }
 
 #ifdef FWK_TARGET_HTML5
@@ -58,31 +58,49 @@ Font FontFactory::makeFont(ZStr path, const string32 &charset, int size, bool lc
 
 namespace fwk {
 
-FontFactory::FontFactory() {
-	if(FT_Init_FreeType((FT_Library *)&m_library) != 0)
-		FATAL("Error while initializing FreeType");
+static const char *ftError(int err) {
+	if(err == FT_Err_Unknown_File_Format)
+		return "unknown file format";
+	return "unknown";
 }
+
+struct FontFactory::Impl {
+	FT_Library lib = nullptr;
+	HashMap<string, FT_Face> faces;
+
+	FT_Face getFace(ZStr path) {
+		DASSERT(lib);
+
+		auto it = faces.find(path);
+		if(it != faces.end())
+			return it->second;
+
+		FT_Face face;
+		FT_Error error = FT_New_Face(lib, path.c_str(), 0, &face);
+
+		if(error) {
+			REG_ERROR("Error while loading font face '%': % [%]", path, ftError(error), error);
+			return nullptr;
+		}
+		faces[path] = face;
+		return face;
+	}
+};
+
+FontFactory::FontFactory() {
+	m_impl.emplace();
+	if(FT_Init_FreeType(&m_impl->lib) != 0)
+		m_impl->lib = nullptr;
+}
+
+FontFactory::FontFactory(FontFactory &&) = default;
 
 FontFactory::~FontFactory() {
-	for(auto face : m_faces)
-		FT_Done_Face((FT_Face)face.second);
-	FT_Done_FreeType((FT_Library)m_library);
-}
-
-void *FontFactory::getFace(ZStr path) {
-	auto it = m_faces.find(path);
-	if(it != m_faces.end())
-		return it->second;
-
-	FT_Face face;
-	FT_Error error = FT_New_Face((FT_Library)m_library, path.c_str(), 0, &face);
-
-	if(error == FT_Err_Unknown_File_Format)
-		CHECK_FAILED("Error while loading font face '%s': unknown file format", path.c_str());
-	else if(error != 0)
-		CHECK_FAILED("Error while loading font face '%s'", path.c_str());
-	m_faces[path] = face;
-	return face;
+	if(m_impl->lib) {
+		for(auto face : m_impl->faces)
+			FT_Done_Face((FT_Face)face.second);
+		FT_Done_FreeType((FT_Library)m_impl->lib);
+	}
 }
 
 Texture FontFactory::makeTextureAtlas(vector<Pair<FontCore::Glyph, Texture>> &glyphs,
@@ -141,10 +159,17 @@ Texture FontFactory::makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	return makeTextureAtlas(glyphs, {256, 256});
 }
 
-Font FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode) {
-	auto face = (FT_Face)getFace(path);
+Expected<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px,
+									 bool lcd_mode) {
+	DASSERT(size_px > 0);
+	DASSERT(size_px < 1000 && "Please keep it reasonable");
+
+	if(!m_impl->lib)
+		return ERROR("FreeType not initialized properly or FontFactory moved");
+
+	auto face = m_impl->getFace(path);
 	if(FT_Set_Pixel_Sizes(face, 0, size_px) != 0)
-		FATAL("Error while creating font %s: failed on FT_Set_Pixel_Sizes", path.c_str());
+		return ERROR("Error in FT_Set_Pixel_Sizes while creating font %", path);
 
 	vector<Pair<FontCore::Glyph, Texture>> glyphs;
 	for(auto character : charset) {
@@ -202,7 +227,7 @@ Font FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool
 
 	FontCore out(oglyphs, okernings, atlas.size(), face->size->metrics.height / 64);
 
-	return {PFontCore(move(out)), GlTexture::make(atlas)};
+	return Font{PFontCore(move(out)), GlTexture::make(atlas)};
 }
 }
 

@@ -135,9 +135,8 @@ class Viewer {
 			m_models.emplace_back(model, default_mat, tex, file_name.first, file_name.second);
 		}
 
-		FontFactory factory;
 		auto font_path = dataPath("LiberationSans-Regular.ttf");
-		m_font = factory.makeFont(font_path, 14, false);
+		m_font.emplace(move(FontFactory().makeFont(font_path, 14, false).get()));
 
 		if(m_models.empty())
 			CHECK_FAILED("No models loaded\n");
