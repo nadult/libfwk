@@ -70,6 +70,11 @@ void testVariant() {
 	auto temp = parse<Var1>(node);
 	ASSERT(temp == var);
 	ASSERT_EQ(toString(temp), "woohoo");
+
+	using Var2 = Variant<int, float>;
+	auto temp2 = parse<Var2>(node);
+	ASSERT(anyErrors());
+	getSingleError();
 }
 
 void testAny() {

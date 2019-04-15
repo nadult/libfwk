@@ -532,7 +532,8 @@ ResultType const& get(T const& var) {
 namespace detail {
 	template <class T, class... Types> struct VariantC {
 		static T load(ZStr type_name, CXmlNode node) {
-			CHECK_FAILED("Invalid type_name: %s", type_name.c_str());
+			REG_ERROR("Invalid type_name: '%' when constructing variant", type_name);
+			return T();
 		}
 		static void save_(const T &variant, XmlNode node) {}
 	};
