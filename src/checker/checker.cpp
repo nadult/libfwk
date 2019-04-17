@@ -10,6 +10,7 @@
 #include "clang/Sema/Sema.h"
 #include "llvm/Support/raw_ostream.h"
 #include <iostream>
+#include <unordered_map>
 
 using namespace clang;
 using std::string;
@@ -44,12 +45,14 @@ bool isExpectedType(ASTContext &ctx, QualType qtype) {
 		auto tname = spec->getTemplateName();
 		auto *tdecl = tname.getAsTemplateDecl();
 		if(tdecl)
-			return tdecl->getName() == "Expected" && tdecl->getQualifiedNameAsString() == "fwk::Expected";
+			return tdecl->getName() == "Expected" &&
+				   tdecl->getQualifiedNameAsString() == "fwk::Expected";
 	}
 
 	return false;
 }
 
+// TODO: fix this function...
 bool hasAnnotation(const Decl *decl, Annotation anno) {
 	auto cur = getAnnotation(decl);
 	if(cur != Annotation::none)
@@ -67,63 +70,61 @@ bool hasAnnotation(const Decl *decl, Annotation anno) {
 	return anno == Annotation::none;
 }
 
-bool hasExceptAnnotation(const Expr *expr) {
+void getExcepts(const Expr *expr, std::vector<SourceLocation> &out) {
 	// TODO: there is no need for recursion here, we're doing it already for Stmts
 	if(expr->getStmtClass() == Stmt::StmtClass::DeclRefExprClass) {
 		const auto *spec = cast<DeclRefExpr>(expr);
-		return hasAnnotation(spec->getDecl(), Annotation::except);
+		if(hasAnnotation(spec->getDecl(), Annotation::except)) {
+			out.emplace_back(spec->getSourceRange().getBegin());
+			out.emplace_back(spec->getDecl()->getSourceRange().getBegin());
+		}
 	} else if(expr->getStmtClass() == Stmt::StmtClass::ImplicitCastExprClass) {
 		const auto *spec = cast<ImplicitCastExpr>(expr);
-		return hasExceptAnnotation(spec->getSubExpr());
-	} else if(expr->getStmtClass() == Stmt::StmtClass::UnresolvedLookupExprClass) {
-		const auto *spec = cast<UnresolvedLookupExpr>(expr);
-		return false;
+		getExcepts(spec->getSubExpr(), out);
 	}
-
-	return false;
 }
 
-bool hasExceptAnnotation(const Stmt *stmt) {
+void getExcepts(const Stmt *stmt, std::vector<SourceLocation> &out) {
 	if(!stmt)
-		return false;
+		return;
 
 	using SC = Stmt::StmtClass;
 	auto clazz = stmt->getStmtClass();
 	if(clazz == SC::CallExprClass || clazz == SC::CXXMemberCallExprClass) {
 		const auto *ce = cast<CallExpr>(stmt);
-		if(hasExceptAnnotation(ce->getCallee()))
-			return true;
+		getExcepts(ce->getCallee(), out);
 	}
 	if(clazz == SC::MemberExprClass) {
 		const auto *ce = cast<MemberExpr>(stmt);
-		if(hasAnnotation(ce->getMemberDecl(), Annotation::except))
-			return true;
+		if(hasAnnotation(ce->getMemberDecl(), Annotation::except)) {
+			out.emplace_back(ce->getSourceRange().getBegin());
+			out.emplace_back(ce->getMemberDecl()->getSourceRange().getBegin());
+		}
 	}
 	if(clazz == SC::CXXConstructExprClass) {
 		const auto *expr = cast<CXXConstructExpr>(stmt);
 		CXXConstructorDecl *constr = expr->getConstructor();
-		if(hasAnnotation(constr, Annotation::except))
-			return true;
+		if(hasAnnotation(constr, Annotation::except)) {
+			out.emplace_back(expr->getSourceRange().getBegin());
+			out.emplace_back(constr->getSourceRange().getBegin());
+		}
 	}
 
 	for(auto child : stmt->children())
-		if(hasExceptAnnotation(child))
-			return true;
-	return false;
+		getExcepts(child, out);
 }
 
-bool hasMissingExceptAnnotation(const FunctionDecl *decl) {
+std::vector<SourceLocation> getFunctionExcepts(const FunctionDecl *decl) {
 	if(!decl->hasBody())
-		return false;
-
+		return {};
 	using TK = FunctionDecl::TemplatedKind;
 	auto tk = decl->getTemplatedKind();
 	if(tk == TK::TK_FunctionTemplate) // TODO: how to handle this?
-		return false;
-	auto not_annotated = hasAnnotation(decl, Annotation::none);
-	bool body_except = hasExceptAnnotation(decl->getBody());
+		return {};
 
-	return not_annotated && body_except;
+	std::vector<SourceLocation> out;
+	getExcepts(decl->getBody(), out);
+	return out;
 }
 
 string functionName(const FunctionDecl *decl) {
@@ -159,18 +160,9 @@ class CheckErrorAttribsConsumer : public ASTConsumer {
 	CompilerInstance &ci;
 
   public:
-	CheckErrorAttribsConsumer(CompilerInstance &ci)
-		: ci(ci) {}
+	CheckErrorAttribsConsumer(CompilerInstance &ci) : ci(ci) {}
 
-	void reportError(const FunctionDecl *decl) {
-		auto &diags = ci.getDiagnostics();
-		auto diag_id =
-			diags.getCustomDiagID(DiagnosticsEngine::Error,
-								  "Missing EXCEPT attribute (function may generate exceptions)");
-
-		// TODO: inform about locations which are causing this error
-		diags.Report(decl->getSourceRange().getBegin(), diag_id);
-	}
+	void reportError(const FunctionDecl *decl) {}
 
 	struct Visitor : public RecursiveASTVisitor<Visitor> {
 		Visitor(ASTContext &ctx) : ctx(ctx) {}
@@ -178,20 +170,23 @@ class CheckErrorAttribsConsumer : public ASTConsumer {
 		bool shouldVisitTemplateInstantiations() const { return true; }
 
 		bool VisitFunctionDecl(FunctionDecl *decl) {
-			bool missing = hasMissingExceptAnnotation(decl);
-			bool return_expected = missing && isExpectedType(ctx, decl->getReturnType());
+			auto excepts = getFunctionExcepts(decl);
+			auto is_annotated = !hasAnnotation(decl, Annotation::none);
+			bool return_expected = isExpectedType(ctx, decl->getReturnType());
 
-			if(missing) {
-				DBG_PRINT("Function: %s%s%s\n", functionName(decl).c_str(),
-						  missing ? " Missing attribute" : "",
+			if(!excepts.empty() || is_annotated) {
+				DBG_PRINT("Function: %s%s\n", functionName(decl).c_str(),
 						  return_expected ? " Returns expected" : "");
 			}
-			if(missing && !return_expected)
-				error_decls.emplace_back(firstDeclaration(decl));
+
+			if(!excepts.empty() && !is_annotated && !return_expected) {
+				auto &elem = errors[decl];
+				elem.insert(elem.end(), excepts.begin(), excepts.end());
+			}
 			return true;
 		}
 
-		std::vector<const FunctionDecl *> error_decls;
+		std::unordered_map<const FunctionDecl *, std::vector<SourceLocation>> errors;
 		ASTContext &ctx;
 	};
 
@@ -199,25 +194,31 @@ class CheckErrorAttribsConsumer : public ASTConsumer {
 		Visitor v(ctx);
 		v.TraverseDecl(ctx.getTranslationUnitDecl());
 
-		auto &edecls = v.error_decls;
-		makeUnique(edecls);
-		for(auto *decl : edecls)
-			reportError(decl);
+		auto &diags = ci.getDiagnostics();
+		auto err_id = diags.getCustomDiagID(DiagnosticsEngine::Error, "Missing EXCEPT attribute");
+		auto note_id = diags.getCustomDiagID(DiagnosticsEngine::Note, "Caused by this statement");
+		auto ref_id =
+			diags.getCustomDiagID(DiagnosticsEngine::Note, "Referencing following function");
 
-		clang::Sema &sema = ci.getSema();
+		for(auto [decl, locs] : v.errors) {
+			diags.Report(decl->getSourceRange().getBegin(), err_id);
+			for(uint n = 0; n < locs.size(); n += 2) {
+				diags.Report(locs[n + 0], note_id);
+				diags.Report(locs[n + 1], ref_id);
+			}
+		}
 	}
 };
 
 class CheckErrorAttribsAction : public PluginASTAction {
   protected:
 	std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI, llvm::StringRef) override {
-		return llvm::make_unique<CheckErrorAttribsConsumer>(CI );
+		return llvm::make_unique<CheckErrorAttribsConsumer>(CI);
 	}
 
 	bool ParseArgs(const CompilerInstance &CI, const std::vector<std::string> &args) override {
 		return true;
 	}
-
 };
 
 }
