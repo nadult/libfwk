@@ -18,7 +18,7 @@ namespace fwk {
 // - when error happens all following operations will not be performed
 // - when loading: returned data will be zeroed, vectors & strings will be empty
 // - errors will be added to error registry (see sys/error.h)
-class FileStream {
+class EXCEPT FileStream {
   public:
 	static constexpr int default_max_string_size = 64 * 1024 * 1024;
 	static constexpr int default_max_vector_size = 1024 * 1024 * 1024;

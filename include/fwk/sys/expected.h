@@ -21,8 +21,7 @@ namespace fwk {
 			return fwk::getSingleError();                                                          \
 	}
 
-template <class T>
-class [[nodiscard]] Expected {
+template <class T> class NOEXCEPT [[nodiscard]] Expected {
   public:
 	static_assert(!is_same<T, Error>);
 
@@ -97,8 +96,7 @@ class [[nodiscard]] Expected {
 	bool m_has_value;
 };
 
-template <>
-class [[nodiscard]] Expected<void> {
+template <> class [[nodiscard]] Expected<void> {
   public:
 	// TODO: should we check here if there were any errors? and return them if so?
 	Expected() {}

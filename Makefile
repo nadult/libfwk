@@ -116,7 +116,7 @@ checker.so: .ALWAYS_CHECK
 	$(MAKE) -C src/checker/ ../../checker.so
 
 ifneq ("$(wildcard checker.so)","")
-LINUX_CHECKER_FLAGS+=-Xclang -load -Xclang  $(realpath checker.so) -Xclang -plugin -Xclang check-error-attribs
+LINUX_CHECKER_FLAGS+=-Xclang -load -Xclang  $(realpath checker.so) -Xclang -add-plugin -Xclang check-error-attribs
 else
 LINUX_CHECKER_FLAGS=
 endif

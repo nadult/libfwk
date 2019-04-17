@@ -2,7 +2,7 @@
 
 BUILD_DIR=../../build/checker
 MINGW_PREFIX=i686-w64-mingw32.static-
-LINUX_CXX=clang++
+LINUX_CXX=clang++-8
 FLAGS=
 
 LLVM_DIR=/usr/lib/llvm-8
@@ -36,10 +36,6 @@ PCH_FILE_PCH=$(BUILD_DIR)/pch.h.pch
 PCH_INCLUDE=-include-pch $(PCH_FILE_PCH)
 PCH_FILE_MAIN=$(PCH_FILE_PCH)
 
-$(PCH_FILE_H): $(PCH_FILE_SRC)
-	cp $^ $@
-$(PCH_FILE_MAIN): $(PCH_FILE_H)
-	$(LINUX_CXX) -x c++-header -MMD $(PCH_FILE_H) -o $@
 
 #LLVM_LIBS=-lclangFrontendTool -lclangFrontend -lclangDriver -lclangSerialization -lclangCodeGen -lclangParse \
 		  -lclangSema -lclangStaticAnalyzerFrontend -lclangStaticAnalyzerCheckers -lclangStaticAnalyzerCore \
@@ -59,7 +55,12 @@ LINUX_FLAGS=$(FLAGS)
 
 LINUX_STRIP=strip
 
-$(DEPS): $(BUILD_DIR)/%.dep: %.cpp $(PCH_FILE_H).d
+$(PCH_FILE_H): $(PCH_FILE_SRC)
+	cp $^ $@
+$(PCH_FILE_MAIN): $(PCH_FILE_H)
+	$(LINUX_CXX) $(LINUX_FLAGS) -x c++-header -MMD $(PCH_FILE_H) -o $@
+
+$(DEPS): $(BUILD_DIR)/%.dep: %.cpp
 	-$(LINUX_CXX) $(LINUX_FLAGS) -MM $< -MT $(BUILD_DIR)/$*.o   > $@
 
 $(LINUX_OBJECTS): $(BUILD_DIR)/%.o:  %.cpp $(PCH_FILE_MAIN)
@@ -69,8 +70,8 @@ $(LINUX_PLUGINS): ../../%.so:  $(LINUX_PLUGIN_OBJECTS) $(BUILD_DIR)/%.o
 	    $(LINUX_CXX) -shared -o $@ $^ $(LIBS_$@) $(LINUX_LIBS)
 
 clean:
-	-rm -f $(LINUX_PLUGINS) $(LINUX_PLUGIN_OBJECTS) $(DEPS) $(BUILD_DIR)/.depend
-	-rmdir output
+	-rm -f $(LINUX_PLUGINS) $(LINUX_PLUGIN_OBJECTS) $(DEPS) $(BUILD_DIR)/.depend \
+		$(PCH_FILE_PCH) $(PCH_FILE_H) $(PCH_FILE_H).d
 	find $(BUILD_DIR) -type d -empty -delete
 	
 $(BUILD_DIR)/.depend: $(DEPS)

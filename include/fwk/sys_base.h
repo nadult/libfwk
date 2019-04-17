@@ -15,6 +15,9 @@
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))
 
+#define EXCEPT __attribute__((annotate("except")))
+#define NOEXCEPT __attribute__((annotate("not_except")))
+
 #ifdef __clang__
 #define ATTRIB_PRINTF(fmt, next) __attribute__((__format__(__printf__, fmt, next)))
 #else

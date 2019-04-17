@@ -7,8 +7,6 @@
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys_base.h"
 
-#define EXCEPT __attribute__((annotate("except")))
-
 namespace fwk {
 
 // TODO: jak zbierać różne błędy do kupy ?
