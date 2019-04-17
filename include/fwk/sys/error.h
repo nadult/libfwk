@@ -7,6 +7,8 @@
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys_base.h"
 
+#define EXCEPT __attribute__((annotate("except")))
+
 namespace fwk {
 
 // TODO: jak zbierać różne błędy do kupy ?
@@ -76,12 +78,7 @@ inline int numErrors() { return detail::t_num_errors; }
 // TODO: There should be at most 1 error
 vector<Error> getErrors();
 Error getSingleError();
-void regError(Error, int bt_skip = 0);
-
-template <class... T, EnableIfFormattible<T...>...>
-void regError(ErrorLoc loc, const char *fmt, T &&... args) {
-	regError(loc, format(fmt, std::forward<T>(args)...));
-}
+void regError(Error, int bt_skip = 0) EXCEPT;
 
 #define ERROR(...) fwk::Error({__FILE__, __LINE__}, __VA_ARGS__)
 

@@ -6,3 +6,4 @@
 /temp
 /.ycm_extra_conf.pyc
 /Makefile.local
+/checker.so

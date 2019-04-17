@@ -35,7 +35,7 @@ template <class... Args> using EnableIfParsable = EnableIf<(... && is_parsable<A
 // Errors will be stored in Error register (see fwk/sys/error.h)
 // TODO: strings with whitespace in them
 // TODO: drop requirement of 0-termination
-class TextParser {
+class EXCEPT TextParser {
   public:
 	TextParser(ZStr str) : m_current(str) {}
 

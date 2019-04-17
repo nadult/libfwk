@@ -16,14 +16,14 @@ namespace fwk {
 
 namespace {
 
-	static void reportParseError(Str, const char *, int) NOINLINE;
+	static void reportParseError(Str, const char *, int) NOINLINE EXCEPT;
 	void reportParseError(Str str, const char *type_name, int count) {
 		string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
 		auto short_str = str.limitSizeBack(40);
 		REG_ERROR("Error while parsing %% from \"%\"", what, count > 1 ? "s" : "", short_str);
 	}
 
-	static void reportOutOfRange(Str, const char *) NOINLINE;
+	static void reportOutOfRange(Str, const char *) NOINLINE EXCEPT;
 	void reportOutOfRange(Str str, const char *type_name) {
 		auto short_str = str.limitSizeBack(40);
 		REG_ERROR("Error while parsing %: value out of range: \"%\"", type_name, short_str);
@@ -34,7 +34,8 @@ namespace {
 	auto strtoll(const char *ptr, char **end_ptr) { return ::strtoll(ptr, end_ptr, 0); }
 	auto strtoull(const char *ptr, char **end_ptr) { return ::strtoull(ptr, end_ptr, 0); }
 
-	template <class Func> auto parseSingle(TextParser &parser, Func func, const char *type_name) {
+	template <class Func>
+	auto parseSingle(TextParser &parser, Func func, const char *type_name) EXCEPT {
 		const char *str = parser.parseElement().data();
 		char *end_ptr = nullptr;
 		errno = 0;
@@ -45,7 +46,7 @@ namespace {
 	}
 
 	template <class T, class Func>
-	T parseSingleRanged(TextParser &parser, Func func, const char *type_name) {
+	T parseSingleRanged(TextParser &parser, Func func, const char *type_name) EXCEPT {
 		auto element = parser.parseElement();
 
 		char *end_ptr = nullptr;
