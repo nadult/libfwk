@@ -40,7 +40,7 @@ namespace detail {
 
 		T value;
 
-		static AnyXmlConstructor makeConstructor() {
+		static AnyXmlConstructor makeConstructor() NOEXCEPT {
 			if constexpr(is_xml_parsable<T>)
 				return [](CXmlNode n) -> AnyBase * { return new AnyModel<T>(parse<T>(n)); };
 			return nullptr;

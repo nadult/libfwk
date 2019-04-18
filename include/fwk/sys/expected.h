@@ -48,9 +48,9 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 	static_assert(!is_same<T, Error>);
 
 	// TODO: should we check here if there were any errors? and return them if so?
-	Expected(const T &value) : m_value(value), m_has_value(true) { DASSERT(!anyExceptions()); }
-	Expected(T && value) : m_value(move(value)), m_has_value(true) { DASSERT(!anyExceptions()); }
-	Expected(Error error) : m_error(move(error)), m_has_value(false) { DASSERT(!anyExceptions()); }
+	Expected(const T &value) : m_value(value), m_has_value(true) { PASSERT(!anyExceptions()); }
+	Expected(T && value) : m_value(move(value)), m_has_value(true) { PASSERT(!anyExceptions()); }
+	Expected(Error error) : m_error(move(error)), m_has_value(false) { PASSERT(!anyExceptions()); }
 	~Expected() {
 		if(m_has_value)
 			m_value.~T();
@@ -121,8 +121,8 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 template <> class [[nodiscard]] Expected<void> {
   public:
 	// TODO: should we check here if there were any errors? and return them if so?
-	Expected() { DASSERT(!anyExceptions()); }
-	Expected(Error error) : m_error(move(error)) { DASSERT(!anyExceptions()); }
+	Expected() { PASSERT(!anyExceptions()); }
+	Expected(Error error) : m_error(move(error)) { PASSERT(!anyExceptions()); }
 
 	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
 

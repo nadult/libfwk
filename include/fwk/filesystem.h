@@ -76,7 +76,7 @@ class FilePath {
 	string m_path; // its always non-empty
 };
 
-TextParser &operator>>(TextParser &, FilePath &);
+TextParser &operator>>(TextParser &, FilePath &) EXCEPT;
 
 struct FileEntry {
 	FilePath path;

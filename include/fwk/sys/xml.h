@@ -209,7 +209,7 @@ template <class T>
 constexpr bool is_xml_parsable =
 	detail::XmlTraits<T>::constructible || is_parsable<T> || detail::XmlTraits<T>::func_parsable;
 
-template <class T, EnableIf<is_xml_parsable<T>>...> T parse(CXmlNode node) {
+template <class T, EnableIf<is_xml_parsable<T>>...> T parse(CXmlNode node) EXCEPT {
 	if constexpr(detail::XmlTraits<T>::func_parsable)
 		return parse(node, Type<T>());
 	else if constexpr(detail::XmlTraits<T>::constructible)

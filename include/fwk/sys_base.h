@@ -16,6 +16,7 @@
 #define ALWAYS_INLINE __attribute__((always_inline))
 
 // EXCEPT means that function can raise exceptions by adding them to per-thread exception stack.
+// Putting it on a class adds it to every member (member attribute has higher priority though).
 //
 // By default every function is NOEXCEPT; You can use NOEXCEPT if checker marks some function
 // as EXCEPT even though it doesn't raise exceptions. When you add NOEXCEPT, you're responsible

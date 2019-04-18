@@ -539,7 +539,7 @@ namespace detail {
 	};
 
 	template <class T, class T1, class... Types> struct VariantC<T, T1, Types...> {
-		static T load(ZStr type_name, CXmlNode node) ALWAYS_INLINE {
+		static T load(ZStr type_name, CXmlNode node) ALWAYS_INLINE EXCEPT {
 			if(type_name == typeName<T1>())
 				return parse<T1>(node);
 			return VariantC<T, Types...>::load(type_name, node);

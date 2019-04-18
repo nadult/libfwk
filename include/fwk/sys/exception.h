@@ -33,9 +33,6 @@ namespace detail {
 	extern __thread int t_num_exceptions;
 }
 
-// Simple per-thread error register
-// TODO: explain
-
 inline bool anyExceptions() { return detail::t_num_exceptions > 0; }
 inline bool noExceptions() { return detail::t_num_exceptions == 0; }
 inline int numExceptions() { return detail::t_num_exceptions; }
