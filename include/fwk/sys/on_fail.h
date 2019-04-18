@@ -44,7 +44,7 @@ struct OnFailGuard {
 	~OnFailGuard() { onFailPop(); }
 };
 
-Error onFailMakeError(const char *file, int line, const char *main_message, bool rollback_bt_mode);
+Error onFailMakeError(const char *file, int line, const char *main_message);
 
 // Use it just like you would use fwk::format
 // Maximum nr of additional arguments: 8

@@ -6,10 +6,10 @@
 #include "fwk/format.h"
 #include "fwk/math/quat.h"
 #include "fwk/parse.h"
-#include "fwk/sys/rollback.h"
 
 using namespace fwk;
 
+// TODO: ASSERT_EXCEPTION ?
 #define ASSERT_FAIL(code)                                                                          \
 	{                                                                                              \
 		auto result = ({ code; });                                                                 \

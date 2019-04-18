@@ -4,7 +4,6 @@
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/error.h"
 #include "fwk/sys/on_fail.h"
-#include "fwk/sys/rollback.h"
 #include <cstdarg>
 
 namespace fwk {
@@ -30,7 +29,7 @@ int onFailStackSize() { return detail::t_on_fail_count; }
 
 static __thread bool s_fail_protect = false;
 
-Error onFailMakeError(const char *file, int line, const char *main_message, bool rollback_bt_mode) {
+Error onFailMakeError(const char *file, int line, const char *main_message) {
 	if(s_fail_protect) {
 		printf("%s:%d: %s\nFATAL ERROR in libfwk (error within an error)\n", file, line,
 			   main_message);
@@ -40,9 +39,7 @@ Error onFailMakeError(const char *file, int line, const char *main_message, bool
 
 	s_fail_protect = true;
 
-	auto roll_status = RollbackContext::status();
-	auto bt = Backtrace::get(
-		3, nullptr, rollback_bt_mode ? roll_status.backtrace_mode : Backtrace::t_default_mode);
+	auto bt = Backtrace::get(3, nullptr, Backtrace::t_default_mode);
 
 	vector<ErrorChunk> chunks;
 	using namespace detail;

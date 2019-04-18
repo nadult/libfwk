@@ -5,7 +5,6 @@
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/error.h"
 #include "fwk/sys/on_fail.h"
-#include "fwk/sys/rollback.h"
 #include <cstdarg>
 
 namespace fwk {
@@ -24,7 +23,7 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	onFailMakeError(file, line, buffer, false).print();
+	onFailMakeError(file, line, buffer).print();
 	asm("int $3");
 #endif
 	exit(1);
@@ -39,7 +38,7 @@ void assertFailed(const char *file, int line, const char *text) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	onFailMakeError(file, line, buffer, false).print();
+	onFailMakeError(file, line, buffer).print();
 	asm("int $3");
 #endif
 	exit(1);
@@ -59,9 +58,7 @@ void checkFailed(const char *file, int line, const char *fmt, ...) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
-	auto error = onFailMakeError(file, line, buffer, true);
-	if(RollbackContext::canRollback())
-		RollbackContext::rollback(error);
+	auto error = onFailMakeError(file, line, buffer);
 
 	error.print();
 	asm("int $3");
@@ -77,10 +74,8 @@ void checkFailed(const char *file, int line, Error error) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", text.c_str());
 	emscripten_force_exit(1);
 #else
-	auto error2 = onFailMakeError(file, line, text.c_str(), true);
+	auto error2 = onFailMakeError(file, line, text.c_str());
 	error2.values.swap(error.values);
-	if(RollbackContext::canRollback())
-		RollbackContext::rollback(error2);
 
 	error2.print();
 	asm("int $3");
