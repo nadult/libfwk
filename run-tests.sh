@@ -6,4 +6,3 @@ cd tests
 ./enums
 ./models
 ./vector
-./rollback_test

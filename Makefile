@@ -43,7 +43,7 @@ SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_in
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array
 
 TESTS_SRC=tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
-			tests/variant_perf tests/rollback_test
+			tests/variant_perf
 TOOLS_SRC=tools/model_convert tools/model_viewer
 PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
