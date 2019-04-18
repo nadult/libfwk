@@ -8,11 +8,20 @@
 
 namespace fwk {
 
+template <class T> auto getError(const T &value, const char *expr, const char *file, int line) {
+	return fwk::Error({file, line}, expr);
+}
+
+template <class T> auto getError(const Expected<T> &value, const char *, const char *, int) {
+	return value.error();
+}
+
 // These macros will return Error on fail
 #define EXPECT(expr)                                                                               \
 	{                                                                                              \
-		if(!(expr))                                                                                \
-			return Error(FWK_STRINGIZE(expr), __FILE__, __LINE__);                                 \
+		auto &&value = ((expr));                                                                   \
+		if(!value)                                                                                 \
+			return fwk::getError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);                  \
 	}
 
 #define EXPECT_NO_ERRORS()                                                                         \
@@ -20,6 +29,21 @@ namespace fwk {
 		if(fwk::anyErrors())                                                                       \
 			return fwk::getSingleError();                                                          \
 	}
+
+#define EXPECT_TRY(...)                                                                            \
+	({                                                                                             \
+		auto result = __VA_ARGS__;                                                                 \
+		static_assert(fwk::is_expected<decltype(result)>,                                          \
+					  "You have to pass Expected<...> to EXPECT_TRY");                             \
+		if(!result)                                                                                \
+			return result.error();                                                                 \
+		move(result.get());                                                                        \
+	})
+
+// TODO: how to handle both void & non void here ?
+
+template <class T> constexpr bool is_expected = false;
+template <class T> constexpr bool is_expected<Expected<T>> = true;
 
 template <class T> class NOEXCEPT [[nodiscard]] Expected {
   public:
