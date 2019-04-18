@@ -60,31 +60,4 @@ struct Error {
 	vector<Any> values;
 };
 
-namespace detail {
-	extern __thread int t_num_errors;
-}
-
-// Simple per-thread error register
-// TODO: explain
-
-inline bool anyErrors() { return detail::t_num_errors > 0; }
-inline bool noErrors() { return detail::t_num_errors == 0; }
-inline int numErrors() { return detail::t_num_errors; }
-
-// TODO: There should be at most 1 error
-vector<Error> getErrors();
-Error getSingleError();
-void regError(Error, int bt_skip = 0) EXCEPT;
-
-#define ERROR(...) fwk::Error({__FILE__, __LINE__}, __VA_ARGS__)
-
-// TODO: naming
-#define REG_CHECK(expr)                                                                            \
-	{                                                                                              \
-		if(!(expr))                                                                                \
-			fwk::regError(FWK_STRINGIZE(expr), __FILE__, __LINE__);                                \
-	}
-
-#define REG_ERROR(...)                                                                             \
-	{ fwk::regError(fwk::Error({__FILE__, __LINE__}, __VA_ARGS__)); }
 }

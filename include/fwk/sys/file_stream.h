@@ -123,7 +123,7 @@ class EXCEPT FileStream {
 	void signature(Str);
 
   private:
-	void reportError(string) NOINLINE;
+	void raise(string) NOINLINE;
 	FileStream();
 	friend Ex<FileStream> fileStream(ZStr, bool);
 

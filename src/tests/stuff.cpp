@@ -73,8 +73,8 @@ void testVariant() {
 
 	using Var2 = Variant<int, float>;
 	auto temp2 = parse<Var2>(node);
-	ASSERT(anyErrors());
-	getSingleError();
+	ASSERT(anyExceptions());
+	clearExceptions();
 }
 
 void testAny() {

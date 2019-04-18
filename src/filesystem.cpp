@@ -342,7 +342,7 @@ Ex<string> loadFileString(ZStr file_name, int max_size) {
 		return ERROR("File '%' size too big: % > %", file_name, file->size(), max_size);
 	string out(file->size(), ' ');
 	file->loadData(out);
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return out;
 }
 
@@ -355,7 +355,7 @@ Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 		return ERROR("File '%' size too big: % > %", file_name, file->size(), max_size);
 	PodVector<char> out(file->size());
 	file->loadData(out);
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	vector<char> vout;
 	out.unsafeSwap(vout);
 	return move(vout);
@@ -367,7 +367,7 @@ Ex<void> saveFile(ZStr file_name, CSpan<char> data) {
 		return file.error();
 
 	file->saveData(data);
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return {};
 }
 }

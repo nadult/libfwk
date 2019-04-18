@@ -20,13 +20,13 @@ namespace {
 	void reportParseError(Str str, const char *type_name, int count) {
 		string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
 		auto short_str = str.limitSizeBack(40);
-		REG_ERROR("Error while parsing %% from \"%\"", what, count > 1 ? "s" : "", short_str);
+		EXCEPTION("Error while parsing %% from \"%\"", what, count > 1 ? "s" : "", short_str);
 	}
 
 	static void reportOutOfRange(Str, const char *) NOINLINE EXCEPT;
 	void reportOutOfRange(Str str, const char *type_name) {
 		auto short_str = str.limitSizeBack(40);
-		REG_ERROR("Error while parsing %: value out of range: \"%\"", type_name, short_str);
+		EXCEPTION("Error while parsing %: value out of range: \"%\"", type_name, short_str);
 	}
 
 	auto strtol(const char *ptr, char **end_ptr) { return ::strtol(ptr, end_ptr, 0); }
@@ -99,7 +99,7 @@ void TextParser::advanceWhitespace() {
 }
 
 void TextParser::errorTrailingData() {
-	REG_ERROR("Trailing data left after parsing: '%'", current().limitSizeBack(20));
+	EXCEPTION("Trailing data left after parsing: '%'", current().limitSizeBack(20));
 }
 
 TextParser &TextParser::operator>>(Str &out) {
@@ -120,7 +120,7 @@ TextParser &TextParser::operator>>(bool &out) {
 	else if(element.compareIgnoreCase("false") == 0 || element == "0")
 		out = false;
 	else {
-		REG_ERROR("Error while parsing bool from \"%\"", element);
+		EXCEPTION("Error while parsing bool from \"%\"", element);
 		out = false;
 	}
 
@@ -185,7 +185,7 @@ void TextParser::parseNotEmpty(Span<Str> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
 		if(out[n].empty())
-			REG_ERROR("Error while parsing a range of % not-empty strings (parsed: %)", out.size(),
+			EXCEPTION("Error while parsing a range of % not-empty strings (parsed: %)", out.size(),
 					  n);
 	}
 }
@@ -194,7 +194,7 @@ void TextParser::parseNotEmpty(Span<string> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
 		if(out[n].empty())
-			REG_ERROR("Error while parsing a range of % not-empty strings (parsed: %)", out.size(),
+			EXCEPTION("Error while parsing a range of % not-empty strings (parsed: %)", out.size(),
 					  n);
 	}
 }

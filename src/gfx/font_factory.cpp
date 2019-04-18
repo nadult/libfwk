@@ -68,7 +68,7 @@ struct FontFactory::Impl {
 	FT_Library lib = nullptr;
 	HashMap<string, FT_Face> faces;
 
-	FT_Face getFace(ZStr path) {
+	Ex<FT_Face> getFace(ZStr path) {
 		DASSERT(lib);
 
 		auto it = faces.find(path);
@@ -78,10 +78,8 @@ struct FontFactory::Impl {
 		FT_Face face;
 		FT_Error error = FT_New_Face(lib, path.c_str(), 0, &face);
 
-		if(error) {
-			REG_ERROR("Error while loading font face '%': % [%]", path, ftError(error), error);
-			return nullptr;
-		}
+		if(error)
+			return ERROR("Error while loading font face '%': % [%]", path, ftError(error), error);
 		faces[path] = face;
 		return face;
 	}
@@ -166,7 +164,7 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 	if(!m_impl->lib)
 		return ERROR("FreeType not initialized properly or FontFactory moved");
 
-	auto face = m_impl->getFace(path);
+	auto face = EXPECT_TRY(m_impl->getFace(path));
 	if(FT_Set_Pixel_Sizes(face, 0, size_px) != 0)
 		return ERROR("Error in FT_Set_Pixel_Sizes while creating font %", path);
 

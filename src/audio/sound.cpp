@@ -25,7 +25,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 	sr.signature("fmt ");
 	sr.unpack(chunk_size[1], format, channels, frequency, byteRate, block_align, bits);
 
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	EXPECT(block_align == channels * (bits / 8));
 	EXPECT(format == 1 && "Only PCM format is supported");
 
@@ -43,7 +43,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 
 	Sound sound(move(data), {(int)frequency, bits, channels > 1});
 
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return move(sound);
 }
 
@@ -70,7 +70,7 @@ Ex<void> Sound::save(FileStream &sr) const {
 	sr << u32(m_data.size());
 	sr.saveData(m_data);
 
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return {};
 }
 

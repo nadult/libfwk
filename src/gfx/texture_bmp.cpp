@@ -48,7 +48,7 @@ namespace detail {
 			}
 		}
 
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 
 		int max_size = 4096;
 		if(bpp != 24 && bpp != 32 && bpp != 8)
@@ -104,7 +104,7 @@ namespace detail {
 			}
 		}
 
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 		return Texture(move(data), {width, height});
 	}
 }

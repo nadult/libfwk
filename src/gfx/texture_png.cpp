@@ -19,7 +19,7 @@ namespace detail {
 		return;                                                                                    \
 	}
 
-	struct PngLoader {
+	struct EXCEPT PngLoader {
 		PngLoader(FileStream &stream) : stream(stream) {
 			s_loader = this;
 
@@ -175,7 +175,7 @@ namespace detail {
 			string msg = text;
 			if(!m_error.empty())
 				msg += "\n" + toString(m_error);
-			REG_ERROR("PNG loading error: %", msg);
+			EXCEPTION("PNG loading error: %", msg);
 		}
 
 		void cleanup() {
@@ -213,20 +213,20 @@ namespace detail {
 
 	Ex<Texture> loadPNG(FileStream &stream) {
 		PngLoader loader(stream);
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 		PodVector<IColor> data(loader.size().x * loader.size().y);
 		loader >> data;
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 		return Texture{move(data), loader.size()};
 	}
 }
 
 Ex<HeightMap16bit> HeightMap16bit::load(FileStream &stream) {
 	detail::PngLoader loader(stream);
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	vector<u16> data(loader.size().x * loader.size().y);
 	loader >> data;
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return HeightMap16bit{move(data), loader.size()};
 }
 }

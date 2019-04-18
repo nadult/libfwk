@@ -73,7 +73,7 @@ ZStr CXmlNode::attrib(Str name) const {
 	touch(m_ptr, attrib);
 
 	if(!attrib || !attrib->value()) {
-		REG_ERROR("attribute '%' not found in node: %\n", name, this->name());
+		EXCEPTION("attribute '%' not found in node: %\n", name, this->name());
 		return "";
 	}
 	return attrib->value();
@@ -205,7 +205,7 @@ void rapidxml::parse_error_handler(const char *what, void *where) {
 	fmt("XML parsing error: %", what);
 	if(pos != fwk::Pair<int>())
 		fmt(" at: line:% col:%", pos.first, pos.second);
-	REG_ERROR("%", fmt.text());
+	EXCEPTION("%", fmt.text());
 	std::longjmp(t_xml_debug.jump_buffer, 1);
 }
 
@@ -227,7 +227,7 @@ Ex<XmlDocument> XmlDocument::make(CSpan<char> data) {
 		doc.m_ptr->release();
 		t_xml_debug.pstring = nullptr;
 		t_xml_debug.pstring_len = 0;
-		return getSingleError();
+		return getMergedExceptions();
 	} else {
 		doc.m_ptr->parse<0>(xml_string);
 	}
@@ -242,7 +242,7 @@ Ex<void> XmlDocument::save(FileStream &sr) const {
 	vector<char> buffer;
 	print(std::back_inserter(buffer), *m_ptr);
 	sr.saveData(buffer);
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return {};
 }
 

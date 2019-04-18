@@ -63,8 +63,8 @@ Any::Any(CXmlNode node, ZStr type_name) {
 
 		m_model = it->second.first(node);
 		m_type = it->first;
-		if(anyErrors())
-			*this = getSingleError();
+		if(anyExceptions())
+			*this = getMergedExceptions();
 	}
 }
 

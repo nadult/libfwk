@@ -36,8 +36,8 @@ FileStream::~FileStream() {
 		fclose((FILE *)m_file);
 }
 
-void FileStream::reportError(string message) {
-	REG_ERROR("While % file '%' at position %/%: %", m_is_loading ? "loading from" : "saving to",
+void FileStream::raise(string message) {
+	EXCEPTION("While % file '%' at position %/%: %", m_is_loading ? "loading from" : "saving to",
 			  m_name, m_pos, m_size, message);
 	m_is_valid = false;
 }
@@ -50,13 +50,13 @@ void FileStream::loadData(Span<char> data) {
 	}
 
 	if(m_pos + data.size() > m_size) {
-		reportError(format("Reading past the end: % + % > %", m_name, m_pos, data.size(), m_size));
+		raise(format("Reading past the end: % + % > %", m_name, m_pos, data.size(), m_size));
 		fill(data, 0);
 		return;
 	}
 
 	if(fread(data.data(), data.size(), 1, (FILE *)m_file) != 1) {
-		reportError(format("fread failed: %", strerror(errno)));
+		raise(format("fread failed: %", strerror(errno)));
 		fill(data, 0);
 		return;
 	}
@@ -72,7 +72,7 @@ void FileStream::saveData(CSpan<char> data) {
 	DASSERT(!m_is_loading);
 
 	if(fwrite(data.data(), data.size(), 1, (FILE *)m_file) != 1) {
-		reportError(format("fwrite failed: %", strerror(errno)));
+		raise(format("fwrite failed: %", strerror(errno)));
 		return;
 	}
 
@@ -87,7 +87,7 @@ void FileStream::seek(long long pos) {
 		return;
 
 	if(fseek((FILE *)m_file, pos, SEEK_SET) != 0) {
-		reportError(format("fseek failed: %", strerror(errno)));
+		raise(format("fseek failed: %", strerror(errno)));
 		return;
 	}
 
@@ -114,7 +114,7 @@ i64 FileStream::loadSize() {
 	}
 
 	if(out < 0) {
-		REG_ERROR("Invalid length: %", out);
+		raise(format("Invalid length: %", out));
 		m_is_valid = false;
 		return 0;
 	}
@@ -135,7 +135,7 @@ void FileStream::saveSize(i64 size) {
 string FileStream::loadString(i64 max_size) {
 	auto size = loadSize();
 	if(size > max_size) {
-		reportError(format("String too big: % > %", size, max_size));
+		raise(format("String too big: % > %", size, max_size));
 		return {};
 	}
 
@@ -151,7 +151,7 @@ int FileStream::loadString(Span<char> str) {
 	auto size = loadSize();
 	int max_size = str.size() - 1;
 	if(size > max_size) {
-		reportError(format("String too big: % > %", size, max_size));
+		raise(format("String too big: % > %", size, max_size));
 		str[0] = 0;
 		return 0;
 	}
@@ -173,7 +173,7 @@ PodVector<char> FileStream::loadVector(int max_size, int element_size) {
 	auto size = loadSize();
 
 	if(size > max_size) {
-		reportError(format("Vector too big: % > %", size, max_size));
+		raise(format("Vector too big: % > %", size, max_size));
 		return {};
 	}
 	auto byte_size = size * element_size;
@@ -243,8 +243,8 @@ void FileStream::signature(u32 sig) {
 				}
 			}
 
-			reportError(stdFormat("Expected signature: 0x%08x (\"%s%s%s%s\")", sig, sigc + 0,
-								  sigc + 3, sigc + 6, sigc + 9));
+			raise(stdFormat("Expected signature: 0x%08x (\"%s%s%s%s\")", sig, sigc + 0, sigc + 3,
+							sigc + 6, sigc + 9));
 		}
 	} else {
 		*this << sig;
@@ -266,7 +266,7 @@ void FileStream::signature(Str str) {
 			char rsig[256], dsig[256];
 			decodeString(str, rsig);
 			decodeString(Str(buf, str.size()), dsig);
-			reportError(format("Expected signature: \"%\" got: \"%\"", rsig, dsig));
+			raise(format("Expected signature: \"%\" got: \"%\"", rsig, dsig));
 		}
 	} else {
 		saveData(str);

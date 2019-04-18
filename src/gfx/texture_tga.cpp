@@ -8,7 +8,7 @@
 namespace fwk {
 
 namespace detail {
-	struct TGAHeader {
+	struct EXCEPT TGAHeader {
 		TGAHeader() { memset(this, 0, sizeof(TGAHeader)); }
 
 		void save(FileStream &sr) const {
@@ -43,7 +43,7 @@ namespace detail {
 		enum { max_width = 4096, max_height = 4096 };
 
 		hdr.load(sr);
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 
 		if(hdr.data_type_code != 2)
 			return ERROR("Only uncompressed RGB data type is supported (id:%)", hdr.data_type_code);
@@ -81,7 +81,7 @@ namespace detail {
 					colors[x] = colors[x].bgra();
 			}
 		}
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 
 		return Texture(move(data), size);
 	}
@@ -106,7 +106,7 @@ Ex<void> Texture::saveTGA(FileStream &sr) const {
 		sr.saveData(cspan(&line[0], m_size.x));
 	}
 
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return {};
 }
 

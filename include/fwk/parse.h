@@ -148,7 +148,7 @@ template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr
 // TODO: inconsistency with tryFromString(enum)
 template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> Ex<T> tryFromString(ZStr str) {
 	auto ret = fromString<T>(str);
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return ret;
 }
 }

@@ -66,7 +66,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 		new_node.name = xml_node.attrib("name");
 		new_node.type = fromString<ModelNodeType>(xml_node.attrib("type", "generic"));
 		auto trans = ModelAnim::transFromXML(xml_node);
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 		new_node.setTrans(trans);
 
 		new_node.mesh_id = xml_node.attrib<int>("mesh_id", -1);
@@ -78,7 +78,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 			prop_node.next();
 		}
 
-		EXPECT_NO_ERRORS();
+		EXPECT_CATCH();
 		int sub_node_id = out.size();
 		new_node.parent_id = node_id;
 		new_node.id = sub_node_id;
@@ -124,7 +124,7 @@ Ex<Model> Model::loadFromXML(CXmlNode xml_node) {
 	}
 
 	// TODO: make sure that errors are handled properly here
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return Model(move(nodes), move(meshes), move(anims), move(material_defs));
 }
 

@@ -3,33 +3,33 @@
 
 #pragma once
 
-#include "fwk/sys/error.h"
+#include "fwk/sys/exception.h"
 #include "fwk/sys/unique_ptr.h"
 
 namespace fwk {
 
-template <class T> auto getError(const T &value, const char *expr, const char *file, int line) {
-	return fwk::Error({file, line}, expr);
-}
-
-template <class T> auto getError(const Expected<T> &value, const char *, const char *, int) {
-	return value.error();
-}
-
-// These macros will return Error on fail
+// Will return ERROR if expr evaluates to false.
+// If expr is of Expected<> type, then it's error will be passed forward.
 #define EXPECT(expr)                                                                               \
 	{                                                                                              \
 		auto &&value = ((expr));                                                                   \
 		if(!value)                                                                                 \
-			return fwk::getError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);                  \
+			return fwk::detail::makeError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);         \
 	}
 
-#define EXPECT_NO_ERRORS()                                                                         \
+// Checks if there are any raised exceptions. If so, it will return them.
+#define EXPECT_CATCH()                                                                             \
 	{                                                                                              \
-		if(fwk::anyErrors())                                                                       \
-			return fwk::getSingleError();                                                          \
+		if(fwk::anyExceptions())                                                                   \
+			return fwk::getMergedExceptions();                                                     \
 	}
 
+// Evaluates an expression of type Expected<T>.
+// If it's valid then the value is simply passed, otherwise error is returned.
+//
+// Example use:
+// Ex<int> func1(int v) { ... }
+// Ex<float> func2() { auto value = EXPECT_TRY(func(10)); return value * 0.5f; }
 #define EXPECT_TRY(...)                                                                            \
 	({                                                                                             \
 		auto result = __VA_ARGS__;                                                                 \
@@ -40,8 +40,6 @@ template <class T> auto getError(const Expected<T> &value, const char *, const c
 		move(result.get());                                                                        \
 	})
 
-// TODO: how to handle both void & non void here ?
-
 template <class T> constexpr bool is_expected = false;
 template <class T> constexpr bool is_expected<Expected<T>> = true;
 
@@ -50,9 +48,9 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 	static_assert(!is_same<T, Error>);
 
 	// TODO: should we check here if there were any errors? and return them if so?
-	Expected(const T &value) : m_value(value), m_has_value(true) {}
-	Expected(T && value) : m_value(move(value)), m_has_value(true) {}
-	Expected(Error error) : m_error(move(error)), m_has_value(false) {}
+	Expected(const T &value) : m_value(value), m_has_value(true) { DASSERT(!anyExceptions()); }
+	Expected(T && value) : m_value(move(value)), m_has_value(true) { DASSERT(!anyExceptions()); }
+	Expected(Error error) : m_error(move(error)), m_has_value(false) { DASSERT(!anyExceptions()); }
 	~Expected() {
 		if(m_has_value)
 			m_value.~T();
@@ -123,8 +121,8 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 template <> class [[nodiscard]] Expected<void> {
   public:
 	// TODO: should we check here if there were any errors? and return them if so?
-	Expected() {}
-	Expected(Error error) : m_error(move(error)) {}
+	Expected() { DASSERT(!anyExceptions()); }
+	Expected(Error error) : m_error(move(error)) { DASSERT(!anyExceptions()); }
 
 	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
 
@@ -144,4 +142,16 @@ template <> class [[nodiscard]] Expected<void> {
   private:
 	UniquePtr<Error> m_error;
 };
+
+namespace detail {
+	template <class T>
+	auto makeError(const T &value, const char *expr, const char *file, int line) {
+		return fwk::Error({file, line}, expr);
+	}
+
+	template <class T> auto makeError(const Expected<T> &value, const char *, const char *, int) {
+		return value.error();
+	}
+}
+
 }

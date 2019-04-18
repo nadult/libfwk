@@ -105,7 +105,7 @@ Ex<MeshBuffers> MeshBuffers::load(CXmlNode node) {
 					node.childValue<vector<float2>>("tex_coords", {}), {}, parseVertexWeights(node),
 					node.childValue<vector<string>>("node_names", {}));
 
-	EXPECT_NO_ERRORS();
+	EXPECT_CATCH();
 	return move(out);
 }
 
