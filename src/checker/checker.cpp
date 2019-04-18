@@ -1,6 +1,4 @@
 // This plugin checks if functions which may call EXCEPT are also marked as EXCEPT or NOEXCEPT.
-//
-// TODO: it slows down compilation by about 20%; FIX IT!
 
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
@@ -150,24 +148,6 @@ struct AnnoCtx {
 		return false;
 	}
 
-	bool getExcepts(const Expr *expr, std::vector<SourceLocation> *out) {
-		// TODO: there is no need for recursion here, we're doing it already for Stmts
-		if(expr->getStmtClass() == Stmt::StmtClass::DeclRefExprClass) {
-			const auto *spec = cast<DeclRefExpr>(expr);
-			if(access(spec->getDecl()).canRaise()) {
-				if(out) {
-					out->emplace_back(spec->getSourceRange().getBegin());
-					out->emplace_back(spec->getDecl()->getSourceRange().getBegin());
-				}
-				return true;
-			}
-		} else if(expr->getStmtClass() == Stmt::StmtClass::ImplicitCastExprClass) {
-			const auto *spec = cast<ImplicitCastExpr>(expr);
-			return getExcepts(spec->getSubExpr(), out);
-		}
-		return false;
-	}
-
 	bool getExcepts(const Stmt *stmt, std::vector<SourceLocation> *out) {
 		if(!stmt)
 			return false;
@@ -175,9 +155,16 @@ struct AnnoCtx {
 
 		using SC = Stmt::StmtClass;
 		auto clazz = stmt->getStmtClass();
-		if(clazz == SC::CallExprClass || clazz == SC::CXXMemberCallExprClass) {
-			const auto *ce = cast<CallExpr>(stmt);
-			ret |= getExcepts(ce->getCallee(), out);
+
+		if(clazz == SC::DeclRefExprClass) {
+			const auto *spec = cast<DeclRefExpr>(stmt);
+			if(access(spec->getDecl()).canRaise()) {
+				if(out) {
+					out->emplace_back(spec->getSourceRange().getBegin());
+					out->emplace_back(spec->getDecl()->getSourceRange().getBegin());
+				}
+				return true;
+			}
 		} else if(clazz == SC::MemberExprClass) {
 			const auto *ce = cast<MemberExpr>(stmt);
 			if(access(ce->getMemberDecl()).canRaise()) {

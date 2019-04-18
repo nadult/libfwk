@@ -3,7 +3,7 @@
 BUILD_DIR=../../build/checker
 MINGW_PREFIX=i686-w64-mingw32.static-
 LINUX_CXX=clang++-8
-FLAGS=
+FLAGS=-O3
 
 LLVM_DIR=/usr/lib/llvm-8
 
