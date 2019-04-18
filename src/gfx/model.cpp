@@ -11,6 +11,7 @@
 #include "fwk/gfx/pose.h"
 #include "fwk/gfx/render_list.h"
 #include "fwk/gfx/triangle_buffer.h"
+#include "fwk/sys/assert.h"
 #include "fwk/sys/xml.h"
 #include <map>
 
@@ -24,80 +25,94 @@ void MaterialDef::saveToXML(XmlNode node) const {
 	node.addAttrib("diffuse", diffuse.rgb());
 }
 
-namespace {
+static PPose defaultPose(vector<int> dfs_ids, CSpan<ModelNode> nodes) {
+	vector<Matrix4> pose_matrices;
+	vector<string> pose_names;
 
-	PModelNode parseNode(vector<PMesh> &meshes, CXmlNode xml_node) {
-		auto name = xml_node.attrib("name");
-		auto type = fromString<ModelNodeType>(xml_node.attrib("type", "generic"));
-		auto trans = ModelAnim::transFromXML(xml_node);
-		auto mesh_id = xml_node.attrib<int>("mesh_id", -1);
-		ASSERT(mesh_id >= -1 && mesh_id < meshes.size());
-
-		vector<ModelNode::Property> props;
-		auto prop_node = xml_node.child("property");
-		while(prop_node) {
-			props.emplace_back(prop_node.attrib("name"), prop_node.attrib("value"));
-			prop_node.next();
-		}
-
-		auto new_node = uniquePtr<ModelNode>(name, type, trans,
-											 mesh_id == -1 ? PMesh() : meshes[mesh_id], props);
-		auto child_node = xml_node.child("node");
-		while(child_node) {
-			new_node->addChild(parseNode(meshes, child_node));
-			child_node.next();
-		}
-
-		return new_node;
+	for(auto id : dfs_ids) {
+		auto &node = nodes[id];
+		pose_matrices.emplace_back(node.trans);
+		pose_names.emplace_back(node.name);
 	}
-
-	PPose defaultPose(ModelNode *root) {
-		vector<ModelNode *> nodes;
-		root->dfs(nodes);
-
-		vector<Matrix4> pose_matrices;
-		vector<string> pose_names;
-
-		for(const auto *node : nodes) {
-			pose_matrices.emplace_back(node->localTrans());
-			pose_names.emplace_back(node->name());
-		}
-		return Pose(move(pose_matrices), pose_names);
-	}
+	return Pose(move(pose_matrices), pose_names);
 }
 
-Model::Model(PModelNode root, vector<ModelAnim> anims, vector<MaterialDef> material_defs)
-	: m_root(move(root)), m_anims(move(anims)), m_material_defs(move(material_defs)) {
-	ASSERT(m_root->name() == "" && m_root->localTrans() == AffineTrans() && !m_root->mesh());
+static void dfs(CSpan<ModelNode> nodes, int node_id, vector<int> &out) {
+	out.emplace_back(node_id);
+	for(auto child_id : nodes[node_id].children_ids)
+		dfs(nodes, child_id, out);
+}
+
+Model::Model(vector<ModelNode> nodes, vector<Mesh> meshes, vector<ModelAnim> anims,
+			 vector<MaterialDef> material_defs)
+	: m_nodes(move(nodes)), m_meshes(meshes), m_anims(move(anims)),
+	  m_material_defs(move(material_defs)) {
+	if(auto *root = rootNode())
+		ASSERT(root->name == "" && root->trans == AffineTrans() && root->mesh_id == -1);
+
+	m_default_pose = fwk::defaultPose(dfs(0), m_nodes);
+
 	// TODO: verify data
-	updateNodes();
 	for(auto &anim : m_anims)
 		anim.setDefaultPose(m_default_pose);
 }
 
-Model::Model(const Model &rhs) : Model(rhs.m_root->clone(), rhs.m_anims, rhs.m_material_defs) {}
+FWK_COPYABLE_CLASS_IMPL(Model);
 
-Model Model::loadFromXML(CXmlNode xml_node) {
+Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNode xml_node) {
+	xml_node = xml_node.child("node");
+	while(xml_node) {
+		ModelNode new_node;
+		new_node.name = xml_node.attrib("name");
+		new_node.type = fromString<ModelNodeType>(xml_node.attrib("type", "generic"));
+		auto trans = ModelAnim::transFromXML(xml_node);
+		EXPECT_NO_ERRORS();
+		new_node.setTrans(trans);
+
+		new_node.mesh_id = xml_node.attrib<int>("mesh_id", -1);
+		EXPECT(new_node.mesh_id >= -1 && new_node.mesh_id < num_meshes);
+
+		auto prop_node = xml_node.child("property");
+		while(prop_node) {
+			new_node.props.emplace_back(prop_node.attrib("name"), prop_node.attrib("value"));
+			prop_node.next();
+		}
+
+		EXPECT_NO_ERRORS();
+		int sub_node_id = out.size();
+		new_node.parent_id = node_id;
+		new_node.id = sub_node_id;
+		out.emplace_back(move(new_node));
+		out[node_id].children_ids.emplace_back(sub_node_id);
+		EXPECT(parseNodes(out, sub_node_id, num_meshes, xml_node));
+		xml_node.next();
+	}
+
+	return {};
+}
+
+Ex<Model> Model::loadFromXML(CXmlNode xml_node) {
 	DASSERT(xml_node);
+
 	auto mesh_node = xml_node.child("mesh");
-	vector<PMesh> meshes;
+	vector<Mesh> meshes;
 	while(mesh_node) {
-		meshes.emplace_back(make_immutable<Mesh>(mesh_node));
+		meshes.emplace_back(EXPECT_TRY(Mesh::load(mesh_node)));
 		mesh_node.next();
 	}
 
-	PModelNode root("");
-	auto subnode = xml_node.child("node");
-	while(subnode) {
-		root->addChild(parseNode(meshes, subnode));
-		subnode.next();
-	}
+	vector<ModelNode> nodes;
+	nodes.emplace_back();
+	EXPECT(parseNodes(nodes, 0, meshes.size(), xml_node));
 
-	auto default_pose = fwk::defaultPose(root.get());
+	vector<int> dfs_ids;
+	fwk::dfs(nodes, 0, dfs_ids);
+
+	auto default_pose = fwk::defaultPose(dfs_ids, nodes);
 	vector<ModelAnim> anims;
 	auto anim_node = xml_node.child("anim");
 	while(anim_node) {
-		anims.emplace_back(anim_node, default_pose);
+		anims.emplace_back(EXPECT_TRY(ModelAnim::load(anim_node, default_pose)));
 		anim_node.next();
 	}
 
@@ -108,31 +123,35 @@ Model Model::loadFromXML(CXmlNode xml_node) {
 		mat_node.next();
 	}
 
-	return Model(move(root), move(anims), move(material_defs));
+	// TODO: make sure that errors are handled properly here
+	EXPECT_NO_ERRORS();
+	return Model(move(nodes), move(meshes), move(anims), move(material_defs));
 }
 
-int Model::findNodeId(const string &name) const {
-	const auto *node = findNode(name);
-	return node ? node->id() : -1;
+vector<int> Model::dfs(int root_id) const {
+	vector<int> out;
+	fwk::dfs(m_nodes, root_id, out);
+	return out;
 }
 
-void Model::updateNodes() {
-	m_nodes.clear();
-	m_root->dfs(m_nodes);
-	for(int n = 0; n < m_nodes.size(); n++)
-		m_nodes[n]->setId(n);
-	m_default_pose = fwk::defaultPose(m_root.get());
+const ModelNode *Model::findNode(Str name) const { return node(findNodeId(name)); }
+
+int Model::findNodeId(Str name) const {
+	for(int n : intRange(m_nodes))
+		if(m_nodes[n].name == name)
+			return n;
+	return -1;
 }
 
-static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, XmlNode xml_node) {
-	xml_node.addAttrib("name", xml_node.own(node->name()));
-	if(node->type() != ModelNodeType::generic)
-		xml_node.addAttrib("type", toString(node->type()));
-	if(node->mesh())
-		xml_node.addAttrib("mesh_id", meshes[node->mesh().get()]);
-	ModelAnim::transToXML(node->localTrans(), AffineTrans(), xml_node);
+static void saveNode(CSpan<ModelNode> nodes, int node_id, XmlNode xml_node) {
+	auto &node = nodes[node_id];
+	xml_node.addAttrib("name", xml_node.own(node.name));
+	if(node.type != ModelNodeType::generic)
+		xml_node.addAttrib("type", toString(node.type));
+	xml_node.addAttrib("mesh_id", node.mesh_id);
+	ModelAnim::transToXML(node.trans, AffineTrans(), xml_node);
 
-	auto props = node->properties();
+	auto props = node.props;
 	std::sort(begin(props), end(props));
 	for(const auto &prop : props) {
 		XmlNode xml_prop = xml_node.addChild("property");
@@ -140,39 +159,21 @@ static void saveNode(std::map<const Mesh *, int> meshes, const ModelNode *node, 
 		xml_prop.addAttrib("value", xml_prop.own(prop.second));
 	}
 
-	for(const auto &child : node->children())
-		saveNode(meshes, child.get(), xml_node.addChild("node"));
+	for(int child_id : node.children_ids)
+		saveNode(nodes, child_id, xml_node.addChild("node"));
 }
 
 void Model::saveToXML(XmlNode xml_node) const {
-	std::map<const Mesh *, int> mesh_ids;
-	for(const auto *node : m_nodes)
-		if(node->mesh() && mesh_ids.find(node->mesh().get()) == mesh_ids.end())
-			mesh_ids.emplace(node->mesh().get(), (int)mesh_ids.size());
+	if(m_nodes)
+		for(int nid : m_nodes[0].children_ids)
+			saveNode(m_nodes, nid, xml_node.addChild("node"));
 
-	for(const auto &node : m_root->children())
-		saveNode(mesh_ids, node.get(), xml_node.addChild("node"));
-
-	vector<const Mesh *> meshes(mesh_ids.size(), nullptr);
-	for(const auto &pair : mesh_ids)
-		meshes[pair.second] = pair.first;
-	for(const auto *mesh : meshes)
-		mesh->saveToXML(xml_node.addChild("mesh"));
-
+	for(const auto &mesh : m_meshes)
+		mesh.saveToXML(xml_node.addChild("mesh"));
 	for(const auto &mat : m_material_defs)
 		mat.saveToXML(xml_node.addChild("material"));
 	for(const auto &anim : m_anims)
-		anim.saveToXML(xml_node.addChild("anim"));
-}
-
-void Model::join(const string &local_name, const Model &other, const string &other_name) {
-	if(auto *other_node = other.findNode(other_name))
-		if(m_root->join(other_node, local_name)) {
-			m_material_defs.insert(end(m_material_defs), begin(other.materialDefs()),
-								   end(other.materialDefs()));
-			// TODO: anims?
-			updateNodes();
-		}
+		anim.save(xml_node.addChild("anim"));
 }
 
 void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose, IColor node_color,
@@ -190,23 +191,23 @@ void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose, IColo
 	auto global_pose = globalPose(pose);
 	auto transforms = global_pose->transforms();
 
-	vector<float3> positions(nodes().size());
-	for(int n = 0; n < nodes().size(); n++)
+	vector<float3> positions(m_nodes.size());
+	for(int n : intRange(m_nodes))
 		positions[n] = mulPoint(transforms[n], float3(0, 0, 0));
 
-	for(const auto *node : nodes()) {
-		if(node != m_root.get())
-			tris(bbox, translation(positions[node->id()]));
-		if(node->parent() && node->parent() != m_nodes.front()) {
-			float3 line[2] = {positions[node->id()], positions[node->parent()->id()]};
+	for(auto &node : m_nodes) {
+		if(&node != rootNode())
+			tris(bbox, translation(positions[node.id]));
+		if(node.parent_id > 0) {
+			float3 line[2] = {positions[node.id], positions[node.parent_id]};
 			lines(line);
 		}
 	}
 }
 
 void Model::printHierarchy() const {
-	for(const auto *node : nodes())
-		printf("%d: %s\n", node->id(), node->name().c_str());
+	for(auto &node : m_nodes)
+		print("%: %\n", node.id, node.name);
 }
 
 Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
@@ -215,36 +216,48 @@ Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
 
 	auto global_pose = globalPose(pose);
 	if(const auto *node = findNode(name))
-		return global_pose->transforms()[node->id()];
+		return global_pose->transforms()[node->id];
 	return Matrix4::identity();
 }
 
 PPose Model::globalPose(vector<Matrix4> out) const {
-	for(int n = 0; n < out.size(); n++)
-		if(nodes()[n]->parent())
-			out[n] = out[nodes()[n]->parent()->id()] * out[n];
+	DASSERT_EQ(out.size(), m_nodes.size());
+	for(int n : intRange(m_nodes))
+		if(m_nodes[n].parent_id != -1)
+			out[n] = out[m_nodes[n].parent_id] * out[n];
 	return make_immutable<Pose>(move(out), m_default_pose->nameMap());
 }
 
 PPose Model::globalPose(PPose pose) const {
 	DASSERT(valid(pose));
 	vector<Matrix4> out = pose->transforms();
-	for(int n = 0; n < out.size(); n++)
-		if(nodes()[n]->parent())
-			out[n] = out[nodes()[n]->parent()->id()] * out[n];
+	for(int n : intRange(m_nodes))
+		if(m_nodes[n].parent_id != -1)
+			out[n] = out[m_nodes[n].parent_id] * out[n];
 	return make_immutable<Pose>(move(out), pose->nameMap());
+}
+
+Matrix4 Model::globalTrans(int node_id) const {
+	auto &node = m_nodes[node_id];
+	return node.parent_id == -1 ? node.trans : globalTrans(node.parent_id) * node.trans;
+}
+
+Matrix4 Model::invGlobalTrans(int node_id) const {
+	auto &node = m_nodes[node_id];
+	return node.parent_id == -1 ? node.inv_trans : node.inv_trans * invGlobalTrans(node.parent_id);
 }
 
 PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	DASSERT(valid(global_pose));
 	DASSERT(node_id >= 0 && node_id < m_nodes.size());
 
-	Matrix4 pre = inverseOrZero(m_nodes[node_id]->globalTrans());
-	Matrix4 post = m_nodes[node_id]->globalTrans();
+	auto fwd_trans = globalTrans(node_id);
+	Matrix4 pre = inverseOrZero(fwd_trans);
+	Matrix4 post = fwd_trans;
 
 	vector<Matrix4> out = global_pose->transforms();
-	for(int n = 0; n < out.size(); n++)
-		out[n] = pre * out[n] * m_nodes[n]->invGlobalTrans() * post;
+	for(int n : intRange(out))
+		out[n] = pre * out[n] * invGlobalTrans(n) * post;
 	return make_immutable<Pose>(move(out), global_pose->nameMap());
 }
 

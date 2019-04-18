@@ -14,6 +14,9 @@ template <class T> bool closeEnough(const T &a, const T &b) {
 	return dist < epsilon<decltype(dist)>;
 }
 
+ModelAnim::ModelAnim() = default;
+FWK_COPYABLE_CLASS_IMPL(ModelAnim);
+
 void ModelAnim::transToXML(const AffineTrans &trans, const AffineTrans &default_trans,
 						   XmlNode node) {
 	if(!closeEnough(trans.translation, default_trans.translation))
@@ -37,9 +40,11 @@ AffineTrans ModelAnim::transFromXML(CXmlNode node, const AffineTrans &default_tr
 	return AffineTrans(pos, rot, scale);
 }
 
-ModelAnim::Channel::Channel(CXmlNode node, const AffineTrans &default_trans)
-	: default_trans(default_trans), node_name(node.attrib("name")) {
+Ex<void> ModelAnim::Channel::load(CXmlNode node, const AffineTrans &default_trans) {
+	this->default_trans = default_trans;
+	node_name = node.attrib("name");
 	trans = transFromXML(node, default_trans);
+
 	if(auto pos_node = node.child("pos"))
 		translation_track = fromString<vector<float3>>(pos_node.value());
 	if(auto scale_node = node.child("scale"))
@@ -48,9 +53,12 @@ ModelAnim::Channel::Channel(CXmlNode node, const AffineTrans &default_trans)
 		rotation_track = fromString<vector<Quat>>(rot_node.value());
 	if(auto times_node = node.child("time"))
 		time_track = fromString<vector<float>>(times_node.value());
+
+	EXPECT_NO_ERRORS();
+	return {};
 }
 
-void ModelAnim::Channel::saveToXML(XmlNode node) const {
+void ModelAnim::Channel::save(XmlNode node) const {
 	node.addAttrib("name", node.own(node_name));
 
 	transToXML(trans, default_trans, node);
@@ -77,35 +85,43 @@ AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 	return out;
 }
 
-ModelAnim::ModelAnim(CXmlNode node, PPose default_pose)
-	: m_name(node.attrib("name")), m_length(node.attrib<float>("length")) {
+Ex<ModelAnim> ModelAnim::load(CXmlNode node, PPose default_pose) {
+	ModelAnim out;
+
+	out.m_name = node.attrib("name");
+	out.m_length = node.attrib<float>("length");
+
 	auto channel_node = node.child("channel");
 	while(channel_node) {
-		m_node_names.emplace_back(channel_node.attrib("name"));
+		out.m_node_names.emplace_back(channel_node.attrib("name"));
 		channel_node.next();
 	}
 
-	auto transforms = default_pose->mapTransforms(default_pose->mapNames(m_node_names));
+	auto transforms = default_pose->mapTransforms(default_pose->mapNames(out.m_node_names));
 	auto trans_it = transforms.begin();
 
 	channel_node = node.child("channel");
 	while(channel_node) {
-		m_channels.emplace_back(channel_node, AffineTrans(*trans_it++));
+		Channel channel;
+		EXPECT(channel.load(channel_node, AffineTrans(*trans_it++)));
+		out.m_channels.emplace_back(move(channel));
 		channel_node.next();
 	}
 
 	auto shared_track = node.child("shared_time_track");
 	ASSERT(shared_track);
-	m_shared_time_track = fromString<vector<float>>(shared_track.value());
+	out.m_shared_time_track = fromString<vector<float>>(shared_track.value());
 
-	verifyData();
+	out.verifyData();
+	EXPECT_NO_ERRORS();
+	return move(out);
 }
 
-void ModelAnim::saveToXML(XmlNode node) const {
+void ModelAnim::save(XmlNode node) const {
 	node.addAttrib("length", m_length);
 	node.addAttrib("name", node.own(m_name));
 	for(const auto &channel : m_channels)
-		channel.saveToXML(node.addChild("channel"));
+		channel.save(node.addChild("channel"));
 	node.addChild("shared_time_track", m_shared_time_track);
 }
 

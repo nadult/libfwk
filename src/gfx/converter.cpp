@@ -97,7 +97,11 @@ Ex<Pair<PModel, string>> Converter::loadModel(FileType file_type, ZStr file_name
 		if(!child)
 			return ERROR("empty XML document");
 
-		return pair{immutable_ptr<Model>(Model::loadFromXML(child)), string(child.name())};
+		auto model = Model::loadFromXML(child);
+		if(!model)
+			return model.error();
+
+		return pair{immutable_ptr<Model>(move(model.get())), string(child.name())};
 	} else {
 		DASSERT(file_type == FileType::blender);
 		string temp_file_name;

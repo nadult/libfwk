@@ -10,8 +10,11 @@ namespace fwk {
 
 class ModelAnim {
   public:
-	ModelAnim(CXmlNode, PPose default_pose);
-	void saveToXML(XmlNode) const;
+	ModelAnim();
+	FWK_COPYABLE_CLASS(ModelAnim);
+
+	static Ex<ModelAnim> load(CXmlNode, PPose default_pose);
+	void save(XmlNode) const;
 
 	string print() const;
 	const string &name() const { return m_name; }
@@ -19,7 +22,7 @@ class ModelAnim {
 	// TODO: advanced interpolation support
 
 	static void transToXML(const AffineTrans &trans, const AffineTrans &default_trans, XmlNode);
-	static AffineTrans transFromXML(CXmlNode, const AffineTrans &default_trans = AffineTrans());
+	static AffineTrans transFromXML(CXmlNode, const AffineTrans & = {}) EXCEPT;
 
 	PPose animatePose(PPose initial_pose, double anim_time) const;
 
@@ -34,8 +37,10 @@ class ModelAnim {
 
 	struct Channel {
 		Channel() = default;
-		Channel(CXmlNode, const AffineTrans &default_trans);
-		void saveToXML(XmlNode) const;
+
+		void save(XmlNode) const;
+		Ex<void> load(CXmlNode, const AffineTrans &);
+
 		AffineTrans blend(int frame0, int frame1, float t) const;
 
 		// TODO: interpolation information

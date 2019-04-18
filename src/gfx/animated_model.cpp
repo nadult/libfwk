@@ -13,7 +13,8 @@ namespace fwk {
 
 AnimatedModel::AnimatedModel(vector<MeshData> data) : m_meshes(move(data)) {}
 
-AnimatedModel::AnimatedModel(const Model &model, PPose pose) {
+AnimatedModel::AnimatedModel(PModel pmodel, PPose pose) : m_model(pmodel) {
+	auto &model = *pmodel;
 	if(!pose)
 		pose = model.defaultPose();
 	DASSERT(model.valid(pose));
@@ -22,22 +23,22 @@ AnimatedModel::AnimatedModel(const Model &model, PPose pose) {
 	auto global_pose = model.globalPose(pose);
 	const auto &transforms = global_pose->transforms();
 
-	for(const auto *node : model.nodes())
-		if(node->mesh()) {
+	for(auto &node : model.nodes())
+		if(auto *mesh = model.mesh(node.mesh_id)) {
 			Mesh::AnimatedData anim_data;
-			if(node->mesh()->hasSkin()) {
-				auto skinning_pose = model.meshSkinningPose(global_pose, node->id());
-				anim_data = node->mesh()->animate(skinning_pose);
+			if(mesh->hasSkin()) {
+				auto skinning_pose = model.meshSkinningPose(global_pose, node.id);
+				anim_data = mesh->animate(skinning_pose);
 			}
 
-			m_meshes.emplace_back(MeshData{node->mesh(), move(anim_data), transforms[node->id()]});
+			m_meshes.emplace_back(node.mesh_id, move(anim_data), transforms[node.id]);
 		}
 }
 
 Mesh AnimatedModel::toMesh() const {
 	vector<Mesh> meshes;
 	for(auto mesh_data : m_meshes) {
-		auto anim_mesh = Mesh::apply(*mesh_data.mesh, mesh_data.anim_data);
+		auto anim_mesh = Mesh::apply(*m_model->mesh(mesh_data.mesh_id), mesh_data.anim_data);
 		meshes.emplace_back(Mesh::transform(mesh_data.transform, anim_mesh));
 	}
 	return Mesh::merge(meshes);
@@ -48,7 +49,8 @@ float AnimatedModel::intersect(const Segment3<float> &segment) const {
 
 	for(auto mesh_data : m_meshes) {
 		auto inv_segment = inverseOrZero(mesh_data.transform) * segment;
-		float inv_isect = mesh_data.mesh->intersect(inv_segment, mesh_data.anim_data);
+		auto *mesh = m_model->mesh(mesh_data.mesh_id);
+		float inv_isect = mesh->intersect(inv_segment, mesh_data.anim_data);
 		if(inv_isect < inf) {
 			float3 point = mulPoint(mesh_data.transform, inv_segment.at(inv_isect));
 			min_isect = min(min_isect, distance(segment.from, point));
@@ -59,9 +61,9 @@ float AnimatedModel::intersect(const Segment3<float> &segment) const {
 }
 FBox AnimatedModel::boundingBox() const {
 	FBox out;
-	for(auto mesh_data : m_meshes) {
-		FBox bbox = encloseTransformed(mesh_data.mesh->boundingBox(mesh_data.anim_data),
-									   mesh_data.transform);
+	for(auto &mesh_data : m_meshes) {
+		auto *mesh = m_model->mesh(mesh_data.mesh_id);
+		FBox bbox = encloseTransformed(mesh->boundingBox(mesh_data.anim_data), mesh_data.transform);
 		out = encloseNotEmpty(out, bbox);
 	}
 
@@ -72,9 +74,10 @@ vector<DrawCall> AnimatedModel::genDrawCalls(const MaterialSet &materials,
 											 const Matrix4 &matrix) const {
 	vector<DrawCall> out;
 	out.reserve(m_meshes.size());
-	for(auto data : m_meshes) {
-		auto mat = matrix * data.transform;
-		insertBack(out, data.mesh->genDrawCalls(materials, &data.anim_data, mat));
+	for(auto &mesh_data : m_meshes) {
+		auto mat = matrix * mesh_data.transform;
+		auto *mesh = m_model->mesh(mesh_data.mesh_id);
+		insertBack(out, mesh->genDrawCalls(materials, &mesh_data.anim_data, mat));
 	}
 
 	return out;

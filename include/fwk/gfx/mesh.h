@@ -20,7 +20,7 @@ class Mesh : public immutable_base<Mesh> {
 	Mesh &operator=(Mesh &&) = default;
 	Mesh &operator=(const Mesh &) = default;
 
-	Mesh(CXmlNode);
+	static Ex<Mesh> load(CXmlNode);
 	void saveToXML(XmlNode) const;
 
 	static Mesh makePolySoup(CSpan<Triangle3F>);

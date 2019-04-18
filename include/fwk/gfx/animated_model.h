@@ -10,13 +10,13 @@ namespace fwk {
 class AnimatedModel {
   public:
 	struct MeshData {
-		PMesh mesh;
+		int mesh_id;
 		Mesh::AnimatedData anim_data;
 		Matrix4 transform;
 	};
 
 	AnimatedModel(vector<MeshData>);
-	AnimatedModel(const Model &, PPose = PPose());
+	AnimatedModel(PModel, PPose = PPose());
 
 	Mesh toMesh() const;
 	FBox boundingBox() const;
@@ -26,6 +26,7 @@ class AnimatedModel {
 	vector<DrawCall> genDrawCalls(const MaterialSet &, const Matrix4 & = Matrix4::identity()) const;
 
   private:
+	PModel m_model;
 	vector<MeshData> m_meshes;
 };
 }

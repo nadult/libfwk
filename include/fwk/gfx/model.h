@@ -19,36 +19,26 @@ struct MaterialDef {
 	FColor diffuse;
 };
 
+// TODO: remove immutables
 class Model : public immutable_base<Model> {
   public:
-	Model() = default;
-	Model(Model &&) = default;
-	Model(const Model &);
-	Model &operator=(Model &&) = default;
-	~Model() = default;
+	FWK_COPYABLE_CLASS(Model);
 
-	Model(PModelNode, vector<ModelAnim> anims = {}, vector<MaterialDef> material_defs = {});
-	static Model loadFromXML(CXmlNode);
+	Model(vector<ModelNode> = {}, vector<Mesh> = {}, vector<ModelAnim> = {},
+		  vector<MaterialDef> = {});
+	static Ex<Model> loadFromXML(CXmlNode);
 	void saveToXML(XmlNode) const;
 
-	// TODO: use this in transformation functions
-	// TODO: better name
-	/*	void decimate(MeshBuffers &out_buffers, vector<MeshIndices> &out_indices,
-					  vector<string> &out_names) {
-			out_buffers = move(m_buffers);
-			out_indices = move(m_indices);
-			out_names = move(m_material_names);
-			*this = Mesh();
-		}*/
+	const ModelNode *findNode(Str) const;
+	int findNodeId(Str) const;
 
-	void join(const string &local_name, const Model &, const string &other_name);
-
-	const ModelNode *findNode(const string &name) const { return m_root->find(name); }
-	int findNodeId(const string &name) const;
-	const ModelNode *rootNode() const { return m_root.get(); }
+	const ModelNode *node(int id) const { return id == -1 ? nullptr : &m_nodes[id]; }
+	const ModelNode *rootNode() const { return m_nodes ? &m_nodes[0] : nullptr; }
 	const auto &nodes() const { return m_nodes; }
 	const auto &anims() const { return m_anims; }
 	const auto &materialDefs() const { return m_material_defs; }
+
+	vector<int> dfs(int root_id = 0) const;
 
 	void printHierarchy() const;
 
@@ -66,19 +56,22 @@ class Model : public immutable_base<Model> {
 	PPose animatePose(int anim_id, double anim_pos) const;
 	vector<Matrix4> animatePoseFast(int anim_id, double anim_pos) const;
 
+	Matrix4 globalTrans(int node_id) const;
+	Matrix4 invGlobalTrans(int node_id) const;
+
 	PPose defaultPose() const { return m_default_pose; }
 	PPose globalPose(vector<Matrix4>) const;
 	PPose globalPose(PPose local_pose) const;
 	PPose meshSkinningPose(PPose global_pose, int node_id) const;
 	bool valid(PPose) const;
 
-  protected:
-	void updateNodes();
+	const Mesh *mesh(int id) const { return id == -1 ? nullptr : &m_meshes[id]; }
 
-	PModelNode m_root;
+  protected:
+	vector<ModelNode> m_nodes;
+	vector<Mesh> m_meshes;
 	vector<ModelAnim> m_anims;
 	vector<MaterialDef> m_material_defs;
-	vector<ModelNode *> m_nodes;
 	PPose m_default_pose;
 };
 }

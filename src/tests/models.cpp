@@ -9,6 +9,7 @@
 #include "fwk/gfx/pose.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/triangle.h"
+#include "fwk/sys/assert.h"
 #include "fwk/sys/file_stream.h"
 #include "fwk/sys/xml.h"
 #include "testing.h"
@@ -50,7 +51,10 @@ void testMain() {
 	ASSERT(result);
 
 	auto doc = move(XmlDocument::load(mesh_path).get());
-	PModel model = PModel(Model::loadFromXML(doc.child()));
+	auto emodel = Model::loadFromXML(doc.child());
+	ASSERT(emodel);
+
+	PModel model = PModel(move(emodel.get()));
 	remove(mesh_path.c_str());
 
 	auto tmesh = AnimatedModel(*model, model->defaultPose()).toMesh();
@@ -63,7 +67,7 @@ void testMain() {
 
 	ASSERT(cube_id != -1 && plane_id != -1 && cone_id != -1);
 	const auto &nodes = model->nodes();
-	ASSERT(nodes[plane_id]->parent()->id() == cube_id);
+	ASSERT_EQ(nodes[plane_id].parent_id, cube_id);
 
 	auto pose = model->globalPose(model->defaultPose());
 	vector<AffineTrans> transforms(begin(pose->transforms()), end(pose->transforms()));

@@ -24,21 +24,24 @@ Mesh::Mesh(MeshBuffers buffers, vector<MeshIndices> indices, vector<string> mate
 	m_bounding_box = enclose(m_buffers.positions);
 }
 
-static vector<MeshIndices> loadIndices(CXmlNode node) {
-	vector<MeshIndices> out;
+Ex<Mesh> Mesh::load(CXmlNode node) {
+	vector<MeshIndices> indices;
 	auto xml_indices = node.child("indices");
 	while(xml_indices) {
 		auto type = PrimitiveType::triangles;
 		if(auto type_string = xml_indices.hasAttrib("type"))
 			type = fromString<PrimitiveType>(type_string);
-		out.emplace_back(xml_indices.value<vector<int>>(), type);
+		indices.emplace_back(xml_indices.value<vector<int>>(), type);
 		xml_indices.next();
 	}
-	return out;
-}
 
-Mesh::Mesh(CXmlNode node)
-	: Mesh(MeshBuffers(node), loadIndices(node), node.childValue<vector<string>>("materials", {})) {
+	auto materials = node.childValue<vector<string>>("materials", {});
+	EXPECT_NO_ERRORS();
+
+	auto buffers = MeshBuffers::load(node);
+	if(!buffers)
+		return buffers.error();
+	return Mesh{move(buffers.get()), move(indices), move(materials)};
 }
 
 void Mesh::saveToXML(XmlNode node) const {

@@ -81,10 +81,10 @@ class Viewer {
 		void printModelStats(TextFormatter &fmt) const {
 			int num_parts = 0, num_verts = 0, num_faces = 0;
 			for(const auto &node : m_model->nodes())
-				if(node->mesh()) {
+				if(auto *mesh = m_model->mesh(node.mesh_id)) {
 					num_parts++;
-					num_verts += node->mesh()->vertexCount();
-					num_faces += node->mesh()->triangleCount();
+					num_verts += mesh->vertexCount();
+					num_faces += mesh->triangleCount();
 				}
 			FBox bbox = boundingBox();
 			fmt("Size: %\n\n", FormatMode::structured, bbox.size());
