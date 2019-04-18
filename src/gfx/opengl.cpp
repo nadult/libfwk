@@ -56,6 +56,19 @@ bool GlInfo::hasExtension(Str name) const {
 
 static void loadExtensions();
 
+static float parseOpenglVersion(const char *text) NOEXCEPT {
+	TextParser parser(text);
+	while(!parser.empty()) {
+		Str val;
+		parser >> val;
+		if(isdigit(val[0])) {
+			// Returns 0.0f on error
+			return fromString<float>(string(val));
+		}
+	}
+	return 0.0f;
+}
+
 void initializeGl(GlProfile profile) {
 	using Feature = GlFeature;
 	using Vendor = GlVendor;
@@ -115,18 +128,7 @@ void initializeGl(GlProfile profile) {
 
 		s_info.version_full = ver;
 		s_info.glsl_version_full = glsl_ver;
-
-		auto parse = [](const char *text) {
-			TextParser parser(text);
-			while(!parser.empty()) {
-				Str val;
-				parser >> val;
-				if(isdigit(val[0]))
-					return fromString<float>(string(val));
-			}
-			return 0.0f;
-		};
-		s_info.glsl_version = parse(glsl_ver);
+		s_info.glsl_version = parseOpenglVersion(glsl_ver);
 		// TODO: multiple GLSL versions can be supported
 	}
 
