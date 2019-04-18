@@ -15,35 +15,41 @@ struct Temp {
 	};
 };
 
-void testMain() {
-	ASSERT(bool() == false);
+void testStringConversions() NOEXCEPT {
 	ASSERT_EQ(fromString<SomeEnum>("foo"), SomeEnum::foo);
 
 	fromString<SomeEnum>("something else");
-	ASSERT(anyErrors());
-	getSingleError();
+	ASSERT(anyExceptions());
+	clearExceptions();
 
 	ASSERT(!tryFromString<SomeEnum>("something else"));
 	ASSERT_EQ(string("foo_bar"), toString(SomeEnum::foo_bar));
 	ASSERT_EQ(toString(Temp::Inside::MemberEnum::ccc), string("ccc"));
 
+	ASSERT_EQ(toString(SomeEnum::foo | SomeEnum::bar | SomeEnum::foo_bar), "foo|bar|foo_bar");
+	ASSERT_EQ(fromString<EnumFlags<SomeEnum>>("bar|foo"), SomeEnum::bar | SomeEnum::foo);
+
+	string text;
+	for(auto elem : all<SomeEnum>())
+		text += toString(elem);
+	ASSERT_EQ(text, "foobarfoo_barlast");
+	ASSERT(noExceptions());
+}
+
+void testMain() {
+	ASSERT(bool() == false);
+
+	testStringConversions();
 	EnumMap<SomeEnum, int> array{{1, 2, 3, 4}};
 
 	static_assert(!is_enum<int>);
 	static_assert(is_enum<SomeEnum>);
 
 	ASSERT(array[SomeEnum::foo_bar] == 3);
-	string text;
-	for(auto elem : all<SomeEnum>())
-		text += toString(elem);
-	ASSERT_EQ(text, "foobarfoo_barlast");
 	ASSERT(mask(false, SomeEnum::foo) == none);
 	ASSERT_EQ(mask(true, SomeEnum::bar), SomeEnum::bar);
 
 	static_assert(is_formattible<EnumFlags<SomeEnum>>);
-
-	ASSERT_EQ(toString(SomeEnum::foo | SomeEnum::bar | SomeEnum::foo_bar), "foo|bar|foo_bar");
-	ASSERT_EQ(fromString<EnumFlags<SomeEnum>>("bar|foo"), SomeEnum::bar | SomeEnum::foo);
 
 	vector<BigEnum> items = {{BigEnum::f1, BigEnum::f2, BigEnum::f4, BigEnum::f10, BigEnum::f13}};
 	EnumFlags<BigEnum> flags;

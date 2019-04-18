@@ -20,7 +20,7 @@ void testTypes() {
 	static_assert(!unique_types<float, char, int, float>);
 }
 
-void testTextFormatter() {
+void testTextFormatter() NOEXCEPT {
 	TextFormatter fmt;
 	fmt.stdFormat("%d %x %s", 11, 0x20, "foobar");
 	ASSERT(fmt.text() == string("11 20 foobar"));
@@ -38,15 +38,17 @@ void testTextFormatter() {
 	ASSERT_EQ(toString(some_pair), "10 12.5");
 
 	ASSERT_EQ(format("\\%%\\%%\\%", "foo", "bar"), "%foo%bar%");
+	ASSERT(noExceptions());
 }
 
-template <class T> void testClassConversions(T value) {
+template <class T> void testClassConversions(T value) NOEXCEPT {
 	string str = toString(value);
 	ASSERT_EQ(fromString<T>(str.c_str()), value);
 
 	vector<T> vec = {value, value, value, value};
 	string vec_str = toString(vec);
 	ASSERT_EQ(fromString<vector<T>>(vec_str.c_str()), vec);
+	ASSERT(noExceptions());
 }
 
 void testString() {
@@ -57,7 +59,7 @@ void testString() {
 	ASSERT_EQ(string("foo"), Str("foo"));
 }
 
-void testVariant() {
+void testVariant() NOEXCEPT {
 	using Var1 = Variant<string, FBox>;
 	Var1 var = string("woohoo");
 	XmlDocument doc;
@@ -91,7 +93,7 @@ void testAny() {
 	ASSERT_EQ(any3.type(), typeInfo<Error>());
 }
 
-void testXMLConverters() {
+void testXMLConverters() NOEXCEPT {
 	ASSERT(TextParser("1 2 aa bb cc 4d").countElements() == 6);
 
 	testClassConversions(99);
@@ -142,6 +144,7 @@ void testXMLConverters() {
 	ASSERT_FAIL(tryFromString<short>("32768"));
 	ASSERT_FAIL(tryFromString<unsigned short>("-1"));
 	ASSERT_EQ(fromString<long long>("1000000000000"), 1000000000000ll);
+	ASSERT(noExceptions());
 }
 
 void testPathOperations() {
