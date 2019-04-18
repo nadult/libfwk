@@ -12,7 +12,7 @@ TODO: write more detailed description.
 
 - OpenGL & SDL2 based
 - Supported platforms: linux, windows (using MinGW32-W64)
-- Doesn't use exceptions
+- Doesn't use C++ exceptions (has a much simpler system instead)
 
 TODO: more details
 
