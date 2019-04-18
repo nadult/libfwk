@@ -5,4 +5,5 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Sema/Sema.h"
 #include "llvm/Support/raw_ostream.h"
-
+#include <unordered_map>
+#include <unordered_set>
