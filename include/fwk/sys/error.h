@@ -9,8 +9,6 @@
 
 namespace fwk {
 
-// TODO: jak zbierać różne błędy do kupy ?
-
 struct ErrorLoc {
 	const char *file = nullptr;
 	int line = 0;

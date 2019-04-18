@@ -15,7 +15,16 @@
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))
 
+// EXCEPT means that function can raise exceptions by adding them to per-thread exception stack.
+//
+// By default every function is NOEXCEPT; You can use NOEXCEPT if checker marks some function
+// as EXCEPT even though it doesn't raise exceptions. When you add NOEXCEPT, you're responsible
+// for its behaviour.
+//
+// INST_EXCEPT can be used on templated functions to inform that some of the instantiations may
+// raise exceptions. It should be used sparingly (best example is Vector::emplace_back).
 #define EXCEPT __attribute__((annotate("except")))
+#define INST_EXCEPT __attribute__((annotate("inst_except")))
 #define NOEXCEPT __attribute__((annotate("not_except")))
 
 #ifdef __clang__

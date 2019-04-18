@@ -99,5 +99,4 @@ void regError(Error error, int bt_skip) {
 	s_mutex.unlock();
 }
 
-void regError(ErrorLoc loc, string text) { regError(Error(loc, move(text)), 1); }
 }

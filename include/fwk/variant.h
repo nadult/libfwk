@@ -531,7 +531,7 @@ ResultType const& get(T const& var) {
 
 namespace detail {
 	template <class T, class... Types> struct VariantC {
-		static T load(ZStr type_name, CXmlNode node) {
+		static T load(ZStr type_name, CXmlNode node) EXCEPT {
 			REG_ERROR("Invalid type_name: '%' when constructing variant", type_name);
 			return T();
 		}
@@ -561,7 +561,7 @@ namespace detail {
 }
 
 template <class... Types, class Enable = EnableIf<(... && is_xml_parsable<Types>)>>
-auto parse(CXmlNode node, Type<Variant<Types...>>) {
+auto parse(CXmlNode node, Type<Variant<Types...>>) EXCEPT {
 	return detail::VariantCExp<Variant<Types...>>::load(node.attrib("_variant_type_id"), node);
 }
 

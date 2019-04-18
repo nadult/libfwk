@@ -83,6 +83,6 @@ struct IColor {
 	};
 };
 
-TextParser &operator>>(TextParser &, FColor &);
-TextParser &operator>>(TextParser &, IColor &);
+TextParser &operator>>(TextParser &, FColor &) EXCEPT;
+TextParser &operator>>(TextParser &, IColor &) EXCEPT;
 }

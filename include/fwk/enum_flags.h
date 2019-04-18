@@ -122,7 +122,7 @@ template <class T> constexpr int countBits(const EnumFlags<T> &flags) {
 	return countBits(typename EnumFlags<T>::BigBase(flags.bits));
 }
 
-template <class T> TextParser &operator>>(TextParser &parser, EnumFlags<T> &value) {
+template <class T> TextParser &operator>>(TextParser &parser, EnumFlags<T> &value) EXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	value.bits = fwk::detail::parseFlags(parser, Strings::offsets.data, Strings::K);
 	return parser;

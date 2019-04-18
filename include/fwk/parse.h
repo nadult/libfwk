@@ -95,33 +95,33 @@ class EXCEPT TextParser {
 // To make new type parsable: simply overload operator<<:
 // TextParser &operator>>(TextParser&, MyNewType &rhs);
 
-TextParser &operator>>(TextParser &, short2 &);
-TextParser &operator>>(TextParser &, short3 &);
-TextParser &operator>>(TextParser &, short4 &);
-TextParser &operator>>(TextParser &, int2 &);
-TextParser &operator>>(TextParser &, int3 &);
-TextParser &operator>>(TextParser &, int4 &);
-TextParser &operator>>(TextParser &, double2 &);
-TextParser &operator>>(TextParser &, double3 &);
-TextParser &operator>>(TextParser &, double4 &);
-TextParser &operator>>(TextParser &, float2 &);
-TextParser &operator>>(TextParser &, float3 &);
-TextParser &operator>>(TextParser &, float4 &);
-TextParser &operator>>(TextParser &, DRect &);
-TextParser &operator>>(TextParser &, FRect &);
-TextParser &operator>>(TextParser &, IRect &);
-TextParser &operator>>(TextParser &, FBox &);
-TextParser &operator>>(TextParser &, IBox &);
-TextParser &operator>>(TextParser &, DBox &);
-TextParser &operator>>(TextParser &, Matrix4 &);
-TextParser &operator>>(TextParser &, Quat &);
+TextParser &operator>>(TextParser &, short2 &) EXCEPT;
+TextParser &operator>>(TextParser &, short3 &) EXCEPT;
+TextParser &operator>>(TextParser &, short4 &) EXCEPT;
+TextParser &operator>>(TextParser &, int2 &) EXCEPT;
+TextParser &operator>>(TextParser &, int3 &) EXCEPT;
+TextParser &operator>>(TextParser &, int4 &) EXCEPT;
+TextParser &operator>>(TextParser &, double2 &) EXCEPT;
+TextParser &operator>>(TextParser &, double3 &) EXCEPT;
+TextParser &operator>>(TextParser &, double4 &) EXCEPT;
+TextParser &operator>>(TextParser &, float2 &) EXCEPT;
+TextParser &operator>>(TextParser &, float3 &) EXCEPT;
+TextParser &operator>>(TextParser &, float4 &) EXCEPT;
+TextParser &operator>>(TextParser &, DRect &) EXCEPT;
+TextParser &operator>>(TextParser &, FRect &) EXCEPT;
+TextParser &operator>>(TextParser &, IRect &) EXCEPT;
+TextParser &operator>>(TextParser &, FBox &) EXCEPT;
+TextParser &operator>>(TextParser &, IBox &) EXCEPT;
+TextParser &operator>>(TextParser &, DBox &) EXCEPT;
+TextParser &operator>>(TextParser &, Matrix4 &) EXCEPT;
+TextParser &operator>>(TextParser &, Quat &) EXCEPT;
 
-TextParser &operator>>(TextParser &, vector<string> &);
-TextParser &operator>>(TextParser &, vector<int> &);
-TextParser &operator>>(TextParser &, vector<float> &);
+TextParser &operator>>(TextParser &, vector<string> &) EXCEPT;
+TextParser &operator>>(TextParser &, vector<int> &) EXCEPT;
+TextParser &operator>>(TextParser &, vector<float> &) EXCEPT;
 
 template <class T, EnableIfParsable<T>..., EnableIf<!detail::VariableParseElements<T>::value>...>
-TextParser &operator>>(TextParser &parser, vector<T> &vec) {
+TextParser &operator>>(TextParser &parser, vector<T> &vec) EXCEPT {
 	parser.advanceWhitespace();
 	vec.clear();
 	while(!parser.empty()) {
@@ -134,7 +134,7 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) {
 // TODO: parsing types from math
 // TODO: with this kind of error reporting, we can use constructors ?
 
-template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr str) {
+template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr str) EXCEPT {
 	TextParser parser(str);
 	T out;
 	parser >> out;

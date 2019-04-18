@@ -34,16 +34,16 @@ class CXmlNode {
 	ZStr hasAttrib(Str name) const;
 
 	// If an attribute cannot be found or properly parsed then error will be registered
-	ZStr attrib(Str name) const;
+	ZStr attrib(Str name) const EXCEPT;
 	// If an attribute cannot be found then default_value will be returned
 	ZStr attrib(Str name, ZStr default_value) const;
 	ZStr attrib(Str name, const char *default_value) const {
 		return attrib(name, ZStr(default_value));
 	}
 
-	template <class T> T attrib(Str name) const { return fromString<T>(attrib(name)); }
+	template <class T> T attrib(Str name) const EXCEPT { return fromString<T>(attrib(name)); }
 
-	template <class T, class RT = Decay<T>> RT attrib(Str name, T &&or_else) const {
+	template <class T, class RT = Decay<T>> RT attrib(Str name, T &&or_else) const EXCEPT {
 		ZStr value = hasAttrib(name);
 		return value ? fromString<RT>(value) : or_else;
 	}
@@ -55,12 +55,12 @@ class CXmlNode {
 
 	ZStr value() const;
 
-	template <class T> T value() const { return fromString<T>(value()); }
-	template <class T> T value(T default_value) const {
+	template <class T> T value() const EXCEPT { return fromString<T>(value()); }
+	template <class T> T value(T default_value) const EXCEPT {
 		ZStr val = value();
 		return val ? value<T>() : default_value;
 	}
-	template <class T> T childValue(Str child_name, T default_value) const {
+	template <class T> T childValue(Str child_name, T default_value) const EXCEPT {
 		CXmlNode child_node = child(child_name);
 		ZStr val = child_node ? child_node.value() : "";
 		return val ? child_node.value<T>() : default_value;

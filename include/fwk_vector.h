@@ -221,7 +221,7 @@ template <class T> class Vector {
 			new(data() + index++) T();
 	}
 
-	template <class... Args> T &emplace_back(Args &&... args) {
+	template <class... Args> T &emplace_back(Args &&... args) INST_EXCEPT {
 		if(m_base.size == m_base.capacity) {
 			if(trivial_move_constr && trivial_destruction)
 				m_base.growPod(sizeof(T));

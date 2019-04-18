@@ -10,9 +10,9 @@ namespace fwk {
 
 namespace detail {
 
-	int parseEnum(Str, const char *const *strings, int count, bool check_if_invalid);
-	int parseEnum(TextParser &, const char *const *strings, int count);
-	unsigned long long parseFlags(TextParser &, const char *const *strings, int count);
+	int parseEnum(Str, const char *const *strings, int count, bool check_if_invalid) EXCEPT;
+	int parseEnum(TextParser &, const char *const *strings, int count) EXCEPT;
+	unsigned long long parseFlags(TextParser &, const char *const *strings, int count) EXCEPT;
 	void formatFlags(unsigned long long, TextFormatter &, const char *const *strings, int count);
 }
 
@@ -133,12 +133,12 @@ template <class T> constexpr bool is_enum = detail::IsEnum<T>::value;
 
 template <class T> using EnableIfEnum = EnableIf<is_enum<T>, NotAnEnum>;
 
-template <class T, EnableIfEnum<T>...> static T fromString(Str str) {
+template <class T, EnableIfEnum<T>...> static T fromString(Str str) EXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	return T(fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, true));
 }
 
-template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(Str str) {
+template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(Str str) NOEXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
 	if(ret == -1)
