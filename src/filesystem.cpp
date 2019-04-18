@@ -334,27 +334,23 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 }
 
 Ex<string> loadFileString(ZStr file_name, int max_size) {
-	auto file = fileLoader(file_name);
-	if(!file)
-		return file.error();
+	auto file = EXPECT_TRY(fileLoader(file_name));
 
-	if(file->size() > max_size)
-		return ERROR("File '%' size too big: % > %", file_name, file->size(), max_size);
-	string out(file->size(), ' ');
-	file->loadData(out);
+	if(file.size() > max_size)
+		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
+	string out(file.size(), ' ');
+	file.loadData(out);
 	EXPECT_CATCH();
 	return out;
 }
 
 Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
-	auto file = fileLoader(file_name);
-	if(!file)
-		return file.error();
+	auto file = EXPECT_TRY(fileLoader(file_name));
 
-	if(file->size() > max_size)
-		return ERROR("File '%' size too big: % > %", file_name, file->size(), max_size);
-	PodVector<char> out(file->size());
-	file->loadData(out);
+	if(file.size() > max_size)
+		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
+	PodVector<char> out(file.size());
+	file.loadData(out);
 	EXPECT_CATCH();
 	vector<char> vout;
 	out.unsafeSwap(vout);
@@ -362,11 +358,8 @@ Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 }
 
 Ex<void> saveFile(ZStr file_name, CSpan<char> data) {
-	auto file = fileSaver(file_name);
-	if(!file)
-		return file.error();
-
-	file->saveData(data);
+	auto file = EXPECT_TRY(fileSaver(file_name));
+	file.saveData(data);
 	EXPECT_CATCH();
 	return {};
 }

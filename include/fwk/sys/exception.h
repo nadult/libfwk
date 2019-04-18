@@ -12,9 +12,8 @@ namespace fwk {
 // Simple exception system for libfwk:
 //
 // Exceptions are simply errors kept on a per-thread stack
-// Raising an exception doesn't affect control flow in any way: error is simply
-//   added to the stack.
-// Only functions which are marked with EXCEPT can raisie an exception and leave it on the stack.
+// Raising an exception doesn't affect control flow in any way: error is simply added to the stack.
+// Only functions which are marked with EXCEPT can raise an exception and leave it on the stack.
 // User have to manually check if there are any exceptions present when necessary.
 //
 // This system is designed to interoperate with Expected<> and EXPECT_ macros.

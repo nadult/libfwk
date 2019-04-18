@@ -97,24 +97,19 @@ Ex<Pair<PModel, string>> Converter::loadModel(FileType file_type, ZStr file_name
 		if(!child)
 			return ERROR("empty XML document");
 
-		auto model = Model::loadFromXML(child);
-		if(!model)
-			return model.error();
-
-		return pair{immutable_ptr<Model>(move(model.get())), string(child.name())};
+		auto model = EXPECT_TRY(Model::loadFromXML(child));
+		return pair{immutable_ptr<Model>(move(model)), string(child.name())};
 	} else {
 		DASSERT(file_type == FileType::blender);
 		string temp_file_name;
-		auto blender_result = exportFromBlender(file_name, temp_file_name);
-		if(!blender_result)
-			return blender_result.error();
+		auto blender_result = EXPECT_TRY(exportFromBlender(file_name, temp_file_name));
 
 		auto result = loadModel(FileType::fwk_model, temp_file_name);
 		remove(temp_file_name.c_str());
 
 		if(result)
 			return *result;
-		return result.error() + ErrorChunk{*blender_result};
+		return result.error() + ErrorChunk{blender_result};
 	}
 }
 
