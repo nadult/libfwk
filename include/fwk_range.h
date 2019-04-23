@@ -315,7 +315,6 @@ template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int 
 template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int start, int end) {
 	return span(v).subSpan(start, end);
 }
-
 }
 
 #endif

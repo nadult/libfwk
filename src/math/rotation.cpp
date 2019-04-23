@@ -40,13 +40,13 @@ float normalizeAngle(float angle) {
 }
 
 float vectorToAngle(const float2 &normalized_vec) {
-	DASSERT_HINT(isNormalized(normalized_vec), normalized_vec);
+	DASSERT_EX(isNormalized(normalized_vec), normalized_vec);
 	float ang = std::acos(normalized_vec.x);
 	return normalized_vec.y < 0 ? 2.0f * pi - ang : ang;
 }
 
 double vectorToAngle(const double2 &normalized_vec) {
-	DASSERT_HINT(isNormalized(normalized_vec), normalized_vec);
+	DASSERT_EX(isNormalized(normalized_vec), normalized_vec);
 	double ang = std::acos(normalized_vec.x);
 	return normalized_vec.y < 0.0 ? 2.0 * pi - ang : ang;
 }
@@ -90,8 +90,8 @@ Real angleTowards(const Vec &prev, const Vec &cur, const Vec &next) {
 
 template <class Vec, class Real = typename Vec::Scalar>
 Real angleBetween(const Vec &vec1, const Vec &vec2) {
-	DASSERT_HINT(isNormalized(vec1), vec1);
-	DASSERT_HINT(isNormalized(vec2), vec2);
+	DASSERT_EX(isNormalized(vec1), vec1);
+	DASSERT_EX(isNormalized(vec2), vec2);
 	auto ang = atan2(cross(vec1, vec2), dot(vec1, vec2));
 	if(ang < Real(0))
 		ang += pi * Real(2);

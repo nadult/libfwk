@@ -59,5 +59,4 @@ struct Error {
 	Maybe<Backtrace> backtrace;
 	vector<Any> values;
 };
-
 }

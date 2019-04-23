@@ -300,7 +300,7 @@ void testVectorAngles() {
 	for(int n : intRange(1000)) {
 		auto vec = rand.sampleBox(float3(-1000), float3(1000));
 		vec = normalize(vec);
-		ASSERT_HINT(isNormalized(vec), vec);
+		ASSERT_EX(isNormalized(vec), vec);
 	}
 }
 

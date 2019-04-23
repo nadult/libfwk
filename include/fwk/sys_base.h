@@ -145,8 +145,7 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 // TODO: use Str ?
 [[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
 [[noreturn]] void assertFailed(const char *file, int line, const char *str);
-[[noreturn]] void checkFailed(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
-[[noreturn]] void checkFailed(const char *file, int line, Error);
+[[noreturn]] void failedExpected(const char *, int, const Error &);
 
 void handleCtrlC(void (*handler)());
 void handleSegFault();
@@ -159,8 +158,9 @@ double getTime();
 
 #define FWK_FATAL(...) fwk::fatalError(__FILE__, __LINE__, __VA_ARGS__)
 
-#define ASSERT(expr) ((!!(expr) || (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
-#define ASSERT_FAILED(...) fwk::assertFailed(__FILE__, __LINE__, __VA_ARGS__)
+#define ASSERT(expr)                                                                               \
+	((__builtin_expect(!!(expr), true) ||                                                          \
+	  (fwk::assertFailed(__FILE__, __LINE__, FWK_STRINGIZE(expr)), 0)))
 
 #ifdef NDEBUG
 #define DASSERT(expr) ((void)0)

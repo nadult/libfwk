@@ -165,7 +165,7 @@ class TextFormatter {
 
 	void stdFormat(const char *format, ...) ATTRIB_PRINTF(2, 3);
 
-  private:
+  public:
 	using Value = detail::TFValue;
 	using Func = detail::TFFunc;
 
@@ -179,6 +179,8 @@ class TextFormatter {
 	// are passed by value, all other types are passed by pointer
 	void append_(const char *format, int arg_count, const Func *, va_list);
 	void append_(const char *format, int arg_count, const Func *, ...);
+
+  private:
 	static string strFormat_(const char *format, int arg_count, const Func *, ...);
 	static void print_(FormatMode, const char *format, int arg_count, const Func *, ...);
 	static string toString_(Func, Value);

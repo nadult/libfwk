@@ -29,10 +29,10 @@ int onFailStackSize() { return detail::t_on_fail_count; }
 
 static __thread bool s_fail_protect = false;
 
-Error onFailMakeError(const char *file, int line, const char *main_message) {
+Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	if(s_fail_protect) {
 		printf("%s:%d: %s\nFATAL ERROR in libfwk (error within an error)\n", file, line,
-			   main_message);
+			   main_message.c_str());
 		asm("int $3");
 		exit(1);
 	}

@@ -7,32 +7,74 @@
 
 namespace fwk {
 namespace detail {
-	template <class T1, class T2>
-	[[noreturn]] void assertFailedBinary(const char *, int, const char *, const char *,
-										 const char *, const T1 &, const T2 &) NOINLINE;
+	struct AssertInfo {
+		const char *file;
+		const char *message;
+		const char *arg_names;
+		const TFFunc *funcs;
+		int line;
+		int arg_count;
+	};
+	[[noreturn]] void assertFailed(const AssertInfo *, ...);
+	Error checkFailed(const AssertInfo *, ...);
 
-	template <class T1, class T2>
-	[[noreturn]] void assertFailedBinary(const char *file, int line, const char *op,
-										 const char *str1, const char *str2, const T1 &v1,
-										 const T2 &v2) {
-		assertFailed(file, line, format("%:% % %:%", str1, v1, op, str2, v2).c_str());
+	template <int V> struct Value { static constexpr int value = V; };
+	template <class... T> constexpr auto countArgs(const T &...) -> Value<sizeof...(T)>;
+
+	template <class... T> constexpr auto getArgTypes(const T &...) -> Types<T...>;
+
+	template <class... T, EnableIfFormattible<T...>...>
+	void assertFailed_(const AssertInfo &info, const T &... args) {
+		assertFailed(&info, detail::getTFValue(args)...);
 	}
 
-	template <class T>
-	[[noreturn]] void assertFailedHint(const char *file, int line, const char *str,
-									   const char *hint, const T &hint_val) NOINLINE;
-	template <class T>
-	[[noreturn]] void assertFailedHint(const char *file, int line, const char *str,
-									   const char *hint, const T &hint_val) {
-		assertFailed(file, line, format("% | %:%", str, hint, hint_val).c_str());
+	template <class... T, EnableIfFormattible<T...>...>
+	Error checkFailed_(const AssertInfo &info, const T &... args) {
+		return checkFailed(&info, detail::getTFValue(args)...);
 	}
+
+	template <class T> struct TFFuncs {};
+	template <class... T> struct TFFuncs<Types<T...>> {
+		static constexpr TFFunc funcs[] = {getTFFunc<T>()...};
+	};
 }
 
-#define ASSERT_BINARY(expr1, expr2, op)                                                            \
-	(((expr1)op(expr2) || (fwk::detail::assertFailedBinary(                                        \
-							   __FILE__, __LINE__, FWK_STRINGIZE(op), FWK_STRINGIZE(expr1),        \
-							   FWK_STRINGIZE(expr2), (expr1), (expr2)),                            \
-						   0)))
+#define ASSERT_EX(expr, ...)                                                                       \
+	{                                                                                              \
+		if(__builtin_expect(!(expr), false)) {                                                     \
+			using Funcs = fwk::detail::TFFuncs<decltype(fwk::detail::getArgTypes(__VA_ARGS__))>;   \
+			static constexpr fwk::detail::AssertInfo info{                                         \
+				__FILE__,                                                                          \
+				FWK_STRINGIZE(expr),                                                               \
+				FWK_STRINGIZE(__VA_ARGS__),                                                        \
+				Funcs::funcs,                                                                      \
+				__LINE__,                                                                          \
+				decltype(fwk::detail::countArgs(__VA_ARGS__))::value};                             \
+			fwk::detail::assertFailed_(info __VA_OPT__(, ) __VA_ARGS__);                           \
+		}                                                                                          \
+	}
+
+#define ASSERT_FAILED(fmt, ...)                                                                    \
+	{                                                                                              \
+		static constexpr fwk::detail::AssertInfo info{                                             \
+			__FILE__, fmt,		nullptr,                                                           \
+			nullptr,  __LINE__, decltype(fwk::detail::countArgs(__VA_ARGS__))::value};             \
+		fwk::detail::assertFailed_(info __VA_OPT__(, ) __VA_ARGS__);                               \
+	}
+
+#ifdef NDEBUG
+#define DASSERT_EX(...) ((void)0)
+#else
+#define DASSERT_EX(...) ASSERT_EX(__VA_ARGS__)
+#endif
+
+#if defined(FWK_PARANOID)
+#define PASSERT_EX(...) ASSERT_EX(__VA_ARGS__)
+#else
+#define PASSERT_EX(...) ((void)0)
+#endif
+
+#define ASSERT_BINARY(e1, e2, op) ASSERT_EX((e1)op(e2), e1, e2)
 
 #define ASSERT_EQ(expr1, expr2) ASSERT_BINARY(expr1, expr2, ==)
 #define ASSERT_NE(expr1, expr2) ASSERT_BINARY(expr1, expr2, !=)
@@ -40,11 +82,6 @@ namespace detail {
 #define ASSERT_LT(expr1, expr2) ASSERT_BINARY(expr1, expr2, <)
 #define ASSERT_LE(expr1, expr2) ASSERT_BINARY(expr1, expr2, <=)
 #define ASSERT_GE(expr1, expr2) ASSERT_BINARY(expr1, expr2, >=)
-
-#define ASSERT_HINT(expr, hint)                                                                    \
-	((expr) || (fwk::detail::assertFailedHint(__FILE__, __LINE__, FWK_STRINGIZE(expr),             \
-											  FWK_STRINGIZE(hint), (hint)),                        \
-				0))
 
 #ifdef NDEBUG
 #define DASSERT_EQ(expr1, expr2) ((void)0)
@@ -54,7 +91,6 @@ namespace detail {
 #define DASSERT_LE(expr1, expr2) ((void)0)
 #define DASSERT_GE(expr1, expr2) ((void)0)
 
-#define DASSERT_HINT(expr, hint) ((void)0)
 #else
 #define DASSERT_EQ(expr1, expr2) ASSERT_EQ(expr1, expr2)
 #define DASSERT_NE(expr1, expr2) ASSERT_NE(expr1, expr2)
@@ -63,7 +99,6 @@ namespace detail {
 #define DASSERT_LE(expr1, expr2) ASSERT_LE(expr1, expr2)
 #define DASSERT_GE(expr1, expr2) ASSERT_GE(expr1, expr2)
 
-#define DASSERT_HINT(expr, hint) ASSERT_HINT(expr, hint)
 #endif
 
 #if defined(FWK_PARANOID)
@@ -74,7 +109,6 @@ namespace detail {
 #define PASSERT_LT(expr1, expr2) ASSERT_LT(expr1, expr2)
 #define PASSERT_LE(expr1, expr2) ASSERT_LE(expr1, expr2)
 #define PASSERT_GE(expr1, expr2) ASSERT_GE(expr1, expr2)
-#define PASSERT_HINT(expr, hint) ASSERT_HINT(expr, hint)
 
 #else
 
@@ -84,7 +118,6 @@ namespace detail {
 #define PASSERT_LT(expr1, expr2) ((void)0)
 #define PASSERT_LE(expr1, expr2) ((void)0)
 #define PASSERT_GE(expr1, expr2) ((void)0)
-#define PASSERT_HINT(expr, hint) ((void)0)
 
 #endif
 }

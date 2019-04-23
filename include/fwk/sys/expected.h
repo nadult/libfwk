@@ -105,7 +105,7 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 	T &get() {
 		// TODO: change to FATAL ?
 		if(!m_has_value)
-			checkFailed(__FILE__, __LINE__, *m_error);
+			failedExpected(__FILE__, __LINE__, *m_error);
 		return m_value;
 	}
 	const T &get() const { return ((Expected *)this)->get(); }
@@ -133,7 +133,7 @@ template <> class [[nodiscard]] Expected<void> {
 
 	void check() const {
 		if(m_error.get())
-			checkFailed(__FILE__, __LINE__, *m_error);
+			failedExpected(__FILE__, __LINE__, *m_error);
 	}
 	void ignore() const {}
 
@@ -153,5 +153,4 @@ namespace detail {
 		return value.error();
 	}
 }
-
 }
