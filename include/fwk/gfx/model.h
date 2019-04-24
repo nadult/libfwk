@@ -34,6 +34,8 @@ class Model : public immutable_base<Model> {
 
 	const ModelNode *node(int id) const { return id == -1 ? nullptr : &m_nodes[id]; }
 	const ModelNode *rootNode() const { return m_nodes ? &m_nodes[0] : nullptr; }
+
+	const auto &meshes() const { return m_meshes; }
 	const auto &nodes() const { return m_nodes; }
 	const auto &anims() const { return m_anims; }
 	const auto &materialDefs() const { return m_material_defs; }
