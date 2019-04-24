@@ -2,13 +2,7 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 
 - Rename checker to exception checker
-- Lepsze zbieranie różnych błędów do kupy; Zbieranie informacji o błędzie na różnych poziomach (za pomocą
-  ON_FAIL, albo podczas zwracania Expected<>)
 - Czy przed skonstruowaniem Expected<> nie powinniśmy automatycznie zgarniać błędy z wyjątków ?
-- zastanowic się jak ON_FAIL ma współpracować z wszystkimi innymi rzeczami?
-  z asercjami, logowaniem errorów i z czymś jeszcze?
-  jak bledy zalatwiamy za pomocą expected, to nie am ta metoda sensu
-  z drugiej storny, jeśli w przypadku zwracania expected czesto cos doklejamy, to przydaloby się coś w rodzaju ON_FAIL ?
 - cleanup...
 - przeniesienie filesystem.h -> sys/file_system.h ?
 
@@ -21,7 +15,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   - maybe a single interface for XML & binary serialization ?
   - find a better name?
 
-- Add _builtin_assume after assert ?
 - builtin_rotateleft, etc.
 
 - operacja shiftowania bitów (zamknięta)
