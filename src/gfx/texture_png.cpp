@@ -175,7 +175,7 @@ namespace detail {
 			string msg = text;
 			if(!m_error.empty())
 				msg += "\n" + toString(m_error);
-			EXCEPTION("PNG loading error: %", msg);
+			RAISE("PNG loading error: %", msg);
 		}
 
 		void cleanup() {

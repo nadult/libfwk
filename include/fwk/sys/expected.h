@@ -29,12 +29,12 @@ namespace fwk {
 //
 // Example use:
 // Ex<int> func1(int v) { ... }
-// Ex<float> func2() { auto value = EXPECT_TRY(func(10)); return value * 0.5f; }
-#define EXPECT_TRY(...)                                                                            \
+// Ex<float> func2() { auto value = EXPECT_PASS(func1(10)); return value * 0.5f; }
+#define EXPECT_PASS(...)                                                                           \
 	({                                                                                             \
 		auto result = __VA_ARGS__;                                                                 \
 		static_assert(fwk::is_expected<decltype(result)>,                                          \
-					  "You have to pass Expected<...> to EXPECT_TRY");                             \
+					  "You have to pass Expected<...> to EXPECT_PASS");                            \
 		if(!result)                                                                                \
 			return result.error();                                                                 \
 		move(result.get());                                                                        \

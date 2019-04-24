@@ -77,7 +77,7 @@ ZStr CXmlNode::attrib(Str name) const {
 	touch(m_ptr, attrib);
 
 	if(!attrib || !attrib->value()) {
-		EXCEPTION("attribute '%' not found in node: %\n", name, this->name());
+		RAISE("attribute '%' not found in node: %\n", name, this->name());
 		return "";
 	}
 	return attrib->value();
@@ -210,7 +210,7 @@ void rapidxml::parse_error_handler(const char *what, void *where) {
 	if(pos != fwk::Pair<int>())
 		fmt(" at: line:% col:%", pos.first, pos.second);
 	using namespace fwk;
-	EXCEPTION("%", fmt.text());
+	RAISE("%", fmt.text());
 	std::longjmp(t_xml_debug.jump_buffer, 1);
 }
 

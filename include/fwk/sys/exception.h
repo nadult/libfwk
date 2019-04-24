@@ -29,8 +29,6 @@ namespace fwk {
 // Example: RAISE("Invalid nr of elements: % (expected: %)", elems.size(), required_count);
 #define RAISE(...) _ASSERT_FORMATTED(raiseException, __VA_ARGS__)
 
-#define EXCEPTION(...) RAISE(__VA_ARGS__)
-
 namespace detail {
 	extern __thread int t_num_exceptions;
 }

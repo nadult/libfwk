@@ -334,7 +334,7 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 }
 
 Ex<string> loadFileString(ZStr file_name, int max_size) {
-	auto file = EXPECT_TRY(fileLoader(file_name));
+	auto file = EXPECT_PASS(fileLoader(file_name));
 
 	if(file.size() > max_size)
 		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
@@ -345,7 +345,7 @@ Ex<string> loadFileString(ZStr file_name, int max_size) {
 }
 
 Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
-	auto file = EXPECT_TRY(fileLoader(file_name));
+	auto file = EXPECT_PASS(fileLoader(file_name));
 
 	if(file.size() > max_size)
 		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
@@ -358,7 +358,7 @@ Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 }
 
 Ex<void> saveFile(ZStr file_name, CSpan<char> data) {
-	auto file = EXPECT_TRY(fileSaver(file_name));
+	auto file = EXPECT_PASS(fileSaver(file_name));
 	file.saveData(data);
 	EXPECT_CATCH();
 	return {};

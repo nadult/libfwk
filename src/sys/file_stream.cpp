@@ -35,9 +35,9 @@ FileStream::~FileStream() {
 		fclose((FILE *)m_file);
 }
 
-void FileStream::raise(string message) {
-	EXCEPTION("While % file '%' at position %/%: %", m_is_loading ? "loading from" : "saving to",
-			  m_name, m_pos, m_size, message);
+void FileStream::raise(Str message) {
+	RAISE("While % file '%' at position %/%: %", m_is_loading ? "loading from" : "saving to",
+		  m_name, m_pos, m_size, message);
 	m_is_valid = false;
 }
 

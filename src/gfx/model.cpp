@@ -97,7 +97,7 @@ Ex<Model> Model::loadFromXML(CXmlNode xml_node) {
 	auto mesh_node = xml_node.child("mesh");
 	vector<Mesh> meshes;
 	while(mesh_node) {
-		meshes.emplace_back(EXPECT_TRY(Mesh::load(mesh_node)));
+		meshes.emplace_back(EXPECT_PASS(Mesh::load(mesh_node)));
 		mesh_node.next();
 	}
 
@@ -112,7 +112,7 @@ Ex<Model> Model::loadFromXML(CXmlNode xml_node) {
 	vector<ModelAnim> anims;
 	auto anim_node = xml_node.child("anim");
 	while(anim_node) {
-		anims.emplace_back(EXPECT_TRY(ModelAnim::load(anim_node, default_pose)));
+		anims.emplace_back(EXPECT_PASS(ModelAnim::load(anim_node, default_pose)));
 		anim_node.next();
 	}
 

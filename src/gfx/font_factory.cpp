@@ -164,7 +164,7 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 	if(!m_impl->lib)
 		return ERROR("FreeType not initialized properly or FontFactory moved");
 
-	auto face = EXPECT_TRY(m_impl->getFace(path));
+	auto face = EXPECT_PASS(m_impl->getFace(path));
 	if(FT_Set_Pixel_Sizes(face, 0, size_px) != 0)
 		return ERROR("Error in FT_Set_Pixel_Sizes while creating font %", path);
 
