@@ -7,6 +7,18 @@
 
 namespace fwk {
 
+#define PP_THIRD_ARG(a, b, c, ...) c
+#define VA_OPT_SUPPORTED_I(...) PP_THIRD_ARG(__VA_OPT__(, ), true, false, )
+#define VA_OPT_SUPPORTED VA_OPT_SUPPORTED_I(?)
+
+#if !(VA_OPT_SUPPORTED)
+#error "__VA_OPT__ support is required for assertions to work"
+#endif
+
+#undef PP_THIRD_ARG
+#undef VA_OPT_SUPPORTED_I
+#undef VA_OPT_SUPPORTED
+
 namespace detail {
 	struct AssertInfo {
 		const char *file;
