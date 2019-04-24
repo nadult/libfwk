@@ -10,53 +10,31 @@
 
 namespace fwk {
 
-namespace detail {
-	void assertFailed(const AssertInfo *info, ...) {
-		TextFormatter out;
-		const char *fmt;
-		string temp;
+void assertFailed_(const AssertInfo *info, ...) {
+	TextFormatter out;
+	auto fmt = info->preFormat(out, "Assert failed: ");
 
-		if(info->arg_names) {
-			temp = detail::autoPrintFormat(info->arg_names);
-			out("Assert failed: %\n", info->message);
-			fmt = temp.c_str();
-		} else {
-			out("Assert failed: ");
-			fmt = info->message;
-		}
+	va_list ap;
+	va_start(ap, info);
+	out.append_(fmt.c_str(), info->arg_count, info->funcs, ap);
+	va_end(ap);
 
-		va_list ap;
-		va_start(ap, info);
-		out.append_(fmt, info->arg_count, info->funcs, ap);
-		va_end(ap);
+	onFailMakeError(info->file, info->line, out.text()).print();
 
-		onFailMakeError(info->file, info->line, out.text()).print();
+	asm("int $3");
+	exit(1);
+}
 
-		asm("int $3");
-		exit(1);
-	}
+Error checkFailed(const AssertInfo *info, ...) {
+	TextFormatter out;
+	auto fmt = info->preFormat(out, "Check failed: ");
 
-	Error checkFailed(const AssertInfo *info, ...) {
-		TextFormatter out;
-		const char *fmt;
-		string temp;
+	va_list ap;
+	va_start(ap, info);
+	out.append_(fmt.c_str(), info->arg_count, info->funcs, ap);
+	va_end(ap);
 
-		if(info->arg_names) {
-			temp = detail::autoPrintFormat(info->arg_names);
-			out("Check failed: %\n", info->message);
-			fmt = temp.c_str();
-		} else {
-			out("Check failed: ");
-			fmt = info->message;
-		}
-
-		va_list ap;
-		va_start(ap, info);
-		out.append_(fmt, info->arg_count, info->funcs, ap);
-		va_end(ap);
-
-		return onFailMakeError(info->file, info->line, out.text());
-	}
+	return onFailMakeError(info->file, info->line, out.text());
 }
 
 void failedExpected(const char *file, int line, const Error &error) {

@@ -96,7 +96,6 @@ namespace detail {
 		template <class... UArgs> static constexpr void test(...);
 		static constexpr bool value = !is_same<decltype(test<Args...>(DECLVAL(T *))), void>;
 	};
-
 }
 
 template <class TFrom, class TWhat>
@@ -157,4 +156,9 @@ template <class... Args> constexpr bool unique_types<Types<Args...>> = unique_ty
 template <class T> constexpr int type_size = sizeof(T);
 
 template <class T> using Decay = std::decay_t<T>;
+
+template <typename T, T... t> struct static_string {
+	static constexpr char text[sizeof...(t) + 1] = {t..., 0};
+};
+template <typename T, T... t> constexpr static_string<T, t...> operator"" _ss() { return {}; }
 }

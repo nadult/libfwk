@@ -16,7 +16,7 @@ namespace detail {
 
 		if(check_if_invalid) {
 			auto stringized = toString(CSpan<const char *>(strings, count));
-			EXCEPTION("Error when parsing enum: couldn't match \"%\" to (%)", str, stringized);
+			RAISE("Error when parsing enum: couldn't match \"%\" to (%)", str, stringized);
 			return 0;
 		}
 		return -1;

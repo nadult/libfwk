@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/format.h"
+#include "fwk/sys/assert_info.h"
 #include "fwk/sys/error.h"
 #include "fwk/sys_base.h"
 
@@ -18,16 +19,17 @@ namespace fwk {
 //
 // This system is designed to interoperate with Expected<> and EXPECT_ macros.
 
-#define ERROR(...) fwk::Error({__FILE__, __LINE__}, __VA_ARGS__)
+#define CHECK_EX(expr, ...)                                                                        \
+	(__builtin_expect((expr), true) ||                                                             \
+	 (ASSERT_WITH_PARAMS(fwk::raiseException, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS), 0))
 
-#define EXCEPTION_IF(expr)                                                                         \
-	{                                                                                              \
-		if(!(expr))                                                                                \
-			fwk::raiseException({{__FILE__, __LINE__}, FWK_STRINGIZE(expr)});                      \
-	}
+#define CHECK(expr)                                                                                \
+	(__builtin_expect((expr), true) ||                                                             \
+	 (ASSERT_WITH_PARAMS(fwk::raiseException, FWK_STRINGIZE(expr)), 0))
 
-#define EXCEPTION(...)                                                                             \
-	{ fwk::raiseException(fwk::Error({__FILE__, __LINE__}, __VA_ARGS__)); }
+#define RAISE(...) ASSERT_FORMATTED(fwk::raiseException_, __VA_ARGS__)
+
+#define EXCEPTION(...) RAISE(__VA_ARGS__)
 
 namespace detail {
 	extern __thread int t_num_exceptions;
@@ -44,5 +46,5 @@ void clearExceptions();
 
 // Adds new exception to the stack
 void raiseException(Error, int bt_skip = 0) EXCEPT;
-
+void raiseException_(const AssertInfo *, ...) EXCEPT;
 }

@@ -6,6 +6,8 @@
 #include "fwk/any.h"
 #include "fwk/format.h"
 #include "fwk/sys/backtrace.h"
+#include "fwk/sys/on_fail.h"
+#include <stdarg.h>
 
 namespace fwk {
 
@@ -16,6 +18,17 @@ void ErrorChunk::operator>>(TextFormatter &out) const {
 		out("%:%%", loc.file, loc.line, message.empty() ? "\n" : ": ");
 	if(!message.empty())
 		out("%\n", message);
+}
+
+Error makeError(const AssertInfo *info, ...) {
+	TextFormatter out;
+
+	va_list ap;
+	va_start(ap, info);
+	out.append_(info->message, info->arg_count, info->funcs, ap);
+	va_end(ap);
+
+	return onFailMakeError(info->file, info->line, out.text());
 }
 
 Error::Error(ErrorLoc loc, string message) { chunks.emplace_back(loc, move(message)); }
@@ -49,5 +62,4 @@ void Error::operator>>(TextFormatter &out) const {
 }
 
 void Error::print() const { fwk::print("%\n", *this); }
-
 }

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/format.h"
+#include "fwk/sys/assert_info.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys_base.h"
 
@@ -26,11 +27,17 @@ struct ErrorChunk {
 	ErrorLoc loc;
 };
 
+Error makeError(const AssertInfo *, ...);
+
+#define ERROR_EX(...) ASSERT_WITH_PARAMS(fwk::makeError, __VA_ARGS__)
+#define ERROR(...) ASSERT_FORMATTED(fwk::makeError, __VA_ARGS__)
+
 struct Error {
 	using Chunk = ErrorChunk;
 
 	Error(ErrorLoc, string message);
 
+	// TODO: remove these ?
 	template <class... T, EnableIfFormattible<T...>...>
 	Error(ErrorLoc loc, const char *fmt, T &&... args)
 		: Error(loc, format(fmt, std::forward<T>(args)...)) {}

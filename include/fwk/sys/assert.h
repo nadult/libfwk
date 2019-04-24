@@ -3,64 +3,17 @@
 
 #pragma once
 
-#include "fwk/format.h"
+#include "fwk/sys/assert_info.h"
 
 namespace fwk {
-namespace detail {
-	struct AssertInfo {
-		const char *file;
-		const char *message;
-		const char *arg_names;
-		const TFFunc *funcs;
-		int line;
-		int arg_count;
-	};
-	[[noreturn]] void assertFailed(const AssertInfo *, ...);
-	Error checkFailed(const AssertInfo *, ...);
 
-	template <int V> struct Value { static constexpr int value = V; };
-	template <class... T> constexpr auto countArgs(const T &...) -> Value<sizeof...(T)>;
-
-	template <class... T> constexpr auto getArgTypes(const T &...) -> Types<T...>;
-
-	template <class... T, EnableIfFormattible<T...>...>
-	void assertFailed_(const AssertInfo &info, const T &... args) {
-		assertFailed(&info, detail::getTFValue(args)...);
-	}
-
-	template <class... T, EnableIfFormattible<T...>...>
-	Error checkFailed_(const AssertInfo &info, const T &... args) {
-		return checkFailed(&info, detail::getTFValue(args)...);
-	}
-
-	template <class T> struct TFFuncs {};
-	template <class... T> struct TFFuncs<Types<T...>> {
-		static constexpr TFFunc funcs[] = {getTFFunc<T>()...};
-	};
-}
+[[noreturn]] void assertFailed_(const AssertInfo *, ...);
 
 #define ASSERT_EX(expr, ...)                                                                       \
-	{                                                                                              \
-		if(__builtin_expect(!(expr), false)) {                                                     \
-			using Funcs = fwk::detail::TFFuncs<decltype(fwk::detail::getArgTypes(__VA_ARGS__))>;   \
-			static constexpr fwk::detail::AssertInfo info{                                         \
-				__FILE__,                                                                          \
-				FWK_STRINGIZE(expr),                                                               \
-				FWK_STRINGIZE(__VA_ARGS__),                                                        \
-				Funcs::funcs,                                                                      \
-				__LINE__,                                                                          \
-				decltype(fwk::detail::countArgs(__VA_ARGS__))::value};                             \
-			fwk::detail::assertFailed_(info __VA_OPT__(, ) __VA_ARGS__);                           \
-		}                                                                                          \
-	}
+	(__builtin_expect((expr), true) ||                                                             \
+	 (ASSERT_WITH_PARAMS(fwk::assertFailed_, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS__), 0))
 
-#define ASSERT_FAILED(fmt, ...)                                                                    \
-	{                                                                                              \
-		static constexpr fwk::detail::AssertInfo info{                                             \
-			__FILE__, fmt,		nullptr,                                                           \
-			nullptr,  __LINE__, decltype(fwk::detail::countArgs(__VA_ARGS__))::value};             \
-		fwk::detail::assertFailed_(info __VA_OPT__(, ) __VA_ARGS__);                               \
-	}
+#define ASSERT_FAILED(...) ASSERT_FORMATTED(fwk::assertFailed, __VA_ARGS__)
 
 #ifdef NDEBUG
 #define DASSERT_EX(...) ((void)0)

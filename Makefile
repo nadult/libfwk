@@ -29,7 +29,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 
 SHARED_SRC=vector filesystem filesystem_linux profiler enum str sys_base type_info any any_ref logger \
-		   sys/error sys/exception sys/assert sys/on_fail sys/memory sys/backtrace sys/file_stream sys/xml sys/input \
+		   sys/error sys/exception sys/assert sys/assert_info sys/on_fail sys/memory sys/backtrace sys/file_stream sys/xml sys/input \
            math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   math/line math/affine_trans math/rational math/gcd math/rational_angle \
@@ -87,7 +87,7 @@ INCLUDES=-Iinclude/ -Isrc/
 # Clang gives no warnings for uninitialized class members!
 NICE_FLAGS=-std=c++2a -fno-exceptions -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder \
 		   -Wuninitialized -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
-		   -Wparentheses -Wno-overloaded-virtual  #-Werror
+		   -Wparentheses -Wno-overloaded-virtual -Wno-gnu-string-literal-operator-template
 
 FLAGS+=-DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
 HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2

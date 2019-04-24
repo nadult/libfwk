@@ -36,7 +36,10 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
 '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unused-variable',
-'-fexceptions',
+'-Wno-gnu-string-literal-operator-template',
+'-fno-exceptions',
+
+
 '-DNDEBUG',
 '-DFWK_TARGET_LINUX', '-DFWK_PARANOID', '-DFWK_CHECK_OPENGL', '-DFWK_CHECK_NANS',
 '-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP',
@@ -46,7 +49,7 @@ flags = [
 # a "-std=<something>".
 # For a C project, you would set this to something like 'c99' instead of
 # 'c++11'.
-'-std=c++1z',
+'-std=c++2a',
 # ...and the same thing goes for the magic -x option which specifies the
 # language that the files to be compiled are written in. This is mostly
 # relevant for c++ headers.

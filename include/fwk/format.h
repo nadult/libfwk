@@ -107,6 +107,12 @@ namespace detail {
 
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc);
 	string autoPrintFormat(const char *args);
+
+	template <class... T> struct TFFuncs {
+		static constexpr TFFunc funcs[] = {getTFFunc<T>()...};
+		static constexpr int count = sizeof...(T);
+	};
+	template <class... T> constexpr auto formatFuncs(const T &...) -> TFFuncs<T...>;
 }
 
 template <class T>
@@ -158,9 +164,10 @@ class TextFormatter {
 	bool isStructured() const { return m_options.mode == FormatMode::structured; }
 	bool isPlain() const { return m_options.mode == FormatMode::plain; }
 
-	template <class... Args, EnableIfFormattible<Args...>...>
-	void operator()(const char *format_str, const Args &... args) {
-		append_(format_str, sizeof...(Args), getFuncs<Args...>(), detail::getTFValue(args)...);
+	template <class... T, EnableIfFormattible<T...>...>
+	void operator()(const char *format_str, const T &... args) {
+		append_(format_str, sizeof...(T), detail::TFFuncs<T...>::funcs,
+				detail::getTFValue(args)...);
 	}
 
 	void stdFormat(const char *format, ...) ATTRIB_PRINTF(2, 3);
@@ -168,11 +175,6 @@ class TextFormatter {
   public:
 	using Value = detail::TFValue;
 	using Func = detail::TFFunc;
-
-	template <class... Args> static inline const Func *getFuncs() {
-		static constexpr const Func funcs[] = {detail::getTFFunc<Args>()...};
-		return funcs;
-	}
 
 	// Basically TextFormatter is trying to pass arguments to internal functions efficiently:
 	// all arguments are passed as unsigned long long; all types which naturally fit in this number
@@ -189,18 +191,20 @@ class TextFormatter {
 
 	template <class... T, EnableIfFormattible<T...>...>
 	friend string format(const char *str, T &&... args) {
-		return strFormat_(str, sizeof...(T), getFuncs<T...>(), detail::getTFValue(args)...);
+		return strFormat_(str, sizeof...(T), detail::TFFuncs<T...>::funcs,
+						  detail::getTFValue(args)...);
 	}
 
 	template <class... T, EnableIfFormattible<T...>...>
 	friend void print(const char *str, T &&... args) {
-		print_(FormatMode::structured, str, sizeof...(T), getFuncs<T...>(),
+		print_(FormatMode::structured, str, sizeof...(T), detail::TFFuncs<T...>::funcs,
 			   detail::getTFValue(args)...);
 	}
 
 	template <class... T, EnableIfFormattible<T...>...>
 	friend void printPlain(const char *str, T &&... args) {
-		print_(FormatMode::plain, str, sizeof...(T), getFuncs<T...>(), detail::getTFValue(args)...);
+		print_(FormatMode::plain, str, sizeof...(T), detail::TFFuncs<T...>::funcs,
+			   detail::getTFValue(args)...);
 	}
 
 	template <class T, EnableIf<!is_enum<RemoveReference<T>>>..., EnableIfFormattible<T>...>

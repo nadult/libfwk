@@ -12,14 +12,18 @@
 #undef assert
 #endif
 
-#define assert DASSERT
-
 #include "fwk/filesystem.h"
 #include "fwk/sys/file_stream.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/sys/xml.h"
+
+#define assert DASSERT
+
 #include "rapidxml/rapidxml.hpp"
 #include "rapidxml/rapidxml_print.hpp"
+
+#undef assert
+
 #include <csetjmp>
 #include <cstdio>
 #include <cstring>
@@ -205,6 +209,7 @@ void rapidxml::parse_error_handler(const char *what, void *where) {
 	fmt("XML parsing error: %", what);
 	if(pos != fwk::Pair<int>())
 		fmt(" at: line:% col:%", pos.first, pos.second);
+	using namespace fwk;
 	EXCEPTION("%", fmt.text());
 	std::longjmp(t_xml_debug.jump_buffer, 1);
 }

@@ -14,7 +14,7 @@ namespace fwk {
 	{                                                                                              \
 		auto &&value = ((expr));                                                                   \
 		if(!value)                                                                                 \
-			return fwk::detail::makeError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);         \
+			return fwk::detail::passError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);         \
 	}
 
 // Checks if there are any raised exceptions. If so, it will return them.
@@ -145,11 +145,11 @@ template <> class [[nodiscard]] Expected<void> {
 
 namespace detail {
 	template <class T>
-	auto makeError(const T &value, const char *expr, const char *file, int line) {
+	auto passError(const T &value, const char *expr, const char *file, int line) {
 		return fwk::Error({file, line}, expr);
 	}
 
-	template <class T> auto makeError(const Expected<T> &value, const char *, const char *, int) {
+	template <class T> auto passError(const Expected<T> &value, const char *, const char *, int) {
 		return value.error();
 	}
 }

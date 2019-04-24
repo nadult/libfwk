@@ -4,6 +4,7 @@
 #include "fwk/sys/exception.h"
 
 #include "fwk/sys/backtrace.h"
+#include "fwk/sys/on_fail.h"
 #include <mutex>
 
 namespace fwk {
@@ -55,6 +56,18 @@ void raiseException(Error error, int bt_skip) {
 	s_mutex.lock();
 	s_errors.emplace_back(move(error), tid);
 	s_mutex.unlock();
+}
+
+void raiseException_(const AssertInfo *info, ...) {
+	TextFormatter out;
+	auto fmt = info->preFormat(out, "Exception raised: ");
+
+	va_list ap;
+	va_start(ap, info);
+	out.append_(fmt.c_str(), info->arg_count, info->funcs, ap);
+	va_end(ap);
+
+	raiseException(onFailMakeError(info->file, info->line, out.text()));
 }
 
 void clearExceptions() {
