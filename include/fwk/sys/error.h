@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "fwk/format.h"
-#include "fwk/sys/assert_info.h"
+#include "fwk/sys/assert_impl.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys_base.h"
 
@@ -27,10 +26,13 @@ struct ErrorChunk {
 	ErrorLoc loc;
 };
 
-Error makeError(const AssertInfo *, ...);
+// Creates an error with automatically formatted parameters
+// Example: ERROR_EX("Invalid arguments", arg1, arg2, arg3)
+#define ERROR_EX(...) _ASSERT_WITH_PARAMS(makeError, __VA_ARGS__)
 
-#define ERROR_EX(...) ASSERT_WITH_PARAMS(fwk::makeError, __VA_ARGS__)
-#define ERROR(...) ASSERT_FORMATTED(fwk::makeError, __VA_ARGS__)
+// Creates an error with formatted text
+// Example: ERROR("Low-case string should be passed: %", str)
+#define ERROR(...) _ASSERT_FORMATTED(makeError, __VA_ARGS__)
 
 struct Error {
 	using Chunk = ErrorChunk;

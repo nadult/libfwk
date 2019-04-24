@@ -8,6 +8,7 @@
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
+#include "fwk/sys/on_fail.h"
 #include "fwk/type_info_gen.h"
 #include "fwk/variant.h"
 #include "tests/testing.h"
@@ -198,6 +199,17 @@ void testFwdMember() {
 	static_assert(fwk::detail::FullyDefined<Pair<Vector<int>, Vector<int>>>::value);
 }
 
+void testExceptions() NOEXCEPT {
+	string test_string = "value0";
+	RAISE("Invalid string: %", test_string);
+	auto exception_text = toString(getMergedExceptions());
+	ASSERT(Str(exception_text).contains(test_string));
+
+	CHECK(test_string == "nope", test_string);
+	exception_text = toString(getMergedExceptions());
+	ASSERT(Str(exception_text).contains(test_string));
+}
+
 void testMain() {
 	testString();
 	testAny();
@@ -209,4 +221,5 @@ void testMain() {
 	testFwdMember();
 	testVariant();
 	testTypes();
+	testExceptions();
 }

@@ -10,33 +10,6 @@
 
 namespace fwk {
 
-void assertFailed_(const AssertInfo *info, ...) {
-	TextFormatter out;
-	auto fmt = info->preFormat(out, "Assert failed: ");
-
-	va_list ap;
-	va_start(ap, info);
-	out.append_(fmt.c_str(), info->arg_count, info->funcs, ap);
-	va_end(ap);
-
-	onFailMakeError(info->file, info->line, out.text()).print();
-
-	asm("int $3");
-	exit(1);
-}
-
-Error checkFailed(const AssertInfo *info, ...) {
-	TextFormatter out;
-	auto fmt = info->preFormat(out, "Check failed: ");
-
-	va_list ap;
-	va_start(ap, info);
-	out.append_(fmt.c_str(), info->arg_count, info->funcs, ap);
-	va_end(ap);
-
-	return onFailMakeError(info->file, info->line, out.text());
-}
-
 void failedExpected(const char *file, int line, const Error &error) {
 	fatalError(file, line, "Getting value from invalid Expected<>: %s", toString(error).c_str());
 }

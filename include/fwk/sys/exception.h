@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "fwk/format.h"
-#include "fwk/sys/assert_info.h"
+#include "fwk/sys/assert_impl.h"
 #include "fwk/sys/error.h"
 #include "fwk/sys_base.h"
 
@@ -19,15 +18,16 @@ namespace fwk {
 //
 // This system is designed to interoperate with Expected<> and EXPECT_ macros.
 
-#define CHECK_EX(expr, ...)                                                                        \
+// When expression evaluates to false, exception is raised
+// Additional arguments can be passed to make error more informative.
+// Example: CHECK(str.size() > min_size, str.size(), min_size);
+#define CHECK(expr, ...)                                                                           \
 	(__builtin_expect((expr), true) ||                                                             \
-	 (ASSERT_WITH_PARAMS(fwk::raiseException, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS), 0))
+	 (_ASSERT_WITH_PARAMS(checkFailed, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS__), 0))
 
-#define CHECK(expr)                                                                                \
-	(__builtin_expect((expr), true) ||                                                             \
-	 (ASSERT_WITH_PARAMS(fwk::raiseException, FWK_STRINGIZE(expr)), 0))
-
-#define RAISE(...) ASSERT_FORMATTED(fwk::raiseException_, __VA_ARGS__)
+// Raises an exception
+// Example: RAISE("Invalid nr of elements: % (expected: %)", elems.size(), required_count);
+#define RAISE(...) _ASSERT_FORMATTED(raiseException, __VA_ARGS__)
 
 #define EXCEPTION(...) RAISE(__VA_ARGS__)
 
@@ -43,8 +43,8 @@ inline int numExceptions() { return detail::t_num_exceptions; }
 vector<Error> getExceptions();
 Error getMergedExceptions();
 void clearExceptions();
+void printExceptions();
 
 // Adds new exception to the stack
 void raiseException(Error, int bt_skip = 0) EXCEPT;
-void raiseException_(const AssertInfo *, ...) EXCEPT;
 }

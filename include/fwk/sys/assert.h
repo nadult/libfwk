@@ -3,17 +3,20 @@
 
 #pragma once
 
-#include "fwk/sys/assert_info.h"
+#include "fwk/sys/assert_impl.h"
 
 namespace fwk {
 
-[[noreturn]] void assertFailed_(const AssertInfo *, ...);
-
+// When expression evaluates to false, assertion fails
+// Additional arguments can be passed to make assertion more informative.
+// Example: ASSERT_EX(str.size() > min_size, str.size(), min_size);
 #define ASSERT_EX(expr, ...)                                                                       \
 	(__builtin_expect((expr), true) ||                                                             \
-	 (ASSERT_WITH_PARAMS(fwk::assertFailed_, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS__), 0))
+	 (_ASSERT_WITH_PARAMS(assertFailed, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS__), 0))
 
-#define ASSERT_FAILED(...) ASSERT_FORMATTED(fwk::assertFailed, __VA_ARGS__)
+// Ends program with a failed assertion. Formatted text can be passed.
+// Example: ASSERT_FAILED("Error while parsing int: %", str)
+#define ASSERT_FAILED(...) _ASSERT_FORMATTED(assertFailed, __VA_ARGS__)
 
 #ifdef NDEBUG
 #define DASSERT_EX(...) ((void)0)

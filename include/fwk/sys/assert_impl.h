@@ -7,18 +7,18 @@
 
 namespace fwk {
 
-struct AssertInfo {
-	const char *file;
-	const char *message;
-	const char *arg_names;
-	const detail::TFFunc *funcs;
-	int line;
-	int arg_count;
-
-	string preFormat(TextFormatter &, const char *prefix) const;
-};
-
 namespace detail {
+	struct AssertInfo {
+		const char *file;
+		const char *message;
+		const char *arg_names;
+		const detail::TFFunc *funcs;
+		int line;
+		int arg_count;
+
+		string preFormat(TextFormatter &, const char *prefix) const;
+	};
+
 	using CallFunc = void (*)(const AssertInfo *, ...);
 	template <class SFile, int line, class SMessage, class SArgNames, class Func, class... T>
 	inline auto assertCall(const Func &func, const T &... args) {
@@ -28,17 +28,23 @@ namespace detail {
 										 Funcs::funcs, line,		   Funcs::count};
 		return func(&info, detail::getTFValue(args)...);
 	}
-}
+
+	[[noreturn]] void assertFailed(const AssertInfo *, ...);
+	void raiseException(const AssertInfo *, ...) EXCEPT;
+	void checkFailed(const AssertInfo *, ...) EXCEPT;
+	Error makeError(const AssertInfo *, ...);
 
 // Message format: text + list of named params
-#define ASSERT_WITH_PARAMS(func, message, ...)                                                     \
+#define _ASSERT_WITH_PARAMS(func, message, ...)                                                    \
 	fwk::detail::assertCall<decltype(__FILE__ ""_ss), __LINE__, decltype(message ""_ss),           \
-							decltype(FWK_STRINGIZE(__VA_ARGS__) ""_ss)>(func __VA_OPT__(, )        \
-																			__VA_ARGS__)
+							decltype(FWK_STRINGIZE(__VA_ARGS__) ""_ss)>(                           \
+		fwk::detail::func __VA_OPT__(, ) __VA_ARGS__)
 
 // Message format: format text + its arguments
-#define ASSERT_FORMATTED(func, fmt, ...)                                                           \
+#define _ASSERT_FORMATTED(func, fmt, ...)                                                          \
 	fwk::detail::assertCall<decltype(__FILE__ ""_ss), __LINE__, decltype(fmt ""_ss),               \
-							decltype(""_ss)>(func __VA_OPT__(, ) __VA_ARGS__)
+							decltype(""_ss)>(fwk::detail::func __VA_OPT__(, ) __VA_ARGS__)
+
+}
 
 }
