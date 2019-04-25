@@ -28,8 +28,6 @@ class ModelNode {
 	PropertyMap propertyMap() const;
 
 	void setTrans(const AffineTrans &trans);
-	Matrix4 globalTrans() const;
-	Matrix4 invGlobalTrans() const;
 
 	vector<int> children_ids;
 	vector<Property> props;
