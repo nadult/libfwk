@@ -1,7 +1,6 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include <fwk/filesystem.h>
 #include <fwk/format.h>
 #include <fwk/gfx/font.h>
 #include <fwk/gfx/gl_device.h>
@@ -9,6 +8,7 @@
 #include <fwk/gfx/opengl.h>
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/sys/expected.h>
+#include <fwk/sys/file_system.h>
 #include <fwk/sys/input.h>
 
 using namespace fwk;

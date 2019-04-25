@@ -1,7 +1,6 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/filesystem.h"
 #include "fwk/gfx/animated_model.h"
 #include "fwk/gfx/converter.h"
 #include "fwk/gfx/mesh.h"
@@ -11,6 +10,7 @@
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/file_stream.h"
+#include "fwk/sys/file_system.h"
 #include "fwk/sys/xml.h"
 #include "testing.h"
 

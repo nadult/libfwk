@@ -1,7 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/filesystem.h"
+#include "fwk/sys/file_system.h"
+
 #include "fwk/format.h"
 #include "fwk/parse.h"
 #include "fwk/sys/expected.h"

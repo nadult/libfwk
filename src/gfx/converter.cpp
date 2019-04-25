@@ -4,10 +4,10 @@
 #include "fwk/gfx/converter.h"
 
 #include "fwk/enum_map.h"
-#include "fwk/filesystem.h"
 #include "fwk/gfx/model.h"
 #include "fwk/str.h"
 #include "fwk/sys/file_stream.h"
+#include "fwk/sys/file_system.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/sys/xml_loader.h"
 

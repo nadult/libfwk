@@ -2,12 +2,12 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/any.h"
-#include "fwk/filesystem.h"
 #include "fwk/fwd_member.h"
 #include "fwk/hash_map.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
+#include "fwk/sys/file_system.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/type_info_gen.h"
 #include "fwk/variant.h"
