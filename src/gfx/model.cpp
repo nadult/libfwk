@@ -280,4 +280,39 @@ bool Model::valid(PPose pose) const {
 	// TODO: keep weak_ptr to model inside pose?
 	return pose && pose->nameMap() == m_default_pose->nameMap();
 }
+
+PModel Model::split(int node_id) const {
+	DASSERT(node_id >= 0 && node_id < m_nodes.size());
+	vector<int> new_node_ids(m_nodes.size(), -1), new_mesh_ids(m_meshes.size(), -1);
+
+	vector<ModelNode> new_nodes;
+	vector<Mesh> new_meshes;
+
+	new_nodes.emplace_back(ModelNode());
+	new_nodes[0].children_ids.emplace_back(node_id);
+
+	for(int nid : dfs(node_id)) {
+		auto &node = m_nodes[nid];
+		new_node_ids[nid] = new_nodes.size();
+		if(node.mesh_id != -1 && new_mesh_ids[node.mesh_id] == -1) {
+			new_mesh_ids[node.mesh_id] = new_meshes.size();
+			new_meshes.emplace_back(m_meshes[node.mesh_id]);
+		}
+		new_nodes.emplace_back(node);
+	}
+
+	for(int nid : intRange(new_nodes)) {
+		auto &node = new_nodes[nid];
+		node.id = nid;
+		for(auto &cid : node.children_ids)
+			cid = new_node_ids[cid];
+		if(node.mesh_id != -1)
+			node.mesh_id = new_mesh_ids[node.mesh_id];
+	}
+
+	new_nodes[1].trans.translation = {};
+
+	// TODO: split ModelAnims
+	return make_immutable<Model>(move(new_nodes), move(new_meshes), m_anims, m_material_defs);
+}
 }

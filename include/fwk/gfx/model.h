@@ -69,6 +69,8 @@ class Model : public immutable_base<Model> {
 
 	const Mesh *mesh(int id) const { return id == -1 ? nullptr : &m_meshes[id]; }
 
+	PModel split(int node_id) const;
+
   protected:
 	vector<ModelNode> m_nodes;
 	vector<Mesh> m_meshes;
