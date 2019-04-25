@@ -18,11 +18,6 @@ template <class Ch> class xml_document;
 
 namespace fwk {
 
-// Error handling in XML:
-// - errors are stored in error registry (see sys/error.h)
-// - on any kind of error, default value is returned
-// - after parsing, user has to check for errors
-
 // Immutable XmlNode
 class CXmlNode {
   public:
@@ -181,14 +176,14 @@ namespace detail {
 								  is_one_of<decltype(testL<T>(0)), Ex<T>, T> && !is_same<T, bool>,
 							  saveable = !is_same<decltype(testS<T>(0)), Empty>;
 
-		template <class C> static auto testFP(int) -> decltype(parse(DECLVAL(CXmlNode), Type<C>()));
+		template <class C> static auto testFP(int) -> decltype(load(DECLVAL(CXmlNode), Type<C>()));
 		template <class C> static auto testFP(...) -> Empty;
 
 		template <class C>
 		static auto testFS(int) -> decltype(save(DECLVAL(XmlNode), DECLVAL(const C &)));
 		template <class C> static auto testFS(...) -> Empty;
 
-		static constexpr bool func_parsable = is_one_of<decltype(testFP<T>(0)), Ex<T>, T>,
+		static constexpr bool func_loadable = is_one_of<decltype(testFP<T>(0)), Ex<T>, T>,
 							  func_saveable = !is_same<decltype(testFS<T>(0)), Empty>;
 	};
 }
@@ -202,17 +197,17 @@ constexpr bool is_xml_saveable =
 	detail::XmlTraits<T>::saveable || is_formattible<T> || detail::XmlTraits<T>::func_saveable;
 
 // To make type xml_constructible, you have to satisfy one of these conditions:
-// - provide parse(CXmlNode, Type<T>) -> Expected<T> | T
+// - provide load(CXmlNode, Type<T>) -> Expected<T> | T
 // - provide function T::load(CXmlNode) -> Expected<T> | T
 // - make sure that T is parsable
 template <class T>
-constexpr bool is_xml_parsable =
-	detail::XmlTraits<T>::loadable || is_parsable<T> || detail::XmlTraits<T>::func_parsable;
+constexpr bool is_xml_loadable =
+	detail::XmlTraits<T>::loadable || is_parsable<T> || detail::XmlTraits<T>::func_loadable;
 
 // TODO: make sure that loading functions don't generate exceptions
-template <class T, EnableIf<is_xml_parsable<T>>...> Ex<T> parse(CXmlNode node) {
-	if constexpr(detail::XmlTraits<T>::func_parsable)
-		return parse(node, Type<T>());
+template <class T, EnableIf<is_xml_loadable<T>>...> Ex<T> load(CXmlNode node) {
+	if constexpr(detail::XmlTraits<T>::func_loadable)
+		return load(node, Type<T>());
 	else if constexpr(detail::XmlTraits<T>::loadable)
 		return T::load(node);
 	else {

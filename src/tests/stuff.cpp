@@ -67,15 +67,15 @@ void testVariant() {
 	auto node = doc.addChild("node");
 	save(node, var);
 
-	static_assert(is_xml_parsable<Var1>);
+	static_assert(is_xml_loadable<Var1>);
 	static_assert(is_xml_saveable<Var1>);
 
-	auto temp = parse<Var1>(node);
+	auto temp = load<Var1>(node);
 	ASSERT(temp == var);
 	ASSERT_EQ(toString(temp.get()), "woohoo");
 
 	using Var2 = Variant<int, float>;
-	auto temp2 = parse<Var2>(node);
+	auto temp2 = load<Var2>(node);
 	ASSERT(!temp2);
 }
 

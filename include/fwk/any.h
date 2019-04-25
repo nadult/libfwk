@@ -41,9 +41,9 @@ namespace detail {
 		T value;
 
 		static AnyXmlLoader makeLoader() {
-			if constexpr(is_xml_parsable<T>)
+			if constexpr(is_xml_loadable<T>)
 				return [](CXmlNode n) -> Ex<AnyBase *> {
-					if(auto result = parse<T>(n))
+					if(auto result = load<T>(n))
 						return new AnyModel<T>(move(*result));
 					else
 						return result.error();
