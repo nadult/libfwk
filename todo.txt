@@ -1,12 +1,15 @@
 ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
+NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
+
+- Expected<> checker zle rozpoznaje (ale Ex<> juz tak)
+- makro EXPECT które jeśli są wyjątki to zwraca błąd, a wpp zwraca podaną wartość
+- bloki try, tylko w których mogą występować wyjątki ?
 
 - Jak się wywoła funkcję przekazaną parametrem i ta funkcja jest except, to ta która ją wywołuje
   też powinna być! A teraz chyba nie jest?
 - Rename checker to exception checker
 - Czy przed skonstruowaniem Expected<> nie powinniśmy automatycznie zgarniać błędy z wyjątków ?
-- cleanup...
-- przeniesienie filesystem.h -> sys/file_system.h ?
 
 - New DataStream class:
   - simple class which serializes to/from memory
@@ -18,6 +21,7 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   - find a better name?
 
 - builtin_rotateleft, etc.
+- input key tab doesnt work
 
 - operacja shiftowania bitów (zamknięta)
 - dot<PT>, cross<PT> powodują problemy na GCC (cholera go wie czemu) (regresja w GCC 8.2, w *.3 powinno działać...)
@@ -48,7 +52,6 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
   transform czasami jest w stanie się zmapować na powyższe ?
 - resize-able GlBuffer (similar to Vector)
 - formatowanie any powoduje konwersję na const char * :D
-- Stream::signature should use span<>
 - nazwy dla tied-memberów (podobnie jak w enumach) dla automatycznej serializacji xml?
 - transform(array<>>) nie dziala za dobrze dla typow ktore nie mają domyślnego konstruktora
 - zaraz po odpaleniu programu, zanim jeszcze ruszymy myszą, jej pozycja jest błędna
@@ -82,7 +85,6 @@ TODO: which OpenGL version are we targeting ?
 - Opengl 4.5 ?
 - check emscripten
 
-- cos sie popieprzylo z YCMem na laptopie
 - mozliwosc przypisanie none do unique_ptr
 
 - vec2<>, vec3<>, should support unsigned types ?
@@ -92,18 +94,14 @@ TODO: which OpenGL version are we targeting ?
 - nazwy rozszerzen (enumow) dokladnie tak jak w oglu (i nie trzeba mapy nazw)
 - więcej funkcji do enclose ?
 - lepsze interfajsy do wejścia
-- CHECK(equal, a, b) -> fwk::assert::equal(a, b) ? ... : else print(args...)
-- assert_in_range
 - transform może konwertować do tego samego typu kontenera (array, vector, smallvector)?
 
 - translacja nazw debugowych ? jakaś możliwość rejestracji template-ów?
 - nie da się rozszerzać parsera o typy których nie da się domyślnie konstruować...
-- dodać type_align, można by tego używać w SmallVector, np.
 - konieczność konwersji flag na boola jest słaba... może explicit nie jest potrzbeny?
 - funkcje haszujące nie powinny być w jednym pliku, ale w poszczególnych klasach;
   Można zrobić podobnie jak z formaterami, że się overloaduje jakąś funkcję i już
 
-- nie przesadzaj z czasami kompilacji w libfwk; 
 - DrawCalls should have command_id index ?
 - Remove Renderer2D (use RenderList); better control over which shader is being used ?
 
@@ -176,7 +174,6 @@ TODO: which OpenGL version are we targeting ?
 - Wstrict-overflow
 - proper FIFO support for streams
 - drop the fucking shared_ptrs
-- FwdMember: better support for alignment?
 - fix interval::valid
 
 - function arguments could have invariants in them:
@@ -212,8 +209,7 @@ TODO: which OpenGL version are we targeting ?
 	- cleanup colors (where ICOLOR, where FColor should be used); Conversion ColorId -> IColor
 	  FCOLOr sux (operations only on alpha part or only on color part)
 
-- Input:
-	- Mouse grabbing doesnt work
+	Mouse grabbing doesnt work
 	- Bug: keyDown(InputKey::tab) doesn't work
 	- Mouse Position should be -1/-1 or none when mouse is outside of window ?
 
@@ -282,24 +278,18 @@ TODO: which OpenGL version are we targeting ?
 - Saver, Loader -> SaveStream, LoadStream or similar
 - normalize -> normalized
 
-- __attribute__((cold)) on throwException (all code that leads to it
-  should be inside cold section)
 - clamp doesn't work properly when max < min
 
 - Fix satTest (when edges from two objects are the same, you will get 0 normals)
 
 - VSYNC under windows
-- Fix problem in Cache when get_immutable_ptr() return null
-- input key tab doesnt work
 - use A-buffer for rendering transparent objects (will be useful for SSAO as well)
 
 - Optimize kerning loop in font_factory.cpp
 - Fix TODO in filesystem_linux (regarding links).
 - In fact, just fix all TODOs
 - Think about moving globla functions to classes / namespaces (especially functions in fwk_profile.h)
-- scanf's are very slow compared to strto*, maybe we should change printfs as well in text printer?
-
-- ModelNodes should be more flexible when creating (no need for empty root node, nodes with empty names should be ok, etc.)
+- scanf's are slow compared to strto*, maybe we should change printfs as well in text printer?
 
 - tools/model_viewer crashes when wrong path is passed (for example folder instead of path to .model file)
 
