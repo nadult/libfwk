@@ -60,7 +60,7 @@ void testString() {
 	ASSERT_EQ(string("foo"), Str("foo"));
 }
 
-void testVariant() NOEXCEPT {
+void testVariant() {
 	using Var1 = Variant<string, FBox>;
 	Var1 var = string("woohoo");
 	XmlDocument doc;
@@ -72,12 +72,11 @@ void testVariant() NOEXCEPT {
 
 	auto temp = parse<Var1>(node);
 	ASSERT(temp == var);
-	ASSERT_EQ(toString(temp), "woohoo");
+	ASSERT_EQ(toString(temp.get()), "woohoo");
 
 	using Var2 = Variant<int, float>;
 	auto temp2 = parse<Var2>(node);
-	ASSERT(anyExceptions());
-	clearExceptions();
+	ASSERT(!temp2);
 }
 
 void testAny() {
@@ -87,11 +86,11 @@ void testAny() {
 	any1.save(node);
 	Any(false).save(doc.addChild("bool_node"));
 
-	Any any2(node);
+	auto any2 = Any::load(node).get();
 	ASSERT_EQ(any2.get<int>(), 1234);
 
-	Any any3(node, "bool");
-	ASSERT_EQ(any3.type(), typeInfo<Error>());
+	auto any3 = Any::load(node, "bool");
+	ASSERT(!any3);
 }
 
 void testXMLConverters() NOEXCEPT {

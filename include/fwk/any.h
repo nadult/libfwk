@@ -29,9 +29,9 @@ namespace detail {
 		virtual void *ptr() const = 0;
 	};
 
-	using AnyXmlConstructor = AnyBase *(*)(CXmlNode);
+	using AnyXmlLoader = Ex<AnyBase *> (*)(CXmlNode);
 	using AnyXmlSaver = void (*)(const void *, XmlNode);
-	void registerAnyType(TypeInfo, AnyXmlConstructor, AnyXmlSaver);
+	void registerAnyType(TypeInfo, AnyXmlLoader, AnyXmlSaver);
 
 	template <class T> struct AnyModel : public AnyBase {
 		AnyModel(T value) : value(move(value)) { auto dummy = reg_dummy; }
@@ -40,9 +40,14 @@ namespace detail {
 
 		T value;
 
-		static AnyXmlConstructor makeConstructor() NOEXCEPT {
+		static AnyXmlLoader makeLoader() {
 			if constexpr(is_xml_parsable<T>)
-				return [](CXmlNode n) -> AnyBase * { return new AnyModel<T>(parse<T>(n)); };
+				return [](CXmlNode n) -> Ex<AnyBase *> {
+					if(auto result = parse<T>(n))
+						return new AnyModel<T>(move(*result));
+					else
+						return result.error();
+				};
 			return nullptr;
 		}
 		static AnyXmlSaver makeSaver() {
@@ -52,16 +57,14 @@ namespace detail {
 		}
 
 		static inline int reg_dummy =
-			(registerAnyType(typeInfo<T>(), makeConstructor(), makeSaver()), 0);
+			(registerAnyType(typeInfo<T>(), makeLoader(), makeSaver()), 0);
 	};
 }
 
 class AnyRef;
 
 // Can store any kind of value
-//
-// Supports serialization to/from XML. When some error happens during serialization,
-// Error will be constructed instead of some object which failed to load.
+// Supports serialization to/from XML.
 class Any {
   public:
 	template <class T> using Model = detail::AnyModel<T>;
@@ -73,6 +76,7 @@ class Any {
 		static_assert(std::is_destructible<T>::value);
 	}
 
+	// Error will be stored directly
 	template <class T> Any(Ex<T> value) {
 		if(value) {
 			m_model = uniquePtr<Model<T>>(move(*value));
@@ -86,15 +90,16 @@ class Any {
 	Any();
 	Any(None) : Any() {}
 
+	// Error will be stored directly
 	Any(Ex<Any> &&);
 	Any(const Ex<Any> &);
 
+	Any(const AnyRef &) = delete; // TODO: to powinno być dostępne
 	template <class T> Any(const Maybe<T> &) = delete;
+	Any(CXmlNode) = delete;
+	Any(XmlNode) = delete;
 
 	FWK_COPYABLE_CLASS(Any);
-
-	// TODO: to powinno być dostępne
-	Any(const AnyRef &) = delete;
 
 	bool empty() const { return !m_model; }
 	auto type() const { return m_type; }
@@ -120,11 +125,8 @@ class Any {
 		return m_type.asConst() == typeInfo<const T>() ? (const T *)m_model->ptr() : nullptr;
 	}
 
-	// May construct an Error
-	Any(CXmlNode, ZStr type_name);
-	Any(CXmlNode);
-	Any(XmlNode node) : Any(CXmlNode(node)) {}
-
+	static Ex<Any> load(CXmlNode, ZStr type_name);
+	static Ex<Any> load(CXmlNode);
 	void save(XmlNode node, bool save_type_name = true) const;
 	bool xmlEnabled() const;
 

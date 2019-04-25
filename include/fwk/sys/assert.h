@@ -11,7 +11,7 @@ namespace fwk {
 // Additional arguments can be passed to make assertion more informative.
 // Example: ASSERT_EX(str.size() > min_size, str.size(), min_size);
 #define ASSERT_EX(expr, ...)                                                                       \
-	(__builtin_expect((expr), true) ||                                                             \
+	(__builtin_expect(!!(expr), true) ||                                                           \
 	 (_ASSERT_WITH_PARAMS(assertFailed, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS__), 0))
 
 // Ends program with a failed assertion. Formatted text can be passed.

@@ -170,15 +170,15 @@ class XmlOnFailGuard {
 
 namespace detail {
 	template <class T> struct XmlTraits {
-		template <class C> static auto testC(int) -> decltype(C(DECLVAL(CXmlNode)));
-		template <class C> static auto testC(...) -> Empty;
+		template <class C> static auto testL(int) -> decltype(C::load(DECLVAL(CXmlNode)));
+		template <class C> static auto testL(...) -> Empty;
 
 		template <class C>
 		static auto testS(int) -> decltype(DECLVAL(const C &).save(DECLVAL(XmlNode)));
 		template <class C> static auto testS(...) -> Empty;
 
-		static constexpr bool constructible =
-								  !is_same<decltype(testC<T>(0)), Empty> && !is_same<T, bool>,
+		static constexpr bool loadable =
+								  is_one_of<decltype(testL<T>(0)), Ex<T>, T> && !is_same<T, bool>,
 							  saveable = !is_same<decltype(testS<T>(0)), Empty>;
 
 		template <class C> static auto testFP(int) -> decltype(parse(DECLVAL(CXmlNode), Type<C>()));
@@ -188,7 +188,7 @@ namespace detail {
 		static auto testFS(int) -> decltype(save(DECLVAL(XmlNode), DECLVAL(const C &)));
 		template <class C> static auto testFS(...) -> Empty;
 
-		static constexpr bool func_parsable = !is_same<decltype(testFP<T>(0)), Empty>,
+		static constexpr bool func_parsable = is_one_of<decltype(testFP<T>(0)), Ex<T>, T>,
 							  func_saveable = !is_same<decltype(testFS<T>(0)), Empty>;
 	};
 }
@@ -202,20 +202,25 @@ constexpr bool is_xml_saveable =
 	detail::XmlTraits<T>::saveable || is_formattible<T> || detail::XmlTraits<T>::func_saveable;
 
 // To make type xml_constructible, you have to satisfy one of these conditions:
-// - provide parse(CXmlNode, Type<T>) -> T
-// - provide constructor T(CXmlNode)
+// - provide parse(CXmlNode, Type<T>) -> Expected<T> | T
+// - provide function T::load(CXmlNode) -> Expected<T> | T
 // - make sure that T is parsable
 template <class T>
 constexpr bool is_xml_parsable =
-	detail::XmlTraits<T>::constructible || is_parsable<T> || detail::XmlTraits<T>::func_parsable;
+	detail::XmlTraits<T>::loadable || is_parsable<T> || detail::XmlTraits<T>::func_parsable;
 
-template <class T, EnableIf<is_xml_parsable<T>>...> T parse(CXmlNode node) EXCEPT {
+// TODO: make sure that loading functions don't generate exceptions
+template <class T, EnableIf<is_xml_parsable<T>>...> Ex<T> parse(CXmlNode node) {
 	if constexpr(detail::XmlTraits<T>::func_parsable)
 		return parse(node, Type<T>());
-	else if constexpr(detail::XmlTraits<T>::constructible)
-		return T(node);
-	else
-		return node.value<T>();
+	else if constexpr(detail::XmlTraits<T>::loadable)
+		return T::load(node);
+	else {
+		auto result = node.value<T>();
+		if(anyExceptions()) // TODO: function for that ?
+			return getMergedExceptions();
+		return result;
+	}
 }
 
 template <class T, EnableIf<detail::XmlTraits<T>::saveable || is_formattible<T>>...>

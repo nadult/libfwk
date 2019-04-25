@@ -11,7 +11,8 @@
 namespace fwk {
 
 void failedExpected(const char *file, int line, const Error &error) {
-	fatalError(file, line, "Getting value from invalid Expected<>: %s", toString(error).c_str());
+	error.print();
+	fatalError(file, line, "Getting value from invalid Expected<>");
 }
 
 void fatalError(const char *file, int line, const char *fmt, ...) {

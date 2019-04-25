@@ -183,7 +183,7 @@ template <class T> struct detail::EmptyMaybe<T, EnableIfEnum<T>> {
 	static constexpr bool valid(const T &rhs) { return int(rhs) != 255; }
 };
 
-template <class T, EnableIfEnum<T>...> TextParser &operator>>(TextParser &parser, T &value) {
+template <class T, EnableIfEnum<T>...> TextParser &operator>>(TextParser &parser, T &value) EXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	value = T(fwk::detail::parseEnum(parser, Strings::offsets.data, Strings::K));
 	return parser;

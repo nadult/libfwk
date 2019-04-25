@@ -531,17 +531,22 @@ ResultType const& get(T const& var) {
 
 namespace detail {
 	template <class T, class... Types> struct VariantC {
-		static T load(ZStr type_name, CXmlNode node) EXCEPT {
-			RAISE("Invalid type_name: '%' when constructing variant", type_name);
-			return T();
+		static Ex<T> load(ZStr type_name, CXmlNode node) {
+			return ERROR("Invalid type_name: '%' when constructing variant", type_name);
 		}
 		static void save_(const T &variant, XmlNode node) {}
 	};
 
 	template <class T, class T1, class... Types> struct VariantC<T, T1, Types...> {
-		static T load(ZStr type_name, CXmlNode node) ALWAYS_INLINE EXCEPT {
-			if(type_name == typeName<T1>())
-				return parse<T1>(node);
+		static Ex<T> load(ZStr type_name, CXmlNode node) ALWAYS_INLINE {
+			static_assert(!is_one_of<Error, Types...>);
+			if(type_name == typeName<T1>()) {
+				auto result = parse<T1>(node);
+				if(result)
+					return T(*result);
+				else
+					return result.error();
+			}
 			return VariantC<T, Types...>::load(type_name, node);
 		}
 		static void save_(const T &variant, XmlNode node) {
@@ -561,7 +566,7 @@ namespace detail {
 }
 
 template <class... Types, class Enable = EnableIf<(... && is_xml_parsable<Types>)>>
-auto parse(CXmlNode node, Type<Variant<Types...>>) EXCEPT {
+Ex<Variant<Types...>> parse(CXmlNode node, Type<Variant<Types...>>) EXCEPT {
 	return detail::VariantCExp<Variant<Types...>>::load(node.attrib("_variant_type_id"), node);
 }
 

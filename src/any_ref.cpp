@@ -8,7 +8,7 @@
 
 namespace fwk {
 namespace detail {
-	using AnyTypeInfo = HashMap<TypeId, Pair<AnyXmlConstructor, AnyXmlSaver>>;
+	using AnyTypeInfo = HashMap<TypeId, Pair<AnyXmlLoader, AnyXmlSaver>>;
 	AnyTypeInfo &anyTypeInfos();
 }
 

@@ -13,7 +13,7 @@ namespace fwk {
 #define EXPECT(expr)                                                                               \
 	{                                                                                              \
 		auto &&value = ((expr));                                                                   \
-		if(!value)                                                                                 \
+		if(__builtin_expect(!value, false))                                                        \
 			return fwk::detail::passError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);         \
 	}
 
@@ -89,6 +89,7 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 		swap(copy);
 	}
 
+	bool hasValue() const { return m_has_value; }
 	explicit operator bool() const { return m_has_value; }
 
 	// TODO: should these call get() ? only in debug mode ?
@@ -109,6 +110,11 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 		return m_value;
 	}
 	const T &get() const { return ((Expected *)this)->get(); }
+
+	bool operator==(const T &rhs) const { return m_has_value && m_value == rhs; }
+	friend bool operator==(const T &a, const Expected<T> &b) {
+		return b.m_has_value && b.m_value == a;
+	}
 
   private:
 	union {

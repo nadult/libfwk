@@ -22,7 +22,7 @@ namespace fwk {
 // Additional arguments can be passed to make error more informative.
 // Example: CHECK(str.size() > min_size, str.size(), min_size);
 #define CHECK(expr, ...)                                                                           \
-	(__builtin_expect((expr), true) ||                                                             \
+	(__builtin_expect(!!(expr), true) ||                                                           \
 	 (_ASSERT_WITH_PARAMS(checkFailed, FWK_STRINGIZE(expr) __VA_OPT__(, ) __VA_ARGS__), 0))
 
 // Raises an exception

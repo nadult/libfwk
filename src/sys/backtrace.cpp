@@ -359,6 +359,8 @@ string Backtrace::analyze(bool filter) const {
 	if(!current)
 		return "BACKTRACE ERROR: Cannot analyze: error while reading current path\n";
 
+		// TODO: separate full from partial ?
+
 #if defined(FWK_TARGET_HTML5)
 #elif defined(FWK_TARGET_LINUX)
 	file_lines = analyzeAddresses(m_addresses, *current);

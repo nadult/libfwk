@@ -10,14 +10,14 @@
 namespace fwk {
 namespace detail {
 
-	using AnyTypeInfo = HashMap<TypeId, Pair<AnyXmlConstructor, AnyXmlSaver>>;
+	using AnyTypeInfo = HashMap<TypeId, Pair<AnyXmlLoader, AnyXmlSaver>>;
 
 	AnyTypeInfo &anyTypeInfos() {
 		static AnyTypeInfo map(256);
 		return map;
 	}
 
-	void registerAnyType(TypeInfo info, AnyXmlConstructor cfunc, AnyXmlSaver sfunc) {
+	void registerAnyType(TypeInfo info, AnyXmlLoader cfunc, AnyXmlSaver sfunc) {
 		anyTypeInfos()[info.id()] = {cfunc, sfunc};
 	}
 
@@ -41,34 +41,29 @@ Any::Any(const Ex<Any> &rhs) {
 }
 
 FWK_COPYABLE_CLASS_IMPL(Any);
-Any::Any(CXmlNode node, ZStr type_name) {
-	if(!type_name.empty()) {
-		auto &type_infos = detail::anyTypeInfos();
-		auto type_info = typeInfo(type_name.c_str());
-		if(!type_info) {
-			*this = ERROR("Type-info not found for: '%'", type_name);
-			return;
-		}
+Ex<Any> Any::load(CXmlNode node, ZStr type_name) {
+	Any out;
+	if(!type_name)
+		return out;
 
-		auto it = type_infos.find(type_info->id());
-		if(it == type_infos.end()) {
-			*this = ERROR("Any-type-info not found for: '%'", type_name);
-			return;
-		}
+	auto &type_infos = detail::anyTypeInfos();
+	auto type_info = typeInfo(type_name.c_str());
+	if(!type_info)
+		return ERROR("Type-info not found for: '%'", type_name);
 
-		if(!it->second.first) {
-			*this = ERROR("Type '%' is not XML-constructible", type_name);
-			return;
-		}
+	auto it = type_infos.find(type_info->id());
+	if(it == type_infos.end())
+		return ERROR("Any-type-info not found for: '%'", type_name);
 
-		m_model = it->second.first(node);
-		m_type = it->first;
-		if(anyExceptions())
-			*this = getMergedExceptions();
-	}
+	if(!it->second.first)
+		return ERROR("Type '%' is not XML-constructible", type_name);
+
+	out.m_model = EXPECT_PASS(it->second.first(node));
+	out.m_type = it->first;
+	return out;
 }
 
-Any::Any(CXmlNode node) : Any(node, node.hasAttrib("_any_type")) {}
+Ex<Any> Any::load(CXmlNode node) { return load(node, node.hasAttrib("_any_type")); }
 
 void Any::save(XmlNode node, bool save_type) const { AnyRef(*this).save(node, save_type); }
 bool Any::xmlEnabled() const { return AnyRef(*this).xmlEnabled(); }
