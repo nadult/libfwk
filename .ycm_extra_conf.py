@@ -36,7 +36,6 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
 '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unused-variable',
-'-Wno-gnu-string-literal-operator-template',
 '-fno-exceptions',
 
 

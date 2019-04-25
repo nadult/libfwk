@@ -32,12 +32,13 @@ namespace detail {
 	};
 
 	using CallFunc = void (*)(const AssertInfo *, ...);
-	template <class SFile, int line, class SMessage, class SArgNames, class Func, class... T>
+	template <class Strings, int line, class Func, class... T>
 	inline auto assertCall(const Func &func, const T &... args) {
 		static_assert((is_formattible<T> && ...));
 		using Funcs = decltype(detail::formatFuncs(args...));
-		static constexpr AssertInfo info{SFile::text,  SMessage::text, SArgNames::text,
-										 Funcs::funcs, line,		   Funcs::count};
+		constexpr Strings strings;
+		static constexpr AssertInfo info{strings.file, strings.msg, strings.arg_names,
+										 Funcs::funcs, line,		Funcs::count};
 		return func(&info, detail::getTFValue(args)...);
 	}
 
@@ -48,14 +49,21 @@ namespace detail {
 
 // Message format: text + list of named params
 #define _ASSERT_WITH_PARAMS(func, message, ...)                                                    \
-	fwk::detail::assertCall<decltype(__FILE__ ""_ss), __LINE__, decltype(message ""_ss),           \
-							decltype(FWK_STRINGIZE(__VA_ARGS__) ""_ss)>(                           \
-		fwk::detail::func __VA_OPT__(, ) __VA_ARGS__)
+	({                                                                                             \
+		struct Strings {                                                                           \
+			const char *file = __FILE__, *msg = message, *arg_names = FWK_STRINGIZE(__VA_ARGS__);  \
+		};                                                                                         \
+		fwk::detail::assertCall<Strings, __LINE__>(fwk::detail::func __VA_OPT__(, ) __VA_ARGS__);  \
+	})
 
 // Message format: format text + its arguments
 #define _ASSERT_FORMATTED(func, fmt, ...)                                                          \
-	fwk::detail::assertCall<decltype(__FILE__ ""_ss), __LINE__, decltype(fmt ""_ss),               \
-							decltype(""_ss)>(fwk::detail::func __VA_OPT__(, ) __VA_ARGS__)
+	({                                                                                             \
+		struct Strings {                                                                           \
+			const char *file = __FILE__, *msg = fmt, *arg_names = "";                              \
+		};                                                                                         \
+		fwk::detail::assertCall<Strings, __LINE__>(fwk::detail::func __VA_OPT__(, ) __VA_ARGS__);  \
+	})
 
 }
 
