@@ -49,5 +49,20 @@ void Error::operator>>(TextFormatter &out) const {
 		out("%\n", backtrace->analyze(true));
 }
 
+Error Error::merge(vector<Error> list) {
+	DASSERT(list);
+	if(list.size() == 1)
+		return move(list[0]);
+
+	vector<ErrorChunk> chunks;
+	for(auto &err : list) {
+		for(auto &chunk : err.chunks)
+			chunks.emplace_back(chunk);
+		if(err.backtrace)
+			chunks.emplace_back(err.backtrace->analyze(true));
+	}
+	return {move(chunks), Backtrace::get()};
+}
+
 void Error::print() const { fwk::print("%\n", *this); }
 }

@@ -29,21 +29,7 @@ vector<Error> getExceptions() {
 	return out;
 }
 
-Error getMergedExceptions() {
-	auto list = getExceptions();
-	DASSERT(list);
-	if(list.size() == 1)
-		return move(list[0]);
-
-	vector<ErrorChunk> chunks;
-	for(auto &err : list) {
-		for(auto &chunk : err.chunks)
-			chunks.emplace_back(chunk);
-		if(err.backtrace)
-			chunks.emplace_back(err.backtrace->analyze(true));
-	}
-	return {move(chunks), Backtrace::get()};
-}
+Error getMergedExceptions() { return Error::merge(getExceptions()); }
 
 void raiseException(Error error, int bt_skip) {
 	if(!error.backtrace)

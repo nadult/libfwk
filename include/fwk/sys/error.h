@@ -39,6 +39,8 @@ struct Error {
 
 	Error(ErrorLoc, string message);
 
+	static Error merge(vector<Error>);
+
 	// TODO: remove these ?
 	template <class... T, EnableIfFormattible<T...>...>
 	Error(ErrorLoc loc, const char *fmt, T &&... args)
