@@ -239,4 +239,11 @@ template <class TRange, EnableIfRange<TRange>...> bool distinct(const TRange &ra
 	return fwk::size(temp) == fwk::size(range);
 }
 
+template <class TSpan, class T, class TB = SpanBase<TSpan>, EnableIf<is_same<T, TB>>...>
+int indexOf(const TSpan &span, const T &elem) {
+	auto *ptr = &elem;
+	PASSERT("Element is not a member of span" && ptr >= span.begin() && ptr < span.end());
+	return ptr - span.begin();
+}
+
 }
