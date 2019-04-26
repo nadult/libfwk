@@ -29,12 +29,15 @@ template <class... Args> struct Types {};
 template <class T> auto declval() -> T;
 #define DECLVAL(type) declval<type>()
 
-template <class Lhs, class... RhsArgs> static constexpr bool is_one_of = false;
+template <class Lhs, class... RhsArgs> constexpr bool is_one_of = false;
 template <class Lhs, class Rhs, class... RhsArgs>
-static constexpr bool is_one_of<Lhs, Rhs, RhsArgs...> = is_one_of<Lhs, RhsArgs...>;
-template <class Lhs, class... RhsArgs> static constexpr bool is_one_of<Lhs, Lhs, RhsArgs...> = true;
+constexpr bool is_one_of<Lhs, Rhs, RhsArgs...> = is_one_of<Lhs, RhsArgs...>;
+template <class Lhs, class... RhsArgs> constexpr bool is_one_of<Lhs, Lhs, RhsArgs...> = true;
 
 template <bool value, class T1, class T2> using If = typename std::conditional<value, T1, T2>::type;
+
+template <class Base, class Derived>
+constexpr bool is_base_of = std::is_base_of<Base, Derived>::value;
 
 template <class T1, class T2> constexpr bool is_same = false;
 template <class T> constexpr bool is_same<T, T> = true;
@@ -110,7 +113,7 @@ using EnableIf =
 template <class T1, class T2> constexpr bool is_convertible = std::is_convertible<T1, T2>::value;
 
 template <class T, class... Args>
-static constexpr bool is_constructible = detail::IsConstr<T, Args...>::value;
+constexpr bool is_constructible = detail::IsConstr<T, Args...>::value;
 
 struct NotConstructible;
 template <class T, class... Args>
@@ -131,8 +134,8 @@ using detail::Disjunction;
 
 template <class... Types> using IndexedTypes = typename detail::MakeIndexedTypes<0, Types...>::type;
 
-template <class... Args> static constexpr int type_count = sizeof...(Args);
-template <class... Args> static constexpr int type_count<Types<Args...>> = sizeof...(Args);
+template <class... Args> constexpr int type_count = sizeof...(Args);
+template <class... Args> constexpr int type_count<Types<Args...>> = sizeof...(Args);
 
 // In case of multiple types, returns first; If not found: -1
 template <class Arg, class... Args>
