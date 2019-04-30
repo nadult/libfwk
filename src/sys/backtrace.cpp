@@ -94,7 +94,8 @@ namespace {
 			if(skip)
 				continue;
 
-			if(line.find(lldb_mode ? "* thread #" : "Thread") == 0) {
+			if(line.find(lldb_mode ? "* thread #" : "Thread") == 0 ||
+			   (lldb_mode && line.find("  thread #") == 0)) {
 				if(current.lines)
 					out.emplace_back(move(current));
 				current = {};
@@ -163,7 +164,7 @@ namespace {
 				int line;
 
 				tokens = tokenize(file_line.c_str(), ':');
-				if(tokens.size() == 2) {
+				if(tokens.size() >= 2) {
 					new_entry.file = tokens[0];
 					new_entry.line = tokens[1];
 				}
@@ -182,6 +183,13 @@ namespace {
 		for(auto &tinfo : tinfos)
 			processThreadInfo(tinfo, skip_frames, lldb_mode);
 		std::reverse(begin(tinfos), end(tinfos));
+
+		/*for(auto tinfo : tinfos) {
+			DUMP(tinfo.header);
+			for(auto line : tinfo.lines)
+				DUMP(line);
+			print("\n\n");
+		}*/
 
 		int num_columns = 120;
 		if(auto cols = consoleColumns())
