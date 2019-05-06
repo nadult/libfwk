@@ -334,6 +334,8 @@ extern template TextFormatter &operator<<(TextFormatter &, const Box<float3> &);
 extern template TextFormatter &operator<<(TextFormatter &, const Box<double2> &);
 extern template TextFormatter &operator<<(TextFormatter &, const Box<double3> &);
 
+TextFormatter &operator<<(TextFormatter &, const None &);
+
 template <class T, EnableIfEnum<T>...> TextFormatter &operator<<(TextFormatter &out, T value) {
 	return out << toString(value);
 }

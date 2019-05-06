@@ -349,6 +349,11 @@ template TextFormatter &operator<<(TextFormatter &, const Box<float3> &);
 template TextFormatter &operator<<(TextFormatter &, const Box<double2> &);
 template TextFormatter &operator<<(TextFormatter &, const Box<double3> &);
 
+TextFormatter &operator<<(TextFormatter &fmt, const None &) {
+	fmt << "none";
+	return fmt;
+}
+
 TextFormatter &operator<<(TextFormatter &out, qint value) {
 	// Max digits: about 36
 	char buffer[64];
