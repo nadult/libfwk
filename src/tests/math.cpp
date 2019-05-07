@@ -610,7 +610,7 @@ void testConsts() {
 void testDirections() {
 	ASSERT(ccwSide(int2{0, 0}, {2, 0}, {0, 1}));
 	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
-	for(auto [i, j] : pairsRange(6))
+	for(auto [i, j] : wrappedPairsRange(6))
 		ASSERT(ccwSide(vectors[i], vectors[j]));
 
 	int2 vecs1[] = {{1, 0}, {3, 2}, {1, 4}, {-3, 3}, {-2, 0}, {-3, -2}, {3, -2}};

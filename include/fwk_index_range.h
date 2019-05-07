@@ -7,9 +7,16 @@
 
 namespace fwk {
 
-// TODO: better name to differentiate from Range<> and CSpan<>
-// Or maybe simply rename Range<> to something else ?
+// Examples:
 //
+// intRange(4):            0, 1, 2, 3
+// intRange(10, 15):       10, 11, 12, 13, 14
+// indexRange<T>(4):       T(0), T(1), T(2), T(3)
+// wrappedPairsRange(4):   (0, 1), (1, 2), (2, 3), (3, 0)
+// wrappedTriplesRange(3): (0, 1, 2), (1, 2, 0), (2, 0, 1)
+//
+// ??Range( some_range ) -> ??Range(0, size(some_range))
+
 // IndexRange has to exist as long as any of the iterators belonging to it
 template <class Func> class IndexRange {
   public:
@@ -108,8 +115,9 @@ template <class T> class SimpleIndexRange {
 	int it_start, it_end;
 };
 
-template <class Index> SimpleIndexRange<Index> indexRange(int min, int max) { return {min, max}; }
-
+template <class Index> SimpleIndexRange<Index> indexRange(int begin, int end) {
+	return {begin, end};
+}
 template <class Index> SimpleIndexRange<Index> indexRange(int count) { return {0, count}; }
 
 template <class Index, class Range, EnableIfRange<Range>...>
@@ -117,21 +125,21 @@ SimpleIndexRange<Index> indexRange(const Range &range) {
 	return {0, fwk::size(range)};
 }
 
-inline SimpleIndexRange<int> intRange(int min, int max) { return {min, max}; }
+inline SimpleIndexRange<int> intRange(int start, int end) { return {start, end}; }
 inline SimpleIndexRange<int> intRange(int size) { return {0, size}; }
 
 template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(const T &range) {
 	return {0, fwk::size(range)};
 }
 
-template <class T = int> auto pairsRange(int start, int end) {
+template <class T = int> auto wrappedPairsRange(int start, int end) {
 	return IndexRange(start, end, [=](int idx) {
 		int next = idx + 1;
 		return pair(T(idx), T(next < end ? next : start));
 	});
 }
 
-template <class T = int> auto triplesRange(int start, int end) {
+template <class T = int> auto wrappedTriplesRange(int start, int end) {
 	PASSERT(end - start >= 3);
 	return IndexRange(start, end, [=](int idx) {
 		int next = idx + 1, next2 = idx + 2;
@@ -139,14 +147,18 @@ template <class T = int> auto triplesRange(int start, int end) {
 	});
 }
 
-template <class T = int> auto pairsRange(int count) { return pairsRange<T>(0, count); }
-template <class T = int> auto triplesRange(int count) { return triplesRange<T>(0, count); }
-
-template <class T = int, class R, EnableIfRange<R>...> auto pairsRange(const R &range) {
-	return pairsRange<T>(0, fwk::size(range));
+template <class T = int> auto wrappedPairsRange(int count) {
+	return wrappedPairsRange<T>(0, count);
+}
+template <class T = int> auto wrappedTriplesRange(int count) {
+	return wrappedTriplesRange<T>(0, count);
 }
 
-template <class T = int, class R, EnableIfRange<R>...> auto triplesRange(const R &range) {
-	return triplesRange<T>(0, fwk::size(range));
+template <class T = int, class R, EnableIfRange<R>...> auto wrappedPairsRange(const R &range) {
+	return wrappedPairsRange<T>(0, fwk::size(range));
+}
+
+template <class T = int, class R, EnableIfRange<R>...> auto wrappedTriplesRange(const R &range) {
+	return wrappedTriplesRange<T>(0, fwk::size(range));
 }
 }
