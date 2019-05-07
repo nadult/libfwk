@@ -118,18 +118,15 @@ template <class T> class SimpleIndexRange {
 template <class Index> SimpleIndexRange<Index> indexRange(int begin, int end) {
 	return {begin, end};
 }
-template <class Index> SimpleIndexRange<Index> indexRange(int count) { return {0, count}; }
-
-template <class Index, class Range, EnableIfRange<Range>...>
-SimpleIndexRange<Index> indexRange(const Range &range) {
-	return {0, fwk::size(range)};
-}
 
 inline SimpleIndexRange<int> intRange(int start, int end) { return {start, end}; }
 inline SimpleIndexRange<int> intRange(int size) { return {0, size}; }
-
 template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(const T &range) {
 	return {0, fwk::size(range)};
+}
+
+template <class T = int> auto pairsRange(int start, int end) {
+	return IndexRange(start, end - 1, [=](int idx) { return pair(T(idx), T(idx + 1)); });
 }
 
 template <class T = int> auto wrappedPairsRange(int start, int end) {
@@ -147,18 +144,16 @@ template <class T = int> auto wrappedTriplesRange(int start, int end) {
 	});
 }
 
-template <class T = int> auto wrappedPairsRange(int count) {
-	return wrappedPairsRange<T>(0, count);
-}
-template <class T = int> auto wrappedTriplesRange(int count) {
-	return wrappedTriplesRange<T>(0, count);
-}
+#define RANGE_HELPERS(name)                                                                        \
+	template <class T = int> auto name(int count) { return name<T>(0, count); }                    \
+	template <class T = int, class R, EnableIfRange<R>...> auto name(const R &range) {             \
+		return name<T>(0, fwk::size(range));                                                       \
+	}
 
-template <class T = int, class R, EnableIfRange<R>...> auto wrappedPairsRange(const R &range) {
-	return wrappedPairsRange<T>(0, fwk::size(range));
-}
+RANGE_HELPERS(wrappedPairsRange)
+RANGE_HELPERS(wrappedTriplesRange)
+RANGE_HELPERS(pairsRange)
+RANGE_HELPERS(indexRange)
 
-template <class T = int, class R, EnableIfRange<R>...> auto wrappedTriplesRange(const R &range) {
-	return wrappedTriplesRange<T>(0, fwk::size(range));
-}
+#undef RANGE_HELPERS
 }
