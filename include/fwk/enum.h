@@ -133,12 +133,18 @@ template <class T> constexpr bool is_enum = detail::IsEnum<T>::value;
 
 template <class T> using EnableIfEnum = EnableIf<is_enum<T>, NotAnEnum>;
 
-template <class T, EnableIfEnum<T>...> static T fromString(Str str) EXCEPT {
+template <class T, EnableIfEnum<T>...> T fromString(Str str) EXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	return T(fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, true));
 }
 
-template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(Str str) NOEXCEPT {
+template <class T, EnableIfEnum<T>...> T fromString(Str str, T on_error) NOEXCEPT {
+	using Strings = decltype(enumStrings(T()));
+	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
+	return ret == -1 ? on_error : T(ret);
+}
+
+template <class T, EnableIfEnum<T>...> Maybe<T> tryFromString(Str str) NOEXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
 	if(ret == -1)
@@ -146,7 +152,7 @@ template <class T, EnableIfEnum<T>...> static Maybe<T> tryFromString(Str str) NO
 	return T(ret);
 }
 
-template <class T, EnableIfEnum<T>...> static const char *toString(T value) {
+template <class T, EnableIfEnum<T>...> const char *toString(T value) {
 	using Strings = decltype(enumStrings(T()));
 	int ivalue = (int)value;
 	PASSERT(ivalue >= 0 && ivalue < Strings::K);

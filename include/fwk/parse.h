@@ -145,6 +145,20 @@ template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr
 	return out;
 }
 
+template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...>
+T fromString(ZStr str, const T &on_error) NOEXCEPT {
+	TextParser parser(str);
+	T out;
+	parser >> out;
+	if(!parser.empty())
+		return on_error;
+	if(anyExceptions()) {
+		clearExceptions();
+		return on_error;
+	}
+	return out;
+}
+
 // TODO: inconsistency with tryFromString(enum)
 template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> Ex<T> tryFromString(ZStr str) {
 	auto ret = fromString<T>(str);

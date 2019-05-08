@@ -2,6 +2,8 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- check-error-attribs -> check-except-attribs
+- consistency with try, find, get, etc. function prefixes
 - Expected<> checker zle rozpoznaje (ale Ex<> juz tak)
 - makro EXPECT które jeśli są wyjątki to zwraca błąd, a wpp zwraca podaną wartość
 - bloki try, tylko w których mogą występować wyjątki ?
