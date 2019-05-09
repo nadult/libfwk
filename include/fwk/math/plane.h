@@ -56,6 +56,8 @@ template <class T, int N> class Plane {
 	SideTestResult sideTest(CSpan<Point>) const;
 	Plane operator-() const { return Plane(-m_normal, -m_distance0); }
 
+	void operator>>(TextFormatter &) const;
+
 	FWK_ORDER_BY(Plane, m_normal, m_distance0);
 
   private:

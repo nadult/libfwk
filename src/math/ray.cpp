@@ -156,6 +156,10 @@ IsectParam<T> Ray<T, N>::isectParam(const Plane<T, N> &plane) const {
 	return -plane.signedDistance(m_origin) / ndot;
 }
 
+template <class T, int N> void Ray<T, N>::operator>>(TextFormatter &fmt) const {
+	fmt(fmt.isStructured() ? "(%; %)" : "% %", m_origin, m_dir);
+}
+
 template class Ray<float, 3>;
 template class Ray<double, 3>;
 

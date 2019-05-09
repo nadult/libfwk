@@ -82,6 +82,10 @@ template <class T, int N> auto Plane<T, N>::closestPoint(const Point &point) con
 	return point - m_normal * signedDistance(point);
 }
 
+template <class T, int N> void Plane<T, N>::operator>>(TextFormatter &fmt) const {
+	fmt(fmt.isStructured() ? "(%; %)" : "% %", m_normal, m_distance0);
+}
+
 template class Plane<float, 3>;
 template class Plane<double, 3>;
 

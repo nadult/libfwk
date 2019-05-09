@@ -48,6 +48,8 @@ template <class T, int N> class Ray {
 	Ray operator+(const Vec &vec) const { return {m_origin + vec, m_dir}; }
 	Ray operator-(const Vec &vec) const { return {m_origin - vec, m_dir}; }
 
+	void operator>>(TextFormatter &) const;
+
 	FWK_ORDER_BY(Ray, m_origin, m_dir);
 
   private:
