@@ -31,5 +31,5 @@ FBox enclose(CSpan<ColoredQuad>);
 
 vector<ColoredQuad> transform(Matrix4, vector<ColoredQuad>);
 vector<ColoredQuad> setColor(vector<ColoredQuad>, IColor);
-
+vector<ColoredTriangle> tris(CSpan<ColoredQuad>);
 }

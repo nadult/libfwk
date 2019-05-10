@@ -57,4 +57,14 @@ vector<ColoredQuad> setColor(vector<ColoredQuad> quads, IColor color) {
 	return quads;
 }
 
+vector<ColoredTriangle> tris(CSpan<ColoredQuad> quads) {
+	vector<ColoredTriangle> tris;
+	tris.reserve(quads.size() * 2);
+	for(auto quad : quads) {
+		auto [t1, t2] = quad.tris();
+		tris.emplace_back(t1);
+		tris.emplace_back(t2);
+	}
+	return tris;
+}
 }
