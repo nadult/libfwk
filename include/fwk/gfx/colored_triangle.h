@@ -25,4 +25,7 @@ struct ColoredTriangle : public Triangle3F {
 };
 
 FBox enclose(CSpan<ColoredTriangle>);
+
+vector<ColoredTriangle> transform(Matrix4, vector<ColoredTriangle>);
+vector<ColoredTriangle> setColor(vector<ColoredTriangle>, IColor);
 }

@@ -14,10 +14,9 @@ namespace fwk {
 // It treats all data as plain bytes, so you have to be very careful when using it.
 // There are also special functions for loading/saving strings & PodVectors.
 //
-// Error handling:
+// FWK exceptions are used for error handling; besides that:
 // - when error happens all following operations will not be performed
 // - when loading: returned data will be zeroed, vectors & strings will be empty
-// - errors will be added to error registry (see sys/error.h)
 class EXCEPT FileStream {
   public:
 	static constexpr int default_max_string_size = 64 * 1024 * 1024;

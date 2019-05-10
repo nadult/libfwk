@@ -6,21 +6,9 @@
 #include "fwk/format.h"
 #include "fwk/math/box.h"
 #include "fwk/math/constants.h"
+#include "fwk/math/matrix4.h"
 
 namespace fwk {
-
-FBox enclose(CSpan<ColoredTriangle> tris) {
-	if(tris) {
-		float3 min(inf), max(-inf);
-		for(auto &tri : tris)
-			for(auto pt : tri.points()) {
-				min = vmin(min, pt);
-				max = vmax(max, pt);
-			}
-		return {min, max};
-	}
-	return FBox();
-}
 
 ColoredTriangle::ColoredTriangle(float3 a, float3 b, float3 c, IColor col)
 	: Triangle3F(a, b, c), colors{{col, col, col}} {}
@@ -43,4 +31,31 @@ void ColoredTriangle::operator>>(TextFormatter &out) const {
 		out(out.isStructured() ? "(%: % % %)" : "% % % %", (const Triangle3F &)*this, colors[0],
 			colors[1], colors[2]);
 }
+
+FBox enclose(CSpan<ColoredTriangle> tris) {
+	if(tris) {
+		float3 min(inf), max(-inf);
+		for(auto &tri : tris)
+			for(auto pt : tri.points()) {
+				min = vmin(min, pt);
+				max = vmax(max, pt);
+			}
+		return {min, max};
+	}
+	return FBox();
+}
+
+vector<ColoredTriangle> transform(Matrix4 matrix, vector<ColoredTriangle> tris) {
+	for(auto &tri : tris)
+		tri = {{mulPoint(matrix, tri[0]), mulPoint(matrix, tri[1]), mulPoint(matrix, tri[2])},
+			   tri.colors};
+	return tris;
+}
+
+vector<ColoredTriangle> setColor(vector<ColoredTriangle> tris, IColor color) {
+	for(auto &tri : tris)
+		tri.setColor(color);
+	return tris;
+}
+
 }
