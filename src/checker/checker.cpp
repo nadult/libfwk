@@ -20,9 +20,9 @@ using std::string;
 namespace {
 
 // TODO: rename to something else ?
-enum class Annotation { none, except, inst_except, not_except };
+enum class ExceptAnnotation { none, except, inst_except, not_except };
 
-const char *toString(Annotation a) {
+const char *toString(ExceptAnnotation a) {
 	static const char *strings[] = {"none", "except", "inst_except", "not_except"};
 	return strings[int(a)];
 }
@@ -71,9 +71,11 @@ template <class T> void makeUnique(std::vector<T> &vec) {
 struct AnnoCtx {
 	AnnoCtx(ASTContext &ast_ctx) : ast_ctx(ast_ctx) {}
 
+	using ExAnno = ExceptAnnotation;
+
 	struct Info {
-		Annotation decl_local, decl, body;
-		const CXXRecordDecl *parent = nullptr;
+		ExceptAnnotation decl_local, decl, body;
+		const RecordDecl *parent = nullptr;
 		bool returns_expected = false;
 
 		string describe(const FunctionDecl *decl) {
@@ -87,21 +89,21 @@ struct AnnoCtx {
 		}
 
 		bool canRaise() const {
-			if(decl == Annotation::not_except)
+			if(decl == ExAnno::not_except)
 				return false;
-			if(decl == Annotation::except)
+			if(decl == ExAnno::except)
 				return true;
 			if(returns_expected)
 				return false;
-			return body == Annotation::except;
+			return body == ExAnno::except;
 		}
 
-		bool missingAnnotation() const {
-			return decl == Annotation::none && body == Annotation::except && !returns_expected;
+		bool missingExceptAnnotation() const {
+			return decl == ExAnno::none && body == ExAnno::except && !returns_expected;
 		}
 
 		bool invalidInstExcept(const FunctionDecl *fdecl) const {
-			return decl == Annotation::inst_except && !isTemplateSpec(fdecl);
+			return decl == ExAnno::inst_except && !isTemplateSpec(fdecl);
 		}
 	};
 
@@ -111,9 +113,10 @@ struct AnnoCtx {
 			return it->second;
 
 		auto &ref = decls[decl];
-		ref.decl = ref.decl_local = localAnnotation(decl);
+		ref.decl = ref.decl_local = localExceptAnnotation(decl);
+
 		ref.parent = annotableParent(decl);
-		if(ref.parent && ref.decl_local == Annotation::none) {
+		if(ref.parent && ref.decl_local == ExAnno::none) {
 			auto &pinfo = access(ref.parent);
 			ref.decl = pinfo.decl;
 		}
@@ -124,10 +127,12 @@ struct AnnoCtx {
 			auto *spec = cast<FunctionDecl>(decl);
 			ref.returns_expected = isExpectedType(spec->getReturnType());
 			if(spec->hasBody()) {
-				if(getExcepts(spec->getBody(), nullptr))
-					ref.body = Annotation::except;
+				if(getExcepts(spec->getBody(), nullptr, spec))
+					ref.body = ExAnno::except;
 			}
 		}
+
+		// TODO: iterate constructor initializers
 
 		return ref;
 	}
@@ -148,7 +153,8 @@ struct AnnoCtx {
 		return false;
 	}
 
-	bool getExcepts(const Stmt *stmt, std::vector<SourceLocation> *out) {
+	bool getExcepts(const Stmt *stmt, std::vector<SourceLocation> *out,
+					const FunctionDecl *func_decl) {
 		if(!stmt)
 			return false;
 		bool ret = false;
@@ -187,7 +193,7 @@ struct AnnoCtx {
 		}
 
 		for(auto child : stmt->children())
-			ret |= getExcepts(child, out);
+			ret |= getExcepts(child, out, func_decl);
 		return ret;
 	}
 
@@ -200,36 +206,32 @@ struct AnnoCtx {
 			return {};
 
 		std::vector<SourceLocation> out;
-		getExcepts(decl->getBody(), &out);
+		getExcepts(decl->getBody(), &out, decl);
 		return out;
 	}
 
   private:
-	static Annotation localAnnotation(const Decl *decl) {
+	static ExAnno localExceptAnnotation(const Decl *decl) {
 		// TODO: check for multiple conflicting annotations
 		for(auto *attr : decl->attrs()) {
 			if(attr->getKind() == clang::attr::Kind::Annotate) {
 				AnnotateAttr *aattr = cast<AnnotateAttr>(attr);
 				if(aattr->getAnnotation() == "except")
-					return Annotation::except;
+					return ExAnno::except;
 				if(aattr->getAnnotation() == "not_except")
-					return Annotation::not_except;
+					return ExAnno::not_except;
 				if(aattr->getAnnotation() == "inst_except")
-					return Annotation::inst_except;
+					return ExAnno::inst_except;
 			}
 		}
-		return Annotation::none;
+		return ExAnno::none;
 	}
 
-	static const CXXRecordDecl *annotableParent(const Decl *decl) {
+	static const RecordDecl *annotableParent(const Decl *decl) {
 		using DK = Decl::Kind;
 		auto dk = decl->getKind();
-
-		if(dk == DK::CXXMethod || dk == DK::CXXConstructor || dk == DK::CXXDestructor) {
-			auto *spec = cast<CXXMethodDecl>(decl);
-			return spec->getParent();
-		}
-
+		if(dk == DK::CXXMethod || dk == DK::CXXConstructor || dk == DK::CXXDestructor)
+			return cast<CXXMethodDecl>(decl)->getParent();
 		return nullptr;
 	}
 
@@ -258,10 +260,10 @@ class CheckErrorAttribsConsumer : public ASTConsumer {
 
 			auto &info = anno_ctx.access(decl);
 
-			if(!allOf(Annotation::none, info.body, info.decl, info.decl_local))
+			if(!allOf(ExceptAnnotation::none, info.body, info.decl, info.decl_local))
 				DBG_PRINT("%s\n", info.describe(decl).c_str());
 
-			if(info.missingAnnotation() || info.invalidInstExcept(decl))
+			if(info.missingExceptAnnotation() || info.invalidInstExcept(decl))
 				error_decls.emplace_back(decl);
 			return true;
 		}
@@ -297,7 +299,7 @@ class CheckErrorAttribsConsumer : public ASTConsumer {
 			if(info.invalidInstExcept(decl))
 				diags.Report(loc, templ_id);
 
-			if(info.missingAnnotation()) {
+			if(info.missingExceptAnnotation()) {
 				auto locs = anno_ctx.getFunctionExcepts(decl);
 				int skipped = (int)locs.size() / 2 > max_notes ? locs.size() / 2 - max_notes : 0;
 				if(skipped > 1)
