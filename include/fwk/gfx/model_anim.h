@@ -5,6 +5,7 @@
 
 #include "fwk/gfx_base.h"
 #include "fwk/math/affine_trans.h"
+#include "fwk_vector.h"
 
 namespace fwk {
 

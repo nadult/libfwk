@@ -6,7 +6,7 @@
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
 #include "fwk/math_base.h"
-#include "fwk/sys_base.h"
+#include "fwk_vector.h"
 
 namespace fwk {
 

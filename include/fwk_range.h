@@ -4,10 +4,12 @@
 #ifndef FWK_RANGE_H
 #define FWK_RANGE_H
 
+#include "fwk/iterator.h"
 #include "fwk/sys_base.h"
-#include "fwk_vector.h"
 
 namespace fwk {
+
+constexpr bool compatibleSizes(size_t a, size_t b) { return a > b ? a % b == 0 : b % a == 0; }
 
 // TODO: rename to fwk_ranges; move out fwk_span ?
 // TODO: fwk_concepts ?
@@ -179,7 +181,6 @@ template <class T, int min_size = 0> class Span {
   public:
 	using value_type = RemoveConst<T>;
 	enum { is_const = fwk::is_const<T>, minimum_size = min_size };
-	using vector_type = If<is_const, const vector<value_type>, vector<value_type>>;
 	static_assert(min_size >= 0, "min_size should be >= 0");
 
 	Span(T *data, int size, NoAssertsTag) : m_data(data), m_size(size) {
@@ -197,7 +198,6 @@ template <class T, int min_size = 0> class Span {
 	}
 
 	Span(T *begin, T *end) : Span(begin, (int)(end - begin), no_asserts) { DASSERT(end >= begin); }
-	Span(vector_type &vec) : Span(vec.data(), vec.size(), no_asserts) {}
 	template <int N> Span(value_type (&array)[N]) : m_data(array), m_size(N) {
 		static_assert(N >= min_size);
 	}
@@ -219,11 +219,14 @@ template <class T, int min_size = 0> class Span {
 	Span(const Span<value_type, min_size> &range) : m_data(range.data()), m_size(range.size()) {}
 
 	Span(const std::initializer_list<T> &list) : Span(list.begin(), list.end()) {}
-	operator vector<value_type>() const { return vector<value_type>(begin(), end()); }
 
 	template <class TSpan, class Base = SpanBase<TSpan>,
 			  EnableIf<is_same<Base, T> && !is_same<TSpan, Span>>...>
 	Span(TSpan &rhs) : Span(fwk::data(rhs), fwk::size(rhs)) {}
+
+	template <class TSpan, class Base = SpanBase<TSpan>,
+			  EnableIf<is_same<Base, value_type> && !is_same<TSpan, Span> && is_const>...>
+	Span(const TSpan &rhs) : Span(fwk::data(rhs), fwk::size(rhs)) {}
 
 	const T *begin() const { return m_data; }
 	const T *end() const { return m_data + m_size; }

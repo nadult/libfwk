@@ -17,8 +17,7 @@ MeshIndices::MeshIndices(PBuffer indices, IndexType itype, Type ptype)
 	: MeshIndices(indices->download<int>(), ptype) {
 	DASSERT(itype == IndexType::uint32);
 }
-MeshIndices::MeshIndices(const vector<TriIndices> &indices)
-	: MeshIndices(span(indices).reinterpret<int>()) {}
+MeshIndices::MeshIndices(vector<TriIndices> indices) : MeshIndices(indices.reinterpret<int>()) {}
 
 MeshIndices MeshIndices::makeRange(int count, int first, Type ptype) {
 	DASSERT(count >= 0);

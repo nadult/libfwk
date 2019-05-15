@@ -145,8 +145,8 @@ void testXMLConverters() NOEXCEPT {
 	ASSERT_FAIL(tryFromString<unsigned short>("-1"));
 	ASSERT_EQ(fromString<long long>("1000000000000"), 1000000000000ll);
 
-	ASSERT_EQ(transform<int>(intRange(5)), vector<int>({{0, 1, 2, 3, 4}}));
-	ASSERT_EQ(transform<Pair<int>>(pairsRange(3)), vector<Pair<int>>({{{0, 1}, {1, 2}}}));
+	ASSERT_EQ(transform<int>(intRange(5)), (vector<int>{{{0, 1, 2, 3, 4}}}));
+	ASSERT_EQ(transform<Pair<int>>(pairsRange(3)), (vector<Pair<int>>{{{0, 1}, {1, 2}}}));
 
 	ASSERT(noExceptions());
 }

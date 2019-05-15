@@ -8,6 +8,7 @@
 
 #include "fwk/math_base.h"
 #include "fwk/sys/memory.h"
+#include "fwk_vector.h"
 #include "timer.h"
 
 using fwk::TestTimer;

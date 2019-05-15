@@ -3,12 +3,10 @@
 
 #pragma once
 
-#include "fwk/iterator.h"
 #include "fwk/sys_base.h"
+#include "fwk_range.h"
 
 namespace fwk {
-
-constexpr bool compatibleSizes(size_t a, size_t b) { return a > b ? a % b == 0 : b % a == 0; }
 
 class BaseVector {
   public:
@@ -107,6 +105,9 @@ template <class T> class Vector {
 	}
 
 	Vector(std::initializer_list<T> il) : Vector(il.begin(), il.end()) {}
+	Vector(CSpan<T> span) : Vector(span.begin(), span.end()) {}
+	template <class U, int size, EnableIf<is_same<RemoveConst<U>, T>>...>
+	Vector(Span<U, size> span) : Vector(CSpan<T>(span)) {}
 
 	void swap(Vector &rhs) { m_base.swap(rhs.m_base); }
 
@@ -305,6 +306,9 @@ template <class T> class Vector {
 	T *end() { return data() + m_base.size; }
 	const T *begin() const { return data(); }
 	const T *end() const { return data() + m_base.size; }
+
+	operator Span<T>() { return Span<T>(data(), m_base.size); }
+	operator CSpan<T>() const { return CSpan<T>(data(), m_base.size); }
 
 	bool operator==(const Vector &rhs) const {
 		return size() == rhs.size() && std::equal(begin(), end(), rhs.begin(), rhs.end());

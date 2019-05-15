@@ -5,6 +5,7 @@
 
 #include "fwk/math/frustum.h"
 #include "fwk/math/matrix4.h"
+#include "fwk_vector.h"
 
 namespace fwk {
 
