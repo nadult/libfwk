@@ -12,6 +12,7 @@ namespace fwk {
 // intRange(4):            0, 1, 2, 3
 // intRange(10, 15):       10, 11, 12, 13, 14
 // indexRange<T>(4):       T(0), T(1), T(2), T(3)
+// pairsRange(4):          (0, 1), (1, 2), (2, 3)
 // wrappedPairsRange(4):   (0, 1), (1, 2), (2, 3), (3, 0)
 // wrappedTriplesRange(3): (0, 1, 2), (1, 2, 0), (2, 0, 1)
 //

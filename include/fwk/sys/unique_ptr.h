@@ -97,6 +97,17 @@ template <typename T> class UniquePtr {
 
 	explicit operator bool() const { return m_ptr != nullptr; }
 
+	bool operator==(const UniquePtr &rhs) const {
+		if(!m_ptr || !rhs.m_ptr)
+			return !!m_ptr == !!rhs.m_ptr;
+		return *m_ptr == *rhs.m_ptr;
+	}
+	bool operator<(const UniquePtr &rhs) const {
+		if(!m_ptr || !rhs.m_ptr)
+			return !!m_ptr < !!rhs.m_ptr;
+		return *m_ptr < *rhs.m_ptr;
+	}
+
   private:
 	T *clone() const {
 		if constexpr(std::is_copy_constructible<T>::value && !std::is_polymorphic<T>::value) {
