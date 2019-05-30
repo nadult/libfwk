@@ -2,8 +2,12 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- Zmienić nazwę UniquePtra na coś innego, bo fakt że to jest pointer nie ma tutaj znaczenia
+  to jest po prostu dynamicznie zaalokowany obiekt
+- dodać funkcję matchBest  dla enumów i innych rzeczy?
 - checker mógłby też zbierać różnego rodzaju informacje o kodzie, i zapisywac je do pliku w jakiejś
   prostej formie, z tym można by pewnie zrobić wiele fajnych rzeczy
+  - tool: program który wypisuje wielkości różnych struktur (pogrupowanych po name-spacach); Z dodatkową opcją filtrowania
 - wywołanie jakiejś funkcji EXCEPT z listy inicjakizacyjnej konstruktora zle dziala!
 - check-error-attribs -> check-except-attribs
 - consistency with try, find, get, etc. function prefixes

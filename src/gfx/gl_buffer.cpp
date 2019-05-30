@@ -143,8 +143,11 @@ void *GlBuffer::map(i64 offset, i64 size, MapFlags flags) {
 }
 
 void GlBuffer::flushMapped(i64 offset, i64 size) {
-	bind();
-	glFlushMappedBufferRange(s_types[m_type], offset, size);
+	DASSERT(size >= 0 && offset >= 0 && offset + size <= m_size);
+	if(size) {
+		bind();
+		glFlushMappedBufferRange(s_types[m_type], offset, size);
+	}
 }
 
 void GlBuffer::copyTo(PBuffer target, int read_offset, int write_offset, int size) const {
