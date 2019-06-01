@@ -221,6 +221,13 @@ template <class T> class Vector {
 		while(index < new_size)
 			new(data() + index++) T();
 	}
+	void shrink(int new_size) {
+		PASSERT(m_base.size >= new_size);
+		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
+			m_base.resizePodPartial(sizeof(T), new_size);
+		else
+			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
+	}
 
 	template <class... Args> T &emplace_back(Args &&... args) INST_EXCEPT {
 		if(m_base.size == m_base.capacity) {
