@@ -50,9 +50,9 @@ template <class T> struct EnumFlags {
 	constexpr EnumFlags operator^(EnumFlags rhs) const { return EnumFlags(bits ^ rhs.bits); }
 	constexpr EnumFlags operator~() const { return EnumFlags((~bits) & (mask)); }
 
-	constexpr void operator|=(EnumFlags rhs) { bits |= rhs.bits; }
-	constexpr void operator&=(EnumFlags rhs) { bits &= rhs.bits; }
-	constexpr void operator^=(EnumFlags rhs) { bits ^= rhs.bits; }
+	constexpr void operator|=(EnumFlags rhs) & { bits |= rhs.bits; }
+	constexpr void operator&=(EnumFlags rhs) & { bits &= rhs.bits; }
+	constexpr void operator^=(EnumFlags rhs) & { bits ^= rhs.bits; }
 
 	constexpr bool operator==(T rhs) const { return bits == (Base(1) << int(rhs)); }
 	constexpr bool operator==(EnumFlags rhs) const { return bits == rhs.bits; }

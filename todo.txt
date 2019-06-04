@@ -8,6 +8,8 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - checker mógłby też zbierać różnego rodzaju informacje o kodzie, i zapisywac je do pliku w jakiejś
   prostej formie, z tym można by pewnie zrobić wiele fajnych rzeczy
   - tool: program który wypisuje wielkości różnych struktur (pogrupowanych po name-spacach); Z dodatkową opcją filtrowania
+  - tool: podgląd wszystkich instancjacji i wszystkich wartości constexpr
+  - czy dałoby się użyć tego narzędzia do lepszego generowania perf pointów?
 - wywołanie jakiejś funkcji EXCEPT z listy inicjakizacyjnej konstruktora zle dziala!
 - check-error-attribs -> check-except-attribs
 - consistency with try, find, get, etc. function prefixes
