@@ -173,7 +173,7 @@ TEMPLATE auto TSEG::isectParam(const Triangle<T, dim> &tri) const -> Pair<PPRIse
 			d = -d;
 		}
 
-		if(t < 0 || t > d)
+		if(!(t >= 0 && t <= d))
 			return {};
 
 		PVec e = cross<PVec>(qp, ap);
@@ -185,10 +185,10 @@ TEMPLATE auto TSEG::isectParam(const Triangle<T, dim> &tri) const -> Pair<PPRIse
 			return {};
 		PPT w = -dot<PPVec>(ab, e);
 
-		if(w < 0 || v + w > d)
-			return {};
-
-		return {PPRIsectParam(ratDivide<PPT>(t, d)), is_front};
+		// Ordering matters for Nans
+		if(w >= 0 && v + w <= d)
+			return {PPRIsectParam(ratDivide<PPT>(t, d)), is_front};
+		return {};
 	} else {
 		FATAL("write me please");
 		return {};

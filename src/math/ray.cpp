@@ -78,9 +78,10 @@ template <class T, int N> IsectParam<T> Ray<T, N>::isectParam(const Box<Vec> &bo
 		lmax = min(lmax, max(l1, l2));
 	}
 
-	if(lmin > lmax)
-		return {};
-	return {lmin, lmax};
+	// Comparison order is importent for NaNs
+	if(lmin <= lmax)
+		return {lmin, lmax};
+	return {};
 }
 
 // TODO: at(IsectParam): should be able to return Ray as well (with infinite interval)?
@@ -115,7 +116,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
 	T det = dot(e1, vp);
 
 	// if determinant is near zero, ray lies in plane of triangle
-	if(det > T(-isect_epsilon) && det < T(isect_epsilon)) {
+	if(!(det < T(-isect_epsilon) || det > T(isect_epsilon))) {
 		// TODO: fix this...
 		return {};
 	}
@@ -127,7 +128,7 @@ IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
 	// Calculate u parameter and test bound
 	T tu = dot(vt, vp) * inv_det;
 	// The intersection lies outside of the triangle
-	if(tu < T(0) || tu > T(1))
+	if(!(tu >= T(0) && tu <= T(1)))
 		return {};
 
 	// Prepare to test v parameter
@@ -136,14 +137,13 @@ IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {
 	// Calculate V parameter and test bound
 	T tv = dot(m_dir, vq) * inv_det;
 	// The intersection lies outside of the triangle
-	if(tv < T(0) || tu + tv > T(1))
+	if(!(tv >= T(0) && tu + tv <= T(1)))
 		return {};
 
 	T t = dot(e2, vq) * inv_det;
 
 	if(t > epsilon<T>)
 		return t;
-
 	return {};
 }
 

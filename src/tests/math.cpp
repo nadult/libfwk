@@ -24,6 +24,8 @@
 #include "fwk/variant.h"
 #include "testing.h"
 
+#include "fwk/gfx/colored_triangle.h"
+
 float3 randomTranslation(float magnitude) {
 	return float3(frand() - 0.5f, frand() - 0.5f, frand() - 0.5f) * 2.0f * magnitude;
 }
@@ -624,6 +626,18 @@ void testDirections() {
 	ASSERT_EQ(ccwNext<int2>(int2(1, 0), cspan({int2(1, 0)})), 0);
 }
 
+void testNans() {
+	Segment3F seg({109.468544, 254.999969, 82.578125}, {109.468544, -768, 82.578125});
+	FBox box({108.253174, 1.828125, 82.421875}, {109.119202, 2.996094, 82.578125});
+	ASSERT(seg.isect(box) == none);
+
+	Triangle3F broken_tri(
+		{1357952958386087551141722354914164736.0f, 0, 1357952958386087551141722354914164736.0f},
+		{0, 0, 0}, {0, 0, 0.157947});
+	Segment3F seg2({-26.514603, 26.27367, 15.758493}, {107.461983, -106.383568, -63.699028});
+	ASSERT(!seg2.isectParam(broken_tri).first);
+}
+
 void testMain() {
 	Backtrace::t_default_mode = BacktraceMode::full;
 
@@ -642,6 +656,7 @@ void testMain() {
 	//testExt24();
 	testRationalAngles();
 	testDirections();
+	testNans();
 
 	float3 vec(0, 0, 1);
 	for(auto &s : vec.values())
