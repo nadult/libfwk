@@ -103,6 +103,8 @@ IsectParam<T> Ray<T, N>::isectParam(const Ray &rhs) const {
 }
 
 // Moller-Trombore, source: wikipedia
+// TODO: we should differentiate robust algorithms from algs on reals
+// which are robust in a different way (return no intersection for broken data)
 template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
 IsectParam<T> Ray<T, N>::isectParam(const Triangle<T, N> &tri) const {

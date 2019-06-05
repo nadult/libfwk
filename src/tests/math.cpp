@@ -648,7 +648,7 @@ void testMain() {
 		s += 12.0f;
 	ASSERT_EQ(vec, float3(12, 12, 13));
 	static_assert(is_same<decltype(vec.values()), Span<float, 3>>, "");
-	ASSERT(!isnan(vec) && !isnan(double3(vec)));
+	ASSERT(!isNan(vec) && !isNan(double3(vec)));
 
 	auto float_len = length(float3(1, 2, 3));
 	auto double_len = length((double3)int3(2, 3, 4));

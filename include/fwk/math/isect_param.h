@@ -30,6 +30,8 @@ template <class T> class IsectParam {
 	bool operator==(const IsectParam &rhs) const { return m_interval == rhs.m_interval; }
 	bool operator<(const IsectParam &rhs) const { return m_interval < rhs.m_interval; }
 
+	bool isNan() const { return m_interval.isNan(); }
+
   private:
 	Interval<T> m_interval;
 };

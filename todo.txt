@@ -2,6 +2,11 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- Obsługa NANów:
+  A) narzędzia do jak najwcześniejszego wykrywania Nanów (tak, żeby można było odpowiednio poprawić kod/dane)
+  B) odpowiednio napisane funkcje liczące przecięcia (jeszcze jakieś?) tak, żeby w przypadku NANa po prostu przecięcia nie było
+  C) wyraźne oddzielenie kodu na intach od kodu na floatach (bo zachowuje się w różny sposób)?
+
 - Zmienić nazwę UniquePtra na coś innego, bo fakt że to jest pointer nie ma tutaj znaczenia
   to jest po prostu dynamicznie zaalokowany obiekt
 - dodać funkcję matchBest  dla enumów i innych rzeczy?

@@ -105,6 +105,7 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 	if(!m_positions)
 		return out;
 
+	DASSERT(!isNan(m_positions));
 	auto vao = RenderList::makeVao(m_positions, m_colors, m_tex_coords);
 
 	for(const auto &elem : m_elements) {
@@ -118,9 +119,6 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 			DASSERT_LE(end_index, m_colors.size());
 		if(m_flags & Opt::tex_coords)
 			DASSERT_LE(end_index, m_tex_coords.size());
-#ifdef FWK_CHECK_NANS
-		DASSERT(!isnan(m_positions));
-#endif
 
 		Maybe<FBox> bbox;
 		if(compute_bboxes)

@@ -406,23 +406,34 @@ template <class T, EnableIfIntegral<T>...> T nextPow2(T val) {
 	return out;
 }
 
-using std::isnan;
-template <class T, class... TV> bool isnan(T v0, TV... vn) { return isnan(v0) || isnan(vn...); }
-template <class T, EnableIfFptVec<T>...> bool isnan(const T &v) {
-	return anyOf(v.values(), [](auto s) { return isnan(s); });
+template <class T, EnableIf<is_fundamental<T>>...> bool isNan(T value) {
+	if constexpr(is_fpt<T>)
+		return std::isnan(value);
+	return false;
 }
-template <class TRange, class T = RangeBase<TRange>, EnableIf<is_fpt<Base<T>>>...>
-bool isnan(const TRange &range) {
-	return anyOf(range, [](auto s) { return isnan(s); });
+
+template <class T0, class T1, class... TN>
+bool isNan(const T0 &value0, const T1 &value1, const TN &... values) {
+	return isNan(value0) || isNan(value1) || (... || isNan(values));
+}
+template <class T, EnableIfFptVec<T>...> bool isNan(const T &v) {
+	return anyOf(v.values(), [](auto s) { return isNan(s); });
+}
+
+template <class TRange, EnableIf<is_range<TRange>>...> bool isNan(const TRange &range) {
+	return anyOf(range, [](auto s) { return isNan(s); });
 }
 
 // -------------------------------------------------------------------------------------------
 // ---  Basic vector class templates  --------------------------------------------------------
 
+// Aggressive checks for NANs in vec, Interval and in many different places; Whenever some
+// vector operation happens test for NANs is performed; The goal is to detect NANs
+// as soon as possible.
 #ifdef FWK_CHECK_NANS
 #define CHECK_NANS(...)                                                                            \
 	if constexpr(is_fpt<T>)                                                                        \
-	DASSERT(!isnan(__VA_ARGS__))
+	DASSERT(!isNan(__VA_ARGS__))
 #else
 #define CHECK_NANS(...)
 #endif

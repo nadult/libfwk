@@ -155,7 +155,7 @@ bool DynamicMesh::isTriangular() const {
 }
 
 bool DynamicMesh::isValid(VertexId id) const {
-	return id.id >= 0 && id.id < (int)m_verts.size() && !isnan(m_verts[id].x);
+	return id.id >= 0 && id.id < (int)m_verts.size() && !isNan(m_verts[id].x);
 }
 bool DynamicMesh::isValid(PolyId id) const {
 	return id.id >= 0 && id.id < (int)m_polys.size() && m_polys[id].verts;
@@ -165,7 +165,7 @@ bool DynamicMesh::isValid(EdgeId id) const {
 }
 
 VertexId DynamicMesh::addVertex(const float3 &pos) {
-	DASSERT(!isnan(pos));
+	DASSERT(!isNan(pos));
 
 	int index = -1;
 	if(m_free_verts) {
@@ -345,7 +345,7 @@ vector<VertexId> DynamicMesh::verts() const {
 	vector<VertexId> out;
 	out.reserve(m_num_verts);
 	for(int i = 0; i < vertexIdCount(); i++)
-		if(!isnan(m_verts[i].x))
+		if(!isNan(m_verts[i].x))
 			out.emplace_back(i);
 	return out;
 }

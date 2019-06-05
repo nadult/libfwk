@@ -151,6 +151,8 @@ template <class T, int N> struct Rational {
 	Den m_den;
 };
 
+template <class T, int N> bool isNan(const Rational<T, N> &rat) { return rat.isNan(); }
+
 Rational<int> rationalApprox(double value, int max_num, bool upper_bound);
 
 #undef IF_SCALAR

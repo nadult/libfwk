@@ -14,8 +14,7 @@ template <class T> struct Interval {
 
 	Interval(T min, T max) : min(min), max(max) {
 #ifdef FWK_CHECK_NANS
-		if constexpr(is_fpt<T>)
-			DASSERT(!isnan(min) && !isnan(max));
+		DASSERT(!isNan());
 #endif
 	}
 
@@ -52,6 +51,8 @@ template <class T> struct Interval {
 	void operator>>(TextFormatter &out) const {
 		out(out.isStructured() ? "(%; %)" : "% %", min, max);
 	}
+
+	bool isNan() const { return fwk::isNan(min, max); }
 
 	FWK_ORDER_BY(Interval, min, max);
 

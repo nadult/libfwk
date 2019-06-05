@@ -151,7 +151,7 @@ TEMPLATE_REAL auto TSEG::isectParamPlane(const Plane<T, dim> &plane) const -> Is
 
 TEMPLATE auto TSEG::isectParam(const Triangle<T, dim> &tri) const -> Pair<PPRIsectParam, bool> {
 	if constexpr(dim == 3) {
-		// TODO: use this in real segment
+		// TODO: it's not robust in reals (especially with broken data)
 		Vec ab = tri[1] - tri[0];
 		Vec ac = tri[2] - tri[0];
 
