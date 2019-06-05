@@ -49,6 +49,9 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - StaticSpan + Array (z checkami na indeksach) ?
 - ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?
 - vector concept and algorithms for it (downsize, upsize, shrinkToFit, etc.)
+  SmallVectorBase, PodVectorBase, VectorBase:
+  PodVector: public VectorInterface<PodVectorBase> ?
+
 - HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
 - TODO: hashMap where [] doesnt add new element; improve searching, querying & replacing interface
 - Formatting math objects first to expression, then to string (expression handles special chars, parentheses, additions, etc.)

@@ -188,8 +188,13 @@ template <class T> class immutable_weak_ptr;
 class BaseVector;
 template <class T> class PodVector;
 template <class T> class Vector;
+template <class T> class IndexedVector;
+template <class T, int> class SmallVector;
+template <class T, int> class StaticVector;
 template <class T> using vector = Vector<T>;
+
 template <class T> constexpr int type_size<Vector<T>> = 16;
+template <class T> constexpr int type_size<IndexedVector<T>> = 48;
 
 template <class T> struct SerializeAsPod;
 
