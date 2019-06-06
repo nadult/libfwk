@@ -17,7 +17,7 @@ class MaterialSet {
 	auto defaultMat() const { return m_default; }
 	const Material &operator[](const string &name) const;
 	vector<Material> operator()(CSpan<string> names) const;
-	const HashMap<string, Material> &map() const;
+	const auto &map() const { return *&m_map; }
 
   private:
 	Material m_default;

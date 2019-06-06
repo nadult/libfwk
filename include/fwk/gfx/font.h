@@ -46,6 +46,9 @@ class FontCore : public immutable_base<FontCore> {
 	int lineHeight() const { return m_line_height; }
 	const string &textureName() const { return m_texture_name; }
 
+	const auto &glyphs() const { return *&m_glyphs; }
+	const auto &kernings() const { return *&m_kernings; }
+
   private:
 	struct Kerning {
 		int left, right;

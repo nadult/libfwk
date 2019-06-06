@@ -21,5 +21,4 @@ vector<Material> MaterialSet::operator()(CSpan<string> names) const {
 	return transform(names, [this](const string &name) { return (*this)[name]; });
 }
 
-const HashMap<string, Material> &MaterialSet::map() const { return m_map; }
 }

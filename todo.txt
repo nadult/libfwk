@@ -53,6 +53,7 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
   PodVector: public VectorInterface<PodVectorBase> ?
 
 - HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
+- HashMap: iterator should just be a pointer to node; null pointer means find == end()
 - TODO: hashMap where [] doesnt add new element; improve searching, querying & replacing interface
 - Formatting math objects first to expression, then to string (expression handles special chars, parentheses, additions, etc.)
 - konstruktory dla vec2, vec3, vec4? 
