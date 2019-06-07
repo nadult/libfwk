@@ -230,6 +230,7 @@ template <class T> class UniquePtr;
 
 class Any;
 class AnyRef;
+class AnyConfig;
 
 template <> constexpr int type_size<AnyRef> = 16;
 template <> constexpr int type_size<Any> = 16;
