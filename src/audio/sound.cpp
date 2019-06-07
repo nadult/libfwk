@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_audio.h"
+#include "fwk/audio/sound.h"
 
 #include "fwk/sys/expected.h"
 #include "fwk/sys/file_stream.h"
@@ -11,6 +11,8 @@ namespace fwk {
 Sound::Sound(vector<char> data, const SoundInfo &info) : m_data(data), m_info(info) {
 	// TODO: verification
 }
+
+FWK_COPYABLE_CLASS_IMPL(Sound)
 
 Ex<Sound> Sound::load(FileStream &sr) {
 	u32 chunk_size[2], size, frequency, byteRate;

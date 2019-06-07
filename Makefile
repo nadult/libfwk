@@ -34,7 +34,7 @@ SHARED_SRC=vector profiler enum str sys_base type_info any any_ref logger \
            math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   math/line math/affine_trans math/rational math/gcd math/rational_angle \
-		   format parse audio/device audio/sound audio/ogg_stream \
+		   format parse audio/al_device audio/sound audio/ogg_stream \
 		   gfx/color gfx/gl_device gfx/font gfx/font_factory gfx/model_anim gfx/model_node \
 		   gfx/material gfx/material_set gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/pose \
 		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \

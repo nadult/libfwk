@@ -1,7 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_audio.h"
+#include "fwk/audio/al_device.h"
+
+#include "fwk/audio/sound.h"
 
 #ifdef _WIN32
 #define AL_LIBTYPE_STATIC
@@ -45,7 +47,7 @@ void uploadToBuffer(const Sound &sound, unsigned buffer_id) {
 	testError("Error while loading data to audio buffer.");
 }
 
-DSound::DSound(const Sound &sound) {
+AlSound::AlSound(const Sound &sound) {
 	alGetError();
 	alGenBuffers(1, &m_id);
 	testError("Error while creating audio buffer.");
@@ -53,14 +55,14 @@ DSound::DSound(const Sound &sound) {
 	uploadToBuffer(sound, m_id);
 }
 
-DSound::DSound(DSound &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
+AlSound::AlSound(AlSound &&rhs) : m_id(rhs.m_id) { rhs.m_id = 0; }
 
-DSound::~DSound() {
+AlSound::~AlSound() {
 	if(m_id)
 		alDeleteBuffers(1, &m_id);
 }
 
-struct AudioDevice::Impl {
+struct AlDevice::Impl {
 	Impl(int max_sources)
 		: device(nullptr), context(nullptr), sources(max_sources, 0), free_sources(max_sources, 0),
 		  num_free_sources(0), last_time(0.0) {
@@ -90,29 +92,29 @@ struct AudioDevice::Impl {
 
 namespace {
 
-	static AudioDevice *s_device = nullptr;
+	static AlDevice *s_device = nullptr;
 }
 
-AudioDevice &AudioDevice::instance() {
+AlDevice &AlDevice::instance() {
 	ASSERT(s_device && "Audio device not initialized");
 	return *s_device;
 }
 
-AudioDevice::AudioDevice(int max_sources) : m_impl(max_sources), m_max_distance(500.0f) {
+AlDevice::AlDevice(int max_sources) : m_impl(max_sources), m_max_distance(500.0f) {
 	ASSERT(!s_device);
 	s_device = this;
 	m_impl->last_time = getTime() - 1.0 / 60.0;
 	tick();
 }
 
-AudioDevice::~AudioDevice() {
+AlDevice::~AlDevice() {
 	s_device = nullptr;
 	alDeleteSources(m_impl->sources.size(), m_impl->sources.data());
 	alcDestroyContext(m_impl->context);
 	alcCloseDevice(m_impl->device);
 }
 
-void AudioDevice::tick() {
+void AlDevice::tick() {
 	m_impl->num_free_sources = 0;
 	for(int n = 0; n < m_impl->sources.size(); n++) {
 		ALint state;
@@ -126,7 +128,7 @@ void AudioDevice::tick() {
 	m_impl->last_time = time;
 }
 
-void AudioDevice::printInfo() {
+void AlDevice::printInfo() {
 	printf("OpenAL vendor: %s\nOpenAL extensions:\n", alGetString(AL_VENDOR));
 	const char *text = alcGetString(m_impl->device, ALC_EXTENSIONS);
 	while(*text) {
@@ -136,7 +138,7 @@ void AudioDevice::printInfo() {
 	printf("\n");
 }
 
-void AudioDevice::setListener(const float3 &pos, const float3 &vel, const float3 &dir) {
+void AlDevice::setListener(const float3 &pos, const float3 &vel, const float3 &dir) {
 	m_listener_pos = pos;
 
 	alListener3f(AL_POSITION, pos.x, pos.y, pos.z);
@@ -145,9 +147,9 @@ void AudioDevice::setListener(const float3 &pos, const float3 &vel, const float3
 	alListenerfv(AL_ORIENTATION, v);
 }
 
-void AudioDevice::setUnits(float meter) {}
+void AlDevice::setUnits(float meter) {}
 
-uint AudioDevice::prepSource(uint buffer_id) {
+uint AlDevice::prepSource(uint buffer_id) {
 	if(!m_impl->num_free_sources || !buffer_id)
 		return 0;
 
@@ -161,7 +163,7 @@ uint AudioDevice::prepSource(uint buffer_id) {
 	return source_id;
 }
 
-void AudioDevice::updateSource(uint source_id, const SoundPos &pos) {
+void AlDevice::updateSource(uint source_id, const SoundPos &pos) {
 	DASSERT((int)source_id < m_impl->sources.size());
 	uint source = m_impl->sources[source_id];
 	alSource3f(source, AL_POSITION, pos.pos.x, pos.pos.y, pos.pos.z);
@@ -169,7 +171,7 @@ void AudioDevice::updateSource(uint source_id, const SoundPos &pos) {
 	alSourcei(source, AL_SOURCE_RELATIVE, pos.is_relative ? AL_TRUE : AL_FALSE);
 }
 
-void AudioDevice::updateSource(uint source_id, const SoundConfig &config) {
+void AlDevice::updateSource(uint source_id, const SoundConfig &config) {
 	DASSERT((int)source_id < m_impl->sources.size());
 	uint source = m_impl->sources[source_id];
 	alSourcef(source, AL_ROLLOFF_FACTOR, config.rolloff);
@@ -177,7 +179,7 @@ void AudioDevice::updateSource(uint source_id, const SoundConfig &config) {
 	alSourcei(source, AL_LOOPING, config.is_looped ? AL_TRUE : AL_FALSE);
 }
 
-uint AudioDevice::playSound(PSound sound, const SoundPos &pos, const SoundConfig &config) {
+uint AlDevice::playSound(PSound sound, const SoundPos &pos, const SoundConfig &config) {
 	if(distance(pos.pos, m_listener_pos) > m_max_distance / config.rolloff)
 		return 0;
 

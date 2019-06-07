@@ -1,8 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk_audio.h"
+#include "fwk/audio/ogg_stream.h"
+
 #include <vorbis/vorbisfile.h>
+#include "fwk/audio/sound.h"
 
 namespace fwk {
 
@@ -18,7 +20,7 @@ struct OggStream::Impl {
 };
 
 OggStream::OggStream(const char *file_name) : m_file_name(file_name), m_impl(file_name) {}
-OggStream::~OggStream() {}
+FWK_MOVABLE_CLASS_IMPL(OggStream)
 
 Sound OggStream::makeSound() const {
 	SoundInfo info;
