@@ -4,8 +4,8 @@
 #pragma once
 
 #include "fwk/enum.h"
+#include "fwk/span.h"
 #include "fwk/sys_base.h"
-#include "fwk_range.h"
 #include <array>
 
 namespace fwk {

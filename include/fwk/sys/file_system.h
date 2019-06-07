@@ -4,9 +4,9 @@
 #pragma once
 
 #include "fwk/light_tuple.h"
+#include "fwk/span.h"
 #include "fwk/str.h"
 #include "fwk/sys_base.h"
-#include "fwk_range.h"
 
 namespace fwk {
 
