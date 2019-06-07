@@ -338,7 +338,7 @@ EXT_API void(EXT_ENTRY *glDeleteTransformFeedbacks)(GLsizei n, const GLuint *ids
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
 #include "fwk/gfx_base.h"
-#include "fwk_vector.h"
+#include "fwk/vector.h"
 
 namespace fwk {
 
