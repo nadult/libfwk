@@ -5,4 +5,3 @@ cd tests
 ./math
 ./enums
 ./models
-./vector

@@ -43,8 +43,7 @@ SHARED_SRC=vector profiler enum str sys_base type_info any any_ref logger \
 		   gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_format gfx/gl_query \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array
 
-TESTS_SRC=tests/stuff tests/math tests/window tests/enums tests/models tests/vector tests/vector_perf \
-			tests/variant_perf
+TESTS_SRC=tests/stuff tests/math tests/window tests/enums tests/models tests/vector_perf tests/variant_perf
 TOOLS_SRC=tools/model_convert tools/model_viewer
 PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
