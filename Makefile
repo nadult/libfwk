@@ -22,6 +22,7 @@ _dummy := $(shell [ -d $(BUILD_DIR)/math ] || mkdir -p $(BUILD_DIR)/math)
 _dummy := $(shell [ -d $(BUILD_DIR)/sys ] || mkdir -p $(BUILD_DIR)/sys)
 _dummy := $(shell [ -d $(BUILD_DIR)/tests ] || mkdir -p $(BUILD_DIR)/tests)
 _dummy := $(shell [ -d $(BUILD_DIR)/tools ] || mkdir -p $(BUILD_DIR)/tools)
+_dummy := $(shell [ -d $(BUILD_DIR)/menu ] || mkdir -p $(BUILD_DIR)/menu)
 _dummy := $(shell [ -d tests ] || mkdir -p tests)
 _dummy := $(shell [ -d tools ] || mkdir -p tools)
 _dummy := $(shell [ -d lib ] || mkdir -p lib)
@@ -43,12 +44,19 @@ SHARED_SRC=vector enum str sys_base type_info any any_ref logger any_config \
 		   gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_format gfx/gl_query \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array
 
+MENU_SRC=menu/imgui_code menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper
+
 TESTS_SRC=tests/stuff tests/math tests/window tests/enums tests/models tests/vector_perf tests/variant_perf
 TOOLS_SRC=tools/model_convert tools/model_viewer
 PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
+ifneq ("$(wildcard imgui/imgui.h)","")
+	SHARED_SRC:=$(MENU_SRC) $(SHARED_SRC)
+	FLAGS+= -DFWK_IMGUI_ENABLED
+endif
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
+
 WINDOWS_SRC=system_windows sys/file_system_windows
 
 LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)

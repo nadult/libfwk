@@ -29,6 +29,11 @@ Code is written mainly in C++14 with some C++17 and C++20 features used.
 * **SDL2**   
 	[https://www.libsdl.org/](https://www.libsdl.org/)
 
+* **dear imgui (optional)**  
+	Included as a git submodule in imgui/.  
+	Menu module and some tools will only be compiled if imgui is present.  
+	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
+
 * **rapidxml**  
 	included in src/rapidxml*/, licensed under Boost Software License  
 	[http://rapidxml.sourceforge.net/](http://rapidxml.sourceforge.net/)
