@@ -20,7 +20,6 @@
 #include "fwk/sys/file_system.h"
 #include "fwk/sys/input.h"
 #include "fwk/sys/xml_loader.h"
-#include "fwk_profile.h"
 
 using namespace fwk;
 
@@ -240,7 +239,6 @@ class Viewer {
 		fmt("pgup/pgdn: zoom\n\n");
 
 		model.printModelStats(fmt);
-		fmt("%", Profiler::instance()->getStats("X"));
 
 		FontStyle style{ColorId::white, ColorId::black};
 		auto extents = m_font->evalExtents(fmt.text());
@@ -268,9 +266,6 @@ class Viewer {
 		tick(time_diff);
 		updateViewport();
 		draw();
-
-		auto *profiler = Profiler::instance();
-		profiler->nextFrame();
 
 		return true;
 	}
@@ -337,7 +332,6 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	Profiler profiler;
 	GlDevice gfx_device;
 	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::multisampling | GlDeviceOpt::vsync;
 	gfx_device.createWindow("libfwk::model_viewer", resolution, flags);
