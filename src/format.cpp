@@ -386,7 +386,7 @@ namespace detail {
 
 		if(out.isStructured())
 			out << '[';
-		for(int n : intRange(size)) {
+		for(int n = 0; n < size; n++) {
 			auto ptr = data + size_t(n) * obj_size;
 			func(out, (unsigned long long)ptr);
 			if(n + 1 != size)

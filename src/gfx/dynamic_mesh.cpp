@@ -8,7 +8,6 @@
 #include "fwk/math/projection.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/rotation.h"
-#include "fwk_index_range.h"
 
 namespace fwk {
 

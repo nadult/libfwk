@@ -287,7 +287,7 @@ vector<Pair<FRect, Matrix4>> Renderer2D::renderRects() const {
 		for(const auto &elem : chunk.elements) {
 			const int *inds = &chunk.indices[elem.first_index];
 			int min_index = inds[0], max_index = inds[0];
-			for(int i : intRange(elem.num_indices)) {
+			for(int i = 0; i < elem.num_indices; i++) {
 				max_index = max(max_index, inds[i]);
 				min_index = min(min_index, inds[i]);
 			}

@@ -205,7 +205,7 @@ Rational<int> rationalApprox(double value, int max_num, bool upper_bound) {
 	Rational<int> best = int(value);
 	double best_err = abs(double(best) - value);
 
-	for(int n : intRange(1, max_num)) {
+	for(int n = 1; n < max_num; n++) {
 		int avg_d = double(n) / value;
 		for(int d = avg_d - 1; d <= avg_d + 1; d++) {
 			Rational<int> rat(n, d);

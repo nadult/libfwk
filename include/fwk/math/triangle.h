@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/index_range.h"
 #include "fwk/math/segment.h"
 #include "fwk/math_base.h"
 #include "fwk/maybe.h"

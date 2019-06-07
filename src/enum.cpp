@@ -3,6 +3,7 @@
 
 #include "fwk/enum.h"
 #include "fwk/format.h"
+#include "fwk/index_range.h"
 #include "fwk/parse.h"
 
 namespace fwk {

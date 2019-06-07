@@ -48,7 +48,7 @@ int ccwNext(T vec, int count, const Func &vecs) {
 	DASSERT(count > 0);
 
 	int best = -1, negative = -1;
-	for(int n : intRange(count)) {
+	for(int n = 0; n < count; n++) {
 		auto result = cross<Promote<T>>(vec, vecs(n));
 		if(result > 0) {
 			best = n;

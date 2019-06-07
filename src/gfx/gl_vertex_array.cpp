@@ -33,8 +33,8 @@ static const EnumMap<VertexBaseType, VertexDataInfo> data_info = {{
 
 int dataSize(VertexBaseType type) { return data_info[type].size; }
 
-static const EnumMap<IndexType, int> gl_index_type = {{
-	GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT}};
+static const EnumMap<IndexType, int> gl_index_type = {
+	{GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT}};
 
 int dataSize(IndexType itype) {
 	return itype == IndexType::uint8 ? 1 : itype == IndexType::uint16 ? 2 : 4;
@@ -81,7 +81,7 @@ void GlVertexArray::fill() {
 		return;
 
 	glBindVertexArray(id());
-	for(int n : intRange(m_num_attribs))
+	for(int n = 0; n < m_num_attribs; n++)
 		bindVertexBuffer(n);
 	glBindVertexArray(0);
 }
@@ -163,7 +163,7 @@ void GlVertexArray::bind() const {
 		glBindVertexArray(id());
 	} else {
 		// TODO: s_max_bind ?
-		for(int n : intRange(m_num_attribs))
+		for(int n = 0; n < m_num_attribs; n++)
 			bindVertexBuffer(n);
 		for(int n = m_num_attribs; n < max_attribs; n++)
 			glDisableVertexAttribArray(n);

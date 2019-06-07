@@ -4,6 +4,7 @@
 #include "fwk/any.h"
 #include "fwk/fwd_member.h"
 #include "fwk/hash_map.h"
+#include "fwk/index_range.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"

@@ -206,9 +206,9 @@ vector<Pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const 
 }
 
 Maybe<int> GlProgram::findUniform(ZStr str) const {
-	for(int n : intRange(m_uniforms))
-		if(str == m_uniforms[n].name)
-			return n;
+	for(auto &uniform : m_uniforms)
+		if(str == uniform.name)
+			return indexOf(m_uniforms, uniform);
 	return none;
 }
 
