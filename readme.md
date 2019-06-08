@@ -31,7 +31,7 @@ Code is written mainly in C++14 with some C++17 and C++20 features used.
 
 * **dear imgui (optional)**  
 	Included as a git submodule in imgui/.  
-	Menu module and some tools will only be compiled if imgui is present.  
+	Menu module will only be compiled if imgui is present.  
 	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
 
 * **rapidxml**  

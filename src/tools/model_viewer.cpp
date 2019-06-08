@@ -21,6 +21,13 @@
 #include "fwk/sys/input.h"
 #include "fwk/sys/xml_loader.h"
 
+#include "fwk/menu/imgui_wrapper.h"
+
+#if FWK_IMGUI_ENABLED
+#include "fwk/menu/helpers.h"
+#include "fwk/menu_imgui.h"
+#endif
+
 using namespace fwk;
 
 namespace {
@@ -134,15 +141,90 @@ class Viewer {
 			m_models.emplace_back(model, default_mat, tex, file_name.first, file_name.second);
 		}
 
+#ifdef FWK_IMGUI_ENABLED
+		m_imgui.emplace(GlDevice::instance(), ImGuiStyleMode::mini);
+#endif
+
 		auto font_path = dataPath("LiberationSans-Regular.ttf");
 		m_font.emplace(move(FontFactory().makeFont(font_path, 14, false).get()));
 	}
 
-	bool handleInput(GlDevice &device, float time_diff) {
+	string helpText() const {
+		TextFormatter fmt;
+		fmt("Help:\n");
+		fmt("M/shift + M: change model\n");
+		fmt("A/shift + A: change animation\n");
+		fmt("S: display skeleton\n");
+		fmt("up/down/left/right: rotate\n");
+		fmt("pgup/pgdn: zoom\n\n");
+		return fmt.text();
+	}
+
+	void helpBox(Renderer2D &renderer_2d, Model &model) const {
+		TextFormatter fmt;
+		fmt("[Imgui disabled]\n");
+		fmt("Model: % (% / %)\n", model.m_model_name, m_current_model + 1, m_models.size());
+		// fmt("Texture: %s\n", !model.m_tex_name.empty() ? model.m_tex_name : "none");
+		string anim_name =
+			m_current_anim == -1 ? "none" : model.m_model->anim(m_current_anim).name();
+		fmt("Animation: % (% / %)\n", anim_name, m_current_anim + 1, model.m_model->animCount());
+
+		fmt << helpText();
+		model.printModelStats(fmt);
+
+		FontStyle style{ColorId::white, ColorId::black};
+		auto extents = m_font->evalExtents(fmt.text());
+		renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
+								  {IColor(0, 0, 0, 80)});
+		m_font->draw(renderer_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
+	}
+
+	void doMenu() {
+#if FWK_IMGUI_ENABLED
+		static bool set_pos = true;
+		if(set_pos) {
+			menu::SetNextWindowPos(int2());
+			menu::SetNextWindowSize({350, 300});
+			set_pos = false;
+		}
+		menu::Begin("Control", nullptr,
+					ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+		menu::text("Model:");
+		menu::SameLine();
+		if(menu::BeginCombo("##model", m_models[m_current_model].m_model_name.c_str())) {
+			for(int n : intRange(m_models))
+				if(menu::Selectable(m_models[n].m_model_name.c_str(), n == m_current_model))
+					m_current_model = n;
+			menu::EndCombo();
+		}
+
+		auto &model = m_models[m_current_model];
+		auto &anims = model.m_model->anims();
+		menu::text("Animation:");
+		menu::SameLine();
+		const char *cur_anim =
+			m_current_anim == -1 ? "empty" : anims[m_current_anim].name().c_str();
+		if(menu::BeginCombo("##anim", cur_anim)) {
+			if(menu::Selectable("empty", m_current_anim == -1))
+				m_current_anim = -1;
+			for(int n : intRange(anims))
+				if(menu::Selectable(anims[n].name().c_str(), m_current_anim == n))
+					m_current_anim = n;
+			menu::EndCombo();
+		}
+
+		menu::Separator();
+		menu::text(helpText());
+		menu::End();
+#endif
+	}
+
+	bool handleInput(vector<InputEvent> events, float time_diff) {
 		float x_rot = 0.0f, y_rot = 0.0f;
 		float scale = 0.0f;
 
-		for(const auto &event : device.inputEvents()) {
+		for(const auto &event : events) {
 			bool shift = event.pressed(InputModifier::lshift);
 
 			if(event.keyPressed(InputKey::left))
@@ -205,7 +287,6 @@ class Viewer {
 		Matrix4 proj = perspective(degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(),
 								   1.0f, 10000.0f);
 		RenderList renderer_3d(m_viewport, proj);
-		Renderer2D renderer_2d(m_viewport, Orient2D::y_down);
 
 		renderer_3d.setViewMatrix(translation(0, 0, -5.0f));
 
@@ -225,32 +306,18 @@ class Viewer {
 			model.drawNodes(tris, lines, pose);
 		lines(model.boundingBox(pose), ColorId::green);
 
-		TextFormatter fmt;
-		fmt("Model: % (% / %)\n", model.m_model_name, m_current_model + 1, m_models.size());
-		// fmt("Texture: %s\n", !model.m_tex_name.empty() ? model.m_tex_name : "none");
-		string anim_name =
-			m_current_anim == -1 ? "none" : model.m_model->anim(m_current_anim).name();
-		fmt("Animation: % (% / %)\n", anim_name, m_current_anim + 1, model.m_model->animCount());
-		fmt("Help:\n");
-		fmt("M: change model\n");
-		fmt("A: change animation\n");
-		fmt("S: display skeleton\n");
-		fmt("up/down/left/right: rotate\n");
-		fmt("pgup/pgdn: zoom\n\n");
-
-		model.printModelStats(fmt);
-
-		FontStyle style{ColorId::white, ColorId::black};
-		auto extents = m_font->evalExtents(fmt.text());
-		renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
-								  {IColor(0, 0, 0, 80)});
-		m_font->draw(renderer_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
-
 		renderer_3d.add(tris.drawCalls());
 		renderer_3d.add(lines.drawCalls());
 
 		renderer_3d.render();
+
+#ifdef FWK_IMGUI_ENABLED
+		m_imgui->drawFrame(GlDevice::instance());
+#else
+		Renderer2D renderer_2d(m_viewport, Orient2D::y_down);
+		helpBox(renderer_2d, model);
 		renderer_2d.render();
+#endif
 	}
 
 	const IRect &viewport() const { return m_viewport; }
@@ -260,8 +327,17 @@ class Viewer {
 		clearColor(nice_background);
 		clearDepth(1.0f);
 
+		vector<InputEvent> events;
+#ifdef FWK_IMGUI_ENABLED
+		m_imgui->beginFrame(device);
+		doMenu();
+		events = m_imgui->finishFrame(device);
+#else
+		events = device.inputEvents();
+#endif
+
 		float time_diff = 1.0f / 60.0f;
-		if(!handleInput(device, time_diff))
+		if(!handleInput(events, time_diff))
 			return false;
 		tick(time_diff);
 		updateViewport();
@@ -277,6 +353,9 @@ class Viewer {
   private:
 	vector<Model> m_models;
 	UniquePtr<Font> m_font;
+#ifdef FWK_IMGUI_ENABLED
+	UniquePtr<ImGuiWrapper> m_imgui;
+#endif
 
 	IRect m_viewport;
 	int m_current_model, m_current_anim;

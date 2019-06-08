@@ -41,7 +41,7 @@ flags = [
 
 '-DNDEBUG',
 '-DFWK_TARGET_LINUX', '-DFWK_PARANOID', '-DFWK_CHECK_OPENGL', '-DFWK_CHECK_NANS',
-'-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP',
+'-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP', '-DFWK_IMGUI_ENABLED' #TODO: make it conditional
 # THIS IS IMPORTANT! Without a "-std=<something>" flag, clang won't know which
 # language to use when compiling headers. So it will guess. Badly. So C++
 # headers will be compiled as C headers. You don't want that so ALWAYS specify
@@ -64,7 +64,6 @@ flags = [
 '-isystem', '/usr/include/SDL2',
 '-isystem', '/usr/include/freetype2',
 ]
-
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
 # compile_commands.json file to use that instead of 'flags'. See here for
