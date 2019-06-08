@@ -127,12 +127,24 @@ void resume();
 void pauseGpu();
 void resumeGpu();
 
-// TODO: możliwość kompletnego wyłączenia (PERFY zamieniają się na ({}))
 // TODO: lepsze nazewnictwo ?
-//
 // TODO: co jeśli przy inicjalizacji statika odpalamy funkcję która jest instrumentowana?
 //       punkty instrumentacji mogą jeszcze nie istnieć...
 //       Nie da się też sprawdzić, czy perf jest włączony, bo nie wiadomo, czy wogóle jest zainicjowany
+
+#ifdef FWK_PERF_DISABLE_SAMPLING
+#define PERF_SCOPE_POINT(name, func, tag)
+
+#define PERF_SCOPE(...)
+#define PERF_GPU_SCOPE(...)
+
+#define PERF_CHILD_SCOPE(...)
+#define PERF_SIBLING_SCOPE(...)
+#define PERF_POP_CHILD_SCOPE()
+#define PERF_CLOSE_SCOPE()
+#define PERF_COUNT(value, ...)
+#define PERF_IF(...)
+#else
 
 // clang-format off
 #define _PERF_ID(prefix, line) prefix##line 
@@ -156,8 +168,10 @@ void resumeGpu();
 #define PERF_CLOSE_SCOPE()					perf_scope.close();
 
 #define PERF_COUNT(value, ...)				_PERF_POINT(counter, __LINE__, __PRETTY_FUNCTION__, #value "#" __VA_ARGS__);	perf::setCounter(_PERF_USE_POINT(__LINE__), value);
+#define PERF_IF(...)						__VA_ARGS__
 
 // clang-format on
+#endif
 
 struct ScopeInfo {};
 
