@@ -3,8 +3,8 @@
 
 #pragma once
 
+#include "fwk/dynamic.h"
 #include "fwk/sys/expected.h"
-#include "fwk/sys/unique_ptr.h"
 #include "fwk/sys/xml.h"
 #include "fwk/type_info_gen.h"
 
@@ -69,8 +69,8 @@ class Any {
   public:
 	template <class T> using Model = detail::AnyModel<T>;
 
-	template <class T, class DT = Decay<T>>
-	Any(T value) : m_model(uniquePtr<Model<DT>>(move(value))), m_type(typeInfo<T>()) {
+	template <class T, class DT = Decay<T>> Any(T value) : m_type(typeInfo<T>()) {
+		m_model.emplace<Model<DT>>(move(value));
 		static_assert(!is_one_of<DT, Any, AnyRef>);
 		static_assert(std::is_copy_constructible<T>::value);
 		static_assert(std::is_destructible<T>::value);
@@ -79,10 +79,10 @@ class Any {
 	// Error will be stored directly
 	template <class T> Any(Ex<T> value) {
 		if(value) {
-			m_model = uniquePtr<Model<T>>(move(*value));
+			m_model.emplace<Model<T>>(move(*value));
 			m_type = typeInfo<T>();
 		} else {
-			m_model = uniquePtr<Model<Error>>(move(value.error()));
+			m_model.emplace<Model<Error>>(move(value.error()));
 			m_type = typeInfo<Error>();
 		}
 	}
@@ -136,7 +136,7 @@ class Any {
 	friend class AnyRef;
 
 	// TODO: Inlined for small types ?
-	UniquePtr<detail::AnyBase> m_model;
+	Dynamic<detail::AnyBase> m_model;
 	TypeInfo m_type;
 };
 }

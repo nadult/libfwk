@@ -199,7 +199,7 @@ void testTypeInfo() {
 
 void testFwdMember() {
 	struct Undef;
-	static_assert(!fwk::detail::FullyDefined<Vector<Vector<Vector<UniquePtr<Undef>>>>>::value);
+	static_assert(!fwk::detail::FullyDefined<Vector<Vector<Vector<Dynamic<Undef>>>>>::value);
 	static_assert(fwk::detail::FullyDefined<Pair<Vector<int>, Vector<int>>>::value);
 }
 

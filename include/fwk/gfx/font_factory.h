@@ -1,8 +1,8 @@
 #pragma once
 
+#include "fwk/dynamic.h"
 #include "fwk/gfx/font.h"
 #include "fwk/sys/expected.h"
-#include "fwk/sys/unique_ptr.h"
 
 namespace fwk {
 
@@ -31,6 +31,6 @@ class FontFactory {
 	Texture makeTextureAtlas(vector<GlyphPair> &);
 
 	struct Impl;
-	UniquePtr<Impl> m_impl;
+	Dynamic<Impl> m_impl;
 };
 }

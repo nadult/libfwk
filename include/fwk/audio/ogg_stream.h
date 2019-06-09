@@ -4,7 +4,7 @@
 #pragma once
 
 #include "fwk/audio_base.h"
-#include "fwk/sys/unique_ptr.h"
+#include "fwk/dynamic.h"
 
 namespace fwk {
 
@@ -17,8 +17,7 @@ class OggStream {
   protected:
 	string m_file_name;
 	struct Impl;
-	UniquePtr<Impl> m_impl;
+	Dynamic<Impl> m_impl;
 };
 
 }
-

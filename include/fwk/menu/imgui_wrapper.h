@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include "fwk/dynamic.h"
 #include "fwk/gfx_base.h"
 #include "fwk/menu_base.h"
-#include "fwk/sys/unique_ptr.h"
 #include "fwk/vector.h"
 
 namespace fwk {
@@ -45,7 +45,7 @@ class ImGuiWrapper {
 	};
 
 	struct Internals;
-	UniquePtr<Internals> m_internals;
+	Dynamic<Internals> m_internals;
 
 	double m_last_time = -1.0;
 	vector<Process> m_procs;

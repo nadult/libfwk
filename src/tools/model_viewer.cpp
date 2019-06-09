@@ -352,9 +352,9 @@ class Viewer {
 
   private:
 	vector<Model> m_models;
-	UniquePtr<Font> m_font;
+	Dynamic<Font> m_font;
 #ifdef FWK_IMGUI_ENABLED
-	UniquePtr<ImGuiWrapper> m_imgui;
+	Dynamic<ImGuiWrapper> m_imgui;
 #endif
 
 	IRect m_viewport;

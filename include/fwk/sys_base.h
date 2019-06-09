@@ -226,7 +226,7 @@ constexpr int type_size<HashMap<Key, Value>> = sizeof(void *) == 4 ? 28 : 32;
 template <class Key> class HashSet;
 template <class Key> constexpr int type_size<HashSet<Key>> = sizeof(void *) == 4 ? 28 : 32;
 
-template <class T> class UniquePtr;
+template <class T> class Dynamic;
 
 class Any;
 class AnyRef;

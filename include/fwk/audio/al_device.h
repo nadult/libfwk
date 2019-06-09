@@ -4,7 +4,7 @@
 #pragma once
 
 #include "fwk/audio_base.h"
-#include "fwk/sys/unique_ptr.h"
+#include "fwk/dynamic.h"
 
 namespace fwk {
 
@@ -50,10 +50,9 @@ class AlDevice {
 	uint prepSource(uint buffer_id);
 
 	struct Impl;
-	UniquePtr<Impl> m_impl;
+	Dynamic<Impl> m_impl;
 
 	float m_max_distance;
 	float3 m_listener_pos;
 };
 }
-

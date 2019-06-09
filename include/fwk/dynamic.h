@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include <fwk/meta.h>
-#include <utility>
+#include "fwk/meta.h"
+#include "fwk/sys_base.h"
 
 namespace fwk {
 
@@ -14,49 +14,48 @@ template <class T> struct HasCloneMethod {
 	static constexpr bool value = is_same<T *, decltype(test(DECLVAL(const T &)))>;
 };
 
-// Improved unique_ptr (unique pointer to object)
-// To copy UniquePtr<T> one of the following conditions must be met:
+// Basically it's an unique_ptr with improvements
+// To copy Dynamic<T> one of the following conditions must be met:
 // - T is copy constructible and is not polymorphic
 // - T has clone() method which returns pointer to newly allocated T
-template <typename T> class UniquePtr {
+template <typename T> class Dynamic {
   public:
 	static_assert(!std::is_array<T>::value, "Just use a vector...");
 
-	constexpr UniquePtr() {}
-	constexpr UniquePtr(std::nullptr_t) {}
-	explicit UniquePtr(T *ptr) : m_ptr(ptr) {}
-	UniquePtr(UniquePtr &&x) : m_ptr(x.release()) {}
+	constexpr Dynamic() {}
+	constexpr Dynamic(std::nullptr_t) {}
+	explicit Dynamic(T *ptr) : m_ptr(ptr) {}
+	Dynamic(Dynamic &&x) : m_ptr(x.release()) {}
 
 	template <class U, EnableIf<is_convertible<U *, T *>>...>
-	UniquePtr(UniquePtr<U> &&rhs) : m_ptr(rhs.release()) {}
+	Dynamic(Dynamic<U> &&rhs) : m_ptr(rhs.release()) {}
 
-	// At least one argument is required (otherwise default UniquePtr constructor will be selected)
+	// At least one argument is required (otherwise default Dynamic constructor will be selected)
 	template <class... Args, EnableIf<is_constructible<T, Args...>>...>
-	UniquePtr(Args &&... args) : m_ptr(new T{std::forward<Args>(args)...}) {}
+	Dynamic(Args &&... args) : m_ptr(new T{std::forward<Args>(args)...}) {}
 
-	UniquePtr &operator=(UniquePtr &&rhs) {
+	Dynamic &operator=(Dynamic &&rhs) {
 		reset(rhs.release());
 		return *this;
 	}
 
-	UniquePtr(const UniquePtr &rhs) : m_ptr(rhs.clone()) {}
-	~UniquePtr() { reset(); }
+	Dynamic(const Dynamic &rhs) : m_ptr(rhs.clone()) {}
+	~Dynamic() { reset(); }
 
-	template <class U, EnableIf<is_convertible<U *, T *>>...>
-	UniquePtr &operator=(UniquePtr<U> &&rhs) {
+	template <class U, EnableIf<is_convertible<U *, T *>>...> Dynamic &operator=(Dynamic<U> &&rhs) {
 		reset(rhs.release());
 		return *this;
 	}
-	UniquePtr &operator=(const UniquePtr &rhs) {
+	Dynamic &operator=(const Dynamic &rhs) {
 		reset(rhs.clone());
 		return *this;
 	}
 
-	UniquePtr &operator=(std::nullptr_t) {
+	Dynamic &operator=(std::nullptr_t) {
 		reset();
 		return *this;
 	}
-	UniquePtr &operator=(T *ptr) {
+	Dynamic &operator=(T *ptr) {
 		reset(ptr);
 		return *this;
 	}
@@ -83,7 +82,7 @@ template <typename T> class UniquePtr {
 		return ret;
 	}
 
-	void swap(UniquePtr &rhs) { std::swap(m_ptr, rhs.m_ptr); }
+	void swap(Dynamic &rhs) { std::swap(m_ptr, rhs.m_ptr); }
 
 	T &operator*() const {
 		PASSERT(m_ptr);
@@ -97,12 +96,12 @@ template <typename T> class UniquePtr {
 
 	explicit operator bool() const { return m_ptr != nullptr; }
 
-	bool operator==(const UniquePtr &rhs) const {
+	bool operator==(const Dynamic &rhs) const {
 		if(!m_ptr || !rhs.m_ptr)
 			return !!m_ptr == !!rhs.m_ptr;
 		return *m_ptr == *rhs.m_ptr;
 	}
-	bool operator<(const UniquePtr &rhs) const {
+	bool operator<(const Dynamic &rhs) const {
 		if(!m_ptr || !rhs.m_ptr)
 			return !!m_ptr < !!rhs.m_ptr;
 		return *m_ptr < *rhs.m_ptr;
@@ -126,7 +125,4 @@ template <typename T> class UniquePtr {
 	T *m_ptr = nullptr;
 };
 
-template <typename T, typename... Args> UniquePtr<T> uniquePtr(Args &&... args) {
-	return UniquePtr<T>{new T(std::forward<Args>(args)...)};
-}
 }

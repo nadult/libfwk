@@ -130,7 +130,8 @@ struct GlDevice::WindowImpl {
 	Flags flags;
 };
 
-GlDevice::GlDevice(DebugFlagsCheck check) : m_input_impl(uniquePtr<InputImpl>()) {
+GlDevice::GlDevice(DebugFlagsCheck check) {
+	m_input_impl.emplace();
 	ASSERT("Only one instance of GlDevice can be created at a time" && !s_instance);
 	if(check.opengl != debug_flags_check.opengl)
 		FATAL("If libfwk is compiled with FWK_CHECK_OPENGL then target program must be compiled "

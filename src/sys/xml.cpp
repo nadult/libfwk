@@ -160,7 +160,7 @@ XmlNode XmlNode::child(Str name) const {
 	return {cnode.m_ptr, m_doc};
 }
 
-XmlDocument::XmlDocument() : m_ptr(uniquePtr<xml_document<>>()) {}
+XmlDocument::XmlDocument() { m_ptr.emplace(); }
 
 XmlDocument::XmlDocument(XmlDocument &&) = default;
 XmlDocument::~XmlDocument() {

@@ -4,7 +4,7 @@
 #pragma once
 
 #include "fwk/sys/exception.h"
-#include "fwk/sys/unique_ptr.h"
+#include "fwk/dynamic.h"
 
 namespace fwk {
 
@@ -55,20 +55,20 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 		if(m_has_value)
 			m_value.~T();
 		else
-			m_error.~UniquePtr<Error>();
+			m_error.~Dynamic<Error>();
 	}
 
 	Expected(const Expected &rhs) : m_has_value(rhs.m_has_value) {
 		if(m_has_value)
 			new(&m_value) T(rhs.m_value);
 		else
-			new(&m_error) UniquePtr<Error>(rhs.m_error);
+			new(&m_error) Dynamic<Error>(rhs.m_error);
 	}
 	Expected(Expected && rhs) : m_has_value(rhs.m_has_value) {
 		if(m_has_value)
 			new(&m_value) T(move(rhs.m_value));
 		else
-			new(&m_error) UniquePtr<Error>(move(rhs.m_error));
+			new(&m_error) Dynamic<Error>(move(rhs.m_error));
 	}
 
 	void swap(Expected & rhs) {
@@ -118,7 +118,7 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 
   private:
 	union {
-		UniquePtr<Error> m_error;
+		Dynamic<Error> m_error;
 		T m_value;
 	};
 	bool m_has_value;
@@ -146,7 +146,7 @@ template <> class [[nodiscard]] Expected<void> {
 	void get() const { check(); }
 
   private:
-	UniquePtr<Error> m_error;
+	Dynamic<Error> m_error;
 };
 
 namespace detail {

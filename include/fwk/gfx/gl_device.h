@@ -3,11 +3,11 @@
 
 #pragma once
 
+#include "fwk/dynamic.h"
 #include "fwk/enum_flags.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
 #include "fwk/str.h"
-#include "fwk/sys/unique_ptr.h"
 #include "fwk/vector.h"
 
 namespace fwk {
@@ -85,10 +85,10 @@ class GlDevice {
 	vector<Pair<MainLoopFunction, void *>> m_main_loop_stack;
 
 	struct InputImpl;
-	UniquePtr<InputImpl> m_input_impl;
+	Dynamic<InputImpl> m_input_impl;
 	double m_last_time, m_frame_time;
 
 	struct WindowImpl;
-	UniquePtr<WindowImpl> m_window_impl;
+	Dynamic<WindowImpl> m_window_impl;
 };
 }

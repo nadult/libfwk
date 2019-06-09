@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include "fwk/dynamic.h"
 #include "fwk/perf_base.h"
 #include "fwk/small_vector.h"
-#include "fwk/sys/unique_ptr.h"
 
 namespace perf {
 
@@ -32,7 +32,7 @@ class Manager {
 
   private:
 	vector<Frame> m_frames;
-	UniquePtr<ExecTree> m_tree;
+	Dynamic<ExecTree> m_tree;
 	static Manager *s_instance;
 };
 }
