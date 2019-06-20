@@ -7,8 +7,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
   B) odpowiednio napisane funkcje liczące przecięcia (jeszcze jakieś?) tak, żeby w przypadku NANa po prostu przecięcia nie było
   C) wyraźne oddzielenie kodu na intach od kodu na floatach (bo zachowuje się w różny sposób)?
 
-- Zmienić nazwę UniquePtra na coś innego, bo fakt że to jest pointer nie ma tutaj znaczenia
-  to jest po prostu dynamicznie zaalokowany obiekt
 - dodać funkcję matchBest  dla enumów i innych rzeczy?
 - checker mógłby też zbierać różnego rodzaju informacje o kodzie, i zapisywac je do pliku w jakiejś
   prostej formie, z tym można by pewnie zrobić wiele fajnych rzeczy
@@ -44,7 +42,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - empty backtraces on mingw
 - span z wymaganiem na minimalną wielkośc zastąpić static_spanem ?
 
-- is_same -> are_same albo same ?
 - uporządkować inRange
 - StaticSpan + Array (z checkami na indeksach) ?
 - ccwSide, cwSide -> leftSide, rightSide ? A może niech zwraca left|right|on_line ?
@@ -104,8 +101,6 @@ TODO: which OpenGL version are we targeting ?
 - Opengl 4.5 ?
 - check emscripten
 
-- mozliwosc przypisanie none do unique_ptr
-
 - vec2<>, vec3<>, should support unsigned types ?
   maybe add uvec2<> ?
   może to się jakoś inaczej powinno nazywać ?
@@ -124,7 +119,6 @@ TODO: which OpenGL version are we targeting ?
 - DrawCalls should have command_id index ?
 - Remove Renderer2D (use RenderList); better control over which shader is being used ?
 
-- tests for Any & UniquePtr
 - backtraces on mingw dont work too good...
 - ElementBuffer::bbox is causing problems if data is broken in some way; What should we do about it?
 - problem: asserty cały czas dają za mało informacji (trzeba często dodawać printfy)

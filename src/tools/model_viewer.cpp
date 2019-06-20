@@ -23,7 +23,7 @@
 
 #include "fwk/menu/imgui_wrapper.h"
 
-#if FWK_IMGUI_ENABLED
+#ifdef FWK_IMGUI_ENABLED
 #include "fwk/menu/helpers.h"
 #include "fwk/menu_imgui.h"
 #endif
@@ -180,7 +180,7 @@ class Viewer {
 	}
 
 	void doMenu() {
-#if FWK_IMGUI_ENABLED
+#ifdef FWK_IMGUI_ENABLED
 		static bool set_pos = true;
 		if(set_pos) {
 			menu::SetNextWindowPos(int2());
