@@ -154,12 +154,20 @@ bool isOneOf(const T &value, const TRange &range) {
 	return anyOf(range, value);
 }
 
-template <class TRange, class T = RangeBase<TRange>> constexpr const T &max(const TRange &range) {
+template <class TR, class T = RangeBase<TR>> constexpr const T &max(const TR &range) {
 	return *std::max_element(begin(range), end(range));
 }
 
-template <class TRange, class T = RangeBase<TRange>> constexpr const T &min(const TRange &range) {
+template <class TR, class T = RangeBase<TR>> constexpr const T &min(const TR &range) {
 	return *std::min_element(begin(range), end(range));
+}
+
+template <class TR, class T = RangeBase<TR>> constexpr int maxIndex(const TR &range) {
+	return std::max_element(begin(range), end(range)) - begin(range);
+}
+
+template <class TR, class T = RangeBase<TR>> constexpr int minIndex(const TR &range) {
+	return std::min_element(begin(range), end(range)) - begin(range);
 }
 
 // TODO: add isComparable
