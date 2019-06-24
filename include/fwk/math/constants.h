@@ -28,6 +28,8 @@ template <NumberType type = NumberType::real> struct RealConstant {
 	IF_FPT friend constexpr T operator/(T v, const RealConstant &rc) { return v / T(rc); }
 	IF_FPT friend constexpr T operator-(T v, const RealConstant &rc) { return v - T(rc); }
 	IF_FPT friend constexpr T operator+(T v, const RealConstant &rc) { return v + T(rc); }
+
+	IF_FPT friend constexpr bool operator==(T v, const RealConstant &rc) { return v == T(rc); }
 	IF_FPT friend constexpr bool operator<(T v, const RealConstant &rc) { return v < T(rc); }
 
 #undef IF_FPT
