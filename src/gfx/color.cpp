@@ -83,6 +83,19 @@ float3 rgbToHsv(float3 rgb) {
 				  chroma / (rgb[0] + 1e-20f), rgb[0]);
 }
 
+FColor gradientLerp(CSpan<FColor> colors, CSpan<float> values, float value) {
+	PASSERT(colors.size() == values.size());
+
+	for(int n = 0; n < values.size(); n++)
+		if(values[n] >= value) {
+			if(n == 0)
+				return colors[0];
+			float pos = (value - values[n - 1]) / (values[n] - values[n - 1]);
+			return lerp(colors[n - 1], colors[n], pos);
+		}
+	return colors.back();
+}
+
 void FColor::operator>>(TextFormatter &fmt) const { fmt << float4(*this); }
 void IColor::operator>>(TextFormatter &fmt) const { fmt << int4(*this); }
 
