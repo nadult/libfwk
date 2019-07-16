@@ -262,6 +262,8 @@ template <typename TKey, typename TValue> class HashMap {
 		return out;
 	}
 
+	vector<Pair<Key, Value>> pairs() const { return transform<Pair<Key, Value>>(*this); }
+
   private:
 	void grow() {
 		const int newCapacity = (m_capacity == 0 ? initial_capacity : m_capacity * 2);
