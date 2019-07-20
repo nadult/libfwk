@@ -19,6 +19,7 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - Expected<> checker zle rozpoznaje (ale Ex<> juz tak)
 - makro EXPECT które jeśli są wyjątki to zwraca błąd, a wpp zwraca podaną wartość
 - bloki try, tylko w których mogą występować wyjątki ?
+- konwersja pointera na Dynamic nie musi byc explicit ?
 
 - Jak się wywoła funkcję przekazaną parametrem i ta funkcja jest except, to ta która ją wywołuje
   też powinna być! A teraz chyba nie jest?

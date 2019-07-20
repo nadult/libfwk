@@ -70,8 +70,15 @@ string Str::limitSizeFront(int max_size, Str prefix) const {
 	return out;
 }
 
-int Str::compare(const Str &rhs) const { return strncmp(m_data, rhs.m_data, m_size); }
-int Str::compareIgnoreCase(const Str &rhs) const { return strncasecmp(m_data, rhs.m_data, m_size); }
+int Str::compare(const Str &rhs) const {
+	auto ret = strncmp(m_data, rhs.m_data, min(m_size, rhs.m_size));
+	return ret ? ret : m_size < rhs.m_size ? -1 : m_size == rhs.m_size ? 0 : 1;
+}
+
+int Str::compareIgnoreCase(const Str &rhs) const {
+	auto ret = strncasecmp(m_data, rhs.m_data, min(m_size, rhs.m_size));
+	return ret ? ret : m_size < rhs.m_size ? -1 : m_size == rhs.m_size ? 0 : 1;
+}
 
 int Str::find(char c) const {
 	for(int n = 0; n < m_size; n++)

@@ -59,6 +59,8 @@ void testString() {
 	ASSERT_EQ(Str("foo bar").find("bar"), 4);
 	ASSERT_EQ(Str("foo | bar").find('|'), 4);
 	ASSERT_EQ(string("foo"), Str("foo"));
+	ASSERT(Str("foo") < Str("foobar"));
+	ASSERT(Str("foobar").compareIgnoreCase("Foo") == 1);
 }
 
 void testVariant() {
