@@ -41,7 +41,7 @@ Quat randomRotation() {
 }
 
 AffineTrans randomTransform() {
-	return AffineTrans(randomTranslation(50.0f), randomRotation(), randomScale());
+	return AffineTrans(randomTranslation(50.0f), randomScale(), randomRotation());
 }
 
 void testMatrices() {

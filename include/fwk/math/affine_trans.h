@@ -10,8 +10,9 @@ namespace fwk {
 class AffineTrans {
   public:
 	explicit AffineTrans(const Matrix4 &);
-	AffineTrans(const float3 &pos = float3(), const Quat &rot = Quat(),
-				const float3 &scale = float3(1.0f, 1.0f, 1.0f))
+	AffineTrans(const float3 &pos, const float3 &scale, const Quat &rot = Quat())
+		: translation(pos), scale(scale), rotation(rot) {}
+	AffineTrans(const float3 &pos = {}, float scale = 1.0f, const Quat &rot = Quat())
 		: translation(pos), scale(scale), rotation(rot) {}
 	operator Matrix4() const;
 
