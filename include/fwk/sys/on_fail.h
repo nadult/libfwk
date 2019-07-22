@@ -63,7 +63,7 @@ Error onFailMakeError(const char *file, int line, ZStr main_message);
 	{                                                                                              \
 		using namespace fwk::detail;                                                               \
 		using RefType = decltype(FWK_JOIN(_refs_, __LINE__));                                      \
-		auto func = [](const void *prefs) -> ErrorChunk {                                          \
+		auto func = [](const void *prefs) -> fwk::ErrorChunk {                                     \
 			auto func_ref = (func_impl);                                                           \
 			return onFailWrapper(__FILE__, __LINE__, func_ref, *(const RefType *)prefs,            \
 								 GenSeq<RefType::count>());                                        \
@@ -77,7 +77,7 @@ Error onFailMakeError(const char *file, int line, ZStr main_message);
 	{                                                                                              \
 		using namespace fwk::detail;                                                               \
 		using RefType = decltype(FWK_JOIN(_refs_, __LINE__));                                      \
-		auto func = [](const void *prefs) -> ErrorChunk {                                          \
+		auto func = [](const void *prefs) -> fwk::ErrorChunk {                                     \
 			return onFailWrapperSimple(__FILE__, __LINE__, format_str, *(const RefType *)prefs,    \
 									   GenSeq<RefType::count>());                                  \
 		};                                                                                         \

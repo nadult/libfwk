@@ -15,6 +15,8 @@
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))
 
+// Exception-related attributes (supported only when compiling on clang):
+//
 // EXCEPT means that function can raise exceptions by adding them to per-thread exception stack.
 // Putting it on a class adds it to every member (member attribute has higher priority though).
 //
@@ -24,9 +26,15 @@
 //
 // INST_EXCEPT can be used on templated functions to inform that some of the instantiations may
 // raise exceptions. It should be used sparingly (best example is Vector::emplace_back).
+#ifdef __clang__
 #define EXCEPT __attribute__((annotate("except")))
 #define INST_EXCEPT __attribute__((annotate("inst_except")))
 #define NOEXCEPT __attribute__((annotate("not_except")))
+#else
+#define EXCEPT
+#define INST_EXCEPT
+#define NOEXCEPT
+#endif
 
 #ifdef __clang__
 #define ATTRIB_PRINTF(fmt, next) __attribute__((__format__(__printf__, fmt, next)))

@@ -6,6 +6,7 @@
 #include "fwk/sys/error.h"
 #include "fwk/sys/exception.h"
 #include "fwk/sys/on_fail.h"
+#include <stdarg.h>
 
 namespace fwk {
 
@@ -73,7 +74,5 @@ namespace detail {
 
 		fwk::raiseException(onFailMakeError(info->file, info->line, out.text()));
 	}
-
 }
-
 }

@@ -61,10 +61,8 @@ static float parseOpenglVersion(const char *text) NOEXCEPT {
 	while(!parser.empty()) {
 		Str val;
 		parser >> val;
-		if(isdigit(val[0])) {
-			// Returns 0.0f on error
-			return fromString<float>(string(val));
-		}
+		if(isdigit(val[0]))
+			return tryFromString<float>(string(val)).orElse(0.0f);
 	}
 	return 0.0f;
 }

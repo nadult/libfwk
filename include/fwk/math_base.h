@@ -679,16 +679,13 @@ template <class TVec, class T, EnableIfIntegralVec<TVec>...> auto vratioCeil(con
 // Default orientation in all vector-related operations (rotations, cross products, etc.) is counter-clockwise.
 // In 3D cross products define a right-handed coordinate system.
 
-template <class T, EnableIfVec<T, 2>...> auto dot(const T &lhs, const T &rhs) {
-	return lhs[0] * rhs[0] + lhs[1] * rhs[1];
-}
-
-template <class T, EnableIfVec<T, 3>...> auto dot(const T &lhs, const T &rhs) {
-	return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2];
-}
-
-template <class T, EnableIfVec<T, 4>...> auto dot(const T &lhs, const T &rhs) {
-	return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2] + lhs[3] * rhs[3];
+template <class T, EnableIfVec<T>...> auto dot(const T &lhs, const T &rhs) {
+	if constexpr(dim<T> == 2)
+		return lhs[0] * rhs[0] + lhs[1] * rhs[1];
+	else if constexpr(dim<T> == 3)
+		return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2];
+	else if constexpr(dim<T> == 4)
+		return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2] + lhs[3] * rhs[3];
 }
 
 template <class T, EnableIfFptVec<T>...> auto length(const T &vec) {
@@ -722,13 +719,12 @@ template <class T, EnableIfVec<T, 2>...> auto asXZY(const T &xz, typename T::Sca
 
 template <class T, EnableIfVec<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-template <class T, EnableIf<is_vec<T, 3> && !is_rational<T>>...> T cross(const T &a, const T &b) {
-	return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
-}
-
-template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...>
-auto cross(const T &a, const T &b) {
-	return a[0] * b[1] - a[1] * b[0];
+template <class T, EnableIf<is_vec<T> && !is_rational<T>>...> auto cross(const T &a, const T &b) {
+	static_assert(dim<T> >= 2 && dim<T> <= 3);
+	if constexpr(dim<T> == 3)
+		return T{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
+	else if constexpr(dim<T> == 2)
+		return a[0] * b[1] - a[1] * b[0];
 }
 
 template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...> T perpendicular(const T &v) {
