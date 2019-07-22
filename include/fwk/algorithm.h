@@ -86,6 +86,11 @@ const Pair<T, U> &minFirst(const Pair<T, U> &lhs, const Pair<T, U> &rhs) {
 	return rhs.first < lhs.first ? rhs : lhs;
 }
 
+template <class T, class U>
+const Pair<T, U> &maxFirst(const Pair<T, U> &lhs, const Pair<T, U> &rhs) {
+	return rhs.first > lhs.first ? rhs : lhs;
+}
+
 // TODO: move to interval ?
 template <class TRange, class T = RangeBase<TRange>> Pair<T> minMax(const TRange &range) {
 	if(empty(range))
