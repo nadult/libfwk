@@ -3,7 +3,6 @@
 
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
-#include "fwk/sys/assert.h"
 #include "testing.h"
 
 DEFINE_ENUM(SomeEnum, foo, bar, foo_bar, last);

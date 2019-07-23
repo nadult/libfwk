@@ -6,6 +6,7 @@
 #include "fwk/format.h"
 #include "fwk/math/quat.h"
 #include "fwk/parse.h"
+#include "fwk/sys/assert.h"
 
 using namespace fwk;
 

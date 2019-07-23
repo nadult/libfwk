@@ -7,7 +7,6 @@
 #include "fwk/index_range.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
-#include "fwk/sys/assert.h"
 #include "fwk/sys/file_system.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/tag_id.h"
