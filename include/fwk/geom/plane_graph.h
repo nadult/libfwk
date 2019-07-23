@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/dynamic.h"
 #include "fwk/enum_flags.h"
 #include "fwk/geom/immutable_graph.h"
 #include "fwk/math/segment.h"

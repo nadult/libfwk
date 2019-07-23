@@ -8,15 +8,20 @@
 
 namespace fwk {
 
-DEFINE_ENUM(GeomTag, vertex, edge);
+DEFINE_ENUM(GeomTag, vertex, edge, arc, arc_segment, cell);
 
 using VertexId = TagId<GeomTag::vertex>;
 using EdgeId = TagId<GeomTag::edge>;
+using ArcId = TagId<GeomTag::arc>;
+using ArcSegmentId = TagId<GeomTag::arc_segment>;
+using CellId = TagId<GeomTag::cell>;
 
 template <class T> class Contour;
 template <class T> class SubContourRef;
 
 class ImmutableGraph;
+class VoronoiDiagram;
+
 template <class T, class IT = int2> class RegularGrid;
 template <class T> class SegmentGrid;
 template <class T> class PlaneGraphBuilder;
@@ -30,5 +35,9 @@ using Contour3F = fwk::Contour<float3>;
 
 using RegularGrid2F = RegularGrid<float2>;
 using RegularGrid2D = RegularGrid<double2>;
+
+template <class Vec2> bool onTheEdge(const Box<Vec2> &rect, const Vec2 &p) {
+	return isOneOf(p.x, rect.x(), rect.ex()) || isOneOf(p.y, rect.y(), rect.ey());
+}
 
 }
