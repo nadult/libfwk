@@ -31,6 +31,9 @@ int threadId() { return 0; }
 
 namespace fwk {
 
+static_assert(sizeof(i32) == 4 && sizeof(u32) == 4);
+static_assert(sizeof(i64) == 8 && sizeof(u64) == 8);
+
 #if defined(FWK_TARGET_LINUX)
 
 namespace {

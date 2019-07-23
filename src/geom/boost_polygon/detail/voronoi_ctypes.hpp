@@ -10,7 +10,7 @@
 #ifndef BOOST_POLYGON_DETAIL_VORONOI_CTYPES
 #define BOOST_POLYGON_DETAIL_VORONOI_CTYPES
 
-#include <boost/cstdint.hpp>
+#include "fwk/sys_base.h"
 
 #include <cmath>
 #include <cstring>
@@ -21,11 +21,11 @@ namespace boost {
 namespace polygon {
 namespace detail {
 
-typedef boost::int32_t int32;
-typedef boost::int64_t int64;
-typedef boost::uint32_t uint32;
-typedef boost::uint64_t uint64;
-typedef double fpt64;
+using int32 = fwk::i32;
+using int64 = fwk::i64;
+using uint32 = fwk::u32;
+using uint64 = fwk::u64;
+using fpt64 = double;
 
 // If two floating-point numbers in the same format are ordered (x < y),
 // then they are ordered the same way when their bits are reinterpreted as

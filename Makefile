@@ -107,7 +107,7 @@ HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
 LINUX_FLAGS=-DFWK_TARGET_LINUX -pthread -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
 			$(INCLUDES) $(FLAGS)
 MINGW_FLAGS=-DFWK_TARGET_MINGW -pthread -ggdb -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
-			$(NICE_FLAGS) $(INCLUDES) $(FLAGS)
+			$(NICE_FLAGS) $(INCLUDES) $(FLAGS) -DFWK_PERF_DISABLE_SAMPLING
 HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)
 
@@ -123,7 +123,7 @@ ifdef CLANG
 else
 	PCH_INCLUDE=-I$(BUILD_DIR) -include $(PCH_FILE_H)
 	PCH_FILE_MAIN=$(PCH_FILE_GCH)
-	FLAGS+=-DFWK_PERF_DISABLE_SAMPLING #GCC has problems... (as usual)
+	LINUX_FLAGS+=-DFWK_PERF_DISABLE_SAMPLING #GCC has problems... (as usual)
 endif
 
 ifdef CLANG

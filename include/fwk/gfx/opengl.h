@@ -328,6 +328,11 @@ EXT_API void(EXT_ENTRY *glDeleteSamplers)(GLsizei count, const GLuint *samplers)
 EXT_API void(EXT_ENTRY *glDeleteProgramPipelines)(GLsizei n, const GLuint *pipelines);
 EXT_API void(EXT_ENTRY *glDeleteTransformFeedbacks)(GLsizei n, const GLuint *ids);
 
+EXT_API void(EXT_ENTRY *glBindSampler)(GLuint unit, GLuint sampler);
+EXT_API void(EXT_ENTRY *glBlendEquationSeparate)(GLenum modeRGB, GLenum modeAlpha);
+EXT_API void(EXT_ENTRY *glBlendFuncSeparate)(GLenum sfactorRGB, GLenum dfactorRGB,
+											 GLenum sfactorAlpha, GLenum dfactorAlpha);
+
 #undef EXT_API
 #undef EXT_ENTRY
 

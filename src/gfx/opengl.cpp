@@ -360,6 +360,9 @@ void loadExtensions() {
 	LOAD(glDeleteTransformFeedbacks);
 
 	LOAD(glGetStringi);
+	LOAD(glBindSampler)
+	LOAD(glBlendEquationSeparate)
+	LOAD(glBlendFuncSeparate)
 
 #undef LOAD
 #endif
