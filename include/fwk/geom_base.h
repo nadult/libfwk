@@ -16,6 +16,8 @@ using ArcId = TagId<GeomTag::arc>;
 using ArcSegmentId = TagId<GeomTag::arc_segment>;
 using CellId = TagId<GeomTag::cell>;
 
+using VertexIdPair = Pair<VertexId>;
+
 template <class T> class Contour;
 template <class T> class SubContourRef;
 
