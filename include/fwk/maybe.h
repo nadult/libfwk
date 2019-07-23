@@ -134,7 +134,7 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 	bool m_has_value = false;
 };
 
-// Storage for types which can hold invalid values inside them
+// Storage for types constructible from EmptyMaybe()
 template <class T>
 class MaybeStorage<T, EnableIf<is_same<decltype(detail::EmptyMaybe<T>::make()), T>>> {
   public:

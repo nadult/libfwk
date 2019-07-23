@@ -10,9 +10,12 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/file_system.h"
 #include "fwk/sys/on_fail.h"
+#include "fwk/tag_id.h"
 #include "fwk/type_info_gen.h"
 #include "fwk/variant.h"
-#include "tests/testing.h"
+#include "testing.h"
+
+DEFINE_ENUM(SomeTag, foo, bar);
 
 void testTypes() {
 	static_assert(is_same<SubtractTypes<Types<int, float, char, llint>, Types<int, llint>>,
@@ -20,6 +23,8 @@ void testTypes() {
 	static_assert(type_index<float, Types<int, float, float, char>> == 1);
 	static_assert(unique_types<float, char, int>);
 	static_assert(!unique_types<float, char, int, float>);
+
+	static_assert(!is_convertible<TagId<SomeTag::foo>, TagId<SomeTag::bar>>);
 }
 
 void testTextFormatter() NOEXCEPT {
