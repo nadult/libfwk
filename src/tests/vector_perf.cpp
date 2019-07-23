@@ -31,7 +31,7 @@ template <template <typename> class T> void testVector(const char *name) {
 		pixels.resize(dimension * dimension);
 		for(int i = 0; i < dimension * dimension; ++i) {
 			pixels[i].r = 255;
-			pixels[i].g = 0;
+			pixels[i].g = i & 255;
 			pixels[i].b = 0;
 		}
 	}
@@ -118,6 +118,10 @@ template <template <typename> class T> void testVectorInsert(const char *name) {
 template <class T> using stdvec = std::vector<T, fwk::SimpleAllocator<T>>;
 
 int main() {
+#ifdef FWK_PARANOID
+	printf("This test doesn't make sense with FWK_PARANOID enabled\n");
+#endif
+
 	testVector<fwk::vector>("fwk::vector simple");
 	testVector<stdvec>("std::vector simple");
 	testVectorPushBack<fwk::vector>("fwk::vector push_back");
