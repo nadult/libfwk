@@ -23,7 +23,7 @@ TODO: more details
 
 ## Requirements & dependencies
 
-It requires a linux environment with fairly new G++ (9.1) or Clang (6.0).
+It requires a linux environment with Clang (6.0) or fairly new G++ (9.1).
 Code is written in C++17 with some C++20 features used. 
 
 * **SDL2**   

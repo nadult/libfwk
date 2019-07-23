@@ -29,7 +29,15 @@ ThreadContext::~ThreadContext() {
 	t_paused = nullptr;
 }
 
-static unsigned long long getClock() { return __builtin_readcyclecounter(); }
+static unsigned long long getClock() {
+#ifdef __clang__
+	return __builtin_readcyclecounter();
+#else
+	unsigned high, low;
+	__asm__ __volatile__("rdtsc" : "=a"(low), "=d"(high));
+	return ((unsigned long long)high << 32) | low;
+#endif
+}
 
 void ThreadContext::nextFrame() {
 	endFrame();
@@ -243,7 +251,6 @@ void ThreadContext::exitSingleGpuScope(PointId point_id) {
 }
 
 void ThreadContext::setCounter(PointId point_id, u64 value) {
-	PASSERT(value >= 0);
 	m_samples.emplace_back(SampleType::counter, point_id, u64(value));
 }
 

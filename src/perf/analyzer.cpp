@@ -413,6 +413,8 @@ CSpan<Frame> Analyzer::getFrames() {
 		return frames.subSpan(m_last_sample_frame,
 							  min(m_last_sample_frame + m_num_last_frames, frames.size()));
 	}
+
+	return {}; //Let's satisfy GCC
 }
 
 void Analyzer::miniMenu() {

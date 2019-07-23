@@ -66,13 +66,14 @@ void testMatrices() {
 		AffineTrans result1 = trans1 * trans2;
 		AffineTrans result2 = AffineTrans(mtrans1 * mtrans2);
 
-		assertCloseEnough(result0.translation, trans1.translation);
-		assertCloseEnough(result0.scale, trans1.scale);
-		assertCloseEnough(result0.rotation, trans1.rotation);
+		auto eps = 0.000002f;
+		assertCloseEnough(result0.translation, trans1.translation, eps);
+		assertCloseEnough(result0.scale, trans1.scale, eps);
+		assertCloseEnough(result0.rotation, trans1.rotation, eps);
 
-		assertCloseEnough(result1.translation, result2.translation);
-		assertCloseEnough(result1.scale, result2.scale);
-		assertCloseEnough(result1.rotation, result2.rotation);
+		assertCloseEnough(result1.translation, result2.translation, eps);
+		assertCloseEnough(result1.scale, result2.scale, eps);
+		assertCloseEnough(result1.rotation, result2.rotation, eps);
 	}
 
 	// TODO: finish me

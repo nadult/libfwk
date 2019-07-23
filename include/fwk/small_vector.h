@@ -233,7 +233,7 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 #undef SMALL
 #undef RHS_SMALL
 
-#ifndef __LITTLE_ENDIAN__
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #error "TODO: add big endian support"
 #endif
 

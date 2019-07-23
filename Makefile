@@ -122,17 +122,17 @@ ifdef CLANG
 else
 	PCH_INCLUDE=-I$(BUILD_DIR) -include $(PCH_FILE_H)
 	PCH_FILE_MAIN=$(PCH_FILE_GCH)
+	FLAGS+=-DFWK_PERF_DISABLE_SAMPLING #GCC has problems... (as usual)
 endif
 
+ifdef CLANG
 checker.so: .ALWAYS_CHECK
 	$(MAKE) -C src/checker/ ../../checker.so
 
 ifneq ("$(wildcard checker.so)","")
-LINUX_CHECKER_FLAGS+=-Xclang -load -Xclang  $(realpath checker.so) -Xclang -add-plugin -Xclang check-error-attribs
-else
-LINUX_CHECKER_FLAGS=
+LINUX_CHECKER_FLAGS=-Xclang -load -Xclang  $(realpath checker.so) -Xclang -add-plugin -Xclang check-error-attribs
 endif
-
+endif
 
 $(PCH_FILE_H): $(PCH_FILE_SRC)
 	cp $^ $@

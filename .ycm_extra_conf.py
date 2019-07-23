@@ -7,7 +7,7 @@ flags = [
 '-fno-exceptions',
 
 '-DFWK_TARGET_LINUX', '-DFWK_PARANOID', '-DFWK_CHECK_OPENGL',
-'-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP', '-DFWK_IMGUI_ENABLED' #TODO: make it conditional
+'-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP', '-DFWK_IMGUI_ENABLED', #TODO: make it conditional
 
 '-I', 'src/',
 '-I', 'include/',
