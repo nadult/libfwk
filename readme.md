@@ -65,3 +65,6 @@ TODO: how to build mingw with mxe (and which version)
 ## License
 
 Whole library is licensed under Boost Software license (see license.txt).
+
+If You found this library useful, please contact the author (nadult (at) fastmail (dot) fm).  
+Any kind of feedback is greatly appreciated.
