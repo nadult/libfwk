@@ -45,7 +45,8 @@ SHARED_SRC=vector enum str sys_base type_info any any_ref logger any_config \
 		   gfx/gl_program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/colored_triangle gfx/colored_quad \
 		   gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_format gfx/gl_query \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array \
-		   geom/contour
+		   geom/contour geom/immutable_graph geom/plane_graph geom/regular_grid geom/segment_grid \
+		   geom/plane_graph_builder
 
 MENU_SRC=menu/imgui_code menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper
 PERF_SRC=perf/perf_base perf/exec_tree perf/manager perf/thread_context perf/analyzer
