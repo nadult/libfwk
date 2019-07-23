@@ -240,7 +240,7 @@ Ex<XmlDocument> XmlDocument::make(CSpan<char> data) {
 	t_xml_debug.pstring = nullptr;
 	t_xml_debug.pstring_len = 0;
 
-	return move(doc);
+	return doc;
 }
 
 Ex<void> XmlDocument::save(FileStream &sr) const {

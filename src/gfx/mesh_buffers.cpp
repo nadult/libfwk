@@ -106,7 +106,7 @@ Ex<MeshBuffers> MeshBuffers::load(CXmlNode node) {
 					node.childValue<vector<string>>("node_names", {}));
 
 	EXPECT_CATCH();
-	return move(out);
+	return out;
 }
 
 void MeshBuffers::saveToXML(XmlNode node) const {

@@ -113,7 +113,7 @@ Ex<ModelAnim> ModelAnim::load(CXmlNode node, PPose default_pose) {
 
 	out.verifyData();
 	EXPECT_CATCH();
-	return move(out);
+	return out;
 }
 
 void ModelAnim::save(XmlNode node) const {

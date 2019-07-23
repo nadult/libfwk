@@ -46,7 +46,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 	Sound sound(move(data), {(int)frequency, bits, channels > 1});
 
 	EXPECT_CATCH();
-	return move(sound);
+	return sound;
 }
 
 Ex<void> Sound::save(FileStream &sr) const {

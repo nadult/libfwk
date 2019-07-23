@@ -293,7 +293,7 @@ Ex<FileStream> fileStream(ZStr file_name, bool is_loading) {
 	out.m_size = size;
 	out.m_pos = 0;
 	out.m_is_loading = is_loading;
-	return move(out);
+	return out;
 }
 
 Ex<FileStream> fileLoader(ZStr file_name) { return fileStream(file_name, true); }

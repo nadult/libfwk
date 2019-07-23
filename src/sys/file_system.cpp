@@ -355,7 +355,7 @@ Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 	EXPECT_CATCH();
 	vector<char> vout;
 	out.unsafeSwap(vout);
-	return move(vout);
+	return vout;
 }
 
 Ex<void> saveFile(ZStr file_name, CSpan<char> data) {
