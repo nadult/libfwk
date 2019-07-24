@@ -23,7 +23,7 @@ vector<VertexIdPair> constrainedDelaunay(const PGraph<IT> &, CSpan<VertexIdPair>
 template <class T, EnableIfFptVec<T, 2>...>
 vector<VertexIdPair> constrainedDelaunay(const PGraph<T> &, CSpan<VertexIdPair> delaunay = {});
 
-// Each loops has to have at least 3 nodes
+// Each loop has to have at least 3 verts
 template <class T> bool isForestOfLoops(const PGraph<T> &);
 
 template <class T, EnableIfIntegralVec<T, 2>...>

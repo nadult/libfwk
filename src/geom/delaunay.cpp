@@ -16,7 +16,7 @@
 namespace fwk {
 
 vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
-	vector<VertexId> cell_nodes =
+	vector<VertexId> cell_verts =
 		transform(voronoi.cells(), [&](const auto &cell) { return cell.generator[0]; });
 
 	vector<pair<VertexId, VertexId>> out;
@@ -27,9 +27,9 @@ vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 			continue;
 		DASSERT(aref.twin());
 
-		auto node1 = cell_nodes[voronoi[ArcId(aref)].cell];
-		auto node2 = cell_nodes[voronoi[ArcId(*aref.twin())].cell];
-		out.emplace_back(node1, node2);
+		auto vert1 = cell_verts[voronoi[ArcId(aref)].cell];
+		auto vert2 = cell_verts[voronoi[ArcId(*aref.twin())].cell];
+		out.emplace_back(vert1, vert2);
 		visited[*aref.twin()] = true;
 	}
 
@@ -280,14 +280,14 @@ vector<VertexIdPair> constrainedDelaunay(const PGraph<IT> &igraph, CSpan<VertexI
 	while(!invalid_pairs.empty()) {
 		for(int n : intRange(invalid_pairs)) {
 			auto cur_pair = invalid_pairs[n];
-			auto qnodes = cdt.getQuad(VertexId(cur_pair.first), VertexId(cur_pair.second));
+			auto qverts = cdt.getQuad(VertexId(cur_pair.first), VertexId(cur_pair.second));
 
-			IT qpoints[4] = {igraph[qnodes[0]], igraph[qnodes[1]], igraph[qnodes[2]],
-							 igraph[qnodes[3]]};
+			IT qpoints[4] = {igraph[qverts[0]], igraph[qverts[1]], igraph[qverts[2]],
+							 igraph[qverts[3]]};
 
 			if(isPositiveConvexQuad<int2>(qpoints)) {
 				// print("convex!\n");
-				VertexIdPair flipped_pair(qnodes[1], qnodes[3]);
+				VertexIdPair flipped_pair(qverts[1], qverts[3]);
 				cdt.removePair(cur_pair);
 				cdt.addPair(flipped_pair);
 
@@ -322,17 +322,17 @@ vector<VertexIdPair> constrainedDelaunay(const PGraph<IT> &igraph, CSpan<VertexI
 				continue;
 			}
 
-			auto qnodes = cdt.getQuad(cur_pair.first, cur_pair.second);
+			auto qverts = cdt.getQuad(cur_pair.first, cur_pair.second);
 
-			IT qpoints[4] = {igraph[qnodes[0]], igraph[qnodes[1]], igraph[qnodes[2]],
-							 igraph[qnodes[3]]};
+			IT qpoints[4] = {igraph[qverts[0]], igraph[qverts[1]], igraph[qverts[2]],
+							 igraph[qverts[3]]};
 
 			// Are both tests required ?
 			bool test1 = insideCircumcircle(qpoints[0], qpoints[1], qpoints[2], qpoints[3]);
 			bool test2 = insideCircumcircle(qpoints[0], qpoints[2], qpoints[3], qpoints[1]);
 
 			if(test1 || test2) {
-				VertexIdPair new_pair(qnodes[1], qnodes[3]);
+				VertexIdPair new_pair(qverts[1], qverts[3]);
 				cdt.removePair(cur_pair);
 				cdt.addPair(new_pair);
 				out.emplace_back(new_pair);
@@ -446,9 +446,9 @@ vector<VertexIdPair> cdtFilterSide(const PGraph<T> &igraph, CSpan<VertexIdPair> 
 		}
 	}
 
-	vector<bool> finished_nodes(igraph.numVerts(), false);
+	vector<bool> finished_verts(igraph.numVerts(), false);
 	for(auto eref : igraph.edgeRefs())
-		finished_nodes[eref.from()] = finished_nodes[eref.to()] = true;
+		finished_verts[eref.from()] = finished_verts[eref.to()] = true;
 
 	// Propagating to all the edges not directly reachable from constrained ones
 	vector<VertexId> queue;
@@ -459,15 +459,15 @@ vector<VertexIdPair> cdtFilterSide(const PGraph<T> &igraph, CSpan<VertexIdPair> 
 		queue.emplace_back(eref.to());
 
 		while(queue) {
-			auto node = igraph2.ref(queue.back());
+			auto vert = igraph2.ref(queue.back());
 			queue.pop_back();
-			if(finished_nodes[node])
+			if(finished_verts[vert])
 				continue;
-			finished_nodes[node] = true;
-			for(auto eref : node.edges()) {
+			finished_verts[vert] = true;
+			for(auto eref : vert.edges()) {
 				enable[eref] = true;
-				if(auto n2 = eref.other(node); !finished_nodes[n2])
-					queue.emplace_back(n2);
+				if(auto v2 = eref.other(vert); !finished_verts[v2])
+					queue.emplace_back(v2);
 			}
 		}
 	}
@@ -495,7 +495,7 @@ vector<VertexIdPair> cdtFilterSide(const PGraph<T> &igraph, CSpan<VertexIdPair> 
 }
 
 // TODO: move these outside?
-using NodeRef = ImmutableGraph::VertexRef;
+using VertexRef = ImmutableGraph::VertexRef;
 using EdgeRef = ImmutableGraph::EdgeRef;
 
 template <class T, EnableIfIntegralVec<T, 2>...>
@@ -509,33 +509,33 @@ vector<array<int, 3>> delaunaySideTriangles(const PGraph<T> &igraph, CSpan<Verte
 		builder(igraph[eref].from, igraph[eref].to);
 		builder(igraph[eref].to, igraph[eref].from);
 	}
-	for(auto [n1, n2] : cdt) {
-		builder(igraph[n1], igraph[n2]);
-		builder(igraph[n2], igraph[n1]);
+	for(auto [v1, v2] : cdt) {
+		builder(igraph[v1], igraph[v2]);
+		builder(igraph[v2], igraph[v1]);
 	}
 	auto graph = builder.build();
 	CSpan<T> points = igraph.points();
 	vector<bool> visited(graph.numEdges(), true);
 
-	for(auto [n1, n2] : filter) {
-		visited[*graph.findEdge(n1, n2)] = false;
-		visited[*graph.findEdge(n2, n1)] = false;
+	for(auto [v1, v2] : filter) {
+		visited[*graph.findEdge(v1, v2)] = false;
+		visited[*graph.findEdge(v2, v1)] = false;
 	}
 
 	vector<array<int, 3>> out;
 	out.reserve(graph.numEdges() / 3);
 
-	for(NodeRef n1 : graph.vertexRefs()) {
-		for(EdgeRef e1 : n1.edgesFrom()) {
+	for(VertexRef v1 : graph.vertexRefs()) {
+		for(EdgeRef e1 : v1.edgesFrom()) {
 			if(visited[e1])
 				continue;
 
 			auto e2 = e1.twin()->prevFrom();
 			auto e3 = e2.twin()->prevFrom();
 
-			if(!visited[e2] && !visited[e3] && e3.to() == n1) {
+			if(!visited[e2] && !visited[e3] && e3.to() == v1) {
 				visited[e2] = visited[e3] = true;
-				out.emplace_back(n1, e2.from(), e3.from());
+				out.emplace_back(v1, e2.from(), e3.from());
 
 				auto &back = out.back();
 				if(ccwSide(points[back[0]], points[back[1]], points[back[2]]) != ccw_side)
@@ -584,21 +584,21 @@ static void delaunayTriangles(const ImmutableGraph &tgraph, const Func &feed_fun
 	vector<bool> visited(tgraph.numEdges(), false);
 
 	for(auto eref : tgraph.edgeRefs()) {
-		auto n1 = eref.from(), n2 = eref.to();
+		auto v1 = eref.from(), v2 = eref.to();
 		buffer1.clear();
 		buffer2.clear();
 
-		for(auto eref1 : n1.edges())
+		for(auto eref1 : v1.edges())
 			if(!visited[eref1])
-				buffer1.emplace_back(eref1.other(n1).id());
-		for(auto eref2 : n2.edges())
+				buffer1.emplace_back(eref1.other(v1).id());
+		for(auto eref2 : v2.edges())
 			if(!visited[eref2])
-				buffer2.emplace_back(eref2.other(n2).id());
+				buffer2.emplace_back(eref2.other(v2).id());
 		for(auto i1 : buffer1)
 			for(auto i2 : buffer2)
 				if(i1 == i2) {
 					// TODO: ordering?
-					feed_func(n1, n2, i1);
+					feed_func(v1, v2, i1);
 				}
 		visited[eref] = true;
 	}
