@@ -14,7 +14,7 @@
 #include <queue>
 #include <vector>
 
-#include "../voronoi_geometry_type.hpp"
+#include "voronoi_geometry_type.hpp"
 
 namespace boost {
 namespace polygon {

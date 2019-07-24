@@ -19,8 +19,8 @@
 
 #define assert DASSERT
 
-#include "rapidxml/rapidxml.hpp"
-#include "rapidxml/rapidxml_print.hpp"
+#include "../extern/rapidxml/rapidxml.hpp"
+#include "../extern/rapidxml/rapidxml_print.hpp"
 
 #undef assert
 

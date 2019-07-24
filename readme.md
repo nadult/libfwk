@@ -48,11 +48,11 @@ Code is written in C++17 with some C++20 features used.
 	[https://www.openal.org/](https://www.openal.org/)
 
 * **rapidxml (included)**  
-	included in src/rapidxml/, licensed under BSL 1.0
+	included in extern/rapidxml/, licensed under BSL 1.0
 	[http://rapidxml.sourceforge.net/](http://rapidxml.sourceforge.net/)
 
 * **boost::polygon::voronoi (included)**   
-    included in src/geom/boost_polygon/, licensed under BSL 1.0
+    included in extern/boost_polygon/, licensed under BSL 1.0
 	[http://www.boost.org/](http://www.boost.org/)
 
 

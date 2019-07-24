@@ -13,9 +13,8 @@
 #include <vector>
 #include <utility>
 
-#include "detail/voronoi_ctypes.hpp"
-#include "detail/voronoi_structures.hpp"
-
+#include "voronoi_ctypes.hpp"
+#include "voronoi_structures.hpp"
 #include "voronoi_geometry_type.hpp"
 
 namespace boost {

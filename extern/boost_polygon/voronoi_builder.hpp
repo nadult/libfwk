@@ -16,10 +16,9 @@
 #include <utility>
 #include <vector>
 
-#include "detail/voronoi_ctypes.hpp"
-#include "detail/voronoi_predicates.hpp"
-#include "detail/voronoi_structures.hpp"
-
+#include "voronoi_ctypes.hpp"
+#include "voronoi_predicates.hpp"
+#include "voronoi_structures.hpp"
 #include "voronoi_geometry_type.hpp"
 
 namespace boost {

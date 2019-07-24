@@ -8,8 +8,8 @@
 #include "fwk/geom/wide_int.h"
 #include "fwk/vector_map.h"
 
-#include "boost_polygon/voronoi_builder.hpp"
-#include "boost_polygon/voronoi_diagram.hpp"
+#include "../extern/boost_polygon/voronoi_builder.hpp"
+#include "../extern/boost_polygon/voronoi_diagram.hpp"
 
 using namespace boost::polygon;
 using namespace boost::polygon::detail;
