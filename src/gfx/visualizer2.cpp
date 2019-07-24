@@ -11,11 +11,75 @@
 #include "fwk/geom/immutable_graph.h"
 #include "fwk/geom/plane_graph.h"
 #include "fwk/geom/regular_grid.h"
+#include "fwk/geom/voronoi.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rotation.h"
 #include "fwk/math/triangle.h"
 
 namespace fwk {
+
+void VoronoiVis2::drawSegment(EdgeId eid, bool draw_sel) {
+	auto &segment = m_diag[ArcSegmentId(eid)];
+	auto &arc = m_diag[segment.arc];
+
+	auto p1 = m_diag[m_diag.segmentGraph().from(eid)];
+	auto p2 = m_diag[m_diag.segmentGraph().to(eid)];
+
+	if(draw_sel != (arc.cell == m_sel))
+		return;
+
+	auto color = !arc.is_primary ? m_colors.inner_line : m_colors.line;
+	if(arc.cell == m_sel)
+		color = m_colors.selection;
+
+	m_vis.drawLine(p1, p2, color);
+}
+
+void VoronoiVis2::drawArc(EdgeId eid, bool draw_sel) {
+	auto p1 = m_diag[m_diag.arcGraph().from(eid)];
+	auto p2 = m_diag[m_diag.arcGraph().to(eid)];
+	auto &arc = m_diag[ArcId(eid)];
+	auto color = !arc.is_primary ? m_colors.inner_line : m_colors.line;
+	if(draw_sel != (arc.cell == m_sel))
+		return;
+
+	if(arc.cell == m_sel)
+		color = m_colors.selection;
+	m_vis.drawLine(p1, p2, color);
+}
+
+void VoronoiVis2::draw() {
+	if(bool draw_segs = true) {
+		for(auto eid : m_diag.segmentGraph().edgeIds())
+			drawSegment(eid, false);
+		for(auto eid : m_diag.segmentGraph().edgeIds())
+			drawSegment(eid, true);
+	}
+
+	if(bool draw_arcs = false) {
+		for(auto eid : m_diag.arcGraph().edgeIds())
+			drawArc(eid, false);
+		for(auto eid : m_diag.arcGraph().edgeIds())
+			drawArc(eid, true);
+	}
+
+	for(auto &cell : m_diag.cells()) {
+		auto &gen = cell.generator;
+
+		IColor color = m_colors.cell;
+		if(m_sel && &cell == &m_diag[*m_sel])
+			color = m_colors.selection;
+
+		if(cell.generator.isEdge()) {
+			auto p1 = m_diag[gen.asEdge().first];
+			auto p2 = m_diag[gen.asEdge().second];
+			m_vis.drawLine(p1, p2, color);
+		} else {
+			auto p1 = m_diag[gen.asNode()];
+			m_vis.drawCross(p1, color);
+		}
+	}
+}
 
 using Opt = ElementBufferOpt;
 

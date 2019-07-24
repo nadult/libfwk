@@ -39,6 +39,30 @@ struct Vis2Label {
 	VisStyle style;
 };
 
+struct VoronoiVis2Colors {
+	IColor point;
+	IColor line, inner_line;
+	IColor cell;
+	IColor selection;
+};
+
+class VoronoiVis2 {
+  public:
+	VoronoiVis2(Visualizer2 &vis, const VoronoiDiagram &diag, VoronoiVis2Colors colors,
+				Maybe<CellId> sel)
+		: m_vis(vis), m_diag(diag), m_colors(colors), m_sel(sel) {}
+
+	void drawSegment(EdgeId, bool draw_sel);
+	void drawArc(EdgeId, bool draw_sel);
+	void draw();
+
+  private:
+	Visualizer2 &m_vis;
+	const VoronoiDiagram &m_diag;
+	VoronoiVis2Colors m_colors;
+	Maybe<CellId> m_sel;
+};
+
 class Visualizer2 {
   public:
 	Visualizer2(float point_scale = 1.0f, float cross_scale = 1.0f);
@@ -60,6 +84,7 @@ class Visualizer2 {
 	void drawRect(FRect, IColor, bool solid = false);
 	void drawTriangle(const Triangle2F &, IColor, bool solid = false);
 	void drawCross(float2, IColor);
+	void drawVoronoi(const VoronoiDiagram &, VoronoiVis2Colors, Maybe<CellId> selection = none);
 
 	template <class T, EnableIfVec<T, 2>...> void operator()(const T &pt, VisStyle style = {}) {
 		if(style.flags & VisOpt::cross)
