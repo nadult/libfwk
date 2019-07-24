@@ -66,6 +66,24 @@
 	Class::Class(const Class &) = default;                                                         \
 	Class &Class::operator=(const Class &) = default;
 
+#define FWK_ASSIGN_RECONSTRUCT(Class)                                                              \
+	Class &Class::operator=(const Class &rhs) {                                                    \
+		if(this != &rhs) {                                                                         \
+			this->~Class();                                                                        \
+			new(this) Class(rhs);                                                                  \
+		}                                                                                          \
+		return *this;                                                                              \
+	}
+
+#define FWK_MOVE_ASSIGN_RECONSTRUCT(Class)                                                         \
+	Class &Class::operator=(Class &&rhs) {                                                         \
+		if(this != &rhs) {                                                                         \
+			this->~Class();                                                                        \
+			new(this) Class(move(rhs));                                                            \
+		}                                                                                          \
+		return *this;                                                                              \
+	}
+
 #define FWK_STRINGIZE(...) FWK_STRINGIZE_(__VA_ARGS__)
 #define FWK_STRINGIZE_(...) #__VA_ARGS__
 

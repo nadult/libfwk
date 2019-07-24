@@ -26,7 +26,7 @@ class EXCEPT FileStream {
 	FileStream(const FileStream &) = delete;
 	~FileStream();
 
-	void operator=(FileStream &&);
+	FileStream &operator=(FileStream &&);
 	void operator=(const FileStream &) = delete;
 
 	ZStr name() const { return m_name; }

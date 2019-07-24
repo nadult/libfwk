@@ -25,10 +25,7 @@ FileStream::FileStream(FileStream &&rhs)
 	rhs.m_is_valid = false;
 }
 
-void FileStream::operator=(FileStream &&rhs) {
-	this->~FileStream();
-	new(this) FileStream(move(rhs));
-}
+FWK_MOVE_ASSIGN_RECONSTRUCT(FileStream);
 
 FileStream::~FileStream() {
 	if(m_file)
