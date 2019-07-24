@@ -42,22 +42,25 @@ Any::Any(const Ex<Any> &rhs) {
 
 FWK_COPYABLE_CLASS_IMPL(Any);
 Ex<Any> Any::load(CXmlNode node, ZStr type_name) {
-	Any out;
 	if(!type_name)
-		return out;
-
+		return Any();
 	auto &type_infos = detail::anyTypeInfos();
 	auto type_info = typeInfo(type_name.c_str());
 	if(!type_info)
 		return ERROR("Type-info not found for: '%'", type_name);
+	return load(node, *type_info);
+}
 
-	auto it = type_infos.find(type_info->id());
+Ex<Any> Any::load(CXmlNode node, TypeInfo type_info) {
+	auto &type_infos = detail::anyTypeInfos();
+	auto it = type_infos.find(type_info.id());
 	if(it == type_infos.end())
-		return ERROR("Any-type-info not found for: '%'", type_name);
+		return ERROR("Any-type-info not found for: '%'", type_info.name());
 
 	if(!it->second.first)
-		return ERROR("Type '%' is not XML-constructible", type_name);
+		return ERROR("Type '%' is not XML-constructible", type_info.name());
 
+	Any out;
 	out.m_model = EXPECT_PASS(it->second.first(node));
 	out.m_type = it->first;
 	return out;

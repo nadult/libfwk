@@ -126,6 +126,7 @@ class Any {
 	}
 
 	static Ex<Any> load(CXmlNode, ZStr type_name);
+	static Ex<Any> load(CXmlNode, TypeInfo);
 	static Ex<Any> load(CXmlNode);
 	void save(XmlNode node, bool save_type_name = true) const;
 	bool xmlEnabled() const;
