@@ -24,7 +24,7 @@ template <class T> class XmlLoader : public ResourceLoader<T> {
 		XmlOnFailGuard guard(doc);
 		XmlNode child = doc.child(m_node_name.empty() ? nullptr : m_node_name.c_str());
 		if(!child) // TODO: return Expected<>
-			FATAL("Cannot find node '%s' in XML document", m_node_name.c_str());
+			FWK_FATAL("Cannot find node '%s' in XML document", m_node_name.c_str());
 
 		auto obj = T::loadFromXML(child);
 		if constexpr(is_same<decltype(obj), Expected<T>>) {

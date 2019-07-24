@@ -137,7 +137,7 @@ template <class T> class PlaneGraph : public ImmutableGraph {
 		PGraphBuilder<TOut> builder;
 		for(auto tpoint : fwk::transform(m_points, func)) {
 			if(builder.find(tpoint))
-				FATAL("Degenerate case detected"); // TODO: Expected<>
+				FWK_FATAL("Degenerate case detected"); // TODO: Expected<>
 			builder(tpoint);
 		}
 		return PlaneGraph<TOut>{*this, builder.extractPoints()};

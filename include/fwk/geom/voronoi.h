@@ -109,7 +109,7 @@ class VoronoiDiagram {
 		PGraph<double2> tgraph(m_segments_graph, m_info.points);
 		auto transformed = tgraph.transform(func);
 		if(transformed.numVerts() != m_segments_graph.numVerts())
-			FATAL("Degenerate case"); // TODO: Expected<>
+			FWK_FATAL("Degenerate case"); // TODO: Expected<>
 		Info new_info = m_info;
 		new_info.points = transformed.points();
 		return {transformed, m_arc_graph, move(new_info)};
