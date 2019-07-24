@@ -101,6 +101,17 @@ using PModel = immutable_ptr<Model>;
 class Visualizer2;
 class Visualizer3;
 
+struct FpsCamera;
+struct OrthoCamera;
+struct OrbitingCamera;
+struct PlaneCamera;
+using CameraVariant = Variant<OrbitingCamera, FpsCamera, PlaneCamera, OrthoCamera>;
+
+class Camera;
+struct CameraParams;
+class CameraControl;
+
+
 DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
 DEFINE_ENUM(AccessMode, read_only, write_only, read_write);

@@ -14,7 +14,7 @@ template <class T> struct HasCloneMethod {
 	static constexpr bool value = is_same<T *, decltype(test(DECLVAL(const T &)))>;
 };
 
-// Basically it's an unique_ptr with improvements
+// Dynamic storage: basically it's an unique_ptr with improvements.
 // To copy Dynamic<T> one of the following conditions must be met:
 // - T is copy constructible and is not polymorphic
 // - T has clone() method which returns pointer to newly allocated T
