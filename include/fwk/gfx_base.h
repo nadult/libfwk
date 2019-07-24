@@ -51,6 +51,7 @@ struct IColor;
 DECLARE_ENUM(ColorId);
 
 struct ColoredTriangle;
+struct ColoredQuad;
 
 DECLARE_ENUM(GlFormat);
 DECLARE_ENUM(GlDeviceOpt);
@@ -96,6 +97,9 @@ using PQuery = GlRef<GlQuery>;
 using PFontCore = immutable_ptr<FontCore>;
 using PPose = immutable_ptr<Pose>;
 using PModel = immutable_ptr<Model>;
+
+class Visualizer2;
+class Visualizer3;
 
 DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 

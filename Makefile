@@ -45,6 +45,7 @@ SHARED_SRC=vector enum str sys_base type_info any any_ref logger any_config \
 		   gfx/gl_program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/colored_triangle gfx/colored_quad \
 		   gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_format gfx/gl_query \
 		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array \
+		   gfx/visualizer2 gfx/visualizer3 \
 		   geom/contour geom/immutable_graph geom/plane_graph geom/regular_grid geom/segment_grid \
 		   geom/plane_graph_builder geom/voronoi geom/wide_int geom/voronoi_constructor geom/delaunay
 
