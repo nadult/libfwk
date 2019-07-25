@@ -16,6 +16,8 @@ template <class T> struct EnumFlags {
 
 	static constexpr Base mask = (Base(1) << (count - 1)) - Base(1) + (Base(1) << (count - 1));
 
+	static_assert(count <= 64,
+				  "Maximum nr of enum elements is 64 (TODO: fix it if it's really needed)");
 	static_assert(is_enum<T>, "EnumFlags<> should be based on fwk-enum");
 	static_assert(std::is_unsigned<Base>::value, "");
 	static_assert(count <= sizeof(Base) * 8, "");

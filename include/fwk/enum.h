@@ -59,7 +59,7 @@ namespace detail {
 		static constexpr int N = len(init_str);
 		static constexpr int K = TK;
 
-		static_assert(K <= 64, "Maximum number of enum elements is 64");
+		static_assert(K <= 254, "Maximum number of enum elements is 254");
 
 		static constexpr bool isWhiteSpace(char c) {
 			return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
@@ -117,7 +117,9 @@ namespace detail {
 		return fwk::detail::EnumStrings<func, _enum_count>();                                      \
 	}
 
-#define DECLARE_ENUM(name) enum class name : unsigned char;
+#define DECLARE_ENUM(id)                                                                           \
+	enum class id : unsigned char;                                                                 \
+	char _fwkDeclaredEnum(id);
 
 struct NotAnEnum;
 
@@ -125,7 +127,11 @@ namespace detail {
 	template <class T> struct IsEnum {
 		template <class C> static auto test(int) -> decltype(enumStrings(DECLVAL(C)));
 		template <class C> static auto test(...) -> void;
-		static constexpr bool value = !is_same<void, decltype(test<T>(0))>;
+		template <class C> static auto declTest(int) -> decltype(_fwkDeclaredEnum(DECLVAL(C)));
+		template <class C> static auto declTest(...) -> void;
+
+		static constexpr bool value =
+			!is_same<void, decltype(test<T>(0))> || !is_same<void, decltype(declTest<T>(0))>;
 	};
 }
 
