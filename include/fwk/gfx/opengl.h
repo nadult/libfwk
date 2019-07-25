@@ -333,6 +333,9 @@ EXT_API void(EXT_ENTRY *glBlendEquationSeparate)(GLenum modeRGB, GLenum modeAlph
 EXT_API void(EXT_ENTRY *glBlendFuncSeparate)(GLenum sfactorRGB, GLenum dfactorRGB,
 											 GLenum sfactorAlpha, GLenum dfactorAlpha);
 
+EXT_API void(EXT_ENTRY *glVertexAttribI1i)(GLuint index, GLint x);
+EXT_API void(EXT_ENTRY *glProvokingVertex)(GLenum mode);
+
 #undef EXT_API
 #undef EXT_ENTRY
 

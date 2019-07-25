@@ -364,6 +364,9 @@ void loadExtensions() {
 	LOAD(glBlendEquationSeparate)
 	LOAD(glBlendFuncSeparate)
 
+	LOAD(glVertexAttribI1i)
+	LOAD(glProvokingVertex)
+
 #undef LOAD
 #endif
 }
