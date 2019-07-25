@@ -27,5 +27,5 @@
         operator fwk::int4() const { return fwk::int4(x,y,z,w); }
 
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
-#include "../imgui/imgui.h"
+#include "../extern/imgui/imgui.h"
 

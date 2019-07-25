@@ -22,6 +22,7 @@ using ColumnFlags = EnumFlags<ColumnId>;
 ColumnFlags gpuColumns();
 ColumnFlags cpuColumns();
 
+// GUI for perf-data analysis. Requires ImGui.
 class Analyzer {
   public:
 	using DataSource = AnalyzerDataSource;
