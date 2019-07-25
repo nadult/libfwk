@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "fwk/sys/exception.h"
 #include "fwk/dynamic.h"
+#include "fwk/sys/exception.h"
 
 namespace fwk {
 
@@ -42,6 +42,12 @@ namespace fwk {
 
 template <class T> constexpr bool is_expected = false;
 template <class T> constexpr bool is_expected<Expected<T>> = true;
+
+namespace detail {
+	template <class T> struct RemoveExpected { using Type = T; };
+	template <class T> struct RemoveExpected<Expected<T>> { using Type = T; };
+}
+template <class T> using RemoveExpected = typename detail::RemoveExpected<T>::Type;
 
 template <class T> class NOEXCEPT [[nodiscard]] Expected {
   public:
