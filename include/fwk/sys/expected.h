@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/dynamic.h"
+#include "fwk/maybe.h"
 #include "fwk/sys/exception.h"
 
 namespace fwk {
@@ -116,6 +117,7 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 		return m_value;
 	}
 	const T &get() const { return ((Expected *)this)->get(); }
+	operator Maybe<T>() const { return m_has_value ? m_value : Maybe<T>(); }
 
 	bool operator==(const T &rhs) const { return m_has_value && m_value == rhs; }
 	friend bool operator==(const T &a, const Expected<T> &b) {
