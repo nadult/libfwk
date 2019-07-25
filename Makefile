@@ -12,7 +12,7 @@ endif
 ifneq (,$(findstring clang,$(LINUX_CXX)))
 	CLANG=yes
 	LINUX_LINK+=-fuse-ld=gold
-	FLAGS+=-Wno-undefined-inline
+	FLAGS+=-Wno-undefined-inline -Werror=return-type
 endif
 
 _dummy := $(shell [ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR))
@@ -101,7 +101,7 @@ MINGW_LIBS=-pthread $(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldso
 INCLUDES=-Iinclude/ -Isrc/
 
 # Clang gives no warnings for uninitialized class members!
-NICE_FLAGS=-std=c++2a -fno-exceptions -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Werror=return-type -Wno-reorder \
+NICE_FLAGS=-std=c++2a -fno-exceptions -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder \
 		   -Wuninitialized -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
 		   -Wparentheses -Wno-overloaded-virtual
 
@@ -126,7 +126,6 @@ ifdef CLANG
 else
 	PCH_INCLUDE=-I$(BUILD_DIR) -include $(PCH_FILE_H)
 	PCH_FILE_MAIN=$(PCH_FILE_GCH)
-	LINUX_FLAGS+=-DFWK_PERF_DISABLE_SAMPLING #GCC has problems... (as usual)
 endif
 
 ifdef CLANG

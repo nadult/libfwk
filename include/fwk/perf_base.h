@@ -97,7 +97,7 @@ struct PointInfo {
 
 const PointInfo *pointInfo(PointId);
 PointId registerPoint(PointType, const char *file, const char *func, const char *tag, int line);
-template <PointId (*reg_func)()> struct RegisterPoint { static inline PointId id = reg_func(); };
+template <class RegFunctor> struct RegisterPoint { static inline PointId id = RegFunctor::call(); };
 
 // ------------------------------------------------------------------------------------------------
 // Per thread control:
@@ -149,9 +149,9 @@ void resumeGpu();
 // clang-format off
 #define _PERF_ID(prefix, line) prefix##line 
 #define _PERF_FUNC_ID(line, func)			constexpr const char * _PERF_ID(func_, line) = __PRETTY_FUNCTION__
-#define _PERF_POINT_ID(ptype, line, tag)	constexpr auto _PERF_ID(point_id_, line) = []() { return perf::registerPoint(perf::PointType::ptype, __FILE__, _PERF_ID(func_, line), tag, line); }
+#define _PERF_POINT_ID(ptype, line, tag)	struct _PERF_ID(point_id_, line) { static auto call() { return perf::registerPoint(perf::PointType::ptype, __FILE__, _PERF_ID(func_, line), tag, line); } };
 #define _PERF_POINT(ptype, line, func, tag)	_PERF_FUNC_ID(line, func); _PERF_POINT_ID(ptype, line, tag); 
-#define _PERF_USE_POINT(line)					perf::RegisterPoint<_PERF_ID(point_id_, line)>::id
+#define _PERF_USE_POINT(line)				perf::RegisterPoint<_PERF_ID(point_id_, line)>::id
 
 #define PERF_SCOPE_POINT(name, func, tag) 	static const auto name = perf::registerPoint(perf::PointType::scope, __FILE__, func, tag, __LINE__);
 
