@@ -15,8 +15,6 @@
 
 namespace fwk {
 
-double attenuate(double val) { return attenuate(val, 0.7, 0.0, 0.1); }
-
 vector<float2> smoothCurve(vector<float2> points, int target_count) {
 	DASSERT(points.size() >= 2);
 	auto vec0 = normalize(points[0] - points[1]);
@@ -314,34 +312,4 @@ vector<Segment2F> generateDelaunaySegments(vector<float3> points) {
 	return delaunaySegments<float2>(del, graph);
 }
 
-vector<Triangle3F> attenuateTest(float ex, float density, float3 aparams, float aoff, float amax) {
-	Random random(123);
-	auto points = randomPoints(random, FRect(float2(-ex), float2(ex)), density);
-	float3 params = aparams;
-	auto attenuate = [=](float dist) {
-		return max(1.0f / (params[0] + dist * params[1] + dist * dist * params[2]) - aoff,
-				   float(amax));
-	};
-	vector<float3> points3 =
-		transform(points, [&](float2 p) { return asXZY(p, attenuate(length(p))); });
-
-	return delaunayTriangles<float3>(delaunay<float2>(points), points3);
-}
-
-vector<Segment2F> smoothLerpTest(float sm_in, float sm_out) {
-	constexpr int num_points = 1024;
-	vector<Segment2F> out;
-	out.reserve(num_points);
-	float2 prev;
-
-	for(int n = 0; n < num_points; n++) {
-		float pos = float(n) / float(num_points - 1);
-		auto value = smoothLerp(pos, sm_in, sm_out);
-		if(n > 0)
-			out.emplace_back(prev, float2(pos, value));
-		prev = {pos, value};
-	}
-
-	return out;
-}
 }

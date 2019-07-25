@@ -8,8 +8,8 @@
 // TODO: explain what these functions do
 namespace fwk {
 
-inline double attenuate(double dist, double k0, double k1, double k2) {
-	return 1.0f / (k0 + dist * k1 + dist * dist * k2);
+template <class T, EnableIf<is_fpt<T>>...> T attenuate(T dist, T k0, T k1, T k2) {
+	return T(1) / (k0 + dist * k1 + dist * dist * k2);
 }
 
 inline float smoothLerp(float val, float smooth_in, float smooth_out) {
@@ -20,8 +20,6 @@ inline float smoothLerp(float val, float smooth_in, float smooth_out) {
 
 	return lerp(val1, val2, val);
 }
-
-double attenuate(double val);
 
 vector<float2> smoothCurve(vector<float2> points, int target_count);
 vector<float2> circularCurve(float scale, float step);
@@ -36,7 +34,4 @@ vector<Segment3F> generateVoronoiLines(vector<Segment3F>);
 vector<Segment3F> generateVoronoiLinesFromPoints(vector<float3>);
 vector<Segment2F> generateDelaunaySegments(vector<float3>);
 
-vector<Triangle3F> attenuateTest(float enlargement, float density, float3 att_param,
-								 float att_offset, float att_max);
-vector<Segment2F> smoothLerpTest(float smooth_in, float smooth_out);
 }
