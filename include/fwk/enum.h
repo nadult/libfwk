@@ -46,6 +46,38 @@ template <class Type> class EnumRange {
 };
 
 namespace detail {
+	static constexpr bool isWhiteSpace(char c) {
+		return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
+	}
+
+	template <int N> struct EnumBuffer {
+		constexpr EnumBuffer(const char *ptr) : data{} {
+			for(int n = 0; n < N; n++)
+				data[n] = isWhiteSpace(ptr[n]) ? 0 : ptr[n];
+			data[N] = 0;
+		}
+
+		char data[N + 1];
+	};
+
+	template <int N, int K> struct EnumOffsets {
+		constexpr EnumOffsets(const char *ptr) : data{} {
+			bool prev_zero = true;
+			int k = 0;
+			for(int n = 0; n < N; n++) {
+				if(ptr[n]) {
+					if(prev_zero)
+						data[k++] = ptr + n;
+					prev_zero = false;
+				} else {
+					prev_zero = true;
+				}
+			}
+		}
+
+		const char *data[K];
+	};
+
 	template <const char *(*func)(), int TK> struct EnumStrings {
 		static constexpr const char *init_str = func();
 
@@ -61,40 +93,8 @@ namespace detail {
 
 		static_assert(K <= 254, "Maximum number of enum elements is 254");
 
-		static constexpr bool isWhiteSpace(char c) {
-			return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
-		}
-
-		template <int N> struct Buffer {
-			constexpr Buffer(const char *ptr) : data{} {
-				for(int n = 0; n < N; n++)
-					data[n] = isWhiteSpace(ptr[n]) ? 0 : ptr[n];
-				data[N] = 0;
-			}
-
-			char data[N + 1];
-		};
-
-		template <int N> struct Offsets {
-			constexpr Offsets(const char *ptr) : data{} {
-				bool prev_zero = true;
-				int k = 0;
-				for(int n = 0; n < N; n++) {
-					if(ptr[n]) {
-						if(prev_zero)
-							data[k++] = ptr + n;
-						prev_zero = false;
-					} else {
-						prev_zero = true;
-					}
-				}
-			}
-
-			const char *data[K];
-		};
-
-		static constexpr Buffer<N> buffer = {init_str};
-		static constexpr Offsets<N> offsets = {buffer.data};
+		static constexpr EnumBuffer<N> buffer = {init_str};
+		static constexpr EnumOffsets<N, K> offsets = {buffer.data};
 	};
 }
 
