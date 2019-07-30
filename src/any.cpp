@@ -22,8 +22,9 @@ namespace detail {
 	}
 
 	void reportAnyError(TypeInfo requested, TypeInfo current) {
-		FATAL("Invalid value type in any: %s; requested: %s", current.name(), requested.name());
+		FATAL("Invalid value type in any: %s; requested: %s", current.name().c_str(), requested.name().c_str());
 	}
+
 }
 
 Any::Any() = default;

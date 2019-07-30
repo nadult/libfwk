@@ -68,7 +68,7 @@ template <class T> TypeInfo typeInfo() {
 }
 
 template <class T> TypeId typeId() { return typeInfo<T>().id(); }
-template <class T> const char *typeName() { return typeInfo<T>().name(); }
+template <class T> ZStr typeName() { return typeInfo<T>().name(); }
 
 template <class T> bool TypeInfo::is() const { return *this == typeInfo<T>(); }
 template <class... Types> bool TypeInfo::isOneOf() const {

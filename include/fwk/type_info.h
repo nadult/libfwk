@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include <fwk/maybe.h>
-#include <fwk/sys_base.h>
+#include "fwk/maybe.h"
+#include "fwk/str.h"
 
 namespace fwk {
 
@@ -43,7 +43,7 @@ struct TypeInfo {
 	template <class T> bool is() const;
 	template <class... Types> bool isOneOf() const;
 
-	const char *name() const;
+	ZStr name() const;
 
 	bool operator==(const TypeInfo &rhs) const { return m_data == rhs.m_data; }
 	bool operator<(const TypeInfo &rhs) const { return m_data < rhs.m_data; }
@@ -54,13 +54,12 @@ struct TypeInfo {
 	static const HashMap<string, TypeId> &nameToId();
 	static const HashMap<TypeId, string> &idToName();
 
+	void operator>>(fwk::TextFormatter &) const;
+
   private:
 	const Data *m_data;
 };
 
 int hash(TypeInfo);
-
 Maybe<TypeInfo> typeInfo(const char *type_name);
-
-fwk::TextFormatter &operator<<(fwk::TextFormatter &, const TypeInfo &);
 }

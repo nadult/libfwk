@@ -7,6 +7,52 @@
 #include <fwk/format.h>
 #include <fwk/hash_map.h>
 
+/*
+// Problems with __PRETTY_FUNCTION__:
+// - different compilers give different results in __PRETTY_FUNCTION__
+// - a bit longer compile times?
+// - cxa_demangle should give similar results
+
+// __PRETTY_FUNCTION__ based type names:
+template <int N> struct FixedString {
+	constexpr FixedString(char const *s) {
+		for(int i = 0; i < N; i++)
+			buf[i] = s[i];
+		buf[N] = 0;
+	}
+	char buf[N + 1];
+};
+
+static constexpr const char *getName() {
+	char const *name = __PRETTY_FUNCTION__;
+	while(*name++ != '=')
+		;
+	while(*name == ' ')
+		name++;
+	return name;
+}
+
+static constexpr int getNameSize() {
+	auto start = getName();
+	auto end = start;
+	int bracketCount = 1;
+	for(;; ++end) {
+		if(*end == '[')
+			bracketCount++;
+		if(*end == ']') {
+			--bracketCount;
+			if(!bracketCount)
+				return end - start;
+		}
+	}
+	return {};
+}
+
+#ifdef __clang__
+	static constexpr FixedString<getNameSize()> name{getName()};
+#endif
+*/
+
 namespace fwk {
 namespace detail {
 
@@ -19,6 +65,11 @@ namespace detail {
 		static HashMap<string, TypeId> map(256);
 		return map;
 	}
+
+	auto registerBasicTypes = []() {
+		auto dummy = typeInfo<void>();
+		return 0;
+	}();
 
 	void addTypeName(const TypeInfoData &data, const char *mangled_name) {
 		int status;
@@ -48,8 +99,6 @@ namespace detail {
 
 TypeInfo::TypeInfo() : m_data(&detail::TypeData<void>::data) {}
 
-const char *TypeInfo::name() const { return detail::typeNames()[id()].c_str(); }
-
 TypeInfo TypeInfo::asConst() const {
 	if(m_data->is_const || !m_data->const_or_not)
 		return *this;
@@ -68,8 +117,13 @@ Maybe<TypeInfo> TypeInfo::referenceBase() const {
 	return m_data->reference_base ? TypeInfo(*m_data->reference_base) : Maybe<TypeInfo>();
 }
 
-fwk::TextFormatter &operator<<(fwk::TextFormatter &fmt, const TypeInfo &type_info) {
-	return (fmt << type_info.name());
+void TypeInfo::operator>>(TextFormatter &fmt) const { fmt << name(); }
+
+ZStr TypeInfo::name() const {
+	auto &map = detail::typeNames();
+	auto it = map.find(id());
+	DASSERT(it != map.end());
+	return it->second.c_str();
 }
 
 const HashMap<string, TypeId> &TypeInfo::nameToId() { return detail::invTypeNames(); }
