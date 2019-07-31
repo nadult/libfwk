@@ -44,6 +44,7 @@ struct OnFailGuard {
 	~OnFailGuard() { onFailPop(); }
 };
 
+vector<ErrorChunk> onFailChunks();
 Error onFailMakeError(const char *file, int line, ZStr main_message);
 
 // Use it just like you would use fwk::format

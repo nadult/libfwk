@@ -14,20 +14,32 @@ namespace detail {
 	__thread int t_on_fail_count = 0;
 }
 
+using namespace detail;
+
 void onFailPush(OnFailInfo info) {
-	using namespace detail;
 	PASSERT(t_on_fail_count < max_on_assert);
 	t_on_fail_stack[t_on_fail_count++] = info;
 }
 
 void onFailPop() {
-	PASSERT(detail::t_on_fail_count > 0);
-	detail::t_on_fail_count--;
+	PASSERT(t_on_fail_count > 0);
+	t_on_fail_count--;
 }
 
-int onFailStackSize() { return detail::t_on_fail_count; }
+int onFailStackSize() { return t_on_fail_count; }
 
 static __thread bool s_fail_protect = false;
+
+vector<ErrorChunk> onFailChunks() {
+	vector<ErrorChunk> chunks;
+	int count = t_on_fail_count;
+	chunks.reserve(count + 1);
+	for(int n = 0; n < count; n++) {
+		const auto &info = t_on_fail_stack[n];
+		chunks.emplace_back(info.func(info.args));
+	}
+	return chunks;
+}
 
 Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	if(s_fail_protect) {
@@ -38,24 +50,20 @@ Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	}
 
 	s_fail_protect = true;
-
 	auto bt = Backtrace::get(3, nullptr, Backtrace::t_default_mode);
-
-	vector<ErrorChunk> chunks;
-	using namespace detail;
-
-	int start = 0; //roll_status.on_assert_top;
-	int count = t_on_fail_count - start;
-
-	chunks.reserve(count + 1);
-	for(int n = 0; n < count; n++) {
-		const auto &info = t_on_fail_stack[start + n];
-		chunks.emplace_back(info.func(info.args));
-	}
+	auto chunks = onFailChunks();
 	chunks.emplace_back(ErrorLoc{file, line}, main_message);
 	Error out(move(chunks), bt);
 
 	s_fail_protect = false;
 	return out;
+}
+
+namespace detail {
+	Error expectMakeError(const char *expr, const char *file, int line) {
+		auto chunks = onFailChunks();
+		chunks.emplace_back(ErrorLoc{file, line}, format("Failed: %", expr));
+		return move(chunks);
+	}
 }
 }

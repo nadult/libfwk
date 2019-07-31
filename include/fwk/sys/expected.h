@@ -158,9 +158,12 @@ template <> class [[nodiscard]] Expected<void> {
 };
 
 namespace detail {
+	// Implemented in on_fail.cpp
+	Error expectMakeError(const char *, const char *, int);
+
 	template <class T>
 	auto passError(const T &value, const char *expr, const char *file, int line) {
-		return fwk::Error({file, line}, expr);
+		return expectMakeError(expr, file, line);
 	}
 
 	template <class T> auto passError(const Expected<T> &value, const char *, const char *, int) {
