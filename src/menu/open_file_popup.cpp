@@ -119,10 +119,10 @@ void openFileButton(string &file_path_str, string popup_name, string regex) {
 	FilePath file_path(file_path_str);
 	if(file_path.isAbsolute())
 		file_path = file_path.relativeToCurrent().get();
-	string file_name = file_path;
+	file_path_str = file_path;
 
-	if(ImGui::Button(format("File: %", file_name).c_str()))
+	if(ImGui::Button(format("File: %", file_path_str).c_str()))
 		ImGui::OpenPopup(popup_name.c_str());
-	menu::openFilePopup(file_name, popup_name, regex);
+	menu::openFilePopup(file_path_str, popup_name, regex);
 }
 }
