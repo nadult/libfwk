@@ -151,4 +151,12 @@ template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int 
 template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int start, int end) {
 	return span(v).subSpan(start, end);
 }
+
+template <class TSpan, class T, class TB = SpanBase<TSpan>, EnableIf<is_same<T, TB>>...>
+int spanMemberIndex(const TSpan &span, const T &elem) {
+	auto *ptr = &elem;
+	PASSERT("Element is not a member of span" && ptr >= span.begin() && ptr < span.end());
+	return ptr - span.begin();
+}
+
 }

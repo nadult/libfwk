@@ -208,7 +208,7 @@ vector<Pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const 
 Maybe<int> GlProgram::findUniform(ZStr str) const {
 	for(auto &uniform : m_uniforms)
 		if(str == uniform.name)
-			return indexOf(m_uniforms, uniform);
+			return spanMemberIndex(m_uniforms, uniform);
 	return none;
 }
 

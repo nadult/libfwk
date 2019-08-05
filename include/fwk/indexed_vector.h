@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/list_node.h"
+#include "fwk/pod_vector.h"
 #include "fwk/vector.h"
 
 namespace fwk {
@@ -282,7 +283,7 @@ template <class T> class IndexedVector {
 	int indexOf(const T &object) const {
 		auto *ptr = reinterpret_cast<const Element *>(&object);
 		PASSERT("Invalid alignment" && u64(ptr) % alignof(Element) == 0);
-		auto idx = fwk::indexOf(m_elements, *ptr);
+		auto idx = spanMemberIndex(m_elements, *ptr);
 		PASSERT(m_valids[idx]);
 		return idx;
 	}
