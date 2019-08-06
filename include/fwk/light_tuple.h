@@ -219,12 +219,13 @@ template <class... Args> constexpr auto tuple(Args &&... args) {
 	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
 	FWK_TIED_COMPARES(name)
 
-#define FWK_ORDER_BY_DEF(name)                                                                     \
+#define FWK_ORDER_BY_DEF(name, ...)                                                                \
+	auto name::tied() const { return fwk::tie(__VA_ARGS__); }                                      \
 	bool name::operator==(const name &rhs) const { return tied() == rhs.tied(); }                  \
 	bool name::operator<(const name &rhs) const { return tied() < rhs.tied(); }
 
-#define FWK_ORDER_BY_DECL(name, ...)                                                               \
-	FWK_TIE_MEMBERS(__VA_ARGS__)                                                                   \
+#define FWK_ORDER_BY_DECL(name)                                                                    \
+	auto tied() const;                                                                             \
 	bool operator==(const name &) const;                                                           \
 	bool operator<(const name &) const;
 

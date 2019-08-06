@@ -15,5 +15,5 @@ Material::Material(vector<PTexture> textures, IColor color, Flags flags, u16 cus
 Material::Material(IColor color, Flags flags, u16 custom_flags)
 	: color(color), custom_flags(custom_flags), flags(flags) {}
 
-FWK_ORDER_BY_DEF(Material)
+FWK_ORDER_BY_DEF(Material, textures, color, custom_flags, flags)
 }

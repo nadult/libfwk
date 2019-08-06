@@ -205,5 +205,5 @@ MeshBuffers MeshBuffers::transform(const Matrix4 &matrix, MeshBuffers buffers) {
 	return buffers;
 }
 
-FWK_ORDER_BY_DEF(MeshBuffers)
+FWK_ORDER_BY_DEF(MeshBuffers, positions, normals, tex_coords, colors, weights, node_names)
 }

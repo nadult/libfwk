@@ -175,14 +175,14 @@ class ImmutableGraph {
 	bool isForest() const;
 	vector<VertexId> treeRoots() const;
 
-	FWK_ORDER_BY_DECL(ImmutableGraph, m_vert_info, m_edge_info, m_incidence_info);
+	FWK_ORDER_BY_DECL(ImmutableGraph);
 
   protected:
 	struct VertexInfo {
 		int num_edges_from = 0, num_edges_to = 0;
 		int first_edge = 0;
 
-		FWK_ORDER_BY_DECL(VertexInfo, num_edges_from, num_edges_to, first_edge);
+		FWK_ORDER_BY_DECL(VertexInfo);
 	};
 
 	using EdgeInfo = pair<VertexId, VertexId>;

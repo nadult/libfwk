@@ -44,7 +44,7 @@ struct MeshBuffers {
 
 	static MeshBuffers transform(const Matrix4 &, MeshBuffers);
 
-	FWK_ORDER_BY_DECL(MeshBuffers, positions, normals, tex_coords, colors, weights, node_names);
+	FWK_ORDER_BY_DECL(MeshBuffers);
 
 	vector<float3> positions;
 	vector<float3> normals;

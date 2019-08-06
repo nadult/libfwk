@@ -40,7 +40,7 @@ class MeshIndices {
 
 	vector<MeshIndices> split(int max_vertices, vector<vector<int>> &out_mappings) const;
 
-	FWK_ORDER_BY_DECL(MeshIndices, m_data, m_type);
+	FWK_ORDER_BY_DECL(MeshIndices);
 
   private:
 	vector<int> m_data;

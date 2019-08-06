@@ -749,6 +749,10 @@ auto PlaneGraph<T>::joinNearby(Scalar join_dist) const -> PointTransform {
 	return out;
 }
 
+template <class T> auto PlaneGraph<T>::tied() const {
+	return fwk::tie((const ImmutableGraph &)*this, m_points);
+}
+
 template <class T> bool PlaneGraph<T>::operator==(const PlaneGraph &rhs) const {
 	return tied() == rhs.tied();
 }

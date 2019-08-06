@@ -160,7 +160,7 @@ template <class T> class PlaneGraph : public ImmutableGraph {
 	ENABLE_IF_REAL vector<Vec> randomPoints(Random &, Scalar min_distance,
 											Maybe<Rect> = none) const;
 
-	FWK_ORDER_BY_DECL(PlaneGraph, (const ImmutableGraph &)*this, m_points);
+	FWK_ORDER_BY_DECL(PlaneGraph);
 
   private:
 	ENABLE_IF_REAL static void instantiator();

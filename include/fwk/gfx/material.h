@@ -46,7 +46,7 @@ class Material {
 
 	PTexture texture() const { return textures ? textures.front() : PTexture(); }
 
-	FWK_ORDER_BY_DECL(Material, textures, color, custom_flags, flags);
+	FWK_ORDER_BY_DECL(Material);
 
 	// invariant: allOf(m_textures, [](auto &tex) { return tex != nullptr; })
 	vector<PTexture> textures;

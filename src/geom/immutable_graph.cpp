@@ -359,8 +359,8 @@ vector<VertexId> ImmutableGraph::treeRoots() const {
 	return filter(vertexIds(), pred, countIf(vertexIds(), pred));
 }
 
-FWK_ORDER_BY_DEF(ImmutableGraph)
-FWK_ORDER_BY_DEF(ImmutableGraph::VertexInfo)
+FWK_ORDER_BY_DEF(ImmutableGraph, m_vert_info, m_edge_info, m_incidence_info)
+FWK_ORDER_BY_DEF(ImmutableGraph::VertexInfo, num_edges_from, num_edges_to, first_edge)
 
 template ImmutableGraph ImmutableGraph::minimumSpanningTree(CSpan<float>, bool) const;
 template ImmutableGraph ImmutableGraph::minimumSpanningTree(CSpan<double>, bool) const;

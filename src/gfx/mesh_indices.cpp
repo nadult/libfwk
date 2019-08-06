@@ -177,5 +177,5 @@ MeshIndices MeshIndices::changeType(MeshIndices indices, Type new_type) {
 	return indices;
 }
 
-FWK_ORDER_BY_DEF(MeshIndices)
+FWK_ORDER_BY_DEF(MeshIndices, m_data, m_type)
 }
