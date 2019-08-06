@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "fwk/indexed_vector.h"
+#include "fwk/math/random.h"
 #include "fwk/math_base.h"
 #include "fwk/sys/memory.h"
 #include "fwk/vector.h"
@@ -115,7 +117,67 @@ template <template <typename> class T> void testVectorInsert(const char *name) {
 	}
 }
 
+// ------------- IndexedVector tests ----------------------------------------
+
 template <class T> using stdvec = std::vector<T, fwk::SimpleAllocator<T>>;
+struct Struct {
+	fwk::int4 i4;
+	fwk::float2 f2;
+};
+
+int iterationLoop(fwk::IndexedVector<Struct> &ivec, int n) NOINLINE;
+int iterationLoop(fwk::IndexedVector<Struct> &ivec, int n) {
+	int val = 0;
+	for(auto i : ivec.indices())
+		val += ivec[i].i4[n & 3];
+	//for(auto &v : ivec)
+	//	val += v.i4[n & 3];
+	return val;
+}
+
+int testIndexedVector() NOINLINE;
+int testIndexedVector() {
+	using namespace fwk;
+	IndexedVector<Struct> ivec;
+
+	Struct s1{{1, 2, 3, 4}, {2, 3}};
+	Struct s2{{1, 2, 5, 4}, {2, 3}};
+
+	{
+		Random rand;
+		TestTimer t("IndexedVector modification");
+		for(int t = 0; t < 1000; t++) {
+			for(int n = 0; n < 1000; n++)
+				ivec.emplace(s1);
+			for(int j = 0; j < 1500; j++) {
+				auto idx = rand.uniform(ivec.endIndex());
+				if(ivec.valid(idx))
+					ivec.erase(idx);
+			}
+		}
+	}
+
+	int val = 0;
+	int num_values = 0, num_iters = 0;
+	double val_time, total_time;
+	{
+		auto time = getTime();
+		for(int n = 0; n < 1000; n++) {
+			val += iterationLoop(ivec, n);
+			num_iters += ivec.endIndex();
+			num_values += ivec.size();
+		}
+		total_time = getTime() - time;
+		val_time = total_time / num_iters;
+	}
+
+	printf("IndexedVector iteration completed in %.4f seconds\n", total_time);
+	printf("Values: %.2f %%; %f ns / value\n", double(num_values) * 100.0 / double(num_iters),
+		   total_time * 1000000000.0 / num_values);
+	return val;
+}
+
+// ------------- Main function --------------------------------------------------
 
 int main() {
 #ifdef FWK_PARANOID
@@ -132,5 +194,7 @@ int main() {
 	testVectorInsertBack<stdvec>("std::vector insert_back");
 	testVectorInsert<fwk::vector>("fwk::vector insert");
 	testVectorInsert<stdvec>("std::vector insert");
+
+	testIndexedVector();
 	return 0;
 }
