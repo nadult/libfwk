@@ -19,51 +19,83 @@ namespace fwk {
 // ??Range( some_range ) -> ??Range(0, size(some_range))
 
 // IndexRange has to exist as long as any of the iterators belonging to it
-template <class Func> class IndexRange {
+template <class Transform = None, class Filter = None> class IndexRange {
   public:
-	using Value = decltype(DECLVAL(Func)(0));
-	IndexRange(int start, int end, Func func) : it_start(start), it_end(end), func(move(func)) {
-		DASSERT(start <= end);
+	constexpr IndexRange(int start, int end, Transform trans = Transform(),
+						 Filter filter = Filter())
+		: m_start(start), m_end(end), m_trans(move(trans)), m_filter(move(filter)) {
+		PASSERT(start <= end);
+		if constexpr(!is_same<Filter, None>) {
+			while(m_start != m_end && !m_filter(m_start))
+				m_start++;
+		}
 	}
 
-	class Iter {
-	  public:
+	static auto apply(const Transform &trans, int index) {
+		if constexpr(is_same<Transform, None>)
+			return index;
+		else
+			return trans(index);
+	}
+
+	using Value = decltype(apply(DECLVAL(Transform), 0));
+
+	struct Iter {
 		using difference_type = int;
 		using iterator_category = std::bidirectional_iterator_tag;
 		using value_type = Value;
 		using reference = value_type &;
 		using pointer = value_type *;
 
-		constexpr Iter(int index, const Func &func) : index(index), func(func) {}
+		constexpr Iter(int index, const IndexRange &base) : index(index), base(base) {}
 
 		constexpr const Iter &operator++() {
 			index++;
+			if constexpr(!is_same<Filter, None>) {
+				while(index != base.m_end && !base.m_filter(index))
+					index++;
+			}
 			return *this;
 		}
-		Value operator*() const { return func(index); }
-		constexpr int operator-(Iter it) const { return index - it.index; }
+		Value operator*() const { return apply(base.m_trans, index); }
+
+		constexpr int operator-(const Iter &rhs) const {
+			if constexpr(is_same<Filter, None>)
+				return index - rhs.index;
+			else {
+				int idx = rhs.index, count = 0;
+				while(idx < index) {
+					if(base.m_filter(idx))
+						count++;
+					idx++;
+				}
+				return count;
+			}
+		}
 
 		constexpr bool operator!=(const Iter &rhs) const { return index != rhs.index; }
 		constexpr bool operator==(const Iter &rhs) const { return index == rhs.index; }
 		constexpr bool operator<(const Iter &rhs) const { return index < rhs.index; }
 
-	  private:
-		const Func &func;
+		const IndexRange &base;
 		int index;
 	};
 
-	auto begin() const { return Iter(it_start, func); }
-	auto end() const { return Iter(it_end, func); }
-	int size() const { return it_end - it_start; }
-	auto operator[](int index) const { return func(it_start + index); }
+	auto operator[](int index) const { return apply(m_trans, m_start + index); }
+
+	auto begin() const { return Iter(m_start, *this); }
+	auto end() const { return Iter(m_end, *this); }
+	int size() const { return end() - begin(); }
 
   private:
-	int it_start, it_end;
-	Func func;
+	int m_start, m_end;
+	Transform m_trans;
+	Filter m_filter;
 };
 
-template <class Func> auto indexRange(int start, int end, Func func) {
-	return IndexRange<Func>(start, end, func);
+template <class Transform, class Filter = None>
+auto indexRange(int start, int end, const Transform &trans, const Filter &filter = none) {
+	return IndexRange<Transform, Filter>(start, end, trans, filter);
 }
 
 template <class Range, class Func> auto indexRange(Range range, Func func) {
@@ -80,15 +112,15 @@ template <class Range, class Func> auto indexRange(Range range, Func func) {
 
 template <class T> class SimpleIndexRange {
   public:
-	SimpleIndexRange(int start, int end) : it_start(start), it_end(end) { DASSERT(start <= end); }
+	SimpleIndexRange(int start, int end) : it_start(start), it_end(end) { PASSERT(start <= end); }
 
 	class Iter {
 	  public:
 		using difference_type = int;
 		using iterator_category = std::bidirectional_iterator_tag;
 		using value_type = T;
-		using reference = T &;
-		using pointer = T *;
+		using reference = value_type &;
+		using pointer = value_type *;
 
 		constexpr Iter(int index) : index(index) {}
 

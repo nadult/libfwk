@@ -155,6 +155,10 @@ void testXMLConverters() NOEXCEPT {
 	ASSERT_EQ(transform<int>(intRange(5)), (vector<int>{{{0, 1, 2, 3, 4}}}));
 	ASSERT_EQ(transform<Pair<int>>(pairsRange(3)), (vector<Pair<int>>{{{0, 1}, {1, 2}}}));
 
+	auto even_filter = [](int v) { return v % 2 == 0; };
+	IndexRange even_ints(0, 10, none, even_filter);
+	ASSERT_EQ(transform<int>(even_ints), (vector<int>{{{0, 2, 4, 6, 8}}}));
+
 	ASSERT(noExceptions());
 }
 

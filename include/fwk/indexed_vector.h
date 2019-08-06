@@ -3,13 +3,12 @@
 
 #pragma once
 
+#include "fwk/index_range.h"
 #include "fwk/list_node.h"
 #include "fwk/pod_vector.h"
 #include "fwk/vector.h"
 
 namespace fwk {
-
-template <class T, class I> struct IndexVectorIndices;
 
 // TODO: Better name ?
 // Constant time emplace & erase.
@@ -191,57 +190,17 @@ template <class T> class IndexedVector {
 		Vec &vector;
 	};
 
-	template <class IndexType = int> struct IndexIter {
-		IndexIter(int index, int max_index, const IndexedVector &vector)
-			: index(index), max_index(max_index), valid_map(vector.m_valids) {}
-
-		typedef std::forward_iterator_tag iterator_category;
-		typedef IndexType value_type;
-		typedef IndexType *pointer;
-		typedef IndexType &reference;
-		typedef int difference_type;
-
-		const IndexIter &operator++() {
-			index++;
-			while(index < max_index && !valid_map[index])
-				index++;
-			return *this;
-		}
-		auto operator*() const { return IndexType(index); }
-		bool operator==(const IndexIter &rhs) const { return index == rhs.index; }
-		bool operator<(const IndexIter &rhs) const { return index < rhs.index; }
-		int operator-(const IndexIter &rhs) const {
-			if(rhs.index > index)
-				return -(rhs - *this);
-
-			int diff = 0;
-			int pos = rhs.index;
-			while(pos < index) {
-				if(valid_map[pos])
-					diff++;
-				pos++;
-			}
-			return diff;
-		}
-
-	  private:
-		int index, max_index;
-		CSpan<bool> valid_map;
-	};
-
 	auto begin() { return Iter<false>(firstIndex(), m_end_index, *this); }
 	auto end() { return Iter<false>(m_end_index, m_end_index, *this); }
 
 	auto begin() const { return Iter<true>(firstIndex(), m_end_index, *this); }
 	auto end() const { return Iter<true>(m_end_index, m_end_index, *this); }
 
-	template <class Idx = int> IndexVectorIndices<T, Idx> indices() const { return {*this}; }
-
-	template <class IndexType> auto ibegin() const {
-		return IndexIter<IndexType>(firstIndex(), endIndex(), *this);
-	}
-	template <class IndexType> auto iend() const {
-		return IndexIter<IndexType>(endIndex(), endIndex(), *this);
+	template <class Idx = int> auto indices() const {
+		const bool *valids = m_valids.data();
+		return IndexRange(
+			firstIndex(), m_end_index, [](int idx) { return Idx(idx); },
+			[=](int idx) { return valids[idx]; });
 	}
 
 	bool operator==(const IndexedVector &rhs) const {
@@ -346,15 +305,4 @@ template <class T> class IndexedVector {
 	int m_valid_count = 0;
 	int m_end_index = 0;
 };
-
-template <class T, class I> struct IndexVectorIndices {
-	IndexVectorIndices(const IndexedVector<T> &vector) : vector(vector) {}
-
-	auto begin() const { return vector.template ibegin<I>(); }
-	auto end() const { return vector.template iend<I>(); }
-	int size() const { return vector.size(); }
-
-	const IndexedVector<T> &vector;
-};
-
 }
