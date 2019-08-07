@@ -29,6 +29,7 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
 #else
+	Backtrace::t_default_mode = max(Backtrace::t_default_mode, Backtrace::t_fatal_mode);
 	onFailMakeError(file, line, buffer).print();
 	asm("int $3");
 #endif
