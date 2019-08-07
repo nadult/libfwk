@@ -355,5 +355,4 @@ inline auto VertexRef::edgesTo() const {
 inline auto VertexRef::nodesAdj() const { return m_graph->refs(m_graph->nodesAdj(m_id)); }
 inline auto VertexRef::nodesFrom() const { return m_graph->refs(m_graph->nodesFrom(m_id)); }
 inline auto VertexRef::nodesTo() const { return m_graph->refs(m_graph->nodesTo(m_id)); }
-
 }

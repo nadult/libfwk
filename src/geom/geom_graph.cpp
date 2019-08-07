@@ -4,6 +4,11 @@
 
 namespace fwk {
 
+template <class T> GeomGraph<T>::GeomGraph(vector<Point> points) {
+	for(auto pt : points)
+		add(pt);
+}
+
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
 
@@ -86,6 +91,9 @@ template <class T> bool GeomGraph<T>::operator<(const GeomGraph &rhs) const {
 template class GeomGraph<float2>;
 template class GeomGraph<int2>;
 
+template class GeomGraph<float3>;
+template class GeomGraph<int3>;
+
 /*
 #define TEMPLATE template <class T>
 #define TGRAPH Graph<T>
@@ -148,5 +156,4 @@ TEMPLATE VectorMap<NodeId, NodeId> TGRAPH::mapping(const vector<T> &source_point
 			out.emplace_back(id, *target);
 	return out;
 }*/
-
 }

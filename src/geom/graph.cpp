@@ -154,21 +154,29 @@ GEdgeId Graph::addNew(VertexId n1, VertexId n2) {
 }
 
 pair<TriId, bool> Graph::add(VertexId v1, VertexId v2, VertexId v3) {
+	auto vmax = max(v1, v2, v3);
+	if(m_vert_tris.size() <= vmax)
+		m_vert_tris.resize(int(vmax) + 1);
+
 	for(auto tid : m_vert_tris[v1]) {
 		auto &tri = m_tris[tid];
 		if(isOneOf(v2, tri.verts) && isOneOf(v3, tri.verts))
 			return {tid, false};
 	}
-	return {addNew(v1, v2, v3), true};
+
+	TriId tid(m_tris.emplace(v1, v2, v3));
+	m_vert_tris[v1].emplace_back(tid);
+	m_vert_tris[v2].emplace_back(tid);
+	m_vert_tris[v3].emplace_back(tid);
+	return {tid, true};
 }
 
 TriId Graph::addNew(VertexId v1, VertexId v2, VertexId v3) {
 	TriId tid(m_tris.emplace(v1, v2, v3));
+
 	auto vmax = max(v1, v2, v3);
-	if(m_vert_tris.size() <= vmax) {
-		auto size = BaseVector::insertCapacity(m_vert_tris.size(), sizeof(VertexId), vmax + 1);
-		m_vert_tris.resize(size);
-	}
+	if(m_vert_tris.size() <= vmax)
+		m_vert_tris.resize(int(vmax) + 1);
 
 	m_vert_tris[v1].emplace_back(tid);
 	m_vert_tris[v2].emplace_back(tid);
