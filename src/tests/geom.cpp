@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/geom/contour.h"
+#include "fwk/geom/geom_graph.h"
 #include "fwk/geom/plane_graph.h"
 #include "fwk/geom/regular_grid.h"
 #include "fwk/math/random.h"
@@ -89,10 +90,31 @@ static void testPlaneGraph() {
 	ASSERT(transform<float2>(contours.front().points()) == target_points);
 }
 
+static void testGraph() NOINLINE;
+static void testGraph() {
+	GeomGraph<float2> graph;
+	float2 points[] = {float2(-1, 0), float2(0, 0),   float2(1, 0),
+					   float2(0, -1), float2(-1, -1), float2(0, 1)};
+	int indices[][2] = {{1, 0}, {3, 1}, {2, 1}, {0, 4}, {1, 5}};
+
+	for(auto pt : points)
+		graph.add(pt);
+
+	for(int n : intRange(indices)) {
+		auto eid = graph.add(points[indices[n][0]], points[indices[n][1]]);
+		auto eref = graph.ref(eid);
+		graph[eref.from()].ival1 += 1;
+	}
+
+	ASSERT_EQ(graph[VertexId(1)].ival1, 2);
+	// TODO: better tests?
+}
+
 void testMain() {
 	testContour();
 	testImmutableGraph();
 	testRegularGrid();
 	testPlaneGraph();
 	orderByDirectionTest();
+	testGraph();
 }

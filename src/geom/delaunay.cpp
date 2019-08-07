@@ -494,10 +494,6 @@ vector<VertexIdPair> cdtFilterSide(const PGraph<T> &igraph, CSpan<VertexIdPair> 
 	return out;
 }
 
-// TODO: move these outside?
-using VertexRef = ImmutableGraph::VertexRef;
-using EdgeRef = ImmutableGraph::EdgeRef;
-
 template <class T, EnableIfIntegralVec<T, 2>...>
 vector<array<int, 3>> delaunaySideTriangles(const PGraph<T> &igraph, CSpan<VertexIdPair> cdt,
 											CSpan<VertexIdPair> filter, bool ccw_side) {
@@ -525,8 +521,8 @@ vector<array<int, 3>> delaunaySideTriangles(const PGraph<T> &igraph, CSpan<Verte
 	vector<array<int, 3>> out;
 	out.reserve(graph.numEdges() / 3);
 
-	for(VertexRef v1 : graph.vertexRefs()) {
-		for(EdgeRef e1 : v1.edgesFrom()) {
+	for(auto v1 : graph.vertexRefs()) {
+		for(auto e1 : v1.edgesFrom()) {
 			if(visited[e1])
 				continue;
 

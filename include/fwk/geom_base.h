@@ -8,8 +8,10 @@
 
 namespace fwk {
 
-DEFINE_ENUM(GeomTag, vertex, edge, arc, arc_segment, cell);
+DEFINE_ENUM(GeomTag, vertex, edge, arc, arc_segment, cell, polygon, triangle);
 
+using TriangleId = TagId<GeomTag::triangle>;
+using PolygonId = TagId<GeomTag::polygon>;
 using VertexId = TagId<GeomTag::vertex>;
 using EdgeId = TagId<GeomTag::edge>;
 using ArcId = TagId<GeomTag::arc>;
@@ -17,6 +19,10 @@ using ArcSegmentId = TagId<GeomTag::arc_segment>;
 using CellId = TagId<GeomTag::cell>;
 
 using VertexIdPair = Pair<VertexId>;
+
+using VertId = VertexId;
+using TriId = TriangleId;
+using PolyId = PolygonId;
 
 template <class T> class Contour;
 template <class T> class SubContourRef;
@@ -42,4 +48,8 @@ template <class Vec2> bool onTheEdge(const Box<Vec2> &rect, const Vec2 &p) {
 	return isOneOf(p.x, rect.x(), rect.ex()) || isOneOf(p.y, rect.y(), rect.ey());
 }
 
+class Graph;
+template <class T> class GeomGraph;
+class VertexRef;
+class EdgeRef;
 }

@@ -9,9 +9,6 @@
 #include "fwk/sys/assert.h"
 
 namespace fwk {
-using EdgeRef = ImmutableGraph::EdgeRef;
-using VertexRef = ImmutableGraph::VertexRef;
-
 ImmutableGraph::ImmutableGraph(CSpan<Pair<VertexId>> edges, Maybe<int> num_verts) {
 	if(!num_verts) {
 		int max_node = -1;
@@ -100,7 +97,7 @@ ImmutableGraph ImmutableGraph::makeForest(CSpan<Maybe<VertexId>> parents, Maybe<
 	return {edges, num_verts};
 }
 
-Maybe<EdgeRef> ImmutableGraph::findEdge(VertexId from, VertexId to) const {
+Maybe<ImmutableGraph::EdgeRef> ImmutableGraph::findEdge(VertexId from, VertexId to) const {
 	for(auto edge_id : edgesFrom(from)) {
 		const auto &edge = m_edge_info[edge_id];
 		if(edge.second == to)

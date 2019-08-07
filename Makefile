@@ -49,7 +49,7 @@ SHARED_SRC=vector enum str sys_base type_info any any_ref logger any_config \
 		   gfx/camera gfx/fps_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
 		   geom/contour geom/immutable_graph geom/plane_graph geom/regular_grid geom/segment_grid \
 		   geom/plane_graph_builder geom/voronoi geom/wide_int geom/voronoi_constructor geom/delaunay \
-		   geom/procgen \
+		   geom/procgen geom/graph geom/geom_graph \
 		   perf/perf_base perf/exec_tree perf/manager perf/thread_context
 
 MENU_SRC=menu/imgui_code menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper perf/analyzer
