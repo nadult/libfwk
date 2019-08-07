@@ -37,6 +37,12 @@ template <class T> class PodVector {
 	}
 	void resize(int new_size) { m_base.resizePodPartial(sizeof(T), new_size); }
 
+	void resizeFullCopy(int new_size) {
+		PodVector new_vector(new_size);
+		copy(new_vector, *this);
+		swap(new_vector);
+	}
+
 	void swap(PodVector &rhs) { m_base.swap(rhs.m_base); }
 	void unsafeSwap(Vector<T> &rhs) { m_base.swap(rhs.m_base); }
 
