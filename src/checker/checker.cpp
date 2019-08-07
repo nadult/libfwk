@@ -131,8 +131,12 @@ struct AnnoCtx {
 					ref.body = ExAnno::except;
 			}
 		}
-
-		// TODO: iterate constructor initializers
+		if(isa<CXXConstructorDecl>(decl)) {
+			auto *spec = cast<CXXConstructorDecl>(decl);
+			for(auto *init : spec->inits())
+				if(getExcepts(init->getInit(), nullptr, spec))
+					ref.body = ExAnno::except;
+		}
 
 		return ref;
 	}
