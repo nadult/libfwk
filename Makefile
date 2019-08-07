@@ -10,9 +10,8 @@ ifndef LINUX_LINK
 endif
 
 ifneq (,$(findstring clang,$(LINUX_CXX)))
-	CLANG=yes
+	LINUX_CLANG_MODE=yes
 	LINUX_LINK+=-fuse-ld=gold
-	FLAGS+=-Wno-undefined-inline -Werror=return-type
 endif
 
 _dummy := $(shell [ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR))
@@ -60,7 +59,7 @@ PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
 
 ifneq ("$(wildcard extern/imgui/imgui.h)","")
 	SHARED_SRC:=$(MENU_SRC) $(SHARED_SRC) $(PERF_SRC)
-	FLAGS+= -DFWK_IMGUI_ENABLED
+	FLAGS+=-DFWK_IMGUI_ENABLED
 endif
 
 ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
@@ -78,12 +77,6 @@ MINGW_PROGRAMS:=$(PROGRAM_SRC:%=%.exe)
 HTML5_PROGRAMS:=$(PROGRAM_SRC:%=%.html)
 HTML5_PROGRAMS_SRC:=$(PROGRAM_SRC:%=%.html.cpp)
 
-all: lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
-tools: $(TOOLS_SRC)
-tests: $(TESTS_SRC)
-tools_mingw: $(TOOLS_SRC:%=%.exe)
-tests_mingw: $(TESTS_SRC:%=%.exe)
-
 LINUX_AR =ar
 LINUX_STRIP=strip
 LINUX_PKG_CONFIG=pkg-config
@@ -93,6 +86,8 @@ MINGW_STRIP=$(MINGW_PREFIX)strip
 MINGW_AR=$(MINGW_PREFIX)ar
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
+# --- Compilation & linking flags -----------------------------------------------------------------
+
 LIBS=freetype2 sdl2 libpng vorbisfile
 LINUX_LIBS=-pthread $(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt -lm -lstdc++
 MINGW_LIBS=-pthread $(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32\
@@ -100,27 +95,40 @@ MINGW_LIBS=-pthread $(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldso
 
 INCLUDES=-Iinclude/ -Isrc/
 
+
+CLANG_FLAGS+=-Wconstant-conversion -Werror=return-type -Wno-undefined-inline
+GCC_FLAGS+=-Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
+
 # Clang gives no warnings for uninitialized class members!
-NICE_FLAGS=-std=c++2a -fno-exceptions -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder \
-		   -Wuninitialized -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
-		   -Wparentheses -Wno-overloaded-virtual
+FLAGS+=-Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized -Wno-unused-function \
+		-Werror=switch -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual
+#TODO:-Wno-strict-overflow
 
-FLAGS+=-DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
-HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
-LINUX_FLAGS=-DFWK_TARGET_LINUX -pthread -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain $(NICE_FLAGS) \
+FLAGS+=-fno-exceptions -std=c++2a -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
+LINUX_FLAGS=-DFWK_TARGET_LINUX -pthread -ggdb $(shell $(LINUX_PKG_CONFIG) --cflags $(LIBS)) -Umain \
 			$(INCLUDES) $(FLAGS)
-MINGW_FLAGS=-DFWK_TARGET_MINGW -pthread -ggdb -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) -Umain \
-			$(NICE_FLAGS) $(INCLUDES) $(FLAGS) -DFWK_PERF_DISABLE_SAMPLING
-HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -O2 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
-			--embed-file data/ $(NICE_FLAGS) $(INCLUDES)
+MINGW_FLAGS=-DFWK_TARGET_MINGW -pthread -ggdb -msse2 -mfpmath=sse $(shell $(MINGW_PKG_CONFIG) --cflags $(LIBS)) \
+			-Umain $(INCLUDES) $(FLAGS) $(GCC_FLAGS)
 
-PCH_FILE_SRC=src/pch.h
+HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
+HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
+			--embed-file data/ $(INCLUDES) $(FLAGS) $(CLANG_FLAGS)
 
-PCH_FILE_H=$(BUILD_DIR)/pch.h
-PCH_FILE_GCH=$(BUILD_DIR)/pch.h.gch
-PCH_FILE_PCH=$(BUILD_DIR)/pch.h.pch
+ifdef LINUX_CLANG_MODE
+	LINUX_FLAGS += $(CLANG_FLAGS)
+else
+	LINUX_FLAGS += $(GCC_FLAGS)
+endif
 
-ifdef CLANG
+# --- Precompiled headers configuration -----------------------------------------------------------
+
+PCH_FILE_SRC=src/fwk_pch.h
+
+PCH_FILE_H=$(BUILD_DIR)/fwk_pch_.h
+PCH_FILE_GCH=$(BUILD_DIR)/fwk_pch_.h.gch
+PCH_FILE_PCH=$(BUILD_DIR)/fwk_pch_.h.pch
+
+ifdef LINUX_CLANG_MODE
 	PCH_INCLUDE=-include-pch $(PCH_FILE_PCH)
 	PCH_FILE_MAIN=$(PCH_FILE_PCH)
 else
@@ -128,7 +136,14 @@ else
 	PCH_FILE_MAIN=$(PCH_FILE_GCH)
 endif
 
-ifdef CLANG
+$(PCH_FILE_H): $(PCH_FILE_SRC)
+	cp $^ $@
+$(PCH_FILE_MAIN): $(PCH_FILE_H)
+	$(LINUX_CXX) -x c++-header -MMD $(LINUX_FLAGS) $(PCH_FILE_H) -o $@
+
+# --- Exception checker ---------------------------------------------------------------------------
+
+ifdef LINUX_CLANG_MODE
 checker.so: .ALWAYS_CHECK
 	$(MAKE) -C src/checker/ ../../checker.so
 
@@ -137,10 +152,13 @@ LINUX_CHECKER_FLAGS=-Xclang -load -Xclang  $(realpath checker.so) -Xclang -add-p
 endif
 endif
 
-$(PCH_FILE_H): $(PCH_FILE_SRC)
-	cp $^ $@
-$(PCH_FILE_MAIN): $(PCH_FILE_H)
-	$(LINUX_CXX) -x c++-header -MMD $(LINUX_FLAGS) $(PCH_FILE_H) -o $@
+# --- Main build targets --------------------------------------------------------------------------
+
+all: lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
+tools: $(TOOLS_SRC)
+tests: $(TESTS_SRC)
+tools_mingw: $(TOOLS_SRC:%=%.exe)
+tests_mingw: $(TESTS_SRC:%=%.exe)
 
 $(LINUX_OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE_MAIN)
 	$(LINUX_CXX) -MMD $(LINUX_FLAGS) $(LINUX_CHECKER_FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@

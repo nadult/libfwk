@@ -6,4 +6,4 @@ wine ./math.exe
 wine ./enums.exe
 wine ./models.exe
 wine ./vector.exe
-wine ./rollback_test.exe
+wine ./geom.exe
