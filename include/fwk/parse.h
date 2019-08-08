@@ -89,10 +89,13 @@ class EXCEPT TextParser {
 	void errorTrailingData();
 
   private:
+	template <class Func> auto parseSingle(Func func, const char *);
+	template <class T, class Func> T parseSingleRanged(Func, const char *);
+
 	ZStr m_current;
 };
 
-// To make new type parsable: simply overload operator<<:
+// To make new type parsable: simply overload operator>>:
 // TextParser &operator>>(TextParser&, MyNewType &rhs);
 
 TextParser &operator>>(TextParser &, short2 &) EXCEPT;
@@ -138,6 +141,8 @@ template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr
 	TextParser parser(str);
 	T out;
 	parser >> out;
+
+	// TODO: is this check necessary?
 	if(!parser.empty()) {
 		out = T();
 		parser.errorTrailingData();
@@ -147,15 +152,18 @@ template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr
 
 template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...>
 T fromString(ZStr str, const T &on_error) NOEXCEPT {
+	QuietExceptionBlock quiet;
 	TextParser parser(str);
 	T out;
 	parser >> out;
-	if(!parser.empty())
-		return on_error;
 	if(exceptionRaised()) {
 		clearExceptions();
 		return on_error;
 	}
+
+	// TODO: is this check necessary ?
+	if(!parser.empty())
+		return on_error;
 	return out;
 }
 

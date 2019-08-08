@@ -18,46 +18,52 @@ namespace {
 
 	static void reportParseError(Str, const char *, int) NOINLINE EXCEPT;
 	void reportParseError(Str str, const char *type_name, int count) {
-		string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
-		auto short_str = str.limitSizeBack(40);
-		RAISE("Error while parsing %% from \"%\"", what, count > 1 ? "s" : "", short_str);
+		if(detail::t_quiet_exceptions)
+			raiseQuietException();
+		else {
+			string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
+			auto short_str = str.limitSizeBack(40);
+			RAISE("Error while parsing %% from \"%\"", what, count > 1 ? "s" : "", short_str);
+		}
 	}
 
 	static void reportOutOfRange(Str, const char *) NOINLINE EXCEPT;
 	void reportOutOfRange(Str str, const char *type_name) {
-		auto short_str = str.limitSizeBack(40);
-		RAISE("Error while parsing %: value out of range: \"%\"", type_name, short_str);
+		if(detail::t_quiet_exceptions)
+			raiseQuietException();
+		else {
+			auto short_str = str.limitSizeBack(40);
+			RAISE("Error while parsing %: value out of range: \"%\"", type_name, short_str);
+		}
 	}
 
 	auto strtol(const char *ptr, char **end_ptr) { return ::strtol(ptr, end_ptr, 0); }
 	auto strtoul(const char *ptr, char **end_ptr) { return ::strtoul(ptr, end_ptr, 0); }
 	auto strtoll(const char *ptr, char **end_ptr) { return ::strtoll(ptr, end_ptr, 0); }
 	auto strtoull(const char *ptr, char **end_ptr) { return ::strtoull(ptr, end_ptr, 0); }
+}
 
-	template <class Func>
-	auto parseSingle(TextParser &parser, Func func, const char *type_name) EXCEPT {
-		const char *str = parser.parseElement().data();
-		char *end_ptr = nullptr;
-		errno = 0;
-		auto value = func(str, &end_ptr);
-		if(errno != 0 || end_ptr == str)
-			reportParseError(str, type_name, 1);
-		return value;
-	}
+template <class Func> auto TextParser::parseSingle(Func func, const char *type_name) {
+	const char *str = parseElement().data();
+	char *end_ptr = nullptr;
+	errno = 0;
+	auto value = func(str, &end_ptr);
+	if(errno != 0 || end_ptr == str)
+		reportParseError(str, type_name, 1);
+	return value;
+}
 
-	template <class T, class Func>
-	T parseSingleRanged(TextParser &parser, Func func, const char *type_name) EXCEPT {
-		auto element = parser.parseElement();
+template <class T, class Func> T TextParser::parseSingleRanged(Func func, const char *type_name) {
+	auto element = parseElement();
 
-		char *end_ptr = nullptr;
-		errno = 0;
-		auto value = func(element.data(), &end_ptr);
-		if(errno != 0 || end_ptr != element.end())
-			reportParseError(element, type_name, 1);
-		if(value < std::numeric_limits<T>::min() || value > std::numeric_limits<T>::max())
-			reportOutOfRange(element, type_name);
-		return T(value);
-	}
+	char *end_ptr = nullptr;
+	errno = 0;
+	auto value = func(element.data(), &end_ptr);
+	if(errno != 0 || end_ptr != element.end())
+		reportParseError(element, type_name, 1);
+	else if(value < std::numeric_limits<T>::min() || value > std::numeric_limits<T>::max())
+		reportOutOfRange(element, type_name);
+	return T(value);
 }
 
 int TextParser::countElements() const {
@@ -128,52 +134,52 @@ TextParser &TextParser::operator>>(bool &out) {
 }
 
 TextParser &TextParser::operator>>(double &out) {
-	out = parseSingle(*this, strtod, "double");
+	out = parseSingle(strtod, "double");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(float &out) {
-	out = parseSingle(*this, strtof, "float");
+	out = parseSingle(strtof, "float");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(short &out) {
-	out = parseSingleRanged<short>(*this, strtol, "short");
+	out = parseSingleRanged<short>(strtol, "short");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(unsigned short &out) {
-	out = parseSingleRanged<unsigned short>(*this, strtol, "unsigned short");
+	out = parseSingleRanged<unsigned short>(strtol, "unsigned short");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(int &out) {
-	out = parseSingleRanged<int>(*this, strtol, "int");
+	out = parseSingleRanged<int>(strtol, "int");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(unsigned int &out) {
-	out = parseSingleRanged<unsigned int>(*this, strtoul, "unsigned int");
+	out = parseSingleRanged<unsigned int>(strtoul, "unsigned int");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(long &out) {
-	out = parseSingleRanged<long>(*this, strtol, "long");
+	out = parseSingleRanged<long>(strtol, "long");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(unsigned long &out) {
-	out = parseSingleRanged<unsigned long>(*this, strtoul, "unsigned long");
+	out = parseSingleRanged<unsigned long>(strtoul, "unsigned long");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(long long &out) {
-	out = parseSingleRanged<long long>(*this, strtoll, "long long");
+	out = parseSingleRanged<long long>(strtoll, "long long");
 	return *this;
 }
 
 TextParser &TextParser::operator>>(unsigned long long &out) {
-	out = parseSingleRanged<unsigned long long>(*this, strtoull, "unsigned long long");
+	out = parseSingleRanged<unsigned long long>(strtoull, "unsigned long long");
 	return *this;
 }
 
@@ -184,16 +190,24 @@ void TextParser::parseDoubles(Span<double> out) { parseSpan(out); }
 void TextParser::parseNotEmpty(Span<Str> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
-		if(out[n].empty())
-			RAISE("Error while parsing a range of % not-empty strings (parsed: %)", out.size(), n);
+		if(out[n].empty()) {
+			if(detail::t_quiet_exceptions)
+				raiseQuietException();
+			else
+				RAISE("Error while parsing a range of % strings (parsed: %)", out.size(), n);
+		}
 	}
 }
 
 void TextParser::parseNotEmpty(Span<string> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
-		if(out[n].empty())
-			RAISE("Error while parsing a range of % not-empty strings (parsed: %)", out.size(), n);
+		if(out[n].empty()) {
+			if(detail::t_quiet_exceptions)
+				raiseQuietException();
+			else
+				RAISE("Error while parsing a range of % strings (parsed: %)", out.size(), n);
+		}
 	}
 }
 
