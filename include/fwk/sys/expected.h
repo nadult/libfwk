@@ -51,13 +51,14 @@ namespace detail {
 	// Implemented in on_fail.cpp
 	Error expectMakeError(const char *, const char *, int);
 	void expectFromExceptions(Dynamic<Error> *);
+	void expectMergeExceptions(Error &);
+	[[noreturn]] void failedExpected(const char *, int, const Error &);
+
 }
 template <class T> using RemoveExpected = typename detail::RemoveExpected<T>::Type;
 
-// You shouldn't pass error with Expected<> if there are some raised exceptions.
-// You have to either convert the exceptions to Expected<> or clear them.
-// When passing value to Expected (not error), if there are any raised exceptions,
-// then they are returned in Expected instead of passed value.
+// Simple class which can hold value or an error.
+// When constructed checks if there are any exceptions raised and if so, retrieves them.
 template <class T> class NOEXCEPT [[nodiscard]] Expected {
   public:
 	static_assert(!is_same<T, Error>);
@@ -76,7 +77,8 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 			new(&m_value) T(move(value));
 	}
 	Expected(Error error) : m_error(move(error)), m_has_value(false) {
-		PASSERT(!exceptionRaised());
+		if(exceptionRaised())
+			detail::expectMergeExceptions(*m_error);
 	}
 	~Expected() {
 		if(m_has_value)
@@ -131,9 +133,8 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 	const T &orElse(const T &on_error) const { return m_has_value ? m_value : on_error; }
 
 	T &get() {
-		// TODO: change to FATAL ?
 		if(!m_has_value)
-			failedExpected(__FILE__, __LINE__, *m_error);
+			detail::failedExpected(__FILE__, __LINE__, *m_error);
 		return m_value;
 	}
 	const T &get() const { return ((Expected *)this)->get(); }
@@ -158,7 +159,10 @@ template <> class [[nodiscard]] Expected<void> {
 		if(exceptionRaised())
 			detail::expectFromExceptions(&m_error);
 	}
-	Expected(Error error) : m_error(move(error)) { PASSERT(!exceptionRaised()); }
+	Expected(Error error) : m_error(move(error)) {
+		if(exceptionRaised())
+			detail::expectMergeExceptions(*m_error);
+	}
 
 	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
 
@@ -169,7 +173,7 @@ template <> class [[nodiscard]] Expected<void> {
 
 	void check() const {
 		if(m_error.get())
-			failedExpected(__FILE__, __LINE__, *m_error);
+			detail::failedExpected(__FILE__, __LINE__, *m_error);
 	}
 	void ignore() const {}
 

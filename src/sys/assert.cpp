@@ -10,11 +10,6 @@
 
 namespace fwk {
 
-void failedExpected(const char *file, int line, const Error &error) {
-	error.print();
-	fatalError(file, line, "Getting value from invalid Expected<>");
-}
-
 void fatalError(const char *file, int line, const char *fmt, ...) {
 	char buffer[4096], *bptr = buffer;
 	bptr += snprintf(buffer, sizeof(buffer), "FATAL: ");

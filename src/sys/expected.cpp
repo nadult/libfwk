@@ -18,5 +18,17 @@ namespace detail {
 	void expectFromExceptions(Dynamic<Error> *out) {
 		new(out) Dynamic<Error>(getMergedExceptions());
 	}
+
+	void expectMergeExceptions(Error &out) {
+		auto errors = getExceptions();
+		errors.emplace_back(move(out));
+		out = Error::merge(errors);
+	}
+
+	void failedExpected(const char *file, int line, const Error &error) {
+		error.print();
+		fatalError(file, line, "Getting value from invalid Expected<>");
+	}
+
 }
 }

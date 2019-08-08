@@ -171,7 +171,6 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 // TODO: use Str ?
 [[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
 [[noreturn]] void assertFailed(const char *file, int line, const char *str);
-[[noreturn]] void failedExpected(const char *, int, const Error &);
 
 void handleCtrlC(void (*handler)());
 void handleSegFault();
