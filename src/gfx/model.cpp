@@ -125,7 +125,6 @@ Ex<Model> Model::loadFromXML(CXmlNode xml_node) {
 	}
 
 	// TODO: make sure that errors are handled properly here
-	EXPECT_CATCH();
 	return Model(move(nodes), move(meshes), move(anims), move(material_defs));
 }
 

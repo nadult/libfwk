@@ -32,7 +32,7 @@ _dummy := $(shell [ -d temp ] || mkdir -p temp)
 
 SHARED_SRC=vector enum str sys_base type_info any any_ref logger any_config \
 		   sys/file_system sys/file_system_linux sys/file_stream \
-		   sys/error sys/exception sys/assert sys/assert_impl sys/on_fail sys/memory sys/backtrace sys/xml sys/input \
+		   sys/error sys/exception sys/expected sys/assert sys/assert_impl sys/on_fail sys/memory sys/backtrace sys/xml sys/input \
            math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
 		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
 		   math/line math/affine_trans math/rational math/gcd math/rational_angle \

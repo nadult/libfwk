@@ -14,10 +14,8 @@ FpsCamera lerp(const FpsCamera &a, const FpsCamera &b, float t) {
 }
 
 Ex<FpsCamera> FpsCamera::load(CXmlNode node) {
-	FpsCamera out{node.attrib<float3>("pos"), node.attrib<float2>("forward_xz"),
-				  node.attrib<float>("rot_vert")};
-	EXPECT_CATCH();
-	return out;
+	return FpsCamera{node.attrib<float3>("pos"), node.attrib<float2>("forward_xz"),
+					 node.attrib<float>("rot_vert")};
 }
 
 void FpsCamera::save(XmlNode node) const {

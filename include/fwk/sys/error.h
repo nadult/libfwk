@@ -12,12 +12,15 @@ namespace fwk {
 struct ErrorLoc {
 	const char *file = nullptr;
 	int line = 0;
+
+	FWK_ORDER_BY_DECL(ErrorLoc);
 };
 
 struct ErrorChunk {
 	ErrorChunk(string message = {}) : message(move(message)) {}
 	ErrorChunk(ErrorLoc loc, string message = {}) : message(move(message)), loc(loc) {}
 	FWK_COPYABLE_CLASS(ErrorChunk);
+	FWK_ORDER_BY_DECL(ErrorChunk);
 
 	bool empty() const { return message.empty() && !loc.file; }
 	void operator>>(TextFormatter &) const;
@@ -53,6 +56,7 @@ struct Error {
 	Error(vector<Chunk>, Maybe<Backtrace> = none);
 	Error();
 	FWK_COPYABLE_CLASS(Error);
+	FWK_ORDER_BY_DECL(Error);
 
 	void operator+=(const Chunk &);
 

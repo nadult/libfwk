@@ -10,11 +10,9 @@
 namespace fwk {
 
 Ex<OrthoCamera> OrthoCamera::load(CXmlNode node) {
-	OrthoCamera out{node.attrib<float3>("pos"), node.attrib<float2>("forward_xz"),
-					node.attrib<float>("rot_vert"), node.attrib<float2>("xy_offset"),
-					node.attrib<float>("zoom")};
-	EXPECT_CATCH();
-	return out;
+	return OrthoCamera{node.attrib<float3>("pos"), node.attrib<float2>("forward_xz"),
+					   node.attrib<float>("rot_vert"), node.attrib<float2>("xy_offset"),
+					   node.attrib<float>("zoom")};
 }
 
 void OrthoCamera::save(XmlNode node) const {

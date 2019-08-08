@@ -100,13 +100,10 @@ static auto parseVertexWeights(CXmlNode node) EXCEPT {
 }
 
 Ex<MeshBuffers> MeshBuffers::load(CXmlNode node) {
-	MeshBuffers out(node.childValue<vector<float3>>("positions", {}),
-					node.childValue<vector<float3>>("normals", {}),
-					node.childValue<vector<float2>>("tex_coords", {}), {}, parseVertexWeights(node),
-					node.childValue<vector<string>>("node_names", {}));
-
-	EXPECT_CATCH();
-	return out;
+	return MeshBuffers(node.childValue<vector<float3>>("positions", {}),
+					   node.childValue<vector<float3>>("normals", {}),
+					   node.childValue<vector<float2>>("tex_coords", {}), {},
+					   parseVertexWeights(node), node.childValue<vector<string>>("node_names", {}));
 }
 
 void MeshBuffers::saveToXML(XmlNode node) const {

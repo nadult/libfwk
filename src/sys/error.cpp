@@ -10,7 +10,10 @@
 
 namespace fwk {
 
+FWK_ORDER_BY_DEF(ErrorLoc, file, line);
+
 FWK_COPYABLE_CLASS_IMPL(ErrorChunk)
+FWK_ORDER_BY_DEF(ErrorChunk, message, loc)
 
 void ErrorChunk::operator>>(TextFormatter &out) const {
 	if(loc.file)
@@ -27,7 +30,9 @@ Error::Error(Chunk chunk, Maybe<Backtrace> bt) : backtrace(move(bt)) {
 Error::Error(vector<Chunk> chunks, Maybe<Backtrace> bt)
 	: chunks(move(chunks)), backtrace(move(bt)) {}
 Error::Error() = default;
+
 FWK_COPYABLE_CLASS_IMPL(Error)
+FWK_ORDER_BY_DEF(Error, chunks) // TODO: backtrace & values?
 
 void Error::operator+=(const Chunk &chunk) { chunks.emplace_back(chunk); }
 

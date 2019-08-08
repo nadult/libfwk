@@ -42,11 +42,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 
 	vector<char> data(size);
 	sr.loadData(data);
-
-	Sound sound(move(data), {(int)frequency, bits, channels > 1});
-
-	EXPECT_CATCH();
-	return sound;
+	return Sound(move(data), {(int)frequency, bits, channels > 1});
 }
 
 Ex<void> Sound::save(FileStream &sr) const {
@@ -72,7 +68,6 @@ Ex<void> Sound::save(FileStream &sr) const {
 	sr << u32(m_data.size());
 	sr.saveData(m_data);
 
-	EXPECT_CATCH();
 	return {};
 }
 

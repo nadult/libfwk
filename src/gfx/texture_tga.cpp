@@ -81,7 +81,6 @@ namespace detail {
 					colors[x] = colors[x].bgra();
 			}
 		}
-		EXPECT_CATCH();
 
 		return Texture(move(data), size);
 	}
@@ -106,7 +105,6 @@ Ex<void> Texture::saveTGA(FileStream &sr) const {
 		sr.saveData(cspan(&line[0], m_size.x));
 	}
 
-	EXPECT_CATCH();
 	return {};
 }
 

@@ -247,7 +247,6 @@ Ex<void> XmlDocument::save(FileStream &sr) const {
 	vector<char> buffer;
 	print(std::back_inserter(buffer), *m_ptr);
 	sr.saveData(buffer);
-	EXPECT_CATCH();
 	return {};
 }
 

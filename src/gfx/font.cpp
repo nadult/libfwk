@@ -84,7 +84,6 @@ Ex<FontCore> FontCore::load(CXmlNode font_node) {
 		EXPECT(kernings_count == 0);
 	}
 
-	EXPECT_CATCH();
 	out.computeRect();
 	return out;
 }

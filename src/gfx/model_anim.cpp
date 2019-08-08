@@ -53,7 +53,6 @@ Ex<void> ModelAnim::Channel::load(CXmlNode node, const AffineTrans &default_tran
 	if(auto times_node = node.child("time"))
 		time_track = fromString<vector<float>>(times_node.value());
 
-	EXPECT_CATCH();
 	return {};
 }
 
@@ -112,7 +111,6 @@ Ex<ModelAnim> ModelAnim::load(CXmlNode node, PPose default_pose) {
 	out.m_shared_time_track = fromString<vector<float>>(shared_track.value());
 
 	out.verifyData();
-	EXPECT_CATCH();
 	return out;
 }
 

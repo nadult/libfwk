@@ -210,12 +210,8 @@ template <class T, EnableIf<is_xml_loadable<T>>...> Ex<T> load(CXmlNode node) {
 		return load(node, Type<T>());
 	else if constexpr(detail::XmlTraits<T>::loadable)
 		return T::load(node);
-	else {
-		auto result = node.value<T>();
-		if(exceptionRaised()) // TODO: function for that ?
-			return getMergedExceptions();
-		return result;
-	}
+	else
+		return node.value<T>();
 }
 
 template <class T, EnableIf<detail::XmlTraits<T>::saveable || is_formattible<T>>...>

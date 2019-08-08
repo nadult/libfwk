@@ -104,7 +104,6 @@ namespace detail {
 			}
 		}
 
-		EXPECT_CATCH();
 		return Texture(move(data), {width, height});
 	}
 }

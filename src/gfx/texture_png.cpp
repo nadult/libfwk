@@ -216,7 +216,6 @@ namespace detail {
 		EXPECT_CATCH();
 		PodVector<IColor> data(loader.size().x * loader.size().y);
 		loader >> data;
-		EXPECT_CATCH();
 		return Texture{move(data), loader.size()};
 	}
 }
@@ -226,7 +225,6 @@ Ex<HeightMap16bit> HeightMap16bit::load(FileStream &stream) {
 	EXPECT_CATCH();
 	vector<u16> data(loader.size().x * loader.size().y);
 	loader >> data;
-	EXPECT_CATCH();
 	return HeightMap16bit{move(data), loader.size()};
 }
 }

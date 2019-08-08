@@ -59,11 +59,4 @@ Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	return out;
 }
 
-namespace detail {
-	Error expectMakeError(const char *expr, const char *file, int line) {
-		auto chunks = onFailChunks();
-		chunks.emplace_back(ErrorLoc{file, line}, format("Failed: %", expr));
-		return move(chunks);
-	}
-}
 }

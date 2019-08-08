@@ -47,19 +47,34 @@ template <class T> constexpr bool is_expected<Expected<T>> = true;
 namespace detail {
 	template <class T> struct RemoveExpected { using Type = T; };
 	template <class T> struct RemoveExpected<Expected<T>> { using Type = T; };
+
+	// Implemented in on_fail.cpp
+	Error expectMakeError(const char *, const char *, int);
+	void expectFromExceptions(Dynamic<Error> *);
 }
 template <class T> using RemoveExpected = typename detail::RemoveExpected<T>::Type;
 
-// It's illegal to construct Expected<> while there are raised exceptions.
+// You shouldn't pass error with Expected<> if there are some raised exceptions.
 // You have to either convert the exceptions to Expected<> or clear them.
-// You cannot use both systems at once.
+// When passing value to Expected (not error), if there are any raised exceptions,
+// then they are returned in Expected instead of passed value.
 template <class T> class NOEXCEPT [[nodiscard]] Expected {
   public:
 	static_assert(!is_same<T, Error>);
 
 	// TODO: should we check here if there were any errors? and return them if so?
-	Expected(const T &value) : m_value(value), m_has_value(true) { PASSERT(!exceptionRaised()); }
-	Expected(T && value) : m_value(move(value)), m_has_value(true) { PASSERT(!exceptionRaised()); }
+	Expected(const T &value) : m_has_value(!exceptionRaised()) {
+		if(exceptionRaised())
+			detail::expectFromExceptions(&m_error);
+		else
+			new(&m_value) T(value);
+	}
+	Expected(T && value) : m_has_value(!exceptionRaised()) {
+		if(exceptionRaised())
+			detail::expectFromExceptions(&m_error);
+		else
+			new(&m_value) T(move(value));
+	}
 	Expected(Error error) : m_error(move(error)), m_has_value(false) {
 		PASSERT(!exceptionRaised());
 	}
@@ -139,8 +154,10 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 
 template <> class [[nodiscard]] Expected<void> {
   public:
-	// TODO: should we check here if there were any errors? and return them if so?
-	Expected() { PASSERT(!exceptionRaised()); }
+	Expected() {
+		if(exceptionRaised())
+			detail::expectFromExceptions(&m_error);
+	}
 	Expected(Error error) : m_error(move(error)) { PASSERT(!exceptionRaised()); }
 
 	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
@@ -163,8 +180,6 @@ template <> class [[nodiscard]] Expected<void> {
 };
 
 namespace detail {
-	// Implemented in on_fail.cpp
-	Error expectMakeError(const char *, const char *, int);
 
 	template <class T>
 	auto passError(const T &value, const char *expr, const char *file, int line) {
