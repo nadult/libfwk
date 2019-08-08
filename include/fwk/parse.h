@@ -134,7 +134,9 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) EXCEPT {
 	return parser;
 }
 
-template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr str) EXCEPT {
+template <class T, EnableIf<is_one_of<T, Str, ZStr, string>>...> T fromString(ZStr v) { return v; }
+template <class T, EnableIf<is_parsable<T> && !is_enum<T> && !is_one_of<T, Str, ZStr, string>>...>
+T fromString(ZStr str) EXCEPT {
 	TextParser parser(str);
 	T out;
 	parser >> out;

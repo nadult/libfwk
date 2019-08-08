@@ -18,14 +18,36 @@ template <class Ch> class xml_document;
 
 namespace fwk {
 
-// Immutable XmlNode
+// -------------------------------------------------------------------------------------------
+// ---  Immutable CXmlNode   -----------------------------------------------------------------
+//
 // Attribute & value accessors raise exception on error, unless prefixed with try
+// Accessors allow easy access to attributes & values
+//
+// Example use:
+//   if(auto cnode = node.child("sub_node"))
+//     float3 my_value = cnode("my_attribute");
+//   if(auto maybe_val = cnode.maybeAttrib<float>("optional_attrib"))
+//     float val = *maybe_val;
+//   auto val = node("optional_attr2", 42 /*default value*/);
+
 class CXmlNode {
   public:
 	CXmlNode(const CXmlNode &) = default;
 	CXmlNode() = default;
 
+	// Automatically converts to parsable values and strings
+	struct Accessor {
+		template <class T, EnableIf<is_parsable<T>>...> operator T() const INST_EXCEPT {
+			return fromString<T>(value);
+		}
+
+		ZStr value;
+	};
+
 	ZStr attrib(Str name) const EXCEPT;
+	Accessor operator()(Str name) const EXCEPT { return {attrib(name)}; }
+
 	ZStr tryAttrib(Str name, ZStr on_error = {}) const;
 	ZStr tryAttrib(Str name, const char *on_error) const { return tryAttrib(name, ZStr(on_error)); }
 	bool hasAttrib(Str name) const;
@@ -35,6 +57,10 @@ class CXmlNode {
 		ZStr value = tryAttrib(name);
 		return value ? fromString<T>(value) : on_empty;
 	}
+	template <class T> T operator()(Str name, const T &on_empty) const EXCEPT {
+		return attrib(name, on_empty);
+	}
+
 	template <class T> T tryAttrib(Str name, const T &on_error = {}) const {
 		ZStr val = tryAttrib(name);
 		return val ? tryFromString<T>(val, on_error) : on_error;
@@ -43,6 +69,9 @@ class CXmlNode {
 		ZStr val = tryAttrib(name);
 		return val ? maybeFromString<T>(val) : Maybe<T>();
 	}
+
+	ZStr value() const;
+	Accessor operator*() const { return {value()}; }
 
 	template <class T> T value() const EXCEPT { return fromString<T>(value()); }
 	template <class T> T value(const T &on_empty) const EXCEPT {
@@ -56,7 +85,7 @@ class CXmlNode {
 
 	template <class T> T childValue(Str child_name, const T &on_empty) const EXCEPT {
 		CXmlNode child_node = child(child_name);
-		ZStr val = child_node ? child_node.value() : "";
+		ZStr val = child_node ? child_node.value() : ZStr();
 		return val ? child_node.value<T>() : on_empty;
 	}
 	template <class T> T tryChildValue(Str child_name, const T &on_error = {}) const {
@@ -68,7 +97,6 @@ class CXmlNode {
 	CXmlNode child(Str name = {}) const;
 
 	ZStr name() const;
-	ZStr value() const;
 
 	explicit operator bool() const { return m_ptr != nullptr; }
 
@@ -82,15 +110,24 @@ class CXmlNode {
 	rapidxml::xml_node<char> *m_ptr = nullptr;
 };
 
+// -------------------------------------------------------------------------------------------
+// ---  Mutable XMLNode   --------------------------------------------------------------------
+//
+// When adding new nodes, attributes or values you have to make sure
+// that strings given as arguments will exist as long as XmlNode exists.
+// Use own(...) method to reallocate them in XMLDocument's memory pool if
+// you're not sure.
+
 class XmlNode : public CXmlNode {
   public:
 	explicit XmlNode(CXmlNode);
 	XmlNode(const XmlNode &) = default;
 	XmlNode() = default;
 
-	// When adding new nodes, you have to make sure that strings given as
-	// arguments will exist as long as XmlNode exists; use 'own' method
-	// to reallocate them in the memory pool if you're not sure
+	struct MutableAccessor;
+	using CXmlNode::operator();
+	MutableAccessor operator()(Str name);
+
 	void addAttrib(Str name, Str value);
 	void addAttrib(Str name, int value);
 
@@ -135,6 +172,24 @@ class XmlNode : public CXmlNode {
 	rapidxml::xml_document<char> *m_doc = nullptr;
 };
 
+struct XmlNode::MutableAccessor {
+	void operator=(Str val) { node.addAttrib(name, val); }
+	template <class T, EnableIf<is_formattible<T>>...> void operator=(const T &val) {
+		node.addAttrib(name, val);
+	}
+	template <class T, EnableIf<is_parsable<T>>...> operator T() const INST_EXCEPT {
+		return node.attrib<T>(name);
+	}
+
+	XmlNode node;
+	Str name;
+};
+
+inline XmlNode::MutableAccessor XmlNode::operator()(Str name) { return {*this, name}; }
+
+// -------------------------------------------------------------------------------------------
+// ---  XMLDocument   ------------------------------------------------------------------------
+
 class XmlDocument {
   public:
 	static constexpr int default_max_file_size = 64 * 1024 * 1024;
@@ -172,6 +227,9 @@ class XmlOnFailGuard {
 
 	const XmlDocument &m_document;
 };
+
+// -------------------------------------------------------------------------------------------
+// ---  Type traits   ------------------------------------------------------------------------
 
 namespace detail {
 	template <class T> struct XmlTraits {

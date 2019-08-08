@@ -28,15 +28,14 @@ PlaneCamera::PlaneCamera(Axis ax1, Axis ax2, FBox focus) : PlaneCamera(ax1, ax2)
 }
 
 Ex<PlaneCamera> PlaneCamera::load(CXmlNode node) {
-	return PlaneCamera{node.attrib<Axis>("axis1"), node.attrib<Axis>("axis2"),
-					   node.attrib("pos", double3()), node.attrib("zoom", 1.0)};
+	return PlaneCamera{node("axis1"), node("axis2"), node("pos", double3()), node("zoom", 1.0)};
 }
 
 void PlaneCamera::save(XmlNode node) const {
 	node.addAttrib("pos", pos, double3());
 	node.addAttrib("zoom", zoom, 1.0);
-	node.addAttrib("axis1", axis_right);
-	node.addAttrib("axis2", axis_up);
+	node("axis1") = axis_right;
+	node("axis2") = axis_up;
 }
 
 float3 PlaneCamera::up() const { return vec(axis_up); }

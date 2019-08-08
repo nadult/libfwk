@@ -40,9 +40,9 @@ Ex<Camera> Camera::load(CXmlNode node) {
 }
 
 void Camera::save(XmlNode node) const {
-	node.addAttrib("pos", m_pos);
-	node.addAttrib("target", m_target);
-	node.addAttrib("target_up", m_target_up);
+	node("pos") = m_pos;
+	node("target") = m_target;
+	node("target_up") = m_target_up;
 }
 
 void Camera::setViewport(IRect viewport) { m_params.viewport = viewport; }

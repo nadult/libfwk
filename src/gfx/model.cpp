@@ -19,7 +19,7 @@
 namespace fwk {
 
 MaterialDef::MaterialDef(CXmlNode node)
-	: name(node.attrib("name")), diffuse(node.attrib("diffuse", float3(1, 1, 1))) {}
+	: name(node("name")), diffuse(node("diffuse", float3(1, 1, 1))) {}
 
 void MaterialDef::saveToXML(XmlNode node) const {
 	node.addAttrib("name", node.own(name));
@@ -64,18 +64,18 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 	xml_node = xml_node.child("node");
 	while(xml_node) {
 		ModelNode new_node;
-		new_node.name = xml_node.attrib("name");
-		new_node.type = xml_node.attrib("type", ModelNodeType::generic);
+		new_node.name = xml_node("name");
+		new_node.type = xml_node("type", ModelNodeType::generic);
 		auto trans = ModelAnim::transFromXML(xml_node);
 		EXPECT_CATCH();
 		new_node.setTrans(trans);
 
-		new_node.mesh_id = xml_node.attrib<int>("mesh_id", -1);
+		new_node.mesh_id = xml_node("mesh_id", -1);
 		EXPECT(new_node.mesh_id >= -1 && new_node.mesh_id < num_meshes);
 
 		auto prop_node = xml_node.child("property");
 		while(prop_node) {
-			new_node.props.emplace_back(prop_node.attrib("name"), prop_node.attrib("value"));
+			new_node.props.emplace_back(prop_node("name"), prop_node("value"));
 			prop_node.next();
 		}
 

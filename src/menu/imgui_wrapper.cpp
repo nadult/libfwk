@@ -201,9 +201,9 @@ void ImGuiWrapper::saveSettings(XmlNode xnode) const {
 	auto &settings = GImGui->SettingsWindows;
 	for(auto &elem : settings) {
 		auto enode = xnode.addChild("window");
-		enode.addAttrib("name", enode.own(elem.Name));
-		enode.addAttrib("pos", (int2)elem.Pos);
-		enode.addAttrib("size", (int2)elem.Size);
+		enode("name") = enode.own(elem.Name);
+		enode("pos") = (int2)elem.Pos;
+		enode("size") = (int2)elem.Size;
 		enode.addAttrib("collapsed", elem.Collapsed, false);
 	}
 	xnode.addAttrib("hide", o_hide_menu, false);
@@ -218,7 +218,7 @@ void ImGuiWrapper::loadSettings(CXmlNode xnode) {
 		if(!anyOf(settings,
 				  [&](const ImGuiWindowSettings &elem) { return Str(elem.Name) == name; })) {
 			ImGuiWindowSettings elem;
-			elem.Name = ImStrdup(enode.attrib("name").c_str());
+			elem.Name = ImStrdup(ZStr(enode.attrib("name")).c_str());
 			elem.ID = ImHashStr(elem.Name);
 			elem.Pos = enode.attrib<int2>("pos");
 			elem.Size = enode.attrib<int2>("size");

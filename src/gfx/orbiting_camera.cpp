@@ -13,15 +13,14 @@ OrbitingCamera::OrbitingCamera(float3 center, float distance, float rot_horiz, f
 }
 
 Ex<OrbitingCamera> OrbitingCamera::load(CXmlNode node) {
-	return OrbitingCamera{node.attrib<float3>("center"), node.attrib<float>("distance"),
-						  node.attrib<float>("rot_horiz"), node.attrib<float>("rot_vert")};
+	return OrbitingCamera{node("center"), node("distance"), node("rot_horiz"), node("rot_vert")};
 }
 
 void OrbitingCamera::save(XmlNode node) const {
-	node.addAttrib("center", center);
-	node.addAttrib("distance", distance);
-	node.addAttrib("rot_horiz", rot_horiz);
-	node.addAttrib("rot_vert", rot_vert);
+	node("center") = center;
+	node("distance") = distance;
+	node("rot_horiz") = rot_horiz;
+	node("rot_vert") = rot_vert;
 }
 
 OrbitingCamera lerp(const OrbitingCamera &a, const OrbitingCamera &b, float t) {

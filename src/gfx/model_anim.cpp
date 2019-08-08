@@ -86,12 +86,12 @@ AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 Ex<ModelAnim> ModelAnim::load(CXmlNode node, PPose default_pose) {
 	ModelAnim out;
 
-	out.m_name = node.attrib("name");
-	out.m_length = node.attrib<float>("length");
+	out.m_name = node("name");
+	out.m_length = node("length");
 
 	auto channel_node = node.child("channel");
 	while(channel_node) {
-		out.m_node_names.emplace_back(channel_node.attrib("name"));
+		out.m_node_names.emplace_back(channel_node("name"));
 		channel_node.next();
 	}
 

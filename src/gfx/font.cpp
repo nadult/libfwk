@@ -33,30 +33,30 @@ Ex<FontCore> FontCore::load(CXmlNode font_node) {
 	EXPECT(info_node && pages_node && chars_node && common_node);
 
 	// TODO: co jak parsowanie się sfailuje? kazde parsowanie to potencjalny blad...
-	out.m_face_name = info_node.attrib("face");
-	out.m_texture_size = int2(common_node.attrib<int>("scaleW"), common_node.attrib<int>("scaleH"));
-	out.m_line_height = common_node.attrib<int>("lineHeight");
-	int text_base = common_node.attrib<int>("base");
+	out.m_face_name = info_node("face");
+	out.m_texture_size = int2(common_node("scaleW"), common_node("scaleH"));
+	out.m_line_height = common_node("lineHeight");
+	int text_base = common_node("base");
 
-	int page_count = common_node.attrib<int>("pages");
+	int page_count = common_node("pages");
 	EXPECT(page_count == 1);
 
 	auto first_page_node = pages_node.child("page");
 	EXPECT(first_page_node);
-	EXPECT(first_page_node.attrib<int>("id") == 0);
+	EXPECT((int)first_page_node("id") == 0);
 
-	out.m_texture_name = first_page_node.attrib("file");
-	int chars_count = chars_node.attrib<int>("count");
+	out.m_texture_name = first_page_node("file");
+	int chars_count = chars_node("count");
 	auto char_node = chars_node.child("char");
 
 	while(char_node) {
 		Glyph chr;
-		int id = char_node.attrib<int>("id");
+		int id = char_node("id");
 		chr.character = id;
-		chr.tex_pos = short2(char_node.attrib<int>("x"), char_node.attrib<int>("y"));
-		chr.size = short2(char_node.attrib<int>("width"), char_node.attrib<int>("height"));
-		chr.offset = short2(char_node.attrib<int>("xoffset"), char_node.attrib<int>("yoffset"));
-		chr.x_advance = char_node.attrib<int>("xadvance");
+		chr.tex_pos = short2(char_node("x"), char_node("y"));
+		chr.size = short2(char_node("width"), char_node("height"));
+		chr.offset = short2(char_node("xoffset"), char_node("yoffset"));
+		chr.x_advance = char_node("xadvance");
 		out.m_glyphs[id] = chr;
 
 		EXPECT_CATCH();
@@ -69,13 +69,13 @@ Ex<FontCore> FontCore::load(CXmlNode font_node) {
 
 	auto kernings_node = font_node.child("kernings");
 	if(kernings_node) {
-		int kernings_count = kernings_node.attrib<int>("count");
+		int kernings_count = kernings_node("count");
 
 		auto kerning_node = kernings_node.child("kerning");
 		while(kerning_node) {
-			int first = kerning_node.attrib<int>("first");
-			int second = kerning_node.attrib<int>("second");
-			int value = kerning_node.attrib<int>("amount");
+			int first = kerning_node("first");
+			int second = kerning_node("second");
+			int value = kerning_node("amount");
 			out.m_kernings[pair(first, second)] = value;
 			kernings_count--;
 

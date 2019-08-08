@@ -14,14 +14,13 @@ FpsCamera lerp(const FpsCamera &a, const FpsCamera &b, float t) {
 }
 
 Ex<FpsCamera> FpsCamera::load(CXmlNode node) {
-	return FpsCamera{node.attrib<float3>("pos"), node.attrib<float2>("forward_xz"),
-					 node.attrib<float>("rot_vert")};
+	return FpsCamera{node("pos"), node("forward_xz"), node("rot_vert")};
 }
 
 void FpsCamera::save(XmlNode node) const {
-	node.addAttrib("pos", pos);
-	node.addAttrib("forward_xz", forward_xz);
-	node.addAttrib("rot_vert", rot_vert);
+	node("pos") = pos;
+	node("forward_xz") = forward_xz;
+	node("rot_vert") = rot_vert;
 }
 
 Pair<float3> FpsCamera::forwardRight() const {
