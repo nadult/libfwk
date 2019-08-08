@@ -22,7 +22,7 @@
 //
 // By default every function is NOEXCEPT; You can use NOEXCEPT if checker marks some function
 // as EXCEPT even though it doesn't raise exceptions. When you add NOEXCEPT, you're responsible
-// for its behaviour.
+// for making sure that when function returns, no exceptions are raised.
 //
 // INST_EXCEPT can be used on templated functions to inform that some of the instantiations may
 // raise exceptions. It should be used sparingly (best example is Vector::emplace_back).

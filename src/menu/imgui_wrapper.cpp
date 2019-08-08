@@ -223,7 +223,7 @@ void ImGuiWrapper::loadSettings(CXmlNode xnode) {
 			elem.Pos = enode.attrib<int2>("pos");
 			elem.Size = enode.attrib<int2>("size");
 			elem.Collapsed = xnode.attrib("collapsed", false);
-			if(!anyExceptions())
+			if(!exceptionRaised())
 				settings.push_back(elem);
 			else
 				printExceptions();

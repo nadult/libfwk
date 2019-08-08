@@ -17,6 +17,9 @@ namespace fwk {
 // User have to manually check if there are any exceptions present when necessary.
 //
 // This system is designed to interoperate with Expected<> and EXPECT_ macros.
+//
+// Exceptions can work in quiet mode: no errors / backtraces will be recorded, only information
+// that something exceptional happened will be kept.
 
 // When expression evaluates to false, exception is raised
 // Additional arguments can be passed to make error more informative.
@@ -30,12 +33,11 @@ namespace fwk {
 #define RAISE(...) _ASSERT_FORMATTED(raiseException, __VA_ARGS__)
 
 namespace detail {
-	extern __thread int t_num_exceptions;
+	extern __thread bool t_exception_raised;
+	extern __thread bool t_quiet_exceptions;
 }
 
-inline bool anyExceptions() { return detail::t_num_exceptions > 0; }
-inline bool noExceptions() { return detail::t_num_exceptions == 0; }
-inline int numExceptions() { return detail::t_num_exceptions; }
+inline bool exceptionRaised() { return detail::t_exception_raised; }
 
 // Clears exceptions and returns them
 vector<Error> getExceptions();
@@ -43,6 +45,22 @@ Error getMergedExceptions();
 void clearExceptions();
 void printExceptions();
 
+// Use it to enable quiet exception mode
+struct QuietExceptionBlock {
+	QuietExceptionBlock(bool enable = true) : saved(detail::t_quiet_exceptions), enable(enable) {
+		if(enable)
+			detail::t_quiet_exceptions = true;
+	}
+	~QuietExceptionBlock() {
+		if(enable)
+			detail::t_quiet_exceptions = saved;
+	}
+	QuietExceptionBlock(const QuietExceptionBlock &) = delete;
+
+	bool saved, enable;
+};
+
 // Adds new exception to the stack
 void raiseException(Error, int bt_skip = 0) EXCEPT;
+inline void raiseQuietException() EXCEPT { detail::t_exception_raised = true; }
 }

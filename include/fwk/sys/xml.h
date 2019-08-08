@@ -212,7 +212,7 @@ template <class T, EnableIf<is_xml_loadable<T>>...> Ex<T> load(CXmlNode node) {
 		return T::load(node);
 	else {
 		auto result = node.value<T>();
-		if(anyExceptions()) // TODO: function for that ?
+		if(exceptionRaised()) // TODO: function for that ?
 			return getMergedExceptions();
 		return result;
 	}

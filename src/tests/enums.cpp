@@ -18,7 +18,7 @@ void testStringConversions() NOEXCEPT {
 	ASSERT_EQ(fromString<SomeEnum>("foo"), SomeEnum::foo);
 
 	fromString<SomeEnum>("something else");
-	ASSERT(anyExceptions());
+	ASSERT(exceptionRaised());
 	clearExceptions();
 
 	ASSERT(!tryFromString<SomeEnum>("something else"));
@@ -32,7 +32,7 @@ void testStringConversions() NOEXCEPT {
 	for(auto elem : all<SomeEnum>())
 		text += toString(elem);
 	ASSERT_EQ(text, "foobarfoo_barlast");
-	ASSERT(noExceptions());
+	ASSERT(!exceptionRaised());
 }
 
 void testMain() {

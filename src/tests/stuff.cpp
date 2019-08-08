@@ -44,7 +44,7 @@ void testTextFormatter() NOEXCEPT {
 	ASSERT_EQ(toString(some_pair), "10 12.5");
 
 	ASSERT_EQ(format("\\%%\\%%\\%", "foo", "bar"), "%foo%bar%");
-	ASSERT(noExceptions());
+	ASSERT(!exceptionRaised());
 }
 
 template <class T> void testClassConversions(T value) NOEXCEPT {
@@ -54,7 +54,7 @@ template <class T> void testClassConversions(T value) NOEXCEPT {
 	vector<T> vec = {value, value, value, value};
 	string vec_str = toString(vec);
 	ASSERT_EQ(fromString<vector<T>>(vec_str.c_str()), vec);
-	ASSERT(noExceptions());
+	ASSERT(!exceptionRaised());
 }
 
 void testString() {
@@ -159,7 +159,7 @@ void testXMLConverters() NOEXCEPT {
 	IndexRange even_ints(0, 10, none, even_filter);
 	ASSERT_EQ(transform<int>(even_ints), (vector<int>{{{0, 2, 4, 6, 8}}}));
 
-	ASSERT(noExceptions());
+	ASSERT(!exceptionRaised());
 }
 
 void testPathOperations() {
