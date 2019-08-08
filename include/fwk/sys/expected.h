@@ -50,6 +50,9 @@ namespace detail {
 }
 template <class T> using RemoveExpected = typename detail::RemoveExpected<T>::Type;
 
+// It's illegal to construct Expected<> while there are raised exceptions.
+// You have to either convert the exceptions to Expected<> or clear them.
+// You cannot use both systems at once.
 template <class T> class NOEXCEPT [[nodiscard]] Expected {
   public:
 	static_assert(!is_same<T, Error>);

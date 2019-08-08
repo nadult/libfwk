@@ -134,9 +134,6 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) EXCEPT {
 	return parser;
 }
 
-// TODO: parsing types from math
-// TODO: with this kind of error reporting, we can use constructors ?
-
 template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr str) EXCEPT {
 	TextParser parser(str);
 	T out;

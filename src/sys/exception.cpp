@@ -9,7 +9,7 @@
 namespace fwk {
 
 __thread bool detail::t_exception_raised = false;
-__thread bool detail::t_quiet_exceptions = false;
+__thread int detail::t_quiet_exceptions = 0;
 
 static std::mutex s_mutex;
 static vector<Pair<Error, int>> s_errors;

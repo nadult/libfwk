@@ -18,7 +18,7 @@ namespace {
 
 	static void reportParseError(Str, const char *, int) NOINLINE EXCEPT;
 	void reportParseError(Str str, const char *type_name, int count) {
-		if(detail::t_quiet_exceptions)
+		if(quietExceptionsMode())
 			raiseQuietException();
 		else {
 			string what = count > 1 ? stdFormat("%d %s", count, type_name) : type_name;
@@ -29,7 +29,7 @@ namespace {
 
 	static void reportOutOfRange(Str, const char *) NOINLINE EXCEPT;
 	void reportOutOfRange(Str str, const char *type_name) {
-		if(detail::t_quiet_exceptions)
+		if(quietExceptionsMode())
 			raiseQuietException();
 		else {
 			auto short_str = str.limitSizeBack(40);
@@ -191,7 +191,7 @@ void TextParser::parseNotEmpty(Span<Str> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
 		if(out[n].empty()) {
-			if(detail::t_quiet_exceptions)
+			if(quietExceptionsMode())
 				raiseQuietException();
 			else
 				RAISE("Error while parsing a range of % strings (parsed: %)", out.size(), n);
@@ -203,7 +203,7 @@ void TextParser::parseNotEmpty(Span<string> out) {
 	for(int n = 0; n < out.size(); n++) {
 		*this >> out[n];
 		if(out[n].empty()) {
-			if(detail::t_quiet_exceptions)
+			if(quietExceptionsMode())
 				raiseQuietException();
 			else
 				RAISE("Error while parsing a range of % strings (parsed: %)", out.size(), n);

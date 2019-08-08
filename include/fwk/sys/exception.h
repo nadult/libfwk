@@ -34,9 +34,10 @@ namespace fwk {
 
 namespace detail {
 	extern __thread bool t_exception_raised;
-	extern __thread bool t_quiet_exceptions;
+	extern __thread int t_quiet_exceptions;
 }
 
+inline bool quietExceptionsMode() { return detail::t_quiet_exceptions != 0; }
 inline bool exceptionRaised() { return detail::t_exception_raised; }
 
 // Clears exceptions and returns them
@@ -47,17 +48,9 @@ void printExceptions();
 
 // Use it to enable quiet exception mode
 struct QuietExceptionBlock {
-	QuietExceptionBlock(bool enable = true) : saved(detail::t_quiet_exceptions), enable(enable) {
-		if(enable)
-			detail::t_quiet_exceptions = true;
-	}
-	~QuietExceptionBlock() {
-		if(enable)
-			detail::t_quiet_exceptions = saved;
-	}
+	QuietExceptionBlock() { detail::t_quiet_exceptions++; }
+	~QuietExceptionBlock() { detail::t_quiet_exceptions--; }
 	QuietExceptionBlock(const QuietExceptionBlock &) = delete;
-
-	bool saved, enable;
 };
 
 // Adds new exception to the stack
