@@ -32,8 +32,8 @@ vector<Error> getExceptions() {
 Error getMergedExceptions() { return Error::merge(getExceptions()); }
 
 void raiseException(Error error, int bt_skip) {
-	if(!error.backtrace)
-		error.backtrace = Backtrace::get(bt_skip + 1);
+	if(!error.backtrace && Backtrace::t_except_mode != BacktraceMode::disabled)
+		error.backtrace = Backtrace::get(bt_skip + 1, nullptr, Backtrace::t_except_mode);
 
 	auto tid = threadId();
 	detail::t_num_exceptions++;

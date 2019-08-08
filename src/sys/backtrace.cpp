@@ -288,8 +288,6 @@ namespace {
 void winGetBacktrace(vector<void *> &addrs, int skip, void *context);
 
 string Backtrace::g_lldb_command;
-__thread BacktraceMode Backtrace::t_default_mode = Mode::fast;
-__thread BacktraceMode Backtrace::t_fatal_mode = Mode::full;
 
 Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols)
 	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}

@@ -26,7 +26,9 @@ class Backtrace {
 
 	// Setting this will enable LLDB backtraces instead of GDB
 	static string g_lldb_command;
-	static __thread Mode t_default_mode, t_fatal_mode;
+	static inline __thread Mode t_default_mode = Mode::fast;
+	static inline __thread Mode t_fatal_mode = Mode::full;
+	static inline __thread Mode t_except_mode = Mode::fast;
 
 	// If available, gdb backtraces will be used (which are more accurate)
 	static Backtrace get(size_t skip = 0, void *context = nullptr, Maybe<Mode> = none);
