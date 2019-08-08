@@ -5,6 +5,7 @@
 
 #include "fwk/light_tuple.h"
 #include "fwk/maybe.h"
+#include "fwk/parse.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -115,6 +116,20 @@ template <auto tag, class Base_ /*= unsigned*/> class TagId {
 
 	Base m_idx;
 };
+
+template <auto tag, class Base>
+TextParser &operator>>(TextParser &parser, Maybe<TagId<tag, Base>> &maybe_tag) EXCEPT {
+	using Tag = TagId<tag, Base>;
+	Base value = 0;
+	parser >> value;
+	if(!exceptionRaised()) {
+		if(value <= Tag::maxIndex())
+			maybe_tag = Tag(value);
+		else
+			RAISE("Tagged value out of range: % > %", value, Tag::maxIndex());
+	}
+	return parser;
+}
 
 namespace detail {
 	template <class T> constexpr bool is_tag_id = false;
