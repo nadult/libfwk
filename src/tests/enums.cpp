@@ -15,13 +15,13 @@ struct Temp {
 };
 
 void testStringConversions() NOEXCEPT {
-	ASSERT_EQ(fromString<SomeEnum>("foo"), SomeEnum::foo);
+	ASSERT_EQ(maybeFromString<SomeEnum>("foo"), SomeEnum::foo);
 
 	fromString<SomeEnum>("something else");
 	ASSERT(exceptionRaised());
 	clearExceptions();
 
-	ASSERT(!tryFromString<SomeEnum>("something else"));
+	ASSERT(!maybeFromString<SomeEnum>("something else"));
 	ASSERT_EQ(string("foo_bar"), toString(SomeEnum::foo_bar));
 	ASSERT_EQ(toString(Temp::Inside::MemberEnum::ccc), string("ccc"));
 

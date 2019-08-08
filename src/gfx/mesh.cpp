@@ -29,7 +29,7 @@ Ex<Mesh> Mesh::load(CXmlNode node) {
 	auto xml_indices = node.child("indices");
 	while(xml_indices) {
 		auto type = PrimitiveType::triangles;
-		if(auto type_string = xml_indices.hasAttrib("type"))
+		if(auto type_string = xml_indices.tryAttrib("type"))
 			type = fromString<PrimitiveType>(type_string);
 		indices.emplace_back(xml_indices.value<vector<int>>(), type);
 		xml_indices.next();

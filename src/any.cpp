@@ -67,7 +67,7 @@ Ex<Any> Any::load(CXmlNode node, TypeInfo type_info) {
 	return out;
 }
 
-Ex<Any> Any::load(CXmlNode node) { return load(node, node.hasAttrib("_any_type")); }
+Ex<Any> Any::load(CXmlNode node) { return load(node, node.tryAttrib("_any_type")); }
 
 void Any::save(XmlNode node, bool save_type) const { AnyRef(*this).save(node, save_type); }
 bool Any::xmlEnabled() const { return AnyRef(*this).xmlEnabled(); }

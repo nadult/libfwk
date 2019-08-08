@@ -144,13 +144,13 @@ template <class T, EnableIfEnum<T>...> T fromString(Str str) EXCEPT {
 	return T(fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, true));
 }
 
-template <class T, EnableIfEnum<T>...> T fromString(Str str, T on_error) NOEXCEPT {
+template <class T, EnableIfEnum<T>...> T tryFromString(Str str, T on_error) NOEXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
 	return ret == -1 ? on_error : T(ret);
 }
 
-template <class T, EnableIfEnum<T>...> Maybe<T> tryFromString(Str str) NOEXCEPT {
+template <class T, EnableIfEnum<T>...> Maybe<T> maybeFromString(Str str) NOEXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
 	if(ret == -1)

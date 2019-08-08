@@ -63,12 +63,19 @@ namespace fwk {
 
 static const char *strOrNull(Str str) { return str ? str.data() : nullptr; }
 
-ZStr CXmlNode::hasAttrib(Str name) const {
+ZStr CXmlNode::tryAttrib(Str name, ZStr default_value) const {
 	PASSERT(name);
 	xml_attribute<> *attrib = m_ptr->first_attribute(name.data(), name.size());
 	touch(m_ptr, attrib);
 
-	return attrib ? attrib->value() : ZStr();
+	return attrib ? attrib->value() : default_value;
+}
+
+bool CXmlNode::hasAttrib(Str name) const {
+	PASSERT(name);
+	xml_attribute<> *attrib = m_ptr->first_attribute(name.data(), name.size());
+	touch(m_ptr, attrib);
+	return !!attrib;
 }
 
 ZStr CXmlNode::attrib(Str name) const {
@@ -81,11 +88,6 @@ ZStr CXmlNode::attrib(Str name) const {
 		return "";
 	}
 	return attrib->value();
-}
-
-ZStr CXmlNode::attrib(Str name, ZStr default_value) const {
-	ZStr value = hasAttrib(name);
-	return value ? value : default_value;
 }
 
 ZStr CXmlNode::name() const { return {m_ptr->name(), (int)m_ptr->name_size()}; }

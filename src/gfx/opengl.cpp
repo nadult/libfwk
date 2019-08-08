@@ -56,13 +56,13 @@ bool GlInfo::hasExtension(Str name) const {
 
 static void loadExtensions();
 
-static float parseOpenglVersion(const char *text) NOEXCEPT {
+static float parseOpenglVersion(const char *text) {
 	TextParser parser(text);
 	while(!parser.empty()) {
 		Str val;
 		parser >> val;
 		if(isdigit(val[0]))
-			return tryFromString<float>(string(val)).orElse(0.0f);
+			return tryFromString<float>(string(val), 0.0f);
 	}
 	return 0.0f;
 }

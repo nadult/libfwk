@@ -254,6 +254,11 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 template <class T> void swap(Maybe<T> &a, Maybe<T> &b) { return a.swap(b); }
 
+template <class T, class U, EnableIf<is_constructible<T, U>>...>
+Maybe<T> maybePass(const Maybe<U> &val) {
+	return val ? T(*val) : Maybe<T>();
+}
+
 template <class T, class TMaybe = Maybe<Decay<T>>> TMaybe makeMaybe(T &&v) {
 	return TMaybe(std::forward<T>(v));
 }

@@ -65,7 +65,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 	while(xml_node) {
 		ModelNode new_node;
 		new_node.name = xml_node.attrib("name");
-		new_node.type = fromString<ModelNodeType>(xml_node.attrib("type", "generic"));
+		new_node.type = xml_node.attrib("type", ModelNodeType::generic);
 		auto trans = ModelAnim::transFromXML(xml_node);
 		EXPECT_CATCH();
 		new_node.setTrans(trans);

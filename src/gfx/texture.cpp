@@ -101,7 +101,7 @@ Ex<Texture> Texture::load(FileStream &sr, Maybe<FileType> type) {
 		if(ext.empty())
 			return ERROR("No extension information: don't know which loader to use");
 
-		type = tryFromString<FileType>(ext.c_str());
+		type = maybeFromString<FileType>(ext);
 		if(!type) {
 			for(auto &loader : loaders())
 				if(loader.first == ext)

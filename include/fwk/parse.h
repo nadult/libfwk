@@ -35,7 +35,7 @@ template <class... Args> using EnableIfParsable = EnableIf<(... && is_parsable<A
 // Errors are reported with exceptions
 // TODO: strings with whitespace in them
 // TODO: drop requirement of 0-termination
-class EXCEPT TextParser {
+class TextParser {
   public:
 	TextParser(ZStr str) : m_current(str) {}
 
@@ -43,29 +43,29 @@ class EXCEPT TextParser {
 	TextParser &operator>>(Str &);
 	TextParser &operator>>(string &);
 
-	TextParser &operator>>(bool &);
-	TextParser &operator>>(double &);
-	TextParser &operator>>(float &);
-	TextParser &operator>>(short &);
-	TextParser &operator>>(unsigned short &);
-	TextParser &operator>>(int &);
-	TextParser &operator>>(unsigned int &);
-	TextParser &operator>>(long &);
-	TextParser &operator>>(unsigned long &);
-	TextParser &operator>>(long long &);
-	TextParser &operator>>(unsigned long long &);
+	TextParser &operator>>(bool &) EXCEPT;
+	TextParser &operator>>(double &) EXCEPT;
+	TextParser &operator>>(float &) EXCEPT;
+	TextParser &operator>>(short &) EXCEPT;
+	TextParser &operator>>(unsigned short &) EXCEPT;
+	TextParser &operator>>(int &) EXCEPT;
+	TextParser &operator>>(unsigned int &) EXCEPT;
+	TextParser &operator>>(long &) EXCEPT;
+	TextParser &operator>>(unsigned long &) EXCEPT;
+	TextParser &operator>>(long long &) EXCEPT;
+	TextParser &operator>>(unsigned long long &) EXCEPT;
 
 	template <class TSpan, class T = SpanBase<TSpan>, EnableIfParsable<T>...>
-	void parseSpan(TSpan &span) {
+	void parseSpan(TSpan &span) EXCEPT {
 		for(auto &elem : span)
 			*this >> elem;
 	}
 
-	void parseNotEmpty(Span<Str>);
-	void parseNotEmpty(Span<string>);
-	void parseInts(Span<int>);
-	void parseFloats(Span<float>);
-	void parseDoubles(Span<double>);
+	void parseNotEmpty(Span<Str>) EXCEPT;
+	void parseNotEmpty(Span<string>) EXCEPT;
+	void parseInts(Span<int>) EXCEPT;
+	void parseFloats(Span<float>) EXCEPT;
+	void parseDoubles(Span<double>) EXCEPT;
 
 	Str current() const { return m_current; }
 	void advance(int offset) { m_current = m_current.advance(offset); }
@@ -77,20 +77,20 @@ class EXCEPT TextParser {
 	void advanceWhitespace();
 	int countElements() const;
 
-	void parseUints(Span<uint> out);
-	void parseStrings(Span<string> out);
+	void parseUints(Span<uint> out) EXCEPT;
+	void parseStrings(Span<string> out) EXCEPT;
 
-	template <class T, EnableIfParsable<T>...> T parse() {
+	template <class T, EnableIfParsable<T>...> T parse() EXCEPT {
 		T value;
 		*this >> value;
 		return value;
 	}
 
-	void errorTrailingData();
+	void errorTrailingData() EXCEPT;
 
   private:
-	template <class Func> auto parseSingle(Func func, const char *);
-	template <class T, class Func> T parseSingleRanged(Func, const char *);
+	template <class Func> auto parseSingle(Func func, const char *) EXCEPT;
+	template <class T, class Func> T parseSingleRanged(Func, const char *) EXCEPT;
 
 	ZStr m_current;
 };
@@ -138,8 +138,6 @@ template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr
 	TextParser parser(str);
 	T out;
 	parser >> out;
-
-	// TODO: is this check necessary?
 	if(!parser.empty()) {
 		out = T();
 		parser.errorTrailingData();
@@ -148,7 +146,7 @@ template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> T fromString(ZStr
 }
 
 template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...>
-T fromString(ZStr str, const T &on_error) NOEXCEPT {
+T tryFromString(ZStr str, const T &on_error = {}) NOEXCEPT {
 	QuietExceptionBlock quiet;
 	TextParser parser(str);
 	T out;
@@ -157,17 +155,23 @@ T fromString(ZStr str, const T &on_error) NOEXCEPT {
 		clearExceptions();
 		return on_error;
 	}
-
-	// TODO: is this check necessary ?
 	if(!parser.empty())
 		return on_error;
 	return out;
 }
 
-// TODO: inconsistency with tryFromString(enum)
-template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...> Ex<T> tryFromString(ZStr str) {
-	auto ret = fromString<T>(str);
-	EXPECT_CATCH();
-	return ret;
+template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...>
+Maybe<T> maybeFromString(ZStr str) NOEXCEPT {
+	QuietExceptionBlock quiet;
+	TextParser parser(str);
+	T out;
+	parser >> out;
+	if(exceptionRaised()) {
+		clearExceptions();
+		return none;
+	}
+	if(!parser.empty())
+		return none;
+	return out;
 }
 }

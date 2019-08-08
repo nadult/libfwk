@@ -19,52 +19,62 @@ template <class Ch> class xml_document;
 namespace fwk {
 
 // Immutable XmlNode
+// Attribute & value accessors raise exception on error, unless prefixed with try
 class CXmlNode {
   public:
 	CXmlNode(const CXmlNode &) = default;
 	CXmlNode() = default;
 
-	// TODO: change to tryAttrib?
-	// Returns empty string if not found
-	ZStr hasAttrib(Str name) const;
-
-	// If an attribute cannot be found or properly parsed then error will be registered
 	ZStr attrib(Str name) const EXCEPT;
-	// If an attribute cannot be found then default_value will be returned
-	ZStr attrib(Str name, ZStr default_value) const;
-	ZStr attrib(Str name, const char *default_value) const {
-		return attrib(name, ZStr(default_value));
-	}
+	ZStr tryAttrib(Str name, ZStr on_error = {}) const;
+	ZStr tryAttrib(Str name, const char *on_error) const { return tryAttrib(name, ZStr(on_error)); }
+	bool hasAttrib(Str name) const;
 
 	template <class T> T attrib(Str name) const EXCEPT { return fromString<T>(attrib(name)); }
+	template <class T> T attrib(Str name, const T &on_empty) const EXCEPT {
+		ZStr value = tryAttrib(name);
+		return value ? fromString<T>(value) : on_empty;
+	}
+	template <class T> T tryAttrib(Str name, const T &on_error = {}) const {
+		ZStr val = tryAttrib(name);
+		return val ? tryFromString<T>(val, on_error) : on_error;
+	}
+	template <class T> Maybe<T> maybeAttrib(Str name) const {
+		ZStr val = tryAttrib(name);
+		return val ? maybeFromString<T>(val) : Maybe<T>();
+	}
 
-	template <class T, class RT = Decay<T>> RT attrib(Str name, T &&or_else) const EXCEPT {
-		ZStr value = hasAttrib(name);
-		return value ? fromString<RT>(value) : or_else;
+	template <class T> T value() const EXCEPT { return fromString<T>(value()); }
+	template <class T> T value(const T &on_empty) const EXCEPT {
+		ZStr val = value();
+		return val ? fromString<T>(val) : on_empty;
+	}
+	template <class T> T tryValue(const T &on_error = {}) const {
+		ZStr val = value();
+		return val ? tryFromString<T>(val, on_error) : on_error;
+	}
+
+	template <class T> T childValue(Str child_name, const T &on_empty) const EXCEPT {
+		CXmlNode child_node = child(child_name);
+		ZStr val = child_node ? child_node.value() : "";
+		return val ? child_node.value<T>() : on_empty;
+	}
+	template <class T> T tryChildValue(Str child_name, const T &on_error = {}) const {
+		CXmlNode child_node = child(child_name);
+		return child_node ? child_node.tryValue(on_error) : on_error;
 	}
 
 	CXmlNode sibling(Str name = {}) const;
 	CXmlNode child(Str name = {}) const;
 
-	void next() { *this = sibling(name()); }
-
+	ZStr name() const;
 	ZStr value() const;
 
-	template <class T> T value() const EXCEPT { return fromString<T>(value()); }
-	template <class T> T value(T default_value) const EXCEPT {
-		ZStr val = value();
-		return val ? value<T>() : default_value;
-	}
-	template <class T> T childValue(Str child_name, T default_value) const EXCEPT {
-		CXmlNode child_node = child(child_name);
-		ZStr val = child_node ? child_node.value() : "";
-		return val ? child_node.value<T>() : default_value;
-	}
-
-	ZStr name() const;
 	explicit operator bool() const { return m_ptr != nullptr; }
 
-  protected:
+	void next() { *this = sibling(name()); }
+
+  private:
 	CXmlNode(rapidxml::xml_node<char> *ptr) : m_ptr(ptr) {}
 	friend class XmlDocument;
 	friend class XmlNode;
@@ -117,7 +127,7 @@ class XmlNode : public CXmlNode {
 	Str own(const TextFormatter &str) { return own(str.text()); }
 	explicit operator bool() const { return m_ptr != nullptr; }
 
-  protected:
+  private:
 	XmlNode(rapidxml::xml_node<char> *ptr, rapidxml::xml_document<char> *doc)
 		: CXmlNode(ptr), m_doc(doc) {}
 	friend class XmlDocument;
@@ -149,7 +159,7 @@ class XmlDocument {
 
 	string lastNodeInfo() const;
 
-  protected:
+  private:
 	Dynamic<rapidxml::xml_document<char>> m_ptr;
 	Str m_xml_string;
 };
@@ -204,7 +214,6 @@ template <class T>
 constexpr bool is_xml_loadable =
 	detail::XmlTraits<T>::loadable || is_parsable<T> || detail::XmlTraits<T>::func_loadable;
 
-// TODO: make sure that loading functions don't generate exceptions
 template <class T, EnableIf<is_xml_loadable<T>>...> Ex<T> load(CXmlNode node) {
 	if constexpr(detail::XmlTraits<T>::func_loadable)
 		return load(node, Type<T>());

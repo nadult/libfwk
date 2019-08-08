@@ -10,13 +10,6 @@
 
 using namespace fwk;
 
-// TODO: ASSERT_EXCEPTION ?
-#define ASSERT_FAIL(code)                                                                          \
-	{                                                                                              \
-		auto result = ({ code; });                                                                 \
-		ASSERT(!result);                                                                           \
-	}
-
 template <class T> inline double relativeDifference(const T &a, const T &b) {
 	if constexpr(is_scalar<T>) {
 		auto magnitude = max(fwk::abs(a), fwk::abs(b));

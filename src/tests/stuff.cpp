@@ -50,6 +50,7 @@ void testTextFormatter() NOEXCEPT {
 template <class T> void testClassConversions(T value) NOEXCEPT {
 	string str = toString(value);
 	ASSERT_EQ(fromString<T>(str.c_str()), value);
+	ASSERT(!exceptionRaised());
 
 	vector<T> vec = {value, value, value, value};
 	string vec_str = toString(vec);
@@ -139,18 +140,20 @@ void testXMLConverters() NOEXCEPT {
 
 	ASSERT_EQ(fromString<vector<float2>>("1 2 4 5.5"), vector<float2>({{1, 2}, {4, 5.5}}));
 	ASSERT_EQ(toString(vector<int>().size()), "0");
+	ASSERT(!exceptionRaised());
 
 	ASSERT_EQ(toString(vector<int>({4, 5, 6, 7, 8})), "4 5 6 7 8");
 	ASSERT_EQ(toString(vector<float>({1, 2, 3, 4.5, 5.5, 6})), "1 2 3 4.5 5.5 6");
 	ASSERT_EQ(toString("foo"), "foo");
 	ASSERT_EQ(toString(short(10)), "10");
 
-	ASSERT_FAIL(tryFromString<vector<int>>("1 2a 3"));
-	ASSERT_FAIL(tryFromString<bool>("foobar"));
-	ASSERT_FAIL(tryFromString<int>("10000000000"));
-	ASSERT_FAIL(tryFromString<short>("32768"));
-	ASSERT_FAIL(tryFromString<unsigned short>("-1"));
+	ASSERT(!maybeFromString<vector<int>>("1 2a 3"));
+	ASSERT(!maybeFromString<bool>("foobar"));
+	ASSERT(!maybeFromString<int>("10000000000"));
+	ASSERT(!maybeFromString<short>("32768"));
+	ASSERT(!maybeFromString<unsigned short>("-1"));
 	ASSERT_EQ(fromString<long long>("1000000000000"), 1000000000000ll);
+	ASSERT(!exceptionRaised());
 
 	ASSERT_EQ(transform<int>(intRange(5)), (vector<int>{{{0, 1, 2, 3, 4}}}));
 	ASSERT_EQ(transform<Pair<int>>(pairsRange(3)), (vector<Pair<int>>{{{0, 1}, {1, 2}}}));
@@ -158,8 +161,6 @@ void testXMLConverters() NOEXCEPT {
 	auto even_filter = [](int v) { return v % 2 == 0; };
 	IndexRange even_ints(0, 10, none, even_filter);
 	ASSERT_EQ(transform<int>(even_ints), (vector<int>{{{0, 2, 4, 6, 8}}}));
-
-	ASSERT(!exceptionRaised());
 }
 
 void testPathOperations() {
