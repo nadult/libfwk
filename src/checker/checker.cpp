@@ -244,11 +244,11 @@ struct AnnoCtx {
 	ASTContext &ast_ctx;
 };
 
-class CheckErrorAttribsConsumer : public ASTConsumer {
+class CheckFwkExceptionsConsumer : public ASTConsumer {
 	CompilerInstance &ci;
 
   public:
-	CheckErrorAttribsConsumer(CompilerInstance &ci) : ci(ci) {}
+	CheckFwkExceptionsConsumer(CompilerInstance &ci) : ci(ci) {}
 
 	void reportError(const FunctionDecl *decl) {}
 
@@ -322,10 +322,10 @@ class CheckErrorAttribsConsumer : public ASTConsumer {
 	}
 };
 
-class CheckErrorAttribsAction : public PluginASTAction {
+class CheckFwkExceptionsAction : public PluginASTAction {
   protected:
 	std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI, llvm::StringRef) override {
-		return llvm::make_unique<CheckErrorAttribsConsumer>(CI);
+		return llvm::make_unique<CheckFwkExceptionsConsumer>(CI);
 	}
 
 	bool ParseArgs(const CompilerInstance &CI, const std::vector<std::string> &args) override {
@@ -335,5 +335,5 @@ class CheckErrorAttribsAction : public PluginASTAction {
 
 }
 
-static FrontendPluginRegistry::Add<CheckErrorAttribsAction>
-	X("check-error-attribs", "Checks if error attribs are in place");
+static FrontendPluginRegistry::Add<CheckFwkExceptionsAction>
+	X("check-fwk-exceptions", "Checks if exception attributes are in place");

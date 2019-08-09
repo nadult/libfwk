@@ -137,9 +137,9 @@ MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 # --- Compilation & linking flags -----------------------------------------------------------------
 
 LIBS=freetype2 sdl2 libpng vorbisfile
-LINUX_LIBS=-pthread $(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lgmp -lmpfr -lopenal -lGL -lGLU -lrt -lm -lstdc++
-MINGW_LIBS=-pthread $(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32\
-		   -lws2_32 -limagehlp
+LINUX_LIBS=-pthread $(shell $(LINUX_PKG_CONFIG) --libs $(LIBS)) -lopenal -lGL -lGLU -lrt -lm -lstdc++
+MINGW_LIBS=-pthread $(shell $(MINGW_PKG_CONFIG) --libs $(LIBS)) -lOpenAL32 -ldsound -lole32 -lwinmm \
+		   -lglu32 -lopengl32 -lws2_32 -limagehlp
 
 INCLUDES=-Iinclude/ -Isrc/
 
@@ -196,7 +196,7 @@ checker.so: .ALWAYS_CHECK
 	$(MAKE) -C src/checker/ ../../checker.so
 
 ifneq ("$(wildcard checker.so)","")
-LINUX_CHECKER_FLAGS=-Xclang -load -Xclang  $(realpath checker.so) -Xclang -add-plugin -Xclang check-error-attribs
+LINUX_CHECKER_FLAGS=-Xclang -load -Xclang  $(realpath checker.so) -Xclang -add-plugin -Xclang check-fwk-exceptions
 endif
 endif
 

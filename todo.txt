@@ -14,17 +14,13 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
   - tool: podgląd wszystkich instancjacji i wszystkich wartości constexpr
   - czy dałoby się użyć tego narzędzia do lepszego generowania perf pointów?
 - wywołanie jakiejś funkcji EXCEPT z listy inicjakizacyjnej konstruktora zle dziala!
-- check-error-attribs -> check-except-attribs
 - consistency with try, find, get, etc. function prefixes
 - Expected<> checker zle rozpoznaje (ale Ex<> juz tak)
-- makro EXPECT które jeśli są wyjątki to zwraca błąd, a wpp zwraca podaną wartość
 - bloki try, tylko w których mogą występować wyjątki ?
 - konwersja pointera na Dynamic nie musi byc explicit ?
 
 - Jak się wywoła funkcję przekazaną parametrem i ta funkcja jest except, to ta która ją wywołuje
   też powinna być! A teraz chyba nie jest?
-- Rename checker to exception checker
-- Czy przed skonstruowaniem Expected<> nie powinniśmy automatycznie zgarniać błędy z wyjątków ?
 
 - New DataStream class:
   - simple class which serializes to/from memory
