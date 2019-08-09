@@ -1,6 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+// This file should be included by file_system.cpp
+
 #if !defined(FWK_TARGET_MINGW)
 #error "This file should only be compiled for MinGW target"
 #endif

@@ -243,4 +243,7 @@ INST_ALL_SIZES(qint)
 //INST_ALL_SIZES(Ext24<int>)
 //INST_ALL_SIZES(Ext24<llint>)
 //INST_ALL_SIZES(Ext24<qint>)
+
+#undef TEMPLATE
+
 }

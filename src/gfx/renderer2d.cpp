@@ -44,7 +44,7 @@ static const char *vertex_shader_2d_src =
 	"	color = in_color;												\n"
 	"} 																	\n";
 
-static PProgram getProgram(Str name) {
+static PProgram getProgram2D(Str name) {
 	if(auto out = GlDevice::instance().cacheFindProgram(name))
 		return out;
 
@@ -61,9 +61,9 @@ static PProgram getProgram(Str name) {
 Renderer2D::Renderer2D(const IRect &viewport, Orient2D orient)
 	: MatrixStack(projectionMatrix2D(viewport, orient), viewMatrix2D(viewport, float2(0, 0))),
 	  m_viewport(viewport), m_current_scissor_rect(-1) {
-	m_tex_program = getProgram("2d_with_texture");
+	m_tex_program = getProgram2D("2d_with_texture");
 	m_tex_program["tex"] = 0;
-	m_flat_program = getProgram("2d_without_texture");
+	m_flat_program = getProgram2D("2d_without_texture");
 }
 
 Renderer2D::~Renderer2D() = default;

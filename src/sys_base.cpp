@@ -1,6 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#ifdef FWK_TARGET_MINGW
+#include "sys_base_windows.cpp"
+#endif
+
 #include "fwk/sys_base.h"
 
 #include "fwk/enum.h"
@@ -20,6 +24,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+
 
 #ifdef FWK_TARGET_HTML5
 #include "emscripten.h"

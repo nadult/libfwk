@@ -1,17 +1,19 @@
-#include "fwk/sys_base.h"
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
 
-#include "fwk/sys/backtrace.h"
+// This file should be included by sys_base.cpp
 
 #if !defined(FWK_TARGET_MINGW)
-
 #error "This file should only be compiled for MinGW target"
-
 #else
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-
 #include <imagehlp.h>
+#undef ERROR
+
+#include "fwk/sys_base.h"
+#include "fwk/sys/backtrace.h"
 
 #include <ctime>
 #include <signal.h>

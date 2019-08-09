@@ -51,4 +51,6 @@ INSTANTIATE(llint)
 INSTANTIATE(float)
 INSTANTIATE(double)
 
+#undef TEMPLATE
+
 }

@@ -1,3 +1,7 @@
+# Options:
+# BUILD_STATS: gathers build times for each object file
+# FAST_BUILD: builds modules by merging multiple cpp files
+
 MINGW_PREFIX=x86_64-w64-mingw32.static.posix-
 BUILD_DIR=build
 LINUX_CXX=clang++
@@ -14,68 +18,112 @@ ifneq (,$(findstring clang,$(LINUX_CXX)))
 	LINUX_LINK+=-fuse-ld=gold
 endif
 
-_dummy := $(shell [ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR))
-_dummy := $(shell [ -d $(BUILD_DIR)/gfx ] || mkdir -p $(BUILD_DIR)/gfx)
-_dummy := $(shell [ -d $(BUILD_DIR)/audio ] || mkdir -p $(BUILD_DIR)/audio)
-_dummy := $(shell [ -d $(BUILD_DIR)/math ] || mkdir -p $(BUILD_DIR)/math)
-_dummy := $(shell [ -d $(BUILD_DIR)/sys ] || mkdir -p $(BUILD_DIR)/sys)
-_dummy := $(shell [ -d $(BUILD_DIR)/tests ] || mkdir -p $(BUILD_DIR)/tests)
-_dummy := $(shell [ -d $(BUILD_DIR)/tools ] || mkdir -p $(BUILD_DIR)/tools)
-_dummy := $(shell [ -d $(BUILD_DIR)/menu ] || mkdir -p $(BUILD_DIR)/menu)
-_dummy := $(shell [ -d $(BUILD_DIR)/perf ] || mkdir -p $(BUILD_DIR)/perf)
-_dummy := $(shell [ -d $(BUILD_DIR)/geom ] || mkdir -p $(BUILD_DIR)/geom)
-_dummy := $(shell [ -d tests ] || mkdir -p tests)
-_dummy := $(shell [ -d tools ] || mkdir -p tools)
-_dummy := $(shell [ -d lib ] || mkdir -p lib)
-_dummy := $(shell [ -d temp ] || mkdir -p temp)
-
-
-SHARED_SRC=vector enum str sys_base type_info any any_ref logger any_config \
-		   sys/file_system sys/file_system_linux sys/file_stream \
-		   sys/error sys/exception sys/expected sys/assert sys/assert_impl sys/on_fail sys/memory sys/backtrace sys/xml sys/input \
-           math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
-		   math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment \
-		   math/line math/affine_trans math/rational math/gcd math/rational_angle \
-		   format parse audio/al_device audio/sound audio/ogg_stream \
-		   gfx/color gfx/gl_device gfx/font gfx/font_factory gfx/model_anim gfx/model_node \
-		   gfx/material gfx/material_set gfx/matrix_stack gfx/opengl gfx/model gfx/draw_call gfx/pose \
-		   gfx/mesh gfx/mesh_indices gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter \
-		   gfx/gl_texture gfx/gl_renderbuffer gfx/gl_framebuffer gfx/gl_shader gfx/gl_storage \
-		   gfx/gl_program gfx/render_list gfx/renderer2d gfx/dynamic_mesh gfx/colored_triangle gfx/colored_quad \
-		   gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp gfx/gl_format gfx/gl_query \
-		   gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer gfx/gl_buffer gfx/gl_vertex_array \
-		   gfx/visualizer2 gfx/visualizer3 \
-		   gfx/camera gfx/fps_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
-		   geom/contour geom/immutable_graph geom/plane_graph geom/regular_grid geom/segment_grid \
-		   geom/plane_graph_builder geom/voronoi geom/wide_int geom/voronoi_constructor geom/delaunay \
-		   geom/procgen geom/graph geom/geom_graph \
-		   perf/perf_base perf/exec_tree perf/manager perf/thread_context
-
-MENU_SRC=menu/imgui_code menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper perf/analyzer
-
-TESTS_SRC=tests/stuff tests/math tests/geom tests/window tests/enums tests/models tests/vector_perf tests/variant_perf
-TOOLS_SRC=tools/model_convert tools/model_viewer
-PROGRAM_SRC=$(TESTS_SRC) $(TOOLS_SRC)
-
 ifneq ("$(wildcard extern/imgui/imgui.h)","")
-	SHARED_SRC:=$(MENU_SRC) $(SHARED_SRC) $(PERF_SRC)
+	IMGUI_ENABLED=true
 	FLAGS+=-DFWK_IMGUI_ENABLED
 endif
 
-ALL_SRC=$(SHARED_SRC) $(PROGRAM_SRC)
+ifdef BUILD_STATS
+	STATS_CMD=time -o build_stats.txt -a -f "%U $@"
+endif
 
-WINDOWS_SRC=system_windows sys/file_system_windows
+# --- Creating necessary sub-directories ----------------------------------------------------------
 
-LINUX_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%.o)
-MINGW_SHARED_OBJECTS:=$(SHARED_SRC:%=$(BUILD_DIR)/%_.o) $(WINDOWS_SRC:%=$(BUILD_DIR)/%_.o)
+ifndef FAST_BUILD
+BUILD_SUBDIRS = gfx audio math sys tests tools menu perf geom
+endif
+BUILD_SUBDIRS+= tests tools
+SUBDIRS       = build tests tools lib temp
 
-LINUX_OBJECTS:=$(LINUX_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%.o)
-MINGW_OBJECTS:=$(MINGW_SHARED_OBJECTS) $(PROGRAM_SRC:%=$(BUILD_DIR)/%_.o)
+_dummy := $(shell mkdir -p $(SUBDIRS))
+_dummy := $(shell mkdir -p $(addprefix $(BUILD_DIR)/,$(BUILD_SUBDIRS)))
 
-LINUX_PROGRAMS:=$(PROGRAM_SRC:%=%)
-MINGW_PROGRAMS:=$(PROGRAM_SRC:%=%.exe)
-HTML5_PROGRAMS:=$(PROGRAM_SRC:%=%.html)
-HTML5_PROGRAMS_SRC:=$(PROGRAM_SRC:%=%.html.cpp)
+# --- Lists of source files -----------------------------------------------------------------------
+
+SRC_base = vector enum str type_info any any_ref logger any_config format parse
+
+SRC_sys  = \
+	sys_base sys/file_system sys/file_system_linux sys/file_stream sys/error sys/exception \
+	sys/expected sys/assert sys/assert_impl sys/on_fail sys/memory sys/backtrace sys/xml sys/input
+
+SRC_math = \
+	math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
+	math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment math/line \
+	math/affine_trans math/rational math/gcd math/rational_angle
+
+SRC_gfx = \
+	gfx/camera gfx/fps_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
+	gfx/color gfx/font gfx/font_factory gfx/colored_triangle gfx/colored_quad gfx/material \
+	gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer \
+	gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp \
+	gfx/material_set gfx/matrix_stack gfx/draw_call \
+	gfx/visualizer2 gfx/visualizer3
+
+SRC_gfx_mesh = \
+	gfx/model_anim gfx/model_node gfx/dynamic_mesh gfx/model gfx/pose gfx/mesh gfx/mesh_indices \
+	gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter
+
+SRC_gfx_gl = \
+	gfx/gl_device gfx/gl_texture gfx/gl_renderbuffer gfx/gl_framebuffer gfx/gl_shader gfx/gl_storage \
+	gfx/gl_format gfx/gl_query  gfx/gl_buffer gfx/gl_vertex_array gfx/gl_program \
+	gfx/render_list gfx/renderer2d gfx/opengl
+
+SRC_audio = audio/al_device audio/sound audio/ogg_stream
+
+SRC_geom = geom/contour geom/regular_grid geom/segment_grid geom/procgen
+SRC_geom_graph= geom/immutable_graph geom/plane_graph geom/plane_graph_builder  geom/graph geom/geom_graph
+SRC_geom_voronoi = geom/voronoi geom/wide_int geom/voronoi_constructor geom/delaunay
+
+ifdef IMGUI_ENABLED
+SRC_menu_imgui = menu/imgui_code
+SRC_menu = menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper perf/analyzer
+SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
+endif
+
+SRC_tests = \
+	tests/stuff tests/math tests/geom tests/window tests/enums tests/models tests/vector_perf \
+	tests/variant_perf
+
+SRC_tools = tools/model_convert tools/model_viewer
+SRC_programs = $(SRC_tests) $(SRC_tools)
+
+MODULES=menu_imgui base sys gfx gfx_gl gfx_mesh math geom geom_graph geom_voronoi menu perf audio
+
+# --- Definitions ---------------------------------------------------------------------------------
+
+SRC_merged = $(MODULES:%=%_merged)
+SRC_shared = $(SRC_menu_imgui) $(SRC_base) $(SRC_sys) $(SRC_math) $(SRC_gfx) $(SRC_gfx_gl) \
+			 $(SRC_gfx_mesh) $(SRC_geom) $(SRC_geom_graph) $(SRC_geom_voronoi) $(SRC_menu) \
+			 $(SRC_perf) $(SRC_audio)
+
+SRC_all=$(SRC_merged) $(SRC_shared) $(SRC_programs)
+
+CPP_merged = $(SRC_merged:%=$(BUILD_DIR)/%.cpp)
+CPP_shared = $(SRC_shared:%=src/%.cpp)
+
+LINUX_SHARED_OBJECTS:=$(SRC_shared:%=$(BUILD_DIR)/%.o)
+MINGW_SHARED_OBJECTS:=$(SRC_shared:%=$(BUILD_DIR)/%_.o)
+
+LINUX_MERGED_OBJECTS:=$(SRC_merged:%=$(BUILD_DIR)/%.o)
+MINGW_MERGED_OBJECTS:=$(SRC_merged:%=$(BUILD_DIR)/%_.o)
+
+LINUX_OBJECTS:=$(LINUX_SHARED_OBJECTS) $(SRC_programs:%=$(BUILD_DIR)/%.o)
+MINGW_OBJECTS:=$(MINGW_SHARED_OBJECTS) $(SRC_programs:%=$(BUILD_DIR)/%_.o)
+
+ifdef FAST_BUILD
+	LINUX_INPUT_OBJECTS = $(LINUX_MERGED_OBJECTS)
+	MINGW_INPUT_OBJECTS = $(MINGW_MERGED_OBJECTS)
+	INPUT_SRCS = $(CPP_merged)
+else
+	LINUX_INPUT_OBJECTS = $(LINUX_SHARED_OBJECTS)
+	MINGW_INPUT_OBJECTS = $(MINGW_SHARED_OBJECTS)
+	INPUT_SRCS = $(CPP_shared)
+endif
+
+LINUX_PROGRAMS:=$(SRC_programs:%=%)
+MINGW_PROGRAMS:=$(SRC_programs:%=%.exe)
+HTML5_PROGRAMS:=$(SRC_programs:%=%.html)
+HTML5_PROGRAMS_SRC:=$(SRC_programs:%=%.html.cpp)
 
 LINUX_AR =ar
 LINUX_STRIP=strip
@@ -155,25 +203,34 @@ endif
 # --- Main build targets --------------------------------------------------------------------------
 
 all: lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp $(LINUX_PROGRAMS) $(MINGW_PROGRAMS)
-tools: $(TOOLS_SRC)
-tests: $(TESTS_SRC)
-tools_mingw: $(TOOLS_SRC:%=%.exe)
-tests_mingw: $(TESTS_SRC:%=%.exe)
+tools: $(SRC_tools)
+tests: $(SRC_tests)
+tools_mingw: $(SRC_tools:%=%.exe)
+tests_mingw: $(SRC_tests:%=%.exe)
+
+$(CPP_merged): $(BUILD_DIR)/%_merged.cpp: Makefile
+	@echo "$(SRC_$*:%=#include \"%.cpp\"\n)" > $@
 
 $(LINUX_OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE_MAIN)
-	$(LINUX_CXX) -MMD $(LINUX_FLAGS) $(LINUX_CHECKER_FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@
+	$(STATS_CMD) $(LINUX_CXX) -MMD $(LINUX_FLAGS) $(LINUX_CHECKER_FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@
+
+$(LINUX_MERGED_OBJECTS): $(BUILD_DIR)/%.o: $(BUILD_DIR)/%.cpp $(PCH_FILE_MAIN)
+	$(STATS_CMD) $(LINUX_CXX) -MMD $(LINUX_FLAGS) $(LINUX_CHECKER_FLAGS) $(PCH_INCLUDE) -c $(BUILD_DIR)/$*.cpp -o $@
 
 $(MINGW_OBJECTS): $(BUILD_DIR)/%_.o: src/%.cpp
 	$(MINGW_CXX) -MMD $(MINGW_FLAGS) -c src/$*.cpp -o $@
 
-$(LINUX_PROGRAMS): %:     $(LINUX_SHARED_OBJECTS) $(BUILD_DIR)/%.o
+$(MINGW_MERGED_OBJECTS): $(BUILD_DIR)/%_.o: $(BUILD_DIR)/%.cpp
+	$(MINGW_CXX) -MMD $(MINGW_FLAGS) -c $(BUILD_DIR)/$*.cpp -o $@
+
+$(LINUX_PROGRAMS): %:     $(LINUX_INPUT_OBJECTS) $(BUILD_DIR)/%.o
 	$(LINUX_LINK) -MMD -o $@ $^ -rdynamic $(LINUX_LIBS) $(LIBS_$@)
 
-$(MINGW_PROGRAMS): %.exe: $(MINGW_SHARED_OBJECTS) $(BUILD_DIR)/%_.o
+$(MINGW_PROGRAMS): %.exe: $(MINGW_INPUT_OBJECTS) $(BUILD_DIR)/%_.o
 	$(MINGW_CXX) -MMD -o $@ $^ $(MINGW_LIBS) $(LIBS_$*)
 #	$(MINGW_STRIP) $@
 
-$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SHARED_SRC:%=src/%.cpp)
+$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SRC_shared:%=src/%.cpp)
 	cat src/html_pre_include.cpp $^ > $@
 
 $(HTML5_PROGRAMS): %.html: %.html.cpp
@@ -181,27 +238,30 @@ $(HTML5_PROGRAMS): %.html: %.html.cpp
 
 # TODO: use Makefile.include to build test programs
 
-lib/libfwk.a: $(LINUX_SHARED_OBJECTS)
+lib/libfwk.a: $(LINUX_INPUT_OBJECTS)
 	$(LINUX_AR) r $@ $^ 
 
-lib/libfwk_win32.a: $(MINGW_SHARED_OBJECTS)
+lib/libfwk_win32.a: $(MINGW_INPUT_OBJECTS)
 	$(MINGW_AR) r $@ $^
 
-lib/libfwk.cpp: $(SHARED_SRC:%=src/%.cpp)
+lib/libfwk.cpp: $(SRC_shared:%=src/%.cpp)
 	cat $^ > $@
 
-lib/libfwk.html.cpp: $(SHARED_SRC:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
+lib/libfwk.html.cpp: $(SRC_shared:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 	cat $^ > $@
 
-DEPS:=$(ALL_SRC:%=$(BUILD_DIR)/%.d) $(ALL_SRC:%=$(BUILD_DIR)/%_.d) $(PCH_FILE_H).d
+DEPS:=$(SRC_all:%=$(BUILD_DIR)/%.d) $(SRC_all:%=$(BUILD_DIR)/%_.d) $(PCH_FILE_H).d
+
+show-stats:
+	@sort -n -r build_stats.txt
 
 clean:
-	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_PROGRAMS) $(MINGW_PROGRAMS) \
-		$(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) $(HTML5_PROGRAMS:%.html=%.js) \
+	-rm -f $(LINUX_OBJECTS) $(MINGW_OBJECTS) $(LINUX_MERGED_OBJECTS) $(MINGW_MERGED_OBJECTS) \
+		$(LINUX_PROGRAMS) $(MINGW_PROGRAMS) $(HTML5_PROGRAMS) $(HTML5_PROGRAMS_SRC) \
+		$(CPP_merged) $(HTML5_PROGRAMS:%.html=%.js) build_stats.txt \
 		$(DEPS) lib/libfwk.a lib/libfwk_win32.a lib/libfwk.cpp lib/libfwk.html.cpp \
 		$(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
-	-rmdir tests temp lib tools
-	find $(BUILD_DIR) -type d -empty -delete
+	find $(SUBDIRS) -type d -empty -delete
 	
 checker-clean:
 	$(MAKE) -C src/checker/ clean

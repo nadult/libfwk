@@ -11,10 +11,6 @@
 
 namespace fwk {
 
-using VertexId = DynamicMesh::VertexId;
-using PolyId = DynamicMesh::PolyId;
-using EdgeId = DynamicMesh::EdgeId;
-
 string DynamicMesh::Simplex::print(const DynamicMesh &mesh) const {
 	TextFormatter out;
 	out("(");
@@ -163,7 +159,7 @@ bool DynamicMesh::isValid(EdgeId id) const {
 	return isValid(id.a) && isValid(id.b) && id.a != id.b;
 }
 
-VertexId DynamicMesh::addVertex(const float3 &pos) {
+DynamicMesh::VertexId DynamicMesh::addVertex(const float3 &pos) {
 	DASSERT(!isNan(pos));
 
 	int index = -1;
@@ -182,7 +178,7 @@ VertexId DynamicMesh::addVertex(const float3 &pos) {
 	return VertexId(index);
 }
 
-PolyId DynamicMesh::addPoly(CSpan<VertexId, 3> indices, int value) {
+DynamicMesh::PolyId DynamicMesh::addPoly(CSpan<VertexId, 3> indices, int value) {
 	for(int i1 = 0; i1 < (int)indices.size(); i1++) {
 		DASSERT(isValid(indices[i1]));
 		for(int i2 = i1 + 1; i2 < (int)indices.size(); i2++)
@@ -244,14 +240,14 @@ void DynamicMesh::remove(PolyId id) {
 	m_num_polys--;
 }
 
-VertexId DynamicMesh::merge(CSpan<VertexId> range) {
+DynamicMesh::VertexId DynamicMesh::merge(CSpan<VertexId> range) {
 	float3 sum;
 	for(auto vert : range)
 		sum += point(vert);
 	return merge(range, sum / float(range.size()));
 }
 
-VertexId DynamicMesh::merge(CSpan<VertexId> range, const float3 &target_pos) {
+DynamicMesh::VertexId DynamicMesh::merge(CSpan<VertexId> range, const float3 &target_pos) {
 	VertexId new_vert = addVertex(target_pos);
 
 	vector<PolyId> sel_polys;
@@ -332,15 +328,15 @@ void DynamicMesh::move(VertexId vertex_id, const float3 &new_pos) {
 	m_verts[vertex_id] = new_pos;
 }
 
-vector<PolyId> DynamicMesh::inverse(CSpan<PolyId> filter) const {
+vector<DynamicMesh::PolyId> DynamicMesh::inverse(CSpan<PolyId> filter) const {
 	return setDifference(polys(), filter);
 }
 
-vector<VertexId> DynamicMesh::inverse(CSpan<VertexId> filter) const {
+vector<DynamicMesh::VertexId> DynamicMesh::inverse(CSpan<VertexId> filter) const {
 	return setDifference(verts(), filter);
 }
 
-vector<VertexId> DynamicMesh::verts() const {
+vector<DynamicMesh::VertexId> DynamicMesh::verts() const {
 	vector<VertexId> out;
 	out.reserve(m_num_verts);
 	for(int i = 0; i < vertexIdCount(); i++)
@@ -349,7 +345,7 @@ vector<VertexId> DynamicMesh::verts() const {
 	return out;
 }
 
-vector<VertexId> DynamicMesh::verts(CSpan<PolyId> polys) const {
+vector<DynamicMesh::VertexId> DynamicMesh::verts(CSpan<PolyId> polys) const {
 	vector<VertexId> out;
 	for(auto poly : polys)
 		insertBack(out, verts(poly));
@@ -357,17 +353,17 @@ vector<VertexId> DynamicMesh::verts(CSpan<PolyId> polys) const {
 	return out;
 }
 
-vector<VertexId> DynamicMesh::verts(PolyId id) const {
+vector<DynamicMesh::VertexId> DynamicMesh::verts(PolyId id) const {
 	DASSERT(isValid(id));
 	return transform<VertexId>(m_polys[id].verts);
 }
 
-array<VertexId, 2> DynamicMesh::verts(EdgeId id) const {
+array<DynamicMesh::VertexId, 2> DynamicMesh::verts(EdgeId id) const {
 	DASSERT(isValid(id));
 	return {{id.a, id.b}};
 }
 
-vector<PolyId> DynamicMesh::polys() const {
+vector<DynamicMesh::PolyId> DynamicMesh::polys() const {
 	vector<PolyId> out;
 	out.reserve(m_num_polys);
 	for(int i = 0; i < polyIdCount(); i++)
@@ -376,7 +372,7 @@ vector<PolyId> DynamicMesh::polys() const {
 	return out;
 }
 
-vector<PolyId> DynamicMesh::coincidentPolys(PolyId id) const {
+vector<DynamicMesh::PolyId> DynamicMesh::coincidentPolys(PolyId id) const {
 	DASSERT(isValid(id));
 	vector<PolyId> out;
 	for(auto vert : verts(id))
@@ -387,12 +383,12 @@ vector<PolyId> DynamicMesh::coincidentPolys(PolyId id) const {
 	return out;
 }
 
-vector<PolyId> DynamicMesh::polys(VertexId id) const {
+vector<DynamicMesh::PolyId> DynamicMesh::polys(VertexId id) const {
 	DASSERT(isValid(id));
 	return vector<PolyId>(begin(m_adjacency[id]), end(m_adjacency[id]));
 }
 
-vector<PolyId> DynamicMesh::polys(EdgeId id) const {
+vector<DynamicMesh::PolyId> DynamicMesh::polys(EdgeId id) const {
 	DASSERT(isValid(id));
 	vector<PolyId> out;
 	for(auto poly : polys(id.a)) {
@@ -403,7 +399,7 @@ vector<PolyId> DynamicMesh::polys(EdgeId id) const {
 	return out;
 }
 
-vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
+vector<DynamicMesh::PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 	vector<PolyId> out;
 
 	vector<char> visited(polyIdCount(), 0);
@@ -461,7 +457,7 @@ vector<PolyId> DynamicMesh::selectSurface(PolyId representative) const {
 	return out;
 }
 
-vector<EdgeId> DynamicMesh::edges() const {
+vector<DynamicMesh::EdgeId> DynamicMesh::edges() const {
 	vector<EdgeId> out;
 	out.reserve(polyCount() * 3);
 	for(auto poly : polys())
@@ -471,7 +467,7 @@ vector<EdgeId> DynamicMesh::edges() const {
 	return out;
 }
 
-vector<EdgeId> DynamicMesh::edges(PolyId id) const {
+vector<DynamicMesh::EdgeId> DynamicMesh::edges(PolyId id) const {
 	DASSERT(isValid(id));
 	const auto &poly = m_polys[id].verts;
 
@@ -482,7 +478,7 @@ vector<EdgeId> DynamicMesh::edges(PolyId id) const {
 	return out;
 }
 
-vector<EdgeId> DynamicMesh::edges(VertexId id) const {
+vector<DynamicMesh::EdgeId> DynamicMesh::edges(VertexId id) const {
 	DASSERT(isValid(id));
 	vector<EdgeId> out;
 	for(auto poly : polys(id))
@@ -491,7 +487,7 @@ vector<EdgeId> DynamicMesh::edges(VertexId id) const {
 	return out;
 }
 
-EdgeId DynamicMesh::polyEdge(PolyId poly_id, int sub_id) const {
+DynamicMesh::EdgeId DynamicMesh::polyEdge(PolyId poly_id, int sub_id) const {
 	DASSERT(isValid(poly_id));
 	DASSERT(sub_id < vertexCount(poly_id));
 	const auto &poly = m_polys[poly_id].verts;
@@ -508,7 +504,7 @@ int DynamicMesh::polyEdgeIndex(PolyId poly_id, EdgeId edge) const {
 	return -1;
 }
 
-VertexId DynamicMesh::otherVertex(PolyId poly_id, EdgeId edge_id) const {
+DynamicMesh::VertexId DynamicMesh::otherVertex(PolyId poly_id, EdgeId edge_id) const {
 	DASSERT(isValid(poly_id));
 	DASSERT(isValid(edge_id));
 	const auto &poly = m_polys[poly_id].verts;
@@ -554,7 +550,7 @@ int DynamicMesh::vertexCount(PolyId poly) const {
 	return (int)m_polys[poly].verts.size();
 }
 
-vector<PolyId> DynamicMesh::triangulate(PolyId poly_id) {
+vector<DynamicMesh::PolyId> DynamicMesh::triangulate(PolyId poly_id) {
 	DASSERT(isValid(poly_id));
 	if(vertexCount(poly_id) == 3)
 		return {poly_id};

@@ -1,6 +1,22 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#ifdef FWK_TARGET_MINGW
+#include "file_system_windows.cpp"
+#endif
+
+#ifdef _WIN32
+
+#include <direct.h>
+#include <io.h>
+
+#else
+
+#include <errno.h>
+#include <unistd.h>
+
+#endif
+
 #include "fwk/sys/file_system.h"
 
 #include "fwk/format.h"
@@ -15,17 +31,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef _WIN32
-
-#include <direct.h>
-#include <io.h>
-
-#else
-
-#include <errno.h>
-#include <unistd.h>
-
-#endif
 
 namespace fwk {
 

@@ -7,3 +7,4 @@
 /.ycm_extra_conf.pyc
 /Makefile.local
 /checker.so
+build_stats.txt

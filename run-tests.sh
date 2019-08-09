@@ -1,5 +1,5 @@
 set -e
-make -j8 tests tools
+make -j8 tests tools FAST_BUILD=true
 cd tests
 ./stuff
 ./math

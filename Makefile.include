@@ -30,9 +30,9 @@ MINGW_WPO_FWK_FLAGS=$(MINGW_FWK_FLAGS) -I$(FWK_DIR)/src $(FWK_INCLUDES) $(shell 
 MINGW_WPO_FWK_SRC_FILES=$(FWK_DIR)/src/system_windows.cpp $(FWK_DIR)/src/filesystem_windows.cpp
 
 $(LINUX_FWK_LIB): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) lib/libfwk.a
+	$(MAKE) -C $(FWK_DIR) lib/libfwk.a FAST_BUILD=true
 $(MINGW_FWK_LIB): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a
+	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a FAST_BUILD=true
 $(HTML5_FWK_LIB): .ALWAYS_CHECK
 	$(MAKE) -C $(FWK_DIR) lib/libfwk.html.cpp
 $(FWK_FULL_SOURCE): .ALWAYS_CHECK
