@@ -204,9 +204,9 @@ void ImGuiWrapper::saveSettings(XmlNode xnode) const {
 		enode("name") = enode.own(elem.Name);
 		enode("pos") = (int2)elem.Pos;
 		enode("size") = (int2)elem.Size;
-		enode.addAttrib("collapsed", elem.Collapsed, false);
+		enode("collapsed", false) = elem.Collapsed;
 	}
-	xnode.addAttrib("hide", o_hide_menu, false);
+	xnode("hide", false) = o_hide_menu;
 }
 
 void ImGuiWrapper::loadSettings(CXmlNode xnode) {

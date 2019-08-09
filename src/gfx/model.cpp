@@ -22,8 +22,8 @@ MaterialDef::MaterialDef(CXmlNode node)
 	: name(node("name")), diffuse(node("diffuse", float3(1, 1, 1))) {}
 
 void MaterialDef::saveToXML(XmlNode node) const {
-	node.addAttrib("name", node.own(name));
-	node.addAttrib("diffuse", diffuse.rgb());
+	node("name") = node.own(name);
+	node("diffuse") = diffuse.rgb();
 }
 
 static PPose defaultPose(vector<int> dfs_ids, CSpan<ModelNode> nodes) {
@@ -75,7 +75,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 
 		auto prop_node = xml_node.child("property");
 		while(prop_node) {
-			new_node.props.emplace_back(prop_node("name"), prop_node("value"));
+			new_node.props.emplace_back(prop_node.attrib("name"), prop_node.attrib("value"));
 			prop_node.next();
 		}
 
@@ -145,18 +145,18 @@ int Model::findNodeId(Str name) const {
 
 static void saveNode(CSpan<ModelNode> nodes, int node_id, XmlNode xml_node) {
 	auto &node = nodes[node_id];
-	xml_node.addAttrib("name", xml_node.own(node.name));
+	xml_node("name") = xml_node.own(node.name);
 	if(node.type != ModelNodeType::generic)
-		xml_node.addAttrib("type", toString(node.type));
-	xml_node.addAttrib("mesh_id", node.mesh_id);
+		xml_node("type") = toString(node.type);
+	xml_node("mesh_id") = node.mesh_id;
 	ModelAnim::transToXML(node.trans, AffineTrans(), xml_node);
 
 	auto props = node.props;
 	std::sort(begin(props), end(props));
 	for(const auto &prop : props) {
 		XmlNode xml_prop = xml_node.addChild("property");
-		xml_prop.addAttrib("name", xml_prop.own(prop.first));
-		xml_prop.addAttrib("value", xml_prop.own(prop.second));
+		xml_prop("name") = xml_prop.own(prop.first);
+		xml_prop("value") = xml_prop.own(prop.second);
 	}
 
 	for(int child_id : node.children_ids)

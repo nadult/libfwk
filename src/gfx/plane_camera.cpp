@@ -32,8 +32,8 @@ Ex<PlaneCamera> PlaneCamera::load(CXmlNode node) {
 }
 
 void PlaneCamera::save(XmlNode node) const {
-	node.addAttrib("pos", pos, double3());
-	node.addAttrib("zoom", zoom, 1.0);
+	node("pos", double3()) = pos;
+	node("zoom", 1.0) = zoom;
 	node("axis1") = axis_right;
 	node("axis2") = axis_up;
 }

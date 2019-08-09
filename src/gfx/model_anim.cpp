@@ -41,7 +41,7 @@ AffineTrans ModelAnim::transFromXML(CXmlNode node, const AffineTrans &default_tr
 
 Ex<void> ModelAnim::Channel::load(CXmlNode node, const AffineTrans &default_trans) {
 	this->default_trans = default_trans;
-	node_name = node.attrib("name");
+	node_name = node("name");
 	trans = transFromXML(node, default_trans);
 
 	if(auto pos_node = node.child("pos"))
@@ -57,7 +57,7 @@ Ex<void> ModelAnim::Channel::load(CXmlNode node, const AffineTrans &default_tran
 }
 
 void ModelAnim::Channel::save(XmlNode node) const {
-	node.addAttrib("name", node.own(node_name));
+	node("name") = node.own(node_name);
 
 	transToXML(trans, default_trans, node);
 	if(translation_track)

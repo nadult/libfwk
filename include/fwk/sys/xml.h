@@ -18,11 +18,43 @@ template <class Ch> class xml_document;
 
 namespace fwk {
 
+// Allows easy access & modification of attributes
+template <class Node, class T = Empty> struct XmlAccessor {
+	static constexpr bool is_mutable = is_same<Node, XmlNode>;
+	static constexpr bool has_default = !is_same<T, Empty>;
+
+	XmlAccessor(Str name, Node node, T def = {}) : name(name), node(node), default_value(def) {}
+	XmlAccessor(const XmlAccessor &) = delete;
+	XmlAccessor(XmlAccessor &&) = delete;
+
+	// Can assign any formattible value to it
+	template <class U,
+			  EnableIf<is_formattible<U> && (is_same<T, U> || !has_default) && is_mutable>...>
+	void operator=(const U &val) {
+		if constexpr(has_default)
+			node.addAttrib(name, val, default_value);
+		else
+			node.addAttrib(name, val);
+	}
+
+	// Converts to parsable value
+	template <class U, EnableIf<is_parsable<U> && (is_same<T, U> || !has_default)>...>
+	operator U() const INST_EXCEPT {
+		if constexpr(has_default)
+			return node.attrib(name, default_value);
+		else
+			return node.template attrib<U>(name);
+	}
+
+	Str name;
+	Node node;
+	T default_value = {};
+};
+
 // -------------------------------------------------------------------------------------------
 // ---  Immutable CXmlNode   -----------------------------------------------------------------
 //
-// Attribute & value accessors raise exception on error, unless prefixed with try
-// Accessors allow easy access to attributes & values
+// Attribute & value functions raise exception on error, unless prefixed with try.
 //
 // Example use:
 //   if(auto cnode = node.child("sub_node"))
@@ -36,17 +68,11 @@ class CXmlNode {
 	CXmlNode(const CXmlNode &) = default;
 	CXmlNode() = default;
 
-	// Automatically converts to parsable values and strings
-	struct Accessor {
-		template <class T, EnableIf<is_parsable<T>>...> operator T() const INST_EXCEPT {
-			return fromString<T>(value);
-		}
-
-		ZStr value;
-	};
-
 	ZStr attrib(Str name) const EXCEPT;
-	Accessor operator()(Str name) const EXCEPT { return {attrib(name)}; }
+	template <class T = Empty>
+	XmlAccessor<CXmlNode, T> operator()(Str name, const T &default_value = Empty()) const EXCEPT {
+		return {name, *this, default_value};
+	}
 
 	ZStr tryAttrib(Str name, ZStr on_error = {}) const;
 	ZStr tryAttrib(Str name, const char *on_error) const { return tryAttrib(name, ZStr(on_error)); }
@@ -56,9 +82,6 @@ class CXmlNode {
 	template <class T> T attrib(Str name, const T &on_empty) const EXCEPT {
 		ZStr value = tryAttrib(name);
 		return value ? fromString<T>(value) : on_empty;
-	}
-	template <class T> T operator()(Str name, const T &on_empty) const EXCEPT {
-		return attrib(name, on_empty);
 	}
 
 	template <class T> T tryAttrib(Str name, const T &on_error = {}) const {
@@ -71,7 +94,6 @@ class CXmlNode {
 	}
 
 	ZStr value() const;
-	Accessor operator*() const { return {value()}; }
 
 	template <class T> T value() const EXCEPT { return fromString<T>(value()); }
 	template <class T> T value(const T &on_empty) const EXCEPT {
@@ -124,9 +146,10 @@ class XmlNode : public CXmlNode {
 	XmlNode(const XmlNode &) = default;
 	XmlNode() = default;
 
-	struct MutableAccessor;
-	using CXmlNode::operator();
-	MutableAccessor operator()(Str name);
+	template <class T = Empty>
+	XmlAccessor<XmlNode, T> operator()(Str name, const T &default_value = Empty()) {
+		return {name, *this, default_value};
+	}
 
 	void addAttrib(Str name, Str value);
 	void addAttrib(Str name, int value);
@@ -171,21 +194,6 @@ class XmlNode : public CXmlNode {
 
 	rapidxml::xml_document<char> *m_doc = nullptr;
 };
-
-struct XmlNode::MutableAccessor {
-	void operator=(Str val) { node.addAttrib(name, val); }
-	template <class T, EnableIf<is_formattible<T>>...> void operator=(const T &val) {
-		node.addAttrib(name, val);
-	}
-	template <class T, EnableIf<is_parsable<T>>...> operator T() const INST_EXCEPT {
-		return node.attrib<T>(name);
-	}
-
-	XmlNode node;
-	Str name;
-};
-
-inline XmlNode::MutableAccessor XmlNode::operator()(Str name) { return {*this, name}; }
 
 // -------------------------------------------------------------------------------------------
 // ---  XMLDocument   ------------------------------------------------------------------------

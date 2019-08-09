@@ -28,9 +28,7 @@ Ex<Mesh> Mesh::load(CXmlNode node) {
 	vector<MeshIndices> indices;
 	auto xml_indices = node.child("indices");
 	while(xml_indices) {
-		auto type = PrimitiveType::triangles;
-		if(auto type_string = xml_indices.tryAttrib("type"))
-			type = fromString<PrimitiveType>(type_string);
+		auto type = xml_indices("type", PrimitiveType::triangles);
 		indices.emplace_back(xml_indices.value<vector<int>>(), type);
 		xml_indices.next();
 	}
@@ -50,7 +48,7 @@ void Mesh::saveToXML(XmlNode node) const {
 		const auto &indices = m_indices[n];
 		XmlNode xml_indices = node.addChild("indices", indices.data());
 		if(indices.type() != PrimitiveType::triangles)
-			xml_indices.addAttrib("type", toString(indices.type()));
+			xml_indices("type") = indices.type();
 	}
 	if(m_material_names)
 		node.addChild("materials", m_material_names);
