@@ -14,8 +14,8 @@
 using namespace clang;
 using std::string;
 
-//#define DBG_PRINT(...) printf(__VA_ARGS__)
 #define DBG_PRINT(...)
+//#define DBG_PRINT(...) printf(__VA_ARGS__)
 
 namespace {
 
@@ -211,6 +211,12 @@ struct AnnoCtx {
 
 		std::vector<SourceLocation> out;
 		getExcepts(decl->getBody(), &out, decl);
+		if(isa<CXXConstructorDecl>(decl)) {
+			auto *spec = cast<CXXConstructorDecl>(decl);
+			for(auto *init : spec->inits())
+				getExcepts(init->getInit(), &out, spec);
+		}
+
 		return out;
 	}
 
@@ -250,8 +256,6 @@ class CheckFwkExceptionsConsumer : public ASTConsumer {
   public:
 	CheckFwkExceptionsConsumer(CompilerInstance &ci) : ci(ci) {}
 
-	void reportError(const FunctionDecl *decl) {}
-
 	struct Visitor : public RecursiveASTVisitor<Visitor> {
 		Visitor(AnnoCtx &ctx) : anno_ctx(ctx) {}
 
@@ -286,7 +290,8 @@ class CheckFwkExceptionsConsumer : public ASTConsumer {
 		DBG_PRINT("ERRORS: %d\n", (int)v.error_decls.size());
 
 		auto &diags = ci.getDiagnostics();
-		auto err_id = diags.getCustomDiagID(DiagnosticsEngine::Error, "Missing EXCEPT attribute");
+		auto err_id =
+			diags.getCustomDiagID(DiagnosticsEngine::Error, "Missing EXCEPT attribute in: %q0");
 		auto note_id = diags.getCustomDiagID(DiagnosticsEngine::Note, "Caused by this statement:");
 		auto ref_id = diags.getCustomDiagID(
 			DiagnosticsEngine::Note, "Referencing following function which may raise exceptions:");
@@ -309,7 +314,8 @@ class CheckFwkExceptionsConsumer : public ASTConsumer {
 				if(skipped > 1)
 					locs.resize(max_notes * 2);
 
-				diags.Report(loc, err_id);
+				diags.Report(loc, err_id) << decl;
+
 				for(uint n = 0; n < locs.size(); n += 2) {
 					diags.Report(locs[n + 0], note_id);
 					diags.Report(locs[n + 1], ref_id);
