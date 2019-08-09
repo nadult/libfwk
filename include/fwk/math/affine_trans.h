@@ -16,6 +16,9 @@ class AffineTrans {
 		: translation(pos), scale(scale), rotation(rot) {}
 	operator Matrix4() const;
 
+	static Ex<AffineTrans> load(CXmlNode);
+	void save(XmlNode) const;
+
 	FWK_ORDER_BY(AffineTrans, translation, scale, rotation);
 
 	float3 translation;

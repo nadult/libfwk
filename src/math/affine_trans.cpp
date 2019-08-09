@@ -4,6 +4,7 @@
 #include "fwk/math/affine_trans.h"
 
 #include "fwk/math/matrix4.h"
+#include "fwk/sys/xml.h"
 
 namespace fwk {
 
@@ -58,6 +59,17 @@ AffineTrans::operator Matrix4() const {
 
 AffineTrans operator*(const AffineTrans &lhs, const AffineTrans &rhs) {
 	return AffineTrans(Matrix4(lhs) * Matrix4(rhs));
+}
+
+Ex<AffineTrans> AffineTrans::load(CXmlNode node) {
+	return AffineTrans{node("translation", float3()), node("scale", float3(1)),
+					   node("rotation", Quat())};
+}
+
+void AffineTrans::save(XmlNode node) const {
+	node("translation", float3()) = translation;
+	node("scale", float3(1)) = scale;
+	node("rotation", Quat()) = rotation;
 }
 
 AffineTrans lerp(const AffineTrans &a, const AffineTrans &b, float t) {
