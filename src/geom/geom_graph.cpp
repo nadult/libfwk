@@ -4,9 +4,11 @@
 
 namespace fwk {
 
+template <class T> using FixedElem = Graph::FixedElem<T>;
+
 template <class T> GeomGraph<T>::GeomGraph(vector<Point> points) {
 	for(auto pt : points)
-		add(pt);
+		fixVertex(pt);
 }
 
 // -------------------------------------------------------------------------------------------
@@ -26,18 +28,43 @@ template <class T> Segment<T> GeomGraph<T>::operator()(EdgeId id) const {
 	return {m_points[n1], m_points[n2]};
 }
 
+template <class T> Maybe<VertexRef> GeomGraph<T>::findVertex(Point pt) const {
+	if(auto it = m_node_map.find(pt); it != m_node_map.end())
+		return ref(VertexId(it->second));
+	return none;
+}
+
+template <class T> Maybe<EdgeRef> GeomGraph<T>::findEdge(Point p1, Point p2, Layers layers) const {
+	if(auto n1 = findVertex(p1))
+		if(auto n2 = findVertex(p2))
+			return findEdge(*n1, *n2, layers);
+	return none;
+}
+
 // -------------------------------------------------------------------------------------------
 // ---  Adding & removing elements -----------------------------------------------------------
 
-template <class T> VertexId GeomGraph<T>::add(const Point &point) {
-	if constexpr(is_same<Point, None>)
-		return addVertex();
-	else {
-		auto id = addVertex(m_points);
-		m_points[id] = point;
-		m_node_map[point] = id;
-		return id;
-	}
+template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &point) {
+	// TODO: możliwośc sprecyzowania domyślnego elementu w hashMap::operator[] ?
+	auto it = m_node_map.find(point);
+	if(it != m_node_map.end())
+		return {VertexId(it->second), false};
+	auto id = Graph::addVertex();
+	m_points.resize(Graph::m_verts.capacity());
+	m_points[id] = point;
+	m_node_map[point] = id;
+	return {id, true};
+}
+
+template <class T> FixedElem<GEdgeId> GeomGraph<T>::fixEdge(Point p1, Point p2, Layer layer) {
+	auto n1 = fixVertex(p1).id;
+	auto n2 = fixVertex(p2).id;
+	return fixEdge(n1, n2, layer);
+}
+
+template <class T>
+FixedElem<GEdgeId> GeomGraph<T>::fixEdge(const Segment<Point> &seg, Layer layer) {
+	return fixEdge(seg.from, seg.to, layer);
 }
 
 template <class T> void GeomGraph<T>::remove(VertexId id) {
@@ -45,26 +72,29 @@ template <class T> void GeomGraph<T>::remove(VertexId id) {
 	Graph::remove(id);
 }
 
-template <class T> void GeomGraph<T>::remove(const Point &pt) {
-	auto nid = find(pt);
-	DASSERT(nid);
-	remove(*nid);
+template <class T> bool GeomGraph<T>::removeVertex(const Point &pt) {
+	if(auto nid = findVertex(pt)) {
+		remove(*nid);
+		return true;
+	}
+	return false;
 }
 
-template <class T> void GeomGraph<T>::remove(const Point &from, const Point &to) {
-	if(auto eid = find(from, to))
+template <class T> bool GeomGraph<T>::removeEdge(const Point &from, const Point &to) {
+	if(auto eid = findEdge(from, to)) {
 		remove(*eid);
+		return true;
+	}
+	return false;
 }
 
-template <class T> void GeomGraph<T>::remove(const Segment<Point> &seg) {
-	remove(seg.from, seg.to);
+template <class T> bool GeomGraph<T>::removeEdge(const Segment<Point> &seg) {
+	return removeEdge(seg.from, seg.to);
 }
 
 template <class T> void GeomGraph<T>::reserveVerts(int capacity) {
 	Graph::reserveVerts(capacity);
-	capacity = m_verts.capacity();
-	if(m_points.size() < capacity)
-		m_points.resizeFullCopy(capacity);
+	m_points.resize(m_verts.capacity());
 }
 
 // -------------------------------------------------------------------------------------------
@@ -93,67 +123,4 @@ template class GeomGraph<int2>;
 
 template class GeomGraph<float3>;
 template class GeomGraph<int3>;
-
-/*
-#define TEMPLATE template <class T>
-#define TGRAPH Graph<T>
-
-TEMPLATE TGRAPH::~Graph() = default;
-
-TEMPLATE TGRAPH::Graph(vector<T> tpoints) : Graph(tpoints.size()), m_points(move(tpoints)) {
-	if constexpr(!is_rational)
-		m_node_map.reserve(m_points.size() * 2);
-
-	for(auto id : indexRange<NodeId>(m_points)) {
-		auto it = m_node_map.find(m_points[id]);
-		if(it == m_node_map.end())
-			m_node_map.emplace(m_points[id], id);
-	}
-}
-
-TEMPLATE pair<NodeId, bool> TGRAPH::add(const T &point) {
-	auto ret = m_node_map.emplace(point, m_points.size());
-	if(ret.second)
-		m_points.emplace_back(point);
-	return make_pair(NodeId(ret.first->second), ret.second);
-}
-
-TEMPLATE void TGRAPH::reservePoints(int count) {
-	m_points.reserve(count);
-	if constexpr(!is_rational)
-		m_node_map.reserve(count * 2);
-}
-
-TEMPLATE void TGRAPH::reserveEdges(int count) {
-	// TODO: writeme
-}
-
-TEMPLATE void TGRAPH::clear() {
-	Graph::clear();
-	m_points.clear();
-	m_node_map.clear();
-}
-
-TEMPLATE Maybe<NodeId> TGRAPH::find(const T &point) const {
-	auto it = m_node_map.find(point);
-	return it == m_node_map.end() ? Maybe<NodeId>() : NodeId(it->second);
-}
-
-TEMPLATE Maybe<GEdgeId> TGRAPH::find(const T &from, const T &to) const {
-	if(auto n1 = find(from))
-		if(auto n2 = find(to)) {
-			auto ret = find(*n1, *n2);
-			return ret ? ret->id() : Maybe<GEdgeId>();
-		}
-	return none;
-}
-
-TEMPLATE VectorMap<NodeId, NodeId> TGRAPH::mapping(const vector<T> &source_points) const {
-	vector<Pair<NodeId>> out;
-	out.reserve(source_points.size());
-	for(auto id : indexRange<NodeId>(source_points))
-		if(auto target = find(source_points[id]))
-			out.emplace_back(id, *target);
-	return out;
-}*/
 }

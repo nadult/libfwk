@@ -8,36 +8,50 @@
 
 namespace fwk {
 
+template <class T> using FixedElem = Graph::FixedElem<T>;
+
 // -------------------------------------------------------------------------
 // -- VertexRef & IndexRef implementation ----------------------------------
 
 const GraphLabel *VertexRef::operator->() const { return &(*m_graph)[m_id]; }
 const GraphLabel *EdgeRef::operator->() const { return &(*m_graph)[m_id]; }
 
-int VertexRef::numEdges() const { return m_graph->m_verts[m_id].size(); }
-int VertexRef::numEdgesFrom() const {
+int VertexRef::numEdges(Layers layers) const {
+	auto &edges = m_graph->m_verts[m_id];
+	if(layers == Layers::all())
+		return edges.size();
 	int count = 0;
 	for(auto eid : m_graph->m_verts[m_id])
-		if(eid.isSource())
+		if(layers & eid.layer())
 			count++;
 	return count;
 }
 
-int VertexRef::numEdgesTo() const {
+int VertexRef::numEdgesFrom(Layers layers) const {
 	int count = 0;
 	for(auto eid : m_graph->m_verts[m_id])
-		if(!eid.isSource())
+		if(eid.isSource() && (eid.layer() & layers))
 			count++;
 	return count;
 }
 
-VertexRef EdgeRef::from() const { return VertexRef(m_graph, m_graph->m_edges[m_id].first); }
-VertexRef EdgeRef::to() const { return VertexRef(m_graph, m_graph->m_edges[m_id].second); }
+int VertexRef::numEdgesTo(Layers layers) const {
+	int count = 0;
+	for(auto eid : m_graph->m_verts[m_id])
+		if(!eid.isSource() && (eid.layer() & layers))
+			count++;
+	return count;
+}
+
+VertexRef EdgeRef::from() const { return VertexRef(m_graph, m_graph->m_edges[m_id].from); }
+VertexRef EdgeRef::to() const { return VertexRef(m_graph, m_graph->m_edges[m_id].to); }
 VertexRef EdgeRef::other(VertexId node) const {
 	auto &edge = m_graph->m_edges[m_id];
-	return VertexRef(m_graph, edge.first == node ? edge.second : edge.first);
+	return VertexRef(m_graph, edge.from == node ? edge.to : edge.from);
 }
-Maybe<EdgeRef> EdgeRef::twin() const { return m_graph->find(to(), from()); }
+Maybe<EdgeRef> EdgeRef::twin(GraphLayers layers) const {
+	return m_graph->findEdge(to(), from(), layers);
+}
 
 bool EdgeRef::adjacent(VertexId node_id) const { return isOneOf(node_id, from(), to()); }
 bool EdgeRef::adjacent(EdgeId rhs_id) const {
@@ -55,40 +69,56 @@ FWK_COPYABLE_CLASS_IMPL(Graph);
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
 
-Maybe<EdgeRef> Graph::find(VertexId from, VertexId to) const {
+Maybe<EdgeRef> Graph::findEdge(VertexId from, VertexId to, Layers layers) const {
 	for(auto eid : m_verts[from])
-		if(eid.isSource() && m_edges[eid].second == to)
+		if(eid.test(EdgeKind::from, layers) && m_edges[eid].to == to)
 			return ref(eid);
+	return none;
+}
+
+Maybe<EdgeRef> Graph::findUndirectedEdge(VertexId from, VertexId to, Layers layers) const {
+	for(auto eid : m_verts[from])
+		if(eid.test(EdgeKind::from, layers) && m_edges[eid].to == to)
+			return ref(eid);
+	for(auto eid : m_verts[to])
+		if(eid.test(EdgeKind::from, layers) && m_edges[eid].to == from)
+			return ref(eid);
+	return none;
+}
+	
+Maybe<GTriId> Graph::findTri(VertexId v1, VertexId v2, VertexId v3, Layers layers) const {
+	auto vmax = max(v1, v2, v3);
+	if(vmax >= m_vert_tris.size())
+		return none;
+
+	for(auto tid : m_vert_tris[v1]) {
+		auto &tri = m_tris[tid];
+		if(isOneOf(v2, tri.verts) && isOneOf(v3, tri.verts))
+			return tid;
+	}
 	return none;
 }
 
 // TODO: zrobić range-e
 vector<VertexId> Graph::nodesFrom(VertexId node_id) const {
-	return transform(edgesFrom(node_id), [&](auto edge_id) { return m_edges[edge_id].second; });
+	return transform(edgesFrom(node_id), [&](auto edge_id) { return m_edges[edge_id].to; });
 }
 
 vector<VertexId> Graph::nodesTo(VertexId node_id) const {
-	return transform(edgesTo(node_id), [&](auto edge_id) { return m_edges[edge_id].first; });
+	return transform(edgesTo(node_id), [&](auto edge_id) { return m_edges[edge_id].from; });
 }
 
 vector<VertexId> Graph::nodesAdj(VertexId node_id) const {
 	auto out = transform(edges(node_id), [&](auto edge_id) {
 		auto &edge = m_edges[edge_id];
-		return edge.first == node_id ? edge.second : edge.first;
+		return edge.from == node_id ? edge.to : edge.from;
 	});
 	makeSortedUnique(out);
 	return out;
 }
 
-VertexId Graph::from(EdgeId edge_id) const {
-	DASSERT(valid(edge_id));
-	return m_edges[edge_id].first;
-}
-
-VertexId Graph::to(EdgeId edge_id) const {
-	DASSERT(valid(edge_id));
-	return m_edges[edge_id].second;
-}
+VertexId Graph::from(EdgeId edge_id) const { return m_edges[edge_id].from; }
+VertexId Graph::to(EdgeId edge_id) const { return m_edges[edge_id].to; }
 
 static const GraphLabel g_default_label;
 
@@ -131,57 +161,48 @@ void Graph::reserveTris(int capacity) { m_tris.reserve(capacity); }
 
 VertexId Graph::addVertex() { return VertexId(m_verts.emplace()); }
 
-template <class T> VertexId Graph::addVertex(PodVector<T> &points) {
-	if(m_verts.growForNext())
-		points.resizeFullCopy(m_verts.capacity());
-	return VertexId(m_verts.emplace());
-}
-
-pair<GEdgeId, bool> Graph::add(VertexId n1, VertexId n2) {
-	auto &node = m_verts[n1];
-	for(auto eid : m_verts[n1])
-		if(eid.isSource() && m_edges[eid].second == n2)
-			return {eid, false};
-	return {addNew(n1, n2), true};
-}
-
-// Will add missing nodes
-GEdgeId Graph::addNew(VertexId n1, VertexId n2) {
-	EdgeId eid(m_edges.emplace(n1, n2));
-	m_verts[n1].emplace_back(eid.index(), EdgeOpt::source);
-	m_verts[n2].emplace_back(eid);
+GEdgeId Graph::addEdge(VertexId v1, VertexId v2, Layer layer) {
+	PASSERT(valid(v1) && valid(v2));
+	EdgeId eid(m_edges.emplace(v1, v2));
+	m_edge_layers.resize(m_edges.capacity());
+	m_edge_layers[eid] = layer;
+	m_verts[v1].emplace_back(eid.index(), EdgeOpt::source, layer);
+	m_verts[v2].emplace_back(eid, none, layer);
 	return eid;
 }
 
-pair<TriId, bool> Graph::add(VertexId v1, VertexId v2, VertexId v3) {
-	auto vmax = max(v1, v2, v3);
-	if(m_vert_tris.size() <= vmax)
-		m_vert_tris.resize(int(vmax) + 1);
-
-	for(auto tid : m_vert_tris[v1]) {
-		auto &tri = m_tris[tid];
-		if(isOneOf(v2, tri.verts) && isOneOf(v3, tri.verts))
-			return {tid, false};
-	}
-
-	TriId tid(m_tris.emplace(v1, v2, v3));
-	m_vert_tris[v1].emplace_back(tid);
-	m_vert_tris[v2].emplace_back(tid);
-	m_vert_tris[v3].emplace_back(tid);
-	return {tid, true};
+FixedElem<GEdgeId> Graph::fixEdge(VertexId v1, VertexId v2, Layer layer) {
+	if(auto id = findEdge(v1, v2, layer))
+		return {*id, false};
+	return {addEdge(v1, v2, layer), true};
 }
 
-TriId Graph::addNew(VertexId v1, VertexId v2, VertexId v3) {
-	TriId tid(m_tris.emplace(v1, v2, v3));
+FixedElem<GEdgeId> Graph::fixUndirectedEdge(VertexId v1, VertexId v2, Layer layer) {
+	if(auto id = findUndirectedEdge(v1, v2, layer))
+		return {*id, false};
+	return {addEdge(v1, v2, layer), true};
+}
+
+GTriId Graph::addTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
+	PASSERT(valid(v1) && valid(v2) && valid(v3));
+	TriId tid(m_tris.emplace(v1, v2, v3), layer);
+	m_tri_layers.resize(m_tris.capacity());
+	m_tri_layers[tid] = layer;
 
 	auto vmax = max(v1, v2, v3);
 	if(m_vert_tris.size() <= vmax)
 		m_vert_tris.resize(int(vmax) + 1);
 
-	m_vert_tris[v1].emplace_back(tid);
-	m_vert_tris[v2].emplace_back(tid);
-	m_vert_tris[v3].emplace_back(tid);
+	m_vert_tris[v1].emplace_back(tid, TriVertexId::v1);
+	m_vert_tris[v2].emplace_back(tid, TriVertexId::v2);
+	m_vert_tris[v3].emplace_back(tid, TriVertexId::v3);
 	return tid;
+}
+
+FixedElem<GTriId> Graph::fixTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
+	if(auto id = findTri(v1, v2, v3, layer))
+		return {*id, false};
+	return {addTri(v1, v2, v3, layer), true};
 }
 
 void Graph::remove(VertexId vid) {
@@ -196,7 +217,7 @@ void Graph::remove(VertexId vid) {
 
 void Graph::remove(EdgeId eid) {
 	auto &edge = m_edges[eid];
-	for(auto nid : {edge.first, edge.second}) {
+	for(auto nid : {edge.from, edge.to}) {
 		auto &node = m_verts[nid];
 		for(int n = 0; n < node.size(); n++)
 			if(node[n] == eid) {
@@ -211,7 +232,7 @@ void Graph::remove(EdgeId eid) {
 	m_edge_labels.erase(eid);
 }
 
-void Graph::remove(TriangleId tid) {
+void Graph::remove(TriId tid) {
 	for(auto nid : m_tris[tid].verts) {
 		auto &vtris = m_vert_tris[nid];
 		for(int n : intRange(vtris))
@@ -234,14 +255,14 @@ bool Graph::hasEdgeDuplicates() const {
 	for(auto n1 : vertexIds()) {
 		for(auto e1 : m_verts[n1])
 			if(e1.isSource()) {
-				auto n2 = m_edges[e1].second;
+				auto n2 = m_edges[e1].to;
 				if(bitmap[n2])
 					return true;
 				bitmap[n2] = true;
 			}
 		for(auto e1 : m_verts[n1])
 			if(e1.isSource())
-				bitmap[m_edges[e1].second] = false;
+				bitmap[m_edges[e1].to] = false;
 	}
 	return false;
 }
@@ -258,9 +279,9 @@ Graph Graph::makeForest(CSpan<Maybe<VertexId>> parents) {
 	return {};
 }
 
-bool Graph::isUndirected() const {
+bool Graph::isUndirected(Layers layers) const {
 	for(auto [n1, n2] : m_edges)
-		if(!find(n2, n1))
+		if(!findEdge(n2, n1, layers))
 			return false;
 	return true;
 }
@@ -332,7 +353,7 @@ Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) co
 
 		for(auto eid : m_verts[nid])
 			if(eid.isSource()) {
-				auto target = m_edges[eid].second;
+				auto target = m_edges[eid].to;
 				if(visited[target])
 					continue;
 
@@ -396,7 +417,7 @@ bool Graph::hasCycles() const {
 				stack.back().second = exit;
 				for(auto eid : m_verts[node_id])
 					if(eid.isSource()) {
-						auto next_id = m_edges[eid].second;
+						auto next_id = m_edges[eid].to;
 						if(status[next_id] == visiting)
 							return true;
 						if(status[next_id] == not_visited)
@@ -464,11 +485,4 @@ FWK_ORDER_BY_DEF(Graph, m_verts, m_edges, m_tris)
 template Graph Graph::minimumSpanningTree(CSpan<float>, bool) const;
 template Graph Graph::minimumSpanningTree(CSpan<double>, bool) const;
 
-template VertexId Graph::addVertex(PodVector<int2> &);
-template VertexId Graph::addVertex(PodVector<float2> &);
-template VertexId Graph::addVertex(PodVector<double2> &);
-
-template VertexId Graph::addVertex(PodVector<int3> &);
-template VertexId Graph::addVertex(PodVector<float3> &);
-template VertexId Graph::addVertex(PodVector<double3> &);
 }

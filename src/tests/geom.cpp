@@ -98,10 +98,10 @@ static void testGraph() {
 	int indices[][2] = {{1, 0}, {3, 1}, {2, 1}, {0, 4}, {1, 5}};
 
 	for(auto pt : points)
-		graph.add(pt);
+		graph.fixVertex(pt);
 
 	for(int n : intRange(indices)) {
-		auto eid = graph.add(points[indices[n][0]], points[indices[n][1]]);
+		auto eid = graph.fixEdge(points[indices[n][0]], points[indices[n][1]]).id;
 		auto eref = graph.ref(eid);
 		graph[eref.from()].ival1 += 1;
 	}
