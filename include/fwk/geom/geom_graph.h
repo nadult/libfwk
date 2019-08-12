@@ -43,6 +43,8 @@ template <class TPoint> class GeomGraph : public Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Adding & removing elements -----------------------------------------------------------
 
+	Ex<void> replacePoints(vector<Point>);
+
 	VertexId addVertex() = delete;
 	FixedElem<VertexId> fixVertex(const Point &);
 

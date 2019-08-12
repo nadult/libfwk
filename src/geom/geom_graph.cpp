@@ -44,6 +44,20 @@ template <class T> Maybe<EdgeRef> GeomGraph<T>::findEdge(Point p1, Point p2, Lay
 // -------------------------------------------------------------------------------------------
 // ---  Adding & removing elements -----------------------------------------------------------
 
+template <class T> Ex<void> GeomGraph<T>::replacePoints(vector<Point> points) {
+	NodeMap node_map;
+	node_map.reserve(points.size());
+
+	for(auto vid : vertexIds())
+		node_map[points[vid]] = vid;
+	if(node_map.size() != numVerts())
+		return ERROR("Duplicate points");
+
+	swap(m_node_map, node_map);
+	m_points.unsafeSwap(points);
+	return {};
+}
+
 template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &point) {
 	// TODO: możliwośc sprecyzowania domyślnego elementu w hashMap::operator[] ?
 	auto it = m_node_map.find(point);
@@ -111,7 +125,7 @@ template <class T> int GeomGraph<T>::compare(const GeomGraph &rhs) const {
 }
 
 template <class T> bool GeomGraph<T>::operator==(const GeomGraph &rhs) const {
-	return numNodes() == rhs.numNodes() && numEdges() == rhs.numEdges() && compare(rhs) == 0;
+	return numVerts() == rhs.numVerts() && numEdges() == rhs.numEdges() && compare(rhs) == 0;
 }
 
 template <class T> bool GeomGraph<T>::operator<(const GeomGraph &rhs) const {

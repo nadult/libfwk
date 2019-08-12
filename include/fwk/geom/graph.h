@@ -218,6 +218,7 @@ class Graph {
 	using EdgeKind = GraphEdgeKind;
 
 	Graph();
+	Graph(CSpan<Pair<VertexId>>, Maybe<int> num_verts = none);
 	FWK_COPYABLE_CLASS(Graph);
 
 	template <class Id> struct FixedElem {
@@ -226,7 +227,7 @@ class Graph {
 	};
 
 	bool empty() const { return m_verts.empty(); }
-	int numNodes() const { return m_verts.size(); }
+	int numVerts() const { return m_verts.size(); }
 	int numEdges() const { return m_edges.size(); }
 	int numTris() const { return m_tris.size(); }
 

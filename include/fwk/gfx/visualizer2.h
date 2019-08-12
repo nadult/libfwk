@@ -52,8 +52,8 @@ class VoronoiVis2 {
 				Maybe<CellId> sel)
 		: m_vis(vis), m_diag(diag), m_colors(colors), m_sel(sel) {}
 
-	void drawSegment(EdgeId, bool draw_sel);
-	void drawArc(EdgeId, bool draw_sel);
+	void drawSegment(GEdgeId, bool draw_sel);
+	void drawArc(GEdgeId, bool draw_sel);
 	void draw();
 
   private:

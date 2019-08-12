@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include "fwk/geom/immutable_graph.h"
-#include "fwk/geom/plane_graph.h"
-#include "fwk/geom/plane_graph_builder.h"
+#include "fwk/geom/graph.h"
 #include "fwk/geom_base.h"
 #include "fwk/vector_map.h"
 
 namespace fwk {
+
+using NodeMapping = VectorMap<VertexId, VertexId>;
 
 // TODO: move it out of here ?
 class Simplex {
@@ -34,19 +34,7 @@ class Simplex {
 		return {m_nodes[0], m_nodes[1]};
 	}
 
-	Simplex remap(const NodeMapping &mapping) const {
-		if(isNode()) {
-			if(auto node = mapping.maybeFind(m_nodes[0]))
-				return *node;
-		}
-		if(isEdge()) {
-			auto node1 = mapping.maybeFind(m_nodes[0]);
-			auto node2 = mapping.maybeFind(m_nodes[1]);
-			// TODO: check this
-			return node1 && node2 ? Simplex(*node1, *node2) : Simplex();
-		}
-		return {};
-	}
+	Simplex remap(const NodeMapping &mapping) const;
 
 	const VertexId *begin() const { return &m_nodes[0]; }
 	const VertexId *end() const { return begin() + m_size; }
@@ -97,7 +85,7 @@ class VoronoiDiagram {
 	using Cell = VoronoiCell;
 
 	VoronoiDiagram() = default;
-	VoronoiDiagram(ImmutableGraph arc_segments, ImmutableGraph arcs, Info);
+	VoronoiDiagram(Graph arc_segments, Graph arcs, Info);
 
 	static vector<Pair<VertexId>> delaunay(CSpan<int2> sites);
 
@@ -105,6 +93,9 @@ class VoronoiDiagram {
 	static VoronoiDiagram construct(const PGraph<int2> &);
 	VoronoiDiagram clip(DRect) const;
 
+	GeomGraph<float2> merge() const;
+
+	/*
 	template <class Func> VoronoiDiagram transform(const Func &func) const {
 		PGraph<double2> tgraph(m_segments_graph, m_info.points);
 		auto transformed = tgraph.transform(func);
@@ -113,7 +104,7 @@ class VoronoiDiagram {
 		Info new_info = m_info;
 		new_info.points = transformed.points();
 		return {transformed, m_arc_graph, move(new_info)};
-	}
+	}*/
 
 	// TODO: obliczenia i przechowywanie danych w różnych typach (float2 / rational2 / double2 ?)
 	//       raczej nie teraz
@@ -174,8 +165,8 @@ class VoronoiDiagram {
 	Maybe<CellId> findClosestCell(double2) const;
 
   private:
-	ImmutableGraph m_arc_graph;
-	ImmutableGraph m_segments_graph;
+	Graph m_arc_graph;
+	Graph m_segments_graph;
 	Info m_info;
 };
 }

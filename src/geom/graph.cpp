@@ -66,6 +66,21 @@ FWK_ORDER_BY_DEF(GraphLabel, color, ival1, ival2, fval1, fval2);
 Graph::Graph() = default;
 FWK_COPYABLE_CLASS_IMPL(Graph);
 
+Graph::Graph(CSpan<Pair<VertexId>> edges, Maybe<int> num_verts) {
+	if(!num_verts) {
+		int vmax = 0;
+		for(auto [v1, v2] : edges)
+			vmax = max(vmax, (int)v1, (int)v2);
+		num_verts = vmax + 1;
+	}
+	m_verts.reserve(*num_verts);
+	for(int n : intRange(*num_verts))
+		addVertex();
+	m_edges.reserve(edges.size());
+	for(auto [v1, v2] : edges)
+		addEdge(v1, v2);
+}
+
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
 
@@ -85,7 +100,7 @@ Maybe<EdgeRef> Graph::findUndirectedEdge(VertexId from, VertexId to, Layers laye
 			return ref(eid);
 	return none;
 }
-	
+
 Maybe<GTriId> Graph::findTri(VertexId v1, VertexId v2, VertexId v3, Layers layers) const {
 	auto vmax = max(v1, v2, v3);
 	if(vmax >= m_vert_tris.size())
@@ -290,14 +305,14 @@ template <class T, EnableIf<is_scalar<T>>...>
 Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) const {
 	DASSERT(edge_weights.size() == numEdges());
 
-	if(numNodes() == 0)
+	if(numVerts() == 0)
 		return {};
 
 	vector<EdgeId> out;
-	Heap<T> heap(numNodes());
+	Heap<T> heap(numVerts());
 
-	vector<bool> processed(numNodes(), false);
-	vector<Maybe<VertexId>> pi(numNodes());
+	vector<bool> processed(numVerts(), false);
+	vector<Maybe<VertexId>> pi(numVerts());
 	vector<T> keys(pi.size(), inf);
 
 	FATAL("fix me");
@@ -330,8 +345,8 @@ Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) cons
 }
 
 Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) const {
-	Heap<double> heap(numNodes());
-	vector<double> keys(numNodes(), inf);
+	Heap<double> heap(numVerts());
+	vector<double> keys(numVerts(), inf);
 
 	if(!weights.empty()) {
 		DASSERT_EQ(weights.size(), numEdges());
@@ -343,9 +358,9 @@ Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) co
 		keys[src_id] = 0.0;
 	for(auto node_id : vertexIds())
 		heap.insert(node_id, keys[node_id]);
-	vector<bool> visited(numNodes(), false);
+	vector<bool> visited(numVerts(), false);
 
-	vector<Maybe<VertexId>> out(numNodes());
+	vector<Maybe<VertexId>> out(numVerts());
 
 	while(!heap.empty()) {
 		VertexId nid(heap.extractMin().second);
@@ -391,10 +406,10 @@ Graph Graph::reversed() const {
 bool Graph::hasCycles() const {
 	enum Mode { exit, enter };
 	vector<pair<VertexId, Mode>> stack;
-	stack.reserve(numNodes());
+	stack.reserve(numVerts());
 
 	enum Status { not_visited, visiting, visited };
-	vector<Status> status(numNodes(), not_visited);
+	vector<Status> status(numVerts(), not_visited);
 
 	for(auto start_id : vertexIds()) {
 		if(status[start_id] != not_visited)

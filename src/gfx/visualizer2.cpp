@@ -18,7 +18,7 @@
 
 namespace fwk {
 
-void VoronoiVis2::drawSegment(EdgeId eid, bool draw_sel) {
+void VoronoiVis2::drawSegment(GEdgeId eid, bool draw_sel) {
 	auto &segment = m_diag[ArcSegmentId(eid)];
 	auto &arc = m_diag[segment.arc];
 
@@ -35,7 +35,7 @@ void VoronoiVis2::drawSegment(EdgeId eid, bool draw_sel) {
 	m_vis.drawLine(p1, p2, color);
 }
 
-void VoronoiVis2::drawArc(EdgeId eid, bool draw_sel) {
+void VoronoiVis2::drawArc(GEdgeId eid, bool draw_sel) {
 	auto p1 = m_diag[m_diag.arcGraph().from(eid)];
 	auto p2 = m_diag[m_diag.arcGraph().to(eid)];
 	auto &arc = m_diag[ArcId(eid)];

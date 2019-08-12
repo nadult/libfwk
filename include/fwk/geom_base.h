@@ -57,4 +57,7 @@ using Graph2F = GeomGraph<float2>;
 using Graph3F = GeomGraph<float3>;
 using Graph2I = GeomGraph<int2>;
 using Graph3I = GeomGraph<int3>;
+
+// TODO: remove it
+struct GEdgeId;
 }

@@ -277,9 +277,7 @@ class VoronoiConstructor {
 
 		info.points = inserter.extractPoints();
 		int num_verts = info.points.size();
-		auto arc_graph = ImmutableGraph(arcs, num_verts);
-		auto seg_graph = ImmutableGraph(arc_segments, num_verts);
-		return VoronoiDiagram(seg_graph, arc_graph, move(info));
+		return VoronoiDiagram(Graph(arc_segments, num_verts), Graph(arcs, num_verts), move(info));
 	}
 
 	void clip_infinite_edge(const edge_type &edge, vector<double2> &out) const {

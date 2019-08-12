@@ -3,6 +3,7 @@
 
 #include "fwk/geom/voronoi.h"
 
+#include "fwk/geom/geom_graph.h"
 #include "fwk/geom/plane_graph.h"
 #include "fwk/geom/plane_graph_builder.h"
 #include "fwk/hash_map.h"
@@ -14,7 +15,7 @@
 
 namespace fwk {
 
-VoronoiDiagram::VoronoiDiagram(ImmutableGraph arc_segs, ImmutableGraph arcs, Info info)
+VoronoiDiagram::VoronoiDiagram(Graph arc_segs, Graph arcs, Info info)
 	: m_arc_graph(arcs), m_segments_graph(arc_segs), m_info(move(info)) {
 	DASSERT_EQ(m_info.points.size(), m_arc_graph.numVerts());
 	DASSERT_EQ(m_info.points.size(), m_segments_graph.numVerts());
@@ -89,6 +90,19 @@ Maybe<CellId> VoronoiDiagram::findClosestCell(double2 pos) const {
 	}
 	return out;
 }
+Simplex Simplex::remap(const NodeMapping &mapping) const {
+	if(isNode()) {
+		if(auto node = mapping.maybeFind(m_nodes[0]))
+			return *node;
+	}
+	if(isEdge()) {
+		auto node1 = mapping.maybeFind(m_nodes[0]);
+		auto node2 = mapping.maybeFind(m_nodes[1]);
+		// TODO: check this
+		return node1 && node2 ? Simplex(*node1, *node2) : Simplex();
+	}
+	return {};
+}
 
 static VoronoiCell remapCell(VoronoiCell cell, const NodeMapping &node_mapping) {
 	cell.generator = cell.generator.remap(node_mapping);
@@ -144,7 +158,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 		if(clipped) {
 			DASSERT(rect.contains(clipped->from));
 			DASSERT(rect.contains(clipped->to));
-			seg_map.emplace_back(castTag<ArcSegmentId>(ref.id()), ArcSegmentId(new_segs.size()));
+			seg_map.emplace_back((int)ref.id(), (int)new_segs.size());
 			seg2arc_cell.emplace_back(old_arc_id, (*this)[old_arc_id].cell);
 			new_segs.emplace_back(inserter(clipped->from), inserter(clipped->to));
 			new_segs_data.emplace_back(VoronoiArcSegment{old_arc_id});
@@ -281,7 +295,26 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 
 	// TODO: pass mapping info (old -> new)
 
-	return {ImmutableGraph(new_segs, new_info.points.size()),
-			ImmutableGraph(new_arcs, new_info.points.size()), new_info};
+	return {Graph(new_segs, new_info.points.size()), Graph(new_arcs, new_info.points.size()),
+			new_info};
 }
+
+GeomGraph<float2> VoronoiDiagram::merge() const {
+	GeomGraph<float2> out;
+
+	for(auto pt : m_info.points) {
+		bool is_new = out.fixVertex((float2)pt).is_new;
+		PASSERT(is_new);
+	}
+
+	for(auto arc : m_arc_graph.edgeRefs())
+		out.fixEdge(arc.from(), arc.to(), GraphLayer::l1);
+	for(auto seg : m_segments_graph.edgeRefs()) {
+		auto eid = out.fixEdge(seg.from(), seg.to(), GraphLayer::l2).id;
+		out[eid].ival1 = m_info.segments[seg].arc;
+	}
+
+	return out;
+}
+
 }
