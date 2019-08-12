@@ -28,6 +28,7 @@ class Backtrace {
 	static string g_lldb_command;
 	static inline __thread Mode t_default_mode = Mode::fast;
 	static inline __thread Mode t_fatal_mode = Mode::full;
+	static inline __thread Mode t_assert_mode = Mode::full;
 	static inline __thread Mode t_except_mode = Mode::fast;
 
 	// If available, gdb backtraces will be used (which are more accurate)

@@ -34,6 +34,7 @@ namespace detail {
 		out.append_(fmt.c_str(), info->arg_count, info->funcs, ap);
 		va_end(ap);
 
+		Backtrace::t_default_mode = Backtrace::t_assert_mode;
 		onFailMakeError(info->file, info->line, out.text()).print();
 
 		asm("int $3");

@@ -639,8 +639,6 @@ void testNans() {
 }
 
 void testMain() {
-	Backtrace::t_default_mode = BacktraceMode::full;
-
 	testConsts();
 	testRational();
 	testMatrices();
