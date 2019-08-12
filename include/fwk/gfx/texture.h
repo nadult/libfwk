@@ -39,9 +39,7 @@ class Texture {
 		RegisterLoader(const char *locase_ext, Loader);
 	};
 
-	// data is not preserved
-	// TODO: it should be or else remove this function
-	void resize(int2);
+	void resize(int2, Maybe<IColor> fill = IColor(ColorId::black));
 	void clear();
 	void fill(IColor);
 	void blit(const Texture &src, int2 target_pos);

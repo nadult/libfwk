@@ -29,9 +29,14 @@ Texture::Texture(PodVector<IColor> data, int2 size) : m_data(move(data)), m_size
 
 GlFormat Texture::format() const { return GlFormat::rgba; }
 
-void Texture::resize(int2 size) {
-	m_size = size;
-	m_data.resize(size.x * size.y);
+void Texture::resize(int2 size, Maybe<IColor> fill_color) {
+	if(size == m_size)
+		return;
+	Texture new_tex(size);
+	if(fill_color)
+		new_tex.fill(*fill_color);
+	new_tex.blit(*this, int2(0, 0));
+	swap(new_tex);
 }
 
 void Texture::swap(Texture &tex) {

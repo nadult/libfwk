@@ -10,7 +10,10 @@
 namespace fwk {
 
 // Very simple and efficent vector for POD Types; Use with care:
-// - user is responsible for initialization of the data (when constructing and resizing)
+// - user is responsible for initialization & destruction of the data
+// - resize & reserve will only copy old data, but it won't do any
+//   initialization or destruction
+// - clear & free won't destroy anything
 template <class T> class PodVector {
   public:
 	PodVector() { m_base.zero(); }
@@ -35,13 +38,9 @@ template <class T> class PodVector {
 		m_base.swap(rhs.m_base);
 		rhs.free();
 	}
-	void resize(int new_size) { m_base.resizePodPartial(sizeof(T), new_size); }
 
-	void resizeFullCopy(int new_size) {
-		PodVector new_vector(new_size);
-		copy(new_vector, *this);
-		swap(new_vector);
-	}
+	void resize(int new_size) { m_base.resizePodPartial(sizeof(T), new_size); }
+	void reserve(int new_capacity) { m_base.reservePod(sizeof(T), new_capacity); }
 
 	void swap(PodVector &rhs) { m_base.swap(rhs.m_base); }
 	void unsafeSwap(Vector<T> &rhs) { m_base.swap(rhs.m_base); }

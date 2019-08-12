@@ -127,6 +127,20 @@ void BaseVector::reallocatePod(int obj_size, int new_capacity) {
 	swap(new_base);
 }
 
+void BaseVector::reservePod(int obj_size, int desired_capacity) {
+	if(desired_capacity > capacity) {
+		int new_capacity = insertCapacity(capacity, obj_size, desired_capacity);
+		reallocatePod(obj_size, new_capacity);
+	}
+}
+
+void BaseVector::reserve(int obj_size, MoveDestroyFunc func, int desired_capacity) {
+	if(desired_capacity > capacity) {
+		int new_capacity = insertCapacity(capacity, obj_size, desired_capacity);
+		reallocate(obj_size, func, new_capacity);
+	}
+}
+
 void BaseVector::growPod(int obj_size) {
 	int current = capacity;
 	reallocatePod(obj_size, growCapacity(capacity, obj_size));

@@ -48,6 +48,10 @@ class BaseVector {
 
 	void growPod(int);
 	void reallocatePod(int, int new_capacity);
+
+	void reservePod(int, int desired_capacity);
+	void reserve(int, MoveDestroyFunc, int desired_capacity);
+
 	void clearPod() { size = 0; }
 	void erasePod(int, int index, int count);
 	void resizePodPartial(int, int new_size);
@@ -194,13 +198,10 @@ template <class T> class Vector {
 	}
 
 	void reserve(int new_capacity) {
-		if(new_capacity <= capacity())
-			return;
-		new_capacity = m_base.insertCapacity(m_base.capacity, sizeof(T), new_capacity);
 		if(trivial_move_constr && trivial_destruction)
-			m_base.reallocatePod(sizeof(T), new_capacity);
+			m_base.reservePod(sizeof(T), new_capacity);
 		else
-			m_base.reallocate(sizeof(T), &Vector::moveAndDestroy, new_capacity);
+			m_base.reserve(sizeof(T), &Vector::moveAndDestroy, new_capacity);
 	}
 
 	void resize(int new_size, T default_value) {
