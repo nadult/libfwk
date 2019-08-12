@@ -129,8 +129,9 @@ auto SegmentGrid<T>::bestGrid(CSpan<T> points, CSpan<Pair<VertexId>> edges) -> R
 	auto num_cells = double(max(points.size(), edges.size())) * 1.5;
 	auto wh_ratio = double(rect.width()) / double(rect.height());
 
-	auto num_cells_vert = std::sqrt(num_cells * wh_ratio);
+	auto num_cells_vert = rect.height() == 0 ? num_cells : std::sqrt(num_cells * wh_ratio);
 	auto num_cells_horiz = num_cells / num_cells_vert;
+	DASSERT(!isNan(num_cells_vert, num_cells_horiz));
 
 	num_cells_vert = clamp(std::floor(num_cells_vert + 1.0), 1.0, 1024.0);
 	num_cells_horiz = clamp(std::floor(num_cells_horiz + 1.0), 1.0, 1024.0);
