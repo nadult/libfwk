@@ -15,8 +15,7 @@
 
 namespace fwk {
 
-Visualizer3::Visualizer3(float point_scale, float cross_scale)
-	: m_point_scale(point_scale), m_cross_scale(cross_scale) {}
+Visualizer3::Visualizer3(float point_scale) : m_point_scale(point_scale) {}
 FWK_COPYABLE_CLASS_IMPL(Visualizer3);
 
 void Visualizer3::clear() {

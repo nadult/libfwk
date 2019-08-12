@@ -20,7 +20,7 @@ class Visualizer3 {
 	using Mode = VisMode;
 	using ModeFlags = EnumFlags<Mode>;
 
-	Visualizer3(float point_scale = 1.0f, float cross_scale = 1.0f);
+	Visualizer3(float point_scale = 1.0f);
 	FWK_COPYABLE_CLASS(Visualizer3);
 
 	void clear();
@@ -70,7 +70,7 @@ class Visualizer3 {
   private:
 	FwdMember<LineBuffer> m_lines;
 	FwdMember<TriangleBuffer> m_tris;
-	float m_point_scale, m_cross_scale;
+	float m_point_scale;
 	VisMode m_mode = VisMode::solid;
 };
 }
