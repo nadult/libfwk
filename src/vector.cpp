@@ -198,7 +198,7 @@ void BaseVector::erasePod(int obj_size, int index, int count) {
 }
 
 void BaseVector::invalidIndex(int index) const {
-	FATAL("Index %d out of range: [%d - %d]", index, 0, size);
+	FATAL("Index %d out of range: <%d; %d)", index, 0, size);
 }
 
 void BaseVector::invalidEmpty() const { FATAL("Accessing empty vector"); }

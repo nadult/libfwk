@@ -83,7 +83,7 @@ template <class T, int min_size = 0> class Span {
 	explicit operator bool() const { return m_size > 0; }
 
 	T &operator[](int idx) const {
-		PASSERT(inRange(idx));
+		IF_PARANOID(checkInRange(idx, 0, m_size));
 		return m_data[idx];
 	}
 

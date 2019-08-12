@@ -100,6 +100,10 @@ int Str::find(Str str) const {
 #endif
 }
 
+void Str::invalidIndex(int idx) const {
+	FATAL("Str: Index %d out of range: [%d - %d]", idx, 0, m_size);
+}
+
 vector<string> tokenize(ZStr str, char c) {
 	Tokenizer tok(str.c_str(), c);
 	vector<string> result;

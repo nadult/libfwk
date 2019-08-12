@@ -78,7 +78,7 @@ template <class T, int max_size_> class StaticVector {
 		DATA[m_size--].~T();
 	}
 
-	bool inRange(int index) const { return index >= 0 && index < size(); }
+	bool inRange(int index) const { return index >= 0 && index < (int)m_size; }
 	bool empty() const { return m_size == 0; }
 	explicit operator bool() const { return m_size != 0; }
 
@@ -88,8 +88,14 @@ template <class T, int max_size_> class StaticVector {
 		m_size = 0;
 	}
 
-	T &operator[](int index) { return PASSERT(inRange(index)), DATA[index]; }
-	const T &operator[](int index) const { return PASSERT(inRange(index)), DATA[index]; }
+	T &operator[](int index) {
+		IF_PARANOID(checkInRange(index, 0, m_size));
+		return DATA[index];
+	}
+	const T &operator[](int index) const {
+		IF_PARANOID(checkinRange(index, 0, m_size));
+		return DATA[index];
+	}
 
 	const T &back() const { return (*this)[size() - 1]; }
 	T &back() { return (*this)[size() - 1]; }

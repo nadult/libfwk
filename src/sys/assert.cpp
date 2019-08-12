@@ -45,4 +45,8 @@ void assertFailed(const char *file, int line, const char *text) {
 #endif
 	exit(1);
 }
+
+void failedNotInRange(int index, int begin, int end) {
+	FATAL("Value %d out of range: <%d; %d)", index, begin, end);
+}
 }

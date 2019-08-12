@@ -41,7 +41,7 @@ class Str {
 		return Str(m_data + offset, m_size - offset);
 	}
 	char operator[](int pos) const {
-		PASSERT(inRange(pos));
+		IF_PARANOID(checkIndex(pos));
 		return m_data[pos];
 	}
 
@@ -73,6 +73,11 @@ class Str {
   protected:
 	struct NoChecks {};
 	Str(const char *data, int size, NoChecks) : m_data(data), m_size(size) {}
+	void invalidIndex(int) const;
+	void checkIndex(int idx) const {
+		if(idx < 0 || idx >= m_size)
+			invalidIndex(idx);
+	}
 
 	const char *m_data;
 	int m_size;

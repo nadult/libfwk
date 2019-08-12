@@ -33,7 +33,9 @@ class GenericTagId {
 	static constexpr bool validIndex(int idx) { return idx >= 0 && idx < invalid_index; }
 	static constexpr int maxIndex() { return invalid_index - 1; }
 
-	constexpr GenericTagId(Tag tag, int idx) : m_idx(idx), m_tag(tag) { PASSERT(validIndex(idx)); }
+	constexpr GenericTagId(Tag tag, int idx) : m_idx(idx), m_tag(tag) {
+		IF_PARANOID(checkInRange(idx, 0, invalid_index));
+	}
 	constexpr GenericTagId(Tag tag, int idx, NoAssertsTag) : m_idx(idx), m_tag(tag) {}
 	constexpr GenericTagId(NoInitTag) { IF_PARANOID(m_idx = uninitialized_index); }
 
@@ -64,6 +66,7 @@ class GenericTagId {
 
   private:
 	bool isInitialized() const { return m_idx != uninitialized_index; }
+
 	Base m_idx : base_bits;
 	Tag m_tag;
 };
@@ -83,7 +86,9 @@ template <auto tag, class Base_ /*= unsigned*/> class TagId {
 	static constexpr bool validIndex(int idx) { return idx >= 0 && idx < invalid_index; }
 	static constexpr int maxIndex() { return invalid_index - 1; }
 
-	explicit constexpr TagId(int idx) : m_idx(idx) { PASSERT(validIndex(idx)); }
+	explicit constexpr TagId(int idx) : m_idx(idx) {
+		IF_PARANOID(checkInRange(idx, 0, invalid_index));
+	}
 	constexpr TagId(int idx, NoAssertsTag) : m_idx(idx) {}
 	constexpr TagId(NoInitTag) { IF_PARANOID(m_idx = uninitialized_index); }
 

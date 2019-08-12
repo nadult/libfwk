@@ -134,11 +134,11 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 	}
 
 	T &operator[](int index) {
-		PASSERT(inRange(index));
+		IF_PARANOID(checkInRange(index, 0, m_size));
 		return isSmall() ? SMALL[index] : m_big[index];
 	}
 	const T &operator[](int index) const {
-		PASSERT(inRange(index));
+		IF_PARANOID(checkInRange(index, 0, m_size));
 		return isSmall() ? SMALL[index] : m_big[index];
 	}
 
