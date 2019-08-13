@@ -39,28 +39,15 @@ CellId VoronoiDiagram::cellId(GEdgeId id) const {
 	return CellId(m_graph[id].ival2);
 }
 
-// TODO: fix these:
-vector<vector<ArcSegmentId>> VoronoiDiagram::arcToSegments() const {
-	vector<vector<ArcSegmentId>> out;
-	//	out.resize(m_info.arcs.size());
-	//	for(auto id : indexRange<ArcSegmentId>(0, m_info.segments.size()))
-	//		out[m_info.segments[id].arc].emplace_back(id);
+vector<GEdgeId> VoronoiDiagram::arcSegments(GEdgeId edge) const {
+	vector<GEdgeId> out;
+	// TODO
 	return out;
 }
 
-vector<vector<ArcId>> VoronoiDiagram::cellToArcs() const {
-	vector<vector<ArcId>> out;
-	//	out.resize(m_info.cells.size());
-	//	for(auto id : indexRange<ArcId>(0, m_info.arcs.size()))
-	//		out[m_info.arcs[id].cell].emplace_back(id);
-	return out;
-}
-
-vector<CellId> VoronoiDiagram::segmentToCell() const {
-	vector<CellId> out;
-	//	out.reserve(arcSegments().size());
-	//	for(auto id : indexRange<ArcSegmentId>(0, m_info.segments.size()))
-	//		out.emplace_back((*this)[(*this)[id].arc].cell);
+vector<GEdgeId> VoronoiDiagram::cellArcs(CellId) const {
+	vector<GEdgeId> out;
+	// TODO
 	return out;
 }
 

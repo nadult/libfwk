@@ -45,21 +45,7 @@ class Simplex {
 	int m_size = 0;
 };
 
-template <class Parent, class Base> auto makeParent(typename Parent::Base value) {
-	return Parent();
-}
-
-struct VoronoiArcSegment {
-	ArcId arc;
-};
-
-struct VoronoiArc {
-	CellId cell;
-	bool is_primary = false;
-	bool touches_site = false;
-};
-
-// TODO: remove it ?
+// TODO: remove it ? put cells into graph
 struct VoronoiCell {
 	VoronoiCell(Simplex generator, int type) : generator(generator), type(type) {}
 
@@ -78,13 +64,12 @@ struct VoronoiInfo {
 class VoronoiDiagram {
   public:
 	using Info = VoronoiInfo;
-	using Arc = VoronoiArc;
-	using ArcSegment = VoronoiArcSegment;
 	using Cell = VoronoiCell;
 
 	VoronoiDiagram() = default;
 	VoronoiDiagram(GeomGraph<double2>, Info);
 
+	// TODO: nicer interface?
 	// arc segment labels:
 	//   ival1: arc id
 	//   ival2: cell id
@@ -125,9 +110,6 @@ class VoronoiDiagram {
 	// TODO: wierzchołek/segment początkowy nie łączy się z arcami
 	// TODO: w trakcie dyskretyzacji tracę na dokładności; czy to jest problem?
 
-	// TODO: node mapping
-	// TODO: konwersje ArcId -> EdgeId i ArcSegmentId -> EdgeId...
-
 	const auto &operator[](CellId id) const {
 		DASSERT(valid(id));
 		return m_info.cells[id];
@@ -149,9 +131,8 @@ class VoronoiDiagram {
 
 	bool empty() const { return m_graph.empty(); }
 
-	vector<vector<ArcSegmentId>> arcToSegments() const;
-	vector<vector<ArcId>> cellToArcs() const;
-	vector<CellId> segmentToCell() const;
+	vector<GEdgeId> arcSegments(GEdgeId) const;
+	vector<GEdgeId> cellArcs(CellId) const;
 
 	Maybe<CellId> findClosestCell(double2) const;
 

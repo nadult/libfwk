@@ -8,14 +8,12 @@
 
 namespace fwk {
 
-DEFINE_ENUM(GeomTag, vertex, edge, arc, arc_segment, cell, polygon, triangle);
+DEFINE_ENUM(GeomTag, vertex, edge, cell, polygon, triangle);
 
 using TriangleId = TagId<GeomTag::triangle>;
 using PolygonId = TagId<GeomTag::polygon>;
 using VertexId = TagId<GeomTag::vertex>;
 using EdgeId = TagId<GeomTag::edge>;
-using ArcId = TagId<GeomTag::arc>;
-using ArcSegmentId = TagId<GeomTag::arc_segment>;
 using CellId = TagId<GeomTag::cell>;
 
 using VertexIdPair = Pair<VertexId>;
