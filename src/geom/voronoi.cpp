@@ -155,13 +155,13 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 
 	// TODO: a co z site-ami punktowymi ? Chcielibyśmy sie przeiterować po
 	// wierzchołkach na danej warstwie
-	for(auto vref : m_graph.vertexRefs(site_layer))
-		new_graph.addVertexAt(vref, m_graph(vref), site_layer);
-	for(auto eref : m_graph.edgeRefs(site_layer))
-		new_graph.addEdgeAt(eref, eref.from(), eref.to(), site_layer);
+	for(auto vert : m_graph.verts(site_layer))
+		new_graph.addVertexAt(vert, m_graph(vert), site_layer);
+	for(auto edge : m_graph.edges(site_layer))
+		new_graph.addEdgeAt(edge, edge.from(), edge.to(), site_layer);
 
 	// Clipping segments to rect
-	for(auto ref : m_graph.edgeRefs(seg_layer)) {
+	for(auto ref : m_graph.edges(seg_layer)) {
 		auto segment = m_graph(ref);
 
 		GEdgeId old_arc_id(m_graph[ref].ival1);
@@ -184,20 +184,20 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 		vector<GEdgeId> arc;
 
 		for(int cycles_mode = 0; cycles_mode < 2; cycles_mode++) {
-			for(auto vref : new_graph.vertexRefs(seg_layer)) {
-				if(vref.numEdgesFrom(seg_layer) == 2 && cycles_mode == 0)
+			for(auto vert : new_graph.verts(seg_layer)) {
+				if(vert.numEdgesFrom(seg_layer) == 2 && cycles_mode == 0)
 					continue;
 
-				for(auto eref : vref.edgesFrom(seg_layer)) {
-					if(visited[eref])
+				for(auto edge : vert.edgesFrom(seg_layer)) {
+					if(visited[edge])
 						continue;
-					visited[eref] = true;
+					visited[edge] = true;
 					arc.clear();
 
-					GEdgeId old_arc_id(new_graph[eref].ival1);
+					GEdgeId old_arc_id(new_graph[edge].ival1);
 
-					VertexId pnode = vref;
-					auto nedge = eref;
+					VertexId pnode = vert;
+					auto nedge = edge;
 
 					while(true) {
 						auto nnode = nedge.other(pnode);
@@ -212,7 +212,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 						visited[nedge] = true;
 					}
 
-					auto arc_id = new_graph.addEdge(vref.id(), pnode, arc_layer);
+					auto arc_id = new_graph.addEdge(vert.id(), pnode, arc_layer);
 					new_graph[arc_id] = m_graph[old_arc_id];
 					for(auto seg_id : arc)
 						new_graph[seg_id].ival1 = arc_id;
@@ -220,16 +220,18 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 			}
 		}
 
-		DASSERT(allOf(visited, [](auto v) { return v; }));
+		//DASSERT(allOf(visited, [](auto v) { return v; }));
 	}
 
 	// TODO: vector?
 	HashMap<VertexId, vector<CellId>> vertex_cells;
-	for(auto seg : new_graph.edgeRefs(seg_layer)) {
-		CellId cell_id(new_graph[seg].ival2);
+	for(auto seg : new_graph.edges(seg_layer)) {
+		GEdgeId arc_id(new_graph[seg].ival1);
+		CellId cell_id(new_graph[arc_id].ival1);
 		vertex_cells[seg.from()].emplace_back(cell_id);
 		vertex_cells[seg.to()].emplace_back(cell_id);
 	}
+	DUMP(vertex_cells);
 	for(auto &pair : vertex_cells)
 		makeSorted(pair.second); //TODO: makeSortedUnique?
 
@@ -244,7 +246,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 	};
 
 	vector<BorderPoint> border_points;
-	for(auto vert : new_graph.vertexRefs()) {
+	for(auto vert : new_graph.verts()) {
 		auto point = new_graph(vert);
 
 		if(onTheEdge(rect, point) && vertex_cells[vert]) {

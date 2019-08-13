@@ -101,13 +101,13 @@ class VoronoiConstructor {
 	VoronoiConstructor(const GeomGraph<int2> &graph, IRect rect)
 		: m_input_graph(graph), m_rect(rect) {
 		// TODO: transformation is not needed?
-		for(auto nref : graph.vertexRefs())
+		for(auto nref : graph.verts())
 			if(!nref.numEdges()) {
 				m_points.emplace_back((PT)graph(nref));
 				m_point_ids.emplace_back(nref.id());
 			}
 
-		for(auto nedge : graph.edgeRefs()) {
+		for(auto nedge : graph.edges()) {
 			double2 p1(graph(nedge.from())), p2(graph(nedge.to()));
 			if(nedge.from() == nedge.to()) {
 				m_points.emplace_back(p1.x, p1.y);
@@ -155,9 +155,9 @@ class VoronoiConstructor {
 
 		// Copying input graph into site layer
 		out.reserveVerts(m_diagram.num_edges() / 2 + m_input_graph.numVerts() + 16);
-		for(auto vref : m_input_graph.vertexRefs(site_layer))
+		for(auto vref : m_input_graph.verts(site_layer))
 			out.addVertexAt(vref, m_input_graph(vref), site_layer);
-		for(auto eref : m_input_graph.edgeRefs(site_layer))
+		for(auto eref : m_input_graph.edges(site_layer))
 			out.addEdgeAt(eref, eref.from(), eref.to(), site_layer);
 
 		out.reserveEdges(m_diagram.num_edges() * 3 + m_input_graph.numEdges()); // TODO: check this

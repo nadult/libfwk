@@ -19,12 +19,12 @@ namespace fwk {
 
 vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 	auto &graph = voronoi.graph();
-	auto cell_verts = transform<VertexId>(graph.vertexRefs(voronoi.site_layer));
+	auto cell_verts = transform<VertexId>(graph.verts(voronoi.site_layer));
 
 	vector<Pair<VertexId>> out;
 	vector<bool> visited(graph.numEdges(VoronoiDiagram::arc_layer));
 
-	for(auto arc : graph.edgeRefs(VoronoiDiagram::arc_layer)) {
+	for(auto arc : graph.edges(VoronoiDiagram::arc_layer)) {
 		if(visited[arc])
 			continue;
 		DASSERT(arc.twin());

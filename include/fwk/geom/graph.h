@@ -285,7 +285,7 @@ class Graph {
 						  filter};
 	}
 
-	auto vertexRefs(Layers layer_mask = Layers::all()) const {
+	auto verts(Layers layer_mask = Layers::all()) const {
 		auto *graph = this;
 		auto *valids = m_verts.valids().data();
 		auto *layers = m_vert_layers.data();
@@ -298,8 +298,7 @@ class Graph {
 		return IndexRange{0, m_verts.endIndex(), trans, filter};
 	}
 
-	// TODO: rename to edges;
-	auto edgeRefs(Layers layer_mask = Layers::all()) const {
+	auto edges(Layers layer_mask = Layers::all()) const {
 		auto *graph = this;
 		auto *valids = m_edges.valids().data();
 		auto *layers = m_edge_layers.data();

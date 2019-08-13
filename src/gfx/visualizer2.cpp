@@ -52,16 +52,16 @@ void VoronoiVis2::drawArc(GEdgeId eid, bool draw_sel) {
 
 void VoronoiVis2::draw() {
 	if(bool draw_segs = true) {
-		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::seg_layer))
+		for(auto eid : m_graph.edges(VoronoiDiagram::seg_layer))
 			drawSegment(eid, false);
-		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::seg_layer))
+		for(auto eid : m_graph.edges(VoronoiDiagram::seg_layer))
 			drawSegment(eid, true);
 	}
 
 	if(bool draw_arcs = false) {
-		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::arc_layer))
+		for(auto eid : m_graph.edges(VoronoiDiagram::arc_layer))
 			drawArc(eid, false);
-		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::arc_layer))
+		for(auto eid : m_graph.edges(VoronoiDiagram::arc_layer))
 			drawArc(eid, true);
 	}
 

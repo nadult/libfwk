@@ -23,7 +23,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - Str: nullptr -> "" ?
 - Makefile: w danym momencie może bydować tylko na jeden system; wykrywanie konfiguracji
   na podstawie kompilatora?
-- EnumFlags::all, count<>() -> constexpr var
 
 - DualMap: vector<Pair<V1, V2>> + vector<V1 hashes + indices> + vector<V2 hashes + indices>
 
