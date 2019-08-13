@@ -196,15 +196,18 @@ class EdgeRef {
 // Simple Graph class with a focus on genericity & ease-of-use
 // Besides verts & edges also have triangles support
 // Each graph element can have an optional label
+// Each element can lie on a different layer.
+// Vertices can be assigned to multiple layers at once.
 //
 // There are two kinds of find functions:
 // - one which returns first object which satisfies given condition
 //   (returns Maybe<ObjectId>)
 // - another one returns a range of all the objects which satisfy it
 //
-// There are two kinds of add functions:
+// There are 3 kinds of add functions:
 // - [add*]: it simply adds new object with given parameter
 // - [fix*]: only adds new object if another one with same parameters doesn't exist
+// - [add*At]: adds new element at given index; Index should be free, otherwise it's an error
 //   already; This function returns id and a bool which is true if new object was added
 //
 // TODO: add polygon support
@@ -231,6 +234,10 @@ class Graph {
 	int numEdges() const { return m_edges.size(); }
 	int numTris() const { return m_tris.size(); }
 
+	int numVerts(Layers) const;
+	int numEdges(Layers) const;
+	int numTris(Layers) const;
+
 	int endNodeIndex() const { return m_verts.endIndex(); }
 	int endEdgeIndex() const { return m_edges.endIndex(); }
 	int endTriIndex() const { return m_tris.endIndex(); }
@@ -244,6 +251,7 @@ class Graph {
 
 	auto vertexIds() const { return m_verts.indices<VertexId>(); }
 	auto edgeIds() const { return m_edges.indices<EdgeId>(); }
+	auto triIds() const { return m_tris.indices<TriId>(); }
 
 	Maybe<EdgeRef> findEdge(VertexId, VertexId, Layers = Layers::all()) const;
 	Maybe<EdgeRef> findUndirectedEdge(VertexId, VertexId, Layers = Layers::all()) const;
@@ -277,20 +285,31 @@ class Graph {
 						  filter};
 	}
 
-	auto vertexRefs() const {
+	auto vertexRefs(Layers layer_mask = Layers::all()) const {
 		auto *graph = this;
 		auto *valids = m_verts.valids().data();
-		return IndexRange{0, m_verts.endIndex(),
-						  [=](int idx) { return VertexRef(graph, VertexId(idx)); },
-						  [=](int idx) { return valids[idx]; }};
+		auto *layers = m_vert_layers.data();
+
+		auto trans = [=](int idx) { return VertexRef(graph, VertexId(idx)); };
+		auto filter = [=](int idx) {
+			return valids[idx] && (layer_mask == Layers::all() || (layer_mask & layers[idx]));
+		};
+
+		return IndexRange{0, m_verts.endIndex(), trans, filter};
 	}
 
-	auto edgeRefs() const {
+	// TODO: rename to edges;
+	auto edgeRefs(Layers layer_mask = Layers::all()) const {
 		auto *graph = this;
 		auto *valids = m_edges.valids().data();
-		return IndexRange{0, m_edges.endIndex(),
-						  [=](int idx) { return EdgeRef(graph, EdgeId(idx)); },
-						  [=](int idx) { return valids[idx]; }};
+		auto *layers = m_edge_layers.data();
+
+		auto trans = [=](int idx) { return EdgeRef(graph, EdgeId(idx, none, layers[idx])); };
+		auto filter = [=](int idx) {
+			return valids[idx] && (layer_mask == Layers::all() || (layer_mask & layers[idx]));
+		};
+
+		return IndexRange{0, m_edges.endIndex(), trans, filter};
 	}
 
 	// TODO: naming: edgeIds ?
@@ -310,8 +329,13 @@ class Graph {
 		return edge.from == nid ? edge.to : edge.from;
 	}
 
+	// TODO: function to copy layer ?
+
 	VertexId from(EdgeId) const;
 	VertexId to(EdgeId) const;
+
+	bool hasLabel(VertexId) const;
+	bool hasLabel(EdgeId) const;
 
 	const Label &operator[](VertexId) const;
 	const Label &operator[](EdgeId) const;
@@ -321,10 +345,15 @@ class Graph {
 	Label &operator[](EdgeId);
 	Label &operator[](TriId);
 
+	Layers layers(VertexId) const;
+	Layer layer(EdgeId) const;
+	Layer layer(TriId) const;
+
 	// -------------------------------------------------------------------------------------------
 	// ---  Adding & removing elements -----------------------------------------------------------
 
-	VertexId addVertex();
+	VertexId addVertex(Layers = Layer::l1);
+	void addVertexAt(VertexId, Layers = Layer::l1);
 
 	// Jak layery się do tego mają? można dodać drugą krawędź jeśli jest na innym layeru ?
 	// może minimalizujmy ograniczenia; dodamy po prostu dwie funkcje do wszykiwania:
@@ -332,11 +361,11 @@ class Graph {
 	//
 	// Tylko na wierzchołki mamy ograniczenie w Geom Graphie ?
 	EdgeId addEdge(VertexId, VertexId, Layer = Layer::l1);
+	void addEdgeAt(EdgeId, VertexId, VertexId, Layer = Layer::l1);
+
 	// Only adds new if identical edge doesn't exist already
 	FixedElem<EdgeId> fixEdge(VertexId, VertexId, Layer = Layer::l1);
 	FixedElem<EdgeId> fixUndirectedEdge(VertexId, VertexId, Layer = Layer::l1);
-
-	// add, fix
 
 	TriId addTri(VertexId, VertexId, VertexId, Layer = Layer::l1);
 	FixedElem<TriId> fixTri(VertexId, VertexId, VertexId, Layer = Layer::l1);
@@ -384,8 +413,8 @@ class Graph {
 
   protected:
 	template <class> friend class GeomGraph;
-	using NodeInfo = SmallVector<EdgeId, 7>;
-	using NodeTriInfo = SmallVector<TriId, 7>;
+	using VertexInfo = SmallVector<EdgeId, 7>;
+	using VertexTriInfo = SmallVector<TriId, 7>;
 
 	struct EdgeInfo {
 		VertexId from, to;
@@ -416,14 +445,15 @@ class Graph {
 
 	template <class T> friend void orderEdges(Graph &, CSpan<T>);
 
-	IndexedVector<NodeInfo> m_verts;
+	IndexedVector<VertexInfo> m_verts;
+	PodVector<Layers> m_vert_layers;
 
 	IndexedVector<EdgeInfo> m_edges;
 	PodVector<Layer> m_edge_layers;
 
 	IndexedVector<TriangleInfo> m_tris;
 	PodVector<Layer> m_tri_layers;
-	vector<NodeTriInfo> m_vert_tris;
+	vector<VertexTriInfo> m_vert_tris;
 
 	HashMap<int, GraphLabel> m_vert_labels;
 	HashMap<int, GraphLabel> m_edge_labels;

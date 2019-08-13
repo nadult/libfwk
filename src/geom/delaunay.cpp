@@ -3,6 +3,8 @@
 
 #include "fwk/geom/delaunay.h"
 
+#include "fwk/geom/plane_graph.h"
+#include "fwk/geom/plane_graph_builder.h"
 #include "fwk/geom/segment_grid.h"
 #include "fwk/geom/voronoi.h"
 #include "fwk/math/direction.h"
@@ -16,21 +18,24 @@
 namespace fwk {
 
 vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
-	vector<VertexId> cell_verts =
-		transform(voronoi.cells(), [&](const auto &cell) { return cell.generator[0]; });
+	auto &graph = voronoi.graph();
+	auto cell_verts = transform<VertexId>(graph.vertexRefs(voronoi.site_layer));
 
-	vector<pair<VertexId, VertexId>> out;
-	vector<bool> visited(voronoi.arcs().size(), false);
+	vector<Pair<VertexId>> out;
+	vector<bool> visited(graph.numEdges(VoronoiDiagram::arc_layer));
 
-	for(auto aref : voronoi.arcGraph().edgeRefs()) {
-		if(visited[aref])
+	for(auto arc : graph.edgeRefs(VoronoiDiagram::arc_layer)) {
+		if(visited[arc])
 			continue;
-		DASSERT(aref.twin());
+		DASSERT(arc.twin());
 
-		auto vert1 = cell_verts[voronoi[ArcId(aref)].cell];
-		auto vert2 = cell_verts[voronoi[ArcId(*aref.twin())].cell];
+		auto cell1 = voronoi.cellId(arc);
+		auto cell2 = voronoi.cellId(*arc.twin());
+
+		auto vert1 = cell_verts[cell1];
+		auto vert2 = cell_verts[cell2];
 		out.emplace_back(vert1, vert2);
-		visited[*aref.twin()] = true;
+		visited[*arc.twin()] = true;
 	}
 
 	return out;

@@ -347,6 +347,67 @@ TEMPLATE void TSEG::operator>>(TextFormatter &fmt) const {
 	fmt(fmt.isStructured() ? "(%; %)" : "% %", from, to);
 }
 
+TEMPLATE auto TSEG::clip(const Box<TVec> &input_rect) const -> Maybe<Segment<PRealVec>> {
+	// Twin edges had to be treated identically
+	if(to < from) {
+		auto clipped = Segment{to, from}.clip(input_rect);
+		if(clipped)
+			return clipped->twin();
+		return none;
+	}
+
+	if constexpr(dim == 3) {
+		FATAL("write me");
+	} else {
+		// TODO: naming
+		// TODO: early out
+
+		using Vec2 = PRealVec;
+		using Real = PReal;
+
+		Box<Vec2> rect(input_rect);
+
+		auto offset = Vec2(to - from);
+		auto inv_dir = vinv(offset);
+		auto origin = Vec2(from);
+
+		Real x1 = inv_dir.x * (rect.x() - origin.x);
+		Real x2 = inv_dir.x * (rect.ex() - origin.x);
+		Real xmin = min(x1, x2);
+		Real xmax = max(x1, x2);
+
+		Real y1 = inv_dir.y * (rect.y() - origin.y);
+		Real y2 = inv_dir.y * (rect.ey() - origin.y);
+		Real ymin = min(y1, y2);
+		Real ymax = max(y1, y2);
+
+		Real lmin = max(xmin, ymin);
+		Real lmax = min(xmax, ymax);
+
+		if(lmin >= lmax || lmin >= 1.0 || lmax <= 0.0)
+			return none;
+
+		Vec2 out_from(from), out_to(to);
+		if(lmin > 0.0 && !rect.contains((Vec2)from)) {
+			Real clipx = lmin == x1 ? rect.x() : rect.ex();
+			Real clipy = lmin == y1 ? rect.y() : rect.ey();
+			out_from = lmin == xmin ? Vec2(clipx, max(origin.y + offset.y * lmin, rect.y()))
+									: Vec2(max(origin.x + offset.x * lmin, rect.x()), clipy);
+		}
+
+		if(lmax < 1.0 && !rect.contains((Vec2)to)) {
+			Real clipx = lmax == x1 ? rect.x() : rect.ex();
+			Real clipy = lmax == y1 ? rect.y() : rect.ey();
+			out_to = lmax == xmax ? Vec2(clipx, min(origin.y + offset.y * lmax, rect.ey()))
+								  : Vec2(min(origin.x + offset.x * lmax, rect.ex()), clipy);
+		}
+
+		if(out_from == out_to)
+			return none; // TODO: return vec2 here ?
+		return Segment<PRealVec>{out_from, out_to};
+	}
+}
+
 #define INSTANTIATE_VEC(type)                                                                      \
 	template class Segment<vec2<type>>;                                                            \
 	template class Segment<vec3<type>>;

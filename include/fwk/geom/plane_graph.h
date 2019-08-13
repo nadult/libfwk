@@ -13,10 +13,6 @@ namespace fwk {
 
 using IsectFlags = EnumFlags<IsectClass>;
 
-// TODO: what is it doing here ?
-template <class R, EnableIfFpt<R>...>
-Maybe<Segment2<R>> clipSegment(Segment2<R>, const Box<vec2<R>> &);
-
 // Obsługa 3D czy nie ?
 // - operacje wykonywane na xy(), xy() czy xz() ?
 // - kontury by sie pewnie przydały, PG też; ale czy nie da się tego

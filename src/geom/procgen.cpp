@@ -262,6 +262,7 @@ vector<Segment3F> generatePatchBorder(vector<Triangle3F> tris) {
 	return out;
 }
 
+/*
 vector<Segment3F> generateVoronoiLines(vector<Segment3F> patch_outline, vector<float3> points) {
 	PlaneGraphBuilder<float2> builder;
 	for(auto pt : points)
@@ -310,6 +311,5 @@ vector<Segment2F> generateDelaunaySegments(vector<float3> points) {
 	auto del = delaunay(voronoi);
 
 	return delaunaySegments<float2>(del, graph);
-}
-
+}*/
 }

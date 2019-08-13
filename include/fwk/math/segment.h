@@ -125,6 +125,8 @@ template <class TVec> class Segment {
 		return pair{at(params.first), rhs.at(params.second)};
 	}
 
+	Maybe<Segment<PRealVec>> clip(const Box<TVec> &) const;
+
 	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> xz() const { return {from.xz(), to.xz()}; }
 	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> xy() const { return {from.xy(), to.xy()}; }
 	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> yz() const { return {from.yz(), to.yz()}; }

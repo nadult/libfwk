@@ -17,9 +17,12 @@ template <class TPoint> class GeomGraph : public Graph {
 	using Point = TPoint;
 	using Label = GraphLabel;
 
+	using NodeMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
+
 	GeomGraph() {}
 	GeomGraph(vector<Point>);
 	GeomGraph(vector<Pair<VertexId>>, vector<Point>);
+	GeomGraph(Graph, vector<Point>, NodeMap);
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
@@ -43,12 +46,17 @@ template <class TPoint> class GeomGraph : public Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Adding & removing elements -----------------------------------------------------------
 
-	Ex<void> replacePoints(vector<Point>);
+	//Ex<void> replacePoints(vector<Point>);
+	template <class T> Ex<GeomGraph<T>> replacePoints(vector<T>) const;
 
 	VertexId addVertex() = delete;
-	FixedElem<VertexId> fixVertex(const Point &);
+	void addVertexAt(VertexId, Layers) = delete;
+	void addVertexAt(VertexId, const Point &, Layers = Layer::l1);
+
+	FixedElem<VertexId> fixVertex(const Point &, Layers = Layer::l1);
 
 	using Graph::addEdge;
+	using Graph::addEdgeAt;
 	using Graph::fixEdge;
 	FixedElem<EdgeId> fixEdge(Point p1, Point p2, Layer = Layer::l1);
 	FixedElem<EdgeId> fixEdge(const Segment<Point> &, Layer = Layer::l1);
@@ -79,9 +87,21 @@ template <class TPoint> class GeomGraph : public Graph {
 	bool operator<(const GeomGraph &) const;
 
   private:
-	using NodeMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
-
 	PodVector<Point> m_points;
 	NodeMap m_node_map;
 };
+
+template <class T>
+template <class TOut>
+Ex<GeomGraph<TOut>> GeomGraph<T>::replacePoints(vector<TOut> points) const {
+	typename GeomGraph<TOut>::NodeMap node_map;
+	node_map.reserve(points.size());
+
+	for(auto vid : vertexIds())
+		node_map[points[vid]] = vid;
+	if(node_map.size() != numVerts())
+		return ERROR("Duplicate points");
+
+	return GeomGraph<TOut>{*this, points, node_map};
+}
 }

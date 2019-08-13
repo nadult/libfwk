@@ -18,51 +18,54 @@
 
 namespace fwk {
 
-void VoronoiVis2::drawSegment(GEdgeId eid, bool draw_sel) {
-	auto &segment = m_diag[ArcSegmentId(eid)];
-	auto &arc = m_diag[segment.arc];
+VoronoiVis2::VoronoiVis2(Visualizer2 &vis, const VoronoiDiagram &diag, VoronoiVis2Colors colors,
+						 Maybe<CellId> sel)
+	: m_vis(vis), m_diag(diag), m_graph(diag.graph()), m_colors(colors), m_sel(sel) {}
 
-	auto p1 = m_diag[m_diag.segmentGraph().from(eid)];
-	auto p2 = m_diag[m_diag.segmentGraph().to(eid)];
+void VoronoiVis2::drawSegment(GEdgeId seg_id, bool draw_sel) {
+	auto arc_id = m_diag.arcId(seg_id);
+	auto cell_id = m_diag.cellId(arc_id);
+	auto seg = m_graph.ref(seg_id);
 
-	if(draw_sel != (arc.cell == m_sel))
+	auto p1 = m_graph(seg.from()), p2 = m_graph(seg.to());
+	if(draw_sel != (cell_id == m_sel))
 		return;
 
-	auto color = !arc.is_primary ? m_colors.inner_line : m_colors.line;
-	if(arc.cell == m_sel)
+	auto color = !m_diag.isArcPrimary(arc_id) ? m_colors.inner_line : m_colors.line;
+	if(cell_id == m_sel)
 		color = m_colors.selection;
-
 	m_vis.drawLine(p1, p2, color);
 }
 
 void VoronoiVis2::drawArc(GEdgeId eid, bool draw_sel) {
-	auto p1 = m_diag[m_diag.arcGraph().from(eid)];
-	auto p2 = m_diag[m_diag.arcGraph().to(eid)];
-	auto &arc = m_diag[ArcId(eid)];
-	auto color = !arc.is_primary ? m_colors.inner_line : m_colors.line;
-	if(draw_sel != (arc.cell == m_sel))
+	auto ref = m_graph.ref(eid);
+	auto p1 = m_graph(ref.from()), p2 = m_graph(ref.to());
+	auto color = !m_diag.isArcPrimary(eid) ? m_colors.inner_line : m_colors.line;
+	bool is_sel = m_diag.cellId(eid) == m_sel;
+	if(draw_sel != is_sel)
 		return;
 
-	if(arc.cell == m_sel)
+	if(is_sel)
 		color = m_colors.selection;
 	m_vis.drawLine(p1, p2, color);
 }
 
 void VoronoiVis2::draw() {
 	if(bool draw_segs = true) {
-		for(auto eid : m_diag.segmentGraph().edgeIds())
+		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::seg_layer))
 			drawSegment(eid, false);
-		for(auto eid : m_diag.segmentGraph().edgeIds())
+		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::seg_layer))
 			drawSegment(eid, true);
 	}
 
 	if(bool draw_arcs = false) {
-		for(auto eid : m_diag.arcGraph().edgeIds())
+		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::arc_layer))
 			drawArc(eid, false);
-		for(auto eid : m_diag.arcGraph().edgeIds())
+		for(auto eid : m_graph.edgeRefs(VoronoiDiagram::arc_layer))
 			drawArc(eid, true);
 	}
 
+	/* // TODO: fix it
 	for(auto &cell : m_diag.cells()) {
 		auto &gen = cell.generator;
 
@@ -78,7 +81,7 @@ void VoronoiVis2::draw() {
 			auto p1 = m_diag[gen.asNode()];
 			m_vis.drawCross(p1, color);
 		}
-	}
+	}*/
 }
 
 using Opt = ElementBufferOpt;

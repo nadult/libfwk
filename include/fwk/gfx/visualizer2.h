@@ -48,9 +48,7 @@ struct VoronoiVis2Colors {
 
 class VoronoiVis2 {
   public:
-	VoronoiVis2(Visualizer2 &vis, const VoronoiDiagram &diag, VoronoiVis2Colors colors,
-				Maybe<CellId> sel)
-		: m_vis(vis), m_diag(diag), m_colors(colors), m_sel(sel) {}
+	VoronoiVis2(Visualizer2 &, const VoronoiDiagram &, VoronoiVis2Colors, Maybe<CellId> sel);
 
 	void drawSegment(GEdgeId, bool draw_sel);
 	void drawArc(GEdgeId, bool draw_sel);
@@ -59,6 +57,7 @@ class VoronoiVis2 {
   private:
 	Visualizer2 &m_vis;
 	const VoronoiDiagram &m_diag;
+	const GeomGraph<double2> &m_graph;
 	VoronoiVis2Colors m_colors;
 	Maybe<CellId> m_sel;
 };

@@ -11,6 +11,12 @@ template <class T> GeomGraph<T>::GeomGraph(vector<Point> points) {
 		fixVertex(pt);
 }
 
+template <class T>
+GeomGraph<T>::GeomGraph(Graph graph, vector<Point> points, NodeMap node_map)
+	: Graph(move(graph)), m_node_map(move(node_map)) {
+	m_points.unsafeSwap(points);
+}
+
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
 
@@ -44,26 +50,22 @@ template <class T> Maybe<EdgeRef> GeomGraph<T>::findEdge(Point p1, Point p2, Lay
 // -------------------------------------------------------------------------------------------
 // ---  Adding & removing elements -----------------------------------------------------------
 
-template <class T> Ex<void> GeomGraph<T>::replacePoints(vector<Point> points) {
-	NodeMap node_map;
-	node_map.reserve(points.size());
-
-	for(auto vid : vertexIds())
-		node_map[points[vid]] = vid;
-	if(node_map.size() != numVerts())
-		return ERROR("Duplicate points");
-
-	swap(m_node_map, node_map);
-	m_points.unsafeSwap(points);
-	return {};
+template <class T> void GeomGraph<T>::addVertexAt(VertexId vid, const Point &point, Layers layers) {
+	DASSERT(m_node_map.find(point) == m_node_map.end());
+	Graph::addVertexAt(vid, layers);
+	m_points.resize(Graph::m_verts.capacity());
+	m_points[vid] = point;
+	m_node_map[point] = vid;
 }
 
-template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &point) {
+template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &point, Layers layers) {
 	// TODO: możliwośc sprecyzowania domyślnego elementu w hashMap::operator[] ?
 	auto it = m_node_map.find(point);
-	if(it != m_node_map.end())
+	if(it != m_node_map.end()) {
+		m_vert_layers[it->second] |= layers;
 		return {VertexId(it->second), false};
-	auto id = Graph::addVertex();
+	}
+	auto id = Graph::addVertex(layers);
 	m_points.resize(Graph::m_verts.capacity());
 	m_points[id] = point;
 	m_node_map[point] = id;
@@ -134,7 +136,9 @@ template <class T> bool GeomGraph<T>::operator<(const GeomGraph &rhs) const {
 
 template class GeomGraph<float2>;
 template class GeomGraph<int2>;
+template class GeomGraph<double2>;
 
 template class GeomGraph<float3>;
 template class GeomGraph<int3>;
+template class GeomGraph<double3>;
 }

@@ -3,9 +3,7 @@
 
 #pragma once
 
-#include "fwk/geom/graph.h"
-#include "fwk/geom_base.h"
-#include "fwk/vector_map.h"
+#include "fwk/geom/geom_graph.h"
 
 namespace fwk {
 
@@ -61,6 +59,7 @@ struct VoronoiArc {
 	bool touches_site = false;
 };
 
+// TODO: remove it ?
 struct VoronoiCell {
 	VoronoiCell(Simplex generator, int type) : generator(generator), type(type) {}
 
@@ -69,14 +68,13 @@ struct VoronoiCell {
 };
 
 struct VoronoiInfo {
-	vector<double2> points;
-	vector<VoronoiArc> arcs;
-	vector<VoronoiArcSegment> segments;
 	vector<VoronoiCell> cells;
 };
 
-// Arcs separate two neighbouring cells
-// Arcs can be divided into segments, in most cases arc is composed of a single segment
+// Arcs separate two neighbouring cells.
+// Arcs can be divided into segments, in most cases arc is composed of a single segment.
+//
+// Sites are on layer 1, arcs on layer 2 and arc segments on layer 3
 class VoronoiDiagram {
   public:
 	using Info = VoronoiInfo;
@@ -85,15 +83,29 @@ class VoronoiDiagram {
 	using Cell = VoronoiCell;
 
 	VoronoiDiagram() = default;
-	VoronoiDiagram(Graph arc_segments, Graph arcs, Info);
+	VoronoiDiagram(GeomGraph<double2>, Info);
+
+	// arc segment labels:
+	//   int1: arc id
+	//   int2: cell id
+	// arc:
+	//   int1: cell id
+	//   int2: cell type, is_primary
+
+	// applies to verts as well; Some verts are on multiple layers
+	static constexpr auto site_layer = GraphLayer::l1;
+	static constexpr auto arc_layer = GraphLayer::l2;
+	static constexpr auto seg_layer = GraphLayer::l3;
 
 	static vector<Pair<VertexId>> delaunay(CSpan<int2> sites);
 
 	// After construction Cell generators will have same VertexId as in PGraph
-	static VoronoiDiagram construct(const PGraph<int2> &);
+	static VoronoiDiagram construct(const GeomGraph<int2> &);
 	VoronoiDiagram clip(DRect) const;
 
-	GeomGraph<float2> merge() const;
+	bool isArcPrimary(GEdgeId) const;
+	GEdgeId arcId(GEdgeId) const;
+	CellId cellId(GEdgeId) const;
 
 	/*
 	template <class Func> VoronoiDiagram transform(const Func &func) const {
@@ -116,20 +128,6 @@ class VoronoiDiagram {
 	// TODO: node mapping
 	// TODO: konwersje ArcId -> EdgeId i ArcSegmentId -> EdgeId...
 
-	VectorMap<VertexId, VertexId> m_node_map; // Old node -> new node
-
-	const auto &operator[](VertexId id) const {
-		DASSERT(valid(id));
-		return m_info.points[id];
-	}
-	const auto &operator[](ArcSegmentId id) const {
-		DASSERT(valid(id));
-		return m_info.segments[id];
-	}
-	const auto &operator[](ArcId id) const {
-		DASSERT(valid(id));
-		return m_info.arcs[id];
-	}
 	const auto &operator[](CellId id) const {
 		DASSERT(valid(id));
 		return m_info.cells[id];
@@ -137,26 +135,19 @@ class VoronoiDiagram {
 
 	Variant<None, double2, Segment2<double>> operator[](Simplex) const;
 
-	const auto &points() const { return m_info.points; }
-	const auto &arcSegments() const { return m_info.segments; }
-	const auto &arcs() const { return m_info.arcs; }
 	const auto &cells() const { return m_info.cells; }
 
-	int numPoints() const { return m_info.points.size(); }
-	int numSegments() const { return m_info.segments.size(); }
-	int numArcs() const { return m_info.arcs.size(); }
+	// TODO:
+	int numSegments() const { return m_graph.numEdges(seg_layer); }
+	int numArcs() const { return m_graph.numEdges(seg_layer); }
 	int numCells() const { return m_info.cells.size(); }
 
 	bool valid(CellId id) const { return id >= 0 && id < m_info.cells.size(); }
-	bool valid(ArcId id) const { return id >= 0 && id < m_info.arcs.size(); }
-	bool valid(VertexId id) const { return id >= 0 && id < m_info.points.size(); }
-	bool valid(ArcSegmentId id) const { return id >= 0 && id < m_info.segments.size(); }
 
-	const auto &segmentGraph() const { return m_segments_graph; }
-	const auto &arcGraph() const { return m_arc_graph; }
+	const auto &graph() const { return m_graph; }
 	const auto &info() const { return m_info; }
 
-	bool empty() const { return m_info.points.empty(); }
+	bool empty() const { return m_graph.empty(); }
 
 	vector<vector<ArcSegmentId>> arcToSegments() const;
 	vector<vector<ArcId>> cellToArcs() const;
@@ -165,8 +156,7 @@ class VoronoiDiagram {
 	Maybe<CellId> findClosestCell(double2) const;
 
   private:
-	Graph m_arc_graph;
-	Graph m_segments_graph;
+	GeomGraph<double2> m_graph;
 	Info m_info;
 };
 }

@@ -81,6 +81,29 @@ Graph::Graph(CSpan<Pair<VertexId>> edges, Maybe<int> num_verts) {
 		addEdge(v1, v2);
 }
 
+int Graph::numVerts(Layers layers) const {
+	int count = 0;
+	for(auto id : vertexIds())
+		if(m_vert_layers[id] & layers)
+			count++;
+	return count;
+}
+
+int Graph::numEdges(Layers layers) const {
+	int count = 0;
+	for(auto id : edgeIds())
+		if(m_edge_layers[id] & layers)
+			count++;
+	return count;
+}
+int Graph::numTris(Layers layers) const {
+	int count = 0;
+	for(auto id : triIds())
+		if(m_tri_layers[id] & layers)
+			count++;
+	return count;
+}
+
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
 
@@ -137,6 +160,9 @@ VertexId Graph::to(EdgeId edge_id) const { return m_edges[edge_id].to; }
 
 static const GraphLabel g_default_label;
 
+bool Graph::hasLabel(VertexId id) const { return m_vert_labels.find(id) == m_vert_labels.end(); }
+bool Graph::hasLabel(EdgeId id) const { return m_edge_labels.find(id) == m_edge_labels.end(); }
+
 const Label &Graph::operator[](VertexId vid) const {
 	auto it = m_vert_labels.find(vid);
 	return it == m_vert_labels.end() ? g_default_label : it->second;
@@ -156,6 +182,21 @@ Label &Graph::operator[](VertexId vid) { return m_vert_labels[vid]; }
 Label &Graph::operator[](EdgeId eid) { return m_edge_labels[eid]; }
 Label &Graph::operator[](TriId tid) { return m_tri_labels[tid]; }
 
+GraphLayers Graph::layers(VertexId id) const {
+	PASSERT(valid(id));
+	return m_vert_layers[id];
+}
+
+GraphLayer Graph::layer(EdgeId id) const {
+	PASSERT(valid(id));
+	return m_edge_layers[id];
+}
+
+GraphLayer Graph::layer(TriId id) const {
+	PASSERT(valid(id));
+	return m_tri_layers[id];
+}
+
 // -------------------------------------------------------------------------------------------
 // ---  Adding & removing elements -----------------------------------------------------------
 
@@ -174,16 +215,39 @@ void Graph::reserveVerts(int capacity) { m_verts.reserve(capacity); }
 void Graph::reserveEdges(int capacity) { m_edges.reserve(capacity); }
 void Graph::reserveTris(int capacity) { m_tris.reserve(capacity); }
 
-VertexId Graph::addVertex() { return VertexId(m_verts.emplace()); }
+VertexId Graph::addVertex(Layers layers) {
+	auto vid = VertexId(m_verts.emplace());
+	m_vert_layers.resize(m_verts.capacity());
+	m_vert_layers[vid] = layers;
+	return vid;
+}
+
+void Graph::addVertexAt(VertexId vid, Layers layers) {
+	DASSERT(!m_verts.valid(vid));
+	m_verts.emplaceAt(vid);
+	m_vert_layers.resize(m_verts.capacity());
+	m_vert_layers[vid] = layers;
+}
 
 GEdgeId Graph::addEdge(VertexId v1, VertexId v2, Layer layer) {
-	PASSERT(valid(v1) && valid(v2));
+	DASSERT(valid(v1) && valid(v2));
 	EdgeId eid(m_edges.emplace(v1, v2));
 	m_edge_layers.resize(m_edges.capacity());
 	m_edge_layers[eid] = layer;
 	m_verts[v1].emplace_back(eid.index(), EdgeOpt::source, layer);
 	m_verts[v2].emplace_back(eid, none, layer);
 	return eid;
+}
+
+void Graph::addEdgeAt(EdgeId eid, VertexId v1, VertexId v2, Layer layer) {
+	DASSERT(valid(v1) && valid(v2));
+	DASSERT(!valid(eid));
+
+	m_edges.emplaceAt(eid, v1, v2);
+	m_edge_layers.resize(m_edges.capacity());
+	m_edge_layers[eid] = layer;
+	m_verts[v1].emplace_back(eid.index(), EdgeOpt::source, layer);
+	m_verts[v2].emplace_back(eid, none, layer);
 }
 
 FixedElem<GEdgeId> Graph::fixEdge(VertexId v1, VertexId v2, Layer layer) {
@@ -499,5 +563,4 @@ FWK_ORDER_BY_DEF(Graph, m_verts, m_edges, m_tris)
 
 template Graph Graph::minimumSpanningTree(CSpan<float>, bool) const;
 template Graph Graph::minimumSpanningTree(CSpan<double>, bool) const;
-
 }

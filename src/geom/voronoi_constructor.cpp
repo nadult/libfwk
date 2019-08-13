@@ -3,9 +3,9 @@
 
 #include "fwk/geom/voronoi.h"
 
-#include "fwk/geom/plane_graph.h"
-#include "fwk/geom/plane_graph_builder.h"
+#include "fwk/geom/geom_graph.h"
 #include "fwk/geom/wide_int.h"
+#include "fwk/math/segment.h"
 #include "fwk/vector_map.h"
 
 #include "../extern/boost_polygon/voronoi_builder.hpp"
@@ -15,6 +15,9 @@ using namespace boost::polygon;
 using namespace boost::polygon::detail;
 
 namespace fwk {
+
+static constexpr auto site_layer = VoronoiDiagram::site_layer,
+					  seg_layer = VoronoiDiagram::seg_layer, arc_layer = VoronoiDiagram::arc_layer;
 
 namespace {
 	struct type_converter_efpt2 {
@@ -95,16 +98,17 @@ class VoronoiConstructor {
 	using cell_type = VD::cell_type;
 	using edge_type = VD::edge_type;
 
-	VoronoiConstructor(const PGraph<int2> &graph, IRect rect) : m_pgraph(graph), m_rect(rect) {
+	VoronoiConstructor(const GeomGraph<int2> &graph, IRect rect)
+		: m_input_graph(graph), m_rect(rect) {
 		// TODO: transformation is not needed?
 		for(auto nref : graph.vertexRefs())
 			if(!nref.numEdges()) {
-				m_points.emplace_back((CT)graph[nref].x, (CT)graph[nref].y);
+				m_points.emplace_back((PT)graph(nref));
 				m_point_ids.emplace_back(nref.id());
 			}
 
 		for(auto nedge : graph.edgeRefs()) {
-			double2 p1(graph[nedge.from()]), p2(graph[nedge.to()]);
+			double2 p1(graph(nedge.from())), p2(graph(nedge.to()));
 			if(nedge.from() == nedge.to()) {
 				m_points.emplace_back(p1.x, p1.y);
 				m_point_ids.emplace_back(nedge.from().id());
@@ -123,7 +127,8 @@ class VoronoiConstructor {
 	}
 
 	VoronoiDiagram convertDiagram() {
-		vector<Pair<VertexId>> arcs, arc_segments;
+		GeomGraph<double2> out;
+
 		VoronoiInfo info;
 		info.cells.reserve(m_diagram.num_cells());
 
@@ -148,13 +153,14 @@ class VoronoiConstructor {
 				info.cells.emplace_back(simplex, cell.source_category());
 		}
 
-		PGraphBuilder<double2> inserter(transform<double2>(m_pgraph.points()));
-		inserter.reservePoints(m_diagram.num_edges() / 2 + inserter.numVerts());
+		// Copying input graph into site layer
+		out.reserveVerts(m_diagram.num_edges() / 2 + m_input_graph.numVerts() + 16);
+		for(auto vref : m_input_graph.vertexRefs(site_layer))
+			out.addVertexAt(vref, m_input_graph(vref), site_layer);
+		for(auto eref : m_input_graph.edgeRefs(site_layer))
+			out.addEdgeAt(eref, eref.from(), eref.to(), site_layer);
 
-		arcs.reserve(m_diagram.num_edges());
-		info.arcs.reserve(m_diagram.num_edges());
-		arc_segments.reserve(arcs.capacity() * 2);
-		info.segments.reserve(arcs.capacity() * 2);
+		out.reserveEdges(m_diagram.num_edges() * 3 + m_input_graph.numEdges()); // TODO: check this
 
 		vector<double2> points;
 		vector<VertexId> nodes;
@@ -169,8 +175,8 @@ class VoronoiConstructor {
 				   (ulp_cmp(v1.y, v2.y, ULPS) == ulp_comparison<CT>::EQUAL);
 		};
 
-		HashMap<Pair<VertexId>, ArcId> shared_node_arcs;
-		shared_node_arcs.reserve(m_pgraph.numEdges() * 2);
+		HashMap<Pair<VertexId>, Pair<GEdgeId>> shared_node_arcs;
+		shared_node_arcs.reserve(m_input_graph.numEdges() * 2);
 
 		auto *first_cell = &m_diagram.cells()[0];
 		for(int n = 0, ecount = int(m_diagram.num_edges()); n < ecount; n += 2) {
@@ -185,7 +191,7 @@ class VoronoiConstructor {
 			Maybe<VertexId> shared_node;
 			for(auto n1 : cell1.generator)
 				for(auto n2 : cell2.generator)
-					if(n1 == n2 && m_pgraph.numEdges(n1) != 1) {
+					if(n1 == n2 && m_input_graph.numEdges(n1) != 1) {
 						shared_node = n1;
 						break;
 					}
@@ -213,11 +219,8 @@ class VoronoiConstructor {
 				}
 			}
 
-			ArcId arc_id1(arcs.size());
-			ArcId arc_id2(arc_id1 + 1);
-
 			if(shared_node) {
-				auto shared_point = m_pgraph[*shared_node];
+				auto shared_point = m_input_graph(*shared_node);
 				// Making sure that vertices which lie on cells are exactly the same
 				if(vert_equal(points.front(), shared_point))
 					points.front() = shared_point;
@@ -225,8 +228,11 @@ class VoronoiConstructor {
 					points.back() = shared_point;
 			}
 
-			VertexId n1 = inserter(points.front());
-			VertexId n2 = inserter(points.back());
+			VertexId n1 = out.fixVertex(points.front(), arc_layer).id;
+			VertexId n2 = out.fixVertex(points.back(), arc_layer).id;
+
+			auto arc_id1 = out.addEdge(n1, n2, arc_layer);
+			auto arc_id2 = out.addEdge(n2, n1, arc_layer);
 
 			if(shared_node) {
 				auto it = shared_node_arcs.find({n1, n2});
@@ -235,49 +241,45 @@ class VoronoiConstructor {
 
 				int not_found = 0;
 				if(it != shared_node_arcs.end()) {
-					auto &tarc1 = info.arcs[it->second];
-					auto &tarc2 = info.arcs[it->second + 1];
+					auto &tarc1_cell = out[it->second.first].ival1;
+					auto &tarc2_cell = out[it->second.second].ival1;
 
 					// We have two segments (sites) s1, s2 sharing a vertex v1
 					// We have two identical arcs, one between s1 and v1, other between v1 and s2
 					// We're merging them together into single arc between s1 and s2
-					if(isOneOf(cell_id1, tarc1.cell, tarc2.cell)) {
-						(cell_id1 == tarc1.cell ? tarc1 : tarc2).cell = cell_id2;
+					if(isOneOf(cell_id1, tarc1_cell, tarc2_cell)) {
+						(int(cell_id1) == tarc1_cell ? tarc1_cell : tarc2_cell) = cell_id2;
 						continue;
 					}
 				} else
 					not_found = 1;
-				shared_node_arcs.emplace({n1, n2}, arc_id1);
+				shared_node_arcs.emplace({n1, n2}, {arc_id1, arc_id2});
 			}
 
-			VoronoiDiagram::Arc new_arc{cell_id1};
 			// TODO: wtf is this ?
-			new_arc.is_primary = edge.is_primary();
-			new_arc.touches_site = !new_arc.is_primary || shared_node;
-			new_arc.is_primary = !new_arc.touches_site;
+			bool is_primary = edge.is_primary();
+			bool touches_site = !is_primary || shared_node;
+			is_primary = !touches_site; // 1 bool is enough ?
 
-			arcs.emplace_back(n1, n2);
-			info.arcs.emplace_back(new_arc);
+			out[arc_id1].ival1 = cell_id1;
+			out[arc_id1].ival2 = is_primary; // TODO: cell type
 
-			new_arc.cell = cell_id2;
-			arcs.emplace_back(n2, n1);
-			info.arcs.emplace_back(new_arc);
+			out[arc_id2].ival1 = cell_id2;
+			out[arc_id2].ival2 = is_primary;
 
 			for(int n = 1; n < points.size(); n++) {
-				auto n1 = inserter(points[n - 1]);
-				auto n2 = inserter(points[n]);
+				auto n1 = out.fixVertex(points[n - 1], seg_layer).id;
+				auto n2 = out.fixVertex(points[n], seg_layer).id;
 
-				arc_segments.emplace_back(n1, n2);
-				info.segments.emplace_back(VoronoiArcSegment{arc_id1});
+				auto eid1 = out.addEdge(n1, n2, seg_layer);
+				auto eid2 = out.addEdge(n2, n1, seg_layer);
 
-				arc_segments.emplace_back(n2, n1);
-				info.segments.emplace_back(VoronoiArcSegment{arc_id2});
+				out[eid1].ival1 = arc_id1;
+				out[eid2].ival2 = arc_id2;
 			}
 		}
 
-		info.points = inserter.extractPoints();
-		int num_verts = info.points.size();
-		return VoronoiDiagram(Graph(arc_segments, num_verts), Graph(arcs, num_verts), move(info));
+		return VoronoiDiagram(out, move(info));
 	}
 
 	void clip_infinite_edge(const edge_type &edge, vector<double2> &out) const {
@@ -437,7 +439,7 @@ class VoronoiConstructor {
 		return m_segments[cell.source_index() - m_points.size()];
 	}
 
-	const PGraph<int2> &m_pgraph;
+	const GeomGraph<int2> &m_input_graph;
 	vector<PT> m_points;
 	vector<VertexId> m_point_ids;
 
@@ -453,12 +455,12 @@ vector<Pair<VertexId>> VoronoiDiagram::delaunay(CSpan<int2> sites) {
 	return constructor.extractSitePairs();
 }
 
-VoronoiDiagram VoronoiDiagram::construct(const PGraph<int2> &pgraph) {
-	ASSERT(pgraph.isPlanar());
+VoronoiDiagram VoronoiDiagram::construct(const GeomGraph<int2> &graph) {
+	// ASSERT(graph.isPlanar()); // TODO: make it work
 
-	IRect rect = enclose(pgraph.points()).enlarge(1);
+	IRect rect = enclose(graph.points()).enlarge(1);
 	// TODO: how can we be sure that rect can be enlarged ?
-	VoronoiConstructor constructor(pgraph, rect);
+	VoronoiConstructor constructor(graph, rect);
 	return constructor.convertDiagram();
 }
 }

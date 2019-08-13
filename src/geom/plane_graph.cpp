@@ -96,60 +96,6 @@ template <class T> pair<ImmutableGraph, vector<T>> PlaneGraph<T>::decompose(Plan
 	return {move(*(ImmutableGraph *)&graph), move(graph.m_points)};
 }
 
-template <class Real, EnableIfFpt<Real>...>
-Maybe<Segment2<Real>> clipSegment(Segment2<Real> segment, const Box<vec2<Real>> &rect) {
-	// Twin edges had to be handled in the same way
-	if(segment.to < segment.from) {
-		auto clipped = clipSegment(Segment2<Real>{segment.to, segment.from}, rect);
-		if(clipped)
-			return Segment2<Real>{clipped->to, clipped->from};
-		return none;
-	}
-
-	using Vec2 = vec2<Real>;
-	auto offset = segment.to - segment.from;
-	auto inv_dir = vinv(offset);
-	auto origin = segment.from;
-
-	Real x1 = inv_dir.x * (rect.x() - origin.x);
-	Real x2 = inv_dir.x * (rect.ex() - origin.x);
-	Real xmin = min(x1, x2);
-	Real xmax = max(x1, x2);
-
-	Real y1 = inv_dir.y * (rect.y() - origin.y);
-	Real y2 = inv_dir.y * (rect.ey() - origin.y);
-	Real ymin = min(y1, y2);
-	Real ymax = max(y1, y2);
-
-	Real lmin = max(xmin, ymin);
-	Real lmax = min(xmax, ymax);
-
-	if(lmin >= lmax || lmin >= 1.0 || lmax <= 0.0)
-		return none;
-
-	if(lmin > 0.0 && !rect.contains(segment.from)) {
-		Real clipx = lmin == x1 ? rect.x() : rect.ex();
-		Real clipy = lmin == y1 ? rect.y() : rect.ey();
-		segment.from = lmin == xmin ? Vec2(clipx, max(origin.y + offset.y * lmin, rect.y()))
-									: Vec2(max(origin.x + offset.x * lmin, rect.x()), clipy);
-	}
-
-	if(lmax < 1.0 && !rect.contains(segment.to)) {
-		Real clipx = lmax == x1 ? rect.x() : rect.ex();
-		Real clipy = lmax == y1 ? rect.y() : rect.ey();
-		segment.to = lmax == xmax ? Vec2(clipx, min(origin.y + offset.y * lmax, rect.ey()))
-								  : Vec2(min(origin.x + offset.x * lmax, rect.ex()), clipy);
-	}
-
-	if(segment.from == segment.to)
-		return none; // TODO: return vec2 here ?
-
-	return segment;
-}
-
-template Maybe<Segment2<float>> clipSegment(Segment2<float>, const Box<float2> &);
-template Maybe<Segment2<double>> clipSegment(Segment2<double>, const Box<double2> &);
-
 // Does it have to work well for not-simple graphs ? currently no, but it should work 100% correctly
 template <class T>
 template <class U, EnableIfFptVec<U>...>
