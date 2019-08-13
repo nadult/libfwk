@@ -86,11 +86,11 @@ class VoronoiDiagram {
 	VoronoiDiagram(GeomGraph<double2>, Info);
 
 	// arc segment labels:
-	//   int1: arc id
-	//   int2: cell id
+	//   ival1: arc id
+	//   ival2: cell id
 	// arc:
-	//   int1: cell id
-	//   int2: cell type, is_primary
+	//   ival1: cell type, is_primary
+	//   ival2: cell id
 
 	// applies to verts as well; Some verts are on multiple layers
 	static constexpr auto site_layer = GraphLayer::l1;

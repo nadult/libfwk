@@ -189,10 +189,10 @@ class VoronoiConstructor {
 			const auto &cell2 = info.cells[cell_id2];
 
 			Maybe<VertexId> shared_node;
-			for(auto n1 : cell1.generator)
-				for(auto n2 : cell2.generator)
-					if(n1 == n2 && m_input_graph.numEdges(n1) != 1) {
-						shared_node = n1;
+			for(auto v1 : cell1.generator)
+				for(auto v2 : cell2.generator)
+					if(v1 == v2 && m_input_graph.numEdges(v1) != 1) {
+						shared_node = v1;
 						break;
 					}
 
@@ -228,54 +228,56 @@ class VoronoiConstructor {
 					points.back() = shared_point;
 			}
 
-			VertexId n1 = out.fixVertex(points.front(), arc_layer).id;
-			VertexId n2 = out.fixVertex(points.back(), arc_layer).id;
-
-			auto arc_id1 = out.addEdge(n1, n2, arc_layer);
-			auto arc_id2 = out.addEdge(n2, n1, arc_layer);
+			VertexId v1 = out.fixVertex(points.front(), arc_layer).id;
+			VertexId v2 = out.fixVertex(points.back(), arc_layer).id;
 
 			if(shared_node) {
-				auto it = shared_node_arcs.find({n1, n2});
+				auto it = shared_node_arcs.find({v1, v2});
 				if(it == shared_node_arcs.end())
-					it = shared_node_arcs.find({n2, n1});
+					it = shared_node_arcs.find({v2, v1});
 
-				int not_found = 0;
 				if(it != shared_node_arcs.end()) {
 					auto &tarc1_cell = out[it->second.first].ival1;
 					auto &tarc2_cell = out[it->second.second].ival1;
 
-					// We have two segments (sites) s1, s2 sharing a vertex v1
+					// We have two sites s1, s2 sharing a vertex v1
 					// We have two identical arcs, one between s1 and v1, other between v1 and s2
 					// We're merging them together into single arc between s1 and s2
 					if(isOneOf(cell_id1, tarc1_cell, tarc2_cell)) {
 						(int(cell_id1) == tarc1_cell ? tarc1_cell : tarc2_cell) = cell_id2;
 						continue;
 					}
-				} else
-					not_found = 1;
-				shared_node_arcs.emplace({n1, n2}, {arc_id1, arc_id2});
+				}
 			}
+
+			auto arc_id1 = out.addEdge(v1, v2, arc_layer);
+			auto arc_id2 = out.addEdge(v2, v1, arc_layer);
+
+			if(shared_node)
+				shared_node_arcs.emplace({v1, v2}, {arc_id1, arc_id2});
 
 			// TODO: wtf is this ?
 			bool is_primary = edge.is_primary();
 			bool touches_site = !is_primary || shared_node;
 			is_primary = !touches_site; // 1 bool is enough ?
 
-			out[arc_id1].ival1 = cell_id1;
-			out[arc_id1].ival2 = is_primary; // TODO: cell type
+			out[arc_id1].ival1 = is_primary; // TODO: cell type
+			out[arc_id1].ival2 = cell_id1;
 
-			out[arc_id2].ival1 = cell_id2;
-			out[arc_id2].ival2 = is_primary;
+			out[arc_id2].ival1 = is_primary;
+			out[arc_id2].ival2 = cell_id2;
 
 			for(int n = 1; n < points.size(); n++) {
-				auto n1 = out.fixVertex(points[n - 1], seg_layer).id;
-				auto n2 = out.fixVertex(points[n], seg_layer).id;
+				auto v1 = out.fixVertex(points[n - 1], seg_layer).id;
+				auto v2 = out.fixVertex(points[n], seg_layer).id;
 
-				auto eid1 = out.addEdge(n1, n2, seg_layer);
-				auto eid2 = out.addEdge(n2, n1, seg_layer);
+				auto eid1 = out.addEdge(v1, v2, seg_layer);
+				auto eid2 = out.addEdge(v2, v1, seg_layer);
 
 				out[eid1].ival1 = arc_id1;
-				out[eid2].ival2 = arc_id2;
+				out[eid1].ival2 = cell_id1;
+				out[eid2].ival1 = arc_id2;
+				out[eid2].ival2 = cell_id2;
 			}
 		}
 

@@ -25,7 +25,7 @@ VoronoiDiagram::VoronoiDiagram(GeomGraph<double2> graph, Info info)
 
 bool VoronoiDiagram::isArcPrimary(GEdgeId id) const {
 	PASSERT(m_graph.layer(id) == arc_layer);
-	return m_graph[id].ival2 != 0;
+	return m_graph[id].ival1 != 0;
 }
 
 GEdgeId VoronoiDiagram::arcId(GEdgeId id) const {
@@ -36,8 +36,7 @@ GEdgeId VoronoiDiagram::arcId(GEdgeId id) const {
 CellId VoronoiDiagram::cellId(GEdgeId id) const {
 	auto layer = m_graph.layer(id);
 	PASSERT(isOneOf(layer, arc_layer, seg_layer));
-	auto &labels = m_graph[id];
-	return CellId(layer == arc_layer ? labels.ival1 : labels.ival2);
+	return CellId(m_graph[id].ival2);
 }
 
 // TODO: fix these:
@@ -169,7 +168,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 		if(clipped) {
 			DASSERT(rect.contains(clipped->from));
 			DASSERT(rect.contains(clipped->to));
-			CellId old_cell_id(m_graph[old_arc_id].ival1);
+			CellId old_cell_id(m_graph[old_arc_id].ival2);
 			auto v1 = new_graph.fixVertex(clipped->from, seg_layer).id;
 			auto v2 = new_graph.fixVertex(clipped->to, seg_layer).id;
 			auto eid = new_graph.addEdge(v1, v2, seg_layer);
@@ -226,12 +225,10 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 	// TODO: vector?
 	HashMap<VertexId, vector<CellId>> vertex_cells;
 	for(auto seg : new_graph.edges(seg_layer)) {
-		GEdgeId arc_id(new_graph[seg].ival1);
-		CellId cell_id(new_graph[arc_id].ival1);
+		CellId cell_id(new_graph[seg].ival2);
 		vertex_cells[seg.from()].emplace_back(cell_id);
 		vertex_cells[seg.to()].emplace_back(cell_id);
 	}
-	DUMP(vertex_cells);
 	for(auto &pair : vertex_cells)
 		makeSorted(pair.second); //TODO: makeSortedUnique?
 
@@ -287,9 +284,10 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 			VertexId from = new_nodes[n - 1], to = new_nodes[n];
 			auto arc_id = new_graph.addEdge(from, to, arc_layer);
 			auto seg_id = new_graph.addEdge(from, to, seg_layer);
-			new_graph[arc_id].ival1 = cell_id;
-			new_graph[arc_id].ival2 = false;
+			new_graph[arc_id].ival1 = false;
+			new_graph[arc_id].ival2 = cell_id;
 			new_graph[seg_id].ival1 = arc_id;
+			new_graph[seg_id].ival2 = cell_id;
 		}
 	}
 
