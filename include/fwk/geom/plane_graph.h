@@ -169,11 +169,6 @@ template <class T> class PlaneGraph : public ImmutableGraph {
 template <class T, EnableIfVec<T, 2>...>
 void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector);
 
-double bestIntegralScale(CSpan<double3>, int max_value = 1024 * 1024 * 16);
-double bestIntegralScale(CSpan<float3>, int max_value = 1024 * 1024 * 16);
-double bestIntegralScale(CSpan<double2>, int max_value = 1024 * 1024 * 16);
-double bestIntegralScale(CSpan<float2>, int max_value = 1024 * 1024 * 16);
-
 template <class IT, class T, EnableIfFptVec<T, 2>..., EnableIfIntegralVec<IT, 2>...>
 Maybe<vector<IT>> tryToIntegral(CSpan<T>, double scale);
 

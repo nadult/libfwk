@@ -1,6 +1,7 @@
 #include "fwk/geom/geom_graph.h"
 
 #include "fwk/math/segment.h"
+#include "fwk/sys/assert.h"
 
 namespace fwk {
 
@@ -12,9 +13,35 @@ template <class T> GeomGraph<T>::GeomGraph(vector<Point> points) {
 }
 
 template <class T>
-GeomGraph<T>::GeomGraph(Graph graph, vector<Point> points, NodeMap node_map)
-	: Graph(move(graph)), m_node_map(move(node_map)) {
-	m_points.unsafeSwap(points);
+GeomGraph<T>::GeomGraph(Graph graph, PodVector<Point> points, PointMap point_map)
+	: Graph(move(graph)), m_points(move(points)), m_point_map(move(point_map)) {}
+
+template <class T>
+GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap point_map,
+						CSpan<Pair<VertexId>> collapsed_verts)
+	: m_points(move(points)), m_point_map(move(point_map)) {
+	vector<Maybe<VertexId>> collapses(graph.vertsEndIndex());
+	for(auto [from, to] : collapsed_verts)
+		collapses[from] = to;
+
+	for(auto vert : graph.verts())
+		if(!collapses[vert]) {
+			Graph::addVertexAt(vert, graph.layers(vert));
+			if(graph.hasLabel(vert))
+				(*this)[vert] = graph[vert];
+		}
+
+	for(auto edge : graph.edges()) {
+		auto v1 = edge.from(), v2 = edge.to();
+		if(collapses[v1] == v2 || collapses[v2] == v1)
+			continue;
+		addEdgeAt(edge, v1, v2, edge.layer());
+		if(graph.hasLabel(edge))
+			(*this)[edge] = graph[edge];
+	}
+
+	if(graph.numTris())
+		FATAL("handle me please");
 }
 
 // -------------------------------------------------------------------------------------------
@@ -22,6 +49,10 @@ GeomGraph<T>::GeomGraph(Graph graph, vector<Point> points, NodeMap node_map)
 
 template <class T> vector<T> GeomGraph<T>::points() const {
 	return transform(vertexIds(), [&](VertexId id) { return m_points[id]; });
+}
+
+template <class T> Box<T> GeomGraph<T>::boundingBox() const {
+	return encloseSelected<T>(m_points, vertexValids());
 }
 
 template <class T> vector<Segment<T>> GeomGraph<T>::segments() const {
@@ -35,7 +66,7 @@ template <class T> Segment<T> GeomGraph<T>::operator()(EdgeId id) const {
 }
 
 template <class T> Maybe<VertexRef> GeomGraph<T>::findVertex(Point pt) const {
-	if(auto it = m_node_map.find(pt); it != m_node_map.end())
+	if(auto it = m_point_map.find(pt); it != m_point_map.end())
 		return ref(VertexId(it->second));
 	return none;
 }
@@ -51,24 +82,24 @@ template <class T> Maybe<EdgeRef> GeomGraph<T>::findEdge(Point p1, Point p2, Lay
 // ---  Adding & removing elements -----------------------------------------------------------
 
 template <class T> void GeomGraph<T>::addVertexAt(VertexId vid, const Point &point, Layers layers) {
-	DASSERT(m_node_map.find(point) == m_node_map.end());
+	DASSERT(m_point_map.find(point) == m_point_map.end());
 	Graph::addVertexAt(vid, layers);
 	m_points.resize(Graph::m_verts.capacity());
 	m_points[vid] = point;
-	m_node_map[point] = vid;
+	m_point_map[point] = vid;
 }
 
 template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &point, Layers layers) {
 	// TODO: możliwośc sprecyzowania domyślnego elementu w hashMap::operator[] ?
-	auto it = m_node_map.find(point);
-	if(it != m_node_map.end()) {
+	auto it = m_point_map.find(point);
+	if(it != m_point_map.end()) {
 		m_vert_layers[it->second] |= layers;
 		return {VertexId(it->second), false};
 	}
 	auto id = Graph::addVertex(layers);
 	m_points.resize(Graph::m_verts.capacity());
 	m_points[id] = point;
-	m_node_map[point] = id;
+	m_point_map[point] = id;
 	return {id, true};
 }
 
@@ -84,7 +115,7 @@ FixedElem<GEdgeId> GeomGraph<T>::fixEdge(const Segment<Point> &seg, Layer layer)
 }
 
 template <class T> void GeomGraph<T>::remove(VertexId id) {
-	m_node_map.erase(m_points[id]);
+	m_point_map.erase(m_points[id]);
 	Graph::remove(id);
 }
 
@@ -134,6 +165,43 @@ template <class T> bool GeomGraph<T>::operator<(const GeomGraph &rhs) const {
 	return compare(rhs) == -1;
 }
 
+template <class T>
+auto GeomGraph<T>::buildPointMap(CSpan<bool> valid_indices, CSpan<Point> points,
+								 vector<Pair<VertexId>> &identical_points) -> PointMap {
+	DASSERT_EQ(valid_indices.size(), points.size());
+
+	PointMap point_map;
+	point_map.reserve(points.size());
+	for(auto vid : indexRange<VertexId>(valid_indices))
+		if(valid_indices[vid]) {
+			auto it = point_map.find(points[vid]);
+			if(it != point_map.end())
+				identical_points.emplace_back(vid, it->second);
+			else
+				point_map[points[vid]] = vid;
+		}
+
+	return point_map;
+}
+
+template <class T>
+template <class U, EnableIfFptVec<U>...>
+auto GeomGraph<T>::toIntegral(double scale) const -> Ex<GeomGraph<IPoint>> {
+	PodVector<IPoint> new_points(vertsEndIndex());
+	for(auto vert : verts())
+		new_points[vert] = IPoint((*this)(vert)*scale);
+	return replacePoints(new_points);
+}
+
+template <class T>
+template <class U, EnableIfFptVec<U>...>
+auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoint> {
+	PodVector<IPoint> new_points(vertsEndIndex());
+	for(auto vert : verts())
+		new_points[vert] = IPoint((*this)(vert)*scale);
+	return replacePointsWithCollapse(new_points);
+}
+
 template class GeomGraph<float2>;
 template class GeomGraph<int2>;
 template class GeomGraph<double2>;
@@ -141,4 +209,10 @@ template class GeomGraph<double2>;
 template class GeomGraph<float3>;
 template class GeomGraph<int3>;
 template class GeomGraph<double3>;
+
+template auto GeomGraph<float2>::toIntegral(double) const -> Ex<GeomGraph<int2>>;
+template auto GeomGraph<float3>::toIntegral(double) const -> Ex<GeomGraph<int3>>;
+
+template auto GeomGraph<double2>::toIntegral(double) const -> Ex<GeomGraph<int2>>;
+template auto GeomGraph<double3>::toIntegral(double) const -> Ex<GeomGraph<int3>>;
 }

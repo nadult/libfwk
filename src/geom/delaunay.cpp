@@ -3,10 +3,9 @@
 
 #include "fwk/geom/delaunay.h"
 
-#include "fwk/geom/plane_graph.h"
-#include "fwk/geom/plane_graph_builder.h"
 #include "fwk/geom/segment_grid.h"
 #include "fwk/geom/voronoi.h"
+#include "fwk/hash_set.h"
 #include "fwk/math/direction.h"
 #include "fwk/math/triangle.h"
 #include "fwk/perf_base.h"
@@ -41,21 +40,19 @@ vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 	return out;
 }
 
-template <class T, EnableIfVec<T, 2>...> vector<VertexIdPair> delaunay(CSpan<T> points) {
-	if constexpr(is_fpt<Base<T>>) {
-		// Because of the conversion to/from int's, it's really approximate Delaunay
-		// (although it's a very good approximation)
-		auto scale = bestIntegralScale(points);
-		auto ipoints = tryToIntegral<int2, T>(points, scale);
-		DASSERT(ipoints);
-		if(!ipoints)
-			return {};
+vector<VertexIdPair> delaunay(CSpan<int2> points) { return VoronoiDiagram::delaunay(points); }
 
-		return delaunay<int2>(*ipoints);
-	} else {
-		static_assert(is_integral<Base<T>>);
-		return VoronoiDiagram::delaunay(points);
+template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
+	auto scale = bestIntegralScale(enclose(points), 1024 * 1024 * 512);
+	auto ipoints = transform(points, [=](auto pt) { return int2(pt * scale); });
+
+	HashSet<int2> set;
+	for(auto ip : ipoints) {
+		if(set.contains(ip))
+			return ERROR("Duplicate points found!");
+		set.emplace(ip);
 	}
+	return VoronoiDiagram::delaunay(ipoints);
 }
 
 // - find intersections
@@ -182,17 +179,24 @@ void testDelaunayFuncs() {
 	exit(0);
 }
 
-template <class IT> struct CDT {
-	using Seg = Segment<IT>;
+struct CDT {
+	using Seg = Segment2I;
 
-	CDT(const PGraph<IT> &graph)
-		: graph(graph), grid(graph.hasGrid() ? graph.grid() : graph.makeGrid()) {
+	// TODO: segment grid oczekuje, że krawędzie i punkty są w ciągłej liście
+	CDT(const GeomGraph<int2> &graph)
+		: graph(graph), grid(graph.indexedEdges(), graph.indexedPoints(), graph.edgeValids(),
+							 graph.vertexValids()) {
 		map.resize(graph.numVerts());
 	}
 
-	bool isIntersecting(const VertexIdPair &seg) const {
-		Seg segment(graph[seg.first], graph[seg.second]);
-		return graph.isectAnyEdge(grid, segment, IsectClass::point);
+	bool isIntersecting(const VertexIdPair &vertex_pair) const {
+		Seg segment(graph(vertex_pair.first), graph(vertex_pair.second));
+		for(auto cell : grid.trace(segment))
+			for(auto eid : grid.cellEdges(cell)) {
+				if(graph(GEdgeId(eid)).classifyIsect(segment) & IsectClass::point)
+					return true;
+			}
+		return false;
 	}
 
 	void removeFrom(SmallVector<int> &vec, int idx) {
@@ -219,14 +223,14 @@ template <class IT> struct CDT {
 		array<VertexId, 4> out = {from, to, no_init, no_init};
 		int found = 0;
 
-		int2 p1 = graph[from], p2 = graph[to];
+		int2 p1 = graph(from), p2 = graph(to);
 		int2 vec = p2 - p1;
 
 		SmallVector<int2, 16> vecs;
 		SmallVector<VertexId, 16> ids;
 		for(auto n : map[to])
 			if(n != from) {
-				vecs.emplace_back(graph[VertexId(n)] - p2);
+				vecs.emplace_back(graph(VertexId(n)) - p2);
 				ids.emplace_back(n);
 			}
 
@@ -245,21 +249,21 @@ template <class IT> struct CDT {
 		return out;
 	}
 
-	const PGraph<IT> &graph;
-	SegmentGrid<IT> grid;
+	const GeomGraph<int2> &graph;
+	SegmentGrid<int2> grid;
 	vector<SmallVector<int>> map;
 };
 
-template <class IT, EnableIfIntegralVec<IT, 2>...>
-vector<VertexIdPair> constrainedDelaunay(const PGraph<IT> &igraph, CSpan<VertexIdPair> dpairs) {
+vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
+										 CSpan<VertexIdPair> dpairs) {
 	PERF_SCOPE();
 
-	CDT<IT> cdt(igraph);
+	CDT cdt(igraph);
 
 	vector<pair<int, int>> invalid_pairs;
 	vector<VertexIdPair> out;
 
-	DASSERT(igraph.isPlanar(cdt.grid));
+	//DASSERT(igraph.isPlanar(cdt.grid)); // TODO: fix it
 	vector<VertexIdPair> temp;
 	if(dpairs.empty()) {
 		temp = delaunay(igraph.points());
@@ -287,8 +291,8 @@ vector<VertexIdPair> constrainedDelaunay(const PGraph<IT> &igraph, CSpan<VertexI
 			auto cur_pair = invalid_pairs[n];
 			auto qverts = cdt.getQuad(VertexId(cur_pair.first), VertexId(cur_pair.second));
 
-			IT qpoints[4] = {igraph[qverts[0]], igraph[qverts[1]], igraph[qverts[2]],
-							 igraph[qverts[3]]};
+			int2 qpoints[4] = {igraph(qverts[0]), igraph(qverts[1]), igraph(qverts[2]),
+							   igraph(qverts[3])};
 
 			if(isPositiveConvexQuad<int2>(qpoints)) {
 				// print("convex!\n");
@@ -329,8 +333,8 @@ vector<VertexIdPair> constrainedDelaunay(const PGraph<IT> &igraph, CSpan<VertexI
 
 			auto qverts = cdt.getQuad(cur_pair.first, cur_pair.second);
 
-			IT qpoints[4] = {igraph[qverts[0]], igraph[qverts[1]], igraph[qverts[2]],
-							 igraph[qverts[3]]};
+			int2 qpoints[4] = {igraph(qverts[0]), igraph(qverts[1]), igraph(qverts[2]),
+							   igraph(qverts[3])};
 
 			// Are both tests required ?
 			bool test1 = insideCircumcircle(qpoints[0], qpoints[1], qpoints[2], qpoints[3]);
@@ -362,42 +366,42 @@ vector<VertexIdPair> constrainedDelaunay(const PGraph<IT> &igraph, CSpan<VertexI
 #endif
 
 	int num_free = 0;
-	for(auto nref : igraph.vertexRefs())
-		if(nref.numEdges() == 0)
+	for(auto vert : igraph.verts())
+		if(vert.numEdges() == 0)
 			num_free++;
 	//print("CDT: % edges + % points -> % edges\n", igraph.numEdges(), num_free, out.size());
 
 	return out;
 }
 
-template <class T, EnableIfFptVec<T, 2>...>
-vector<VertexIdPair> constrainedDelaunay(const PGraph<T> &graph, CSpan<VertexIdPair> delaunay) {
+template <class T, EnableIfVec<T, 2>...>
+Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<T> &graph,
+											 CSpan<VertexIdPair> delaunay) {
 	// Because of the conversion to/from int's, it's really approximate Delaunay
 	// (although it's a very good approximation)
 
-	auto scale = bestIntegralScale(graph.points(), 512 * 1024 * 1024);
-	auto igraph = toIntegral<int2, T>(graph, scale);
-	DASSERT_EQ(igraph.numVerts(), graph.numVerts());
-	return constrainedDelaunay<int2>(igraph, delaunay);
+	auto scale = bestIntegralScale(graph.boundingBox(), 512 * 1024 * 1024);
+	auto igraph = EXPECT_PASS(graph.toIntegral(scale));
+	return constrainedDelaunay(igraph, delaunay);
 }
 
-template <class T> bool isForestOfLoops(const PGraph<T> &pgraph) {
-	for(auto nref : pgraph.vertexRefs())
-		if(nref.numEdgesFrom() != 1 || nref.numEdgesTo() != 1)
+template <class T> bool isForestOfLoops(const GeomGraph<T> &pgraph) {
+	for(auto vert : pgraph.vertexRefs())
+		if(vert.numEdgesFrom() != 1 || vert.numEdgesTo() != 1)
 			return false;
 	vector<bool> visited(pgraph.numEdges(), false);
 
-	for(auto estart : pgraph.edgeRefs()) {
+	for(auto estart : pgraph.edges()) {
 		if(visited[estart])
 			continue;
 		visited[estart] = true;
 
 		int count = 1;
-		auto nref = estart.to();
-		while(nref != estart.from()) {
-			auto eref = nref.edgesFrom()[0];
-			visited[eref] = true;
-			nref = eref.to();
+		auto vert = estart.to();
+		while(vert != estart.from()) {
+			auto edge = vert.edgesFrom()[0];
+			visited[edge] = true;
+			vert = edge.to();
 			count++;
 		}
 
@@ -408,63 +412,78 @@ template <class T> bool isForestOfLoops(const PGraph<T> &pgraph) {
 	return true;
 }
 
-template <class T, EnableIfIntegralVec<T, 2>...>
-vector<VertexIdPair> cdtFilterSide(const PGraph<T> &igraph, CSpan<VertexIdPair> cdt,
+template <class T, EnableIfVec<T, 2>...>
+void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector) {
+	using PT = PromoteIntegral<T>;
+	auto it = std::partition(begin(indices), end(indices), [=](int id) {
+		auto tcross = cross<PT>(vectors[id], zero_vector);
+		if(tcross == 0) {
+			return dot<PT>(vectors[id], zero_vector) > 0;
+		}
+		return tcross < 0;
+	});
+
+	auto func1 = [=](int a, int b) { return cross<PT>(vectors[a], vectors[b]) > 0; };
+	auto func2 = [=](int a, int b) { return cross<PT>(vectors[a], vectors[b]) > 0; };
+
+	std::sort(begin(indices), it, func1);
+	std::sort(it, end(indices), func2);
+}
+
+vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexIdPair> cdt,
 								   bool ccw_side) {
-	DASSERT(igraph.isPlanar());
+	//DASSERT(igraph.isPlanar()); // TODO: make it work
 	PERF_SCOPE();
 
-	PGraphBuilder<int2> builder(igraph.points());
-	for(auto epair : igraph.edgePairs())
-		builder(epair.first, epair.second);
-	int cdt_offset = builder.numEdges();
-
+	FATAL("test me");
+	GeomGraph<int2> temp;
+	for(auto edge : igraph.edges())
+		temp.addEdgeAt(edge, edge.from(), edge.to());
 	for(auto epair : cdt)
-		if(!builder.find(epair.second, epair.first))
-			builder(epair.first, epair.second);
-	PGraph<int2> igraph2 = builder.build();
-	vector<bool> enable(igraph2.numEdges(), false);
+		temp.fixEdge(epair.first, epair.second);
 
+	vector<bool> enable(temp.edgesEndIndex(), false);
 	vector<int> edge_ids;
 	vector<int2> edge_dirs;
 
-	for(auto start_edge : igraph2.edgeRefs()) {
-		if(start_edge >= cdt_offset)
+	for(auto start_edge : temp.edges()) {
+		if(!igraph.valid(start_edge.id()))
 			continue;
+
 		auto nref = start_edge.from();
 		auto erefs = nref.edges();
 		edge_ids.resize(erefs.size());
 		std::iota(edge_ids.begin(), edge_ids.end(), 0);
 		edge_dirs.clear();
-		int2 zero_dir = igraph2[start_edge.to()] - igraph2[nref];
+		int2 zero_dir = temp(start_edge.to()) - temp(nref);
 		for(auto eref : erefs)
-			edge_dirs.push_back(igraph2[eref.other(nref)] - igraph2[nref]);
+			edge_dirs.push_back(temp(eref.other(nref)) - temp(nref));
 		orderByDirection<int2>(edge_ids, edge_dirs, zero_dir);
 		if(!ccw_side)
 			std::reverse(begin(edge_ids), end(edge_ids));
 
 		enable[start_edge] = true;
 		for(int idx : edge_ids) {
-			if(erefs[idx] < cdt_offset)
+			if(igraph.valid(erefs[idx]))
 				break;
 			enable[erefs[idx]] = true;
 		}
 	}
 
 	vector<bool> finished_verts(igraph.numVerts(), false);
-	for(auto eref : igraph.edgeRefs())
+	for(auto eref : igraph.edges())
 		finished_verts[eref.from()] = finished_verts[eref.to()] = true;
 
 	// Propagating to all the edges not directly reachable from constrained ones
 	vector<VertexId> queue;
-	for(auto eref : igraph2.edgeRefs()) {
+	for(auto eref : temp.edges()) {
 		if(!enable[eref])
 			continue;
 		queue.emplace_back(eref.from());
 		queue.emplace_back(eref.to());
 
 		while(queue) {
-			auto vert = igraph2.ref(queue.back());
+			auto vert = temp.ref(queue.back());
 			queue.pop_back();
 			if(finished_verts[vert])
 				continue;
@@ -478,19 +497,19 @@ vector<VertexIdPair> cdtFilterSide(const PGraph<T> &igraph, CSpan<VertexIdPair> 
 	}
 
 	vector<VertexIdPair> out;
-	out.reserve(countIf(enable, [](bool v) { return v; }));
-	for(auto eid : igraph2.edgeIds())
+	out.reserve(countIf(enable));
+	for(auto eid : temp.edgeIds())
 		if(enable[eid])
-			out.emplace_back(igraph2.from(eid), igraph2.to(eid));
+			out.emplace_back(temp.from(eid), temp.to(eid));
 
 	/* TODO: reenable this
 	auto func = [&](vis::Visualizer2 &vis, double2) {
-		for(auto eref : igraph2.edgeRefs()) {
+		for(auto eref : temp.edges()) {
 			if(enable[eref] || eref < cdt_offset)
-				vis.drawLine(igraph2[eref.from()], igraph2[eref.to()],
+				vis.drawLine(temp[eref.from()], temp[eref.to()],
 							 eref < cdt_offset ? ColorId::white : ColorId::black);
 			else
-				vis.drawLine(igraph2[eref.from()], igraph2[eref.to()], ColorId::red);
+				vis.drawLine(temp[eref.from()], temp[eref.to()], ColorId::red);
 		}
 		return "Red triangles are removed";
 	};
@@ -499,38 +518,41 @@ vector<VertexIdPair> cdtFilterSide(const PGraph<T> &igraph, CSpan<VertexIdPair> 
 	return out;
 }
 
-template <class T, EnableIfIntegralVec<T, 2>...>
-vector<array<int, 3>> delaunaySideTriangles(const PGraph<T> &igraph, CSpan<VertexIdPair> cdt,
+vector<array<int, 3>> delaunaySideTriangles(const GeomGraph<int2> &igraph, CSpan<VertexIdPair> cdt,
 											CSpan<VertexIdPair> filter, bool ccw_side) {
 	PERF_SCOPE();
 
-	PGraphBuilder<T> builder(igraph.points());
+	FATAL("test me");
+	GeomGraph<int2> temp;
+	for(auto vert : igraph.verts())
+		temp.addVertexAt(vert, igraph(vert));
 
-	for(auto eref : igraph.edgeRefs()) {
-		builder(igraph[eref].from, igraph[eref].to);
-		builder(igraph[eref].to, igraph[eref].from);
+	for(auto edge : igraph.edges()) {
+		temp.fixEdge(edge.from(), edge.to());
+		temp.fixEdge(edge.to(), edge.from());
 	}
 	for(auto [v1, v2] : cdt) {
-		builder(igraph[v1], igraph[v2]);
-		builder(igraph[v2], igraph[v1]);
+		temp.fixEdge(v1, v2);
+		temp.fixEdge(v2, v1);
 	}
-	auto graph = builder.build();
-	CSpan<T> points = igraph.points();
-	vector<bool> visited(graph.numEdges(), true);
+
+	vector<bool> visited(temp.edgesEndIndex(), true);
 
 	for(auto [v1, v2] : filter) {
-		visited[*graph.findEdge(v1, v2)] = false;
-		visited[*graph.findEdge(v2, v1)] = false;
+		visited[*temp.findEdge(v1, v2)] = false;
+		visited[*temp.findEdge(v2, v1)] = false;
 	}
 
 	vector<array<int, 3>> out;
-	out.reserve(graph.numEdges() / 3);
+	out.reserve(temp.numEdges() / 3);
 
-	for(auto v1 : graph.vertexRefs()) {
+	for(auto v1 : temp.verts()) {
 		for(auto e1 : v1.edgesFrom()) {
 			if(visited[e1])
 				continue;
 
+			// TODO: fix this block
+			/*
 			auto e2 = e1.twin()->prevFrom();
 			auto e3 = e2.twin()->prevFrom();
 
@@ -539,9 +561,9 @@ vector<array<int, 3>> delaunaySideTriangles(const PGraph<T> &igraph, CSpan<Verte
 				out.emplace_back(v1, e2.from(), e3.from());
 
 				auto &back = out.back();
-				if(ccwSide(points[back[0]], points[back[1]], points[back[2]]) != ccw_side)
+				if(ccwSide(temp(back[0]), temp(back[1]), temp(back[2])) != ccw_side)
 					back = {back[0], back[2], back[1]};
-			}
+			}*/
 		}
 	}
 
@@ -571,20 +593,19 @@ vector<array<int, 3>> delaunaySideTriangles(const PGraph<T> &igraph, CSpan<Verte
 }
 
 template <class T, EnableIfFptVec<T, 2>...>
-vector<Segment<T>> delaunaySegments(CSpan<VertexIdPair> pairs, const PGraph<T> &graph) {
+vector<Segment<T>> delaunaySegments(CSpan<VertexIdPair> pairs, const GeomGraph<T> &graph) {
 	return transform(pairs, [&](const auto &pair) {
-		return Segment2<typename T::Scalar>(graph[pair.first], graph[pair.second]);
+		return Segment2<typename T::Scalar>(graph(pair.first), graph(pair.second));
 	});
 }
 
-template <class Func>
-static void delaunayTriangles(const ImmutableGraph &tgraph, const Func &feed_func) {
+template <class Func> static void delaunayTriangles(const Graph &tgraph, const Func &feed_func) {
 	vector<VertexId> buffer1, buffer2;
 	buffer1.reserve(32);
 	buffer2.reserve(32);
 	vector<bool> visited(tgraph.numEdges(), false);
 
-	for(auto eref : tgraph.edgeRefs()) {
+	for(auto eref : tgraph.edges()) {
 		auto v1 = eref.from(), v2 = eref.to();
 		buffer1.clear();
 		buffer2.clear();
@@ -610,7 +631,7 @@ vector<Triangle<TReal, N>> delaunayTriangles(CSpan<VertexIdPair> pairs, CSpan<T>
 	PERF_SCOPE();
 	vector<Triangle<TReal, N>> out;
 	// TODO: reserve
-	ImmutableGraph tgraph(pairs, points.size());
+	Graph tgraph(pairs, points.size());
 	delaunayTriangles(
 		tgraph, [&](int a, int b, int c) { out.emplace_back(points[a], points[b], points[c]); });
 	return out;
@@ -619,27 +640,20 @@ vector<Triangle<TReal, N>> delaunayTriangles(CSpan<VertexIdPair> pairs, CSpan<T>
 vector<array<int, 3>> delaunayTriangles(CSpan<VertexIdPair> pairs) {
 	vector<array<int, 3>> out;
 	// TODO: reserve
-	ImmutableGraph tgraph(pairs);
+	Graph tgraph(pairs);
 	delaunayTriangles(tgraph, [&](int a, int b, int c) { out.emplace_back(a, b, c); });
 	return out;
 }
 
-#define INSTANTIATE_INT(T)                                                                         \
-	template vector<VertexIdPair> delaunay(CSpan<T>);                                              \
-	template vector<array<int, 3>> delaunaySideTriangles(const PGraph<T> &, CSpan<VertexIdPair>,   \
-														 CSpan<VertexIdPair>, bool);               \
-	template vector<VertexIdPair> cdtFilterSide(const PGraph<T> &, CSpan<VertexIdPair>, bool);
-
 #define INSTANTIATE(vec, seg, tri)                                                                 \
-	template vector<seg> delaunaySegments(CSpan<VertexIdPair>, const PGraph<vec> &);               \
+	template vector<seg> delaunaySegments(CSpan<VertexIdPair>, const GeomGraph<vec> &);            \
 	template vector<tri> delaunayTriangles(CSpan<VertexIdPair>, CSpan<vec>);                       \
-	template vector<VertexIdPair> delaunay(CSpan<vec>);                                            \
-	template vector<VertexIdPair> constrainedDelaunay(const PGraph<vec> &, CSpan<VertexIdPair>);
+	template Ex<vector<VertexIdPair>> delaunay(CSpan<vec>);                                        \
+	template Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<vec> &,                  \
+														  CSpan<VertexIdPair>);
 
 INSTANTIATE(float2, Segment2F, Triangle2F)
 INSTANTIATE(double2, Segment2D, Triangle2D)
-
-INSTANTIATE_INT(int2)
 
 template vector<Triangle3F> delaunayTriangles(CSpan<VertexIdPair>, CSpan<float3>);
 template vector<Triangle3D> delaunayTriangles(CSpan<VertexIdPair>, CSpan<double3>);

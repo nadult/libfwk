@@ -61,6 +61,7 @@ struct VoronoiInfo {
 // Arcs can be divided into segments, in most cases arc is composed of a single segment.
 //
 // Sites are on layer 1, arcs on layer 2 and arc segments on layer 3
+// TODO: rename to Voronoi ?
 class VoronoiDiagram {
   public:
 	using Info = VoronoiInfo;

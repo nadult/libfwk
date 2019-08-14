@@ -58,4 +58,9 @@ using Graph3I = GeomGraph<int3>;
 
 // TODO: remove it
 struct GEdgeId;
+
+// TODO: better name
+template <class T> double bestIntegralScale(const Box<T> &, int max_value = 1024 * 1024 * 16);
+template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids);
+
 }

@@ -220,6 +220,9 @@ class Graph {
 	using Layers = GraphLayers;
 	using EdgeKind = GraphEdgeKind;
 
+	using VertexInfo = SmallVector<EdgeId, 7>;
+	using VertexTriInfo = SmallVector<TriId, 7>;
+
 	Graph();
 	Graph(CSpan<Pair<VertexId>>, Maybe<int> num_verts = none);
 	FWK_COPYABLE_CLASS(Graph);
@@ -228,6 +231,9 @@ class Graph {
 		Id id;
 		bool is_new;
 	};
+
+	// TODO: informacja o layerach w VertexId
+	// TODO: kopiowanie informacji o layerach do edge-idków i tri-idków dostępnych z poziomu grafu?
 
 	bool empty() const { return m_verts.empty(); }
 	int numVerts() const { return m_verts.size(); }
@@ -238,13 +244,23 @@ class Graph {
 	int numEdges(Layers) const;
 	int numTris(Layers) const;
 
-	int endNodeIndex() const { return m_verts.endIndex(); }
-	int endEdgeIndex() const { return m_edges.endIndex(); }
-	int endTriIndex() const { return m_tris.endIndex(); }
-
-	bool valid(EdgeId id) const { return m_edges.valid(id); }
 	bool valid(VertexId id) const { return m_verts.valid(id); }
+	bool valid(EdgeId id) const { return m_edges.valid(id); }
 	bool valid(TriId id) const { return m_tris.valid(id); }
+
+	// -------------------------------------------------------------------------------------------
+	// ---  Low level access ---------------------------------------------------------------------
+
+	int vertsEndIndex() const { return m_verts.endIndex(); }
+	int edgesEndIndex() const { return m_edges.endIndex(); }
+	int trisEndIndex() const { return m_tris.endIndex(); }
+
+	CSpan<bool> vertexValids() const { return m_verts.valids(); }
+	CSpan<bool> edgeValids() const { return m_edges.valids(); }
+	CSpan<bool> triValids() const { return m_tris.valids(); }
+
+	CSpan<Pair<VertexId>> indexedEdges() const;
+	CSpan<VertexInfo> indexedVerts() const;
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
@@ -398,6 +414,7 @@ class Graph {
 	Graph shortestPathTree(CSpan<VertexId> sources,
 						   CSpan<double> edge_weights = CSpan<double>()) const;
 
+	// TODO: better name
 	vector<Pair<VertexId>> edgePairs() const;
 	Graph reversed() const;
 
@@ -412,8 +429,6 @@ class Graph {
 
   protected:
 	template <class> friend class GeomGraph;
-	using VertexInfo = SmallVector<EdgeId, 7>;
-	using VertexTriInfo = SmallVector<TriId, 7>;
 
 	struct EdgeInfo {
 		VertexId from, to;

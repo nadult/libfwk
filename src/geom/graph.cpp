@@ -63,6 +63,9 @@ using Label = GraphLabel;
 
 FWK_ORDER_BY_DEF(GraphLabel, color, ival1, ival2, fval1, fval2);
 
+// -------------------------------------------------------------------------
+// -- Graph implementation -------------------------------------------------
+
 Graph::Graph() = default;
 FWK_COPYABLE_CLASS_IMPL(Graph);
 
@@ -79,6 +82,19 @@ Graph::Graph(CSpan<Pair<VertexId>> edges, Maybe<int> num_verts) {
 	m_edges.reserve(edges.size());
 	for(auto [v1, v2] : edges)
 		addEdge(v1, v2);
+}
+
+CSpan<Pair<VertexId>> Graph::indexedEdges() const {
+	using Edges = decltype(m_edges);
+	static_assert(Edges::compatible_alignment && Edges::same_size);
+	static_assert(sizeof(EdgeInfo) == sizeof(Pair<VertexId>));
+	return {reinterpret_cast<const Pair<VertexId> *>(m_edges.rawData()), m_edges.endIndex()};
+}
+
+CSpan<Graph::VertexInfo> Graph::indexedVerts() const {
+	using Verts = decltype(m_verts);
+	static_assert(Verts::compatible_alignment && Verts::same_size);
+	return {m_verts.rawData(), m_verts.endIndex()};
 }
 
 int Graph::numVerts(Layers layers) const {
@@ -231,6 +247,8 @@ void Graph::addVertexAt(VertexId vid, Layers layers) {
 
 GEdgeId Graph::addEdge(VertexId v1, VertexId v2, Layer layer) {
 	DASSERT(valid(v1) && valid(v2));
+	DASSERT(v1 != v2);
+
 	EdgeId eid(m_edges.emplace(v1, v2));
 	m_edge_layers.resize(m_edges.capacity());
 	m_edge_layers[eid] = layer;
@@ -241,6 +259,7 @@ GEdgeId Graph::addEdge(VertexId v1, VertexId v2, Layer layer) {
 
 void Graph::addEdgeAt(EdgeId eid, VertexId v1, VertexId v2, Layer layer) {
 	DASSERT(valid(v1) && valid(v2));
+	DASSERT(v1 != v2);
 	DASSERT(!valid(eid));
 
 	m_edges.emplaceAt(eid, v1, v2);
@@ -264,6 +283,8 @@ FixedElem<GEdgeId> Graph::fixUndirectedEdge(VertexId v1, VertexId v2, Layer laye
 
 GTriId Graph::addTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
 	PASSERT(valid(v1) && valid(v2) && valid(v3));
+	DASSERT(v1 != v2 && v2 != v3 && v3 != v1);
+
 	TriId tid(m_tris.emplace(v1, v2, v3), layer);
 	m_tri_layers.resize(m_tris.capacity());
 	m_tri_layers[tid] = layer;

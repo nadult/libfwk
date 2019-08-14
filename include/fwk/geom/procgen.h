@@ -28,7 +28,8 @@ template <class T, EnableIfVec<T, 2>...>
 vector<T> randomPoints(Random &random, Box<T> rect, double min_dist);
 
 vector<float3> generateRandomLine(u32 seed, FRect rect);
-vector<Triangle3F> generateRandomPatch(vector<float3>, u32 seed, float density, float enlargement);
+Ex<vector<Triangle3F>> generateRandomPatch(vector<float3>, u32 seed, float density,
+										   float enlargement);
 vector<Segment3F> generatePatchBorder(vector<Triangle3F>);
 vector<Segment3F> generateVoronoiLines(vector<Segment3F>);
 vector<Segment3F> generateVoronoiLinesFromPoints(vector<float3>);

@@ -467,9 +467,7 @@ PlaneGraph<T> PlaneGraph<T>::merge(CSpan<PlaneGraph<T>> graphs,
 template <class T> auto bestIntegralScale_(CSpan<T> points, int max_value) {
 	auto rect = enclose(points);
 	auto tvec = vmax(vabs(rect.min()), vabs(rect.max()));
-	auto tmax = max(tvec[0], tvec[1]);
-	if(T::vec_size >= 3)
-		tmax = max(tmax, tvec[2]);
+	auto tmax = max(tvec.values());
 	if(tmax < 1.0)
 		tmax = 1.0;
 	return double(max_value) / tmax;

@@ -9,26 +9,33 @@
 namespace fwk {
 
 // A graph where each vertex also has a position (2D or 3D)
-template <class TPoint> class GeomGraph : public Graph {
+template <class T> class GeomGraph : public Graph {
   public:
-	static_assert(is_vec<TPoint> && (dim<TPoint> == 2 || dim<TPoint> == 3));
+	static_assert(is_vec<T> && (dim<T> == 2 || dim<T> == 3));
 
+	using Point = T;
+	using IPoint = MakeVec<int, dim<T>>;
 	using EdgeId = GEdgeId;
-	using Point = TPoint;
 	using Label = GraphLabel;
 
-	using NodeMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
+	using PointMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
 
 	GeomGraph() {}
 	GeomGraph(vector<Point>);
 	GeomGraph(vector<Pair<VertexId>>, vector<Point>);
-	GeomGraph(Graph, vector<Point>, NodeMap);
+	GeomGraph(Graph, PodVector<Point>, PointMap);
+	GeomGraph(const Graph &source, PodVector<Point> new_points, PointMap point_map,
+			  CSpan<Pair<VertexId>> collapsed_verts);
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
 
 	vector<Point> points() const;
 	vector<Segment<Point>> segments() const;
+	Box<Point> boundingBox() const;
+
+	// Low level access
+	CSpan<Point> indexedPoints() const { return m_points; }
 
 	using Graph::operator[];
 
@@ -45,9 +52,6 @@ template <class TPoint> class GeomGraph : public Graph {
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Adding & removing elements -----------------------------------------------------------
-
-	//Ex<void> replacePoints(vector<Point>);
-	template <class T> Ex<GeomGraph<T>> replacePoints(vector<T>) const;
 
 	VertexId addVertex() = delete;
 	void addVertexAt(VertexId, Layers) = delete;
@@ -86,22 +90,36 @@ template <class TPoint> class GeomGraph : public Graph {
 	bool operator==(const GeomGraph &) const;
 	bool operator<(const GeomGraph &) const;
 
+	template <class U = T, EnableIfFptVec<U>...>
+	Ex<GeomGraph<IPoint>> toIntegral(double scale) const;
+	template <class U = T, EnableIfFptVec<U>...>
+	GeomGraph<IPoint> toIntegralWithCollapse(double scale) const;
+
+	template <class U> Ex<GeomGraph<U>> replacePoints(PodVector<U> points) const {
+		vector<Pair<VertexId>> collapsed_verts;
+		auto point_map = GeomGraph<U>::buildPointMap(vertexValids(), points, collapsed_verts);
+		if(collapsed_verts)
+			return ERROR("Duplicated points found");
+		return GeomGraph<U>(*this, points, point_map);
+	}
+
+	// It may still create duplicated edges:
+	// if we had V1->V2, V1->V3 after collapsing V2 & V3 we will have two edges V1->V2 (collapsed from V2 & V3)
+	template <class U> GeomGraph<U> replacePointsWithCollapse(PodVector<U> points) const {
+		vector<Pair<VertexId>> collapsed_verts;
+		auto point_map = GeomGraph<U>::buildPointMap(vertexValids(), points, collapsed_verts);
+		if(collapsed_verts)
+			return GeomGraph<U>(*this, points, point_map, collapsed_verts);
+		else
+			return GeomGraph<U>(*this, points, point_map);
+	}
+
+	static PointMap buildPointMap(CSpan<bool> valid_indices, CSpan<Point> points,
+								  vector<Pair<VertexId>> &identical_points);
+
   private:
 	PodVector<Point> m_points;
-	NodeMap m_node_map;
+	PointMap m_point_map;
 };
 
-template <class T>
-template <class TOut>
-Ex<GeomGraph<TOut>> GeomGraph<T>::replacePoints(vector<TOut> points) const {
-	typename GeomGraph<TOut>::NodeMap node_map;
-	node_map.reserve(points.size());
-
-	for(auto vid : vertexIds())
-		node_map[points[vid]] = vid;
-	if(node_map.size() != numVerts())
-		return ERROR("Duplicate points");
-
-	return GeomGraph<TOut>{*this, points, node_map};
-}
 }

@@ -210,8 +210,8 @@ vector<float3> generateRandomLine(u32 seed, FRect rect) {
 	return out;
 }
 
-vector<Triangle3F> generateRandomPatch(vector<float3> generators, u32 seed, float density,
-									   float enl) {
+Ex<vector<Triangle3F>> generateRandomPatch(vector<float3> generators, u32 seed, float density,
+										   float enl) {
 	Random random(seed);
 	FRect rect = enclose(generators).xz().enlarge(enl + density * 2.0f);
 	auto rpoints = randomPoints(random, rect, density);
@@ -226,7 +226,7 @@ vector<Triangle3F> generateRandomPatch(vector<float3> generators, u32 seed, floa
 	rpoints = filter(rpoints, test_func);
 
 	auto rpoints3 = transform(rpoints, [](float2 p) { return asXZY(p, 0.0f); });
-	auto tris = delaunayTriangles<float3>(delaunay<float2>(rpoints), rpoints3);
+	auto tris = delaunayTriangles<float3>(EXPECT_PASS(delaunay<float2>(rpoints)), rpoints3);
 
 	tris = filter(tris, [&](const Triangle3F &tri) {
 		for(auto edge : tri.edges()) {

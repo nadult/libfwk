@@ -121,12 +121,12 @@ void squareBorderTest() {
 }
 
 template <class T>
-auto SegmentGrid<T>::bestGrid(CSpan<T> points, CSpan<Pair<VertexId>> edges) -> RGrid {
-	if(points.empty())
+auto SegmentGrid<T>::bestGrid(CSpan<T> points, CSpan<bool> valids, int num_edges) -> RGrid {
+	auto rect = valids ? encloseSelected(points, valids) : enclose(points);
+	if(rect.empty())
 		return {Box<T>(0, 0, 1, 1), T(1), 1};
-	auto rect = enclose(points);
 
-	auto num_cells = double(max(points.size(), edges.size())) * 1.5;
+	auto num_cells = double(max(points.size(), num_edges)) * 1.5;
 	auto wh_ratio = double(rect.width()) / double(rect.height());
 
 	auto num_cells_vert = rect.height() == 0 ? num_cells : std::sqrt(num_cells * wh_ratio);
@@ -145,8 +145,9 @@ auto SegmentGrid<T>::bestGrid(CSpan<T> points, CSpan<Pair<VertexId>> edges) -> R
 }
 
 template <class T>
-SegmentGrid<T>::SegmentGrid(CSpan<Pair<VertexId>> edges, CSpan<Point> points)
-	: m_grid(bestGrid(points, edges)) {
+SegmentGrid<T>::SegmentGrid(CSpan<Pair<VertexId>> edges, CSpan<Point> points,
+							CSpan<bool> valid_edges, CSpan<bool> valid_points)
+	: m_grid(bestGrid(points, valid_points, edges.size())) {
 	m_cells.resize(m_grid.width() * m_grid.height());
 	for(auto id : intRange(points))
 		m_cells[index(toCell(points[id]))].num_points++;
