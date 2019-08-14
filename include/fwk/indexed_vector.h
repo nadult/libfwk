@@ -227,7 +227,7 @@ template <class T> class IndexedVector {
 		return 0;
 	}
 
-	CSpan<bool> valids() const { return m_valids; }
+	CSpan<bool> valids() const { return CSpan<bool>(m_valids.data(), m_end_index); }
 
 	int growCapacity() const {
 		int capacity = m_elements.size();
