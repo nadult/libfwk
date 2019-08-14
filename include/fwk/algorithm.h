@@ -14,6 +14,10 @@ struct GreaterCompare {
 	template <class T> bool operator()(const T &a, const T &b) const { return a > b; }
 };
 
+struct IdentityFunc {
+	template <class T> const T &operator()(const T &value) const { return value; }
+};
+
 template <class TSpan, class T = SpanBase<TSpan>, class Func = LessCompare>
 void bubbleSort(TSpan &span, const Func &func = {}) {
 	for(int i = 0, size = fwk::size(span); i < size; i++)
@@ -191,8 +195,8 @@ template <class T, class U, size_t size> array<T, size> transform(const array<U,
 	return out;
 }
 
-template <class TRange, class Pred, class T = RangeBase<TRange>>
-int countIf(const TRange &range, const Pred &pred) {
+template <class TRange, class Pred = IdentityFunc, class T = RangeBase<TRange>>
+int countIf(const TRange &range, const Pred &pred = {}) {
 	int out = 0;
 	for(const auto &elem : range)
 		if(pred(elem))
@@ -200,26 +204,27 @@ int countIf(const TRange &range, const Pred &pred) {
 	return out;
 }
 
-template <class TRange, class Filter, class T = RangeBase<TRange>>
-vector<T> filter(const TRange &range, const Filter &filter, int reserve = 0) {
+template <class TRange, class Pred = IdentityFunc, class T = RangeBase<TRange>>
+vector<T> filter(const TRange &range, const Pred &pred = {}, int reserve = 0) {
 	vector<T> out;
 	out.reserve(reserve >= 0 ? reserve : range.size());
 	for(const auto &elem : range)
-		if(filter(elem))
+		if(pred(elem))
 			out.emplace_back(elem);
 	return out;
 }
 
-template <class T, class Filter> void makeFiltered(vector<T> &vec, const Filter &filter) {
+template <class T, class Pred = IdentityFunc>
+void makeFiltered(vector<T> &vec, const Pred &pred = {}) {
 	auto first = begin(vec), end = vec.end();
-	while(first != end && filter(*first))
+	while(first != end && pred(*first))
 		++first;
 
 	if(first == end)
 		return;
 
 	for(auto it = first; ++it != end;)
-		if(filter(*it))
+		if(pred(*it))
 			*first++ = move(*it);
 
 	vec.erase(first, end);
