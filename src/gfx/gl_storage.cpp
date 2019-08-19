@@ -168,7 +168,7 @@ template <class T> void GlStorage<T>::freeId(int obj_id) {
 
 template <class T> void GlStorage<T>::resizeBuffers(int new_size) {
 	int old_size = objects.size();
-	new_size = BaseVector::insertCapacity<T>(old_size, new_size);
+	new_size = vectorInsertCapacity<T>(old_size, new_size);
 
 	PodVector<T> new_objects(new_size);
 

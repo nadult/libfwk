@@ -24,7 +24,7 @@ template <class T> class PodVector {
 	PodVector(CSpan<T> span) : PodVector(span.size()) { copy(data(), span); }
 	PodVector(const PodVector &rhs) : PodVector(CSpan<T>(rhs)) {}
 	PodVector(PodVector &&rhs) { m_base.moveConstruct(move(rhs.m_base)); }
-	~PodVector() {}
+	~PodVector() { m_base.free(sizeof(T)); }
 
 	void operator=(const PodVector &rhs) {
 		if(&rhs == this)
@@ -90,6 +90,6 @@ template <class T> class PodVector {
 	}
 
   private:
-	BaseVector m_base;
+	BaseVector<false> m_base;
 };
 }

@@ -41,7 +41,7 @@ class GlBuffer {
 
 	void recreate(int new_size, BufferUsage = BufferUsage::dynamic_copy);
 
-	// Increases size, using BaseVector::insertCapacity(), so it may allocate
+	// Increases size, using vectorInsertCapacity(), so it may allocate
 	// more memory than necessary; old data will be copied to newly created buffer
 	static void upsize(PBuffer &, int minimum_count, int type_size = 1);
 	template <class T> static void upsize(PBuffer &buf, int minimum_count) {

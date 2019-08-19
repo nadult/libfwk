@@ -16,6 +16,8 @@ template <class T> constexpr int smallVectorSize(int byte_size) {
 
 // template <class T, int base_size> using SmallVector = vector<T>;
 
+// DEPRECATED: SSBO for vectors is a bad idea, use pooling, local buffers and other methods
+//
 // TODO: decrease code bloat by writing some generic templated functions
 // But it wouln't be possible to move their implementation to cpp file...
 template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {

@@ -63,9 +63,8 @@ TextFormatter::TextFormatter(const TextFormatter &) = default;
 TextFormatter::~TextFormatter() = default;
 
 void TextFormatter::reserve(int capacity) {
-	if(capacity <= m_data.size())
-		return;
-	m_data.resize(BaseVector::insertCapacity(m_data.size(), 1, capacity));
+	if(capacity > m_data.capacity())
+		m_data.resize(vectorInsertCapacity(m_data.size(), 1, capacity));
 }
 
 void TextFormatter::clear() {

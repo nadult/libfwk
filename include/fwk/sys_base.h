@@ -216,9 +216,10 @@ class FilePath;
 template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
 
-class BaseVector;
+template <bool pool_alloc> class BaseVector;
 template <class T> class PodVector;
-template <class T> class Vector;
+template <class T, bool pool_alloc = false> class Vector;
+template <class T> using PoolVector = Vector<T, true>;
 template <class T> class IndexedVector;
 template <class T, int> class SmallVector;
 template <class T, int> class StaticVector;

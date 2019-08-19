@@ -3,80 +3,14 @@
 
 #pragma once
 
+#include "fwk/base_vector.h"
+#include "fwk/base_vector_impl.h"
 #include "fwk/span.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
 
-class BaseVector {
-  public:
-	using MoveDestroyFunc = void (*)(void *, void *, int);
-	using DestroyFunc = void (*)(void *, int);
-	using CopyFunc = void (*)(void *, const void *, int);
-
-	~BaseVector() { free(); }
-	void free();
-	void zero() {
-		data = nullptr;
-		size = capacity = 0;
-	}
-	void moveConstruct(BaseVector &&rhs) {
-		data = rhs.data;
-		size = rhs.size;
-		capacity = rhs.capacity;
-		rhs.zero();
-	}
-	void alloc(int, int size, int capacity);
-	void swap(BaseVector &);
-
-	static int growCapacity(int current, int obj_size);
-	static int insertCapacity(int current, int obj_size, int min_size);
-
-	template <class T> static int insertCapacity(int current, int min_size) {
-		return insertCapacity(current, (int)sizeof(T), min_size);
-	}
-
-	void grow(int, MoveDestroyFunc);
-	void reallocate(int, MoveDestroyFunc move_destroy_func, int new_capacity);
-	void clear(DestroyFunc destroy_func);
-	void erase(int, DestroyFunc, MoveDestroyFunc, int index, int count);
-	void resizePartial(int, DestroyFunc, MoveDestroyFunc, int new_size);
-	void insertPartial(int, MoveDestroyFunc, int offset, int count);
-	void insert(int, MoveDestroyFunc, CopyFunc, int offset, const void *, int count);
-	void assignPartial(int, DestroyFunc, int new_size);
-	void assign(int, DestroyFunc, CopyFunc, const void *, int size);
-
-	void growPod(int);
-	void reallocatePod(int, int new_capacity);
-
-	void reservePod(int, int desired_capacity);
-	void reserve(int, MoveDestroyFunc, int desired_capacity);
-
-	void clearPod() { size = 0; }
-	void erasePod(int, int index, int count);
-	void resizePodPartial(int, int new_size);
-	void insertPodPartial(int, int offset, int count);
-	void insertPod(int, int offset, const void *, int count);
-	void assignPartialPod(int, int new_size);
-	void assignPod(int, const void *, int size);
-
-	void checkIndex(int index) const {
-		if(index < 0 || index >= size)
-			invalidIndex(index);
-	}
-	void checkNotEmpty() const {
-		if(size == 0)
-			invalidEmpty();
-	}
-
-	[[noreturn]] void invalidIndex(int index) const;
-	[[noreturn]] void invalidEmpty() const;
-
-	int size, capacity;
-	char *data;
-};
-
-template <class T> class Vector {
+template <class T, bool pool_alloc> class Vector {
   public:
 	using value_type = T;
 	using reference = value_type &;
@@ -92,7 +26,10 @@ template <class T> class Vector {
 	static constexpr bool is_input_iter = is_forward_iter<IT> &&is_constructible<T, IterBase<IT>>;
 
 	Vector() { m_base.zero(); }
-	~Vector() { destroy(m_base.data, m_base.size); }
+	~Vector() {
+		destroy(m_base.data, m_base.size);
+		m_base.free(sizeof(T));
+	}
 	Vector(const Vector &rhs) {
 		m_base.zero();
 		assign(rhs.begin(), rhs.end());
@@ -369,7 +306,7 @@ template <class T> class Vector {
 			src[n].~T();
 	}
 
-	BaseVector m_base;
+	BaseVector<pool_alloc> m_base;
 	friend class PodVector<T>;
 };
 }

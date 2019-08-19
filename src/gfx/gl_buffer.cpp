@@ -75,7 +75,7 @@ void GlBuffer::upsize(PBuffer &buf, int new_count, int type_size) {
 	if(current_count >= new_count)
 		return;
 
-	new_count = BaseVector::insertCapacity(current_count, type_size, new_count);
+	new_count = vectorInsertCapacity(current_count, type_size, new_count);
 	PBuffer new_buf;
 
 	if(ref.m_usage)
