@@ -188,6 +188,10 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 			int index = size();
 			if(new_size > base_size) {
 				makeBig(new_size);
+
+				// TODO: this is required on GCC9; Proper solution would require reimplementing
+				// vector & base vector here, or paying the cost of additional size...
+				m_size = new_size;
 			} else {
 				while(index > new_size)
 					SMALL[--index].~T();
