@@ -34,6 +34,7 @@ template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids) {
 #define INSTANTIATE(T)                                                                             \
 	template double bestIntegralScale(const Box<T> &, int);                                        \
 	template Box<T> encloseSelected(CSpan<T>, CSpan<bool>);
+INSTANTIATE(short2) // TODO: these shouldnt be required
 INSTANTIATE(int2)
 INSTANTIATE(float2)
 INSTANTIATE(double2)
