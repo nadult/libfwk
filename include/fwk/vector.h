@@ -99,9 +99,10 @@ template <class T> class Vector {
 	}
 	Vector(Vector &&rhs) { m_base.moveConstruct(std::move(rhs.m_base)); }
 
-	explicit Vector(int size, const T &value = T()) {
-		m_base.zero();
-		resize(size, value);
+	explicit Vector(int size, const T &default_value = T()) {
+		m_base.alloc(sizeof(T), size, size);
+		for(int idx = 0; idx < size; idx++)
+			new(((T *)m_base.data) + idx) T(default_value);
 	}
 	template <class IT, EnableIf<is_input_iter<IT>>...> Vector(IT first, IT last) {
 		m_base.zero();
