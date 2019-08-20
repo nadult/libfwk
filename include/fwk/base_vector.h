@@ -4,17 +4,30 @@
 #pragma once
 
 #include "fwk/span.h"
+#include "fwk/sys/memory.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
 
-// Implemented in vector.cpp
+namespace detail {
+	// Pool allocator for vectors
+	constexpr int vpool_alloc_size = 128, vpool_max_size = 64;
+	extern __thread char *t_vpool_buf[vpool_max_size];
+	extern __thread int t_vpool_size;
+}
+
 int vectorGrowCapacity(int current, int obj_size);
 int vectorInsertCapacity(int current, int obj_size, int min_size);
 template <class T> int vectorInsertCapacity(int current, int min_size) {
 	return vectorInsertCapacity(current, (int)sizeof(T), min_size);
 }
 
+// This class keeps implementation of vectors which is shared among different instantiations
+// Most functions are in .cpp file to reduce code bloat (in most cases performance loss is negligible)
+//
+// TODO: VectorInfo struct keeping obj_size and pointers to functions?
+// TODO: separate pools for different types ?
+// TODO: better naming of functions, add some description?
 template <bool pool_alloc> class BaseVector {
   public:
 	using MoveDestroyFunc = void (*)(void *, void *, int);
@@ -22,7 +35,6 @@ template <bool pool_alloc> class BaseVector {
 	using CopyFunc = void (*)(void *, const void *, int);
 
 	~BaseVector() {} // Manual free is required
-	void free(int obj_size);
 
 	void zero() {
 		data = nullptr;
@@ -34,11 +46,41 @@ template <bool pool_alloc> class BaseVector {
 		capacity = rhs.capacity;
 		rhs.zero();
 	}
-	void alloc(int, int size, int capacity);
-	void swap(BaseVector &);
 
-	// TODO: describe what these do
-	void grow(int, MoveDestroyFunc);
+	void initialize(int obj_size) {
+		if(pool_alloc && detail::t_vpool_size) {
+			using namespace detail;
+			capacity = vpool_alloc_size / obj_size;
+			data = t_vpool_buf[--t_vpool_size];
+			size = 0;
+		} else {
+			zero();
+		}
+	}
+
+	void alloc(int obj_size, int size, int capacity);
+
+	void free(int obj_size) {
+		if constexpr(pool_alloc) {
+			using namespace detail;
+			auto nbytes = size_t(capacity) * obj_size;
+			if(nbytes > vpool_alloc_size || t_vpool_size == vpool_max_size)
+				fwk::deallocate(data);
+			else if(data)
+				t_vpool_buf[t_vpool_size++] = data;
+		} else
+			fwk::deallocate(data);
+	}
+
+	void swap(BaseVector &rhs) {
+		fwk::swap(data, rhs.data);
+		fwk::swap(size, rhs.size);
+		fwk::swap(capacity, rhs.capacity);
+	}
+
+	void grow(int obj_size, MoveDestroyFunc func);
+	void growPod(int obj_size);
+
 	void reallocate(int, MoveDestroyFunc move_destroy_func, int new_capacity);
 	void clear(DestroyFunc destroy_func);
 	void erase(int, DestroyFunc, MoveDestroyFunc, int index, int count);
@@ -48,7 +90,6 @@ template <bool pool_alloc> class BaseVector {
 	void assignPartial(int, DestroyFunc, int new_size);
 	void assign(int, DestroyFunc, CopyFunc, const void *, int size);
 
-	void growPod(int);
 	void reallocatePod(int, int new_capacity);
 
 	void reservePod(int, int desired_capacity);
@@ -79,4 +120,5 @@ template <bool pool_alloc> class BaseVector {
 };
 
 extern template class BaseVector<false>;
+extern template class BaseVector<true>;
 }

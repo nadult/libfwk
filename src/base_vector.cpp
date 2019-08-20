@@ -6,55 +6,47 @@
 #include "fwk/base_vector.h"
 #include "fwk/sys/memory.h"
 
-// Full inlining of this doesn't make a big difference really:
-// libfwk build: 33.8 sec vs 32.5, size: 56MB vs 53MB
 // TODO: there is still space for improvement (perf-wise) here
 // TODO: more aggressive inlining here improves perf
 namespace fwk {
 
-namespace detail {
+__thread char *detail::t_vpool_buf[vpool_max_size];
+__thread int detail::t_vpool_size = 0;
 
-	constexpr int pool_alloc_size = 128, pool_max_size = 32;
-	static __thread char *t_pool_buf[pool_max_size];
-	static __thread int t_pool_size = 0;
-
-	// TODO: describe
-	inline char *poolAlloc(size_t size) {
-		using namespace detail;
-		if(size > pool_alloc_size || !t_pool_size)
-			return new char[size > pool_alloc_size ? size : pool_alloc_size];
-		return t_pool_buf[--t_pool_size];
-	}
-
-	inline void poolFree(char *ptr, size_t size) {
-		using namespace detail;
-		if(size > pool_alloc_size || t_pool_size == pool_max_size)
-			delete[] ptr;
-		else
-			t_pool_buf[t_pool_size++] = ptr;
-	}
+int vectorGrowCapacity(int capacity, int obj_size) {
+	if(capacity == 0)
+		return obj_size > 64 ? 1 : 64 / obj_size;
+	if(capacity > 4096 * 32 / obj_size)
+		return capacity * 2;
+	return (capacity * 3 + 1) / 2;
 }
 
-template <bool pa> void BaseVector<pa>::free(int obj_size) {
-	if constexpr(pa)
-		detail::poolFree(data, size_t(size) * obj_size);
-	else
-		fwk::deallocate(data);
+int vectorInsertCapacity(int capacity, int obj_size, int min_size) {
+	int cap = vectorGrowCapacity(capacity, obj_size);
+	return cap > min_size ? cap : min_size;
 }
+
 template <bool pa> void BaseVector<pa>::alloc(int obj_size, int size_, int capacity_) {
 	size = size_;
-	capacity = capacity_;
-	auto nbytes = size_t(capacity) * obj_size;
-	if constexpr(pa)
-		data = detail::poolAlloc(nbytes);
-	else
-		data = (char *)fwk::allocate(nbytes);
+	if constexpr(pa) {
+		using namespace detail;
+		auto nbytes = max(capacity_ * obj_size, vpool_alloc_size);
+		capacity = nbytes / obj_size;
+		if(nbytes > vpool_alloc_size || !t_vpool_size)
+			data = (char *)fwk::allocate(nbytes);
+		else
+			data = t_vpool_buf[--t_vpool_size];
+	} else {
+		capacity = capacity_;
+		data = (char *)fwk::allocate(size_t(capacity) * obj_size);
+	}
 }
 
-template <bool pa> void BaseVector<pa>::swap(BaseVector<pa> &rhs) {
-	fwk::swap(data, rhs.data);
-	fwk::swap(size, rhs.size);
-	fwk::swap(capacity, rhs.capacity);
+template <bool pa> void BaseVector<pa>::grow(int obj_size, MoveDestroyFunc func) {
+	reallocate(obj_size, func, vectorGrowCapacity(capacity, obj_size));
+}
+template <bool pa> void BaseVector<pa>::growPod(int obj_size) {
+	reallocatePod(obj_size, vectorGrowCapacity(capacity, obj_size));
 }
 
 template <bool pa>
@@ -66,10 +58,6 @@ void BaseVector<pa>::reallocate(int obj_size, MoveDestroyFunc move_destroy_func,
 	new_base.alloc(obj_size, size, new_capacity);
 	move_destroy_func(new_base.data, data, size);
 	swap(new_base);
-}
-
-template <bool pa> void BaseVector<pa>::grow(int obj_size, MoveDestroyFunc move_destroy_func) {
-	reallocate(obj_size, move_destroy_func, vectorGrowCapacity(capacity, obj_size));
 }
 
 template <bool pa>
@@ -168,11 +156,6 @@ void BaseVector<pa>::reserve(int obj_size, MoveDestroyFunc func, int desired_cap
 	}
 }
 
-template <bool pa> void BaseVector<pa>::growPod(int obj_size) {
-	int current = capacity;
-	reallocatePod(obj_size, vectorGrowCapacity(capacity, obj_size));
-}
-
 template <bool pa> void BaseVector<pa>::resizePodPartial(int obj_size, int new_size) {
 	PASSERT(new_size >= 0);
 	if(new_size > capacity)
@@ -232,4 +215,7 @@ template <bool pa> void BaseVector<pa>::invalidIndex(int index) const {
 template <bool pa> void BaseVector<pa>::invalidEmpty() const {
 	FWK_FATAL("Accessing empty vector");
 }
+
+template class fwk::BaseVector<false>;
+template class fwk::BaseVector<true>;
 }

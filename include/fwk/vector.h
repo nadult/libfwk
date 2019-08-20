@@ -4,12 +4,14 @@
 #pragma once
 
 #include "fwk/base_vector.h"
-#include "fwk/base_vector_impl.h"
 #include "fwk/span.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
 
+// There are two kinds of vectors:
+// - general-use
+// - pool-based with fast allocation for small number of elements
 template <class T, bool pool_alloc> class Vector {
   public:
 	using value_type = T;
@@ -25,24 +27,26 @@ template <class T, bool pool_alloc> class Vector {
 	template <class IT>
 	static constexpr bool is_input_iter = is_forward_iter<IT> &&is_constructible<T, IterBase<IT>>;
 
-	Vector() { m_base.zero(); }
+	Vector() { m_base.initialize(sizeof(T)); }
+
 	~Vector() {
 		destroy(m_base.data, m_base.size);
 		m_base.free(sizeof(T));
 	}
-	Vector(const Vector &rhs) {
-		m_base.zero();
-		assign(rhs.begin(), rhs.end());
-	}
+	Vector(const Vector &rhs) : Vector() { assign(rhs.begin(), rhs.end()); }
 	Vector(Vector &&rhs) { m_base.moveConstruct(std::move(rhs.m_base)); }
 
 	explicit Vector(int size, const T &default_value = T()) {
-		m_base.alloc(sizeof(T), size, size);
+		if(pool_alloc && detail::t_vpool_size && size <= detail::vpool_alloc_size / sizeof(T)) {
+			m_base.initialize(sizeof(T));
+			m_base.size = size;
+		} else
+			m_base.alloc(sizeof(T), size, size);
+
 		for(int idx = 0; idx < size; idx++)
 			new(((T *)m_base.data) + idx) T(default_value);
 	}
-	template <class IT, EnableIf<is_input_iter<IT>>...> Vector(IT first, IT last) {
-		m_base.zero();
+	template <class IT, EnableIf<is_input_iter<IT>>...> Vector(IT first, IT last) : Vector() {
 		assign(first, last);
 	}
 
@@ -144,28 +148,19 @@ template <class T, bool pool_alloc> class Vector {
 
 	void resize(int new_size, T default_value) {
 		int index = m_base.size;
-		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
-			m_base.resizePodPartial(sizeof(T), new_size);
-		else
-			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
+		resizePrelude(new_size);
 		while(index < new_size)
 			new(data() + index++) T(default_value);
 	}
 	void resize(int new_size) {
 		int index = m_base.size;
-		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
-			m_base.resizePodPartial(sizeof(T), new_size);
-		else
-			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
+		resizePrelude(new_size);
 		while(index < new_size)
 			new(data() + index++) T();
 	}
 	void shrink(int new_size) {
 		PASSERT(m_base.size >= new_size);
-		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
-			m_base.resizePodPartial(sizeof(T), new_size);
-		else
-			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
+		resizePrelude(new_size);
 	}
 
 	template <class... Args> T &emplace_back(Args &&... args) INST_EXCEPT {
@@ -277,6 +272,13 @@ template <class T, bool pool_alloc> class Vector {
 	static constexpr bool trivial_move_constr = std::is_trivially_move_constructible<T>::value,
 						  trivial_copy_constr = std::is_trivially_copy_constructible<T>::value,
 						  trivial_destruction = std::is_trivially_destructible<T>::value;
+
+	void resizePrelude(int new_size) {
+		if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
+			m_base.resizePodPartial(sizeof(T), new_size);
+		else
+			m_base.resizePartial(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, new_size);
+	}
 
 	static void copy(void *vdst, const void *vsrc, int count) {
 		const T *__restrict__ src = (T *)vsrc;
