@@ -165,10 +165,6 @@ template <class T> class PlaneGraph : public ImmutableGraph {
 	Dynamic<SegmentGrid<T>> m_grid;
 };
 
-// CCW order starting from zero_vector
-template <class T, EnableIfVec<T, 2>...>
-void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector);
-
 template <class IT, class T, EnableIfFptVec<T, 2>..., EnableIfIntegralVec<IT, 2>...>
 Maybe<vector<IT>> tryToIntegral(CSpan<T>, double scale);
 

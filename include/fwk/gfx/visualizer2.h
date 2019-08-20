@@ -131,8 +131,8 @@ class Visualizer2 {
 	template <class T>
 	void drawVoronoiArea(const vector<vector<array<T, 3>>> &vtris, float alpha = 1.0f);
 
-	template <class T>
-	void drawPlaneGraph(const PGraph<T> &, IColor line_color, IColor point_color);
+	//template <class T>
+	//void drawPlaneGraph(const PGraph<T> &, IColor line_color, IColor point_color);
 
 	template <class T> void drawContours(CSpan<Contour<T>>, IColor);
 	template <class T>

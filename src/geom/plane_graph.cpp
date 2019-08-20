@@ -704,9 +704,7 @@ template <class T> bool PlaneGraph<T>::operator<(const PlaneGraph &rhs) const {
 	return tied() < rhs.tied();
 }
 
-#define INSTANTIATE(T)                                                                             \
-	template class PlaneGraph<T>;                                                                  \
-	template void orderByDirection(Span<int>, CSpan<T>, const T &);
+#define INSTANTIATE(T) template class PlaneGraph<T>;
 
 #define INSTANTIATE_FP(T)                                                                          \
 	INSTANTIATE(T)                                                                                 \

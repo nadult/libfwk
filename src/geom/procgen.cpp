@@ -5,8 +5,6 @@
 
 #include "fwk/geom/contour.h"
 #include "fwk/geom/delaunay.h"
-#include "fwk/geom/plane_graph.h"
-#include "fwk/geom/plane_graph_builder.h"
 #include "fwk/geom/segment_grid.h"
 #include "fwk/geom/voronoi.h"
 #include "fwk/math/random.h"
@@ -42,12 +40,32 @@ vector<float2> smoothCurve(vector<float2> points, int target_count) {
 
 template <class T, EnableIfVec<T, 2>...>
 vector<T> randomPoints(Random &random, Box<T> rect, double min_dist) {
-	PGraph<T> pgraph;
-	pgraph.addGrid();
-	return pgraph.randomPoints(random, min_dist, rect);
+	vector<T> out;
+
+	using Scalar = Base<T>;
+	RegularGrid<T> ugrid(rect, Scalar(min_dist / std::sqrt(2.0)), 1);
+	auto min_dist_sq = min_dist * min_dist;
+
+	T invalid_pt(inf);
+	vector<T> points(ugrid.width() * ugrid.height(), invalid_pt);
+
+	for(auto pos : cells(ugrid.cellRect().inset(1))) {
+		auto pt = ugrid.toWorld(pos) + random.sampleBox(T(), T(1, 1)) * ugrid.cellSize();
+
+		int idx = pos.x + pos.y * ugrid.width();
+		int indices[4] = {idx - 1, idx - ugrid.width(), idx - ugrid.width() - 1,
+						  idx - ugrid.width() + 1};
+
+		if(allOf(indices, [&](int idx) { return distanceSq(points[idx], pt) >= min_dist_sq; })) {
+			points[idx] = pt;
+			out.emplace_back(pt);
+		}
+	}
+
+	return out;
 }
 
-template vector<float2> randomPoints(Random &, FRect, double);
+template vector<float2> randomPoints(Random &random, Box<float2> rect, double min_dist);
 
 vector<float2> circularCurve(float scale, float step) {
 	vector<float2> init_points{

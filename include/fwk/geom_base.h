@@ -64,4 +64,11 @@ struct GEdgeId;
 template <class T> double integralScale(const Box<T> &, int resolution = 1024 * 1024 * 16);
 template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids);
 
+// TODO: similar as in GeomGraph
+template <class T> Ex<vector<int2>> toIntegral(CSpan<T>, double scale);
+
+// CCW order starting from zero_vector
+template <class T, EnableIfVec<T, 2>...>
+void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector);
+
 }

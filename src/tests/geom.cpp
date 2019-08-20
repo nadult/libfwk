@@ -4,7 +4,6 @@
 #include "fwk/geom/contour.h"
 #include "fwk/geom/delaunay.h"
 #include "fwk/geom/geom_graph.h"
-#include "fwk/geom/plane_graph.h"
 #include "fwk/geom/regular_grid.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rotation.h"
@@ -28,6 +27,7 @@ static void orderByDirectionTest() {
 	}
 }
 
+/*
 static void testImmutableGraph() {
 	vector<pair<int, int>> pairs1 = {{0, 1}, {1, 2}, {2, 0}};
 	vector<pair<int, int>> pairs2 = {{0, 1}, {0, 2}, {2, 3}, {1, 3}};
@@ -37,7 +37,7 @@ static void testImmutableGraph() {
 
 	ASSERT(graph1.hasCycles());
 	ASSERT(!graph2.hasCycles());
-}
+}*/
 
 static void testRegularGrid() {
 	DRect rect(-10, -10, 10, 10);
@@ -72,6 +72,7 @@ static void testContour() {
 	ASSERT_GE(contour.edgeSide(EdgeId(0), double2(0.5, 0.5)), 0.0);
 }
 
+/*
 static void testPlaneGraph() {
 	vector<double2> points = {double2(-1, 0), double2(0, 0),   double2(1, 0),
 							  double2(0, -1), double2(-1, -1), double2(0, 1)};
@@ -89,7 +90,7 @@ static void testPlaneGraph() {
 	vector<float2> target_points{{0, 0}, {-1, 0}, {-1, -1}, {-1, 0}, {0, 0},
 								 {0, 1}, {0, 0},  {1, 0},   {0, 0},  {0, -1}};
 	ASSERT(transform<float2>(contours.front().points()) == target_points);
-}
+}*/
 
 void testDelaunayFuncs() {
 	int2 quad1[4] = {{0, 0}, {10000, 0}, {10000, 10000}, {0, 10000}};
@@ -137,9 +138,9 @@ static void testGraph() {
 
 void testMain() {
 	testContour();
-	testImmutableGraph();
+	//testImmutableGraph();
 	testRegularGrid();
-	testPlaneGraph();
+	//testPlaneGraph();
 	orderByDirectionTest();
 	testGraph();
 	testDelaunayFuncs();

@@ -8,8 +8,6 @@
 #include "fwk/gfx/visualizer2.h"
 
 #include "fwk/geom/contour.h"
-#include "fwk/geom/immutable_graph.h"
-#include "fwk/geom/plane_graph.h"
 #include "fwk/geom/regular_grid.h"
 #include "fwk/geom/voronoi.h"
 #include "fwk/math/random.h"
@@ -186,6 +184,7 @@ void Visualizer2::drawVoronoiArea(const vector<vector<array<T, 3>>> &vvtris, flo
 	}
 }
 
+/*
 template <class T>
 void Visualizer2::drawPlaneGraph(const PGraph<T> &graph, IColor line_color, IColor point_color) {
 	if(point_color != ColorId::transparent)
@@ -198,7 +197,7 @@ void Visualizer2::drawPlaneGraph(const PGraph<T> &graph, IColor line_color, ICol
 			float2 rpoint2(graph[ref.to()]);
 			m_lines(Segment2F(rpoint1, rpoint2), line_color);
 		}
-}
+}*/
 
 template <class T> void Visualizer2::drawContours(CSpan<Contour<T>> contours, IColor color) {
 	for(auto &contour : contours)
@@ -268,8 +267,7 @@ template <class T> void Visualizer2::drawLabel(Box<T> box, Str text, VisStyle st
 	template void Visualizer2::drawLabel(Box<T>, Str, VisStyle);                                   \
 	template void Visualizer2::drawContour(CSpan<T>, IColor);                                      \
 	template void Visualizer2::drawGrid(const RegularGrid<T> &, IColor);                           \
-	template void Visualizer2::drawVoronoiArea(const vector<vector<array<T, 3>>> &, float);        \
-	template void Visualizer2::drawPlaneGraph(const PGraph<T> &, IColor, IColor);
+	template void Visualizer2::drawVoronoiArea(const vector<vector<array<T, 3>>> &, float);
 
 #define INSTANTIATE_FPT(T)                                                                         \
 	INSTANTIATE(T)                                                                                 \

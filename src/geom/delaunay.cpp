@@ -20,17 +20,6 @@ template <class T> double delaunayIntegralScale(CSpan<T> points) {
 	return integralScale(enclose(points), delaunay_integral_resolution);
 }
 
-template <class T> Ex<vector<int2>> delaunayIntPoints(CSpan<T> points, double scale) {
-	auto ipoints = transform(points, [=](auto pt) { return int2(pt * scale); });
-	HashSet<int2> set;
-	for(auto ip : ipoints) {
-		if(set.contains(ip))
-			return ERROR("Duplicate points found!");
-		set.emplace(ip);
-	}
-	return ipoints;
-}
-
 vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 	auto &graph = voronoi.graph();
 	auto cell_verts = graph.verts(voronoi.site_layer);
@@ -59,7 +48,7 @@ vector<VertexIdPair> delaunay(CSpan<int2> points) { return VoronoiDiagram::delau
 
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
 	auto scale = delaunayIntegralScale(points);
-	auto ipoints = EXPECT_PASS(delaunayIntPoints(points, scale));
+	auto ipoints = EXPECT_PASS(toIntegral(points, scale));
 	return VoronoiDiagram::delaunay(ipoints);
 }
 
@@ -583,8 +572,7 @@ vector<Segment<T>> delaunaySegments(CSpan<VertexIdPair> pairs, const GeomGraph<T
 	template Ex<vector<VertexIdPair>> delaunay(CSpan<vec>);                                        \
 	template Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<vec> &,                  \
 														  CSpan<VertexIdPair>);                    \
-	template double delaunayIntegralScale(CSpan<vec>);                                             \
-	template Ex<vector<int2>> delaunayIntPoints(CSpan<vec>, double);
+	template double delaunayIntegralScale(CSpan<vec>);
 
 INSTANTIATE(float2, Segment2F, Triangle2F)
 INSTANTIATE(double2, Segment2D, Triangle2D)
