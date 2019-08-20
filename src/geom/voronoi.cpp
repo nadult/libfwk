@@ -189,7 +189,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 						auto nnode = nedge.other(pnode);
 						pnode = nnode;
 						arc.emplace_back(nedge);
-						const auto &edges_from = nnode.edgesFrom();
+						const auto &edges_from = nnode.edgesFrom(seg_layer);
 						if(edges_from.size() != 2)
 							break;
 						nedge = edges_from[edges_from[0].twin() == nedge ? 1 : 0];
