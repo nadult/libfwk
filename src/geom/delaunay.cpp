@@ -63,34 +63,21 @@ template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan
 	return VoronoiDiagram::delaunay(ipoints);
 }
 
-// - find intersections
-// - for each isect:
-//   - swap each isected edge until there are none
-//   - time bound ??
-
-// Testy: -czy przecina (classifyIsect)
-//        - czy czworokąt jest wypukły czy nie (cross-product)
-//        - czy jest delaunay ?
-
-// Positive convex means additionally that no two adjacent edges
-// are parallel to each other
-template <class T> bool isPositiveConvexQuad(CSpan<T, 4> points) {
+bool isPositiveConvexQuad(CSpan<int2, 4> corners) {
 	bool signs[4];
 	for(auto [i, j, k] : wrappedTriplesRange(4)) {
-		auto vec1 = points[j] - points[i];
-		auto vec2 = points[k] - points[j];
-		//print("v1:% v2:%\n", vec1, vec2);
+		auto vec1 = corners[j] - corners[i];
+		auto vec2 = corners[k] - corners[j];
 		auto value = cross<llint2>(vec1, vec2);
 		if(value == 0)
 			return false;
 		signs[i] = value < 0;
 	}
-	//print("signs: % % % %\n", signs[0], signs[1], signs[2], signs[3]);
 	return signs[0] == signs[1] && signs[1] == signs[2] && signs[2] == signs[3];
 }
 
 // Algorithm source: Wykobi
-static int insideCircumcircle(const int2 &p1, const int2 &p2, const int2 &p3, const int2 &p) {
+bool insideCircumcircle(const int2 &p1, const int2 &p2, const int2 &p3, const int2 &p) {
 	llint dx1 = p1.x - p.x;
 	llint dy1 = p1.y - p.y;
 	llint dx2 = p2.x - p.x;
@@ -106,7 +93,6 @@ static int insideCircumcircle(const int2 &p1, const int2 &p2, const int2 &p3, co
 	qint lift3 = dx3 * dx3 + dy3 * dy3;
 
 	auto result = lift1 * det2 + lift2 * det3 + lift3 * det1;
-
 	return result > qint(0);
 }
 
@@ -150,41 +136,14 @@ int selectCWMaxAngle(int2 vec1, CSpan<int2> vecs) {
 	return best;
 }
 
-template <class T, class Scalar = typename T::Scalar> auto polygonArea(CSpan<T> points) {
-	Scalar area(0);
-
+llint polygonArea(CSpan<int2> points) {
+	llint area = 0;
 	for(auto [i, j, k] : wrappedTriplesRange(points)) {
 		auto v0 = points[i], v1 = points[j], v2 = points[k];
-		area += Scalar(v1[0]) * Scalar(v2[1] - v0[1]);
+		area += v1[0] * llint(v2[1] - v0[1]);
 	}
 
-	return std::abs(area / Scalar(2));
-}
-void testDelaunayFuncs() {
-	int2 quad1[4] = {{0, 0}, {10000, 0}, {10000, 10000}, {0, 10000}};
-	ASSERT(isPositiveConvexQuad<int2>(quad1));
-
-	int2 quad2[4] = {{0, 0}, {3, -4}, {6, 1}, {2, 6}};
-	ASSERT(isPositiveConvexQuad<int2>(quad2));
-
-	int2 quad3[4] = {{3, 0}, {0, 6}, {0, 0}, {-2, -5}};
-	ASSERT(!isPositiveConvexQuad<int2>(quad3));
-
-	int2 quad4[4] = {{0, 0}, {2, 1}, {0, 2}, {0, 1}};
-	ASSERT(!isPositiveConvexQuad<int2>(quad4));
-
-	ASSERT(!insideCircumcircle(quad1[0], quad1[1], quad1[2], quad1[3]));
-	ASSERT(insideCircumcircle(quad1[0], quad1[1], quad1[2], int2(5000, 5000)));
-
-	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
-	ASSERT_EQ(selectCCWMaxAngle(vectors[0], CSpan<int2>(vectors + 1, 5)), 2);
-	ASSERT_EQ(selectCWMaxAngle(vectors[0], CSpan<int2>(vectors + 1, 5)), 3);
-
-	int2 points[4] = {{0, 0}, {10, 0}, {10, 10}, {0, 10}};
-	ASSERT_EQ(polygonArea<int2>(points), 100);
-
-	print("All OK!\n");
-	exit(0);
+	return std::abs(area / (2));
 }
 
 struct CDT {
@@ -302,7 +261,7 @@ vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
 			int2 qpoints[4] = {igraph(qverts[0]), igraph(qverts[1]), igraph(qverts[2]),
 							   igraph(qverts[3])};
 
-			if(isPositiveConvexQuad<int2>(qpoints)) {
+			if(isPositiveConvexQuad(qpoints)) {
 				// print("convex!\n");
 				VertexIdPair flipped_pair(qverts[1], qverts[3]);
 				cdt.removePair(cur_pair);

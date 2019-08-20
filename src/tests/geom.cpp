@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/geom/contour.h"
+#include "fwk/geom/delaunay.h"
 #include "fwk/geom/geom_graph.h"
 #include "fwk/geom/plane_graph.h"
 #include "fwk/geom/regular_grid.h"
@@ -90,6 +91,30 @@ static void testPlaneGraph() {
 	ASSERT(transform<float2>(contours.front().points()) == target_points);
 }
 
+void testDelaunayFuncs() {
+	int2 quad1[4] = {{0, 0}, {10000, 0}, {10000, 10000}, {0, 10000}};
+	ASSERT(isPositiveConvexQuad(quad1));
+
+	int2 quad2[4] = {{0, 0}, {3, -4}, {6, 1}, {2, 6}};
+	ASSERT(isPositiveConvexQuad(quad2));
+
+	int2 quad3[4] = {{3, 0}, {0, 6}, {0, 0}, {-2, -5}};
+	ASSERT(!isPositiveConvexQuad(quad3));
+
+	int2 quad4[4] = {{0, 0}, {2, 1}, {0, 2}, {0, 1}};
+	ASSERT(!isPositiveConvexQuad(quad4));
+
+	ASSERT(!insideCircumcircle(quad1[0], quad1[1], quad1[2], quad1[3]));
+	ASSERT(insideCircumcircle(quad1[0], quad1[1], quad1[2], int2(5000, 5000)));
+
+	int2 vectors[6] = {{2, 3}, {-2, 3}, {-3, 0}, {-4, -2}, {0, -2}, {3, -2}};
+	ASSERT_EQ(selectCCWMaxAngle(vectors[0], CSpan<int2>(vectors + 1, 5)), 2);
+	ASSERT_EQ(selectCWMaxAngle(vectors[0], CSpan<int2>(vectors + 1, 5)), 3);
+
+	int2 points[4] = {{0, 0}, {10, 0}, {10, 10}, {0, 10}};
+	ASSERT_EQ(polygonArea(points), 100);
+}
+
 static void testGraph() NOINLINE;
 static void testGraph() {
 	GeomGraph<float2> graph;
@@ -117,4 +142,5 @@ void testMain() {
 	testPlaneGraph();
 	orderByDirectionTest();
 	testGraph();
+	testDelaunayFuncs();
 }

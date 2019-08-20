@@ -7,6 +7,14 @@
 
 namespace fwk {
 
+// Positive convex means additionally that no two adjacent edges are parallel to each other
+bool isPositiveConvexQuad(CSpan<int2, 4> corners);
+bool insideCircumcircle(const int2 &p1, const int2 &p2, const int2 &p3, const int2 &p);
+
+int selectCCWMaxAngle(int2 vec1, CSpan<int2> vecs);
+int selectCWMaxAngle(int2 vec1, CSpan<int2> vecs);
+llint polygonArea(CSpan<int2> points);
+
 // Floating point based graphs will be converted to ints to compute Delaunay accurately.
 // If conversion cannot be performed, error will be returned (TODO)
 
