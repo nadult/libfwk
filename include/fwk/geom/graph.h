@@ -52,6 +52,9 @@ template <class Ref, class Id> struct GraphRefs {
 using EdgeRefs = GraphRefs<EdgeRef, GEdgeId>;
 using VertexRefs = GraphRefs<VertexRef, VertexId>;
 
+using VertexIds = PoolVector<VertexId>;
+using EdgeIds = PoolVector<GEdgeId>;
+
 struct GraphLabel {
 	u32 color = 0xffffffff;
 	int ival1 = 0;
@@ -299,9 +302,16 @@ class Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
 
-	auto vertexIds() const { return m_verts.indices<VertexId>(); }
-	auto edgeIds() const { return m_edges.indices<EdgeId>(); }
-	auto triIds() const { return m_tris.indices<TriId>(); }
+	// TODO: these contain no meta information...
+	//auto vertexIds() const { return m_verts.indices<VertexId>(); }
+	//auto edgeIds() const { return m_edges.indices<EdgeId>(); }
+	//auto triIds() const { return m_tris.indices<TriId>(); }
+
+	VertexIds vertexIds(Layers layer_mask = Layers::all()) const;
+	EdgeIds edgeIds(Layers layer_mask = Layers::all()) const;
+
+	VertexRefs verts(Layers layers = Layers::all()) const { return {vertexIds(layers), this}; }
+	EdgeRefs edges(Layers layers = Layers::all()) const { return {edgeIds(layers), this}; }
 
 	Maybe<EdgeRef> findEdge(VertexId, VertexId, Layers = Layers::all()) const;
 	Maybe<EdgeRef> findUndirectedEdge(VertexId, VertexId, Layers = Layers::all()) const;
@@ -319,9 +329,6 @@ class Graph {
 		return PASSERT(valid(vertex_id)), VertexRef(this, vertex_id);
 	}
 	EdgeRef ref(EdgeId edge_id) const { return PASSERT(valid(edge_id)), EdgeRef(this, edge_id); }
-
-	VertexRefs verts(Layers layer_mask = Layers::all()) const;
-	EdgeRefs edges(Layers layer_mask = Layers::all()) const;
 
 	VertexId other(EdgeId eid, VertexId nid) const {
 		auto &edge = m_edges[eid];

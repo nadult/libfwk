@@ -161,30 +161,9 @@ CSpan<Graph::VertexInfo> Graph::indexedVerts() const {
 	return {m_verts.rawData(), m_verts.endIndex()};
 }
 
-VertexRefs Graph::verts(Layers layer_mask) const {
-	PoolVector<VertexId> out;
-	for(auto idx : m_verts.indices()) {
-		// TODO: incorporate layer
-		auto layer = m_vert_layers[idx];
-		if(layer_mask == Layers::all() || (layer & layer_mask))
-			out.emplace_back(idx);
-	}
-	return {out, this};
-}
-
-EdgeRefs Graph::edges(Layers layer_mask) const {
-	PoolVector<EdgeId> out;
-	for(auto idx : m_edges.indices()) {
-		EdgeId id(idx, none, m_edge_layers[idx]);
-		if(id.test(layer_mask))
-			out.emplace_back(id);
-	}
-	return {out, this};
-}
-
 int Graph::numVerts(Layers layers) const {
 	int count = 0;
-	for(auto id : vertexIds())
+	for(auto id : m_verts.indices())
 		if(m_vert_layers[id] & layers)
 			count++;
 	return count;
@@ -192,14 +171,14 @@ int Graph::numVerts(Layers layers) const {
 
 int Graph::numEdges(Layers layers) const {
 	int count = 0;
-	for(auto id : edgeIds())
+	for(auto id : m_edges.indices())
 		if(m_edge_layers[id] & layers)
 			count++;
 	return count;
 }
 int Graph::numTris(Layers layers) const {
 	int count = 0;
-	for(auto id : triIds())
+	for(auto id : m_tris.indices())
 		if(m_tri_layers[id] & layers)
 			count++;
 	return count;
@@ -207,6 +186,27 @@ int Graph::numTris(Layers layers) const {
 
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
+
+VertexIds Graph::vertexIds(Layers layer_mask) const {
+	PoolVector<VertexId> out;
+	for(auto idx : m_verts.indices()) {
+		// TODO: incorporate layer
+		auto layer = m_vert_layers[idx];
+		if(layer_mask == Layers::all() || (layer & layer_mask))
+			out.emplace_back(idx);
+	}
+	return out;
+}
+
+EdgeIds Graph::edgeIds(Layers layer_mask) const {
+	PoolVector<EdgeId> out;
+	for(auto idx : m_edges.indices()) {
+		EdgeId id(idx, none, m_edge_layers[idx]);
+		if(id.test(layer_mask))
+			out.emplace_back(id);
+	}
+	return out;
+}
 
 Maybe<EdgeRef> Graph::findEdge(VertexId from, VertexId to, Layers layers) const {
 	for(auto eid : m_verts[from])
