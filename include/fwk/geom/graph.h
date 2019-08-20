@@ -26,6 +26,32 @@ DEFINE_ENUM(TriVertexId, v1, v2, v3);
 
 DEFINE_ENUM(GraphEdgeKind, from, to, both);
 
+template <class Ref, class Id> struct GraphRefs {
+	PoolVector<Id> ids;
+	const Graph *graph;
+
+	struct Iter {
+		constexpr const Iter &operator++() {
+			ptr++;
+			return *this;
+		}
+		Ref operator*() const { return Ref{graph, *ptr}; }
+		constexpr int operator-(const Iter &rhs) const { return ptr - rhs.ptr; }
+		constexpr bool operator!=(const Iter &rhs) const { return ptr != rhs.ptr; }
+
+		const Graph *graph;
+		const Id *ptr;
+	};
+
+	Ref operator[](int idx) const { return Ref{graph, ids[idx]}; }
+	Iter begin() const { return {graph, ids.begin()}; }
+	Iter end() const { return {graph, ids.end()}; }
+	int size() const { return ids.size(); }
+};
+
+using EdgeRefs = GraphRefs<EdgeRef, GEdgeId>;
+using VertexRefs = GraphRefs<VertexRef, VertexId>;
+
 struct GraphLabel {
 	u32 color = 0xffffffff;
 	int ival1 = 0;
@@ -45,7 +71,7 @@ struct GEdgeId {
 	using Kind = GraphEdgeKind;
 
 	GEdgeId(NoInitTag) { IF_PARANOID(m_value = ~0u); }
-	GEdgeId(int index, EdgeFlags flags = none, GraphLayer layer = GraphLayer::l1)
+	explicit GEdgeId(int index, EdgeFlags flags = none, GraphLayer layer = GraphLayer::l1)
 		: m_value(uint(index) | (uint(layer) << 27) | (flags.bits << 30)) {
 		PASSERT(index >= 0 && index <= max_index);
 	}
@@ -55,8 +81,8 @@ struct GEdgeId {
 	EdgeFlags flags() const { return testInit(), EdgeFlags(m_value >> 30); }
 	GraphLayer layer() const { return testInit(), GraphLayer((m_value >> 27) & 7); }
 
-	bool test(Kind kind, GraphLayers layers) const {
-		return (kind == Kind::both || (isSource() == (kind == Kind::from))) && (layer() & layers);
+	bool test(GraphLayers layers) const {
+		return layers == GraphLayers::all() || (layer() & layers);
 	}
 
 	explicit operator bool() const = delete;
@@ -77,7 +103,7 @@ struct GTriId {
 	static constexpr int max_index = index_mask - 1;
 
 	GTriId(NoInitTag) { IF_PARANOID(m_value = ~0u); }
-	GTriId(int index, GraphLayer layer = GraphLayer::l1, TriVertexId vid = TriVertexId::v1)
+	explicit GTriId(int index, GraphLayer layer = GraphLayer::l1, TriVertexId vid = TriVertexId::v1)
 		: m_value(uint(index) | (uint(layer) << 27) | (uint(vid) << 30)) {
 		PASSERT(index >= 0 && index <= max_index);
 	}
@@ -116,6 +142,8 @@ class VertexRef {
 	using TriId = GTriId;
 	using Layers = GraphLayers;
 
+	VertexRef(const Graph *graph, VertexId id) : m_graph(graph), m_id(id) {}
+
 	operator VertexId() const { return m_id; }
 	operator int() const { return (int)m_id; }
 	VertexId id() const { return m_id; }
@@ -123,13 +151,13 @@ class VertexRef {
 
 	const GraphLabel *operator->() const;
 
-	auto edges(Layers = Layers::all()) const;
-	auto edgesFrom(Layers = Layers::all()) const;
-	auto edgesTo(Layers = Layers::all()) const;
+	EdgeRefs edges(Layers = Layers::all()) const;
+	EdgeRefs edgesFrom(Layers = Layers::all()) const;
+	EdgeRefs edgesTo(Layers = Layers::all()) const;
 
-	auto nodesAdj() const;
-	auto nodesFrom() const;
-	auto nodesTo() const;
+	VertexRefs vertsAdj() const;
+	VertexRefs vertsFrom() const;
+	VertexRefs vertsTo() const;
 
 	int numEdges(Layers = Layers::all()) const;
 	int numEdgesFrom(Layers = Layers::all()) const;
@@ -139,8 +167,6 @@ class VertexRef {
 	bool validMaybe() const { return m_graph; }
 
   private:
-	VertexRef(const Graph *graph, VertexId id) : m_graph(graph), m_id(id) {}
-
 	friend class EdgeRef;
 	friend class Graph;
 
@@ -152,6 +178,8 @@ class EdgeRef {
   public:
 	using EdgeId = GEdgeId;
 	using TriId = GTriId;
+
+	EdgeRef(const Graph *graph, EdgeId id) : m_graph(graph), m_id(id) {}
 
 	operator EdgeId() const { return m_id; }
 	operator int() const { return (int)m_id; }
@@ -173,6 +201,13 @@ class EdgeRef {
 	bool isSource() const { return m_id.isSource(); }
 	bool isFlipped() const { return m_id.isFlipped(); } // TODO: handle it
 
+	// Using current order; TODO: enforce ordering somehow ?
+	// TODO: layers ?
+	EdgeRef prevFrom() const;
+	EdgeRef nextFrom() const;
+	EdgeRef prevTo() const;
+	EdgeRef nextTo() const;
+
 	// -------------------------------------------------------------------------
 	// -- Extended functions; extended info in graph must be present! ----------
 
@@ -185,7 +220,6 @@ class EdgeRef {
 	bool validMaybe() const { return m_graph; }
 
   private:
-	EdgeRef(const Graph *graph, EdgeId id) : m_graph(graph), m_id(id) {}
 	friend class VertexRef;
 	friend class Graph;
 
@@ -286,58 +320,8 @@ class Graph {
 	}
 	EdgeRef ref(EdgeId edge_id) const { return PASSERT(valid(edge_id)), EdgeRef(this, edge_id); }
 
-	template <class TRange, class T>
-	using EnableRangeOf = EnableIf<is_convertible<decltype(DECLVAL(TRange)[0]), T>>;
-
-	auto refs(CSpan<VertexId> nodes) const {
-		auto *graph = this;
-		return IndexRange{0, nodes.size(), [=](int id) { return VertexRef(graph, VertexId(id)); }};
-	}
-
-	template <class Filter = None>
-	auto refs(CSpan<EdgeId> edges, const Filter &filter = none) const {
-		auto *graph = this;
-		return IndexRange{0, edges.size(), [=](int id) { return EdgeRef(graph, EdgeId(id)); },
-						  filter};
-	}
-
-	auto verts(Layers layer_mask = Layers::all()) const {
-		auto *graph = this;
-		auto *valids = m_verts.valids().data();
-		auto *layers = m_vert_layers.data();
-
-		auto trans = [=](int idx) { return VertexRef(graph, VertexId(idx)); };
-		auto filter = [=](int idx) {
-			return valids[idx] && (layer_mask == Layers::all() || (layer_mask & layers[idx]));
-		};
-
-		return IndexRange{0, m_verts.endIndex(), trans, filter};
-	}
-
-	auto edges(Layers layer_mask = Layers::all()) const {
-		auto *graph = this;
-		auto *valids = m_edges.valids().data();
-		auto *layers = m_edge_layers.data();
-
-		auto trans = [=](int idx) { return EdgeRef(graph, EdgeId(idx, none, layers[idx])); };
-		auto filter = [=](int idx) {
-			return valids[idx] && (layer_mask == Layers::all() || (layer_mask & layers[idx]));
-		};
-
-		return IndexRange{0, m_edges.endIndex(), trans, filter};
-	}
-
-	// TODO: naming: edgeIds ?
-	auto edgesFrom(VertexId id) const {
-		return refs(m_verts[id], [](EdgeId id) { return id.isSource(); });
-	}
-	auto edgesTo(VertexId id) const {
-		return refs(m_verts[id], [](EdgeId id) { return !id.isSource(); });
-	}
-
-	vector<VertexId> nodesFrom(VertexId id) const;
-	vector<VertexId> nodesTo(VertexId id) const;
-	vector<VertexId> nodesAdj(VertexId id) const;
+	VertexRefs verts(Layers layer_mask = Layers::all()) const;
+	EdgeRefs edges(Layers layer_mask = Layers::all()) const;
 
 	VertexId other(EdgeId eid, VertexId nid) const {
 		auto &edge = m_edges[eid];
@@ -352,6 +336,7 @@ class Graph {
 	bool hasLabel(VertexId) const;
 	bool hasLabel(EdgeId) const;
 
+	// TODO: labelki powinny być na (), a punkty, segmenty na [] ? hmmmm...
 	const Label &operator[](VertexId) const;
 	const Label &operator[](EdgeId) const;
 	const Label &operator[](TriId) const;
@@ -457,9 +442,7 @@ class Graph {
 		FWK_ORDER_BY(PolygonInfo, verts);
 	};
 
-	template <class T> friend void orderEdges(Graph &, CSpan<T>);
-
-	IndexedVector<VertexInfo> m_verts;
+	IndexedVector<VertexInfo> m_verts; // TODO: better name
 	PodVector<Layers> m_vert_layers;
 
 	IndexedVector<EdgeInfo> m_edges;
@@ -479,31 +462,4 @@ class Graph {
 	// TODO: optional m_edge_twin_info?
 	//vector<ExtEdgeInfo> m_ext_info;
 };
-
-// -------------------------------------------------------------------------------------------
-// ---  VertexRef & EdgeRef inline implementation --------------------------------------------
-
-// TODO:
-inline auto VertexRef::edges(Layers layers) const {
-	return m_graph->refs(m_graph->m_verts[m_id], [=](EdgeId id) {
-		return layers == Layers::all() || (id.layer() & layers);
-	});
-}
-
-inline auto VertexRef::edgesFrom(Layers layers) const {
-	return m_graph->refs(m_graph->m_verts[m_id], [=](EdgeId id) {
-		return id.isSource() && (layers == Layers::all() || (id.layer() & layers));
-	});
-}
-
-inline auto VertexRef::edgesTo(Layers layers) const {
-	return m_graph->refs(m_graph->m_verts[m_id], [=](EdgeId id) {
-		return !id.isSource() && (layers == Layers::all() || (id.layer() & layers));
-	});
-}
-
-// TODO: check if these are correct
-inline auto VertexRef::nodesAdj() const { return m_graph->refs(m_graph->nodesAdj(m_id)); }
-inline auto VertexRef::nodesFrom() const { return m_graph->refs(m_graph->nodesFrom(m_id)); }
-inline auto VertexRef::nodesTo() const { return m_graph->refs(m_graph->nodesTo(m_id)); }
 }

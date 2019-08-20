@@ -43,6 +43,30 @@ int VertexRef::numEdgesTo(Layers layers) const {
 	return count;
 }
 
+EdgeRefs VertexRef::edgesFrom(Layers layers) const {
+	PoolVector<EdgeId> out;
+	for(auto eid : m_graph->m_verts[m_id])
+		if(eid.isSource() && eid.test(layers))
+			out.emplace_back(eid);
+	return {out, m_graph};
+}
+
+EdgeRefs VertexRef::edgesTo(Layers layers) const {
+	PoolVector<EdgeId> out;
+	for(auto eid : m_graph->m_verts[m_id])
+		if(!eid.isSource() && eid.test(layers))
+			out.emplace_back(eid);
+	return {out, m_graph};
+}
+
+EdgeRefs VertexRef::edges(Layers layers) const {
+	PoolVector<EdgeId> out; // TODO: keep counts ?
+	for(auto eid : m_graph->m_verts[m_id])
+		if(eid.test(layers))
+			out.emplace_back(eid);
+	return {out, m_graph};
+}
+
 VertexRef EdgeRef::from() const { return VertexRef(m_graph, m_graph->m_edges[m_id].from); }
 VertexRef EdgeRef::to() const { return VertexRef(m_graph, m_graph->m_edges[m_id].to); }
 VertexRef EdgeRef::other(VertexId node) const {
@@ -57,6 +81,46 @@ bool EdgeRef::adjacent(VertexId node_id) const { return isOneOf(node_id, from(),
 bool EdgeRef::adjacent(EdgeId rhs_id) const {
 	EdgeRef rhs(m_graph, rhs_id);
 	return adjacent(rhs.from()) || adjacent(rhs.to());
+}
+
+EdgeRef EdgeRef::prevFrom() const {
+	auto &vert_edges = m_graph->m_verts[from()];
+	int idx = 0;
+	for(; idx < vert_edges.size(); idx++)
+		if(vert_edges[idx] == m_id)
+			break;
+	for(idx--; idx >= 0; idx--)
+		if(vert_edges[idx].isSource())
+			return {m_graph, vert_edges[idx]};
+	for(idx = vert_edges.size() - 1;; idx--)
+		if(vert_edges[idx].isSource())
+			return {m_graph, vert_edges[idx]};
+	// Unreachable
+}
+
+EdgeRef EdgeRef::nextFrom() const {
+	auto &vert_edges = m_graph->m_verts[from()];
+	int idx = 0;
+	for(; idx < vert_edges.size(); idx++)
+		if(vert_edges[idx] == m_id)
+			break;
+	for(idx++; idx < vert_edges.size(); idx++)
+		if(vert_edges[idx].isSource())
+			return {m_graph, vert_edges[idx]};
+	for(idx = 0;; idx++)
+		if(vert_edges[idx].isSource())
+			return {m_graph, vert_edges[idx]};
+	// Unreachable
+}
+
+EdgeRef EdgeRef::prevTo() const {
+	FATAL("write me");
+	return *this;
+}
+
+EdgeRef EdgeRef::nextTo() const {
+	FATAL("write me");
+	return *this;
 }
 
 using Label = GraphLabel;
@@ -97,6 +161,27 @@ CSpan<Graph::VertexInfo> Graph::indexedVerts() const {
 	return {m_verts.rawData(), m_verts.endIndex()};
 }
 
+VertexRefs Graph::verts(Layers layer_mask) const {
+	PoolVector<VertexId> out;
+	for(auto idx : m_verts.indices()) {
+		// TODO: incorporate layer
+		auto layer = m_vert_layers[idx];
+		if(layer_mask == Layers::all() || (layer & layer_mask))
+			out.emplace_back(idx);
+	}
+	return {out, this};
+}
+
+EdgeRefs Graph::edges(Layers layer_mask) const {
+	PoolVector<EdgeId> out;
+	for(auto idx : m_edges.indices()) {
+		EdgeId id(idx, none, m_edge_layers[idx]);
+		if(id.test(layer_mask))
+			out.emplace_back(id);
+	}
+	return {out, this};
+}
+
 int Graph::numVerts(Layers layers) const {
 	int count = 0;
 	for(auto id : vertexIds())
@@ -125,17 +210,17 @@ int Graph::numTris(Layers layers) const {
 
 Maybe<EdgeRef> Graph::findEdge(VertexId from, VertexId to, Layers layers) const {
 	for(auto eid : m_verts[from])
-		if(eid.test(EdgeKind::from, layers) && m_edges[eid].to == to)
+		if(eid.isSource() && eid.test(layers) && m_edges[eid].to == to)
 			return ref(eid);
 	return none;
 }
 
 Maybe<EdgeRef> Graph::findUndirectedEdge(VertexId from, VertexId to, Layers layers) const {
 	for(auto eid : m_verts[from])
-		if(eid.test(EdgeKind::from, layers) && m_edges[eid].to == to)
+		if(eid.isSource() && eid.test(layers) && m_edges[eid].to == to)
 			return ref(eid);
 	for(auto eid : m_verts[to])
-		if(eid.test(EdgeKind::from, layers) && m_edges[eid].to == from)
+		if(eid.isSource() && eid.test(layers) && m_edges[eid].to == from)
 			return ref(eid);
 	return none;
 }
@@ -153,15 +238,7 @@ Maybe<GTriId> Graph::findTri(VertexId v1, VertexId v2, VertexId v3, Layers layer
 	return none;
 }
 
-// TODO: zrobić range-e
-vector<VertexId> Graph::nodesFrom(VertexId node_id) const {
-	return transform(edgesFrom(node_id), [&](auto edge_id) { return m_edges[edge_id].to; });
-}
-
-vector<VertexId> Graph::nodesTo(VertexId node_id) const {
-	return transform(edgesTo(node_id), [&](auto edge_id) { return m_edges[edge_id].from; });
-}
-
+/*
 vector<VertexId> Graph::nodesAdj(VertexId node_id) const {
 	auto out = transform(edges(node_id), [&](auto edge_id) {
 		auto &edge = m_edges[edge_id];
@@ -169,7 +246,7 @@ vector<VertexId> Graph::nodesAdj(VertexId node_id) const {
 	});
 	makeSortedUnique(out);
 	return out;
-}
+}*/
 
 VertexId Graph::from(EdgeId edge_id) const { return m_edges[edge_id].from; }
 VertexId Graph::to(EdgeId edge_id) const { return m_edges[edge_id].to; }
