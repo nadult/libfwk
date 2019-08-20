@@ -7,6 +7,9 @@
 
 namespace fwk {
 
+// Floating point based graphs will be converted to ints to compute Delaunay accurately.
+// If conversion cannot be performed, error will be returned.
+
 // Positive convex means additionally that no two adjacent edges are parallel to each other
 bool isPositiveConvexQuad(CSpan<int2, 4> corners);
 bool insideCircumcircle(const int2 &p1, const int2 &p2, const int2 &p3, const int2 &p);
@@ -15,14 +18,10 @@ int selectCCWMaxAngle(int2 vec1, CSpan<int2> vecs);
 int selectCWMaxAngle(int2 vec1, CSpan<int2> vecs);
 llint polygonArea(CSpan<int2> points);
 
-// Floating point based graphs will be converted to ints to compute Delaunay accurately.
-// If conversion cannot be performed, error will be returned (TODO)
-
-// TODO: cleanup
+static constexpr int delaunay_integral_resolution = 512 * 1024 * 1024;
 template <class T> double delaunayIntegralScale(CSpan<T>);
 template <class T> Ex<vector<int2>> delaunayIntPoints(CSpan<T>, double scale);
 
-// TODO: a co jeśli mamy dziury w wektorze ?
 vector<VertexIdPair> delaunay(CSpan<int2>);
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T>);
 

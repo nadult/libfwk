@@ -9,7 +9,7 @@
 
 namespace fwk {
 
-template <class T> double bestIntegralScale(const Box<T> &box, int max_value) {
+template <class T> double integralScale(const Box<T> &box, int max_value) {
 	auto tvec = vmax(vabs(box.min()), vabs(box.max()));
 	auto tmax = max(max(tvec.values()), Scalar<T>(1.0));
 	return double(max_value) / tmax;
@@ -32,7 +32,7 @@ template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids) {
 }
 
 #define INSTANTIATE(T)                                                                             \
-	template double bestIntegralScale(const Box<T> &, int);                                        \
+	template double integralScale(const Box<T> &, int);                                            \
 	template Box<T> encloseSelected(CSpan<T>, CSpan<bool>);
 INSTANTIATE(short2) // TODO: these shouldnt be required
 INSTANTIATE(int2)

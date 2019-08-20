@@ -17,7 +17,7 @@
 namespace fwk {
 
 template <class T> double delaunayIntegralScale(CSpan<T> points) {
-	return bestIntegralScale(enclose(points), 1024 * 1025 * 512);
+	return integralScale(enclose(points), delaunay_integral_resolution);
 }
 
 template <class T> Ex<vector<int2>> delaunayIntPoints(CSpan<T> points, double scale) {
@@ -149,7 +149,6 @@ llint polygonArea(CSpan<int2> points) {
 struct CDT {
 	using Seg = Segment2I;
 
-	// TODO: segment grid oczekuje, że krawędzie i punkty są w ciągłej liście
 	CDT(const GeomGraph<int2> &graph)
 		: graph(graph), grid(graph.indexedEdges(), graph.indexedPoints(), graph.edgeValids(),
 							 graph.vertexValids()) {
@@ -347,7 +346,7 @@ Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<T> &graph,
 	// Because of the conversion to/from int's, it's really approximate Delaunay
 	// (although it's a very good approximation)
 
-	auto scale = bestIntegralScale(graph.boundingBox(), 512 * 1024 * 1024);
+	auto scale = integralScale(graph.boundingBox(), delaunay_integral_resolution);
 	auto igraph = EXPECT_PASS(graph.toIntegral(scale));
 	return constrainedDelaunay(igraph, delaunay);
 }

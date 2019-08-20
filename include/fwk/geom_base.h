@@ -59,8 +59,9 @@ using Graph3I = GeomGraph<int3>;
 // TODO: remove it
 struct GEdgeId;
 
-// TODO: better name
-template <class T> double bestIntegralScale(const Box<T> &, int max_value = 1024 * 1024 * 16);
+// Computes scale value which will fit given box into given resolution.
+// Scaled values will be in range: <-resolution, resolution>.
+template <class T> double integralScale(const Box<T> &, int resolution = 1024 * 1024 * 16);
 template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids);
 
 }
