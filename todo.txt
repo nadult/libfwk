@@ -2,6 +2,16 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- zle dziala bez imgui (perf)
+- jeden makefile dla eksperymentów, żeby można było szybko testować, czy nic sie nie spieprzylo
+- Debugowy build w niezależnym katalogu, tak żeby można było się szybko przełączać
+
+- W trybie debug, spany mogłyby wykrywać, czy wskazywana przez nich pamięć nie została
+  zwolniona? Lub, czy kontener na jaki wskazują nie został zreallocowany?
+  Np. Poprzez wskaźnik na licznik update-ów;
+  Coś w rodzaju modCountera? Span może być zinvalidowany; Problem: span może być zakopany
+  głęboko...
+ 
 - menu -> ui ?
 - ON_FAIL przy EXPECT_CATCH?
 - zamienić std regex na stb?
@@ -23,6 +33,9 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - Str: nullptr -> "" ?
 - Makefile: w danym momencie może bydować tylko na jeden system; wykrywanie konfiguracji
   na podstawie kompilatora?
+- Vector<> i PoolVector<> mogłyby być zmergowane: to czy jest pool czy nie można zapisać
+  w bicie w m_base.capacity
+
 
 - DualMap: vector<Pair<V1, V2>> + vector<V1 hashes + indices> + vector<V2 hashes + indices>
 
