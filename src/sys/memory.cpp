@@ -17,46 +17,40 @@ void *aligned_alloc(size_t alignment, size_t size) {
 
 namespace fwk {
 
-namespace detail {
-	void *falloc(size_t size) {
-		auto ptr = malloc(size);
-		if(!ptr)
-			FATAL("Allocation error: failed to allocate %llu bytes", (unsigned long long)size);
-		return ptr;
-	}
+void *allocate(size_t size) {
+	auto ptr = malloc(size);
+	if(!ptr)
+		FATAL("Allocation error: failed to allocate %llu bytes", (unsigned long long)size);
+	return ptr;
+}
 
-	void *falloc(size_t size, size_t alignment) {
-		DASSERT(isPowerOfTwo(alignment));
+void *allocate(size_t size, size_t alignment) {
+	DASSERT(isPowerOfTwo(alignment));
 #ifdef FWK_TARGET_MINGW
-		auto ptr = _aligned_malloc(size, alignment);
+	auto ptr = _aligned_malloc(size, alignment);
 #else
-		auto ptr = aligned_alloc(alignment, size);
+	auto ptr = aligned_alloc(alignment, size);
 #endif
-		if(!ptr)
-			FATAL("Allocation error: failed to allocate %lld bytes (aligned to: %lld)",
-				  (long long)size, (long long)alignment);
-		return ptr;
-	}
-
-	void ffree(void *ptr) { return ::free(ptr); }
-
-	AllocFunc g_alloc = falloc;
-	AlignedAllocFunc g_aligned_alloc = falloc;
-	FreeFunc g_free = ffree;
+	if(!ptr)
+		FATAL("Allocation error: failed to allocate %lld bytes (aligned to: %lld)", (llint)size,
+			  (llint)alignment);
+	return ptr;
 }
 
-void *SimpleAllocatorBase::allocateBytes(size_t count) { return detail::g_alloc(count); }
-void SimpleAllocatorBase::deallocateBytes(void *ptr) { fwk::detail::g_free(ptr); }
+void deallocate(void *ptr) { return ::free(ptr); }
+
+void *SimpleAllocatorBase::allocateBytes(size_t count) { return allocate(count); }
+void SimpleAllocatorBase::deallocateBytes(void *ptr) { deallocate(ptr); }
 }
 
-void *operator new(std::size_t count) { return fwk::detail::g_alloc(count); }
-void *operator new[](std::size_t count) { return fwk::detail::g_alloc(count); }
+void *operator new(std::size_t count) { return fwk::allocate(count); }
+void *operator new[](std::size_t count) { return fwk::allocate(count); }
 
-void operator delete(void *ptr) noexcept { fwk::detail::g_free(ptr); }
-void operator delete[](void *ptr) noexcept { fwk::detail::g_free(ptr); }
+void operator delete(void *ptr) noexcept { fwk::deallocate(ptr); }
+void operator delete[](void *ptr) noexcept { fwk::deallocate(ptr); }
 
-void operator delete(void *ptr, std::size_t sz) { fwk::detail::g_free(ptr); }
-void operator delete[](void *ptr, std::size_t sz) { fwk::detail::g_free(ptr); }
+void operator delete(void *ptr, std::size_t sz) { fwk::deallocate(ptr); }
+void operator delete[](void *ptr, std::size_t sz) { fwk::deallocate(ptr); }
 
 // TODO: C++17 alignment versions
 /*

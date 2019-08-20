@@ -8,23 +8,11 @@
 
 namespace fwk {
 
-namespace detail {
-	using AllocFunc = void *(*)(size_t);
-	using FreeFunc = void (*)(void *);
-	using AlignedAllocFunc = void *(*)(size_t, size_t);
-
-	// TODO: thread local ptrs ?
-	extern AllocFunc g_alloc;
-	extern AlignedAllocFunc g_aligned_alloc;
-	extern FreeFunc g_free;
-}
-
 // Either returns valid pointer or fails on FATAL
-inline void *allocate(size_t size) { return detail::g_alloc(size); }
-inline void *allocate(size_t size, size_t alignment) {
-	return detail::g_aligned_alloc(size, alignment);
-}
-inline void deallocate(void *ptr) { return detail::g_free(ptr); }
+// Default new[] and delete[] operators also use these functions.
+void *allocate(size_t size);
+void *allocate(size_t size, size_t alignment);
+void deallocate(void *);
 
 class SimpleAllocatorBase {
   public:
