@@ -15,9 +15,11 @@ template <class T> class GeomGraph : public Graph {
 
 	using Point = T;
 	using Vec = T;
+	using Vec2D = MakeVec<Base<T>, 2>;
 	using IPoint = MakeVec<int, dim<T>>;
 	using EdgeId = GEdgeId;
 	using Label = GraphLabel;
+	using Grid = SegmentGrid<Vec2D>;
 
 	using PointMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
 
@@ -120,6 +122,15 @@ template <class T> class GeomGraph : public Graph {
 
 	static PointMap buildPointMap(CSpan<bool> valid_indices, CSpan<Point> points,
 								  vector<Pair<VertexId>> &identical_points);
+
+	// -------------------------------------------------------------------------------------------
+	// ---  Algorithms ---------------------------------------------------------------------------
+
+	Grid makeGrid(Axes2D = {}) const;
+
+	vector<EdgeId> findIntersectors(const Grid &) const;
+	bool isPlanar(const Grid &grid) const { return !findIntersectors(grid); }
+	Ex<void> checkPlanar(const Grid &) const;
 
   private:
 	template <Axes2D> void orderEdges(VertexId);

@@ -1,5 +1,6 @@
 #include "fwk/geom/geom_graph.h"
 
+#include "fwk/geom/segment_grid.h"
 #include "fwk/math/direction.h"
 #include "fwk/math/segment.h"
 #include "fwk/sys/assert.h"
@@ -274,6 +275,75 @@ auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoin
 	for(auto vert : verts())
 		new_points[vert] = IPoint((*this)(vert)*scale);
 	return replacePointsWithCollapse(new_points);
+}
+
+// -------------------------------------------------------------------------------------------
+// ---  Algorithms ---------------------------------------------------------------------------
+
+template <class T> auto GeomGraph<T>::makeGrid(Axes2D axes) const -> Grid {
+	// TODO: how to handle 3D graphs ?
+	if constexpr(dim<T> == 2)
+		return {indexedEdges(), indexedPoints(), edgeValids(), vertexValids()};
+	else
+		return {};
+}
+
+// TODO: computation in 3D or pass Axes2D?
+template <class T> vector<GEdgeId> GeomGraph<T>::findIntersectors(const Grid &grid) const {
+	vector<EdgeId> out;
+
+	if constexpr(dim<T> == 3) {
+		FATAL("write me");
+	}
+
+	for(auto cell_id : grid) {
+		if(!grid.empty(cell_id)) {
+			auto edges = grid.cellEdges(cell_id);
+			auto verts = grid.cellNodes(cell_id);
+
+			for(int e1 : intRange(edges)) {
+				EdgeRef edge1(ref(GEdgeId(edges[e1])));
+				Segment seg1 = (*this)(edge1);
+				bool is_isecting = false;
+
+				for(int e2 : intRange(e1 + 1, edges.size())) {
+					EdgeId edge2(edges[e2]);
+					if(!edge1.adjacent(edge2)) {
+						Segment seg2 = (*this)(edge2);
+						if(seg1.classifyIsect(seg2) != IsectClass::none) {
+							is_isecting = true;
+							out.push_back(edge2);
+						}
+					}
+				}
+
+				if(!is_isecting)
+					for(VertexId node : verts) {
+						if(!edge1.adjacent(node)) {
+							if(seg1.classifyIsect((*this)(node)) != IsectClass::none) {
+								is_isecting = true;
+								break;
+							}
+						}
+					}
+
+				if(is_isecting)
+					out.push_back(edge1);
+			}
+		}
+	}
+
+	return out;
+}
+
+template <class T> Ex<void> GeomGraph<T>::checkPlanar(const Grid &grid) const {
+	auto isectors = findIntersectors(grid);
+	if(isectors) {
+		auto error = ERROR("Graph not planar");
+		error.values.emplace_back(isectors);
+		return error;
+	}
+	return {};
 }
 
 template class GeomGraph<float2>;
