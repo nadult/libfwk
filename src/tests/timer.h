@@ -13,7 +13,7 @@ class TestTimer {
 
 	~TestTimer() NOINLINE {
 		double now = getTime();
-		printf("%s completed in %.4f seconds\n", name.c_str(), (now - start));
+		printf("%s completed in %.4f msec\n", name.c_str(), (now - start) * 1000.0);
 	}
 
   private:

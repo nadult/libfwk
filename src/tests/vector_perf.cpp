@@ -26,7 +26,7 @@ struct Pixel {
 template <template <typename> class T> void testVector(const char *name) {
 	TestTimer t(name);
 
-	for(int i = 0; i < 1000; ++i) {
+	for(int i = 0; i < 500; ++i) {
 		int dimension = 500;
 
 		T<Pixel> pixels;
@@ -42,7 +42,7 @@ template <template <typename> class T> void testVector(const char *name) {
 template <template <typename> class T> void testVectorPushBack(const char *name) {
 	TestTimer t(name);
 
-	for(int i = 0; i < 1000; ++i) {
+	for(int i = 0; i < 200; ++i) {
 		int dimension = 500;
 
 		T<Pixel> pixels;
@@ -76,7 +76,7 @@ template <template <typename> class T> void testVectorVector(const char *name) {
 template <template <typename> class T> void testVectorInsertBack(const char *name) {
 	TestTimer t(name);
 
-	for(int i = 0; i < 100; ++i) {
+	for(int i = 0; i < 30; ++i) {
 		T<fwk::int3> temp;
 		for(int i = 0; i < 200; ++i) {
 			T<fwk::int3> tout;
@@ -98,7 +98,7 @@ template <template <typename> class T> void testVectorInsertBack(const char *nam
 template <template <typename> class T> void testVectorInsert(const char *name) {
 	TestTimer t(name);
 
-	for(int i = 0; i < 500; ++i) {
+	for(int i = 0; i < 100; ++i) {
 		T<fwk::int3> temp;
 		for(int i = 0; i < 100; ++i) {
 			T<fwk::int3> tout;
@@ -171,7 +171,7 @@ int testIndexedVector() {
 		val_time = total_time / num_iters;
 	}
 
-	printf("IndexedVector iteration completed in %.4f seconds\n", total_time);
+	printf("IndexedVector iteration completed in %.4f msec\n", total_time * 1000.0);
 	printf("Values: %.2f %%; %f ns / value\n", double(num_values) * 100.0 / double(num_iters),
 		   total_time * 1000000000.0 / num_values);
 	return val;
@@ -184,16 +184,32 @@ int main() {
 	printf("This test doesn't make sense with FWK_PARANOID enabled\n");
 #endif
 
-	testVector<fwk::vector>("fwk::vector simple");
+	testVector<fwk::vector>("fwk::Vector simple");
+	testVector<fwk::PoolVector>("fwk::PoolVector simple");
 	testVector<stdvec>("std::vector simple");
-	testVectorPushBack<fwk::vector>("fwk::vector push_back");
+	printf("\n");
+
+	testVectorPushBack<fwk::vector>("fwk::Vector push_back");
+	testVectorPushBack<fwk::PoolVector>("fwk::PoolVector push_back");
 	testVectorPushBack<stdvec>("std::vector push_back");
-	testVectorVector<fwk::vector>("fwk::vector vector^2");
+	printf("\n");
+
+	testVectorVector<fwk::vector>("fwk::Vector vector^2");
+	testVectorVector<fwk::PoolVector>("fwk::PoolVector vector^2");
 	testVectorVector<stdvec>("std::vector vector^2");
-	testVectorInsertBack<fwk::vector>("fwk::vector insert_back");
+	printf("\n");
+
+	testVectorInsertBack<fwk::vector>("fwk::Vector insert_back");
+	testVectorInsertBack<fwk::PoolVector>("fwk::PoolVector insert_back");
 	testVectorInsertBack<stdvec>("std::vector insert_back");
-	testVectorInsert<fwk::vector>("fwk::vector insert");
+	printf("\n");
+
+	testVectorInsert<fwk::vector>("fwk::Vector insert");
+	testVectorInsert<fwk::PoolVector>("fwk::PoolVector insert");
 	testVectorInsert<stdvec>("std::vector insert");
+	printf("\n");
+
+	// TODO: special test showing performance of PoolVector
 
 	testIndexedVector();
 	return 0;

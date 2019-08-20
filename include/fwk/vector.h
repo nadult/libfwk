@@ -37,7 +37,8 @@ template <class T, bool pool_alloc> class Vector {
 	Vector(Vector &&rhs) { m_base.moveConstruct(std::move(rhs.m_base)); }
 
 	explicit Vector(int size, const T &default_value = T()) {
-		if(pool_alloc && detail::t_vpool_size && size <= detail::vpool_alloc_size / sizeof(T)) {
+		if(pool_alloc && detail::t_vpool_size &&
+		   size <= int(detail::vpool_alloc_size / sizeof(T))) {
 			m_base.initialize(sizeof(T));
 			m_base.size = size;
 		} else
