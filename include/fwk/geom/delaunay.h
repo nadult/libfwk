@@ -10,6 +10,10 @@ namespace fwk {
 // Floating point based graphs will be converted to ints to compute Delaunay accurately.
 // If conversion cannot be performed, error will be returned (TODO)
 
+// TODO: cleanup
+template <class T> double delaunayIntegralScale(CSpan<T>);
+template <class T> Ex<vector<int2>> delaunayIntPoints(CSpan<T>, double scale);
+
 // TODO: a co jeśli mamy dziury w wektorze ?
 vector<VertexIdPair> delaunay(CSpan<int2>);
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T>);
@@ -28,17 +32,14 @@ Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<T> &,
 // Each loop has to have at least 3 verts
 template <class T> bool isForestOfLoops(const GeomGraph<T> &);
 
+// Returns edges on CCW or CW side, looking from given set of edges
+vector<VertexIdPair> cdtFilterSide(CSpan<int2>, CSpan<VertexIdPair> cdt, bool ccw_side);
 vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &, CSpan<VertexIdPair> cdt, bool ccw_side);
 
-vector<array<int, 3>> delaunaySideTriangles(const GeomGraph<int2> &, CSpan<VertexIdPair> cdt,
-											CSpan<VertexIdPair> filter, bool ccw_side);
+vector<array<int, 3>> delaunayTriangles(const GeomGraph<int2> &, CSpan<VertexIdPair> cdt,
+										CSpan<VertexIdPair> filter, bool ccw_side,
+										bool invert_filter);
 
 template <class T, EnableIfFptVec<T, 2>...>
 vector<Segment<T>> delaunaySegments(CSpan<VertexIdPair>, const GeomGraph<T> &);
-
-// TODO: this is invalid
-template <class T, class TReal = typename T::Scalar, int N = T::vec_size, EnableIfFptVec<T>...>
-vector<Triangle<TReal, N>> delaunayTriangles(CSpan<VertexIdPair>, CSpan<T> points);
-
-vector<array<int, 3>> delaunayTriangles(CSpan<VertexIdPair>);
 }

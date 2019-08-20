@@ -767,4 +767,6 @@ template <class T>
 constexpr bool is_flat_data<vec4<T>> = is_flat_data<T> && sizeof(vec4<T>) == sizeof(T) * 4;
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
+DEFINE_ENUM(Axes2D, xy, yz, xz);
+
 }

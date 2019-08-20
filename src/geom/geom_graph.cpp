@@ -1,5 +1,6 @@
 #include "fwk/geom/geom_graph.h"
 
+#include "fwk/math/direction.h"
 #include "fwk/math/segment.h"
 #include "fwk/sys/assert.h"
 
@@ -63,6 +64,11 @@ template <class T> vector<Segment<T>> GeomGraph<T>::segments() const {
 template <class T> Segment<T> GeomGraph<T>::operator()(EdgeId id) const {
 	auto [n1, n2] = m_edges[id];
 	return {m_points[n1], m_points[n2]};
+}
+
+template <class T> T GeomGraph<T>::vec(EdgeId id) const {
+	auto [n1, n2] = m_edges[id];
+	return m_points[n2] - m_points[n1];
 }
 
 template <class T> Maybe<VertexRef> GeomGraph<T>::findVertex(Point pt) const {
@@ -163,6 +169,74 @@ template <class T> bool GeomGraph<T>::operator==(const GeomGraph &rhs) const {
 
 template <class T> bool GeomGraph<T>::operator<(const GeomGraph &rhs) const {
 	return compare(rhs) == -1;
+}
+
+// TODO: move it somewhere ?
+template <class T, int static_size> struct LocalBuffer {
+	Span<T> make(int size) {
+		if(size > static_size) {
+			dynamic_buffer.resize(size);
+			return dynamic_buffer;
+		}
+		return {static_buffer, size};
+	}
+
+  private:
+	T static_buffer[static_size];
+	PodVector<T> dynamic_buffer;
+};
+
+template <class T> template <Axes2D axes> void GeomGraph<T>::orderEdges(VertexId vid) {
+	auto &edges = m_verts[vid];
+
+	using Vec2 = MakeVec<Scalar<T>, 2>;
+
+	struct OrderedEdge {
+		Vec2 vec;
+		int quadrant;
+		GEdgeId eid = no_init;
+
+		bool operator<(const OrderedEdge &rhs) const {
+			if(quadrant != rhs.quadrant)
+				return quadrant < rhs.quadrant;
+			return ccwSide(vec, rhs.vec);
+		}
+	};
+
+	LocalBuffer<OrderedEdge, 32> local_buf;
+	auto oedges = local_buf.make(edges.size());
+	auto current_pos = m_points[vid];
+	for(int n : intRange(edges)) {
+		auto edge = ref(edges[n]);
+		auto full_vec = m_points[edge.other(vid)] - current_pos;
+		Vec2 vec;
+		if constexpr(dim<T> == 3)
+			vec = axes == Axes2D::xy ? full_vec.xy()
+									 : axes == Axes2D::xz ? full_vec.xz() : full_vec.yz();
+		else
+			vec = full_vec;
+
+		auto quadrant = fwk::quadrant(vec);
+		oedges[n] = {vec, quadrant, edge};
+	}
+
+	std::sort(begin(oedges), end(oedges));
+	for(int n : intRange(edges))
+		edges[n] = oedges[n].eid;
+}
+
+template <class T> void GeomGraph<T>::orderEdges(VertexId vid, Axes2D axes) {
+	if constexpr(dim<T> == 3) {
+		switch(axes) {
+		case Axes2D::xy:
+			return orderEdges<Axes2D::xy>(vid);
+		case Axes2D::xz:
+			return orderEdges<Axes2D::xz>(vid);
+		case Axes2D::yz:
+			return orderEdges<Axes2D::yz>(vid);
+		}
+	}
+	orderEdges<Axes2D::xy>(vid);
 }
 
 template <class T>

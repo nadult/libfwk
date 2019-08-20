@@ -14,6 +14,7 @@ template <class T> class GeomGraph : public Graph {
 	static_assert(is_vec<T> && (dim<T> == 2 || dim<T> == 3));
 
 	using Point = T;
+	using Vec = T;
 	using IPoint = MakeVec<int, dim<T>>;
 	using EdgeId = GEdgeId;
 	using Label = GraphLabel;
@@ -40,7 +41,8 @@ template <class T> class GeomGraph : public Graph {
 	using Graph::operator[];
 
 	Point operator()(VertexId id) const { return m_points[id]; }
-	Segment<Point> operator()(EdgeId id) const;
+	Segment<Point> operator()(EdgeId) const;
+	Vec vec(EdgeId) const;
 
 	Maybe<VertexRef> findVertex(Point pt) const;
 
@@ -90,6 +92,8 @@ template <class T> class GeomGraph : public Graph {
 	bool operator==(const GeomGraph &) const;
 	bool operator<(const GeomGraph &) const;
 
+	void orderEdges(VertexId, Axes2D = {});
+
 	template <class U = T, EnableIfFptVec<U>...>
 	Ex<GeomGraph<IPoint>> toIntegral(double scale) const;
 	template <class U = T, EnableIfFptVec<U>...>
@@ -118,6 +122,8 @@ template <class T> class GeomGraph : public Graph {
 								  vector<Pair<VertexId>> &identical_points);
 
   private:
+	template <Axes2D> void orderEdges(VertexId);
+
 	PodVector<Point> m_points;
 	PointMap m_point_map;
 };

@@ -210,6 +210,7 @@ vector<float3> generateRandomLine(u32 seed, FRect rect) {
 	return out;
 }
 
+/*
 Ex<vector<Triangle3F>> generateRandomPatch(vector<float3> generators, u32 seed, float density,
 										   float enl) {
 	Random random(seed);
@@ -260,7 +261,7 @@ vector<Segment3F> generatePatchBorder(vector<Triangle3F> tris) {
 		if(ecounter[eref] <= 1)
 			out.emplace_back(asXZY(graph[eref.from()], 0.0f), asXZY(graph[eref.to()], 0.0f));
 	return out;
-}
+}*/
 
 /*
 vector<Segment3F> generateVoronoiLines(vector<Segment3F> patch_outline, vector<float3> points) {

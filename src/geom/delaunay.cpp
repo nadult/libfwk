@@ -16,9 +16,24 @@
 
 namespace fwk {
 
+template <class T> double delaunayIntegralScale(CSpan<T> points) {
+	return bestIntegralScale(enclose(points), 1024 * 1025 * 512);
+}
+
+template <class T> Ex<vector<int2>> delaunayIntPoints(CSpan<T> points, double scale) {
+	auto ipoints = transform(points, [=](auto pt) { return int2(pt * scale); });
+	HashSet<int2> set;
+	for(auto ip : ipoints) {
+		if(set.contains(ip))
+			return ERROR("Duplicate points found!");
+		set.emplace(ip);
+	}
+	return ipoints;
+}
+
 vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 	auto &graph = voronoi.graph();
-	auto cell_verts = transform<VertexId>(graph.verts(voronoi.site_layer));
+	auto cell_verts = graph.verts(voronoi.site_layer);
 
 	vector<Pair<VertexId>> out;
 	vector<bool> visited(graph.numEdges(VoronoiDiagram::arc_layer));
@@ -43,15 +58,8 @@ vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 vector<VertexIdPair> delaunay(CSpan<int2> points) { return VoronoiDiagram::delaunay(points); }
 
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
-	auto scale = bestIntegralScale(enclose(points), 1024 * 1024 * 512);
-	auto ipoints = transform(points, [=](auto pt) { return int2(pt * scale); });
-
-	HashSet<int2> set;
-	for(auto ip : ipoints) {
-		if(set.contains(ip))
-			return ERROR("Duplicate points found!");
-		set.emplace(ip);
-	}
+	auto scale = delaunayIntegralScale(points);
+	auto ipoints = EXPECT_PASS(delaunayIntPoints(points, scale));
 	return VoronoiDiagram::delaunay(ipoints);
 }
 
@@ -430,6 +438,14 @@ void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector)
 	std::sort(it, end(indices), func2);
 }
 
+vector<VertexIdPair> cdtFilterSide(CSpan<int2> points, CSpan<VertexIdPair> cdt, bool ccw_side) {
+	// TODO: make it robust
+	GeomGraph<int2> temp;
+	for(auto pt : points)
+		temp.fixVertex(pt);
+	return cdtFilterSide(temp, cdt, ccw_side);
+}
+
 vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexIdPair> cdt,
 								   bool ccw_side) {
 	//DASSERT(igraph.isPlanar()); // TODO: make it work
@@ -437,6 +453,8 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 
 	FATAL("test me");
 	GeomGraph<int2> temp;
+	for(auto vert : igraph.verts())
+		temp.addVertexAt(vert, igraph(vert));
 	for(auto edge : igraph.edges())
 		temp.addEdgeAt(edge, edge.from(), edge.to());
 	for(auto epair : cdt)
@@ -450,37 +468,38 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 		if(!igraph.valid(start_edge.id()))
 			continue;
 
-		auto nref = start_edge.from();
-		auto erefs = nref.edges();
-		edge_ids.resize(erefs.size());
+		auto vert = start_edge.from();
+		auto edges = vert.edges();
+
+		edge_ids.resize(edges.size());
 		std::iota(edge_ids.begin(), edge_ids.end(), 0);
 		edge_dirs.clear();
-		int2 zero_dir = temp(start_edge.to()) - temp(nref);
-		for(auto eref : erefs)
-			edge_dirs.push_back(temp(eref.other(nref)) - temp(nref));
+		int2 zero_dir = temp(start_edge.to()) - temp(vert);
+		for(auto eref : edges)
+			edge_dirs.push_back(temp(eref.other(vert)) - temp(vert));
 		orderByDirection<int2>(edge_ids, edge_dirs, zero_dir);
 		if(!ccw_side)
 			std::reverse(begin(edge_ids), end(edge_ids));
 
 		enable[start_edge] = true;
 		for(int idx : edge_ids) {
-			if(igraph.valid(erefs[idx]))
+			if(igraph.valid(edges[idx]))
 				break;
-			enable[erefs[idx]] = true;
+			enable[edges[idx]] = true;
 		}
 	}
 
-	vector<bool> finished_verts(igraph.numVerts(), false);
-	for(auto eref : igraph.edges())
-		finished_verts[eref.from()] = finished_verts[eref.to()] = true;
+	vector<bool> finished_verts(igraph.vertsEndIndex(), false);
+	for(auto edge : igraph.edges())
+		finished_verts[edge.from()] = finished_verts[edge.to()] = true;
 
 	// Propagating to all the edges not directly reachable from constrained ones
 	vector<VertexId> queue;
-	for(auto eref : temp.edges()) {
-		if(!enable[eref])
+	for(auto edge : temp.edges()) {
+		if(!enable[edge])
 			continue;
-		queue.emplace_back(eref.from());
-		queue.emplace_back(eref.to());
+		queue.emplace_back(edge.from());
+		queue.emplace_back(edge.to());
 
 		while(queue) {
 			auto vert = temp.ref(queue.back());
@@ -488,9 +507,9 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 			if(finished_verts[vert])
 				continue;
 			finished_verts[vert] = true;
-			for(auto eref : vert.edges()) {
-				enable[eref] = true;
-				if(auto v2 = eref.other(vert); !finished_verts[v2])
+			for(auto edge : vert.edges()) {
+				enable[edge] = true;
+				if(auto v2 = edge.other(vert); !finished_verts[v2])
 					queue.emplace_back(v2);
 			}
 		}
@@ -518,11 +537,11 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 	return out;
 }
 
-vector<array<int, 3>> delaunaySideTriangles(const GeomGraph<int2> &igraph, CSpan<VertexIdPair> cdt,
-											CSpan<VertexIdPair> filter, bool ccw_side) {
+vector<array<int, 3>> delaunayTriangles(const GeomGraph<int2> &igraph, CSpan<VertexIdPair> cdt,
+										CSpan<VertexIdPair> filter, bool ccw_side,
+										bool invert_filter) {
 	PERF_SCOPE();
 
-	FATAL("test me");
 	GeomGraph<int2> temp;
 	for(auto vert : igraph.verts())
 		temp.addVertexAt(vert, igraph(vert));
@@ -536,23 +555,25 @@ vector<array<int, 3>> delaunaySideTriangles(const GeomGraph<int2> &igraph, CSpan
 		temp.fixEdge(v2, v1);
 	}
 
-	vector<bool> visited(temp.edgesEndIndex(), true);
+	for(auto vert : temp.verts())
+		temp.orderEdges(vert);
+
+	vector<bool> visited(temp.edgesEndIndex(), !invert_filter);
 
 	for(auto [v1, v2] : filter) {
-		visited[*temp.findEdge(v1, v2)] = false;
-		visited[*temp.findEdge(v2, v1)] = false;
+		visited[*temp.findEdge(v1, v2)] = invert_filter;
+		visited[*temp.findEdge(v2, v1)] = invert_filter;
 	}
 
 	vector<array<int, 3>> out;
 	out.reserve(temp.numEdges() / 3);
+	auto points = temp.indexedPoints();
 
 	for(auto v1 : temp.verts()) {
 		for(auto e1 : v1.edgesFrom()) {
 			if(visited[e1])
 				continue;
 
-			// TODO: fix this block
-			/*
 			auto e2 = e1.twin()->prevFrom();
 			auto e3 = e2.twin()->prevFrom();
 
@@ -561,9 +582,9 @@ vector<array<int, 3>> delaunaySideTriangles(const GeomGraph<int2> &igraph, CSpan
 				out.emplace_back(v1, e2.from(), e3.from());
 
 				auto &back = out.back();
-				if(ccwSide(temp(back[0]), temp(back[1]), temp(back[2])) != ccw_side)
+				if(ccwSide(points[back[0]], points[back[1]], points[back[2]]) != ccw_side)
 					back = {back[0], back[2], back[1]};
-			}*/
+			}
 		}
 	}
 
@@ -599,62 +620,14 @@ vector<Segment<T>> delaunaySegments(CSpan<VertexIdPair> pairs, const GeomGraph<T
 	});
 }
 
-template <class Func> static void delaunayTriangles(const Graph &tgraph, const Func &feed_func) {
-	vector<VertexId> buffer1, buffer2;
-	buffer1.reserve(32);
-	buffer2.reserve(32);
-	vector<bool> visited(tgraph.numEdges(), false);
-
-	for(auto eref : tgraph.edges()) {
-		auto v1 = eref.from(), v2 = eref.to();
-		buffer1.clear();
-		buffer2.clear();
-
-		for(auto eref1 : v1.edges())
-			if(!visited[eref1])
-				buffer1.emplace_back(eref1.other(v1).id());
-		for(auto eref2 : v2.edges())
-			if(!visited[eref2])
-				buffer2.emplace_back(eref2.other(v2).id());
-		for(auto i1 : buffer1)
-			for(auto i2 : buffer2)
-				if(i1 == i2) {
-					// TODO: ordering?
-					feed_func(v1, v2, i1);
-				}
-		visited[eref] = true;
-	}
-}
-
-template <class T, class TReal, int N, EnableIfFptVec<T>...>
-vector<Triangle<TReal, N>> delaunayTriangles(CSpan<VertexIdPair> pairs, CSpan<T> points) {
-	PERF_SCOPE();
-	vector<Triangle<TReal, N>> out;
-	// TODO: reserve
-	Graph tgraph(pairs, points.size());
-	delaunayTriangles(
-		tgraph, [&](int a, int b, int c) { out.emplace_back(points[a], points[b], points[c]); });
-	return out;
-}
-
-vector<array<int, 3>> delaunayTriangles(CSpan<VertexIdPair> pairs) {
-	vector<array<int, 3>> out;
-	// TODO: reserve
-	Graph tgraph(pairs);
-	delaunayTriangles(tgraph, [&](int a, int b, int c) { out.emplace_back(a, b, c); });
-	return out;
-}
-
 #define INSTANTIATE(vec, seg, tri)                                                                 \
 	template vector<seg> delaunaySegments(CSpan<VertexIdPair>, const GeomGraph<vec> &);            \
-	template vector<tri> delaunayTriangles(CSpan<VertexIdPair>, CSpan<vec>);                       \
 	template Ex<vector<VertexIdPair>> delaunay(CSpan<vec>);                                        \
 	template Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<vec> &,                  \
-														  CSpan<VertexIdPair>);
+														  CSpan<VertexIdPair>);                    \
+	template double delaunayIntegralScale(CSpan<vec>);                                             \
+	template Ex<vector<int2>> delaunayIntPoints(CSpan<vec>, double);
 
 INSTANTIATE(float2, Segment2F, Triangle2F)
 INSTANTIATE(double2, Segment2D, Triangle2D)
-
-template vector<Triangle3F> delaunayTriangles(CSpan<VertexIdPair>, CSpan<float3>);
-template vector<Triangle3D> delaunayTriangles(CSpan<VertexIdPair>, CSpan<double3>);
 }
