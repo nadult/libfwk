@@ -42,6 +42,8 @@ int VertexRef::numEdgesTo(Layers layers) const {
 	return count;
 }
 
+GraphLayers VertexRef::layers() const { return m_graph->m_vert_layers[m_id]; }
+
 PooledEdgeRefs VertexRef::edgesFrom(Layers layers) const {
 	PoolVector<EdgeId> out;
 	for(auto eid : m_graph->m_verts[m_id])
@@ -63,6 +65,35 @@ PooledEdgeRefs VertexRef::edges(Layers layers) const {
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.test(layers))
 			out.emplace_back(eid);
+	return {out, m_graph};
+}
+
+PooledVertexRefs VertexRef::vertsAdj(Layers layers) const {
+	FATAL("write me");
+	return {};
+}
+
+// TODO: what if we have multiple edges between two verts?
+PooledVertexRefs VertexRef::vertsFrom(Layers layers) const {
+	PoolVector<VertexId> out;
+	for(auto eid : m_graph->m_verts[m_id])
+		if(eid.isSource()) {
+			auto vert = m_graph->ref(eid).other(m_id);
+			if(layers == all<Layer> || (vert.layers() & layers))
+				out.emplace_back(vert);
+		}
+	return {out, m_graph};
+}
+
+// TODO: what if we have multiple edges between two verts?
+PooledVertexRefs VertexRef::vertsTo(Layers layers) const {
+	PoolVector<VertexId> out;
+	for(auto eid : m_graph->m_verts[m_id])
+		if(eid.isSource()) {
+			auto vert = m_graph->ref(eid).other(m_id);
+			if(layers == all<Layer> || (vert.layers() & layers))
+				out.emplace_back(vert);
+		}
 	return {out, m_graph};
 }
 

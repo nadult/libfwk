@@ -44,14 +44,16 @@ class VertexRef {
 	int idx() const { return m_id.index(); }
 
 	const GraphLabel *operator->() const;
+	Layers layers() const;
 
 	PooledEdgeRefs edges(Layers = all<Layer>) const;
 	PooledEdgeRefs edgesFrom(Layers = all<Layer>) const;
 	PooledEdgeRefs edgesTo(Layers = all<Layer>) const;
 
-	PooledVertexRefs vertsAdj() const;
-	PooledVertexRefs vertsFrom() const;
-	PooledVertexRefs vertsTo() const;
+	// Should we filter edges or vertices here ?
+	PooledVertexRefs vertsAdj(Layers = all<Layer>) const;
+	PooledVertexRefs vertsFrom(Layers = all<Layer>) const;
+	PooledVertexRefs vertsTo(Layers = all<Layer>) const;
 
 	int numEdges(Layers = all<Layer>) const;
 	int numEdgesFrom(Layers = all<Layer>) const;
