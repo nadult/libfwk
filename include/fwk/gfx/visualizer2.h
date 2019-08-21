@@ -50,8 +50,8 @@ class VoronoiVis2 {
   public:
 	VoronoiVis2(Visualizer2 &, const VoronoiDiagram &, VoronoiVis2Colors, Maybe<CellId> sel);
 
-	void drawSegment(GEdgeId, bool draw_sel);
-	void drawArc(GEdgeId, bool draw_sel);
+	void drawSegment(EdgeId, bool draw_sel);
+	void drawArc(EdgeId, bool draw_sel);
 	void draw();
 
   private:

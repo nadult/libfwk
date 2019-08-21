@@ -175,7 +175,7 @@ class VoronoiConstructor {
 				   (ulp_cmp(v1.y, v2.y, ULPS) == ulp_comparison<CT>::EQUAL);
 		};
 
-		HashMap<Pair<VertexId>, Pair<GEdgeId>> shared_node_arcs;
+		HashMap<Pair<VertexId>, Pair<EdgeId>> shared_node_arcs;
 		shared_node_arcs.reserve(m_input_graph.numEdges() * 2);
 
 		auto *first_cell = &m_diagram.cells()[0];
@@ -191,7 +191,7 @@ class VoronoiConstructor {
 			Maybe<VertexId> shared_node;
 			for(auto v1 : cell1.generator)
 				for(auto v2 : cell2.generator)
-					if(v1 == v2 && m_input_graph.numEdges(v1) != 1) {
+					if(v1 == v2 && m_input_graph.ref(v1).numEdges() != 1) {
 						shared_node = v1;
 						break;
 					}

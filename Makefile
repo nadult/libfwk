@@ -71,7 +71,7 @@ SRC_gfx_gl = \
 SRC_audio = audio/al_device audio/sound audio/ogg_stream
 
 SRC_geom = geom_base geom/contour geom/regular_grid geom/segment_grid geom/procgen
-SRC_geom_graph = geom/graph geom/geom_graph
+SRC_geom_graph = geom/element_ref geom/graph geom/geom_graph
 SRC_geom_voronoi = geom/voronoi geom/wide_int geom/voronoi_constructor geom/delaunay
 
 ifdef IMGUI_ENABLED

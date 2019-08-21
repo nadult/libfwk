@@ -72,7 +72,7 @@ template <class T> auto Contour<T>::operator[](EdgeId edge_id) const -> Segment 
 	return {m_points[edge_id], m_points[(edge_id + 1) % m_points.size()]};
 }
 
-template <class T> pair<EdgeId, EdgeId> Contour<T>::adjacentEdges(VertexId node_id) const {
+template <class T> Pair<EdgeId> Contour<T>::adjacentEdges(VertexId node_id) const {
 	DASSERT_EX(valid(node_id), node_id);
 
 	if(m_is_looped) {

@@ -23,30 +23,30 @@ VoronoiDiagram::VoronoiDiagram(GeomGraph<double2> graph, Info info)
 	}
 }
 
-bool VoronoiDiagram::isArcPrimary(GEdgeId id) const {
+bool VoronoiDiagram::isArcPrimary(EdgeId id) const {
 	PASSERT(m_graph.layer(id) == arc_layer);
 	return m_graph[id].ival1 != 0;
 }
 
-GEdgeId VoronoiDiagram::arcId(GEdgeId id) const {
+EdgeId VoronoiDiagram::arcId(EdgeId id) const {
 	PASSERT(m_graph.layer(id) == seg_layer);
-	return GEdgeId(m_graph[id].ival1);
+	return EdgeId(m_graph[id].ival1);
 }
 
-CellId VoronoiDiagram::cellId(GEdgeId id) const {
+CellId VoronoiDiagram::cellId(EdgeId id) const {
 	auto layer = m_graph.layer(id);
 	PASSERT(isOneOf(layer, arc_layer, seg_layer));
 	return CellId(m_graph[id].ival2);
 }
 
-vector<GEdgeId> VoronoiDiagram::arcSegments(GEdgeId edge) const {
-	vector<GEdgeId> out;
+vector<EdgeId> VoronoiDiagram::arcSegments(EdgeId edge) const {
+	vector<EdgeId> out;
 	// TODO
 	return out;
 }
 
-vector<GEdgeId> VoronoiDiagram::cellArcs(CellId) const {
-	vector<GEdgeId> out;
+vector<EdgeId> VoronoiDiagram::cellArcs(CellId) const {
+	vector<EdgeId> out;
 	// TODO
 	return out;
 }
@@ -150,7 +150,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 	for(auto ref : m_graph.edges(seg_layer)) {
 		auto segment = m_graph(ref);
 
-		GEdgeId old_arc_id(m_graph[ref].ival1);
+		EdgeId old_arc_id(m_graph[ref].ival1);
 		auto clipped = segment.clip(rect);
 		if(clipped) {
 			DASSERT(rect.contains(clipped->from));
@@ -167,7 +167,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 	{ // Constructing new arcs from segments
 		DASSERT(new_graph.isUndirected(seg_layer));
 		vector<bool> visited(new_graph.edgesEndIndex(), false);
-		vector<GEdgeId> arc;
+		vector<EdgeId> arc;
 
 		for(int cycles_mode = 0; cycles_mode < 2; cycles_mode++) {
 			for(auto vert : new_graph.verts(seg_layer)) {
@@ -180,7 +180,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 					visited[edge] = true;
 					arc.clear();
 
-					GEdgeId old_arc_id(new_graph[edge].ival1);
+					EdgeId old_arc_id(new_graph[edge].ival1);
 
 					VertexId pnode = vert;
 					auto nedge = edge;

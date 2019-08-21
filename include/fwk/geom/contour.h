@@ -15,6 +15,9 @@ namespace fwk {
 
 // TODO: non-continuous contours as well ?
 // TODO: VertexId, EdgeId; interface similar to PGraph
+// TODO: does it even make sense to use VertexId & EdgeId here ?
+//       if we extract contour from graph, then indices break...; unless we make
+//       a special kind of class which keeps indices instead of points?
 // TODO: Contour as a selection of edges from PlaneGraph (directions would matter though...)
 // nodes(points) can be duplicated
 template <class T> class Contour {

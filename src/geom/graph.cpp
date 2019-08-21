@@ -1,3 +1,6 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #include "fwk/geom/graph.h"
 
 #include "fwk/heap.h"
@@ -10,125 +13,7 @@ namespace fwk {
 
 template <class T> using FixedElem = Graph::FixedElem<T>;
 
-// -------------------------------------------------------------------------
-// -- VertexRef & IndexRef implementation ----------------------------------
-
-const GraphLabel *VertexRef::operator->() const { return &(*m_graph)[m_id]; }
-const GraphLabel *EdgeRef::operator->() const { return &(*m_graph)[m_id]; }
-
-int VertexRef::numEdges(Layers layers) const {
-	auto &edges = m_graph->m_verts[m_id];
-	if(layers == Layers::all())
-		return edges.size();
-	int count = 0;
-	for(auto eid : m_graph->m_verts[m_id])
-		if(layers & eid.layer())
-			count++;
-	return count;
-}
-
-int VertexRef::numEdgesFrom(Layers layers) const {
-	int count = 0;
-	for(auto eid : m_graph->m_verts[m_id])
-		if(eid.isSource() && (eid.layer() & layers))
-			count++;
-	return count;
-}
-
-int VertexRef::numEdgesTo(Layers layers) const {
-	int count = 0;
-	for(auto eid : m_graph->m_verts[m_id])
-		if(!eid.isSource() && (eid.layer() & layers))
-			count++;
-	return count;
-}
-
-EdgeRefs VertexRef::edgesFrom(Layers layers) const {
-	PoolVector<EdgeId> out;
-	for(auto eid : m_graph->m_verts[m_id])
-		if(eid.isSource() && eid.test(layers))
-			out.emplace_back(eid);
-	return {out, m_graph};
-}
-
-EdgeRefs VertexRef::edgesTo(Layers layers) const {
-	PoolVector<EdgeId> out;
-	for(auto eid : m_graph->m_verts[m_id])
-		if(!eid.isSource() && eid.test(layers))
-			out.emplace_back(eid);
-	return {out, m_graph};
-}
-
-EdgeRefs VertexRef::edges(Layers layers) const {
-	PoolVector<EdgeId> out; // TODO: keep counts ?
-	for(auto eid : m_graph->m_verts[m_id])
-		if(eid.test(layers))
-			out.emplace_back(eid);
-	return {out, m_graph};
-}
-
-VertexRef EdgeRef::from() const { return VertexRef(m_graph, m_graph->m_edges[m_id].from); }
-VertexRef EdgeRef::to() const { return VertexRef(m_graph, m_graph->m_edges[m_id].to); }
-VertexRef EdgeRef::other(VertexId node) const {
-	auto &edge = m_graph->m_edges[m_id];
-	return VertexRef(m_graph, edge.from == node ? edge.to : edge.from);
-}
-Maybe<EdgeRef> EdgeRef::twin(GraphLayers layers) const {
-	return m_graph->findEdge(to(), from(), layers);
-}
-
-bool EdgeRef::adjacent(VertexId node_id) const { return isOneOf(node_id, from(), to()); }
-bool EdgeRef::adjacent(EdgeId rhs_id) const {
-	EdgeRef rhs(m_graph, rhs_id);
-	return adjacent(rhs.from()) || adjacent(rhs.to());
-}
-
-EdgeRef EdgeRef::prevFrom() const {
-	auto &vert_edges = m_graph->m_verts[from()];
-	int idx = 0;
-	for(; idx < vert_edges.size(); idx++)
-		if(vert_edges[idx] == m_id)
-			break;
-	for(idx--; idx >= 0; idx--)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	for(idx = vert_edges.size() - 1;; idx--)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	// Unreachable
-}
-
-EdgeRef EdgeRef::nextFrom() const {
-	auto &vert_edges = m_graph->m_verts[from()];
-	int idx = 0;
-	for(; idx < vert_edges.size(); idx++)
-		if(vert_edges[idx] == m_id)
-			break;
-	for(idx++; idx < vert_edges.size(); idx++)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	for(idx = 0;; idx++)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	// Unreachable
-}
-
-EdgeRef EdgeRef::prevTo() const {
-	FATAL("write me");
-	return *this;
-}
-
-EdgeRef EdgeRef::nextTo() const {
-	FATAL("write me");
-	return *this;
-}
-
 using Label = GraphLabel;
-
-FWK_ORDER_BY_DEF(GraphLabel, color, ival1, ival2, fval1, fval2);
-
-// -------------------------------------------------------------------------
-// -- Graph implementation -------------------------------------------------
 
 Graph::Graph() = default;
 FWK_COPYABLE_CLASS_IMPL(Graph);
@@ -187,45 +72,41 @@ int Graph::numTris(Layers layers) const {
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
 
-VertexIds Graph::vertexIds(Layers layer_mask) const {
-	PoolVector<VertexId> out;
+vector<VertexId> Graph::vertexIds(Layers layer_mask) const {
+	Vector<VertexId> out;
 	for(auto idx : m_verts.indices()) {
-		// TODO: incorporate layer
-		auto layer = m_vert_layers[idx];
-		if(layer_mask == Layers::all() || (layer & layer_mask))
+		if(layer_mask == Layers::all() || (m_vert_layers[idx] & layer_mask))
 			out.emplace_back(idx);
 	}
 	return out;
 }
 
-EdgeIds Graph::edgeIds(Layers layer_mask) const {
-	PoolVector<EdgeId> out;
-	for(auto idx : m_edges.indices()) {
-		EdgeId id(idx, none, m_edge_layers[idx]);
-		if(id.test(layer_mask))
-			out.emplace_back(id);
-	}
+vector<EdgeId> Graph::edgeIds(Layers layer_mask) const {
+	Vector<EdgeId> out;
+	for(auto idx : m_edges.indices())
+		if(layer_mask == Layers::all() || (m_edge_layers[idx] & layer_mask))
+			out.emplace_back(idx);
 	return out;
 }
 
 Maybe<EdgeRef> Graph::findEdge(VertexId from, VertexId to, Layers layers) const {
 	for(auto eid : m_verts[from])
 		if(eid.isSource() && eid.test(layers) && m_edges[eid].to == to)
-			return ref(eid);
+			return EdgeRef{this, eid};
 	return none;
 }
 
 Maybe<EdgeRef> Graph::findUndirectedEdge(VertexId from, VertexId to, Layers layers) const {
 	for(auto eid : m_verts[from])
 		if(eid.isSource() && eid.test(layers) && m_edges[eid].to == to)
-			return ref(eid);
+			return EdgeRef{this, eid};
 	for(auto eid : m_verts[to])
 		if(eid.isSource() && eid.test(layers) && m_edges[eid].to == from)
-			return ref(eid);
+			return EdgeRef{this, eid};
 	return none;
 }
 
-Maybe<GTriId> Graph::findTri(VertexId v1, VertexId v2, VertexId v3, Layers layers) const {
+Maybe<TriId> Graph::findTri(VertexId v1, VertexId v2, VertexId v3, Layers layers) const {
 	auto vmax = max(v1, v2, v3);
 	if(vmax >= m_vert_tris.size())
 		return none;
@@ -233,7 +114,7 @@ Maybe<GTriId> Graph::findTri(VertexId v1, VertexId v2, VertexId v3, Layers layer
 	for(auto tid : m_vert_tris[v1]) {
 		auto &tri = m_tris[tid];
 		if(isOneOf(v2, tri.verts) && isOneOf(v3, tri.verts))
-			return tid;
+			return TriId(tid);
 	}
 	return none;
 }
@@ -322,47 +203,47 @@ void Graph::addVertexAt(VertexId vid, Layers layers) {
 	m_vert_layers[vid] = layers;
 }
 
-GEdgeId Graph::addEdge(VertexId v1, VertexId v2, Layer layer) {
+EdgeId Graph::addEdge(VertexId v1, VertexId v2, Layer layer) {
 	DASSERT(valid(v1) && valid(v2));
 	DASSERT(v1 != v2);
 
 	EdgeId eid(m_edges.emplace(v1, v2));
 	m_edge_layers.resize(m_edges.capacity());
 	m_edge_layers[eid] = layer;
-	m_verts[v1].emplace_back(eid.index(), EdgeOpt::source, layer);
-	m_verts[v2].emplace_back(eid, none, layer);
+	m_verts[v1].emplace_back(eid.index(), layer, true);
+	m_verts[v2].emplace_back(eid, layer, false);
 	return eid;
 }
 
 void Graph::addEdgeAt(EdgeId eid, VertexId v1, VertexId v2, Layer layer) {
-	DASSERT(valid(v1) && valid(v2));
+	DASSERT_EX(valid(v1) && valid(v2), v1, v2);
 	DASSERT(v1 != v2);
 	DASSERT(!valid(eid));
 
 	m_edges.emplaceAt(eid, v1, v2);
 	m_edge_layers.resize(m_edges.capacity());
 	m_edge_layers[eid] = layer;
-	m_verts[v1].emplace_back(eid.index(), EdgeOpt::source, layer);
-	m_verts[v2].emplace_back(eid, none, layer);
+	m_verts[v1].emplace_back(eid.index(), layer, true);
+	m_verts[v2].emplace_back(eid, layer, false);
 }
 
-FixedElem<GEdgeId> Graph::fixEdge(VertexId v1, VertexId v2, Layer layer) {
+FixedElem<EdgeId> Graph::fixEdge(VertexId v1, VertexId v2, Layer layer) {
 	if(auto id = findEdge(v1, v2, layer))
 		return {*id, false};
 	return {addEdge(v1, v2, layer), true};
 }
 
-FixedElem<GEdgeId> Graph::fixUndirectedEdge(VertexId v1, VertexId v2, Layer layer) {
+FixedElem<EdgeId> Graph::fixUndirectedEdge(VertexId v1, VertexId v2, Layer layer) {
 	if(auto id = findUndirectedEdge(v1, v2, layer))
 		return {*id, false};
 	return {addEdge(v1, v2, layer), true};
 }
 
-GTriId Graph::addTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
+TriId Graph::addTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
 	PASSERT(valid(v1) && valid(v2) && valid(v3));
 	DASSERT(v1 != v2 && v2 != v3 && v3 != v1);
 
-	TriId tid(m_tris.emplace(v1, v2, v3), layer);
+	TriId tid(m_tris.emplace(v1, v2, v3));
 	m_tri_layers.resize(m_tris.capacity());
 	m_tri_layers[tid] = layer;
 
@@ -370,13 +251,13 @@ GTriId Graph::addTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
 	if(m_vert_tris.size() <= vmax)
 		m_vert_tris.resize(int(vmax) + 1);
 
-	m_vert_tris[v1].emplace_back(tid, TriVertexId::v1);
-	m_vert_tris[v2].emplace_back(tid, TriVertexId::v2);
-	m_vert_tris[v3].emplace_back(tid, TriVertexId::v3);
+	m_vert_tris[v1].emplace_back(tid, layer, 0);
+	m_vert_tris[v2].emplace_back(tid, layer, 1);
+	m_vert_tris[v3].emplace_back(tid, layer, 2);
 	return tid;
 }
 
-FixedElem<GTriId> Graph::fixTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
+FixedElem<TriId> Graph::fixTri(VertexId v1, VertexId v2, VertexId v3, Layer layer) {
 	if(auto id = findTri(v1, v2, v3, layer))
 		return {*id, false};
 	return {addTri(v1, v2, v3, layer), true};

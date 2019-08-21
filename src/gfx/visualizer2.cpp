@@ -20,7 +20,7 @@ VoronoiVis2::VoronoiVis2(Visualizer2 &vis, const VoronoiDiagram &diag, VoronoiVi
 						 Maybe<CellId> sel)
 	: m_vis(vis), m_diag(diag), m_graph(diag.graph()), m_colors(colors), m_sel(sel) {}
 
-void VoronoiVis2::drawSegment(GEdgeId seg_id, bool draw_sel) {
+void VoronoiVis2::drawSegment(EdgeId seg_id, bool draw_sel) {
 	auto arc_id = m_diag.arcId(seg_id);
 	auto cell_id = m_diag.cellId(arc_id);
 	auto seg = m_graph.ref(seg_id);
@@ -35,7 +35,7 @@ void VoronoiVis2::drawSegment(GEdgeId seg_id, bool draw_sel) {
 	m_vis.drawLine(p1, p2, color);
 }
 
-void VoronoiVis2::drawArc(GEdgeId eid, bool draw_sel) {
+void VoronoiVis2::drawArc(EdgeId eid, bool draw_sel) {
 	auto ref = m_graph.ref(eid);
 	auto p1 = m_graph(ref.from()), p2 = m_graph(ref.to());
 	auto color = !m_diag.isArcPrimary(eid) ? m_colors.inner_line : m_colors.line;

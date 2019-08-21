@@ -62,10 +62,11 @@ struct VoronoiInfo {
 //
 // Sites are on layer 1, arcs on layer 2 and arc segments on layer 3
 // TODO: rename to Voronoi ?
+// TODO: use EdgeIdx in some places?
 class VoronoiDiagram {
   public:
 	using Info = VoronoiInfo;
-	using Cell = VoronoiCell;
+	using Cell = VoronoiCell; // TODO: remove it ?
 
 	VoronoiDiagram() = default;
 	VoronoiDiagram(GeomGraph<double2>, Info);
@@ -89,9 +90,9 @@ class VoronoiDiagram {
 	static VoronoiDiagram construct(const GeomGraph<int2> &);
 	VoronoiDiagram clip(DRect) const;
 
-	bool isArcPrimary(GEdgeId) const;
-	GEdgeId arcId(GEdgeId) const;
-	CellId cellId(GEdgeId) const;
+	bool isArcPrimary(EdgeId) const;
+	EdgeId arcId(EdgeId) const;
+	CellId cellId(EdgeId) const;
 
 	/*
 	template <class Func> VoronoiDiagram transform(const Func &func) const {
@@ -132,8 +133,8 @@ class VoronoiDiagram {
 
 	bool empty() const { return m_graph.empty(); }
 
-	vector<GEdgeId> arcSegments(GEdgeId) const;
-	vector<GEdgeId> cellArcs(CellId) const;
+	vector<EdgeId> arcSegments(EdgeId) const;
+	vector<EdgeId> cellArcs(CellId) const;
 
 	Maybe<CellId> findClosestCell(double2) const;
 

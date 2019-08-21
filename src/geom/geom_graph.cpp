@@ -1,3 +1,6 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #include "fwk/geom/geom_graph.h"
 
 #include "fwk/geom/segment_grid.h"
@@ -110,14 +113,13 @@ template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &poin
 	return {id, true};
 }
 
-template <class T> FixedElem<GEdgeId> GeomGraph<T>::fixEdge(Point p1, Point p2, Layer layer) {
+template <class T> FixedElem<EdgeId> GeomGraph<T>::fixEdge(Point p1, Point p2, Layer layer) {
 	auto n1 = fixVertex(p1).id;
 	auto n2 = fixVertex(p2).id;
 	return fixEdge(n1, n2, layer);
 }
 
-template <class T>
-FixedElem<GEdgeId> GeomGraph<T>::fixEdge(const Segment<Point> &seg, Layer layer) {
+template <class T> FixedElem<EdgeId> GeomGraph<T>::fixEdge(const Segment<Point> &seg, Layer layer) {
 	return fixEdge(seg.from, seg.to, layer);
 }
 
@@ -195,7 +197,7 @@ template <class T> template <Axes2D axes> void GeomGraph<T>::orderEdges(VertexId
 	struct OrderedEdge {
 		Vec2 vec;
 		int quadrant;
-		GEdgeId eid = no_init;
+		VertexEdgeId eid = no_init;
 
 		bool operator<(const OrderedEdge &rhs) const {
 			if(quadrant != rhs.quadrant)
@@ -218,7 +220,7 @@ template <class T> template <Axes2D axes> void GeomGraph<T>::orderEdges(VertexId
 			vec = full_vec;
 
 		auto quadrant = fwk::quadrant(vec);
-		oedges[n] = {vec, quadrant, edge};
+		oedges[n] = {vec, quadrant, edges[n]};
 	}
 
 	std::sort(begin(oedges), end(oedges));
@@ -289,7 +291,7 @@ template <class T> auto GeomGraph<T>::makeGrid(Axes2D axes) const -> Grid {
 }
 
 // TODO: computation in 3D or pass Axes2D?
-template <class T> vector<GEdgeId> GeomGraph<T>::findIntersectors(const Grid &grid) const {
+template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors(const Grid &grid) const {
 	vector<EdgeId> out;
 
 	if constexpr(dim<T> == 3) {
@@ -302,7 +304,7 @@ template <class T> vector<GEdgeId> GeomGraph<T>::findIntersectors(const Grid &gr
 			auto verts = grid.cellNodes(cell_id);
 
 			for(int e1 : intRange(edges)) {
-				EdgeRef edge1(ref(GEdgeId(edges[e1])));
+				EdgeRef edge1(ref(EdgeId(edges[e1])));
 				Segment seg1 = (*this)(edge1);
 				bool is_isecting = false;
 

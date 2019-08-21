@@ -1,3 +1,6 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #pragma once
 
 #include "fwk/geom/graph.h"
@@ -17,7 +20,6 @@ template <class T> class GeomGraph : public Graph {
 	using Vec = T;
 	using Vec2D = MakeVec<Base<T>, 2>;
 	using IPoint = MakeVec<int, dim<T>>;
-	using EdgeId = GEdgeId;
 	using Label = GraphLabel;
 	using Grid = SegmentGrid<Vec2D>;
 

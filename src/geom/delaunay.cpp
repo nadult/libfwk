@@ -24,7 +24,7 @@ vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 	auto &graph = voronoi.graph();
 	auto cell_verts = graph.verts(voronoi.site_layer);
 
-	vector<Pair<VertexId>> out;
+	vector<VertexIdPair> out;
 	vector<bool> visited(graph.numEdges(VoronoiDiagram::arc_layer));
 
 	for(auto arc : graph.edges(VoronoiDiagram::arc_layer)) {
@@ -148,7 +148,7 @@ struct CDT {
 		Seg segment(graph(vertex_pair.first), graph(vertex_pair.second));
 		for(auto cell : grid.trace(segment))
 			for(auto eid : grid.cellEdges(cell)) {
-				if(graph(GEdgeId(eid)).classifyIsect(segment) & IsectClass::point)
+				if(graph(eid).classifyIsect(segment) & IsectClass::point)
 					return true;
 			}
 		return false;

@@ -1,234 +1,20 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #pragma once
 
 #include "fwk/any.h"
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
+#include "fwk/geom/element_ref.h"
 #include "fwk/geom_base.h"
 #include "fwk/gfx_base.h"
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
 #include "fwk/indexed_vector.h"
 #include "fwk/small_vector.h"
-#include "fwk/tag_id.h"
-#include "fwk/type_info_gen.h"
 
 namespace fwk {
-
-// source means that current edge starts from current index
-DEFINE_ENUM(EdgeOpt, source, flipped);
-using EdgeFlags = EnumFlags<EdgeOpt>;
-
-DEFINE_ENUM(GraphLayer, l1, l2, l3, l4, l5, l6, l7, l8);
-using GraphLayers = EnumFlags<GraphLayer>;
-
-// Makes sense only for refs from verts
-DEFINE_ENUM(TriVertexId, v1, v2, v3);
-
-DEFINE_ENUM(GraphEdgeKind, from, to, both);
-
-template <class Ref, class Id> struct GraphRefs {
-	PoolVector<Id> ids;
-	const Graph *graph;
-
-	struct Iter {
-		constexpr const Iter &operator++() {
-			ptr++;
-			return *this;
-		}
-		Ref operator*() const { return Ref{graph, *ptr}; }
-		constexpr int operator-(const Iter &rhs) const { return ptr - rhs.ptr; }
-		constexpr bool operator!=(const Iter &rhs) const { return ptr != rhs.ptr; }
-
-		const Graph *graph;
-		const Id *ptr;
-	};
-
-	Ref operator[](int idx) const { return Ref{graph, ids[idx]}; }
-	Iter begin() const { return {graph, ids.begin()}; }
-	Iter end() const { return {graph, ids.end()}; }
-	int size() const { return ids.size(); }
-};
-
-using EdgeRefs = GraphRefs<EdgeRef, GEdgeId>;
-using VertexRefs = GraphRefs<VertexRef, VertexId>;
-
-using VertexIds = PoolVector<VertexId>;
-using EdgeIds = PoolVector<GEdgeId>;
-
-struct GraphLabel {
-	u32 color = 0xffffffff;
-	int ival1 = 0;
-	int ival2 = 0;
-	float fval1 = 0.0f;
-	float fval2 = 0.0f;
-
-	FWK_ORDER_BY_DECL(GraphLabel);
-};
-
-// TODO: Rename to EdgeId, after removing old class
-struct GEdgeId {
-	static constexpr int index_mask = 0x07ffffff; // ~130M
-	static constexpr int max_index = index_mask - 1;
-
-	using Opt = EdgeOpt;
-	using Kind = GraphEdgeKind;
-
-	GEdgeId(NoInitTag) { IF_PARANOID(m_value = ~0u); }
-	explicit GEdgeId(int index, EdgeFlags flags = none, GraphLayer layer = GraphLayer::l1)
-		: m_value(uint(index) | (uint(layer) << 27) | (flags.bits << 30)) {
-		PASSERT(index >= 0 && index <= max_index);
-	}
-
-	bool isSource() const { return testInit(), m_value & (1 << (30 + (int)Opt::source)); }
-	bool isFlipped() const { return testInit(), m_value & (1 << (30 + (int)Opt::flipped)); }
-	EdgeFlags flags() const { return testInit(), EdgeFlags(m_value >> 30); }
-	GraphLayer layer() const { return testInit(), GraphLayer((m_value >> 27) & 7); }
-
-	bool test(GraphLayers layers) const {
-		return layers == GraphLayers::all() || (layer() & layers);
-	}
-
-	explicit operator bool() const = delete;
-	operator int() const { return testInit(), m_value & index_mask; }
-	int index() const { return testInit(), m_value & index_mask; }
-
-	GEdgeId(EmptyMaybe) : m_value(~0u) {}
-	bool validMaybe() const { return m_value != ~0u; }
-
-  private:
-	void testInit() const { PASSERT(m_value != ~0u); }
-
-	uint m_value;
-};
-
-struct GTriId {
-	static constexpr int index_mask = 0x07ffffff; // ~130M
-	static constexpr int max_index = index_mask - 1;
-
-	GTriId(NoInitTag) { IF_PARANOID(m_value = ~0u); }
-	explicit GTriId(int index, GraphLayer layer = GraphLayer::l1, TriVertexId vid = TriVertexId::v1)
-		: m_value(uint(index) | (uint(layer) << 27) | (uint(vid) << 30)) {
-		PASSERT(index >= 0 && index <= max_index);
-	}
-	GTriId(GTriId id, TriVertexId vid) : m_value((id.m_value & 0x3fffffff) | (uint(vid) << 30)) {}
-
-	TriVertexId flags() const { return testInit(), TriVertexId(m_value >> 30); }
-	GraphLayer layer() const { return testInit(), GraphLayer((m_value >> 27) & 7); }
-
-	explicit operator bool() const = delete;
-	operator int() const { return testInit(), m_value & index_mask; }
-	int index() const { return testInit(), m_value & index_mask; }
-
-	GTriId(EmptyMaybe) : m_value(~0u) {}
-	bool validMaybe() const { return m_value != ~0u; }
-
-  private:
-	void testInit() const { PASSERT(m_value != ~0u); }
-
-	uint m_value;
-};
-
-struct EdgeFilter {
-	bool test_source;
-	bool is_source;
-	GraphLayers layers;
-
-	bool operator()(GEdgeId id) const {
-		return (!test_source || is_source == id.isSource()) &&
-			   (layers == GraphLayers::all() || (id.layer() & layers));
-	}
-};
-
-class VertexRef {
-  public:
-	using EdgeId = GEdgeId;
-	using TriId = GTriId;
-	using Layers = GraphLayers;
-
-	VertexRef(const Graph *graph, VertexId id) : m_graph(graph), m_id(id) {}
-
-	operator VertexId() const { return m_id; }
-	operator int() const { return (int)m_id; }
-	VertexId id() const { return m_id; }
-	int idx() const { return m_id.index(); }
-
-	const GraphLabel *operator->() const;
-
-	EdgeRefs edges(Layers = Layers::all()) const;
-	EdgeRefs edgesFrom(Layers = Layers::all()) const;
-	EdgeRefs edgesTo(Layers = Layers::all()) const;
-
-	VertexRefs vertsAdj() const;
-	VertexRefs vertsFrom() const;
-	VertexRefs vertsTo() const;
-
-	int numEdges(Layers = Layers::all()) const;
-	int numEdgesFrom(Layers = Layers::all()) const;
-	int numEdgesTo(Layers = Layers::all()) const;
-
-	VertexRef(EmptyMaybe) : m_graph(nullptr), m_id(EmptyMaybe()) {}
-	bool validMaybe() const { return m_graph; }
-
-  private:
-	friend class EdgeRef;
-	friend class Graph;
-
-	const Graph *m_graph;
-	VertexId m_id;
-};
-
-class EdgeRef {
-  public:
-	using EdgeId = GEdgeId;
-	using TriId = GTriId;
-
-	EdgeRef(const Graph *graph, EdgeId id) : m_graph(graph), m_id(id) {}
-
-	operator EdgeId() const { return m_id; }
-	operator int() const { return (int)m_id; }
-	EdgeId id() const { return m_id; }
-	int idx() const { return m_id.index(); }
-	auto layer() const { return m_id.layer(); }
-
-	const GraphLabel *operator->() const;
-
-	VertexRef from() const;
-	VertexRef to() const;
-	VertexRef other(VertexId node) const;
-
-	Maybe<EdgeRef> twin(GraphLayers = GraphLayers::all()) const;
-
-	bool adjacent(VertexId) const;
-	bool adjacent(EdgeId) const;
-
-	bool isSource() const { return m_id.isSource(); }
-	bool isFlipped() const { return m_id.isFlipped(); } // TODO: handle it
-
-	// Using current order; TODO: enforce ordering somehow ?
-	// TODO: layers ?
-	EdgeRef prevFrom() const;
-	EdgeRef nextFrom() const;
-	EdgeRef prevTo() const;
-	EdgeRef nextTo() const;
-
-	// -------------------------------------------------------------------------
-	// -- Extended functions; extended info in graph must be present! ----------
-
-	//EdgeRef nextFrom() const { return EdgeRef(*m_graph, m_graph->m_ext_info[m_id].next_from); }
-	//EdgeRef prevFrom() const { return EdgeRef(*m_graph, m_graph->m_ext_info[m_id].prev_from); }
-	//EdgeRef nextTo() const { return EdgeRef(*m_graph, m_graph->m_ext_info[m_id].next_to); }
-	//EdgeRef prevTo() const { return EdgeRef(*m_graph, m_graph->m_ext_info[m_id].prev_to); }
-
-	EdgeRef(EmptyMaybe) : m_graph(nullptr), m_id(EmptyMaybe()) {}
-	bool validMaybe() const { return m_graph; }
-
-  private:
-	friend class VertexRef;
-	friend class Graph;
-
-	const Graph *m_graph;
-	EdgeId m_id;
-};
 
 // Simple Graph class with a focus on genericity & ease-of-use
 // Besides verts & edges also have triangles support
@@ -248,17 +34,50 @@ class EdgeRef {
 //   already; This function returns id and a bool which is true if new object was added
 //
 // TODO: add polygon support
+//
+// TODO: operator[] mógłby działać jak ref;
+// Potrzebujemy 3 różnych dostępów:
+// - tworzenie refa z idka
+// - zwracanie punktu / krawędzi trójkąta
+// - dostęp do labelki
 class Graph {
   public:
-	using EdgeId = GEdgeId;
-	using TriId = GTriId;
 	using Label = GraphLabel;
 	using Layer = GraphLayer;
 	using Layers = GraphLayers;
-	using EdgeKind = GraphEdgeKind;
 
-	using VertexInfo = SmallVector<EdgeId, 7>;
-	using VertexTriInfo = SmallVector<TriId, 7>;
+	static constexpr int max_index = (1 << 27) - 1; // About ~134M
+
+	struct VertexEdgeId {
+		VertexEdgeId(int index, Layer layer, bool is_source)
+			: value(uint(index) | (uint(layer) << 27) | (uint(is_source) << 30)) {}
+		VertexEdgeId(NoInitTag) {}
+
+		operator int() const { return value & max_index; }
+		operator EdgeId() const { return EdgeId((int)(*this)); }
+		Layer layer() const { return Layer((value >> 27) & 7); }
+		bool isSource() const { return value & (1 << 30); }
+		bool test(Layers mask) const { return mask == Layers::all() || (layer() & mask); }
+
+		uint value;
+	};
+
+	struct VertexTriId {
+		VertexTriId(int index, Layer layer, int vert_id)
+			: value(uint(index) | (uint(layer) << 27) | (uint(vert_id) << 30)) {}
+		VertexTriId(NoInitTag) {}
+
+		operator int() const { return value & max_index; }
+		operator TriId() const { return TriId((int)(*this)); }
+		Layer layer() const { return Layer((value >> 27) & 7); }
+		int vertId() const { return int(value >> 30); }
+		bool test(Layers mask) const { return mask == Layers::all() || (layer() & mask); }
+
+		uint value;
+	};
+
+	using VertexInfo = SmallVector<VertexEdgeId, 7>;
+	using VertexTriInfo = SmallVector<VertexTriId, 7>;
 
 	Graph();
 	Graph(CSpan<Pair<VertexId>>, Maybe<int> num_verts = none);
@@ -302,13 +121,12 @@ class Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
 
-	// TODO: these contain no meta information...
-	//auto vertexIds() const { return m_verts.indices<VertexId>(); }
-	//auto edgeIds() const { return m_edges.indices<EdgeId>(); }
-	//auto triIds() const { return m_tris.indices<TriId>(); }
+	auto vertexIds() const { return m_verts.indices<VertexId>(); }
+	auto edgeIds() const { return m_edges.indices<EdgeId>(); }
+	auto triIds() const { return m_tris.indices<TriId>(); }
 
-	VertexIds vertexIds(Layers layer_mask = Layers::all()) const;
-	EdgeIds edgeIds(Layers layer_mask = Layers::all()) const;
+	vector<VertexId> vertexIds(Layers layer_mask) const;
+	vector<EdgeId> edgeIds(Layers layer_mask) const;
 
 	VertexRefs verts(Layers layers = Layers::all()) const { return {vertexIds(layers), this}; }
 	EdgeRefs edges(Layers layers = Layers::all()) const { return {edgeIds(layers), this}; }
@@ -317,13 +135,8 @@ class Graph {
 	Maybe<EdgeRef> findUndirectedEdge(VertexId, VertexId, Layers = Layers::all()) const;
 	auto findEdges(VertexId, VertexId, Layers = Layers::all()) const;
 
-	Maybe<GTriId> findTri(VertexId, VertexId, VertexId, Layers = Layers::all()) const;
+	Maybe<TriId> findTri(VertexId, VertexId, VertexId, Layers = Layers::all()) const;
 	auto findTris(VertexId, VertexId, VertexId, Layers = Layers::all()) const;
-
-	CSpan<EdgeId> edges(VertexId id) const { return m_verts[id]; }
-	int numEdges(VertexId node_id) const {
-		return PASSERT(valid(node_id)), m_verts[node_id].size();
-	}
 
 	VertexRef ref(VertexId vertex_id) const {
 		return PASSERT(valid(vertex_id)), VertexRef(this, vertex_id);
