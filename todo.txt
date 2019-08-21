@@ -2,15 +2,6 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
-- Vector<> i PoolVector<> mogłyby być zmergowane
-  Problemy:
-  - wymaga zapisanie 1 bita na capacity; niektóre operacje będą minimalnie wolniejsze, bo
-    będą wymagały and-a
-  - trzeba się zastanowić w jaki sposób włączać tryb poolowania; np. vector<int> vec(use_pool); ?
-  - istenieje ryzoko, że jak użytkownik zaczenie przechowywać duże ilości pool vectorów, to
-    zmarnuje dużo pamięci; jak sie przed tym zabezpieczyć (żeby to się nie działo za plecami)?
-  - w jakiś sposób user musi informować kiedy chce przejść z jednego trybu na drugi?
-
 - zle dziala bez imgui (perf)
 - jeden makefile dla eksperymentów, żeby można było szybko testować, czy nic sie nie spieprzylo
 - Debugowy build w niezależnym katalogu, tak żeby można było się szybko przełączać
@@ -27,7 +18,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - używanie kamer w model viewerze
 - przywrócenie visualizerow w geomie 
 - przenesienie investigatorow ?
-- pozmieniac nazwy plikow pch?
 - przenies menu_imgui, menu_imgui_in do menu/ ?
 - EnumTypeInfo
 - Variant - Any interaction
@@ -35,14 +25,20 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - TypeInfoData can be optimized (it takes 40 bytes)
 - isnt reserve & emplace_back with if stupid?
 - funkcja indices() w wektorach ?
-- dynamiczne g_free w sys/memory nie jest potrzebne ?
 - parser: support dla escape-characterów, parsowanie większej ilości typów z math?
-- połączenie plików .cpp w jeden, żeby szybciej kompilować?
 - czy wykrywanie jakiegoś tekstu na koncu parsera podczas fromString ma sens?
 - Str: nullptr -> "" ?
 - Makefile: w danym momencie może bydować tylko na jeden system; wykrywanie konfiguracji
   na podstawie kompilatora?
 
+- Vector<> i PoolVector<> mogłyby być zmergowane
+  Problemy:
+  - wymaga zapisanie 1 bita na capacity; niektóre operacje będą minimalnie wolniejsze, bo
+    będą wymagały and-a
+  - trzeba się zastanowić w jaki sposób włączać tryb poolowania; np. vector<int> vec(use_pool); ?
+  - istenieje ryzoko, że jak użytkownik zaczenie przechowywać duże ilości pool vectorów, to
+    zmarnuje dużo pamięci; jak sie przed tym zabezpieczyć (żeby to się nie działo za plecami)?
+  - w jakiś sposób user musi informować kiedy chce przejść z jednego trybu na drugi?
 
 - DualMap: vector<Pair<V1, V2>> + vector<V1 hashes + indices> + vector<V2 hashes + indices>
 
