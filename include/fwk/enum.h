@@ -136,9 +136,7 @@ template <class T, EnableIfEnum<T>...> const char *toString(T value) {
 	return Strings::offsets.data[ivalue];
 }
 
-template <class T, EnableIfEnum<T>...> constexpr int count() {
-	return decltype(enumStrings(T()))::K;
-}
+template <class T, EnableIfEnum<T>...> constexpr int count = decltype(enumStrings(T()))::K;
 
 template <class Type> struct AllEnums {
 	struct Iter {
@@ -150,29 +148,28 @@ template <class Type> struct AllEnums {
 	};
 
 	Iter begin() const { return {0}; }
-	Iter end() const { return {count<Type>()}; }
-	int size() const { return count<Type>(); }
+	Iter end() const { return {count<Type>}; }
 };
 
-template <class T, EnableIfEnum<T>...> static constexpr AllEnums<T> all;
+template <class T, EnableIfEnum<T>...> constexpr AllEnums<T> all;
 
 template <class T, EnableIfEnum<T>...> T next(T value) {
-	return T(int(value) == count<T>() - 1 ? 0 : int(value) + 1);
+	return T(int(value) == count<T> - 1 ? 0 : int(value) + 1);
 }
 
 template <class T, EnableIfEnum<T>...> T prev(T value) {
-	return T(int(value) == 0 ? int(count<T>() - 1) : int(value) - 1);
+	return T(int(value) == 0 ? int(count<T> - 1) : int(value) - 1);
 }
 
 template <int offset, class T, EnableIfEnum<T>...> T next(T value) {
-	static_assert(offset >= 0 && offset <= count<T>());
+	static_assert(offset >= 0 && offset <= count<T>);
 	int new_val = int(value) + offset;
-	return T(new_val >= count<T>() ? new_val - count<T>() : new_val);
+	return T(new_val >= count<T> ? new_val - count<T> : new_val);
 }
 template <int offset, class T, EnableIfEnum<T>...> T prev(T value) {
-	static_assert(offset >= 0 && offset <= count<T>());
+	static_assert(offset >= 0 && offset <= count<T>);
 	int new_val = int(value) - offset;
-	return T(new_val < 0 ? new_val + count<T>() : new_val);
+	return T(new_val < 0 ? new_val + count<T> : new_val);
 }
 
 template <class T> struct detail::EmptyMaybe<T, EnableIfEnum<T>> {

@@ -10,30 +10,30 @@
 namespace fwk {
 
 template <class T> struct EnumFlags {
-	static constexpr int count = fwk::count<T>();
-	using Base = If<count <= 8, u8, If<count <= 16, u16, If<count <= 32, u32, u64>>>;
-	using BigBase = If<(count <= 32), u32, u64>;
+	using Base = If<count<T> <= 8, u8, If<count<T> <= 16, u16, If<count<T> <= 32, u32, u64>>>;
+	using BigBase = If<(count<T> <= 32), u32, u64>;
 
-	static constexpr Base mask = (Base(1) << (count - 1)) - Base(1) + (Base(1) << (count - 1));
+	static constexpr Base mask =
+		(Base(1) << (count<T> - 1)) - Base(1) + (Base(1) << (count<T> - 1));
 
-	static_assert(count <= 64,
+	static_assert(count<T> <= 64,
 				  "Maximum nr of enum elements is 64 (TODO: fix it if it's really needed)");
 	static_assert(is_enum<T>, "EnumFlags<> should be based on fwk-enum");
 	static_assert(std::is_unsigned<Base>::value, "");
-	static_assert(count <= sizeof(Base) * 8, "");
+	static_assert(count<T> <= sizeof(Base) * 8, "");
 
 	struct BitIter {
 		int bit;
 		BigBase bits;
 
-		T operator*() const { return PASSERT(bit >= 0 && bit < count), T(bit); }
+		T operator*() const { return PASSERT(bit >= 0 && bit < count<T>), T(bit); }
 		bool operator==(const BitIter &rhs) const { return bit == rhs.bit; }
 		bool operator<(const BitIter &rhs) const { return bit < rhs.bit; }
 
 		const BitIter &operator++() {
 			bit++;
 			if(!(bits & (BigBase(1) << bit)))
-				bit = min(count, bit + countTrailingZeros(bits >> bit));
+				bit = min(count<T>, bit + countTrailingZeros(bits >> bit));
 			return *this;
 		}
 	};
@@ -64,9 +64,9 @@ template <class T> struct EnumFlags {
 	constexpr operator bool() const { return bits != 0; }
 
 	auto begin() const {
-		return BitIter{bits & 1 ? 0 : bits ? countTrailingZeros(BigBase(bits)) : count, bits};
+		return BitIter{bits & 1 ? 0 : bits ? countTrailingZeros(BigBase(bits)) : count<T>, bits};
 	}
-	auto end() const { return BitIter{count, bits}; }
+	auto end() const { return BitIter{count<T>, bits}; }
 
 	void setIf(EnumFlags flags, bool condition) {
 		if(condition)

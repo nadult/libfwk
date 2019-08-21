@@ -11,7 +11,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
     zmarnuje dużo pamięci; jak sie przed tym zabezpieczyć (żeby to się nie działo za plecami)?
   - w jakiś sposób user musi informować kiedy chce przejść z jednego trybu na drugi?
 
-- all<>() -> all<>; moze też działać dla flag
 - błąd w ASSERT_EQ jak przekaże się stringa
 
 - zle dziala bez imgui (perf)
@@ -170,7 +169,6 @@ TODO: which OpenGL version are we targeting ?
   to też nie działa...
 - wyciagnij implementacje << z formatu do math_base / box
 - add .clang-format ?
-- enum all & count could be constexpr vars
 - Box: setSize -> resize
 - Odpalanie plugina do RTTI w trakcie kompilacji; Ale to co ten plugin wygenerował
   też trzeba będzie skompilować i w jakiś sposób podlinkować;

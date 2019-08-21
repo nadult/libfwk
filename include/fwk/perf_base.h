@@ -51,7 +51,7 @@ template <class Id> struct Sample {
 	static constexpr u64 value_mask = (1ull << 45) - 1;
 
 	Sample(SampleType type, Id id, u64 value) {
-		static_assert(count<SampleType>() <= 8);
+		static_assert(count<SampleType> <= 8);
 		encoded = (value & value_mask) | (u64(type) << 45) | (u64(id.value) << 48);
 	}
 

@@ -30,7 +30,7 @@ template <class Index> bool selectIndex(ZStr title, Index &value, CSpan<const ch
 }
 
 template <class TEnum> bool selectFlags(EnumFlags<TEnum> &flag, CSpan<const char *> strings) {
-	DASSERT(strings.size() == count<TEnum>());
+	DASSERT(strings.size() == count<TEnum>);
 	bool changed = false;
 
 	for(auto opt : all<TEnum>) {
@@ -59,7 +59,7 @@ template <class T> bool inputValue(ZStr title, T &value) {
 }
 
 template <class Enum, EnableIfEnum<Enum>...> bool selectEnum(ZStr title, Enum &value) {
-	array<const char *, count<Enum>()> strings;
+	array<const char *, count<Enum>> strings;
 	for(auto val : all<Enum>)
 		strings[(int)val] = toString(val);
 	return selectIndex(title, value, strings);
@@ -79,7 +79,7 @@ void modifyEnums(ZStr title, const vector<Index> &selection, const GetFunc &get_
 			break;
 		}
 
-	array<const char *, count<EType>() + 1> items;
+	array<const char *, count<EType> + 1> items;
 	items[0] = "...";
 	for(auto val : all<EType>)
 		items[int(val) + 1] = toString(val);

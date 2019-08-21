@@ -14,7 +14,7 @@ DEFINE_ENUM(FrustumPlaneId, left, right, up, down);
 class Frustum {
   public:
 	using PlaneId = FrustumPlaneId;
-	static constexpr int plane_count = count<PlaneId>();
+	static constexpr int plane_count = count<PlaneId>;
 
 	Frustum() = default;
 	Frustum(const Matrix4 &view_projection);

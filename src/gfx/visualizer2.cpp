@@ -174,7 +174,7 @@ void Visualizer2::drawVoronoiArea(const vector<vector<array<T, 3>>> &vvtris, flo
 	for(auto &vtris : vvtris) {
 		FColor color = ColorId::black;
 		while(isOneOf(color, ColorId::black, ColorId::transparent, ColorId::gray, ColorId::white))
-			color = ColorId(rand() % count<ColorId>());
+			color = ColorId(rand() % count<ColorId>);
 
 		color.a = alpha;
 		vector<float2> tris;

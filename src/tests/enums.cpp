@@ -55,6 +55,6 @@ void testMain() {
 	for(auto item : items)
 		flags |= item;
 	ASSERT_EQ(transform<BigEnum>(flags), items);
-	ASSERT_EQ(transform<BigEnum>(~flags).size(), count<BigEnum>() - items.size());
-	ASSERT_EQ(countBits(EnumFlags<BigEnum>(all<BigEnum>)), count<BigEnum>());
+	ASSERT_EQ(transform<BigEnum>(~flags).size(), count<BigEnum> - items.size());
+	ASSERT_EQ(countBits(EnumFlags<BigEnum>(all<BigEnum>)), count<BigEnum>);
 }
