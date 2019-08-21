@@ -19,7 +19,7 @@ template <class T> double integralScale(const Box<T> &box, int max_value) {
 }
 
 template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids) {
-	DASSERT_EQ(points.size(), valids.size());
+	DASSERT_GE(points.size(), valids.size());
 
 	Box<T> box;
 	int n = 0;

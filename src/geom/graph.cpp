@@ -338,9 +338,10 @@ Graph Graph::makeForest(CSpan<Maybe<VertexId>> parents) {
 }
 
 bool Graph::isUndirected(Layers layers) const {
-	for(auto [n1, n2] : m_edges)
-		if(!findEdge(n2, n1, layers))
-			return false;
+	for(auto idx : m_edges.indices())
+		if(layers == all<Layer> || (layers & m_edge_layers[idx]))
+			if(!findEdge(m_edges[idx].from, m_edges[idx].to, layers))
+				return false;
 	return true;
 }
 
