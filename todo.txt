@@ -11,8 +11,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
     zmarnuje dużo pamięci; jak sie przed tym zabezpieczyć (żeby to się nie działo za plecami)?
   - w jakiś sposób user musi informować kiedy chce przejść z jednego trybu na drugi?
 
-- błąd w ASSERT_EQ jak przekaże się stringa
-
 - zle dziala bez imgui (perf)
 - jeden makefile dla eksperymentów, żeby można było szybko testować, czy nic sie nie spieprzylo
 - Debugowy build w niezależnym katalogu, tak żeby można było się szybko przełączać

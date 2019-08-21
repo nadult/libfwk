@@ -24,6 +24,7 @@ namespace detail {
 					out << c;
 		};
 
+		bool back_trim = false;
 		while(!tok.finished()) {
 			auto elem = tok.next();
 
@@ -34,9 +35,11 @@ namespace detail {
 
 			// TODO: handle % in elems
 			DASSERT(elem);
-			if(elem[0] == '"' && elem[elem.size() - 1] == '"')
+			back_trim = true;
+			if(elem[0] == '"' && elem[elem.size() - 1] == '"') {
 				out << "%";
-			else if(anyOf(elem, isspace)) {
+				back_trim = false;
+			} else if(anyOf(elem, isspace)) {
 				out << '"';
 				append_elem(elem);
 				out << "\":% ";
@@ -46,7 +49,8 @@ namespace detail {
 			}
 		}
 
-		out.trim(1);
+		if(back_trim)
+			out.trim(1);
 		out << '\n';
 
 		return out.text();
@@ -96,7 +100,7 @@ void TextFormatter::append_(const char *format_str, int arg_count, const Func *f
 		if(isOneOf(funcs[n], opt_funcs))
 			num_format_args++;
 	if(num_percent != arg_count - num_format_args)
-		FATAL("Invalid nr of arguments passed: %d, expected: %d\nFormat string: %s",
+		FATAL("Invalid nr of arguments passed: %d, expected: %d\nFormat string: \"%s\"",
 			  arg_count - num_format_args, num_percent, format_str);
 #endif
 
