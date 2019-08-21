@@ -12,12 +12,12 @@ namespace fwk {
 // -------------------------------------------------------------------------
 // -- VertexRef implementation ---------------------------------------------
 
-const GraphLabel *VertexRef::operator->() const { return &(*m_graph)[m_id]; }
-const GraphLabel *EdgeRef::operator->() const { return &(*m_graph)[m_id]; }
+const GLabel *VertexRef::operator->() const { return &(*m_graph)[m_id]; }
+const GLabel *EdgeRef::operator->() const { return &(*m_graph)[m_id]; }
 
-int VertexRef::numEdges(Layers layers) const {
+int VertexRef::numEdges(GLayers layers) const {
 	auto &edges = m_graph->m_verts[m_id];
-	if(layers == all<Layer>)
+	if(layers == all<GLayer>)
 		return edges.size();
 	int count = 0;
 	for(auto eid : m_graph->m_verts[m_id])
@@ -26,7 +26,7 @@ int VertexRef::numEdges(Layers layers) const {
 	return count;
 }
 
-int VertexRef::numEdgesFrom(Layers layers) const {
+int VertexRef::numEdgesFrom(GLayers layers) const {
 	int count = 0;
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.isSource() && (eid.layer() & layers))
@@ -34,7 +34,7 @@ int VertexRef::numEdgesFrom(Layers layers) const {
 	return count;
 }
 
-int VertexRef::numEdgesTo(Layers layers) const {
+int VertexRef::numEdgesTo(GLayers layers) const {
 	int count = 0;
 	for(auto eid : m_graph->m_verts[m_id])
 		if(!eid.isSource() && (eid.layer() & layers))
@@ -42,9 +42,9 @@ int VertexRef::numEdgesTo(Layers layers) const {
 	return count;
 }
 
-GraphLayers VertexRef::layers() const { return m_graph->m_vert_layers[m_id]; }
+GLayers VertexRef::layers() const { return m_graph->m_vert_layers[m_id]; }
 
-PooledEdgeRefs VertexRef::edgesFrom(Layers layers) const {
+PooledEdgeRefs VertexRef::edgesFrom(GLayers layers) const {
 	PoolVector<EdgeId> out;
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.isSource() && eid.test(layers))
@@ -52,7 +52,7 @@ PooledEdgeRefs VertexRef::edgesFrom(Layers layers) const {
 	return {out, m_graph};
 }
 
-PooledEdgeRefs VertexRef::edgesTo(Layers layers) const {
+PooledEdgeRefs VertexRef::edgesTo(GLayers layers) const {
 	PoolVector<EdgeId> out;
 	for(auto eid : m_graph->m_verts[m_id])
 		if(!eid.isSource() && eid.test(layers))
@@ -60,7 +60,7 @@ PooledEdgeRefs VertexRef::edgesTo(Layers layers) const {
 	return {out, m_graph};
 }
 
-PooledEdgeRefs VertexRef::edges(Layers layers) const {
+PooledEdgeRefs VertexRef::edges(GLayers layers) const {
 	PoolVector<EdgeId> out; // TODO: keep counts? with layers it makes no sense...
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.test(layers))
@@ -68,30 +68,30 @@ PooledEdgeRefs VertexRef::edges(Layers layers) const {
 	return {out, m_graph};
 }
 
-PooledVertexRefs VertexRef::vertsAdj(Layers layers) const {
+PooledVertexRefs VertexRef::vertsAdj(GLayers layers) const {
 	FATAL("write me");
 	return {};
 }
 
 // TODO: what if we have multiple edges between two verts?
-PooledVertexRefs VertexRef::vertsFrom(Layers layers) const {
+PooledVertexRefs VertexRef::vertsFrom(GLayers layers) const {
 	PoolVector<VertexId> out;
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.isSource()) {
 			auto vert = m_graph->ref(eid).other(m_id);
-			if(layers == all<Layer> || (vert.layers() & layers))
+			if(layers == all<GLayer> || (vert.layers() & layers))
 				out.emplace_back(vert);
 		}
 	return {out, m_graph};
 }
 
 // TODO: what if we have multiple edges between two verts?
-PooledVertexRefs VertexRef::vertsTo(Layers layers) const {
+PooledVertexRefs VertexRef::vertsTo(GLayers layers) const {
 	PoolVector<VertexId> out;
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.isSource()) {
 			auto vert = m_graph->ref(eid).other(m_id);
-			if(layers == all<Layer> || (vert.layers() & layers))
+			if(layers == all<GLayer> || (vert.layers() & layers))
 				out.emplace_back(vert);
 		}
 	return {out, m_graph};
@@ -106,9 +106,9 @@ VertexRef EdgeRef::other(VertexId node) const {
 	auto &edge = m_graph->m_edges[m_id];
 	return VertexRef(m_graph, edge.from == node ? edge.to : edge.from);
 }
-GraphLayer EdgeRef::layer() const { return m_graph->m_edge_layers[m_id]; }
+GLayer EdgeRef::layer() const { return m_graph->m_edge_layers[m_id]; }
 
-Maybe<EdgeRef> EdgeRef::twin(GraphLayers layers) const {
+Maybe<EdgeRef> EdgeRef::twin(GLayers layers) const {
 	return m_graph->findEdge(to(), from(), layers);
 }
 

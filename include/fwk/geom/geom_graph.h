@@ -20,7 +20,6 @@ template <class T> class GeomGraph : public Graph {
 	using Vec = T;
 	using Vec2D = MakeVec<Base<T>, 2>;
 	using IPoint = MakeVec<int, dim<T>>;
-	using Label = GraphLabel;
 	using Grid = SegmentGrid<Vec2D>;
 
 	using PointMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;

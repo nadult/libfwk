@@ -154,6 +154,13 @@ template <class T> class Box {
 		return true;
 	}
 
+	bool onTheEdge(const T &pos) const {
+		for(int i = 0; i < dim; i++)
+			if(isOneOf(pos[i], m_min[i], m_max[i]))
+				return true;
+		return false;
+	}
+
 	array<Point, num_corners> corners() const {
 		if constexpr(dim == 2)
 			return {{m_min, {m_min[0], m_max[1]}, m_max, {m_max[0], m_min[1]}}};

@@ -42,9 +42,9 @@ namespace fwk {
 // - dostęp do labelki
 class Graph {
   public:
-	using Label = GraphLabel;
-	using Layer = GraphLayer;
-	using Layers = GraphLayers;
+	using Label = GLabel;
+	using Layer = GLayer;
+	using Layers = GLayers;
 
 	static constexpr int max_index = (1 << 27) - 1; // About ~134M
 
@@ -272,9 +272,9 @@ class Graph {
 	PodVector<Layer> m_tri_layers;
 	vector<VertexTriInfo> m_vert_tris;
 
-	HashMap<int, GraphLabel> m_vert_labels;
-	HashMap<int, GraphLabel> m_edge_labels;
-	HashMap<int, GraphLabel> m_tri_labels;
+	HashMap<int, Label> m_vert_labels;
+	HashMap<int, Label> m_edge_labels;
+	HashMap<int, Label> m_tri_labels;
 
 	friend class VertexRef;
 	friend class EdgeRef;

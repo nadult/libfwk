@@ -233,7 +233,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 	for(auto vert : new_graph.verts()) {
 		auto point = new_graph(vert);
 
-		if(onTheEdge(rect, point) && vertex_cells[vert]) {
+		if(rect.onTheEdge(point) && vertex_cells[vert]) {
 			auto angle = vectorToAngle(normalize(point - rect_center));
 			border_points.emplace_back(BorderPoint{point, vert, angle});
 		}

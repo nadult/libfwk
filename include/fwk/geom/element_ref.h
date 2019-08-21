@@ -7,7 +7,7 @@
 
 namespace fwk {
 
-template <class Ref, class Id, bool pooled> struct GraphRefs {
+template <class Ref, class Id, bool pooled> struct GRefs {
 	using Container = If<pooled, PoolVector<Id>, Vector<Id>>;
 	Container ids;
 	const Graph *graph;
@@ -33,9 +33,6 @@ template <class Ref, class Id, bool pooled> struct GraphRefs {
 
 class VertexRef {
   public:
-	using Layers = GraphLayers;
-	using Layer = GraphLayer;
-
 	VertexRef(const Graph *graph, VertexId id) : m_graph(graph), m_id(id) {}
 
 	operator VertexId() const { return m_id; }
@@ -43,21 +40,21 @@ class VertexRef {
 	VertexId id() const { return m_id; }
 	int idx() const { return m_id.index(); }
 
-	const GraphLabel *operator->() const;
-	Layers layers() const;
+	const GLabel *operator->() const;
+	GLayers layers() const;
 
-	PooledEdgeRefs edges(Layers = all<Layer>) const;
-	PooledEdgeRefs edgesFrom(Layers = all<Layer>) const;
-	PooledEdgeRefs edgesTo(Layers = all<Layer>) const;
+	PooledEdgeRefs edges(GLayers = all<GLayer>) const;
+	PooledEdgeRefs edgesFrom(GLayers = all<GLayer>) const;
+	PooledEdgeRefs edgesTo(GLayers = all<GLayer>) const;
 
 	// Should we filter edges or vertices here ?
-	PooledVertexRefs vertsAdj(Layers = all<Layer>) const;
-	PooledVertexRefs vertsFrom(Layers = all<Layer>) const;
-	PooledVertexRefs vertsTo(Layers = all<Layer>) const;
+	PooledVertexRefs vertsAdj(GLayers = all<GLayer>) const;
+	PooledVertexRefs vertsFrom(GLayers = all<GLayer>) const;
+	PooledVertexRefs vertsTo(GLayers = all<GLayer>) const;
 
-	int numEdges(Layers = all<Layer>) const;
-	int numEdgesFrom(Layers = all<Layer>) const;
-	int numEdgesTo(Layers = all<Layer>) const;
+	int numEdges(GLayers = all<GLayer>) const;
+	int numEdgesFrom(GLayers = all<GLayer>) const;
+	int numEdgesTo(GLayers = all<GLayer>) const;
 
 	VertexRef(EmptyMaybe) : m_graph(nullptr), m_id(EmptyMaybe()) {}
 	bool validMaybe() const { return m_graph; }
@@ -72,8 +69,6 @@ class VertexRef {
 
 class EdgeRef {
   public:
-	using Layer = GraphLayer;
-
 	EdgeRef(const Graph *graph, EdgeId id) : m_graph(graph), m_id(id) {}
 
 	operator EdgeId() const { return m_id; }
@@ -81,14 +76,14 @@ class EdgeRef {
 	EdgeId id() const { return m_id; }
 	int idx() const { return m_id.index(); }
 
-	const GraphLabel *operator->() const;
+	const GLabel *operator->() const;
 
 	VertexRef from() const;
 	VertexRef to() const;
 	VertexRef other(VertexId node) const;
-	GraphLayer layer() const;
+	GLayer layer() const;
 
-	Maybe<EdgeRef> twin(GraphLayers = all<Layer>) const;
+	Maybe<EdgeRef> twin(GLayers = all<GLayer>) const;
 
 	bool adjacent(VertexId) const;
 	bool adjacent(EdgeId) const;

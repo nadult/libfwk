@@ -13,7 +13,9 @@ namespace fwk {
 
 template <class T> using FixedElem = Graph::FixedElem<T>;
 
-using Label = GraphLabel;
+using Label = GLabel;
+using Layer = GLayer;
+using Layers = GLayers;
 
 Graph::Graph() = default;
 FWK_COPYABLE_CLASS_IMPL(Graph);
@@ -132,7 +134,7 @@ vector<VertexId> Graph::nodesAdj(VertexId node_id) const {
 VertexId Graph::from(EdgeId edge_id) const { return m_edges[edge_id].from; }
 VertexId Graph::to(EdgeId edge_id) const { return m_edges[edge_id].to; }
 
-static const GraphLabel g_default_label;
+static const Label g_default_label;
 
 bool Graph::hasLabel(VertexId id) const { return m_vert_labels.find(id) == m_vert_labels.end(); }
 bool Graph::hasLabel(EdgeId id) const { return m_edge_labels.find(id) == m_edge_labels.end(); }
@@ -156,17 +158,17 @@ Label &Graph::operator[](VertexId vid) { return m_vert_labels[vid]; }
 Label &Graph::operator[](EdgeId eid) { return m_edge_labels[eid]; }
 Label &Graph::operator[](TriId tid) { return m_tri_labels[tid]; }
 
-GraphLayers Graph::layers(VertexId id) const {
+Layers Graph::layers(VertexId id) const {
 	PASSERT(valid(id));
 	return m_vert_layers[id];
 }
 
-GraphLayer Graph::layer(EdgeId id) const {
+Layer Graph::layer(EdgeId id) const {
 	PASSERT(valid(id));
 	return m_edge_layers[id];
 }
 
-GraphLayer Graph::layer(TriId id) const {
+Layer Graph::layer(TriId id) const {
 	PASSERT(valid(id));
 	return m_tri_layers[id];
 }

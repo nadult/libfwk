@@ -10,7 +10,7 @@
 
 namespace fwk {
 
-FWK_ORDER_BY_DEF(GraphLabel, color, ival1, ival2, fval1, fval2);
+FWK_ORDER_BY_DEF(GLabel, color, ival1, ival2, fval1, fval2);
 
 template <class T> double integralScale(const Box<T> &box, int max_value) {
 	auto tvec = vmax(vabs(box.min()), vabs(box.max()));

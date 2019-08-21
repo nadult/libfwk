@@ -80,9 +80,9 @@ class VoronoiDiagram {
 	//   ival2: cell id
 
 	// applies to verts as well; Some verts are on multiple layers
-	static constexpr auto site_layer = GraphLayer::l1;
-	static constexpr auto arc_layer = GraphLayer::l2;
-	static constexpr auto seg_layer = GraphLayer::l3;
+	static constexpr auto site_layer = GLayer::l1;
+	static constexpr auto arc_layer = GLayer::l2;
+	static constexpr auto seg_layer = GLayer::l3;
 
 	static vector<Pair<VertexId>> delaunay(CSpan<int2> sites);
 

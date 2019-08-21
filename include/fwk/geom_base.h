@@ -9,13 +9,25 @@
 
 namespace fwk {
 
-DEFINE_ENUM(GeomTag, vertex, edge, cell, polygon, triangle);
+// There are 2 kinds of entities which identify graph elements:
+// - indices (VertexId, EdgeId, etc.) which keep only index of given element
+// - references (Vertex, Edge, etc.) which also store a pointer to Graph in which given
+//   element exists; This is the main interface to iterate, find and introspect graph elements
 
-using TriangleId = TagId<GeomTag::triangle>;
-using PolygonId = TagId<GeomTag::polygon>;
-using VertexId = TagId<GeomTag::vertex>;
-using EdgeId = TagId<GeomTag::edge>;
-using CellId = TagId<GeomTag::cell>;
+// -------------------------------------------------------------------------------------------
+// ---  Graph elements -----------------------------------------------------------------------
+
+DEFINE_ENUM(GTag, vertex, edge, cell, polygon, triangle);
+
+using TriangleId = TagId<GTag::triangle>;
+using PolygonId = TagId<GTag::polygon>;
+using VertexId = TagId<GTag::vertex>;
+using EdgeId = TagId<GTag::edge>;
+using CellId = TagId<GTag::cell>;
+
+using VertId = VertexId;
+using TriId = TriangleId;
+using PolyId = PolygonId;
 
 using VertexIdPair = Pair<VertexId>;
 
@@ -23,32 +35,34 @@ class VertexRef;
 class EdgeRef;
 class TriangleRef;
 
-DEFINE_ENUM(GraphLayer, l1, l2, l3, l4, l5, l6, l7, l8);
-using GraphLayers = EnumFlags<GraphLayer>;
+DEFINE_ENUM(GLayer, l1, l2, l3, l4, l5, l6, l7, l8);
+using GLayers = EnumFlags<GLayer>;
 
-struct GraphLabel {
+struct GLabel {
 	u32 color = 0xffffffff;
 	int ival1 = 0;
 	int ival2 = 0;
 	float fval1 = 0.0f;
 	float fval2 = 0.0f;
 
-	FWK_ORDER_BY_DECL(GraphLabel);
+	FWK_ORDER_BY_DECL(GLabel);
 };
 
-template <class Ref, class Id, bool pooled> struct GraphRefs;
+template <class Ref, class Id, bool pooled> struct GRefs;
 
-using PooledVertexRefs = GraphRefs<VertexRef, VertexId, true>;
-using PooledEdgeRefs = GraphRefs<EdgeRef, EdgeId, true>;
-using PooledTriRefs = GraphRefs<TriangleRef, TriangleId, true>;
+class Graph;
+template <class T> class GeomGraph;
 
-using VertexRefs = GraphRefs<VertexRef, VertexId, false>;
-using EdgeRefs = GraphRefs<EdgeRef, EdgeId, false>;
-using TriRefs = GraphRefs<TriangleRef, TriangleId, false>;
+// -------------------------------------------------------------------------------------------
+// ---  Other declarations -------------------------------------------------------------------
 
-using VertId = VertexId;
-using TriId = TriangleId;
-using PolyId = PolygonId;
+using PooledVertexRefs = GRefs<VertexRef, VertexId, true>;
+using PooledEdgeRefs = GRefs<EdgeRef, EdgeId, true>;
+using PooledTriRefs = GRefs<TriangleRef, TriangleId, true>;
+
+using VertexRefs = GRefs<VertexRef, VertexId, false>;
+using EdgeRefs = GRefs<EdgeRef, EdgeId, false>;
+using TriRefs = GRefs<TriangleRef, TriangleId, false>;
 
 template <class T> class Contour;
 template <class T> class SubContourRef;
@@ -58,23 +72,19 @@ class VoronoiDiagram;
 template <class T, class IT = int2> class RegularGrid;
 template <class T> class SegmentGrid;
 
-using Contour2F = fwk::Contour<float2>;
-using Contour3F = fwk::Contour<float3>;
+using Contour2F = Contour<float2>;
+using Contour3F = Contour<float3>;
 
 using RegularGrid2F = RegularGrid<float2>;
 using RegularGrid2D = RegularGrid<double2>;
-
-template <class Vec2> bool onTheEdge(const Box<Vec2> &rect, const Vec2 &p) {
-	return isOneOf(p.x, rect.x(), rect.ex()) || isOneOf(p.y, rect.y(), rect.ey());
-}
-
-class Graph;
-template <class T> class GeomGraph;
 
 using Graph2F = GeomGraph<float2>;
 using Graph3F = GeomGraph<float3>;
 using Graph2I = GeomGraph<int2>;
 using Graph3I = GeomGraph<int3>;
+
+// -------------------------------------------------------------------------------------------
+// ---  Geom functions -----------------------------------------------------------------------
 
 // Computes scale value which will fit given box into given resolution.
 // Scaled values will be in range: <-resolution, resolution>.
