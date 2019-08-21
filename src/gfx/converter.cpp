@@ -35,7 +35,7 @@ const EnumMap<FileType, string> Converter::s_extensions = {{
 Maybe<FileType> Converter::classify(const string &name) {
 	string iname = toLower(name);
 
-	for(auto type : all<FileType>()) {
+	for(auto type : all<FileType>) {
 		auto pos = iname.rfind(s_extensions[type]);
 		if(pos != string::npos && pos + s_extensions[type].size() == iname.size())
 			return type;

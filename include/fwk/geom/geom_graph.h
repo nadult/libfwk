@@ -51,7 +51,7 @@ template <class T> class GeomGraph : public Graph {
 	Maybe<VertexRef> findVertex(Point pt) const;
 
 	using Graph::findEdge;
-	Maybe<EdgeRef> findEdge(Point p1, Point p2, Layers layers = Layers::all()) const;
+	Maybe<EdgeRef> findEdge(Point p1, Point p2, Layers = all<Layer>) const;
 
 	Maybe<EdgeRef> findFake(VertexId, VertexId) const;
 	Maybe<EdgeRef> findFake(Point, Point) const;

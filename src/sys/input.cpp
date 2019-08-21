@@ -259,13 +259,13 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 		if(key_state.second >= 1)
 			events.emplace_back(InputEvent::key_pressed, key_state.first, key_state.second);
 		if(key_state.second >= 0) {
-			for(auto mod : all<InputModifier>())
+			for(auto mod : all<InputModifier>)
 				if(key_state.first == mod_map[mod])
 					modifiers |= mod;
 		}
 	}
 
-	for(auto button : all<InputButton>())
+	for(auto button : all<InputButton>)
 		if(m_mouse_buttons[button] == 2)
 			events.emplace_back(InputEvent::mouse_button_pressed, button);
 	events.emplace_back(InputEvent::mouse_over);

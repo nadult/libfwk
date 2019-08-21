@@ -29,7 +29,7 @@ void testStringConversions() NOEXCEPT {
 	ASSERT_EQ(fromString<EnumFlags<SomeEnum>>("bar|foo"), SomeEnum::bar | SomeEnum::foo);
 
 	string text;
-	for(auto elem : all<SomeEnum>())
+	for(auto elem : all<SomeEnum>)
 		text += toString(elem);
 	ASSERT_EQ(text, "foobarfoo_barlast");
 	ASSERT(!exceptionRaised());
@@ -56,4 +56,5 @@ void testMain() {
 		flags |= item;
 	ASSERT_EQ(transform<BigEnum>(flags), items);
 	ASSERT_EQ(transform<BigEnum>(~flags).size(), count<BigEnum>() - items.size());
+	ASSERT_EQ(countBits(EnumFlags<BigEnum>(all<BigEnum>)), count<BigEnum>());
 }

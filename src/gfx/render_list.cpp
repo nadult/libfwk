@@ -120,7 +120,7 @@ namespace {
 	using MatOpt = MaterialOpt;
 
 	struct DeviceConfig {
-		DeviceConfig() : flags(MatFlags::all()) { update(none); }
+		DeviceConfig() : flags(all<MatOpt>) { update(none); }
 
 		void update(MatFlags new_flags) {
 			if((new_flags & MatOpt::blended) != (flags & MatOpt::blended)) {

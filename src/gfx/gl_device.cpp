@@ -165,7 +165,7 @@ void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, G
 	initializeGl(profile);
 	initializeGlProgramFuncs();
 	if(flags & Opt::full_debug)
-		gl_debug_flags = GlDebugFlags::all();
+		gl_debug_flags = all<GlDebug>;
 
 	if(flags & Opt::opengl_debug_handler)
 		installGlDebugHandler();

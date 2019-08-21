@@ -41,7 +41,7 @@ string GlInfo::toString() const {
 		glsl_version_full);
 
 	out("Limits:\n");
-	for(auto limit : all<GlLimit>())
+	for(auto limit : all<GlLimit>)
 		out("  %: %\n", limit, limits[limit]);
 
 	return out.text();
@@ -88,7 +88,7 @@ void initializeGl(GlProfile profile) {
 	for(auto ext : must_haves)
 		if(!emscripten_webgl_enable_extension(context, ext))
 			FATAL("OpenGL Extension not supported: %s", ext);
-	for(auto ext : all<GlExtension>())
+	for(auto ext : all<GlExtension>)
 		emscripten_webgl_enable_extension(context, s_ext_names[ext]);
 #endif
 
@@ -118,7 +118,7 @@ void initializeGl(GlProfile profile) {
 		s_info.extensions.emplace_back(ogl_ext);
 	}
 
-	for(auto limit : all<GlLimit>())
+	for(auto limit : all<GlLimit>)
 		glGetIntegerv(s_limit_map[limit], &s_info.limits[limit]);
 	{
 		auto *ver = (const char *)glGetString(GL_VERSION);

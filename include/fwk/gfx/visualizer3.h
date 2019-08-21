@@ -27,8 +27,8 @@ class Visualizer3 {
 	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
 
 	void setMode(VisMode);
-	void setMaterial(Material, ModeFlags = ModeFlags::all());
-	void setTrans(Matrix4, ModeFlags = ModeFlags::all());
+	void setMaterial(Material, ModeFlags = all<VisMode>);
+	void setTrans(Matrix4, ModeFlags = all<VisMode>);
 
 	void operator()(const Triangle3F &, IColor = ColorId::white);
 	void operator()(const FBox &, IColor = ColorId::white);

@@ -56,7 +56,7 @@ Ex<PShader> GlShader::make(Type type, const string &source, const string &predef
 ShaderType GlShader::type() const {
 	GLint gl_type;
 	glGetShaderiv(id(), GL_SHADER_TYPE, &gl_type);
-	for(auto type : all<Type>())
+	for(auto type : all<Type>)
 		if(gl_type_map[type] == gl_type)
 			return type;
 	FATAL("Invalid ShaderType");

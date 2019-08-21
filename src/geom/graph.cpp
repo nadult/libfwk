@@ -75,7 +75,7 @@ int Graph::numTris(Layers layers) const {
 vector<VertexId> Graph::vertexIds(Layers layer_mask) const {
 	Vector<VertexId> out;
 	for(auto idx : m_verts.indices()) {
-		if(layer_mask == Layers::all() || (m_vert_layers[idx] & layer_mask))
+		if(layer_mask == all<Layer> || (m_vert_layers[idx] & layer_mask))
 			out.emplace_back(idx);
 	}
 	return out;
@@ -84,7 +84,7 @@ vector<VertexId> Graph::vertexIds(Layers layer_mask) const {
 vector<EdgeId> Graph::edgeIds(Layers layer_mask) const {
 	Vector<EdgeId> out;
 	for(auto idx : m_edges.indices())
-		if(layer_mask == Layers::all() || (m_edge_layers[idx] & layer_mask))
+		if(layer_mask == all<Layer> || (m_edge_layers[idx] & layer_mask))
 			out.emplace_back(idx);
 	return out;
 }

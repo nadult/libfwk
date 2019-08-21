@@ -34,6 +34,7 @@ template <class Ref, class Id, bool pooled> struct GraphRefs {
 class VertexRef {
   public:
 	using Layers = GraphLayers;
+	using Layer = GraphLayer;
 
 	VertexRef(const Graph *graph, VertexId id) : m_graph(graph), m_id(id) {}
 
@@ -44,17 +45,17 @@ class VertexRef {
 
 	const GraphLabel *operator->() const;
 
-	PooledEdgeRefs edges(Layers = Layers::all()) const;
-	PooledEdgeRefs edgesFrom(Layers = Layers::all()) const;
-	PooledEdgeRefs edgesTo(Layers = Layers::all()) const;
+	PooledEdgeRefs edges(Layers = all<Layer>) const;
+	PooledEdgeRefs edgesFrom(Layers = all<Layer>) const;
+	PooledEdgeRefs edgesTo(Layers = all<Layer>) const;
 
 	PooledVertexRefs vertsAdj() const;
 	PooledVertexRefs vertsFrom() const;
 	PooledVertexRefs vertsTo() const;
 
-	int numEdges(Layers = Layers::all()) const;
-	int numEdgesFrom(Layers = Layers::all()) const;
-	int numEdgesTo(Layers = Layers::all()) const;
+	int numEdges(Layers = all<Layer>) const;
+	int numEdgesFrom(Layers = all<Layer>) const;
+	int numEdgesTo(Layers = all<Layer>) const;
 
 	VertexRef(EmptyMaybe) : m_graph(nullptr), m_id(EmptyMaybe()) {}
 	bool validMaybe() const { return m_graph; }
@@ -69,6 +70,8 @@ class VertexRef {
 
 class EdgeRef {
   public:
+	using Layer = GraphLayer;
+
 	EdgeRef(const Graph *graph, EdgeId id) : m_graph(graph), m_id(id) {}
 
 	operator EdgeId() const { return m_id; }
@@ -83,7 +86,7 @@ class EdgeRef {
 	VertexRef other(VertexId node) const;
 	GraphLayer layer() const;
 
-	Maybe<EdgeRef> twin(GraphLayers = GraphLayers::all()) const;
+	Maybe<EdgeRef> twin(GraphLayers = all<Layer>) const;
 
 	bool adjacent(VertexId) const;
 	bool adjacent(EdgeId) const;

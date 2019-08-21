@@ -17,7 +17,7 @@ const GraphLabel *EdgeRef::operator->() const { return &(*m_graph)[m_id]; }
 
 int VertexRef::numEdges(Layers layers) const {
 	auto &edges = m_graph->m_verts[m_id];
-	if(layers == Layers::all())
+	if(layers == all<Layer>)
 		return edges.size();
 	int count = 0;
 	for(auto eid : m_graph->m_verts[m_id])

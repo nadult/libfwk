@@ -46,6 +46,7 @@ template <class T> struct EnumFlags {
 			*this |= item;
 	}
 	constexpr explicit EnumFlags(Base bits) : bits(bits) {}
+	constexpr EnumFlags(AllEnums<T>) : bits(mask) {}
 
 	constexpr EnumFlags operator|(EnumFlags rhs) const { return EnumFlags(bits | rhs.bits); }
 	constexpr EnumFlags operator&(EnumFlags rhs) const { return EnumFlags(bits & rhs.bits); }
@@ -73,8 +74,6 @@ template <class T> struct EnumFlags {
 		else
 			bits &= ~(flags.bits);
 	}
-
-	static constexpr EnumFlags all() { return EnumFlags(mask); }
 
 	void operator>>(TextFormatter &formatter) const {
 		using Strings = decltype(enumStrings(T()));

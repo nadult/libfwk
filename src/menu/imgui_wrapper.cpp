@@ -392,7 +392,7 @@ void ImGuiWrapper::beginFrame(GlDevice &device) {
 			if(isOneOf(event.type(), InputEvent::key_down, InputEvent::key_pressed))
 				io.KeysDown[event.key()] = true;
 			if(event.isMouseEvent()) {
-				for(auto button : all<InputButton>())
+				for(auto button : all<InputButton>)
 					if(event.mouseButtonPressed(button) || event.mouseButtonDown(button))
 						io.MouseDown[(int)button] = true;
 			}

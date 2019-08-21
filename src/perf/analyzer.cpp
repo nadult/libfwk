@@ -543,7 +543,7 @@ void Analyzer::showGrid(FrameRange &range) {
 	ImGui::PushStyleColor(ImGuiCol_Button, float4(0.0f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, float4(1.0f, 1.0f, 1.0f, 0.2f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, float4(1.0f, 1.0f, 1.0f, 0.3f));
-	for(auto col_id : all<ColumnId>()) {
+	for(auto col_id : all<ColumnId>) {
 		bool first = col_id == ColumnId::name;
 		if(!(m_visible_columns & col_id))
 			continue;

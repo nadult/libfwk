@@ -57,7 +57,7 @@ class Graph {
 		operator EdgeId() const { return EdgeId((int)(*this)); }
 		Layer layer() const { return Layer((value >> 27) & 7); }
 		bool isSource() const { return value & (1 << 30); }
-		bool test(Layers mask) const { return mask == Layers::all() || (layer() & mask); }
+		bool test(Layers mask) const { return mask == all<Layer> || (layer() & mask); }
 
 		uint value;
 	};
@@ -71,7 +71,7 @@ class Graph {
 		operator TriId() const { return TriId((int)(*this)); }
 		Layer layer() const { return Layer((value >> 27) & 7); }
 		int vertId() const { return int(value >> 30); }
-		bool test(Layers mask) const { return mask == Layers::all() || (layer() & mask); }
+		bool test(Layers mask) const { return mask == all<Layer> || (layer() & mask); }
 
 		uint value;
 	};
@@ -128,15 +128,15 @@ class Graph {
 	vector<VertexId> vertexIds(Layers layer_mask) const;
 	vector<EdgeId> edgeIds(Layers layer_mask) const;
 
-	VertexRefs verts(Layers layers = Layers::all()) const { return {vertexIds(layers), this}; }
-	EdgeRefs edges(Layers layers = Layers::all()) const { return {edgeIds(layers), this}; }
+	VertexRefs verts(Layers layers = all<Layer>) const { return {vertexIds(layers), this}; }
+	EdgeRefs edges(Layers layers = all<Layer>) const { return {edgeIds(layers), this}; }
 
-	Maybe<EdgeRef> findEdge(VertexId, VertexId, Layers = Layers::all()) const;
-	Maybe<EdgeRef> findUndirectedEdge(VertexId, VertexId, Layers = Layers::all()) const;
-	auto findEdges(VertexId, VertexId, Layers = Layers::all()) const;
+	Maybe<EdgeRef> findEdge(VertexId, VertexId, Layers = all<Layer>) const;
+	Maybe<EdgeRef> findUndirectedEdge(VertexId, VertexId, Layers = all<Layer>) const;
+	auto findEdges(VertexId, VertexId, Layers = all<Layer>) const;
 
-	Maybe<TriId> findTri(VertexId, VertexId, VertexId, Layers = Layers::all()) const;
-	auto findTris(VertexId, VertexId, VertexId, Layers = Layers::all()) const;
+	Maybe<TriId> findTri(VertexId, VertexId, VertexId, Layers = all<Layer>) const;
+	auto findTris(VertexId, VertexId, VertexId, Layers = all<Layer>) const;
 
 	VertexRef ref(VertexId vertex_id) const {
 		return PASSERT(valid(vertex_id)), VertexRef(this, vertex_id);
@@ -208,7 +208,7 @@ class Graph {
 	// Missing twin edges will be added; TODO: better name: addMissingTwinEdges ?
 	Graph asUndirected() const;
 	// Evry edge has a twin; TODO: better name?
-	bool isUndirected(Layers = Layers::all()) const;
+	bool isUndirected(Layers = all<Layer>) const;
 
 	// Edges are directed from parents to their children
 	static Graph makeForest(CSpan<Maybe<VertexId>> parents);

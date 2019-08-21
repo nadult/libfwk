@@ -16,35 +16,6 @@ namespace detail {
 	void formatFlags(unsigned long long, TextFormatter &, const char *const *strings, int count);
 }
 
-template <class Type> class EnumRange {
-  public:
-	class Iter {
-	  public:
-		Iter(int pos) : pos(pos) {}
-
-		auto operator*() const { return Type(pos); }
-		const Iter &operator++() {
-			pos++;
-			return *this;
-		}
-
-		bool operator<(const Iter &rhs) const { return pos < rhs.pos; }
-		bool operator==(const Iter &rhs) const { return pos == rhs.pos; }
-
-	  private:
-		int pos;
-	};
-
-	auto begin() const { return Iter(m_min); }
-	auto end() const { return Iter(m_max); }
-	int size() const { return m_max - m_min; }
-
-	EnumRange(int min, int max) : m_min(min), m_max(max) { DASSERT(min >= 0 && max >= min); }
-
-  protected:
-	int m_min, m_max;
-};
-
 namespace detail {
 	static constexpr bool isWhiteSpace(char c) {
 		return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
@@ -169,7 +140,21 @@ template <class T, EnableIfEnum<T>...> constexpr int count() {
 	return decltype(enumStrings(T()))::K;
 }
 
-template <class T, EnableIfEnum<T>...> auto all() { return EnumRange<T>(0, count<T>()); }
+template <class Type> struct AllEnums {
+	struct Iter {
+		Type operator*() const { return Type(pos); }
+		void operator++() { pos++; }
+		bool operator!=(const Iter &rhs) const { return pos != rhs.pos; }
+
+		int pos;
+	};
+
+	Iter begin() const { return {0}; }
+	Iter end() const { return {count<Type>()}; }
+	int size() const { return count<Type>(); }
+};
+
+template <class T, EnableIfEnum<T>...> static constexpr AllEnums<T> all;
 
 template <class T, EnableIfEnum<T>...> T next(T value) {
 	return T(int(value) == count<T>() - 1 ? 0 : int(value) + 1);
