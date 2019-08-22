@@ -29,9 +29,9 @@ all: lib tools tests
 
 FWK_FLAGS_linux = $(shell $(PKG_CONFIG) --cflags $(FWK_LIBS_shared)) -Umain
 FWK_FLAGS_mingw = $(shell $(PKG_CONFIG) --cflags $(FWK_LIBS_shared)) -Umain
-FWK_FLAGS       = -Isrc/
+FWK_FLAGS       = -Isrc/ -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
 
-FWK_DIR  = .
+FWK_DIR  = 
 include Makefile-shared
 
 # --- Creating necessary sub-directories ----------------------------------------------------------
@@ -192,20 +192,29 @@ DEPS:=$(SRC_all:%=$(FWK_BUILD_DIR)/%.d) $(PCH_FILE_H).d
 print-stats:
 	sort -n -r $(STATS_FILE)
 
-clean:
-	-rm -f $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(CPP_merged) $(STATS_FILE) \
+JUNK_FILES = $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(CPP_merged) $(STATS_FILE) \
 		$(FWK_LIB_FILE) $(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
+EXISTING_JUNK_FILES := $(call filter-existing,$(SUBDIRS),$(JUNK_FILES))
+
+ALL_JUNK_FILES = $(shell \
+	for platform in $(VALID_PLATFORMS) ; do for mode in $(VALID_MODES) ; do \
+		$(MAKE) PLATFORM=$$platform MODE=$$mode print-junk-files -s ; \
+	done ; done)
+
+print-junk-files:
+	@echo $(EXISTING_JUNK_FILES)
+
+clean:
+	-rm -f $(EXISTING_JUNK_FILES)
+	find $(SUBDIRS) -type d -empty -delete
+
+clean-all: clean-checker
+	-rm -f $(ALL_JUNK_FILES)
 	find $(SUBDIRS) -type d -empty -delete
 
 clean-checker:
 	$(MAKE) -C src/checker/ clean
 
-clean-all: clean-checker
-	$(MAKE) -C . PLATFORM=linux MODE=debug   clean
-	$(MAKE) -C . PLATFORM=linux MODE=release clean
-	$(MAKE) -C . PLATFORM=mingw MODE=debug   clean
-	$(MAKE) -C . PLATFORM=mingw MODE=release clean
-	
 print-variables:
 	@echo "PLATFORM      = $(PLATFORM)"
 	@echo "MODE          = $(MODE)"

@@ -1,13 +1,16 @@
 # Options:
 #   PLATFORM:        linux, mingw or html
-#   [FWK_]MODE:      release or debug
-#   [FWK_]ADD_FLAGS: additional compiler flags
+#   [FWK_]MODE:      release or debug [-paranoid] [-nans]
+#   ADD_FLAGS:       additional compiler flags
 #   COMPILER:        name of the compiler; clang++ or g++ is used by default
 #   LINKER:          name of linker; by default same as compiler
 #   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
 #
 # TODO: z poziomu tego skryptu czasami chcemy przekazywac flagi do FWK a czasami
 #       chcemy, żeby działały tylko aktualnie
+
+VALID_PLATFORMS  := linux mingw html
+VALID_MODES      := debug debug-nans release release-nans release-paranoid release-paranoid-nans
 
 PLATFORM         = linux
 MODE            ?= release
@@ -33,17 +36,23 @@ PROGRAM_SUFFIX_mingw := .exe
 PROGRAM_SUFFIX_html  := .html
 PROGRAM_SUFFIX       := $(PROGRAM_SUFFIX_$(PLATFORM))
 
-FWK_BUILD_DIR        := $(FWK_DIR)/build/$(PLATFORM)_$(FWK_MODE)
-FWK_LIB_FILE         := $(FWK_DIR)/lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
-FWK_MODELCONV_FILE   := $(FWK_DIR)/tools/model_convert$(PROGRAM_SUFFIX)
+FWK_BUILD_DIR        := $(FWK_DIR)build/$(PLATFORM)_$(FWK_MODE)
+FWK_LIB_FILE         := $(FWK_DIR)lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
+FWK_MODELCONV_FILE   := $(FWK_DIR)tools/model_convert$(PROGRAM_SUFFIX)
 
 FWK_GEOM             := enabled
 FWK_IMGUI            := $(if $(wildcard extern/imgui/imgui.h),enabled,disabled)
 
 # --- Checking for errors -------------------------------------------------------------------------
 
-ifeq ($(filter linux mingw html,$(PLATFORM)),)
-$(error ERROR: invalid platform specified: $(PLATFORM))
+ifeq ($(filter $(VALID_PLATFORMS),$(PLATFORM)),)
+$(info Valid platforms: $(VALID_PLATFORMS))
+$(error ERROR: invalid PLATFORM specified: $(PLATFORM))
+endif
+
+ifeq ($(filter $(VALID_MODES),$(MODE)),)
+$(info Valid modes: $(VALID_MODES))
+$(error ERROR: invalid MODE specified: $(MODE))
 endif
 
 ifndef FWK_DIR
@@ -59,15 +68,15 @@ FWK_LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(FWK_LIBS_shared)) -lOpenAL32 
 
 # Clang gives no warnings for uninitialized class members!
 #TODO:-Wno-strict-overflow
-FWK_FLAGS_shared += -I$(FWK_DIR)/include/ -fno-exceptions -std=c++2a -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP \
+FWK_FLAGS_shared += -I$(FWK_DIR)include/ -fno-exceptions -std=c++2a \
                     -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized \
                     -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
                     -Wparentheses -Wno-overloaded-virtual
 FWK_FLAGS_clang  += -Wconstant-conversion -Werror=return-type -Wno-undefined-inline
 FWK_FLAGS_gcc    += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
 
-ifneq ("$(wildcard $(FWK_DIR)/checker.so)","")
-FWK_FLAGS_clang  += -Xclang -load -Xclang  $(realpath $(FWK_DIR)/checker.so) -Xclang -add-plugin -Xclang check-fwk-exceptions
+ifneq ("$(wildcard $(FWK_DIR)checker.so)","")
+FWK_FLAGS_clang  += -Xclang -load -Xclang  $(realpath $(FWK_DIR)checker.so) -Xclang -add-plugin -Xclang check-fwk-exceptions
 endif
 
 FWK_FLAGS_release+= -O3
@@ -76,10 +85,12 @@ FWK_FLAGS_debug  += -O0 -DFWK_PARANOID
 FWK_FLAGS_linux  += -pthread -ggdb -DFWK_TARGET_LINUX 
 FWK_FLAGS_mingw  += -pthread -ggdb -DFWK_TARGET_MINGW -msse2 -mfpmath=sse
 
-FWK_FLAGS        += $(FWK_FLAGS_$(MODE)) $(FWK_FLAGS_$(PLATFORM)) $(FWK_FLAGS_shared) $(FWK_FLAGS_$(COMPILER_TYPE)) \
-                    $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
-                    $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED) \
-                    $(ADD_FLAGS)
+FWK_FLAGS += $(FWK_FLAGS_$(MODE)) $(FWK_FLAGS_$(PLATFORM)) $(FWK_FLAGS_shared) $(FWK_FLAGS_$(COMPILER_TYPE))
+FWK_FLAGS += $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED)
+FWK_FLAGS += $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED)
+FWK_FLAGS += $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,)
+FWK_FLAGS += $(if $(findstring paranoid,$(MODE))$(findstring debug,$(MODE)),-DFWK_PARANOID,)
+FWK_FLAGS += $(ADD_FLAGS)
 
 FWK_LDFLAGS_clang = -fuse-ld=gold
 FWK_LDFLAGS_linux = -rdynamic
@@ -89,12 +100,17 @@ FWK_LDFLAGS       = -pthread  $(FWK_LIBS_$(PLATFORM)) $(FWK_LDFLAGS_$(PLATFORM))
 #HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(INCLUDES) $(FLAGS) $(CLANG_FLAGS)
 
+# --- Helper functions ----------------------------------------------------------------------------
+
+# Filters existing files from fiven file list
+# Arguments: subdir_list, file_list
+filter-existing = $(filter $(shell find $(1) -type f),$(2))
 
 # --- Build targets for libfwk users --------------------------------------------------------------
 
-ifneq ($(FWK_DIR),.)
+ifneq ($(FWK_DIR),)
 FWK_MAKE_ARGS  = -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
-FWK_LDFLAGS   += -L $(FWK_DIR)/lib -lfwk_$(PLATFORM)_$(FWK_MODE)
+FWK_LDFLAGS   += -L $(FWK_DIR)lib -lfwk_$(PLATFORM)_$(FWK_MODE)
 
 $(FWK_LIB_FILE): .always_check
 	$(MAKE) $(FWK_MAKE_ARGS) lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
