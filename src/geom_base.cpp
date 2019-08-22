@@ -1,8 +1,6 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#pragma once
-
 #include "fwk/geom_base.h"
 
 #include "fwk/hash_set.h"

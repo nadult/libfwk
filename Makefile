@@ -10,8 +10,8 @@
 #   MINGW_PREFIX:  prefix for mingw toolset; Can be set in the environment
 
 # Conditional compilation:
-#   IMGUI: enabled or disabled (by default if imgui is present, it's enabled)
-#   GEOM:  enabled or disabled (enabled by default)
+#   FWK_IMGUI:     enabled or disabled (by default if imgui is present, it's enabled)
+#   FWK_GEOM:      enabled or disabled (enabled by default)
 
 # Special targets:
 #  print-variables: prints contents of main variables
@@ -23,29 +23,16 @@
 # TODO: niezależne katalogi linux-gcc linux-clang ?
 # TODO: uzależnić *_merged.cpp od listy plików a nie całego makefile-a
 # TODO: wspólna konfiguracja dla Makefile, Makefile.include i makefile-i dla aplikacji
+# TODO: jak się zmieniły opcje kompilacji, to przerabiamy PCH ?
 
-PLATFORM      = linux
-MODE          = release
-MINGW_PREFIX ?= x86_64-w64-mingw32.static.posix-
-LINKER        = $(COMPILER)
-BUILD_DIR     = build/$(PLATFORM)_$(MODE)
-LIB_FILE      = lib/libfwk_$(PLATFORM)_$(MODE).a
-GEOM          = enabled
-IMGUI        ?= $(if $(wildcard extern/imgui/imgui.h),enabled,disabled)
+all: lib tools tests
 
-# Checking platform:
-ifeq ($(PLATFORM), linux)
-COMPILER       = clang++
-else ifeq ($(PLATFORM), mingw)
-COMPILER       = $(MINGW_PREFIX)g++
-TOOLSET_PREFIX = $(MINGW_PREFIX)
-PROGRAM_SUFFIX =.exe
-else ifeq ($(PLATFORM), html)
-COMPILER       = emcc
-PROGRAM_SUFFIX =.html
-else
-$(error ERROR: Unrecognized platform: $(PLATFORM))
-endif
+FWK_FLAGS_linux = $(shell $(PKG_CONFIG) --cflags $(FWK_LIBS_shared)) -Umain
+FWK_FLAGS_mingw = $(shell $(PKG_CONFIG) --cflags $(FWK_LIBS_shared)) -Umain
+FWK_FLAGS       = -Isrc/
+
+FWK_DIR  = .
+include Makefile-shared
 
 # --- Creating necessary sub-directories ----------------------------------------------------------
 
@@ -56,7 +43,7 @@ BUILD_SUBDIRS += gfx audio math sys tests tools menu perf geom
 endif
 
 _dummy := $(shell mkdir -p $(SUBDIRS))
-_dummy := $(shell mkdir -p $(addprefix $(BUILD_DIR)/,$(BUILD_SUBDIRS)))
+_dummy := $(shell mkdir -p $(addprefix $(FWK_BUILD_DIR)/,$(BUILD_SUBDIRS)))
 
 # --- Lists of source files -----------------------------------------------------------------------
 
@@ -90,13 +77,13 @@ SRC_gfx_gl = \
 
 SRC_audio = audio/al_device audio/sound audio/ogg_stream
 
-ifeq ($(GEOM), enabled)
+ifeq ($(FWK_GEOM), enabled)
 SRC_geom = geom_base geom/contour geom/regular_grid geom/segment_grid geom/procgen
 SRC_geom_graph = geom/element_ref geom/graph geom/geom_graph
 SRC_geom_voronoi = geom/voronoi geom/wide_int geom/voronoi_constructor geom/delaunay
 endif
 
-ifeq ($(IMGUI), enabled)
+ifeq ($(FWK_IMGUI), enabled)
 SRC_menu_imgui = menu/imgui_code
 SRC_menu = menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper perf/analyzer
 SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
@@ -117,12 +104,12 @@ SRC_merged = $(MODULES:%=%_merged)
 SRC_shared = $(foreach MODULE,$(MODULES),$(SRC_$(MODULE)))
 SRC_all    = $(SRC_merged) $(SRC_shared) $(SRC_programs)
 
-CPP_merged = $(SRC_merged:%=$(BUILD_DIR)/%.cpp)
+CPP_merged = $(SRC_merged:%=$(FWK_BUILD_DIR)/%.cpp)
 CPP_shared = $(SRC_shared:%=src/%.cpp)
 
-SHARED_OBJECTS := $(SRC_shared:%=$(BUILD_DIR)/%.o)
-MERGED_OBJECTS := $(SRC_merged:%=$(BUILD_DIR)/%.o)
-OBJECTS        := $(SHARED_OBJECTS) $(SRC_programs:%=$(BUILD_DIR)/%.o)
+SHARED_OBJECTS := $(SRC_shared:%=$(FWK_BUILD_DIR)/%.o)
+MERGED_OBJECTS := $(SRC_merged:%=$(FWK_BUILD_DIR)/%.o)
+OBJECTS        := $(SHARED_OBJECTS) $(SRC_programs:%=$(FWK_BUILD_DIR)/%.o)
 
 INPUT_OBJECTS  := $(if $(SPLIT_MODULES),$(SHARED_OBJECTS),$(MERGED_OBJECTS))
 INPUT_SRCS     := $(if $(SPLIT_MODULES),$(CPP_shared),$(CPP_merged))
@@ -130,83 +117,36 @@ INPUT_SRCS     := $(if $(SPLIT_MODULES),$(CPP_shared),$(CPP_merged))
 PROGRAMS       := $(SRC_programs:%=%$(PROGRAM_SUFFIX))
 #HTML5_PROGRAMS_SRC:=$(SRC_programs:%=%.html.cpp)
 
-ARCHIVER       = $(TOOLSET_PREFIX)ar
-STRIPPER       = $(TOOLSET_PREFIX)strip
-PKG_CONFIG     = $(TOOLSET_PREFIX)pkg-config
-
-COMPILER_TYPE = $(if $(findstring clang,$(COMPILER)),clang,$(if $(findstring mingw,$(PLATFORM)),gcc,clang))
-
-ifeq ($(COMPILER_TYPE),clang)
-LINKER += -fuse-ld=gold
-endif
-
-STATS_FILE = $(BUILD_DIR)/stats.txt
+STATS_FILE = $(FWK_BUILD_DIR)/stats.txt
 ifdef STATS
 STATS_CMD  = time -o $(STATS_FILE) -a -f "%U $*.o"
 endif
 
-all:   $(LIB_FILE) $(PROGRAMS)
+lib:   $(FWK_LIB_FILE)
 tools: $(SRC_tools:%=%$(PROGRAM_SUFFIX))
 tests: $(SRC_tests:%=%$(PROGRAM_SUFFIX))
-
-# --- Compilation & linking flags -----------------------------------------------------------------
-
-INCLUDES = -Iinclude/ -Isrc/
-
-LIBS_shared = freetype2 sdl2 libpng vorbisfile
-LIBS_linux  = $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lopenal -lGL -lGLU -lrt -lm -lstdc++
-LIBS_mingw  = $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lOpenAL32 -ldsound -lole32 -lwinmm \
-			  -lglu32 -lopengl32 -lws2_32 -limagehlp
-
-# Clang gives no warnings for uninitialized class members!
-#TODO:-Wno-strict-overflow
-FLAGS_shared = -fno-exceptions -std=c++2a -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP \
-			   -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized \
-			   -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
-			   -Wparentheses -Wno-overloaded-virtual
-FLAGS_clang  = -Wconstant-conversion -Werror=return-type -Wno-undefined-inline
-FLAGS_gcc    = -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
-
-FLAGS_release = -O3
-FLAGS_debug   = -O0 -DFWK_PARANOID
-
-FLAGS_linux  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -pthread -ggdb -Umain -DFWK_TARGET_LINUX 
-FLAGS_mingw  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -pthread -ggdb -Umain -DFWK_TARGET_MINGW -msse2 -mfpmath=sse
-
-FLAGS       += $(FLAGS_$(MODE)) $(INCLUDES) $(FLAGS_$(PLATFORM)) $(FLAGS_shared) $(FLAGS_$(COMPILER_TYPE)) \
-			   $(if $(findstring enabled,$(GEOM)),,-DFWK_GEOM_DISABLED) \
-			   $(if $(findstring enabled,$(IMGUI)),,-DFWK_IMGUI_DISABLED) \
-			   $(ADD_FLAGS)
-
-LINK_FLAGS_clang = -fuse-ld=gold
-LINK_FLAGS_linux = -rdynamic
-LINK_FLAGS       = -pthread  $(LIBS_$(PLATFORM)) $(LINK_FLAGS_$(PLATFORM)) $(LINK_FLAGS_$(COMPILER_TYPE))
-
-#HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
-#HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
-			--embed-file data/ $(INCLUDES) $(FLAGS) $(CLANG_FLAGS)
 
 # --- Precompiled headers configuration -----------------------------------------------------------
 
 # TODO: check if it's even enabled
 PCH_FILE_SRC = src/fwk_pch.h
 
-PCH_FILE_H    = $(BUILD_DIR)/fwk_pch_.h
-PCH_FILE_GCH  = $(BUILD_DIR)/fwk_pch_.h.gch
-PCH_FILE_PCH  = $(BUILD_DIR)/fwk_pch_.h.pch
+PCH_FILE_H    = $(FWK_BUILD_DIR)/fwk_pch_.h
+PCH_FILE_GCH  = $(FWK_BUILD_DIR)/fwk_pch_.h.gch
+PCH_FILE_PCH  = $(FWK_BUILD_DIR)/fwk_pch_.h.pch
 
 ifeq ($(COMPILER_TYPE),clang)
 PCH_INCLUDE   = -include-pch $(PCH_FILE_PCH)
 PCH_FILE_MAIN = $(PCH_FILE_PCH)
 else
-PCH_INCLUDE   = -I$(BUILD_DIR) -include $(PCH_FILE_H)
+PCH_INCLUDE   = -I$(FWK_BUILD_DIR) -include $(PCH_FILE_H)
 PCH_FILE_MAIN = $(PCH_FILE_GCH)
 endif
 
 $(PCH_FILE_H): $(PCH_FILE_SRC)
 	cp $^ $@
 $(PCH_FILE_MAIN): $(PCH_FILE_H)
-	$(COMPILER) -x c++-header -MMD $(FLAGS) $(PCH_FILE_H) -o $@
+	$(COMPILER) -x c++-header -MMD $(FWK_FLAGS) $(PCH_FILE_H) -o $@
 
 # --- Exception checker ---------------------------------------------------------------------------
 
@@ -221,27 +161,25 @@ endif
 
 # --- Main build targets --------------------------------------------------------------------------
 
-$(CPP_merged): $(BUILD_DIR)/%_merged.cpp: Makefile
+$(CPP_merged): $(FWK_BUILD_DIR)/%_merged.cpp: Makefile
 	@echo "$(SRC_$*:%=#include \"%.cpp\"\n)" > $@
 
-$(OBJECTS): $(BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE_MAIN)
-	$(STATS_CMD) $(COMPILER) -MMD $(FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@
+$(OBJECTS): $(FWK_BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE_MAIN)
+	$(STATS_CMD) $(COMPILER) -MMD $(FWK_FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@
 
-$(MERGED_OBJECTS): $(BUILD_DIR)/%.o: $(BUILD_DIR)/%.cpp $(PCH_FILE_MAIN)
-	$(STATS_CMD) $(COMPILER) -MMD $(FLAGS) $(PCH_INCLUDE) -c $(BUILD_DIR)/$*.cpp -o $@
+$(MERGED_OBJECTS): $(FWK_BUILD_DIR)/%.o: $(FWK_BUILD_DIR)/%.cpp $(PCH_FILE_MAIN)
+	$(STATS_CMD) $(COMPILER) -MMD $(FWK_FLAGS) $(PCH_INCLUDE) -c $(FWK_BUILD_DIR)/$*.cpp -o $@
 
-$(PROGRAMS): %$(PROGRAM_SUFFIX): $(INPUT_OBJECTS) $(BUILD_DIR)/%.o
-	$(LINKER) -MMD -o $@ $^ $(LINK_FLAGS)
+$(PROGRAMS): %$(PROGRAM_SUFFIX): $(INPUT_OBJECTS) $(FWK_BUILD_DIR)/%.o
+	$(LINKER) -MMD -o $@ $^ $(FWK_LDFLAGS)
 
 #$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SRC_shared:%=src/%.cpp)
 #	cat src/html_pre_include.cpp $^ > $@
 #$(HTML5_PROGRAMS): %.html: %.html.cpp
 #	emcc $(HTML5_FLAGS) $^ -o $@
 
-# TODO: use Makefile.include to build test programs?
-
-$(LIB_FILE): $(INPUT_OBJECTS)
-	$(ARCHIVER) r $@ $^ 
+$(FWK_LIB_FILE): $(INPUT_OBJECTS)
+	$(ARCHIVER) r $@ $^
 
 #lib/libfwk.cpp: $(SRC_shared:%=src/%.cpp)
 # TODO: catting sux
@@ -249,14 +187,14 @@ $(LIB_FILE): $(INPUT_OBJECTS)
 #lib/libfwk.html.cpp: $(SRC_shared:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 #	cat $^ > $@
 
-DEPS:=$(SRC_all:%=$(BUILD_DIR)/%.d) $(PCH_FILE_H).d
+DEPS:=$(SRC_all:%=$(FWK_BUILD_DIR)/%.d) $(PCH_FILE_H).d
 
 print-stats:
 	sort -n -r $(STATS_FILE)
 
 clean:
 	-rm -f $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(CPP_merged) $(STATS_FILE) \
-		$(LIB_FILE) $(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
+		$(FWK_LIB_FILE) $(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
 	find $(SUBDIRS) -type d -empty -delete
 
 clean-checker:
@@ -269,23 +207,23 @@ clean-all: clean-checker
 	$(MAKE) -C . PLATFORM=mingw MODE=release clean
 	
 print-variables:
-	@echo PLATFORM=$(PLATFORM)
-	@echo MODE=$(MODE)
-	@echo COMPILER=$(COMPILER)
-	@echo COMPILER_TYPE=$(COMPILER_TYPE)
-	@echo LINKER=$(LINKER)
-	@echo LIB_FILE=$(LIB_FILE)
+	@echo "PLATFORM      = $(PLATFORM)"
+	@echo "MODE          = $(MODE)"
+	@echo "COMPILER      = $(COMPILER)"
+	@echo "LINKER        = $(LINKER)"
+	@echo "COMPILER_TYPE = $(COMPILER_TYPE)"
+	@echo
+	@echo "FWK_BUILD_DIR = $(FWK_BUILD_DIR)"
+	@echo "FWK_LIB_FILE  = $(FWK_LIB_FILE)"
 	@echo 
-	@echo IMGUI=$(IMGUI)
-	@echo GEOM=$(GEOM)
+	@echo "FWK_IMGUI     = $(FWK_IMGUI)"
+	@echo "FWK_GEOM      = $(FWK_GEOM)"
 	@echo 
-	@echo OBJECTS=$(OBJECTS)
-	@echo MERGED_OBJECTS=$(MERGED_OBJECTS)
+	@echo "FWK_FLAGS  = $(FWK_FLAGS)"
 	@echo 
-	@echo FLAGS=$(FLAGS)
-	@echo LINK_FLAGS=$(LINK_FLAGS)
+	@echo "FWK_LDFLAGS = $(FWK_LDFLAGS)"
 
-.PHONY: clean tools tests clean-all clean-checker
+.PHONY: clean tools tests lib clean-all clean-checker
 .always_check:
 
 -include $(DEPS)
