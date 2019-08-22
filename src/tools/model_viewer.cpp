@@ -23,7 +23,7 @@
 
 #include "fwk/menu/imgui_wrapper.h"
 
-#ifdef FWK_IMGUI_ENABLED
+#ifndef FWK_IMGUI_DISABLED
 #include "fwk/menu/helpers.h"
 #include "fwk/menu_imgui.h"
 #endif
@@ -141,7 +141,7 @@ class Viewer {
 			m_models.emplace_back(model, default_mat, tex, file_name.first, file_name.second);
 		}
 
-#ifdef FWK_IMGUI_ENABLED
+#ifndef FWK_IMGUI_DISABLED
 		m_imgui.emplace(GlDevice::instance(), ImGuiStyleMode::mini);
 #endif
 
@@ -180,7 +180,7 @@ class Viewer {
 	}
 
 	void doMenu() {
-#ifdef FWK_IMGUI_ENABLED
+#ifndef FWK_IMGUI_DISABLED
 		static bool set_pos = true;
 		if(set_pos) {
 			menu::SetNextWindowPos(int2());
@@ -311,12 +311,12 @@ class Viewer {
 
 		renderer_3d.render();
 
-#ifdef FWK_IMGUI_ENABLED
-		m_imgui->drawFrame(GlDevice::instance());
-#else
+#ifdef FWK_IMGUI_DISABLED
 		Renderer2D renderer_2d(m_viewport, Orient2D::y_down);
 		helpBox(renderer_2d, model);
 		renderer_2d.render();
+#else
+		m_imgui->drawFrame(GlDevice::instance());
 #endif
 	}
 
@@ -328,12 +328,12 @@ class Viewer {
 		clearDepth(1.0f);
 
 		vector<InputEvent> events;
-#ifdef FWK_IMGUI_ENABLED
+#ifdef FWK_IMGUI_DISABLED
+		events = device.inputEvents();
+#else
 		m_imgui->beginFrame(device);
 		doMenu();
 		events = m_imgui->finishFrame(device);
-#else
-		events = device.inputEvents();
 #endif
 
 		float time_diff = 1.0f / 60.0f;
@@ -353,7 +353,7 @@ class Viewer {
   private:
 	vector<Model> m_models;
 	Dynamic<Font> m_font;
-#ifdef FWK_IMGUI_ENABLED
+#ifndef FWK_IMGUI_DISABLED
 	Dynamic<ImGuiWrapper> m_imgui;
 #endif
 

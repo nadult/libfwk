@@ -1,44 +1,54 @@
-#FWK_DIR should be defined
-#MINGW_PREFIX should be defined
+# Main Options:
+#   PLATFORM:      linux, mingw or html
+#   FWK_MODE:      release or debug
+#   FWK_DIR:       location of libfwk relative to parent Makefile (has to be defined)
+#
+#
+# Exports:
+#
+# FWK_FLAGS:
+# FWK_MAKE:        make command for libfwk
+# FWK_LIB:         path to lib file
+# TODO
 
-LINUX_FWK_LIB=$(FWK_DIR)/lib/libfwk.a
-MINGW_FWK_LIB=$(FWK_DIR)/lib/libfwk_win32.a
-HTML5_FWK_LIB=$(FWK_DIR)/lib/libfwk.html.cpp
-FWK_FULL_SOURCE=$(FWK_DIR)/lib/libfwk.cpp
-LINUX_FWK_MODEL_CONVERT=$(FWK_DIR)/tools/model_convert
+ifndef FWK_DIR
+($error ERROR: FWK_DIR undefined)
+endif
+
+ifndef MINGW_PREFIX
+($error ERROR: MINGW_PREFIX undefined)
+endif
+
+PLATFORM     ?= linux
+FWK_MODE     ?= release
+FWK_LIB_FILE  = $(FWK_DIR)/lib/libfwk_$(PLATFORM)_$(MODE).a
+
+# TODO:
+FWK_MODEL_CONVERT=$(FWK_DIR)/tools/model_convert
 
 LINUX_PKG_CONFIG=pkg-config
 MINGW_PKG_CONFIG=$(MINGW_PREFIX)pkg-config
 
-FWK_LIBS=freetype2 sdl2 libpng vorbisfile 
-LINUX_FWK_FLAGS=-std=c++2a -DFWK_TARGET_LINUX #$(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
-MINGW_FWK_FLAGS=-std=c++2a -DFWK_TARGET_MINGW $(shell $(MINGW_PKG_CONFIG) --cflags sdl2) -Umain
+FWK_FLAGS_linux = -DFWK_TARGET_LINUX
+FWK_FLAGS_mingw = -DFWK_TARGET_MINGW
+FWK_FLAGS       = -std=c++2a $(FWK_FLAGS_$(PLATFORM))
 
-LINUX_FWK_LIBS_=-lopenal -lGL -lGLU -lrt
-MINGW_FWK_LIBS_=-lOpenAL32 -ldsound -lole32 -lwinmm -lglu32 -lopengl32 -lws2_32 -limagehlp
+FWK_LIBS_shared = freetype2 sdl2 libpng vorbisfile 
+FWK_LIBS_linux  = $(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS_shared)) -lopenal -lGL -lGLU -lrt
+FWK_LIBS_mingw  = $(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS_shared)) -lOpenAL32 -ldsound -lole32 -lwinmm \
+				  -lglu32 -lopengl32 -lws2_32 -limagehlp
+FWK_LIBS        = -L$(FWK_DIR)/lib -lfwk_$(PLATFORM)_$(FWK_MODE) $(FWK_LIBS_$(PLATFORM))
+FWK_INCLUDES    = -I$(FWK_DIR)/include
 
-LINUX_FWK_LIBS=$(shell $(LINUX_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk $(LINUX_FWK_LIBS_)
-MINGW_FWK_LIBS=$(shell $(MINGW_PKG_CONFIG) --libs $(FWK_LIBS)) -L$(FWK_DIR)/lib -lfwk_win32 $(MINGW_FWK_LIBS_)
-FWK_INCLUDES=-I$(FWK_DIR)/include
-
-HTML5_FWK_FLAGS=-std=c++2a -DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -I$(FWK_DIR)/src $(FWK_INCLUDES) \
+#HTML5_FWK_FLAGS=-std=c++2a -DFWK_TARGET_HTML5 --memory-init-file 0 -O2 -I$(FWK_DIR)/src $(FWK_INCLUDES) \
 				-s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1
-LINUX_WPO_FWK_FLAGS=$(LINUX_FWK_FLAGS) -I$(FWK_DIR)/src $(FWK_INCLUDES) $(shell $(LINUX_PKG_CONFIG) --libs --cflags $(FWK_LIBS)) \
-			   -DPNG_SKIP_SETJMP_CHECK $(LINUX_FWK_LIBS_)
-MINGW_WPO_FWK_FLAGS=$(MINGW_FWK_FLAGS) -I$(FWK_DIR)/src $(FWK_INCLUDES) $(shell $(MINGW_PKG_CONFIG) --libs --cflags $(FWK_LIBS)) \
-			   -DPNG_SKIP_SETJMP_CHECK $(MINGW_FWK_LIBS_)
-MINGW_WPO_FWK_SRC_FILES=$(FWK_DIR)/src/system_windows.cpp $(FWK_DIR)/src/filesystem_windows.cpp
 
-$(LINUX_FWK_LIB): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) lib/libfwk.a FAST_BUILD=true
-$(MINGW_FWK_LIB): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) lib/libfwk_win32.a FAST_BUILD=true
-$(HTML5_FWK_LIB): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) lib/libfwk.html.cpp
-$(FWK_FULL_SOURCE): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) lib/libfwk.cpp
-$(LINUX_FWK_MODEL_CONVERT): .ALWAYS_CHECK
-	$(MAKE) -C $(FWK_DIR) tools/model_convert
+FWK_MAKE = $(MAKE) -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
 
-.ALWAYS_CHECK:
+$(FWK_LIB): .always_check
+	$(FWK_MAKE) lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
+$(FWK_MODEL_CONVERT): .always_check
+	$(FWK_MAKE) tools/model_convert
+
+.always_check:
 

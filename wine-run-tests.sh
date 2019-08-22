@@ -1,5 +1,5 @@
 set -e
-make -j8 tests_mingw tools_mingw FAST_BUILD=true
+make -j8 PLATFORM=mingw
 cd tests
 wine ./stuff.exe
 wine ./math.exe

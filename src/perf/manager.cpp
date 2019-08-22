@@ -16,7 +16,7 @@ static vector<Frame> s_new_frames;
 
 Manager::Manager() {
 	ASSERT(!s_instance && "Only single perf::Manager is allowed");
-#ifdef FWK_IMGUI_ENABLED
+#ifndef FWK_IMGUI_DISABLED
 	ASSERT(!Analyzer::instance() && "Analyzer has to be destroyed before Manager");
 #endif
 
