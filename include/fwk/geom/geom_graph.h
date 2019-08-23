@@ -18,9 +18,10 @@ template <class T> class GeomGraph : public Graph {
 
 	using Point = T;
 	using Vec = T;
-	using Vec2D = MakeVec<Base<T>, 2>;
+	using Vec2 = MakeVec<Base<T>, 2>;
+	using VecD = MakeVec<double, dim<T>>;
 	using IPoint = MakeVec<int, dim<T>>;
-	using Grid = SegmentGrid<Vec2D>;
+	using Grid = SegmentGrid<Vec2>;
 
 	using PointMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
 
@@ -132,6 +133,8 @@ template <class T> class GeomGraph : public Graph {
 	vector<EdgeId> findIntersectors(const Grid &) const;
 	bool isPlanar(const Grid &grid) const { return !findIntersectors(grid); }
 	Ex<void> checkPlanar(const Grid &) const;
+
+	double scale = 1.0;
 
   private:
 	template <Axes2D> void orderEdges(VertexId);

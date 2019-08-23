@@ -267,7 +267,10 @@ auto GeomGraph<T>::toIntegral(double scale) const -> Ex<GeomGraph<IPoint>> {
 	PodVector<IPoint> new_points(vertsEndIndex());
 	for(auto vert : verts())
 		new_points[vert] = IPoint((*this)(vert)*scale);
-	return replacePoints(new_points);
+	auto out = replacePoints(new_points);
+	if(out)
+		out->scale = 1.0 / scale;
+	return out;
 }
 
 template <class T>
@@ -276,7 +279,9 @@ auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoin
 	PodVector<IPoint> new_points(vertsEndIndex());
 	for(auto vert : verts())
 		new_points[vert] = IPoint((*this)(vert)*scale);
-	return replacePointsWithCollapse(new_points);
+	auto out = replacePointsWithCollapse(new_points);
+	out.scale = 1.0 / scale;
+	return out;
 }
 
 // -------------------------------------------------------------------------------------------
@@ -342,7 +347,13 @@ template <class T> Ex<void> GeomGraph<T>::checkPlanar(const Grid &grid) const {
 	auto isectors = findIntersectors(grid);
 	if(isectors) {
 		auto error = ERROR("Graph not planar");
-		error.values.emplace_back(transform(isectors, [&](auto id) { return (*this)(id); }));
+		auto &graph = *this;
+		auto func = [&](EdgeId edge_id) {
+			auto edge = graph.ref(edge_id);
+			auto p1 = graph(edge.from()), p2 = graph(edge.to());
+			return Segment{VecD(p1), VecD(p2)} * scale;
+		};
+		error.values.emplace_back(transform(isectors, func));
 		return error;
 	}
 	return {};
