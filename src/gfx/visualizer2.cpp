@@ -18,7 +18,7 @@ namespace fwk {
 
 VoronoiVis2::VoronoiVis2(Visualizer2 &vis, const VoronoiDiagram &diag, VoronoiVis2Colors colors,
 						 Maybe<CellId> sel)
-	: m_vis(vis), m_diag(diag), m_graph(diag.graph()), m_colors(colors), m_sel(sel) {}
+	: m_vis(vis), m_diag(diag), m_graph(diag.graph), m_colors(colors), m_sel(sel) {}
 
 void VoronoiVis2::drawSegment(EdgeId seg_id, bool draw_sel) {
 	auto arc_id = m_diag.arcId(seg_id);

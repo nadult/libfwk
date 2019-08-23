@@ -13,52 +13,44 @@
 
 namespace fwk {
 
-VoronoiDiagram::VoronoiDiagram(GeomGraph<double2> graph, Info info)
-	: m_graph(move(graph)), m_info(move(info)) {
+VoronoiDiagram::VoronoiDiagram(GeomGraph<double2> graph, vector<Cell> cells)
+	: graph(move(graph)), cells(move(cells)) {
+	for(auto &cell : cells) {
+		if(EdgeId *eid = cell)
+			DASSERT(graph.valid(*eid));
+		else if(VertexId *vid = cell)
+			DASSERT(graph.valid(*vid));
+	}
 	// TODO: validate labels?
 	// TODO: verify arcs
-	for(auto &cell : m_info.cells) {
-		for(int n = 0; n < cell.generator.size(); n++)
-			DASSERT(m_graph.valid(cell.generator[n]));
-	}
 }
 
 bool VoronoiDiagram::isArcPrimary(EdgeId id) const {
-	PASSERT(m_graph.layer(id) == arc_layer);
-	return m_graph[id].ival1 != 0;
+	PASSERT(graph.layer(id) == arc_layer);
+	return graph[id].ival1 != 0;
 }
 
 EdgeId VoronoiDiagram::arcId(EdgeId id) const {
-	PASSERT(m_graph.layer(id) == seg_layer);
-	return EdgeId(m_graph[id].ival1);
+	PASSERT(graph.layer(id) == seg_layer);
+	return EdgeId(graph[id].ival1);
 }
 
 CellId VoronoiDiagram::cellId(EdgeId id) const {
-	auto layer = m_graph.layer(id);
+	auto layer = graph.layer(id);
 	PASSERT(isOneOf(layer, arc_layer, seg_layer));
-	return CellId(m_graph[id].ival2);
+	return CellId(graph[id].ival2);
 }
 
 vector<EdgeId> VoronoiDiagram::arcSegments(EdgeId edge) const {
 	vector<EdgeId> out;
-	// TODO
+	FATAL("write me");
 	return out;
 }
 
 vector<EdgeId> VoronoiDiagram::cellArcs(CellId) const {
 	vector<EdgeId> out;
-	// TODO
+	FATAL("write me");
 	return out;
-}
-
-Variant<None, double2, Segment2<double>> VoronoiDiagram::operator[](Simplex simplex) const {
-	if(simplex.isNode())
-		return m_graph(simplex.asNode());
-	if(simplex.isEdge()) {
-		auto [v1, v2] = simplex.asEdge();
-		return Segment2D(m_graph(v1), m_graph(v2));
-	}
-	return none;
 }
 
 Maybe<CellId> VoronoiDiagram::findClosestCell(double2 pos) const {
@@ -66,16 +58,15 @@ Maybe<CellId> VoronoiDiagram::findClosestCell(double2 pos) const {
 	double min_dist = inf;
 	int min_rank = 0;
 
-	for(auto cell_id : indexRange<CellId>(0, m_info.cells.size())) {
-		auto &cell = m_info.cells[cell_id];
+	for(auto cell_id : indexRange<CellId>(cells)) {
+		auto &cell = cells[cell_id];
 
-		auto simplex = (*this)[cell.generator];
 		double dist = inf;
-		if(simplex.is<double2>())
-			dist = distanceSq(pos, simplex.get<double2>());
-		else if(simplex.is<Segment2<double>>())
-			dist = simplex.get<Segment2<double>>().distanceSq(pos);
-		int rank = cell.generator.size();
+		if(const VertexId *vid = cell)
+			dist = distanceSq(pos, graph(*vid));
+		else if(const EdgeId *eid = cell)
+			dist = graph(*eid).distanceSq(pos);
+		int rank = cell.is<EdgeId>() ? 2 : 1;
 
 		if(dist < min_dist || (dist == min_dist && rank < min_rank)) {
 			out = cell_id;
@@ -84,25 +75,6 @@ Maybe<CellId> VoronoiDiagram::findClosestCell(double2 pos) const {
 		}
 	}
 	return out;
-}
-
-Simplex Simplex::remap(const NodeMapping &mapping) const {
-	if(isNode()) {
-		if(auto node = mapping.maybeFind(m_nodes[0]))
-			return *node;
-	}
-	if(isEdge()) {
-		auto node1 = mapping.maybeFind(m_nodes[0]);
-		auto node2 = mapping.maybeFind(m_nodes[1]);
-		// TODO: check this
-		return node1 && node2 ? Simplex(*node1, *node2) : Simplex();
-	}
-	return {};
-}
-
-static VoronoiCell remapCell(VoronoiCell cell, const NodeMapping &node_mapping) {
-	cell.generator = cell.generator.remap(node_mapping);
-	return cell;
 }
 
 DEFINE_ENUM(RectSide, right, top, left, bottom);
@@ -141,21 +113,21 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 
 	// TODO: a co z site-ami punktowymi ? Chcielibyśmy sie przeiterować po
 	// wierzchołkach na danej warstwie
-	for(auto vert : m_graph.verts(site_layer))
-		new_graph.addVertexAt(vert, m_graph(vert), site_layer);
-	for(auto edge : m_graph.edges(site_layer))
+	for(auto vert : graph.verts(site_layer))
+		new_graph.addVertexAt(vert, graph(vert), site_layer);
+	for(auto edge : graph.edges(site_layer))
 		new_graph.addEdgeAt(edge, edge.from(), edge.to(), site_layer);
 
 	// Clipping segments to rect
-	for(auto ref : m_graph.edges(seg_layer)) {
-		auto segment = m_graph(ref);
+	for(auto ref : graph.edges(seg_layer)) {
+		auto segment = graph(ref);
 
-		EdgeId old_arc_id(m_graph[ref].ival1);
+		EdgeId old_arc_id(graph[ref].ival1);
 		auto clipped = segment.clip(rect);
 		if(clipped) {
 			DASSERT(rect.contains(clipped->from));
 			DASSERT(rect.contains(clipped->to));
-			CellId old_cell_id(m_graph[old_arc_id].ival2);
+			CellId old_cell_id(graph[old_arc_id].ival2);
 			auto v1 = new_graph.fixVertex(clipped->from, seg_layer).id;
 			auto v2 = new_graph.fixVertex(clipped->to, seg_layer).id;
 			auto eid = new_graph.addEdge(v1, v2, seg_layer);
@@ -199,7 +171,7 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 					}
 
 					auto arc_id = new_graph.addEdge(vert.id(), pnode, arc_layer);
-					new_graph[arc_id] = m_graph[old_arc_id];
+					new_graph[arc_id] = graph[old_arc_id];
 					for(auto seg_id : arc)
 						new_graph[seg_id].ival1 = arc_id;
 				}
@@ -280,6 +252,6 @@ VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
 
 	// Update after adding some rect corner points; TODO: what?
 
-	return {new_graph, m_info};
+	return {new_graph, cells};
 }
 }

@@ -21,7 +21,7 @@ template <class T> double delaunayIntegralScale(CSpan<T> points) {
 }
 
 vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
-	auto &graph = voronoi.graph();
+	auto &graph = voronoi.graph;
 	auto cell_verts = graph.verts(voronoi.site_layer);
 
 	vector<VertexIdPair> out;

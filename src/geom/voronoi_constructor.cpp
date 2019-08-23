@@ -7,6 +7,8 @@
 #include "fwk/geom/segment_grid.h"
 #include "fwk/geom/wide_int.h"
 #include "fwk/math/segment.h"
+#include "fwk/static_vector.h"
+#include "fwk/variant.h"
 #include "fwk/vector_map.h"
 
 #include "../extern/boost_polygon/voronoi_builder.hpp"
@@ -115,7 +117,7 @@ class VoronoiConstructor {
 				m_point_ids.emplace_back(nedge.from().id());
 			} else {
 				m_segments.emplace_back(p1, p2);
-				m_segment_ids.emplace_back(nedge.from().id(), nedge.to().id());
+				m_segment_ids.emplace_back(nedge);
 			}
 		}
 
@@ -127,31 +129,36 @@ class VoronoiConstructor {
 		builder.construct(&m_diagram);
 	}
 
+	StaticVector<VertexId, 2> cellVerts(const VoronoiCell &cell) const {
+		if(const VertexId *vid = cell)
+			return {{*vid}};
+		auto edge = m_input_graph.ref(cell.get<EdgeId>());
+		return {{edge.from(), edge.to()}};
+	}
+
 	VoronoiDiagram convertDiagram() {
 		GeomGraph<double2> out;
 
-		VoronoiInfo info;
-		info.cells.reserve(m_diagram.num_cells());
+		vector<VoronoiCell> cells;
+		cells.reserve(m_diagram.num_cells());
 
 		for(int i : intRange(m_diagram.num_cells())) {
 			auto &cell = m_diagram.cells()[i];
 			CellId id(i);
 
-			int point_index = cell.source_index();
 			int seg_index = cell.source_index() - m_points.size();
-			Simplex simplex;
 
-			if(cell.source_category() == SOURCE_CATEGORY_SEGMENT_START_POINT)
-				simplex = {m_segment_ids[seg_index].first};
-			else if(cell.source_category() == SOURCE_CATEGORY_SEGMENT_END_POINT)
-				simplex = {m_segment_ids[seg_index].second};
-			else if(cell.source_category() == SOURCE_CATEGORY_SINGLE_POINT)
-				simplex = {m_point_ids[point_index]};
-			else if(cell.contains_segment())
-				simplex = {m_segment_ids[seg_index].first, m_segment_ids[seg_index].second};
-
-			if(!simplex.empty())
-				info.cells.emplace_back(simplex, cell.source_category());
+			if(cell.source_category() == SOURCE_CATEGORY_SINGLE_POINT) {
+				cells.emplace_back(m_point_ids[cell.source_index()]);
+			} else if(m_segment_ids.inRange(seg_index)) {
+				auto eid = m_segment_ids[seg_index];
+				if(cell.source_category() == SOURCE_CATEGORY_SEGMENT_START_POINT)
+					cells.emplace_back((VertexId)m_input_graph.ref(eid).from());
+				else if(cell.source_category() == SOURCE_CATEGORY_SEGMENT_END_POINT)
+					cells.emplace_back((VertexId)m_input_graph.ref(eid).to());
+				else if(cell.contains_segment())
+					cells.emplace_back(eid);
+			}
 		}
 
 		// Copying input graph into site layer
@@ -186,12 +193,12 @@ class VoronoiConstructor {
 			CellId cell_id1(edge.cell() - first_cell);
 			CellId cell_id2(edge.twin()->cell() - first_cell);
 
-			const auto &cell1 = info.cells[cell_id1];
-			const auto &cell2 = info.cells[cell_id2];
+			const auto &cell1 = cells[cell_id1];
+			const auto &cell2 = cells[cell_id2];
 
 			Maybe<VertexId> shared_node;
-			for(auto v1 : cell1.generator)
-				for(auto v2 : cell2.generator)
+			for(auto v1 : cellVerts(cell1))
+				for(auto v2 : cellVerts(cell2))
 					if(v1 == v2 && m_input_graph.ref(v1).numEdges() != 1) {
 						shared_node = v1;
 						break;
@@ -282,7 +289,7 @@ class VoronoiConstructor {
 			}
 		}
 
-		return VoronoiDiagram(out, move(info));
+		return VoronoiDiagram(move(out), move(cells));
 	}
 
 	void clip_infinite_edge(const edge_type &edge, vector<double2> &out) const {
@@ -447,7 +454,7 @@ class VoronoiConstructor {
 	vector<VertexId> m_point_ids;
 
 	vector<ST> m_segments;
-	vector<Pair<VertexId>> m_segment_ids;
+	vector<EdgeId> m_segment_ids;
 
 	DRect m_rect;
 	VD m_diagram;
