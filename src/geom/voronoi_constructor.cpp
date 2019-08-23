@@ -4,6 +4,7 @@
 #include "fwk/geom/voronoi.h"
 
 #include "fwk/geom/geom_graph.h"
+#include "fwk/geom/segment_grid.h"
 #include "fwk/geom/wide_int.h"
 #include "fwk/math/segment.h"
 #include "fwk/vector_map.h"
@@ -457,8 +458,8 @@ vector<Pair<VertexId>> VoronoiDiagram::delaunay(CSpan<int2> sites) {
 	return constructor.extractSitePairs();
 }
 
-VoronoiDiagram VoronoiDiagram::construct(const GeomGraph<int2> &graph) {
-	// ASSERT(graph.isPlanar()); // TODO: make it work
+Ex<VoronoiDiagram> VoronoiDiagram::construct(const GeomGraph<int2> &graph) {
+	EXPECT(graph.checkPlanar(graph.makeGrid()));
 
 	IRect rect = enclose(graph.points()).enlarge(1);
 	// TODO: how can we be sure that rect can be enlarged ?

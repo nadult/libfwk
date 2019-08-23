@@ -87,7 +87,7 @@ class VoronoiDiagram {
 	static vector<Pair<VertexId>> delaunay(CSpan<int2> sites);
 
 	// After construction Cell generators will have same VertexId as in PGraph
-	static VoronoiDiagram construct(const GeomGraph<int2> &);
+	static Ex<VoronoiDiagram> construct(const GeomGraph<int2> &);
 	VoronoiDiagram clip(DRect) const;
 
 	bool isArcPrimary(EdgeId) const;

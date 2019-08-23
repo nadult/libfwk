@@ -342,7 +342,7 @@ template <class T> Ex<void> GeomGraph<T>::checkPlanar(const Grid &grid) const {
 	auto isectors = findIntersectors(grid);
 	if(isectors) {
 		auto error = ERROR("Graph not planar");
-		error.values.emplace_back(isectors);
+		error.values.emplace_back(transform(isectors, [&](auto id) { return (*this)(id); }));
 		return error;
 	}
 	return {};
