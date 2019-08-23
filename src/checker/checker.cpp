@@ -328,6 +328,52 @@ class CheckFwkExceptionsConsumer : public ASTConsumer {
 	}
 };
 
+class PrintTypeAliasesConsumer : public ASTConsumer {
+  public:
+	struct Visitor : public RecursiveASTVisitor<Visitor> {
+		Visitor(ASTContext &ctx) : ctx(ctx) {}
+
+		bool shouldVisitTemplateInstantiations() const { return true; }
+
+		bool validDecl(Decl *decl) {
+			if(!decl->isDefinedOutsideFunctionOrMethod())
+				return false;
+			auto lex_ctx = decl->getLexicalDeclContext();
+			if((!lex_ctx->isNamespace() && !lex_ctx->isTranslationUnit()) ||
+			   lex_ctx->isInlineNamespace())
+				return false;
+			return true;
+		}
+
+		bool VisitTypedefNameDecl(TypedefNameDecl *decl) {
+			if(!validDecl(decl))
+				return true;
+
+			string base_type_name;
+			decl->getTypeSourceInfo()->getType().getAsStringInternal(base_type_name,
+																	 ctx.getLangOpts());
+
+			printf("%s -> %s\n", decl->getNameAsString().c_str(), base_type_name.c_str());
+			return true;
+		}
+
+		bool VisitUsingDecl(UsingDecl *decl) {
+			if(!validDecl(decl))
+				return true;
+
+			// TODO: handle it
+			return true;
+		}
+
+		const ASTContext &ctx;
+	};
+
+	void HandleTranslationUnit(ASTContext &ctx) override {
+		Visitor v(ctx);
+		v.TraverseDecl(ctx.getTranslationUnitDecl());
+	}
+};
+
 class CheckFwkExceptionsAction : public PluginASTAction {
   protected:
 	std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI, llvm::StringRef) override {
@@ -339,7 +385,19 @@ class CheckFwkExceptionsAction : public PluginASTAction {
 	}
 };
 
+class PrintTypeAliasesAction : public PluginASTAction {
+  protected:
+	std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI, llvm::StringRef) override {
+		return llvm::make_unique<PrintTypeAliasesConsumer>();
+	}
+	bool ParseArgs(const CompilerInstance &CI, const std::vector<std::string> &args) override {
+		return true;
+	}
+};
+
 }
 
 static FrontendPluginRegistry::Add<CheckFwkExceptionsAction>
-	X("check-fwk-exceptions", "Checks if exception attributes are in place");
+	X1("fwk-check-exceptions", "Checks if exception attributes are in place");
+static FrontendPluginRegistry::Add<PrintTypeAliasesAction> X2("fwk-print-type-aliases",
+															  "Prints type aliases to file");

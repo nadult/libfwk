@@ -83,7 +83,9 @@ CFLAGS         += -I$(FWK_DIR)include/ -fno-exceptions -std=c++2a \
 
 CFLAGS_clang   += -Wconstant-conversion -Werror=return-type -Wno-undefined-inline
 ifneq ("$(wildcard $(FWK_DIR)checker.so)","")
-CFLAGS_clang   += -Xclang -load -Xclang  $(realpath $(FWK_DIR)checker.so) -Xclang -add-plugin -Xclang check-fwk-exceptions
+CFLAGS_clang   += -Xclang -load -Xclang "$(realpath $(FWK_DIR)checker.so)" \
+                  -Xclang -add-plugin -Xclang fwk-check-exceptions
+                 #-Xclang -add-plugin -Xclang fwk-print-type-aliases
 endif
 CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
 
