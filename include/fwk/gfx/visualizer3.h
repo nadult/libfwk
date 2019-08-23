@@ -15,6 +15,8 @@ namespace fwk {
 
 DEFINE_ENUM(VisMode, wireframe, solid);
 
+// Accumulates different kind of geometry (triangle and line-based).
+// Filters elements with transparent color.
 class Visualizer3 {
   public:
 	using Mode = VisMode;
@@ -25,6 +27,8 @@ class Visualizer3 {
 
 	void clear();
 	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
+
+	bool isFullyTransparent(IColor) const;
 
 	void setMode(VisMode);
 	void setMaterial(Material, ModeFlags = all<VisMode>);
@@ -51,15 +55,18 @@ class Visualizer3 {
 	}
 
 	template <class T> void operator()(CSpan<Triangle<T, 3>> span, IColor color = ColorId::white) {
-		(*this)(transform<Triangle3F>(span), color);
+		if(!isFullyTransparent(color))
+			(*this)(transform<Triangle3F>(span), color);
 	}
 	template <class T> void operator()(CSpan<Box<T>> span, IColor color = ColorId::white) {
-		(*this)(transform<FBox>(span), color);
+		if(!isFullyTransparent(color))
+			(*this)(transform<FBox>(span), color);
 	}
 
 	template <class T, EnableIf<dim<T> == 3>...>
 	void operator()(CSpan<Segment<T>> span, IColor color = ColorId::white) {
-		(*this)(transform<Segment3F>(span), color);
+		if(!isFullyTransparent(color))
+			(*this)(transform<Segment3F>(span), color);
 	}
 
 	void operator()(const ColoredTriangle &);
