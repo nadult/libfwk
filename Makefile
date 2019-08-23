@@ -1,17 +1,9 @@
-# Main Options:
-#   PLATFORM:      linux, mingw or html
-#   MODE:          release or debug
-#   COMPILER:      name of the compiler; clang++ or g++ is used by default
-#   LINKER:        name of linker; by default same as compiler
-#   ADD_FLAGS:     additional compiler flags
+# Options:
+#   All the options from Makefile-shared are available except FWK_MODE
 #   STATS:         gathers build times for each object file
 #   SPLIT_MODULES: normally modules composed of multiple .cpp files are built together; this
 #                  option forces separate compilation for each .cpp file
 #   MINGW_PREFIX:  prefix for mingw toolset; Can be set in the environment
-
-# Conditional compilation:
-#   FWK_IMGUI:     enabled or disabled (by default if imgui is present, it's enabled)
-#   FWK_GEOM:      enabled or disabled (enabled by default)
 
 # Special targets:
 #  print-variables: prints contents of main variables
@@ -19,17 +11,17 @@
 #  clean-checker:   removes build files for checker
 #  clean-all:       clears all possible targets (including checker)
 
-# TODO: co zrobić z paranoid ? dodac jako opcję?
 # TODO: niezależne katalogi linux-gcc linux-clang ?
 # TODO: uzależnić *_merged.cpp od listy plików a nie całego makefile-a
-# TODO: wspólna konfiguracja dla Makefile, Makefile.include i makefile-i dla aplikacji
 # TODO: jak się zmieniły opcje kompilacji, to przerabiamy PCH ?
 
 all: lib tools tests
 
-FWK_FLAGS_linux = $(shell $(PKG_CONFIG) --cflags $(FWK_LIBS_shared)) -Umain
-FWK_FLAGS_mingw = $(shell $(PKG_CONFIG) --cflags $(FWK_LIBS_shared)) -Umain
-FWK_FLAGS       = -Isrc/ -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
+CFLAGS_linux  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
+CFLAGS_mingw  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
+CFLAGS        = -Isrc/ -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
+BUILD_DIR     = $(FWK_BUILD_DIR)
+PCH_SOURCE   := src/fwk_pch.h
 
 FWK_DIR  = 
 include Makefile-shared
@@ -126,52 +118,24 @@ lib:   $(FWK_LIB_FILE)
 tools: $(SRC_tools:%=%$(PROGRAM_SUFFIX))
 tests: $(SRC_tests:%=%$(PROGRAM_SUFFIX))
 
-# --- Precompiled headers configuration -----------------------------------------------------------
-
-# TODO: check if it's even enabled
-PCH_FILE_SRC = src/fwk_pch.h
-
-PCH_FILE_H    = $(FWK_BUILD_DIR)/fwk_pch_.h
-PCH_FILE_GCH  = $(FWK_BUILD_DIR)/fwk_pch_.h.gch
-PCH_FILE_PCH  = $(FWK_BUILD_DIR)/fwk_pch_.h.pch
-
-ifeq ($(COMPILER_TYPE),clang)
-PCH_INCLUDE   = -include-pch $(PCH_FILE_PCH)
-PCH_FILE_MAIN = $(PCH_FILE_PCH)
-else
-PCH_INCLUDE   = -I$(FWK_BUILD_DIR) -include $(PCH_FILE_H)
-PCH_FILE_MAIN = $(PCH_FILE_GCH)
-endif
-
-$(PCH_FILE_H): $(PCH_FILE_SRC)
-	cp $^ $@
-$(PCH_FILE_MAIN): $(PCH_FILE_H)
-	$(COMPILER) -x c++-header -MMD $(FWK_FLAGS) $(PCH_FILE_H) -o $@
-
-# --- Exception checker ---------------------------------------------------------------------------
-
-ifeq ($(COMPILER_TYPE),clang)
-checker.so: .always_check
-	$(MAKE) -C src/checker/ ../../checker.so
-
-ifneq ("$(wildcard checker.so)","")
-FLAGS += -Xclang -load -Xclang  $(realpath checker.so) -Xclang -add-plugin -Xclang check-fwk-exceptions
-endif
-endif
-
 # --- Main build targets --------------------------------------------------------------------------
 
 $(CPP_merged): $(FWK_BUILD_DIR)/%_merged.cpp: Makefile
 	@echo "$(SRC_$*:%=#include \"%.cpp\"\n)" > $@
 
-$(OBJECTS): $(FWK_BUILD_DIR)/%.o: src/%.cpp $(PCH_FILE_MAIN)
-	$(STATS_CMD) $(COMPILER) -MMD $(FWK_FLAGS) $(PCH_INCLUDE) -c src/$*.cpp -o $@
+$(OBJECTS): $(FWK_BUILD_DIR)/%.o: src/%.cpp $(PCH_TARGET)
+	$(STATS_CMD) $(COMPILER) -MMD $(CFLAGS) $(PCH_FLAGS) -c src/$*.cpp -o $@
 
-$(MERGED_OBJECTS): $(FWK_BUILD_DIR)/%.o: $(FWK_BUILD_DIR)/%.cpp $(PCH_FILE_MAIN)
-	$(STATS_CMD) $(COMPILER) -MMD $(FWK_FLAGS) $(PCH_INCLUDE) -c $(FWK_BUILD_DIR)/$*.cpp -o $@
+$(MERGED_OBJECTS): $(FWK_BUILD_DIR)/%.o: $(FWK_BUILD_DIR)/%.cpp $(PCH_TARGET)
+	$(STATS_CMD) $(COMPILER) -MMD $(CFLAGS) $(PCH_FLAGS) -c $(FWK_BUILD_DIR)/$*.cpp -o $@
 
 $(PROGRAMS): %$(PROGRAM_SUFFIX): $(INPUT_OBJECTS) $(FWK_BUILD_DIR)/%.o
-	$(LINKER) -MMD -o $@ $^ $(FWK_LDFLAGS)
+	$(LINKER) -MMD -o $@ $^ $(LDFLAGS)
+
+ifeq ($(COMPILER_TYPE),clang)
+checker.so: .always_check
+	$(MAKE) -C src/checker/ ../../checker.so
+endif
 
 #$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SRC_shared:%=src/%.cpp)
 #	cat src/html_pre_include.cpp $^ > $@
@@ -187,13 +151,13 @@ $(FWK_LIB_FILE): $(INPUT_OBJECTS)
 #lib/libfwk.html.cpp: $(SRC_shared:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
 #	cat $^ > $@
 
-DEPS:=$(SRC_all:%=$(FWK_BUILD_DIR)/%.d) $(PCH_FILE_H).d
+DEPS:=$(SRC_all:%=$(FWK_BUILD_DIR)/%.d) $(PCH_TEMP).d
 
 print-stats:
 	sort -n -r $(STATS_FILE)
 
 JUNK_FILES = $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(CPP_merged) $(STATS_FILE) \
-		$(FWK_LIB_FILE) $(PCH_FILE_GCH) $(PCH_FILE_PCH) $(PCH_FILE_H)
+		$(FWK_LIB_FILE) $(PCH_JUNK)
 EXISTING_JUNK_FILES := $(call filter-existing,$(SUBDIRS),$(JUNK_FILES))
 
 ALL_JUNK_FILES = $(shell \
@@ -221,6 +185,7 @@ print-variables:
 	@echo "COMPILER      = $(COMPILER)"
 	@echo "LINKER        = $(LINKER)"
 	@echo "COMPILER_TYPE = $(COMPILER_TYPE)"
+	@echo $(PCH_TEMP_FILE)
 	@echo
 	@echo "FWK_BUILD_DIR = $(FWK_BUILD_DIR)"
 	@echo "FWK_LIB_FILE  = $(FWK_LIB_FILE)"
@@ -228,9 +193,9 @@ print-variables:
 	@echo "FWK_IMGUI     = $(FWK_IMGUI)"
 	@echo "FWK_GEOM      = $(FWK_GEOM)"
 	@echo 
-	@echo "FWK_FLAGS  = $(FWK_FLAGS)"
+	@echo "CFLAGS  = $(CFLAGS)"
 	@echo 
-	@echo "FWK_LDFLAGS = $(FWK_LDFLAGS)"
+	@echo "LDFLAGS = $(LDFLAGS)"
 
 .PHONY: clean tools tests lib clean-all clean-checker
 .always_check:

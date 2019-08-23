@@ -1,13 +1,21 @@
 # Options:
 #   PLATFORM:        linux, mingw or html
 #   [FWK_]MODE:      release or debug [-paranoid] [-nans]
-#   ADD_FLAGS:       additional compiler flags
+#   ADD_CFLAGS:       additional compiler flags
 #   COMPILER:        name of the compiler; clang++ or g++ is used by default
 #   LINKER:          name of linker; by default same as compiler
 #   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
 #
-# TODO: z poziomu tego skryptu czasami chcemy przekazywac flagi do FWK a czasami
-#       chcemy, żeby działały tylko aktualnie
+# Conditional compilation:
+#   FWK_IMGUI:     enabled or disabled (by default if imgui is present, it's enabled)
+#   FWK_GEOM:      enabled or disabled (enabled by default)
+#
+# Following variables will be defined:
+#   CFLAGS
+#   LDFLAGS
+#   FWK_BUILD_DIR
+#   FWK_LIB_FILE
+#   (and more)
 
 VALID_PLATFORMS  := linux mingw html
 VALID_MODES      := debug debug-nans release release-nans release-paranoid release-paranoid-nans
@@ -40,8 +48,8 @@ FWK_BUILD_DIR        := $(FWK_DIR)build/$(PLATFORM)_$(FWK_MODE)
 FWK_LIB_FILE         := $(FWK_DIR)lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
 FWK_MODELCONV_FILE   := $(FWK_DIR)tools/model_convert$(PROGRAM_SUFFIX)
 
-FWK_GEOM             := enabled
-FWK_IMGUI            := $(if $(wildcard extern/imgui/imgui.h),enabled,disabled)
+export FWK_GEOM      := enabled
+export FWK_IMGUI     := $(if $(wildcard $(FWK_DIR)extern/imgui/imgui.h),enabled,disabled)
 
 # --- Checking for errors -------------------------------------------------------------------------
 
@@ -61,44 +69,77 @@ endif
 
 # --- Compilation & linking flags -----------------------------------------------------------------
 
-FWK_LIBS_shared  += freetype2 sdl2 libpng vorbisfile
-FWK_LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(FWK_LIBS_shared)) -lopenal -lGL -lGLU -lrt -lm -lstdc++
-FWK_LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(FWK_LIBS_shared)) -lOpenAL32 -ldsound -lole32 -lwinmm \
+LIBS_shared  += freetype2 sdl2 libpng vorbisfile
+LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lopenal -lGL -lGLU -lrt -lm -lstdc++
+LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lOpenAL32 -ldsound -lole32 -lwinmm \
                     -lglu32 -lopengl32 -lws2_32 -limagehlp
 
 # Clang gives no warnings for uninitialized class members!
 #TODO:-Wno-strict-overflow
-FWK_FLAGS_shared += -I$(FWK_DIR)include/ -fno-exceptions -std=c++2a \
-                    -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized \
-                    -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
-                    -Wparentheses -Wno-overloaded-virtual
-FWK_FLAGS_clang  += -Wconstant-conversion -Werror=return-type -Wno-undefined-inline
-FWK_FLAGS_gcc    += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
+CFLAGS         += -I$(FWK_DIR)include/ -fno-exceptions -std=c++2a \
+                  -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized \
+                  -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
+                  -Wparentheses -Wno-overloaded-virtual
 
+CFLAGS_clang   += -Wconstant-conversion -Werror=return-type -Wno-undefined-inline
 ifneq ("$(wildcard $(FWK_DIR)checker.so)","")
-FWK_FLAGS_clang  += -Xclang -load -Xclang  $(realpath $(FWK_DIR)checker.so) -Xclang -add-plugin -Xclang check-fwk-exceptions
+CFLAGS_clang   += -Xclang -load -Xclang  $(realpath $(FWK_DIR)checker.so) -Xclang -add-plugin -Xclang check-fwk-exceptions
 endif
+CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
 
-FWK_FLAGS_release+= -O3
-FWK_FLAGS_debug  += -O0 -DFWK_PARANOID
+CFLAGS_release += -O3
+CFLAGS_debug   += -O0 -DFWK_PARANOID
 
-FWK_FLAGS_linux  += -pthread -ggdb -DFWK_TARGET_LINUX 
-FWK_FLAGS_mingw  += -pthread -ggdb -DFWK_TARGET_MINGW -msse2 -mfpmath=sse
+CFLAGS_linux   += -pthread -ggdb -DFWK_TARGET_LINUX 
+CFLAGS_mingw   += -pthread -ggdb -DFWK_TARGET_MINGW -msse2 -mfpmath=sse
 
-FWK_FLAGS += $(FWK_FLAGS_$(MODE)) $(FWK_FLAGS_$(PLATFORM)) $(FWK_FLAGS_shared) $(FWK_FLAGS_$(COMPILER_TYPE))
-FWK_FLAGS += $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED)
-FWK_FLAGS += $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED)
-FWK_FLAGS += $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,)
-FWK_FLAGS += $(if $(findstring paranoid,$(MODE))$(findstring debug,$(MODE)),-DFWK_PARANOID,)
-FWK_FLAGS += $(ADD_FLAGS)
+CFLAGS         += $(CFLAGS_$(MODE)) $(CFLAGS_$(PLATFORM)) $(CFLAGS_$(COMPILER_TYPE))
+CFLAGS         += $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED)
+CFLAGS         += $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED)
+CFLAGS         += $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,)
+CFLAGS         += $(if $(findstring paranoid,$(MODE))$(findstring debug,$(MODE)),-DFWK_PARANOID,)
+CFLAGS         += $(ADD_CFLAGS)
 
-FWK_LDFLAGS_clang = -fuse-ld=gold
-FWK_LDFLAGS_linux = -rdynamic
-FWK_LDFLAGS       = -pthread  $(FWK_LIBS_$(PLATFORM)) $(FWK_LDFLAGS_$(PLATFORM)) $(FWK_LDFLAGS_$(COMPILER_TYPE))
+LDFLAGS_clang  += -fuse-ld=gold
+LDFLAGS_linux  += -rdynamic
+LDFLAGS        += -pthread  $(LIBS_$(PLATFORM)) $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE))
 
 #HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
 #HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
-			--embed-file data/ $(INCLUDES) $(FLAGS) $(CLANG_FLAGS)
+			--embed-file data/ $(INCLUDES) $(CFLAGS) $(CLANG_FLAGS)
+
+# --- Precompiled headers configuration -----------------------------------------------------------
+
+#  PCH_SOURCE and BUILD_DIR has to be defined for precompiled headers to work
+#
+#  Defined variables:
+#  PCH_TARGET:    path to precompiled header file
+#  PCH_TEMP:      path to temporary file created in BUILD_DIR (add it to your deps with .d suffix)
+#  PCH_CFLAGS:     compiler commands which enable PCH
+
+ifdef PCH_SOURCE
+ifdef BUILD_DIR
+
+PCH_TEMP           := $(BUILD_DIR)/$(basename $(notdir $(PCH_SOURCE)))_.h
+PCH_CLANG_TARGET   := $(PCH_TEMP).pch
+PCH_GCC_TARGET     := $(PCH_TEMP).gch
+PCH_JUNK           := $(PCH_CLANG_TARGET) $(PCH_GCC_TARGET) $(PCH_TEMP) $(PCH_TEMP).d
+
+ifeq ($(COMPILER_TYPE),clang)
+PCH_CFLAGS        := -include-pch $(PCH_CLANG_TARGET)
+PCH_TARGET        := $(PCH_CLANG_TARGET)
+else
+PCH_CFLAGS        := -I$(BUILD_DIR) -include $(PCH_TEMP)
+PCH_TARGET        := $(PCH_GCC_TARGET)
+endif
+
+$(PCH_TEMP): $(PCH_SOURCE)
+	cp $^ $@
+$(PCH_TARGET): $(PCH_TEMP)
+	$(COMPILER) -x c++-header -MMD $(CFLAGS) $(PCH_TEMP) -o $@
+
+endif
+endif
 
 # --- Helper functions ----------------------------------------------------------------------------
 
@@ -110,7 +151,7 @@ filter-existing = $(filter $(shell find $(1) -type f),$(2))
 
 ifneq ($(FWK_DIR),)
 FWK_MAKE_ARGS  = -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
-FWK_LDFLAGS   += -L $(FWK_DIR)lib -lfwk_$(PLATFORM)_$(FWK_MODE)
+LDFLAGS       += -L $(FWK_DIR)lib -lfwk_$(PLATFORM)_$(FWK_MODE)
 
 $(FWK_LIB_FILE): .always_check
 	$(MAKE) $(FWK_MAKE_ARGS) lib/libfwk_$(PLATFORM)_$(FWK_MODE).a

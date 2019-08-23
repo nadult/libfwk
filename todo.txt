@@ -28,8 +28,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - parser: support dla escape-characterów, parsowanie większej ilości typów z math?
 - czy wykrywanie jakiegoś tekstu na koncu parsera podczas fromString ma sens?
 - Str: nullptr -> "" ?
-- Makefile: w danym momencie może bydować tylko na jeden system; wykrywanie konfiguracji
-  na podstawie kompilatora?
 
 - Vector<> i PoolVector<> mogłyby być zmergowane
   Problemy:
