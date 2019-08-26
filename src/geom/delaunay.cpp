@@ -44,7 +44,6 @@ vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 	return out;
 }
 
-vector<VertexIdPair> delaunay(CSpan<int2> points) { return VoronoiDiagram::delaunay(points); }
 vector<VertexIdPair> delaunay(SparseSpan<int2> points) { return VoronoiDiagram::delaunay(points); }
 
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {

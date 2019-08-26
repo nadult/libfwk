@@ -203,8 +203,8 @@ void Graph::addVertexAt(VertexId vid, Layers layers) {
 }
 
 EdgeId Graph::addEdge(VertexId v1, VertexId v2, Layer layer) {
-	DASSERT(valid(v1) && valid(v2));
-	DASSERT(v1 != v2);
+	DASSERT_EX(valid(v1) && valid(v2), v1, v2);
+	DASSERT_EX(v1 != v2, v1, v2);
 
 	EdgeId eid(m_edges.emplace(v1, v2));
 	m_edge_layers.resize(m_edges.capacity());

@@ -21,7 +21,6 @@ llint polygonArea(CSpan<int2> points);
 static constexpr int delaunay_integral_resolution = 512 * 1024 * 1024;
 template <class T> double delaunayIntegralScale(CSpan<T>);
 
-vector<VertexIdPair> delaunay(CSpan<int2>);
 vector<VertexIdPair> delaunay(SparseSpan<int2>);
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T>);
 

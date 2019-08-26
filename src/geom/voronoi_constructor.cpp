@@ -56,24 +56,13 @@ class DelaunayConstructor {
 	using CT = double;
 	using Traits = voronoi_diagram_traits<CT>;
 
-	DelaunayConstructor(CSpan<int2> sites) : m_indices(sites.size()) {
-		voronoi_builder<int, custom_traits<4>> builder;
-		for(int n : intRange(sites)) {
-			builder.insert_point(double(sites[n].x), double(sites[n].y));
-			m_indices[n] = VertexId(n);
-		}
-		builder.construct(this);
-	}
-	DelaunayConstructor(SparseSpan<int2> sites) : m_indices(sites.endIndex()) {
+	DelaunayConstructor(SparseSpan<int2> sites) : m_indices(sites.size()) {
 		voronoi_builder<int, custom_traits<4>> builder;
 		int n = 0;
 		for(auto id : sites.indices<VertexId>()) {
 			builder.insert_point(double(sites[id].x), double(sites[id].y));
-			m_indices[n++] = VertexId(id);
+			m_indices[n++] = id;
 		}
-
-		for(auto &pt : sites)
-			builder.insert_point(double(pt.x), double(pt.y));
 		builder.construct(this);
 	}
 
@@ -477,10 +466,6 @@ class VoronoiConstructor {
 	DRect m_rect;
 	VD m_diagram;
 };
-
-vector<Pair<VertexId>> VoronoiDiagram::delaunay(CSpan<int2> sites) {
-	return DelaunayConstructor(sites).extractSitePairs();
-}
 
 vector<Pair<VertexId>> VoronoiDiagram::delaunay(SparseSpan<int2> sites) {
 	return DelaunayConstructor(sites).extractSitePairs();
