@@ -28,7 +28,8 @@ class VoronoiDiagram {
 	static constexpr auto arc_layer = GLayer::l2;
 	static constexpr auto seg_layer = GLayer::l3;
 
-	static vector<Pair<VertexId>> delaunay(CSpan<int2> sites);
+	static vector<Pair<VertexId>> delaunay(CSpan<int2>);
+	static vector<Pair<VertexId>> delaunay(SparseSpan<int2>);
 
 	// After construction Cell generators will have same VertexId as in PGraph
 	static Ex<VoronoiDiagram> construct(const GeomGraph<int2> &);

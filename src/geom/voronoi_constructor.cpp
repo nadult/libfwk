@@ -50,13 +50,28 @@ namespace {
 	};
 }
 
+// TODO: redundant copying/transformation of data in constructors
 class DelaunayConstructor {
   public:
 	using CT = double;
 	using Traits = voronoi_diagram_traits<CT>;
 
-	DelaunayConstructor(CSpan<int2> sites) {
+	DelaunayConstructor(CSpan<int2> sites) : m_indices(sites.size()) {
 		voronoi_builder<int, custom_traits<4>> builder;
+		for(int n : intRange(sites)) {
+			builder.insert_point(double(sites[n].x), double(sites[n].y));
+			m_indices[n] = VertexId(n);
+		}
+		builder.construct(this);
+	}
+	DelaunayConstructor(SparseSpan<int2> sites) : m_indices(sites.endIndex()) {
+		voronoi_builder<int, custom_traits<4>> builder;
+		int n = 0;
+		for(auto id : sites.indices<VertexId>()) {
+			builder.insert_point(double(sites[id].x), double(sites[id].y));
+			m_indices[n++] = VertexId(id);
+		}
+
 		for(auto &pt : sites)
 			builder.insert_point(double(pt.x), double(pt.y));
 		builder.construct(this);
@@ -72,7 +87,8 @@ class DelaunayConstructor {
 	template <typename CT>
 	pair<void *, void *> _insert_new_edge(const site_event<CT> &site1,
 										  const site_event<CT> &site2) {
-		m_site_pairs.emplace_back((VertexId)site1.initial_index(), (VertexId)site2.initial_index());
+		m_site_pairs.emplace_back(m_indices[site1.initial_index()],
+								  m_indices[site2.initial_index()]);
 		return {nullptr, nullptr};
 	}
 
@@ -81,7 +97,8 @@ class DelaunayConstructor {
 	pair<void *, void *>
 	_insert_new_edge(const site_event<CT1> &site1, const site_event<CT1> &site3,
 					 const circle_event<CT2> &circle, void *data12, void *data23) {
-		m_site_pairs.emplace_back((VertexId)site1.initial_index(), (VertexId)site3.initial_index());
+		m_site_pairs.emplace_back(m_indices[site1.initial_index()],
+								  m_indices[site3.initial_index()]);
 		return {nullptr, nullptr};
 	}
 
@@ -89,9 +106,11 @@ class DelaunayConstructor {
 
   private:
 	vector<Pair<VertexId>> m_site_pairs;
+	PodVector<VertexId> m_indices;
 };
 
 // Source: example code for visualizing boost voronoi diagrams
+// TODO: redundant copying/transformation of data in constructors
 class VoronoiConstructor {
   public:
 	using CT = double;
@@ -103,7 +122,6 @@ class VoronoiConstructor {
 
 	VoronoiConstructor(const GeomGraph<int2> &graph, IRect rect)
 		: m_input_graph(graph), m_rect(rect) {
-		// TODO: transformation is not needed?
 		for(auto nref : graph.verts())
 			if(!nref.numEdges()) {
 				m_points.emplace_back((PT)graph(nref));
@@ -461,8 +479,11 @@ class VoronoiConstructor {
 };
 
 vector<Pair<VertexId>> VoronoiDiagram::delaunay(CSpan<int2> sites) {
-	DelaunayConstructor constructor(sites);
-	return constructor.extractSitePairs();
+	return DelaunayConstructor(sites).extractSitePairs();
+}
+
+vector<Pair<VertexId>> VoronoiDiagram::delaunay(SparseSpan<int2> sites) {
+	return DelaunayConstructor(sites).extractSitePairs();
 }
 
 Ex<VoronoiDiagram> VoronoiDiagram::construct(const GeomGraph<int2> &graph) {

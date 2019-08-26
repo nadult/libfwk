@@ -4,6 +4,7 @@
 #include "fwk/geom_base.h"
 
 #include "fwk/hash_set.h"
+#include "fwk/sparse_span.h"
 #include "fwk/sys/assert.h"
 
 namespace fwk {
@@ -16,19 +17,11 @@ template <class T> double integralScale(const Box<T> &box, int max_value) {
 	return double(max_value) / tmax;
 }
 
-template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids) {
-	DASSERT_GE(points.size(), valids.size());
-
-	Box<T> box;
-	int n = 0;
-	for(; n < valids.size(); n++)
-		if(valids[n]) {
-			box = {points[n], points[n]};
-			break;
-		}
-	for(; n < valids.size(); n++)
-		if(valids[n])
-			box = {vmin(box.min(), points[n]), vmax(box.max(), points[n])};
+template <class T, EnableIfVec<T>...> Box<T> enclose(SparseSpan<T> points) {
+	auto first_pt = points.front();
+	Box<T> box{first_pt, first_pt};
+	for(auto pt : points)
+		box = {vmin(box.min(), pt), vmax(box.max(), pt)};
 	return box;
 }
 
@@ -64,25 +57,21 @@ void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector)
 	std::sort(it, end(indices), func2);
 }
 
-// TODO: use SparseSpan ?
 template <class T, class T2, EnableIfVec<T, 3>...>
-PodVector<T2> planarProjection(CSpan<T> points, CSpan<bool> valids, Axes2D axes) {
-	PodVector<T2> out(points.size());
+PodVector<T2> planarProjection(SparseSpan<T> points, Axes2D axes) {
+	PodVector<T2> out(points.endIndex());
 	switch(axes) {
 	case Axes2D::xy:
-		for(int n = 0; n < points.size(); n++)
-			if(valids[n])
-				out[n] = points[n].xy();
+		for(int n : points.indices())
+			out[n] = points[n].xy();
 		break;
 	case Axes2D::xz:
-		for(int n = 0; n < points.size(); n++)
-			if(valids[n])
-				out[n] = points[n].xz();
+		for(int n : points.indices())
+			out[n] = points[n].xz();
 		break;
 	case Axes2D::yz:
-		for(int n = 0; n < points.size(); n++)
-			if(valids[n])
-				out[n] = points[n].yz();
+		for(int n : points.indices())
+			out[n] = points[n].yz();
 		break;
 	}
 	return out;
@@ -90,12 +79,12 @@ PodVector<T2> planarProjection(CSpan<T> points, CSpan<bool> valids, Axes2D axes)
 
 #define INSTANTIATE3D(T)                                                                           \
 	template double integralScale(const Box<T> &, int);                                            \
-	template Box<T> encloseSelected(CSpan<T>, CSpan<bool>);                                        \
-	template PodVector<MakeVec<Scalar<T>, 2>> planarProjection(CSpan<T>, CSpan<bool>, Axes2D);
+	template Box<T> enclose(SparseSpan<T>);                                                        \
+	template PodVector<MakeVec<Scalar<T>, 2>> planarProjection(SparseSpan<T>, Axes2D);
 
 #define INSTANTIATE2D(T)                                                                           \
 	template double integralScale(const Box<T> &, int);                                            \
-	template Box<T> encloseSelected(CSpan<T>, CSpan<bool>);                                        \
+	template Box<T> enclose(SparseSpan<T>);                                                        \
 	template void orderByDirection(Span<int>, CSpan<T>, const T &);
 
 INSTANTIATE2D(short2) // TODO: it shouldnt be required

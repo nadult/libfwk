@@ -35,17 +35,14 @@ Graph::Graph(CSpan<Pair<VertexId>> edges, Maybe<int> num_verts) {
 		addEdge(v1, v2);
 }
 
-CSpan<Pair<VertexId>> Graph::indexedEdges() const {
+SparseSpan<Graph::VertexInfo> Graph::vertexInfo() const { return {m_verts}; }
+
+SparseSpan<Pair<VertexId>> Graph::edgePairs() const {
 	using Edges = decltype(m_edges);
 	static_assert(Edges::compatible_alignment && Edges::same_size);
 	static_assert(sizeof(EdgeInfo) == sizeof(Pair<VertexId>));
-	return {reinterpret_cast<const Pair<VertexId> *>(m_edges.rawData()), m_edges.endIndex()};
-}
-
-CSpan<Graph::VertexInfo> Graph::indexedVerts() const {
-	using Verts = decltype(m_verts);
-	static_assert(Verts::compatible_alignment && Verts::same_size);
-	return {m_verts.rawData(), m_verts.endIndex()};
+	return {reinterpret_cast<const Pair<VertexId> *>(m_edges.rawData()), m_edges.valids(),
+			m_edges.size()};
 }
 
 int Graph::numVerts(Layers layers) const {
@@ -428,14 +425,6 @@ Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) co
 	}
 
 	return makeForest(out);
-}
-
-vector<Pair<VertexId>> Graph::edgePairs() const {
-	vector<Pair<VertexId>> out;
-	out.reserve(m_edges.size());
-	for(auto [n1, n2] : m_edges)
-		out.emplace_back(n1, n2);
-	return out;
 }
 
 Graph Graph::reversed() const {

@@ -45,6 +45,7 @@ vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 }
 
 vector<VertexIdPair> delaunay(CSpan<int2> points) { return VoronoiDiagram::delaunay(points); }
+vector<VertexIdPair> delaunay(SparseSpan<int2> points) { return VoronoiDiagram::delaunay(points); }
 
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
 	auto scale = delaunayIntegralScale(points);
@@ -138,9 +139,7 @@ llint polygonArea(CSpan<int2> points) {
 struct CDT {
 	using Seg = Segment2I;
 
-	CDT(const GeomGraph<int2> &graph)
-		: graph(graph), grid(graph.indexedEdges(), graph.indexedPoints(), graph.edgeValids(),
-							 graph.vertexValids()) {
+	CDT(const GeomGraph<int2> &graph) : graph(graph), grid(graph.edgePairs(), graph.points()) {
 		map.resize(graph.numVerts());
 	}
 

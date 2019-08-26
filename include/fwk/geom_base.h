@@ -89,7 +89,7 @@ using Graph3I = GeomGraph<int3>;
 // Computes scale value which will fit given box into given resolution.
 // Scaled values will be in range: <-resolution, resolution>.
 template <class T> double integralScale(const Box<T> &, int resolution = 1024 * 1024 * 16);
-template <class T> Box<T> encloseSelected(CSpan<T> points, CSpan<bool> valids);
+template <class T, EnableIfVec<T>...> Box<T> enclose(SparseSpan<T>);
 
 // TODO: similar as in GeomGraph
 template <class T> Ex<vector<int2>> toIntegral(CSpan<T>, double scale);
@@ -99,6 +99,6 @@ template <class T, EnableIfVec<T, 2>...>
 void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector);
 
 template <class T, class T2 = MakeVec<Scalar<T>, 2>, EnableIfVec<T, 3>...>
-PodVector<T2> planarProjection(CSpan<T> points, CSpan<bool> valids, Axes2D);
+PodVector<T2> planarProjection(SparseSpan<T>, Axes2D);
 
 }

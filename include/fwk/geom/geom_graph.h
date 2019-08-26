@@ -36,7 +36,7 @@ template <class T> class GeomGraph : public Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
 
-	vector<Point> points() const;
+	SparseSpan<Point> points() const;
 	vector<Segment<Point>> segments() const;
 	Box<Point> boundingBox() const;
 

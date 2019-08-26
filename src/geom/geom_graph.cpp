@@ -52,13 +52,11 @@ GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap po
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
 
-template <class T> vector<T> GeomGraph<T>::points() const {
-	return transform(vertexIds(), [&](VertexId id) { return m_points[id]; });
+template <class T> SparseSpan<T> GeomGraph<T>::points() const {
+	return {m_points.data(), m_verts.valids(), m_verts.size()};
 }
 
-template <class T> Box<T> GeomGraph<T>::boundingBox() const {
-	return encloseSelected<T>(m_points, vertexValids());
-}
+template <class T> Box<T> GeomGraph<T>::boundingBox() const { return enclose(points()); }
 
 template <class T> vector<Segment<T>> GeomGraph<T>::segments() const {
 	auto &graph = *this;
@@ -290,10 +288,10 @@ auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoin
 template <class T> auto GeomGraph<T>::makeGrid() const -> Grid {
 	// TODO: how to handle 3D graphs ?
 	if constexpr(dim<T> == 2)
-		return {indexedEdges(), indexedPoints(), edgeValids(), vertexValids()};
+		return {edgePairs(), points()};
 	else {
-		auto points2d = fwk::planarProjection<Point>(m_points, m_verts.valids(), m_projection);
-		return {indexedEdges(), points2d, edgeValids(), vertexValids()};
+		auto points2d = fwk::planarProjection<Point>(points(), m_projection);
+		return {edgePairs(), {points2d.data(), m_verts.valids(), m_verts.size()}};
 	}
 	return {};
 }

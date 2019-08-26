@@ -5,6 +5,7 @@
 
 #include "fwk/index_range.h"
 #include "fwk/math/box_iter.h"
+#include "fwk/sparse_span.h"
 
 namespace fwk {
 SquareBorder::SquareBorder(IRect rect, int2 center, int radius) {
@@ -78,9 +79,8 @@ const SquareBorder::Iter &SquareBorder::Iter::operator++() {
 	return *this;
 }
 
-template <class T>
-auto SegmentGrid<T>::bestGrid(CSpan<T> points, CSpan<bool> valids, int num_edges) -> RGrid {
-	auto rect = valids ? encloseSelected(points, valids) : enclose(points);
+template <class T> auto SegmentGrid<T>::bestGrid(SparseSpan<T> points, int num_edges) -> RGrid {
+	auto rect = enclose(points);
 	if(rect.empty())
 		return {Box<T>(0, 0, 1, 1), T(1), 1};
 
@@ -103,23 +103,18 @@ auto SegmentGrid<T>::bestGrid(CSpan<T> points, CSpan<bool> valids, int num_edges
 }
 
 template <class T>
-SegmentGrid<T>::SegmentGrid(CSpan<Pair<VertexId>> edges, CSpan<Point> points,
-							CSpan<bool> valid_edges, CSpan<bool> valid_points)
-	: m_grid(bestGrid(points, valid_points, edges.size())) {
+SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> points)
+	: m_grid(bestGrid(points, edges.size())) {
 	m_cells.resize(m_grid.width() * m_grid.height());
-	for(auto id : intRange(points))
-		if(valid_points[id])
-			m_cells[index(toCell(points[id]))].num_verts++;
+	for(auto pt : points)
+		m_cells[index(toCell(pt))].num_verts++;
 
 	int total_count = points.size();
 	vector<int> seg_cell_indices;
 	PodVector<int> seg_cell_offsets(edges.size()), seg_cell_counts(edges.size());
 	seg_cell_indices.reserve(edges.size() * 2);
 
-	for(auto eid : indexRange<EdgeId>(edges)) {
-		if(!valid_edges[eid])
-			continue;
-
+	for(auto eid : edges.indices()) {
 		auto &edge = edges[eid];
 		Segment seg(points[edge.first], points[edge.second]);
 		auto cell_rect = toCell(enclose(seg));
@@ -150,15 +145,13 @@ SegmentGrid<T>::SegmentGrid(CSpan<Pair<VertexId>> edges, CSpan<Point> points,
 	}
 
 	m_cell_indices.resize(total_count);
-	for(auto id : intRange(points)) {
+	for(auto id : points.indices()) {
 		auto &cell = m_cells[index(toCell(points[id]))];
 		int idx = cell.first_index + cell.num_verts++;
 		m_cell_indices[idx] = id;
 	}
 
-	for(auto eid : intRange(edges)) {
-		if(!valid_edges[eid])
-			continue;
+	for(auto eid : edges.indices()) {
 		int first = seg_cell_offsets[eid];
 		for(int n : intRange(seg_cell_counts[eid])) {
 			int cidx = seg_cell_indices[first + n];

@@ -61,8 +61,7 @@ template <class T> class SegmentGrid {
 	// - zwraca identyfikatory + parametry przecięć
 	// - zwraca iterator?
 
-	SegmentGrid(CSpan<Pair<VertexId>>, CSpan<Point>, CSpan<bool> valid_edges = {},
-				CSpan<bool> valid_points = {});
+	SegmentGrid(SparseSpan<Pair<VertexId>>, SparseSpan<Point>);
 	SegmentGrid() = default;
 
 	// Zamiast tych funkcji ma jedynie funkcje dostępu do komórek i
@@ -137,7 +136,7 @@ template <class T> class SegmentGrid {
 	auto end() const { return m_grid.end(); }
 
   private:
-	static RGrid bestGrid(CSpan<T>, CSpan<bool>, int num_edges);
+	static RGrid bestGrid(SparseSpan<T>, int num_edges);
 
 	T cellCorner(int2 cell_id) const { return m_grid.toWorld(cell_id); }
 

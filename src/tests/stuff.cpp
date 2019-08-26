@@ -244,6 +244,7 @@ void testVector() {
 	vector<string> vecs = {"xxx", "yyy", "zzz", "xxx", "abc", "abc", "zzz"};
 	ASSERT(toString(sortedUnique(vecs)) == "abc xxx yyy zzz");
 }
+
 void testMain() {
 	testString();
 	testAny();

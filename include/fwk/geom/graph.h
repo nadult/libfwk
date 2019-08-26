@@ -12,6 +12,7 @@
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
 #include "fwk/small_vector.h"
+#include "fwk/sparse_span.h"
 #include "fwk/sparse_vector.h"
 
 namespace fwk {
@@ -115,8 +116,8 @@ class Graph {
 	CSpan<bool> edgeValids() const { return m_edges.valids(); }
 	CSpan<bool> triValids() const { return m_tris.valids(); }
 
-	CSpan<Pair<VertexId>> indexedEdges() const;
-	CSpan<VertexInfo> indexedVerts() const;
+	SparseSpan<VertexInfo> vertexInfo() const;
+	SparseSpan<Pair<VertexId>> edgePairs() const;
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
@@ -219,8 +220,6 @@ class Graph {
 	Graph shortestPathTree(CSpan<VertexId> sources,
 						   CSpan<double> edge_weights = CSpan<double>()) const;
 
-	// TODO: better name
-	vector<Pair<VertexId>> edgePairs() const;
 	Graph reversed() const;
 
 	bool hasEdgeDuplicates() const;
