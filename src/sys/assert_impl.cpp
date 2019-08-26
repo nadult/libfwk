@@ -26,7 +26,7 @@ namespace detail {
 	}
 
 	void assertFailed(const AssertInfo *info, ...) {
-		TextFormatter out;
+		TextFormatter out({FormatMode::structured});
 		auto fmt = info->preFormat(out, "Assert failed: ");
 
 		va_list ap;
@@ -42,7 +42,7 @@ namespace detail {
 	}
 
 	Error makeError(const AssertInfo *info, ...) {
-		TextFormatter out;
+		TextFormatter out({FormatMode::structured});
 
 		va_list ap;
 		va_start(ap, info);
@@ -53,7 +53,7 @@ namespace detail {
 	}
 
 	void checkFailed(const AssertInfo *info, ...) {
-		TextFormatter out;
+		TextFormatter out({FormatMode::structured});
 		auto fmt = info->preFormat(out, "Check failed: ");
 
 		va_list ap;
@@ -65,7 +65,7 @@ namespace detail {
 	}
 
 	void raiseException(const AssertInfo *info, ...) {
-		TextFormatter out;
+		TextFormatter out({FormatMode::structured});
 		auto fmt = info->preFormat(out, "Exception raised: ");
 
 		va_list ap;

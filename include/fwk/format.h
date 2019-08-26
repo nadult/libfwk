@@ -127,6 +127,7 @@ using EnableIfFormattible = EnableIf<(... && is_formattible<Args>), NotFormattib
 class TextFormatter {
   public:
 	explicit TextFormatter(int capacity = 256, FormatOptions = {});
+	explicit TextFormatter(FormatOptions options) : TextFormatter(256, options) {}
 	TextFormatter(const TextFormatter &);
 	~TextFormatter();
 
