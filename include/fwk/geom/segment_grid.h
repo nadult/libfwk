@@ -125,9 +125,12 @@ template <class T> class SegmentGrid {
 	vector<int2> traceSlow(const Segment &) const;
 	PoolVector<int2> trace(const Segment &) const;
 
+	using PointAccessor = Functor<Point, VertexId>;
+	using SegmentAccessor = Functor<Segment, EdgeId>;
+
 	// This one if performed on doubles for int-based grids
-	Maybe<EdgeId> closestEdge(const Point &, CSpan<Segment>, Scalar max_dist = inf) const;
-	Maybe<VertexId> closestVertex(const Point &, CSpan<Point> ref_points, Scalar max_dist = inf,
+	Maybe<EdgeId> closestEdge(const Point &, SegmentAccessor, Scalar max_dist = inf) const;
+	Maybe<VertexId> closestVertex(const Point &, PointAccessor, Scalar max_dist = inf,
 								  Maybe<VertexId> ignore = none) const;
 
 	auto begin() const { return m_grid.begin(); }

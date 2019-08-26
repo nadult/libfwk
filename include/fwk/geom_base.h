@@ -98,4 +98,7 @@ template <class T> Ex<vector<int2>> toIntegral(CSpan<T>, double scale);
 template <class T, EnableIfVec<T, 2>...>
 void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector);
 
+template <class T, class T2 = MakeVec<Scalar<T>, 2>, EnableIfVec<T, 3>...>
+PodVector<T2> planarProjection(CSpan<T> points, CSpan<bool> valids, Axes2D);
+
 }

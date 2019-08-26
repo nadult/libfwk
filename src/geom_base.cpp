@@ -64,12 +64,38 @@ void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector)
 	std::sort(it, end(indices), func2);
 }
 
+// TODO: use SparseSpan ?
+template <class T, class T2, EnableIfVec<T, 3>...>
+PodVector<T2> planarProjection(CSpan<T> points, CSpan<bool> valids, Axes2D axes) {
+	PodVector<T2> out(points.size());
+	switch(axes) {
+	case Axes2D::xy:
+		for(int n = 0; n < points.size(); n++)
+			if(valids[n])
+				out[n] = points[n].xy();
+		break;
+	case Axes2D::xz:
+		for(int n = 0; n < points.size(); n++)
+			if(valids[n])
+				out[n] = points[n].xz();
+		break;
+	case Axes2D::yz:
+		for(int n = 0; n < points.size(); n++)
+			if(valids[n])
+				out[n] = points[n].yz();
+		break;
+	}
+	return out;
+}
+
 #define INSTANTIATE3D(T)                                                                           \
 	template double integralScale(const Box<T> &, int);                                            \
-	template Box<T> encloseSelected(CSpan<T>, CSpan<bool>);
+	template Box<T> encloseSelected(CSpan<T>, CSpan<bool>);                                        \
+	template PodVector<MakeVec<Scalar<T>, 2>> planarProjection(CSpan<T>, CSpan<bool>, Axes2D);
 
 #define INSTANTIATE2D(T)                                                                           \
-	INSTANTIATE3D(T)                                                                               \
+	template double integralScale(const Box<T> &, int);                                            \
+	template Box<T> encloseSelected(CSpan<T>, CSpan<bool>);                                        \
 	template void orderByDirection(Span<int>, CSpan<T>, const T &);
 
 INSTANTIATE2D(short2) // TODO: it shouldnt be required

@@ -19,6 +19,7 @@ template <class T> class GeomGraph : public Graph {
 	using Point = T;
 	using Vec = T;
 	using Vec2 = MakeVec<Base<T>, 2>;
+	using Segment2 = fwk::Segment<Vec2>;
 	using VecD = MakeVec<double, dim<T>>;
 	using IPoint = MakeVec<int, dim<T>>;
 	using Grid = SegmentGrid<Vec2>;
@@ -128,11 +129,17 @@ template <class T> class GeomGraph : public Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Algorithms ---------------------------------------------------------------------------
 
-	Grid makeGrid(Axes2D = {}) const;
+	void setPlanarProjection(Axes2D);
+	Axes2D planarProjection() const { return m_projection; }
 
-	vector<EdgeId> findIntersectors(const Grid &) const;
-	bool isPlanar(const Grid &grid) const { return !findIntersectors(grid); }
-	Ex<void> checkPlanar(const Grid &) const;
+	Vec2 projectedPoint(VertexId) const;
+	Segment2 projectedSegment(EdgeId) const;
+
+	Grid makeGrid() const;
+
+	vector<EdgeId> findIntersectors() const;
+	bool isPlanar() const;
+	Ex<void> checkPlanar() const;
 
 	double scale = 1.0;
 
@@ -141,6 +148,7 @@ template <class T> class GeomGraph : public Graph {
 
 	PodVector<Point> m_points;
 	PointMap m_point_map;
+	Axes2D m_projection = Axes2D::xz; // TODO: xy ?
 };
 
 }

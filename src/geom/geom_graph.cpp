@@ -287,21 +287,26 @@ auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoin
 // -------------------------------------------------------------------------------------------
 // ---  Algorithms ---------------------------------------------------------------------------
 
-template <class T> auto GeomGraph<T>::makeGrid(Axes2D axes) const -> Grid {
+template <class T> auto GeomGraph<T>::makeGrid() const -> Grid {
 	// TODO: how to handle 3D graphs ?
 	if constexpr(dim<T> == 2)
 		return {indexedEdges(), indexedPoints(), edgeValids(), vertexValids()};
-	else
-		return {};
+	else {
+		auto points2d = fwk::planarProjection<Point>(m_points, m_verts.valids(), m_projection);
+		return {indexedEdges(), points2d, edgeValids(), vertexValids()};
+	}
+	return {};
 }
 
 // TODO: computation in 3D or pass Axes2D?
-template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors(const Grid &grid) const {
+template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors() const {
 	vector<EdgeId> out;
 
 	if constexpr(dim<T> == 3) {
 		FATAL("write me");
 	}
+
+	auto grid = makeGrid();
 
 	for(auto cell_id : grid) {
 		if(!grid.empty(cell_id)) {
@@ -343,8 +348,8 @@ template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors(const Grid &gri
 	return out;
 }
 
-template <class T> Ex<void> GeomGraph<T>::checkPlanar(const Grid &grid) const {
-	auto isectors = findIntersectors(grid);
+template <class T> Ex<void> GeomGraph<T>::checkPlanar() const {
+	auto isectors = findIntersectors();
 	if(isectors) {
 		auto error = ERROR("Graph not planar");
 		auto &graph = *this;

@@ -466,7 +466,7 @@ vector<Pair<VertexId>> VoronoiDiagram::delaunay(CSpan<int2> sites) {
 }
 
 Ex<VoronoiDiagram> VoronoiDiagram::construct(const GeomGraph<int2> &graph) {
-	EXPECT(graph.checkPlanar(graph.makeGrid()));
+	EXPECT(graph.checkPlanar());
 
 	IRect rect = enclose(graph.points()).enlarge(1);
 	// TODO: how can we be sure that rect can be enlarged ?
