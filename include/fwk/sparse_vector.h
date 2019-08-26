@@ -176,6 +176,7 @@ template <class T> class SparseVector {
 
 		const Iter &operator++() {
 			index++;
+			// TODO: sentinel at the end of valids
 			while(index < max_index && !vector.valid(index))
 				index++;
 			return *this;

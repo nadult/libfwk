@@ -267,6 +267,9 @@ class AnyConfig;
 template <> constexpr int type_size<AnyRef> = 16;
 template <> constexpr int type_size<Any> = 16;
 
+template <class T, int min_size = 0> class Span;
+template <class T> class SparseSpan;
+
 // This kind of data can be safely serialized to/from binary format, byte by byte
 template <class T> constexpr bool is_flat_data = std::is_arithmetic<T>::value;
 

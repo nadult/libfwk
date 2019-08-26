@@ -10,7 +10,7 @@ namespace fwk {
 // Span is a range of elements spanning continuous range of memory (like vector, array, etc.).
 // Span is very light-weight: it keeps a pointer and a size; User is responsible for making sure
 //   that the container with values exist as long as Span exists.
-template <class T, int min_size = 0> class Span {
+template <class T, int min_size /*= 0*/> class Span {
   public:
 	using value_type = RemoveConst<T>;
 	enum { is_const = fwk::is_const<T>, minimum_size = min_size };

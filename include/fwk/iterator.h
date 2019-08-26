@@ -19,7 +19,8 @@ namespace detail {
 	};
 
 	template <class T> struct IsFwdIter {
-		template <class U> static constexpr auto test(U *) -> decltype(++DECLVAL(U) == DECLVAL(U));
+		template <class U>
+		static constexpr auto test(U *) -> decltype(++DECLVAL(U), DECLVAL(U) != DECLVAL(U));
 		template <class U> static constexpr void test(...);
 
 		static constexpr bool value = is_same<decltype(test<T>(DECLVAL(T *))), bool> &&
@@ -43,7 +44,7 @@ template <class IT, EnableIf<is_forward_iter<IT>>...> auto distance(IT begin, IT
 		ret = end - begin;
 	} else {
 		ret = 0;
-		while(!(begin == end))
+		while(begin != end)
 			++begin, ++ret;
 	}
 
