@@ -18,6 +18,24 @@ struct IdentityFunc {
 	template <class T> const T &operator()(const T &value) const { return value; }
 };
 
+// Wraps both normal & member function pointers
+template <class RetValue, class... Args> struct Functor {
+	template <class Base, RetValue (Base::*Func)(Args...)> Functor(Base &ref) : data(&ref) {
+		func = (void *)[](void *ptr, Args... args) {
+			return ((Base *)ptr).*Func(std::forward<Args>(args)...);
+		};
+	}
+	template <RetValue(Func)(Args...)> Functor() : data(nullptr) {
+		func = (void *)[](void *ptr, Args... args) { return Func(std::forward<Args>(args)...); };
+	}
+
+	RetValue operator()(Args... args) const { return func(data, std::forward<Args>(args)...); }
+
+	using WrapFunc = RetValue (*)(void *, Args...);
+	WrapFunc func;
+	void *data;
+};
+
 template <class TSpan, class T = SpanBase<TSpan>, class Func = LessCompare>
 void bubbleSort(TSpan &span, const Func &func = {}) {
 	for(int i = 0, size = fwk::size(span); i < size; i++)
