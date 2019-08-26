@@ -13,6 +13,12 @@ namespace fwk {
 // Constant time emplace & erase.
 // All elements are in single continuous block of memory,
 // but there may be holes between valid elements.
+//
+// TODO(opt): use sentinel at end-index ? problem: valids would have to be hidden
+//            because they would lie about after-last element?
+// TODO(opt): using bits instead of booleans probably doesn't make sense; Iteration would
+//            be slower in the general case (only in very sparse arrays it would improve perf
+//            but then in such case it would be better to compact such an array)
 template <class T> class SparseVector {
 	union Element;
 
@@ -33,7 +39,7 @@ template <class T> class SparseVector {
 	}
 
 	SparseVector(const SparseVector &rhs)
-		: m_valids(rhs.m_valids), m_free_list(rhs.m_free_list), m_valid_count(rhs.m_valid_count),
+		: m_valids(rhs.m_valids), m_free_list(rhs.m_free_list), m_size(rhs.m_size),
 		  m_end_index(rhs.m_end_index) {
 		m_elements.resize(rhs.m_elements.size());
 		for(int n = 0; n < m_end_index; n++)
@@ -42,15 +48,14 @@ template <class T> class SparseVector {
 
 	SparseVector(SparseVector &&rhs)
 		: m_elements(move(rhs.m_elements)), m_valids(move(rhs.m_valids)),
-		  m_free_list(rhs.m_free_list), m_valid_count(rhs.m_valid_count),
-		  m_end_index(rhs.m_end_index) {
+		  m_free_list(rhs.m_free_list), m_size(rhs.m_size), m_end_index(rhs.m_end_index) {
 		rhs.m_free_list = List();
-		rhs.m_valid_count = 0;
+		rhs.m_size = 0;
 		rhs.m_end_index = 0;
 	}
 
 	SparseVector(vector<T> &&vec)
-		: m_valids(vec.size(), true), m_valid_count(vec.size()), m_end_index(vec.size()) {
+		: m_valids(vec.size(), true), m_size(vec.size()), m_end_index(vec.size()) {
 		if constexpr(sizeof(T) == sizeof(Element)) {
 			auto temp = vec.template reinterpret<Element>();
 			m_elements.unsafeSwap(temp);
@@ -65,7 +70,7 @@ template <class T> class SparseVector {
 		m_elements.swap(rhs.m_elements);
 		m_valids.swap(rhs.m_valids);
 		fwk::swap(m_free_list, rhs.m_free_list);
-		fwk::swap(m_valid_count, rhs.m_valid_count);
+		fwk::swap(m_size, rhs.m_size);
 		fwk::swap(m_end_index, rhs.m_end_index);
 	}
 
@@ -90,9 +95,10 @@ template <class T> class SparseVector {
 		return m_elements[idx].value;
 	}
 
-	int size() const { return m_valid_count; }
+	int size() const { return m_size; }
 	int capacity() const { return m_elements.size(); }
-	bool empty() const { return m_valid_count == 0; }
+	bool empty() const { return m_size == 0; }
+	explicit operator bool() const { return m_size > 0; }
 
 	void clear() {
 		for(int n = 0; n < m_elements.size(); n++)
@@ -100,7 +106,7 @@ template <class T> class SparseVector {
 		m_elements.clear();
 		m_valids.clear();
 		m_free_list = List();
-		m_valid_count = 0;
+		m_size = 0;
 		m_end_index = 0;
 	}
 
@@ -111,7 +117,7 @@ template <class T> class SparseVector {
 		int index = alloc();
 		new(&m_elements[index].value) T{std::forward<Args>(args)...};
 		m_valids[index] = true;
-		m_valid_count++;
+		m_size++;
 		return index;
 	}
 
@@ -131,7 +137,7 @@ template <class T> class SparseVector {
 		listRemove<Element, &Element::node>(m_elements, m_free_list, index);
 		new(&m_elements[index].value) T{std::forward<Args>(args)...};
 		m_valids[index] = true;
-		m_valid_count++;
+		m_size++;
 	}
 
 	// TODO: can we iterate & erase safely in a loop?
@@ -141,21 +147,28 @@ template <class T> class SparseVector {
 		m_elements[index].node = ListNode();
 		m_valids[index] = false;
 		listInsert<Element, &Element::node>(m_elements, m_free_list, index);
-		m_valid_count--;
+		m_size--;
 	}
 
 	int firstIndex() const {
-		int index = 0;
-		while(index < m_end_index && !valid(index))
-			index++;
-		return index;
+		int idx = 0;
+		while(idx < m_end_index && !m_valids[idx])
+			idx++;
+		return idx;
 	}
-
+	int lastIndex() const {
+		if(m_size == 0)
+			return m_end_index;
+		int idx = m_end_index - 1;
+		while(idx >= 0 && !m_valids[idx])
+			--idx;
+		return idx;
+	}
 	int nextIndex(int idx) const {
 		idx++;
 		while(idx < m_end_index && !m_valids[idx])
 			idx++;
-		return idx;
+		return idx; // TODO: clamp to end_index ?
 	}
 
 	int endIndex() const { return m_end_index; }
@@ -171,30 +184,23 @@ template <class T> class SparseVector {
 
 	template <bool is_const> struct Iter {
 		using Vec = typename std::conditional<is_const, const SparseVector, SparseVector>::type;
-		Iter(int index, int max_index, Vec &vector)
-			: index(index), max_index(max_index), vector(vector) {}
+		Iter(int index, Vec &vector) : index(index), vector(vector) {}
 
-		const Iter &operator++() {
-			index++;
-			// TODO: sentinel at the end of valids
-			while(index < max_index && !vector.valid(index))
-				index++;
-			return *this;
-		}
+		void operator++() { index = vector.nextIndex(index); }
 		auto &operator*() const { return vector[index]; }
 		bool operator==(const Iter &rhs) const { return index == rhs.index; }
 		bool operator<(const Iter &rhs) const { return index < rhs.index; }
 
 	  private:
-		int index, max_index;
+		int index;
 		Vec &vector;
 	};
 
-	auto begin() { return Iter<false>(firstIndex(), m_end_index, *this); }
-	auto end() { return Iter<false>(m_end_index, m_end_index, *this); }
+	auto begin() { return Iter<false>(firstIndex(), *this); }
+	auto end() { return Iter<false>(m_end_index, *this); }
 
-	auto begin() const { return Iter<true>(firstIndex(), m_end_index, *this); }
-	auto end() const { return Iter<true>(m_end_index, m_end_index, *this); }
+	auto begin() const { return Iter<true>(firstIndex(), *this); }
+	auto end() const { return Iter<true>(m_end_index, *this); }
 
 	template <class Idx = int> auto indices() const {
 		const bool *valids = m_valids.data();
@@ -204,7 +210,7 @@ template <class T> class SparseVector {
 	}
 
 	bool operator==(const SparseVector &rhs) const {
-		return m_valid_count == rhs.m_valid_count && compare(rhs) == 0;
+		return m_size == rhs.m_size && compare(rhs) == 0;
 	}
 
 	bool operator<(const SparseVector &rhs) const { return compare(rhs) == -1; }
@@ -302,7 +308,7 @@ template <class T> class SparseVector {
 	vector<bool> m_valids;
 	// TODO: skip list instead of valid list?
 	List m_free_list;
-	int m_valid_count = 0;
+	int m_size = 0;
 	int m_end_index = 0;
 };
 }

@@ -8,14 +8,15 @@
 
 namespace fwk {
 
-// Span for sparse data
+// Span for sparse data.
+// Normal spans can be converted to sparse spans.
+//
+// TODO: non-const support ?
 template <class T> class SparseSpan {
   public:
+	template <class Index> struct Iter;
 	using value_type = T;
 	enum { is_const = true };
-
-	//TODO: non-const support ?
-	//TODO: compaitibility with Span<>
 
 	SparseSpan(const T *data, const bool *valids, int size, int end_index)
 		: m_data(data), m_valids(valids), m_size(size), m_end_index(end_index) {
@@ -23,6 +24,10 @@ template <class T> class SparseSpan {
 	}
 	SparseSpan(const T *data, CSpan<bool> valids, int size)
 		: SparseSpan(data, valids.data(), size, valids.size()) {}
+	SparseSpan(CSpan<T> span)
+		: m_data(span.data()), m_valids(nullptr), m_size(span.size()), m_end_index(span.size()) {}
+	template <class USpan, class U = RemoveConst<SpanBase<USpan>>, EnableIf<is_same<T, U>>...>
+	SparseSpan(const USpan &span) : SparseSpan(cspan(span)) {}
 
 	template <class U = T, EnableIf<is_same<U, T>>...>
 	SparseSpan(const SparseVector<U> &vec)
@@ -36,18 +41,49 @@ template <class T> class SparseSpan {
 
 	int size() const { return m_size; }
 	int endIndex() const { return m_end_index; }
-	bool valid(int idx) const { return idx < m_end_index && m_valids[idx]; }
+	bool valid(int idx) const { return idx < m_end_index && (!m_valids || m_valids[idx]); }
 
 	bool empty() const { return m_size == 0; }
 	explicit operator bool() const { return m_size > 0; }
 
-	template <class Index = None> struct Iter {
-		constexpr void operator++() {
-			idx++;
-			// TODO: use sentinel
-			while(idx < span.m_end_index && !span.m_valids[idx])
+	int firstIndex() const {
+		int idx = 0;
+		if(m_valids)
+			while(idx < m_end_index && !m_valids[idx])
 				idx++;
-		}
+		return idx;
+	}
+	int lastIndex() const {
+		if(m_size == 0)
+			return m_end_index;
+		int idx = m_end_index - 1;
+		if(m_valids)
+			while(idx >= 0 && !m_valids[idx])
+				--idx;
+		return idx;
+	}
+	int nextIndex(int idx) const {
+		idx++;
+		if(m_valids)
+			while(idx < m_end_index && !m_valids[idx])
+				idx++;
+		return idx; // TODO: clamp to end_index ?
+	}
+
+	const T &front() const { return PASSERT(!empty()), m_data[firstIndex()]; }
+	const T &back() const { return PASSERT(!empty()), m_data[lastIndex()]; }
+
+	Iter<None> begin() const { return {*this, firstIndex()}; }
+	Iter<None> end() const { return {*this, m_end_index}; }
+	template <class Idx = int> auto indices() const { return Indices<Idx>{*this}; }
+
+	const T &operator[](int idx) const {
+		PASSERT(valid(idx));
+		return m_data[idx];
+	}
+
+	template <class Index> struct Iter {
+		constexpr void operator++() { idx = span.nextIndex(idx); }
 
 		using Ret = If<is_same<Index, None>, const T &, Index>;
 		Ret operator*() const {
@@ -67,41 +103,6 @@ template <class T> class SparseSpan {
 		auto end() const { return Iter<U>{span, span.m_end_index}; }
 		const SparseSpan &span;
 	};
-
-	int firstIndex() const {
-		PASSERT(!empty());
-		int index = 0;
-		while(index < m_end_index && !m_valids[index])
-			index++;
-		return index;
-	}
-
-	int lastIndex() const {
-		PASSERT(!empty());
-		int index = m_end_index - 1;
-		while(index >= 0 && !m_valids[index])
-			--index;
-		return index;
-	}
-
-	int nextIndex(int idx) const {
-		idx++;
-		while(idx < m_end_index && !m_valids[idx])
-			idx++;
-		return idx;
-	}
-
-	const T &front() const { return m_data[firstIndex()]; }
-	const T &back() const { return m_data[lastIndex()]; }
-
-	Iter<None> begin() const { return {*this, firstIndex()}; }
-	Iter<None> end() const { return {*this, m_end_index}; }
-	template <class Idx = int> auto indices() const { return Indices<Idx>{*this}; }
-
-	const T &operator[](int idx) const {
-		PASSERT(valid(idx));
-		return m_data[idx];
-	}
 
   private:
 	const T *m_data;
