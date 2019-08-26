@@ -220,13 +220,13 @@ template <bool pool_alloc> class BaseVector;
 template <class T> class PodVector;
 template <class T, bool pool_alloc = false> class Vector;
 template <class T> using PoolVector = Vector<T, true>;
-template <class T> class IndexedVector;
+template <class T> class SparseVector;
 template <class T, int> class SmallVector;
 template <class T, int> class StaticVector;
 template <class T> using vector = Vector<T>;
 
 template <class T> constexpr int type_size<Vector<T>> = 16;
-template <class T> constexpr int type_size<IndexedVector<T>> = 48;
+template <class T> constexpr int type_size<SparseVector<T>> = 48;
 
 template <class T> struct SerializeAsPod;
 

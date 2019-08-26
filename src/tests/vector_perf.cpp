@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "fwk/indexed_vector.h"
 #include "fwk/math/random.h"
 #include "fwk/math_base.h"
+#include "fwk/sparse_vector.h"
 #include "fwk/sys/memory.h"
 #include "fwk/vector.h"
 #include "timer.h"
@@ -117,7 +117,7 @@ template <template <typename> class T> void testVectorInsert(const char *name) {
 	}
 }
 
-// ------------- IndexedVector tests ----------------------------------------
+// ------------- SparseVector tests ----------------------------------------
 
 template <class T> using stdvec = std::vector<T, fwk::SimpleAllocator<T>>;
 struct Struct {
@@ -125,8 +125,8 @@ struct Struct {
 	fwk::float2 f2;
 };
 
-int iterationLoop(fwk::IndexedVector<Struct> &ivec, int n) NOINLINE;
-int iterationLoop(fwk::IndexedVector<Struct> &ivec, int n) {
+int iterationLoop(fwk::SparseVector<Struct> &ivec, int n) NOINLINE;
+int iterationLoop(fwk::SparseVector<Struct> &ivec, int n) {
 	int val = 0;
 	for(auto i : ivec.indices())
 		val += ivec[i].i4[n & 3];
@@ -135,17 +135,17 @@ int iterationLoop(fwk::IndexedVector<Struct> &ivec, int n) {
 	return val;
 }
 
-int testIndexedVector() NOINLINE;
-int testIndexedVector() {
+int testSparseVector() NOINLINE;
+int testSparseVector() {
 	using namespace fwk;
-	IndexedVector<Struct> ivec;
+	SparseVector<Struct> ivec;
 
 	Struct s1{{1, 2, 3, 4}, {2, 3}};
 	Struct s2{{1, 2, 5, 4}, {2, 3}};
 
 	{
 		Random rand;
-		TestTimer t("IndexedVector modification");
+		TestTimer t("SparseVector modification");
 		for(int t = 0; t < 1000; t++) {
 			for(int n = 0; n < 1000; n++)
 				ivec.emplace(s1);
@@ -171,7 +171,7 @@ int testIndexedVector() {
 		val_time = total_time / num_iters;
 	}
 
-	printf("IndexedVector iteration completed in %.4f msec\n", total_time * 1000.0);
+	printf("SparseVector iteration completed in %.4f msec\n", total_time * 1000.0);
 	printf("Values: %.2f %%; %f ns / value\n", double(num_values) * 100.0 / double(num_iters),
 		   total_time * 1000000000.0 / num_values);
 	return val;
@@ -211,6 +211,6 @@ int main() {
 
 	// TODO: special test showing performance of PoolVector
 
-	testIndexedVector();
+	testSparseVector();
 	return 0;
 }

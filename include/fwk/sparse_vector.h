@@ -10,11 +10,10 @@
 
 namespace fwk {
 
-// TODO: Better name ?
 // Constant time emplace & erase.
-// All elements are in single continuous block of memory, but:
-// there may be holes between valid elements.
-template <class T> class IndexedVector {
+// All elements are in single continuous block of memory,
+// but there may be holes between valid elements.
+template <class T> class SparseVector {
 	union Element;
 
   public:
@@ -27,13 +26,13 @@ template <class T> class IndexedVector {
 	T *rawData() { return reinterpret_cast<T *>(m_elements.data()); }
 	const T *rawData() const { return reinterpret_cast<const T *>(m_elements.data()); }
 
-	IndexedVector() {}
-	~IndexedVector() {
+	SparseVector() {}
+	~SparseVector() {
 		for(int n = 0; n < m_elements.size(); n++)
 			m_elements[n].free(m_valids[n]);
 	}
 
-	IndexedVector(const IndexedVector &rhs)
+	SparseVector(const SparseVector &rhs)
 		: m_valids(rhs.m_valids), m_free_list(rhs.m_free_list), m_valid_count(rhs.m_valid_count),
 		  m_end_index(rhs.m_end_index) {
 		m_elements.resize(rhs.m_elements.size());
@@ -41,7 +40,7 @@ template <class T> class IndexedVector {
 			new(&m_elements[n]) Element(rhs.m_elements[n], m_valids[n]);
 	}
 
-	IndexedVector(IndexedVector &&rhs)
+	SparseVector(SparseVector &&rhs)
 		: m_elements(move(rhs.m_elements)), m_valids(move(rhs.m_valids)),
 		  m_free_list(rhs.m_free_list), m_valid_count(rhs.m_valid_count),
 		  m_end_index(rhs.m_end_index) {
@@ -50,7 +49,7 @@ template <class T> class IndexedVector {
 		rhs.m_end_index = 0;
 	}
 
-	IndexedVector(vector<T> &&vec)
+	SparseVector(vector<T> &&vec)
 		: m_valids(vec.size(), true), m_valid_count(vec.size()), m_end_index(vec.size()) {
 		if constexpr(sizeof(T) == sizeof(Element)) {
 			auto temp = vec.template reinterpret<Element>();
@@ -62,7 +61,7 @@ template <class T> class IndexedVector {
 		}
 	}
 
-	void swap(IndexedVector &rhs) {
+	void swap(SparseVector &rhs) {
 		m_elements.swap(rhs.m_elements);
 		m_valids.swap(rhs.m_valids);
 		fwk::swap(m_free_list, rhs.m_free_list);
@@ -70,14 +69,14 @@ template <class T> class IndexedVector {
 		fwk::swap(m_end_index, rhs.m_end_index);
 	}
 
-	void operator=(const IndexedVector &rhs) {
+	void operator=(const SparseVector &rhs) {
 		if(this == &rhs)
 			return;
-		IndexedVector copy(rhs);
+		SparseVector copy(rhs);
 		swap(copy);
 	}
 
-	void operator=(IndexedVector &&rhs) {
+	void operator=(SparseVector &&rhs) {
 		clear();
 		swap(rhs);
 	}
@@ -171,7 +170,7 @@ template <class T> class IndexedVector {
 	}
 
 	template <bool is_const> struct Iter {
-		using Vec = typename std::conditional<is_const, const IndexedVector, IndexedVector>::type;
+		using Vec = typename std::conditional<is_const, const SparseVector, SparseVector>::type;
 		Iter(int index, int max_index, Vec &vector)
 			: index(index), max_index(max_index), vector(vector) {}
 
@@ -203,13 +202,13 @@ template <class T> class IndexedVector {
 			[=](int idx) { return valids[idx]; });
 	}
 
-	bool operator==(const IndexedVector &rhs) const {
+	bool operator==(const SparseVector &rhs) const {
 		return m_valid_count == rhs.m_valid_count && compare(rhs) == 0;
 	}
 
-	bool operator<(const IndexedVector &rhs) const { return compare(rhs) == -1; }
+	bool operator<(const SparseVector &rhs) const { return compare(rhs) == -1; }
 
-	int compare(const IndexedVector &rhs) const {
+	int compare(const SparseVector &rhs) const {
 		if(m_end_index < rhs.m_end_index)
 			return -rhs.compare(*this);
 

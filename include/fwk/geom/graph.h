@@ -11,8 +11,8 @@
 #include "fwk/gfx_base.h"
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
-#include "fwk/indexed_vector.h"
 #include "fwk/small_vector.h"
+#include "fwk/sparse_vector.h"
 
 namespace fwk {
 
@@ -262,13 +262,13 @@ class Graph {
 		FWK_ORDER_BY(PolygonInfo, verts);
 	};
 
-	IndexedVector<VertexInfo> m_verts; // TODO: better name
+	SparseVector<VertexInfo> m_verts; // TODO: better name
 	PodVector<Layers> m_vert_layers;
 
-	IndexedVector<EdgeInfo> m_edges;
+	SparseVector<EdgeInfo> m_edges;
 	PodVector<Layer> m_edge_layers;
 
-	IndexedVector<TriangleInfo> m_tris;
+	SparseVector<TriangleInfo> m_tris;
 	PodVector<Layer> m_tri_layers;
 	vector<VertexTriInfo> m_vert_tris;
 
