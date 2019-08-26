@@ -5,6 +5,7 @@
 #include "fwk/geom/delaunay.h"
 #include "fwk/geom/geom_graph.h"
 #include "fwk/geom/regular_grid.h"
+#include "fwk/geom/segment_grid.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rotation.h"
 #include "testing.h"
@@ -136,6 +137,42 @@ static void testGraph() {
 	// TODO: better tests?
 }
 
+vector<int2> slowSquareBorders(IRect rect, int2 pos, int radius) {
+	vector<int2> out;
+	for(auto pt : cells(rect)) {
+		int dist = max(std::abs(pt.x - pos.x), std::abs(pt.y - pos.y));
+		if(dist == radius)
+			out.emplace_back(pt);
+	}
+	makeSorted(out);
+	return out;
+}
+
+void testSquareBorder() {
+	IRect rect(0, 0, 40, 40);
+
+	for(auto pt : cells(rect)) {
+		for(int radius = 1; radius < 40; radius++) {
+			vector<int2> result;
+			for(auto ps : SquareBorder(rect, pt, radius))
+				result.emplace_back(ps);
+			makeSortedUnique(result);
+			auto slow_result = slowSquareBorders(rect, pt, radius);
+			if(result != slow_result)
+				ASSERT_FAILED("Invalid result; pt:% radius:%\ncorrest:%\ninvalid:%\n", pt, radius,
+							  slow_result, result);
+		}
+
+		vector<int2> sum;
+		for(int r : intRange(1, 40)) {
+			for(auto ps : SquareBorder(rect, pt, r))
+				sum.emplace_back(ps);
+		}
+		makeSortedUnique(sum);
+		ASSERT(sum.size() == rect.width() * rect.height() - 1);
+	}
+}
+
 void testMain() {
 	testContour();
 	//testImmutableGraph();
@@ -144,4 +181,5 @@ void testMain() {
 	orderByDirectionTest();
 	testGraph();
 	testDelaunayFuncs();
+	testSquareBorder();
 }

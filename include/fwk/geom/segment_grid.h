@@ -6,13 +6,13 @@
 #include "fwk/geom/regular_grid.h"
 #include "fwk/geom_base.h"
 #include "fwk/math/segment.h"
-#include "fwk/small_vector.h"
 
 namespace fwk {
 
+// Iterates over cells lying on square border
 struct SquareBorder {
 	// radius has to be > 0
-	SquareBorder(IRect rect, int2 center, int radius);
+	SquareBorder(IRect clip_rect, int2 center, int radius);
 
 	struct Iter {
 		Iter(const SquareBorder &border, int dir);
@@ -71,10 +71,10 @@ template <class T> class SegmentGrid {
 	// Grid jest w końcu używany jako element większych klas...
 
 	struct Cell {
-		bool empty() const { return num_points == 0 && num_segments == 0; }
+		bool empty() const { return num_verts == 0 && num_edges == 0; }
 
 		// TODO: naming: points/nodes etc.
-		int num_points = 0, num_segments = 0;
+		int num_verts = 0, num_edges = 0;
 		int first_index = 0;
 
 		// TODO: precompute these and use in algos
@@ -99,15 +99,15 @@ template <class T> class SegmentGrid {
 	// Because of inaccuracies point may end up in different cell than expected;
 	// How to deal with this robustly ?
 
-	CSpan<VertexId> cellNodes(int2 cell_id) const {
+	CSpan<VertexId> cellVerts(int2 cell_id) const {
 		auto &cell = m_cells[index(cell_id)];
-		auto *ptr = &m_indices[cell.first_index];
-		return span(ptr, cell.num_points).template reinterpret<VertexId>();
+		auto *ptr = &m_cell_indices[cell.first_index];
+		return span(ptr, cell.num_verts).template reinterpret<VertexId>();
 	}
 	CSpan<EdgeId> cellEdges(int2 cell_id) const {
 		auto &cell = m_cells[index(cell_id)];
-		auto *ptr = m_indices.data() + cell.first_index + cell.num_points;
-		return span(ptr, cell.num_segments).template reinterpret<EdgeId>();
+		auto *ptr = m_cell_indices.data() + cell.first_index + cell.num_verts;
+		return span(ptr, cell.num_edges).template reinterpret<EdgeId>();
 	}
 
 	const Cell &operator[](int2 cell_id) const {
@@ -123,13 +123,11 @@ template <class T> class SegmentGrid {
 	// Allow operations on bigger ints than 32bit ?
 
 	vector<int2> traceSlow(const Segment &) const;
-	SmallVector<int2, 16> trace(const Segment &) const;
+	PoolVector<int2> trace(const Segment &) const;
 
-	template <class U = T, EnableIfFptVec<U>...>
+	// This one if performed on doubles for int-based grids
 	Maybe<EdgeId> closestEdge(const Point &, CSpan<Segment>, Scalar max_dist = inf) const;
-
-	template <class U = T, EnableIfFptVec<U>...>
-	Maybe<VertexId> closestVertex(const Point &, CSpan<Point>, Scalar max_dist = inf,
+	Maybe<VertexId> closestVertex(const Point &, CSpan<Point> ref_points, Scalar max_dist = inf,
 								  Maybe<VertexId> ignore = none) const;
 
 	auto begin() const { return m_grid.begin(); }
@@ -146,6 +144,6 @@ template <class T> class SegmentGrid {
 
 	RGrid m_grid;
 	vector<Cell> m_cells;
-	vector<int> m_indices;
+	vector<VertexId::Base> m_cell_indices;
 };
 }

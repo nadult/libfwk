@@ -306,7 +306,7 @@ template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors(const Grid &gri
 	for(auto cell_id : grid) {
 		if(!grid.empty(cell_id)) {
 			auto edges = grid.cellEdges(cell_id);
-			auto verts = grid.cellNodes(cell_id);
+			auto verts = grid.cellVerts(cell_id);
 
 			for(int e1 : intRange(edges)) {
 				EdgeRef edge1(ref(EdgeId(edges[e1])));
