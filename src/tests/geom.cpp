@@ -149,10 +149,11 @@ vector<int2> slowSquareBorders(IRect rect, int2 pos, int radius) {
 }
 
 void testSquareBorder() {
-	IRect rect(0, 0, 40, 40);
+	int max_radius = 20;
+	IRect rect(0, 0, max_radius, max_radius);
 
 	for(auto pt : cells(rect)) {
-		for(int radius = 1; radius < 40; radius++) {
+		for(int radius = 1; radius < max_radius; radius++) {
 			vector<int2> result;
 			for(auto ps : SquareBorder(rect, pt, radius))
 				result.emplace_back(ps);
@@ -164,7 +165,7 @@ void testSquareBorder() {
 		}
 
 		vector<int2> sum;
-		for(int r : intRange(1, 40)) {
+		for(int r : intRange(1, max_radius)) {
 			for(auto ps : SquareBorder(rect, pt, r))
 				sum.emplace_back(ps);
 		}
