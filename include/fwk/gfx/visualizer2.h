@@ -48,7 +48,7 @@ struct VoronoiVis2Colors {
 
 class VoronoiVis2 {
   public:
-	VoronoiVis2(Visualizer2 &, const VoronoiDiagram &, VoronoiVis2Colors, Maybe<CellId> sel);
+	VoronoiVis2(Visualizer2 &, const Voronoi &, VoronoiVis2Colors, Maybe<CellId> sel);
 
 	void drawSegment(EdgeId, bool draw_sel);
 	void drawArc(EdgeId, bool draw_sel);
@@ -56,7 +56,7 @@ class VoronoiVis2 {
 
   private:
 	Visualizer2 &m_vis;
-	const VoronoiDiagram &m_diag;
+	const Voronoi &m_diag;
 	const GeomGraph<double2> &m_graph;
 	VoronoiVis2Colors m_colors;
 	Maybe<CellId> m_sel;
@@ -83,7 +83,7 @@ class Visualizer2 {
 	void drawRect(FRect, IColor, bool solid = false);
 	void drawTriangle(const Triangle2F &, IColor, bool solid = false);
 	void drawCross(float2, IColor);
-	void drawVoronoi(const VoronoiDiagram &, VoronoiVis2Colors, Maybe<CellId> selection = none);
+	void drawVoronoi(const Voronoi &, VoronoiVis2Colors, Maybe<CellId> selection = none);
 
 	template <class T, EnableIfVec<T, 2>...> void operator()(const T &pt, VisStyle style = {}) {
 		if(style.flags & VisOpt::cross)

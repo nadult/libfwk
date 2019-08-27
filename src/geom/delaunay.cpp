@@ -20,14 +20,14 @@ template <class T> double delaunayIntegralScale(CSpan<T> points) {
 	return integralScale(enclose(points), delaunay_integral_resolution);
 }
 
-vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
+vector<VertexIdPair> delaunay(const Voronoi &voronoi) {
 	auto &graph = voronoi.graph;
 	auto cell_verts = graph.verts(voronoi.site_layer);
 
 	vector<VertexIdPair> out;
-	vector<bool> visited(graph.numEdges(VoronoiDiagram::arc_layer));
+	vector<bool> visited(graph.numEdges(Voronoi::arc_layer));
 
-	for(auto arc : graph.edges(VoronoiDiagram::arc_layer)) {
+	for(auto arc : graph.edges(Voronoi::arc_layer)) {
 		if(visited[arc])
 			continue;
 		DASSERT(arc.twin());
@@ -44,12 +44,12 @@ vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi) {
 	return out;
 }
 
-vector<VertexIdPair> delaunay(SparseSpan<int2> points) { return VoronoiDiagram::delaunay(points); }
+vector<VertexIdPair> delaunay(SparseSpan<int2> points) { return Voronoi::delaunay(points); }
 
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
 	auto scale = delaunayIntegralScale(points);
 	auto ipoints = EXPECT_PASS(toIntegral(points, scale));
-	return VoronoiDiagram::delaunay(ipoints);
+	return Voronoi::delaunay(ipoints);
 }
 
 bool isPositiveConvexQuad(CSpan<int2, 4> corners) {

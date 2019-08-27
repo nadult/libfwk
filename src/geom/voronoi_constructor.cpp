@@ -19,8 +19,8 @@ using namespace boost::polygon::detail;
 
 namespace fwk {
 
-static constexpr auto site_layer = VoronoiDiagram::site_layer,
-					  seg_layer = VoronoiDiagram::seg_layer, arc_layer = VoronoiDiagram::arc_layer;
+static constexpr auto site_layer = Voronoi::site_layer, seg_layer = Voronoi::seg_layer,
+					  arc_layer = Voronoi::arc_layer;
 
 namespace {
 	struct type_converter_efpt2 {
@@ -143,7 +143,7 @@ class VoronoiConstructor {
 		return {{edge.from(), edge.to()}};
 	}
 
-	VoronoiDiagram convertDiagram() {
+	Voronoi convertDiagram() {
 		GeomGraph<double2> out;
 
 		vector<VoronoiCell> cells;
@@ -296,7 +296,7 @@ class VoronoiConstructor {
 			}
 		}
 
-		return VoronoiDiagram(move(out), move(cells));
+		return {move(out), move(cells)};
 	}
 
 	void clip_infinite_edge(const edge_type &edge, vector<double2> &out) const {
@@ -467,11 +467,11 @@ class VoronoiConstructor {
 	VD m_diagram;
 };
 
-vector<Pair<VertexId>> VoronoiDiagram::delaunay(SparseSpan<int2> sites) {
+vector<Pair<VertexId>> Voronoi::delaunay(SparseSpan<int2> sites) {
 	return DelaunayConstructor(sites).extractSitePairs();
 }
 
-Ex<VoronoiDiagram> VoronoiDiagram::construct(const GeomGraph<int2> &graph) {
+Ex<Voronoi> Voronoi::construct(const GeomGraph<int2> &graph) {
 	EXPECT(graph.checkPlanar());
 
 	IRect rect = enclose(graph.points()).enlarge(1);

@@ -25,9 +25,9 @@ vector<VertexIdPair> delaunay(SparseSpan<int2>);
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T>);
 
 // Warning: you have to be careful with this function:
-// VoronoiDiagram removes degenerate edges, which may cause
+// Voronoi removes degenerate edges, which may cause
 // delaunay triangulation to miss some triangles in the end
-vector<VertexIdPair> delaunay(const VoronoiDiagram &voronoi);
+vector<VertexIdPair> delaunay(const Voronoi &);
 
 vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &,
 										 CSpan<VertexIdPair> delaunay = {});

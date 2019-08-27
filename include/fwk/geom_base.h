@@ -67,7 +67,7 @@ using TriRefs = GRefs<TriangleRef, TriangleId, false>;
 template <class T> class Contour;
 template <class T> class SubContourRef;
 
-class VoronoiDiagram;
+class Voronoi;
 
 template <class T, class IT = int2> class RegularGrid;
 template <class T> class SegmentGrid;

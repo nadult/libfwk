@@ -295,7 +295,7 @@ vector<Segment3F> generateVoronoiLines(vector<Segment3F> patch_outline, vector<f
 
 	igraph.addGrid();
 	igraph.checkPlanar().check();
-	auto voronoi = VoronoiDiagram::construct(igraph);
+	auto voronoi = Voronoi::construct(igraph);
 
 	vector<Segment3F> out;
 
@@ -326,7 +326,7 @@ vector<Segment2F> generateDelaunaySegments(vector<float3> points) {
 
 	igraph.addGrid();
 	igraph.checkPlanar().check();
-	auto voronoi = VoronoiDiagram::construct(igraph);
+	auto voronoi = Voronoi::construct(igraph);
 	auto del = delaunay(voronoi);
 
 	return delaunaySegments<float2>(del, graph);

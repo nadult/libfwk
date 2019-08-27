@@ -12,16 +12,13 @@ using VoronoiCell = Variant<VertexId, EdgeId>;
 
 // Arcs separate two neighbouring cells.
 // Arcs can be divided into segments, in most cases arc is composed of a single segment.
-//
 // Sites are on layer 1, arcs on layer 2 and arc segments on layer 3
-// TODO: rename to Voronoi ?
-// TODO: use EdgeIdx in some places?
-class VoronoiDiagram {
+class Voronoi {
   public:
 	using Cell = VoronoiCell;
 
-	VoronoiDiagram() = default;
-	VoronoiDiagram(GeomGraph<double2>, vector<Cell>);
+	Voronoi() = default;
+	Voronoi(GeomGraph<double2>, vector<Cell>);
 
 	// applies to verts as well; Some verts are on multiple layers
 	static constexpr auto site_layer = GLayer::l1;
@@ -31,8 +28,8 @@ class VoronoiDiagram {
 	static vector<Pair<VertexId>> delaunay(SparseSpan<int2>);
 
 	// After construction Cell generators will have same VertexId as in PGraph
-	static Ex<VoronoiDiagram> construct(const GeomGraph<int2> &);
-	VoronoiDiagram clip(DRect) const;
+	static Ex<Voronoi> construct(const GeomGraph<int2> &);
+	Voronoi clip(DRect) const;
 
 	bool isArcPrimary(EdgeId) const;
 	EdgeId arcId(EdgeId) const;

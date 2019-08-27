@@ -13,7 +13,7 @@
 
 namespace fwk {
 
-VoronoiDiagram::VoronoiDiagram(GeomGraph<double2> graph, vector<Cell> cells)
+Voronoi::Voronoi(GeomGraph<double2> graph, vector<Cell> cells)
 	: graph(move(graph)), cells(move(cells)) {
 	for(auto &cell : cells) {
 		if(EdgeId *eid = cell)
@@ -25,35 +25,35 @@ VoronoiDiagram::VoronoiDiagram(GeomGraph<double2> graph, vector<Cell> cells)
 	// TODO: verify arcs
 }
 
-bool VoronoiDiagram::isArcPrimary(EdgeId id) const {
+bool Voronoi::isArcPrimary(EdgeId id) const {
 	PASSERT(graph.layer(id) == arc_layer);
 	return graph[id].ival1 != 0;
 }
 
-EdgeId VoronoiDiagram::arcId(EdgeId id) const {
+EdgeId Voronoi::arcId(EdgeId id) const {
 	PASSERT(graph.layer(id) == seg_layer);
 	return EdgeId(graph[id].ival1);
 }
 
-CellId VoronoiDiagram::cellId(EdgeId id) const {
+CellId Voronoi::cellId(EdgeId id) const {
 	auto layer = graph.layer(id);
 	PASSERT(isOneOf(layer, arc_layer, seg_layer));
 	return CellId(graph[id].ival2);
 }
 
-vector<EdgeId> VoronoiDiagram::arcSegments(EdgeId edge) const {
+vector<EdgeId> Voronoi::arcSegments(EdgeId edge) const {
 	vector<EdgeId> out;
 	FATAL("write me");
 	return out;
 }
 
-vector<EdgeId> VoronoiDiagram::cellArcs(CellId) const {
+vector<EdgeId> Voronoi::cellArcs(CellId) const {
 	vector<EdgeId> out;
 	FATAL("write me");
 	return out;
 }
 
-Maybe<CellId> VoronoiDiagram::findClosestCell(double2 pos) const {
+Maybe<CellId> Voronoi::findClosestCell(double2 pos) const {
 	Maybe<CellId> out;
 	double min_dist = inf;
 	int min_rank = 0;
@@ -106,7 +106,7 @@ vector<double2> borderSegments(const DRect &rect, const double2 &p1, const doubl
 	return points;
 }
 
-VoronoiDiagram VoronoiDiagram::clip(DRect rect) const {
+Voronoi Voronoi::clip(DRect rect) const {
 	// TODO: assert that generators are inside rect (and not on the borders)
 	// Czy chcemy zachować indeksy różnych elementów? site-y raczej tak
 	GeomGraph<double2> new_graph;
