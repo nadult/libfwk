@@ -306,8 +306,9 @@ void Graph::remove(TriId tid) {
 // -------------------------------------------------------------------------------------------
 // ---  Algorithms ---------------------------------------------------------------------------
 
+// TODO: search for duplicates across layers ?
 bool Graph::hasEdgeDuplicates() const {
-	vector<bool> bitmap(m_verts.size(), false);
+	vector<bool> bitmap(m_verts.endIndex(), false);
 
 	for(auto n1 : vertexIds()) {
 		for(auto e1 : m_verts[n1])
@@ -324,16 +325,14 @@ bool Graph::hasEdgeDuplicates() const {
 	return false;
 }
 
-// TODO: zła nazwa
-// Jak to ma działać z labelkami i trójkątami?
+// TODO: what about labels and layers ?
 Graph Graph::makeForest(CSpan<Maybe<VertexId>> parents) {
-	vector<pair<VertexId, VertexId>> edges;
+	vector<VertexIdPair> edges;
 	edges.reserve(parents.size());
 	for(auto node_id : indexRange<VertexId>(parents))
 		if(parents[node_id])
 			edges.emplace_back(*parents[node_id], node_id);
-	FATAL("writeme");
-	return {};
+	return {move(edges)};
 }
 
 bool Graph::isUndirected(Layers layers) const {
@@ -346,7 +345,7 @@ bool Graph::isUndirected(Layers layers) const {
 
 template <class T, EnableIf<is_scalar<T>>...>
 Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) const {
-	DASSERT(edge_weights.size() == numEdges());
+	DASSERT_GE(edge_weights.size(), edgesEndIndex());
 
 	if(numVerts() == 0)
 		return {};
@@ -354,13 +353,13 @@ Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) cons
 	vector<EdgeId> out;
 	Heap<T> heap(numVerts());
 
-	vector<bool> processed(numVerts(), false);
-	vector<Maybe<VertexId>> pi(numVerts());
-	vector<T> keys(pi.size(), inf);
+	vector<bool> processed(vertsEndIndex(), false);
+	vector<Maybe<VertexId>> pi(vertsEndIndex());
+	T max_val = is_fpt<T> ? (T)inf : std::numeric_limits<T>::max();
+	vector<T> keys(pi.size(), max_val);
 
-	FATAL("fix me");
 	m_verts.firstIndex();
-	//keys[vertexIds()[0]] = T(0);
+	keys[VertexId(m_verts.firstIndex())] = T(0);
 
 	for(auto node : vertexIds())
 		heap.insert(node, keys[node]);
@@ -389,12 +388,12 @@ Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) cons
 
 Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) const {
 	Heap<double> heap(numVerts());
-	vector<double> keys(numVerts(), inf);
+	vector<double> keys(vertsEndIndex(), inf);
 
 	if(!weights.empty()) {
-		DASSERT_EQ(weights.size(), numEdges());
-		for(auto weight : weights)
-			DASSERT_GE(weight, 0.0);
+		DASSERT_LE(weights.size(), edgesEndIndex());
+		for(auto eid : edgeIds())
+			DASSERT_GE(weights[eid], 0.0);
 	}
 
 	for(auto src_id : sources)
@@ -403,7 +402,7 @@ Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) co
 		heap.insert(node_id, keys[node_id]);
 	vector<bool> visited(numVerts(), false);
 
-	vector<Maybe<VertexId>> out(numVerts());
+	vector<Maybe<VertexId>> out(vertsEndIndex());
 
 	while(!heap.empty()) {
 		VertexId nid(heap.extractMin().second);
@@ -428,14 +427,23 @@ Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) co
 }
 
 Graph Graph::reversed() const {
-	vector<Pair<VertexId>> out;
-	out.reserve(m_edges.size());
-	for(auto [n1, n2] : m_edges)
-		out.emplace_back(n2, n1);
-	// TODO: what about labels?
-	FATAL("writeme");
-	return {};
-	//return {m_labels_info, out};
+	Graph out;
+
+	if(numTris())
+		FATAL("check me");
+
+	out.reserveEdges(edgesEndIndex());
+	out.reserveVerts(vertsEndIndex());
+
+	for(auto vert : verts())
+		out.addVertexAt(vert, vert.layers());
+	for(auto edge : edges())
+		out.addEdgeAt(edge, edge.to(), edge.from(), edge.layer());
+
+	out.m_vert_labels = m_vert_labels;
+	out.m_edge_labels = m_edge_labels;
+
+	return out;
 }
 
 bool Graph::hasCycles() const {
@@ -532,6 +540,7 @@ int Graph::compare(const Graph &rhs) const {
 // TODO: labels
 FWK_ORDER_BY_DEF(Graph, m_verts, m_edges, m_tris)
 
+template Graph Graph::minimumSpanningTree(CSpan<int>, bool) const;
 template Graph Graph::minimumSpanningTree(CSpan<float>, bool) const;
 template Graph Graph::minimumSpanningTree(CSpan<double>, bool) const;
 }

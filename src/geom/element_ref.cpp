@@ -100,6 +100,10 @@ PooledVertexRefs VertexRef::vertsTo(GLayers layers) const {
 // -------------------------------------------------------------------------
 // -- EdgeRef implementation -----------------------------------------------
 
+Pair<VertexRef> EdgeRef::verts() const {
+	auto &edge = m_graph->m_edges[m_id];
+	return {{m_graph, edge.from}, {m_graph, edge.to}};
+}
 VertexRef EdgeRef::from() const { return VertexRef(m_graph, m_graph->m_edges[m_id].from); }
 VertexRef EdgeRef::to() const { return VertexRef(m_graph, m_graph->m_edges[m_id].to); }
 VertexRef EdgeRef::other(VertexId node) const {

@@ -28,17 +28,59 @@ static void orderByDirectionTest() {
 	}
 }
 
-/*
-static void testImmutableGraph() {
-	vector<pair<int, int>> pairs1 = {{0, 1}, {1, 2}, {2, 0}};
-	vector<pair<int, int>> pairs2 = {{0, 1}, {0, 2}, {2, 3}, {1, 3}};
+static void testGraph() {
+	// Testing hasCycles, reversed
+	auto pairs1 = vector<Pair<int>>{{0, 1}, {1, 2}, {2, 0}}.reinterpret<VertexIdPair>();
+	auto pairs2 = vector<Pair<int>>{{0, 1}, {0, 2}, {2, 3}, {1, 3}}.reinterpret<VertexIdPair>();
 
-	ImmutableGraph graph1(pairs1.reinterpret<Pair<VertexId>>());
-	ImmutableGraph graph2(pairs2.reinterpret<Pair<VertexId>>());
+	Graph graph1(pairs1);
+	Graph graph2(pairs2);
+	auto graph1_rev = graph1.reversed();
 
 	ASSERT(graph1.hasCycles());
 	ASSERT(!graph2.hasCycles());
-}*/
+	ASSERT(graph1_rev.hasCycles());
+	for(auto eid : indexRange<EdgeId>(pairs1)) {
+		auto [v1, v2] = graph1_rev.ref(eid).verts();
+		auto [t1, t2] = pairs1[eid];
+		ASSERT_EQ(v1, t2);
+		ASSERT_EQ(v2, t1);
+	}
+
+	// Testing minimum spanning tree
+	vector<Pair<int>> pairs3 = {{4, 1}, {1, 2}, {2, 3}, {4, 7}, {1, 7}, {5, 2}, {2, 9},
+								{9, 3}, {3, 6}, {7, 5}, {5, 8}, {9, 6}, {7, 8}, {8, 9}};
+	vector<int> weights1 = {4, 8, 7, 8, 11, 2, 4, 14, 9, 7, 6, 10, 1, 2};
+	Graph graph3(pairs3.reinterpret<Pair<VertexId>>());
+	auto mst = graph3.minimumSpanningTree<int>(weights1, true);
+	int value = 0;
+	for(auto edge : mst.edges()) {
+		auto src_edge = graph3.findUndirectedEdge(edge.from(), edge.to());
+		ASSERT(src_edge);
+		value += weights1[*src_edge];
+	}
+	ASSERT_EQ(value, 37);
+
+	// Testing shortest path tree
+	vector<Pair<int>> pairs4 = {{0, 1}, {1, 2}, {0, 3}, {1, 3}, {3, 1},
+								{3, 2}, {2, 4}, {4, 2}, {3, 4}, {4, 0}};
+	vector<double> weights2 = {3, 6, 5, 2, 1, 4, 2, 7, 6, 3};
+	Graph graph4(pairs4.reinterpret<Pair<VertexId>>());
+	auto spt = graph4.shortestPathTree({VertexId(0)}, weights2);
+
+	vector<Pair<int>> solutions[2] = {{{0, 1}, {1, 2}, {0, 3}, {3, 4}},
+									  {{0, 1}, {1, 3}, {3, 2}, {2, 4}}};
+	ASSERT_EQ(spt.numEdges(), 4);
+	int num_solutions = 0;
+	for(auto &sol : solutions) {
+		bool valid = true;
+		for(auto [v1, v2] : sol)
+			valid &= !!spt.findEdge(VertexId(v1), VertexId(v2));
+		if(valid)
+			num_solutions++;
+	}
+	ASSERT_EQ(num_solutions, 1);
+}
 
 static void testRegularGrid() {
 	DRect rect(-10, -10, 10, 10);
@@ -117,8 +159,7 @@ void testDelaunayFuncs() {
 	ASSERT_EQ(polygonArea(points), 100);
 }
 
-static void testGraph() NOINLINE;
-static void testGraph() {
+static void testGeomGraph() {
 	GeomGraph<float2> graph;
 	float2 points[] = {float2(-1, 0), float2(0, 0),   float2(1, 0),
 					   float2(0, -1), float2(-1, -1), float2(0, 1)};
@@ -181,6 +222,7 @@ void testMain() {
 	//testPlaneGraph();
 	orderByDirectionTest();
 	testGraph();
+	testGeomGraph();
 	testDelaunayFuncs();
 	testSquareBorder();
 }

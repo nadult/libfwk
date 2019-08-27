@@ -78,6 +78,7 @@ class EdgeRef {
 
 	const GLabel *operator->() const;
 
+	Pair<VertexRef> verts() const;
 	VertexRef from() const;
 	VertexRef to() const;
 	VertexRef other(VertexId node) const;
