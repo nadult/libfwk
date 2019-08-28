@@ -57,30 +57,9 @@ void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector)
 	std::sort(it, end(indices), func2);
 }
 
-template <class T, class T2, EnableIfVec<T, 3>...>
-PodVector<T2> planarProjection(SparseSpan<T> points, Axes2D axes) {
-	PodVector<T2> out(points.endIndex());
-	switch(axes) {
-	case Axes2D::xy:
-		for(int n : points.indices())
-			out[n] = points[n].xy();
-		break;
-	case Axes2D::xz:
-		for(int n : points.indices())
-			out[n] = points[n].xz();
-		break;
-	case Axes2D::yz:
-		for(int n : points.indices())
-			out[n] = points[n].yz();
-		break;
-	}
-	return out;
-}
-
 #define INSTANTIATE3D(T)                                                                           \
 	template double integralScale(const Box<T> &, int);                                            \
-	template Box<T> enclose(SparseSpan<T>);                                                        \
-	template PodVector<MakeVec<Scalar<T>, 2>> planarProjection(SparseSpan<T>, Axes2D);
+	template Box<T> enclose(SparseSpan<T>);
 
 #define INSTANTIATE2D(T)                                                                           \
 	template double integralScale(const Box<T> &, int);                                            \

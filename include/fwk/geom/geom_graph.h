@@ -26,12 +26,13 @@ template <class T> class GeomGraph : public Graph {
 
 	using PointMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
 
-	GeomGraph() {}
+	GeomGraph();
 	GeomGraph(vector<Point>);
 	GeomGraph(vector<Pair<VertexId>>, vector<Point>);
 	GeomGraph(Graph, PodVector<Point>, PointMap);
 	GeomGraph(const Graph &source, PodVector<Point> new_points, PointMap point_map,
 			  CSpan<Pair<VertexId>> collapsed_verts);
+	FWK_COPYABLE_CLASS(GeomGraph);
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Access to graph elements -------------------------------------------------------------
@@ -127,19 +128,19 @@ template <class T> class GeomGraph : public Graph {
 								  vector<Pair<VertexId>> &identical_points);
 
 	// -------------------------------------------------------------------------------------------
-	// ---  Algorithms ---------------------------------------------------------------------------
+	// ---  Grid-based algorithms ----------------------------------------------------------------
 
-	void setPlanarProjection(Axes2D);
-	Axes2D planarProjection() const { return m_projection; }
+	Axes2D m_planar_projection = Axes2D::xz; // TODO: xy ?
+	Grid makeGrid() const;
 
 	Vec2 projectedPoint(VertexId) const;
 	Segment2 projectedSegment(EdgeId) const;
 
-	Grid makeGrid() const;
-
 	vector<EdgeId> findIntersectors() const;
 	bool isPlanar() const;
 	Ex<void> checkPlanar() const;
+
+	vector<double2> randomPoints(Random &, double min_distance, Maybe<DRect> = none) const;
 
 	double scale = 1.0;
 
@@ -148,7 +149,6 @@ template <class T> class GeomGraph : public Graph {
 
 	PodVector<Point> m_points;
 	PointMap m_point_map;
-	Axes2D m_projection = Axes2D::xz; // TODO: xy ?
 };
 
 }

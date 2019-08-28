@@ -81,7 +81,8 @@ const SquareBorder::Iter &SquareBorder::Iter::operator++() {
 
 template <class T> auto SegmentGrid<T>::bestGrid(SparseSpan<T> points, int num_edges) -> RGrid {
 	auto rect = enclose(points);
-	if(rect.empty())
+	// TODO: how to properly handle lines & empty rects ?
+	if(rect.width() == 0 && rect.height() == 0)
 		return {Box<T>(0, 0, 1, 1), T(1), 1};
 
 	auto num_cells = double(max(points.size(), num_edges)) * 1.5;
@@ -103,13 +104,17 @@ template <class T> auto SegmentGrid<T>::bestGrid(SparseSpan<T> points, int num_e
 }
 
 template <class T>
-SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> points)
-	: m_grid(bestGrid(points, edges.size())) {
+void SegmentGrid<T>::initialize(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> points) {
+	m_grid = bestGrid(points, edges.size());
+	m_edges = edges;
+	m_points = points;
 	m_cells.resize(m_grid.width() * m_grid.height());
-	for(auto pt : points)
+	DUMP(m_grid.cellRect());
+	for(auto pt : points) {
+		DUMP(pt, toCell(pt));
 		m_cells[index(toCell(pt))].num_verts++;
+	}
 
-	int total_count = points.size();
 	vector<int> seg_cell_indices;
 	PodVector<int> seg_cell_offsets(edges.size()), seg_cell_counts(edges.size());
 	seg_cell_indices.reserve(edges.size() * 2);
@@ -129,7 +134,6 @@ SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> 
 			if(single_cell || seg.testIsect(m_grid.toWorldRect(cell_pos))) {
 				seg_cell_indices.emplace_back(cidx);
 				cell.num_edges++;
-				total_count++;
 			}
 		}
 
@@ -144,7 +148,7 @@ SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> 
 		cell.num_edges = 0;
 	}
 
-	m_cell_indices.resize(total_count);
+	m_cell_indices.resize(cur_index + points.size() + 1);
 	for(auto id : points.indices()) {
 		auto &cell = m_cells[index(toCell(points[id]))];
 		int idx = cell.first_index + cell.num_verts++;
@@ -163,6 +167,19 @@ SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> 
 
 	//	print("points:% segs:% cells:% (%) insts:%\n", points.size(), edges.size(), m_cells.size(),
 	//			 size(), m_cell_indices.size());
+}
+
+template <class T>
+SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> points) {
+	initialize(edges, points);
+}
+
+template <class T>
+SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, PodVector<Point> points,
+							CSpan<bool> valids, int psize)
+	: m_points_buffer(move(points)) {
+	SparseSpan<Point> pspan(m_points_buffer.data(), valids, psize);
+	initialize(edges, pspan);
 }
 
 template <class T> vector<int2> SegmentGrid<T>::traceSlow(const Segment &seg) const {
@@ -362,15 +379,16 @@ template <class T> PoolVector<int2> SegmentGrid<T>::trace(const Segment &iseg) c
 }
 
 template <class T>
-Maybe<EdgeId> SegmentGrid<T>::closestEdge(const Point &point, SegmentAccessor segs,
-										  Scalar min_dist) const {
+Maybe<EdgeId> SegmentGrid<T>::closestEdge(const Point &point, Scalar min_dist) const {
 	auto cell_pos = vclamp(toCell(point), int2(0, 0), size() - int2(1, 1));
 	using Dist = decltype(Segment().distanceSq(Point()));
 	Dist min_dist_sq = Dist(min_dist) * min_dist;
 	Pair<Dist, Maybe<EdgeId>> closest = {min_dist_sq, none};
 
-	for(auto eid : cellEdges(cell_pos))
-		closest = minFirst(closest, {segs(eid).distanceSq(point), eid});
+	for(auto eid : cellEdges(cell_pos)) {
+		auto [v1, v2] = m_edges[eid];
+		closest = minFirst(closest, {Segment{m_points[v1], m_points[v2]}.distanceSq(point), eid});
+	}
 
 	int max_radius = max(cell_pos.x, width() - cell_pos.x, cell_pos.y, height() - cell_pos.y) + 1;
 	//print("cell: %\n", cell_pos);
@@ -386,7 +404,11 @@ Maybe<EdgeId> SegmentGrid<T>::closestEdge(const Point &point, SegmentAccessor se
 
 			if(cell_dist_sq < min_dist)
 				for(auto eid : cellEdges(sq_pos))
-					closest = minFirst(closest, {segs(eid).distanceSq(point), eid});
+					if(closest.second != eid) {
+						auto [v1, v2] = m_edges[eid];
+						closest = minFirst(
+							closest, {Segment{m_points[v1], m_points[v2]}.distanceSq(point), eid});
+					}
 		}
 
 		//	print("radius:% min:% cur:% found:%\n", radius, min_dist, cur_dist, closest);
@@ -398,8 +420,8 @@ Maybe<EdgeId> SegmentGrid<T>::closestEdge(const Point &point, SegmentAccessor se
 }
 
 template <class T>
-Maybe<VertexId> SegmentGrid<T>::closestVertex(const Point &point, PointAccessor points,
-											  Scalar min_dist, Maybe<VertexId> ignore) const {
+Maybe<VertexId> SegmentGrid<T>::closestVertex(const Point &point, Scalar min_dist,
+											  Maybe<VertexId> ignore) const {
 	auto cell_pos = vclamp(toCell(point), int2(0, 0), size() - int2(1, 1));
 	using PScalar = PromoteIntegral<Scalar>;
 	using PPoint = PromoteIntegral<Point>;
@@ -408,7 +430,7 @@ Maybe<VertexId> SegmentGrid<T>::closestVertex(const Point &point, PointAccessor 
 
 	for(auto nid : cellVerts(cell_pos))
 		if(nid != ignore) {
-			auto dist_sq = distanceSq<PPoint>(point, points(nid));
+			auto dist_sq = distanceSq<PPoint>(point, m_points[nid]);
 			closest = minFirst(closest, {dist_sq, nid});
 		}
 
@@ -430,7 +452,7 @@ Maybe<VertexId> SegmentGrid<T>::closestVertex(const Point &point, PointAccessor 
 
 			for(auto nid : cellVerts(sq_pos))
 				if(nid != ignore) {
-					auto dist_sq = distanceSq<PPoint>(point, points(nid));
+					auto dist_sq = distanceSq<PPoint>(point, m_points[nid]);
 					closest = minFirst(closest, {dist_sq, nid});
 				}
 		}

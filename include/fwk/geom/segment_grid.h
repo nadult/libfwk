@@ -6,6 +6,7 @@
 #include "fwk/geom/regular_grid.h"
 #include "fwk/geom_base.h"
 #include "fwk/math/segment.h"
+#include "fwk/sparse_span.h"
 
 namespace fwk {
 
@@ -62,6 +63,8 @@ template <class T> class SegmentGrid {
 	// - zwraca iterator?
 
 	SegmentGrid(SparseSpan<Pair<VertexId>>, SparseSpan<Point>);
+	SegmentGrid(SparseSpan<Pair<VertexId>>, PodVector<Point> points, CSpan<bool> point_valids,
+				int num_points);
 	SegmentGrid() = default;
 
 	// Zamiast tych funkcji ma jedynie funkcje dostępu do komórek i
@@ -86,8 +89,8 @@ template <class T> class SegmentGrid {
 	int width() const { return m_grid.width(); }
 	int height() const { return m_grid.height(); }
 
-	int index(int2 cell_id) const { return cell_id.x + cell_id.y * m_grid.width(); }
-	bool inRange(int2 cell_id) const { return m_grid.inRange(cell_id); }
+	CellId index(int2 cell_pos) const { return CellId(cell_pos.x + cell_pos.y * m_grid.width()); }
+	bool inRange(int2 cell_pos) const { return m_grid.inRange(cell_pos); }
 
 	int2 toCell(T world_id) const { return m_grid.toCell(world_id); }
 	IRect toCell(const Rect &world_rect) const { return m_grid.toCellRect(world_rect); }
@@ -116,6 +119,7 @@ template <class T> class SegmentGrid {
 	}
 
 	bool empty(int2 cell_id) const { return !inRange(cell_id) || m_cells[index(cell_id)].empty(); }
+	bool empty() const { return m_cells.empty(); }
 
 	// In case of integer grids, you have to clip tested segments, because they may
 	// cause overflow errors otherwise
@@ -124,18 +128,17 @@ template <class T> class SegmentGrid {
 	vector<int2> traceSlow(const Segment &) const;
 	PoolVector<int2> trace(const Segment &) const;
 
-	using PointAccessor = Functor<Point, VertexId>;
-	using SegmentAccessor = Functor<Segment, EdgeId>;
-
 	// This one if performed on doubles for int-based grids
-	Maybe<EdgeId> closestEdge(const Point &, SegmentAccessor, Scalar max_dist = inf) const;
-	Maybe<VertexId> closestVertex(const Point &, PointAccessor, Scalar max_dist = inf,
+	Maybe<EdgeId> closestEdge(const Point &, Scalar max_dist = inf) const;
+	Maybe<VertexId> closestVertex(const Point &, Scalar max_dist = inf,
 								  Maybe<VertexId> ignore = none) const;
 
 	auto begin() const { return m_grid.begin(); }
 	auto end() const { return m_grid.end(); }
 
   private:
+	void initialize(SparseSpan<Pair<VertexId>>, SparseSpan<Point>);
+
 	static RGrid bestGrid(SparseSpan<T>, int num_edges);
 
 	T cellCorner(int2 cell_id) const { return m_grid.toWorld(cell_id); }
@@ -147,5 +150,8 @@ template <class T> class SegmentGrid {
 	RGrid m_grid;
 	vector<Cell> m_cells;
 	vector<VertexId::Base> m_cell_indices;
+	SparseSpan<Pair<VertexId>> m_edges;
+	SparseSpan<Point> m_points;
+	PodVector<Point> m_points_buffer;
 };
 }

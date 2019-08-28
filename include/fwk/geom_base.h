@@ -98,7 +98,24 @@ template <class T> Ex<vector<int2>> toIntegral(CSpan<T>, double scale);
 template <class T, EnableIfVec<T, 2>...>
 void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector);
 
-template <class T, class T2 = MakeVec<Scalar<T>, 2>, EnableIfVec<T, 3>...>
-PodVector<T2> planarProjection(SparseSpan<T>, Axes2D);
+// TODO: better names ?
+template <class T, class Ret = decltype(DECLVAL(T).xz())>
+PodVector<Ret> planarProjection(SparseSpan<T> span, Axes2D axes) {
+	PodVector<Ret> out(span.endIndex());
+	for(int n : span.indices())
+		out[n] = planarProjection(span[n], axes);
+	return out;
+}
 
+template <class T, class Ret = decltype(DECLVAL(T).xz())>
+Ret planarProjection(const T &obj, Axes2D axes) {
+	return axes == Axes2D::xy ? obj.xy() : axes == Axes2D::xz ? obj.xz() : obj.yz();
+}
+
+template <class T, class S, class Ret = MakeVec<Scalar<T>, 3>, EnableIfVec<T, 2>...>
+Ret planarUnprojection(const T &obj, Axes2D axes, S third) {
+	return axes == Axes2D::xy
+			   ? Ret(obj[0], obj[1], third)
+			   : axes == Axes2D::xz ? Ret(obj[0], third, obj[1]) : Ret(third, obj[0], obj[1]);
+}
 }

@@ -5,6 +5,7 @@
 
 #include "fwk/geom/segment_grid.h"
 #include "fwk/math/direction.h"
+#include "fwk/math/random.h"
 #include "fwk/math/segment.h"
 #include "fwk/sys/assert.h"
 
@@ -48,6 +49,13 @@ GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap po
 	if(graph.numTris())
 		FATAL("handle me please");
 }
+
+template <class T> GeomGraph<T>::GeomGraph() = default;
+template <class T> GeomGraph<T>::GeomGraph(const GeomGraph &) = default;
+template <class T> GeomGraph<T>::GeomGraph(GeomGraph &&) = default;
+template <class T> GeomGraph<T> &GeomGraph<T>::operator=(const GeomGraph &) = default;
+template <class T> GeomGraph<T> &GeomGraph<T>::operator=(GeomGraph &&) = default;
+template <class T> GeomGraph<T>::~GeomGraph() = default;
 
 // -------------------------------------------------------------------------------------------
 // ---  Access to graph elements -------------------------------------------------------------
@@ -283,17 +291,16 @@ auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoin
 }
 
 // -------------------------------------------------------------------------------------------
-// ---  Algorithms ---------------------------------------------------------------------------
+// ---  Grid-based Algorithms ----------------------------------------------------------------
 
 template <class T> auto GeomGraph<T>::makeGrid() const -> Grid {
 	// TODO: how to handle 3D graphs ?
 	if constexpr(dim<T> == 2)
 		return {edgePairs(), points()};
 	else {
-		auto points2d = fwk::planarProjection<Point>(points(), m_projection);
-		return {edgePairs(), {points2d.data(), m_verts.valids(), m_verts.size()}};
+		auto plane_points = fwk::planarProjection<Point>(points(), m_planar_projection);
+		return {edgePairs(), move(plane_points), m_verts.valids(), m_verts.size()};
 	}
-	return {};
 }
 
 // TODO: computation in 3D or pass Axes2D?
@@ -360,6 +367,51 @@ template <class T> Ex<void> GeomGraph<T>::checkPlanar() const {
 		return error;
 	}
 	return {};
+}
+
+// Czy to ma zwracać punkty double2 czy T ? doble2 można sobie skonwertować do intów (najwyżej będzie
+// to konwersja w której trzeba będzie mergować ?
+// Jak robimy grid, to przydałyby się punkty zrzutowane na płaszczyznę; Czy one mają być w gridzie,
+// czy ... ?
+//
+// Co z grafem 3D? zwracamy punkty 2D? Czy grid nie powinien działać na doublach ?
+template <class T>
+vector<double2> GeomGraph<T>::randomPoints(Random &random, double min_dist,
+										   Maybe<DRect> trect) const {
+	DASSERT_GT(min_dist, 0.0);
+
+	DRect rect;
+	if constexpr(dim<T> == 3)
+		rect = trect ? *trect : DRect(fwk::planarProjection(boundingBox(), m_planar_projection));
+	else
+		rect = trect ? *trect : DRect(boundingBox());
+
+	RegularGrid<double2> ugrid(rect, min_dist / sqrt2, 1);
+	auto min_dist_sq = min_dist * min_dist;
+
+	double2 invalid_pt(inf);
+	vector<double2> points(ugrid.width() * ugrid.height(), invalid_pt);
+
+	vector<double2> out;
+	out.reserve(ugrid.width() * ugrid.height() / 4);
+
+	auto grid = makeGrid();
+
+	for(auto pos : cells(ugrid.cellRect().inset(1))) {
+		auto pt = ugrid.toWorld(pos) + random.sampleBox(double2(0), double2(1)) * ugrid.cellSize();
+
+		int idx = pos.x + pos.y * ugrid.width();
+		int indices[4] = {idx - 1, idx - ugrid.width(), idx - ugrid.width() - 1,
+						  idx - ugrid.width() + 1};
+
+		if(allOf(indices, [&](int idx) { return distanceSq(points[idx], pt) >= min_dist_sq; }))
+			if(!grid.closestEdge(Vec2(pt), min_dist)) {
+				points[idx] = pt;
+				out.emplace_back(pt);
+			}
+	}
+
+	return out;
 }
 
 template class GeomGraph<float2>;
