@@ -8,6 +8,11 @@
 
 namespace fwk {
 
+template <class T, EnableIfVec<T, 2>...> array<T, 9> nearby9Cells(T pos) {
+	return array<T, 9>{{pos, pos + T(1, 0), pos + T(1, 1), pos + T(0, 1), pos + T(-1, 1),
+						pos + T(-1, 0), pos + T(-1, -1), pos + T(0, -1), pos + T(1, -1)}};
+}
+
 // There are 3 spaces here (world, grid and cell)
 // grid and cell are the same, but cell is rounded to ints
 // TODO: explain it better
@@ -101,10 +106,7 @@ template <class T, class IT> class RegularGrid {
 		return array<IT, 8>{{pos + IT(1, 0), pos + IT(1, 1), pos + IT(0, 1), pos + IT(-1, 1),
 							 pos + IT(-1, 0), pos + IT(-1, -1), pos + IT(0, -1), pos + IT(1, -1)}};
 	}
-	array<IT, 9> nearby9(IT pos) const {
-		return array<IT, 9>{{pos, pos + IT(1, 0), pos + IT(1, 1), pos + IT(0, 1), pos + IT(-1, 1),
-							 pos + IT(-1, 0), pos + IT(-1, -1), pos + IT(0, -1), pos + IT(1, -1)}};
-	}
+	array<IT, 9> nearby9(IT pos) const { return nearby9Cells(pos); }
 
 	auto begin() const { return cells(cellRect()).begin(); }
 	auto end() const { return cells(cellRect()).end(); }

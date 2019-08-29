@@ -119,6 +119,38 @@ template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &poin
 	return {id, true};
 }
 
+template <class T>
+void GeomGraph<T>::mergeVerts(CSpan<VertexId> verts, const Point &point, Layers layers) {
+	DASSERT(verts);
+
+	auto it = m_point_map.find(point);
+	if(it != m_point_map.end())
+		DASSERT(isOneOf(VertexId(it->second), verts));
+	auto target = verts.front();
+
+	// TODO: what to do with duplicated egdes & tris ?
+	for(int i : intRange(1, verts.size())) {
+		auto vert = ref(verts[i]);
+		for(auto edge : vert.edges()) {
+			bool is_source = edge.from() == vert;
+			auto other = edge.other(vert);
+			// TODO: labels
+			remove(edge);
+			if(!isOneOf(other.id(), verts)) {
+				if(is_source)
+					fixEdge(target, other);
+				else
+					fixEdge(other, target);
+			}
+		}
+	}
+
+	for(int i : intRange(1, verts.size()))
+		remove(verts[i]);
+	m_point_map[point] = target;
+	m_points[target] = point;
+}
+
 template <class T> FixedElem<EdgeId> GeomGraph<T>::fixEdge(Point p1, Point p2, Layer layer) {
 	auto n1 = fixVertex(p1).id;
 	auto n2 = fixVertex(p2).id;
@@ -414,6 +446,149 @@ vector<double2> GeomGraph<T>::randomPoints(Random &random, double min_dist,
 			}
 	}
 
+	return out;
+}
+
+template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> MergedVerts {
+	// When computing on integers, you have to make sure not to overflow
+	// when computing distance
+	struct MergedPoint {
+		VecD point;
+		List verts;
+		int num_verts;
+	};
+	vector<MergedPoint> merged;
+	PodVector<ListNode> nodes(vertsEndIndex() * 2);
+	auto acc_node = [&](int idx) -> ListNode & { return nodes[idx]; };
+	vector<int> removed_merged;
+
+	vector<bool> is_merged(vertsEndIndex(), false);
+	// Differentiates old verts (< break_idx) from new merged verts
+	int break_idx = vertsEndIndex();
+	using Vec2I = MakeVec<int, 2>;
+
+	auto inv_cell_size = 1.0 / join_dist;
+
+	auto to_cell = [=](VecD pos) {
+		auto fpos = flatten(pos, m_flat_axes);
+		return Vec2I(vfloor(fpos * inv_cell_size));
+	};
+
+	auto join_dist_sq = join_dist * join_dist;
+	auto cell_size = join_dist;
+
+	// Mapping from cell to vertex list
+	HashMap<int2, List> cell_verts;
+	for(int id : vertexIds())
+		listInsert(acc_node, cell_verts[to_cell(VecD(m_points[id]))], id);
+
+	// indices >= break_idx point to merged points
+	auto get_pos = [&](int id) {
+		return id >= break_idx ? merged[id - break_idx].point : m_points[id];
+	};
+
+	// Jak dodać zmergowane punkty do list?
+	// Jak przelecieć na końcu po zmergowanych punktach?
+
+	auto try_merge = [&](int cur_id) -> bool {
+		// TODO: compute on doubles ?
+		auto cur_pos = VecD(get_pos(cur_id));
+		double cur_weight = 1.0;
+		auto cur_cell = to_cell(cur_pos);
+
+		List new_list;
+		int num_verts = 0;
+
+		auto do_merge = [&](int vert, List &cell_list) {
+			listRemove(acc_node, cell_list, vert);
+			//print("Merge: %\n", vert);
+			if(vert < break_idx) {
+				DASSERT_EX(!is_merged[vert], vert);
+				listInsert(acc_node, new_list, vert);
+				is_merged[vert] = true;
+				num_verts++;
+			} else {
+				int mid = vert - break_idx;
+				listMerge(acc_node, new_list, merged[mid].verts);
+				num_verts += merged[mid].num_verts;
+				removed_merged.emplace_back(mid);
+				merged[mid].num_verts = 0;
+			}
+		};
+
+		for(auto npos : nearby9Cells(cur_cell)) {
+			auto it = cell_verts.find(npos);
+			if(it == cell_verts.end())
+				continue;
+
+			for(int vert = it->second.head, next; vert != -1; vert = next) {
+				next = nodes[vert].next;
+				if(vert == cur_id)
+					continue;
+
+				auto vert_pos = VecD(get_pos(vert));
+				auto dist_sq = distanceSq(cur_pos, (VecD)get_pos(vert));
+				if(dist_sq < join_dist_sq) {
+					int mid = vert - break_idx;
+					double vert_weight = vert >= break_idx ? merged[mid].num_verts : 1;
+					auto new_weight = vert_weight + cur_weight;
+					cur_pos = (cur_pos * cur_weight + vert_pos * vert_weight) / new_weight;
+					cur_weight = new_weight;
+
+					do_merge(vert, it->second);
+				}
+			}
+		}
+
+		if(num_verts == 0)
+			return false;
+
+		do_merge(cur_id, cell_verts[cur_cell]);
+
+		int mid = merged.size();
+		if(removed_merged) {
+			mid = removed_merged.back();
+			removed_merged.pop_back();
+			merged[mid] = {cur_pos, new_list, num_verts};
+		} else
+			merged.emplace_back(cur_pos, new_list, num_verts);
+		//print("Merging into %: ", mid + break_idx);
+		//for(int n = merged[mid].verts.head; n != -1; n = nodes[n].next)
+		//	print("% ", n);
+		//print("\n");
+		listInsert(acc_node, cell_verts[to_cell(cur_pos)], mid + break_idx);
+
+		return true;
+	};
+
+	bool needs_merge = false;
+	for(int vid : vertexIds())
+		if(!is_merged[vid])
+			needs_merge |= try_merge(vid);
+	while(needs_merge) {
+		needs_merge = false;
+		for(int mid : intRange(merged))
+			if(merged[mid].num_verts)
+				needs_merge |= try_merge(mid + break_idx);
+	}
+
+	MergedVerts out;
+	int num_verts_merged = 0;
+	for(int n : intRange(merged)) {
+		if(!merged[n].num_verts)
+			continue;
+
+		int vid = merged[n].verts.head;
+		num_verts_merged |= merged[n].num_verts;
+		out.new_points.emplace_back(T(merged[n].point));
+		out.num_verts.emplace_back(merged[n].num_verts);
+		while(vid != -1) {
+			out.indices.emplace_back(VertexId(vid));
+			vid = nodes[vid].next;
+		}
+	}
+
+	DASSERT(distinct(out.indices));
 	return out;
 }
 

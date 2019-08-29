@@ -66,6 +66,9 @@ template <class T> class GeomGraph : public Graph {
 	void addVertexAt(VertexId, const Point &, Layers = Layer::l1);
 
 	FixedElem<VertexId> fixVertex(const Point &, Layers = Layer::l1);
+	// Edges & triangles (2 points are enough) between merged points are removed
+	// First vertex's index will be used
+	void mergeVerts(CSpan<VertexId>, const Point &, Layers = Layer::l1);
 
 	using Graph::addEdge;
 	using Graph::addEdgeAt;
@@ -141,6 +144,19 @@ template <class T> class GeomGraph : public Graph {
 	Ex<void> checkPlanar() const;
 
 	vector<double2> randomPoints(Random &, double min_distance, Maybe<DRect> = none) const;
+
+	// -------------------------------------------------------------------------------------------
+	// ---  Other algorithms ---------------------------------------------------------------------
+
+	struct MergedVerts {
+		vector<T> new_points;
+		vector<int> num_verts;
+		vector<VertexId> indices;
+	};
+
+	// Returns list of merged verts (first: what is merged, second: into what)
+	// Verts are far enough from others are left alone
+	MergedVerts mergeNearby(double merge_dist) const;
 
 	double scale = 1.0;
 

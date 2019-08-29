@@ -263,7 +263,8 @@ FixedElem<TriId> Graph::fixTri(VertexId v1, VertexId v2, VertexId v3, Layer laye
 }
 
 void Graph::remove(VertexId vid) {
-	for(auto eid : m_verts[vid])
+	auto edges = move(m_verts[vid]);
+	for(auto eid : edges)
 		remove(eid);
 	if(m_vert_tris.size() > vid)
 		for(auto tid : m_vert_tris[vid])
@@ -275,13 +276,14 @@ void Graph::remove(VertexId vid) {
 void Graph::remove(EdgeId eid) {
 	auto &edge = m_edges[eid];
 	for(auto nid : {edge.from, edge.to}) {
-		auto &node = m_verts[nid];
-		for(int n = 0; n < node.size(); n++)
-			if(node[n] == eid) {
-				while(n + 1 < node.size()) {
-					node[n] = node[n + 1];
+		auto &vert_info = m_verts[nid];
+		for(int n = 0; n < vert_info.size(); n++)
+			if(vert_info[n] == eid) {
+				while(n + 1 < vert_info.size()) {
+					vert_info[n] = vert_info[n + 1];
 					n++;
 				}
+				vert_info.pop_back();
 				break;
 			}
 	}
