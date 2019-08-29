@@ -124,10 +124,10 @@ $(CPP_merged): $(FWK_BUILD_DIR)/%_merged.cpp: Makefile
 	@echo "$(SRC_$*:%=#include \"%.cpp\"\n)" > $@
 
 $(OBJECTS): $(FWK_BUILD_DIR)/%.o: src/%.cpp $(PCH_TARGET)
-	$(STATS_CMD) $(COMPILER) -MMD $(CFLAGS) $(PCH_FLAGS) -c src/$*.cpp -o $@
+	$(STATS_CMD) $(COMPILER) -MMD $(CFLAGS) $(PCH_CFLAGS) -c src/$*.cpp -o $@
 
 $(MERGED_OBJECTS): $(FWK_BUILD_DIR)/%.o: $(FWK_BUILD_DIR)/%.cpp $(PCH_TARGET)
-	$(STATS_CMD) $(COMPILER) -MMD $(CFLAGS) $(PCH_FLAGS) -c $(FWK_BUILD_DIR)/$*.cpp -o $@
+	$(STATS_CMD) $(COMPILER) -MMD $(CFLAGS) $(PCH_CFLAGS) -c $(FWK_BUILD_DIR)/$*.cpp -o $@
 
 $(PROGRAMS): %$(PROGRAM_SUFFIX): $(INPUT_OBJECTS) $(FWK_BUILD_DIR)/%.o
 	$(LINKER) -MMD -o $@ $^ $(LDFLAGS)
@@ -185,10 +185,12 @@ print-variables:
 	@echo "COMPILER      = $(COMPILER)"
 	@echo "LINKER        = $(LINKER)"
 	@echo "COMPILER_TYPE = $(COMPILER_TYPE)"
-	@echo $(PCH_TEMP_FILE)
 	@echo
 	@echo "FWK_BUILD_DIR = $(FWK_BUILD_DIR)"
 	@echo "FWK_LIB_FILE  = $(FWK_LIB_FILE)"
+	@echo 
+	@echo "PCH_TARGET = $(PCH_TARGET)"
+	@echo "PCH_CFLAGS = $(PCH_CFLAGS)"
 	@echo 
 	@echo "FWK_IMGUI     = $(FWK_IMGUI)"
 	@echo "FWK_GEOM      = $(FWK_GEOM)"
