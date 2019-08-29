@@ -50,4 +50,10 @@ void assertFailed(const char *file, int line, const char *text) {
 void failedNotInRange(int index, int begin, int end) {
 	FATAL("Value %d out of range: <%d; %d)", index, begin, end);
 }
+		
+namespace detail {
+void invalidIndexSparse(int idx, int end_idx) {
+	FATAL("Invalid index in SparseVector: %d; end index: %d", idx, end_idx);
+}
+}
 }

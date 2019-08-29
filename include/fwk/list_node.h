@@ -7,59 +7,70 @@
 
 namespace fwk {
 
-struct ListNode {
-	ListNode() : next(-1), prev(-1) {}
-	bool empty() const { return next == -1 && prev == -1; }
+// Simple functions for lists of elements which are identified with integer values.
+// User has to provide an accessor, which for given number returns reference to ListNode.
 
-	int next, prev;
+struct ListNode {
+	bool empty() const { return next == -1 && prev == -1; }
+	int next = -1, prev = -1;
 };
 
 struct List {
-	List() : head(-1), tail(-1) {}
 	bool empty() const { return head == -1; }
-
-	int head, tail;
+	int head = -1, tail = -1;
 };
 
 // TODO: add functions to remove head / tail
 
-template <class Object, ListNode Object::*member, class Container>
-void listInsert(Container &container, List &list, int idx) NOINLINE;
+// Inserts new element at the front of the list.
+// Assumes that node is disconnected (may be uninitialized).
+template <class Accessor> void listInsert(Accessor &&accessor, List &list, int idx) {
+	ListNode &node = accessor(idx);
 
-template <class Object, ListNode Object::*member, class Container>
-void listRemove(Container &container, List &list, int idx) NOINLINE;
-
-// Assumes that node is disconnected
-template <class Object, ListNode Object::*member, class Container>
-void listInsert(Container &container, List &list, int idx) {
-	ListNode &node = container[idx].*member;
-	DASSERT(node.empty());
-
+	node.prev = -1;
 	node.next = list.head;
 	if(list.head == -1)
 		list.tail = idx;
 	else
-		(container[list.head].*member).prev = idx;
+		accessor(list.head).prev = idx;
 	list.head = idx;
 }
 
-// Assumes that node is on this list
-template <class Object, ListNode Object::*member, class Container>
-void listRemove(Container &container, List &list, int idx) {
-	ListNode &node = container[idx].*member;
+// Adds all elements from source at the beginning of target. Source is cleared.
+template <class Accessor> void listMerge(Accessor &&accessor, List &target, List &source) {
+	if(target.head == -1) {
+		swap(source, target);
+		return;
+	}
+
+	if(source.head == -1)
+		return;
+
+	ListNode &right = accessor(target.head);
+	ListNode &left = accessor(source.tail);
+
+	left.next = target.head;
+	right.prev = source.tail;
+	target.head = source.head;
+	source.head = source.tail = -1;
+}
+
+// Assumes that node is on this list.
+template <class Accessor> void listRemove(Accessor &&accessor, List &list, int idx) {
+	ListNode &node = accessor(idx);
 	int prev = node.prev, next = node.next;
 
 	if(prev == -1) {
 		list.head = next;
 	} else {
-		(container[node.prev].*member).next = next;
+		accessor(node.prev).next = next;
 		node.prev = -1;
 	}
 
 	if(next == -1) {
 		list.tail = prev;
 	} else {
-		(container[next].*member).prev = prev;
+		accessor(next).prev = prev;
 		node.next = -1;
 	}
 }

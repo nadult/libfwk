@@ -10,6 +10,10 @@
 
 namespace fwk {
 
+namespace detail {
+	[[noreturn]] void invalidIndexSparse(int idx, int end_index);
+}
+
 // Constant time emplace & erase.
 // All elements are in single continuous block of memory,
 // but there may be holes between valid elements.
@@ -21,6 +25,7 @@ namespace fwk {
 //            but then in such case it would be better to compact such an array)
 template <class T> class SparseVector {
 	union Element;
+#define LIST_ACCESSOR [&](int idx) -> ListNode & { return m_elements[idx].node; }
 
   public:
 	static constexpr int initial_size = 8;
@@ -87,11 +92,11 @@ template <class T> class SparseVector {
 	}
 
 	T &operator[](int idx) {
-		PASSERT(valid(idx));
+		IF_PARANOID(checkIndex(idx));
 		return m_elements[idx].value;
 	}
 	const T &operator[](int idx) const {
-		PASSERT(valid(idx));
+		IF_PARANOID(checkIndex(idx));
 		return m_elements[idx].value;
 	}
 
@@ -129,12 +134,13 @@ template <class T> class SparseVector {
 		if(index >= capacity())
 			reallocate(insertCapacity(index + 1));
 
+		auto acc = [&](int idx) -> ListNode & { return m_elements[idx].node; };
 		while(m_end_index <= index) {
 			m_elements[m_end_index].node = ListNode();
-			listInsert<Element, &Element::node>(m_elements, m_free_list, m_end_index++);
+			listInsert(LIST_ACCESSOR, m_free_list, m_end_index++);
 		}
 
-		listRemove<Element, &Element::node>(m_elements, m_free_list, index);
+		listRemove(LIST_ACCESSOR, m_free_list, index);
 		new(&m_elements[index].value) T{std::forward<Args>(args)...};
 		m_valids[index] = true;
 		m_size++;
@@ -146,7 +152,7 @@ template <class T> class SparseVector {
 		m_elements[index].free(true);
 		m_elements[index].node = ListNode();
 		m_valids[index] = false;
-		listInsert<Element, &Element::node>(m_elements, m_free_list, index);
+		listInsert(LIST_ACCESSOR, m_free_list, index);
 		m_size--;
 	}
 
@@ -204,9 +210,8 @@ template <class T> class SparseVector {
 
 	template <class Idx = int> auto indices() const {
 		const bool *valids = m_valids.data();
-		return IndexRange(
-			firstIndex(), m_end_index, [](int idx) { return Idx(idx); },
-			[=](int idx) { return valids[idx]; });
+		return IndexRange(firstIndex(), m_end_index, [](int idx) { return Idx(idx); },
+						  [=](int idx) { return valids[idx]; });
 	}
 
 	bool operator==(const SparseVector &rhs) const {
@@ -254,6 +259,11 @@ template <class T> class SparseVector {
 	}
 
   private:
+	void checkIndex(int idx) const {
+		if(!m_valids[idx])
+			detail::invalidIndexSparse(idx, m_end_index);
+	}
+
 	union Element {
 		Element() {}
 		Element(const Element &rhs, bool is_init) {
@@ -300,9 +310,11 @@ template <class T> class SparseVector {
 			return m_end_index++;
 		}
 		int idx = m_free_list.head;
-		listRemove<Element, &Element::node>(m_elements, m_free_list, idx);
+		listRemove(LIST_ACCESSOR, m_free_list, idx);
 		return idx;
 	}
+
+#undef LIST_ACCESSOR
 
 	PodVector<Element> m_elements;
 	vector<bool> m_valids;
