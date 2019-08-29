@@ -109,11 +109,8 @@ void SegmentGrid<T>::initialize(SparseSpan<Pair<VertexId>> edges, SparseSpan<Poi
 	m_edges = edges;
 	m_points = points;
 	m_cells.resize(m_grid.width() * m_grid.height());
-	DUMP(m_grid.cellRect());
-	for(auto pt : points) {
-		DUMP(pt, toCell(pt));
+	for(auto pt : points)
 		m_cells[index(toCell(pt))].num_verts++;
-	}
 
 	vector<int> seg_cell_indices;
 	PodVector<int> seg_cell_offsets(edges.size()), seg_cell_counts(edges.size());
@@ -469,5 +466,4 @@ template class SegmentGrid<short2>;
 template class SegmentGrid<int2>;
 template class SegmentGrid<double2>;
 template class SegmentGrid<float2>;
-
 }

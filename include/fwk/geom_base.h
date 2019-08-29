@@ -100,20 +100,22 @@ void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector)
 
 // TODO: better names ?
 template <class T, class Ret = decltype(DECLVAL(T).xz())>
-PodVector<Ret> planarProjection(SparseSpan<T> span, Axes2D axes) {
+PodVector<Ret> flatten(SparseSpan<T> span, Axes2D axes) {
 	PodVector<Ret> out(span.endIndex());
 	for(int n : span.indices())
-		out[n] = planarProjection(span[n], axes);
+		out[n] = flatten(span[n], axes);
 	return out;
 }
 
-template <class T, class Ret = decltype(DECLVAL(T).xz())>
-Ret planarProjection(const T &obj, Axes2D axes) {
-	return axes == Axes2D::xy ? obj.xy() : axes == Axes2D::xz ? obj.xz() : obj.yz();
+template <class T> auto flatten(const T &obj, Axes2D axes) {
+	if constexpr(dim<T> == 3)
+		return axes == Axes2D::xy ? obj.xy() : axes == Axes2D::xz ? obj.xz() : obj.yz();
+	else
+		return obj;
 }
 
 template <class T, class S, class Ret = MakeVec<Scalar<T>, 3>, EnableIfVec<T, 2>...>
-Ret planarUnprojection(const T &obj, Axes2D axes, S third) {
+Ret addThirdAxis(const T &obj, Axes2D axes, S third) {
 	return axes == Axes2D::xy
 			   ? Ret(obj[0], obj[1], third)
 			   : axes == Axes2D::xz ? Ret(obj[0], third, obj[1]) : Ret(third, obj[0], obj[1]);

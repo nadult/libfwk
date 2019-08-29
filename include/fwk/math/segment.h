@@ -49,6 +49,8 @@ template <class TVec> class Segment {
 	using PReal = If<!is_fpt<T>, double, T>;
 	using PRealVec = If<!is_fpt<T>, MakeVec<double, dim>, Vec>;
 
+	using Vec2 = MakeVec<Scalar<T>, 2>;
+
 	Segment() : from(), to() {}
 	Segment(const Point &a, const Point &b) : from(a), to(b) {}
 	Segment(const Pair<Point> &pair) : Segment(pair.first, pair.second) {}
@@ -127,9 +129,9 @@ template <class TVec> class Segment {
 
 	Maybe<Segment<PRealVec>> clip(const Box<TVec> &) const;
 
-	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> xz() const { return {from.xz(), to.xz()}; }
-	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> xy() const { return {from.xy(), to.xy()}; }
-	ENABLE_IF_SIZE(3) Segment<MakeVec<T, 2>> yz() const { return {from.yz(), to.yz()}; }
+	ENABLE_IF_SIZE(3) Segment<Vec2> xz() const { return {from.xz(), to.xz()}; }
+	ENABLE_IF_SIZE(3) Segment<Vec2> xy() const { return {from.xy(), to.xy()}; }
+	ENABLE_IF_SIZE(3) Segment<Vec2> yz() const { return {from.yz(), to.yz()}; }
 
 	Segment operator*(const Vec &vec) const { return {from * vec, to * vec}; }
 	Segment operator*(T scalar) const { return {from * scalar, to * scalar}; }

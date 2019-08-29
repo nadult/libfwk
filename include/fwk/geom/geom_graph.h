@@ -130,11 +130,11 @@ template <class T> class GeomGraph : public Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Grid-based algorithms ----------------------------------------------------------------
 
-	Axes2D m_planar_projection = Axes2D::xz; // TODO: xy ?
+	Axes2D m_flat_axes = Axes2D::xz; // TODO: xy ?
 	Grid makeGrid() const;
 
-	Vec2 projectedPoint(VertexId) const;
-	Segment2 projectedSegment(EdgeId) const;
+	Vec2 flatPoint(VertexId) const;
+	Segment2 flatSegment(EdgeId) const;
 
 	vector<EdgeId> findIntersectors() const;
 	bool isPlanar() const;
@@ -150,5 +150,4 @@ template <class T> class GeomGraph : public Graph {
 	PodVector<Point> m_points;
 	PointMap m_point_map;
 };
-
 }

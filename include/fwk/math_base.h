@@ -218,6 +218,12 @@ template <class T> constexpr int dim<vec3<T>> = 3;
 template <class T> constexpr int dim<vec4<T>> = 4;
 template <class T, int N> constexpr int dim<Rational<T, N>> = N;
 
+template <class T> constexpr int dim<Segment<T>> = dim<T>;
+template <class T> constexpr int dim<Box<T>> = dim<T>;
+template <class T, int N> constexpr int dim<Plane<T, N>> = N;
+template <class T, int N> constexpr int dim<Ray<T, N>> = N;
+template <class T, int N> constexpr int dim<Triangle<T, N>> = N;
+
 template <class T> constexpr bool is_integral = std::is_integral<T>::value || is_same<T, qint>;
 template <class T> constexpr bool is_fpt = std::is_floating_point<T>::value;
 template <class T> constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
@@ -768,5 +774,4 @@ constexpr bool is_flat_data<vec4<T>> = is_flat_data<T> && sizeof(vec4<T>) == siz
 
 DEFINE_ENUM(IsectClass, adjacent, point, segment, none);
 DEFINE_ENUM(Axes2D, xy, yz, xz);
-
 }

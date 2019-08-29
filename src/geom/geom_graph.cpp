@@ -298,8 +298,8 @@ template <class T> auto GeomGraph<T>::makeGrid() const -> Grid {
 	if constexpr(dim<T> == 2)
 		return {edgePairs(), points()};
 	else {
-		auto plane_points = fwk::planarProjection<Point>(points(), m_planar_projection);
-		return {edgePairs(), move(plane_points), m_verts.valids(), m_verts.size()};
+		auto flat_points = flatten<Point>(points(), m_flat_axes);
+		return {edgePairs(), move(flat_points), m_verts.valids(), m_verts.size()};
 	}
 }
 
@@ -369,6 +369,14 @@ template <class T> Ex<void> GeomGraph<T>::checkPlanar() const {
 	return {};
 }
 
+template <class T> auto GeomGraph<T>::flatPoint(VertexId vid) const -> Vec2 {
+	return flatten(m_points[vid], m_flat_axes); // TODO: naming sux
+}
+
+template <class T> auto GeomGraph<T>::flatSegment(EdgeId eid) const -> Segment2 {
+	return flatten((*this)(eid), m_flat_axes);
+}
+
 // Czy to ma zwracać punkty double2 czy T ? doble2 można sobie skonwertować do intów (najwyżej będzie
 // to konwersja w której trzeba będzie mergować ?
 // Jak robimy grid, to przydałyby się punkty zrzutowane na płaszczyznę; Czy one mają być w gridzie,
@@ -379,12 +387,7 @@ template <class T>
 vector<double2> GeomGraph<T>::randomPoints(Random &random, double min_dist,
 										   Maybe<DRect> trect) const {
 	DASSERT_GT(min_dist, 0.0);
-
-	DRect rect;
-	if constexpr(dim<T> == 3)
-		rect = trect ? *trect : DRect(fwk::planarProjection(boundingBox(), m_planar_projection));
-	else
-		rect = trect ? *trect : DRect(boundingBox());
+	DRect rect = trect ? *trect : DRect(flatten(boundingBox(), m_flat_axes));
 
 	RegularGrid<double2> ugrid(rect, min_dist / sqrt2, 1);
 	auto min_dist_sq = min_dist * min_dist;
