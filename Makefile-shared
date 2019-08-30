@@ -95,12 +95,11 @@ CFLAGS_debug   += -O0 -DFWK_PARANOID
 CFLAGS_linux   += -pthread -ggdb -DFWK_TARGET_LINUX 
 CFLAGS_mingw   += -pthread -ggdb -DFWK_TARGET_MINGW -msse2 -mfpmath=sse
 
-CFLAGS         += $(CFLAGS_$(MODE)) $(CFLAGS_$(PLATFORM)) $(CFLAGS_$(COMPILER_TYPE))
-CFLAGS         += $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED)
-CFLAGS         += $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED)
-CFLAGS         += $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,)
-CFLAGS         += $(if $(findstring paranoid,$(MODE))$(findstring debug,$(MODE)),-DFWK_PARANOID,)
-CFLAGS         += $(ADD_CFLAGS)
+CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
+                  $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED) \
+                  $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,) \
+                  $(if $(findstring paranoid,$(MODE))$(findstring debug,$(MODE)),-DFWK_PARANOID,)
+CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(MODE)) $(CFLAGS_$(PLATFORM)) $(CFLAGS_$(COMPILER_TYPE)) $(ADD_CFLAGS))
 
 LDFLAGS_clang  += -fuse-ld=gold
 LDFLAGS_linux  += -rdynamic
