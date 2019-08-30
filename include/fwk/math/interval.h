@@ -52,7 +52,11 @@ template <class T> struct Interval {
 		out(out.isStructured() ? "(%; %)" : "% %", min, max);
 	}
 
-	bool isNan() const { return fwk::isNan(min, max); }
+	bool isNan() const {
+		if constexpr(is_fpt<T>)
+			return fwk::isNan(min, max);
+		return false;
+	}
 
 	FWK_ORDER_BY(Interval, min, max);
 
