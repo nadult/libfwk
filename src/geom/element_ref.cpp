@@ -69,8 +69,13 @@ PooledEdgeRefs VertexRef::edges(GLayers layers) const {
 }
 
 PooledVertexRefs VertexRef::vertsAdj(GLayers layers) const {
-	FATAL("write me");
-	return {};
+	PoolVector<VertexId> out;
+	for(auto eid : m_graph->m_verts[m_id])
+		if(eid.test(layers)) {
+			auto &edge = m_graph->m_edges[eid];
+			out.emplace_back(edge.from == m_id ? edge.to : edge.from);
+		}
+	return {out, m_graph};
 }
 
 // TODO: what if we have multiple edges between two verts?
@@ -161,5 +166,4 @@ EdgeRef EdgeRef::nextTo() const {
 	FATAL("write me");
 	return *this;
 }
-
 }

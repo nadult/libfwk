@@ -249,14 +249,7 @@ template <class T> template <Axes2D axes> void GeomGraph<T>::orderEdges(VertexId
 	auto current_pos = m_points[vid];
 	for(int n : intRange(edges)) {
 		auto edge = ref(edges[n]);
-		auto full_vec = m_points[edge.other(vid)] - current_pos;
-		Vec2 vec;
-		if constexpr(dim<T> == 3)
-			vec = axes == Axes2D::xy ? full_vec.xy()
-									 : axes == Axes2D::xz ? full_vec.xz() : full_vec.yz();
-		else
-			vec = full_vec;
-
+		auto vec = flatten(m_points[edge.other(vid)] - current_pos, axes);
 		auto quadrant = fwk::quadrant(vec);
 		oedges[n] = {vec, quadrant, edges[n]};
 	}
