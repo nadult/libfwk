@@ -424,7 +424,7 @@ string Backtrace::filter(const string &input) {
 		}
 		fclose(file);
 
-		string out(&buf[0], buf.size());
+		string out(buf.data(), buf.size());
 		for(int n = 0; n < (int)arraySize(s_filtered_names); n += 2)
 			filterString(out, s_filtered_names[n], s_filtered_names[n + 1]);
 		return out;
