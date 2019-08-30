@@ -14,9 +14,7 @@ namespace detail {
 	int parseEnum(TextParser &, const char *const *strings, int count) EXCEPT;
 	unsigned long long parseFlags(TextParser &, const char *const *strings, int count) EXCEPT;
 	void formatFlags(unsigned long long, TextFormatter &, const char *const *strings, int count);
-}
 
-namespace detail {
 	static constexpr bool isWhiteSpace(char c) {
 		return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
 	}
@@ -68,6 +66,9 @@ namespace detail {
 		static constexpr EnumOffsets<N, K> offsets = {buffer.data};
 	};
 }
+
+template <class T> struct EnumFlags;
+template <class Enum, class T> class EnumMap;
 
 // Improved enum class: provides range access, counting, iteration. Can be converted to/from strings,
 // which are automatically generated from enum names. fwk enum cannot be defined in function scope.
@@ -149,6 +150,8 @@ template <class Type> struct AllEnums {
 
 	Iter begin() const { return {0}; }
 	Iter end() const { return {count<Type>}; }
+
+	operator EnumFlags<Type>() const;
 };
 
 template <class T, EnableIfEnum<T>...> constexpr AllEnums<T> all;
@@ -182,8 +185,4 @@ template <class T, EnableIfEnum<T>...> TextParser &operator>>(TextParser &parser
 	value = T(fwk::detail::parseEnum(parser, Strings::offsets.data, Strings::K));
 	return parser;
 }
-
-template <class T> struct EnumFlags;
-
-template <class Enum, class T> class EnumMap;
 }

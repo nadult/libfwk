@@ -46,7 +46,6 @@ template <class T> struct EnumFlags {
 			*this |= item;
 	}
 	constexpr explicit EnumFlags(Base bits) : bits(bits) {}
-	constexpr EnumFlags(AllEnums<T>) : bits(mask) {}
 
 	constexpr EnumFlags operator|(EnumFlags rhs) const { return EnumFlags(bits | rhs.bits); }
 	constexpr EnumFlags operator&(EnumFlags rhs) const { return EnumFlags(bits & rhs.bits); }
@@ -83,6 +82,10 @@ template <class T> struct EnumFlags {
 	Base bits;
 };
 
+template <class T> AllEnums<T>::operator EnumFlags<T>() const {
+	return EnumFlags<T>{EnumFlags<T>::mask};
+}
+
 template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> flag(T val) {
 	return EnumFlags<T>(val);
 }
@@ -107,10 +110,12 @@ template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator~(T bit) {
 	return ~EnumFlags<T>(bit);
 }
 
+template <class T> constexpr EnumFlags<T> mask(bool cond, AllEnums<T>) {
+	return EnumFlags<T>{cond ? EnumFlags<T>::mask : typename EnumFlags<T>::Base()};
+}
 template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> mask(bool cond, T val) {
 	return cond ? val : EnumFlags<T>();
 }
-
 template <class C, class T, EnableIf<is_convertible<C, bool>>...>
 constexpr EnumFlags<T> mask(C cond, EnumFlags<T> val) {
 	return cond ? val : EnumFlags<T>();
@@ -128,5 +133,4 @@ template <class T> TextParser &operator>>(TextParser &parser, EnumFlags<T> &valu
 	value.bits = fwk::detail::parseFlags(parser, Strings::offsets.data, Strings::K);
 	return parser;
 }
-
 }
