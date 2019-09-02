@@ -4,6 +4,7 @@
 #include "fwk/geom_base.h"
 
 #include "fwk/hash_set.h"
+#include "fwk/math/line.h"
 #include "fwk/sparse_span.h"
 #include "fwk/sys/assert.h"
 
@@ -55,6 +56,25 @@ void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector)
 
 	std::sort(begin(indices), it, func1);
 	std::sort(it, end(indices), func2);
+}
+
+Line2<float> approximateLine(CSpan<float2> points) {
+	DASSERT(points);
+
+	auto avg = accumulate(points) / float(points.size());
+	auto slope = 0.0f;
+	auto div = 0.0f;
+	for(auto pt : points) {
+		slope += (pt.x - avg.x) * (pt.y - avg.y);
+		div += (pt.x - avg.x) * (pt.x - avg.x);
+	}
+	slope /= div;
+	float b = avg.y - slope * avg.x;
+	float2 dir(1.0f, slope);
+
+	Line line({0, b}, normalize(dir));
+	auto center = line.at(line.closestPointParam(avg));
+	return {center, line.dir};
 }
 
 #define INSTANTIATE3D(T)                                                                           \

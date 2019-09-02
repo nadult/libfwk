@@ -120,4 +120,6 @@ Ret addThirdAxis(const T &obj, Axes2D axes, S third) {
 			   ? Ret(obj[0], obj[1], third)
 			   : axes == Axes2D::xz ? Ret(obj[0], third, obj[1]) : Ret(third, obj[0], obj[1]);
 }
+
+Line2<float> approximateLine(CSpan<float2> points);
 }
