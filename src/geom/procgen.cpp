@@ -148,14 +148,13 @@ static void FFT(short int dir, Span<double> x, Span<double> y) {
 }
 
 // Source: http://paulbourke.net/fractals/noise/
-static vector<double> randomLine(double beta, u32 seed, int count) {
-	DASSERT(beta >= 1.0 && beta <= 3.0);
-
-	DASSERT(isPowerOfTwo(count));
+vector<double> generateNoise(double beta, int num_points, int seed) {
+	DASSERT(beta >= 0.0);
+	DASSERT(num_points >= 1);
+	int count = nextPow2(num_points);
 
 	double mag, pha;
 	vector<double> real(count), imag(count);
-
 	Random random(seed);
 
 	real[0] = 0;
@@ -173,59 +172,15 @@ static vector<double> randomLine(double beta, u32 seed, int count) {
 	FFT(-1, real, imag);
 
 	for(int i : intRange(real)) {
-		if(isNan(real[i])) // TODO: this shoudlnt happen
+		if(isNan(real[i])) // TODO: this shouldn't happen
 			real[i] = 0.0;
 		auto mid_dist = fwk::abs(double(i) - double(count / 2)) / double(count / 2);
 		real[i] *= 1.0 - mid_dist * mid_dist;
 	}
 
 	DASSERT(!isNan(real));
+	real.resize(num_points);
 	return real;
-}
-
-vector<float3> generateRandomLine(u32 seed, FRect rect) {
-	Random random(seed);
-
-	auto from = random.sampleBox(rect.min(), rect.max());
-	auto to = random.sampleBox(rect.min(), rect.max());
-	FRect box(vmin(from, to), vmax(from, to));
-
-	auto mid1 = lerp(from, to, random.uniform(0.25f, 0.45f));
-	auto mid2 = lerp(from, to, random.uniform(0.55f, 0.75f));
-
-	auto bsize = box.size();
-	mid1 += random.sampleBox(-bsize, bsize) * 0.25;
-	mid2 += random.sampleBox(-bsize, bsize) * 0.25;
-
-	float2 base[4] = {from, mid1, mid2, to};
-	auto main_points = span(base);
-
-	// TODO: za dużo szumu o wysokiej częstotliiwości
-	auto line = randomLine(3.0, random(), 256);
-
-	auto points = smoothCurve(main_points, line.size());
-
-	vector<float2> tan;
-	for(int n : intRange(0, points.size() - 1)) {
-		auto vec = normalize(points[n + 1] - points[n]);
-		tan.emplace_back(perpendicular(vec));
-	}
-	tan.emplace_back(tan.back());
-
-	for(int n : intRange(points))
-		points[n] += tan[n] * line[n] * 0.2;
-
-	Contour<float2> contour(points, false);
-	points = contour.points(); //contour.simplify(0.1, 0.5).simplify(0.5, 0.5).points();
-
-	line = randomLine(3.0, random(), 256);
-	vector<float3> out;
-
-	for(int n : intRange(points)) {
-		float height = (1.0f - fwk::abs(float(n - points.size() / 2) / points.size())) * 2.0f;
-		out.emplace_back(asXZY(points[n], height + line[n] * 0.5f));
-	}
-	return out;
 }
 
 /*

@@ -27,7 +27,8 @@ vector<float2> circularCurve(float scale, float step);
 template <class T, EnableIfVec<T, 2>...>
 vector<T> randomPoints(Random &random, Box<T> rect, double min_dist);
 
-vector<float3> generateRandomLine(u32 seed, FRect rect);
+// beta: 0: white noise, 2: brownian noise, ...
+vector<double> generateNoise(double beta, int num_points, int seed);
 Ex<vector<Triangle3F>> generateRandomPatch(vector<float3>, u32 seed, float density,
 										   float enlargement);
 vector<Segment3F> generatePatchBorder(vector<Triangle3F>);
