@@ -372,22 +372,6 @@ template <class T, class Scalar> inline T lerp(const T &a, const T &b, const Sca
 	return (b - a) * x + a;
 }
 
-template <class T> T interpCubic(const T &y0, const T &y1, const T &y2, const T &y3, double mu) {
-	// Source: http://paulbourke.net/miscellaneous/
-	auto mu_sq = mu * mu;
-	//	auto a0 = y3 - y2 - y0 + y1;
-	//	auto a1 = y0 - y1 - a0;
-	//	auto a2 = y2 - y0;
-	//	auto a3 = y1;
-
-	auto a0 = -0.5 * y0 + 1.5 * y1 - 1.5 * y2 + 0.5 * y3;
-	auto a1 = y0 - 2.5 * y1 + 2 * y2 - 0.5 * y3;
-	auto a2 = -0.5 * y0 + 0.5 * y2;
-	auto a3 = y1;
-
-	return a0 * mu * mu_sq + a1 * mu_sq + a2 * mu + a3;
-}
-
 template <class T, EnableIfIntegral<T>...> T ratioFloor(T value, T div) {
 	return value < T(0) ? (value - div + T(1)) / div : value / div;
 }

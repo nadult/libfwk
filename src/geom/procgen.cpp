@@ -7,6 +7,7 @@
 #include "fwk/geom/delaunay.h"
 #include "fwk/geom/segment_grid.h"
 #include "fwk/geom/voronoi.h"
+#include "fwk/math/interpolation.h"
 #include "fwk/math/random.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/expected.h"
@@ -72,7 +73,7 @@ vector<float2> circularCurve(float scale, float step) {
 		{float2(scale, 0), float2(0, scale), float2(-scale, 0), float2(0, -scale)}};
 
 	Contour<float2> contour(init_points, true);
-	return contour.cubicInterpolate(step).points();
+	return contour.smooth(step).points();
 }
 
 // Source: http://paulbourke.net/miscellaneous/dft/

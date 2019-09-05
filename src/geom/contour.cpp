@@ -4,6 +4,7 @@
 #include "fwk/geom/contour.h"
 
 #include "fwk/geom/contour_funcs.h"
+#include "fwk/math/interpolation.h"
 #include "fwk/math/rotation.h"
 #include "fwk/variant.h"
 
@@ -400,26 +401,29 @@ template <class T> Contour<T> Contour<T>::reverse(bool flip_tangents) const {
 	return Contour<T>(points, m_is_looped, m_flip_tangents ^ flip_tangents);
 }
 
-template <class T> Contour<T> Contour<T>::cubicInterpolate(Scalar step) const {
+template <class T> Contour<T> Contour<T>::smooth(Scalar step) const {
+	if(m_points.size() <= 2)
+		return *this;
+
 	vector<T> out;
 
-	int last_idx = m_points.size() - 1;
+	auto first_vec = m_points[0] - m_points[1];
+	auto last_vec = m_points.back() - m_points[m_points.size() - 2];
+
+	vector<T> temp;
+	temp.reserve(m_points.size() + 3);
+	temp.emplace_back(m_is_looped ? m_points.back() : m_points[0] + first_vec);
+	insertBack(temp, m_points);
+	temp.emplace_back(m_is_looped ? m_points[0] : m_points.back() + last_vec);
+	temp.emplace_back(m_is_looped ? m_points[1] : m_points.back() + last_vec * Scalar(2));
+
 	for(double t = 0.0; t < length(); t += step) {
-		auto tpos = trackPos(t);
-
-		int prev = tpos.first == 0 ? (m_is_looped ? last_idx : 0) : tpos.first - 1;
-		int next1 = tpos.first == last_idx ? (m_is_looped ? last_idx : 0) : tpos.first + 1;
-		int next2 = next1 == last_idx ? (m_is_looped ? last_idx : 0) : next1 + 1;
-
-		auto p0 = m_points[prev];
-		auto p1 = m_points[tpos.first];
-		auto p2 = m_points[next1];
-		auto p3 = m_points[next2];
-
-		out.emplace_back(interpCubic(p0, p1, p2, p3, tpos.second));
+		auto [i, val] = trackPos(t);
+		out.emplace_back(interpCatmullRom(temp[i], temp[i + 1], temp[i + 2], temp[i + 3], val));
 	}
-
-	return {out, isLooped()};
+	int end = m_points.size() - 1;
+	out.emplace_back(interpCatmullRom(temp[end], temp[end + 1], temp[end + 2], temp[end + 3], 1.0));
+	return {move(out), isLooped()};
 }
 
 template <class T>
