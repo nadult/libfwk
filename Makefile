@@ -1,9 +1,12 @@
 # Options:
 #   All the options from Makefile-shared are available except FWK_MODE
-#   STATS:         gathers build times for each object file
-#   SPLIT_MODULES: normally modules composed of multiple .cpp files are built together; this
-#                  option forces separate compilation for each .cpp file
-#   MINGW_PREFIX:  prefix for mingw toolset; Can be set in the environment
+#   STATS:           gathers build times for each object file
+#   SPLIT_MODULES:   normally modules composed of multiple .cpp files are built together; this
+#                    option forces separate compilation for each .cpp file
+#   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
+#
+# Developer options:
+#   INTROSPECT_MODE: does not create sub-directories and does not include .d files
 
 # Special targets:
 #  print-variables: prints contents of main variables
@@ -28,14 +31,17 @@ include Makefile-shared
 
 # --- Creating necessary sub-directories ----------------------------------------------------------
 
+
 SUBDIRS        = build tests tools lib temp
 BUILD_SUBDIRS  = tests tools
 ifdef SPLIT_MODULES
 BUILD_SUBDIRS += gfx audio math sys tests tools menu perf geom
 endif
 
+ifndef INTROSPECT_MODE
 _dummy := $(shell mkdir -p $(SUBDIRS))
 _dummy := $(shell mkdir -p $(addprefix $(FWK_BUILD_DIR)/,$(BUILD_SUBDIRS)))
+endif
 
 # --- Lists of source files -----------------------------------------------------------------------
 
@@ -156,28 +162,30 @@ DEPS:=$(SRC_all:%=$(FWK_BUILD_DIR)/%.d) $(PCH_TEMP).d
 print-stats:
 	sort -n -r $(STATS_FILE)
 
+# --- Clean targets -------------------------------------------------------------------------------
+
 JUNK_FILES = $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(CPP_merged) $(STATS_FILE) \
 		$(FWK_LIB_FILE) $(PCH_JUNK)
 EXISTING_JUNK_FILES := $(call filter-existing,$(SUBDIRS),$(JUNK_FILES))
-
-ALL_JUNK_FILES = $(shell \
-	for platform in $(VALID_PLATFORMS) ; do for mode in $(VALID_MODES) ; do \
-		$(MAKE) PLATFORM=$$platform MODE=$$mode print-junk-files -s ; \
-	done ; done)
-
 print-junk-files:
 	@echo $(EXISTING_JUNK_FILES)
+ALL_JUNK_FILES = $(sort $(shell \
+	for platform in $(VALID_PLATFORMS) ; do for mode in $(VALID_MODES) ; do \
+		$(MAKE) PLATFORM=$$platform MODE=$$mode print-junk-files INTROSPECT_MODE=1 -s ; \
+	done ; done))
 
 clean:
-	-rm -f $(EXISTING_JUNK_FILES)
+	rm $(EXISTING_JUNK_FILES)
 	find $(SUBDIRS) -type d -empty -delete
 
 clean-all: clean-checker
-	-rm -f $(ALL_JUNK_FILES)
+	rm $(ALL_JUNK_FILES)
 	find $(SUBDIRS) -type d -empty -delete
 
 clean-checker:
 	$(MAKE) -C src/checker/ clean
+
+# --- Other stuff ---------------------------------------------------------------------------------
 
 print-variables:
 	@echo "PLATFORM      = $(PLATFORM)"
@@ -199,7 +207,9 @@ print-variables:
 	@echo 
 	@echo "LDFLAGS = $(LDFLAGS)"
 
-.PHONY: clean tools tests lib clean-all clean-checker
+.PHONY: clean tools tests lib clean-all clean-checker print-junk-files print-stats
 .always_check:
 
+ifndef INTROSPECT_MODE
 -include $(DEPS)
+endif
