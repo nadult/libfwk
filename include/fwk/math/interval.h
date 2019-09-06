@@ -43,6 +43,7 @@ template <class T> struct Interval {
 		return {fwk::min(min, rhs.min), fwk::max(max, rhs.max)};
 	}
 
+	bool contains(T point) const { return min <= point && max >= point; }
 	bool touches(const Interval &rhs) const { return min <= rhs.max && max >= rhs.min; }
 	bool overlaps(const Interval &rhs) const { return min < rhs.max && max > rhs.min; }
 

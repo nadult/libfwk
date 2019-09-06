@@ -11,6 +11,9 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
   Np. Poprzez wskaźnik na licznik update-ów;
   Coś w rodzaju modCountera? Span może być zinvalidowany; Problem: span może być zakopany
   głęboko...
+
+- edgeIds(), etc. czy te funkcje działają jak dodajemy / usuwamy elementy ?
+  Może tez powinny zwracać vector<> ?
  
 - menu -> ui ?
 - ON_FAIL przy EXPECT_CATCH?
