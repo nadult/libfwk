@@ -54,10 +54,11 @@ void BaseVector<pa>::reallocate(int obj_size, MoveDestroyFunc move_destroy_func,
 	if(new_capacity <= capacity)
 		return;
 
-	BaseVector<pa> new_base;
-	new_base.alloc(obj_size, size, new_capacity);
-	move_destroy_func(new_base.data, data, size);
-	swap(new_base);
+	BaseVector<pa> temp;
+	temp.alloc(obj_size, size, new_capacity);
+	move_destroy_func(temp.data, data, size);
+	swap(temp);
+	temp.free(obj_size);
 }
 
 template <bool pa>
@@ -76,9 +77,10 @@ template <bool pa>
 void BaseVector<pa>::assignPartial(int obj_size, DestroyFunc destroy_func, int new_size) {
 	clear(destroy_func);
 	if(new_size > capacity) {
-		BaseVector<pa> new_base;
-		new_base.alloc(obj_size, new_size, vectorInsertCapacity(capacity, obj_size, new_size));
-		swap(new_base);
+		BaseVector<pa> temp;
+		temp.alloc(obj_size, new_size, vectorInsertCapacity(capacity, obj_size, new_size));
+		swap(temp);
+		temp.free(obj_size);
 		return;
 	}
 	size = new_size;
@@ -135,10 +137,11 @@ template <bool pa> void BaseVector<pa>::reallocatePod(int obj_size, int new_capa
 	if(new_capacity <= capacity)
 		return;
 
-	BaseVector<pa> new_base;
-	new_base.alloc(obj_size, size, new_capacity);
-	memcpy(new_base.data, data, size_t(obj_size) * size);
-	swap(new_base);
+	BaseVector<pa> temp;
+	temp.alloc(obj_size, size, new_capacity);
+	memcpy(temp.data, data, size_t(obj_size) * size);
+	swap(temp);
+	temp.free(obj_size);
 }
 
 template <bool pa> void BaseVector<pa>::reservePod(int obj_size, int desired_capacity) {
@@ -166,9 +169,10 @@ template <bool pa> void BaseVector<pa>::resizePodPartial(int obj_size, int new_s
 template <bool pa> void BaseVector<pa>::assignPartialPod(int obj_size, int new_size) {
 	clearPod();
 	if(new_size > capacity) {
-		BaseVector<pa> new_base;
-		new_base.alloc(obj_size, new_size, vectorInsertCapacity(capacity, obj_size, new_size));
-		swap(new_base);
+		BaseVector<pa> temp;
+		temp.alloc(obj_size, new_size, vectorInsertCapacity(capacity, obj_size, new_size));
+		swap(temp);
+		temp.free(obj_size);
 		return;
 	}
 	size = new_size;
