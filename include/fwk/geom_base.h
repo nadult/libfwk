@@ -48,7 +48,7 @@ struct GLabel {
 	FWK_ORDER_BY_DECL(GLabel);
 };
 
-template <class Ref, class Id, bool pooled> struct GRefs;
+template <class Ref, class Id> struct GRefs;
 
 class Graph;
 template <class T> class GeomGraph;
@@ -56,13 +56,9 @@ template <class T> class GeomGraph;
 // -------------------------------------------------------------------------------------------
 // ---  Other declarations -------------------------------------------------------------------
 
-using PooledVertexRefs = GRefs<VertexRef, VertexId, true>;
-using PooledEdgeRefs = GRefs<EdgeRef, EdgeId, true>;
-using PooledTriRefs = GRefs<TriangleRef, TriangleId, true>;
-
-using VertexRefs = GRefs<VertexRef, VertexId, false>;
-using EdgeRefs = GRefs<EdgeRef, EdgeId, false>;
-using TriRefs = GRefs<TriangleRef, TriangleId, false>;
+using VertexRefs = GRefs<VertexRef, VertexId>;
+using EdgeRefs = GRefs<EdgeRef, EdgeId>;
+using TriRefs = GRefs<TriangleRef, TriangleId>;
 
 template <class T> class Contour;
 template <class T> class SubContourRef;

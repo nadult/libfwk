@@ -90,6 +90,6 @@ template <class T> class PodVector {
 	}
 
   private:
-	BaseVector<false> m_base;
+	BaseVector m_base;
 };
 }

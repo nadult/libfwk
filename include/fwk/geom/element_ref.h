@@ -7,9 +7,8 @@
 
 namespace fwk {
 
-template <class Ref, class Id, bool pooled> struct GRefs {
-	using Container = If<pooled, PoolVector<Id>, Vector<Id>>;
-	Container ids;
+template <class Ref, class Id> struct GRefs {
+	PoolVector<Id> ids;
 	const Graph *graph;
 
 	struct Iter {
@@ -43,14 +42,14 @@ class VertexRef {
 	const GLabel *operator->() const;
 	GLayers layers() const;
 
-	PooledEdgeRefs edges(GLayers = all<GLayer>) const;
-	PooledEdgeRefs edgesFrom(GLayers = all<GLayer>) const;
-	PooledEdgeRefs edgesTo(GLayers = all<GLayer>) const;
+	EdgeRefs edges(GLayers = all<GLayer>) const;
+	EdgeRefs edgesFrom(GLayers = all<GLayer>) const;
+	EdgeRefs edgesTo(GLayers = all<GLayer>) const;
 
 	// Should we filter edges or vertices here ?
-	PooledVertexRefs vertsAdj(GLayers = all<GLayer>) const;
-	PooledVertexRefs vertsFrom(GLayers = all<GLayer>) const;
-	PooledVertexRefs vertsTo(GLayers = all<GLayer>) const;
+	VertexRefs vertsAdj(GLayers = all<GLayer>) const;
+	VertexRefs vertsFrom(GLayers = all<GLayer>) const;
+	VertexRefs vertsTo(GLayers = all<GLayer>) const;
 
 	int numEdges(GLayers = all<GLayer>) const;
 	int numEdgesFrom(GLayers = all<GLayer>) const;

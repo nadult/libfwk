@@ -32,14 +32,9 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - czy wykrywanie jakiegoś tekstu na koncu parsera podczas fromString ma sens?
 - Str: nullptr -> "" ?
 
-- Vector<> i PoolVector<> mogłyby być zmergowane
-  Problemy:
-  - wymaga zapisanie 1 bita na capacity; niektóre operacje będą minimalnie wolniejsze, bo
-    będą wymagały and-a
-  - trzeba się zastanowić w jaki sposób włączać tryb poolowania; np. vector<int> vec(use_pool); ?
-  - istenieje ryzoko, że jak użytkownik zaczenie przechowywać duże ilości pool vectorów, to
-    zmarnuje dużo pamięci; jak sie przed tym zabezpieczyć (żeby to się nie działo za plecami)?
-  - w jakiś sposób user musi informować kiedy chce przejść z jednego trybu na drugi?
+- Zabezpieczenie, żeby użytkownik przez przypadek nie marnował puli przeznaczonej na dane tymczasowe?
+  niebezpieczeństwo jest jak poolvector jest przesuwany; Dodać poolMove() ?
+  Jak się pojawią problemy z wydajnością to łatwo będzie to poprawić? Po prostu wyszukać odpowiedni tag
 
 - DualMap: vector<Pair<V1, V2>> + vector<V1 hashes + indices> + vector<V2 hashes + indices>
 

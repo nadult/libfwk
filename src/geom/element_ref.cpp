@@ -44,32 +44,32 @@ int VertexRef::numEdgesTo(GLayers layers) const {
 
 GLayers VertexRef::layers() const { return m_graph->m_vert_layers[m_id]; }
 
-PooledEdgeRefs VertexRef::edgesFrom(GLayers layers) const {
-	PoolVector<EdgeId> out;
+EdgeRefs VertexRef::edgesFrom(GLayers layers) const {
+	vector<EdgeId> out(pool_alloc);
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.isSource() && eid.test(layers))
 			out.emplace_back(eid);
 	return {out, m_graph};
 }
 
-PooledEdgeRefs VertexRef::edgesTo(GLayers layers) const {
-	PoolVector<EdgeId> out;
+EdgeRefs VertexRef::edgesTo(GLayers layers) const {
+	vector<EdgeId> out(pool_alloc);
 	for(auto eid : m_graph->m_verts[m_id])
 		if(!eid.isSource() && eid.test(layers))
 			out.emplace_back(eid);
 	return {out, m_graph};
 }
 
-PooledEdgeRefs VertexRef::edges(GLayers layers) const {
-	PoolVector<EdgeId> out; // TODO: keep counts? with layers it makes no sense...
+EdgeRefs VertexRef::edges(GLayers layers) const {
+	vector<EdgeId> out(pool_alloc); // TODO: keep counts? with layers it makes no sense...
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.test(layers))
 			out.emplace_back(eid);
 	return {out, m_graph};
 }
 
-PooledVertexRefs VertexRef::vertsAdj(GLayers layers) const {
-	PoolVector<VertexId> out;
+VertexRefs VertexRef::vertsAdj(GLayers layers) const {
+	vector<VertexId> out(pool_alloc);
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.test(layers)) {
 			auto &edge = m_graph->m_edges[eid];
@@ -79,8 +79,8 @@ PooledVertexRefs VertexRef::vertsAdj(GLayers layers) const {
 }
 
 // TODO: what if we have multiple edges between two verts?
-PooledVertexRefs VertexRef::vertsFrom(GLayers layers) const {
-	PoolVector<VertexId> out;
+VertexRefs VertexRef::vertsFrom(GLayers layers) const {
+	vector<VertexId> out(pool_alloc);
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.isSource()) {
 			auto vert = m_graph->ref(eid).other(m_id);
@@ -91,8 +91,8 @@ PooledVertexRefs VertexRef::vertsFrom(GLayers layers) const {
 }
 
 // TODO: what if we have multiple edges between two verts?
-PooledVertexRefs VertexRef::vertsTo(GLayers layers) const {
-	PoolVector<VertexId> out;
+VertexRefs VertexRef::vertsTo(GLayers layers) const {
+	vector<VertexId> out(pool_alloc);
 	for(auto eid : m_graph->m_verts[m_id])
 		if(eid.isSource()) {
 			auto vert = m_graph->ref(eid).other(m_id);

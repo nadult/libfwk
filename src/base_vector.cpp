@@ -10,8 +10,10 @@
 // TODO: more aggressive inlining here improves perf
 namespace fwk {
 
-__thread char *detail::t_vpool_buf[vpool_max_size];
-__thread int detail::t_vpool_size = 0;
+namespace detail {
+	__thread char t_vpool_buf[vpool_chunk_size * vpool_num_chunks];
+	__thread uint t_vpool_bits = 0xffffffff;
+}
 
 int vectorGrowCapacity(int capacity, int obj_size) {
 	if(capacity == 0)
@@ -26,44 +28,32 @@ int vectorInsertCapacity(int capacity, int obj_size, int min_size) {
 	return cap > min_size ? cap : min_size;
 }
 
-template <bool pa> void BaseVector<pa>::alloc(int obj_size, int size_, int capacity_) {
+void BaseVector::alloc(int obj_size, int size_, int capacity_) {
 	size = size_;
-	if constexpr(pa) {
-		using namespace detail;
-		auto nbytes = max(capacity_ * obj_size, vpool_alloc_size);
-		capacity = nbytes / obj_size;
-		if(nbytes > vpool_alloc_size || !t_vpool_size)
-			data = (char *)fwk::allocate(nbytes);
-		else
-			data = t_vpool_buf[--t_vpool_size];
-	} else {
-		capacity = capacity_;
-		data = (char *)fwk::allocate(size_t(capacity) * obj_size);
-	}
+	capacity = capacity_;
+	data = (char *)fwk::allocate(size_t(capacity) * obj_size);
 }
 
-template <bool pa> void BaseVector<pa>::grow(int obj_size, MoveDestroyFunc func) {
+void BaseVector::grow(int obj_size, MoveDestroyFunc func) {
 	reallocate(obj_size, func, vectorGrowCapacity(capacity, obj_size));
 }
-template <bool pa> void BaseVector<pa>::growPod(int obj_size) {
+void BaseVector::growPod(int obj_size) {
 	reallocatePod(obj_size, vectorGrowCapacity(capacity, obj_size));
 }
 
-template <bool pa>
-void BaseVector<pa>::reallocate(int obj_size, MoveDestroyFunc move_destroy_func, int new_capacity) {
+void BaseVector::reallocate(int obj_size, MoveDestroyFunc move_destroy_func, int new_capacity) {
 	if(new_capacity <= capacity)
 		return;
 
-	BaseVector<pa> temp;
+	BaseVector temp;
 	temp.alloc(obj_size, size, new_capacity);
 	move_destroy_func(temp.data, data, size);
 	swap(temp);
 	temp.free(obj_size);
 }
 
-template <bool pa>
-void BaseVector<pa>::resizePartial(int obj_size, DestroyFunc destroy_func,
-								   MoveDestroyFunc move_destroy_func, int new_size) {
+void BaseVector::resizePartial(int obj_size, DestroyFunc destroy_func,
+							   MoveDestroyFunc move_destroy_func, int new_size) {
 	PASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocate(obj_size, move_destroy_func, vectorInsertCapacity(capacity, obj_size, new_size));
@@ -73,11 +63,10 @@ void BaseVector<pa>::resizePartial(int obj_size, DestroyFunc destroy_func,
 	size = new_size;
 }
 
-template <bool pa>
-void BaseVector<pa>::assignPartial(int obj_size, DestroyFunc destroy_func, int new_size) {
+void BaseVector::assignPartial(int obj_size, DestroyFunc destroy_func, int new_size) {
 	clear(destroy_func);
 	if(new_size > capacity) {
-		BaseVector<pa> temp;
+		BaseVector temp;
 		temp.alloc(obj_size, new_size, vectorInsertCapacity(capacity, obj_size, new_size));
 		swap(temp);
 		temp.free(obj_size);
@@ -86,16 +75,14 @@ void BaseVector<pa>::assignPartial(int obj_size, DestroyFunc destroy_func, int n
 	size = new_size;
 }
 
-template <bool pa>
-void BaseVector<pa>::assign(int obj_size, DestroyFunc destroy_func, CopyFunc copy_func,
-							const void *ptr, int new_size) {
+void BaseVector::assign(int obj_size, DestroyFunc destroy_func, CopyFunc copy_func, const void *ptr,
+						int new_size) {
 	assignPartial(obj_size, destroy_func, new_size);
 	copy_func(data, ptr, size);
 }
 
-template <bool pa>
-void BaseVector<pa>::insertPartial(int obj_size, MoveDestroyFunc move_destroy_func, int index,
-								   int count) {
+void BaseVector::insertPartial(int obj_size, MoveDestroyFunc move_destroy_func, int index,
+							   int count) {
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
@@ -108,21 +95,19 @@ void BaseVector<pa>::insertPartial(int obj_size, MoveDestroyFunc move_destroy_fu
 	size = new_size;
 }
 
-template <bool pa>
-void BaseVector<pa>::insert(int obj_size, MoveDestroyFunc move_destroy_func, CopyFunc copy_func,
-							int index, const void *ptr, int count) {
+void BaseVector::insert(int obj_size, MoveDestroyFunc move_destroy_func, CopyFunc copy_func,
+						int index, const void *ptr, int count) {
 	insertPartial(obj_size, move_destroy_func, index, count);
 	copy_func(data + size_t(obj_size) * index, ptr, count);
 }
 
-template <bool pa> void BaseVector<pa>::clear(DestroyFunc destroy_func) {
+void BaseVector::clear(DestroyFunc destroy_func) {
 	destroy_func(data, size);
 	size = 0;
 }
 
-template <bool pa>
-void BaseVector<pa>::erase(int obj_size, DestroyFunc destroy_func,
-						   MoveDestroyFunc move_destroy_func, int index, int count) {
+void BaseVector::erase(int obj_size, DestroyFunc destroy_func, MoveDestroyFunc move_destroy_func,
+					   int index, int count) {
 	DASSERT(index >= 0 && count >= 0 && index + count <= size);
 	int move_start = index + count;
 	int move_count = size - move_start;
@@ -133,43 +118,42 @@ void BaseVector<pa>::erase(int obj_size, DestroyFunc destroy_func,
 	size -= count;
 }
 
-template <bool pa> void BaseVector<pa>::reallocatePod(int obj_size, int new_capacity) {
+void BaseVector::reallocatePod(int obj_size, int new_capacity) {
 	if(new_capacity <= capacity)
 		return;
 
-	BaseVector<pa> temp;
+	BaseVector temp;
 	temp.alloc(obj_size, size, new_capacity);
 	memcpy(temp.data, data, size_t(obj_size) * size);
 	swap(temp);
 	temp.free(obj_size);
 }
 
-template <bool pa> void BaseVector<pa>::reservePod(int obj_size, int desired_capacity) {
+void BaseVector::reservePod(int obj_size, int desired_capacity) {
 	if(desired_capacity > capacity) {
 		int new_capacity = vectorInsertCapacity(capacity, obj_size, desired_capacity);
 		reallocatePod(obj_size, new_capacity);
 	}
 }
 
-template <bool pa>
-void BaseVector<pa>::reserve(int obj_size, MoveDestroyFunc func, int desired_capacity) {
+void BaseVector::reserve(int obj_size, MoveDestroyFunc func, int desired_capacity) {
 	if(desired_capacity > capacity) {
 		int new_capacity = vectorInsertCapacity(capacity, obj_size, desired_capacity);
 		reallocate(obj_size, func, new_capacity);
 	}
 }
 
-template <bool pa> void BaseVector<pa>::resizePodPartial(int obj_size, int new_size) {
+void BaseVector::resizePodPartial(int obj_size, int new_size) {
 	PASSERT(new_size >= 0);
 	if(new_size > capacity)
 		reallocatePod(obj_size, vectorInsertCapacity(capacity, obj_size, new_size));
 	size = new_size;
 }
 
-template <bool pa> void BaseVector<pa>::assignPartialPod(int obj_size, int new_size) {
+void BaseVector::assignPartialPod(int obj_size, int new_size) {
 	clearPod();
 	if(new_size > capacity) {
-		BaseVector<pa> temp;
+		BaseVector temp;
 		temp.alloc(obj_size, new_size, vectorInsertCapacity(capacity, obj_size, new_size));
 		swap(temp);
 		temp.free(obj_size);
@@ -178,12 +162,12 @@ template <bool pa> void BaseVector<pa>::assignPartialPod(int obj_size, int new_s
 	size = new_size;
 }
 
-template <bool pa> void BaseVector<pa>::assignPod(int obj_size, const void *ptr, int new_size) {
+void BaseVector::assignPod(int obj_size, const void *ptr, int new_size) {
 	assignPartialPod(obj_size, new_size);
 	memcpy(data, ptr, size_t(obj_size) * size);
 }
 
-template <bool pa> void BaseVector<pa>::insertPodPartial(int obj_size, int index, int count) {
+void BaseVector::insertPodPartial(int obj_size, int index, int count) {
 	DASSERT(index >= 0 && index <= size);
 	int new_size = size + count;
 	if(new_size > capacity)
@@ -196,13 +180,12 @@ template <bool pa> void BaseVector<pa>::insertPodPartial(int obj_size, int index
 	size = new_size;
 }
 
-template <bool pa>
-void BaseVector<pa>::insertPod(int obj_size, int index, const void *ptr, int count) {
+void BaseVector::insertPod(int obj_size, int index, const void *ptr, int count) {
 	insertPodPartial(obj_size, index, count);
 	memcpy(data + size_t(obj_size) * index, ptr, size_t(obj_size) * count);
 }
 
-template <bool pa> void BaseVector<pa>::erasePod(int obj_size, int index, int count) {
+void BaseVector::erasePod(int obj_size, int index, int count) {
 	DASSERT(index >= 0 && count >= 0 && index + count <= size);
 	int move_start = index + count;
 	int move_count = size - move_start;
@@ -212,14 +195,9 @@ template <bool pa> void BaseVector<pa>::erasePod(int obj_size, int index, int co
 	size -= count;
 }
 
-template <bool pa> void BaseVector<pa>::invalidIndex(int index) const {
+void BaseVector::invalidIndex(int index) const {
 	FWK_FATAL("Index %d out of range: <%d; %d)", index, 0, size);
 }
 
-template <bool pa> void BaseVector<pa>::invalidEmpty() const {
-	FWK_FATAL("Accessing empty vector");
-}
-
-template class fwk::BaseVector<false>;
-template class fwk::BaseVector<true>;
+void BaseVector::invalidEmpty() const { FWK_FATAL("Accessing empty vector"); }
 }

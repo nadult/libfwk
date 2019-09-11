@@ -201,7 +201,7 @@ void testTypeInfo() {
 	ASSERT_EQ(typeInfo<float const &>().name(), string("float const&"));
 	ASSERT_EQ(typeInfo<int volatile const &>().name(), string("int const volatile&"));
 	ASSERT_EQ(typeInfo<vector<const int *> const &>().name(),
-			  string("fwk::Vector<int const*, false> const&"));
+			  string("fwk::Vector<int const*> const&"));
 	ASSERT_EQ(typeInfo<int const *const *&>().referenceBase()->pointerBase()->name(),
 			  string("int const* const"));
 	ASSERT_EQ(typeInfo<double *volatile>().asConst().name(), string("double* const volatile"));

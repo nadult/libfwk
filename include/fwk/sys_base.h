@@ -216,14 +216,16 @@ class FilePath;
 template <class T> class immutable_ptr;
 template <class T> class immutable_weak_ptr;
 
-template <bool pool_alloc> class BaseVector;
+class BaseVector;
 template <class T> class PodVector;
-template <class T, bool pool_alloc = false> class Vector;
-template <class T> using PoolVector = Vector<T, true>;
+template <class T> class Vector;
 template <class T> class SparseVector;
 template <class T, int> class SmallVector;
 template <class T, int> class StaticVector;
 template <class T> using vector = Vector<T>;
+
+// Different name to inform that memory may come from a pool
+template <class T> using PoolVector = Vector<T>;
 
 template <class T> constexpr int type_size<Vector<T>> = 16;
 template <class T> constexpr int type_size<SparseVector<T>> = 48;

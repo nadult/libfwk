@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/math_base.h"
 #include "fwk/span.h"
 #include "fwk/sys/memory.h"
 #include "fwk/sys_base.h"
@@ -11,9 +12,14 @@ namespace fwk {
 
 namespace detail {
 	// Pool allocator for vectors
-	constexpr int vpool_alloc_size = 128, vpool_max_size = 64;
-	extern __thread char *t_vpool_buf[vpool_max_size];
-	extern __thread int t_vpool_size;
+	constexpr int vpool_chunk_size = 128, vpool_num_chunks = 32;
+	extern __thread char t_vpool_buf[vpool_chunk_size * vpool_num_chunks];
+	extern __thread uint t_vpool_bits;
+
+	static bool onVPool(const char *data) {
+		return data >= t_vpool_buf && data < t_vpool_buf + vpool_chunk_size * vpool_num_chunks;
+	}
+
 }
 
 int vectorGrowCapacity(int current, int obj_size);
@@ -26,9 +32,8 @@ template <class T> int vectorInsertCapacity(int current, int min_size) {
 // Most functions are in .cpp file to reduce code bloat (in most cases performance loss is negligible)
 //
 // TODO: VectorInfo struct keeping obj_size and pointers to functions?
-// TODO: separate pools for different types ?
 // TODO: better naming of functions, add some description?
-template <bool pool_alloc> class BaseVector {
+class BaseVector {
   public:
 	using MoveDestroyFunc = void (*)(void *, void *, int);
 	using DestroyFunc = void (*)(void *, int);
@@ -47,11 +52,13 @@ template <bool pool_alloc> class BaseVector {
 		rhs.zero();
 	}
 
-	void initialize(int obj_size) {
-		if(pool_alloc && detail::t_vpool_size) {
+	void initializePool(int obj_size) {
+		if(detail::t_vpool_bits) {
 			using namespace detail;
-			capacity = vpool_alloc_size / obj_size;
-			data = t_vpool_buf[--t_vpool_size];
+			capacity = vpool_chunk_size / obj_size;
+			int bit = countTrailingZeros(t_vpool_bits);
+			t_vpool_bits &= ~(1 << bit);
+			data = t_vpool_buf + bit * vpool_chunk_size;
 			size = 0;
 		} else {
 			zero();
@@ -61,14 +68,10 @@ template <bool pool_alloc> class BaseVector {
 	void alloc(int obj_size, int size, int capacity);
 
 	void free(int obj_size) {
-		if constexpr(pool_alloc) {
-			using namespace detail;
-			auto nbytes = size_t(capacity) * obj_size;
-			if(nbytes > vpool_alloc_size || t_vpool_size == vpool_max_size)
-				fwk::deallocate(data);
-			else if(data)
-				t_vpool_buf[t_vpool_size++] = data;
-		} else
+		using namespace detail;
+		if(onVPool(data))
+			t_vpool_bits |= 1 << ((data - t_vpool_buf) / vpool_chunk_size);
+		else
 			fwk::deallocate(data);
 	}
 
@@ -119,6 +122,4 @@ template <bool pool_alloc> class BaseVector {
 	char *data;
 };
 
-extern template class BaseVector<false>;
-extern template class BaseVector<true>;
 }

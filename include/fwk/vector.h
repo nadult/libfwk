@@ -9,10 +9,15 @@
 
 namespace fwk {
 
-// There are two kinds of vectors:
-// - general-use
-// - pool-based with fast allocation for small number of elements
-template <class T, bool pool_alloc> class Vector {
+struct PoolAllocTag {};
+constexpr PoolAllocTag pool_alloc;
+
+// Regular Vector class with several improvements:
+// - fast compilation & minimized code size
+// - Pooled allocation support (4KB per thread); Pool-allocated vectors should be destroyed
+//   on the same thread on which they were created, otherwise pools will be wasted and give no
+//   performance gain
+template <class T> class Vector {
   public:
 	using value_type = T;
 	using reference = value_type &;
@@ -27,7 +32,8 @@ template <class T, bool pool_alloc> class Vector {
 	template <class IT>
 	static constexpr bool is_input_iter = is_forward_iter<IT> &&is_constructible<T, IterBase<IT>>;
 
-	Vector() { m_base.initialize(sizeof(T)); }
+	explicit Vector(PoolAllocTag) { m_base.initializePool(sizeof(T)); }
+	Vector() { m_base.zero(); }
 
 	~Vector() {
 		destroy(m_base.data, m_base.size);
@@ -36,14 +42,18 @@ template <class T, bool pool_alloc> class Vector {
 	Vector(const Vector &rhs) : Vector() { assign(rhs.begin(), rhs.end()); }
 	Vector(Vector &&rhs) { m_base.moveConstruct(std::move(rhs.m_base)); }
 
-	explicit Vector(int size, const T &default_value = T()) {
-		if(pool_alloc && detail::t_vpool_size &&
-		   size <= int(detail::vpool_alloc_size / sizeof(T))) {
-			m_base.initialize(sizeof(T));
+	explicit Vector(PoolAllocTag, int size, const T &default_value = T()) {
+		if(detail::t_vpool_bits && size <= int(detail::vpool_chunk_size / sizeof(T))) {
+			m_base.initializePool(sizeof(T));
 			m_base.size = size;
 		} else
 			m_base.alloc(sizeof(T), size, size);
 
+		for(int idx = 0; idx < size; idx++)
+			new(((T *)m_base.data) + idx) T(default_value);
+	}
+	explicit Vector(int size, const T &default_value = T()) {
+		m_base.alloc(sizeof(T), size, size);
 		for(int idx = 0; idx < size; idx++)
 			new(((T *)m_base.data) + idx) T(default_value);
 	}
@@ -309,7 +319,7 @@ template <class T, bool pool_alloc> class Vector {
 			src[n].~T();
 	}
 
-	BaseVector<pool_alloc> m_base;
+	BaseVector m_base;
 	friend class PodVector<T>;
 };
 }

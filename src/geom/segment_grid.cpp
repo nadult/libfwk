@@ -255,7 +255,7 @@ template <class T, EnableIfIntegralVec<T, 2>...> int whichSide(const T &vec1, co
 }
 
 template <class T> PoolVector<int2> SegmentGrid<T>::trace(const Segment &iseg) const {
-	PoolVector<int2> out;
+	vector<int2> out(pool_alloc);
 	Segment seg = iseg;
 
 	int sign_x = sign(seg.to[0] - seg.from[0]);
