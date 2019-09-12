@@ -39,7 +39,7 @@ void CameraControl::save(AnyConfig &config) const { config.set("camera_control",
 
 bool CameraControl::load(const AnyConfig &config) {
 	bool loaded = false;
-	if(auto *cam_conf = config.get<CameraVariant>("camera_control")) {
+	if(auto cam_conf = config.getMaybe<CameraVariant>("camera_control")) {
 		m_impl->current = *cam_conf;
 		loaded = true;
 	} else {

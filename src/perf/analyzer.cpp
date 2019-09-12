@@ -700,9 +700,9 @@ AnyConfig Analyzer::config() const {
 }
 
 void Analyzer::setConfig(const AnyConfig &config) {
-	if(auto *rect = config.get<IRect>("window_rect"))
+	if(auto rect = config.get<IRect>("window_rect"))
 		setMenuRect(*rect);
-	if(auto *nodes = config.get<vector<u64>>("opened_nodes"))
+	if(auto nodes = config.get<vector<u64>>("opened_nodes"))
 		setOpenedNodes(*nodes);
 	m_visible_columns = config.get("columns", m_visible_columns);
 	m_data_source = config.get("data_source", DataSource::last_frames);

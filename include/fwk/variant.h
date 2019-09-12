@@ -511,6 +511,9 @@ public:
         detail::comparer<Variant, detail::less_comp> visitor(*this);
         return rhs.visit(visitor);
     }
+	
+	Variant(EmptyMaybe) : type_index(-1) {}
+	bool validMaybe() const { return type_index != -1; } // Invariant
 };
 
 #if defined(__GNUC__) && !defined(__clang__)

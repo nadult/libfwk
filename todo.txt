@@ -2,6 +2,8 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- gcc9: Wconstant-conversion
+
 - zle dziala bez imgui (perf)
 - jeden makefile dla eksperymentów, żeby można było szybko testować, czy nic sie nie spieprzylo
 - Debugowy build w niezależnym katalogu, tak żeby można było się szybko przełączać
@@ -16,12 +18,13 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
   Może tez powinny zwracać vector<> ?
  
 - menu -> ui ?
+- przenies menu_imgui, menu_imgui_in do menu/ ?
+
 - ON_FAIL przy EXPECT_CATCH?
 - zamienić std regex na stb?
-- używanie kamer w model viewerze
+- używanie kamer w model viewerze; może lepiej nie: lepiej obracać obiekt a nie kamerę
 - przywrócenie visualizerow w geomie 
 - przenesienie investigatorow ?
-- przenies menu_imgui, menu_imgui_in do menu/ ?
 - EnumTypeInfo
 - Variant - Any interaction
 - TypeInfo: drop volatile
@@ -68,7 +71,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
   - find a better name?
 
 - builtin_rotateleft, etc.
-- input key tab doesnt work
 
 - operacja shiftowania bitów (zamknięta)
 - dot<PT>, cross<PT> powodują problemy na GCC (cholera go wie czemu) (regresja w GCC 8.2, w *.3 powinno działać...)
@@ -184,8 +186,6 @@ TODO: which OpenGL version are we targeting ?
 - Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
 - Problem with FwdMember: what happens when we're compiling with WPO ?
 - FwdMember const refs to Base type ?
-- Any -> Variant && Variant -> Any
-- Use AnyStorage for Any & Variant ?
 - sprawdz wersje gcc / clang na poczatku
 - A lot of functions can run in two modes:
   - assuming that everything will succeeed (fails on CHECK / ASSERT if it doesnt)
@@ -255,7 +255,6 @@ TODO: which OpenGL version are we targeting ?
 	  FCOLOr sux (operations only on alpha part or only on color part)
 
 	Mouse grabbing doesnt work
-	- Bug: keyDown(InputKey::tab) doesn't work
 	- Mouse Position should be -1/-1 or none when mouse is outside of window ?
 
 - fwk_assert powinno być ogólno dostępne, tak żeby wszędzie z tego korzystać

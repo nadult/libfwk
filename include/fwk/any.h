@@ -7,6 +7,7 @@
 #include "fwk/sys/expected.h"
 #include "fwk/sys/xml.h"
 #include "fwk/type_info_gen.h"
+#include "fwk/variant.h"
 
 // TODO: interaction with Maybe ?
 // TODO: conversion to Expected<T> and Expected<Any> ?
@@ -15,7 +16,7 @@
 namespace fwk {
 
 namespace detail {
-	void reportAnyError(TypeInfo requested, TypeInfo current);
+	[[noreturn]] void reportAnyError(TypeInfo requested, TypeInfo current);
 	template <class RequestedT> void debugCheckAny(TypeInfo any_type_info) {
 #ifndef NDEBUG
 		if(any_type_info != typeInfo<RequestedT>())
@@ -65,18 +66,14 @@ class AnyRef;
 
 // Can store any kind of value
 // Supports serialization to/from XML.
+// Cooperates with Expected<> and Variant<> (values are unpacked).
 class Any {
   public:
 	template <class T> using Model = detail::AnyModel<T>;
 
-	template <class T, class DT = Decay<T>> Any(T value) : m_type(typeInfo<T>()) {
-		m_model.emplace<Model<DT>>(move(value));
-		static_assert(!is_one_of<DT, Any, AnyRef>);
-		static_assert(std::is_copy_constructible<T>::value);
-		static_assert(std::is_destructible<T>::value);
-	}
+	template <class T, class DT = Decay<T>> Any(T value) { emplace(move(value)); }
 
-	// Error will be stored directly
+	// Error or value will be stored directly
 	template <class T> Any(Ex<T> value) {
 		if(value) {
 			m_model.emplace<Model<T>>(move(*value));
@@ -85,6 +82,11 @@ class Any {
 			m_model.emplace<Model<Error>>(move(value.error()));
 			m_type = typeInfo<Error>();
 		}
+	}
+
+	// Variants will be unpacked
+	template <class... T> Any(const Variant<T...> &var) {
+		var.visit([&](const auto &val) { emplace(val); });
 	}
 
 	Any();
@@ -106,13 +108,28 @@ class Any {
 	explicit operator bool() const { return !!m_model; }
 
 	template <class T> bool is() const { return m_type.id() == typeId<T>(); }
+	template <class... T> bool isOneOf() const { return (... || (m_type == typeId<T>())); }
+
+	template <class T> Maybe<T> getMaybe() const {
+		if constexpr(is_variant<T>) {
+			T out;
+			if(getVariant_(out))
+				return out;
+		} else {
+			if(m_type == typeInfo<T>())
+				return *(T *)m_model->ptr();
+		}
+		return none;
+	}
 
 	template <class T> const T &get() const {
+		static_assert(!is_variant<T>, "The only way to retrieve a variant is to use getMaybe()");
 		detail::debugCheckAny<const T>(m_type.asConst());
 		return *(const T *)m_model->ptr();
 	}
 
 	template <class T> T &get() {
+		static_assert(!is_variant<T>, "The only way to retrieve a variant is to use getMaybe()");
 		detail::debugCheckAny<T>(m_type);
 		return *(T *)m_model->ptr();
 	}
@@ -135,6 +152,19 @@ class Any {
 
   private:
 	friend class AnyRef;
+
+	template <class T, class DT = Decay<T>> void emplace(T value) {
+		m_type = typeInfo<T>();
+		m_model.emplace<Model<DT>>(move(value));
+		static_assert(!is_one_of<DT, Any, AnyRef>);
+		static_assert(std::is_copy_constructible<T>::value);
+		static_assert(std::is_destructible<T>::value);
+	}
+
+	template <class... T> bool getVariant_(Variant<T...> &out) const {
+		void *ptr = m_model->ptr();
+		return (... || (m_type == typeInfo<T>() ? ((out = *(T *)ptr), true) : false));
+	}
 
 	// TODO: Inlined for small types ?
 	Dynamic<detail::AnyBase> m_model;

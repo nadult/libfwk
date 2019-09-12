@@ -34,6 +34,12 @@ class AnyConfig {
 	}
 	vector<string> keys() const;
 
+	template <class T> Maybe<T> getMaybe(string name) const {
+		if(auto *any = get(name))
+			return any->getMaybe<T>();
+		return none;
+	}
+
 	template <class T> const T *get(string name) const {
 		if(auto *any = get(name); any && any->is<T>())
 			return &any->get<T>();
@@ -41,7 +47,7 @@ class AnyConfig {
 	}
 
 	template <class T> T get(string name, const T &default_value) const {
-		if(auto *any = get(name); any && any->is<T>())
+		if(auto any = get(name); any && any->is<T>())
 			return any->get<T>();
 		return default_value;
 	}
