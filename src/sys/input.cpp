@@ -143,14 +143,11 @@ bool InputState::isMouseButtonDown(InputButton key) const { return m_mouse_butto
 bool InputState::isMouseButtonUp(InputButton key) const { return m_mouse_buttons[key] == -1; }
 bool InputState::isMouseButtonPressed(InputButton key) const { return m_mouse_buttons[key] == 2; }
 
-vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
+vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_window) {
 	vector<InputEvent> events;
 	SDL_Event event;
 
-	if(!m_is_initialized) {
-		SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
-		m_is_initialized = true;
-	} else {
+	if(m_is_initialized) {
 		for(auto &key_state : m_keys)
 			if(key_state.second >= 0)
 				key_state.second++;
@@ -166,6 +163,8 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 				state = 0;
 		}
 	}
+
+	m_is_initialized = true;
 	m_mouse_move = int2(0, 0);
 	m_mouse_wheel = 0;
 	m_text.clear();
@@ -245,7 +244,10 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map) {
 		}
 	}
 
-	SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
+	int2 window_pos;
+	SDL_GetWindowPosition((SDL_Window *)sdl_window, &window_pos.x, &window_pos.y);
+	SDL_GetGlobalMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
+	m_mouse_pos -= window_pos;
 
 	EnumMap<InputModifier, int> mod_map = {{{InputModifier::lshift, InputKey::lshift},
 											{InputModifier::rshift, InputKey::rshift},

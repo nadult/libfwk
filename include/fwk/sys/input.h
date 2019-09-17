@@ -165,7 +165,7 @@ class InputState {
 	int mouseWheelMove() const { return m_mouse_wheel; }
 
   private:
-	vector<InputEvent> pollEvents(const SDLKeyMap &);
+	vector<InputEvent> pollEvents(const SDLKeyMap &, void*);
 	friend class GlDevice;
 
 	vector<Pair<int>> m_keys;

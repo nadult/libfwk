@@ -17,12 +17,13 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 	Font &font = *(Font *)font_ptr;
 
 	static vector<float2> positions;
+	static bool initializing = true;
 
 	for(auto &event : device.inputEvents()) {
 		if(event.keyDown(InputKey::esc) || event.type() == InputEvent::quit)
 			return false;
 
-		if(event.isMouseOverEvent() && event.mouseMove() != int2(0, 0))
+		if(event.isMouseOverEvent() && (event.mouseMove() != int2(0, 0) || initializing))
 			positions.emplace_back(float2(event.mousePos()));
 	}
 
@@ -44,6 +45,7 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, "Hello world!");
 	renderer.render();
 
+	initializing = false;
 	return true;
 }
 

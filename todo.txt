@@ -3,6 +3,7 @@ ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
 - gcc9: Wconstant-conversion
+- Update readme
 
 - zle dziala bez imgui (perf)
 - jeden makefile dla eksperymentów, żeby można było szybko testować, czy nic sie nie spieprzylo
@@ -26,7 +27,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - przywrócenie visualizerow w geomie 
 - przenesienie investigatorow ?
 - EnumTypeInfo
-- Variant - Any interaction
 - TypeInfo: drop volatile
 - TypeInfoData can be optimized (it takes 40 bytes)
 - isnt reserve & emplace_back with if stupid?
@@ -105,8 +105,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - formatowanie any powoduje konwersję na const char * :D
 - nazwy dla tied-memberów (podobnie jak w enumach) dla automatycznej serializacji xml?
 - transform(array<>>) nie dziala za dobrze dla typow ktore nie mają domyślnego konstruktora
-- zaraz po odpaleniu programu, zanim jeszcze ruszymy myszą, jej pozycja jest błędna
-  jest to jakis bug w SDLu (SDL_GetMouseState zwraca złą pozycję); zauważalne na linuksie
 
 - funkcja extract member  albo transform to member ?
 - jakieś narzędzie/klasa do przekazywania zmiennych przez makro definicje do shaderów
