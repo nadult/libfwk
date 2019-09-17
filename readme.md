@@ -59,13 +59,18 @@ during development so from time to time libfwk may fail to compile under G++.
 
 ## Compilation
 
-To compile simply run make. With Makefile.local you can override some basic variables
-like LINUX\_CXX, FLAGS or BUILD\_DIR. If you want to cross-compile for MinGW32-w64,
-simply override MINGW\_PREFIX in Makefile.local with proper prefix.
-There is also an option to compile for the web (using emscripten) although it's not
-fully supported.
+To compile simply run make. There is a basic description of the options that you can pass to make at the beginning of
+Makefile & Makefile-shared. To cross-compile for mingw specify MINGW\_PREFIX and run make with PLATFORM=mingw.
+
+Examples:
+
+    $ make MODE=release-paranoid COMPILER=clang++-9 STATS=true -j12
+    $ make MODE=release-paranoid print-stats print-variables
+    $ make MODE=debug-nans clean
+    $ make clean-all
 
 TODO: how to build mingw with mxe (and which version)
+TODO: how to use Makefile-shared for your own projects
 
 ## License
 
