@@ -1,6 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "testing.h"
+
+#ifndef FWK_GEOM_DISABLED
+
 #include "fwk/geom/contour.h"
 #include "fwk/geom/delaunay.h"
 #include "fwk/geom/geom_graph.h"
@@ -8,7 +12,6 @@
 #include "fwk/geom/segment_grid.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rotation.h"
-#include "testing.h"
 
 static void orderByDirectionTest() {
 	vector<double2> vecs{{1.1, 0.0},  {3.0, 3.0},	{1.0, 5.0},  {-2.0, 4.0},
@@ -226,3 +229,9 @@ void testMain() {
 	testDelaunayFuncs();
 	testSquareBorder();
 }
+
+#else
+
+void testMain() { printf("FWK_GEOM disabled\n"); }
+
+#endif

@@ -84,8 +84,9 @@ endif
 ifeq ($(FWK_IMGUI), enabled)
 SRC_menu_imgui = menu/imgui_code
 SRC_menu = menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper perf/analyzer
-SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
 endif
+
+SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
 
 SRC_tests = \
 	tests/stuff tests/math tests/geom tests/window tests/enums tests/models tests/vector_perf \
@@ -175,7 +176,7 @@ ALL_JUNK_FILES = $(sort $(shell \
 	done ; done))
 
 clean:
-	rm $(EXISTING_JUNK_FILES)
+	rm $(sort $(EXISTING_JUNK_FILES))
 	find $(SUBDIRS) -type d -empty -delete
 
 clean-all: clean-checker

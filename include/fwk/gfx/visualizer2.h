@@ -139,8 +139,14 @@ class Visualizer2 {
 	void drawContourWithVectors(const Contour<T> &, IColor, IColor, float dist = 0.5);
 	template <class T> void drawContourLoops(vector<Contour<T>>);
 
-	template <class T> void drawLabel(T pos, Str, VisStyle = {});
-	template <class T> void drawLabel(Box<T> box, Str, VisStyle = {});
+	void drawLabel(FRect, Str, VisStyle style = {});
+	template <class T> void drawLabel(Box<T> box, Str text, VisStyle style = {}) {
+		drawLabel(FRect(box), text, style);
+	}
+	template <class T> void drawLabel(T pos, Str text, VisStyle style = {}) {
+		drawLabel(Box<T>(pos, pos), text, style);
+	}
+
 	CSpan<Vis2Label> labels() const { return m_labels; }
 
 	float pointScale() const { return m_point_scale; }

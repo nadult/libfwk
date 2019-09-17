@@ -16,6 +16,7 @@
 
 namespace fwk {
 
+#ifndef FWK_GEOM_DISABLED
 VoronoiVis2::VoronoiVis2(Visualizer2 &vis, const Voronoi &diag, VoronoiVis2Colors colors,
 						 Maybe<CellId> sel)
 	: m_vis(vis), m_diag(diag), m_graph(diag.graph), m_colors(colors), m_sel(sel) {}
@@ -81,6 +82,7 @@ void VoronoiVis2::draw() {
 		}
 	}*/
 }
+#endif
 
 using Opt = ElementBufferOpt;
 
@@ -254,17 +256,13 @@ template <class T> void Visualizer2::drawGrid(const RegularGrid<T> &grid, IColor
 	}
 }
 
-template <class T> void Visualizer2::drawLabel(T pos, Str text, VisStyle style) {
-	drawLabel(Box<T>(pos, pos), text, style);
+void Visualizer2::drawLabel(FRect box, Str text, VisStyle style) {
+	m_labels.emplace_back(text, box, style);
 }
 
-template <class T> void Visualizer2::drawLabel(Box<T> box, Str text, VisStyle style) {
-	m_labels.emplace_back(text, FRect(box), style);
-}
+#ifndef FWK_GEOM_DISABLED
 
 #define INSTANTIATE(T)                                                                             \
-	template void Visualizer2::drawLabel(T, Str, VisStyle);                                        \
-	template void Visualizer2::drawLabel(Box<T>, Str, VisStyle);                                   \
 	template void Visualizer2::drawContour(CSpan<T>, IColor);                                      \
 	template void Visualizer2::drawGrid(const RegularGrid<T> &, IColor);                           \
 	template void Visualizer2::drawVoronoiArea(const vector<vector<array<T, 3>>> &, float);
@@ -280,4 +278,7 @@ INSTANTIATE(short2)
 INSTANTIATE(int2)
 INSTANTIATE_FPT(float2)
 INSTANTIATE_FPT(double2)
+
+#endif
+
 }
