@@ -2,8 +2,6 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
-- gcc9: Wconstant-conversion
-
 - zle dziala bez imgui (perf)
 - jeden makefile dla eksperymentów, żeby można było szybko testować, czy nic sie nie spieprzylo
 - Debugowy build w niezależnym katalogu, tak żeby można było się szybko przełączać

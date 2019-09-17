@@ -32,7 +32,7 @@ COMPILER_mingw  := $(MINGW_PREFIX)g++
 COMPILER_html   := emcc
 COMPILER        := $(COMPILER_$(PLATFORM))
 
-COMPILER_TYPE   := $(if $(findstring clang,$(COMPILER)),clang,$(if $(findstring mingw,$(PLATFORM)),gcc,clang))
+COMPILER_TYPE   := $(if $(findstring clang,$(COMPILER)),clang,gcc)
 
 TOOLSET_PREFIX_mingw := $(MINGW_PREFIX)
 TOOLSET_PREFIX       := $(TOOLSET_PREFIX_$(PLATFORM))
