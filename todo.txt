@@ -212,7 +212,6 @@ TODO: which OpenGL version are we targeting ?
 - Rename test files to t_vector, t_stuff ? or lower priority to test in docplugin ?
 - Wstrict-overflow
 - proper FIFO support for streams
-- drop the fucking shared_ptrs
 - fix interval::valid
 
 - function arguments could have invariants in them:
