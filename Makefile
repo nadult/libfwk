@@ -45,7 +45,7 @@ endif
 
 # --- Lists of source files -----------------------------------------------------------------------
 
-SRC_base = base_vector enum str type_info any any_ref logger any_config format parse
+SRC_base = base_vector enum str type_info any logger any_config format parse
 
 SRC_sys  = \
 	sys_base sys/file_system sys/file_system_linux sys/file_stream sys/error sys/exception \

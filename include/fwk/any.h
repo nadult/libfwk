@@ -62,8 +62,6 @@ namespace detail {
 	};
 }
 
-class AnyRef;
-
 // Can store any kind of value
 // Supports serialization to/from XML.
 // Cooperates with Expected<> and Variant<> (values are unpacked).
@@ -96,7 +94,6 @@ class Any {
 	Any(Ex<Any> &&);
 	Any(const Ex<Any> &);
 
-	Any(const AnyRef &) = delete; // TODO: to powinno być dostępne
 	template <class T> Any(const Maybe<T> &) = delete;
 	Any(CXmlNode) = delete;
 	Any(XmlNode) = delete;
@@ -122,25 +119,25 @@ class Any {
 		return none;
 	}
 
-	template <class T> const T &get() const {
-		static_assert(!is_variant<T>, "The only way to retrieve a variant is to use getMaybe()");
+	template <class T, EnableIf<!is_variant<T>>...> const T &get() const {
 		detail::debugCheckAny<const T>(m_type.asConst());
 		return *(const T *)m_model->ptr();
 	}
 
-	template <class T> T &get() {
-		static_assert(!is_variant<T>, "The only way to retrieve a variant is to use getMaybe()");
+	template <class T, EnableIf<!is_variant<T>>...> T &get() {
 		detail::debugCheckAny<T>(m_type);
 		return *(T *)m_model->ptr();
 	}
 
-	template <typename T, EnableIf<!is_const<T>>...> operator T *() {
+	template <typename T, EnableIf<!is_const<T> && !is_variant<T>>...> operator T *() {
 		return m_type == typeInfo<T>() ? (T *)m_model->ptr() : nullptr;
 	}
 
-	template <typename T> operator const T *() const {
+	template <typename T, EnableIf<!is_variant<T>>...> operator const T *() const {
 		return m_type.asConst() == typeInfo<const T>() ? (const T *)m_model->ptr() : nullptr;
 	}
+
+	const void *data() const { return m_model->ptr(); }
 
 	static Ex<Any> load(CXmlNode, ZStr type_name);
 	static Ex<Any> load(CXmlNode, TypeInfo);
@@ -151,12 +148,10 @@ class Any {
 	void swap(Any &);
 
   private:
-	friend class AnyRef;
-
 	template <class T, class DT = Decay<T>> void emplace(T value) {
 		m_type = typeInfo<T>();
 		m_model.emplace<Model<DT>>(move(value));
-		static_assert(!is_one_of<DT, Any, AnyRef>);
+		static_assert(!is_one_of<DT, Any>);
 		static_assert(std::is_copy_constructible<T>::value);
 		static_assert(std::is_destructible<T>::value);
 	}

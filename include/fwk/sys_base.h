@@ -257,10 +257,8 @@ template <class Key> constexpr int type_size<HashSet<Key>> = sizeof(void *) == 4
 template <class T> class Dynamic;
 
 class Any;
-class AnyRef;
 class AnyConfig;
 
-template <> constexpr int type_size<AnyRef> = 16;
 template <> constexpr int type_size<Any> = 16;
 
 template <class T, int min_size = 0> class Span;
