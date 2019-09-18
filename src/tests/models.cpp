@@ -42,6 +42,7 @@ void testMain() {
 	return;
 #endif
 
+	// TODO: if blender is not present, it won't work
 	Converter::Settings settings;
 	settings.export_script_path = mainPath("data/export_fwk_model.py");
 	settings.print_output = false;
@@ -51,10 +52,9 @@ void testMain() {
 	ASSERT(result);
 
 	auto doc = move(XmlDocument::load(mesh_path).get());
-	auto emodel = Model::loadFromXML(doc.child());
-	ASSERT(emodel);
+	auto model = Model::load(doc.child());
+	ASSERT(model);
 
-	PModel model = PModel(move(emodel.get()));
 	remove(mesh_path.c_str());
 
 	auto tmesh = AnimatedModel(*model, model->defaultPose()).toMesh();

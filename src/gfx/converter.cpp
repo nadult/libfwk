@@ -89,16 +89,15 @@ Ex<string> Converter::exportFromBlender(const string &file_name, string &target_
 	return result->first;
 }
 
-Ex<Pair<PModel, string>> Converter::loadModel(FileType file_type, ZStr file_name) {
+Ex<Pair<Model, string>> Converter::loadModel(FileType file_type, ZStr file_name) {
 	if(file_type == FileType::fwk_model) {
 		auto doc = move(XmlDocument::load(file_name).get());
 		XmlOnFailGuard xml_guard(doc);
 		XmlNode child = doc.child();
 		if(!child)
 			return ERROR("empty XML document");
-
-		auto model = EXPECT_PASS(Model::loadFromXML(child));
-		return pair{immutable_ptr<Model>(move(model)), string(child.name())};
+		auto model = EXPECT_PASS(Model::load(child));
+		return pair{model, string(child.name())};
 	} else {
 		DASSERT(file_type == FileType::blender);
 		string temp_file_name;
@@ -113,12 +112,12 @@ Ex<Pair<PModel, string>> Converter::loadModel(FileType file_type, ZStr file_name
 	}
 }
 
-bool Converter::saveModel(PModel model, const string &node_name, FileType file_type,
+bool Converter::saveModel(const Model &model, const string &node_name, FileType file_type,
 						  ZStr file_name) {
 	if(file_type == FileType::fwk_model) {
 		XmlDocument doc;
 		XmlNode node = doc.addChild(doc.own(node_name));
-		model->saveToXML(node);
+		model.save(node);
 		if(auto result = doc.save(file_name); !result) {
 			CVT_PRINT("Error while saving: %\n", result.error());
 			return false;
@@ -157,7 +156,7 @@ bool Converter::operator()(const string &from, const string &to) {
 		CVT_PRINT("Error while loading\n%", pair.error());
 		return false;
 	}
-	CVT_PRINT(" Nodes: %  Anims: %\n", pair->first->nodes().size(), pair->first->anims().size());
+	CVT_PRINT(" Nodes: %  Anims: %\n", pair->first.nodes().size(), pair->first.anims().size());
 	CVT_PRINT(" Saving: % (node: %)\n\n", to, pair->second);
 
 	return saveModel(pair->first, pair->second, *to_type, to);

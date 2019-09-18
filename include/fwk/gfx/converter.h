@@ -32,8 +32,8 @@ class Converter {
 	static Maybe<FileType> classify(const string &name);
 
 	Ex<string> exportFromBlender(const string &file_name, string &target_file_name);
-	Ex<Pair<PModel, string>> loadModel(FileType file_type, ZStr file_name);
-	bool saveModel(PModel model, const string &node_name, FileType file_type, ZStr file_name);
+	Ex<Pair<Model, string>> loadModel(FileType file_type, ZStr file_name);
+	bool saveModel(const Model &, const string &node_name, FileType file_type, ZStr file_name);
 
   private:
 	Settings m_settings;

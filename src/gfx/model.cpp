@@ -92,7 +92,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 	return {};
 }
 
-Ex<Model> Model::loadFromXML(CXmlNode xml_node) {
+Ex<Model> Model::load(CXmlNode xml_node) {
 	DASSERT(xml_node);
 
 	auto mesh_node = xml_node.child("mesh");
@@ -126,6 +126,15 @@ Ex<Model> Model::loadFromXML(CXmlNode xml_node) {
 
 	// TODO: make sure that errors are handled properly here
 	return Model(move(nodes), move(meshes), move(anims), move(material_defs));
+}
+
+Ex<Model> Model::load(ZStr file_name) {
+	auto doc = EXPECT_PASS(XmlDocument::load(file_name));
+	XmlOnFailGuard guard(doc);
+
+	XmlNode child = doc.child();
+	EXPECT(child);
+	return load(child);
 }
 
 vector<int> Model::dfs(int root_id) const {
@@ -163,7 +172,7 @@ static void saveNode(CSpan<ModelNode> nodes, int node_id, XmlNode xml_node) {
 		saveNode(nodes, child_id, xml_node.addChild("node"));
 }
 
-void Model::saveToXML(XmlNode xml_node) const {
+void Model::save(XmlNode xml_node) const {
 	if(m_nodes)
 		for(int nid : m_nodes[0].children_ids)
 			saveNode(m_nodes, nid, xml_node.addChild("node"));
@@ -281,7 +290,7 @@ bool Model::valid(PPose pose) const {
 	return pose && pose->nameMap() == m_default_pose->nameMap();
 }
 
-PModel Model::split(int node_id) const {
+Model Model::split(int node_id) const {
 	DASSERT(node_id >= 0 && node_id < m_nodes.size());
 	vector<int> new_node_ids(m_nodes.size(), -1), new_mesh_ids(m_meshes.size(), -1);
 
@@ -313,6 +322,6 @@ PModel Model::split(int node_id) const {
 	new_nodes[1].trans.translation = {};
 
 	// TODO: split ModelAnims
-	return make_immutable<Model>(move(new_nodes), move(new_meshes), m_anims, m_material_defs);
+	return {move(new_nodes), move(new_meshes), m_anims, m_material_defs};
 }
 }

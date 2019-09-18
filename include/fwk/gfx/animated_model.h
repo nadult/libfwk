@@ -15,8 +15,8 @@ class AnimatedModel {
 		Matrix4 transform;
 	};
 
-	AnimatedModel(vector<MeshData>);
-	AnimatedModel(PModel, PPose = PPose());
+	// Referenced model has to be alive as long as AnimatedModel
+	AnimatedModel(const Model &, PPose = PPose());
 
 	Mesh toMesh() const;
 	FBox boundingBox() const;
@@ -26,7 +26,7 @@ class AnimatedModel {
 	vector<DrawCall> genDrawCalls(const MaterialSet &, const Matrix4 & = Matrix4::identity()) const;
 
   private:
-	PModel m_model;
+	const Model &m_model;
 	vector<MeshData> m_meshes;
 };
 }

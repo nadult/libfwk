@@ -31,7 +31,6 @@
 using namespace fwk;
 
 namespace {
-ResourceManager<Model, XmlLoader<Model>> s_models("", "", "");
 HashMap<string, PTexture> s_textures;
 
 string dataPath(string file_name) {
@@ -51,66 +50,65 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 	return ViewConfig(lerp(a.zoom, b.zoom, t), slerp(a.rot, b.rot, t));
 }
 
+struct ViewModel {
+	ViewModel(Model model, const Material &default_mat, PTexture tex, string mname, string tname)
+		: m_model(std::move(model)), m_materials(default_mat), m_model_name(mname),
+		  m_tex_name(tname), m_num_segments(0) {
+		HashMap<string, Material> map;
+
+		for(const auto &def : m_model.materialDefs()) {
+			map[def.name] =
+				tex ? Material({tex}, IColor(def.diffuse)) : Material(IColor(def.diffuse));
+		}
+		m_materials = MaterialSet(default_mat, map);
+		map.clear();
+	}
+
+	PPose animatePose(int anim_id, float anim_pos) const {
+		return m_model.animatePose(anim_id, anim_pos);
+	}
+
+	auto animate(PPose pose) const { return AnimatedModel(m_model, pose); }
+	FBox boundingBox(PPose pose = PPose()) const { return animate(pose).boundingBox(); }
+
+	float scale() const { return 4.0f / max(boundingBox().size().values()); }
+
+	void drawModel(RenderList &out, PPose pose, const Matrix4 &matrix) {
+		out.add(animate(pose).genDrawCalls(m_materials, matrix));
+	}
+
+	void drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose) {
+		m_model.drawNodes(tris, lines, pose, ColorId::green, ColorId::yellow, 0.1f / scale());
+	}
+
+	void printModelStats(TextFormatter &fmt) const {
+		int num_parts = 0, num_verts = 0, num_faces = 0;
+		for(const auto &node : m_model.nodes())
+			if(auto *mesh = m_model.mesh(node.mesh_id)) {
+				num_parts++;
+				num_verts += mesh->vertexCount();
+				num_faces += mesh->triangleCount();
+			}
+		FBox bbox = boundingBox();
+		fmt("Size: %\n\n", FormatMode::structured, bbox.size());
+		fmt("Parts: %  Verts: % Faces: %\n", num_parts, num_verts, num_faces);
+	}
+
+	Material makeMat(IColor col, bool line) {
+		auto flags = col.a != 255 || line ? MaterialOpt::blended | MaterialOpt::ignore_depth : none;
+		return Material{col, flags};
+	}
+
+	Model m_model;
+	MaterialSet m_materials;
+	string m_model_name;
+	string m_tex_name;
+	int m_num_segments;
+};
+
 class Viewer {
   public:
-	struct Model {
-		Model(PModel model, const Material &default_mat, PTexture tex, string mname, string tname)
-			: m_model(std::move(model)), m_materials(default_mat), m_model_name(mname),
-			  m_tex_name(tname), m_num_segments(0) {
-			HashMap<string, Material> map;
-
-			for(const auto &def : m_model->materialDefs()) {
-				map[def.name] =
-					tex ? Material({tex}, IColor(def.diffuse)) : Material(IColor(def.diffuse));
-			}
-			m_materials = MaterialSet(default_mat, map);
-			map.clear();
-		}
-
-		PPose animatePose(int anim_id, float anim_pos) const {
-			return m_model->animatePose(anim_id, anim_pos);
-		}
-
-		auto animate(PPose pose) const { return AnimatedModel(*m_model, pose); }
-		FBox boundingBox(PPose pose = PPose()) const { return animate(pose).boundingBox(); }
-
-		float scale() const { return 4.0f / max(boundingBox().size().values()); }
-
-		void drawModel(RenderList &out, PPose pose, const Matrix4 &matrix) {
-			out.add(animate(pose).genDrawCalls(m_materials, matrix));
-		}
-
-		void drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose) {
-			m_model->drawNodes(tris, lines, pose, ColorId::green, ColorId::yellow, 0.1f / scale());
-		}
-
-		void printModelStats(TextFormatter &fmt) const {
-			int num_parts = 0, num_verts = 0, num_faces = 0;
-			for(const auto &node : m_model->nodes())
-				if(auto *mesh = m_model->mesh(node.mesh_id)) {
-					num_parts++;
-					num_verts += mesh->vertexCount();
-					num_faces += mesh->triangleCount();
-				}
-			FBox bbox = boundingBox();
-			fmt("Size: %\n\n", FormatMode::structured, bbox.size());
-			fmt("Parts: %  Verts: % Faces: %\n", num_parts, num_verts, num_faces);
-		}
-
-		Material makeMat(IColor col, bool line) {
-			auto flags =
-				col.a != 255 || line ? MaterialOpt::blended | MaterialOpt::ignore_depth : none;
-			return Material{col, flags};
-		}
-
-		PModel m_model;
-		MaterialSet m_materials;
-		string m_model_name;
-		string m_tex_name;
-		int m_num_segments;
-	};
-
-	void makeMaterials(Material default_mat, Model &model) {}
+	void makeMaterials(Material default_mat, ViewModel &model) {}
 
 	void updateViewport() { m_viewport = IRect(GlDevice::instance().windowSize()); }
 
@@ -136,9 +134,16 @@ class Viewer {
 			Material default_mat = tex ? Material({tex}) : Material();
 
 			double time = getTime();
-			auto model = s_models[file_name.first];
-			printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), (getTime() - time) * 1000.0f);
-			m_models.emplace_back(model, default_mat, tex, file_name.first, file_name.second);
+			auto model = Model::load(file_name.first);
+
+			if(model) {
+				printf("Loaded %s: %.2f ms\n", file_name.first.c_str(),
+					   (getTime() - time) * 1000.0f);
+				m_models.emplace_back(move(model.get()), default_mat, tex, file_name.first,
+									  file_name.second);
+			} else {
+				print("Error while loading '%':\n%", file_name.first, model.error());
+			}
 		}
 
 #ifndef FWK_IMGUI_DISABLED
@@ -160,14 +165,14 @@ class Viewer {
 		return fmt.text();
 	}
 
-	void helpBox(Renderer2D &renderer_2d, Model &model) const {
+	void helpBox(Renderer2D &renderer_2d, ViewModel &model) const {
 		TextFormatter fmt;
 		fmt("[Imgui disabled]\n");
 		fmt("Model: % (% / %)\n", model.m_model_name, m_current_model + 1, m_models.size());
 		// fmt("Texture: %s\n", !model.m_tex_name.empty() ? model.m_tex_name : "none");
 		string anim_name =
-			m_current_anim == -1 ? "none" : model.m_model->anim(m_current_anim).name();
-		fmt("Animation: % (% / %)\n", anim_name, m_current_anim + 1, model.m_model->animCount());
+			m_current_anim == -1 ? "none" : model.m_model.anim(m_current_anim).name();
+		fmt("Animation: % (% / %)\n", anim_name, m_current_anim + 1, model.m_model.animCount());
 
 		fmt << helpText();
 		model.printModelStats(fmt);
@@ -200,7 +205,7 @@ class Viewer {
 		}
 
 		auto &model = m_models[m_current_model];
-		auto &anims = model.m_model->anims();
+		auto &anims = model.m_model.anims();
 		menu::text("Animation:");
 		menu::SameLine();
 		const char *cur_anim =
@@ -247,7 +252,7 @@ class Viewer {
 			}
 			if(event.keyDown('a')) {
 				m_current_anim++;
-				if(m_current_anim == m_models[m_current_model].m_model->animCount())
+				if(m_current_anim == m_models[m_current_model].m_model.animCount())
 					m_current_anim = -1;
 				m_anim_pos = 0.0f;
 			}
@@ -271,8 +276,8 @@ class Viewer {
 		m_anim_pos += time_diff;
 	}
 
-	static void faceVertHistogram(TextFormatter &out, PModel model) {
-		DynamicMesh dmesh(AnimatedModel(*model).toMesh());
+	static void faceVertHistogram(TextFormatter &out, const Model &model) {
+		DynamicMesh dmesh(AnimatedModel(model).toMesh());
 		std::map<int, int> fcounts;
 
 		for(auto vert : dmesh.verts())
@@ -351,7 +356,7 @@ class Viewer {
 	}
 
   private:
-	vector<Model> m_models;
+	vector<ViewModel> m_models;
 	Dynamic<Font> m_font;
 #ifndef FWK_IMGUI_DISABLED
 	Dynamic<ImGuiWrapper> m_imgui;

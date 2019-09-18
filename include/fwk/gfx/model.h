@@ -25,8 +25,9 @@ class Model : public immutable_base<Model> {
 
 	Model(vector<ModelNode> = {}, vector<Mesh> = {}, vector<ModelAnim> = {},
 		  vector<MaterialDef> = {});
-	static Ex<Model> loadFromXML(CXmlNode);
-	void saveToXML(XmlNode) const;
+	static Ex<Model> load(CXmlNode);
+	static Ex<Model> load(ZStr file_name);
+	void save(XmlNode) const;
 
 	const ModelNode *findNode(Str) const;
 	int findNodeId(Str) const;
@@ -68,7 +69,7 @@ class Model : public immutable_base<Model> {
 
 	const Mesh *mesh(int id) const { return id == -1 ? nullptr : &m_meshes[id]; }
 
-	PModel split(int node_id) const;
+	Model split(int node_id) const;
 
   protected:
 	vector<ModelNode> m_nodes;

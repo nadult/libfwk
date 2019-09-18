@@ -95,7 +95,6 @@ using PQuery = GlRef<GlQuery>;
 // TODO: consistent naming
 
 using PPose = immutable_ptr<Pose>;
-using PModel = immutable_ptr<Model>;
 
 class Visualizer2;
 class Visualizer3;
@@ -109,7 +108,6 @@ using CameraVariant = Variant<OrbitingCamera, FpsCamera, PlaneCamera, OrthoCamer
 class Camera;
 struct CameraParams;
 class CameraControl;
-
 
 DEFINE_ENUM(PrimitiveType, points, lines, triangles, triangle_strip);
 
