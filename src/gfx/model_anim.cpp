@@ -83,7 +83,7 @@ AffineTrans ModelAnim::Channel::blend(int frame0, int frame1, float t) const {
 	return out;
 }
 
-Ex<ModelAnim> ModelAnim::load(CXmlNode node, PPose default_pose) {
+Ex<ModelAnim> ModelAnim::load(CXmlNode node, const Pose &default_pose) {
 	ModelAnim out;
 
 	out.m_name = node("name");
@@ -95,7 +95,7 @@ Ex<ModelAnim> ModelAnim::load(CXmlNode node, PPose default_pose) {
 		channel_node.next();
 	}
 
-	auto transforms = default_pose->mapTransforms(default_pose->mapNames(out.m_node_names));
+	auto transforms = default_pose.mapTransforms(default_pose.mapNames(out.m_node_names));
 	auto trans_it = transforms.begin();
 
 	channel_node = node.child("channel");
@@ -144,9 +144,9 @@ AffineTrans ModelAnim::animateChannel(int channel_id, double anim_pos) const {
 	return channel.blend(frame0, frame1, blend_factor);
 }
 
-void ModelAnim::setDefaultPose(PPose pose) {
-	m_default_matrices = pose->transforms();
-	m_default_mapping = pose->mapNames(m_node_names);
+void ModelAnim::setDefaultPose(const Pose &pose) {
+	m_default_matrices = pose.transforms();
+	m_default_mapping = pose.mapNames(m_node_names);
 }
 
 vector<Matrix4> ModelAnim::animateDefaultPose(double anim_pos) const {
@@ -160,19 +160,18 @@ vector<Matrix4> ModelAnim::animateDefaultPose(double anim_pos) const {
 	return matrices;
 }
 
-PPose ModelAnim::animatePose(PPose initial_pose, double anim_pos) const {
-	DASSERT(initial_pose);
+Pose ModelAnim::animatePose(const Pose &initial_pose, double anim_pos) const {
 	if(anim_pos >= m_length)
 		anim_pos -= double(int(anim_pos / m_length)) * m_length;
 
-	auto mapping = initial_pose->mapNames(m_node_names);
-	auto matrices = initial_pose->transforms();
+	auto mapping = initial_pose.mapNames(m_node_names);
+	auto matrices = initial_pose.transforms();
 	for(int n = 0; n < m_channels.size(); n++) {
 		const auto &channel = m_channels[n];
 		matrices[mapping[n]] = animateChannel(n, anim_pos);
 	}
 
-	return make_immutable<Pose>(move(matrices), initial_pose->nameMap());
+	return {move(matrices), initial_pose.nameMap()};
 }
 
 string ModelAnim::print() const {

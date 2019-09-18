@@ -16,7 +16,8 @@ class AnimatedModel {
 	};
 
 	// Referenced model has to be alive as long as AnimatedModel
-	AnimatedModel(const Model &, PPose = PPose());
+	AnimatedModel(const Model &, const Pose &);
+	AnimatedModel(const Model &);
 
 	Mesh toMesh() const;
 	FBox boundingBox() const;

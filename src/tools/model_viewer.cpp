@@ -63,20 +63,21 @@ struct ViewModel {
 		map.clear();
 	}
 
-	PPose animatePose(int anim_id, float anim_pos) const {
+	Pose animatePose(int anim_id, float anim_pos) const {
 		return m_model.animatePose(anim_id, anim_pos);
 	}
 
-	auto animate(PPose pose) const { return AnimatedModel(m_model, pose); }
-	FBox boundingBox(PPose pose = PPose()) const { return animate(pose).boundingBox(); }
+	auto animate(const Pose &pose) const { return AnimatedModel(m_model, pose); }
+	FBox boundingBox(const Pose &pose) const { return animate(pose).boundingBox(); }
+	FBox boundingBox() const { return boundingBox(m_model.defaultPose()); }
 
 	float scale() const { return 4.0f / max(boundingBox().size().values()); }
 
-	void drawModel(RenderList &out, PPose pose, const Matrix4 &matrix) {
+	void drawModel(RenderList &out, const Pose &pose, const Matrix4 &matrix) {
 		out.add(animate(pose).genDrawCalls(m_materials, matrix));
 	}
 
-	void drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose) {
+	void drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose) {
 		m_model.drawNodes(tris, lines, pose, ColorId::green, ColorId::yellow, 0.1f / scale());
 	}
 

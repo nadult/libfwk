@@ -135,8 +135,8 @@ void MeshBuffers::saveToXML(XmlNode node) const {
 		node.addChild("node_names", node_names);
 }
 
-vector<Matrix4> MeshBuffers::mapPose(PPose pose) const {
-	return pose->mapTransforms(pose->mapNames(node_names));
+vector<Matrix4> MeshBuffers::mapPose(const Pose &pose) const {
+	return pose.mapTransforms(pose.mapNames(node_names));
 }
 
 MeshBuffers MeshBuffers::remap(const vector<int> &mapping) const {

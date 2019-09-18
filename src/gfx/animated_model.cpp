@@ -11,14 +11,12 @@
 
 namespace fwk {
 
-AnimatedModel::AnimatedModel(const Model &model, PPose pose) : m_model(model) {
-	if(!pose)
-		pose = model.defaultPose();
+AnimatedModel::AnimatedModel(const Model &model, const Pose &pose) : m_model(model) {
 	DASSERT(model.valid(pose));
 
 	m_meshes.reserve(model.nodes().size());
 	auto global_pose = model.globalPose(pose);
-	const auto &transforms = global_pose->transforms();
+	const auto &transforms = global_pose.transforms();
 
 	for(auto &node : model.nodes())
 		if(auto *mesh = model.mesh(node.mesh_id)) {
@@ -31,6 +29,8 @@ AnimatedModel::AnimatedModel(const Model &model, PPose pose) : m_model(model) {
 			m_meshes.emplace_back(node.mesh_id, move(anim_data), transforms[node.id]);
 		}
 }
+
+AnimatedModel::AnimatedModel(const Model &model) : AnimatedModel(model, model.defaultPose()) {}
 
 Mesh AnimatedModel::toMesh() const {
 	vector<Mesh> meshes;

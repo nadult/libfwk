@@ -14,7 +14,7 @@ class ModelAnim {
 	ModelAnim();
 	FWK_COPYABLE_CLASS(ModelAnim);
 
-	static Ex<ModelAnim> load(CXmlNode, PPose default_pose);
+	static Ex<ModelAnim> load(CXmlNode, const Pose &default_pose);
 	void save(XmlNode) const;
 
 	string print() const;
@@ -25,9 +25,9 @@ class ModelAnim {
 	static void transToXML(const AffineTrans &trans, const AffineTrans &default_trans, XmlNode);
 	static AffineTrans transFromXML(CXmlNode, const AffineTrans & = {}) EXCEPT;
 
-	PPose animatePose(PPose initial_pose, double anim_time) const;
+	Pose animatePose(const Pose &initial_pose, double anim_time) const;
 
-	void setDefaultPose(PPose);
+	void setDefaultPose(const Pose &);
 	vector<Matrix4> animateDefaultPose(double anim_time) const;
 
   protected:

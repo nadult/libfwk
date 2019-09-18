@@ -230,7 +230,7 @@ void Mesh::removeIndices(CSpan<Pair<string, IColor>> color_map) {
 	}
 }
 
-Mesh::AnimatedData Mesh::animate(PPose pose) const {
+Mesh::AnimatedData Mesh::animate(const Pose &pose) const {
 	if(!m_buffers.hasSkin())
 		return AnimatedData();
 

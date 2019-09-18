@@ -6,6 +6,7 @@
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/model_anim.h"
 #include "fwk/gfx/model_node.h"
+#include "fwk/gfx/pose.h"
 
 namespace fwk {
 
@@ -18,8 +19,7 @@ struct MaterialDef {
 	FColor diffuse;
 };
 
-// TODO: remove immutables
-class Model : public immutable_base<Model> {
+class Model {
   public:
 	FWK_COPYABLE_CLASS(Model);
 
@@ -44,10 +44,10 @@ class Model : public immutable_base<Model> {
 
 	void printHierarchy() const;
 
-	Matrix4 nodeTrans(const string &name, PPose) const;
+	Matrix4 nodeTrans(const string &name, const Pose &) const;
 
-	void drawNodes(TriangleBuffer &, LineBuffer &, PPose, IColor node_color, IColor line_color,
-				   float node_scale = 1.0f) const;
+	void drawNodes(TriangleBuffer &, LineBuffer &, const Pose &, IColor node_color,
+				   IColor line_color, float node_scale = 1.0f) const;
 
 	void clearDrawingCache() const;
 
@@ -55,17 +55,17 @@ class Model : public immutable_base<Model> {
 	int animCount() const { return m_anims.size(); }
 
 	// Pass -1 to anim_id for bind position
-	PPose animatePose(int anim_id, double anim_pos) const;
+	Pose animatePose(int anim_id, double anim_pos) const;
 	vector<Matrix4> animatePoseFast(int anim_id, double anim_pos) const;
 
 	Matrix4 globalTrans(int node_id) const;
 	Matrix4 invGlobalTrans(int node_id) const;
 
-	PPose defaultPose() const { return m_default_pose; }
-	PPose globalPose(vector<Matrix4>) const;
-	PPose globalPose(PPose local_pose) const;
-	PPose meshSkinningPose(PPose global_pose, int node_id) const;
-	bool valid(PPose) const;
+	const Pose &defaultPose() const { return m_default_pose; }
+	Pose globalPose(vector<Matrix4>) const;
+	Pose globalPose(const Pose &local_pose) const;
+	Pose meshSkinningPose(const Pose &global_pose, int node_id) const;
+	bool valid(const Pose &) const;
 
 	const Mesh *mesh(int id) const { return id == -1 ? nullptr : &m_meshes[id]; }
 
@@ -76,6 +76,6 @@ class Model : public immutable_base<Model> {
 	vector<Mesh> m_meshes;
 	vector<ModelAnim> m_anims;
 	vector<MaterialDef> m_material_defs;
-	PPose m_default_pose;
+	Pose m_default_pose;
 };
 }

@@ -7,11 +7,10 @@
 #include "fwk/gfx/mesh_indices.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
-#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
-class Mesh : public immutable_base<Mesh> {
+class Mesh {
   public:
 	Mesh(MeshBuffers buffers = MeshBuffers(), vector<MeshIndices> indices = {},
 		 vector<string> mat_names = {});
@@ -77,7 +76,7 @@ class Mesh : public immutable_base<Mesh> {
 	float intersect(const Segment3<float> &) const;
 	float intersect(const Segment3<float> &, const AnimatedData &) const;
 
-	AnimatedData animate(PPose) const;
+	AnimatedData animate(const Pose &) const;
 	static Mesh apply(Mesh, AnimatedData);
 
 	vector<float3> lines() const;

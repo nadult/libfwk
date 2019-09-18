@@ -14,7 +14,6 @@
 #include "fwk/index_range.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/xml.h"
-#include <map>
 
 namespace fwk {
 
@@ -26,7 +25,7 @@ void MaterialDef::saveToXML(XmlNode node) const {
 	node("diffuse") = diffuse.rgb();
 }
 
-static PPose defaultPose(vector<int> dfs_ids, CSpan<ModelNode> nodes) {
+static Pose defaultPose(vector<int> dfs_ids, CSpan<ModelNode> nodes) {
 	vector<Matrix4> pose_matrices;
 	vector<string> pose_names;
 
@@ -35,7 +34,7 @@ static PPose defaultPose(vector<int> dfs_ids, CSpan<ModelNode> nodes) {
 		pose_matrices.emplace_back(node.trans);
 		pose_names.emplace_back(node.name);
 	}
-	return Pose(move(pose_matrices), pose_names);
+	return {move(pose_matrices), pose_names};
 }
 
 static void dfs(CSpan<ModelNode> nodes, int node_id, vector<int> &out) {
@@ -185,7 +184,7 @@ void Model::save(XmlNode xml_node) const {
 		anim.save(xml_node.addChild("anim"));
 }
 
-void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose, IColor node_color,
+void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose, IColor node_color,
 					  IColor line_color, float node_scale) const {
 	// TODO: move this to model viewer
 	DASSERT(valid(pose));
@@ -198,7 +197,7 @@ void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, PPose pose, IColo
 	FBox bbox = FBox(float3(-0.3f), float3(0.3f)) * node_scale;
 
 	auto global_pose = globalPose(pose);
-	auto transforms = global_pose->transforms();
+	auto transforms = global_pose.transforms();
 
 	vector<float3> positions(m_nodes.size());
 	for(int n : intRange(m_nodes))
@@ -219,31 +218,28 @@ void Model::printHierarchy() const {
 		print("%: %\n", node.id, node.name);
 }
 
-Matrix4 Model::nodeTrans(const string &name, PPose pose) const {
-	if(!pose)
-		pose = m_default_pose;
-
+Matrix4 Model::nodeTrans(const string &name, const Pose &pose) const {
 	auto global_pose = globalPose(pose);
 	if(const auto *node = findNode(name))
-		return global_pose->transforms()[node->id];
+		return global_pose.transforms()[node->id];
 	return Matrix4::identity();
 }
 
-PPose Model::globalPose(vector<Matrix4> out) const {
+Pose Model::globalPose(vector<Matrix4> out) const {
 	DASSERT_EQ(out.size(), m_nodes.size());
 	for(int n : intRange(m_nodes))
 		if(m_nodes[n].parent_id != -1)
 			out[n] = out[m_nodes[n].parent_id] * out[n];
-	return make_immutable<Pose>(move(out), m_default_pose->nameMap());
+	return {move(out), m_default_pose.nameMap()};
 }
 
-PPose Model::globalPose(PPose pose) const {
+Pose Model::globalPose(const Pose &pose) const {
 	DASSERT(valid(pose));
-	vector<Matrix4> out = pose->transforms();
+	vector<Matrix4> out = pose.transforms();
 	for(int n : intRange(m_nodes))
 		if(m_nodes[n].parent_id != -1)
 			out[n] = out[m_nodes[n].parent_id] * out[n];
-	return make_immutable<Pose>(move(out), pose->nameMap());
+	return {move(out), pose.nameMap()};
 }
 
 Matrix4 Model::globalTrans(int node_id) const {
@@ -256,7 +252,7 @@ Matrix4 Model::invGlobalTrans(int node_id) const {
 	return node.parent_id == -1 ? node.inv_trans : node.inv_trans * invGlobalTrans(node.parent_id);
 }
 
-PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
+Pose Model::meshSkinningPose(const Pose &global_pose, int node_id) const {
 	DASSERT(valid(global_pose));
 	DASSERT(node_id >= 0 && node_id < m_nodes.size());
 
@@ -264,20 +260,20 @@ PPose Model::meshSkinningPose(PPose global_pose, int node_id) const {
 	Matrix4 pre = inverseOrZero(fwd_trans);
 	Matrix4 post = fwd_trans;
 
-	vector<Matrix4> out = global_pose->transforms();
+	vector<Matrix4> out = global_pose.transforms();
 	for(int n : intRange(out))
 		out[n] = pre * out[n] * invGlobalTrans(n) * post;
-	return make_immutable<Pose>(move(out), global_pose->nameMap());
+	return {move(out), global_pose.nameMap()};
 }
 
 vector<Matrix4> Model::animatePoseFast(int anim_id, double anim_pos) const {
 	DASSERT(anim_id >= -1 && anim_id < m_anims.size());
 	if(anim_id == -1)
-		return m_default_pose->transforms();
+		return m_default_pose.transforms();
 	return m_anims[anim_id].animateDefaultPose(anim_pos);
 }
 
-PPose Model::animatePose(int anim_id, double anim_pos) const {
+Pose Model::animatePose(int anim_id, double anim_pos) const {
 	DASSERT(anim_id >= -1 && anim_id < m_anims.size());
 
 	if(anim_id == -1)
@@ -285,10 +281,7 @@ PPose Model::animatePose(int anim_id, double anim_pos) const {
 	return m_anims[anim_id].animatePose(defaultPose(), anim_pos);
 }
 
-bool Model::valid(PPose pose) const {
-	// TODO: keep weak_ptr to model inside pose?
-	return pose && pose->nameMap() == m_default_pose->nameMap();
-}
+bool Model::valid(const Pose &pose) const { return pose.nameMap() == m_default_pose.nameMap(); }
 
 Model Model::split(int node_id) const {
 	DASSERT(node_id >= 0 && node_id < m_nodes.size());

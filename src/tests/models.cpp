@@ -70,7 +70,7 @@ void testMain() {
 	ASSERT_EQ(nodes[plane_id].parent_id, cube_id);
 
 	auto pose = model->globalPose(model->defaultPose());
-	vector<AffineTrans> transforms(begin(pose->transforms()), end(pose->transforms()));
+	auto transforms = transform<AffineTrans>(pose.transforms());
 
 	assertCloseEnough(transforms[cube_id].translation, float3(10, 0, 0));
 	assertCloseEnough(transforms[plane_id].translation, float3(0, 0, -5));

@@ -8,7 +8,6 @@
 #include "fwk/hash_map.h"
 #include "fwk/math/affine_trans.h"
 #include "fwk/math/matrix4.h"
-#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 

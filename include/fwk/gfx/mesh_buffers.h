@@ -40,7 +40,7 @@ struct MeshBuffers {
 	MeshBuffers remap(const vector<int> &mapping) const;
 
 	// Pose must have configuration for each of the nodes in node_names
-	vector<Matrix4> mapPose(PPose skinning_pose) const;
+	vector<Matrix4> mapPose(const Pose &skinning_pose) const;
 
 	static MeshBuffers transform(const Matrix4 &, MeshBuffers);
 

@@ -94,8 +94,6 @@ using PQuery = GlRef<GlQuery>;
 // TODO: more definitions
 // TODO: consistent naming
 
-using PPose = immutable_ptr<Pose>;
-
 class Visualizer2;
 class Visualizer3;
 

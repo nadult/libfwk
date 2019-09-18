@@ -4,12 +4,11 @@
 #pragma once
 
 #include "fwk/math/matrix4.h"
-#include "fwk/sys/immutable_ptr.h"
 #include "fwk/vector.h"
 
 namespace fwk {
 
-struct Pose : public immutable_base<Pose> {
+struct Pose {
   public:
 	using NameMap = vector<Pair<string, int>>;
 

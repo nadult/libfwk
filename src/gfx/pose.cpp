@@ -3,12 +3,6 @@
 
 #include "fwk/gfx/pose.h"
 
-#include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/material.h"
-#include "fwk/gfx/material_set.h"
-#include "fwk/gfx/render_list.h"
-#include <map>
-
 namespace fwk {
 
 static auto makeNameMap(const vector<string> &names) {
