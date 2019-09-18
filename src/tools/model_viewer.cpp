@@ -19,7 +19,6 @@
 #include "fwk/math/rotation.h"
 #include "fwk/sys/file_system.h"
 #include "fwk/sys/input.h"
-#include "fwk/sys/xml_loader.h"
 
 #include "fwk/menu/imgui_wrapper.h"
 
@@ -278,7 +277,7 @@ class Viewer {
 
 	static void faceVertHistogram(TextFormatter &out, const Model &model) {
 		DynamicMesh dmesh(AnimatedModel(model).toMesh());
-		std::map<int, int> fcounts;
+		HashMap<int, int> fcounts;
 
 		for(auto vert : dmesh.verts())
 			fcounts[dmesh.polyCount(vert)]++;
