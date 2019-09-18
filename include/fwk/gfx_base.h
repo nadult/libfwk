@@ -94,7 +94,6 @@ using PQuery = GlRef<GlQuery>;
 // TODO: more definitions
 // TODO: consistent naming
 
-using PFontCore = immutable_ptr<FontCore>;
 using PPose = immutable_ptr<Pose>;
 using PModel = immutable_ptr<Model>;
 

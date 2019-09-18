@@ -9,7 +9,6 @@
 #include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
 #include "fwk/str.h"
-#include "fwk/sys/immutable_ptr.h"
 
 namespace fwk {
 
@@ -24,14 +23,8 @@ struct FontStyle {
 	VAlign valign;
 };
 
-class FontCore : public immutable_base<FontCore> {
+class FontCore {
   public:
-	FWK_COPYABLE_CLASS(FontCore)
-
-	static Ex<FontCore> load(ZStr file_name);
-	static Ex<FontCore> load(const XmlDocument &);
-	static Ex<FontCore> load(CXmlNode);
-
 	struct Glyph {
 		int character;
 		short2 tex_pos;
@@ -39,6 +32,18 @@ class FontCore : public immutable_base<FontCore> {
 		short2 offset;
 		short x_advance;
 	};
+
+	struct Kerning {
+		int left, right;
+		int value;
+	};
+
+	FontCore(CSpan<Glyph>, CSpan<Kerning>, int2 tex_size, int line_height);
+	FWK_COPYABLE_CLASS(FontCore)
+
+	static Ex<FontCore> load(ZStr file_name);
+	static Ex<FontCore> load(const XmlDocument &);
+	static Ex<FontCore> load(CXmlNode);
 
 	int genQuads(const string32 &text, Span<float2> out_pos, Span<float2> out_uv,
 				 float2 offset) const;
@@ -48,14 +53,10 @@ class FontCore : public immutable_base<FontCore> {
 
 	const auto &glyphs() const { return *&m_glyphs; }
 	const auto &kernings() const { return *&m_kernings; }
+	i64 usedMemory() const;
 
   private:
-	struct Kerning {
-		int left, right;
-		int value;
-	};
 	FontCore();
-	FontCore(CSpan<Glyph>, CSpan<Kerning>, int2, int);
 	void computeRect();
 
 	FwdMember<HashMap<int, Glyph>> m_glyphs;
@@ -74,11 +75,11 @@ class FontCore : public immutable_base<FontCore> {
 class Font {
   public:
 	using Style = FontStyle;
-	Font(PFontCore font, PTexture texture);
+	Font(FontCore, PTexture texture);
 	FWK_COPYABLE_CLASS(Font)
 
-	FRect draw(Renderer2D &out, const FRect &rect, const Style &style, const string32 &text) const;
-	FRect draw(TriangleBuffer &, const FRect &rect, const Style &style, const string32 &text) const;
+	FRect draw(Renderer2D &, const FRect &, const Style &, const string32 &text) const;
+	FRect draw(TriangleBuffer &, const FRect &, const Style &, const string32 &text) const;
 
 	template <class Output>
 	FRect draw(Output &out, const float2 &pos, const Style &style, const string32 &text) const {
@@ -102,18 +103,18 @@ class Font {
 	auto core() const { return m_core; }
 	auto texture() const { return m_texture; }
 
-	IRect evalExtents(const string32 &text) const { return m_core->evalExtents(text); }
+	IRect evalExtents(const string32 &text) const { return m_core.evalExtents(text); }
 	IRect evalExtents(Str text_utf8) const {
 		if(auto text = toUTF32(text_utf8))
-			return m_core->evalExtents(*text);
+			return m_core.evalExtents(*text);
 		return {};
 	}
-	int lineHeight() const { return m_core->lineHeight(); }
+	int lineHeight() const { return m_core.lineHeight(); }
 
   private:
 	float2 drawPos(const string32 &text, const FRect &, const FontStyle &) const;
 
-	PFontCore m_core;
+	FontCore m_core;
 	PTexture m_texture;
 };
 }

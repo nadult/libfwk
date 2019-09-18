@@ -222,9 +222,8 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 					okernings.emplace_back(FontCore::Kerning{int(left), int(right), kerning.x});
 			}
 
-	FontCore out(oglyphs, okernings, atlas.size(), face->size->metrics.height / 64);
-
-	return Font{PFontCore(move(out)), GlTexture::make(atlas)};
+	auto tex = GlTexture::make(atlas);
+	return Font{{oglyphs, okernings, atlas.size(), (int)face->size->metrics.height / 64}, tex};
 }
 }
 

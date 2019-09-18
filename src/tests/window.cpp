@@ -49,16 +49,11 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 	return true;
 }
 
-Font loadFont() {
-	PFontCore font_core;
-	PTexture font_texture;
-	if(!font_core) {
-		auto data_path = FilePath(executablePath()).parent().parent() / "data";
-		font_core =
-			make_immutable<FontCore>(move(FontCore::load(data_path / "liberation_16.fnt").get()));
-		font_texture = GlTexture::load(data_path / "liberation_16_0.tga").get();
-	}
-	return {font_core, font_texture};
+Ex<Font> loadFont() {
+	auto data_path = FilePath(executablePath()).parent().parent() / "data";
+	auto core = EXPECT_PASS(FontCore::load(data_path / "liberation_16.fnt"));
+	auto font_texture = EXPECT_PASS(GlTexture::load(data_path / "liberation_16_0.tga"));
+	return Font{move(core), font_texture};
 }
 
 int main(int argc, char **argv) {
@@ -72,7 +67,7 @@ int main(int argc, char **argv) {
 
 	print("OpenGL info:\n%\n", gl_info->toString());
 
-	auto font = loadFont();
+	auto font = loadFont().get();
 	gl_device.runMainLoop(mainLoop, &font);
 
 	return 0;

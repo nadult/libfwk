@@ -88,6 +88,8 @@ Ex<FontCore> FontCore::load(CXmlNode font_node) {
 	return out;
 }
 
+i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.usedMemory(); }
+
 // clang-format off
 	FontCore::FontCore(CSpan<Glyph> glyphs, CSpan<Kerning> kernings, int2 tex_size, int line_height)
 		: m_texture_size(tex_size), m_line_height(line_height) {
@@ -215,17 +217,16 @@ FontStyle::FontStyle(FColor color, FColor shadow_color, HAlign halign, VAlign va
 FontStyle::FontStyle(FColor color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(ColorId::transparent), halign(halign), valign(valign) {}
 
-Font::Font(PFontCore core, PTexture texture) : m_core(core), m_texture(texture) {
-	DASSERT(m_core);
+Font::Font(FontCore core, PTexture texture) : m_core(move(core)), m_texture(texture) {
 	DASSERT(m_texture);
-	DASSERT(m_texture->size() == m_core->m_texture_size);
+	DASSERT(m_texture->size() == m_core.m_texture_size);
 }
 FWK_COPYABLE_CLASS_IMPL(Font)
 
 float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &style) const {
 	float2 pos = rect.min();
 	if(style.halign != HAlign::left || style.valign != VAlign::top) {
-		FRect extents = (FRect)m_core->evalExtents(text);
+		FRect extents = (FRect)m_core.evalExtents(text);
 		float2 center = rect.center() - extents.center();
 
 		bool hleft = style.halign == HAlign::left, hcenter = style.halign == HAlign::center;
@@ -243,7 +244,7 @@ FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
 	auto pos = drawPos(text, rect, style);
 
 	PodVector<float2> pos_buf(text.length() * 4), uv_buf(text.length() * 4);
-	int num_verts = m_core->genQuads(text, pos_buf, uv_buf, pos) * 4;
+	int num_verts = m_core.genQuads(text, pos_buf, uv_buf, pos) * 4;
 	CSpan<float2> positions(pos_buf.data(), num_verts), uvs(uv_buf.data(), num_verts);
 
 	if(style.shadow_color != ColorId::transparent) {
@@ -266,7 +267,7 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 	auto pos = drawPos(text, rect, style);
 
 	PodVector<float2> pos_buf(text.length() * 4), uv_buf(text.length() * 4);
-	int num_verts = m_core->genQuads(text, pos_buf, uv_buf, pos) * 4;
+	int num_verts = m_core.genQuads(text, pos_buf, uv_buf, pos) * 4;
 	CSpan<float2> positions(pos_buf.data(), num_verts), uvs(uv_buf.data(), num_verts);
 
 	if(style.shadow_color != ColorId::transparent) {
