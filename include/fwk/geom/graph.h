@@ -227,11 +227,15 @@ class Graph {
 	bool hasCycles() const;
 	bool isForest() const;
 	vector<VertexId> treeRoots() const;
+	vector<VertexId> topoSort(bool inverse, Layers = all<Layer>) const;
 
 	int compare(const Graph &) const;
 	FWK_ORDER_BY_DECL(Graph);
 
   protected:
+	struct TopoSortCtx;
+	void topoSort(TopoSortCtx &, VertexId) const;
+
 	template <class> friend class GeomGraph;
 
 	struct EdgeInfo {

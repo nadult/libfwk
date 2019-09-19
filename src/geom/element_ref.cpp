@@ -94,7 +94,7 @@ VertexRefs VertexRef::vertsFrom(GLayers layers) const {
 VertexRefs VertexRef::vertsTo(GLayers layers) const {
 	vector<VertexId> out(pool_alloc);
 	for(auto eid : m_graph->m_verts[m_id])
-		if(eid.isSource()) {
+		if(!eid.isSource()) {
 			auto vert = m_graph->ref(eid).other(m_id);
 			if(layers == all<GLayer> || (vert.layers() & layers))
 				out.emplace_back(vert);

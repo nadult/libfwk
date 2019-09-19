@@ -526,6 +526,30 @@ vector<VertexId> Graph::treeRoots() const {
 	return out;
 }
 
+struct Graph::TopoSortCtx {
+	vector<VertexId> out;
+	vector<bool> visited;
+	bool inverse;
+	Layers layers;
+};
+
+void Graph::topoSort(TopoSortCtx &ctx, VertexId vid) const {
+	ctx.visited[vid] = true;
+	for(auto vert : (ctx.inverse ? ref(vid).vertsTo(ctx.layers) : ref(vid).vertsFrom(ctx.layers)))
+		if(!ctx.visited[vert])
+			topoSort(ctx, vert);
+	ctx.out.emplace_back(vid);
+}
+
+vector<VertexId> Graph::topoSort(bool inverse, Layers layers) const {
+	TopoSortCtx context{{}, vector<bool>(vertsEndIndex(), false), inverse, layers};
+
+	for(auto vid : vertexIds())
+		if(!context.visited[vid])
+			topoSort(context, vid);
+	return move(context.out);
+}
+
 // TODO: is this really needed ?
 int Graph::compare(const Graph &rhs) const {
 	if(int cmp = m_verts.compare(rhs.m_verts))

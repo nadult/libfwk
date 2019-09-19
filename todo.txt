@@ -195,7 +195,6 @@ TODO: which OpenGL version are we targeting ?
   ref-counting is not required (user is till responsible for not releasing string is some CString
   is still pointing to it)
 - Stream guard podobnie jak XMLGuard ?
-- XMLLoader error handling
 - SpanBase<> for all types with different min_sizes
 - XML should assert that string is owned or static...
 - use type trai primitives __is_trivially_assignable ...
