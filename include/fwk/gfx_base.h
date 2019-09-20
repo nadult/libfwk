@@ -18,14 +18,12 @@ namespace fwk {
 
 class Texture;
 class GlDevice;
-class ProgramBinder;
 class SimpleMaterial;
 class Material;
 class MaterialSet;
 class MatrixStack;
 class Renderer2D;
 class DrawCall;
-class MultiDrawCall;
 class RenderList;
 class FontCore;
 class Font;
@@ -38,7 +36,6 @@ class DynamicMesh;
 class Model;
 class ModelNode;
 class ModelAnim;
-class Buffer;
 
 class TriangleBuffer;
 class SpriteBuffer;
@@ -62,8 +59,6 @@ DECLARE_ENUM(IndexType);
 DECLARE_ENUM(VertexBaseType);
 
 struct HeightMap16bit;
-struct TextureConfig;
-struct VertexDataType;
 struct FramebufferTarget;
 struct FontStyle;
 
