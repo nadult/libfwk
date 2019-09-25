@@ -96,6 +96,17 @@ FColor gradientLerp(CSpan<FColor> colors, CSpan<float> values, float value) {
 	return colors.back();
 }
 
+FColor gradientLerp(CSpan<FColor> colors, float value) {
+	PASSERT(colors.size() >= 1);
+
+	value *= colors.size() - 1;
+	auto ivalue = int(value);
+	float t = value - ivalue;
+
+	return ivalue >= colors.size() - 1 ? colors[ivalue]
+									   : lerp(colors[ivalue], colors[ivalue + 1], t);
+}
+
 void FColor::operator>>(TextFormatter &fmt) const { fmt << float4(*this); }
 void IColor::operator>>(TextFormatter &fmt) const { fmt << int4(*this); }
 

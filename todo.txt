@@ -2,6 +2,11 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- FpsCamera -> FppCamera
+- Jak ma działać CamControl ? W różnych programach chcę w różny sposób kontrolować kamerę
+  może lepiej zrobić tak, żeby kamera miała abstrakcyjny typ bazowy ?
+  
+
 - jeden makefile dla eksperymentów, żeby można było szybko testować, czy nic sie nie spieprzylo
 - Debugowy build w niezależnym katalogu, tak żeby można było się szybko przełączać
 

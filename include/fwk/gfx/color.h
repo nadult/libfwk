@@ -53,6 +53,7 @@ float3 hsvToRgb(float3);
 float3 rgbToHsv(float3);
 inline float3 rgbToHsv(const FColor &col) { return rgbToHsv(col.rgb()); }
 FColor gradientLerp(CSpan<FColor> colors, CSpan<float> values, float value);
+FColor gradientLerp(CSpan<FColor> colors, float value);
 
 struct IColor {
 	IColor(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
