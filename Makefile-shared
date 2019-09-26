@@ -15,7 +15,11 @@
 #   LDFLAGS
 #   FWK_BUILD_DIR
 #   FWK_LIB_FILE
+#   CONFIG_FILE
 #   (and more)
+#
+# Makefile-shared keeps track of flags passed to make and recreates PCH if they change.
+# Tracked flags: ADD_CFLAGS, COMPILER and conditional compilation flags.
 
 VALID_PLATFORMS  := linux mingw html
 VALID_MODES      := debug debug-nans release release-nans release-paranoid release-paranoid-nans
@@ -110,6 +114,27 @@ LDFLAGS        += -pthread  $(LIBS_$(PLATFORM)) $(LDFLAGS_$(PLATFORM)) $(LDFLAGS
 #HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(INCLUDES) $(CFLAGS) $(CLANG_FLAGS)
 
+# --- Updating configuration file -----------------------------------------------------------------
+
+ifdef BUILD_DIR
+
+CONFIG_FILE    := $(BUILD_DIR)/make_config.txt
+
+CONFIG_STRING  := COMPILER=$(COMPILER):ADD_CFLAGS=$(ADD_CFLAGS):FWK_GEOM=$(FWK_GEOM):FWK_IMGUI=$(FWK_IMGUI)
+ifneq ($(wildcard $(CONFIG_FILE)),)
+CONFIG_CURRENT := $(shell cat $(CONFIG_FILE))
+endif
+
+$(CONFIG_FILE):
+	mkdir -p $(BUILD_DIR)
+	$(file > $(CONFIG_FILE),$(CONFIG_STRING))
+
+ifneq ($(CONFIG_CURRENT),$(CONFIG_STRING))
+$(CONFIG_FILE): .FORCE
+endif
+
+endif
+
 # --- Precompiled headers configuration -----------------------------------------------------------
 
 #  PCH_SOURCE and BUILD_DIR has to be defined for precompiled headers to work
@@ -125,7 +150,7 @@ ifdef BUILD_DIR
 PCH_TEMP           := $(BUILD_DIR)/$(basename $(notdir $(PCH_SOURCE)))_.h
 PCH_CLANG_TARGET   := $(PCH_TEMP).pch
 PCH_GCC_TARGET     := $(PCH_TEMP).gch
-PCH_JUNK           := $(PCH_CLANG_TARGET) $(PCH_GCC_TARGET) $(PCH_TEMP) $(PCH_TEMP).d
+PCH_JUNK           := $(CONFIG_FILE) $(PCH_CLANG_TARGET) $(PCH_GCC_TARGET) $(PCH_TEMP) $(PCH_TEMP).d
 
 ifeq ($(COMPILER_TYPE),clang)
 PCH_CFLAGS        := -include-pch $(PCH_CLANG_TARGET)
@@ -137,7 +162,7 @@ endif
 
 $(PCH_TEMP): $(PCH_SOURCE)
 	cp $^ $@
-$(PCH_TARGET): $(PCH_TEMP)
+$(PCH_TARGET): $(PCH_TEMP) $(CONFIG_FILE)
 	$(COMPILER) -x c++-header -MMD $(CFLAGS) $(PCH_TEMP) -o $@
 
 endif
@@ -155,11 +180,11 @@ ifneq ($(FWK_DIR),)
 FWK_MAKE_ARGS  = -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
 LDFLAGS       += -L $(FWK_DIR)lib -lfwk_$(PLATFORM)_$(FWK_MODE)
 
-$(FWK_LIB_FILE): .always_check
+$(FWK_LIB_FILE): .FORCE
 	$(MAKE) $(FWK_MAKE_ARGS) lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
-$(FWK_MODELCONV_FILE): .always_check
+$(FWK_MODELCONV_FILE): .FORCE
 	$(MAKE) $(FWK_MAKE_ARGS) tools/model_convert$(PROGRAM_SUFFIX)
 
 endif
 
-.always_check:
+.FORCE:

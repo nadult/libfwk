@@ -140,7 +140,7 @@ $(PROGRAMS): %$(PROGRAM_SUFFIX): $(INPUT_OBJECTS) $(FWK_BUILD_DIR)/%.o
 	$(LINKER) -MMD -o $@ $^ $(LDFLAGS)
 
 ifeq ($(COMPILER_TYPE),clang)
-checker.so: .always_check
+checker.so: .FORCE
 	$(MAKE) -C src/checker/ ../../checker.so
 endif
 
@@ -209,7 +209,6 @@ print-variables:
 	@echo "LDFLAGS = $(LDFLAGS)"
 
 .PHONY: clean tools tests lib clean-all clean-checker print-junk-files print-stats
-.always_check:
 
 ifndef INTROSPECT_MODE
 -include $(DEPS)
