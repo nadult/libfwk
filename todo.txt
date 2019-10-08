@@ -5,6 +5,7 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 - FpsCamera -> FppCamera
 - Jak ma działać CamControl ? W różnych programach chcę w różny sposób kontrolować kamerę
   może lepiej zrobić tak, żeby kamera miała abstrakcyjny typ bazowy ?
+- używanie OrbitingCamera w model viewerze
 
 - W trybie debug, spany mogłyby wykrywać, czy wskazywana przez nich pamięć nie została
   zwolniona? Lub, czy kontener na jaki wskazują nie został zreallocowany?

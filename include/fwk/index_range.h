@@ -159,19 +159,21 @@ template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(co
 }
 
 template <class T = int> auto pairsRange(int start, int end) {
-	return IndexRange(start, end - 1, [=](int idx) { return pair(T(idx), T(idx + 1)); });
+	return IndexRange(start, max(start, end - 1),
+					  [=](int idx) { return pair(T(idx), T(idx + 1)); });
 }
 
 template <class T = int> auto wrappedPairsRange(int start, int end) {
-	return IndexRange(start, end, [=](int idx) {
+	bool is_empty = end - start < 2;
+	return IndexRange(start, is_empty ? start : end, [=](int idx) {
 		int next = idx + 1;
 		return pair(T(idx), T(next < end ? next : start));
 	});
 }
 
 template <class T = int> auto wrappedTriplesRange(int start, int end) {
-	PASSERT(end - start >= 3);
-	return IndexRange(start, end, [=](int idx) {
+	bool is_empty = end - start < 3;
+	return IndexRange(start, is_empty ? start : end, [=](int idx) {
 		int next = idx + 1, next2 = idx + 2;
 		return tuple(T(idx), next < end ? next : start, next2 < end ? next2 : start - end + next2);
 	});
