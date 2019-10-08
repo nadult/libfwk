@@ -1,7 +1,7 @@
 # Options:
 #   PLATFORM:        linux, mingw or html
 #   [FWK_]MODE:      release or debug [-paranoid] [-nans]
-#   ADD_CFLAGS:       additional compiler flags
+#   ADD_CFLAGS:      additional compiler flags
 #   COMPILER:        name of the compiler; clang++ or g++ is used by default
 #   LINKER:          name of linker; by default same as compiler
 #   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
@@ -170,7 +170,7 @@ endif
 
 # --- Helper functions ----------------------------------------------------------------------------
 
-# Filters existing files from fiven file list
+# Filters existing files from given file list
 # Arguments: subdir_list, file_list
 filter-existing = $(filter $(shell find $(1) -type f),$(2))
 

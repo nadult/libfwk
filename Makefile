@@ -16,7 +16,6 @@
 
 # TODO: niezależne katalogi linux-gcc linux-clang ?
 # TODO: uzależnić *_merged.cpp od listy plików a nie całego makefile-a
-# TODO: jak się zmieniły opcje kompilacji, to przerabiamy PCH ?
 
 all: lib tools tests
 
