@@ -75,8 +75,14 @@ template <class Enum, class T> class EnumMap {
 	// ---------------------------------------------------------------
 	// ----- Functions & accessors -----------------------------------
 
-	const T &operator[](Enum index) const { return m_data[(int)index]; }
-	T &operator[](Enum index) { return m_data[(int)index]; }
+	const T &operator[](Enum index) const {
+		PASSERT(uint(index) < (uint)size_);
+		return m_data[(int)index];
+	}
+	T &operator[](Enum index) {
+		PASSERT(uint(index) < (uint)size_);
+		return m_data[(int)index];
+	}
 
 	T *begin() { return m_data.data(); }
 	T *end() { return m_data.data() + size(); }

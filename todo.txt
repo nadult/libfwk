@@ -2,6 +2,13 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- EnumMap drop array;
+- Add array<> with bounds checks
+- Besides asserts add different kinds of warnings which can be placesd all around code
+  and enabled or disabled (with levels, like 0: disabled, 9:all enabled)?
+- Przydałby się akcesor pairs(range) który zwraca pary elementów (a nie pary indeksów)
+- libfwk configuration in header file?
+
 - FpsCamera -> FppCamera
 - Jak ma działać CamControl ? W różnych programach chcę w różny sposób kontrolować kamerę
   może lepiej zrobić tak, żeby kamera miała abstrakcyjny typ bazowy ?
