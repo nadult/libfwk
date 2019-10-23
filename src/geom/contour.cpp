@@ -52,6 +52,7 @@ Contour<T>::Contour(CSpan<Point> points, bool is_looped, bool flip_tangents)
 	DASSERT(!isNan(points));
 	ASSERT_GE(points.size(), 1);
 
+	// TODO: wtf is this? why is this needed?
 	m_points.emplace_back(points.front());
 	for(int n = 1; n < points.size(); n++)
 		if(points[n] != m_points.back())
@@ -423,6 +424,42 @@ template <class T> Contour<T> Contour<T>::smooth(Scalar step) const {
 	}
 	int end = m_points.size() - 1;
 	out.emplace_back(interpCatmullRom(temp[end], temp[end + 1], temp[end + 2], temp[end + 3], 1.0));
+	return {move(out), isLooped()};
+}
+
+template <class T> Contour<T> Contour<T>::blur(int width) const {
+	if(m_points.size() <= 3)
+		return *this;
+
+	vector<T> out;
+	out.resize(m_points.size());
+	int num_points = m_points.size();
+	width = min(width, num_points / 2 - 1);
+
+	float weight_mul = 1.0f / float(width + 1);
+	for(int n : intRange(out)) {
+		T sum = m_points[n];
+		Scalar weight_sum = 1;
+
+		int left_count = m_is_looped ? width : min(width, n);
+		int right_count = m_is_looped ? width : min(width, out.size() - n - 1);
+
+		for(int i : intRange(left_count)) {
+			float weight = float(width - i) * weight_mul;
+			int idx = n - i - 1;
+			sum += m_points[idx < 0 ? idx + num_points : idx] * weight;
+			weight_sum += weight;
+		}
+		for(int i : intRange(right_count)) {
+			float weight = float(width - i) * weight_mul;
+			int idx = n + i + 1;
+			sum += m_points[idx >= num_points ? idx - num_points : idx] * weight;
+			weight_sum += weight;
+		}
+
+		out[n] = sum / weight_sum;
+	}
+
 	return {move(out), isLooped()};
 }
 

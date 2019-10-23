@@ -116,6 +116,7 @@ template <class T> class Contour {
 	Contour simplify(Scalar theta = 0.999, Scalar max_err = 0.01, Scalar max_distance = inf) const;
 	Contour reverse(bool flip_tangents = true) const;
 	Contour smooth(Scalar step) const;
+	Contour blur(int half_width) const;
 
   private:
 	void computeLengths();
