@@ -3,8 +3,8 @@
 
 #include "fwk/sys/input.h"
 
-#include "fwk/algorithm.h"
 #include "fwk/str.h"
+#include "fwk/vector_algorithm.h"
 #include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
@@ -151,10 +151,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 		for(auto &key_state : m_keys)
 			if(key_state.second >= 0)
 				key_state.second++;
-
-		m_keys.resize(std::remove_if(m_keys.begin(), m_keys.end(),
-									 [](const Pair<int> &state) { return state.second == -1; }) -
-					  m_keys.begin());
+		removeIf(m_keys, [](const Pair<int> &state) { return state.second == -1; });
 
 		for(auto &state : m_mouse_buttons) {
 			if(state == 1)

@@ -12,6 +12,7 @@
 #include "fwk/small_vector.h"
 #include "fwk/sys/assert.h"
 #include "fwk/vector.h"
+#include "fwk/vector_algorithm.h"
 #include <numeric>
 
 namespace fwk {
@@ -265,9 +266,7 @@ vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
 			}
 		}
 
-		auto remove_it = std::remove_if(begin(invalid_pairs), end(invalid_pairs),
-										[](auto &pair) { return pair.first == sentinel; });
-		invalid_pairs.resize(remove_it - invalid_pairs.begin());
+		removeIf(invalid_pairs, [](auto &pair) { return pair.first == sentinel; });
 	}
 
 	while(!new_pairs.empty()) {
@@ -305,9 +304,7 @@ vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
 			}
 		}
 
-		auto end_it = std::remove_if(begin(new_pairs), end(new_pairs),
-									 [](auto &pair) { return pair.first == sentinel; });
-		new_pairs.resize(end_it - new_pairs.begin());
+		removeIf(new_pairs, [](auto &pair) { return pair.first == sentinel; });
 	}
 
 #ifndef NDEBUG
