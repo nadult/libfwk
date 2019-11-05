@@ -460,6 +460,11 @@ template <class T> Contour<T> Contour<T>::blur(int width) const {
 		out[n] = sum / weight_sum;
 	}
 
+	if(!isLooped()) {
+		out.front() = m_points.front();
+		out.back() = m_points.back();
+	}
+
 	return {move(out), isLooped()};
 }
 

@@ -2,6 +2,7 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+- emplace_back -> append ?
 - Add array<> with bounds checks
 - Besides asserts add different kinds of warnings which can be placesd all around code
   and enabled or disabled (with levels, like 0: disabled, 9:all enabled)?
