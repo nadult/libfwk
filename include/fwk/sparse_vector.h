@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "fwk/index_range.h"
 #include "fwk/list_node.h"
 #include "fwk/pod_vector.h"
 #include "fwk/vector.h"
@@ -188,31 +187,37 @@ template <class T> class SparseVector {
 		return false;
 	}
 
-	template <bool is_const> struct Iter {
-		using Vec = typename std::conditional<is_const, const SparseVector, SparseVector>::type;
-		Iter(int index, Vec &vector) : index(index), vector(vector) {}
+	template <bool is_const, class Index = None> struct Iter {
+		using Ret = If<is_same<Index, None>, If<is_const, const T &, T &>, Index>;
+		using Vec = If<is_const, const SparseVector, SparseVector>;
 
-		void operator++() { index = vector.nextIndex(index); }
-		auto &operator*() const { return vector[index]; }
-		bool operator==(const Iter &rhs) const { return index == rhs.index; }
-		bool operator<(const Iter &rhs) const { return index < rhs.index; }
+		Ret operator*() const {
+			if constexpr(is_same<Index, None>)
+				return vec[idx];
+			else
+				return Ret(idx);
+		}
+		constexpr void operator++() { idx = vec.nextIndex(idx); }
+		constexpr bool operator!=(const Iter &rhs) const { return idx != rhs.idx; }
 
-	  private:
-		int index;
-		Vec &vector;
+		int idx;
+		Vec &vec;
 	};
 
-	auto begin() { return Iter<false>(firstIndex(), *this); }
-	auto end() { return Iter<false>(m_end_index, *this); }
+	template <class U> struct Indices {
+		auto begin() const { return Iter<true, U>{vec.firstIndex(), vec}; }
+		auto end() const { return Iter<true, U>{vec.m_end_index, vec}; }
+		int size() const { return vec.m_size; }
+		const SparseVector &vec;
+	};
 
-	auto begin() const { return Iter<true>(firstIndex(), *this); }
-	auto end() const { return Iter<true>(m_end_index, *this); }
+	auto begin() { return Iter<false>{firstIndex(), *this}; }
+	auto end() { return Iter<false>{m_end_index, *this}; }
 
-	template <class Idx = int> auto indices() const {
-		const bool *valids = m_valids.data();
-		return IndexRange(firstIndex(), m_end_index, [](int idx) { return Idx(idx); },
-						  [=](int idx) { return valids[idx]; });
-	}
+	auto begin() const { return Iter<true>{firstIndex(), *this}; }
+	auto end() const { return Iter<true>{m_end_index, *this}; }
+
+	template <class Idx = int> auto indices() const { return Indices<Idx>{*this}; }
 
 	bool operator==(const SparseVector &rhs) const {
 		return m_size == rhs.m_size && compare(rhs) == 0;
