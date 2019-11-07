@@ -32,6 +32,7 @@ class GlDevice {
 	GlDevice(DebugFlagsCheck = {});
 	~GlDevice();
 
+	static bool isPresent();
 	static GlDevice &instance();
 	using Opt = GlDeviceOpt;
 	using Flags = GlDeviceFlags;

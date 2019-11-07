@@ -44,6 +44,8 @@ void assertGlThread() {
 		FATAL("Calling OpenGL-related function on a wrong thread");
 }
 
+bool GlDevice::isPresent() { return !!s_instance; }
+
 GlDevice &GlDevice::instance() {
 	DASSERT(s_instance);
 	return *s_instance;
