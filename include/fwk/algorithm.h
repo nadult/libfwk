@@ -44,9 +44,13 @@ void bubbleSort(TSpan &span, const Func &func = {}) {
 				swap(span[i], span[j]);
 }
 
+template <class T> void makeUnique(vector<T> &vec) {
+	vec.erase(std::unique(begin(vec), end(vec)), end(vec));
+}
+
 template <class T> void makeSortedUnique(vector<T> &vec) {
 	std::sort(begin(vec), end(vec));
-	vec.erase(std::unique(begin(vec), end(vec)), end(vec));
+	makeUnique(vec);
 }
 
 template <class TSpan, class T = RemoveConst<SpanBase<TSpan>>>
