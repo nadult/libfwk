@@ -86,10 +86,11 @@ class Visualizer2 {
 	void drawVoronoi(const Voronoi &, VoronoiVis2Colors, Maybe<CellId> selection = none);
 
 	template <class T, EnableIfVec<T, 2>...> void operator()(const T &pt, VisStyle style = {}) {
+		float2 off(m_point_scale * style.pixel_offset, m_point_scale * style.pixel_offset);
 		if(style.flags & VisOpt::cross)
-			drawCross(pt, style.color);
+			drawCross(float2(pt) + off, style.color);
 		else
-			drawPoint(pt, style.color);
+			drawPoint(float2(pt) + off, style.color);
 	}
 
 	template <class T, EnableIf<dim<T> == 2>...>
