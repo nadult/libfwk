@@ -75,7 +75,7 @@ Ex<string> Converter::exportFromBlender(const string &file_name, string &target_
 	auto result = execCommand(format("\"%\" % --background --python % 2>&1",
 									 m_settings.blender_path, file_name, temp_script_name));
 
-	remove(temp_script_name.c_str());
+	::remove(temp_script_name.c_str());
 
 	if(!result || result->second != 0) {
 		auto err = result ? Error(result->first) : result.error();
@@ -103,7 +103,7 @@ Ex<Pair<Model, string>> Converter::loadModel(FileType file_type, ZStr file_name)
 		auto blender_result = EXPECT_PASS(exportFromBlender(file_name, temp_file_name));
 
 		auto result = loadModel(FileType::fwk_model, temp_file_name);
-		remove(temp_file_name.c_str());
+		::remove(temp_file_name.c_str());
 
 		if(result)
 			return *result;

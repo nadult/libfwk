@@ -9,8 +9,7 @@
 #include <memory>
 #include <string>
 
-#include "fwk/meta.h"
-#include "fwk/operator.h"
+#include "fwk/meta/operator.h"
 
 #define NOINLINE __attribute__((noinline))
 #define ALWAYS_INLINE __attribute__((always_inline))

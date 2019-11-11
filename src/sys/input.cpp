@@ -4,7 +4,7 @@
 #include "fwk/sys/input.h"
 
 #include "fwk/str.h"
-#include "fwk/vector_algorithm.h"
+#include "fwk/algorithm.h"
 #include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>

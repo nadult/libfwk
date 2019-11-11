@@ -18,23 +18,94 @@ struct IdentityFunc {
 	template <class T> const T &operator()(const T &value) const { return value; }
 };
 
-// Wraps both normal & member function pointers
-template <class RetValue, class... Args> struct Functor {
-	template <class Base, RetValue (Base::*Func)(Args...)> Functor(Base &ref) : data(&ref) {
-		func = (void *)[](void *ptr, Args... args) {
-			return ((Base *)ptr).*Func(std::forward<Args>(args)...);
-		};
-	}
-	template <RetValue(Func)(Args...)> Functor() : data(nullptr) {
-		func = (void *)[](void *ptr, Args... args) { return Func(std::forward<Args>(args)...); };
-	}
+// -------------------------------------------------------------------------------------------
+// ---  Min/max functions  -------------------------------------------------------------------
 
-	RetValue operator()(Args... args) const { return func(data, std::forward<Args>(args)...); }
+template <class T, class U>
+const Pair<T, U> &minFirst(const Pair<T, U> &lhs, const Pair<T, U> &rhs) {
+	return rhs.first < lhs.first ? rhs : lhs;
+}
 
-	using WrapFunc = RetValue (*)(void *, Args...);
-	WrapFunc func;
-	void *data;
-};
+template <class T, class U>
+const Pair<T, U> &maxFirst(const Pair<T, U> &lhs, const Pair<T, U> &rhs) {
+	return rhs.first > lhs.first ? rhs : lhs;
+}
+
+// TODO: move to interval ?
+template <class TRange, class T = RangeBase<TRange>> Pair<T> minMax(const TRange &range) {
+	if(empty(range))
+		return {};
+	auto it = begin(range), it_end = end(range);
+	T tmin = *it;
+	T tmax = tmin;
+
+	for(++it; it != it_end; ++it) {
+		tmin = min(tmin, *it);
+		tmax = max(tmax, *it);
+	}
+	return {tmin, tmax};
+}
+
+template <class TR, class T = RangeBase<TR>> constexpr const T &max(const TR &range) {
+	return *std::max_element(begin(range), end(range));
+}
+
+template <class TR, class T = RangeBase<TR>> constexpr const T &min(const TR &range) {
+	return *std::min_element(begin(range), end(range));
+}
+
+template <class TR, class T = RangeBase<TR>> constexpr int maxIndex(const TR &range) {
+	return std::max_element(begin(range), end(range)) - begin(range);
+}
+
+template <class TR, class T = RangeBase<TR>> constexpr int minIndex(const TR &range) {
+	return std::min_element(begin(range), end(range)) - begin(range);
+}
+
+// -------------------------------------------------------------------------------------------
+// ---  Testing functions  -------------------------------------------------------------------
+
+template <class TRange, class Functor, class T = RangeBase<TRange>,
+		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
+bool anyOf(const TRange &range, const Functor &functor) {
+	return std::any_of(begin(range), end(range), functor);
+}
+
+template <class TRange, class R, class T = RangeBase<TRange>,
+		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
+bool anyOf(const TRange &range, const R &ref) {
+	return std::any_of(begin(range), end(range), [&](const T &val) { return val == ref; });
+}
+
+template <class TRange, class Functor, class T = RangeBase<TRange>,
+		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
+bool allOf(const TRange &range, const Functor &functor) {
+	return std::all_of(begin(range), end(range), functor);
+}
+
+template <class TRange, class R, class T = RangeBase<TRange>,
+		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
+bool allOf(const TRange &range, const R &ref) {
+	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
+}
+
+template <class T, class TRange, EnableIfRange<TRange, T>...>
+bool isOneOf(const T &value, const TRange &range) {
+	return anyOf(range, value);
+}
+
+template <class T, class... Args> constexpr bool isOneOf(const T &value, const Args &... args) {
+	return ((value == args) || ...);
+}
+
+template <class TRange, EnableIfRange<TRange>...> bool distinct(const TRange &range) {
+	vector<RemoveConst<RangeBase<TRange>>> temp(begin(range), end(range));
+	makeSortedUnique(temp);
+	return fwk::size(temp) == fwk::size(range);
+}
+
+// -------------------------------------------------------------------------------------------
+// ---  Sorting & set operations  ------------------------------------------------------------
 
 template <class TSpan, class T = SpanBase<TSpan>, class Func = LessCompare>
 void bubbleSort(TSpan &span, const Func &func = {}) {
@@ -107,52 +178,8 @@ auto setUnion(const TRange1 &a, const TRange2 &b) {
 	return out;
 }
 
-template <class T, class U>
-const Pair<T, U> &minFirst(const Pair<T, U> &lhs, const Pair<T, U> &rhs) {
-	return rhs.first < lhs.first ? rhs : lhs;
-}
-
-template <class T, class U>
-const Pair<T, U> &maxFirst(const Pair<T, U> &lhs, const Pair<T, U> &rhs) {
-	return rhs.first > lhs.first ? rhs : lhs;
-}
-
-// TODO: move to interval ?
-template <class TRange, class T = RangeBase<TRange>> Pair<T> minMax(const TRange &range) {
-	if(empty(range))
-		return {};
-	auto it = begin(range), it_end = end(range);
-	T tmin = *it;
-	T tmax = tmin;
-
-	for(++it; it != it_end; ++it) {
-		tmin = min(tmin, *it);
-		tmax = max(tmax, *it);
-	}
-	return {tmin, tmax};
-}
-
-template <class T1, class Range> void insertBack(vector<T1> &into, const Range &from) {
-	into.insert(end(into), begin(from), end(from));
-}
-
-template <class T1, class T2>
-void insertBack(vector<T1> &into, const std::initializer_list<T2> &from) {
-	into.insert(end(into), begin(from), end(from));
-}
-
-template <class T1, class Range> void insertFront(vector<T1> &into, const Range &from) {
-	into.insert(begin(into), begin(from), end(from));
-}
-
-template <class T1, class T2>
-void insertFront(vector<T1> &into, const std::initializer_list<T2> &from) {
-	into.insert(begin(into), begin(from), end(from));
-}
-
-template <class Container, class Range> void insert(Container &into, const Range &from) {
-	into.insert(begin(from), end(from));
-}
+// -------------------------------------------------------------------------------------------
+// ---  copy, fill, transform & other algorithms  --------------------------------------------
 
 template <class T, class TRange, EnableIfRange<TRange>...>
 void copy(Span<T> dst, const TRange &src) {
@@ -182,6 +209,13 @@ void fill(Span<T> span, const T1 &value) {
 template <class TRange, EnableIfRange<TRange>..., class T>
 void fill(TRange &range, const T &value) {
 	std::fill(begin(range), end(range), value);
+}
+
+template <class TRange, class TBase = RemoveConst<RangeBase<TRange>>, class T = TBase>
+auto accumulate(const TRange &range, T value = T()) {
+	for(const auto &elem : range)
+		value = value + elem;
+	return value;
 }
 
 template <class TRange, class Func, EnableIfRange<TRange>...>
@@ -265,10 +299,39 @@ vector<Base2> merge(const TRange &range_of_ranges) {
 	return out;
 }
 
-template <class TRange, EnableIfRange<TRange>...> bool distinct(const TRange &range) {
-	vector<RemoveConst<RangeBase<TRange>>> temp(begin(range), end(range));
-	makeSortedUnique(temp);
-	return fwk::size(temp) == fwk::size(range);
+// -------------------------------------------------------------------------------------------
+// ---  Vector modification algorithms -------------------------------------------------------
+
+template <class T1, class Range> void insertBack(vector<T1> &into, const Range &from) {
+	into.insert(end(into), begin(from), end(from));
 }
 
+template <class T1, class T2>
+void insertBack(vector<T1> &into, const std::initializer_list<T2> &from) {
+	into.insert(end(into), begin(from), end(from));
+}
+
+template <class T1, class Range> void insertFront(vector<T1> &into, const Range &from) {
+	into.insert(begin(into), begin(from), end(from));
+}
+
+template <class T1, class T2>
+void insertFront(vector<T1> &into, const std::initializer_list<T2> &from) {
+	into.insert(begin(into), begin(from), end(from));
+}
+
+template <class Container, class Range> void insert(Container &into, const Range &from) {
+	into.insert(begin(from), end(from));
+}
+
+// TODO: erase or remove? What's the best naming?
+template <class T> void remove(vector<T> &vec, const T &value) {
+	auto it = std::remove_if(begin(vec), end(vec), [&](const T &ref) { return ref == value; });
+	vec.erase(it, vec.end());
+}
+
+template <class T, class Func> void removeIf(vector<T> &vec, const Func &func) {
+	auto it = std::remove_if(begin(vec), end(vec), func);
+	vec.erase(it, vec.end());
+}
 }

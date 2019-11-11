@@ -3,12 +3,10 @@
 
 #pragma once
 
-#include "fwk/iterator.h"
+#include "fwk/meta/iterator.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
-
-constexpr bool compatibleSizes(size_t a, size_t b) { return a > b ? a % b == 0 : b % a == 0; }
 
 struct NotARange;
 struct NotASpan;
@@ -116,65 +114,5 @@ Ret back(TRange &&range) {
 	DASSERT(!empty(range));
 	auto it = end(range);
 	return *--it;
-}
-
-template <class TRange, class TBase = RemoveConst<RangeBase<TRange>>, class T = TBase>
-auto accumulate(const TRange &range, T value = T()) {
-	for(const auto &elem : range)
-		value = value + elem;
-	return value;
-}
-
-template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
-bool anyOf(const TRange &range, const Functor &functor) {
-	return std::any_of(begin(range), end(range), functor);
-}
-
-template <class TRange, class R, class T = RangeBase<TRange>,
-		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
-bool anyOf(const TRange &range, const R &ref) {
-	return std::any_of(begin(range), end(range), [&](const T &val) { return val == ref; });
-}
-
-template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
-bool allOf(const TRange &range, const Functor &functor) {
-	return std::all_of(begin(range), end(range), functor);
-}
-
-template <class TRange, class R, class T = RangeBase<TRange>,
-		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
-bool allOf(const TRange &range, const R &ref) {
-	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
-}
-
-template <class T, class TRange, EnableIfRange<TRange, T>...>
-bool isOneOf(const T &value, const TRange &range) {
-	return anyOf(range, value);
-}
-
-template <class TR, class T = RangeBase<TR>> constexpr const T &max(const TR &range) {
-	return *std::max_element(begin(range), end(range));
-}
-
-template <class TR, class T = RangeBase<TR>> constexpr const T &min(const TR &range) {
-	return *std::min_element(begin(range), end(range));
-}
-
-template <class TR, class T = RangeBase<TR>> constexpr int maxIndex(const TR &range) {
-	return std::max_element(begin(range), end(range)) - begin(range);
-}
-
-template <class TR, class T = RangeBase<TR>> constexpr int minIndex(const TR &range) {
-	return std::min_element(begin(range), end(range)) - begin(range);
-}
-
-// TODO: add isComparable
-template <class T> constexpr bool isOneOf(const T &value) { return false; }
-
-template <class T, class Arg1, class... Args>
-constexpr bool isOneOf(const T &value, const Arg1 &arg1, const Args &... args) {
-	return value == arg1 || isOneOf(value, args...);
 }
 }

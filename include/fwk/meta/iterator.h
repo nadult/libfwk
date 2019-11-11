@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "fwk/meta.h"
-#include "fwk/operator.h"
+#include "fwk/meta/operator.h"
 #include "fwk/sys_base.h"
 #include <climits>
 

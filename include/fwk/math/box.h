@@ -156,7 +156,7 @@ template <class T> class Box {
 
 	bool onTheEdge(const T &pos) const {
 		for(int i = 0; i < dim; i++)
-			if(isOneOf(pos[i], m_min[i], m_max[i]))
+			if(pos[i] ==  m_min[i] || pos[i] == m_max[i])
 				return true;
 		return false;
 	}

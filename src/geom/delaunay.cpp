@@ -12,7 +12,6 @@
 #include "fwk/small_vector.h"
 #include "fwk/sys/assert.h"
 #include "fwk/vector.h"
-#include "fwk/vector_algorithm.h"
 #include <numeric>
 
 namespace fwk {

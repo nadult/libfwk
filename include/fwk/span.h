@@ -3,9 +3,11 @@
 
 #pragma once
 
-#include "fwk/range.h"
+#include "fwk/meta/range.h"
 
 namespace fwk {
+
+constexpr bool compatibleSizes(size_t a, size_t b) { return a > b ? a % b == 0 : b % a == 0; }
 
 // Span is a range of elements spanning continuous range of memory (like vector, array, etc.).
 // Span is very light-weight: it keeps a pointer and a size; User is responsible for making sure
@@ -158,5 +160,4 @@ int spanMemberIndex(const TSpan &span, const T &elem) {
 	PASSERT("Element is not a member of span" && ptr >= span.begin() && ptr < span.end());
 	return ptr - span.begin();
 }
-
 }
