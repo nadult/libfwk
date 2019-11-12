@@ -25,7 +25,7 @@ VALID_PLATFORMS  := linux mingw html
 VALID_MODES      := debug debug-nans release release-nans release-paranoid release-paranoid-nans
 
 PLATFORM         = linux
-MODE            ?= release
+MODE            ?= release-paranoid
 FWK_MODE        ?= $(MODE)
 MINGW_PREFIX    ?= x86_64-w64-mingw32.static.posix-
 LINKER           = $(COMPILER)
@@ -95,7 +95,7 @@ endif
 CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
 
 CFLAGS_release += -O3
-CFLAGS_debug   += -O0 -DFWK_PARANOID
+CFLAGS_debug   += -Og -DFWK_PARANOID
 
 CFLAGS_linux   += -pthread -ggdb -DFWK_TARGET_LINUX 
 CFLAGS_mingw   += -pthread -ggdb -DFWK_TARGET_MINGW -msse2 -mfpmath=sse
