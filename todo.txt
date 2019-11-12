@@ -2,6 +2,15 @@ ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
 ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
 NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
 
+
+----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
+
+- intRange, indexRange -> inds ? wrappedPairs -> pairIndexRange ?
+
+- dodać funkcję reinterpretExact (lub jakos inaczej) dla typów o tej samej wielkości
+- na początku odpalania programu, odpalić jakieś gdb na wątku ?
+
+- release-paranoid -> paranoid ?
 - emplace_back -> append ?
 - Add array<> with bounds checks
 - Besides asserts add different kinds of warnings which can be placesd all around code

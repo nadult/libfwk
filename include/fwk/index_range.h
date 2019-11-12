@@ -41,21 +41,14 @@ template <class Transform = None, class Filter = None> class IndexRange {
 	using Value = decltype(apply(DECLVAL(Transform), 0));
 
 	struct Iter {
-		using difference_type = int;
-		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = Value;
-		using reference = value_type &;
-		using pointer = value_type *;
-
 		constexpr Iter(int index, const IndexRange &base) : index(index), base(base) {}
 
-		constexpr const Iter &operator++() {
+		constexpr void operator++() {
 			index++;
 			if constexpr(!is_same<Filter, None>) {
 				while(index != base.m_end && !base.m_filter(index))
 					index++;
 			}
-			return *this;
 		}
 		Value operator*() const { return apply(base.m_trans, index); }
 
@@ -114,20 +107,8 @@ template <class T> class SimpleIndexRange {
   public:
 	SimpleIndexRange(int start, int end) : it_start(start), it_end(end) { PASSERT(start <= end); }
 
-	class Iter {
-	  public:
-		using difference_type = int;
-		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = T;
-		using reference = value_type &;
-		using pointer = value_type *;
-
-		constexpr Iter(int index) : index(index) {}
-
-		constexpr const Iter &operator++() {
-			index++;
-			return *this;
-		}
+	struct Iter {
+		constexpr void operator++() { index++; }
 		constexpr T operator*() const { return T(index); }
 		constexpr int operator-(Iter it) const { return index - it.index; }
 
@@ -135,12 +116,11 @@ template <class T> class SimpleIndexRange {
 		constexpr bool operator==(const Iter &rhs) const { return index == rhs.index; }
 		constexpr bool operator<(const Iter &rhs) const { return index < rhs.index; }
 
-	  private:
 		int index;
 	};
 
-	auto begin() const { return Iter(it_start); }
-	auto end() const { return Iter(it_end); }
+	auto begin() const { return Iter{it_start}; }
+	auto end() const { return Iter{it_end}; }
 	int size() const { return it_end - it_start; }
 	T operator[](int index) const { return T(it_start + index); }
 
