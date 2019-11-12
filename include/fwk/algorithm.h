@@ -326,12 +326,14 @@ template <class Container, class Range> void insert(Container &into, const Range
 }
 
 // TODO: erase or remove? What's the best naming?
-template <class T> void remove(vector<T> &vec, const T &value) {
+template <class TVector, class T, class TBase = VectorBase<TVector>>
+void remove(TVector &vec, const T &value) {
 	auto it = std::remove_if(begin(vec), end(vec), [&](const T &ref) { return ref == value; });
 	vec.erase(it, vec.end());
 }
 
-template <class T, class Func> void removeIf(vector<T> &vec, const Func &func) {
+template <class TVector, class Func, class TBase = VectorBase<TVector>>
+void removeIf(TVector &vec, const Func &func) {
 	auto it = std::remove_if(begin(vec), end(vec), func);
 	vec.erase(it, vec.end());
 }

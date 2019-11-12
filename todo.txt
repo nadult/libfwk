@@ -5,6 +5,12 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
+- używanie -Og w trybie debug
+- używanie -O0 w trybie full-debug ?
+
+- wrzucić niektóre funkcje z algorithm wewnątrz klas (np. wektorów?)
+- lepsza nazwa dla pliku meta/range.h
+
 - HashMapa i HashSet mogą być traktowane jako SparseSpan!
 
 - remove(vector, element) should be a member ?

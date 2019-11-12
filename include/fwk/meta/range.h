@@ -10,6 +10,7 @@ namespace fwk {
 
 struct NotARange;
 struct NotASpan;
+struct NotAVector;
 
 namespace detail {
 
@@ -50,6 +51,16 @@ namespace detail {
 		using MaybeInfo = If<value, Info<Base>, NotASpan>;
 	};
 
+	template <class T> constexpr bool is_vector = false;
+	template <class T> constexpr bool is_vector<Vector<T>> = true;
+	template <class T> constexpr bool is_vector<PodVector<T>> = true;
+	template <class T, int size> constexpr bool is_vector<StaticVector<T, size>> = true;
+
+	template <class T> struct VectorInfo {
+		static constexpr bool value = is_vector<T>;
+		using MaybeInfo = If<value, typename RangeInfo<T>::MaybeInfo, NotAVector>;
+	};
+
 #undef SFINAE_EVAL
 }
 
@@ -64,12 +75,20 @@ template <class T> constexpr bool is_range = detail::RangeInfo<T>::value;
 // Or it must provide data() (which returns a pointer) and size()
 template <class T> constexpr bool is_span = detail::SpanInfo<T>::value;
 
+// Conditions for vector are not clearly defined yet (TODO)
+// This test is useful for some generic algorithms
+template <class T> constexpr bool is_vector = detail::is_vector<T>;
+
+// TODO: add concepts: sparse_span, sparse_vector ? A lot of containers could satisfy
+// sparse_span concept
+
 template <class T> using EnableIfRange = EnableIf<detail::RangeInfo<T>::value, NotARange>;
 template <class T> using EnableIfSpan = EnableIf<detail::SpanInfo<T>::value, NotASpan>;
 
 template <class T> using RangeBase = typename detail::RangeInfo<T>::MaybeInfo::Value;
 template <class T> using RangeIter = typename detail::RangeInfo<T>::MaybeInfo::Iter;
 template <class T> using SpanBase = typename detail::SpanInfo<T>::MaybeInfo::Value;
+template <class T> using VectorBase = typename detail::VectorInfo<T>::MaybeInfo::Value;
 
 template <class TSpan, class Base = SpanBase<TSpan>> Base *data(TSpan &range) {
 	if constexpr(detail::SpanInfo<TSpan>::data_mode)
