@@ -194,7 +194,7 @@ constexpr bool operator<(const LightTuple<Args...> &lhs, const LightTuple<Args..
 
 template <class... Args>
 constexpr bool operator==(const LightTuple<Args...> &lhs, const LightTuple<Args...> &rhs) {
-	static_assert((equality_comparable<Args> && ...));
+	static_assert((equality_comparable<Args, Args> && ...));
 	return detail::cmpEqual<0>(lhs, rhs);
 }
 

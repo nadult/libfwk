@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/meta/operator.h"
 #include "fwk/span.h"
 
 namespace fwk {
@@ -89,8 +90,8 @@ bool allOf(const TRange &range, const R &ref) {
 	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
 
-template <class T, class TRange, EnableIfRange<TRange, T>...>
-bool isOneOf(const T &value, const TRange &range) {
+template <class T, class R, class U = RangeBase<R>, EnableIf<equality_comparable<T, U>>...>
+bool isOneOf(const T &value, const R &range) {
 	return anyOf(range, value);
 }
 

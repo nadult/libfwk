@@ -20,6 +20,7 @@ namespace detail {
 	OP_RESULT(Div, /)
 	OP_RESULT(Less, <)
 	OP_RESULT(Equal, ==)
+	OP_RESULT(NotEqual, !=)
 #undef OP_RESULT
 	template <class L, class R> struct ApplyResult {
 		template <class U> static decltype(DECLVAL(const U &)(DECLVAL(const R &))) test(U *);
@@ -40,11 +41,14 @@ OP_RESULT(Mul)
 OP_RESULT(Div)
 OP_RESULT(Less)
 OP_RESULT(Equal)
+OP_RESULT(NotEqual)
 OP_RESULT(Apply)
 #undef OP_RESULT
 
-template <class T>
-static constexpr bool equality_comparable = is_convertible<EqualResult<T, T>, bool>;
+template <class T, class U>
+static constexpr bool equality_comparable = is_convertible<EqualResult<T, U>, bool>;
+template <class T, class U>
+static constexpr bool inequality_comparable = is_convertible<NotEqualResult<T, U>, bool>;
 template <class T> static constexpr bool less_comparable = is_convertible<LessResult<T, T>, bool>;
 
 // Automatic operators for user types: +=, -=, *=, /=, <=, >=, >, !=
