@@ -5,12 +5,25 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
+- HashMapa i HashSet mogą być traktowane jako SparseSpan!
+
+- remove(vector, element) should be a member ?
+  maybe we shoulds create VectorBase< VecClass > which contains different functions like this ?
+
+- HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
+  nullptr is sentinel ?
+
+- HashMap: iterator should just be a pointer to node; null pointer means find == end()
+- TODO: hashMap where [] doesnt add new element; improve searching, querying & replacing interface
+
 - intRange, indexRange -> inds ? wrappedPairs -> pairIndexRange ?
 
 - dodać funkcję reinterpretExact (lub jakos inaczej) dla typów o tej samej wielkości
 - na początku odpalania programu, odpalić jakieś gdb na wątku ?
 
-- release-paranoid -> paranoid ?
+- release-paranoid -> paranoid ? debug -> full-debug, release-paranoid -> debug i dodać
+  trochę flag typu no-omit, etc ?
+
 - emplace_back -> append ?
 - Add array<> with bounds checks
 - Besides asserts add different kinds of warnings which can be placesd all around code
@@ -98,9 +111,6 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
   SmallVectorBase, PodVectorBase, VectorBase:
   PodVector: public VectorInterface<PodVectorBase> ?
 
-- HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
-- HashMap: iterator should just be a pointer to node; null pointer means find == end()
-- TODO: hashMap where [] doesnt add new element; improve searching, querying & replacing interface
 - Formatting math objects first to expression, then to string (expression handles special chars, parentheses, additions, etc.)
 - konstruktory dla vec2, vec3, vec4? 
 - vec2, vec3: unie i możliwość używania złożonych typów jako parametrów (boost int128) wymagają

@@ -20,14 +20,7 @@ constexpr PoolAllocTag pool_alloc;
 template <class T> class Vector {
   public:
 	using value_type = T;
-	using reference = value_type &;
-	using const_reference = const value_type &;
-	using iterator = T *;
-	using const_iterator = const T *;
 	using size_type = int;
-	using difference_type = int;
-	using reverse_iterator = std::reverse_iterator<iterator>;
-	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	template <class IT>
 	static constexpr bool is_input_iter = is_forward_iter<IT> &&is_constructible<T, IterBase<IT>>;
@@ -80,7 +73,7 @@ template <class T> class Vector {
 		}
 	}
 
-	void assign(const_iterator first, const_iterator last) {
+	void assign(const T *first, const T *last) {
 		if(trivial_copy_constr && trivial_destruction)
 			m_base.assignPod(sizeof(T), first, last - first);
 		else
@@ -189,7 +182,7 @@ template <class T> class Vector {
 	void push_back(const T &rhs) { emplace_back(rhs); }
 	void push_back(T &&rhs) { emplace_back(std::move(rhs)); }
 
-	void erase(const_iterator it) {
+	void erase(const T *it) {
 		if(trivial_move_constr && trivial_destruction)
 			m_base.erasePod(sizeof(T), it - begin(), 1);
 		else
@@ -201,19 +194,16 @@ template <class T> class Vector {
 		m_base.size--;
 	}
 
-	void erase(const_iterator a, const_iterator b) {
+	void erase(const T *a, const T *b) {
 		if(trivial_move_constr && trivial_destruction)
 			m_base.erasePod(sizeof(T), a - begin(), b - a);
 		else
 			m_base.erase(sizeof(T), &Vector::destroy, &Vector::moveAndDestroy, a - begin(), b - a);
 	}
 
-	iterator insert(const const_iterator pos, const T &value) {
-		return insert(pos, &value, (&value) + 1);
-	}
+	T *insert(const T *pos, const T &value) { return insert(pos, &value, (&value) + 1); }
 
-	template <class IT, EnableIf<is_input_iter<IT>>...>
-	iterator insert(const const_iterator pos, IT first, IT last) {
+	template <class IT, EnableIf<is_input_iter<IT>>...> T *insert(const T *pos, IT first, IT last) {
 		int offset = pos - begin();
 		if(trivial_move_constr && trivial_destruction)
 			m_base.insertPodPartial(sizeof(T), offset, fwk::distance(first, last));
@@ -228,7 +218,7 @@ template <class T> class Vector {
 		return begin() + toffset;
 	}
 
-	iterator insert(const const_iterator pos, const_iterator first, const_iterator last) {
+	T *insert(const T *pos, const T *first, const T *last) {
 		if(pos == end() && last - first <= m_base.capacity - m_base.size) {
 			if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
 				memcpy(end(), first, (last - first) * sizeof(T));
@@ -248,7 +238,7 @@ template <class T> class Vector {
 		return begin() + offset;
 	}
 
-	iterator insert(const_iterator pos, std::initializer_list<T> il) {
+	T *insert(const T *pos, std::initializer_list<T> il) {
 		int offset = pos - begin();
 		insert(pos, il.begin(), il.end());
 		return begin() + offset;
