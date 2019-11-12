@@ -116,7 +116,7 @@ template <class T, int max_size_> class StaticVector {
 	void shrink(int new_size) {
 		PASSERT(new_size >= 0 && new_size <= size());
 		while(m_size > new_size)
-			DATA[m_size--].~T();
+			DATA[--m_size].~T();
 	}
 
 	void resize(int new_size) {
@@ -126,6 +126,20 @@ template <class T, int max_size_> class StaticVector {
 		while(index < new_size)
 			new(data() + index++) T();
 		m_size = new_size;
+	}
+
+	void erase(const T *a, const T *b) {
+		int offset = a - begin();
+		int count = b - a;
+		int move_offset = offset + count;
+		int move_count = int(m_size) - move_offset;
+		for(int i = 0; i < count; i++)
+			DATA[i + offset].~T();
+		for(int i = 0; i < move_count; i++) {
+			new(DATA + i + offset) T(move(DATA[i + move_offset]));
+			DATA[i + move_offset].~T();
+		}
+		m_size -= count;
 	}
 
 	bool operator==(const StaticVector &rhs) const {
