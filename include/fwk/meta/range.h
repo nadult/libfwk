@@ -13,83 +13,73 @@ struct NotASpan;
 
 namespace detail {
 
-	template <class T, class ReqType = void> struct RangeInfo {
-		template <class It, class Val> struct ValidInfo {
+#define SFINAE_EVAL(NAME, VALUE_TYPE, ...)                                                         \
+	template <class U> static Type<decltype(__VA_ARGS__)> NAME##Test(Type<U> *);                   \
+	template <class U> static InvalidType NAME##Test(...);                                         \
+	using NAME = UnwrapType<decltype(NAME##Test<VALUE_TYPE>(nullptr))>;
+
+	template <class T> struct RangeInfo {
+		template <class It, class Val> struct Info {
 			using Iter = It;
 			using Value = Val;
 		};
 
-		struct InvalidInfo {
-			using Iter = void;
-			using Value = void;
-		};
-		template <class U, class It1 = decltype(begin(DECLVAL(U &))),
-				  class It2 = decltype(end(DECLVAL(U &))),
-				  class Base1 = RemoveReference<decltype(*DECLVAL(It1 &))>,
-				  class Base2 = RemoveReference<decltype(*DECLVAL(It2 &))>,
-				  EnableIf<(is_same<RemoveConst<Base1>, ReqType> ||
-							is_same<void, ReqType>)&&is_same<Base1, Base2>>...>
-		static auto test(U &) -> ValidInfo<It1, Base1>;
-		template <class U> static InvalidInfo test(...);
+		SFINAE_EVAL(BeginItType, T, begin(DECLVAL(U &)))
+		SFINAE_EVAL(EndItType, T, end(DECLVAL(U &)))
+		SFINAE_EVAL(BaseType_, BeginItType, *DECLVAL(U &))
+		using BaseType = RemoveReference<BaseType_>;
 
-		using Info = decltype(test<T>(DECLVAL(T &)));
-		static constexpr bool value = !is_same<Info, InvalidInfo>;
-		using MaybeInfo = If<value, Info, NotARange>;
+		static constexpr bool value =
+			!is_same<BaseType, InvalidType> && inequality_comparable<BeginItType, EndItType>;
+		using MaybeInfo = If<value, Info<BeginItType, BaseType>, NotARange>;
 	};
 
-	// TODO: don't use Req parameter here, it causes unnecessary instantiations
-	template <class T, class ReqType = void> struct SpanInfo {
-		template <class Val, bool has_data_> struct ValidInfo {
-			enum { is_const = fwk::is_const<Val>, has_data = has_data_ };
-			using Value = Val;
-		};
+	template <class T> struct SpanInfo {
+		template <class Val> struct Info { using Value = Val; };
 
-		struct InvalidInfo {
-			enum { is_const = false, has_data = false };
-			using Value = void;
-		};
+		SFINAE_EVAL(DataType, T, DECLVAL(U &).data())
+		SFINAE_EVAL(SizeType, T, DECLVAL(U &).size())
 
-		template <class U, class It1 = decltype(begin(DECLVAL(U &))),
-				  class It2 = decltype(end(DECLVAL(U &))),
-				  EnableIf<is_same<It1, It2> && std::is_pointer<It1>::value>...,
-				  class Base = RemovePointer<It1>,
-				  EnableIf<(is_same<Base, ReqType> || is_same<void, ReqType>)>...>
-		static auto test(PriorityTag1, U &) -> ValidInfo<Base, false>;
+		using RInfo = RangeInfo<T>;
+		static constexpr bool data_mode =
+			std::is_pointer<DataType>::value && is_convertible<SizeType, int>;
+		static constexpr bool value =
+			data_mode || (RInfo::value && std::is_pointer<typename RInfo::BeginItType>::value);
+		using Base = If<data_mode, RemovePointer<DataType>, typename RInfo::BaseType>;
 
-		template <class U, class Base = RemovePointer<decltype(DECLVAL(U &).data())>,
-				  EnableIf<is_same<RemoveConst<Base>, ReqType> || is_same<void, ReqType>>...,
-				  EnableIf<is_convertible<decltype(DECLVAL(U &).size()), int>, int>...>
-		static auto test(PriorityTag0, U &) -> ValidInfo<Base, true>;
-
-		template <class U> static InvalidInfo test(...);
-
-		using Info = decltype(test<T>(PriorityTag1(), DECLVAL(T &)));
-		static constexpr bool value = !is_same<Info, InvalidInfo>;
-		using MaybeInfo = If<value, Info, NotASpan>;
+		using MaybeInfo = If<value, Info<Base>, NotASpan>;
 	};
+
+#undef SFINAE_EVAL
 }
 
+// Conditions for range:
+// These expressions must be valid: begin(range), end(range)
+// Iterators returned by begin(range) and end(range) must be comparable
+// Iterator returned by begin(range) must be dereferencible
 template <class T> constexpr bool is_range = detail::RangeInfo<T>::value;
+
+// Conditions for span:
+// It either must be a range where iterators are simple pointers
+// Or it must provide data() (which returns a pointer) and size()
 template <class T> constexpr bool is_span = detail::SpanInfo<T>::value;
 
-template <class T, class Req = void>
-using EnableIfRange = EnableIf<detail::RangeInfo<T, Req>::value, NotARange>;
-template <class T, class Req = void>
-using EnableIfSpan = EnableIf<detail::SpanInfo<T, Req>::value, NotARange>;
+template <class T> using EnableIfRange = EnableIf<detail::RangeInfo<T>::value, NotARange>;
+template <class T> using EnableIfSpan = EnableIf<detail::SpanInfo<T>::value, NotASpan>;
 
 template <class T> using RangeBase = typename detail::RangeInfo<T>::MaybeInfo::Value;
 template <class T> using RangeIter = typename detail::RangeInfo<T>::MaybeInfo::Iter;
 template <class T> using SpanBase = typename detail::SpanInfo<T>::MaybeInfo::Value;
 
 template <class TSpan, class Base = SpanBase<TSpan>> Base *data(TSpan &range) {
-	if constexpr(detail::SpanInfo<TSpan>::Info::has_data)
+	if constexpr(detail::SpanInfo<TSpan>::data_mode)
 		return range.data();
 	else
 		return begin(range);
 }
 
 template <class TSpan, class Base = SpanBase<TSpan>> const Base *data(const TSpan &range) {
-	if constexpr(detail::SpanInfo<TSpan>::Info::has_data)
+	if constexpr(detail::SpanInfo<TSpan>::data_mode)
 		return range.data();
 	else
 		return begin(range);
