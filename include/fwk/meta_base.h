@@ -9,6 +9,7 @@ namespace fwk {
 
 struct EnabledType {};
 struct DisabledType;
+struct InvalidType;
 
 struct Empty {};
 
@@ -25,6 +26,10 @@ template <class T, int N> struct IndexedType {
 
 template <class T> struct Type {};
 template <class... Args> struct Types {};
+
+template <class T> struct UnwrapType_ { using Type = T; };
+template <class T> struct UnwrapType_<Type<T>> { using Type = T; };
+template <class T> using UnwrapType = typename UnwrapType_<T>::Type;
 
 template <class T> auto declval() -> T;
 #define DECLVAL(type) declval<type>()
