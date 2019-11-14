@@ -42,7 +42,6 @@ namespace fwk {
 
 namespace detail {
 
-
 template <typename T, typename... Types>
 struct direct_type;
 
@@ -96,40 +95,25 @@ struct variant_helper;
 template <typename T, typename... Types>
 struct variant_helper<T, Types...>
 {
-    static void destroy(int type_index, void * data)
-    {
+    static void destroy(int type_index, void * data) {
         if (type_index == (int)sizeof...(Types))
-        {
             reinterpret_cast<T*>(data)->~T();
-        }
         else
-        {
             variant_helper<Types...>::destroy(type_index, data);
-        }
     }
 
-    static void move(int old_type_index, void * old_value, void * new_value)
-    {
+    static void move(int old_type_index, void * old_value, void * new_value) {
         if (old_type_index == (int)sizeof...(Types))
-        {
             new (new_value) T(std::move(*reinterpret_cast<T*>(old_value)));
-        }
         else
-        {
             variant_helper<Types...>::move(old_type_index, old_value, new_value);
-        }
     }
 
-    static void copy(int old_type_index, const void * old_value, void * new_value)
-    {
+    static void copy(int old_type_index, const void * old_value, void * new_value) {
         if (old_type_index == (int)sizeof...(Types))
-        {
             new (new_value) T(*reinterpret_cast<const T*>(old_value));
-        }
         else
-        {
             variant_helper<Types...>::copy(old_type_index, old_value, new_value);
-        }
     }
 
 };
@@ -142,70 +126,36 @@ struct variant_helper<>
     static void copy(int, const void *, void *) {}
 };
 
-template <typename T>
-struct unwrapper
-{
-    static T const& apply_const(T const& obj) {return obj;}
-    static T& apply(T & obj) {return obj;}
-};
-
-template <typename T>
-struct unwrapper<std::reference_wrapper<T>>
-{
-    static auto apply_const(std::reference_wrapper<T> const& obj)
-        -> typename std::reference_wrapper<T>::type const&
-    {
-        return obj.get();
-    }
-    static auto apply(std::reference_wrapper<T> & obj)
-        -> typename std::reference_wrapper<T>::type&
-    {
-        return obj.get();
-    }
-};
-
 template <typename F, typename V, typename R, typename... Types>
 struct dispatcher;
 
 template <typename F, typename V, typename R, typename T, typename... Types>
 struct dispatcher<F, V, R, T, Types...>
 {
-    static R apply_const(V const& v, F && f)
-    {
+    static R apply_const(V const& v, F && f) {
         if (v. template is<T>())
-        {
-            return f(unwrapper<T>::apply_const(v. template get<T>()));
-        }
+            return f(v. template get<T>());
         else
-        {
             return dispatcher<F, V, R, Types...>::apply_const(v, std::forward<F>(f));
-        }
     }
 
-    static R apply(V & v, F && f)
-    {
+    static R apply(V & v, F && f) {
         if (v. template is<T>())
-        {
-            return f(unwrapper<T>::apply(v. template get<T>()));
-        }
+            return f(v. template get<T>());
         else
-        {
             return dispatcher<F, V, R, Types...>::apply(v, std::forward<F>(f));
-        }
     }
 };
 
 template <typename F, typename V, typename R, typename T>
 struct dispatcher<F, V, R, T>
 {
-    static R apply_const(V const& v, F && f)
-    {
-        return f(unwrapper<T>::apply_const(v. template get<T>()));
+    static R apply_const(V const& v, F && f) {
+        return f(v. template get<T>());
     }
 
-    static R apply(V & v, F && f)
-    {
-        return f(unwrapper<T>::apply(v. template get<T>()));
+    static R apply(V & v, F && f) {
+        return f(v. template get<T>());
     }
 };
 
@@ -213,8 +163,7 @@ struct dispatcher<F, V, R, T>
 struct equal_comp
 {
     template <typename T>
-    bool operator()(T const& lhs, T const& rhs) const
-    {
+    bool operator()(T const& lhs, T const& rhs) const {
         return lhs == rhs;
     }
 };
@@ -222,8 +171,7 @@ struct equal_comp
 struct less_comp
 {
     template <typename T>
-    bool operator()(T const& lhs, T const& rhs) const
-    {
+    bool operator()(T const& lhs, T const& rhs) const {
         return lhs < rhs;
     }
 };
@@ -290,7 +238,7 @@ class Variant
 {
     static_assert(sizeof...(Types) > 0, "Template parameter type list of variant can not be empty");
 	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
-    static_assert(!Disjunction<std::is_reference<Types>...>::value, "Variant can not hold reference types. Maybe use std::reference?");
+    static_assert(!(std::is_reference<Types>::value || ...), "Variant can not hold reference types. Maybe use std::reference?");
 
 	template <class T>
 	using EnableIfValidType = EnableIf<(detail::direct_type<T, Types...>::index != -1), TypeNotInVariant>;
@@ -431,23 +379,6 @@ public:
 			FWK_FATAL("Bad variant access in get()");
     }
 
-    // get<T>() - T stored as std::reference_wrapper<T>
-    template <typename T, EnableIfValidType<std::reference_wrapper<T>>...>
-    T& get() {
-        if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index || ndebug_access)
-            return (*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
-        else
-			FWK_FATAL("Bad variant access in get()");
-    }
-
-    template <typename T, EnableIfValidType<std::reference_wrapper<const T>>...>
-    T const& get() const {
-        if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index || ndebug_access)
-            return (*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
-        else
-			FWK_FATAL("Bad variant access in get()");
-    }
-
 	template <typename T, EnableIfValidType<T>...>
     operator T *() {
         return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T *>(&data) : nullptr;
@@ -456,20 +387,6 @@ public:
 	template <typename T, EnableIfValidType<T>...>
     operator const T *() const {
         return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T const*>(&data) : nullptr;
-    }
-
-	template <typename T, EnableIfValidType<std::reference_wrapper<T>>...>
-    operator T*() {
-        if (type_index == detail::direct_type<std::reference_wrapper<T>, Types...>::index)
-            return &(*reinterpret_cast<std::reference_wrapper<T>*>(&data)).get();
-		return nullptr;
-    }
-
-    template <typename T, EnableIfValidType<std::reference_wrapper<const T>>...>
-    operator const T*() const {
-        if (type_index == detail::direct_type<std::reference_wrapper<T const>, Types...>::index)
-            return &(*reinterpret_cast<std::reference_wrapper<T const> const*>(&data)).get();
-		return nullptr;
     }
 
     int which() const {
