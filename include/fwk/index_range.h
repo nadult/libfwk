@@ -66,7 +66,6 @@ template <class Transform = None, class Filter = None> class IndexRange {
 			}
 		}
 
-		constexpr bool operator!=(const Iter &rhs) const { return index != rhs.index; }
 		constexpr bool operator==(const Iter &rhs) const { return index == rhs.index; }
 		constexpr bool operator<(const Iter &rhs) const { return index < rhs.index; }
 
@@ -112,7 +111,6 @@ template <class T> class SimpleIndexRange {
 		constexpr T operator*() const { return T(index); }
 		constexpr int operator-(Iter it) const { return index - it.index; }
 
-		constexpr bool operator!=(const Iter &rhs) const { return index != rhs.index; }
 		constexpr bool operator==(const Iter &rhs) const { return index == rhs.index; }
 		constexpr bool operator<(const Iter &rhs) const { return index < rhs.index; }
 

@@ -53,7 +53,10 @@ template <class T> static constexpr bool less_comparable = is_convertible<LessRe
 
 // Automatic operators for user types: +=, -=, *=, /=, <=, >=, >, !=
 
-template <class T1, class T2> bool operator!=(const T1 &a, const T2 &b) { return !(a == b); }
+template <class L, class R, EnableIf<equality_comparable<L, R>>...>
+bool operator!=(const L &a, const R &b) {
+	return !(a == b);
+}
 
 template <class L, class R, EnableIf<is_same<AddResult<L, R>, L> && !std::is_scalar_v<L>>...>
 void operator+=(L &a, const R &b) {

@@ -143,7 +143,7 @@ template <class Type> struct AllEnums {
 	struct Iter {
 		Type operator*() const { return Type(pos); }
 		void operator++() { pos++; }
-		bool operator!=(const Iter &rhs) const { return pos != rhs.pos; }
+		bool operator==(const Iter &rhs) const { return pos == rhs.pos; }
 
 		int pos;
 	};

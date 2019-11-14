@@ -198,7 +198,7 @@ template <class T> class SparseVector {
 				return Ret(idx);
 		}
 		constexpr void operator++() { idx = vec.nextIndex(idx); }
-		constexpr bool operator!=(const Iter &rhs) const { return idx != rhs.idx; }
+		constexpr bool operator==(const Iter &rhs) const { return idx == rhs.idx; }
 
 		int idx;
 		Vec &vec;

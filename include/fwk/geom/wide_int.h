@@ -55,11 +55,6 @@ template <int N> class WideInt {
 	bool operator==(const WideInt &that) const;
 	bool operator<(const WideInt &that) const;
 
-	bool operator!=(const WideInt &that) const { return !(*this == that); }
-	bool operator>(const WideInt &that) const { return that < *this; }
-	bool operator<=(const WideInt &that) const { return !(that < *this); }
-	bool operator>=(const WideInt &that) const { return !(*this < that); }
-
 	WideInt operator-() const {
 		WideInt ret_val = *this;
 		ret_val.neg();

@@ -5,6 +5,8 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
+- children to zle okreslenie na potomstwo!!!!
+
 - używanie -Og w trybie debug
 - używanie -O0 w trybie full-debug ?
 

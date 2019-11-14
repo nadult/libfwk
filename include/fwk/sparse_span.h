@@ -92,7 +92,7 @@ template <class T> class SparseSpan {
 			else
 				return Ret(idx);
 		}
-		constexpr bool operator!=(const Iter &rhs) const { return idx != rhs.idx; }
+		constexpr bool operator==(const Iter &rhs) const { return idx == rhs.idx; }
 
 		const SparseSpan &span;
 		int idx;

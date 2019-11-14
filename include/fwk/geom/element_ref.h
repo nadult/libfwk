@@ -18,7 +18,7 @@ template <class Ref, class Id> struct GRefs {
 		}
 		Ref operator*() const { return Ref{graph, *ptr}; }
 		constexpr int operator-(const Iter &rhs) const { return ptr - rhs.ptr; }
-		constexpr bool operator!=(const Iter &rhs) const { return ptr != rhs.ptr; }
+		constexpr bool operator==(const Iter &rhs) const { return ptr == rhs.ptr; }
 
 		const Graph *graph;
 		const Id *ptr;
