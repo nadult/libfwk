@@ -360,10 +360,8 @@ public:
         type_index = detail::direct_type<T, Types...>::index;
     }
 
-    // get<T>()
     template <typename T, EnableIfValidType<T>...>
-    T & get()
-    {
+    T & get() & {
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T*>(&data);
         else
@@ -371,8 +369,7 @@ public:
     }
 
     template <typename T, EnableIfValidType<T>...>
-    T const& get() const
-    {
+    T const& get() const & {
         if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
             return *reinterpret_cast<T const*>(&data);
         else
@@ -380,14 +377,20 @@ public:
     }
 
 	template <typename T, EnableIfValidType<T>...>
-    operator T *() {
+    operator T *() & {
         return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T *>(&data) : nullptr;
     }
 
 	template <typename T, EnableIfValidType<T>...>
-    operator const T *() const {
+    operator const T *() const & {
         return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T const*>(&data) : nullptr;
     }
+
+	template <typename T, EnableIfValidType<T>...> T & get() && = delete;
+    template <typename T, EnableIfValidType<T>...> T const& get() const && = delete;
+
+	template <typename T, EnableIfValidType<T>...> operator T *() && = delete;
+	template <typename T, EnableIfValidType<T>...> operator const T *() const && = delete;
 
     int which() const {
         return (int)sizeof...(Types) - type_index - 1;
