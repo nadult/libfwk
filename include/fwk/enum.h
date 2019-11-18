@@ -102,12 +102,13 @@ namespace detail {
 		template <class C> static auto declTest(int) -> decltype(_fwkDeclaredEnum(DECLVAL(C)));
 		template <class C> static auto declTest(...) -> void;
 
-		static constexpr bool value =
-			!is_same<void, decltype(test<T>(0))> || !is_same<void, decltype(declTest<T>(0))>;
+		static constexpr bool value = !is_same<void, decltype(test<T>(0))>;
+		static constexpr bool decl_value = value || !is_same<void, decltype(declTest<T>(0))>;
 	};
 }
 
-template <class T> constexpr bool is_enum = detail::IsEnum<T>::value;
+template <class T> constexpr bool is_enum = detail::IsEnum<T>::decl_value;
+template <class T> constexpr bool is_defined_enum = detail::IsEnum<T>::value;
 
 template <class T> using EnableIfEnum = EnableIf<is_enum<T>, NotAnEnum>;
 

@@ -10,6 +10,9 @@
 namespace fwk {
 
 template <class T> struct EnumFlags {
+	static_assert(is_enum<T>, "EnumFlags<> should be based on fwk-enum");
+	static_assert(is_defined_enum<T>, "Enum should be fully-defined before using EnumFlags<>");
+
 	using Base = If<count<T> <= 8, u8, If<count<T> <= 16, u16, If<count<T> <= 32, u32, u64>>>;
 	using BigBase = If<(count<T> <= 32), u32, u64>;
 
@@ -18,7 +21,6 @@ template <class T> struct EnumFlags {
 
 	static_assert(count<T> <= 64,
 				  "Maximum nr of enum elements is 64 (TODO: fix it if it's really needed)");
-	static_assert(is_enum<T>, "EnumFlags<> should be based on fwk-enum");
 	static_assert(std::is_unsigned<Base>::value, "");
 	static_assert(count<T> <= sizeof(Base) * 8, "");
 
