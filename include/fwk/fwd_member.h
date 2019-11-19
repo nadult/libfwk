@@ -33,7 +33,7 @@ namespace detail {
 	template <class T> struct FullyDefined { static constexpr bool value = IsDefined<T>::value; };
 	template <template <class...> class T, class... Args> struct FullyDefined<T<Args...>> {
 		static constexpr bool eval() {
-			if constexpr(Conjunction<FullyDefined<Args>...>::value)
+			if constexpr((FullyDefined<Args>::value && ...))
 				return IsDefined<T<Args...>>::value;
 			return false;
 		};

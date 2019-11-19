@@ -58,16 +58,6 @@ namespace detail {
 	};
 	template <typename T, typename... Types> struct NthType<0, T, Types...> { using type = T; };
 
-	template <class...> struct Disjunction : std::false_type {};
-	template <class B1> struct Disjunction<B1> : B1 {};
-	template <class B1, class... Bn>
-	struct Disjunction<B1, Bn...> : std::conditional_t<bool(B1::value), B1, Disjunction<Bn...>> {};
-
-	template <class...> struct Conjunction : std::true_type {};
-	template <class B1> struct Conjunction<B1> : B1 {};
-	template <class B1, class... Bn>
-	struct Conjunction<B1, Bn...> : std::conditional_t<bool(B1::value), Conjunction<Bn...>, B1> {};
-
 	template <class Arg0, class ArgN> struct MergeTypes { using type = Types<Arg0, ArgN>; };
 	template <class Arg0, class... Args> struct MergeTypes<Arg0, Types<Args...>> {
 		using type = Types<Arg0, Args...>;
@@ -132,10 +122,6 @@ template <class T> using RemoveReference = typename std::remove_reference<T>::ty
 template <class T> using RemovePointer = typename std::remove_pointer<T>::type;
 template <class T>
 using RemoveRefConst = typename std::remove_const<typename std::remove_reference<T>::type>::type;
-
-// TODO: template variables
-using detail::Conjunction;
-using detail::Disjunction;
 
 template <class... Types> using IndexedTypes = typename detail::MakeIndexedTypes<0, Types...>::type;
 
