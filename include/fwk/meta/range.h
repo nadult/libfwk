@@ -54,6 +54,7 @@ namespace detail {
 	template <class T> constexpr bool is_vector = false;
 	template <class T> constexpr bool is_vector<Vector<T>> = true;
 	template <class T> constexpr bool is_vector<PodVector<T>> = true;
+	template <class T, int size> constexpr bool is_vector<SmallVector<T, size>> = true;
 	template <class T, int size> constexpr bool is_vector<StaticVector<T, size>> = true;
 
 	template <class T> struct VectorInfo {

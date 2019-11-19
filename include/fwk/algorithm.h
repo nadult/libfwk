@@ -337,4 +337,9 @@ void removeIf(TVector &vec, const Func &func) {
 	auto it = std::remove_if(begin(vec), end(vec), func);
 	vec.erase(it, vec.end());
 }
+
+template <class T, EnableIf<is_vector<T>>...> void resizeUp(T &vec, int new_size) {
+	if(vec.size() < new_size)
+		vec.resize(new_size);
+}
 }

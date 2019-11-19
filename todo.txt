@@ -5,6 +5,7 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
+- default platform name shoulndt be included in directory name (linux_)
 - endIndex -> spread
 - children to zle okreslenie na potomstwo!!!!
 
