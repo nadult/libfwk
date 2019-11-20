@@ -310,7 +310,7 @@ void Graph::remove(TriId tid) {
 
 // TODO: search for duplicates across layers ?
 bool Graph::hasEdgeDuplicates() const {
-	vector<bool> bitmap(m_verts.endIndex(), false);
+	vector<bool> bitmap(m_verts.spread(), false);
 
 	for(auto n1 : vertexIds()) {
 		for(auto e1 : m_verts[n1])
@@ -347,7 +347,7 @@ bool Graph::isUndirected(Layers layers) const {
 
 template <class T, EnableIf<is_scalar<T>>...>
 Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) const {
-	DASSERT_GE(edge_weights.size(), edgesEndIndex());
+	DASSERT_GE(edge_weights.size(), edgesSpread());
 
 	if(numVerts() == 0)
 		return {};
@@ -355,8 +355,8 @@ Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) cons
 	vector<EdgeId> out;
 	Heap<T> heap(numVerts());
 
-	vector<bool> processed(vertsEndIndex(), false);
-	vector<Maybe<VertexId>> pi(vertsEndIndex());
+	vector<bool> processed(vertsSpread(), false);
+	vector<Maybe<VertexId>> pi(vertsSpread());
 	T max_val = is_fpt<T> ? (T)inf : std::numeric_limits<T>::max();
 	vector<T> keys(pi.size(), max_val);
 
@@ -390,10 +390,10 @@ Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) cons
 
 Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) const {
 	Heap<double> heap(numVerts());
-	vector<double> keys(vertsEndIndex(), inf);
+	vector<double> keys(vertsSpread(), inf);
 
 	if(!weights.empty()) {
-		DASSERT_LE(weights.size(), edgesEndIndex());
+		DASSERT_LE(weights.size(), edgesSpread());
 		for(auto eid : edgeIds())
 			DASSERT_GE(weights[eid], 0.0);
 	}
@@ -404,7 +404,7 @@ Graph Graph::shortestPathTree(CSpan<VertexId> sources, CSpan<double> weights) co
 		heap.insert(node_id, keys[node_id]);
 	vector<bool> visited(numVerts(), false);
 
-	vector<Maybe<VertexId>> out(vertsEndIndex());
+	vector<Maybe<VertexId>> out(vertsSpread());
 
 	while(!heap.empty()) {
 		VertexId nid(heap.extractMin().second);
@@ -434,8 +434,8 @@ Graph Graph::reversed() const {
 	if(numTris())
 		FATAL("check me");
 
-	out.reserveEdges(edgesEndIndex());
-	out.reserveVerts(vertsEndIndex());
+	out.reserveEdges(edgesSpread());
+	out.reserveVerts(vertsSpread());
 
 	for(auto vert : verts())
 		out.addVertexAt(vert, vert.layers());
@@ -542,7 +542,7 @@ void Graph::topoSort(TopoSortCtx &ctx, VertexId vid) const {
 }
 
 vector<VertexId> Graph::topoSort(bool inverse, Layers layers) const {
-	TopoSortCtx context{{}, vector<bool>(vertsEndIndex(), false), inverse, layers};
+	TopoSortCtx context{{}, vector<bool>(vertsSpread(), false), inverse, layers};
 
 	for(auto vid : vertexIds())
 		if(!context.visited[vid])

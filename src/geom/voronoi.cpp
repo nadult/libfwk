@@ -138,7 +138,7 @@ Voronoi Voronoi::clip(DRect rect) const {
 
 	{ // Constructing new arcs from segments
 		DASSERT(new_graph.isUndirected(seg_layer));
-		vector<bool> visited(new_graph.edgesEndIndex(), false);
+		vector<bool> visited(new_graph.edgesSpread(), false);
 		vector<EdgeId> arc;
 
 		for(int cycles_mode = 0; cycles_mode < 2; cycles_mode++) {

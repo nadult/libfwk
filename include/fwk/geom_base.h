@@ -97,7 +97,7 @@ void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector)
 // TODO: better names ?
 template <class T, class Ret = decltype(DECLVAL(T).xz())>
 PodVector<Ret> flatten(SparseSpan<T> span, Axes2D axes) {
-	PodVector<Ret> out(span.endIndex());
+	PodVector<Ret> out(span.spread());
 	for(int n : span.indices())
 		out[n] = flatten(span[n], axes);
 	return out;

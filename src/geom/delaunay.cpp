@@ -401,7 +401,7 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 	for(auto epair : cdt)
 		temp.fixEdge(epair.first, epair.second);
 
-	vector<bool> enable(temp.edgesEndIndex(), false);
+	vector<bool> enable(temp.edgesSpread(), false);
 	vector<int> edge_ids;
 	vector<int2> edge_dirs;
 
@@ -430,7 +430,7 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 		}
 	}
 
-	vector<bool> finished_verts(igraph.vertsEndIndex(), false);
+	vector<bool> finished_verts(igraph.vertsSpread(), false);
 	for(auto edge : igraph.edges())
 		finished_verts[edge.from()] = finished_verts[edge.to()] = true;
 
@@ -499,7 +499,7 @@ vector<array<int, 3>> delaunayTriangles(const GeomGraph<int2> &igraph, CSpan<Ver
 	for(auto vert : temp.verts())
 		temp.orderEdges(vert);
 
-	vector<bool> visited(temp.edgesEndIndex(), !invert_filter);
+	vector<bool> visited(temp.edgesSpread(), !invert_filter);
 
 	for(auto [v1, v2] : filter) {
 		visited[*temp.findEdge(v1, v2)] = invert_filter;

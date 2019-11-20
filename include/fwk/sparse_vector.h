@@ -10,12 +10,13 @@
 namespace fwk {
 
 namespace detail {
-	[[noreturn]] void invalidIndexSparse(int idx, int end_index);
+	[[noreturn]] void invalidIndexSparse(int idx, int spread);
 }
 
 // Constant time emplace & erase.
 // All elements are in single continuous block of memory,
 // but there may be holes between valid elements.
+// Spread defines range for element indices.
 //
 // TODO(opt): use sentinel at end-index ? problem: valids would have to be hidden
 //            because they would lie about after-last element?
@@ -44,22 +45,22 @@ template <class T> class SparseVector {
 
 	SparseVector(const SparseVector &rhs)
 		: m_valids(rhs.m_valids), m_free_list(rhs.m_free_list), m_size(rhs.m_size),
-		  m_end_index(rhs.m_end_index) {
+		  m_spread(rhs.m_spread) {
 		m_elements.resize(rhs.m_elements.size());
-		for(int n = 0; n < m_end_index; n++)
+		for(int n = 0; n < m_spread; n++)
 			new(&m_elements[n]) Element(rhs.m_elements[n], m_valids[n]);
 	}
 
 	SparseVector(SparseVector &&rhs)
 		: m_elements(move(rhs.m_elements)), m_valids(move(rhs.m_valids)),
-		  m_free_list(rhs.m_free_list), m_size(rhs.m_size), m_end_index(rhs.m_end_index) {
+		  m_free_list(rhs.m_free_list), m_size(rhs.m_size), m_spread(rhs.m_spread) {
 		rhs.m_free_list = List();
 		rhs.m_size = 0;
-		rhs.m_end_index = 0;
+		rhs.m_spread = 0;
 	}
 
 	SparseVector(vector<T> &&vec)
-		: m_valids(vec.size(), true), m_size(vec.size()), m_end_index(vec.size()) {
+		: m_valids(vec.size(), true), m_size(vec.size()), m_spread(vec.size()) {
 		if constexpr(sizeof(T) == sizeof(Element)) {
 			auto temp = vec.template reinterpret<Element>();
 			m_elements.unsafeSwap(temp);
@@ -75,7 +76,7 @@ template <class T> class SparseVector {
 		m_valids.swap(rhs.m_valids);
 		fwk::swap(m_free_list, rhs.m_free_list);
 		fwk::swap(m_size, rhs.m_size);
-		fwk::swap(m_end_index, rhs.m_end_index);
+		fwk::swap(m_spread, rhs.m_spread);
 	}
 
 	void operator=(const SparseVector &rhs) {
@@ -111,11 +112,11 @@ template <class T> class SparseVector {
 		m_valids.clear();
 		m_free_list = List();
 		m_size = 0;
-		m_end_index = 0;
+		m_spread = 0;
 	}
 
 	void reserve(int size) { reallocate(insertCapacity(size)); }
-	bool valid(int index) const { return index >= 0 && index < m_end_index && m_valids[index]; }
+	bool valid(int index) const { return index >= 0 && index < m_spread && m_valids[index]; }
 
 	template <class... Args> int emplace(Args &&... args) {
 		int index = alloc();
@@ -134,9 +135,9 @@ template <class T> class SparseVector {
 			reallocate(insertCapacity(index + 1));
 
 		auto acc = [&](int idx) -> ListNode & { return m_elements[idx].node; };
-		while(m_end_index <= index) {
-			m_elements[m_end_index].node = ListNode();
-			listInsert(LIST_ACCESSOR, m_free_list, m_end_index++);
+		while(m_spread <= index) {
+			m_elements[m_spread].node = ListNode();
+			listInsert(LIST_ACCESSOR, m_free_list, m_spread++);
 		}
 
 		listRemove(LIST_ACCESSOR, m_free_list, index);
@@ -157,30 +158,30 @@ template <class T> class SparseVector {
 
 	int firstIndex() const {
 		int idx = 0;
-		while(idx < m_end_index && !m_valids[idx])
+		while(idx < m_spread && !m_valids[idx])
 			idx++;
 		return idx;
 	}
 	int lastIndex() const {
 		if(m_size == 0)
-			return m_end_index;
-		int idx = m_end_index - 1;
+			return m_spread;
+		int idx = m_spread - 1;
 		while(idx >= 0 && !m_valids[idx])
 			--idx;
 		return idx;
 	}
 	int nextIndex(int idx) const {
 		idx++;
-		while(idx < m_end_index && !m_valids[idx])
+		while(idx < m_spread && !m_valids[idx])
 			idx++;
-		return idx; // TODO: clamp to end_index ?
+		return idx; // TODO: clamp to spread ?
 	}
 
-	int endIndex() const { return m_end_index; }
-	int nextFreeIndex() const { return m_free_list.empty() ? m_end_index : m_free_list.head; }
+	int spread() const { return m_spread; }
+	int nextFreeIndex() const { return m_free_list.empty() ? m_spread : m_free_list.head; }
 
 	bool growForNext() {
-		if(m_free_list.empty() && m_end_index == m_elements.size()) {
+		if(m_free_list.empty() && m_spread == m_elements.size()) {
 			grow();
 			return true;
 		}
@@ -206,16 +207,16 @@ template <class T> class SparseVector {
 
 	template <class U> struct Indices {
 		auto begin() const { return Iter<true, U>{vec.firstIndex(), vec}; }
-		auto end() const { return Iter<true, U>{vec.m_end_index, vec}; }
+		auto end() const { return Iter<true, U>{vec.m_spread, vec}; }
 		int size() const { return vec.m_size; }
 		const SparseVector &vec;
 	};
 
 	auto begin() { return Iter<false>{firstIndex(), *this}; }
-	auto end() { return Iter<false>{m_end_index, *this}; }
+	auto end() { return Iter<false>{m_spread, *this}; }
 
 	auto begin() const { return Iter<true>{firstIndex(), *this}; }
-	auto end() const { return Iter<true>{m_end_index, *this}; }
+	auto end() const { return Iter<true>{m_spread, *this}; }
 
 	template <class Idx = int> auto indices() const { return Indices<Idx>{*this}; }
 
@@ -226,10 +227,10 @@ template <class T> class SparseVector {
 	bool operator<(const SparseVector &rhs) const { return compare(rhs) == -1; }
 
 	int compare(const SparseVector &rhs) const {
-		if(m_end_index < rhs.m_end_index)
+		if(m_spread < rhs.m_spread)
 			return -rhs.compare(*this);
 
-		int min_index = min(m_end_index, rhs.m_end_index);
+		int min_index = min(m_spread, rhs.m_spread);
 		for(int n = 0; n < min_index; n++) {
 			bool is_valid = m_valids[n];
 			if(is_valid != rhs.m_valids[n])
@@ -237,13 +238,13 @@ template <class T> class SparseVector {
 			if(is_valid && !(m_elements[n].value == rhs.m_elements[n].value))
 				return m_elements[n].value < rhs.m_elements[n].value ? -1 : 1;
 		}
-		for(int n = min_index; n < m_end_index; n++)
+		for(int n = min_index; n < m_spread; n++)
 			if(m_valids[n])
 				return 1;
 		return 0;
 	}
 
-	CSpan<bool> valids() const { return CSpan<bool>(m_valids.data(), m_end_index); }
+	CSpan<bool> valids() const { return CSpan<bool>(m_valids.data(), m_spread); }
 
 	int growCapacity() const {
 		int capacity = m_elements.size();
@@ -266,7 +267,7 @@ template <class T> class SparseVector {
   private:
 	void checkIndex(int idx) const {
 		if(!m_valids[idx])
-			detail::invalidIndexSparse(idx, m_end_index);
+			detail::invalidIndexSparse(idx, m_spread);
 	}
 
 	union Element {
@@ -310,9 +311,9 @@ template <class T> class SparseVector {
 
 	int alloc() {
 		if(m_free_list.empty()) {
-			if(m_end_index == m_elements.size())
+			if(m_spread == m_elements.size())
 				grow();
-			return m_end_index++;
+			return m_spread++;
 		}
 		int idx = m_free_list.head;
 		listRemove(LIST_ACCESSOR, m_free_list, idx);
@@ -326,6 +327,6 @@ template <class T> class SparseVector {
 	// TODO: skip list instead of valid list?
 	List m_free_list;
 	int m_size = 0;
-	int m_end_index = 0;
+	int m_spread = 0;
 };
 }

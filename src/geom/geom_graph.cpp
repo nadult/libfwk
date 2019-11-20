@@ -26,7 +26,7 @@ template <class T>
 GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap point_map,
 						CSpan<Pair<VertexId>> collapsed_verts)
 	: m_points(move(points)), m_point_map(move(point_map)) {
-	vector<Maybe<VertexId>> collapses(graph.vertsEndIndex());
+	vector<Maybe<VertexId>> collapses(graph.vertsSpread());
 	for(auto [from, to] : collapsed_verts)
 		collapses[from] = to;
 
@@ -295,7 +295,7 @@ auto GeomGraph<T>::buildPointMap(CSpan<bool> valid_indices, CSpan<Point> points,
 template <class T>
 template <class U, EnableIfFptVec<U>...>
 auto GeomGraph<T>::toIntegral(double scale) const -> Ex<GeomGraph<IPoint>> {
-	PodVector<IPoint> new_points(vertsEndIndex());
+	PodVector<IPoint> new_points(vertsSpread());
 	for(auto vert : verts())
 		new_points[vert] = IPoint((*this)(vert)*scale);
 	auto out = replacePoints(new_points);
@@ -307,7 +307,7 @@ auto GeomGraph<T>::toIntegral(double scale) const -> Ex<GeomGraph<IPoint>> {
 template <class T>
 template <class U, EnableIfFptVec<U>...>
 auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoint> {
-	PodVector<IPoint> new_points(vertsEndIndex());
+	PodVector<IPoint> new_points(vertsSpread());
 	for(auto vert : verts())
 		new_points[vert] = IPoint((*this)(vert)*scale);
 	auto out = replacePointsWithCollapse(new_points);
@@ -451,13 +451,13 @@ template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> Mer
 		int num_verts;
 	};
 	vector<MergedPoint> merged;
-	PodVector<ListNode> nodes(vertsEndIndex() * 2);
+	PodVector<ListNode> nodes(vertsSpread() * 2);
 	auto acc_node = [&](int idx) -> ListNode & { return nodes[idx]; };
 	vector<int> removed_merged;
 
-	vector<bool> is_merged(vertsEndIndex(), false);
+	vector<bool> is_merged(vertsSpread(), false);
 	// Differentiates old verts (< break_idx) from new merged verts
-	int break_idx = vertsEndIndex();
+	int break_idx = vertsSpread();
 	using Vec2I = MakeVec<int, 2>;
 
 	auto inv_cell_size = 1.0 / join_dist;

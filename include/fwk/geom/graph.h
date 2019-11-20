@@ -108,9 +108,9 @@ class Graph {
 	// -------------------------------------------------------------------------------------------
 	// ---  Low level access ---------------------------------------------------------------------
 
-	int vertsEndIndex() const { return m_verts.endIndex(); }
-	int edgesEndIndex() const { return m_edges.endIndex(); }
-	int trisEndIndex() const { return m_tris.endIndex(); }
+	int vertsSpread() const { return m_verts.spread(); }
+	int edgesSpread() const { return m_edges.spread(); }
+	int trisSpread() const { return m_tris.spread(); }
 
 	CSpan<bool> vertexValids() const { return m_verts.valids(); }
 	CSpan<bool> edgeValids() const { return m_edges.valids(); }

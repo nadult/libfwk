@@ -155,7 +155,7 @@ int testSparseVector() {
 			for(int n = 0; n < 1000; n++)
 				ivec.emplace(s1);
 			for(int j = 0; j < 1500; j++) {
-				auto idx = rand.uniform(ivec.endIndex());
+				auto idx = rand.uniform(ivec.spread());
 				if(ivec.valid(idx))
 					ivec.erase(idx);
 			}
@@ -169,7 +169,7 @@ int testSparseVector() {
 		auto time = getTime();
 		for(int n = 0; n < 1000; n++) {
 			val += iterationLoop(ivec, n);
-			num_iters += ivec.endIndex();
+			num_iters += ivec.spread();
 			num_values += ivec.size();
 		}
 		total_time = getTime() - time;

@@ -5,20 +5,16 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
+- make could generate file last_build_mode.txt
 - default platform name shoulndt be included in directory name (linux_)
-- endIndex -> spread
 - children to zle okreslenie na potomstwo!!!!
 
 - używanie -Og w trybie debug
 - używanie -O0 w trybie full-debug ?
 
 - wrzucić niektóre funkcje z algorithm wewnątrz klas (np. wektorów?)
-- lepsza nazwa dla pliku meta/range.h
 
 - HashMapa i HashSet mogą być traktowane jako SparseSpan!
-
-- remove(vector, element) should be a member ?
-  maybe we shoulds create VectorBase< VecClass > which contains different functions like this ?
 
 - HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
   nullptr is sentinel ?
