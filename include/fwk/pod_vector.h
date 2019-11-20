@@ -40,6 +40,8 @@ template <class T> class PodVector {
 	}
 
 	void resize(int new_size) { m_base.resizePodPartial(sizeof(T), new_size); }
+	void shrink(int new_size) { m_base.resizePodPartial(sizeof(T), new_size); }
+
 	void reserve(int new_capacity) { m_base.reservePod(sizeof(T), new_capacity); }
 
 	void swap(PodVector &rhs) { m_base.swap(rhs.m_base); }

@@ -325,11 +325,13 @@ template <class Container, class Range> void insert(Container &into, const Range
 	into.insert(begin(from), end(from));
 }
 
-// TODO: erase or remove? What's the best naming?
-template <class TVector, class T, class TBase = VectorBase<TVector>>
-void remove(TVector &vec, const T &value) {
-	auto it = std::remove_if(begin(vec), end(vec), [&](const T &ref) { return ref == value; });
-	vec.erase(it, vec.end());
+// Removes all elements equal to value and returns their number
+template <class TVector, class T, EnableIf<is_vector<TVector>>...>
+static int removeEqual(TVector &vec, const T &value) {
+	auto old_size = size(vec);
+	auto it = std::remove(begin(vec), end(vec), value);
+	vec.shrink(it - vec.begin());
+	return old_size - size(vec);
 }
 
 template <class TVector, class Func, class TBase = VectorBase<TVector>>
