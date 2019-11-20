@@ -9,9 +9,8 @@
 namespace fwk {
 
 template <class T> struct HasCloneMethod {
-	template <class U> static auto test(const U &) -> decltype(DECLVAL(const U &).clone());
-	static char test(...);
-	static constexpr bool value = is_same<T *, decltype(test(DECLVAL(const T &)))>;
+	FWK_SFINAE_TYPE(Result, T, DECLVAL(const U &).clone());
+	static constexpr bool value = is_same<T *, Result>;
 };
 
 // Dynamic storage: basically it's an unique_ptr with improvements.

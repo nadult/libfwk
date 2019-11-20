@@ -31,18 +31,15 @@ namespace detail {
 
 	using TFFunc = void (*)(TextFormatter &, TFValue);
 
-	template <class T> struct IsFormattible {
-		template <class U>
-		static auto test(const U &) -> decltype(DECLVAL(TextFormatter &) << DECLVAL(const U &));
-		static char test(...);
-		static constexpr bool value = is_same<decltype(test(DECLVAL(const T &))), TextFormatter &>;
+	// This is tricky because of << definitions at the end of this file
+	template <class T> struct IsLeftFormattible {
+		FWK_SFINAE_TYPE(Result, T, DECLVAL(TextFormatter &) << DECLVAL(const U &));
+		static constexpr bool value = is_same<Result, TextFormatter &>;
 	};
 
 	template <class T> struct IsRightFormattible {
-		template <class U>
-		static auto test(const U &) -> decltype(DECLVAL(const U &) >> DECLVAL(TextFormatter &));
-		static char test(...);
-		static constexpr bool value = is_same<decltype(test(DECLVAL(const T &))), void>;
+		FWK_SFINAE_TYPE(Result, T, DECLVAL(const U &) >> DECLVAL(TextFormatter &));
+		static constexpr bool value = is_same<Result, void>;
 	};
 
 	template <class T> void append(TextFormatter &fmt, TFValue val) {
@@ -115,9 +112,9 @@ namespace detail {
 	template <class... T> constexpr auto formatFuncs(const T &...) -> TFFuncs<T...>;
 }
 
+template <class T> constexpr bool is_right_formattible = detail::IsRightFormattible<T>::value;
 template <class T>
-constexpr bool is_formattible =
-	detail::IsFormattible<T>::value || detail::IsRightFormattible<T>::value;
+constexpr bool is_formattible = detail::IsLeftFormattible<T>::value || is_right_formattible<T>;
 
 template <class... Args>
 using EnableIfFormattible = EnableIf<(... && is_formattible<Args>), NotFormattible>;
@@ -226,7 +223,7 @@ class TextFormatter {
 
 TextFormatter &operator<<(TextFormatter &, qint);
 
-template <class T, EnableIf<detail::IsRightFormattible<T>::value>...>
+template <class T, EnableIf<is_right_formattible<T>>...>
 TextFormatter &operator<<(TextFormatter &fmt, const T &rhs) {
 	rhs >> fmt;
 	return fmt;
@@ -244,7 +241,7 @@ TextFormatter &operator<<(TextFormatter &out, const TSpan &span) {
 }
 
 template <class TRange, class T = RangeBase<TRange>, EnableIfFormattible<T>...,
-		  EnableIf<!is_span<TRange> && !detail::IsRightFormattible<TRange>::value>...>
+		  EnableIf<!is_span<TRange> && !is_right_formattible<TRange>>...>
 TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
 	const char *separator = out.isStructured() ? ", " : " ";
 
@@ -262,7 +259,7 @@ TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
 	return out;
 }
 
-template <class TVec, EnableIf<is_vec<TVec> && !detail::IsRightFormattible<TVec>::value>...>
+template <class TVec, EnableIf<is_vec<TVec> && !is_right_formattible<TVec>>...>
 TextFormatter &operator<<(TextFormatter &out, const TVec &vec) {
 	enum { N = TVec::vec_size };
 	if constexpr(N == 2)

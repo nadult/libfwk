@@ -241,26 +241,13 @@ class XmlOnFailGuard {
 
 namespace detail {
 	template <class T> struct XmlTraits {
-		template <class C> static auto testL(int) -> decltype(C::load(DECLVAL(CXmlNode)));
-		template <class C> static auto testL(...) -> Empty;
+		FWK_SFINAE_TYPE(TLoad, T, U::load(DECLVAL(CXmlNode)));
+		FWK_SFINAE_TYPE(TFLoad, T, load(DECLVAL(CXmlNode), Type<U>()));
+		static constexpr bool func_loadable = is_one_of<TFLoad, Ex<T>, T>;
+		static constexpr bool loadable = is_one_of<TLoad, Ex<T>, T> && !is_same<T, bool>;
 
-		template <class C>
-		static auto testS(int) -> decltype(DECLVAL(const C &).save(DECLVAL(XmlNode)));
-		template <class C> static auto testS(...) -> Empty;
-
-		static constexpr bool loadable =
-								  is_one_of<decltype(testL<T>(0)), Ex<T>, T> && !is_same<T, bool>,
-							  saveable = !is_same<decltype(testS<T>(0)), Empty>;
-
-		template <class C> static auto testFP(int) -> decltype(load(DECLVAL(CXmlNode), Type<C>()));
-		template <class C> static auto testFP(...) -> Empty;
-
-		template <class C>
-		static auto testFS(int) -> decltype(save(DECLVAL(XmlNode), DECLVAL(const C &)));
-		template <class C> static auto testFS(...) -> Empty;
-
-		static constexpr bool func_loadable = is_one_of<decltype(testFP<T>(0)), Ex<T>, T>,
-							  func_saveable = !is_same<decltype(testFS<T>(0)), Empty>;
+		FWK_SFINAE_TEST(saveable, T, DECLVAL(U).save(DECLVAL(XmlNode)));
+		FWK_SFINAE_TEST(func_saveable, T, save(DECLVAL(XmlNode), DECLVAL(const U &)));
 	};
 }
 

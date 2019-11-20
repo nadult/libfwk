@@ -13,33 +13,27 @@ struct NotASpan;
 struct NotAVector;
 
 namespace detail {
-
-#define SFINAE_EVAL(NAME, VALUE_TYPE, ...)                                                         \
-	template <class U> static Type<decltype(__VA_ARGS__)> NAME##Test(Type<U> *);                   \
-	template <class U> static InvalidType NAME##Test(...);                                         \
-	using NAME = UnwrapType<decltype(NAME##Test<VALUE_TYPE>(nullptr))>;
-
 	template <class T> struct RangeInfo {
 		template <class It, class Val> struct Info {
 			using Iter = It;
 			using Value = Val;
 		};
 
-		SFINAE_EVAL(BeginItType, T, begin(DECLVAL(U &)))
-		SFINAE_EVAL(EndItType, T, end(DECLVAL(U &)))
-		SFINAE_EVAL(BaseType_, BeginItType, *DECLVAL(U &))
+		FWK_SFINAE_TYPE(BeginItType, T, begin(DECLVAL(U &)))
+		FWK_SFINAE_TYPE(EndItType, T, end(DECLVAL(U &)))
+		FWK_SFINAE_TYPE(BaseType_, BeginItType, *DECLVAL(U &))
 		using BaseType = RemoveReference<BaseType_>;
 
 		static constexpr bool value =
-			!is_same<BaseType, InvalidType> && inequality_comparable<BeginItType, EndItType>;
+			!is_same<BaseType, InvalidType> && equality_comparable<BeginItType, EndItType>;
 		using MaybeInfo = If<value, Info<BeginItType, BaseType>, NotARange>;
 	};
 
 	template <class T> struct SpanInfo {
 		template <class Val> struct Info { using Value = Val; };
 
-		SFINAE_EVAL(DataType, T, DECLVAL(U &).data())
-		SFINAE_EVAL(SizeType, T, DECLVAL(U &).size())
+		FWK_SFINAE_TYPE(DataType, T, DECLVAL(U &).data())
+		FWK_SFINAE_TYPE(SizeType, T, DECLVAL(U &).size())
 
 		using RInfo = RangeInfo<T>;
 		static constexpr bool data_mode =
@@ -61,8 +55,6 @@ namespace detail {
 		static constexpr bool value = is_vector<T>;
 		using MaybeInfo = If<value, typename RangeInfo<T>::MaybeInfo, NotAVector>;
 	};
-
-#undef SFINAE_EVAL
 }
 
 // Conditions for range:

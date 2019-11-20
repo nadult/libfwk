@@ -7,9 +7,20 @@
 
 namespace fwk {
 
+// Convenient macros for SFINAE computations
+#define FWK_SFINAE_TYPE(NAME, VALUE_TYPE, ...)                                                     \
+	template <class U> static fwk::Type<decltype(__VA_ARGS__)> NAME##Test(int);                    \
+	template <class U> static fwk::InvalidType NAME##Test(...);                                    \
+	using NAME = fwk::UnwrapType<decltype(NAME##Test<VALUE_TYPE>(0))>;
+
+#define FWK_SFINAE_TEST(NAME, VALUE_TYPE, ...)                                                     \
+	template <class U> static decltype(__VA_ARGS__) NAME##Test(int);                               \
+	template <class U> static fwk::InvalidType NAME##Test(...);                                    \
+	static constexpr bool NAME = !is_same<fwk::InvalidType, decltype(NAME##Test<VALUE_TYPE>(0))>;
+
 struct EnabledType {};
+struct InvalidType {};
 struct DisabledType;
-struct InvalidType;
 
 struct Empty {};
 
@@ -89,10 +100,7 @@ namespace detail {
 	};
 
 	template <class T, class... Args> struct IsConstr {
-		template <class... UArgs, class U>
-		static constexpr auto test(U *) -> decltype(U{DECLVAL(UArgs)...});
-		template <class... UArgs> static constexpr void test(...);
-		static constexpr bool value = !is_same<decltype(test<Args...>(DECLVAL(T *))), void>;
+		FWK_SFINAE_TEST(value, T, U{DECLVAL(Args)...});
 	};
 }
 
