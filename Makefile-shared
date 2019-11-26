@@ -49,8 +49,10 @@ PROGRAM_SUFFIX_mingw := .exe
 PROGRAM_SUFFIX_html  := .html
 PROGRAM_SUFFIX       := $(PROGRAM_SUFFIX_$(PLATFORM))
 
-FWK_BUILD_DIR        := $(FWK_DIR)build/$(PLATFORM)_$(FWK_MODE)
-FWK_LIB_FILE         := $(FWK_DIR)lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
+PLATFORM_PREFIX      := $(if $(findstring linux,$(PLATFORM)),,$(PLATFORM)_)
+FWK_BUILD_DIR        := $(FWK_DIR)build/$(PLATFORM_PREFIX)$(FWK_MODE)
+FWK_LIB_NAME         := fwk_$(PLATFORM_PREFIX)$(FWK_MODE)
+FWK_LIB_FILE         := $(FWK_DIR)lib/lib$(FWK_LIB_NAME).a
 FWK_MODELCONV_FILE   := $(FWK_DIR)tools/model_convert$(PROGRAM_SUFFIX)
 
 export FWK_GEOM      := enabled
@@ -178,10 +180,10 @@ filter-existing = $(filter $(shell find $(1) -type f),$(2))
 
 ifneq ($(FWK_DIR),)
 FWK_MAKE_ARGS  = -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
-LDFLAGS       += -L $(FWK_DIR)lib -lfwk_$(PLATFORM)_$(FWK_MODE)
+LDFLAGS       += -L $(FWK_DIR)lib -l$(FWK_LIB_NAME)
 
 $(FWK_LIB_FILE): .FORCE
-	$(MAKE) $(FWK_MAKE_ARGS) lib/libfwk_$(PLATFORM)_$(FWK_MODE).a
+	$(MAKE) $(FWK_MAKE_ARGS) lib/lib$(FWK_LIB_NAME).a
 $(FWK_MODELCONV_FILE): .FORCE
 	$(MAKE) $(FWK_MAKE_ARGS) tools/model_convert$(PROGRAM_SUFFIX)
 

@@ -6,11 +6,7 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
 - make could generate file last_build_mode.txt
-- default platform name shoulndt be included in directory name (linux_)
 - children to zle okreslenie na potomstwo!!!!
-
-- używanie -Og w trybie debug
-- używanie -O0 w trybie full-debug ?
 
 - wrzucić niektóre funkcje z algorithm wewnątrz klas (np. wektorów?)
 
