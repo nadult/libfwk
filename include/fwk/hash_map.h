@@ -212,6 +212,12 @@ template <typename TKey, typename TValue> class HashMap {
 		const Node *n = lookup(key);
 		return const_iterator(n, this);
 	}
+	Maybe<Value> maybeFind(const Key &key) const {
+		auto it = find(key);
+		if(it == end())
+			return none;
+		return it->second;
+	}
 
 	void clear() {
 		Node *endNode = m_nodes + m_capacity;
