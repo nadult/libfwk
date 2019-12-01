@@ -10,8 +10,7 @@ namespace fwk {
 
 // Original source: hash_map.h from RDE STL by Maciej Sinilo (Copyright 2007)
 // Licensed under MIT license
-//
-// Slightly modified & adapted for libfwk by Krzysztof Jakubowski
+// Improved & adapted for libfwk by Krzysztof Jakubowski
 template <typename TKey, typename TValue> class HashMap {
   public:
 	using Key = TKey;
@@ -73,12 +72,14 @@ template <typename TKey, typename TValue> class HashMap {
 	HashMap(const HashMap &rhs) { *this = rhs; }
 	~HashMap() { deleteNodes(); }
 
-	// Load factor controls hash map load. 4 means 100% load, ie. hashmap will grow
-	// when number of items == capacity. Default value of 6 means it grows when
-	// number of items == capacity * 2/3 (4/6). Higher load == tighter maps, but bigger
-	// risk of collisions.
-	void setLoadFactor4(int load_factor4) { m_load_factor4 = load_factor4; }
-	int loadFactor4() const { return m_load_factor4; }
+	// Load factor controls hash map load. Default is ~66%.
+	// Higher factor means tighter maps and bigger risk of collisions.
+	void setLoadFactor(float factor) {
+		PASSERT(factor >= 0.125f && factor <= 1.0f);
+		m_load_factor = factor;
+		m_used_limit = (int)(m_capacity * factor);
+	}
+	float loadFactor() const { return m_load_factor; }
 
 	Iter begin() {
 		Iter it{m_nodes, m_nodes + m_capacity};
@@ -102,20 +103,21 @@ template <typename TKey, typename TValue> class HashMap {
 		return node->data.second;
 	}
 
-	HashMap &operator=(const HashMap &rhs) {
-		if(&rhs != this) {
-			clear();
-			if(m_capacity < rhs.m_capacity) {
-				deleteNodes();
-				m_nodes = allocateNodes(rhs.m_capacity);
-				m_capacity = rhs.m_capacity;
-				m_capacity_mask = m_capacity - 1;
-			}
-			rehash(m_capacity, m_nodes, rhs.m_capacity, rhs.m_nodes, false);
-			m_size = rhs.size();
-			m_num_used = rhs.m_num_used;
+	void operator=(const HashMap &rhs) {
+		if(&rhs == this)
+			return;
+
+		clear();
+		if(m_capacity < rhs.m_capacity) {
+			deleteNodes();
+			m_nodes = allocateNodes(rhs.m_capacity);
+			m_capacity = rhs.m_capacity;
+			m_capacity_mask = m_capacity - 1;
 		}
-		return *this;
+		rehash(m_capacity, m_nodes, rhs.m_capacity, rhs.m_nodes, false);
+		m_size = rhs.size();
+		m_num_used = rhs.m_num_used;
+		setLoadFactor(rhs.m_load_factor);
 	}
 
 	void swap(HashMap &rhs) {
@@ -124,14 +126,16 @@ template <typename TKey, typename TValue> class HashMap {
 			swap(m_size, rhs.m_size);
 			swap(m_capacity, rhs.m_capacity);
 			swap(m_capacity_mask, rhs.m_capacity_mask);
+			swap(m_used_limit, rhs.m_used_limit);
 			swap(m_num_used, rhs.m_num_used);
+			swap(m_load_factor, rhs.m_load_factor);
 		}
 	}
 
 	Pair<Iter, bool> emplace(const TKey &key, const TValue &value) { return emplace({key, value}); }
 
 	Pair<Iter, bool> emplace(const KeyValuePair &v) {
-		if(m_num_used * m_load_factor4 >= m_capacity * 4)
+		if(m_num_used >= m_used_limit)
 			grow();
 
 		HashValue hash = hashFunc(v.first);
@@ -243,13 +247,14 @@ template <typename TKey, typename TValue> class HashMap {
 			fwk::deallocate(m_nodes);
 		m_capacity = new_capacity;
 		m_capacity_mask = new_capacity - 1;
+		m_used_limit = (int)(m_capacity * m_load_factor);
 		m_nodes = newNodes;
 		m_num_used = m_size;
 		PASSERT(m_num_used < m_capacity);
 	}
 
 	Pair<Iter, bool> emplaceAt(const KeyValuePair &v, Node *node, HashValue hash) {
-		if(!node || m_num_used * m_load_factor4 >= m_capacity * 4)
+		if(!node || m_num_used >= m_used_limit)
 			return emplace(v);
 
 		PASSERT(!node->isOccupied());
@@ -347,7 +352,7 @@ template <typename TKey, typename TValue> class HashMap {
 				m_nodes[n].data.~KeyValuePair();
 		if(m_nodes != &s_empty_node)
 			fwk::deallocate(m_nodes);
-		m_capacity = m_size = m_capacity_mask = 0;
+		m_capacity = m_size = m_capacity_mask = m_used_limit = 0;
 	}
 
 	void eraseNode(Node *n) {
@@ -362,7 +367,8 @@ template <typename TKey, typename TValue> class HashMap {
 	static Node s_empty_node;
 	Node *m_nodes = &s_empty_node;
 	int m_size = 0, m_capacity = 0;
-	int m_num_used = 0, m_load_factor4 = 6;
+	int m_num_used = 0, m_used_limit = 0;
+	float m_load_factor = 2.0f / 3.0f;
 	u32 m_capacity_mask = 0;
 };
 
