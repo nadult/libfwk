@@ -82,18 +82,18 @@ template <typename TKey, typename TValue> class HashMap {
 	float loadFactor() const { return m_load_factor; }
 
 	Iter begin() {
-		Iter it{m_nodes, m_nodes + m_capacity};
+		Iter it{m_nodes, m_end};
 		it.moveToNextOccupiedNode();
 		return it;
 	}
 	ConstIter begin() const {
-		ConstIter it{m_nodes, m_nodes + m_capacity};
+		ConstIter it{m_nodes, m_end};
 		it.moveToNextOccupiedNode();
 		return it;
 	}
 
-	Iter end() { return {m_nodes + m_capacity, m_nodes + m_capacity}; }
-	ConstIter end() const { return {m_nodes + m_capacity, m_nodes + m_capacity}; }
+	Iter end() { return {m_end, m_end}; }
+	ConstIter end() const { return {m_end, m_end}; }
 
 	Value &operator[](const Key &key) {
 		HashValue hash = hashFunc(key);
@@ -117,6 +117,7 @@ template <typename TKey, typename TValue> class HashMap {
 		rehash(m_capacity, m_nodes, rhs.m_capacity, rhs.m_nodes, false);
 		m_size = rhs.size();
 		m_num_used = rhs.m_num_used;
+		m_end = m_nodes + m_capacity;
 		setLoadFactor(rhs.m_load_factor);
 	}
 
@@ -126,6 +127,7 @@ template <typename TKey, typename TValue> class HashMap {
 			swap(m_size, rhs.m_size);
 			swap(m_capacity, rhs.m_capacity);
 			swap(m_capacity_mask, rhs.m_capacity_mask);
+			swap(m_end, rhs.m_end);
 			swap(m_used_limit, rhs.m_used_limit);
 			swap(m_num_used, rhs.m_num_used);
 			swap(m_load_factor, rhs.m_load_factor);
@@ -141,19 +143,19 @@ template <typename TKey, typename TValue> class HashMap {
 		HashValue hash = hashFunc(v.first);
 		Node *node = findForInsert(v.first, hash);
 		if(node->isOccupied())
-			return {{node, m_nodes + m_capacity}, false};
+			return {{node, m_end}, false};
 		if(node->isUnused())
 			++m_num_used;
 		new(&node->data) KeyValuePair(v);
 		node->hash = hash;
 		++m_size;
 		PASSERT(m_num_used >= m_size);
-		return {{node, m_nodes + m_capacity}, true};
+		return {{node, m_end}, true};
 	}
 
 	bool erase(const Key &key) {
 		Node *node = lookup(key);
-		if(node != m_nodes + m_capacity && node->isOccupied()) {
+		if(node != m_end && node->isOccupied()) {
 			eraseNode(node);
 			return true;
 		}
@@ -177,8 +179,8 @@ template <typename TKey, typename TValue> class HashMap {
 		}
 	}
 
-	Iter find(const Key &key) { return {lookup(key), m_nodes + m_capacity}; }
-	ConstIter find(const Key &key) const { return {lookup(key), m_nodes + m_capacity}; }
+	Iter find(const Key &key) { return {lookup(key), m_end}; }
+	ConstIter find(const Key &key) const { return {lookup(key), m_end}; }
 	Maybe<Value> maybeFind(const Key &key) const {
 		auto it = find(key);
 		if(it == end())
@@ -234,21 +236,22 @@ template <typename TKey, typename TValue> class HashMap {
 	vector<Pair<Key, Value>> pairs() const { return transform<Pair<Key, Value>>(*this); }
 
 	template <bool is_const> bool valid(TIter<is_const> iter) const {
-		return iter.ptr >= m_nodes && iter.end == m_nodes + m_capacity && iter.ptr <= iter.end;
+		return iter.ptr >= m_nodes && iter.end == m_end && iter.ptr <= iter.end;
 	}
 
   private:
 	void grow() { grow(m_capacity == 0 ? initial_capacity : m_capacity * 2); }
 	void grow(int new_capacity) {
 		PASSERT(isPowerOfTwo(new_capacity));
-		Node *newNodes = allocateNodes(new_capacity);
-		rehash(new_capacity, newNodes, m_capacity, m_nodes, true);
+		Node *new_nodes = allocateNodes(new_capacity);
+		rehash(new_capacity, new_nodes, m_capacity, m_nodes, true);
 		if(m_nodes != &s_empty_node)
 			fwk::deallocate(m_nodes);
 		m_capacity = new_capacity;
 		m_capacity_mask = new_capacity - 1;
 		m_used_limit = (int)(m_capacity * m_load_factor);
-		m_nodes = newNodes;
+		m_nodes = new_nodes;
+		m_end = m_nodes + new_capacity;
 		m_num_used = m_size;
 		PASSERT(m_num_used < m_capacity);
 	}
@@ -263,16 +266,16 @@ template <typename TKey, typename TValue> class HashMap {
 		new(&node->data) KeyValuePair(v);
 		node->hash = hash;
 		++m_size;
-		return {{node, m_nodes + m_capacity}, true};
+		return {{node, m_end}, true};
 	}
 	Node *findForInsert(const Key &key, HashValue hash) {
-		if(m_capacity == 0)
-			return nullptr;
-
 		unsigned idx = hash & m_capacity_mask;
 		Node *node = m_nodes + idx;
 		if(node->sameKey(key, hash))
 			return node;
+
+		if(node == m_end)
+			return nullptr;
 
 		Node *free_node = node->hash == deleted_hash ? node : nullptr;
 
@@ -310,7 +313,7 @@ template <typename TKey, typename TValue> class HashMap {
 			if(node->sameKey(key, hash))
 				return node;
 		}
-		return m_nodes + m_capacity;
+		return m_end;
 	}
 
 	static void rehash(int new_capacity, Node *new_nodes, int capacity, const Node *nodes,
@@ -365,7 +368,7 @@ template <typename TKey, typename TValue> class HashMap {
 	HashValue hashFunc(const Key &key) const { return hash<HashValue>(key) & 0x7FFFFFFFu; }
 
 	static Node s_empty_node;
-	Node *m_nodes = &s_empty_node;
+	Node *m_nodes = &s_empty_node, *m_end = &s_empty_node;
 	int m_size = 0, m_capacity = 0;
 	int m_num_used = 0, m_used_limit = 0;
 	float m_load_factor = 2.0f / 3.0f;
