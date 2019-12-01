@@ -7,12 +7,14 @@
 #include "fwk/index_range.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
+#include "fwk/math/random.h"
 #include "fwk/sys/file_system.h"
 #include "fwk/sys/on_fail.h"
 #include "fwk/tag_id.h"
 #include "fwk/type_info_gen.h"
 #include "fwk/variant.h"
 #include "testing.h"
+#include <unordered_map>
 
 DEFINE_ENUM(SomeTag, foo, bar);
 
@@ -245,6 +247,65 @@ void testVector() {
 	ASSERT(toString(sortedUnique(vecs)) == "abc xxx yyy zzz");
 }
 
+template <class Map> vector<Pair<string, string>> testMap(const char *name, int &check) {
+	constexpr int num_strings = 16;
+	const char *strings[] = {"xxx",  "yyy",  "zzz",  "xxx", "abc", "abc",	  "zzz",	"ax",
+							 "aaxx", "ddxx", "ccdd", "123", "234", "aaaabbb4", "ssfsdf", "45t98js"};
+	Random rand;
+
+	auto time = getTime();
+
+	Map map;
+	int num_found = 0, num_iters = 2048;
+	for(int n = 0; n < num_iters; n++) {
+		int val = rand.uniform(num_strings * num_strings * 4);
+		int id1 = (val >> 2) % num_strings;
+		int id2 = (val >> 6) % num_strings;
+
+		if(val & 1)
+			map[strings[id1]] = strings[id2];
+		else if(val & 2)
+			num_found += map.find(strings[id1]) != map.end();
+		else
+			map.erase(strings[id1]);
+	}
+
+	time = getTime() - time;
+
+	printf("%20s performance test: %f ns / iter\n", name, time * 1000000000.0 / num_iters);
+
+	vector<Pair<string>> out;
+	out.reserve(map.size());
+	for(auto &pair : map)
+		out.emplace_back(pair);
+	check = num_found;
+	return out;
+}
+
+void testHashMap() {
+	HashMap<string, int> map;
+	map.emplace("foo", 10);
+	map.emplace("bar", 20);
+	ASSERT(map.find("foo"));
+	ASSERT(!map.find("foofoo"));
+	ASSERT(map.erase("foo"));
+	ASSERT(!map.erase("foo"));
+	ASSERT(!map.find("foo"));
+	map["foobar"] = 5;
+	ASSERT(!map.emplace("foobar", 10).second);
+	ASSERT_EQ(map["foobar"], 5);
+
+	int check1, check2;
+	auto result_fwk = testMap<HashMap<const char *, const char *>>("fwk::HashMap", check1);
+	auto result_std =
+		testMap<std::unordered_map<const char *, const char *>>("std::unordered_map", check2);
+
+	makeSorted(result_fwk);
+	makeSorted(result_std);
+	ASSERT_EQ(result_fwk, result_std);
+	ASSERT_EQ(check1, check2);
+}
+
 void testMain() {
 	testString();
 	testAny();
@@ -258,4 +319,5 @@ void testMain() {
 	testTypes();
 	testExceptions();
 	testVector();
+	testHashMap();
 }
