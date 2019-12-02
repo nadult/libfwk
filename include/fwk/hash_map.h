@@ -18,54 +18,37 @@ template <typename TKey, typename TValue> class HashMap {
 	using KeyValuePair = Pair<TKey, TValue>;
 	using HashValue = u32;
 
-  private:
 	static constexpr HashValue unused_hash = 0xffffffff;
 	static constexpr HashValue deleted_hash = 0xfffffffe;
+	// Index is occupied if hash < deleted_hash
 
-	struct Node {
-		Node() : hash(unused_hash) {}
-		~Node() {}
-
-		bool isUnused() const { return hash == unused_hash; }
-		bool isDeleted() const { return hash == deleted_hash; }
-		bool isOccupied() const { return hash < deleted_hash; }
-		bool sameKey(const Key &key, HashValue key_hash) const {
-			return key_hash == hash && key == data.first;
-		}
-
-		HashValue hash;
-		union {
-			KeyValuePair data;
-		};
-	};
-	template <bool is_const> struct TIter {
-		using TNodePtr = If<is_const, const Node *, Node *>;
-
-		template <bool to_const, EnableIf<!is_const && to_const>...> operator TIter<to_const>() {
-			return {ptr, end};
-		}
-
-		auto &operator*() const { return PASSERT(ptr != end), ptr->data; }
-		auto *operator-> () const { return PASSERT(ptr != end), &ptr->data; }
-		void operator++() { ++ptr, moveToNextOccupiedNode(); }
-		bool operator==(const TIter &rhs) const { return rhs.ptr == ptr; }
-		explicit operator bool() const { return ptr != end; }
-
-		HashValue hash() const { return ptr->hash; }
-
-		void moveToNextOccupiedNode() {
-			while(ptr < end && ptr->hash >= deleted_hash)
-				ptr++;
-		}
-
-		TNodePtr ptr, end;
-	};
-
-  public:
-	using Iter = TIter<false>;
-	using ConstIter = TIter<true>;
 	static constexpr int initial_capacity = 64;
 	static_assert(isPowerOfTwo(initial_capacity));
+
+	template <bool is_const> struct TIter {
+		template <bool to_const, EnableIf<!is_const && to_const>...> operator TIter<to_const>() {
+			return {map, idx};
+		}
+
+		auto &operator*() const { return PASSERT(!atEnd()), map->m_key_values[idx]; }
+		auto *operator-> () const { return PASSERT(!atEnd()), &map->m_key_values[idx]; }
+		void operator++() { PASSERT(!atEnd()), ++idx, moveToNextOccupiedNode(); }
+		bool operator==(const TIter &rhs) const { return rhs.idx == idx; }
+
+		bool atEnd() const { return idx >= map->m_capacity; }
+		explicit operator bool() const { return idx < map->m_capacity; }
+
+		void moveToNextOccupiedNode() {
+			while(idx < map->m_capacity && map->m_hashes[idx] >= deleted_hash)
+				idx++;
+		}
+
+		If<is_const, const HashMap *, HashMap *> map;
+		int idx;
+	};
+
+	using Iter = TIter<false>;
+	using ConstIter = TIter<true>;
 
 	HashMap() {}
 	explicit HashMap(int initial_bucket_count) { reserve(initial_bucket_count); }
@@ -82,25 +65,25 @@ template <typename TKey, typename TValue> class HashMap {
 	float loadFactor() const { return m_load_factor; }
 
 	Iter begin() {
-		Iter it{m_nodes, m_end};
+		Iter it{this, 0};
 		it.moveToNextOccupiedNode();
 		return it;
 	}
 	ConstIter begin() const {
-		ConstIter it{m_nodes, m_end};
+		ConstIter it{this, 0};
 		it.moveToNextOccupiedNode();
 		return it;
 	}
 
-	Iter end() { return {m_end, m_end}; }
-	ConstIter end() const { return {m_end, m_end}; }
+	Iter end() { return {this, m_capacity}; }
+	ConstIter end() const { return {this, m_capacity}; }
 
 	Value &operator[](const Key &key) {
 		HashValue hash = hashFunc(key);
-		Node *node = findForInsert(key, hash);
-		if(!node || !node->isOccupied())
-			return emplaceAt({key, TValue()}, node, hash).first->second;
-		return node->data.second;
+		int idx = findForInsert(key, hash);
+		if(idx == m_capacity || m_hashes[idx] >= deleted_hash)
+			return emplaceAt({key, TValue()}, idx, hash).first->second;
+		return m_key_values[idx].second;
 	}
 
 	void operator=(const HashMap &rhs) {
@@ -110,24 +93,25 @@ template <typename TKey, typename TValue> class HashMap {
 		clear();
 		if(m_capacity < rhs.m_capacity) {
 			deleteNodes();
-			m_nodes = allocateNodes(rhs.m_capacity);
+			m_hashes = allocateHashes(rhs.m_capacity);
+			m_key_values = (KeyValuePair *)fwk::allocate(rhs.m_capacity * sizeof(KeyValuePair));
 			m_capacity = rhs.m_capacity;
 			m_capacity_mask = m_capacity - 1;
 		}
-		rehash(m_capacity, m_nodes, rhs.m_capacity, rhs.m_nodes, false);
+		rehash(m_capacity, m_hashes, m_key_values, rhs.m_capacity, rhs.m_hashes, rhs.m_key_values,
+			   false);
 		m_size = rhs.size();
 		m_num_used = rhs.m_num_used;
-		m_end = m_nodes + m_capacity;
 		setLoadFactor(rhs.m_load_factor);
 	}
 
 	void swap(HashMap &rhs) {
 		if(&rhs != this) {
-			swap(m_nodes, rhs.m_nodes);
+			swap(m_hashes, rhs.m_hashes);
+			swap(m_key_values, rhs.m_key_values);
 			swap(m_size, rhs.m_size);
 			swap(m_capacity, rhs.m_capacity);
 			swap(m_capacity_mask, rhs.m_capacity_mask);
-			swap(m_end, rhs.m_end);
 			swap(m_used_limit, rhs.m_used_limit);
 			swap(m_num_used, rhs.m_num_used);
 			swap(m_load_factor, rhs.m_load_factor);
@@ -141,22 +125,22 @@ template <typename TKey, typename TValue> class HashMap {
 			grow();
 
 		HashValue hash = hashFunc(v.first);
-		Node *node = findForInsert(v.first, hash);
-		if(node->isOccupied())
-			return {{node, m_end}, false};
-		if(node->isUnused())
+		int idx = findForInsert(v.first, hash);
+		if(m_hashes[idx] < deleted_hash)
+			return {{this, idx}, false};
+		if(m_hashes[idx] == unused_hash)
 			++m_num_used;
-		new(&node->data) KeyValuePair(v);
-		node->hash = hash;
+		new(&m_key_values[idx]) KeyValuePair(v);
+		m_hashes[idx] = hash;
 		++m_size;
 		PASSERT(m_num_used >= m_size);
-		return {{node, m_end}, true};
+		return {{this, idx}, true};
 	}
 
 	bool erase(const Key &key) {
-		Node *node = lookup(key);
-		if(node != m_end && node->isOccupied()) {
-			eraseNode(node);
+		auto idx = lookup(key);
+		if(idx != m_capacity && m_hashes[idx] < deleted_hash) {
+			eraseNode(idx);
 			return true;
 		}
 		return false;
@@ -165,22 +149,22 @@ template <typename TKey, typename TValue> class HashMap {
 	void erase(Iter it) {
 		PASSERT(valid(it));
 		if(it != end())
-			eraseNode(it.ptr);
+			eraseNode(it.idx);
 	}
 
 	void erase(Iter from, Iter to) {
 		PASSERT(valid(from) && valid(to));
 
-		auto node = from.ptr;
-		while(node != to.ptr) {
-			if(node->isOccupied())
-				eraseNode(node);
-			++node;
+		auto idx = from.idx;
+		while(idx != to.idx) {
+			if(m_hashes[idx] < deleted_hash)
+				eraseNode(idx);
+			++idx;
 		}
 	}
 
-	Iter find(const Key &key) { return {lookup(key), m_end}; }
-	ConstIter find(const Key &key) const { return {lookup(key), m_end}; }
+	Iter find(const Key &key) { return {this, lookup(key)}; }
+	ConstIter find(const Key &key) const { return {this, lookup(key)}; }
 	Maybe<Value> maybeFind(const Key &key) const {
 		auto it = find(key);
 		if(it == end())
@@ -190,9 +174,9 @@ template <typename TKey, typename TValue> class HashMap {
 
 	void clear() {
 		for(int n = 0; n < m_capacity; n++) {
-			if(m_nodes[n].isOccupied())
-				m_nodes[n].data.~KeyValuePair();
-			m_nodes[n].hash = unused_hash;
+			if(m_hashes[n] < deleted_hash)
+				m_key_values[n].~KeyValuePair();
+			m_hashes[n] = unused_hash;
 		}
 		m_size = m_num_used = 0;
 	}
@@ -212,10 +196,12 @@ template <typename TKey, typename TValue> class HashMap {
 	bool empty() const { return size() == 0; }
 
 	int usedBucketCount() const { return m_num_used; }
-	int usedMemory() const { return capacity() * sizeof(Node); }
+	int usedMemory() const { return capacity() * (sizeof(HashValue) + sizeof(KeyValuePair)); }
 
-	Node *data() { return m_nodes; }
-	const Node *data() const { return m_nodes; }
+	HashValue *hashData() { return m_hashes; }
+	const HashValue *hashData() const { return m_hashes; }
+	KeyValuePair *data() { return m_key_values; }
+	const KeyValuePair *data() const { return m_key_values; }
 
 	vector<Value> values() const {
 		vector<Value> out;
@@ -236,145 +222,142 @@ template <typename TKey, typename TValue> class HashMap {
 	vector<Pair<Key, Value>> pairs() const { return transform<Pair<Key, Value>>(*this); }
 
 	template <bool is_const> bool valid(TIter<is_const> iter) const {
-		return iter.ptr >= m_nodes && iter.end == m_end && iter.ptr <= iter.end;
+		return iter.idx >= 0 && iter.idx <= m_capacity && iter.map == this;
 	}
 
   private:
 	void grow() { grow(m_capacity == 0 ? initial_capacity : m_capacity * 2); }
 	void grow(int new_capacity) {
 		PASSERT(isPowerOfTwo(new_capacity));
-		Node *new_nodes = allocateNodes(new_capacity);
-		rehash(new_capacity, new_nodes, m_capacity, m_nodes, true);
-		if(m_nodes != &s_empty_node)
-			fwk::deallocate(m_nodes);
+		auto *new_hashes = allocateHashes(new_capacity);
+		auto *new_key_values = (KeyValuePair *)fwk::allocate(new_capacity * sizeof(KeyValuePair));
+
+		rehash(new_capacity, new_hashes, new_key_values, m_capacity, m_hashes, m_key_values, true);
+		if(m_hashes != &s_empty_node)
+			fwk::deallocate(m_hashes);
+		fwk::deallocate(m_key_values);
+
 		m_capacity = new_capacity;
 		m_capacity_mask = new_capacity - 1;
 		m_used_limit = (int)(m_capacity * m_load_factor);
-		m_nodes = new_nodes;
-		m_end = m_nodes + new_capacity;
+		m_hashes = new_hashes;
+		m_key_values = new_key_values;
 		m_num_used = m_size;
 		PASSERT(m_num_used < m_capacity);
 	}
 
-	Pair<Iter, bool> emplaceAt(const KeyValuePair &v, Node *node, HashValue hash) {
-		if(!node || m_num_used >= m_used_limit)
+	Pair<Iter, bool> emplaceAt(const KeyValuePair &v, int idx, HashValue hash) {
+		if(idx == m_capacity || m_num_used >= m_used_limit)
 			return emplace(v);
 
-		PASSERT(!node->isOccupied());
-		if(node->isUnused())
+		PASSERT(m_hashes[idx] >= deleted_hash);
+		if(m_hashes[idx] == unused_hash)
 			++m_num_used;
-		new(&node->data) KeyValuePair(v);
-		node->hash = hash;
+		new(&m_key_values[idx]) KeyValuePair(v);
+		m_hashes[idx] = hash;
 		++m_size;
-		return {{node, m_end}, true};
+		return {{this, idx}, true};
 	}
-	Node *findForInsert(const Key &key, HashValue hash) {
-		unsigned idx = hash & m_capacity_mask;
-		Node *node = m_nodes + idx;
-		if(node->sameKey(key, hash))
-			return node;
 
-		if(node == m_end)
-			return nullptr;
+	int findForInsert(const Key &key, HashValue hash) {
+		// TODO: unsigned or signed ?
+		int idx = hash & m_capacity_mask;
+		if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+			return idx;
+		if(idx == m_capacity)
+			return m_capacity;
 
-		Node *free_node = node->hash == deleted_hash ? node : nullptr;
+		int free_idx = m_hashes[idx] == deleted_hash ? idx : -1;
 
 		// Guarantees loop termination.
 		PASSERT(m_num_used < m_capacity);
 
 		unsigned num_probes = 0;
-		while(node->hash <= deleted_hash) {
+		while(m_hashes[idx] <= deleted_hash) {
 			num_probes++;
 			idx = (idx + num_probes) & m_capacity_mask;
-			node = m_nodes + idx;
-			if(node->sameKey(key, hash))
-				return node;
-			if(node->hash == deleted_hash && !free_node)
-				free_node = node;
+			if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+				return idx;
+			if(m_hashes[idx] == deleted_hash && free_idx == -1)
+				free_idx = idx;
 		}
-		return free_node ? free_node : node;
+		return free_idx != -1 ? free_idx : idx;
 	}
 
-	Node *lookup(const Key &key) const {
+	int lookup(const Key &key) const {
 		auto hash = hashFunc(key);
 		unsigned idx = hash & m_capacity_mask;
-		Node *node = m_nodes + idx;
-		if(node->sameKey(key, hash))
-			return node;
+		if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+			return idx;
 
 		// Guarantees loop termination.
 		PASSERT(m_capacity == 0 || m_num_used < m_capacity);
 
 		unsigned num_probes = 0;
-		while(node->hash <= deleted_hash) {
+		while(m_hashes[idx] <= deleted_hash) {
 			num_probes++;
 			idx = (idx + num_probes) & m_capacity_mask;
-			node = m_nodes + idx;
-			if(node->sameKey(key, hash))
-				return node;
+			if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+				return idx;
 		}
-		return m_end;
+		return m_capacity;
 	}
 
-	static void rehash(int new_capacity, Node *new_nodes, int capacity, const Node *nodes,
+	static void rehash(int new_capacity, HashValue *new_hashes, KeyValuePair *new_key_values,
+					   int capacity, const HashValue *hashes, const KeyValuePair *key_values,
 					   bool destruct_original) {
-		const Node *it = nodes;
-		const Node *it_end = nodes + capacity;
 		const u32 mask = new_capacity - 1;
-		while(it != it_end) {
-			if(it->isOccupied()) {
-				const HashValue hash = it->hash;
+		for(int idx = 0; idx < capacity; idx++) {
+			if(hashes[idx] < deleted_hash) {
+				const HashValue hash = hashes[idx];
 				u32 i = hash & mask;
 
-				Node *n = new_nodes + i;
 				unsigned num_probes = 0;
-				while(!n->isUnused()) {
+				while(new_hashes[i] != unused_hash) {
 					++num_probes;
 					i = (i + num_probes) & mask;
-					n = new_nodes + i;
 				}
-				new(&n->data) KeyValuePair(it->data);
-				n->hash = hash;
+				new(&new_key_values[i]) KeyValuePair(key_values[idx]);
+				new_hashes[i] = hash;
 				if(destruct_original)
-					it->data.~KeyValuePair();
+					key_values[idx].~KeyValuePair();
 			}
-			++it;
 		}
 	}
 
-	Node *allocateNodes(int count) {
-		Node *buckets = static_cast<Node *>(fwk::allocate(count * sizeof(Node)));
+	HashValue *allocateHashes(int count) {
+		auto *hashes = static_cast<HashValue *>(fwk::allocate(count * sizeof(HashValue)));
 		for(int n = 0; n < count; n++)
-			buckets[n].hash = unused_hash;
-		return buckets;
+			hashes[n] = unused_hash;
+		return hashes;
 	}
 
 	void deleteNodes() {
 		for(int n = 0; n < m_capacity; n++)
-			if(m_nodes[n].isOccupied())
-				m_nodes[n].data.~KeyValuePair();
-		if(m_nodes != &s_empty_node)
-			fwk::deallocate(m_nodes);
+			if(m_hashes[n] < deleted_hash)
+				m_key_values[n].~KeyValuePair();
+		if(m_hashes != &s_empty_node)
+			fwk::deallocate(m_hashes);
+		fwk::deallocate(m_key_values);
 		m_capacity = m_size = m_capacity_mask = m_used_limit = 0;
 	}
 
-	void eraseNode(Node *n) {
-		PASSERT(n->isOccupied());
-		n->data.~KeyValuePair();
-		n->hash = deleted_hash;
+	void eraseNode(int idx) {
+		PASSERT(m_hashes[idx] < deleted_hash);
+		m_key_values[idx].~KeyValuePair();
+		m_hashes[idx] = deleted_hash;
 		--m_size;
 	}
 
 	HashValue hashFunc(const Key &key) const { return hash<HashValue>(key) & 0x7FFFFFFFu; }
 
-	static Node s_empty_node;
-	Node *m_nodes = &s_empty_node, *m_end = &s_empty_node;
+	static inline HashValue s_empty_node = unused_hash;
+	HashValue *m_hashes = &s_empty_node;
+	KeyValuePair *m_key_values = nullptr;
 	int m_size = 0, m_capacity = 0;
 	int m_num_used = 0, m_used_limit = 0;
 	float m_load_factor = 2.0f / 3.0f;
 	u32 m_capacity_mask = 0;
+	template <bool is_const> friend struct TIter;
 };
-
-template <typename TKey, typename TValue>
-typename HashMap<TKey, TValue>::Node HashMap<TKey, TValue>::s_empty_node;
 }
