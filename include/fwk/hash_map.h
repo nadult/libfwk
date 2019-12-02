@@ -198,8 +198,7 @@ template <typename TKey, typename TValue> class HashMap {
 	int usedBucketCount() const { return m_num_used; }
 	int usedMemory() const { return capacity() * (sizeof(HashValue) + sizeof(KeyValuePair)); }
 
-	HashValue *hashData() { return m_hashes; }
-	const HashValue *hashData() const { return m_hashes; }
+	CSpan<HashValue> hashes() const { return {m_hashes, m_capacity}; }
 	KeyValuePair *data() { return m_key_values; }
 	const KeyValuePair *data() const { return m_key_values; }
 
