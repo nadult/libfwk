@@ -14,6 +14,20 @@ template <class H> H combineHash(H hash1, H hash2) {
 	return hash1 ^ (hash2 + 0x9e3779b9 + (hash1 << 6) + (hash1 >> 2));
 }
 
+inline u64 hashU64(u64 value) {
+	value ^= value >> 33;
+	value *= 0xff51afd7ed558ccd;
+	value ^= value >> 33;
+	value *= 0xc4ceb9fe1a85ec53;
+	value ^= value >> 33;
+	return value;
+}
+
+inline u32 hashU32(u32 value) {
+	u64 r = value * u64(0xca4bcaa75ec3f625);
+	return u32(r >> 32) + u32(r);
+}
+
 template <class H, class... Args> H combineHash(H hash1, H hash2, Args... hashes) {
 	return combineHash(hash1, combineHash<H>(hash2, hashes...));
 }
@@ -28,6 +42,12 @@ template <class H, class T> H computeHash(const T &value) {
 template <class H, class T> H computeHash(const T &value, PriorityTag0) {
 	if constexpr(is_same<T, qint>)
 		return combineHash<H>(computeHash<H>(llint(value)), computeHash<H>(llint(value >> 64)));
+	else if constexpr(is_one_of<T, i32, u32, i16, u16, i8, u8>)
+		return hashU32(u32(value));
+	else if constexpr(is_one_of<T, i64, u64>)
+		return hashU64(u64(value));
+	else if constexpr(std::is_enum<T>::value)
+		return hashU32(u32(value));
 	else
 		return H(std::hash<T>()(value));
 }
