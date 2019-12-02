@@ -281,10 +281,9 @@ template <typename TKey, typename TValue> class HashMap {
 		// Guarantees loop termination.
 		PASSERT(m_num_used < m_capacity);
 
-		unsigned num_probes = 0;
+		int num_probes = 1;
 		while(m_hashes[idx] <= deleted_hash) {
-			num_probes++;
-			idx = (idx + num_probes) & m_capacity_mask;
+			idx = (idx + num_probes++) & m_capacity_mask;
 			if(m_hashes[idx] == hash && m_key_values[idx].key == key)
 				return idx;
 			if(m_hashes[idx] == deleted_hash && free_idx == -1)
@@ -302,10 +301,9 @@ template <typename TKey, typename TValue> class HashMap {
 		// Guarantees loop termination.
 		PASSERT(m_capacity == 0 || m_num_used < m_capacity);
 
-		unsigned num_probes = 0;
+		int num_probes = 1;
 		while(m_hashes[idx] <= deleted_hash) {
-			num_probes++;
-			idx = (idx + num_probes) & m_capacity_mask;
+			idx = (idx + num_probes++) & m_capacity_mask;
 			if(m_hashes[idx] == hash && m_key_values[idx].key == key)
 				return idx;
 		}
@@ -320,11 +318,9 @@ template <typename TKey, typename TValue> class HashMap {
 				const Hash hash = hashes[idx];
 				u32 i = hash & mask;
 
-				unsigned num_probes = 0;
-				while(new_hashes[i] != unused_hash) {
-					++num_probes;
-					i = (i + num_probes) & mask;
-				}
+				int num_probes = 1;
+				while(new_hashes[i] != unused_hash)
+					i = (i + num_probes++) & mask;
 				new(&new_key_values[i]) KeyValue(key_values[idx]);
 				new_hashes[i] = hash;
 				if(destruct_original)
