@@ -18,13 +18,6 @@ template <typename TKey, typename TValue> class HashMap {
 	using KeyValuePair = Pair<TKey, TValue>;
 	using HashValue = u32;
 
-	static constexpr HashValue unused_hash = 0xffffffff;
-	static constexpr HashValue deleted_hash = 0xfffffffe;
-	// Index is occupied if hash < deleted_hash
-
-	static constexpr int initial_capacity = 64;
-	static_assert(isPowerOfTwo(initial_capacity));
-
 	template <bool is_const> struct TIter {
 		template <bool to_const, EnableIf<!is_const && to_const>...> operator TIter<to_const>() {
 			return {map, idx};
@@ -32,13 +25,13 @@ template <typename TKey, typename TValue> class HashMap {
 
 		auto &operator*() const { return PASSERT(!atEnd()), map->m_key_values[idx]; }
 		auto *operator-> () const { return PASSERT(!atEnd()), &map->m_key_values[idx]; }
-		void operator++() { PASSERT(!atEnd()), ++idx, moveToNextOccupiedNode(); }
+		void operator++() { PASSERT(!atEnd()), ++idx, skipUnoccupied(); }
 		bool operator==(const TIter &rhs) const { return rhs.idx == idx; }
 
 		bool atEnd() const { return idx >= map->m_capacity; }
 		explicit operator bool() const { return idx < map->m_capacity; }
 
-		void moveToNextOccupiedNode() {
+		void skipUnoccupied() {
 			while(idx < map->m_capacity && map->m_hashes[idx] >= deleted_hash)
 				idx++;
 		}
@@ -51,8 +44,9 @@ template <typename TKey, typename TValue> class HashMap {
 	using ConstIter = TIter<true>;
 
 	HashMap() {}
-	explicit HashMap(int initial_bucket_count) { reserve(initial_bucket_count); }
+	explicit HashMap(int min_reserve) { reserve(min_reserve); }
 	HashMap(const HashMap &rhs) { *this = rhs; }
+	HashMap(HashMap &&rhs) { *this = move(rhs); }
 	~HashMap() { deleteNodes(); }
 
 	// Load factor controls hash map load. Default is ~66%.
@@ -66,12 +60,12 @@ template <typename TKey, typename TValue> class HashMap {
 
 	Iter begin() {
 		Iter it{this, 0};
-		it.moveToNextOccupiedNode();
+		it.skipUnoccupied();
 		return it;
 	}
 	ConstIter begin() const {
 		ConstIter it{this, 0};
-		it.moveToNextOccupiedNode();
+		it.skipUnoccupied();
 		return it;
 	}
 
@@ -105,17 +99,24 @@ template <typename TKey, typename TValue> class HashMap {
 		setLoadFactor(rhs.m_load_factor);
 	}
 
+	void operator=(HashMap &&rhs) {
+		deleteNodes();
+		memcpy(this, &rhs, sizeof(HashMap));
+		memset(&rhs, 0, sizeof(HashMap));
+		rhs.m_load_factor = m_load_factor;
+	}
+
 	void swap(HashMap &rhs) {
-		if(&rhs != this) {
-			swap(m_hashes, rhs.m_hashes);
-			swap(m_key_values, rhs.m_key_values);
-			swap(m_size, rhs.m_size);
-			swap(m_capacity, rhs.m_capacity);
-			swap(m_capacity_mask, rhs.m_capacity_mask);
-			swap(m_used_limit, rhs.m_used_limit);
-			swap(m_num_used, rhs.m_num_used);
-			swap(m_load_factor, rhs.m_load_factor);
-		}
+		if(&rhs == this)
+			return;
+		swap(m_hashes, rhs.m_hashes);
+		swap(m_key_values, rhs.m_key_values);
+		swap(m_size, rhs.m_size);
+		swap(m_capacity, rhs.m_capacity);
+		swap(m_capacity_mask, rhs.m_capacity_mask);
+		swap(m_used_limit, rhs.m_used_limit);
+		swap(m_num_used, rhs.m_num_used);
+		swap(m_load_factor, rhs.m_load_factor);
 	}
 
 	Pair<Iter, bool> emplace(const TKey &key, const TValue &value) { return emplace({key, value}); }
@@ -181,8 +182,6 @@ template <typename TKey, typename TValue> class HashMap {
 		m_size = m_num_used = 0;
 	}
 
-	// TODO: something is wrong here (when reserving space in voxelizer/tri_points procedure
-	// slows down drastically (slower the bigger reserve))
 	void reserve(int min_size) {
 		int new_capacity = m_capacity == 0 ? initial_capacity : m_capacity;
 		while(new_capacity < min_size)
@@ -225,6 +224,13 @@ template <typename TKey, typename TValue> class HashMap {
 	}
 
   private:
+	static constexpr int initial_capacity = 64;
+	static_assert(isPowerOfTwo(initial_capacity));
+
+	// Index is occupied if hash < deleted_hash
+	static constexpr HashValue unused_hash = 0xffffffff;
+	static constexpr HashValue deleted_hash = 0xfffffffe;
+
 	void grow() { grow(m_capacity == 0 ? initial_capacity : m_capacity * 2); }
 	void grow(int new_capacity) {
 		PASSERT(isPowerOfTwo(new_capacity));
@@ -259,7 +265,6 @@ template <typename TKey, typename TValue> class HashMap {
 	}
 
 	int findForInsert(const Key &key, HashValue hash) {
-		// TODO: unsigned or signed ?
 		int idx = hash & m_capacity_mask;
 		if(m_hashes[idx] == hash && m_key_values[idx].first == key)
 			return idx;
