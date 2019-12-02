@@ -108,16 +108,12 @@ template <class T> void GlStorage<T>::freeGL(int id) {
 
 template <class T> int GlStorage<T>::bigIdFromGL(int id) const {
 	auto &map = s_internal<T>.from_gl;
-	auto it = map.find(id);
-	PASSERT(it != map.end());
-	return it->second;
+	return map.find(id)->value;
 }
 
 template <class T> int GlStorage<T>::bigIdToGL(int id) const {
 	auto &map = s_internal<T>.to_gl;
-	auto it = map.find(id);
-	PASSERT(it != map.end());
-	return it->second;
+	return map.find(id)->value;
 }
 
 template <class T> void GlStorage<T>::mapBigId(int obj_id, int gl_id) {
@@ -128,8 +124,7 @@ template <class T> void GlStorage<T>::mapBigId(int obj_id, int gl_id) {
 template <class T> void GlStorage<T>::clearBigId(int obj_id) {
 	auto &map = s_internal<T>.to_gl;
 	auto it = map.find(obj_id);
-	PASSERT(it != map.end());
-	s_internal<T>.from_gl.erase(it->second);
+	s_internal<T>.from_gl.erase(it->value);
 	map.erase(it);
 }
 

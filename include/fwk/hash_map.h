@@ -13,10 +13,16 @@ namespace fwk {
 // Improved & adapted for libfwk by Krzysztof Jakubowski
 template <typename TKey, typename TValue> class HashMap {
   public:
+	using Hash = u32;
 	using Key = TKey;
 	using Value = TValue;
-	using KeyValuePair = Pair<TKey, TValue>;
-	using HashValue = u32;
+
+	struct KeyValue {
+		operator Pair<Key, Value>() const { return {key, value}; }
+
+		Key key;
+		Value value;
+	};
 
 	template <bool is_const> struct TIter {
 		template <bool to_const, EnableIf<!is_const && to_const>...> operator TIter<to_const>() {
@@ -73,11 +79,11 @@ template <typename TKey, typename TValue> class HashMap {
 	ConstIter end() const { return {this, m_capacity}; }
 
 	Value &operator[](const Key &key) {
-		HashValue hash = hashFunc(key);
+		auto hash = hashFunc(key);
 		int idx = findForInsert(key, hash);
 		if(idx == m_capacity || m_hashes[idx] >= deleted_hash)
-			return emplaceAt({key, TValue()}, idx, hash).first->second;
-		return m_key_values[idx].second;
+			return emplaceAt({key, TValue()}, idx, hash).first->value;
+		return m_key_values[idx].value;
 	}
 
 	void operator=(const HashMap &rhs) {
@@ -88,7 +94,7 @@ template <typename TKey, typename TValue> class HashMap {
 		if(m_capacity < rhs.m_capacity) {
 			deleteNodes();
 			m_hashes = allocateHashes(rhs.m_capacity);
-			m_key_values = (KeyValuePair *)fwk::allocate(rhs.m_capacity * sizeof(KeyValuePair));
+			m_key_values = (KeyValue *)fwk::allocate(rhs.m_capacity * sizeof(KeyValue));
 			m_capacity = rhs.m_capacity;
 			m_capacity_mask = m_capacity - 1;
 		}
@@ -119,19 +125,19 @@ template <typename TKey, typename TValue> class HashMap {
 		swap(m_load_factor, rhs.m_load_factor);
 	}
 
-	Pair<Iter, bool> emplace(const TKey &key, const TValue &value) { return emplace({key, value}); }
-
-	Pair<Iter, bool> emplace(const KeyValuePair &v) {
+	auto emplace(const KeyValue &pair) { return emplace(pair.key, pair.value); }
+	auto emplace(const Pair<Key, Value> &pair) { return emplace(pair.first, pair.second); }
+	Pair<Iter, bool> emplace(const TKey &key, const TValue &value) {
 		if(m_num_used >= m_used_limit)
 			grow();
 
-		HashValue hash = hashFunc(v.first);
-		int idx = findForInsert(v.first, hash);
+		auto hash = hashFunc(key);
+		int idx = findForInsert(key, hash);
 		if(m_hashes[idx] < deleted_hash)
 			return {{this, idx}, false};
 		if(m_hashes[idx] == unused_hash)
 			++m_num_used;
-		new(&m_key_values[idx]) KeyValuePair(v);
+		new(&m_key_values[idx]) KeyValue{key, value};
 		m_hashes[idx] = hash;
 		++m_size;
 		PASSERT(m_num_used >= m_size);
@@ -166,17 +172,16 @@ template <typename TKey, typename TValue> class HashMap {
 
 	Iter find(const Key &key) { return {this, lookup(key)}; }
 	ConstIter find(const Key &key) const { return {this, lookup(key)}; }
+
 	Maybe<Value> maybeFind(const Key &key) const {
-		auto it = find(key);
-		if(it == end())
-			return none;
-		return it->second;
+		auto idx = lookup(key);
+		return idx == m_capacity ? Maybe<Value>() : m_key_values[idx].value;
 	}
 
 	void clear() {
 		for(int n = 0; n < m_capacity; n++) {
 			if(m_hashes[n] < deleted_hash)
-				m_key_values[n].~KeyValuePair();
+				m_key_values[n].~KeyValue();
 			m_hashes[n] = unused_hash;
 		}
 		m_size = m_num_used = 0;
@@ -195,17 +200,17 @@ template <typename TKey, typename TValue> class HashMap {
 	bool empty() const { return size() == 0; }
 
 	int usedBucketCount() const { return m_num_used; }
-	int usedMemory() const { return capacity() * (sizeof(HashValue) + sizeof(KeyValuePair)); }
+	int usedMemory() const { return capacity() * (sizeof(Hash) + sizeof(KeyValue)); }
 
-	CSpan<HashValue> hashes() const { return {m_hashes, m_capacity}; }
-	KeyValuePair *data() { return m_key_values; }
-	const KeyValuePair *data() const { return m_key_values; }
+	CSpan<Hash> hashes() const { return {m_hashes, m_capacity}; }
+	KeyValue *data() { return m_key_values; }
+	const KeyValue *data() const { return m_key_values; }
 
 	vector<Value> values() const {
 		vector<Value> out;
 		out.reserve(size());
 		for(auto &pair : *this)
-			out.emplace_back(pair.second);
+			out.emplace_back(pair.value);
 		return out;
 	}
 
@@ -213,7 +218,7 @@ template <typename TKey, typename TValue> class HashMap {
 		vector<Key> out;
 		out.reserve(size());
 		for(auto &pair : *this)
-			out.emplace_back(pair.first);
+			out.emplace_back(pair.key);
 		return out;
 	}
 
@@ -228,14 +233,14 @@ template <typename TKey, typename TValue> class HashMap {
 	static_assert(isPowerOfTwo(initial_capacity));
 
 	// Index is occupied if hash < deleted_hash
-	static constexpr HashValue unused_hash = 0xffffffff;
-	static constexpr HashValue deleted_hash = 0xfffffffe;
+	static constexpr Hash unused_hash = 0xffffffff;
+	static constexpr Hash deleted_hash = 0xfffffffe;
 
 	void grow() { grow(m_capacity == 0 ? initial_capacity : m_capacity * 2); }
 	void grow(int new_capacity) {
 		PASSERT(isPowerOfTwo(new_capacity));
 		auto *new_hashes = allocateHashes(new_capacity);
-		auto *new_key_values = (KeyValuePair *)fwk::allocate(new_capacity * sizeof(KeyValuePair));
+		auto *new_key_values = (KeyValue *)fwk::allocate(new_capacity * sizeof(KeyValue));
 
 		rehash(new_capacity, new_hashes, new_key_values, m_capacity, m_hashes, m_key_values, true);
 		if(m_hashes != &s_empty_node)
@@ -251,22 +256,22 @@ template <typename TKey, typename TValue> class HashMap {
 		PASSERT(m_num_used < m_capacity);
 	}
 
-	Pair<Iter, bool> emplaceAt(const KeyValuePair &v, int idx, HashValue hash) {
+	Pair<Iter, bool> emplaceAt(const KeyValue &v, int idx, Hash hash) {
 		if(idx == m_capacity || m_num_used >= m_used_limit)
 			return emplace(v);
 
 		PASSERT(m_hashes[idx] >= deleted_hash);
 		if(m_hashes[idx] == unused_hash)
 			++m_num_used;
-		new(&m_key_values[idx]) KeyValuePair(v);
+		new(&m_key_values[idx]) KeyValue(v);
 		m_hashes[idx] = hash;
 		++m_size;
 		return {{this, idx}, true};
 	}
 
-	int findForInsert(const Key &key, HashValue hash) {
+	int findForInsert(const Key &key, Hash hash) {
 		int idx = hash & m_capacity_mask;
-		if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+		if(m_hashes[idx] == hash && m_key_values[idx].key == key)
 			return idx;
 		if(idx == m_capacity)
 			return m_capacity;
@@ -280,7 +285,7 @@ template <typename TKey, typename TValue> class HashMap {
 		while(m_hashes[idx] <= deleted_hash) {
 			num_probes++;
 			idx = (idx + num_probes) & m_capacity_mask;
-			if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+			if(m_hashes[idx] == hash && m_key_values[idx].key == key)
 				return idx;
 			if(m_hashes[idx] == deleted_hash && free_idx == -1)
 				free_idx = idx;
@@ -291,7 +296,7 @@ template <typename TKey, typename TValue> class HashMap {
 	int lookup(const Key &key) const {
 		auto hash = hashFunc(key);
 		unsigned idx = hash & m_capacity_mask;
-		if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+		if(m_hashes[idx] == hash && m_key_values[idx].key == key)
 			return idx;
 
 		// Guarantees loop termination.
@@ -301,19 +306,18 @@ template <typename TKey, typename TValue> class HashMap {
 		while(m_hashes[idx] <= deleted_hash) {
 			num_probes++;
 			idx = (idx + num_probes) & m_capacity_mask;
-			if(m_hashes[idx] == hash && m_key_values[idx].first == key)
+			if(m_hashes[idx] == hash && m_key_values[idx].key == key)
 				return idx;
 		}
 		return m_capacity;
 	}
 
-	static void rehash(int new_capacity, HashValue *new_hashes, KeyValuePair *new_key_values,
-					   int capacity, const HashValue *hashes, const KeyValuePair *key_values,
-					   bool destruct_original) {
+	static void rehash(int new_capacity, Hash *new_hashes, KeyValue *new_key_values, int capacity,
+					   const Hash *hashes, const KeyValue *key_values, bool destruct_original) {
 		const u32 mask = new_capacity - 1;
 		for(int idx = 0; idx < capacity; idx++) {
 			if(hashes[idx] < deleted_hash) {
-				const HashValue hash = hashes[idx];
+				const Hash hash = hashes[idx];
 				u32 i = hash & mask;
 
 				unsigned num_probes = 0;
@@ -321,16 +325,16 @@ template <typename TKey, typename TValue> class HashMap {
 					++num_probes;
 					i = (i + num_probes) & mask;
 				}
-				new(&new_key_values[i]) KeyValuePair(key_values[idx]);
+				new(&new_key_values[i]) KeyValue(key_values[idx]);
 				new_hashes[i] = hash;
 				if(destruct_original)
-					key_values[idx].~KeyValuePair();
+					key_values[idx].~KeyValue();
 			}
 		}
 	}
 
-	HashValue *allocateHashes(int count) {
-		auto *hashes = static_cast<HashValue *>(fwk::allocate(count * sizeof(HashValue)));
+	Hash *allocateHashes(int count) {
+		auto *hashes = static_cast<Hash *>(fwk::allocate(count * sizeof(Hash)));
 		for(int n = 0; n < count; n++)
 			hashes[n] = unused_hash;
 		return hashes;
@@ -339,7 +343,7 @@ template <typename TKey, typename TValue> class HashMap {
 	void deleteNodes() {
 		for(int n = 0; n < m_capacity; n++)
 			if(m_hashes[n] < deleted_hash)
-				m_key_values[n].~KeyValuePair();
+				m_key_values[n].~KeyValue();
 		if(m_hashes != &s_empty_node)
 			fwk::deallocate(m_hashes);
 		fwk::deallocate(m_key_values);
@@ -348,16 +352,16 @@ template <typename TKey, typename TValue> class HashMap {
 
 	void eraseNode(int idx) {
 		PASSERT(m_hashes[idx] < deleted_hash);
-		m_key_values[idx].~KeyValuePair();
+		m_key_values[idx].~KeyValue();
 		m_hashes[idx] = deleted_hash;
 		--m_size;
 	}
 
-	HashValue hashFunc(const Key &key) const { return hash<HashValue>(key) & 0x7FFFFFFFu; }
+	Hash hashFunc(const Key &key) const { return hash<Hash>(key) & 0x7FFFFFFFu; }
 
-	static inline HashValue s_empty_node = unused_hash;
-	HashValue *m_hashes = &s_empty_node;
-	KeyValuePair *m_key_values = nullptr;
+	static inline Hash s_empty_node = unused_hash;
+	Hash *m_hashes = &s_empty_node;
+	KeyValue *m_key_values = nullptr;
 	int m_size = 0, m_capacity = 0;
 	int m_num_used = 0, m_used_limit = 0;
 	float m_load_factor = 2.0f / 3.0f;

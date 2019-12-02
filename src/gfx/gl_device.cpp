@@ -241,7 +241,8 @@ int GlDevice::swapInterval() { return SDL_GL_GetSwapInterval(); }
 void GlDevice::setSwapInterval(int value) { SDL_GL_SetSwapInterval(value); }
 
 bool GlDevice::pollEvents() {
-	m_input_impl->events = m_input_impl->state.pollEvents(m_input_impl->key_map, m_window_impl->window);
+	m_input_impl->events =
+		m_input_impl->state.pollEvents(m_input_impl->key_map, m_window_impl->window);
 	for(const auto &event : m_input_impl->events)
 		if(event.type() == InputEvent::quit)
 			return false;
@@ -309,7 +310,7 @@ PProgram GlDevice::cacheFindProgram(Str name) const {
 		return {};
 	auto &cache = m_window_impl->program_cache;
 	auto it = cache.find(name);
-	return it == cache.end() ? PProgram() : it->second;
+	return it ? it->value : PProgram();
 }
 
 void GlDevice::cacheAddProgram(Str name, PProgram program) {

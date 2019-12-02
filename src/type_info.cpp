@@ -122,8 +122,8 @@ void TypeInfo::operator>>(TextFormatter &fmt) const { fmt << name(); }
 ZStr TypeInfo::name() const {
 	auto &map = detail::typeNames();
 	auto it = map.find(id());
-	DASSERT(it != map.end());
-	return it->second.c_str();
+	DASSERT(it);
+	return it->value.c_str();
 }
 
 const HashMap<string, TypeId> &TypeInfo::nameToId() { return detail::invTypeNames(); }
@@ -131,9 +131,8 @@ const HashMap<TypeId, string> &TypeInfo::idToName() { return detail::typeNames()
 
 Maybe<TypeInfo> typeInfo(const char *type_name) {
 	auto &map = detail::invTypeNames();
-	auto it = map.find(type_name);
-	if(it != map.end())
-		return TypeInfo(it->second);
+	if(auto it = map.find(type_name))
+		return TypeInfo(it->value);
 	return none;
 }
 

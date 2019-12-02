@@ -82,8 +82,8 @@ template <class T> T GeomGraph<T>::vec(EdgeId id) const {
 }
 
 template <class T> Maybe<VertexRef> GeomGraph<T>::findVertex(Point pt) const {
-	if(auto it = m_point_map.find(pt); it != m_point_map.end())
-		return ref(VertexId(it->second));
+	if(auto it = m_point_map.find(pt))
+		return ref(VertexId(it->value));
 	return none;
 }
 
@@ -107,10 +107,9 @@ template <class T> void GeomGraph<T>::addVertexAt(VertexId vid, const Point &poi
 
 template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &point, Layers layers) {
 	// TODO: możliwośc sprecyzowania domyślnego elementu w hashMap::operator[] ?
-	auto it = m_point_map.find(point);
-	if(it != m_point_map.end()) {
-		m_vert_layers[it->second] |= layers;
-		return {VertexId(it->second), false};
+	if(auto it = m_point_map.find(point)) {
+		m_vert_layers[it->value] |= layers;
+		return {VertexId(it->value), false};
 	}
 	auto id = Graph::addVertex(layers);
 	m_points.resize(Graph::m_verts.capacity());
@@ -123,9 +122,8 @@ template <class T>
 void GeomGraph<T>::mergeVerts(CSpan<VertexId> verts, const Point &point, Layers layers) {
 	DASSERT(verts);
 
-	auto it = m_point_map.find(point);
-	if(it != m_point_map.end())
-		DASSERT(isOneOf(VertexId(it->second), verts));
+	if(auto it = m_point_map.find(point))
+		DASSERT(isOneOf(VertexId(it->value), verts));
 	auto target = verts.front();
 
 	// TODO: what to do with duplicated egdes & tris ?
@@ -282,9 +280,8 @@ auto GeomGraph<T>::buildPointMap(CSpan<bool> valid_indices, CSpan<Point> points,
 	point_map.reserve(points.size());
 	for(auto vid : indexRange<VertexId>(valid_indices))
 		if(valid_indices[vid]) {
-			auto it = point_map.find(points[vid]);
-			if(it != point_map.end())
-				identical_points.emplace_back(vid, it->second);
+			if(auto it = point_map.find(points[vid]))
+				identical_points.emplace_back(vid, it->value);
 			else
 				point_map[points[vid]] = vid;
 		}
@@ -511,10 +508,10 @@ template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> Mer
 
 		for(auto npos : nearby9Cells(cur_cell)) {
 			auto it = cell_verts.find(npos);
-			if(it == cell_verts.end())
+			if(!it)
 				continue;
 
-			for(int vert = it->second.head, next; vert != -1; vert = next) {
+			for(int vert = it->value.head, next; vert != -1; vert = next) {
 				next = nodes[vert].next;
 				if(vert == cur_id)
 					continue;
@@ -528,7 +525,7 @@ template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> Mer
 					cur_pos = (cur_pos * cur_weight + vert_pos * vert_weight) / new_weight;
 					cur_weight = new_weight;
 
-					do_merge(vert, it->second);
+					do_merge(vert, it->value);
 				}
 			}
 		}

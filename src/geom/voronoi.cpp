@@ -189,7 +189,7 @@ Voronoi Voronoi::clip(DRect rect) const {
 		vertex_cells[seg.to()].emplace_back(cell_id);
 	}
 	for(auto &pair : vertex_cells)
-		makeSorted(pair.second); //TODO: makeSortedUnique?
+		makeSorted(pair.value); //TODO: makeSortedUnique?
 
 	double2 rect_center = rect.center();
 

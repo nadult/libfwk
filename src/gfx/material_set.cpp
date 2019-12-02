@@ -14,7 +14,7 @@ FWK_COPYABLE_CLASS_IMPL(MaterialSet);
 
 const Material &MaterialSet::operator[](const string &name) const {
 	auto it = m_map.find(name);
-	return it == m_map.end() ? m_default : it->second;
+	return it ? it->value : m_default;
 }
 
 vector<Material> MaterialSet::operator()(CSpan<string> names) const {

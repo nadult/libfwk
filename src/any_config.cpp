@@ -35,29 +35,21 @@ Ex<AnyConfig> AnyConfig::load(CXmlNode node, bool ignore_errors) {
 }
 
 void AnyConfig::save(XmlNode node) const {
-	for(auto &elem : m_elements)
-		if(elem.second.xmlEnabled()) {
-			auto sub_node = node.addChild(node.own(elem.first));
-			elem.second.save(sub_node);
-		}
+	for(auto &[key, value] : m_elements)
+		if(value.xmlEnabled())
+			value.save(node.addChild(node.own(key)));
 }
 
 const Any *AnyConfig::get(Str name) const {
 	auto it = m_elements.find(name);
-	return it == m_elements.end() ? nullptr : &it->second;
+	return it ? &it->value : nullptr;
 }
 
 const AnyConfig *AnyConfig::subConfig(Str name) const { return get<AnyConfig>(name); }
 
 void AnyConfig::set(string name, Any value) { m_elements[name] = move(value); }
 
-vector<string> AnyConfig::keys() const {
-	vector<string> out;
-	out.reserve(m_elements.size());
-	for(auto &elem : m_elements)
-		out.emplace_back(elem.first);
-	return out;
-}
+vector<string> AnyConfig::keys() const { return m_elements.keys(); }
 
 void AnyConfig::printErrors() const {
 	for(auto &[name, err] : m_loading_errors) {

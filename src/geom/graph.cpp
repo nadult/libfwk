@@ -138,17 +138,17 @@ bool Graph::hasLabel(EdgeId id) const { return m_edge_labels.find(id) == m_edge_
 
 const Label &Graph::operator[](VertexId vid) const {
 	auto it = m_vert_labels.find(vid);
-	return it == m_vert_labels.end() ? g_default_label : it->second;
+	return it ? it->value : g_default_label;
 }
 
 const Label &Graph::operator[](EdgeId eid) const {
 	auto it = m_edge_labels.find(eid);
-	return it == m_edge_labels.end() ? g_default_label : it->second;
+	return it ? it->value : g_default_label;
 }
 
 const Label &Graph::operator[](TriId tid) const {
 	auto it = m_tri_labels.find(tid);
-	return it == m_tri_labels.end() ? g_default_label : it->second;
+	return it ? it->value : g_default_label;
 }
 
 Label &Graph::operator[](VertexId vid) { return m_vert_labels[vid]; }

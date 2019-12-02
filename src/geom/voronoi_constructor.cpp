@@ -248,12 +248,12 @@ class VoronoiConstructor {
 
 			if(shared_node) {
 				auto it = shared_node_arcs.find({v1, v2});
-				if(it == shared_node_arcs.end())
+				if(!it)
 					it = shared_node_arcs.find({v2, v1});
 
-				if(it != shared_node_arcs.end()) {
-					auto &tarc1_cell = out[it->second.first].ival1;
-					auto &tarc2_cell = out[it->second.second].ival1;
+				if(it) {
+					auto &tarc1_cell = out[it->value.first].ival1;
+					auto &tarc2_cell = out[it->value.second].ival1;
 
 					// We have two sites s1, s2 sharing a vertex v1
 					// We have two identical arcs, one between s1 and v1, other between v1 and s2

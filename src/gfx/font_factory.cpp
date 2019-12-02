@@ -71,9 +71,8 @@ struct FontFactory::Impl {
 	Ex<FT_Face> getFace(ZStr path) {
 		DASSERT(lib);
 
-		auto it = faces.find(path);
-		if(it != faces.end())
-			return it->second;
+		if(auto it = faces.find(path))
+			return it->value;
 
 		FT_Face face;
 		FT_Error error = FT_New_Face(lib, path.c_str(), 0, &face);
@@ -96,7 +95,7 @@ FontFactory::FontFactory(FontFactory &&) = default;
 FontFactory::~FontFactory() {
 	if(m_impl->lib) {
 		for(auto face : m_impl->faces)
-			FT_Done_Face((FT_Face)face.second);
+			FT_Done_Face((FT_Face)face.value);
 		FT_Done_FreeType((FT_Library)m_impl->lib);
 	}
 }

@@ -99,13 +99,14 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 			m_kernings[pair(kerning.left, kerning.right)] = kerning.value;
 		m_max_rect = {};
 
-		for(auto &glyph : m_glyphs) {
-			IRect rect = IRect(glyph.second.size) + glyph.second.offset;
+		// TODO: this mapping won't work well without hash function for keys...
+		for(auto &[id, glyph] : m_glyphs) {
+			IRect rect = IRect(glyph.size) + glyph.offset;
 			m_max_rect = enclose(m_max_rect, rect);
 		}
 
 		for(auto &glyph : m_glyphs)
-			glyph.second.offset.y -= m_max_rect.y();
+			glyph.value.offset.y -= m_max_rect.y();
 		computeRect();
 	}
 
@@ -114,7 +115,7 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 	void FontCore::computeRect() {
 		m_max_rect = {};
 		for(auto &it : m_glyphs)
-			m_max_rect = enclose(m_max_rect, IRect(it.second.size) + it.second.offset);
+			m_max_rect = enclose(m_max_rect, IRect(it.value.size) + it.value.offset);
 	}
 
 	IRect FontCore::evalExtents(const string32 &text) const {
@@ -137,7 +138,7 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 				DASSERT(char_it != m_glyphs.end());
 			}
 
-			const Glyph &glyph = char_it->second;
+			const Glyph &glyph = char_it->value;
 
 			IRect new_rect = m_max_rect + pos;
 			int new_width = text[n] == ' ' ? glyph.x_advance : glyph.offset.x + glyph.size.x;
@@ -146,9 +147,8 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 			rect = n == 0 ? new_rect : enclose(rect, new_rect);
 			if(n + 1 < (int)text.size()) {
 				pos.x += glyph.x_advance;
-				auto kerning_it = m_kernings.find({(int)text[n], (int)text[n + 1]});
-				if(kerning_it != m_kernings.end())
-					pos.x += kerning_it->second;
+				if(auto it = m_kernings.find({(int)text[n], (int)text[n + 1]}))
+					pos.x += it->value;
 			}
 		}
 
@@ -179,7 +179,7 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 				DASSERT(char_it != m_glyphs.end());
 			}
 
-			const Glyph &glyph = char_it->second;
+			const Glyph &glyph = char_it->value;
 
 			float2 spos = pos + (float2)glyph.offset;
 			out_pos[offset + 0] = spos + float2(0.0f, 0.0f);
@@ -199,9 +199,8 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 
 			if(n + 1 < count) {
 				pos.x += glyph.x_advance;
-				auto kerning_it = m_kernings.find({(int)text[n], (int)text[n + 1]});
-				if(kerning_it != m_kernings.end())
-					pos.x += kerning_it->second;
+				if(auto it = m_kernings.find({(int)text[n], (int)text[n + 1]}))
+					pos.x += it->value;
 			}
 
 			offset += 4;

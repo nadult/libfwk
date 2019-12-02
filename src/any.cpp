@@ -55,15 +55,15 @@ Ex<Any> Any::load(CXmlNode node, ZStr type_name) {
 Ex<Any> Any::load(CXmlNode node, TypeInfo type_info) {
 	auto &type_infos = detail::anyTypeInfos();
 	auto it = type_infos.find(type_info.id());
-	if(it == type_infos.end())
+	if(!it)
 		return ERROR("Any-type-info not found for: '%'", type_info.name());
 
-	if(!it->second.first)
+	if(!it->value.first)
 		return ERROR("Type '%' is not XML-constructible", type_info.name());
 
 	Any out;
-	out.m_model = EXPECT_PASS(it->second.first(node));
-	out.m_type = it->first;
+	out.m_model = EXPECT_PASS(it->value.first(node));
+	out.m_type = it->key;
 	return out;
 }
 
@@ -73,9 +73,9 @@ void Any::save(XmlNode node, bool save_type) const {
 	if(auto *ptr = m_model->ptr()) {
 		auto &type_infos = detail::anyTypeInfos();
 		auto it = type_infos.find(m_type.id());
-		DASSERT(it != type_infos.end() && it->second.second && "Type is not XML-enabled");
+		DASSERT(it && it->value.second && "Type is not XML-enabled");
 
-		it->second.second(ptr, node);
+		it->value.second(ptr, node);
 		if(save_type)
 			node.addAttrib("_any_type", m_type.name());
 	}
@@ -84,8 +84,8 @@ void Any::save(XmlNode node, bool save_type) const {
 bool Any::xmlEnabled() const {
 	auto &type_infos = detail::anyTypeInfos();
 	auto it = type_infos.find(m_type.id());
-	DASSERT(it != type_infos.end());
-	return it->second.first && it->second.second;
+	DASSERT(it);
+	return it->value.first && it->value.second;
 }
 
 void Any::swap(Any &rhs) {

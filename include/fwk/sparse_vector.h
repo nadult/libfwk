@@ -134,7 +134,6 @@ template <class T> class SparseVector {
 		if(index >= capacity())
 			reallocate(insertCapacity(index + 1));
 
-		auto acc = [&](int idx) -> ListNode & { return m_elements[idx].node; };
 		while(m_spread <= index) {
 			m_elements[m_spread].node = ListNode();
 			listInsert(LIST_ACCESSOR, m_free_list, m_spread++);

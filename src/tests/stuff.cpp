@@ -276,8 +276,8 @@ template <class Map> vector<Pair<string, string>> testMap(const char *name, int 
 
 	vector<Pair<string>> out;
 	out.reserve(map.size());
-	for(auto &pair : map)
-		out.emplace_back(pair);
+	for(auto &[key, value] : map)
+		out.emplace_back(key, value);
 	check = num_found;
 	return out;
 }

@@ -120,13 +120,13 @@ class Viewer {
 			PTexture tex;
 			if(!file_name.second.empty() && access(file_name.second)) {
 				double time = getTime();
-				auto it = s_textures.find(file_name.second);
-				if(it == s_textures.end()) {
+				if(auto it = s_textures.find(file_name.second))
+					tex = it->value;
+				else {
 					tex = GlTexture::load(file_name.second).get();
 					s_textures[file_name.second] = tex;
-				} else {
-					tex = it->second;
 				}
+
 				printf("Loaded texture %s: %.2f ms\n", file_name.second.c_str(),
 					   (getTime() - time) * 1000.0f);
 			}
@@ -284,7 +284,7 @@ class Viewer {
 			fcounts[dmesh.polyCount(vert)]++;
 		out("Faces/vert: ");
 		for(auto it : fcounts)
-			out("%:% ", it.first, it.second);
+			out("%:% ", it.key, it.value);
 		out("\n");
 	}
 
