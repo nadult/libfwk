@@ -99,7 +99,6 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 			m_kernings[pair(kerning.left, kerning.right)] = kerning.value;
 		m_max_rect = {};
 
-		// TODO: this mapping won't work well without hash function for keys...
 		for(auto &[id, glyph] : m_glyphs) {
 			IRect rect = IRect(glyph.size) + glyph.offset;
 			m_max_rect = enclose(m_max_rect, rect);

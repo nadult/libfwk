@@ -5,19 +5,11 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
+
 - make could generate file last_build_mode.txt
 - children to zle okreslenie na potomstwo!!!!
-
+- post increment mozna zrobic templatem na bazie preincrementa
 - wrzucić niektóre funkcje z algorithm wewnątrz klas (np. wektorów?)
-
-- HashMapa i HashSet mogą być traktowane jako SparseSpan!
-
-- HashMap: add sentinel at the end, iterators won't have to store pointer to hash_map
-  nullptr is sentinel ?
-
-- HashMap: iterator should just be a pointer to node; null pointer means find == end()
-- TODO: hashMap where [] doesnt add new element; improve searching, querying & replacing interface
-
 - intRange, indexRange -> inds ? wrappedPairs -> pairIndexRange ?
 
 - dodać funkcję reinterpretExact (lub jakos inaczej) dla typów o tej samej wielkości

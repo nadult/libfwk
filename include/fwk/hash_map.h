@@ -11,6 +11,11 @@ namespace fwk {
 // Original source: hash_map.h from RDE STL by Maciej Sinilo (Copyright 2007)
 // Licensed under MIT license
 // Improved & adapted for libfwk by Krzysztof Jakubowski
+//
+// Possible optimizations:
+// - option to use 16-bit hash; in some cases it makes non sense to store hash at all
+// - use robin hash?
+// - use HashMap together with SparseVector for big objects
 template <typename TKey, typename TValue> class HashMap {
   public:
 	using Hash = u32;
@@ -203,8 +208,8 @@ template <typename TKey, typename TValue> class HashMap {
 	int usedMemory() const { return capacity() * (sizeof(Hash) + sizeof(KeyValue)); }
 
 	CSpan<Hash> hashes() const { return {m_hashes, m_capacity}; }
-	KeyValue *data() { return m_key_values; }
-	const KeyValue *data() const { return m_key_values; }
+	KeyValue *rawData() { return m_key_values; }
+	const KeyValue *rawData() const { return m_key_values; }
 
 	vector<Value> values() const {
 		vector<Value> out;
