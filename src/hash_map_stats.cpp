@@ -51,10 +51,13 @@ HashMapStats::HashMapStats(CSpan<u32> hashes) {
 
 void HashMapStats::print() const {
 	fwk::print("HashMap stats:\n");
+	auto occupied_percent = capacity == 0 ? 0 : double(numOccupied()) * 100.0 / capacity;
+	auto distinct_percent =
+		numOccupied() == 0 ? 0 : double(num_distinct_hashes) * 100.0 / numOccupied();
+
 	printf("  capacity: %6d occupied: %6d (%.2f%%)\n   deleted: %6d   unused: %6d\n", capacity,
-		   numOccupied(), double(numOccupied()) * 100.0 / capacity, num_deleted, num_unused);
-	printf("            distinct hashes: %d (%.2f%%)\n", num_distinct_hashes,
-		   double(num_distinct_hashes) * 100.0 / numOccupied());
+		   numOccupied(), occupied_percent, num_deleted, num_unused);
+	printf("            distinct hashes: %d (%.2f%%)\n", num_distinct_hashes, distinct_percent);
 	printf("  average hit search length: %.2f\n", avg_hit_sequence_length);
 }
 
