@@ -133,6 +133,8 @@ class Analyzer {
 	FrameRange m_range;
 	ColumnFlags m_visible_columns;
 	Maybe<ExecId> m_selected_exec, m_tooltip_exec;
+	Maybe<u64> m_selected_exec_hash;
+
 	vector<Triangle> m_triangles;
 	vector<Interval<int>> m_intervals;
 	Maybe<vector<u64>> m_set_opened_nodes;

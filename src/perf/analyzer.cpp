@@ -68,6 +68,19 @@ void Analyzer::doMenu(bool &is_enabled) {
 	showGrid(m_range);
 
 	ImGui::End();
+
+	// Updating selected exec
+	if(m_selected_exec_hash) {
+		if(m_selected_exec)
+			m_selected_exec_hash = none;
+		else
+			for(int n : intRange(m_range.opened))
+				if(m_exec_tree.hashedId(ExecId(n)) == *m_selected_exec_hash) {
+					m_selected_exec = ExecId(n);
+					m_selected_exec_hash = none;
+					break;
+				}
+	}
 }
 
 void Analyzer::computeRange(FrameRange &out, CSpan<Frame> frames) {
@@ -710,6 +723,12 @@ AnyConfig Analyzer::config() const {
 	out.set("sort_var", m_sort_var, SortVar::execution);
 	out.set("sort_inverse", m_sort_inverse, false);
 	out.set("show_empty", m_show_empty, false);
+	out.set("first_frame", m_first_frame, 0);
+	out.set("end_frame", m_end_frame, m_first_frame + 1);
+	if(m_selected_exec)
+		out.set("selected", m_exec_tree.hashedId(*m_selected_exec));
+	out.set("num_last_frames", m_num_last_frames, 60);
+	out.set("limit_sampling_time", m_limit_sampling_time, 2.0);
 	return out;
 }
 
@@ -723,5 +742,12 @@ void Analyzer::setConfig(const AnyConfig &config) {
 	m_sort_var = config.get("sort_var", SortVar::execution);
 	m_sort_inverse = config.get("sort_inverse", false);
 	m_show_empty = config.get("show_empty", false);
+	m_first_frame = config.get("first_frame", 0);
+	m_end_frame = config.get("end_frame", m_first_frame + 1);
+	// Problem: ładowanie niektórych zmiennych nie ma sensu dopóki nie mamy danych...
+	if(auto sel_exec = config.get("selected", u64(0)))
+		m_selected_exec_hash = sel_exec;
+	m_num_last_frames = config.get("num_last_frames", 60);
+	m_limit_sampling_time = config.get("limit_sampling_time", 2.0);
 }
 }
