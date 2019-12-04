@@ -5,6 +5,8 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 
 ----------------------------- PRIORYTETYZUJ TE TASKI!  ------------------------------------
 
+NIE ZABIERAJ SIĘ ZA NIC DOPÓKI NIE ZASTANOWISZ SIĘ CO NAJBARDZIEJ SIĘ OPŁACA ROBIĆ W DANYM
+MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 - make could generate file last_build_mode.txt
 - children to zle okreslenie na potomstwo!!!!

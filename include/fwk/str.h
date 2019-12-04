@@ -67,6 +67,8 @@ class Str {
 	bool contains(Str str) const { return find(str) != -1; }
 	bool contains(char c) const { return find(c) != -1; }
 
+	unsigned hash() const;
+
 	friend bool operator==(const string &lhs, Str rhs) { return Str(lhs) == rhs; }
 	friend bool operator<(const string &lhs, Str rhs) { return Str(lhs) < rhs; }
 

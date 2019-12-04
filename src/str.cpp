@@ -100,6 +100,14 @@ int Str::find(Str str) const {
 #endif
 }
 
+// Source: stb_hash
+unsigned Str::hash() const {
+	uint out = 0;
+	for(int n = 0; n < m_size; n++)
+		out = (out << 7) + (out >> 25) + m_data[n];
+	return out + (out >> 16);
+}
+
 void Str::invalidIndex(int idx) const {
 	FATAL("Str: Index %d out of range: [%d - %d]", idx, 0, m_size);
 }
