@@ -403,16 +403,27 @@ CSpan<Frame> Analyzer::getFrames() {
 	auto frames = cspan(m_manager.frames());
 
 	switch(m_data_source) {
-	case DataSource::custom_range:
-		m_first_frame = clamp(m_first_frame, 0, frames.size() - 1);
-		m_end_frame = clamp(m_end_frame, m_first_frame + 1, frames.size());
-		return frames.subSpan(m_first_frame, m_end_frame);
-	case DataSource::last_frames:
+	case DataSource::custom_range: {
+		int first_frame = clamp(m_first_frame, 0, frames.size() - 1);
+		int end_frame = clamp(m_end_frame, first_frame + 1, frames.size());
+		return frames.subSpan(first_frame, end_frame);
+	}
+	case DataSource::last_frames: {
 		// Grabbing last frames makes no sense? user has to wait until animation is over anyways
 		if(m_last_sample_frame + m_num_last_frames * 2 <= frames.size())
 			m_last_sample_frame = frames.size() - m_num_last_frames;
-		return frames.subSpan(m_last_sample_frame,
-							  min(m_last_sample_frame + m_num_last_frames, frames.size()));
+		double time = 0.0;
+		auto span = frames.subSpan(m_last_sample_frame,
+								   min(m_last_sample_frame + m_num_last_frames, frames.size()));
+		for(int n : intRange(span)) {
+			time += span[n].end_time - span[n].start_time;
+			if(time > m_limit_sampling_time) {
+				span = {span.begin(), n + 1};
+				break;
+			}
+		}
+		return span;
+	}
 	}
 
 	return {}; //Let's satisfy GCC
@@ -472,6 +483,8 @@ void Analyzer::changeOptions() {
 		} else if(m_data_source == DataSource::last_frames) {
 			if(menu::inputValue("Num frames", m_num_last_frames))
 				m_num_last_frames = clamp(m_num_last_frames, 1, 10000);
+			if(menu::inputValue("Limit sampling time", m_limit_sampling_time))
+				m_limit_sampling_time = clamp(m_limit_sampling_time, 1.0 / 60.0, 1000.0);
 		}
 
 		if(auto cur_frames = getFrames())

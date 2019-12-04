@@ -110,6 +110,7 @@ class Analyzer {
 
 	int m_num_last_frames = 60;
 	int m_last_sample_frame = 0;
+	double m_limit_sampling_time = 2.0;
 
 	int m_first_frame = 0, m_end_frame = 0;
 	SortVar m_sort_var = SortVar::execution;

@@ -8,6 +8,7 @@ namespace menu {
 namespace impl {
 	bool inputValue(const char *label, int &value) { return ImGui::InputInt(label, &value); }
 	bool inputValue(const char *label, float &value) { return ImGui::InputFloat(label, &value); }
+	bool inputValue(const char *label, double &value) { return ImGui::InputDouble(label, &value); }
 }
 
 void showTooltip(Str str) {

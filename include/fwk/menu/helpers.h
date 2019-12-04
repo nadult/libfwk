@@ -12,6 +12,7 @@ namespace menu {
 namespace impl {
 	bool inputValue(const char *label, int &value);
 	bool inputValue(const char *label, float &value);
+	bool inputValue(const char *label, double &value);
 }
 
 template <class Index> bool selectIndex(ZStr title, Index &value, CSpan<const char *> strings) {
