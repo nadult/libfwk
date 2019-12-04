@@ -200,8 +200,9 @@ string Analyzer::execInfo(ExecId exec_id) const {
 		return {};
 
 	auto *point = pointInfo(m_exec_tree[exec_id].point_id);
-	return format("% %%\nLocation: %:%", point->func.return_type, point->func.name,
-				  point->func.args, point->file, point->line);
+	auto tag = point->tag ? format("[%]", point->tag) : string();
+	return format("% %%%\nLocation: %:%", point->func.return_type, point->func.name,
+				  point->func.args, tag, point->file, point->line);
 }
 
 void Analyzer::sortRows(Span<ExecId> ids, CSpan<Row> rows) const {

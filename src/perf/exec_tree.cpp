@@ -127,11 +127,11 @@ bool ExecTree::emptyBranches(ExecId exec_id, Span<bool> out, CSpan<i64> values) 
 
 u64 ExecTree::hashedId(ExecId exec_id) const {
 	if(exec_id == root())
-		return 0;
+		return 31337;
 
 	auto &exec = nodes[exec_id];
 	auto *point = pointInfo(exec.point_id);
-	return hashMany<u64>(hashedId(exec.parent_id), point->func.name, point->func.args);
+	return hashMany<u64>(hashedId(exec.parent_id), point->func.name, point->func.args, point->tag);
 }
 
 vector<bool> ExecTree::emptyBranches(CSpan<i64> values) const {
