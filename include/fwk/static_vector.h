@@ -115,7 +115,7 @@ template <class T, int max_size_> class StaticVector {
 
 	void shrink(int new_size) {
 		PASSERT(new_size >= 0 && new_size <= size());
-		while(m_size > new_size)
+		while(int(m_size) > new_size)
 			DATA[--m_size].~T();
 	}
 
