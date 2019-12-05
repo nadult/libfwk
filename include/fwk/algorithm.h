@@ -300,6 +300,10 @@ vector<Base2> merge(const TRange &range_of_ranges) {
 	return out;
 }
 
+template <class TRange, EnableIfRange<TRange>...> void reverse(TRange &range) {
+	std::reverse(begin(range), end(range));
+}
+
 // -------------------------------------------------------------------------------------------
 // ---  Vector modification algorithms -------------------------------------------------------
 

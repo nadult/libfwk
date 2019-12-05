@@ -420,7 +420,7 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 			edge_dirs.push_back(temp(eref.other(vert)) - temp(vert));
 		orderByDirection<int2>(edge_ids, edge_dirs, zero_dir);
 		if(!ccw_side)
-			std::reverse(begin(edge_ids), end(edge_ids));
+			reverse(edge_ids);
 
 		enable[start_edge] = true;
 		for(int idx : edge_ids) {

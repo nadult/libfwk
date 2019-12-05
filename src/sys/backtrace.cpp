@@ -182,7 +182,7 @@ namespace {
 		int main_thread_pos = -1;
 		for(auto &tinfo : tinfos)
 			processThreadInfo(tinfo, skip_frames, lldb_mode);
-		std::reverse(begin(tinfos), end(tinfos));
+		reverse(tinfos);
 
 		/*for(auto tinfo : tinfos) {
 			DUMP(tinfo.header);

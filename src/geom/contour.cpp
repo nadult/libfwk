@@ -398,7 +398,7 @@ Contour<T> Contour<T>::simplify(Scalar theta, Scalar max_err_sq, Scalar max_dist
 
 template <class T> Contour<T> Contour<T>::reverse(bool flip_tangents) const {
 	auto points = m_points;
-	std::reverse(begin(points), end(points));
+	fwk::reverse(points);
 	return Contour<T>(points, m_is_looped, m_flip_tangents ^ flip_tangents);
 }
 
@@ -523,7 +523,7 @@ template <class T> SubContourRef<T>::operator Contour() const {
 		points.emplace_back(end);
 
 	if(m_is_inversed)
-		std::reverse(begin(points), std::end(points));
+		fwk::reverse(points);
 
 	return Contour(points, false, m_is_inversed);
 }

@@ -233,7 +233,7 @@ void Analyzer::sortRows(Span<ExecId> ids, CSpan<Row> rows) const {
 	}
 
 	if(m_sort_inverse)
-		std::reverse(begin(ids), end(ids));
+		reverse(ids);
 }
 
 void Analyzer::computeExecList(ExecId exec_id, FrameRange &range) const {
