@@ -8,6 +8,11 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 NIE ZABIERAJ SIĘ ZA NIC DOPÓKI NIE ZASTANOWISZ SIĘ CO NAJBARDZIEJ SIĘ OPŁACA ROBIĆ W DANYM
 MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
+- Z jakiegoś powodu checker nie wyłapuje EXCEPTów z delegowanego konstruktora, chyba że
+  implementacja jest wewn. klasy; Przykład: CellEdge(CXmlNode)
+- Wyjaśnić, czy trzeba dawać EXPECT_CATCH przed EXPECT czy nie
+- Kod z Expected jest dość syfiasty; może dałoby się coś tutaj poprawić?
+
 - make could generate file last_build_mode.txt
 - children to zle okreslenie na potomstwo!!!!
 - post increment mozna zrobic templatem na bazie preincrementa
