@@ -324,7 +324,7 @@ void Analyzer::showNameColumn(FrameRange &range) {
 		if(ImGui::IsItemClicked() && has_children)
 			toggleOpen(exec_id);
 		int2 end_pos = ImGui::GetCursorPos();
-		m_intervals[idx] = Interval<int>(start_pos.y, end_pos.y);
+		m_vert_intervals[idx] = Interval<int>(start_pos.y, end_pos.y);
 
 		fmt.clear();
 		if(indent)
@@ -412,6 +412,22 @@ static const array<const char *, 7> column_names[2] = {
 	{"name", "avg", "min", "max", "avg", "min", "max"},
 };
 
+Maybe<int> Analyzer::getLastFrames(CSpan<Frame> frames, int start) const {
+	int num_frames = frames.size() - start;
+	double time_sum = 0.0;
+
+	for(int n = 0; n < num_frames; n++) {
+		auto &frame = frames[start + n];
+		time_sum += frame.end_time - frame.start_time;
+		if(time_sum >= m_limit_last_frames_time)
+			return n + 1;
+	}
+
+	if(num_frames >= m_num_last_frames)
+		return m_num_last_frames;
+	return none;
+}
+
 CSpan<Frame> Analyzer::getFrames() {
 	auto frames = cspan(m_manager.frames());
 
@@ -423,19 +439,14 @@ CSpan<Frame> Analyzer::getFrames() {
 	}
 	case DataSource::last_frames: {
 		// Grabbing last frames makes no sense? user has to wait until animation is over anyways
-		if(m_last_sample_frame + m_num_last_frames * 2 <= frames.size())
-			m_last_sample_frame = frames.size() - m_num_last_frames;
-		double time = 0.0;
-		auto span = frames.subSpan(m_last_sample_frame,
-								   min(m_last_sample_frame + m_num_last_frames, frames.size()));
-		for(int n : intRange(span)) {
-			time += span[n].end_time - span[n].start_time;
-			if(time > m_limit_sampling_time) {
-				span = {span.begin(), n + 1};
-				break;
-			}
+		auto num_frames = getLastFrames(frames, m_last_frames_start);
+		if(!num_frames)
+			return frames.subSpan(m_last_frames_start);
+		if(auto next_frames = getLastFrames(frames, m_last_frames_start + *num_frames)) {
+			m_last_frames_start += *num_frames;
+			num_frames = next_frames;
 		}
-		return span;
+		return frames.subSpan(m_last_frames_start, m_last_frames_start + *num_frames);
 	}
 	}
 
@@ -496,8 +507,8 @@ void Analyzer::changeOptions() {
 		} else if(m_data_source == DataSource::last_frames) {
 			if(menu::inputValue("Num frames", m_num_last_frames))
 				m_num_last_frames = clamp(m_num_last_frames, 1, 10000);
-			if(menu::inputValue("Limit sampling time", m_limit_sampling_time))
-				m_limit_sampling_time = clamp(m_limit_sampling_time, 1.0 / 60.0, 1000.0);
+			if(menu::inputValue("Limit sampling time", m_limit_last_frames_time))
+				m_limit_last_frames_time = clamp(m_limit_last_frames_time, 1.0 / 60.0, 1000.0);
 		}
 
 		if(auto cur_frames = getFrames())
@@ -524,7 +535,7 @@ void Analyzer::showGrid(FrameRange &range) {
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
 	m_triangles.clear();
-	m_intervals.resize(range.exec_list.size());
+	m_vert_intervals.resize(range.exec_list.size());
 
 	draw_list->ChannelsSplit(3);
 	draw_list->ChannelsSetCurrent(1);
@@ -631,8 +642,8 @@ void Analyzer::showGrid(FrameRange &range) {
 		ImColor sel_color = (ImColor)float4(0.6f, 0.6f, 1.0f, 0.3f);
 		int2 offset = inner_rect.min() - int2(0, m_scroll_pos);
 
-		for(int n : intRange(m_intervals)) {
-			auto &vert = m_intervals[n];
+		for(int n : intRange(m_vert_intervals)) {
+			auto &vert = m_vert_intervals[n];
 			IRect rect(0, vert.min, inner_rect.width(), vert.max);
 			rect += offset;
 			ImGui::SetCursorScreenPos(rect.min());
@@ -728,7 +739,7 @@ AnyConfig Analyzer::config() const {
 	if(m_selected_exec)
 		out.set("selected", m_exec_tree.hashedId(*m_selected_exec));
 	out.set("num_last_frames", m_num_last_frames, 60);
-	out.set("limit_sampling_time", m_limit_sampling_time, 2.0);
+	out.set("limit_last_frames_time", m_limit_last_frames_time, 2.0);
 	return out;
 }
 
@@ -748,6 +759,6 @@ void Analyzer::setConfig(const AnyConfig &config) {
 	if(auto sel_exec = config.get("selected", u64(0)))
 		m_selected_exec_hash = sel_exec;
 	m_num_last_frames = config.get("num_last_frames", 60);
-	m_limit_sampling_time = config.get("limit_sampling_time", 2.0);
+	m_limit_last_frames_time = config.get("limit_last_frames_time", 2.0);
 }
 }

@@ -108,11 +108,15 @@ class Analyzer {
 
 	DataSource m_data_source = DataSource::last_frames;
 
+	// When analyzing last frames:
+	Maybe<int> getLastFrames(CSpan<Frame>, int start) const;
 	int m_num_last_frames = 60;
-	int m_last_sample_frame = 0;
-	double m_limit_sampling_time = 2.0;
+	int m_last_frames_start = 0;
+	double m_limit_last_frames_time = 2.0;
 
+	// When analyzing custom range:
 	int m_first_frame = 0, m_end_frame = 0;
+
 	SortVar m_sort_var = SortVar::execution;
 	bool m_sort_inverse = false;
 	bool m_show_empty = false;
@@ -136,7 +140,7 @@ class Analyzer {
 	Maybe<u64> m_selected_exec_hash;
 
 	vector<Triangle> m_triangles;
-	vector<Interval<int>> m_intervals;
+	vector<Interval<int>> m_vert_intervals;
 	Maybe<vector<u64>> m_set_opened_nodes;
 	Manager &m_manager;
 	ExecTree &m_exec_tree;
