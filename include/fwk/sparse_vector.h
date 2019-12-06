@@ -243,7 +243,7 @@ template <class T> class SparseVector {
 		return 0;
 	}
 
-	CSpan<bool> valids() const { return CSpan<bool>(m_valids.data(), m_spread); }
+	CSpan<bool> valids() const { return m_valids; }
 
 	int growCapacity() const {
 		int capacity = m_elements.size();
