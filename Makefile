@@ -126,7 +126,7 @@ tests: $(SRC_tests:%=%$(PROGRAM_SUFFIX))
 
 # --- Main build targets --------------------------------------------------------------------------
 
-$(CPP_merged): $(FWK_BUILD_DIR)/%_merged.cpp: Makefile
+$(CPP_merged): $(FWK_BUILD_DIR)/%_merged.cpp: Makefile $(CONFIG_FILE)
 	@echo "$(SRC_$*:%=#include \"%.cpp\"\n)" > $@
 
 $(OBJECTS): $(FWK_BUILD_DIR)/%.o: src/%.cpp $(PCH_TARGET)
