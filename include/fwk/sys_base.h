@@ -246,9 +246,9 @@ class TextParser;
 class InputEvent;
 class InputState;
 
-template <class Key, class Value> class HashMap;
-template <class Key, class Value>
-constexpr int type_size<HashMap<Key, Value>> = sizeof(void *) == 4 ? 32 : 40;
+template <class Key, class Value, class Policy = None> class HashMap;
+template <class Key, class Value, class Policy>
+constexpr int type_size<HashMap<Key, Value, Policy>> = sizeof(void *) == 4 ? 32 : 40;
 
 template <class Key> class HashSet;
 template <class Key> constexpr int type_size<HashSet<Key>> = sizeof(void *) == 4 ? 28 : 32;
