@@ -8,6 +8,8 @@ NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINA
 NIE ZABIERAJ SIĘ ZA NIC DOPÓKI NIE ZASTANOWISZ SIĘ CO NAJBARDZIEJ SIĘ OPŁACA ROBIĆ W DANYM
 MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
+CAŁY CZAS TO ROBISZ :(
+
 - Z jakiegoś powodu checker nie wyłapuje EXCEPTów z delegowanego konstruktora, chyba że
   implementacja jest wewn. klasy; Przykład: CellEdge(CXmlNode)
 - Wyjaśnić, czy trzeba dawać EXPECT_CATCH przed EXPECT czy nie

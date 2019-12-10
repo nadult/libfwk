@@ -262,7 +262,8 @@ template <class K, class V, class Policy> class HashMap {
 
 	int capacity() const { return m_capacity; }
 	int size() const { return m_size; }
-	bool empty() const { return size() == 0; }
+	bool empty() const { return m_size == 0; }
+	explicit operator bool() const { return m_size > 0; }
 
 	int usedBucketCount() const { return m_num_used; }
 	i64 usedMemory() const { return capacity() * Storage::memory_unit; }

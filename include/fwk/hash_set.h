@@ -175,7 +175,8 @@ template <typename TKey> class HashSet {
 
 	int capacity() const { return m_capacity; }
 	int size() const { return m_size; }
-	bool empty() const { return size() == 0; }
+	bool empty() const { return m_size == 0; }
+	explicit operator bool() const { return m_size > 0; }
 
 	int usedBucketCount() const { return m_num_used; }
 	int usedMemory() const { return capacity() * (sizeof(Hash) + sizeof(Key)); }
