@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/light_tuple.h"
+#include "fwk/math/hash.h"
 #include "fwk/maybe.h"
 #include "fwk/parse.h"
 #include "fwk/sys_base.h"
@@ -20,15 +21,14 @@ template <auto tag, class Base = unsigned> class TagId;
 // Can be uninitialized with no_init, but the only thing that can be done with such
 // value is assignment (it's verified in paranoid mode). Special care has to be taken
 // when using those values.
-template <class Tag, class Base_ = unsigned, unsigned base_bits = sizeof(Base_) * 8>
-class GenericTagId {
+template <class Tag, class Base_ = unsigned, int base_bits = sizeof(Base_) * 8> class GenericTagId {
   public:
 	using Base = Base_;
 	static_assert(sizeof(Base) <= 4);
 	static_assert(base_bits >= 8 && base_bits <= 32);
 
-	static constexpr int invalid_index = min<long long>(0x7fffffff - 1, (1ull << base_bits) - 2);
-	static constexpr int uninitialized_index = invalid_index + 1;
+	static constexpr int invalid_index = int((1ll << min(31, base_bits)) - 4);
+	static constexpr int uninitialized_index = invalid_index + 3;
 
 	static constexpr bool validIndex(int idx) { return idx >= 0 && idx < invalid_index; }
 	static constexpr int maxIndex() { return invalid_index - 1; }
@@ -46,7 +46,7 @@ class GenericTagId {
 	template <Tag tag, class UBase, EnableIf<(TagId<tag, UBase>::invalid_index > invalid_index)>...>
 	explicit GenericTagId(TagId<tag, UBase> id) : GenericTagId(tag, id.index()) {}
 
-	template <class UBase, unsigned ubits, class GTagId = GenericTagId<Tag, UBase, ubits>,
+	template <class UBase, int ubits, class GTagId = GenericTagId<Tag, UBase, ubits>,
 			  EnableIf<(GTagId::invalid_index > invalid_index)>...>
 	operator GTagId() const {
 		PASSERT(isInitialized());
@@ -58,11 +58,13 @@ class GenericTagId {
 	int index() const { return PASSERT(isInitialized()), m_idx; }
 	Tag tag() const { return PASSERT(isInitialized()), m_tag; }
 
-	GenericTagId(EmptyMaybe) : m_idx(invalid_index) {}
-	bool validMaybe() const { return m_idx != invalid_index; }
-
 	auto tied() const { return PASSERT(isInitialized()), tuple(m_tag, m_idx); }
 	FWK_TIED_COMPARES(GenericTagId)
+
+	template <auto v> explicit GenericTagId(Intrusive::Tag<v>) : m_idx(invalid_index + int(v)) {}
+	template <auto v> bool holds(Intrusive::Tag<v>) const {
+		return m_idx == invalid_index + int(v);
+	}
 
   private:
 	bool isInitialized() const { return m_idx != uninitialized_index; }
@@ -80,8 +82,8 @@ template <auto tag, class Base_ /*= unsigned*/> class TagId {
 	static_assert(sizeof(Base) <= 4);
 
 	static constexpr int base_bits = sizeof(Base) * 8;
-	static constexpr int invalid_index = min<long long>(0x7fffffff - 1, (1ull << base_bits) - 2);
-	static constexpr int uninitialized_index = invalid_index + 1;
+	static constexpr int invalid_index = int((1ll << min(31, base_bits)) - 4);
+	static constexpr Base uninitialized_index = Base(invalid_index + 3);
 
 	static constexpr bool validIndex(int idx) { return idx >= 0 && idx < invalid_index; }
 	static constexpr int maxIndex() { return invalid_index - 1; }
@@ -92,12 +94,12 @@ template <auto tag, class Base_ /*= unsigned*/> class TagId {
 	constexpr TagId(int idx, NoAssertsTag) : m_idx(idx) {}
 	constexpr TagId(NoInitTag) { IF_PARANOID(m_idx = uninitialized_index); }
 
-	template <class UBase, unsigned ubits,
+	template <class UBase, int ubits,
 			  int rhs_invalid_index = GenericTagId<Tag, UBase, ubits>::invalid_index,
 			  EnableIf<rhs_invalid_index <= invalid_index>...>
 	TagId(GenericTagId<Tag, UBase, ubits> id) : TagId(id.index()) {}
 
-	template <class UBase, unsigned ubits,
+	template <class UBase, int ubits,
 			  EnableIf<(GenericTagId<Tag, UBase, ubits>::invalid_index > invalid_index)>...>
 	explicit TagId(GenericTagId<Tag, UBase, ubits> id) : TagId(id.index()) {}
 
@@ -110,14 +112,17 @@ template <auto tag, class Base_ /*= unsigned*/> class TagId {
 	template <class U, U u, EnableIf<isTagConvertible(u, tag)>...>
 	TagId(TagId<u> rhs) : m_idx(rhs.index()) {}
 
-	TagId(EmptyMaybe) : m_idx(invalid_index) {}
-	bool validMaybe() const { return m_idx != invalid_index; }
+	template <auto v> explicit TagId(Intrusive::Tag<v>) : m_idx(invalid_index + int(v)) {}
+	template <auto v> bool holds(Intrusive::Tag<v>) const {
+		return m_idx == invalid_index + int(v);
+	}
 
-	auto tied() const { return PASSERT(isInitialized()), tie(m_idx); }
-	FWK_TIED_COMPARES(TagId)
+	unsigned hash() const { return PASSERT(isInitialized()), fwk::hash(m_idx); }
+	bool operator==(const TagId &rhs) const { return m_idx == rhs.m_idx; }
+	bool operator<(const TagId &rhs) const { return m_idx < rhs.m_idx; }
 
   private:
-	bool isInitialized() const { return m_idx != uninitialized_index; }
+	bool isInitialized() const ALWAYS_INLINE { return m_idx != uninitialized_index; }
 
 	Base m_idx;
 };
@@ -147,5 +152,4 @@ template <class DstId, class Tag, Tag src_tag, class Base, EnableIf<detail::is_t
 DstId castTag(const TagId<src_tag, Base> &tag) {
 	return DstId(tag.index());
 }
-
 }

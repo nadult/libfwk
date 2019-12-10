@@ -158,4 +158,21 @@ template <class... Args> constexpr bool unique_types<Types<Args...>> = unique_ty
 template <class T> constexpr int type_size = sizeof(T);
 
 template <class T> using Decay = std::decay_t<T>;
+
+// Certain types may be constructed in such a way that besides normal value can also hold
+// 'special' values. These special values can be used by data structures such as Maybe<> or HashMap<>
+// to mark these values as empty or unused, so that no additional memory needs to be spent for storage
+// of this kind of information. Examples: Box<>, TagId<>, Variant<>.
+struct Intrusive {
+	enum class ETag { empty_maybe, unused_hash, deleted_hash };
+	template <ETag tag> struct Tag {};
+	using EmptyMaybe = Tag<ETag::empty_maybe>;
+	using DeletedHash = Tag<ETag::deleted_hash>;
+	using UnusedHash = Tag<ETag::unused_hash>;
+
+	template <class T, ETag tag> struct CanHold {
+		FWK_SFINAE_TYPE(Test, T, DECLVAL(const U &).holds(Tag<tag>()));
+		static constexpr bool value = is_same<Test, bool> && is_constructible<T, Tag<tag>>;
+	};
+};
 }

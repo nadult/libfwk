@@ -156,7 +156,7 @@ template <class T> class Box {
 
 	bool onTheEdge(const T &pos) const {
 		for(int i = 0; i < dim; i++)
-			if(pos[i] ==  m_min[i] || pos[i] == m_max[i])
+			if(pos[i] == m_min[i] || pos[i] == m_max[i])
 				return true;
 		return false;
 	}
@@ -221,8 +221,8 @@ template <class T> class Box {
 	ENABLE_IF_SIZE(3) Box<Vec2> xy() const { return {m_min.xy(), m_max.xy()}; }
 	ENABLE_IF_SIZE(3) Box<Vec2> yz() const { return {m_min.yz(), m_max.yz()}; }
 
-	Box(EmptyMaybe) : m_min(), m_max(-1) {}
-	bool validMaybe() const { return validRange(m_min, m_max); } // Invariant
+	explicit Box(Intrusive::EmptyMaybe) : m_min(), m_max(-1) {}
+	bool holds(Intrusive::EmptyMaybe) const { return !validRange(m_min, m_max); }
 
   private:
 	union {

@@ -55,8 +55,8 @@ class VertexRef {
 	int numEdgesFrom(GLayers = all<GLayer>) const;
 	int numEdgesTo(GLayers = all<GLayer>) const;
 
-	VertexRef(EmptyMaybe) : m_graph(nullptr), m_id(EmptyMaybe()) {}
-	bool validMaybe() const { return m_graph; }
+	template <auto v> explicit VertexRef(Intrusive::Tag<v> tag) : m_id(tag) {}
+	template <auto v> bool operator==(Intrusive::Tag<v> tag) const { return m_id == tag; }
 
   private:
 	friend class EdgeRef;
@@ -103,8 +103,8 @@ class EdgeRef {
 	//EdgeRef nextTo() const { return EdgeRef(*m_graph, m_graph->m_ext_info[m_id].next_to); }
 	//EdgeRef prevTo() const { return EdgeRef(*m_graph, m_graph->m_ext_info[m_id].prev_to); }
 
-	EdgeRef(EmptyMaybe) : m_graph(nullptr), m_id(EmptyMaybe()) {}
-	bool validMaybe() const { return m_graph; }
+	template <auto v> explicit EdgeRef(Intrusive::Tag<v> tag) : m_id(tag) {}
+	template <auto v> bool operator==(Intrusive::Tag<v> tag) const { return m_id == tag; }
 
   private:
 	friend class VertexRef;
@@ -113,5 +113,4 @@ class EdgeRef {
 	const Graph *m_graph;
 	EdgeId m_id;
 };
-
 }

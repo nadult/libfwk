@@ -432,8 +432,10 @@ public:
         return rhs.visit(visitor);
     }
 	
-	Variant(EmptyMaybe) : type_index(-1) {}
-	bool validMaybe() const { return type_index != -1; } // Invariant
+	template <auto v> explicit Variant(Intrusive::Tag<v>) : type_index(-1 - int(v)) {}
+	template <auto v> bool operator==(Intrusive::Tag<v>) const {
+		return type_index == -1 - int(v);
+	}
 };
 
 #if defined(__GNUC__) && !defined(__clang__)

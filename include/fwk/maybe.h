@@ -12,19 +12,10 @@ namespace fwk {
 // Link: https://github.com/facebook/folly
 // License is available in third_party/
 
-// Objects which can hold invalid values are perfect for Maybe;
-// Provide:
-// - constructor which takes EmptyMaybe()
-// - const member function validMaybe()
-// Also make sure that operator= works interchangably between valid & invalid objects
-//
-// For such objects sizeof(Maybe<T>) == sizeof(T)
-
-struct EmptyMaybe {
-	bool operator==(const EmptyMaybe &) const { return true; }
-	bool operator<(const EmptyMaybe &) const { return false; }
-};
-
+// sizeof(Maybe<T>) will be equal to sizeof(T) if:
+// - T can hold Intrusive::EmptyMaybe()
+// - you can provide specialization of detail::EmptyMaybe<> for your type
+//   example: enums
 namespace detail {
 	template <class T, class Enable = EnabledType> struct EmptyMaybe {
 		static constexpr None make() { return none; }
@@ -32,10 +23,9 @@ namespace detail {
 	};
 
 	template <class T>
-	struct EmptyMaybe<T, EnableIf<(is_same<decltype(DECLVAL(const T &).validMaybe()), bool> &&
-								   is_convertible<fwk::EmptyMaybe, T>)>> {
-		static constexpr T make() { return T(fwk::EmptyMaybe()); }
-		static constexpr bool valid(const T &val) { return val.validMaybe(); }
+	struct EmptyMaybe<T, EnableIf<Intrusive::CanHold<T, Intrusive::ETag::empty_maybe>::value>> {
+		static constexpr T make() { return T(Intrusive::EmptyMaybe()); }
+		static constexpr bool valid(const T &val) { return !val.holds(Intrusive::EmptyMaybe()); }
 	};
 }
 
@@ -134,7 +124,7 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 	bool m_has_value = false;
 };
 
-// Storage for types constructible from EmptyMaybe()
+// Storage for types constructible with detail::EmptyMaybe()
 template <class T>
 class MaybeStorage<T, EnableIf<is_same<decltype(detail::EmptyMaybe<T>::make()), T>>> {
   public:
