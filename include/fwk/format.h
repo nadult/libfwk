@@ -347,7 +347,7 @@ template <class... T, EnableIfFormattible<T...>...> string format(const char *st
 template <class... T, EnableIfFormattible<T...>...> void print(const char *str, T &&...);
 template <class... T, EnableIfFormattible<T...>...> void printPlain(const char *str, T &&...);
 
-#define FWK_DUMP(...) print(fwk::detail::autoPrintFormat(#__VA_ARGS__).c_str(), __VA_ARGS__)
+#define FWK_DUMP(...) fwk::print(fwk::detail::autoPrintFormat(#__VA_ARGS__).c_str(), __VA_ARGS__)
 }
 
 #endif
