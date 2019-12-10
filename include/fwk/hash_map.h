@@ -180,13 +180,13 @@ template <class K, class V, class Policy> class HashMap {
 	void swap(HashMap &rhs) {
 		if(&rhs == this)
 			return;
-		swap(m_storage, rhs.m_storage);
-		swap(m_size, rhs.m_size);
-		swap(m_capacity, rhs.m_capacity);
-		swap(m_capacity_mask, rhs.m_capacity_mask);
-		swap(m_used_limit, rhs.m_used_limit);
-		swap(m_num_used, rhs.m_num_used);
-		swap(m_load_factor, rhs.m_load_factor);
+		fwk::swap(m_storage, rhs.m_storage);
+		fwk::swap(m_size, rhs.m_size);
+		fwk::swap(m_capacity, rhs.m_capacity);
+		fwk::swap(m_capacity_mask, rhs.m_capacity_mask);
+		fwk::swap(m_used_limit, rhs.m_used_limit);
+		fwk::swap(m_num_used, rhs.m_num_used);
+		fwk::swap(m_load_factor, rhs.m_load_factor);
 	}
 
 	auto emplace(const KeyValue &pair) { return emplace(pair.key, pair.value); }
@@ -445,6 +445,5 @@ template <class K, class V, class Policy> class HashMap {
 	int m_num_used = 0, m_used_limit = 0;
 	float m_load_factor = 2.0f / 3.0f;
 	u32 m_capacity_mask = 0;
-	template <class HM, bool is_const> friend class HashMapIter;
 };
 }
