@@ -89,7 +89,7 @@ SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
 
 SRC_tests = \
 	tests/stuff tests/math tests/geom tests/window tests/enums tests/models tests/vector_perf \
-	tests/variant_perf
+	tests/variant_perf tests/hash_map_perf
 
 SRC_tools    = tools/model_convert tools/model_viewer
 SRC_programs = $(SRC_tests) $(SRC_tools)
