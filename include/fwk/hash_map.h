@@ -41,6 +41,7 @@ namespace detail {
 // TODO: sharing code betwee HashMap & HashSet
 // TODO: ability to declare HashMap<K, V> without defining K & V
 // TODO: use robin hood hash? With time hash table will accumulate deleted hashes and grow
+//       or maybe some other method to clear deleted nodes with time?
 // TODO: use HashMap<> together with SparseVector<> for big objects?
 template <class K, class V, class Policy> class HashMap {
   public:
@@ -103,7 +104,7 @@ template <class K, class V, class Policy> class HashMap {
 	// Load factor controls hash map load. Default is ~66%.
 	// Higher factor means tighter maps and bigger risk of collisions.
 	void setLoadFactor(float factor) {
-		PASSERT(factor >= 0.125f && factor <= 1.0f);
+		PASSERT(factor >= 0.125f && factor <= 0.9f);
 		m_load_factor = factor;
 		m_used_limit = (int)(m_capacity * factor);
 	}
@@ -143,7 +144,7 @@ template <class K, class V, class Policy> class HashMap {
 			m_capacity_mask = m_capacity - 1;
 		}
 		rehash(m_capacity, m_storage, rhs.m_capacity, (Storage &)rhs.m_storage, false);
-		m_size = rhs.size();
+		m_size = rhs.m_size;
 		m_num_used = rhs.m_num_used;
 		setLoadFactor(rhs.m_load_factor);
 	}
@@ -221,9 +222,10 @@ template <class K, class V, class Policy> class HashMap {
 
 	void clear() {
 		for(int n = 0; n < m_capacity; n++)
-			if(m_storage.isValid(n)) {
-				m_storage.destruct(n);
-				m_storage.markDeleted(n);
+			if(!m_storage.isUnused(n)) {
+				if(!m_storage.isDeleted(n))
+					m_storage.destruct(n);
+				m_storage.markUnused(n);
 			}
 		m_size = m_num_used = 0;
 	}
@@ -323,6 +325,7 @@ template <class K, class V, class Policy> class HashMap {
 			++m_num_used;
 		m_storage.construct(idx, key, defaultValue(), hash);
 		++m_size;
+		PASSERT(m_num_used >= m_size);
 		return {{this, idx}, true};
 	}
 
@@ -395,7 +398,7 @@ template <class K, class V, class Policy> class HashMap {
 			if(m_storage.isValid(n))
 				m_storage.destruct(n);
 		m_storage.deallocate();
-		m_capacity = m_size = m_capacity_mask = m_used_limit = 0;
+		m_capacity = m_size = m_num_used = m_capacity_mask = m_used_limit = 0;
 	}
 
 	void eraseNode(int idx) {

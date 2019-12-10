@@ -50,6 +50,9 @@ template <class Key, class Value> struct HashMapStoragePaired {
 	void markDeleted(int idx) ALWAYS_INLINE {
 		new((Key *)&key_values[idx].key) Key(Intrusive::DeletedHash());
 	}
+	void markUnused(int idx) ALWAYS_INLINE {
+		new((Key *)&key_values[idx].key) Key(Intrusive::UnusedHash());
+	}
 
 	static HashMapStoragePaired allocate(int new_capacity) {
 		auto *new_key_values =
@@ -105,6 +108,7 @@ template <class Key, class Value> struct HashMapStorageSeparated {
 	}
 	void destruct(int idx) { keys[idx].~Key(), values[idx].~Value(); }
 	void markDeleted(int idx) ALWAYS_INLINE { new(&keys[idx]) Key(Intrusive::DeletedHash()); }
+	void markUnused(int idx) ALWAYS_INLINE { new(&keys[idx]) Key(Intrusive::UnusedHash()); }
 
 	static HashMapStorageSeparated allocate(int new_capacity) {
 		auto *new_keys = static_cast<Key *>(fwk::allocate(new_capacity * sizeof(Key)));
@@ -164,6 +168,7 @@ template <class Key, class Value> struct HashMapStoragePairedWithHashes {
 	}
 	void destruct(int idx) { key_values[idx].~KeyValue(); }
 	void markDeleted(int idx) ALWAYS_INLINE { hashes[idx] = deleted_hash; }
+	void markUnused(int idx) ALWAYS_INLINE { hashes[idx] = unused_hash; }
 
 	static constexpr u32 unused_hash = 0xffffffff;
 	static constexpr u32 deleted_hash = 0xfffffffe;
