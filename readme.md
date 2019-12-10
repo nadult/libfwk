@@ -23,7 +23,7 @@ TODO: more details
 
 ## Requirements & dependencies
 
-It requires a linux environment with Clang (6.0) or fairly new G++ (9.1).
+It requires a linux environment with fairly new Clang (>= 8.0) or G++ (>= 9.1).
 Code is written in C++17 with some C++20 features. Clang 8.0 is used
 during development so from time to time libfwk may fail to compile under G++.
 
@@ -64,7 +64,7 @@ Makefile & Makefile-shared. To cross-compile for mingw specify MINGW\_PREFIX and
 
 Examples:
 
-    $ make MODE=release-paranoid COMPILER=clang++-9 STATS=true -j12
+    $ make MODE=release-paranoid COMPILER=clang++-8 STATS=true -j12
     $ make MODE=release-paranoid print-stats print-variables
     $ make MODE=debug-nans clean
     $ make clean-all
