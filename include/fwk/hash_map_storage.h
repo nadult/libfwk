@@ -43,9 +43,10 @@ template <class Key, class Value> struct HashMapStoragePaired {
 	bool isUnused(int idx) const { return key_values[idx].key.holds(Intrusive::UnusedHash()); }
 	bool isValid(int idx) const { return !isDeleted(idx) && !isUnused(idx); }
 
-	void construct(int idx, const Key &key, const Value &value, u32) {
-		new((Key *)&key_values[idx]) KeyValue{key, value};
+	template <class... Args> void construct(int idx, u32, const Key &key, Args &&... args) {
+		new((Key *)&key_values[idx]) KeyValue{key, Value{std::forward<Args>(args)...}};
 	}
+
 	void destruct(int idx) { key_values[idx].~KeyValue(); }
 	void markDeleted(int idx) ALWAYS_INLINE {
 		new((Key *)&key_values[idx].key) Key(Intrusive::DeletedHash());
@@ -102,10 +103,11 @@ template <class Key, class Value> struct HashMapStorageSeparated {
 	bool isUnused(int idx) const { return keys[idx].holds(Intrusive::UnusedHash()); }
 	bool isValid(int idx) const { return !isDeleted(idx) && !isUnused(idx); }
 
-	void construct(int idx, const Key &key, const Value &value, u32) {
+	template <class... Args> void construct(int idx, u32, const Key &key, Args &&... args) {
 		new(&keys[idx]) Key(key);
-		new(&values[idx]) Value(value);
+		new(&values[idx]) Value{std::forward<Args>(args)...};
 	}
+
 	void destruct(int idx) { keys[idx].~Key(), values[idx].~Value(); }
 	void markDeleted(int idx) ALWAYS_INLINE { new(&keys[idx]) Key(Intrusive::DeletedHash()); }
 	void markUnused(int idx) ALWAYS_INLINE { new(&keys[idx]) Key(Intrusive::UnusedHash()); }
@@ -162,10 +164,11 @@ template <class Key, class Value> struct HashMapStoragePairedWithHashes {
 		fwk::deallocate(key_values);
 	}
 
-	void construct(int idx, const Key &key, const Value &value, u32 hash) {
-		new(&key_values[idx]) KeyValue{key, value};
+	template <class... Args> void construct(int idx, u32 hash, const Key &key, Args &&... args) {
+		new((Key *)&key_values[idx]) KeyValue{key, Value{std::forward<Args>(args)...}};
 		hashes[idx] = hash;
 	}
+
 	void destruct(int idx) { key_values[idx].~KeyValue(); }
 	void markDeleted(int idx) ALWAYS_INLINE { hashes[idx] = deleted_hash; }
 	void markUnused(int idx) ALWAYS_INLINE { hashes[idx] = unused_hash; }

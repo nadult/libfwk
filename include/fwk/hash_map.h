@@ -170,7 +170,8 @@ template <class K, class V, class Policy> class HashMap {
 
 	auto emplace(const KeyValue &pair) { return emplace(pair.key, pair.value); }
 	auto emplace(const Pair<Key, Value> &pair) { return emplace(pair.first, pair.second); }
-	Pair<Iter, bool> emplace(const Key &key, const Value &value) {
+
+	template <class... Args> Pair<Iter, bool> emplace(const Key &key, Args &&... args) {
 		if(m_num_used >= m_used_limit)
 			grow();
 
@@ -180,7 +181,7 @@ template <class K, class V, class Policy> class HashMap {
 			return {{this, idx}, false};
 		if(m_storage.isUnused(idx))
 			++m_num_used;
-		m_storage.construct(idx, key, value, hash);
+		m_storage.construct(idx, hash, key, std::forward<Args>(args)...);
 		++m_size;
 		PASSERT(m_num_used >= m_size);
 		return {{this, idx}, true};
@@ -323,7 +324,7 @@ template <class K, class V, class Policy> class HashMap {
 		PASSERT(!m_storage.isValid(idx));
 		if(m_storage.isUnused(idx))
 			++m_num_used;
-		m_storage.construct(idx, key, defaultValue(), hash);
+		m_storage.construct(idx, hash, key, defaultValue());
 		++m_size;
 		PASSERT(m_num_used >= m_size);
 		return {{this, idx}, true};
@@ -386,7 +387,7 @@ template <class K, class V, class Policy> class HashMap {
 				int num_probes = 1;
 				while(!new_storage.isUnused(i))
 					i = (i + num_probes++) & mask;
-				new_storage.construct(i, old_storage.key(idx), old_storage.value(idx), hash);
+				new_storage.construct(i, hash, old_storage.key(idx), old_storage.value(idx));
 				if(destruct_original)
 					old_storage.destruct(idx);
 			}

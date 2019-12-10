@@ -269,7 +269,7 @@ class VoronoiConstructor {
 			auto arc_id2 = out.addEdge(v2, v1, arc_layer);
 
 			if(shared_node)
-				shared_node_arcs.emplace({v1, v2}, {arc_id1, arc_id2});
+				shared_node_arcs.emplace({v1, v2}, arc_id1, arc_id2);
 
 			// TODO: wtf is this ?
 			bool is_primary = edge.is_primary();
