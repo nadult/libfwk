@@ -29,7 +29,7 @@ template <class Key, class Value> struct HashMapStoragePaired {
 	static_assert(std::is_trivially_destructible<Key>::value,
 				  "Keys when constructed with special values should be trivially destructible");
 
-	static constexpr bool holds_hashes = false, holds_pairs = true;
+	static constexpr bool keeps_hashes = false, keeps_pairs = true;
 	static constexpr auto memory_unit = sizeof(KeyValue);
 
 	auto &keyValue(int idx) const ALWAYS_INLINE { return key_values[idx]; }
@@ -90,7 +90,7 @@ template <class Key, class Value> struct HashMapStorageSeparated {
 	static_assert(std::is_trivially_destructible<Key>::value,
 				  "Keys when constructed with special values should be trivially destructible");
 
-	static constexpr bool holds_hashes = false, holds_pairs = false;
+	static constexpr bool keeps_hashes = false, keeps_pairs = false;
 	static constexpr auto memory_unit = sizeof(Key) + sizeof(Value);
 
 	KeyValue keyValue(int idx) const { return {keys[idx], values[idx]}; }
@@ -134,7 +134,7 @@ template <class Key, class Value> struct HashMapStorageSeparated {
 // Should be used when keys are big (>4 bytes) and their comparison is costly.
 template <class Key, class Value> struct HashMapStoragePairedWithHashes {
 	using KeyValue = fwk::KeyValue<const Key, Value>;
-	static constexpr bool holds_hashes = true, holds_pairs = true;
+	static constexpr bool keeps_hashes = true, keeps_pairs = true;
 	static constexpr auto memory_unit = sizeof(u32) + sizeof(KeyValue);
 
 	auto &keyValue(int idx) const ALWAYS_INLINE { return key_values[idx]; }

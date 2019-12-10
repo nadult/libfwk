@@ -12,6 +12,8 @@ namespace fwk {
 // fwk::HashMap evolved from rdestl::hash_map by Maciej Sinilo (Copyright 2007)
 // Licensed under MIT license
 
+enum class HashMapStorage { paired, separated, paired_with_hashes, automatic };
+
 namespace detail {
 
 	template <class K, class V>
@@ -19,6 +21,13 @@ namespace detail {
 									 HashMapStoragePairedWithHashes<K, V>>;
 
 	template <class K, class V, class P> struct AccessHashMapPolicy {
+		FWK_SFINAE_TEST(has_storage, P, U::storage());
+		static constexpr auto storage = []() {
+			if constexpr(has_storage)
+				return P::storage();
+			return HashMapStorage::automatic;
+		}();
+
 		FWK_SFINAE_TYPE(Storage_, P, DECLVAL(typename U::Storage));
 		using Storage = If<is_same<Storage_, InvalidType>, DefaultHashMapStorage<K, V>, Storage_>;
 
@@ -43,6 +52,7 @@ namespace detail {
 // TODO: use robin hood hash? With time hash table will accumulate deleted hashes and grow
 //       or maybe some other method to clear deleted nodes with time?
 // TODO: use HashMap<> together with SparseVector<> for big objects?
+// TODO: two rehashes: one with move, one with copy
 template <class K, class V, class Policy> class HashMap {
   public:
 	using Hash = u32;
@@ -50,12 +60,23 @@ template <class K, class V, class Policy> class HashMap {
 	using Value = V;
 	using KeyValue = fwk::KeyValue<const Key, Value>;
 	using PolicyInfo = detail::AccessHashMapPolicy<K, V, Policy>;
-	using Storage = typename PolicyInfo::Storage;
+
+	using ST = HashMapStorage;
+	static constexpr auto storage =
+		PolicyInfo::storage == ST::automatic
+			? intrusive_hash_type<K> ? ST::paired : ST::paired_with_hashes
+			: PolicyInfo::storage;
+	static constexpr bool keeps_hashes = storage == ST::paired_with_hashes;
+	static constexpr bool keeps_pairs = storage != ST::separated;
+
+	using Storage = If<storage == ST::paired, HashMapStoragePaired<K, V>,
+					   If<storage == ST::separated, HashMapStorageSeparated<K, V>,
+						  HashMapStoragePairedWithHashes<K, V>>>;
 
 	template <bool is_const> class TIter {
 	  public:
 		using MapPtr = If<is_const, const HashMap *, HashMap *>;
-		using KVRef = If<Storage::holds_pairs, KeyValue &, KeyValue>;
+		using KVRef = If<keeps_pairs, KeyValue &, KeyValue>;
 
 		template <bool to_const, EnableIf<!is_const && to_const>...> operator TIter<to_const>() {
 			return {map, idx};
@@ -64,11 +85,11 @@ template <class K, class V, class Policy> class HashMap {
 		KVRef operator*() const { return PASSERT(!atEnd()), map->m_storage.keyValue(idx); }
 		auto operator-> () const {
 			PASSERT(!atEnd());
-			if constexpr(Storage::holds_pairs)
+			if constexpr(keeps_pairs)
 				return &map->m_storage.keyValue(idx);
 			else {
 				struct Proxy {
-					fwk::KeyValue<const Key &, Value &> ref;
+					fwk::KeyValue<const Key &, If<is_const, const Value, Value> &> ref;
 					auto *operator-> () const ALWAYS_INLINE { return &ref; }
 				};
 				return Proxy{{map->m_storage.key(idx), map->m_storage.value(idx)}};
@@ -270,7 +291,7 @@ template <class K, class V, class Policy> class HashMap {
 		static constexpr u32 unused_hash = 0xffffffff;
 		static constexpr u32 deleted_hash = 0xfffffffe;
 
-		if constexpr(Storage::holds_hashes)
+		if constexpr(keeps_hashes)
 			return CSpan<u32>(m_storage.hashes, m_capacity);
 		else {
 			vector<Hash> out(m_capacity, unused_hash);
@@ -377,7 +398,7 @@ template <class K, class V, class Policy> class HashMap {
 		for(int idx = 0; idx < capacity; idx++) {
 			if(old_storage.isValid(idx)) {
 				Hash hash;
-				if constexpr(Storage::holds_hashes)
+				if constexpr(keeps_hashes)
 					hash = old_storage.hashes[idx];
 				else
 					hash = hashFunc(old_storage.key(idx));
@@ -412,7 +433,7 @@ template <class K, class V, class Policy> class HashMap {
 	Hash hashFunc(const Key &key) const {
 		if constexpr(PolicyInfo::has_hash)
 			return Policy::hash(key);
-		else if constexpr(Storage::holds_hashes)
+		else if constexpr(keeps_hashes)
 			return hash<Hash>(key) & 0x7FFFFFFFu;
 		else
 			return hash<Hash>(key);

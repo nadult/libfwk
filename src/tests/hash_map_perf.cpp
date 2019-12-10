@@ -104,7 +104,7 @@ void microTest() {
 
 void miniTest() {
 	struct Policy {
-		using Storage = HashMapStorageSeparated<MyTag, const char *>;
+		static constexpr auto storage() { return HashMapStorage::separated; }
 		static u32 hash(MyTag tag) { return u32(tag) ^ (u32(tag) << 10); }
 	};
 
