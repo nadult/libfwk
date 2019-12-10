@@ -8,17 +8,18 @@
 #include "fwk/vector.h"
 
 namespace fwk {
-static constexpr u32 unused_hash = 0xffffffff;
-static constexpr u32 deleted_hash = 0xfffffffe;
 
 HashMapStats::HashMapStats() = default;
 
 HashMapStats::HashMapStats(CSpan<u32> hashes) {
+	constexpr u32 unused_hash = ~0u, deleted_hash = ~1u;
+
 	vector<u32> hash_set;
 	hash_set.reserve(hashes.size());
 
 	capacity = hashes.size();
-	double avg_len = 0.0;
+	uint capacity_mask = capacity - 1;
+	vector<int> lengths(hashes.size(), 0);
 
 	for(int n = 0; n < hashes.size(); n++) {
 		if(hashes[n] == unused_hash) {
@@ -31,25 +32,38 @@ HashMapStats::HashMapStats(CSpan<u32> hashes) {
 			num_deleted++;
 
 		int idx = n;
-		int num_probes = 0;
-		int length = 0;
+		int num_probes = 1;
+		int length = 1;
 
 		while(hashes[idx] != unused_hash) {
-			num_probes++;
-			idx += num_probes;
-			while(idx >= capacity)
-				idx -= capacity;
+			idx = (idx + num_probes++) & capacity_mask;
 			length++;
 		}
-		avg_len += length;
+
+		lengths[n] = length;
+		max_hit_sequence_length = max(max_hit_sequence_length, length);
 	}
+
+	double avg_len = 0.0;
+	for(auto hash : hashes)
+		if(hash < deleted_hash) {
+			int start_idx = hash & capacity_mask;
+			avg_len += lengths[start_idx];
+		}
 	avg_hit_sequence_length = avg_len / numUsed();
+
+	occupancy_map.resize(hashes.size(), ' ');
+	for(int n = 0; n < hashes.size(); n++)
+		if(hashes[n] == deleted_hash)
+			occupancy_map[n] = '.';
+		else if(hashes[n] < deleted_hash)
+			occupancy_map[n] = 'o';
 
 	makeSortedUnique(hash_set);
 	num_distinct_hashes = hash_set.size();
 }
 
-void HashMapStats::print() const {
+void HashMapStats::print(bool print_occ_map) const {
 	fwk::print("HashMap stats:\n");
 	auto occupied_percent = capacity == 0 ? 0 : double(numOccupied()) * 100.0 / capacity;
 	auto distinct_percent =
@@ -59,12 +73,10 @@ void HashMapStats::print() const {
 		   numOccupied(), occupied_percent, num_deleted, num_unused);
 	printf("            distinct hashes: %d (%.2f%%)\n", num_distinct_hashes, distinct_percent);
 	printf("  average hit search length: %.2f\n", avg_hit_sequence_length);
-}
+	if(used_memory)
+		printf("                used memory: %lld KB\n", used_memory / 1024);
 
-void HashMapStats::printOccupancyMap(CSpan<u32> hashes) const {
-	fwk::print("[[");
-	for(auto &hash : hashes)
-		fwk::print("%", hash == unused_hash ? ' ' : hash == deleted_hash ? '.' : 'o');
-	fwk::print("]]\n");
+	if(print_occ_map)
+		fwk::print("  occupancy map: [[%]]\n", occupancy_map);
 }
 }
