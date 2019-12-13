@@ -460,6 +460,8 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 	if(s_info.vendor == GlVendor::nvidia) {
 		if(id == 131169 || id == 131185 || id == 131218 || id == 131204)
 			return;
+		if(id == 131186) // Buffer is being copied/moved from VIDEO memory to HOST memory
+			return;
 	} else if(s_info.vendor == GlVendor::intel) {
 		Str msg((const char *)message);
 		if(msg.find("warning: extension") != -1 && msg.find("unsupported in") != -1)
