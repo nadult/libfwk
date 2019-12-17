@@ -31,7 +31,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-
 namespace fwk {
 
 bool FilePath::Element::isDot() const { return size == 1 && ptr[0] == '.'; }
@@ -340,7 +339,7 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 }
 
 Ex<string> loadFileString(ZStr file_name, int max_size) {
-	auto file = EXPECT_PASS(fileLoader(file_name));
+	auto file = EX_PASS(fileLoader(file_name));
 
 	if(file.size() > max_size)
 		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
@@ -350,20 +349,20 @@ Ex<string> loadFileString(ZStr file_name, int max_size) {
 }
 
 Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
-	auto file = EXPECT_PASS(fileLoader(file_name));
+	auto file = EX_PASS(fileLoader(file_name));
 
 	if(file.size() > max_size)
 		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
 	PodVector<char> out(file.size());
 	file.loadData(out);
-	EXPECT_CATCH();
+	EX_CATCH();
 	vector<char> vout;
 	out.unsafeSwap(vout);
 	return vout;
 }
 
 Ex<void> saveFile(ZStr file_name, CSpan<char> data) {
-	auto file = EXPECT_PASS(fileSaver(file_name));
+	auto file = EX_PASS(fileSaver(file_name));
 	file.saveData(data);
 	return {};
 }

@@ -213,7 +213,7 @@ namespace detail {
 
 	Ex<Texture> loadPNG(FileStream &stream) {
 		PngLoader loader(stream);
-		EXPECT_CATCH();
+		EX_CATCH();
 		PodVector<IColor> data(loader.size().x * loader.size().y);
 		loader >> data;
 		return Texture{move(data), loader.size()};
@@ -222,7 +222,7 @@ namespace detail {
 
 Ex<HeightMap16bit> HeightMap16bit::load(FileStream &stream) {
 	detail::PngLoader loader(stream);
-	EXPECT_CATCH();
+	EX_CATCH();
 	vector<u16> data(loader.size().x * loader.size().y);
 	loader >> data;
 	return HeightMap16bit{move(data), loader.size()};

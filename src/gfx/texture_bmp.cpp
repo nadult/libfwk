@@ -48,7 +48,7 @@ namespace detail {
 			}
 		}
 
-		EXPECT_CATCH();
+		EX_CATCH();
 
 		int max_size = 4096;
 		if(bpp != 24 && bpp != 32 && bpp != 8)

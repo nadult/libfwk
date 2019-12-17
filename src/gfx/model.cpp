@@ -66,7 +66,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 		new_node.name = xml_node("name");
 		new_node.type = xml_node("type", ModelNodeType::generic);
 		auto trans = ModelAnim::transFromXML(xml_node);
-		EXPECT_CATCH();
+		EX_CATCH();
 		new_node.setTrans(trans);
 
 		new_node.mesh_id = xml_node("mesh_id", -1);
@@ -78,7 +78,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 			prop_node.next();
 		}
 
-		EXPECT_CATCH();
+		EX_CATCH();
 		int sub_node_id = out.size();
 		new_node.parent_id = node_id;
 		new_node.id = sub_node_id;
@@ -97,7 +97,7 @@ Ex<Model> Model::load(CXmlNode xml_node) {
 	auto mesh_node = xml_node.child("mesh");
 	vector<Mesh> meshes;
 	while(mesh_node) {
-		meshes.emplace_back(EXPECT_PASS(Mesh::load(mesh_node)));
+		meshes.emplace_back(EX_PASS(Mesh::load(mesh_node)));
 		mesh_node.next();
 	}
 
@@ -112,7 +112,7 @@ Ex<Model> Model::load(CXmlNode xml_node) {
 	vector<ModelAnim> anims;
 	auto anim_node = xml_node.child("anim");
 	while(anim_node) {
-		anims.emplace_back(EXPECT_PASS(ModelAnim::load(anim_node, default_pose)));
+		anims.emplace_back(EX_PASS(ModelAnim::load(anim_node, default_pose)));
 		anim_node.next();
 	}
 
@@ -128,7 +128,7 @@ Ex<Model> Model::load(CXmlNode xml_node) {
 }
 
 Ex<Model> Model::load(ZStr file_name) {
-	auto doc = EXPECT_PASS(XmlDocument::load(file_name));
+	auto doc = EX_PASS(XmlDocument::load(file_name));
 	XmlOnFailGuard guard(doc);
 
 	XmlNode child = doc.child();

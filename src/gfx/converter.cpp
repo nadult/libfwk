@@ -95,12 +95,12 @@ Ex<Pair<Model, string>> Converter::loadModel(FileType file_type, ZStr file_name)
 		XmlNode child = doc.child();
 		if(!child)
 			return ERROR("empty XML document");
-		auto model = EXPECT_PASS(Model::load(child));
+		auto model = EX_PASS(Model::load(child));
 		return pair{model, string(child.name())};
 	} else {
 		DASSERT(file_type == FileType::blender);
 		string temp_file_name;
-		auto blender_result = EXPECT_PASS(exportFromBlender(file_name, temp_file_name));
+		auto blender_result = EX_PASS(exportFromBlender(file_name, temp_file_name));
 
 		auto result = loadModel(FileType::fwk_model, temp_file_name);
 		::remove(temp_file_name.c_str());

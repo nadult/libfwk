@@ -51,8 +51,8 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 
 Ex<Font> loadFont() {
 	auto data_path = FilePath(executablePath()).parent().parent() / "data";
-	auto core = EXPECT_PASS(FontCore::load(data_path / "liberation_16.fnt"));
-	auto font_texture = EXPECT_PASS(GlTexture::load(data_path / "liberation_16_0.tga"));
+	auto core = EX_PASS(FontCore::load(data_path / "liberation_16.fnt"));
+	auto font_texture = EX_PASS(GlTexture::load(data_path / "liberation_16_0.tga"));
 	return Font{move(core), font_texture};
 }
 

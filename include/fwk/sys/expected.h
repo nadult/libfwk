@@ -19,7 +19,7 @@ namespace fwk {
 	}
 
 // Checks if there are any raised exceptions. If so, it will return them.
-#define EXPECT_CATCH()                                                                             \
+#define EX_CATCH()                                                                                 \
 	{                                                                                              \
 		if(fwk::exceptionRaised())                                                                 \
 			return fwk::getMergedExceptions();                                                     \
@@ -30,12 +30,12 @@ namespace fwk {
 //
 // Example use:
 // Ex<int> func1(int v) { ... }
-// Ex<float> func2() { auto value = EXPECT_PASS(func1(10)); return value * 0.5f; }
-#define EXPECT_PASS(...)                                                                           \
+// Ex<float> func2() { auto value = EX_PASS(func1(10)); return value * 0.5f; }
+#define EX_PASS(...)                                                                               \
 	({                                                                                             \
 		auto result = __VA_ARGS__;                                                                 \
 		static_assert(fwk::is_expected<decltype(result)>,                                          \
-					  "You have to pass Expected<...> to EXPECT_PASS");                            \
+					  "You have to pass Expected<...> to EX_PASS");                                \
 		if(!result)                                                                                \
 			return result.error();                                                                 \
 		move(result.get());                                                                        \

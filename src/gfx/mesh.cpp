@@ -34,7 +34,7 @@ Ex<Mesh> Mesh::load(CXmlNode node) {
 	}
 
 	auto materials = node.childValue<vector<string>>("materials", {});
-	EXPECT_CATCH();
+	EX_CATCH();
 
 	auto buffers = MeshBuffers::load(node);
 	if(!buffers)

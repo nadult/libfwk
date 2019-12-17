@@ -48,7 +48,7 @@ vector<VertexIdPair> delaunay(SparseSpan<int2> points) { return Voronoi::delauna
 
 template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
 	auto scale = delaunayIntegralScale(points);
-	auto ipoints = EXPECT_PASS(toIntegral(points, scale));
+	auto ipoints = EX_PASS(toIntegral(points, scale));
 	return Voronoi::delaunay(ipoints);
 }
 
@@ -330,7 +330,7 @@ Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<T> &graph,
 	// (although it's a very good approximation)
 
 	auto scale = integralScale(graph.boundingBox(), delaunay_integral_resolution);
-	auto igraph = EXPECT_PASS(graph.toIntegral(scale));
+	auto igraph = EX_PASS(graph.toIntegral(scale));
 	return constrainedDelaunay(igraph, delaunay);
 }
 

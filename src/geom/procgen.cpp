@@ -201,7 +201,7 @@ Ex<vector<Triangle3F>> generateRandomPatch(vector<float3> generators, u32 seed, 
 	rpoints = filter(rpoints, test_func);
 
 	auto rpoints3 = transform(rpoints, [](float2 p) { return asXZY(p, 0.0f); });
-	auto tris = delaunayTriangles<float3>(EXPECT_PASS(delaunay<float2>(rpoints)), rpoints3);
+	auto tris = delaunayTriangles<float3>(EX_PASS(delaunay<float2>(rpoints)), rpoints3);
 
 	tris = filter(tris, [&](const Triangle3F &tri) {
 		for(auto edge : tri.edges()) {

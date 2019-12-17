@@ -18,7 +18,7 @@ static const EnumMap<ShaderType, int> gl_type_map{
 	{GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER, GL_COMPUTE_SHADER}};
 
 Ex<PShader> GlShader::load(Type type, ZStr file_name, vector<string> sources) {
-	sources.emplace_back(EXPECT_PASS(loadFileString(file_name)));
+	sources.emplace_back(EX_PASS(loadFileString(file_name)));
 	return make(type, move(sources), file_name);
 }
 

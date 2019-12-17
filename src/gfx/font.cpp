@@ -59,7 +59,7 @@ Ex<FontCore> FontCore::load(CXmlNode font_node) {
 		chr.x_advance = char_node("xadvance");
 		out.m_glyphs[id] = chr;
 
-		EXPECT_CATCH();
+		EX_CATCH();
 
 		chars_count--;
 		char_node = char_node.sibling("char");

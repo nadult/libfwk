@@ -43,7 +43,7 @@ namespace detail {
 		enum { max_width = 4096, max_height = 4096 };
 
 		hdr.load(sr);
-		EXPECT_CATCH();
+		EX_CATCH();
 
 		if(hdr.data_type_code != 2)
 			return ERROR("Only uncompressed RGB data type is supported (id:%)", hdr.data_type_code);

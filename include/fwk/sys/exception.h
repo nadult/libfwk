@@ -16,7 +16,7 @@ namespace fwk {
 // Only functions which are marked with EXCEPT can raise an exception and leave it on the stack.
 // User have to manually check if there are any exceptions present when necessary.
 //
-// This system is designed to interoperate with Expected<> and EXPECT_ macros.
+// This system is designed to interoperate with Expected<> and EX_ macros.
 //
 // Exceptions can work in quiet mode: no errors / backtraces will be recorded, only information
 // that something exceptional happened will be kept.

@@ -121,8 +121,8 @@ Ex<PProgram> GlProgram::make(PShader vertex, PShader geom, PShader fragment,
 
 Ex<PProgram> GlProgram::load(ZStr vsh_file_name, ZStr fsh_file_name, vector<string> sources,
 							 CSpan<string> location_names) {
-	auto vsh = EXPECT_PASS(GlShader::load(ShaderType::vertex, vsh_file_name, sources));
-	auto fsh = EXPECT_PASS(GlShader::load(ShaderType::fragment, fsh_file_name, sources));
+	auto vsh = EX_PASS(GlShader::load(ShaderType::vertex, vsh_file_name, sources));
+	auto fsh = EX_PASS(GlShader::load(ShaderType::fragment, fsh_file_name, sources));
 	return make(vsh, fsh, location_names);
 }
 

@@ -62,7 +62,7 @@ Ex<Any> Any::load(CXmlNode node, TypeInfo type_info) {
 		return ERROR("Type '%' is not XML-constructible", type_info.name());
 
 	Any out;
-	out.m_model = EXPECT_PASS(it->value.first(node));
+	out.m_model = EX_PASS(it->value.first(node));
 	out.m_type = it->key;
 	return out;
 }
