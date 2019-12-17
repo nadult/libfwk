@@ -27,7 +27,6 @@ Ex<Sound> Sound::load(FileStream &sr) {
 	sr.signature("fmt ");
 	sr.unpack(chunk_size[1], format, channels, frequency, byteRate, block_align, bits);
 
-	EX_CATCH();
 	EXPECT(block_align == channels * (bits / 8));
 	EXPECT(format == 1 && "Only PCM format is supported");
 

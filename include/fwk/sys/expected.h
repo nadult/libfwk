@@ -9,16 +9,21 @@
 
 namespace fwk {
 
-// Will return ERROR if expr evaluates to false.
+// Will return ERROR if there are any exceptions raised or if expr evaluates to false.
 // If expr is of Expected<> type, then it's error will be passed forward.
 #define EXPECT(expr)                                                                               \
 	{                                                                                              \
+		if(fwk::exceptionRaised())                                                                 \
+			return fwk::getMergedExceptions();                                                     \
 		auto &&value = ((expr));                                                                   \
 		if(__builtin_expect(!value, false))                                                        \
 			return fwk::detail::passError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);         \
 	}
 
 // Checks if there are any raised exceptions. If so, it will return them.
+// You can assume that this construction is excecuted whenever Expected<> is
+// constructed/moved/copied or when EXPECT(...) check is evaluated.
+// EX_CATCH should be used in places where lack of exception is necessary for proper execution.
 #define EX_CATCH()                                                                                 \
 	{                                                                                              \
 		if(fwk::exceptionRaised())                                                                 \

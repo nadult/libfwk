@@ -9,7 +9,6 @@
 namespace fwk {
 namespace detail {
 	Ex<Texture> loadBMP(FileStream &sr) {
-
 		sr.signature("BM");
 
 		int offset;
@@ -48,13 +47,11 @@ namespace detail {
 			}
 		}
 
-		EX_CATCH();
+		EXPECT(width >= 0 && height >= 0);
 
 		int max_size = 4096;
 		if(bpp != 24 && bpp != 32 && bpp != 8)
 			return ERROR("%-bit bitmaps are not supported (only 8, 24 and 32)", bpp);
-		EXPECT(width >= 0 && height >= 0);
-
 		if(width > max_size || height > max_size)
 			return ERROR("Bitmap is too big (% x %): max width/height: %", width, height, max_size);
 

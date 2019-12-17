@@ -33,7 +33,6 @@ Camera::Camera(const float3 &pos, const float3 &target, const float3 &target_up_
 Ex<Camera> Camera::load(CXmlNode node) {
 	Camera out{node("pos", float3()), node("target", float3(0, 0, 1)),
 			   node("target_up", float3(0, 1, 0))};
-	EX_CATCH();
 	EXPECT(out.m_pos != out.m_target);
 	out.m_target_up = normalize(out.m_target_up);
 	return out;
