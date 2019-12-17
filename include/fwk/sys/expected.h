@@ -46,9 +46,6 @@ namespace fwk {
 		move(result.get());                                                                        \
 	})
 
-template <class T> constexpr bool is_expected = false;
-template <class T> constexpr bool is_expected<Expected<T>> = true;
-
 namespace detail {
 	template <class T> struct RemoveExpected { using Type = T; };
 	template <class T> struct RemoveExpected<Expected<T>> { using Type = T; };
@@ -59,6 +56,10 @@ namespace detail {
 	void expectMergeExceptions(Error &);
 
 }
+
+template <class T> constexpr bool is_expected = false;
+template <class T> constexpr bool is_expected<Expected<T>> = true;
+
 template <class T> using RemoveExpected = typename detail::RemoveExpected<T>::Type;
 
 // Simple class which can hold value or an error.
@@ -202,5 +203,38 @@ namespace detail {
 	template <class T> auto passError(const Expected<T> &value, const char *, const char *, int) {
 		return value.error();
 	}
+
+	template <class T, class... Args> struct IsExConstructible {
+		FWK_SFINAE_TYPE(Type, T, DECLVAL(U).exConstruct(DECLVAL(Args)...));
+		static constexpr bool value = is_same<Type, Ex<void>>;
+	};
 }
+
+template <class T, class... Args>
+constexpr bool is_ex_constructible =
+	detail::IsExConstructible<T, Args...>::value &&std::is_default_constructible<T>::value;
+
+// Convenient function for classes which have special kind of constructor:
+// member function which initializes given class and returns Ex<void>;
+//
+// Example use:
+// class MyClass {
+//     Ex<void> exConstruct(int argument) {
+//       EXPECT(argument > 0);
+//       foo = argument;
+//       return {};
+//     }
+//     int foo = 0;
+// };
+// ...
+// construct<MyClass>(11);
+template <class T, class... Args, EnableIf<is_ex_constructible<T, Args...>>...>
+Ex<T> construct(Args &&... args) {
+	T out;
+	auto result = out.exConstruct(std::forward<Args>(args)...);
+	if(!result)
+		return result.error();
+	return out;
+}
+
 }
