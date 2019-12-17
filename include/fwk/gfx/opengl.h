@@ -355,7 +355,7 @@ bool installGlDebugHandler();
 
 DEFINE_ENUM(GlVendor, intel, nvidia, amd, other);
 DEFINE_ENUM(GlFeature, vertex_array_object, debug, timer_query, copy_image, texture_view,
-			texture_storage, shader_draw_parameters, separate_shader_objects);
+			texture_storage, shader_draw_parameters, separate_shader_objects, shader_ballot);
 using GlFeatures = EnumFlags<GlFeature>;
 
 // TODO: rename to GlMax

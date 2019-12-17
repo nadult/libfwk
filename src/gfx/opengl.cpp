@@ -151,6 +151,8 @@ void initializeGl(GlProfile profile) {
 		s_info.features |= Feature::shader_draw_parameters;
 	if(core_410 || s_info.hasExtension("ARB_separate_shader_objects"))
 		s_info.features |= Feature::separate_shader_objects;
+	if(s_info.hasExtension("ARB_shader_ballot"))
+		s_info.features |= Feature::shader_ballot;
 }
 
 void loadExtensions() {
