@@ -25,10 +25,5 @@ namespace detail {
 		out = Error::merge(errors);
 	}
 
-	void failedExpected(const char *file, int line, const Error &error) {
-		error.print();
-		fatalError(file, line, "Getting value from invalid Expected<>");
-	}
-
 }
 }

@@ -31,6 +31,11 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 	exit(1);
 }
 
+void fatalError(const Error &error) {
+	error.print();
+	exit(1);
+}
+
 void assertFailed(const char *file, int line, const char *text) {
 	char buffer[4096];
 	snprintf(buffer, sizeof(buffer), "Assertion failed: %s", text);

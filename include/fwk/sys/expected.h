@@ -52,7 +52,6 @@ namespace detail {
 	Error expectMakeError(const char *, const char *, int);
 	void expectFromExceptions(Dynamic<Error> *);
 	void expectMergeExceptions(Error &);
-	[[noreturn]] void failedExpected(const char *, int, const Error &);
 
 }
 template <class T> using RemoveExpected = typename detail::RemoveExpected<T>::Type;
@@ -132,9 +131,14 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 
 	const T &orElse(const T &on_error) const { return m_has_value ? m_value : on_error; }
 
+	void check() const {
+		if(!m_has_value)
+			fatalError(*m_error);
+	}
+
 	T &get() {
 		if(!m_has_value)
-			detail::failedExpected(__FILE__, __LINE__, *m_error);
+			fatalError(*m_error);
 		return m_value;
 	}
 	const T &get() const { return ((Expected *)this)->get(); }
@@ -173,7 +177,7 @@ template <> class [[nodiscard]] Expected<void> {
 
 	void check() const {
 		if(m_error.get())
-			detail::failedExpected(__FILE__, __LINE__, *m_error);
+			fatalError(*m_error);
 	}
 	void ignore() const {}
 

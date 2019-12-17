@@ -169,6 +169,7 @@ constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
 // TODO: move FWK_FATAL, check, etc to fwk_assert ?
 // TODO: use Str ?
 [[noreturn]] void fatalError(const char *file, int line, const char *fmt, ...) ATTRIB_PRINTF(3, 4);
+[[noreturn]] void fatalError(const Error &);
 [[noreturn]] void assertFailed(const char *file, int line, const char *str);
 [[noreturn]] void failedNotInRange(int, int, int);
 
