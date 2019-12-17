@@ -64,19 +64,20 @@ static const char *vsh_src =
 	"}\n";
 // clang-format on
 
+// TODO: return Ex<>
 static PProgram getProgram(Str name) {
 	if(auto out = GlDevice::instance().cacheFindProgram(name))
 		return out;
 
-	const char *src = name == "tex" ? fsh_tex_src : fsh_simple_src;
+	const char *fsh_src = name == "tex" ? fsh_tex_src : fsh_simple_src;
 	if(name.contains("flat"))
-		src = fsh_flat_src;
+		fsh_src = fsh_flat_src;
 	bool shade = name.contains("shade");
 
 	string macros = shade ? "#version 100\n#define SHADE\n" : "#version 100\n";
 
-	auto vsh = GlShader::make(ShaderType::vertex, vsh_src, macros, name).get();
-	auto fsh = GlShader::make(ShaderType::fragment, src, macros, name).get();
+	auto vsh = GlShader::make(ShaderType::vertex, {macros, vsh_src}, name).get();
+	auto fsh = GlShader::make(ShaderType::fragment, {macros, fsh_src}, name).get();
 	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"}).get();
 	GlDevice::instance().cacheAddProgram(name, out);
 	return out;

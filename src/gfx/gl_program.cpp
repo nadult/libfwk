@@ -119,10 +119,10 @@ Ex<PProgram> GlProgram::make(PShader vertex, PShader geom, PShader fragment,
 	return ret ? ref : Ex<PProgram>(ret.error());
 }
 
-Ex<PProgram> GlProgram::make(const string &vsh_file_name, const string &fsh_file_name,
-							 const string &predefined_macros, CSpan<string> location_names) {
-	auto vsh = EXPECT_PASS(GlShader::load(ShaderType::vertex, vsh_file_name, predefined_macros));
-	auto fsh = EXPECT_PASS(GlShader::load(ShaderType::fragment, fsh_file_name, predefined_macros));
+Ex<PProgram> GlProgram::load(ZStr vsh_file_name, ZStr fsh_file_name, vector<string> sources,
+							 CSpan<string> location_names) {
+	auto vsh = EXPECT_PASS(GlShader::load(ShaderType::vertex, vsh_file_name, sources));
+	auto fsh = EXPECT_PASS(GlShader::load(ShaderType::fragment, fsh_file_name, sources));
 	return make(vsh, fsh, location_names);
 }
 

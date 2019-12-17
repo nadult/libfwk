@@ -21,8 +21,10 @@ class GlProgram {
 	static Ex<PProgram> make(PShader vertex, PShader fragment, CSpan<string> location_names = {});
 	static Ex<PProgram> make(PShader vertex, PShader geom, PShader fragment,
 							 CSpan<string> location_names = {});
-	static Ex<PProgram> make(const string &vsh_file_name, const string &fsh_file_name,
-							 const string &predefined_macros, CSpan<string> location_names = {});
+
+	// Source loaded from file is added at the end of sources list
+	static Ex<PProgram> load(ZStr vsh_file_name, ZStr fsh_file_name, vector<string> sources = {},
+							 CSpan<string> location_names = {});
 
 	vector<Pair<string, int>> getBindings(ProgramBindingType) const;
 	vector<char> getBinary() const;

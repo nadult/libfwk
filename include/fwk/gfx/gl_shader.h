@@ -15,18 +15,19 @@ class GlShader {
   public:
 	using Type = ShaderType;
 
-	static Ex<PShader> load(Type, ZStr file_name, const string &predefined_macros = string());
-	static Ex<PShader> make(Type, const string &source, const string &predefined_macros = {},
-							const string &name = {});
+	// Source loaded from file is added at the end of sources list
+	static Ex<PShader> load(Type, ZStr file_name, vector<string> sources = {});
+	static Ex<PShader> make(Type, vector<string> sources, Str name = {});
 
 	Type type() const;
-	string source() const;
+	CSpan<string> sources() const { return m_sources; }
 
 	u64 hash() const { return m_hash; }
 	ZStr name() const { return m_name; }
 
   private:
 	string m_name;
+	vector<string> m_sources;
 	u64 m_hash;
 };
 }

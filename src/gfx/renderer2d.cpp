@@ -50,8 +50,8 @@ static PProgram getProgram2D(Str name) {
 
 	const char *src =
 		name == "2d_with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
-	auto vsh = GlShader::make(ShaderType::vertex, vertex_shader_2d_src, "", name).get();
-	auto fsh = GlShader::make(ShaderType::fragment, src, "", name).get();
+	auto vsh = GlShader::make(ShaderType::vertex, {vertex_shader_2d_src}, name).get();
+	auto fsh = GlShader::make(ShaderType::fragment, {src}, name).get();
 
 	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"}).get();
 	GlDevice::instance().cacheAddProgram(name, out);
