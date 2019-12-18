@@ -23,6 +23,27 @@
 
 namespace fwk {
 
+Maybe<int2> consoleDimensions() {
+#ifdef FWK_TARGET_LINUX
+	auto result = execCommand("tput cols && tput lines");
+	if(result && result->second == 0) {
+		const char *ptr = result->first.c_str();
+		char *end = nullptr;
+		errno = 0;
+		auto cols = ::strtol(ptr, &end, 10);
+		if(errno != 0 || end == ptr)
+			return none;
+
+		ptr = end;
+		auto lines = ::strtol(ptr, &end, 10);
+		if(errno != 0 || end == ptr)
+			return none;
+		return int2(cols, lines);
+	}
+#endif
+	return none;
+}
+
 namespace {
 
 	string nicePath(const string &path, const FilePath &current) {
@@ -57,13 +78,6 @@ namespace {
 			begin++;
 		}
 		return out;
-	}
-
-	Maybe<int> consoleColumns() {
-		auto result = execCommand("tput cols");
-		if(result && result->second == 0)
-			return stoi(result->first);
-		return none;
 	}
 
 	struct Entry {
@@ -192,8 +206,8 @@ namespace {
 		}*/
 
 		int num_columns = 120;
-		if(auto cols = consoleColumns())
-			num_columns = *cols;
+		if(auto dims = consoleDimensions())
+			num_columns = dims->x;
 
 		int limit_line_size = 6;
 		int limit_func_size = max(20, num_columns * 3 / 4);

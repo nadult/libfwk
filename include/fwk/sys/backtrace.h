@@ -9,6 +9,9 @@
 
 namespace fwk {
 
+// TODO: better place for that function
+Maybe<int2> consoleDimensions();
+
 enum class BacktraceMode {
 	fast, // default
 	full,
