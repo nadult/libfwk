@@ -17,7 +17,8 @@ class GlShader {
 
 	// Source loaded from file is added at the end of sources list
 	static Ex<PShader> load(Type, ZStr file_name, vector<string> sources = {});
-	static Ex<PShader> make(Type, vector<string> sources, Str name = {});
+	static Ex<PShader> make(Type, vector<string> sources, Str name = {},
+							CSpan<Str> source_names = {});
 
 	Type type() const;
 	CSpan<string> sources() const { return m_sources; }
