@@ -205,7 +205,11 @@ vector<Pair<string, int>> GlProgram::getBindings(ProgramBindingType type) const 
 	return out;
 }
 
-Maybe<int> GlProgram::findUniform(ZStr str) const {
+void GlProgram::UniformInfo::operator>>(TextFormatter &fmt) const {
+	fmt(fmt.isStructured() ? "(%, %, %, %)" : "% % % %", name, gl_type, size, location);
+}
+
+Maybe<int> GlProgram::findUniform(Str str) const {
 	for(auto &uniform : m_uniforms)
 		if(str == uniform.name)
 			return spanMemberIndex(m_uniforms, uniform);
@@ -235,7 +239,7 @@ void GlProgram::loadUniformInfo() {
 void GlProgram::use() { glUseProgram(id()); }
 void GlProgram::unbind() { glUseProgram(0); }
 
-auto GlProgram::operator[](ZStr name) -> UniformSetter {
+auto GlProgram::operator[](Str name) -> UniformSetter {
 	int loc = location(name);
 	if((gl_debug_flags & GlDebug::not_active_uniforms) && loc == -1) {
 		TextFormatter key, msg;

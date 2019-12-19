@@ -35,12 +35,14 @@ class GlProgram {
 		int gl_type; // TODO: enum type
 		int size;
 		int location;
+
+		void operator>>(TextFormatter &) const;
 	};
 
 	CSpan<UniformInfo> uniforms() const { return m_uniforms; }
-	Maybe<int> findUniform(ZStr) const;
+	Maybe<int> findUniform(Str) const;
 
-	int location(ZStr name) const {
+	int location(Str name) const {
 		if(auto uid = findUniform(name))
 			return m_uniforms[*uid].location;
 		return -1;
@@ -75,7 +77,7 @@ class GlProgram {
 		int location;
 	};
 
-	UniformSetter operator[](ZStr name);
+	UniformSetter operator[](Str name);
 	UniformSetter operator[](int location) { return {id(), location}; }
 
 	void use();
