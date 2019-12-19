@@ -468,6 +468,8 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 		Str msg((const char *)message);
 		if(msg.find("warning: extension") != -1 && msg.find("unsupported in") != -1)
 			return;
+		if(source == GL_DEBUG_SOURCE_SHADER_COMPILER)
+			return; // It's handled in GlShader & GlProgram
 	}
 
 	TextFormatter fmt;
