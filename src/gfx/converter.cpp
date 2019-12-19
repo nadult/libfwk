@@ -47,7 +47,7 @@ string Converter::locateBlender() {
 #if defined(FWK_TARGET_MINGW)
 	vector<string> pfiles = {"C:/program files/", "C:/program files (x86)/"};
 	for(auto pf : pfiles) {
-		for(auto dir : fwk::findFiles(pf, FindFiles::directory)) {
+		for(auto dir : fwk::findFiles(pf, FindFileOpt::directory)) {
 			string folder_name = toLower(dir.path.fileName());
 			if(folder_name.find("blender") != string::npos)
 				if(auto files = fwk::findFiles(dir.path, "blender.exe"))

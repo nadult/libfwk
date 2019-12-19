@@ -61,13 +61,15 @@ bool FilePath::isDirectory() const {
 	return S_ISDIR(buf.st_mode) || S_ISLNK(buf.st_mode);
 }
 
+using Opt = FindFileOpt;
+
 static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,
-					  int flags) {
+					  FindFileOpts opts) {
 	DIR *dp = opendir(path.c_str());
 	if(!dp)
 		return;
 	bool is_root = path.isRoot();
-	bool ignore_parent = !(flags & FindFiles::include_parent) || is_root;
+	bool ignore_parent = !(opts & Opt::include_parent) || is_root;
 
 	{
 		struct dirent *dirp;
@@ -84,8 +86,8 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 			is_directory = dirp->d_type == DT_DIR;
 			is_regular = dirp->d_type == DT_REG;
 			// TODO: fix this
-			//		if(dirp->d_type == DT_LNK)
-			//			dirp->d_type = DT_DIR;
+			// if(dirp->d_type == DT_LNK)
+			// 	dirp->d_type = DT_DIR;
 
 			if(dirp->d_type == DT_UNKNOWN)
 #endif
@@ -99,10 +101,9 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 				is_regular = S_ISREG(buf.st_mode);
 			}
 
-			bool do_accept = ((flags & FindFiles::regular_file) && is_regular) ||
-							 ((flags & FindFiles::directory) && is_directory);
-			//		printf("found in %s: %s (%d/%d)\n", path.c_str(), dirp->d_name, is_directory,
-			// is_regular);
+			bool do_accept = ((opts & Opt::regular_file) && is_regular) ||
+							 ((opts & Opt::directory) && is_directory);
+			//	printf("found in %s: %s (%d/%d)\n", path.c_str(), dirp->d_name, is_directory, is_regular);
 
 			// TODO: check why was this added
 			//	if(do_accept && is_root && is_directory)
@@ -115,9 +116,9 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 				out.push_back(entry);
 			}
 
-			if(is_directory && (flags & FindFiles::recursive) && !is_parent)
+			if(is_directory && (opts & Opt::recursive) && !is_parent)
 				findFiles(out, path / FilePath(dirp->d_name), append / FilePath(dirp->d_name),
-						  flags);
+						  opts);
 		}
 	}
 
@@ -125,18 +126,15 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 	closedir(dp);
 }
 
-vector<FileEntry> findFiles(const FilePath &path, int flags) {
+vector<FileEntry> findFiles(const FilePath &path, FindFileOpts opts) {
 	vector<FileEntry> out;
-
-	bool is_relative = flags & FindFiles::relative;
-	bool is_absolute = flags & FindFiles::absolute;
 
 	auto abs_path = path.absolute();
 	if(!abs_path)
 		return {};
-	FilePath append = is_relative ? "." : is_absolute ? *abs_path : path;
 
-	findFiles(out, *abs_path, append, flags);
+	auto append = opts & Opt::relative ? "." : opts & Opt::absolute ? *abs_path : path;
+	findFiles(out, *abs_path, append, opts);
 	return out;
 }
 }

@@ -63,15 +63,17 @@ bool FilePath::isDirectory() const {
 	return S_ISDIR(buf.st_mode);
 }
 
+using Opt = FindFileOpt;
+
 static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,
-					  int flags) {
+					  FindFileOpts opts) {
 	WIN32_FIND_DATA data;
 	char tpath[MAX_PATH];
 	snprintf(tpath, sizeof(tpath), "%s/*", path.c_str());
 	HANDLE handle = FindFirstFile(tpath, &data);
 
 	bool is_root = path.isRoot();
-	bool ignore_parent = !(flags & FindFiles::include_parent) || is_root;
+	bool ignore_parent = !(opts & Opt::include_parent) || is_root;
 
 	if(handle != INVALID_HANDLE_VALUE)
 		do {
@@ -83,9 +85,8 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 
 			bool is_dir = data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
 			bool is_file = !is_dir;
-
-			bool do_accept = ((flags & FindFiles::regular_file) && is_file) ||
-							 ((flags & FindFiles::directory) && is_dir);
+			bool do_accept =
+				((opts & Opt::regular_file) && is_file) || ((opts & Opt::directory) && is_dir);
 
 			if(do_accept) {
 				FileEntry entry;
@@ -94,23 +95,21 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 				out.push_back(entry);
 			}
 
-			if(is_dir && (flags & FindFiles::recursive) && !is_parent)
+			if(is_dir && (opts & Opt::recursive) && !is_parent)
 				findFiles(out, path / FilePath(data.cFileName), append / FilePath(data.cFileName),
-						  flags);
+						  opts);
 		} while(FindNextFile(handle, &data));
 }
 
-vector<FileEntry> findFiles(const FilePath &path, int flags) {
+vector<FileEntry> findFiles(const FilePath &path, FindFileOpts opts) {
 	vector<FileEntry> out;
 
 	auto abs_path = path.absolute();
 	if(!abs_path)
 		return {};
 
-	FilePath append =
-		flags & FindFiles::relative ? "." : flags & FindFiles::absolute ? *abs_path : path;
-
-	findFiles(out, *abs_path, append, flags);
+	auto append = opts & Opt::relative ? "." : opts & Opt::absolute ? *abs_path : path;
+	findFiles(out, *abs_path, append, opts);
 	return out;
 }
 }

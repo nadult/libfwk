@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
 		FilePath src_folder(prefix);
 		while(!src_folder.isDirectory())
 			src_folder = src_folder.parent();
-		auto files = findFiles(src_folder, FindFiles::regular_file | FindFiles::recursive);
+		auto files = findFiles(src_folder, FindFileOpt::regular_file | FindFileOpt::recursive);
 
 		for(const auto &file : files) {
 			string name = file.path;

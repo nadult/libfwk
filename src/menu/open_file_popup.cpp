@@ -60,8 +60,8 @@ void openFilePopup(string &file_name, ZStr popup_name, string file_regex) {
 		ImGui::BeginChild("", ImVec2(0, 0), 0,
 						  ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
 
-		auto entries = findFiles(ctx.current_dir, FindFiles::regular_file | FindFiles::directory |
-													  FindFiles::relative);
+		auto opts = FindFileOpt::regular_file | FindFileOpt::directory | FindFileOpt::relative;
+		auto entries = findFiles(ctx.current_dir, opts);
 
 		bool drop_context = false;
 

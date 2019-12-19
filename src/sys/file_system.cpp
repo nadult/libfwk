@@ -308,8 +308,8 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 	if(path.isRegularFile())
 		path = path.parent();
 
-	auto entries =
-		findFiles(path, FindFiles::recursive | FindFiles::absolute | FindFiles::regular_file);
+	auto opts = FindFileOpt::recursive | FindFileOpt::absolute | FindFileOpt::regular_file;
+	auto entries = findFiles(path, opts);
 	vector<string> out;
 
 	for(auto &entry : entries) {

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/enum_flags.h"
 #include "fwk/light_tuple.h"
 #include "fwk/span.h"
 #include "fwk/str.h"
@@ -87,21 +88,13 @@ struct FileEntry {
 	}
 };
 
-namespace FindFiles {
-	enum Flags {
-		regular_file = 1,
-		directory = 2,
-
-		recursive = 4,
-
-		relative = 8, // all paths relative to given path
-		absolute = 16, // all paths absolute
-		include_parent = 32, // include '..'
-	};
-};
+// relative: all paths relative to given path
+// include_parent: include '..' as well
+DEFINE_ENUM(FindFileOpt, regular_file, directory, recursive, relative, absolute, include_parent);
+using FindFileOpts = EnumFlags<FindFileOpt>;
 
 vector<string> findFiles(const string &prefix, const string &suffix);
-vector<FileEntry> findFiles(const FilePath &path, int flags = FindFiles::regular_file);
+vector<FileEntry> findFiles(const FilePath &path, FindFileOpts = FindFileOpt::regular_file);
 bool removeSuffix(string &str, const string &suffix);
 bool removePrefix(string &str, const string &prefix);
 bool access(const FilePath &);

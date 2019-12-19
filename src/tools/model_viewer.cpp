@@ -404,7 +404,9 @@ int main(int argc, char **argv) {
 		FilePath src_folder(prefix);
 		while(!src_folder.isDirectory())
 			src_folder = src_folder.parent();
-		auto found_files = findFiles(src_folder, FindFiles::regular_file | FindFiles::recursive);
+
+		auto opts = FindFileOpt::regular_file | FindFileOpt::recursive;
+		auto found_files = findFiles(src_folder, opts);
 
 		for(const auto &file : found_files) {
 			string name = file.path;
