@@ -16,7 +16,8 @@ namespace fwk {
 #define FWK_SFINAE_TEST(NAME, VALUE_TYPE, ...)                                                     \
 	template <class U> static decltype(__VA_ARGS__) NAME##Test(int);                               \
 	template <class U> static fwk::InvalidType NAME##Test(...);                                    \
-	static constexpr bool NAME = !is_same<fwk::InvalidType, decltype(NAME##Test<VALUE_TYPE>(0))>;
+	static constexpr bool NAME =                                                                   \
+		!fwk::is_same<fwk::InvalidType, decltype(NAME##Test<VALUE_TYPE>(0))>;
 
 struct EnabledType {};
 struct InvalidType {};
@@ -43,7 +44,7 @@ template <class T> struct UnwrapType_<Type<T>> { using Type = T; };
 template <class T> using UnwrapType = typename UnwrapType_<T>::Type;
 
 template <class T> auto declval() -> T;
-#define DECLVAL(type) declval<type>()
+#define DECLVAL(type) fwk::declval<type>()
 
 template <class Lhs, class... RhsArgs> constexpr bool is_one_of = false;
 template <class Lhs, class Rhs, class... RhsArgs>
@@ -115,6 +116,7 @@ using EnableIf =
 
 template <class T1, class T2> constexpr bool is_convertible = std::is_convertible<T1, T2>::value;
 
+// Checks if class is brace constructible: T{Args...}
 template <class T, class... Args>
 constexpr bool is_constructible = detail::IsConstr<T, Args...>::value;
 
@@ -170,9 +172,10 @@ struct Intrusive {
 	using DeletedHash = Tag<ETag::deleted_hash>;
 	using UnusedHash = Tag<ETag::unused_hash>;
 
+	// TODO: in some cases FWK_SFINAE_TEST doesn't work on gcc (in this case in is_constructible)
 	template <class T, ETag tag> struct CanHold {
 		FWK_SFINAE_TYPE(Test, T, DECLVAL(const U &).holds(Tag<tag>()));
-		static constexpr bool value = is_same<Test, bool> && is_constructible<T, Tag<tag>>;
+		static constexpr bool value = is_same<Test, bool> && std::is_constructible_v<T, Tag<tag>>;
 	};
 };
 }
