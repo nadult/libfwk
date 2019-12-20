@@ -5,8 +5,7 @@
 
 #include <iostream>
 #include <string>
-
-#include <boost/variant.hpp>
+#include <variant>
 
 #include "fwk/enum.h"
 #include "fwk/format.h"
@@ -17,15 +16,15 @@
 
 using fwk::TestTimer;
 
-class SizeVisitor : public boost::static_visitor<> {
+class SizeVisitor {
   public:
 	int size = 0;
 	template <class T> void operator()(const T &rhs) { size = sizeof(rhs); }
 };
 
 template <class Visitor, typename... Types>
-auto visit(boost::variant<Types...> &variant, Visitor &visitor) {
-	boost::apply_visitor(visitor, variant);
+auto visit(std::variant<Types...> &variant, Visitor &visitor) {
+	std::visit(visitor, variant);
 }
 
 template <class Visitor, typename... Types>
@@ -103,10 +102,9 @@ template <template <typename...> class T> void testVariantBigger(const char *nam
 }
 
 int main() {
-	testVariantSimple<boost::variant>("boost::variant simple");
-	testVariantSimple<fwk::Variant>("fwk::Variant   simple");
-	testVariantBigger<boost::variant>("boost::variant bigger");
-	testVariantBigger<fwk::Variant>("fwk::Variant   bigger");
-
+	testVariantSimple<std::variant>("std::variant simple");
+	testVariantSimple<fwk::Variant>("fwk::Variant simple");
+	testVariantBigger<std::variant>("std::variant bigger");
+	testVariantBigger<fwk::Variant>("fwk::Variant bigger");
 	return 0;
 }
