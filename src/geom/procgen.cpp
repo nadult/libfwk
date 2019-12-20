@@ -111,7 +111,8 @@ static void FFT(short int dir, Span<double> x, Span<double> y) {
 		j += k;
 	}
 
-	// Compute the FFT c1 = -1.0;
+	// Compute the FFT
+	c1 = -1.0;
 	c2 = 0.0;
 	l2 = 1;
 	for(l = 0; l < m; l++) {
