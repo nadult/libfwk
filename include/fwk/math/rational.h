@@ -92,7 +92,7 @@ template <class T, int N> struct Rational {
 		return {s < 0 ? -m_num : m_num, m_den * fwk::abs(s), no_sign_check};
 	}
 
-	Rational operator-() const { return {-m_num, m_den, no_sign_check}; }
+	Rational operator-() const { return {Num(-m_num), m_den, no_sign_check}; }
 
 	IF_SCALAR int order(const Rational &) const;
 	bool operator==(const Rational &) const;

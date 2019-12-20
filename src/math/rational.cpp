@@ -89,18 +89,18 @@ template <class T> static int order(T lnum, T lden, T rnum, T rden) {
 
 TEMPLATE TRATIONAL TRATIONAL::operator+(const Rational &rhs) const {
 	if(m_den == rhs.m_den)
-		return {m_num + rhs.m_num, T(m_den), no_sign_check};
-	return {m_num * rhs.m_den + rhs.m_num * m_den, T(m_den * rhs.m_den), no_sign_check};
+		return {Num(m_num + rhs.m_num), T(m_den), no_sign_check};
+	return {Num(m_num * rhs.m_den + rhs.m_num * m_den), T(m_den * rhs.m_den), no_sign_check};
 }
 
 TEMPLATE TRATIONAL TRATIONAL::operator-(const Rational &rhs) const {
 	if(m_den == rhs.m_den)
-		return {m_num - rhs.m_num, T(m_den), no_sign_check};
-	return {m_num * rhs.m_den - rhs.m_num * m_den, T(m_den * rhs.m_den), no_sign_check};
+		return {Num(m_num - rhs.m_num), T(m_den), no_sign_check};
+	return {Num(m_num * rhs.m_den - rhs.m_num * m_den), T(m_den * rhs.m_den), no_sign_check};
 }
 
 TEMPLATE TRATIONAL TRATIONAL::operator*(const Rational &rhs) const {
-	return {m_num * rhs.m_num, T(m_den * rhs.m_den), no_sign_check};
+	return {Num(m_num * rhs.m_num), T(m_den * rhs.m_den), no_sign_check};
 }
 
 TEMPLATE

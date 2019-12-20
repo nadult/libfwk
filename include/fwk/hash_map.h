@@ -172,8 +172,8 @@ template <class K, class V, class Policy> class HashMap {
 
 	void operator=(HashMap &&rhs) {
 		deleteNodes();
-		memcpy(this, &rhs, sizeof(HashMap));
-		memset(&rhs, 0, sizeof(HashMap));
+		memcpy((void *)this, (void *)&rhs, sizeof(HashMap));
+		memset((void *)&rhs, 0, sizeof(HashMap));
 		rhs.m_load_factor = m_load_factor;
 	}
 

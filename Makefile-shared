@@ -94,7 +94,7 @@ CFLAGS_clang   += -Xclang -load -Xclang "$(realpath $(FWK_DIR)checker.so)" \
                   -Xclang -add-plugin -Xclang fwk-check-exceptions
                  #-Xclang -add-plugin -Xclang fwk-print-type-aliases
 endif
-CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable
+CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable -Wno-stringop-overflow
 
 CFLAGS_release += -O3
 CFLAGS_debug   += -Og -DFWK_PARANOID

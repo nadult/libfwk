@@ -221,7 +221,7 @@ template <class T> class Vector {
 	T *insert(const T *pos, const T *first, const T *last) {
 		if(pos == end() && last - first <= m_base.capacity - m_base.size) {
 			if(trivial_move_constr && trivial_destruction && trivial_copy_constr)
-				memcpy(end(), first, (last - first) * sizeof(T));
+				memcpy((void *)end(), (void *)first, (last - first) * sizeof(T));
 			else
 				copy(end(), first, last - first);
 			auto out = end();
