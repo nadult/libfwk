@@ -274,7 +274,7 @@ template <class T> void GeomGraph<T>::orderEdges(VertexId vid, Axes2D axes) {
 template <class T>
 auto GeomGraph<T>::buildPointMap(CSpan<bool> valid_indices, CSpan<Point> points,
 								 vector<Pair<VertexId>> &identical_points) -> PointMap {
-	DASSERT_EQ(valid_indices.size(), points.size());
+	DASSERT_GE(valid_indices.size(), points.size());
 
 	PointMap point_map;
 	point_map.reserve(points.size());
