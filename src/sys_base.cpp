@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdarg.h>
+#include <pthread.h>
 
 #ifdef FWK_TARGET_LINUX
 #include <dlfcn.h>
@@ -22,22 +23,20 @@
 #include <signal.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include <unistd.h>
 #endif
 
-
-#ifdef FWK_TARGET_HTML5
-#include "emscripten.h"
-
-namespace fwk {
-int threadId() { return 0; }
-}
+#ifndef FWK_TARGET_MINGW
+#include <time.h>
+#include <unistd.h>
 #endif
 
 namespace fwk {
 
 static_assert(sizeof(i32) == 4 && sizeof(u32) == 4);
 static_assert(sizeof(i64) == 8 && sizeof(u64) == 8);
+
+// TODO: use tls to store this value
+int threadId() { return (int)pthread_self(); }
 
 #if defined(FWK_TARGET_LINUX)
 
@@ -97,8 +96,6 @@ void handleCtrlC(void (*handler)()) {
 	sigaction(SIGINT, &sig_int_handler, NULL);
 }
 
-// TODO: use tls to store this value
-int threadId() { return syscall(SYS_gettid); }
 #endif
 
 #ifndef _WIN32

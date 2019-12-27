@@ -58,5 +58,4 @@ Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	s_fail_protect = false;
 	return out;
 }
-
 }

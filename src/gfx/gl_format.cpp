@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/gl_format.h"
 
+#include "fwk/algorithm.h"
 #include "fwk/enum_map.h"
 #include "fwk/gfx/opengl.h"
 

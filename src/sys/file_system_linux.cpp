@@ -9,6 +9,7 @@
 #include "fwk/vector.h"
 #include <cstring>
 #include <dirent.h>
+#include <errno.h>
 #include <libgen.h>
 #include <sys/stat.h>
 #include <sys/types.h>

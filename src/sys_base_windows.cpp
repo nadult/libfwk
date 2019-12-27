@@ -149,8 +149,6 @@ double getTime() {
 	clock_t c = clock();
 	return double(c) / double(CLOCKS_PER_SEC);
 }
-
-int threadId() { return GetCurrentThreadId(); }
 }
 
 #endif

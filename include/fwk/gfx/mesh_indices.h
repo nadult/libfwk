@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/algorithm.h"
 #include "fwk/gfx/color.h"
 #include "fwk/vector.h"
 

@@ -6,11 +6,8 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
 #include <cstring>
+#include <errno.h>
 #include <limits>
-
-#ifdef FWK_TARGET_HTML5
-#include "emscripten.h"
-#endif
 
 namespace fwk {
 

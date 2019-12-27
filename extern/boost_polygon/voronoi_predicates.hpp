@@ -33,10 +33,8 @@ class voronoi_predicates {
   typedef typename CTYPE_TRAITS::to_fpt_converter_type to_fpt_converter;
   typedef typename CTYPE_TRAITS::to_efpt_converter_type to_efpt_converter;
 
-  enum {
-    ULPS = 64,
-    ULPSx2 = 128
-  };
+  static constexpr int ULPS = 64;
+  static constexpr int ULPSx2 = 128;
 
   template <typename Point>
   static bool is_vertical(const Point& point1, const Point& point2) {

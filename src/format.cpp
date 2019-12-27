@@ -6,6 +6,7 @@
 #include "fwk/math/box.h"
 #include <cfloat>
 #include <cstring>
+#include <errno.h>
 #include <stdarg.h>
 
 namespace fwk {

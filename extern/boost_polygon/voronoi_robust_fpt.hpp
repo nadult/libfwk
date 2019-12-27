@@ -83,9 +83,7 @@ class robust_fpt {
   typedef _fpt relative_error_type;
 
   // Rounding error is at most 1 EPS.
-  enum {
-    ROUNDING_ERROR = 1
-  };
+  static constexpr int ROUNDING_ERROR = 1;
 
   robust_fpt() : fpv_(0.0), re_(0.0) {}
   explicit robust_fpt(floating_point_type fpv) :

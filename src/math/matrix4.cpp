@@ -251,5 +251,4 @@ Matrix4 viewMatrix2D(const IRect &viewport, const float2 &look_at) {
 void Matrix4::operator>>(TextFormatter &out) const {
 	out(out.isStructured() ? "(%; %; %; %)" : "% % % %", v[0], v[1], v[2], v[3]);
 }
-
 }
