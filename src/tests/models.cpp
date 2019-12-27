@@ -38,7 +38,7 @@ void testSplittingMerging() {
 
 void testMain() {
 #ifndef FWK_TARGET_LINUX
-	printf("TODO: models test not supported on mingw\n");
+	printf("TODO: tests/models is only supported on linux\n");
 	return;
 #endif
 

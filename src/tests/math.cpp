@@ -6,7 +6,6 @@
 #include "fwk/math/box_iter.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/direction.h"
-#include "fwk/math/ext24.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/line.h"
@@ -348,8 +347,6 @@ void testTraits() {
 	static_assert(precise_conversion<int2, llint2>);
 	static_assert(!precise_conversion<llint2, double2>);
 	static_assert(precise_conversion<int, llint>);
-	static_assert(precise_conversion<int3, Rational<Ext24<llint>, 3>>);
-	static_assert(!precise_conversion<Rational<Ext24<int>, 2>, vec2<Ext24<llint>>>);
 	static_assert(!precise_conversion<Rational<int, 2>, Rational<int, 3>>);
 
 	static_assert(is_same<Promote<llint>, qint>);
@@ -359,17 +356,22 @@ void testTraits() {
 	static_assert(is_same<PromoteIntegral<int2>, llint2>);
 
 	static_assert(is_same<Promote<Rational<int>, 2>, Rational<qint>>);
-	static_assert(is_same<Promote<Ext24<short>, 2>, Ext24<llint>>);
-	static_assert(is_same<Promote<RatExt24<short>>, RatExt24<int>>);
 
 	static_assert(is_vec<Rational<int, 2>>);
 	static_assert(is_rational<Rational<int, 2>>);
 
-	static_assert(is_same<RemoveRat<Rational<Ext24<short>>>, Ext24<short>>);
 	static_assert(is_same<MakeRat<vec2<int>>, Rational2<int>>);
 }
 
 /*
+void testExt24Traits() {
+	static_assert(precise_conversion<int3, Rational<Ext24<llint>, 3>>);
+	static_assert(!precise_conversion<Rational<Ext24<int>, 2>, vec2<Ext24<llint>>>);
+	static_assert(is_same<Promote<Ext24<short>, 2>, Ext24<llint>>);
+	static_assert(is_same<Promote<RatExt24<short>>, RatExt24<int>>);
+	static_assert(is_same<RemoveRat<Rational<Ext24<short>>>, Ext24<short>>);
+}
+
 template <class T> int approxSign(const Ext24<T> &ext) {
 	using LD = long double;
 	return LD(ext.b) * sqrt2 + LD(ext.c) * sqrt3 + LD(ext.d) * sqrt6 + LD(ext.a) < 0 ? -1 : 1;
@@ -491,7 +493,7 @@ void testRational() {
 		DASSERT((a < b) == (double(a) < double(b)));
 	}
 
-	int iters = 100000;
+	int iters = 10000;
 	long long max = 1000000000000000000ll;
 
 	vector<Pair<qint>> qnumbers;
@@ -503,16 +505,19 @@ void testRational() {
 		qnumbers.emplace_back(v1, v2);
 	}
 
+	ASSERT_EQ((qint(3333) * qint(2ull << 62) * qint(222)) / qint(12345),
+			  (qint(222) * qint(2ull << 62) * qint(3333)) / qint(12345));
+
 	print("GCD timings:\n");
 	{
 		double time1 = getTime();
-		int sum1 = 0;
+		llint sum1 = 0;
 		for(auto &pair : lnumbers)
 			sum1 += gcdEuclid(pair.first, pair.second);
 		time1 = getTime() - time1;
 
 		double time2 = getTime();
-		int sum2 = 0;
+		llint sum2 = 0;
 		for(auto &pair : lnumbers)
 			sum2 += gcd(pair.first, pair.second);
 		time2 = getTime() - time2;
@@ -524,13 +529,13 @@ void testRational() {
 
 	{
 		double time1 = getTime();
-		int sum1 = 0;
+		qint sum1 = 0;
 		for(auto &pair : qnumbers)
 			sum1 += gcdEuclid(pair.first, pair.second);
 		time1 = getTime() - time1;
 
 		double time2 = getTime();
-		int sum2 = 0;
+		qint sum2 = 0;
 		for(auto &pair : qnumbers)
 			sum2 += gcd(pair.first, pair.second);
 		time2 = getTime() - time2;
@@ -542,7 +547,7 @@ void testRational() {
 
 	{
 		double time = getTime();
-		int sum = 0;
+		qint sum = 0;
 		for(auto &pair : qnumbers) {
 			sum += pair.first / pair.second;
 			sum += pair.second / pair.first;
@@ -553,7 +558,7 @@ void testRational() {
 
 	{
 		double time = getTime();
-		int sum = 0;
+		qint sum = 0;
 		for(auto &pair : qnumbers) {
 			sum += pair.first * pair.second;
 		}
