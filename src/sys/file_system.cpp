@@ -323,6 +323,9 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 
 // TODO: stdout and stderr returned separately?
 Ex<Pair<string, int>> execCommand(const string &cmd) {
+#ifdef FWK_TARGET_HTML // TODO: platform not target? consistency with makefiles
+	return ERROR("execCommand not supported on HTML platform");
+#else
 	FILE *pipe = popen(cmd.c_str(), "r");
 	if(!pipe)
 		return ERROR("Error on popen '%': %", cmd, strerror(errno));
@@ -336,6 +339,7 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 	if(ret == -1)
 		return ERROR("Error on pclose '%': %", cmd, strerror(errno));
 	return pair{result, ret};
+#endif
 }
 
 Ex<string> loadFileString(ZStr file_name, int max_size) {

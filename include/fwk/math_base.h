@@ -311,7 +311,7 @@ template <class T, int count = 1>
 using PromoteIntegral = If<is_integral<Base<T>>, Promote<T, count>, T>;
 
 template <class From, class To>
-constexpr bool precise_conversion = []() {
+inline constexpr bool precise_conversion = []() {
 	if constexpr(is_same<From, To>)
 		return true;
 	else if constexpr(!is_same<Promote<From>, From>)
@@ -320,20 +320,20 @@ constexpr bool precise_conversion = []() {
 }();
 
 template <class T, class U>
-constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<RemoveExt24<T>, U>;
+inline constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<RemoveExt24<T>, U>;
 
 template <class T, class U, int N>
-constexpr bool precise_conversion<T, Rational<U, N>> =
+inline constexpr bool precise_conversion<T, Rational<U, N>> =
 	dim<T> == N &&precise_conversion<Scalar<RemoveRat<T>>, U>;
 
 template <class T, class U>
-constexpr bool precise_conversion<vec2<T>, vec2<U>> = precise_conversion<T, U>;
+inline constexpr bool precise_conversion<vec2<T>, vec2<U>> = precise_conversion<T, U>;
 template <class T, class U>
-constexpr bool precise_conversion<vec3<T>, vec3<U>> = precise_conversion<T, U>;
+inline constexpr bool precise_conversion<vec3<T>, vec3<U>> = precise_conversion<T, U>;
 template <class T, class U>
-constexpr bool precise_conversion<vec4<T>, vec4<U>> = precise_conversion<T, U>;
+inline constexpr bool precise_conversion<vec4<T>, vec4<U>> = precise_conversion<T, U>;
 
-#define PRECISE(from, to) template <> constexpr bool precise_conversion<from, to> = true;
+#define PRECISE(from, to) template <> inline constexpr bool precise_conversion<from, to> = true;
 
 PRECISE(short, float)
 PRECISE(int, double)

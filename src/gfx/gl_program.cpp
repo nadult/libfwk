@@ -30,10 +30,9 @@ namespace {
 	void (*glProgramUniformMatrix2fv_)(GLuint, GLint, GLsizei, GLboolean, const GLfloat *);
 	void (*glProgramUniformMatrix3fv_)(GLuint, GLint, GLsizei, GLboolean, const GLfloat *);
 	void (*glProgramUniformMatrix4fv_)(GLuint, GLint, GLsizei, GLboolean, const GLfloat *);
-}
 
-void initializeGlProgramFuncs() {
-	if(gl_info->features & GlFeature::separate_shader_objects) {
+	void assignSSOFuncs() {
+#ifndef FWK_TARGET_HTML
 		glProgramUniform1fv_ = glProgramUniform1fv;
 		glProgramUniform2fv_ = glProgramUniform2fv;
 		glProgramUniform3fv_ = glProgramUniform3fv;
@@ -52,6 +51,13 @@ void initializeGlProgramFuncs() {
 		glProgramUniformMatrix2fv_ = glProgramUniformMatrix2fv;
 		glProgramUniformMatrix3fv_ = glProgramUniformMatrix3fv;
 		glProgramUniformMatrix4fv_ = glProgramUniformMatrix4fv;
+#endif
+	}
+}
+
+void initializeGlProgramFuncs() {
+	if(gl_info->features & GlFeature::separate_shader_objects) {
+		assignSSOFuncs();
 	} else {
 #define ASSIGN(suffix, type)                                                                       \
 	glProgramUniform##suffix##_ = [](GLuint prog, GLint location, GLsizei count,                   \

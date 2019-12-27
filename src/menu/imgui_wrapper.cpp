@@ -299,7 +299,6 @@ void ImGuiWrapper::drawFrame(GlDevice &device) {
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_SCISSOR_TEST);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// Setup viewport, orthographic projection matrix
 	glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
@@ -374,7 +373,6 @@ void ImGuiWrapper::drawFrame(GlDevice &device) {
 		glEnable(GL_SCISSOR_TEST);
 	else
 		glDisable(GL_SCISSOR_TEST);
-	glPolygonMode(GL_FRONT_AND_BACK, last_polygon_mode[0]);
 	glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2],
 			   (GLsizei)last_viewport[3]);
 	glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2],

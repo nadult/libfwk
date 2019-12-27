@@ -224,9 +224,6 @@ template <class T> using vector = Vector<T>;
 // Different name to inform that memory may come from a pool
 template <class T> using PoolVector = Vector<T>;
 
-template <class T> constexpr int type_size<Vector<T>> = 16;
-template <class T> constexpr int type_size<SparseVector<T>> = 48;
-
 template <class T> struct SerializeAsPod;
 
 template <typename... Types> class Variant;
@@ -248,24 +245,23 @@ class InputEvent;
 class InputState;
 
 template <class Key, class Value, class Policy = None> class HashMap;
-template <class Key, class Value, class Policy>
-constexpr int type_size<HashMap<Key, Value, Policy>> = sizeof(void *) == 4 ? 32 : 40;
-
 template <class Key> class HashSet;
-template <class Key> constexpr int type_size<HashSet<Key>> = sizeof(void *) == 4 ? 28 : 32;
-
 template <class T> class Dynamic;
 
 class Any;
 class AnyConfig;
 
-template <> constexpr int type_size<Any> = 16;
+template <class T> inline constexpr int type_size<SparseVector<T>> = sizeof(void *) == 8 ? 48 : 40;
+template <class Key, class Value, class Policy>
+inline constexpr int type_size<HashMap<Key, Value, Policy>> = sizeof(void *) == 4 ? 32 : 40;
+template <class Key> inline constexpr int type_size<HashSet<Key>> = sizeof(void *) == 4 ? 28 : 32;
+template <> inline constexpr int type_size<Any> = sizeof(void *) * 2;
 
 template <class T, int min_size = 0> class Span;
 template <class T> class SparseSpan;
 
 // This kind of data can be safely serialized to/from binary format, byte by byte
-template <class T> constexpr bool is_flat_data = std::is_arithmetic<T>::value;
+template <class T> inline constexpr bool is_flat_data = std::is_arithmetic<T>::value;
 
 // Implemented in logger.[h|cpp]
 void log(Str message, Str unique_key);

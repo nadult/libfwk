@@ -14,8 +14,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <stdarg.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 #ifdef FWK_TARGET_LINUX
 #include <dlfcn.h>

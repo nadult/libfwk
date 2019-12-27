@@ -24,12 +24,16 @@ void GlTexture::initialize(int msaa_samples) {
 	bind();
 
 	if(m_flags & Opt::multisample) {
+#ifdef FWK_TARGET_HTML
+		FATAL("Multisampling not supported on HTML platform (yet)");
+#else
 		if(m_flags & Opt::immutable)
 			glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
 									  glInternalFormat(m_format), m_size.x, m_size.y, GL_TRUE);
 		else
 			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
 									glInternalFormat(m_format), m_size.x, m_size.y, GL_TRUE);
+#endif
 	} else {
 		if(m_flags & Opt::immutable)
 			glTexStorage2D(GL_TEXTURE_2D, 1, glInternalFormat(m_format), m_size.x, m_size.y);

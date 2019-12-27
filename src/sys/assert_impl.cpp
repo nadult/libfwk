@@ -37,7 +37,10 @@ namespace detail {
 		Backtrace::t_default_mode = Backtrace::t_assert_mode;
 		onFailMakeError(info->file, info->line, out.text()).print();
 
+#ifndef FWK_TARGET_HTML
 		asm("int $3");
+#endif
+
 		exit(1);
 	}
 

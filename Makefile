@@ -22,6 +22,7 @@ all: lib tools tests
 CFLAGS_linux  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
 CFLAGS_mingw  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
 CFLAGS        = -Isrc/ -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
+CFLAGS_emcc   = -s USE_SDL=2 -s USE_FREETYPE=1 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_PTHREADS=1
 BUILD_DIR     = $(FWK_BUILD_DIR)
 PCH_SOURCE   := src/fwk_pch.h
 
@@ -117,7 +118,6 @@ INPUT_OBJECTS  := $(if $(SPLIT_MODULES),$(SHARED_OBJECTS),$(MERGED_OBJECTS))
 INPUT_SRCS     := $(if $(SPLIT_MODULES),$(CPP_shared),$(CPP_merged))
 
 PROGRAMS       := $(SRC_programs:%=%$(PROGRAM_SUFFIX))
-#HTML5_PROGRAMS_SRC:=$(SRC_programs:%=%.html.cpp)
 
 STATS_FILE = $(FWK_BUILD_DIR)/stats.txt
 ifdef STATS
@@ -147,19 +147,8 @@ checker.so: .FORCE
 	$(MAKE) -C src/checker/ ../../checker.so
 endif
 
-#$(HTML5_PROGRAMS_SRC): %.html.cpp: src/%.cpp $(SRC_shared:%=src/%.cpp)
-#	cat src/html_pre_include.cpp $^ > $@
-#$(HTML5_PROGRAMS): %.html: %.html.cpp
-#	emcc $(HTML5_FLAGS) $^ -o $@
-
 $(FWK_LIB_FILE): $(INPUT_OBJECTS)
 	$(ARCHIVER) r $@ $^
-
-#lib/libfwk.cpp: $(SRC_shared:%=src/%.cpp)
-# TODO: catting sux
-#	cat $^ > $@
-#lib/libfwk.html.cpp: $(SRC_shared:%=src/%.cpp) $(HTML5_SRC:%=src/%.cpp)
-#	cat $^ > $@
 
 DEPS:=$(SRC_all:%=$(FWK_BUILD_DIR)/%.d) $(PCH_TEMP).d
 

@@ -78,18 +78,23 @@ void initializeGl(GlProfile profile) {
 	s_info.version = float(major) + float(minor) * 0.1f;
 
 #ifdef __EMSCRIPTEN__
-	const char *must_haves[] = {"EXT_shader_texture_lod",   "OES_element_index_uint",
-								"OES_standard_derivatives", "OES_texture_float",
-								"OES_texture_half_float",   "OES_vertex_array_object",
-								"WEBGL_depth_texture",		"WEBGL_draw_buffers"};
+	// TODO: which webgl extensions are really required?
+	// TODO: turn them into features?
+	vector<const char *> must_haves;
 
-	// TODO: fix it
+	if(major <= 2)
+		insertBack(must_haves,
+				   {"EXT_shader_texture_lod", "OES_element_index_uint", "OES_standard_derivatives",
+					"OES_texture_float", "OES_texture_half_float", "OES_vertex_array_object",
+					"WEBGL_depth_texture", "WEBGL_draw_buffers"});
+
+	// TODO: fix it; identify required extensions
 	auto context = emscripten_webgl_get_current_context();
 	for(auto ext : must_haves)
 		if(!emscripten_webgl_enable_extension(context, ext))
 			FATAL("OpenGL Extension not supported: %s", ext);
-	for(auto ext : all<GlExtension>)
-		emscripten_webgl_enable_extension(context, s_ext_names[ext]);
+			//for(auto ext : all<GlExtension>)
+			//	emscripten_webgl_enable_extension(context, s_ext_names[ext]);
 #endif
 
 	auto vendor = toLower((const char *)glGetString(GL_VENDOR));
@@ -111,12 +116,15 @@ void initializeGl(GlProfile profile) {
 	s_info.extensions.reserve(num);
 	s_info.extensions.clear();
 
+#ifdef FWK_TARGET_HTML
+#else
 	for(int n = 0; n < num; n++) {
 		const char *ogl_ext = (const char *)glGetStringi(GL_EXTENSIONS, n);
 		if(strncmp(ogl_ext, "GL_", 3) == 0)
 			ogl_ext += 3;
 		s_info.extensions.emplace_back(ogl_ext);
 	}
+#endif
 
 	for(auto limit : all<GlLimit>)
 		glGetIntegerv(s_limit_map[limit], &s_info.limits[limit]);
@@ -483,6 +491,9 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 }
 
 bool installGlDebugHandler() {
+#ifdef FWK_TARGET_HTML
+	return false;
+#else
 	if(!s_info.hasFeature(GlFeature::debug))
 		return false;
 
@@ -493,6 +504,7 @@ bool installGlDebugHandler() {
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr,
 						  GL_FALSE);
 	return true;
+#endif
 }
 
 void clearColor(FColor col) {

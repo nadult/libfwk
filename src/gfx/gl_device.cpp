@@ -76,6 +76,13 @@ struct GlDevice::WindowImpl {
 	WindowImpl(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
 			   double ogl_ver)
 		: flags(flags) {
+#ifdef FWK_TARGET_HTML
+		if(gl_profile != GlProfile::es) {
+			gl_profile = GlProfile::es;
+			ogl_ver = 3;
+		}
+#endif
+
 		int sdl_flags = SDL_WINDOW_OPENGL;
 		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
 

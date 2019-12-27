@@ -40,8 +40,8 @@ class ModelAnim;
 class TriangleBuffer;
 class SpriteBuffer;
 class LineBuffer;
-template <> constexpr int type_size<TriangleBuffer> = 112;
-template <> constexpr int type_size<LineBuffer> = 112;
+template <> inline constexpr int type_size<TriangleBuffer> = sizeof(void *) == 8 ? 112 : 84;
+template <> inline constexpr int type_size<LineBuffer> = sizeof(void *) == 8 ? 112 : 84;
 
 struct FColor;
 struct IColor;
@@ -137,7 +137,7 @@ bool onGlThread();
 #define PASSERT_GL_THREAD()
 #endif
 
-template <> constexpr bool is_flat_data<ColoredTriangle> = true;
-template <> constexpr bool is_flat_data<IColor> = true;
-template <> constexpr bool is_flat_data<FColor> = true;
+template <> inline constexpr bool is_flat_data<ColoredTriangle> = true;
+template <> inline constexpr bool is_flat_data<IColor> = true;
+template <> inline constexpr bool is_flat_data<FColor> = true;
 }

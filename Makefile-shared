@@ -36,11 +36,16 @@ COMPILER_mingw  := $(MINGW_PREFIX)g++
 COMPILER_html   := emcc
 COMPILER        := $(COMPILER_$(PLATFORM))
 
-COMPILER_TYPE   := $(if $(findstring clang,$(COMPILER)),clang,gcc)
+# clang, gcc or emcc
+# make emcc (or html) platform, leave compiler as clang?
+# TODO: emcc is clang!
+COMPILER_TYPE   := $(if $(findstring clang,$(COMPILER)),clang,$(if $(findstring emcc,$(COMPILER)),emcc,gcc))
 
 TOOLSET_PREFIX_mingw := $(MINGW_PREFIX)
+TOOLSET_PREFIX_html  := em
 TOOLSET_PREFIX       := $(TOOLSET_PREFIX_$(PLATFORM))
 
+# TODO: some of these tools don't make sense on emcc
 ARCHIVER             := $(TOOLSET_PREFIX)ar
 STRIPPER             := $(TOOLSET_PREFIX)strip
 PKG_CONFIG           := $(TOOLSET_PREFIX)pkg-config
@@ -101,6 +106,7 @@ CFLAGS_debug   += -Og -DFWK_PARANOID
 
 CFLAGS_linux   += -pthread -ggdb -DFWK_TARGET_LINUX 
 CFLAGS_mingw   += -pthread -ggdb -DFWK_TARGET_MINGW -msse2 -mfpmath=sse
+CFLAGS_emcc    += -pthread -DFWK_TARGET_HTML
 
 CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
                   $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED) \
@@ -110,6 +116,7 @@ CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(BASE_MODE)) $(CFLAGS_$(PLATF
 
 LDFLAGS_clang  += -fuse-ld=gold
 LDFLAGS_linux  += -rdynamic
+LDFLAGS_emcc   += -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_PTHREADS=1 -s TOTAL_MEMORY=256MB
 LDFLAGS        += -pthread  $(LIBS_$(PLATFORM)) $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE))
 
 #HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2

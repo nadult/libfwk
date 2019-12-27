@@ -4,7 +4,11 @@
 #include "fwk/math/matrix4.h"
 
 #include "fwk/format.h"
+
+// TODO: make it work on html
+#ifndef FWK_TARGET_HTML
 #include <emmintrin.h>
+#endif
 
 namespace fwk {
 
