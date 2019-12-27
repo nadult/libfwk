@@ -10,7 +10,7 @@ namespace fwk {
 
 // fwk::Maybe evolved from folly::Optional
 // Link: https://github.com/facebook/folly
-// License is available in third_party/
+// Licensed under Apache 2.0 license (available in extern/)
 
 // sizeof(Maybe<T>) will be equal to sizeof(T) if:
 // - T can hold Intrusive::EmptyMaybe()
