@@ -221,8 +221,6 @@ class TextFormatter {
 // alternatively (can be a member function):
 // void operator>>(const MyNewType&, TextFormatter&);
 
-TextFormatter &operator<<(TextFormatter &, qint);
-
 template <class T, EnableIf<is_right_formattible<T>>...>
 TextFormatter &operator<<(TextFormatter &fmt, const T &rhs) {
 	rhs >> fmt;

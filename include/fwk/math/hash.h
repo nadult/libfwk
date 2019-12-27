@@ -40,9 +40,7 @@ template <class H, class T> H computeHash(const T &value) {
 // you can use them to properly specialize for your classes
 
 template <class H, class T> H computeHash(const T &value, PriorityTag0) {
-	if constexpr(is_same<T, qint>)
-		return combineHash<H>(computeHash<H>(llint(value)), computeHash<H>(llint(value >> 64)));
-	else if constexpr(is_one_of<T, i32, u32, i16, u16, i8, u8>)
+	if constexpr(is_one_of<T, i32, u32, i16, u16, i8, u8>)
 		return hashU32(u32(value));
 	else if constexpr(is_one_of<T, i64, u64>)
 		return hashU64(u64(value));

@@ -7,6 +7,7 @@
 #include "fwk/geom/voronoi.h"
 #include "fwk/hash_set.h"
 #include "fwk/math/direction.h"
+#include "fwk/math/qint.h"
 #include "fwk/math/triangle.h"
 #include "fwk/perf_base.h"
 #include "fwk/small_vector.h"

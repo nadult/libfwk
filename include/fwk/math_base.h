@@ -9,12 +9,10 @@
 #include "fwk/sys_base.h"
 #include <cmath>
 
-#ifndef __x86_64
-#define FWK_USE_BOOST_MPC_INT
-#endif
-
-#ifdef FWK_USE_BOOST_MPC_INT
-#include <boost/multiprecision/cpp_int.hpp>
+// TODO: move it out of here
+#ifdef FWK_TARGET_HTML
+#include "fwk/math/int128.h"
+#include "fwk/math/uint128.h"
 #endif
 
 namespace fwk {
@@ -41,11 +39,16 @@ template <class T> using Rat2Ext24 = Rational<Ext24<T>, 2>;
 template <class T> using Rat3Ext24 = Rational<Ext24<T>, 3>;
 
 using llint = long long;
-#ifdef FWK_USE_BOOST_MPC_INT
-using qint = boost::multiprecision::int128_t;
+
+#ifndef FWK_TARGET_HTML
+using uint128 = __uint128_t;
+using int128 = __int128_t;
 #else
-using qint = __int128_t;
+class uint128;
+class int128;
 #endif
+
+using qint = int128;
 
 using short2 = vec2<short>;
 using short3 = vec3<short>;
@@ -224,7 +227,8 @@ template <class T, int N> constexpr int dim<Plane<T, N>> = N;
 template <class T, int N> constexpr int dim<Ray<T, N>> = N;
 template <class T, int N> constexpr int dim<Triangle<T, N>> = N;
 
-template <class T> constexpr bool is_integral = std::is_integral<T>::value || is_same<T, qint>;
+template <class T>
+constexpr bool is_integral = std::is_integral<T>::value || is_one_of<T, uint128, int128>;
 template <class T> constexpr bool is_fpt = std::is_floating_point<T>::value;
 template <class T> constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
 template <class T> constexpr bool is_rational = detail::RatSize<T>::value != -1;

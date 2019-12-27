@@ -53,7 +53,11 @@ SRC_sys  = \
 SRC_math = \
 	math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
 	math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment math/line \
-	math/affine_trans math/rational math/gcd math/rational_angle
+	math/affine_trans math/rational math/gcd math/rational_angle math/qint
+
+ifeq ($(PLATFORM), html)
+	SRC_math += math/int128 math/uint128
+endif
 
 SRC_gfx = \
 	gfx/camera gfx/fps_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \

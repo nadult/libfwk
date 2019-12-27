@@ -357,32 +357,6 @@ TextFormatter &operator<<(TextFormatter &fmt, const None &) {
 	return fmt;
 }
 
-TextFormatter &operator<<(TextFormatter &out, qint value) {
-	// Max digits: about 36
-	char buffer[64];
-	int pos = 0;
-
-	bool sign = value < 0;
-	if(value < 0)
-		value = -value;
-
-	while(value > 0) {
-		int digit(value % 10);
-		value /= 10;
-		buffer[pos++] = '0' + digit;
-	}
-
-	if(pos == 0)
-		buffer[pos++] = '0';
-	if(sign)
-		buffer[pos++] = '-';
-	buffer[pos] = 0;
-
-	std::reverse(buffer, buffer + pos);
-	out << buffer;
-	return out;
-}
-
 namespace detail {
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc func) {
 		const char *separator = out.isStructured() ? ", " : " ";

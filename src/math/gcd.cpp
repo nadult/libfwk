@@ -7,9 +7,9 @@ namespace {
 	int ctz(unsigned x) { return __builtin_ctz(x); }
 	int ctz(unsigned long long x) { return __builtin_ctzll(x); }
 
-	int ctz(__uint128_t x) {
-		unsigned long long hi = x >> 64;
-		unsigned long long lo = x;
+	int ctz(uint128 x) {
+		u64 hi = u64(x >> 64);
+		u64 lo = u64(x);
 
 		int ctz_hi = __builtin_ctzll(hi);
 		int ctz_lo = __builtin_ctzll(lo);
@@ -38,7 +38,9 @@ namespace {
 
 int gcd(int a, int b) { return gcdBinary<unsigned>(fwk::abs(a), fwk::abs(b)); }
 llint gcd(llint a, llint b) { return gcdBinary<unsigned long long>(fwk::abs(a), fwk::abs(b)); }
-qint gcd(qint a, qint b) { return gcdBinary<__uint128_t>(fwk::abs(a), fwk::abs(b)); }
+qint gcd(qint a, qint b) {
+	return qint(gcdBinary<uint128>(uint128(fwk::abs(a)), uint128(fwk::abs(b))));
+}
 
 template <class T> vector<Pair<T, int>> extractPrimes(T value) {
 	vector<Pair<T, int>> out;

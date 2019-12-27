@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/math/qint.h"
 #include "fwk/math_base.h"
 #include "fwk/vector.h"
 
