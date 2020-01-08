@@ -46,6 +46,7 @@ template <class T, int min_size /*= 0*/> class Span {
 		static_assert(N >= min_size);
 	}
 	Span(const Span &other) : m_data(other.m_data), m_size(other.m_size) {}
+	Span &operator=(const Span &) = default;
 
 	template <int rhs_min_size, EnableIf<rhs_min_size >= min_size>...>
 	Span(Span<T, rhs_min_size> range) : m_data(range.data()), m_size(range.size()) {}
