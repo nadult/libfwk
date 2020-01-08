@@ -6,12 +6,12 @@
 #include "fwk/format.h"
 #include "fwk/perf/analyzer.h"
 #include "fwk/perf/exec_tree.h"
-#include <pthread.h>
+#include "fwk/sys/thread.h"
 
 namespace perf {
 
 Manager *Manager::s_instance = nullptr;
-static pthread_mutex_t s_mutex;
+static Mutex s_mutex;
 static vector<Frame> s_new_frames;
 
 Manager::Manager() {
@@ -21,7 +21,7 @@ Manager::Manager() {
 #endif
 
 	s_instance = this;
-	pthread_mutex_init(&s_mutex, 0);
+	s_mutex = {};
 	m_tree.emplace();
 }
 
@@ -32,11 +32,10 @@ Manager::~Manager() {
 
 void Manager::getNewFrames() {
 	PERF_SCOPE();
-	pthread_mutex_lock(&s_mutex);
+	MutexLocker lock(s_mutex);
 	for(auto &frame : s_new_frames)
 		m_frames.emplace_back(move(frame));
 	s_new_frames.clear();
-	pthread_mutex_unlock(&s_mutex);
 }
 
 void Manager::addFrame(int frame_id, double begin, double end, CSpan<PSample> psamples,
@@ -47,9 +46,8 @@ void Manager::addFrame(int frame_id, double begin, double end, CSpan<PSample> ps
 	tree->computeGpuTimes(esamples);
 	tree->scaleCpuTimes(esamples, cpu_time_scale);
 
-	pthread_mutex_lock(&s_mutex);
+	MutexLocker lock(s_mutex);
 	s_new_frames.emplace_back(move(esamples), begin, end, frame_id, threadId());
-	pthread_mutex_unlock(&s_mutex);
 }
 
 i64 Manager::usedMemory() const {

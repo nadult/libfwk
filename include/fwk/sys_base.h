@@ -183,7 +183,6 @@ void handleSegFault();
 
 void logError(const string &error);
 
-int threadId();
 void sleep(double sec);
 double getTime();
 

@@ -4,14 +4,14 @@
 #include "fwk/sys/exception.h"
 
 #include "fwk/sys/backtrace.h"
-#include <mutex>
+#include "fwk/sys/thread.h"
 
 namespace fwk {
 
 __thread bool detail::t_exception_raised = false;
 __thread int detail::t_quiet_exceptions = 0;
 
-static std::mutex s_mutex;
+static Mutex s_mutex;
 static vector<Pair<Error, int>> s_errors;
 
 vector<Error> getExceptions() {
@@ -49,9 +49,8 @@ void raiseException(Error error, int bt_skip) {
 		error.backtrace = Backtrace::get(bt_skip + 1, nullptr, Backtrace::t_except_mode);
 
 	auto tid = threadId();
-	s_mutex.lock();
+	MutexLocker lock(s_mutex);
 	s_errors.emplace_back(move(error), tid);
-	s_mutex.unlock();
 }
 
 void clearExceptions() {
@@ -59,14 +58,13 @@ void clearExceptions() {
 		detail::t_exception_raised = false;
 
 		int tid = threadId();
-		s_mutex.lock();
+		MutexLocker lock(s_mutex);
 		for(int n = 0; n < s_errors.size(); n++) {
 			if(s_errors[n].second == tid) {
 				s_errors[n--] = s_errors.back();
 				s_errors.pop_back();
 			}
 		}
-		s_mutex.unlock();
 	}
 }
 
@@ -74,5 +72,4 @@ void printExceptions() {
 	for(auto err : getExceptions())
 		err.print();
 }
-
 }

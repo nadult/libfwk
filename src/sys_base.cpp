@@ -14,7 +14,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <pthread.h>
 #include <stdarg.h>
 
 #ifdef FWK_TARGET_LINUX
@@ -34,9 +33,6 @@ namespace fwk {
 
 static_assert(sizeof(i32) == 4 && sizeof(u32) == 4);
 static_assert(sizeof(i64) == 8 && sizeof(u64) == 8);
-
-// TODO: use tls to store this value
-int threadId() { return (int)pthread_self(); }
 
 #if defined(FWK_TARGET_LINUX)
 

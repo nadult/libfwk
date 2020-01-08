@@ -4,7 +4,7 @@
 #include "fwk/format.h"
 #include "fwk/hash_map.h"
 #include "fwk/logger.h"
-#include <mutex>
+#include "fwk/sys/thread.h"
 
 namespace fwk {
 
@@ -31,17 +31,17 @@ void Logger::addMessage(Str text, Str unique_key) {
 }
 
 static Logger s_logger;
-static std::mutex s_mutex;
+static Mutex s_mutex;
 
 void log(Str message, Str unique_key) {
-	std::lock_guard<std::mutex> lock(s_mutex);
+	MutexLocker lock(s_mutex);
 	s_logger.addMessage(message, unique_key);
 }
 
 void log(Str message) { log(message, ""); }
 
 bool logKeyPresent(Str key) {
-	std::lock_guard<std::mutex> lock(s_mutex);
+	MutexLocker lock(s_mutex);
 	return s_logger.keyPresent(key);
 }
 }

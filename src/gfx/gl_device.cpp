@@ -11,6 +11,7 @@
 #include "fwk/hash_map.h"
 #include "fwk/math/box.h"
 #include "fwk/sys/input.h"
+#include "fwk/sys/thread.h"
 #include <SDL.h>
 #include <SDL_video.h>
 #include <memory.h>

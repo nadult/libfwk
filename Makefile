@@ -22,7 +22,6 @@ all: lib tools tests
 CFLAGS_linux  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
 CFLAGS_mingw  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
 CFLAGS        = -Isrc/ -DFATAL=FWK_FATAL -DDUMP=FWK_DUMP
-CFLAGS_emcc   = -s USE_SDL=2 -s USE_FREETYPE=1 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_PTHREADS=1
 BUILD_DIR     = $(FWK_BUILD_DIR)
 PCH_SOURCE   := src/fwk_pch.h
 
