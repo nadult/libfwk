@@ -486,15 +486,15 @@ void testRational() {
 	ASSERT_EQ(double2(Rational2<int>({1, 2}, 10)), double2(0.1, 0.2));
 	ASSERT_EQ(rationalApprox(sqrt(3.0), 10, 10), Rational<int>(7, 4));
 
+	int iters = 40000;
+	long long max = 1000000000000000000ll;
+
 	Random rand;
-	for(int n = 0; n < 100000; n++) {
+	for(int n = 0; n < iters; n++) {
 		Rational<int> a(rand.uniform(-1000000, 1000000), rand.uniform(1, 1000000));
 		Rational<int> b(rand.uniform(-1000000, 1000000), rand.uniform(1, 1000000));
 		DASSERT((a < b) == (double(a) < double(b)));
 	}
-
-	int iters = 10000;
-	long long max = 1000000000000000000ll;
 
 	vector<Pair<qint>> qnumbers;
 	vector<Pair<llint>> lnumbers;
@@ -530,8 +530,9 @@ void testRational() {
 	{
 		double time1 = getTime();
 		qint sum1 = 0;
-		for(auto &pair : qnumbers)
+		for(auto &pair : qnumbers) {
 			sum1 += gcdEuclid(pair.first, pair.second);
+		}
 		time1 = getTime() - time1;
 
 		double time2 = getTime();
@@ -553,7 +554,7 @@ void testRational() {
 			sum += pair.second / pair.first;
 		}
 		time = getTime() - time;
-		print("QInt div time: % ns (%)\n", time * 1000000000.0 / double(iters * 2), sum);
+		print("QInt div time: % ns (checksum: %)\n", time * 1000000000.0 / double(iters * 2), sum);
 	}
 
 	{
@@ -563,21 +564,22 @@ void testRational() {
 			sum += pair.first * pair.second;
 		}
 		time = getTime() - time;
-		print("QInt mul time: % ns (%)\n", time * 1000000000.0 / double(iters), sum);
+		print("QInt mul time: % ns (checksum: %)\n", time * 1000000000.0 / double(iters), sum);
 	}
 
 	Triangle3<int> tri(int3(0, 0, 0), int3(1000, 0, 0), int3(0, 0, 1000));
 	Segment3<int> seg{int3(200, 1000, 200), int3(200, -1000, 200)};
 
 	auto result = seg.isectParam(tri);
-	ASSERT_EQ(result.first.closest(), Rational<qint>(1, 2));
+	Rational<qint> half(1, 2);
+	ASSERT_EQ(result.first.closest(), half);
 
 	Rational2<int> p1({1, 5}, 13), p2({2, 1}, 3);
-	ASSERT_EQ(vmin(p1, p2), Rational2<int>({3, 13}, 39));
+	Rational2<int> rvalue({3, 13}, 39);
+	ASSERT_EQ(vmin(p1, p2), rvalue);
 }
 
 void testRationalAngles() {
-
 	Random rand;
 	for(int n = 0; n < 100000; n++) {
 		auto vec1 = rand.sampleBox(int2(-20), int2(20));

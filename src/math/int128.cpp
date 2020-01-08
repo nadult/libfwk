@@ -326,12 +326,11 @@ int128 int128::divide(const int128 &divisor, int128 &remainder) const {
 
 int128 int128::operator/(const int128 &rhs) const {
 	int128 remainder;
-	divide(rhs, remainder);
-	return rhs;
+	return divide(rhs, remainder);
 }
 
 int128 int128::operator%(const int128 &rhs) const {
-	DASSERT(*this >= 0 && rhs >= 0);
+	DASSERT(*this >= 0 && rhs >= 0); // TODO: handle this case
 	return int128(uint128(*this) % uint128(rhs));
 }
 }

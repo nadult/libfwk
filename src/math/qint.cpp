@@ -7,7 +7,7 @@
 namespace fwk {
 
 template <int max_digits, class BigInt> void formatBig(TextFormatter &out, BigInt value) {
-	char buffer[max_digits];
+	char buffer[max_digits + 4];
 	int pos = 0;
 
 	bool sign = value < 0;
@@ -18,6 +18,7 @@ template <int max_digits, class BigInt> void formatBig(TextFormatter &out, BigIn
 		int digit(value % 10);
 		value /= 10;
 		buffer[pos++] = '0' + digit;
+		PASSERT(pos < max_digits);
 	}
 
 	if(pos == 0)
