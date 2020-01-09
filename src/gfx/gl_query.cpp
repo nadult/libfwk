@@ -17,17 +17,17 @@ Maybe<int> GlQuery::getValue() const {
 	if(!m_type)
 		return none;
 
-	int value = -1;
-	glGetQueryObjectiv(id(), GL_QUERY_RESULT_NO_WAIT, &value);
-	return value == -1 ? Maybe<int>() : value;
+	uint value = ~0u;
+	glGetQueryObjectuiv(id(), GL_QUERY_RESULT_NO_WAIT, &value);
+	return value > INT_MAX ? Maybe<int>() : int(value);
 }
 
 int GlQuery::waitForValue() const {
 	if(!m_type)
 		return -1;
-	int value = -1;
-	glGetQueryObjectiv(id(), GL_QUERY_RESULT, &value);
-	return value;
+	uint value = ~0u;
+	glGetQueryObjectuiv(id(), GL_QUERY_RESULT, &value);
+	return value > INT_MAX ? -1 : int(value);
 }
 
 static const EnumMap<GlQueryType, int> s_query_types{
