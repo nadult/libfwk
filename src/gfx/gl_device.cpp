@@ -77,13 +77,6 @@ struct GlDevice::WindowImpl {
 	WindowImpl(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
 			   double ogl_ver)
 		: flags(flags) {
-#ifdef FWK_TARGET_HTML
-		if(gl_profile != GlProfile::es) {
-			gl_profile = GlProfile::es;
-			ogl_ver = 3;
-		}
-#endif
-
 		int sdl_flags = SDL_WINDOW_OPENGL;
 		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
 
@@ -165,14 +158,21 @@ GlDevice::~GlDevice() {
 	SDL_Quit();
 }
 
-void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, GlProfile profile,
+void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
 							double ogl_ver) {
+#ifdef FWK_TARGET_HTML
+	if(gl_profile != GlProfile::es) {
+		gl_profile = GlProfile::es;
+		ogl_ver = 3;
+	}
+#endif
+
 	assertGlThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
-	m_window_impl = {name, size, flags, profile, ogl_ver};
+	m_window_impl = {name, size, flags, gl_profile, ogl_ver};
 
 	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
-	initializeGl(profile);
+	initializeGl(gl_profile);
 	initializeGlProgramFuncs();
 	if(flags & Opt::full_debug)
 		gl_debug_flags = all<GlDebug>;

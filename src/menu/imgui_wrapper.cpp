@@ -14,6 +14,8 @@
 #include "fwk/menu/imgui_wrapper.h"
 
 #include "fwk/gfx/gl_device.h"
+#include "fwk/gfx/gl_program.h"
+#include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/menu_imgui_internal.h"
 #include "fwk/sys/input.h"
@@ -24,47 +26,36 @@ namespace fwk {
 ImGuiWrapper *ImGuiWrapper::s_instance = nullptr;
 
 struct ImGuiWrapper::Internals {
-	Internals() {
-		const GLchar *vsh = "#version 330\n"
-							"uniform mat4 ProjMtx;\n"
-							"in vec2 Position;\n"
-							"in vec2 UV;\n"
-							"in vec4 Color;\n"
-							"out vec2 Frag_UV;\n"
-							"out vec4 Frag_Color;\n"
-							"void main()\n"
-							"{\n"
-							"	Frag_UV = UV;\n"
-							"	Frag_Color = Color;\n"
-							"	gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-							"}\n";
+	Internals() = default;
+	Ex<void> exConstruct() {
+		auto vsh_source = "uniform mat4 ProjMtx;\n"
+						  "in vec2 Position;\n"
+						  "in vec2 UV;\n"
+						  "in vec4 Color;\n"
+						  "out vec2 Frag_UV;\n"
+						  "out vec4 Frag_Color;\n"
+						  "void main() {\n"
+						  "	Frag_UV = UV;\n"
+						  "	Frag_Color = Color;\n"
+						  "	gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+						  "}\n";
 
-		const GLchar *fsh = "#version 330\n"
-							"uniform sampler2D Texture;\n"
-							"in vec2 Frag_UV;\n"
-							"in vec4 Frag_Color;\n"
-							"out vec4 Out_Color;\n"
-							"void main()\n"
-							"{\n"
-							"	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
-							"}\n";
+		auto fsh_source = "uniform sampler2D Texture;\n"
+						  "in mediump vec2 Frag_UV;\n"
+						  "in lowp vec4 Frag_Color;\n"
+						  "out lowp vec4 Out_Color;\n"
+						  "void main() {\n"
+						  "	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
+						  "}\n";
 
-		ShaderHandle = glCreateProgram();
-		VertHandle = glCreateShader(GL_VERTEX_SHADER);
-		FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(VertHandle, 1, &vsh, 0);
-		glShaderSource(FragHandle, 1, &fsh, 0);
-		glCompileShader(VertHandle);
-		glCompileShader(FragHandle);
-		glAttachShader(ShaderHandle, VertHandle);
-		glAttachShader(ShaderHandle, FragHandle);
-		glLinkProgram(ShaderHandle);
+		auto version = gl_info->profile == GlProfile::es ? "#version 300 es\n" : "#version 330\n";
 
-		AttribLocationTex = glGetUniformLocation(ShaderHandle, "Texture");
-		AttribLocationProjMtx = glGetUniformLocation(ShaderHandle, "ProjMtx");
-		AttribLocationPosition = glGetAttribLocation(ShaderHandle, "Position");
-		AttribLocationUV = glGetAttribLocation(ShaderHandle, "UV");
-		AttribLocationColor = glGetAttribLocation(ShaderHandle, "Color");
+		auto vsh = EX_PASS(GlShader::make(ShaderType::vertex, {version, vsh_source}));
+		auto fsh = EX_PASS(GlShader::make(ShaderType::fragment, {version, fsh_source}));
+		program = EX_PASS(GlProgram::make(vsh, fsh));
+
+		AttribLocationTex = program->location("Texture");
+		AttribLocationProjMtx = program->location("ProjMtx");
 
 		glGenBuffers(1, &VboHandle);
 		glGenBuffers(1, &ElementsHandle);
@@ -88,11 +79,14 @@ struct ImGuiWrapper::Internals {
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
+		testGlError("Initializing imgui shaders");
+
+		return {};
 	}
 
-	int ShaderHandle = 0, VertHandle = 0, FragHandle = 0;
+	PProgram program;
 	int AttribLocationTex = 0, AttribLocationProjMtx = 0;
-	int AttribLocationPosition = 0, AttribLocationUV = 0, AttribLocationColor = 0;
+	int AttribLocationPosition = 0, AttribLocationUV = 1, AttribLocationColor = 2;
 	unsigned int VboHandle = 0, VaoHandle = 0, ElementsHandle = 0;
 };
 
@@ -174,7 +168,9 @@ ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiStyleMode style_mode) {
 		style.ItemSpacing = {3, 3};
 	}
 
-	m_internals.emplace();
+	auto internals = construct<Internals>();
+	internals.check();
+	m_internals = move(*internals);
 }
 
 ImGuiWrapper::ImGuiWrapper(ImGuiWrapper &&rhs)
@@ -269,8 +265,6 @@ void ImGuiWrapper::drawFrame(GlDevice &device) {
 
 	// Backup GL state
 	glActiveTexture(GL_TEXTURE0);
-	GLint last_polygon_mode[2];
-	glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
 	GLint last_viewport[4];
 	glGetIntegerv(GL_VIEWPORT, last_viewport);
 	GLint last_scissor_box[4];
@@ -287,6 +281,7 @@ void ImGuiWrapper::drawFrame(GlDevice &device) {
 	glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint *)&last_blend_equation_rgb);
 	GLenum last_blend_equation_alpha;
 	glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint *)&last_blend_equation_alpha);
+
 	GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
 	GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
 	GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
@@ -310,7 +305,7 @@ void ImGuiWrapper::drawFrame(GlDevice &device) {
 	};
 
 	auto *ctx = m_internals.get();
-	glUseProgram(ctx->ShaderHandle);
+	ctx->program->use();
 	glUniform1i(ctx->AttribLocationTex, 0);
 	glUniformMatrix4fv(ctx->AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
 	glBindVertexArray(ctx->VaoHandle);
@@ -357,6 +352,7 @@ void ImGuiWrapper::drawFrame(GlDevice &device) {
 	glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
 	glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha,
 						last_blend_dst_alpha);
+
 	if(last_enable_blend)
 		glEnable(GL_BLEND);
 	else
@@ -443,5 +439,4 @@ vector<InputEvent> ImGuiWrapper::finishFrame(GlDevice &device) {
 	}
 	return out;
 }
-
 }

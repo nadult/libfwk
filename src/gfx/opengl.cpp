@@ -77,24 +77,22 @@ void initializeGl(GlProfile profile) {
 	glGetIntegerv(GL_MINOR_VERSION, &minor);
 	s_info.version = float(major) + float(minor) * 0.1f;
 
-#ifdef __EMSCRIPTEN__
+#ifdef FWK_TARGET_HTML
 	// TODO: which webgl extensions are really required?
 	// TODO: turn them into features?
 	vector<const char *> must_haves;
 
 	if(major <= 2)
 		insertBack(must_haves,
-				   {"EXT_shader_texture_lod", "OES_element_index_uint", "OES_standard_derivatives",
-					"OES_texture_float", "OES_texture_half_float", "OES_vertex_array_object",
-					"WEBGL_depth_texture", "WEBGL_draw_buffers"});
+				   {"EXT_shader_texture_lod", "OES_element_index_uint", "OES_texture_float",
+					"OES_texture_half_float", "OES_vertex_array_object", "WEBGL_depth_texture",
+					"WEBGL_draw_buffers", "OES_standard_derivatives"});
 
 	// TODO: fix it; identify required extensions
 	auto context = emscripten_webgl_get_current_context();
 	for(auto ext : must_haves)
 		if(!emscripten_webgl_enable_extension(context, ext))
 			FATAL("OpenGL Extension not supported: %s", ext);
-			//for(auto ext : all<GlExtension>)
-			//	emscripten_webgl_enable_extension(context, s_ext_names[ext]);
 #endif
 
 	auto vendor = toLower((const char *)glGetString(GL_VENDOR));
@@ -142,8 +140,9 @@ void initializeGl(GlProfile profile) {
 	bool core_410 = profile == Profile::core && s_info.version >= 4.1;
 	bool core_300 = profile == Profile::core && s_info.version >= 3.0;
 	bool core_330 = profile == Profile::core && s_info.version >= 3.3;
+	bool es_300 = profile == Profile::es && s_info.version >= 3.0;
 
-	if(core_300 || s_info.hasExtension("ARB_vertex_array_object"))
+	if(core_300 || es_300 || s_info.hasExtension("ARB_vertex_array_object"))
 		s_info.features |= Feature::vertex_array_object;
 	if(core_430 || s_info.hasExtension("KHR_debug"))
 		s_info.features |= Feature::debug;

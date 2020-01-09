@@ -16,51 +16,55 @@
 
 namespace fwk {
 
+// TODO: do we need to support older versions than Core 3.30/ES 3.00?
+
 // clang-format off
 static const char *fsh_simple_src =
-	"varying lowp vec4 color;\n"
+	"in lowp vec4 v_color;\n"
+	"out lowp vec4 f_color;\n"
 	"void main() {\n"
-	"  gl_FragColor = color;\n"
+	"  f_color = v_color;\n"
 	"}\n";
 
 static const char *fsh_tex_src =
-	"uniform sampler2D tex; \n"
-	"varying lowp vec4 color;\n"
-	"varying mediump vec2 tex_coord;\n"
+	"uniform sampler2D s_tex; \n"
+	"in lowp vec4      v_color;\n"
+	"in mediump vec2   v_tex_coord;\n"
+	"out lowp vec4     f_color;\n"
+	"\n"
 	"void main() {\n"
-	"  gl_FragColor = color * texture2D(tex, tex_coord);\n"
+	"  f_color = v_color * texture(s_tex, v_tex_coord);\n"
 	"}\n";
 
 static const char *fsh_flat_src =
-	"#extension GL_OES_standard_derivatives : enable\n"
-	"\n"
-	"varying lowp vec4 color;\n"
-	"varying mediump vec3 tpos;\n"
+	"in lowp vec4    v_color;\n"
+	"in mediump vec3 v_tpos;\n"
+	"out lowp vec4   f_color;\n"
 	"\n"
 	"void main() {\n"
 	"   #ifdef SHADE\n"
-	"     mediump vec3 normal = normalize(cross(dFdx(tpos), dFdy(tpos)));\n"
+	"     mediump vec3 normal = normalize(cross(dFdx(v_tpos), dFdy(v_tpos)));\n"
 	"     mediump float shade = abs(dot(normal, vec3(0, 0, 1))) * 0.5 + 0.5;\n"
-	"     gl_FragColor = color * shade;\n"
+	"     f_color = v_color * shade;\n"
 	"   #else\n"
-	"     gl_FragColor = color;\n"
+	"     f_color = v_color;\n"
 	"   #endif\n"
 	"}\n";
 
 static const char *vsh_src =
 	"uniform mat4 proj_view_matrix;\n"
 	"uniform vec4 mesh_color;\n"
-	"attribute vec3 in_pos;\n"
-	"attribute vec4 in_color;\n"
-	"attribute vec2 in_tex_coord;\n"
-	"varying vec2 tex_coord;\n"
-	"varying vec4 color;\n"
-	"varying vec3 tpos;\n"
+	"in vec3 in_pos;\n"
+	"in vec4 in_color;\n"
+	"in vec2 in_tex_coord;\n"
+	"out vec2 v_tex_coord;\n"
+	"out vec4 v_color;\n"
+	"out vec3 v_tpos;\n"
 	"void main() {\n"
 	"  gl_Position = proj_view_matrix * vec4(in_pos, 1.0);\n"
-	"  tpos = gl_Position.xyz;\n"
-	"  tex_coord = in_tex_coord;\n"
-	"  color = in_color * mesh_color;\n"
+	"  v_tpos = gl_Position.xyz;\n"
+	"  v_tex_coord = in_tex_coord;\n"
+	"  v_color = in_color * mesh_color;\n"
 	"}\n";
 // clang-format on
 
@@ -74,7 +78,9 @@ static PProgram getProgram(Str name) {
 		fsh_src = fsh_flat_src;
 	bool shade = name.contains("shade");
 
-	string macros = shade ? "#version 100\n#define SHADE\n" : "#version 100\n";
+	string macros = gl_info->profile == GlProfile::es ? "#version 300 es\n" : "#version 330\n";
+	if(shade)
+		macros += "#define SHADE\n";
 
 	auto vsh = GlShader::make(ShaderType::vertex, {macros, vsh_src}, name).get();
 	auto fsh = GlShader::make(ShaderType::fragment, {macros, fsh_src}, name).get();

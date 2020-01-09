@@ -81,7 +81,7 @@ endif
 
 # --- Compilation & linking flags -----------------------------------------------------------------
 
-HTML_LIBS    := -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1
+HTML_shared  := -g2 -s EXIT_RUNTIME=1 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1
 LIBS_shared  += freetype2 sdl2 libpng vorbisfile
 LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lopenal -lGL -lGLU -lrt -lm -lstdc++
 LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lOpenAL32 -ldsound -lole32 -lwinmm \
@@ -106,10 +106,9 @@ CFLAGS_emcc    += -Wno-ambiguous-reversed-operator
 CFLAGS_release += -O3
 CFLAGS_debug   += -Og -DFWK_PARANOID
 
-
 CFLAGS_linux   += -DFWK_TARGET_LINUX -pthread -ggdb
 CFLAGS_mingw   += -DFWK_TARGET_MINGW -pthread -ggdb  -msse2 -mfpmath=sse
-CFLAGS_emcc    += -DFWK_TARGET_HTML $(HTML_LIBS)
+CFLAGS_emcc    += -DFWK_TARGET_HTML $(HTML_shared)
 
 CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
                   $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED) \
@@ -120,7 +119,7 @@ CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(BASE_MODE)) $(CFLAGS_$(PLATF
 LDFLAGS_clang  += -fuse-ld=gold
 LDFLAGS_linux  += -pthread -rdynamic
 LDFLAGS_mingw  += -pthread
-LDFLAGS_emcc   += -s TOTAL_MEMORY=256MB $(HTML_LIBS)
+LDFLAGS_emcc   += -s TOTAL_MEMORY=256MB $(HTML_shared) --embed-file data/
 LDFLAGS        += $(LIBS_$(PLATFORM)) $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE))
 
 #HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2

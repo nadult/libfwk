@@ -26,6 +26,7 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 #ifdef FWK_TARGET_HTML
 	printf("%s\n", buffer);
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_force_exit(1);
 #else
 	Backtrace::t_default_mode = Backtrace::t_fatal_mode;
 	onFailMakeError(file, line, buffer).print();
@@ -51,6 +52,7 @@ void assertFailed(const char *file, int line, const char *text) {
 #ifdef FWK_TARGET_HTML
 	printf("%s\n", buffer);
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
+	emscripten_force_exit(1);
 #else
 	Backtrace::t_default_mode = Backtrace::t_assert_mode;
 	onFailMakeError(file, line, buffer).print();

@@ -30,7 +30,6 @@ include Makefile-shared
 
 # --- Creating necessary sub-directories ----------------------------------------------------------
 
-
 SUBDIRS        = build tests tools lib temp
 BUILD_SUBDIRS  = tests tools
 ifdef SPLIT_MODULES
