@@ -3,8 +3,8 @@
 
 #include "fwk/sys/input.h"
 
-#include "fwk/str.h"
 #include "fwk/algorithm.h"
+#include "fwk/str.h"
 #include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
@@ -148,6 +148,10 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 	SDL_Event event;
 
 	if(m_is_initialized) {
+#ifdef FWK_TARGET_HTML
+		SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
+#endif
+
 		for(auto &key_state : m_keys)
 			if(key_state.second >= 0)
 				key_state.second++;
@@ -241,10 +245,14 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 		}
 	}
 
+#ifdef FWK_TARGET_HTML
+	SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
+#else
 	int2 window_pos;
 	SDL_GetWindowPosition((SDL_Window *)sdl_window, &window_pos.x, &window_pos.y);
 	SDL_GetGlobalMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
 	m_mouse_pos -= window_pos;
+#endif
 
 	EnumMap<InputModifier, int> mod_map = {{{InputModifier::lshift, InputKey::lshift},
 											{InputModifier::rshift, InputKey::rshift},
