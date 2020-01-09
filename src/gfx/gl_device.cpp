@@ -267,7 +267,8 @@ void GlDevice::emscriptenCallback() {
 	inst.m_last_time = time;
 
 	inst.pollEvents();
-	stack_top.first(inst, stack_top.second);
+	if(!stack_top.first(inst, stack_top.second))
+		emscripten_cancel_main_loop();
 }
 #endif
 
