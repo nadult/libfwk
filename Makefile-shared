@@ -122,10 +122,6 @@ LDFLAGS_mingw  += -pthread
 LDFLAGS_emcc   += -s TOTAL_MEMORY=256MB $(HTML_shared) --embed-file data/
 LDFLAGS        += $(LIBS_$(PLATFORM)) $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE))
 
-#HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
-#HTML5_FLAGS=-DFWK_PLATFORM_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
-			--embed-file data/ $(INCLUDES) $(CFLAGS) $(CLANG_FLAGS)
-
 # --- Updating configuration file -----------------------------------------------------------------
 
 ifdef BUILD_DIR
@@ -190,13 +186,11 @@ filter-existing = $(filter $(shell find $(1) -type f),$(2))
 
 ifneq ($(FWK_DIR),)
 FWK_MAKE_ARGS  = -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
-LDFLAGS       += -L $(FWK_DIR)lib -l$(FWK_LIB_NAME)
 
 $(FWK_LIB_FILE): .FORCE
 	$(MAKE) $(FWK_MAKE_ARGS) lib/lib$(FWK_LIB_NAME).a
 $(FWK_MODELCONV_FILE): .FORCE
 	$(MAKE) $(FWK_MAKE_ARGS) tools/model_convert$(PROGRAM_SUFFIX)
-
 endif
 
 .FORCE:
