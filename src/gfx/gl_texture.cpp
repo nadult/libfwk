@@ -24,7 +24,7 @@ void GlTexture::initialize(int msaa_samples) {
 	bind();
 
 	if(m_flags & Opt::multisample) {
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 		FATAL("Multisampling not supported on HTML platform (yet)");
 #else
 		if(m_flags & Opt::immutable)

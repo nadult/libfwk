@@ -92,7 +92,7 @@ namespace detail {
 				FAIL_RET();
 
 				// TODO: why swap on mingw?
-#if defined(__LITTLE_ENDIAN__) || defined(FWK_TARGET_MINGW)
+#if defined(__LITTLE_ENDIAN__) || defined(FWK_PLATFORM_MINGW)
 			if(m_bit_depth == 16)
 				png_set_swap(m_struct);
 #endif

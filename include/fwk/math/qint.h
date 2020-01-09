@@ -8,7 +8,7 @@
 
 namespace fwk {
 
-#ifndef FWK_TARGET_HTML
+#ifndef FWK_PLATFORM_HTML
 template <class H> H computeHash(const uint128 &value, PriorityTag0) {
 	return combineHash<H>(computeHash<H>(u64(value)), computeHash<H>(u64(value >> 64)));
 }

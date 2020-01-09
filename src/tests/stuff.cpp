@@ -165,7 +165,7 @@ void testXMLConverters() NOEXCEPT {
 }
 
 void testPathOperations() {
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 	ASSERT(!mkdirRecursive("/totally_crazy_path/no_way_its_possible"));
 #endif
 	// TODO: write me

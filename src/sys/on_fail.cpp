@@ -45,7 +45,7 @@ Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	if(s_fail_protect) {
 		printf("%s:%d: %s\nFATAL ERROR in libfwk (error within an error)\n", file, line,
 			   main_message.c_str());
-#ifndef FWK_TARGET_HTML
+#ifndef FWK_PLATFORM_HTML
 		asm("int $3");
 #endif
 		exit(1);

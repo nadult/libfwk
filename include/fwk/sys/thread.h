@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 #define FWK_THREADS_DISABLED
 #endif
 

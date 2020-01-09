@@ -6,7 +6,7 @@
 #include "fwk/format.h"
 
 // TODO: make it work on html
-#ifndef FWK_TARGET_HTML
+#ifndef FWK_PLATFORM_HTML
 #include <emmintrin.h>
 #endif
 

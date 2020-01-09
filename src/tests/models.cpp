@@ -37,7 +37,7 @@ void testSplittingMerging() {
 }
 
 void testMain() {
-#ifndef FWK_TARGET_LINUX
+#ifndef FWK_PLATFORM_LINUX
 	printf("TODO: tests/models is only supported on linux\n");
 	return;
 #endif

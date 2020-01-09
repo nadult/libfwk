@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifdef FWK_TARGET_MINGW
+#ifdef FWK_PLATFORM_MINGW
 #include "file_system_windows.cpp"
 #endif
 
@@ -323,7 +323,7 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 
 // TODO: stdout and stderr returned separately?
 Ex<Pair<string, int>> execCommand(const string &cmd) {
-#ifdef FWK_TARGET_HTML // TODO: platform not target? consistency with makefiles
+#ifdef FWK_PLATFORM_HTML
 	return ERROR("execCommand not supported on HTML platform");
 #else
 	FILE *pipe = popen(cmd.c_str(), "r");

@@ -8,7 +8,7 @@
 #include <cstdarg>
 #include <stdarg.h>
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 #include <emscripten.h>
 #endif
 
@@ -23,7 +23,7 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 	vsnprintf(bptr, sizeof(buffer) - (bptr - buffer), fmt, ap);
 	va_end(ap);
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 	printf("%s\n", buffer);
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);
@@ -43,13 +43,13 @@ void fatalError(const Error &error) {
 void assertFailed(const char *file, int line, const char *text) {
 	char buffer[4096];
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 	snprintf(buffer, sizeof(buffer), "%s:%d: Assertion failed: %s", file, line, text);
 #else
 	snprintf(buffer, sizeof(buffer), "Assertion failed: %s", text);
 #endif
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 	printf("%s\n", buffer);
 	emscripten_log(EM_LOG_ERROR | EM_LOG_C_STACK, "%s\n", buffer);
 	emscripten_force_exit(1);

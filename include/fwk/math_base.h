@@ -10,7 +10,7 @@
 #include <cmath>
 
 // TODO: move it out of here
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 #include "fwk/math/int128.h"
 #include "fwk/math/uint128.h"
 #endif
@@ -40,7 +40,7 @@ template <class T> using Rat3Ext24 = Rational<Ext24<T>, 3>;
 
 using llint = long long;
 
-#ifndef FWK_TARGET_HTML
+#ifndef FWK_PLATFORM_HTML
 using uint128 = __uint128_t;
 using int128 = __int128_t;
 #else

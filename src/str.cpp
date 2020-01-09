@@ -10,7 +10,7 @@
 
 namespace fwk {
 
-#if defined(FWK_TARGET_MINGW)
+#if defined(FWK_PLATFORM_MINGW)
 
 static int strcasecmp(const char *a, const char *b) { return _stricmp(a, b); }
 
@@ -88,7 +88,7 @@ int Str::find(char c) const {
 }
 
 int Str::find(Str str) const {
-#ifdef FWK_TARGET_MINGW
+#ifdef FWK_PLATFORM_MINGW
 	// TODO: slow
 	for(int n = 0; n < m_size - str.m_size + 1; n++)
 		if(strncmp(m_data + n, str.m_data, str.m_size) == 0)

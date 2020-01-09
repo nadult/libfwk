@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <new>
 
-#ifdef FWK_TARGET_HTML5
+#ifdef FWK_PLATFORM_HTML5
 void *aligned_alloc(size_t alignment, size_t size) {
 	// TODO: do this properly; although it shouldnt matter on thiis platform
 	return malloc(size);
@@ -26,7 +26,7 @@ void *allocate(size_t size) {
 
 void *allocate(size_t size, size_t alignment) {
 	DASSERT(isPowerOfTwo(alignment));
-#ifdef FWK_TARGET_MINGW
+#ifdef FWK_PLATFORM_MINGW
 	auto ptr = _aligned_malloc(size, alignment);
 #else
 	auto ptr = aligned_alloc(alignment, size);

@@ -3,7 +3,7 @@
 
 // This file should be included by file_system.cpp
 
-#if !defined(FWK_TARGET_MINGW)
+#if !defined(FWK_PLATFORM_MINGW)
 #error "This file should only be compiled for MinGW target"
 #endif
 

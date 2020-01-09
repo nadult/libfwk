@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifdef FWK_TARGET_MINGW
+#ifdef FWK_PLATFORM_MINGW
 #include "sys_base_windows.cpp"
 #endif
 
@@ -16,7 +16,7 @@
 #include <cstring>
 #include <stdarg.h>
 
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <signal.h>
@@ -24,7 +24,7 @@
 #include <sys/types.h>
 #endif
 
-#ifndef FWK_TARGET_MINGW
+#ifndef FWK_PLATFORM_MINGW
 #include <time.h>
 #include <unistd.h>
 #endif
@@ -34,7 +34,7 @@ namespace fwk {
 static_assert(sizeof(i32) == 4 && sizeof(u32) == 4);
 static_assert(sizeof(i64) == 8 && sizeof(u64) == 8);
 
-#if defined(FWK_TARGET_LINUX)
+#if defined(FWK_PLATFORM_LINUX)
 
 namespace {
 

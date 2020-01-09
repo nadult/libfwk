@@ -28,7 +28,7 @@ string32 FontFactory::basicMathCharset() {
 }
 }
 
-#ifdef FWK_TARGET_HTML5
+#ifdef FWK_PLATFORM_HTML5
 
 namespace fwk {
 

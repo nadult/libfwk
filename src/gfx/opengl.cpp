@@ -77,7 +77,7 @@ void initializeGl(GlProfile profile) {
 	glGetIntegerv(GL_MINOR_VERSION, &minor);
 	s_info.version = float(major) + float(minor) * 0.1f;
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 	// TODO: which webgl extensions are really required?
 	// TODO: turn them into features?
 	vector<const char *> must_haves;
@@ -114,7 +114,7 @@ void initializeGl(GlProfile profile) {
 	s_info.extensions.reserve(num);
 	s_info.extensions.clear();
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 #else
 	for(int n = 0; n < num; n++) {
 		const char *ogl_ext = (const char *)glGetStringi(GL_EXTENSIONS, n);
@@ -163,7 +163,7 @@ void initializeGl(GlProfile profile) {
 }
 
 void loadExtensions() {
-#ifdef FWK_TARGET_MINGW
+#ifdef FWK_PLATFORM_MINGW
 #define LOAD(func) (func = reinterpret_cast<decltype(func)>((u64)winLoadFunction(#func)));
 
 	LOAD(glCompressedTexImage3D);
@@ -382,7 +382,6 @@ void loadExtensions() {
 
 // TODO: think of better error handling
 void testGlError(const char *msg) {
-#ifndef FWK_TARGET_HTML5
 	int err = glGetError();
 	if(err == GL_NO_ERROR)
 		return;
@@ -407,7 +406,6 @@ void testGlError(const char *msg) {
 	}
 
 	FATAL("%s: %s", msg, err_code);
-#endif
 }
 
 static const char *debugSourceText(GLenum source) {
@@ -490,7 +488,7 @@ static void APIENTRY debugOutputCallback(GLenum source, GLenum type, GLuint id, 
 }
 
 bool installGlDebugHandler() {
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 	return false;
 #else
 	if(!s_info.hasFeature(GlFeature::debug))

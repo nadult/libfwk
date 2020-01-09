@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 #include <execinfo.h>
 
 #include <dlfcn.h>
@@ -24,7 +24,7 @@
 namespace fwk {
 
 Maybe<int2> consoleDimensions() {
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 	auto result = execCommand("tput cols && tput lines");
 	if(result && result->second == 0) {
 		const char *ptr = result->first.c_str();
@@ -319,9 +319,9 @@ Backtrace Backtrace::get(size_t skip, void *context_, Maybe<Mode> mode) {
 	if(mode == Mode::disabled)
 		return {};
 
-#if defined(FWK_TARGET_MINGW)
+#if defined(FWK_PLATFORM_MINGW)
 	winGetBacktrace(addrs, skip, context_);
-#elif defined(FWK_TARGET_LINUX)
+#elif defined(FWK_PLATFORM_LINUX)
 	// TODO: backtrace_symbols should be deferred
 	void *addresses[64];
 	size_t size = ::backtrace(addresses, arraySize(addresses));
@@ -334,7 +334,7 @@ Backtrace Backtrace::get(size_t skip, void *context_, Maybe<Mode> mode) {
 	::free(strings);
 #endif
 
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 	if(*mode == Mode::full)
 		return {move(addrs), move(symbols), fullBacktrace(skip)};
 #endif
@@ -347,7 +347,7 @@ Pair<string, bool> Backtrace::fullBacktrace(int skip_frames) {
 	printf("Generating backtrace with %s; Warning: sometimes debuggers lie...\n",
 		   lldb_mode ? "LLDB" : "GDB");
 
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 	auto pid = getpid();
 	string cmd;
 	if(lldb_mode)
@@ -382,16 +382,17 @@ string Backtrace::analyze(bool filter) const {
 
 		// TODO: separate full from partial ?
 
-#if defined(FWK_TARGET_HTML5)
-#elif defined(FWK_TARGET_LINUX)
+#if defined(FWK_PLATFORM_HTML)
+#elif defined(FWK_PLATFORM_LINUX)
 	file_lines = analyzeAddresses(m_addresses, *current);
-#elif defined(FWK_TARGET_MINGW)
+#elif defined(FWK_PLATFORM_MINGW)
 	if(m_addresses)
 		formatter("Please run following command:\n% | c++filt\n",
 				  analyzeCommand(m_addresses, *current, true));
 	else
 		formatter("Empty backtrace\n");
 #endif
+
 	if(file_lines) {
 		int max_len = 0;
 		for(const auto &file_line : file_lines)
@@ -409,7 +410,7 @@ string Backtrace::analyze(bool filter) const {
 	}
 
 	string out;
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 	if(m_use_gdb) {
 		if(!m_gdb_result.second)
 			out += m_gdb_result.first + "\n";
@@ -423,7 +424,7 @@ string Backtrace::analyze(bool filter) const {
 }
 
 string Backtrace::filter(const string &input) {
-#ifdef FWK_TARGET_LINUX
+#ifdef FWK_PLATFORM_LINUX
 	string command = "echo \"" + input + "\" | c++filt -n";
 
 	FILE *file = popen(command.c_str(), "r");

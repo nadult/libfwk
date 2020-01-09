@@ -4,7 +4,7 @@
 #ifndef FWK_GFX_OPENGL_H
 #define FWK_GFX_OPENGL_H
 
-#ifdef FWK_TARGET_MINGW
+#ifdef FWK_PLATFORM_MINGW
 #ifndef _WINDOWS_
 #define _WINDOWS_
 #define APIENTRY __attribute__((__stdcall__))
@@ -17,7 +17,7 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#ifdef FWK_TARGET_MINGW
+#ifdef FWK_PLATFORM_MINGW
 
 #ifndef EXT_API
 #define EXT_API extern

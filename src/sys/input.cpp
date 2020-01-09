@@ -148,7 +148,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 	SDL_Event event;
 
 	if(m_is_initialized) {
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 		SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
 #endif
 
@@ -245,7 +245,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 		}
 	}
 
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 	SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
 #else
 	int2 window_pos;

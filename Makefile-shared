@@ -106,9 +106,9 @@ CFLAGS_emcc    += -Wno-ambiguous-reversed-operator
 CFLAGS_release += -O3
 CFLAGS_debug   += -Og -DFWK_PARANOID
 
-CFLAGS_linux   += -DFWK_TARGET_LINUX -pthread -ggdb
-CFLAGS_mingw   += -DFWK_TARGET_MINGW -pthread -ggdb  -msse2 -mfpmath=sse
-CFLAGS_emcc    += -DFWK_TARGET_HTML $(HTML_shared)
+CFLAGS_linux   += -DFWK_PLATFORM_LINUX -pthread -ggdb
+CFLAGS_mingw   += -DFWK_PLATFORM_MINGW -pthread -ggdb  -msse2 -mfpmath=sse
+CFLAGS_emcc    += -DFWK_PLATFORM_HTML $(HTML_shared)
 
 CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
                   $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED) \
@@ -123,7 +123,7 @@ LDFLAGS_emcc   += -s TOTAL_MEMORY=256MB $(HTML_shared) --embed-file data/
 LDFLAGS        += $(LIBS_$(PLATFORM)) $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE))
 
 #HTML5_NICE_FLAGS=-s ASSERTIONS=2 -s DISABLE_EXCEPTION_CATCHING=0 -g2
-#HTML5_FLAGS=-DFWK_TARGET_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
+#HTML5_FLAGS=-DFWK_PLATFORM_HTML5 -DNDEBUG --memory-init-file 0 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 \
 			--embed-file data/ $(INCLUDES) $(CFLAGS) $(CLANG_FLAGS)
 
 # --- Updating configuration file -----------------------------------------------------------------

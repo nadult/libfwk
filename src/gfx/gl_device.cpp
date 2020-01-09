@@ -160,7 +160,7 @@ GlDevice::~GlDevice() {
 
 void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
 							double ogl_ver) {
-#ifdef FWK_TARGET_HTML
+#ifdef FWK_PLATFORM_HTML
 	if(gl_profile != GlProfile::es) {
 		gl_profile = GlProfile::es;
 		ogl_ver = 3;

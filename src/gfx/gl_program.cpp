@@ -32,7 +32,7 @@ namespace {
 	void (*glProgramUniformMatrix4fv_)(GLuint, GLint, GLsizei, GLboolean, const GLfloat *);
 
 	void assignSSOFuncs() {
-#ifndef FWK_TARGET_HTML
+#ifndef FWK_PLATFORM_HTML
 		glProgramUniform1fv_ = glProgramUniform1fv;
 		glProgramUniform2fv_ = glProgramUniform2fv;
 		glProgramUniform3fv_ = glProgramUniform3fv;
