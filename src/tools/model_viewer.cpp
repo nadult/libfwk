@@ -374,28 +374,31 @@ int main(int argc, char **argv) {
 	double time = getTime();
 	int2 resolution(1200, 700);
 
+	string models_path = "./", tex_argument = "";
 	if(argc <= 1) {
 		printf("Usage:\n%s model_name.model\n%s data/*.model\n", argv[0], argv[0]);
-		return 0;
+		printf("Loading models from current directory (recursively)\n");
+	} else {
+		models_path = argv[1];
+		tex_argument = argc > 2 ? argv[2] : "";
 	}
 
-	string model_argument = argv[1], tex_argument = argc > 2 ? argv[2] : "";
 	vector<Pair<string>> files;
 
-	bool multiple_files = model_argument.find('*') != string::npos;
+	bool multiple_files = models_path.find('*') != string::npos;
 	if(!multiple_files) {
-		if(FilePath(model_argument).isDirectory()) {
-			model_argument += "*.model";
+		if(FilePath(models_path).isDirectory()) {
+			models_path += "*.model";
 			multiple_files = true;
 		} else {
-			files = {{model_argument, tex_argument}};
+			files = {{models_path, tex_argument}};
 		}
 	}
 
 	if(multiple_files) {
-		auto star_pos = model_argument.find('*');
-		string prefix = model_argument.substr(0, star_pos);
-		string suffix = model_argument.substr(star_pos + 1);
+		auto star_pos = models_path.find('*');
+		string prefix = models_path.substr(0, star_pos);
+		string suffix = models_path.substr(star_pos + 1);
 
 		auto tstar_pos = tex_argument.find('*');
 		string tprefix = star_pos == string::npos ? "" : tex_argument.substr(0, tstar_pos);
@@ -410,7 +413,8 @@ int main(int argc, char **argv) {
 
 		for(const auto &file : found_files) {
 			string name = file.path;
-			if(removePrefix(name, prefix) && removeSuffix(name, suffix)) {
+
+			if((prefix == "./" || removePrefix(name, prefix)) && removeSuffix(name, suffix)) {
 				string tex_name =
 					tstar_pos == string::npos ? tex_argument : tprefix + name + tsuffix;
 				files.emplace_back(file.path, tex_name);

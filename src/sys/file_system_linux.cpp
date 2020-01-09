@@ -66,6 +66,12 @@ using Opt = FindFileOpt;
 
 static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,
 					  FindFileOpts opts) {
+#ifdef FWK_TARGET_HTML
+	// TODO: opendir fails on these...
+	if(Str(path).find("/proc/self/fd") == 0)
+		return;
+#endif
+
 	DIR *dp = opendir(path.c_str());
 	if(!dp)
 		return;
