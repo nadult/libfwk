@@ -266,4 +266,13 @@ template <class T> inline constexpr bool is_flat_data = std::is_arithmetic<T>::v
 void log(Str message, Str unique_key);
 void log(Str message);
 bool logKeyPresent(Str);
+
+enum class Platform { linux, mingw, html };
+#if defined(FWK_PLATFORM_LINUX)
+inline constexpr auto platform = Platform::linux;
+#elif defined(FWK_PLATFORM_MINGW)
+inline constexpr auto platform = Platform::mingw;
+#else
+inline constexpr auto platform = Platform::html;
+#endif
 }
