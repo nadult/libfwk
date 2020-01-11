@@ -105,7 +105,7 @@ class int128 {
 
 	int128 divide(const int128 &rhs, int128 &remainder) const;
 
-	int128 operator*(const int128 &)const;
+	int128 operator*(const int128 &) const;
 	int128 operator/(const int128 &) const;
 	int128 operator%(const int128 &) const;
 
@@ -171,6 +171,11 @@ class int128 {
 			}
 		}
 		return *this;
+	}
+	int128 operator>>(uint32_t bits) const {
+		int128 out(*this);
+		out >>= bits;
+		return out;
 	}
 
 	bool operator==(const int128 &rhs) const {
