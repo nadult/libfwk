@@ -116,6 +116,9 @@ INPUT_OBJECTS  := $(if $(SPLIT_MODULES),$(SHARED_OBJECTS),$(MERGED_OBJECTS))
 INPUT_SRCS     := $(if $(SPLIT_MODULES),$(CPP_shared),$(CPP_merged))
 
 PROGRAMS       := $(SRC_programs:%=%$(PROGRAM_SUFFIX))
+ifeq ($(PLATFORM), html)
+PROGRAMS_JUNK  := $(SRC_programs:%=%.wasm) $(SRC_programs:%=%.js)
+endif
 
 STATS_FILE = $(FWK_BUILD_DIR)/stats.txt
 ifdef STATS
@@ -155,8 +158,8 @@ print-stats:
 
 # --- Clean targets -------------------------------------------------------------------------------
 
-JUNK_FILES = $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(CPP_merged) $(STATS_FILE) \
-		$(FWK_LIB_FILE) $(PCH_JUNK)
+JUNK_FILES = $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(PROGRAMS_JUNK) $(CPP_merged) \
+			 $(STATS_FILE) $(FWK_LIB_FILE) $(PCH_JUNK)
 EXISTING_JUNK_FILES := $(call filter-existing,$(SUBDIRS),$(JUNK_FILES))
 print-junk-files:
 	@echo $(EXISTING_JUNK_FILES)
