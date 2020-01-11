@@ -43,7 +43,9 @@ class Matrix4 {
 
 	Matrix4 operator+(const Matrix4 &) const;
 	Matrix4 operator-(const Matrix4 &) const;
-	Matrix4 operator*(float)const;
+	Matrix4 operator*(const Matrix4 &) const;
+	float4 operator*(const float4 &) const;
+	Matrix4 operator*(float) const;
 
 	Span<float4, 4> values() { return v; }
 	CSpan<float4, 4> values() const { return v; }
@@ -59,9 +61,6 @@ class Matrix4 {
 };
 
 static_assert(sizeof(Matrix4) == sizeof(float4) * 4, "Wrong size of Matrix4 class");
-
-Matrix4 operator*(const Matrix4 &, const Matrix4 &);
-float4 operator*(const Matrix4 &, const float4 &);
 
 float3 mulPoint(const Matrix4 &mat, const float3 &);
 float3 mulPointAffine(const Matrix4 &mat, const float3 &);
@@ -91,8 +90,9 @@ inline Matrix4 scaling(float x, float y, float z) { return scaling(float3(x, y, 
 inline Matrix4 scaling(float s) { return scaling(s, s, s); }
 inline Matrix4 translation(float x, float y, float z) { return translation(float3(x, y, z)); }
 
-// TODO: different name? transformPoints ?
-Triangle3F operator*(const Matrix4 &, const Triangle3F &);
-Plane3F operator*(const Matrix4 &, const Plane3F &);
-Segment3F operator*(const Matrix4 &, const Segment3F &);
+// Implemented in math/matrix4_transform.cpp
+Triangle3F transform(const Matrix4 &, const Triangle3F &);
+Segment3F transform(const Matrix4 &, const Segment3F &);
+Plane3F transform(const Matrix4 &, const Plane3F &);
+Frustum transform(const Matrix4 &, const Frustum &);
 }

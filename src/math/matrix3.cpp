@@ -37,16 +37,16 @@ const Matrix3 inverse(const Matrix3 &mat) {
 	return Matrix3(out0 * invDet, out1 * invDet, out2 * invDet);
 }
 
-const Matrix3 operator*(const Matrix3 &lhs, const Matrix3 &rhs) {
-	Matrix3 tlhs = transpose(lhs);
+Matrix3 Matrix3::operator*(const Matrix3 &rhs) const {
+	Matrix3 tlhs = transpose(*this);
 
 	return Matrix3(float3(dot(rhs[0], tlhs[0]), dot(rhs[0], tlhs[1]), dot(rhs[0], tlhs[2])),
 				   float3(dot(rhs[1], tlhs[0]), dot(rhs[1], tlhs[1]), dot(rhs[1], tlhs[2])),
 				   float3(dot(rhs[2], tlhs[0]), dot(rhs[2], tlhs[1]), dot(rhs[2], tlhs[2])));
 }
 
-const float3 operator*(const Matrix3 &lhs, const float3 &rhs) {
-	return float3(dot(lhs.row(0), rhs), dot(lhs.row(1), rhs), dot(lhs.row(2), rhs));
+float3 Matrix3::operator*(const float3 &rhs) const {
+	return float3(dot(row(0), rhs), dot(row(1), rhs), dot(row(2), rhs));
 }
 
 const Matrix3 rotation(const float3 &axis, float radians) {

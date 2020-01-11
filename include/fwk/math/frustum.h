@@ -39,6 +39,4 @@ class Frustum {
 
 	EnumMap<PlaneId, Plane3F> planes;
 };
-
-const Frustum operator*(const Matrix4 &, const Frustum &);
 }

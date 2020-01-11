@@ -40,9 +40,9 @@ Matrix4 Matrix4::operator*(float s) const {
 	return out;
 }
 
-Matrix4 operator*(const Matrix4 &lhs, const Matrix4 &rhs) {
+Matrix4 Matrix4::operator*(const Matrix4 &rhs) const {
 	// This is vectorized by default
-	Matrix4 tlhs = transpose(lhs);
+	Matrix4 tlhs = transpose(*this);
 
 	return Matrix4(float4(dot(rhs[0], tlhs[0]), dot(rhs[0], tlhs[1]), dot(rhs[0], tlhs[2]),
 						  dot(rhs[0], tlhs[3])),
@@ -54,9 +54,9 @@ Matrix4 operator*(const Matrix4 &lhs, const Matrix4 &rhs) {
 						  dot(rhs[3], tlhs[3])));
 }
 
-float4 operator*(const Matrix4 &matrix, const float4 &vector) {
-	return float4(dot(matrix.row(0), vector), dot(matrix.row(1), vector),
-				  dot(matrix.row(2), vector), dot(matrix.row(3), vector));
+float4 Matrix4::operator*(const float4 &vector) const {
+	return float4(dot(row(0), vector), dot(row(1), vector), dot(row(2), vector),
+				  dot(row(3), vector));
 }
 
 float3 mulPoint(const Matrix4 &mat, const float3 &pt) {
@@ -202,7 +202,7 @@ Matrix4 translation(const float3 &v) {
 Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up) {
 	float3 front = normalize(target - eye);
 	float3 side = normalize(cross(front, up));
-	return transpose(side, cross(side, front), -front) * translation(-eye);
+	return Matrix4(transpose(side, cross(side, front), -front)) * translation(-eye);
 }
 
 Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {

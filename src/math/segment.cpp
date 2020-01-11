@@ -4,7 +4,6 @@
 #include "fwk/math/segment.h"
 
 #include "fwk/math/box.h"
-#include "fwk/math/matrix4.h"
 #include "fwk/math/plane.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/triangle.h"
@@ -426,8 +425,4 @@ template Maybe<Ray<double, 3>> Segment<double3>::asRay() const;
 
 template auto Segment<float3>::isectParamPlane(const Plane3<float> &) const -> IsectParam;
 template auto Segment<double3>::isectParamPlane(const Plane3<double> &) const -> IsectParam;
-
-Segment<float3> operator*(const Matrix4 &mat, const Segment<float3> &segment) {
-	return {mulPoint(mat, segment.from), mulPoint(mat, segment.to)};
-}
 }

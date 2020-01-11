@@ -51,11 +51,4 @@ bool Frustum::testIsect(CSpan<float3> points) const {
 }
 
 bool Frustum::testIsect(const FBox &box) const { return testIsect(box.corners()); }
-
-const Frustum operator*(const Matrix4 &matrix, const Frustum &frustum) {
-	Frustum out;
-	for(auto pid : all<FrustumPlaneId>)
-		out[pid] = matrix * frustum[pid];
-	return out;
-}
 }

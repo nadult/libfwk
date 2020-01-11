@@ -30,6 +30,9 @@ class Matrix3 {
 	const float3 &operator[](int n) const { return v[n]; }
 	float3 &operator[](int n) { return v[n]; }
 
+	Matrix3 operator*(const Matrix3 &) const;
+	float3 operator*(const float3 &) const;
+
 	Span<float3, 3> values() { return v; }
 	CSpan<float3, 3> values() const { return v; }
 
@@ -41,20 +44,15 @@ class Matrix3 {
 
 static_assert(sizeof(Matrix3) == sizeof(float3) * 3, "Wrong size of Matrix3 class");
 
-
 const Matrix3 transpose(const Matrix3 &);
 
 // Equivalent to creating the matrix with column{0,1,2} as rows
 const Matrix3 transpose(const float3 &column0, const float3 &column1, const float3 &column2);
 const Matrix3 inverse(const Matrix3 &);
 
-const Matrix3 operator*(const Matrix3 &, const Matrix3 &);
-const float3 operator*(const Matrix3 &, const float3 &);
-
 const Matrix3 scaling(const float3 &);
 const Matrix3 rotation(const float3 &axis, float angle);
 
 // TODO: what's this?
 inline const Matrix3 normalRotation(float angle) { return rotation(float3(0, -1, 0), angle); }
-
 }

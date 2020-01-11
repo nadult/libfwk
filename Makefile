@@ -50,9 +50,9 @@ SRC_sys  = \
 	sys/expected sys/assert sys/assert_impl sys/on_fail sys/memory sys/backtrace sys/xml sys/input
 
 SRC_math = \
-	math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/plane math/ray math/rotation \
+	math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/matrix4_transform math/plane \
 	math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment math/line \
-	math/affine_trans math/rational math/gcd math/rational_angle math/qint
+	math/affine_trans math/rational math/gcd math/rational_angle math/qint math/rotation math/ray
 
 ifeq ($(PLATFORM), html)
 	SRC_math += math/int128 math/uint128

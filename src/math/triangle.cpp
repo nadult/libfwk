@@ -5,7 +5,6 @@
 
 #include "fwk/format.h"
 #include "fwk/math/box.h"
-#include "fwk/math/matrix4.h"
 #include "fwk/math/projection.h"
 #include "fwk/math/rotation.h"
 
@@ -22,10 +21,6 @@ namespace fwk {
  -   m_normal /= m_length;
 
  * */
-
-Triangle3F operator*(const Matrix4 &mat, const Triangle3F &tri) {
-	return {mulPoint(mat, tri[0]), mulPoint(mat, tri[1]), mulPoint(mat, tri[2])};
-}
 
 template <class T, int N> T Triangle<T, N>::surfaceArea() const {
 	if constexpr(N == 2)
