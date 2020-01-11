@@ -46,7 +46,7 @@ endif
 SRC_base = base_vector hash_map_stats enum str type_info any logger any_config format parse
 
 SRC_sys  = \
-	sys_base sys/file_system sys/file_system_linux sys/file_stream sys/error sys/exception \
+	sys_base sys/file_system sys/file_system_linux sys/file_stream sys/error sys/exception sys/thread \
 	sys/expected sys/assert sys/assert_impl sys/on_fail sys/memory sys/backtrace sys/xml sys/input
 
 SRC_math = \

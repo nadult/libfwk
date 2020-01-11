@@ -21,7 +21,7 @@ Manager::Manager() {
 #endif
 
 	s_instance = this;
-	s_mutex = {};
+	s_mutex.init();
 	m_tree.emplace();
 }
 
