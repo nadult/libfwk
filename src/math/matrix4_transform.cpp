@@ -10,7 +10,7 @@
 
 namespace fwk {
 
-Plane3F transform(const Matrix4 &matrix, const Plane3F &plane) {
+Plane3F Matrix4::operator*(const Plane3F &plane) const {
 	float3 v1 = plane.normal();
 	int min = v1[0] < v1[1] ? 0 : 1;
 	if(v1[2] < v1[min])
@@ -25,25 +25,25 @@ Plane3F transform(const Matrix4 &matrix, const Plane3F &plane) {
 	p2 -= plane.normal() * plane.signedDistance(p2);
 	// TODO: this can be faster: transform normal directly ?
 
-	return Plane3F(transform(matrix, Triangle3F(p0, p1, p2)));
+	return Plane3F(*this * Triangle3F(p0, p1, p2));
 	// TODO: this is incorrect:
 	/*	float3 new_p = mulPoint(m, p.normal() * p.distance());
 		float3 new_n = normalize(mulNormal(m, p.normal()));
 		return Plane(new_n, dot(new_n, new_p));*/
 }
 
-Frustum transform(const Matrix4 &matrix, const Frustum &frustum) {
+Frustum Matrix4::operator*(const Frustum &frustum) const {
 	Frustum out;
 	for(auto pid : all<FrustumPlaneId>)
-		out[pid] = transform(matrix, frustum[pid]);
+		out[pid] = *this * frustum[pid];
 	return out;
 }
 
-Triangle3F transform(const Matrix4 &matrix, const Triangle3F &tri) {
-	return {mulPoint(matrix, tri[0]), mulPoint(matrix, tri[1]), mulPoint(matrix, tri[2])};
+Triangle3F Matrix4::operator*(const Triangle3F &tri) const {
+	return {mulPoint(*this, tri[0]), mulPoint(*this, tri[1]), mulPoint(*this, tri[2])};
 }
 
-Segment<float3> transform(const Matrix4 &matrix, const Segment<float3> &segment) {
-	return {mulPoint(matrix, segment.from), mulPoint(matrix, segment.to)};
+Segment<float3> Matrix4::operator*(const Segment<float3> &segment) const {
+	return {mulPoint(*this, segment.from), mulPoint(*this, segment.to)};
 }
 }

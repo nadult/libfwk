@@ -45,7 +45,7 @@ float AnimatedModel::intersect(const Segment3<float> &segment) const {
 	float min_isect = inf;
 
 	for(auto mesh_data : m_meshes) {
-		auto inv_segment = transform(inverseOrZero(mesh_data.transform), segment);
+		auto inv_segment = inverseOrZero(mesh_data.transform) * segment;
 		auto *mesh = m_model.mesh(mesh_data.mesh_id);
 		float inv_isect = mesh->intersect(inv_segment, mesh_data.anim_data);
 		if(inv_isect < inf) {

@@ -47,6 +47,12 @@ class Matrix4 {
 	float4 operator*(const float4 &) const;
 	Matrix4 operator*(float) const;
 
+	// Implemented in math/matrix4_transform.cpp
+	Triangle3F operator*(const Triangle3F &) const;
+	Segment3F operator*(const Segment3F &) const;
+	Plane3F operator*(const Plane3F &) const;
+	Frustum operator*(const Frustum &) const;
+
 	Span<float4, 4> values() { return v; }
 	CSpan<float4, 4> values() const { return v; }
 
@@ -90,9 +96,4 @@ inline Matrix4 scaling(float x, float y, float z) { return scaling(float3(x, y, 
 inline Matrix4 scaling(float s) { return scaling(s, s, s); }
 inline Matrix4 translation(float x, float y, float z) { return translation(float3(x, y, z)); }
 
-// Implemented in math/matrix4_transform.cpp
-Triangle3F transform(const Matrix4 &, const Triangle3F &);
-Segment3F transform(const Matrix4 &, const Segment3F &);
-Plane3F transform(const Matrix4 &, const Plane3F &);
-Frustum transform(const Matrix4 &, const Frustum &);
 }
