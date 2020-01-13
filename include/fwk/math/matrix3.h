@@ -19,9 +19,12 @@ class Matrix3 {
 		v[2] = col2;
 	}
 
-	static const Matrix3 identity();
+	static Matrix3 identity();
+	static Matrix3 scaling(const float3 &v) {
+		return {{v[0], 0.0f, 0.0f}, {0.0f, v[1], 0.0f}, {0.0f, 0.0f, v[2]}};
+	}
 
-	const float3 row(int n) const { return float3(v[0][n], v[1][n], v[2][n]); }
+	float3 row(int n) const { return float3(v[0][n], v[1][n], v[2][n]); }
 
 	float operator()(int row, int col) const { return v[col][row]; }
 	float &operator()(int row, int col) { return v[col][row]; }
@@ -44,15 +47,10 @@ class Matrix3 {
 
 static_assert(sizeof(Matrix3) == sizeof(float3) * 3, "Wrong size of Matrix3 class");
 
-const Matrix3 transpose(const Matrix3 &);
+Matrix3 transpose(const Matrix3 &);
 
 // Equivalent to creating the matrix with column{0,1,2} as rows
-const Matrix3 transpose(const float3 &column0, const float3 &column1, const float3 &column2);
-const Matrix3 inverse(const Matrix3 &);
-
-const Matrix3 scaling(const float3 &);
-const Matrix3 rotation(const float3 &axis, float angle);
-
-// TODO: what's this?
-inline const Matrix3 normalRotation(float angle) { return rotation(float3(0, -1, 0), angle); }
+Matrix3 transpose(const float3 &column0, const float3 &column1, const float3 &column2);
+Matrix3 inverse(const Matrix3 &);
+Matrix3 rotation(const float3 &axis, float angle);
 }

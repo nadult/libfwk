@@ -52,7 +52,7 @@ AffineTrans::AffineTrans(const Matrix4 &mat) {
 }
 
 AffineTrans::operator Matrix4() const {
-	const Matrix3 rot_matrix = Matrix3(normalize(rotation)) * scaling(scale);
+	const Matrix3 rot_matrix = Matrix3(normalize(rotation)) * Matrix3::scaling(scale);
 	return Matrix4(float4(rot_matrix[0], 0.0f), float4(rot_matrix[1], 0.0f),
 				   float4(rot_matrix[2], 0.0f), float4(translation, 1.0f));
 }

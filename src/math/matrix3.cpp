@@ -5,20 +5,20 @@
 
 namespace fwk {
 
-const Matrix3 Matrix3::identity() {
+Matrix3 Matrix3::identity() {
 	return Matrix3({1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
 }
 
-const Matrix3 transpose(const Matrix3 &mat) {
+Matrix3 transpose(const Matrix3 &mat) {
 	return Matrix3({mat[0][0], mat[1][0], mat[2][0]}, {mat[0][1], mat[1][1], mat[2][1]},
 				   {mat[0][2], mat[1][2], mat[2][2]});
 }
 
-const Matrix3 transpose(const float3 &a, const float3 &b, const float3 &c) {
+Matrix3 transpose(const float3 &a, const float3 &b, const float3 &c) {
 	return Matrix3({a[0], b[0], c[0]}, {a[1], b[1], c[1]}, {a[2], b[2], c[2]});
 }
 
-const Matrix3 inverse(const Matrix3 &mat) {
+Matrix3 inverse(const Matrix3 &mat) {
 	float3 out0, out1, out2;
 	out0[0] = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
 	out0[1] = mat[0][2] * mat[2][1] - mat[0][1] * mat[2][2];
@@ -49,7 +49,7 @@ float3 Matrix3::operator*(const float3 &rhs) const {
 	return float3(dot(row(0), rhs), dot(row(1), rhs), dot(row(2), rhs));
 }
 
-const Matrix3 rotation(const float3 &axis, float radians) {
+Matrix3 rotation(const float3 &axis, float radians) {
 	auto sc = sincos(radians);
 	float oneMinusCos = 1.0f - sc.second;
 
@@ -68,7 +68,4 @@ const Matrix3 rotation(const float3 &axis, float radians) {
 					 {xzm - ySin, yzm + xSin, zz * oneMinusCos + sc.second});
 }
 
-const Matrix3 scaling(const float3 &v) {
-	return Matrix3({v[0], 0.0f, 0.0f}, {0.0f, v[1], 0.0f}, {0.0f, 0.0f, v[2]});
-}
 }

@@ -92,6 +92,10 @@ DEFINE_ENUM(Orient2D, y_up, y_down);
 Matrix4 projectionMatrix2D(const IRect &viewport, Orient2D orientation);
 Matrix4 viewMatrix2D(const IRect &viewport, const float2 &view_pos);
 
+inline Matrix4 scaling(const float3 &v) {
+	return Matrix4({v[0], 0.0f, 0.0f, 0.0f}, {0.0f, v[1], 0.0f, 0.0f}, {0.0f, 0.0f, v[2], 0.0f},
+				   {0.0f, 0.0f, 0.0f, 1.0f});
+}
 inline Matrix4 scaling(float x, float y, float z) { return scaling(float3(x, y, z)); }
 inline Matrix4 scaling(float s) { return scaling(s, s, s); }
 inline Matrix4 translation(float x, float y, float z) { return translation(float3(x, y, z)); }
