@@ -18,7 +18,7 @@ class Converter {
 
 	struct Settings {
 		string export_script_path;
-		string blender_path;
+		Maybe<string> blender_path;
 		bool just_export = false;
 		bool blender_output = false;
 		bool print_output = false;
@@ -28,7 +28,7 @@ class Converter {
 
 	bool operator()(const string &from, const string &to);
 
-	static string locateBlender();
+	static Ex<string> locateBlender();
 	static Maybe<FileType> classify(const string &name);
 
 	Ex<string> exportFromBlender(const string &file_name, string &target_file_name);

@@ -23,8 +23,6 @@ namespace fwk {
 using FileType = ModelFileType;
 
 Converter::Converter(Settings settings) : m_settings(settings) {
-	if(m_settings.blender_path.empty())
-		m_settings.blender_path = locateBlender();
 	ASSERT(!m_settings.export_script_path.empty());
 }
 
@@ -45,7 +43,20 @@ Maybe<FileType> Converter::classify(const string &name) {
 	return none;
 }
 
-string Converter::locateBlender() {
+bool checkBlenderCommand(Str command) NOEXCEPT {
+	if(auto result = execCommand(format("% --version", command))) {
+		TextParser parser(result->first);
+		string temp;
+		double value;
+		parser >> temp >> value;
+		clearExceptions();
+		return temp == "Blender" && value >= 2.75 && value < 2.80;
+	}
+	return false;
+}
+
+
+Ex<string> Converter::locateBlender() {
 #if defined(FWK_PLATFORM_MINGW)
 	vector<string> pfiles = {"C:/program files/", "C:/program files (x86)/"};
 	for(auto pf : pfiles) {
@@ -57,25 +68,30 @@ string Converter::locateBlender() {
 		}
 	}
 
-	FATAL("Cannot find blender");
-	return "";
+	return ERROR("Cannot find blender");
 #else
-	return "blender";
+	const char *commands[] = {"blender-2.79", "blender"};
+	for(auto cmd : commands)
+		if(checkBlenderCommand(cmd))
+			return string(cmd);
+	return ERROR("Cannot find blender with correct version (2.75 - 2.79)");
 #endif
 }
 
 Ex<string> Converter::exportFromBlender(const string &file_name, string &target_file_name) {
+	EXPECT(m_settings.blender_path);
+
 	if(target_file_name.empty())
 		target_file_name = file_name + ".model";
 	string temp_script_name = file_name + ".py";
 
-	auto script = move(loadFileString(m_settings.export_script_path).get());
+	auto script = EX_PASS(loadFileString(m_settings.export_script_path));
 	string args = "\"" + target_file_name + "\"";
 	script += "write(" + args + ")\n";
 
 	saveFile(temp_script_name, cspan(script)).check();
 	auto result = execCommand(format("\"%\" % --background --python % 2>&1",
-									 m_settings.blender_path, file_name, temp_script_name));
+									 *m_settings.blender_path, file_name, temp_script_name));
 
 	::remove(temp_script_name.c_str());
 

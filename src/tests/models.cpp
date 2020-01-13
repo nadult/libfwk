@@ -42,10 +42,13 @@ void testMain() {
 	return;
 #endif
 
-	// TODO: if blender is not present, it won't work
+	auto blender_path = Converter::locateBlender();
+	blender_path.check();
+
 	Converter::Settings settings;
 	settings.export_script_path = mainPath("data/export_fwk_model.py");
-	settings.print_output = false;
+	settings.blender_path = *blender_path;
+
 	Converter cvt(settings);
 	auto mesh_path = mainPath("tests/test.model");
 	auto result = cvt(mainPath("data/test.blend"), mesh_path);
