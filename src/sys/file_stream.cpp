@@ -43,7 +43,7 @@ void FileStream::loadData(Span<char> data) {
 	}
 
 	if(m_pos + data.size() > m_size) {
-		raise(format("Reading past the end: % + % > %", m_name, m_pos, data.size(), m_size));
+		raise(format("Reading past the end: % + % > %", m_pos, data.size(), m_size));
 		fill(data, 0);
 		return;
 	}
