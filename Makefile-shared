@@ -120,7 +120,7 @@ LDFLAGS_clang  += -fuse-ld=gold
 LDFLAGS_linux  += -pthread -rdynamic
 LDFLAGS_mingw  += -pthread
 LDFLAGS_emcc   += -s TOTAL_MEMORY=256MB $(HTML_shared) --embed-file data/
-LDFLAGS        += $(LIBS_$(PLATFORM)) $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE))
+LDFLAGS        += $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE)) $(LIBS_$(PLATFORM))
 
 # --- Updating configuration file -----------------------------------------------------------------
 
