@@ -10,6 +10,8 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- asPod -> asFlat ?
+- ujednolicenie interfejsów MemoryStream & FileStream
 - odróżnić indexOf ze Sprase spana (intruzywny?) od normalnego indexOf który przegląda wartości
 
 - Z jakiegoś powodu checker nie wyłapuje EXCEPTów z delegowanego konstruktora, chyba że

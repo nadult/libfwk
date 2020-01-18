@@ -185,7 +185,7 @@ void FileStream::saveVector(CSpan<char> vec, int element_size) {
 	saveData(vec);
 }
 
-static int decodeString(Str str, Span<char> buf) {
+int decodeString(Str str, Span<char> buf) {
 	int len = 0;
 	int bufSize = buf.size() - 1;
 

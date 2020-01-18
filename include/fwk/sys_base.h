@@ -210,6 +210,7 @@ double getTime();
 
 class Backtrace;
 class FileStream;
+class MemoryStream;
 class FilePath;
 
 class BaseVector;
@@ -260,7 +261,12 @@ template <class T, int min_size = 0> class Span;
 template <class T> class SparseSpan;
 
 // This kind of data can be safely serialized to/from binary format, byte by byte
-template <class T> inline constexpr bool is_flat_data = std::is_arithmetic<T>::value;
+template <class T>
+inline constexpr bool is_flat_data = std::is_arithmetic<T>::value || std::is_enum<T>::value;
+template <class T, int N> inline constexpr bool is_flat_data<array<T, N>> = is_flat_data<T>;
+
+template <class T> auto &asPod(const T &value) { return *(const array<char, sizeof(T)> *)(&value); }
+template <class T> auto &asPod(T &value) { return *(array<char, sizeof(T)> *)(&value); }
 
 // Implemented in logger.[h|cpp]
 void log(Str message, Str unique_key);
