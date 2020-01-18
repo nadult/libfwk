@@ -17,7 +17,7 @@ MemoryStream::MemoryStream(Span<char> data)
 	: m_data(data.data()), m_size(0), m_capacity(data.size()), m_is_loading(false) {}
 
 MemoryStream::MemoryStream(PodVector<char> buffer, bool is_loading)
-	: m_buffer(move(buffer)), m_data(buffer.data()), m_capacity(buffer.size()),
+	: m_buffer(move(buffer)), m_data(m_buffer.data()), m_capacity(buffer.size()),
 	  m_is_loading(is_loading) {
 	m_size = is_loading ? m_buffer.size() : 0;
 }
