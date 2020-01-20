@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/sys/file_stream.h"
+#include "fwk/io/file_stream.h"
 
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"

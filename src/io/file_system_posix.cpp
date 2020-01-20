@@ -1,9 +1,11 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef _WIN32
+#if defined(FWK_PLATFORM_MINGW)
+#error "This file should only be compiled on linux or HTML targets"
+#endif
 
-#include "fwk/sys/file_system.h"
+#include "fwk/io/file_system.h"
 
 #include "fwk/sys/expected.h"
 #include "fwk/vector.h"
@@ -145,5 +147,3 @@ vector<FileEntry> findFiles(const FilePath &path, FindFileOpts opts) {
 	return out;
 }
 }
-
-#endif

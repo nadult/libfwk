@@ -6,11 +6,11 @@
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/model.h"
 #include "fwk/gfx/pose.h"
+#include "fwk/io/file_stream.h"
+#include "fwk/io/file_system.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
-#include "fwk/sys/file_stream.h"
-#include "fwk/sys/file_system.h"
 #include "fwk/sys/xml.h"
 #include "testing.h"
 

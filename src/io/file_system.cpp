@@ -3,6 +3,8 @@
 
 #ifdef FWK_PLATFORM_MINGW
 #include "file_system_windows.cpp"
+#else
+#include "file_system_posix.cpp"
 #endif
 
 #ifdef _WIN32
@@ -17,12 +19,12 @@
 
 #endif
 
-#include "fwk/sys/file_system.h"
+#include "fwk/io/file_system.h"
 
 #include "fwk/format.h"
 #include "fwk/parse.h"
 #include "fwk/sys/expected.h"
-#include "fwk/sys/file_stream.h"
+#include "fwk/io/file_stream.h"
 #include "fwk/vector.h"
 
 #include <cstdio>

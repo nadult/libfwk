@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/sys/memory_stream.h"
+#include "fwk/io/memory_stream.h"
 
 #include "fwk/math_base.h"
 #include "fwk/sys/assert.h"

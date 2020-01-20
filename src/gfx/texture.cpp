@@ -4,9 +4,9 @@
 #include "fwk/gfx/texture.h"
 
 #include "fwk/gfx/gl_format.h"
+#include "fwk/io/file_stream.h"
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
-#include "fwk/sys/file_stream.h"
 
 namespace fwk {
 
