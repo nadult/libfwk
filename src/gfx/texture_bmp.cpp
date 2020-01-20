@@ -3,12 +3,12 @@
 
 #include "fwk/gfx/texture.h"
 
-#include "fwk/io/file_stream.h"
+#include "fwk/io/stream.h"
 #include "fwk/sys/expected.h"
 
 namespace fwk {
 namespace detail {
-	Ex<Texture> loadBMP(FileStream &sr) {
+	Ex<Texture> loadBMP(Stream &sr) {
 		sr.signature("BM");
 
 		int offset;

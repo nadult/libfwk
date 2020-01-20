@@ -5,7 +5,7 @@
 
 #include <png.h>
 
-#include "fwk/io/file_stream.h"
+#include "fwk/io/stream.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
 #include "fwk/sys/memory.h"
@@ -20,7 +20,7 @@ namespace detail {
 	}
 
 	struct EXCEPT PngLoader {
-		PngLoader(FileStream &stream) : stream(stream) {
+		PngLoader(Stream &stream) : stream(stream) {
 			s_loader = this;
 
 			enum { sig_size = 8 };
@@ -202,7 +202,7 @@ namespace detail {
 		static __thread PngLoader *s_loader;
 
 		Error m_error;
-		FileStream &stream;
+		Stream &stream;
 		png_structp m_struct = nullptr;
 		png_infop m_info = nullptr;
 		int m_color_type, m_bit_depth, m_channels;
@@ -211,7 +211,7 @@ namespace detail {
 
 	__thread PngLoader *PngLoader::s_loader = nullptr;
 
-	Ex<Texture> loadPNG(FileStream &stream) {
+	Ex<Texture> loadPNG(Stream &stream) {
 		PngLoader loader(stream);
 		EX_CATCH();
 		PodVector<IColor> data(loader.size().x * loader.size().y);
@@ -220,7 +220,7 @@ namespace detail {
 	}
 }
 
-Ex<HeightMap16bit> HeightMap16bit::load(FileStream &stream) {
+Ex<HeightMap16bit> HeightMap16bit::load(Stream &stream) {
 	detail::PngLoader loader(stream);
 	EX_CATCH();
 	vector<u16> data(loader.size().x * loader.size().y);

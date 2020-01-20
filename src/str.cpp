@@ -370,4 +370,25 @@ string toUpper(const string &str) {
 	std::transform(out.begin(), out.end(), out.begin(), ::toupper);
 	return out;
 }
+
+string escapeString(CSpan<char> chars) {
+	vector<char> out;
+	out.reserve(chars.size() * 2);
+
+	for(auto c : chars) {
+		if(c == '\\') {
+			out.emplace_back('\\');
+			out.emplace_back('\\');
+		} else if(c >= 32 && c < 127) {
+			out.emplace_back(c);
+		} else {
+			unsigned int code = (u8)c;
+			char temp[4] = {'\\', char('0' + code / 64), char('0' + (code / 8) % 8),
+							char('0' + code % 8)};
+			insertBack(out, temp);
+		}
+	}
+
+	return string(out.begin(), out.end());
+}
 }

@@ -12,9 +12,9 @@ namespace fwk {
 
 namespace detail {
 
-	Ex<Texture> loadBMP(FileStream &);
-	Ex<Texture> loadPNG(FileStream &);
-	Ex<Texture> loadTGA(FileStream &);
+	Ex<Texture> loadBMP(Stream &);
+	Ex<Texture> loadPNG(Stream &);
+	Ex<Texture> loadTGA(Stream &);
 }
 
 Texture::Texture() {}

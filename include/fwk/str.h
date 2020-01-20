@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/span.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -136,4 +137,5 @@ int utf8Length(const string32 &);
 int utf32Length(const string &);
 string toLower(const string &);
 string toUpper(const string &);
+string escapeString(CSpan<char>);
 }

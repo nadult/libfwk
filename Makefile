@@ -48,7 +48,7 @@ SRC_base = base_vector hash_map_stats enum str type_info any logger any_config f
 SRC_sys  = \
 	sys_base sys/error sys/exception sys/thread sys/expected sys/assert sys/assert_impl sys/on_fail \
 	sys/memory sys/backtrace sys/xml sys/input \
-	io/file_system io/file_stream io/memory_stream
+	io/stream io/file_system io/file_stream io/memory_stream
 
 SRC_math = \
 	math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/matrix4_transform math/plane \

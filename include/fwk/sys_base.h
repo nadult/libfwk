@@ -209,8 +209,14 @@ double getTime();
 #endif
 
 class Backtrace;
-class FileStream;
-class MemoryStream;
+
+template <class> class TStream;
+class BaseStream;
+class BaseFileStream;
+class BaseMemoryStream;
+using Stream = TStream<BaseStream>;
+using MemoryStream = TStream<BaseMemoryStream>;
+using FileStream = TStream<BaseFileStream>;
 class FilePath;
 
 class BaseVector;

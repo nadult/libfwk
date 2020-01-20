@@ -3,7 +3,7 @@
 
 #include "fwk/gfx/texture.h"
 
-#include "fwk/io/file_stream.h"
+#include "fwk/io/stream.h"
 #include "fwk/sys/expected.h"
 
 namespace fwk {
@@ -12,14 +12,14 @@ namespace detail {
 	struct EXCEPT TGAHeader {
 		TGAHeader() { memset(this, 0, sizeof(TGAHeader)); }
 
-		void save(FileStream &sr) const {
+		void save(Stream &sr) const {
 			// TODO: this can be automated with structure binding
 			sr.pack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
 					color_map_depth, x_origin, y_origin, width, height, bits_per_pixel,
 					image_descriptor);
 		}
 
-		void load(FileStream &sr) {
+		void load(Stream &sr) {
 			sr.unpack(id_length, color_map_type, data_type_code, color_map_origin, color_map_length,
 					  color_map_depth, x_origin, y_origin, width, height, bits_per_pixel,
 					  image_descriptor);
@@ -39,7 +39,7 @@ namespace detail {
 		u8 image_descriptor;
 	};
 
-	Ex<Texture> loadTGA(FileStream &sr) {
+	Ex<Texture> loadTGA(Stream &sr) {
 		TGAHeader hdr;
 		enum { max_width = 4096, max_height = 4096 };
 
@@ -87,7 +87,7 @@ namespace detail {
 	}
 }
 
-Ex<void> Texture::saveTGA(FileStream &sr) const {
+Ex<void> Texture::saveTGA(Stream &sr) const {
 	detail::TGAHeader header;
 
 	header.data_type_code = 2;
