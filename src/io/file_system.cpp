@@ -22,9 +22,9 @@
 #include "fwk/io/file_system.h"
 
 #include "fwk/format.h"
+#include "fwk/io/file_stream.h"
 #include "fwk/parse.h"
 #include "fwk/sys/expected.h"
-#include "fwk/io/file_stream.h"
 #include "fwk/vector.h"
 
 #include <cstdio>
@@ -269,12 +269,12 @@ Ex<double> lastModificationTime(const FilePath &file_name) {
 #ifdef _WIN32
 	struct _stat64 attribs;
 	if(_stat64(file_name.c_str(), &attribs) != 0)
-		return Error(format("stat failed for file %: %\n", file_name, strerror(errno)));
+		return FWK_ERROR("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
 	return double(attribs.st_mtime);
 #else
 	struct stat attribs;
 	if(stat(file_name.c_str(), &attribs) != 0)
-		return Error(format("stat failed for file %: %\n", file_name, strerror(errno)));
+		return FWK_ERROR("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
 	return double(attribs.st_mtim.tv_sec) + double(attribs.st_mtim.tv_nsec) * 0.000000001;
 #endif
 }
@@ -295,7 +295,8 @@ Ex<void> mkdirRecursive(const FilePath &path) {
 #endif
 
 	if(ret != 0)
-		return Error(format("Cannot create directory: \"%\" error: %\n", path, strerror(errno)));
+		return FWK_ERROR("Cannot create directory: \"%s\" error: %s\n", path.c_str(),
+						 strerror(errno));
 	return {};
 }
 
@@ -326,11 +327,11 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 // TODO: stdout and stderr returned separately?
 Ex<Pair<string, int>> execCommand(const string &cmd) {
 #ifdef FWK_PLATFORM_HTML
-	return ERROR("execCommand not supported on HTML platform");
+	return FWK_ERROR("execCommand not supported on HTML platform");
 #else
 	FILE *pipe = popen(cmd.c_str(), "r");
 	if(!pipe)
-		return ERROR("Error on popen '%': %", cmd, strerror(errno));
+		return FWK_ERROR("Error on popen '%': %", cmd, strerror(errno));
 	char buffer[1024];
 	std::string result = "";
 	while(!feof(pipe)) {
@@ -339,7 +340,7 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 	}
 	int ret = pclose(pipe);
 	if(ret == -1)
-		return ERROR("Error on pclose '%': %", cmd, strerror(errno));
+		return FWK_ERROR("Error on pclose '%': %", cmd, strerror(errno));
 	return pair{result, ret};
 #endif
 }
@@ -348,7 +349,7 @@ Ex<string> loadFileString(ZStr file_name, int max_size) {
 	auto file = EX_PASS(fileLoader(file_name));
 
 	if(file.size() > max_size)
-		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
+		return FWK_ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
 	string out(file.size(), ' ');
 	file.loadData(out);
 	return out;
@@ -358,7 +359,7 @@ Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 	auto file = EX_PASS(fileLoader(file_name));
 
 	if(file.size() > max_size)
-		return ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
+		return FWK_ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
 	PodVector<char> out(file.size());
 	file.loadData(out);
 	EX_CATCH();

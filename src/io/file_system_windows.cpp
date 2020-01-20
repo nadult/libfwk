@@ -10,7 +10,6 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#undef ERROR
 
 #include "fwk/io/file_system.h"
 
@@ -41,13 +40,13 @@ FilePath::Element FilePath::extractRoot(const char *str) {
 Ex<FilePath> FilePath::current() {
 	char buf[MAX_PATH];
 	if(!GetCurrentDirectory(sizeof(buf), buf))
-		return ERROR("Error in GetCurrentDirectory");
+		return FWK_ERROR("Error in GetCurrentDirectory");
 	return FilePath(buf);
 }
 
 Ex<void> FilePath::setCurrent(const FilePath &path) {
 	if(!SetCurrentDirectory(path.c_str()))
-		return ERROR("Error in SetCurrentDirectory(%)", path);
+		return FWK_ERROR("Error in SetCurrentDirectory(%)", path);
 	return {};
 }
 

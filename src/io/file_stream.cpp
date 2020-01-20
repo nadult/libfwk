@@ -269,7 +269,7 @@ void FileStream::signature(Str str) {
 Ex<FileStream> fileStream(ZStr file_name, bool is_loading) {
 	auto *file = fopen(file_name.c_str(), is_loading ? "rb" : "wb");
 	if(!file)
-		return ERROR("Error while opening file \"%\"", file_name);
+		return FWK_ERROR("Error while opening file \"%\"", file_name);
 
 	fseek(file, 0, SEEK_END);
 	auto size = ftell(file);
@@ -277,7 +277,7 @@ Ex<FileStream> fileStream(ZStr file_name, bool is_loading) {
 	// TODO: that's not a proper way to detect a directory
 	if(size < -1) {
 		fclose(file);
-		return ERROR("Trying to open a directory: \"%\"", file_name);
+		return FWK_ERROR("Trying to open a directory: \"%\"", file_name);
 	}
 	fseek(file, 0, SEEK_SET);
 

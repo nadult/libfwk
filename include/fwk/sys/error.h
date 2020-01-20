@@ -36,6 +36,7 @@ struct ErrorChunk {
 // Creates an error with formatted text
 // Example: ERROR("Low-case string should be passed: %", str)
 #define ERROR(...) _ASSERT_FORMATTED(makeError, __VA_ARGS__)
+#define FWK_ERROR(...) _ASSERT_FORMATTED(makeError, __VA_ARGS__)
 
 struct Error {
 	using Chunk = ErrorChunk;
