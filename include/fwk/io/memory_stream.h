@@ -6,8 +6,6 @@
 #include "fwk/io/stream.h"
 #include "fwk/pod_vector.h"
 
-DEFINE_ENUM(StreamMode, loading, saving);
-
 namespace fwk {
 
 class BaseMemoryStream : public Stream {

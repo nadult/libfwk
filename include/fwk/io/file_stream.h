@@ -8,13 +8,6 @@
 
 namespace fwk {
 
-class FileStreamBase {
-  public:
-	void saveData(CSpan<char>);
-	void loadData(Span<char>);
-	void seek(i64 pos);
-};
-
 // Simple class for loading/saving plain data from/to file
 // It treats all data as plain bytes, so you have to be very careful when using it.
 // There are also special functions for loading/saving strings & PodVectors.

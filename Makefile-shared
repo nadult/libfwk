@@ -81,7 +81,7 @@ endif
 
 # --- Compilation & linking flags -----------------------------------------------------------------
 
-HTML_shared  := -g2 -s EXIT_RUNTIME=1 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1
+HTML_shared  := -g2 -s EXIT_RUNTIME=1 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_ZLIB=1
 LIBS_shared  += freetype2 sdl2 libpng vorbisfile
 LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lopenal -lGL -lGLU -lrt -lm -lstdc++
 LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lOpenAL32 -ldsound -lole32 -lwinmm \

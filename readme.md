@@ -35,6 +35,8 @@ during development so from time to time libfwk may fail to compile under G++.
 	Menu module & perf::Analyzer will only be compiled if imgui is present.  
 	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
 
+* **zlib**
+
 * **libpng**  
 	[http://libpng.org](http://libpng.org)
 

@@ -21,8 +21,8 @@ namespace stream_limits {
 
 namespace detail {
 	template <class S, class T> struct StreamTraits {
-		FWK_SFINAE_TEST(saveable, T, DECLVAL(U).save(DECLVAL(S&)));
-		FWK_SFINAE_TEST(loadable, T, DECLVAL(U).save(DECLVAL(S&)));
+		FWK_SFINAE_TEST(saveable, T, DECLVAL(U).save(DECLVAL(S &)));
+		FWK_SFINAE_TEST(loadable, T, DECLVAL(U).save(DECLVAL(S &)));
 	};
 }
 
