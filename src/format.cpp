@@ -334,28 +334,28 @@ TextFormatter &operator<<(TextFormatter &out, const int4 &value) {
 	return out;
 }
 
-template TextFormatter &operator<<(TextFormatter &, const vec2<int> &);
-template TextFormatter &operator<<(TextFormatter &, const vec3<int> &);
-template TextFormatter &operator<<(TextFormatter &, const vec4<int> &);
+template TextFormatter &TextFormatter::operator<<(const vec2<int> &);
+template TextFormatter &TextFormatter::operator<<(const vec3<int> &);
+template TextFormatter &TextFormatter::operator<<(const vec4<int> &);
 
-template TextFormatter &operator<<(TextFormatter &, const vec2<float> &);
-template TextFormatter &operator<<(TextFormatter &, const vec3<float> &);
-template TextFormatter &operator<<(TextFormatter &, const vec4<float> &);
+template TextFormatter &TextFormatter::operator<<(const vec2<float> &);
+template TextFormatter &TextFormatter::operator<<(const vec3<float> &);
+template TextFormatter &TextFormatter::operator<<(const vec4<float> &);
 
-template TextFormatter &operator<<(TextFormatter &, const vec2<double> &);
-template TextFormatter &operator<<(TextFormatter &, const vec3<double> &);
-template TextFormatter &operator<<(TextFormatter &, const vec4<double> &);
+template TextFormatter &TextFormatter::operator<<(const vec2<double> &);
+template TextFormatter &TextFormatter::operator<<(const vec3<double> &);
+template TextFormatter &TextFormatter::operator<<(const vec4<double> &);
 
-template TextFormatter &operator<<(TextFormatter &, const Box<int2> &);
-template TextFormatter &operator<<(TextFormatter &, const Box<int3> &);
-template TextFormatter &operator<<(TextFormatter &, const Box<float2> &);
-template TextFormatter &operator<<(TextFormatter &, const Box<float3> &);
-template TextFormatter &operator<<(TextFormatter &, const Box<double2> &);
-template TextFormatter &operator<<(TextFormatter &, const Box<double3> &);
+template TextFormatter &TextFormatter::operator<<(const Box<int2> &);
+template TextFormatter &TextFormatter::operator<<(const Box<int3> &);
+template TextFormatter &TextFormatter::operator<<(const Box<float2> &);
+template TextFormatter &TextFormatter::operator<<(const Box<float3> &);
+template TextFormatter &TextFormatter::operator<<(const Box<double2> &);
+template TextFormatter &TextFormatter::operator<<(const Box<double3> &);
 
-TextFormatter &operator<<(TextFormatter &fmt, const None &) {
-	fmt << "none";
-	return fmt;
+TextFormatter &TextFormatter::operator<<(const None &) {
+	*this << "none";
+	return *this;
 }
 
 namespace detail {

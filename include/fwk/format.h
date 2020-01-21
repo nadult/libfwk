@@ -121,6 +121,10 @@ using EnableIfFormattible = EnableIf<(... && is_formattible<Args>), NotFormattib
 
 // TODO: escapable % ?
 // TODO: better name
+//
+// To make new type formattible provide one of the following operators:
+// void MyNewType::operator>>(TextFormatter&) const;
+// TextFormatter &operator<<(TextFormatter&, const MyNewType &rhs);
 class TextFormatter {
   public:
 	explicit TextFormatter(int capacity = 256, FormatOptions = {});
@@ -170,6 +174,89 @@ class TextFormatter {
 
 	void stdFormat(const char *format, ...) ATTRIB_PRINTF(2, 3);
 
+	template <class T, EnableIf<is_right_formattible<T>>...>
+	TextFormatter &operator<<(const T &rhs) {
+		rhs >> *this;
+		return *this;
+	}
+
+	template <class TSpan, class T = SpanBase<TSpan>, EnableIfFormattible<T>...>
+	TextFormatter &operator<<(const TSpan &span) {
+		detail::TFFunc func = [](TextFormatter &fmt, unsigned long long ptr) {
+			const T &ref = *(const T *)ptr;
+			auto func = detail::getTFFunc<T>();
+			return func(fmt, detail::getTFValue(ref));
+		};
+		detail::formatSpan(*this, (const char *)fwk::data(span), fwk::size(span), sizeof(T), func);
+		return *this;
+	}
+
+	template <class TRange, class T = RangeBase<TRange>, EnableIfFormattible<T>...,
+			  EnableIf<!is_span<TRange> && !is_right_formattible<TRange>>...>
+	TextFormatter &operator<<(const TRange &range) {
+		const char *separator = isStructured() ? ", " : " ";
+
+		if(isStructured())
+			(*this) << '[';
+		auto it = begin(range), it_end = end(range);
+		while(it != it_end) {
+			(*this) << *it;
+			++it;
+			if(it != it_end)
+				(*this) << separator;
+		}
+		if(isStructured())
+			(*this) << ']';
+		return *this;
+	}
+
+	template <class TVec, EnableIf<is_vec<TVec> && !is_right_formattible<TVec>>...>
+	TextFormatter &operator<<(const TVec &vec) {
+		enum { N = TVec::vec_size };
+		if constexpr(N == 2)
+			(*this)(isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
+		else if(N == 3)
+			(*this)(isStructured() ? "(%, %, %)" : "% % %", vec[0], vec[1], vec[2]);
+		else if(N == 4)
+			(*this)(isStructured() ? "(%, %, %, %)" : "% % % %", vec[0], vec[1], vec[2], vec[3]);
+		else
+			static_assert((N >= 2 && N <= 4), "Vector size not supported");
+		return *this;
+	}
+
+	template <class T> TextFormatter &operator<<(const Box<T> &box) {
+		(*this)(isStructured() ? "(%; %)" : "% %", box.min(), box.max());
+		return *this;
+	}
+
+	template <class T1, class T2> TextFormatter &operator<<(const Pair<T1, T2> &pair) {
+		(*this)(isStructured() ? "(%; %)" : "% %", pair.first, pair.second);
+		return *this;
+	}
+
+	template <class... Args> TextFormatter &operator<<(const LightTuple<Args...> &tuple) {
+		if(isStructured())
+			*this << '(';
+		formatTuple<0>(tuple);
+		if(isStructured())
+			*this << ')';
+		return *this;
+	}
+
+	template <class T> TextFormatter &operator<<(const Maybe<T> &maybe) {
+		if(maybe)
+			*this << *maybe;
+		else
+			*this << "none";
+		return *this;
+	}
+
+	template <class T, EnableIfEnum<T>...> TextFormatter &operator<<(T value) {
+		return *this << toString(value);
+	}
+
+	TextFormatter &operator<<(const None &);
+
   public:
 	using Value = detail::TFValue;
 	using Func = detail::TFFunc;
@@ -210,131 +297,38 @@ class TextFormatter {
 		return toString_(detail::getTFFunc<T>(), detail::getTFValue(value));
 	}
 
+	template <int N, class... Args> void formatTuple(const LightTuple<Args...> &tuple) {
+		*this << get<N>(tuple);
+		if constexpr(N + 1 < sizeof...(Args)) {
+			*this << (isStructured() ? "; " : " ");
+			formatTuple<N + 1>(tuple);
+		}
+	}
+
 	// TODO: It would be better to have string type internally
 	PodVector<char> m_data;
 	int m_offset;
 	FormatOptions m_options;
 };
 
-// To make new type formattible: simply overload operator<<:
-// TextFormatter &operator<<(TextFormatter&, const MyNewType &rhs);
-// alternatively (can be a member function):
-// void operator>>(const MyNewType&, TextFormatter&);
+extern template TextFormatter &TextFormatter::operator<<(const vec2<int> &);
+extern template TextFormatter &TextFormatter::operator<<(const vec3<int> &);
+extern template TextFormatter &TextFormatter::operator<<(const vec4<int> &);
 
-template <class T, EnableIf<is_right_formattible<T>>...>
-TextFormatter &operator<<(TextFormatter &fmt, const T &rhs) {
-	rhs >> fmt;
-	return fmt;
-}
+extern template TextFormatter &TextFormatter::operator<<(const vec2<float> &);
+extern template TextFormatter &TextFormatter::operator<<(const vec3<float> &);
+extern template TextFormatter &TextFormatter::operator<<(const vec4<float> &);
 
-template <class TSpan, class T = SpanBase<TSpan>, EnableIfFormattible<T>...>
-TextFormatter &operator<<(TextFormatter &out, const TSpan &span) {
-	detail::TFFunc func = [](TextFormatter &fmt, unsigned long long ptr) {
-		const T &ref = *(const T *)ptr;
-		auto func = detail::getTFFunc<T>();
-		return func(fmt, detail::getTFValue(ref));
-	};
-	detail::formatSpan(out, (const char *)fwk::data(span), fwk::size(span), sizeof(T), func);
-	return out;
-}
+extern template TextFormatter &TextFormatter::operator<<(const vec2<double> &);
+extern template TextFormatter &TextFormatter::operator<<(const vec3<double> &);
+extern template TextFormatter &TextFormatter::operator<<(const vec4<double> &);
 
-template <class TRange, class T = RangeBase<TRange>, EnableIfFormattible<T>...,
-		  EnableIf<!is_span<TRange> && !is_right_formattible<TRange>>...>
-TextFormatter &operator<<(TextFormatter &out, const TRange &range) {
-	const char *separator = out.isStructured() ? ", " : " ";
-
-	if(out.isStructured())
-		out << '[';
-	auto it = begin(range), it_end = end(range);
-	while(it != it_end) {
-		out << *it;
-		++it;
-		if(it != it_end)
-			out << separator;
-	}
-	if(out.isStructured())
-		out << ']';
-	return out;
-}
-
-template <class TVec, EnableIf<is_vec<TVec> && !is_right_formattible<TVec>>...>
-TextFormatter &operator<<(TextFormatter &out, const TVec &vec) {
-	enum { N = TVec::vec_size };
-	if constexpr(N == 2)
-		out(out.isStructured() ? "(%, %)" : "% %", vec[0], vec[1]);
-	else if(N == 3)
-		out(out.isStructured() ? "(%, %, %)" : "% % %", vec[0], vec[1], vec[2]);
-	else if(N == 4)
-		out(out.isStructured() ? "(%, %, %, %)" : "% % % %", vec[0], vec[1], vec[2], vec[3]);
-	else
-		static_assert((N >= 2 && N <= 4), "Vector size not supported");
-	return out;
-}
-
-template <class T> TextFormatter &operator<<(TextFormatter &out, const Box<T> &box) {
-	out(out.isStructured() ? "(%; %)" : "% %", box.min(), box.max());
-	return out;
-}
-
-template <class T1, class T2>
-TextFormatter &operator<<(TextFormatter &out, const Pair<T1, T2> &pair) {
-	out(out.isStructured() ? "(%; %)" : "% %", pair.first, pair.second);
-	return out;
-}
-
-namespace detail {
-	template <int N, class... Args>
-	void formatTuple(TextFormatter &out, const LightTuple<Args...> &tuple) {
-		out << get<N>(tuple);
-		if constexpr(N + 1 < sizeof...(Args)) {
-			out << (out.isStructured() ? "; " : " ");
-			formatTuple<N + 1>(out, tuple);
-		}
-	}
-}
-
-template <class... Args>
-TextFormatter &operator<<(TextFormatter &out, const LightTuple<Args...> &tuple) {
-	if(out.isStructured())
-		out << '(';
-	detail::formatTuple<0>(out, tuple);
-	if(out.isStructured())
-		out << ')';
-	return out;
-}
-
-template <class T> TextFormatter &operator<<(TextFormatter &out, const Maybe<T> &maybe) {
-	if(maybe)
-		out << *maybe;
-	else
-		out << "none";
-	return out;
-}
-
-extern template TextFormatter &operator<<(TextFormatter &, const vec2<int> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vec3<int> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vec4<int> &);
-
-extern template TextFormatter &operator<<(TextFormatter &, const vec2<float> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vec3<float> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vec4<float> &);
-
-extern template TextFormatter &operator<<(TextFormatter &, const vec2<double> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vec3<double> &);
-extern template TextFormatter &operator<<(TextFormatter &, const vec4<double> &);
-
-extern template TextFormatter &operator<<(TextFormatter &, const Box<int2> &);
-extern template TextFormatter &operator<<(TextFormatter &, const Box<int3> &);
-extern template TextFormatter &operator<<(TextFormatter &, const Box<float2> &);
-extern template TextFormatter &operator<<(TextFormatter &, const Box<float3> &);
-extern template TextFormatter &operator<<(TextFormatter &, const Box<double2> &);
-extern template TextFormatter &operator<<(TextFormatter &, const Box<double3> &);
-
-TextFormatter &operator<<(TextFormatter &, const None &);
-
-template <class T, EnableIfEnum<T>...> TextFormatter &operator<<(TextFormatter &out, T value) {
-	return out << toString(value);
-}
+extern template TextFormatter &TextFormatter::operator<<(const Box<int2> &);
+extern template TextFormatter &TextFormatter::operator<<(const Box<int3> &);
+extern template TextFormatter &TextFormatter::operator<<(const Box<float2> &);
+extern template TextFormatter &TextFormatter::operator<<(const Box<float3> &);
+extern template TextFormatter &TextFormatter::operator<<(const Box<double2> &);
+extern template TextFormatter &TextFormatter::operator<<(const Box<double3> &);
 
 string stdFormat(const char *format, ...) ATTRIB_PRINTF(1, 2);
 
