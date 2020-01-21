@@ -87,16 +87,14 @@ template <class Base> int TStream<Base>::loadString(Span<char> str) {
 	str[size] = 0;
 	return size;
 }
-	
-template <class Base>
-TStream<Base> &TStream<Base>::operator<<(Str str) {
+
+template <class Base> TStream<Base> &TStream<Base>::operator<<(Str str) {
 	saveString(str);
 	return *this;
 }
 
-template <class Base>
-TStream<Base> &TStream<Base>::operator>>(string &str) {
-	loadString(str);
+template <class Base> TStream<Base> &TStream<Base>::operator>>(string &str) {
+	str = loadString(stream_limits::default_max_string_size);
 	return *this;
 }
 }

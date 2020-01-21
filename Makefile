@@ -48,7 +48,7 @@ SRC_base = base_vector hash_map_stats enum str type_info any logger any_config f
 SRC_sys  = \
 	sys_base sys/error sys/exception sys/thread sys/expected sys/assert sys/assert_impl sys/on_fail \
 	sys/memory sys/backtrace sys/xml sys/input \
-	io/stream io/file_system io/file_stream io/memory_stream io/gzip_stream
+	io/stream io/file_system io/file_stream io/memory_stream io/gzip_stream io/package_file
 
 SRC_math = \
 	math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/matrix4_transform math/plane \
@@ -95,7 +95,7 @@ SRC_tests = \
 	tests/stuff tests/math tests/geom tests/window tests/enums tests/models tests/vector_perf \
 	tests/variant_perf tests/hash_map_perf
 
-SRC_tools    = tools/model_convert tools/model_viewer
+SRC_tools    = tools/model_convert tools/model_viewer tools/packager
 SRC_programs = $(SRC_tests) $(SRC_tools)
 
 MODULES = menu_imgui base sys gfx gfx_gl gfx_mesh math geom geom_graph geom_voronoi menu perf audio
