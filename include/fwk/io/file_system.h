@@ -28,8 +28,8 @@ class FilePath {
 	bool isRelative() const { return !isAbsolute(); }
 	bool empty() const { return m_path.empty(); }
 
-	string fileName() const;
-	string fileExtension() const;
+	Str fileName() const &;
+	Maybe<Str> fileExtension() const &;
 	bool isDirectory() const;
 	bool isRegularFile() const;
 

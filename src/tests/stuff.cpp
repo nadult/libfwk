@@ -69,6 +69,8 @@ void testString() {
 	ASSERT(Str("foobar").compareIgnoreCase("Foo") == 1);
 	ASSERT(Str("wazaboo").endsWith("oo"));
 	ASSERT(Str("haiaaaa").startsWith("hai"));
+	ASSERT_EQ(fileExtension("foo.xx/name.ext.xx"), "ext.xx");
+	ASSERT(!fileExtension("aaa"));
 }
 
 void testVariant() {

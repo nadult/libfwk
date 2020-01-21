@@ -96,6 +96,13 @@ int Str::find(char c) const {
 	return -1;
 }
 
+int Str::rfind(char c) const {
+	for(int n = m_size - 1; n >= 0; n--)
+		if(m_data[n] == c)
+			return n;
+	return -1;
+}
+
 int Str::find(Str str) const {
 #ifdef FWK_PLATFORM_MINGW
 	// TODO: slow
@@ -415,5 +422,13 @@ bool removePrefix(string &str, Str prefix) {
 		return true;
 	}
 	return false;
+}
+
+Maybe<Str> fileExtension(Str str) {
+	auto slash_pos = str.rfind('/');
+	if(slash_pos != -1)
+		str = str.substr(slash_pos + 1);
+	auto dot_pos = str.find('.');
+	return dot_pos == -1 ? Maybe<Str>() : str.substr(dot_pos + 1);
 }
 }

@@ -65,7 +65,8 @@ class Str {
 	string limitSizeFront(int max_size, Str prefix = "...") const;
 
 	// Returns -1 on failure
-	int find(char c) const;
+	int find(char) const;
+	int rfind(char) const;
 	int find(Str) const;
 
 	bool contains(Str str) const { return find(str) != -1; }
@@ -144,4 +145,8 @@ string escapeString(CSpan<char>);
 
 bool removeSuffix(string &, Str suffix);
 bool removePrefix(string &, Str prefix);
+
+// Dot is not included in the extension
+// If name has no dot then returns none
+Maybe<Str> fileExtension(Str);
 }

@@ -136,18 +136,14 @@ void FilePath::construct(const vector<Element> &input) {
 	m_path.swap(new_path);
 }
 
-string FilePath::fileName() const {
+Str FilePath::fileName() const & {
 	auto it = m_path.rfind('/');
 	if(it == string::npos || (it == 0 && m_path.size() == 1))
 		return m_path;
-	return m_path.substr(it + 1);
+	return Str(m_path).substr(it + 1);
 }
 
-string FilePath::fileExtension() const {
-	string name = fileName();
-	auto dot_pos = name.rfind('.');
-	return dot_pos == string::npos ? "" : name.substr(dot_pos + 1);
-}
+Maybe<Str> FilePath::fileExtension() const & { return fwk::fileExtension(m_path); }
 
 bool FilePath::isRoot() const {
 	// Ending backslash is stripped from folder paths
