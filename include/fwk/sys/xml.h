@@ -207,6 +207,7 @@ class XmlDocument {
 	XmlDocument &operator=(XmlDocument &&);
 
 	static Ex<XmlDocument> load(ZStr file_name, int max_size = default_max_file_size);
+	static Ex<XmlDocument> load(Stream &, int max_size = default_max_file_size);
 	static Ex<XmlDocument> make(CSpan<char> xml_data);
 
 	Ex<void> save(ZStr file_name) const;
