@@ -34,6 +34,9 @@ class Str {
 	const char *begin() const { return m_data; }
 	const char *end() const { return m_data + m_size; }
 
+	bool startsWith(Str) const;
+	bool endsWith(Str) const;
+
 	bool operator==(const Str &rhs) const { return m_size == rhs.m_size && compare(rhs) == 0; }
 	bool operator<(const Str &rhs) const { return compare(rhs) < 0; }
 
@@ -138,4 +141,7 @@ int utf32Length(const string &);
 string toLower(const string &);
 string toUpper(const string &);
 string escapeString(CSpan<char>);
+
+bool removeSuffix(string &, Str suffix);
+bool removePrefix(string &, Str prefix);
 }

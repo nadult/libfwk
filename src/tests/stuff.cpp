@@ -67,6 +67,8 @@ void testString() {
 	ASSERT_EQ(string("foo"), Str("foo"));
 	ASSERT(Str("foo") < Str("foobar"));
 	ASSERT(Str("foobar").compareIgnoreCase("Foo") == 1);
+	ASSERT(Str("wazaboo").endsWith("oo"));
+	ASSERT(Str("haiaaaa").startsWith("hai"));
 }
 
 void testVariant() {

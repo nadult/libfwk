@@ -80,6 +80,15 @@ int Str::compareIgnoreCase(const Str &rhs) const {
 	return ret ? ret : m_size < rhs.m_size ? -1 : m_size == rhs.m_size ? 0 : 1;
 }
 
+bool Str::startsWith(Str str) const {
+	return m_size >= str.size() && memcmp(m_data, str.m_data, str.m_size) == 0;
+}
+
+bool Str::endsWith(Str str) const {
+	return m_size >= str.size() &&
+		   memcmp(m_data + m_size - str.m_size, str.m_data, str.m_size) == 0;
+}
+
 int Str::find(char c) const {
 	for(int n = 0; n < m_size; n++)
 		if(m_data[n] == c)
@@ -390,5 +399,21 @@ string escapeString(CSpan<char> chars) {
 	}
 
 	return string(out.begin(), out.end());
+}
+
+bool removeSuffix(string &str, Str suffix) {
+	if(Str(str).endsWith(suffix)) {
+		str = str.substr(0, str.size() - suffix.size());
+		return true;
+	}
+	return false;
+}
+
+bool removePrefix(string &str, Str prefix) {
+	if(Str(str).startsWith(prefix)) {
+		str = str.substr(prefix.size());
+		return true;
+	}
+	return false;
 }
 }

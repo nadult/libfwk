@@ -95,8 +95,6 @@ using FindFileOpts = EnumFlags<FindFileOpt>;
 
 vector<string> findFiles(const string &prefix, const string &suffix);
 vector<FileEntry> findFiles(const FilePath &path, FindFileOpts = FindFileOpt::regular_file);
-bool removeSuffix(string &str, const string &suffix);
-bool removePrefix(string &str, const string &prefix);
 bool access(const FilePath &);
 
 Ex<void> mkdirRecursive(const FilePath &path);

@@ -239,24 +239,6 @@ TextParser &operator>>(TextParser &parser, FilePath &path) {
 	return parser;
 }
 
-bool removeSuffix(string &str, const string &suffix) {
-	if(str.size() >= suffix.size() && suffix == str.c_str() + str.size() - suffix.size()) {
-		str = str.substr(0, str.size() - suffix.size());
-		return true;
-	}
-
-	return false;
-}
-
-bool removePrefix(string &str, const string &prefix) {
-	if(str.size() >= prefix.size() && memcmp(str.c_str(), prefix.c_str(), prefix.size()) == 0) {
-		str = str.substr(prefix.size());
-		return true;
-	}
-
-	return false;
-}
-
 bool access(const FilePath &path) {
 #ifdef _WIN32
 	return _access(path.c_str(), 0) == 0;
