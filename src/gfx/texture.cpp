@@ -92,31 +92,17 @@ static TextureLoaders &loaders() {
 }
 
 Ex<Texture> Texture::load(ZStr file_name, Maybe<FileType> type) {
-	auto file = fileLoader(file_name);
-	return file ? load(*file, type) : file.error();
-	// TODO: when passing error forward, add information that we're loading a texture?
+	auto loader = EX_PASS(fileLoader(file_name));
+	if(type)
+		return load(loader, *type);
+	return load(loader);
+	if(auto ext = fileExtension(file_name))
+		return load(loader, *ext);
+	return ERROR("File '%' has no extension: don't know which loader to use", file_name);
 }
 
-Ex<Texture> Texture::load(FileStream &sr, Maybe<FileType> type) {
-	if(!type) {
-		string file_name = sr.name();
-		auto dot_pos = file_name.rfind('.');
-
-		string ext = toLower(dot_pos == string::npos ? string() : file_name.substr(dot_pos + 1));
-		if(ext.empty())
-			return ERROR("No extension information: don't know which loader to use");
-
-		type = maybeFromString<FileType>(ext);
-		if(!type) {
-			for(auto &loader : loaders())
-				if(loader.first == ext)
-					return loader.second(sr);
-
-			return ERROR("Extension '%' not supported", ext);
-		}
-	}
-
-	switch(*type) {
+Ex<Texture> Texture::load(Stream &sr, FileType type) {
+	switch(type) {
 	case FileType::tga:
 		return detail::loadTGA(sr);
 	case FileType::bmp:
@@ -124,7 +110,22 @@ Ex<Texture> Texture::load(FileStream &sr, Maybe<FileType> type) {
 	case FileType::png:
 		return detail::loadPNG(sr);
 	}
-	FATAL("Invalid FileType");
+}
+
+Ex<Texture> Texture::load(Stream &sr, Str extension) {
+	string ext = toLower(extension);
+	if(auto type = maybeFromString<FileType>(extension))
+		return load(sr, *type);
+	for(auto &loader : loaders())
+		if(loader.first == extension)
+			return loader.second(sr);
+	return ERROR("Extension '%' not supported", extension);
+}
+
+Ex<Texture> Texture::load(FileStream &sr) {
+	if(auto ext = fileExtension(sr.name()))
+		return load(sr, *ext);
+	return ERROR("File '%' has no extension: don't know which loader to use", sr.name());
 }
 
 Texture::RegisterLoader::RegisterLoader(const char *ext, Loader func) {

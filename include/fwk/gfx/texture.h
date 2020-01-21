@@ -32,7 +32,9 @@ class Texture {
 	// Loading from TGA, BMP, PNG, DDS
 	// TODO: loading from memory (through DataStream or something)
 	static Ex<Texture> load(ZStr file_name, Maybe<FileType> = none);
-	static Ex<Texture> load(FileStream &, Maybe<FileType>);
+	static Ex<Texture> load(Stream &, FileType);
+	static Ex<Texture> load(Stream &, Str extension);
+	static Ex<Texture> load(FileStream &);
 
 	using Loader = Ex<Texture> (*)(Stream &);
 	struct RegisterLoader {
