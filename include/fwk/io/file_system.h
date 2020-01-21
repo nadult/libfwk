@@ -48,10 +48,10 @@ class FilePath {
 	static Ex<FilePath> current();
 	static Ex<void> setCurrent(const FilePath &);
 
-	operator ZStr() const { return m_path; }
-	operator Str() const { return m_path; }
-	operator const string &() const { return m_path; }
-	const char *c_str() const { return m_path.c_str(); }
+	operator ZStr() const & { return m_path; }
+	operator Str() const & { return m_path; }
+	operator const string &() const & { return m_path; }
+	const char *c_str() const & { return m_path.c_str(); }
 	int size() const { return (int)m_path.size(); }
 
 	FWK_ORDER_BY(FilePath, m_path);
