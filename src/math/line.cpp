@@ -3,7 +3,7 @@
 
 #include "fwk/math/line.h"
 
-#include "fwk/sys/xml.h"
+#include "fwk/io/xml.h"
 #include "fwk/variant.h"
 
 namespace fwk {

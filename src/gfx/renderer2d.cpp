@@ -10,7 +10,7 @@
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/hash_map.h"
-#include "fwk/sys/xml.h"
+#include "fwk/io/xml.h"
 
 namespace fwk {
 

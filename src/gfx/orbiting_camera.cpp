@@ -4,7 +4,7 @@
 #include "fwk/gfx/orbiting_camera.h"
 
 #include "fwk/gfx/camera.h"
-#include "fwk/sys/xml.h"
+#include "fwk/io/xml.h"
 
 namespace fwk {
 OrbitingCamera::OrbitingCamera(float3 center, float distance, float rot_horiz, float rot_vert)

@@ -4,7 +4,7 @@
 #include "fwk/gfx/fps_camera.h"
 
 #include "fwk/gfx/camera.h"
-#include "fwk/sys/xml.h"
+#include "fwk/io/xml.h"
 
 namespace fwk {
 

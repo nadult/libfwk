@@ -14,8 +14,8 @@
 
 #include "fwk/io/file_stream.h"
 #include "fwk/io/file_system.h"
+#include "fwk/io/xml.h"
 #include "fwk/sys/on_fail.h"
-#include "fwk/sys/xml.h"
 
 #define assert DASSERT
 

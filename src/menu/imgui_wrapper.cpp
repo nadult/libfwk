@@ -17,9 +17,9 @@
 #include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/opengl.h"
+#include "fwk/io/xml.h"
 #include "fwk/menu_imgui_internal.h"
 #include "fwk/sys/input.h"
-#include "fwk/sys/xml.h"
 
 namespace fwk {
 

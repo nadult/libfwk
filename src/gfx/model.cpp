@@ -12,8 +12,8 @@
 #include "fwk/gfx/render_list.h"
 #include "fwk/gfx/triangle_buffer.h"
 #include "fwk/index_range.h"
+#include "fwk/io/xml.h"
 #include "fwk/sys/assert.h"
-#include "fwk/sys/xml.h"
 
 namespace fwk {
 

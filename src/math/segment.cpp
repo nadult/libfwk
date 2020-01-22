@@ -3,11 +3,11 @@
 
 #include "fwk/math/segment.h"
 
+#include "fwk/io/xml.h"
 #include "fwk/math/box.h"
 #include "fwk/math/plane.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/triangle.h"
-#include "fwk/sys/xml.h"
 #include "fwk/variant.h"
 
 namespace fwk {

@@ -4,7 +4,7 @@
 #include "fwk/gfx/model_node.h"
 
 #include "fwk/hash_map.h"
-#include "fwk/sys/xml.h"
+#include "fwk/io/xml.h"
 
 namespace fwk {
 

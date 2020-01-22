@@ -3,8 +3,8 @@
 
 #include "fwk/math/affine_trans.h"
 
+#include "fwk/io/xml.h"
 #include "fwk/math/matrix4.h"
-#include "fwk/sys/xml.h"
 
 namespace fwk {
 

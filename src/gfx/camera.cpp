@@ -3,11 +3,11 @@
 
 #include "fwk/gfx/camera.h"
 
+#include "fwk/io/xml.h"
 #include "fwk/math/frustum.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
-#include "fwk/sys/xml.h"
 
 namespace fwk {
 

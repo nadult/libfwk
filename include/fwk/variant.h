@@ -34,8 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <new>
 #include <type_traits>
 #include <utility>
+#include "fwk/io/xml.h"
 #include "fwk/sys_base.h"
-#include "fwk/sys/xml.h"
 #include "fwk/type_info_gen.h"
 
 namespace fwk {

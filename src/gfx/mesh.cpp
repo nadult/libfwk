@@ -8,11 +8,11 @@
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/material_set.h"
 #include "fwk/gfx/render_list.h"
+#include "fwk/io/xml.h"
 #include "fwk/math/constants.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
-#include "fwk/sys/xml.h"
 
 namespace fwk {
 

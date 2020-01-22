@@ -6,8 +6,8 @@
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/pose.h"
+#include "fwk/io/xml.h"
 #include "fwk/math/matrix4.h"
-#include "fwk/sys/xml.h"
 #include <numeric>
 
 namespace fwk {

@@ -8,10 +8,10 @@
 #include "fwk/gfx/pose.h"
 #include "fwk/io/file_stream.h"
 #include "fwk/io/file_system.h"
+#include "fwk/io/xml.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
-#include "fwk/sys/xml.h"
 #include "testing.h"
 
 string mainPath(string file_name) {

@@ -4,7 +4,7 @@
 #include "fwk/gfx/model_anim.h"
 
 #include "fwk/gfx/pose.h"
-#include "fwk/sys/xml.h"
+#include "fwk/io/xml.h"
 
 namespace fwk {
 
