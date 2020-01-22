@@ -15,14 +15,13 @@ Ex<void> packFiles(FilePath path, string output) {
 	string prefix = path;
 	if(prefix.back() != '/')
 		prefix += '/';
-	DUMP(path, prefix);
 
 	auto files = findFiles(prefix, "");
 	auto pkg = EX_PASS(PackageFile::make(prefix, files));
 	auto out_stream = EX_PASS(fileSaver(output));
-	for(auto [file, size] : pkg.files)
+	for(auto [file, size, _] : pkg.fileInfos())
 		printf("Adding: %6dKB %s\n", (int)((size + 512) / 1024), file.c_str());
-	return pkg.saveFull(out_stream);
+	return pkg.save(out_stream);
 }
 
 Ex<void> compressFiles(FilePath path, string output) {
@@ -33,14 +32,13 @@ Ex<void> compressFiles(FilePath path, string output) {
 Ex<void> unpackFiles(FilePath path, FilePath output_prefix) {
 	// TODO: handle compressed
 	auto sr = EX_PASS(fileLoader(path));
-	auto pkg = EX_PASS(PackageFile::loadHeader(sr));
+	auto pkg = EX_PASS(PackageFile::load(sr));
+	sr.clear();
 
-	for(auto [name, size] : pkg.files) {
-		auto path = output_prefix / name;
+	for(int n = 0; n < pkg.size(); n++) {
+		auto path = output_prefix / pkg[n].name;
 		EXPECT(mkdirRecursive(path.parent()));
-		PodVector<char> data(size);
-		sr.loadData(data);
-		EXPECT(saveFile(path, data));
+		EXPECT(saveFile(path, pkg.data(n)));
 	}
 
 	return {};
