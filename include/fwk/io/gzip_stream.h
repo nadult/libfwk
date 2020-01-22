@@ -8,6 +8,8 @@
 
 namespace fwk {
 
+// Simple gzip stream; It does not buffer input data, so it's best
+// to save/load data in big blocks (at least few KB).
 class GzipStream {
   public:
 	GzipStream(GzipStream &&);
@@ -19,11 +21,14 @@ class GzipStream {
 
 	// Referenced stream has to exist as long as GzipStream
 	static Ex<GzipStream> loader(Stream &, Maybe<i64> load_limit = none);
-	//static Ex<GzipStream> saver(Stream&);
+	static Ex<GzipStream> saver(Stream&, int compr_level = 9);
 
 	Ex<int> loadData(Span<char>);
-	Ex<int> saveData(CSpan<char>);
 	Ex<vector<char>> loadData();
+	
+	Ex<void> saveData(CSpan<char>);
+	// Don't forget to finish before closing saving stream
+	Ex<void> finish();
 
 	bool isFinished() const { return m_is_finished; }
 
