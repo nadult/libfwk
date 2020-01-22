@@ -4,8 +4,8 @@
 #pragma once
 
 #include "fwk/io/file_system.h"
-#include "fwk/vector.h"
 #include "fwk/pod_vector.h"
+#include "fwk/vector.h"
 
 namespace fwk {
 
@@ -25,7 +25,7 @@ struct PackageFile {
 	static Ex<PackageFile> make(FilePath prefix, CSpan<string> file_names);
 	static Ex<PackageFile> load(Stream &);
 
-	Ex<void> save(Stream&) const;
+	Ex<void> save(Stream &) const;
 
 	int size() const { return m_infos.size(); }
 	CSpan<FileInfo> fileInfos() const { return m_infos; }
@@ -36,7 +36,7 @@ struct PackageFile {
 
 	bool emptyData() const { return !m_data; }
 
-private:
+  private:
 	vector<FileInfo> m_infos;
 	PodVector<char> m_data;
 	u32 m_data_offset = 0;
