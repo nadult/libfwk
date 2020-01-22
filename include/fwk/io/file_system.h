@@ -82,15 +82,16 @@ TextParser &operator>>(TextParser &, FilePath &) EXCEPT;
 struct FileEntry {
 	FilePath path;
 	bool is_dir;
+	bool is_link;
 
-	bool operator<(const FileEntry &rhs) const {
-		return is_dir == rhs.is_dir ? path < rhs.path : is_dir > rhs.is_dir;
-	}
+	// Directories and links are first
+	bool operator<(const FileEntry &rhs) const;
 };
 
 // relative: all paths relative to given path
 // include_parent: include '..' as well
-DEFINE_ENUM(FindFileOpt, regular_file, directory, recursive, relative, absolute, include_parent);
+DEFINE_ENUM(FindFileOpt, regular_file, directory, link, recursive, relative, absolute,
+			include_parent);
 using FindFileOpts = EnumFlags<FindFileOpt>;
 
 vector<string> findFiles(const string &prefix, const string &suffix);

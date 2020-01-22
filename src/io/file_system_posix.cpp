@@ -90,10 +90,11 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 			if(is_current || (ignore_parent && is_parent))
 				continue;
 
-			bool is_directory = false, is_regular = false;
+			bool is_directory = false, is_regular = false, is_link = false;
 #ifdef _DIRENT_HAVE_D_TYPE
 			is_directory = dirp->d_type == DT_DIR;
 			is_regular = dirp->d_type == DT_REG;
+			is_link = dirp->d_type == DT_LNK;
 			// TODO: fix this
 			// if(dirp->d_type == DT_LNK)
 			// 	dirp->d_type = DT_DIR;
@@ -108,22 +109,19 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 				lstat(full_path, &buf);
 				is_directory = S_ISDIR(buf.st_mode);
 				is_regular = S_ISREG(buf.st_mode);
+				is_link = S_ISLNK(buf.st_mode);
 			}
 
 			bool do_accept = ((opts & Opt::regular_file) && is_regular) ||
-							 ((opts & Opt::directory) && is_directory);
-			//	printf("found in %s: %s (%d/%d)\n", path.c_str(), dirp->d_name, is_directory, is_regular);
+							 ((opts & Opt::directory) && is_directory) ||
+							 ((opts & Opt::link) && is_link);
 
 			// TODO: check why was this added
 			//	if(do_accept && is_root && is_directory)
 			//		do_accept = false;
 
-			if(do_accept) {
-				FileEntry entry;
-				entry.path = append / FilePath(dirp->d_name);
-				entry.is_dir = is_directory;
-				out.push_back(entry);
-			}
+			if(do_accept)
+				out.emplace_back(append / FilePath(dirp->d_name), is_directory, is_link);
 
 			if(is_directory && (opts & Opt::recursive) && !is_parent)
 				findFiles(out, path / FilePath(dirp->d_name), append / FilePath(dirp->d_name),

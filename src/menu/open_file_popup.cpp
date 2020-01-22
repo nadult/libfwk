@@ -71,7 +71,7 @@ void openFilePopup(string &file_name, ZStr popup_name, string file_regex) {
 							 [](const FileEntry &entry) { return entry.path.c_str()[0] != '.'; });
 
 		if(!ctx.current_dir.isRoot())
-			entries.insert(entries.begin(), {"..", true});
+			entries.insert(entries.begin(), {"..", true, false});
 
 		for(auto &entry : entries) {
 			if(entry.is_dir &&

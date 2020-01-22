@@ -235,6 +235,19 @@ TextParser &operator>>(TextParser &parser, FilePath &path) {
 	return parser;
 }
 
+bool FileEntry::operator<(const FileEntry &rhs) const {
+	if(is_dir != rhs.is_dir || is_link != rhs.is_link) {
+		auto lval = is_dir || is_link, rval = rhs.is_dir || rhs.is_link;
+		if(lval != rval)
+			return lval > rval;
+		int val = Str(path).compare(rhs.path);
+		if(val != 0)
+			return val < 0;
+		return tie(is_dir, is_link) < tie(rhs.is_dir, rhs.is_link);
+	}
+	return path < rhs.path;
+}
+
 bool access(const FilePath &path) {
 #ifdef _WIN32
 	return _access(path.c_str(), 0) == 0;
