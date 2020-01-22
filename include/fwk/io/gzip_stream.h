@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/pod_vector.h"
+#include "fwk/sys/error.h"
 
 namespace fwk {
 
@@ -31,8 +32,9 @@ class GzipStream {
 
 	bool isFinished() const { return m_is_finished; }
 
-  protected:
+  private:
 	GzipStream(void *, Stream &, bool);
+	Error makeError(const char *file, int line, Str, int = 0) NOINLINE;
 
 	vector<char> m_buffer;
 	Stream *m_pipe = nullptr;

@@ -44,15 +44,16 @@ GzipStream::~GzipStream() {
 	}
 }
 
+// TODO: use FATAL in these?
 Ex<GzipStream> GzipStream::decompressor(Stream &input, Maybe<i64> load_limit) {
 	DASSERT(input.isLoading());
 
 	auto ctx = (z_stream *)fwk::allocate(sizeof(z_stream));
 	memset(ctx, 0, sizeof(*ctx));
 
-	if(inflateInit(ctx) != Z_OK) {
+	if(inflateInit2(ctx, 32) != Z_OK) {
 		fwk::deallocate(ctx);
-		return ERROR("Error in inflateInit");
+		return ERROR("inflateInit failed");
 	}
 	GzipStream out(ctx, input, false);
 	if(load_limit) {
@@ -79,19 +80,28 @@ Ex<GzipStream> GzipStream::compressor(Stream &output, int compr_level) {
 	return out;
 }
 
-/*
-void GzipStream::raise(ZStr text) {
-	RAISE("GzipStream %s error at position %lld/%lld: %s",
-		  isLoading() ? "loading(inflating)" : "saving(deflating)", m_pos, m_size, text.c_str());
-	m_flags |= Flag::invalid;
-}*/
+Error GzipStream::makeError(const char *file, int line, Str str, int err) {
+	m_is_valid = false;
+	auto ctx = (z_stream *)m_ctx;
+	int input_pos = ctx ? ctx->total_in : 0, output_pos = ctx ? ctx->total_out : 0;
+	auto text =
+		format("Error while % (input pos:% output_pos:%): %",
+			   m_is_compressing ? "compressing" : "decompressing", input_pos, output_pos, str);
+	if(err)
+		text += format(" err:%", err);
+	auto out = Error(ErrorLoc{file, line}, move(text));
+
+	if(exceptionRaised())
+		out = Error::merge({out, getMergedExceptions()});
+	return out;
+}
+
+#define GZERROR(...) makeError(__FILE__, __LINE__, __VA_ARGS__)
 
 Ex<int> GzipStream::decompress(Span<char> data) {
 	PASSERT(!m_is_compressing);
-	if(!m_is_valid) {
-		fill(data, 0);
-		return ERROR("Reading from invalidated stream");
-	}
+	if(!m_is_valid)
+		return GZERROR("Reading from invalidated stream");
 	if(m_is_finished || !data)
 		return 0;
 
@@ -107,11 +117,8 @@ Ex<int> GzipStream::decompress(Span<char> data) {
 			}
 
 			m_pipe->loadData(span(m_buffer.data(), max_read));
-			if(exceptionRaised()) {
-				fill(data, 0);
-				m_is_valid = false;
-				return ERROR("Error while reading data from input stream");
-			}
+			if(exceptionRaised())
+				return GZERROR("Exception while reading data from input stream");
 
 			ctx.avail_in = max_read;
 			ctx.next_in = (Bytef *)m_buffer.data();
@@ -121,11 +128,8 @@ Ex<int> GzipStream::decompress(Span<char> data) {
 		ctx.next_out = (Bytef *)data.data() + out_pos;
 		auto ret = inflate(&ctx, Z_NO_FLUSH);
 
-		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR)) {
-			m_is_valid = m_is_finished = false;
-			fill(data, 0);
-			return ERROR("Error while inflating data: %", ret);
-		}
+		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR))
+			return GZERROR("inflate failed: %", ret);
 		out_pos = data.size() - ctx.avail_out;
 
 		if(ret == Z_STREAM_END) {
@@ -164,18 +168,14 @@ Ex<void> GzipStream::compress(CSpan<char> data) {
 	while(ctx.avail_in > 0) {
 		auto ret = deflate(&ctx, Z_NO_FLUSH);
 
-		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR)) {
-			m_is_valid = false;
-			return ERROR("Error while deflating data: %", ret);
-		}
+		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR))
+			return GZERROR("deflate failed: %", ret);
 
 		// Flusing buffer
 		if(ctx.avail_out == 0) {
 			m_pipe->saveData(m_buffer);
-			if(exceptionRaised()) {
-				m_is_valid = false;
-				return ERROR("Error while reading data from input stream");
-			}
+			if(exceptionRaised())
+				return GZERROR("Exception while reading data from input stream");
 			ctx.avail_out = m_buffer.size();
 			ctx.next_out = (Bytef *)m_buffer.data();
 		}
@@ -198,17 +198,13 @@ Ex<void> GzipStream::finishCompression() {
 	do {
 		ret = deflate(&ctx, Z_FINISH);
 
-		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR)) {
-			m_is_valid = false;
-			return ERROR("Error while deflating data: %", ret);
-		}
+		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR))
+			return GZERROR("deflate failed: %", ret);
 
 		if(ctx.avail_out < (uint)m_buffer.size() || ret == Z_STREAM_END) {
 			m_pipe->saveData(cspan(m_buffer.data(), m_buffer.size() - ctx.avail_out));
-			if(exceptionRaised()) {
-				m_is_valid = false;
-				return ERROR("Error while reading data from input stream");
-			}
+			if(exceptionRaised())
+				return GZERROR("Exception while reading data from input stream");
 			ctx.avail_out = m_buffer.size();
 			ctx.next_out = (Bytef *)m_buffer.data();
 		}
