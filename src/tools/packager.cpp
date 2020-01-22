@@ -10,23 +10,24 @@
 
 using namespace fwk;
 
-Ex<void> packFiles(FilePath path, string output) {
+//#define VERBOSE
+
+Ex<void> packFiles(FilePath path, string output, string suffix) {
 	EXPECT(path.isDirectory());
 	string prefix = path;
 	if(prefix.back() != '/')
 		prefix += '/';
 
-	auto files = findFiles(prefix, "");
+	auto files = findFiles(prefix, suffix);
+	for(auto &file : files)
+		file += suffix;
 	auto pkg = EX_PASS(PackageFile::make(prefix, files));
 	auto out_stream = EX_PASS(fileSaver(output));
+#ifdef VERBOSE
 	for(auto [file, size, _] : pkg.fileInfos())
 		printf("Adding: %6dKB %s\n", (int)((size + 512) / 1024), file.c_str());
+#endif
 	return pkg.save(out_stream);
-}
-
-Ex<void> compressFiles(FilePath path, string output) {
-	// TODO: gzip compressor
-	return ERROR("finish me");
 }
 
 Ex<void> unpackFiles(FilePath path, FilePath output_prefix) {
@@ -48,21 +49,19 @@ int main(int argc, char **argv) {
 	Backtrace::t_default_mode = BacktraceMode::full;
 
 	if(argc < 4) {
-		printf("Usage:\n%s pack input_path output_file\n"
-			   "%s compress input_path output_file\n"
+		printf("Usage:\n%s pack input_path output_file [suffix]\n"
 			   "%s unpack input_file output_path_prefix\n\n",
-			   argv[0], argv[0], argv[0]);
+			   argv[0], argv[0]);
 		return 0;
 	}
 
 	string command = argv[1];
 	string input = argv[2];
 	string output = argv[3];
+	string suffix = argc > 4? argv[4] : "";
 
 	if(command == "pack")
-		packFiles(input, output).check();
-	else if(command == "compress")
-		compressFiles(input, output).check();
+		packFiles(input, output, suffix).check();
 	else if(command == "unpack")
 		unpackFiles(input, output).check();
 	else

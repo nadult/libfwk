@@ -58,7 +58,6 @@ PLATFORM_PREFIX      := $(if $(findstring linux,$(PLATFORM)),,$(PLATFORM)_)
 FWK_BUILD_DIR        := $(FWK_DIR)build/$(PLATFORM_PREFIX)$(FWK_MODE)
 FWK_LIB_NAME         := fwk_$(PLATFORM_PREFIX)$(FWK_MODE)
 FWK_LIB_FILE         := $(FWK_DIR)lib/lib$(FWK_LIB_NAME).a
-FWK_MODELCONV_FILE   := $(FWK_DIR)tools/model_convert$(PROGRAM_SUFFIX)
 
 export FWK_GEOM      := enabled
 export FWK_IMGUI     := $(if $(wildcard $(FWK_DIR)extern/imgui/imgui.h),enabled,disabled)
@@ -189,8 +188,6 @@ FWK_MAKE_ARGS  = -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
 
 $(FWK_LIB_FILE): .FORCE
 	$(MAKE) $(FWK_MAKE_ARGS) lib/lib$(FWK_LIB_NAME).a
-$(FWK_MODELCONV_FILE): .FORCE
-	$(MAKE) $(FWK_MAKE_ARGS) tools/model_convert$(PROGRAM_SUFFIX)
 endif
 
 .FORCE:
