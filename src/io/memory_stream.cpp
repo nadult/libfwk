@@ -60,6 +60,7 @@ void BaseMemoryStream::saveData(CSpan<char> data) {
 		reserve(m_pos + data.size());
 	memcpy(m_data + m_pos, data.data(), data.size());
 	m_pos += data.size();
+	m_size = max(m_pos, m_size);
 }
 
 void BaseMemoryStream::loadData(Span<char> data) {
