@@ -10,9 +10,11 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
-- asPod -> asFlat ?
-- ujednolicenie interfejsów MemoryStream & FileStream
+- lepsze interfejsy do strumieni? Na razie chyba to nie potrzebne
+- rename load/save stream to input/output ?
+- PodVector mozna wywalić i dodać obsługę no_init do vectora?
 - odróżnić indexOf ze Sprase spana (intruzywny?) od normalnego indexOf który przegląda wartości
+- asPod -> asFlat ?
 
 - Z jakiegoś powodu checker nie wyłapuje EXCEPTów z delegowanego konstruktora, chyba że
   implementacja jest wewn. klasy; Przykład: CellEdge(CXmlNode)
@@ -94,15 +96,6 @@ CAŁY CZAS TO ROBISZ :(
 
 - Jak się wywoła funkcję przekazaną parametrem i ta funkcja jest except, to ta która ją wywołuje
   też powinna być! A teraz chyba nie jest?
-
-- New DataStream class:
-  - simple class which serializes to/from memory
-  - used for serialization of small-medium sized objects
-  - textures & big files should serialize to/from FileStream and maybe provile
-    interface to add/extract chunks of data to be serialized through Stream
-  - network serialization: first save to Stream, then use SocketStream to save whole DataStream
-  - maybe a single interface for XML & binary serialization ?
-  - find a better name?
 
 - builtin_rotateleft, etc.
 
@@ -212,7 +205,6 @@ TODO: which OpenGL version are we targeting ?
 
 - insertBack with move ?
 
-- Lepsza implementacja FileStream ? Nie jest w stanie wykryć czy jest plikiem czy katalogiem...
 - Problem with FwdMember: what happens when we're compiling with WPO ?
 - FwdMember const refs to Base type ?
 - sprawdz wersje gcc / clang na poczatku
