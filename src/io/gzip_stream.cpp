@@ -3,6 +3,7 @@
 
 #include "fwk/io/gzip_stream.h"
 
+#include "fwk/io/memory_stream.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
 #include "stream_inl.h"
@@ -11,17 +12,18 @@
 namespace fwk {
 
 using namespace std;
-	  
+
 static constexpr int buffer_size = 16 * 1024;
 
 // TODO: slow compression (5MB/s)
 
-GzipStream::GzipStream(void *ctx, Stream &pipe, bool is_loading)
-	: m_buffer(buffer_size), m_pipe(&pipe), m_ctx(ctx), m_is_loading(is_loading) {}
+GzipStream::GzipStream(void *ctx, Stream &pipe, bool is_compressing)
+	: m_buffer(buffer_size), m_pipe(&pipe), m_ctx(ctx), m_is_compressing(is_compressing) {}
 
 GzipStream::GzipStream(GzipStream &&rhs)
 	: m_buffer(move(rhs.m_buffer)), m_pipe(rhs.m_pipe), m_ctx(rhs.m_ctx),
-	  m_is_loading(rhs.m_is_loading), m_is_valid(rhs.m_is_valid), m_is_finished(rhs.m_is_finished) {
+	  m_is_compressing(rhs.m_is_compressing), m_is_valid(rhs.m_is_valid),
+	  m_is_finished(rhs.m_is_finished) {
 	rhs.m_pipe = nullptr;
 	rhs.m_ctx = nullptr;
 	rhs.m_is_valid = false;
@@ -42,7 +44,7 @@ GzipStream::~GzipStream() {
 	}
 }
 
-Ex<GzipStream> GzipStream::loader(Stream &input, Maybe<i64> load_limit) {
+Ex<GzipStream> GzipStream::decompressor(Stream &input, Maybe<i64> load_limit) {
 	DASSERT(input.isLoading());
 
 	auto ctx = (z_stream *)fwk::allocate(sizeof(z_stream));
@@ -52,7 +54,7 @@ Ex<GzipStream> GzipStream::loader(Stream &input, Maybe<i64> load_limit) {
 		fwk::deallocate(ctx);
 		return ERROR("Error in inflateInit");
 	}
-	GzipStream out(ctx, input, true);
+	GzipStream out(ctx, input, false);
 	if(load_limit) {
 		DASSERT(*load_limit >= 0);
 		out.m_load_limit = *load_limit;
@@ -60,7 +62,7 @@ Ex<GzipStream> GzipStream::loader(Stream &input, Maybe<i64> load_limit) {
 	return out;
 }
 
-Ex<GzipStream> GzipStream::saver(Stream &output, int compr_level) {
+Ex<GzipStream> GzipStream::compressor(Stream &output, int compr_level) {
 	DASSERT(output.isSaving());
 	DASSERT(compr_level >= 0 && compr_level <= 9);
 
@@ -71,9 +73,9 @@ Ex<GzipStream> GzipStream::saver(Stream &output, int compr_level) {
 		fwk::deallocate(ctx);
 		return ERROR("Error in deflateInit");
 	}
-	auto out = GzipStream(ctx, output, false);
+	auto out = GzipStream(ctx, output, true);
 	ctx->avail_out = out.m_buffer.size();
-	ctx->next_out = (Bytef*)out.m_buffer.data();
+	ctx->next_out = (Bytef *)out.m_buffer.data();
 	return out;
 }
 
@@ -84,8 +86,8 @@ void GzipStream::raise(ZStr text) {
 	m_flags |= Flag::invalid;
 }*/
 
-Ex<int> GzipStream::loadData(Span<char> data) {
-	PASSERT(m_is_loading);
+Ex<int> GzipStream::decompress(Span<char> data) {
+	PASSERT(!m_is_compressing);
 	if(!m_is_valid) {
 		fill(data, 0);
 		return ERROR("Reading from invalidated stream");
@@ -135,11 +137,11 @@ Ex<int> GzipStream::loadData(Span<char> data) {
 	return out_pos;
 }
 
-Ex<vector<char>> GzipStream::loadData() {
+Ex<vector<char>> GzipStream::decompress() {
 	vector<char> out;
 	while(!isFinished()) {
-		char buffer[4096];
-		if(auto result = loadData(buffer))
+		char buffer[buffer_size];
+		if(auto result = decompress(buffer))
 			insertBack(out, cspan(buffer, *result));
 		else
 			return result.error();
@@ -147,8 +149,8 @@ Ex<vector<char>> GzipStream::loadData() {
 	return out;
 }
 
-Ex<void> GzipStream::saveData(CSpan<char> data) {
-	PASSERT(!m_is_loading && !m_is_finished);
+Ex<void> GzipStream::compress(CSpan<char> data) {
+	PASSERT(m_is_compressing && !m_is_finished);
 	if(!m_is_valid)
 		return ERROR("Writing to invalidated stream");
 	if(!data)
@@ -156,7 +158,7 @@ Ex<void> GzipStream::saveData(CSpan<char> data) {
 
 	auto &ctx = *(z_stream *)m_ctx;
 	ctx.avail_in = data.size();
-	ctx.next_in = (Bytef*)data.data();
+	ctx.next_in = (Bytef *)data.data();
 	PASSERT(ctx.avail_out);
 
 	while(ctx.avail_in > 0) {
@@ -175,15 +177,15 @@ Ex<void> GzipStream::saveData(CSpan<char> data) {
 				return ERROR("Error while reading data from input stream");
 			}
 			ctx.avail_out = m_buffer.size();
-			ctx.next_out = (Bytef*)m_buffer.data();
+			ctx.next_out = (Bytef *)m_buffer.data();
 		}
 	}
 
 	return {};
 }
 
-Ex<void> GzipStream::finish() {
-	PASSERT(!m_is_loading && !m_is_finished);
+Ex<void> GzipStream::finishCompression() {
+	PASSERT(m_is_compressing && !m_is_finished);
 	if(!m_is_valid)
 		return ERROR("Writing to invalidated stream");
 
@@ -208,11 +210,30 @@ Ex<void> GzipStream::finish() {
 				return ERROR("Error while reading data from input stream");
 			}
 			ctx.avail_out = m_buffer.size();
-			ctx.next_out = (Bytef*)m_buffer.data();
+			ctx.next_out = (Bytef *)m_buffer.data();
 		}
 	} while(ret != Z_STREAM_END);
 	m_is_finished = true;
 
 	return {};
+}
+
+Ex<vector<char>> gzipCompress(CSpan<char> data, int level) {
+	auto output = memorySaver(data.size());
+	auto stream = EX_PASS(GzipStream::compressor(output, level));
+	EXPECT(stream.compress(data));
+	EXPECT(stream.finishCompression());
+	int data_size = output.size();
+	vector<char> out;
+	auto buffer = output.extractBuffer();
+	buffer.resize(data_size);
+	buffer.unsafeSwap(out);
+	return out;
+}
+
+Ex<vector<char>> gzipDecompress(CSpan<char> data) {
+	auto input = memoryLoader(data);
+	auto stream = EX_PASS(GzipStream::decompressor(input));
+	return stream.decompress();
 }
 }

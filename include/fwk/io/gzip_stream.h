@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "fwk/io/stream.h"
 #include "fwk/pod_vector.h"
 
 namespace fwk {
@@ -20,15 +19,15 @@ class GzipStream {
 	void operator=(const GzipStream &) = delete;
 
 	// Referenced stream has to exist as long as GzipStream
-	static Ex<GzipStream> loader(Stream &, Maybe<i64> load_limit = none);
-	static Ex<GzipStream> saver(Stream&, int compr_level = 9);
+	static Ex<GzipStream> decompressor(Stream &input, Maybe<i64> load_limit = none);
+	static Ex<GzipStream> compressor(Stream &output, int compr_level = 9);
 
-	Ex<int> loadData(Span<char>);
-	Ex<vector<char>> loadData();
-	
-	Ex<void> saveData(CSpan<char>);
+	Ex<int> decompress(Span<char>);
+	Ex<vector<char>> decompress();
+
+	Ex<void> compress(CSpan<char>);
 	// Don't forget to finish before closing saving stream
-	Ex<void> finish();
+	Ex<void> finishCompression();
 
 	bool isFinished() const { return m_is_finished; }
 
@@ -39,6 +38,9 @@ class GzipStream {
 	Stream *m_pipe = nullptr;
 	void *m_ctx = nullptr;
 	i64 m_load_limit = -1;
-	bool m_is_loading = false, m_is_valid = true, m_is_finished = false;
+	bool m_is_compressing = false, m_is_valid = true, m_is_finished = false;
 };
+
+Ex<vector<char>> gzipCompress(CSpan<char>, int level = 6);
+Ex<vector<char>> gzipDecompress(CSpan<char>);
 }

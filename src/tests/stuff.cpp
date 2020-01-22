@@ -6,8 +6,8 @@
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
 #include "fwk/io/file_system.h"
-#include "fwk/io/memory_stream.h"
 #include "fwk/io/gzip_stream.h"
+#include "fwk/io/memory_stream.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/random.h"
@@ -282,20 +282,14 @@ void testStreams() {
 		for(auto &val : data)
 			val = rand.uniform(0, 16 * 1024);
 		auto initial_data = data.reinterpret<char>();
-		auto mem_saver = memorySaver();
 
 		double time = getTime();
-		auto gzip_stream = GzipStream::saver(mem_saver, 6);
-		gzip_stream.check();
-		gzip_stream->saveData(initial_data).check();
-		gzip_stream->finish().check();
+		auto compr_data = gzipCompress(initial_data).get();
 		compr_time += getTime() - time;
-		compr_bytes += mem_saver.size();
+		compr_bytes += compr_data.size();
 
 		time = getTime();
-		auto mem_loader = memoryLoader(mem_saver.data());
-		auto unzip_stream = GzipStream::loader(mem_loader);
-		auto unpacked_data = unzip_stream->loadData().get();
+		auto unpacked_data = gzipDecompress(compr_data).get();
 		dec_time += getTime() - time;
 
 		ASSERT_EQ(unpacked_data, initial_data);
@@ -305,7 +299,8 @@ void testStreams() {
 	double dec_speed = double(dec_bytes) / (1024.0 * 1024.0) / dec_time;
 	double ratio = double(compr_bytes) / double(dec_bytes);
 
-	printf("Gzip   compression speed: %6.2f MB/sec (data ratio: %.0f%%)\n", compr_speed, ratio * 100.0);
+	printf("Gzip   compression speed: %6.2f MB/sec (data ratio: %.0f%%)\n", compr_speed,
+		   ratio * 100.0);
 	printf("Gzip decompression speed: %6.2f MB/sec\n", dec_speed);
 }
 

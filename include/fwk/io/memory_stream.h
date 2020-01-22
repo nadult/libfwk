@@ -35,7 +35,6 @@ class BaseMemoryStream : public Stream {
 	void loadData(Span<char>) final;
 
   private:
-	// TODO: drop PodVector, store just single pointer
 	PodVector<char> m_buffer;
 	char *m_data;
 	int m_capacity = 0;
