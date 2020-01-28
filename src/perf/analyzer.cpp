@@ -647,7 +647,8 @@ void Analyzer::showGrid(FrameRange &range) {
 			IRect rect(0, vert.min, inner_rect.width(), vert.max);
 			rect += offset;
 			ImGui::SetCursorScreenPos(rect.min());
-			ImGui::InvisibleButton("", rect.size());
+			if(!rect.empty())
+				ImGui::InvisibleButton("", rect.size());
 
 			auto exec_id = range.exec_list[n];
 			bool is_hovered = false, is_selected = range.exec_list[n] == m_selected_exec;
