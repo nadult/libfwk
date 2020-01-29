@@ -189,9 +189,7 @@ float3 CameraControl::grabPoint(float3 drag_point, float2 screen_pos) const {
 		cam =
 			FpsCamera(drag_point, fps_cam->forward_xz, fps_cam->rot_vert).toCamera(o_config.params);
 	else if(OrthoCamera *ortho_cam = m_impl->target) {
-		cam = OrthoCamera(ortho_cam->pos, ortho_cam->forward_xz, ortho_cam->rot_vert,
-						  ortho_cam->xy_offset + ortho_cam->xyOffset(drag_point), ortho_cam->zoom)
-				  .toCamera(o_config.params);
+		cam = ortho_cam->offsetCamera(ortho_cam->xyOffset(drag_point)).toCamera(o_config.params);
 	}
 
 	auto segment = cam.screenRay(screen_pos);
@@ -210,9 +208,7 @@ void CameraControl::dragStart() {
 void CameraControl::drag(float2 mouse_before, float2 mouse_after) {
 	if(OrthoCamera *ortho_cam = m_impl->drag_cam) {
 		float scale = 1.0f / ortho_cam->zoom;
-		auto xy_off = (mouse_after - mouse_before) * scale;
-		setTarget(OrthoCamera(ortho_cam->pos, ortho_cam->forward_xz, ortho_cam->rot_vert,
-							  ortho_cam->xy_offset + xy_off, ortho_cam->zoom));
+		setTarget(ortho_cam->offsetCamera((mouse_after - mouse_before) * scale));
 	} else if(FpsCamera *fps_cam = m_impl->target) {
 		FpsCamera *start_cam = m_impl->drag_cam;
 		DASSERT(start_cam);

@@ -8,10 +8,17 @@
 #include "fwk/sys/expected.h"
 
 namespace fwk {
+OrthoCamera::OrthoCamera(float3 focus, float2 forward_xz, float rot_vert, float2 xy_offset,
+						 float zoom)
+	: pos(focus), forward_xz(forward_xz), rot_vert(rot_vert), xy_offset(xy_offset), zoom(zoom) {}
+FWK_COPYABLE_CLASS_IMPL(OrthoCamera);
 
 Ex<OrthoCamera> OrthoCamera::load(CXmlNode node) {
-	return OrthoCamera{node("pos"), node("forward_xz"), node("rot_vert"), node("xy_offset"),
-					   node("zoom")};
+	auto out = OrthoCamera{node("pos"), node("forward_xz"), node("rot_vert"), node("xy_offset"),
+						   node("zoom")};
+	if(node.hasAttrib("rot_vert_limit"))
+		out.rot_vert_limit = node("rot_vert_limit");
+	return out;
 }
 
 void OrthoCamera::save(XmlNode node) const {
@@ -20,6 +27,8 @@ void OrthoCamera::save(XmlNode node) const {
 	node("rot_vert") = rot_vert;
 	node("xy_offset") = xy_offset;
 	node("zoom") = zoom;
+	if(rot_vert_limit)
+		node("rot_vert_limit") = *rot_vert_limit;
 }
 
 float3 OrthoCamera::center() const {
@@ -65,6 +74,12 @@ Camera OrthoCamera::toCamera(const CameraParams &params) const {
 	return out;
 }
 
+OrthoCamera OrthoCamera::offsetCamera(float2 offset) const {
+	auto out = *this;
+	out.xy_offset += offset;
+	return out;
+}
+
 void OrthoCamera::applyXYOffset() {
 	auto [fwd, right] = forwardRight();
 	auto up = cross(fwd, right);
@@ -105,6 +120,13 @@ void OrthoCamera::move(float2 move, float2 rot, float move_up) {
 	zoom = new_zoom;
 	forward_xz = new_fwd;
 	rot_vert = new_vert;
+	if(rot_vert_limit)
+		rot_vert = clamp(rot_vert, rot_vert_limit->x, rot_vert_limit->y);
+}
+
+void OrthoCamera::setRotVertLimit(float2 limit) {
+	rot_vert_limit = limit;
+	rot_vert = clamp(rot_vert, rot_vert_limit->x, rot_vert_limit->y);
 }
 
 void OrthoCamera::focus(FBox box) {
