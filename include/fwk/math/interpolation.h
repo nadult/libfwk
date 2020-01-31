@@ -32,4 +32,16 @@ T interpCatmullRom(const T &y0, const T &y1, const T &y2, const T &y3, double mu
 
 	return a0 * mu * mu_sq + a1 * mu_sq + a2 * mu + a3;
 }
+
+// Spline moves through p0 & p1;
+// Normals in p0 and p1 are equal to normalized (p1 - p0) and (p2 - p3) respectively.
+template <class T> T cubicBezier(const T &p0, const T &p1, const T &p2, const T &p3, double mu) {
+	PASSERT(mu >= 0.0 && mu <= 1.0);
+
+	auto nu = 1.0 - mu;
+	auto mu2 = mu * mu;
+	auto nu2 = nu * nu;
+
+	return p0 * (nu * nu2) + p1 * (3.0 * mu * nu2) + p2 * (3.0 * mu2 * nu) + p3 * (mu * mu2);
+}
 }
