@@ -15,9 +15,9 @@ namespace fwk {
 	{                                                                                              \
 		if(fwk::exceptionRaised())                                                                 \
 			return fwk::getMergedExceptions();                                                     \
-		auto &&value = ((expr));                                                                   \
-		if(__builtin_expect(!value, false))                                                        \
-			return fwk::detail::passError(value, FWK_STRINGIZE(expr), __FILE__, __LINE__);         \
+		auto &&_expect_value = ((expr));                                                           \
+		if(__builtin_expect(!_expect_value, false))                                                \
+			return fwk::detail::passError(_expect_value, FWK_STRINGIZE(expr), __FILE__, __LINE__); \
 	}
 
 // Checks if there are any raised exceptions. If so, it will return them.
@@ -38,12 +38,12 @@ namespace fwk {
 // Ex<float> func2() { auto value = EX_PASS(func1(10)); return value * 0.5f; }
 #define EX_PASS(...)                                                                               \
 	({                                                                                             \
-		auto result = __VA_ARGS__;                                                                 \
-		static_assert(fwk::is_expected<decltype(result)>,                                          \
+		auto _expect_result = __VA_ARGS__;                                                         \
+		static_assert(fwk::is_expected<decltype(_expect_result)>,                                  \
 					  "You have to pass Expected<...> to EX_PASS");                                \
-		if(!result)                                                                                \
-			return result.error();                                                                 \
-		move(result.get());                                                                        \
+		if(!_expect_result)                                                                        \
+			return _expect_result.error();                                                         \
+		move(_expect_result.get());                                                                \
 	})
 
 namespace detail {
