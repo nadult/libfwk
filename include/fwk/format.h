@@ -154,8 +154,8 @@ class TextFormatter {
 	void reserve(int) NOINLINE;
 	void trim(int count);
 
-	const char *c_str() const { return m_data.data(); }
-	ZStr text() const { return {m_data.data(), m_offset}; }
+	const char *c_str() const & { return m_data.data(); }
+	ZStr text() const & { return {m_data.data(), m_offset}; }
 	int size() const { return m_offset; }
 	bool empty() const { return m_offset == 0; }
 	void clear();
