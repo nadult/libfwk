@@ -11,7 +11,7 @@ TODO: write more detailed description.
 ## Features
 
 - OpenGL & SDL2 based
-- Supported platforms: linux, windows (using MinGW32-W64)
+- Supported platforms: linux, windows (using MinGW32-W64), WebGL (through emscripten)
 - Doesn't use C++ exceptions (has a much simpler system instead)
 
 TODO: more details
@@ -71,7 +71,7 @@ Examples:
     $ make MODE=debug-nans clean
     $ make clean-all
 
-TODO: how to build mingw with mxe (and which version)
+TODO: how to build mingw with mxe (and which version)  
 TODO: how to use Makefile-shared for your own projects
 
 ## License

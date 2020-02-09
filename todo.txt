@@ -10,6 +10,7 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- przy odpalaniu convertera jest backtrace przy blender-2.79
 - lepsze interfejsy do strumieni? Na razie chyba to nie potrzebne
 - rename load/save stream to input/output ?
 - PodVector mozna wywalić i dodać obsługę no_init do vectora?
