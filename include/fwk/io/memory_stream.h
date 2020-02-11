@@ -32,7 +32,7 @@ class BaseMemoryStream : public Stream {
 	int capacityLeft() const { return m_capacity - (int)m_size; }
 
 	void saveData(CSpan<char>) final;
-	void loadData(Span<char>) final;
+	void loadData(Span<char>) EXCEPT final;
 
   private:
 	PodVector<char> m_buffer;

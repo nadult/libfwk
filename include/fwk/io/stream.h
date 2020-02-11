@@ -46,33 +46,35 @@ template <class Base> class TStream : public Base {
 
 	using Base::isValid;
 
-	template <class TSpan, class T = SpanBase<TSpan>> void saveData(const TSpan &data) {
+	template <class TSpan, class T = SpanBase<TSpan>> void saveData(const TSpan &data) EXCEPT {
 		this->saveData(cspan(data).template reinterpret<char>());
 	}
 	template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!is_const<T>>...>
-	void loadData(TSpan &&data) {
+	void loadData(TSpan &&data) EXCEPT {
 		this->loadData(span(data).template reinterpret<char>());
 	}
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Saving/loading objects   -------------------------------------------------------------
 
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator<<(const T &obj) {
+	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator<<(const T &obj) EXCEPT {
 		return saveData(cspan(&obj, 1)), *this;
 	}
-	template <class T, EnableIf<stream_saveable<TStream, T>>...> TStream &operator<<(const T &obj) {
+	template <class T, EnableIf<stream_saveable<TStream, T>>...>
+	TStream &operator<<(const T &obj) EXCEPT {
 		obj.save(*this);
 		return *this;
 	}
 
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator>>(T &obj) {
+	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator>>(T &obj) EXCEPT {
 		return loadData(span(&obj, 1)), *this;
 	}
-	template <class T, EnableIf<stream_loadable<TStream, T>>...> TStream &operator>>(T &obj) {
+	template <class T, EnableIf<stream_loadable<TStream, T>>...>
+	TStream &operator>>(T &obj) EXCEPT {
 		obj.load(*this);
 		return *this;
 	}
-	template <class T> TStream &operator>>(Maybe<T> &obj) {
+	template <class T> TStream &operator>>(Maybe<T> &obj) EXCEPT {
 		char exists;
 		*this >> exists;
 		if(exists) {
@@ -85,7 +87,7 @@ template <class Base> class TStream : public Base {
 		return *this;
 	}
 
-	template <class T> TStream &operator<<(const Maybe<T> &obj) {
+	template <class T> TStream &operator<<(const Maybe<T> &obj) EXCEPT {
 		*this << char(obj ? 1 : 0);
 		if(obj)
 			*this << *obj;
@@ -93,7 +95,8 @@ template <class Base> class TStream : public Base {
 	}
 
 	// TODO: better name
-	template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...> void unpack(Args &... args) {
+	template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...>
+	void unpack(Args &... args) EXCEPT {
 		char buffer[(sizeof(Args) + ...)];
 		loadData(buffer);
 		int offset = 0;
@@ -101,41 +104,41 @@ template <class Base> class TStream : public Base {
 	}
 
 	template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...>
-	void pack(const Args &... args) {
+	void pack(const Args &... args) EXCEPT {
 		char buffer[(sizeof(Args) + ...)];
 		int offset = 0;
 		((memcpy(buffer + offset, &args, sizeof(Args)), offset += sizeof(Args)), ...);
 		saveData(buffer);
 	}
 
-	template <class T, EnableIf<is_flat_data<T>>...> void saveVector(CSpan<T> vec) {
+	template <class T, EnableIf<is_flat_data<T>>...> void saveVector(CSpan<T> vec) EXCEPT {
 		saveVector(vec.template reinterpret<char>(), sizeof(T));
 	}
 
 	PodVector<char> loadVector(int max_size = stream_limits::default_max_vector_size,
-							   int element_size = 1);
+							   int element_size = 1) EXCEPT;
 
 	template <class T, EnableIf<is_flat_data<T>>...>
-	PodVector<T> loadVector(int max_size = stream_limits::default_max_vector_size) {
+	PodVector<T> loadVector(int max_size = stream_limits::default_max_vector_size) EXCEPT {
 		auto out = loadVector(max_size, sizeof(T));
 		return move(reinterpret_cast<PodVector<T> &>(out)); // TODO: use PodVector::reinterpet
 	}
 
-	TStream &operator<<(Str);
-	TStream &operator>>(string &);
+	TStream &operator<<(Str) EXCEPT;
+	TStream &operator>>(string &) EXCEPT;
 
 	// -------------------------------------------------------------------------------------------
 	// ---  Low-level serialization functions   --------------------------------------------------
 
 	// If size < 254: saves single byte, else saves 5 or 9 bytes
-	void saveSize(i64);
-	void saveString(CSpan<char>);
-	void saveVector(CSpan<char>, int element_size = 1);
+	void saveSize(i64) EXCEPT;
+	void saveString(CSpan<char>) EXCEPT;
+	void saveVector(CSpan<char>, int element_size = 1) EXCEPT;
 
-	i64 loadSize();
-	string loadString(int max_size = stream_limits::default_max_string_size);
+	i64 loadSize() EXCEPT;
+	string loadString(int max_size = stream_limits::default_max_string_size) EXCEPT;
 	// Terminating zero will be added as well
-	int loadString(Span<char>);
+	int loadString(Span<char>) EXCEPT;
 };
 
 // TODO: może jednak dobrze by było zrobić podział na istream i ostream ?
@@ -171,9 +174,9 @@ class BaseStream {
 
 	// Serializes signatures; While saving, it simply writes it to a stream
 	// When loading, it will report an error if signature is not exactly matched
-	void signature(u32);
-	void signature(CSpan<char>);
-	void signature(const char *str) { signature(cspan(Str(str))); }
+	void signature(u32) EXCEPT;
+	void signature(CSpan<char>) EXCEPT;
+	void signature(const char *str) EXCEPT { signature(cspan(Str(str))); }
 
   protected:
 	BaseStream(i64 size, bool is_loading)

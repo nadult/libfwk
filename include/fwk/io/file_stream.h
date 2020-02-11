@@ -26,12 +26,12 @@ class BaseFileStream : public Stream {
 
 	ZStr name() const { return m_name; }
 
-	void saveData(CSpan<char>) final;
-	void loadData(Span<char>) final;
-	void seek(i64) final;
+	void saveData(CSpan<char>) EXCEPT final;
+	void loadData(Span<char>) EXCEPT final;
+	void seek(i64) EXCEPT final;
 
   protected:
-	void raise(ZStr) final;
+	void raise(ZStr) EXCEPT final;
 	BaseFileStream();
 	friend Ex<FileStream> fileStream(ZStr, bool);
 

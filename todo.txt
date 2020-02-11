@@ -10,8 +10,6 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
-
-- fix EXCEPTs in streams
 - PollVector mógłby być po prostu otagowanym wektorem, który nie ma konwersji na zwykły wektor?
   albo przy konwersji  tworzy nowy wektor odpowiednio zaalokowany?
   Jaki był sens robienia pooli wewn. normalnego wektora?
