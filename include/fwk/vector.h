@@ -132,7 +132,7 @@ template <class T> class Vector {
 
 	int size() const { return m_base.size; }
 	int capacity() const { return m_base.capacity; }
-	i64 usedMemory() const { return m_base.size * (i64)sizeof(T); }
+	i64 usedMemory() const { return m_base.capacity * (i64)sizeof(T); }
 
 	bool empty() const { return m_base.size == 0; }
 	explicit operator bool() const { return m_base.size > 0; }
