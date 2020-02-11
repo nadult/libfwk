@@ -4,7 +4,6 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -91,7 +90,6 @@
 
 namespace fwk {
 
-using std::array;
 using std::move;
 using std::string;
 using std::swap;
@@ -228,6 +226,8 @@ template <class T> class SparseVector;
 template <class T, int> class SmallVector;
 template <class T, int> class StaticVector;
 template <class T> using vector = Vector<T>;
+template <class T, int> struct Array;
+template <class T, int N> using array = Array<T, N>;
 
 // Different name to inform that memory may come from a pool
 template <class T> using PoolVector = Vector<T>;
@@ -271,10 +271,7 @@ template <class T> class SparseSpan;
 // This kind of data can be safely serialized to/from binary format, byte by byte
 template <class T>
 inline constexpr bool is_flat_data = std::is_arithmetic<T>::value || std::is_enum<T>::value;
-template <class T, int N> inline constexpr bool is_flat_data<array<T, N>> = is_flat_data<T>;
-
-template <class T> auto &asPod(const T &value) { return *(const array<char, sizeof(T)> *)(&value); }
-template <class T> auto &asPod(T &value) { return *(array<char, sizeof(T)> *)(&value); }
+template <class T, int N> inline constexpr bool is_flat_data<Array<T, N>> = is_flat_data<T>;
 
 // Implemented in logger.[h|cpp]
 void log(Str message, Str unique_key);

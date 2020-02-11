@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/array.h"
 #include "fwk/enum_flags.h"
 #include "fwk/pod_vector.h"
 #include "fwk/span.h"
@@ -25,6 +26,9 @@ namespace detail {
 		FWK_SFINAE_TEST(loadable, T, DECLVAL(U).save(DECLVAL(S &)));
 	};
 }
+
+template <class T> auto &asPod(const T &value) { return *(const Array<char, sizeof(T)> *)(&value); }
+template <class T> auto &asPod(T &value) { return *(Array<char, sizeof(T)> *)(&value); }
 
 // TODO: expand this
 template <class TStream, class T>

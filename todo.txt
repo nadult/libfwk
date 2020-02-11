@@ -41,7 +41,6 @@ CAŁY CZAS TO ROBISZ :(
   trochę flag typu no-omit, etc ?
 
 - emplace_back -> append ?
-- Add array<> with bounds checks
 - Besides asserts add different kinds of warnings which can be placesd all around code
   and enabled or disabled (with levels, like 0: disabled, 9:all enabled)?
 - Przydałby się akcesor pairs(range) który zwraca pary elementów (a nie pary indeksów)

@@ -2,6 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/any.h"
+#include "fwk/array.h"
 #include "fwk/fwd_member.h"
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
@@ -181,10 +182,10 @@ void testFunc1(Span<int, 5>) {}
 void testFunc2(CSpan<int, 5>) {}
 
 void testRanges() {
-	array<int, 5> tab1;
+	Array<int, 5> tab1;
 	testFunc1(tab1);
 	testFunc2(tab1);
-	const array<int, 5> tab2 = {{1, 2, 3, 4, 5}};
+	const Array<int, 5> tab2 = {{1, 2, 3, 4, 5}};
 	testFunc2(tab2);
 	// TODO: write me
 }

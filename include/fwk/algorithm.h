@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/array.h"
 #include "fwk/meta/operator.h"
 #include "fwk/span.h"
 
