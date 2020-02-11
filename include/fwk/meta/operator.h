@@ -13,6 +13,8 @@ namespace detail {
 		FWK_SFINAE_TYPE(Sub, L, DECLVAL(const U &) - DECLVAL(const R &));
 		FWK_SFINAE_TYPE(Mul, L, DECLVAL(const U &) * DECLVAL(const R &));
 		FWK_SFINAE_TYPE(Div, L, DECLVAL(const U &) / DECLVAL(const R &));
+		FWK_SFINAE_TYPE(Or, L, DECLVAL(const U &) | DECLVAL(const R &));
+		FWK_SFINAE_TYPE(And, L, DECLVAL(const U &) & DECLVAL(const R &));
 		FWK_SFINAE_TYPE(Less, L, DECLVAL(const U &) < DECLVAL(const R &));
 		FWK_SFINAE_TYPE(Equal, L, DECLVAL(const U &) == DECLVAL(const R &));
 		FWK_SFINAE_TYPE(Apply, L, DECLVAL(const U &)(DECLVAL(const R &)));
@@ -37,6 +39,8 @@ BINARY_OP_RESULT(Add)
 BINARY_OP_RESULT(Sub)
 BINARY_OP_RESULT(Mul)
 BINARY_OP_RESULT(Div)
+BINARY_OP_RESULT(Or)
+BINARY_OP_RESULT(And)
 BINARY_OP_RESULT(Less)
 BINARY_OP_RESULT(Equal)
 BINARY_OP_RESULT(Apply)
@@ -50,7 +54,7 @@ template <class L, class R>
 constexpr bool equality_comparable = is_convertible<EqualResult<L, R>, bool>;
 template <class T> static constexpr bool less_comparable = is_convertible<LessResult<T, T>, bool>;
 
-// Automatic operators for user types: +=, -=, *=, /=, <=, >=, >, !=
+// Automatic operators for user types: +=, -=, *=, /=, |=, &=, <=, >=, >, !=
 
 template <class L, class R, EnableIf<is_same<AddResult<L, R>, L> && !std::is_scalar_v<L>>...>
 void operator+=(L &a, const R &b) {
@@ -64,10 +68,18 @@ template <class L, class R, EnableIf<is_same<MulResult<L, R>, L> && !std::is_sca
 void operator*=(L &a, const R &b) {
 	a = a * b;
 }
-
 template <class L, class R, EnableIf<is_same<DivResult<L, R>, L> && !std::is_scalar_v<L>>...>
 void operator/=(L &a, const R &b) {
 	a = a / b;
+}
+
+template <class L, class R, EnableIf<is_same<OrResult<L, R>, L> && !std::is_scalar_v<L>>...>
+void operator|=(L &a, const R &b) {
+	a = a | b;
+}
+template <class L, class R, EnableIf<is_same<AndResult<L, R>, L> && !std::is_scalar_v<L>>...>
+void operator&=(L &a, const R &b) {
+	a = a & b;
 }
 
 template <class L, class R, EnableIf<detail::can_auto_compare<R, L>>...>
