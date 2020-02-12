@@ -23,6 +23,12 @@
 # - devel:   full optimization (-O3), paranoid mode enabled
 # - debug:   minimal optimization (-Og), paranoid mode enabled
 #
+# Developer options:
+#   JUNK_GATHERING: Flag which may be passed when gathering info about junk files.
+#                   When it's enabled you should disable statements which may slow down parsing
+#                   and don't affect JUNK_* definitions (for example do not create sub-directories or
+#                   not include .d files).
+#
 # Makefile-shared keeps track of flags passed to make and recreates PCH if they change.
 # Tracked flags: ADD_CFLAGS, COMPILER and conditional compilation flags.
 
@@ -162,7 +168,7 @@ ifdef BUILD_DIR
 PCH_TEMP           := $(BUILD_DIR)/$(basename $(notdir $(PCH_SOURCE)))_.h
 PCH_CLANG_TARGET   := $(PCH_TEMP).pch
 PCH_GCC_TARGET     := $(PCH_TEMP).gch
-PCH_JUNK           := $(CONFIG_FILE) $(PCH_CLANG_TARGET) $(PCH_GCC_TARGET) $(PCH_TEMP) $(PCH_TEMP).d
+PCH_JUNK_FILES     := $(CONFIG_FILE) $(PCH_CLANG_TARGET) $(PCH_GCC_TARGET) $(PCH_TEMP) $(PCH_TEMP).d
 
 ifeq ($(COMPILER_TYPE),clang)
 PCH_CFLAGS        := -include-pch $(PCH_CLANG_TARGET)
@@ -184,7 +190,8 @@ endif
 
 # Filters existing files from given file list
 # Arguments: subdir_list, file_list
-filter-existing = $(filter $(shell find $(1) -type f),$(2))
+# Also allows files existing in current directory
+filter-existing = $(filter $(shell find $(1) -type f) $(shell ls),$(2))
 
 # --- Build targets for libfwk users --------------------------------------------------------------
 
@@ -194,5 +201,41 @@ FWK_MAKE_ARGS  = -C $(FWK_DIR) PLATFORM=$(PLATFORM) MODE=$(FWK_MODE)
 $(FWK_LIB_FILE): .FORCE
 	$(MAKE) $(FWK_MAKE_ARGS) lib/lib$(FWK_LIB_NAME).a
 endif
+
+# --- Clean targets  ------------------------------------------------------------------------------
+
+# JUNK_DIRS and JUNK_FILES have to be defined.
+# Only JUNK_FILES within specified JUNK_DIRS will be deleted.
+#
+# Defined variables: EXISTING_JUNK, ALL_JUNK (for all targets & platforms)
+# Defined targets: clean, clean-all, clean-libfwk
+
+EXISTING_JUNK = $(call filter-existing,$(JUNK_DIRS),$(JUNK_FILES) $(PCH_JUNK_FILES))
+
+print-junk-files:
+	@echo $(EXISTING_JUNK)
+
+#This macro will only be evaluated when clean-all target is used
+ALL_EXISTING_JUNK = $(sort $(shell \
+	for platform in $(VALID_PLATFORMS) ; do for mode in $(VALID_MODES) ; do \
+		$(MAKE) PLATFORM=$$platform MODE=$$mode print-junk-files JUNK_GATHERING=1 -s ; \
+	done ; done))
+
+clean:
+	-rm -f $(sort $(EXISTING_JUNK))
+	find $(JUNK_DIRS) -type d -empty -delete
+
+clean-all:
+	-rm -f $(sort $(ALL_EXISTING_JUNK))
+	find $(JUNK_DIRS) -type d -empty -delete
+ifneq ($(FWK_DIR),)
+	$(MAKE) $(FWK_MAKE_ARGS) clean-all
+
+clean-libfwk:
+	$(MAKE) $(FWK_MAKE_ARGS) clean-all
+.PHONY: clean-libfwk
+endif
+
+.PHONY: clean clean-all print-junk-files
 
 .FORCE:

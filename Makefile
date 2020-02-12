@@ -4,9 +4,6 @@
 #   SPLIT_MODULES:   normally modules composed of multiple .cpp files are built together; this
 #                    option forces separate compilation for each .cpp file
 #   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
-#
-# Developer options:
-#   INTROSPECT_MODE: does not create sub-directories and does not include .d files
 
 # Special targets:
 #  print-variables: prints contents of main variables
@@ -36,7 +33,7 @@ ifdef SPLIT_MODULES
 BUILD_SUBDIRS += gfx audio math sys io tests tools menu perf geom
 endif
 
-ifndef INTROSPECT_MODE
+ifndef JUNK_GATHERING
 _dummy := $(shell mkdir -p $(SUBDIRS))
 _dummy := $(shell mkdir -p $(addprefix $(FWK_BUILD_DIR)/,$(BUILD_SUBDIRS)))
 endif
@@ -160,24 +157,11 @@ print-stats:
 
 # --- Clean targets -------------------------------------------------------------------------------
 
-JUNK_FILES = $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(PROGRAMS_JUNK) $(CPP_merged) \
-			 $(STATS_FILE) $(FWK_LIB_FILE) $(PCH_JUNK)
-EXISTING_JUNK_FILES := $(call filter-existing,$(SUBDIRS),$(JUNK_FILES))
-print-junk-files:
-	@echo $(EXISTING_JUNK_FILES)
-ALL_JUNK_FILES = $(sort $(shell \
-	for platform in $(VALID_PLATFORMS) ; do for mode in $(VALID_MODES) ; do \
-		$(MAKE) PLATFORM=$$platform MODE=$$mode print-junk-files INTROSPECT_MODE=1 -s ; \
-	done ; done))
-
-clean:
-	rm $(sort $(EXISTING_JUNK_FILES))
-	find $(SUBDIRS) -type d -empty -delete
+JUNK_FILES := $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(PROGRAMS_JUNK) $(CPP_merged) \
+			  $(STATS_FILE) $(FWK_LIB_FILE)
+JUNK_DIRS  := $(SUBDIRS)
 
 clean-all: clean-checker
-	rm $(ALL_JUNK_FILES)
-	find $(SUBDIRS) -type d -empty -delete
-
 clean-checker:
 	$(MAKE) -C src/checker/ clean
 
@@ -204,8 +188,8 @@ print-variables:
 	@echo 
 	@echo "LDFLAGS = $(LDFLAGS)"
 
-.PHONY: clean tools tests lib clean-all clean-checker print-junk-files print-stats
+.PHONY: tools tests lib clean-checker print-stats
 
-ifndef INTROSPECT_MODE
+ifndef JUNK_GATHERING
 -include $(DEPS)
 endif
