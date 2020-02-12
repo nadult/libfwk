@@ -64,7 +64,7 @@ template <std::size_t, class> struct tuple_element;
 template <class T, int N>
 struct tuple_size<fwk::Array<T, N>> : public integral_constant<std::size_t, N> {};
 
-template <int I, class T, int N> struct tuple_element<I, fwk::Array<T, N>> {
+template <std::size_t I, class T, int N> struct tuple_element<I, fwk::Array<T, N>> {
 	static_assert(I < N, "index is out of bounds");
 	using type = T;
 };
