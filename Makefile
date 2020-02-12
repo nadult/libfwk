@@ -1,15 +1,12 @@
 # Options:
 #   All the options from Makefile-shared are available except FWK_MODE
-#   STATS:           gathers build times for each object file
 #   SPLIT_MODULES:   normally modules composed of multiple .cpp files are built together; this
 #                    option forces separate compilation for each .cpp file
-#   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
 
 # Special targets:
-#  print-variables: prints contents of main variables
-#  print-stats:     prints build stats (generated with STATS option)
+#  All targets from Makefile-shared are also available
 #  clean-checker:   removes build files for checker
-#  clean-all:       clears all possible targets (including checker)
+#  checker.so:      EXCEPT checker (will be automatically used during builds)
 
 # TODO: niezależne katalogi linux-gcc linux-clang ?
 # TODO: uzależnić *_merged.cpp od listy plików a nie całego makefile-a
@@ -119,10 +116,6 @@ ifeq ($(PLATFORM), html)
 PROGRAMS_JUNK  := $(SRC_programs:%=%.wasm) $(SRC_programs:%=%.js)
 endif
 
-STATS_FILE = $(FWK_BUILD_DIR)/stats.txt
-ifdef STATS
-STATS_CMD  = time -o $(STATS_FILE) -a -f "%U $*.o"
-endif
 
 lib:   $(FWK_LIB_FILE)
 tools: $(SRC_tools:%=%$(PROGRAM_SUFFIX))
@@ -152,13 +145,10 @@ $(FWK_LIB_FILE): $(INPUT_OBJECTS)
 
 DEPS:=$(SRC_all:%=$(FWK_BUILD_DIR)/%.d) $(PCH_TEMP).d
 
-print-stats:
-	sort -n -r $(STATS_FILE)
 
 # --- Clean targets -------------------------------------------------------------------------------
 
-JUNK_FILES := $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(PROGRAMS_JUNK) $(CPP_merged) \
-			  $(STATS_FILE) $(FWK_LIB_FILE)
+JUNK_FILES := $(OBJECTS) $(DEPS) $(MERGED_OBJECTS) $(PROGRAMS) $(PROGRAMS_JUNK) $(CPP_merged) $(FWK_LIB_FILE)
 JUNK_DIRS  := $(SUBDIRS)
 
 clean-all: clean-checker
@@ -167,28 +157,7 @@ clean-checker:
 
 # --- Other stuff ---------------------------------------------------------------------------------
 
-print-variables:
-	@echo "PLATFORM      = $(PLATFORM)"
-	@echo "MODE          = $(MODE)"
-	@echo "BASE_MODE     = $(BASE_MODE)"
-	@echo "COMPILER      = $(COMPILER)"
-	@echo "LINKER        = $(LINKER)"
-	@echo "COMPILER_TYPE = $(COMPILER_TYPE)"
-	@echo
-	@echo "FWK_BUILD_DIR = $(FWK_BUILD_DIR)"
-	@echo "FWK_LIB_FILE  = $(FWK_LIB_FILE)"
-	@echo 
-	@echo "PCH_TARGET = $(PCH_TARGET)"
-	@echo "PCH_CFLAGS = $(PCH_CFLAGS)"
-	@echo 
-	@echo "FWK_IMGUI     = $(FWK_IMGUI)"
-	@echo "FWK_GEOM      = $(FWK_GEOM)"
-	@echo 
-	@echo "CFLAGS  = $(CFLAGS)"
-	@echo 
-	@echo "LDFLAGS = $(LDFLAGS)"
-
-.PHONY: tools tests lib clean-checker print-stats
+.PHONY: tools tests lib clean-checker
 
 ifndef JUNK_GATHERING
 -include $(DEPS)

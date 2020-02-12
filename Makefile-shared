@@ -5,6 +5,7 @@
 #   COMPILER:        name of the compiler; clang++ or g++ is used by default
 #   LINKER:          name of linker; by default same as compiler
 #   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
+#   STATS:           gathers build times for each object file (STATS_CMD has to be used)
 #
 # Conditional compilation:
 #   FWK_IMGUI:     enabled or disabled (by default if imgui is present, it's enabled)
@@ -22,6 +23,12 @@
 # - release: full optimization (-O3)
 # - devel:   full optimization (-O3), paranoid mode enabled
 # - debug:   minimal optimization (-Og), paranoid mode enabled
+#
+# Special targets:
+#  print-variables: prints contents of main variables
+#  print-stats:     prints build stats (generated with STATS option & STATS_CMD)
+#  clean-libfwk:    clears libfwk
+#  clean-all:       clears all possible targets (including checker)
 #
 # Developer options:
 #   JUNK_GATHERING: Flag which may be passed when gathering info about junk files.
@@ -186,12 +193,45 @@ $(PCH_TARGET): $(PCH_TEMP) $(CONFIG_FILE)
 endif
 endif
 
-# --- Helper functions ----------------------------------------------------------------------------
+# --- Helper functions & other targets ------------------------------------------------------------
 
 # Filters existing files from given file list
 # Arguments: subdir_list, file_list
 # Also allows files existing in current directory
 filter-existing = $(filter $(shell find $(1) -type f) $(shell ls),$(2))
+
+# Stats gathering:
+# STATS_CMD:  command which has to prefix all build command you wish to measure
+# STATS_FILE: file into which statistics will be gathered
+
+STATS_FILE = $(BUILD_DIR)/stats.txt
+ifdef STATS
+STATS_CMD  = time -o $(STATS_FILE) -a -f "%U $*.o"
+endif
+
+print-stats:
+	sort -n -r $(STATS_FILE)
+
+print-variables:
+	@echo "PLATFORM      = $(PLATFORM)"
+	@echo "MODE          = $(MODE)"
+	@echo "BASE_MODE     = $(BASE_MODE)"
+	@echo "COMPILER      = $(COMPILER)"
+	@echo "LINKER        = $(LINKER)"
+	@echo "COMPILER_TYPE = $(COMPILER_TYPE)"
+	@echo
+	@echo "FWK_BUILD_DIR = $(FWK_BUILD_DIR)"
+	@echo "FWK_LIB_FILE  = $(FWK_LIB_FILE)"
+	@echo 
+	@echo "PCH_TARGET = $(PCH_TARGET)"
+	@echo "PCH_CFLAGS = $(PCH_CFLAGS)"
+	@echo 
+	@echo "FWK_IMGUI     = $(FWK_IMGUI)"
+	@echo "FWK_GEOM      = $(FWK_GEOM)"
+	@echo 
+	@echo "CFLAGS  = $(CFLAGS)"
+	@echo 
+	@echo "LDFLAGS = $(LDFLAGS)"
 
 # --- Build targets for libfwk users --------------------------------------------------------------
 
@@ -210,7 +250,7 @@ endif
 # Defined variables: EXISTING_JUNK, ALL_JUNK (for all targets & platforms)
 # Defined targets: clean, clean-all, clean-libfwk
 
-EXISTING_JUNK = $(call filter-existing,$(JUNK_DIRS),$(JUNK_FILES) $(PCH_JUNK_FILES))
+EXISTING_JUNK = $(call filter-existing,$(JUNK_DIRS),$(JUNK_FILES) $(PCH_JUNK_FILES) $(STATS_FILE))
 
 print-junk-files:
 	@echo $(EXISTING_JUNK)
@@ -236,6 +276,6 @@ clean-libfwk:
 .PHONY: clean-libfwk
 endif
 
-.PHONY: clean clean-all print-junk-files
+.PHONY: clean clean-all print-junk-files print-variables print-stats
 
 .FORCE:
