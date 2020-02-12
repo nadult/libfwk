@@ -198,6 +198,7 @@ double getTime();
 #define IF_DEBUG(...) __VA_ARGS__
 #endif
 
+// FWK_PARANOID enables bound checks & PASSERT
 #if defined(FWK_PARANOID)
 #define PASSERT(expr) ASSERT(expr)
 #define IF_PARANOID(...) __VA_ARGS__

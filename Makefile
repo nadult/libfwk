@@ -186,6 +186,7 @@ clean-checker:
 print-variables:
 	@echo "PLATFORM      = $(PLATFORM)"
 	@echo "MODE          = $(MODE)"
+	@echo "BASE_MODE     = $(BASE_MODE)"
 	@echo "COMPILER      = $(COMPILER)"
 	@echo "LINKER        = $(LINKER)"
 	@echo "COMPILER_TYPE = $(COMPILER_TYPE)"

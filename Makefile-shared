@@ -1,6 +1,6 @@
 # Options:
 #   PLATFORM:        linux, mingw or html
-#   [FWK_]MODE:      release or debug [-paranoid] [-nans]
+#   [FWK_]MODE:      release, devel or debug [-nans]
 #   ADD_CFLAGS:      additional compiler flags
 #   COMPILER:        name of the compiler; clang++ or g++ is used by default
 #   LINKER:          name of linker; by default same as compiler
@@ -18,18 +18,23 @@
 #   CONFIG_FILE
 #   (and more)
 #
+# Build modes:
+# - release: full optimization (-O3)
+# - devel:   full optimization (-O3), paranoid mode enabled
+# - debug:   minimal optimization (-Og), paranoid mode enabled
+#
 # Makefile-shared keeps track of flags passed to make and recreates PCH if they change.
 # Tracked flags: ADD_CFLAGS, COMPILER and conditional compilation flags.
 
 VALID_PLATFORMS  := linux mingw html
-VALID_MODES      := debug debug-nans release release-nans release-paranoid release-paranoid-nans
+VALID_MODES      := debug debug-nans release release-nans devel devel-nans
 
 PLATFORM         = linux
-MODE            ?= release-paranoid
+MODE            ?= devel
 FWK_MODE        ?= $(MODE)
 MINGW_PREFIX    ?= x86_64-w64-mingw32.static.posix-
 LINKER           = $(COMPILER)
-BASE_MODE       := $(if $(findstring release,$(MODE)),release,debug)
+BASE_MODE       := $(if $(findstring release,$(MODE)),release,$(if $(findstring devel,$(MODE)),devel,debug))
 
 COMPILER_linux  := clang++-8
 COMPILER_mingw  := $(MINGW_PREFIX)g++
@@ -103,6 +108,7 @@ CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-vari
 CFLAGS_emcc    += -Wno-ambiguous-reversed-operator
 
 CFLAGS_release += -O3
+CFLAGS_devel   += -O3 -DFWK_PARANOID
 CFLAGS_debug   += -Og -DFWK_PARANOID
 
 CFLAGS_linux   += -DFWK_PLATFORM_LINUX -pthread -ggdb
@@ -111,8 +117,7 @@ CFLAGS_emcc    += -DFWK_PLATFORM_HTML $(HTML_shared)
 
 CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
                   $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED) \
-                  $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,) \
-                  $(if $(findstring paranoid,$(MODE))$(findstring debug,$(MODE)),-DFWK_PARANOID,)
+                  $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,)
 CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(BASE_MODE)) $(CFLAGS_$(PLATFORM)) $(CFLAGS_$(COMPILER_TYPE)) $(ADD_CFLAGS))
 
 LDFLAGS_clang  += -fuse-ld=gold
