@@ -93,7 +93,7 @@ template <class T, int max_size_> class StaticVector {
 		return DATA[index];
 	}
 	const T &operator[](int index) const {
-		IF_PARANOID(checkinRange(index, 0, m_size));
+		IF_PARANOID(checkInRange(index, 0, m_size));
 		return DATA[index];
 	}
 
