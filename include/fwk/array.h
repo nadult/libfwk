@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/sys_base.h"
+#include <tuple>
 
 namespace fwk {
 
@@ -59,8 +60,6 @@ template <class T, int N> struct Array {
 //Array(T, U...)->Array<T, 1 + sizeof...(U)>;
 
 namespace std {
-template <class> struct tuple_size;
-template <std::size_t, class> struct tuple_element;
 template <class T, int N>
 struct tuple_size<fwk::Array<T, N>> : public integral_constant<std::size_t, N> {};
 
