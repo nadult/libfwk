@@ -102,6 +102,7 @@ template <class T> class SparseVector {
 
 	int size() const { return m_size; }
 	int capacity() const { return m_elements.size(); }
+	i64 usedMemory() const { return capacity() * ((i64)sizeof(T) + 1); }
 	bool empty() const { return m_size == 0; }
 	explicit operator bool() const { return m_size > 0; }
 
