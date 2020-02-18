@@ -43,7 +43,7 @@ namespace fwk {
 					  "You have to pass Expected<...> to EX_PASS");                                \
 		if(!_expect_result)                                                                        \
 			return _expect_result.error();                                                         \
-		move(_expect_result.get());                                                                \
+		std::move(_expect_result.get());                                                           \
 	})
 
 namespace detail {
