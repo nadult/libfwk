@@ -157,6 +157,8 @@ class Any {
 	}
 
 	template <class... T> bool getVariant_(Variant<T...> &out) const {
+		if(empty())
+			return false;
 		void *ptr = m_model->ptr();
 		return (... || (m_type == typeInfo<T>() ? ((out = *(T *)ptr), true) : false));
 	}
