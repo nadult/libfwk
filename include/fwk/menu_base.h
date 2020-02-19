@@ -15,7 +15,7 @@ using namespace ImGui;
 void openFilePopup(string &file_name, ZStr popup_name, string file_regex = ".*");
 void openFileButton(string &file_name, string popup_name, string regex = ".*");
 
-void openErrorPopup(Error);
+void openErrorPopup(Error, ZStr title = "");
 void displayErrorPopup();
 
 void showTooltip(Str);

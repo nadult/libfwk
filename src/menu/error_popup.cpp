@@ -7,18 +7,19 @@
 
 namespace menu {
 
-static Error s_current_error;
+static string s_current_error, s_title;
 
-void openErrorPopup(Error error) {
+void openErrorPopup(Error error, ZStr title) {
 	if(!error.empty()) {
-		s_current_error = move(error);
-		ImGui::OpenPopup("error_popup");
+		s_current_error = toString(error);
+		s_title = string(title) + "##error_popup";
+		ImGui::OpenPopup(s_title.c_str());
 	}
 }
 
 void displayErrorPopup() {
-	if(ImGui::BeginPopupModal("error_popup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::Text("%s", toString(s_current_error).c_str());
+	if(ImGui::BeginPopupModal(s_title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("%s", s_current_error.c_str());
 		ImGui::Separator();
 
 		int enter_idx = ImGui::GetKeyIndex(ImGuiKey_Enter);
