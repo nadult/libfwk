@@ -149,6 +149,10 @@ class Graph {
 		return edge.from == nid ? edge.to : edge.from;
 	}
 
+	// TODO: how to handle duplicate edges/tris ?
+	Maybe<EdgeRef> findTriEdge(TriId, int idx) const;
+	Pair<Maybe<TriId>> findTris(EdgeId, Layers = all<Layer>) const;
+
 	// TODO: function to copy layer ?
 
 	VertexId from(EdgeId) const;
@@ -281,6 +285,7 @@ class Graph {
 
 	friend class VertexRef;
 	friend class EdgeRef;
+	friend class TriangleRef;
 
 	// TODO: optional m_edge_twin_info?
 	//vector<ExtEdgeInfo> m_ext_info;

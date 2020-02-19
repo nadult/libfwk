@@ -128,6 +128,30 @@ vector<VertexId> Graph::nodesAdj(VertexId node_id) const {
 	return out;
 }*/
 
+Maybe<EdgeRef> Graph::findTriEdge(TriId tid, int idx) const {
+	PASSERT(idx >= 0 && idx <= 2);
+	auto &tri = m_tris[tid];
+	return findEdge(tri.verts[idx], tri.verts[idx == 2 ? 0 : idx + 1]);
+}
+
+Pair<Maybe<TriId>> Graph::findTris(EdgeId eid, Layers layers) const {
+	auto [v1, v2] = m_edges[eid];
+
+	auto find_tri = [&](VertexId v1, VertexId v2) -> Maybe<TriId> {
+		for(auto tid : m_vert_tris[v1])
+			if(tid.test(layers)) {
+				auto &tri = m_tris[tid];
+				if((tri.verts[0] == v1 && tri.verts[1] == v2) ||
+				   (tri.verts[1] == v1 && tri.verts[2] == v2) ||
+				   (tri.verts[2] == v1 && tri.verts[0] == v2))
+					return TriId(tid);
+			}
+		return none;
+	};
+
+	return {find_tri(v1, v2), find_tri(v2, v1)};
+}
+
 VertexId Graph::from(EdgeId edge_id) const { return m_edges[edge_id].from; }
 VertexId Graph::to(EdgeId edge_id) const { return m_edges[edge_id].to; }
 

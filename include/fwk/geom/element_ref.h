@@ -51,6 +51,8 @@ class VertexRef {
 	VertexRefs vertsFrom(GLayers = all<GLayer>) const;
 	VertexRefs vertsTo(GLayers = all<GLayer>) const;
 
+	TriRefs tris(GLayers = all<GLayer>) const;
+
 	int numEdges(GLayers = all<GLayer>) const;
 	int numEdgesFrom(GLayers = all<GLayer>) const;
 	int numEdgesTo(GLayers = all<GLayer>) const;
@@ -112,5 +114,33 @@ class EdgeRef {
 
 	const Graph *m_graph;
 	EdgeId m_id;
+};
+
+class TriangleRef {
+  public:
+	TriangleRef(const Graph *graph, TriId id) : m_graph(graph), m_id(id) {}
+
+	operator TriId() const { return m_id; }
+	operator int() const { return (int)m_id; }
+	TriId id() const { return m_id; }
+	int idx() const { return m_id.index(); }
+
+	const GLabel *operator->() const;
+
+	array<VertexRef, 3> verts() const;
+	VertexRef vert(int idx) const;
+	GLayer layer() const;
+
+	Maybe<EdgeRef> twin(GLayers = all<GLayer>) const;
+
+	template <auto v> explicit TriangleRef(Intrusive::Tag<v> tag) : m_id(tag) {}
+	template <auto v> bool operator==(Intrusive::Tag<v> tag) const { return m_id == tag; }
+
+  private:
+	friend class VertexRef;
+	friend class Graph;
+
+	const Graph *m_graph;
+	TriId m_id;
 };
 }
