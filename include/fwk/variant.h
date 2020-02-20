@@ -77,7 +77,6 @@ namespace detail {
 
 	template <typename F, typename V, typename R, typename T> struct dispatcher<F, V, R, T> {
 		static R apply_const(V const &v, F &&f) { return f(v.template get<T>()); }
-
 		static R apply(V &v, F &&f) { return f(v.template get<T>()); }
 	};
 
@@ -96,7 +95,7 @@ namespace detail {
 
 	template <typename Variant, typename Comp> class comparer {
 	  public:
-		explicit comparer(Variant const &lhs) : lhs_(lhs) {}
+		explicit comparer(const Variant &lhs) : lhs_(lhs) {}
 		comparer &operator=(comparer const &) = delete;
 		// visitor
 		template <typename T> bool operator()(T const &rhs_content) const {
@@ -105,7 +104,7 @@ namespace detail {
 		}
 
 	  private:
-		Variant const &lhs_;
+		const Variant &lhs_;
 	};
 
 	template <typename... Fns> struct visitor;
@@ -176,37 +175,27 @@ template <typename... Types> class Variant {
 		new(&data) DT(std::forward<T>(val));
 	}
 
-	Variant(Variant<Types...> const &old) : type_index(old.type_index) {
+	Variant(const Variant &old) : type_index(old.type_index) {
 		Helper::copy(old.type_index, &old.data, &data);
 	}
 
-	Variant(Variant<Types...> &&old) : type_index(old.type_index) {
+	Variant(Variant &&old) : type_index(old.type_index) {
 		Helper::move(old.type_index, &old.data, &data);
 	}
 
-  private:
-	void copy_assign(Variant<Types...> const &rhs) {
+	Variant &operator=(const Variant &rhs) {
 		Helper::destroy(type_index, &data);
 		type_index = -1;
 		Helper::copy(rhs.type_index, &rhs.data, &data);
 		type_index = rhs.type_index;
+		return *this;
 	}
 
-	void move_assign(Variant<Types...> &&rhs) {
+	Variant &operator=(Variant &&rhs) {
 		Helper::destroy(type_index, &data);
 		type_index = -1;
 		Helper::move(rhs.type_index, &rhs.data, &data);
 		type_index = rhs.type_index;
-	}
-
-  public:
-	Variant<Types...> &operator=(Variant<Types...> &&other) {
-		move_assign(std::move(other));
-		return *this;
-	}
-
-	Variant<Types...> &operator=(Variant<Types...> const &other) {
-		copy_assign(other);
 		return *this;
 	}
 
@@ -280,13 +269,11 @@ template <typename... Types> class Variant {
 
 	template <typename F, typename R = typename detail::result_of_unary_visit<F, First>::type>
 	auto visit(F &&f) const {
-		return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply_const(
-			*this, std::forward<F>(f));
+		return detail::dispatcher<F, Variant, R, Types...>::apply_const(*this, std::forward<F>(f));
 	}
 	template <typename F, typename R = typename detail::result_of_unary_visit<F, First>::type>
 	auto visit(F &&f) {
-		return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply(*this,
-																			std::forward<F>(f));
+		return detail::dispatcher<F, Variant, R, Types...>::apply(*this, std::forward<F>(f));
 	}
 
 	template <typename... Fs> auto match(Fs &&... fs) const {
@@ -298,14 +285,14 @@ template <typename... Types> class Variant {
 
 	~Variant() { Helper::destroy(type_index, &data); }
 
-	bool operator==(Variant const &rhs) const {
+	bool operator==(const Variant &rhs) const {
 		if(this->which() != rhs.which())
 			return false;
 		detail::comparer<Variant, detail::equal_comp> visitor(*this);
 		return rhs.visit(visitor);
 	}
 
-	bool operator<(Variant const &rhs) const {
+	bool operator<(const Variant &rhs) const {
 		if(this->which() != rhs.which())
 			return this->which() < rhs.which();
 		detail::comparer<Variant, detail::less_comp> visitor(*this);
