@@ -15,6 +15,10 @@
 
 namespace fwk {
 namespace detail {
+	// References are stored as pointers
+	template <class T> struct VariantStoredType { using Type = T; };
+	template <class T> struct VariantStoredType<T &> { using Type = T *; };
+
 	template <typename T, typename R = void> struct enable_if_type { using type = R; };
 	template <typename F, typename V, typename Enable = void> struct result_of_unary_visit {
 		using type = typename std::result_of<F(V &)>::type;
@@ -28,23 +32,25 @@ namespace detail {
 	template <typename... Types> struct variant_helper;
 
 	template <typename T, typename... Types> struct variant_helper<T, Types...> {
+		using ST = typename VariantStoredType<T>::Type;
+
 		static void destroy(int type_index, void *data) {
 			if(type_index == 0)
-				reinterpret_cast<T *>(data)->~T();
+				reinterpret_cast<ST *>(data)->~ST();
 			else
 				variant_helper<Types...>::destroy(type_index - 1, data);
 		}
 
 		static void move(int old_type_index, void *old_value, void *new_value) {
 			if(old_type_index == 0)
-				new(new_value) T(std::move(*reinterpret_cast<T *>(old_value)));
+				new(new_value) ST(std::move(*reinterpret_cast<ST *>(old_value)));
 			else
 				variant_helper<Types...>::move(old_type_index - 1, old_value, new_value);
 		}
 
 		static void copy(int old_type_index, const void *old_value, void *new_value) {
 			if(old_type_index == 0)
-				new(new_value) T(*reinterpret_cast<const T *>(old_value));
+				new(new_value) ST(*reinterpret_cast<const ST *>(old_value));
 			else
 				variant_helper<Types...>::copy(old_type_index - 1, old_value, new_value);
 		}
@@ -144,8 +150,9 @@ template <typename... Types> class Variant {
 	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
 	// TODO: check that types are distinct (after references are dropped?)
 
-	static constexpr int data_size = max(0, 0, (int)sizeof(Types)...);
-	static constexpr int data_align = max(0, 0, (int)alignof(Types)...);
+	template <class T> using StoredType = typename detail::VariantStoredType<T>::Type;
+	static constexpr int data_size = max(0, 0, (int)sizeof(StoredType<Types>)...);
+	static constexpr int data_align = max(0, 0, (int)alignof(StoredType<Types>)...);
 	template <class T> static constexpr int type_index_ = fwk::type_index<T, Types...>;
 	template <class T> using EnableIfValidType = EnableIf<(type_index_<T> != -1), TypeNotInVariant>;
 
@@ -162,6 +169,13 @@ template <typename... Types> class Variant {
 	Data data;
 	char type_index;
 
+	template <class T> T &access() const {
+		if constexpr(is_reference<T>)
+			return **(StoredType<T> *)(&data);
+		else
+			return *(T *)(&data);
+	}
+
   public:
 	Variant() : type_index(0) {
 		static_assert(std::is_default_constructible<First>::value,
@@ -173,6 +187,14 @@ template <typename... Types> class Variant {
 	template <class T, class DT = Decay<T>, int index = type_index_<DT>, EnableIf<index != -1>...>
 	Variant(T &&val) : type_index(index) {
 		new(&data) DT(std::forward<T>(val));
+	}
+
+	// Initializing reference type
+	template <class T,
+			  int index = (type_index_<T &> == -1 ? type_index_<const T &> : type_index_<T &>),
+			  EnableIf<index != -1>...>
+	Variant(T &val) : type_index(index) {
+		new (&data)(T *)(&val);
 	}
 
 	Variant(const Variant &old) : type_index(old.type_index) {
@@ -228,6 +250,16 @@ template <typename... Types> class Variant {
 		new(&data) T(rhs);
 	}
 
+	// Assigning reference type
+	template <typename T,
+			  int index = (type_index_<T &> == -1 ? type_index_<const T &> : type_index_<T &>),
+			  EnableIf<index != -1>...>
+	void operator=(T &rhs) {
+		Helper::destroy(type_index, &data);
+		type_index = index;
+		new (&data)(T *)(&rhs);
+	}
+
 	template <typename T> bool is() const {
 		static_assert(is_one_of<T, Types...>, "invalid type in T in `is<T>()` for this variant");
 		return type_index == type_index_<T>;
@@ -241,24 +273,33 @@ template <typename... Types> class Variant {
 
 	template <typename T, EnableIfValidType<T>...> T &get() & {
 		if(type_index == type_index_<T> || ndebug_access)
-			return *reinterpret_cast<T *>(&data);
+			return access<T>();
 		else
 			FWK_FATAL("Bad variant access in get()");
 	}
 
 	template <typename T, EnableIfValidType<T>...> T const &get() const & {
 		if(type_index == type_index_<T> || ndebug_access)
-			return *reinterpret_cast<T const *>(&data);
+			return access<const T>();
 		else
 			FWK_FATAL("Bad variant access in get()");
 	}
 
 	template <typename T, EnableIfValidType<T>...> operator T *() & {
-		return type_index == type_index_<T> ? reinterpret_cast<T *>(&data) : nullptr;
+		return type_index == type_index_<T> ? &access<T>() : nullptr;
 	}
 
 	template <typename T, EnableIfValidType<T>...> operator const T *() const & {
-		return type_index == type_index_<T> ? reinterpret_cast<T const *>(&data) : nullptr;
+		return type_index == type_index_<T> ? &access<const T>() : nullptr;
+	}
+
+	// Accessing references
+	template <typename T, EnableIfValidType<T &>...> operator T *() & {
+		return type_index == type_index_<T &> ? &access<T &>() : nullptr;
+	}
+
+	template <typename T, EnableIfValidType<T &>...> operator const T *() const & {
+		return type_index == type_index_<T &> ? &access<const T &>() : nullptr;
 	}
 
 	template <typename T, EnableIfValidType<T>...> T &get() && = delete;

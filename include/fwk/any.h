@@ -160,7 +160,7 @@ class Any {
 		if(empty())
 			return false;
 		void *ptr = m_model->ptr();
-		return (... || (m_type == typeInfo<T>() ? ((out = *(T *)ptr), true) : false));
+		return (... || (m_type == typeInfo<Decay<T>>() ? ((out = *(Decay<T> *)ptr), true) : false));
 	}
 
 	// TODO: Inlined for small types ?

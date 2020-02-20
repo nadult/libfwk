@@ -76,6 +76,14 @@ void testString() {
 	ASSERT(!fileExtension("aaa"));
 }
 
+struct BigType {
+	BigType() : num_copies(0) {}
+	BigType(const BigType &rhs) : num_copies(rhs.num_copies + 1) {}
+	BigType(BigType &&rhs) : num_copies(rhs.num_copies) {}
+
+	int num_copies;
+};
+
 void testVariant() {
 	using Var1 = Variant<string, FBox>;
 	Var1 var = string("woohoo");
@@ -93,6 +101,14 @@ void testVariant() {
 	using Var2 = Variant<int, float>;
 	auto temp2 = load<Var2>(node);
 	ASSERT(!temp2);
+
+	using Var3 = Variant<None, const BigType &>;
+	Any any = BigType();
+	auto var3 = *any.getMaybe<Var3>();
+	const BigType *ref_big = var3;
+	ASSERT(ref_big);
+	ASSERT_EQ((u64)ref_big, (u64)&any.get<BigType>());
+	ASSERT_EQ(ref_big->num_copies, 0);
 }
 
 void testAny() {
