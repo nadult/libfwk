@@ -39,54 +39,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fwk/type_info_gen.h"
 
 namespace fwk {
-
 namespace detail {
-
-template <typename T, typename... Types>
-struct direct_type;
-
-template <typename T, typename First, typename... Types>
-struct direct_type<T, First, Types...>
-{
-    static constexpr int index = is_same<T, First>
-        ? (int)sizeof...(Types) : direct_type<T, Types...>::index;
-};
-
-template <typename T>
-struct direct_type<T>
-{
-    static constexpr int index = -1;
-};
 
 template <typename T, typename R = void>
 struct enable_if_type { using type = R; };
 
 template <typename F, typename V, typename Enable = void>
-struct result_of_unary_visit
-{
+struct result_of_unary_visit {
     using type = typename std::result_of<F(V &)>::type;
 };
 
 template <typename F, typename V>
-struct result_of_unary_visit<F, V, typename enable_if_type<typename F::result_type>::type >
-{
+struct result_of_unary_visit<F, V, typename enable_if_type<typename F::result_type>::type> {
     using type = typename F::result_type;
-};
-
-template <int arg1, int... others>
-struct static_max;
-
-template <int arg>
-struct static_max<arg>
-{
-    static const int value = arg;
-};
-
-template <int arg1, int arg2, int... others>
-struct static_max<arg1, arg2, others...>
-{
-    static const int value = arg1 >= arg2 ? static_max<arg1, others...>::value :
-        static_max<arg2, others...>::value;
 };
 
 template <typename... Types>
@@ -96,31 +61,29 @@ template <typename T, typename... Types>
 struct variant_helper<T, Types...>
 {
     static void destroy(int type_index, void * data) {
-        if (type_index == (int)sizeof...(Types))
+        if (type_index == 0)
             reinterpret_cast<T*>(data)->~T();
         else
             variant_helper<Types...>::destroy(type_index, data);
     }
 
     static void move(int old_type_index, void * old_value, void * new_value) {
-        if (old_type_index == (int)sizeof...(Types))
+        if (old_type_index == 0)
             new (new_value) T(std::move(*reinterpret_cast<T*>(old_value)));
         else
             variant_helper<Types...>::move(old_type_index, old_value, new_value);
     }
 
     static void copy(int old_type_index, const void * old_value, void * new_value) {
-        if (old_type_index == (int)sizeof...(Types))
+        if (old_type_index == 0)
             new (new_value) T(*reinterpret_cast<const T*>(old_value));
         else
             variant_helper<Types...>::copy(old_type_index, old_value, new_value);
     }
-
 };
 
 template <>
-struct variant_helper<>
-{
+struct variant_helper<> {
     static void destroy(int, void *) {}
     static void move(int, void *, void *) {}
     static void copy(int, const void *, void *) {}
@@ -130,8 +93,7 @@ template <typename F, typename V, typename R, typename... Types>
 struct dispatcher;
 
 template <typename F, typename V, typename R, typename T, typename... Types>
-struct dispatcher<F, V, R, T, Types...>
-{
+struct dispatcher<F, V, R, T, Types...> {
     static R apply_const(V const& v, F && f) {
         if (v. template is<T>())
             return f(v. template get<T>());
@@ -148,8 +110,7 @@ struct dispatcher<F, V, R, T, Types...>
 };
 
 template <typename F, typename V, typename R, typename T>
-struct dispatcher<F, V, R, T>
-{
+struct dispatcher<F, V, R, T> {
     static R apply_const(V const& v, F && f) {
         return f(v. template get<T>());
     }
@@ -184,8 +145,7 @@ public:
     comparer & operator=(comparer const&) = delete;
     // visitor
     template <typename T>
-    bool operator()(T const& rhs_content) const
-    {
+    bool operator()(T const& rhs_content) const {
         T const& lhs_content = lhs_.template get<T>();
         return Comp()(lhs_content, rhs_content);
     }
@@ -197,8 +157,7 @@ template <typename... Fns>
 struct visitor;
 
 template <typename Fn>
-struct visitor<Fn> : Fn
-{
+struct visitor<Fn> : Fn {
     using type = Fn;
     using Fn::operator();
 
@@ -206,8 +165,7 @@ struct visitor<Fn> : Fn
 };
 
 template <typename Fn, typename... Fns>
-struct visitor<Fn, Fns...> : Fn, visitor<Fns...>
-{
+struct visitor<Fn, Fns...> : Fn, visitor<Fns...> {
     using type = visitor;
     using Fn::operator();
     using visitor<Fns...>::operator();
@@ -216,12 +174,10 @@ struct visitor<Fn, Fns...> : Fn, visitor<Fns...>
 };
 
 template <typename... Fns>
-visitor<Fns...> make_visitor(Fns... fns)
-{
+visitor<Fns...> make_visitor(Fns... fns) {
     return visitor<Fns...>(fns...);
 }
-
-} // namespace detail
+}
 
 struct TypeNotInVariant;
 
@@ -234,92 +190,75 @@ template <class T> static constexpr bool is_variant = false;
 template <class... Types> static constexpr bool is_variant<Variant<Types...>> = true;
 
 template <typename... Types>
-class Variant
-{
+class Variant {
     static_assert(sizeof...(Types) > 0, "Template parameter type list of variant can not be empty");
-	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
-    static_assert(!(std::is_reference<Types>::value || ...), "Variant can not hold reference types. Maybe use std::reference?");
-
-	template <class T>
-	using EnableIfValidType = EnableIf<(detail::direct_type<T, Types...>::index != -1), TypeNotInVariant>;
-
-#ifdef NDEBUG
-	enum { ndebug_access = true };
-#else
-	enum { ndebug_access = false };
-#endif
+    static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
 
 private:
-    static const int data_size = detail::static_max<(int)sizeof(Types)...>::value;
-    static const int data_align = detail::static_max<(int)alignof(Types)...>::value;
-
+    static constexpr int data_size = max((int)sizeof(Types)...);
+    static constexpr int data_align = max((int)alignof(Types)...);
+    template <class T> static constexpr int type_index_ = fwk::type_index<T, Types...>;
     template <class T>
-    static constexpr int typeIndex() { return detail::direct_type<T, Types...>::index; }
+    using EnableIfValidType = EnableIf<(type_index_<T> != -1), TypeNotInVariant>;
 
-    using first_type = NthType<0, Types...>;
-    using data_type = typename std::aligned_storage<data_size, data_align>::type;
-    using helper_type = detail::variant_helper<Types...>;
+    using First = NthType<0, Types...>;
+    using Data = typename std::aligned_storage<data_size, data_align>::type;
+    using Helper = detail::variant_helper<Types...>;
 
-    data_type data;
+#ifdef NDEBUG
+    static constexpr bool ndebug_access = true;
+#else
+    static constexpr bool ndebug_access = false;
+#endif
+
+    Data data;
     char type_index;
 
 public:
-    Variant()
-        : type_index((int)sizeof...(Types) - 1)
-    {
-        static_assert(std::is_default_constructible<first_type>::value, "First type in variant must be default constructible to allow default construction of variant");
-        new (&data) first_type();
+    Variant() :type_index(0) {
+        static_assert(std::is_default_constructible<First>::value,
+                      "First type in variant must be default constructible to allow default construction of variant");
+        new (&data) First();
     }
 
-    template <class T, class DT = Decay<T>, int index = typeIndex<DT>(), EnableIf<index != -1>...>
-    Variant(T && val) : type_index(index) {
-        new (&data) DT(std::forward<T>(val));
+    template <class T, class DT = Decay<T>, int index = type_index_<DT>, EnableIf<index != -1>...>
+    Variant(T && val) :type_index(index) { new (&data) DT(std::forward<T>(val)); }
+
+    Variant(Variant<Types...> const& old) :type_index(old.type_index) {
+        Helper::copy(old.type_index, &old.data, &data);
     }
 
-    Variant(Variant<Types...> const& old)
-        : type_index(old.type_index)
-    {
-        helper_type::copy(old.type_index, &old.data, &data);
-    }
-
-    Variant(Variant<Types...> && old)
-        : type_index(old.type_index)
-    {
-        helper_type::move(old.type_index, &old.data, &data);
+    Variant(Variant<Types...> && old) :type_index(old.type_index) {
+        Helper::move(old.type_index, &old.data, &data);
     }
 
 private:
-    void copy_assign(Variant<Types...> const& rhs)
-    {
-        helper_type::destroy(type_index, &data);
+    void copy_assign(Variant<Types...> const& rhs) {
+        Helper::destroy(type_index, &data);
         type_index = -1;
-        helper_type::copy(rhs.type_index, &rhs.data, &data);
+        Helper::copy(rhs.type_index, &rhs.data, &data);
         type_index = rhs.type_index;
     }
 
-    void move_assign(Variant<Types...> && rhs)
-    {
-        helper_type::destroy(type_index, &data);
+    void move_assign(Variant<Types...> && rhs) {
+        Helper::destroy(type_index, &data);
         type_index = -1;
-        helper_type::move(rhs.type_index, &rhs.data, &data);
+        Helper::move(rhs.type_index, &rhs.data, &data);
         type_index = rhs.type_index;
     }
 
 public:
-    Variant<Types...>& operator=(Variant<Types...> &&  other)
-    {
+    Variant<Types...>& operator=(Variant<Types...> &&  other) {
         move_assign(std::move(other));
         return *this;
     }
 
-    Variant<Types...>& operator=(Variant<Types...> const& other)
-    {
+    Variant<Types...>& operator=(Variant<Types...> const& other) {
         copy_assign(other);
         return *this;
     }
 
-    template <typename T, class DT = Decay<T>, int index = typeIndex<DT>(),
-        EnableIf<index != -1>...>
+    template <typename T, class DT = Decay<T>, int index = type_index_<DT>, EnableIf<index != -1>...>
     void operator=(T &&rhs) {
         if constexpr(std::is_move_assignable<T>::value)
             if(index == type_index) {
@@ -327,12 +266,12 @@ public:
                 return;
             }
 
-        helper_type::destroy(type_index, &data);
+        Helper::destroy(type_index, &data);
         type_index = index;
         new(&data) DT(move(rhs));
     }
 
-    template <typename T, int index = typeIndex<T>(), EnableIf<index != -1>...>
+    template <typename T, int index = type_index_<T>, EnableIf<index != -1>...>
     void operator=(const T &rhs) {
         if constexpr(std::is_move_assignable<T>::value)
             if(index == type_index) {
@@ -340,68 +279,66 @@ public:
                 return;
             }
 
-        helper_type::destroy(type_index, &data);
+        Helper::destroy(type_index, &data);
         type_index = index;
         new(&data) T(rhs);
     }
 
     template <typename T>
-    bool is() const
-    {
+    bool is() const {
         static_assert(is_one_of<T, Types...>, "invalid type in T in `is<T>()` for this variant");
-        return type_index == detail::direct_type<T, Types...>::index;
+        return type_index == type_index_<T>;
     }
 
     template <typename T, typename... Args>
-    void set(Args &&... args)
-    {
-        helper_type::destroy(type_index, &data);
+    void set(Args &&... args) {
+        Helper::destroy(type_index, &data);
         new (&data) T(std::forward<Args>(args)...);
-        type_index = detail::direct_type<T, Types...>::index;
+        type_index = type_index_<T>;
     }
 
     template <typename T, EnableIfValidType<T>...>
     T & get() & {
-        if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
+        if (type_index == type_index_<T> || ndebug_access)
             return *reinterpret_cast<T*>(&data);
         else
-			FWK_FATAL("Bad variant access in get()");
+            FWK_FATAL("Bad variant access in get()");
     }
 
     template <typename T, EnableIfValidType<T>...>
     T const& get() const & {
-        if (type_index == detail::direct_type<T, Types...>::index || ndebug_access)
+        if (type_index == type_index_<T> || ndebug_access)
             return *reinterpret_cast<T const*>(&data);
         else
-			FWK_FATAL("Bad variant access in get()");
+            FWK_FATAL("Bad variant access in get()");
     }
 
-	template <typename T, EnableIfValidType<T>...>
+    template <typename T, EnableIfValidType<T>...>
     operator T *() & {
-        return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T *>(&data) : nullptr;
+        return type_index == type_index_<T>? reinterpret_cast<T *>(&data) : nullptr;
     }
 
-	template <typename T, EnableIfValidType<T>...>
+    template <typename T, EnableIfValidType<T>...>
     operator const T *() const & {
-        return type_index == detail::direct_type<T, Types...>::index? reinterpret_cast<T const*>(&data) : nullptr;
+        return type_index == type_index_<T>? reinterpret_cast<T const*>(&data) : nullptr;
     }
 
-	template <typename T, EnableIfValidType<T>...> T & get() && = delete;
+    template <typename T, EnableIfValidType<T>...> T & get() && = delete;
     template <typename T, EnableIfValidType<T>...> T const& get() const && = delete;
 
-	template <typename T, EnableIfValidType<T>...> operator T *() && = delete;
-	template <typename T, EnableIfValidType<T>...> operator const T *() const && = delete;
+    template <typename T, EnableIfValidType<T>...> operator T *() && = delete;
+    template <typename T, EnableIfValidType<T>...> operator const T *() const && = delete;
 
     int which() const {
         return (int)sizeof...(Types) - type_index - 1;
     }
 
-    template <typename F, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
-    auto     visit(F && f) const {
+    template <typename F, typename R = typename detail::result_of_unary_visit<F, First>::type>
+    auto visit(F && f) const {
         return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply_const(*this, std::forward<F>(f));
     }
-    template <typename F, typename R = typename detail::result_of_unary_visit<F, first_type>::type>
-    auto     visit(F && f) {
+    template <typename F, typename R = typename detail::result_of_unary_visit<F, First>::type>
+    auto visit(F && f) {
         return detail::dispatcher<F, Variant<Types...>, R, Types...>::apply(*this, std::forward<F>(f));
     }
 
@@ -415,7 +352,7 @@ public:
     }
 
     ~Variant() {
-        helper_type::destroy(type_index, &data);
+        Helper::destroy(type_index, &data);
     }
 
     bool operator==(Variant const& rhs) const {

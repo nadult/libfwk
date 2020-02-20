@@ -127,6 +127,8 @@ using EnableIfConstructible = EnableIf<is_constructible<T, Args...>, NotConstruc
 template <class T1> constexpr bool is_const = false;
 template <class T> constexpr bool is_const<const T> = true;
 
+template <class T> constexpr bool is_reference = std::is_reference<T>::value;
+
 template <class T> using RemoveConst = typename std::remove_const<T>::type;
 template <class T> using RemoveReference = typename std::remove_reference<T>::type;
 template <class T> using RemovePointer = typename std::remove_pointer<T>::type;
