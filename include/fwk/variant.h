@@ -32,21 +32,21 @@ namespace detail {
 			if(type_index == 0)
 				reinterpret_cast<T *>(data)->~T();
 			else
-				variant_helper<Types...>::destroy(type_index, data);
+				variant_helper<Types...>::destroy(type_index - 1, data);
 		}
 
 		static void move(int old_type_index, void *old_value, void *new_value) {
 			if(old_type_index == 0)
 				new(new_value) T(std::move(*reinterpret_cast<T *>(old_value)));
 			else
-				variant_helper<Types...>::move(old_type_index, old_value, new_value);
+				variant_helper<Types...>::move(old_type_index - 1, old_value, new_value);
 		}
 
 		static void copy(int old_type_index, const void *old_value, void *new_value) {
 			if(old_type_index == 0)
 				new(new_value) T(*reinterpret_cast<const T *>(old_value));
 			else
-				variant_helper<Types...>::copy(old_type_index, old_value, new_value);
+				variant_helper<Types...>::copy(old_type_index - 1, old_value, new_value);
 		}
 	};
 
@@ -142,10 +142,10 @@ template <class... Types> static constexpr bool is_variant<Variant<Types...>> = 
 template <typename... Types> class Variant {
 	static_assert(sizeof...(Types) > 0, "Template parameter type list of variant can not be empty");
 	static_assert(sizeof...(Types) < 128, "Please, keep it reasonable");
+	// TODO: check that types are distinct (after references are dropped?)
 
-  private:
-	static constexpr int data_size = max((int)sizeof(Types)...);
-	static constexpr int data_align = max((int)alignof(Types)...);
+	static constexpr int data_size = max(0, 0, (int)sizeof(Types)...);
+	static constexpr int data_align = max(0, 0, (int)alignof(Types)...);
 	template <class T> static constexpr int type_index_ = fwk::type_index<T, Types...>;
 	template <class T> using EnableIfValidType = EnableIf<(type_index_<T> != -1), TypeNotInVariant>;
 
@@ -182,6 +182,8 @@ template <typename... Types> class Variant {
 	Variant(Variant &&old) : type_index(old.type_index) {
 		Helper::move(old.type_index, &old.data, &data);
 	}
+
+	~Variant() { Helper::destroy(type_index, &data); }
 
 	Variant &operator=(const Variant &rhs) {
 		Helper::destroy(type_index, &data);
@@ -265,7 +267,7 @@ template <typename... Types> class Variant {
 	template <typename T, EnableIfValidType<T>...> operator T *() && = delete;
 	template <typename T, EnableIfValidType<T>...> operator const T *() const && = delete;
 
-	int which() const { return (int)sizeof...(Types) - type_index - 1; }
+	int which() const { return type_index; }
 
 	template <typename F, typename R = typename detail::result_of_unary_visit<F, First>::type>
 	auto visit(F &&f) const {
@@ -283,18 +285,16 @@ template <typename... Types> class Variant {
 		return visit(detail::make_visitor(std::forward<Fs>(fs)...));
 	}
 
-	~Variant() { Helper::destroy(type_index, &data); }
-
 	bool operator==(const Variant &rhs) const {
-		if(this->which() != rhs.which())
+		if(this->type_index != rhs.type_index)
 			return false;
 		detail::comparer<Variant, detail::equal_comp> visitor(*this);
 		return rhs.visit(visitor);
 	}
 
 	bool operator<(const Variant &rhs) const {
-		if(this->which() != rhs.which())
-			return this->which() < rhs.which();
+		if(this->type_index != rhs.type_index)
+			return this->type_index < rhs.type_index;
 		detail::comparer<Variant, detail::less_comp> visitor(*this);
 		return rhs.visit(visitor);
 	}
