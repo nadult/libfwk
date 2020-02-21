@@ -23,12 +23,14 @@ template <class T> class GeomGraph : public Graph {
 	using VecD = MakeVec<double, dim<T>>;
 	using IPoint = MakeVec<int, dim<T>>;
 	using Grid = SegmentGrid<Vec2>;
+	using Triangle = fwk::Triangle<Base<T>, dim<T>>;
 
 	using PointMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
 
 	GeomGraph();
 	GeomGraph(vector<Point>);
 	GeomGraph(vector<Pair<VertexId>>, vector<Point>);
+	GeomGraph(CSpan<Triangle>);
 	GeomGraph(Graph, PodVector<Point>, PointMap);
 	GeomGraph(const Graph &source, PodVector<Point> new_points, PointMap point_map,
 			  CSpan<Pair<VertexId>> collapsed_verts);
@@ -48,6 +50,7 @@ template <class T> class GeomGraph : public Graph {
 
 	Point operator()(VertexId id) const { return m_points[id]; }
 	Segment<Point> operator()(EdgeId) const;
+	Triangle operator()(TriangleId) const;
 	Vec vec(EdgeId) const;
 
 	Maybe<VertexRef> findVertex(Point pt) const;

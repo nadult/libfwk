@@ -7,6 +7,7 @@
 #include "fwk/math/direction.h"
 #include "fwk/math/random.h"
 #include "fwk/math/segment.h"
+#include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
 
 namespace fwk {
@@ -50,6 +51,25 @@ GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap po
 		FATAL("handle me please");
 }
 
+template <class T> GeomGraph<T>::GeomGraph(CSpan<Triangle> tris) {
+	reserveVerts(tris.size() * 3);
+	reserveEdges(tris.size() * 3);
+	reserveTris(tris.size());
+
+	for(auto tri : tris) {
+		array<VertexId, 3> nodes = {
+			{fixVertex(tri[0]).id, fixVertex(tri[1]).id, fixVertex(tri[2]).id}};
+
+		// TODO: why are flips needed?
+		array<bool, 3> flip = {{nodes[0] > nodes[1], nodes[1] > nodes[2], nodes[2] > nodes[0]}};
+
+		array<EdgeId, 3> edges = {{fixEdge(nodes[flip[0] ? 1 : 0], nodes[flip[0] ? 0 : 1]).id,
+								   fixEdge(nodes[flip[0] ? 2 : 1], nodes[flip[0] ? 1 : 2]).id,
+								   fixEdge(nodes[flip[0] ? 0 : 2], nodes[flip[0] ? 2 : 0]).id}};
+		auto tid = addTri(nodes[0], nodes[1], nodes[2]);
+	}
+}
+
 template <class T> GeomGraph<T>::GeomGraph() = default;
 template <class T> GeomGraph<T>::GeomGraph(const GeomGraph &) = default;
 template <class T> GeomGraph<T>::GeomGraph(GeomGraph &&) = default;
@@ -74,6 +94,11 @@ template <class T> vector<Segment<T>> GeomGraph<T>::segments() const {
 template <class T> Segment<T> GeomGraph<T>::operator()(EdgeId id) const {
 	auto [n1, n2] = m_edges[id];
 	return {m_points[n1], m_points[n2]};
+}
+
+template <class T> auto GeomGraph<T>::operator()(TriangleId id) const -> Triangle {
+	auto [n1, n2, n3] = m_tris[id].verts;
+	return {m_points[n1], m_points[n2], m_points[n3]};
 }
 
 template <class T> T GeomGraph<T>::vec(EdgeId id) const {
