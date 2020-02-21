@@ -24,6 +24,7 @@ class Voronoi {
 	static constexpr auto site_layer = GLayer::l1;
 	static constexpr auto arc_layer = GLayer::l2;
 	static constexpr auto seg_layer = GLayer::l3;
+	static constexpr auto clip_layer = GLayer::l4; // Only in verts
 
 	static vector<Pair<VertexId>> delaunay(SparseSpan<int2>);
 

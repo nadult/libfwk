@@ -128,8 +128,11 @@ Voronoi Voronoi::clip(DRect rect) const {
 			DASSERT(rect.contains(clipped->from));
 			DASSERT(rect.contains(clipped->to));
 			CellId old_cell_id(graph[old_arc_id].ival2);
-			auto v1 = new_graph.fixVertex(clipped->from, seg_layer).id;
-			auto v2 = new_graph.fixVertex(clipped->to, seg_layer).id;
+			auto v1_layers = seg_layer | mask(clipped->from != segment.from, clip_layer);
+			auto v2_layers = seg_layer | mask(clipped->to != segment.to, clip_layer);
+
+			auto v1 = new_graph.fixVertex(clipped->from, v1_layers).id;
+			auto v2 = new_graph.fixVertex(clipped->to, v2_layers).id;
 			auto eid = new_graph.addEdge(v1, v2, seg_layer);
 			new_graph[eid].ival1 = old_arc_id;
 			new_graph[eid].ival2 = old_cell_id;
@@ -236,7 +239,7 @@ Voronoi Voronoi::clip(DRect rect) const {
 		vector<VertexId> new_nodes;
 		new_nodes.emplace_back(*n1);
 		for(auto &pt : between)
-			new_nodes.emplace_back(new_graph.fixVertex(pt, seg_layer).id);
+			new_nodes.emplace_back(new_graph.fixVertex(pt, seg_layer | clip_layer).id);
 		new_nodes.emplace_back(*n2);
 
 		for(int n = 1; n < new_nodes.size(); n++) {
