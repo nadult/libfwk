@@ -20,12 +20,16 @@
 namespace fwk {
 
 FilePath executablePath() {
+#if defined(FWK_PLATFORM_HTML)
+	return "/emscripten_binary";
+#else
 	char name[512];
 	int ret = readlink("/proc/self/exe", name, sizeof(name) - 1);
 	if(ret == -1)
 		return "";
 	name[ret] = 0;
 	return name;
+#endif
 }
 
 FilePath::Element FilePath::extractRoot(const char *str) {
