@@ -2,6 +2,7 @@
 #   PLATFORM:        linux, mingw or html
 #   [FWK_]MODE:      release, devel or debug [-nans]
 #   ADD_CFLAGS:      additional compiler flags
+#   ADD_LDFLAGS:     additional linker flags
 #   COMPILER:        name of the compiler; clang++ or g++ is used by default
 #   LINKER:          name of linker; by default same as compiler
 #   MINGW_PREFIX:    prefix for mingw toolset; Can be set in the environment
@@ -17,6 +18,7 @@
 #   FWK_BUILD_DIR
 #   FWK_LIB_FILE
 #   CONFIG_FILE
+#   PROGRAM_SUFFIX
 #   (and more)
 #
 # Build modes:
@@ -137,7 +139,7 @@ LDFLAGS_clang  += -fuse-ld=gold
 LDFLAGS_linux  += -pthread -rdynamic
 LDFLAGS_mingw  += -pthread
 LDFLAGS_emcc   += -s TOTAL_MEMORY=256MB $(HTML_shared) --embed-file data/
-LDFLAGS        += $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE)) $(LIBS_$(PLATFORM))
+LDFLAGS        += $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE)) $(LIBS_$(PLATFORM)) $(ADD_LDFLAGS)
 
 # --- Updating configuration file -----------------------------------------------------------------
 
