@@ -11,7 +11,11 @@
 
 namespace fwk {
 
-// A graph where each vertex also has a position (2D or 3D)
+// A graph where each vertex also has a distinct position (2D or 3D).
+// Each edge, triangle and polygon can have duplicates though (some
+// algorithms might not work as intenged in such cases).
+//
+// TODO: better description
 template <class T> class GeomGraph : public Graph {
   public:
 	static_assert(is_vec<T> && (dim<T> == 2 || dim<T> == 3));
@@ -165,6 +169,7 @@ template <class T> class GeomGraph : public Graph {
 
   private:
 	template <Axes2D> void orderEdges(VertexId);
+	Maybe<VertexId> findPoint(const Point &) const;
 
 	PodVector<Point> m_points;
 	PointMap m_point_map;

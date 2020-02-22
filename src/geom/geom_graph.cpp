@@ -107,8 +107,8 @@ template <class T> T GeomGraph<T>::vec(EdgeId id) const {
 }
 
 template <class T> Maybe<VertexRef> GeomGraph<T>::findVertex(Point pt) const {
-	if(auto it = m_point_map.find(pt))
-		return ref(VertexId(it->value));
+	if(auto vid = findPoint(pt))
+		return ref(*vid);
 	return none;
 }
 
@@ -132,9 +132,9 @@ template <class T> void GeomGraph<T>::addVertexAt(VertexId vid, const Point &poi
 
 template <class T> FixedElem<VertexId> GeomGraph<T>::fixVertex(const Point &point, Layers layers) {
 	// TODO: możliwośc sprecyzowania domyślnego elementu w hashMap::operator[] ?
-	if(auto it = m_point_map.find(point)) {
-		m_vert_layers[it->value] |= layers;
-		return {VertexId(it->value), false};
+	if(auto vid = findPoint(point)) {
+		m_vert_layers[*vid] |= layers;
+		return {*vid, false};
 	}
 	auto id = Graph::addVertex(layers);
 	m_points.resize(Graph::m_verts.capacity());
@@ -147,8 +147,8 @@ template <class T>
 void GeomGraph<T>::mergeVerts(CSpan<VertexId> verts, const Point &point, Layers layers) {
 	DASSERT(verts);
 
-	if(auto it = m_point_map.find(point))
-		DASSERT(isOneOf(VertexId(it->value), verts));
+	if(auto vid = findPoint(point))
+		DASSERT(isOneOf(*vid, verts));
 	auto target = verts.front();
 
 	// TODO: what to do with duplicated egdes & tris ?
@@ -607,6 +607,19 @@ template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> Mer
 	return out;
 }
 
+template <class T> Maybe<VertexId> GeomGraph<T>::findPoint(const Point &point) const {
+	// TODO: Yea.....
+	if constexpr(is_rational<Point>) {
+		if(auto it = m_point_map.find(point); it != m_point_map.end())
+			return VertexId(it->second);
+	} else {
+		if(auto it = m_point_map.find(point); it != m_point_map.end())
+			return VertexId(it->value);
+	}
+	return none;
+}
+
+#ifndef FWK_SKIP_INSTANTIATIONS
 template class GeomGraph<float2>;
 template class GeomGraph<int2>;
 template class GeomGraph<double2>;
@@ -620,4 +633,5 @@ template auto GeomGraph<float3>::toIntegral(double) const -> Ex<GeomGraph<int3>>
 
 template auto GeomGraph<double2>::toIntegral(double) const -> Ex<GeomGraph<int2>>;
 template auto GeomGraph<double3>::toIntegral(double) const -> Ex<GeomGraph<int3>>;
+#endif
 }
