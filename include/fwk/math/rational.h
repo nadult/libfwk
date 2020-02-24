@@ -25,6 +25,7 @@ static constexpr NoSignCheck no_sign_check;
 //
 // TODO: Problem additon, min/max for vectors require multiplication (to find common divisor)
 // Be careful not to overflow when performing operations on rationals
+// TODO: it would be extremely useful to detect overflows when computing on rationals
 template <class T, int N> struct Rational {
 	static_assert(is_integral<T> || is_ext24<T>);
 	static constexpr int dim = N;

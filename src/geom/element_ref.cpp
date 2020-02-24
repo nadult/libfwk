@@ -69,6 +69,38 @@ EdgeRefs VertexRef::edges(GLayers layers) const {
 	return {out, m_graph};
 }
 
+EdgeRef VertexRef::next(EdgeId eid, bool is_source) const {
+	auto &edges = m_graph->m_verts[m_id];
+	PASSERT(edges);
+
+	int idx = 0;
+	for(; idx < edges.size(); idx++)
+		if(edges[idx] == eid)
+			break;
+	for(idx++; idx < edges.size(); idx++)
+		if(edges[idx].isSource() == is_source)
+			return {m_graph, edges[idx]};
+	for(idx = 0;; idx++)
+		if(edges[idx].isSource() == is_source)
+			return {m_graph, edges[idx]};
+	// Unreachable
+}
+
+EdgeRef VertexRef::prev(EdgeId eid, bool is_source) const {
+	auto &edges = m_graph->m_verts[m_id];
+	int idx = 0;
+	for(; idx < edges.size(); idx++)
+		if(edges[idx] == eid)
+			break;
+	for(idx--; idx >= 0; idx--)
+		if(edges[idx].isSource() == is_source)
+			return {m_graph, edges[idx]};
+	for(idx = edges.size() - 1;; idx--)
+		if(edges[idx].isSource() == is_source)
+			return {m_graph, edges[idx]};
+	// Unreachable
+}
+
 VertexRefs VertexRef::vertsAdj(GLayers layers) const {
 	vector<VertexId> out(pool_alloc);
 	for(auto eid : m_graph->m_verts[m_id])
@@ -136,45 +168,10 @@ bool EdgeRef::adjacent(EdgeId rhs_id) const {
 	return adjacent(rhs.from()) || adjacent(rhs.to());
 }
 
-EdgeRef EdgeRef::prevFrom() const {
-	auto &vert_edges = m_graph->m_verts[from()];
-	int idx = 0;
-	for(; idx < vert_edges.size(); idx++)
-		if(vert_edges[idx] == m_id)
-			break;
-	for(idx--; idx >= 0; idx--)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	for(idx = vert_edges.size() - 1;; idx--)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	// Unreachable
-}
-
-EdgeRef EdgeRef::nextFrom() const {
-	auto &vert_edges = m_graph->m_verts[from()];
-	int idx = 0;
-	for(; idx < vert_edges.size(); idx++)
-		if(vert_edges[idx] == m_id)
-			break;
-	for(idx++; idx < vert_edges.size(); idx++)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	for(idx = 0;; idx++)
-		if(vert_edges[idx].isSource())
-			return {m_graph, vert_edges[idx]};
-	// Unreachable
-}
-
-EdgeRef EdgeRef::prevTo() const {
-	FATAL("write me");
-	return *this;
-}
-
-EdgeRef EdgeRef::nextTo() const {
-	FATAL("write me");
-	return *this;
-}
+EdgeRef EdgeRef::prevFrom() const { return from().prev(m_id, true); }
+EdgeRef EdgeRef::nextFrom() const { return from().next(m_id, true); }
+EdgeRef EdgeRef::prevTo() const { return to().prev(m_id, true); }
+EdgeRef EdgeRef::nextTo() const { return to().next(m_id, true); }
 
 // -------------------------------------------------------------------------
 // -- TriangleRef implementation -------------------------------------------
