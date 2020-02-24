@@ -57,8 +57,8 @@ class int128 {
 	explicit operator u64() const { return (u64)lowbits; }
 	explicit operator i32() const { return (i32)lowbits; }
 	explicit operator u32() const { return (u32)lowbits; }
-	explicit operator double() const { return double(lowbits) + std::ldexp(double(highbits), 64); }
-	explicit operator float() const { return float(double(*this)); }
+	explicit operator double() const;
+	explicit operator float() const;
 	explicit operator bool() const { return lowbits != 0 || highbits != 0; }
 
 	static int128 maximumValue();

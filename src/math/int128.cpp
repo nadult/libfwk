@@ -29,6 +29,14 @@
 
 namespace fwk {
 
+int128::operator double() const {
+	if(highbits < 0)
+		return -double(-*this);
+	return double(lowbits) + std::ldexp(double(highbits), 64);
+}
+
+int128::operator float() const { return float(double(*this)); }
+
 int128 int128::maximumValue() { return int128(0x7fffffffffffffff, 0xfffffffffffffff); }
 int128 int128::minimumValue() { return int128(static_cast<int64_t>(0x8000000000000000), 0x0); }
 
