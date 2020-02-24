@@ -283,32 +283,28 @@ namespace detail {
 
 #undef PROMOTION
 
-	template <class T, int count = 1> auto promote() {
-		static_assert(count >= 0);
-		if constexpr(count == 0)
-			return DECLVAL(T);
-		else {
-			if constexpr(is_rational<T>) {
-				using Promoted = decltype(promote<typename T::Den, count>());
-				return Rational<Promoted, dim<T>>();
-			} else if constexpr(is_vec<T>) {
-				using Promoted = decltype(promote<fwk::Scalar<T>, count>());
-				return fwk::MakeVec<Promoted, dim<T>>();
-			} else if constexpr(is_ext24<T>) {
-				using Promoted = decltype(promote<Base<T>, count>());
-				return Ext24<Promoted>();
-			} else {
-				return promote<typename detail::Promotion<T>::type, count - 1>();
-			}
+	template <class T> auto promote() {
+		if constexpr(is_rational<T>) {
+			using Promoted = decltype(promote<typename T::Den>());
+			return Rational<Promoted, dim<T>>();
+		} else if constexpr(is_vec<T>) {
+			using Promoted = decltype(promote<fwk::Scalar<T>>());
+			return fwk::MakeVec<Promoted, dim<T>>();
+		} else if constexpr(is_ext24<T>) {
+			using Promoted = decltype(promote<Base<T>>());
+			return Ext24<Promoted>();
+		} else {
+			using Promoted = typename detail::Promotion<T>::type;
+			return DECLVAL(Promoted);
 		}
 	}
 }
 
 // TODO: maybe Promote is not the best name?
 // TODO: sometimes we want to raise an error if promotion is not available?
-template <class T, int count = 1> using Promote = decltype(detail::promote<T, count>());
-template <class T, int count = 1>
-using PromoteIntegral = If<is_integral<Base<T>>, Promote<T, count>, T>;
+template <class T> using Promote = decltype(detail::promote<T>());
+template <class T> using Promote2 = Promote<Promote<T>>;
+template <class T> using PromoteIntegral = If<is_integral<Base<T>>, Promote<T>, T>;
 
 template <class From, class To>
 inline constexpr bool precise_conversion = []() {

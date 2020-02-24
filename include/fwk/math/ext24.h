@@ -23,7 +23,7 @@ template <class T> struct Ext24 {
 	// TODO: ogarnąć nazwenictwo
 	using Base = T;
 	using PT = Promote<T>;
-	using PPT = Promote<T, 2>;
+	using PPT = Promote2<T>;
 
 	static_assert(is_integral<T> && is_scalar<T>);
 

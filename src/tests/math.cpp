@@ -355,7 +355,7 @@ void testTraits() {
 	static_assert(is_same<PromoteIntegral<float>, float>);
 	static_assert(is_same<PromoteIntegral<int2>, llint2>);
 
-	static_assert(is_same<Promote<Rational<int>, 2>, Rational<qint>>);
+	static_assert(is_same<Promote2<Rational<int>>, Rational<qint>>);
 
 	static_assert(is_vec<Rational<int, 2>>);
 	static_assert(is_rational<Rational<int, 2>>);
