@@ -29,8 +29,13 @@ ThreadContext::~ThreadContext() {
 	t_paused = nullptr;
 }
 
+// This is a bit slow (getTime() takes about 50ns)
+static unsigned long long getTimeNs() { return u64(getTime() * 1000000000.0); }
+
 static unsigned long long getClock() {
-#ifdef __clang__
+#ifdef FWK_PLATFORM_HTML
+	return getTimeNs();
+#elif defined(__clang__)
 	return __builtin_readcyclecounter();
 #else
 	unsigned high, low;
@@ -42,6 +47,7 @@ static unsigned long long getClock() {
 void ThreadContext::nextFrame() {
 	endFrame();
 	m_frame_begin = getTime();
+	m_frame_begin_ns = getTimeNs();
 	m_frame_begin_clock = getClock();
 }
 
@@ -112,8 +118,7 @@ void nextFrame() {
 		t_context->nextFrame();
 }
 
-// This is a bit slow (getTime() takes about 50ns)
-u64 ThreadContext::currentTimeNs() const { return u64((getTime() - m_frame_begin) * 1000000000.0); }
+u64 ThreadContext::currentTimeNs() const { return getTimeNs() - m_frame_begin_ns; }
 
 u64 ThreadContext::currentTimeClocks() const {
 	return getClock() - m_frame_begin_clock; // TODO: handle overflow

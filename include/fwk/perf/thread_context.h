@@ -60,6 +60,7 @@ class ThreadContext {
 
 	// TODO: limits on depth
 	unsigned long long m_frame_begin_clock;
+	unsigned long long m_frame_begin_ns;
 	double m_frame_begin = -1.0;
 	// times2, scale2, samples2 and prev_queries2 are used for double buffering
 	// it allows resolving gpu queries in the next frame
