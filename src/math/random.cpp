@@ -7,9 +7,7 @@
 #include <random>
 
 namespace fwk {
-
-// TODO: use Mersenne twister ?
-struct alignas(void *) RandomEngine : public std::default_random_engine {};
+struct RandomEngine : public std::mt19937_64 {};
 }
 
 #include "fwk/math/random.h"
