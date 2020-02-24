@@ -10,6 +10,10 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- span można skonstruować z referencji do 1 obiektu?
+
+- użyj Backward zamiast backtrace-ów z GDB/LLDB (ma MinGW wymaga dodania libdwarf/libelf do targetu MXE)
+
 - PollVector mógłby być po prostu otagowanym wektorem, który nie ma konwersji na zwykły wektor?
   albo przy konwersji  tworzy nowy wektor odpowiednio zaalokowany?
   Jaki był sens robienia pooli wewn. normalnego wektora?

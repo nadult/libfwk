@@ -1,0 +1,30 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
+#pragma once
+
+#include "fwk/gfx_base.h"
+#include "fwk/math_base.h"
+#include "fwk/enum_flags.h"
+#include <functional>
+
+namespace fwk {
+
+DEFINE_ENUM(InvestigatorOpt, exit_when_finished, backtrace);
+using InvestigatorFlags = EnumFlags<InvestigatorOpt>;
+
+// TODO: introspection mode ?
+
+using VisFunc2 = std::function<string(Visualizer2 &, double2 mouse_pos)>;
+using VisFunc3 = std::function<string(Visualizer3 &, double2 mouse_pos)>;
+
+void investigate(VisFunc2 vis_func, Maybe<DRect> focus = none,
+				 InvestigatorFlags = InvestigatorOpt::exit_when_finished |
+									 InvestigatorOpt::backtrace);
+
+void investigate(VisFunc3 vis_func, Maybe<DBox> focus = none,
+				 InvestigatorFlags = InvestigatorOpt::exit_when_finished |
+									 InvestigatorOpt::backtrace);
+
+void investigateOnFail(const Expected<void> &);
+}
