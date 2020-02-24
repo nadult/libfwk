@@ -608,14 +608,8 @@ template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> Mer
 }
 
 template <class T> Maybe<VertexId> GeomGraph<T>::findPoint(const Point &point) const {
-	// TODO: Yea.....
-	if constexpr(is_rational<Point>) {
-		if(auto it = m_point_map.find(point); it != m_point_map.end())
-			return VertexId(it->second);
-	} else {
-		if(auto it = m_point_map.find(point); it != m_point_map.end())
-			return VertexId(it->value);
-	}
+	if(auto it = m_point_map.find(point); it != m_point_map.end())
+		return VertexId(it->value);
 	return none;
 }
 

@@ -7,13 +7,15 @@
 #include "fwk/geom_base.h"
 #include "fwk/hash_map.h"
 #include "fwk/vector_map.h"
-#include <map>
 
 namespace fwk {
 
 // A graph where each vertex also has a distinct position (2D or 3D).
 // Each edge, triangle and polygon can have duplicates though (some
 // algorithms might not work as intenged in such cases).
+//
+// Warning: when using rational numbers, remember to normalize them first!
+// It's still faster to normalize rationals with GCD than use std::map.
 //
 // TODO: better description
 template <class T> class GeomGraph : public Graph {
@@ -28,15 +30,14 @@ template <class T> class GeomGraph : public Graph {
 	using IPoint = MakeVec<int, dim<T>>;
 	using Grid = SegmentGrid<Vec2>;
 	using Triangle = fwk::Triangle<Base<T>, dim<T>>;
-
-	using PointMap = If<is_rational<Point>, std::map<Point, int>, HashMap<Point, int>>;
+	using PointMap = HashMap<Point, int>;
 
 	GeomGraph();
 	GeomGraph(vector<Point>);
 	GeomGraph(vector<Pair<VertexId>>, vector<Point>);
 	GeomGraph(CSpan<Triangle>);
 	GeomGraph(Graph, PodVector<Point>, PointMap);
-	GeomGraph(const Graph &source, PodVector<Point> new_points, PointMap point_map,
+	GeomGraph(const Graph &source, PodVector<Point> new_points, PointMap,
 			  CSpan<Pair<VertexId>> collapsed_verts);
 	FWK_COPYABLE_CLASS(GeomGraph);
 
