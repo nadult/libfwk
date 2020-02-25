@@ -87,10 +87,15 @@ endif
 SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
 
 SRC_tests = \
-	tests/stuff tests/math tests/geom tests/window tests/enums tests/models tests/vector_perf \
+	tests/stuff tests/math tests/geom tests/window tests/enums tests/vector_perf \
 	tests/variant_perf tests/hash_map_perf
+SRC_tools = tools/model_viewer tools/packager
 
-SRC_tools    = tools/model_convert tools/model_viewer tools/packager
+ifneq ($(PLATFORM), html)
+SRC_tests += tests/models
+SRC_tools += tools/model_convert
+endif
+
 SRC_programs = $(SRC_tests) $(SRC_tools)
 
 MODULES = menu_imgui base sys gfx gfx_gl gfx_mesh math geom geom_graph geom_voronoi menu perf audio
@@ -112,8 +117,10 @@ INPUT_OBJECTS  := $(if $(SPLIT_MODULES),$(SHARED_OBJECTS),$(MERGED_OBJECTS))
 INPUT_SRCS     := $(if $(SPLIT_MODULES),$(CPP_shared),$(CPP_merged))
 
 PROGRAMS       := $(SRC_programs:%=%$(PROGRAM_SUFFIX))
+
 ifeq ($(PLATFORM), html)
 PROGRAMS_JUNK  := $(SRC_programs:%=%.wasm) $(SRC_programs:%=%.js)
+LDFLAGS        += -s TOTAL_MEMORY=256MB --preload-file data/ #TODO: load only font
 endif
 
 

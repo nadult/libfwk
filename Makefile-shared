@@ -138,7 +138,7 @@ CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(BASE_MODE)) $(CFLAGS_$(PLATF
 LDFLAGS_clang  += -fuse-ld=gold
 LDFLAGS_linux  += -pthread -rdynamic
 LDFLAGS_mingw  += -pthread
-LDFLAGS_emcc   += -s TOTAL_MEMORY=256MB $(HTML_shared) --embed-file data/
+LDFLAGS_emcc   += $(HTML_shared)
 LDFLAGS        += $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE)) $(LIBS_$(PLATFORM)) $(ADD_LDFLAGS)
 
 # --- Updating configuration file -----------------------------------------------------------------
