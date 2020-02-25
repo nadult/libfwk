@@ -107,6 +107,9 @@ void BaseVector::clear(DestroyFunc destroy_func) {
 void BaseVector::erase(int obj_size, DestroyFunc destroy_func, MoveDestroyFunc move_destroy_func,
 					   int index, int count) {
 	DASSERT(index >= 0 && count >= 0 && index + count <= size);
+	if(!count)
+		return;
+
 	int move_start = index + count;
 	int move_count = size - move_start;
 
