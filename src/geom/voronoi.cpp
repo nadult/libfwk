@@ -106,7 +106,7 @@ vector<double2> borderSegments(const DRect &rect, const double2 &p1, const doubl
 	return points;
 }
 
-Voronoi Voronoi::clip(DRect rect) const {
+Ex<Voronoi> Voronoi::clip(DRect rect) const {
 	// TODO: assert that generators are inside rect (and not on the borders)
 	// Czy chcemy zachować indeksy różnych elementów? site-y raczej tak
 	GeomGraph<double2> new_graph;
@@ -227,12 +227,9 @@ Voronoi Voronoi::clip(DRect rect) const {
 		auto cells = setIntersection(vertex_cells[*n1], vertex_cells[*n2]);
 		//	print("% - %: [%] [%]: %\n", p1.pos, p2.pos, transform<int>(vertex_cells[n1]),
 		//			 transform<int>(vertex_cells[n2]), transform<int>(cells));
-		if(!cells.size()) {
-			//DASSERT(false);
-			continue; // TODO: this shouldn't happen; if it does than return none / InvalidResult ?
-		}
 
-		DASSERT_EQ(cells.size(), 1);
+		// TODO: why this happens ?
+		EXPECT(cells.size() == 1 && "Invalid computation...");
 		CellId cell_id = cells[0];
 
 		// TODO: make sure that the order (p1-> p2) is correct
@@ -255,6 +252,6 @@ Voronoi Voronoi::clip(DRect rect) const {
 
 	// Update after adding some rect corner points; TODO: what?
 
-	return {new_graph, cells};
+	return Voronoi{new_graph, cells};
 }
 }

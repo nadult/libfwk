@@ -30,7 +30,7 @@ class Voronoi {
 
 	// After construction Cell generators will have same VertexId as in PGraph
 	static Ex<Voronoi> construct(const GeomGraph<int2> &);
-	Voronoi clip(DRect) const;
+	Ex<Voronoi> clip(DRect) const;
 
 	bool isArcPrimary(EdgeId) const;
 	EdgeId arcId(EdgeId) const;
