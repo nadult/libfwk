@@ -3,6 +3,7 @@
 
 #include <fwk/format.h>
 #include <fwk/gfx/font.h>
+#include <fwk/gfx/font_factory.h>
 #include <fwk/gfx/gl_device.h>
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/opengl.h>
@@ -50,10 +51,8 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 }
 
 Ex<Font> loadFont() {
-	auto data_path = FilePath(executablePath()).parent().parent() / "data";
-	auto core = EX_PASS(FontCore::load(data_path / "liberation_16.fnt"));
-	auto font_texture = EX_PASS(GlTexture::load(data_path / "liberation_16_0.tga"));
-	return Font{move(core), font_texture};
+	auto data_path = FilePath(executablePath()).parent() / "data";
+	return FontFactory().makeFont(data_path / "LiberationSans-Regular.ttf", 16);
 }
 
 int main(int argc, char **argv) {

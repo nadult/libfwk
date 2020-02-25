@@ -28,25 +28,6 @@ string32 FontFactory::basicMathCharset() {
 }
 }
 
-#ifdef FWK_PLATFORM_HTML5
-
-namespace fwk {
-
-FontFactory::FontFactory() = default;
-FontFactory::~FontFactory() = default;
-
-Font FontFactory::makeFont(ZStr path, const string32 &charset, int size, bool lcd_mode) {
-	vector<FontCore::Glyph> glyphs;
-	vector<FontCore::Kerning> kernings;
-
-	// TODO: add support for freetype / somehow use html fonts
-	FontCore core(glyphs, kernings, int2(256, 256), 10);
-	return Font(PFontCore(move(core)), GlTexture::make(Texture({2, 2})));
-}
-}
-
-#else
-
 #include <ft2build.h>
 #ifdef FT_FREETYPE_H
 #include FT_FREETYPE_H
@@ -225,5 +206,3 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 	return Font{{oglyphs, okernings, atlas.size(), (int)face->size->metrics.height / 64}, tex};
 }
 }
-
-#endif
