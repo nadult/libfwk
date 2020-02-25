@@ -587,6 +587,12 @@ int Graph::compare(const Graph &rhs) const {
 	return 0;
 }
 
+void Graph::operator>>(TextFormatter &out) const {
+	out("Verts: %\n", vertexIds());
+	for(auto edge : edges())
+		out("%: % -> %\n", edge, edge.from(), edge.to());
+}
+
 // TODO: labels
 FWK_ORDER_BY_DEF(Graph, m_verts, m_edges, m_tris)
 

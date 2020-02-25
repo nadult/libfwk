@@ -236,6 +236,8 @@ class Graph {
 	int compare(const Graph &) const;
 	FWK_ORDER_BY_DECL(Graph);
 
+	void operator>>(TextFormatter &) const;
+
   protected:
 	struct TopoSortCtx;
 	void topoSort(TopoSortCtx &, VertexId) const;

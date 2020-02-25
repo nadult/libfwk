@@ -46,8 +46,11 @@ class VertexRef {
 	EdgeRefs edgesFrom(GLayers = all<GLayer>) const;
 	EdgeRefs edgesTo(GLayers = all<GLayer>) const;
 
-	EdgeRef next(EdgeId, bool source) const;
-	EdgeRef prev(EdgeId, bool source) const;
+	EdgeRef next(EdgeId, bool is_source) const;
+	EdgeRef prev(EdgeId, bool is_source) const;
+
+	Pair<EdgeRef, bool> next(EdgeId) const;
+	Pair<EdgeRef, bool> prev(EdgeId) const;
 
 	// Should we filter edges or vertices here ?
 	VertexRefs vertsAdj(GLayers = all<GLayer>) const;

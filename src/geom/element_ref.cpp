@@ -71,7 +71,7 @@ EdgeRefs VertexRef::edges(GLayers layers) const {
 
 EdgeRef VertexRef::next(EdgeId eid, bool is_source) const {
 	auto &edges = m_graph->m_verts[m_id];
-	PASSERT(edges);
+	PASSERT(isOneOf(eid, edges));
 
 	int idx = 0;
 	for(; idx < edges.size(); idx++)
@@ -88,6 +88,8 @@ EdgeRef VertexRef::next(EdgeId eid, bool is_source) const {
 
 EdgeRef VertexRef::prev(EdgeId eid, bool is_source) const {
 	auto &edges = m_graph->m_verts[m_id];
+	PASSERT(isOneOf(eid, edges));
+
 	int idx = 0;
 	for(; idx < edges.size(); idx++)
 		if(edges[idx] == eid)
@@ -99,6 +101,32 @@ EdgeRef VertexRef::prev(EdgeId eid, bool is_source) const {
 		if(edges[idx].isSource() == is_source)
 			return {m_graph, edges[idx]};
 	// Unreachable
+}
+
+Pair<EdgeRef, bool> VertexRef::next(EdgeId eid) const {
+	auto &edges = m_graph->m_verts[m_id];
+	PASSERT(isOneOf(eid, edges));
+
+	int idx = 0;
+	while(true)
+		if(edges[idx++] == eid) {
+			auto &edge = edges[idx == edges.size() ? 0 : idx];
+			return {{m_graph, edge}, edge.isSource()};
+		}
+}
+
+Pair<EdgeRef, bool> VertexRef::prev(EdgeId eid) const {
+	auto &edges = m_graph->m_verts[m_id];
+	PASSERT(isOneOf(eid, edges));
+
+	int idx = 0;
+	while(true) {
+		if(edges[idx] == eid) {
+			auto &edge = edges[idx == 0 ? edges.size() - 1 : idx - 1];
+			return {{m_graph, edge}, edge.isSource()};
+		}
+		idx++;
+	}
 }
 
 VertexRefs VertexRef::vertsAdj(GLayers layers) const {
