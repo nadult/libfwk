@@ -1,4 +1,5 @@
 # Options:
+#   FWK_DIR:         relative path to libfwk (has to be specified)
 #   PLATFORM:        linux, mingw or html
 #   [FWK_]MODE:      release, devel or debug [-nans]
 #   ADD_CFLAGS:      additional compiler flags

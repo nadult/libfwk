@@ -96,7 +96,8 @@ SRC_tests += tests/models
 SRC_tools += tools/model_convert
 endif
 
-SRC_programs = $(SRC_tests) $(SRC_tools)
+WEBGL_PROGRAMS := tests/window tools/model_viewer
+SRC_programs    = $(SRC_tests) $(SRC_tools)
 
 MODULES = menu_imgui base sys gfx gfx_gl gfx_mesh math geom geom_graph geom_voronoi menu perf audio
 
@@ -140,7 +141,11 @@ $(MERGED_OBJECTS): $(FWK_BUILD_DIR)/%.o: $(FWK_BUILD_DIR)/%.cpp $(PCH_TARGET)
 	$(STATS_CMD) $(COMPILER) -MMD $(CFLAGS) $(PCH_CFLAGS) -c $(FWK_BUILD_DIR)/$*.cpp -o $@
 
 $(PROGRAMS): %$(PROGRAM_SUFFIX): $(INPUT_OBJECTS) $(FWK_BUILD_DIR)/%.o
+ifeq ($(PLATFORM), html)
+	$(LINKER) -MMD -o $@ $^ $(LDFLAGS) --shell-file src/html_$(if $(findstring $*,$(WEBGL_PROGRAMS)),webgl,text).html
+else
 	$(LINKER) -MMD -o $@ $^ $(LDFLAGS)
+endif
 
 ifeq ($(COMPILER_TYPE),clang)
 checker.so: .FORCE
