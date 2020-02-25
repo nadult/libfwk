@@ -56,4 +56,17 @@ i64 Manager::usedMemory() const {
 		out += frame.usedMemory();
 	return out + m_frames.usedMemory() + m_tree->usedMemory();
 }
+
+void Manager::limitMemory(i64 max_mem, int min_frames) {
+	if(!m_frames)
+		return;
+
+	min_frames = min(min_frames, m_frames.size());
+	i64 total_mem = 0;
+	int first_frame = m_frames.size() - 1;
+	while(first_frame >= 0 && total_mem < max_mem)
+		total_mem += m_frames[first_frame--].usedMemory();
+	first_frame = min(m_frames.size() - min_frames, max(first_frame, 0));
+	m_frames.erase(m_frames.begin(), &m_frames[first_frame]);
+}
 }

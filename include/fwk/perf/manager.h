@@ -29,6 +29,7 @@ class Manager {
 	CSpan<Frame> frames() const { return m_frames; }
 
 	i64 usedMemory() const;
+	void limitMemory(i64 max_mem, int min_frames = 120);
 
   private:
 	vector<Frame> m_frames;
