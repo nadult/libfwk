@@ -410,14 +410,12 @@ string Backtrace::analyze(bool filter) const {
 	}
 
 	string out;
-#ifdef FWK_PLATFORM_LINUX
-	if(m_use_gdb) {
+	if(platform == Platform::linux && m_use_gdb) {
 		if(!m_gdb_result.second)
 			out += m_gdb_result.first + "\n";
 		else
 			return m_gdb_result.first;
 	}
-#endif
 
 	out += formatter.text();
 	return filter ? Backtrace::filter(out) : out;
