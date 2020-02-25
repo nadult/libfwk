@@ -16,15 +16,13 @@ using namespace fwk;
 
 bool mainLoop(GlDevice &device, void *font_ptr) {
 	Font &font = *(Font *)font_ptr;
-
-	static vector<float2> positions;
-	static bool initializing = true;
+	static vector<float2> positions(15, float2(device.windowSize() / 2));
 
 	for(auto &event : device.inputEvents()) {
 		if(event.keyDown(InputKey::esc) || event.type() == InputEvent::quit)
 			return false;
 
-		if(event.isMouseOverEvent() && (event.mouseMove() != int2(0, 0) || initializing))
+		if(event.isMouseOverEvent() && (event.mouseMove() != int2(0, 0)))
 			positions.emplace_back(float2(event.mousePos()));
 	}
 
@@ -43,15 +41,18 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 		renderer.addRect(rect, border_color);
 	}
 
-	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, "Hello world!");
+	auto text = format("Hello world!\nWindow size: %", device.windowSize());
+	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 	renderer.render();
-
-	initializing = false;
 	return true;
 }
 
 Ex<Font> loadFont() {
+#ifdef FWK_PLATFORM_HTML
 	auto data_path = FilePath(executablePath()).parent() / "data";
+#else
+	auto data_path = FilePath(executablePath()).parent().parent() / "data";
+#endif
 	return FontFactory().makeFont(data_path / "LiberationSans-Regular.ttf", 16);
 }
 
