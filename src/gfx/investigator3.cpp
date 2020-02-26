@@ -86,7 +86,7 @@ auto Investigator3::camera() const -> CamVariant { return m_cam_control->target(
 
 void Investigator3::run() {
 	if(m_flags & Opt::backtrace)
-		print("Running investigator:\n%s\n", Backtrace::get(2).analyze(true));
+		print("Running investigator:\n%s\n", Backtrace::get(2));
 
 	GlDevice::instance().runMainLoop(mainLoop, this);
 

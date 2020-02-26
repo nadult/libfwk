@@ -73,7 +73,7 @@ namespace {
 		printf("Signal received: %s (SegCs:0x%04X Addr:0x%p)\n",
 			   exceptionName(info->ExceptionRecord->ExceptionCode), info->ContextRecord->SegCs,
 			   info->ExceptionRecord->ExceptionAddress);
-		printf("Backtrace:\n%s\n", Backtrace::get(2, info->ContextRecord).analyze(false).c_str());
+		printf("Backtrace:\n%s\n", Backtrace::get(2, info->ContextRecord).format().c_str());
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 

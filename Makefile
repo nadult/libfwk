@@ -45,6 +45,10 @@ SRC_sys  = \
 	io/xml io/stream io/file_system io/file_stream io/memory_stream io/gzip_stream io/package_file \
 	io/url_fetch
 
+ifeq ($(FWK_DWARF), enabled)
+	SRC_sys += sys/backtrace_dwarf
+endif
+
 SRC_math = \
 	math/cylinder math/box math/obox math/frustum math/matrix3 math/matrix4 math/matrix4_transform math/plane \
 	math/quat math/base math/triangle math/tetrahedron math/projection math/random math/segment math/line \

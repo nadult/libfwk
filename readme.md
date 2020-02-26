@@ -58,6 +58,8 @@ during development so from time to time libfwk may fail to compile under G++.
     included in extern/boost_polygon/, licensed under BSL 1.0.  
 	[http://www.boost.org/](http://www.boost.org/)
 
+* **libdwarf (optional)**
+    TODO: info
 
 ## Compilation
 

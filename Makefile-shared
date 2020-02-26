@@ -12,6 +12,8 @@
 # Conditional compilation:
 #   FWK_IMGUI:     enabled or disabled (by default if imgui is present, it's enabled)
 #   FWK_GEOM:      enabled or disabled (enabled by default)
+#   FWK_DWARF:     using libdwarf for backtrace analysis; enabled or disabled
+#                  (enabled on linux by default if libdwarf is present)
 #
 # Following variables will be defined:
 #   CFLAGS
@@ -82,6 +84,11 @@ FWK_LIB_FILE         := $(FWK_DIR)lib/lib$(FWK_LIB_NAME).a
 
 export FWK_GEOM      := enabled
 export FWK_IMGUI     := $(if $(wildcard $(FWK_DIR)extern/imgui/imgui.h),enabled,disabled)
+ifeq ($(PLATFORM), linux)
+export FWK_DWARF  := $(if $(wildcard /usr/include/libdwarf/libdwarf.h),enabled, disabled)
+else
+export FWK_DWARF  := disabled
+endif
 
 # --- Checking for errors -------------------------------------------------------------------------
 
@@ -106,6 +113,10 @@ LIBS_shared  += freetype2 sdl2 libpng vorbisfile
 LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lopenal -lGL -lGLU -lrt -lm -lstdc++
 LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lOpenAL32 -ldsound -lole32 -lwinmm \
                     -lglu32 -lopengl32 -lws2_32 -limagehlp
+
+ifeq ($(FWK_DWARF), enabled)
+LIBS_linux   += -ldwarf -lelf -ldl
+endif
 
 # Clang gives no warnings for uninitialized class members!
 #TODO:-Wno-strict-overflow
@@ -133,6 +144,7 @@ CFLAGS_emcc    += -DFWK_PLATFORM_HTML $(HTML_shared)
 
 CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
                   $(if $(findstring enabled,$(FWK_IMGUI)),,-DFWK_IMGUI_DISABLED) \
+                  $(if $(findstring enabled,$(FWK_DWARF)),,-DFWK_DWARF_DISABLED) \
                   $(if $(findstring nans,$(MODE)),-DFWK_CHECK_NANS,)
 CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(BASE_MODE)) $(CFLAGS_$(PLATFORM)) $(CFLAGS_$(COMPILER_TYPE)) $(ADD_CFLAGS))
 
@@ -148,7 +160,7 @@ ifdef BUILD_DIR
 
 CONFIG_FILE    := $(BUILD_DIR)/make_config.txt
 
-CONFIG_STRING  := COMPILER=$(COMPILER):ADD_CFLAGS=$(ADD_CFLAGS):FWK_GEOM=$(FWK_GEOM):FWK_IMGUI=$(FWK_IMGUI)
+CONFIG_STRING  := COMPILER=$(COMPILER):ADD_CFLAGS=$(ADD_CFLAGS):FWK_GEOM=$(FWK_GEOM):FWK_IMGUI=$(FWK_IMGUI):FWK_BACKWARD=$(FWK_BACKWARD)
 ifneq ($(wildcard $(CONFIG_FILE)),)
 CONFIG_CURRENT := $(shell cat $(CONFIG_FILE))
 endif

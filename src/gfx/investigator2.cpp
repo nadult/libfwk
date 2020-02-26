@@ -50,7 +50,7 @@ Investigator2::~Investigator2() = default;
 
 void Investigator2::run() {
 	if(m_flags & Opt::backtrace)
-		print("Running investigator:\n%s\n", Backtrace::get(2).analyze(true));
+		print("Running investigator:\n%s\n", Backtrace::get(2));
 
 	GlDevice::instance().runMainLoop(mainLoop, this);
 

@@ -51,7 +51,7 @@ void Error::operator>>(TextFormatter &out) const {
 	for(auto &chunk : chunks)
 		out << chunk;
 	if(backtrace)
-		out("%\n", backtrace->analyze(true));
+		out("%\n", *backtrace);
 }
 
 Error Error::merge(vector<Error> list) {
@@ -64,7 +64,7 @@ Error Error::merge(vector<Error> list) {
 		for(auto &chunk : err.chunks)
 			chunks.emplace_back(chunk);
 		if(err.backtrace)
-			chunks.emplace_back(err.backtrace->analyze(true));
+			chunks.emplace_back(err.backtrace->format());
 	}
 	return {move(chunks), Backtrace::get()};
 }

@@ -19,6 +19,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifndef FWK_DWARF_DISABLED
+#include "backtrace_dwarf.h"
+#endif
+
 // -------------------------------------------------------------------------------------------
 // ---  Getting stack trace addresses  -------------------------------------------------------
 
@@ -149,168 +153,6 @@ namespace {
 		string simple;
 	};
 
-	struct ThreadInfo {
-		string header;
-		vector<string> lines;
-		vector<Entry> entries;
-		bool is_main = false;
-	};
-
-	vector<ThreadInfo> splitDebuggerInput(string input, bool lldb_mode) {
-		auto lines = tokenize(input.c_str(), '\n');
-
-		vector<ThreadInfo> out;
-		ThreadInfo current;
-
-		bool skip = lldb_mode;
-
-		for(auto &line : lines) {
-			if(lldb_mode && line.find("(lldb) thread backtrace all") == 0)
-				skip = false;
-			if(skip)
-				continue;
-
-			if(line.find(lldb_mode ? "* thread #" : "Thread") == 0 ||
-			   (lldb_mode && line.find("  thread #") == 0)) {
-				if(current.lines)
-					out.emplace_back(move(current));
-				current = {};
-				current.header = line;
-				continue;
-			}
-			if(line.find(lldb_mode ? "frame #" : "#") == (lldb_mode ? 4 : 0))
-				current.lines.emplace_back(line);
-		}
-
-		if(current.lines)
-			out.emplace_back(move(current));
-		return out;
-	}
-
-	int mainThreadPos(const ThreadInfo &info) {
-		for(int n = 0; n < info.lines.size(); n++) {
-			const auto &line = info.lines[n];
-			if(line.find("fwk::Backtrace::fullBacktrace") != string::npos)
-				return n;
-		}
-		return -1;
-	}
-
-	void processThreadInfo(ThreadInfo &info, int skip_frames, bool lldb_mode) {
-		int main_pos = mainThreadPos(info);
-		info.is_main = main_pos != -1;
-		skip_frames = main_pos == -1 ? 0 : main_pos + skip_frames;
-
-		for(auto line : info.lines) {
-			if(skip_frames-- > 0)
-				continue;
-
-			auto tokens = tokenize(line.c_str());
-
-			if(lldb_mode) {
-				int cut = -1;
-				for(int n = 0; n < tokens.size(); n++)
-					if(tokens[n] == "frame") {
-						cut = n + 2;
-						break;
-					}
-				if(cut <= tokens.size())
-					tokens.erase(tokens.begin(), tokens.begin() + cut);
-			} else if(tokens.size() > 3) {
-				int count = tokens[2] == "in" ? 3 : 1;
-				tokens.erase(tokens.begin(), tokens.begin() + count);
-			}
-
-			string function, file_line;
-
-			int split_pos = -1;
-			for(int i = tokens.size() - 1; i >= 0; i--)
-				if(tokens[i] == "at" && i > 0 && (tokens[i - 1].back() == ')' || lldb_mode)) {
-					split_pos = i;
-					break;
-				}
-
-			Entry new_entry;
-			new_entry.simple = mergeWithSpaces(begin(tokens), end(tokens));
-			if(split_pos != -1) {
-				new_entry.function = mergeWithSpaces(begin(tokens), begin(tokens) + split_pos);
-				auto file_line = mergeWithSpaces(begin(tokens) + split_pos + 1, end(tokens));
-
-				string file;
-				int line;
-
-				tokens = tokenize(file_line.c_str(), ':');
-				if(tokens.size() >= 2) {
-					new_entry.file = tokens[0];
-					new_entry.line = tokens[1];
-				}
-			}
-
-			info.entries.emplace_back(new_entry);
-		}
-	}
-
-	string filterDebuggerOutput(string input, int skip_frames, bool lldb_mode) {
-		string out;
-
-		auto tinfos = splitDebuggerInput(input, lldb_mode);
-
-		int main_thread_pos = -1;
-		for(auto &tinfo : tinfos)
-			processThreadInfo(tinfo, skip_frames, lldb_mode);
-		reverse(tinfos);
-
-		/*for(auto tinfo : tinfos) {
-			DUMP(tinfo.header);
-			for(auto line : tinfo.lines)
-				DUMP(line);
-			print("\n\n");
-		}*/
-
-		int num_columns = 120;
-		if(auto dims = consoleDimensions())
-			num_columns = dims->x;
-
-		int limit_line_size = 6;
-		int limit_func_size = max(20, num_columns * 3 / 4);
-		int limit_file_size = max(16, num_columns - limit_line_size - limit_func_size);
-
-		int max_lsize = 0, max_fsize = 0;
-		for(auto &tinfo : tinfos)
-			for(auto &e : tinfo.entries) {
-				e.file = Str(e.file).limitSizeFront(limit_file_size);
-				e.line = Str(e.line).limitSizeBack(limit_line_size);
-				e.function = Str(e.function).limitSizeBack(limit_func_size);
-
-				max_lsize = max(max_lsize, (int)e.line.size());
-				max_fsize = max(max_fsize, (int)e.file.size());
-			}
-
-		bool show_headers = tinfos.size() > 1;
-		for(auto &tinfo : tinfos) {
-			string tout;
-			if(show_headers)
-				tout += string("---- ") + (tinfo.is_main ? "(CURRENT) " : "") + tinfo.header + "\n";
-
-			for(auto &e : tinfo.entries) {
-				if(e.file.empty() || e.line.empty() || e.function.empty()) {
-					tout += string(max_fsize + max_lsize + 2, ' ') +
-							Str(e.simple).limitSizeBack(limit_func_size) + "\n";
-				} else {
-					tout += string(max(max_fsize - (int)e.file.size(), 0), ' ') + e.file + ":" +
-							e.line + string(max(max_lsize - (int)e.line.size(), 0), ' ') + " " +
-							e.function + "\n";
-				}
-			}
-
-			if(&tinfo != &tinfos.back())
-				tout += "\n";
-			out += tout;
-		}
-
-		return out;
-	}
-
 	vector<string> analyzeAddresses(vector<void *> addresses, const FilePath &current) {
 		auto cmd_result = execCommand(analyzeCommand(addresses, current));
 		if(!cmd_result || cmd_result->second != 0)
@@ -337,25 +179,12 @@ namespace {
 		return file_lines;
 	}
 
-	// backtrace_symbols returns: file(mangled_name+offset)
-	string demangleBtSym(string str) {
-		auto p1 = str.find('('), p2 = str.rfind("+0x"), p3 = str.find(')');
-		if(!isOneOf(string::npos, p1, p2, p3) && p1 < p2 && p2 < p3)
-			return demangle(str.substr(p1 + 1, p2 - p1 - 1)) + str.substr(p2, p3 - p2);
-		return str;
-	}
 }
 
 // -------------------------------------------------------------------------------------------
 // ---  Backtrace: class implementation  -----------------------------------------------------
 
-string Backtrace::g_lldb_command;
-
 int winGetBacktrace(Span<void *> addrs, void *context_);
-
-Backtrace::Backtrace(vector<void *> addresses) : m_addresses(move(addresses)) {}
-Backtrace::Backtrace(vector<void *> addresses, Pair<string, bool> gdb_result)
-	: m_addresses(move(addresses)), m_gdb_result(move(gdb_result)), m_use_gdb(true) {}
 
 Backtrace Backtrace::get(int skip, void *context_, Maybe<Mode> mode) {
 	if(!mode)
@@ -374,79 +203,57 @@ Backtrace Backtrace::get(int skip, void *context_, Maybe<Mode> mode) {
 
 	// TODO: Can we be sure that all addresses are ok?
 	skip = min(skip, count);
-
-	Pair<string, bool> gdb_result;
-	if(mode == Mode::full)
-		gdb_result = fullBacktrace(skip);
-
-	return {span(buffer.data() + skip, count - skip), gdb_result};
+	return {span(buffer.data() + skip, count - skip)};
 }
 
-Pair<string, bool> Backtrace::fullBacktrace(int skip_frames) {
-	bool lldb_mode = !g_lldb_command.empty();
-	printf("Generating backtrace with %s; Warning: sometimes debuggers lie...\n",
-		   lldb_mode ? "LLDB" : "GDB");
+vector<BacktraceInfo> Backtrace::analyze() const {
+#ifndef FWK_DWARF_DISABLED
 
-#ifdef FWK_PLATFORM_LINUX
-	auto pid = getpid();
-	string cmd;
-	if(lldb_mode)
-		cmd = format("% 2>&1 -batch -p % -o 'thread backtrace all'", g_lldb_command, (int)pid);
-	else
-		cmd = format("gdb 2>&1 -batch -p % -ex 'thread apply all bt'", (int)pid);
+	// TODO: create singleton and keep it in memory?
+	DwarfResolver resolver;
+	vector<BacktraceInfo> out;
+	for(auto addr : m_addresses) {
+		ResolvedTrace trace;
+		trace.addr = addr;
+		resolver.resolve(trace);
 
-	auto result = execCommand(cmd);
-	if(!result)
-		return {format("Errors while retrieving backtrace:\n%", result.error()), false};
+		out.emplace_back(trace.source.filename, trace.source.function, int(trace.source.line),
+						 int(trace.source.col), false);
+		for(auto &inl : trace.inliners)
+			out.emplace_back(inl.filename, trace.object_function, int(inl.line), int(inl.col),
+							 true);
 
-	// TODO: check for errors from LLDB
-	if(!lldb_mode && result->first.find("ptrace: Operation not permitted") != string::npos)
-		return {"To use GDB stacktraces, you have to:\n"
-				"1) set kernel.yama.ptrace_scope to 0 in: /etc/sysctl.d/10-ptrace.conf\n"
-				"2) type: echo 0 > /proc/sys/kernel/yama/ptrace_scope\n",
-				false};
+		if(trace.object_function == "main")
+			break; // Makes no sense to resolve after that
+	}
+	return out;
 
-	return {filterDebuggerOutput(result->first, skip_frames, lldb_mode), true};
-#else
-	return {"GDB-based backtraces are only supported on linux (for now)", false};
-#endif
-}
-
-string Backtrace::analyze(bool do_demangle) const {
-	TextFormatter formatter;
-	vector<string> file_lines;
+#elif defined(FWK_PLATFORM_LINUX)
 
 	auto current = FilePath::current();
 	if(!current)
-		return "BACKTRACE ERROR: Cannot analyze: error while reading current path\n";
+		return {};
+	auto file_lines = analyzeAddresses(m_addresses, *current);
 
-		// TODO: separate full from partial ?
-
-#if defined(FWK_PLATFORM_HTML)
-#elif defined(FWK_PLATFORM_LINUX)
-	file_lines = analyzeAddresses(m_addresses, *current);
-#elif defined(FWK_PLATFORM_MINGW)
-	if(m_addresses)
-		formatter("Please run following command:\n% | c++filt\n",
-				  analyzeCommand(m_addresses, *current, true));
-	else
-		formatter("Empty backtrace\n");
-#endif
-
-	// TODO: separate function first to generate backtrace detailed info
-	// next step is formatting (which may use console dimensions or not)
+	vector<BacktraceInfo> out;
+	// TODO: fixit, make it not use separate program
 	if(file_lines) {
 		int max_len = 0;
 		for(const auto &file_line : file_lines)
 			max_len = max(max_len, (int)file_line.size());
 
-#ifdef FWK_PLATFORM_LINUX
+		// backtrace_symbols returns: file(mangled_name+offset)
 		char **strings = backtrace_symbols(m_addresses.data(), m_addresses.size());
+
 		formatter("Simple bactrace (don't expect it to be accurate):\n");
 		for(int i = 0; i < size(); i++) {
+			BacktraceInfo binfo;
+
 			string tstring = strings[i];
-			if(do_demangle)
-				tstring = demangleBtSym(tstring);
+			auto p1 = str.find('('), p2 = str.rfind("+0x"), p3 = str.find(')');
+			if(!isOneOf(string::npos, p1, p2, p3) && p1 < p2 && p2 < p3) {}
+			tstring = demangle(str.substr(p1 + 1, p2 - p1 - 1)) + str.substr(p2, p3 - p2);
+
 			const char *file_line = i < file_lines.size() ? file_lines[i].c_str() : "";
 			tstring = tstring.substr(0, tstring.find('['));
 
@@ -454,20 +261,61 @@ string Backtrace::analyze(bool do_demangle) const {
 			formatter.stdFormat(fmt.c_str(), file_line, tstring.c_str());
 		}
 		::free(strings);
-#else
-			// TODO
+	}
+
+#elif defined(FWK_PLATFORM_MINGW)
+	// TODO
 #endif
-	}
 
+	return {};
+}
+
+string Backtrace::format(Maybe<int> max_cols) const { return format(analyze(), max_cols); }
+
+string Backtrace::format(vector<BacktraceInfo> infos, Maybe<int> max_cols) {
 	string out;
-	if(platform == Platform::linux && m_use_gdb) {
-		if(!m_gdb_result.second)
-			out += m_gdb_result.first + "\n";
-		else
-			return m_gdb_result.first;
+
+	if(!max_cols)
+		if(auto dims = consoleDimensions())
+			max_cols = dims->x;
+	int num_columns = max_cols.orElse(120);
+
+	auto cur = FilePath::current();
+
+	int limit_line_size = 6;
+	int limit_func_size = max(20, num_columns * 3 / 4);
+	int limit_file_size = max(16, num_columns - limit_line_size - limit_func_size);
+
+	int max_line = 0, max_fsize = 0;
+	for(auto &entry : infos) {
+		if(cur) {
+			FilePath fpath(entry.file);
+			if(fpath.isAbsolute()) {
+				auto rpath = string(fpath.relative(*cur));
+				if(rpath.size() < entry.file.size())
+					entry.file = move(rpath);
+			}
+		}
+		entry.file = Str(entry.file).limitSizeFront(limit_file_size);
+		entry.function = Str(entry.function).limitSizeBack(limit_func_size);
+
+		max_line = max(max_line, entry.line);
+		max_fsize = max(max_fsize, (int)entry.file.size());
+	}
+	int max_lsize = toString(max_line).size();
+
+	for(auto &entry : infos) {
+		auto line = toString(entry.line);
+		if(entry.function.empty())
+			entry.function = "???";
+		out += string(max(max_fsize - (int)entry.file.size(), 0), ' ') + entry.file + ":" + line +
+			   string(max(max_lsize - (int)line.size(), 0), ' ') + (entry.is_inlined ? '^' : ' ') +
+			   entry.function + "\n";
 	}
 
-	out += formatter.text();
 	return out;
 }
+
+void Backtrace::operator>>(TextFormatter &fmt) const { fmt << format(); }
+
 }
