@@ -5,8 +5,6 @@
 // https://github.com/bombela/backward-cpp.git
 // License is available in extern/backward-license.txt
 
-// TODO: do tego pliku nie ma sensu generować danych debugowych
-
 #include "fwk/sys/backtrace.h"
 
 #include "fwk/format.h"
@@ -14,19 +12,22 @@
 #include "fwk/sys/expected.h"
 
 #include <cstdio>
+#include <cxxabi.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
+// -------------------------------------------------------------------------------------------
+// ---  Getting stack trace addresses  -------------------------------------------------------
+
 #if defined(FWK_PLATFORM_LINUX)
 
 #define USE_UNWIND
 
-#include <execinfo.h>
-
 #include <dlfcn.h>
+#include <execinfo.h>
 #include <unistd.h>
 
 #ifdef USE_UNWIND
@@ -69,6 +70,9 @@ static int linuxGetBacktrace(fwk::Span<void *> addrs) {
 
 #endif
 
+// -------------------------------------------------------------------------------------------
+// ---  Random backtrace-related functions  --------------------------------------------------
+
 namespace fwk {
 
 Maybe<int2> consoleDimensions() {
@@ -90,6 +94,16 @@ Maybe<int2> consoleDimensions() {
 	}
 #endif
 	return none;
+}
+
+string demangle(string str) {
+	int status = 0;
+	char *result = abi::__cxa_demangle(str.c_str(), nullptr, nullptr, &status);
+	if(result) {
+		str = result;
+		free(result);
+	}
+	return str;
 }
 
 namespace {
@@ -323,29 +337,17 @@ namespace {
 		return file_lines;
 	}
 
-	void filterString(string &str, const char *src, const char *dst) {
-		DASSERT(src && dst);
-		int src_len = strlen(src);
-
-		auto pos = str.find(src);
-		while(pos != string::npos) {
-			str = str.substr(0, pos) + dst + str.substr(pos + src_len);
-			pos = str.find(src);
-		}
+	// backtrace_symbols returns: file(mangled_name+offset)
+	string demangleBtSym(string str) {
+		auto p1 = str.find('('), p2 = str.rfind("+0x"), p3 = str.find(')');
+		if(!isOneOf(string::npos, p1, p2, p3) && p1 < p2 && p2 < p3)
+			return demangle(str.substr(p1 + 1, p2 - p1 - 1)) + str.substr(p2, p3 - p2);
+		return str;
 	}
-
-	// TODO: these don't work too good
-	const char *s_filtered_names[] = {
-		"unsigned int",
-		"uint",
-		"std::basic_string<char, std::char_traits<char>, std::allocator<char> >",
-		"fwk::string",
-		"std::",
-		"",
-		"fwk::",
-		"",
-	};
 }
+
+// -------------------------------------------------------------------------------------------
+// ---  Backtrace: class implementation  -----------------------------------------------------
 
 string Backtrace::g_lldb_command;
 
@@ -410,7 +412,7 @@ Pair<string, bool> Backtrace::fullBacktrace(int skip_frames) {
 #endif
 }
 
-string Backtrace::analyze(bool filter) const {
+string Backtrace::analyze(bool do_demangle) const {
 	TextFormatter formatter;
 	vector<string> file_lines;
 
@@ -443,6 +445,8 @@ string Backtrace::analyze(bool filter) const {
 		formatter("Simple bactrace (don't expect it to be accurate):\n");
 		for(int i = 0; i < size(); i++) {
 			string tstring = strings[i];
+			if(do_demangle)
+				tstring = demangleBtSym(tstring);
 			const char *file_line = i < file_lines.size() ? file_lines[i].c_str() : "";
 			tstring = tstring.substr(0, tstring.find('['));
 
@@ -464,32 +468,6 @@ string Backtrace::analyze(bool filter) const {
 	}
 
 	out += formatter.text();
-	return filter ? Backtrace::filter(out) : out;
-}
-
-string Backtrace::filter(const string &input) {
-#ifdef FWK_PLATFORM_LINUX
-	string command = "echo \"" + input + "\" | c++filt -n";
-
-	FILE *file = popen(command.c_str(), "r");
-	if(file) {
-		vector<char> buf;
-		while(!feof(file) && buf.size() < 1024 * 16) {
-			buf.push_back(fgetc(file));
-			if((u8)buf.back() == 255) {
-				buf.pop_back();
-				break;
-			}
-		}
-		fclose(file);
-
-		string out(buf.data(), buf.size());
-		for(int n = 0; n < (int)arraySize(s_filtered_names); n += 2)
-			filterString(out, s_filtered_names[n], s_filtered_names[n + 1]);
-		return out;
-	}
-#endif
-
-	return input;
+	return out;
 }
 }

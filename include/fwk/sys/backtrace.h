@@ -11,6 +11,7 @@ namespace fwk {
 
 // TODO: better place for that function
 Maybe<int2> consoleDimensions();
+string demangle(string);
 
 enum class BacktraceMode {
 	fast, // default
@@ -38,16 +39,11 @@ class Backtrace {
 
 	static Pair<string, bool> fullBacktrace(int skip_frames = 0) NOINLINE;
 
-	// When filter is true, analyzer uses c++filt program to demangle C++
-	// names; it also shortens some of the common long class names, like
-	// std::basic_string<...> to fwk::string
-	string analyze(bool filter) const;
+	string analyze(bool demangle) const;
 	auto size() const { return m_addresses.size(); }
 	bool empty() const { return !m_addresses && m_gdb_result.first.empty(); }
 
   private:
-	static string filter(const string &);
-
 	vector<void *> m_addresses;
 	Pair<string, bool> m_gdb_result;
 	bool m_use_gdb = false;
