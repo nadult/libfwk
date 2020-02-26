@@ -9,11 +9,12 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
 #include <imagehlp.h>
 #undef ERROR
 
-#include "fwk/sys_base.h"
 #include "fwk/sys/backtrace.h"
+#include "fwk/sys_base.h"
 
 #include <ctime>
 #include <signal.h>
@@ -93,11 +94,10 @@ void *winLoadFunction(const char *name) {
 	return (void *)func;
 }
 
-void winGetBacktrace(vector<void *> &addrs, int skip, void *context_) {
+int winGetBacktrace(Span<void *> addrs, void *context_) NOINLINE;
+int winGetBacktrace(Span<void *> addrs, void *context_) {
 	if(!context_) {
-		addrs.resize(64);
-		int count = CaptureStackBackTrace(max(0, (int)skip - 1), addrs.size(), &addrs[0], 0);
-		addrs.resize(count);
+		return CaptureStackBackTrace(0, addrs.size(), addrs.data(), 0);
 	} else {
 		CONTEXT *context = static_cast<CONTEXT *>(context_);
 		SymInitialize(GetCurrentProcess(), 0, true);
@@ -118,6 +118,7 @@ void winGetBacktrace(vector<void *> &addrs, int skip, void *context_) {
 		frame.AddrStack.Mode = AddrModeFlat;
 		frame.AddrFrame.Mode = AddrModeFlat;
 
+		int count = 0;
 #if defined(AMD64) || defined(__x86_64__)
 		while(StackWalk64(IMAGE_FILE_MACHINE_AMD64,
 #else
@@ -125,10 +126,13 @@ void winGetBacktrace(vector<void *> &addrs, int skip, void *context_) {
 #endif
 						  GetCurrentProcess(), GetCurrentThread(), &frame, context, 0,
 						  SymFunctionTableAccess, SymGetModuleBase, 0)) {
-			addrs.emplace_back((void *)frame.AddrPC.Offset);
+			addrs[count++] = (void *)frame.AddrPC.Offset;
+			if(count == addrs.size())
+				break;
 		}
 
 		SymCleanup(GetCurrentProcess());
+		return count;
 	}
 }
 

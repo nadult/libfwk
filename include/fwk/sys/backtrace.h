@@ -18,11 +18,10 @@ enum class BacktraceMode {
 	disabled
 };
 
-// TODO: use lib-lldb
 class Backtrace {
   public:
-	Backtrace(vector<void *> addresses, vector<string> symbols, Pair<string, bool>);
-	Backtrace(vector<void *> addresses, vector<string> symbols);
+	Backtrace(vector<void *> addresses, Pair<string, bool>);
+	Backtrace(vector<void *> addresses);
 	Backtrace() = default;
 
 	using Mode = BacktraceMode;
@@ -35,7 +34,7 @@ class Backtrace {
 	static inline __thread Mode t_except_mode = Mode::fast;
 
 	// If available, gdb backtraces will be used (which are more accurate)
-	static Backtrace get(size_t skip = 0, void *context = nullptr, Maybe<Mode> = none);
+	static Backtrace get(int skip = 0, void *context = nullptr, Maybe<Mode> = none);
 
 	static Pair<string, bool> fullBacktrace(int skip_frames = 0) NOINLINE;
 
@@ -50,7 +49,6 @@ class Backtrace {
 	static string filter(const string &);
 
 	vector<void *> m_addresses;
-	vector<string> m_symbols;
 	Pair<string, bool> m_gdb_result;
 	bool m_use_gdb = false;
 };

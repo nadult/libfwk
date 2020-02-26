@@ -1,6 +1,12 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+// This file contains snippets of code from backward:
+// https://github.com/bombela/backward-cpp.git
+// License is available in extern/backward-license.txt
+
+// TODO: do tego pliku nie ma sensu generować danych debugowych
+
 #include "fwk/sys/backtrace.h"
 
 #include "fwk/format.h"
@@ -14,11 +20,53 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef FWK_PLATFORM_LINUX
+#if defined(FWK_PLATFORM_LINUX)
+
+#define USE_UNWIND
+
 #include <execinfo.h>
 
 #include <dlfcn.h>
 #include <unistd.h>
+
+#ifdef USE_UNWIND
+#include <unwind.h>
+
+struct UnwindContext {
+	fwk::Span<void *> addrs;
+	int index;
+};
+
+static _Unwind_Reason_Code unwind_trampoline(_Unwind_Context *ctx, void *self) {
+	auto &out = *(UnwindContext *)self;
+	if(out.index >= out.addrs.size())
+		return _URC_END_OF_STACK;
+
+	int ip_before_instruction = 0;
+	auto ip = _Unwind_GetIPInfo(ctx, &ip_before_instruction);
+
+	if(!ip_before_instruction)
+		ip = ip == 0 ? 0 : ip - 1;
+
+	if(out.index >= 0)
+		out.addrs[out.index] = (void *)ip;
+	if(ip)
+		out.index++;
+	return _URC_NO_REASON;
+}
+#endif
+
+static int linuxGetBacktrace(fwk::Span<void *>) NOINLINE;
+static int linuxGetBacktrace(fwk::Span<void *> addrs) {
+#if defined(USE_UNWIND)
+	UnwindContext ctx{addrs, -1};
+	_Unwind_Backtrace(&unwind_trampoline, &ctx);
+	return ctx.index;
+#else
+	return ::backtrace(out.data(), out.size());
+#endif
+}
+
 #endif
 
 namespace fwk {
@@ -299,47 +347,37 @@ namespace {
 	};
 }
 
-void winGetBacktrace(vector<void *> &addrs, int skip, void *context);
-
 string Backtrace::g_lldb_command;
 
-Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols)
-	: m_addresses(move(addresses)), m_symbols(move(symbols)) {}
-Backtrace::Backtrace(vector<void *> addresses, vector<string> symbols,
-					 Pair<string, bool> gdb_result)
-	: m_addresses(move(addresses)), m_symbols(move(symbols)), m_gdb_result(move(gdb_result)),
-	  m_use_gdb(true) {}
+int winGetBacktrace(Span<void *> addrs, void *context_);
 
-Backtrace Backtrace::get(size_t skip, void *context_, Maybe<Mode> mode) {
-	vector<void *> addrs;
-	vector<string> symbols;
+Backtrace::Backtrace(vector<void *> addresses) : m_addresses(move(addresses)) {}
+Backtrace::Backtrace(vector<void *> addresses, Pair<string, bool> gdb_result)
+	: m_addresses(move(addresses)), m_gdb_result(move(gdb_result)), m_use_gdb(true) {}
 
+Backtrace Backtrace::get(int skip, void *context_, Maybe<Mode> mode) {
 	if(!mode)
 		mode = t_default_mode;
 	if(mode == Mode::disabled)
 		return {};
 
-#if defined(FWK_PLATFORM_MINGW)
-	winGetBacktrace(addrs, skip, context_);
-#elif defined(FWK_PLATFORM_LINUX)
-	// TODO: backtrace_symbols should be deferred
-	void *addresses[64];
-	size_t size = ::backtrace(addresses, arraySize(addresses));
-	char **strings = backtrace_symbols(addresses, size);
-
-	for(size_t i = max<int>(0, skip - 1); i < size; i++) {
-		addrs.emplace_back(addresses[i]);
-		symbols.emplace_back(string(strings[i]));
-	}
-	::free(strings);
-#endif
-
+	array<void *, 64> buffer;
 #ifdef FWK_PLATFORM_LINUX
-	if(*mode == Mode::full)
-		return {move(addrs), move(symbols), fullBacktrace(skip)};
+	int count = linuxGetBacktrace(buffer);
+#elif defined(FWK_PLATFORM_MINGW)
+	int count = winGetBacktrace(buffer, context_);
+#else
+	int count = 0;
 #endif
 
-	return {move(addrs), move(symbols)};
+	// TODO: Can we be sure that all addresses are ok?
+	skip = min(skip, count);
+
+	Pair<string, bool> gdb_result;
+	if(mode == Mode::full)
+		gdb_result = fullBacktrace(skip);
+
+	return {span(buffer.data() + skip, count - skip), gdb_result};
 }
 
 Pair<string, bool> Backtrace::fullBacktrace(int skip_frames) {
@@ -393,20 +431,28 @@ string Backtrace::analyze(bool filter) const {
 		formatter("Empty backtrace\n");
 #endif
 
+	// TODO: separate function first to generate backtrace detailed info
+	// next step is formatting (which may use console dimensions or not)
 	if(file_lines) {
 		int max_len = 0;
 		for(const auto &file_line : file_lines)
 			max_len = max(max_len, (int)file_line.size());
 
+#ifdef FWK_PLATFORM_LINUX
+		char **strings = backtrace_symbols(m_addresses.data(), m_addresses.size());
 		formatter("Simple bactrace (don't expect it to be accurate):\n");
 		for(int i = 0; i < size(); i++) {
-			string tstring = i < m_symbols.size() ? m_symbols[i] : "";
+			string tstring = strings[i];
 			const char *file_line = i < file_lines.size() ? file_lines[i].c_str() : "";
 			tstring = tstring.substr(0, tstring.find('['));
 
 			string fmt = stdFormat("%%%ds %%s\n", max_len);
 			formatter.stdFormat(fmt.c_str(), file_line, tstring.c_str());
 		}
+		::free(strings);
+#else
+			// TODO
+#endif
 	}
 
 	string out;
