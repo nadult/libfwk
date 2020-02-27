@@ -14,8 +14,6 @@
 #include <libdwarf/dwarf.h>
 #include <libdwarf/libdwarf.h>
 #include <libelf.h>
-
-#include <map>
 #include <unistd.h>
 
 namespace fwk {
@@ -64,12 +62,9 @@ class DwarfResolver {
 	void resolve(ResolvedTrace &);
 
   private:
-	typedef std::map<Dwarf_Addr, int> die_linemap_t;
-	typedef std::map<Dwarf_Off, Dwarf_Off> die_specmap_t;
-
 	struct die_cache_entry {
-		die_specmap_t spec_section;
-		die_linemap_t line_section;
+		vector<Pair<Dwarf_Off>> spec_section;
+		vector<Pair<Dwarf_Addr, int>> line_section;
 		Dwarf_Line *line_buffer = nullptr;
 		Dwarf_Signed line_count = 0;
 		Dwarf_Line_Context line_context = 0;
@@ -84,9 +79,6 @@ class DwarfResolver {
 				dwarf_srclines_dealloc_b(line_context);
 		}
 	};
-
-	typedef std::map<Dwarf_Off, die_cache_entry> die_cache_t;
-	typedef std::map<uintptr_t, string> symbol_cache_t;
 
 	struct dwarf_fileobject {
 		dwarf_fileobject() = default;
@@ -104,10 +96,10 @@ class DwarfResolver {
 		int file_handle = 0;
 		Elf *elf_handle = nullptr;
 		Dwarf_Debug dwarf_handle = 0;
-		symbol_cache_t symbol_cache;
 
-		// Die cache
-		die_cache_t die_cache;
+		vector<Pair<uintptr_t, string>> symbol_cache;
+		vector<Dynamic<die_cache_entry>> die_cache;
+		vector<Dwarf_Off> die_offsets;
 		die_cache_entry *current_cu;
 	};
 

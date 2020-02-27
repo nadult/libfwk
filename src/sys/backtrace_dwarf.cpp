@@ -7,6 +7,8 @@
 
 #include "backtrace_dwarf.h"
 
+#include "fwk/algorithm.h"
+
 #ifdef FWK_DWARF_DISABLED
 #error "This file should only be compiled when FWK_DWARF is enabled"
 #endif
@@ -126,16 +128,11 @@ void DwarfResolver::resolve(ResolvedTrace &trace) {
 #endif
 
 	if(trace.object_function.empty()) {
-		auto it = fobj.symbol_cache.lower_bound(address);
-
-		if(it != fobj.symbol_cache.end()) {
-			if(it->first != address) {
-				if(it != fobj.symbol_cache.begin()) {
-					--it;
-				}
-			}
-			trace.object_function = demangle(it->second.c_str());
-		}
+		auto &scache = fobj.symbol_cache;
+		auto it = std::lower_bound(begin(scache), end(scache), address,
+								   [](auto &pair, auto key) { return pair.first < key; });
+		if(it != scache.end() && it->first == address)
+			trace.object_function = demangle(it->second);
 	}
 
 	// Get the Compilation Unit DIE for the address
@@ -151,21 +148,15 @@ void DwarfResolver::resolve(ResolvedTrace &trace) {
 	if(die_object.isEmpty())
 		return; // We have no line section for this DIE
 
-	auto it = die_object.line_section.lower_bound(address);
-
-	if(it != die_object.line_section.end()) {
-		if(it->first != address) {
-			if(it == die_object.line_section.begin()) {
-				// If we are on the first item of the line section
-				// but the address does not match it means that
-				// the address is below the range of the DIE. Give up.
-				return;
-			} else {
-				--it;
-			}
-		}
-	} else {
-		return; // We didn't find the address.
+	auto &lsection = die_object.line_section;
+	auto it = std::lower_bound(begin(lsection), end(lsection), address,
+							   [](auto &arg, auto addr) { return arg.first < addr; });
+	if(it == lsection.end())
+		return;
+	if(it->first != address) {
+		if(it == lsection.begin())
+			return;
+		--it;
 	}
 
 	// Get the Dwarf_Line that the address points to and call libdwarf
@@ -308,10 +299,9 @@ DwarfResolver::load_object_with_dwarf(const string &filename_object) {
 		symbol = reinterpret_cast<Elf##ARCH##_Sym *>(elf_data->d_buf);                             \
 		for(size_t i = 0; i < symbol_count; ++i) {                                                 \
 			int type = ELF##ARCH##_ST_TYPE(symbol->st_info);                                       \
-			if(type == STT_FUNC && symbol->st_value > 0) {                                         \
-				r.symbol_cache[symbol->st_value] =                                                 \
-					string(elf_strptr(r.elf_handle, symbol_strings, symbol->st_name));             \
-			}                                                                                      \
+			if(type == STT_FUNC && symbol->st_value > 0)                                           \
+				r.symbol_cache.emplace_back(                                                       \
+					symbol->st_value, elf_strptr(r.elf_handle, symbol_strings, symbol->st_name));  \
 			++symbol;                                                                              \
 		}                                                                                          \
 	}
@@ -324,6 +314,8 @@ DwarfResolver::load_object_with_dwarf(const string &filename_object) {
 		ELF_GET_DATA(64)
 #endif
 	}
+
+	makeSorted(r.symbol_cache);
 
 	if(!debuglink.empty()) {
 		// We have a debuglink section! Open an elf instance on that
@@ -368,14 +360,19 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 		die_offset = 0;
 	}
 
-	auto it = fobj.die_cache.find(die_offset);
-
-	if(it != fobj.die_cache.end()) {
-		fobj.current_cu = &it->second;
-		return it->second;
+	die_cache_entry *entry = nullptr;
+	for(int n = 0; n < fobj.die_cache.size(); n++)
+		if(fobj.die_offsets[n] == die_offset) {
+			entry = fobj.die_cache[n].get();
+			break;
+		}
+	if(!entry) {
+		fobj.die_offsets.emplace_back(die_offset);
+		fobj.die_cache.emplace_back();
+		fobj.die_cache.back().emplace();
+		entry = fobj.die_cache.back().get();
 	}
-
-	die_cache_entry &de = fobj.die_cache[die_offset];
+	auto &de = *entry;
 	fobj.current_cu = &de;
 
 	Dwarf_Addr line_addr;
@@ -403,11 +400,11 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 
 			// Add all the addresses to our map
 			for(int i = 0; i < de.line_count; i++) {
-				if(dwarf_lineaddr(de.line_buffer[i], &line_addr, &error) != DW_DLV_OK) {
+				if(dwarf_lineaddr(de.line_buffer[i], &line_addr, &error) != DW_DLV_OK)
 					line_addr = 0;
-				}
-				de.line_section.insert(std::pair<Dwarf_Addr, int>(line_addr, i));
+				de.line_section.emplace_back(line_addr, i);
 			}
+			makeSorted(de.line_section);
 		}
 	}
 
@@ -430,7 +427,6 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 			dwarf_tag(current_die, &tag_value, &error);
 
 			if(tag_value == DW_TAG_subprogram || tag_value == DW_TAG_inlined_subroutine) {
-
 				Dwarf_Bool has_attr = 0;
 				if(dwarf_hasattr(current_die, DW_AT_specification, &has_attr, &error) ==
 				   DW_DLV_OK) {
@@ -442,9 +438,8 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 							if(dwarf_formref(attr_mem, &spec_offset, &error) == DW_DLV_OK) {
 								Dwarf_Off spec_die_offset;
 								if(dwarf_dieoffset(current_die, &spec_die_offset, &error) ==
-								   DW_DLV_OK) {
-									de.spec_section[spec_offset] = spec_die_offset;
-								}
+								   DW_DLV_OK)
+									de.spec_section.emplace_back(spec_offset, spec_die_offset);
 							}
 						}
 						dwarf_dealloc(dwarf, attr_mem, DW_DLA_ATTR);
@@ -453,11 +448,8 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 			}
 
 			int result = dwarf_siblingof(dwarf, current_die, &sibling_die, &error);
-			if(result == DW_DLV_ERROR) {
+			if(isOneOf(result, DW_DLV_ERROR, DW_DLV_NO_ENTRY))
 				break;
-			} else if(result == DW_DLV_NO_ENTRY) {
-				break;
-			}
 
 			if(current_die != die) {
 				dwarf_dealloc(dwarf, current_die, DW_DLA_DIE);
@@ -467,6 +459,8 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 			current_die = sibling_die;
 		}
 	}
+
+	makeSorted(de.spec_section);
 	return de;
 }
 
@@ -523,11 +517,13 @@ Dwarf_Die DwarfResolver::get_spec_die(dwarf_fileobject &fobj, Dwarf_Die die) {
 	Dwarf_Error error = DW_DLE_NE;
 	Dwarf_Off die_offset;
 	if(fobj.current_cu && dwarf_die_CU_offset(die, &die_offset, &error) == DW_DLV_OK) {
-		auto it = fobj.current_cu->spec_section.find(die_offset);
+		auto &ssection = fobj.current_cu->spec_section;
+		auto it = std::lower_bound(begin(ssection), end(ssection), die_offset,
+								   [](auto &pair, auto key) { return pair.first < key; });
 
 		// If we have a DIE that completes the current one, check if
 		// that one has the pc we are looking for
-		if(it != fobj.current_cu->spec_section.end()) {
+		if(it != ssection.end() && it->first == die_offset) {
 			Dwarf_Die spec_die = 0;
 			if(dwarf_offdie(dwarf, it->second, &spec_die, &error) == DW_DLV_OK) {
 				return spec_die;
