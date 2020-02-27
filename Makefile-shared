@@ -149,7 +149,7 @@ CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
 CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(BASE_MODE)) $(CFLAGS_$(PLATFORM)) $(CFLAGS_$(COMPILER_TYPE)) $(ADD_CFLAGS))
 
 LDFLAGS_clang  += -fuse-ld=gold
-LDFLAGS_linux  += -pthread -rdynamic
+LDFLAGS_linux  += -pthread
 LDFLAGS_mingw  += -pthread
 LDFLAGS_emcc   += $(HTML_shared)
 LDFLAGS        += $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE)) $(LIBS_$(PLATFORM)) $(ADD_LDFLAGS)

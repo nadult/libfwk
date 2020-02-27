@@ -210,10 +210,15 @@ vector<BacktraceInfo> Backtrace::analyze() const {
 	// TODO: create singleton and keep it in memory?
 	DwarfResolver resolver;
 	vector<BacktraceInfo> out;
+	double resolve_time = getTime();
+
 	for(auto addr : m_addresses) {
 		ResolvedTrace trace;
 		trace.addr = addr;
 		resolver.resolve(trace);
+
+		if(trace.object_function == "__libc_start_main")
+			break; // Makes no sense to resolve at this point
 
 		out.emplace_back(trace.source.filename, trace.source.function, int(trace.source.line),
 						 int(trace.source.col), false);
@@ -224,6 +229,10 @@ vector<BacktraceInfo> Backtrace::analyze() const {
 		if(trace.object_function == "main")
 			break; // Makes no sense to resolve after that
 	}
+
+	resolve_time = getTime() - resolve_time;
+	//print("Resolve time: %\n", resolve_time);
+
 	return out;
 
 #elif defined(FWK_PLATFORM_LINUX)
