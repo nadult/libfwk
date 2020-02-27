@@ -15,9 +15,12 @@ namespace detail {
 		FWK_SFINAE_TYPE(Div, L, DECLVAL(const U &) / DECLVAL(const R &));
 		FWK_SFINAE_TYPE(Or, L, DECLVAL(const U &) | DECLVAL(const R &));
 		FWK_SFINAE_TYPE(And, L, DECLVAL(const U &) & DECLVAL(const R &));
+		FWK_SFINAE_TYPE(Apply, L, DECLVAL(const U &)(DECLVAL(const R &)));
+	};
+
+	template <class L, class R> struct CmpOps {
 		FWK_SFINAE_TYPE(Less, L, DECLVAL(const U &) < DECLVAL(const R &));
 		FWK_SFINAE_TYPE(Equal, L, DECLVAL(const U &) == DECLVAL(const R &));
-		FWK_SFINAE_TYPE(Apply, L, DECLVAL(const U &)(DECLVAL(const R &)));
 	};
 
 	template <class T> struct UnaryOps {
@@ -26,24 +29,24 @@ namespace detail {
 	};
 
 	template <class L, class R>
-	constexpr bool can_auto_compare = is_same<typename BinaryOps<L, R>::Less, bool> &&
+	constexpr bool can_auto_compare = is_same<typename CmpOps<L, R>::Less, bool> &&
 									  (!std::is_scalar_v<L> || !std::is_scalar_v<R>);
 }
 
-#define BINARY_OP_RESULT(name)                                                                     \
-	template <class L, class R> using name##Result = typename detail::BinaryOps<L, R>::name;
+#define BINARY_OP_RESULT(name, Base)                                                               \
+	template <class L, class R> using name##Result = typename detail::Base<L, R>::name;
 #define UNARY_OP_RESULT(name)                                                                      \
 	template <class T> using name##Result = typename detail::UnaryOps<T>::name;
 
-BINARY_OP_RESULT(Add)
-BINARY_OP_RESULT(Sub)
-BINARY_OP_RESULT(Mul)
-BINARY_OP_RESULT(Div)
-BINARY_OP_RESULT(Or)
-BINARY_OP_RESULT(And)
-BINARY_OP_RESULT(Less)
-BINARY_OP_RESULT(Equal)
-BINARY_OP_RESULT(Apply)
+BINARY_OP_RESULT(Add, BinaryOps)
+BINARY_OP_RESULT(Sub, BinaryOps)
+BINARY_OP_RESULT(Mul, BinaryOps)
+BINARY_OP_RESULT(Div, BinaryOps)
+BINARY_OP_RESULT(Or, BinaryOps)
+BINARY_OP_RESULT(And, BinaryOps)
+BINARY_OP_RESULT(Less, CmpOps)
+BINARY_OP_RESULT(Equal, CmpOps)
+BINARY_OP_RESULT(Apply, BinaryOps)
 UNARY_OP_RESULT(Dereference)
 UNARY_OP_RESULT(PreIncrement)
 
