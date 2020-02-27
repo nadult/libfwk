@@ -53,16 +53,16 @@ struct ResolvedTrace {
 	// An optionals list of "inliners". All the successive sources location
 	// from where the source location of the trace (the attribute right above)
 	// is inlined. It is especially useful when you compiled with optimization.
-	typedef vector<SourceLoc> source_locs_t;
-	source_locs_t inliners;
+	vector<SourceLoc> inliners;
 };
 
+// TODO: it would be better to use LLVM's Debug info instead...
 class DwarfResolver {
   public:
 	void resolve(ResolvedTrace &);
 
   private:
-	struct die_cache_entry {
+	struct DieCacheEntry {
 		vector<Pair<Dwarf_Off>> spec_section;
 		vector<Pair<Dwarf_Addr, int>> line_section;
 		Dwarf_Line *line_buffer = nullptr;
@@ -74,15 +74,15 @@ class DwarfResolver {
 				   line_section.empty();
 		}
 
-		~die_cache_entry() {
+		~DieCacheEntry() {
 			if(line_context)
 				dwarf_srclines_dealloc_b(line_context);
 		}
 	};
 
-	struct dwarf_fileobject {
-		dwarf_fileobject() = default;
-		~dwarf_fileobject() {
+	struct FileObject {
+		FileObject() = default;
+		~FileObject() {
 			if(file_handle)
 				::close(file_handle);
 			if(elf_handle)
@@ -90,22 +90,23 @@ class DwarfResolver {
 			if(dwarf_handle)
 				dwarf_finish(dwarf_handle, nullptr);
 		}
-		dwarf_fileobject(const dwarf_fileobject &) = delete;
-		void operator=(const dwarf_fileobject &) = delete;
+		FileObject(const FileObject &) = delete;
+		void operator=(const FileObject &) = delete;
 
 		int file_handle = 0;
 		Elf *elf_handle = nullptr;
 		Dwarf_Debug dwarf_handle = 0;
 
 		vector<Pair<uintptr_t, string>> symbol_cache;
-		vector<Dynamic<die_cache_entry>> die_cache;
+		vector<Dynamic<DieCacheEntry>> die_cache;
 		vector<Dwarf_Off> die_offsets;
-		die_cache_entry *current_cu;
+		DieCacheEntry *current_cu;
 	};
 
-	dwarf_fileobject &load_object_with_dwarf(const string &filename_object);
+	template <int bits> bool getElfData(FileObject &, string &debuglink);
+	FileObject &load_object_with_dwarf(const string &filename_object);
 
-	die_cache_entry &get_die_cache(dwarf_fileobject &fobj, Dwarf_Die die);
+	DieCacheEntry &get_die_cache(FileObject &fobj, Dwarf_Die die);
 
 	static Dwarf_Die get_referenced_die(Dwarf_Debug dwarf, Dwarf_Die die, Dwarf_Half attr,
 										bool global);
@@ -113,11 +114,10 @@ class DwarfResolver {
 	static string get_referenced_die_name(Dwarf_Debug dwarf, Dwarf_Die die, Dwarf_Half attr,
 										  bool global);
 
-	// Returns a spec DIE linked to the passed one. The caller should
-	// deallocate the DIE
-	static Dwarf_Die get_spec_die(dwarf_fileobject &fobj, Dwarf_Die die);
+	// Returns a spec DIE linked to the passed one. The caller should deallocate the DIE
+	static Dwarf_Die get_spec_die(FileObject &fobj, Dwarf_Die die);
 
-	static bool die_has_pc(dwarf_fileobject &fobj, Dwarf_Die die, Dwarf_Addr pc);
+	static bool die_has_pc(FileObject &fobj, Dwarf_Die die, Dwarf_Addr pc);
 
 	static void get_type(Dwarf_Debug dwarf, Dwarf_Die die, string &type);
 
@@ -135,39 +135,33 @@ class DwarfResolver {
 	// and then all specifiers (like const or pointer) in a chain of DW_AT_type
 	// DIEs. Call this function recursively until we get a complete type
 	// string.
-	static void set_parameter_string(dwarf_fileobject &fobj, Dwarf_Die die,
-									 type_context_t &context);
+	static void set_parameter_string(FileObject &fobj, Dwarf_Die die, type_context_t &context);
 
 	// Resolve the function return type and parameters
-	static void set_function_parameters(string &function_name, vector<string> &ns,
-										dwarf_fileobject &fobj, Dwarf_Die die);
+	static void set_function_parameters(string &name, vector<string> &ns, FileObject &fobj,
+										Dwarf_Die die);
 
-	// defined here because in C++98, template function cannot take locally
-	// defined types... grrr.
-	struct inliners_search_cb {
+	struct InlinersSearchCB {
 		void operator()(Dwarf_Die die, vector<string> &ns);
-
 		ResolvedTrace &trace;
-		dwarf_fileobject &fobj;
+		FileObject &fobj;
 		Dwarf_Die cu_die;
-		inliners_search_cb(ResolvedTrace &t, dwarf_fileobject &f, Dwarf_Die c)
-			: trace(t), fobj(f), cu_die(c) {}
 	};
 
-	static Dwarf_Die find_fundie_by_pc(dwarf_fileobject &fobj, Dwarf_Die parent_die, Dwarf_Addr pc,
+	static Dwarf_Die find_fundie_by_pc(FileObject &fobj, Dwarf_Die parent_die, Dwarf_Addr pc,
 									   Dwarf_Die result);
 
 	template <typename CB>
-	static bool deep_first_search_by_pc(dwarf_fileobject &fobj, Dwarf_Die parent_die, Dwarf_Addr pc,
+	static bool deep_first_search_by_pc(FileObject &fobj, Dwarf_Die parent_die, Dwarf_Addr pc,
 										vector<string> &ns, CB cb);
 
 	static string die_call_file(Dwarf_Debug dwarf, Dwarf_Die die, Dwarf_Die cu_die);
-	Dwarf_Die find_die(dwarf_fileobject &fobj, Dwarf_Addr addr);
+	Dwarf_Die find_die(FileObject &fobj, Dwarf_Addr addr);
 
-	bool _dwarf_loaded = false;
+	bool dwarf_loaded = false;
 
 	vector<string> file_names;
-	vector<Dynamic<dwarf_fileobject>> file_objects;
+	vector<Dynamic<FileObject>> file_objects;
 };
 
 }

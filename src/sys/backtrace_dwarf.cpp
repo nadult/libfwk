@@ -114,7 +114,7 @@ void DwarfResolver::resolve(ResolvedTrace &trace) {
 		return;
 
 	trace.object_filename = resolve_exec_path(symbol_info);
-	dwarf_fileobject &fobj = load_object_with_dwarf(symbol_info.dli_fname);
+	FileObject &fobj = load_object_with_dwarf(symbol_info.dli_fname);
 	if(!fobj.dwarf_handle)
 		return; // sad, we couldn't load the object :(
 
@@ -144,7 +144,7 @@ void DwarfResolver::resolve(ResolvedTrace &trace) {
 	// libdwarf doesn't give us direct access to its objects, it always
 	// allocates a copy for the caller. We keep that copy alive in a cache
 	// and we deallocate it later when it's no longer required.
-	die_cache_entry &die_object = get_die_cache(fobj, die);
+	DieCacheEntry &die_object = get_die_cache(fobj, die);
 	if(die_object.isEmpty())
 		return; // We have no line section for this DIE
 
@@ -184,8 +184,9 @@ void DwarfResolver::resolve(ResolvedTrace &trace) {
 	}
 
 	vector<string> namespace_stack;
+	// This is slowest part, is goes through all the dies in CU...
 	deep_first_search_by_pc(fobj, die, address, namespace_stack,
-							inliners_search_cb(trace, fobj, die));
+							InlinersSearchCB{trace, fobj, die});
 
 	dwarf_dealloc(fobj.dwarf_handle, die, DW_DLA_DIE);
 }
@@ -197,12 +198,84 @@ static bool cstrings_eq(const char *a, const char *b) {
 	return strcmp(a, b) == 0;
 }
 
-DwarfResolver::dwarf_fileobject &
-DwarfResolver::load_object_with_dwarf(const string &filename_object) {
-	if(!_dwarf_loaded) {
+template <int bits> bool DwarfResolver::getElfData(FileObject &r, string &debuglink) {
+	Elf_Scn *elf_section = 0;
+	Elf_Data *elf_data = 0;
+	If<bits == 32, Elf32_Shdr, Elf64_Shdr> *section_header = 0;
+	Elf_Scn *symbol_section = 0;
+	size_t symbol_count = 0;
+	size_t symbol_strings = 0;
+	If<bits == 32, Elf32_Sym, Elf64_Sym> *symbol = 0;
+	const char *section_name = 0;
+
+	// Get the number of sections
+	// We use the new APIs as elf_getshnum is deprecated
+	size_t shdrnum = 0;
+	if(elf_getshdrnum(r.elf_handle, &shdrnum) == -1)
+		return false;
+
+	// Get the index to the string section
+	size_t shdrstrndx = 0;
+	if(elf_getshdrstrndx(r.elf_handle, &shdrstrndx) == -1)
+		return false;
+
+	while((elf_section = elf_nextscn(r.elf_handle, elf_section)) != NULL) {
+		if constexpr(bits == 32)
+			section_header = elf32_getshdr(elf_section);
+		else
+			section_header = elf64_getshdr(elf_section);
+
+		if(section_header == NULL)
+			return false;
+
+		if((section_name = elf_strptr(r.elf_handle, shdrstrndx, section_header->sh_name)) == NULL)
+			return false;
+
+		if(cstrings_eq(section_name, ".gnu_debuglink")) {
+			elf_data = elf_getdata(elf_section, NULL);
+			if(elf_data && elf_data->d_size > 0) {
+				debuglink = string(reinterpret_cast<const char *>(elf_data->d_buf));
+			}
+		}
+
+		switch(section_header->sh_type) {
+		case SHT_SYMTAB:
+			symbol_section = elf_section;
+			symbol_count = section_header->sh_size / section_header->sh_entsize;
+			symbol_strings = section_header->sh_link;
+			break;
+
+			/* We use .dynsyms as a last resort, we prefer .symtab */
+		case SHT_DYNSYM:
+			if(!symbol_section) {
+				symbol_section = elf_section;
+				symbol_count = section_header->sh_size / section_header->sh_entsize;
+				symbol_strings = section_header->sh_link;
+			}
+			break;
+		}
+	}
+
+	if(symbol_section && symbol_count && symbol_strings) {
+		elf_data = elf_getdata(symbol_section, NULL);
+		using Sym = If<bits == 32, Elf32_Sym, Elf64_Sym>;
+		symbol = reinterpret_cast<Sym *>(elf_data->d_buf);
+		for(size_t i = 0; i < symbol_count; ++i) {
+			int type = bits == 32 ? ELF32_ST_TYPE(symbol->st_info) : ELF64_ST_TYPE(symbol->st_info);
+			if(type == STT_FUNC && symbol->st_value > 0)
+				r.symbol_cache.emplace_back(
+					symbol->st_value, elf_strptr(r.elf_handle, symbol_strings, symbol->st_name));
+			++symbol;
+		}
+	}
+	return true;
+}
+
+DwarfResolver::FileObject &DwarfResolver::load_object_with_dwarf(const string &filename_object) {
+	if(!dwarf_loaded) {
 		// Set the ELF library operating version
 		// If that fails there's nothing we can do
-		_dwarf_loaded = elf_version(EV_CURRENT) != EV_NONE;
+		dwarf_loaded = elf_version(EV_CURRENT) != EV_NONE;
 	}
 
 	for(int n = 0; n < file_objects.size(); n++)
@@ -227,91 +300,20 @@ DwarfResolver::load_object_with_dwarf(const string &filename_object) {
 		return r;
 
 	const char *e_ident = elf_getident(r.elf_handle, 0);
-	if(!e_ident) {
-		return r;
-	}
-
-	// Get the number of sections
-	// We use the new APIs as elf_getshnum is deprecated
-	size_t shdrnum = 0;
-	if(elf_getshdrnum(r.elf_handle, &shdrnum) == -1)
-		return r;
-
-	// Get the index to the string section
-	size_t shdrstrndx = 0;
-	if(elf_getshdrstrndx(r.elf_handle, &shdrstrndx) == -1)
+	if(!e_ident)
 		return r;
 
 	string debuglink;
 	// Iterate through the ELF sections to try to get a gnu_debuglink
 	// note and also to cache the symbol table.
-	// We go the preprocessor way to avoid having to create templated
-	// classes or using gelf (which might throw a compiler error if 64 bit
-	// is not supported
-#define ELF_GET_DATA(ARCH)                                                                         \
-	Elf_Scn *elf_section = 0;                                                                      \
-	Elf_Data *elf_data = 0;                                                                        \
-	Elf##ARCH##_Shdr *section_header = 0;                                                          \
-	Elf_Scn *symbol_section = 0;                                                                   \
-	size_t symbol_count = 0;                                                                       \
-	size_t symbol_strings = 0;                                                                     \
-	Elf##ARCH##_Sym *symbol = 0;                                                                   \
-	const char *section_name = 0;                                                                  \
-                                                                                                   \
-	while((elf_section = elf_nextscn(r.elf_handle, elf_section)) != NULL) {                        \
-		section_header = elf##ARCH##_getshdr(elf_section);                                         \
-		if(section_header == NULL) {                                                               \
-			return r;                                                                              \
-		}                                                                                          \
-                                                                                                   \
-		if((section_name = elf_strptr(r.elf_handle, shdrstrndx, section_header->sh_name)) ==       \
-		   NULL) {                                                                                 \
-			return r;                                                                              \
-		}                                                                                          \
-                                                                                                   \
-		if(cstrings_eq(section_name, ".gnu_debuglink")) {                                          \
-			elf_data = elf_getdata(elf_section, NULL);                                             \
-			if(elf_data && elf_data->d_size > 0) {                                                 \
-				debuglink = string(reinterpret_cast<const char *>(elf_data->d_buf));               \
-			}                                                                                      \
-		}                                                                                          \
-                                                                                                   \
-		switch(section_header->sh_type) {                                                          \
-		case SHT_SYMTAB:                                                                           \
-			symbol_section = elf_section;                                                          \
-			symbol_count = section_header->sh_size / section_header->sh_entsize;                   \
-			symbol_strings = section_header->sh_link;                                              \
-			break;                                                                                 \
-                                                                                                   \
-		/* We use .dynsyms as a last resort, we prefer .symtab */                                  \
-		case SHT_DYNSYM:                                                                           \
-			if(!symbol_section) {                                                                  \
-				symbol_section = elf_section;                                                      \
-				symbol_count = section_header->sh_size / section_header->sh_entsize;               \
-				symbol_strings = section_header->sh_link;                                          \
-			}                                                                                      \
-			break;                                                                                 \
-		}                                                                                          \
-	}                                                                                              \
-                                                                                                   \
-	if(symbol_section && symbol_count && symbol_strings) {                                         \
-		elf_data = elf_getdata(symbol_section, NULL);                                              \
-		symbol = reinterpret_cast<Elf##ARCH##_Sym *>(elf_data->d_buf);                             \
-		for(size_t i = 0; i < symbol_count; ++i) {                                                 \
-			int type = ELF##ARCH##_ST_TYPE(symbol->st_info);                                       \
-			if(type == STT_FUNC && symbol->st_value > 0)                                           \
-				r.symbol_cache.emplace_back(                                                       \
-					symbol->st_value, elf_strptr(r.elf_handle, symbol_strings, symbol->st_name));  \
-			++symbol;                                                                              \
-		}                                                                                          \
-	}
-
 	if(e_ident[EI_CLASS] == ELFCLASS32) {
-		ELF_GET_DATA(32)
+		if(!getElfData<32>(r, debuglink))
+			return r;
 	} else if(e_ident[EI_CLASS] == ELFCLASS64) {
 		// libelf might have been built without 64 bit support
 #if __LIBELF64
-		ELF_GET_DATA(64)
+		if(!getElfData<64>(r, debuglink))
+			return r;
 #endif
 	}
 
@@ -350,8 +352,7 @@ DwarfResolver::load_object_with_dwarf(const string &filename_object) {
 	return r;
 }
 
-DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &fobj,
-															 Dwarf_Die die) {
+DwarfResolver::DieCacheEntry &DwarfResolver::get_die_cache(FileObject &fobj, Dwarf_Die die) {
 	Dwarf_Error error = DW_DLE_NE;
 
 	// Get the die offset, we use it as the cache key
@@ -360,7 +361,7 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 		die_offset = 0;
 	}
 
-	die_cache_entry *entry = nullptr;
+	DieCacheEntry *entry = nullptr;
 	for(int n = 0; n < fobj.die_cache.size(); n++)
 		if(fobj.die_offsets[n] == die_offset) {
 			entry = fobj.die_cache[n].get();
@@ -388,8 +389,7 @@ DwarfResolver::die_cache_entry &DwarfResolver::get_die_cache(dwarf_fileobject &f
 	// and get the line buffer index.
 	//
 	// To make things more difficult, the same address can span more than
-	// one line, so we need to keep the index pointing to the first line
-	// by using insert instead of the map's [ operator.
+	// one line.
 
 	// Get the line context for the DIE
 	if(dwarf_srclines_b(die, 0, &table_count, &de.line_context, &error) == DW_DLV_OK) {
@@ -472,18 +472,12 @@ Dwarf_Die DwarfResolver::get_referenced_die(Dwarf_Debug dwarf, Dwarf_Die die, Dw
 	Dwarf_Die found_die = NULL;
 	if(dwarf_attr(die, attr, &attr_mem, &error) == DW_DLV_OK) {
 		Dwarf_Off offset;
-		int result = 0;
-		if(global) {
-			result = dwarf_global_formref(attr_mem, &offset, &error);
-		} else {
-			result = dwarf_formref(attr_mem, &offset, &error);
-		}
+		int result = global ? dwarf_global_formref(attr_mem, &offset, &error)
+							: dwarf_formref(attr_mem, &offset, &error);
 
-		if(result == DW_DLV_OK) {
-			if(dwarf_offdie(dwarf, offset, &found_die, &error) != DW_DLV_OK) {
+		if(result == DW_DLV_OK)
+			if(dwarf_offdie(dwarf, offset, &found_die, &error) != DW_DLV_OK)
 				found_die = NULL;
-			}
-		}
 		dwarf_dealloc(dwarf, attr_mem, DW_DLA_ATTR);
 	}
 	return found_die;
@@ -499,9 +493,8 @@ string DwarfResolver::get_referenced_die_name(Dwarf_Debug dwarf, Dwarf_Die die, 
 	if(found_die) {
 		char *name;
 		if(dwarf_diename(found_die, &name, &error) == DW_DLV_OK) {
-			if(name) {
-				value = string(name);
-			}
+			if(name)
+				value = name;
 			dwarf_dealloc(dwarf, name, DW_DLA_STRING);
 		}
 		dwarf_dealloc(dwarf, found_die, DW_DLA_DIE);
@@ -512,7 +505,7 @@ string DwarfResolver::get_referenced_die_name(Dwarf_Debug dwarf, Dwarf_Die die, 
 
 // Returns a spec DIE linked to the passed one. The caller should
 // deallocate the DIE
-Dwarf_Die DwarfResolver::get_spec_die(dwarf_fileobject &fobj, Dwarf_Die die) {
+Dwarf_Die DwarfResolver::get_spec_die(FileObject &fobj, Dwarf_Die die) {
 	Dwarf_Debug dwarf = fobj.dwarf_handle;
 	Dwarf_Error error = DW_DLE_NE;
 	Dwarf_Off die_offset;
@@ -535,7 +528,7 @@ Dwarf_Die DwarfResolver::get_spec_die(dwarf_fileobject &fobj, Dwarf_Die die) {
 	return get_referenced_die(fobj.dwarf_handle, die, DW_AT_abstract_origin, true);
 }
 
-bool DwarfResolver::die_has_pc(dwarf_fileobject &fobj, Dwarf_Die die, Dwarf_Addr pc) {
+bool DwarfResolver::die_has_pc(FileObject &fobj, Dwarf_Die die, Dwarf_Addr pc) {
 	Dwarf_Addr low_pc = 0, high_pc = 0;
 	Dwarf_Half high_pc_form = 0;
 	Dwarf_Form_Class return_class;
@@ -703,22 +696,11 @@ string DwarfResolver::get_type_by_signature(Dwarf_Debug dwarf, Dwarf_Die die) {
 	return result;
 }
 
-struct type_context_t {
-	bool is_const;
-	bool is_typedef;
-	bool has_type;
-	bool has_name;
-	string text;
-
-	type_context_t() : is_const(false), is_typedef(false), has_type(false), has_name(false) {}
-};
-
 // Types are resolved from right to left: we get the variable name first
 // and then all specifiers (like const or pointer) in a chain of DW_AT_type
 // DIEs. Call this function recursively until we get a complete type
 // string.
-void DwarfResolver::set_parameter_string(dwarf_fileobject &fobj, Dwarf_Die die,
-										 type_context_t &context) {
+void DwarfResolver::set_parameter_string(FileObject &fobj, Dwarf_Die die, type_context_t &context) {
 	char *name;
 	Dwarf_Error error = DW_DLE_NE;
 
@@ -829,7 +811,7 @@ void DwarfResolver::set_parameter_string(dwarf_fileobject &fobj, Dwarf_Die die,
 
 // Resolve the function return type and parameters
 void DwarfResolver::set_function_parameters(string &function_name, vector<string> &ns,
-											dwarf_fileobject &fobj, Dwarf_Die die) {
+											FileObject &fobj, Dwarf_Die die) {
 	Dwarf_Debug dwarf = fobj.dwarf_handle;
 	Dwarf_Error error = DW_DLE_NE;
 	Dwarf_Die current_die = 0;
@@ -887,11 +869,11 @@ void DwarfResolver::set_function_parameters(string &function_name, vector<string
 					type_context_t context;
 					set_parameter_string(fobj, current_die, context);
 
-					if(parameters.empty()) {
+					if(parameters.empty())
 						parameters.append("(");
-					} else {
+					else
 						parameters.append(", ");
-					}
+
 					parameters.append(context.text);
 				}
 			}
@@ -922,9 +904,7 @@ void DwarfResolver::set_function_parameters(string &function_name, vector<string
 	function_name.append(parameters);
 }
 
-// defined here because in C++98, template function cannot take locally
-// defined types... grrr.
-void DwarfResolver::inliners_search_cb::operator()(Dwarf_Die die, vector<string> &ns) {
+void DwarfResolver::InlinersSearchCB::operator()(Dwarf_Die die, vector<string> &ns) {
 	Dwarf_Error error = DW_DLE_NE;
 	Dwarf_Half tag_value;
 	Dwarf_Attribute attr_mem;
@@ -963,11 +943,9 @@ void DwarfResolver::inliners_search_cb::operator()(Dwarf_Die die, vector<string>
 		// was the unofficial one until it was adopted in DWARF4.
 		// Old gcc versions generate MIPS_linkage_name
 		if(trace.object_function.empty()) {
-			if(dwarf_attr(die, DW_AT_linkage_name, &attr_mem, &error) != DW_DLV_OK) {
-				if(dwarf_attr(die, DW_AT_MIPS_linkage_name, &attr_mem, &error) != DW_DLV_OK) {
+			if(dwarf_attr(die, DW_AT_linkage_name, &attr_mem, &error) != DW_DLV_OK)
+				if(dwarf_attr(die, DW_AT_MIPS_linkage_name, &attr_mem, &error) != DW_DLV_OK)
 					break;
-				}
-			}
 
 			char *linkage;
 			if(dwarf_formstring(attr_mem, &linkage, &error) == DW_DLV_OK) {
@@ -1000,16 +978,14 @@ void DwarfResolver::inliners_search_cb::operator()(Dwarf_Die die, vector<string>
 
 		Dwarf_Unsigned number = 0;
 		if(dwarf_attr(die, DW_AT_call_line, &attr_mem, &error) == DW_DLV_OK) {
-			if(dwarf_formudata(attr_mem, &number, &error) == DW_DLV_OK) {
+			if(dwarf_formudata(attr_mem, &number, &error) == DW_DLV_OK)
 				sloc.line = number;
-			}
 			dwarf_dealloc(dwarf, attr_mem, DW_DLA_ATTR);
 		}
 
 		if(dwarf_attr(die, DW_AT_call_column, &attr_mem, &error) == DW_DLV_OK) {
-			if(dwarf_formudata(attr_mem, &number, &error) == DW_DLV_OK) {
+			if(dwarf_formudata(attr_mem, &number, &error) == DW_DLV_OK)
 				sloc.col = number;
-			}
 			dwarf_dealloc(dwarf, attr_mem, DW_DLA_ATTR);
 		}
 
@@ -1018,8 +994,8 @@ void DwarfResolver::inliners_search_cb::operator()(Dwarf_Die die, vector<string>
 	};
 }
 
-Dwarf_Die DwarfResolver::find_fundie_by_pc(dwarf_fileobject &fobj, Dwarf_Die parent_die,
-										   Dwarf_Addr pc, Dwarf_Die result) {
+Dwarf_Die DwarfResolver::find_fundie_by_pc(FileObject &fobj, Dwarf_Die parent_die, Dwarf_Addr pc,
+										   Dwarf_Die result) {
 	Dwarf_Die current_die = 0;
 	Dwarf_Error error = DW_DLE_NE;
 	Dwarf_Debug dwarf = fobj.dwarf_handle;
@@ -1081,8 +1057,8 @@ Dwarf_Die DwarfResolver::find_fundie_by_pc(dwarf_fileobject &fobj, Dwarf_Die par
 }
 
 template <typename CB>
-bool DwarfResolver::deep_first_search_by_pc(dwarf_fileobject &fobj, Dwarf_Die parent_die,
-											Dwarf_Addr pc, vector<string> &ns, CB cb) {
+bool DwarfResolver::deep_first_search_by_pc(FileObject &fobj, Dwarf_Die parent_die, Dwarf_Addr pc,
+											vector<string> &ns, CB cb) {
 	Dwarf_Die current_die = 0;
 	Dwarf_Debug dwarf = fobj.dwarf_handle;
 	Dwarf_Error error = DW_DLE_NE;
@@ -1101,15 +1077,15 @@ bool DwarfResolver::deep_first_search_by_pc(dwarf_fileobject &fobj, Dwarf_Die pa
 			if(tag == DW_TAG_namespace || tag == DW_TAG_class_type) {
 				char *ns_name = NULL;
 				if(dwarf_diename(current_die, &ns_name, &error) == DW_DLV_OK) {
-					if(ns_name) {
+					if(ns_name)
 						ns.push_back(string(ns_name));
-					} else {
+					else
 						ns.push_back("<unknown>");
-					}
+
 					dwarf_dealloc(dwarf, ns_name, DW_DLA_STRING);
-				} else {
+				} else
 					ns.push_back("<unknown>");
-				}
+
 				has_namespace = true;
 			}
 		}
@@ -1133,20 +1109,17 @@ bool DwarfResolver::deep_first_search_by_pc(dwarf_fileobject &fobj, Dwarf_Die pa
 			branch_has_pc = deep_first_search_by_pc(fobj, current_die, pc, ns, cb);
 		}
 
-		if(!branch_has_pc) {
+		if(!branch_has_pc)
 			branch_has_pc = die_has_pc(fobj, current_die, pc);
-		}
 
-		if(branch_has_pc) {
+		if(branch_has_pc)
 			cb(current_die, ns);
-		}
 
 		int result = dwarf_siblingof(dwarf, current_die, &sibling_die, &error);
-		if(result == DW_DLV_ERROR) {
+		if(result == DW_DLV_ERROR)
 			return false;
-		} else if(result == DW_DLV_NO_ENTRY) {
+		else if(result == DW_DLV_NO_ENTRY)
 			break;
-		}
 
 		if(current_die != parent_die) {
 			dwarf_dealloc(dwarf, current_die, DW_DLA_DIE);
@@ -1160,9 +1133,8 @@ bool DwarfResolver::deep_first_search_by_pc(dwarf_fileobject &fobj, Dwarf_Die pa
 		current_die = sibling_die;
 	}
 
-	if(has_namespace) {
+	if(has_namespace)
 		ns.pop_back();
-	}
 	return branch_has_pc;
 }
 
@@ -1179,9 +1151,8 @@ string DwarfResolver::die_call_file(Dwarf_Debug dwarf, Dwarf_Die die, Dwarf_Die 
 		}
 		dwarf_dealloc(dwarf, attr_mem, DW_DLA_ATTR);
 
-		if(file_index == 0) {
+		if(file_index == 0)
 			return file;
-		}
 
 		char **srcfiles = 0;
 		Dwarf_Signed file_count = 0;
@@ -1199,7 +1170,7 @@ string DwarfResolver::die_call_file(Dwarf_Debug dwarf, Dwarf_Die die, Dwarf_Die 
 	return file;
 }
 
-Dwarf_Die DwarfResolver::find_die(dwarf_fileobject &fobj, Dwarf_Addr addr) {
+Dwarf_Die DwarfResolver::find_die(FileObject &fobj, Dwarf_Addr addr) {
 	// Let's get to work! First see if we have a debug_aranges section so
 	// we can speed up the search
 
