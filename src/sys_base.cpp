@@ -63,8 +63,7 @@ namespace {
 			printf("%s!\n", message);
 		else
 			printf("Signal caught: %d!\n", (int)sig_info->si_signo);
-		printf("Backtrace:\n%s\n",
-			   Backtrace::get(2, nullptr, BacktraceMode::full).format().c_str());
+		printf("Backtrace:\n%s\n", Backtrace::get(2, nullptr, true).format().c_str());
 		exit(1);
 	}
 

@@ -45,8 +45,8 @@ void raiseException(Error error, int bt_skip) {
 	if(detail::t_quiet_exceptions)
 		return;
 
-	if(!error.backtrace && Backtrace::t_except_mode != BacktraceMode::disabled)
-		error.backtrace = Backtrace::get(bt_skip + 1, nullptr, Backtrace::t_except_mode);
+	if(!error.backtrace && Backtrace::t_is_enabled && Backtrace::t_on_except_enabled)
+		error.backtrace = Backtrace::get(bt_skip + 1, nullptr, true);
 
 	auto tid = threadId();
 	MutexLocker lock(s_mutex);

@@ -52,7 +52,7 @@ Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	}
 
 	s_fail_protect = true;
-	auto bt = Backtrace::get(3, nullptr, Backtrace::t_default_mode);
+	auto bt = Backtrace::get(3);
 	auto chunks = onFailChunks();
 	chunks.emplace_back(ErrorLoc{file, line}, main_message);
 	Error out(move(chunks), bt);

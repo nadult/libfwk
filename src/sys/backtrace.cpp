@@ -186,10 +186,8 @@ namespace {
 
 int winGetBacktrace(Span<void *> addrs, void *context_);
 
-Backtrace Backtrace::get(int skip, void *context_, Maybe<Mode> mode) {
-	if(!mode)
-		mode = t_default_mode;
-	if(mode == Mode::disabled)
+Backtrace Backtrace::get(int skip, void *context_, bool is_enabled) {
+	if(!is_enabled)
 		return {};
 
 	array<void *, 64> buffer;
@@ -316,6 +314,8 @@ string Backtrace::format(vector<BacktraceInfo> infos, Maybe<int> max_cols) {
 	return out;
 }
 
+bool Backtrace::operator==(const Backtrace &rhs) const { return m_addresses == rhs.m_addresses; }
+bool Backtrace::operator<(const Backtrace &rhs) const { return m_addresses < rhs.m_addresses; }
 void Backtrace::operator>>(TextFormatter &fmt) const { fmt << format(); }
 
 }

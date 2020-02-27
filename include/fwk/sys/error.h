@@ -53,8 +53,8 @@ struct Error {
 	Error(const char *fmt, T &&... args)
 		: Error(ErrorLoc(), format(fmt, std::forward<T>(args)...)) {}
 
-	Error(Chunk, Maybe<Backtrace> = none);
-	Error(vector<Chunk>, Maybe<Backtrace> = none);
+	Error(Chunk, Backtrace = {});
+	Error(vector<Chunk>, Backtrace = {});
 	Error();
 	FWK_COPYABLE_CLASS(Error);
 	FWK_ORDER_BY_DECL(Error);
@@ -72,7 +72,7 @@ struct Error {
 	void operator>>(TextFormatter &) const;
 
 	vector<Chunk> chunks;
-	Maybe<Backtrace> backtrace;
+	Backtrace backtrace;
 	vector<Any> values;
 };
 }

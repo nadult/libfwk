@@ -20,27 +20,17 @@ struct BacktraceInfo {
 Maybe<int2> consoleDimensions();
 string demangle(string);
 
-// TODO: mode no longer needed? We can either disable it or don't get it at all?
-enum class BacktraceMode {
-	fast, // default
-	full,
-	disabled
-};
-
 class Backtrace {
   public:
 	Backtrace(vector<void *> addrs) : m_addresses(move(addrs)) {}
 	Backtrace() = default;
 
-	using Mode = BacktraceMode;
-
-	static inline __thread Mode t_default_mode = Mode::fast;
-	static inline __thread Mode t_fatal_mode = Mode::full;
-	static inline __thread Mode t_assert_mode = Mode::full;
-	static inline __thread Mode t_except_mode = Mode::fast;
+	static inline __thread bool t_is_enabled = true;
+	static inline __thread bool t_on_except_enabled = true;
 
 	// TODO: skip by default shouldnt be passed in most situations
-	static Backtrace get(int skip = 0, void *context = nullptr, Maybe<Mode> = none);
+	// context is useful only on MinGW platform (typically in case of a segfault)
+	static Backtrace get(int skip = 0, void *context = nullptr, bool is_enabled = t_is_enabled);
 
 	vector<BacktraceInfo> analyze() const;
 
@@ -48,9 +38,12 @@ class Backtrace {
 	string format(Maybe<int> max_cols = none) const;
 	static string format(vector<BacktraceInfo>, Maybe<int> max_cols = none);
 
+	explicit operator bool() const { return !!m_addresses; }
 	auto size() const { return m_addresses.size(); }
 	bool empty() const { return !m_addresses; }
 
+	bool operator==(const Backtrace &) const;
+	bool operator<(const Backtrace &) const;
 	void operator>>(TextFormatter &) const;
 
   private:

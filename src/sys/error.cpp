@@ -24,10 +24,10 @@ void ErrorChunk::operator>>(TextFormatter &out) const {
 
 Error::Error(ErrorLoc loc, string message) { chunks.emplace_back(loc, move(message)); }
 
-Error::Error(Chunk chunk, Maybe<Backtrace> bt) : backtrace(move(bt)) {
+Error::Error(Chunk chunk, Backtrace bt) : backtrace(move(bt)) {
 	chunks.emplace_back(move(chunk));
 }
-Error::Error(vector<Chunk> chunks, Maybe<Backtrace> bt)
+Error::Error(vector<Chunk> chunks, Backtrace bt)
 	: chunks(move(chunks)), backtrace(move(bt)) {}
 Error::Error() = default;
 
@@ -51,7 +51,7 @@ void Error::operator>>(TextFormatter &out) const {
 	for(auto &chunk : chunks)
 		out << chunk;
 	if(backtrace)
-		out("%\n", *backtrace);
+		out("%\n", backtrace);
 }
 
 Error Error::merge(vector<Error> list) {
@@ -64,9 +64,9 @@ Error Error::merge(vector<Error> list) {
 		for(auto &chunk : err.chunks)
 			chunks.emplace_back(chunk);
 		if(err.backtrace)
-			chunks.emplace_back(err.backtrace->format());
+			chunks.emplace_back(err.backtrace.format());
 	}
-	return {move(chunks), Backtrace::get()};
+	return {move(chunks)};
 }
 
 void Error::print() const { fwk::print("%\n", *this); }

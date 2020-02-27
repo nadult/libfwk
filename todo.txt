@@ -12,8 +12,6 @@ CAŁY CZAS TO ROBISZ :(
 
 - span można skonstruować z referencji do 1 obiektu?
 
-- użyj Backward zamiast backtrace-ów z GDB/LLDB (ma MinGW wymaga dodania libdwarf/libelf do targetu MXE)
-
 - PollVector mógłby być po prostu otagowanym wektorem, który nie ma konwersji na zwykły wektor?
   albo przy konwersji  tworzy nowy wektor odpowiednio zaalokowany?
   Jaki był sens robienia pooli wewn. normalnego wektora?
@@ -24,6 +22,8 @@ CAŁY CZAS TO ROBISZ :(
 - PodVector mozna wywalić i dodać obsługę no_init do vectora?
 - odróżnić indexOf ze Sprase spana (intruzywny?) od normalnego indexOf który przegląda wartości
 - asPod -> asFlat ?
+
+- MinGW backtraces could use libdwarf
 
 - Z jakiegoś powodu checker nie wyłapuje EXCEPTów z delegowanego konstruktora, chyba że
   implementacja jest wewn. klasy; Przykład: CellEdge(CXmlNode)
@@ -109,7 +109,6 @@ CAŁY CZAS TO ROBISZ :(
 
 - operacja shiftowania bitów (zamknięta)
 - dot<PT>, cross<PT> powodują problemy na GCC (cholera go wie czemu) (regresja w GCC 8.2, w *.3 powinno działać...)
-- empty backtraces on mingw
 - span z wymaganiem na minimalną wielkośc zastąpić static_spanem ?
 
 - uporządkować inRange
@@ -184,7 +183,6 @@ TODO: which OpenGL version are we targeting ?
 - DrawCalls should have command_id index ?
 - Remove Renderer2D (use RenderList); better control over which shader is being used ?
 
-- backtraces on mingw dont work too good...
 - ElementBuffer::bbox is causing problems if data is broken in some way; What should we do about it?
 - problem: asserty cały czas dają za mało informacji (trzeba często dodawać printfy)
   może po prostu znajdź jakiś sensowny debugger? pod visualem jak kod jest zoptymalizowany
