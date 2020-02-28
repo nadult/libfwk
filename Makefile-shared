@@ -108,7 +108,7 @@ endif
 
 # --- Compilation & linking flags -----------------------------------------------------------------
 
-HTML_shared  := -g2 -s EXIT_RUNTIME=1 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_ZLIB=1
+HTML_shared  := -s EXIT_RUNTIME=1 -s USE_SDL=2 -s USE_LIBPNG=1 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_ZLIB=1
 LIBS_shared  += freetype2 sdl2 libpng vorbisfile
 LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lopenal -lGL -lGLU -lrt -lm -lstdc++
 LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lOpenAL32 -ldsound -lole32 -lwinmm \
@@ -135,9 +135,9 @@ endif
 CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable -Wno-stringop-overflow
 CFLAGS_emcc    += -Wno-ambiguous-reversed-operator
 
-CFLAGS_release += -O3 -g
-CFLAGS_devel   += -O3 -DFWK_PARANOID -g
-CFLAGS_debug   += -Og -DFWK_PARANOID -g3
+CFLAGS_release += -O3 $(if $(findstring html,$(PLATFORM)),,-g2)
+CFLAGS_devel   += -DFWK_PARANOID -O3 -g2
+CFLAGS_debug   += -DFWK_PARANOID $(if $(findstring html,$(PLATFORM)),-O1 -g2,-Og -g3)
 
 CFLAGS_linux   += -DFWK_PLATFORM_LINUX -pthread
 CFLAGS_mingw   += -DFWK_PLATFORM_MINGW -pthread -msse2 -mfpmath=sse
