@@ -19,6 +19,8 @@ template <class T> double integralScale(const Box<T> &box, int max_value) {
 }
 
 template <class T, EnableIfVec<T>...> Box<T> enclose(SparseSpan<T> points) {
+	if(!points)
+		return {};
 	auto first_pt = points.front();
 	Box<T> box{first_pt, first_pt};
 	for(auto pt : points)

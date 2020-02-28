@@ -81,11 +81,10 @@ const SquareBorder::Iter &SquareBorder::Iter::operator++() {
 
 template <class T> auto SegmentGrid<T>::bestGrid(SparseSpan<T> points, int num_edges) -> RGrid {
 	auto rect = enclose(points);
-	// TODO: how to properly handle lines & empty rects ?
-	if(rect.width() == 0 && rect.height() == 0)
-		return {Box<T>(0, 0, 1, 1), T(1), 1};
+	if(rect.width() == 0)
+		rect = rect.enlarge({1, 0});
 
-	auto num_cells = double(max(points.size(), num_edges)) * 1.5;
+	auto num_cells = max(1.0, double(max(points.size(), num_edges)) * 1.5);
 	auto wh_ratio = double(rect.width()) / double(rect.height());
 
 	auto num_cells_vert = rect.height() == 0 ? num_cells : std::sqrt(num_cells * wh_ratio);
