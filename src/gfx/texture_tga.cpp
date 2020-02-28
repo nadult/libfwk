@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/texture.h"
 
+#include "fwk/io/file_stream.h"
 #include "fwk/io/stream.h"
 #include "fwk/sys/expected.h"
 

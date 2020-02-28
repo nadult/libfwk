@@ -7,6 +7,7 @@
 #include "fwk/enum_flags.h"
 #include "fwk/gfx/investigate.h"
 #include "fwk/math/box.h"
+#include "fwk/maybe_ref.h"
 
 // Parametry:
 // - vis_func

@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/investigator2.h"
 
+#include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/opengl.h"
@@ -10,6 +11,7 @@
 #include "fwk/gfx/triangle_buffer.h"
 #include "fwk/gfx/visualizer2.h"
 #include "fwk/io/file_system.h"
+#include "fwk/math/constants.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/input.h"
 

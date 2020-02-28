@@ -5,6 +5,7 @@
 
 #include "fwk/gfx/camera_control.h"
 #include "fwk/gfx/camera_variant.h"
+#include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/opengl.h"
@@ -12,6 +13,7 @@
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/gfx/visualizer3.h"
 #include "fwk/io/file_system.h"
+#include "fwk/math/constants.h"
 #include "fwk/menu/imgui_wrapper.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/input.h"

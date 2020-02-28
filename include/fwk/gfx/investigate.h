@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "fwk/gfx_base.h"
-#include "fwk/math_base.h"
 #include "fwk/enum_flags.h"
+#include "fwk/gfx_base.h"
+#include "fwk/math/box.h"
 #include <functional>
 
 namespace fwk {

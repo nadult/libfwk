@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/array.h"
 #include "fwk/math/plane.h"
 
 namespace fwk {
