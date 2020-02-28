@@ -10,6 +10,12 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- Dziwny bug przy ładowaniu Modeli na MingW (frontier w debug, libfwk w devel):
+  src/assets.cpp:134: While loading file: data/models/animals/buffalo.model
+  Last XML node: 'node' at: line:3 col:3
+  src/gfx/model.cpp:55: Assert failed: root->name == "" && root->trans == AffineTrans() && root->mesh_id == -1
+  (u64)root:174797840 root->name.size():0 root->mesh_id:3403468
+
 - span można skonstruować z referencji do 1 obiektu?
 
 - PollVector mógłby być po prostu otagowanym wektorem, który nie ma konwersji na zwykły wektor?

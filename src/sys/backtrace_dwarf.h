@@ -11,9 +11,15 @@
 #include "fwk/sys/backtrace.h"
 #include "fwk/vector.h"
 
+#ifdef FWK_PLATFORM_MINGW
+#include <dwarf.h>
+#include <libdwarf.h>
+#else
 #include <libdwarf/dwarf.h>
 #include <libdwarf/libdwarf.h>
 #include <libelf.h>
+#endif
+
 #include <unistd.h>
 
 namespace fwk {
@@ -82,19 +88,14 @@ class DwarfResolver {
 
 	struct FileObject {
 		FileObject() = default;
-		~FileObject() {
-			if(file_handle)
-				::close(file_handle);
-			if(elf_handle)
-				elf_end(elf_handle);
-			if(dwarf_handle)
-				dwarf_finish(dwarf_handle, nullptr);
-		}
+		~FileObject();
 		FileObject(const FileObject &) = delete;
 		void operator=(const FileObject &) = delete;
 
 		int file_handle = 0;
+#ifdef FWK_PLATFORM_LINUX
 		Elf *elf_handle = nullptr;
+#endif
 		Dwarf_Debug dwarf_handle = 0;
 
 		vector<Pair<uintptr_t, string>> symbol_cache;

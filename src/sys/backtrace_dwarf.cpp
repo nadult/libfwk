@@ -8,15 +8,19 @@
 #include "backtrace_dwarf.h"
 
 #include "fwk/algorithm.h"
+#include "fwk/io/file_system.h"
 
 #ifdef FWK_DWARF_DISABLED
 #error "This file should only be compiled when FWK_DWARF is enabled"
 #endif
 
 #include <fcntl.h>
-#include <link.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#if defined(__GLIBC__) && defined(FWK_PLATFORM_LINUX)
+#define WITH_LINK_MAP
+#include <link.h>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -26,10 +30,14 @@
 #include <dlfcn.h>
 #endif
 
+#endif
+
 #include <fstream>
 #include <iostream>
 
 namespace fwk {
+
+#ifdef FWK_PLATFORM_LINUX
 
 static string read_symlink(string const &symlink_path) {
 	string path;
@@ -51,6 +59,7 @@ static string read_symlink(string const &symlink_path) {
 	return path;
 }
 
+// TODO: simplify it
 static string resolve_exec_path(Dl_info &symbol_info) {
 	string argv0;
 	std::getline(std::ifstream("/proc/self/cmdline"), argv0, '\0');
@@ -70,14 +79,31 @@ static string resolve_exec_path(Dl_info &symbol_info) {
 	}
 }
 
+#endif
+
+DwarfResolver::FileObject::~FileObject() {
+	if(file_handle)
+		::close(file_handle);
+#ifdef FWK_PLATFORM_LINUX
+	if(elf_handle)
+		elf_end(elf_handle);
+#endif
+	if(dwarf_handle)
+		dwarf_finish(dwarf_handle, nullptr);
+}
+
 void DwarfResolver::resolve(ResolvedTrace &trace) {
 	// trace.addr is a virtual address in memory pointing to some code.
 	// Let's try to find from which loaded object it comes from.
 	// The loaded object can be yourself btw.
 
+	// TODO: figure out which binary file to load...
+
+#ifdef FWK_PLATFORM_LINUX
+
 	Dl_info symbol_info;
 	int dladdr_result = 0;
-#if defined(__GLIBC__)
+#ifdef LINK_MAP
 	link_map *link_map;
 	// We request the link map so we can get information about offsets
 	dladdr_result =
@@ -109,16 +135,22 @@ void DwarfResolver::resolve(ResolvedTrace &trace) {
 
 	if(symbol_info.dli_sname)
 		trace.object_function = demangle(symbol_info.dli_sname);
-
 	if(!symbol_info.dli_fname)
 		return;
 
 	trace.object_filename = resolve_exec_path(symbol_info);
 	FileObject &fobj = load_object_with_dwarf(symbol_info.dli_fname);
+#else
+	// TODO: not correct
+	auto exec_path = string(executablePath());
+	trace.object_filename = exec_path;
+	FileObject &fobj = load_object_with_dwarf(exec_path.c_str());
+#endif
+
 	if(!fobj.dwarf_handle)
 		return; // sad, we couldn't load the object :(
 
-#if defined(__GLIBC__)
+#ifdef LINK_MAP
 	// Convert the address to a module relative one by looking at
 	// the module's loading address in the link map
 	Dwarf_Addr address =
@@ -198,6 +230,7 @@ static bool cstrings_eq(const char *a, const char *b) {
 	return strcmp(a, b) == 0;
 }
 
+#ifdef FWK_PLATFORM_LINUX
 template <int bits> bool DwarfResolver::getElfData(FileObject &r, string &debuglink) {
 	Elf_Scn *elf_section = 0;
 	Elf_Data *elf_data = 0;
@@ -270,12 +303,17 @@ template <int bits> bool DwarfResolver::getElfData(FileObject &r, string &debugl
 	}
 	return true;
 }
+#endif
 
 DwarfResolver::FileObject &DwarfResolver::load_object_with_dwarf(const string &filename_object) {
 	if(!dwarf_loaded) {
 		// Set the ELF library operating version
 		// If that fails there's nothing we can do
+#ifdef FWK_PLATFORM_LINUX
 		dwarf_loaded = elf_version(EV_CURRENT) != EV_NONE;
+#else
+		dwarf_loaded = true;
+#endif
 	}
 
 	for(int n = 0; n < file_objects.size(); n++)
@@ -292,6 +330,7 @@ DwarfResolver::FileObject &DwarfResolver::load_object_with_dwarf(const string &f
 	if(r.file_handle < 0)
 		return r;
 
+#ifdef FWK_PLATFORM_LINUX
 	// Try to get an ELF handle. We need to read the ELF sections
 	// because we want to see if there is a .gnu_debuglink section
 	// that points to a split debug file
@@ -341,14 +380,20 @@ DwarfResolver::FileObject &DwarfResolver::load_object_with_dwarf(const string &f
 
 	// Ok, we have a valid ELF handle, let's try to get debug symbols
 	Dwarf_Error error = DW_DLE_NE;
-	int dwarf_result =
-		dwarf_elf_init(r.elf_handle, DW_DLC_READ, NULL, NULL, &r.dwarf_handle, &error);
+	auto result = dwarf_elf_init(r.elf_handle, DW_DLC_READ, 0, NULL, &r.dwarf_handle, &error);
+#else
+	Dwarf_Error error = DW_DLE_NE;
+	//auto result = dwarf_init_b(r.file_handle, DW_DLC_READ, 0, 0, NULL, &r.dwarf_handle, &error);
+	auto result = dwarf_init_path(filename_object.c_str(), 0, 0, DW_DLC_READ, 0, 0, 0,
+								  &r.dwarf_handle, 0, 0, 0, &error);
+	printf("Error: %s\n", dwarf_errmsg(error));
+#endif
 
 	// We don't do any special handling for DW_DLV_NO_ENTRY specially.
 	// If we get an error, or the file doesn't have debug information
 	// we just return.
-	if(dwarf_result != DW_DLV_OK)
-		return r;
+	if(result != DW_DLV_OK)
+		return r; // TODO: Nice error handling...
 	return r;
 }
 

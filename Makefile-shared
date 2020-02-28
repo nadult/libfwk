@@ -116,11 +116,12 @@ LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lOpenAL32 -lds
 
 ifeq ($(FWK_DWARF), enabled)
 LIBS_linux   += -ldwarf -lelf -ldl
+LIBS_mingw   += -ldwarf -lz
 endif
 
 # Clang gives no warnings for uninitialized class members!
 #TODO:-Wno-strict-overflow
-CFLAGS         += -I$(FWK_DIR)include/ -fno-exceptions -std=c++2a \
+CFLAGS         += -I$(FWK_DIR)include/ -fno-exceptions -funwind-tables -std=c++2a \
                   -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized \
                   -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
                   -Wparentheses -Wno-overloaded-virtual
@@ -134,12 +135,12 @@ endif
 CFLAGS_gcc     += -Werror=aggressive-loop-optimizations -Wno-unused-but-set-variable -Wno-stringop-overflow
 CFLAGS_emcc    += -Wno-ambiguous-reversed-operator
 
-CFLAGS_release += -O3
-CFLAGS_devel   += -O3 -DFWK_PARANOID
-CFLAGS_debug   += -Og -DFWK_PARANOID
+CFLAGS_release += -O3 -g
+CFLAGS_devel   += -O3 -DFWK_PARANOID -g
+CFLAGS_debug   += -Og -DFWK_PARANOID -g3
 
-CFLAGS_linux   += -DFWK_PLATFORM_LINUX -pthread -ggdb
-CFLAGS_mingw   += -DFWK_PLATFORM_MINGW -pthread -ggdb  -msse2 -mfpmath=sse
+CFLAGS_linux   += -DFWK_PLATFORM_LINUX -pthread
+CFLAGS_mingw   += -DFWK_PLATFORM_MINGW -pthread -msse2 -mfpmath=sse
 CFLAGS_emcc    += -DFWK_PLATFORM_HTML $(HTML_shared)
 
 CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \

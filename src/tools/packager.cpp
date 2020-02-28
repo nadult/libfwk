@@ -5,7 +5,6 @@
 #include "fwk/io/gzip_stream.h"
 #include "fwk/io/memory_stream.h"
 #include "fwk/io/package_file.h"
-#include "fwk/sys/backtrace.h"
 #include "fwk/sys/expected.h"
 
 using namespace fwk;
@@ -46,8 +45,6 @@ Ex<void> unpackFiles(FilePath path, FilePath output_prefix) {
 }
 
 int main(int argc, char **argv) {
-	Backtrace::t_default_mode = BacktraceMode::full;
-
 	if(argc < 4) {
 		printf("Usage:\n%s pack input_path output_file [suffix]\n"
 			   "%s unpack input_file output_path_prefix\n\n",
