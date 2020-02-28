@@ -1,4 +1,5 @@
 # Options:
+#   BUILD_DIR:       directory into which all build files will be put
 #   FWK_DIR:         relative path to libfwk (has to be specified)
 #   PLATFORM:        linux, mingw or html
 #   [FWK_]MODE:      release, devel or debug [-nans]
@@ -155,6 +156,9 @@ LDFLAGS_mingw  += -pthread
 LDFLAGS_emcc   += $(HTML_shared)
 LDFLAGS        += $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE)) $(LIBS_$(PLATFORM)) $(ADD_LDFLAGS)
 
+# Creating build dir if necessary
+_dummy := $(shell mkdir -p $(BUILD_DIR))
+
 # --- Updating configuration file -----------------------------------------------------------------
 
 ifdef BUILD_DIR
@@ -167,7 +171,6 @@ CONFIG_CURRENT := $(shell cat $(CONFIG_FILE))
 endif
 
 $(CONFIG_FILE):
-	mkdir -p $(BUILD_DIR)
 	$(file > $(CONFIG_FILE),$(CONFIG_STRING))
 
 ifneq ($(CONFIG_CURRENT),$(CONFIG_STRING))
