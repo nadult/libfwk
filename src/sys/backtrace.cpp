@@ -220,11 +220,13 @@ vector<BacktraceInfo> Backtrace::analyze() const {
 		if(trace.object_function == "__libc_start_main")
 			break; // Makes no sense to resolve at this point
 
-		out.emplace_back(trace.source.filename, trace.source.function, int(trace.source.line),
-						 int(trace.source.col), false);
+		out.emplace_back(trace.object_filename, trace.object_function, trace.source.filename,
+						 trace.source.function, int(trace.source.line), int(trace.source.col),
+						 false);
+
 		for(auto &inl : trace.inliners)
-			out.emplace_back(inl.filename, trace.object_function, int(inl.line), int(inl.col),
-							 true);
+			out.emplace_back(string(), string(), inl.filename, trace.object_function, int(inl.line),
+							 int(inl.col), true);
 
 		if(trace.object_function == "main")
 			break; // Makes no sense to resolve after that
@@ -305,6 +307,8 @@ string Backtrace::format(vector<BacktraceInfo> infos, Maybe<int> max_cols) {
 		}
 		entry.file = Str(entry.file).limitSizeFront(limit_file_size);
 		entry.function = Str(entry.function).limitSizeBack(limit_func_size);
+		entry.obj_file = Str(entry.obj_file).limitSizeFront(limit_file_size);
+		entry.obj_func = Str(entry.obj_func).limitSizeBack(limit_func_size);
 
 		max_line = max(max_line, entry.line);
 		max_fsize = max(max_fsize, (int)entry.file.size());
@@ -313,8 +317,17 @@ string Backtrace::format(vector<BacktraceInfo> infos, Maybe<int> max_cols) {
 
 	for(auto &entry : infos) {
 		auto line = toString(entry.line);
-		if(entry.function.empty())
+		if(entry.function.empty()) {
+			if(!entry.obj_file.empty() || !entry.obj_func.empty()) {
+				if(entry.obj_func.empty())
+					entry.obj_func = "???";
+				out += string(max(max_fsize - (int)entry.obj_file.size(), 0), ' ') +
+					   entry.obj_file + string(max_lsize + 2, ' ') + entry.obj_func + "\n";
+				continue;
+			}
+
 			entry.function = "???";
+		}
 		out += string(max(max_fsize - (int)entry.file.size(), 0), ' ') + entry.file + ":" + line +
 			   string(max(max_lsize - (int)line.size(), 0), ' ') + (entry.is_inlined ? '^' : ' ') +
 			   entry.function + "\n";

@@ -11,6 +11,7 @@ namespace fwk {
 
 //TODO: better name
 struct BacktraceInfo {
+	string obj_file, obj_func;
 	string file, function;
 	int line, column;
 	bool is_inlined;
