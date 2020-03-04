@@ -29,6 +29,9 @@ namespace detail {
 	};
 }
 
+template <class T> constexpr bool is_maybe = false;
+template <class T> constexpr bool is_maybe<Maybe<T>> = true;
+
 // Generic storage
 template <class T, class Enabled = EnabledType> struct MaybeStorage {
 	static_assert(!std::is_reference<T>::value, "Maybe may not be used with reference types");
