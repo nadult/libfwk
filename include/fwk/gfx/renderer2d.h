@@ -30,9 +30,11 @@ class Renderer2D : public MatrixStack {
 	void addFilledRect(const IRect &rect, const SimpleMaterial &mat) {
 		addFilledRect(FRect(rect), mat);
 	}
+	void addFilledEllipse(float2 center, float2 size, FColor, int num_tris = 32);
 
 	void addRect(const FRect &rect, FColor);
 	void addRect(const IRect &rect, FColor color) { addRect(FRect(rect), color); }
+	void addEllipse(float2 center, float2 size, FColor, int num_edges = 32);
 
 	void addLine(const float2 &, const float2 &, FColor);
 	void addLine(const int2 &p1, const int2 &p2, FColor color) {

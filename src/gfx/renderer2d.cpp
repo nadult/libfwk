@@ -11,6 +11,8 @@
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/hash_map.h"
 #include "fwk/io/xml.h"
+#include "fwk/math/constants.h"
+#include "fwk/math/rotation.h"
 
 namespace fwk {
 
@@ -99,6 +101,43 @@ void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<F
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect,
 							   const SimpleMaterial &material) {
 	addQuads(rect.corners(), tex_rect.corners(), {}, material);
+}
+
+void Renderer2D::addFilledEllipse(float2 center, float2 size, FColor color, int num_tris) {
+	PASSERT(num_tris >= 3);
+	auto &chunk = allocChunk(num_tris + 1);
+	auto &elem = makeElement(chunk, PrimitiveType::triangles, {});
+	int idx = chunk.positions.size();
+
+	auto ang_mul = pi * 2.0f / float(num_tris);
+	for(int n = 0; n < num_tris; n++)
+		chunk.positions.emplace_back(angleToVector(float(n) * ang_mul) * size + center);
+	chunk.positions.emplace_back(center);
+
+	for(int n = 0; n < num_tris; n++) {
+		int next = n == num_tris - 1 ? 0 : n + 1;
+		insertBack(chunk.indices, {idx + num_tris, idx + n, idx + next});
+	}
+
+	chunk.tex_coords.resize(chunk.positions.size(), float2());
+	chunk.colors.resize(chunk.positions.size(), IColor(color));
+	elem.num_indices += num_tris * 3;
+}
+
+void Renderer2D::addEllipse(float2 center, float2 size, FColor color, int num_edges) {
+	auto &chunk = allocChunk(num_edges + 1);
+	auto &elem = makeElement(chunk, PrimitiveType::lines, {});
+
+	auto ang_mul = pi * 2.0f / float(num_edges);
+	int idx = chunk.positions.size();
+	for(int n = 0; n < num_edges; n++) {
+		chunk.positions.emplace_back(angleToVector(float(n) * ang_mul) * size + center);
+		int next = n == num_edges - 1 ? 0 : n + 1;
+		insertBack(chunk.indices, {idx + n, idx + next});
+	}
+	chunk.tex_coords.resize(chunk.positions.size(), float2());
+	chunk.colors.resize(chunk.positions.size(), IColor(color));
+	elem.num_indices += num_edges * 2;
 }
 
 void Renderer2D::addRect(const FRect &rect, FColor color) {
