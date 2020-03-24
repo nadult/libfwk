@@ -113,10 +113,10 @@ namespace detail {
 			vector<u8 *> rowPointers(m_height);
 
 			png_bytep trans = 0;
-			int numTrans = 0;
+			int num_trans = 0;
 
 			png_colorp palette = 0;
-			int numPalette = 0;
+			int num_palette = 0;
 
 			if(setjmp(png_jmpbuf(m_struct)))
 				FAIL_RET();
@@ -128,11 +128,11 @@ namespace detail {
 				if(m_channels != 1)
 					FAIL_RET("Only 8-bit palettes are supported");
 
-				if(!png_get_PLTE(m_struct, m_info, &palette, &numPalette))
+				if(!png_get_PLTE(m_struct, m_info, &palette, &num_palette))
 					FAIL_RET("Error while retrieving palette");
 
 				if(png_get_valid(m_struct, m_info, PNG_INFO_tRNS))
-					png_get_tRNS(m_struct, m_info, &trans, &numTrans, 0);
+					png_get_tRNS(m_struct, m_info, &trans, &num_trans, 0);
 			}
 
 			png_read_image(m_struct, &rowPointers[0]);
@@ -143,8 +143,10 @@ namespace detail {
 
 				if(m_color_type == PNG_COLOR_TYPE_PALETTE) {
 					for(int x = 0; x < m_width; x++) {
-						png_color &col = palette[src[x]];
-						dst[x] = IColor(col.red, col.green, col.blue, trans ? trans[src[x]] : 255u);
+						auto idx = src[x];
+						png_color &col = palette[idx];
+						dst[x] = IColor(col.red, col.green, col.blue,
+										idx < num_trans ? trans[idx] : 255u);
 					}
 				} else if(m_color_type == PNG_COLOR_TYPE_GRAY) {
 					for(int x = 0; x < m_width; x++)
