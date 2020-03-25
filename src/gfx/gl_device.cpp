@@ -252,7 +252,7 @@ bool GlDevice::pollEvents() {
 	m_input_impl->events =
 		m_input_impl->state.pollEvents(m_input_impl->key_map, m_window_impl->window);
 	for(const auto &event : m_input_impl->events)
-		if(event.type() == InputEvent::quit)
+		if(event.type() == InputEventType::quit)
 			return false;
 	return true;
 }

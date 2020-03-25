@@ -383,7 +383,7 @@ void ImGuiWrapper::beginFrame(GlDevice &device) {
 
 	if(!o_hide_menu) {
 		for(auto &event : device.inputEvents()) {
-			if(isOneOf(event.type(), InputEvent::key_down, InputEvent::key_pressed))
+			if(isOneOf(event.type(), InputEventType::key_down, InputEventType::key_pressed))
 				io.KeysDown[event.key()] = true;
 			if(event.isMouseEvent()) {
 				for(auto button : all<InputButton>)

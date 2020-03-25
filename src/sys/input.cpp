@@ -4,6 +4,7 @@
 #include "fwk/sys/input.h"
 
 #include "fwk/algorithm.h"
+#include "fwk/format.h"
 #include "fwk/str.h"
 #include <SDL.h>
 #include <SDL_keyboard.h>
@@ -59,12 +60,12 @@ int SDLKeyMap::from(int key_code) const {
 }
 
 InputEvent::InputEvent(Type type) : m_char(0), m_type(type) {
-	DASSERT(m_type == mouse_over || (!isKeyEvent() && !isMouseEvent()));
+	DASSERT(m_type == Type::mouse_over || (!isKeyEvent() && !isMouseEvent()));
 }
 
 InputEvent::InputEvent(Type key_type, int key, int iter)
 	: m_char(0), m_key(key), m_iteration(iter), m_type(key_type) {
-	DASSERT(isOneOf(m_type, key_down, key_up, key_pressed));
+	DASSERT(isOneOf(m_type, Type::key_down, Type::key_up, Type::key_pressed));
 }
 
 InputEvent::InputEvent(Type mouse_type, InputButton button)
@@ -72,7 +73,7 @@ InputEvent::InputEvent(Type mouse_type, InputButton button)
 	DASSERT(isMouseEvent());
 }
 
-InputEvent::InputEvent(char32_t kchar) : m_char(kchar), m_type(key_char) {}
+InputEvent::InputEvent(char32_t kchar) : m_char(kchar), m_type(Type::key_char) {}
 
 void InputEvent::init(InputModifiers modifiers, const int2 &mouse_pos, const int2 &mouse_move,
 					  int mouse_wheel) {
@@ -82,28 +83,40 @@ void InputEvent::init(InputModifiers modifiers, const int2 &mouse_pos, const int
 	m_modifiers = modifiers;
 }
 
-int InputEvent::key() const { return isOneOf(m_type, key_down, key_up, key_pressed) ? m_key : 0; }
-bool InputEvent::keyDown(int key) const { return m_type == key_down && m_key == key; }
-bool InputEvent::keyUp(int key) const { return m_type == key_up && m_key == key; }
-bool InputEvent::keyPressed(int key) const { return m_type == key_pressed && m_key == key; }
+int InputEvent::key() const {
+	return isOneOf(m_type, Type::key_down, Type::key_up, Type::key_pressed) ? m_key : 0;
+}
+bool InputEvent::keyDown(int key) const { return m_type == Type::key_down && m_key == key; }
+bool InputEvent::keyUp(int key) const { return m_type == Type::key_up && m_key == key; }
+bool InputEvent::keyPressed(int key) const { return m_type == Type::key_pressed && m_key == key; }
 
 bool InputEvent::keyDownAuto(int key, int period, int delay) const {
 	if(keyDown(key))
 		return true;
-	return m_type == key_pressed && m_key == key && m_iteration > delay &&
+	return m_type == Type::key_pressed && m_key == key && m_iteration > delay &&
 		   (m_iteration - delay) % period == 0;
 }
 
 bool InputEvent::mouseButtonDown(InputButton key) const {
-	return m_type == mouse_button_down && m_key == (int)key;
+	return m_type == Type::mouse_button_down && m_key == (int)key;
 }
 
 bool InputEvent::mouseButtonUp(InputButton key) const {
-	return m_type == mouse_button_up && m_key == (int)key;
+	return m_type == Type::mouse_button_up && m_key == (int)key;
 }
 
 bool InputEvent::mouseButtonPressed(InputButton key) const {
-	return m_type == mouse_button_pressed && m_key == (int)key;
+	return m_type == Type::mouse_button_pressed && m_key == (int)key;
+}
+
+void InputEvent::operator>>(TextFormatter &fmt) const {
+	fmt << m_type;
+	if(isMouseEvent())
+		fmt("(pos:% move:% wheel:%)", mousePos(), mouseMove(), mouseWheel());
+	else if(m_type == Type::key_char)
+		fmt("(char:%)", (int)m_char);
+	else if(isKeyEvent())
+		fmt("(key:%)", m_key);
 }
 
 InputState::InputState() : m_mouse_wheel(0), m_is_initialized(0) {
@@ -183,7 +196,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 					is_pressed = true;
 			if(!is_pressed) {
 				m_keys.emplace_back(key_id, 0);
-				events.emplace_back(InputEvent::key_down, key_id, 0);
+				events.emplace_back(Type::key_down, key_id, 0);
 			}
 			break;
 		}
@@ -203,7 +216,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 			if(key_id == -1)
 				break;
 
-			events.emplace_back(InputEvent::key_up, key_id, 0);
+			events.emplace_back(Type::key_up, key_id, 0);
 			for(auto &key_state : m_keys)
 				if(key_state.first == key_id)
 					key_state.second = -1;
@@ -230,8 +243,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 			}
 			if(button_id) {
 				m_mouse_buttons[*button_id] = is_down ? 1 : -1;
-				events.emplace_back(is_down ? InputEvent::mouse_button_down
-											: InputEvent::mouse_button_up,
+				events.emplace_back(is_down ? Type::mouse_button_down : Type::mouse_button_up,
 									*button_id);
 			}
 			break;
@@ -240,7 +252,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 			m_mouse_wheel = event.wheel.y;
 			break;
 		case SDL_QUIT:
-			events.emplace_back(InputEvent::quit);
+			events.emplace_back(Type::quit);
 			break;
 		}
 	}
@@ -264,7 +276,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 	InputModifiers modifiers;
 	for(const auto &key_state : m_keys) {
 		if(key_state.second >= 1)
-			events.emplace_back(InputEvent::key_pressed, key_state.first, key_state.second);
+			events.emplace_back(Type::key_pressed, key_state.first, key_state.second);
 		if(key_state.second >= 0) {
 			for(auto mod : all<InputModifier>)
 				if(key_state.first == mod_map[mod])
@@ -274,8 +286,8 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 
 	for(auto button : all<InputButton>)
 		if(m_mouse_buttons[button] == 2)
-			events.emplace_back(InputEvent::mouse_button_pressed, button);
-	events.emplace_back(InputEvent::mouse_over);
+			events.emplace_back(Type::mouse_button_pressed, button);
+	events.emplace_back(Type::mouse_over);
 
 	for(auto &event : events)
 		event.init(modifiers, m_mouse_pos, m_mouse_move, m_mouse_wheel);

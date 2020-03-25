@@ -19,7 +19,7 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 	static vector<float2> positions(15, float2(device.windowSize() / 2));
 
 	for(auto &event : device.inputEvents()) {
-		if(event.keyDown(InputKey::esc) || event.type() == InputEvent::quit)
+		if(event.keyDown(InputKey::esc) || event.type() == InputEventType::quit)
 			return false;
 
 		if(event.isMouseOverEvent() && (event.mouseMove() != int2(0, 0)))

@@ -86,24 +86,19 @@ namespace InputKey {
 
 DEFINE_ENUM(InputButton, left, right, middle);
 DEFINE_ENUM(InputModifier, lshift, rshift, lctrl, rctrl, lalt, ralt);
+
+// empty: does nothing
+// mouse_over: dummy event, generated only to conveniently handle mouse input
+DEFINE_ENUM(InputEventType, empty, quit, key_down, key_up, key_pressed, key_char, mouse_button_down,
+			mouse_button_up, mouse_button_pressed, mouse_over);
+
 using InputModifiers = EnumFlags<InputModifier>;
 
 class InputEvent {
   public:
-	enum Type {
-		quit,
+	using Type = InputEventType;
 
-		key_down,
-		key_up,
-		key_pressed,
-		key_char,
-
-		mouse_button_down,
-		mouse_button_up,
-		mouse_button_pressed,
-		mouse_over, // dummy event, generated only to conveniently handle mouse input
-	};
-
+	InputEvent() : InputEvent(Type::empty) {}
 	InputEvent(Type type);
 	InputEvent(Type key_type, int key, int iter);
 	InputEvent(Type mouse_type, InputButton button);
@@ -112,11 +107,14 @@ class InputEvent {
 	void init(InputModifiers, const int2 &mouse_pos, const int2 &mouse_move, int mouse_wheel);
 	void offset(const int2 &offset) { m_mouse_pos += offset; }
 
+	explicit operator bool() const { return m_type != Type::empty; }
 	Type type() const { return m_type; }
 
-	bool isMouseEvent() const { return m_type >= mouse_button_down && m_type <= mouse_over; }
-	bool isKeyEvent() const { return m_type >= key_down && m_type <= key_char; }
-	bool isMouseOverEvent() const { return m_type == mouse_over; }
+	bool isMouseEvent() const {
+		return m_type >= Type::mouse_button_down && m_type <= Type::mouse_over;
+	}
+	bool isKeyEvent() const { return m_type >= Type::key_down && m_type <= Type::key_char; }
+	bool isMouseOverEvent() const { return m_type == Type::mouse_over; }
 
 	int key() const;
 	bool keyDown(int key) const;
@@ -137,6 +135,8 @@ class InputEvent {
 	InputModifiers mods() const { return m_modifiers; }
 	bool pressed(InputModifiers mod) const { return (m_modifiers & mod) == mod; }
 
+	void operator>>(TextFormatter &) const;
+
   private:
 	char32_t m_char;
 	int2 m_mouse_pos, m_mouse_move;
@@ -148,6 +148,7 @@ class InputEvent {
 
 class InputState {
   public:
+	using Type = InputEventType;
 	InputState();
 
 	bool isKeyDown(int key) const;
@@ -165,7 +166,7 @@ class InputState {
 	int mouseWheelMove() const { return m_mouse_wheel; }
 
   private:
-	vector<InputEvent> pollEvents(const SDLKeyMap &, void*);
+	vector<InputEvent> pollEvents(const SDLKeyMap &, void *);
 	friend class GlDevice;
 
 	vector<Pair<int>> m_keys;
