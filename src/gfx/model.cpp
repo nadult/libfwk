@@ -306,6 +306,8 @@ Model Model::split(int node_id) const {
 	for(int nid : intRange(new_nodes)) {
 		auto &node = new_nodes[nid];
 		node.id = nid;
+		if(node.parent_id != -1)
+			node.parent_id = new_node_ids[node.parent_id];
 		for(auto &cid : node.children_ids)
 			cid = new_node_ids[cid];
 		if(node.mesh_id != -1)
