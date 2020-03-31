@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
 	}
 
 	Converter::Settings settings;
-	settings.export_script_path = dataPath("export_fwk_model.py");
 	settings.print_output = true;
 
 	for(int n = 1; n < argc; n++) {
@@ -69,13 +68,28 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	Maybe<BlenderVersion> ver;
+	if(settings.blender_path)
+		ver = Converter::checkBlenderVersion(*settings.blender_path);
+	else if(auto info = Converter::locateBlender()) {
+		ver = info->ver;
+		settings.blender_path = info->path;
+	}
+	if(!settings.blender_path || !ver) {
+		printf("Cannot locate correct version of blender\n");
+		exit(1);
+	}
+
 	if(params.size() != 2) {
-		printf("Wrong number of parameters\nSee help; also, don't forget to put arguments with '*' "
+		printf("Wrong number of parameters\nSee help; also, don't forget to put arguments with "
+			   "'*' "
 			   "in quotes\n");
 		exit(1);
 	}
 
+	settings.export_script_path = dataPath(Converter::exportScriptName(*ver));
 	Converter converter(settings);
+
 	if(params[0].find('*') != string::npos) {
 		auto star_pos = params[0].find('*');
 		string prefix = params[0].substr(0, star_pos);

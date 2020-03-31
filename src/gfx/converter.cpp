@@ -43,38 +43,47 @@ Maybe<FileType> Converter::classify(const string &name) {
 	return none;
 }
 
-bool checkBlenderCommand(Str command) NOEXCEPT {
+Maybe<BlenderVersion> Converter::checkBlenderVersion(Str command) {
 	if(auto result = execCommand(format("% --version", command))) {
 		TextParser parser(result->first);
 		string temp;
 		double value;
 		parser >> temp >> value;
 		clearExceptions();
-		return temp == "Blender" && value >= 2.75 && value < 2.80;
+		if(temp == "Blender") {
+			if(value >= 2.75 && value < 2.79)
+				return BlenderVersion::ver_27x;
+			if(value >= 2.80)
+				return BlenderVersion::ver_28x;
+		}
 	}
-	return false;
+	return none;
 }
 
-Ex<string> Converter::locateBlender() {
+string Converter::exportScriptName(BlenderVersion ver) {
+	return ver == BlenderVersion::ver_27x ? "export_fwk_model_279.py" : "export_fwk_model_280.py";
+}
+
+Ex<Converter::BlenderInfo> Converter::locateBlender() {
 #if defined(FWK_PLATFORM_MINGW)
 	vector<string> pfiles = {"C:/program files/", "C:/program files (x86)/"};
 	for(auto pf : pfiles) {
 		for(auto dir : fwk::findFiles(pf, FindFileOpt::directory)) {
 			string folder_name = toLower(dir.path.fileName());
 			if(folder_name.find("blender") != string::npos)
-				if(auto files = fwk::findFiles(dir.path, "blender.exe"))
-					return string(dir.path) + files[0] + "blender.exe";
+				if(auto files = fwk::findFiles(dir.path, "blender.exe")) {
+					auto path = string(dir.path) + files[0] + "blender.exe";
+					if(auto ver = checkBlenderVersion(path))
+						return BlenderInfo{path, *ver};
+				}
 		}
 	}
-
-	return ERROR("Cannot find blender");
 #else
-	const char *commands[] = {"blender-2.79", "blender"};
-	for(auto cmd : commands)
-		if(checkBlenderCommand(cmd))
-			return string(cmd);
-	return ERROR("Cannot find blender with correct version (2.75 - 2.79)");
+	for(auto cmd : {"blender"})
+		if(auto ver = checkBlenderVersion(cmd))
+			return BlenderInfo{cmd, *ver};
 #endif
+	return ERROR("Cannot find blender with correct version (2.75+ or 2.80+)");
 }
 
 Ex<string> Converter::exportFromBlender(const string &file_name, string &target_file_name) {

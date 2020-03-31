@@ -9,12 +9,18 @@
 namespace fwk {
 
 DEFINE_ENUM(ModelFileType, fwk_model, blender);
+DEFINE_ENUM(BlenderVersion, ver_27x, ver_28x)
 
 // TODO: think about a better way to gather & report errors
 
 class Converter {
   public:
 	using FileType = ModelFileType;
+
+	struct BlenderInfo {
+		string path;
+		BlenderVersion ver;
+	};
 
 	struct Settings {
 		string export_script_path;
@@ -28,7 +34,9 @@ class Converter {
 
 	bool operator()(const string &from, const string &to);
 
-	static Ex<string> locateBlender();
+	static Maybe<BlenderVersion> checkBlenderVersion(Str command) NOEXCEPT;
+	static string exportScriptName(BlenderVersion);
+	static Ex<BlenderInfo> locateBlender();
 	static Maybe<FileType> classify(const string &name);
 
 	Ex<string> exportFromBlender(const string &file_name, string &target_file_name);

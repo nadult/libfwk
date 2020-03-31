@@ -1,4 +1,4 @@
-#Written for Blender 2.75
+#Written for Blender 2.75 - 2.79
 #Author: Krzysztof 'nadult' Jakubowski
 
 #TODO: if we have 2 armatures, then they can have bones with same names

@@ -42,12 +42,13 @@ void testMain() {
 	return;
 #endif
 
-	auto blender_path = Converter::locateBlender();
-	blender_path.check();
+	auto blender_info = Converter::locateBlender();
+	blender_info.check();
 
 	Converter::Settings settings;
-	settings.export_script_path = mainPath("data/export_fwk_model.py");
-	settings.blender_path = *blender_path;
+	settings.export_script_path =
+		mainPath("data/" + Converter::exportScriptName(blender_info->ver));
+	settings.blender_path = blender_info->path;
 
 	Converter cvt(settings);
 	auto mesh_path = mainPath("tests/test.model");
