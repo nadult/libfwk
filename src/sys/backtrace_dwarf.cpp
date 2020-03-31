@@ -1202,7 +1202,8 @@ string DwarfResolver::die_call_file(Dwarf_Debug dwarf, Dwarf_Die die, Dwarf_Die 
 		char **srcfiles = 0;
 		Dwarf_Signed file_count = 0;
 		if(dwarf_srcfiles(cu_die, &srcfiles, &file_count, &error) == DW_DLV_OK) {
-			if(file_index <= file_count)
+			// TODO: why is it <= 0 sometimes?
+			if(file_index >= 1 && file_index <= file_count)
 				file = string(srcfiles[file_index - 1]);
 
 			// Deallocate all strings!
