@@ -46,7 +46,7 @@ def fixMatrixUpAxis(mat):
     return mat
 
 def fixVectorUpAxis(vec):
-    return Vector((vec.x, vec.z, -vec.y))
+    return Vector((vec[0], vec[2], -vec[1]))
 
 def formatFloat(f):
     if relativeDifference(float(int(round(f))), f) < 0.00001:
@@ -147,23 +147,40 @@ def writeSkin(xml_parent, mesh, obj):
     (ET.SubElement(xml_skin, "vertex_weight_node_ids")).text = " ".join(node_ids)
     (ET.SubElement(xml_skin, "node_names")).text = " ".join(node_names)
 
+# Cache of tuples (X, Y, Z, U, V)
 class VertexCache:
-    def __init__():
-        self.verts = []
-        self.uvs = []
+    def __init__(self):
+        self.vdict = {}
 
-    def addVertex(vert, uv):
-        for n in range(0, len(self.verts)):
-            if self.verts[n] == vert and self.uvs[n] == uv:
-                return n
-        self.verts.append(vert)
-        self.uvs.append(uv)
-        return len(self.verts) - 1
+    def addVertex(self, pos, uv):
+        vert = (pos.x, pos.y, pos.z, uv[0], uv[1])
+        if vert in self.vdict:
+            return self.vdict[vert]
+        self.vdict[vert] = len(self.vdict)
+        return len(self.vdict) - 1
+
+    def hasUvs(self):
+        for vert, idx in self.vdict.items():
+            if vert[3] != 0.0 or vert[4] != 0.0:
+                return True
+        return False
+
+    def positions(self):
+        out = [(0.0, 0.0, 0.0)] * len(self.vdict)
+        for vert, idx in self.vdict.items():
+            out[idx] = vert[0], vert[1], vert[2]
+        return out
+    
+    def uvs(self):
+        out = [(0.0, 0.0)] * len(self.vdict)
+        for vert, idx in self.vdict.items():
+            out[idx] = vert[3], vert[4]
+        return out
+
 
 def writeMesh(xml_parent, mesh, obj):
     xml_mesh_node = ET.SubElement(xml_parent, "mesh")
 #   xml_mesh_node.attrib["name"] = mesh.name
-    mesh_positions = []
     index_sets = []
     materials = []
     for mat in mesh.materials:
@@ -171,16 +188,40 @@ def writeMesh(xml_parent, mesh, obj):
     if not mesh.materials:
         index_sets = [[]]
 
+    vcache = VertexCache()
+
+    uv_layer = None
+    if len(mesh.uv_layers) != 0:
+        uv_layer = mesh.uv_layers[0].data
+
+    num_indices = 0
     if not mesh.loop_triangles:
         mesh.calc_loop_triangles()
     for tri in mesh.loop_triangles:
-        tris = [tri.vertices[0], tri.vertices[1], tri.vertices[2]]
-        index_sets[tri.material_index].extend(tris)
+        for n in range(3):
+            pos = mesh.vertices[tri.vertices[n]].co
+            if uv_layer:
+                uv = uv_layer[tri.loops[n]].uv
+            else:
+                uv = [0.0, 0.0]
+            idx = vcache.addVertex(pos, uv)
+            index_sets[tri.material_index].append(idx)
+            num_indices = num_indices + 1
+    
+    print("Verts: " + str(len(mesh.vertices)) + " -> " + str(len(vcache.vdict)) + "  Indices: " + str(num_indices))
 
-    for vertex in mesh.vertices:
-        mesh_positions.append(vecToString(fixVectorUpAxis(vertex.co)))
+    mesh_positions = []
+    for vertex in vcache.positions():
+        mesh_positions.append(formatFloats(fixVectorUpAxis(vertex)))
     xml_positions = ET.SubElement(xml_mesh_node, "positions")
     xml_positions.text = ' '.join(mesh_positions)
+
+    if vcache.hasUvs():
+        mesh_uvs = []
+        for uv in vcache.uvs():
+            mesh_uvs.append(formatFloats(uv))
+        xml_positions = ET.SubElement(xml_mesh_node, "tex_coords")
+        xml_positions.text = ' '.join(mesh_uvs)
 
     mat_idx = 0
     while mat_idx < len(index_sets):
