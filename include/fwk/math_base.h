@@ -405,6 +405,12 @@ constexpr int countTrailingZeros(u64 value) { return value ? __builtin_ctzll(val
 constexpr int countBits(uint value) { return __builtin_popcount(value); }
 constexpr int countBits(u64 value) { return __builtin_popcountll(value); }
 
+// Changes between MSB & LSB representation
+constexpr u32 reverseBytes(u32 value) {
+	return (value << 24) | (value >> 24) | ((value & 0xff00) << 8) | ((value & 0xff0000) >> 8);
+}
+constexpr u16 reverseBytes(u16 value) { return (value << 8) | (value >> 8); }
+
 template <class T, EnableIfIntegral<T>...> T nextPow2(T val) {
 	T out = 1;
 	while(out < val)
