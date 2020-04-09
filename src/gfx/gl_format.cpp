@@ -101,6 +101,7 @@ namespace {
 		{Id::r32ui, FormatDesc(DDSId::unknown, 4, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT)},
 		{Id::r8, FormatDesc(DDSId::unknown, 1, GL_R8, GL_RED, GL_UNSIGNED_BYTE)},
 		{Id::rg8, FormatDesc(DDSId::unknown, 2, GL_RG8, GL_RG, GL_UNSIGNED_BYTE)},
+		{Id::luminance, FormatDesc(DDSId::L8, 1, GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE)},
 
 		{Id::dxt1, FormatDesc(DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true)},
 		{Id::dxt3, FormatDesc(DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true)},
