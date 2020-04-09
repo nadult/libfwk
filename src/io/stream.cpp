@@ -80,8 +80,8 @@ void BaseStream::signature(CSpan<char> sig) {
 }
 
 void BaseStream::raise(ZStr text) {
-	RAISE("Stream %s error at position %lld/%lld: %s", isLoading() ? "loading" : "saving", m_pos,
-		  m_size, text.c_str());
+	RAISE("Stream % error at position %/%: %", isLoading() ? "loading" : "saving", m_pos, m_size,
+		  text);
 	m_flags |= Flag::invalid;
 }
 
