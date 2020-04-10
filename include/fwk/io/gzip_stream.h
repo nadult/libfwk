@@ -45,4 +45,10 @@ class GzipStream {
 
 Ex<vector<char>> gzipCompress(CSpan<char>, int level = 6);
 Ex<vector<char>> gzipDecompress(CSpan<char>);
+
+u32 crc32(CSpan<u8>);
+template <class TSpan, class T = SpanBase<TSpan>, EnableIf<is_flat_data<T>>...>
+u32 crc32(const TSpan &data) {
+	return crc32(cspan((const u8 *)data.data(), data.size() * sizeof(T)));
+}
 }

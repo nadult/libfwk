@@ -232,4 +232,6 @@ Ex<vector<char>> gzipDecompress(CSpan<char> data) {
 	auto stream = EX_PASS(GzipStream::decompressor(input));
 	return stream.decompress();
 }
+
+u32 crc32(CSpan<u8> data) { return ::crc32(0, data.data(), data.size()); }
 }

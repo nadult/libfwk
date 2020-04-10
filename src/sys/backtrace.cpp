@@ -14,7 +14,6 @@
 #include <cstdio>
 #include <cxxabi.h>
 #include <errno.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
