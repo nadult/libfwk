@@ -51,7 +51,7 @@ Ex<GzipStream> GzipStream::decompressor(Stream &input, Maybe<i64> load_limit) {
 	auto ctx = (z_stream *)fwk::allocate(sizeof(z_stream));
 	memset(ctx, 0, sizeof(*ctx));
 
-	if(inflateInit2(ctx, 32) != Z_OK) {
+	if(inflateInit2(ctx, 32 + 15) != Z_OK) {
 		fwk::deallocate(ctx);
 		return ERROR("inflateInit failed");
 	}
@@ -129,7 +129,7 @@ Ex<int> GzipStream::decompress(Span<char> data) {
 		auto ret = inflate(&ctx, Z_NO_FLUSH);
 
 		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR))
-			return GZERROR("inflate failed: %", ret);
+			return GZERROR("inflate failed", ret);
 		out_pos = data.size() - ctx.avail_out;
 
 		if(ret == Z_STREAM_END) {
@@ -169,7 +169,7 @@ Ex<void> GzipStream::compress(CSpan<char> data) {
 		auto ret = deflate(&ctx, Z_NO_FLUSH);
 
 		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR))
-			return GZERROR("deflate failed: %", ret);
+			return GZERROR("deflate failed", ret);
 
 		// Flusing buffer
 		if(ctx.avail_out == 0) {
@@ -199,7 +199,7 @@ Ex<void> GzipStream::finishCompression() {
 		ret = deflate(&ctx, Z_FINISH);
 
 		if(isOneOf(ret, Z_STREAM_ERROR, Z_MEM_ERROR, Z_DATA_ERROR))
-			return GZERROR("deflate failed: %", ret);
+			return GZERROR("deflate failed", ret);
 
 		if(ctx.avail_out < (uint)m_buffer.size() || ret == Z_STREAM_END) {
 			m_pipe->saveData(cspan(m_buffer.data(), m_buffer.size() - ctx.avail_out));
