@@ -70,7 +70,7 @@ template <class TVec> class Line {
 	PRIsectParam isectParam(const Line &) const;
 	// TODO: isectParam with segment
 
-	T closestPointParam(const Point&) const;
+	PRT closestPointParam(const Point &) const;
 
 	ENABLE_IF_SIZE(3) Line<MakeVec<T, 2>> xz() const { return {origin.xz(), dir.xz()}; }
 	ENABLE_IF_SIZE(3) Line<MakeVec<T, 2>> xy() const { return {origin.xy(), dir.xy()}; }

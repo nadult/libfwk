@@ -16,7 +16,7 @@ namespace detail {
 	extern __thread char t_vpool_buf[vpool_chunk_size * vpool_num_chunks];
 	extern __thread uint t_vpool_bits;
 
-	static bool onVPool(const char *data) {
+	inline bool onVPool(const char *data) {
 		return data >= t_vpool_buf && data < t_vpool_buf + vpool_chunk_size * vpool_num_chunks;
 	}
 

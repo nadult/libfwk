@@ -38,7 +38,9 @@ TEMPLATE auto TLINE::isectParam(const Line &rhs) const -> PRIsectParam {
 }
 
 TEMPLATE
-auto TLINE::closestPointParam(const Point &pt) const -> T { return dot(dir, pt - origin); }
+auto TLINE::closestPointParam(const Point &pt) const -> PRT {
+	return ratDivide(dot(dir, pt - origin), dot(dir, dir));
+}
 
 TEMPLATE void TLINE::operator>>(TextFormatter &fmt) const {
 	fmt(fmt.isStructured() ? "(% : %)" : "% %", origin, dir);
