@@ -10,6 +10,9 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- input: pressed powinno też być włączone jak jest down? Jeśli polegamy na tym, to w wielu przypadkach
+  zależy nam też na wyłapaniu pierwszej klatki w jakiej jest pressed
+
 - Dziwny bug przy ładowaniu Modeli na MingW (frontier w debug, libfwk w devel):
   src/assets.cpp:134: While loading file: data/models/animals/buffalo.model
   Last XML node: 'node' at: line:3 col:3

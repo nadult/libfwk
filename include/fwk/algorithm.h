@@ -79,6 +79,11 @@ bool anyOf(const TRange &range, const R &ref) {
 	return std::any_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
 
+template <class TRange, class T = RangeBase<TRange>, EnableIf<is_convertible<T, bool>>...>
+bool anyOf(const TRange &range) {
+	return std::any_of(begin(range), end(range), [&](const T &val) { return (bool)val; });
+}
+
 template <class TRange, class Functor, class T = RangeBase<TRange>,
 		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
 bool allOf(const TRange &range, const Functor &functor) {
