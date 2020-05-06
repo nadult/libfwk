@@ -94,6 +94,16 @@ DEFINE_ENUM(InputEventType, empty, quit, key_down, key_up, key_pressed, key_char
 
 using InputModifiers = EnumFlags<InputModifier>;
 
+// Keeps all the information about single input event (mouse or keyboard)
+// Can be empty, might contain redundant information for ease of use.
+// Naming conventions:
+// keys: keyboard keys
+// buttons: mouse buttons
+//
+// down:    will be generated initially when given key/button is pressed
+// up:      will be generated once when given key/button was released
+// pressed: will be generated as long as given key/button is being continually pressed
+// All of these events are mutually exclusive.
 class InputEvent {
   public:
 	using Type = InputEventType;

@@ -10,6 +10,8 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- zła identyfikacja shadera (zawsze mam DEFINITIONS)
+- drobny bug w perf analyzerze: wyswietlanie duzych wartosci (7000sec zamiast 7sec)
 - input: pressed powinno też być włączone jak jest down? Jeśli polegamy na tym, to w wielu przypadkach
   zależy nam też na wyłapaniu pierwszej klatki w jakiej jest pressed
 
