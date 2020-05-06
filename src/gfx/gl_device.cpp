@@ -204,6 +204,12 @@ IRect GlDevice::windowRect() const {
 	return IRect(pos, pos + size);
 }
 
+EnumMap<RectSide, int> GlDevice::windowBorder() const {
+	int top = 0, bottom = 0, left = 0, right = 0;
+	SDL_GetWindowBordersSize(m_window_impl->window, &top, &left, &bottom, &right);
+	return {{right, top, left, bottom}};
+}
+
 Maybe<GlFormat> GlDevice::pixelFormat() const {
 	return m_window_impl ? m_window_impl->pixel_format : none;
 }

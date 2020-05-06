@@ -4,6 +4,7 @@
 #include "fwk/math/box.h"
 
 #include "fwk/algorithm.h"
+#include "fwk/enum_map.h"
 #include "fwk/format.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/plane.h"
@@ -45,5 +46,10 @@ array<Pair<float3>, 12> edges(const FBox &box) {
 	for(int n = 0; n < 12; n++)
 		out[n] = {corners[indices[n][0]], corners[indices[n][1]]};
 	return out;
+}
+
+IRect inset(IRect rect, EnumMap<RectSide, int> ins) {
+	return rect.inset({ins[RectSide::left], ins[RectSide::top]},
+					  {ins[RectSide::right], ins[RectSide::bottom]});
 }
 }

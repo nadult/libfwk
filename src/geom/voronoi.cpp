@@ -77,8 +77,6 @@ Maybe<CellId> Voronoi::findClosestCell(double2 pos) const {
 	return out;
 }
 
-DEFINE_ENUM(RectSide, right, top, left, bottom);
-
 Maybe<RectSide> sideId(const DRect &rect, const double2 &point) {
 	if(point.x == rect.ex())
 		return RectSide::right;

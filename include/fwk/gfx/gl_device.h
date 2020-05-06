@@ -51,6 +51,7 @@ class GlDevice {
 
 	void setWindowRect(IRect);
 	IRect windowRect() const;
+	EnumMap<RectSide, int> windowBorder() const;
 
 	void setWindowFullscreen(Flags);
 	Flags windowFlags() const;

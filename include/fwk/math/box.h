@@ -327,6 +327,8 @@ array<Plane3F, 6> planes(const FBox &);
 array<Pair<float3>, 12> edges(const FBox &);
 array<float3, 8> verts(const FBox &);
 
+IRect inset(IRect, EnumMap<RectSide, int>);
+
 template <class T>
 constexpr bool is_flat_data<Box<T>> = is_flat_data<T> && sizeof(Box<T>) == sizeof(T) * 2;
 }
