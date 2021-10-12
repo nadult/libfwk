@@ -143,7 +143,8 @@ Str FilePath::fileName() const & {
 	return Str(m_path).substr(it + 1);
 }
 
-Maybe<Str> FilePath::fileExtension() const & { return fwk::fileExtension(m_path); }
+Maybe<Str> FilePath::fileExtension() const & { return fwk::fileNameExtension(m_path); }
+Str FilePath::fileStem() const & { return fwk::fileNameStem(m_path); }
 
 bool FilePath::isRoot() const {
 	// Ending backslash is stripped from folder paths
@@ -208,6 +209,13 @@ Ex<FilePath> FilePath::absolute() const {
 
 FilePath FilePath::parent() const { return *this / ".."; }
 
+bool FilePath::hasTildePrefix() const { return m_path[0] == '~' && m_path[1] == '/'; }
+FilePath FilePath::replaceTildePrefix(const FilePath &home) const {
+	if(hasTildePrefix())
+		return home / FilePath(m_path.substr(2));
+	return *this;
+}
+
 FilePath FilePath::operator/(const FilePath &other) const {
 	FilePath out = *this;
 	out /= other;
@@ -246,6 +254,22 @@ bool FileEntry::operator<(const FileEntry &rhs) const {
 		return tie(is_dir, is_link) < tie(rhs.is_dir, rhs.is_link);
 	}
 	return path < rhs.path;
+}
+
+Maybe<Str> fileNameExtension(Str str) {
+	auto slash_pos = str.rfind('/');
+	if(slash_pos != -1)
+		str = str.substr(slash_pos + 1);
+	auto dot_pos = str.rfind('.');
+	return dot_pos == -1 ? Maybe<Str>() : str.substr(dot_pos + 1);
+}
+
+Str fileNameStem(Str str) {
+	auto slash_pos = str.rfind('/');
+	if(slash_pos != -1)
+		str = str.substr(slash_pos + 1);
+	auto dot_pos = str.rfind('.');
+	return dot_pos == -1 ? str : str.substr(0, dot_pos);
 }
 
 bool access(const FilePath &path) {
@@ -288,6 +312,13 @@ Ex<void> mkdirRecursive(const FilePath &path) {
 	if(ret != 0)
 		return FWK_ERROR("Cannot create directory: \"%s\" error: %s\n", path.c_str(),
 						 strerror(errno));
+	return {};
+}
+
+Ex<void> removeFile(const FilePath &path) {
+	auto ret = std::remove(path.c_str());
+	if(ret != 0)
+		return FWK_ERROR("Cannot remove file: \"%s\" error: %s\n", path.c_str(), strerror(errno));
 	return {};
 }
 

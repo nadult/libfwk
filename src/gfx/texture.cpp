@@ -5,6 +5,7 @@
 
 #include "fwk/gfx/gl_format.h"
 #include "fwk/io/file_stream.h"
+#include "fwk/io/file_system.h"
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
 
@@ -96,7 +97,7 @@ Ex<Texture> Texture::load(ZStr file_name, Maybe<FileType> type) {
 	if(type)
 		return load(loader, *type);
 	return load(loader);
-	if(auto ext = fileExtension(file_name))
+	if(auto ext = fileNameExtension(file_name))
 		return load(loader, *ext);
 	return ERROR("File '%' has no extension: don't know which loader to use", file_name);
 }
@@ -123,7 +124,7 @@ Ex<Texture> Texture::load(Stream &sr, Str extension) {
 }
 
 Ex<Texture> Texture::load(FileStream &sr) {
-	if(auto ext = fileExtension(sr.name()))
+	if(auto ext = fileNameExtension(sr.name()))
 		return load(sr, *ext);
 	return ERROR("File '%' has no extension: don't know which loader to use", sr.name());
 }

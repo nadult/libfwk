@@ -72,8 +72,10 @@ void testString() {
 	ASSERT(Str("foobar").compareIgnoreCase("Foo") == 1);
 	ASSERT(Str("wazaboo").endsWith("oo"));
 	ASSERT(Str("haiaaaa").startsWith("hai"));
-	ASSERT_EQ(fileExtension("foo.xx/name.ext.xx"), "ext.xx");
-	ASSERT(!fileExtension("aaa"));
+	ASSERT_EQ(fileNameExtension("foo.xx/name.bar.xx"), "xx");
+	ASSERT_EQ(fileNameStem("foo.xx/name.bar.xx"), "name.bar");
+	ASSERT(!fileNameExtension("aaa"));
+	ASSERT_EQ(fileNameStem("abc/aaa.xyz"), "aaa");
 }
 
 struct BigType {
@@ -321,6 +323,12 @@ void testStreams() {
 	printf("Gzip decompression speed: %6.2f MB/sec\n", dec_speed);
 }
 
+void testFileSystem() {
+	FilePath::current().check();
+	auto home = FilePath::home().get();
+	ASSERT_EQ(FilePath("~/docs").replaceTildePrefix(home), home / "docs");
+}
+
 void testMain() {
 	testHashMap();
 	testString();
@@ -336,4 +344,5 @@ void testMain() {
 	testExceptions();
 	testVector();
 	testStreams();
+	testFileSystem();
 }

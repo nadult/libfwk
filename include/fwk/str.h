@@ -157,7 +157,4 @@ string escapeString(CSpan<char>);
 bool removeSuffix(string &, Str suffix);
 bool removePrefix(string &, Str prefix);
 
-// Dot is not included in the extension
-// If name has no dot then returns none
-Maybe<Str> fileExtension(Str);
 }

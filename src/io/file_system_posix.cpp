@@ -46,6 +46,13 @@ Ex<FilePath> FilePath::current() {
 	return FilePath(name);
 }
 
+Ex<FilePath> FilePath::home() {
+	Str path = getenv("HOME");
+	if(!path)
+		return FWK_ERROR("Error while reading 'HOME' environment variable");
+	return FilePath(path);
+}
+
 Ex<void> FilePath::setCurrent(const FilePath &path) {
 	if(chdir(path.c_str()) != 0)
 		return ERROR("Error in chdir: %", strerror(errno));

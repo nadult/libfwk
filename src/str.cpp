@@ -424,11 +424,4 @@ bool removePrefix(string &str, Str prefix) {
 	return false;
 }
 
-Maybe<Str> fileExtension(Str str) {
-	auto slash_pos = str.rfind('/');
-	if(slash_pos != -1)
-		str = str.substr(slash_pos + 1);
-	auto dot_pos = str.find('.');
-	return dot_pos == -1 ? Maybe<Str>() : str.substr(dot_pos + 1);
-}
 }

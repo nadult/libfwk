@@ -44,6 +44,14 @@ Ex<FilePath> FilePath::current() {
 	return FilePath(buf);
 }
 
+Ex<FilePath> FilePath::home() {
+	Str part1 = getenv("HOMEDRIVE");
+	Str part2 = getenv("HOMEPATH");
+	if(!part1 || !part2)
+		return FWK_ERROR("Error while reading 'HOMEDRIVE', 'HOMEPATH' environment variables");
+	return FilePath(format("%%", part1, part2));
+}
+
 Ex<void> FilePath::setCurrent(const FilePath &path) {
 	if(!SetCurrentDirectory(path.c_str()))
 		return FWK_ERROR("Error in SetCurrentDirectory(%)", path);

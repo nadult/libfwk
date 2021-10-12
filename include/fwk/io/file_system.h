@@ -30,6 +30,8 @@ class FilePath {
 
 	Str fileName() const &;
 	Maybe<Str> fileExtension() const &;
+	Str fileStem() const &;
+
 	bool isDirectory() const;
 	bool isRegularFile() const;
 
@@ -42,10 +44,14 @@ class FilePath {
 	Ex<FilePath> absolute() const;
 	FilePath parent() const;
 
+	bool hasTildePrefix() const;
+	FilePath replaceTildePrefix(const FilePath &home) const;
+
 	FilePath operator/(const FilePath &other) const;
 	FilePath &operator/=(const FilePath &other);
 
 	static Ex<FilePath> current();
+	static Ex<FilePath> home();
 	static Ex<void> setCurrent(const FilePath &);
 
 	operator ZStr() const & { return m_path; }
@@ -88,6 +94,11 @@ struct FileEntry {
 	bool operator<(const FileEntry &rhs) const;
 };
 
+// Dot is not included in the extension
+// If name has no dot then returns none
+Maybe<Str> fileNameExtension(Str);
+Str fileNameStem(Str);
+
 // relative: all paths relative to given path
 // include_parent: include '..' as well
 DEFINE_ENUM(FindFileOpt, regular_file, directory, link, recursive, relative, absolute,
@@ -98,8 +109,9 @@ vector<string> findFiles(const string &prefix, const string &suffix);
 vector<FileEntry> findFiles(const FilePath &path, FindFileOpts = FindFileOpt::regular_file);
 bool access(const FilePath &);
 
-Ex<void> mkdirRecursive(const FilePath &path);
+Ex<void> mkdirRecursive(const FilePath &);
 Ex<double> lastModificationTime(const FilePath &);
+Ex<void> removeFile(const FilePath &);
 
 FilePath executablePath();
 
