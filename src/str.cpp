@@ -29,7 +29,7 @@ static const char *strcasestr(const char *a, const char *b) {
 #endif
 
 Pair<int> Str::utf8TextPos(const char *text) const {
-	if(empty() || text < begin() || text >= end())
+	if(empty() || text < begin() || text > end())
 		return {};
 
 	auto pos = reinterpret_cast<const uint8_t *>(begin());

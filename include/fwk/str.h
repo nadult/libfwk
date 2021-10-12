@@ -8,18 +8,20 @@
 
 namespace fwk {
 
+constexpr int zstrLength(const char *str);
+
 // Simple reference to string data (not owned)
 // Str doesn't have to be null-terminated
 // TODO: CString for string32 ?
 class Str {
   public:
 	Str(const string &str) : m_data(str.c_str()), m_size((int)str.size()) {}
-	Str(const char *str, int size) : m_data(str ? str : ""), m_size(size) {}
-	Str(const char *str) : m_data(str ? str : "") { m_size = strlen(m_data); }
+	constexpr Str(const char *str, int size) : m_data(str ? str : ""), m_size(size) {}
+	constexpr Str(const char *str) : m_data(str ? str : ""), m_size(zstrLength(m_data)) {}
 	Str(const char *begin, const char *end) : m_data(begin), m_size(end - begin) {
 		PASSERT(end >= begin);
 	}
-	Str() : m_data(""), m_size(0) {}
+	constexpr Str() : m_data(""), m_size(0) {}
 
 	explicit operator bool() const { return m_size > 0; }
 	operator string() const { return string(m_data, m_data + m_size); }
@@ -95,9 +97,9 @@ class Str {
 class ZStr : public Str {
   public:
 	ZStr(const string &str) : Str(str) {}
-	ZStr(const char *str, int size) : Str(str, size) {}
-	ZStr(const char *str) : Str(str) {}
-	ZStr() {}
+	constexpr ZStr(const char *str, int size) : Str(str, size) {}
+	constexpr ZStr(const char *str) : Str(str) {}
+	constexpr ZStr() {}
 	ZStr(const Str &) = delete;
 
 	using Str::operator==;
@@ -124,6 +126,15 @@ struct Tokenizer {
 	const char *m_str;
 	char m_delim;
 };
+
+constexpr int zstrLength(const char *str) {
+	if(!str)
+		return 0;
+	auto *ptr = str;
+	while(*ptr)
+		ptr++;
+	return ptr - str;
+}
 
 inline bool equalIgnoreCase(Str a, Str b) {
 	return a.size() == b.size() && a.compareIgnoreCase(b) == 0;
