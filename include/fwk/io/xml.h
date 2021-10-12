@@ -78,6 +78,9 @@ class CXmlNode {
 	ZStr tryAttrib(Str name, const char *on_error) const { return tryAttrib(name, ZStr(on_error)); }
 	bool hasAttrib(Str name) const;
 
+	// Returns pairs: (name, value)
+	vector<Pair<Str>> allAttribs() const;
+
 	template <class T> T attrib(Str name) const EXCEPT { return fromString<T>(attrib(name)); }
 	template <class T> T attrib(Str name, const T &on_empty) const EXCEPT {
 		ZStr value = tryAttrib(name);
@@ -118,6 +121,9 @@ class CXmlNode {
 	CXmlNode sibling(Str name = {}) const;
 	CXmlNode child(Str name = {}) const;
 
+	vector<CXmlNode> children() const;
+	bool hasChildren() const;
+
 	ZStr name() const;
 
 	explicit operator bool() const { return m_ptr != nullptr; }
@@ -142,7 +148,6 @@ class CXmlNode {
 
 class XmlNode : public CXmlNode {
   public:
-	explicit XmlNode(CXmlNode);
 	XmlNode(const XmlNode &) = default;
 	XmlNode() = default;
 

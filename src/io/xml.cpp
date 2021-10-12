@@ -15,6 +15,7 @@
 #include "fwk/io/file_stream.h"
 #include "fwk/io/file_system.h"
 #include "fwk/io/xml.h"
+#include "fwk/sys/assert.h"
 #include "fwk/sys/on_fail.h"
 
 #define assert DASSERT
@@ -90,6 +91,19 @@ ZStr CXmlNode::attrib(Str name) const {
 	return attrib->value();
 }
 
+vector<Pair<Str>> CXmlNode::allAttribs() const {
+	vector<Pair<Str>> out;
+
+	auto *attrib = m_ptr->first_attribute();
+	while(attrib) {
+		out.emplace_back(Str{attrib->name(), (int)attrib->name_size()},
+						 Str{attrib->value(), (int)attrib->value_size()});
+		attrib = attrib->next_attribute();
+	}
+
+	return out;
+}
+
 ZStr CXmlNode::name() const { return {m_ptr->name(), (int)m_ptr->name_size()}; }
 ZStr CXmlNode::value() const { return {m_ptr->value(), (int)m_ptr->value_size()}; }
 
@@ -102,13 +116,24 @@ CXmlNode CXmlNode::sibling(Str name) const {
 CXmlNode CXmlNode::child(Str name) const {
 	auto *child_node = m_ptr->first_node(strOrNull(name), name.size());
 	touch(child_node ? child_node : m_ptr);
+
+	// If XML node contains value then rapidxml will return a child with empty name...
+	if(child_node && child_node->name_size() == 0)
+		return {};
 	return {child_node};
 }
 
-XmlNode::XmlNode(CXmlNode cnode) : CXmlNode(cnode) {
-	if(m_ptr)
-		m_doc = m_ptr->document();
+vector<CXmlNode> CXmlNode::children() const {
+	vector<CXmlNode> out;
+	auto cnode = child();
+	while(cnode) {
+		out.emplace_back(cnode);
+		cnode = cnode.sibling();
+	}
+	return out;
 }
+
+bool CXmlNode::hasChildren() const { return !!child(); }
 
 Str XmlNode::own(Str str) {
 	char *ptr = m_doc->allocate_string(nullptr, str.size() + 1);
@@ -141,7 +166,8 @@ bool XmlNode::validNodeName(Str name) {
 }
 
 XmlNode XmlNode::addChild(Str name, Str value) {
-	DASSERT(validNodeName(name));
+	if(!validNodeName(name))
+		ASSERT_FAILED("Invalid node name: '%'", name);
 	xml_node<> *node = m_doc->allocate_node(node_element, name.data(), strOrNull(value),
 											name.size(), value.size());
 	m_ptr->append_node(node);
