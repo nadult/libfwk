@@ -209,7 +209,7 @@ class Viewer {
 		menu::text("Animation:");
 		menu::SameLine();
 		const char *cur_anim =
-			m_current_anim == -1 ? "empty" : anims[m_current_anim].name().c_str();
+			!anims.inRange(m_current_anim) ? "empty" : anims[m_current_anim].name().c_str();
 		if(menu::BeginCombo("##anim", cur_anim)) {
 			if(menu::Selectable("empty", m_current_anim == -1))
 				m_current_anim = -1;
@@ -297,7 +297,8 @@ class Viewer {
 
 		auto &model = m_models[m_current_model];
 
-		auto pose = model.animatePose(m_current_anim, m_anim_pos);
+		auto anim_id = model.m_model.anims().inRange(m_current_anim) ? m_current_anim : -1;
+		auto pose = model.animatePose(anim_id, m_anim_pos);
 		auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
 					  translation(-model.boundingBox().center());
 
