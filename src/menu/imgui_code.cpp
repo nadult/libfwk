@@ -3,6 +3,7 @@
 
 #include "../extern/imgui/imgui.cpp"
 #include "../extern/imgui/imgui_draw.cpp"
+#include "../extern/imgui/imgui_tables.cpp"
 #include "../extern/imgui/imgui_widgets.cpp"
 
 #ifndef FWK_IMGUI_DEMO_DISABLED

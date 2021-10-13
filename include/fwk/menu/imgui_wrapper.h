@@ -44,13 +44,8 @@ class ImGuiWrapper {
 		void *arg;
 	};
 
-	struct Internals;
-	Dynamic<Internals> m_internals;
-
 	double m_last_time = -1.0;
 	vector<Process> m_procs;
-	uint m_font_tex = 0;
 	static ImGuiWrapper *s_instance;
 };
-
 }

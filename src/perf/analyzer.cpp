@@ -671,7 +671,9 @@ void Analyzer::showGrid(FrameRange &range) {
 		for(auto [pos, active, is_opened] : m_triangles) {
 			if(!active)
 				ImGui::PushStyleColor(ImGuiCol_Text, gray);
-			ImGui::RenderArrow(pos + offset, is_opened ? ImGuiDir_Down : ImGuiDir_Right);
+			auto color = ImGui::GetColorU32(ImGuiCol_Text);
+			ImGui::RenderArrow(draw_list, pos + offset, color,
+							   is_opened ? ImGuiDir_Down : ImGuiDir_Right);
 			if(!active)
 				ImGui::PopStyleColor();
 		}

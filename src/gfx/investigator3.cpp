@@ -14,10 +14,13 @@
 #include "fwk/gfx/visualizer3.h"
 #include "fwk/io/file_system.h"
 #include "fwk/math/constants.h"
-#include "fwk/menu/imgui_wrapper.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/input.h"
 #include "fwk/variant.h"
+
+#ifndef FWK_IMGUI_DISABLED
+#include "fwk/menu/imgui_wrapper.h"
+#endif
 
 namespace fwk {
 
@@ -156,22 +159,28 @@ bool Investigator3::mainLoop(GlDevice &device) {
 
 	float time_diff = 1.0f / 60.0f;
 
-	auto *imgui = ImGuiWrapper::instance();
 	vector<InputEvent> events;
+#ifndef FWK_IMGUI_DISABLED
+	auto *imgui = ImGuiWrapper::instance();
 	if(imgui) {
 		imgui->beginFrame(device);
 		events = imgui->finishFrame(device);
 	} else {
 		events = device.inputEvents();
 	}
+#else
+	events = device.inputEvents();
+#endif
 
 	handleInput(device, events, time_diff);
 	if(m_cam_control)
 		m_cam_control->tick(time_diff, false);
 
 	draw();
+#ifndef FWK_IMGUI_DISABLED
 	if(imgui)
 		imgui->drawFrame(device);
+#endif
 
 	return !m_esc_pressed;
 }

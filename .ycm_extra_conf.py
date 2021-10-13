@@ -8,7 +8,7 @@ flags = [
 '-DFWK_PLATFORM_LINUX', '-DFWK_PARANOID', '-DFWK_CHECK_OPENGL',
 '-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP',
 
-'-I', 'src/', '-I', 'include/',
+'-I', 'src/', '-I', 'include/', '-I', 'extern/imgui/'
 ]
 
 def appendSystemPaths():
