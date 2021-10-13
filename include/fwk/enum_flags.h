@@ -63,6 +63,8 @@ template <class T> struct EnumFlags {
 	constexpr bool operator<(EnumFlags rhs) const { return bits < rhs.bits; }
 
 	constexpr operator bool() const { return bits != 0; }
+	template <class TBase, EnableIf<is_one_of<TBase, Base, BigBase>>>
+	constexpr operator TBase() const { return bits; }
 
 	auto begin() const {
 		return BitIter{bits & 1 ? 0 : bits ? countTrailingZeros(BigBase(bits)) : count<T>, bits};

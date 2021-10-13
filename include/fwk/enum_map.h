@@ -17,14 +17,14 @@ template <class Enum, class T> class EnumMap {
 				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM*");
 
 	static void checkPairs(CSpan<Pair<Enum, T>> pairs) {
-		unsigned long long flags = 0;
-		static_assert(size_ <= 64);
+		u64 flags[(size_ + 63) / 64] = { 0, };
 
 		for(auto &pair : pairs) {
-			auto bit = 1ull << int(pair.first);
-			if(flags & bit)
+			int offset = int(pair.first) >> 6;
+			auto bit = 1ull << (int(pair.first) & 63);
+			if(flags[offset] & bit)
 				FWK_FATAL("Enum entry duplicated: %s", toString(pair.first));
-			flags |= bit;
+			flags[offset] |= bit;
 		}
 
 		if(pairs.size() != size_)
