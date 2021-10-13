@@ -17,13 +17,12 @@ namespace fwk {
 // -------------------------------------------------------------------------------------------
 // ---  Graph elements -----------------------------------------------------------------------
 
-DEFINE_ENUM(GTag, vertex, edge, cell, polygon, triangle);
 
-using TriangleId = TagId<GTag::triangle>;
-using PolygonId = TagId<GTag::polygon>;
-using VertexId = TagId<GTag::vertex>;
-using EdgeId = TagId<GTag::edge>;
-using CellId = TagId<GTag::cell>;
+using TriangleId = TagId<Tag::triangle>;
+using PolygonId = TagId<Tag::polygon>;
+using VertexId = TagId<Tag::vertex>;
+using EdgeId = TagId<Tag::edge>;
+using CellId = TagId<Tag::cell>;
 
 using VertId = VertexId;
 using TriId = TriangleId;

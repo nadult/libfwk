@@ -75,6 +75,8 @@ class GlTexture;
 class GlVertexArray;
 class GlTransformFeedback;
 
+class ShaderCombiner;
+
 template <class T> class GlStorage;
 template <class T> class GlRef;
 

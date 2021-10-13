@@ -13,6 +13,7 @@
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/hash_map.h"
+#include "fwk/sys/on_fail.h"
 
 namespace fwk {
 
@@ -68,11 +69,8 @@ static const char *vsh_src =
 	"}\n";
 // clang-format on
 
-// TODO: return Ex<>
-static PProgram getProgram(Str name) {
-	if(auto out = GlDevice::instance().cacheFindProgram(name))
-		return out;
-
+static Ex<PProgram> buildProgram(Str name) {
+	ON_FAIL("Building shader program: %", name);
 	const char *fsh_src = name == "tex" ? fsh_tex_src : fsh_simple_src;
 	if(name.contains("flat"))
 		fsh_src = fsh_flat_src;
@@ -82,11 +80,17 @@ static PProgram getProgram(Str name) {
 	if(shade)
 		macros += "#define SHADE\n";
 
-	auto vsh = GlShader::make(ShaderType::vertex, {macros, vsh_src}, name).get();
-	auto fsh = GlShader::make(ShaderType::fragment, {macros, fsh_src}, name).get();
-	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"}).get();
-	GlDevice::instance().cacheAddProgram(name, out);
-	return out;
+	auto vsh = EX_PASS(GlShader::compileAndCheck(ShaderType::vertex, macros + vsh_src));
+	auto fsh = EX_PASS(GlShader::compileAndCheck(ShaderType::fragment, macros + fsh_src));
+	return GlProgram::linkAndCheck({vsh, fsh}, {"in_pos", "in_color", "in_tex_coord"});
+}
+
+static PProgram getProgram(Str name) {
+	if(auto out = GlDevice::instance().cacheFindProgram(name))
+		return out;
+	auto program = buildProgram(name).get();
+	GlDevice::instance().cacheAddProgram(name, program);
+	return program;
 }
 
 RenderList::RenderList(const IRect &viewport, const Matrix4 &projection_matrix)

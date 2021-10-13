@@ -17,18 +17,14 @@ DEFINE_ENUM(ProgramBindingType, shader_storage, uniform_block, atomic_counter, t
 class GlProgram {
 	GL_CLASS_DECL(GlProgram)
   public:
-	static Ex<PProgram> make(PShader compute);
-	static Ex<PProgram> make(PShader vertex, PShader fragment, CSpan<string> location_names = {});
-	static Ex<PProgram> make(PShader vertex, PShader geom, PShader fragment,
-							 CSpan<string> location_names = {});
+	static PProgram link(CSpan<PShader>, CSpan<string> location_names = {});
+	static Ex<PProgram> linkAndCheck(CSpan<PShader>, CSpan<string> location_names = {});
 
-	// Source loaded from file is added at the end of sources list
-	static Ex<PProgram> load(ZStr vsh_file_name, ZStr fsh_file_name, vector<string> sources = {},
-							 CSpan<string> location_names = {});
+	bool isLinked() const;
+	string linkLog() const;
 
 	vector<Pair<string, int>> getBindings(ProgramBindingType) const;
 	vector<char> getBinary() const;
-	string getInfo() const;
 
 	struct UniformInfo {
 		string name;
@@ -59,6 +55,7 @@ class GlProgram {
 		void operator=(CSpan<int4>);
 		void operator=(CSpan<uint>);
 		void operator=(CSpan<Matrix4>);
+		void operator=(CSpan<Matrix3>);
 
 		void operator=(float);
 		void operator=(int);
@@ -70,6 +67,7 @@ class GlProgram {
 		void operator=(const float3 &);
 		void operator=(const float4 &);
 		void operator=(const Matrix4 &);
+		void operator=(const Matrix3 &);
 
 		bool valid() const { return location != -1; }
 
@@ -84,15 +82,16 @@ class GlProgram {
 	static void unbind();
 
 	u64 hash() const { return m_hash; }
-	ZStr name() const { return m_name; }
+
+	Str label() const { return m_label; }
+	void setLabel(string label) { m_label = move(label); }
 
   private:
-	Ex<void> set(CSpan<PShader>, CSpan<string> loc_names);
 	void loadUniformInfo();
 	static void setUniformInitialized(int, int);
 
 	vector<UniformInfo> m_uniforms;
 	u64 m_hash;
-	string m_name;
+	string m_label;
 };
 }

@@ -13,6 +13,7 @@
 #include "fwk/io/xml.h"
 #include "fwk/math/constants.h"
 #include "fwk/math/rotation.h"
+#include "fwk/sys/on_fail.h"
 
 namespace fwk {
 
@@ -46,18 +47,21 @@ static const char *vertex_shader_2d_src =
 	"	color = in_color;												\n"
 	"} 																	\n";
 
+static Ex<PProgram> buildProgram2D(Str name) {
+	ON_FAIL("Building shader program: %", name);
+	const char *src =
+		name == "2d_with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
+	auto vsh = EX_PASS(GlShader::compileAndCheck(ShaderType::vertex, vertex_shader_2d_src));
+	auto fsh = EX_PASS(GlShader::compileAndCheck(ShaderType::fragment, src));
+	return GlProgram::linkAndCheck({vsh, fsh}, {"in_pos", "in_color", "in_tex_coord"});
+}
+
 static PProgram getProgram2D(Str name) {
 	if(auto out = GlDevice::instance().cacheFindProgram(name))
 		return out;
-
-	const char *src =
-		name == "2d_with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
-	auto vsh = GlShader::make(ShaderType::vertex, {vertex_shader_2d_src}, name).get();
-	auto fsh = GlShader::make(ShaderType::fragment, {src}, name).get();
-
-	auto out = GlProgram::make(vsh, fsh, {"in_pos", "in_color", "in_tex_coord"}).get();
-	GlDevice::instance().cacheAddProgram(name, out);
-	return out;
+	auto program = buildProgram2D(name).get();
+	GlDevice::instance().cacheAddProgram(name, program);
+	return program;
 }
 
 Renderer2D::Renderer2D(const IRect &viewport, Orient2D orient)

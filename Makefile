@@ -64,7 +64,8 @@ SRC_gfx = \
 	gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer \
 	gfx/texture gfx/texture_tga gfx/texture_png gfx/texture_bmp \
 	gfx/material_set gfx/matrix_stack gfx/draw_call \
-	gfx/visualizer2 gfx/visualizer3 gfx/investigate gfx/investigator2 gfx/investigator3
+	gfx/visualizer2 gfx/visualizer3 gfx/investigate gfx/investigator2 gfx/investigator3 \
+	gfx/shader_debug gfx/shader_defs gfx/shader_combiner
 
 SRC_gfx_mesh = \
 	gfx/model_anim gfx/model_node gfx/dynamic_mesh gfx/model gfx/pose gfx/mesh gfx/mesh_indices \

@@ -97,77 +97,50 @@ void initializeGlProgramFuncs() {
 
 GL_CLASS_IMPL(GlProgram)
 
-Ex<PProgram> GlProgram::make(PShader compute) {
+PProgram GlProgram::link(CSpan<PShader> shaders, CSpan<string> location_names) {
 	PProgram ref(storage.make());
-	DASSERT(compute && compute->type() == ShaderType::compute);
-
-	auto ret = ref->set({compute}, {});
-	return ret ? ref : Ex<PProgram>(ret.error());
-}
-
-Ex<PProgram> GlProgram::make(PShader vertex, PShader fragment, CSpan<string> location_names) {
-	PProgram ref(storage.make());
-	DASSERT(vertex && vertex->type() == ShaderType::vertex);
-	DASSERT(fragment && fragment->type() == ShaderType::fragment);
-
-	auto ret = ref->set({vertex, fragment}, location_names);
-	return ret ? ref : Ex<PProgram>(ret.error());
-}
-
-Ex<PProgram> GlProgram::make(PShader vertex, PShader geom, PShader fragment,
-							 CSpan<string> location_names) {
-	PProgram ref(storage.make());
-	DASSERT(vertex && vertex->type() == ShaderType::vertex);
-	DASSERT(geom && geom->type() == ShaderType::geometry);
-	DASSERT(fragment && fragment->type() == ShaderType::fragment);
-
-	auto ret = ref->set({vertex, geom, fragment}, location_names);
-	return ret ? ref : Ex<PProgram>(ret.error());
-}
-
-Ex<PProgram> GlProgram::load(ZStr vsh_file_name, ZStr fsh_file_name, vector<string> sources,
-							 CSpan<string> location_names) {
-	auto vsh = EX_PASS(GlShader::load(ShaderType::vertex, vsh_file_name, sources));
-	auto fsh = EX_PASS(GlShader::load(ShaderType::fragment, fsh_file_name, sources));
-	return make(vsh, fsh, location_names);
-}
-
-Ex<void> GlProgram::set(CSpan<PShader> shaders, CSpan<string> loc_names) {
-	m_hash = fwk::hash<u64>(loc_names);
+	ref->m_hash = fwk::hash<u64>(location_names);
+	auto id = ref->id();
 
 	for(auto &shader : shaders) {
-		glAttachShader(id(), shader.id());
-		m_hash = combineHash(m_hash, shader->hash());
-		if(shader->name() && m_name.empty())
-			m_name = shader->name();
+		ASSERT(shader->isCompiled());
+		glAttachShader(id, shader.id());
+		ref->m_hash = combineHash(ref->m_hash, shader->hash());
 	}
-	for(int l = 0; l < loc_names.size(); l++)
-		glBindAttribLocation(id(), l, loc_names[l].c_str());
+	for(int l = 0; l < location_names.size(); l++)
+		glBindAttribLocation(id, l, location_names[l].c_str());
 
-	glLinkProgram(id());
-	auto err = glGetError();
-
-	GLint param;
-	glGetProgramiv(id(), GL_LINK_STATUS, &param);
-	if(param == GL_FALSE) {
-		glGetProgramiv(id(), GL_INFO_LOG_LENGTH, &param);
-		PodVector<char> buffer(param);
-		glGetProgramInfoLog(id(), buffer.size(), 0, buffer.data());
-		buffer[buffer.size() - 1] = 0;
-
-		return ERROR("Error while linking program:\n%", Str(buffer.data()));
-	}
-
+	glLinkProgram(id);
+	auto err = glGetError(); // TODO: shoud we ignore this?
 	for(auto &shader : shaders)
-		glDetachShader(id(), shader.id());
-	loadUniformInfo();
-	return {};
+		glDetachShader(id, shader.id());
+
+	if(ref->isLinked())
+		ref->loadUniformInfo();
+	return ref;
 }
 
-string GlProgram::getInfo() const {
-	char buf[4096];
-	glGetProgramInfoLog(id(), 4096, 0, buf);
-	return string(buf);
+Ex<PProgram> GlProgram::linkAndCheck(CSpan<PShader> shaders, CSpan<string> location_names) {
+	auto result = link(shaders, location_names);
+	if(!result->isLinked())
+		return ERROR("Shader linking error:\n%", result->linkLog());
+	return result;
+}
+
+bool GlProgram::isLinked() const {
+	GLint status;
+	glGetProgramiv(id(), GL_LINK_STATUS, &status);
+	return status == GL_TRUE;
+}
+
+string GlProgram::linkLog() const {
+	GLint param;
+	auto id = this->id();
+	glGetProgramiv(id, GL_INFO_LOG_LENGTH, &param);
+	PodVector<char> buffer(param);
+	glGetProgramInfoLog(id, buffer.size(), 0, buffer.data());
+	buffer[buffer.size() - 1] = 0;
+	return buffer.data();
 }
 
 vector<char> GlProgram::getBinary() const {
@@ -250,7 +223,7 @@ auto GlProgram::operator[](Str name) -> UniformSetter {
 	if((gl_debug_flags & GlDebug::not_active_uniforms) && loc == -1) {
 		TextFormatter key, msg;
 		key("% %", m_hash, name);
-		msg("Program %: Uniform % not active", m_name, name);
+		msg("GlProgram '%': Uniform % not active", m_label, name);
 		log(msg.text(), key.text());
 	}
 	return {id(), loc};
@@ -297,6 +270,11 @@ void GlProgram::UniformSetter::operator=(CSpan<Matrix4> range) {
 							   (const float *)range.data());
 }
 
+void GlProgram::UniformSetter::operator=(CSpan<Matrix3> range) {
+	glProgramUniformMatrix3fv_(program_id, location, range.size(), false,
+							   (const float *)range.data());
+}
+
 void GlProgram::UniformSetter::operator=(float value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(int value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(uint value) { *this = cspan(&value, 1); }
@@ -307,4 +285,5 @@ void GlProgram::UniformSetter::operator=(const float2 &value) { *this = cspan(&v
 void GlProgram::UniformSetter::operator=(const float3 &value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(const float4 &value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(const Matrix4 &value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(const Matrix3 &value) { *this = cspan(&value, 1); }
 }

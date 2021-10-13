@@ -70,7 +70,7 @@ template <class T> int GlStorage<T>::allocGL() {
 	if constexpr(is_same<T, GlProgram>)
 		value = glCreateProgram();
 	if constexpr(is_same<T, GlShader>)
-		FATAL("Use custom function for shaders & programs");
+		FATAL("Use custom function for shaders");
 
 	DASSERT(GLuint(int(value)) == value);
 	return (int)value;

@@ -11,6 +11,9 @@
 
 namespace fwk {
 
+// Tags used across libfwk; You can define your own tags as well
+DEFINE_ENUM(Tag, vertex, edge, cell, polygon, triangle, shader_piece);
+
 // This can be overloaded for your own tags
 template <class Tag1, class Tag2> constexpr bool isTagConvertible(Tag1 a, Tag2 b) { return false; }
 

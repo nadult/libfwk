@@ -13,7 +13,7 @@ namespace fwk {
 //   that's why it's better not to keep pointers or references to those objects, but GlRef
 // - both GlRef and GlObjects have to be managed on gfx thread
 // - GlObjects are freed when their reference count drops to 0 (No GlRefs pointing to it exists).
-// - All GlObjects have to be freed before OpenGL device
+// - All GlObjects have to be freed before OpenGL device is destroyed
 template <class T> class GlStorage {
   public:
 	// Big ids are really worst-case scenario
