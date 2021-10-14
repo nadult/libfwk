@@ -356,6 +356,8 @@ template <class T, EnableIf<is_scalar<T>>...> T abs(T value) {
 	return value < T(0) ? -value : value;
 }
 
+template <class T> constexpr T square(const T &value) { return value * value; }
+
 using std::ceil;
 using std::floor;
 

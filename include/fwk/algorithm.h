@@ -84,6 +84,15 @@ bool anyOf(const TRange &range) {
 	return std::any_of(begin(range), end(range), [&](const T &val) { return (bool)val; });
 }
 
+template <class TSpan, class R, class T = SpanBase<TSpan>,
+		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
+int indexOf(const TSpan &span, const R &ref) {
+	for(int i = 0, span_size = fwk::size(span); i < span_size; i++)
+		if(span[i] == ref)
+			return i;
+	return -1;
+}
+
 template <class TRange, class Functor, class T = RangeBase<TRange>,
 		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
 bool allOf(const TRange &range, const Functor &functor) {
