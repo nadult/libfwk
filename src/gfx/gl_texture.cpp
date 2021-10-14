@@ -61,6 +61,7 @@ PTexture GlTexture::make(Format format, const int2 &size, Flags flags) {
 }
 
 Ex<PTexture> GlTexture::load(ZStr file_name) {
+	ON_FAIL("Error when loading file: %", file_name);
 	auto tex = Texture::load(file_name);
 	return tex ? make(*tex) : Ex<PTexture>(tex.error());
 }

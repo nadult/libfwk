@@ -12,10 +12,7 @@
 namespace fwk {
 
 namespace detail {
-
-	Ex<Texture> loadBMP(Stream &);
-	Ex<Texture> loadPNG(Stream &);
-	Ex<Texture> loadTGA(Stream &);
+	Ex<Texture> loadSTBI(Stream &);
 }
 
 Texture::Texture() {}
@@ -86,6 +83,13 @@ bool Texture::testPixelAlpha(const int2 &pos) const {
 	return (*this)(pos.x, pos.y).a > 0;
 }
 
+bool Texture::isOpaque() const {
+	for(auto &col : m_data)
+		if(col.a != 255)
+			return false;
+	return true;
+}
+
 using TextureLoaders = vector<Pair<string, Texture::Loader>>;
 static TextureLoaders &loaders() {
 	static TextureLoaders s_loaders;
@@ -105,18 +109,23 @@ Ex<Texture> Texture::load(ZStr file_name, Maybe<FileType> type) {
 Ex<Texture> Texture::load(Stream &sr, FileType type) {
 	switch(type) {
 	case FileType::tga:
-		return detail::loadTGA(sr);
 	case FileType::bmp:
-		return detail::loadBMP(sr);
 	case FileType::png:
-		return detail::loadPNG(sr);
+	case FileType::jpg:
+	case FileType::gif:
+	case FileType::ppm:
+	case FileType::pgm:
+		return detail::loadSTBI(sr);
 	}
 }
 
 Ex<Texture> Texture::load(Stream &sr, Str extension) {
 	string ext = toLower(extension);
-	if(auto type = maybeFromString<FileType>(extension))
+	if(auto type = maybeFromString<FileType>(ext))
 		return load(sr, *type);
+	if(ext == "jpeg")
+		return load(sr, FileType::jpg);
+
 	for(auto &loader : loaders())
 		if(loader.first == extension)
 			return loader.second(sr);

@@ -18,7 +18,7 @@ struct HeightMap16bit {
 	int2 size;
 };
 
-DEFINE_ENUM(TextureFileType, tga, png, bmp);
+DEFINE_ENUM(TextureFileType, tga, png, bmp, jpg, gif, pgm, ppm);
 
 // simple RGBA32 texture
 class Texture {
@@ -29,7 +29,7 @@ class Texture {
 	Texture(PodVector<IColor>, int2);
 	Texture();
 
-	// Loading from TGA, BMP, PNG, DDS
+	// Loading from supported file types
 	// TODO: loading from memory (through DataStream or something)
 	static Ex<Texture> load(ZStr file_name, Maybe<FileType> = none);
 	static Ex<Texture> load(Stream &, FileType);
@@ -53,6 +53,7 @@ class Texture {
 
 	bool empty() const { return m_data.empty(); }
 	bool testPixelAlpha(const int2 &) const;
+	bool isOpaque() const;
 	GlFormat format() const;
 
 	void swap(Texture &);
@@ -71,6 +72,9 @@ class Texture {
 		DASSERT(y < m_size.y);
 		return &m_data[y * m_size.x];
 	}
+
+	IColor &operator()(int2 pos) { return m_data[pos.x + pos.y * m_size.x]; }
+	const IColor &operator()(int2 pos) const { return m_data[pos.x + pos.y * m_size.x]; }
 
 	IColor &operator()(int x, int y) { return m_data[x + y * m_size.x]; }
 	const IColor operator()(int x, int y) const { return m_data[x + y * m_size.x]; }
