@@ -30,6 +30,19 @@ template <class Base> void TStream<Base>::saveVector(CSpan<char> vec, int elemen
 	saveData(vec);
 }
 
+template <class Base> PodVector<char> TStream<Base>::loadVector(int max_size, int element_size) {
+	auto size = loadSize();
+	auto num_bytes = size * element_size;
+	PodVector<char> out;
+	if(size > max_size) {
+		this->raise(format("Loaded vector too big: % > %", size, max_size));
+		return out;
+	}
+	out.resize(num_bytes);
+	loadData(out);
+	return out;
+}
+
 template <class Base> i64 TStream<Base>::loadSize() {
 	if(!isValid())
 		return 0;

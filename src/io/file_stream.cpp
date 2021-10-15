@@ -28,8 +28,8 @@ BaseFileStream::~BaseFileStream() {
 }
 
 void BaseFileStream::raise(ZStr text) {
-	RAISE("FileStream '%s' %s error at position %lld/%lld: %s", m_name.c_str(),
-		  isLoading() ? "loading" : "saving", m_pos, m_size, text.c_str());
+	RAISE("FileStream '%' % error at position %/%: %", m_name, isLoading() ? "loading" : "saving",
+		  m_pos, m_size, text);
 	m_flags |= Flag::invalid;
 }
 
