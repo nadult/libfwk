@@ -24,6 +24,5 @@ namespace detail {
 		errors.emplace_back(move(out));
 		out = Error::merge(errors);
 	}
-
 }
 }

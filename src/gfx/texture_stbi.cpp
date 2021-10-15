@@ -20,7 +20,7 @@ namespace detail {
 			auto &stream = *reinterpret_cast<Stream *>(user);
 			size = std::min<i64>(stream.size() - stream.pos(), size);
 			stream.loadData({data, size});
-			return exceptionRaised() ? 0 : size;
+			return stream.isValid() ? size : 0;
 		};
 		callbacks.skip = [](void *user, int n) {
 			auto &stream = *reinterpret_cast<Stream *>(user);
@@ -31,17 +31,18 @@ namespace detail {
 		};
 
 		int w = 0, h = 0, channels = 0;
-		auto *data = stbi_load_from_callbacks(&callbacks, (void *)&sr, &w, &h, &channels, 4);
-		EX_CATCH();
+		auto *data = stbi_load_from_callbacks(&callbacks, &sr, &w, &h, &channels, 4);
 		if(!data) {
-			// TODO: better error handling
-			return ERROR("Error while loading image with stb_image\n");
+			auto error = format("stbi_load_from_callbacks failed: %s", stbi__g_failure_reason);
+			sr.reportError(error);
+			return sr.getValid().error();
 		}
 
 		Texture out({w, h});
 		// TODO: avoid copy
 		copy(out.data(), span(reinterpret_cast<IColor *>(data), w * h));
 		stbi_image_free(data);
+		EXPECT(sr.getValid());
 		return out;
 	}
 }

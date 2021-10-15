@@ -6,7 +6,6 @@
 #include "fwk/io/memory_stream.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
-#include "stream_inl.h"
 #include <zlib.h>
 
 namespace fwk {
@@ -91,8 +90,8 @@ Error GzipStream::makeError(const char *file, int line, Str str, int err) {
 		text += format(" err:%", err);
 	auto out = Error(ErrorLoc{file, line}, move(text));
 
-	if(exceptionRaised())
-		out = Error::merge({out, getMergedExceptions()});
+	if(auto result = m_pipe->getValid(); !result)
+		out = Error::merge({move(out), move(result.error())});
 	return out;
 }
 
@@ -117,8 +116,8 @@ Ex<int> GzipStream::decompress(Span<char> data) {
 			}
 
 			m_pipe->loadData(span(m_buffer.data(), max_read));
-			if(exceptionRaised())
-				return GZERROR("Exception while reading data from input stream");
+			if(!m_pipe->isValid())
+				return GZERROR("Stream error during decompression");
 
 			ctx.avail_in = max_read;
 			ctx.next_in = (Bytef *)m_buffer.data();
@@ -174,8 +173,8 @@ Ex<void> GzipStream::compress(CSpan<char> data) {
 		// Flusing buffer
 		if(ctx.avail_out == 0) {
 			m_pipe->saveData(m_buffer);
-			if(exceptionRaised())
-				return GZERROR("Exception while reading data from input stream");
+			if(!m_pipe->isValid())
+				return GZERROR("Stream error during compression");
 			ctx.avail_out = m_buffer.size();
 			ctx.next_out = (Bytef *)m_buffer.data();
 		}
@@ -203,8 +202,8 @@ Ex<void> GzipStream::finishCompression() {
 
 		if(ctx.avail_out < (uint)m_buffer.size() || ret == Z_STREAM_END) {
 			m_pipe->saveData(cspan(m_buffer.data(), m_buffer.size() - ctx.avail_out));
-			if(exceptionRaised())
-				return GZERROR("Exception while reading data from input stream");
+			if(!m_pipe->isValid())
+				return GZERROR("Stream error during compression");
 			ctx.avail_out = m_buffer.size();
 			ctx.next_out = (Bytef *)m_buffer.data();
 		}

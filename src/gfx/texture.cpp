@@ -106,18 +106,7 @@ Ex<Texture> Texture::load(ZStr file_name, Maybe<FileType> type) {
 	return ERROR("File '%' has no extension: don't know which loader to use", file_name);
 }
 
-Ex<Texture> Texture::load(Stream &sr, FileType type) {
-	switch(type) {
-	case FileType::tga:
-	case FileType::bmp:
-	case FileType::png:
-	case FileType::jpg:
-	case FileType::gif:
-	case FileType::ppm:
-	case FileType::pgm:
-		return detail::loadSTBI(sr);
-	}
-}
+Ex<Texture> Texture::load(Stream &sr, FileType type) { return detail::loadSTBI(sr); }
 
 Ex<Texture> Texture::load(Stream &sr, Str extension) {
 	string ext = toLower(extension);

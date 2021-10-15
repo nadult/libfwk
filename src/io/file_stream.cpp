@@ -5,7 +5,6 @@
 
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
-#include "stream_inl.h"
 #include <errno.h>
 
 namespace fwk {
@@ -27,10 +26,9 @@ BaseFileStream::~BaseFileStream() {
 		fclose((FILE *)m_file);
 }
 
-void BaseFileStream::raise(ZStr text) {
-	RAISE("FileStream '%' % error at position %/%: %", m_name, isLoading() ? "loading" : "saving",
-		  m_pos, m_size, text);
-	m_flags |= Flag::invalid;
+string BaseFileStream::errorMessage(Str text) const {
+	return format("FileStream '%' (%) error at position %/%:\n%", m_name,
+				  isLoading() ? "loading" : "saving", m_pos, m_size, text);
 }
 
 void BaseFileStream::loadData(Span<char> data) {
@@ -41,13 +39,13 @@ void BaseFileStream::loadData(Span<char> data) {
 	}
 
 	if(m_pos + data.size() > m_size) {
-		raise(format("Reading past the end: % + % > %", m_pos, data.size(), m_size));
+		reportError(format("Reading past the end: % + % > %", m_pos, data.size(), m_size));
 		fill(data, 0);
 		return;
 	}
 
 	if(fread(data.data(), data.size(), 1, (FILE *)m_file) != 1) {
-		raise(format("fread failed: %", strerror(errno)));
+		reportError(format("fread failed: %", strerror(errno)));
 		fill(data, 0);
 		return;
 	}
@@ -61,7 +59,7 @@ void BaseFileStream::saveData(CSpan<char> data) {
 		return;
 
 	if(fwrite(data.data(), data.size(), 1, (FILE *)m_file) != 1) {
-		raise(format("fwrite failed: %", strerror(errno)));
+		reportError(format("fwrite failed: %", strerror(errno)));
 		return;
 	}
 
@@ -76,7 +74,7 @@ void BaseFileStream::seek(long long pos) {
 		return;
 
 	if(fseek((FILE *)m_file, pos, SEEK_SET) != 0) {
-		raise(format("fseek failed: %", strerror(errno)));
+		reportError(format("fseek failed: %", strerror(errno)));
 		return;
 	}
 
@@ -104,6 +102,7 @@ Ex<FileStream> fileStream(ZStr file_name, bool is_loading) {
 	out.m_size = size;
 	out.m_pos = 0;
 	out.m_flags = mask(is_loading, StreamFlag::loading);
+	static_assert(sizeof(FileStream) == sizeof(BaseFileStream));
 	return move(reinterpret_cast<FileStream &>(out)); // TODO: hmmm
 }
 

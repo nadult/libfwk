@@ -3,23 +3,23 @@
 
 #include "fwk/audio/ogg_stream.h"
 
-#include <vorbis/vorbisfile.h>
 #include "fwk/audio/sound.h"
+#include <vorbis/vorbisfile.h>
 
 namespace fwk {
 
 struct OggStream::Impl {
-	Impl(const char *file_name) {
+	Impl(ZStr file_name) {
 		memset(&vorbis_file, 0, sizeof(vorbis_file));
-		if(ov_fopen(file_name, &vorbis_file) != 0)
-			FATAL("Error while opening ogg stream: %s\n", file_name);
+		if(ov_fopen(file_name.c_str(), &vorbis_file) != 0)
+			FATAL("Error while opening ogg stream: %s\n", file_name.c_str());
 	}
 	~Impl() { ov_clear(&vorbis_file); }
 
 	OggVorbis_File vorbis_file;
 };
 
-OggStream::OggStream(const char *file_name) : m_file_name(file_name), m_impl(file_name) {}
+OggStream::OggStream(ZStr file_name) : m_file_name(file_name), m_impl(file_name) {}
 FWK_MOVABLE_CLASS_IMPL(OggStream)
 
 Sound OggStream::makeSound() const {

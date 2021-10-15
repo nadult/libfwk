@@ -42,7 +42,7 @@ Ex<PackageFile> PackageFile::load(Stream &sr) {
 	EXPECT(sr.isValid());
 
 	PodVector<char> data;
-	sr.signature("PACKAGE");
+	EXPECT(sr.loadSignature("PACKAGE"));
 
 	u32 num_files;
 	sr >> num_files;
@@ -64,6 +64,7 @@ Ex<PackageFile> PackageFile::load(Stream &sr) {
 	u32 data_offset = 0;
 	data.resize(offset);
 	sr.loadData(data);
+	EXPECT(sr.getValid());
 
 	return PackageFile{move(infos), move(data), data_offset};
 }
@@ -71,13 +72,14 @@ Ex<PackageFile> PackageFile::load(Stream &sr) {
 Ex<void> PackageFile::save(Stream &sr) const {
 	DASSERT(sr.isSaving());
 
-	sr.signature("PACKAGE");
+	sr.saveSignature("PACKAGE");
 	sr << u32(size());
 	for(auto &[name, size, offset] : m_infos) {
 		sr.saveString(name);
 		sr << size;
 	}
 	sr.saveData(data());
+	EXPECT(sr.getValid());
 	return {};
 }
 

@@ -384,7 +384,7 @@ Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 		return FWK_ERROR("File '%' size too big: % > %", file_name, file.size(), max_size);
 	PodVector<char> out(file.size());
 	file.loadData(out);
-	EX_CATCH();
+	EXPECT(file.getValid());
 	vector<char> vout;
 	out.unsafeSwap(vout);
 	return vout;

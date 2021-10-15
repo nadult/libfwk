@@ -33,7 +33,6 @@ Ex<void> unpackFiles(FilePath path, FilePath output_prefix) {
 	// TODO: handle compressed
 	auto sr = EX_PASS(fileLoader(path));
 	auto pkg = EX_PASS(PackageFile::load(sr));
-	sr.clear();
 
 	for(int n = 0; n < pkg.size(); n++) {
 		auto path = output_prefix / pkg[n].name;
@@ -55,7 +54,7 @@ int main(int argc, char **argv) {
 	string command = argv[1];
 	string input = argv[2];
 	string output = argv[3];
-	string suffix = argc > 4? argv[4] : "";
+	string suffix = argc > 4 ? argv[4] : "";
 
 	if(command == "pack")
 		packFiles(input, output, suffix).check();

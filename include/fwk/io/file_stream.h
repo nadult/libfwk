@@ -8,13 +8,7 @@
 
 namespace fwk {
 
-// Simple class for loading/saving plain data from/to file
-// It treats all data as plain bytes, so you have to be very careful when using it.
-// There are also special functions for loading/saving strings & PodVectors.
-//
-// FWK exceptions are used for error handling; besides that:
-// - when error happens all following operations will not be performed
-// - when loading: returned data will be zeroed, vectors & strings will be empty
+// Stream class for loading/saving plain data from/to file.
 class BaseFileStream : public Stream {
   public:
 	BaseFileStream(BaseFileStream &&);
@@ -26,12 +20,12 @@ class BaseFileStream : public Stream {
 
 	ZStr name() const { return m_name; }
 
-	void saveData(CSpan<char>) EXCEPT final;
-	void loadData(Span<char>) EXCEPT final;
-	void seek(i64) EXCEPT final;
+	void saveData(CSpan<char>) final;
+	void loadData(Span<char>) final;
+	void seek(i64) final;
 
   protected:
-	void raise(ZStr) EXCEPT final;
+	string errorMessage(Str) const final;
 	BaseFileStream();
 	friend Ex<FileStream> fileStream(ZStr, bool);
 

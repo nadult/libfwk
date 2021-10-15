@@ -10,7 +10,7 @@ namespace fwk {
 
 class OggStream {
   public:
-	OggStream(const char *file_name);
+	OggStream(ZStr file_name);
 	FWK_MOVABLE_CLASS(OggStream)
 	Sound makeSound() const;
 
@@ -19,5 +19,4 @@ class OggStream {
 	struct Impl;
 	Dynamic<Impl> m_impl;
 };
-
 }

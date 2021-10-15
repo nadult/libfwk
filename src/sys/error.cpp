@@ -24,11 +24,8 @@ void ErrorChunk::operator>>(TextFormatter &out) const {
 
 Error::Error(ErrorLoc loc, string message) { chunks.emplace_back(loc, move(message)); }
 
-Error::Error(Chunk chunk, Backtrace bt) : backtrace(move(bt)) {
-	chunks.emplace_back(move(chunk));
-}
-Error::Error(vector<Chunk> chunks, Backtrace bt)
-	: chunks(move(chunks)), backtrace(move(bt)) {}
+Error::Error(Chunk chunk, Backtrace bt) : backtrace(move(bt)) { chunks.emplace_back(move(chunk)); }
+Error::Error(vector<Chunk> chunks, Backtrace bt) : chunks(move(chunks)), backtrace(move(bt)) {}
 Error::Error() = default;
 
 FWK_COPYABLE_CLASS_IMPL(Error)

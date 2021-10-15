@@ -6,7 +6,6 @@
 #include "fwk/math_base.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
-#include "stream_inl.h"
 
 namespace fwk {
 BaseMemoryStream::BaseMemoryStream(CSpan<char> data)
@@ -32,7 +31,8 @@ void BaseMemoryStream::free() {
 	m_buffer.free();
 	m_data = nullptr;
 	m_capacity = 0;
-	clear();
+	m_pos = m_size = 0;
+	m_flags &= ~Flag::invalid;
 }
 
 PodVector<char> BaseMemoryStream::extractBuffer() {
@@ -71,13 +71,18 @@ void BaseMemoryStream::loadData(Span<char> data) {
 		return;
 	}
 	if(m_pos + data.size() > m_size) {
-		raise(format("Reading past the end: % + % > %", m_pos, data.size(), m_size));
+		reportError(format("Reading past the end: % + % > %", m_pos, data.size(), m_size));
 		fill(data, 0);
 		return;
 	}
 
 	copy(data, cspan(m_data + m_pos, data.size()));
 	m_pos += data.size();
+}
+
+string BaseMemoryStream::errorMessage(Str text) const {
+	return format("MemoryStream(%) error at position %/%: %", isLoading() ? "loading" : "saving",
+				  m_pos, m_size, text);
 }
 
 MemoryStream memoryLoader(CSpan<char> data) { return MemoryStream(data); }

@@ -73,6 +73,7 @@
 		return *this;                                                                              \
 	}
 
+// TODO: this should only be used for final types; but it's not verifiable?
 #define FWK_MOVE_ASSIGN_RECONSTRUCT(Class)                                                         \
 	Class &Class::operator=(Class &&rhs) {                                                         \
 		if(this != &rhs) {                                                                         \
@@ -269,6 +270,7 @@ template <> inline constexpr int type_size<Any> = sizeof(void *) * 2;
 template <class T, int min_size = 0> class Span;
 template <class T> class SparseSpan;
 
+// TODO: make concepts
 // This kind of data can be safely serialized to/from binary format, byte by byte
 template <class T>
 inline constexpr bool is_flat_data = std::is_arithmetic<T>::value || std::is_enum<T>::value;

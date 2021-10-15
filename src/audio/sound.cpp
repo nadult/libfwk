@@ -19,12 +19,12 @@ Ex<Sound> Sound::load(FileStream &sr) {
 	u16 format, channels, block_align, bits;
 
 	// Chunk 0
-	sr.signature("RIFF");
+	EXPECT(sr.loadSignature("RIFF"));
 	sr >> chunk_size[0];
-	sr.signature("WAVE");
+	EXPECT(sr.loadSignature("WAVE"));
 
 	// Chunk 1
-	sr.signature("fmt ");
+	EXPECT(sr.loadSignature("fmt "));
 	sr.unpack(chunk_size[1], format, channels, frequency, byteRate, block_align, bits);
 
 	EXPECT(block_align == channels * (bits / 8));
@@ -33,7 +33,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 	sr.seek(sr.pos() + chunk_size[1] - 16);
 
 	// Chunk 2
-	sr.signature("data");
+	EXPECT(sr.loadSignature("data"));
 	sr >> size;
 
 	if(channels > 2 || (bits != 8 && bits != 16))
@@ -48,12 +48,12 @@ Ex<void> Sound::save(FileStream &sr) const {
 	u32 chunk_size[2] = {(u32)m_data.size() + 36, 16};
 
 	// Chunk 0
-	sr.signature("RIFF");
+	sr.saveSignature("RIFF");
 	sr << chunk_size[0];
-	sr.signature("WAVE");
+	sr.saveSignature("WAVE");
 
 	// Chunk 1
-	sr.signature("fmt ");
+	sr.saveSignature("fmt ");
 	sr << chunk_size[1];
 
 	int num_channels = m_info.is_stereo ? 2 : 1;
@@ -63,7 +63,7 @@ Ex<void> Sound::save(FileStream &sr) const {
 			u16(m_info.bits));
 
 	// Chunk 2
-	sr.signature("data");
+	sr.saveSignature("data");
 	sr << u32(m_data.size());
 	sr.saveData(m_data);
 

@@ -32,9 +32,11 @@ class BaseMemoryStream : public Stream {
 	int capacityLeft() const { return m_capacity - (int)m_size; }
 
 	void saveData(CSpan<char>) final;
-	void loadData(Span<char>) EXCEPT final;
+	void loadData(Span<char>) final;
 
   private:
+	string errorMessage(Str) const final;
+
 	PodVector<char> m_buffer;
 	char *m_data;
 	int m_capacity = 0;
@@ -48,7 +50,7 @@ MemoryStream memoryLoader(PodVector<char>);
 // Will keep reference to passed buffer. Will allocate memory when saved data
 // won't fit in passed buffer.
 MemoryStream memorySaver(Span<char>);
-// Data in buffer will be lost
 MemoryStream memorySaver(int capacity = 256);
+// Data in buffer will be lost
 MemoryStream memorySaver(PodVector<char> buffer);
 }

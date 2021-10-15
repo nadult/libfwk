@@ -9,6 +9,7 @@
 
 namespace fwk {
 
+// TODO: use source_location
 struct ErrorLoc {
 	const char *file = nullptr;
 	int line = 0;
