@@ -39,7 +39,7 @@ struct EXCEPT TGAHeader {
 	u8 image_descriptor;
 };
 
-Ex<void> Texture::saveTGA(Stream &sr) const {
+Ex<> Texture::saveTGA(Stream &sr) const {
 	TGAHeader header;
 
 	header.data_type_code = 2;
@@ -61,7 +61,7 @@ Ex<void> Texture::saveTGA(Stream &sr) const {
 	return {};
 }
 
-Ex<void> Texture::saveTGA(ZStr file_name) const {
+Ex<> Texture::saveTGA(ZStr file_name) const {
 	auto file = fileSaver(file_name);
 	return file ? saveTGA(*file) : file.error();
 }

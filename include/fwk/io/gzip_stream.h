@@ -26,9 +26,9 @@ class GzipStream {
 	Ex<int> decompress(Span<char>);
 	Ex<vector<char>> decompress();
 
-	Ex<void> compress(CSpan<char>);
+	Ex<> compress(CSpan<char>);
 	// Don't forget to finish before closing saving stream
-	Ex<void> finishCompression();
+	Ex<> finishCompression();
 
 	bool isFinished() const { return m_is_finished; }
 

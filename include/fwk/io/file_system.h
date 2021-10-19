@@ -52,7 +52,7 @@ class FilePath {
 
 	static Ex<FilePath> current();
 	static Ex<FilePath> home();
-	static Ex<void> setCurrent(const FilePath &);
+	static Ex<> setCurrent(const FilePath &);
 
 	operator ZStr() const & { return m_path; }
 	operator Str() const & { return m_path; }
@@ -109,9 +109,9 @@ vector<string> findFiles(const string &prefix, const string &suffix);
 vector<FileEntry> findFiles(const FilePath &path, FindFileOpts = FindFileOpt::regular_file);
 bool access(const FilePath &);
 
-Ex<void> mkdirRecursive(const FilePath &);
+Ex<> mkdirRecursive(const FilePath &);
 Ex<double> lastModificationTime(const FilePath &);
-Ex<void> removeFile(const FilePath &);
+Ex<> removeFile(const FilePath &);
 
 FilePath executablePath();
 
@@ -120,5 +120,5 @@ Ex<Pair<string, int>> execCommand(const string &cmd);
 
 Ex<string> loadFileString(ZStr, int max_size = 64 * 1024 * 1024);
 Ex<vector<char>> loadFile(ZStr, int max_size = 64 * 1024 * 1024);
-Ex<void> saveFile(ZStr file_name, CSpan<char>);
+Ex<> saveFile(ZStr file_name, CSpan<char>);
 }

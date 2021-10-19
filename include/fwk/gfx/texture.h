@@ -58,8 +58,8 @@ class Texture {
 
 	void swap(Texture &);
 
-	Ex<void> saveTGA(Stream &) const;
-	Ex<void> saveTGA(ZStr file_name) const;
+	Ex<> saveTGA(Stream &) const;
+	Ex<> saveTGA(ZStr file_name) const;
 
 	IColor *data() { return m_data.data(); }
 	const IColor *data() const { return m_data.data(); }

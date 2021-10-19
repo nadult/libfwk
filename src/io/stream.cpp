@@ -63,8 +63,8 @@ void BaseStream::reportError(Str text) {
 	m_flags |= Flag::invalid;
 }
 
-Ex<void> BaseStream::getValid() {
-	Ex<void> out;
+Ex<> BaseStream::getValid() {
+	Ex<> out;
 	if(m_error) {
 		out = move(*m_error);
 		m_error.reset();
@@ -72,7 +72,7 @@ Ex<void> BaseStream::getValid() {
 	return out;
 }
 
-Ex<void> BaseStream::loadSignature(u32 sig) {
+Ex<> BaseStream::loadSignature(u32 sig) {
 	u32 tmp;
 	loadData(asPod(tmp));
 	if(!isValid())
@@ -91,7 +91,7 @@ Ex<void> BaseStream::loadSignature(u32 sig) {
 	return {};
 }
 
-Ex<void> BaseStream::loadSignature(CSpan<char> sig) {
+Ex<> BaseStream::loadSignature(CSpan<char> sig) {
 	PASSERT(sig.size() <= max_signature_size);
 
 	char buf[max_signature_size];
@@ -114,7 +114,7 @@ void BaseStream::saveSignature(CSpan<char> sig) {
 	saveData(sig);
 }
 
-Ex<void> BaseStream::loadSignature(const char *str) { return loadSignature(cspan(Str(str))); }
+Ex<> BaseStream::loadSignature(const char *str) { return loadSignature(cspan(Str(str))); }
 void BaseStream::saveSignature(const char *str) { saveSignature(cspan(Str(str))); }
 
 void BaseStream::saveSize(i64 size) {

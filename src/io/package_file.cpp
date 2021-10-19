@@ -69,7 +69,7 @@ Ex<PackageFile> PackageFile::load(Stream &sr) {
 	return PackageFile{move(infos), move(data), data_offset};
 }
 
-Ex<void> PackageFile::save(Stream &sr) const {
+Ex<> PackageFile::save(Stream &sr) const {
 	DASSERT(sr.isSaving());
 
 	sr.saveSignature("PACKAGE");

@@ -101,7 +101,7 @@ class BaseStream {
 	// It's illegal to seek past the end
 	virtual void seek(i64 pos);
 
-	Ex<void> getValid();
+	Ex<> getValid();
 	bool isValid() const { return !(m_flags & Flag::invalid); }
 	bool isLoading() const { return m_flags & Flag::loading; }
 	bool isSaving() const { return !(m_flags & Flag::loading); }
@@ -117,9 +117,9 @@ class BaseStream {
 
 	static constexpr int max_signature_size = 32;
 
-	Ex<void> loadSignature(u32);
-	Ex<void> loadSignature(CSpan<char>);
-	Ex<void> loadSignature(const char *);
+	Ex<> loadSignature(u32);
+	Ex<> loadSignature(CSpan<char>);
+	Ex<> loadSignature(const char *);
 	void saveSignature(u32);
 	void saveSignature(CSpan<char>);
 	void saveSignature(const char *);
@@ -239,7 +239,7 @@ TSTREAM &TSTREAM::operator<<(const Maybe<T> &obj) {
 }
 
 TEMPLATE template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...>
-void TSTREAM::unpack(Args &... args) {
+void TSTREAM::unpack(Args &...args) {
 	char buffer[(sizeof(Args) + ...)];
 	loadData(buffer);
 	int offset = 0;
@@ -247,7 +247,7 @@ void TSTREAM::unpack(Args &... args) {
 }
 
 TEMPLATE template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...>
-void TSTREAM::pack(const Args &... args) {
+void TSTREAM::pack(const Args &...args) {
 	char buffer[(sizeof(Args) + ...)];
 	int offset = 0;
 	((memcpy(buffer + offset, &args, sizeof(Args)), offset += sizeof(Args)), ...);

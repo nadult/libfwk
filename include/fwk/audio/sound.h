@@ -14,7 +14,7 @@ class Sound {
 	FWK_COPYABLE_CLASS(Sound);
 
 	static Ex<Sound> load(FileStream &);
-	Ex<void> save(FileStream &) const;
+	Ex<> save(FileStream &) const;
 
 	const SoundInfo &info() const { return m_info; }
 	const auto &data() const { return m_data; }

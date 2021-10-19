@@ -11,7 +11,7 @@ using namespace fwk;
 
 //#define VERBOSE
 
-Ex<void> packFiles(FilePath path, string output, string suffix) {
+Ex<> packFiles(FilePath path, string output, string suffix) {
 	EXPECT(path.isDirectory());
 	string prefix = path;
 	if(prefix.back() != '/')
@@ -29,7 +29,7 @@ Ex<void> packFiles(FilePath path, string output, string suffix) {
 	return pkg.save(out_stream);
 }
 
-Ex<void> unpackFiles(FilePath path, FilePath output_prefix) {
+Ex<> unpackFiles(FilePath path, FilePath output_prefix) {
 	// TODO: handle compressed
 	auto sr = EX_PASS(fileLoader(path));
 	auto pkg = EX_PASS(PackageFile::load(sr));

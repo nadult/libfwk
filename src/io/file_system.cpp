@@ -294,7 +294,7 @@ Ex<double> lastModificationTime(const FilePath &file_name) {
 #endif
 }
 
-Ex<void> mkdirRecursive(const FilePath &path) {
+Ex<> mkdirRecursive(const FilePath &path) {
 	if(access(path))
 		return {};
 
@@ -315,7 +315,7 @@ Ex<void> mkdirRecursive(const FilePath &path) {
 	return {};
 }
 
-Ex<void> removeFile(const FilePath &path) {
+Ex<> removeFile(const FilePath &path) {
 	auto ret = std::remove(path.c_str());
 	if(ret != 0)
 		return FWK_ERROR("Cannot remove file: \"%s\" error: %s\n", path.c_str(), strerror(errno));
@@ -390,7 +390,7 @@ Ex<vector<char>> loadFile(ZStr file_name, int max_size) {
 	return vout;
 }
 
-Ex<void> saveFile(ZStr file_name, CSpan<char> data) {
+Ex<> saveFile(ZStr file_name, CSpan<char> data) {
 	auto file = EX_PASS(fileSaver(file_name));
 	file.saveData(data);
 	return {};

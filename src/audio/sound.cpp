@@ -44,7 +44,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 	return Sound(move(data), {(int)frequency, bits, channels > 1});
 }
 
-Ex<void> Sound::save(FileStream &sr) const {
+Ex<> Sound::save(FileStream &sr) const {
 	u32 chunk_size[2] = {(u32)m_data.size() + 36, 16};
 
 	// Chunk 0

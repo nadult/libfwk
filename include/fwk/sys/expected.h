@@ -206,7 +206,7 @@ namespace detail {
 
 	template <class T, class... Args> struct IsExConstructible {
 		FWK_SFINAE_TYPE(Type, T, DECLVAL(U).exConstruct(DECLVAL(Args)...));
-		static constexpr bool value = is_same<Type, Ex<void>>;
+		static constexpr bool value = is_same<Type, Ex<>>;
 	};
 }
 
@@ -215,11 +215,11 @@ constexpr bool is_ex_constructible =
 	detail::IsExConstructible<T, Args...>::value &&std::is_default_constructible<T>::value;
 
 // Convenient function for classes which have special kind of constructor:
-// member function which initializes given class and returns Ex<void>;
+// member function which initializes given class and returns Ex<>;
 //
 // Example use:
 // class MyClass {
-//     Ex<void> exConstruct(int argument) {
+//     Ex<> exConstruct(int argument) {
 //       EXPECT(argument > 0);
 //       foo = argument;
 //       return {};

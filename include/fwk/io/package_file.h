@@ -25,7 +25,7 @@ struct PackageFile {
 	static Ex<PackageFile> make(FilePath prefix, CSpan<string> file_names);
 	static Ex<PackageFile> load(Stream &);
 
-	Ex<void> save(Stream &) const;
+	Ex<> save(Stream &) const;
 
 	int size() const { return m_infos.size(); }
 	CSpan<FileInfo> fileInfos() const { return m_infos; }

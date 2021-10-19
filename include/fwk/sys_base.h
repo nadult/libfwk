@@ -133,8 +133,8 @@ struct PriorityTag3 : PriorityTag2 {};
 struct PriorityTag4 : PriorityTag3 {};
 using PriorityTagMax = PriorityTag4;
 
-template <class> class Expected;
-template <class T> using Ex = Expected<T>;
+template <class = void> class Expected;
+template <class T = void> using Ex = Expected<T>;
 
 struct ErrorChunk;
 struct Error;
@@ -152,14 +152,14 @@ constexpr bool inRange(const T &value, const T1 &begin, const T2 &end) {
 }
 
 template <class T, class... Args>
-constexpr const T &max(const T &arg1, const T &arg2, const Args &... args) {
+constexpr const T &max(const T &arg1, const T &arg2, const Args &...args) {
 	if constexpr(sizeof...(Args) > 0)
 		return max(max(arg1, arg2), args...);
 	return (arg2 < arg1) ? arg1 : arg2;
 }
 
 template <class T, class... Args>
-constexpr const T &min(const T &arg1, const T &arg2, const Args &... args) {
+constexpr const T &min(const T &arg1, const T &arg2, const Args &...args) {
 	if constexpr(sizeof...(Args) > 0)
 		return min(min(arg1, arg2), args...);
 	return (arg1 < arg2) ? arg1 : arg2;

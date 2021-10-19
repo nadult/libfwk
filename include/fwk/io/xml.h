@@ -215,8 +215,8 @@ class XmlDocument {
 	static Ex<XmlDocument> load(Stream &, int max_size = default_max_file_size);
 	static Ex<XmlDocument> make(CSpan<char> xml_data);
 
-	Ex<void> save(ZStr file_name) const;
-	Ex<void> save(FileStream &) const;
+	Ex<> save(ZStr file_name) const;
+	Ex<> save(FileStream &) const;
 
 	XmlNode addChild(Str name, Str value = {});
 

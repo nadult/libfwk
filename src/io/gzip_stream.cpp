@@ -152,7 +152,7 @@ Ex<vector<char>> GzipStream::decompress() {
 	return out;
 }
 
-Ex<void> GzipStream::compress(CSpan<char> data) {
+Ex<> GzipStream::compress(CSpan<char> data) {
 	PASSERT(m_is_compressing && !m_is_finished);
 	if(!m_is_valid)
 		return ERROR("Writing to invalidated stream");
@@ -183,7 +183,7 @@ Ex<void> GzipStream::compress(CSpan<char> data) {
 	return {};
 }
 
-Ex<void> GzipStream::finishCompression() {
+Ex<> GzipStream::finishCompression() {
 	PASSERT(m_is_compressing && !m_is_finished);
 	if(!m_is_valid)
 		return ERROR("Writing to invalidated stream");

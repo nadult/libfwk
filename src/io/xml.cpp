@@ -221,7 +221,7 @@ Ex<XmlDocument> XmlDocument::load(ZStr file_name, int max_size) {
 	return data ? make(*data) : data.error();
 }
 
-Ex<void> XmlDocument::save(ZStr file_name) const {
+Ex<> XmlDocument::save(ZStr file_name) const {
 	auto file = fileSaver(file_name);
 	if(!file)
 		return file.error();
@@ -281,7 +281,7 @@ Ex<XmlDocument> XmlDocument::make(CSpan<char> data) {
 	return doc;
 }
 
-Ex<void> XmlDocument::save(FileStream &sr) const {
+Ex<> XmlDocument::save(FileStream &sr) const {
 	vector<char> buffer;
 	print(std::back_inserter(buffer), *m_ptr);
 	sr.saveData(buffer);
