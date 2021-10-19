@@ -72,6 +72,7 @@ using ESample = Sample<ExecId>;
 class ExecTree;
 class ThreadContext;
 class Manager;
+class Analyzer;
 
 struct Frame {
 	vector<ESample> samples;

@@ -290,3 +290,10 @@ inline constexpr auto platform = Platform::mingw;
 inline constexpr auto platform = Platform::html;
 #endif
 }
+
+namespace perf {
+class ExecTree;
+class ThreadContext;
+class Manager;
+class Analyzer;
+}

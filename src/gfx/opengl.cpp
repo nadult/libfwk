@@ -353,6 +353,7 @@ void loadExtensions() {
 
 	LOAD(glDrawArraysInstanced);
 	LOAD(glDrawElementsInstanced);
+	LOAD(glDrawElementsBaseVertex);
 	LOAD(glMultiDrawArraysIndirect);
 	LOAD(glVertexAttribIPointer);
 

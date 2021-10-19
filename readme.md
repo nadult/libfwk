@@ -24,8 +24,8 @@ TODO: more details
 ## Requirements & dependencies
 
 It requires a linux environment with fairly new Clang (>= 8.0) or G++ (>= 9.1).
-Code is written in C++17 with some C++20 features. Clang 8.0 is used
-during development so from time to time libfwk may fail to compile under G++.
+Code is written in C++20. Clang is used during development so from time to
+time libfwk may fail to compile under G++.
 
 * **SDL2**   
 	[https://www.libsdl.org/](https://www.libsdl.org/)
@@ -37,9 +37,6 @@ during development so from time to time libfwk may fail to compile under G++.
 
 * **zlib**
 
-* **libpng**  
-	[http://libpng.org](http://libpng.org)
-
 * **freetype2**  
 	[http://www.freetype.org/](http://www.freetype.org/)
 
@@ -49,6 +46,9 @@ during development so from time to time libfwk may fail to compile under G++.
 
 * **OpenAL**  
 	[https://www.openal.org/](https://www.openal.org/)
+
+* **STB\_image && STB\_dxt (included)**
+    [https://github.com/nothings/stb](https://github.com/nothings/stb)
 
 * **rapidxml (included)**  
 	included in extern/rapidxml/, licensed under BSL 1.0.  

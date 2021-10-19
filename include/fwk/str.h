@@ -102,8 +102,6 @@ class ZStr : public Str {
 	constexpr ZStr() {}
 	ZStr(const Str &) = delete;
 
-	using Str::operator==;
-	using Str::operator<;
 	ZStr advance(int offset) const {
 		DASSERT(offset >= 0 && offset <= m_size);
 		return {m_data + offset, m_size - offset};

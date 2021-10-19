@@ -303,6 +303,8 @@ EXT_API void(EXT_ENTRY *glDrawArraysInstanced)(GLenum mode, GLint first, GLsizei
 											   GLsizei instancecount);
 EXT_API void(EXT_ENTRY *glDrawElementsInstanced)(GLenum mode, GLsizei count, GLenum type,
 												 const void *indices, GLsizei instancecount);
+EXT_API void(EXT_ENTRY *glDrawElementsBaseVertex)(GLenum mode, GLsizei count, GLenum type,
+												  const void *indices, GLint basevertex);
 EXT_API void(EXT_ENTRY *glMultiDrawArraysIndirect)(GLenum mode, const void *indirect,
 												   GLsizei drawcount, GLsizei stride);
 EXT_API void(EXT_ENTRY *glVertexAttribIPointer)(GLuint index, GLint size, GLenum type,

@@ -262,7 +262,7 @@ struct voronoi_diagram_traits {
   typedef voronoi_cell<coordinate_type> cell_type;
   typedef voronoi_vertex<coordinate_type> vertex_type;
   typedef voronoi_edge<coordinate_type> edge_type;
-  typedef class {
+  typedef class veqpred {
    public:
     enum { ULPS = 128 };
     bool operator()(const vertex_type& v1, const vertex_type& v2) const {

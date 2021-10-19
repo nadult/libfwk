@@ -12,6 +12,10 @@ CAŁY CZAS TO ROBISZ :(
 
 - zła identyfikacja shadera (zawsze mam DEFINITIONS)
 - drobny bug w perf analyzerze: wyswietlanie duzych wartosci (7000sec zamiast 7sec)
+- AnyConfig tak sobie zapisuje typy STLowe (np. string)
+- NoInit support for vector instead of PodVector ?
+- Rename ShaderCombiner to ProgramCombiner ?
+- Add asserts support to shaders
 - input: pressed powinno też być włączone jak jest down? Jeśli polegamy na tym, to w wielu przypadkach
   zależy nam też na wyłapaniu pierwszej klatki w jakiej jest pressed
 

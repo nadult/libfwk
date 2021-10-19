@@ -55,7 +55,7 @@ MINGW_PREFIX    ?= x86_64-w64-mingw32.static.posix-
 LINKER           = $(COMPILER)
 BASE_MODE       := $(if $(findstring release,$(MODE)),release,$(if $(findstring devel,$(MODE)),devel,debug))
 
-COMPILER_linux  := clang++-8
+COMPILER_linux  := clang++
 COMPILER_mingw  := $(MINGW_PREFIX)g++
 COMPILER_html   := emcc
 COMPILER        := $(COMPILER_$(PLATFORM))
@@ -124,8 +124,8 @@ endif
 #TODO:-Wno-strict-overflow
 CFLAGS         += -I$(FWK_DIR)include/ -fno-exceptions -funwind-tables -std=c++2a \
                   -Wall -Wextra -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized \
-                  -Wno-unused-function -Werror=switch -Wno-unused-variable -Wno-unused-parameter \
-                  -Wparentheses -Wno-overloaded-virtual
+                  -Wno-unused-function -Werror=switch -Werror=delete-incomplete -Wno-unused-variable \
+				  -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual
 
 CFLAGS_clang   += -Wconstant-conversion -Werror=return-type -Wno-undefined-inline
 ifneq ("$(wildcard $(FWK_DIR)checker.so)","")

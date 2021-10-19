@@ -156,7 +156,7 @@ class voronoi_builder {
   typedef std::map< key_type, value_type, node_comparer_type > beach_line_type;
   typedef typename beach_line_type::iterator beach_line_iterator;
   typedef std::pair<circle_event_type, beach_line_iterator> event_type;
-  typedef struct {
+  typedef struct evcpred {
     bool operator()(const event_type& lhs, const event_type& rhs) const {
       return predicate(rhs.first, lhs.first);
     }
