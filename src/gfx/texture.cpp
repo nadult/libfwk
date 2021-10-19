@@ -9,6 +9,11 @@
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
 
+#define STB_DXT_STATIC
+#define STB_DXT_IMPLEMENTATION
+
+#include "../extern/stb_dxt.h"
+
 namespace fwk {
 
 namespace detail {
@@ -131,4 +136,43 @@ Texture::RegisterLoader::RegisterLoader(const char *ext, Loader func) {
 	DASSERT(toLower(ext) == ext);
 	loaders().emplace_back(ext, func);
 }
+
+GlFormat BlockTexture::glFormat(Type type) {
+	return type == Type::dxt1 ? GlFormat::dxt1 : GlFormat::dxt5;
+}
+
+int BlockTexture::dataSize(Type type, int2 size) {
+	return evalImageSize(glFormat(type), size.x, size.y);
+}
+
+BlockTexture::BlockTexture(PodVector<u8> data, int2 size, Type type)
+	: m_data(move(data)), m_size(size), m_type(type) {
+	DASSERT(m_data.size() >= dataSize(type, m_size));
+}
+
+BlockTexture::BlockTexture(const Texture &input, Type type) : m_size(input.size()), m_type(type) {
+	m_data.resize(dataSize(type, m_size));
+	IColor input_data[4 * 4];
+	int bh = (m_size.y + 3) / 4, bw = (m_size.x + 3) / 4;
+	u8 *dst = m_data.data();
+
+	for(int by = 0; by < bh; by++) {
+		int sy = min(m_size.y - by * 4, 4);
+		fill(input_data, ColorId::black);
+		for(int bx = 0; bx < bw; bx++) {
+			int sx = min(m_size.x - bx * 4, 4);
+			const IColor *block_src = &input(bx * 4, by * 4);
+			for(int y = 0; y < sy; y++)
+				copy(input_data + y * 4, cspan(block_src + m_size.x * y, sx));
+
+			stb_compress_dxt_block(dst, reinterpret_cast<const u8 *>(input_data),
+								   m_type == Type::dxt5, STB_DXT_HIGHQUAL);
+			dst += m_type == Type::dxt5 ? 16 : 8;
+		}
+	}
+}
+
+BlockTexture::~BlockTexture() = default;
+
+GlFormat BlockTexture::glFormat() const { return glFormat(m_type); }
 }

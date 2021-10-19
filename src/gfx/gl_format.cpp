@@ -88,6 +88,7 @@ namespace {
 		bool is_compressed = false;
 	};
 
+	// TODO: pixel format & type are for input data, unrelated to internal format ?
 	const EnumMap<Id, FormatDesc> descs{{
 		// TODO: clean this up
 		{Id::rgba, FormatDesc(DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE)},
@@ -128,15 +129,6 @@ int glPixelFormat(Id id) { return descs[id].pixel_format; }
 int glDataType(Id id) { return descs[id].data_type; }
 bool isCompressed(Id id) { return descs[id].is_compressed; }
 int bytesPerPixel(Id id) { return descs[id].bytes_per_pixel; }
-
-bool isSupported(Id id) {
-	if(id == Id::dxt1)
-		return false; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC)||glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_DXT1);
-	if(isOneOf(id, Id::dxt3, Id::dxt5))
-		return false; // glExtAvaliable(OE_EXT_TEXTURE_COMPRESSION_S3TC);
-
-	return true;
-}
 
 int evalImageSize(Id id, int width, int height) {
 	if(id == Id::dxt1)

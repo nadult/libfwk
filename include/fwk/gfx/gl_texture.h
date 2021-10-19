@@ -28,6 +28,7 @@ class GlTexture {
 	static PTexture make(Format, const int2 &size, CSpan<float4>, Flags = {});
 	static PTexture make(Format, PTexture view_source);
 	static PTexture make(const Texture &, Flags = {});
+	static PTexture make(const BlockTexture &, Flags = {});
 
 	void setFlags(Flags);
 	Flags flags() const { return m_flags; }
@@ -44,9 +45,9 @@ class GlTexture {
 
 	void bindImage(int unit, AccessMode access, int level = 0, Maybe<int> target_format = none);
 
-	void upload(const Texture &src, const int2 &target_pos = int2());
-	void upload(Format, const void *pixels, const int2 &dimensions,
-				const int2 &target_pos = int2());
+	void upload(const Texture &src, const int2 &target_pos = {});
+	void upload(const BlockTexture &src, const int2 &target_pos = {});
+	void upload(Format, CSpan<u8> data, const int2 &dimensions, const int2 &target_pos = {});
 	void upload(CSpan<char>);
 	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
 

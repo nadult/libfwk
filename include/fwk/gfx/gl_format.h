@@ -16,6 +16,7 @@ int glInternalFormat(GlFormat);
 int glPixelFormat(GlFormat);
 int glDataType(GlFormat);
 
+// Returns 0 for compressed formats
 int bytesPerPixel(GlFormat);
 
 int evalImageSize(GlFormat, int width, int height);
@@ -23,6 +24,5 @@ int evalLineSize(GlFormat, int width);
 
 bool hasDepthComponent(GlFormat);
 bool hasStencilComponent(GlFormat);
-bool isSupported(GlFormat);
 bool isCompressed(GlFormat);
 }

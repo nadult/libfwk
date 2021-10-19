@@ -61,8 +61,8 @@ class Texture {
 	Ex<> saveTGA(Stream &) const;
 	Ex<> saveTGA(ZStr file_name) const;
 
-	IColor *data() { return m_data.data(); }
-	const IColor *data() const { return m_data.data(); }
+	CSpan<IColor> data() const { return m_data; }
+	Span<IColor> data() { return m_data; }
 
 	IColor *line(int y) {
 		DASSERT(y < m_size.y);
@@ -77,13 +77,38 @@ class Texture {
 	const IColor &operator()(int2 pos) const { return m_data[pos.x + pos.y * m_size.x]; }
 
 	IColor &operator()(int x, int y) { return m_data[x + y * m_size.x]; }
-	const IColor operator()(int x, int y) const { return m_data[x + y * m_size.x]; }
+	const IColor &operator()(int x, int y) const { return m_data[x + y * m_size.x]; }
 
 	IColor &operator[](int idx) { return m_data[idx]; }
-	const IColor operator[](int idx) const { return m_data[idx]; }
+	const IColor &operator[](int idx) const { return m_data[idx]; }
 
   private:
 	PodVector<IColor> m_data;
 	int2 m_size;
+};
+
+DEFINE_ENUM(BlockTextureType, dxt1, dxt5);
+
+class BlockTexture {
+  public:
+	using Type = BlockTextureType;
+	BlockTexture(PodVector<u8>, int2 size, Type);
+	BlockTexture(const Texture &, Type);
+	~BlockTexture();
+
+	static GlFormat glFormat(Type);
+	static int dataSize(Type, int2 size);
+
+	CSpan<u8> data() const { return m_data; }
+	Span<u8> data() { return m_data; }
+
+	GlFormat glFormat() const;
+	Type type() const { return m_type; }
+	int2 size() const { return m_size; }
+
+  private:
+	PodVector<u8> m_data;
+	int2 m_size;
+	Type m_type;
 };
 }

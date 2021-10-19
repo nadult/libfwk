@@ -13,9 +13,13 @@ namespace fwk {
 
 GL_CLASS_IMPL(GlTexture)
 
+// TODO: cleanup here
+// TODO: differentiate internal format from data format
+
 void GlTexture::initialize(int msaa_samples) {
 	ON_FAIL("GlTexture::initialize() error; format: % size: %", m_format, m_size);
 	DASSERT(m_size.x >= 0 && m_size.y >= 0);
+	DASSERT(!isCompressed(m_format));
 	PASSERT_GL_THREAD();
 
 	if(msaa_samples > 1)
@@ -75,11 +79,24 @@ PTexture GlTexture::make(Format format, const Texture &tex, Flags flags) {
 PTexture GlTexture::make(Format format, const int2 &size, CSpan<float4> data, Flags flags) {
 	DASSERT(data.size() >= size.x * size.y);
 	PTexture ref = make(format, size, flags);
-	ref->upload(Format::rgba_f32, data.data(), size);
+	ref->upload(Format::rgba_f32, data.reinterpret<u8>(), size);
 	return ref;
 }
 
 PTexture GlTexture::make(const Texture &tex, Flags flags) { return make(tex.format(), tex, flags); }
+
+// TODO: format differences
+PTexture GlTexture::make(const BlockTexture &tex, Flags flags) {
+	DASSERT(!(flags & (Opt::multisample | Opt::immutable)));
+	PTexture ref(storage.make(tex.glFormat(), tex.size(), flags));
+	ref->bind();
+	auto data = tex.data();
+	glCompressedTexImage2D(GL_TEXTURE_2D, 0, glInternalFormat(ref->m_format), ref->m_size.x,
+						   ref->m_size.y, 0, data.size(), data.data());
+	testGlError("glCompressedTexImage2D");
+	ref->updateParams();
+	return ref;
+}
 
 PTexture GlTexture::make(Format format, PTexture view_source) {
 	DASSERT(view_source);
@@ -145,16 +162,25 @@ void GlTexture::generateMipmaps() {
 }
 
 void GlTexture::upload(const Texture &src, const int2 &target_pos) {
-	upload(src.format(), src.data(), src.size(), target_pos);
+	upload(src.format(), src.data().reinterpret<u8>(), src.size(), target_pos);
 }
 
-void GlTexture::upload(Format format, const void *pixels, const int2 &size,
-					   const int2 &target_pos) {
+void GlTexture::upload(const BlockTexture &src, const int2 &target_pos) {
+	upload(src.glFormat(), src.data(), src.size(), target_pos);
+}
+
+void GlTexture::upload(Format format, CSpan<u8> data, const int2 &size, const int2 &target_pos) {
 	bind();
 	DASSERT(size.x + target_pos.x <= m_size.x && size.y + target_pos.y <= m_size.y);
 
-	glTexSubImage2D(glType(), 0, target_pos.x, target_pos.y, size.x, size.y, glPixelFormat(format),
-					glDataType(format), pixels);
+	if(isCompressed(format)) {
+		glCompressedTexSubImage2D(glType(), 0, target_pos.x, target_pos.y, size.x, size.y,
+								  glInternalFormat(format), data.size(), data.data());
+	} else {
+		DASSERT(data.size() >= evalImageSize(format, size.x, size.y));
+		glTexSubImage2D(glType(), 0, target_pos.x, target_pos.y, size.x, size.y,
+						glPixelFormat(format), glDataType(format), data.data());
+	}
 }
 
 void GlTexture::upload(CSpan<char> bytes) {
@@ -167,7 +193,7 @@ void GlTexture::download(Texture &target) const {
 	bind();
 	DASSERT(m_format == target.format());
 	target.resize(m_size);
-	glGetTexImage(glType(), 0, glPixelFormat(m_format), glDataType(m_format), target.data());
+	glGetTexImage(glType(), 0, glPixelFormat(m_format), glDataType(m_format), target.data().data());
 }
 
 void GlTexture::download(Span<char> bytes) const {

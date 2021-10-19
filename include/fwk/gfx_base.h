@@ -17,6 +17,7 @@ namespace fwk {
 #endif
 
 class Texture;
+class BlockTexture;
 class GlDevice;
 class SimpleMaterial;
 class Material;
