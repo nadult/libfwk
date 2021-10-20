@@ -6,6 +6,7 @@
 #include "fwk/enum_flags.h"
 #include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx_base.h"
+#include "fwk/span.h"
 
 namespace fwk {
 
@@ -91,9 +92,11 @@ class GlBuffer {
 	int size() const { return m_size; }
 	int usedMemory() const { return m_size; }
 
-	template <class T> T *map(AccessMode mode) { return (T *)map(mode); }
-	template <class T> T *map(int first, int count, MapFlags flags) {
-		return (T *)map(i64(first) * sizeof(T), i64(count) * sizeof(T), flags);
+	template <class T> Span<T> map(AccessMode mode) {
+		return span((T *)map(mode), m_size / sizeof(T));
+	}
+	template <class T> Span<T> map(int first, int count, MapFlags flags) {
+		return span((T *)map(i64(first) * sizeof(T), i64(count) * sizeof(T), flags), count);
 	}
 	template <class T> void flushMapped(int first, int count) {
 		flushMapped(i64(first) * sizeof(T), i64(count) * sizeof(T));
