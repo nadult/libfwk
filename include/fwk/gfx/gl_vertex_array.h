@@ -140,7 +140,6 @@ class GlVertexArray {
 	// TODO: size() should return number of vertices
 
   private:
-	void fill();
 	void bindVertexBuffer(int n) const;
 
 	PBuffer m_vertex_buffers[max_attribs];

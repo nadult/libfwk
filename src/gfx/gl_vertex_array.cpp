@@ -58,10 +58,16 @@ void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs) {
 	DASSERT(buffers.size() == attribs.size());
 	DASSERT(buffers.size() <= max_attribs);
 	for(auto &buffer : buffers)
-		DASSERT(buffer && buffers[0]->type() == BufferType::array);
+		DASSERT(!buffer || buffer->type() == BufferType::array);
 	copy(m_vertex_buffers, buffers);
 	copy(m_attribs, attribs);
-	fill();
+
+	if(m_has_vao) {
+		glBindVertexArray(id());
+		for(int n = 0; n < m_num_attribs; n++)
+			bindVertexBuffer(n);
+		glBindVertexArray(0);
+	}
 }
 
 void GlVertexArray::set(CSpan<PBuffer> buffers, CSpan<VertexAttrib> attribs, PBuffer ibuffer,
@@ -76,29 +82,13 @@ void GlVertexArray::setIndices(PBuffer ibuffer, IndexType itype) {
 	DASSERT(m_index_buffer && m_index_buffer->type() == BufferType::element_array);
 }
 
-void GlVertexArray::fill() {
-	if(!m_has_vao)
-		return;
-
-	glBindVertexArray(id());
-	for(int n = 0; n < m_num_attribs; n++)
-		bindVertexBuffer(n);
-	glBindVertexArray(0);
-}
-
 int GlVertexArray::size() const {
 	if(m_index_buffer)
 		return m_index_buffer->size() / dataSize(m_index_type);
-	DASSERT(m_num_attribs > 0);
-	return m_vertex_buffers[0]->size() / m_attribs[0].dataSize();
-}
-
-static int countTriangles(PrimitiveType prim_type, int num_indices) {
-	if(prim_type == PrimitiveType::triangles)
-		return num_indices / 3;
-	if(prim_type == PrimitiveType::triangle_strip)
-		return max(0, num_indices - 2);
-	return 0;
+	if(m_num_attribs == 0)
+		return 0;
+	auto &first_buf = m_vertex_buffers[0];
+	return (first_buf ? first_buf->size() : 0) / m_attribs[0].dataSize();
 }
 
 void GlVertexArray::draw(PrimitiveType pt, int num_elements, int element_offset) const {
@@ -171,7 +161,12 @@ void GlVertexArray::bind() const {
 }
 
 void GlVertexArray::bindVertexBuffer(int n) const {
-	glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffers[n]->id());
+	auto &buf = m_vertex_buffers[n];
+	if(!buf) {
+		glDisableVertexAttribArray(n);
+		return;
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, buf ? buf->id() : 0);
 
 	auto &attrib = m_attribs[n];
 	auto gl_type = data_info[attrib.type].gl_type;
