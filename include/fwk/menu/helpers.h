@@ -45,6 +45,13 @@ template <class TEnum> bool selectFlags(EnumFlags<TEnum> &flag, CSpan<const char
 	return changed;
 }
 
+template <class TEnum> bool selectFlags(EnumFlags<TEnum> &flag) {
+	array<const char *, count<TEnum>> names;
+	for(auto item : all<TEnum>)
+		names[int(item)] = toString(item);
+	return menu::selectFlags(flag, names);
+}
+
 template <class T> bool inputValue(ZStr title, T &value) {
 	TextFormatter tmp;
 	tmp << "##";
