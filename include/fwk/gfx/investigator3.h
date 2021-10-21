@@ -30,7 +30,7 @@ class Investigator3 {
 	using Opt = InvestigatorOpt;
 	using CamVariant = CameraVariant;
 
-	Investigator3(VisFunc, Maybe<DBox>, InvestigatorFlags, MaybeCRef<CamVariant> = none);
+	Investigator3(VisFunc, Maybe<DBox>, InvestigatorOpts, MaybeCRef<CamVariant> = none);
 	~Investigator3();
 
 	void run();
@@ -51,7 +51,7 @@ class Investigator3 {
 	Dynamic<Font> m_font;
 	double2 m_mouse_pos;
 	bool m_compute_close = false;
-	bool m_esc_pressed = false;
-	InvestigatorFlags m_flags;
+	bool m_exit_please = false;
+	InvestigatorOpts m_opts;
 };
 }

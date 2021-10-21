@@ -24,9 +24,9 @@
 
 namespace fwk {
 
-Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorFlags flags,
+Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorOpts flags,
 							 MaybeCRef<CamVariant> cam)
-	: m_vis_func(vis_func), m_flags(flags) {
+	: m_vis_func(vis_func), m_opts(flags) {
 	assertGlThread();
 
 	auto charset = FontFactory::ansiCharset() + FontFactory::basicMathCharset();
@@ -90,13 +90,13 @@ auto Investigator3::defaultCamera() const -> CamVariant {
 auto Investigator3::camera() const -> CamVariant { return m_cam_control->target(); }
 
 void Investigator3::run() {
-	if(m_flags & Opt::backtrace)
+	if(m_opts & Opt::backtrace)
 		print("Running investigator:\n%s\n", Backtrace::get(2));
 
 	GlDevice::instance().runMainLoop(mainLoop, this);
 
 	if(!m_compute_close)
-		if((m_flags & Opt::exit_when_finished) || !m_esc_pressed)
+		if((m_opts & Opt::exit_when_finished) || !m_exit_please)
 			exit(0);
 }
 
@@ -105,13 +105,14 @@ void Investigator3::handleInput(GlDevice &device, vector<InputEvent> events, flo
 		events = m_cam_control->handleInput(events);
 
 	bool refocus = false;
+	auto exit_key = m_opts & InvestigatorOpt::exit_with_space ? InputKey::space : InputKey::esc;
 	for(const auto &event : events) {
 		bool shift = event.pressed(InputModifier::lshift);
 
 		if(event.keyPressed('c'))
 			refocus = true;
-		if(event.keyDown(InputKey::esc))
-			m_esc_pressed = true;
+		if(event.keyDown(exit_key))
+			m_exit_please = true;
 	}
 
 	if(refocus) {
@@ -182,7 +183,7 @@ bool Investigator3::mainLoop(GlDevice &device) {
 		imgui->drawFrame(device);
 #endif
 
-	return !m_esc_pressed;
+	return !m_exit_please;
 }
 
 bool Investigator3::mainLoop(GlDevice &device, void *this_ptr) {

@@ -15,7 +15,7 @@ class Investigator2 {
   public:
 	using Opt = InvestigatorOpt;
 
-	Investigator2(VisFunc2, Maybe<DRect>, InvestigatorFlags);
+	Investigator2(VisFunc2, Maybe<DRect>, InvestigatorOpts);
 	~Investigator2();
 
 	void focus(DRect);
@@ -36,8 +36,8 @@ class Investigator2 {
 	IRect m_viewport;
 	double2 m_view_pos, m_mouse_pos;
 	double m_scale = 0.1, m_view_scale = 400.0;
-	bool m_esc_pressed = false;
+	bool m_exit_please = false;
 	bool m_focus_applied = false;
-	InvestigatorFlags m_flags;
+	InvestigatorOpts m_opts;
 };
 }

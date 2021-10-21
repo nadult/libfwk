@@ -16,8 +16,8 @@
 #include "fwk/sys/input.h"
 
 namespace fwk {
-Investigator2::Investigator2(VisFunc2 vis_func, Maybe<DRect> focus, InvestigatorFlags flags)
-	: m_vis_func(vis_func), m_flags(flags) {
+Investigator2::Investigator2(VisFunc2 vis_func, Maybe<DRect> focus, InvestigatorOpts flags)
+	: m_vis_func(vis_func), m_opts(flags) {
 	assertGlThread();
 
 	if(!focus) {
@@ -51,12 +51,12 @@ Investigator2::Investigator2(VisFunc2 vis_func, Maybe<DRect> focus, Investigator
 Investigator2::~Investigator2() = default;
 
 void Investigator2::run() {
-	if(m_flags & Opt::backtrace)
+	if(m_opts & Opt::backtrace)
 		print("Running investigator:\n%s\n", Backtrace::get(2));
 
 	GlDevice::instance().runMainLoop(mainLoop, this);
 
-	if((m_flags & Opt::exit_when_finished) || !m_esc_pressed)
+	if((m_opts & Opt::exit_when_finished) || !m_exit_please)
 		exit(1);
 }
 
@@ -65,6 +65,7 @@ void Investigator2::handleInput(GlDevice &device, float time_diff) {
 	double scale_mod = 0.0;
 
 	auto events = device.inputEvents();
+	auto exit_key = m_opts & InvestigatorOpt::exit_with_space ? InputKey::space : InputKey::esc;
 	for(const auto &event : events) {
 		bool shift = event.pressed(InputModifier::lshift);
 
@@ -82,8 +83,8 @@ void Investigator2::handleInput(GlDevice &device, float time_diff) {
 			scale_mod -= time_diff * 2.0;
 		if(event.keyPressed('c'))
 			m_view_pos = {};
-		if(event.keyDown(InputKey::esc))
-			m_esc_pressed = true;
+		if(event.keyDown(exit_key))
+			m_exit_please = true;
 	}
 
 	if(scale_mod != 0.0)
@@ -183,7 +184,7 @@ bool Investigator2::mainLoop(GlDevice &device) {
 	applyFocus();
 	draw();
 
-	return !m_esc_pressed;
+	return !m_exit_please;
 }
 
 bool Investigator2::mainLoop(GlDevice &device, void *this_ptr) {

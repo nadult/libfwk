@@ -23,14 +23,14 @@ static Dynamic<GlDevice> spawnGlDevice() {
 	return device;
 }
 
-void investigate(VisFunc2 vis_func, Maybe<DRect> focus, InvestigatorFlags flags) {
+void investigate(VisFunc2 vis_func, Maybe<DRect> focus, InvestigatorOpts flags) {
 	PERF_SCOPE();
 	auto device = spawnGlDevice();
 	Investigator2 rutkowski(vis_func, focus, flags);
 	rutkowski.run();
 }
 
-void investigate(VisFunc3 vis_func, Maybe<DBox> focus, InvestigatorFlags flags) {
+void investigate(VisFunc3 vis_func, Maybe<DBox> focus, InvestigatorOpts flags) {
 	PERF_SCOPE();
 	auto device = spawnGlDevice();
 	Investigator3 sherlock(vis_func, focus, flags);
