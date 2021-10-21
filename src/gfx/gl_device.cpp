@@ -200,6 +200,13 @@ IRect GlDevice::windowRect() const {
 	if(m_window_impl) {
 		size = windowSize();
 		SDL_GetWindowPosition(m_window_impl->window, &pos.x, &pos.y);
+		if(platform == Platform::linux) {
+			// Workaround for SDL2 bug on linux platforms
+			// (TODO: find out exactly where it happens?)
+			int top, left, bottom, right;
+			SDL_GetWindowBordersSize(m_window_impl->window, &top, &left, &bottom, &right);
+			pos -= int2{left, top};
+		}
 	}
 	return IRect(pos, pos + size);
 }
