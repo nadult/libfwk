@@ -95,11 +95,11 @@ using PQuery = GlRef<GlQuery>;
 class Visualizer2;
 class Visualizer3;
 
-struct FpsCamera;
+struct FppCamera;
 struct OrthoCamera;
 struct OrbitingCamera;
 struct PlaneCamera;
-using CameraVariant = Variant<OrbitingCamera, FpsCamera, PlaneCamera, OrthoCamera>;
+using CameraVariant = Variant<OrbitingCamera, FppCamera, PlaneCamera, OrthoCamera>;
 
 class Camera;
 struct CameraParams;

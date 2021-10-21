@@ -72,8 +72,8 @@ void CameraControl::setTarget(Type type, FBox focus) {
 	case Type::plane:
 		setTarget(PlaneCamera(CamAxis::pos_x, CamAxis::pos_z, focus));
 		break;
-	case Type::fps: {
-		FpsCamera new_cam;
+	case Type::fpp: {
+		FppCamera new_cam;
 		new_cam.focus(focus);
 		setTarget(new_cam);
 	} break;
@@ -185,9 +185,9 @@ Frustum CameraControl::screenFrustum(FRect rect) const {
 
 float3 CameraControl::grabPoint(float3 drag_point, float2 screen_pos) const {
 	Camera cam;
-	if(FpsCamera *fps_cam = m_impl->target)
+	if(FppCamera *fpp_cam = m_impl->target)
 		cam =
-			FpsCamera(drag_point, fps_cam->forward_xz, fps_cam->rot_vert).toCamera(o_config.params);
+			FppCamera(drag_point, fpp_cam->forward_xz, fpp_cam->rot_vert).toCamera(o_config.params);
 	else if(OrthoCamera *ortho_cam = m_impl->target) {
 		cam = ortho_cam->offsetCamera(ortho_cam->xyOffset(drag_point)).toCamera(o_config.params);
 	}
@@ -201,7 +201,7 @@ float3 CameraControl::grabPoint(float3 drag_point, float2 screen_pos) const {
 }
 
 void CameraControl::dragStart() {
-	DASSERT(isOneOf(type(), Type::fps, Type::ortho));
+	DASSERT(isOneOf(type(), Type::fpp, Type::ortho));
 	m_impl->drag_cam = m_impl->target;
 }
 
@@ -209,8 +209,8 @@ void CameraControl::drag(float2 mouse_before, float2 mouse_after) {
 	if(OrthoCamera *ortho_cam = m_impl->drag_cam) {
 		float scale = 1.0f / ortho_cam->zoom;
 		setTarget(ortho_cam->offsetCamera((mouse_after - mouse_before) * scale));
-	} else if(FpsCamera *fps_cam = m_impl->target) {
-		FpsCamera *start_cam = m_impl->drag_cam;
+	} else if(FppCamera *fpp_cam = m_impl->target) {
+		FppCamera *start_cam = m_impl->drag_cam;
 		DASSERT(start_cam);
 		float3 drag_start = start_cam->pos;
 		float3 target = grabPoint(drag_start, mouse_before);
@@ -236,7 +236,7 @@ void CameraControl::drag(float2 mouse_before, float2 mouse_after) {
 		if(distance(cur_pos, drag_start) > max_dist)
 			cur_pos = drag_start + normalize(cur_pos - drag_start) * max_dist;
 
-		setTarget(FpsCamera(cur_pos, fps_cam->forward_xz, fps_cam->rot_vert));
+		setTarget(FppCamera(cur_pos, fpp_cam->forward_xz, fpp_cam->rot_vert));
 	}
 }
 }

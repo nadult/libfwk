@@ -4,15 +4,15 @@
 #pragma once
 
 #include "fwk/gfx_base.h"
-#include "fwk/math_base.h"
 #include "fwk/math/box.h"
 #include "fwk/math/interval.h"
 #include "fwk/math/rotation.h"
+#include "fwk/math_base.h"
 
 namespace fwk {
 
 DEFINE_ENUM(CameraProjection, orthogonal, perspective);
-DEFINE_ENUM(CameraType, orbiting, fps, plane, ortho);
+DEFINE_ENUM(CameraType, orbiting, fpp, plane, ortho);
 
 struct CameraParams {
 	CameraParams();
@@ -78,4 +78,3 @@ class Camera {
 	Params m_params;
 };
 }
-

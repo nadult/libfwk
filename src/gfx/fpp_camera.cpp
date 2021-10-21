@@ -1,35 +1,35 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/fps_camera.h"
+#include "fwk/gfx/fpp_camera.h"
 
 #include "fwk/gfx/camera.h"
 #include "fwk/io/xml.h"
 
 namespace fwk {
 
-FpsCamera lerp(const FpsCamera &a, const FpsCamera &b, float t) {
-	return FpsCamera(fwk::lerp(a.pos, b.pos, t), fwk::lerp(a.forward_xz, b.forward_xz, t),
+FppCamera lerp(const FppCamera &a, const FppCamera &b, float t) {
+	return FppCamera(fwk::lerp(a.pos, b.pos, t), fwk::lerp(a.forward_xz, b.forward_xz, t),
 					 fwk::lerp(a.rot_vert, b.rot_vert, t));
 }
 
-Ex<FpsCamera> FpsCamera::load(CXmlNode node) {
-	return FpsCamera{node("pos"), node("forward_xz"), node("rot_vert")};
+Ex<FppCamera> FppCamera::load(CXmlNode node) {
+	return FppCamera{node("pos"), node("forward_xz"), node("rot_vert")};
 }
 
-void FpsCamera::save(XmlNode node) const {
+void FppCamera::save(XmlNode node) const {
 	node("pos") = pos;
 	node("forward_xz") = forward_xz;
 	node("rot_vert") = rot_vert;
 }
 
-Pair<float3> FpsCamera::forwardRight() const {
+Pair<float3> FppCamera::forwardRight() const {
 	float3 right = asXZY(-perpendicular(forward_xz), 0.0f);
 	auto forward = rotateVector(asXZY(forward_xz, 0.0f), right, rot_vert);
 	return {forward, right};
 }
 
-FpsCamera FpsCamera::closest(const Camera &cam) {
+FppCamera FppCamera::closest(const Camera &cam) {
 	auto fwd = cam.forward();
 	auto fwd_xz = fwd.xz();
 
@@ -37,7 +37,7 @@ FpsCamera FpsCamera::closest(const Camera &cam) {
 	float best_dist = inf;
 	for(int n = 0; n < 1024; n++) {
 		float ang = float(n) * pi * 1.99f / float(1023) - pi;
-		FpsCamera temp(cam.pos(), fwd_xz, ang);
+		FppCamera temp(cam.pos(), fwd_xz, ang);
 		auto fwd_right = temp.forwardRight();
 		float dist = distance(fwd_right.first, fwd);
 		if(dist < best_dist) {
@@ -49,13 +49,13 @@ FpsCamera FpsCamera::closest(const Camera &cam) {
 	return {cam.pos(), cam.forward().xz(), best};
 }
 
-Camera FpsCamera::toCamera(const CameraParams &params) const {
+Camera FppCamera::toCamera(const CameraParams &params) const {
 	auto fwd_right = forwardRight();
 	auto up = cross(fwd_right.first, fwd_right.second);
 	return Camera(pos, pos + fwd_right.first * 10.0f, up, params);
 }
 
-void FpsCamera::move(float2 move, float2 rot, float move_up) {
+void FppCamera::move(float2 move, float2 rot, float move_up) {
 	float pi_half = pi * 0.5f;
 
 	move *= 16.0f;
@@ -73,7 +73,7 @@ void FpsCamera::move(float2 move, float2 rot, float move_up) {
 	rot_vert = new_vert;
 }
 
-void FpsCamera::focus(FBox box) {
+void FppCamera::focus(FBox box) {
 	// TODO: take current position into consideration ?
 
 	auto center = box.center();

@@ -68,8 +68,8 @@ Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorFl
 
 	if(const OrbitingCamera *orb_cam = *cam)
 		m_cam_control->setTarget(*orb_cam);
-	else if(const FpsCamera *fps_cam = *cam)
-		m_cam_control->setTarget(*fps_cam);
+	else if(const FppCamera *fpp_cam = *cam)
+		m_cam_control->setTarget(*fpp_cam);
 	m_cam_control->finishAnim();
 
 	m_cam_control->o_config.rot_filter = [](const InputEvent &ev) {
@@ -82,7 +82,7 @@ Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorFl
 Investigator3::~Investigator3() = default;
 
 auto Investigator3::defaultCamera() const -> CamVariant {
-	FpsCamera cam;
+	FppCamera cam;
 	cam.focus((FBox)m_focus);
 	return cam;
 }
@@ -115,7 +115,7 @@ void Investigator3::handleInput(GlDevice &device, vector<InputEvent> events, flo
 	}
 
 	if(refocus) {
-		FpsCamera cam;
+		FppCamera cam;
 		cam.focus((FBox)m_focus);
 		m_cam_control->setTarget(cam);
 		m_cam_control->finishAnim();

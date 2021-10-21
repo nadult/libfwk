@@ -8,20 +8,20 @@
 
 namespace fwk {
 
-struct FpsCamera {
-	FpsCamera(float3 pos = float3(), float2 forward_xz = float2(0, 1), float rot_vert = 0.0f)
+struct FppCamera {
+	FppCamera(float3 pos = float3(), float2 forward_xz = float2(0, 1), float rot_vert = 0.0f)
 		: pos(pos), forward_xz(forward_xz), rot_vert(rot_vert) {}
 
-	static Ex<FpsCamera> load(CXmlNode);
+	static Ex<FppCamera> load(CXmlNode);
 	void save(XmlNode) const;
 
-	static FpsCamera closest(const Camera &);
+	static FppCamera closest(const Camera &);
 	Camera toCamera(const CameraParams &) const;
 
 	void move(float2 move, float2 rot, float move_up);
 	void focus(FBox);
 
-	FWK_ORDER_BY(FpsCamera, pos, forward_xz, rot_vert);
+	FWK_ORDER_BY(FppCamera, pos, forward_xz, rot_vert);
 
 	Pair<float3> forwardRight() const;
 
@@ -30,5 +30,5 @@ struct FpsCamera {
 	float rot_vert;
 };
 
-FpsCamera lerp(const FpsCamera &, const FpsCamera &, float t);
+FppCamera lerp(const FppCamera &, const FppCamera &, float t);
 }

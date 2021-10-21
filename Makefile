@@ -59,7 +59,7 @@ ifeq ($(PLATFORM), html)
 endif
 
 SRC_gfx = \
-	gfx/camera gfx/fps_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
+	gfx/camera gfx/fpp_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
 	gfx/color gfx/font gfx/font_factory gfx/colored_triangle gfx/colored_quad gfx/material \
 	gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer \
 	gfx/texture gfx/texture_stbi gfx/texture_tga \
