@@ -28,6 +28,25 @@ FColor::FColor(ColorId color_id) {
 	*this = map[color_id];
 }
 
+float srgbToLinear(float v) {
+	return v < 0.04045 ? (1.0 / 12.92) * v : pow((v + 0.055) * (1.0 / 1.055), 2.4);
+}
+
+float linearToSrgb(float v) {
+	return v < 0.0031308 ? 12.92 * v : 1.055 * pow(v, 1.0 / 2.4) - 0.055;
+}
+
+float3 srgbToLinear(float3 v) { return {srgbToLinear(v.x), srgbToLinear(v.y), srgbToLinear(v.z)}; }
+float3 linearToSrgb(float3 v) { return {linearToSrgb(v.x), linearToSrgb(v.y), linearToSrgb(v.z)}; }
+
+FColor srgbToLinear(const FColor &c) {
+	return {srgbToLinear(c.r), srgbToLinear(c.g), srgbToLinear(c.b), c.a};
+}
+
+FColor linearToSrgb(const FColor &c) {
+	return {linearToSrgb(c.r), linearToSrgb(c.g), linearToSrgb(c.b), c.a};
+}
+
 FColor mulAlpha(FColor color, float alpha_mul) {
 	color.a *= alpha_mul;
 	return color;
@@ -36,16 +55,6 @@ FColor mulAlpha(FColor color, float alpha_mul) {
 FColor desaturate(FColor col, float value) {
 	float avg = std::sqrt(col.r * col.r * 0.299f + col.g * col.g * 0.587f + col.b * col.b * 0.114f);
 	return lerp(col, FColor(avg, avg, avg, col.a), value);
-}
-
-FColor srgbToLinear(const FColor &c) {
-	float exp = 2.2;
-	return FColor(std::pow(c.r, exp), std::pow(c.g, exp), std::pow(c.b, exp), c.a);
-}
-
-FColor linearToSrgb(const FColor &c) {
-	float exp = 1.0f / 2.2f;
-	return FColor(std::pow(c.r, exp), std::pow(c.g, exp), std::pow(c.b, exp), c.a);
 }
 
 // Source: blender

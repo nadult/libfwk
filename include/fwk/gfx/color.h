@@ -11,6 +11,7 @@ namespace fwk {
 DEFINE_ENUM(ColorId, white, gray, yellow, cyan, magneta, purple, brown, orange, gold, red, green,
 			blue, black, transparent);
 
+// 128-bit float-based RGBA color
 struct FColor {
 	FColor() : r(0.0), g(0.0), b(0.0), a(1.0) {}
 	FColor(float r, float g, float b, float a = 1.0f) : r(r), g(g), b(b), a(a) {}
@@ -20,8 +21,8 @@ struct FColor {
 	FColor(ColorId);
 
 	operator float4() const { return float4(v); }
-
 	float3 rgb() const { return float3(r, g, b); }
+
 	FColor operator*(float s) const { return FColor(r * s, g * s, b * s, a * s); }
 	FColor operator*(const FColor &rhs) const {
 		return FColor(r * rhs.r, g * rhs.g, b * rhs.b, a * rhs.a);
@@ -45,16 +46,22 @@ struct FColor {
 	};
 };
 
-FColor mulAlpha(FColor color, float alpha);
-FColor desaturate(FColor col, float value);
+float srgbToLinear(float);
+float linearToSrgb(float);
+float3 srgbToLinear(float3);
+float3 linearToSrgb(float3);
 FColor srgbToLinear(const FColor &);
 FColor linearToSrgb(const FColor &);
+
+FColor mulAlpha(FColor color, float alpha);
+FColor desaturate(FColor col, float value);
 float3 hsvToRgb(float3);
 float3 rgbToHsv(float3);
 inline float3 rgbToHsv(const FColor &col) { return rgbToHsv(col.rgb()); }
 FColor gradientLerp(CSpan<FColor> colors, CSpan<float> values, float value);
 FColor gradientLerp(CSpan<FColor> colors, float value);
 
+// 32-bit RGBA color (8 bit per channel)
 struct IColor {
 	IColor(u8 r, u8 g, u8 b, u8 a = 255) : r(r), g(g), b(b), a(a) {}
 	IColor(int4 rgba) : IColor(rgba[0], rgba[1], rgba[2], rgba[3]) {}
@@ -68,8 +75,10 @@ struct IColor {
 	IColor() : IColor(0, 0, 0) {}
 
 	operator FColor() const { return FColor(r, g, b, a) * (1.0f / 255.0f); }
-	explicit operator int4() const { return int4(r, g, b, a); }
+	explicit operator int4() const { return {r, g, b, a}; }
 	explicit operator float4() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
+	explicit operator int3() const { return {r, g, b}; }
+	explicit operator float3() const { return float3(r, g, b) * (1.0f / 255.0f); }
 
 	IColor bgra() const { return IColor(b, g, r, a); }
 
