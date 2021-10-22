@@ -10,6 +10,8 @@
 #include <emmintrin.h>
 #endif
 
+#include <cmath>
+
 namespace fwk {
 
 Matrix4 Matrix4::identity() {
@@ -208,7 +210,6 @@ Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up) {
 Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {
 	float rad = fov * 0.5f;
 	float delta_z = z_far - z_near;
-
 	float sin = std::sin(rad);
 
 	Matrix4 out = Matrix4::identity();
@@ -216,9 +217,9 @@ Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {
 		float ctg = cos(rad) / sin;
 		out[0][0] = ctg / aspect_ratio;
 		out[1][1] = ctg;
-		out[2][2] = -(z_far + z_near) / delta_z;
+		out[2][2] = std::isinf(z_far)? -1.0f : -(z_far + z_near) / delta_z;
 		out[2][3] = -1.0f;
-		out[3][2] = -2.0f * z_near * z_far / delta_z;
+		out[3][2] = -2.0f * z_near * (std::isinf(z_far)? 1.0f : z_far / delta_z);
 		out[3][3] = 0.0f;
 	}
 
