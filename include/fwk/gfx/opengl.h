@@ -96,6 +96,9 @@ EXT_API void(EXT_ENTRY *glGetVertexAttribdv)(GLuint index, GLenum pname, GLdoubl
 EXT_API void(EXT_ENTRY *glGetVertexAttribfv)(GLuint index, GLenum pname, GLfloat *params);
 EXT_API void(EXT_ENTRY *glGetVertexAttribiv)(GLuint index, GLenum pname, GLint *params);
 EXT_API void(EXT_ENTRY *glGetVertexAttribPointerv)(GLuint index, GLenum pname, GLvoid **pointer);
+EXT_API void(EXT_ENTRY *glGetQueryObjecti64v)(GLuint id, GLenum pname, GLint64 *params);
+EXT_API void(EXT_ENTRY *glGetQueryObjectui64v)(GLuint id, GLenum pname, GLuint64 *params);
+EXT_API void(EXT_ENTRY *glGetIntegeri_v)(GLenum target, GLuint index, GLint *data);
 
 EXT_API void(EXT_ENTRY *glLinkProgram)(GLuint program);
 EXT_API void(EXT_ENTRY *glShaderSource)(GLuint shader, GLsizei count, const GLchar *const *string,
@@ -363,7 +366,8 @@ using GlFeatures = EnumFlags<GlFeature>;
 
 // TODO: rename to GlMax
 DEFINE_ENUM(GlLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
-			max_texture_size, max_uniform_locations, max_ssbo_bindings);
+			max_texture_size, max_texture_buffer_size, max_uniform_locations, max_ssbo_bindings,
+			max_compute_ssbo, max_compute_work_group_invocations);
 
 DEFINE_ENUM(GlDebug, not_active_uniforms);
 using GlDebugFlags = EnumFlags<GlDebug>;
@@ -378,6 +382,9 @@ struct GlInfo {
 
 	GlFeatures features;
 	EnumMap<GlLimit, int> limits;
+
+	int3 max_compute_work_group_size;
+	int3 max_compute_work_groups;
 
 	bool hasExtension(Str) const;
 	bool hasFeature(GlFeature feature) const { return (bool)(features & feature); }

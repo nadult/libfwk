@@ -10,9 +10,11 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- Przydałaby się klasa dyskretnego interwału ? (offset + size), (min + max trochę nie ma w tej sytuacji sensu)
 - może subSpan byłby lepszy z offset+size a nie min+max ? ale tak samo trzebaby zrobić w intervalu
   i też w boxie ?
 - zła identyfikacja shadera (zawsze mam DEFINITIONS)
+- lepsze opcje do dumpowania shaderów
 - drobny bug w perf analyzerze: wyswietlanie duzych wartosci (7000sec zamiast 7sec)
 - AnyConfig tak sobie zapisuje typy STLowe (np. string)
 - NoInit support for vector instead of PodVector ?

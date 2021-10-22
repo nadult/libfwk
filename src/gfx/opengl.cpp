@@ -32,7 +32,9 @@ GlDebugFlags gl_debug_flags = none;
 
 static EnumMap<GlLimit, int> s_limit_map = {
 	{GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES, GL_MAX_UNIFORM_BLOCK_SIZE,
-	 GL_MAX_TEXTURE_SIZE, GL_MAX_UNIFORM_LOCATIONS, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS}};
+	 GL_MAX_TEXTURE_SIZE, GL_MAX_TEXTURE_BUFFER_SIZE, GL_MAX_UNIFORM_LOCATIONS,
+	 GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS,
+	 GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS}};
 
 string GlInfo::toString() const {
 	TextFormatter out;
@@ -43,6 +45,8 @@ string GlInfo::toString() const {
 	out("Limits:\n");
 	for(auto limit : all<GlLimit>)
 		out("  %: %\n", limit, limits[limit]);
+	out(" *max_compute_work_group_size: %\n *max_compute_work_groups: %\n",
+		max_compute_work_group_size, max_compute_work_groups);
 
 	return out.text();
 }
@@ -134,6 +138,11 @@ void initializeGl(GlProfile profile) {
 		s_info.glsl_version_full = glsl_ver;
 		s_info.glsl_version = parseOpenglVersion(glsl_ver);
 		// TODO: multiple GLSL versions can be supported
+	}
+
+	for(int i = 0; i < 3; i++) {
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, i, &s_info.max_compute_work_group_size[i]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, i, &s_info.max_compute_work_groups[i]);
 	}
 
 	bool core_430 = profile == Profile::core && s_info.version >= 4.3;
@@ -350,6 +359,9 @@ void loadExtensions() {
 	LOAD(glGetProgramInterfaceiv);
 	LOAD(glGetProgramResourceName);
 	LOAD(glGetProgramResourceiv);
+	LOAD(glGetQueryObjecti64v);
+	LOAD(glGetQueryObjectui64v);
+	LOAD(glGetIntegeri_v);
 
 	LOAD(glDrawArraysInstanced);
 	LOAD(glDrawElementsInstanced);

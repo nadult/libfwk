@@ -91,20 +91,27 @@ int GlVertexArray::size() const {
 	return (first_buf ? first_buf->size() : 0) / m_attribs[0].dataSize();
 }
 
-void GlVertexArray::draw(PrimitiveType pt, int num_elements, int element_offset) const {
+void GlVertexArray::draw(PrimitiveType pt, int num_elements, int element_offset,
+						 int data_offset) const {
 	if(!num_elements)
 		return;
 	DASSERT(element_offset >= 0 && num_elements >= 0);
 	// TODO: more checks
 	DASSERT(num_elements + element_offset <= size());
+	if(data_offset)
+		DASSERT(m_index_buffer && "data_offset only makes sense when index buffer is used");
 
 	bind();
 
 	if(m_index_buffer) {
-		int offset = element_offset * dataSize(m_index_type);
 		m_index_buffer->bind();
-		glDrawElements(gl_primitives[pt], num_elements, gl_index_type[m_index_type],
-					   (void *)(long long)offset);
+		auto gl_itype = gl_index_type[m_index_type];
+		void *gl_ioffset = (void *)(size_t(element_offset) * dataSize(m_index_type));
+		if(data_offset)
+			glDrawElementsBaseVertex(gl_primitives[pt], num_elements, gl_itype, gl_ioffset,
+									 data_offset);
+		else
+			glDrawElements(gl_primitives[pt], num_elements, gl_itype, gl_ioffset);
 		m_index_buffer->unbind();
 	} else {
 		glDrawArrays(gl_primitives[pt], element_offset, num_elements);

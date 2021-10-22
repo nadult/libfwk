@@ -13,21 +13,20 @@ GL_CLASS_IMPL(GlQuery)
 
 PQuery GlQuery::make() { return PQuery(storage.make()); }
 
-Maybe<int> GlQuery::getValue() const {
+Maybe<i64> GlQuery::getValue() const {
 	if(!m_type)
 		return none;
-
-	uint value = ~0u;
-	glGetQueryObjectuiv(id(), GL_QUERY_RESULT_NO_WAIT, &value);
-	return value > INT_MAX ? Maybe<int>() : int(value);
+	GLuint64 value = ~0ull;
+	glGetQueryObjectui64v(id(), GL_QUERY_RESULT_NO_WAIT, &value);
+	return value > LONG_LONG_MAX ? Maybe<i64>() : i64(value);
 }
 
-int GlQuery::waitForValue() const {
+i64 GlQuery::waitForValue() const {
 	if(!m_type)
 		return -1;
-	uint value = ~0u;
-	glGetQueryObjectuiv(id(), GL_QUERY_RESULT, &value);
-	return value > INT_MAX ? -1 : int(value);
+	GLuint64 value = ~0ull;
+	glGetQueryObjectui64v(id(), GL_QUERY_RESULT, &value);
+	return value > LONG_LONG_MAX ? -1 : i64(value);
 }
 
 static const EnumMap<GlQueryType, int> s_query_types{

@@ -17,8 +17,8 @@ class GlQuery {
 	using Type = GlQueryType;
 	static PQuery make();
 
-	Maybe<int> getValue() const;
-	int waitForValue() const;
+	Maybe<i64> getValue() const;
+	i64 waitForValue() const;
 
 	Maybe<Type> type() const { return m_type; }
 	void begin(Type);

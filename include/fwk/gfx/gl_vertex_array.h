@@ -106,7 +106,7 @@ class GlVertexArray {
   public:
 	static constexpr int max_attribs = 7;
 
-	template <class... Args> static PVertexArray make(Args &&... args) {
+	template <class... Args> static PVertexArray make(Args &&...args) {
 		return PVertexArray(storage.make(std::forward<Args>(args)...));
 	}
 
@@ -115,7 +115,7 @@ class GlVertexArray {
 	void setIndices(PBuffer, IndexType);
 
 	// TODO: what offset means? make it type safe
-	void draw(PrimitiveType, int num_elements, int element_offset = 0) const;
+	void draw(PrimitiveType, int num_elements, int element_offset = 0, int data_offset = 0) const;
 	void draw(PrimitiveType primitive_type) const { draw(primitive_type, size()); }
 	void drawInstanced(PrimitiveType, int num_elements, int num_instances, int offset = 0);
 
