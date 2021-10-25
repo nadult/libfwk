@@ -123,7 +123,7 @@ class Viewer {
 				if(auto it = s_textures.find(file_name.second))
 					tex = it->value;
 				else {
-					tex = GlTexture::load(file_name.second).get();
+					tex = GlTexture::load(file_name.second, true).get();
 					s_textures[file_name.second] = tex;
 				}
 

@@ -1,20 +1,21 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/texture.h"
+#include "fwk/gfx/image.h"
 
 #include "fwk/io/stream.h"
 #include "fwk/sys/expected.h"
 
 #define STBI_NO_PSD
 #define STBI_NO_STDIO
+#define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "../extern/stb_image.h"
 
 namespace fwk {
 namespace detail {
-	Ex<Texture> loadSTBI(Stream &sr) {
+	Ex<Image> loadSTBI(Stream &sr) {
 		stbi_io_callbacks callbacks;
 		callbacks.read = [](void *user, char *data, int size) -> int {
 			auto &stream = *reinterpret_cast<Stream *>(user);
@@ -38,7 +39,7 @@ namespace detail {
 			return sr.getValid().error();
 		}
 
-		Texture out({w, h});
+		Image out({w, h}, no_init);
 		// TODO: avoid copy
 		copy(out.data(), span(reinterpret_cast<IColor *>(data), w * h));
 		stbi_image_free(data);

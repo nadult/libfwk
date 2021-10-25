@@ -25,10 +25,10 @@ class FontFactory {
 	Ex<Font> makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode = false);
 
   private:
-	using GlyphPair = Pair<FontCore::Glyph, Texture>;
+	using GlyphPair = Pair<FontCore::Glyph, Image>;
 
-	Texture makeTextureAtlas(vector<GlyphPair> &, int2 atlas_size);
-	Texture makeTextureAtlas(vector<GlyphPair> &);
+	Image makeTextureAtlas(vector<GlyphPair> &, int2 atlas_size);
+	Image makeTextureAtlas(vector<GlyphPair> &);
 
 	struct Impl;
 	Dynamic<Impl> m_impl;

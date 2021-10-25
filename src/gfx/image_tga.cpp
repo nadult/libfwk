@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/texture.h"
+#include "fwk/gfx/image.h"
 
 #include "fwk/io/file_stream.h"
 #include "fwk/io/stream.h"
@@ -39,7 +39,7 @@ struct EXCEPT TGAHeader {
 	u8 image_descriptor;
 };
 
-Ex<> Texture::saveTGA(Stream &sr) const {
+Ex<> Image::saveTGA(Stream &sr) const {
 	TGAHeader header;
 
 	header.data_type_code = 2;
@@ -52,16 +52,16 @@ Ex<> Texture::saveTGA(Stream &sr) const {
 	header.save(sr);
 	vector<IColor> line(m_size.x);
 	for(int y = m_size.y - 1; y >= 0; y--) {
-		memcpy(&line[0], this->line(y), m_size.x * sizeof(IColor));
+		copy(line, row(y));
 		for(int x = 0; x < m_size.x; x++)
 			line[x] = IColor(line[x].b, line[x].g, line[x].r, line[x].a);
-		sr.saveData(cspan(&line[0], m_size.x).reinterpret<char>());
+		sr.saveData(line);
 	}
 
 	return {};
 }
 
-Ex<> Texture::saveTGA(ZStr file_name) const {
+Ex<> Image::saveTGA(ZStr file_name) const {
 	auto file = fileSaver(file_name);
 	return file ? saveTGA(*file) : file.error();
 }

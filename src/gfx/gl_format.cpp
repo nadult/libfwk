@@ -9,142 +9,150 @@
 
 namespace fwk {
 
-// TODO: is this needed ?
-enum class DDSId {
-	unknown = 0,
-
-	R8G8B8 = 20,
-	A8R8G8B8 = 21,
-	X8R8G8B8 = 22,
-	R5G6B5 = 23,
-	X1R5G5B5 = 24,
-	A1R5G5B5 = 25,
-	A4R4G4B4 = 26,
-	R3G3B2 = 27,
-	A8 = 28,
-	A8R3G3B2 = 29,
-	X4R4G4B4 = 30,
-	A2B10G10R10 = 31,
-	A8B8G8R8 = 32,
-	X8B8G8R8 = 33,
-	G16R16 = 34,
-	A2R10G10B10 = 35,
-	A16B16G16R16 = 36,
-
-	L8 = 50,
-	A8L8 = 51,
-	A4L4 = 52,
-
-	V8U8 = 60,
-	L6V5U5 = 61,
-	X8L8V8U8 = 62,
-	Q8W8V8U8 = 63,
-	V16U16 = 64,
-	A2W10V10U10 = 67,
-
-	UYVY = 0x59565955, // MAKEFOURCC('U', 'Y', 'V', 'Y'),
-	R8G8_B8G8 = 0x47424752, // MAKEFOURCC('R', 'G', 'B', 'G'),
-	YUY2 = 0x32595559, // MAKEFOURCC('Y', 'U', 'Y', '2'),
-	G8R8_G8B8 = 0x42475247, // MAKEFOURCC('G', 'R', 'G', 'B'),
-	DXT1 = 0x31545844, // MAKEFOURCC('D', 'X', 'T', '1'),
-	DXT2 = 0x32545844, // MAKEFOURCC('D', 'X', 'T', '2'),
-	DXT3 = 0x33545844, // MAKEFOURCC('D', 'X', 'T', '3'),
-	DXT4 = 0x34545844, // MAKEFOURCC('D', 'X', 'T', '4'),
-	DXT5 = 0x35545844, // MAKEFOURCC('D', 'X', 'T', '5'),
-
-	L16 = 81,
-	Q16W16V16U16 = 110,
-
-	// Floating point surface formats
-	// s10e5 formats (16-bits per channel)
-	R16F = 111,
-	G16R16F = 112,
-	A16B16G16R16F = 113,
-
-	// IEEE s23e8 formats (32-bits per channel)
-	R32F = 114,
-	G32R32F = 115,
-	A32B32G32R32F = 116,
-};
-
 using Id = GlFormat;
-
-bool hasDepthComponent(GlFormat id) {
-	return isOneOf(id, Id::depth16, Id::depth24, Id::depth32, Id::depth32f, Id::depth_stencil);
-}
-
-bool hasStencilComponent(GlFormat id) { return isOneOf(id, Id::depth_stencil, Id::stencil); }
 
 namespace {
 	struct FormatDesc {
-		FormatDesc() = default;
-		FormatDesc(DDSId dds_id, int bpp, int i, int f, int t, bool is_compressed = false)
-			: dds_id(dds_id), bytes_per_pixel(bpp), internal_format(i), pixel_format(f),
-			  data_type(t), is_compressed(is_compressed) {}
-
-		DDSId dds_id = DDSId::unknown;
-		int bytes_per_pixel = 0;
-		int internal_format = 0, pixel_format = 0, data_type = 0;
-		bool is_compressed = false;
+		u8 bytes_per_pixel;
+		u8 num_components;
+		u16 internal_format;
+		u16 packed_format = 0;
+		u16 packed_type = 0;
 	};
 
-	// TODO: pixel format & type are for input data, unrelated to internal format ?
+	// clang-format off
 	const EnumMap<Id, FormatDesc> descs{{
-		// TODO: clean this up
-		{Id::rgba, FormatDesc(DDSId::A8B8G8R8, 4, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE)},
-		{Id::bgra, FormatDesc(DDSId::A8R8G8B8, 4, GL_BGRA, GL_BGRA, GL_UNSIGNED_BYTE)},
-		{Id::rgba_f16, FormatDesc(DDSId::A16B16G16R16F, 8, GL_RGBA16F, GL_RGBA, GL_FLOAT)},
-		{Id::rgba_f32, FormatDesc(DDSId::A32B32G32R32F, 16, GL_RGBA32F, GL_RGBA, GL_FLOAT)},
-		{Id::rgb, FormatDesc(DDSId::unknown, 3, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)},
-		{Id::rgb_f16, FormatDesc(DDSId::unknown, 6, GL_RGB16F, GL_RGB, GL_FLOAT)},
-		{Id::rgb_f32, FormatDesc(DDSId::unknown, 12, GL_RGB32F, GL_RGB, GL_FLOAT)},
-		{Id::r32i, FormatDesc(DDSId::unknown, 4, GL_R32I, GL_RED_INTEGER, GL_INT)},
-		{Id::r32ui, FormatDesc(DDSId::unknown, 4, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT)},
-		{Id::r8, FormatDesc(DDSId::unknown, 1, GL_R8, GL_RED, GL_UNSIGNED_BYTE)},
-		{Id::rg8, FormatDesc(DDSId::unknown, 2, GL_RG8, GL_RG, GL_UNSIGNED_BYTE)},
-		{Id::luminance, FormatDesc(DDSId::L8, 1, GL_LUMINANCE, GL_LUMINANCE, GL_UNSIGNED_BYTE)},
+		// 8-bit
+		{Id::r8,     {1, 1, GL_R8,			GL_RED,			GL_UNSIGNED_BYTE}},
+		{Id::r8s,    {1, 1, GL_R8_SNORM,	GL_RED,			GL_UNSIGNED_BYTE}},
+		{Id::r8ui,   {1, 1, GL_R8UI,		GL_RED_INTEGER,	GL_UNSIGNED_BYTE}},
+		{Id::r8i,    {1, 1, GL_R8I,			GL_RED_INTEGER,	GL_BYTE}},
 
-		{Id::dxt1, FormatDesc(DDSId::DXT1, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0, true)},
-		{Id::dxt3, FormatDesc(DDSId::DXT3, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0, true)},
-		{Id::dxt5, FormatDesc(DDSId::DXT5, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0, true)},
+		// 16-bit
+		{Id::r16,    {2, 1, GL_R16,			GL_RED, 		GL_UNSIGNED_SHORT}},
+		{Id::r16s,   {2, 1, GL_R16_SNORM,	GL_RED,			GL_UNSIGNED_SHORT}},
+		{Id::r16ui,  {2, 1, GL_R16UI,		GL_RED_INTEGER,	GL_UNSIGNED_SHORT}},
+		{Id::r16i,   {2, 1, GL_R16I,		GL_RED_INTEGER,	GL_SHORT}},
+		{Id::r16f,   {2, 1, GL_R16F,		GL_RED,			GL_FLOAT}},
 
-		{Id::depth16, FormatDesc(DDSId::unknown, 2, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT,
-								 GL_UNSIGNED_SHORT)},
-		{Id::depth24,
-		 FormatDesc(DDSId::unknown, 3, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE)},
-		{Id::depth32,
-		 FormatDesc(DDSId::unknown, 4, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT)},
-		{Id::depth32f,
-		 FormatDesc(DDSId::unknown, 4, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT)},
-		// TODO: WebGL requires 16bits
-		{Id::depth_stencil, FormatDesc(DDSId::unknown, 4, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL,
-									   GL_UNSIGNED_INT_24_8)},
-		{Id::stencil,
-		 FormatDesc(DDSId::unknown, 1, GL_STENCIL_INDEX8, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE)},
+		{Id::rg8,    {2, 2, GL_RG8,			GL_RG,			GL_UNSIGNED_BYTE}},
+		{Id::rg8s,   {2, 2, GL_RG8_SNORM,	GL_RG,			GL_UNSIGNED_BYTE}},
+		{Id::rg8ui,  {2, 2, GL_RG8UI,		GL_RG_INTEGER,	GL_UNSIGNED_BYTE}},
+		{Id::rg8i,   {2, 2, GL_RG8I,		GL_RG_INTEGER,	GL_BYTE}},
+
+		// 24-bit
+		{Id::srgb8,  {3, 3, GL_SRGB8,		GL_RGB,			GL_UNSIGNED_BYTE}},
+		{Id::rgb8,   {3, 3, GL_RGB8,		GL_RGB,			GL_UNSIGNED_BYTE}},
+		{Id::rgb8s,  {3, 3, GL_RGB8_SNORM,	GL_RGB,			GL_UNSIGNED_BYTE}},
+		{Id::rgb8ui, {3, 3, GL_RGB8UI,		GL_RGB_INTEGER,	GL_UNSIGNED_BYTE}},
+		{Id::rgb8i,  {3, 3, GL_RGB8I,		GL_RGB_INTEGER,	GL_BYTE}},
+
+		// 32-bit
+		{Id::srgba8,  {4, 4, GL_SRGB8_ALPHA8,	GL_RGBA,			GL_UNSIGNED_BYTE}},
+		{Id::rgba8,   {4, 4, GL_RGBA8,			GL_RGBA,			GL_UNSIGNED_BYTE}},
+		{Id::rgba8s,  {4, 4, GL_RGBA8_SNORM,	GL_RGBA,			GL_UNSIGNED_BYTE}},
+		{Id::rgba8ui, {4, 4, GL_RGBA8UI,		GL_RGBA_INTEGER,	GL_UNSIGNED_BYTE}},
+		{Id::rgba8i,  {4, 4, GL_RGBA8I,			GL_RGBA_INTEGER,	GL_UNSIGNED_BYTE}},
+
+		{Id::rg16,    {4, 2, GL_RG16,			GL_RG,				GL_UNSIGNED_SHORT}},
+		{Id::rg16s,   {4, 2, GL_RG16_SNORM,		GL_RG,				GL_UNSIGNED_SHORT}},
+		{Id::rg16ui,  {4, 2, GL_RG16UI,			GL_RG_INTEGER,		GL_UNSIGNED_SHORT}},
+		{Id::rg16i,   {4, 2, GL_RG16I,			GL_RG_INTEGER,		GL_SHORT}},
+		{Id::rg16f,   {4, 2, GL_RG16F,			GL_RG,				GL_HALF_FLOAT}},
+
+		{Id::r32ui,   {4, 1, GL_R32UI,			GL_RED_INTEGER,		GL_UNSIGNED_INT}},
+		{Id::r32i,    {4, 1, GL_R32I,			GL_RED_INTEGER,		GL_INT}},
+		{Id::r32f,    {4, 1, GL_R32F,			GL_RED,				GL_FLOAT}},
+		
+		// 48-bit
+		{Id::rgb16,    {6, 3, GL_RGB16,			GL_RGB,				GL_UNSIGNED_SHORT}},
+		{Id::rgb16s,   {6, 3, GL_RGB16_SNORM,	GL_RGB,				GL_UNSIGNED_SHORT}},
+		{Id::rgb16ui,  {6, 3, GL_RGB16UI,		GL_RGB_INTEGER,		GL_UNSIGNED_SHORT}},
+		{Id::rgb16i,   {6, 3, GL_RGB16I,		GL_RGB_INTEGER,		GL_SHORT}},
+		{Id::rgb16f,   {6, 3, GL_RGB16F,		GL_RGB,				GL_HALF_FLOAT}},
+
+		// 64-bit
+		{Id::rgba16,   {8, 4, GL_RGBA16,		GL_RGBA,			GL_UNSIGNED_SHORT}},
+		{Id::rgba16s,  {8, 4, GL_RGBA16_SNORM,	GL_RGBA,			GL_UNSIGNED_SHORT}},
+		{Id::rgba16ui, {8, 4, GL_RGBA16UI,		GL_RGBA_INTEGER,	GL_UNSIGNED_SHORT}},
+		{Id::rgba16i,  {8, 4, GL_RGBA16I,		GL_RGBA_INTEGER,	GL_SHORT}},
+		{Id::rgba16f,  {8, 4, GL_RGBA16F,		GL_RGBA,			GL_HALF_FLOAT}},
+
+		{Id::rg32ui,   {8, 2, GL_RG32UI,		GL_RG_INTEGER,		GL_UNSIGNED_INT}},
+		{Id::rg32i,    {8, 2, GL_RG32I,			GL_RG_INTEGER,		GL_INT}},
+		{Id::rg32f,    {8, 2, GL_RG32F,			GL_RG,				GL_FLOAT}},
+
+		// 96-bit
+		{Id::rgb32ui,  {12, 3, GL_RGB32UI,		GL_RGB_INTEGER,		GL_UNSIGNED_INT}},
+		{Id::rgb32i,   {12, 3, GL_RGB32I,		GL_RGB_INTEGER,		GL_INT}},
+		{Id::rgb32f,   {12, 3, GL_RGB32F,		GL_RGB,				GL_FLOAT}},
+
+		// 128-bit
+		{Id::rgba32ui, {16, 4, GL_RGBA32UI,		GL_RGBA_INTEGER,	GL_UNSIGNED_INT}},
+		{Id::rgba32i,  {16, 4, GL_RGBA32I,		GL_RGBA_INTEGER,	GL_INT}},
+		{Id::rgba32f,  {16, 4, GL_RGBA32F,		GL_RGBA,			GL_FLOAT}},
+
+		// Depth/stencil
+		{Id::depth16,           {0, 1, GL_DEPTH_COMPONENT16,	GL_DEPTH_COMPONENT,	GL_UNSIGNED_SHORT}},
+		{Id::depth24,           {0, 1, GL_DEPTH_COMPONENT24}},
+		{Id::depth32,           {0, 1, GL_DEPTH_COMPONENT32,	GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT}},
+		{Id::depth32f,          {0, 1, GL_DEPTH_COMPONENT32F,	GL_DEPTH_COMPONENT,	GL_FLOAT}},
+		{Id::depth24_stencil8,  {0, 2, GL_DEPTH24_STENCIL8,		GL_DEPTH_STENCIL,	GL_UNSIGNED_INT}},
+		{Id::depth32f_stencil8, {0, 2, GL_DEPTH32F_STENCIL8}},
+
+		// BC1
+		{Id::srgb_bc1,  {0, 3, GL_COMPRESSED_SRGB_S3TC_DXT1_EXT}},
+		{Id::rgb_bc1,   {0, 3, GL_COMPRESSED_RGB_S3TC_DXT1_EXT}},
+		{Id::srgba_bc1, {0, 4, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT}},
+		{Id::rgba_bc1,  {0, 4, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT}},
+
+		// BC2 & BC3
+		{Id::srgba_bc2,  {0, 4, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT}},
+		{Id::rgba_bc2,   {0, 4, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT}},
+		{Id::srgba_bc3,  {0, 4, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT}},
+		{Id::rgba_bc3,   {0, 4, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT}},
+
+		// BPTC (BC6 - BC7)
+		{Id::rgba_bc7,          {0, 4, GL_COMPRESSED_RGBA_BPTC_UNORM}},
+		{Id::srgba_bc7,         {0, 4, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM}},
+		{Id::rgb_bc6h,          {0, 3, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT}},
+		{Id::rgb_bc6h_signed,   {0, 3, GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT}},
 	}};
+	// clang-format on
 }
 
-int glInternalFormat(Id id) { return descs[id].internal_format; }
-int glPixelFormat(Id id) { return descs[id].pixel_format; }
-int glDataType(Id id) { return descs[id].data_type; }
-bool isCompressed(Id id) { return descs[id].is_compressed; }
-int bytesPerPixel(Id id) { return descs[id].bytes_per_pixel; }
+// TODO: better naming of these functions?
 
-int evalImageSize(Id id, int width, int height) {
-	if(id == Id::dxt1)
-		return ((width + 3) / 4) * ((height + 3) / 4) * 8;
-	if(isOneOf(id, Id::dxt3, Id::dxt5))
-		return ((width + 3) / 4) * ((height + 3) / 4) * 16;
-
-	return width * height * descs[id].bytes_per_pixel;
+GlPackedFormat glPackedFormat(GlFormat format) {
+	auto &desc = descs[format];
+	return {desc.packed_format, desc.packed_type};
 }
 
-int evalLineSize(Id id, int width) {
-	if(id == Id::dxt1)
-		return ((width + 3) / 4) * 8;
-	if(isOneOf(id, Id::dxt3, Id::dxt5))
-		return ((width + 3) / 4) * 16;
+int glInternalFormat(GlFormat format) { return descs[format].internal_format; }
+int bytesPerPixel(GlFormat format) { return descs[format].bytes_per_pixel; }
+int numComponents(GlFormat format) { return descs[format].num_components; }
+bool hasDepthComponent(GlFormat format) {
+	return format >= Id::depth16 && format <= GlFormat::depth32f_stencil8;
+}
+bool hasStencilComponent(GlFormat format) {
+	return format >= Id::depth24_stencil8 && format <= Id::depth32f_stencil8;
+}
 
-	return width * descs[id].bytes_per_pixel;
+bool isCompressed(GlFormat format) { return format >= Id::srgb_bc1; }
+bool isFloatingPoint(GlFormat format) {
+	return isOneOf(format, Id::r16f, Id::rg16f, Id::r32f, Id::rgb16f, Id::rgba16f, Id::rg32f,
+				   Id::rgb32f, Id::rgba32f);
+}
+
+int compressedBlockSize(GlFormat format) {
+	return format < Id::srgb_bc1 ? 0 : format < Id::srgba_bc2 ? 8 : 16;
+}
+int imageSize(GlFormat format, int width, int height) {
+	if(isCompressed(format))
+		return ((width + 3) / 4) * ((height + 3) / 4) * compressedBlockSize(format);
+	return width * height * bytesPerPixel(format);
+}
+int imageRowSize(GlFormat format, int width) {
+	return ((width + 3) / 4) * compressedBlockSize(format);
 }
 }

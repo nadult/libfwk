@@ -53,6 +53,9 @@ float3 linearToSrgb(float3);
 FColor srgbToLinear(const FColor &);
 FColor linearToSrgb(const FColor &);
 
+void srgbToLinear(CSpan<IColor>, Span<FColor>);
+void linearToSrgb(CSpan<FColor>, Span<IColor>);
+
 FColor mulAlpha(FColor color, float alpha);
 FColor desaturate(FColor col, float value);
 float3 hsvToRgb(float3);

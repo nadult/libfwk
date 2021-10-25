@@ -101,18 +101,19 @@ void GlBuffer::download(Span<char> data) const {
 	glGetBufferSubData(s_types[m_type], 0, data.size(), data.data());
 }
 
+// TODO: range class for GBuffer ? add option to fill with floats as well
+// TODO: typed range class ?
 void GlBuffer::clear(GlFormat fmt, int value) {
-	DASSERT((int)sizeof(value) >= bytesPerPixel(fmt));
 	bind();
-	glClearBufferData(s_types[m_type], glInternalFormat(fmt), glPixelFormat(fmt), glDataType(fmt),
-					  &value);
+	auto [pformat, ptype] = glPackedFormat(GlFormat::r32i);
+	glClearBufferData(s_types[m_type], glInternalFormat(fmt), pformat, ptype, &value);
 }
 
 void GlBuffer::clear(GlFormat fmt, int value, int offset, int size) {
-	DASSERT((int)sizeof(value) >= bytesPerPixel(fmt));
 	bind();
-	glClearBufferSubData(s_types[m_type], glInternalFormat(fmt), offset, size, glPixelFormat(fmt),
-						 glDataType(fmt), &value);
+	auto [pformat, ptype] = glPackedFormat(GlFormat::r32i);
+	glClearBufferSubData(s_types[m_type], glInternalFormat(fmt), offset, size, pformat, ptype,
+						 &value);
 }
 
 void *GlBuffer::map(AccessMode mode) {

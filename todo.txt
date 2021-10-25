@@ -13,6 +13,16 @@ CAŁY CZAS TO ROBISZ :(
 - Przydałaby się klasa dyskretnego interwału ? (offset + size), (min + max trochę nie ma w tej sytuacji sensu)
 - może subSpan byłby lepszy z offset+size a nie min+max ? ale tak samo trzebaby zrobić w intervalu
   i też w boxie ?
+- Image::resize shouldn't be in place ?
+- consistent naming: Flags -> Opts ? A może Opt -> Flag ? Opt to skrót...
+- przenies rect pack do libfwk?
+- interfejs do tworzenia GlTexture jest troche gowniany
+- mozliwosc odbindowania texture image-a
+- posprzataj balagan w gl format (oddzielenie input type od internal type,
+  dodac wiecej typow, poprawic nazwy, wydzielic typy skompresowane)
+- better way to change/pass texture parameters, expose more of them
+- nextPow2: lepsza nazwa ?
+- zliczanie ile pamieci GPU zajmujemy
 - zła identyfikacja shadera (zawsze mam DEFINITIONS)
 - lepsze opcje do dumpowania shaderów
 - drobny bug w perf analyzerze: wyswietlanie duzych wartosci (7000sec zamiast 7sec)

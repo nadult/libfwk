@@ -47,7 +47,6 @@ class GlDevice {
 
 	void setWindowSize(const int2 &);
 	int2 windowSize() const;
-	Maybe<GlFormat> pixelFormat() const;
 
 	void setWindowRect(IRect);
 	IRect windowRect() const;

@@ -30,11 +30,17 @@ static GlInfo s_info;
 const GlInfo *const gl_info = &s_info;
 GlDebugFlags gl_debug_flags = none;
 
+// TODO: better way to fix it?
+#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY
+#define GL_MAX_TEXTURE_MAX_ANISOTROPY GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+#endif
+
 static EnumMap<GlLimit, int> s_limit_map = {
 	{GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES, GL_MAX_UNIFORM_BLOCK_SIZE,
-	 GL_MAX_TEXTURE_SIZE, GL_MAX_TEXTURE_BUFFER_SIZE, GL_MAX_UNIFORM_LOCATIONS,
+	 GL_MAX_TEXTURE_SIZE, GL_MAX_3D_TEXTURE_SIZE, GL_MAX_TEXTURE_BUFFER_SIZE,
+	 GL_MAX_TEXTURE_MAX_ANISOTROPY, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, GL_MAX_UNIFORM_LOCATIONS,
 	 GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS,
-	 GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS}};
+	 GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, GL_MAX_SAMPLES}};
 
 string GlInfo::toString() const {
 	TextFormatter out;
@@ -171,6 +177,8 @@ void initializeGl(GlProfile profile) {
 		s_info.features |= Feature::shader_ballot;
 	if(s_info.hasExtension("EXT_texture_compression_s3tc"))
 		s_info.features |= Feature::texture_s3tc;
+	if(s_info.hasExtension("EXT_texture_filter_anisotropic"))
+		s_info.features |= Feature::texture_filter_anisotropic;
 }
 
 void loadExtensions() {
@@ -353,6 +361,7 @@ void loadExtensions() {
 	LOAD(glTexStorage2D);
 	LOAD(glTexStorage3D);
 	LOAD(glTexStorage2DMultisample);
+	LOAD(glTexStorage3DMultisample);
 	LOAD(glTexImage2DMultisample);
 
 	LOAD(glGetProgramBinary);
@@ -384,12 +393,13 @@ void loadExtensions() {
 	LOAD(glDeleteTransformFeedbacks);
 
 	LOAD(glGetStringi);
-	LOAD(glBindSampler)
-	LOAD(glBlendEquationSeparate)
-	LOAD(glBlendFuncSeparate)
+	LOAD(glBindSampler);
+	LOAD(glBindTextures);
+	LOAD(glBlendEquationSeparate);
+	LOAD(glBlendFuncSeparate);
 
-	LOAD(glVertexAttribI1i)
-	LOAD(glProvokingVertex)
+	LOAD(glVertexAttribI1i);
+	LOAD(glProvokingVertex);
 
 #undef LOAD
 #endif

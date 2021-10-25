@@ -58,20 +58,6 @@ struct GlDevice::InputImpl {
 	SDLKeyMap key_map;
 };
 
-static Maybe<GlFormat> sdlPixelFormat(uint pf) {
-	switch(pf) {
-#define CASE(sdl_type, id)                                                                         \
-	case SDL_PIXELFORMAT_##sdl_type:                                                               \
-		return GlFormat::id;
-		CASE(RGBA8888, rgba)
-		CASE(BGRA8888, bgra)
-#undef CASE
-	default:
-		break;
-	}
-	return none;
-}
-
 struct GlDevice::WindowImpl {
   public:
 	WindowImpl(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
@@ -100,10 +86,9 @@ struct GlDevice::WindowImpl {
 
 		int ver_major = int(ogl_ver);
 		int ver_minor = int((ogl_ver - float(ver_major)) * 10.0);
-		int profile = gl_profile == GlProfile::compatibility
-						  ? SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
-						  : gl_profile == GlProfile::es ? SDL_GL_CONTEXT_PROFILE_ES
-														: SDL_GL_CONTEXT_PROFILE_CORE;
+		int profile = gl_profile == GlProfile::compatibility ? SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
+					  : gl_profile == GlProfile::es			 ? SDL_GL_CONTEXT_PROFILE_ES
+															 : SDL_GL_CONTEXT_PROFILE_CORE;
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, ver_major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, ver_minor);
@@ -116,8 +101,6 @@ struct GlDevice::WindowImpl {
 			SDL_DestroyWindow(window);
 			reportSDLError("SDL_GL_CreateContext");
 		}
-
-		pixel_format = sdlPixelFormat(SDL_GetWindowPixelFormat(window));
 	}
 
 	~WindowImpl() {
@@ -128,7 +111,6 @@ struct GlDevice::WindowImpl {
 
 	SDL_Window *window;
 	SDL_GLContext gl_context;
-	Maybe<GlFormat> pixel_format;
 	HashMap<string, PProgram> program_cache;
 	Flags flags;
 };
@@ -217,17 +199,13 @@ EnumMap<RectSide, int> GlDevice::windowBorder() const {
 	return {{right, top, left, bottom}};
 }
 
-Maybe<GlFormat> GlDevice::pixelFormat() const {
-	return m_window_impl ? m_window_impl->pixel_format : none;
-}
-
 void GlDevice::setWindowFullscreen(Flags flags) {
 	DASSERT(!flags || flags == Opt::fullscreen || flags == Opt::fullscreen_desktop);
 
 	if(m_window_impl) {
-		uint sdl_flags = flags & Opt::fullscreen
-							 ? SDL_WINDOW_FULLSCREEN
-							 : flags & Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+		uint sdl_flags = flags & Opt::fullscreen		   ? SDL_WINDOW_FULLSCREEN
+						 : flags & Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP
+														   : 0;
 		SDL_SetWindowFullscreen(m_window_impl->window, sdl_flags);
 		auto mask = Opt::fullscreen | Opt::fullscreen_desktop;
 		m_window_impl->flags = (m_window_impl->flags & ~mask) | (mask & flags);

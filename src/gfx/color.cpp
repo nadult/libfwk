@@ -47,6 +47,18 @@ FColor linearToSrgb(const FColor &c) {
 	return {linearToSrgb(c.r), linearToSrgb(c.g), linearToSrgb(c.b), c.a};
 }
 
+void srgbToLinear(CSpan<IColor> input, Span<FColor> output) {
+	DASSERT(input.size() == output.size());
+	for(int i = 0; i < input.size(); i++)
+		output[i] = srgbToLinear(FColor(input[i]));
+}
+
+void linearToSrgb(CSpan<FColor> input, Span<IColor> output) {
+	DASSERT(input.size() == output.size());
+	for(int i = 0; i < input.size(); i++)
+		output[i] = IColor(linearToSrgb(input[i]));
+}
+
 FColor mulAlpha(FColor color, float alpha_mul) {
 	color.a *= alpha_mul;
 	return color;

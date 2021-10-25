@@ -5,7 +5,7 @@
 
 #include "fwk/format.h"
 #include "fwk/gfx/gl_texture.h"
-#include "fwk/gfx/texture.h"
+#include "fwk/gfx/image.h"
 #include "fwk/hash_map.h"
 #include "fwk/sys/error.h"
 
@@ -81,8 +81,7 @@ FontFactory::~FontFactory() {
 	}
 }
 
-Texture FontFactory::makeTextureAtlas(vector<Pair<FontCore::Glyph, Texture>> &glyphs,
-									  int2 atlas_size) {
+Image FontFactory::makeTextureAtlas(vector<Pair<FontCore::Glyph, Image>> &glyphs, int2 atlas_size) {
 	const int border = 2;
 
 	bool all_fits = true;
@@ -118,8 +117,7 @@ Texture FontFactory::makeTextureAtlas(vector<Pair<FontCore::Glyph, Texture>> &gl
 		return makeTextureAtlas(glyphs, new_atlas_size);
 	}
 
-	Texture atlas(atlas_size);
-	atlas.fill(ColorId::transparent);
+	Image atlas(atlas_size, ColorId::transparent);
 
 	for(int g = 0; g < (int)glyphs.size(); g++) {
 		auto const &glyph = glyphs[g].first;
@@ -130,7 +128,7 @@ Texture FontFactory::makeTextureAtlas(vector<Pair<FontCore::Glyph, Texture>> &gl
 	return atlas;
 }
 
-Texture FontFactory::makeTextureAtlas(vector<GlyphPair> &glyphs) {
+Image FontFactory::makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	std::sort(begin(glyphs), end(glyphs), [](const GlyphPair &a, const GlyphPair &b) {
 		return a.first.size.y < b.first.size.y;
 	});
@@ -148,7 +146,7 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 	if(FT_Set_Pixel_Sizes(face, 0, size_px) != 0)
 		return ERROR("Error in FT_Set_Pixel_Sizes while creating font %", path);
 
-	vector<Pair<FontCore::Glyph, Texture>> glyphs;
+	vector<Pair<FontCore::Glyph, Image>> glyphs;
 	for(auto character : charset) {
 		FT_UInt index = FT_Get_Char_Index(face, character);
 		if(FT_Load_Glyph(face, index, FT_LOAD_DEFAULT) != 0)
@@ -160,10 +158,10 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 
 		auto const &bitmap = glyph->bitmap;
 
-		Texture tex(int2(lcd_mode ? bitmap.width / 3 : bitmap.width, bitmap.rows));
+		Image tex(int2(lcd_mode ? bitmap.width / 3 : bitmap.width, bitmap.rows), no_init);
 
 		for(int y = 0; y < tex.height(); y++) {
-			IColor *dst = tex.line(y);
+			auto dst = tex.row(y);
 			unsigned char *src = bitmap.buffer + bitmap.pitch * y;
 			if(lcd_mode) {
 				for(int x = 0; x < tex.width(); x++) {
@@ -202,7 +200,7 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 					okernings.emplace_back(FontCore::Kerning{int(left), int(right), kerning.x});
 			}
 
-	auto tex = GlTexture::make(atlas);
+	auto tex = GlTexture::make({atlas});
 	return Font{{oglyphs, okernings, atlas.size(), (int)face->size->metrics.height / 64}, tex};
 }
 }

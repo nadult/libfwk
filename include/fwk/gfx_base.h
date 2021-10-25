@@ -16,8 +16,9 @@ namespace fwk {
 #define IF_GL_CHECKS(...)
 #endif
 
-class Texture;
-class BlockTexture;
+class Image;
+class CompressedImage;
+class FloatImage;
 class GlDevice;
 class SimpleMaterial;
 class Material;
@@ -59,7 +60,6 @@ DECLARE_ENUM(MaterialOpt);
 DECLARE_ENUM(IndexType);
 DECLARE_ENUM(VertexBaseType);
 
-struct HeightMap16bit;
 struct FramebufferTarget;
 struct FontStyle;
 

@@ -288,6 +288,10 @@ EXT_API void(EXT_ENTRY *glTexStorage2DMultisample)(GLenum target, GLsizei sample
 EXT_API void(EXT_ENTRY *glTexImage2DMultisample)(GLenum target, GLsizei samples,
 												 GLenum internalformat, GLsizei width,
 												 GLsizei height, GLboolean fixedsamplelocations);
+EXT_API void(EXT_ENTRY *glTexStorage3DMultisample)(GLenum target, GLsizei samples,
+												   GLenum internalformat, GLsizei width,
+												   GLsizei height, GLsizei depth,
+												   GLboolean fixedsamplelocations);
 
 EXT_API void(EXT_ENTRY *glGetProgramBinary)(GLuint program, GLsizei bufSize, GLsizei *length,
 											GLenum *binaryFormat, void *binary);
@@ -334,6 +338,7 @@ EXT_API void(EXT_ENTRY *glDeleteProgramPipelines)(GLsizei n, const GLuint *pipel
 EXT_API void(EXT_ENTRY *glDeleteTransformFeedbacks)(GLsizei n, const GLuint *ids);
 
 EXT_API void(EXT_ENTRY *glBindSampler)(GLuint unit, GLuint sampler);
+EXT_API void(EXT_ENTRY *glBindTextures)(GLuint first, GLsizei count, const GLuint *textures);
 EXT_API void(EXT_ENTRY *glBlendEquationSeparate)(GLenum modeRGB, GLenum modeAlpha);
 EXT_API void(EXT_ENTRY *glBlendFuncSeparate)(GLenum sfactorRGB, GLenum dfactorRGB,
 											 GLenum sfactorAlpha, GLenum dfactorAlpha);
@@ -361,13 +366,14 @@ bool installGlDebugHandler();
 DEFINE_ENUM(GlVendor, intel, nvidia, amd, other);
 DEFINE_ENUM(GlFeature, vertex_array_object, debug, timer_query, copy_image, texture_view,
 			texture_storage, shader_draw_parameters, separate_shader_objects, shader_ballot,
-			texture_s3tc);
+			texture_s3tc, texture_filter_anisotropic);
 using GlFeatures = EnumFlags<GlFeature>;
 
 // TODO: rename to GlMax
 DEFINE_ENUM(GlLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
-			max_texture_size, max_texture_buffer_size, max_uniform_locations, max_ssbo_bindings,
-			max_compute_ssbo, max_compute_work_group_invocations);
+			max_texture_size, max_texture_3d_size, max_texture_buffer_size, max_texture_anisotropy,
+			max_texture_units, max_uniform_locations, max_ssbo_bindings, max_compute_ssbo,
+			max_compute_work_group_invocations, max_samples);
 
 DEFINE_ENUM(GlDebug, not_active_uniforms);
 using GlDebugFlags = EnumFlags<GlDebug>;
