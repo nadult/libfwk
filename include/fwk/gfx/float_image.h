@@ -19,6 +19,7 @@ class FloatImage {
 	~FloatImage();
 
 	void resize(int2, Maybe<FColor> fill_color = FColor(ColorId::black));
+	FloatImage rescale(int2 new_size, ImageRescaleOpts opts = none) const;
 	void premultiplyAlpha();
 	void clear();
 

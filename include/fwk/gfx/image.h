@@ -12,6 +12,8 @@
 namespace fwk {
 
 DEFINE_ENUM(ImageFileType, tga, png, bmp, jpg, gif, pgm, ppm);
+DEFINE_ENUM(ImageRescaleOpt, srgb, premultiplied_alpha);
+using ImageRescaleOpts = EnumFlags<ImageRescaleOpt>;
 
 // 2D RGBA 8-bit per channel image
 // Used IColor class to represent pixel values
@@ -39,6 +41,8 @@ class Image {
 	};
 
 	void resize(int2, Maybe<IColor> fill = IColor(ColorId::black));
+	Image rescale(int2 new_size, ImageRescaleOpts opts = none) const;
+
 	void clear();
 	void fill(IColor);
 

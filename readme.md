@@ -47,7 +47,7 @@ time libfwk may fail to compile under G++.
 * **OpenAL**  
 	[https://www.openal.org/](https://www.openal.org/)
 
-* **STB\_image && STB\_dxt (included)**
+* **STB\_image && STB\_dxt && STB\_image\_resize (included)**
     [https://github.com/nothings/stb](https://github.com/nothings/stb)
 
 * **rapidxml (included)**  
