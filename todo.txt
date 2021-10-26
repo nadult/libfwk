@@ -10,9 +10,13 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- Jest jakiś dziwny problem w trans rendererze: jak próbuję przechować dane buforów z jednej klatki do drugiej,
+  to chyba są zamazywane; Cholera go wie czemu
 - Przydałaby się klasa dyskretnego interwału ? (offset + size), (min + max trochę nie ma w tej sytuacji sensu)
 - może subSpan byłby lepszy z offset+size a nie min+max ? ale tak samo trzebaby zrobić w intervalu
   i też w boxie ?
+- some functions for nicer text formatting of tables / arrays / etc.
+- imgui shouldn't be active when we're over a different window?
 - Image::resize shouldn't be in place ?
 - consistent naming: Flags -> Opts ? A może Opt -> Flag ? Opt to skrót...
 - przenies rect pack do libfwk?

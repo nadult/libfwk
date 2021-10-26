@@ -40,9 +40,11 @@ template <class T, int N> Pair<T> Triangle<T, N>::barycentric(const Point &point
 		// TODO: this is untested
 		// TODO: what if point doesn't lie on the triangle plane?
 		Vec diff = point - v[0];
-		Vec nrm = normal();
-		T tw = dot(fwk::cross(v[1] - v[0], diff), nrm);
-		T tv = dot(fwk::cross(v[2] - v[0], diff), nrm);
+		Vec edge0 = v[1] - v[0], edge1 = v[2] - v[0];
+		Vec normal = cross(edge0, edge1);
+		T mul = 1.0 / dot(normal, normal);
+		T tv = dot(fwk::cross(-edge1, diff), normal) * mul;
+		T tw = dot(fwk::cross(edge0, diff), normal) * mul;
 		return {tv, tw};
 	} else if constexpr(N == 2) {
 		// Source: Geometric Tools

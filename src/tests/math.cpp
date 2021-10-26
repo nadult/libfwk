@@ -272,6 +272,12 @@ void test3DIntersections() {
 	Triangle3D tri0(double3(0, 0, 3), double3(4, 0, 1), double3(5, 0, 4));
 	Box3<double> box0(double3(0, -0.001, 0), double3(3, 1, 2));
 	ASSERT(tri0.testIsect(box0));
+
+	Triangle3D tri2({1, 1, 0}, {5, 1, 0}, {3, 4, 0});
+	ASSERT_EQ(tri2.barycentric(tri2[0]), pair(0.0, 0.0));
+	ASSERT_EQ(tri2.barycentric(tri2[1]), pair(1.0, 0.0));
+	ASSERT_EQ(tri2.barycentric(tri2[2]), pair(0.0, 1.0));
+	ASSERT_EQ(tri2.barycentric({3.0, 1.0, 0.0}), pair(0.5, 0.0));
 }
 
 void testVectorAngles() {
