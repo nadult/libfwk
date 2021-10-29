@@ -22,18 +22,6 @@ static Analyzer *s_instance = nullptr;
 
 Analyzer *Analyzer::instance() { return s_instance; }
 
-static int countBits(uint value) {
-	uint bit = 1;
-	int out = 0;
-
-	while(bit != 0x80000000) {
-		if(bit & value)
-			out++;
-		bit = bit << 1;
-	}
-	return out;
-}
-
 Analyzer::Analyzer()
 	: m_manager((ASSERT(Manager::instance()), *Manager::instance())),
 	  m_exec_tree(m_manager.execTree()) {
@@ -65,6 +53,9 @@ void Analyzer::doMenu(bool &is_enabled) {
 	CSpan<Frame> sel_frames = getFrames();
 
 	computeRange(m_range, sel_frames);
+	updateOpenedNodes();
+	computeExecList(m_range);
+
 	showGrid(m_range);
 
 	ImGui::End();
@@ -84,6 +75,8 @@ void Analyzer::doMenu(bool &is_enabled) {
 }
 
 void Analyzer::computeRange(FrameRange &out, CSpan<Frame> frames) {
+	DASSERT(frames);
+
 	static constexpr auto max_value = std::numeric_limits<i64>::max();
 	fill(out.minimum, max_value);
 	fill(out.maximum, 0);
@@ -119,17 +112,7 @@ void Analyzer::computeRange(FrameRange &out, CSpan<Frame> frames) {
 		}
 	}
 
-	if(!out.opened) {
-		out.opened.resize(m_exec_tree.size(), false);
-		for(int n : intRange(out.opened))
-			out.opened[n] = m_exec_tree[ExecId(n)].depth <= 3;
-	}
-	out.opened.resize(m_exec_tree.size(), false);
-	updateOpenedNodes();
-
-	out.empty = m_exec_tree.emptyBranches(out.average);
 	out.num_frames = frames.size();
-
 	for(int n : intRange(values)) {
 		if(out.minimum[n] == max_value)
 			out.minimum[n] = 0;
@@ -138,7 +121,8 @@ void Analyzer::computeRange(FrameRange &out, CSpan<Frame> frames) {
 
 	computeRows(m_exec_tree.root(), rows, out);
 	out.rows = move(rows);
-	computeExecList(out);
+
+	out.empty = m_exec_tree.emptyBranches(out.average);
 }
 
 string Analyzer::dump(const Frame &frame) const {
@@ -717,6 +701,13 @@ vector<u64> Analyzer::openedNodes() const {
 }
 
 void Analyzer::updateOpenedNodes() {
+	if(!m_range.opened) {
+		m_range.opened.resize(m_exec_tree.size(), false);
+		for(int n : intRange(m_range.opened))
+			m_range.opened[n] = m_exec_tree[ExecId(n)].depth <= 3;
+	}
+	m_range.opened.resize(m_exec_tree.size(), false);
+
 	if(m_set_opened_nodes) {
 		fill(m_range.opened, false);
 		for(auto n : intRange(m_range.opened)) {

@@ -96,6 +96,9 @@ struct PointInfo {
 	PointType type;
 };
 
+// Only points 1 to numPoints() - 1 are valid
+int numPoints();
+
 const PointInfo *pointInfo(PointId);
 PointId registerPoint(PointType, const char *file, const char *func, const char *tag, int line);
 template <class RegFunctor> struct RegisterPoint { static inline PointId id = RegFunctor::call(); };

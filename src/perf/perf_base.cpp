@@ -59,6 +59,8 @@ PointId registerPoint(PointType type, const char *file, const char *func, const 
 	return out;
 }
 
+int numPoints() { return s_points ? s_points->size() : 0; }
+
 const PointInfo *pointInfo(PointId id) {
 	if(!s_points)
 		return nullptr;

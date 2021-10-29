@@ -82,11 +82,12 @@ class Analyzer {
 	AnyConfig config() const;
 	void setConfig(const AnyConfig &);
 
+	void computeRange(FrameRange &, CSpan<Frame>);
+
   private:
 	Str execName(ExecId) const;
 	string execInfo(ExecId) const;
 
-	void computeRange(FrameRange &, CSpan<Frame>);
 	void showTree(ExecId, const FrameRange &);
 	void showNameColumn(FrameRange &);
 	void showDataColumn(ColumnId, FrameRange &);
