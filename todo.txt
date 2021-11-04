@@ -99,7 +99,6 @@ CAŁY CZAS TO ROBISZ :(
 - przenies menu_imgui, menu_imgui_in do menu/ ?
 
 - ON_FAIL przy EXPECT_CATCH?
-- zamienić std regex na stb?
 - używanie kamer w model viewerze; może lepiej nie: lepiej obracać obiekt a nie kamerę
 - przywrócenie visualizerow w geomie 
 - przenesienie investigatorow ?

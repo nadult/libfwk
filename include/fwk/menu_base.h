@@ -12,8 +12,10 @@ namespace menu {
 using namespace fwk;
 using namespace ImGui;
 
-void openFilePopup(string &file_name, ZStr popup_name, string file_regex = ".*");
-void openFileButton(string &file_name, string popup_name, string regex = ".*");
+using NameFilter = bool (*)(ZStr name);
+
+void openFilePopup(string &file_name, ZStr popup_name, NameFilter file_name_filter = nullptr);
+void openFileButton(string &file_name, string popup_name, NameFilter file_name_filter = nullptr);
 
 void openErrorPopup(Error, ZStr title = "");
 void displayErrorPopup();

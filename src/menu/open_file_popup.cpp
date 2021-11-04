@@ -9,20 +9,19 @@
 #include "fwk/io/file_system.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vector.h"
-#include <regex>
 
 namespace menu {
 
 struct PopupContext {
-	PopupContext(string file_name, string file_regex)
-		: current_file(move(file_name)), regex(move(file_regex)) {
+	PopupContext(string file_name, NameFilter name_filter)
+		: current_file(move(file_name)), name_filter(name_filter) {
 		FilePath fpath(current_file);
 		current_dir = fpath.isDirectory() ? fpath : fpath.parent();
 	}
 
 	FilePath current_file;
 	FilePath current_dir;
-	std::regex regex;
+	NameFilter name_filter;
 	bool show_hidden = false;
 };
 
@@ -44,11 +43,11 @@ void dropContext(vector<pair<string, Context>> &contexts, string context_name) {
 			contexts.erase(contexts.begin() + idx);
 }
 
-void openFilePopup(string &file_name, ZStr popup_name, string file_regex) {
+void openFilePopup(string &file_name, ZStr popup_name, NameFilter name_filter) {
 	static vector<pair<string, PopupContext>> contexts;
 
 	if(ImGui::BeginPopup(popup_name.c_str())) {
-		auto &ctx = findContext(contexts, popup_name, file_name, file_regex);
+		auto &ctx = findContext(contexts, popup_name, file_name, name_filter);
 
 		// TODO: dir is broken
 		Maybe<string> new_dir;
@@ -81,8 +80,7 @@ void openFilePopup(string &file_name, ZStr popup_name, string file_regex) {
 
 		ImGui::PushStyleColor(ImGuiCol_Text, (ImU32)ImColor(200, 255, 200, 255));
 		for(auto &entry : entries) {
-			std::cmatch match;
-			if(entry.is_dir || !std::regex_match(entry.path.c_str(), ctx.regex))
+			if(entry.is_dir || (ctx.name_filter && !ctx.name_filter(entry.path)))
 				continue;
 
 			FilePath absolute = ctx.current_dir / entry.path;
@@ -114,7 +112,7 @@ void openFilePopup(string &file_name, ZStr popup_name, string file_regex) {
 	}
 }
 
-void openFileButton(string &file_path_str, string popup_name, string regex) {
+void openFileButton(string &file_path_str, string popup_name, NameFilter name_filter) {
 	popup_name += "_open_file";
 	FilePath file_path(file_path_str);
 	if(file_path.isAbsolute())
@@ -123,6 +121,6 @@ void openFileButton(string &file_path_str, string popup_name, string regex) {
 
 	if(ImGui::Button(format("File: %", file_path_str).c_str()))
 		ImGui::OpenPopup(popup_name.c_str());
-	menu::openFilePopup(file_path_str, popup_name, regex);
+	menu::openFilePopup(file_path_str, popup_name, name_filter);
 }
 }
