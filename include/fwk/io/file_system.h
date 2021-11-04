@@ -112,6 +112,7 @@ bool access(const FilePath &);
 Ex<> mkdirRecursive(const FilePath &);
 Ex<double> lastModificationTime(const FilePath &);
 Ex<> removeFile(const FilePath &);
+Ex<> renameFile(const FilePath &src, const FilePath &dst);
 
 FilePath executablePath();
 

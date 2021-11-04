@@ -322,6 +322,14 @@ Ex<> removeFile(const FilePath &path) {
 	return {};
 }
 
+Ex<> renameFile(const FilePath &src, const FilePath &dst) {
+	auto ret = std::rename(src.c_str(), dst.c_str());
+	if(ret != 0)
+		return FWK_ERROR("Cannot rename/move file: \"%s\" to: \"%s\" error: %s\n", src.c_str(),
+						 dst.c_str(), strerror(errno));
+	return {};
+}
+
 vector<string> findFiles(const string &prefix, const string &suffix) {
 	auto abs_path = FilePath(prefix).absolute();
 	if(!abs_path)
