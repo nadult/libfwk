@@ -116,7 +116,8 @@ vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCR
 
 	vector<InputEvent> out;
 	for(const auto &event : events) {
-		if(event.isMouseEvent() && (!o_config.rot_filter || (*o_config.rot_filter)(event)))
+		if(event.isMouseEvent() &&
+		   (!o_config.rotation_filter || (*o_config.rotation_filter)(event)))
 			rot = float2(event.mouseMove());
 
 		if(isOneOf(event.key(), 'a', 'd', 'w', 's', 'r', 'f')) {
@@ -140,7 +141,7 @@ vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCR
 
 	float move_speed = moveSpeed();
 	move = vclamp(move, float2(-1.0f), float2(1.0f)) * m_time_diff * move_speed;
-	rot *= m_time_diff;
+	rot *= o_config.rotation_speed;
 	zoom = clamp(zoom, -1.0f, 1.0f) * 0.1f * move_speed + mouse_zoom * 0.2f;
 
 	CameraVariant new_cam = m_impl->target;

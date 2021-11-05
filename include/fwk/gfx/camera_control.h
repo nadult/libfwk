@@ -31,12 +31,13 @@ class CameraControl {
 	struct Config {
 		Config() = default;
 
-		FWK_ORDER_BY(Config, params, move_multiplier, shift_move_speed, rot_filter);
+		FWK_ORDER_BY(Config, params, move_multiplier, shift_move_speed, rotation_filter);
 
 		CameraParams params;
 		float move_multiplier = 1.0f;
 		float shift_move_speed = 2.0f;
-		Maybe<InputFilter> rot_filter = none;
+		float rotation_speed = 1.0 / 60.0;
+		Maybe<InputFilter> rotation_filter = none;
 	};
 	Config o_config;
 

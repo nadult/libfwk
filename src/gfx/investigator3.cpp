@@ -72,7 +72,7 @@ Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorOp
 		m_cam_control->setTarget(*fpp_cam);
 	m_cam_control->finishAnim();
 
-	m_cam_control->o_config.rot_filter = [](const InputEvent &ev) {
+	m_cam_control->o_config.rotation_filter = [](const InputEvent &ev) {
 		return ev.mouseButtonPressed(InputButton::right);
 	};
 	m_cam_control->o_config.move_multiplier = max(m_focus.size().values()) * 0.1f;
