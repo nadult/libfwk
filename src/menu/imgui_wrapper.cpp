@@ -3,8 +3,8 @@
 
 #include "fwk/menu/imgui_wrapper.h"
 
+#include "fwk/any_config.h"
 #include "fwk/gfx/gl_device.h"
-#include "fwk/io/xml.h"
 #include "fwk/menu_imgui_internal.h"
 #include "fwk/sys/input.h"
 
@@ -34,7 +34,7 @@ ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiStyleMode style_mode) {
 		0x0020, 0x00FF, // Basic Latin + Latin Supplement
 		0x0100, 0x017F, // Latin Extended-A
 		0x0180, 0x024F, // Latin Extended-B
-		0x370,  0x3FF, // Greek
+		0x370,	0x3FF, // Greek
 		0,
 	};
 
@@ -95,46 +95,18 @@ ImGuiWrapper::~ImGuiWrapper() {
 	ImGui::DestroyContext();
 }
 
-void ImGuiWrapper::saveSettings(XmlNode xnode) const {
-	auto &settings = GImGui->SettingsWindows;
-	for(auto &elem : settings) {
-		auto enode = xnode.addChild("window");
-		enode("name") = enode.own(elem.GetName());
-		elem.GetName();
-		enode("pos") = short2(elem.Pos.x, elem.Pos.y);
-		enode("size") = short2(elem.Size.x, elem.Size.y);
-		enode("collapsed", false) = elem.Collapsed;
-	}
-	xnode("hide", false) = o_hide_menu;
+AnyConfig ImGuiWrapper::config() const {
+	AnyConfig out;
+	string settings = ImGui::SaveIniSettingsToMemory();
+	out.set("settings", settings);
+	out.set("hide", o_hide_menu);
+	return out;
 }
 
-void ImGuiWrapper::loadSettings(CXmlNode xnode) {
-	auto &settings = GImGui->SettingsWindows;
-	settings.clear();
-	auto enode = xnode.child("window");
-	while(enode) {
-		auto name = enode.attrib("name");
-		bool found = false;
-		for(auto &elem : settings)
-			if(elem.GetName() == name)
-				found = true;
-		if(!found) {
-			auto pos = enode.attrib<short2>("pos");
-			auto size = enode.attrib<short2>("size");
-			auto name = enode.attrib("name");
-			bool collapsed = xnode.attrib("collapsed", false);
-			if(!exceptionRaised()) {
-				auto *elem = ImGui::CreateNewWindowSettings(name.c_str());
-				elem->Pos = {pos.x, pos.y};
-				elem->Size = {pos.x, pos.y};
-				elem->Collapsed = collapsed;
-			} else {
-				printExceptions();
-			}
-		}
-		enode.next();
-	}
-	o_hide_menu = xnode.attrib("hide", false);
+void ImGuiWrapper::setConfig(const AnyConfig &config) {
+	if(auto *settings = config.get<string>("settings"))
+		ImGui::LoadIniSettingsFromMemory(settings->c_str(), settings->size());
+	o_hide_menu = config.get("hide", false);
 }
 
 void ImGuiWrapper::addProcess(ProcessFunc func, void *arg) { m_procs.emplace_back(func, arg); }

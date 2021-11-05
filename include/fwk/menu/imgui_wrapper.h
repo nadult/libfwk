@@ -28,8 +28,8 @@ class ImGuiWrapper {
 	vector<InputEvent> finishFrame(GlDevice &);
 	void drawFrame(GlDevice &);
 
-	void saveSettings(XmlNode) const;
-	void loadSettings(CXmlNode) NOEXCEPT;
+	AnyConfig config() const;
+	void setConfig(const AnyConfig &);
 
 	using ProcessFunc = void (*)(void *);
 	void addProcess(ProcessFunc, void *arg);

@@ -738,6 +738,7 @@ AnyConfig Analyzer::config() const {
 }
 
 void Analyzer::setConfig(const AnyConfig &config) {
+	// TODO: validity check
 	if(auto rect = config.get<IRect>("window_rect"))
 		setMenuRect(*rect);
 	if(auto nodes = config.get<vector<u64>>("opened_nodes"))
