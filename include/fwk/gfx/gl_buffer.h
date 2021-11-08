@@ -50,7 +50,7 @@ class GlBuffer {
 	}
 
 	void upload(CSpan<char>);
-	void download(Span<char>) const;
+	void download(Span<char>, i64 offset = 0) const;
 	void invalidate();
 
 	void clear(GlFormat, int value);
@@ -61,18 +61,19 @@ class GlBuffer {
 		upload<T>(cspan(data));
 	}
 
-	template <class T> void download(Span<T> data) const {
-		download(data.template reinterpret<char>());
+	template <class T> void download(Span<T> data, i64 offset) const {
+		download(data.template reinterpret<char>(), offset * sizeof(T));
 	}
 
 	void copyTo(PBuffer target, int read_offset, int write_offset, int size) const;
 
 	template <class T> vector<T> download() const { return download<T>(m_size / sizeof(T)); }
 
-	template <class T> vector<T> download(int count) const {
-		DASSERT(count >= 0 && count <= int(m_size / sizeof(T)));
+	template <class T> vector<T> download(i64 count, i64 offset = 0) const {
+		DASSERT(offset >= 0 && count >= 0);
+		DASSERT(count + offset <= i64(m_size / sizeof(T)));
 		PodVector<T> out(count);
-		download<T>(out);
+		download<T>(out, offset);
 		vector<T> vout;
 		out.unsafeSwap(vout);
 		return vout;

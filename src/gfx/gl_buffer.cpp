@@ -95,10 +95,10 @@ void GlBuffer::upload(CSpan<char> data) {
 	m_size = data.size();
 }
 
-void GlBuffer::download(Span<char> data) const {
-	DASSERT(data.size() <= m_size);
+void GlBuffer::download(Span<char> data, i64 offset) const {
+	DASSERT(offset >= 0 && offset + data.size() <= m_size);
 	bind();
-	glGetBufferSubData(s_types[m_type], 0, data.size(), data.data());
+	glGetBufferSubData(s_types[m_type], offset, data.size(), data.data());
 }
 
 // TODO: range class for GBuffer ? add option to fill with floats as well
