@@ -43,7 +43,7 @@ Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorOp
 		RenderList temp(IRect(GlDevice::instance().windowSize()), Matrix4::identity());
 		Visualizer3 vis(1.0f);
 		m_vis_func(vis, double2());
-		temp.add(vis.drawCalls(false));
+		temp.add(vis.drawCalls(true));
 
 		FBox sum;
 		bool first = false;
