@@ -61,9 +61,8 @@ int main(int argc, char **argv) {
 	int2 res(800, 600);
 
 	GlDevice gl_device;
-	auto flags = GlDeviceOpt::multisampling | GlDeviceOpt::resizable | GlDeviceOpt::vsync |
-				 GlDeviceOpt::opengl_debug_handler;
-	gl_device.createWindow("foo", res, flags);
+	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync | GlDeviceOpt::opengl_debug_handler;
+	gl_device.createWindow("foo", res, {flags});
 
 	print("OpenGL info:\n%\n", gl_info->toString());
 

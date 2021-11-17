@@ -23,22 +23,30 @@ struct DebugFlagsCheck {
 #endif
 };
 
-DEFINE_ENUM(GlDeviceOpt, multisampling, fullscreen, fullscreen_desktop, resizable, centered, vsync,
-			maximized, opengl_debug_handler, full_debug);
+DEFINE_ENUM(GlDeviceOpt, fullscreen, fullscreen_desktop, resizable, centered, vsync, maximized,
+			opengl_debug_handler, full_debug);
 using GlDeviceFlags = EnumFlags<GlDeviceOpt>;
+
+struct GlDeviceConfig {
+	GlDeviceFlags flags;
+	GlProfile profile = GlProfile::core;
+	double version = 3.1;
+	Maybe<int> multisampling = none;
+};
 
 class GlDevice {
   public:
 	GlDevice(DebugFlagsCheck = {});
 	~GlDevice();
 
-	static bool isPresent();
-	static GlDevice &instance();
 	using Opt = GlDeviceOpt;
 	using Flags = GlDeviceFlags;
+	using Config = GlDeviceConfig;
 
-	void createWindow(const string &name, const int2 &size, Flags,
-					  GlProfile profile = GlProfile::core, double gl_version = 3.1);
+	static bool isPresent();
+	static GlDevice &instance();
+
+	void createWindow(const string &name, const int2 &size, Config = {});
 	void destroyWindow();
 	void printDeviceInfo();
 
@@ -52,8 +60,10 @@ class GlDevice {
 	IRect windowRect() const;
 	EnumMap<RectSide, int> windowBorder() const;
 
+	// Only accepted: none, fullscreen or fullscreen_desktop
 	void setWindowFullscreen(Flags);
 	Flags windowFlags() const;
+
 	bool isWindowFullscreen() const {
 		return windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop);
 	}

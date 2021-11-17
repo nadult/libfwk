@@ -424,8 +424,10 @@ int main(int argc, char **argv) {
 	}
 
 	GlDevice gfx_device;
-	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::multisampling | GlDeviceOpt::vsync;
-	gfx_device.createWindow("libfwk::model_viewer", resolution, flags);
+	GlDeviceConfig gl_config;
+	gl_config.flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync;
+	gl_config.multisampling = 4;
+	gfx_device.createWindow("libfwk::model_viewer", resolution, gl_config);
 
 	double init_time = getTime();
 	Viewer viewer(files);

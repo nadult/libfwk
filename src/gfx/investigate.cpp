@@ -18,8 +18,8 @@ static Dynamic<GlDevice> spawnGlDevice() {
 		return {};
 	Dynamic<GlDevice> device;
 	device.emplace();
-	device->createWindow("Frontier v0.04", int2(1024, 768),
-						 GlDeviceOpt::resizable | GlDeviceOpt::vsync);
+	device->createWindow("libfwk investigator", int2(1024, 768),
+						 {GlDeviceOpt::resizable | GlDeviceOpt::vsync});
 	return device;
 }
 

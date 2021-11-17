@@ -60,10 +60,9 @@ struct GlDevice::InputImpl {
 
 struct GlDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
-			   double ogl_ver)
-		: flags(flags) {
+	WindowImpl(const string &name, const int2 &size, GlDeviceConfig config) : config(config) {
 		int sdl_flags = SDL_WINDOW_OPENGL;
+		auto flags = config.flags;
 		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
 
 		int pos_x = 20, pos_y = 50;
@@ -79,16 +78,18 @@ struct GlDevice::WindowImpl {
 		}
 		if(flags & Opt::centered)
 			pos_x = pos_y = SDL_WINDOWPOS_CENTERED;
-		if(flags & Opt::multisampling) {
+		if(config.multisampling) {
+			DASSERT(*config.multisampling >= 1 && *config.multisampling <= 64);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, *config.multisampling);
 		}
 
-		int ver_major = int(ogl_ver);
-		int ver_minor = int((ogl_ver - float(ver_major)) * 10.0);
-		int profile = gl_profile == GlProfile::compatibility ? SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
-					  : gl_profile == GlProfile::es			 ? SDL_GL_CONTEXT_PROFILE_ES
-															 : SDL_GL_CONTEXT_PROFILE_CORE;
+		int ver_major = int(config.version);
+		int ver_minor = int((config.version - float(ver_major)) * 10.0);
+		int profile = config.profile == GlProfile::compatibility
+						  ? SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
+					  : config.profile == GlProfile::es ? SDL_GL_CONTEXT_PROFILE_ES
+														: SDL_GL_CONTEXT_PROFILE_CORE;
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, ver_major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, ver_minor);
@@ -112,7 +113,7 @@ struct GlDevice::WindowImpl {
 	SDL_Window *window;
 	SDL_GLContext gl_context;
 	HashMap<string, PProgram> program_cache;
-	Flags flags;
+	GlDeviceConfig config;
 };
 
 GlDevice::GlDevice(DebugFlagsCheck check) {
@@ -140,26 +141,24 @@ GlDevice::~GlDevice() {
 	SDL_Quit();
 }
 
-void GlDevice::createWindow(const string &name, const int2 &size, Flags flags, GlProfile gl_profile,
-							double ogl_ver) {
+void GlDevice::createWindow(const string &name, const int2 &size, Config config) {
 #ifdef FWK_PLATFORM_HTML
-	if(gl_profile != GlProfile::es) {
-		gl_profile = GlProfile::es;
-		ogl_ver = 3;
+	if(config.profile != GlProfile::es) {
+		config.profile = GlProfile::es;
+		config.version = 3;
 	}
 #endif
 
 	assertGlThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
-	m_window_impl = {name, size, flags, gl_profile, ogl_ver};
+	m_window_impl = {name, size, config};
 
-	SDL_GL_SetSwapInterval(flags & Opt::vsync ? -1 : 0);
-	initializeGl(gl_profile);
+	SDL_GL_SetSwapInterval(config.flags & Opt::vsync ? -1 : 0);
+	initializeGl(config.profile);
 	initializeGlProgramFuncs();
-	if(flags & Opt::full_debug)
+	if(config.flags & Opt::full_debug)
 		gl_debug_flags = all<GlDebug>;
-
-	if(flags & Opt::opengl_debug_handler)
+	if(config.flags & Opt::opengl_debug_handler)
 		installGlDebugHandler();
 }
 
@@ -200,20 +199,20 @@ EnumMap<RectSide, int> GlDevice::windowBorder() const {
 }
 
 void GlDevice::setWindowFullscreen(Flags flags) {
-	DASSERT(!flags || flags == Opt::fullscreen || flags == Opt::fullscreen_desktop);
+	DASSERT(!flags || isOneOf(flags, Opt::fullscreen, Opt::fullscreen_desktop));
 
 	if(m_window_impl) {
-		uint sdl_flags = flags & Opt::fullscreen		   ? SDL_WINDOW_FULLSCREEN
-						 : flags & Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP
-														   : 0;
+		uint sdl_flags = flags == Opt::fullscreen			? SDL_WINDOW_FULLSCREEN
+						 : flags == Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP
+															: 0;
 		SDL_SetWindowFullscreen(m_window_impl->window, sdl_flags);
 		auto mask = Opt::fullscreen | Opt::fullscreen_desktop;
-		m_window_impl->flags = (m_window_impl->flags & ~mask) | (mask & flags);
+		m_window_impl->config.flags = (m_window_impl->config.flags & ~mask) | (mask & flags);
 	}
 }
 
 auto GlDevice::windowFlags() const -> Flags {
-	return m_window_impl ? m_window_impl->flags : Flags();
+	return m_window_impl ? m_window_impl->config.flags : Flags();
 }
 
 int2 GlDevice::windowSize() const {
