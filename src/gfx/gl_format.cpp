@@ -153,6 +153,8 @@ int imageSize(GlFormat format, int width, int height) {
 	return width * height * bytesPerPixel(format);
 }
 int imageRowSize(GlFormat format, int width) {
-	return ((width + 3) / 4) * compressedBlockSize(format);
+	if(isCompressed(format))
+		return ((width + 3) / 4) * compressedBlockSize(format);
+	return width * bytesPerPixel(format);
 }
 }
