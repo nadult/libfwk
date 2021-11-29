@@ -1,7 +1,9 @@
 # Options:
 #   All the options from Makefile-shared are available except FWK_MODE
-#   SPLIT_MODULES:   normally modules composed of multiple .cpp files are built together; this
-#                    option forces separate compilation for each .cpp file
+#   FWK_MERGE_MODULES: modules composed of multiple .cpp files are built together; this improves
+#                      whole builds (but incremental builds are slower).
+#                      When changing this option you might have to remove libfwk.a, otherwise you could
+#                      get multiple defined symbols error.
 
 # Special targets:
 #  All targets from Makefile-shared are also available
@@ -26,7 +28,7 @@ include Makefile-shared
 
 SUBDIRS        = build tests tools lib temp
 BUILD_SUBDIRS  = tests tools
-ifdef SPLIT_MODULES
+ifndef FWK_MERGE_MODULES
 BUILD_SUBDIRS += gfx audio math sys io tests tools menu perf geom
 endif
 
@@ -126,8 +128,8 @@ SHARED_OBJECTS := $(SRC_shared:%=$(FWK_BUILD_DIR)/%.o)
 MERGED_OBJECTS := $(SRC_merged:%=$(FWK_BUILD_DIR)/%.o)
 OBJECTS        := $(SHARED_OBJECTS) $(SRC_programs:%=$(FWK_BUILD_DIR)/%.o)
 
-INPUT_OBJECTS  := $(if $(SPLIT_MODULES),$(SHARED_OBJECTS),$(MERGED_OBJECTS))
-INPUT_SRCS     := $(if $(SPLIT_MODULES),$(CPP_shared),$(CPP_merged))
+INPUT_OBJECTS  := $(if $(FWK_MERGE_MODULES),$(MERGED_OBJECTS),$(SHARED_OBJECTS))
+INPUT_SRCS     := $(if $(FWK_MERGE_MODULES),$(CPP_merged),$(CPP_shared))
 
 PROGRAMS       := $(SRC_programs:%=%$(PROGRAM_SUFFIX))
 

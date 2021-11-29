@@ -83,7 +83,7 @@ FWK_BUILD_DIR        := $(FWK_DIR)build/$(PLATFORM_PREFIX)$(FWK_MODE)
 FWK_LIB_NAME         := fwk_$(PLATFORM_PREFIX)$(FWK_MODE)
 FWK_LIB_FILE         := $(FWK_DIR)lib/lib$(FWK_LIB_NAME).a
 
-export FWK_GEOM      := enabled
+export FWK_GEOM      ?= enabled
 export FWK_IMGUI     := $(if $(wildcard $(FWK_DIR)extern/imgui/imgui.h),enabled,disabled)
 ifeq ($(PLATFORM), linux)
 export FWK_DWARF  := $(if $(wildcard /usr/include/libdwarf/libdwarf.h),enabled, disabled)
@@ -165,7 +165,7 @@ ifdef BUILD_DIR
 
 CONFIG_FILE    := $(BUILD_DIR)/make_config.txt
 
-CONFIG_STRING  := COMPILER=$(COMPILER):ADD_CFLAGS=$(ADD_CFLAGS):FWK_GEOM=$(FWK_GEOM):FWK_IMGUI=$(FWK_IMGUI):FWK_DWARF=$(FWK_DWARF):SPLIT_MODULES=$(SPLIT_MODULES)
+CONFIG_STRING  := COMPILER=$(COMPILER):ADD_CFLAGS=$(ADD_CFLAGS):FWK_GEOM=$(FWK_GEOM):FWK_IMGUI=$(FWK_IMGUI):FWK_DWARF=$(FWK_DWARF)
 ifneq ($(wildcard $(CONFIG_FILE)),)
 CONFIG_CURRENT := $(shell cat $(CONFIG_FILE))
 endif
