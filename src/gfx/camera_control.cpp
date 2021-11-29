@@ -139,10 +139,10 @@ vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCR
 
 	m_fast_mode = lshift;
 
-	float move_speed = moveSpeed();
-	move = vclamp(move, float2(-1.0f), float2(1.0f)) * m_time_diff * move_speed;
+	float move_speed = moveSpeed() * m_time_diff;
+	move = vclamp(move, float2(-1.0f), float2(1.0f)) * move_speed;
+	zoom = clamp(zoom, -1.0f, 1.0f) * 3.0 * move_speed + mouse_zoom * 0.2f;
 	rot *= o_config.rotation_speed;
-	zoom = clamp(zoom, -1.0f, 1.0f) * 0.1f * move_speed + mouse_zoom * 0.2f;
 
 	CameraVariant new_cam = m_impl->target;
 	new_cam.visit([&](auto &cam) { cam.move(move, rot, zoom); });
