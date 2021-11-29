@@ -10,8 +10,9 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
+- strange bug with PASSERT in perf/analyzer.cpp:327 firing
 - problem when drawing IRects in Renderer2D: bottom left corner is invisible
-- limit storeg frames in perf manager
+- limit stored frames in perf manager
 - RMB & MMB does not work in perf analyzer
 - Jest jakiś dziwny problem w trans rendererze: jak próbuję przechować dane buforów z jednej klatki do drugiej,
   to chyba są zamazywane; Cholera go wie czemu

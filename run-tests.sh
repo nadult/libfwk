@@ -1,5 +1,5 @@
 set -e
-make -j8 MODE=release
+make -j16 MODE=release
 cd tests
 ./stuff
 ./math

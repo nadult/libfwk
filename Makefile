@@ -62,7 +62,7 @@ SRC_gfx = \
 	gfx/camera gfx/fpp_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
 	gfx/color gfx/font gfx/font_factory gfx/colored_triangle gfx/colored_quad gfx/material \
 	gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer \
-	gfx/image gfx/image_stbi gfx/image_stbir gfx/image_tga gfx/compressed_image gfx/float_image \
+	gfx/image gfx/image_stbir gfx/image_tga gfx/compressed_image gfx/float_image \
 	gfx/material_set gfx/matrix_stack gfx/draw_call \
 	gfx/visualizer2 gfx/visualizer3 gfx/investigate gfx/investigator2 gfx/investigator3 \
 	gfx/shader_debug gfx/shader_defs gfx/shader_combiner
@@ -76,6 +76,9 @@ SRC_gfx_gl = \
 	gfx/gl_format gfx/gl_query  gfx/gl_buffer gfx/gl_vertex_array gfx/gl_program \
 	gfx/render_list gfx/renderer2d gfx/opengl
 
+SRC_gfx_stbi = \
+	gfx/image_stbi
+
 SRC_audio = audio/al_device audio/sound audio/ogg_stream
 
 ifeq ($(FWK_GEOM), enabled)
@@ -85,7 +88,10 @@ SRC_geom_voronoi = geom/voronoi geom/wide_int geom/voronoi_constructor geom/dela
 endif
 
 ifeq ($(FWK_IMGUI), enabled)
-SRC_menu_imgui = menu/imgui_code
+SRC_menu_imgui1 = menu/imgui_base
+SRC_menu_imgui2 = menu/imgui_draw
+SRC_menu_imgui3 = menu/imgui_widgets menu/imgui_tables
+SRC_menu_imgui4 = menu/imgui_demo
 SRC_menu = menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper perf/analyzer
 endif
 
@@ -104,7 +110,8 @@ endif
 WEBGL_PROGRAMS := tests/window tools/model_viewer
 SRC_programs    = $(SRC_tests) $(SRC_tools)
 
-MODULES = menu_imgui base sys gfx gfx_gl gfx_mesh math geom geom_graph geom_voronoi menu perf audio
+MODULES = menu_imgui1 menu_imgui2 menu_imgui3 menu_imgui4 base sys gfx gfx_gl gfx_mesh gfx_stbi \
+		  math geom geom_graph geom_voronoi menu perf audio
 
 # --- Definitions ---------------------------------------------------------------------------------
 
@@ -128,7 +135,6 @@ ifeq ($(PLATFORM), html)
 PROGRAMS_JUNK  := $(SRC_programs:%=%.wasm) $(SRC_programs:%=%.js)
 LDFLAGS        += -s TOTAL_MEMORY=256MB --preload-file data/ #TODO: load only font
 endif
-
 
 lib:   $(FWK_LIB_FILE)
 tools: $(SRC_tools:%=%$(PROGRAM_SUFFIX))

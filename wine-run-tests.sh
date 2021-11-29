@@ -1,5 +1,5 @@
 set -e
-make -j8 PLATFORM=mingw MODE=release
+make -j16 PLATFORM=mingw MODE=release
 cd tests
 wine ./stuff.exe
 wine ./math.exe
