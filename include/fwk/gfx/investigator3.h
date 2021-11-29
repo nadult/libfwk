@@ -24,13 +24,20 @@
 // - investigator nie bierze shared configu z cameracontrol, ale co najwyżej zwykły config
 
 namespace fwk {
+
 class Investigator3 {
   public:
 	using VisFunc = VisFunc3;
 	using Opt = InvestigatorOpt;
 	using CamVariant = CameraVariant;
 
-	Investigator3(VisFunc, Maybe<DBox>, InvestigatorOpts, MaybeCRef<CamVariant> = none);
+	struct Config {
+		Maybe<DBox> focus = none;
+		MaybeCRef<CamVariant> camera = none;
+		float move_speed_multiplier = 1.0;
+	};
+
+	Investigator3(VisFunc, InvestigatorOpts, Config);
 	~Investigator3();
 
 	void run();

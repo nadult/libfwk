@@ -33,7 +33,7 @@ void investigate(VisFunc2 vis_func, Maybe<DRect> focus, InvestigatorOpts flags) 
 void investigate(VisFunc3 vis_func, Maybe<DBox> focus, InvestigatorOpts flags) {
 	PERF_SCOPE();
 	auto device = spawnGlDevice();
-	Investigator3 sherlock(vis_func, focus, flags);
+	Investigator3 sherlock(vis_func, flags, {focus});
 	sherlock.run();
 }
 

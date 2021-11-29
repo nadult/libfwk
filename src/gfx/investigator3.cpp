@@ -24,8 +24,7 @@
 
 namespace fwk {
 
-Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorOpts flags,
-							 MaybeCRef<CamVariant> cam)
+Investigator3::Investigator3(VisFunc vis_func, InvestigatorOpts flags, Config config)
 	: m_vis_func(vis_func), m_opts(flags) {
 	assertGlThread();
 
@@ -38,7 +37,7 @@ Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorOp
 	auto new_viewport = IRect(GlDevice::instance().windowSize());
 	Plane3F base_plane{{0, 1, 0}, {0, 1.5f, 0}};
 
-	if(!focus) {
+	if(!config.focus) {
 		// TODO: RenderList is not necessary here
 		RenderList temp(IRect(GlDevice::instance().windowSize()), Matrix4::identity());
 		Visualizer3 vis(1.0f);
@@ -56,19 +55,19 @@ Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorOp
 
 		auto size = vmax(float3(1), sum.size());
 		sum = {sum.center() - size * 0.5f, sum.center() + size * 0.5f};
-		focus = DBox(sum);
+		config.focus = DBox(sum);
 	}
-	m_focus = *focus;
+	m_focus = *config.focus;
 
-	if(!cam)
-		cam = defaultCamera();
+
 
 	m_cam_control = {base_plane};
 	m_cam_control->o_config.params.viewport = new_viewport;
 
-	if(const OrbitingCamera *orb_cam = *cam)
+	CamVariant camera = config.camera? *config.camera : defaultCamera();
+	if(const OrbitingCamera *orb_cam = camera)
 		m_cam_control->setTarget(*orb_cam);
-	else if(const FppCamera *fpp_cam = *cam)
+	else if(const FppCamera *fpp_cam = camera)
 		m_cam_control->setTarget(*fpp_cam);
 	m_cam_control->finishAnim();
 
@@ -76,6 +75,7 @@ Investigator3::Investigator3(VisFunc vis_func, Maybe<DBox> focus, InvestigatorOp
 		return ev.mouseButtonPressed(InputButton::right);
 	};
 	m_cam_control->o_config.move_multiplier = max(m_focus.size().values()) * 0.1f;
+	m_cam_control->o_config.move_multiplier *= config.move_speed_multiplier;
 	m_cam_control->o_config.params.depth = {0.125f, 1024.0f};
 }
 
