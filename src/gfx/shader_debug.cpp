@@ -34,6 +34,7 @@ string shaderDebugDefs(bool enable) {
 		fmt("    debug_logs[log_id * 6 + 5] = v4; \\\n");
 		fmt("} }\n");
 		fmt("#define RECORD(v1, v2, v3, v4) RECORD_(__LINE__, v1, v2, v3, v4)\n");
+		fmt("#define SHADER_DEBUG\n");
 	} else {
 		fmt("#define RECORD(v1, v2, v3, v4) {}\n");
 	}
