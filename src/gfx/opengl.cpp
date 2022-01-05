@@ -132,6 +132,7 @@ void initializeGl(GlProfile profile) {
 			ogl_ext += 3;
 		s_info.extensions.emplace_back(ogl_ext);
 	}
+	makeSorted(s_info.extensions);
 #endif
 
 	for(auto limit : all<GlLimit>)
@@ -179,6 +180,8 @@ void initializeGl(GlProfile profile) {
 		s_info.features |= Feature::texture_s3tc;
 	if(s_info.hasExtension("EXT_texture_filter_anisotropic"))
 		s_info.features |= Feature::texture_filter_anisotropic;
+	if(s_info.hasExtension("KHR_shader_subgroup"))
+		s_info.features |= Feature::shader_subgroup;
 }
 
 void loadExtensions() {
