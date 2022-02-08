@@ -22,7 +22,7 @@ static constexpr int delaunay_integral_resolution = 512 * 1024 * 1024;
 template <class T> double delaunayIntegralScale(CSpan<T>);
 
 vector<VertexIdPair> delaunay(SparseSpan<int2>);
-template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T>);
+template <c_vec<2> T> Ex<vector<VertexIdPair>> delaunay(CSpan<T>);
 
 // Warning: you have to be careful with this function:
 // Voronoi removes degenerate edges, which may cause
@@ -31,7 +31,7 @@ vector<VertexIdPair> delaunay(const Voronoi &);
 
 vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &,
 										 CSpan<VertexIdPair> delaunay = {});
-template <class T, EnableIfVec<T, 2>...>
+template <c_vec<2> T>
 Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<T> &,
 											 CSpan<VertexIdPair> delaunay = {});
 
@@ -46,6 +46,6 @@ vector<array<int, 3>> delaunayTriangles(const GeomGraph<int2> &, CSpan<VertexIdP
 										CSpan<VertexIdPair> filter, bool ccw_side,
 										bool invert_filter);
 
-template <class T, EnableIfFptVec<T, 2>...>
+template <c_float_vec<2> T>
 vector<Segment<T>> delaunaySegments(CSpan<VertexIdPair>, const GeomGraph<T> &);
 }

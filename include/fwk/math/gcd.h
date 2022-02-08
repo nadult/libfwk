@@ -16,7 +16,8 @@ qint gcd(qint, qint);
 // Returns pairs: (prime, power)
 template <class T> vector<Pair<T, int>> extractPrimes(T);
 
-template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfIntegral<T>...>
+template <c_range TRange, class T = RemoveConst<RangeBase<TRange>>>
+	requires(c_integral<T>)
 T gcd(const TRange &range) {
 	if(empty(range))
 		return 0;
@@ -29,7 +30,7 @@ T gcd(const TRange &range) {
 	return out;
 }
 
-template <class T, EnableIfIntegral<T>...> T gcdEuclid(T a, T b) {
+template <c_integral T> T gcdEuclid(T a, T b) {
 	while(true) {
 		if(a == T(0))
 			return b;

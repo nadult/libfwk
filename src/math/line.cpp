@@ -8,7 +8,7 @@
 
 namespace fwk {
 
-#define TEMPLATE template <class TVec>
+#define TEMPLATE template <c_vec TVec>
 #define TLINE Line<TVec>
 
 // TODO: in case of floating-points accuracy can be improved

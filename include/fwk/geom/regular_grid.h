@@ -8,7 +8,7 @@
 
 namespace fwk {
 
-template <class T, EnableIfVec<T, 2>...> array<T, 9> nearby9Cells(T pos) {
+template <c_vec<2> T> array<T, 9> nearby9Cells(T pos) {
 	return array<T, 9>{{pos, pos + T(1, 0), pos + T(1, 1), pos + T(0, 1), pos + T(-1, 1),
 						pos + T(-1, 0), pos + T(-1, -1), pos + T(0, -1), pos + T(1, -1)}};
 }
@@ -16,11 +16,8 @@ template <class T, EnableIfVec<T, 2>...> array<T, 9> nearby9Cells(T pos) {
 // There are 3 spaces here (world, grid and cell)
 // grid and cell are the same, but cell is rounded to ints
 // TODO: explain it better
-template <class T, class IT> class RegularGrid {
+template <c_vec<2> T, c_integral_vec<2> IT> class RegularGrid {
   public:
-	static_assert(is_vec<T, 2>, "");
-	static_assert(is_integral<Base<IT>> && is_vec<IT, 2>, "");
-
 	using Vector = T;
 	using Scalar = fwk::Scalar<T>;
 	using IScalar = fwk::Scalar<IT>;
@@ -40,9 +37,10 @@ template <class T, class IT> class RegularGrid {
 
 	// TODO: world -> real
 	T toWorld(T grid_pos) const { return grid_pos * m_cell_size + m_offset; }
-	template <class U = T, EnableIf<!is_same<U, IT>>...> T toWorld(IT cell_pos) const {
-		return toWorld(T(cell_pos));
-	}
+	template <class U = T>
+		requires(!is_same<U, IT>)
+	T toWorld(IT cell_pos)
+	const { return toWorld(T(cell_pos)); }
 
 	//TODO: option to operate on powers-of two only? (shifts instead of mul & div)
 
@@ -50,9 +48,10 @@ template <class T, class IT> class RegularGrid {
 	Rect toWorld(Rect grid_rect) const {
 		return {toWorld(grid_rect.min()), toWorld(grid_rect.max())};
 	}
-	template <class U = T, EnableIf<!is_same<U, IT>>...> Rect toWorld(IRect cell_rect) const {
-		return {toWorld(cell_rect.min()), toWorld(cell_rect.max())};
-	}
+	template <class U = T>
+		requires(!is_same<U, IT>)
+	Rect toWorld(IRect cell_rect)
+	const { return {toWorld(cell_rect.min()), toWorld(cell_rect.max())}; }
 
 	Rect toWorldRect(IT cell_pos) const { return toWorld(IRect(cell_pos, cell_pos + IT(1))); }
 
@@ -82,7 +81,7 @@ template <class T, class IT> class RegularGrid {
 		return (world_pos - m_offset) - T(cell_pos) * m_cell_size;
 	}
 
-	template <class U = T, EnableIfFptVec<U>...> static pair<IT, T> cellRemainder(T grid_pos) {
+	template <c_float_vec<2> U = T> static pair<IT, T> cellRemainder(T grid_pos) {
 		IT cell_pos(vfloor(grid_pos));
 		T remainder(grid_pos.x - cell_pos.x, grid_pos.y - cell_pos.y);
 		return {cell_pos, remainder};

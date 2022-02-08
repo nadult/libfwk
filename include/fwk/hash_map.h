@@ -192,7 +192,7 @@ template <class K, class V, class Policy> class HashMap {
 	auto emplace(const KeyValue &pair) { return emplace(pair.key, pair.value); }
 	auto emplace(const Pair<Key, Value> &pair) { return emplace(pair.first, pair.second); }
 
-	template <class... Args> Pair<Iter, bool> emplace(const Key &key, Args &&... args) {
+	template <class... Args> Pair<Iter, bool> emplace(const Key &key, Args &&...args) {
 		if(m_num_used >= m_used_limit)
 			grow();
 

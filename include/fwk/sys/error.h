@@ -47,11 +47,11 @@ struct Error {
 	static Error merge(vector<Error>);
 
 	// TODO: remove these ?
-	template <class... T, EnableIfFormattible<T...>...>
-	Error(ErrorLoc loc, const char *fmt, T &&... args)
+	template <c_formattible... T>
+	Error(ErrorLoc loc, const char *fmt, T &&...args)
 		: Error(loc, format(fmt, std::forward<T>(args)...)) {}
-	template <class... T, EnableIfFormattible<T...>...>
-	Error(const char *fmt, T &&... args)
+	template <c_formattible... T>
+	Error(const char *fmt, T &&...args)
 		: Error(ErrorLoc(), format(fmt, std::forward<T>(args)...)) {}
 
 	Error(Chunk, Backtrace = {});

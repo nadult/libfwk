@@ -69,10 +69,8 @@ template <class T> class Box {
 	Box(const Box &) = default;
 	Box &operator=(const Box &) = default;
 
-	template <class U, EnableIf<precise_conversion<U, T>>...>
-	Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
-	template <class U, EnableIf<!precise_conversion<U, T>>...>
-	explicit Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
+	template <class U>
+	explicit(!precise_conversion<U, T>) Box(const Box<U> &rhs) : Box(T(rhs.min()), T(rhs.max())) {}
 
 	Scalar min(int i) const { return m_min[i]; }
 	Scalar max(int i) const { return m_max[i]; }
@@ -238,7 +236,8 @@ template <class T> class Box {
 
 template <class T> Box<T> enclose(const Box<T> &box) { return box; }
 
-template <class TRange, class T = RemoveConst<RangeBase<TRange>>, EnableIfVec<T>...>
+template <class TRange, class T = RemoveConst<RangeBase<TRange>>>
+	requires(c_vec<T>)
 Box<T> enclose(const TRange &points) {
 	if(fwk::empty(points))
 		return {};
@@ -253,7 +252,7 @@ Box<T> enclose(const TRange &points) {
 	return {tmin, tmax};
 }
 
-template <class T, EnableIfVec<T>...> auto encloseIntegral(const Box<T> &box) {
+template <c_vec T> auto encloseIntegral(const Box<T> &box) {
 	using IVec = MakeVec<int, dim<T>>;
 	T min = vfloor(box.min());
 	T max = vceil(box.max());
@@ -306,7 +305,8 @@ namespace detail {
 	};
 }
 
-template <class TRange, class T = RangeBase<TRange>, EnableIf<detail::IsEnclosable<T>::value>...>
+template <c_range TRange, class T = RangeBase<TRange>>
+	requires(detail::IsEnclosable<T>::value)
 auto encloseRange(const TRange &objects) {
 	using Box = decltype(enclose(DECLVAL(T)));
 	if(objects.empty())

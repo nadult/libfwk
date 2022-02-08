@@ -85,7 +85,7 @@ class Visualizer2 {
 	void drawCross(float2, IColor);
 	void drawVoronoi(const Voronoi &, VoronoiVis2Colors, Maybe<CellId> selection = none);
 
-	template <class T, EnableIfVec<T, 2>...> void operator()(const T &pt, VisStyle style = {}) {
+	template <c_vec<2> T> void operator()(const T &pt, VisStyle style = {}) {
 		float2 off(m_point_scale * style.pixel_offset, m_point_scale * style.pixel_offset);
 		if(style.flags & VisOpt::cross)
 			drawCross(float2(pt) + off, style.color);
@@ -93,8 +93,7 @@ class Visualizer2 {
 			drawPoint(float2(pt) + off, style.color);
 	}
 
-	template <class T, EnableIf<dim<T> == 2>...>
-	void operator()(const Segment<T> &seg, VisStyle style = {}) {
+	template <c_vec<2> T> void operator()(const Segment<T> &seg, VisStyle style = {}) {
 		float2 off(m_point_scale * style.pixel_offset, m_point_scale * style.pixel_offset);
 		if(style.flags & VisOpt::arrow)
 			drawArrow(float2(seg.from) + off, float2(seg.to) - off, style.color,
@@ -103,8 +102,7 @@ class Visualizer2 {
 			drawLine(float2(seg.from) + off, float2(seg.to) - off, style.color);
 	}
 
-	template <class TRange, EnableIfRange<TRange>...>
-	void operator()(const TRange &range, VisStyle style = {}) {
+	template <c_range TRange> void operator()(const TRange &range, VisStyle style = {}) {
 		for(auto elem : range)
 			(*this)(elem, style);
 	}

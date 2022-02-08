@@ -54,7 +54,6 @@ namespace detail {
 	Error expectMakeError(const char *, const char *, int);
 	void expectFromExceptions(Dynamic<Error> *);
 	void expectMergeExceptions(Error &);
-
 }
 
 template <class T> constexpr bool is_expected = false;
@@ -75,7 +74,7 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 		else
 			new(&m_value) T(value);
 	}
-	Expected(T && value) : m_has_value(!exceptionRaised()) {
+	Expected(T &&value) : m_has_value(!exceptionRaised()) {
 		if(exceptionRaised())
 			detail::expectFromExceptions(&m_error);
 		else
@@ -98,14 +97,14 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 		else
 			new(&m_error) Dynamic<Error>(rhs.m_error);
 	}
-	Expected(Expected && rhs) : m_has_value(rhs.m_has_value) {
+	Expected(Expected &&rhs) : m_has_value(rhs.m_has_value) {
 		if(m_has_value)
 			new(&m_value) T(move(rhs.m_value));
 		else
 			new(&m_error) Dynamic<Error>(move(rhs.m_error));
 	}
 
-	void swap(Expected & rhs) {
+	void swap(Expected &rhs) {
 		Expected temp = move(*this);
 		*this = move(rhs);
 		rhs = move(temp);
@@ -174,7 +173,7 @@ template <> class [[nodiscard]] Expected<void> {
 			detail::expectMergeExceptions(*m_error);
 	}
 
-	void swap(Expected & rhs) { fwk::swap(m_error, rhs.m_error); }
+	void swap(Expected &rhs) { fwk::swap(m_error, rhs.m_error); }
 
 	Error &error() { return DASSERT(m_error.get()), *m_error; }
 	const Error &error() const { return DASSERT(m_error.get()), *m_error; }
@@ -228,13 +227,13 @@ constexpr bool is_ex_constructible =
 // };
 // ...
 // construct<MyClass>(11);
-template <class T, class... Args, EnableIf<is_ex_constructible<T, Args...>>...>
-Ex<T> construct(Args &&... args) {
+template <class T, class... Args>
+	requires(is_ex_constructible<T, Args...>)
+Ex<T> construct(Args &&...args) {
 	T out;
 	auto result = out.exConstruct(std::forward<Args>(args)...);
 	if(!result)
 		return result.error();
 	return out;
 }
-
 }

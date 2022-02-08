@@ -8,30 +8,30 @@
 namespace fwk {
 
 // Returns true if v2 is CCW to v1
-template <class T, EnableIfVec<T, 2>...> bool ccwSide(const T &v1, const T &v2) {
+template <c_vec<2> T> bool ccwSide(const T &v1, const T &v2) {
 	return cross<Promote<T>>(v1, v2) > 0;
 }
 
-template <class T, EnableIfVec<T, 2>...> bool cwSide(const T &v1, const T &v2) {
+template <c_vec<2> T> bool cwSide(const T &v1, const T &v2) {
 	return cross<Promote<T>>(v1, v2) < 0;
 }
 
 // Returns true if (point - from) is CCW to (to - from)
-template <class T, EnableIfVec<T, 2>...> bool ccwSide(const T &from, const T &to, const T &point) {
+template <c_vec<2> T> bool ccwSide(const T &from, const T &to, const T &point) {
 	return dot<Promote<T>>(perpendicular(to - from), point - from) > 0;
 }
 
-template <class T, EnableIfVec<T, 2>...> bool cwSide(const T &from, const T &to, const T &point) {
+template <c_vec<2> T> bool cwSide(const T &from, const T &to, const T &point) {
 	return dot<Promote<T>>(perpendicular(to - from), point - from) < 0;
 }
 
-template <class TVec, EnableIfVec<TVec>...> bool sameDirection(const TVec &vec1, const TVec &vec2) {
+template <c_vec TVec> bool sameDirection(const TVec &vec1, const TVec &vec2) {
 	using PT = PromoteIntegral<TVec>;
 	using TCross = If<dim<TVec> == 2, Scalar<PT>, PT>;
 	return cross<PT>(vec1, vec2) == TCross(0) && dot<PT>(vec1, vec2) > 0;
 }
 
-template <class T, EnableIfVec<T, 2>...> int quadrant(const T &vec) {
+template <c_vec<2> T> int quadrant(const T &vec) {
 	// TODO: add sign function?
 	int quad;
 	if constexpr(is_rational<T>)
@@ -42,8 +42,8 @@ template <class T, EnableIfVec<T, 2>...> int quadrant(const T &vec) {
 }
 
 // TODO: simplify ?
-template <class T, class Func, class Result = ApplyResult<Func, int>,
-		  EnableIf<is_vec<T, 2> && is_same<Result, T>>...>
+template <c_vec<2> T, class Func, class Result = ApplyResult<Func, int>>
+	requires(is_same<Result, T>)
 int ccwNext(T vec, int count, const Func &vecs) {
 	DASSERT(count > 0);
 
@@ -76,7 +76,7 @@ int ccwNext(T vec, int count, const Func &vecs) {
 	return best;
 }
 
-template <class T, EnableIfVec<T, 2>...> int ccwNext(T vec, CSpan<T> vecs) {
+template <c_vec<2> T> int ccwNext(T vec, CSpan<T> vecs) {
 	return ccwNext(vec, vecs.size(), [=](int idx) { return vecs[idx]; });
 }
 

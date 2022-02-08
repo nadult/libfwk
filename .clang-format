@@ -16,3 +16,5 @@ NamespaceIndentation: Inner
 SpaceBeforeParens: Never
 FixNamespaceComments: false
 Standard: Cpp11
+IndentRequires: true
+BreakBeforeConceptDeclarations: false

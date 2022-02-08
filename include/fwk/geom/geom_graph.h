@@ -111,10 +111,8 @@ template <class T> class GeomGraph : public Graph {
 
 	void orderEdges(VertexId, Axes2D = {});
 
-	template <class U = T, EnableIfFptVec<U>...>
-	Ex<GeomGraph<IPoint>> toIntegral(double scale) const;
-	template <class U = T, EnableIfFptVec<U>...>
-	GeomGraph<IPoint> toIntegralWithCollapse(double scale) const;
+	template <c_float_vec U = T> Ex<GeomGraph<IPoint>> toIntegral(double scale) const;
+	template <c_float_vec U = T> GeomGraph<IPoint> toIntegralWithCollapse(double scale) const;
 
 	template <class U> Ex<GeomGraph<U>> replacePoints(PodVector<U> points) const {
 		vector<Pair<VertexId>> collapsed_verts;

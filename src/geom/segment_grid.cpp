@@ -192,14 +192,12 @@ template <class T> vector<int2> SegmentGrid<T>::traceSlow(const Segment &seg) co
 
 template <class T> int sign(T value) { return value < T(0) ? -1 : value > T(0) ? 1 : 0; }
 
-template <int axis1, class T, class S, EnableIfFptVec<T, 2>...>
-auto linePos(const T &dir, const T &start, S k) {
+template <int axis1, c_float_vec<2> T, class S> auto linePos(const T &dir, const T &start, S k) {
 	const int axis2 = 1 - axis1;
 	return start[axis2] + (dir[axis2] * (k - start[axis1])) / dir[axis1];
 }
 
-template <int axis1, class T, class S, EnableIfIntegralVec<T, 2>...>
-auto linePos(const T &dir, const T &start, S k) {
+template <int axis1, c_integral_vec<2> T, class S> auto linePos(const T &dir, const T &start, S k) {
 	const int axis2 = 1 - axis1;
 	return start[axis2] + int((llint(dir[axis2]) * llint(k - start[axis1])) / llint(dir[axis1]));
 }
@@ -244,11 +242,11 @@ template <class T> Pair<int2> SegmentGrid<T>::clipSegment(Segment seg) const {
 	return {source_pos, target_pos};
 }
 
-template <class T, EnableIfFptVec<T, 2>...> int whichSide(const T &vec1, const T &vec2) {
+template <c_float_vec<2> T> int whichSide(const T &vec1, const T &vec2) {
 	return sign(cross(vec1, vec2));
 }
 
-template <class T, EnableIfIntegralVec<T, 2>...> int whichSide(const T &vec1, const T &vec2) {
+template <c_integral_vec<2> T> int whichSide(const T &vec1, const T &vec2) {
 	static_assert(sizeof(T) < sizeof(llint2));
 	return sign(cross<llint2>(vec1, vec2));
 }

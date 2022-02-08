@@ -12,11 +12,10 @@
 
 namespace fwk {
 
-#define TEMPLATE template <class TVec>
-#define TEMPLATE_REAL TEMPLATE template <class U, EnableIfFpt<U>...>
+#define TEMPLATE template <c_vec TVec>
 #define TSEG Segment<TVec>
 
-TEMPLATE_REAL auto TSEG::asRay() const -> Maybe<Ray<T, dim>> {
+TEMPLATE template <c_float U> auto TSEG::asRay() const -> Maybe<Ray<T, dim>> {
 	if(empty())
 		return none;
 	return Ray<T, dim>(from, normalize(dir()));
@@ -136,7 +135,8 @@ TEMPLATE auto TSEG::isectParam(const Box<Vec> &box) const -> PRIsectParam {
 }
 
 // TODO: proper intersections (not based on rays)
-TEMPLATE_REAL auto TSEG::isectParamPlane(const Plane<T, dim> &plane) const -> IsectParam {
+TEMPLATE template <c_float U>
+auto TSEG::isectParamPlane(const Plane<T, dim> &plane) const -> IsectParam {
 	if constexpr(dim == 2) {
 		FATAL("write me");
 		return {};

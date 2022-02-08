@@ -17,7 +17,6 @@ namespace fwk {
 // -------------------------------------------------------------------------------------------
 // ---  Graph elements -----------------------------------------------------------------------
 
-
 using TriangleId = TagId<Tag::triangle>;
 using PolygonId = TagId<Tag::polygon>;
 using VertexId = TagId<Tag::vertex>;
@@ -64,7 +63,7 @@ template <class T> class SubContourRef;
 
 class Voronoi;
 
-template <class T, class IT = int2> class RegularGrid;
+template <c_vec<2> T, c_integral_vec<2> IT = int2> class RegularGrid;
 template <class T> class SegmentGrid;
 
 using Contour2F = Contour<float2>;
@@ -84,13 +83,13 @@ using Graph3I = GeomGraph<int3>;
 // Computes scale value which will fit given box into given resolution.
 // Scaled values will be in range: <-resolution, resolution>.
 template <class T> double integralScale(const Box<T> &, int resolution = 1024 * 1024 * 16);
-template <class T, EnableIfVec<T>...> Box<T> enclose(SparseSpan<T>);
+template <c_vec T> Box<T> enclose(SparseSpan<T>);
 
 // TODO: similar as in GeomGraph
 template <class T> Ex<vector<int2>> toIntegral(CSpan<T>, double scale);
 
 // CCW order starting from zero_vector
-template <class T, EnableIfVec<T, 2>...>
+template <c_vec<2> T>
 void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector);
 
 // TODO: better names ?
@@ -109,11 +108,11 @@ template <class T> auto flatten(const T &obj, Axes2D axes) {
 		return obj;
 }
 
-template <class T, class S, class Ret = MakeVec<Scalar<T>, 3>, EnableIfVec<T, 2>...>
+template <c_vec<2> T, class S, class Ret = MakeVec<Scalar<T>, 3>>
 Ret addThirdAxis(const T &obj, Axes2D axes, S third) {
-	return axes == Axes2D::xy
-			   ? Ret(obj[0], obj[1], third)
-			   : axes == Axes2D::xz ? Ret(obj[0], third, obj[1]) : Ret(third, obj[0], obj[1]);
+	return axes == Axes2D::xy	? Ret(obj[0], obj[1], third)
+		   : axes == Axes2D::xz ? Ret(obj[0], third, obj[1])
+								: Ret(third, obj[0], obj[1]);
 }
 
 Line2<float> approximateLine(CSpan<float2> points);

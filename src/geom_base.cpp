@@ -18,7 +18,7 @@ template <class T> double integralScale(const Box<T> &box, int max_value) {
 	return double(max_value) / tmax;
 }
 
-template <class T, EnableIfVec<T>...> Box<T> enclose(SparseSpan<T> points) {
+template <c_vec T> Box<T> enclose(SparseSpan<T> points) {
 	if(!points)
 		return {};
 	auto first_pt = points.front();
@@ -42,7 +42,7 @@ template <class T> Ex<vector<int2>> toIntegral(CSpan<T> points, double scale) {
 template Ex<vector<int2>> toIntegral(CSpan<float2>, double);
 template Ex<vector<int2>> toIntegral(CSpan<double2>, double);
 
-template <class T, EnableIfVec<T, 2>...>
+template <c_vec<2> T>
 void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector) {
 	using PT = PromoteIntegral<T>;
 	auto it = std::partition(begin(indices), end(indices), [=](int id) {

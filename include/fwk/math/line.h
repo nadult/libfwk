@@ -11,10 +11,8 @@ namespace fwk {
 #define ENABLE_IF_SIZE(n) template <class U = Vec, EnableInDimension<U, n>...>
 
 // Results are exact only when computing on integers
-template <class TVec> class Line {
+template <c_vec TVec> class Line {
   public:
-	static_assert(is_vec<TVec>);
-
 	// When computing on integers, you need 2x as many bits to represent 2D segment intersection
 	// With rationals it's 4x as much (rational addition / subtraction in general case requires multiplication)
 	static_assert(!is_rational<TVec>, "Complex computations on rationals are not supported");
@@ -50,10 +48,9 @@ template <class TVec> class Line {
 	Line(const Point &origin, const Vec &dir) : origin(origin), dir(dir) { DASSERT(valid()); }
 	Line(const Pair<Vec> &pair) : Line(pair.first, pair.second) {}
 
-	template <class UVec, EnableIf<precise_conversion<UVec, TVec>>...>
-	Line(const Line<UVec> &rhs) : Line(Vec(rhs.origin), Vec(rhs.dir)) {}
-	template <class UVec, EnableIf<!precise_conversion<UVec, TVec>>...>
-	explicit Line(const Line<UVec> &rhs) : Line(Vec(rhs.origin), Vec(rhs.dir)) {}
+	template <class UVec>
+	explicit(!precise_conversion<UVec, TVec>) Line(const Line<UVec> &rhs)
+		: Line(Vec(rhs.origin), Vec(rhs.dir)) {}
 
 	bool valid() const { return dir != Vec(); }
 

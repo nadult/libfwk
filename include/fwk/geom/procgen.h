@@ -8,7 +8,7 @@
 // TODO: explain what these functions do
 namespace fwk {
 
-template <class T, EnableIf<is_fpt<T>>...> T attenuate(T dist, T k0, T k1, T k2) {
+template <c_float T> T attenuate(T dist, T k0, T k1, T k2) {
 	return T(1) / (k0 + dist * k1 + dist * dist * k2);
 }
 
@@ -24,8 +24,7 @@ inline float smoothLerp(float val, float smooth_in, float smooth_out) {
 vector<float2> smoothCurve(vector<float2> points, int target_count);
 vector<float2> circularCurve(float scale, float step);
 
-template <class T, EnableIfVec<T, 2>...>
-vector<T> randomPoints(Random &random, Box<T> rect, double min_dist);
+template <c_vec<2> T> vector<T> randomPoints(Random &random, Box<T> rect, double min_dist);
 
 // beta: 0: white noise, 2: brownian noise, ...
 vector<double> generateNoise(double beta, int num_points, int seed);

@@ -62,21 +62,24 @@ namespace detail {
 // Iterators returned by begin(range) and end(range) must be comparable
 // Iterator returned by begin(range) must be dereferencible
 template <class T> constexpr bool is_range = detail::RangeInfo<T>::value;
+template <class T>
+concept c_range = is_range<T>;
 
 // Conditions for span:
 // It either must be a range where iterators are simple pointers
 // Or it must provide data() (which returns a pointer) and size()
 template <class T> constexpr bool is_span = detail::SpanInfo<T>::value;
+template <class T>
+concept c_span = is_span<T>;
 
 // Conditions for vector are not clearly defined yet (TODO)
 // This test is useful for some generic algorithms
 template <class T> constexpr bool is_vector = detail::is_vector<T>;
+template <class T>
+concept c_vector = is_vector<T>;
 
 // TODO: add concepts: sparse_span, sparse_vector ? A lot of containers could satisfy
 // sparse_span concept
-
-template <class T> using EnableIfRange = EnableIf<detail::RangeInfo<T>::value, NotARange>;
-template <class T> using EnableIfSpan = EnableIf<detail::SpanInfo<T>::value, NotASpan>;
 
 template <class T> using RangeBase = typename detail::RangeInfo<T>::MaybeInfo::Value;
 template <class T> using RangeIter = typename detail::RangeInfo<T>::MaybeInfo::Iter;
@@ -97,22 +100,18 @@ template <class TSpan, class Base = SpanBase<TSpan>> const Base *data(const TSpa
 		return begin(range);
 }
 
-template <class TRange, EnableIfRange<TRange>...> bool empty(const TRange &range) {
-	return begin(range) == end(range);
-}
+template <c_range TRange> bool empty(const TRange &range) { return begin(range) == end(range); }
 
-template <class TRange, EnableIfRange<TRange>...> int size(const TRange &range) {
+template <c_range TRange> int size(const TRange &range) {
 	return fwk::distance(begin(range), end(range));
 }
 
-template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(DECLVAL(TRange)))>
-Ret front(TRange &&range) {
+template <c_range TRange, class Ret = decltype(*begin(DECLVAL(TRange)))> Ret front(TRange &&range) {
 	DASSERT(!empty(range));
 	return *begin(range);
 }
 
-template <class TRange, EnableIfRange<TRange>..., class Ret = decltype(*begin(DECLVAL(TRange)))>
-Ret back(TRange &&range) {
+template <c_range TRange, class Ret = decltype(*begin(DECLVAL(TRange)))> Ret back(TRange &&range) {
 	DASSERT(!empty(range));
 	auto it = end(range);
 	return *--it;

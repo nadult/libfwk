@@ -116,8 +116,7 @@ template <class T> constexpr bool is_right_formattible = detail::IsRightFormatti
 template <class T>
 constexpr bool is_formattible = detail::IsLeftFormattible<T>::value || is_right_formattible<T>;
 
-template <class... Args>
-using EnableIfFormattible = EnableIf<(... && is_formattible<Args>), NotFormattible>;
+template <class T> concept c_formattible = is_formattible<T>;
 
 // TODO: escapable % ?
 // TODO: better name
@@ -166,21 +165,22 @@ class TextFormatter {
 	bool isStructured() const { return m_options.mode == FormatMode::structured; }
 	bool isPlain() const { return m_options.mode == FormatMode::plain; }
 
-	template <class... T, EnableIfFormattible<T...>...>
-	void operator()(const char *format_str, const T &... args) {
+	template <c_formattible... T> void operator()(const char *format_str, const T &...args) {
 		append_(format_str, sizeof...(T), detail::TFFuncs<T...>::funcs,
 				detail::getTFValue(args)...);
 	}
 
 	void stdFormat(const char *format, ...) ATTRIB_PRINTF(2, 3);
 
-	template <class T, EnableIf<is_right_formattible<T>>...>
+	template <class T>
+		requires(is_right_formattible<T>)
 	TextFormatter &operator<<(const T &rhs) {
 		rhs >> *this;
 		return *this;
 	}
 
-	template <class TSpan, class T = SpanBase<TSpan>, EnableIfFormattible<T>...>
+	template <c_span TSpan, class T = SpanBase<TSpan>>
+		requires(is_formattible<T>)
 	TextFormatter &operator<<(const TSpan &span) {
 		detail::TFFunc func = [](TextFormatter &fmt, unsigned long long ptr) {
 			const T &ref = *(const T *)ptr;
@@ -191,8 +191,8 @@ class TextFormatter {
 		return *this;
 	}
 
-	template <class TRange, class T = RangeBase<TRange>, EnableIfFormattible<T>...,
-			  EnableIf<!is_span<TRange> && !is_right_formattible<TRange>>...>
+	template <c_range TRange, class T = RangeBase<TRange>>
+		requires(is_formattible<T> && !is_span<TRange> && !is_right_formattible<TRange>)
 	TextFormatter &operator<<(const TRange &range) {
 		const char *separator = isStructured() ? ", " : " ";
 
@@ -210,7 +210,8 @@ class TextFormatter {
 		return *this;
 	}
 
-	template <class TVec, EnableIf<is_vec<TVec> && !is_right_formattible<TVec>>...>
+	template <c_vec TVec>
+		requires(!is_right_formattible<TVec>)
 	TextFormatter &operator<<(const TVec &vec) {
 		enum { N = TVec::vec_size };
 		if constexpr(N == 2)
@@ -274,25 +275,23 @@ class TextFormatter {
 
 	const char *nextElement(const char *format_str);
 
-	template <class... T, EnableIfFormattible<T...>...>
-	friend string format(const char *str, T &&... args) {
+	template <c_formattible... T> friend string format(const char *str, T &&...args) {
 		return strFormat_(str, sizeof...(T), detail::TFFuncs<T...>::funcs,
 						  detail::getTFValue(args)...);
 	}
 
-	template <class... T, EnableIfFormattible<T...>...>
-	friend void print(const char *str, T &&... args) {
+	template <c_formattible... T> friend void print(const char *str, T &&...args) {
 		print_(FormatMode::structured, str, sizeof...(T), detail::TFFuncs<T...>::funcs,
 			   detail::getTFValue(args)...);
 	}
 
-	template <class... T, EnableIfFormattible<T...>...>
-	friend void printPlain(const char *str, T &&... args) {
+	template <c_formattible... T> friend void printPlain(const char *str, T &&...args) {
 		print_(FormatMode::plain, str, sizeof...(T), detail::TFFuncs<T...>::funcs,
 			   detail::getTFValue(args)...);
 	}
 
-	template <class T, EnableIf<!is_enum<RemoveReference<T>>>..., EnableIfFormattible<T>...>
+	template <c_formattible T>
+		requires(!is_enum<RemoveReference<T>>)
 	friend string toString(T &&value) {
 		return toString_(detail::getTFFunc<T>(), detail::getTFValue(value));
 	}
@@ -332,12 +331,13 @@ extern template TextFormatter &TextFormatter::operator<<(const Box<double3> &);
 
 string stdFormat(const char *format, ...) ATTRIB_PRINTF(1, 2);
 
-template <class T, EnableIf<!is_enum<RemoveReference<T>>>..., EnableIfFormattible<T>...>
+template <c_formattible T>
+	requires(!is_enum<RemoveReference<T>>)
 string toString(T &&value);
 
-template <class... T, EnableIfFormattible<T...>...> string format(const char *str, T &&...);
-template <class... T, EnableIfFormattible<T...>...> void print(const char *str, T &&...);
-template <class... T, EnableIfFormattible<T...>...> void printPlain(const char *str, T &&...);
+template <c_formattible... T> string format(const char *str, T &&...);
+template <c_formattible... T> void print(const char *str, T &&...);
+template <c_formattible... T> void printPlain(const char *str, T &&...);
 
 #define FWK_DUMP(...) fwk::print(fwk::detail::autoPrintFormat(#__VA_ARGS__).c_str(), __VA_ARGS__)
 }

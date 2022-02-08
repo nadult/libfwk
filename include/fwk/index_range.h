@@ -132,7 +132,7 @@ template <class Index> SimpleIndexRange<Index> indexRange(int begin, int end) {
 
 inline SimpleIndexRange<int> intRange(int start, int end) { return {start, end}; }
 inline SimpleIndexRange<int> intRange(int size) { return {0, size}; }
-template <class T, EnableIfRange<T>...> inline SimpleIndexRange<int> intRange(const T &range) {
+template <c_range T> inline SimpleIndexRange<int> intRange(const T &range) {
 	return {0, fwk::size(range)};
 }
 
@@ -159,7 +159,7 @@ template <class T = int> auto wrappedTriplesRange(int start, int end) {
 
 #define RANGE_HELPERS(name)                                                                        \
 	template <class T = int> auto name(int count) { return name<T>(0, count); }                    \
-	template <class T = int, class R, EnableIfRange<R>...> auto name(const R &range) {             \
+	template <class T = int, c_range R> auto name(const R &range) {                                \
 		return name<T>(0, fwk::size(range));                                                       \
 	}
 

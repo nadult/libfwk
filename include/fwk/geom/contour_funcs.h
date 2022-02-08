@@ -9,8 +9,8 @@
 
 namespace fwk {
 
-template <class Vec, class Scalar = Base<Vec>, EnableIfVec<Vec>...>
-vector<Scalar> summedSegmentLengths(CSpan<Vec> points, bool loop) {
+template <c_vec TVec, class Scalar = Base<TVec>>
+vector<Scalar> summedSegmentLengths(CSpan<TVec> points, bool loop) {
 	vector<Scalar> out;
 
 	if(points) {

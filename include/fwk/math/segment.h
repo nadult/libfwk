@@ -11,10 +11,8 @@ namespace fwk {
 #define ENABLE_IF_SIZE(n) template <class U = Vec, EnableInDimension<U, n>...>
 
 // Results are exact only when computing on integers
-template <class TVec> class Segment {
+template <c_vec TVec> class Segment {
   public:
-	static_assert(is_vec<TVec>);
-
 	// When computing on integers, you need 2x as many bits to represent 2D segment intersection
 	// With rationals it's 4x as much (rational addition / subtraction in general case requires multiplication)
 	static_assert(!is_rational<TVec>, "Complex computations on rationals are not supported");
@@ -59,15 +57,14 @@ template <class TVec> class Segment {
 	ENABLE_IF_SIZE(3)
 	explicit Segment(T x1, T y1, T z1, T x2, T y2, T z2) : from(x1, y1, z1), to(x2, y2, z2) {}
 
-	template <class UVec, EnableIf<precise_conversion<UVec, TVec>>...>
-	Segment(const Segment<UVec> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
-	template <class UVec, EnableIf<!precise_conversion<UVec, TVec>>...>
-	explicit Segment(const Segment<UVec> &rhs) : Segment(Point(rhs.from), Point(rhs.to)) {}
+	template <class UVec>
+	explicit(!precise_conversion<UVec, TVec>) Segment(const Segment<UVec> &rhs)
+		: Segment(Point(rhs.from), Point(rhs.to)) {}
 
 	bool empty() const { return from == to; }
 	Vec dir() const { return to - from; }
 
-	template <class U = T, EnableIfFpt<U>...> Maybe<Ray<T, dim>> asRay() const;
+	template <c_float U = T> Maybe<Ray<T, dim>> asRay() const;
 
 	Segment twin() const { return {to, from}; }
 
@@ -75,7 +72,7 @@ template <class TVec> class Segment {
 	PT lengthSq() const { return fwk::distanceSq<PVec>(from, to); }
 
 	// from + dir() * param
-	template <class U, EnableIf<is_scalar<U>>...> auto at(U param) const {
+	template <c_scalar U> auto at(U param) const {
 		if constexpr(is_integral<Base<U>>)
 			static_assert(precise_conversion<T, U>);
 		using OVec = MakeVec<Promote<U>, dim>;
@@ -106,8 +103,7 @@ template <class TVec> class Segment {
 	PRIsectParam isectParam(const Box<Vec> &) const;
 
 	// TODO: gcc is causing compilation problems...
-	template <class U = T, EnableIfFpt<U>...>
-	IsectParam isectParamPlane(const Plane<T, dim> &) const;
+	template <c_float U = T> IsectParam isectParamPlane(const Plane<T, dim> &) const;
 
 	Isect isect(const Segment &segment) const;
 	Isect isect(const Box<Vec> &box) const;

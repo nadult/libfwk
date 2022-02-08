@@ -129,14 +129,13 @@ bool modifyValues(ZStr title, const vector<Index> &selection, const GetFunc &get
 void text(Str);
 void centeredText(int center_pos, Str);
 
-template <class... T, EnableIfFormattible<T...>...> void text(const char *str, T &&... args) {
+template <c_formattible... T> void text(const char *str, T &&...args) {
 	TextFormatter fmt(256, {FormatMode::structured});
 	fmt(str, std::forward<T>(args)...);
 	text(fmt.text());
 }
 
-template <class... T, EnableIfFormattible<T...>...>
-void centeredText(int center_pos, const char *str, T &&... args) {
+template <c_formattible... T> void centeredText(int center_pos, const char *str, T &&...args) {
 	TextFormatter fmt;
 	fmt(str, std::forward<T>(args)...);
 	centeredText(center_pos, fmt.text());

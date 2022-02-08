@@ -39,8 +39,7 @@ vector<float2> smoothCurve(vector<float2> points, int target_count) {
 	return out;
 }
 
-template <class T, EnableIfVec<T, 2>...>
-vector<T> randomPoints(Random &random, Box<T> rect, double min_dist) {
+template <c_vec<2> T> vector<T> randomPoints(Random &random, Box<T> rect, double min_dist) {
 	vector<T> out;
 
 	using Scalar = Base<T>;

@@ -29,20 +29,20 @@ class Random {
 	float normal(float mean, float stddev);
 	double normal(double mean, double stddev);
 
-	template <class T, EnableIfVec<T>...> T sampleBox(const T &min, const T &max) {
+	template <c_vec T> T sampleBox(const T &min, const T &max) {
 		T out;
 		for(int n = 0; n < T::vec_size; n++)
 			out[n] = uniform(min[n], max[n]);
 		return out;
 	}
-	template <class T, EnableIfVec<T>...> T sampleUnitHemisphere() {
+	template <c_vec T> T sampleUnitHemisphere() {
 		auto point = sampleUnitSphere<T>();
 		while(point == T())
 			point = sampleUnitSphere<T>();
 		return normalize(point);
 	}
 
-	template <class T, EnableIfVec<T>...> T sampleUnitSphere() {
+	template <c_vec T> T sampleUnitSphere() {
 		using Scalar = typename T::Scalar;
 		T one;
 		for(int n = 0; n < T::vec_size; n++)

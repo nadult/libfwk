@@ -315,7 +315,7 @@ auto GeomGraph<T>::buildPointMap(CSpan<bool> valid_indices, CSpan<Point> points,
 }
 
 template <class T>
-template <class U, EnableIfFptVec<U>...>
+template <c_float_vec U>
 auto GeomGraph<T>::toIntegral(double scale) const -> Ex<GeomGraph<IPoint>> {
 	PodVector<IPoint> new_points(vertsSpread());
 	for(auto vert : verts())
@@ -327,7 +327,7 @@ auto GeomGraph<T>::toIntegral(double scale) const -> Ex<GeomGraph<IPoint>> {
 }
 
 template <class T>
-template <class U, EnableIfFptVec<U>...>
+template <c_float_vec U>
 auto GeomGraph<T>::toIntegralWithCollapse(double scale) const -> GeomGraph<IPoint> {
 	PodVector<IPoint> new_points(vertsSpread());
 	for(auto vert : verts())

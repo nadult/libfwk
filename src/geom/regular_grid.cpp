@@ -7,7 +7,7 @@
 
 namespace fwk {
 
-template <class T, class IT>
+template <c_vec<2> T, c_integral_vec<2> IT>
 RegularGrid<T, IT>::RegularGrid(Rect rect, T cell_size, IScalar border)
 	: m_offset(rect.min()), m_cell_size(cell_size), m_border(border) {
 	DASSERT_GT(cell_size.x, Scalar(0));
@@ -24,7 +24,7 @@ RegularGrid<T, IT>::RegularGrid(Rect rect, T cell_size, IScalar border)
 	m_offset -= T(border) * m_cell_size;
 }
 
-template <class T, class IT>
+template <c_vec<2> T, c_integral_vec<2> IT>
 RegularGrid<T, IT>::RegularGrid(T offset, IT size, T cell_size)
 	: m_size(size), m_offset(offset), m_cell_size(cell_size) {
 	DASSERT_GT(cell_size.x, Scalar(0));

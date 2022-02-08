@@ -7,6 +7,8 @@
 #include "fwk/meta/operator.h"
 #include "fwk/span.h"
 
+#include <iterator>
+
 namespace fwk {
 
 struct LessCompare {
@@ -67,25 +69,26 @@ template <class TR, class T = RangeBase<TR>> constexpr int minIndex(const TR &ra
 // -------------------------------------------------------------------------------------------
 // ---  Testing functions  -------------------------------------------------------------------
 
-template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
+template <c_range TRange, class Functor, class T = RangeBase<TRange>>
+	requires(is_convertible<ApplyResult<Functor, T>, bool>)
 bool anyOf(const TRange &range, const Functor &functor) {
 	return std::any_of(begin(range), end(range), functor);
 }
 
-template <class TRange, class R, class T = RangeBase<TRange>,
-		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
+template <c_range TRange, class R, class T = RangeBase<TRange>>
+	requires(is_same<EqualResult<T, R>, bool>)
 bool anyOf(const TRange &range, const R &ref) {
 	return std::any_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
 
-template <class TRange, class T = RangeBase<TRange>, EnableIf<is_convertible<T, bool>>...>
+template <c_range TRange, class T = RangeBase<TRange>>
+	requires(is_convertible<T, bool>)
 bool anyOf(const TRange &range) {
 	return std::any_of(begin(range), end(range), [&](const T &val) { return (bool)val; });
 }
 
-template <class TSpan, class R, class T = SpanBase<TSpan>,
-		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
+template <c_span TSpan, class R, class T = SpanBase<TSpan>>
+	requires(is_same<EqualResult<T, R>, bool>)
 int indexOf(const TSpan &span, const R &ref) {
 	for(int i = 0, span_size = fwk::size(span); i < span_size; i++)
 		if(span[i] == ref)
@@ -93,28 +96,27 @@ int indexOf(const TSpan &span, const R &ref) {
 	return -1;
 }
 
-template <class TRange, class Functor, class T = RangeBase<TRange>,
-		  EnableIf<is_convertible<ApplyResult<Functor, T>, bool>>...>
+template <c_range TRange, class Functor, class T = RangeBase<TRange>>
+	requires(is_convertible<ApplyResult<Functor, T>, bool>)
 bool allOf(const TRange &range, const Functor &functor) {
 	return std::all_of(begin(range), end(range), functor);
 }
 
-template <class TRange, class R, class T = RangeBase<TRange>,
-		  EnableIf<is_same<EqualResult<T, R>, bool>>...>
+template <c_range TRange, class R, class T = RangeBase<TRange>>
+	requires(is_same<EqualResult<T, R>, bool>)
 bool allOf(const TRange &range, const R &ref) {
 	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
 
-template <class T, class R, class U = RangeBase<R>, EnableIf<equality_comparable<T, U>>...>
-bool isOneOf(const T &value, const R &range) {
-	return anyOf(range, value);
-}
+template <class T, c_range R, class U = RangeBase<R>>
+	requires(equality_comparable<T, U>)
+bool isOneOf(const T &value, const R &range) { return anyOf(range, value); }
 
-template <class T, class... Args> constexpr bool isOneOf(const T &value, const Args &... args) {
+template <class T, class... Args> constexpr bool isOneOf(const T &value, const Args &...args) {
 	return ((value == args) || ...);
 }
 
-template <class TRange, EnableIfRange<TRange>...> bool distinct(const TRange &range) {
+template <c_range TRange> bool distinct(const TRange &range) {
 	vector<RemoveConst<RangeBase<TRange>>> temp(begin(range), end(range));
 	makeSortedUnique(temp);
 	return fwk::size(temp) == fwk::size(range);
@@ -148,15 +150,12 @@ vector<T> sortedUnique(const TSpan &span) {
 	return vec;
 }
 
-template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!is_const<T>>...>
-void makeSorted(TSpan &span) {
-	std::sort(begin(span), end(span));
-}
+template <class TSpan, class T = SpanBase<TSpan>>
+	requires(!is_const<T>)
+void makeSorted(TSpan &span) { std::sort(begin(span), end(span)); }
 
-template <class TRange1, class TRange2, class T1 = RangeBase<TRange1>,
-		  class T2 = RangeBase<TRange2>>
-auto setDifference(const TRange1 &a, const TRange2 &b) {
-	using VecType = vector<RemoveConst<T1>>;
+template <c_range TRange1, c_range TRange2> auto setDifference(const TRange1 &a, const TRange2 &b) {
+	using VecType = vector<RemoveConst<RangeBase<TRange1>>>;
 	VecType out;
 	out.reserve(a.size());
 
@@ -167,10 +166,9 @@ auto setDifference(const TRange1 &a, const TRange2 &b) {
 	return out;
 }
 
-template <class TRange1, class TRange2, class T1 = RangeBase<TRange1>,
-		  class T2 = RangeBase<TRange2>>
+template <c_range TRange1, c_range TRange2>
 auto setIntersection(const TRange1 &a, const TRange2 &b) {
-	using VecType = vector<RemoveConst<T1>>;
+	using VecType = vector<RemoveConst<RangeBase<TRange1>>>;
 	VecType out;
 	out.reserve(std::min(a.size(), b.size()));
 
@@ -181,10 +179,8 @@ auto setIntersection(const TRange1 &a, const TRange2 &b) {
 	return out;
 }
 
-template <class TRange1, class TRange2, class T1 = RangeBase<TRange1>,
-		  class T2 = RangeBase<TRange2>>
-auto setUnion(const TRange1 &a, const TRange2 &b) {
-	using VecType = vector<RemoveConst<T1>>;
+template <c_range TRange1, c_range TRange2> auto setUnion(const TRange1 &a, const TRange2 &b) {
+	using VecType = vector<RemoveConst<RangeBase<TRange1>>>;
 	VecType out;
 	out.reserve(a.size() + b.size());
 	VecType va(begin(a), end(a)), vb(begin(b), end(b));
@@ -197,19 +193,17 @@ auto setUnion(const TRange1 &a, const TRange2 &b) {
 // -------------------------------------------------------------------------------------------
 // ---  copy, fill, transform & other algorithms  --------------------------------------------
 
-template <class T, class TRange, EnableIfRange<TRange>...>
-void copy(Span<T> dst, const TRange &src) {
+template <class T, c_range TRange> void copy(Span<T> dst, const TRange &src) {
 	DASSERT(fwk::size(dst) >= fwk::size(src));
 	std::copy(begin(src), end(src), begin(dst));
 }
 
-template <class TRange, EnableIfRange<TRange>..., class TSpan, EnableIfSpan<TSpan>...>
-void copy(TSpan &dst, const TRange &src) {
+template <c_range TRange, c_span TSpan> void copy(TSpan &dst, const TRange &src) {
 	copy(span(dst), src);
 }
 
-template <class T, class TRange, class T1 = RemoveConst<RangeBase<TRange>>,
-		  EnableIf<is_same<T, T1>>...>
+template <class T, class TRange, class T1 = RemoveConst<RangeBase<TRange>>>
+	requires(is_same<T, T1>)
 void copy(T *dst, const TRange &src) {
 	if(size(src) > 0) {
 		PASSERT(dst);
@@ -217,13 +211,11 @@ void copy(T *dst, const TRange &src) {
 	}
 }
 
-template <class T, class T1, EnableIf<is_convertible<T1, T>>...>
-void fill(Span<T> span, const T1 &value) {
-	std::fill(begin(span), end(span), value);
-}
+template <class T, class T1>
+	requires(is_convertible<T1, T>)
+void fill(Span<T> span, const T1 &value) { std::fill(begin(span), end(span), value); }
 
-template <class TRange, EnableIfRange<TRange>..., class T>
-void fill(TRange &range, const T &value) {
+template <c_range TRange, class T> void fill(TRange &range, const T &value) {
 	std::fill(begin(range), end(range), value);
 }
 
@@ -234,8 +226,7 @@ auto accumulate(const TRange &range, T value = T()) {
 	return value;
 }
 
-template <class TRange, class Func, EnableIfRange<TRange>...>
-auto transform(const TRange &range, const Func &func) {
+template <c_range TRange, class Func> auto transform(const TRange &range, const Func &func) {
 	using Value = decltype(func(*range.begin()));
 	static_assert(!std::is_void<Value>::value, "Func must return some value");
 	vector<Value> out;
@@ -255,8 +246,7 @@ auto transform(const array<T, size> &input, const Func &func) {
 	return out;
 }
 
-template <class T, class TRange, EnableIfRange<TRange>...>
-vector<T> transform(const TRange &range) {
+template <class T, c_range TRange> vector<T> transform(const TRange &range) {
 	return vector<T>(begin(range), end(range));
 }
 
@@ -315,9 +305,7 @@ vector<Base2> merge(const TRange &range_of_ranges) {
 	return out;
 }
 
-template <class TRange, EnableIfRange<TRange>...> void reverse(TRange &range) {
-	std::reverse(begin(range), end(range));
-}
+template <c_range TRange> void reverse(TRange &range) { std::reverse(begin(range), end(range)); }
 
 // -------------------------------------------------------------------------------------------
 // ---  Vector modification algorithms -------------------------------------------------------
@@ -345,8 +333,7 @@ template <class Container, class Range> void insert(Container &into, const Range
 }
 
 // Removes all elements equal to value and returns their number
-template <class TVector, class T, EnableIf<is_vector<TVector>>...>
-static int removeEqual(TVector &vec, const T &value) {
+template <c_vector TVector, class T> static int removeEqual(TVector &vec, const T &value) {
 	auto old_size = size(vec);
 	auto it = std::remove(begin(vec), end(vec), value);
 	vec.shrink(it - vec.begin());
@@ -359,7 +346,7 @@ void removeIf(TVector &vec, const Func &func) {
 	vec.erase(it, vec.end());
 }
 
-template <class T, EnableIf<is_vector<T>>...> void resizeUp(T &vec, int new_size) {
+template <c_vector T> void resizeUp(T &vec, int new_size) {
 	if(vec.size() < new_size)
 		vec.resize(new_size);
 }

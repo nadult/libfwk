@@ -47,7 +47,7 @@ vector<VertexIdPair> delaunay(const Voronoi &voronoi) {
 
 vector<VertexIdPair> delaunay(SparseSpan<int2> points) { return Voronoi::delaunay(points); }
 
-template <class T, EnableIfVec<T, 2>...> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
+template <c_vec<2> T> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
 	auto scale = delaunayIntegralScale(points);
 	auto ipoints = EX_PASS(toIntegral(points, scale));
 	return Voronoi::delaunay(ipoints);
@@ -324,7 +324,7 @@ vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
 	return out;
 }
 
-template <class T, EnableIfVec<T, 2>...>
+template <c_vec<2> T>
 Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<T> &graph,
 											 CSpan<VertexIdPair> delaunay) {
 	// Because of the conversion to/from int's, it's really approximate Delaunay
@@ -362,7 +362,7 @@ template <class T> bool isForestOfLoops(const GeomGraph<T> &pgraph) {
 	return true;
 }
 
-template <class T, EnableIfVec<T, 2>...>
+template <c_vec<2> T>
 void orderByDirection(Span<int> indices, CSpan<T> vectors, const T &zero_vector) {
 	using PT = PromoteIntegral<T>;
 	auto it = std::partition(begin(indices), end(indices), [=](int id) {
@@ -555,7 +555,7 @@ vector<array<int, 3>> delaunayTriangles(const GeomGraph<int2> &igraph, CSpan<Ver
 	return out;
 }
 
-template <class T, EnableIfFptVec<T, 2>...>
+template <c_float_vec<2> T>
 vector<Segment<T>> delaunaySegments(CSpan<VertexIdPair> pairs, const GeomGraph<T> &graph) {
 	return transform(pairs, [&](const auto &pair) {
 		return Segment2<typename T::Scalar>(graph(pair.first), graph(pair.second));

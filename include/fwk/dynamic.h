@@ -30,8 +30,9 @@ template <typename T> class Dynamic {
 	Dynamic(Dynamic<U> &&rhs) : m_ptr(rhs.release()) {}
 
 	// At least one argument is required (otherwise default Dynamic constructor will be selected)
-	template <class... Args, EnableIf<is_constructible<T, Args...>>...>
-	Dynamic(Args &&... args) : m_ptr(new T{std::forward<Args>(args)...}) {}
+	template <class... Args>
+		requires(is_constructible<T, Args...>)
+	Dynamic(Args &&...args) : m_ptr(new T{std::forward<Args>(args)...}) {}
 
 	Dynamic &operator=(Dynamic &&rhs) {
 		reset(rhs.release());
@@ -66,14 +67,12 @@ template <typename T> class Dynamic {
 		}
 	}
 
-	template <class... Args, EnableIf<is_constructible<T, Args...>>...>
-	void emplace(Args &&... args) {
-		reset(new T{std::forward<Args>(args)...});
-	}
-	template <class T1, class... Args, EnableIf<is_constructible<T1, Args...>>...>
-	void emplace(Args &&... args) {
-		reset(new T1(std::forward<Args>(args)...));
-	}
+	template <class... Args>
+		requires is_constructible<T, Args...>
+	void emplace(Args &&...args) { reset(new T{std::forward<Args>(args)...}); }
+	template <class T1, class... Args>
+		requires is_constructible<T1, Args...>
+	void emplace(Args &&...args) { reset(new T1(std::forward<Args>(args)...)); }
 
 	T *release() {
 		auto ret = m_ptr;

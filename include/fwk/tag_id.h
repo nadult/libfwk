@@ -42,15 +42,16 @@ template <class Tag, class Base_ = unsigned, int base_bits = sizeof(Base_) * 8> 
 	constexpr GenericTagId(Tag tag, int idx, NoAssertsTag) : m_idx(idx), m_tag(tag) {}
 	constexpr GenericTagId(NoInitTag) { IF_PARANOID(m_idx = uninitialized_index); }
 
-	template <Tag tag, class UBase, int rhs_invalid_index = TagId<tag, UBase>::invalid_index,
-			  EnableIf<(rhs_invalid_index <= invalid_index)>...>
+	template <Tag tag, class UBase, int rhs_invalid_index = TagId<tag, UBase>::invalid_index>
+		requires(rhs_invalid_index <= invalid_index)
 	GenericTagId(TagId<tag, UBase> id) : GenericTagId(tag, id.index()) {}
 
-	template <Tag tag, class UBase, EnableIf<(TagId<tag, UBase>::invalid_index > invalid_index)>...>
+	template <Tag tag, class UBase>
+		requires(TagId<tag, UBase>::invalid_index > invalid_index)
 	explicit GenericTagId(TagId<tag, UBase> id) : GenericTagId(tag, id.index()) {}
 
-	template <class UBase, int ubits, class GTagId = GenericTagId<Tag, UBase, ubits>,
-			  EnableIf<(GTagId::invalid_index > invalid_index)>...>
+	template <class UBase, int ubits, class GTagId = GenericTagId<Tag, UBase, ubits>>
+		requires(GTagId::invalid_index > invalid_index)
 	operator GTagId() const {
 		PASSERT(isInitialized());
 		return GTagId(tag, m_idx);
@@ -98,21 +99,23 @@ template <auto tag, class Base_ /*= unsigned*/> class TagId {
 	constexpr TagId(NoInitTag) { IF_PARANOID(m_idx = uninitialized_index); }
 
 	template <class UBase, int ubits,
-			  int rhs_invalid_index = GenericTagId<Tag, UBase, ubits>::invalid_index,
-			  EnableIf<rhs_invalid_index <= invalid_index>...>
+			  int rhs_invalid_index = GenericTagId<Tag, UBase, ubits>::invalid_index>
+		requires(rhs_invalid_index <= invalid_index)
 	TagId(GenericTagId<Tag, UBase, ubits> id) : TagId(id.index()) {}
 
-	template <class UBase, int ubits,
-			  EnableIf<(GenericTagId<Tag, UBase, ubits>::invalid_index > invalid_index)>...>
+	template <class UBase, int ubits>
+		requires(GenericTagId<Tag, UBase, ubits>::invalid_index > invalid_index)
 	explicit TagId(GenericTagId<Tag, UBase, ubits> id) : TagId(id.index()) {}
 
 	explicit operator bool() const = delete;
 	operator int() const { return PASSERT(isInitialized()), m_idx; }
 	int index() const { return PASSERT(isInitialized()), m_idx; }
 
-	template <class U, U u, EnableIf<!isTagConvertible(u, tag)>...>
+	template <class U, U u>
+		requires(!isTagConvertible(u, tag))
 	explicit TagId(TagId<u> rhs) : m_idx(rhs.index()) {}
-	template <class U, U u, EnableIf<isTagConvertible(u, tag)>...>
+	template <class U, U u>
+		requires(isTagConvertible(u, tag))
 	TagId(TagId<u> rhs) : m_idx(rhs.index()) {}
 
 	template <auto v> explicit TagId(Intrusive::Tag<v>) : m_idx(invalid_index + int(v)) {}
@@ -151,8 +154,7 @@ namespace detail {
 	template <class Tag, Tag tag, class Base> constexpr Tag get_id_tag<TagId<tag, Base>> = tag;
 }
 
-template <class DstId, class Tag, Tag src_tag, class Base, EnableIf<detail::is_tag_id<DstId>>...>
-DstId castTag(const TagId<src_tag, Base> &tag) {
-	return DstId(tag.index());
-}
+template <class DstId, class Tag, Tag src_tag, class Base>
+	requires(detail::is_tag_id<DstId>)
+DstId castTag(const TagId<src_tag, Base> &tag) { return DstId(tag.index()); }
 }

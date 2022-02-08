@@ -38,6 +38,16 @@ template <class T> using RatExt24 = Rational<Ext24<T>>;
 template <class T> using Rat2Ext24 = Rational<Ext24<T>, 2>;
 template <class T> using Rat3Ext24 = Rational<Ext24<T>, 3>;
 
+template <class T> constexpr int vec_dim = 0;
+template <class T> constexpr int vec_dim<vec2<T>> = 2;
+template <class T> constexpr int vec_dim<vec3<T>> = 3;
+template <class T> constexpr int vec_dim<vec4<T>> = 4;
+template <class T, int N> constexpr int vec_dim<Rational<T, N>> = N;
+
+template <class T, int ReqN = 0>
+constexpr bool is_vec = ((vec_dim<T>) > 0) && (ReqN == 0 || ReqN == vec_dim<T>);
+template <class T, int ReqN = 0> concept c_vec = is_vec<T, ReqN>;
+
 using llint = long long;
 
 #ifndef FWK_PLATFORM_HTML
@@ -76,8 +86,8 @@ template <class T> class IsectParam;
 template <class T, int N> class Triangle;
 template <class T, int N> class Plane;
 template <class T, int N> class Ray;
-template <class T> class Segment;
-template <class T> class Line;
+template <c_vec T> class Segment;
+template <c_vec T> class Line;
 
 template <class T> using Segment2 = Segment<vec2<T>>;
 template <class T> using Segment3 = Segment<vec3<T>>;
@@ -215,11 +225,7 @@ namespace detail {
 	// If we had a field class, Base<> would be easy
 }
 
-template <class T> constexpr int dim = 0;
-template <class T> constexpr int dim<vec2<T>> = 2;
-template <class T> constexpr int dim<vec3<T>> = 3;
-template <class T> constexpr int dim<vec4<T>> = 4;
-template <class T, int N> constexpr int dim<Rational<T, N>> = N;
+template <class T> constexpr int dim = vec_dim<T>;
 
 template <class T> constexpr int dim<Segment<T>> = dim<T>;
 template <class T> constexpr int dim<Box<T>> = dim<T>;
@@ -235,11 +241,15 @@ template <class T> constexpr bool is_rational = detail::RatSize<T>::value != -1;
 
 template <class T> constexpr bool is_ext24 = false;
 template <class T> constexpr bool is_ext24<Ext24<T>> = true;
+// TODO: verify that it works properly for non vecs
 template <class T, int ReqN = 0>
-constexpr bool is_vec = ((dim<T>) > 0) && (ReqN == 0 || ReqN == dim<T>);
+concept c_float_vec = is_vec<T, ReqN> && is_fpt<typename detail::Scalar<T>::Type>;
+template <class T, int ReqN = 0>
+concept c_integral_vec = is_vec<T, ReqN> && is_integral<typename detail::Scalar<T>::Type>;
 
 template <class T> constexpr bool is_scalar = is_fundamental<T> || is_ext24<T>;
 template <class T> constexpr bool is_scalar<Rational<T, 0>> = true;
+template <class T> concept c_scalar = is_scalar<T>;
 
 template <class T> using RemoveRat = typename detail::RemoveRat<T>::Type;
 template <class T> using RemoveExt24 = typename detail::RemoveExt24<T>::Type;
@@ -252,14 +262,8 @@ using MakeVec = typename detail::MakeVec<T, ReqN == -1 ? dim<T> : ReqN>::Type;
 template <class T, int ReqN = -1>
 using MakeRat = typename detail::MakeRat<RemoveRat<T>, ReqN == -1 ? dim<T> : ReqN>::Type;
 
-template <class T> using EnableIfFpt = EnableIf<is_fpt<T>, NotFloatingPoint>;
-template <class T> using EnableIfIntegral = EnableIf<is_integral<T>, NotIntegral>;
-
-template <class T, int ReqN = 0> using EnableIfVec = EnableIf<is_vec<T, ReqN>, NotAValidVec<ReqN>>;
-template <class T, int ReqN = 0>
-using EnableIfFptVec = EnableIf<is_vec<T, ReqN> && is_fpt<Scalar<T>>, NotAValidVec<ReqN>>;
-template <class T, int ReqN = 0>
-using EnableIfIntegralVec = EnableIf<is_vec<T, ReqN> && is_integral<Scalar<T>>, NotAValidVec<ReqN>>;
+template <class T> concept c_float = is_fpt<T>;
+template <class T> concept c_integral = is_integral<T>;
 
 template <class T> struct ToFpt { using type = double; };
 template <> struct ToFpt<float> { using type = float; };
@@ -352,9 +356,7 @@ inline long long abs(long long s) { return std::abs(s); }
 inline double abs(double s) { return std::abs(s); }
 inline float abs(float s) { return std::abs(s); }
 inline long double abs(long double s) { return std::abs(s); }
-template <class T, EnableIf<is_scalar<T>>...> T abs(T value) {
-	return value < T(0) ? -value : value;
-}
+template <c_scalar T> T abs(T value) { return value < T(0) ? -value : value; }
 
 template <class T> constexpr T square(const T &value) { return value * value; }
 
@@ -362,11 +364,10 @@ using std::ceil;
 using std::floor;
 
 // Nonstandard behaviour: rounding half up (0.5 -> 1, -0.5 -> 0)
-template <class T, EnableIfFpt<T>...> T round(T value) { return floor(value + T(0.5)); }
+template <c_float T> T round(T value) { return floor(value + T(0.5)); }
+template <c_float T> T inv(T s) { return T(1) / s; }
 
-template <class T, EnableIfFpt<T>...> inline T inv(T s) { return T(1) / s; }
-
-template <class T, EnableIf<is_scalar<T>>...> T clamp(const T &v, const T &tmin, const T &tmax) {
+template <c_scalar T> T clamp(const T &v, const T &tmin, const T &tmax) {
 	return min(tmax, max(tmin, v));
 }
 
@@ -374,11 +375,11 @@ template <class T, class Scalar> inline T lerp(const T &a, const T &b, const Sca
 	return (b - a) * x + a;
 }
 
-template <class T, EnableIfIntegral<T>...> T ratioFloor(T value, T div) {
+template <c_integral T> T ratioFloor(T value, T div) {
 	return value < T(0) ? (value - div + T(1)) / div : value / div;
 }
 
-template <class T, EnableIfIntegral<T>...> T ratioCeil(T value, T div) {
+template <c_integral T> T ratioCeil(T value, T div) {
 	return value > T(0) ? (value + div - T(1)) / div : value / div;
 }
 
@@ -396,9 +397,7 @@ template <class T> bool isAlmostOne(T value) {
 
 float frand();
 
-template <class T, EnableIfIntegral<T>...> constexpr bool isPowerOfTwo(T value) {
-	return (value & (value - 1)) == 0;
-}
+template <c_integral T> constexpr bool isPowerOfTwo(T value) { return (value & (value - 1)) == 0; }
 
 constexpr int countLeadingZeros(uint value) { return value ? __builtin_clz(value) : 32; }
 constexpr int countLeadingZeros(u64 value) { return value ? __builtin_clzll(value) : 64; }
@@ -413,28 +412,30 @@ constexpr u32 reverseBytes(u32 value) {
 }
 constexpr u16 reverseBytes(u16 value) { return (value << 8) | (value >> 8); }
 
-template <class T, EnableIfIntegral<T>...> T nextPow2(T val) {
+template <c_integral T> T nextPow2(T val) {
 	T out = 1;
 	while(out < val)
 		out *= 2;
 	return out;
 }
 
-template <class T, EnableIf<is_fundamental<T>>...> bool isNan(T value) {
+template <class T>
+	requires(is_fundamental<T>)
+bool isNan(T value) {
 	if constexpr(is_fpt<T>)
 		return std::isnan(value);
 	return false;
 }
 
 template <class T0, class T1, class... TN>
-bool isNan(const T0 &value0, const T1 &value1, const TN &... values) {
+bool isNan(const T0 &value0, const T1 &value1, const TN &...values) {
 	return isNan(value0) || isNan(value1) || (... || isNan(values));
 }
-template <class T, EnableIfFptVec<T>...> bool isNan(const T &v) {
+template <c_float_vec T> bool isNan(const T &v) {
 	return anyOf(v.values(), [](auto s) { return isNan(s); });
 }
 
-template <class TRange, EnableIf<is_range<TRange>>...> bool isNan(const TRange &range) {
+template <c_range T> bool isNan(const T &range) {
 	return anyOf(range, [](auto s) { return isNan(s); });
 }
 
@@ -466,10 +467,8 @@ template <class T> struct vec2 {
 	vec2 &operator=(const vec2 &) = default;
 
 	explicit vec2(T t) : x(t), y(t) {}
-	template <class U, EnableIf<precise_conversion<U, T>>...>
-	vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
-	template <class U, EnableIf<!precise_conversion<U, T>>...>
-	explicit vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
+	template <class U>
+	explicit(!precise_conversion<U, T>) vec2(const vec2<U> &rhs) : vec2(T(rhs.x), T(rhs.y)) {}
 
 	vec2 operator*(const vec2 &rhs) const { return vec2(x * rhs.x, y * rhs.y); }
 	vec2 operator/(const vec2 &rhs) const { return vec2(x / rhs.x, y / rhs.y); }
@@ -510,10 +509,9 @@ template <class T> struct vec3 {
 	vec3(const vec3 &) = default;
 	vec3 &operator=(const vec3 &) = default;
 
-	template <class U, EnableIf<precise_conversion<U, T>>...>
-	vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
-	template <class U, EnableIf<!precise_conversion<U, T>>...>
-	explicit vec3(const vec3<U> &rhs) : vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
+	template <class U>
+	explicit(!precise_conversion<U, T>) vec3(const vec3<U> &rhs)
+		: vec3(T(rhs.x), T(rhs.y), T(rhs.z)) {}
 
 	vec3 operator*(const vec3 &rhs) const { return vec3(x * rhs.x, y * rhs.y, z * rhs.z); }
 	vec3 operator/(const vec3 &rhs) const { return vec3(x / rhs.x, y / rhs.y, z / rhs.z); }
@@ -559,10 +557,9 @@ template <class T> struct vec4 {
 	vec4(const vec4 &) = default;
 	vec4 &operator=(const vec4 &) = default;
 
-	template <class U, EnableIf<precise_conversion<U, T>>...>
-	vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
-	template <class U, EnableIf<!precise_conversion<U, T>>...>
-	explicit vec4(const vec4<U> &rhs) : vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
+	template <class U>
+	explicit(!precise_conversion<U, T>) vec4(const vec4<U> &rhs)
+		: vec4(T(rhs.x), T(rhs.y), T(rhs.z), T(rhs.w)) {}
 
 	vec4 operator*(const vec4 &rhs) const {
 		return vec4(x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w);
@@ -601,89 +598,85 @@ template <class T> struct vec4 {
 	};
 };
 
-template <class T, EnableIfVec<T>...> T operator*(typename T::Scalar s, const T &v) {
-	return v * s;
-}
+template <c_vec T> T operator*(typename T::Scalar s, const T &v) { return v * s; }
 
 #undef CHECK_NANS
 
 // -------------------------------------------------------------------------------------------
 // ---  Vector versions of basic math functions  ---------------------------------------------
 
-template <class TVec, class TFunc, EnableIfVec<TVec, 2>...>
-auto transform(const TVec &vec, const TFunc &func) {
+template <c_vec<2> TVec, class TFunc> auto transform(const TVec &vec, const TFunc &func) {
 	using TOut = MakeVec<decltype(func(vec[0])), 2>;
 	return TOut{func(vec[0]), func(vec[1])};
 }
 
-template <class TVec, class TFunc, EnableIfVec<TVec, 3>...>
-auto transform(const TVec &vec, const TFunc &func) {
+template <c_vec<3> TVec, class TFunc> auto transform(const TVec &vec, const TFunc &func) {
 	using TOut = MakeVec<decltype(func(vec[0])), 3>;
 	return TOut{func(vec[0]), func(vec[1]), func(vec[2])};
 }
 
-template <class TVec, class TFunc, EnableIfVec<TVec, 4>...>
-auto transform(const TVec &vec, const TFunc &func) {
+template <c_vec<4> TVec, class TFunc> auto transform(const TVec &vec, const TFunc &func) {
 	using TOut = MakeVec<decltype(func(vec[0])), 4>;
 	return TOut{func(vec[0]), func(vec[1]), func(vec[2]), func(vec[3])};
 }
 
-template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...>
-T vmin(const T &lhs, const T &rhs) {
-	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]));
-}
+template <c_vec<2> T>
+	requires(!is_rational<T>)
+T vmin(const T &lhs, const T &rhs) { return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1])); }
 
-template <class T, EnableIf<is_vec<T, 3> && !is_rational<T>>...>
+template <c_vec<3> T>
+	requires(!is_rational<T>)
 T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]));
 }
 
-template <class T, EnableIf<is_vec<T, 4> && !is_rational<T>>...>
+template <c_vec<4> T>
+	requires(!is_rational<T>)
 T vmin(const T &lhs, const T &rhs) {
 	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]), min(lhs[2], rhs[2]), min(lhs[3], rhs[3]));
 }
 
-template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...>
-T vmax(const T &lhs, const T &rhs) {
-	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]));
-}
+template <c_vec<2> T>
+	requires(!is_rational<T>)
+T vmax(const T &lhs, const T &rhs) { return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1])); }
 
-template <class T, EnableIf<is_vec<T, 3> && !is_rational<T>>...>
+template <c_vec<3> T>
+	requires(!is_rational<T>)
 T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]));
 }
 
-template <class T, EnableIf<is_vec<T, 4> && !is_rational<T>>...>
+template <c_vec<4> T>
+	requires(!is_rational<T>)
 T vmax(const T &lhs, const T &rhs) {
 	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]), max(lhs[2], rhs[2]), max(lhs[3], rhs[3]));
 }
 
-template <class T, EnableIfVec<T>...> T vclamp(const T &vec, const T &tmin, const T &tmax) {
+template <c_vec T> T vclamp(const T &vec, const T &tmin, const T &tmax) {
 	return vmin(tmax, vmax(tmin, vec));
 }
 
-template <class T, EnableIfVec<T>...> auto vfloor(const T &v) {
+template <c_vec T> auto vfloor(const T &v) {
 	return transform(v, [](auto s) { return floor(s); });
 }
-template <class T, EnableIfVec<T>...> auto vceil(const T &v) {
+template <c_vec T> auto vceil(const T &v) {
 	return transform(v, [](auto s) { return ceil(s); });
 }
-template <class T, EnableIfVec<T>...> auto vround(const T &v) {
+template <c_vec T> auto vround(const T &v) {
 	return transform(v, [](auto s) { return round(s); });
 }
-template <class T, EnableIfVec<T>...> T vabs(const T &v) {
+template <c_vec T> T vabs(const T &v) {
 	return transform(v, [](auto s) { return abs(s); });
 }
-template <class T, EnableIfFptVec<T>...> T vinv(const T &vec) {
+template <c_float_vec T> T vinv(const T &vec) {
 	return transform(vec, [](auto v) { return inv(v); });
 }
 
-template <class TVec, class T, EnableIfIntegralVec<TVec>...>
-auto vratioFloor(const TVec &v, T div) {
+template <c_integral_vec TVec, class T> auto vratioFloor(const TVec &v, T div) {
 	return transform(v, [=](auto t) { return ratioFloor(t, div); });
 }
 
-template <class TVec, class T, EnableIfIntegralVec<TVec>...> auto vratioCeil(const TVec &v, T div) {
+template <c_integral_vec TVec, class T> auto vratioCeil(const TVec &v, T div) {
 	return transform(v, [=](auto t) { return ratioCeil(t, div); });
 }
 
@@ -693,7 +686,7 @@ template <class TVec, class T, EnableIfIntegralVec<TVec>...> auto vratioCeil(con
 // Default orientation in all vector-related operations (rotations, cross products, etc.) is counter-clockwise.
 // In 3D cross products define a right-handed coordinate system.
 
-template <class T, EnableIfVec<T>...> auto dot(const T &lhs, const T &rhs) {
+template <c_vec T> auto dot(const T &lhs, const T &rhs) {
 	if constexpr(dim<T> == 2)
 		return lhs[0] * rhs[0] + lhs[1] * rhs[1];
 	else if constexpr(dim<T> == 3)
@@ -702,38 +695,32 @@ template <class T, EnableIfVec<T>...> auto dot(const T &lhs, const T &rhs) {
 		return lhs[0] * rhs[0] + lhs[1] * rhs[1] + lhs[2] * rhs[2] + lhs[3] * rhs[3];
 }
 
-template <class T, EnableIfFptVec<T>...> auto length(const T &vec) {
-	return std::sqrt(dot(vec, vec));
-}
+template <c_float_vec T> auto length(const T &vec) { return std::sqrt(dot(vec, vec)); }
+template <c_vec T> auto lengthSq(const T &vec) { return dot(vec, vec); }
 
-template <class T, EnableIfVec<T>...> auto lengthSq(const T &vec) { return dot(vec, vec); }
+template <c_float_vec T> auto distance(const T &lhs, const T &rhs) { return length(lhs - rhs); }
+template <c_vec T> auto distanceSq(const T &lhs, const T &rhs) { return lengthSq(lhs - rhs); }
 
-template <class T, EnableIfFptVec<T>...> auto distance(const T &lhs, const T &rhs) {
-	return length(lhs - rhs);
-}
+template <c_float_vec T> T normalize(const T &v) { return v / length(v); }
 
-template <class T, EnableIfVec<T>...> auto distanceSq(const T &lhs, const T &rhs) {
-	return lengthSq(lhs - rhs);
-}
-
-template <class T, EnableIfFptVec<T>...> T normalize(const T &v) { return v / length(v); }
-
-template <class T, EnableIfVec<T, 2>...> auto asXZ(const T &v) {
+template <c_vec<2> T> auto asXZ(const T &v) {
 	using TOut = MakeVec<typename T::Scalar, 3>;
 	return TOut(v[0], 0, v[1]);
 }
-template <class T, EnableIfVec<T, 2>...> auto asXY(const T &v) {
+template <c_vec<2> T> auto asXY(const T &v) {
 	using TOut = MakeVec<typename T::Scalar, 3>;
 	return TOut(v[0], v[1], 0);
 }
-template <class T, EnableIfVec<T, 2>...> auto asXZY(const T &xz, typename T::Scalar y) {
+template <c_vec<2> T> auto asXZY(const T &xz, typename T::Scalar y) {
 	using TOut = MakeVec<typename T::Scalar, 3>;
 	return TOut(xz[0], y, xz[1]);
 }
 
-template <class T, EnableIfVec<T, 3>...> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
+template <c_vec<3> T> T asXZY(const T &v) { return {v[0], v[2], v[1]}; }
 
-template <class T, EnableIf<is_vec<T> && !is_rational<T>>...> auto cross(const T &a, const T &b) {
+template <c_vec T>
+	requires(!is_rational<T>)
+auto cross(const T &a, const T &b) {
 	static_assert(dim<T> >= 2 && dim<T> <= 3);
 	if constexpr(dim<T> == 3)
 		return T{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
@@ -741,14 +728,12 @@ template <class T, EnableIf<is_vec<T> && !is_rational<T>>...> auto cross(const T
 		return a[0] * b[1] - a[1] * b[0];
 }
 
-template <class T, EnableIf<is_vec<T, 2> && !is_rational<T>>...> T perpendicular(const T &v) {
-	return T(-v[1], v[0]);
-}
+template <c_vec<2> T>
+	requires(!is_rational<T>)
+T perpendicular(const T &v) { return T(-v[1], v[0]); }
 
 // TODO: we can't really check it properly for floating-point's...
-template <class T, EnableIfFptVec<T>...> bool isNormalized(const T &vec) {
-	return isAlmostOne(lengthSq(vec));
-}
+template <c_float_vec T> bool isNormalized(const T &vec) { return isAlmostOne(lengthSq(vec)); }
 
 // -------------------------------------------------------------------------------------------
 // ---  Additional declarations  -------------------------------------------------------------

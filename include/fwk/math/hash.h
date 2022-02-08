@@ -50,8 +50,7 @@ template <class H, class T> H computeHash(const T &value, PriorityTag0) {
 		return H(std::hash<T>()(value));
 }
 
-template <class H, class TRange, EnableIf<is_range<TRange>>...>
-H computeHash(const TRange &range, PriorityTag1) {
+template <class H, c_range TRange> H computeHash(const TRange &range, PriorityTag1) {
 	if(fwk::empty(range))
 		return 0x31337;
 	auto it = begin(range);
@@ -84,27 +83,22 @@ template <class H, class... Types> H computeHash(const LightTuple<Types...> &tup
 	return computeTupleHash<H, 0>(tuple);
 }
 
-template <class H, class T, EnableIf<has_tied_member<T>>...>
-H computeHash(const T &object, PriorityTag2) {
-	return computeTupleHash<H, 0>(object.tied());
-}
+template <class H, class T>
+	requires(has_tied_member<T>)
+H computeHash(const T &object, PriorityTag2) { return computeTupleHash<H, 0>(object.tied()); }
 
-template <class H, class T, class Ret = decltype(DECLVAL(const T &).hash()),
-		  EnableIfIntegral<Ret>...>
-H computeHash(const T &object, PriorityTag3) {
-	return object.hash();
-}
+template <class H, class T, class Ret = decltype(DECLVAL(const T &).hash())>
+	requires(c_integral<Ret>)
+H computeHash(const T &object, PriorityTag3) { return object.hash(); }
 
-template <class H, class T, class Ret = decltype(DECLVAL(const T &).template hash<H>()),
-		  EnableIf<is_same<Ret, H>>...>
-H computeHash(const T &object, PriorityTag4) {
-	return object.template hash<H>();
-}
+template <class H, class T, class Ret = decltype(DECLVAL(const T &).template hash<H>())>
+	requires(is_same<Ret, H>)
+H computeHash(const T &object, PriorityTag4) { return object.template hash<H>(); }
 
 template <class T> unsigned hash(const T &value) { return computeHash<unsigned>(value); }
 template <class H, class T> H hash(const T &value) { return computeHash<H>(value); }
 
-template <class H, class... Args> H hashMany(Args &&... args) {
+template <class H, class... Args> H hashMany(Args &&...args) {
 	return combineHash(hash<H, Args>(args)...);
 }
 }

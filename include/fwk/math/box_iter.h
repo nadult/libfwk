@@ -43,7 +43,7 @@ template <class T> struct BoxCells {
 };
 
 // Iterate over unit-sized cells of given box
-template <class T, EnableIfIntegralVec<T, 2>...> BoxCells<T> cells(const Box<T> &box) {
+template <c_integral_vec<2> T> BoxCells<T> cells(const Box<T> &box) {
 	return {box.min(), box.max()};
 }
 }
