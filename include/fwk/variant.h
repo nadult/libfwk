@@ -7,6 +7,7 @@
 #pragma once
 
 #include "fwk/io/xml.h"
+#include "fwk/sys/error.h"
 #include "fwk/sys_base.h"
 #include "fwk/type_info_gen.h"
 #include <new>
@@ -21,7 +22,7 @@ namespace detail {
 
 	template <typename T, typename R = void> struct enable_if_type { using type = R; };
 	template <typename F, typename V, typename Enable = void> struct result_of_unary_visit {
-		using type = typename std::result_of<F(V &)>::type;
+		using type = typename std::invoke_result<F, V &>::type;
 	};
 
 	template <typename F, typename V>
@@ -265,7 +266,7 @@ template <typename... Types> class Variant {
 		return type_index == type_index_<T>;
 	}
 
-	template <typename T, typename... Args> void set(Args &&... args) {
+	template <typename T, typename... Args> void set(Args &&...args) {
 		Helper::destroy(type_index, &data);
 		new(&data) T(std::forward<Args>(args)...);
 		type_index = type_index_<T>;
@@ -319,10 +320,10 @@ template <typename... Types> class Variant {
 		return detail::dispatcher<F, Variant, R, Types...>::apply(*this, std::forward<F>(f));
 	}
 
-	template <typename... Fs> auto match(Fs &&... fs) const {
+	template <typename... Fs> auto match(Fs &&...fs) const {
 		return visit(detail::make_visitor(std::forward<Fs>(fs)...));
 	}
-	template <typename... Fs> auto match(Fs &&... fs) {
+	template <typename... Fs> auto match(Fs &&...fs) {
 		return visit(detail::make_visitor(std::forward<Fs>(fs)...));
 	}
 
@@ -359,13 +360,13 @@ template <typename ResultType, typename T> ResultType const &get(T const &var) {
 namespace detail {
 	template <class T, class... Types> struct VariantC {
 		static Ex<T> load_(ZStr type_name, CXmlNode node) {
-			return ERROR("Invalid type_name: '%' when constructing variant", type_name);
+			return FWK_ERROR("Invalid type_name: '%' when constructing variant", type_name);
 		}
 		static void save_(const T &variant, XmlNode node) {}
 	};
 
 	template <class T, class T1, class... Types> struct VariantC<T, T1, Types...> {
-		static Ex<T> load_(ZStr type_name, CXmlNode node) ALWAYS_INLINE {
+		static FWK_ALWAYS_INLINE Ex<T> load_(ZStr type_name, CXmlNode node) {
 			static_assert(!is_one_of<Error, Types...>);
 			if(type_name == typeName<T1>()) {
 				auto result = load<T1>(node);

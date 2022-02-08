@@ -1,7 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifdef FWK_PLATFORM_MINGW
+#include "fwk/sys/platform.h"
+
+#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
 #include "file_system_windows.cpp"
 #else
 #include "file_system_posix.cpp"
@@ -304,7 +306,7 @@ Ex<> mkdirRecursive(const FilePath &path) {
 			return result;
 
 #ifdef _WIN32
-	int ret = mkdir(path.c_str());
+	int ret = _mkdir(path.c_str());
 #else
 	int ret = mkdir(path.c_str(), 0775);
 #endif
@@ -359,7 +361,11 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 #ifdef FWK_PLATFORM_HTML
 	return FWK_ERROR("execCommand not supported on HTML platform");
 #else
+#ifdef FWK_PLATFORM_MSVC
+	FILE *pipe = _popen(cmd.c_str(), "r");
+#else
 	FILE *pipe = popen(cmd.c_str(), "r");
+#endif
 	if(!pipe)
 		return FWK_ERROR("Error on popen '%': %", cmd, strerror(errno));
 	char buffer[1024];
@@ -368,7 +374,12 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 		if(fgets(buffer, sizeof(buffer), pipe))
 			result += buffer;
 	}
+#ifdef FWK_PLATFORM_MSVC
+	int ret = _pclose(pipe);
+#else
 	int ret = pclose(pipe);
+#endif
+
 	if(ret == -1)
 		return FWK_ERROR("Error on pclose '%': %", cmd, strerror(errno));
 	return pair{result, ret};

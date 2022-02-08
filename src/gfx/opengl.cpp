@@ -185,7 +185,7 @@ void initializeGl(GlProfile profile) {
 }
 
 void loadExtensions() {
-#ifdef FWK_PLATFORM_MINGW
+#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
 #define LOAD(func) (func = reinterpret_cast<decltype(func)>((u64)winLoadFunction(#func)));
 
 	LOAD(glCompressedTexImage3D);

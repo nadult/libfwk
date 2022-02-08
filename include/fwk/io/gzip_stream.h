@@ -34,7 +34,7 @@ class GzipStream {
 
   private:
 	GzipStream(void *, Stream &, bool);
-	Error makeError(const char *file, int line, Str, int = 0) NOINLINE;
+	FWK_NO_INLINE Error makeError(const char *file, int line, Str, int = 0);
 
 	vector<char> m_buffer;
 	Stream *m_pipe = nullptr;

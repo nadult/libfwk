@@ -83,14 +83,14 @@ template <class K, class V, class Policy> class HashMap {
 		}
 
 		KVRef operator*() const { return PASSERT(!atEnd()), map->m_storage.keyValue(idx); }
-		auto operator-> () const {
+		auto operator->() const {
 			PASSERT(!atEnd());
 			if constexpr(keeps_pairs)
 				return &map->m_storage.keyValue(idx);
 			else {
 				struct Proxy {
 					fwk::KeyValue<const Key &, If<is_const, const Value, Value> &> ref;
-					auto *operator-> () const ALWAYS_INLINE { return &ref; }
+					FWK_ALWAYS_INLINE auto *operator->() const { return &ref; }
 				};
 				return Proxy{{map->m_storage.key(idx), map->m_storage.value(idx)}};
 			}

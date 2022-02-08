@@ -150,7 +150,7 @@ class TextFormatter {
 	TextFormatter &operator<<(long long);
 	TextFormatter &operator<<(unsigned long long);
 
-	void reserve(int) NOINLINE;
+	FWK_NO_INLINE void reserve(int);
 	void trim(int count);
 
 	const char *c_str() const & { return m_data.data(); }

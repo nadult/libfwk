@@ -76,7 +76,11 @@ int Str::compare(const Str &rhs) const {
 }
 
 int Str::compareIgnoreCase(const Str &rhs) const {
+#ifdef FWK_PLATFORM_MSVC
+	auto ret = _strnicmp(m_data, rhs.m_data, min(m_size, rhs.m_size));
+#else
 	auto ret = strncasecmp(m_data, rhs.m_data, min(m_size, rhs.m_size));
+#endif
 	return ret ? ret : m_size < rhs.m_size ? -1 : m_size == rhs.m_size ? 0 : 1;
 }
 
@@ -104,7 +108,7 @@ int Str::rfind(char c) const {
 }
 
 int Str::find(Str str) const {
-#ifdef FWK_PLATFORM_MINGW
+#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
 	// TODO: slow
 	for(int n = 0; n < m_size - str.m_size + 1; n++)
 		if(strncmp(m_data + n, str.m_data, str.m_size) == 0)

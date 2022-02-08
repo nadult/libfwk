@@ -9,8 +9,8 @@
 namespace fwk {
 
 namespace detail {
-	__thread char t_vpool_buf[vpool_chunk_size * vpool_num_chunks];
-	__thread uint t_vpool_bits = 0xffffffff;
+	FWK_THREAD_LOCAL char t_vpool_buf[vpool_chunk_size * vpool_num_chunks];
+	FWK_THREAD_LOCAL u32 t_vpool_bits = 0xffffffff;
 }
 
 int vectorGrowCapacity(int capacity, int obj_size) {

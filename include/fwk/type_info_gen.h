@@ -44,18 +44,18 @@ namespace detail {
 		}
 
 		static constexpr TypeInfoData data = {
-			constOrNot(),   pointerBase(), referenceBase(),			  getSize(),
+			constOrNot(),	pointerBase(), referenceBase(),			  getSize(),
 			getAlignment(), is_const<T>,   std::is_volatile<T>::value};
 		static inline int reg_name = (addTypeName(data, typeid(T).name()), 0);
 
 		// This is unfortunate, but necessary...
 		static void invokeReg() {
-			auto dummy1 = reg_name;
+			[[maybe_unused]] auto dummy1 = reg_name;
 			if constexpr(std::is_pointer<T>())
 				TypeData<RemovePointer<T>>::invokeReg();
 			if constexpr(std::is_reference<T>())
 				TypeData<RemoveReference<T>>::invokeReg();
-			else
+			else [[maybe_unused]]
 				auto dummy2 = TypeData<ConstOrNot>::reg_name;
 		}
 	};

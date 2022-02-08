@@ -13,8 +13,8 @@ namespace fwk {
 namespace detail {
 	// Pool allocator for vectors
 	constexpr int vpool_chunk_size = 128, vpool_num_chunks = 32;
-	extern __thread char t_vpool_buf[vpool_chunk_size * vpool_num_chunks];
-	extern __thread uint t_vpool_bits;
+	extern FWK_THREAD_LOCAL char t_vpool_buf[vpool_chunk_size * vpool_num_chunks];
+	extern FWK_THREAD_LOCAL uint t_vpool_bits;
 
 	inline bool onVPool(const char *data) {
 		return data >= t_vpool_buf && data < t_vpool_buf + vpool_chunk_size * vpool_num_chunks;

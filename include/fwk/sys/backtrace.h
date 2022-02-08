@@ -26,8 +26,8 @@ class Backtrace {
 	Backtrace(vector<void *> addrs) : m_addresses(move(addrs)) {}
 	Backtrace() = default;
 
-	static inline __thread bool t_is_enabled = true;
-	static inline __thread bool t_on_except_enabled = true;
+	static inline FWK_THREAD_LOCAL bool t_is_enabled = true;
+	static inline FWK_THREAD_LOCAL bool t_on_except_enabled = true;
 
 	// TODO: skip by default shouldnt be passed in most situations
 	// context is useful only on MinGW platform (typically in case of a segfault)

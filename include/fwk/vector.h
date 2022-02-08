@@ -284,22 +284,22 @@ template <class T> class Vector {
 	}
 
 	static void copy(void *vdst, const void *vsrc, int count) {
-		const T *__restrict__ src = (T *)vsrc;
-		T *__restrict__ dst = (T *)vdst;
+		const T *FWK_RESTRICT src = (T *)vsrc;
+		T *FWK_RESTRICT dst = (T *)vdst;
 		for(int n = 0; n < count; n++)
 			new(dst + n) T(src[n]);
 	}
 	static void moveAndDestroy(void *vdst, void *vsrc, int count) {
-		T *__restrict__ src = (T *)vsrc;
-		T *__restrict__ dst = (T *)vdst;
+		T *FWK_RESTRICT src = (T *)vsrc;
+		T *FWK_RESTRICT dst = (T *)vdst;
 		for(int n = 0; n < count; n++) {
 			new(dst + n) T(std::move(src[n]));
 			src[n].~T();
 		}
 	}
 	static void moveAndDestroyBackwards(void *vdst, void *vsrc, int count) {
-		T *__restrict__ src = (T *)vsrc;
-		T *__restrict__ dst = (T *)vdst;
+		T *FWK_RESTRICT src = (T *)vsrc;
+		T *FWK_RESTRICT dst = (T *)vdst;
 		for(int n = count - 1; n >= 0; n--) {
 			new(dst + n) T(std::move(src[n]));
 			src[n].~T();

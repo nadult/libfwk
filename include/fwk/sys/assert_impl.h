@@ -11,7 +11,7 @@ namespace fwk {
 #define VA_OPT_SUPPORTED_I(...) PP_THIRD_ARG(__VA_OPT__(, ), true, false, )
 #define VA_OPT_SUPPORTED VA_OPT_SUPPORTED_I(?)
 
-#if !(VA_OPT_SUPPORTED)
+#if !(VA_OPT_SUPPORTED) && !(_MSC_VER >= 1925)
 #error "__VA_OPT__ support is required for assertions to work"
 #endif
 
@@ -33,7 +33,7 @@ namespace detail {
 
 	using CallFunc = void (*)(const AssertInfo *, ...);
 	template <class Strings, int line, class Func, class... T>
-	inline auto assertCall(const Func &func, const T &... args) {
+	inline auto assertCall(const Func &func, const T &...args) {
 		static_assert((is_formattible<T> && ...));
 		using Funcs = decltype(detail::formatFuncs(args...));
 		constexpr Strings strings;

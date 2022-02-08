@@ -39,7 +39,7 @@ struct XmlDebugHelper {
 	std::jmp_buf jump_buffer = {};
 	int pstring_len = 0;
 };
-__thread XmlDebugHelper t_xml_debug;
+FWK_THREAD_LOCAL XmlDebugHelper t_xml_debug;
 
 void touch(xml_node<> *ptr = nullptr, xml_attribute<> *attrib = nullptr) {
 	auto &helper = t_xml_debug;

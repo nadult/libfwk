@@ -6,9 +6,9 @@
 #include "fwk/algorithm.h"
 #include "fwk/format.h"
 #include "fwk/str.h"
-#include <SDL.h>
-#include <SDL_keyboard.h>
-#include <SDL_mouse.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_keyboard.h>
+#include <SDL2/SDL_mouse.h>
 
 namespace fwk {
 

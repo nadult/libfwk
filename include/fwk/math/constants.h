@@ -43,5 +43,5 @@ constexpr RealConstant sqrt3 = 1.7320508075688772935274463415058724L;
 constexpr RealConstant sqrt6 = 2.4494897427831780981972840747058914L;
 constexpr RealConstant pi = 3.1415926535897932384626433832795029L;
 constexpr RealConstant e = 2.7182818284590452353602874713526625L;
-constexpr RealConstant<NumberType::infinity> inf = __builtin_inf();
+constexpr RealConstant<NumberType::infinity> inf = __builtin_huge_valf();
 }

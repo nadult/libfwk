@@ -33,8 +33,8 @@ namespace fwk {
 #define RAISE(...) _ASSERT_FORMATTED(raiseException, __VA_ARGS__)
 
 namespace detail {
-	extern __thread bool t_exception_raised;
-	extern __thread int t_quiet_exceptions;
+	extern FWK_THREAD_LOCAL bool t_exception_raised;
+	extern FWK_THREAD_LOCAL int t_quiet_exceptions;
 }
 
 inline bool quietExceptionsMode() { return detail::t_quiet_exceptions != 0; }

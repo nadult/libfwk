@@ -7,6 +7,7 @@
 #include "fwk/math/hash.h"
 #include "fwk/maybe.h"
 #include "fwk/parse.h"
+#include "fwk/sys/error.h"
 #include "fwk/sys_base.h"
 
 namespace fwk {
@@ -128,7 +129,7 @@ template <auto tag, class Base_ /*= unsigned*/> class TagId {
 	bool operator<(const TagId &rhs) const { return m_idx < rhs.m_idx; }
 
   private:
-	bool isInitialized() const ALWAYS_INLINE { return m_idx != uninitialized_index; }
+	FWK_ALWAYS_INLINE bool isInitialized() const { return m_idx != uninitialized_index; }
 
 	Base m_idx;
 };

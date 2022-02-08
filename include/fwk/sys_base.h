@@ -8,10 +8,21 @@
 #include <memory>
 #include <string>
 
+#include "fwk/sys/platform.h"
+
 #include "fwk/meta/operator.h"
 
-#define NOINLINE __attribute__((noinline))
-#define ALWAYS_INLINE __attribute__((always_inline))
+#ifdef FWK_PLATFORM_MSVC
+#define FWK_NO_INLINE __declspec(noinline)
+#define FWK_ALWAYS_INLINE __forceinline
+#define FWK_RESTRICT __restrict
+#define FWK_THREAD_LOCAL __declspec(thread)
+#else
+#define FWK_NO_INLINE __attribute__((noinline))
+#define FWK_ALWAYS_INLINE __attribute__((always_inline))
+#define FWK_RESTRICT __restrict__
+#define FWK_THREAD_LOCAL __thread
+#endif
 
 // Exception-related attributes (supported only when compiling on clang):
 //
@@ -280,15 +291,6 @@ template <class T, int N> inline constexpr bool is_flat_data<Array<T, N>> = is_f
 void log(Str message, Str unique_key);
 void log(Str message);
 bool logKeyPresent(Str);
-
-enum class Platform { linux, mingw, html };
-#if defined(FWK_PLATFORM_LINUX)
-inline constexpr auto platform = Platform::linux;
-#elif defined(FWK_PLATFORM_MINGW)
-inline constexpr auto platform = Platform::mingw;
-#else
-inline constexpr auto platform = Platform::html;
-#endif
 }
 
 namespace perf {

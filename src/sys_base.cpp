@@ -1,7 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifdef FWK_PLATFORM_MINGW
+#include "fwk/sys/platform.h"
+
+#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
 #include "sys_base_windows.cpp"
 #endif
 
@@ -10,11 +12,13 @@
 #include "fwk/enum.h"
 #include "fwk/format.h"
 #include "fwk/sys/backtrace.h"
+#include <bit>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <stdarg.h>
+#include <time.h>
 
 #ifdef FWK_PLATFORM_LINUX
 #include <dlfcn.h>
@@ -24,12 +28,9 @@
 #include <sys/types.h>
 #endif
 
-#ifndef FWK_PLATFORM_MINGW
-#include <time.h>
+#ifdef FWK_PLATFORM_LINUX
 #include <unistd.h>
 #endif
-
-#include <bit>
 
 namespace fwk {
 

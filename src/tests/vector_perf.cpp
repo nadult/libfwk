@@ -130,8 +130,7 @@ struct Struct {
 	fwk::float2 f2;
 };
 
-int iterationLoop(fwk::SparseVector<Struct> &ivec, int n) NOINLINE;
-int iterationLoop(fwk::SparseVector<Struct> &ivec, int n) {
+FWK_NO_INLINE int iterationLoop(fwk::SparseVector<Struct> &ivec, int n) {
 	int val = 0;
 	for(auto i : ivec.indices())
 		val += ivec[i].i4[n & 3];
@@ -140,8 +139,7 @@ int iterationLoop(fwk::SparseVector<Struct> &ivec, int n) {
 	return val;
 }
 
-int testSparseVector() NOINLINE;
-int testSparseVector() {
+FWK_NO_INLINE int testSparseVector() {
 	using namespace fwk;
 	SparseVector<Struct> ivec;
 

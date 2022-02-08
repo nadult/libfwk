@@ -1,17 +1,17 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/sys/on_fail.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/error.h"
-#include "fwk/sys/on_fail.h"
 #include <cstdarg>
 
 namespace fwk {
 
 namespace detail {
 	enum { max_on_assert = 64 };
-	__thread OnFailInfo t_on_fail_stack[max_on_assert];
-	__thread int t_on_fail_count = 0;
+	FWK_THREAD_LOCAL OnFailInfo t_on_fail_stack[max_on_assert];
+	FWK_THREAD_LOCAL int t_on_fail_count = 0;
 }
 
 using namespace detail;
@@ -28,7 +28,7 @@ void onFailPop() {
 
 int onFailStackSize() { return t_on_fail_count; }
 
-static __thread bool s_fail_protect = false;
+static FWK_THREAD_LOCAL bool s_fail_protect = false;
 
 vector<ErrorChunk> onFailChunks() {
 	vector<ErrorChunk> chunks;

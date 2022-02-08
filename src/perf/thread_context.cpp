@@ -9,7 +9,7 @@
 
 namespace perf {
 
-static __thread ThreadContext *t_context = nullptr, *t_paused = nullptr;
+static FWK_THREAD_LOCAL ThreadContext *t_context = nullptr, *t_paused = nullptr;
 static bool volatile s_gpu_paused = false;
 
 int ThreadContext::numGpuQueries() {

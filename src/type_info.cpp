@@ -3,9 +3,12 @@
 
 #include "fwk/type_info_gen.h"
 
-#include <cxxabi.h>
 #include <fwk/format.h>
 #include <fwk/hash_map.h>
+
+#ifndef FWK_PLATFORM_MSVC
+#include <cxxabi.h>
+#endif
 
 /*
 // Problems with __PRETTY_FUNCTION__:
@@ -72,10 +75,14 @@ namespace detail {
 	}();
 
 	void addTypeName(const TypeInfoData &data, const char *mangled_name) {
+#ifdef FWK_PLATFORM_MSVC
+		const char *demangled_name = mangled_name; // No need for demangling under msvc
+#else
 		int status;
 		auto demangled_name = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
 		if(status != 0)
 			FATAL("Error while demangling name: %s; cxa_demangle status: %d", mangled_name, status);
+#endif
 
 		bool is_const = data.is_const;
 		bool is_volatile = data.is_volatile;
@@ -86,7 +93,9 @@ namespace detail {
 
 		string name = format("%%%%", demangled_name, is_const ? " const" : "",
 							 is_volatile ? " volatile" : "", data.reference_base ? "&" : "");
+#ifndef FWK_PLATFORM_MSVC
 		free(demangled_name);
+#endif
 
 		auto &name_to_id = invTypeNames();
 		auto id = (long long)&data;

@@ -15,7 +15,9 @@
 #endif
 
 #ifndef FWK_THREADS_DISABLED
-#include <pthread.h>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 #endif
 
 namespace fwk {
@@ -26,12 +28,10 @@ struct Mutex {
 	void operator=(const Mutex &) = delete;
 
 #ifndef FWK_THREADS_DISABLED
-	~Mutex() { pthread_mutex_destroy(&mutex); }
-	void init() { pthread_mutex_init(&mutex, nullptr); }
-	void lock() { pthread_mutex_lock(&mutex); }
-	void unlock() { pthread_mutex_unlock(&mutex); }
+	void lock() { mutex.lock(); }
+	void unlock() { mutex.unlock(); }
 
-	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+	std::mutex mutex;
 #else
 	void lock() {}
 	void unlock() {}
@@ -47,13 +47,17 @@ struct Condition {
 	void operator=(const Condition &) = delete;
 
 #ifndef FWK_THREADS_DISABLED
-	~Condition() { pthread_cond_destroy(&cond); }
-	void signal() { pthread_cond_signal(&cond); }
-	void wait(Mutex &mutex) { pthread_cond_wait(&cond, &mutex.mutex); }
+	void signalOne() { cond.notify_one(); }
+	void signalAll() { cond.notify_all(); }
+	void wait(Mutex &mutex) {
+		std::unique_lock<std::mutex> lock(mutex.mutex);
+		cond.wait(lock);
+	}
 
-	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+	std::condition_variable cond;
 #else
-	void signal() {}
+	void signalOne() {}
+	void signalAll() {}
 	void wait(Mutex &) {}
 
 	int cond = 0;
@@ -68,10 +72,10 @@ struct Thread {
 	static int hardwareConcurrency();
 
 #ifndef FWK_THREADS_DISABLED
-	Thread(void *(*func)(void *), void *arg) { pthread_create(&thread, nullptr, func, arg); }
-	void join() { pthread_join(thread, 0); }
+	Thread(void *(*func)(void *), void *arg) : thread(func, arg) {}
+	void join() { thread.join(); }
 
-	pthread_t thread;
+	std::thread thread;
 #else
 	Thread(void *(*func)(void *), void *) {}
 	void join() {}
@@ -94,7 +98,7 @@ inline int threadId() {
 #ifdef FWK_THREADS_DISABLED
 	return 0;
 #else
-	return (int)pthread_self();
+	return (int)std::hash<std::thread::id>{}(std::this_thread::get_id());
 #endif
 }
 }

@@ -26,7 +26,7 @@ void *allocate(size_t size) {
 
 void *allocate(size_t size, size_t alignment) {
 	DASSERT(isPowerOfTwo(alignment));
-#ifdef FWK_PLATFORM_MINGW
+#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
 	auto ptr = _aligned_malloc(size, alignment);
 #else
 	auto ptr = aligned_alloc(alignment, size);

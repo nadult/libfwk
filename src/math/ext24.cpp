@@ -80,8 +80,7 @@ namespace {
 	}
 
 	// Sign of: a + b * sqrt(2) + c * sqrt(3) + d * sqrt(6)
-	template <class T> int quadSignSlow(T a, T b, T c, T d) NOINLINE;
-	template <class T> int quadSignSlow(T a, T b, T c, T d) {
+	template <class T> FWK_NO_INLINE int quadSignSlow(T a, T b, T c, T d) {
 		T s1 = sign1(a, d);
 		T s2 = sign2(b, c);
 		T s3 = sign3(a, b, c, d, s1, s2);

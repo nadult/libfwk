@@ -15,9 +15,7 @@
 namespace fwk {
 
 namespace {
-
-	static void reportParseError(Str, const char *, int) NOINLINE EXCEPT;
-	void reportParseError(Str str, const char *type_name, int count) {
+	FWK_NO_INLINE void reportParseError(Str str, const char *type_name, int count) EXCEPT {
 		if(quietExceptionsMode())
 			raiseQuietException();
 		else {
@@ -27,8 +25,7 @@ namespace {
 		}
 	}
 
-	static void reportOutOfRange(Str, const char *) NOINLINE EXCEPT;
-	void reportOutOfRange(Str str, const char *type_name) {
+	FWK_NO_INLINE void reportOutOfRange(Str str, const char *type_name) EXCEPT {
 		if(quietExceptionsMode())
 			raiseQuietException();
 		else {

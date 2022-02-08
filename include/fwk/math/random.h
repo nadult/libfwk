@@ -69,6 +69,6 @@ class Random {
 	}
 
   private:
-	FwdMember<RandomEngine, 2504, 8> m_engine;
+	FwdMember<RandomEngine, (platform == Platform::msvc ? 5008 : 2504), 8> m_engine;
 };
 }

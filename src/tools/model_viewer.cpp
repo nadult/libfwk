@@ -33,8 +33,12 @@ namespace {
 HashMap<string, PTexture> s_textures;
 
 string dataPath(string file_name) {
-	FilePath exec(executablePath());
-	return exec.parent().parent() / "data" / file_name;
+#ifdef FWK_PLATFORM_MSVC
+	auto main_path = FilePath::current().get();
+#else
+	auto main_path = FilePath(executablePath()).parent().parent();
+#endif
+	return main_path / "data" / file_name;
 }
 }
 

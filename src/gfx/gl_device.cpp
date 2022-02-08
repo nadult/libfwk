@@ -12,8 +12,8 @@
 #include "fwk/math/box.h"
 #include "fwk/sys/input.h"
 #include "fwk/sys/thread.h"
-#include <SDL.h>
-#include <SDL_video.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_video.h>
 #include <memory.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>

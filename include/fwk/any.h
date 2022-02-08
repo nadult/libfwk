@@ -35,7 +35,7 @@ namespace detail {
 	void registerAnyType(TypeInfo, AnyXmlLoader, AnyXmlSaver);
 
 	template <class T> struct AnyModel : public AnyBase {
-		AnyModel(T value) : value(move(value)) { auto dummy = reg_dummy; }
+		AnyModel(T value) : value(move(value)) { [[maybe_unused]] auto dummy = reg_dummy; }
 		AnyBase *clone() const final { return new AnyModel(value); }
 		void *ptr() const { return (void *)&value; }
 

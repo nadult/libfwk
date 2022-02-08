@@ -8,8 +8,8 @@
 
 namespace fwk {
 
-__thread bool detail::t_exception_raised = false;
-__thread int detail::t_quiet_exceptions = 0;
+FWK_THREAD_LOCAL bool detail::t_exception_raised = false;
+FWK_THREAD_LOCAL int detail::t_quiet_exceptions = 0;
 
 static Mutex s_mutex;
 static vector<Pair<Error, int>> s_errors;

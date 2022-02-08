@@ -32,26 +32,26 @@ template <class Key, class Value> struct HashMapStoragePaired {
 	static constexpr bool keeps_hashes = false, keeps_pairs = true;
 	static constexpr auto memory_unit = sizeof(KeyValue);
 
-	auto &keyValue(int idx) const ALWAYS_INLINE { return key_values[idx]; }
-	auto &keyValue(int idx) ALWAYS_INLINE { return key_values[idx]; }
-	const Key &key(int idx) const ALWAYS_INLINE { return key_values[idx].key; }
-	Value &value(int idx) ALWAYS_INLINE { return key_values[idx].value; }
-	const Value &value(int idx) const ALWAYS_INLINE { return key_values[idx].value; }
+	FWK_ALWAYS_INLINE auto &keyValue(int idx) const { return key_values[idx]; }
+	FWK_ALWAYS_INLINE auto &keyValue(int idx) { return key_values[idx]; }
+	FWK_ALWAYS_INLINE const Key &key(int idx) const { return key_values[idx].key; }
+	FWK_ALWAYS_INLINE Value &value(int idx) { return key_values[idx].value; }
+	FWK_ALWAYS_INLINE const Value &value(int idx) const { return key_values[idx].value; }
 
 	bool compareKey(int idx, const Key &key, u32 hash) const { return key_values[idx].key == key; }
 	bool isDeleted(int idx) const { return key_values[idx].key.holds(Intrusive::DeletedHash()); }
 	bool isUnused(int idx) const { return key_values[idx].key.holds(Intrusive::UnusedHash()); }
 	bool isValid(int idx) const { return !isDeleted(idx) && !isUnused(idx); }
 
-	template <class... Args> void construct(int idx, u32, const Key &key, Args &&... args) {
+	template <class... Args> void construct(int idx, u32, const Key &key, Args &&...args) {
 		new((Key *)&key_values[idx]) KeyValue{key, Value{std::forward<Args>(args)...}};
 	}
 
 	void destruct(int idx) { key_values[idx].~KeyValue(); }
-	void markDeleted(int idx) ALWAYS_INLINE {
+	FWK_ALWAYS_INLINE void markDeleted(int idx) {
 		new((Key *)&key_values[idx].key) Key(Intrusive::DeletedHash());
 	}
-	void markUnused(int idx) ALWAYS_INLINE {
+	FWK_ALWAYS_INLINE void markUnused(int idx) {
 		new((Key *)&key_values[idx].key) Key(Intrusive::UnusedHash());
 	}
 
@@ -94,23 +94,23 @@ template <class Key, class Value> struct HashMapStorageSeparated {
 	static constexpr auto memory_unit = sizeof(Key) + sizeof(Value);
 
 	KeyValue keyValue(int idx) const { return {keys[idx], values[idx]}; }
-	const Key &key(int idx) const ALWAYS_INLINE { return keys[idx]; }
-	Value &value(int idx) ALWAYS_INLINE { return values[idx]; }
-	const Value &value(int idx) const ALWAYS_INLINE { return values[idx]; }
+	FWK_ALWAYS_INLINE const Key &key(int idx) const { return keys[idx]; }
+	FWK_ALWAYS_INLINE Value &value(int idx) { return values[idx]; }
+	FWK_ALWAYS_INLINE const Value &value(int idx) const { return values[idx]; }
 
 	bool compareKey(int idx, const Key &key, u32 hash) const { return keys[idx] == key; }
 	bool isDeleted(int idx) const { return keys[idx].holds(Intrusive::DeletedHash()); }
 	bool isUnused(int idx) const { return keys[idx].holds(Intrusive::UnusedHash()); }
 	bool isValid(int idx) const { return !isDeleted(idx) && !isUnused(idx); }
 
-	template <class... Args> void construct(int idx, u32, const Key &key, Args &&... args) {
+	template <class... Args> void construct(int idx, u32, const Key &key, Args &&...args) {
 		new(&keys[idx]) Key(key);
 		new(&values[idx]) Value{std::forward<Args>(args)...};
 	}
 
 	void destruct(int idx) { keys[idx].~Key(), values[idx].~Value(); }
-	void markDeleted(int idx) ALWAYS_INLINE { new(&keys[idx]) Key(Intrusive::DeletedHash()); }
-	void markUnused(int idx) ALWAYS_INLINE { new(&keys[idx]) Key(Intrusive::UnusedHash()); }
+	FWK_ALWAYS_INLINE void markDeleted(int idx) { new(&keys[idx]) Key(Intrusive::DeletedHash()); }
+	FWK_ALWAYS_INLINE void markUnused(int idx) { new(&keys[idx]) Key(Intrusive::UnusedHash()); }
 
 	static HashMapStorageSeparated allocate(int new_capacity) {
 		auto *new_keys = static_cast<Key *>(fwk::allocate(new_capacity * sizeof(Key)));
@@ -137,18 +137,18 @@ template <class Key, class Value> struct HashMapStoragePairedWithHashes {
 	static constexpr bool keeps_hashes = true, keeps_pairs = true;
 	static constexpr auto memory_unit = sizeof(u32) + sizeof(KeyValue);
 
-	auto &keyValue(int idx) const ALWAYS_INLINE { return key_values[idx]; }
-	auto &keyValue(int idx) ALWAYS_INLINE { return key_values[idx]; }
-	const Key &key(int idx) const ALWAYS_INLINE { return key_values[idx].key; }
-	Value &value(int idx) ALWAYS_INLINE { return key_values[idx].value; }
-	const Value &value(int idx) const ALWAYS_INLINE { return key_values[idx].value; }
+	FWK_ALWAYS_INLINE auto &keyValue(int idx) const { return key_values[idx]; }
+	FWK_ALWAYS_INLINE auto &keyValue(int idx) { return key_values[idx]; }
+	FWK_ALWAYS_INLINE const Key &key(int idx) const { return key_values[idx].key; }
+	FWK_ALWAYS_INLINE Value &value(int idx) { return key_values[idx].value; }
+	FWK_ALWAYS_INLINE const Value &value(int idx) const { return key_values[idx].value; }
 
 	bool compareKey(int idx, const Key &key, u32 hash) const {
 		return hashes[idx] == hash && key_values[idx].key == key;
 	}
-	bool isDeleted(int idx) const ALWAYS_INLINE { return hashes[idx] == deleted_hash; }
-	bool isUnused(int idx) const ALWAYS_INLINE { return hashes[idx] == unused_hash; }
-	bool isValid(int idx) const ALWAYS_INLINE { return hashes[idx] < deleted_hash; }
+	FWK_ALWAYS_INLINE bool isDeleted(int idx) const { return hashes[idx] == deleted_hash; }
+	FWK_ALWAYS_INLINE bool isUnused(int idx) const { return hashes[idx] == unused_hash; }
+	FWK_ALWAYS_INLINE bool isValid(int idx) const { return hashes[idx] < deleted_hash; }
 
 	static HashMapStoragePairedWithHashes allocate(int new_capacity) {
 		u32 *new_hashes = static_cast<u32 *>(fwk::allocate(new_capacity * sizeof(u32)));
@@ -164,14 +164,14 @@ template <class Key, class Value> struct HashMapStoragePairedWithHashes {
 		fwk::deallocate(key_values);
 	}
 
-	template <class... Args> void construct(int idx, u32 hash, const Key &key, Args &&... args) {
+	template <class... Args> void construct(int idx, u32 hash, const Key &key, Args &&...args) {
 		new((Key *)&key_values[idx]) KeyValue{key, Value{std::forward<Args>(args)...}};
 		hashes[idx] = hash;
 	}
 
 	void destruct(int idx) { key_values[idx].~KeyValue(); }
-	void markDeleted(int idx) ALWAYS_INLINE { hashes[idx] = deleted_hash; }
-	void markUnused(int idx) ALWAYS_INLINE { hashes[idx] = unused_hash; }
+	FWK_ALWAYS_INLINE void markDeleted(int idx) { hashes[idx] = deleted_hash; }
+	FWK_ALWAYS_INLINE void markUnused(int idx) { hashes[idx] = unused_hash; }
 
 	static constexpr u32 unused_hash = 0xffffffff;
 	static constexpr u32 deleted_hash = 0xfffffffe;

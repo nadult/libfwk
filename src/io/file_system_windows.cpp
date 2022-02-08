@@ -3,13 +3,39 @@
 
 // This file should be included by file_system.cpp
 
-#if !defined(FWK_PLATFORM_MINGW)
+#if !defined(FWK_PLATFORM_MINGW) && !defined(FWK_PLATFORM_MSVC)
 #error "This file should only be compiled for MinGW target"
 #endif
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+#undef max
+#undef min
+#undef ERROR
+
+#ifndef S_IFMT
+#define S_IFMT 0xF000
+#endif
+
+#ifndef S_IFREG
+#define S_IFREG 0x8000
+#endif
+
+#ifndef S_IFDIR
+#define S_IFDIR 0x4000
+#endif
+
+#ifndef S_ISREG
+#define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
+#endif
+
+/* Test if something is a directory.  */
+
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
+#endif
 
 #include "fwk/io/file_system.h"
 

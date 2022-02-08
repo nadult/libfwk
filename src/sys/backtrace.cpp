@@ -12,7 +12,6 @@
 #include "fwk/sys/expected.h"
 
 #include <cstdio>
-#include <cxxabi.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -20,6 +19,10 @@
 
 #ifndef FWK_DWARF_DISABLED
 #include "backtrace_dwarf.h"
+#endif
+
+#ifndef FWK_PLATFORM_MSVC
+#include <cxxabi.h>
 #endif
 
 // -------------------------------------------------------------------------------------------
@@ -60,8 +63,7 @@ static _Unwind_Reason_Code unwind_trampoline(_Unwind_Context *ctx, void *self) {
 }
 #endif
 
-static int linuxGetBacktrace(fwk::Span<void *>) NOINLINE;
-static int linuxGetBacktrace(fwk::Span<void *> addrs) {
+FWK_NO_INLINE static int linuxGetBacktrace(fwk::Span<void *> addrs) {
 #if defined(USE_UNWIND)
 	UnwindContext ctx{addrs, -1};
 	_Unwind_Backtrace(&unwind_trampoline, &ctx);
@@ -78,6 +80,7 @@ static int linuxGetBacktrace(fwk::Span<void *> addrs) {
 
 namespace fwk {
 
+// TODO: https://stackoverflow.com/questions/23369503/get-size-of-terminal-window-rows-columns
 Maybe<int2> consoleDimensions() {
 #ifdef FWK_PLATFORM_LINUX
 	auto result = execCommand("tput cols && tput lines");
@@ -99,6 +102,7 @@ Maybe<int2> consoleDimensions() {
 	return none;
 }
 
+#ifndef FWK_PLATFORM_MSVC
 string demangle(string str) {
 	int status = 0;
 	char *result = abi::__cxa_demangle(str.c_str(), nullptr, nullptr, &status);
@@ -108,6 +112,7 @@ string demangle(string str) {
 	}
 	return str;
 }
+#endif
 
 namespace {
 

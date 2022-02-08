@@ -4,10 +4,7 @@ import ycm_core
 flags = [
 '-x', 'c++', '-std=c++2a', '-fno-exceptions',
 '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unused-variable',
-
-'-DFWK_PLATFORM_LINUX', '-DFWK_PARANOID', '-DFWK_CHECK_OPENGL',
-'-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP',
-
+'-DFWK_PARANOID', '-DFWK_CHECK_OPENGL', '-DFATAL=FWK_FATAL', '-DDUMP=FWK_DUMP',
 '-I', 'src/', '-I', 'include/', '-I', 'extern/imgui/'
 ]
 

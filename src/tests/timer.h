@@ -9,9 +9,9 @@ namespace fwk {
 
 class TestTimer {
   public:
-	TestTimer(const string &name) NOINLINE : name(name), start(fwk::getTime()) {}
+	FWK_NO_INLINE TestTimer(const string &name) : name(name), start(fwk::getTime()) {}
 
-	~TestTimer() NOINLINE {
+	FWK_NO_INLINE ~TestTimer() {
 		double now = getTime();
 		printf("%s completed in %.4f msec\n", name.c_str(), (now - start) * 1000.0);
 	}

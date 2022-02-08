@@ -3,17 +3,16 @@
 
 // This file should be included by sys_base.cpp
 
-#if !defined(FWK_PLATFORM_MINGW)
-#error "This file should only be compiled for MinGW target"
-#else
-
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include <imagehlp.h>
 #undef ERROR
+#undef min
+#undef max
 
 #include "fwk/sys/backtrace.h"
+#include "fwk/sys/error.h"
 #include "fwk/sys_base.h"
 
 #include <ctime>
@@ -21,10 +20,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+
+#ifdef FWK_PLATFORM_MINGW
 #include <unistd.h>
+#endif
 
 namespace fwk {
-
 namespace {
 
 	void (*s_user_ctrlc_func)() = 0;
@@ -94,8 +95,7 @@ void *winLoadFunction(const char *name) {
 	return (void *)func;
 }
 
-int winGetBacktrace(Span<void *> addrs, void *context_) NOINLINE;
-int winGetBacktrace(Span<void *> addrs, void *context_) {
+FWK_NO_INLINE int winGetBacktrace(Span<void *> addrs, void *context_) {
 	if(!context_) {
 		return CaptureStackBackTrace(0, addrs.size(), addrs.data(), 0);
 	} else {
@@ -154,5 +154,3 @@ double getTime() {
 	return double(c) / double(CLOCKS_PER_SEC);
 }
 }
-
-#endif

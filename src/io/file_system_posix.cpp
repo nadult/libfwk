@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#if defined(FWK_PLATFORM_MINGW)
+#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
 #error "This file should only be compiled on linux or HTML targets"
 #endif
 
