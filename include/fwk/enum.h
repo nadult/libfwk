@@ -15,14 +15,12 @@ namespace detail {
 	unsigned long long parseFlags(TextParser &, const char *const *strings, int count) EXCEPT;
 	void formatFlags(unsigned long long, TextFormatter &, const char *const *strings, int count);
 
-	static constexpr bool isWhiteSpace(char c) {
-		return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',';
-	}
-
 	template <int N> struct EnumBuffer {
 		constexpr EnumBuffer(const char *ptr) : data{} {
-			for(int n = 0; n < N; n++)
-				data[n] = isWhiteSpace(ptr[n]) ? 0 : ptr[n];
+			for(int n = 0; n < N; n++) {
+				char c = ptr[n];
+				data[n] = c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',' ? 0 : c;
+			}
 			data[N] = 0;
 		}
 
@@ -47,9 +45,7 @@ namespace detail {
 		const char *data[K];
 	};
 
-	template <const char *(*func)(), int TK> struct EnumStrings {
-		static constexpr const char *init_str = func();
-
+	template <const char *init_str, int TK> struct EnumStrings {
 		static constexpr int len(const char *ptr) {
 			int len = 0;
 			while(ptr[len])
@@ -77,16 +73,16 @@ template <class Enum, class T> class EnumMap;
 	enum class id : unsigned char { __VA_ARGS__ };                                                 \
 	inline auto enumStrings(id) {                                                                  \
 		enum temp { __VA_ARGS__, _enum_count };                                                    \
-		constexpr const char *(*func)() = [] { return #__VA_ARGS__; };                             \
-		return fwk::detail::EnumStrings<func, _enum_count>();                                      \
+		static constexpr const char str[] = #__VA_ARGS__;                                          \
+		return fwk::detail::EnumStrings<str, _enum_count>();                                       \
 	}
 
 #define DEFINE_ENUM_MEMBER(id, ...)                                                                \
 	enum class id : unsigned char { __VA_ARGS__ };                                                 \
 	inline friend auto enumStrings(id) {                                                           \
 		enum temp { __VA_ARGS__, _enum_count };                                                    \
-		constexpr const char *(*func)() = [] { return #__VA_ARGS__; };                             \
-		return fwk::detail::EnumStrings<func, _enum_count>();                                      \
+		static constexpr const char str[] = #__VA_ARGS__;                                          \
+		return fwk::detail::EnumStrings<str, _enum_count>();                                       \
 	}
 
 #define DECLARE_ENUM(id)                                                                           \
