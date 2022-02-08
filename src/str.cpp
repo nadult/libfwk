@@ -10,6 +10,20 @@
 
 namespace fwk {
 
+int findBytesOffset(CSpan<char> haystack, CSpan<char> needle) {
+#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
+	// TODO: slow
+	for(int n = 0; n < haystack.size() - needle.size() + 1; n++)
+		if(memcmp(haystack.data() + n, needle.data(), needle.size()) == 0)
+			return n;
+	return -1;
+#else
+	auto *ptr =
+		(const char *)memmem(haystack.data(), haystack.size(), needle.data(), needle.size());
+	return ptr ? ptr - haystack.data() : -1;
+#endif
+}
+
 #if defined(FWK_PLATFORM_MINGW)
 
 static int strcasecmp(const char *a, const char *b) { return _stricmp(a, b); }
@@ -107,18 +121,7 @@ int Str::rfind(char c) const {
 	return -1;
 }
 
-int Str::find(Str str) const {
-#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
-	// TODO: slow
-	for(int n = 0; n < m_size - str.m_size + 1; n++)
-		if(strncmp(m_data + n, str.m_data, str.m_size) == 0)
-			return n;
-	return -1;
-#else
-	auto *ptr = (const char *)memmem(m_data, m_size, str.m_data, str.m_size);
-	return ptr ? ptr - m_data : -1;
-#endif
-}
+int Str::find(Str str) const { return findBytesOffset(*this, str); }
 
 // Source: stb_hash
 unsigned Str::hash() const {

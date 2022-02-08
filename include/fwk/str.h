@@ -10,6 +10,9 @@ namespace fwk {
 
 constexpr int zstrLength(const char *str);
 
+// Returns -1 if not found
+int findBytesOffset(CSpan<char> haystack, CSpan<char> needle);
+
 // Simple reference to string data (not owned)
 // Str doesn't have to be null-terminated
 // TODO: CString for string32 ?
