@@ -7,3 +7,4 @@
 /.ycm_extra_conf.pyc
 /checker.so
 build_stats.txt
+/.vs
