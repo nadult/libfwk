@@ -37,7 +37,7 @@ template <class T> class SparseSpan {
 		static_assert(SparseVector<U>::same_size);
 	}
 
-	SparseSpan() : m_data(nullptr), m_valids(nullptr), m_spread(0), m_size(0) {}
+	SparseSpan() : m_data(nullptr), m_valids(nullptr), m_size(0), m_spread(0) {}
 
 	int size() const { return m_size; }
 	int spread() const { return m_spread; }

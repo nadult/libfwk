@@ -175,8 +175,6 @@ struct CDT {
 	// Quad: seg[0], cw, seg[1], ccw
 	array<VertexId, 4> getQuad(VertexId from, VertexId to) const {
 		array<VertexId, 4> out = {from, to, no_init, no_init};
-		int found = 0;
-
 		int2 p1 = graph(from), p2 = graph(to);
 		int2 vec = p2 - p1;
 

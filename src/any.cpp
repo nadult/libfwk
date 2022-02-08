@@ -45,7 +45,7 @@ FWK_COPYABLE_CLASS_IMPL(Any);
 Ex<Any> Any::load(CXmlNode node, ZStr type_name) {
 	if(!type_name)
 		return Any();
-	auto &type_infos = detail::anyTypeInfos();
+	[[maybe_unused]] auto &type_infos = detail::anyTypeInfos();
 	auto type_info = typeInfo(type_name.c_str());
 	if(!type_info)
 		return ERROR("Type-info not found for: '%'", type_name);

@@ -134,8 +134,6 @@ Mesh Mesh::makePolySoup(CSpan<Triangle3F> rtris) {
 			  [](const auto &a, const auto &b) { return a.center() < b.center(); });
 
 	for(const auto &tri : tris) {
-		int off = positions.size();
-		int inds[3];
 		for(auto point : tri.points()) {
 			float min_dist = inf;
 			int min_idx = -1;

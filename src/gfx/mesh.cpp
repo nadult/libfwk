@@ -298,7 +298,6 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 float Mesh::intersect(const Segment3<float> &segment) const {
 	float min_isect = inf;
 
-	const auto &positions = m_buffers.positions;
 	if(segment.isectParam(boundingBox()))
 		for(Triangle3F triangle : tris())
 			min_isect = min(min_isect, segment.isectParam(triangle).first.closest());
@@ -311,7 +310,6 @@ float Mesh::intersect(const Segment3<float> &segment, const AnimatedData &anim_d
 		return intersect(segment);
 
 	DASSERT(valid(anim_data));
-	const auto &positions = anim_data.positions;
 
 	float min_isect = inf;
 	if(segment.isectParam(anim_data.bounding_box))

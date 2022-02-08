@@ -41,7 +41,7 @@ template <class Transform = None, class Filter = None> class IndexRange {
 	using Value = decltype(apply(DECLVAL(Transform), 0));
 
 	struct Iter {
-		constexpr Iter(int index, const IndexRange &base) : index(index), base(base) {}
+		constexpr Iter(int index, const IndexRange &base) : base(base), index(index) {}
 
 		constexpr void operator++() {
 			index++;

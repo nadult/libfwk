@@ -13,7 +13,6 @@ namespace fwk {
 namespace detail {
 
 	string AssertInfo::preFormat(TextFormatter &out, const char *prefix) const {
-		const char *fmt;
 		string temp;
 
 		if(strlen(arg_names) > 0) {

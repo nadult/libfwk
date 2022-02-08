@@ -10,7 +10,7 @@ namespace fwk {
 
 template <class T> class Heap {
   public:
-	static_assert(std::is_pod<T>::value, "T should be POD");
+	static_assert(std::is_trivially_destructible_v<T> && std::is_trivially_copyable_v<T>);
 
 	Heap(int max_keys) : m_heap(max_keys), m_indices(max_keys), m_size(0) {
 		for(auto &i : m_indices)

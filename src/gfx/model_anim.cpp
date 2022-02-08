@@ -153,10 +153,8 @@ vector<Matrix4> ModelAnim::animateDefaultPose(double anim_pos) const {
 	if(anim_pos >= m_length)
 		anim_pos -= double(int(anim_pos / m_length)) * m_length;
 	auto matrices = m_default_matrices;
-	for(int n = 0; n < m_channels.size(); n++) {
-		const auto &channel = m_channels[n];
+	for(int n = 0; n < m_channels.size(); n++)
 		matrices[m_default_mapping[n]] = animateChannel(n, anim_pos);
-	}
 	return matrices;
 }
 
@@ -166,10 +164,8 @@ Pose ModelAnim::animatePose(const Pose &initial_pose, double anim_pos) const {
 
 	auto mapping = initial_pose.mapNames(m_node_names);
 	auto matrices = initial_pose.transforms();
-	for(int n = 0; n < m_channels.size(); n++) {
-		const auto &channel = m_channels[n];
+	for(int n = 0; n < m_channels.size(); n++)
 		matrices[mapping[n]] = animateChannel(n, anim_pos);
-	}
 
 	return {move(matrices), initial_pose.nameMap()};
 }

@@ -15,8 +15,8 @@ template <c_float T> T attenuate(T dist, T k0, T k1, T k2) {
 inline float smoothLerp(float val, float smooth_in, float smooth_out) {
 	auto val1 = powf(val, smooth_in);
 	auto val2 = 1.0f - powf(1.0f - val, smooth_out);
-	float p1 = smooth_in < 1.0f ? 1.0f / smooth_in : smooth_in;
-	float p2 = smooth_out < 1.0f ? 1.0f / smooth_out : smooth_out;
+	//float p1 = smooth_in < 1.0f ? 1.0f / smooth_in : smooth_in;
+	//float p2 = smooth_out < 1.0f ? 1.0f / smooth_out : smooth_out;
 
 	return lerp(val1, val2, val);
 }

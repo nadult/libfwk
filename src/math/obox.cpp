@@ -8,8 +8,6 @@
 namespace fwk {
 
 template <class T> bool OBox<T>::isIntersecting(const OBox &rhs) const {
-	const auto &lhs = *this;
-
 	auto lcorners = corners();
 	auto rcorners = rhs.corners();
 

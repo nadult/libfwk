@@ -63,10 +63,10 @@ template <class T> GeomGraph<T>::GeomGraph(CSpan<Triangle> tris) {
 		// TODO: why are flips needed?
 		array<bool, 3> flip = {{nodes[0] > nodes[1], nodes[1] > nodes[2], nodes[2] > nodes[0]}};
 
-		array<EdgeId, 3> edges = {{fixEdge(nodes[flip[0] ? 1 : 0], nodes[flip[0] ? 0 : 1]).id,
-								   fixEdge(nodes[flip[0] ? 2 : 1], nodes[flip[0] ? 1 : 2]).id,
-								   fixEdge(nodes[flip[0] ? 0 : 2], nodes[flip[0] ? 2 : 0]).id}};
-		auto tid = addTri(nodes[0], nodes[1], nodes[2]);
+		fixEdge(nodes[flip[0] ? 1 : 0], nodes[flip[0] ? 0 : 1]);
+		fixEdge(nodes[flip[0] ? 2 : 1], nodes[flip[0] ? 1 : 2]);
+		fixEdge(nodes[flip[0] ? 0 : 2], nodes[flip[0] ? 2 : 0]);
+		addTri(nodes[0], nodes[1], nodes[2]);
 	}
 }
 

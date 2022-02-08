@@ -154,7 +154,6 @@ void ExecTree::getExecValues(CSpan<ESample> samples, vector<ExecValue> &values) 
 	for(auto &sample : samples) {
 		auto value = sample.value();
 		bool scope_begin = sample.type() == SampleType::scope_begin;
-		auto type = sample.type();
 		auto &out = values[sample.id()];
 		out.value += scope_begin ? -i64(value) : i64(value);
 		if(scope_begin) {

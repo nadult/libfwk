@@ -70,7 +70,7 @@ namespace detail {
 	}
 
 	auto registerBasicTypes = []() {
-		auto dummy = typeInfo<void>();
+		[[maybe_unused]] auto dummy = typeInfo<void>();
 		return 0;
 	}();
 
