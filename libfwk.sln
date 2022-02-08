@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -13,6 +14,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "model_viewer", "model_viewe
 	ProjectSection(ProjectDependencies) = postProject
 		{D58F34BE-FFCB-485F-9294-460EA261D0ED} = {D58F34BE-FFCB-485F-9294-460EA261D0ED}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_window", "test_window.vcxproj", "{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,6 +35,10 @@ Global
 		{85ED7262-0CA9-4D2C-ABEF-9F847C5247EA}.Debug|x64.Build.0 = Debug|x64
 		{85ED7262-0CA9-4D2C-ABEF-9F847C5247EA}.Release|x64.ActiveCfg = Release|x64
 		{85ED7262-0CA9-4D2C-ABEF-9F847C5247EA}.Release|x64.Build.0 = Release|x64
+		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Debug|x64.ActiveCfg = Debug|x64
+		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Debug|x64.Build.0 = Debug|x64
+		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Release|x64.ActiveCfg = Release|x64
+		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

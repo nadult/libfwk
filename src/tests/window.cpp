@@ -48,12 +48,14 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 }
 
 Ex<Font> loadFont() {
-#ifdef FWK_PLATFORM_HTML
-	auto data_path = FilePath(executablePath()).parent() / "data";
+#ifdef FWK_PLATFORM_MSVC
+	auto main_path = FilePath::current().get();
+#elif FWK_PLATFORM_HTML
+	auto main_path = FilePath(executablePath()).parent();
 #else
-	auto data_path = FilePath(executablePath()).parent().parent() / "data";
+	auto main_path = FilePath(executablePath()).parent().parent();
 #endif
-	return FontFactory().makeFont(data_path / "LiberationSans-Regular.ttf", 16);
+	return FontFactory().makeFont(main_path / "data" / "LiberationSans-Regular.ttf", 16);
 }
 
 int main(int argc, char **argv) {

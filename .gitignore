@@ -8,3 +8,4 @@
 /checker.so
 build_stats.txt
 /.vs
+*.vcxproj.user
