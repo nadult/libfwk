@@ -354,7 +354,10 @@
     <ClInclude Include="..\include\fwk\math\uint128.h">
       <Filter>include\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\audio\al_device.h">
+    <ClInclude Include="..\include\fwk\audio\ogg_stream.h">
+      <Filter>include\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\audio\sound.h">
       <Filter>include\audio</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\audio\ogg_stream.h">
@@ -547,7 +550,13 @@
       <Filter>include\meta</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\sys\platform.h">
-      <Filter>include</Filter>
+      <Filter>include\sys</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sys\windows.h">
+      <Filter>include\sys</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\audio\al_device.h">
+      <Filter>include\audio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -600,9 +609,6 @@
       <Filter>src\io</Filter>
     </ClCompile>
     <ClCompile Include="..\src\io\file_system.cpp">
-      <Filter>src\io</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\io\file_system_windows.cpp">
       <Filter>src\io</Filter>
     </ClCompile>
     <ClCompile Include="..\src\io\gzip_stream.cpp">
@@ -941,9 +947,6 @@
     <ClCompile Include="..\src\sys_base.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sys_base_windows.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\type_info.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -986,5 +989,8 @@
     <ClCompile Include="..\src\math\uint128.cpp">
       <Filter>src\math</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\todo.txt" />
   </ItemGroup>
 </Project>

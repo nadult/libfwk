@@ -332,6 +332,9 @@
     <ClCompile Include="..\src\sys_base.cpp" />
     <ClCompile Include="..\src\type_info.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\todo.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D58F34BE-FFCB-485F-9294-460EA261D0ED}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -370,16 +373,16 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>
     </LibraryPath>
-    <OutDir>build\$(Platform)-$(Configuration)\$(ProjectName)\</OutDir>
-    <IntDir>build\$(Platform)-$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)\..\build\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\..\build\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
     <PublicIncludeDirectories>$(ProjectDir)\..\include;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>
     </LibraryPath>
-    <OutDir>build\$(Platform)-$(Configuration)\$(ProjectName)\</OutDir>
-    <IntDir>build\$(Platform)-$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)\..\build\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\..\build\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
     <PublicIncludeDirectories>$(ProjectDir)\..\include;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

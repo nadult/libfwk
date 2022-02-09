@@ -1,4 +1,5 @@
 *.swp
+*.exe
 /build
 /lib
 /tests
@@ -8,5 +9,4 @@
 /checker.so
 build_stats.txt
 /windows/.vs
-/windows/build
-*.vcxproj.user
+/windows/*.vcxproj.user

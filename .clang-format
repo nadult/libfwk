@@ -18,3 +18,6 @@ FixNamespaceComments: false
 Standard: Cpp11
 IndentRequires: true
 BreakBeforeConceptDeclarations: false
+
+DeriveLineEnding: false
+UseCRLF: false
