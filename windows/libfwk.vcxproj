@@ -176,6 +176,7 @@
     <ClInclude Include="..\include\fwk\vector.h" />
     <ClInclude Include="..\include\fwk\vector_map.h" />
     <ClInclude Include="..\src\fwk_pch.h" />
+    <ClInclude Include="..\src\sys\windows.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\any.cpp" />
@@ -267,10 +268,6 @@
     <ClCompile Include="..\src\html_pre_include.cpp" />
     <ClCompile Include="..\src\io\file_stream.cpp" />
     <ClCompile Include="..\src\io\file_system.cpp" />
-    <ClCompile Include="..\src\io\file_system_windows.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\src\io\gzip_stream.cpp" />
     <ClCompile Include="..\src\io\memory_stream.cpp" />
     <ClCompile Include="..\src\io\package_file.cpp" />
@@ -333,10 +330,6 @@
     <ClCompile Include="..\src\sys\on_fail.cpp" />
     <ClCompile Include="..\src\sys\thread.cpp" />
     <ClCompile Include="..\src\sys_base.cpp" />
-    <ClCompile Include="..\src\sys_base_windows.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\src\type_info.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

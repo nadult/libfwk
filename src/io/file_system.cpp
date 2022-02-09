@@ -3,22 +3,23 @@
 
 #include "fwk/sys/platform.h"
 
-#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
-#include "file_system_windows.cpp"
-#else
-#include "file_system_posix.cpp"
-#endif
-
-#ifdef _WIN32
-
+#ifdef FWK_PLATFORM_WINDOWS
+#include "../sys/windows.h"
 #include <direct.h>
 #include <io.h>
-
 #else
-
+#include <dirent.h>
 #include <errno.h>
+#include <libgen.h>
 #include <unistd.h>
+#endif
 
+#ifdef FWK_PLATFORM_MSVC
+#define S_IFMT 0xF000
+#define S_IFREG 0x8000
+#define S_IFDIR 0x4000
+#define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
 #endif
 
 #include "fwk/io/file_system.h"
@@ -31,11 +32,110 @@
 
 #include <cstdio>
 #include <cstring>
-
 #include <sys/stat.h>
 #include <sys/types.h>
 
 namespace fwk {
+
+// TODO: move to FilePath ?
+FilePath executablePath() {
+#if defined(FWK_PLATFORM_HTML)
+	return "/emscripten_binary";
+#elif defined(FWK_PLATFORM_WINDOWS)
+	char path[MAX_PATH];
+	GetModuleFileName(GetModuleHandleW(0), path, arraySize(path));
+	return path;
+#else
+	char name[512];
+	int ret = readlink("/proc/self/exe", name, sizeof(name) - 1);
+	if(ret == -1)
+		return "";
+	name[ret] = 0;
+	return name;
+#endif
+}
+
+FilePath::Element FilePath::extractRoot(const char *str) {
+#ifdef FWK_PLATFORM_WINDOWS
+	if((str[0] >= 'a' && str[0] <= 'z') || (str[0] >= 'A' && str[0] <= 'Z'))
+		if(str[1] == ':' && (str[2] == '/' || str[2] == '\\'))
+			return Element{str, 3};
+
+	return Element{nullptr, 0};
+#else
+	if(str[0] == '/')
+		return Element{str, 1};
+	return Element{nullptr, 0};
+#endif
+}
+
+Ex<FilePath> FilePath::current() {
+#ifdef FWK_PLATFORM_WINDOWS
+	char buf[MAX_PATH];
+	if(!GetCurrentDirectory(sizeof(buf), buf))
+		return FWK_ERROR("Error in GetCurrentDirectory");
+	return FilePath(buf);
+#else
+	char buffer[512];
+	char *name = getcwd(buffer, sizeof(buffer) - 1);
+	if(!name)
+		return ERROR("Error in getcwd: %", strerror(errno));
+	return FilePath(name);
+#endif
+}
+
+Ex<FilePath> FilePath::home() {
+#ifdef FWK_PLATFORM_WINDOWS
+	Str part1 = getenv("HOMEDRIVE");
+	Str part2 = getenv("HOMEPATH");
+	if(!part1 || !part2)
+		return FWK_ERROR("Error while reading 'HOMEDRIVE', 'HOMEPATH' environment variables");
+	return FilePath(format("%%", part1, part2));
+#else
+	Str path = getenv("HOME");
+	if(!path)
+		return FWK_ERROR("Error while reading 'HOME' environment variable");
+	return FilePath(path);
+#endif
+}
+
+Ex<void> FilePath::setCurrent(const FilePath &path) {
+#ifdef FWK_PLATFORM_WINDOWS
+	if(!SetCurrentDirectory(path.c_str()))
+		return FWK_ERROR("Error in SetCurrentDirectory(%)", path);
+	return {};
+#else
+	if(chdir(path.c_str()) != 0)
+		return ERROR("Error in chdir: %", strerror(errno));
+	return {};
+#endif
+}
+
+bool FilePath::isRegularFile() const {
+#ifdef FWK_PLATFORM_WINDOWS
+	struct _stat buf;
+	_stat(c_str(), &buf);
+	return S_ISREG(buf.st_mode);
+#else
+	struct stat buf;
+	if(lstat(c_str(), &buf) != 0)
+		return false;
+	return S_ISREG(buf.st_mode);
+#endif
+}
+
+bool FilePath::isDirectory() const {
+#ifdef FWK_PLATFORM_WINDOWS
+	struct _stat buf;
+	_stat(c_str(), &buf);
+	return S_ISDIR(buf.st_mode);
+#else
+	struct stat buf;
+	if(lstat(c_str(), &buf) != 0)
+		return false;
+	return S_ISDIR(buf.st_mode) || S_ISLNK(buf.st_mode);
+#endif
+}
 
 bool FilePath::Element::isDot() const { return size == 1 && ptr[0] == '.'; }
 
@@ -353,6 +453,122 @@ vector<string> findFiles(const string &prefix, const string &suffix) {
 			out.emplace_back(temp);
 	}
 
+	return out;
+}
+
+using Opt = FindFileOpt;
+
+static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePath &append,
+					  FindFileOpts opts) {
+#ifdef FWK_PLATFORM_WINDOWS
+	WIN32_FIND_DATA data;
+	char tpath[MAX_PATH];
+	snprintf(tpath, sizeof(tpath), "%s/*", path.c_str());
+	HANDLE handle = FindFirstFile(tpath, &data);
+
+	bool is_root = path.isRoot();
+	bool ignore_parent = !(opts & Opt::include_parent) || is_root;
+
+	if(handle != INVALID_HANDLE_VALUE)
+		do {
+			bool is_current = strcmp(data.cFileName, ".") == 0;
+			bool is_parent = strcmp(data.cFileName, "..") == 0;
+
+			if(is_current || (ignore_parent && is_parent))
+				continue;
+
+			bool is_dir = data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+			bool is_file = !is_dir;
+			bool do_accept =
+				((opts & Opt::regular_file) && is_file) || ((opts & Opt::directory) && is_dir);
+
+			if(do_accept) {
+				FileEntry entry;
+				entry.path = append / FilePath(data.cFileName);
+				entry.is_dir = is_dir;
+				out.push_back(entry);
+			}
+
+			if(is_dir && (opts & Opt::recursive) && !is_parent)
+				findFiles(out, path / FilePath(data.cFileName), append / FilePath(data.cFileName),
+						  opts);
+		} while(FindNextFile(handle, &data));
+#else
+	if constexpr(platform == Platform::html) {
+		// TODO: opendir fails on these...
+		if(Str(path).find("/proc/self/fd") == 0)
+			return;
+	}
+
+	DIR *dp = opendir(path.c_str());
+	if(!dp)
+		return;
+	bool is_root = path.isRoot();
+	bool ignore_parent = !(opts & Opt::include_parent) || is_root;
+
+	{
+		struct dirent *dirp;
+
+		while((dirp = readdir(dp))) {
+			bool is_parent = strcmp(dirp->d_name, "..") == 0;
+			bool is_current = strcmp(dirp->d_name, ".") == 0;
+
+			if(is_current || (ignore_parent && is_parent))
+				continue;
+
+			bool is_directory = false, is_regular = false, is_link = false;
+#ifdef _DIRENT_HAVE_D_TYPE
+			is_directory = dirp->d_type == DT_DIR;
+			is_regular = dirp->d_type == DT_REG;
+			is_link = dirp->d_type == DT_LNK;
+			// TODO: fix this
+			// if(dirp->d_type == DT_LNK)
+			// 	dirp->d_type = DT_DIR;
+
+			if(dirp->d_type == DT_UNKNOWN)
+#endif
+			{
+				char full_path[FILENAME_MAX];
+				struct stat buf;
+
+				snprintf(full_path, sizeof(full_path), "%s/%s", path.c_str(), dirp->d_name);
+				lstat(full_path, &buf);
+				is_directory = S_ISDIR(buf.st_mode);
+				is_regular = S_ISREG(buf.st_mode);
+				is_link = S_ISLNK(buf.st_mode);
+			}
+
+			bool do_accept = ((opts & Opt::regular_file) && is_regular) ||
+							 ((opts & Opt::directory) && is_directory) ||
+							 ((opts & Opt::link) && is_link);
+
+			// TODO: check why was this added
+			//	if(do_accept && is_root && is_directory)
+			//		do_accept = false;
+
+			if(do_accept)
+				out.emplace_back(append / FilePath(dirp->d_name), is_directory, is_link);
+
+			if(is_directory && (opts & Opt::recursive) && !is_parent)
+				findFiles(out, path / FilePath(dirp->d_name), append / FilePath(dirp->d_name),
+						  opts);
+		}
+	}
+
+	// TODO: finally: closedir ?
+	closedir(dp);
+#endif
+}
+
+vector<FileEntry> findFiles(const FilePath &path, FindFileOpts opts) {
+	vector<FileEntry> out;
+
+	auto abs_path = path.absolute();
+	if(!abs_path)
+		return {};
+
+	auto append = opts & Opt::relative ? "." : opts & Opt::absolute ? *abs_path : path;
+	findFiles(out, *abs_path, append, opts);
 	return out;
 }
 
