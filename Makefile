@@ -62,7 +62,7 @@ endif
 
 SRC_gfx = \
 	gfx/camera gfx/fpp_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
-	gfx/color gfx/font gfx/font_factory gfx/colored_triangle gfx/colored_quad gfx/material \
+	gfx/color gfx/font gfx/font_factory gfx/font_finder gfx/colored_triangle gfx/colored_quad gfx/material \
 	gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer \
 	gfx/image gfx/image_stbir gfx/image_tga gfx/compressed_image gfx/float_image \
 	gfx/material_set gfx/matrix_stack gfx/draw_call \

@@ -49,19 +49,21 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 }
 
 string fontPath() {
-#ifdef FWK_PLATFORM_WINDOWS
+#if defined(FWK_PLATFORM_WINDOWS) || defined(FWK_PLATFORM_LINUX)
 	auto font_path = FilePath::current().get();
+	auto start_time = getTime();
 	auto sys_fonts = listSystemFonts();
+	double list_time = getTime() - start_time;
 	auto font_idx = findBestFont(sys_fonts, {"Segoe UI", "Liberation Sans", "Arial"}, {});
+	double find_time = getTime() - start_time - list_time;
+	print("List: % ms  Find: % ms\n", list_time * 1000.0, find_time * 1000.0);
 	if(!font_idx)
 		FWK_FATAL("Cannot find a suitable font!");
 	return sys_fonts[*font_idx].file_path;
 #elif FWK_PLATFORM_HTML
 	auto main_path = FilePath(executablePath()).parent();
 	auto font_path = main_path / "data" / "LiberationSans-Regular.ttf";
-#else
-	auto main_path = FilePath(executablePath()).parent().parent();
-	auto font_path = main_path / "data" / "LiberationSans-Regular.ttf";
+	return font_path;
 #endif
 }
 

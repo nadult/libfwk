@@ -9,8 +9,11 @@
 #endif
 
 #include "fwk/gfx/font_finder.h"
+#include "fwk/io/file_system.h"
 #include "fwk/math/constants.h"
+#include "fwk/parse.h"
 #include "fwk/pod_vector.h"
+#include "fwk/sys/expected.h"
 
 namespace fwk {
 #ifdef FWK_PLATFORM_WINDOWS
@@ -145,12 +148,72 @@ vector<SystemFont> listSystemFonts() {
 	if(factory)
 		factory->Release();
 #elif defined(FWK_PLATFORM_LINUX)
-	FATAL("write me");
-#else
-	return {};
-#endif
-	SystemFont temp;
+	auto result = execCommand("fc-list : file family style slant weight width");
+	if(!result)
+		return out;
 
+	auto parse_param = [](Str params, Str param_name) -> Str {
+		int pos = params.find(param_name);
+		if(pos == -1)
+			return "";
+		params = params.substr(pos + param_name.size());
+		pos = params.find(':');
+		if(pos != -1)
+			params = params.substr(0, pos);
+		pos = params.find(',');
+		if(pos != -1)
+			params = params.substr(0, pos);
+		return params;
+	};
+
+	for(auto line : tokenize(result->first, '\n')) {
+		auto delim = line.find(':');
+		if(delim == string::npos)
+			continue;
+		string file_path = line.substr(0, delim);
+
+		delim++;
+		while(isspace(line[delim]))
+			delim++;
+
+		string name;
+		while(!isOneOf(line[delim], ':', ',', 0)) {
+			char c = line[delim];
+			if(c == '\\' && line[delim + 1])
+				c = line[++delim];
+			name += c;
+			delim++;
+		}
+
+		if(delim == ',')
+			delim = line.find(':', delim);
+		Str params(line.data() + delim, line.size() - delim);
+
+		auto style_str = parse_param(params, "style=");
+		auto slant_str = parse_param(params, "slant=");
+		auto weight_str = parse_param(params, "weight=");
+		auto width_str = parse_param(params, "width=");
+
+		if(!style_str || !slant_str || !weight_str || !width_str)
+			continue;
+
+		int islant = tryFromString<int>(string(slant_str), 0);
+		int weight = tryFromString<int>(string(slant_str), 80);
+		int width = tryFromString<int>(string(slant_str), 100);
+
+		SystemFontParams font_params;
+		font_params.style = islant == 0		? SystemFontStyle::normal
+							: islant == 100 ? SystemFontStyle::italic
+											: SystemFontStyle::oblique;
+
+		// 0 - 210(210) -> 100 - 950(850)
+		font_params.weight = int(double(weight) * 850 / 210) + 100;
+		// 50 - 200(150)     -> 1 - 10(9)
+		font_params.stretch = int(double(width - 50) * 9 / 150) + 1;
+		out.emplace_back(name, style_str, file_path, font_params);
+	}
+#else
+#endif
 	return out;
 }
 
