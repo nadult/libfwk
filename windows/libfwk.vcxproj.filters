@@ -558,6 +558,9 @@
     <ClInclude Include="..\include\fwk\audio\al_device.h">
       <Filter>include\audio</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\gfx\font_finder.h">
+      <Filter>include\gfx</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -988,6 +991,9 @@
     </ClCompile>
     <ClCompile Include="..\src\math\uint128.cpp">
       <Filter>src\math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gfx\font_finder.cpp">
+      <Filter>src\gfx</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -5,7 +5,6 @@
 #include "fwk/sys/expected.h"
 
 namespace fwk {
-
 class FontFactory {
   public:
 	FontFactory();

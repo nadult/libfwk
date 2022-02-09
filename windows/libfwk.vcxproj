@@ -43,6 +43,7 @@
     <ClInclude Include="..\include\fwk\gfx\float_image.h" />
     <ClInclude Include="..\include\fwk\gfx\font.h" />
     <ClInclude Include="..\include\fwk\gfx\font_factory.h" />
+    <ClInclude Include="..\include\fwk\gfx\font_finder.h" />
     <ClInclude Include="..\include\fwk\gfx\fpp_camera.h" />
     <ClInclude Include="..\include\fwk\gfx\gl_buffer.h" />
     <ClInclude Include="..\include\fwk\gfx\gl_device.h" />
@@ -220,6 +221,7 @@
     <ClCompile Include="..\src\gfx\float_image.cpp" />
     <ClCompile Include="..\src\gfx\font.cpp" />
     <ClCompile Include="..\src\gfx\font_factory.cpp" />
+    <ClCompile Include="..\src\gfx\font_finder.cpp" />
     <ClCompile Include="..\src\gfx\fpp_camera.cpp" />
     <ClCompile Include="..\src\gfx\gl_buffer.cpp" />
     <ClCompile Include="..\src\gfx\gl_device.cpp" />

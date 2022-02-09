@@ -8,34 +8,14 @@
 #include "fwk/gfx/image.h"
 #include "fwk/hash_map.h"
 #include "fwk/sys/error.h"
-
-namespace fwk {
-
-string32 FontFactory::ansiCharset() {
-	vector<char> chars;
-	for(char c = 32; c < 127; c++)
-		chars.emplace_back(c);
-	auto text = toUTF32(string(begin(chars), end(chars)));
-	ASSERT(text);
-	return *text;
-}
-
-string32 FontFactory::basicMathCharset() {
-	string utf8_text = "\u2219\u221A\u221e\u2248\u2260\u2264\u2265";
-	auto text = toUTF32(utf8_text);
-	ASSERT(text);
-	return *text;
-}
-}
+#include <cstdarg>
+#include <cstring>
+#include <cwchar>
 
 #include <ft2build.h>
 #ifdef FT_FREETYPE_H
 #include FT_FREETYPE_H
 #endif
-
-#include <cstdarg>
-#include <cstring>
-#include <cwchar>
 
 namespace fwk {
 
@@ -59,7 +39,8 @@ struct FontFactory::Impl {
 		FT_Error error = FT_New_Face(lib, path.c_str(), 0, &face);
 
 		if(error)
-			return ERROR("Error while loading font face '%': % [%]", path, ftError(error), error);
+			return FWK_ERROR("Error while loading font face '%': % [%]", path, ftError(error),
+							 error);
 		faces[path] = face;
 		return face;
 	}
@@ -79,6 +60,22 @@ FontFactory::~FontFactory() {
 			FT_Done_Face((FT_Face)face.value);
 		FT_Done_FreeType((FT_Library)m_impl->lib);
 	}
+}
+
+string32 FontFactory::ansiCharset() {
+	vector<char> chars;
+	for(char c = 32; c < 127; c++)
+		chars.emplace_back(c);
+	auto text = toUTF32(string(begin(chars), end(chars)));
+	ASSERT(text);
+	return *text;
+}
+
+string32 FontFactory::basicMathCharset() {
+	string utf8_text = "\u2219\u221A\u221e\u2248\u2260\u2264\u2265";
+	auto text = toUTF32(utf8_text);
+	ASSERT(text);
+	return *text;
 }
 
 Image FontFactory::makeTextureAtlas(vector<Pair<FontCore::Glyph, Image>> &glyphs, int2 atlas_size) {
@@ -140,11 +137,11 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 	DASSERT(size_px < 1000 && "Please keep it reasonable");
 
 	if(!m_impl->lib)
-		return ERROR("FreeType not initialized properly or FontFactory moved");
+		return FWK_ERROR("FreeType not initialized properly or FontFactory moved");
 
 	auto face = EX_PASS(m_impl->getFace(path));
 	if(FT_Set_Pixel_Sizes(face, 0, size_px) != 0)
-		return ERROR("Error in FT_Set_Pixel_Sizes while creating font %", path);
+		return FWK_ERROR("Error in FT_Set_Pixel_Sizes while creating font %", path);
 
 	vector<Pair<FontCore::Glyph, Image>> glyphs;
 	for(auto character : charset) {

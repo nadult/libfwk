@@ -4,6 +4,7 @@
 #include <fwk/format.h>
 #include <fwk/gfx/font.h>
 #include <fwk/gfx/font_factory.h>
+#include <fwk/gfx/font_finder.h>
 #include <fwk/gfx/gl_device.h>
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/opengl.h>
@@ -47,16 +48,24 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 	return true;
 }
 
-Ex<Font> loadFont() {
-#ifdef FWK_PLATFORM_MSVC
-	auto main_path = FilePath::current().get();
+string fontPath() {
+#ifdef FWK_PLATFORM_WINDOWS
+	auto font_path = FilePath::current().get();
+	auto sys_fonts = listSystemFonts();
+	auto font_idx = findBestFont(sys_fonts, {"Segoe UI", "Liberation Sans", "Arial"}, {});
+	if(!font_idx)
+		FWK_FATAL("Cannot find a suitable font!");
+	return sys_fonts[*font_idx].file_path;
 #elif FWK_PLATFORM_HTML
 	auto main_path = FilePath(executablePath()).parent();
+	auto font_path = main_path / "data" / "LiberationSans-Regular.ttf";
 #else
 	auto main_path = FilePath(executablePath()).parent().parent();
+	auto font_path = main_path / "data" / "LiberationSans-Regular.ttf";
 #endif
-	return FontFactory().makeFont(main_path / "data" / "LiberationSans-Regular.ttf", 16);
 }
+
+Ex<Font> loadFont() { return FontFactory().makeFont(fontPath(), 16); }
 
 int main(int argc, char **argv) {
 	double time = getTime();
