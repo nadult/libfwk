@@ -5,6 +5,7 @@
 
 #include "fwk/dynamic.h"
 #include "fwk/gfx_base.h"
+#include "fwk/maybe.h"
 #include "fwk/menu_base.h"
 #include "fwk/vector.h"
 
@@ -12,9 +13,16 @@ namespace fwk {
 
 DEFINE_ENUM(ImGuiStyleMode, normal, mini);
 
+struct ImGuiOptions {
+	Maybe<string> font_path;
+	Maybe<int> font_size;
+	ImGuiStyleMode style_mode = ImGuiStyleMode::normal;
+	float dpi_scale = 1.0;
+};
+
 class ImGuiWrapper {
   public:
-	ImGuiWrapper(GlDevice &, ImGuiStyleMode);
+	ImGuiWrapper(GlDevice &, ImGuiOptions = {});
 	ImGuiWrapper(ImGuiWrapper &&);
 	~ImGuiWrapper();
 

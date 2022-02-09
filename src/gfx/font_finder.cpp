@@ -246,4 +246,16 @@ Maybe<int> findBestFont(CSpan<SystemFont> fonts, CSpan<Str> family_names, System
 
 	return out;
 }
+
+Ex<string> findSystemFont(CSpan<Str> family_names, SystemFontParams font_params) {
+	static auto sys_fonts = listSystemFonts();
+	auto font_idx = findBestFont(sys_fonts, family_names, font_params);
+	if(!font_idx)
+		return FWK_ERROR("Cannot find system fonts: %", family_names);
+	return sys_fonts[*font_idx].file_path;
+}
+
+Ex<string> findDefaultSystemFont() {
+	return findSystemFont({"Segoe UI", "Liberation Sans", "Arial"}, {});
+}
 }

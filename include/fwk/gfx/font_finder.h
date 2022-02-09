@@ -25,13 +25,14 @@ struct SystemFont {
 };
 
 vector<SystemFont> listSystemFonts();
+
 // family_names: preferred font family names (ordered by priority)
 // params: preferred font params
 // best matching font index will be returned or none
 Maybe<int> findBestFont(CSpan<SystemFont> input_fonts, CSpan<Str> family_names,
 						SystemFontParams params);
 
-// Co jeszcze jest potrzebne ?
-// znajdowanie konkretnego fonta ? najlepszego dopasowania ?
-
+// These functions cache a list of system fonts
+Ex<string> findSystemFont(CSpan<Str> family_names, SystemFontParams font_params = {});
+Ex<string> findDefaultSystemFont();
 }

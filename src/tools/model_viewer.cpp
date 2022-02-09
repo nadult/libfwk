@@ -5,6 +5,7 @@
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dynamic_mesh.h"
 #include "fwk/gfx/font_factory.h"
+#include "fwk/gfx/font_finder.h"
 #include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/line_buffer.h"
@@ -151,10 +152,10 @@ class Viewer {
 		}
 
 #ifndef FWK_IMGUI_DISABLED
-		m_imgui.emplace(GlDevice::instance(), ImGuiStyleMode::mini);
+		m_imgui.emplace(GlDevice::instance(), ImGuiOptions{none, none, ImGuiStyleMode::mini});
 #endif
 
-		auto font_path = dataPath("LiberationSans-Regular.ttf");
+		auto font_path = findDefaultSystemFont().get();
 		m_font.emplace(move(FontFactory().makeFont(font_path, 14, false).get()));
 	}
 

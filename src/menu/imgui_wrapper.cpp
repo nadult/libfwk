@@ -4,6 +4,7 @@
 #include "fwk/menu/imgui_wrapper.h"
 
 #include "fwk/any_config.h"
+#include "fwk/gfx/font_finder.h"
 #include "fwk/gfx/gl_device.h"
 #include "fwk/menu_imgui_internal.h"
 #include "fwk/sys/input.h"
@@ -21,7 +22,7 @@ namespace fwk {
 
 ImGuiWrapper *ImGuiWrapper::s_instance = nullptr;
 
-ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiStyleMode style_mode) {
+ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiOptions opts) {
 	ASSERT("You can only create a single instance of ImGuiWrapper" && !s_instance);
 	s_instance = this;
 	ImGui::CreateContext();
@@ -38,8 +39,12 @@ ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiStyleMode style_mode) {
 		0,
 	};
 
-	io.Fonts->AddFontFromFileTTF("data/LiberationSans-Regular.ttf",
-								 style_mode == ImGuiStyleMode::mini ? 12 : 14, 0, glyph_ranges);
+	if(!opts.font_size)
+		opts.font_size = opts.style_mode == ImGuiStyleMode::mini ? 12 : 14;
+	if(!opts.font_path)
+		opts.font_path = findDefaultSystemFont().get();
+
+	io.Fonts->AddFontFromFileTTF(opts.font_path->c_str(), *opts.font_size, 0, glyph_ranges);
 	io.FontDefault = io.Fonts->Fonts.back();
 	ImGui_ImplOpenGL3_Init();
 
@@ -74,7 +79,7 @@ ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiStyleMode style_mode) {
 	io.ImeWindowHandle = wmInfo.info.win.window;
 #endif*/
 
-	if(style_mode == ImGuiStyleMode::mini) {
+	if(opts.style_mode == ImGuiStyleMode::mini) {
 		auto &style = ImGui::GetStyle();
 		style.FramePadding = {2, 1};
 		style.ItemSpacing = {3, 3};
