@@ -198,8 +198,8 @@ vector<SystemFont> listSystemFonts() {
 			continue;
 
 		int islant = tryFromString<int>(string(slant_str), 0);
-		int weight = tryFromString<int>(string(slant_str), 80);
-		int width = tryFromString<int>(string(slant_str), 100);
+		int weight = tryFromString<int>(string(weight_str), 80);
+		int width = tryFromString<int>(string(width_str), 100);
 
 		SystemFontParams font_params;
 		font_params.style = islant == 0		? SystemFontStyle::normal
