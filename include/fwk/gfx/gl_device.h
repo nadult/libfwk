@@ -6,7 +6,7 @@
 #include "fwk/dynamic.h"
 #include "fwk/enum_flags.h"
 #include "fwk/gfx_base.h"
-#include "fwk/math_base.h"
+#include "fwk/math/box.h"
 #include "fwk/str.h"
 #include "fwk/vector.h"
 
@@ -24,7 +24,7 @@ struct DebugFlagsCheck {
 };
 
 DEFINE_ENUM(GlDeviceOpt, fullscreen, fullscreen_desktop, resizable, centered, vsync, maximized,
-			opengl_debug_handler, full_debug);
+			opengl_debug_handler, full_debug, allow_hidpi);
 using GlDeviceFlags = EnumFlags<GlDeviceOpt>;
 
 struct GlDeviceConfig {
@@ -46,13 +46,17 @@ class GlDevice {
 	static bool isPresent();
 	static GlDevice &instance();
 
-	void createWindow(const string &name, const int2 &size, Config = {});
+	vector<IRect> displayRects() const;
+	vector<float> displayDpiScales() const;
+
+	void createWindow(ZStr title, IRect rect, Config = {});
 	void destroyWindow();
 	void printDeviceInfo();
 
 	int swapInterval();
 	void setSwapInterval(int);
 
+	void setWindowTitle(ZStr);
 	void setWindowSize(const int2 &);
 	int2 windowSize() const;
 
@@ -60,13 +64,15 @@ class GlDevice {
 	IRect windowRect() const;
 	EnumMap<RectSide, int> windowBorder() const;
 
-	// Only accepted: none, fullscreen or fullscreen_desktop
-	void setWindowFullscreen(Flags);
+	int windowDisplayIndex() const;
+	float windowDpiScale() const;
 	Flags windowFlags() const;
 
-	bool isWindowFullscreen() const {
-		return windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop);
-	}
+	// Only accepted: none, fullscreen or fullscreen_desktop
+	void setWindowFullscreen(Flags);
+
+	bool isWindowFullscreen() const;
+	bool isWindowMaximized() const;
 
 	double frameTime() const { return m_frame_time; }
 

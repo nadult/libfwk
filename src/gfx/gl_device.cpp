@@ -3,6 +3,11 @@
 
 #define SDL_MAIN_HANDLED
 
+#include "fwk/sys/platform.h"
+#ifdef FWK_PLATFORM_WINDOWS
+#include "../sys/windows.h"
+#endif
+
 #include "fwk/gfx/gl_device.h"
 
 #include "fwk/gfx/gl_format.h"
@@ -60,24 +65,24 @@ struct GlDevice::InputImpl {
 
 struct GlDevice::WindowImpl {
   public:
-	WindowImpl(const string &name, const int2 &size, GlDeviceConfig config) : config(config) {
+	WindowImpl(ZStr title, IRect rect, GlDeviceConfig config) : config(config) {
 		int sdl_flags = SDL_WINDOW_OPENGL;
 		auto flags = config.flags;
 		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
 
-		int pos_x = 20, pos_y = 50;
+		int2 pos = rect.min(), size = rect.size();
 		if(flags & Opt::fullscreen)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN;
 		if(flags & Opt::fullscreen_desktop)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		if(flags & Opt::resizable)
 			sdl_flags |= SDL_WINDOW_RESIZABLE;
-		if(flags & Opt::maximized) {
+		if(flags & Opt::allow_hidpi)
+			sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+		if(flags & Opt::maximized)
 			sdl_flags |= SDL_WINDOW_MAXIMIZED;
-			pos_x = pos_y = 0;
-		}
 		if(flags & Opt::centered)
-			pos_x = pos_y = SDL_WINDOWPOS_CENTERED;
+			pos.x = pos.y = SDL_WINDOWPOS_CENTERED;
 		if(config.multisampling) {
 			DASSERT(*config.multisampling >= 1 && *config.multisampling <= 64);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -86,18 +91,20 @@ struct GlDevice::WindowImpl {
 
 		int ver_major = int(config.version);
 		int ver_minor = int((config.version - float(ver_major)) * 10.0);
-		int profile = config.profile == GlProfile::compatibility
-						  ? SDL_GL_CONTEXT_PROFILE_COMPATIBILITY
-					  : config.profile == GlProfile::es ? SDL_GL_CONTEXT_PROFILE_ES
-														: SDL_GL_CONTEXT_PROFILE_CORE;
+		int profile = config.profile == GlProfile::compatibility ?
+														  SDL_GL_CONTEXT_PROFILE_COMPATIBILITY :
+					  config.profile == GlProfile::es ? SDL_GL_CONTEXT_PROFILE_ES :
+														  SDL_GL_CONTEXT_PROFILE_CORE;
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, ver_major);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, ver_minor);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
 
-		window = SDL_CreateWindow(name.c_str(), pos_x, pos_y, size.x, size.y, sdl_flags);
+		window = SDL_CreateWindow(title.c_str(), pos.x, pos.y, size.x, size.y, sdl_flags);
+
 		if(!window)
 			reportSDLError("SDL_CreateWindow");
+
 		if(!(gl_context = SDL_GL_CreateContext(window))) {
 			SDL_DestroyWindow(window);
 			reportSDLError("SDL_GL_CreateContext");
@@ -141,7 +148,32 @@ GlDevice::~GlDevice() {
 	SDL_Quit();
 }
 
-void GlDevice::createWindow(const string &name, const int2 &size, Config config) {
+vector<IRect> GlDevice::displayRects() const {
+	int count = SDL_GetNumVideoDisplays();
+	vector<IRect> out(count);
+	for(int idx = 0; idx < count; idx++) {
+		SDL_Rect rect;
+		if(SDL_GetDisplayBounds(idx, &rect) != 0)
+			FWK_FATAL("Error in SDL_GetDisplayBounds");
+		out[idx] = {rect.x, rect.y, rect.x + rect.w, rect.y + rect.h};
+	}
+	return out;
+}
+
+vector<float> GlDevice::displayDpiScales() const {
+	int count = SDL_GetNumVideoDisplays();
+	vector<float> out(count);
+	for(int idx = 0; idx < count; idx++) {
+		// TODO: make sure that it's correct for all different platforms
+		const float default_dpi = 96;
+		float current_dpi = default_dpi;
+		SDL_GetDisplayDPI(idx, nullptr, &current_dpi, nullptr);
+		out[idx] = current_dpi / default_dpi;
+	}
+	return out;
+}
+
+void GlDevice::createWindow(ZStr title, IRect rect, Config config) {
 #ifdef FWK_PLATFORM_HTML
 	if(config.profile != GlProfile::es) {
 		config.profile = GlProfile::es;
@@ -151,7 +183,7 @@ void GlDevice::createWindow(const string &name, const int2 &size, Config config)
 
 	assertGlThread();
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
-	m_window_impl = {name, size, config};
+	m_window_impl = {title, rect, config};
 
 	SDL_GL_SetSwapInterval(config.flags & Opt::vsync ? -1 : 0);
 	initializeGl(config.profile);
@@ -163,6 +195,10 @@ void GlDevice::createWindow(const string &name, const int2 &size, Config config)
 }
 
 void GlDevice::destroyWindow() { m_window_impl.reset(); }
+
+void GlDevice::setWindowTitle(ZStr title) {
+	SDL_SetWindowTitle(m_window_impl->window, title.c_str());
+}
 
 void GlDevice::setWindowSize(const int2 &size) {
 	if(m_window_impl)
@@ -202,13 +238,32 @@ void GlDevice::setWindowFullscreen(Flags flags) {
 	DASSERT(!flags || isOneOf(flags, Opt::fullscreen, Opt::fullscreen_desktop));
 
 	if(m_window_impl) {
-		uint sdl_flags = flags == Opt::fullscreen			? SDL_WINDOW_FULLSCREEN
-						 : flags == Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP
-															: 0;
+		uint sdl_flags = flags == Opt::fullscreen		  ? SDL_WINDOW_FULLSCREEN :
+						 flags == Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP :
+															  0;
 		SDL_SetWindowFullscreen(m_window_impl->window, sdl_flags);
 		auto mask = Opt::fullscreen | Opt::fullscreen_desktop;
 		m_window_impl->config.flags = (m_window_impl->config.flags & ~mask) | (mask & flags);
 	}
+}
+
+bool GlDevice::isWindowFullscreen() const {
+	return windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop);
+}
+
+bool GlDevice::isWindowMaximized() const {
+	auto flags = SDL_GetWindowFlags(m_window_impl->window);
+	return (flags & SDL_WINDOW_MAXIMIZED) != 0;
+}
+
+int GlDevice::windowDisplayIndex() const {
+	return SDL_GetWindowDisplayIndex(m_window_impl->window);
+}
+
+float GlDevice::windowDpiScale() const {
+	auto display_dpis = displayDpiScales();
+	auto display_index = windowDisplayIndex();
+	return display_dpis.inRange(display_index) ? display_dpis[display_index] : 1.0f;
 }
 
 auto GlDevice::windowFlags() const -> Flags {

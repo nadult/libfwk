@@ -18,7 +18,7 @@ static Dynamic<GlDevice> spawnGlDevice() {
 		return {};
 	Dynamic<GlDevice> device;
 	device.emplace();
-	device->createWindow("libfwk investigator", int2(1024, 768),
+	device->createWindow("libfwk investigator", IRect(int2(1024, 768)),
 						 {GlDeviceOpt::resizable | GlDeviceOpt::vsync});
 	return device;
 }

@@ -40,7 +40,7 @@ ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiOptions opts) {
 	};
 
 	if(!opts.font_size)
-		opts.font_size = opts.style_mode == ImGuiStyleMode::mini ? 12 : 14;
+		opts.font_size = (opts.style_mode == ImGuiStyleMode::mini ? 12 : 14) * opts.dpi_scale;
 	if(!opts.font_path)
 		opts.font_path = findDefaultSystemFont().get();
 

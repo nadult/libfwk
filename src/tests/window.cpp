@@ -54,20 +54,24 @@ string fontPath() {
 	return findDefaultSystemFont().get();
 }
 
-Ex<Font> loadFont() { return FontFactory().makeFont(fontPath(), 16); }
+Ex<Font> loadFont() {}
 
 int main(int argc, char **argv) {
 	double time = getTime();
-	int2 res(800, 600);
 
 	GlDevice gl_device;
-	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync | GlDeviceOpt::opengl_debug_handler;
-	gl_device.createWindow("foo", res, {flags});
-
+	auto display_rects = gl_device.displayRects();
+	if(!display_rects)
+		FWK_FATAL("No display available");
+	int2 res = display_rects[0].size() / 2;
+	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync | GlDeviceOpt::opengl_debug_handler |
+				 GlDeviceOpt::centered | GlDeviceOpt::allow_hidpi;
+	gl_device.createWindow("foo", IRect(res), {flags});
 	print("OpenGL info:\n%\n", gl_info->toString());
 
-	auto font = loadFont().get();
-	gl_device.runMainLoop(mainLoop, &font);
+	int font_size = 16 * gl_device.windowDpiScale();
+	auto font = FontFactory().makeFont(fontPath(), font_size);
+	gl_device.runMainLoop(mainLoop, &font.get());
 
 	return 0;
 }

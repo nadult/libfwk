@@ -151,12 +151,17 @@ class Viewer {
 			}
 		}
 
+		float dpi_scale = GlDevice::instance().windowDpiScale();
 #ifndef FWK_IMGUI_DISABLED
-		m_imgui.emplace(GlDevice::instance(), ImGuiOptions{none, none, ImGuiStyleMode::mini});
+		ImGuiOptions imgui_opts;
+		imgui_opts.style_mode = dpi_scale > 1.0 ? ImGuiStyleMode::normal : ImGuiStyleMode::mini;
+		imgui_opts.dpi_scale = dpi_scale;
+		m_imgui.emplace(GlDevice::instance(), imgui_opts);
 #endif
 
 		auto font_path = findDefaultSystemFont().get();
-		m_font.emplace(move(FontFactory().makeFont(font_path, 14, false).get()));
+		int font_scale = 14 * dpi_scale;
+		m_font.emplace(move(FontFactory().makeFont(font_path, font_scale, false).get()));
 	}
 
 	string helpText() const {
@@ -378,7 +383,6 @@ class Viewer {
 
 int main(int argc, char **argv) {
 	double time = getTime();
-	int2 resolution(1200, 700);
 
 	string models_path = "./", tex_argument = "";
 	if(argc <= 1) {
@@ -428,11 +432,16 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	GlDevice gfx_device;
+	GlDevice gl_device;
+	auto display_rects = gl_device.displayRects();
+	if(!display_rects)
+		FWK_FATAL("No display available");
+	int2 resolution = display_rects[0].size() * 2 / 3;
 	GlDeviceConfig gl_config;
-	gl_config.flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync;
+	gl_config.flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync | GlDeviceOpt::centered |
+					  GlDeviceOpt::allow_hidpi;
 	gl_config.multisampling = 4;
-	gfx_device.createWindow("libfwk::model_viewer", resolution, gl_config);
+	gl_device.createWindow("libfwk::model_viewer", IRect(resolution), gl_config);
 
 	double init_time = getTime();
 	Viewer viewer(files);
@@ -441,7 +450,7 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-	gfx_device.runMainLoop(Viewer::mainLoop, &viewer);
+	gl_device.runMainLoop(Viewer::mainLoop, &viewer);
 
 	return 0;
 }
