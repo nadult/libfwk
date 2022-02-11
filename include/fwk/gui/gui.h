@@ -14,10 +14,9 @@ namespace fwk {
 DEFINE_ENUM(GuiStyleMode, normal, mini);
 
 struct GuiConfig {
-	Maybe<string> font_path;
-	Maybe<int> font_size;
 	GuiStyleMode style_mode = GuiStyleMode::normal;
-	float dpi_scale = 1.0;
+	Maybe<string> font_path = none;
+	Maybe<int> font_size = none;
 };
 
 // Allows creation of OpenGL-based user interfaces
@@ -92,6 +91,8 @@ class Gui {
 	void showHelpMarker(Str, const char *marker = "(?)");
 
   private:
+	void updateDpiAndFonts();
+
 	struct Impl;
 	Dynamic<Impl> m_impl;
 

@@ -27,6 +27,9 @@ struct Gui::Impl {
 		void *arg;
 	};
 
+	float dpi_scale = -1.0f;
+	int font_size;
+	string font_path;
 	string error_popup, error_popup_title;
 	vector<pair<string, GuiPopupContext>> popup_contexts;
 	vector<Process> processes;

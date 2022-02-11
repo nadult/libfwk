@@ -33,6 +33,32 @@ static void setClipboardText(void *, const char *text) {
 	GlDevice::instance().setClipboardText(text);
 }
 
+void Gui::updateDpiAndFonts() {
+	auto dpi_scale = GlDevice::instance().windowDpiScale();
+	if(dpi_scale == m_impl->dpi_scale)
+		return;
+	m_impl->dpi_scale = dpi_scale;
+
+	static const ImWchar glyph_ranges[] = {
+		0x0020, 0x00FF, // Basic Latin + Latin Supplement
+		0x0100, 0x017F, // Latin Extended-A
+		0x0180, 0x024F, // Latin Extended-B
+		0x370,	0x3FF, // Greek
+		0,
+	};
+
+	float font_size = m_impl->font_size * dpi_scale;
+	ImGuiIO &io = ImGui::GetIO();
+	io.Fonts->Clear();
+	io.FontDefault =
+		io.Fonts->AddFontFromFileTTF(m_impl->font_path.c_str(), font_size, 0, glyph_ranges);
+	auto *bd = ImGui_ImplOpenGL3_GetBackendData();
+	if(bd && bd->FontTexture) {
+		ImGui_ImplOpenGL3_DestroyFontsTexture();
+		ImGui_ImplOpenGL3_CreateFontsTexture();
+	}
+}
+
 Gui::Gui(GlDevice &device, GuiConfig opts) {
 	m_impl.emplace();
 	ASSERT("You can only create a single instance of Gui" && !s_instance);
@@ -43,21 +69,10 @@ Gui::Gui(GlDevice &device, GuiConfig opts) {
 	ImGuiIO &io = ImGui::GetIO();
 	io.IniFilename = nullptr;
 
-	static const ImWchar glyph_ranges[] = {
-		0x0020, 0x00FF, // Basic Latin + Latin Supplement
-		0x0100, 0x017F, // Latin Extended-A
-		0x0180, 0x024F, // Latin Extended-B
-		0x370,	0x3FF, // Greek
-		0,
-	};
+	m_impl->font_path = opts.font_path ? *opts.font_path : findDefaultSystemFont().get();
+	m_impl->font_size = opts.font_size.orElse(opts.style_mode == GuiStyleMode::mini ? 12 : 14);
+	updateDpiAndFonts();
 
-	if(!opts.font_size)
-		opts.font_size = (opts.style_mode == GuiStyleMode::mini ? 12 : 14) * opts.dpi_scale;
-	if(!opts.font_path)
-		opts.font_path = findDefaultSystemFont().get();
-
-	io.Fonts->AddFontFromFileTTF(opts.font_path->c_str(), *opts.font_size, 0, glyph_ranges);
-	io.FontDefault = io.Fonts->Fonts.back();
 	ImGui_ImplOpenGL3_Init();
 
 	io.KeyMap[ImGuiKey_Tab] = InputKey::tab;
@@ -149,6 +164,8 @@ void Gui::beginFrame(GlDevice &device) {
 	ImGuiIO &io = ImGui::GetIO();
 	memset(io.KeysDown, 0, sizeof(io.KeysDown));
 	memset(io.MouseDown, 0, sizeof(io.MouseDown));
+
+	updateDpiAndFonts();
 
 	if(!o_hide) {
 		for(auto &event : device.inputEvents()) {
