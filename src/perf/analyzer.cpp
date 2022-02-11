@@ -5,10 +5,10 @@
 
 #include "fwk/any_config.h"
 #include "fwk/enum_map.h"
+#include "fwk/gui/imgui_internal.h"
+#include "fwk/gui/widgets.h"
 #include "fwk/index_range.h"
 #include "fwk/math/interval.h"
-#include "fwk/menu/helpers.h"
-#include "fwk/menu_imgui_internal.h"
 #include "fwk/perf/exec_tree.h"
 #include "fwk/perf/manager.h"
 #include "fwk/perf/thread_context.h"
@@ -36,6 +36,10 @@ Analyzer::~Analyzer() { s_instance = nullptr; }
 void Analyzer::doMenu(bool &is_enabled) {
 	PERF_SCOPE();
 
+	if(!Gui::isPresent())
+		return;
+	auto &gui = Gui::instance();
+
 	if(m_set_menu_rect) {
 		ImGui::SetNextWindowPos(m_set_menu_rect->min());
 		ImGui::SetNextWindowSize(m_set_menu_rect->size());
@@ -45,7 +49,7 @@ void Analyzer::doMenu(bool &is_enabled) {
 	ImGui::Begin("Performance analyzer", &is_enabled, ImGuiWindowFlags_NoScrollbar);
 	auto frames = cspan(m_manager.frames());
 	if(!frames) {
-		menu::text("No frames\n");
+		gui.text("No frames\n");
 		ImGui::End();
 		return;
 	}
@@ -356,6 +360,7 @@ void Analyzer::showDataColumn(ColumnId col_id, FrameRange &range) {
 		 (ImColor)float4(1.0f, 1.0f, 0.3f, 1.0f), (ImColor)float4(0.3f, 1.0f, 0.3f, 1.0f)}};
 
 	static const EnumMap<TimeUnit, const char *> time_units{{"s", "ms", "\xC2\xB5s", "ns"}};
+	auto &gui = Gui::instance();
 
 	for(int idx : intRange(range.exec_list)) {
 		auto exec_id = range.exec_list[idx];
@@ -372,7 +377,7 @@ void Analyzer::showDataColumn(ColumnId col_id, FrameRange &range) {
 				auto tsize = ImGui::CalcTextSize(fmt.c_str());
 				ImGui::Dummy({m_data_width - 10.0f - tsize.x, 1.0f});
 				ImGui::SameLine();
-				menu::text(fmt.text());
+				gui.text(fmt.text());
 			} else {
 				auto tvalue = timeInfo(value);
 
@@ -438,12 +443,13 @@ CSpan<Frame> Analyzer::getFrames() {
 }
 
 void Analyzer::miniMenu() {
+	auto &gui = Gui::instance();
 	selectColumns();
 	ImGui::SameLine();
 	changeOptions();
 	ImGui::SameLine();
-	menu::showHelpMarker("Additional controls:\nMMB: select (or deselect) a specific "
-						 "row\nRMB: show additional information for given row");
+	gui.showHelpMarker("Additional controls:\nMMB: select (or deselect) a specific "
+					   "row\nRMB: show additional information for given row");
 }
 
 void Analyzer::selectColumns() {
@@ -461,6 +467,7 @@ void Analyzer::selectColumns() {
 }
 
 void Analyzer::changeOptions() {
+	auto &gui = Gui::instance();
 	if(ImGui::Button("Configure"))
 		ImGui::OpenPopup("change_options");
 
@@ -471,27 +478,27 @@ void Analyzer::changeOptions() {
 			num_samples += frame.samples.size();
 
 		auto data_size = m_manager.usedMemory();
-		menu::text("Frames recorded: % (% MB)", frames.size(), data_size / (1024 * 1024));
-		menu::text("AVG Samples/frame: %", num_samples / frames.size());
+		gui.text("Frames recorded: % (% MB)", frames.size(), data_size / (1024 * 1024));
+		gui.text("AVG Samples/frame: %", num_samples / frames.size());
 		ImGui::SameLine();
-		menu::showHelpMarker("Try to keep this number low (few thousands at most)");
+		gui.showHelpMarker("Try to keep this number low (few thousands at most)");
 
-		menu::text("Num GPU queries: %\n", ThreadContext::numGpuQueries());
+		gui.text("Num GPU queries: %\n", ThreadContext::numGpuQueries());
 		ImGui::SameLine();
-		menu::showHelpMarker(
+		gui.showHelpMarker(
 			"Be careful with PERF_GPU_SCOPE(): each call will require separate query");
-		menu::selectEnum("Data source: ", m_data_source);
+		gui.selectEnum("Data source: ", m_data_source);
 
 		if(m_data_source == DataSource::custom_range) {
 			int num_frames = m_end_frame - m_first_frame;
-			if(menu::inputValue("First frame", m_first_frame))
+			if(gui.inputValue("First frame", m_first_frame))
 				m_first_frame = clamp(m_first_frame, 0, frames.size() - 1);
-			menu::inputValue("Num frames", num_frames);
+			gui.inputValue("Num frames", num_frames);
 			m_end_frame = clamp(m_first_frame + num_frames, m_first_frame + 1, frames.size());
 		} else if(m_data_source == DataSource::last_frames) {
-			if(menu::inputValue("Num frames", m_num_last_frames))
+			if(gui.inputValue("Num frames", m_num_last_frames))
 				m_num_last_frames = clamp(m_num_last_frames, 1, 10000);
-			if(menu::inputValue("Limit sampling time", m_limit_last_frames_time))
+			if(gui.inputValue("Limit sampling time", m_limit_last_frames_time))
 				m_limit_last_frames_time = clamp(m_limit_last_frames_time, 1.0 / 60.0, 1000.0);
 		}
 
@@ -501,7 +508,7 @@ void Analyzer::changeOptions() {
 
 		ImGui::Separator();
 
-		menu::selectEnum("Sort by", m_sort_var);
+		gui.selectEnum("Sort by", m_sort_var);
 		ImGui::Checkbox("Inverse order", &m_sort_inverse);
 		ImGui::Checkbox("Show empty rows", &m_show_empty);
 		ImGui::EndPopup();
@@ -509,6 +516,7 @@ void Analyzer::changeOptions() {
 }
 
 void Analyzer::showGrid(FrameRange &range) {
+	auto &gui = Gui::instance();
 	bool update_scroll = m_update_scroll;
 	m_update_scroll = false;
 
@@ -551,7 +559,7 @@ void Analyzer::showGrid(FrameRange &range) {
 			if(n == 0)
 				miniMenu();
 			else
-				menu::centeredText(sizes[n] / 2, titles[n]);
+				gui.centeredText(sizes[n] / 2, titles[n]);
 			ImGui::EndChild();
 			header_height = ImGui::GetItemRectSize().y;
 			ImGui::SameLine();
@@ -579,7 +587,7 @@ void Analyzer::showGrid(FrameRange &range) {
 		if(first)
 			ImGui::Text("%s", sub_titles[col_id]);
 		else
-			menu::centeredText(m_data_width / 2, sub_titles[col_id]);
+			gui.centeredText(m_data_width / 2, sub_titles[col_id]);
 		ImGui::Separator();
 
 		ImGui::BeginChild(format("%_rows", col_id).c_str(), {}, false,
@@ -681,7 +689,7 @@ void Analyzer::showGrid(FrameRange &range) {
 bool Analyzer::showTooltip(ExecId exec_id) {
 	m_tooltip_exec = exec_id;
 	if(auto text = execInfo(exec_id); !text.empty()) {
-		menu::showTooltip(text);
+		Gui::instance().showTooltip(text);
 		return true;
 	}
 	return false;

@@ -1,13 +1,14 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/menu/imgui_wrapper.h"
+#include "fwk/gui/gui.h"
 
 #include "fwk/any_config.h"
 #include "fwk/gfx/font_finder.h"
 #include "fwk/gfx/gl_device.h"
-#include "fwk/menu_imgui_internal.h"
+#include "fwk/gui/imgui_internal.h"
 #include "fwk/sys/input.h"
+#include "gui_impl.h"
 
 #ifdef FWK_PLATFORM_HTML
 #define IMGUI_IMPL_OPENGL_ES2
@@ -20,10 +21,21 @@
 
 namespace fwk {
 
-ImGuiWrapper *ImGuiWrapper::s_instance = nullptr;
+Gui *Gui::s_instance = nullptr;
 
-ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiOptions opts) {
-	ASSERT("You can only create a single instance of ImGuiWrapper" && !s_instance);
+static const char *getClipboardText(void *) {
+	static string buffer;
+	buffer = GlDevice::instance().clipboardText();
+	return buffer.c_str();
+}
+
+static void setClipboardText(void *, const char *text) {
+	GlDevice::instance().setClipboardText(text);
+}
+
+Gui::Gui(GlDevice &device, GuiConfig opts) {
+	m_impl.emplace();
+	ASSERT("You can only create a single instance of Gui" && !s_instance);
 	s_instance = this;
 	ImGui::CreateContext();
 
@@ -40,7 +52,7 @@ ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiOptions opts) {
 	};
 
 	if(!opts.font_size)
-		opts.font_size = (opts.style_mode == ImGuiStyleMode::mini ? 12 : 14) * opts.dpi_scale;
+		opts.font_size = (opts.style_mode == GuiStyleMode::mini ? 12 : 14) * opts.dpi_scale;
 	if(!opts.font_path)
 		opts.font_path = findDefaultSystemFont().get();
 
@@ -79,19 +91,16 @@ ImGuiWrapper::ImGuiWrapper(GlDevice &device, ImGuiOptions opts) {
 	io.ImeWindowHandle = wmInfo.info.win.window;
 #endif*/
 
-	if(opts.style_mode == ImGuiStyleMode::mini) {
+	if(opts.style_mode == GuiStyleMode::mini) {
 		auto &style = ImGui::GetStyle();
 		style.FramePadding = {2, 1};
 		style.ItemSpacing = {3, 3};
 	}
 }
 
-ImGuiWrapper::ImGuiWrapper(ImGuiWrapper &&rhs)
-	: m_last_time(rhs.m_last_time), m_procs(move(rhs.m_procs)) {
-	s_instance = this;
-}
+Gui::Gui(Gui &&rhs) : m_last_time(rhs.m_last_time), m_impl(move(rhs.m_impl)) { s_instance = this; }
 
-ImGuiWrapper::~ImGuiWrapper() {
+Gui::~Gui() {
 	if(s_instance != this)
 		return;
 
@@ -100,51 +109,48 @@ ImGuiWrapper::~ImGuiWrapper() {
 	ImGui::DestroyContext();
 }
 
-AnyConfig ImGuiWrapper::config() const {
+bool Gui::isPresent() { return s_instance != nullptr; }
+Gui &Gui::instance() {
+	DASSERT(s_instance);
+	return *s_instance;
+}
+
+AnyConfig Gui::config() const {
 	AnyConfig out;
 	string settings = ImGui::SaveIniSettingsToMemory();
 	out.set("settings", settings);
-	out.set("hide", o_hide_menu);
+	out.set("hide", o_hide);
 	return out;
 }
 
-void ImGuiWrapper::setConfig(const AnyConfig &config) {
+void Gui::setConfig(const AnyConfig &config) {
 	if(auto *settings = config.get<string>("settings"))
 		ImGui::LoadIniSettingsFromMemory(settings->c_str(), settings->size());
-	o_hide_menu = config.get("hide", false);
+	o_hide = config.get("hide", false);
 }
 
-void ImGuiWrapper::addProcess(ProcessFunc func, void *arg) { m_procs.emplace_back(func, arg); }
+void Gui::addProcess(ProcessFunc func, void *arg) { m_impl->processes.emplace_back(func, arg); }
 
-void ImGuiWrapper::removeProcess(ProcessFunc func, void *arg) {
-	m_procs =
-		filter(m_procs, [=](const Process &proc) { return proc.func != func || proc.arg != arg; });
+void Gui::removeProcess(ProcessFunc func, void *arg) {
+	m_impl->processes = filter(m_impl->processes, [=](const Impl::Process &proc) {
+		return proc.func != func || proc.arg != arg;
+	});
 }
 
-const char *ImGuiWrapper::getClipboardText(void *) {
-	static string buffer;
-	buffer = GlDevice::instance().clipboardText();
-	return buffer.c_str();
-}
-
-void ImGuiWrapper::setClipboardText(void *, const char *text) {
-	GlDevice::instance().setClipboardText(text);
-}
-
-void ImGuiWrapper::drawFrame(GlDevice &device) {
+void Gui::drawFrame(GlDevice &device) {
 	//PERF_GPU_SCOPE();
-	if(o_hide_menu)
+	if(o_hide)
 		return;
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void ImGuiWrapper::beginFrame(GlDevice &device) {
+void Gui::beginFrame(GlDevice &device) {
 	ImGuiIO &io = ImGui::GetIO();
 	memset(io.KeysDown, 0, sizeof(io.KeysDown));
 	memset(io.MouseDown, 0, sizeof(io.MouseDown));
 
-	if(!o_hide_menu) {
+	if(!o_hide) {
 		for(auto &event : device.inputEvents()) {
 			if(isOneOf(event.type(), InputEventType::key_down, InputEventType::key_pressed))
 				io.KeysDown[event.key()] = true;
@@ -169,7 +175,7 @@ void ImGuiWrapper::beginFrame(GlDevice &device) {
 		io.MouseWheel = state.mouseWheelMove();
 	}
 
-	device.showCursor(io.MouseDrawCursor && !o_hide_menu ? false : true);
+	device.showCursor(io.MouseDrawCursor && !o_hide ? false : true);
 
 	// TODO: io.AddInputCharactersUTF8(event->text.text);
 
@@ -185,12 +191,12 @@ void ImGuiWrapper::beginFrame(GlDevice &device) {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui::NewFrame();
 
-	for(auto &proc : m_procs)
+	for(auto &proc : m_impl->processes)
 		proc.func(proc.arg);
 }
 
-vector<InputEvent> ImGuiWrapper::finishFrame(GlDevice &device) {
-	if(o_hide_menu)
+vector<InputEvent> Gui::finishFrame(GlDevice &device) {
+	if(o_hide)
 		return device.inputEvents();
 
 	vector<InputEvent> out;

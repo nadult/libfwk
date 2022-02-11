@@ -4,18 +4,13 @@
 #pragma once
 
 #include "fwk/format.h"
-#include "fwk/menu_imgui.h"
+#include "fwk/gui/gui.h"
 #include "fwk/span.h"
 
-namespace menu {
+namespace fwk {
 
-namespace impl {
-	bool inputValue(const char *label, int &value);
-	bool inputValue(const char *label, float &value);
-	bool inputValue(const char *label, double &value);
-}
-
-template <class Index> bool selectIndex(ZStr title, Index &value, CSpan<const char *> strings) {
+template <class Index>
+bool Gui::selectIndex(ZStr title, Index &value, CSpan<const char *> strings) {
 	DASSERT(strings.inRange((int)value));
 
 	ImGui::Text("%s", title.c_str());
@@ -30,7 +25,7 @@ template <class Index> bool selectIndex(ZStr title, Index &value, CSpan<const ch
 	return ret;
 }
 
-template <class TEnum> bool selectFlags(EnumFlags<TEnum> &flag, CSpan<const char *> strings) {
+template <class TEnum> bool Gui::selectFlags(EnumFlags<TEnum> &flag, CSpan<const char *> strings) {
 	DASSERT(strings.size() == count<TEnum>);
 	bool changed = false;
 
@@ -45,14 +40,14 @@ template <class TEnum> bool selectFlags(EnumFlags<TEnum> &flag, CSpan<const char
 	return changed;
 }
 
-template <class TEnum> bool selectFlags(EnumFlags<TEnum> &flag) {
+template <class TEnum> bool Gui::selectFlags(EnumFlags<TEnum> &flag) {
 	array<const char *, count<TEnum>> names;
 	for(auto item : all<TEnum>)
 		names[int(item)] = toString(item);
-	return menu::selectFlags(flag, names);
+	return selectFlags(flag, names);
 }
 
-template <class T> bool inputValue(ZStr title, T &value) {
+template <class T> bool Gui::inputValue(ZStr title, T &value) {
 	TextFormatter tmp;
 	tmp << "##";
 	tmp << title;
@@ -66,7 +61,7 @@ template <class T> bool inputValue(ZStr title, T &value) {
 	return changed;
 }
 
-template <class Enum, EnableIfEnum<Enum>...> bool selectEnum(ZStr title, Enum &value) {
+template <class Enum, EnableIfEnum<Enum>...> bool Gui::selectEnum(ZStr title, Enum &value) {
 	array<const char *, count<Enum>> strings;
 	for(auto val : all<Enum>)
 		strings[(int)val] = toString(val);
@@ -74,8 +69,8 @@ template <class Enum, EnableIfEnum<Enum>...> bool selectEnum(ZStr title, Enum &v
 }
 
 template <class EType, class Index, class GetFunc, class SetFunc, EnableIfEnum<EType>...>
-void modifyEnums(ZStr title, const vector<Index> &selection, const GetFunc &get_func,
-				 const SetFunc &set_func) {
+void Gui::modifyEnums(ZStr title, const vector<Index> &selection, const GetFunc &get_func,
+					  const SetFunc &set_func) {
 	if(!selection)
 		return;
 
@@ -99,8 +94,8 @@ void modifyEnums(ZStr title, const vector<Index> &selection, const GetFunc &get_
 }
 
 template <class Type, class Index, class GetFunc, class SetFunc>
-bool modifyValues(ZStr title, const vector<Index> &selection, const GetFunc &get_func,
-				  const SetFunc &set_func, bool on_enter = false) {
+bool Gui::modifyValues(ZStr title, const vector<Index> &selection, const GetFunc &get_func,
+					   const SetFunc &set_func, bool on_enter) {
 	if(!selection)
 		return false;
 
@@ -126,19 +121,15 @@ bool modifyValues(ZStr title, const vector<Index> &selection, const GetFunc &get
 	return false;
 }
 
-void text(Str);
-void centeredText(int center_pos, Str);
-
-template <c_formattible... T> void text(const char *str, T &&...args) {
+template <c_formattible... T> void Gui::text(const char *str, T &&...args) {
 	TextFormatter fmt(256, {FormatMode::structured});
 	fmt(str, std::forward<T>(args)...);
 	text(fmt.text());
 }
 
-template <c_formattible... T> void centeredText(int center_pos, const char *str, T &&...args) {
+template <c_formattible... T> void Gui::centeredText(int center_pos, const char *str, T &&...args) {
 	TextFormatter fmt;
 	fmt(str, std::forward<T>(args)...);
 	centeredText(center_pos, fmt.text());
 }
-
 }

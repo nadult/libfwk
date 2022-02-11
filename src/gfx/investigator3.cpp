@@ -19,7 +19,7 @@
 #include "fwk/variant.h"
 
 #ifndef FWK_IMGUI_DISABLED
-#include "fwk/menu/imgui_wrapper.h"
+#include "fwk/gui/gui.h"
 #endif
 
 namespace fwk {
@@ -59,12 +59,10 @@ Investigator3::Investigator3(VisFunc vis_func, InvestigatorOpts flags, Config co
 	}
 	m_focus = *config.focus;
 
-
-
 	m_cam_control = {base_plane};
 	m_cam_control->o_config.params.viewport = new_viewport;
 
-	CamVariant camera = config.camera? *config.camera : defaultCamera();
+	CamVariant camera = config.camera ? *config.camera : defaultCamera();
 	if(const OrbitingCamera *orb_cam = camera)
 		m_cam_control->setTarget(*orb_cam);
 	else if(const FppCamera *fpp_cam = camera)
@@ -162,10 +160,10 @@ bool Investigator3::mainLoop(GlDevice &device) {
 
 	vector<InputEvent> events;
 #ifndef FWK_IMGUI_DISABLED
-	auto *imgui = ImGuiWrapper::instance();
-	if(imgui) {
-		imgui->beginFrame(device);
-		events = imgui->finishFrame(device);
+	if(Gui::isPresent()) {
+		auto &gui = Gui::instance();
+		gui.beginFrame(device);
+		events = gui.finishFrame(device);
 	} else {
 		events = device.inputEvents();
 	}
@@ -179,8 +177,8 @@ bool Investigator3::mainLoop(GlDevice &device) {
 
 	draw();
 #ifndef FWK_IMGUI_DISABLED
-	if(imgui)
-		imgui->drawFrame(device);
+	if(Gui::isPresent())
+		Gui::instance().drawFrame(device);
 #endif
 
 	return !m_exit_please;

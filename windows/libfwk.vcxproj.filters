@@ -22,9 +22,6 @@
     <Filter Include="src\sys">
       <UniqueIdentifier>{62e87e7f-e16f-40c5-baf6-b184a7360526}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\menu">
-      <UniqueIdentifier>{e44e2ca7-b7fd-48b7-af2c-57487fc6464d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\perf">
       <UniqueIdentifier>{59c694e0-0456-4d8c-9934-73280e892f18}</UniqueIdentifier>
     </Filter>
@@ -40,9 +37,6 @@
     <Filter Include="include\gfx">
       <UniqueIdentifier>{eb8425cb-cb4a-4e4e-9c2f-42feb4edd065}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\menu">
-      <UniqueIdentifier>{da057326-7264-4b99-9d3f-f3b3b7d82bab}</UniqueIdentifier>
-    </Filter>
     <Filter Include="include\audio">
       <UniqueIdentifier>{a873f18d-a1fe-4182-8a4a-d6d44bf9074e}</UniqueIdentifier>
     </Filter>
@@ -51,6 +45,12 @@
     </Filter>
     <Filter Include="include\meta">
       <UniqueIdentifier>{50918e87-c88e-43b2-805b-412be77444f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\gui">
+      <UniqueIdentifier>{20d41857-ac80-4f06-9519-3de460b5a75b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\gui">
+      <UniqueIdentifier>{8c14b674-e26a-4018-8aa5-5435afc98459}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -136,15 +136,6 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\maybe_ref.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\menu_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\menu_imgui.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\menu_imgui_internal.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\meta_base.h">
@@ -366,12 +357,6 @@
     <ClInclude Include="..\include\fwk\audio\sound.h">
       <Filter>include\audio</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\menu\helpers.h">
-      <Filter>include\menu</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\menu\imgui_wrapper.h">
-      <Filter>include\menu</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\animated_model.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
@@ -560,6 +545,21 @@
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\font_finder.h">
       <Filter>include\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\gui\gui.h">
+      <Filter>include\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\gui\imgui.h">
+      <Filter>include\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\gui\imgui_internal.h">
+      <Filter>include\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gui\gui_impl.h">
+      <Filter>src\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\gui\widgets.h">
+      <Filter>include\gui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -839,33 +839,6 @@
     <ClCompile Include="..\src\geom\wide_int.cpp">
       <Filter>src\geom</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\menu\error_popup.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\helpers.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\imgui_base.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\imgui_demo.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\imgui_draw.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\imgui_tables.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\imgui_widgets.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\imgui_wrapper.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\menu\open_file_popup.cpp">
-      <Filter>src\menu</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\perf\analyzer.cpp">
       <Filter>src\perf</Filter>
     </ClCompile>
@@ -994,6 +967,45 @@
     </ClCompile>
     <ClCompile Include="..\src\gfx\font_finder.cpp">
       <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_demo.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_draw.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_tables.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_widgets.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\gui.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\imgui_base.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\imgui_demo.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\imgui_draw.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\imgui_tables.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\imgui_widgets.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\widgets.cpp">
+      <Filter>src\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gui\popups.cpp">
+      <Filter>src\gui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

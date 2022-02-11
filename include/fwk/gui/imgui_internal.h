@@ -3,6 +3,6 @@
 
 #pragma once
 
-#include "fwk/menu_imgui.h"
+#include "fwk/gui/imgui.h"
 
-#include "../extern/imgui/imgui_internal.h"
+#include "../../extern/imgui/imgui_internal.h"

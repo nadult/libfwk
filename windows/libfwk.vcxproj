@@ -86,6 +86,10 @@
     <ClInclude Include="..\include\fwk\gfx\visualizer2.h" />
     <ClInclude Include="..\include\fwk\gfx\visualizer3.h" />
     <ClInclude Include="..\include\fwk\gfx_base.h" />
+    <ClInclude Include="..\include\fwk\gui\gui.h" />
+    <ClInclude Include="..\include\fwk\gui\imgui.h" />
+    <ClInclude Include="..\include\fwk\gui\imgui_internal.h" />
+    <ClInclude Include="..\include\fwk\gui\widgets.h" />
     <ClInclude Include="..\include\fwk\hash_map.h" />
     <ClInclude Include="..\include\fwk\hash_map_stats.h" />
     <ClInclude Include="..\include\fwk\hash_map_storage.h" />
@@ -140,11 +144,6 @@
     <ClInclude Include="..\include\fwk\math_base.h" />
     <ClInclude Include="..\include\fwk\maybe.h" />
     <ClInclude Include="..\include\fwk\maybe_ref.h" />
-    <ClInclude Include="..\include\fwk\menu\helpers.h" />
-    <ClInclude Include="..\include\fwk\menu\imgui_wrapper.h" />
-    <ClInclude Include="..\include\fwk\menu_base.h" />
-    <ClInclude Include="..\include\fwk\menu_imgui.h" />
-    <ClInclude Include="..\include\fwk\menu_imgui_internal.h" />
     <ClInclude Include="..\include\fwk\meta\iterator.h" />
     <ClInclude Include="..\include\fwk\meta\operator.h" />
     <ClInclude Include="..\include\fwk\meta\range.h" />
@@ -177,9 +176,30 @@
     <ClInclude Include="..\include\fwk\vector.h" />
     <ClInclude Include="..\include\fwk\vector_map.h" />
     <ClInclude Include="..\src\fwk_pch.h" />
+    <ClInclude Include="..\src\gui\gui_impl.h" />
     <ClInclude Include="..\src\sys\windows.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\extern\imgui\imgui.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_demo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_draw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_tables.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\extern\imgui\imgui_widgets.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\any.cpp" />
     <ClCompile Include="..\src\any_config.cpp" />
     <ClCompile Include="..\src\audio\al_device.cpp" />
@@ -266,6 +286,14 @@
     <ClCompile Include="..\src\gfx\triangle_buffer.cpp" />
     <ClCompile Include="..\src\gfx\visualizer2.cpp" />
     <ClCompile Include="..\src\gfx\visualizer3.cpp" />
+    <ClCompile Include="..\src\gui\widgets.cpp" />
+    <ClCompile Include="..\src\gui\gui.cpp" />
+    <ClCompile Include="..\src\gui\imgui_base.cpp" />
+    <ClCompile Include="..\src\gui\imgui_demo.cpp" />
+    <ClCompile Include="..\src\gui\imgui_draw.cpp" />
+    <ClCompile Include="..\src\gui\imgui_tables.cpp" />
+    <ClCompile Include="..\src\gui\imgui_widgets.cpp" />
+    <ClCompile Include="..\src\gui\popups.cpp" />
     <ClCompile Include="..\src\hash_map_stats.cpp" />
     <ClCompile Include="..\src\html_pre_include.cpp" />
     <ClCompile Include="..\src\io\file_stream.cpp" />
@@ -305,15 +333,6 @@
     <ClCompile Include="..\src\math\tetrahedron.cpp" />
     <ClCompile Include="..\src\math\triangle.cpp" />
     <ClCompile Include="..\src\math\uint128.cpp" />
-    <ClCompile Include="..\src\menu\error_popup.cpp" />
-    <ClCompile Include="..\src\menu\helpers.cpp" />
-    <ClCompile Include="..\src\menu\imgui_base.cpp" />
-    <ClCompile Include="..\src\menu\imgui_demo.cpp" />
-    <ClCompile Include="..\src\menu\imgui_draw.cpp" />
-    <ClCompile Include="..\src\menu\imgui_tables.cpp" />
-    <ClCompile Include="..\src\menu\imgui_widgets.cpp" />
-    <ClCompile Include="..\src\menu\imgui_wrapper.cpp" />
-    <ClCompile Include="..\src\menu\open_file_popup.cpp" />
     <ClCompile Include="..\src\parse.cpp" />
     <ClCompile Include="..\src\perf\analyzer.cpp" />
     <ClCompile Include="..\src\perf\exec_tree.cpp" />

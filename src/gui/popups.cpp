@@ -1,53 +1,61 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/menu_imgui.h"
+#include "fwk/gui/gui.h"
 
 #include "fwk/algorithm.h"
 #include "fwk/format.h"
+#include "fwk/gui/imgui.h"
 #include "fwk/index_range.h"
 #include "fwk/io/file_system.h"
+#include "fwk/sys/error.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vector.h"
+#include "gui_impl.h"
 
-namespace menu {
-
-struct PopupContext {
-	PopupContext(string file_name, NameFilter name_filter)
-		: current_file(move(file_name)), name_filter(name_filter) {
-		FilePath fpath(current_file);
-		current_dir = fpath.isDirectory() ? fpath : fpath.parent();
+namespace fwk {
+void Gui::openErrorPopup(Error error, ZStr title) {
+	if(!error.empty()) {
+		m_impl->error_popup = toString(error);
+		m_impl->error_popup_title = string(title) + "##error_popup";
+		ImGui::OpenPopup(m_impl->error_popup_title.c_str());
 	}
+}
 
-	FilePath current_file;
-	FilePath current_dir;
-	NameFilter name_filter;
-	bool show_hidden = false;
-};
+void Gui::displayErrorPopup() {
+	if(ImGui::BeginPopupModal(m_impl->error_popup_title.c_str(), nullptr,
+							  ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("%s", m_impl->error_popup.c_str());
+		ImGui::Separator();
 
-template <class Context, class... Args>
-PopupContext &findContext(vector<pair<string, Context>> &contexts, string context_name,
-						  Args &&... init_args) {
+		int enter_idx = ImGui::GetKeyIndex(ImGuiKey_Enter);
+		if(ImGui::Button("OK", ImVec2(120, 0)) || ImGui::IsKeyDown(enter_idx)) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+}
+
+template <class... Args>
+static GuiPopupContext &findContext(vector<Pair<string, GuiPopupContext>> &contexts,
+									string context_name, Args &&...init_args) {
 	for(auto &pair : contexts)
 		if(pair.first == context_name)
 			return pair.second;
 
-	contexts.emplace_back(context_name, Context(std::forward<Args>(init_args)...));
+	contexts.emplace_back(context_name, GuiPopupContext(std::forward<Args>(init_args)...));
 	return contexts.back().second;
 }
 
-template <class Context, class... Args>
-void dropContext(vector<pair<string, Context>> &contexts, string context_name) {
+static void dropContext(vector<Pair<string, GuiPopupContext>> &contexts, string context_name) {
 	for(int idx : intRange(contexts))
 		if(contexts[idx].first == context_name)
 			contexts.erase(contexts.begin() + idx);
 }
 
-void openFilePopup(string &file_name, ZStr popup_name, NameFilter name_filter) {
-	static vector<pair<string, PopupContext>> contexts;
-
+void Gui::openFilePopup(string &file_name, ZStr popup_name, NameFilter name_filter) {
 	if(ImGui::BeginPopup(popup_name.c_str())) {
-		auto &ctx = findContext(contexts, popup_name, file_name, name_filter);
+		auto &ctx = findContext(m_impl->popup_contexts, popup_name, file_name, name_filter);
 
 		// TODO: dir is broken
 		Maybe<string> new_dir;
@@ -106,13 +114,12 @@ void openFilePopup(string &file_name, ZStr popup_name, NameFilter name_filter) {
 			ctx.current_dir = *new_dir;
 
 		if(drop_context)
-			dropContext(contexts, popup_name);
-
+			dropContext(m_impl->popup_contexts, popup_name);
 		ImGui::EndPopup();
 	}
 }
 
-void openFileButton(string &file_path_str, string popup_name, NameFilter name_filter) {
+void Gui::openFileButton(string &file_path_str, string popup_name, NameFilter name_filter) {
 	popup_name += "_open_file";
 	FilePath file_path(file_path_str);
 	if(file_path.isAbsolute())
@@ -121,6 +128,20 @@ void openFileButton(string &file_path_str, string popup_name, NameFilter name_fi
 
 	if(ImGui::Button(format("File: %", file_path_str).c_str()))
 		ImGui::OpenPopup(popup_name.c_str());
-	menu::openFilePopup(file_path_str, popup_name, name_filter);
+	openFilePopup(file_path_str, popup_name, name_filter);
+}
+
+void Gui::showTooltip(Str str) {
+	ImGui::BeginTooltip();
+	ImGui::PushTextWrapPos(450.0f);
+	text(str);
+	ImGui::PopTextWrapPos();
+	ImGui::EndTooltip();
+}
+
+void Gui::showHelpMarker(Str text, const char *marker) {
+	ImGui::TextDisabled("%s", marker);
+	if(ImGui::IsItemHovered())
+		showTooltip(text);
 }
 }
