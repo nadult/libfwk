@@ -64,9 +64,6 @@
     <Filter Include="src\gui">
       <UniqueIdentifier>{8c14b674-e26a-4018-8aa5-5435afc98459}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\sdf">
-      <UniqueIdentifier>{b33a284e-a77c-4283-b051-d6e18c617fd0}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\fwk_pch.h">
@@ -1085,5 +1082,8 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\todo.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="libfwk.natvis" />
   </ItemGroup>
 </Project>

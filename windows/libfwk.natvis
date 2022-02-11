@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <!-- https://docs.microsoft.com/en-us/visualstudio/debugger/create-custom-views-of-native-objects?view=vs-2019 -->
+
+  <Type Name="fwk::Vector&lt;*&gt;">
+    <DisplayString>{{size={m_base.size} capacity={m_base.capacity}}}</DisplayString>
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">m_base.size</Item>
+      <Item Name="[capacity]" ExcludeView="simple">m_base.capacity</Item>
+      <ArrayItems>
+        <Size>m_base.size</Size>
+        <ValuePointer>($T1*)m_base.data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="fwk::Span&lt;*&gt;">
+    <DisplayString>{{size={m_size}}}</DisplayString>
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">m_size</Item>
+      <ArrayItems>
+        <Size>m_size</Size>
+        <ValuePointer>($T1*)m_data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>
