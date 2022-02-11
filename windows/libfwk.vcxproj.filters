@@ -46,11 +46,26 @@
     <Filter Include="include\meta">
       <UniqueIdentifier>{50918e87-c88e-43b2-805b-412be77444f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="extern">
+      <UniqueIdentifier>{37308a11-481d-432f-bffc-d09326fa976f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\imgui">
+      <UniqueIdentifier>{4f1bc1bd-1d43-4f2e-b7f5-0e8a2e97a781}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\rapidxml">
+      <UniqueIdentifier>{fe3cd170-9aee-448a-807e-d96623732471}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\boost_polygon">
+      <UniqueIdentifier>{c19e8b27-dba8-4b48-9f68-1551243b7191}</UniqueIdentifier>
+    </Filter>
     <Filter Include="include\gui">
       <UniqueIdentifier>{20d41857-ac80-4f06-9519-3de460b5a75b}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\gui">
       <UniqueIdentifier>{8c14b674-e26a-4018-8aa5-5435afc98459}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\sdf">
+      <UniqueIdentifier>{b33a284e-a77c-4283-b051-d6e18c617fd0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -545,6 +560,66 @@
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\font_finder.h">
       <Filter>include\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\stb_dxt.h">
+      <Filter>extern</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\stb_image.h">
+      <Filter>extern</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\stb_image_resize.h">
+      <Filter>extern</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imconfig.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imgui.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imgui_internal.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imstb_rectpack.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imstb_textedit.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imstb_truetype.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\boost_polygon\voronoi_builder.hpp">
+      <Filter>extern\boost_polygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\boost_polygon\voronoi_ctypes.hpp">
+      <Filter>extern\boost_polygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\boost_polygon\voronoi_diagram.hpp">
+      <Filter>extern\boost_polygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\boost_polygon\voronoi_geometry_type.hpp">
+      <Filter>extern\boost_polygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\boost_polygon\voronoi_predicates.hpp">
+      <Filter>extern\boost_polygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\boost_polygon\voronoi_robust_fpt.hpp">
+      <Filter>extern\boost_polygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\boost_polygon\voronoi_structures.hpp">
+      <Filter>extern\boost_polygon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\rapidxml\rapidxml.hpp">
+      <Filter>extern\rapidxml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\rapidxml\rapidxml_iterators.hpp">
+      <Filter>extern\rapidxml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\rapidxml\rapidxml_print.hpp">
+      <Filter>extern\rapidxml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\rapidxml\rapidxml_utils.hpp">
+      <Filter>extern\rapidxml</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gui\gui.h">
       <Filter>include\gui</Filter>
