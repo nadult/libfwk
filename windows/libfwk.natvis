@@ -15,6 +15,18 @@
     </Expand>
   </Type>
 
+  <Type Name="fwk::PodVector&lt;*&gt;">
+    <DisplayString>{{size={m_base.size} capacity={m_base.capacity}}}</DisplayString>
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">m_base.size</Item>
+      <Item Name="[capacity]" ExcludeView="simple">m_base.capacity</Item>
+      <ArrayItems>
+        <Size>m_base.size</Size>
+        <ValuePointer>($T1*)m_base.data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
   <Type Name="fwk::Span&lt;*&gt;">
     <DisplayString>{{size={m_size}}}</DisplayString>
     <Expand>
@@ -24,5 +36,21 @@
         <ValuePointer>($T1*)m_data</ValuePointer>
       </ArrayItems>
     </Expand>
+  </Type>
+
+  <Type Name="fwk::vec2&lt;*&gt;">
+    <DisplayString>{{x={x} y={y}}}</DisplayString>
+  </Type>
+
+  <Type Name="fwk::vec3&lt;*&gt;">
+    <DisplayString>{{x={x} y={y} z={z}}}</DisplayString>
+  </Type>
+
+  <Type Name="fwk::vec4&lt;*&gt;">
+    <DisplayString>{{x={x} y={y} z={z} w={w}}}</DisplayString>
+  </Type>
+
+  <Type Name="fwk::Box&lt;fwk::vec2&lt;*&gt;&gt;">
+    <DisplayString>{{x={m_min.x} y={m_min.y} w={m_max.x-m_min.x} h={m_max.y-m_min.y} ex={m_max.x} ey={m_max.y}}}</DisplayString>
   </Type>
 </AutoVisualizer>
