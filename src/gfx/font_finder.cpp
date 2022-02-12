@@ -73,10 +73,10 @@ vector<SystemFont> listSystemFonts() {
 			auto result = matching_fonts->GetFont(j, &font);
 
 			auto ms_style = font->GetStyle();
-			SystemFontStyle style = ms_style == DWRITE_FONT_STYLE_NORMAL ? SystemFontStyle::normal
-									: ms_style == DWRITE_FONT_STYLE_OBLIQUE
-										? SystemFontStyle::oblique
-										: SystemFontStyle::italic;
+			SystemFontStyle style =
+				ms_style == DWRITE_FONT_STYLE_NORMAL  ? SystemFontStyle::normal :
+				ms_style == DWRITE_FONT_STYLE_OBLIQUE ? SystemFontStyle::oblique :
+														  SystemFontStyle::italic;
 
 			auto weight = (int)font->GetWeight();
 			auto stretch = (int)font->GetStretch();
@@ -202,9 +202,9 @@ vector<SystemFont> listSystemFonts() {
 		int width = tryFromString<int>(string(width_str), 100);
 
 		SystemFontParams font_params;
-		font_params.style = islant == 0		? SystemFontStyle::normal
-							: islant == 100 ? SystemFontStyle::italic
-											: SystemFontStyle::oblique;
+		font_params.style = islant == 0	  ? SystemFontStyle::normal :
+							islant == 100 ? SystemFontStyle::italic :
+											  SystemFontStyle::oblique;
 
 		// 0 - 210(210) -> 100 - 950(850)
 		font_params.weight = int(double(weight) * 850 / 210) + 100;
@@ -247,15 +247,15 @@ Maybe<int> findBestFont(CSpan<SystemFont> fonts, CSpan<Str> family_names, System
 	return out;
 }
 
-Ex<string> findSystemFont(CSpan<Str> family_names, SystemFontParams font_params) {
+Ex<SystemFont> findSystemFont(CSpan<Str> family_names, SystemFontParams font_params) {
 	static auto sys_fonts = listSystemFonts();
 	auto font_idx = findBestFont(sys_fonts, family_names, font_params);
 	if(!font_idx)
 		return FWK_ERROR("Cannot find system fonts: %", family_names);
-	return sys_fonts[*font_idx].file_path;
+	return sys_fonts[*font_idx];
 }
 
-Ex<string> findDefaultSystemFont() {
+Ex<SystemFont> findDefaultSystemFont() {
 	return findSystemFont({"Segoe UI", "Liberation Sans", "Arial"}, {});
 }
 }

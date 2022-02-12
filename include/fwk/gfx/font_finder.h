@@ -33,6 +33,6 @@ Maybe<int> findBestFont(CSpan<SystemFont> input_fonts, CSpan<Str> family_names,
 						SystemFontParams params);
 
 // These functions cache a list of system fonts
-Ex<string> findSystemFont(CSpan<Str> family_names, SystemFontParams font_params = {});
-Ex<string> findDefaultSystemFont();
+Ex<SystemFont> findSystemFont(CSpan<Str> family_names, SystemFontParams font_params = {});
+Ex<SystemFont> findDefaultSystemFont();
 }

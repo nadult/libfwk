@@ -10,8 +10,11 @@ MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
 
 CAŁY CZAS TO ROBISZ :(
 
-- ASSERT -> FWK_ASSERT?
 
+Problemy:
+- Use DIP (device independent pixel) in Gui system
+- ASSERT -> FWK_ASSERT?
+- ordering of values in .xml file in AnyConfig
 - strange bug with PASSERT in perf/analyzer.cpp:327 firing
 - problem when drawing IRects in Renderer2D: bottom left corner is invisible
 - limit stored frames in perf manager

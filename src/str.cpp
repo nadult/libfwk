@@ -95,6 +95,7 @@ int Str::compareIgnoreCase(const Str &rhs) const {
 #else
 	auto ret = strncasecmp(m_data, rhs.m_data, min(m_size, rhs.m_size));
 #endif
+	// TODO: what's the point of that?
 	return ret ? ret : m_size < rhs.m_size ? -1 : m_size == rhs.m_size ? 0 : 1;
 }
 

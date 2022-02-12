@@ -33,11 +33,12 @@ static void setClipboardText(void *, const char *text) {
 	GlDevice::instance().setClipboardText(text);
 }
 
-void Gui::updateDpiAndFonts() {
+void Gui::updateDpiAndFonts(bool is_initial) {
 	auto dpi_scale = GlDevice::instance().windowDpiScale();
-	if(dpi_scale == m_impl->dpi_scale)
+	if(dpi_scale == m_dpi_scale && !is_initial)
 		return;
-	m_impl->dpi_scale = dpi_scale;
+	float scale_change = dpi_scale / m_dpi_scale;
+	m_dpi_scale = dpi_scale;
 
 	static const ImWchar glyph_ranges[] = {
 		0x0020, 0x00FF, // Basic Latin + Latin Supplement
@@ -52,10 +53,24 @@ void Gui::updateDpiAndFonts() {
 	io.Fonts->Clear();
 	io.FontDefault =
 		io.Fonts->AddFontFromFileTTF(m_impl->font_path.c_str(), font_size, 0, glyph_ranges);
+
 	auto *bd = ImGui_ImplOpenGL3_GetBackendData();
 	if(bd && bd->FontTexture) {
 		ImGui_ImplOpenGL3_DestroyFontsTexture();
 		ImGui_ImplOpenGL3_CreateFontsTexture();
+	}
+
+	if(!is_initial)
+		rescaleWindows(scale_change);
+}
+
+void Gui::rescaleWindows(float scale) {
+	auto *context = ImGui::GetCurrentContext();
+	auto scale_vec = [=](ImVec2 vec) { return ImVec2(vec.x * scale, vec.y * scale); };
+	for(auto &window : context->Windows) {
+		window->Pos = scale_vec(window->Pos);
+		window->Size = scale_vec(window->Size);
+		window->SizeFull = scale_vec(window->SizeFull);
 	}
 }
 
@@ -69,9 +84,19 @@ Gui::Gui(GlDevice &device, GuiConfig opts) {
 	ImGuiIO &io = ImGui::GetIO();
 	io.IniFilename = nullptr;
 
-	m_impl->font_path = opts.font_path ? *opts.font_path : findDefaultSystemFont().get();
-	m_impl->font_size = opts.font_size.orElse(opts.style_mode == GuiStyleMode::mini ? 12 : 14);
-	updateDpiAndFonts();
+	int font_size_bonus = 0;
+	if(!opts.font_path) {
+		auto sys_font = findDefaultSystemFont().get();
+		opts.font_path = sys_font.file_path;
+		if(sys_font.family == "Segoe UI")
+			font_size_bonus = 2;
+	}
+	if(!opts.font_size)
+		opts.font_size = (opts.style_mode == GuiStyleMode::mini ? 12 : 14) + font_size_bonus;
+	m_impl->font_path = *opts.font_path;
+	m_impl->font_size = *opts.font_size;
+
+	updateDpiAndFonts(true);
 
 	ImGui_ImplOpenGL3_Init();
 
@@ -165,7 +190,7 @@ void Gui::beginFrame(GlDevice &device) {
 	memset(io.KeysDown, 0, sizeof(io.KeysDown));
 	memset(io.MouseDown, 0, sizeof(io.MouseDown));
 
-	updateDpiAndFonts();
+	updateDpiAndFonts(false);
 
 	if(!o_hide) {
 		for(auto &event : device.inputEvents()) {

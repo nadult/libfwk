@@ -46,6 +46,8 @@ class Gui {
 	void addProcess(ProcessFunc, void *arg);
 	void removeProcess(ProcessFunc, void *arg);
 
+	float dpiScale() const { return m_dpi_scale; }
+
 	bool o_hide = false;
 
 	// ---------- widgets (widgets.cpp, widgets.h) --------------------------------------
@@ -91,11 +93,13 @@ class Gui {
 	void showHelpMarker(Str, const char *marker = "(?)");
 
   private:
-	void updateDpiAndFonts();
+	void updateDpiAndFonts(bool is_initial);
+	void rescaleWindows(float scale);
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
 
+	float m_dpi_scale = 1.0f;
 	double m_last_time = -1.0;
 	static Gui *s_instance;
 };

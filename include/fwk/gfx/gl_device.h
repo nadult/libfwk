@@ -23,6 +23,7 @@ struct DebugFlagsCheck {
 #endif
 };
 
+// TODO: separate window flags from device flags
 DEFINE_ENUM(GlDeviceOpt, fullscreen, fullscreen_desktop, resizable, centered, vsync, maximized,
 			opengl_debug_handler, full_debug, allow_hidpi);
 using GlDeviceFlags = EnumFlags<GlDeviceOpt>;

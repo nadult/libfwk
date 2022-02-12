@@ -16,7 +16,7 @@ bool Gui::selectIndex(ZStr title, Index &value, CSpan<const char *> strings) {
 	ImGui::Text("%s", title.c_str());
 	int width = ImGui::GetItemRectSize().x;
 	ImGui::SameLine();
-	ImGui::PushItemWidth(220 - width);
+	ImGui::PushItemWidth(220 * dpiScale() - width);
 	int item = (int)value;
 	bool ret = ImGui::Combo(format("##%", title).c_str(), &item, strings.data(), strings.size());
 	ImGui::PopItemWidth();
@@ -55,7 +55,7 @@ template <class T> bool Gui::inputValue(ZStr title, T &value) {
 	ImGui::Text("%s", title.c_str());
 	int width = ImGui::GetItemRectSize().x;
 	ImGui::SameLine();
-	ImGui::PushItemWidth(220 - width);
+	ImGui::PushItemWidth(220 * dpiScale() - width);
 	bool changed = impl::inputValue(tmp.c_str(), value);
 	ImGui::PopItemWidth();
 	return changed;

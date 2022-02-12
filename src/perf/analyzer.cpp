@@ -267,6 +267,7 @@ static const EnumMap<SampleType, int> sample_priority = {{{SampleType::scope_beg
 
 void Analyzer::showNameColumn(FrameRange &range) {
 	TextFormatter fmt;
+	auto &gui = Gui::instance();
 
 	for(int idx : intRange(range.exec_list)) {
 		auto exec_id = range.exec_list[idx];
@@ -275,7 +276,7 @@ void Analyzer::showNameColumn(FrameRange &range) {
 
 		bool has_children = range.has_children[exec_id];
 		const auto &opened = range.opened[exec_id];
-		auto indent = exec.depth * 10.0f + (has_children ? 0.0f : 14.0f);
+		auto indent = (exec.depth * 10.0f + (has_children ? 0.0f : 14.0f)) * gui.dpiScale();
 		if(indent)
 			ImGui::Indent(indent);
 
@@ -361,6 +362,7 @@ void Analyzer::showDataColumn(ColumnId col_id, FrameRange &range) {
 
 	static const EnumMap<TimeUnit, const char *> time_units{{"s", "ms", "\xC2\xB5s", "ns"}};
 	auto &gui = Gui::instance();
+	int data_width = m_data_width * gui.dpiScale();
 
 	for(int idx : intRange(range.exec_list)) {
 		auto exec_id = range.exec_list[idx];
@@ -375,7 +377,7 @@ void Analyzer::showDataColumn(ColumnId col_id, FrameRange &range) {
 				formatValue(fmt, value);
 
 				auto tsize = ImGui::CalcTextSize(fmt.c_str());
-				ImGui::Dummy({m_data_width - 10.0f - tsize.x, 1.0f});
+				ImGui::Dummy({(data_width - 10.0f * gui.dpiScale()) - tsize.x, 1.0f});
 				ImGui::SameLine();
 				gui.text(fmt.text());
 			} else {
@@ -383,10 +385,12 @@ void Analyzer::showDataColumn(ColumnId col_id, FrameRange &range) {
 
 				fmt << tvalue.integral;
 				auto tsize = ImGui::CalcTextSize(fmt.c_str());
-				ImGui::Dummy({m_data_width / 3 - tsize.x, 1.0f});
+				ImGui::Dummy({(data_width / 3.0f) - tsize.x, 1.0f});
 				ImGui::SameLine();
-				ImGui::TextColored(time_colors[tvalue.unit], "%s.%02d %s", fmt.c_str(),
-								   tvalue.fractional2, time_units[tvalue.unit]);
+
+				auto color = time_colors[tvalue.unit];
+				auto unit = time_units[tvalue.unit];
+				ImGui::TextColored(color, "%s.%02d %s", fmt.c_str(), tvalue.fractional2, unit);
 			}
 		} else {
 			ImGui::Text(" ");
@@ -533,21 +537,22 @@ void Analyzer::showGrid(FrameRange &range) {
 	draw_list->ChannelsSetCurrent(1);
 	IRect inner_rect;
 
-	int min_first_width = 140, min_height = 160;
-	int2 window_size = ImGui::GetWindowSize(), window_spacing(30, 30);
+	int min_first_width = 140 * gui.dpiScale(), min_height = 160 * gui.dpiScale();
+	int2 window_size = ImGui::GetWindowSize(), window_spacing = int2(30);
 	int2 grid_size(window_size.x - window_spacing.x,
 				   max(window_size.y - window_spacing.y, min_height));
 
 	int num_cpu_cols = countBits(m_visible_columns & cpuColumns());
 	int num_gpu_cols = countBits(m_visible_columns & gpuColumns());
 	int num_cols = num_cpu_cols + num_gpu_cols;
-	int first_width = max(min_first_width, grid_size.x - m_data_width * num_cols);
+	int data_width = m_data_width * gui.dpiScale() + 5;
+	int first_width = max(min_first_width, grid_size.x - data_width * num_cols);
 	int header_height = 0;
 
 	{ // Headers
 		const char *titles[3] = {"", "CPU / VAL", "GPU"};
 
-		int sizes[3] = {first_width, m_data_width * num_cpu_cols, m_data_width * num_gpu_cols};
+		int sizes[3] = {first_width, data_width * num_cpu_cols, data_width * num_gpu_cols};
 		int height = ImGui::CalcTextSize("X").y;
 
 		for(int n : intRange(3)) {
@@ -581,13 +586,13 @@ void Analyzer::showGrid(FrameRange &range) {
 		if(!first)
 			ImGui::SameLine();
 
-		float width = first ? first_width : m_data_width;
+		float width = first ? first_width : data_width;
 		ImGui::BeginChild(toString(col_id), float2(width, grid_size.y - header_height), false,
 						  ImGuiWindowFlags_NoScrollbar);
 		if(first)
 			ImGui::Text("%s", sub_titles[col_id]);
 		else
-			gui.centeredText(m_data_width / 2, sub_titles[col_id]);
+			gui.centeredText(data_width / 2, sub_titles[col_id]);
 		ImGui::Separator();
 
 		ImGui::BeginChild(format("%_rows", col_id).c_str(), {}, false,
