@@ -49,6 +49,10 @@ class GlDevice {
 	vector<IRect> displayRects() const;
 	vector<float> displayDpiScales() const;
 
+	// If window is outside of all display rects then it's positioned on first display
+	static IRect sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
+									float minimum_overlap = 0.1);
+
 	void createWindow(ZStr title, IRect rect, Config = {});
 	void destroyWindow();
 	void printDeviceInfo();
@@ -62,6 +66,7 @@ class GlDevice {
 
 	void setWindowRect(IRect);
 	IRect windowRect() const;
+	IRect restoredWindowRect() const;
 	EnumMap<RectSide, int> windowBorder() const;
 
 	int windowDisplayIndex() const;

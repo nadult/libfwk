@@ -18,6 +18,7 @@
 #include "fwk/sys/input.h"
 #include "fwk/sys/thread.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 #include <SDL2/SDL_video.h>
 #include <memory.h>
 #ifdef __EMSCRIPTEN__
@@ -173,6 +174,27 @@ vector<float> GlDevice::displayDpiScales() const {
 	return out;
 }
 
+IRect GlDevice::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
+								   float minimum_overlap) {
+	if(!display_rects)
+		return window_rect;
+	IRect nonempty_rect{window_rect.min(), window_rect.min() + max(int2(1), window_rect.size())};
+
+	float area = window_rect.surfaceArea(), overlap = 0.0;
+	for(auto &display_rect : display_rects) {
+		auto isect = nonempty_rect.intersection(display_rect);
+		if(isect)
+			overlap += isect->surfaceArea();
+	}
+
+	if(overlap / area < minimum_overlap) {
+		auto first_display = display_rects[0];
+		int2 new_window_pos = first_display.center() - window_rect.size() / 2;
+		return IRect(new_window_pos, new_window_pos + window_rect.size());
+	}
+	return window_rect;
+}
+
 void GlDevice::createWindow(ZStr title, IRect rect, Config config) {
 #ifdef FWK_PLATFORM_HTML
 	if(config.profile != GlProfile::es) {
@@ -226,6 +248,40 @@ IRect GlDevice::windowRect() const {
 		}
 	}
 	return IRect(pos, pos + size);
+}
+
+#ifdef FWK_PLATFORM_WINDOWS
+Pair<int2> windowNonClientBorders(HWND hwnd) {
+	RECT non_client = {0, 0, 0, 0}, window = {0, 0, 0, 0}, client = {0, 0, 0, 0};
+	POINT client_to_screen = {0, 0};
+
+	if(GetWindowRect(hwnd, &window) && GetClientRect(hwnd, &client) &&
+	   ClientToScreen(hwnd, &client_to_screen)) {
+		return {{client_to_screen.x - window.left, client_to_screen.y - window.top},
+				{window.right - client_to_screen.x - client.right,
+				 window.bottom - client_to_screen.y - client.bottom}};
+	}
+	return {};
+}
+#endif
+
+IRect GlDevice::restoredWindowRect() const {
+	IRect window_rect = windowRect();
+
+#ifdef FWK_PLATFORM_WINDOWS
+	SDL_SysWMinfo wmInfo;
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(m_window_impl->window, &wmInfo);
+	HWND hwnd = wmInfo.info.win.window;
+	WINDOWPLACEMENT placement;
+	GetWindowPlacement(hwnd, &placement);
+	IRect out(placement.rcNormalPosition.left, placement.rcNormalPosition.top,
+			  placement.rcNormalPosition.right, placement.rcNormalPosition.bottom);
+	auto borders = windowNonClientBorders(hwnd);
+	return {out.min() + borders.first, out.max() - borders.second};
+#else
+	return window_rect;
+#endif
 }
 
 EnumMap<RectSide, int> GlDevice::windowBorder() const {
