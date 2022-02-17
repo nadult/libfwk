@@ -51,10 +51,8 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 string fontPath() {
 	if(platform == Platform::html)
 		return "data/LiberationSans-Regular.ttf";
-	return findDefaultSystemFont().get();
+	return findDefaultSystemFont().get().file_path;
 }
-
-Ex<Font> loadFont() {}
 
 int main(int argc, char **argv) {
 	double time = getTime();

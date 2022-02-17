@@ -21,11 +21,10 @@
 #include "fwk/math/rotation.h"
 #include "fwk/sys/input.h"
 
-#include "fwk/menu/imgui_wrapper.h"
-
 #ifndef FWK_IMGUI_DISABLED
-#include "fwk/menu/helpers.h"
-#include "fwk/menu_imgui.h"
+#include "fwk/gui/gui.h"
+#include "fwk/gui/imgui.h"
+#include "fwk/gui/widgets.h"
 #endif
 
 using namespace fwk;
@@ -151,17 +150,17 @@ class Viewer {
 			}
 		}
 
-		float dpi_scale = GlDevice::instance().windowDpiScale();
+		auto font_info = findDefaultSystemFont().get();
+
 #ifndef FWK_IMGUI_DISABLED
-		ImGuiOptions imgui_opts;
-		imgui_opts.style_mode = dpi_scale > 1.0 ? ImGuiStyleMode::normal : ImGuiStyleMode::mini;
-		imgui_opts.dpi_scale = dpi_scale;
-		m_imgui.emplace(GlDevice::instance(), imgui_opts);
+		GuiConfig gui_config;
+		gui_config.style_mode = GuiStyleMode::normal;
+		gui_config.font_path = font_info.file_path;
+		m_gui.emplace(GlDevice::instance(), gui_config);
 #endif
 
-		auto font_path = findDefaultSystemFont().get();
-		int font_scale = 14 * dpi_scale;
-		m_font.emplace(move(FontFactory().makeFont(font_path, font_scale, false).get()));
+		int font_scale = 14 * GlDevice::instance().windowDpiScale();
+		m_font.emplace(move(FontFactory().makeFont(font_info.file_path, font_scale, false).get()));
 	}
 
 	string helpText() const {
@@ -198,40 +197,40 @@ class Viewer {
 #ifndef FWK_IMGUI_DISABLED
 		static bool set_pos = true;
 		if(set_pos) {
-			menu::SetNextWindowPos(int2());
-			menu::SetNextWindowSize({350, 300});
+			ImGui::SetNextWindowPos(int2());
+			ImGui::SetNextWindowSize({350, 300});
 			set_pos = false;
 		}
-		menu::Begin("Control", nullptr,
-					ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::Begin("Control", nullptr,
+					 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-		menu::text("Model:");
-		menu::SameLine();
-		if(menu::BeginCombo("##model", m_models[m_current_model].m_model_name.c_str())) {
+		m_gui->text("Model:");
+		ImGui::SameLine();
+		if(ImGui::BeginCombo("##model", m_models[m_current_model].m_model_name.c_str())) {
 			for(int n : intRange(m_models))
-				if(menu::Selectable(m_models[n].m_model_name.c_str(), n == m_current_model))
+				if(ImGui::Selectable(m_models[n].m_model_name.c_str(), n == m_current_model))
 					m_current_model = n;
-			menu::EndCombo();
+			ImGui::EndCombo();
 		}
 
 		auto &model = m_models[m_current_model];
 		auto &anims = model.m_model.anims();
-		menu::text("Animation:");
-		menu::SameLine();
+		m_gui->text("Animation:");
+		ImGui::SameLine();
 		const char *cur_anim =
 			!anims.inRange(m_current_anim) ? "empty" : anims[m_current_anim].name().c_str();
-		if(menu::BeginCombo("##anim", cur_anim)) {
-			if(menu::Selectable("empty", m_current_anim == -1))
+		if(ImGui::BeginCombo("##anim", cur_anim)) {
+			if(ImGui::Selectable("empty", m_current_anim == -1))
 				m_current_anim = -1;
 			for(int n : intRange(anims))
-				if(menu::Selectable(anims[n].name().c_str(), m_current_anim == n))
+				if(ImGui::Selectable(anims[n].name().c_str(), m_current_anim == n))
 					m_current_anim = n;
-			menu::EndCombo();
+			ImGui::EndCombo();
 		}
 
-		menu::Separator();
-		menu::text(helpText());
-		menu::End();
+		ImGui::Separator();
+		m_gui->text(helpText());
+		ImGui::End();
 #endif
 	}
 
@@ -332,7 +331,7 @@ class Viewer {
 		helpBox(renderer_2d, model);
 		renderer_2d.render();
 #else
-		m_imgui->drawFrame(GlDevice::instance());
+		m_gui->drawFrame(GlDevice::instance());
 #endif
 	}
 
@@ -347,9 +346,9 @@ class Viewer {
 #ifdef FWK_IMGUI_DISABLED
 		events = device.inputEvents();
 #else
-		m_imgui->beginFrame(device);
+		m_gui->beginFrame(device);
 		doMenu();
-		events = m_imgui->finishFrame(device);
+		events = m_gui->finishFrame(device);
 #endif
 
 		float time_diff = 1.0f / 60.0f;
@@ -370,7 +369,7 @@ class Viewer {
 	vector<ViewModel> m_models;
 	Dynamic<Font> m_font;
 #ifndef FWK_IMGUI_DISABLED
-	Dynamic<ImGuiWrapper> m_imgui;
+	Dynamic<Gui> m_gui;
 #endif
 
 	IRect m_viewport;
