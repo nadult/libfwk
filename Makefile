@@ -29,7 +29,7 @@ include Makefile-shared
 SUBDIRS        = build tests tools lib temp
 BUILD_SUBDIRS  = tests tools
 ifndef FWK_MERGE_MODULES
-BUILD_SUBDIRS += gfx audio math sys io tests tools menu perf geom
+BUILD_SUBDIRS += gfx audio math sys io tests tools gui perf geom
 endif
 
 ifndef JUNK_GATHERING
@@ -90,11 +90,11 @@ SRC_geom_voronoi = geom/voronoi geom/wide_int geom/voronoi_constructor geom/dela
 endif
 
 ifeq ($(FWK_IMGUI), enabled)
-SRC_menu_imgui1 = menu/imgui_base
-SRC_menu_imgui2 = menu/imgui_draw
-SRC_menu_imgui3 = menu/imgui_widgets menu/imgui_tables
-SRC_menu_imgui4 = menu/imgui_demo
-SRC_menu = menu/open_file_popup menu/error_popup menu/helpers menu/imgui_wrapper perf/analyzer
+SRC_gui_imgui1 = gui/imgui_base
+SRC_gui_imgui2 = gui/imgui_draw
+SRC_gui_imgui3 = gui/imgui_widgets gui/imgui_tables
+SRC_gui_imgui4 = gui/imgui_demo
+SRC_gui = gui/gui gui/popups gui/widgets perf/analyzer
 endif
 
 SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
@@ -112,8 +112,8 @@ endif
 WEBGL_PROGRAMS := tests/window tools/model_viewer
 SRC_programs    = $(SRC_tests) $(SRC_tools)
 
-MODULES = menu_imgui1 menu_imgui2 menu_imgui3 menu_imgui4 base sys gfx gfx_gl gfx_mesh gfx_stbi \
-		  math geom geom_graph geom_voronoi menu perf audio
+MODULES = gui_imgui1 gui_imgui2 gui_imgui3 gui_imgui4 base sys gfx gfx_gl gfx_mesh gfx_stbi \
+		  math geom geom_graph geom_voronoi gui perf audio
 
 # --- Definitions ---------------------------------------------------------------------------------
 

@@ -56,7 +56,7 @@ template <class T> bool Gui::inputValue(ZStr title, T &value) {
 	int width = ImGui::GetItemRectSize().x;
 	ImGui::SameLine();
 	ImGui::PushItemWidth(220 * dpiScale() - width);
-	bool changed = impl::inputValue(tmp.c_str(), value);
+	bool changed = inputValue(tmp.c_str(), value);
 	ImGui::PopItemWidth();
 	return changed;
 }
