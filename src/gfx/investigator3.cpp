@@ -7,6 +7,7 @@
 #include "fwk/gfx/camera_variant.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/font_factory.h"
+#include "fwk/gfx/font_finder.h"
 #include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/opengl.h"
 #include "fwk/gfx/render_list.h"
@@ -30,16 +31,17 @@ Investigator3::Investigator3(VisFunc vis_func, InvestigatorOpts flags, Config co
 
 	auto charset = FontFactory::ansiCharset() + FontFactory::basicMathCharset();
 	// TODO: hard-code default font somehow? Keep only minimal set of glyphs?
-	auto main_path = FilePath(executablePath()).parent();
-	auto font_path = main_path / "data" / "LiberationSans-Regular.ttf";
-	m_font.emplace(move(FontFactory().makeFont(font_path, charset, 14, false).get()));
+	auto font = findDefaultSystemFont().get();
+	auto &gl_device = GlDevice::instance();
+	auto font_size = int(14 * gl_device.windowDpiScale());
+	m_font.emplace(move(FontFactory().makeFont(font.file_path, charset, font_size, false).get()));
 
-	auto new_viewport = IRect(GlDevice::instance().windowSize());
+	auto new_viewport = IRect(gl_device.windowSize());
 	Plane3F base_plane{{0, 1, 0}, {0, 1.5f, 0}};
 
 	if(!config.focus) {
 		// TODO: RenderList is not necessary here
-		RenderList temp(IRect(GlDevice::instance().windowSize()), Matrix4::identity());
+		RenderList temp(IRect(gl_device.windowSize()), Matrix4::identity());
 		Visualizer3 vis(1.0f);
 		m_vis_func(vis, double2());
 		temp.add(vis.drawCalls(true));
