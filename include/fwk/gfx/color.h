@@ -82,6 +82,9 @@ struct IColor {
 	explicit operator float4() const { return float4(r, g, b, a) * (1.0f / 255.0f); }
 	explicit operator int3() const { return {r, g, b}; }
 	explicit operator float3() const { return float3(r, g, b) * (1.0f / 255.0f); }
+	explicit operator u32() const {
+		return u32(r) | (u32(g) << 8) | (u32(b) << 16) | (u32(a) << 24);
+	}
 
 	IColor bgra() const { return IColor(b, g, r, a); }
 
