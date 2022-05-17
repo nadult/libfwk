@@ -194,6 +194,16 @@ ShaderCombiner::ShaderCombiner(CSpan<string> names, CSpan<FilePath> paths) {
 
 FWK_COPYABLE_CLASS_IMPL(ShaderCombiner);
 
+void topoSort(Span<ShaderCombiner::Piece> pieces, int &counter, int cur) {
+	auto &piece = pieces[cur];
+	if(piece.topological_index != -1)
+		return;
+	piece.topological_index = 0;
+	for(auto dep : piece.deps)
+		topoSort(pieces, counter, dep);
+	piece.topological_index = counter++;
+}
+
 Ex<void> ShaderCombiner::loadPieces() {
 	for(auto &piece : m_pieces) {
 		auto source = EX_PASS(loadShader(piece.path));
@@ -209,26 +219,16 @@ Ex<void> ShaderCombiner::loadPieces() {
 		do_update = false;
 		for(auto &piece : m_pieces) {
 			int old_size = piece.deps.size();
-			completeSet(piece.deps);
+			piece.deps = completeSet(piece.deps);
 			do_update |= piece.deps.size() != old_size;
 		}
 	}
 
-	vector<int> topo_order;
-	topo_order.reserve(m_pieces.size());
+	int counter = 0;
+	for(auto &piece : m_pieces)
+		piece.topological_index = -1;
 	for(int i : intRange(m_pieces))
-		topo_order.emplace_back(i);
-	std::sort(topo_order.begin(), topo_order.end(), [&](int a, int b) {
-		auto &piece_a = m_pieces[a];
-		auto &piece_b = m_pieces[b];
-		if(isOneOf(b, piece_a.deps))
-			return false;
-		if(isOneOf(a, piece_b.deps))
-			return true;
-		return a < b;
-	});
-	for(int i : intRange(topo_order))
-		m_pieces[topo_order[i]].topological_index = i;
+		topoSort(m_pieces, counter, i);
 
 	for(int i = 0; i < m_pieces.size(); i++)
 		for(auto dep : m_pieces[i].deps)
@@ -267,8 +267,7 @@ Ex<PieceSet> ShaderCombiner::parseDependencies(Str code) const {
 	}
 
 	makeSortedUnique(pieces);
-	completeSet(pieces);
-	return pieces;
+	return completeSet(pieces);
 }
 
 static const EnumMap<ShaderType, Str> shader_macros = {{{ShaderType::vertex, "VERTEX_SHADER"},
