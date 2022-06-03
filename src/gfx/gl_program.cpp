@@ -278,6 +278,7 @@ void GlProgram::UniformSetter::operator=(CSpan<Matrix3> range) {
 void GlProgram::UniformSetter::operator=(float value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(int value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(uint value) { *this = cspan(&value, 1); }
+void GlProgram::UniformSetter::operator=(bool value) { *this = int(value); }
 void GlProgram::UniformSetter::operator=(const int2 &value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(const int3 &value) { *this = cspan(&value, 1); }
 void GlProgram::UniformSetter::operator=(const int4 &value) { *this = cspan(&value, 1); }

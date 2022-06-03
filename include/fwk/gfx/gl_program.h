@@ -60,6 +60,8 @@ class GlProgram {
 		void operator=(float);
 		void operator=(int);
 		void operator=(uint);
+		void operator=(bool);
+
 		void operator=(const int2 &);
 		void operator=(const int3 &);
 		void operator=(const int4 &);

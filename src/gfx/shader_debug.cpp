@@ -28,10 +28,10 @@ string shaderDebugDefs(bool enable) {
 		fmt("    debug_logs[log_id * 6 + 0] = gl_LocalInvocationIndex | (line << 16); \\\n");
 		fmt("    debug_logs[log_id * 6 + 1] = gl_WorkGroupID.x + gl_NumWorkGroups.x * "
 			"(gl_WorkGroupID.y + gl_NumWorkGroups.y * gl_WorkGroupID.z); \\\n");
-		fmt("    debug_logs[log_id * 6 + 2] = v1; \\\n");
-		fmt("    debug_logs[log_id * 6 + 3] = v2; \\\n");
-		fmt("    debug_logs[log_id * 6 + 4] = v3; \\\n");
-		fmt("    debug_logs[log_id * 6 + 5] = v4; \\\n");
+		fmt("    debug_logs[log_id * 6 + 2] = uint(v1); \\\n");
+		fmt("    debug_logs[log_id * 6 + 3] = uint(v2); \\\n");
+		fmt("    debug_logs[log_id * 6 + 4] = uint(v3); \\\n");
+		fmt("    debug_logs[log_id * 6 + 5] = uint(v4); \\\n");
 		fmt("} }\n");
 		fmt("#define RECORD(v1, v2, v3, v4) RECORD_(__LINE__, v1, v2, v3, v4)\n");
 		fmt("#define SHADER_DEBUG\n");
