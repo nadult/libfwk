@@ -1,10 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/shader_combiner.h"
 #include "fwk/gfx/gl_program.h"
 #include "fwk/gfx/gl_shader.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/shader_combiner.h"
 #include "fwk/io/file_system.h"
 #include "fwk/sys/on_fail.h"
 
