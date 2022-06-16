@@ -3,8 +3,8 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>D:\libraries\x86_64\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\libraries\x86_64\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\libraries\x86_64\include;D:\libraries\vulkan_sdk\include;$(IncludePath);</IncludePath>
+    <LibraryPath>D:\libraries\x86_64\lib;D:\libraries\vulkan_sdk\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemGroup />
 </Project>

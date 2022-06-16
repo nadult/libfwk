@@ -150,6 +150,8 @@
     <ClInclude Include="..\include\fwk\gfx\triangle_buffer.h" />
     <ClInclude Include="..\include\fwk\gfx\visualizer2.h" />
     <ClInclude Include="..\include\fwk\gfx\visualizer3.h" />
+    <ClInclude Include="..\include\fwk\gfx\vk_device.h" />
+    <ClInclude Include="..\include\fwk\gfx\vulkan.h" />
     <ClInclude Include="..\include\fwk\gfx_base.h" />
     <ClInclude Include="..\include\fwk\gui\gui.h" />
     <ClInclude Include="..\include\fwk\gui\imgui.h" />
@@ -351,6 +353,8 @@
     <ClCompile Include="..\src\gfx\triangle_buffer.cpp" />
     <ClCompile Include="..\src\gfx\visualizer2.cpp" />
     <ClCompile Include="..\src\gfx\visualizer3.cpp" />
+    <ClCompile Include="..\src\gfx\vk_device.cpp" />
+    <ClCompile Include="..\src\gfx\vulkan.cpp" />
     <ClCompile Include="..\src\gui\widgets.cpp" />
     <ClCompile Include="..\src\gui\gui.cpp" />
     <ClCompile Include="..\src\gui\imgui_base.cpp" />
