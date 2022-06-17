@@ -138,35 +138,68 @@ struct VulkanDevice::WindowImpl {
 		if(!SDL_Vulkan_CreateSurface(window, instance, &surface))
 			reportSDLError("SDL_Vulkan_CreateSurface");
 
-		// TODO: instead make sure that we have all the needed queues
-		VkBool32 surface_supported;
-		vkGetPhysicalDeviceSurfaceSupportKHR(*phys_device, *best_qf, surface, &surface_supported);
-		ASSERT("Selected queue cannot present to created surface" && surface_supported);
+		{
+			// TODO: instead make sure that we have all the needed queues
+			VkBool32 surface_supported;
+			vkGetPhysicalDeviceSurfaceSupportKHR(*phys_device, *best_qf, surface,
+												 &surface_supported);
+			ASSERT("Selected queue cannot present to created surface" && surface_supported);
 
-		auto swap_chain_info = vinstance->swapChainInfo(*phys_device, surface);
-		ASSERT(!swap_chain_info.formats.empty());
-		ASSERT(!swap_chain_info.present_modes.empty());
+			auto swap_chain_info = vinstance->swapChainInfo(*phys_device, surface);
+			ASSERT(!swap_chain_info.formats.empty());
+			ASSERT(!swap_chain_info.present_modes.empty());
 
-		VkSwapchainCreateInfoKHR swap_create_info{};
-		swap_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swap_create_info.surface = surface;
-		swap_create_info.minImageCount = 2;
-		swap_create_info.imageFormat = swap_chain_info.formats[0].format;
-		swap_create_info.imageColorSpace = swap_chain_info.formats[0].colorSpace;
-		swap_create_info.imageExtent = swap_chain_info.caps.currentExtent;
-		swap_create_info.imageArrayLayers = 1;
-		swap_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		swap_create_info.preTransform = swap_chain_info.caps.currentTransform;
-		swap_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		swap_create_info.clipped = VK_TRUE;
-		swap_create_info.presentMode = swap_chain_info.present_modes[0];
+			VkSwapchainCreateInfoKHR swap_create_info{};
+			swap_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+			swap_create_info.surface = surface;
+			swap_create_info.minImageCount = 2;
+			swap_create_info.imageFormat = swap_chain_info.formats[0].format;
+			swap_create_info.imageColorSpace = swap_chain_info.formats[0].colorSpace;
+			swap_create_info.imageExtent = swap_chain_info.caps.currentExtent;
+			swap_create_info.imageArrayLayers = 1;
+			swap_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			swap_create_info.preTransform = swap_chain_info.caps.currentTransform;
+			swap_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+			swap_create_info.clipped = VK_TRUE;
+			swap_create_info.presentMode = swap_chain_info.present_modes[0];
 
-		// TODO: separate class for swap chain ?
-		if(vkCreateSwapchainKHR(device, &swap_create_info, nullptr, &swap_chain) != VK_SUCCESS)
-			FATAL("Error when creating swap chain");
+			// TODO: separate class for swap chain ?
+			if(vkCreateSwapchainKHR(device, &swap_create_info, nullptr, &swap_chain) != VK_SUCCESS)
+				FATAL("Error when creating swap chain");
+
+			uint num_images = 0;
+			vkGetSwapchainImagesKHR(device, swap_chain, &num_images, nullptr);
+			swap_chain_images.resize(num_images);
+			vkGetSwapchainImagesKHR(device, swap_chain, &num_images, swap_chain_images.data());
+			swap_chain_format = swap_create_info.imageFormat;
+			swap_chain_extent = swap_create_info.imageExtent;
+
+			swap_chain_image_views.reserve(num_images);
+			for(int i : intRange(swap_chain_images)) {
+				VkImageViewCreateInfo ci{};
+				ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+				ci.image = swap_chain_images[i];
+				ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				ci.format = swap_chain_format;
+				ci.components.a = ci.components.b = ci.components.g = ci.components.r =
+					VK_COMPONENT_SWIZZLE_IDENTITY;
+				ci.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+									   .baseMipLevel = 0,
+									   .levelCount = 1,
+									   .baseArrayLayer = 0,
+									   .layerCount = 1};
+				VkImageView view;
+				vkCreateImageView(device, &ci, nullptr, &view);
+				swap_chain_image_views.emplace_back(view);
+			}
+		}
+
+		{}
 	}
 
 	~WindowImpl() {
+		for(auto view : swap_chain_image_views)
+			vkDestroyImageView(device, view, nullptr);
 		if(swap_chain)
 			vkDestroySwapchainKHR(device, swap_chain, nullptr);
 		if(surface)
@@ -186,6 +219,10 @@ struct VulkanDevice::WindowImpl {
 	VkQueue queue = 0;
 	VkSurfaceKHR surface = 0;
 	VkSwapchainKHR swap_chain = 0;
+	vector<VkImage> swap_chain_images;
+	vector<VkImageView> swap_chain_image_views;
+	VkFormat swap_chain_format;
+	VkExtent2D swap_chain_extent;
 };
 
 VulkanDevice::VulkanDevice() {
