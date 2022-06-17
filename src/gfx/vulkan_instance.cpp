@@ -163,35 +163,62 @@ Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
 	vkEnumeratePhysicalDevices(m_instance, &phys_device_count, nullptr);
 	m_phys_devices.resize(phys_device_count);
 	vkEnumeratePhysicalDevices(m_instance, &phys_device_count, m_phys_devices.data());
-	m_phys_device_props.resize(m_phys_devices.size());
-	m_phys_device_extensions.resize(m_phys_devices.size());
-
-	for(int i : intRange(m_phys_devices)) {
-		vkGetPhysicalDeviceProperties(m_phys_devices[i], &m_phys_device_props[i]);
-		uint ext_count = 0;
-		vkEnumerateDeviceExtensionProperties(m_phys_devices[i], nullptr, &ext_count, nullptr);
-		vector<VkExtensionProperties> exts(ext_count);
-		vkEnumerateDeviceExtensionProperties(m_phys_devices[i], nullptr, &ext_count, exts.data());
-		m_phys_device_extensions[i] =
-			transform(exts, [](auto &prop) -> string { return prop.extensionName; });
-	}
 
 	return {};
+}
+
+vector<VkQueueFamilyProperties> VulkanInstance::deviceQueueFamilies(VkPhysicalDevice device) const {
+	uint count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
+	vector<VkQueueFamilyProperties> out(count);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, out.data());
+	return out;
+}
+
+vector<string> VulkanInstance::deviceExtensions(VkPhysicalDevice device) const {
+	uint ext_count = 0;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &ext_count, nullptr);
+	vector<VkExtensionProperties> exts(ext_count);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &ext_count, exts.data());
+	return transform(exts, [](auto &prop) -> string { return prop.extensionName; });
+}
+
+VkPhysicalDeviceProperties VulkanInstance::deviceProperties(VkPhysicalDevice device) const {
+	VkPhysicalDeviceProperties props;
+	vkGetPhysicalDeviceProperties(device, &props);
+	return props;
 }
 
 Maybe<VkPhysicalDevice> VulkanInstance::preferredPhysicalDevice() const {
 	Maybe<VkPhysicalDevice> best;
 	float best_score = -1;
 
-	for(int i : intRange(m_phys_devices)) {
-		auto &props = m_phys_device_props[i];
+	for(auto device : m_phys_devices) {
+		auto props = deviceProperties(device);
+		auto queues = deviceQueueFamilies(device);
+
+		bool has_graphics = false;
+		bool has_compute = false;
+		for(auto &queue : queues) {
+			if(queue.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+				has_graphics = true;
+			if(queue.queueFlags & VK_QUEUE_COMPUTE_BIT)
+				has_compute = true;
+		}
+
+		if(!has_graphics)
+			continue;
+
 		float score = 0.0;
 		if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 			score += 1000.0;
 		else if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 			score += 100.0;
+		if(has_compute)
+			score += 500.0;
+
 		if(score > best_score) {
-			best = m_phys_devices[i];
+			best = device;
 			best_score = score;
 		}
 	}

@@ -6,22 +6,11 @@
 
 #include "fwk/sys/platform.h"
 
-#if defined(FWK_PLATFORM_MINGW) || defined(FWK_PLATFORM_MSVC)
-#ifndef _WINDOWS_
-#define _WINDOWS_
-#define APIENTRY __attribute__((__stdcall__))
-#define WINGDIAPI __attribute__((dllimport))
-#endif
-#else
-#define GL_GLEXT_PROTOTYPES 1
-#endif
-
-#include <vulkan/vulkan.h>
-
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
 #include "fwk/gfx_base.h"
 #include "fwk/vector.h"
+#include <vulkan/vulkan.h>
 
 namespace fwk {
 
@@ -72,16 +61,17 @@ class VulkanInstance {
 	static VulkanInstance *instance();
 	Ex<void> initialize(VulkanInstanceConfig);
 
+	Maybe<VkPhysicalDevice> preferredPhysicalDevice() const;
+
 	CSpan<VkPhysicalDevice> physicalDevices() const { return m_phys_devices; }
-	CSpan<VkPhysicalDeviceProperties> physicalDeviceProps() const { return m_phys_device_props; }
-	CSpan<vector<string>> physicalDeviceExtensions() const { return m_phys_device_extensions; }
+	vector<VkQueueFamilyProperties> deviceQueueFamilies(VkPhysicalDevice) const;
+	vector<string> deviceExtensions(VkPhysicalDevice) const;
+	VkPhysicalDeviceProperties deviceProperties(VkPhysicalDevice) const;
 
   private:
 	VkInstance m_instance;
 	VkDebugUtilsMessengerEXT m_messenger;
 	vector<VkPhysicalDevice> m_phys_devices;
-	vector<VkPhysicalDeviceProperties> m_phys_device_props;
-	vector<vector<string>> m_phys_device_extensions;
 };
 
 /*
