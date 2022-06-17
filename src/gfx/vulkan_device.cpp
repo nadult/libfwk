@@ -10,10 +10,12 @@
 
 #include "fwk/gfx/vulkan_device.h"
 
+#include "fwk/format.h"
 #include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/vulkan_instance.h"
 #include "fwk/hash_map.h"
+#include "fwk/index_range.h"
 #include "fwk/math/box.h"
 #include "fwk/sys/input.h"
 #include "fwk/sys/thread.h"
@@ -89,9 +91,88 @@ struct VulkanDevice::WindowImpl {
 
 		auto *vinstance = VulkanInstance::instance();
 		ASSERT("VulkanInstance must be created before creating VulkanDevice" && vinstance);
+		instance = vinstance->handle();
+
+		auto phys_device = vinstance->preferredPhysicalDevice();
+		ASSERT("Cannot find suitable Vulkan device" && phys_device);
+		auto queues = vinstance->deviceQueueFamilies(*phys_device);
+
+		Maybe<int> best_qf;
+		for(int i : intRange(queues)) {
+			auto &queue = queues[i];
+
+			uint required_flags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
+			if((queue.queueFlags & required_flags) != required_flags)
+				continue;
+			if(!best_qf || queue.queueFlags > queues[*best_qf].queueFlags)
+				best_qf = i;
+		}
+		ASSERT("Cannot find suitable queue family for selected Vulkan device" && best_qf);
+
+		VkDeviceQueueCreateInfo queue_create_info{};
+		queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queue_create_info.queueCount = 1;
+		queue_create_info.queueFamilyIndex = *best_qf;
+		float queue_priority = 1.0;
+		queue_create_info.pQueuePriorities = &queue_priority;
+
+		vector<const char *> exts;
+		exts.emplace_back("VK_KHR_swapchain");
+
+		VkPhysicalDeviceFeatures device_features{};
+		VkDeviceCreateInfo create_info{};
+		create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		create_info.pQueueCreateInfos = &queue_create_info;
+		create_info.queueCreateInfoCount = 1;
+		create_info.pEnabledFeatures = &device_features;
+		create_info.enabledExtensionCount = exts.size();
+		create_info.ppEnabledExtensionNames = exts.data();
+		// TODO: more options here
+
+		print("Extensions: %\n", vinstance->deviceExtensions(*phys_device));
+
+		if(vkCreateDevice(*phys_device, &create_info, nullptr, &device) != VK_SUCCESS)
+			FATAL("Error when creating VkDevice...");
+		vkGetDeviceQueue(device, *best_qf, 0, &queue);
+
+		if(!SDL_Vulkan_CreateSurface(window, instance, &surface))
+			reportSDLError("SDL_Vulkan_CreateSurface");
+
+		// TODO: instead make sure that we have all the needed queues
+		VkBool32 surface_supported;
+		vkGetPhysicalDeviceSurfaceSupportKHR(*phys_device, *best_qf, surface, &surface_supported);
+		ASSERT("Selected queue cannot present to created surface" && surface_supported);
+
+		auto swap_chain_info = vinstance->swapChainInfo(*phys_device, surface);
+		ASSERT(!swap_chain_info.formats.empty());
+		ASSERT(!swap_chain_info.present_modes.empty());
+
+		VkSwapchainCreateInfoKHR swap_create_info{};
+		swap_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swap_create_info.surface = surface;
+		swap_create_info.minImageCount = 2;
+		swap_create_info.imageFormat = swap_chain_info.formats[0].format;
+		swap_create_info.imageColorSpace = swap_chain_info.formats[0].colorSpace;
+		swap_create_info.imageExtent = swap_chain_info.caps.currentExtent;
+		swap_create_info.imageArrayLayers = 1;
+		swap_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swap_create_info.preTransform = swap_chain_info.caps.currentTransform;
+		swap_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swap_create_info.clipped = VK_TRUE;
+		swap_create_info.presentMode = swap_chain_info.present_modes[0];
+
+		// TODO: separate class for swap chain ?
+		if(vkCreateSwapchainKHR(device, &swap_create_info, nullptr, &swap_chain) != VK_SUCCESS)
+			FATAL("Error when creating swap chain");
 	}
 
 	~WindowImpl() {
+		if(swap_chain)
+			vkDestroySwapchainKHR(device, swap_chain, nullptr);
+		if(surface)
+			vkDestroySurfaceKHR(instance, surface, nullptr);
+		if(device)
+			vkDestroyDevice(device, nullptr);
 		program_cache.clear();
 		SDL_DestroyWindow(window);
 	}
@@ -100,6 +181,11 @@ struct VulkanDevice::WindowImpl {
 	SDL_GLContext gl_context;
 	HashMap<string, PProgram> program_cache;
 	VulkanDeviceConfig config;
+	VkInstance instance = 0;
+	VkDevice device = 0;
+	VkQueue queue = 0;
+	VkSurfaceKHR surface = 0;
+	VkSwapchainKHR swap_chain = 0;
 };
 
 VulkanDevice::VulkanDevice() {

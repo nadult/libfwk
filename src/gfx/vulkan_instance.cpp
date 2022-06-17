@@ -61,7 +61,7 @@ vector<string> VulkanInstance::availableLayers() {
 static VulkanInstance *s_instance = nullptr;
 VulkanInstance *VulkanInstance::instance() { return s_instance; }
 
-VulkanInstance::VulkanInstance() : m_instance(0), m_messenger(0) {
+VulkanInstance::VulkanInstance() : m_handle(0), m_messenger(0) {
 	ASSERT("Only one instance of VulkanInstance can be created at a time" && !s_instance);
 	if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0)
 		reportSDLError("SDL_InitSubSystem");
@@ -71,11 +71,11 @@ VulkanInstance::~VulkanInstance() {
 	s_instance = nullptr;
 	if(m_messenger) {
 		if(auto destroy_func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			   m_instance, "vkDestroyDebugUtilsMessengerEXT"))
-			destroy_func(m_instance, m_messenger, nullptr);
+			   m_handle, "vkDestroyDebugUtilsMessengerEXT"))
+			destroy_func(m_handle, m_messenger, nullptr);
 	}
-	if(m_instance)
-		vkDestroyInstance(m_instance, nullptr);
+	if(m_handle)
+		vkDestroyInstance(m_handle, nullptr);
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
@@ -88,7 +88,7 @@ messageHandler(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
 }
 
 Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
-	if(m_instance)
+	if(m_handle)
 		return ERROR("VulkanInstance already initialized");
 
 	bool enable_validation = config.debug_levels && config.debug_types;
@@ -125,7 +125,7 @@ Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
 	create_info.enabledLayerCount = layer_names.size();
 	create_info.ppEnabledLayerNames = layer_names.data();
 
-	VkResult result = vkCreateInstance(&create_info, nullptr, &m_instance);
+	VkResult result = vkCreateInstance(&create_info, nullptr, &m_handle);
 	if(result != VK_SUCCESS)
 		return ERROR("Error on vkCreateInstance: 0x%x", uint(result));
 
@@ -151,18 +151,18 @@ Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
 		create_info.pUserData = nullptr;
 
 		auto hook_messenger_func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			m_instance, "vkCreateDebugUtilsMessengerEXT");
+			m_handle, "vkCreateDebugUtilsMessengerEXT");
 		if(!hook_messenger_func)
 			return ERROR("Cannot hook vulkan debug message handler");
-		result = hook_messenger_func(m_instance, &create_info, nullptr, &m_messenger);
+		result = hook_messenger_func(m_handle, &create_info, nullptr, &m_messenger);
 		if(result != VK_SUCCESS)
 			return ERROR("Error while hooking vulkan debug message handler: 0x%x", uint(result));
 	}
 
 	uint phys_device_count = 0;
-	vkEnumeratePhysicalDevices(m_instance, &phys_device_count, nullptr);
+	vkEnumeratePhysicalDevices(m_handle, &phys_device_count, nullptr);
 	m_phys_devices.resize(phys_device_count);
-	vkEnumeratePhysicalDevices(m_instance, &phys_device_count, m_phys_devices.data());
+	vkEnumeratePhysicalDevices(m_handle, &phys_device_count, m_phys_devices.data());
 
 	return {};
 }
@@ -189,10 +189,27 @@ VkPhysicalDeviceProperties VulkanInstance::deviceProperties(VkPhysicalDevice dev
 	return props;
 }
 
+using SwapChainInfo = VulkanInstance::SwapChainInfo;
+SwapChainInfo VulkanInstance::swapChainInfo(VkPhysicalDevice device, VkSurfaceKHR surface) const {
+	SwapChainInfo out;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &out.caps);
+	uint count = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &count, nullptr);
+	out.formats.resize(count);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &count, out.formats.data());
+
+	count = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &count, nullptr);
+	out.present_modes.resize(count);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &count, out.present_modes.data());
+	return out;
+}
+
 Maybe<VkPhysicalDevice> VulkanInstance::preferredPhysicalDevice() const {
 	Maybe<VkPhysicalDevice> best;
 	float best_score = -1;
 
+	// TODO: check for swap_chain and presentability
 	for(auto device : m_phys_devices) {
 		auto props = deviceProperties(device);
 		auto queues = deviceQueueFamilies(device);

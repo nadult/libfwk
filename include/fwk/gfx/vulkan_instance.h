@@ -31,6 +31,7 @@ DEFINE_ENUM(VLimit, max_elements_indices, max_elements_vertices, max_uniform_blo
 
 DEFINE_ENUM(VDebugLevel, verbose, info, warning, error);
 DEFINE_ENUM(VDebugType, general, validation, performance);
+
 using VDebugLevels = EnumFlags<VDebugLevel>;
 using VDebugTypes = EnumFlags<VDebugType>;
 
@@ -61,15 +62,24 @@ class VulkanInstance {
 	static VulkanInstance *instance();
 	Ex<void> initialize(VulkanInstanceConfig);
 
-	Maybe<VkPhysicalDevice> preferredPhysicalDevice() const;
+	struct SwapChainInfo {
+		VkSurfaceCapabilitiesKHR caps;
+		vector<VkSurfaceFormatKHR> formats;
+		vector<VkPresentModeKHR> present_modes;
+	};
 
+	Maybe<VkPhysicalDevice> preferredPhysicalDevice() const;
 	CSpan<VkPhysicalDevice> physicalDevices() const { return m_phys_devices; }
+
 	vector<VkQueueFamilyProperties> deviceQueueFamilies(VkPhysicalDevice) const;
 	vector<string> deviceExtensions(VkPhysicalDevice) const;
 	VkPhysicalDeviceProperties deviceProperties(VkPhysicalDevice) const;
+	SwapChainInfo swapChainInfo(VkPhysicalDevice, VkSurfaceKHR) const;
+
+	VkInstance handle() { return m_handle; }
 
   private:
-	VkInstance m_instance;
+	VkInstance m_handle;
 	VkDebugUtilsMessengerEXT m_messenger;
 	vector<VkPhysicalDevice> m_phys_devices;
 };
