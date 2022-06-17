@@ -60,12 +60,9 @@ int main(int argc, char **argv) {
 
 	VulkanInstance vinstance;
 	{
-		auto instance_info = getVulkanInstanceInfo();
-		print("Vulkan instance extensions: %\nVulkan instance layers: %\n\n",
-			  instance_info.extensions, instance_info.layers);
-
 		VulkanInstanceConfig config;
-		config.flags = VInstanceFlag::validation;
+		config.debug_levels = VDebugLevel::warning | VDebugLevel::error;
+		config.debug_types = all<VDebugType>;
 		vinstance.initialize(config).check();
 	}
 

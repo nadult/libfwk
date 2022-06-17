@@ -40,15 +40,10 @@ DEFINE_ENUM(VLimit, max_elements_indices, max_elements_vertices, max_uniform_blo
 			max_texture_units, max_uniform_locations, max_ssbo_bindings, max_compute_ssbo,
 			max_compute_work_group_invocations, max_samples);
 
-DEFINE_ENUM(VInstanceFlag, validation);
-using VInstanceFlags = EnumFlags<VInstanceFlag>;
-
-struct VulkanInstanceInfo {
-	vector<string> extensions;
-	vector<string> layers;
-};
-
-VulkanInstanceInfo getVulkanInstanceInfo();
+DEFINE_ENUM(VDebugLevel, verbose, info, warning, error);
+DEFINE_ENUM(VDebugType, general, validation, performance);
+using VDebugLevels = EnumFlags<VDebugLevel>;
+using VDebugTypes = EnumFlags<VDebugType>;
 
 struct VulkanVersion {
 	int major, minor, patch;
@@ -57,26 +52,36 @@ struct VulkanVersion {
 struct VulkanInstanceConfig {
 	vector<string> extensions;
 	vector<string> layers;
-	VInstanceFlags flags;
+
 	VulkanVersion version = {1, 2, 0};
+	VDebugTypes debug_types = none;
+	VDebugLevels debug_levels = none;
 };
 
 // Only single VulkanInstance can be created
 class VulkanInstance {
   public:
-	using Flag = VInstanceFlag;
-
 	VulkanInstance();
 	~VulkanInstance();
 	VulkanInstance(const VulkanInstance &) = delete;
 	void operator=(const VulkanInstance &) = delete;
 
+	static vector<string> availableExtensions();
+	static vector<string> availableLayers();
+
 	static VulkanInstance *instance();
 	Ex<void> initialize(VulkanInstanceConfig);
+
+	CSpan<VkPhysicalDevice> physicalDevices() const { return m_phys_devices; }
+	CSpan<VkPhysicalDeviceProperties> physicalDeviceProps() const { return m_phys_device_props; }
+	CSpan<vector<string>> physicalDeviceExtensions() const { return m_phys_device_extensions; }
 
   private:
 	VkInstance m_instance;
 	VkDebugUtilsMessengerEXT m_messenger;
+	vector<VkPhysicalDevice> m_phys_devices;
+	vector<VkPhysicalDeviceProperties> m_phys_device_props;
+	vector<vector<string>> m_phys_device_extensions;
 };
 
 /*

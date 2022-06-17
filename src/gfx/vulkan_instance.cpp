@@ -11,6 +11,7 @@
 #include "fwk/enum_map.h"
 #include "fwk/format.h"
 #include "fwk/gfx/color.h"
+#include "fwk/index_range.h"
 #include "fwk/parse.h"
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
@@ -37,26 +38,23 @@ vector<string> vulkanSurfaceExtensions() {
 	return out;
 }
 
-void *winLoadFunction(const char *name);
-
-VulkanInstanceInfo getVulkanInstanceInfo() {
-	VulkanInstanceInfo out;
-
+vector<string> VulkanInstance::availableExtensions() {
 	uint num_extensions = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &num_extensions, nullptr);
 	vector<VkExtensionProperties> extensions(num_extensions);
 	vkEnumerateInstanceExtensionProperties(nullptr, &num_extensions, extensions.data());
-	out.extensions =
-		transform(extensions, [](const auto &prop) -> string { return prop.extensionName; });
-	makeSorted(out.extensions);
+	auto out = transform(extensions, [](const auto &prop) -> string { return prop.extensionName; });
+	makeSorted(out);
+	return out;
+}
 
+vector<string> VulkanInstance::availableLayers() {
 	uint num_layers = 0;
 	vkEnumerateInstanceLayerProperties(&num_layers, nullptr);
 	vector<VkLayerProperties> layers(num_layers);
 	vkEnumerateInstanceLayerProperties(&num_layers, layers.data());
-	out.layers = transform(layers, [](auto &prop) -> string { return prop.layerName; });
-	makeSorted(out.layers);
-
+	auto out = transform(layers, [](auto &prop) -> string { return prop.layerName; });
+	makeSorted(out);
 	return out;
 }
 
@@ -93,7 +91,9 @@ Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
 	if(m_instance)
 		return ERROR("VulkanInstance already initialized");
 
-	if(config.flags & Flag::validation) {
+	bool enable_validation = config.debug_levels && config.debug_types;
+
+	if(enable_validation) {
 		auto debug_ext = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 		auto debug_layer = "VK_LAYER_KHRONOS_validation";
 		config.extensions.emplace_back(debug_ext);
@@ -129,15 +129,24 @@ Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
 	if(result != VK_SUCCESS)
 		return ERROR("Error on vkCreateInstance: 0x%x", uint(result));
 
-	if(config.flags & Flag::validation) {
+	if(enable_validation) {
 		VkDebugUtilsMessengerCreateInfoEXT create_info{};
+		auto dtypes = config.debug_types;
+		auto dlevels = config.debug_levels;
+		using DType = VDebugType;
+		using DLevel = VDebugLevel;
+
 		create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-									  VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-									  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-		create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-								  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-								  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		create_info.messageSeverity =
+			(dlevels & DLevel::verbose ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT : 0) |
+			(dlevels & DLevel::info ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT : 0) |
+			(dlevels & DLevel::warning ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT : 0) |
+			(dlevels & DLevel::error ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT : 0);
+
+		create_info.messageType =
+			(dtypes & DType::general ? VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT : 0) |
+			(dtypes & DType::validation ? VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT : 0) |
+			(dtypes & DType::performance ? VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT : 0);
 		create_info.pfnUserCallback = messageHandler;
 		create_info.pUserData = nullptr;
 
@@ -150,7 +159,44 @@ Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
 			return ERROR("Error while hooking vulkan debug message handler: 0x%x", uint(result));
 	}
 
+	uint phys_device_count = 0;
+	vkEnumeratePhysicalDevices(m_instance, &phys_device_count, nullptr);
+	m_phys_devices.resize(phys_device_count);
+	vkEnumeratePhysicalDevices(m_instance, &phys_device_count, m_phys_devices.data());
+	m_phys_device_props.resize(m_phys_devices.size());
+	m_phys_device_extensions.resize(m_phys_devices.size());
+
+	for(int i : intRange(m_phys_devices)) {
+		vkGetPhysicalDeviceProperties(m_phys_devices[i], &m_phys_device_props[i]);
+		uint ext_count = 0;
+		vkEnumerateDeviceExtensionProperties(m_phys_devices[i], nullptr, &ext_count, nullptr);
+		vector<VkExtensionProperties> exts(ext_count);
+		vkEnumerateDeviceExtensionProperties(m_phys_devices[i], nullptr, &ext_count, exts.data());
+		m_phys_device_extensions[i] =
+			transform(exts, [](auto &prop) -> string { return prop.extensionName; });
+	}
+
 	return {};
+}
+
+Maybe<VkPhysicalDevice> VulkanInstance::preferredPhysicalDevice() const {
+	Maybe<VkPhysicalDevice> best;
+	float best_score = -1;
+
+	for(int i : intRange(m_phys_devices)) {
+		auto &props = m_phys_device_props[i];
+		float score = 0.0;
+		if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+			score += 1000.0;
+		else if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+			score += 100.0;
+		if(score > best_score) {
+			best = m_phys_devices[i];
+			best_score = score;
+		}
+	}
+
+	return best;
 }
 
 /*
