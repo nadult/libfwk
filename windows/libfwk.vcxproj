@@ -144,6 +144,7 @@
     <ClInclude Include="..\include\fwk\gfx\renderer2d.h" />
     <ClInclude Include="..\include\fwk\gfx\render_list.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_combiner.h" />
+    <ClInclude Include="..\include\fwk\gfx\shader_compiler.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_debug.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_defs.h" />
     <ClInclude Include="..\include\fwk\gfx\sprite_buffer.h" />
@@ -347,6 +348,7 @@
     <ClCompile Include="..\src\gfx\renderer2d.cpp" />
     <ClCompile Include="..\src\gfx\render_list.cpp" />
     <ClCompile Include="..\src\gfx\shader_combiner.cpp" />
+    <ClCompile Include="..\src\gfx\shader_compiler.cpp" />
     <ClCompile Include="..\src\gfx\shader_debug.cpp" />
     <ClCompile Include="..\src\gfx\shader_defs.cpp" />
     <ClCompile Include="..\src\gfx\sprite_buffer.cpp" />

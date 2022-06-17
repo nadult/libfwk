@@ -7,6 +7,7 @@
 #include <fwk/gfx/font_finder.h>
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/renderer2d.h>
+#include <fwk/gfx/shader_compiler.h>
 #include <fwk/gfx/vulkan_device.h>
 #include <fwk/gfx/vulkan_instance.h>
 #include <fwk/io/file_system.h>
@@ -14,6 +15,29 @@
 #include <fwk/sys/input.h>
 
 using namespace fwk;
+
+const char *vertex_shader = R"(
+#version 450
+vec2 positions[3] = vec2[](
+	vec2(0.0, -0.5),
+	vec2(0.5, 0.5),
+	vec2(-0.5, 0.5)
+);
+
+void main() {
+	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+}
+)";
+
+const char *fragment_shader = R"(
+#version 450
+
+layout(location = 0) out vec4 outColor;
+
+void main() {
+	outColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+)";
 
 bool mainLoop(VulkanDevice &device, void *font_ptr) {
 	Font &font = *(Font *)font_ptr;
@@ -65,6 +89,10 @@ int main(int argc, char **argv) {
 		config.debug_types = all<VDebugType>;
 		vinstance.initialize(config).check();
 	}
+
+	ShaderCompiler compiler;
+	auto vsh_compiled = compiler.compile(ShaderType::vertex, vertex_shader);
+	auto fsh_compled = compiler.compile(ShaderType::fragment, fragment_shader);
 
 	VulkanDevice vdevice;
 	auto display_rects = vdevice.displayRects();

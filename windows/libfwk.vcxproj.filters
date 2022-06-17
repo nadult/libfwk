@@ -639,6 +639,9 @@
     <ClInclude Include="..\include\fwk\gfx\vulkan_instance.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\gfx\shader_compiler.h">
+      <Filter>include\gfx</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1089,6 +1092,9 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\vulkan_instance.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gfx\shader_compiler.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
   </ItemGroup>
