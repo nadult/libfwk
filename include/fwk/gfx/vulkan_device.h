@@ -15,36 +15,28 @@ namespace fwk {
 class InputState;
 class InputEvent;
 
-struct DebugFlagsCheck {
-#ifdef FWK_CHECK_OPENGL
-	bool opengl = true;
-#else
-	bool opengl = false;
-#endif
-};
-
 // TODO: separate window flags from device flags
-DEFINE_ENUM(VkDeviceOpt, fullscreen, fullscreen_desktop, resizable, centered, vsync, maximized,
+DEFINE_ENUM(VDeviceFlag, fullscreen, fullscreen_desktop, resizable, centered, vsync, maximized,
 			allow_hidpi, validation);
-using VkDeviceFlags = EnumFlags<VkDeviceOpt>;
+using VDeviceFlags = EnumFlags<VDeviceFlag>;
 
-struct VkDeviceConfig {
-	VkDeviceFlags flags;
+struct VulkanDeviceConfig {
+	VDeviceFlags flags;
 	double version = 3.1;
 	Maybe<int> multisampling = none;
 };
 
-class VkDevice {
+class VulkanDevice {
   public:
-	VkDevice();
-	~VkDevice();
+	VulkanDevice();
+	~VulkanDevice();
 
-	using Opt = VkDeviceOpt;
-	using Flags = VkDeviceFlags;
-	using Config = VkDeviceConfig;
+	using Flag = VDeviceFlag;
+	using Flags = VDeviceFlags;
+	using Config = VulkanDeviceConfig;
 
 	static bool isPresent();
-	static VkDevice &instance();
+	static VulkanDevice &instance();
 
 	vector<IRect> displayRects() const;
 	vector<float> displayDpiScales() const;
@@ -87,7 +79,7 @@ class VkDevice {
 	const InputState &inputState() const;
 	const vector<InputEvent> &inputEvents() const;
 
-	using MainLoopFunction = bool (*)(VkDevice &device, void *argument);
+	using MainLoopFunction = bool (*)(VulkanDevice &device, void *argument);
 	void runMainLoop(MainLoopFunction, void *argument = nullptr);
 
 	string clipboardText() const;

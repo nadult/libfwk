@@ -633,10 +633,10 @@
     <ClInclude Include="..\include\fwk\gui\widgets.h">
       <Filter>include\gui</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\vk_device.h">
+    <ClInclude Include="..\include\fwk\gfx\vulkan_device.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\vulkan.h">
+    <ClInclude Include="..\include\fwk\gfx\vulkan_instance.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1085,10 +1085,10 @@
     <ClCompile Include="..\src\gui\popups.cpp">
       <Filter>src\gui</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\vk_device.cpp">
+    <ClCompile Include="..\src\gfx\vulkan_device.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\vulkan.cpp">
+    <ClCompile Include="..\src\gfx\vulkan_instance.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
   </ItemGroup>

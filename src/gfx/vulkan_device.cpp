@@ -8,11 +8,11 @@
 #include "../sys/windows.h"
 #endif
 
-#include "fwk/gfx/vk_device.h"
+#include "fwk/gfx/vulkan_device.h"
 
 #include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/gl_ref.h"
-#include "fwk/gfx/vulkan.h"
+#include "fwk/gfx/vulkan_instance.h"
 #include "fwk/hash_map.h"
 #include "fwk/math/box.h"
 #include "fwk/sys/input.h"
@@ -30,42 +30,40 @@ static void reportSDLError(const char *func_name) {
 	FATAL("Error on %s: %s", func_name, SDL_GetError());
 }
 
-void initializeVulkan();
+static VulkanDevice *s_instance = nullptr;
 
-static VkDevice *s_instance = nullptr;
+bool VulkanDevice::isPresent() { return !!s_instance; }
 
-bool VkDevice::isPresent() { return !!s_instance; }
-
-VkDevice &VkDevice::instance() {
+VulkanDevice &VulkanDevice::instance() {
 	DASSERT(s_instance);
 	return *s_instance;
 }
 
-struct VkDevice::InputImpl {
+struct VulkanDevice::InputImpl {
 	InputState state;
 	vector<InputEvent> events;
 	SDLKeyMap key_map;
 };
 
-struct VkDevice::WindowImpl {
+struct VulkanDevice::WindowImpl {
   public:
-	WindowImpl(ZStr title, IRect rect, VkDeviceConfig config) : config(config) {
+	WindowImpl(ZStr title, IRect rect, VulkanDeviceConfig config) : config(config) {
 		int sdl_flags = SDL_WINDOW_VULKAN;
 		auto flags = config.flags;
-		DASSERT(!((flags & Opt::fullscreen) && (flags & Opt::fullscreen_desktop)));
+		DASSERT(!((flags & Flag::fullscreen) && (flags & Flag::fullscreen_desktop)));
 
 		int2 pos = rect.min(), size = rect.size();
-		if(flags & Opt::fullscreen)
+		if(flags & Flag::fullscreen)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN;
-		if(flags & Opt::fullscreen_desktop)
+		if(flags & Flag::fullscreen_desktop)
 			sdl_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-		if(flags & Opt::resizable)
+		if(flags & Flag::resizable)
 			sdl_flags |= SDL_WINDOW_RESIZABLE;
-		if(flags & Opt::allow_hidpi)
+		if(flags & Flag::allow_hidpi)
 			sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
-		if(flags & Opt::maximized)
+		if(flags & Flag::maximized)
 			sdl_flags |= SDL_WINDOW_MAXIMIZED;
-		if(flags & Opt::centered)
+		if(flags & Flag::centered)
 			pos.x = pos.y = SDL_WINDOWPOS_CENTERED;
 		if(config.multisampling) {
 			FATAL("fixme");
@@ -89,42 +87,11 @@ struct VkDevice::WindowImpl {
 		if(!window)
 			reportSDLError("SDL_CreateWindow");
 
-		VkApplicationInfo app_info{};
-		app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		app_info.pApplicationName = "fwk_application";
-		app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		app_info.pEngineName = "fwk";
-		app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		app_info.apiVersion = VK_API_VERSION_1_0;
-
-		VkInstanceCreateInfo create_info{};
-		create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		create_info.pApplicationInfo = &app_info;
-
-		uint ext_count = 0;
-		SDL_Vulkan_GetInstanceExtensions(window, &ext_count, nullptr);
-		vector<const char *> ext_names(ext_count);
-		if(!SDL_Vulkan_GetInstanceExtensions(window, &ext_count, ext_names.data()))
-			reportSDLError("SDL_Vulkan_GetInstanceExtensions");
-		create_info.enabledExtensionCount = ext_count;
-		create_info.ppEnabledExtensionNames = ext_names.data();
-
-		vector<const char *> layer_names;
-		if(flags & Opt::validation)
-			layer_names.emplace_back("VK_LAYER_KHRONOS_validation");
-		create_info.enabledLayerCount = layer_names.size();
-		create_info.ppEnabledLayerNames = layer_names.data();
-
-		// TODO: handler for errors:
-		// VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-
-		VkResult result = vkCreateInstance(&create_info, nullptr, &instance);
-		if(result != VK_SUCCESS)
-			FATAL("Error on vkCreateInstance: 0x%x\n", uint(result));
+		auto *vinstance = VulkanInstance::instance();
+		ASSERT("VulkanInstance must be created before creating VulkanDevice" && vinstance);
 	}
 
 	~WindowImpl() {
-		vkDestroyInstance(instance, nullptr);
 		program_cache.clear();
 		SDL_DestroyWindow(window);
 	}
@@ -132,30 +99,26 @@ struct VkDevice::WindowImpl {
 	SDL_Window *window;
 	SDL_GLContext gl_context;
 	HashMap<string, PProgram> program_cache;
-	VkDeviceConfig config;
-	VkInstance instance;
+	VulkanDeviceConfig config;
 };
 
-VkDevice::VkDevice() {
+VulkanDevice::VulkanDevice() {
 	m_input_impl.emplace();
-	ASSERT("Only one instance of VkDevice can be created at a time" && !s_instance);
+	ASSERT("Only one instance of VulkanDevice can be created at a time" && !s_instance);
 	s_instance = this;
-
-	if(SDL_Init(SDL_INIT_VIDEO) != 0)
-		reportSDLError("SDL_Init");
 
 	m_last_time = -1.0;
 	m_frame_time = 0.0;
 }
 
-VkDevice::~VkDevice() {
+VulkanDevice::~VulkanDevice() {
 	PASSERT_GL_THREAD();
 	m_window_impl.reset();
 	s_instance = nullptr;
 	SDL_Quit();
 }
 
-vector<IRect> VkDevice::displayRects() const {
+vector<IRect> VulkanDevice::displayRects() const {
 	int count = SDL_GetNumVideoDisplays();
 	vector<IRect> out(count);
 	for(int idx = 0; idx < count; idx++) {
@@ -167,7 +130,7 @@ vector<IRect> VkDevice::displayRects() const {
 	return out;
 }
 
-vector<float> VkDevice::displayDpiScales() const {
+vector<float> VulkanDevice::displayDpiScales() const {
 	int count = SDL_GetNumVideoDisplays();
 	vector<float> out(count);
 	for(int idx = 0; idx < count; idx++) {
@@ -180,8 +143,8 @@ vector<float> VkDevice::displayDpiScales() const {
 	return out;
 }
 
-IRect VkDevice::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
-								   float minimum_overlap) {
+IRect VulkanDevice::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
+									   float minimum_overlap) {
 	if(!display_rects)
 		return window_rect;
 	IRect nonempty_rect{window_rect.min(), window_rect.min() + max(int2(1), window_rect.size())};
@@ -201,33 +164,32 @@ IRect VkDevice::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect
 	return window_rect;
 }
 
-void VkDevice::createWindow(ZStr title, IRect rect, Config config) {
+void VulkanDevice::createWindow(ZStr title, IRect rect, Config config) {
 	ASSERT(!m_window_impl && "Window is already created (only 1 window is supported for now)");
 	m_window_impl = {title, rect, config};
 
-	SDL_GL_SetSwapInterval(config.flags & Opt::vsync ? -1 : 0);
-	initializeVulkan();
+	SDL_GL_SetSwapInterval(config.flags & Flag::vsync ? -1 : 0);
 }
 
-void VkDevice::destroyWindow() { m_window_impl.reset(); }
+void VulkanDevice::destroyWindow() { m_window_impl.reset(); }
 
-void VkDevice::setWindowTitle(ZStr title) {
+void VulkanDevice::setWindowTitle(ZStr title) {
 	SDL_SetWindowTitle(m_window_impl->window, title.c_str());
 }
 
-void VkDevice::setWindowSize(const int2 &size) {
+void VulkanDevice::setWindowSize(const int2 &size) {
 	if(m_window_impl)
 		SDL_SetWindowSize(m_window_impl->window, size.x, size.y);
 }
 
-void VkDevice::setWindowRect(IRect rect) {
+void VulkanDevice::setWindowRect(IRect rect) {
 	if(m_window_impl) {
 		SDL_SetWindowSize(m_window_impl->window, rect.width(), rect.height());
 		SDL_SetWindowPosition(m_window_impl->window, rect.x(), rect.y());
 	}
 }
 
-IRect VkDevice::windowRect() const {
+IRect VulkanDevice::windowRect() const {
 	int2 pos, size;
 	if(m_window_impl) {
 		size = windowSize();
@@ -247,7 +209,7 @@ IRect VkDevice::windowRect() const {
 Pair<int2> windowNonClientBorders(HWND hwnd);
 #endif
 
-IRect VkDevice::restoredWindowRect() const {
+IRect VulkanDevice::restoredWindowRect() const {
 	IRect window_rect = windowRect();
 
 #ifdef FWK_PLATFORM_WINDOWS
@@ -266,56 +228,56 @@ IRect VkDevice::restoredWindowRect() const {
 #endif
 }
 
-EnumMap<RectSide, int> VkDevice::windowBorder() const {
+EnumMap<RectSide, int> VulkanDevice::windowBorder() const {
 	int top = 0, bottom = 0, left = 0, right = 0;
 	SDL_GetWindowBordersSize(m_window_impl->window, &top, &left, &bottom, &right);
 	return {{right, top, left, bottom}};
 }
 
-void VkDevice::setWindowFullscreen(Flags flags) {
-	DASSERT(!flags || isOneOf(flags, Opt::fullscreen, Opt::fullscreen_desktop));
+void VulkanDevice::setWindowFullscreen(Flags flags) {
+	DASSERT(!flags || isOneOf(flags, Flag::fullscreen, Flag::fullscreen_desktop));
 
 	if(m_window_impl) {
-		uint sdl_flags = flags == Opt::fullscreen		  ? SDL_WINDOW_FULLSCREEN :
-						 flags == Opt::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP :
-															  0;
+		uint sdl_flags = flags == Flag::fullscreen		   ? SDL_WINDOW_FULLSCREEN :
+						 flags == Flag::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP :
+															   0;
 		SDL_SetWindowFullscreen(m_window_impl->window, sdl_flags);
-		auto mask = Opt::fullscreen | Opt::fullscreen_desktop;
+		auto mask = Flag::fullscreen | Flag::fullscreen_desktop;
 		m_window_impl->config.flags = (m_window_impl->config.flags & ~mask) | (mask & flags);
 	}
 }
 
-bool VkDevice::isWindowFullscreen() const {
-	return windowFlags() & (Opt::fullscreen | Opt::fullscreen_desktop);
+bool VulkanDevice::isWindowFullscreen() const {
+	return windowFlags() & (Flag::fullscreen | Flag::fullscreen_desktop);
 }
 
-bool VkDevice::isWindowMaximized() const {
+bool VulkanDevice::isWindowMaximized() const {
 	auto flags = SDL_GetWindowFlags(m_window_impl->window);
 	return (flags & SDL_WINDOW_MAXIMIZED) != 0;
 }
 
-int VkDevice::windowDisplayIndex() const {
+int VulkanDevice::windowDisplayIndex() const {
 	return SDL_GetWindowDisplayIndex(m_window_impl->window);
 }
 
-float VkDevice::windowDpiScale() const {
+float VulkanDevice::windowDpiScale() const {
 	auto display_dpis = displayDpiScales();
 	auto display_index = windowDisplayIndex();
 	return display_dpis.inRange(display_index) ? display_dpis[display_index] : 1.0f;
 }
 
-auto VkDevice::windowFlags() const -> Flags {
+auto VulkanDevice::windowFlags() const -> Flags {
 	return m_window_impl ? m_window_impl->config.flags : Flags();
 }
 
-int2 VkDevice::windowSize() const {
+int2 VulkanDevice::windowSize() const {
 	int2 out;
 	if(m_window_impl)
 		SDL_GetWindowSize(m_window_impl->window, &out.x, &out.y);
 	return out;
 }
 
-void VkDevice::printDeviceInfo() {
+void VulkanDevice::printDeviceInfo() {
 	int max_tex_size;
 
 	FATAL("writeme");
@@ -329,10 +291,10 @@ void VkDevice::printDeviceInfo() {
 		   vendor, renderer, max_tex_size);*/
 }
 
-int VkDevice::swapInterval() { return SDL_GL_GetSwapInterval(); }
-void VkDevice::setSwapInterval(int value) { SDL_GL_SetSwapInterval(value); }
+int VulkanDevice::swapInterval() { return SDL_GL_GetSwapInterval(); }
+void VulkanDevice::setSwapInterval(int value) { SDL_GL_SetSwapInterval(value); }
 
-bool VkDevice::pollEvents() {
+bool VulkanDevice::pollEvents() {
 	m_input_impl->events =
 		m_input_impl->state.pollEvents(m_input_impl->key_map, m_window_impl->window);
 	for(const auto &event : m_input_impl->events)
@@ -341,7 +303,7 @@ bool VkDevice::pollEvents() {
 	return true;
 }
 
-void VkDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
+void VulkanDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 	PASSERT_GL_THREAD();
 	ASSERT(main_loop_func);
 	m_main_loop_stack.emplace_back(main_loop_func, arg);
@@ -357,25 +319,25 @@ void VkDevice::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 	m_main_loop_stack.pop_back();
 }
 
-void VkDevice::grabMouse(bool grab) {
+void VulkanDevice::grabMouse(bool grab) {
 	if(m_window_impl)
 		SDL_SetWindowGrab(m_window_impl->window, grab ? SDL_TRUE : SDL_FALSE);
 }
 
-void VkDevice::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
+void VulkanDevice::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
 
-const InputState &VkDevice::inputState() const { return m_input_impl->state; }
+const InputState &VulkanDevice::inputState() const { return m_input_impl->state; }
 
-const vector<InputEvent> &VkDevice::inputEvents() const { return m_input_impl->events; }
+const vector<InputEvent> &VulkanDevice::inputEvents() const { return m_input_impl->events; }
 
-string VkDevice::clipboardText() const {
+string VulkanDevice::clipboardText() const {
 	auto ret = SDL_GetClipboardText();
 	return ret ? string(ret) : string();
 }
 
-void VkDevice::setClipboardText(ZStr str) { SDL_SetClipboardText(str.c_str()); }
+void VulkanDevice::setClipboardText(ZStr str) { SDL_SetClipboardText(str.c_str()); }
 
-PProgram VkDevice::cacheFindProgram(Str name) const {
+PProgram VulkanDevice::cacheFindProgram(Str name) const {
 	if(!m_window_impl)
 		return {};
 	auto &cache = m_window_impl->program_cache;
@@ -383,7 +345,7 @@ PProgram VkDevice::cacheFindProgram(Str name) const {
 	return it ? it->value : PProgram();
 }
 
-void VkDevice::cacheAddProgram(Str name, PProgram program) {
+void VulkanDevice::cacheAddProgram(Str name, PProgram program) {
 	DASSERT(program);
 	if(m_window_impl)
 		m_window_impl->program_cache[name] = program;

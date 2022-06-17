@@ -7,19 +7,15 @@
 #include <fwk/gfx/font_finder.h>
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/renderer2d.h>
-#include <fwk/gfx/vk_device.h>
-#include <fwk/gfx/vulkan.h>
+#include <fwk/gfx/vulkan_device.h>
+#include <fwk/gfx/vulkan_instance.h>
 #include <fwk/io/file_system.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 
-// Jak lepiej nazywaæ klasy ?
-// Chcê mieæ na razie zarówo obs³ugê VK & OpenGL ?
-// Po co mi OGL ?
-
 using namespace fwk;
 
-bool mainLoop(fwk::VkDevice &device, void *font_ptr) {
+bool mainLoop(VulkanDevice &device, void *font_ptr) {
 	Font &font = *(Font *)font_ptr;
 	static vector<float2> positions(15, float2(device.windowSize() / 2));
 
@@ -62,19 +58,29 @@ string fontPath() {
 int main(int argc, char **argv) {
 	double time = getTime();
 
-	fwk::VkDevice vk_device;
-	auto display_rects = vk_device.displayRects();
+	VulkanInstance vinstance;
+	{
+		auto instance_info = getVulkanInstanceInfo();
+		print("Vulkan instance extensions: %\nVulkan instance layers: %\n\n",
+			  instance_info.extensions, instance_info.layers);
+
+		VulkanInstanceConfig config;
+		config.flags = VInstanceFlag::validation;
+		vinstance.initialize(config).check();
+	}
+
+	VulkanDevice vdevice;
+	auto display_rects = vdevice.displayRects();
 	if(!display_rects)
 		FWK_FATAL("No display available");
 	int2 res = display_rects[0].size() / 2;
-	auto flags = VkDeviceOpt::resizable | VkDeviceOpt::vsync | VkDeviceOpt::validation |
-				 VkDeviceOpt::centered | VkDeviceOpt::allow_hidpi;
-	vk_device.createWindow("fwk::vulkan_test", IRect(res), {flags});
-	print("Vulkan info:\n%\n", vk_info->toString());
+	auto flags = VDeviceFlag::resizable | VDeviceFlag::vsync | VDeviceFlag::validation |
+				 VDeviceFlag::centered | VDeviceFlag::allow_hidpi;
+	vdevice.createWindow("fwk::vulkan_test", IRect(res), {flags});
 
-	int font_size = 16 * vk_device.windowDpiScale();
+	int font_size = 16 * vdevice.windowDpiScale();
 	//auto font = FontFactory().makeFont(fontPath(), font_size);
-	vk_device.runMainLoop(mainLoop, nullptr); //&font.get());
+	vdevice.runMainLoop(mainLoop, nullptr); //&font.get());
 
 	return 0;
 }

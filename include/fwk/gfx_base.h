@@ -20,7 +20,7 @@ class Image;
 class CompressedImage;
 class FloatImage;
 class GlDevice;
-class VkDevice;
+class VulkanDevice;
 class SimpleMaterial;
 class Material;
 class MaterialSet;
