@@ -153,6 +153,8 @@
     <ClInclude Include="..\include\fwk\gfx\visualizer3.h" />
     <ClInclude Include="..\include\fwk\gfx\vulkan_device.h" />
     <ClInclude Include="..\include\fwk\gfx\vulkan_instance.h" />
+    <ClInclude Include="..\include\fwk\gfx\vulkan_shader.h" />
+    <ClInclude Include="..\include\fwk\gfx\vulkan_window.h" />
     <ClInclude Include="..\include\fwk\gfx_base.h" />
     <ClInclude Include="..\include\fwk\gui\gui.h" />
     <ClInclude Include="..\include\fwk\gui\imgui.h" />
@@ -357,6 +359,8 @@
     <ClCompile Include="..\src\gfx\visualizer3.cpp" />
     <ClCompile Include="..\src\gfx\vulkan_device.cpp" />
     <ClCompile Include="..\src\gfx\vulkan_instance.cpp" />
+    <ClCompile Include="..\src\gfx\vulkan_shader.cpp" />
+    <ClCompile Include="..\src\gfx\vulkan_window.cpp" />
     <ClCompile Include="..\src\gui\widgets.cpp" />
     <ClCompile Include="..\src\gui\gui.cpp" />
     <ClCompile Include="..\src\gui\imgui_base.cpp" />

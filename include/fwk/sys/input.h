@@ -178,7 +178,7 @@ class InputState {
   private:
 	vector<InputEvent> pollEvents(const SDLKeyMap &, void *);
 	friend class GlDevice;
-	friend class VulkanDevice;
+	friend class VulkanWindow;
 
 	vector<Pair<int>> m_keys;
 	string32 m_text;

@@ -6,6 +6,7 @@
 
 #include "fwk/sys/platform.h"
 
+#include "fwk/dynamic.h"
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
 #include "fwk/gfx_base.h"
@@ -14,8 +15,11 @@
 
 namespace fwk {
 
-void testGlError(const char *);
-bool installGlDebugHandler();
+// TODO: consistent naming of Vulkan classes:
+// VulkanClass: manages lifetime of given object type
+// VulkanClassConfig: contains information required for creation of VulkanClass
+// VulkanClassInfo: contains all the info for given class, does not manage lifetime
+//                  (it's managed elswhere)
 
 DEFINE_ENUM(VVendor, intel, nvidia, amd, other);
 DEFINE_ENUM(VFeature, vertex_array_object, debug, copy_image, separate_shader_objects,
@@ -31,6 +35,9 @@ DEFINE_ENUM(VLimit, max_elements_indices, max_elements_vertices, max_uniform_blo
 
 DEFINE_ENUM(VDebugLevel, verbose, info, warning, error);
 DEFINE_ENUM(VDebugType, general, validation, performance);
+
+DEFINE_ENUM(VQueueFlag, compute, graphics);
+using VQueueFlags = EnumFlags<VQueueFlag>;
 
 using VDebugLevels = EnumFlags<VDebugLevel>;
 using VDebugTypes = EnumFlags<VDebugType>;
@@ -48,6 +55,40 @@ struct VulkanInstanceConfig {
 	VDebugLevels debug_levels = none;
 };
 
+class VulkanDevice;
+
+struct VulkanSwapChainInfo {
+	VkSurfaceCapabilitiesKHR caps;
+	vector<VkSurfaceFormatKHR> formats;
+	vector<VkPresentModeKHR> present_modes;
+};
+
+struct VulkanPhysicalDeviceInfo {
+	// Returned queues are ordered in all find functions
+	vector<uint> findQueues(VQueueFlags) const;
+	vector<uint> findPresentableQueues(VkSurfaceKHR) const;
+
+	VulkanSwapChainInfo swapChainInfo(VkSurfaceKHR) const;
+	double defaultScore() const;
+
+	VkPhysicalDevice handle;
+	VkPhysicalDeviceProperties properties;
+	vector<VkQueueFamilyProperties> queue_families;
+	vector<string> extensions;
+};
+
+struct VulkanDeviceConfig {
+	VkPhysicalDevice phys_device;
+	vector<string> extensions;
+
+	struct QueueConfig {
+		uint family_id;
+		int count;
+	};
+	vector<QueueConfig> queues;
+	Dynamic<VkPhysicalDeviceFeatures> features;
+};
+
 // Only single VulkanInstance can be created
 class VulkanInstance {
   public:
@@ -62,57 +103,18 @@ class VulkanInstance {
 	static VulkanInstance *instance();
 	Ex<void> initialize(VulkanInstanceConfig);
 
-	struct SwapChainInfo {
-		VkSurfaceCapabilitiesKHR caps;
-		vector<VkSurfaceFormatKHR> formats;
-		vector<VkPresentModeKHR> present_modes;
-	};
+	VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice) const;
+	vector<VulkanPhysicalDeviceInfo> physicalDeviceInfos() const;
 
-	Maybe<VkPhysicalDevice> preferredPhysicalDevice() const;
-	CSpan<VkPhysicalDevice> physicalDevices() const { return m_phys_devices; }
-
-	vector<VkQueueFamilyProperties> deviceQueueFamilies(VkPhysicalDevice) const;
-	vector<string> deviceExtensions(VkPhysicalDevice) const;
-	VkPhysicalDeviceProperties deviceProperties(VkPhysicalDevice) const;
-	SwapChainInfo swapChainInfo(VkPhysicalDevice, VkSurfaceKHR) const;
+	Maybe<VulkanDeviceConfig> preferredDevice(VkSurfaceKHR target_surface) const;
+	Ex<VulkanDevice> makeDevice(const VulkanDeviceConfig &);
 
 	VkInstance handle() { return m_handle; }
 
   private:
 	VkInstance m_handle;
 	VkDebugUtilsMessengerEXT m_messenger;
-	vector<VkPhysicalDevice> m_phys_devices;
 };
-
-/*
-struct VkInfo {
-	VkVendor vendor;
-
-	vector<string> extensions;
-	vector<string> layers;
-
-	VkFeatures features;
-	EnumMap<VkLimit, int> limits;
-
-	int3 max_compute_work_group_size;
-	int3 max_compute_work_groups;
-
-	bool hasExtension(Str) const;
-	bool hasFeature(VkFeature feature) const { return (bool)(features & feature); }
-
-	string renderer;
-	string version_full;
-	string glsl_version_full;
-
-	float version;
-	float glsl_version;
-
-	string toString() const;
-};*/
-
-void clearColor(FColor);
-void clearColor(IColor);
-void clearDepth(float);
 
 }
 

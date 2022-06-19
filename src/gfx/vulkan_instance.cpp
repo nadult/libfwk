@@ -11,6 +11,7 @@
 #include "fwk/enum_map.h"
 #include "fwk/format.h"
 #include "fwk/gfx/color.h"
+#include "fwk/gfx/vulkan_device.h"
 #include "fwk/index_range.h"
 #include "fwk/parse.h"
 #include "fwk/str.h"
@@ -19,22 +20,62 @@
 #include <SDL2/SDL_vulkan.h>
 #include <cstring>
 
+// TODO: handling VkResults
+// TODO: making sure that handles are correct ?
+// TODO: more type safety
+// TODO: VHandle<> class ? handles are not initialized to null by default ...
+// TODO: kolejnoœæ niszczenia obiektów...
+//
+// VulkanDevice jest niszczone przed VulkanWindow, które zawiera SwapChainy ...
+// mo¿e po prostu zróbmy ref-county dla du¿ych obiektów ?
+// SwapChain bêdzie mia³ ref-count do device-a . Device zostanie zniszczony dopiero jak
+// zniszczymy swapchain ?
+//
+// Mo¿e po prostu zróbmy jeden mechanizm do ref-countów i niszczenia vulkannowych obiektów ?
+// Takze dla du¿ych obiektów ?
+//
+//
+//
+// Lepiej, ¿eby du¿e klasy siê nie rusza³y, i tak to nie jest do niczego potrzebne.
+//
+// PVulkanInstance, PVulkanWindow, PVulkanDevice ?
+//
+//  Czy te wrappery s¹ konieczne do u¿ywania ?
+//
+// Problemem s¹ klasy które ownuj¹ handle
+// Mo¿e po protu powinienem zrobiæ klasê handle-a i u¿ywaæ jej wewn. ?
+//
+// Olejmy tê kwestiê na razie! Dopoki nie bede mial roznych przykladow uzycia, to
+// nie zrobie tego dobrze
+//
+
 namespace fwk {
 
 void reportSDLError(const char *func_name) { FATAL("Error on %s: %s", func_name, SDL_GetError()); }
 
-vector<string> vulkanSurfaceExtensions() {
-	vector<string> out;
-	out.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
-#ifdef FWK_PLATFORM_WINDOWS
-	out.emplace_back("VK_KHR_win32_surface");
-#elif defined(FWK_PLATFORM_LINUX)
-	if(std::getenv("WAYLAND_DISPLAY"))
-		out.emplace_back("VK_KHR_wayland_surface");
-	else
-		out.emplace_back("VK_KHR_xlib_surface");
+vector<uint> VulkanPhysicalDeviceInfo::findQueues(VQueueFlags flags) const {
+	vector<uint> out;
+	out.reserve(queue_families.size());
+	for(int idx : intRange(queue_families)) {
+		auto &queue = queue_families[idx];
+		if((flags & VQueueFlag::compute) && !(queue.queueFlags & VK_QUEUE_COMPUTE_BIT))
+			continue;
+		if((flags & VQueueFlag::graphics) && !(queue.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+			continue;
+		out.emplace_back(uint(idx));
+	}
+	return out;
 }
-#endif
+
+vector<uint> VulkanPhysicalDeviceInfo::findPresentableQueues(VkSurfaceKHR surface) const {
+	vector<uint> out;
+	out.reserve(queue_families.size());
+	for(int idx : intRange(queue_families)) {
+		VkBool32 valid = VK_FALSE;
+		vkGetPhysicalDeviceSurfaceSupportKHR(handle, idx, surface, &valid);
+		if(valid == VK_TRUE)
+			out.emplace_back(uint(idx));
+	}
 	return out;
 }
 
@@ -55,6 +96,49 @@ vector<string> VulkanInstance::availableLayers() {
 	vkEnumerateInstanceLayerProperties(&num_layers, layers.data());
 	auto out = transform(layers, [](auto &prop) -> string { return prop.layerName; });
 	makeSorted(out);
+	return out;
+}
+
+VulkanSwapChainInfo VulkanPhysicalDeviceInfo::swapChainInfo(VkSurfaceKHR surface) const {
+	VulkanSwapChainInfo out;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(handle, surface, &out.caps);
+	uint count = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(handle, surface, &count, nullptr);
+	out.formats.resize(count);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(handle, surface, &count, out.formats.data());
+
+	count = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(handle, surface, &count, nullptr);
+	out.present_modes.resize(count);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(handle, surface, &count, out.present_modes.data());
+	return out;
+}
+
+double VulkanPhysicalDeviceInfo::defaultScore() const {
+	double score = 0.0;
+	if(findQueues(VQueueFlag::graphics))
+		score += 1000.0;
+	if(findQueues(VQueueFlag::compute))
+		score += 100.0;
+	if(properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		score += 10.0;
+	else if(properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+		score += 5.0;
+	return score;
+}
+
+vector<string> vulkanSurfaceExtensions() {
+	vector<string> out;
+	out.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+#ifdef FWK_PLATFORM_WINDOWS
+	out.emplace_back("VK_KHR_win32_surface");
+#elif defined(FWK_PLATFORM_LINUX)
+	if(std::getenv("WAYLAND_DISPLAY"))
+		out.emplace_back("VK_KHR_wayland_surface");
+	else
+		out.emplace_back("VK_KHR_xlib_surface");
+}
+#endif
 	return out;
 }
 
@@ -159,185 +243,126 @@ Ex<void> VulkanInstance::initialize(VulkanInstanceConfig config) {
 			return ERROR("Error while hooking vulkan debug message handler: 0x%x", uint(result));
 	}
 
-	uint phys_device_count = 0;
-	vkEnumeratePhysicalDevices(m_handle, &phys_device_count, nullptr);
-	m_phys_devices.resize(phys_device_count);
-	vkEnumeratePhysicalDevices(m_handle, &phys_device_count, m_phys_devices.data());
-
 	return {};
 }
 
-vector<VkQueueFamilyProperties> VulkanInstance::deviceQueueFamilies(VkPhysicalDevice device) const {
+VulkanPhysicalDeviceInfo VulkanInstance::physicalDeviceInfo(VkPhysicalDevice handle) const {
+	VulkanPhysicalDeviceInfo out;
+	out.handle = handle;
+
 	uint count = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
-	vector<VkQueueFamilyProperties> out(count);
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &count, out.data());
-	return out;
-}
-
-vector<string> VulkanInstance::deviceExtensions(VkPhysicalDevice device) const {
-	uint ext_count = 0;
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &ext_count, nullptr);
-	vector<VkExtensionProperties> exts(ext_count);
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &ext_count, exts.data());
-	return transform(exts, [](auto &prop) -> string { return prop.extensionName; });
-}
-
-VkPhysicalDeviceProperties VulkanInstance::deviceProperties(VkPhysicalDevice device) const {
-	VkPhysicalDeviceProperties props;
-	vkGetPhysicalDeviceProperties(device, &props);
-	return props;
-}
-
-using SwapChainInfo = VulkanInstance::SwapChainInfo;
-SwapChainInfo VulkanInstance::swapChainInfo(VkPhysicalDevice device, VkSurfaceKHR surface) const {
-	SwapChainInfo out;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &out.caps);
-	uint count = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &count, nullptr);
-	out.formats.resize(count);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &count, out.formats.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(handle, &count, nullptr);
+	out.queue_families.resize(count);
+	vkGetPhysicalDeviceQueueFamilyProperties(handle, &count, out.queue_families.data());
 
 	count = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &count, nullptr);
-	out.present_modes.resize(count);
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &count, out.present_modes.data());
+	vkEnumerateDeviceExtensionProperties(handle, nullptr, &count, nullptr);
+	vector<VkExtensionProperties> exts(count);
+	vkEnumerateDeviceExtensionProperties(handle, nullptr, &count, exts.data());
+	out.extensions = transform(exts, [](auto &prop) -> string { return prop.extensionName; });
+
+	vkGetPhysicalDeviceProperties(handle, &out.properties);
+
 	return out;
 }
 
-Maybe<VkPhysicalDevice> VulkanInstance::preferredPhysicalDevice() const {
-	Maybe<VkPhysicalDevice> best;
-	float best_score = -1;
+vector<VulkanPhysicalDeviceInfo> VulkanInstance::physicalDeviceInfos() const {
+	vector<VulkanPhysicalDeviceInfo> out;
+	uint count = 0;
+	vkEnumeratePhysicalDevices(m_handle, &count, nullptr);
+	vector<VkPhysicalDevice> handles(count);
+	vkEnumeratePhysicalDevices(m_handle, &count, handles.data());
 
-	// TODO: check for swap_chain and presentability
-	for(auto device : m_phys_devices) {
-		auto props = deviceProperties(device);
-		auto queues = deviceQueueFamilies(device);
+	out.reserve(handles.size());
+	for(auto handle : handles)
+		out.emplace_back(physicalDeviceInfo(handle));
+	return out;
+}
 
-		bool has_graphics = false;
-		bool has_compute = false;
-		for(auto &queue : queues) {
-			if(queue.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-				has_graphics = true;
-			if(queue.queueFlags & VK_QUEUE_COMPUTE_BIT)
-				has_compute = true;
-		}
+Maybe<VulkanDeviceConfig> VulkanInstance::preferredDevice(VkSurfaceKHR target_surface) const {
+	auto infos = physicalDeviceInfos();
 
-		if(!has_graphics)
+	Maybe<VulkanDeviceConfig> best;
+	double best_score = -1.0;
+
+	for(auto &info : infos) {
+		double score = info.defaultScore();
+		if(score <= best_score)
 			continue;
 
-		float score = 0.0;
-		if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-			score += 1000.0;
-		else if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-			score += 100.0;
-		if(has_compute)
-			score += 500.0;
+		auto gfx_queues = info.findQueues(VQueueFlag::compute | VQueueFlag::graphics);
+		if(!gfx_queues)
+			gfx_queues = info.findQueues(VQueueFlag::graphics);
+		auto present_queues = info.findPresentableQueues(target_surface);
+		if(!gfx_queues || !present_queues)
+			continue;
 
-		if(score > best_score) {
-			best = device;
-			best_score = score;
+		auto sel_queues = setIntersection(gfx_queues, present_queues);
+		if(!sel_queues) {
+			sel_queues.emplace_back(gfx_queues[0]);
+			sel_queues.emplace_back(present_queues[0]);
 		}
+
+		best_score = score;
+		VulkanDeviceConfig config;
+		config.phys_device = info.handle;
+		for(auto queue : sel_queues)
+			config.queues.emplace_back(queue, 1);
+		best = move(config);
 	}
 
 	return best;
 }
 
-/*
-static EnumMap<VkLimit, int> s_limit_map = {
-	{GL_MAX_ELEMENTS_INDICES, GL_MAX_ELEMENTS_VERTICES, GL_MAX_UNIFORM_BLOCK_SIZE,
-	 GL_MAX_TEXTURE_SIZE, GL_MAX_3D_TEXTURE_SIZE, GL_MAX_TEXTURE_BUFFER_SIZE,
-	 GL_MAX_TEXTURE_MAX_ANISOTROPY, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, GL_MAX_UNIFORM_LOCATIONS,
-	 GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS,
-	 GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, GL_MAX_SAMPLES}};*/
+Ex<VulkanDevice> VulkanInstance::makeDevice(const VulkanDeviceConfig &config) {
+	ASSERT(config.phys_device);
+	EXPECT(!config.queues.empty());
 
-/*
-string VkInfo::toString() const {
-	TextFormatter out;
-	out("Vendor: %\nRenderer: %\nExtensions: %\nLayers: %\nVersion: % (%)\nGLSL version: % (%)\n",
-		vendor, renderer, extensions, layers, version, version_full, glsl_version,
-		glsl_version_full);
+	vector<VkDeviceQueueCreateInfo> queue_cis;
+	queue_cis.reserve(config.queues.size());
 
-	out("Limits:\n");
-	for(auto limit : all<VkLimit>)
-		out("  %: %\n", limit, limits[limit]);
-	out(" *max_compute_work_group_size: %\n *max_compute_work_groups: %\n",
-		max_compute_work_group_size, max_compute_work_groups);
-
-	return out.text();
-}
-
-bool VkInfo::hasExtension(Str name) const {
-	auto it = std::lower_bound(begin(extensions), end(extensions), name,
-							   [](Str a, Str b) { return a < b; });
-
-	return it != end(extensions) && Str(*it) == name;
-}
-
-static float parseOpenglVersion(const char *text) {
-	TextParser parser(text);
-	while(!parser.empty()) {
-		Str val;
-		parser >> val;
-		if(isdigit(val[0]))
-			return tryFromString<float>(string(val), 0.0f);
-	}
-	return 0.0f;
-}
-
-void initializeVulkan() {
-	using Feature = VkFeature;
-	using Vendor = VkVendor;
-
-	int major = 0, minor = 0;
-	glGetIntegerv(GL_MAJOR_VERSION, &major);
-	glGetIntegerv(GL_MINOR_VERSION, &minor);
-	s_info.version = float(major) + float(minor) * 0.1f;
-
-	auto vendor = toLower((const char *)glGetString(GL_VENDOR));
-	if(vendor.find("intel") != string::npos)
-		s_info.vendor = Vendor::intel;
-	else if(vendor.find("nvidia") != string::npos)
-		s_info.vendor = Vendor::nvidia;
-	else if(vendor.find("amd") != string::npos)
-		s_info.vendor = Vendor::amd;
-	else
-		s_info.vendor = Vendor::other;
-	s_info.renderer = (const char *)glGetString(GL_RENDERER);
-
-	GLint num;
-	glGetIntegerv(GL_NUM_EXTENSIONS, &num);
-	s_info.extensions.reserve(num);
-	s_info.extensions.clear();
-
-
-	for(auto limit : all<VkLimit>)
-		glGetIntegerv(s_limit_map[limit], &s_info.limits[limit]);
-	{
-		auto *ver = (const char *)glGetString(GL_VERSION);
-		auto *glsl_ver = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
-
-		s_info.version_full = ver;
-		s_info.glsl_version_full = glsl_ver;
-		s_info.glsl_version = parseOpenglVersion(glsl_ver);
-		// TODO: multiple GLSL versions can be supported
+	float default_priority = 1.0;
+	for(auto &queue : config.queues) {
+		VkDeviceQueueCreateInfo ci{};
+		ci.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		ci.queueCount = queue.count;
+		ci.queueFamilyIndex = queue.family_id;
+		ci.pQueuePriorities = &default_priority;
+		queue_cis.emplace_back(ci);
 	}
 
-// TODO: limits
-// TODO: features
-}*/
+	auto swap_chain_ext = "VK_KHR_swapchain";
+	vector<const char *> exts = transform(config.extensions, [](auto &str) { return str.c_str(); });
+	if(!anyOf(config.extensions, swap_chain_ext))
+		exts.emplace_back("VK_KHR_swapchain");
 
-/*
-void clearColor(FColor col) {
-	glClearColor(col.r, col.g, col.b, col.a);
-	glClear(GL_COLOR_BUFFER_BIT);
+	VkPhysicalDeviceFeatures features{};
+	if(config.features)
+		features = *config.features;
+
+	VkDeviceCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	ci.pQueueCreateInfos = queue_cis.data();
+	ci.queueCreateInfoCount = queue_cis.size();
+	ci.pEnabledFeatures = &features;
+	ci.enabledExtensionCount = exts.size();
+	ci.ppEnabledExtensionNames = exts.data();
+
+	VkDevice device;
+	auto result = vkCreateDevice(config.phys_device, &ci, nullptr, &device);
+	if(result != VK_SUCCESS)
+		return ERROR("Error during vkCreateDevice: 0x%x", stdFormat("%x", result));
+
+	vector<VkQueue> queues;
+	queues.reserve(config.queues.size());
+	for(auto &queue_def : config.queues) {
+		for(int i : intRange(queue_def.count)) {
+			VkQueue queue = nullptr;
+			vkGetDeviceQueue(device, queue_def.family_id, i, &queue);
+			queues.emplace_back(queue);
+		}
+	}
+
+	return VulkanDevice(device, move(queues), physicalDeviceInfo(config.phys_device));
 }
-
-void clearColor(IColor col) { clearColor(FColor(col)); }
-
-void clearDepth(float value) {
-	glClearDepth(value);
-	glDepthMask(1);
-	glClear(GL_DEPTH_BUFFER_BIT);
-}*/
 }

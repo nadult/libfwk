@@ -10,6 +10,7 @@
 #include <fwk/gfx/shader_compiler.h>
 #include <fwk/gfx/vulkan_device.h>
 #include <fwk/gfx/vulkan_instance.h>
+#include <fwk/gfx/vulkan_window.h>
 #include <fwk/io/file_system.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
@@ -39,11 +40,11 @@ void main() {
 }
 )";
 
-bool mainLoop(VulkanDevice &device, void *font_ptr) {
+bool mainLoop(VulkanWindow &window, void *font_ptr) {
 	Font &font = *(Font *)font_ptr;
-	static vector<float2> positions(15, float2(device.windowSize() / 2));
+	static vector<float2> positions(15, float2(window.size() / 2));
 
-	for(auto &event : device.inputEvents()) {
+	for(auto &event : window.inputEvents()) {
 		if(event.keyDown(InputKey::esc) || event.type() == InputEventType::quit)
 			return false;
 
@@ -79,33 +80,48 @@ string fontPath() {
 	return findDefaultSystemFont().get().file_path;
 }
 
-int main(int argc, char **argv) {
+Ex<int> exMain() {
 	double time = getTime();
 
-	VulkanInstance vinstance;
+	VulkanInstance instance;
 	{
 		VulkanInstanceConfig config;
 		config.debug_levels = VDebugLevel::warning | VDebugLevel::error;
 		config.debug_types = all<VDebugType>;
-		vinstance.initialize(config).check();
+		instance.initialize(config).check();
 	}
 
+	// TODO: making sure that shaderc_shared.dll is available
 	ShaderCompiler compiler;
 	auto vsh_compiled = compiler.compile(ShaderType::vertex, vertex_shader);
 	auto fsh_compled = compiler.compile(ShaderType::fragment, fragment_shader);
 
-	VulkanDevice vdevice;
-	auto display_rects = vdevice.displayRects();
-	if(!display_rects)
-		FWK_FATAL("No display available");
-	int2 res = display_rects[0].size() / 2;
-	auto flags = VDeviceFlag::resizable | VDeviceFlag::vsync | VDeviceFlag::validation |
-				 VDeviceFlag::centered | VDeviceFlag::allow_hidpi;
-	vdevice.createWindow("fwk::vulkan_test", IRect(res), {flags});
+	auto flags = VWindowFlag::resizable | VWindowFlag::vsync | VWindowFlag::centered |
+				 VWindowFlag::allow_hidpi;
+	auto window = EX_PASS(construct<VulkanWindow>("fwk::vulkan_test", IRect(0, 0, 1280, 720),
+												  VulkanWindowConfig{flags}));
 
-	int font_size = 16 * vdevice.windowDpiScale();
+	auto pref_device = instance.preferredDevice(window.surfaceHandle());
+	if(!pref_device)
+		return ERROR("Coudln't find a suitable Vulkan device");
+	auto device = EX_PASS(instance.makeDevice(*pref_device));
+
+	EXPECT(window.createSwapChain(device));
+
+	int font_size = 16 * window.dpiScale();
 	//auto font = FontFactory().makeFont(fontPath(), font_size);
-	vdevice.runMainLoop(mainLoop, nullptr); //&font.get());
+	window.runMainLoop(mainLoop, nullptr); //&font.get());
+
+	window.destroySwapChain();
 
 	return 0;
+}
+
+int main(int argc, char **argv) {
+	auto result = exMain();
+	if(!result) {
+		result.error().print();
+		return 1;
+	}
+	return *result;
 }
