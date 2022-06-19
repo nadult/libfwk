@@ -29,60 +29,38 @@
 
 namespace fwk {
 
-static void reportSDLError(const char *func_name) {
-	FATAL("Error on %s: %s", func_name, SDL_GetError());
-}
-
-struct VulkanWindow::InputImpl {
-	InputState state;
-	vector<InputEvent> events;
-	SDLKeyMap key_map;
-};
-
 struct VulkanWindow::Impl {
-	~Impl() {
-		destroySwapChain();
-		if(surface)
-			vkDestroySurfaceKHR(instance, surface, nullptr);
-		SDL_DestroyWindow(window);
-	}
-
-	void destroySwapChain() {
-		for(auto view : swap_chain_image_views)
-			vkDestroyImageView(device, view, nullptr);
-		swap_chain_image_views.clear();
-		if(swap_chain)
-			vkDestroySwapchainKHR(device, swap_chain, nullptr);
-		swap_chain = 0;
-	}
-
 	Config config;
 	SDL_Window *window = nullptr;
-	VkInstance instance = 0;
-	VkDevice device = 0;
-	VkQueue queue = 0;
-	VkSurfaceKHR surface = 0;
-
-	VkSwapchainKHR swap_chain = 0;
-	vector<VkImage> swap_chain_images;
-	vector<VkImageView> swap_chain_image_views;
-	VkFormat swap_chain_format;
-	VkExtent2D swap_chain_extent;
+	SDLKeyMap key_map;
+	InputState input_state;
+	VkSurfaceKHR surface_handle = 0;
+	vector<InputEvent> input_events;
+	double last_time = -1.0;
+	double frame_time = 0.0;
 };
 
-VulkanWindow::VulkanWindow() {
-	m_input_impl.emplace();
-	m_last_time = -1.0;
-	m_frame_time = 0.0;
+VulkanWindow::VulkanWindow() { m_impl.emplace(); }
+VulkanWindow::~VulkanWindow() {
+	auto &vulkan = VulkanInstance::instance();
+	if(m_swap_chain) {
+		auto device_handle = vulkan[m_swap_chain->device_id].handle;
+		for(auto view : m_swap_chain->image_views)
+			vkDestroyImageView(device_handle, view, nullptr);
+		vkDestroySwapchainKHR(device_handle, m_swap_chain->handle, nullptr);
+	}
+	if(m_impl) {
+		if(m_impl->surface_handle)
+			vkDestroySurfaceKHR(vulkan.handle(), m_impl->surface_handle, nullptr);
+		if(m_impl->window)
+			SDL_DestroyWindow(m_impl->window);
+	}
 }
-
-VulkanWindow::~VulkanWindow() = default;
 
 FWK_MOVE_ASSIGN_RECONSTRUCT(VulkanWindow);
 
 VulkanWindow::VulkanWindow(VulkanWindow &&rhs)
-	: m_impl(move(rhs.m_impl)), m_input_impl(move(rhs.m_input_impl)), m_last_time(rhs.m_last_time),
-	  m_frame_time(rhs.m_frame_time) {}
+	: m_impl(move(rhs.m_impl)), m_swap_chain(move(rhs.m_swap_chain)) {}
 
 Ex<void> VulkanWindow::exConstruct(ZStr title, IRect rect, Config config) {
 	m_impl.emplace();
@@ -111,64 +89,66 @@ Ex<void> VulkanWindow::exConstruct(ZStr title, IRect rect, Config config) {
 		//SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, *config.multisampling);
 	}*/
 
+	m_impl->config = config;
 	m_impl->window = SDL_CreateWindow(title.c_str(), pos.x, pos.y, size.x, size.y, sdl_flags);
 	if(!m_impl->window)
-		reportSDLError("SDL_CreateWindow");
+		return ERROR("SDL_CreateWindow failed: %", SDL_GetError());
 
 	ASSERT("VulkanInstance must be created before creating VulkanWindow" &&
 		   VulkanInstance::isPresent());
-	auto &vinstance = VulkanInstance::instance();
-	m_impl->instance = vinstance.handle();
-
-	if(!SDL_Vulkan_CreateSurface(m_impl->window, m_impl->instance, &m_impl->surface))
+	auto &vulkan = VulkanInstance::instance();
+	VkSurfaceKHR handle;
+	if(!SDL_Vulkan_CreateSurface(m_impl->window, vulkan.handle(), &handle))
 		return ERROR("SDL_Vulkan_CreateSurface failed: %", SDL_GetError());
+	m_impl->surface_handle = handle;
+
 	return {};
 }
 
 Ex<void> VulkanWindow::createSwapChain(VDeviceId device_id) {
 	ASSERT(VulkanInstance::isPresent());
-	EXPECT(m_impl && m_impl->surface);
-	auto &instance = VulkanInstance::instance();
-	auto &device_info = instance[device_id];
-	auto &phys_info = instance[device_info.physical_device_id];
-	auto swap_chain_info = phys_info.swapChainInfo(m_impl->surface);
-	ASSERT(!swap_chain_info.formats.empty());
-	ASSERT(!swap_chain_info.present_modes.empty());
-	m_impl->device = device_info.handle;
+	EXPECT(m_impl->surface_handle);
 
+	auto &vulkan = VulkanInstance::instance();
+	auto &device_info = vulkan[device_id];
+	auto surf_dev_info = surfaceDeviceInfo(device_info.physical_device_id);
+	EXPECT(surf_dev_info.formats && surf_dev_info.present_modes);
+
+	VkSwapchainKHR handle;
 	VkSwapchainCreateInfoKHR ci{};
 	ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	ci.surface = m_impl->surface;
+	ci.surface = m_impl->surface_handle;
 	ci.minImageCount = 2;
-	ci.imageFormat = swap_chain_info.formats[0].format;
-	ci.imageColorSpace = swap_chain_info.formats[0].colorSpace;
-	ci.imageExtent = swap_chain_info.caps.currentExtent;
+	ci.imageFormat = surf_dev_info.formats[0].format;
+	ci.imageColorSpace = surf_dev_info.formats[0].colorSpace;
+	ci.imageExtent = surf_dev_info.capabilities.currentExtent;
 	ci.imageArrayLayers = 1;
 	ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	ci.preTransform = swap_chain_info.caps.currentTransform;
+	ci.preTransform = surf_dev_info.capabilities.currentTransform;
 	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	ci.clipped = VK_TRUE;
-	ci.presentMode = swap_chain_info.present_modes[0];
+	ci.presentMode = surf_dev_info.present_modes[0];
 
 	// TODO: separate class for swap chain ?
-	if(vkCreateSwapchainKHR(device_info.handle, &ci, nullptr, &m_impl->swap_chain) != VK_SUCCESS)
+	if(vkCreateSwapchainKHR(device_info.handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		FATAL("Error when creating swap chain");
 
-	uint num_images = 0;
-	vkGetSwapchainImagesKHR(device_info.handle, m_impl->swap_chain, &num_images, nullptr);
-	m_impl->swap_chain_images.resize(num_images);
-	vkGetSwapchainImagesKHR(device_info.handle, m_impl->swap_chain, &num_images,
-							m_impl->swap_chain_images.data());
-	m_impl->swap_chain_format = ci.imageFormat;
-	m_impl->swap_chain_extent = ci.imageExtent;
+	VulkanSwapChainInfo info{handle, device_id};
 
-	m_impl->swap_chain_image_views.reserve(num_images);
-	for(int i : intRange(m_impl->swap_chain_images)) {
+	uint num_images = 0;
+	vkGetSwapchainImagesKHR(device_info.handle, info.handle, &num_images, nullptr);
+	info.images.resize(num_images);
+	vkGetSwapchainImagesKHR(device_info.handle, info.handle, &num_images, info.images.data());
+	info.format = ci.imageFormat;
+	info.extent = ci.imageExtent;
+
+	info.image_views.reserve(num_images);
+	for(int i : intRange(info.images)) {
 		VkImageViewCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		ci.image = m_impl->swap_chain_images[i];
+		ci.image = info.images[i];
 		ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		ci.format = m_impl->swap_chain_format;
+		ci.format = info.format;
 		ci.components.a = ci.components.b = ci.components.g = ci.components.r =
 			VK_COMPONENT_SWIZZLE_IDENTITY;
 		ci.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -178,13 +158,34 @@ Ex<void> VulkanWindow::createSwapChain(VDeviceId device_id) {
 							   .layerCount = 1};
 		VkImageView view;
 		vkCreateImageView(device_info.handle, &ci, nullptr, &view);
-		m_impl->swap_chain_image_views.emplace_back(view);
+		info.image_views.emplace_back(view);
 	}
 
+	m_swap_chain = move(info);
 	return {};
 }
 
-VkSurfaceKHR VulkanWindow::surfaceHandle() { return m_impl->surface; }
+VkSurfaceKHR VulkanWindow::surfaceHandle() const { return m_impl->surface_handle; }
+
+VulkanSurfaceDeviceInfo VulkanWindow::surfaceDeviceInfo(VPhysicalDeviceId device_id) const {
+	auto &vulkan = VulkanInstance::instance();
+	auto phys_device = vulkan[device_id].handle;
+	auto surface = m_impl->surface_handle;
+
+	VulkanSurfaceDeviceInfo out;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, surface, &out.capabilities);
+	uint count = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, surface, &count, nullptr);
+	out.formats.resize(count);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, surface, &count, out.formats.data());
+
+	count = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, surface, &count, nullptr);
+	out.present_modes.resize(count);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, surface, &count,
+											  out.present_modes.data());
+	return out;
+}
 
 vector<IRect> VulkanWindow::displayRects() const {
 	int count = SDL_GetNumVideoDisplays();
@@ -331,8 +332,8 @@ int2 VulkanWindow::size() const {
 }
 
 bool VulkanWindow::pollEvents() {
-	m_input_impl->events = m_input_impl->state.pollEvents(m_input_impl->key_map, m_impl->window);
-	for(const auto &event : m_input_impl->events)
+	m_impl->input_events = m_impl->input_state.pollEvents(m_impl->key_map, m_impl->window);
+	for(const auto &event : m_impl->input_events)
 		if(event.type() == InputEventType::quit)
 			return false;
 	return true;
@@ -344,8 +345,8 @@ void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 	m_main_loop_stack.emplace_back(main_loop_func, arg);
 	while(pollEvents()) {
 		double time = getTime();
-		m_frame_time = m_last_time < 0.0 ? 0.0 : time - m_last_time;
-		m_last_time = time;
+		m_impl->frame_time = m_impl->last_time < 0.0 ? 0.0 : time - m_impl->last_time;
+		m_impl->last_time = time;
 
 		if(!main_loop_func(*this, arg))
 			break;
@@ -361,6 +362,7 @@ void VulkanWindow::grabMouse(bool grab) {
 
 void VulkanWindow::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
 
-const InputState &VulkanWindow::inputState() const { return m_input_impl->state; }
-const vector<InputEvent> &VulkanWindow::inputEvents() const { return m_input_impl->events; }
+double VulkanWindow::frameTime() const { return m_impl->frame_time; }
+const InputState &VulkanWindow::inputState() const { return m_impl->input_state; }
+const vector<InputEvent> &VulkanWindow::inputEvents() const { return m_impl->input_events; }
 }

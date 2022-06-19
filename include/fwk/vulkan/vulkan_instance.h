@@ -48,18 +48,11 @@ struct VulkanInstanceSetup {
 	VDebugLevels debug_levels = none;
 };
 
-struct VulkanSwapChainInfo {
-	VkSurfaceCapabilitiesKHR caps;
-	vector<VkSurfaceFormatKHR> formats;
-	vector<VkPresentModeKHR> present_modes;
-};
-
 struct VulkanPhysicalDeviceInfo {
 	// Returned queues are ordered in all find functions
 	vector<VQueueFamilyId> findQueues(VQueueFlags) const;
 	vector<VQueueFamilyId> findPresentableQueues(VkSurfaceKHR) const;
 
-	VulkanSwapChainInfo swapChainInfo(VkSurfaceKHR) const;
 	double defaultScore() const;
 
 	VkPhysicalDevice handle;

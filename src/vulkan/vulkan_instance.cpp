@@ -69,21 +69,6 @@ vector<string> VulkanInstance::availableLayers() {
 	return out;
 }
 
-VulkanSwapChainInfo VulkanPhysicalDeviceInfo::swapChainInfo(VkSurfaceKHR surface) const {
-	VulkanSwapChainInfo out;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(handle, surface, &out.caps);
-	uint count = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(handle, surface, &count, nullptr);
-	out.formats.resize(count);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(handle, surface, &count, out.formats.data());
-
-	count = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(handle, surface, &count, nullptr);
-	out.present_modes.resize(count);
-	vkGetPhysicalDeviceSurfacePresentModesKHR(handle, surface, &count, out.present_modes.data());
-	return out;
-}
-
 double VulkanPhysicalDeviceInfo::defaultScore() const {
 	double score = 0.0;
 	if(findQueues(VQueueFlag::graphics))

@@ -5,6 +5,8 @@
 
 // TODO: cleanup in includes
 
+#include "vulkan/vulkan.h"
+
 #include "fwk/dynamic.h"
 #include "fwk/enum_flags.h"
 #include "fwk/gfx_base.h"
@@ -27,6 +29,21 @@ struct VulkanWindowConfig {
 	VWindowFlags flags;
 };
 
+struct VulkanSurfaceDeviceInfo {
+	VkSurfaceCapabilitiesKHR capabilities;
+	vector<VkSurfaceFormatKHR> formats;
+	vector<VkPresentModeKHR> present_modes;
+};
+
+struct VulkanSwapChainInfo {
+	VkSwapchainKHR handle;
+	VDeviceId device_id;
+	vector<VkImage> images;
+	vector<VkImageView> image_views;
+	VkFormat format;
+	VkExtent2D extent;
+};
+
 class VulkanWindow {
   public:
 	using Flag = VWindowFlag;
@@ -39,7 +56,9 @@ class VulkanWindow {
 	Ex<void> exConstruct(ZStr title, IRect rect, Config);
 	Ex<void> createSwapChain(VDeviceId);
 
-	VkSurfaceKHR surfaceHandle();
+	VkSurfaceKHR surfaceHandle() const;
+	VulkanSurfaceDeviceInfo surfaceDeviceInfo(VPhysicalDeviceId) const;
+	const VulkanSwapChainInfo &swapChain() const { return *m_swap_chain; }
 
 	vector<IRect> displayRects() const;
 	vector<float> displayDpiScales() const;
@@ -67,7 +86,7 @@ class VulkanWindow {
 	bool isFullscreen() const;
 	bool isMaximized() const;
 
-	double frameTime() const { return m_frame_time; }
+	double frameTime() const;
 
 	void grabMouse(bool);
 	void showCursor(bool);
@@ -85,9 +104,6 @@ class VulkanWindow {
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
-
-	struct InputImpl;
-	Dynamic<InputImpl> m_input_impl;
-	double m_last_time, m_frame_time;
+	Dynamic<VulkanSwapChainInfo> m_swap_chain;
 };
 }
