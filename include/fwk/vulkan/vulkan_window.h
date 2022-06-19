@@ -7,11 +7,11 @@
 
 #include "fwk/dynamic.h"
 #include "fwk/enum_flags.h"
-#include "fwk/gfx/vulkan_instance.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
 #include "fwk/str.h"
 #include "fwk/vector.h"
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 
@@ -37,8 +37,7 @@ class VulkanWindow {
 	FWK_MOVABLE_CLASS(VulkanWindow);
 
 	Ex<void> exConstruct(ZStr title, IRect rect, Config);
-	Ex<void> createSwapChain(VulkanDevice &);
-	void destroySwapChain();
+	Ex<void> createSwapChain(VDeviceId);
 
 	VkSurfaceKHR surfaceHandle();
 

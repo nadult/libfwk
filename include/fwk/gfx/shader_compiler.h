@@ -4,8 +4,8 @@
 #pragma once
 
 #include "fwk/gfx/gl_shader.h"
-#include "fwk/gfx/vulkan_instance.h"
 #include "fwk/vector.h"
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 

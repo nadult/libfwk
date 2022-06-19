@@ -3,6 +3,7 @@
 
 #include "fwk/gfx/shader_compiler.h"
 
+#include "fwk/enum_map.h"
 #include "shaderc/shaderc.h"
 
 namespace fwk {

@@ -10,7 +10,10 @@
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
 #include "fwk/gfx_base.h"
+#include "fwk/index_range.h"
+#include "fwk/sparse_vector.h"
 #include "fwk/vector.h"
+#include "fwk/vulkan_base.h"
 #include <vulkan/vulkan.h>
 
 namespace fwk {
@@ -27,12 +30,6 @@ DEFINE_ENUM(VFeature, vertex_array_object, debug, copy_image, separate_shader_ob
 			texture_s3tc, texture_filter_anisotropic, timer_query);
 using VFeatures = EnumFlags<VFeature>;
 
-// TODO: rename to GlMax
-DEFINE_ENUM(VLimit, max_elements_indices, max_elements_vertices, max_uniform_block_size,
-			max_texture_size, max_texture_3d_size, max_texture_buffer_size, max_texture_anisotropy,
-			max_texture_units, max_uniform_locations, max_ssbo_bindings, max_compute_ssbo,
-			max_compute_work_group_invocations, max_samples);
-
 DEFINE_ENUM(VDebugLevel, verbose, info, warning, error);
 DEFINE_ENUM(VDebugType, general, validation, performance);
 
@@ -42,11 +39,7 @@ using VQueueFlags = EnumFlags<VQueueFlag>;
 using VDebugLevels = EnumFlags<VDebugLevel>;
 using VDebugTypes = EnumFlags<VDebugType>;
 
-struct VulkanVersion {
-	int major, minor, patch;
-};
-
-struct VulkanInstanceConfig {
+struct VulkanInstanceSetup {
 	vector<string> extensions;
 	vector<string> layers;
 
@@ -54,8 +47,6 @@ struct VulkanInstanceConfig {
 	VDebugTypes debug_types = none;
 	VDebugLevels debug_levels = none;
 };
-
-class VulkanDevice;
 
 struct VulkanSwapChainInfo {
 	VkSurfaceCapabilitiesKHR caps;
@@ -65,8 +56,8 @@ struct VulkanSwapChainInfo {
 
 struct VulkanPhysicalDeviceInfo {
 	// Returned queues are ordered in all find functions
-	vector<uint> findQueues(VQueueFlags) const;
-	vector<uint> findPresentableQueues(VkSurfaceKHR) const;
+	vector<VQueueFamilyId> findQueues(VQueueFlags) const;
+	vector<VQueueFamilyId> findPresentableQueues(VkSurfaceKHR) const;
 
 	VulkanSwapChainInfo swapChainInfo(VkSurfaceKHR) const;
 	double defaultScore() const;
@@ -77,21 +68,29 @@ struct VulkanPhysicalDeviceInfo {
 	vector<string> extensions;
 };
 
-struct VulkanDeviceConfig {
-	VkPhysicalDevice phys_device;
-	vector<string> extensions;
+struct VulkanQueueSetup {
+	VQueueFamilyId family_id;
+	int count;
+};
 
-	struct QueueConfig {
-		uint family_id;
-		int count;
-	};
-	vector<QueueConfig> queues;
+struct VulkanDeviceSetup {
+	vector<string> extensions;
+	vector<VulkanQueueSetup> queues;
 	Dynamic<VkPhysicalDeviceFeatures> features;
+};
+
+struct VulkanDeviceInfo {
+	VkDevice handle;
+	VPhysicalDeviceId physical_device_id;
+	vector<VkQueue> queues;
 };
 
 // Only single VulkanInstance can be created
 class VulkanInstance {
   public:
+	using DeviceInfo = VulkanDeviceInfo;
+	using PhysicalDeviceInfo = VulkanPhysicalDeviceInfo;
+
 	VulkanInstance();
 	~VulkanInstance();
 	VulkanInstance(const VulkanInstance &) = delete;
@@ -100,19 +99,30 @@ class VulkanInstance {
 	static vector<string> availableExtensions();
 	static vector<string> availableLayers();
 
-	static VulkanInstance *instance();
-	Ex<void> initialize(VulkanInstanceConfig);
+	static bool isPresent();
+	static VulkanInstance &instance();
+	Ex<void> initialize(const VulkanInstanceSetup &);
 
-	VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice) const;
-	vector<VulkanPhysicalDeviceInfo> physicalDeviceInfos() const;
+	bool valid(VDeviceId) const;
+	bool valid(VPhysicalDeviceId) const;
 
-	Maybe<VulkanDeviceConfig> preferredDevice(VkSurfaceKHR target_surface) const;
-	Ex<VulkanDevice> makeDevice(const VulkanDeviceConfig &);
+	const DeviceInfo &operator[](VDeviceId id) const;
+	const PhysicalDeviceInfo &operator[](VPhysicalDeviceId id) const;
+
+	vector<VDeviceId> deviceIds() const;
+	SimpleIndexRange<VPhysicalDeviceId> physicalDeviceIds() const;
+
+	Maybe<VPhysicalDeviceId> preferredDevice(VkSurfaceKHR target_surface,
+											 vector<VulkanQueueSetup> * = nullptr) const;
+	Ex<VDeviceId> createDevice(VPhysicalDeviceId, const VulkanDeviceSetup &);
+	void destroyDevice(VDeviceId);
 
 	VkInstance handle() { return m_handle; }
 
   private:
 	VkInstance m_handle;
+	vector<PhysicalDeviceInfo> m_phys_devices;
+	SparseVector<DeviceInfo> m_devices;
 	VkDebugUtilsMessengerEXT m_messenger;
 };
 

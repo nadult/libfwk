@@ -8,12 +8,11 @@
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/gfx/shader_compiler.h>
-#include <fwk/gfx/vulkan_device.h>
-#include <fwk/gfx/vulkan_instance.h>
-#include <fwk/gfx/vulkan_window.h>
 #include <fwk/io/file_system.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
+#include <fwk/vulkan/vulkan_instance.h>
+#include <fwk/vulkan/vulkan_window.h>
 
 using namespace fwk;
 
@@ -85,10 +84,10 @@ Ex<int> exMain() {
 
 	VulkanInstance instance;
 	{
-		VulkanInstanceConfig config;
-		config.debug_levels = VDebugLevel::warning | VDebugLevel::error;
-		config.debug_types = all<VDebugType>;
-		instance.initialize(config).check();
+		VulkanInstanceSetup setup;
+		setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
+		setup.debug_types = all<VDebugType>;
+		EXPECT(instance.initialize(setup));
 	}
 
 	// TODO: making sure that shaderc_shared.dll is available
@@ -101,18 +100,18 @@ Ex<int> exMain() {
 	auto window = EX_PASS(construct<VulkanWindow>("fwk::vulkan_test", IRect(0, 0, 1280, 720),
 												  VulkanWindowConfig{flags}));
 
-	auto pref_device = instance.preferredDevice(window.surfaceHandle());
-	if(!pref_device)
-		return ERROR("Coudln't find a suitable Vulkan device");
-	auto device = EX_PASS(instance.makeDevice(*pref_device));
-
-	EXPECT(window.createSwapChain(device));
+	{
+		VulkanDeviceSetup setup;
+		auto pref_device = instance.preferredDevice(window.surfaceHandle(), &setup.queues);
+		if(!pref_device)
+			return ERROR("Coudln't find a suitable Vulkan device");
+		auto device_id = EX_PASS(instance.createDevice(*pref_device, setup));
+		EXPECT(window.createSwapChain(device_id));
+	}
 
 	int font_size = 16 * window.dpiScale();
 	//auto font = FontFactory().makeFont(fontPath(), font_size);
 	window.runMainLoop(mainLoop, nullptr); //&font.get());
-
-	window.destroySwapChain();
 
 	return 0;
 }

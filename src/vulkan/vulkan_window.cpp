@@ -8,19 +8,18 @@
 #include "../sys/windows.h"
 #endif
 
-#include "fwk/gfx/vulkan_window.h"
+#include "fwk/vulkan/vulkan_window.h"
 
 #include "fwk/format.h"
 #include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/gl_ref.h"
-#include "fwk/gfx/vulkan_device.h"
-#include "fwk/gfx/vulkan_instance.h"
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
 #include "fwk/math/box.h"
 #include "fwk/sys/expected.h"
 #include "fwk/sys/input.h"
 #include "fwk/sys/thread.h"
+#include "fwk/vulkan/vulkan_instance.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 #include <SDL2/SDL_video.h>
@@ -42,6 +41,7 @@ struct VulkanWindow::InputImpl {
 
 struct VulkanWindow::Impl {
 	~Impl() {
+		destroySwapChain();
 		if(surface)
 			vkDestroySurfaceKHR(instance, surface, nullptr);
 		SDL_DestroyWindow(window);
@@ -115,22 +115,26 @@ Ex<void> VulkanWindow::exConstruct(ZStr title, IRect rect, Config config) {
 	if(!m_impl->window)
 		reportSDLError("SDL_CreateWindow");
 
-	auto *vinstance = VulkanInstance::instance();
-	ASSERT("VulkanInstance must be created before creating VulkanDevice" && vinstance);
-	m_impl->instance = vinstance->handle();
+	ASSERT("VulkanInstance must be created before creating VulkanWindow" &&
+		   VulkanInstance::isPresent());
+	auto &vinstance = VulkanInstance::instance();
+	m_impl->instance = vinstance.handle();
 
 	if(!SDL_Vulkan_CreateSurface(m_impl->window, m_impl->instance, &m_impl->surface))
 		return ERROR("SDL_Vulkan_CreateSurface failed: %", SDL_GetError());
 	return {};
 }
 
-Ex<void> VulkanWindow::createSwapChain(VulkanDevice &device) {
+Ex<void> VulkanWindow::createSwapChain(VDeviceId device_id) {
+	ASSERT(VulkanInstance::isPresent());
 	EXPECT(m_impl && m_impl->surface);
-	const auto &phys_info = device.physicalDeviceInfo();
-	auto swap_chain_info = device.physicalDeviceInfo().swapChainInfo(m_impl->surface);
+	auto &instance = VulkanInstance::instance();
+	auto &device_info = instance[device_id];
+	auto &phys_info = instance[device_info.physical_device_id];
+	auto swap_chain_info = phys_info.swapChainInfo(m_impl->surface);
 	ASSERT(!swap_chain_info.formats.empty());
 	ASSERT(!swap_chain_info.present_modes.empty());
-	m_impl->device = device.handle();
+	m_impl->device = device_info.handle;
 
 	VkSwapchainCreateInfoKHR ci{};
 	ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -147,13 +151,13 @@ Ex<void> VulkanWindow::createSwapChain(VulkanDevice &device) {
 	ci.presentMode = swap_chain_info.present_modes[0];
 
 	// TODO: separate class for swap chain ?
-	if(vkCreateSwapchainKHR(device.handle(), &ci, nullptr, &m_impl->swap_chain) != VK_SUCCESS)
+	if(vkCreateSwapchainKHR(device_info.handle, &ci, nullptr, &m_impl->swap_chain) != VK_SUCCESS)
 		FATAL("Error when creating swap chain");
 
 	uint num_images = 0;
-	vkGetSwapchainImagesKHR(device.handle(), m_impl->swap_chain, &num_images, nullptr);
+	vkGetSwapchainImagesKHR(device_info.handle, m_impl->swap_chain, &num_images, nullptr);
 	m_impl->swap_chain_images.resize(num_images);
-	vkGetSwapchainImagesKHR(device.handle(), m_impl->swap_chain, &num_images,
+	vkGetSwapchainImagesKHR(device_info.handle, m_impl->swap_chain, &num_images,
 							m_impl->swap_chain_images.data());
 	m_impl->swap_chain_format = ci.imageFormat;
 	m_impl->swap_chain_extent = ci.imageExtent;
@@ -173,17 +177,11 @@ Ex<void> VulkanWindow::createSwapChain(VulkanDevice &device) {
 							   .baseArrayLayer = 0,
 							   .layerCount = 1};
 		VkImageView view;
-		vkCreateImageView(device.handle(), &ci, nullptr, &view);
+		vkCreateImageView(device_info.handle, &ci, nullptr, &view);
 		m_impl->swap_chain_image_views.emplace_back(view);
 	}
 
 	return {};
-}
-
-void VulkanWindow::destroySwapChain() {
-	if(!m_impl)
-		return;
-	m_impl->destroySwapChain();
 }
 
 VkSurfaceKHR VulkanWindow::surfaceHandle() { return m_impl->surface; }

@@ -64,143 +64,20 @@
     <Filter Include="src\gui">
       <UniqueIdentifier>{8c14b674-e26a-4018-8aa5-5435afc98459}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\vulkan">
+      <UniqueIdentifier>{71cc770b-1fb8-4377-aab8-1ebb37c3db84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\vulkan">
+      <UniqueIdentifier>{9df24012-03b6-4b44-913c-3122ab5efe07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\common">
+      <UniqueIdentifier>{975ee2a6-13f8-4a15-80b0-fc9550cccf82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\common">
+      <UniqueIdentifier>{6afc8e04-5495-45c6-8958-a05b688a9a41}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\fwk_pch.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\algorithm.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\any.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\any_config.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\array.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\audio_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\base_vector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\bit_vector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\dynamic.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\enum.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\enum_flags.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\enum_map.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\format.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\fwd_member.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\geom_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\hash_map.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\hash_map_stats.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\hash_map_storage.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\hash_set.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\heap.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\index_range.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\light_tuple.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\list_node.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\logger.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\math_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\maybe.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\maybe_ref.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\meta_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\parse.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\perf_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\pod_vector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\small_vector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\span.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\sparse_span.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\sparse_vector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\static_vector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\str.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\sys_base.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\tag_id.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\type_info.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\type_info_gen.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\variant.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\vector.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\vector_map.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\sys\assert.h">
       <Filter>include\sys</Filter>
     </ClInclude>
@@ -633,20 +510,155 @@
     <ClInclude Include="..\include\fwk\gui\widgets.h">
       <Filter>include\gui</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\vulkan_device.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\vulkan_instance.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\shader_compiler.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\vulkan_shader.h">
-      <Filter>include\gfx</Filter>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_window.h">
+      <Filter>include\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\vulkan_window.h">
-      <Filter>include\gfx</Filter>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_shader.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_instance.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\algorithm.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\any.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\any_config.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\array.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\audio_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\base_vector.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\bit_vector.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\dynamic.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\enum.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\enum_flags.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\enum_map.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\format.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\fwd_member.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\geom_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\gfx_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\hash_map.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\hash_map_stats.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\hash_map_storage.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\hash_set.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\heap.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\index_range.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\light_tuple.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\list_node.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\logger.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\math_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\maybe.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\maybe_ref.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\meta_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\parse.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\perf_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\pod_vector.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\small_vector.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\span.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\sparse_span.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\sparse_vector.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\static_vector.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\str.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\sys_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\tag_id.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\type_info.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\type_info_gen.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\variant.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vector.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vector_map.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan_base.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\fwk_pch.h">
+      <Filter>src\common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -971,48 +983,6 @@
     <ClCompile Include="..\src\sys\thread.cpp">
       <Filter>src\sys</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\any.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\any_config.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\base_vector.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\bit_vector.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\enum.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\format.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\geom_base.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\hash_map_stats.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\html_pre_include.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\logger.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\parse.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\str.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\sys_base.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\type_info.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\math\affine_trans.cpp">
       <Filter>src\math</Filter>
     </ClCompile>
@@ -1094,20 +1064,59 @@
     <ClCompile Include="..\src\gui\popups.cpp">
       <Filter>src\gui</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\vulkan_device.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\vulkan_instance.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\gfx\shader_compiler.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\vulkan_shader.cpp">
-      <Filter>src\gfx</Filter>
+    <ClCompile Include="..\src\vulkan\vulkan_instance.cpp">
+      <Filter>src\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\vulkan_window.cpp">
-      <Filter>src\gfx</Filter>
+    <ClCompile Include="..\src\vulkan\vulkan_window.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_shader.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\any.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\any_config.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\base_vector.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\bit_vector.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\enum.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\format.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\geom_base.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\hash_map_stats.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\html_pre_include.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\logger.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\parse.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\str.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sys_base.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\type_info.cpp">
+      <Filter>src\common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
