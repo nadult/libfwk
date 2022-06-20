@@ -298,6 +298,113 @@ void destroyGraphicsPipeline(VkDevice device_handle, Pipeline &pipeline) {
 	vkDestroyPipelineLayout(device_handle, pipeline.pipelineLayout, nullptr);
 }
 
+struct Framebuffers {
+	vector<VkFramebuffer> swapChainFramebuffers;
+};
+
+Ex<Framebuffers> createFramebuffers(VkDevice handle_device, const VulkanSwapChainInfo &swap_chain,
+									const Pipeline &pipeline) {
+	Framebuffers out;
+	out.swapChainFramebuffers.resize(swap_chain.images.size());
+
+	for(size_t i = 0; i < swap_chain.image_views.size(); i++) {
+		VkImageView attachments[] = {swap_chain.image_views[i]};
+
+		VkFramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = pipeline.renderPass;
+		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.pAttachments = attachments;
+		framebufferInfo.width = swap_chain.extent.width;
+		framebufferInfo.height = swap_chain.extent.height;
+		framebufferInfo.layers = 1;
+
+		if(vkCreateFramebuffer(handle_device, &framebufferInfo, nullptr,
+							   &out.swapChainFramebuffers[i]) != VK_SUCCESS) {
+			return ERROR("vkCreateFramebuffer failed");
+		}
+	}
+
+	return out;
+}
+
+void destroyFramebuffers(VkDevice device_handle, Framebuffers &fbs) {
+	for(auto fb : fbs.swapChainFramebuffers)
+		vkDestroyFramebuffer(device_handle, fb, nullptr);
+	fbs.swapChainFramebuffers.clear();
+}
+
+struct CommandBuffers {
+	VkCommandPool pool;
+	VkCommandBuffer buffer;
+};
+
+Ex<CommandBuffers> createCommandBuffers(VDeviceId device_id) {
+	CommandBuffers out;
+
+	auto &vulkan = VulkanInstance::instance();
+	auto &device_info = vulkan[device_id];
+
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = device_info.queues[0].second;
+	if(vkCreateCommandPool(device_info.handle, &poolInfo, nullptr, &out.pool) != VK_SUCCESS) {
+		return ERROR("vkCreateCommandPool failed");
+	}
+
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = out.pool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = 1;
+
+	if(vkAllocateCommandBuffers(device_info.handle, &allocInfo, &out.buffer) != VK_SUCCESS) {
+		return ERROR("alloc failed");
+	}
+
+	return out;
+}
+
+Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, Pipeline &pipeline, Framebuffers &fbs,
+							 const VulkanSwapChainInfo &swap_chain, uint32_t imageIndex) {
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = 0; // Optional
+	beginInfo.pInheritanceInfo = nullptr; // Optional
+
+	if(vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+		return ERROR("failed begin");
+	}
+
+	VkRenderPassBeginInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = pipeline.renderPass;
+	renderPassInfo.framebuffer = fbs.swapChainFramebuffers[imageIndex];
+	renderPassInfo.renderArea.offset = {0, 0};
+	renderPassInfo.renderArea.extent = swap_chain.extent;
+
+	VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+	renderPassInfo.clearValueCount = 1;
+	renderPassInfo.pClearValues = &clearColor;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.graphicsPipeline);
+
+	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+	vkCmdEndRenderPass(commandBuffer);
+
+	if(vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+		return ERROR("endCOmand failed");
+	}
+
+	return {};
+}
+
+void destroyCommandBuffers(VkDevice device_handle, CommandBuffers &bufs) {
+	vkDestroyCommandPool(device_handle, bufs.pool, nullptr);
+}
+
 Ex<int> exMain() {
 	double time = getTime();
 
@@ -319,15 +426,22 @@ Ex<int> exMain() {
 	if(!pref_device)
 		return ERROR("Coudln't find a suitable Vulkan device");
 	auto device_id = EX_PASS(instance.createDevice(*pref_device, setup));
+	auto device_handle = instance[device_id].handle;
 	EXPECT(window.createSwapChain(device_id));
 
 	auto pipeline = EX_PASS(createPipeline(device_id, window.swapChain()));
+	auto framebuffers = EX_PASS(createFramebuffers(device_handle, window.swapChain(), pipeline));
+	auto cmds = EX_PASS(createCommandBuffers(device_id));
+
+	EXPECT(recordCommandBuffer(cmds.buffer, pipeline, framebuffers, window.swapChain(), 0));
 
 	int font_size = 16 * window.dpiScale();
 	//auto font = FontFactory().makeFont(fontPath(), font_size);
 	window.runMainLoop(mainLoop, nullptr); //&font.get());
 
-	destroyGraphicsPipeline(instance[device_id].handle, pipeline);
+	destroyCommandBuffers(device_handle, cmds);
+	destroyFramebuffers(device_handle, framebuffers);
+	destroyGraphicsPipeline(device_handle, pipeline);
 
 	return 0;
 }

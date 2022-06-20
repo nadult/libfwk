@@ -75,7 +75,8 @@ struct VulkanDeviceSetup {
 struct VulkanDeviceInfo {
 	VkDevice handle;
 	VPhysicalDeviceId physical_device_id;
-	vector<VkQueue> queues;
+	// TODO: signify which queue is for what?
+	vector<Pair<VkQueue, VQueueFamilyId>> queues;
 };
 
 // Only single VulkanInstance can be created

@@ -345,13 +345,13 @@ Ex<VDeviceId> VulkanInstance::createDevice(VPhysicalDeviceId phys_id,
 	if(result != VK_SUCCESS)
 		return ERROR("Error during vkCreateDevice: 0x%x", stdFormat("%x", result));
 
-	vector<VkQueue> queues;
+	vector<Pair<VkQueue, VQueueFamilyId>> queues;
 	queues.reserve(setup.queues.size());
 	for(auto &queue_def : setup.queues) {
 		for(int i : intRange(queue_def.count)) {
 			VkQueue queue = nullptr;
 			vkGetDeviceQueue(device, queue_def.family_id, i, &queue);
-			queues.emplace_back(queue);
+			queues.emplace_back(queue, queue_def.family_id);
 		}
 	}
 
