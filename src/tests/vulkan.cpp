@@ -32,8 +32,17 @@ vec2 positions[3] = vec2[](
 	vec2(-0.5, 0.5)
 );
 
+vec3 colors[3] = vec3[](
+    vec3(1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0)
+);
+
+layout(location = 0) out vec3 fragColor;
+
 void main() {
 	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+	fragColor = colors[gl_VertexIndex];
 }
 )";
 
@@ -41,45 +50,12 @@ const char *fragment_shader = R"(
 #version 450
 
 layout(location = 0) out vec4 outColor;
+layout(location = 0) in vec3 fragColor;
 
 void main() {
-	outColor = vec4(1.0, 0.0, 0.0, 1.0);
+	outColor = vec4(fragColor, 1.0);
 }
 )";
-
-bool mainLoop(VulkanWindow &window, void *font_ptr) {
-	Font &font = *(Font *)font_ptr;
-	static vector<float2> positions(15, float2(window.size() / 2));
-
-	for(auto &event : window.inputEvents()) {
-		if(event.keyDown(InputKey::esc) || event.type() == InputEventType::quit)
-			return false;
-
-		if(event.isMouseOverEvent() && (event.mouseMove() != int2(0, 0)))
-			positions.emplace_back(float2(event.mousePos()));
-	}
-
-	while(positions.size() > 15)
-		positions.erase(positions.begin());
-
-	//clearColor(IColor(50, 0, 50));
-	/*Renderer2D renderer(IRect(VkDevice::instance().windowSize()), Orient2D::y_down);
-
-	for(int n = 0; n < (int)positions.size(); n++) {
-		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
-		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
-		IColor border_color = ColorId::black;
-
-		renderer.addFilledRect(rect, fill_color);
-		renderer.addRect(rect, border_color);
-	}
-
-	auto text = format("Hello world!\nWindow size: %", device.windowSize());
-	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
-	renderer.render();*/
-
-	return true;
-}
 
 string fontPath() {
 	if(platform == Platform::html)
@@ -251,12 +227,22 @@ Ex<Pipeline> createPipeline(VDeviceId device_id, const VulkanSwapChainInfo &swap
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 
+	VkSubpassDependency dependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 	VkRenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = 1;
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies = &dependency;
 
 	if(vkCreateRenderPass(device_handle, &renderPassInfo, nullptr, &out.renderPass) != VK_SUCCESS) {
 		return ERROR("vkCreateRenderPass failed");
@@ -368,6 +354,8 @@ Ex<CommandBuffers> createCommandBuffers(VDeviceId device_id) {
 
 Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, Pipeline &pipeline, Framebuffers &fbs,
 							 const VulkanSwapChainInfo &swap_chain, uint32_t imageIndex) {
+	vkResetCommandBuffer(commandBuffer, 0);
+
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0; // Optional
@@ -405,6 +393,128 @@ void destroyCommandBuffers(VkDevice device_handle, CommandBuffers &bufs) {
 	vkDestroyCommandPool(device_handle, bufs.pool, nullptr);
 }
 
+struct VulkanContext {
+	VDeviceId device_id;
+	VulkanWindow *window;
+	Pipeline pipeline;
+	Framebuffers framebuffers;
+	CommandBuffers commands;
+
+	VkSemaphore imageAvailableSemaphore;
+	VkSemaphore renderFinishedSemaphore;
+	VkFence inFlightFence;
+
+	Maybe<Font> font;
+};
+
+Ex<void> createSyncObjects(VulkanContext &ctx) {
+	VkSemaphoreCreateInfo semaphoreInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	auto device = VulkanInstance::instance()[ctx.device_id].handle;
+	if(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ctx.imageAvailableSemaphore) !=
+		   VK_SUCCESS ||
+	   vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ctx.renderFinishedSemaphore) !=
+		   VK_SUCCESS ||
+	   vkCreateFence(device, &fenceInfo, nullptr, &ctx.inFlightFence) != VK_SUCCESS) {
+		return ERROR("Failed to create syncs");
+	}
+
+	// TODO: destroy them
+
+	return {};
+}
+
+void destroySyncObjects(VkDevice device_handle, VulkanContext &ctx) {
+	vkDestroySemaphore(device_handle, ctx.imageAvailableSemaphore, nullptr);
+	vkDestroySemaphore(device_handle, ctx.renderFinishedSemaphore, nullptr);
+	vkDestroyFence(device_handle, ctx.inFlightFence, nullptr);
+}
+
+bool mainLoop(VulkanWindow &window, void *ctx_) {
+	auto &ctx = *(VulkanContext *)ctx_;
+	static vector<float2> positions(15, float2(window.size() / 2));
+
+	for(auto &event : window.inputEvents()) {
+		if(event.keyDown(InputKey::esc) || event.type() == InputEventType::quit)
+			return false;
+
+		if(event.isMouseOverEvent() && (event.mouseMove() != int2(0, 0)))
+			positions.emplace_back(float2(event.mousePos()));
+	}
+
+	while(positions.size() > 15)
+		positions.erase(positions.begin());
+
+	auto &vulkan = VulkanInstance::instance();
+	auto device = vulkan[ctx.device_id].handle;
+	auto &swap_chain = ctx.window->swapChain();
+
+	vkWaitForFences(device, 1, &ctx.inFlightFence, VK_TRUE, UINT64_MAX);
+	vkResetFences(device, 1, &ctx.inFlightFence);
+
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(device, swap_chain.handle, UINT64_MAX, ctx.imageAvailableSemaphore,
+						  VK_NULL_HANDLE, &imageIndex);
+	recordCommandBuffer(ctx.commands.buffer, ctx.pipeline, ctx.framebuffers, window.swapChain(),
+						imageIndex)
+		.check();
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkSemaphore waitSemaphores[] = {ctx.imageAvailableSemaphore};
+	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &ctx.commands.buffer;
+
+	VkSemaphore signalSemaphores[] = {ctx.renderFinishedSemaphore};
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	auto graphicsQueue = vulkan[ctx.device_id].queues.front().first;
+	auto presentQueue = vulkan[ctx.device_id].queues.back().first;
+	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, ctx.inFlightFence) != VK_SUCCESS)
+		FWK_FATAL("queue submit fail");
+
+	VkPresentInfoKHR presentInfo{};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+	VkSwapchainKHR swapChains[] = {swap_chain.handle};
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pResults = nullptr; // Optional
+	vkQueuePresentKHR(presentQueue, &presentInfo);
+
+	//clearColor(IColor(50, 0, 50));
+	/*Renderer2D renderer(IRect(VkDevice::instance().windowSize()), Orient2D::y_down);
+
+	for(int n = 0; n < (int)positions.size(); n++) {
+		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
+		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
+		IColor border_color = ColorId::black;
+
+		renderer.addFilledRect(rect, fill_color);
+		renderer.addRect(rect, border_color);
+	}
+
+	auto text = format("Hello world!\nWindow size: %", device.windowSize());
+	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
+	renderer.render();*/
+
+	return true;
+}
+
 Ex<int> exMain() {
 	double time = getTime();
 
@@ -429,19 +539,23 @@ Ex<int> exMain() {
 	auto device_handle = instance[device_id].handle;
 	EXPECT(window.createSwapChain(device_id));
 
-	auto pipeline = EX_PASS(createPipeline(device_id, window.swapChain()));
-	auto framebuffers = EX_PASS(createFramebuffers(device_handle, window.swapChain(), pipeline));
-	auto cmds = EX_PASS(createCommandBuffers(device_id));
+	VulkanContext ctx{device_id, &window};
+	ctx.pipeline = EX_PASS(createPipeline(device_id, window.swapChain()));
+	ctx.framebuffers = EX_PASS(createFramebuffers(device_handle, window.swapChain(), ctx.pipeline));
+	ctx.commands = EX_PASS(createCommandBuffers(device_id));
 
-	EXPECT(recordCommandBuffer(cmds.buffer, pipeline, framebuffers, window.swapChain(), 0));
+	EXPECT(createSyncObjects(ctx));
 
 	int font_size = 16 * window.dpiScale();
-	//auto font = FontFactory().makeFont(fontPath(), font_size);
-	window.runMainLoop(mainLoop, nullptr); //&font.get());
+	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
+	window.runMainLoop(mainLoop, &ctx);
 
-	destroyCommandBuffers(device_handle, cmds);
-	destroyFramebuffers(device_handle, framebuffers);
-	destroyGraphicsPipeline(device_handle, pipeline);
+	vkDeviceWaitIdle(device_handle);
+
+	destroySyncObjects(device_handle, ctx);
+	destroyCommandBuffers(device_handle, ctx.commands);
+	destroyFramebuffers(device_handle, ctx.framebuffers);
+	destroyGraphicsPipeline(device_handle, ctx.pipeline);
 
 	return 0;
 }
