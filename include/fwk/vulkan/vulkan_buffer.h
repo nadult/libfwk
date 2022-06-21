@@ -3,15 +3,20 @@
 
 #pragma once
 
-#include "fwk/gfx/gl_shader.h"
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
+#include "fwk/vulkan/vulkan_ptr.h"
 
 namespace fwk {
 
-struct VulkanShaderModule {
+class VulkanBuffer {
+	static Ex<VPtr<VkBuffer>> make(VDeviceId, u64 size);
+
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
+
+  private:
+	u64 m_size;
 };
 
 }

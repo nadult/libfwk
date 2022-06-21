@@ -6,6 +6,8 @@
 #include "fwk/enum.h"
 #include "fwk/tag_id.h"
 
+#include <vulkan/vulkan.h>
+
 struct VkSurfaceKHR_T;
 using VkSurfaceKHR = VkSurfaceKHR_T *;
 
@@ -17,14 +19,41 @@ using VDeviceId = TagId<VTag::device, u8>;
 using VPhysicalDeviceId = TagId<VTag::physical_device, u8>;
 using VQueueFamilyId = TagId<VTag::queue_family, u8>;
 
+static constexpr int max_vulkan_devices = 4;
+
 struct VulkanVersion {
 	int major, minor, patch;
 };
 
+DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, descriptor_pool, descriptor_set_layout,
+			fence, framebuffer, image, image_view, pipeine, pipeline_layout, render_pass, sampler,
+			semaphore);
+
 class VulkanInstance;
 class VulkanWindow;
 
+class VulkanBuffer;
+class VulkanFence;
+class VulkanSemaphore;
+
+template <class T> class VPtr;
+template <class T> class VulkanStorage;
+
+class VulkanObjectManager;
+
+class VulkanShaderModule;
+using PShaderModule = VPtr<VulkanShaderModule>;
+
 using VInstance = VulkanInstance;
 using VWindow = VulkanWindow;
+
+template <class> struct VulkanTypeInfo;
+
+#define CASE_TYPE(Wrapper_, VkType, type_id_)                                                      \
+	template <> struct VulkanTypeInfo<VkType> {                                                    \
+		static constexpr VTypeId type_id = VTypeId::type_id_;                                      \
+		using Wrapper = Wrapper_;                                                                  \
+	};
+#include "fwk/vulkan/vulkan_types.h"
 
 }

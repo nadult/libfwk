@@ -31,6 +31,7 @@ namespace fwk {
 
 struct VulkanWindow::Impl {
 	Config config;
+	bool sdl_initialized = false;
 	SDL_Window *window = nullptr;
 	SDLKeyMap key_map;
 	InputState input_state;
@@ -54,6 +55,8 @@ VulkanWindow::~VulkanWindow() {
 			vkDestroySurfaceKHR(vulkan.handle(), m_impl->surface_handle, nullptr);
 		if(m_impl->window)
 			SDL_DestroyWindow(m_impl->window);
+		if(m_impl->sdl_initialized)
+			SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	}
 }
 
@@ -68,6 +71,10 @@ Ex<void> VulkanWindow::exConstruct(ZStr title, IRect rect, Config config) {
 	int sdl_flags = SDL_WINDOW_VULKAN;
 	auto flags = config.flags;
 	DASSERT(!((flags & Flag::fullscreen) && (flags & Flag::fullscreen_desktop)));
+
+	if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) // TODO: input ?
+		return ERROR("SDL_InitSubSystem failed");
+	m_impl->sdl_initialized = true;
 
 	int2 pos = rect.min(), size = rect.size();
 	if(flags & Flag::fullscreen)

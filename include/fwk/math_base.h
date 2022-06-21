@@ -412,7 +412,7 @@ constexpr u32 reverseBytes(u32 value) {
 }
 constexpr u16 reverseBytes(u16 value) { return (value << 8) | (value >> 8); }
 
-template <c_integral T> T nextPow2(T val) {
+template <c_integral T> constexpr T nextPow2(T val) {
 	T out = 1;
 	while(out < val)
 		out *= 2;

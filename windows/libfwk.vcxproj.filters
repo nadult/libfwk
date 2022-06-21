@@ -660,6 +660,18 @@
     <ClInclude Include="..\src\fwk_pch.h">
       <Filter>src\common</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_ptr.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_object_manager.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_types.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_buffer.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1117,6 +1129,12 @@
     </ClCompile>
     <ClCompile Include="..\src\type_info.cpp">
       <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_object_manager.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_buffer.cpp">
+      <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

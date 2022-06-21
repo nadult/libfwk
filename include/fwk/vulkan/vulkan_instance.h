@@ -79,23 +79,21 @@ struct VulkanDeviceInfo {
 	vector<Pair<VkQueue, VQueueFamilyId>> queues;
 };
 
-// Only single VulkanInstance can be created
+// Singleton class for Vulkan instance object
 class VulkanInstance {
   public:
 	using DeviceInfo = VulkanDeviceInfo;
 	using PhysicalDeviceInfo = VulkanPhysicalDeviceInfo;
 
-	VulkanInstance();
-	~VulkanInstance();
-	VulkanInstance(const VulkanInstance &) = delete;
-	void operator=(const VulkanInstance &) = delete;
-
 	static vector<string> availableExtensions();
 	static vector<string> availableLayers();
 
-	static bool isPresent();
-	static VulkanInstance &instance();
-	Ex<void> initialize(const VulkanInstanceSetup &);
+	static bool isPresent() { return g_instance.m_handle != nullptr; }
+	static VulkanInstance &instance() { return PASSERT(isPresent()), g_instance; }
+
+	static Ex<void> create(const VulkanInstanceSetup &);
+	// Can be called multiple times, even when create failed
+	static void destroy();
 
 	bool valid(VDeviceId) const;
 	bool valid(VPhysicalDeviceId) const;
@@ -114,10 +112,24 @@ class VulkanInstance {
 	VkInstance handle() { return m_handle; }
 
   private:
-	VkInstance m_handle;
+	template <class T> friend class VPtr;
+
+	VulkanInstance();
+	~VulkanInstance();
+
+	VulkanInstance(const VulkanInstance &) = delete;
+	void operator=(const VulkanInstance &) = delete;
+	Ex<void> create_(const VulkanInstanceSetup &);
+	void destroy_();
+
+	static VulkanInstance g_instance;
+	static VulkanObjectManager g_obj_managers[count<VTypeId>];
+
+	VkInstance m_handle = nullptr;
+	VkDebugUtilsMessengerEXT m_messenger = nullptr;
+
 	vector<PhysicalDeviceInfo> m_phys_devices;
 	SparseVector<DeviceInfo> m_devices;
-	VkDebugUtilsMessengerEXT m_messenger;
 };
 
 }

@@ -15,13 +15,9 @@
 #include "fwk/parse.h"
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
 #include <cstring>
 
 namespace fwk {
-
-void reportSDLError(const char *func_name) { FATAL("Error on %s: %s", func_name, SDL_GetError()); }
 
 vector<VQueueFamilyId> VulkanPhysicalDeviceInfo::findQueues(VQueueFlags flags) const {
 	vector<VQueueFamilyId> out;
@@ -97,32 +93,10 @@ vector<string> vulkanSurfaceExtensions() {
 	return out;
 }
 
-static VulkanInstance *s_instance = nullptr;
-bool VulkanInstance::isPresent() { return !!s_instance; }
-VulkanInstance &VulkanInstance::instance() {
-	PASSERT(s_instance);
-	return *s_instance;
-}
+VulkanInstance VulkanInstance::g_instance;
 
-VulkanInstance::VulkanInstance() : m_handle(0), m_messenger(0) {
-	ASSERT("Only one instance of VulkanInstance can be created at a time" && !s_instance);
-	if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0)
-		reportSDLError("SDL_InitSubSystem");
-	s_instance = this;
-}
-VulkanInstance::~VulkanInstance() {
-	s_instance = nullptr;
-	for(auto &device : m_devices)
-		vkDestroyDevice(device.handle, nullptr);
-	if(m_messenger) {
-		if(auto destroy_func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			   m_handle, "vkDestroyDebugUtilsMessengerEXT"))
-			destroy_func(m_handle, m_messenger, nullptr);
-	}
-	if(m_handle)
-		vkDestroyInstance(m_handle, nullptr);
-	SDL_QuitSubSystem(SDL_INIT_VIDEO);
-}
+VulkanInstance::VulkanInstance() : m_handle(0), m_messenger(0) {}
+VulkanInstance::~VulkanInstance() { destroy(); }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 messageHandler(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -166,10 +140,15 @@ static vector<VulkanPhysicalDeviceInfo> physicalDeviceInfos(VkInstance instance)
 	}
 }
 
-Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
-	if(m_handle)
+Ex<void> VulkanInstance::create(const VulkanInstanceSetup &setup) {
+	if(isPresent())
 		return ERROR("VulkanInstance already initialized");
+	return g_instance.create_(setup);
+}
 
+void VulkanInstance::destroy() { g_instance.destroy_(); }
+
+Ex<void> VulkanInstance::create_(const VulkanInstanceSetup &setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
 
 	auto extensions = setup.extensions;
@@ -243,6 +222,25 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 
 	m_phys_devices = physicalDeviceInfos(m_handle);
 	return {};
+}
+
+void VulkanInstance::destroy_() {
+	// TODO: free all handles, and maybe wait until devices are finished?
+	// TODO: make sure that all the objects are destroyed as well
+	for(auto &device : m_devices)
+		vkDestroyDevice(device.handle, nullptr);
+	m_devices.clear();
+
+	if(m_messenger) {
+		if(auto destroy_func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+			   m_handle, "vkDestroyDebugUtilsMessengerEXT"))
+			destroy_func(m_handle, m_messenger, nullptr);
+		m_messenger = nullptr;
+	}
+	if(m_handle) {
+		vkDestroyInstance(m_handle, nullptr);
+		m_handle = nullptr;
+	}
 }
 
 bool VulkanInstance::valid(VDeviceId id) const { return m_devices.valid(id); }

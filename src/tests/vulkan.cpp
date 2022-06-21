@@ -518,13 +518,16 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 Ex<int> exMain() {
 	double time = getTime();
 
-	VulkanInstance instance;
+	// How to make sure that vulkan instance is destroyed when something else failed ?
+	// The same with devices ?
 	{
 		VulkanInstanceSetup setup;
 		setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
 		setup.debug_types = all<VDebugType>;
-		EXPECT(instance.initialize(setup));
+		EXPECT(VulkanInstance::create(setup));
 	}
+
+	auto &instance = VulkanInstance::instance();
 
 	auto flags = VWindowFlag::resizable | VWindowFlag::vsync | VWindowFlag::centered |
 				 VWindowFlag::allow_hidpi;
@@ -562,6 +565,8 @@ Ex<int> exMain() {
 
 int main(int argc, char **argv) {
 	auto result = exMain();
+	VulkanInstance::destroy();
+
 	if(!result) {
 		result.error().print();
 		return 1;
