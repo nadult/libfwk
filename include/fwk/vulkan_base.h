@@ -32,17 +32,16 @@ DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, descriptor_pool, desc
 class VulkanInstance;
 class VulkanWindow;
 
+class VulkanImage;
 class VulkanBuffer;
-class VulkanFence;
-class VulkanSemaphore;
+class VulkanRenderPass;
 
-template <class T> class VPtr;
+template <class T> class VLightPtr;
+template <class T> class VWrapPtr;
+
 template <class T> class VulkanStorage;
 
 class VulkanObjectManager;
-
-class VulkanShaderModule;
-using PShaderModule = VPtr<VulkanShaderModule>;
 
 using VInstance = VulkanInstance;
 using VWindow = VulkanWindow;
@@ -55,5 +54,13 @@ template <class> struct VulkanTypeInfo;
 		using Wrapper = Wrapper_;                                                                  \
 	};
 #include "fwk/vulkan/vulkan_types.h"
+
+template <class T>
+using VPtr = If<is_same<typename VulkanTypeInfo<T>::Wrapper, None>, VLightPtr<T>, VWrapPtr<T>>;
+
+using PVImage = VPtr<VkImage>;
+using PVBuffer = VPtr<VkBuffer>;
+using PVSemaphore = VPtr<VkSemaphore>;
+using PVFence = VPtr<VkFence>;
 
 }

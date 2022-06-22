@@ -26,6 +26,9 @@ struct VulkanObjectId {
 	int objectId() const { return int(bits & 0xfffffff); }
 	VDeviceId deviceId() const { return VDeviceId(bits >> 28); }
 
+	bool operator==(const VulkanObjectId &rhs) const { return bits == rhs.bits; }
+	bool operator<(const VulkanObjectId &rhs) const { return bits < rhs.bits; }
+
 	u32 bits;
 };
 
@@ -33,12 +36,16 @@ struct VulkanObjectId {
 // Objects are destroyed when ref-count drops to 0 and
 // several (2-3 typically) release phases passed.
 // Release phase should change when a frame has finished rendering.
+// Idea from: https://www.gamedev.net/forums/topic/677665-safe-resource-deallocation-in-vulkan/5285533/
 //
 // It has to be initialized before use.
 struct VulkanObjectManager {
 	VulkanObjectId add(VDeviceId device_id, void *handle);
+
 	void acquire(VulkanObjectId);
 	void release(VulkanObjectId);
+
+	void assignRef(VulkanObjectId lhs, VulkanObjectId rhs);
 
 	void initialize(VTypeId, int reserve = 16);
 	// TODO: clear ?
@@ -50,6 +57,7 @@ struct VulkanObjectManager {
 	// Index 0 is always unused, never ends up in a free list
 	vector<u32> counters;
 	vector<void *> handles;
+	// TODO: use vector, max_vulkan_devices won't be needed
 	Array<u32, 3> to_be_released_lists[max_vulkan_devices];
 	u32 free_list;
 	VTypeId type_id;

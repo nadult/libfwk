@@ -10,43 +10,93 @@ namespace fwk {
 
 struct NoRefIncreaseTag {};
 
-// Identifies object stored in VulkanStorage
-// Reference counted; object is destroyed when there is no VPtrs pointing to it
-// Objects are stored in a vector (they may move when new object is created)
-// All refs should be destroyed before GlDevice
-template <class T> class VPtr {
+// TODO: description
+template <class T> class VLightPtr {
   public:
 	using Wrapper = typename VulkanTypeInfo<T>::Wrapper;
 	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
 
-	VPtr() : m_id(0) {}
-	VPtr(const VPtr &rhs) : m_bits(rhs.m_bits) {
-		if(m_bits != 0)
-			g_storage.counters[objectId()]++;
+	VLightPtr() = default;
+	VLightPtr(const VLightPtr &rhs) : m_id(rhs.m_id) {
+		if(m_id)
+			g_storage.counters[m_id.objectId()]++;
 	}
-	VPtr(VPtr &&rhs) : m_bits(rhs.m_bits) { rhs.m_bits = 0; }
-	~VPtr() {
-		if(m_bits != 0)
-			g_manager.release(VulkanObjectId(m_bits));
+	VLightPtr(VLightPtr &&rhs) : m_id(rhs.m_id) { rhs.id = {}; }
+	~VLightPtr() { g_manager.release(m_id); }
+
+	void operator=(const VLightPtr &rhs) {
+		g_storage.assignRef(m_id, rhs.m_id);
+		m_id = rhs.m_id;
 	}
 
-	void operator=(const VPtr &rhs) {
-		if(&rhs == this)
-			return;
-		reset();
-		m_bits = rhs.m_bits;
-		if(m_bits != 0)
-			g_storage.counters[objectId()]++;
-	}
-
-	void operator=(VPtr &&rhs) {
+	void operator=(VLightPtr &&rhs) {
 		if(&rhs != this) {
-			swap(m_bits, rhs.m_bits);
+			swap(m_id, rhs.m_id);
 			rhs.reset();
 		}
 	}
 
-	void swap(VPtr &rhs) { fwk::swap(m_bits, rhs.m_bits); }
+	void swap(VLightPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
+
+	bool valid() const { return m_id.valid(); }
+	explicit operator bool() const { return m_id.valid(); }
+
+	T operator*() const { return PASSERT(valid()), g_manager.handles[m_id.objectId()]; }
+
+	operator VulkanObjectId() const { return m_id; }
+	VDeviceId deviceId() const { return m_id.deviceId(); }
+	int objectId() const { return m_id.objectId(); }
+	int refCount() const { return PASSERT(valid()), g_manager.counters[m_id.objectId()]; }
+
+	void reset() {
+		if(m_bits != 0) {
+			g_manager.release(*this);
+			m_bits = 0;
+		}
+	}
+
+	bool operator==(const VLightPtr &rhs) const { return m_bits == rhs.m_bits; }
+	bool operator<(const VLightPtr &rhs) const { return m_bits < rhs.m_bits; }
+
+  private:
+	static constexpr VulkanObjectManager &g_manager = VulkanInstance::g_obj_managers[int(type_id)];
+	friend T;
+
+	VLightPtr(VulkanObjectId id, NoRefIncreaseTag) : m_id(id) {}
+
+	VulkanObjectId m_id;
+};
+
+// TODO: description
+// Reference counted; object is destroyed when there is no VPtrs pointing to it
+// Objects are stored in a vector (they may move when new object is created)
+// All refs should be destroyed before GlDevice
+template <class T> class VWrapPtr {
+  public:
+	using Wrapper = typename VulkanTypeInfo<T>::Wrapper;
+	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
+
+	VWrapPtr() = default;
+	VWrapPtr(const VWrapPtr &rhs) : m_id(rhs.m_id) {
+		if(m_id)
+			g_storage.counters[m_id.objectId()]++;
+	}
+	VWrapPtr(VWrapPtr &&rhs) : m_id(rhs.m_id) { rhs.id = {}; }
+	~VWrapPtr() { g_manager.release(m_id); }
+
+	void operator=(const VWrapPtr &rhs) {
+		g_storage.assignRef(m_id, rhs.m_id);
+		m_id = rhs.m_id;
+	}
+
+	void operator=(VWrapPtr &&rhs) {
+		if(&rhs != this) {
+			swap(m_id, rhs.m_id);
+			rhs.reset();
+		}
+	}
+
+	void swap(VWrapPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
 
 	/*
 	T &operator*() const {
@@ -58,18 +108,18 @@ template <class T> class VPtr {
 		return &g_storage.objects[id()];
 	}*/
 
-	bool valid() const { return m_bits != 0; }
-	explicit operator bool() const { return m_id != 0; }
+	bool valid() const { return m_id.valid(); }
+	explicit operator bool() const { return m_id.valid(); }
 
-	operator VulkanObjectId() const { return VulkanObjectId(m_bits); }
-	VDeviceId deviceId() const { return m_bits >> device_id_bit_shift; }
-	int objectId() const { return int(m_bits & id_bit_mask); }
-	T handle() const { return PASSERT(valid()), g_manager.handles[objectId()]; }
-	int refCount() const { return PASSERT(valid()), g_manager.counters[objectId()]; }
+	operator VulkanObjectId() const { return m_id; }
+	VDeviceId deviceId() const { return m_id.deviceId(); }
+	int objectId() const { return m_id.objectId(); }
+	T handle() const { return PASSERT(valid()), g_manager.handles[m_id.objectId()]; }
+	int refCount() const { return PASSERT(valid()), g_manager.counters[m_id.objectId()]; }
 
 	void reset() {
 		if(m_bits != 0) {
-			g_manager.release(VulkanObjectId(m_bits));
+			g_manager.release(*this);
 			m_bits = 0;
 		}
 	}
@@ -91,22 +141,15 @@ template <class T> class VPtr {
 		return g_storage.objects[id()][std::forward<Arg>(arg)];
 	}*/
 
-	bool operator==(const VPtr &rhs) const { return m_bits == rhs.m_bits; }
-	bool operator<(const VPtr &rhs) const { return m_bits < rhs.m_bits; }
+	bool operator==(const VWrapPtr &rhs) const { return m_bits == rhs.m_bits; }
+	bool operator<(const VWrapPtr &rhs) const { return m_bits < rhs.m_bits; }
 
   private:
-	static constexpr int id_bit_mask = 0xfffffff;
-	static constexpr int device_id_bit_shift = 4;
-
-	static constexpr int max_ids = id_bit_mask + 1;
-	static constexpr int max_device_ids = (1 << device_id_bit_shift);
 	static constexpr VulkanObjectManager &g_manager = VulkanInstance::g_obj_managers[int(type_id)];
-
 	friend T;
-	VPtr(VulkanObjectId id, NoRefIncreaseTag) : m_bits(id.bits) {}
 
-	void decRefs() {}
+	VWrapPtr(VulkanObjectId id, NoRefIncreaseTag) : m_id(id) {}
 
-	uint m_bits;
+	VulkanObjectId m_id;
 };
 }

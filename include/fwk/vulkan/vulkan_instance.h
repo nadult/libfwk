@@ -18,6 +18,8 @@
 
 namespace fwk {
 
+// TODO: enforce max_vulkan_devices
+
 // TODO: consistent naming of Vulkan classes:
 // VulkanClass: manages lifetime of given object type
 // VulkanClassConfig: contains information required for creation of VulkanClass
@@ -112,7 +114,8 @@ class VulkanInstance {
 	VkInstance handle() { return m_handle; }
 
   private:
-	template <class T> friend class VPtr;
+	template <class T> friend class VLightPtr;
+	template <class T> friend class VWrapPtr;
 
 	VulkanInstance();
 	~VulkanInstance();
@@ -124,6 +127,8 @@ class VulkanInstance {
 
 	static VulkanInstance g_instance;
 	static VulkanObjectManager g_obj_managers[count<VTypeId>];
+#define CASE_WRAPPED_OBJECT(Wrapper, VkType, type_id) static PodVector<Wrapper> g_##type_id##_objs;
+#include "fwk/vulkan/vulkan_types.h"
 
 	VkInstance m_handle = nullptr;
 	VkDebugUtilsMessengerEXT m_messenger = nullptr;

@@ -49,12 +49,20 @@ void VulkanObjectManager::acquire(VulkanObjectId id) {
 }
 
 void VulkanObjectManager::release(VulkanObjectId id) {
-	PASSERT(id);
+	if(!id)
+		return;
 	int object_id = id.objectId();
 	if(--counters[object_id] == 0) {
 		auto &tbr_lists = to_be_released_lists[id.deviceId()];
 		counters[object_id] = tbr_lists.back();
 		tbr_lists.back() = object_id;
+	}
+}
+
+void VulkanObjectManager::assignRef(VulkanObjectId lhs, VulkanObjectId rhs) {
+	if(lhs != rhs) {
+		release(lhs);
+		acquire(rhs);
 	}
 }
 

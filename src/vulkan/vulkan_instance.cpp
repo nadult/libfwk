@@ -15,6 +15,9 @@
 #include "fwk/parse.h"
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
+#include "fwk/vulkan/vulkan_buffer.h"
+#include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_object_manager.h"
 #include <cstring>
 
 namespace fwk {
@@ -94,6 +97,10 @@ vector<string> vulkanSurfaceExtensions() {
 }
 
 VulkanInstance VulkanInstance::g_instance;
+VulkanObjectManager VulkanInstance::g_obj_managers[count<VTypeId>];
+#define CASE_WRAPPED_OBJECT(Wrapper, VkType, type_id)                                              \
+	PodVector<Wrapper> VulkanInstance::g_##type_id##_objs;
+#include "fwk/vulkan/vulkan_types.h"
 
 VulkanInstance::VulkanInstance() : m_handle(0), m_messenger(0) {}
 VulkanInstance::~VulkanInstance() { destroy(); }

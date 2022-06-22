@@ -18,6 +18,8 @@
 
 // fwk class type, vulkan handle type; enum type-id (VTypeId)
 CASE_WRAPPED_TYPE(VulkanBuffer, VkBuffer, buffer)
+CASE_WRAPPED_TYPE(VulkanImage, VkImage, image)
+CASE_WRAPPED_TYPE(VulkanRenderPass, VkRenderPass, render_pass)
 CASE_LIGHT_TYPE(None, VkFence, fence)
 CASE_LIGHT_TYPE(None, VkSemaphore, semaphore)
 
