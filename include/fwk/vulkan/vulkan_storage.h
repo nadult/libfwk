@@ -42,6 +42,8 @@ class VulkanStorage {
 	Ex<VulkanDevice *> allocDevice(VInstanceRef, VPhysicalDeviceId);
 	Ex<VWindowRef> allocWindow(VInstanceRef);
 
+	VulkanObjectId addObject(VDeviceId device_id, VTypeId type_id, void *handle);
+
 	void incInstanceRef();
 	void decInstanceRef();
 	void incRef(VDeviceId);
@@ -62,6 +64,7 @@ class VulkanStorage {
 	InstanceStorage instance;
 	PodVector<u8> obj_data[count<VTypeId>];
 	VulkanObjectManager obj_managers[count<VTypeId>];
+	int wrapped_type_sizes[count<VTypeId>];
 	vector<Pair<VulkanWindow *, int>> windows;
 	int device_ref_counts[max_devices] = {};
 	int instance_ref_count = 0;

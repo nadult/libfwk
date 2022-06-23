@@ -97,15 +97,15 @@ template <class T> class VWrapPtr {
 
 	void operator=(VWrapPtr &&rhs) {
 		if(&rhs != this) {
-			swap(m_id, rhs.m_id);
+			fwk::swap(m_id, rhs.m_id);
 			rhs.reset();
 		}
 	}
 
 	void swap(VWrapPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
 
-	T &operator*() const { return PASSERT(valid()), accessObject(); }
-	T *operator->() const { return PASSERT(valid()), accessObject(); }
+	Wrapper &operator*() const { return PASSERT(valid()), accessObject(); }
+	Wrapper *operator->() const { return PASSERT(valid()), &accessObject(); }
 
 	bool valid() const { return m_id.valid(); }
 	explicit operator bool() const { return m_id.valid(); }
@@ -119,14 +119,14 @@ template <class T> class VWrapPtr {
 	void reset() {
 		if(m_id) {
 			release();
-			m_id = 0;
+			m_id = {};
 		}
 	}
 
-	template <class... Args> static VWrapPtr make(VDeviceId dev_id, T handle, Args &&...args) {
+	// TODO: move this to storage ?
+	template <class... Args> static VWrapPtr create(VDeviceId dev_id, T handle, Args &&...args) {
 		VWrapPtr out;
-		out.m_id = g_manager.add(dev_id, handle);
-		FATAL("first resize buffer as needed");
+		out.m_id = g_vk_storage.addObject(dev_id, type_id, handle);
 		new(&out.accessObject()) Wrapper{std::forward<Args>(args)...};
 		return out;
 	}
@@ -137,7 +137,9 @@ template <class T> class VWrapPtr {
   private:
 	static constexpr VulkanObjectManager &g_manager = g_vk_storage.obj_managers[int(type_id)];
 
-	Wrapper &accessObject() { return g_vk_storage.accessObject<Wrapper>(m_id.objectId(), type_id); }
+	Wrapper &accessObject() const {
+		return g_vk_storage.accessObject<Wrapper>(m_id.objectId(), type_id);
+	}
 
 	void release() {
 		if(refCount() == 1)

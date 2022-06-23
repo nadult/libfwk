@@ -65,5 +65,6 @@ using PVBuffer = VPtr<VkBuffer>;
 using PVSemaphore = VPtr<VkSemaphore>;
 using PVFence = VPtr<VkFence>;
 using PVShaderModule = VPtr<VkShaderModule>;
+using PVRenderPass = VPtr<VkRenderPass>;
 
 }

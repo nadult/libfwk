@@ -24,9 +24,13 @@ static_assert(alignof(VulkanInstance) == VulkanStorage::instance_alignment);
 static_assert(sizeof(VulkanDevice) == VulkanStorage::device_size);
 static_assert(alignof(VulkanDevice) == VulkanStorage::device_alignment);
 
-VulkanStorage::VulkanStorage() {
+VulkanStorage::VulkanStorage() : wrapped_type_sizes{} {
 	ASSERT("VulkanStorage is a singleton, don't create additional instances" &&
 		   this == &g_vk_storage);
+
+#define CASE_WRAPPED_TYPE(Wrapper, __, type_id)                                                    \
+	wrapped_type_sizes[int(VTypeId::type_id)] = sizeof(Wrapper);
+#include "fwk/vulkan/vulkan_types.h"
 }
 
 VulkanStorage::~VulkanStorage() {}
@@ -63,6 +67,23 @@ Ex<VWindowRef> VulkanStorage::allocWindow(VInstanceRef instance_ref) {
 	return VWindowRef(id, window);
 }
 
+VulkanObjectId VulkanStorage::addObject(VDeviceId device_id, VTypeId type_id, void *handle) {
+	int index = int(type_id);
+	auto &manager = obj_managers[index];
+	auto id = manager.add(device_id, handle);
+	if(wrapped_type_sizes[index] > 0) {
+		auto &objects = obj_data[index];
+		auto &counters = manager.counters;
+		int capacity = counters.capacity();
+		if(objects.size() < capacity * wrapped_type_sizes[index]) {
+			counters[id.objectId()]--;
+			resizeObjectData(capacity, type_id);
+			counters[id.objectId()]++;
+		}
+	}
+	return id;
+}
+
 void VulkanStorage::incInstanceRef() { instance_ref_count++; }
 void VulkanStorage::decInstanceRef() {
 	if(--instance_ref_count == 0)
@@ -86,7 +107,7 @@ void VulkanStorage::decRef(VWindowId id) {
 
 template <class T>
 void resizeObjectData(CSpan<u32> ref_counts, PodVector<u8> &data, int new_capacity) {
-	if(data.size() >= new_capacity)
+	if(data.size() >= new_capacity * sizeof(T))
 		return;
 	PodVector<u8> new_data(new_capacity * sizeof(T));
 	// Moving objects to new memory range

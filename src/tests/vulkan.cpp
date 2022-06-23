@@ -14,6 +14,7 @@
 #include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_ptr.h>
+#include <fwk/vulkan/vulkan_render_pass.h>
 #include <fwk/vulkan/vulkan_window.h>
 
 #include <vulkan/vulkan.h>
@@ -67,8 +68,8 @@ string fontPath() {
 
 struct Pipeline {
 	VkPipeline graphicsPipeline;
-	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
+	PVRenderPass render_pass;
 };
 
 Ex<Pipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_chain) {
@@ -221,19 +222,8 @@ Ex<Pipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_c
 	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-	VkRenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
-
-	if(vkCreateRenderPass(device->handle(), &renderPassInfo, nullptr, &out.renderPass) !=
-	   VK_SUCCESS) {
-		return ERROR("vkCreateRenderPass failed");
-	}
+	out.render_pass = EX_PASS(VulkanRenderPass::create(device, cspan(&colorAttachment, 1),
+													   cspan(&subpass, 1), cspan(&dependency, 1)));
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -248,7 +238,7 @@ Ex<Pipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_c
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = nullptr; // Optional
 	pipelineInfo.layout = out.pipelineLayout;
-	pipelineInfo.renderPass = out.renderPass;
+	pipelineInfo.renderPass = out.render_pass.handle();
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
@@ -263,7 +253,6 @@ Ex<Pipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_c
 
 void destroyGraphicsPipeline(VkDevice device_handle, Pipeline &pipeline) {
 	vkDestroyPipeline(device_handle, pipeline.graphicsPipeline, nullptr);
-	vkDestroyRenderPass(device_handle, pipeline.renderPass, nullptr);
 	vkDestroyPipelineLayout(device_handle, pipeline.pipelineLayout, nullptr);
 }
 
@@ -281,7 +270,7 @@ Ex<Framebuffers> createFramebuffers(VkDevice handle_device, const VulkanSwapChai
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = pipeline.renderPass;
+		framebufferInfo.renderPass = pipeline.render_pass.handle();
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
 		framebufferInfo.width = swap_chain.extent.width;
@@ -348,7 +337,7 @@ Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, Pipeline &pipeline, 
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = pipeline.renderPass;
+	renderPassInfo.renderPass = pipeline.render_pass.handle();
 	renderPassInfo.framebuffer = fbs.swapChainFramebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = swap_chain.extent;

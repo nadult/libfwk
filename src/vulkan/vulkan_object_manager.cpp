@@ -32,11 +32,11 @@ VulkanObjectId VulkanObjectManager::add(VDeviceId device_id, void *handle) {
 	if(free_list != empty_node) {
 		object_id = int(free_list);
 		free_list = counters[free_list];
-		counters[object_id] = 1; // TODO: 0 ?
+		counters[object_id] = 1u;
 		handles[object_id] = handle;
 	} else {
 		object_id = int(counters.size());
-		counters.emplace_back(1u); // TODO: 0 ?
+		counters.emplace_back(1u);
 		handles.emplace_back(handle);
 	}
 
@@ -83,8 +83,9 @@ void VulkanObjectManager::nextReleasePhase(VDeviceId device_id, VkDevice device)
 			SIMPLE_FUNC(fence, VkFence, vkDestroyFence)
 			SIMPLE_FUNC(semaphore, VkSemaphore, vkDestroySemaphore)
 			SIMPLE_FUNC(shader_module, VkShaderModule, vkDestroyShaderModule)
+			SIMPLE_FUNC(render_pass, VkRenderPass, vkDestroyRenderPass)
 		default:
-			FATAL("destroy_func unimplemented for: %", type_id);
+			FATAL("destroy_func unimplemented for: %s", toString(type_id));
 		}
 
 #undef SIMPLE_FUNC

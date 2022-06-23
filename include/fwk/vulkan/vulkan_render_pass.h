@@ -10,13 +10,14 @@
 namespace fwk {
 
 class VulkanRenderPass {
-	static Ex<VPtr<VkBuffer>> make(VDeviceId, u64 size);
-
-	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
-	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
+  public:
+	static Ex<PVRenderPass> create(VDeviceRef, CSpan<VkAttachmentDescription>,
+								   CSpan<VkSubpassDescription>, CSpan<VkSubpassDependency>);
 
   private:
-	u64 m_size;
+	uint m_attachment_count;
+	uint m_subpass_count;
+	uint m_dependency_count;
 };
 
 }

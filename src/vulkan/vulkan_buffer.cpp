@@ -19,7 +19,7 @@ Ex<VPtr<VkBuffer>> VulkanBuffer::make(VDeviceRef device, u64 size) {
 
 	if(vkCreateBuffer(device->handle(), &ci, nullptr, &buffer_handle) != VK_SUCCESS)
 		return ERROR("Failed to create buffer");
-	return PVBuffer::make(device->id(), buffer_handle, size);
+	return PVBuffer::create(device->id(), buffer_handle, size);
 }
 
 }
