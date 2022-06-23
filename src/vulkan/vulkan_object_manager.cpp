@@ -82,6 +82,9 @@ void VulkanObjectManager::nextReleasePhase(VDeviceId device_id, VkDevice device)
 			SIMPLE_FUNC(buffer, VkBuffer, vkDestroyBuffer)
 			SIMPLE_FUNC(fence, VkFence, vkDestroyFence)
 			SIMPLE_FUNC(semaphore, VkSemaphore, vkDestroySemaphore)
+			SIMPLE_FUNC(shader_module, VkShaderModule, vkDestroyShaderModule)
+		default:
+			FATAL("destroy_func unimplemented for: %", type_id);
 		}
 
 #undef SIMPLE_FUNC

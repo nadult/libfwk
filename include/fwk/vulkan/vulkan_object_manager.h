@@ -58,7 +58,7 @@ struct VulkanObjectManager {
 	vector<u32> counters;
 	vector<void *> handles;
 	// TODO: use vector, max_vulkan_devices won't be needed
-	Array<u32, 3> to_be_released_lists[max_vulkan_devices];
+	Array<u32, 3> to_be_released_lists[4]; // TODO
 	u32 free_list;
 	VTypeId type_id;
 };

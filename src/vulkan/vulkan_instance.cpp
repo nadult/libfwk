@@ -16,8 +16,10 @@
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vulkan/vulkan_buffer.h"
+#include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_object_manager.h"
+#include "fwk/vulkan/vulkan_storage.h"
 #include <cstring>
 
 namespace fwk {
@@ -96,15 +98,6 @@ vector<string> vulkanSurfaceExtensions() {
 	return out;
 }
 
-VulkanInstance VulkanInstance::g_instance;
-VulkanObjectManager VulkanInstance::g_obj_managers[count<VTypeId>];
-#define CASE_WRAPPED_OBJECT(Wrapper, VkType, type_id)                                              \
-	PodVector<Wrapper> VulkanInstance::g_##type_id##_objs;
-#include "fwk/vulkan/vulkan_types.h"
-
-VulkanInstance::VulkanInstance() : m_handle(0), m_messenger(0) {}
-VulkanInstance::~VulkanInstance() { destroy(); }
-
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 messageHandler(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
 			   VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -147,15 +140,20 @@ static vector<VulkanPhysicalDeviceInfo> physicalDeviceInfos(VkInstance instance)
 	}
 }
 
-Ex<void> VulkanInstance::create(const VulkanInstanceSetup &setup) {
-	if(isPresent())
-		return ERROR("VulkanInstance already initialized");
-	return g_instance.create_(setup);
+bool VulkanInstance::isPresent() { return VulkanStorage::g_instance_ref_count > 0; }
+VInstanceRef VulkanInstance::ref() {
+	ASSERT(isPresent());
+	return {};
 }
 
-void VulkanInstance::destroy() { g_instance.destroy_(); }
+Ex<VInstanceRef> VulkanInstance::create(const VulkanInstanceSetup &setup) {
+	auto *instance = EX_PASS(VulkanStorage::allocInstance());
+	VInstanceRef out;
+	EXPECT(instance->initialize(setup));
+	return out;
+}
 
-Ex<void> VulkanInstance::create_(const VulkanInstanceSetup &setup) {
+Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
 
 	auto extensions = setup.extensions;
@@ -228,31 +226,14 @@ Ex<void> VulkanInstance::create_(const VulkanInstanceSetup &setup) {
 	}
 
 	for(auto type_id : all<VTypeId>)
-		g_obj_managers[int(type_id)].initialize(type_id);
+		VulkanStorage::g_obj_managers[int(type_id)].initialize(type_id);
 
 	m_phys_devices = physicalDeviceInfos(m_handle);
 	return {};
 }
 
-void VulkanInstance::nextReleasePhase() {
-	for(auto device_id : deviceIds())
-		for(auto &obj_mgr : g_obj_managers)
-			obj_mgr.nextReleasePhase(device_id, m_devices[device_id].handle);
-}
-
-void VulkanInstance::destroy_() {
-	for(auto &device : m_devices)
-		vkDeviceWaitIdle(device.handle);
-	// Destroying objects
-	for(int i = 0; i < 3; i++)
-		nextReleasePhase();
-
-	// TODO: free all handles, and maybe wait until devices are finished?
-	// TODO: make sure that all the objects are destroyed as well
-	for(auto &device : m_devices)
-		vkDestroyDevice(device.handle, nullptr);
-	m_devices.clear();
-
+VulkanInstance::VulkanInstance() = default;
+VulkanInstance::~VulkanInstance() {
 	if(m_messenger) {
 		if(auto destroy_func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
 			   m_handle, "vkDestroyDebugUtilsMessengerEXT"))
@@ -265,20 +246,10 @@ void VulkanInstance::destroy_() {
 	}
 }
 
-bool VulkanInstance::valid(VDeviceId id) const { return m_devices.valid(id); }
 bool VulkanInstance::valid(VPhysicalDeviceId id) const { return m_phys_devices.inRange(id); }
 
-const VulkanDeviceInfo &VulkanInstance::operator[](VDeviceId id) const { return m_devices[id]; }
-const VulkanPhysicalDeviceInfo &VulkanInstance::operator[](VPhysicalDeviceId id) const {
+const VulkanPhysicalDeviceInfo &VulkanInstance::info(VPhysicalDeviceId id) const {
 	return m_phys_devices[id];
-}
-
-vector<VDeviceId> VulkanInstance::deviceIds() const {
-	vector<VDeviceId> out;
-	out.reserve(m_devices.size());
-	for(auto idx : m_devices.indices())
-		out.emplace_back(idx);
-	return out;
 }
 
 SimpleIndexRange<VPhysicalDeviceId> VulkanInstance::physicalDeviceIds() const {
@@ -324,64 +295,12 @@ VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
 	return best;
 }
 
-Ex<VDeviceId> VulkanInstance::createDevice(VPhysicalDeviceId phys_id,
-										   const VulkanDeviceSetup &setup) {
-	ASSERT(valid(phys_id));
-	EXPECT(!setup.queues.empty());
-
-	vector<VkDeviceQueueCreateInfo> queue_cis;
-	queue_cis.reserve(setup.queues.size());
-
-	float default_priority = 1.0;
-	for(auto &queue : setup.queues) {
-		VkDeviceQueueCreateInfo ci{};
-		ci.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		ci.queueCount = queue.count;
-		ci.queueFamilyIndex = queue.family_id;
-		ci.pQueuePriorities = &default_priority;
-		queue_cis.emplace_back(ci);
-	}
-
-	auto swap_chain_ext = "VK_KHR_swapchain";
-	vector<const char *> exts = transform(setup.extensions, [](auto &str) { return str.c_str(); });
-	if(!anyOf(setup.extensions, swap_chain_ext))
-		exts.emplace_back("VK_KHR_swapchain");
-
-	VkPhysicalDeviceFeatures features{};
-	if(setup.features)
-		features = *setup.features;
-
-	VkDeviceCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	ci.pQueueCreateInfos = queue_cis.data();
-	ci.queueCreateInfoCount = queue_cis.size();
-	ci.pEnabledFeatures = &features;
-	ci.enabledExtensionCount = exts.size();
-	ci.ppEnabledExtensionNames = exts.data();
-
-	VkDevice device;
-	auto phys_handle = m_phys_devices[phys_id].handle;
-	auto result = vkCreateDevice(phys_handle, &ci, nullptr, &device);
-	if(result != VK_SUCCESS)
-		return ERROR("Error during vkCreateDevice: 0x%x", stdFormat("%x", result));
-
-	vector<Pair<VkQueue, VQueueFamilyId>> queues;
-	queues.reserve(setup.queues.size());
-	for(auto &queue_def : setup.queues) {
-		for(int i : intRange(queue_def.count)) {
-			VkQueue queue = nullptr;
-			vkGetDeviceQueue(device, queue_def.family_id, i, &queue);
-			queues.emplace_back(queue, queue_def.family_id);
-		}
-	}
-
-	auto id = m_devices.emplace(device, phys_id, move(queues));
-	return VDeviceId(id);
+Ex<VDeviceRef> VulkanInstance::createDevice(VPhysicalDeviceId phys_id,
+											const VulkanDeviceSetup &setup) {
+	auto *device = EX_PASS(VulkanStorage::allocDevice(VInstanceRef(), phys_id));
+	VDeviceRef ref(device->id());
+	EXPECT(device->initialize(setup));
+	return ref;
 }
 
-void VulkanInstance::destroyDevice(VDeviceId id) {
-	auto &info = m_devices[id];
-	vkDestroyDevice(info.handle, nullptr);
-	m_devices.erase(id);
-}
 }

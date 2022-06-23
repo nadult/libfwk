@@ -22,6 +22,7 @@ CASE_WRAPPED_TYPE(VulkanImage, VkImage, image)
 CASE_WRAPPED_TYPE(VulkanRenderPass, VkRenderPass, render_pass)
 CASE_LIGHT_TYPE(None, VkFence, fence)
 CASE_LIGHT_TYPE(None, VkSemaphore, semaphore)
+CASE_LIGHT_TYPE(None, VkShaderModule, shader_module)
 
 #undef CASE_TYPE
 #undef CASE_LIGHT_TYPE

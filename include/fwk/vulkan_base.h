@@ -13,13 +13,12 @@ using VkSurfaceKHR = VkSurfaceKHR_T *;
 
 namespace fwk {
 
-DEFINE_ENUM(VTag, device, physical_device, queue_family);
+DEFINE_ENUM(VTag, device, window, physical_device, queue_family);
 
 using VDeviceId = TagId<VTag::device, u8>;
+using VWindowId = TagId<VTag::window, u8>;
 using VPhysicalDeviceId = TagId<VTag::physical_device, u8>;
 using VQueueFamilyId = TagId<VTag::queue_family, u8>;
-
-static constexpr int max_vulkan_devices = 4;
 
 struct VulkanVersion {
 	int major, minor, patch;
@@ -27,10 +26,15 @@ struct VulkanVersion {
 
 DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, descriptor_pool, descriptor_set_layout,
 			fence, framebuffer, image, image_view, pipeine, pipeline_layout, render_pass, sampler,
-			semaphore);
+			semaphore, shader_module);
 
+class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
+
+class VInstanceRef;
+class VDeviceRef;
+class VWindowRef;
 
 class VulkanImage;
 class VulkanBuffer;
@@ -38,8 +42,6 @@ class VulkanRenderPass;
 
 template <class T> class VLightPtr;
 template <class T> class VWrapPtr;
-
-template <class T> class VulkanStorage;
 
 class VulkanObjectManager;
 
@@ -62,5 +64,6 @@ using PVImage = VPtr<VkImage>;
 using PVBuffer = VPtr<VkBuffer>;
 using PVSemaphore = VPtr<VkSemaphore>;
 using PVFence = VPtr<VkFence>;
+using PVShaderModule = VPtr<VkShaderModule>;
 
 }

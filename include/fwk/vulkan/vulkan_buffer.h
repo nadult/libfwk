@@ -14,7 +14,7 @@ class VulkanBuffer {
 	VulkanBuffer(u64 size) : m_size(size) {}
 	~VulkanBuffer() = default;
 
-	static Ex<VPtr<VkBuffer>> make(VDeviceId, u64 size);
+	static Ex<VPtr<VkBuffer>> make(VDeviceRef, u64 size);
 
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);

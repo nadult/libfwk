@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_object_manager.h"
+#include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
 
@@ -65,7 +65,7 @@ template <class T> class VLightPtr {
 	bool operator<(const VLightPtr &rhs) const { return m_id.bits < rhs.m_id.bits; }
 
   private:
-	static constexpr VulkanObjectManager &g_manager = VulkanInstance::g_obj_managers[int(type_id)];
+	static constexpr VulkanObjectManager &g_manager = VulkanStorage::g_obj_managers[int(type_id)];
 
 	VulkanObjectId m_id;
 };
@@ -135,7 +135,7 @@ template <class T> class VWrapPtr {
 	bool operator<(const VWrapPtr &rhs) const { return m_id.bits < rhs.m_id.bits; }
 
   private:
-	static constexpr VulkanObjectManager &g_manager = VulkanInstance::g_obj_managers[int(type_id)];
+	static constexpr VulkanObjectManager &g_manager = VulkanStorage::g_obj_managers[int(type_id)];
 	static PodVector<Wrapper> g_objects;
 
 	void release() {

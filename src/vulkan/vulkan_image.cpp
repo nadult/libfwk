@@ -3,15 +3,11 @@
 
 #include "fwk/vulkan/vulkan_image.h"
 
-#include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_ptr.h"
 #include "vulkan/vulkan.h"
 
 namespace fwk {
 
-Ex<VPtr<VkBuffer>> VulkanImage::make(VDeviceId device_id, int2 size) {
-	auto &vulkan = VulkanInstance::instance();
-	auto device = vulkan[device_id].handle;
-	return ERROR("finishme");
-}
+Ex<VPtr<VkBuffer>> VulkanImage::make(VDeviceRef device, int2 size) { return ERROR("finishme"); }
 }

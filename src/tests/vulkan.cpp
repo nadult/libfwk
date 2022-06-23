@@ -11,6 +11,7 @@
 #include <fwk/io/file_system.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
+#include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_ptr.h>
 #include <fwk/vulkan/vulkan_window.h>
@@ -64,30 +65,14 @@ string fontPath() {
 	return findDefaultSystemFont().get().file_path;
 }
 
-Ex<VkShaderModule> createShaderModule(VkDevice device_handle, CSpan<char> bytecode) {
-	VkShaderModuleCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	ci.codeSize = bytecode.size();
-	// TODO: make sure that this is safe
-	ci.pCode = reinterpret_cast<const uint32_t *>(bytecode.data());
-
-	VkShaderModule handle;
-	if(vkCreateShaderModule(device_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateShaderModule failed");
-	return handle;
-}
-
 struct Pipeline {
 	VkPipeline graphicsPipeline;
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
 };
 
-Ex<Pipeline> createPipeline(VDeviceId device_id, const VulkanSwapChainInfo &swap_chain) {
+Ex<Pipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_chain) {
 	Pipeline out;
-
-	auto &instance = VulkanInstance::instance();
-	auto device_handle = instance[device_id].handle;
 
 	// TODO: making sure that shaderc_shared.dll is available
 	ShaderCompiler compiler;
@@ -99,19 +84,19 @@ Ex<Pipeline> createPipeline(VDeviceId device_id, const VulkanSwapChainInfo &swap
 	if(!fsh_code.bytecode)
 		return ERROR("Failed to compile fragment shader:\n%", fsh_code.messages);
 
-	auto vsh_module = EX_PASS(createShaderModule(device_handle, vsh_code.bytecode));
-	auto fsh_module = EX_PASS(createShaderModule(device_handle, fsh_code.bytecode));
+	auto vsh_module = EX_PASS(device->createShaderModule(vsh_code.bytecode));
+	auto fsh_module = EX_PASS(device->createShaderModule(fsh_code.bytecode));
 
 	VkPipelineShaderStageCreateInfo vsh_stage_ci{};
 	vsh_stage_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vsh_stage_ci.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vsh_stage_ci.module = vsh_module;
+	vsh_stage_ci.module = *vsh_module;
 	vsh_stage_ci.pName = "main";
 
 	VkPipelineShaderStageCreateInfo fsh_stage_ci{};
 	fsh_stage_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	fsh_stage_ci.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fsh_stage_ci.module = fsh_module;
+	fsh_stage_ci.module = *fsh_module;
 	fsh_stage_ci.pName = "main";
 
 	VkPipelineShaderStageCreateInfo shader_stages_ci[] = {vsh_stage_ci, fsh_stage_ci};
@@ -205,8 +190,8 @@ Ex<Pipeline> createPipeline(VDeviceId device_id, const VulkanSwapChainInfo &swap
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-	if(vkCreatePipelineLayout(device_handle, &pipelineLayoutInfo, nullptr, &out.pipelineLayout) !=
-	   VK_SUCCESS)
+	if(vkCreatePipelineLayout(device->handle(), &pipelineLayoutInfo, nullptr,
+							  &out.pipelineLayout) != VK_SUCCESS)
 		return ERROR("vkCreatePipelineLayout failed");
 
 	VkAttachmentDescription colorAttachment{};
@@ -245,7 +230,8 @@ Ex<Pipeline> createPipeline(VDeviceId device_id, const VulkanSwapChainInfo &swap
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	if(vkCreateRenderPass(device_handle, &renderPassInfo, nullptr, &out.renderPass) != VK_SUCCESS) {
+	if(vkCreateRenderPass(device->handle(), &renderPassInfo, nullptr, &out.renderPass) !=
+	   VK_SUCCESS) {
 		return ERROR("vkCreateRenderPass failed");
 	}
 
@@ -267,14 +253,10 @@ Ex<Pipeline> createPipeline(VDeviceId device_id, const VulkanSwapChainInfo &swap
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
-	if(vkCreateGraphicsPipelines(device_handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+	if(vkCreateGraphicsPipelines(device->handle(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
 								 &out.graphicsPipeline) != VK_SUCCESS) {
 		return ERROR("vkCreateGraphicsPipelines failed");
 	}
-
-	// TODO: proper destruction
-	vkDestroyShaderModule(device_handle, vsh_module, nullptr);
-	vkDestroyShaderModule(device_handle, fsh_module, nullptr);
 
 	return out;
 }
@@ -326,17 +308,15 @@ struct CommandBuffers {
 	VkCommandBuffer buffer;
 };
 
-Ex<CommandBuffers> createCommandBuffers(VDeviceId device_id) {
+Ex<CommandBuffers> createCommandBuffers(VDeviceRef device) {
 	CommandBuffers out;
-
-	auto &vulkan = VulkanInstance::instance();
-	auto &device_info = vulkan[device_id];
 
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = device_info.queues[0].second;
-	if(vkCreateCommandPool(device_info.handle, &poolInfo, nullptr, &out.pool) != VK_SUCCESS) {
+	auto queues = device->queues();
+	poolInfo.queueFamilyIndex = queues[0].second;
+	if(vkCreateCommandPool(device->handle(), &poolInfo, nullptr, &out.pool) != VK_SUCCESS) {
 		return ERROR("vkCreateCommandPool failed");
 	}
 
@@ -346,7 +326,7 @@ Ex<CommandBuffers> createCommandBuffers(VDeviceId device_id) {
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = 1;
 
-	if(vkAllocateCommandBuffers(device_info.handle, &allocInfo, &out.buffer) != VK_SUCCESS) {
+	if(vkAllocateCommandBuffers(device->handle(), &allocInfo, &out.buffer) != VK_SUCCESS) {
 		return ERROR("alloc failed");
 	}
 
@@ -395,8 +375,8 @@ void destroyCommandBuffers(VkDevice device_handle, CommandBuffers &bufs) {
 }
 
 struct VulkanContext {
-	VDeviceId device_id;
-	VulkanWindow *window;
+	VDeviceRef device;
+	VWindowRef window;
 	Pipeline pipeline;
 	Framebuffers framebuffers;
 	CommandBuffers commands;
@@ -408,22 +388,6 @@ struct VulkanContext {
 	Maybe<Font> font;
 };
 
-Ex<PVSemaphore> makeSemaphore(VDeviceId device_id, const VkSemaphoreCreateInfo &ci) {
-	auto device = VulkanInstance::instance()[device_id].handle;
-	VkSemaphore handle;
-	if(vkCreateSemaphore(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("Failed to create semaphore");
-	return PVSemaphore::make(device_id, handle);
-}
-
-Ex<PVFence> makeFence(VDeviceId device_id, const VkFenceCreateInfo &ci) {
-	auto device = VulkanInstance::instance()[device_id].handle;
-	VkFence handle;
-	if(vkCreateFence(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("Failed to create fence");
-	return PVFence::make(device_id, handle);
-}
-
 Ex<void> createSyncObjects(VulkanContext &ctx) {
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -431,10 +395,9 @@ Ex<void> createSyncObjects(VulkanContext &ctx) {
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	auto device = VulkanInstance::instance()[ctx.device_id].handle;
-	ctx.imageAvailableSemaphore = EX_PASS(makeSemaphore(ctx.device_id, semaphoreInfo));
-	ctx.renderFinishedSemaphore = EX_PASS(makeSemaphore(ctx.device_id, semaphoreInfo));
-	ctx.inFlightFence = EX_PASS(makeFence(ctx.device_id, fenceInfo));
+	ctx.imageAvailableSemaphore = EX_PASS(ctx.device->createSemaphore(semaphoreInfo));
+	ctx.renderFinishedSemaphore = EX_PASS(ctx.device->createSemaphore(semaphoreInfo));
+	ctx.inFlightFence = EX_PASS(ctx.device->createFence(fenceInfo));
 
 	return {};
 }
@@ -454,17 +417,15 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	auto &vulkan = VulkanInstance::instance();
-	auto device = vulkan[ctx.device_id].handle;
 	auto &swap_chain = ctx.window->swapChain();
 
 	VkFence fences[] = {*ctx.inFlightFence};
-	vkWaitForFences(device, 1, fences, VK_TRUE, UINT64_MAX);
-	vkResetFences(device, 1, fences);
+	vkWaitForFences(ctx.device->handle(), 1, fences, VK_TRUE, UINT64_MAX);
+	vkResetFences(ctx.device->handle(), 1, fences);
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device, swap_chain.handle, UINT64_MAX, *ctx.imageAvailableSemaphore,
-						  VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(ctx.device->handle(), swap_chain.handle, UINT64_MAX,
+						  *ctx.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 	recordCommandBuffer(ctx.commands.buffer, ctx.pipeline, ctx.framebuffers, window.swapChain(),
 						imageIndex)
 		.check();
@@ -485,8 +446,9 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	auto graphicsQueue = vulkan[ctx.device_id].queues.front().first;
-	auto presentQueue = vulkan[ctx.device_id].queues.back().first;
+	auto queues = ctx.device->queues();
+	auto graphicsQueue = queues.front().first;
+	auto presentQueue = queues.back().first;
 	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, *ctx.inFlightFence) != VK_SUCCESS)
 		FWK_FATAL("queue submit fail");
 
@@ -519,7 +481,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	renderer.render();*/
 
 	// TODO: is this a good place ?
-	vulkan.nextReleasePhase();
+	ctx.device->nextReleasePhase();
 
 	return true;
 }
@@ -529,51 +491,46 @@ Ex<int> exMain() {
 
 	// How to make sure that vulkan instance is destroyed when something else failed ?
 	// The same with devices ?
-	{
-		VulkanInstanceSetup setup;
-		setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
-		setup.debug_types = all<VDebugType>;
-		EXPECT(VulkanInstance::create(setup));
-	}
-
-	auto &instance = VulkanInstance::instance();
+	VulkanInstanceSetup setup;
+	setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
+	setup.debug_types = all<VDebugType>;
+	auto instance = EX_PASS(VulkanInstance::create(setup));
 
 	auto flags = VWindowFlag::resizable | VWindowFlag::vsync | VWindowFlag::centered |
 				 VWindowFlag::allow_hidpi;
-	auto window = EX_PASS(construct<VulkanWindow>("fwk::vulkan_test", IRect(0, 0, 1280, 720),
-												  VulkanWindowConfig{flags}));
+	auto window = EX_PASS(VulkanWindow::create(instance, "fwk::vulkan_test", IRect(0, 0, 1280, 720),
+											   VulkanWindowConfig{flags}));
 
-	VulkanDeviceSetup setup;
-	auto pref_device = instance.preferredDevice(window.surfaceHandle(), &setup.queues);
+	VulkanDeviceSetup dev_setup;
+	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);
 	if(!pref_device)
 		return ERROR("Coudln't find a suitable Vulkan device");
-	auto device_id = EX_PASS(instance.createDevice(*pref_device, setup));
-	auto device_handle = instance[device_id].handle;
-	EXPECT(window.createSwapChain(device_id));
+	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
+	EXPECT(window->createSwapChain(device));
 
-	VulkanContext ctx{device_id, &window};
-	ctx.pipeline = EX_PASS(createPipeline(device_id, window.swapChain()));
-	ctx.framebuffers = EX_PASS(createFramebuffers(device_handle, window.swapChain(), ctx.pipeline));
-	ctx.commands = EX_PASS(createCommandBuffers(device_id));
+	VulkanContext ctx{device, window};
+	ctx.pipeline = EX_PASS(createPipeline(device, window->swapChain()));
+	ctx.framebuffers =
+		EX_PASS(createFramebuffers(device->handle(), window->swapChain(), ctx.pipeline));
+	ctx.commands = EX_PASS(createCommandBuffers(device));
 
 	EXPECT(createSyncObjects(ctx));
 
-	int font_size = 16 * window.dpiScale();
+	int font_size = 16 * window->dpiScale();
 	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
-	window.runMainLoop(mainLoop, &ctx);
+	window->runMainLoop(mainLoop, &ctx);
 
-	vkDeviceWaitIdle(device_handle);
+	vkDeviceWaitIdle(device->handle());
 
-	destroyCommandBuffers(device_handle, ctx.commands);
-	destroyFramebuffers(device_handle, ctx.framebuffers);
-	destroyGraphicsPipeline(device_handle, ctx.pipeline);
+	destroyCommandBuffers(device->handle(), ctx.commands);
+	destroyFramebuffers(device->handle(), ctx.framebuffers);
+	destroyGraphicsPipeline(device->handle(), ctx.pipeline);
 
 	return 0;
 }
 
 int main(int argc, char **argv) {
 	auto result = exMain();
-	VulkanInstance::destroy();
 
 	if(!result) {
 		result.error().print();

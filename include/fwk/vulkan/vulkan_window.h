@@ -13,6 +13,7 @@
 #include "fwk/math/box.h"
 #include "fwk/str.h"
 #include "fwk/vector.h"
+#include "fwk/vulkan/vulkan_storage.h"
 #include "fwk/vulkan_base.h"
 
 namespace fwk {
@@ -36,8 +37,8 @@ struct VulkanSurfaceDeviceInfo {
 };
 
 struct VulkanSwapChainInfo {
+	VDeviceRef device;
 	VkSwapchainKHR handle;
-	VDeviceId device_id;
 	vector<VkImage> images;
 	vector<VkImageView> image_views;
 	VkFormat format;
@@ -50,14 +51,11 @@ class VulkanWindow {
 	using Flags = VWindowFlags;
 	using Config = VulkanWindowConfig;
 
-	VulkanWindow();
-	FWK_MOVABLE_CLASS(VulkanWindow);
-
-	Ex<void> exConstruct(ZStr title, IRect rect, Config);
-	Ex<void> createSwapChain(VDeviceId);
+	static Ex<VWindowRef> create(VInstanceRef, ZStr title, IRect rect, Config);
+	Ex<void> createSwapChain(VDeviceRef);
 
 	VkSurfaceKHR surfaceHandle() const;
-	VulkanSurfaceDeviceInfo surfaceDeviceInfo(VPhysicalDeviceId) const;
+	VulkanSurfaceDeviceInfo surfaceDeviceInfo(VDeviceRef) const;
 	const VulkanSwapChainInfo &swapChain() const { return *m_swap_chain; }
 
 	vector<IRect> displayRects() const;
@@ -98,12 +96,22 @@ class VulkanWindow {
 	void runMainLoop(MainLoopFunction, void *argument = nullptr);
 
   private:
+	friend VulkanStorage;
+	VulkanWindow(VWindowId, VInstanceRef);
+	~VulkanWindow();
+
+	Ex<void> initialize(ZStr title, IRect rect, Config);
+
+	VulkanWindow(const VulkanWindow &) = delete;
+	void operator=(VulkanWindow &) = delete;
+
 	bool pollEvents();
 
 	vector<Pair<MainLoopFunction, void *>> m_main_loop_stack;
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
+	// TODO: move to device
 	Dynamic<VulkanSwapChainInfo> m_swap_chain;
 };
 }

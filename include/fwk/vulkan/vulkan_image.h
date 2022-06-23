@@ -10,7 +10,7 @@
 namespace fwk {
 
 class VulkanImage {
-	static Ex<VPtr<VkBuffer>> make(VDeviceId, int2 size);
+	static Ex<VPtr<VkBuffer>> make(VDeviceRef, int2 size);
 
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
