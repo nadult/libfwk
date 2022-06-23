@@ -140,14 +140,14 @@ static vector<VulkanPhysicalDeviceInfo> physicalDeviceInfos(VkInstance instance)
 	}
 }
 
-bool VulkanInstance::isPresent() { return VulkanStorage::g_instance_ref_count > 0; }
+bool VulkanInstance::isPresent() { return g_vk_storage.instance_ref_count > 0; }
 VInstanceRef VulkanInstance::ref() {
 	ASSERT(isPresent());
 	return {};
 }
 
 Ex<VInstanceRef> VulkanInstance::create(const VulkanInstanceSetup &setup) {
-	auto *instance = EX_PASS(VulkanStorage::allocInstance());
+	auto *instance = EX_PASS(g_vk_storage.allocInstance());
 	VInstanceRef out;
 	EXPECT(instance->initialize(setup));
 	return out;
@@ -226,7 +226,7 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 	}
 
 	for(auto type_id : all<VTypeId>)
-		VulkanStorage::g_obj_managers[int(type_id)].initialize(type_id);
+		g_vk_storage.obj_managers[int(type_id)].initialize(type_id);
 
 	m_phys_devices = physicalDeviceInfos(m_handle);
 	return {};
@@ -297,7 +297,7 @@ VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
 
 Ex<VDeviceRef> VulkanInstance::createDevice(VPhysicalDeviceId phys_id,
 											const VulkanDeviceSetup &setup) {
-	auto *device = EX_PASS(VulkanStorage::allocDevice(VInstanceRef(), phys_id));
+	auto *device = EX_PASS(g_vk_storage.allocDevice(VInstanceRef(), phys_id));
 	VDeviceRef ref(device->id());
 	EXPECT(device->initialize(setup));
 	return ref;

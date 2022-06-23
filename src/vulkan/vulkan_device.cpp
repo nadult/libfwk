@@ -104,7 +104,7 @@ VulkanDevice::~VulkanDevice() {
 }
 
 void VulkanDevice::nextReleasePhase() {
-	for(auto &obj_mgr : VulkanStorage::g_obj_managers)
+	for(auto &obj_mgr : g_vk_storage.obj_managers)
 		obj_mgr.nextReleasePhase(m_id, m_handle);
 }
 

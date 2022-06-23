@@ -68,7 +68,7 @@ VulkanWindow::~VulkanWindow() {
 
 Ex<VWindowRef> VulkanWindow::create(VInstanceRef instance_ref, ZStr title, IRect rect,
 									Config config) {
-	auto window = EX_PASS(VulkanStorage::allocWindow(instance_ref));
+	auto window = EX_PASS(g_vk_storage.allocWindow(instance_ref));
 	EXPECT(window->initialize(title, rect, config));
 	return window;
 }

@@ -44,7 +44,7 @@ class VulkanDevice {
 	Ex<void> initialize(const VulkanDeviceSetup &);
 
 	friend class VulkanInstance;
-	friend struct VulkanStorage;
+	friend class VulkanStorage;
 
 	// TODO: signify which queue is for what?
 	vector<Pair<VkQueue, VQueueFamilyId>> m_queues;

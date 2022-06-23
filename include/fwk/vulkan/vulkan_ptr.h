@@ -65,7 +65,7 @@ template <class T> class VLightPtr {
 	bool operator<(const VLightPtr &rhs) const { return m_id.bits < rhs.m_id.bits; }
 
   private:
-	static constexpr VulkanObjectManager &g_manager = VulkanStorage::g_obj_managers[int(type_id)];
+	static constexpr VulkanObjectManager &g_manager = g_vk_storage.obj_managers[int(type_id)];
 
 	VulkanObjectId m_id;
 };
@@ -104,8 +104,8 @@ template <class T> class VWrapPtr {
 
 	void swap(VWrapPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
 
-	T &operator*() const { return PASSERT(valid()), g_objects[m_id.objectId()]; }
-	T *operator->() const { return PASSERT(valid()), &g_objects[m_id.objectId()]; }
+	T &operator*() const { return PASSERT(valid()), accessObject(); }
+	T *operator->() const { return PASSERT(valid()), accessObject(); }
 
 	bool valid() const { return m_id.valid(); }
 	explicit operator bool() const { return m_id.valid(); }
@@ -127,7 +127,7 @@ template <class T> class VWrapPtr {
 		VWrapPtr out;
 		out.m_id = g_manager.add(dev_id, handle);
 		FATAL("first resize buffer as needed");
-		new(&g_objects[out.m_id.objectId()]) Wrapper{std::forward<Args>(args)...};
+		new(&out.accessObject()) Wrapper{std::forward<Args>(args)...};
 		return out;
 	}
 
@@ -135,12 +135,13 @@ template <class T> class VWrapPtr {
 	bool operator<(const VWrapPtr &rhs) const { return m_id.bits < rhs.m_id.bits; }
 
   private:
-	static constexpr VulkanObjectManager &g_manager = VulkanStorage::g_obj_managers[int(type_id)];
-	static constexpr PodVector<Wrapper> &g_objects = VulkanStorage::getObjects<T>();
+	static constexpr VulkanObjectManager &g_manager = g_vk_storage.obj_managers[int(type_id)];
+
+	Wrapper &accessObject() { return g_vk_storage.accessObject<Wrapper>(m_id.objectId(), type_id); }
 
 	void release() {
 		if(refCount() == 1)
-			g_objects[m_id.objectId()].~Wrapper();
+			accessObject().~Wrapper();
 		g_manager.release(m_id);
 	}
 

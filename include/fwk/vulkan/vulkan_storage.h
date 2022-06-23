@@ -5,9 +5,18 @@
 
 #include "fwk/vulkan/vulkan_object_manager.h"
 
+#include "fwk/pod_vector.h"
+
 namespace fwk {
 
-struct VulkanStorage {
+class VulkanStorage {
+  public:
+	VulkanStorage();
+	~VulkanStorage();
+
+	VulkanStorage(const VulkanStorage &) = delete;
+	void operator=(VulkanStorage &) = delete;
+
 	static constexpr int max_devices = 4;
 	static constexpr int max_windows = VWindowId::maxIndex() + 1;
 
@@ -29,41 +38,36 @@ struct VulkanStorage {
 	template <class> friend class VWrapPtr;
 
 	// TODO: return refs
-	static Ex<VulkanInstance *> allocInstance();
-	static Ex<VulkanDevice *> allocDevice(VInstanceRef, VPhysicalDeviceId);
-	static Ex<VWindowRef> allocWindow(VInstanceRef);
+	Ex<VulkanInstance *> allocInstance();
+	Ex<VulkanDevice *> allocDevice(VInstanceRef, VPhysicalDeviceId);
+	Ex<VWindowRef> allocWindow(VInstanceRef);
 
-	static void incInstanceRef();
-	static void decInstanceRef();
+	void incInstanceRef();
+	void decInstanceRef();
+	void incRef(VDeviceId);
+	void decRef(VDeviceId);
+	void incRef(VWindowId);
+	void decRef(VWindowId);
 
-	static void incDeviceRef(VDeviceId);
-	static void decDeviceRef(VDeviceId);
+	void resizeObjectData(int new_capacity, VTypeId);
 
-	static void incWindowRef(VWindowId);
-	static void decWindowRef(VWindowId);
-
-	// TODO: single static storage g_vulkan;
-	// TODO: merge object manager here
-	// TODO: move storages from VWrapPtr here
-	static DeviceStorage g_devices[max_devices];
-	static InstanceStorage g_instance;
-	static VulkanObjectManager g_obj_managers[count<VTypeId>];
-	static vector<Pair<VulkanWindow *, int>> g_windows;
-
-	template <class SelectedVkType>
-	static constexpr PodVector<VulkanTypeInfo<SelectedVkType>::Wrapper> &getObjects() {
-#define CASE_WRAPPED_TYPE(Wrapper, VkType, type_id)                                                \
-	if constexpr(is_same<SelectedVkType, VkType>)                                                  \
-		return g_##type_id##_objects;
-#include "fwk/vulkan/vulkan_types.h"
+	template <class T> T &accessObject(int index, VTypeId type_id) {
+		auto *bytes = obj_data[int(type_id)].data();
+		return reinterpret_cast<T *>(bytes)[index];
 	}
 
-#define CASE_WRAPPED_TYPE(Wrapper, VkType, type_id) static PodVector<Wrapper> g_##type_id##_objects;
-#include "fwk/vulkan/vulkan_types.h"
-
-	static int g_device_ref_counts[max_devices];
-	static int g_instance_ref_count;
+	// TODO: merge object manager here
+	// TODO: move storages from VWrapPtr here
+	DeviceStorage devices[max_devices];
+	InstanceStorage instance;
+	PodVector<u8> obj_data[count<VTypeId>];
+	VulkanObjectManager obj_managers[count<VTypeId>];
+	vector<Pair<VulkanWindow *, int>> windows;
+	int device_ref_counts[max_devices] = {};
+	int instance_ref_count = 0;
 };
+
+extern VulkanStorage g_vk_storage;
 
 class VInstanceRef {
   public:
@@ -116,9 +120,9 @@ class VWindowRef {
 };
 
 FWK_ALWAYS_INLINE VulkanDevice &VDeviceRef::operator*() const {
-	return reinterpret_cast<VulkanDevice &>(VulkanStorage::g_devices[m_id]);
+	return reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[m_id]);
 }
 FWK_ALWAYS_INLINE VulkanDevice *VDeviceRef::operator->() const {
-	return reinterpret_cast<VulkanDevice *>(&VulkanStorage::g_devices[m_id]);
+	return reinterpret_cast<VulkanDevice *>(&g_vk_storage.devices[m_id]);
 }
 }
