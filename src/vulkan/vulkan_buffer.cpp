@@ -19,15 +19,10 @@ Ex<VPtr<VkBuffer>> VulkanBuffer::make(VDeviceId device_id, u64 size) {
 	ci.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 	ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VkBuffer buffer_handle;
+
 	if(vkCreateBuffer(device, &ci, nullptr, &buffer_handle) != VK_SUCCESS)
 		return ERROR("Failed to create buffer");
-
-	return ERROR("finishme");
-
-	/*
-	int obj_id = VPtr<VulkanBuffer>::g_storage.create(buffer_handle);
-	VPtr<VulkanBuffer> ptr(obj_id, device_id);
-	ptr->m_size = size;*/
+	return PVBuffer::make(device_id, buffer_handle, size);
 }
 
 }

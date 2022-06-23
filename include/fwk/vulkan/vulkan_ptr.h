@@ -19,19 +19,19 @@ template <class T> class VLightPtr {
 	VLightPtr() = default;
 	VLightPtr(const VLightPtr &rhs) : m_id(rhs.m_id) {
 		if(m_id)
-			g_storage.counters[m_id.objectId()]++;
+			g_manager.counters[m_id.objectId()]++;
 	}
-	VLightPtr(VLightPtr &&rhs) : m_id(rhs.m_id) { rhs.id = {}; }
+	VLightPtr(VLightPtr &&rhs) : m_id(rhs.m_id) { rhs.m_id = {}; }
 	~VLightPtr() { g_manager.release(m_id); }
 
 	void operator=(const VLightPtr &rhs) {
-		g_storage.assignRef(m_id, rhs.m_id);
+		g_manager.assignRef(m_id, rhs.m_id);
 		m_id = rhs.m_id;
 	}
 
 	void operator=(VLightPtr &&rhs) {
 		if(&rhs != this) {
-			swap(m_id, rhs.m_id);
+			::swap(m_id, rhs.m_id);
 			rhs.reset();
 		}
 	}
@@ -41,28 +41,31 @@ template <class T> class VLightPtr {
 	bool valid() const { return m_id.valid(); }
 	explicit operator bool() const { return m_id.valid(); }
 
-	T operator*() const { return PASSERT(valid()), g_manager.handles[m_id.objectId()]; }
+	T operator*() const { return PASSERT(valid()), T(g_manager.handles[m_id.objectId()]); }
 
 	operator VulkanObjectId() const { return m_id; }
 	VDeviceId deviceId() const { return m_id.deviceId(); }
 	int objectId() const { return m_id.objectId(); }
-	int refCount() const { return PASSERT(valid()), g_manager.counters[m_id.objectId()]; }
+	int refCount() const { return PASSERT(valid()), int(g_manager.counters[m_id.objectId()]); }
+
+	template <class... Args> static VLightPtr make(VDeviceId dev_id, T handle) {
+		VLightPtr out;
+		out.m_id = g_manager.add(dev_id, handle);
+		return out;
+	}
 
 	void reset() {
-		if(m_bits != 0) {
-			g_manager.release(*this);
-			m_bits = 0;
+		if(m_id) {
+			g_manager.release(m_id);
+			m_id = {};
 		}
 	}
 
-	bool operator==(const VLightPtr &rhs) const { return m_bits == rhs.m_bits; }
-	bool operator<(const VLightPtr &rhs) const { return m_bits < rhs.m_bits; }
+	bool operator==(const VLightPtr &rhs) const { return m_id.bits == rhs.m_id.bits; }
+	bool operator<(const VLightPtr &rhs) const { return m_id.bits < rhs.m_id.bits; }
 
   private:
 	static constexpr VulkanObjectManager &g_manager = VulkanInstance::g_obj_managers[int(type_id)];
-	friend T;
-
-	VLightPtr(VulkanObjectId id, NoRefIncreaseTag) : m_id(id) {}
 
 	VulkanObjectId m_id;
 };
@@ -79,14 +82,17 @@ template <class T> class VWrapPtr {
 	VWrapPtr() = default;
 	VWrapPtr(const VWrapPtr &rhs) : m_id(rhs.m_id) {
 		if(m_id)
-			g_storage.counters[m_id.objectId()]++;
+			g_manager.counters[m_id.objectId()]++;
 	}
-	VWrapPtr(VWrapPtr &&rhs) : m_id(rhs.m_id) { rhs.id = {}; }
-	~VWrapPtr() { g_manager.release(m_id); }
+	VWrapPtr(VWrapPtr &&rhs) : m_id(rhs.m_id) { rhs.m_id = {}; }
+	~VWrapPtr() { release(); }
 
 	void operator=(const VWrapPtr &rhs) {
-		g_storage.assignRef(m_id, rhs.m_id);
-		m_id = rhs.m_id;
+		if(m_id != rhs.m_id) {
+			release();
+			g_manager.acquire(rhs.m_id);
+			m_id = rhs.m_id;
+		}
 	}
 
 	void operator=(VWrapPtr &&rhs) {
@@ -98,15 +104,8 @@ template <class T> class VWrapPtr {
 
 	void swap(VWrapPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
 
-	/*
-	T &operator*() const {
-		PASSERT(valid());
-		return g_storage.objects[id()];
-	}
-	T *operator->() const {
-		PASSERT(valid());
-		return &g_storage.objects[id()];
-	}*/
+	T &operator*() const { return PASSERT(valid()), g_objects[m_id.objectId()]; }
+	T *operator->() const { return PASSERT(valid()), &g_objects[m_id.objectId()]; }
 
 	bool valid() const { return m_id.valid(); }
 	explicit operator bool() const { return m_id.valid(); }
@@ -114,41 +113,36 @@ template <class T> class VWrapPtr {
 	operator VulkanObjectId() const { return m_id; }
 	VDeviceId deviceId() const { return m_id.deviceId(); }
 	int objectId() const { return m_id.objectId(); }
-	T handle() const { return PASSERT(valid()), g_manager.handles[m_id.objectId()]; }
-	int refCount() const { return PASSERT(valid()), g_manager.counters[m_id.objectId()]; }
+	T handle() const { return PASSERT(valid()), T(g_manager.handles[m_id.objectId()]); }
+	int refCount() const { return PASSERT(valid()), int(g_manager.counters[m_id.objectId()]); }
 
 	void reset() {
-		if(m_bits != 0) {
-			g_manager.release(*this);
-			m_bits = 0;
+		if(m_id) {
+			release();
+			m_id = 0;
 		}
 	}
 
-	/*template <class... Args> void emplace(Args &&...args) {
-		*this = T::make(std::forward<Args>(args)...);
+	template <class... Args> static VWrapPtr make(VDeviceId dev_id, T handle, Args &&...args) {
+		VWrapPtr out;
+		out.m_id = g_manager.add(dev_id, handle);
+		FATAL("first resize buffer as needed");
+		new(&g_objects[out.m_id.objectId()]) Wrapper{std::forward<Args>(args)...};
+		return out;
 	}
 
-	template <class... Args,
-			  class Ret = decltype(DECLVAL(T &)(std::forward<Args>(DECLVAL(Args &&))...))>
-	Ret operator()(Args &&...args) const {
-		PASSERT(valid());
-		return g_storage.objects[id()](std::forward<Args>(args)...);
-	}
-
-	template <class Arg, class Ret = decltype(DECLVAL(T &)[std::forward<Arg>(DECLVAL(Arg &&))])>
-	Ret operator[](Arg &&arg) const {
-		PASSERT(valid());
-		return g_storage.objects[id()][std::forward<Arg>(arg)];
-	}*/
-
-	bool operator==(const VWrapPtr &rhs) const { return m_bits == rhs.m_bits; }
-	bool operator<(const VWrapPtr &rhs) const { return m_bits < rhs.m_bits; }
+	bool operator==(const VWrapPtr &rhs) const { return m_id.bits == rhs.m_id.bits; }
+	bool operator<(const VWrapPtr &rhs) const { return m_id.bits < rhs.m_id.bits; }
 
   private:
 	static constexpr VulkanObjectManager &g_manager = VulkanInstance::g_obj_managers[int(type_id)];
-	friend T;
+	static PodVector<Wrapper> g_objects;
 
-	VWrapPtr(VulkanObjectId id, NoRefIncreaseTag) : m_id(id) {}
+	void release() {
+		if(refCount() == 1)
+			g_objects[m_id.objectId()].~Wrapper();
+		g_manager.release(m_id);
+	}
 
 	VulkanObjectId m_id;
 };

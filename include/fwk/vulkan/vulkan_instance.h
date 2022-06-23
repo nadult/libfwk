@@ -111,6 +111,8 @@ class VulkanInstance {
 	Ex<VDeviceId> createDevice(VPhysicalDeviceId, const VulkanDeviceSetup &);
 	void destroyDevice(VDeviceId);
 
+	void nextReleasePhase();
+
 	VkInstance handle() { return m_handle; }
 
   private:
@@ -127,8 +129,6 @@ class VulkanInstance {
 
 	static VulkanInstance g_instance;
 	static VulkanObjectManager g_obj_managers[count<VTypeId>];
-#define CASE_WRAPPED_OBJECT(Wrapper, VkType, type_id) static PodVector<Wrapper> g_##type_id##_objs;
-#include "fwk/vulkan/vulkan_types.h"
 
 	VkInstance m_handle = nullptr;
 	VkDebugUtilsMessengerEXT m_messenger = nullptr;

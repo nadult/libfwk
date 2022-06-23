@@ -12,6 +12,7 @@
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_instance.h>
+#include <fwk/vulkan/vulkan_ptr.h>
 #include <fwk/vulkan/vulkan_window.h>
 
 #include <vulkan/vulkan.h>
@@ -400,12 +401,28 @@ struct VulkanContext {
 	Framebuffers framebuffers;
 	CommandBuffers commands;
 
-	VkSemaphore imageAvailableSemaphore;
-	VkSemaphore renderFinishedSemaphore;
-	VkFence inFlightFence;
+	PVSemaphore imageAvailableSemaphore;
+	PVSemaphore renderFinishedSemaphore;
+	PVFence inFlightFence;
 
 	Maybe<Font> font;
 };
+
+Ex<PVSemaphore> makeSemaphore(VDeviceId device_id, const VkSemaphoreCreateInfo &ci) {
+	auto device = VulkanInstance::instance()[device_id].handle;
+	VkSemaphore handle;
+	if(vkCreateSemaphore(device, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("Failed to create semaphore");
+	return PVSemaphore::make(device_id, handle);
+}
+
+Ex<PVFence> makeFence(VDeviceId device_id, const VkFenceCreateInfo &ci) {
+	auto device = VulkanInstance::instance()[device_id].handle;
+	VkFence handle;
+	if(vkCreateFence(device, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("Failed to create fence");
+	return PVFence::make(device_id, handle);
+}
 
 Ex<void> createSyncObjects(VulkanContext &ctx) {
 	VkSemaphoreCreateInfo semaphoreInfo{};
@@ -415,23 +432,11 @@ Ex<void> createSyncObjects(VulkanContext &ctx) {
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	auto device = VulkanInstance::instance()[ctx.device_id].handle;
-	if(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ctx.imageAvailableSemaphore) !=
-		   VK_SUCCESS ||
-	   vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ctx.renderFinishedSemaphore) !=
-		   VK_SUCCESS ||
-	   vkCreateFence(device, &fenceInfo, nullptr, &ctx.inFlightFence) != VK_SUCCESS) {
-		return ERROR("Failed to create syncs");
-	}
-
-	// TODO: destroy them
+	ctx.imageAvailableSemaphore = EX_PASS(makeSemaphore(ctx.device_id, semaphoreInfo));
+	ctx.renderFinishedSemaphore = EX_PASS(makeSemaphore(ctx.device_id, semaphoreInfo));
+	ctx.inFlightFence = EX_PASS(makeFence(ctx.device_id, fenceInfo));
 
 	return {};
-}
-
-void destroySyncObjects(VkDevice device_handle, VulkanContext &ctx) {
-	vkDestroySemaphore(device_handle, ctx.imageAvailableSemaphore, nullptr);
-	vkDestroySemaphore(device_handle, ctx.renderFinishedSemaphore, nullptr);
-	vkDestroyFence(device_handle, ctx.inFlightFence, nullptr);
 }
 
 bool mainLoop(VulkanWindow &window, void *ctx_) {
@@ -453,11 +458,12 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	auto device = vulkan[ctx.device_id].handle;
 	auto &swap_chain = ctx.window->swapChain();
 
-	vkWaitForFences(device, 1, &ctx.inFlightFence, VK_TRUE, UINT64_MAX);
-	vkResetFences(device, 1, &ctx.inFlightFence);
+	VkFence fences[] = {*ctx.inFlightFence};
+	vkWaitForFences(device, 1, fences, VK_TRUE, UINT64_MAX);
+	vkResetFences(device, 1, fences);
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device, swap_chain.handle, UINT64_MAX, ctx.imageAvailableSemaphore,
+	vkAcquireNextImageKHR(device, swap_chain.handle, UINT64_MAX, *ctx.imageAvailableSemaphore,
 						  VK_NULL_HANDLE, &imageIndex);
 	recordCommandBuffer(ctx.commands.buffer, ctx.pipeline, ctx.framebuffers, window.swapChain(),
 						imageIndex)
@@ -466,7 +472,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = {ctx.imageAvailableSemaphore};
+	VkSemaphore waitSemaphores[] = {*ctx.imageAvailableSemaphore};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -475,13 +481,13 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &ctx.commands.buffer;
 
-	VkSemaphore signalSemaphores[] = {ctx.renderFinishedSemaphore};
+	VkSemaphore signalSemaphores[] = {*ctx.renderFinishedSemaphore};
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
 	auto graphicsQueue = vulkan[ctx.device_id].queues.front().first;
 	auto presentQueue = vulkan[ctx.device_id].queues.back().first;
-	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, ctx.inFlightFence) != VK_SUCCESS)
+	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, *ctx.inFlightFence) != VK_SUCCESS)
 		FWK_FATAL("queue submit fail");
 
 	VkPresentInfoKHR presentInfo{};
@@ -511,6 +517,9 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	auto text = format("Hello world!\nWindow size: %", device.windowSize());
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 	renderer.render();*/
+
+	// TODO: is this a good place ?
+	vulkan.nextReleasePhase();
 
 	return true;
 }
@@ -555,7 +564,6 @@ Ex<int> exMain() {
 
 	vkDeviceWaitIdle(device_handle);
 
-	destroySyncObjects(device_handle, ctx);
 	destroyCommandBuffers(device_handle, ctx.commands);
 	destroyFramebuffers(device_handle, ctx.framebuffers);
 	destroyGraphicsPipeline(device_handle, ctx.pipeline);

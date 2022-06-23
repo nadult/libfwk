@@ -227,11 +227,26 @@ Ex<void> VulkanInstance::create_(const VulkanInstanceSetup &setup) {
 			return ERROR("Error while hooking vulkan debug message handler: 0x%x", uint(result));
 	}
 
+	for(auto type_id : all<VTypeId>)
+		g_obj_managers[int(type_id)].initialize(type_id);
+
 	m_phys_devices = physicalDeviceInfos(m_handle);
 	return {};
 }
 
+void VulkanInstance::nextReleasePhase() {
+	for(auto device_id : deviceIds())
+		for(auto &obj_mgr : g_obj_managers)
+			obj_mgr.nextReleasePhase(device_id, m_devices[device_id].handle);
+}
+
 void VulkanInstance::destroy_() {
+	for(auto &device : m_devices)
+		vkDeviceWaitIdle(device.handle);
+	// Destroying objects
+	for(int i = 0; i < 3; i++)
+		nextReleasePhase();
+
 	// TODO: free all handles, and maybe wait until devices are finished?
 	// TODO: make sure that all the objects are destroyed as well
 	for(auto &device : m_devices)

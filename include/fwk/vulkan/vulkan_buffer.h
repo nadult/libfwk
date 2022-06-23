@@ -10,6 +10,10 @@
 namespace fwk {
 
 class VulkanBuffer {
+  public:
+	VulkanBuffer(u64 size) : m_size(size) {}
+	~VulkanBuffer() = default;
+
 	static Ex<VPtr<VkBuffer>> make(VDeviceId, u64 size);
 
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);

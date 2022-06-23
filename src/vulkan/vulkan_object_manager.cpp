@@ -88,15 +88,21 @@ void VulkanObjectManager::nextReleasePhase(VDeviceId device_id, VkDevice device)
 
 		int object_id = tbr_lists.front();
 		while(object_id != empty_node) {
-			object_id = counters[object_id];
 			destroy_func(handles[object_id], device);
+			uint next = counters[object_id];
 			handles[object_id] = nullptr;
 			counters[object_id] = free_list;
 			free_list = object_id;
+			object_id = next;
 		}
 	}
 	for(int i = 1; i < tbr_lists.size(); i++)
 		tbr_lists[i - 1] = tbr_lists[i];
 	tbr_lists.back() = empty_node;
 }
+
+#define CASE_WRAPPED_OBJECT(Wrapper, VkType, type_id)                                              \
+	PodVector<Wrapper> VWrapPtr<VkType>::g_objects;
+#include "fwk/vulkan/vulkan_types.h"
+
 }
