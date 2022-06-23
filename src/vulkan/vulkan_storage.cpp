@@ -22,6 +22,9 @@ VulkanObjectManager VulkanStorage::g_obj_managers[count<VTypeId>];
 VulkanStorage::DeviceStorage VulkanStorage::g_devices[max_devices];
 VulkanStorage::InstanceStorage VulkanStorage::g_instance;
 vector<Pair<VulkanWindow *, int>> VulkanStorage::g_windows;
+#define CASE_WRAP_OBJECT(Wrapper, VkType, type_id)                                                 \
+	PodVector<Wrapper> VulkanStorage::g_##type_id##_objects;
+#include "fwk/vulkan/vulkan_types.h"
 
 int VulkanStorage::g_device_ref_counts[max_devices] = {};
 int VulkanStorage::g_instance_ref_count = 0;

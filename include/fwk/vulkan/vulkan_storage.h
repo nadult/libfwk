@@ -50,6 +50,17 @@ struct VulkanStorage {
 	static VulkanObjectManager g_obj_managers[count<VTypeId>];
 	static vector<Pair<VulkanWindow *, int>> g_windows;
 
+	template <class SelectedVkType>
+	static constexpr PodVector<VulkanTypeInfo<SelectedVkType>::Wrapper> &getObjects() {
+#define CASE_WRAPPED_TYPE(Wrapper, VkType, type_id)                                                \
+	if constexpr(is_same<SelectedVkType, VkType>)                                                  \
+		return g_##type_id##_objects;
+#include "fwk/vulkan/vulkan_types.h"
+	}
+
+#define CASE_WRAPPED_TYPE(Wrapper, VkType, type_id) static PodVector<Wrapper> g_##type_id##_objects;
+#include "fwk/vulkan/vulkan_types.h"
+
 	static int g_device_ref_counts[max_devices];
 	static int g_instance_ref_count;
 };

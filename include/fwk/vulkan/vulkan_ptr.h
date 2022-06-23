@@ -136,7 +136,7 @@ template <class T> class VWrapPtr {
 
   private:
 	static constexpr VulkanObjectManager &g_manager = VulkanStorage::g_obj_managers[int(type_id)];
-	static PodVector<Wrapper> g_objects;
+	static constexpr PodVector<Wrapper> &g_objects = VulkanStorage::getObjects<T>();
 
 	void release() {
 		if(refCount() == 1)
