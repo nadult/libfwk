@@ -18,7 +18,6 @@
 #include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
-#include "fwk/vulkan/vulkan_object_manager.h"
 #include "fwk/vulkan/vulkan_storage.h"
 #include <cstring>
 
@@ -224,9 +223,6 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 		if(result != VK_SUCCESS)
 			return ERROR("Error while hooking vulkan debug message handler: 0x%x", uint(result));
 	}
-
-	for(auto type_id : all<VTypeId>)
-		g_vk_storage.obj_managers[int(type_id)].initialize(type_id);
 
 	m_phys_devices = physicalDeviceInfos(m_handle);
 	return {};

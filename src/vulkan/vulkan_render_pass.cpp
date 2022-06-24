@@ -4,7 +4,7 @@
 #include "fwk/vulkan/vulkan_render_pass.h"
 
 #include "fwk/vulkan/vulkan_device.h"
-#include "fwk/vulkan/vulkan_ptr.h"
+#include "fwk/vulkan/vulkan_storage.h"
 #include "vulkan/vulkan.h"
 
 namespace fwk {
@@ -24,7 +24,7 @@ Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device,
 	VkRenderPass handle;
 	if(vkCreateRenderPass(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateRenderPass failed");
-	auto out = PVRenderPass::create(device->id(), handle);
+	auto out = g_vk_storage.allocObject<VkRenderPass>(device, handle);
 	out->m_attachment_count = attachments.size();
 	out->m_subpass_count = subpasses.size();
 	out->m_dependency_count = dependencies.size();

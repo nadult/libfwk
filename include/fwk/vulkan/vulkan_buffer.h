@@ -5,7 +5,7 @@
 
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
-#include "fwk/vulkan/vulkan_ptr.h"
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 
@@ -14,7 +14,7 @@ class VulkanBuffer {
 	VulkanBuffer(u64 size) : m_size(size) {}
 	~VulkanBuffer() = default;
 
-	static Ex<VPtr<VkBuffer>> make(VDeviceRef, u64 size);
+	static Ex<PVBuffer> make(VDeviceRef, u64 size);
 
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);

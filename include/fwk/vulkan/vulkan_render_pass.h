@@ -5,7 +5,7 @@
 
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
-#include "fwk/vulkan/vulkan_ptr.h"
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 

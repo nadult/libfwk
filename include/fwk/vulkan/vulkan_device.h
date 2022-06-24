@@ -26,6 +26,7 @@ class VulkanDevice {
 	Ex<PVFence> createFence(const VkFenceCreateInfo &);
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
 
+	VDeviceRef ref() const { return VDeviceRef(m_id); }
 	VDeviceId id() const { return m_id; }
 	VPhysicalDeviceId physId() const { return m_phys_id; }
 	VkDevice handle() const { return m_handle; }

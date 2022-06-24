@@ -4,7 +4,6 @@
 #include "fwk/vulkan/vulkan_device.h"
 
 #include "fwk/vulkan/vulkan_instance.h"
-#include "fwk/vulkan/vulkan_ptr.h"
 #include "fwk/vulkan/vulkan_storage.h"
 #include "vulkan/vulkan.h"
 
@@ -14,14 +13,14 @@ Ex<PVSemaphore> VulkanDevice::createSemaphore(const VkSemaphoreCreateInfo &ci) {
 	VkSemaphore handle;
 	if(vkCreateSemaphore(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create semaphore");
-	return PVSemaphore::make(m_id, handle);
+	return g_vk_storage.allocObject<VkSemaphore>(ref(), handle);
 }
 
 Ex<PVFence> VulkanDevice::createFence(const VkFenceCreateInfo &ci) {
 	VkFence handle;
 	if(vkCreateFence(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create fence");
-	return PVFence::make(m_id, handle);
+	return g_vk_storage.allocObject<VkFence>(ref(), handle);
 }
 
 Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
@@ -34,7 +33,7 @@ Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	VkShaderModule handle;
 	if(vkCreateShaderModule(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateShaderModule failed");
-	return PVShaderModule::make(m_id, handle);
+	return g_vk_storage.allocObject<VkShaderModule>(ref(), handle);
 }
 
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)
@@ -103,9 +102,5 @@ VulkanDevice::~VulkanDevice() {
 	}
 }
 
-void VulkanDevice::nextReleasePhase() {
-	for(auto &obj_mgr : g_vk_storage.obj_managers)
-		obj_mgr.nextReleasePhase(m_id, m_handle);
-}
-
+void VulkanDevice::nextReleasePhase() { g_vk_storage.nextReleasePhase(m_id, m_handle); }
 }

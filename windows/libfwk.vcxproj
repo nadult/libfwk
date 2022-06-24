@@ -155,10 +155,8 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_device.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_image.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_instance.h" />
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_ptr.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_render_pass.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_shader.h" />
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_object_manager.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_storage.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_types.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_window.h" />
@@ -371,7 +369,6 @@
     <ClCompile Include="..\src\vulkan\vulkan_instance.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_render_pass.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_shader.cpp" />
-    <ClCompile Include="..\src\vulkan\vulkan_object_manager.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_storage.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_window.cpp" />
     <ClCompile Include="..\src\gui\widgets.cpp" />

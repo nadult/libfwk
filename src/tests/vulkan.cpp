@@ -13,7 +13,6 @@
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_instance.h>
-#include <fwk/vulkan/vulkan_ptr.h>
 #include <fwk/vulkan/vulkan_render_pass.h>
 #include <fwk/vulkan/vulkan_window.h>
 
@@ -91,13 +90,13 @@ Ex<Pipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_c
 	VkPipelineShaderStageCreateInfo vsh_stage_ci{};
 	vsh_stage_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vsh_stage_ci.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vsh_stage_ci.module = *vsh_module;
+	vsh_stage_ci.module = vsh_module;
 	vsh_stage_ci.pName = "main";
 
 	VkPipelineShaderStageCreateInfo fsh_stage_ci{};
 	fsh_stage_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	fsh_stage_ci.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fsh_stage_ci.module = *fsh_module;
+	fsh_stage_ci.module = fsh_module;
 	fsh_stage_ci.pName = "main";
 
 	VkPipelineShaderStageCreateInfo shader_stages_ci[] = {vsh_stage_ci, fsh_stage_ci};
@@ -408,13 +407,13 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	auto &swap_chain = ctx.window->swapChain();
 
-	VkFence fences[] = {*ctx.inFlightFence};
+	VkFence fences[] = {ctx.inFlightFence};
 	vkWaitForFences(ctx.device->handle(), 1, fences, VK_TRUE, UINT64_MAX);
 	vkResetFences(ctx.device->handle(), 1, fences);
 
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(ctx.device->handle(), swap_chain.handle, UINT64_MAX,
-						  *ctx.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+						  ctx.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 	recordCommandBuffer(ctx.commands.buffer, ctx.pipeline, ctx.framebuffers, window.swapChain(),
 						imageIndex)
 		.check();
@@ -422,7 +421,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = {*ctx.imageAvailableSemaphore};
+	VkSemaphore waitSemaphores[] = {ctx.imageAvailableSemaphore};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -431,14 +430,14 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &ctx.commands.buffer;
 
-	VkSemaphore signalSemaphores[] = {*ctx.renderFinishedSemaphore};
+	VkSemaphore signalSemaphores[] = {ctx.renderFinishedSemaphore};
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
 	auto queues = ctx.device->queues();
 	auto graphicsQueue = queues.front().first;
 	auto presentQueue = queues.back().first;
-	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, *ctx.inFlightFence) != VK_SUCCESS)
+	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, ctx.inFlightFence) != VK_SUCCESS)
 		FWK_FATAL("queue submit fail");
 
 	VkPresentInfoKHR presentInfo{};

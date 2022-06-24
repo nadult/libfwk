@@ -4,12 +4,12 @@
 #include "fwk/vulkan/vulkan_buffer.h"
 
 #include "fwk/vulkan/vulkan_device.h"
-#include "fwk/vulkan/vulkan_ptr.h"
+#include "fwk/vulkan/vulkan_storage.h"
 #include "vulkan/vulkan.h"
 
 namespace fwk {
 
-Ex<VPtr<VkBuffer>> VulkanBuffer::make(VDeviceRef device, u64 size) {
+Ex<PVBuffer> VulkanBuffer::make(VDeviceRef device, u64 size) {
 	VkBufferCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	ci.size = size;
@@ -19,7 +19,7 @@ Ex<VPtr<VkBuffer>> VulkanBuffer::make(VDeviceRef device, u64 size) {
 
 	if(vkCreateBuffer(device->handle(), &ci, nullptr, &buffer_handle) != VK_SUCCESS)
 		return ERROR("Failed to create buffer");
-	return PVBuffer::create(device->id(), buffer_handle, size);
+	return g_vk_storage.allocObject<VkBuffer>(device, buffer_handle, size);
 }
 
 }

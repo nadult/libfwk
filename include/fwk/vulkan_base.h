@@ -40,8 +40,7 @@ class VulkanImage;
 class VulkanBuffer;
 class VulkanRenderPass;
 
-template <class T> class VLightPtr;
-template <class T> class VWrapPtr;
+template <class T> class VPtr;
 
 class VulkanObjectManager;
 
@@ -57,9 +56,7 @@ template <class> struct VulkanTypeInfo;
 	};
 #include "fwk/vulkan/vulkan_types.h"
 
-template <class T>
-using VPtr = If<is_same<typename VulkanTypeInfo<T>::Wrapper, None>, VLightPtr<T>, VWrapPtr<T>>;
-
+using PVBuffer = VPtr<VkBuffer>;
 using PVImage = VPtr<VkImage>;
 using PVBuffer = VPtr<VkBuffer>;
 using PVSemaphore = VPtr<VkSemaphore>;
