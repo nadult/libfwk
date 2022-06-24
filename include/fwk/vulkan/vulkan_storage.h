@@ -183,6 +183,8 @@ class VulkanStorage {
 	template <class THandle> void decRef(VObjectId);
 	void nextReleasePhase(VDeviceId, VkDevice);
 
+	using ObjectDestructor = void (*)(void *, VkDevice);
+
 	struct ObjectStorage {
 		VObjectId addHandle(VDeviceId, void *);
 		template <class THandle> VObjectId addObject(VDeviceRef, THandle);
@@ -193,6 +195,7 @@ class VulkanStorage {
 		vector<void *> handles;
 		PodVector<u8> wrapper_data;
 		Array<u32, num_release_phases> to_be_released_lists[max_devices] = {};
+		ObjectDestructor destructor = nullptr;
 		u32 free_list = 0;
 	};
 

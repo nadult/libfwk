@@ -40,6 +40,12 @@ VulkanStorage::VulkanStorage() {
 		cur.counters.emplace_back(0u);
 		cur.handles.emplace_back(nullptr);
 	}
+
+#define CASE_TYPE(UpperCase, lower_case)                                                           \
+	objects[VTypeId::lower_case].destructor = [](void *handle, VkDevice device) {                  \
+		return vkDestroy##UpperCase(device, (Vk##UpperCase)handle, nullptr);                       \
+	};
+#include "fwk/vulkan/vulkan_type_list.h"
 }
 
 VulkanStorage::~VulkanStorage() {}
@@ -178,25 +184,12 @@ void VulkanStorage::ObjectStorage::nextReleasePhase(VTypeId type_id, VDeviceId d
 	auto &tbr_lists = to_be_released_lists[device_id];
 
 	if(tbr_lists.front() != 0) {
-		void (*destroy_func)(void *handle, VkDevice device) = nullptr;
-
-		switch(type_id) {
-#define CASE_TYPE(UpperCase, lower_case)                                                           \
-	case VTypeId::lower_case:                                                                      \
-		destroy_func = [](void *handle, VkDevice device) {                                         \
-			return vkDestroy##UpperCase(device, (Vk##UpperCase)handle, nullptr);                   \
-		};                                                                                         \
-		break;
-#include "fwk/vulkan/vulkan_type_list.h"
-		default:
+		if(!destructor)
 			FATAL("destroy_func unimplemented for: %s", toString(type_id));
-		}
-
-#undef SIMPLE_FUNC
 
 		int object_id = tbr_lists.front();
 		while(object_id != 0) {
-			destroy_func(handles[object_id], device_handle);
+			destructor(handles[object_id], device_handle);
 			uint next = counters[object_id];
 			handles[object_id] = nullptr;
 			counters[object_id] = free_list;
