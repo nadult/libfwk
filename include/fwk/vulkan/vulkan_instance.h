@@ -14,7 +14,6 @@
 #include "fwk/sparse_vector.h"
 #include "fwk/vector.h"
 #include "fwk/vulkan_base.h"
-#include <vulkan/vulkan.h>
 
 namespace fwk {
 

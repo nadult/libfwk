@@ -5,7 +5,7 @@
 
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_storage.h"
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace fwk {
 

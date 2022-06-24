@@ -5,12 +5,9 @@
 
 // TODO: cleanup in includes
 
-#include "vulkan/vulkan.h"
-
 #include "fwk/dynamic.h"
 #include "fwk/enum_flags.h"
 #include "fwk/gfx_base.h"
-#include "fwk/math/box.h"
 #include "fwk/str.h"
 #include "fwk/vector.h"
 #include "fwk/vulkan/vulkan_storage.h"

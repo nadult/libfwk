@@ -6,10 +6,8 @@
 #include "fwk/enum.h"
 #include "fwk/tag_id.h"
 
+// TODO: try to remove it if possible
 #include <vulkan/vulkan.h>
-
-struct VkSurfaceKHR_T;
-using VkSurfaceKHR = VkSurfaceKHR_T *;
 
 namespace fwk {
 
@@ -44,13 +42,7 @@ class VulkanRenderPass;
 
 template <class T> class VPtr;
 
-class VulkanObjectManager;
-
-using VInstance = VulkanInstance;
-using VWindow = VulkanWindow;
-
 template <class> struct VulkanTypeInfo;
-
 #define CASE_TYPE(Wrapper_, VkType, type_id_)                                                      \
 	template <> struct VulkanTypeInfo<VkType> {                                                    \
 		static constexpr VTypeId type_id = VTypeId::type_id_;                                      \

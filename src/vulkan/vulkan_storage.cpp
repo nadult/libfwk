@@ -11,9 +11,13 @@
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_render_pass.h"
 
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace fwk {
+
+#if VK_USE_64_BIT_PTR_DEFINES == 0
+#error VPtr<> conversion to VkHandle won't work correctly;; TODO: fix it
+#endif
 
 VulkanStorage g_vk_storage;
 
