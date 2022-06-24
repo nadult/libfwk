@@ -127,21 +127,14 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap
 }
 
 struct CommandBuffers {
-	VkCommandPool pool;
+	PVCommandPool pool;
 	VkCommandBuffer buffer;
 };
 
 Ex<CommandBuffers> createCommandBuffers(VDeviceRef device) {
 	CommandBuffers out;
-
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	auto queues = device->queues();
-	poolInfo.queueFamilyIndex = queues[0].second;
-	if(vkCreateCommandPool(device->handle(), &poolInfo, nullptr, &out.pool) != VK_SUCCESS) {
-		return ERROR("vkCreateCommandPool failed");
-	}
+	auto queue_family = device->queues().front().second;
+	out.pool = EX_PASS(device->createCommandPool(queue_family, CommandPoolFlag::reset_command));
 
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -149,9 +142,8 @@ Ex<CommandBuffers> createCommandBuffers(VDeviceRef device) {
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = 1;
 
-	if(vkAllocateCommandBuffers(device->handle(), &allocInfo, &out.buffer) != VK_SUCCESS) {
+	if(vkAllocateCommandBuffers(device->handle(), &allocInfo, &out.buffer) != VK_SUCCESS)
 		return ERROR("alloc failed");
-	}
 
 	return out;
 }
@@ -188,15 +180,10 @@ Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, PVPipeline pipeline,
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 	vkCmdEndRenderPass(commandBuffer);
 
-	if(vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+	if(vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		return ERROR("endCOmand failed");
-	}
 
 	return {};
-}
-
-void destroyCommandBuffers(VkDevice device_handle, CommandBuffers &bufs) {
-	vkDestroyCommandPool(device_handle, bufs.pool, nullptr);
 }
 
 struct VulkanContext {
@@ -337,9 +324,7 @@ Ex<int> exMain() {
 	int font_size = 16 * window->dpiScale();
 	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
 	window->runMainLoop(mainLoop, &ctx);
-
 	vkDeviceWaitIdle(device->handle());
-	destroyCommandBuffers(device->handle(), ctx.commands);
 
 	return 0;
 }

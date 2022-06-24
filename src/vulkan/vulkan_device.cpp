@@ -16,7 +16,7 @@ Ex<PVSemaphore> VulkanDevice::createSemaphore(bool is_signaled) {
 	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 	if(vkCreateSemaphore(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create semaphore");
-	return g_vk_storage.allocObject<VkSemaphore>(ref(), handle);
+	return g_vk_storage.allocObject(ref(), handle);
 }
 
 Ex<PVFence> VulkanDevice::createFence(bool is_signaled) {
@@ -26,7 +26,7 @@ Ex<PVFence> VulkanDevice::createFence(bool is_signaled) {
 	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 	if(vkCreateFence(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create fence");
-	return g_vk_storage.allocObject<VkFence>(ref(), handle);
+	return g_vk_storage.allocObject(ref(), handle);
 }
 
 Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
@@ -39,7 +39,27 @@ Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	VkShaderModule handle;
 	if(vkCreateShaderModule(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateShaderModule failed");
-	return g_vk_storage.allocObject<VkShaderModule>(ref(), handle);
+	return g_vk_storage.allocObject(ref(), handle);
+}
+
+static const EnumMap<CommandPoolFlag, VkCommandPoolCreateFlagBits> command_pool_flags = {{
+	{CommandPoolFlag::transient, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+	{CommandPoolFlag::reset_command, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT},
+	{CommandPoolFlag::protected_, VK_COMMAND_POOL_CREATE_PROTECTED_BIT},
+}};
+
+Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id,
+												  CommandPoolFlags flags) {
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = 0;
+	poolInfo.queueFamilyIndex = queue_family_id;
+	for(auto flag : flags)
+		poolInfo.flags |= command_pool_flags[flag];
+	VkCommandPool handle;
+	if(vkCreateCommandPool(m_handle, &poolInfo, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateCommandPool failed");
+	return g_vk_storage.allocObject(ref(), handle);
 }
 
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)

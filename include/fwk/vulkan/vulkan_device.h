@@ -20,11 +20,15 @@ struct VulkanDeviceSetup {
 	Dynamic<VkPhysicalDeviceFeatures> features;
 };
 
+DEFINE_ENUM(CommandPoolFlag, transient, reset_command, protected_);
+using CommandPoolFlags = EnumFlags<CommandPoolFlag>;
+
 class VulkanDevice {
   public:
 	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);
 	Ex<PVFence> createFence(bool is_signaled = false);
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
+	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, CommandPoolFlags);
 
 	VDeviceRef ref() const { return VDeviceRef(m_id); }
 	VDeviceId id() const { return m_id; }
