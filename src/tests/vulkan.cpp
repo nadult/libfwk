@@ -475,8 +475,6 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 }
 
 Ex<int> exMain() {
-	double time = getTime();
-
 	// How to make sure that vulkan instance is destroyed when something else failed ?
 	// The same with devices ?
 	VulkanInstanceSetup setup;

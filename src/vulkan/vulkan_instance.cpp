@@ -133,10 +133,9 @@ static vector<VulkanPhysicalDeviceInfo> physicalDeviceInfos(VkInstance instance)
 	vkEnumeratePhysicalDevices(instance, &count, handles.data());
 
 	out.reserve(handles.size());
-	for(auto handle : handles) {
+	for(auto handle : handles)
 		out.emplace_back(physicalDeviceInfo(handle));
-		return out;
-	}
+	return out;
 }
 
 bool VulkanInstance::isPresent() { return g_vk_storage.instance_ref_count > 0; }

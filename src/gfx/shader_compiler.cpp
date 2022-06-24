@@ -24,6 +24,7 @@ ShaderCompiler &ShaderCompiler::operator=(ShaderCompiler &&rhs) {
 		shaderc_compiler_release((shaderc_compiler_t)m_compiler);
 	m_compiler = rhs.m_compiler;
 	rhs.m_compiler = nullptr;
+	return *this;
 }
 
 const EnumMap<ShaderType, shaderc_shader_kind> type_map = {{

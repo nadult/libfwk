@@ -92,10 +92,8 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 }
 
 VulkanDevice::~VulkanDevice() {
-	// TODO: make sure that all the objects are properly destroyed?
 	if(m_handle) {
 		vkDeviceWaitIdle(m_handle);
-		// Destroying objects
 		for(int i = 0; i < 3; i++)
 			nextReleasePhase();
 		vkDestroyDevice(m_handle, nullptr);
