@@ -9,6 +9,9 @@
 
 namespace fwk {
 
+// -----------------------------------------------------------------------------------------------
+// ----------  Reference, pointer & ID classes  --------------------------------------------------
+
 class VObjectId {
   public:
 	VObjectId() : m_bits(0) {}
@@ -31,6 +34,105 @@ class VObjectId {
   private:
 	u32 m_bits;
 };
+
+class VInstanceRef {
+  public:
+	VInstanceRef(const VInstanceRef &);
+	~VInstanceRef();
+	void operator=(const VInstanceRef &);
+
+	VulkanInstance &operator*() const;
+	VulkanInstance *operator->() const;
+
+  private:
+	friend class VulkanStorage;
+	friend class VulkanInstance;
+	VInstanceRef();
+};
+
+class VDeviceRef {
+  public:
+	VDeviceRef(const VDeviceRef &);
+	~VDeviceRef();
+	void operator=(const VDeviceRef &);
+
+	VulkanDevice &operator*() const;
+	VulkanDevice *operator->() const;
+
+	VDeviceId id() const { return m_id; }
+
+  private:
+	friend class VulkanStorage;
+	friend class VulkanDevice;
+	VDeviceRef(VDeviceId);
+
+	VDeviceId m_id;
+};
+
+class VWindowRef {
+  public:
+	VWindowRef(const VWindowRef &);
+	~VWindowRef();
+	void operator=(const VWindowRef &);
+
+	VulkanWindow &operator*() const { return *m_ptr; }
+	VulkanWindow *operator->() const { return m_ptr; }
+	VWindowId id() const { return m_id; }
+
+  private:
+	friend class VulkanStorage;
+	VWindowRef(VWindowId, VulkanWindow *);
+
+	VWindowId m_id;
+	VulkanWindow *m_ptr;
+};
+
+// Reference counted pointer to object stored in VulkanStorage; When no VPtrs<>
+// point to a given object, ref_counts drop to 0 and object is marked to be destroyed.
+// Objects are stored in resize-able vector, so whenever some new object is created,
+// old objects may be moved to a new location in memory. That's why it's better to always
+// access vulkan objects with this VPtr<>.
+// When VulkanDevice is destroyed there should be np VPtrs<> left to any object form this device.
+template <class T> class VPtr {
+  public:
+	using Wrapper = typename VulkanTypeInfo<T>::Wrapper;
+	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
+
+	VPtr() = default;
+	VPtr(const VPtr &);
+	VPtr(VPtr &&);
+	~VPtr();
+
+	void operator=(const VPtr &rhs);
+	void operator=(VPtr &&rhs);
+
+	void swap(VPtr &);
+
+	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper &operator*() const;
+	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper *operator->() const;
+
+	bool valid() const { return m_id.valid(); }
+	explicit operator bool() const { return m_id.valid(); }
+
+	operator VObjectId() const { return m_id; }
+	operator T() const { return handle(); }
+	VDeviceId deviceId() const { return m_id.deviceId(); }
+	int objectId() const { return m_id.objectId(); }
+
+	T handle() const;
+	void reset();
+
+	bool operator==(const VPtr &) const;
+	bool operator<(const VPtr &) const;
+
+  private:
+	friend VulkanStorage;
+
+	VObjectId m_id;
+};
+
+// -------------------------------------------------------------------------------------------
+// ----------  VulkanStorage class  ----------------------------------------------------------
 
 // Manages lifetimes of Vulkan Instance, Devices, Windows and basic device-based objects.
 // Objects are destroyed when ref-count drops to 0 and several (2-3 typically) release phases passed.
@@ -105,105 +207,6 @@ class VulkanStorage {
 };
 
 extern VulkanStorage g_vk_storage;
-
-class VInstanceRef {
-  public:
-	VInstanceRef(const VInstanceRef &);
-	~VInstanceRef();
-	void operator=(const VInstanceRef &);
-
-	VulkanInstance &operator*() const;
-	VulkanInstance *operator->() const;
-
-  private:
-	friend class VulkanStorage;
-	friend class VulkanInstance;
-	VInstanceRef();
-};
-
-class VDeviceRef {
-  public:
-	VDeviceRef(const VDeviceRef &);
-	~VDeviceRef();
-	void operator=(const VDeviceRef &);
-
-	VulkanDevice &operator*() const;
-	VulkanDevice *operator->() const;
-
-	VDeviceId id() const { return m_id; }
-
-  private:
-	friend class VulkanStorage;
-	friend class VulkanDevice;
-	VDeviceRef(VDeviceId);
-
-	VDeviceId m_id;
-};
-
-class VWindowRef {
-  public:
-	VWindowRef(const VWindowRef &);
-	~VWindowRef();
-	void operator=(const VWindowRef &);
-
-	VulkanWindow &operator*() const { return *m_ptr; }
-	VulkanWindow *operator->() const { return m_ptr; }
-	VWindowId id() const { return m_id; }
-
-  private:
-	friend class VulkanStorage;
-	VWindowRef(VWindowId, VulkanWindow *);
-
-	VWindowId m_id;
-	VulkanWindow *m_ptr;
-};
-
-template <class T>
-constexpr bool vk_type_wrapped = !is_same<typename VulkanTypeInfo<T>::Wrapper, None>;
-
-// Reference counted pointer to object stored in VulkanStorage; When no VPtrs<>
-// point to a given object, ref_counts drop to 0 and object is marked to be destroyed.
-// Objects are stored in resize-able vector, so whenever some new object is created,
-// old objects may be moved to a new location in memory. That's why it's better to always
-// access vulkan objects with this VPtr<>.
-// When VulkanDevice is destroyed there should be np VPtrs<> left to any object form this device.
-template <class T> class VPtr {
-  public:
-	using Wrapper = typename VulkanTypeInfo<T>::Wrapper;
-	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
-
-	VPtr() = default;
-	VPtr(const VPtr &);
-	VPtr(VPtr &&);
-	~VPtr();
-
-	void operator=(const VPtr &rhs);
-	void operator=(VPtr &&rhs);
-
-	void swap(VPtr &);
-
-	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper &operator*() const;
-	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper *operator->() const;
-
-	bool valid() const { return m_id.valid(); }
-	explicit operator bool() const { return m_id.valid(); }
-
-	operator VObjectId() const { return m_id; }
-	operator T() const { return handle(); }
-	VDeviceId deviceId() const { return m_id.deviceId(); }
-	int objectId() const { return m_id.objectId(); }
-
-	T handle() const;
-	void reset();
-
-	bool operator==(const VPtr &) const;
-	bool operator<(const VPtr &) const;
-
-  private:
-	friend VulkanStorage;
-
-	VObjectId m_id;
-};
 
 // -------------------------------------------------------------------------------------------
 // ----------  IMPLEMENTATION  ---------------------------------------------------------------

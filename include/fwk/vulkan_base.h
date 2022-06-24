@@ -58,6 +58,9 @@ template <class> struct VulkanTypeInfo;
 	};
 #include "fwk/vulkan/vulkan_types.h"
 
+template <class T>
+constexpr bool vk_type_wrapped = !is_same<typename VulkanTypeInfo<T>::Wrapper, None>;
+
 using PVBuffer = VPtr<VkBuffer>;
 using PVImage = VPtr<VkImage>;
 using PVBuffer = VPtr<VkBuffer>;
