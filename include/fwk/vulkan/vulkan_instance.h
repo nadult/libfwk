@@ -54,10 +54,12 @@ struct VulkanPhysicalDeviceInfo {
 	vector<VQueueFamilyId> findQueues(VQueueFlags) const;
 	vector<VQueueFamilyId> findPresentableQueues(VkSurfaceKHR) const;
 
+	Maybe<uint> findMemoryType(u32 type_bits, VkMemoryPropertyFlags) const;
 	double defaultScore() const;
 
 	VkPhysicalDevice handle;
 	VkPhysicalDeviceProperties properties;
+	VkPhysicalDeviceMemoryProperties mem_properties;
 	vector<VkQueueFamilyProperties> queue_families;
 	vector<string> extensions;
 };

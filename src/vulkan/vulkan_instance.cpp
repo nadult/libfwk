@@ -50,6 +50,15 @@ vector<VQueueFamilyId> VulkanPhysicalDeviceInfo::findPresentableQueues(VkSurface
 	return out;
 }
 
+Maybe<uint> VulkanPhysicalDeviceInfo::findMemoryType(u32 type_bits,
+													 VkMemoryPropertyFlags prop_flags) const {
+	for(uint id = 0; id < mem_properties.memoryTypeCount; id++)
+		if(((1u << id) & type_bits) &&
+		   (mem_properties.memoryTypes[id].propertyFlags & prop_flags) == prop_flags)
+			return id;
+	return none;
+}
+
 vector<string> VulkanInstance::availableExtensions() {
 	uint num_extensions = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &num_extensions, nullptr);
@@ -122,6 +131,7 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 	out.extensions = transform(exts, [](auto &prop) -> string { return prop.extensionName; });
 
 	vkGetPhysicalDeviceProperties(handle, &out.properties);
+	vkGetPhysicalDeviceMemoryProperties(handle, &out.mem_properties);
 
 	return out;
 }

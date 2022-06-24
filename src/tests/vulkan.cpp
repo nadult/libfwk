@@ -11,6 +11,7 @@
 #include <fwk/io/file_system.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
+#include <fwk/vulkan/vulkan_buffer.h>
 #include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_framebuffer.h>
 #include <fwk/vulkan/vulkan_image.h>
@@ -30,23 +31,15 @@ using namespace fwk;
 
 const char *vertex_shader = R"(
 #version 450
-vec2 positions[3] = vec2[](
-	vec2(0.0, -0.5),
-	vec2(0.5, 0.5),
-	vec2(-0.5, 0.5)
-);
 
-vec3 colors[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
-);
+layout(location = 0) in vec2 inPosition;
+layout(location = 1) in vec3 inColor;
 
 layout(location = 0) out vec3 fragColor;
 
 void main() {
-	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
-	fragColor = colors[gl_VertexIndex];
+	gl_Position = vec4(inPosition, 0.0, 1.0);
+	fragColor = inColor;
 }
 )";
 
@@ -67,6 +60,24 @@ string fontPath() {
 	return findDefaultSystemFont().get().file_path;
 }
 
+struct MyVertex {
+	float2 pos;
+	float3 color;
+
+	static void addStreamDesc(vector<VertexBindingDesc> &bindings,
+							  vector<VertexAttribDesc> &attribs, int index, int first_location) {
+		bindings.emplace_back(VertexBindingDesc{.index = u8(index), .stride = sizeof(MyVertex)});
+		attribs.emplace_back(VertexAttribDesc{.binding_index = u8(index),
+											  .format = VkFormat::VK_FORMAT_R32G32_SFLOAT,
+											  .location_index = u8(first_location),
+											  .offset = 0});
+		attribs.emplace_back(VertexAttribDesc{.binding_index = u8(index),
+											  .format = VkFormat::VK_FORMAT_R32G32B32_SFLOAT,
+											  .location_index = u8(first_location + 1),
+											  .offset = sizeof(pos)});
+	}
+};
+
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
@@ -74,6 +85,8 @@ struct VulkanContext {
 	vector<PVFramebuffer> framebuffers;
 	PVCommandPool command_pool;
 	VkCommandBuffer command_buffer = nullptr;
+	PVBuffer vertex_buffer;
+	uint num_vertices;
 
 	PVSemaphore imageAvailableSemaphore;
 	PVSemaphore renderFinishedSemaphore;
@@ -81,6 +94,18 @@ struct VulkanContext {
 
 	Maybe<Font> font;
 };
+
+Ex<void> createVertexBuffer(VulkanContext &ctx) {
+	vector<MyVertex> vertices = {{{0.0f, -0.75f}, {1.0f, 0.0f, 0.0f}},
+								 {{0.75f, 0.75f}, {0.0f, 1.0f, 0.0f}},
+								 {{-0.75f, 0.75f}, {0.0f, 0.0f, 1.0f}}};
+
+	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size()));
+	buffer->upload(vertices);
+	ctx.vertex_buffer = move(buffer); // TODO: just copy doesnt work
+	ctx.num_vertices = vertices.size();
+	return {};
+}
 
 Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_chain) {
 	// TODO: making sure that shaderc_shared.dll is available
@@ -138,6 +163,8 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap
 	setup.render_pass = EX_PASS(VulkanRenderPass::create(
 		device, cspan(&colorAttachment, 1), cspan(&subpass, 1), cspan(&dependency, 1)));
 
+	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
+
 	return VulkanPipeline::create(device, setup);
 }
 
@@ -186,7 +213,11 @@ Ex<void> recordCommandBuffer(VulkanContext &ctx, const VulkanSwapChainInfo &swap
 	vkCmdBeginRenderPass(ctx.command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	vkCmdBindPipeline(ctx.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx.pipeline);
 
-	vkCmdDraw(ctx.command_buffer, 3, 1, 0, 0);
+	VkBuffer vertexBuffers[] = {ctx.vertex_buffer};
+	VkDeviceSize offsets[] = {0};
+	vkCmdBindVertexBuffers(ctx.command_buffer, 0, 1, vertexBuffers, offsets);
+	vkCmdDraw(ctx.command_buffer, static_cast<uint32_t>(ctx.num_vertices), 1, 0, 0);
+
 	vkCmdEndRenderPass(ctx.command_buffer);
 	if(vkEndCommandBuffer(ctx.command_buffer) != VK_SUCCESS)
 		return ERROR("endCOmand failed");
@@ -312,6 +343,7 @@ Ex<int> exMain() {
 
 	EXPECT(createCommandBuffers(ctx));
 	EXPECT(createSyncObjects(ctx));
+	EXPECT(createVertexBuffer(ctx));
 
 	int font_size = 16 * window->dpiScale();
 	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
