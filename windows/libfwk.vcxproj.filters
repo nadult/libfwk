@@ -660,7 +660,7 @@
     <ClInclude Include="..\src\fwk_pch.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_types.h">
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_type_list.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\vulkan\vulkan_buffer.h">

@@ -158,7 +158,7 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_render_pass.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_shader.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_storage.h" />
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_types.h" />
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_type_list.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_window.h" />
     <ClInclude Include="..\include\fwk\gfx_base.h" />
     <ClInclude Include="..\include\fwk\gui\gui.h" />

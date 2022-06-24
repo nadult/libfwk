@@ -52,7 +52,7 @@ template <class> struct VulkanTypeInfo;
 		using Wrapper = None;                                                                      \
 	};                                                                                             \
 	using PV##UpperCase = VPtr<Vk##UpperCase>;
-#include "fwk/vulkan/vulkan_types.h"
+#include "fwk/vulkan/vulkan_type_list.h"
 
 template <class T>
 constexpr bool vk_type_wrapped = !is_same<typename VulkanTypeInfo<T>::Wrapper, None>;

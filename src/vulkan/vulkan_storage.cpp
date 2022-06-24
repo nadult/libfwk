@@ -255,5 +255,5 @@ void VWindowRef::operator=(const VWindowRef &rhs) {
 #define CASE_TYPE(UpperCase, _)                                                                    \
 	template void VulkanStorage::decRef<Vk##UpperCase>(VObjectId);                                 \
 	template VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef, Vk##UpperCase);
-#include "fwk/vulkan/vulkan_types.h"
+#include "fwk/vulkan/vulkan_type_list.h"
 }
