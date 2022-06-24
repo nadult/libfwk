@@ -67,6 +67,21 @@ string fontPath() {
 	return findDefaultSystemFont().get().file_path;
 }
 
+struct VulkanContext {
+	VDeviceRef device;
+	VWindowRef window;
+	PVPipeline pipeline;
+	vector<PVFramebuffer> framebuffers;
+	PVCommandPool command_pool;
+	VkCommandBuffer command_buffer = nullptr;
+
+	PVSemaphore imageAvailableSemaphore;
+	PVSemaphore renderFinishedSemaphore;
+	PVFence inFlightFence;
+
+	Maybe<Font> font;
+};
+
 Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_chain) {
 	// TODO: making sure that shaderc_shared.dll is available
 	ShaderCompiler compiler;
@@ -126,47 +141,41 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap
 	return VulkanPipeline::create(device, setup);
 }
 
-struct CommandBuffers {
-	PVCommandPool pool;
-	VkCommandBuffer buffer;
-};
-
-Ex<CommandBuffers> createCommandBuffers(VDeviceRef device) {
-	CommandBuffers out;
-	auto queue_family = device->queues().front().second;
-	out.pool = EX_PASS(device->createCommandPool(queue_family, CommandPoolFlag::reset_command));
+Ex<void> createCommandBuffers(VulkanContext &ctx) {
+	auto queue_family = ctx.device->queues().front().second;
+	ctx.command_pool =
+		EX_PASS(ctx.device->createCommandPool(queue_family, CommandPoolFlag::reset_command));
 
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = out.pool;
+	allocInfo.commandPool = ctx.command_pool;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = 1;
 
-	if(vkAllocateCommandBuffers(device->handle(), &allocInfo, &out.buffer) != VK_SUCCESS)
+	if(vkAllocateCommandBuffers(ctx.device->handle(), &allocInfo, &ctx.command_buffer) !=
+	   VK_SUCCESS)
 		return ERROR("alloc failed");
-
-	return out;
+	return {};
 }
 
-Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, PVPipeline pipeline,
-							 CSpan<PVFramebuffer> fbs, const VulkanSwapChainInfo &swap_chain,
+Ex<void> recordCommandBuffer(VulkanContext &ctx, const VulkanSwapChainInfo &swap_chain,
 							 uint32_t imageIndex) {
-	vkResetCommandBuffer(commandBuffer, 0);
+	vkResetCommandBuffer(ctx.command_buffer, 0);
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0; // Optional
 	beginInfo.pInheritanceInfo = nullptr; // Optional
 
-	if(vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+	if(vkBeginCommandBuffer(ctx.command_buffer, &beginInfo) != VK_SUCCESS) {
 		return ERROR("failed begin");
 	}
 
 	VkRenderPassBeginInfo renderPassInfo{};
-	auto extent = fbs[imageIndex]->extent();
+	auto extent = ctx.framebuffers[imageIndex]->extent();
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = pipeline->renderPass();
-	renderPassInfo.framebuffer = fbs[imageIndex];
+	renderPassInfo.renderPass = ctx.pipeline->renderPass();
+	renderPassInfo.framebuffer = ctx.framebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = extent;
 
@@ -174,31 +183,16 @@ Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, PVPipeline pipeline,
 	renderPassInfo.clearValueCount = 1;
 	renderPassInfo.pClearValues = &clearColor;
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+	vkCmdBeginRenderPass(ctx.command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBindPipeline(ctx.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx.pipeline);
 
-	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-	vkCmdEndRenderPass(commandBuffer);
-
-	if(vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+	vkCmdDraw(ctx.command_buffer, 3, 1, 0, 0);
+	vkCmdEndRenderPass(ctx.command_buffer);
+	if(vkEndCommandBuffer(ctx.command_buffer) != VK_SUCCESS)
 		return ERROR("endCOmand failed");
 
 	return {};
 }
-
-struct VulkanContext {
-	VDeviceRef device;
-	VWindowRef window;
-	PVPipeline pipeline;
-	vector<PVFramebuffer> framebuffers;
-	CommandBuffers commands;
-
-	PVSemaphore imageAvailableSemaphore;
-	PVSemaphore renderFinishedSemaphore;
-	PVFence inFlightFence;
-
-	Maybe<Font> font;
-};
 
 Ex<void> createSyncObjects(VulkanContext &ctx) {
 	ctx.imageAvailableSemaphore = EX_PASS(ctx.device->createSemaphore());
@@ -232,9 +226,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(ctx.device->handle(), swap_chain.handle, UINT64_MAX,
 						  ctx.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-	recordCommandBuffer(ctx.commands.buffer, ctx.pipeline, ctx.framebuffers, window.swapChain(),
-						imageIndex)
-		.check();
+	recordCommandBuffer(ctx, window.swapChain(), imageIndex).check();
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -246,7 +238,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	submitInfo.pWaitDstStageMask = waitStages;
 
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &ctx.commands.buffer;
+	submitInfo.pCommandBuffers = &ctx.command_buffer;
 
 	VkSemaphore signalSemaphores[] = {ctx.renderFinishedSemaphore};
 	submitInfo.signalSemaphoreCount = 1;
@@ -317,8 +309,8 @@ Ex<int> exMain() {
 	for(auto &image_view : window->swapChain().image_views)
 		ctx.framebuffers.emplace_back(EX_PASS(
 			VulkanFramebuffer::create(device, cspan(&image_view, 1), ctx.pipeline->renderPass())));
-	ctx.commands = EX_PASS(createCommandBuffers(device));
 
+	EXPECT(createCommandBuffers(ctx));
 	EXPECT(createSyncObjects(ctx));
 
 	int font_size = 16 * window->dpiScale();
