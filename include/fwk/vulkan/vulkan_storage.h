@@ -53,12 +53,8 @@ class VulkanStorage {
 	using InstanceStorage = std::aligned_storage_t<instance_size, instance_alignment>;
 
 	template <class THandle, class... Args>
-	VPtr<THandle> allocObject(VDeviceRef device, THandle handle, Args &&...);
-	template <class THandle, class TWrapper> TWrapper &accessWrapper(VObjectId id) {
-		auto type_id = VulkanTypeInfo<THandle>::type_id;
-		auto *bytes = objects[type_id].wrapper_data.data();
-		return reinterpret_cast<TWrapper *>(bytes)[id.objectId()];
-	}
+	VPtr<THandle> allocObject(VDeviceRef, THandle, Args &&...);
+	template <class THandle, class TWrapper> TWrapper &accessWrapper(VObjectId);
 
   private:
 	friend class VInstanceRef;
@@ -162,47 +158,32 @@ class VWindowRef {
 	VulkanWindow *m_ptr;
 };
 
-// TODO: description
-// Reference counted; object is destroyed when there is no VPtrs pointing to it
-// Objects are stored in a vector (they may move when new object is created)
-// All refs should be destroyed before GlDevice
+template <class T>
+constexpr bool vk_type_wrapped = !is_same<typename VulkanTypeInfo<T>::Wrapper, None>;
+
+// Reference counted pointer to object stored in VulkanStorage; When no VPtrs<>
+// point to a given object, ref_counts drop to 0 and object is marked to be destroyed.
+// Objects are stored in resize-able vector, so whenever some new object is created,
+// old objects may be moved to a new location in memory. That's why it's better to always
+// access vulkan objects with this VPtr<>.
+// When VulkanDevice is destroyed there should be np VPtrs<> left to any object form this device.
 template <class T> class VPtr {
   public:
 	using Wrapper = typename VulkanTypeInfo<T>::Wrapper;
-	template <class U>
-	using EnableIfWrapped = EnableIf<!is_same<typename VulkanTypeInfo<U>::Wrapper, None>>;
 	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
 
 	VPtr() = default;
-	VPtr(const VPtr &rhs) : m_id(rhs.m_id) { g_vk_storage.incRef<T>(m_id); }
-	VPtr(VPtr &&rhs) : m_id(rhs.m_id) { rhs.m_id = {}; }
-	~VPtr() { g_vk_storage.decRef<T>(m_id); }
+	VPtr(const VPtr &);
+	VPtr(VPtr &&);
+	~VPtr();
 
-	void operator=(const VPtr &rhs) {
-		if(m_id != rhs.m_id) {
-			g_vk_storage.decRef<T>(m_id);
-			g_vk_storage.incRef(rhs.m_id);
-			m_id = rhs.m_id;
-		}
-	}
+	void operator=(const VPtr &rhs);
+	void operator=(VPtr &&rhs);
 
-	void operator=(VPtr &&rhs) {
-		if(&rhs != this) {
-			fwk::swap(m_id, rhs.m_id);
-			rhs.reset();
-		}
-	}
+	void swap(VPtr &);
 
-	void swap(VPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
-
-	template <class U = T, EnableIfWrapped<U>...> Wrapper &operator*() const {
-		PASSERT(valid());
-		return g_vk_storage.accessWrapper<T, Wrapper>(m_id);
-	}
-	template <class U = T, EnableIfWrapped<U>...> Wrapper *operator->() const {
-		PASSERT(valid());
-		return &g_vk_storage.accessWrapper<T, Wrapper>(m_id);
-	}
+	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper &operator*() const;
+	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper *operator->() const;
 
 	bool valid() const { return m_id.valid(); }
 	explicit operator bool() const { return m_id.valid(); }
@@ -212,26 +193,27 @@ template <class T> class VPtr {
 	VDeviceId deviceId() const { return m_id.deviceId(); }
 	int objectId() const { return m_id.objectId(); }
 
-	T handle() const {
-		PASSERT(valid());
-		return T(g_vk_storage.objects[type_id].handles[m_id.objectId()]);
-	}
+	T handle() const;
+	void reset();
 
-	void reset() {
-		if(m_id) {
-			g_vk_storage.decRef<T>(m_id);
-			m_id = {};
-		}
-	}
-
-	bool operator==(const VPtr &rhs) const { return m_id.bits == rhs.m_id.bits; }
-	bool operator<(const VPtr &rhs) const { return m_id.bits < rhs.m_id.bits; }
+	bool operator==(const VPtr &) const;
+	bool operator<(const VPtr &) const;
 
   private:
 	friend VulkanStorage;
 
 	VObjectId m_id;
 };
+
+// -------------------------------------------------------------------------------------------
+// ----------  IMPLEMENTATION  ---------------------------------------------------------------
+
+template <class THandle> inline void VulkanStorage::incRef(VObjectId id) {
+	if(id) {
+		auto type_id = VulkanTypeInfo<THandle>::type_id;
+		objects[type_id].counters[id.objectId()]++;
+	}
+}
 
 template <class THandle, class... Args>
 VPtr<THandle> VulkanStorage::allocObject(VDeviceRef device, THandle handle, Args &&...args) {
@@ -245,10 +227,74 @@ VPtr<THandle> VulkanStorage::allocObject(VDeviceRef device, THandle handle, Args
 	return out;
 }
 
+template <class THandle, class TWrapper>
+inline TWrapper &VulkanStorage::accessWrapper(VObjectId id) {
+	auto type_id = VulkanTypeInfo<THandle>::type_id;
+	auto *bytes = objects[type_id].wrapper_data.data();
+	return reinterpret_cast<TWrapper *>(bytes)[id.objectId()];
+}
+
 FWK_ALWAYS_INLINE VulkanDevice &VDeviceRef::operator*() const {
 	return reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[m_id]);
 }
 FWK_ALWAYS_INLINE VulkanDevice *VDeviceRef::operator->() const {
 	return reinterpret_cast<VulkanDevice *>(&g_vk_storage.devices[m_id]);
 }
+
+template <class T> inline VPtr<T>::VPtr(const VPtr &rhs) : m_id(rhs.m_id) {
+	g_vk_storage.incRef<T>(m_id);
+}
+template <class T> inline VPtr<T>::VPtr(VPtr &&rhs) : m_id(rhs.m_id) { rhs.m_id = {}; }
+template <class T> VPtr<T>::~VPtr() { g_vk_storage.decRef<T>(m_id); }
+
+template <class T> void VPtr<T>::operator=(const VPtr &rhs) {
+	if(m_id != rhs.m_id) {
+		g_vk_storage.decRef<T>(m_id);
+		g_vk_storage.incRef(rhs.m_id);
+		m_id = rhs.m_id;
+	}
+}
+
+template <class T> void VPtr<T>::operator=(VPtr &&rhs) {
+	if(&rhs != this) {
+		fwk::swap(m_id, rhs.m_id);
+		rhs.reset();
+	}
+}
+
+template <class T> inline void VPtr<T>::swap(VPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
+
+template <class T>
+template <class U, EnableIf<vk_type_wrapped<U>>...>
+FWK_ALWAYS_INLINE auto VPtr<T>::operator*() const -> Wrapper & {
+	PASSERT(valid());
+	return g_vk_storage.accessWrapper<T, Wrapper>(m_id);
+}
+
+template <class T>
+template <class U, EnableIf<vk_type_wrapped<U>>...>
+FWK_ALWAYS_INLINE auto VPtr<T>::operator->() const -> Wrapper * {
+	PASSERT(valid());
+	return &g_vk_storage.accessWrapper<T, Wrapper>(m_id);
+}
+
+template <class T> FWK_ALWAYS_INLINE T VPtr<T>::handle() const {
+	PASSERT(valid());
+	return T(g_vk_storage.objects[type_id].handles[m_id.objectId()]);
+}
+
+template <class T> void VPtr<T>::reset() {
+	if(m_id) {
+		g_vk_storage.decRef<T>(m_id);
+		m_id = {};
+	}
+}
+
+template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator==(const VPtr &rhs) const {
+	return m_id.bits == rhs.m_id.bits;
+}
+template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator<(const VPtr &rhs) const {
+	return m_id.bits < rhs.m_id.bits;
+}
+
 }

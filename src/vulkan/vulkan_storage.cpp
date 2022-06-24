@@ -98,13 +98,6 @@ void VulkanStorage::decRef(VWindowId id) {
 	}
 }
 
-template <class THandle> void VulkanStorage::incRef(VObjectId id) {
-	if(id) {
-		auto type_id = VulkanTypeInfo<THandle>::type_id;
-		objects[type_id].counters[id.objectId()]++;
-	}
-}
-
 template <class THandle> void VulkanStorage::decRef(VObjectId id) {
 	if(!id)
 		return;
@@ -259,7 +252,6 @@ void VWindowRef::operator=(const VWindowRef &rhs) {
 }
 
 #define CASE_TYPE(_, VkType, __)                                                                   \
-	template void VulkanStorage::incRef<VkType>(VObjectId);                                        \
 	template void VulkanStorage::decRef<VkType>(VObjectId);                                        \
 	template VObjectId VulkanStorage::ObjectStorage::addObject<VkType>(VDeviceRef, VkType);
 #include "fwk/vulkan/vulkan_types.h"
