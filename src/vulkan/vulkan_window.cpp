@@ -20,6 +20,7 @@
 #include "fwk/sys/input.h"
 #include "fwk/sys/thread.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_storage.h"
 #include <SDL2/SDL.h>
@@ -54,8 +55,6 @@ VulkanWindow::~VulkanWindow() {
 
 	if(m_swap_chain) {
 		auto device_handle = m_swap_chain->device->handle();
-		for(auto view : m_swap_chain->image_views)
-			vkDestroyImageView(device_handle, view, nullptr);
 		vkDestroySwapchainKHR(device_handle, m_swap_chain->handle, nullptr);
 	}
 	if(m_impl->surface_handle)
@@ -142,29 +141,22 @@ Ex<void> VulkanWindow::createSwapChain(VDeviceRef device) {
 
 	VulkanSwapChainInfo info{device, handle};
 
+	vector<VkImage> images;
 	uint num_images = 0;
 	vkGetSwapchainImagesKHR(device->handle(), info.handle, &num_images, nullptr);
-	info.images.resize(num_images);
-	vkGetSwapchainImagesKHR(device->handle(), info.handle, &num_images, info.images.data());
+	images.resize(num_images);
+	vkGetSwapchainImagesKHR(device->handle(), info.handle, &num_images, images.data());
 	info.format = ci.imageFormat;
 	info.extent = ci.imageExtent;
 
+	info.images.reserve(num_images);
 	info.image_views.reserve(num_images);
-	for(int i : intRange(info.images)) {
-		VkImageViewCreateInfo ci{};
-		ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		ci.image = info.images[i];
-		ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		ci.format = info.format;
-		ci.components.a = ci.components.b = ci.components.g = ci.components.r =
-			VK_COMPONENT_SWIZZLE_IDENTITY;
-		ci.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-							   .baseMipLevel = 0,
-							   .levelCount = 1,
-							   .baseArrayLayer = 0,
-							   .layerCount = 1};
-		VkImageView view;
-		vkCreateImageView(device->handle(), &ci, nullptr, &view);
+	for(auto image_handle : images) {
+		int2 size(ci.imageExtent.width, ci.imageExtent.height);
+		auto image =
+			EX_PASS(VulkanImage::createExternal(device, image_handle, ci.imageFormat, size));
+		auto view = EX_PASS(VulkanImageView::create(device, image));
+		info.images.emplace_back(image);
 		info.image_views.emplace_back(view);
 	}
 

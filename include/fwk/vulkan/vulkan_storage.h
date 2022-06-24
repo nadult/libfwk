@@ -168,6 +168,8 @@ class VulkanStorage {
 	friend class VulkanWindow;
 	template <class> friend class VPtr;
 
+	friend class VulkanImage;
+
 	Ex<VInstanceRef> allocInstance();
 	Ex<VDeviceRef> allocDevice(VInstanceRef, VPhysicalDeviceId);
 	Ex<VWindowRef> allocWindow(VInstanceRef);
@@ -181,6 +183,11 @@ class VulkanStorage {
 
 	template <class THandle> void incRef(VObjectId);
 	template <class THandle> void decRef(VObjectId);
+
+	// This is useful for externally created objects; Only wrapper object will be destroyed;
+	// This function can only be called from Wrapper's destructor
+	template <class THandle, class TWrapper> void disableHandleDestruction(const TWrapper *);
+
 	void nextReleasePhase(VDeviceId, VkDevice);
 
 	using ObjectDestructor = void (*)(void *, VkDevice);

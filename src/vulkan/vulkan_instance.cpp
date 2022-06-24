@@ -189,6 +189,7 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 	create_info.enabledLayerCount = layer_names.size();
 	create_info.ppEnabledLayerNames = layer_names.data();
 
+	// TODO: vkCreateInstance is really slow, why ?
 	VkResult result = vkCreateInstance(&create_info, nullptr, &m_handle);
 	if(result != VK_SUCCESS)
 		return ERROR("Error on vkCreateInstance: 0x%x", uint(result));

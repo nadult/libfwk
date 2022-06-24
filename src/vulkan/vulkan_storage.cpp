@@ -118,10 +118,22 @@ template <class THandle> void VulkanStorage::decRef(VObjectId id) {
 		auto *bytes = objects.wrapper_data.data();
 		reinterpret_cast<Wrapper *>(bytes)[object_id].~Wrapper();
 
-		auto &tbr_lists = objects.to_be_released_lists[id.deviceId()];
-		objects.counters[object_id] = tbr_lists.back();
-		tbr_lists.back() = object_id;
+		// Handle can be nullified in disableHandleDestruction
+		if(objects.handles[object_id]) {
+			auto &tbr_lists = objects.to_be_released_lists[id.deviceId()];
+			objects.counters[object_id] = tbr_lists.back();
+			tbr_lists.back() = object_id;
+		}
 	}
+}
+
+template <class THandle, class TWrapper>
+void VulkanStorage::disableHandleDestruction(const TWrapper *ptr) {
+	auto type_id = VulkanTypeInfo<THandle>::type_id;
+	auto &objects = this->objects[type_id];
+	auto *wrappers = reinterpret_cast<TWrapper *>(objects.wrapper_data.data());
+	int object_id = ptr - wrappers;
+	objects.handles[object_id] = nullptr;
 }
 
 void VulkanStorage::nextReleasePhase(VDeviceId device_id, VkDevice device_handle) {
@@ -244,5 +256,8 @@ void VWindowRef::operator=(const VWindowRef &rhs) {
 #define CASE_TYPE(UpperCase, _)                                                                    \
 	template void VulkanStorage::decRef<Vk##UpperCase>(VObjectId);                                 \
 	template VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef, Vk##UpperCase);
+#include "fwk/vulkan/vulkan_type_list.h"
+#define CASE_WRAPPED_TYPE(UpperCase, _)                                                            \
+	template void VulkanStorage::disableHandleDestruction<Vk##UpperCase>(const Vulkan##UpperCase *);
 #include "fwk/vulkan/vulkan_type_list.h"
 }
