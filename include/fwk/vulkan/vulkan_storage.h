@@ -9,25 +9,27 @@
 
 namespace fwk {
 
-struct VulkanObjectId {
-	VulkanObjectId() : bits(0) {}
-	VulkanObjectId(VDeviceId device_id, int object_id)
-		: bits(u32(object_id) | (u32(device_id) << 28)) {
+class VObjectId {
+  public:
+	VObjectId() : m_bits(0) {}
+	VObjectId(VDeviceId device_id, int object_id)
+		: m_bits(u32(object_id) | (u32(device_id) << 28)) {
 		PASSERT(object_id >= 0 && object_id <= 0xfffffff);
 		PASSERT(uint(device_id) < 16);
 	}
-	explicit VulkanObjectId(u32 bits) : bits(bits) {}
+	explicit VObjectId(u32 bits) : m_bits(bits) {}
 
-	bool valid() const { return bits != 0; }
-	explicit operator bool() const { return bits != 0; }
+	bool valid() const { return m_bits != 0; }
+	explicit operator bool() const { return m_bits != 0; }
 
-	int objectId() const { return int(bits & 0xfffffff); }
-	VDeviceId deviceId() const { return VDeviceId(bits >> 28); }
+	int objectId() const { return int(m_bits & 0xfffffff); }
+	VDeviceId deviceId() const { return VDeviceId(m_bits >> 28); }
 
-	bool operator==(const VulkanObjectId &rhs) const { return bits == rhs.bits; }
-	bool operator<(const VulkanObjectId &rhs) const { return bits < rhs.bits; }
+	bool operator==(const VObjectId &rhs) const { return m_bits == rhs.m_bits; }
+	bool operator<(const VObjectId &rhs) const { return m_bits < rhs.m_bits; }
 
-	u32 bits;
+  private:
+	u32 m_bits;
 };
 
 // Manages lifetimes of Vulkan Instance, Devices, Windows and basic device-based objects.
@@ -52,7 +54,7 @@ class VulkanStorage {
 
 	template <class THandle, class... Args>
 	VPtr<THandle> allocObject(VDeviceRef device, THandle handle, Args &&...);
-	template <class THandle, class TWrapper> TWrapper &accessWrapper(VulkanObjectId id) {
+	template <class THandle, class TWrapper> TWrapper &accessWrapper(VObjectId id) {
 		auto type_id = VulkanTypeInfo<THandle>::type_id;
 		auto *bytes = objects[type_id].wrapper_data.data();
 		return reinterpret_cast<TWrapper *>(bytes)[id.objectId()];
@@ -80,13 +82,13 @@ class VulkanStorage {
 	void incRef(VWindowId);
 	void decRef(VWindowId);
 
-	template <class THandle> void incRef(VulkanObjectId);
-	template <class THandle> void decRef(VulkanObjectId);
+	template <class THandle> void incRef(VObjectId);
+	template <class THandle> void decRef(VObjectId);
 	void nextReleasePhase(VDeviceId, VkDevice);
 
 	struct ObjectStorage {
-		VulkanObjectId addHandle(VDeviceId, void *);
-		template <class THandle> VulkanObjectId addObject(VDeviceRef, THandle);
+		VObjectId addHandle(VDeviceId, void *);
+		template <class THandle> VObjectId addObject(VDeviceRef, THandle);
 		template <class TWrapper> void resizeObjectData(int new_capacity);
 		void nextReleasePhase(VTypeId, VDeviceId, VkDevice);
 
@@ -205,7 +207,7 @@ template <class T> class VPtr {
 	bool valid() const { return m_id.valid(); }
 	explicit operator bool() const { return m_id.valid(); }
 
-	operator VulkanObjectId() const { return m_id; }
+	operator VObjectId() const { return m_id; }
 	operator T() const { return handle(); }
 	VDeviceId deviceId() const { return m_id.deviceId(); }
 	int objectId() const { return m_id.objectId(); }
@@ -228,7 +230,7 @@ template <class T> class VPtr {
   private:
 	friend VulkanStorage;
 
-	VulkanObjectId m_id;
+	VObjectId m_id;
 };
 
 template <class THandle, class... Args>

@@ -20,6 +20,8 @@ using VWindowId = TagId<VTag::window, u8>;
 using VPhysicalDeviceId = TagId<VTag::physical_device, u8>;
 using VQueueFamilyId = TagId<VTag::queue_family, u8>;
 
+class VObjectId;
+
 struct VulkanVersion {
 	int major, minor, patch;
 };

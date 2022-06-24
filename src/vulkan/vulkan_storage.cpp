@@ -96,14 +96,14 @@ void VulkanStorage::decRef(VWindowId id) {
 	}
 }
 
-template <class THandle> void VulkanStorage::incRef(VulkanObjectId id) {
+template <class THandle> void VulkanStorage::incRef(VObjectId id) {
 	if(id) {
 		auto type_id = VulkanTypeInfo<THandle>::type_id;
 		objects[type_id].counters[id.objectId()]++;
 	}
 }
 
-template <class THandle> void VulkanStorage::decRef(VulkanObjectId id) {
+template <class THandle> void VulkanStorage::decRef(VObjectId id) {
 	if(!id)
 		return;
 
@@ -127,7 +127,7 @@ void VulkanStorage::nextReleasePhase(VDeviceId device_id, VkDevice device_handle
 		objects[type_id].nextReleasePhase(type_id, device_id, device_handle);
 }
 
-VulkanObjectId VulkanStorage::ObjectStorage::addHandle(VDeviceId device_id, void *handle) {
+VObjectId VulkanStorage::ObjectStorage::addHandle(VDeviceId device_id, void *handle) {
 	int object_id = 0;
 	if(free_list != 0) {
 		object_id = int(free_list);
@@ -139,11 +139,11 @@ VulkanObjectId VulkanStorage::ObjectStorage::addHandle(VDeviceId device_id, void
 		counters.emplace_back(1u);
 		handles.emplace_back(handle);
 	}
-	return VulkanObjectId(device_id, object_id);
+	return VObjectId(device_id, object_id);
 }
 
 template <class THandle>
-VulkanObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef device, THandle handle) {
+VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef device, THandle handle) {
 	auto id = addHandle(device.id(), handle);
 	using Wrapper = typename VulkanTypeInfo<THandle>::Wrapper;
 
@@ -257,8 +257,8 @@ void VWindowRef::operator=(const VWindowRef &rhs) {
 }
 
 #define CASE_TYPE(_, VkType, __)                                                                   \
-	template void VulkanStorage::incRef<VkType>(VulkanObjectId);                                   \
-	template void VulkanStorage::decRef<VkType>(VulkanObjectId);                                   \
-	template VulkanObjectId VulkanStorage::ObjectStorage::addObject<VkType>(VDeviceRef, VkType);
+	template void VulkanStorage::incRef<VkType>(VObjectId);                                        \
+	template void VulkanStorage::decRef<VkType>(VObjectId);                                        \
+	template VObjectId VulkanStorage::ObjectStorage::addObject<VkType>(VDeviceRef, VkType);
 #include "fwk/vulkan/vulkan_types.h"
 }
