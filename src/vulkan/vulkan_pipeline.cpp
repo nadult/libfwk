@@ -82,12 +82,30 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VPipelineSetup &s
 		stages_ci[i].pName = "main";
 	}
 
+	auto vertex_bindings = transform(setup.vertex_bindings, [](const VertexBindingDesc &desc) {
+		VkVertexInputBindingDescription out;
+		out.binding = desc.index;
+		out.inputRate = desc.input_rate == VertexInputRate::vertex ? VK_VERTEX_INPUT_RATE_VERTEX :
+																	   VK_VERTEX_INPUT_RATE_INSTANCE;
+		out.stride = desc.stride;
+		return out;
+	});
+
+	auto vertex_attribs = transform(setup.vertex_attribs, [](const VertexAttribDesc &desc) {
+		VkVertexInputAttributeDescription out;
+		out.binding = desc.binding_index;
+		out.format = desc.format;
+		out.location = desc.location_index;
+		out.offset = desc.offset;
+		return out;
+	});
+
 	VkPipelineVertexInputStateCreateInfo vertex_input_ci{};
 	vertex_input_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertex_input_ci.vertexBindingDescriptionCount = 0;
-	vertex_input_ci.pVertexBindingDescriptions = nullptr; // Optional
-	vertex_input_ci.vertexAttributeDescriptionCount = 0;
-	vertex_input_ci.pVertexAttributeDescriptions = nullptr; // Optional
+	vertex_input_ci.vertexBindingDescriptionCount = vertex_bindings.size();
+	vertex_input_ci.pVertexBindingDescriptions = vertex_bindings.data();
+	vertex_input_ci.vertexAttributeDescriptionCount = vertex_attribs.size();
+	vertex_input_ci.pVertexAttributeDescriptions = vertex_attribs.data();
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_ci{};
 	input_assembly_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

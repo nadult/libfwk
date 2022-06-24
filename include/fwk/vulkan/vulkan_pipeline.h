@@ -13,6 +13,20 @@ namespace fwk {
 DEFINE_ENUM(VShaderStage, vertex, fragment, compute);
 DEFINE_ENUM(VTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
 			triangle_fan);
+DEFINE_ENUM(VertexInputRate, vertex, instance);
+
+struct VertexAttribDesc {
+	VkFormat format = VkFormat::VK_FORMAT_R32_SFLOAT;
+	u16 offset = 0;
+	u8 location_index = 0;
+	u8 binding_index = 0;
+};
+
+struct VertexBindingDesc {
+	u8 index = 0;
+	VertexInputRate input_rate = VertexInputRate::vertex;
+	u16 stride = 0;
+};
 
 struct VShaderStageSetup {
 	PVShaderModule shader_module;
@@ -30,6 +44,8 @@ struct VPipelineSetup {
 	VkViewport viewport;
 	VkRect2D scissor;
 	PVRenderPass render_pass;
+	vector<VertexBindingDesc> vertex_bindings;
+	vector<VertexAttribDesc> vertex_attribs;
 	// TODO: other stuff
 };
 
