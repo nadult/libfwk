@@ -145,10 +145,9 @@ VInstanceRef VulkanInstance::ref() {
 }
 
 Ex<VInstanceRef> VulkanInstance::create(const VulkanInstanceSetup &setup) {
-	auto *instance = EX_PASS(g_vk_storage.allocInstance());
-	VInstanceRef out;
-	EXPECT(instance->initialize(setup));
-	return out;
+	auto ref = EX_PASS(g_vk_storage.allocInstance());
+	EXPECT(ref->initialize(setup));
+	return ref;
 }
 
 Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
@@ -292,9 +291,8 @@ VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
 
 Ex<VDeviceRef> VulkanInstance::createDevice(VPhysicalDeviceId phys_id,
 											const VulkanDeviceSetup &setup) {
-	auto *device = EX_PASS(g_vk_storage.allocDevice(VInstanceRef(), phys_id));
-	VDeviceRef ref(device->id());
-	EXPECT(device->initialize(setup));
+	auto ref = EX_PASS(g_vk_storage.allocDevice(VInstanceRef(), phys_id));
+	EXPECT(ref->initialize(setup));
 	return ref;
 }
 

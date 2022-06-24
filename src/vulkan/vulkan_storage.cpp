@@ -43,17 +43,19 @@ VulkanStorage::VulkanStorage() {
 
 VulkanStorage::~VulkanStorage() {}
 
-Ex<VulkanInstance *> VulkanStorage::allocInstance() {
+Ex<VInstanceRef> VulkanStorage::allocInstance() {
 	if(instance_ref_count > 0)
 		return ERROR("VulkanInstance already created");
-	return new(&instance) VulkanInstance;
+	new(&instance) VulkanInstance;
+	return VInstanceRef();
 }
 
-Ex<VulkanDevice *> VulkanStorage::allocDevice(VInstanceRef instance_ref,
-											  VPhysicalDeviceId phys_id) {
+Ex<VDeviceRef> VulkanStorage::allocDevice(VInstanceRef instance_ref, VPhysicalDeviceId phys_id) {
 	for(int i : intRange(max_devices))
-		if(device_ref_counts[i] == 0)
-			return new(&devices[i]) VulkanDevice(VDeviceId(i), phys_id, instance_ref);
+		if(device_ref_counts[i] == 0) {
+			new(&devices[i]) VulkanDevice(VDeviceId(i), phys_id, instance_ref);
+			return VDeviceRef(VDeviceId(i));
+		}
 	return ERROR("Too many VulkanDevices created (max: %)", max_devices);
 }
 

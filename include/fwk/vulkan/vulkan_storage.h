@@ -70,9 +70,8 @@ class VulkanStorage {
 	friend class VulkanWindow;
 	template <class> friend class VPtr;
 
-	// TODO: return refs
-	Ex<VulkanInstance *> allocInstance();
-	Ex<VulkanDevice *> allocDevice(VInstanceRef, VPhysicalDeviceId);
+	Ex<VInstanceRef> allocInstance();
+	Ex<VDeviceRef> allocDevice(VInstanceRef, VPhysicalDeviceId);
 	Ex<VWindowRef> allocWindow(VInstanceRef);
 
 	void incInstanceRef();
@@ -121,6 +120,7 @@ class VInstanceRef {
 	VulkanInstance *operator->() const;
 
   private:
+	friend class VulkanStorage;
 	friend class VulkanInstance;
 	VInstanceRef();
 };
@@ -137,7 +137,7 @@ class VDeviceRef {
 	VDeviceId id() const { return m_id; }
 
   private:
-	friend class VulkanInstance;
+	friend class VulkanStorage;
 	friend class VulkanDevice;
 	VDeviceRef(VDeviceId);
 
