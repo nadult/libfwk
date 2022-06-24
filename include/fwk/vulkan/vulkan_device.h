@@ -22,8 +22,8 @@ struct VulkanDeviceSetup {
 
 class VulkanDevice {
   public:
-	Ex<PVSemaphore> createSemaphore(const VkSemaphoreCreateInfo &);
-	Ex<PVFence> createFence(const VkFenceCreateInfo &);
+	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);
+	Ex<PVFence> createFence(bool is_signaled = false);
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
 
 	VDeviceRef ref() const { return VDeviceRef(m_id); }

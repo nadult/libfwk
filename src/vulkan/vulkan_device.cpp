@@ -9,15 +9,21 @@
 
 namespace fwk {
 
-Ex<PVSemaphore> VulkanDevice::createSemaphore(const VkSemaphoreCreateInfo &ci) {
+Ex<PVSemaphore> VulkanDevice::createSemaphore(bool is_signaled) {
 	VkSemaphore handle;
+	VkSemaphoreCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 	if(vkCreateSemaphore(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create semaphore");
 	return g_vk_storage.allocObject<VkSemaphore>(ref(), handle);
 }
 
-Ex<PVFence> VulkanDevice::createFence(const VkFenceCreateInfo &ci) {
+Ex<PVFence> VulkanDevice::createFence(bool is_signaled) {
 	VkFence handle;
+	VkFenceCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 	if(vkCreateFence(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create fence");
 	return g_vk_storage.allocObject<VkFence>(ref(), handle);

@@ -377,15 +377,9 @@ struct VulkanContext {
 };
 
 Ex<void> createSyncObjects(VulkanContext &ctx) {
-	VkSemaphoreCreateInfo semaphoreInfo{};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	VkFenceCreateInfo fenceInfo{};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-	ctx.imageAvailableSemaphore = EX_PASS(ctx.device->createSemaphore(semaphoreInfo));
-	ctx.renderFinishedSemaphore = EX_PASS(ctx.device->createSemaphore(semaphoreInfo));
-	ctx.inFlightFence = EX_PASS(ctx.device->createFence(fenceInfo));
+	ctx.imageAvailableSemaphore = EX_PASS(ctx.device->createSemaphore());
+	ctx.renderFinishedSemaphore = EX_PASS(ctx.device->createSemaphore());
+	ctx.inFlightFence = EX_PASS(ctx.device->createFence(true));
 
 	return {};
 }
