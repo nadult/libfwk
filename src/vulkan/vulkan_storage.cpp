@@ -40,9 +40,6 @@ VulkanStorage::VulkanStorage() {
 		cur.counters.emplace_back(0u);
 		cur.handles.emplace_back(nullptr);
 	}
-#define CASE_WRAPPED_TYPE(Wrapper, _, type_id)                                                     \
-	objects[VTypeId::type_id].wrapped_type_size = sizeof(Wrapper);
-#include "fwk/vulkan/vulkan_types.h"
 }
 
 VulkanStorage::~VulkanStorage() {}
@@ -255,8 +252,8 @@ void VWindowRef::operator=(const VWindowRef &rhs) {
 	}
 }
 
-#define CASE_TYPE(_, VkType, __)                                                                   \
-	template void VulkanStorage::decRef<VkType>(VObjectId);                                        \
-	template VObjectId VulkanStorage::ObjectStorage::addObject<VkType>(VDeviceRef, VkType);
+#define CASE_TYPE(UpperCase, _)                                                                    \
+	template void VulkanStorage::decRef<Vk##UpperCase>(VObjectId);                                 \
+	template VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef, Vk##UpperCase);
 #include "fwk/vulkan/vulkan_types.h"
 }

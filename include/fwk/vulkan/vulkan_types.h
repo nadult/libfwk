@@ -16,13 +16,15 @@
 #define CASE_TYPE(...)
 #endif
 
-// fwk class type, vulkan handle type; enum type-id (VTypeId)
-CASE_WRAPPED_TYPE(VulkanBuffer, VkBuffer, buffer)
-CASE_WRAPPED_TYPE(VulkanImage, VkImage, image)
-CASE_WRAPPED_TYPE(VulkanRenderPass, VkRenderPass, render_pass)
-CASE_LIGHT_TYPE(None, VkFence, fence)
-CASE_LIGHT_TYPE(None, VkSemaphore, semaphore)
-CASE_LIGHT_TYPE(None, VkShaderModule, shader_module)
+// uppercase name; lowercase name (VTypeId member)
+CASE_WRAPPED_TYPE(Buffer, buffer)
+CASE_WRAPPED_TYPE(Image, image)
+CASE_WRAPPED_TYPE(RenderPass, render_pass)
+CASE_WRAPPED_TYPE(Pipeline, pipeline)
+CASE_LIGHT_TYPE(Fence, fence)
+CASE_LIGHT_TYPE(Semaphore, semaphore)
+CASE_LIGHT_TYPE(ShaderModule, shader_module)
+CASE_LIGHT_TYPE(PipelineLayout, pipeline_layout)
 
 #undef CASE_TYPE
 #undef CASE_LIGHT_TYPE

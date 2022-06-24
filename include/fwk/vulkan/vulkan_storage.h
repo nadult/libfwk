@@ -194,7 +194,6 @@ class VulkanStorage {
 		PodVector<u8> wrapper_data;
 		Array<u32, num_release_phases> to_be_released_lists[max_devices] = {};
 		u32 free_list = 0;
-		uint wrapped_type_size = 0;
 	};
 
 	DeviceStorage devices[max_devices];

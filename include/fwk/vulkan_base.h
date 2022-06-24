@@ -25,7 +25,7 @@ struct VulkanVersion {
 };
 
 DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, descriptor_pool, descriptor_set_layout,
-			fence, framebuffer, image, image_view, pipeine, pipeline_layout, render_pass, sampler,
+			fence, framebuffer, image, image_view, pipeline, pipeline_layout, render_pass, sampler,
 			semaphore, shader_module);
 
 class VulkanDevice;
@@ -36,29 +36,25 @@ class VInstanceRef;
 class VDeviceRef;
 class VWindowRef;
 
-class VulkanImage;
-class VulkanBuffer;
-class VulkanRenderPass;
-
 template <class T> class VPtr;
 
 template <class> struct VulkanTypeInfo;
-#define CASE_TYPE(Wrapper_, VkType, type_id_)                                                      \
-	template <> struct VulkanTypeInfo<VkType> {                                                    \
-		static constexpr VTypeId type_id = VTypeId::type_id_;                                      \
-		using Wrapper = Wrapper_;                                                                  \
-	};
+#define CASE_WRAPPED_TYPE(UpperCase, lower_case)                                                   \
+	class Vulkan##UpperCase;                                                                       \
+	template <> struct VulkanTypeInfo<Vk##UpperCase> {                                             \
+		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
+		using Wrapper = Vulkan##UpperCase;                                                         \
+	};                                                                                             \
+	using PV##UpperCase = VPtr<Vk##UpperCase>;
+#define CASE_LIGHT_TYPE(UpperCase, lower_case)                                                     \
+	template <> struct VulkanTypeInfo<Vk##UpperCase> {                                             \
+		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
+		using Wrapper = None;                                                                      \
+	};                                                                                             \
+	using PV##UpperCase = VPtr<Vk##UpperCase>;
 #include "fwk/vulkan/vulkan_types.h"
 
 template <class T>
 constexpr bool vk_type_wrapped = !is_same<typename VulkanTypeInfo<T>::Wrapper, None>;
-
-using PVBuffer = VPtr<VkBuffer>;
-using PVImage = VPtr<VkImage>;
-using PVBuffer = VPtr<VkBuffer>;
-using PVSemaphore = VPtr<VkSemaphore>;
-using PVFence = VPtr<VkFence>;
-using PVShaderModule = VPtr<VkShaderModule>;
-using PVRenderPass = VPtr<VkRenderPass>;
 
 }
