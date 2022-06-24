@@ -9,7 +9,7 @@
 
 #include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_image.h"
-#include "fwk/vulkan/vulkan_render_pass.h"
+#include "fwk/vulkan/vulkan_pipeline.h"
 
 #include <vulkan/vulkan.h>
 
@@ -179,19 +179,15 @@ void VulkanStorage::ObjectStorage::nextReleasePhase(VTypeId type_id, VDeviceId d
 
 	if(tbr_lists.front() != 0) {
 		void (*destroy_func)(void *handle, VkDevice device) = nullptr;
-#define SIMPLE_FUNC(type_id, type, func_name)                                                      \
-	case VTypeId::type_id:                                                                         \
-		destroy_func = [](void *handle, VkDevice device) {                                         \
-			return func_name(device, (type)handle, nullptr);                                       \
-		};                                                                                         \
-		break;
 
 		switch(type_id) {
-			SIMPLE_FUNC(buffer, VkBuffer, vkDestroyBuffer)
-			SIMPLE_FUNC(fence, VkFence, vkDestroyFence)
-			SIMPLE_FUNC(semaphore, VkSemaphore, vkDestroySemaphore)
-			SIMPLE_FUNC(shader_module, VkShaderModule, vkDestroyShaderModule)
-			SIMPLE_FUNC(render_pass, VkRenderPass, vkDestroyRenderPass)
+#define CASE_TYPE(UpperCase, lower_case)                                                           \
+	case VTypeId::lower_case:                                                                      \
+		destroy_func = [](void *handle, VkDevice device) {                                         \
+			return vkDestroy##UpperCase(device, (Vk##UpperCase)handle, nullptr);                   \
+		};                                                                                         \
+		break;
+#include "fwk/vulkan/vulkan_type_list.h"
 		default:
 			FATAL("destroy_func unimplemented for: %s", toString(type_id));
 		}
