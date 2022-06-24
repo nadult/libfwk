@@ -12,6 +12,8 @@
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_device.h>
+#include <fwk/vulkan/vulkan_framebuffer.h>
+#include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
 #include <fwk/vulkan/vulkan_window.h>
@@ -79,19 +81,21 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap
 	auto vsh_module = EX_PASS(device->createShaderModule(vsh_code.bytecode));
 	auto fsh_module = EX_PASS(device->createShaderModule(fsh_code.bytecode));
 
+	auto sc_image = swap_chain.image_views.front()->image();
+	auto extent = sc_image->extent();
 	VPipelineSetup setup;
 	setup.stages.emplace_back(vsh_module, VShaderStage::vertex);
 	setup.stages.emplace_back(fsh_module, VShaderStage::fragment);
 	setup.viewport = {.x = 0.0f,
 					  .y = 0.0f,
-					  .width = (float)swap_chain.extent.width,
-					  .height = (float)swap_chain.extent.height,
+					  .width = (float)extent.width,
+					  .height = (float)extent.height,
 					  .minDepth = 0.0f,
 					  .maxDepth = 1.0f};
-	setup.scissor = {.offset = {0, 0}, .extent = swap_chain.extent};
+	setup.scissor = {.offset = {0, 0}, .extent = extent};
 
 	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = swap_chain.format;
+	colorAttachment.format = sc_image->format();
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -120,42 +124,6 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap
 		device, cspan(&colorAttachment, 1), cspan(&subpass, 1), cspan(&dependency, 1)));
 
 	return VulkanPipeline::create(device, setup);
-}
-
-struct Framebuffers {
-	vector<VkFramebuffer> swapChainFramebuffers;
-};
-
-Ex<Framebuffers> createFramebuffers(VkDevice handle_device, const VulkanSwapChainInfo &swap_chain,
-									PVPipeline pipeline) {
-	Framebuffers out;
-	out.swapChainFramebuffers.resize(swap_chain.images.size());
-
-	for(size_t i = 0; i < swap_chain.image_views.size(); i++) {
-		VkImageView attachments[] = {swap_chain.image_views[i]};
-
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = pipeline->renderPass();
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swap_chain.extent.width;
-		framebufferInfo.height = swap_chain.extent.height;
-		framebufferInfo.layers = 1;
-
-		if(vkCreateFramebuffer(handle_device, &framebufferInfo, nullptr,
-							   &out.swapChainFramebuffers[i]) != VK_SUCCESS) {
-			return ERROR("vkCreateFramebuffer failed");
-		}
-	}
-
-	return out;
-}
-
-void destroyFramebuffers(VkDevice device_handle, Framebuffers &fbs) {
-	for(auto fb : fbs.swapChainFramebuffers)
-		vkDestroyFramebuffer(device_handle, fb, nullptr);
-	fbs.swapChainFramebuffers.clear();
 }
 
 struct CommandBuffers {
@@ -188,8 +156,9 @@ Ex<CommandBuffers> createCommandBuffers(VDeviceRef device) {
 	return out;
 }
 
-Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, PVPipeline pipeline, Framebuffers &fbs,
-							 const VulkanSwapChainInfo &swap_chain, uint32_t imageIndex) {
+Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, PVPipeline pipeline,
+							 CSpan<PVFramebuffer> fbs, const VulkanSwapChainInfo &swap_chain,
+							 uint32_t imageIndex) {
 	vkResetCommandBuffer(commandBuffer, 0);
 
 	VkCommandBufferBeginInfo beginInfo{};
@@ -202,11 +171,12 @@ Ex<void> recordCommandBuffer(VkCommandBuffer commandBuffer, PVPipeline pipeline,
 	}
 
 	VkRenderPassBeginInfo renderPassInfo{};
+	auto extent = fbs[imageIndex]->extent();
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = pipeline->renderPass();
-	renderPassInfo.framebuffer = fbs.swapChainFramebuffers[imageIndex];
+	renderPassInfo.framebuffer = fbs[imageIndex];
 	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = swap_chain.extent;
+	renderPassInfo.renderArea.extent = extent;
 
 	VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 	renderPassInfo.clearValueCount = 1;
@@ -233,7 +203,7 @@ struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
 	PVPipeline pipeline;
-	Framebuffers framebuffers;
+	vector<PVFramebuffer> framebuffers;
 	CommandBuffers commands;
 
 	PVSemaphore imageAvailableSemaphore;
@@ -357,8 +327,9 @@ Ex<int> exMain() {
 
 	VulkanContext ctx{device, window};
 	ctx.pipeline = EX_PASS(createPipeline(device, window->swapChain()));
-	ctx.framebuffers =
-		EX_PASS(createFramebuffers(device->handle(), window->swapChain(), ctx.pipeline));
+	for(auto &image_view : window->swapChain().image_views)
+		ctx.framebuffers.emplace_back(EX_PASS(
+			VulkanFramebuffer::create(device, cspan(&image_view, 1), ctx.pipeline->renderPass())));
 	ctx.commands = EX_PASS(createCommandBuffers(device));
 
 	EXPECT(createSyncObjects(ctx));
@@ -368,9 +339,7 @@ Ex<int> exMain() {
 	window->runMainLoop(mainLoop, &ctx);
 
 	vkDeviceWaitIdle(device->handle());
-
 	destroyCommandBuffers(device->handle(), ctx.commands);
-	destroyFramebuffers(device->handle(), ctx.framebuffers);
 
 	return 0;
 }

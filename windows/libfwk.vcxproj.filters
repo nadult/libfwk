@@ -678,6 +678,9 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_storage.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_framebuffer.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1149,6 +1152,9 @@
       <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vulkan\vulkan_storage.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_framebuffer.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>

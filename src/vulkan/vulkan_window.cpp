@@ -146,17 +146,11 @@ Ex<void> VulkanWindow::createSwapChain(VDeviceRef device) {
 	vkGetSwapchainImagesKHR(device->handle(), info.handle, &num_images, nullptr);
 	images.resize(num_images);
 	vkGetSwapchainImagesKHR(device->handle(), info.handle, &num_images, images.data());
-	info.format = ci.imageFormat;
-	info.extent = ci.imageExtent;
-
-	info.images.reserve(num_images);
 	info.image_views.reserve(num_images);
 	for(auto image_handle : images) {
-		int2 size(ci.imageExtent.width, ci.imageExtent.height);
-		auto image =
-			EX_PASS(VulkanImage::createExternal(device, image_handle, ci.imageFormat, size));
+		auto image = EX_PASS(
+			VulkanImage::createExternal(device, image_handle, ci.imageFormat, ci.imageExtent));
 		auto view = EX_PASS(VulkanImageView::create(device, image));
-		info.images.emplace_back(image);
 		info.image_views.emplace_back(view);
 	}
 

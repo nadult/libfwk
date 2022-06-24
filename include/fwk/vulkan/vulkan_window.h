@@ -36,10 +36,7 @@ struct VulkanSurfaceDeviceInfo {
 struct VulkanSwapChainInfo {
 	VDeviceRef device;
 	VkSwapchainKHR handle;
-	vector<PVImage> images;
 	vector<PVImageView> image_views;
-	VkFormat format;
-	VkExtent2D extent;
 };
 
 class VulkanWindow {

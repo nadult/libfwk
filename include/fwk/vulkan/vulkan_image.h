@@ -11,35 +11,35 @@ namespace fwk {
 
 class VulkanImage {
   public:
-	VulkanImage(VkFormat, int2);
+	VulkanImage(VkFormat, VkExtent2D);
 	~VulkanImage();
 
-	static Ex<PVImage> create(VDeviceRef, VkFormat, int2 size);
-	static Ex<PVImage> createExternal(VDeviceRef, VkImage, VkFormat, int2 size);
+	static Ex<PVImage> create(VDeviceRef, VkFormat, VkExtent2D);
+	static Ex<PVImage> createExternal(VDeviceRef, VkImage, VkFormat, VkExtent2D);
 
-	int2 size() const { return m_size; }
+	VkExtent2D extent() const { return m_extent; }
 	VkFormat format() const { return m_format; }
 
   private:
-	int2 m_size;
+	VkExtent2D m_extent;
 	VkFormat m_format;
 	bool m_is_external = false;
 };
 
 class VulkanImageView {
   public:
-	VulkanImageView(PVImage, VkFormat, int2);
+	VulkanImageView(PVImage, VkFormat, VkExtent2D);
 	~VulkanImageView();
 
 	static Ex<PVImageView> create(VDeviceRef, PVImage);
 
-	int2 size() const { return m_size; }
+	VkExtent2D extent() const { return m_extent; }
 	VkFormat format() const { return m_format; }
 	PVImage image() const { return m_image; }
 
   private:
 	PVImage m_image;
-	int2 m_size;
+	VkExtent2D m_extent;
 	VkFormat m_format;
 };
 
