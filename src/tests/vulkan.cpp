@@ -100,7 +100,8 @@ Ex<void> createVertexBuffer(VulkanContext &ctx) {
 								 {{0.75f, 0.75f}, {0.0f, 1.0f, 0.0f}},
 								 {{-0.75f, 0.75f}, {0.0f, 0.0f, 1.0f}}};
 
-	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size()));
+	auto usage = VBufferUsageFlag::vertex_buffer;
+	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
 	buffer->upload(vertices);
 	ctx.vertex_buffer = move(buffer); // TODO: just copy doesnt work
 	ctx.num_vertices = vertices.size();
