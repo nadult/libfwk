@@ -23,6 +23,18 @@ struct VulkanDeviceSetup {
 DEFINE_ENUM(CommandPoolFlag, transient, reset_command, protected_);
 using CommandPoolFlags = EnumFlags<CommandPoolFlag>;
 
+class VulkanCommandPool {
+  public:
+};
+
+class VulkanFence {
+  public:
+};
+
+class VulkanSemaphore {
+  public:
+};
+
 class VulkanDevice {
   public:
 	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);

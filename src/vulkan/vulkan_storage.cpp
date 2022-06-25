@@ -11,6 +11,7 @@
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
+#include "fwk/vulkan/vulkan_shader.h"
 
 #include <vulkan/vulkan.h>
 
@@ -260,9 +261,7 @@ void VWindowRef::operator=(const VWindowRef &rhs) {
 
 #define CASE_TYPE(UpperCase, _)                                                                    \
 	template void VulkanStorage::decRef<Vk##UpperCase>(VObjectId);                                 \
-	template VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef, Vk##UpperCase);
-#include "fwk/vulkan/vulkan_type_list.h"
-#define CASE_WRAPPED_TYPE(UpperCase, _)                                                            \
+	template VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef, Vk##UpperCase);         \
 	template void VulkanStorage::disableHandleDestruction<Vk##UpperCase>(const Vulkan##UpperCase *);
 #include "fwk/vulkan/vulkan_type_list.h"
 }

@@ -39,17 +39,11 @@ class VWindowRef;
 template <class T> class VPtr;
 
 template <class> struct VulkanTypeInfo;
-#define CASE_WRAPPED_TYPE(UpperCase, lower_case)                                                   \
+#define CASE_TYPE(UpperCase, lower_case)                                                           \
 	class Vulkan##UpperCase;                                                                       \
 	template <> struct VulkanTypeInfo<Vk##UpperCase> {                                             \
 		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
 		using Wrapper = Vulkan##UpperCase;                                                         \
-	};                                                                                             \
-	using PV##UpperCase = VPtr<Vk##UpperCase>;
-#define CASE_LIGHT_TYPE(UpperCase, lower_case)                                                     \
-	template <> struct VulkanTypeInfo<Vk##UpperCase> {                                             \
-		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
-		using Wrapper = None;                                                                      \
 	};                                                                                             \
 	using PV##UpperCase = VPtr<Vk##UpperCase>;
 #include "fwk/vulkan/vulkan_type_list.h"

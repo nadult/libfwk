@@ -60,6 +60,10 @@ class VulkanRenderPass {
 	uint m_dependency_count;
 };
 
+class VulkanPipelineLayout {
+  public:
+};
+
 class VulkanPipeline {
   public:
 	VulkanPipeline(PVRenderPass, PVPipelineLayout);
