@@ -103,6 +103,11 @@ Ex<void> createVertexBuffer(VulkanContext &ctx) {
 
 	auto usage = VBufferUsageFlag::vertex_buffer;
 	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
+	auto mem_req = buffer->memoryRequirements();
+	auto mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_coherent;
+	auto memory =
+		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
+	buffer->bindMemory(memory);
 	buffer->upload(vertices);
 	ctx.vertex_buffer = move(buffer); // TODO: just copy doesnt work
 	ctx.num_vertices = vertices.size();

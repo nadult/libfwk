@@ -7,6 +7,7 @@
 
 // uppercase name; lowercase name (VTypeId member)
 CASE_TYPE(Buffer, buffer)
+CASE_TYPE(DeviceMemory, device_memory)
 CASE_TYPE(Image, image)
 CASE_TYPE(ImageView, image_view)
 CASE_TYPE(RenderPass, render_pass)

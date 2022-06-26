@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vulkan/vulkan_storage.h"
@@ -47,12 +48,28 @@ class VulkanSemaphore : public VulkanObjectBase<VulkanSemaphore> {
 	~VulkanSemaphore();
 };
 
+DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
+			protected_);
+using VMemoryFlags = EnumFlags<VMemoryFlag>;
+
+class VulkanDeviceMemory : public VulkanObjectBase<VulkanDeviceMemory> {
+  public:
+  private:
+	friend class VulkanDevice;
+	VulkanDeviceMemory(VkDeviceMemory, VObjectId, u64 size, VMemoryFlags);
+	~VulkanDeviceMemory();
+
+	u64 m_size;
+	VMemoryFlags m_flags;
+};
+
 class VulkanDevice {
   public:
 	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);
 	Ex<PVFence> createFence(bool is_signaled = false);
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
 	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, CommandPoolFlags);
+	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
 
 	VDeviceRef ref() const { return VDeviceRef(m_id); }
 	VDeviceId id() const { return m_id; }

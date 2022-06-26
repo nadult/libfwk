@@ -15,11 +15,6 @@ VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, u64 size, VBufferUsage
 	: VulkanObjectBase(handle, id), m_size(size), m_usage(usage) {}
 
 VulkanBuffer::~VulkanBuffer() {
-	// TODO: shouldn't we destroy buffer first ?
-	// TODO: move memory to separate object
-	// TODO: memory is external, we should definitely move it outside
-	if(m_memory)
-		vkFreeMemory(m_device, m_memory, nullptr);
 	deferredHandleRelease(
 		[](void *handle, VkDevice device) { vkDestroyBuffer(device, (VkBuffer)handle, nullptr); });
 }
@@ -34,14 +29,6 @@ static const EnumMap<VBufferUsageFlag, VkBufferUsageFlagBits> usage_flags = {{
 	{VBufferUsageFlag::indirect_buffer, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT},
 }};
 
-template <class Enum, class Bit>
-VkFlags translateFlags(EnumFlags<Enum> flags, const EnumMap<Enum, Bit> &bit_map) {
-	VkFlags out = 0;
-	for(auto flag : flags)
-		out |= bit_map[flag];
-	return out;
-}
-
 Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsage usage) {
 	VkBufferCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -52,34 +39,30 @@ Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsage usag
 
 	if(vkCreateBuffer(device->handle(), &ci, nullptr, &buffer_handle) != VK_SUCCESS)
 		return ERROR("Failed to create buffer");
-	auto out = device->createObject(buffer_handle, size, usage);
+	return device->createObject(buffer_handle, size, usage);
+}
 
+VkMemoryRequirements VulkanBuffer::memoryRequirements() const {
 	VkMemoryRequirements mem_requirements;
-	vkGetBufferMemoryRequirements(device->handle(), out, &mem_requirements);
-	auto &phys_info = VulkanInstance::ref()->info(device->physId());
-	VkMemoryPropertyFlags flags =
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	auto mem_type = phys_info.findMemoryType(mem_requirements.memoryTypeBits, flags);
-	EXPECT(mem_type && "Couldn't find a suitable memory type");
+	vkGetBufferMemoryRequirements(deviceHandle(), m_handle, &mem_requirements);
+	return mem_requirements;
+}
 
-	VkMemoryAllocateInfo ai{};
-	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	ai.allocationSize = mem_requirements.size;
-	ai.memoryTypeIndex = *mem_type;
-	out->m_device = device->handle();
-	if(vkAllocateMemory(device->handle(), &ai, nullptr, &out->m_memory) != VK_SUCCESS)
-		return ERROR("vkAllocateMemory failed");
-	vkBindBufferMemory(device->handle(), out, out->m_memory, 0);
-
-	return out;
+Ex<void> VulkanBuffer::bindMemory(PVDeviceMemory memory) {
+	if(vkBindBufferMemory(deviceHandle(), m_handle, memory->handle(), 0) != VK_SUCCESS)
+		return ERROR("vkBindBufferMemory failed");
+	m_memory = memory;
+	return {};
 }
 
 void VulkanBuffer::upload(CSpan<char> bytes) {
-	// TODO: we need at least device_id here...
+	DASSERT(m_memory);
+
 	void *device_data;
-	vkMapMemory(m_device, m_memory, 0, m_size, 0, &device_data);
+	auto device_handle = deviceHandle();
+	vkMapMemory(device_handle, m_memory->handle(), 0, m_size, 0, &device_data);
 	memcpy(device_data, bytes.data(), bytes.size());
-	vkUnmapMemory(m_device, m_memory);
+	vkUnmapMemory(device_handle, m_memory->handle());
 }
 
 }

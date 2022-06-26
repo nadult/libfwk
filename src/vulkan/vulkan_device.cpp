@@ -31,6 +31,24 @@ VulkanSemaphore ::~VulkanSemaphore() {
 	});
 }
 
+VulkanDeviceMemory::VulkanDeviceMemory(VkDeviceMemory handle, VObjectId id, u64 size,
+									   VMemoryFlags flags)
+	: VulkanObjectBase(handle, id), m_size(size), m_flags(flags) {}
+VulkanDeviceMemory ::~VulkanDeviceMemory() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkFreeMemory(device, (VkDeviceMemory)handle, nullptr);
+	});
+}
+
+static const EnumMap<VMemoryFlag, VkMemoryPropertyFlagBits> memory_flags = {{
+	{VMemoryFlag::device_local, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+	{VMemoryFlag::host_visible, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT},
+	{VMemoryFlag::host_coherent, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT},
+	{VMemoryFlag::host_cached, VK_MEMORY_PROPERTY_HOST_CACHED_BIT},
+	{VMemoryFlag::lazily_allocated, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT},
+	{VMemoryFlag::protected_, VK_MEMORY_PROPERTY_PROTECTED_BIT},
+}};
+
 Ex<PVSemaphore> VulkanDevice::createSemaphore(bool is_signaled) {
 	VkSemaphore handle;
 	VkSemaphoreCreateInfo ci{};
@@ -62,6 +80,25 @@ Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	if(vkCreateShaderModule(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateShaderModule failed");
 	return createObject(handle);
+}
+
+Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, u32 memory_type_bits,
+												   VMemoryFlags flags) {
+	auto &phys_info = m_instance_ref->info(m_phys_id);
+	auto vk_flags = translateFlags(flags, memory_flags);
+	auto mem_type = phys_info.findMemoryType(memory_type_bits, vk_flags);
+	if(!mem_type)
+		return ERROR("Couldn't find a suitable memory type; bits:% flags:%", memory_type_bits,
+					 flags);
+
+	VkMemoryAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	ai.allocationSize = size;
+	ai.memoryTypeIndex = *mem_type;
+	VkDeviceMemory handle;
+	if(vkAllocateMemory(m_handle, &ai, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkAllocateMemory failed");
+	return createObject(handle, size, flags);
 }
 
 static const EnumMap<CommandPoolFlag, VkCommandPoolCreateFlagBits> command_pool_flags = {{

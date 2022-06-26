@@ -24,9 +24,9 @@ struct VulkanVersion {
 	int major, minor, patch;
 };
 
-DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, descriptor_pool, descriptor_set_layout,
-			fence, framebuffer, image, image_view, pipeline, pipeline_layout, render_pass, sampler,
-			semaphore, shader_module);
+DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, device_memory, descriptor_pool,
+			descriptor_set_layout, fence, framebuffer, image, image_view, pipeline, pipeline_layout,
+			render_pass, sampler, semaphore, shader_module);
 
 class VulkanDevice;
 class VulkanInstance;
@@ -51,5 +51,13 @@ template <class> struct VulkanTypeToHandle;
 	template <> struct VulkanTypeToHandle<Vulkan##UpperCase> { using Type = Vk##UpperCase; };      \
 	using PV##UpperCase = VPtr<Vk##UpperCase>;
 #include "fwk/vulkan/vulkan_type_list.h"
+
+template <class Enum, class Bit>
+VkFlags translateFlags(EnumFlags<Enum> flags, const EnumMap<Enum, Bit> &bit_map) {
+	VkFlags out = 0;
+	for(auto flag : flags)
+		out |= bit_map[flag];
+	return out;
+}
 
 }

@@ -25,11 +25,17 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 		return create(device, num_elements * sizeof(T), usage);
 	}
 
+	VkMemoryRequirements memoryRequirements() const;
+	Ex<void> bindMemory(PVDeviceMemory);
+
 	void upload(CSpan<char>);
 	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
 	template <class TSpan, class T = SpanBase<TSpan>> void upload(const TSpan &data) {
 		upload<T>(cspan(data));
 	}
+
+	u64 size() const { return m_size; }
+	auto usage() const { return m_usage; }
 
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
@@ -40,8 +46,7 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 	~VulkanBuffer();
 
 	u64 m_size;
-	VkDevice m_device = nullptr; // TODO: shoudln't be needed
-	VkDeviceMemory m_memory = nullptr;
+	PVDeviceMemory m_memory;
 	VBufferUsage m_usage;
 };
 
