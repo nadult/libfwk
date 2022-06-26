@@ -7,22 +7,6 @@
 
 namespace fwk {
 
-static constexpr int vulkan_max_devices = 4;
-static constexpr int vulkan_slab_size = 32;
-static constexpr int vulkan_slab_size_log2 = 5;
-
-// TODO: move VPtr inc/decref impl to .cpp file and include all necessary headers
-// TODO: move someplace else
-template <class T> struct VulkanObjectSlab {
-	static constexpr int size = vulkan_slab_size;
-	using Handle = typename VulkanTypeToHandle<T>::Type;
-
-	// TODO: move outside
-	u32 usage_bits = 0;
-	u32 slab_id = 0;
-	std::aligned_storage_t<sizeof(T), alignof(T)> objects[size];
-};
-
 // -----------------------------------------------------------------------------------------------
 // ----------  Reference, pointer & ID classes  --------------------------------------------------
 
@@ -49,8 +33,7 @@ class VObjectId {
 	u32 m_bits;
 };
 
-// TODO: desc
-// All vulkan objects are stored in slabs
+// All vulkan objects are stored in slabs in VulkanDevice
 template <class T> class VulkanObjectBase {
   public:
 	using Handle = typename VulkanTypeToHandle<T>::Type;
@@ -204,7 +187,7 @@ class VulkanStorage {
 	VulkanStorage(const VulkanStorage &) = delete;
 	void operator=(VulkanStorage &) = delete;
 
-	static constexpr int max_devices = vulkan_max_devices;
+	static constexpr int max_devices = 4;
 	static constexpr int max_windows = VWindowId::maxIndex() + 1;
 	static constexpr int num_release_phases = 3;
 

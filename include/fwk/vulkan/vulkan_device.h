@@ -113,7 +113,19 @@ class VulkanDevice {
 	// we can't move them around, but we can free the slab and
 	// leave nullptr in slab array
 
-	EnumMap<VTypeId, vector<void *>> m_slabs;
+	static constexpr int slab_size = 32;
+	static constexpr int slab_size_log2 = 5;
+
+	struct Slab {
+		u32 usage_bits = 0;
+		void *data = nullptr;
+	};
+
+	template <class T> struct SlabData {
+		std::aligned_storage_t<sizeof(T), alignof(T)> objects[slab_size];
+	};
+
+	EnumMap<VTypeId, vector<Slab>> m_slabs;
 	EnumMap<VTypeId, vector<u32>> m_fillable_slabs;
 	vector<Pair<void *, ReleaseFunc>> m_to_release[max_defer_frames + 1];
 
