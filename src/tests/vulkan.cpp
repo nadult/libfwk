@@ -68,14 +68,18 @@ struct MyVertex {
 	static void addStreamDesc(vector<VertexBindingDesc> &bindings,
 							  vector<VertexAttribDesc> &attribs, int index, int first_location) {
 		bindings.emplace_back(VertexBindingDesc{.index = u8(index), .stride = sizeof(MyVertex)});
-		attribs.emplace_back(VertexAttribDesc{.binding_index = u8(index),
-											  .format = VkFormat::VK_FORMAT_R32G32_SFLOAT,
-											  .location_index = u8(first_location),
-											  .offset = 0});
-		attribs.emplace_back(VertexAttribDesc{.binding_index = u8(index),
-											  .format = VkFormat::VK_FORMAT_R32G32B32_SFLOAT,
-											  .location_index = u8(first_location + 1),
-											  .offset = sizeof(pos)});
+		attribs.emplace_back(VertexAttribDesc{
+			.format = VkFormat::VK_FORMAT_R32G32_SFLOAT,
+			.offset = 0,
+			.location_index = u8(first_location),
+			.binding_index = u8(index),
+		});
+		attribs.emplace_back(VertexAttribDesc{
+			.format = VkFormat::VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = sizeof(pos),
+			.location_index = u8(first_location + 1),
+			.binding_index = u8(index),
+		});
 	}
 };
 
