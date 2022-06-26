@@ -27,6 +27,18 @@
     </Expand>
   </Type>
 
+  <Type Name="fwk::StaticVector&lt;*&gt;">
+    <DisplayString>{{size={m_size} capacity={$T2}}}</DisplayString>
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">m_size</Item>
+      <Item Name="[capacity]" ExcludeView="simple">$T2</Item>
+      <ArrayItems>
+        <Size>m_size</Size>
+        <ValuePointer>($T1*)m_data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
   <Type Name="fwk::Span&lt;*&gt;">
     <DisplayString>{{size={m_size}}}</DisplayString>
     <Expand>

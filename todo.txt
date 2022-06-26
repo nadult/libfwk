@@ -12,6 +12,7 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- nextPow2 -> ceil2
 - Use DIP (device independent pixel) in Gui system
 - ASSERT -> FWK_ASSERT?
 - ordering of values in .xml file in AnyConfig
