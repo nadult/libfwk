@@ -6,6 +6,13 @@
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_storage.h"
+
+#include "fwk/vulkan/vulkan_buffer.h"
+#include "fwk/vulkan/vulkan_framebuffer.h"
+#include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_pipeline.h"
+#include "fwk/vulkan/vulkan_shader.h"
+
 #include <vulkan/vulkan.h>
 
 namespace fwk {
@@ -202,8 +209,64 @@ void VulkanDevice::nextReleasePhase() {
 		m_to_release[i - 1].swap(m_to_release[i]);
 }
 
-//#define CASE_TYPE(UpperCase, _)                                                                    \
-	template void VulkanStorage::decRef<Vk##UpperCase>(VObjectId);                                 \
-//#include "fwk/vulkan/vulkan_type_list.h"
+template <class THandle> Pair<void *, VObjectId> VulkanDevice::allocObject() {
+	auto type_id = VulkanTypeInfo<THandle>::type_id;
+	using Object = typename VulkanTypeInfo<THandle>::Wrapper;
+	using Slab = VulkanObjectSlab<Object>;
 
+	auto &slabs = m_slabs[type_id];
+	auto &slab_list = m_fillable_slabs[type_id];
+	if(slab_list.empty()) {
+		auto *new_slab = new Slab;
+		u32 slab_id = u32(slabs.size());
+
+		// Object index 0 is reserved as invalid
+		if(slab_id == 0)
+			new_slab->usage_bits |= 1u;
+
+		new_slab->slab_id = slab_id;
+		slabs.emplace_back(new_slab);
+		slab_list.emplace_back(slab_id);
+	}
+
+	int slab_idx = slab_list.back();
+	auto *slab = reinterpret_cast<Slab *>(slabs[slab_idx]);
+	int local_idx = countTrailingZeros(~slab->usage_bits);
+	slab->usage_bits |= (1u << local_idx);
+	int object_id = local_idx + slab_idx * Slab::size;
+	return {&slab->objects[local_idx], VObjectId(m_id, object_id)};
+}
+
+template <class TObject> void VulkanDevice::destroyObject(VulkanObjectBase<TObject> *ptr) {
+	using Handle = typename VulkanObjectBase<TObject>::Handle;
+	auto type_id = VulkanTypeInfo<Handle>::type_id;
+	auto object_idx = ptr->objectId().objectIdx();
+	int local_idx = object_idx & ((1 << vulkan_slab_size_log2) - 1);
+	auto *slab_data = m_slabs[type_id][object_idx >> vulkan_slab_size_log2];
+	auto *slab = reinterpret_cast<VulkanObjectSlab<TObject> *>(slab_data);
+
+	reinterpret_cast<TObject *>(ptr)->~TObject();
+
+	// TODO: move usage bits out of slabs data storage
+	if(slab->usage_bits == ~0u)
+		m_fillable_slabs[type_id].emplace_back(slab->slab_id);
+	slab->usage_bits &= ~(1u << local_idx);
+}
+
+template <class T> void VulkanObjectBase<T>::destroyObject() {
+	auto &device = reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[deviceId()]);
+	device.destroyObject(this);
+}
+
+template <class T> void VulkanObjectBase<T>::deferredHandleRelease(ReleaseFunc release_func) {
+	auto &device = reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[deviceId()]);
+	device.deferredRelease(m_handle, release_func);
+}
+
+#define CASE_TYPE(UpperCase, _)                                                                    \
+	template Pair<void *, VObjectId> VulkanDevice::allocObject<Vk##UpperCase>();                   \
+	template void VulkanDevice::destroyObject(VulkanObjectBase<Vulkan##UpperCase> *);              \
+	template void VulkanObjectBase<Vulkan##UpperCase>::destroyObject();                            \
+	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(ReleaseFunc);
+#include "fwk/vulkan/vulkan_type_list.h"
 }

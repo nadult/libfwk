@@ -4,7 +4,6 @@
 #pragma once
 
 #include "fwk/static_vector.h"
-#include "fwk/str.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vulkan/vulkan_storage.h"
 

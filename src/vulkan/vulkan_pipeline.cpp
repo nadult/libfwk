@@ -5,8 +5,6 @@
 
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_device.h"
-#include "fwk/vulkan/vulkan_shader.h"
-#include "fwk/vulkan/vulkan_storage.h"
 
 #include <vulkan/vulkan.h>
 

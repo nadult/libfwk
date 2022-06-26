@@ -7,17 +7,7 @@
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_window.h"
 
-#include "fwk/vulkan/vulkan_buffer.h"
-#include "fwk/vulkan/vulkan_framebuffer.h"
-#include "fwk/vulkan/vulkan_image.h"
-#include "fwk/vulkan/vulkan_pipeline.h"
-#include "fwk/vulkan/vulkan_shader.h"
-
 #include <vulkan/vulkan.h>
-
-// TODO: what if wrapper class required access to id or handle ?
-// Maybe just keep id & handle at the beginning of the class ?
-// Creation & destruction would be simpler
 
 namespace fwk {
 

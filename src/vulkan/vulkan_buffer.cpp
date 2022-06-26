@@ -5,8 +5,6 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/vulkan/vulkan_device.h"
-#include "fwk/vulkan/vulkan_instance.h"
-#include "fwk/vulkan/vulkan_storage.h"
 
 #include <vulkan/vulkan.h>
 

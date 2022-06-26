@@ -60,30 +60,34 @@ template <class T> class VulkanObjectBase {
 	VObjectId objectId() const { return m_object_id; }
 
   protected:
-	friend class VulkanDevice;
-	template <class> friend class VPtr;
-
 	VulkanObjectBase(Handle handle, VObjectId object_id, uint initial_ref_count = 1)
 		: m_handle(handle), m_object_id(object_id), m_ref_count(initial_ref_count) {
 		PASSERT(handle);
 	}
+	// Vulkan objects are immovable
+	VulkanObjectBase(const VulkanObjectBase &) = delete;
+	void operator=(const VulkanObjectBase &) = delete;
+
+	friend class VulkanDevice;
+	template <class> friend class VPtr;
 
 	VkDevice deviceHandle() const;
 	using ReleaseFunc = void (*)(void *, VkDevice);
 	void deferredHandleRelease(ReleaseFunc);
 
-	// Vulkan objects are immovable
-	VulkanObjectBase(const VulkanObjectBase &) = delete;
-	void operator=(const VulkanObjectBase &) = delete;
-
-	void incRefCount() { m_ref_count++; }
-
-	// Will immediately destroy object if ref_count drops to 0
-	void decRefCount();
+	void decRefCount() {
+		PASSERT(m_ref_count > 0);
+		m_ref_count--;
+		if(m_ref_count == 0)
+			destroyObject();
+	}
 
 	Handle m_handle;
 	VObjectId m_object_id;
 	u32 m_ref_count;
+
+  private:
+	void destroyObject();
 };
 
 class VInstanceRef {
@@ -149,6 +153,7 @@ class VWindowRef {
 template <class T> class VPtr {
   public:
 	using Object = typename VulkanTypeInfo<T>::Wrapper;
+	using BaseObject = VulkanObjectBase<Object>;
 	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
 
 	VPtr() : m_ptr(nullptr) {}
@@ -168,7 +173,7 @@ template <class T> class VPtr {
 	explicit operator bool() const { return m_ptr; }
 
 	operator VObjectId() const { return m_id; }
-	operator T() const { return handle(); }
+	operator T() const { return PASSERT(m_ptr), handle(); }
 	VDeviceId deviceId() const { return m_id.deviceId(); }
 	int objectId() const { return m_id.objectId(); }
 
@@ -256,23 +261,23 @@ FWK_ALWAYS_INLINE VulkanDevice *VDeviceRef::operator->() const {
 
 template <class T> inline VPtr<T>::VPtr(const VPtr &rhs) : m_ptr(rhs.m_ptr) {
 	if(m_ptr)
-		m_ptr->incRefCount();
+		reinterpret_cast<BaseObject *>(m_ptr)->m_ref_count++;
 }
 
 template <class T> inline VPtr<T>::VPtr(VPtr &&rhs) : m_ptr(rhs.m_ptr) { rhs.m_ptr = nullptr; }
 template <class T> VPtr<T>::~VPtr() {
 	if(m_ptr)
-		m_ptr->decRefCount();
+		reinterpret_cast<BaseObject *>(m_ptr)->decRefCount();
 }
 
 template <class T> void VPtr<T>::operator=(const VPtr &rhs) {
 	if(m_ptr == rhs.m_ptr)
 		return;
 	if(m_ptr)
-		m_ptr->decRefCount();
+		reinterpret_cast<BaseObject *>(m_ptr)->decRefCount();
 	m_ptr = rhs.m_ptr;
 	if(m_ptr)
-		m_ptr->incRefCount();
+		reinterpret_cast<BaseObject *>(m_ptr)->m_ref_count++;
 }
 
 template <class T> void VPtr<T>::operator=(VPtr &&rhs) {
@@ -286,12 +291,14 @@ template <class T> inline void VPtr<T>::swap(VPtr &rhs) { fwk::swap(m_id, rhs.m_
 
 template <class T> void VPtr<T>::reset() {
 	if(m_ptr) {
-		m_ptr->decRefCount();
+		reinterpret_cast<BaseObject *>(m_ptr)->decRefCount();
 		m_ptr = nullptr;
 	}
 }
 
-template <class T> inline T VPtr<T>::handle() const { return m_ptr ? m_ptr->handle() : nullptr; }
+template <class T> FWK_ALWAYS_INLINE T VPtr<T>::handle() const {
+	return m_ptr ? reinterpret_cast<BaseObject *>(m_ptr)->m_handle : nullptr;
+}
 
 template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator==(const VPtr &rhs) const {
 	return m_ptr == rhs.m_ptr;
