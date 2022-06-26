@@ -3,11 +3,25 @@
 
 #pragma once
 
-#include "fwk/enum_map.h"
-#include "fwk/pod_vector.h"
 #include "fwk/vulkan_base.h"
 
 namespace fwk {
+
+static constexpr int vulkan_max_devices = 4;
+static constexpr int vulkan_slab_size = 32;
+static constexpr int vulkan_slab_size_log2 = 5;
+
+// TODO: move VPtr inc/decref impl to .cpp file and include all necessary headers
+// TODO: move someplace else
+template <class T> struct VulkanObjectSlab {
+	static constexpr int size = vulkan_slab_size;
+	using Handle = typename VulkanTypeToHandle<T>::Type;
+
+	// TODO: move outside
+	u32 usage_bits = 0;
+	u32 slab_id = 0;
+	std::aligned_storage_t<sizeof(T), alignof(T)> objects[size];
+};
 
 // -----------------------------------------------------------------------------------------------
 // ----------  Reference, pointer & ID classes  --------------------------------------------------
@@ -15,9 +29,9 @@ namespace fwk {
 class VObjectId {
   public:
 	VObjectId() : m_bits(0) {}
-	VObjectId(VDeviceId device_id, int object_id)
-		: m_bits(u32(object_id) | (u32(device_id) << 28)) {
-		PASSERT(object_id >= 0 && object_id <= 0xfffffff);
+	VObjectId(VDeviceId device_id, int object_idx)
+		: m_bits(u32(object_idx) | (u32(device_id) << 28)) {
+		PASSERT(object_idx >= 0 && object_idx <= 0xfffffff);
 		PASSERT(uint(device_id) < 16);
 	}
 	explicit VObjectId(u32 bits) : m_bits(bits) {}
@@ -25,7 +39,7 @@ class VObjectId {
 	bool valid() const { return m_bits != 0; }
 	explicit operator bool() const { return m_bits != 0; }
 
-	int objectId() const { return int(m_bits & 0xfffffff); }
+	int objectIdx() const { return int(m_bits & 0xfffffff); }
 	VDeviceId deviceId() const { return VDeviceId(m_bits >> 28); }
 
 	bool operator==(const VObjectId &rhs) const { return m_bits == rhs.m_bits; }
@@ -33,6 +47,43 @@ class VObjectId {
 
   private:
 	u32 m_bits;
+};
+
+// TODO: desc
+// All vulkan objects are stored in slabs
+template <class T> class VulkanObjectBase {
+  public:
+	using Handle = typename VulkanTypeToHandle<T>::Type;
+
+	Handle handle() const { return m_handle; }
+	VDeviceId deviceId() const { return m_object_id.deviceId(); }
+	VObjectId objectId() const { return m_object_id; }
+
+  protected:
+	friend class VulkanDevice;
+	template <class> friend class VPtr;
+
+	VulkanObjectBase(Handle handle, VObjectId object_id, uint initial_ref_count = 1)
+		: m_handle(handle), m_object_id(object_id), m_ref_count(initial_ref_count) {
+		PASSERT(handle);
+	}
+
+	VkDevice deviceHandle() const;
+	using ReleaseFunc = void (*)(void *, VkDevice);
+	void deferredHandleRelease(ReleaseFunc);
+
+	// Vulkan objects are immovable
+	VulkanObjectBase(const VulkanObjectBase &) = delete;
+	void operator=(const VulkanObjectBase &) = delete;
+
+	void incRefCount() { m_ref_count++; }
+
+	// Will immediately destroy object if ref_count drops to 0
+	void decRefCount();
+
+	Handle m_handle;
+	VObjectId m_object_id;
+	u32 m_ref_count;
 };
 
 class VInstanceRef {
@@ -50,6 +101,8 @@ class VInstanceRef {
 	VInstanceRef();
 };
 
+// TODO: conversion to handle from VDeviceRef
+// TODO: better name for VDeviceRef
 class VDeviceRef {
   public:
 	VDeviceRef(const VDeviceRef &);
@@ -95,10 +148,10 @@ class VWindowRef {
 // When VulkanDevice is destroyed there should be np VPtrs<> left to any object form this device.
 template <class T> class VPtr {
   public:
-	using Wrapper = typename VulkanTypeInfo<T>::Wrapper;
+	using Object = typename VulkanTypeInfo<T>::Wrapper;
 	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
 
-	VPtr() = default;
+	VPtr() : m_ptr(nullptr) {}
 	VPtr(const VPtr &);
 	VPtr(VPtr &&);
 	~VPtr();
@@ -108,11 +161,11 @@ template <class T> class VPtr {
 
 	void swap(VPtr &);
 
-	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper &operator*() const;
-	template <class U = T, EnableIf<vk_type_wrapped<U>>...> Wrapper *operator->() const;
+	Object &operator*() const { return PASSERT(m_ptr), *m_ptr; }
+	Object *operator->() const { return PASSERT(m_ptr), m_ptr; }
 
-	bool valid() const { return m_id.valid(); }
-	explicit operator bool() const { return m_id.valid(); }
+	bool valid() const { return m_ptr; }
+	explicit operator bool() const { return m_ptr; }
 
 	operator VObjectId() const { return m_id; }
 	operator T() const { return handle(); }
@@ -126,9 +179,10 @@ template <class T> class VPtr {
 	bool operator<(const VPtr &) const;
 
   private:
-	friend VulkanStorage;
+	VPtr(Object *ptr) : m_ptr(ptr) {}
+	friend class VulkanDevice;
 
-	VObjectId m_id;
+	Object *m_ptr;
 };
 
 // -------------------------------------------------------------------------------------------
@@ -145,18 +199,14 @@ class VulkanStorage {
 	VulkanStorage(const VulkanStorage &) = delete;
 	void operator=(VulkanStorage &) = delete;
 
-	static constexpr int max_devices = 4;
+	static constexpr int max_devices = vulkan_max_devices;
 	static constexpr int max_windows = VWindowId::maxIndex() + 1;
 	static constexpr int num_release_phases = 3;
 
-	static constexpr int device_size = 40, device_alignment = 8;
+	static constexpr int device_size = 584, device_alignment = 8;
 	static constexpr int instance_size = 32, instance_alignment = 8;
 	using DeviceStorage = std::aligned_storage_t<device_size, device_alignment>;
 	using InstanceStorage = std::aligned_storage_t<instance_size, instance_alignment>;
-
-	template <class THandle, class... Args>
-	VPtr<THandle> allocObject(VDeviceRef, THandle, Args &&...);
-	template <class THandle, class TWrapper> TWrapper &accessWrapper(VObjectId);
 
   private:
 	friend class VInstanceRef;
@@ -166,9 +216,7 @@ class VulkanStorage {
 	friend class VulkanInstance;
 	friend class VulkanDevice;
 	friend class VulkanWindow;
-	template <class> friend class VPtr;
-
-	friend class VulkanImage;
+	template <class> friend class VulkanObjectBase;
 
 	Ex<VInstanceRef> allocInstance();
 	Ex<VDeviceRef> allocDevice(VInstanceRef, VPhysicalDeviceId);
@@ -181,34 +229,9 @@ class VulkanStorage {
 	void incRef(VWindowId);
 	void decRef(VWindowId);
 
-	template <class THandle> void incRef(VObjectId);
-	template <class THandle> void decRef(VObjectId);
-
-	// This is useful for externally created objects; Only wrapper object will be destroyed;
-	// This function can only be called from Wrapper's destructor
-	template <class THandle, class TWrapper> void disableHandleDestruction(const TWrapper *);
-
-	void nextReleasePhase(VDeviceId, VkDevice);
-
-	using ObjectDestructor = void (*)(void *, VkDevice);
-
-	struct ObjectStorage {
-		VObjectId addHandle(VDeviceId, void *);
-		template <class THandle> VObjectId addObject(VDeviceRef, THandle);
-		template <class TWrapper> void resizeObjectData(int new_capacity);
-		void nextReleasePhase(VTypeId, VDeviceId, VkDevice);
-
-		vector<u32> counters;
-		vector<void *> handles;
-		PodVector<u8> wrapper_data;
-		Array<u32, num_release_phases> to_be_released_lists[max_devices] = {};
-		ObjectDestructor destructor = nullptr;
-		u32 free_list = 0;
-	};
-
+	VkDevice device_handles[max_devices] = {};
 	DeviceStorage devices[max_devices];
 	InstanceStorage instance;
-	EnumMap<VTypeId, ObjectStorage> objects;
 	vector<Pair<VulkanWindow *, int>> windows;
 
 	int device_ref_counts[max_devices] = {};
@@ -220,30 +243,8 @@ extern VulkanStorage g_vk_storage;
 // -------------------------------------------------------------------------------------------
 // ----------  IMPLEMENTATION  ---------------------------------------------------------------
 
-template <class THandle> inline void VulkanStorage::incRef(VObjectId id) {
-	if(id) {
-		auto type_id = VulkanTypeInfo<THandle>::type_id;
-		objects[type_id].counters[id.objectId()]++;
-	}
-}
-
-template <class THandle, class... Args>
-VPtr<THandle> VulkanStorage::allocObject(VDeviceRef device, THandle handle, Args &&...args) {
-	using Wrapper = typename VulkanTypeInfo<THandle>::Wrapper;
-	auto type_id = VulkanTypeInfo<THandle>::type_id;
-	auto id = objects[type_id].addObject(device, handle);
-	if constexpr(!is_same<Wrapper, None>)
-		new(&accessWrapper<THandle, Wrapper>(id)) Wrapper(std::forward<Args>(args)...);
-	VPtr<THandle> out;
-	out.m_id = id;
-	return out;
-}
-
-template <class THandle, class TWrapper>
-inline TWrapper &VulkanStorage::accessWrapper(VObjectId id) {
-	auto type_id = VulkanTypeInfo<THandle>::type_id;
-	auto *bytes = objects[type_id].wrapper_data.data();
-	return reinterpret_cast<TWrapper *>(bytes)[id.objectId()];
+template <class T> FWK_ALWAYS_INLINE VkDevice VulkanObjectBase<T>::deviceHandle() const {
+	return g_vk_storage.device_handles[deviceId()];
 }
 
 FWK_ALWAYS_INLINE VulkanDevice &VDeviceRef::operator*() const {
@@ -253,60 +254,55 @@ FWK_ALWAYS_INLINE VulkanDevice *VDeviceRef::operator->() const {
 	return reinterpret_cast<VulkanDevice *>(&g_vk_storage.devices[m_id]);
 }
 
-template <class T> inline VPtr<T>::VPtr(const VPtr &rhs) : m_id(rhs.m_id) {
-	g_vk_storage.incRef<T>(m_id);
+template <class T> inline VPtr<T>::VPtr(const VPtr &rhs) : m_ptr(rhs.m_ptr) {
+	if(m_ptr)
+		m_ptr->incRefCount();
 }
-template <class T> inline VPtr<T>::VPtr(VPtr &&rhs) : m_id(rhs.m_id) { rhs.m_id = {}; }
-template <class T> VPtr<T>::~VPtr() { g_vk_storage.decRef<T>(m_id); }
+
+template <class T> inline VPtr<T>::VPtr(VPtr &&rhs) : m_ptr(rhs.m_ptr) { rhs.m_ptr = nullptr; }
+template <class T> VPtr<T>::~VPtr() {
+	if(m_ptr)
+		m_ptr->decRefCount();
+}
 
 template <class T> void VPtr<T>::operator=(const VPtr &rhs) {
-	if(m_id != rhs.m_id) {
-		g_vk_storage.decRef<T>(m_id);
-		g_vk_storage.incRef(rhs.m_id);
-		m_id = rhs.m_id;
-	}
+	if(m_ptr == rhs.m_ptr)
+		return;
+	if(m_ptr)
+		m_ptr->decRefCount();
+	m_ptr = rhs.m_ptr;
+	if(m_ptr)
+		m_ptr->incRefCount();
 }
 
 template <class T> void VPtr<T>::operator=(VPtr &&rhs) {
 	if(&rhs != this) {
-		fwk::swap(m_id, rhs.m_id);
+		fwk::swap(m_ptr, rhs.m_ptr);
 		rhs.reset();
 	}
 }
 
 template <class T> inline void VPtr<T>::swap(VPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
 
-template <class T>
-template <class U, EnableIf<vk_type_wrapped<U>>...>
-FWK_ALWAYS_INLINE auto VPtr<T>::operator*() const -> Wrapper & {
-	PASSERT(valid());
-	return g_vk_storage.accessWrapper<T, Wrapper>(m_id);
-}
-
-template <class T>
-template <class U, EnableIf<vk_type_wrapped<U>>...>
-FWK_ALWAYS_INLINE auto VPtr<T>::operator->() const -> Wrapper * {
-	PASSERT(valid());
-	return &g_vk_storage.accessWrapper<T, Wrapper>(m_id);
-}
-
-template <class T> FWK_ALWAYS_INLINE T VPtr<T>::handle() const {
-	PASSERT(valid());
-	return T(g_vk_storage.objects[type_id].handles[m_id.objectId()]);
-}
-
 template <class T> void VPtr<T>::reset() {
-	if(m_id) {
-		g_vk_storage.decRef<T>(m_id);
-		m_id = {};
+	if(m_ptr) {
+		m_ptr->decRefCount();
+		m_ptr = nullptr;
 	}
 }
 
+template <class T> inline T VPtr<T>::handle() const { return m_ptr ? m_ptr->handle() : nullptr; }
+
 template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator==(const VPtr &rhs) const {
-	return m_id.bits == rhs.m_id.bits;
-}
-template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator<(const VPtr &rhs) const {
-	return m_id.bits < rhs.m_id.bits;
+	return m_ptr == rhs.m_ptr;
 }
 
+template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator<(const VPtr &rhs) const {
+	VObjectId lhs_id, rhs_id;
+	if(m_ptr)
+		lsh_id = m_ptr->objectId();
+	if(rhs.m_ptr)
+		rhs_id = rhs.m_ptr->objectId();
+	return lhs_id < rhs_id;
+}
 }

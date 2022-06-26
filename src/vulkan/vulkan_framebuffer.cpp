@@ -5,15 +5,21 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_storage.h"
 #include "vulkan/vulkan.h"
 
 namespace fwk {
 
-VulkanFramebuffer::VulkanFramebuffer(vector<PVImageView> img_views, VkExtent2D extent)
-	: m_image_views(move(img_views)), m_extent(extent) {}
+VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id,
+									 vector<PVImageView> img_views, VkExtent2D extent)
+	: VulkanObjectBase(handle, id), m_image_views(move(img_views)), m_extent(extent) {}
 
-VulkanFramebuffer::~VulkanFramebuffer() = default;
+VulkanFramebuffer::~VulkanFramebuffer() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkDestroyFramebuffer(device, (VkFramebuffer)handle, nullptr);
+	});
+}
 
 Ex<PVFramebuffer> VulkanFramebuffer::create(VDeviceRef device, vector<PVImageView> image_views,
 											PVRenderPass render_pass) {
@@ -34,6 +40,6 @@ Ex<PVFramebuffer> VulkanFramebuffer::create(VDeviceRef device, vector<PVImageVie
 	VkFramebuffer handle;
 	if(vkCreateFramebuffer(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateFramebuffer failed");
-	return g_vk_storage.allocObject(device, handle, move(image_views), extent);
+	return device->createObject(handle, move(image_views), extent);
 }
 }

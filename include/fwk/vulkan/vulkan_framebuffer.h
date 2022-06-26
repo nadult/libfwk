@@ -9,16 +9,17 @@
 
 namespace fwk {
 
-class VulkanFramebuffer {
+class VulkanFramebuffer : public VulkanObjectBase<VulkanFramebuffer> {
   public:
-	VulkanFramebuffer(vector<PVImageView>, VkExtent2D);
-	~VulkanFramebuffer();
-
 	static Ex<PVFramebuffer> create(VDeviceRef, vector<PVImageView>, PVRenderPass);
 
 	VkExtent2D extent() const { return m_extent; }
 
   private:
+	friend class VulkanDevice;
+	VulkanFramebuffer(VkFramebuffer, VObjectId, vector<PVImageView>, VkExtent2D);
+	~VulkanFramebuffer();
+
 	vector<PVImageView> m_image_views;
 	VkExtent2D m_extent;
 };

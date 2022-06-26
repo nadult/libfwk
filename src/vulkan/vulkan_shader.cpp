@@ -7,4 +7,12 @@
 
 #include <vulkan/vulkan.h>
 
-namespace fwk {}
+namespace fwk {
+
+VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id)
+	: VulkanObjectBase(handle, id) {}
+VulkanShaderModule ::~VulkanShaderModule() {
+	vkDestroyShaderModule(deviceHandle(), m_handle, nullptr);
+}
+
+}

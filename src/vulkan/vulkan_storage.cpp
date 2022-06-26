@@ -27,8 +27,8 @@ namespace fwk {
 
 VulkanStorage g_vk_storage;
 
-//UndefSize<VulkanInstance> test_size;
-//UndefSize<VulkanDevice> test_size;
+//UndefSize<VulkanInstance> test_size1;
+//UndefSize<VulkanDevice> test_size2;
 static_assert(sizeof(VulkanInstance) == VulkanStorage::instance_size);
 static_assert(alignof(VulkanInstance) == VulkanStorage::instance_alignment);
 static_assert(sizeof(VulkanDevice) == VulkanStorage::device_size);
@@ -37,21 +37,6 @@ static_assert(alignof(VulkanDevice) == VulkanStorage::device_alignment);
 VulkanStorage::VulkanStorage() {
 	ASSERT("VulkanStorage is a singleton, don't create additional instances" &&
 		   this == &g_vk_storage);
-
-	int reserve = 16;
-	for(auto type_id : all<VTypeId>) {
-		auto &cur = objects[type_id];
-		cur.counters.reserve(reserve);
-		cur.handles.reserve(reserve);
-		cur.counters.emplace_back(0u);
-		cur.handles.emplace_back(nullptr);
-	}
-
-#define CASE_TYPE(UpperCase, lower_case)                                                           \
-	objects[VTypeId::lower_case].destructor = [](void *handle, VkDevice device) {                  \
-		return vkDestroy##UpperCase(device, (Vk##UpperCase)handle, nullptr);                       \
-	};
-#include "fwk/vulkan/vulkan_type_list.h"
 }
 
 VulkanStorage::~VulkanStorage() {}
@@ -111,115 +96,6 @@ void VulkanStorage::decRef(VWindowId id) {
 	}
 }
 
-template <class THandle> void VulkanStorage::decRef(VObjectId id) {
-	if(!id)
-		return;
-
-	using Wrapper = typename VulkanTypeInfo<THandle>::Wrapper;
-	auto type_id = VulkanTypeInfo<THandle>::type_id;
-
-	auto &objects = this->objects[type_id];
-	int object_id = id.objectId();
-	if(--objects.counters[object_id] == 0) {
-		auto *bytes = objects.wrapper_data.data();
-		reinterpret_cast<Wrapper *>(bytes)[object_id].~Wrapper();
-
-		// Handle can be nullified in disableHandleDestruction
-		if(objects.handles[object_id]) {
-			auto &tbr_lists = objects.to_be_released_lists[id.deviceId()];
-			objects.counters[object_id] = tbr_lists.back();
-			tbr_lists.back() = object_id;
-		}
-	}
-}
-
-template <class THandle, class TWrapper>
-void VulkanStorage::disableHandleDestruction(const TWrapper *ptr) {
-	auto type_id = VulkanTypeInfo<THandle>::type_id;
-	auto &objects = this->objects[type_id];
-	auto *wrappers = reinterpret_cast<TWrapper *>(objects.wrapper_data.data());
-	int object_id = ptr - wrappers;
-	objects.handles[object_id] = nullptr;
-}
-
-void VulkanStorage::nextReleasePhase(VDeviceId device_id, VkDevice device_handle) {
-	for(auto type_id : all<VTypeId>)
-		objects[type_id].nextReleasePhase(type_id, device_id, device_handle);
-}
-
-VObjectId VulkanStorage::ObjectStorage::addHandle(VDeviceId device_id, void *handle) {
-	int object_id = 0;
-	if(free_list != 0) {
-		object_id = int(free_list);
-		free_list = counters[free_list];
-		counters[object_id] = 1u;
-		handles[object_id] = handle;
-	} else {
-		object_id = int(counters.size());
-		counters.emplace_back(1u);
-		handles.emplace_back(handle);
-	}
-	return VObjectId(device_id, object_id);
-}
-
-template <class THandle>
-VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef device, THandle handle) {
-	auto id = addHandle(device.id(), handle);
-	using Wrapper = typename VulkanTypeInfo<THandle>::Wrapper;
-
-	if constexpr(!is_same<Wrapper, None>) {
-		int capacity = counters.capacity();
-		if(wrapper_data.size() < capacity * sizeof(Wrapper)) {
-			counters[id.objectId()]--;
-			resizeObjectData<Wrapper>(capacity);
-			counters[id.objectId()]++;
-		}
-	}
-	return id;
-}
-
-template <class TWrapper> void VulkanStorage::ObjectStorage::resizeObjectData(int new_capacity) {
-	int byte_capacity = new_capacity * sizeof(TWrapper);
-	if(wrapper_data.size() >= byte_capacity)
-		return;
-	PodVector<u8> new_data(byte_capacity);
-
-	auto *old_objects = reinterpret_cast<TWrapper *>(wrapper_data.data());
-	auto *new_objects = reinterpret_cast<TWrapper *>(new_data.data());
-
-	// Moving objects to new memory range
-	for(int i : intRange(counters))
-		if(counters[i] != 0) {
-			new(&new_objects[i]) TWrapper(move(old_objects[i]));
-			old_objects[i].~TWrapper();
-		}
-	wrapper_data.swap(new_data);
-}
-
-// TODO: turn into template ?
-void VulkanStorage::ObjectStorage::nextReleasePhase(VTypeId type_id, VDeviceId device_id,
-													VkDevice device_handle) {
-	auto &tbr_lists = to_be_released_lists[device_id];
-
-	if(tbr_lists.front() != 0) {
-		if(!destructor)
-			FATAL("destroy_func unimplemented for: %s", toString(type_id));
-
-		int object_id = tbr_lists.front();
-		while(object_id != 0) {
-			destructor(handles[object_id], device_handle);
-			uint next = counters[object_id];
-			handles[object_id] = nullptr;
-			counters[object_id] = free_list;
-			free_list = object_id;
-			object_id = next;
-		}
-	}
-	for(int i = 1; i < tbr_lists.size(); i++)
-		tbr_lists[i - 1] = tbr_lists[i];
-	tbr_lists.back() = 0;
-}
-
 VInstanceRef::VInstanceRef() { g_vk_storage.incInstanceRef(); }
 VInstanceRef::VInstanceRef(const VInstanceRef &) { g_vk_storage.incInstanceRef(); }
 VInstanceRef::~VInstanceRef() { g_vk_storage.decInstanceRef(); }
@@ -258,10 +134,4 @@ void VWindowRef::operator=(const VWindowRef &rhs) {
 		g_vk_storage.incRef(m_id);
 	}
 }
-
-#define CASE_TYPE(UpperCase, _)                                                                    \
-	template void VulkanStorage::decRef<Vk##UpperCase>(VObjectId);                                 \
-	template VObjectId VulkanStorage::ObjectStorage::addObject(VDeviceRef, Vk##UpperCase);         \
-	template void VulkanStorage::disableHandleDestruction<Vk##UpperCase>(const Vulkan##UpperCase *);
-#include "fwk/vulkan/vulkan_type_list.h"
 }

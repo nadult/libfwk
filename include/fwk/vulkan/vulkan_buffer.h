@@ -5,7 +5,7 @@
 
 #include "fwk/enum_flags.h"
 #include "fwk/sys/expected.h"
-#include "fwk/vulkan_base.h"
+#include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
 
@@ -17,11 +17,8 @@ using VBufferUsage = EnumFlags<VBufferUsageFlag>;
 // TODO: keep objects in chunks 64-256 objects each;
 // Only allocate chunks dynamically, this way objects won't change address
 // on allocation
-class VulkanBuffer {
+class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
   public:
-	VulkanBuffer(u64 size, VBufferUsage);
-	~VulkanBuffer();
-
 	static Ex<PVBuffer> create(VDeviceRef, u64 num_bytes, VBufferUsage usage);
 	template <class T>
 	static Ex<PVBuffer> create(VDeviceRef device, u64 num_elements, VBufferUsage usage) {
@@ -38,6 +35,10 @@ class VulkanBuffer {
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
 
   private:
+	friend class VulkanDevice;
+	VulkanBuffer(VkBuffer, VObjectId, u64 size, VBufferUsage);
+	~VulkanBuffer();
+
 	u64 m_size;
 	VkDevice m_device = nullptr; // TODO: shoudln't be needed
 	VkDeviceMemory m_memory = nullptr;

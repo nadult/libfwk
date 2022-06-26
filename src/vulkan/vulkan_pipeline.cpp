@@ -5,11 +5,28 @@
 
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
 #include <vulkan/vulkan.h>
 
 namespace fwk {
+
+VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
+	: VulkanObjectBase(handle, id) {}
+VulkanRenderPass ::~VulkanRenderPass() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkDestroyRenderPass(device, (VkRenderPass)handle, nullptr);
+	});
+}
+
+VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id)
+	: VulkanObjectBase(handle, id) {}
+VulkanPipelineLayout ::~VulkanPipelineLayout() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkDestroyPipelineLayout(device, (VkPipelineLayout)handle, nullptr);
+	});
+}
 
 static const EnumMap<VShaderStage, VkShaderStageFlagBits> shader_stages = {{
 	{VShaderStage::vertex, VK_SHADER_STAGE_VERTEX_BIT},
@@ -41,16 +58,21 @@ Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device,
 	VkRenderPass handle;
 	if(vkCreateRenderPass(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateRenderPass failed");
-	auto out = g_vk_storage.allocObject(device, handle);
+	auto out = device->createObject(handle);
 	out->m_attachment_count = attachments.size();
 	out->m_subpass_count = subpasses.size();
 	out->m_dependency_count = dependencies.size();
 	return out;
 }
 
-VulkanPipeline::VulkanPipeline(PVRenderPass rp, PVPipelineLayout lt)
-	: m_render_pass(rp), m_pipeline_layout(lt) {}
-VulkanPipeline::~VulkanPipeline() = default;
+VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
+							   PVPipelineLayout lt)
+	: VulkanObjectBase(handle, id), m_render_pass(rp), m_pipeline_layout(lt) {}
+VulkanPipeline::~VulkanPipeline() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkDestroyPipeline(device, (VkPipeline)handle, nullptr);
+	});
+}
 
 Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device) {
 	VkPipelineLayoutCreateInfo ci{};
@@ -65,7 +87,7 @@ Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device) {
 	VkPipelineLayout handle;
 	if(vkCreatePipelineLayout(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreatePipelineLayout failed");
-	return g_vk_storage.allocObject(device, handle);
+	return device->createObject(handle);
 }
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VPipelineSetup &setup) {
@@ -192,6 +214,6 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VPipelineSetup &s
 	VkPipeline handle;
 	if(vkCreateGraphicsPipelines(device->handle(), nullptr, 1, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateGraphicsPipelines failed");
-	return g_vk_storage.allocObject(device, handle, setup.render_pass, pipeline_layout);
+	return device->createObject(handle, setup.render_pass, pipeline_layout);
 }
 }

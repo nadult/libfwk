@@ -9,11 +9,14 @@
 
 namespace fwk {
 
-VulkanImage::VulkanImage(VkFormat format, VkExtent2D extent)
-	: m_format(format), m_extent(extent), m_is_external(false) {}
+VulkanImage::VulkanImage(VkImage handle, VObjectId id, VkFormat format, VkExtent2D extent)
+	: VulkanObjectBase(handle, id), m_format(format), m_extent(extent), m_is_external(false) {}
 VulkanImage::~VulkanImage() {
-	if(m_is_external)
-		g_vk_storage.disableHandleDestruction<VkImage>(this);
+	if(!m_is_external) {
+		deferredHandleRelease([](void *handle, VkDevice device) {
+			vkDestroyImage(device, (VkImage)handle, nullptr);
+		});
+	}
 }
 
 Ex<PVImage> VulkanImage::create(VDeviceRef device, VkFormat format, VkExtent2D extent) {
@@ -22,14 +25,19 @@ Ex<PVImage> VulkanImage::create(VDeviceRef device, VkFormat format, VkExtent2D e
 
 Ex<PVImage> VulkanImage::createExternal(VDeviceRef device, VkImage handle, VkFormat format,
 										VkExtent2D extent) {
-	auto out = g_vk_storage.allocObject(device, handle, format, extent);
+	auto out = device->createObject(handle, format, extent);
 	out->m_is_external = true;
 	return out;
 }
 
-VulkanImageView::VulkanImageView(PVImage image, VkFormat format, VkExtent2D extent)
-	: m_image(image), m_extent(extent), m_format(format) {}
-VulkanImageView ::~VulkanImageView() = default;
+VulkanImageView::VulkanImageView(VkImageView handle, VObjectId id, PVImage image, VkFormat format,
+								 VkExtent2D extent)
+	: VulkanObjectBase(handle, id), m_image(image), m_extent(extent), m_format(format) {}
+VulkanImageView ::~VulkanImageView() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkDestroyImageView(device, (VkImageView)handle, nullptr);
+	});
+}
 
 Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 	VkImageViewCreateInfo ci{};
@@ -47,6 +55,6 @@ Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 	VkImageView handle;
 	if(vkCreateImageView(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateImageView failed");
-	return g_vk_storage.allocObject(device, handle, image, image->format(), image->extent());
+	return device->createObject(handle, image, image->format(), image->extent());
 }
 }

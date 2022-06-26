@@ -10,6 +10,27 @@
 
 namespace fwk {
 
+VulkanCommandPool::VulkanCommandPool(VkCommandPool handle, VObjectId id)
+	: VulkanObjectBase(handle, id) {}
+VulkanCommandPool ::~VulkanCommandPool() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkDestroyCommandPool(device, (VkCommandPool)handle, nullptr);
+	});
+}
+
+VulkanFence::VulkanFence(VkFence handle, VObjectId id) : VulkanObjectBase(handle, id) {}
+VulkanFence ::~VulkanFence() {
+	deferredHandleRelease(
+		[](void *handle, VkDevice device) { vkDestroyFence(device, (VkFence)handle, nullptr); });
+}
+
+VulkanSemaphore::VulkanSemaphore(VkSemaphore handle, VObjectId id) : VulkanObjectBase(handle, id) {}
+VulkanSemaphore ::~VulkanSemaphore() {
+	deferredHandleRelease([](void *handle, VkDevice device) {
+		vkDestroySemaphore(device, (VkSemaphore)handle, nullptr);
+	});
+}
+
 Ex<PVSemaphore> VulkanDevice::createSemaphore(bool is_signaled) {
 	VkSemaphore handle;
 	VkSemaphoreCreateInfo ci{};
@@ -17,7 +38,7 @@ Ex<PVSemaphore> VulkanDevice::createSemaphore(bool is_signaled) {
 	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 	if(vkCreateSemaphore(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create semaphore");
-	return g_vk_storage.allocObject(ref(), handle);
+	return createObject(handle);
 }
 
 Ex<PVFence> VulkanDevice::createFence(bool is_signaled) {
@@ -27,7 +48,7 @@ Ex<PVFence> VulkanDevice::createFence(bool is_signaled) {
 	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 	if(vkCreateFence(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("Failed to create fence");
-	return g_vk_storage.allocObject(ref(), handle);
+	return createObject(handle);
 }
 
 Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
@@ -40,7 +61,7 @@ Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	VkShaderModule handle;
 	if(vkCreateShaderModule(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateShaderModule failed");
-	return g_vk_storage.allocObject(ref(), handle);
+	return createObject(handle);
 }
 
 static const EnumMap<CommandPoolFlag, VkCommandPoolCreateFlagBits> command_pool_flags = {{
@@ -60,7 +81,7 @@ Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id
 	VkCommandPool handle;
 	if(vkCreateCommandPool(m_handle, &poolInfo, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateCommandPool failed");
-	return g_vk_storage.allocObject(ref(), handle);
+	return createObject(handle);
 }
 
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)
@@ -115,17 +136,37 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 		}
 	}
 
+	g_vk_storage.device_handles[m_id] = m_handle;
+
 	return {};
 }
 
 VulkanDevice::~VulkanDevice() {
 	if(m_handle) {
+		g_vk_storage.device_handles[m_id] = nullptr;
 		vkDeviceWaitIdle(m_handle);
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i <= max_defer_frames; i++)
 			nextReleasePhase();
 		vkDestroyDevice(m_handle, nullptr);
 	}
 }
 
-void VulkanDevice::nextReleasePhase() { g_vk_storage.nextReleasePhase(m_id, m_handle); }
+using ReleaseFunc = void (*)(void *, VkDevice);
+void VulkanDevice::deferredRelease(void *ptr, ReleaseFunc func, int num_frames) {
+	DASSERT(num_frames <= max_defer_frames);
+	m_to_release[num_frames].emplace_back(ptr, func);
+}
+
+void VulkanDevice::nextReleasePhase() {
+	for(auto [ptr, func] : m_to_release[0])
+		func(ptr, m_handle);
+	m_to_release[0].clear();
+	for(int i = 1; i <= max_defer_frames; i++)
+		m_to_release[i - 1].swap(m_to_release[i]);
+}
+
+//#define CASE_TYPE(UpperCase, _)                                                                    \
+	template void VulkanStorage::decRef<Vk##UpperCase>(VObjectId);                                 \
+//#include "fwk/vulkan/vulkan_type_list.h"
+
 }

@@ -17,6 +17,7 @@
 #include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
+#include <fwk/vulkan/vulkan_shader.h>
 #include <fwk/vulkan/vulkan_window.h>
 
 #include <vulkan/vulkan.h>

@@ -11,12 +11,17 @@
 #include <vulkan/vulkan.h>
 
 namespace fwk {
-VulkanBuffer::VulkanBuffer(u64 size, VBufferUsage usage) : m_size(size), m_usage(usage) {}
+VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, u64 size, VBufferUsage usage)
+	: VulkanObjectBase(handle, id), m_size(size), m_usage(usage) {}
+
 VulkanBuffer::~VulkanBuffer() {
 	// TODO: shouldn't we destroy buffer first ?
 	// TODO: move memory to separate object
+	// TODO: memory is external, we should definitely move it outside
 	if(m_memory)
 		vkFreeMemory(m_device, m_memory, nullptr);
+	deferredHandleRelease(
+		[](void *handle, VkDevice device) { vkDestroyBuffer(device, (VkBuffer)handle, nullptr); });
 }
 
 static const EnumMap<VBufferUsageFlag, VkBufferUsageFlagBits> usage_flags = {{
@@ -47,7 +52,7 @@ Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsage usag
 
 	if(vkCreateBuffer(device->handle(), &ci, nullptr, &buffer_handle) != VK_SUCCESS)
 		return ERROR("Failed to create buffer");
-	auto out = g_vk_storage.allocObject<VkBuffer>(device, buffer_handle, size, usage);
+	auto out = device->createObject(buffer_handle, size, usage);
 
 	VkMemoryRequirements mem_requirements;
 	vkGetBufferMemoryRequirements(device->handle(), out, &mem_requirements);

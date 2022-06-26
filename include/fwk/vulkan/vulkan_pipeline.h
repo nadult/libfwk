@@ -49,26 +49,31 @@ struct VPipelineSetup {
 	// TODO: other stuff
 };
 
-class VulkanRenderPass {
+class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
 	static Ex<PVRenderPass> create(VDeviceRef, CSpan<VkAttachmentDescription>,
 								   CSpan<VkSubpassDescription>, CSpan<VkSubpassDependency>);
 
   private:
+	friend class VulkanDevice;
+	VulkanRenderPass(VkRenderPass, VObjectId);
+	~VulkanRenderPass();
+
 	uint m_attachment_count;
 	uint m_subpass_count;
 	uint m_dependency_count;
 };
 
-class VulkanPipelineLayout {
+class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
   public:
+  private:
+	friend class VulkanDevice;
+	VulkanPipelineLayout(VkPipelineLayout, VObjectId);
+	~VulkanPipelineLayout();
 };
 
-class VulkanPipeline {
+class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
   public:
-	VulkanPipeline(PVRenderPass, PVPipelineLayout);
-	~VulkanPipeline();
-
 	static Ex<PVPipelineLayout> createLayout(VDeviceRef);
 	static Ex<PVPipeline> create(VDeviceRef, const VPipelineSetup &);
 
@@ -76,6 +81,10 @@ class VulkanPipeline {
 	PVPipelineLayout pipelineLayout() const { return m_pipeline_layout; }
 
   private:
+	friend class VulkanDevice;
+	VulkanPipeline(VkPipeline, VObjectId, PVRenderPass, PVPipelineLayout);
+	~VulkanPipeline();
+
 	PVRenderPass m_render_pass;
 	PVPipelineLayout m_pipeline_layout;
 };

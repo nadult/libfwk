@@ -32,23 +32,24 @@ class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
 
+// TODO: PVInstance, PVDevice? PV sucks, but what should I use instead ? VBufferPtr ?
 class VInstanceRef;
 class VDeviceRef;
 class VWindowRef;
 
 template <class T> class VPtr;
 
+// TODO: Better name than 'Wrapper'
 template <class> struct VulkanTypeInfo;
+template <class> struct VulkanTypeToHandle;
 #define CASE_TYPE(UpperCase, lower_case)                                                           \
 	class Vulkan##UpperCase;                                                                       \
 	template <> struct VulkanTypeInfo<Vk##UpperCase> {                                             \
 		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
 		using Wrapper = Vulkan##UpperCase;                                                         \
 	};                                                                                             \
+	template <> struct VulkanTypeToHandle<Vulkan##UpperCase> { using Type = Vk##UpperCase; };      \
 	using PV##UpperCase = VPtr<Vk##UpperCase>;
 #include "fwk/vulkan/vulkan_type_list.h"
-
-template <class T>
-constexpr bool vk_type_wrapped = !is_same<typename VulkanTypeInfo<T>::Wrapper, None>;
 
 }
