@@ -77,7 +77,7 @@ class VulkanDevice {
 	VkDevice handle() const { return m_handle; }
 	VkPhysicalDevice physHandle() const { return m_phys_handle; }
 
-	CSpan<Pair<VkQueue, VQueueFamilyId>> queues() const { return m_queues; }
+	CSpan<Pair<VkQueue, VQueueFamilyId>> queues() const;
 
 	template <class THandle, class... Args>
 	VPtr<THandle> createObject(THandle handle, Args &&...args) {
@@ -109,34 +109,13 @@ class VulkanDevice {
 	friend class VulkanStorage;
 	template <class T> friend class VulkanObjectBase;
 
-	// TODO: trim empty unused slabs from time to time
-	// we can't move them around, but we can free the slab and
-	// leave nullptr in slab array
-
-	static constexpr int slab_size = 32;
-	static constexpr int slab_size_log2 = 5;
-
-	struct Slab {
-		u32 usage_bits = 0;
-		void *data = nullptr;
-	};
-
-	template <class T> struct SlabData {
-		std::aligned_storage_t<sizeof(T), alignof(T)> objects[slab_size];
-	};
-
-	EnumMap<VTypeId, vector<Slab>> m_slabs;
-	EnumMap<VTypeId, vector<u32>> m_fillable_slabs;
-	vector<Pair<void *, ReleaseFunc>> m_to_release[max_defer_frames + 1];
-
-	// TODO: signify which queue is for what?
-	vector<Pair<VkQueue, VQueueFamilyId>> m_queues;
+	struct Impl;
+	Dynamic<Impl> m_impl;
 
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;
-
+	VInstanceRef m_instance_ref;
 	VPhysicalDeviceId m_phys_id;
 	VDeviceId m_id;
-	VInstanceRef m_instance_ref;
 };
 }

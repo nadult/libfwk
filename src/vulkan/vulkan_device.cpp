@@ -128,8 +128,34 @@ Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id
 	return createObject(handle);
 }
 
+static constexpr int slab_size = 32;
+static constexpr int slab_size_log2 = 5;
+
+template <class T> struct SlabData {
+	std::aligned_storage_t<sizeof(T), alignof(T)> objects[slab_size];
+};
+
+struct VulkanDevice::Impl {
+	// TODO: trim empty unused slabs from time to time
+	// we can't move them around, but we can free the slab and
+	// leave nullptr in slab array
+
+	struct Slab {
+		u32 usage_bits = 0;
+		void *data = nullptr;
+	};
+
+	EnumMap<VTypeId, vector<Slab>> slabs;
+	EnumMap<VTypeId, vector<u32>> fillable_slabs;
+	array<vector<Pair<void *, ReleaseFunc>>, max_defer_frames + 1> to_release;
+
+	// TODO: signify which queue is for what?
+	vector<Pair<VkQueue, VQueueFamilyId>> queues;
+};
+
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)
 	: m_id(id), m_phys_id(phys_id), m_instance_ref(instance_ref) {
+	m_impl.emplace();
 	ASSERT(m_instance_ref->valid(m_phys_id));
 }
 
@@ -171,12 +197,13 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 	if(result != VK_SUCCESS)
 		return ERROR("Error during vkCreateDevice: 0x%x", stdFormat("%x", result));
 
-	m_queues.reserve(setup.queues.size());
+	auto &queues = m_impl->queues;
+	queues.reserve(setup.queues.size());
 	for(auto &queue_def : setup.queues) {
 		for(int i : intRange(queue_def.count)) {
 			VkQueue queue = nullptr;
 			vkGetDeviceQueue(m_handle, queue_def.family_id, i, &queue);
-			m_queues.emplace_back(queue, queue_def.family_id);
+			queues.emplace_back(queue, queue_def.family_id);
 		}
 	}
 
@@ -195,26 +222,29 @@ VulkanDevice::~VulkanDevice() {
 	}
 }
 
+CSpan<Pair<VkQueue, VQueueFamilyId>> VulkanDevice::queues() const { return m_impl->queues; }
+
 using ReleaseFunc = void (*)(void *, VkDevice);
 void VulkanDevice::deferredRelease(void *ptr, ReleaseFunc func, int num_frames) {
 	DASSERT(num_frames <= max_defer_frames);
-	m_to_release[num_frames].emplace_back(ptr, func);
+	m_impl->to_release[num_frames].emplace_back(ptr, func);
 }
 
 void VulkanDevice::nextReleasePhase() {
-	for(auto [ptr, func] : m_to_release[0])
+	auto &to_release = m_impl->to_release;
+	for(auto [ptr, func] : to_release[0])
 		func(ptr, m_handle);
-	m_to_release[0].clear();
+	to_release[0].clear();
 	for(int i = 1; i <= max_defer_frames; i++)
-		m_to_release[i - 1].swap(m_to_release[i]);
+		to_release[i - 1].swap(to_release[i]);
 }
 
 template <class THandle> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 	auto type_id = VulkanTypeInfo<THandle>::type_id;
 	using Object = typename VulkanTypeInfo<THandle>::Wrapper;
 
-	auto &slabs = m_slabs[type_id];
-	auto &slab_list = m_fillable_slabs[type_id];
+	auto &slabs = m_impl->slabs[type_id];
+	auto &slab_list = m_impl->fillable_slabs[type_id];
 	if(slab_list.empty()) {
 		u32 slab_id = u32(slabs.size());
 		slab_list.emplace_back(slab_id);
@@ -242,9 +272,9 @@ template <class TObject> void VulkanDevice::destroyObject(VulkanObjectBase<TObje
 
 	uint local_idx = object_idx & ((1 << slab_size_log2) - 1);
 	uint slab_idx = object_idx >> slab_size_log2;
-	auto &slab = m_slabs[type_id][slab_idx];
+	auto &slab = m_impl->slabs[type_id][slab_idx];
 	if(slab.usage_bits == ~0u)
-		m_fillable_slabs[type_id].emplace_back(slab_idx);
+		m_impl->fillable_slabs[type_id].emplace_back(slab_idx);
 	slab.usage_bits &= ~(1u << local_idx);
 }
 
