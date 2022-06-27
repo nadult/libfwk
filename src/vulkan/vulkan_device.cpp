@@ -240,9 +240,8 @@ void VulkanDevice::nextReleasePhase() {
 		to_release[i - 1].swap(to_release[i]);
 }
 
-template <class THandle> Pair<void *, VObjectId> VulkanDevice::allocObject() {
-	auto type_id = VulkanTypeInfo<THandle>::type_id;
-	using Object = typename VulkanTypeInfo<THandle>::Wrapper;
+template <class TObject> Pair<void *, VObjectId> VulkanDevice::allocObject() {
+	auto type_id = VulkanTypeInfo<TObject>::type_id;
 
 	auto &slabs = m_impl->slabs[type_id];
 	auto &slab_list = m_impl->fillable_slabs[type_id];
@@ -252,7 +251,7 @@ template <class THandle> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 
 		// Object index 0 is reserved as invalid
 		u32 usage_bits = slab_id == 0 ? 1u : 0u;
-		slabs.emplace_back(usage_bits, new SlabData<Object>);
+		slabs.emplace_back(usage_bits, new SlabData<TObject>);
 	}
 
 	int slab_idx = slab_list.back();
@@ -260,13 +259,12 @@ template <class THandle> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 	int local_idx = countTrailingZeros(~slab.usage_bits);
 	slab.usage_bits |= (1u << local_idx);
 	int object_id = local_idx + (slab_idx << slab_size_log2);
-	auto *slab_data = reinterpret_cast<SlabData<Object> *>(slab.data);
+	auto *slab_data = reinterpret_cast<SlabData<TObject> *>(slab.data);
 	return {&slab_data->objects[local_idx], VObjectId(m_id, object_id)};
 }
 
 template <class TObject> void VulkanDevice::destroyObject(VulkanObjectBase<TObject> *ptr) {
-	using Handle = typename VulkanObjectBase<TObject>::Handle;
-	auto type_id = VulkanTypeInfo<Handle>::type_id;
+	auto type_id = VulkanTypeInfo<TObject>::type_id;
 	uint object_idx = uint(ptr->objectId().objectIdx());
 
 	reinterpret_cast<TObject *>(ptr)->~TObject();
@@ -290,7 +288,7 @@ template <class T> void VulkanObjectBase<T>::deferredHandleRelease(ReleaseFunc r
 }
 
 #define CASE_TYPE(UpperCase, VkName, _)                                                            \
-	template Pair<void *, VObjectId> VulkanDevice::allocObject<VkName>();                          \
+	template Pair<void *, VObjectId> VulkanDevice::allocObject<Vulkan##UpperCase>();               \
 	template void VulkanDevice::destroyObject(VulkanObjectBase<Vulkan##UpperCase> *);              \
 	template void VulkanObjectBase<Vulkan##UpperCase>::destroyObject();                            \
 	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(ReleaseFunc);

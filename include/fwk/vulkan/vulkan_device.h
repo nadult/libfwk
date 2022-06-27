@@ -81,8 +81,8 @@ class VulkanDevice {
 
 	template <class THandle, class... Args>
 	VPtr<THandle> createObject(THandle handle, Args &&...args) {
-		using Object = typename VulkanTypeInfo<THandle>::Wrapper;
-		auto [ptr, object_id] = allocObject<THandle>();
+		using Object = typename VulkanHandleInfo<THandle>::Type;
+		auto [ptr, object_id] = allocObject<Object>();
 		auto *object = new(ptr) Object(handle, object_id, std::forward<Args>(args)...);
 		return {object};
 	}
@@ -93,7 +93,7 @@ class VulkanDevice {
 	void nextReleasePhase();
 
   private:
-	template <class THandle> Pair<void *, VObjectId> allocObject();
+	template <class TObject> Pair<void *, VObjectId> allocObject();
 	template <class TObject> void destroyObject(VulkanObjectBase<TObject> *);
 
   private:

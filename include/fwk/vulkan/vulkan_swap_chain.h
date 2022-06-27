@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include "fwk/enum_flags.h"
-#include "fwk/enum_map.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vulkan/vulkan_storage.h"
 

@@ -41,14 +41,17 @@ template <class T> class VPtr;
 
 // TODO: Better name than 'Wrapper'
 template <class> struct VulkanTypeInfo;
-template <class> struct VulkanTypeToHandle;
+template <class> struct VulkanHandleInfo;
 #define CASE_TYPE(UpperCase, VkName, lower_case)                                                   \
 	class Vulkan##UpperCase;                                                                       \
-	template <> struct VulkanTypeInfo<VkName> {                                                    \
+	template <> struct VulkanHandleInfo<VkName> {                                                  \
 		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
-		using Wrapper = Vulkan##UpperCase;                                                         \
+		using Type = Vulkan##UpperCase;                                                            \
 	};                                                                                             \
-	template <> struct VulkanTypeToHandle<Vulkan##UpperCase> { using Type = VkName; };             \
+	template <> struct VulkanTypeInfo<Vulkan##UpperCase> {                                         \
+		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
+		using Handle = VkName;                                                                     \
+	};                                                                                             \
 	using PV##UpperCase = VPtr<VkName>;
 #include "fwk/vulkan/vulkan_type_list.h"
 

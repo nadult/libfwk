@@ -36,7 +36,7 @@ class VObjectId {
 // All vulkan objects are stored in slabs in VulkanDevice
 template <class T> class VulkanObjectBase {
   public:
-	using Handle = typename VulkanTypeToHandle<T>::Type;
+	using Handle = typename VulkanTypeInfo<T>::Handle;
 
 	Handle handle() const { return m_handle; }
 	VDeviceId deviceId() const { return m_object_id.deviceId(); }
@@ -137,9 +137,9 @@ class VWindowRef {
 // When VulkanDevice is destroyed there should be np VPtrs<> left to any object form this device.
 template <class T> class VPtr {
   public:
-	using Object = typename VulkanTypeInfo<T>::Wrapper;
+	using Object = typename VulkanHandleInfo<T>::Type;
 	using BaseObject = VulkanObjectBase<Object>;
-	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
+	static constexpr VTypeId type_id = VulkanHandleInfo<T>::type_id;
 
 	VPtr() : m_ptr(nullptr) {}
 	VPtr(const VPtr &);
