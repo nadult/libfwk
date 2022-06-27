@@ -214,6 +214,31 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 }
 
 VulkanDevice::~VulkanDevice() {
+#ifndef NDEBUG
+	bool errors = false;
+	for(auto type_id : all<VTypeId>) {
+		auto &slabs = m_impl->slabs[type_id];
+		uint num_objects = 0;
+		for(int i : intRange(slabs)) {
+			auto usage_bits = slabs[i].usage_bits;
+			if(i == 0)
+				usage_bits &= ~1u;
+			num_objects += countBits(usage_bits);
+		}
+
+		if(num_objects > 0) {
+			if(!errors) {
+				print("Errors when destroying VulkanDevice:\n");
+				errors = true;
+			}
+			print("% object% of type '%' still exist\n", num_objects, num_objects > 1 ? "s" : "",
+				  type_id);
+		}
+	}
+	if(errors)
+		FATAL("All VPtrs<> to Vulkan objects should be freed before VulkanDevice is destroyed");
+#endif
+
 	if(m_handle) {
 		g_vk_storage.device_handles[m_id] = nullptr;
 		vkDeviceWaitIdle(m_handle);
