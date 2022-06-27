@@ -18,34 +18,49 @@
 
 namespace fwk {
 
+VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBuffer handle, VObjectId id, PVCommandPool pool)
+	: VulkanObjectBase(handle, id), m_pool(move(pool)) {}
+
+VulkanCommandBuffer ::~VulkanCommandBuffer() {
+	// CommandPool should be destroyed after all CommandBuffers belonging to it
+	deferredHandleRelease(m_handle, m_pool.handle(), [](void *p0, void *p1, VkDevice device) {
+		VkCommandBuffer handles[1] = {(VkCommandBuffer)p0};
+		vkFreeCommandBuffers(device, (VkCommandPool)p1, 1, handles);
+	});
+}
+
 VulkanCommandPool::VulkanCommandPool(VkCommandPool handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 VulkanCommandPool ::~VulkanCommandPool() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroyCommandPool(device, (VkCommandPool)handle, nullptr);
-	});
+	deferredHandleRelease<VkCommandPool, vkDestroyCommandPool>();
+}
+
+Ex<PVCommandBuffer> VulkanCommandPool::allocBuffer() {
+	VkCommandBufferAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	ai.commandPool = m_handle;
+	ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	ai.commandBufferCount = 1;
+
+	auto device = deviceRef();
+
+	VkCommandBuffer handle;
+	if(vkAllocateCommandBuffers(device, &ai, &handle) != VK_SUCCESS)
+		return ERROR("vkAllocateCommandBuffers failed");
+	return device->createObject(handle, ref());
 }
 
 VulkanFence::VulkanFence(VkFence handle, VObjectId id) : VulkanObjectBase(handle, id) {}
-VulkanFence ::~VulkanFence() {
-	deferredHandleRelease(
-		[](void *handle, VkDevice device) { vkDestroyFence(device, (VkFence)handle, nullptr); });
-}
+VulkanFence ::~VulkanFence() { deferredHandleRelease<VkFence, vkDestroyFence>(); }
 
 VulkanSemaphore::VulkanSemaphore(VkSemaphore handle, VObjectId id) : VulkanObjectBase(handle, id) {}
-VulkanSemaphore ::~VulkanSemaphore() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroySemaphore(device, (VkSemaphore)handle, nullptr);
-	});
-}
+VulkanSemaphore ::~VulkanSemaphore() { deferredHandleRelease<VkSemaphore, vkDestroySemaphore>(); }
 
 VulkanDeviceMemory::VulkanDeviceMemory(VkDeviceMemory handle, VObjectId id, u64 size,
 									   VMemoryFlags flags)
 	: VulkanObjectBase(handle, id), m_size(size), m_flags(flags) {}
 VulkanDeviceMemory ::~VulkanDeviceMemory() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkFreeMemory(device, (VkDeviceMemory)handle, nullptr);
-	});
+	deferredHandleRelease<VkDeviceMemory, vkFreeMemory>();
 }
 
 static const EnumMap<VMemoryFlag, VkMemoryPropertyFlagBits> memory_flags = {{
@@ -137,18 +152,23 @@ template <class T> struct SlabData {
 };
 
 struct VulkanDevice::Impl {
-	// TODO: trim empty unused slabs from time to time
-	// we can't move them around, but we can free the slab and
-	// leave nullptr in slab array
+	// TODO: trim empty unused slabs from time to time we can't move them around, but we can free the slab and
+	// leave nullptr in slab array. Maybe just delete slab data every time when it's usage_bits are empty?
 
 	struct Slab {
 		u32 usage_bits = 0;
 		void *data = nullptr;
 	};
 
+	struct DeferredRelease {
+		void *param0;
+		void *param1;
+		ReleaseFunc func;
+	};
+
 	EnumMap<VTypeId, vector<Slab>> slabs;
 	EnumMap<VTypeId, vector<u32>> fillable_slabs;
-	array<vector<Pair<void *, ReleaseFunc>>, max_defer_frames + 1> to_release;
+	array<vector<DeferredRelease>, max_defer_frames + 1> to_release;
 
 	// TODO: signify which queue is for what?
 	vector<Pair<VkQueue, VQueueFamilyId>> queues;
@@ -250,16 +270,16 @@ VulkanDevice::~VulkanDevice() {
 
 CSpan<Pair<VkQueue, VQueueFamilyId>> VulkanDevice::queues() const { return m_impl->queues; }
 
-using ReleaseFunc = void (*)(void *, VkDevice);
-void VulkanDevice::deferredRelease(void *ptr, ReleaseFunc func, int num_frames) {
+using ReleaseFunc = void (*)(void *, void *, VkDevice);
+void VulkanDevice::deferredRelease(void *param0, void *param1, ReleaseFunc func, int num_frames) {
 	DASSERT(num_frames <= max_defer_frames);
-	m_impl->to_release[num_frames].emplace_back(ptr, func);
+	m_impl->to_release[num_frames].emplace_back(param0, param1, func);
 }
 
 void VulkanDevice::nextReleasePhase() {
 	auto &to_release = m_impl->to_release;
-	for(auto [ptr, func] : to_release[0])
-		func(ptr, m_handle);
+	for(auto [param0, param1, func] : to_release[0])
+		func(param0, param1, m_handle);
 	to_release[0].clear();
 	for(int i = 1; i <= max_defer_frames; i++)
 		to_release[i - 1].swap(to_release[i]);
@@ -307,15 +327,17 @@ template <class T> void VulkanObjectBase<T>::destroyObject() {
 	device.destroyObject(this);
 }
 
-template <class T> void VulkanObjectBase<T>::deferredHandleRelease(ReleaseFunc release_func) {
+template <class T>
+void VulkanObjectBase<T>::deferredHandleRelease(void *p0, void *p1, ReleaseFunc release_func) {
 	auto &device = reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[deviceId()]);
-	device.deferredRelease(m_handle, release_func);
+	device.deferredRelease(p0, p1, release_func);
 }
 
 #define CASE_TYPE(UpperCase, VkName, _)                                                            \
 	template Pair<void *, VObjectId> VulkanDevice::allocObject<Vulkan##UpperCase>();               \
 	template void VulkanDevice::destroyObject(VulkanObjectBase<Vulkan##UpperCase> *);              \
 	template void VulkanObjectBase<Vulkan##UpperCase>::destroyObject();                            \
-	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(ReleaseFunc);
+	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(void *, void *,       \
+																			 ReleaseFunc);
 #include "fwk/vulkan/vulkan_type_list.h"
 }

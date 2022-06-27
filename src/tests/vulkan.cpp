@@ -90,7 +90,7 @@ struct VulkanContext {
 	PVPipeline pipeline;
 	vector<PVFramebuffer> framebuffers;
 	PVCommandPool command_pool;
-	VkCommandBuffer command_buffer = nullptr;
+	PVCommandBuffer command_buffer;
 	PVBuffer vertex_buffer;
 	uint num_vertices;
 
@@ -184,16 +184,7 @@ Ex<void> createCommandBuffers(VulkanContext &ctx) {
 	auto queue_family = ctx.device->queues().front().second;
 	ctx.command_pool =
 		EX_PASS(ctx.device->createCommandPool(queue_family, CommandPoolFlag::reset_command));
-
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = ctx.command_pool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = 1;
-
-	if(vkAllocateCommandBuffers(ctx.device->handle(), &allocInfo, &ctx.command_buffer) !=
-	   VK_SUCCESS)
-		return ERROR("alloc failed");
+	ctx.command_buffer = EX_PASS(ctx.command_pool->allocBuffer());
 	return {};
 }
 
@@ -278,8 +269,9 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
+	VkCommandBuffer cmd_bufs[1] = {ctx.command_buffer};
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &ctx.command_buffer;
+	submitInfo.pCommandBuffers = cmd_bufs;
 
 	VkSemaphore signalSemaphores[] = {ctx.renderFinishedSemaphore};
 	submitInfo.signalSemaphoreCount = 1;
@@ -326,8 +318,6 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 }
 
 Ex<int> exMain() {
-	// How to make sure that vulkan instance is destroyed when something else failed ?
-	// The same with devices ?
 	VulkanInstanceSetup setup;
 	setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
 	setup.debug_types = all<VDebugType>;
@@ -364,7 +354,6 @@ Ex<int> exMain() {
 	int font_size = 16 * window->dpiScale();
 	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
 	window->runMainLoop(mainLoop, &ctx);
-
 	return 0;
 }
 

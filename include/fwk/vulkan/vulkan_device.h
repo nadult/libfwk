@@ -24,8 +24,20 @@ struct VulkanDeviceSetup {
 DEFINE_ENUM(CommandPoolFlag, transient, reset_command, protected_);
 using CommandPoolFlags = EnumFlags<CommandPoolFlag>;
 
+class VulkanCommandBuffer : public VulkanObjectBase<VulkanCommandBuffer> {
+  public:
+  private:
+	friend class VulkanDevice;
+	VulkanCommandBuffer(VkCommandBuffer, VObjectId, PVCommandPool);
+	~VulkanCommandBuffer();
+
+	PVCommandPool m_pool;
+};
+
 class VulkanCommandPool : public VulkanObjectBase<VulkanCommandPool> {
   public:
+	Ex<PVCommandBuffer> allocBuffer();
+
   private:
 	friend class VulkanDevice;
 	VulkanCommandPool(VkCommandPool, VObjectId);
@@ -88,13 +100,10 @@ class VulkanDevice {
 	}
 
 	static constexpr int max_defer_frames = 3;
-	using ReleaseFunc = void (*)(void *, VkDevice);
-	void deferredRelease(void *ptr, ReleaseFunc, int num_frames = max_defer_frames);
+	using ReleaseFunc = void (*)(void *param0, void *param1, VkDevice);
+	void deferredRelease(void *param0, void *param1, ReleaseFunc,
+						 int num_frames = max_defer_frames);
 	void nextReleasePhase();
-
-  private:
-	template <class TObject> Pair<void *, VObjectId> allocObject();
-	template <class TObject> void destroyObject(VulkanObjectBase<TObject> *);
 
   private:
 	VulkanDevice(VDeviceId, VPhysicalDeviceId, VInstanceRef);
@@ -108,6 +117,9 @@ class VulkanDevice {
 	friend class VulkanInstance;
 	friend class VulkanStorage;
 	template <class T> friend class VulkanObjectBase;
+
+	template <class TObject> Pair<void *, VObjectId> allocObject();
+	template <class TObject> void destroyObject(VulkanObjectBase<TObject> *);
 
 	struct Impl;
 	Dynamic<Impl> m_impl;

@@ -54,9 +54,18 @@ template <class T> class VulkanObjectBase {
 	friend class VulkanDevice;
 	template <class> friend class VPtr;
 
+	VPtr<Handle> ref();
+	VDeviceRef deviceRef() const;
 	VkDevice deviceHandle() const;
-	using ReleaseFunc = void (*)(void *, VkDevice);
-	void deferredHandleRelease(ReleaseFunc);
+	using ReleaseFunc = void (*)(void *, void *, VkDevice);
+	void deferredHandleRelease(void *, void *, ReleaseFunc);
+
+	template <class THandle, void (*vk_func)(VkDevice, THandle, const VkAllocationCallbacks *)>
+	void deferredHandleRelease() {
+		deferredHandleRelease(m_handle, nullptr, [](void *p0, void *p1, VkDevice device) {
+			vk_func(device, (THandle)p0, nullptr);
+		});
+	}
 
 	void decRefCount() {
 		PASSERT(m_ref_count > 0);
@@ -106,6 +115,7 @@ class VDeviceRef {
   private:
 	friend class VulkanStorage;
 	friend class VulkanDevice;
+	template <class> friend class VulkanObjectBase;
 	VDeviceRef(VDeviceId);
 
 	VDeviceId m_id;
@@ -171,6 +181,7 @@ template <class T> class VPtr {
   private:
 	VPtr(Object *ptr) : m_ptr(ptr) {}
 	friend class VulkanDevice;
+	template <class> friend class VulkanObjectBase;
 
 	Object *m_ptr;
 };
@@ -232,6 +243,15 @@ extern VulkanStorage g_vk_storage;
 
 // -------------------------------------------------------------------------------------------
 // ----------  IMPLEMENTATION  ---------------------------------------------------------------
+
+template <class T> auto VulkanObjectBase<T>::ref() -> VPtr<Handle> {
+	m_ref_count++;
+	return VPtr<Handle>(reinterpret_cast<T *>(this));
+}
+
+template <class T> VDeviceRef VulkanObjectBase<T>::deviceRef() const {
+	return VDeviceRef(deviceId());
+}
 
 template <class T> FWK_ALWAYS_INLINE VkDevice VulkanObjectBase<T>::deviceHandle() const {
 	return g_vk_storage.device_handles[deviceId()];

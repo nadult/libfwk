@@ -11,11 +11,8 @@ namespace fwk {
 VulkanImage::VulkanImage(VkImage handle, VObjectId id, VkFormat format, VkExtent2D extent)
 	: VulkanObjectBase(handle, id), m_format(format), m_extent(extent), m_is_external(false) {}
 VulkanImage::~VulkanImage() {
-	if(!m_is_external) {
-		deferredHandleRelease([](void *handle, VkDevice device) {
-			vkDestroyImage(device, (VkImage)handle, nullptr);
-		});
-	}
+	if(!m_is_external)
+		deferredHandleRelease<VkImage, vkDestroyImage>();
 }
 
 Ex<PVImage> VulkanImage::create(VDeviceRef device, VkFormat format, VkExtent2D extent) {
@@ -32,11 +29,7 @@ Ex<PVImage> VulkanImage::createExternal(VDeviceRef device, VkImage handle, VkFor
 VulkanImageView::VulkanImageView(VkImageView handle, VObjectId id, PVImage image, VkFormat format,
 								 VkExtent2D extent)
 	: VulkanObjectBase(handle, id), m_image(image), m_extent(extent), m_format(format) {}
-VulkanImageView ::~VulkanImageView() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroyImageView(device, (VkImageView)handle, nullptr);
-	});
-}
+VulkanImageView ::~VulkanImageView() { deferredHandleRelease<VkImageView, vkDestroyImageView>(); }
 
 Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 	VkImageViewCreateInfo ci{};

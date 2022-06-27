@@ -13,17 +13,14 @@ namespace fwk {
 VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 VulkanRenderPass ::~VulkanRenderPass() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroyRenderPass(device, (VkRenderPass)handle, nullptr);
-	});
+	// TODO: here we probably don't need defer
+	deferredHandleRelease<VkRenderPass, vkDestroyRenderPass>();
 }
 
 VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 VulkanPipelineLayout ::~VulkanPipelineLayout() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroyPipelineLayout(device, (VkPipelineLayout)handle, nullptr);
-	});
+	deferredHandleRelease<VkPipelineLayout, vkDestroyPipelineLayout>();
 }
 
 static const EnumMap<VShaderStage, VkShaderStageFlagBits> shader_stages = {{
@@ -66,11 +63,7 @@ Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device,
 VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
 							   PVPipelineLayout lt)
 	: VulkanObjectBase(handle, id), m_render_pass(rp), m_pipeline_layout(lt) {}
-VulkanPipeline::~VulkanPipeline() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroyPipeline(device, (VkPipeline)handle, nullptr);
-	});
-}
+VulkanPipeline::~VulkanPipeline() { deferredHandleRelease<VkPipeline, vkDestroyPipeline>(); }
 
 Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device) {
 	VkPipelineLayoutCreateInfo ci{};

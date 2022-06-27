@@ -12,10 +12,7 @@ namespace fwk {
 VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, u64 size, VBufferUsage usage)
 	: VulkanObjectBase(handle, id), m_size(size), m_usage(usage) {}
 
-VulkanBuffer::~VulkanBuffer() {
-	deferredHandleRelease(
-		[](void *handle, VkDevice device) { vkDestroyBuffer(device, (VkBuffer)handle, nullptr); });
-}
+VulkanBuffer::~VulkanBuffer() { deferredHandleRelease<VkBuffer, vkDestroyBuffer>(); }
 
 static const EnumMap<VBufferUsageFlag, VkBufferUsageFlagBits> usage_flags = {{
 	{VBufferUsageFlag::transfer_src, VK_BUFFER_USAGE_TRANSFER_SRC_BIT},

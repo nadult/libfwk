@@ -14,9 +14,7 @@ VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id,
 	: VulkanObjectBase(handle, id), m_image_views(move(img_views)), m_extent(extent) {}
 
 VulkanFramebuffer::~VulkanFramebuffer() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroyFramebuffer(device, (VkFramebuffer)handle, nullptr);
-	});
+	deferredHandleRelease<VkFramebuffer, vkDestroyFramebuffer>();
 }
 
 Ex<PVFramebuffer> VulkanFramebuffer::create(VDeviceRef device, vector<PVImageView> image_views,

@@ -16,9 +16,7 @@ VulkanSwapChain::VulkanSwapChain(VkSwapchainKHR handle, VObjectId id, VWindowRef
 	: VulkanObjectBase(handle, id), m_window(window), m_image_views(move(image_views)) {}
 
 VulkanSwapChain::~VulkanSwapChain() {
-	deferredHandleRelease([](void *handle, VkDevice device) {
-		vkDestroySwapchainKHR(device, (VkSwapchainKHR)handle, nullptr);
-	});
+	deferredHandleRelease<VkSwapchainKHR, vkDestroySwapchainKHR>();
 }
 
 VulkanSurfaceInfo VulkanSwapChain::surfaceInfo(VDeviceRef device, VWindowRef window) {
