@@ -17,6 +17,7 @@
 #include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
+#include <fwk/vulkan/vulkan_render_graph.h>
 #include <fwk/vulkan/vulkan_swap_chain.h>
 #include <fwk/vulkan/vulkan_window.h>
 
@@ -86,18 +87,11 @@ struct MyVertex {
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
-	PVSwapChain swap_chain;
+	VulkanRenderGraph *render_graph = nullptr;
+
 	PVPipeline pipeline;
-	vector<PVFramebuffer> framebuffers;
-	PVCommandPool command_pool;
-	PVCommandBuffer command_buffer;
 	PVBuffer vertex_buffer;
 	uint num_vertices;
-
-	PVSemaphore imageAvailableSemaphore;
-	PVSemaphore renderFinishedSemaphore;
-	PVFence inFlightFence;
-
 	Maybe<Font> font;
 };
 
@@ -119,7 +113,7 @@ Ex<void> createVertexBuffer(VulkanContext &ctx) {
 	return {};
 }
 
-Ex<PVPipeline> createPipeline(VDeviceRef device, PVSwapChain swap_chain) {
+Ex<void> createPipeline(VulkanContext &ctx) {
 	// TODO: making sure that shaderc_shared.dll is available
 	ShaderCompiler compiler;
 	auto vsh_code = compiler.compile(ShaderType::vertex, vertex_shader);
@@ -130,9 +124,10 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, PVSwapChain swap_chain) {
 	if(!fsh_code.bytecode)
 		return ERROR("Failed to compile fragment shader:\n%", fsh_code.messages);
 
-	auto vsh_module = EX_PASS(device->createShaderModule(vsh_code.bytecode));
-	auto fsh_module = EX_PASS(device->createShaderModule(fsh_code.bytecode));
+	auto vsh_module = EX_PASS(ctx.device->createShaderModule(vsh_code.bytecode));
+	auto fsh_module = EX_PASS(ctx.device->createShaderModule(fsh_code.bytecode));
 
+	auto swap_chain = ctx.render_graph->swapChain();
 	auto sc_image = swap_chain->imageViews().front()->image();
 	auto extent = sc_image->extent();
 	VPipelineSetup setup;
@@ -145,66 +140,31 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, PVSwapChain swap_chain) {
 					  .minDepth = 0.0f,
 					  .maxDepth = 1.0f};
 	setup.scissor = {.offset = {0, 0}, .extent = extent};
-
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = sc_image->format();
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	setup.render_pass = EX_PASS(VulkanRenderPass::create(
-		device, cspan(&colorAttachment, 1), cspan(&subpass, 1), cspan(&dependency, 1)));
-
+	setup.render_pass = ctx.render_graph->defaultRenderPass();
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
 
-	return VulkanPipeline::create(device, setup);
-}
-
-Ex<void> createCommandBuffers(VulkanContext &ctx) {
-	auto queue_family = ctx.device->queues().front().second;
-	ctx.command_pool =
-		EX_PASS(ctx.device->createCommandPool(queue_family, CommandPoolFlag::reset_command));
-	ctx.command_buffer = EX_PASS(ctx.command_pool->allocBuffer());
+	ctx.pipeline = EX_PASS(VulkanPipeline::create(ctx.device, setup));
 	return {};
 }
 
-Ex<void> recordCommandBuffer(VulkanContext &ctx, uint32_t imageIndex) {
-	vkResetCommandBuffer(ctx.command_buffer, 0);
+Ex<void> recordCommandBuffer(VulkanContext &ctx, PVCommandBuffer command_buffer,
+							 PVFramebuffer framebuffer) {
+	vkResetCommandBuffer(command_buffer, 0);
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0; // Optional
 	beginInfo.pInheritanceInfo = nullptr; // Optional
 
-	if(vkBeginCommandBuffer(ctx.command_buffer, &beginInfo) != VK_SUCCESS) {
+	if(vkBeginCommandBuffer(command_buffer, &beginInfo) != VK_SUCCESS) {
 		return ERROR("failed begin");
 	}
 
 	VkRenderPassBeginInfo renderPassInfo{};
-	auto extent = ctx.framebuffers[imageIndex]->extent();
+	auto extent = framebuffer->extent();
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = ctx.pipeline->renderPass();
-	renderPassInfo.framebuffer = ctx.framebuffers[imageIndex];
+	renderPassInfo.framebuffer = framebuffer;
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = extent;
 
@@ -212,25 +172,17 @@ Ex<void> recordCommandBuffer(VulkanContext &ctx, uint32_t imageIndex) {
 	renderPassInfo.clearValueCount = 1;
 	renderPassInfo.pClearValues = &clearColor;
 
-	vkCmdBeginRenderPass(ctx.command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdBindPipeline(ctx.command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx.pipeline);
+	vkCmdBeginRenderPass(command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx.pipeline);
 
 	VkBuffer vertexBuffers[] = {ctx.vertex_buffer};
 	VkDeviceSize offsets[] = {0};
-	vkCmdBindVertexBuffers(ctx.command_buffer, 0, 1, vertexBuffers, offsets);
-	vkCmdDraw(ctx.command_buffer, static_cast<uint32_t>(ctx.num_vertices), 1, 0, 0);
+	vkCmdBindVertexBuffers(command_buffer, 0, 1, vertexBuffers, offsets);
+	vkCmdDraw(command_buffer, static_cast<uint32_t>(ctx.num_vertices), 1, 0, 0);
 
-	vkCmdEndRenderPass(ctx.command_buffer);
-	if(vkEndCommandBuffer(ctx.command_buffer) != VK_SUCCESS)
+	vkCmdEndRenderPass(command_buffer);
+	if(vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
 		return ERROR("endCOmand failed");
-
-	return {};
-}
-
-Ex<void> createSyncObjects(VulkanContext &ctx) {
-	ctx.imageAvailableSemaphore = EX_PASS(ctx.device->createSemaphore());
-	ctx.renderFinishedSemaphore = EX_PASS(ctx.device->createSemaphore());
-	ctx.inFlightFence = EX_PASS(ctx.device->createFence(true));
 
 	return {};
 }
@@ -250,50 +202,9 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	auto swap_chain = ctx.swap_chain;
-	VkFence fences[] = {ctx.inFlightFence};
-	vkWaitForFences(ctx.device->handle(), 1, fences, VK_TRUE, UINT64_MAX);
-	vkResetFences(ctx.device->handle(), 1, fences);
-
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(ctx.device->handle(), swap_chain, UINT64_MAX, ctx.imageAvailableSemaphore,
-						  VK_NULL_HANDLE, &imageIndex);
-	recordCommandBuffer(ctx, imageIndex).check();
-
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-	VkSemaphore waitSemaphores[] = {ctx.imageAvailableSemaphore};
-	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
-
-	VkCommandBuffer cmd_bufs[1] = {ctx.command_buffer};
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = cmd_bufs;
-
-	VkSemaphore signalSemaphores[] = {ctx.renderFinishedSemaphore};
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	auto queues = ctx.device->queues();
-	auto graphicsQueue = queues.front().first;
-	auto presentQueue = queues.back().first;
-	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, ctx.inFlightFence) != VK_SUCCESS)
-		FWK_FATAL("queue submit fail");
-
-	VkPresentInfoKHR presentInfo{};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;
-	VkSwapchainKHR swapChains[] = {swap_chain};
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &imageIndex;
-	presentInfo.pResults = nullptr; // Optional
-	vkQueuePresentKHR(presentQueue, &presentInfo);
+	auto framebuffer = ctx.render_graph->beginFrame();
+	recordCommandBuffer(ctx, ctx.render_graph->commandBuffer(), framebuffer).check();
+	ctx.render_graph->finishFrame();
 
 	//clearColor(IColor(50, 0, 50));
 	/*Renderer2D renderer(IRect(VkDevice::instance().windowSize()), Orient2D::y_down);
@@ -341,14 +252,11 @@ Ex<int> exMain() {
 										 .present_mode = surf_info.present_modes[0],
 										 .transform = surf_info.capabilities.currentTransform}));
 
-	VulkanContext ctx{device, window, swap_chain};
-	ctx.pipeline = EX_PASS(createPipeline(device, swap_chain));
-	for(auto &image_view : swap_chain->imageViews())
-		ctx.framebuffers.emplace_back(EX_PASS(
-			VulkanFramebuffer::create(device, cspan(&image_view, 1), ctx.pipeline->renderPass())));
+	auto render_graph = EX_PASS(VulkanRenderGraph::create(device, swap_chain));
 
-	EXPECT(createCommandBuffers(ctx));
-	EXPECT(createSyncObjects(ctx));
+	VulkanContext ctx{device, window, render_graph.get()};
+
+	EXPECT(createPipeline(ctx));
 	EXPECT(createVertexBuffer(ctx));
 
 	int font_size = 16 * window->dpiScale();
