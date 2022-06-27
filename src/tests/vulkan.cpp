@@ -187,6 +187,19 @@ Ex<void> recordCommandBuffer(VulkanContext &ctx, PVCommandBuffer command_buffer,
 	return {};
 }
 
+void updateFPS(VulkanWindow &window) {
+	static double prev_time = getTime();
+	static int num_frames = 0;
+	double cur_time = getTime();
+	num_frames++;
+	if(cur_time - prev_time > 1.0) {
+		int fps = double(num_frames) / (cur_time - prev_time);
+		window.setTitle(format("fwk::vulkan_test [FPS: %]", fps));
+		prev_time = cur_time;
+		num_frames = 0;
+	}
+}
+
 bool mainLoop(VulkanWindow &window, void *ctx_) {
 	auto &ctx = *(VulkanContext *)ctx_;
 	static vector<float2> positions(15, float2(window.extent() / 2));
@@ -202,9 +215,11 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	auto framebuffer = ctx.render_graph->beginFrame();
-	recordCommandBuffer(ctx, ctx.render_graph->commandBuffer(), framebuffer).check();
+	auto [command_buffer, framebuffer] = ctx.render_graph->beginFrame();
+	recordCommandBuffer(ctx, command_buffer, framebuffer).check();
 	ctx.render_graph->finishFrame();
+
+	updateFPS(window);
 
 	//clearColor(IColor(50, 0, 50));
 	/*Renderer2D renderer(IRect(VkDevice::instance().windowSize()), Orient2D::y_down);

@@ -14,15 +14,16 @@ using PVRenderGraph = Dynamic<VulkanRenderGraph>;
 
 class VulkanRenderGraph {
   public:
+	static constexpr int num_swap_frames = 2;
+
 	VulkanRenderGraph(VDeviceRef);
 	~VulkanRenderGraph();
 
 	static Ex<PVRenderGraph> create(VDeviceRef, PVSwapChain);
 	PVSwapChain swapChain() const { return m_swap_chain; }
 	PVRenderPass defaultRenderPass() const { return m_render_pass; }
-	PVCommandBuffer commandBuffer() const { return m_command_buffer; }
 
-	PVFramebuffer beginFrame();
+	Pair<PVCommandBuffer, PVFramebuffer> beginFrame();
 	void finishFrame();
 
   private:
@@ -31,16 +32,20 @@ class VulkanRenderGraph {
 
 	Ex<PVRenderPass> createRenderPass(VDeviceRef, PVSwapChain);
 
+	struct FrameSync {
+		PVCommandBuffer command_buffer;
+		PVSemaphore image_available_sem;
+		PVSemaphore render_finished_sem;
+		PVFence in_flight_fence;
+	};
+
 	VDeviceRef m_device;
 	PVSwapChain m_swap_chain;
 	vector<PVFramebuffer> m_framebuffers;
-	PVCommandPool m_command_pool;
-	PVCommandBuffer m_command_buffer;
-	PVSemaphore m_image_available_sem;
-	PVSemaphore m_render_finished_sem;
+	FrameSync m_frames[num_swap_frames];
 	PVRenderPass m_render_pass;
-	PVFence m_in_flight_fence;
-	uint m_image_index;
+	PVCommandPool m_command_pool;
+	uint m_frame_index = 0, m_image_index = 0;
 };
 
 }
