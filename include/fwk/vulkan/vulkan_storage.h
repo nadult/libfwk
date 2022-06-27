@@ -99,6 +99,8 @@ class VDeviceRef {
 	VulkanDevice &operator*() const;
 	VulkanDevice *operator->() const;
 
+	operator VkDevice() const { return handle(); }
+	VkDevice handle() const;
 	VDeviceId id() const { return m_id; }
 
   private:
@@ -241,6 +243,8 @@ FWK_ALWAYS_INLINE VulkanDevice &VDeviceRef::operator*() const {
 FWK_ALWAYS_INLINE VulkanDevice *VDeviceRef::operator->() const {
 	return reinterpret_cast<VulkanDevice *>(&g_vk_storage.devices[m_id]);
 }
+
+FWK_ALWAYS_INLINE VkDevice VDeviceRef::handle() const { return g_vk_storage.device_handles[m_id]; }
 
 template <class T> inline VPtr<T>::VPtr(const VPtr &rhs) : m_ptr(rhs.m_ptr) {
 	if(m_ptr)

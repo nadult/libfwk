@@ -26,7 +26,7 @@ struct VulkanVersion {
 
 DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, device_memory, descriptor_pool,
 			descriptor_set_layout, fence, framebuffer, image, image_view, pipeline, pipeline_layout,
-			render_pass, sampler, semaphore, shader_module);
+			render_pass, sampler, semaphore, shader_module, swap_chain);
 
 class VulkanDevice;
 class VulkanInstance;
@@ -42,14 +42,14 @@ template <class T> class VPtr;
 // TODO: Better name than 'Wrapper'
 template <class> struct VulkanTypeInfo;
 template <class> struct VulkanTypeToHandle;
-#define CASE_TYPE(UpperCase, lower_case)                                                           \
+#define CASE_TYPE(UpperCase, VkName, lower_case)                                                   \
 	class Vulkan##UpperCase;                                                                       \
-	template <> struct VulkanTypeInfo<Vk##UpperCase> {                                             \
+	template <> struct VulkanTypeInfo<VkName> {                                                    \
 		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
 		using Wrapper = Vulkan##UpperCase;                                                         \
 	};                                                                                             \
-	template <> struct VulkanTypeToHandle<Vulkan##UpperCase> { using Type = Vk##UpperCase; };      \
-	using PV##UpperCase = VPtr<Vk##UpperCase>;
+	template <> struct VulkanTypeToHandle<Vulkan##UpperCase> { using Type = VkName; };             \
+	using PV##UpperCase = VPtr<VkName>;
 #include "fwk/vulkan/vulkan_type_list.h"
 
 template <class Enum, class Bit>
@@ -58,6 +58,11 @@ VkFlags translateFlags(EnumFlags<Enum> flags, const EnumMap<Enum, Bit> &bit_map)
 	for(auto flag : flags)
 		out |= bit_map[flag];
 	return out;
+}
+
+inline VkExtent2D toVkExtent(int2 extent) {
+	PASSERT(extent.x >= 0 && extent.y >= 0);
+	return {uint(extent.x), uint(extent.y)};
 }
 
 }

@@ -19,10 +19,8 @@
 #include "fwk/sys/expected.h"
 #include "fwk/sys/input.h"
 #include "fwk/sys/thread.h"
-#include "fwk/vulkan/vulkan_device.h"
-#include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_instance.h"
-#include "fwk/vulkan/vulkan_storage.h"
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 #include <SDL2/SDL_video.h>
@@ -53,10 +51,6 @@ VulkanWindow::~VulkanWindow() {
 	if(!m_impl)
 		return;
 
-	if(m_swap_chain) {
-		auto device_handle = m_swap_chain->device->handle();
-		vkDestroySwapchainKHR(device_handle, m_swap_chain->handle, nullptr);
-	}
 	if(m_impl->surface_handle)
 		vkDestroySurfaceKHR(m_impl->instance_ref->handle(), m_impl->surface_handle, nullptr);
 	if(m_impl->window)
@@ -113,71 +107,7 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, Config config) {
 	return {};
 }
 
-Ex<void> VulkanWindow::createSwapChain(VDeviceRef device) {
-	ASSERT(VulkanInstance::isPresent());
-	EXPECT(m_impl->surface_handle);
-
-	auto surf_dev_info = surfaceDeviceInfo(device);
-	EXPECT(surf_dev_info.formats && surf_dev_info.present_modes);
-
-	VkSwapchainKHR handle;
-	VkSwapchainCreateInfoKHR ci{};
-	ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	ci.surface = m_impl->surface_handle;
-	ci.minImageCount = 2;
-	ci.imageFormat = surf_dev_info.formats[0].format;
-	ci.imageColorSpace = surf_dev_info.formats[0].colorSpace;
-	ci.imageExtent = surf_dev_info.capabilities.currentExtent;
-	ci.imageArrayLayers = 1;
-	ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	ci.preTransform = surf_dev_info.capabilities.currentTransform;
-	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	ci.clipped = VK_TRUE;
-	ci.presentMode = surf_dev_info.present_modes[0];
-
-	// TODO: separate class for swap chain ?
-	if(vkCreateSwapchainKHR(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
-		FATAL("Error when creating swap chain");
-
-	VulkanSwapChainInfo info{device, handle};
-
-	vector<VkImage> images;
-	uint num_images = 0;
-	vkGetSwapchainImagesKHR(device->handle(), info.handle, &num_images, nullptr);
-	images.resize(num_images);
-	vkGetSwapchainImagesKHR(device->handle(), info.handle, &num_images, images.data());
-	info.image_views.reserve(num_images);
-	for(auto image_handle : images) {
-		auto image = EX_PASS(
-			VulkanImage::createExternal(device, image_handle, ci.imageFormat, ci.imageExtent));
-		auto view = EX_PASS(VulkanImageView::create(device, image));
-		info.image_views.emplace_back(view);
-	}
-
-	m_swap_chain = move(info);
-	return {};
-}
-
 VkSurfaceKHR VulkanWindow::surfaceHandle() const { return m_impl->surface_handle; }
-
-VulkanSurfaceDeviceInfo VulkanWindow::surfaceDeviceInfo(VDeviceRef device) const {
-	auto phys_device = device->physHandle();
-	auto surface = m_impl->surface_handle;
-
-	VulkanSurfaceDeviceInfo out;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, surface, &out.capabilities);
-	uint count = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, surface, &count, nullptr);
-	out.formats.resize(count);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, surface, &count, out.formats.data());
-
-	count = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, surface, &count, nullptr);
-	out.present_modes.resize(count);
-	vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, surface, &count,
-											  out.present_modes.data());
-	return out;
-}
 
 vector<IRect> VulkanWindow::displayRects() const {
 	int count = SDL_GetNumVideoDisplays();
@@ -242,7 +172,7 @@ void VulkanWindow::setRect(IRect rect) {
 IRect VulkanWindow::rect() const {
 	int2 pos, size;
 	if(m_impl) {
-		size = this->size();
+		size = this->extent();
 		SDL_GetWindowPosition(m_impl->window, &pos.x, &pos.y);
 		if(platform == Platform::linux) {
 			// Workaround for SDL2 bug on linux platforms
@@ -316,7 +246,7 @@ float VulkanWindow::dpiScale() const {
 
 auto VulkanWindow::flags() const -> Flags { return m_impl ? m_impl->config.flags : Flags(); }
 
-int2 VulkanWindow::size() const {
+int2 VulkanWindow::extent() const {
 	int2 out;
 	if(m_impl)
 		SDL_GetWindowSize(m_impl->window, &out.x, &out.y);

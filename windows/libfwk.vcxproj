@@ -159,6 +159,7 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_pipeline.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_shader.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_storage.h" />
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_swap_chain.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_type_list.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_window.h" />
     <ClInclude Include="..\include\fwk\gfx_base.h" />
@@ -372,6 +373,7 @@
     <ClCompile Include="..\src\vulkan\vulkan_pipeline.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_shader.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_storage.cpp" />
+    <ClCompile Include="..\src\vulkan\vulkan_swap_chain.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_window.cpp" />
     <ClCompile Include="..\src\gui\widgets.cpp" />
     <ClCompile Include="..\src\gui\gui.cpp" />

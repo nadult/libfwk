@@ -68,13 +68,12 @@ struct VulkanQueueSetup;
 struct VulkanDeviceSetup;
 
 struct VResourceId {
-	static constexpr int max_vulkan_devices = 16;
-	static constexpr int max_resource_types = 16;
+	static constexpr int max_vulkan_devices = 4;
+	static constexpr int max_resource_types = 32;
 	static_assert(count<VTypeId> <= max_resource_types);
 
 	VResourceId(VTypeId type_id, VDeviceId device_id, uint object_id)
-		: bits(object_id | (uint(device_id) << 24) | (uint(type_id) << 28)) {}
-
+		: bits(object_id | (uint(device_id) << 25) | (uint(type_id) << 27)) {}
 	VResourceId() : bits(0) {}
 
 	uint bits;

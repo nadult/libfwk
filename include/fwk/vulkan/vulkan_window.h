@@ -27,18 +27,6 @@ struct VulkanWindowConfig {
 	VWindowFlags flags;
 };
 
-struct VulkanSurfaceDeviceInfo {
-	VkSurfaceCapabilitiesKHR capabilities;
-	vector<VkSurfaceFormatKHR> formats;
-	vector<VkPresentModeKHR> present_modes;
-};
-
-struct VulkanSwapChainInfo {
-	VDeviceRef device;
-	VkSwapchainKHR handle;
-	vector<PVImageView> image_views;
-};
-
 class VulkanWindow {
   public:
 	using Flag = VWindowFlag;
@@ -46,11 +34,8 @@ class VulkanWindow {
 	using Config = VulkanWindowConfig;
 
 	static Ex<VWindowRef> create(VInstanceRef, ZStr title, IRect rect, Config);
-	Ex<void> createSwapChain(VDeviceRef);
 
 	VkSurfaceKHR surfaceHandle() const;
-	VulkanSurfaceDeviceInfo surfaceDeviceInfo(VDeviceRef) const;
-	const VulkanSwapChainInfo &swapChain() const { return *m_swap_chain; }
 
 	vector<IRect> displayRects() const;
 	vector<float> displayDpiScales() const;
@@ -61,7 +46,7 @@ class VulkanWindow {
 
 	void setTitle(ZStr);
 	void setSize(const int2 &);
-	int2 size() const;
+	int2 extent() const;
 
 	void setRect(IRect);
 	IRect rect() const;
@@ -105,7 +90,5 @@ class VulkanWindow {
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
-	// TODO: move to device
-	Dynamic<VulkanSwapChainInfo> m_swap_chain;
 };
 }

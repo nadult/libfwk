@@ -17,6 +17,7 @@
 #include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
+#include <fwk/vulkan/vulkan_swap_chain.h>
 #include <fwk/vulkan/vulkan_window.h>
 
 #include <vulkan/vulkan.h>
@@ -85,6 +86,7 @@ struct MyVertex {
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
+	PVSwapChain swap_chain;
 	PVPipeline pipeline;
 	vector<PVFramebuffer> framebuffers;
 	PVCommandPool command_pool;
@@ -117,7 +119,7 @@ Ex<void> createVertexBuffer(VulkanContext &ctx) {
 	return {};
 }
 
-Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap_chain) {
+Ex<PVPipeline> createPipeline(VDeviceRef device, PVSwapChain swap_chain) {
 	// TODO: making sure that shaderc_shared.dll is available
 	ShaderCompiler compiler;
 	auto vsh_code = compiler.compile(ShaderType::vertex, vertex_shader);
@@ -131,7 +133,7 @@ Ex<PVPipeline> createPipeline(VDeviceRef device, const VulkanSwapChainInfo &swap
 	auto vsh_module = EX_PASS(device->createShaderModule(vsh_code.bytecode));
 	auto fsh_module = EX_PASS(device->createShaderModule(fsh_code.bytecode));
 
-	auto sc_image = swap_chain.image_views.front()->image();
+	auto sc_image = swap_chain->imageViews().front()->image();
 	auto extent = sc_image->extent();
 	VPipelineSetup setup;
 	setup.stages.emplace_back(vsh_module, VShaderStage::vertex);
@@ -195,8 +197,7 @@ Ex<void> createCommandBuffers(VulkanContext &ctx) {
 	return {};
 }
 
-Ex<void> recordCommandBuffer(VulkanContext &ctx, const VulkanSwapChainInfo &swap_chain,
-							 uint32_t imageIndex) {
+Ex<void> recordCommandBuffer(VulkanContext &ctx, uint32_t imageIndex) {
 	vkResetCommandBuffer(ctx.command_buffer, 0);
 
 	VkCommandBufferBeginInfo beginInfo{};
@@ -245,7 +246,7 @@ Ex<void> createSyncObjects(VulkanContext &ctx) {
 
 bool mainLoop(VulkanWindow &window, void *ctx_) {
 	auto &ctx = *(VulkanContext *)ctx_;
-	static vector<float2> positions(15, float2(window.size() / 2));
+	static vector<float2> positions(15, float2(window.extent() / 2));
 
 	for(auto &event : window.inputEvents()) {
 		if(event.keyDown(InputKey::esc) || event.type() == InputEventType::quit)
@@ -258,16 +259,15 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	auto &swap_chain = ctx.window->swapChain();
-
+	auto swap_chain = ctx.swap_chain;
 	VkFence fences[] = {ctx.inFlightFence};
 	vkWaitForFences(ctx.device->handle(), 1, fences, VK_TRUE, UINT64_MAX);
 	vkResetFences(ctx.device->handle(), 1, fences);
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(ctx.device->handle(), swap_chain.handle, UINT64_MAX,
-						  ctx.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-	recordCommandBuffer(ctx, window.swapChain(), imageIndex).check();
+	vkAcquireNextImageKHR(ctx.device->handle(), swap_chain, UINT64_MAX, ctx.imageAvailableSemaphore,
+						  VK_NULL_HANDLE, &imageIndex);
+	recordCommandBuffer(ctx, imageIndex).check();
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -296,7 +296,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
-	VkSwapchainKHR swapChains[] = {swap_chain.handle};
+	VkSwapchainKHR swapChains[] = {swap_chain};
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageIndex;
@@ -341,13 +341,19 @@ Ex<int> exMain() {
 	VulkanDeviceSetup dev_setup;
 	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);
 	if(!pref_device)
-		return ERROR("Coudln't find a suitable Vulkan device");
+		return ERROR("Couldn't find a suitable Vulkan device");
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
-	EXPECT(window->createSwapChain(device));
 
-	VulkanContext ctx{device, window};
-	ctx.pipeline = EX_PASS(createPipeline(device, window->swapChain()));
-	for(auto &image_view : window->swapChain().image_views)
+	auto surf_info = VulkanSwapChain::surfaceInfo(device, window);
+	auto swap_chain =
+		EX_PASS(VulkanSwapChain::create(device, window,
+										{.surface_format = surf_info.formats[0],
+										 .present_mode = surf_info.present_modes[0],
+										 .transform = surf_info.capabilities.currentTransform}));
+
+	VulkanContext ctx{device, window, swap_chain};
+	ctx.pipeline = EX_PASS(createPipeline(device, swap_chain));
+	for(auto &image_view : swap_chain->imageViews())
 		ctx.framebuffers.emplace_back(EX_PASS(
 			VulkanFramebuffer::create(device, cspan(&image_view, 1), ctx.pipeline->renderPass())));
 
@@ -358,7 +364,6 @@ Ex<int> exMain() {
 	int font_size = 16 * window->dpiScale();
 	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
 	window->runMainLoop(mainLoop, &ctx);
-	vkDeviceWaitIdle(device->handle());
 
 	return 0;
 }

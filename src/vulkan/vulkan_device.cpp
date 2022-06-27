@@ -12,6 +12,7 @@
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_shader.h"
+#include "fwk/vulkan/vulkan_swap_chain.h"
 
 #include <vulkan/vulkan.h>
 
@@ -175,8 +176,8 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 		queue_cis.emplace_back(ci);
 	}
 
-	auto swap_chain_ext = "VK_KHR_swapchain";
 	vector<const char *> exts = transform(setup.extensions, [](auto &str) { return str.c_str(); });
+	auto swap_chain_ext = "VK_KHR_swapchain";
 	if(!anyOf(setup.extensions, swap_chain_ext))
 		exts.emplace_back("VK_KHR_swapchain");
 
@@ -288,8 +289,8 @@ template <class T> void VulkanObjectBase<T>::deferredHandleRelease(ReleaseFunc r
 	device.deferredRelease(m_handle, release_func);
 }
 
-#define CASE_TYPE(UpperCase, _)                                                                    \
-	template Pair<void *, VObjectId> VulkanDevice::allocObject<Vk##UpperCase>();                   \
+#define CASE_TYPE(UpperCase, VkName, _)                                                            \
+	template Pair<void *, VObjectId> VulkanDevice::allocObject<VkName>();                          \
 	template void VulkanDevice::destroyObject(VulkanObjectBase<Vulkan##UpperCase> *);              \
 	template void VulkanObjectBase<Vulkan##UpperCase>::destroyObject();                            \
 	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(ReleaseFunc);
