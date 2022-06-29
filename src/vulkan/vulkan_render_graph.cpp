@@ -4,6 +4,7 @@
 #include "fwk/vulkan/vulkan_render_graph.h"
 
 #include "fwk/index_range.h"
+#include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
@@ -17,7 +18,8 @@
 // TODO: proprly differentiate between graphics, present & compute queues
 
 namespace fwk {
-VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device) : m_device(device){};
+VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device)
+	: m_device(*device), m_device_handle(device){};
 VulkanRenderGraph::~VulkanRenderGraph() = default;
 
 Ex<PVRenderPass> VulkanRenderGraph::createRenderPass(VDeviceRef device, PVSwapChain swap_chain) {
@@ -82,11 +84,11 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 	auto &frame = m_frames[m_frame_index];
 
 	VkFence fences[] = {frame.in_flight_fence};
-	vkWaitForFences(m_device, 1, fences, VK_TRUE, UINT64_MAX);
-	vkResetFences(m_device, 1, fences);
+	vkWaitForFences(m_device_handle, 1, fences, VK_TRUE, UINT64_MAX);
+	vkResetFences(m_device_handle, 1, fences);
 
 	uint32_t image_index;
-	if(vkAcquireNextImageKHR(m_device, m_swap_chain, UINT64_MAX, frame.image_available_sem,
+	if(vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX, frame.image_available_sem,
 							 VK_NULL_HANDLE, &image_index) != VK_SUCCESS)
 		FATAL("vkAcquireNextImageKHR failed");
 
@@ -129,7 +131,7 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	auto queues = m_device->queues();
+	auto queues = m_device.queues();
 	auto graphicsQueue = queues.front().first;
 	auto presentQueue = queues.back().first;
 	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.in_flight_fence) != VK_SUCCESS)
@@ -149,10 +151,46 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 	if(vkQueuePresentKHR(presentQueue, &presentInfo) != VK_SUCCESS)
 		return ERROR("vkQueuePresentKHR failed");
 	m_frame_index = (m_frame_index + 1) % num_swap_frames;
+
+	// TODO: staging buffers destruction should be hooked to fence
+	m_staging_buffers.clear();
 	return {};
 }
 
-void VulkanRenderGraph::enqueue(Command cmd) { m_commands.emplace_back(move(cmd)); }
+void VulkanRenderGraph::enqueue(Command cmd) {
+	DASSERT(!cmd.is<CmdUpload>());
+	m_commands.emplace_back(move(cmd));
+}
+
+Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
+	if(cmd.data.empty())
+		return {};
+
+	// TODO: add weak DeviceRef for passing into functions ?
+	// Maybe instead create functions should all be in device?
+	auto staging_buffer = EX_PASS(
+		VulkanBuffer::create(m_device.ref(), cmd.data.size(), VBufferUsageFlag::transfer_src));
+	auto staging_mem_req = staging_buffer->memoryRequirements();
+	// TODO: consider host_cached instead of coherent
+	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_coherent;
+	auto staging_memory = EX_PASS(m_device.allocDeviceMemory(
+		staging_mem_req.size, staging_mem_req.memoryTypeBits, staging_mem_flags));
+
+	EXPECT(staging_buffer->bindMemory(staging_memory));
+
+	staging_buffer->upload(cmd.data);
+	VkBufferCopy copy_params{
+		.srcOffset = 0, .dstOffset = cmd.offset, .size = (VkDeviceSize)cmd.data.size()};
+	m_commands.emplace_back(CmdCopy{.src = staging_buffer, .dst = cmd.dst, {{copy_params}}});
+	m_staging_buffers.emplace_back(move(staging_buffer));
+
+	// TODO: don't use staging buffer if:
+	// cmd.buffer is host_visible
+	// cmd.buffer isn't being used yet?
+
+	return {};
+}
+
 void VulkanRenderGraph::flushCommands() {
 	DASSERT(m_frame_in_progress);
 	FrameContext ctx{m_frames[m_frame_index].command_buffer, VCommandId(0)};
@@ -162,6 +200,11 @@ void VulkanRenderGraph::flushCommands() {
 		ctx.cmd_id = VCommandId(i);
 		command.visit([&ctx, this](auto &cmd) { perform(ctx, cmd); });
 	}
+	m_commands.clear();
+}
+
+void VulkanRenderGraph::perform(FrameContext &, const CmdUpload &) {
+	FATAL("This command shouldn't end up in queue");
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindIndexBuffer &cmd) {

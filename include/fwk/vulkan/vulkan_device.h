@@ -60,12 +60,10 @@ class VulkanSemaphore : public VulkanObjectBase<VulkanSemaphore> {
 	~VulkanSemaphore();
 };
 
-DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
-			protected_);
-using VMemoryFlags = EnumFlags<VMemoryFlag>;
-
 class VulkanDeviceMemory : public VulkanObjectBase<VulkanDeviceMemory> {
   public:
+	VMemoryFlags flags() const { return m_flags; }
+
   private:
 	friend class VulkanDevice;
 	VulkanDeviceMemory(VkDeviceMemory, VObjectId, u64 size, VMemoryFlags);

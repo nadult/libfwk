@@ -29,6 +29,10 @@ DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, device_memory, descri
 			descriptor_set_layout, fence, framebuffer, image, image_view, pipeline, pipeline_layout,
 			render_pass, sampler, semaphore, shader_module, swap_chain);
 
+DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
+			protected_);
+using VMemoryFlags = EnumFlags<VMemoryFlag>;
+
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;

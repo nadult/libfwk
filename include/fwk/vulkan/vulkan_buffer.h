@@ -33,6 +33,7 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 
 	u64 size() const { return m_size; }
 	auto usage() const { return m_usage; }
+	auto memoryFlags() const { return m_mem_flags; }
 
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
@@ -44,6 +45,7 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 
 	u64 m_size;
 	PVDeviceMemory m_memory;
+	VMemoryFlags m_mem_flags;
 	VBufferUsage m_usage;
 };
 

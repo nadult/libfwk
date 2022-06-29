@@ -13,13 +13,18 @@ namespace fwk {
 class VulkanRenderGraph;
 using PVRenderGraph = Dynamic<VulkanRenderGraph>;
 
-struct CmdUploadData {
-	CSpan<char> data;
-	Maybe<VCommandId> copy_op;
-	PVBuffer dst;
-};
+// TODO: option to pass function/functor which copies some data to dst buffer
+struct CmdUpload {
+	CmdUpload(CSpan<char> data, PVBuffer dst, u64 offset = 0)
+		: data(data), dst(dst), offset(offset) {}
+	template <c_span TSpan, class T = SpanBase<TSpan>>
+	CmdUpload(const TSpan &span, PVBuffer dst, u64 offset = 0)
+		: data(cspan(span).reinterpret<char>()), dst(dst), offset(offset) {}
 
-struct CmdUploadFunc {};
+	CSpan<char> data;
+	PVBuffer dst;
+	u64 offset;
+};
 
 struct CmdCopy {
 	PVBuffer src;
@@ -55,8 +60,23 @@ struct CmdBeginRenderPass {
 
 struct CmdEndRenderPass {};
 
-using Command = Variant<CmdCopy, CmdBindVertexBuffers, CmdBindPipeline, CmdDraw, CmdBeginRenderPass,
-						CmdEndRenderPass>;
+using Command = Variant<CmdUpload, CmdCopy, CmdBindVertexBuffers, CmdBindPipeline, CmdDraw,
+						CmdBeginRenderPass, CmdEndRenderPass>;
+
+class StagingBuffer {
+  public:
+	struct FuncUpload {
+		using FillFunc = void (*)(void *dst_data);
+		FillFunc filler;
+		i64 size = 0;
+	};
+	struct DataUpload {
+		CSpan<char> data;
+	};
+	using Upload = Variant<FuncUpload, DataUpload>;
+
+	PVBuffer buffer;
+};
 
 class VulkanRenderGraph {
   public:
@@ -73,7 +93,9 @@ class VulkanRenderGraph {
 	// Commands are first enqueued and only with large enough context
 	// they are being performed
 	void enqueue(Command);
-	void operator<<(Command cmd) { return enqueue(move(cmd)); }
+	Ex<void> enqueue(CmdUpload);
+
+	template <class T> auto operator<<(T &&cmd) { return enqueue(std::forward<T>(cmd)); }
 
 	// This can only be called between beginFrame() & finishFrame()
 	void flushCommands();
@@ -89,6 +111,7 @@ class VulkanRenderGraph {
 		VCommandId cmd_id;
 	};
 
+	void perform(FrameContext &, const CmdUpload &);
 	void perform(FrameContext &, const CmdBindIndexBuffer &);
 	void perform(FrameContext &, const CmdBindVertexBuffers &);
 	void perform(FrameContext &, const CmdBindPipeline &);
@@ -104,9 +127,11 @@ class VulkanRenderGraph {
 		PVFence in_flight_fence;
 	};
 
+	vector<StagingBuffer> m_staging_buffers;
 	vector<Command> m_commands;
 
-	VDeviceRef m_device;
+	VulkanDevice &m_device;
+	VkDevice m_device_handle;
 	PVSwapChain m_swap_chain;
 	vector<PVFramebuffer> m_framebuffers;
 	FrameSync m_frames[num_swap_frames];

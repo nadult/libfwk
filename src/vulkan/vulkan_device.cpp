@@ -241,6 +241,8 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 }
 
 VulkanDevice::~VulkanDevice() {
+	m_render_graph.reset();
+
 #ifndef NDEBUG
 	bool errors = false;
 	for(auto type_id : all<VTypeId>) {

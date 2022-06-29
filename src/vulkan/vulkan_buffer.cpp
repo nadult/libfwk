@@ -47,6 +47,7 @@ Ex<void> VulkanBuffer::bindMemory(PVDeviceMemory memory) {
 	if(vkBindBufferMemory(deviceHandle(), m_handle, memory->handle(), 0) != VK_SUCCESS)
 		return ERROR("vkBindBufferMemory failed");
 	m_memory = memory;
+	m_mem_flags = m_memory->flags();
 	return {};
 }
 

@@ -87,30 +87,9 @@ struct MyVertex {
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
-
 	PVPipeline pipeline;
-	PVBuffer vertex_buffer;
-	uint num_vertices;
 	Maybe<Font> font;
 };
-
-Ex<void> createVertexBuffer(VulkanContext &ctx) {
-	vector<MyVertex> vertices = {{{0.0f, -0.75f}, {1.0f, 0.0f, 0.0f}},
-								 {{0.75f, 0.75f}, {0.0f, 1.0f, 0.0f}},
-								 {{-0.75f, 0.75f}, {0.0f, 0.0f, 1.0f}}};
-
-	auto usage = VBufferUsageFlag::vertex_buffer;
-	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
-	auto mem_req = buffer->memoryRequirements();
-	auto mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_coherent;
-	auto memory =
-		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
-	EXPECT(buffer->bindMemory(memory));
-	buffer->upload(vertices);
-	ctx.vertex_buffer = move(buffer); // TODO: just copy doesnt work
-	ctx.num_vertices = vertices.size();
-	return {};
-}
 
 Ex<void> createPipeline(VulkanContext &ctx) {
 	// TODO: making sure that shaderc_shared.dll is available
@@ -147,17 +126,35 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	return {};
 }
 
+Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
+	auto usage = VBufferUsageFlag::vertex_buffer | VBufferUsageFlag::transfer_dst;
+	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
+	auto mem_req = buffer->memoryRequirements();
+	auto mem_flags = VMemoryFlag::device_local;
+	auto memory =
+		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
+	EXPECT(buffer->bindMemory(memory));
+	return buffer;
+}
+
 Ex<void> drawFrame(VulkanContext &ctx) {
 	auto &render_graph = ctx.device->renderGraph();
 
 	EXPECT(render_graph.beginFrame());
+
+	vector<MyVertex> vertices = {{{0.0f, -0.75f}, {1.0f, 0.0f, 0.0f}},
+								 {{0.75f, 0.75f}, {0.0f, 1.0f, 0.0f}},
+								 {{-0.75f, 0.75f}, {0.0f, 0.0f, 1.0f}}};
+
+	auto vbuffer = EX_PASS(createVertexBuffer(ctx, vertices));
+	render_graph << CmdUpload(vertices, vbuffer);
+
 	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 	render_graph << CmdBeginRenderPass{.render_pass = ctx.pipeline->renderPass(),
 									   .clear_values = {{clear_color}}};
-
 	render_graph << CmdBindPipeline{ctx.pipeline};
-	render_graph << CmdBindVertexBuffers{.buffers{{ctx.vertex_buffer}}, .offsets{{0}}};
-	render_graph << CmdDraw{.num_vertices = (int)ctx.num_vertices};
+	render_graph << CmdBindVertexBuffers{.buffers{{vbuffer}}, .offsets{{0}}};
+	render_graph << CmdDraw{.num_vertices = vertices.size()};
 	render_graph << CmdEndRenderPass();
 	EXPECT(render_graph.finishFrame());
 
@@ -245,7 +242,6 @@ Ex<int> exMain() {
 
 	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
-	EXPECT(createVertexBuffer(ctx));
 
 	int font_size = 16 * window->dpiScale();
 	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
