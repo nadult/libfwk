@@ -44,6 +44,19 @@ DEFINE_ENUM(VImageLayout, undefined, general, color_attachment, depth_stencil_at
 // TODO: move to internal
 inline VkImageLayout toVk(VImageLayout layout) { return VkImageLayout(layout); }
 
+DEFINE_ENUM(VTexFilter, nearest, linear);
+DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
+			mirror_clamp_to_edge);
+
+struct VSamplingParams {
+	VTexFilter mag_filter = VTexFilter::nearest;
+	VTexFilter min_filter = VTexFilter::nearest;
+	Maybe<VTexFilter> mipmap_filter;
+	u8 max_anisotropy_samples = 1;
+	array<VTexAddress, 3> address_mode = {VTexAddress::repeat, VTexAddress::repeat,
+										  VTexAddress::repeat};
+};
+
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;

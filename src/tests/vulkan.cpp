@@ -91,6 +91,8 @@ struct VulkanContext {
 	PVPipeline pipeline;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
+	PVImageView font_image_view;
+	PVSampler sampler;
 };
 
 Ex<void> createPipeline(VulkanContext &ctx) {
@@ -256,7 +258,7 @@ Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
 	auto memory =
 		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
 	EXPECT(vimage->bindMemory(memory));
-	ctx.device->renderGraph() << CmdUploadImage(image, vimage);
+	EXPECT(ctx.device->renderGraph() << CmdUploadImage(image, vimage));
 	return vimage;
 }
 
@@ -292,6 +294,9 @@ Ex<int> exMain() {
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
 	ctx.font_core = move(font_data.core);
 	ctx.font_image = EX_PASS(makeTexture(ctx, font_data.image));
+	ctx.font_image_view = EX_PASS(VulkanImageView::create(ctx.device, ctx.font_image));
+	ctx.sampler = EX_PASS(ctx.device->createSampler({}));
+
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;
 }

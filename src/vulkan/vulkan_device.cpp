@@ -64,6 +64,10 @@ VulkanDeviceMemory ::~VulkanDeviceMemory() {
 	deferredHandleRelease<VkDeviceMemory, vkFreeMemory>();
 }
 
+VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplingParams &params)
+	: VulkanObjectBase(handle, id), m_params(params) {}
+VulkanSampler::~VulkanSampler() { deferredHandleRelease<VkSampler, vkDestroySampler>(); }
+
 static const EnumMap<VMemoryFlag, VkMemoryPropertyFlagBits> memory_flags = {{
 	{VMemoryFlag::device_local, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
 	{VMemoryFlag::host_visible, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT},
@@ -143,6 +147,23 @@ Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id
 	if(vkCreateCommandPool(m_handle, &poolInfo, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateCommandPool failed");
 	return createObject(handle);
+}
+
+Ex<PVSampler> VulkanDevice::createSampler(const VSamplingParams &params) {
+	VkSamplerCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	ci.magFilter = VkFilter(params.mag_filter);
+	ci.minFilter = VkFilter(params.min_filter);
+	ci.mipmapMode = VkSamplerMipmapMode(params.mipmap_filter.orElse(VTexFilter::nearest));
+	ci.addressModeU = VkSamplerAddressMode(params.address_mode[0]);
+	ci.addressModeV = VkSamplerAddressMode(params.address_mode[1]);
+	ci.addressModeW = VkSamplerAddressMode(params.address_mode[2]);
+	ci.maxAnisotropy = params.max_anisotropy_samples;
+	ci.anisotropyEnable = params.max_anisotropy_samples > 1;
+	VkSampler handle;
+	if(vkCreateSampler(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateSampler fai;ed");
+	return createObject(handle, params);
 }
 
 Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {

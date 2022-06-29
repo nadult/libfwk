@@ -59,9 +59,9 @@ struct CmdBindVertexBuffers {
 	CmdBindVertexBuffers(vector<PVBuffer> buffers, vector<u64> offsets, uint first_binding = 0)
 		: buffers(move(buffers)), offsets(move(offsets)), first_binding(first_binding) {}
 
-	uint first_binding;
 	vector<PVBuffer> buffers;
 	vector<u64> offsets;
+	uint first_binding;
 };
 
 struct CmdDraw {

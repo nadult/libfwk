@@ -73,6 +73,18 @@ class VulkanDeviceMemory : public VulkanObjectBase<VulkanDeviceMemory> {
 	VMemoryFlags m_flags;
 };
 
+class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
+  public:
+	const auto &params() const { return m_params; }
+
+  private:
+	friend class VulkanDevice;
+	VulkanSampler(VkSampler, VObjectId, const VSamplingParams &);
+	~VulkanSampler();
+
+	VSamplingParams m_params;
+};
+
 class VulkanDevice {
   public:
 	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);
@@ -80,6 +92,8 @@ class VulkanDevice {
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
 	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, CommandPoolFlags);
 	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
+	Ex<PVSampler> createSampler(const VSamplingParams &);
+
 	Ex<void> createRenderGraph(PVSwapChain);
 
 	VDeviceRef ref() const { return VDeviceRef(m_id); }
