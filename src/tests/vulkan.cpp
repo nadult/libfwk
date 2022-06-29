@@ -131,7 +131,7 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 }
 
 Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
-	auto usage = VBufferUsageFlag::vertex_buffer | VBufferUsageFlag::transfer_dst;
+	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
 	auto mem_req = buffer->memoryRequirements();
 	auto mem_flags = VMemoryFlag::device_local;

@@ -42,7 +42,7 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 										const VulkanSwapChainSetup &setup) {
 	VkSwapchainKHR handle;
 	VkSwapchainCreateInfoKHR ci{};
-	VImageUsage usage = VImageUsageFlag::color_attachment;
+	VImageUsageFlags usage = VImageUsage::color_attachment;
 	ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	ci.surface = window->surfaceHandle();
 	ci.minImageCount = 2;
@@ -50,7 +50,7 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	ci.imageColorSpace = setup.surface_format.colorSpace;
 	ci.imageExtent = toVkExtent(window->extent());
 	ci.imageArrayLayers = 1;
-	ci.imageUsage = usage.bits;
+	ci.imageUsage = toVk(usage);
 	ci.preTransform = setup.transform;
 	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	ci.clipped = VK_TRUE;

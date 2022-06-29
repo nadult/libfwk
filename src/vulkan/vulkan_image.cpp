@@ -30,7 +30,7 @@ Ex<PVImage> VulkanImage::create(VDeviceRef device, VkExtent2D extent, const Imag
 	ci.tiling = VK_IMAGE_TILING_OPTIMAL;
 	ci.initialLayout = toVk(setup.layout);
 	ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	ci.usage = setup.usage.bits;
+	ci.usage = toVk(setup.usage);
 
 	DASSERT(setup.num_samples >= 1 && setup.num_samples < 64);
 	DASSERT(isPowerOfTwo(setup.num_samples));

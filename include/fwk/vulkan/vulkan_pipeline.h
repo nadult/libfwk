@@ -14,6 +14,7 @@ DEFINE_ENUM(VTopology, point_list, line_list, line_strip, triangle_list, triangl
 			triangle_fan);
 DEFINE_ENUM(VertexInputRate, vertex, instance);
 
+// TODO: make useful constructors
 struct VertexAttribDesc {
 	VkFormat format = VkFormat::VK_FORMAT_R32_SFLOAT;
 	u16 offset = 0;

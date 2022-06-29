@@ -9,26 +9,15 @@
 #include <vulkan/vulkan.h>
 
 namespace fwk {
-VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, u64 size, VBufferUsage usage)
+VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, u64 size, VBufferUsageFlags usage)
 	: VulkanObjectBase(handle, id), m_size(size), m_usage(usage) {}
-
 VulkanBuffer::~VulkanBuffer() { deferredHandleRelease<VkBuffer, vkDestroyBuffer>(); }
 
-static const EnumMap<VBufferUsageFlag, VkBufferUsageFlagBits> usage_flags = {{
-	{VBufferUsageFlag::transfer_src, VK_BUFFER_USAGE_TRANSFER_SRC_BIT},
-	{VBufferUsageFlag::transfer_dst, VK_BUFFER_USAGE_TRANSFER_DST_BIT},
-	{VBufferUsageFlag::uniform_buffer, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT},
-	{VBufferUsageFlag::storage_buffer, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT},
-	{VBufferUsageFlag::vertex_buffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT},
-	{VBufferUsageFlag::index_buffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT},
-	{VBufferUsageFlag::indirect_buffer, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT},
-}};
-
-Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsage usage) {
+Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsageFlags usage) {
 	VkBufferCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	ci.size = size;
-	ci.usage = translateFlags(usage, usage_flags);
+	ci.usage = toVk(usage);
 	ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VkBuffer buffer_handle;
 

@@ -12,8 +12,6 @@
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 
-#include <vulkan/vulkan.h>
-
 // TODO: what should we do when error happens in begin/end frame?
 // TODO: proprly handle multiple queues
 // TODO: proprly differentiate between graphics, present & compute queues
@@ -166,8 +164,8 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
 
 	// TODO: add weak DeviceRef for passing into functions ?
 	// Maybe instead create functions should all be in device?
-	auto staging_buffer = EX_PASS(
-		VulkanBuffer::create(m_device.ref(), cmd.data.size(), VBufferUsageFlag::transfer_src));
+	auto staging_buffer =
+		EX_PASS(VulkanBuffer::create(m_device.ref(), cmd.data.size(), VBufferUsage::transfer_src));
 	auto staging_mem_req = staging_buffer->memoryRequirements();
 	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_cached;
 	auto staging_memory = EX_PASS(m_device.allocDeviceMemory(
@@ -197,7 +195,7 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUploadImage cmd) {
 	// TODO: add weak DeviceRef for passing into functions ?
 	// Maybe instead create functions should all be in device?
 	auto staging_buffer =
-		EX_PASS(VulkanBuffer::create(m_device.ref(), data_size, VBufferUsageFlag::transfer_src));
+		EX_PASS(VulkanBuffer::create(m_device.ref(), data_size, VBufferUsage::transfer_src));
 	auto staging_mem_req = staging_buffer->memoryRequirements();
 	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_cached;
 	auto staging_memory = EX_PASS(m_device.allocDeviceMemory(

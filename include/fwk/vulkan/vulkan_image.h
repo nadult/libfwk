@@ -11,7 +11,7 @@ namespace fwk {
 
 struct ImageSetup {
 	VkFormat format;
-	VImageUsage usage = VImageUsageFlag::transfer_dst | VImageUsageFlag::sampled;
+	VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled;
 	VImageLayout layout = VImageLayout::undefined;
 	int num_samples = 1;
 };
@@ -39,7 +39,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	VkFormat m_format;
 	VkExtent2D m_extent;
 	int m_num_samples;
-	VImageUsage m_usage;
+	VImageUsageFlags m_usage;
 	PVDeviceMemory m_memory;
 	VMemoryFlags m_memory_flags;
 	VImageLayout m_last_layout;

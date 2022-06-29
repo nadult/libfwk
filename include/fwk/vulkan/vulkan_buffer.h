@@ -9,16 +9,12 @@
 
 namespace fwk {
 
-DEFINE_ENUM(VBufferUsageFlag, transfer_src, transfer_dst, uniform_buffer, storage_buffer,
-			vertex_buffer, index_buffer, indirect_buffer);
-using VBufferUsage = EnumFlags<VBufferUsageFlag>;
-
 // TODO: make objects immovable
 class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
   public:
-	static Ex<PVBuffer> create(VDeviceRef, u64 num_bytes, VBufferUsage usage);
+	static Ex<PVBuffer> create(VDeviceRef, u64 num_bytes, VBufferUsageFlags usage);
 	template <class T>
-	static Ex<PVBuffer> create(VDeviceRef device, u64 num_elements, VBufferUsage usage) {
+	static Ex<PVBuffer> create(VDeviceRef device, u64 num_elements, VBufferUsageFlags usage) {
 		return create(device, num_elements * sizeof(T), usage);
 	}
 
@@ -40,13 +36,13 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 
   private:
 	friend class VulkanDevice;
-	VulkanBuffer(VkBuffer, VObjectId, u64 size, VBufferUsage);
+	VulkanBuffer(VkBuffer, VObjectId, u64 size, VBufferUsageFlags);
 	~VulkanBuffer();
 
 	u64 m_size;
 	PVDeviceMemory m_memory;
 	VMemoryFlags m_mem_flags;
-	VBufferUsage m_usage;
+	VBufferUsageFlags m_usage;
 };
 
 }

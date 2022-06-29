@@ -4,9 +4,11 @@
 #pragma once
 
 #include "fwk/enum.h"
+#include "fwk/enum_flags.h"
 #include "fwk/tag_id.h"
 
-// TODO: try to remove it if possible
+// TODO: move it to vulkan_internal.h; But only after most of the Vulkan definitions are hidden
+// Otherwise it makes no sense
 #include <vulkan/vulkan.h>
 
 namespace fwk {
@@ -33,15 +35,20 @@ DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached,
 			protected_);
 using VMemoryFlags = EnumFlags<VMemoryFlag>;
 
-// TODO: rename to VImageUsage and flags to VImageUsageFlags
-DEFINE_ENUM(VImageUsageFlag, transfer_src, transfer_dst, sampled, storage, color_attachment,
+DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel_buffer, storage_texel_buffer,
+			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer);
+using VBufferUsageFlags = EnumFlags<VBufferUsage>;
+
+DEFINE_ENUM(VImageUsage, transfer_src, transfer_dst, sampled, storage, color_attachment,
 			depth_stencil_attachment, transient_attachment, input_attachment);
-using VImageUsage = EnumFlags<VImageUsageFlag>;
+using VImageUsageFlags = EnumFlags<VImageUsage>;
 
 DEFINE_ENUM(VImageLayout, undefined, general, color_attachment, depth_stencil_attachment,
 			depth_stencil_read_only, shader_read_only, transfer_src, transfer_dst, preinitialized);
 
 // TODO: move to internal
+inline VkImageUsageFlags toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
+inline VkBufferUsageFlags toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
 inline VkImageLayout toVk(VImageLayout layout) { return VkImageLayout(layout); }
 
 DEFINE_ENUM(VTexFilter, nearest, linear);
