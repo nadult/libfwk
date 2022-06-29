@@ -15,6 +15,19 @@
 
 using namespace fwk;
 
+void updateFPS(GlDevice &device) {
+	static double prev_time = getTime();
+	static int num_frames = 0;
+	double cur_time = getTime();
+	num_frames++;
+	if(cur_time - prev_time > 1.0) {
+		int fps = double(num_frames) / (cur_time - prev_time);
+		device.setWindowTitle(format("fwk::vulkan_test [FPS: %]", fps));
+		prev_time = cur_time;
+		num_frames = 0;
+	}
+}
+
 bool mainLoop(GlDevice &device, void *font_ptr) {
 	Font &font = *(Font *)font_ptr;
 	static vector<float2> positions(15, float2(device.windowSize() / 2));
@@ -45,6 +58,8 @@ bool mainLoop(GlDevice &device, void *font_ptr) {
 	auto text = format("Hello world!\nWindow size: %", device.windowSize());
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 	renderer.render();
+	updateFPS(device);
+
 	return true;
 }
 
@@ -62,7 +77,7 @@ int main(int argc, char **argv) {
 	if(!display_rects)
 		FWK_FATAL("No display available");
 	int2 res = display_rects[0].size() / 2;
-	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync | GlDeviceOpt::opengl_debug_handler |
+	auto flags = GlDeviceOpt::resizable | GlDeviceOpt::opengl_debug_handler |
 				 GlDeviceOpt::centered | GlDeviceOpt::allow_hidpi;
 	gl_device.createWindow("foo", IRect(res), {flags});
 	print("OpenGL info:\n%\n", gl_info->toString());
