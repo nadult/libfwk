@@ -3,6 +3,7 @@
 
 #include "fwk/vulkan/vulkan_render_graph.h"
 
+#include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
@@ -10,6 +11,10 @@
 #include "fwk/vulkan/vulkan_swap_chain.h"
 
 #include <vulkan/vulkan.h>
+
+// TODO: what should we do when error happens in begin/end frame?
+// TODO: proprly handle multiple queues
+// TODO: proprly differentiate between graphics, present & compute queues
 
 namespace fwk {
 VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device) : m_device(device){};
@@ -60,8 +65,8 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 		m_framebuffers.emplace_back(
 			EX_PASS(VulkanFramebuffer::create(device, cspan(&image_view, 1), m_render_pass)));
 
-	m_command_pool =
-		EX_PASS(device->createCommandPool(queue_family, CommandPoolFlag::reset_command));
+	m_command_pool = EX_PASS(device->createCommandPool(
+		queue_family, CommandPoolFlag::reset_command | CommandPoolFlag::transient));
 	for(auto &frame : m_frames) {
 		frame.command_buffer = EX_PASS(m_command_pool->allocBuffer());
 		frame.image_available_sem = EX_PASS(device->createSemaphore());
@@ -72,7 +77,8 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 	return {};
 }
 
-Pair<PVCommandBuffer, PVFramebuffer> VulkanRenderGraph::beginFrame() {
+Ex<void> VulkanRenderGraph::beginFrame() {
+	DASSERT(!m_frame_in_progress);
 	auto &frame = m_frames[m_frame_index];
 
 	VkFence fences[] = {frame.in_flight_fence};
@@ -85,14 +91,30 @@ Pair<PVCommandBuffer, PVFramebuffer> VulkanRenderGraph::beginFrame() {
 		FATAL("vkAcquireNextImageKHR failed");
 
 	m_image_index = image_index;
-	return {frame.command_buffer, m_framebuffers[image_index]};
+
+	vkResetCommandBuffer(frame.command_buffer, 0);
+	VkCommandBufferBeginInfo bi{};
+	bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	bi.pInheritanceInfo = nullptr; // Optional
+	if(vkBeginCommandBuffer(frame.command_buffer, &bi) != VK_SUCCESS)
+		return ERROR("vkBeginCommandBuffer failed");
+	m_frame_in_progress = true;
+	return {};
 }
 
-void VulkanRenderGraph::finishFrame() {
+Ex<void> VulkanRenderGraph::finishFrame() {
+	DASSERT(m_frame_in_progress);
+	flushCommands();
+	m_frame_in_progress = false;
+
+	auto &frame = m_frames[m_frame_index];
+	if(vkEndCommandBuffer(frame.command_buffer) != VK_SUCCESS)
+		return ERROR("vkEndCommandBuffer failed");
+
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	auto &frame = m_frames[m_frame_index];
 	VkSemaphore waitSemaphores[] = {frame.image_available_sem};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	submitInfo.waitSemaphoreCount = 1;
@@ -111,7 +133,7 @@ void VulkanRenderGraph::finishFrame() {
 	auto graphicsQueue = queues.front().first;
 	auto presentQueue = queues.back().first;
 	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.in_flight_fence) != VK_SUCCESS)
-		FWK_FATAL("queue submit fail");
+		return ERROR("vkQueueSubmit failed");
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -124,8 +146,65 @@ void VulkanRenderGraph::finishFrame() {
 	presentInfo.pImageIndices = &m_image_index;
 	presentInfo.pResults = nullptr; // Optional
 
-	vkQueuePresentKHR(presentQueue, &presentInfo);
+	if(vkQueuePresentKHR(presentQueue, &presentInfo) != VK_SUCCESS)
+		return ERROR("vkQueuePresentKHR failed");
 	m_frame_index = (m_frame_index + 1) % num_swap_frames;
+	return {};
 }
 
+void VulkanRenderGraph::enqueue(Command cmd) { m_commands.emplace_back(move(cmd)); }
+void VulkanRenderGraph::flushCommands() {
+	DASSERT(m_frame_in_progress);
+	FrameContext ctx{m_frames[m_frame_index].command_buffer, VCommandId(0)};
+
+	for(int i : intRange(m_commands)) {
+		auto &command = m_commands[i];
+		ctx.cmd_id = VCommandId(i);
+		command.visit([&ctx, this](auto &cmd) { perform(ctx, cmd); });
+	}
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindIndexBuffer &cmd) {
+	vkCmdBindIndexBuffer(ctx.cmd_buffer, cmd.buffer, 0, VkIndexType::VK_INDEX_TYPE_UINT32);
+}
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindVertexBuffers &cmd) {
+	static constexpr int max_bindings = 32;
+	VkBuffer buffers[max_bindings];
+	DASSERT(cmd.buffers.size() <= max_bindings);
+	for(int i : intRange(cmd.buffers))
+		buffers[i] = cmd.buffers[i];
+	vkCmdBindVertexBuffers(ctx.cmd_buffer, cmd.first_binding, cmd.buffers.size(), buffers,
+						   cmd.offsets.data());
+}
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipeline &cmd) {
+	vkCmdBindPipeline(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.pipeline);
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDraw &cmd) {
+	vkCmdDraw(ctx.cmd_buffer, cmd.num_vertices, cmd.num_instances, cmd.first_vertex,
+			  cmd.first_instance);
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopy &cmd) {
+	vkCmdCopyBuffer(ctx.cmd_buffer, cmd.src, cmd.dst, cmd.regions.size(), cmd.regions.data());
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBeginRenderPass &cmd) {
+	VkRenderPassBeginInfo bi{};
+	auto framebuffer = m_framebuffers[m_image_index];
+
+	bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	bi.renderPass = cmd.render_pass;
+	if(cmd.render_area)
+		bi.renderArea = toVkRect(*cmd.render_area);
+	else
+		bi.renderArea.extent = framebuffer->extent();
+	bi.clearValueCount = cmd.clear_values.size();
+	bi.pClearValues = cmd.clear_values.data();
+	bi.framebuffer = framebuffer;
+	vkCmdBeginRenderPass(ctx.cmd_buffer, &bi, VK_SUBPASS_CONTENTS_INLINE);
+}
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdEndRenderPass &cmd) {
+	vkCmdEndRenderPass(ctx.cmd_buffer);
+}
 }

@@ -11,12 +11,13 @@
 
 namespace fwk {
 
-DEFINE_ENUM(VTag, device, window, physical_device, queue_family);
+DEFINE_ENUM(VTag, cmd, device, window, physical_device, queue_family);
 
 using VDeviceId = TagId<VTag::device, u8>;
 using VWindowId = TagId<VTag::window, u8>;
 using VPhysicalDeviceId = TagId<VTag::physical_device, u8>;
 using VQueueFamilyId = TagId<VTag::queue_family, u8>;
+using VCommandId = TagId<VTag::cmd, u32>;
 
 class VObjectId;
 
@@ -67,6 +68,11 @@ VkFlags translateFlags(EnumFlags<Enum> flags, const EnumMap<Enum, Bit> &bit_map)
 inline VkExtent2D toVkExtent(int2 extent) {
 	PASSERT(extent.x >= 0 && extent.y >= 0);
 	return {uint(extent.x), uint(extent.y)};
+}
+
+inline VkRect2D toVkRect(IRect rect) {
+	return VkRect2D{.offset = {rect.min().x, rect.min().y},
+					.extent = {uint(rect.width()), uint(rect.height())}};
 }
 
 }

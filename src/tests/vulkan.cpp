@@ -147,42 +147,19 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	return {};
 }
 
-Ex<void> recordCommandBuffer(VulkanContext &ctx, PVCommandBuffer command_buffer,
-							 PVFramebuffer framebuffer) {
-	vkResetCommandBuffer(command_buffer, 0);
+Ex<void> drawFrame(VulkanContext &ctx) {
+	auto &render_graph = ctx.device->renderGraph();
 
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = 0; // Optional
-	beginInfo.pInheritanceInfo = nullptr; // Optional
+	EXPECT(render_graph.beginFrame());
+	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+	render_graph << CmdBeginRenderPass{.render_pass = ctx.pipeline->renderPass(),
+									   .clear_values = {{clear_color}}};
 
-	if(vkBeginCommandBuffer(command_buffer, &beginInfo) != VK_SUCCESS) {
-		return ERROR("failed begin");
-	}
-
-	VkRenderPassBeginInfo renderPassInfo{};
-	auto extent = framebuffer->extent();
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = ctx.pipeline->renderPass();
-	renderPassInfo.framebuffer = framebuffer;
-	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = extent;
-
-	VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColor;
-
-	vkCmdBeginRenderPass(command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx.pipeline);
-
-	VkBuffer vertexBuffers[] = {ctx.vertex_buffer};
-	VkDeviceSize offsets[] = {0};
-	vkCmdBindVertexBuffers(command_buffer, 0, 1, vertexBuffers, offsets);
-	vkCmdDraw(command_buffer, static_cast<uint32_t>(ctx.num_vertices), 1, 0, 0);
-
-	vkCmdEndRenderPass(command_buffer);
-	if(vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
-		return ERROR("endCOmand failed");
+	render_graph << CmdBindPipeline{ctx.pipeline};
+	render_graph << CmdBindVertexBuffers{.buffers{{ctx.vertex_buffer}}, .offsets{{0}}};
+	render_graph << CmdDraw{.num_vertices = (int)ctx.num_vertices};
+	render_graph << CmdEndRenderPass();
+	EXPECT(render_graph.finishFrame());
 
 	return {};
 }
@@ -215,10 +192,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	auto &render_graph = ctx.device->renderGraph();
-	auto [command_buffer, framebuffer] = render_graph.beginFrame();
-	recordCommandBuffer(ctx, command_buffer, framebuffer).check();
-	render_graph.finishFrame();
+	drawFrame(ctx).check();
 
 	updateFPS(window);
 
