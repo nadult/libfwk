@@ -219,6 +219,8 @@ Font::Font(FontCore core, PTexture texture) : m_core(move(core)), m_texture(text
 	DASSERT(m_texture);
 	DASSERT(m_texture->size() == m_core.m_texture_size);
 }
+
+Font::Font(FontData data) : m_core(move(data.core)), m_texture(GlTexture::make(data.image)) {}
 FWK_COPYABLE_CLASS_IMPL(Font)
 
 float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &style) const {

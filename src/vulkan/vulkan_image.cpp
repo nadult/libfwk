@@ -8,20 +8,43 @@
 
 namespace fwk {
 
-VulkanImage::VulkanImage(VkImage handle, VObjectId id, VkFormat format, VkExtent2D extent)
-	: VulkanObjectBase(handle, id), m_format(format), m_extent(extent), m_is_external(false) {}
+VulkanImage::VulkanImage(VkImage handle, VObjectId id, VkExtent2D extent, const ImageSetup &setup)
+	: VulkanObjectBase(handle, id), m_format(setup.format), m_extent(extent), m_usage(setup.usage),
+	  m_num_samples(setup.num_samples), m_last_layout(setup.layout), m_is_external(false) {}
+
 VulkanImage::~VulkanImage() {
 	if(!m_is_external)
 		deferredHandleRelease<VkImage, vkDestroyImage>();
 }
 
-Ex<PVImage> VulkanImage::create(VDeviceRef device, VkFormat format, VkExtent2D extent) {
-	return ERROR("write me please");
+Ex<PVImage> VulkanImage::create(VDeviceRef device, VkExtent2D extent, const ImageSetup &setup) {
+	VkImageCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	ci.imageType = VK_IMAGE_TYPE_2D;
+	ci.extent.width = extent.width;
+	ci.extent.height = extent.height;
+	ci.extent.depth = 1;
+	ci.format = setup.format;
+	ci.arrayLayers = 1;
+	ci.mipLevels = 1;
+	ci.tiling = VK_IMAGE_TILING_OPTIMAL;
+	ci.initialLayout = toVk(setup.layout);
+	ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	ci.usage = setup.usage.bits;
+
+	DASSERT(setup.num_samples >= 1 && setup.num_samples < 64);
+	DASSERT(isPowerOfTwo(setup.num_samples));
+	ci.samples = VkSampleCountFlagBits(setup.num_samples);
+
+	VkImage handle;
+	if(vkCreateImage(device, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateImage failed");
+	return device->createObject(handle, extent, setup);
 }
 
-Ex<PVImage> VulkanImage::createExternal(VDeviceRef device, VkImage handle, VkFormat format,
-										VkExtent2D extent) {
-	auto out = device->createObject(handle, format, extent);
+Ex<PVImage> VulkanImage::createExternal(VDeviceRef device, VkImage handle, VkExtent2D extent,
+										const ImageSetup &setup) {
+	auto out = device->createObject(handle, extent, setup);
 	out->m_is_external = true;
 	return out;
 }
@@ -49,4 +72,19 @@ Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 		return ERROR("vkCreateImageView failed");
 	return device->createObject(handle, image, image->format(), image->extent());
 }
+
+VkMemoryRequirements VulkanImage::memoryRequirements() const {
+	VkMemoryRequirements mem_requirements;
+	vkGetImageMemoryRequirements(deviceHandle(), m_handle, &mem_requirements);
+	return mem_requirements;
+}
+
+Ex<void> VulkanImage::bindMemory(PVDeviceMemory memory) {
+	if(vkBindImageMemory(deviceHandle(), m_handle, memory, 0) != VK_SUCCESS)
+		return ERROR("vkBindImageMemory failed");
+	m_memory = memory;
+	m_memory_flags = m_memory->flags();
+	return {};
+}
+
 }

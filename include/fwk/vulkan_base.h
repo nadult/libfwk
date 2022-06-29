@@ -33,6 +33,17 @@ DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached,
 			protected_);
 using VMemoryFlags = EnumFlags<VMemoryFlag>;
 
+// TODO: rename to VImageUsage and flags to VImageUsageFlags
+DEFINE_ENUM(VImageUsageFlag, transfer_src, transfer_dst, sampled, storage, color_attachment,
+			depth_stencil_attachment, transient_attachment, input_attachment);
+using VImageUsage = EnumFlags<VImageUsageFlag>;
+
+DEFINE_ENUM(VImageLayout, undefined, general, color_attachment, depth_stencil_attachment,
+			depth_stencil_read_only, shader_read_only, transfer_src, transfer_dst, preinitialized);
+
+// TODO: move to internal
+inline VkImageLayout toVk(VImageLayout layout) { return VkImageLayout(layout); }
+
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;

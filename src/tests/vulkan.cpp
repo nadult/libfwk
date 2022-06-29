@@ -6,6 +6,7 @@
 #include <fwk/gfx/font_factory.h>
 #include <fwk/gfx/font_finder.h>
 #include <fwk/gfx/gl_texture.h>
+#include <fwk/gfx/image.h>
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/gfx/shader_compiler.h>
 #include <fwk/io/file_system.h>
@@ -88,7 +89,8 @@ struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
 	PVPipeline pipeline;
-	Maybe<Font> font;
+	Maybe<FontCore> font_core;
+	PVImage font_image;
 };
 
 Ex<void> createPipeline(VulkanContext &ctx) {
@@ -169,13 +171,13 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	// it's a slow operation...
 
 	auto vbuffer = EX_PASS(createVertexBuffer(ctx, vertices));
-	render_graph << CmdUpload(vertices, vbuffer);
+	EXPECT(render_graph << CmdUpload(vertices, vbuffer));
 
 	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 	render_graph << CmdBeginRenderPass{.render_pass = ctx.pipeline->renderPass(),
 									   .clear_values = {{clear_color}}};
 	render_graph << CmdBindPipeline{ctx.pipeline};
-	render_graph << CmdBindVertexBuffers{.buffers{{vbuffer}}, .offsets{{0}}};
+	render_graph << CmdBindVertexBuffers({{vbuffer}}, vector<u64>{{0}});
 	render_graph << CmdDraw{.num_vertices = vertices.size()};
 	render_graph << CmdEndRenderPass();
 	EXPECT(render_graph.finishFrame());
@@ -246,6 +248,18 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	return true;
 }
 
+Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
+	auto vimage = EX_PASS(VulkanImage::create(ctx.device, toVkExtent(image.size()),
+											  {.format = VK_FORMAT_R8G8B8A8_UINT}));
+	auto mem_req = vimage->memoryRequirements();
+	auto mem_flags = VMemoryFlag::device_local;
+	auto memory =
+		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
+	EXPECT(vimage->bindMemory(memory));
+	ctx.device->renderGraph() << CmdUploadImage(image, vimage);
+	return vimage;
+}
+
 Ex<int> exMain() {
 	VulkanInstanceSetup setup;
 	setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
@@ -275,7 +289,9 @@ Ex<int> exMain() {
 	EXPECT(createPipeline(ctx));
 
 	int font_size = 16 * window->dpiScale();
-	//ctx.font = FontFactory().makeFont(fontPath(), font_size);
+	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
+	ctx.font_core = move(font_data.core);
+	ctx.font_image = EX_PASS(makeTexture(ctx, font_data.image));
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;
 }

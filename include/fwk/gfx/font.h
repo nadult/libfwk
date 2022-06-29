@@ -6,6 +6,7 @@
 #include "fwk/fwd_member.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/gl_ref.h"
+#include "fwk/gfx/image.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
 #include "fwk/str.h"
@@ -72,10 +73,16 @@ class FontCore {
 	friend class Font;
 };
 
+struct FontData {
+	FontCore core;
+	Image image;
+};
+
 class Font {
   public:
 	using Style = FontStyle;
 	Font(FontCore, PTexture texture);
+	Font(FontData);
 	FWK_COPYABLE_CLASS(Font)
 
 	FRect draw(Renderer2D &, const FRect &, const Style &, const string32 &text) const;

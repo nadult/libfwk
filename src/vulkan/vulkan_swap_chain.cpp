@@ -42,6 +42,7 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 										const VulkanSwapChainSetup &setup) {
 	VkSwapchainKHR handle;
 	VkSwapchainCreateInfoKHR ci{};
+	VImageUsage usage = VImageUsageFlag::color_attachment;
 	ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	ci.surface = window->surfaceHandle();
 	ci.minImageCount = 2;
@@ -49,7 +50,7 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	ci.imageColorSpace = setup.surface_format.colorSpace;
 	ci.imageExtent = toVkExtent(window->extent());
 	ci.imageArrayLayers = 1;
-	ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	ci.imageUsage = usage.bits;
 	ci.preTransform = setup.transform;
 	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	ci.clipped = VK_TRUE;
@@ -68,8 +69,9 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	vector<PVImageView> image_views;
 	image_views.reserve(num_images);
 	for(auto image_handle : images) {
-		auto image = EX_PASS(
-			VulkanImage::createExternal(device, image_handle, ci.imageFormat, ci.imageExtent));
+		ImageSetup setup{.format = ci.imageFormat, .num_samples = 1, .usage = usage};
+		auto image =
+			EX_PASS(VulkanImage::createExternal(device, image_handle, ci.imageExtent, setup));
 		auto view = EX_PASS(VulkanImageView::create(device, image));
 		image_views.emplace_back(view);
 	}

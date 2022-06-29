@@ -10,6 +10,7 @@
 
 namespace fwk {
 
+class Image;
 class VulkanRenderGraph;
 using PVRenderGraph = Dynamic<VulkanRenderGraph>;
 
@@ -19,17 +20,30 @@ struct CmdUpload {
 		: data(data), dst(dst), offset(offset) {}
 	template <c_span TSpan, class T = SpanBase<TSpan>>
 	CmdUpload(const TSpan &span, PVBuffer dst, u64 offset = 0)
-		: data(cspan(span).reinterpret<char>()), dst(dst), offset(offset) {}
+		: data(cspan(span).template reinterpret<char>()), dst(dst), offset(offset) {}
 
 	CSpan<char> data;
 	PVBuffer dst;
 	u64 offset;
 };
 
+struct CmdUploadImage {
+	CmdUploadImage(const Image &image, PVImage dst) : image(image), dst(dst) {}
+
+	const Image &image;
+	PVImage dst;
+};
+
 struct CmdCopy {
 	PVBuffer src;
 	PVBuffer dst;
 	vector<VkBufferCopy> regions;
+};
+
+struct CmdCopyImage {
+	PVBuffer src;
+	PVImage dst;
+	Maybe<VImageLayout> dst_layout;
 };
 
 struct CmdBindPipeline {
@@ -42,7 +56,10 @@ struct CmdBindIndexBuffer {
 };
 
 struct CmdBindVertexBuffers {
-	uint first_binding = 0;
+	CmdBindVertexBuffers(vector<PVBuffer> buffers, vector<u64> offsets, uint first_binding = 0)
+		: buffers(move(buffers)), offsets(move(offsets)), first_binding(first_binding) {}
+
+	uint first_binding;
 	vector<PVBuffer> buffers;
 	vector<u64> offsets;
 };
@@ -60,7 +77,7 @@ struct CmdBeginRenderPass {
 
 struct CmdEndRenderPass {};
 
-using Command = Variant<CmdUpload, CmdCopy, CmdBindVertexBuffers, CmdBindPipeline, CmdDraw,
+using Command = Variant<CmdCopy, CmdCopyImage, CmdBindVertexBuffers, CmdBindPipeline, CmdDraw,
 						CmdBeginRenderPass, CmdEndRenderPass>;
 
 class StagingBuffer {
@@ -93,7 +110,10 @@ class VulkanRenderGraph {
 	// Commands are first enqueued and only with large enough context
 	// they are being performed
 	void enqueue(Command);
+
+	// Upload commands are handled immediately, copy commands are enqueued in their place
 	Ex<void> enqueue(CmdUpload);
+	Ex<void> enqueue(CmdUploadImage);
 
 	template <class T> auto operator<<(T &&cmd) { return enqueue(std::forward<T>(cmd)); }
 
@@ -111,12 +131,12 @@ class VulkanRenderGraph {
 		VCommandId cmd_id;
 	};
 
-	void perform(FrameContext &, const CmdUpload &);
 	void perform(FrameContext &, const CmdBindIndexBuffer &);
 	void perform(FrameContext &, const CmdBindVertexBuffers &);
 	void perform(FrameContext &, const CmdBindPipeline &);
 	void perform(FrameContext &, const CmdDraw &);
 	void perform(FrameContext &, const CmdCopy &);
+	void perform(FrameContext &, const CmdCopyImage &);
 	void perform(FrameContext &, const CmdBeginRenderPass &);
 	void perform(FrameContext &, const CmdEndRenderPass &);
 

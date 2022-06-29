@@ -4,7 +4,6 @@
 #include "fwk/gfx/font_factory.h"
 
 #include "fwk/format.h"
-#include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/image.h"
 #include "fwk/hash_map.h"
 #include "fwk/sys/error.h"
@@ -132,7 +131,8 @@ Image FontFactory::makeTextureAtlas(vector<GlyphPair> &glyphs) {
 	return makeTextureAtlas(glyphs, {256, 256});
 }
 
-Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode) {
+auto FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool lcd_mode)
+	-> Ex<FontData> {
 	DASSERT(size_px > 0);
 	DASSERT(size_px < 1000 && "Please keep it reasonable");
 
@@ -197,7 +197,8 @@ Ex<Font> FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, 
 					okernings.emplace_back(FontCore::Kerning{int(left), int(right), kerning.x});
 			}
 
-	auto tex = GlTexture::make({atlas});
-	return Font{{oglyphs, okernings, atlas.size(), (int)face->size->metrics.height / 64}, tex};
+	int line_height = (int)face->size->metrics.height / 64;
+	FontCore core{move(oglyphs), move(okernings), atlas.size(), line_height};
+	return FontData{move(core), move(atlas)};
 }
 }

@@ -3,6 +3,7 @@
 
 #include "fwk/vulkan/vulkan_render_graph.h"
 
+#include "fwk/gfx/image.h"
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
@@ -157,10 +158,7 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 	return {};
 }
 
-void VulkanRenderGraph::enqueue(Command cmd) {
-	DASSERT(!cmd.is<CmdUpload>());
-	m_commands.emplace_back(move(cmd));
-}
+void VulkanRenderGraph::enqueue(Command cmd) { m_commands.emplace_back(move(cmd)); }
 
 Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
 	if(cmd.data.empty())
@@ -180,7 +178,35 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
 	staging_buffer->upload(cmd.data);
 	VkBufferCopy copy_params{
 		.srcOffset = 0, .dstOffset = cmd.offset, .size = (VkDeviceSize)cmd.data.size()};
-	m_commands.emplace_back(CmdCopy{.src = staging_buffer, .dst = cmd.dst, {{copy_params}}});
+	m_commands.emplace_back(
+		CmdCopy{.src = staging_buffer, .dst = cmd.dst, .regions = {{copy_params}}});
+	m_staging_buffers.emplace_back(move(staging_buffer));
+	// TODO: don't use staging buffer if:
+	// cmd.buffer is host_visible
+	// cmd.buffer isn't being used yet?
+
+	return {};
+}
+
+Ex<void> VulkanRenderGraph::enqueue(CmdUploadImage cmd) {
+	if(cmd.image.empty())
+		return {};
+
+	int data_size = cmd.image.data().size() * sizeof(IColor);
+
+	// TODO: add weak DeviceRef for passing into functions ?
+	// Maybe instead create functions should all be in device?
+	auto staging_buffer =
+		EX_PASS(VulkanBuffer::create(m_device.ref(), data_size, VBufferUsageFlag::transfer_src));
+	auto staging_mem_req = staging_buffer->memoryRequirements();
+	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_cached;
+	auto staging_memory = EX_PASS(m_device.allocDeviceMemory(
+		staging_mem_req.size, staging_mem_req.memoryTypeBits, staging_mem_flags));
+
+	EXPECT(staging_buffer->bindMemory(staging_memory));
+
+	staging_buffer->upload(cmd.image.data());
+	m_commands.emplace_back(CmdCopyImage{.src = staging_buffer, .dst = cmd.dst});
 	m_staging_buffers.emplace_back(move(staging_buffer));
 	// TODO: don't use staging buffer if:
 	// cmd.buffer is host_visible
@@ -199,10 +225,6 @@ void VulkanRenderGraph::flushCommands() {
 		command.visit([&ctx, this](auto &cmd) { perform(ctx, cmd); });
 	}
 	m_commands.clear();
-}
-
-void VulkanRenderGraph::perform(FrameContext &, const CmdUpload &) {
-	FATAL("This command shouldn't end up in queue");
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindIndexBuffer &cmd) {
@@ -228,6 +250,62 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDraw &cmd) {
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopy &cmd) {
 	vkCmdCopyBuffer(ctx.cmd_buffer, cmd.src, cmd.dst, cmd.regions.size(), cmd.regions.data());
+}
+
+static void transitionImageLayout(VkCommandBuffer cmd_buffer, VkImage image, VkFormat format,
+								  VImageLayout old_layout, VImageLayout new_layout) {
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = toVk(old_layout);
+	barrier.newLayout = toVk(new_layout);
+	barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+	barrier.subresourceRange = {
+		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1};
+	barrier.srcAccessMask = 0; // TODO
+	barrier.dstAccessMask = 0; // TODO
+
+	VkPipelineStageFlags src_stage, dst_stage;
+	// TODO: properly handle access masks & stages
+	if(old_layout == VImageLayout::undefined && new_layout == VImageLayout::transfer_dst) {
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dst_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	} else if(old_layout == VImageLayout::transfer_dst &&
+			  new_layout == VImageLayout::shader_read_only) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	} else {
+		FATAL("Unsupported layout transition: %s -> %s", toString(old_layout),
+			  toString(new_layout));
+	}
+
+	vkCmdPipelineBarrier(cmd_buffer, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopyImage &cmd) {
+	VkBufferImageCopy region{};
+	region.bufferOffset = 0;
+	// TODO: do it properly
+	auto dst_extent = cmd.dst->extent();
+	region.bufferImageHeight = 0;
+	region.bufferRowLength = 0;
+	region.imageSubresource.layerCount = 1;
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageExtent = {dst_extent.width, dst_extent.height, 1};
+
+	auto copy_layout = VImageLayout::transfer_dst;
+	auto dst_layout = cmd.dst_layout.orElse(VImageLayout::shader_read_only);
+	transitionImageLayout(ctx.cmd_buffer, cmd.dst, cmd.dst->format(), cmd.dst->m_last_layout,
+						  copy_layout);
+	vkCmdCopyBufferToImage(ctx.cmd_buffer, cmd.src, cmd.dst, toVk(copy_layout), 1, &region);
+
+	// TODO: do this transition right before we're going to do something with this texture?
+	transitionImageLayout(ctx.cmd_buffer, cmd.dst, cmd.dst->format(), copy_layout, dst_layout);
+	cmd.dst->m_last_layout = dst_layout;
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBeginRenderPass &cmd) {
