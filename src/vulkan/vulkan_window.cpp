@@ -157,7 +157,7 @@ IRect VulkanWindow::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_
 
 void VulkanWindow::setTitle(ZStr title) { SDL_SetWindowTitle(m_impl->window, title.c_str()); }
 
-void VulkanWindow::setSize(const int2 &size) {
+void VulkanWindow::setExtent(const int2 &size) {
 	if(m_impl)
 		SDL_SetWindowSize(m_impl->window, size.x, size.y);
 }

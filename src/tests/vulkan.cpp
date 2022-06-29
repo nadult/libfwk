@@ -137,14 +137,36 @@ Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 	return buffer;
 }
 
-Ex<void> drawFrame(VulkanContext &ctx) {
+struct DrawRect {
+	FRect rect;
+	IColor fill_color;
+	IColor border_color;
+};
+
+Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	auto &render_graph = ctx.device->renderGraph();
 
 	EXPECT(render_graph.beginFrame());
 
-	vector<MyVertex> vertices = {{{0.0f, -0.75f}, {1.0f, 0.0f, 0.0f}},
-								 {{0.75f, 0.75f}, {0.0f, 1.0f, 0.0f}},
-								 {{-0.75f, 0.75f}, {0.0f, 0.0f, 1.0f}}};
+	vector<MyVertex> vertices;
+	vertices.reserve(rects.size() * 6);
+
+	float2 scale = float2(2.0) / float2(ctx.window->extent());
+	for(auto &draw_rect : rects) {
+		float3 color = FColor(draw_rect.fill_color).rgb();
+		auto corners = transform(draw_rect.rect.corners(), [&](float2 corner) -> MyVertex {
+			float2 pos = corner * scale - float2(1.0);
+			return {.pos = pos, .color = color};
+		});
+		Array<MyVertex, 6> cur_verts = {
+			{corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]}};
+		insertBack(vertices, cur_verts);
+	}
+
+	// TODO: createVertexBuffer and upload command add considerble overhead in this program
+	// (FPS drops from 2500 to 800); We should probably amortize memory allocations and map/unmap
+	// in staging buffer across multiple frames? Also we should avoid resource recreation? Supposedly
+	// it's a slow operation...
 
 	auto vbuffer = EX_PASS(createVertexBuffer(ctx, vertices));
 	render_graph << CmdUpload(vertices, vbuffer);
@@ -189,7 +211,16 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	drawFrame(ctx).check();
+	vector<DrawRect> rects;
+	rects.reserve(positions.size());
+	for(int n = 0; n < (int)positions.size(); n++) {
+		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
+		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
+		IColor border_color = ColorId::black;
+		rects.emplace_back(rect, IColor(fill_color), border_color);
+	}
+
+	drawFrame(ctx, rects).check();
 
 	updateFPS(window);
 

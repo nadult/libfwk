@@ -45,7 +45,7 @@ class VulkanWindow {
 									float minimum_overlap = 0.1);
 
 	void setTitle(ZStr);
-	void setSize(const int2 &);
+	void setExtent(const int2 &);
 	int2 extent() const;
 
 	void setRect(IRect);
