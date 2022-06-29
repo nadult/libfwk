@@ -171,8 +171,7 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
 	auto staging_buffer = EX_PASS(
 		VulkanBuffer::create(m_device.ref(), cmd.data.size(), VBufferUsageFlag::transfer_src));
 	auto staging_mem_req = staging_buffer->memoryRequirements();
-	// TODO: consider host_cached instead of coherent
-	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_coherent;
+	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_cached;
 	auto staging_memory = EX_PASS(m_device.allocDeviceMemory(
 		staging_mem_req.size, staging_mem_req.memoryTypeBits, staging_mem_flags));
 
@@ -183,7 +182,6 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
 		.srcOffset = 0, .dstOffset = cmd.offset, .size = (VkDeviceSize)cmd.data.size()};
 	m_commands.emplace_back(CmdCopy{.src = staging_buffer, .dst = cmd.dst, {{copy_params}}});
 	m_staging_buffers.emplace_back(move(staging_buffer));
-
 	// TODO: don't use staging buffer if:
 	// cmd.buffer is host_visible
 	// cmd.buffer isn't being used yet?

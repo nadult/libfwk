@@ -58,6 +58,12 @@ void VulkanBuffer::upload(CSpan<char> bytes) {
 	auto device_handle = deviceHandle();
 	vkMapMemory(device_handle, m_memory->handle(), 0, m_size, 0, &device_data);
 	memcpy(device_data, bytes.data(), bytes.size());
+	VkMappedMemoryRange mem_range{};
+	mem_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+	mem_range.memory = m_memory;
+	mem_range.offset = 0;
+	mem_range.size = bytes.size();
+	vkFlushMappedMemoryRanges(device_handle, 1, &mem_range);
 	vkUnmapMemory(device_handle, m_memory->handle());
 }
 
