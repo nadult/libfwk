@@ -82,6 +82,7 @@ class VulkanDevice {
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
 	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, CommandPoolFlags);
 	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
+	Ex<void> createRenderGraph(PVSwapChain);
 
 	VDeviceRef ref() const { return VDeviceRef(m_id); }
 	VDeviceId id() const { return m_id; }
@@ -105,6 +106,9 @@ class VulkanDevice {
 						 int num_frames = max_defer_frames);
 	void nextReleasePhase();
 
+	const VulkanRenderGraph &renderGraph() const { return *m_render_graph; }
+	VulkanRenderGraph &renderGraph() { return *m_render_graph; }
+
   private:
 	VulkanDevice(VDeviceId, VPhysicalDeviceId, VInstanceRef);
 	~VulkanDevice();
@@ -123,6 +127,7 @@ class VulkanDevice {
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
+	Dynamic<VulkanRenderGraph> m_render_graph;
 
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;

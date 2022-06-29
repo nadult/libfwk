@@ -31,6 +31,7 @@ DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, device_memory, descri
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
+class VulkanRenderGraph;
 
 // TODO: PVInstance, PVDevice? PV sucks, but what should I use instead ? VBufferPtr ?
 class VInstanceRef;

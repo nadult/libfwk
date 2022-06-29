@@ -4,6 +4,7 @@
 #include "fwk/vulkan/vulkan_device.h"
 
 #include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
@@ -142,6 +143,12 @@ Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id
 	if(vkCreateCommandPool(m_handle, &poolInfo, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateCommandPool failed");
 	return createObject(handle);
+}
+
+Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {
+	DASSERT(!m_render_graph && "Render graph already initialized");
+	m_render_graph = new VulkanRenderGraph(ref());
+	return m_render_graph->initialize(ref(), swap_chain);
 }
 
 static constexpr int slab_size = 32;

@@ -16,10 +16,8 @@ class VulkanRenderGraph {
   public:
 	static constexpr int num_swap_frames = 2;
 
-	VulkanRenderGraph(VDeviceRef);
 	~VulkanRenderGraph();
 
-	static Ex<PVRenderGraph> create(VDeviceRef, PVSwapChain);
 	PVSwapChain swapChain() const { return m_swap_chain; }
 	PVRenderPass defaultRenderPass() const { return m_render_pass; }
 
@@ -27,9 +25,9 @@ class VulkanRenderGraph {
 	void finishFrame();
 
   private:
-	template <class> class Dynamic;
+	friend class VulkanDevice;
+	VulkanRenderGraph(VDeviceRef);
 	Ex<void> initialize(VDeviceRef, PVSwapChain);
-
 	Ex<PVRenderPass> createRenderPass(VDeviceRef, PVSwapChain);
 
 	struct FrameSync {

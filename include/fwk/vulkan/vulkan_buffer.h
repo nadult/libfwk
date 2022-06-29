@@ -14,9 +14,6 @@ DEFINE_ENUM(VBufferUsageFlag, transfer_src, transfer_dst, uniform_buffer, storag
 using VBufferUsage = EnumFlags<VBufferUsageFlag>;
 
 // TODO: make objects immovable
-// TODO: keep objects in chunks 64-256 objects each;
-// Only allocate chunks dynamically, this way objects won't change address
-// on allocation
 class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
   public:
 	static Ex<PVBuffer> create(VDeviceRef, u64 num_bytes, VBufferUsage usage);

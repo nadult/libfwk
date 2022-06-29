@@ -87,7 +87,6 @@ struct MyVertex {
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
-	VulkanRenderGraph *render_graph = nullptr;
 
 	PVPipeline pipeline;
 	PVBuffer vertex_buffer;
@@ -127,7 +126,8 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	auto vsh_module = EX_PASS(ctx.device->createShaderModule(vsh_code.bytecode));
 	auto fsh_module = EX_PASS(ctx.device->createShaderModule(fsh_code.bytecode));
 
-	auto swap_chain = ctx.render_graph->swapChain();
+	auto &render_graph = ctx.device->renderGraph();
+	auto swap_chain = render_graph.swapChain();
 	auto sc_image = swap_chain->imageViews().front()->image();
 	auto extent = sc_image->extent();
 	VPipelineSetup setup;
@@ -140,7 +140,7 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 					  .minDepth = 0.0f,
 					  .maxDepth = 1.0f};
 	setup.scissor = {.offset = {0, 0}, .extent = extent};
-	setup.render_pass = ctx.render_graph->defaultRenderPass();
+	setup.render_pass = render_graph.defaultRenderPass();
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
 
 	ctx.pipeline = EX_PASS(VulkanPipeline::create(ctx.device, setup));
@@ -215,9 +215,10 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	auto [command_buffer, framebuffer] = ctx.render_graph->beginFrame();
+	auto &render_graph = ctx.device->renderGraph();
+	auto [command_buffer, framebuffer] = render_graph.beginFrame();
 	recordCommandBuffer(ctx, command_buffer, framebuffer).check();
-	ctx.render_graph->finishFrame();
+	render_graph.finishFrame();
 
 	updateFPS(window);
 
@@ -266,11 +267,9 @@ Ex<int> exMain() {
 										{.surface_format = surf_info.formats[0],
 										 .present_mode = surf_info.present_modes[0],
 										 .transform = surf_info.capabilities.currentTransform}));
+	EXPECT(device->createRenderGraph(swap_chain));
 
-	auto render_graph = EX_PASS(VulkanRenderGraph::create(device, swap_chain));
-
-	VulkanContext ctx{device, window, render_graph.get()};
-
+	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
 	EXPECT(createVertexBuffer(ctx));
 

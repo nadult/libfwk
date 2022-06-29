@@ -15,13 +15,6 @@ namespace fwk {
 VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device) : m_device(device){};
 VulkanRenderGraph::~VulkanRenderGraph() = default;
 
-Ex<PVRenderGraph> VulkanRenderGraph::create(VDeviceRef device, PVSwapChain swap_chain) {
-	PVRenderGraph out;
-	out.emplace(device);
-	EXPECT(out->initialize(device, swap_chain));
-	return out;
-}
-
 Ex<PVRenderPass> VulkanRenderGraph::createRenderPass(VDeviceRef device, PVSwapChain swap_chain) {
 	auto sc_image = swap_chain->imageViews().front()->image();
 	auto extent = sc_image->extent();
