@@ -55,6 +55,14 @@ struct CmdBindIndexBuffer {
 	// TODO
 };
 
+struct DescriptorSet;
+
+struct CmdBindDescriptorSet {
+	uint index = 0;
+	// TODO: make full blown class
+	const DescriptorSet *set = nullptr;
+};
+
 struct CmdBindVertexBuffers {
 	CmdBindVertexBuffers(vector<PVBuffer> buffers, vector<u64> offsets, uint first_binding = 0)
 		: buffers(move(buffers)), offsets(move(offsets)), first_binding(first_binding) {}
@@ -77,8 +85,8 @@ struct CmdBeginRenderPass {
 
 struct CmdEndRenderPass {};
 
-using Command = Variant<CmdCopy, CmdCopyImage, CmdBindVertexBuffers, CmdBindPipeline, CmdDraw,
-						CmdBeginRenderPass, CmdEndRenderPass>;
+using Command = Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers,
+						CmdBindPipeline, CmdDraw, CmdBeginRenderPass, CmdEndRenderPass>;
 
 class StagingBuffer {
   public:
@@ -106,6 +114,8 @@ class VulkanRenderGraph {
 
 	Ex<void> beginFrame();
 	Ex<void> finishFrame();
+	// TODO: better name
+	int frameIndex() const { return m_frame_index; }
 
 	// Commands are first enqueued and only with large enough context
 	// they are being performed
@@ -131,6 +141,7 @@ class VulkanRenderGraph {
 		VCommandId cmd_id;
 	};
 
+	void perform(FrameContext &, const CmdBindDescriptorSet &);
 	void perform(FrameContext &, const CmdBindIndexBuffer &);
 	void perform(FrameContext &, const CmdBindVertexBuffers &);
 	void perform(FrameContext &, const CmdBindPipeline &);

@@ -68,8 +68,50 @@ VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplingPara
 	: VulkanObjectBase(handle, id), m_params(params) {}
 VulkanSampler::~VulkanSampler() { deferredHandleRelease<VkSampler, vkDestroySampler>(); }
 
-VulkanDescriptorPool::VulkanDescriptorPool(VkDescriptorPool handle, VObjectId id)
-	: VulkanObjectBase(handle, id) {}
+void DescriptorSet::update(CSpan<Assignment> assigns) {
+	DASSERT(assigns.size() <= max_assignments);
+
+	array<VkDescriptorBufferInfo, max_assignments> buffer_infos;
+	array<VkWriteDescriptorSet, max_assignments> writes;
+	int num_buffers = 0;
+
+	for(int i : intRange(assigns)) {
+		auto &write = writes[i];
+		auto &assign = assigns[i];
+		write = {};
+		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.dstBinding = assign.binding;
+		write.dstSet = handle;
+		write.descriptorType = toVk(assign.type);
+		write.descriptorCount = 1;
+		if(const PVBuffer *pbuffer = assign.data) {
+			auto &bi = buffer_infos[num_buffers++];
+			bi = {};
+			bi.buffer = *pbuffer;
+			bi.offset = 0;
+			bi.range = VK_WHOLE_SIZE;
+			write.pBufferInfo = &bi;
+		}
+	}
+	vkUpdateDescriptorSets(pool->deviceHandle(), assigns.size(), writes.data(), 0, nullptr);
+}
+
+Ex<DescriptorSet> VulkanDescriptorPool::alloc(PVPipelineLayout layout, uint index) {
+	VkDescriptorSetLayout layout_handle = layout->descriptorSetLayouts()[index];
+	VkDescriptorSetAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	ai.descriptorPool = m_handle;
+	ai.descriptorSetCount = 1;
+	ai.pSetLayouts = &layout_handle;
+	VkDescriptorSet handle;
+	auto result = vkAllocateDescriptorSets(deviceHandle(), &ai, &handle);
+	if(result != VK_SUCCESS)
+		return ERROR("vkAllocateDescriptorSets failed");
+	return DescriptorSet(layout, index, ref(), handle);
+}
+
+VulkanDescriptorPool::VulkanDescriptorPool(VkDescriptorPool handle, VObjectId id, uint max_sets)
+	: VulkanObjectBase(handle, id), m_max_sets(max_sets) {}
 VulkanDescriptorPool ::~VulkanDescriptorPool() {
 	deferredHandleRelease<VkDescriptorPool, vkDestroyDescriptorPool>();
 }
@@ -160,17 +202,20 @@ Ex<PVSampler> VulkanDevice::createSampler(const VSamplingParams &params) {
 	ci.anisotropyEnable = params.max_anisotropy_samples > 1;
 	VkSampler handle;
 	if(vkCreateSampler(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateSampler fai;ed");
+		return ERROR("vkCreateSampler failed");
 	return createObject(handle, params);
 }
 
 Ex<PVDescriptorPool> VulkanDevice::createDescriptorPool(const DescriptorPoolSetup &setup) {
-	auto sizes = transform(setup.sizes, [](auto &pair) {
-		return VkDescriptorPoolSize{.type = toVk(pair.first), .descriptorCount = pair.second};
-	});
+	array<VkDescriptorPoolSize, count<VDescriptorType>> sizes;
+	uint num_sizes = 0;
+	for(auto type : all<VDescriptorType>)
+		if(setup.sizes[type] > 0)
+			sizes[num_sizes++] = {.type = toVk(type), .descriptorCount = setup.sizes[type]};
+
 	VkDescriptorPoolCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	ci.poolSizeCount = sizes.size();
+	ci.poolSizeCount = num_sizes;
 	ci.pPoolSizes = sizes.data();
 	ci.maxSets = setup.max_sets;
 	ci.flags = 0; //TODO
@@ -178,7 +223,7 @@ Ex<PVDescriptorPool> VulkanDevice::createDescriptorPool(const DescriptorPoolSetu
 	VkDescriptorPool handle;
 	if(vkCreateDescriptorPool(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateDescriptorPool failed");
-	return createObject(handle);
+	return createObject(handle, setup.max_sets);
 }
 
 Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {

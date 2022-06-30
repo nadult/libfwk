@@ -17,8 +17,9 @@ VulkanRenderPass ::~VulkanRenderPass() {
 	deferredHandleRelease<VkRenderPass, vkDestroyRenderPass>();
 }
 
-VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id)
-	: VulkanObjectBase(handle, id) {}
+VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id,
+										   vector<PVDescriptorSetLayout> dsls)
+	: VulkanObjectBase(handle, id), m_dsls(move(dsls)) {}
 VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	// TODO: do we really need deferred?
 	deferredHandleRelease<VkPipelineLayout, vkDestroyPipelineLayout>();
@@ -64,7 +65,7 @@ VulkanPipeline::createDescriptorSetLayout(VDeviceRef device,
 										  vector<DescriptorBindingInfo> bindings) {
 	auto vk_bindings = transform(bindings, [](const DescriptorBindingInfo &binding) {
 		VkDescriptorSetLayoutBinding lb{};
-		lb.binding = binding.index;
+		lb.binding = binding.binding;
 		lb.descriptorType = toVk(binding.type);
 		lb.descriptorCount = binding.count;
 		lb.stageFlags = toVk(binding.stages);
@@ -83,12 +84,12 @@ VulkanPipeline::createDescriptorSetLayout(VDeviceRef device,
 }
 
 Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device,
-												  CSpan<PVDescriptorSetLayout> set_layouts) {
+												  vector<PVDescriptorSetLayout> dsls) {
 	VkPipelineLayoutCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-	auto sl_handles = transform<VkDescriptorSetLayout>(set_layouts);
-	ci.setLayoutCount = set_layouts.size();
+	auto sl_handles = transform<VkDescriptorSetLayout>(dsls);
+	ci.setLayoutCount = dsls.size();
 	ci.pSetLayouts = sl_handles.data();
 	ci.pushConstantRangeCount = 0;
 	ci.pPushConstantRanges = nullptr;
@@ -96,12 +97,12 @@ Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device,
 	VkPipelineLayout handle;
 	if(vkCreatePipelineLayout(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreatePipelineLayout failed");
-	return device->createObject(handle);
+	return device->createObject(handle, move(dsls));
 }
 
-Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VPipelineSetup &setup) {
+Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	DASSERT(setup.render_pass);
-	auto pipeline_layout = EX_PASS(createLayout(device, setup.dsls));
+	auto pipeline_layout = EX_PASS(createLayout(device, move(setup.dsls)));
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
 	for(int i : intRange(setup.stages)) {

@@ -62,14 +62,18 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 
 class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
   public:
+	const auto &descriptorSetLayouts() const { return m_dsls; }
+
   private:
 	friend class VulkanDevice;
-	VulkanPipelineLayout(VkPipelineLayout, VObjectId);
+	VulkanPipelineLayout(VkPipelineLayout, VObjectId, vector<PVDescriptorSetLayout>);
 	~VulkanPipelineLayout();
+
+	vector<PVDescriptorSetLayout> m_dsls;
 };
 
 struct DescriptorBindingInfo {
-	uint index = 0;
+	uint binding = 0;
 	uint count = 1;
 	VShaderStageFlags stages = VShaderStage::vertex | VShaderStage::fragment;
 	VDescriptorType type = VDescriptorType::sampler;
@@ -93,8 +97,8 @@ class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
   public:
 	static Ex<PVDescriptorSetLayout> createDescriptorSetLayout(VDeviceRef,
 															   vector<DescriptorBindingInfo>);
-	static Ex<PVPipelineLayout> createLayout(VDeviceRef, CSpan<PVDescriptorSetLayout>);
-	static Ex<PVPipeline> create(VDeviceRef, const VPipelineSetup &);
+	static Ex<PVPipelineLayout> createLayout(VDeviceRef, vector<PVDescriptorSetLayout>);
+	static Ex<PVPipeline> create(VDeviceRef, VPipelineSetup);
 
 	PVRenderPass renderPass() const { return m_render_pass; }
 	PVPipelineLayout pipelineLayout() const { return m_pipeline_layout; }

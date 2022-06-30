@@ -40,9 +40,13 @@ layout(location = 1) in vec3 inColor;
 
 layout(location = 0) out vec3 fragColor;
 
+layout(binding = 0) uniform UniformBufferObject {
+	float saturation;
+} ubo;
+
 void main() {
 	gl_Position = vec4(inPosition, 0.0, 1.0);
-	fragColor = inColor;
+	fragColor = inColor * (1.0 - ubo.saturation) + vec3(1.0) * ubo.saturation;
 }
 )";
 
@@ -93,7 +97,7 @@ struct VulkanContext {
 	PVImage font_image;
 	PVImageView font_image_view;
 	PVSampler sampler;
-	PVDescriptorPool descr_pool;
+	array<DescriptorSet, 2> descr_sets;
 };
 
 Ex<void> createPipeline(VulkanContext &ctx) {
@@ -127,8 +131,8 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	setup.render_pass = render_graph.defaultRenderPass();
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
 
-	vector<DescriptorBindingInfo> bindings;
-	bindings.emplace_back();
+	vector<DescriptorBindingInfo> bindings = {
+		{.binding = 0, .stages = VShaderStage::vertex, .type = VDescriptorType::uniform_buffer}};
 	auto dsl = EX_PASS(VulkanPipeline::createDescriptorSetLayout(ctx.device, move(bindings)));
 	setup.dsls.emplace_back(dsl);
 
@@ -148,7 +152,7 @@ Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 }
 
 struct UBOData {
-	float2 scale = float2(1.0);
+	float saturation = 1.0;
 };
 
 Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
@@ -197,11 +201,15 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	auto vbuffer = EX_PASS(createVertexBuffer(ctx, vertices));
 	EXPECT(render_graph << CmdUpload(vertices, vbuffer));
 
-	static double cur_time = getTime();
 	UBOData ubo;
-	ubo.scale = float2(1.0 + sin(cur_time) * 0.25);
+	ubo.saturation = 0.25 + sin(getTime()) * 0.25;
 	auto ubuffer = EX_PASS(createUniformBuffer(ctx));
 	EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
+
+	auto &descr_set = ctx.descr_sets[render_graph.frameIndex()];
+	descr_set.update({DescriptorSet::Assignment{
+		.binding = 0, .data = ubuffer, .type = VDescriptorType::uniform_buffer}});
+	render_graph << CmdBindDescriptorSet{.set = &descr_set, .index = 0};
 
 	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 	render_graph << CmdBeginRenderPass{.render_pass = ctx.pipeline->renderPass(),
@@ -306,6 +314,9 @@ Ex<int> exMain() {
 	if(!pref_device)
 		return ERROR("Couldn't find a suitable Vulkan device");
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
+	auto phys_info = instance->info(device->physId());
+	print("Selected Vulkan physical device: %\nDriver version: %\n",
+		  phys_info.properties.deviceName, phys_info.properties.driverVersion);
 
 	auto surf_info = VulkanSwapChain::surfaceInfo(device, window);
 	auto swap_chain =
@@ -326,10 +337,11 @@ Ex<int> exMain() {
 	ctx.sampler = EX_PASS(ctx.device->createSampler({}));
 
 	DescriptorPoolSetup pool_setup;
-	pool_setup.sizes.emplace_back(VDescriptorType::uniform_buffer, 1u);
+	pool_setup.sizes[VDescriptorType::uniform_buffer] = 2;
 	pool_setup.max_sets = 2;
-	ctx.descr_pool = EX_PASS(ctx.device->createDescriptorPool(pool_setup));
-
+	auto pool = EX_PASS(ctx.device->createDescriptorPool(pool_setup));
+	for(auto &set : ctx.descr_sets)
+		set = EX_PASS(pool->alloc(ctx.pipeline->pipelineLayout(), 0));
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;
 }

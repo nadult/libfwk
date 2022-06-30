@@ -225,6 +225,12 @@ void VulkanRenderGraph::flushCommands() {
 	m_commands.clear();
 }
 
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindDescriptorSet &cmd) {
+	VkDescriptorSet handle = cmd.set->handle;
+	vkCmdBindDescriptorSets(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.set->layout,
+							cmd.set->layout_index, 1, &handle, 0, nullptr);
+}
+
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindIndexBuffer &cmd) {
 	vkCmdBindIndexBuffer(ctx.cmd_buffer, cmd.buffer, 0, VkIndexType::VK_INDEX_TYPE_UINT32);
 }

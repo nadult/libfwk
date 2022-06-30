@@ -38,9 +38,14 @@ template <class T> class VulkanObjectBase {
   public:
 	using Handle = typename VulkanTypeInfo<T>::Handle;
 
+	VPtr<Handle> ref();
 	Handle handle() const { return m_handle; }
-	VDeviceId deviceId() const { return m_object_id.deviceId(); }
+
 	VObjectId objectId() const { return m_object_id; }
+	VDeviceId deviceId() const { return m_object_id.deviceId(); }
+
+	VDeviceRef deviceRef() const;
+	VkDevice deviceHandle() const;
 
   protected:
 	VulkanObjectBase(Handle handle, VObjectId object_id, uint initial_ref_count = 1)
@@ -54,9 +59,6 @@ template <class T> class VulkanObjectBase {
 	friend class VulkanDevice;
 	template <class> friend class VPtr;
 
-	VPtr<Handle> ref();
-	VDeviceRef deviceRef() const;
-	VkDevice deviceHandle() const;
 	using ReleaseFunc = void (*)(void *, void *, VkDevice);
 	void deferredHandleRelease(void *, void *, ReleaseFunc);
 
