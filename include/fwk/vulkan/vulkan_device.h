@@ -90,20 +90,20 @@ struct DescriptorPoolSetup {
 
 // TODO: would it be better to turn it into managed class?
 struct DescriptorSet {
-	DescriptorSet(PVPipelineLayout layout, uint layout_index, PVDescriptorPool pool, VkDescriptorSet handle)
+	DescriptorSet(PVPipelineLayout layout, uint layout_index, PVDescriptorPool pool,
+				  VkDescriptorSet handle)
 		: layout(layout), layout_index(layout_index), pool(pool), handle(handle) {}
 	DescriptorSet() {}
 
 	struct Assignment {
 		VDescriptorType type;
 		uint binding;
-		Variant<PVSampler, PVBuffer> data;
+		Variant<Pair<PVSampler, PVImageView>, PVBuffer> data;
 	};
 
 	static constexpr int max_assignments = 16;
 	void update(CSpan<Assignment>);
 
-	
 	PVPipelineLayout layout;
 	uint layout_index = 0;
 

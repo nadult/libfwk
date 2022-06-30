@@ -37,8 +37,10 @@ const char *vertex_shader = R"(
 
 layout(location = 0) in vec2 inPosition;
 layout(location = 1) in vec3 inColor;
+layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec2 texCoord;
 
 layout(binding = 0) uniform UniformBufferObject {
 	float saturation;
@@ -47,6 +49,7 @@ layout(binding = 0) uniform UniformBufferObject {
 void main() {
 	gl_Position = vec4(inPosition, 0.0, 1.0);
 	fragColor = inColor * (1.0 - ubo.saturation) + vec3(1.0) * ubo.saturation;
+	texCoord = inTexCoord;
 }
 )";
 
@@ -54,10 +57,14 @@ const char *fragment_shader = R"(
 #version 450
 
 layout(location = 0) out vec4 outColor;
+
 layout(location = 0) in vec3 fragColor;
+layout(location = 1) in vec2 texCoord;
+
+layout(binding = 1) uniform sampler2D texSampler;
 
 void main() {
-	outColor = vec4(fragColor, 1.0);
+	outColor = vec4(fragColor, 1.0) * texture(texSampler, texCoord);
 }
 )";
 
@@ -70,6 +77,7 @@ string fontPath() {
 struct MyVertex {
 	float2 pos;
 	float3 color;
+	float2 texCoord;
 
 	static void addStreamDesc(vector<VertexBindingDesc> &bindings,
 							  vector<VertexAttribDesc> &attribs, int index, int first_location) {
@@ -84,6 +92,12 @@ struct MyVertex {
 			.format = VkFormat::VK_FORMAT_R32G32B32_SFLOAT,
 			.offset = sizeof(pos),
 			.location_index = u8(first_location + 1),
+			.binding_index = u8(index),
+		});
+		attribs.emplace_back(VertexAttribDesc{
+			.format = VkFormat::VK_FORMAT_R32G32_SFLOAT,
+			.offset = sizeof(pos) + sizeof(color),
+			.location_index = u8(first_location + 2),
 			.binding_index = u8(index),
 		});
 	}
@@ -132,7 +146,10 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
 
 	vector<DescriptorBindingInfo> bindings = {
-		{.binding = 0, .stages = VShaderStage::vertex, .type = VDescriptorType::uniform_buffer}};
+		{.binding = 0, .stages = VShaderStage::vertex, .type = VDescriptorType::uniform_buffer},
+		{.binding = 1,
+		 .stages = VShaderStage::fragment,
+		 .type = VDescriptorType::combined_image_sampler}};
 	auto dsl = EX_PASS(VulkanPipeline::createDescriptorSetLayout(ctx.device, move(bindings)));
 	setup.dsls.emplace_back(dsl);
 
@@ -186,8 +203,11 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 		float3 color = FColor(draw_rect.fill_color).rgb();
 		auto corners = transform(draw_rect.rect.corners(), [&](float2 corner) -> MyVertex {
 			float2 pos = corner * scale - float2(1.0);
-			return {.pos = pos, .color = color};
+			return {.pos = pos, .color = color, .texCoord = {}};
 		});
+		corners[1].texCoord.y = corners[2].texCoord.y = 1.0;
+		corners[2].texCoord.x = corners[3].texCoord.x = 1.0;
+
 		Array<MyVertex, 6> cur_verts = {
 			{corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]}};
 		insertBack(vertices, cur_verts);
@@ -207,8 +227,10 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
 	auto &descr_set = ctx.descr_sets[render_graph.frameIndex()];
-	descr_set.update({DescriptorSet::Assignment{
-		.binding = 0, .data = ubuffer, .type = VDescriptorType::uniform_buffer}});
+	descr_set.update({{.binding = 0, .data = ubuffer, .type = VDescriptorType::uniform_buffer},
+					  {.binding = 1,
+					   .data = std::make_pair(ctx.sampler, ctx.font_image_view),
+					   .type = VDescriptorType::combined_image_sampler}});
 	render_graph << CmdBindDescriptorSet{.set = &descr_set, .index = 0};
 
 	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -288,7 +310,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
 	auto vimage = EX_PASS(VulkanImage::create(ctx.device, toVkExtent(image.size()),
-											  {.format = VK_FORMAT_R8G8B8A8_UINT}));
+											  {.format = VK_FORMAT_R8G8B8A8_SRGB}));
 	auto mem_req = vimage->memoryRequirements();
 	auto mem_flags = VMemoryFlag::device_local;
 	auto memory =
@@ -338,6 +360,7 @@ Ex<int> exMain() {
 
 	DescriptorPoolSetup pool_setup;
 	pool_setup.sizes[VDescriptorType::uniform_buffer] = 2;
+	pool_setup.sizes[VDescriptorType::combined_image_sampler] = 2;
 	pool_setup.max_sets = 2;
 	auto pool = EX_PASS(ctx.device->createDescriptorPool(pool_setup));
 	for(auto &set : ctx.descr_sets)

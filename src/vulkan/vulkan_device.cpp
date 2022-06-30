@@ -72,8 +72,9 @@ void DescriptorSet::update(CSpan<Assignment> assigns) {
 	DASSERT(assigns.size() <= max_assignments);
 
 	array<VkDescriptorBufferInfo, max_assignments> buffer_infos;
+	array<VkDescriptorImageInfo, max_assignments> image_infos;
 	array<VkWriteDescriptorSet, max_assignments> writes;
-	int num_buffers = 0;
+	int num_buffers = 0, num_images = 0;
 
 	for(int i : intRange(assigns)) {
 		auto &write = writes[i];
@@ -91,6 +92,13 @@ void DescriptorSet::update(CSpan<Assignment> assigns) {
 			bi.offset = 0;
 			bi.range = VK_WHOLE_SIZE;
 			write.pBufferInfo = &bi;
+		} else if(const Pair<PVSampler, PVImageView> *pair = assign.data) {
+			auto &ii = image_infos[num_images++];
+			ii = {};
+			ii.imageView = pair->second;
+			ii.sampler = pair->first;
+			ii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			write.pImageInfo = &ii;
 		}
 	}
 	vkUpdateDescriptorSets(pool->deviceHandle(), assigns.size(), writes.data(), 0, nullptr);
