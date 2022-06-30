@@ -68,6 +68,12 @@ VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplingPara
 	: VulkanObjectBase(handle, id), m_params(params) {}
 VulkanSampler::~VulkanSampler() { deferredHandleRelease<VkSampler, vkDestroySampler>(); }
 
+VulkanDescriptorPool::VulkanDescriptorPool(VkDescriptorPool handle, VObjectId id)
+	: VulkanObjectBase(handle, id) {}
+VulkanDescriptorPool ::~VulkanDescriptorPool() {
+	deferredHandleRelease<VkDescriptorPool, vkDestroyDescriptorPool>();
+}
+
 static const EnumMap<VMemoryFlag, VkMemoryPropertyFlagBits> memory_flags = {{
 	{VMemoryFlag::device_local, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
 	{VMemoryFlag::host_visible, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT},
@@ -164,6 +170,22 @@ Ex<PVSampler> VulkanDevice::createSampler(const VSamplingParams &params) {
 	if(vkCreateSampler(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateSampler fai;ed");
 	return createObject(handle, params);
+}
+
+Ex<PVDescriptorPool> VulkanDevice::createDescriptorPool(const DescriptorPoolSetup &setup) {
+	auto sizes = transform(setup.sizes, [](auto &pair) {
+		return VkDescriptorPoolSize{.type = toVk(pair.first), .descriptorCount = pair.second};
+	});
+	VkDescriptorPoolCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	ci.poolSizeCount = sizes.size();
+	ci.pPoolSizes = sizes.data();
+	ci.maxSets = setup.max_sets;
+
+	VkDescriptorPool handle;
+	if(vkCreateDescriptorPool(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateDescriptorPool failed");
+	return createObject(handle);
 }
 
 Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {

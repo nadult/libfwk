@@ -85,6 +85,19 @@ class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
 	VSamplingParams m_params;
 };
 
+struct DescriptorPoolSetup {
+	vector<Pair<VDescriptorType, uint>> sizes;
+	uint max_sets = 1;
+};
+
+class VulkanDescriptorPool : public VulkanObjectBase<VulkanDescriptorPool> {
+  public:
+  private:
+	friend class VulkanDevice;
+	VulkanDescriptorPool(VkDescriptorPool, VObjectId);
+	~VulkanDescriptorPool();
+};
+
 class VulkanDevice {
   public:
 	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);
@@ -93,6 +106,7 @@ class VulkanDevice {
 	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, CommandPoolFlags);
 	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
 	Ex<PVSampler> createSampler(const VSamplingParams &);
+	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);
 
 	Ex<void> createRenderGraph(PVSwapChain);
 

@@ -93,6 +93,7 @@ struct VulkanContext {
 	PVImage font_image;
 	PVImageView font_image_view;
 	PVSampler sampler;
+	PVDescriptorPool descr_pool;
 };
 
 Ex<void> createPipeline(VulkanContext &ctx) {
@@ -146,6 +147,22 @@ Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 	return buffer;
 }
 
+struct UBOData {
+	float2 scale = float2(1.0);
+};
+
+Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
+	auto usage = VBufferUsage::uniform_buffer | VBufferUsage::transfer_dst;
+	auto buffer = EX_PASS(VulkanBuffer::create<UBOData>(ctx.device, 1, usage));
+	auto mem_req = buffer->memoryRequirements();
+	// Makes no sense to put it on device local, staging buffer shouldn't be needed either
+	auto mem_flags = VMemoryFlag::device_local;
+	auto memory =
+		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
+	EXPECT(buffer->bindMemory(memory));
+	return buffer;
+}
+
 struct DrawRect {
 	FRect rect;
 	IColor fill_color;
@@ -179,6 +196,12 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 
 	auto vbuffer = EX_PASS(createVertexBuffer(ctx, vertices));
 	EXPECT(render_graph << CmdUpload(vertices, vbuffer));
+
+	static double cur_time = getTime();
+	UBOData ubo;
+	ubo.scale = float2(1.0 + sin(cur_time) * 0.25);
+	auto ubuffer = EX_PASS(createUniformBuffer(ctx));
+	EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
 	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 	render_graph << CmdBeginRenderPass{.render_pass = ctx.pipeline->renderPass(),
@@ -301,6 +324,11 @@ Ex<int> exMain() {
 	ctx.font_image = EX_PASS(makeTexture(ctx, font_data.image));
 	ctx.font_image_view = EX_PASS(VulkanImageView::create(ctx.device, ctx.font_image));
 	ctx.sampler = EX_PASS(ctx.device->createSampler({}));
+
+	DescriptorPoolSetup pool_setup;
+	pool_setup.sizes.emplace_back(VDescriptorType::uniform_buffer, 1u);
+	pool_setup.max_sets = 2;
+	ctx.descr_pool = EX_PASS(ctx.device->createDescriptorPool(pool_setup));
 
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;

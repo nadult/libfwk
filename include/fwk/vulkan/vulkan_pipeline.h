@@ -9,24 +9,6 @@
 
 namespace fwk {
 
-DEFINE_ENUM(VShaderStage, vertex, tess_control, tess_eval, geometry, fragment, compute);
-using VShaderStageFlags = EnumFlags<VShaderStage>;
-
-DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, storage_image,
-			uniform_texel_buffer, storage_texel_buffer, uniform_buffer, storage_buffer,
-			uniform_buffer_dynamic, storage_buffer_dynamic, input_attachment);
-
-DEFINE_ENUM(VPrimitiveTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
-			triangle_fan);
-DEFINE_ENUM(VertexInputRate, vertex, instance);
-
-inline VkShaderStageFlagBits toVk(VShaderStage stage) {
-	return VkShaderStageFlagBits(1u << int(stage));
-}
-inline VkShaderStageFlags toVk(VShaderStageFlags flags) { return VkShaderStageFlags(flags.bits); }
-inline VkDescriptorType toVk(VDescriptorType type) { return VkDescriptorType(type); }
-inline VkPrimitiveTopology toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
-
 // TODO: make useful constructors
 struct VertexAttribDesc {
 	VkFormat format = VkFormat::VK_FORMAT_R32_SFLOAT;

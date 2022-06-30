@@ -20,6 +20,7 @@ VulkanRenderPass ::~VulkanRenderPass() {
 VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 VulkanPipelineLayout ::~VulkanPipelineLayout() {
+	// TODO: do we really need deferred?
 	deferredHandleRelease<VkPipelineLayout, vkDestroyPipelineLayout>();
 }
 
@@ -27,6 +28,7 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDescriptorSetLayout handl
 													 vector<BindingInfo> bindings)
 	: VulkanObjectBase(handle, id), m_bindings(move(bindings)) {}
 VulkanDescriptorSetLayout ::~VulkanDescriptorSetLayout() {
+	// TODO: do we really need deferred?
 	deferredHandleRelease<VkDescriptorSetLayout, vkDestroyDescriptorSetLayout>();
 }
 

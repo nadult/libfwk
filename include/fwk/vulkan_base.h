@@ -27,9 +27,9 @@ struct VulkanVersion {
 	int major, minor, patch;
 };
 
-DEFINE_ENUM(VTypeId, buffer, command_pool, command_buffer, device_memory, descriptor_pool,
-			descriptor_set_layout, fence, framebuffer, image, image_view, pipeline, pipeline_layout,
-			render_pass, sampler, semaphore, shader_module, swap_chain);
+DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, device_memory,
+			descriptor_pool, descriptor_set_layout, fence, framebuffer, image, image_view, pipeline,
+			pipeline_layout, render_pass, sampler, semaphore, shader_module, swap_chain);
 
 DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
 			protected_);
@@ -46,14 +46,31 @@ using VImageUsageFlags = EnumFlags<VImageUsage>;
 DEFINE_ENUM(VImageLayout, undefined, general, color_attachment, depth_stencil_attachment,
 			depth_stencil_read_only, shader_read_only, transfer_src, transfer_dst, preinitialized);
 
-// TODO: move to internal
-inline VkImageUsageFlags toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
-inline VkBufferUsageFlags toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
-inline VkImageLayout toVk(VImageLayout layout) { return VkImageLayout(layout); }
+DEFINE_ENUM(VShaderStage, vertex, tess_control, tess_eval, geometry, fragment, compute);
+using VShaderStageFlags = EnumFlags<VShaderStage>;
+
+DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, storage_image,
+			uniform_texel_buffer, storage_texel_buffer, uniform_buffer, storage_buffer,
+			uniform_buffer_dynamic, storage_buffer_dynamic, input_attachment);
+
+DEFINE_ENUM(VPrimitiveTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
+			triangle_fan);
+DEFINE_ENUM(VertexInputRate, vertex, instance);
 
 DEFINE_ENUM(VTexFilter, nearest, linear);
 DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 			mirror_clamp_to_edge);
+
+// TODO: move to internal
+inline VkShaderStageFlagBits toVk(VShaderStage stage) {
+	return VkShaderStageFlagBits(1u << int(stage));
+}
+inline VkShaderStageFlags toVk(VShaderStageFlags flags) { return VkShaderStageFlags(flags.bits); }
+inline VkDescriptorType toVk(VDescriptorType type) { return VkDescriptorType(type); }
+inline VkPrimitiveTopology toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
+inline VkImageUsageFlags toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
+inline VkBufferUsageFlags toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
+inline VkImageLayout toVk(VImageLayout layout) { return VkImageLayout(layout); }
 
 struct VSamplingParams {
 	VTexFilter mag_filter = VTexFilter::nearest;
