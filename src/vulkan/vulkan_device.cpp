@@ -135,20 +135,12 @@ Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, u32 memory_type_bit
 	return createObject(handle, size, flags);
 }
 
-static const EnumMap<CommandPoolFlag, VkCommandPoolCreateFlagBits> command_pool_flags = {{
-	{CommandPoolFlag::transient, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-	{CommandPoolFlag::reset_command, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT},
-	{CommandPoolFlag::protected_, VK_COMMAND_POOL_CREATE_PROTECTED_BIT},
-}};
-
 Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id,
-												  CommandPoolFlags flags) {
+												  VCommandPoolFlags flags) {
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = 0;
+	poolInfo.flags = toVk(flags);
 	poolInfo.queueFamilyIndex = queue_family_id;
-	for(auto flag : flags)
-		poolInfo.flags |= command_pool_flags[flag];
 	VkCommandPool handle;
 	if(vkCreateCommandPool(m_handle, &poolInfo, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateCommandPool failed");
@@ -181,6 +173,7 @@ Ex<PVDescriptorPool> VulkanDevice::createDescriptorPool(const DescriptorPoolSetu
 	ci.poolSizeCount = sizes.size();
 	ci.pPoolSizes = sizes.data();
 	ci.maxSets = setup.max_sets;
+	ci.flags = 0; //TODO
 
 	VkDescriptorPool handle;
 	if(vkCreateDescriptorPool(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)

@@ -21,9 +21,6 @@ struct VulkanDeviceSetup {
 	Dynamic<VkPhysicalDeviceFeatures> features;
 };
 
-DEFINE_ENUM(CommandPoolFlag, transient, reset_command, protected_);
-using CommandPoolFlags = EnumFlags<CommandPoolFlag>;
-
 class VulkanCommandBuffer : public VulkanObjectBase<VulkanCommandBuffer> {
   public:
   private:
@@ -103,7 +100,7 @@ class VulkanDevice {
 	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);
 	Ex<PVFence> createFence(bool is_signaled = false);
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
-	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, CommandPoolFlags);
+	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, VCommandPoolFlags);
 	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
 	Ex<PVSampler> createSampler(const VSamplingParams &);
 	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);

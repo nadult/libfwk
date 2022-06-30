@@ -35,6 +35,9 @@ DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached,
 			protected_);
 using VMemoryFlags = EnumFlags<VMemoryFlag>;
 
+DEFINE_ENUM(VCommandPoolFlag, transient, reset_command, protected_);
+using VCommandPoolFlags = EnumFlags<VCommandPoolFlag>;
+
 DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel_buffer, storage_texel_buffer,
 			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer);
 using VBufferUsageFlags = EnumFlags<VBufferUsage>;
@@ -62,15 +65,14 @@ DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 			mirror_clamp_to_edge);
 
 // TODO: move to internal
-inline VkShaderStageFlagBits toVk(VShaderStage stage) {
-	return VkShaderStageFlagBits(1u << int(stage));
-}
-inline VkShaderStageFlags toVk(VShaderStageFlags flags) { return VkShaderStageFlags(flags.bits); }
-inline VkDescriptorType toVk(VDescriptorType type) { return VkDescriptorType(type); }
-inline VkPrimitiveTopology toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
-inline VkImageUsageFlags toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
-inline VkBufferUsageFlags toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
-inline VkImageLayout toVk(VImageLayout layout) { return VkImageLayout(layout); }
+inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }
+inline auto toVk(VShaderStageFlags flags) { return VkShaderStageFlags(flags.bits); }
+inline auto toVk(VDescriptorType type) { return VkDescriptorType(type); }
+inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
+inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
+inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
+inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
+inline auto toVk(VImageLayout layout) { return VkImageLayout(layout); }
 
 struct VSamplingParams {
 	VTexFilter mag_filter = VTexFilter::nearest;

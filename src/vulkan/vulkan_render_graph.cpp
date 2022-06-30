@@ -67,7 +67,7 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 			EX_PASS(VulkanFramebuffer::create(device, cspan(&image_view, 1), m_render_pass)));
 
 	m_command_pool = EX_PASS(device->createCommandPool(
-		queue_family, CommandPoolFlag::reset_command | CommandPoolFlag::transient));
+		queue_family, VCommandPoolFlag::reset_command | VCommandPoolFlag::transient));
 	for(auto &frame : m_frames) {
 		frame.command_buffer = EX_PASS(m_command_pool->allocBuffer());
 		frame.image_available_sem = EX_PASS(device->createSemaphore());
