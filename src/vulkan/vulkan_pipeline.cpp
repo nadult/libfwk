@@ -23,20 +23,12 @@ VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	deferredHandleRelease<VkPipelineLayout, vkDestroyPipelineLayout>();
 }
 
-static const EnumMap<VShaderStage, VkShaderStageFlagBits> shader_stages = {{
-	{VShaderStage::vertex, VK_SHADER_STAGE_VERTEX_BIT},
-	{VShaderStage::fragment, VK_SHADER_STAGE_FRAGMENT_BIT},
-	{VShaderStage::compute, VK_SHADER_STAGE_COMPUTE_BIT},
-}};
-
-static const EnumMap<VTopology, VkPrimitiveTopology> primitive_topos = {{
-	{VTopology::point_list, VK_PRIMITIVE_TOPOLOGY_POINT_LIST},
-	{VTopology::line_list, VK_PRIMITIVE_TOPOLOGY_LINE_LIST},
-	{VTopology::line_strip, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP},
-	{VTopology::triangle_list, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST},
-	{VTopology::triangle_strip, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP},
-	{VTopology::triangle_fan, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN},
-}};
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDescriptorSetLayout handle, VObjectId id,
+													 vector<BindingInfo> bindings)
+	: VulkanObjectBase(handle, id), m_bindings(move(bindings)) {}
+VulkanDescriptorSetLayout ::~VulkanDescriptorSetLayout() {
+	deferredHandleRelease<VkDescriptorSetLayout, vkDestroyDescriptorSetLayout>();
+}
 
 Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device,
 										  CSpan<VkAttachmentDescription> attachments,
@@ -65,13 +57,37 @@ VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
 	: VulkanObjectBase(handle, id), m_render_pass(rp), m_pipeline_layout(lt) {}
 VulkanPipeline::~VulkanPipeline() { deferredHandleRelease<VkPipeline, vkDestroyPipeline>(); }
 
-Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device) {
+Ex<PVDescriptorSetLayout>
+VulkanPipeline::createDescriptorSetLayout(VDeviceRef device,
+										  vector<DescriptorBindingInfo> bindings) {
+	auto vk_bindings = transform(bindings, [](const DescriptorBindingInfo &binding) {
+		VkDescriptorSetLayoutBinding lb{};
+		lb.binding = binding.index;
+		lb.descriptorType = toVk(binding.type);
+		lb.descriptorCount = binding.count;
+		lb.stageFlags = toVk(binding.stages);
+		return lb;
+	});
+
+	VkDescriptorSetLayoutCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	ci.pBindings = vk_bindings.data();
+	ci.bindingCount = vk_bindings.size();
+
+	VkDescriptorSetLayout handle;
+	if(vkCreateDescriptorSetLayout(device, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateDescriptorSetLayout failed");
+	return device->createObject(handle, move(bindings));
+}
+
+Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device,
+												  CSpan<PVDescriptorSetLayout> set_layouts) {
 	VkPipelineLayoutCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-	// TODO: expose
-	ci.setLayoutCount = 0;
-	ci.pSetLayouts = nullptr;
+	auto sl_handles = transform<VkDescriptorSetLayout>(set_layouts);
+	ci.setLayoutCount = set_layouts.size();
+	ci.pSetLayouts = sl_handles.data();
 	ci.pushConstantRangeCount = 0;
 	ci.pPushConstantRanges = nullptr;
 
@@ -83,14 +99,14 @@ Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device) {
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VPipelineSetup &setup) {
 	DASSERT(setup.render_pass);
-	auto pipeline_layout = EX_PASS(createLayout(device));
+	auto pipeline_layout = EX_PASS(createLayout(device, setup.dsls));
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
 	for(int i : intRange(setup.stages)) {
 		DASSERT(setup.stages[i].shader_module);
 		stages_ci[i] = {};
 		stages_ci[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		stages_ci[i].stage = shader_stages[setup.stages[i].stage];
+		stages_ci[i].stage = toVk(setup.stages[i].stage);
 		stages_ci[i].module = setup.stages[i].shader_module;
 		stages_ci[i].pName = "main";
 	}
@@ -122,7 +138,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VPipelineSetup &s
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_ci{};
 	input_assembly_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly_ci.topology = primitive_topos[setup.input_assembly.topology];
+	input_assembly_ci.topology = toVk(setup.input_assembly.topology);
 	input_assembly_ci.primitiveRestartEnable =
 		setup.input_assembly.primitive_restart ? VK_TRUE : VK_FALSE;
 

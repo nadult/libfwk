@@ -126,6 +126,11 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	setup.render_pass = render_graph.defaultRenderPass();
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
 
+	vector<DescriptorBindingInfo> bindings;
+	bindings.emplace_back();
+	auto dsl = EX_PASS(VulkanPipeline::createDescriptorSetLayout(ctx.device, move(bindings)));
+	setup.dsls.emplace_back(dsl);
+
 	ctx.pipeline = EX_PASS(VulkanPipeline::create(ctx.device, setup));
 	return {};
 }

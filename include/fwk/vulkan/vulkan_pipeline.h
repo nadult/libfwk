@@ -9,10 +9,23 @@
 
 namespace fwk {
 
-DEFINE_ENUM(VShaderStage, vertex, fragment, compute);
-DEFINE_ENUM(VTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
+DEFINE_ENUM(VShaderStage, vertex, tess_control, tess_eval, geometry, fragment, compute);
+using VShaderStageFlags = EnumFlags<VShaderStage>;
+
+DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, storage_image,
+			uniform_texel_buffer, storage_texel_buffer, uniform_buffer, storage_buffer,
+			uniform_buffer_dynamic, storage_buffer_dynamic, input_attachment);
+
+DEFINE_ENUM(VPrimitiveTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
 			triangle_fan);
 DEFINE_ENUM(VertexInputRate, vertex, instance);
+
+inline VkShaderStageFlagBits toVk(VShaderStage stage) {
+	return VkShaderStageFlagBits(1u << int(stage));
+}
+inline VkShaderStageFlags toVk(VShaderStageFlags flags) { return VkShaderStageFlags(flags.bits); }
+inline VkDescriptorType toVk(VDescriptorType type) { return VkDescriptorType(type); }
+inline VkPrimitiveTopology toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
 
 // TODO: make useful constructors
 struct VertexAttribDesc {
@@ -34,12 +47,13 @@ struct VShaderStageSetup {
 };
 
 struct VInputAssemblySetup {
-	VTopology topology = VTopology::triangle_list;
+	VPrimitiveTopology topology = VPrimitiveTopology::triangle_list;
 	bool primitive_restart = false;
 };
 
 struct VPipelineSetup {
 	StaticVector<VShaderStageSetup, count<VShaderStage>> stages;
+	vector<PVDescriptorSetLayout> dsls;
 	VInputAssemblySetup input_assembly;
 	VkViewport viewport;
 	VkRect2D scissor;
@@ -72,9 +86,32 @@ class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
 	~VulkanPipelineLayout();
 };
 
+struct DescriptorBindingInfo {
+	uint index = 0;
+	uint count = 1;
+	VShaderStageFlags stages = VShaderStage::vertex | VShaderStage::fragment;
+	VDescriptorType type = VDescriptorType::sampler;
+};
+
+class VulkanDescriptorSetLayout : public VulkanObjectBase<VulkanDescriptorSetLayout> {
+  public:
+	using BindingInfo = DescriptorBindingInfo;
+
+	CSpan<BindingInfo> bindings() const { return m_bindings; }
+
+  private:
+	friend class VulkanDevice;
+	VulkanDescriptorSetLayout(VkDescriptorSetLayout, VObjectId, vector<BindingInfo>);
+	~VulkanDescriptorSetLayout();
+
+	vector<BindingInfo> m_bindings;
+};
+
 class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
   public:
-	static Ex<PVPipelineLayout> createLayout(VDeviceRef);
+	static Ex<PVDescriptorSetLayout> createDescriptorSetLayout(VDeviceRef,
+															   vector<DescriptorBindingInfo>);
+	static Ex<PVPipelineLayout> createLayout(VDeviceRef, CSpan<PVDescriptorSetLayout>);
 	static Ex<PVPipeline> create(VDeviceRef, const VPipelineSetup &);
 
 	PVRenderPass renderPass() const { return m_render_pass; }
