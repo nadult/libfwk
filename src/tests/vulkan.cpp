@@ -320,6 +320,51 @@ Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
 	return vimage;
 }
 
+void memoryAllocTest(VDeviceRef device) {
+	auto phys_info = VulkanInstance::ref()->info(device->physId());
+
+	VMemoryFlags mem_types[] = {none, VMemoryFlag::device_local, VMemoryFlag::host_visible,
+								VMemoryFlag::host_cached, VMemoryFlag::host_coherent};
+
+	printf("Allocation times : Free times\n");
+	for(auto flags : mem_types) {
+		u64 max_size = 4096;
+		if(auto mem_type = phys_info.findMemoryType(~0u, flags)) {
+			int heap_index = phys_info.mem_properties.memoryTypes[*mem_type].heapIndex;
+			auto heap_size = phys_info.mem_properties.memoryHeaps[heap_index].size / (1024 * 1024);
+			max_size = min(max_size, heap_size);
+		}
+
+		for(u64 size = 1; size <= max_size; size *= 2) {
+			printf("flags=%s size=%4dM : ", toString(flags).c_str(), size);
+			bool failed = false;
+			int max_n = max(4, 24 / max<int>(1, size / 512));
+			for(int n = 0; n < max_n; n++) {
+				auto start_time = getTime();
+				double alloc_time, free_time;
+				{
+					auto mem = device->allocDeviceMemory(size * 1024 * 1024, ~0u, flags);
+					alloc_time = getTime();
+					if(!mem) {
+						printf("FAILED");
+						failed = true;
+						break;
+					} else {
+						(*mem)->dontDefer();
+					}
+				}
+				free_time = getTime() - alloc_time;
+				alloc_time -= start_time;
+				printf("%.0f:%.0f ", alloc_time * 1000.0, free_time * 1000.0);
+			}
+
+			print("\n");
+			if(failed)
+				break;
+		}
+	}
+}
+
 Ex<int> exMain() {
 	VulkanInstanceSetup setup;
 	setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
