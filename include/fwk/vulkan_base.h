@@ -32,7 +32,7 @@ DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, device_m
 			pipeline_layout, render_pass, sampler, semaphore, shader_module, swap_chain);
 
 DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
-			protected_);
+			protected_, device_coherent_amd, device_uncached_amd);
 using VMemoryFlags = EnumFlags<VMemoryFlag>;
 
 DEFINE_ENUM(VCommandPoolFlag, transient, reset_command, protected_);
@@ -73,6 +73,7 @@ inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits};
 inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
 inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
 inline auto toVk(VImageLayout layout) { return VkImageLayout(layout); }
+inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }
 
 struct VSamplingParams {
 	VTexFilter mag_filter = VTexFilter::nearest;

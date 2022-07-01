@@ -61,6 +61,7 @@ class VulkanSemaphore : public VulkanObjectBase<VulkanSemaphore> {
 class VulkanDeviceMemory : public VulkanObjectBase<VulkanDeviceMemory> {
   public:
 	VMemoryFlags flags() const { return m_flags; }
+	auto size() const { return m_size; }
 
   private:
 	friend class VulkanDevice;

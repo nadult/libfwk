@@ -17,6 +17,7 @@
 #include <fwk/vulkan/vulkan_framebuffer.h>
 #include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
+#include <fwk/vulkan/vulkan_memory.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
 #include <fwk/vulkan/vulkan_render_graph.h>
 #include <fwk/vulkan/vulkan_swap_chain.h>
@@ -106,6 +107,7 @@ struct MyVertex {
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
+	Dynamic<VulkanFrameAllocator> frame_alloc;
 	PVPipeline pipeline;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
@@ -160,16 +162,13 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
-	auto mem_req = buffer->memoryRequirements();
-	auto mem_flags = VMemoryFlag::device_local;
-	auto memory =
-		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
-	EXPECT(buffer->bindMemory(memory));
+	EXPECT(ctx.frame_alloc->alloc(buffer, VMemoryFlag::device_local));
 	return buffer;
 }
 
 struct UBOData {
 	float saturation = 1.0;
+	float temp[15];
 };
 
 Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
@@ -194,6 +193,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	auto &render_graph = ctx.device->renderGraph();
 
 	EXPECT(render_graph.beginFrame());
+	ctx.frame_alloc->startFrame(render_graph.frameIndex());
 
 	vector<MyVertex> vertices;
 	vertices.reserve(rects.size() * 6);
@@ -350,6 +350,7 @@ Ex<int> exMain() {
 
 	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
+	ctx.frame_alloc.emplace(device);
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));

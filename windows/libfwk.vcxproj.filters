@@ -687,6 +687,9 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_render_graph.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_memory.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1167,6 +1170,9 @@
       <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vulkan\vulkan_render_graph.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_memory.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>
