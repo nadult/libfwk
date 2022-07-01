@@ -50,6 +50,19 @@
     </Expand>
   </Type>
 
+  <Type Name="fwk::EnumFlags&lt;*&gt;">
+    <Expand>
+      <CustomListItems>
+        <Variable Name="bit" InitialValue="0"/>
+        <Loop Condition="bit &lt; 64">
+          <Item Condition="((1ull &lt;&lt; bit) &amp; bits) != 0">($T1)bit</Item>
+          <Exec>bit++</Exec>
+        </Loop>
+      </CustomListItems>
+      <Item Name="[bits]" ExcludeView="simple">bits</Item>
+    </Expand>
+  </Type>
+
   <Type Name="fwk::vec2&lt;*&gt;">
     <DisplayString>{{x={x} y={y}}}</DisplayString>
   </Type>
