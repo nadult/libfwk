@@ -17,10 +17,32 @@ SlabAllocator::SlabAllocator(u64 slab_size, u64 zone_size)
 	u64 num_slabs = zone_size / slab_size;
 	DASSERT_GE(num_slabs, min_slabs);
 	DASSERT_LE(num_slabs, max_slabs);
-	DASSERT(num_slabs % group_size == 0);
+	DASSERT(num_slabs % slab_group_size == 0);
 	m_slabs_per_zone = num_slabs;
-	m_groups_per_zone = num_slabs / group_size;
+	m_groups_per_zone = num_slabs / slab_group_size;
+
+	for(int l : intRange(num_levels)) {
+		auto &level = m_levels[l];
+		level.chunk_size = chunkSize(l);
+
+		level.slabs_per_group = max<int>(1, (level.chunk_size + m_slab_size - 1) / m_slab_size);
+		double waste = 1.0;
+		while(true) {
+			u64 group_size = u64(level.slabs_per_group) * m_slab_size;
+			level.chunks_per_group = group_size / level.chunk_size;
+			waste = 1.0 - double(level.chunks_per_group * level.chunk_size) / group_size;
+			if(waste < 0.05)
+				break;
+			level.slabs_per_group++;
+		}
+
+		/*printf("SlabAllocator level %3d: chunk_size:%u group_size:%lluK chunks/group:%d "
+			   "slabs/group:%d waste:%f\n",
+			   l, level.chunk_size, m_slab_size * level.slabs_per_group / 1024,
+			   level.chunks_per_group, level.slabs_per_group, waste);*/
+	}
 }
+
 SlabAllocator::~SlabAllocator() = default;
 
 constexpr int findLastBit(u64 bits) { return __builtin_clzll(bits); }
@@ -53,7 +75,7 @@ Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 		if(num_slabs == 1) {
 			int first_group = findFirstBit(not_full_groups);
 			int first_bit = findFirstBit(~groups[first_group]);
-			target_offset = (first_group << group_shift) + first_bit;
+			target_offset = (first_group << slab_group_shift) + first_bit;
 		} else if(num_slabs <= 64) {
 			int first_group = findFirstBit(not_full_groups);
 			for(int g = first_group; g < m_groups_per_zone; g++) {
@@ -67,7 +89,7 @@ Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 						offset = 64 - cur_space;
 				}
 				if(offset != -1) {
-					target_offset = (g << group_shift) + offset;
+					target_offset = (g << slab_group_shift) + offset;
 					break;
 				}
 			}
@@ -86,7 +108,7 @@ Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 						break;
 				}
 				if(total_space >= num_slabs) {
-					target_offset = (g << group_shift) + 64 - cur_space;
+					target_offset = (g << slab_group_shift) + 64 - cur_space;
 					break;
 				}
 			}
@@ -121,16 +143,16 @@ void SlabAllocator::addZone() {
 void SlabAllocator::fillSlabs(int zone_id, int offset, int num_slabs) {
 	DASSERT(offset + num_slabs <= m_slabs_per_zone);
 
-	int first_group = offset >> group_shift;
-	int last_group = (offset + num_slabs - 1) >> group_shift;
+	int first_group = offset >> slab_group_shift;
+	int last_group = (offset + num_slabs - 1) >> slab_group_shift;
 	u64 *groups = &m_zone_groups[zone_id * m_groups_per_zone];
 
-	int first_offset = offset & (group_size - 1);
+	int first_offset = offset & (slab_group_size - 1);
 	u64 first_bits = (~0ull >> max(0, 64 - num_slabs)) << first_offset;
 	groups[first_group] |= first_bits;
 
 	if(last_group != first_group) {
-		int num_last_bits = (offset + num_slabs) & (group_size - 1);
+		int num_last_bits = (offset + num_slabs) & (slab_group_size - 1);
 		u64 last_bits = ~0ull >> (64 - num_last_bits);
 		groups[last_group] |= last_bits;
 	}
@@ -156,16 +178,16 @@ void SlabAllocator::fillSlabs(int zone_id, int offset, int num_slabs) {
 void SlabAllocator::clearSlabs(int zone_id, int offset, int num_slabs) {
 	DASSERT(offset + num_slabs <= m_slabs_per_zone);
 
-	int first_group = offset >> group_shift;
-	int last_group = (offset + num_slabs - 1) >> group_shift;
+	int first_group = offset >> slab_group_shift;
+	int last_group = (offset + num_slabs - 1) >> slab_group_shift;
 	u64 *groups = &m_zone_groups[zone_id * m_groups_per_zone];
 
-	int first_offset = offset & (group_size - 1);
+	int first_offset = offset & (slab_group_size - 1);
 	u64 first_bits = (~0ull >> max(0, 64 - num_slabs)) << first_offset;
 	groups[first_group] &= ~first_bits;
 
 	if(last_group != first_group) {
-		int num_last_bits = (offset + num_slabs) & (group_size - 1);
+		int num_last_bits = (offset + num_slabs) & (slab_group_size - 1);
 		u64 last_bits = ~0ull >> (64 - num_last_bits);
 		groups[last_group] &= ~last_bits;
 	}
@@ -263,7 +285,7 @@ void SlabAllocator::testSlabs() {
 		verifySlabs().check();
 	}
 
-	for(int n = 0; n < 1000; n++) {
+	for(int n = 0; n < 128; n++) {
 		int mode = rand.uniform(0, 2);
 		if(mode || allocs.empty()) {
 			int num_slabs = max<int>(1, rand.uniform(1, 128));
