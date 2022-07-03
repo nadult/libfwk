@@ -690,6 +690,9 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_memory.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\slab_allocator.h">
+      <Filter>include\common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1174,6 +1177,9 @@
     </ClCompile>
     <ClCompile Include="..\src\vulkan\vulkan_memory.cpp">
       <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\slab_allocator.cpp">
+      <Filter>src\common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
