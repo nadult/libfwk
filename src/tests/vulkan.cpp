@@ -14,6 +14,7 @@
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_buffer.h>
+#include <fwk/vulkan/vulkan_descriptors.h>
 #include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_framebuffer.h>
 #include <fwk/vulkan/vulkan_image.h>

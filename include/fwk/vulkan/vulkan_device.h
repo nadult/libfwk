@@ -11,6 +11,8 @@
 
 namespace fwk {
 
+struct DescriptorPoolSetup;
+
 struct VulkanQueueSetup {
 	VQueueFamilyId family_id;
 	int count;
@@ -72,58 +74,6 @@ class VulkanDeviceMemory : public VulkanObjectBase<VulkanDeviceMemory> {
 	u64 m_size;
 	VMemoryFlags m_flags;
 	bool m_deferred_free = true;
-};
-
-class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
-  public:
-	const auto &params() const { return m_params; }
-
-  private:
-	friend class VulkanDevice;
-	VulkanSampler(VkSampler, VObjectId, const VSamplingParams &);
-	~VulkanSampler();
-
-	VSamplingParams m_params;
-};
-
-struct DescriptorPoolSetup {
-	EnumMap<VDescriptorType, uint> sizes;
-	uint max_sets = 1;
-};
-
-// TODO: would it be better to turn it into managed class?
-struct DescriptorSet {
-	DescriptorSet(PVPipelineLayout layout, uint layout_index, PVDescriptorPool pool,
-				  VkDescriptorSet handle)
-		: layout(layout), layout_index(layout_index), pool(pool), handle(handle) {}
-	DescriptorSet() {}
-
-	struct Assignment {
-		VDescriptorType type;
-		uint binding;
-		Variant<Pair<PVSampler, PVImageView>, PVBuffer> data;
-	};
-
-	static constexpr int max_assignments = 16;
-	void update(CSpan<Assignment>);
-
-	PVPipelineLayout layout;
-	uint layout_index = 0;
-
-	PVDescriptorPool pool;
-	VkDescriptorSet handle = nullptr;
-};
-
-class VulkanDescriptorPool : public VulkanObjectBase<VulkanDescriptorPool> {
-  public:
-	Ex<DescriptorSet> alloc(PVPipelineLayout, uint index);
-
-  private:
-	friend class VulkanDevice;
-	VulkanDescriptorPool(VkDescriptorPool, VObjectId, uint max_sets);
-	~VulkanDescriptorPool();
-
-	uint m_num_sets = 0, m_max_sets;
 };
 
 class VulkanDevice {

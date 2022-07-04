@@ -39,7 +39,6 @@ class VulkanAllocator {
 // TODO: frame allocator could use basic allocator and allocate slabs directly?
 class VulkanFrameAllocator {
   public:
-	static constexpr int max_memory_types = 32;
 	static constexpr int max_frames = 2;
 
 	VulkanFrameAllocator(VDeviceRef, VMemoryDomain, u64 base_size = 64 * 1024);
