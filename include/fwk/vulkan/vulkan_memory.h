@@ -4,11 +4,39 @@
 #pragma once
 
 #include "fwk/enum_flags.h"
+#include "fwk/slab_allocator.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
 
+// TODO: add support for dedicated allocation
+
+class VulkanAllocator {
+  public:
+	VulkanAllocator(VDeviceRef, VMemoryDomain);
+	~VulkanAllocator();
+
+	using Chunk = SlabAllocator::Chunk;
+	struct Allocation {
+		Chunk chunk;
+		VkDeviceMemory mem_handle;
+		uint mem_offset;
+	};
+
+	Ex<Allocation> alloc(u64 size, uint alignment);
+	void free(Chunk);
+
+  private:
+	VulkanDevice *m_device;
+	VkDevice m_device_handle;
+	uint m_memory_type;
+	vector<PVDeviceMemory> m_device_mem;
+	SlabAllocator m_slabs;
+};
+
+// TODO: use temporary or host domain
+// TODO: frame allocator could use basic allocator and allocate slabs directly?
 class VulkanFrameAllocator {
   public:
 	static constexpr int max_memory_types = 32;
@@ -33,4 +61,5 @@ class VulkanFrameAllocator {
 	int m_frame_idx = -1;
 	u64 m_base_size;
 };
+
 }

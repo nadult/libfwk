@@ -31,6 +31,11 @@ DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, device_m
 			descriptor_pool, descriptor_set_layout, fence, framebuffer, image, image_view, pipeline,
 			pipeline_layout, render_pass, sampler, semaphore, shader_module, swap_chain);
 
+// device: fastest memory with device_local (always available)
+// host: fastest memory with host_visible (always available)
+// temporary: device_local + host_visible
+DEFINE_ENUM(VMemoryDomain, device, host, temporary);
+
 DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
 			protected_, device_coherent_amd, device_uncached_amd);
 using VMemoryFlags = EnumFlags<VMemoryFlag>;
@@ -88,6 +93,8 @@ class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
 class VulkanRenderGraph;
+class VulkanAllocator;
+class VulkanFrameAllocator;
 
 // TODO: PVInstance, PVDevice? PV sucks, but what should I use instead ? VBufferPtr ?
 class VInstanceRef;

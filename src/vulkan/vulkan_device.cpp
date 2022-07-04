@@ -8,6 +8,7 @@
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
+#include "fwk/format.h"
 #include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
@@ -61,7 +62,10 @@ VulkanDeviceMemory::VulkanDeviceMemory(VkDeviceMemory handle, VObjectId id, u64 
 									   VMemoryFlags flags)
 	: VulkanObjectBase(handle, id), m_size(size), m_flags(flags) {}
 VulkanDeviceMemory ::~VulkanDeviceMemory() {
-	deferredHandleRelease<VkDeviceMemory, vkFreeMemory>();
+	if(m_deferred_free)
+		deferredHandleRelease<VkDeviceMemory, vkFreeMemory>();
+	else
+		vkFreeMemory(deviceHandle(), m_handle, nullptr);
 }
 
 VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplingParams &params)
@@ -157,22 +161,29 @@ Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	return createObject(handle);
 }
 
-Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, u32 memory_type_bits,
-												   VMemoryFlags flags) {
-	auto &phys_info = m_instance_ref->info(m_phys_id);
-	auto mem_type = phys_info.findMemoryType(memory_type_bits, toVk(flags));
-	if(!mem_type)
-		return ERROR("Couldn't find a suitable memory type; bits:% flags:%", memory_type_bits,
-					 flags);
+Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, uint type_id) {
+	const auto &type_props = m_instance_ref->info(m_phys_id).mem_properties.memoryTypes[type_id];
+	VMemoryFlags flags;
+	flags.bits = (type_props.propertyFlags) & VMemoryFlags::mask;
 
 	VkMemoryAllocateInfo ai{};
 	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	ai.allocationSize = size;
-	ai.memoryTypeIndex = *mem_type;
+	ai.memoryTypeIndex = type_id;
 	VkDeviceMemory handle;
 	if(vkAllocateMemory(m_handle, &ai, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkAllocateMemory failed");
 	return createObject(handle, size, flags);
+}
+
+Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, u32 memory_type_bits,
+												   VMemoryFlags flags) {
+	auto &phys_info = m_instance_ref->info(m_phys_id);
+	auto mem_type = phys_info.findMemoryType(memory_type_bits, flags);
+	if(mem_type == -1)
+		return ERROR("Couldn't find a suitable memory type; bits:% flags:%", memory_type_bits,
+					 flags);
+	return allocDeviceMemory(size, mem_type);
 }
 
 Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id,
@@ -264,6 +275,20 @@ VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef
 	: m_id(id), m_phys_id(phys_id), m_instance_ref(instance_ref) {
 	m_impl.emplace();
 	ASSERT(m_instance_ref->valid(m_phys_id));
+
+	auto &info = instance_ref->info(phys_id);
+	auto &mem_info = info.mem_properties;
+	EnumMap<VMemoryDomain, VMemoryFlags> domain_flags = {
+		{VMemoryFlag::device_local, VMemoryFlag::host_visible,
+		 VMemoryFlag::device_local | VMemoryFlag::host_visible}};
+
+	for(auto domain : all<VMemoryDomain>) {
+		int type_id = info.findMemoryType(~0u, domain_flags[domain]);
+		u64 heap_size = 0;
+		if(type_id != -1)
+			heap_size = mem_info.memoryHeaps[mem_info.memoryTypes[type_id].heapIndex].size;
+		m_mem_domains[domain] = {type_id, heap_size};
+	}
 }
 
 Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {

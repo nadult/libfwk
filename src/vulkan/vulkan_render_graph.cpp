@@ -9,6 +9,7 @@
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_memory.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 
@@ -78,6 +79,11 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 	return {};
 }
 
+void VulkanRenderGraph::initFrameAllocator(u64 base_size) {
+	DASSERT(!m_frame_allocator);
+	m_frame_allocator.emplace(m_device.ref(), base_size);
+}
+
 Ex<void> VulkanRenderGraph::beginFrame() {
 	DASSERT(!m_frame_in_progress);
 	auto &frame = m_frames[m_frame_index];
@@ -101,6 +107,8 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 	if(vkBeginCommandBuffer(frame.command_buffer, &bi) != VK_SUCCESS)
 		return ERROR("vkBeginCommandBuffer failed");
 	m_frame_in_progress = true;
+	if(m_frame_allocator)
+		m_frame_allocator->startFrame(m_frame_index);
 	return {};
 }
 

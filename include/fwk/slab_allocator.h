@@ -20,14 +20,13 @@ namespace fwk {
 // When allocating memory, the size will be rounded up to >= chunk size; This will cause
 // small (12.5%) internal fragmentation
 //
-// Minimum alignment: 128
-//
 // TODO: option to control chunk alignment
 // TODO: functions for defragmentation/garbage collection
 class SlabAllocator {
   public:
 	static constexpr int min_slabs = 64, max_slabs = 2048;
 	static constexpr int slab_group_size = 64, slab_group_shift = 6;
+	static constexpr int min_alignment = 128;
 
 	static constexpr uint chunkSize(int level) {
 		uint size0 = 256u << (level >> 1);
@@ -101,6 +100,7 @@ class SlabAllocator {
 
 		List not_full_groups;
 		uint chunk_size;
+
 		int chunks_per_group;
 		int bits_64_per_group;
 		int slabs_per_group;
@@ -121,5 +121,4 @@ class SlabAllocator {
 	int m_slabs_per_zone;
 	int m_groups_per_zone;
 };
-
 }

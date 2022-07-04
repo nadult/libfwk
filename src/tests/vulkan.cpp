@@ -10,6 +10,7 @@
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/gfx/shader_compiler.h>
 #include <fwk/io/file_system.h>
+#include <fwk/slab_allocator.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_buffer.h>
@@ -107,7 +108,6 @@ struct MyVertex {
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
-	Dynamic<VulkanFrameAllocator> frame_alloc;
 	PVPipeline pipeline;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
@@ -162,7 +162,8 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
-	EXPECT(ctx.frame_alloc->alloc(buffer, VMemoryFlag::device_local));
+	auto &frame_alloc = ctx.device->renderGraph().frameAllocator();
+	EXPECT(frame_alloc.alloc(buffer, VMemoryFlag::device_local));
 	return buffer;
 }
 
@@ -174,12 +175,9 @@ struct UBOData {
 Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
 	auto usage = VBufferUsage::uniform_buffer | VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(VulkanBuffer::create<UBOData>(ctx.device, 1, usage));
-	auto mem_req = buffer->memoryRequirements();
 	// Makes no sense to put it on device local, staging buffer shouldn't be needed either
-	auto mem_flags = VMemoryFlag::device_local;
-	auto memory =
-		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
-	EXPECT(buffer->bindMemory(memory));
+	auto &frame_alloc = ctx.device->renderGraph().frameAllocator();
+	EXPECT(frame_alloc.alloc(buffer, VMemoryFlag::device_local));
 	return buffer;
 }
 
@@ -193,7 +191,6 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	auto &render_graph = ctx.device->renderGraph();
 
 	EXPECT(render_graph.beginFrame());
-	ctx.frame_alloc->startFrame(render_graph.frameIndex());
 
 	vector<MyVertex> vertices;
 	vertices.reserve(rects.size() * 6);
@@ -329,21 +326,22 @@ void memoryAllocTest(VDeviceRef device) {
 	printf("Allocation times : Free times\n");
 	for(auto flags : mem_types) {
 		u64 max_size = 4096;
-		if(auto mem_type = phys_info.findMemoryType(~0u, flags)) {
-			int heap_index = phys_info.mem_properties.memoryTypes[*mem_type].heapIndex;
-			auto heap_size = phys_info.mem_properties.memoryHeaps[heap_index].size / (1024 * 1024);
-			max_size = min(max_size, heap_size);
-		}
+		auto mem_type = phys_info.findMemoryType(~0u, flags);
+		if(mem_type == -1)
+			continue;
+		int heap_index = phys_info.mem_properties.memoryTypes[mem_type].heapIndex;
+		auto heap_size = phys_info.mem_properties.memoryHeaps[heap_index].size / (1024 * 1024);
+		max_size = min(max_size, heap_size);
 
 		for(u64 size = 1; size <= max_size; size *= 2) {
-			printf("flags=%s size=%4dM : ", toString(flags).c_str(), size);
+			printf("flags=%s size=%4lluM : ", toString(flags).c_str(), size);
 			bool failed = false;
 			int max_n = max(4, 24 / max<int>(1, size / 512));
 			for(int n = 0; n < max_n; n++) {
 				auto start_time = getTime();
 				double alloc_time, free_time;
 				{
-					auto mem = device->allocDeviceMemory(size * 1024 * 1024, ~0u, flags);
+					auto mem = device->allocDeviceMemory(size * 1024 * 1024, mem_type);
 					alloc_time = getTime();
 					if(!mem) {
 						printf("FAILED");
@@ -395,7 +393,7 @@ Ex<int> exMain() {
 
 	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
-	ctx.frame_alloc.emplace(device);
+	ctx.device->renderGraph().initFrameAllocator(256 * 1024);
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));

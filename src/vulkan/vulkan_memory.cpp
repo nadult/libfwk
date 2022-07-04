@@ -10,6 +10,28 @@
 
 namespace fwk {
 
+VulkanAllocator::VulkanAllocator(VDeviceRef device, VMemoryDomain domain)
+	: m_device(&*device), m_device_handle(device), m_memory_type(device->info(domain).type_index) {}
+VulkanAllocator::~VulkanAllocator() = default;
+
+Ex<VulkanAllocator::Allocation> VulkanAllocator::alloc(u64 size, uint alignment) {
+	if(alignment > SlabAllocator::min_alignment) {
+		// TODO: 256 in most cases is achievable
+		EXPECT("TODO: add support for greater alignment");
+	}
+
+	auto [chunk, alloc] = m_slabs.alloc(size);
+	if(alloc.zone_id >= m_device_mem.size()) {
+		DASSERT(alloc.zone_id == m_device_mem.size());
+		auto mem = EX_PASS(m_device->allocDeviceMemory(m_slabs.zoneSize(), m_memory_type));
+		m_device_mem.emplace_back(move(mem));
+	}
+	return Allocation{
+		.chunk = chunk, .mem_handle = m_device_mem[alloc.zone_id], .mem_offset = alloc.zone_offset};
+}
+
+void VulkanAllocator::free(Chunk chunk) { m_slabs.free(chunk); }
+
 VulkanFrameAllocator::VulkanFrameAllocator(VDeviceRef device, u64 base_size)
 	: m_device(&*device), m_device_handle(device), m_base_size(base_size) {
 	const auto &phys_info = VulkanInstance::ref()->info(device->physId());
@@ -60,7 +82,7 @@ Ex<void> VulkanFrameAllocator::alloc(PVBuffer buffer, VMemoryFlags flags) {
 	u64 aligned_offset = alignOffset(pool.offset, alignment_mask);
 	if(aligned_offset + req_size > pool.size) {
 		u64 new_size = max(pool.size * 2, m_base_size, aligned_offset + req_size);
-		auto new_mem = EX_PASS(m_device->allocDeviceMemory(new_size, 1u << pool_index, pool.flags));
+		auto new_mem = EX_PASS(m_device->allocDeviceMemory(new_size, pool_index));
 		pool.size = new_mem->size();
 		pool.memory = new_mem;
 		pool.offset = 0;
