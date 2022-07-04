@@ -283,11 +283,14 @@ VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef
 		 VMemoryFlag::device_local | VMemoryFlag::host_visible}};
 
 	for(auto domain : all<VMemoryDomain>) {
-		int type_id = info.findMemoryType(~0u, domain_flags[domain]);
+		int type_index = info.findMemoryType(~0u, domain_flags[domain]);
+		int heap_index = -1;
 		u64 heap_size = 0;
-		if(type_id != -1)
-			heap_size = mem_info.memoryHeaps[mem_info.memoryTypes[type_id].heapIndex].size;
-		m_mem_domains[domain] = {type_id, heap_size};
+		if(type_index != -1) {
+			heap_index = mem_info.memoryTypes[type_index].heapIndex;
+			heap_size = mem_info.memoryHeaps[heap_index].size;
+		}
+		m_mem_domains[domain] = {type_index, heap_index, heap_size};
 	}
 }
 
@@ -307,24 +310,31 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 		queue_cis.emplace_back(ci);
 	}
 
-	vector<const char *> exts = transform(setup.extensions, [](auto &str) { return str.c_str(); });
-	auto swap_chain_ext = "VK_KHR_swapchain";
-	if(!anyOf(setup.extensions, swap_chain_ext))
-		exts.emplace_back("VK_KHR_swapchain");
+	const auto &phys_info = m_instance_ref->info(m_phys_id);
+	auto exts = setup.extensions;
+	exts.emplace_back("VK_KHR_swapchain");
+	if(anyOf(phys_info.extensions, "VK_EXT_memory_budget")) {
+		m_features |= VDeviceFeature::memory_budget;
+		exts.emplace_back("VK_EXT_memory_budget");
+		if(m_instance_ref->version() < VulkanVersion{1, 1, 0})
+			exts.emplace_back("VK_KHR_get_physical_device_properties2");
+	}
+	makeSortedUnique(exts);
 
 	VkPhysicalDeviceFeatures features{};
 	if(setup.features)
 		features = *setup.features;
 
+	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	ci.pQueueCreateInfos = queue_cis.data();
 	ci.queueCreateInfoCount = queue_cis.size();
 	ci.pEnabledFeatures = &features;
-	ci.enabledExtensionCount = exts.size();
-	ci.ppEnabledExtensionNames = exts.data();
+	ci.enabledExtensionCount = c_exts.size();
+	ci.ppEnabledExtensionNames = c_exts.data();
 
-	m_phys_handle = m_instance_ref->info(m_phys_id).handle;
+	m_phys_handle = phys_info.handle;
 	auto result = vkCreateDevice(m_phys_handle, &ci, nullptr, &m_handle);
 	if(result != VK_SUCCESS)
 		return ERROR("Error during vkCreateDevice: 0x%x", stdFormat("%x", result));
@@ -379,6 +389,29 @@ VulkanDevice::~VulkanDevice() {
 			nextReleasePhase();
 		vkDestroyDevice(m_handle, nullptr);
 	}
+}
+
+auto VulkanDevice::memoryBudget() const -> EnumMap<VMemoryDomain, MemoryBudget> {
+	EnumMap<VMemoryDomain, MemoryBudget> out;
+
+	if(m_features & VDeviceFeature::memory_budget) {
+		VkPhysicalDeviceMemoryBudgetPropertiesEXT budget{
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT};
+		VkPhysicalDeviceMemoryProperties2 props{
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2};
+		props.pNext = &budget;
+		vkGetPhysicalDeviceMemoryProperties2(m_phys_handle, &props);
+
+		for(auto domain : all<VMemoryDomain>) {
+			int type_index = m_mem_domains[domain].type_index;
+			if(type_index != -1) {
+				auto heap_index = m_mem_domains[domain].heap_index;
+				out[domain].heap_budget = budget.heapBudget[heap_index];
+				out[domain].heap_usage = budget.heapUsage[heap_index];
+			}
+		}
+	}
+	return out;
 }
 
 CSpan<Pair<VkQueue, VQueueFamilyId>> VulkanDevice::queues() const { return m_impl->queues; }

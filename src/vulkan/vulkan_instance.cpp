@@ -187,6 +187,7 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.apiVersion =
 		VK_MAKE_API_VERSION(0, setup.version.major, setup.version.minor, setup.version.patch);
+	m_version = setup.version;
 
 	VkInstanceCreateInfo create_info{};
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

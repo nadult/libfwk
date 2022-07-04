@@ -24,6 +24,10 @@ using VCommandId = TagId<VTag::cmd, u32>;
 class VObjectId;
 
 struct VulkanVersion {
+	bool operator<(const VulkanVersion &rhs) const {
+		return tie(major, minor, patch) < tie(rhs.major, rhs.minor, rhs.patch);
+	}
+
 	int major, minor, patch;
 };
 
@@ -68,6 +72,9 @@ DEFINE_ENUM(VertexInputRate, vertex, instance);
 DEFINE_ENUM(VTexFilter, nearest, linear);
 DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 			mirror_clamp_to_edge);
+
+DEFINE_ENUM(VDeviceFeature, memory_budget);
+using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
 // TODO: move to internal
 inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }

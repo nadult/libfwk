@@ -149,11 +149,21 @@ class VulkanDevice {
 
 	struct MemoryDomainInfo {
 		int type_index = -1;
+		int heap_index = -1;
 		u64 heap_size = 0;
 	};
 
+	VDeviceFeatures features() const { return m_features; }
 	bool isAvailable(VMemoryDomain domain) const { return m_mem_domains[domain].type_index != -1; }
 	const MemoryDomainInfo &info(VMemoryDomain domain) const { return m_mem_domains[domain]; }
+
+	struct MemoryBudget {
+		i64 heap_budget = -1;
+		i64 heap_usage = -1;
+	};
+
+	// Will return -1 if budget extension is not available
+	EnumMap<VMemoryDomain, MemoryBudget> memoryBudget() const;
 
 	template <class THandle, class... Args>
 	VPtr<THandle> createObject(THandle handle, Args &&...args) {
@@ -192,6 +202,7 @@ class VulkanDevice {
 	Dynamic<Impl> m_impl;
 	Dynamic<VulkanRenderGraph> m_render_graph;
 
+	VDeviceFeatures m_features;
 	EnumMap<VMemoryDomain, MemoryDomainInfo> m_mem_domains;
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;

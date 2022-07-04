@@ -131,6 +131,7 @@ class VulkanInstance {
 	Ex<VDeviceRef> createDevice(VPhysicalDeviceId, const VulkanDeviceSetup &);
 
 	VkInstance handle() { return m_handle; }
+	auto version() const { return m_version; }
 
   private:
 	friend class VulkanStorage;
@@ -143,6 +144,7 @@ class VulkanInstance {
 	VulkanInstance(const VulkanInstance &) = delete;
 	void operator=(const VulkanInstance &) = delete;
 
+	VulkanVersion m_version;
 	VkInstance m_handle = nullptr;
 	VkDebugUtilsMessengerEXT m_messenger = nullptr;
 	vector<VulkanPhysicalDeviceInfo> m_phys_devices;
