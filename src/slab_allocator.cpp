@@ -11,6 +11,13 @@
 
 namespace fwk {
 
+static int findClosestChunk(u32 size) {
+	int level0 = (31 - countLeadingZeros((size - 1) >> 8));
+	u32 value0 = 256u << level0;
+	u32 value = value0 + (value0 >> 1);
+	return (level0 << 1) + (size > value ? 2 : 1);
+}
+
 SlabAllocator::SlabAllocator(u64 slab_size, u64 zone_size)
 	: m_slab_size(slab_size), m_zone_size(zone_size) {
 	DASSERT(zone_size % slab_size == 0);
@@ -21,7 +28,7 @@ SlabAllocator::SlabAllocator(u64 slab_size, u64 zone_size)
 	m_slabs_per_zone = num_slabs;
 	m_groups_per_zone = num_slabs / slab_group_size;
 
-	for(int l : intRange(num_levels)) {
+	for(int l : intRange(num_chunk_levels)) {
 		auto &level = m_levels[l];
 		level.chunk_size = chunkSize(l);
 
@@ -36,17 +43,84 @@ SlabAllocator::SlabAllocator(u64 slab_size, u64 zone_size)
 			level.slabs_per_group++;
 		}
 
-		/*printf("SlabAllocator level %3d: chunk_size:%u group_size:%lluK chunks/group:%d "
+		level.bits_64_per_group = (level.chunks_per_group + 63) >> 6;
+		DASSERT_LE(level.chunks_per_group, max_chunks_per_group);
+		printf("SlabAllocator level %3d: chunk_size:%u group_size:%lluK chunks/group:%d "
 			   "slabs/group:%d waste:%f\n",
 			   l, level.chunk_size, m_slab_size * level.slabs_per_group / 1024,
-			   level.chunks_per_group, level.slabs_per_group, waste);*/
+			   level.chunks_per_group, level.slabs_per_group, waste);
 	}
+
+	for(int l = 0; l < num_chunk_levels; l++)
+		DASSERT_EQ(findBestChunkLevel(chunkSize(l)), l);
 }
 
 SlabAllocator::~SlabAllocator() = default;
 
+#define GROUP_ACCESSOR [&](int idx) -> ListNode & { return level.groups[idx].node; }
+
+void SlabAllocator::addChunkGroup(ChunkLevel &level) {
+	auto [zone_id, slab_offset] = allocSlabs(level.slabs_per_group);
+	int group_index = level.groups.size();
+	level.groups.emplace_back(ChunkGroup{.num_free_chunks = level.chunks_per_group,
+										 .slab_offset = u16(slab_offset),
+										 .zone_id = u16(zone_id)});
+	level.chunks.resize(level.groups.size() * level.bits_64_per_group, 0ull);
+	listInsert(GROUP_ACCESSOR, level.not_full_groups, group_index);
+}
+
+// Here we assume that bits are not empty
 constexpr int findLastBit(u64 bits) { return __builtin_clzll(bits); }
 constexpr int findFirstBit(u64 bits) { return __builtin_ctzll(bits); }
+
+auto SlabAllocator::alloc(u32 size) -> Pair<Chunk, Allocation> {
+	DASSERT_LE(size, maxAllocationSize());
+	int level_id = findBestChunkLevel(size);
+	auto &level = m_levels[level_id];
+
+	if(level.not_full_groups.empty())
+		addChunkGroup(level);
+
+	int group_id = level.not_full_groups.head;
+	auto &group = level.groups[group_id];
+	if(--group.num_free_chunks == 0) {
+		level.not_full_groups.head = group.node.next;
+		if(level.not_full_groups.tail == group_id)
+			level.not_full_groups.tail = -1;
+		group.node = {};
+	}
+
+	int chunk_id = -1;
+	u64 *chunk_bits = &level.chunks[group_id * level.bits_64_per_group];
+	for(int i = 0; i < level.bits_64_per_group; i++)
+		if(chunk_bits[i] != ~0ull) {
+			int bit = findFirstBit(~chunk_bits[i]);
+			chunk_bits[i] |= 1ull << bit;
+			chunk_id = (i << 6) + bit;
+		}
+	DASSERT(chunk_id != 1 && chunk_id < level.chunks_per_group);
+
+	Chunk chunk(chunk_id, group_id, level_id);
+	uint zone_offset = uint(group.slab_offset * m_slab_size) + uint(chunk_id) * level.chunk_size;
+	Allocation alloc{group.zone_id, zone_offset};
+	return {chunk, alloc};
+}
+
+void SlabAllocator::free(Chunk chunk) {
+	DASSERT_LT(chunk.levelId(), num_chunk_levels);
+	int group_id = chunk.groupId();
+	int chunk_id = chunk.chunkId();
+	auto &level = m_levels[chunk.levelId()];
+	auto &group = level.groups[group_id];
+
+	if(++group.num_free_chunks == 1)
+		listInsert(GROUP_ACCESSOR, level.not_full_groups, group_id);
+	level.chunks[group_id * level.bits_64_per_group + (chunk_id >> 6)] |= 1ull << (chunk_id & 63);
+
+	// TODO: free unused groups
+}
+
+#undef GROUP_ACCESSOR
 
 // Returns index of first bit from a string of at least N bits or -1
 int findNBits(u64 bits, int n) {
@@ -131,6 +205,8 @@ Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 }
 
 void SlabAllocator::addZone() {
+	DASSERT_LE(m_zones.size(), max_zones);
+
 	int zone_offset = m_zone_groups.size() * m_groups_per_zone;
 	Zone new_zone;
 	new_zone.num_free_slabs = m_slabs_per_zone;
