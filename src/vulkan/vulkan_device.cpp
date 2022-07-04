@@ -241,18 +241,18 @@ Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {
 	return m_render_graph->initialize(ref(), swap_chain);
 }
 
-static constexpr int slab_size = 32;
-static constexpr int slab_size_log2 = 5;
+static constexpr int pool_size = 32;
+static constexpr int pool_size_log2 = 5;
 
-template <class T> struct SlabData {
-	std::aligned_storage_t<sizeof(T), alignof(T)> objects[slab_size];
+template <class T> struct PoolData {
+	std::aligned_storage_t<sizeof(T), alignof(T)> objects[pool_size];
 };
 
 struct VulkanDevice::Impl {
-	// TODO: trim empty unused slabs from time to time we can't move them around, but we can free the slab and
-	// leave nullptr in slab array. Maybe just delete slab data every time when it's usage_bits are empty?
+	// TODO: trim empty unused pools from time to time we can't move them around, but we can free the pool and
+	// leave nullptr in pool array. Maybe just delete pool data every time when it's usage_bits are empty?
 
-	struct Slab {
+	struct Pool {
 		u32 usage_bits = 0;
 		void *data = nullptr;
 	};
@@ -263,8 +263,8 @@ struct VulkanDevice::Impl {
 		ReleaseFunc func;
 	};
 
-	EnumMap<VTypeId, vector<Slab>> slabs;
-	EnumMap<VTypeId, vector<u32>> fillable_slabs;
+	EnumMap<VTypeId, vector<Pool>> pools;
+	EnumMap<VTypeId, vector<u32>> fillable_pools;
 	array<vector<DeferredRelease>, max_defer_frames + 1> to_release;
 
 	// TODO: signify which queue is for what?
@@ -350,10 +350,10 @@ VulkanDevice::~VulkanDevice() {
 #ifndef NDEBUG
 	bool errors = false;
 	for(auto type_id : all<VTypeId>) {
-		auto &slabs = m_impl->slabs[type_id];
+		auto &pools = m_impl->pools[type_id];
 		uint num_objects = 0;
-		for(int i : intRange(slabs)) {
-			auto usage_bits = slabs[i].usage_bits;
+		for(int i : intRange(pools)) {
+			auto usage_bits = pools[i].usage_bits;
 			if(i == 0)
 				usage_bits &= ~1u;
 			num_objects += countBits(usage_bits);
@@ -401,24 +401,24 @@ void VulkanDevice::nextReleasePhase() {
 template <class TObject> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 	auto type_id = VulkanTypeInfo<TObject>::type_id;
 
-	auto &slabs = m_impl->slabs[type_id];
-	auto &slab_list = m_impl->fillable_slabs[type_id];
-	if(slab_list.empty()) {
-		u32 slab_id = u32(slabs.size());
-		slab_list.emplace_back(slab_id);
+	auto &pools = m_impl->pools[type_id];
+	auto &pool_list = m_impl->fillable_pools[type_id];
+	if(pool_list.empty()) {
+		u32 pool_id = u32(pools.size());
+		pool_list.emplace_back(pool_id);
 
 		// Object index 0 is reserved as invalid
-		u32 usage_bits = slab_id == 0 ? 1u : 0u;
-		slabs.emplace_back(usage_bits, new SlabData<TObject>);
+		u32 usage_bits = pool_id == 0 ? 1u : 0u;
+		pools.emplace_back(usage_bits, new PoolData<TObject>);
 	}
 
-	int slab_idx = slab_list.back();
-	auto &slab = slabs[slab_idx];
-	int local_idx = countTrailingZeros(~slab.usage_bits);
-	slab.usage_bits |= (1u << local_idx);
-	int object_id = local_idx + (slab_idx << slab_size_log2);
-	auto *slab_data = reinterpret_cast<SlabData<TObject> *>(slab.data);
-	return {&slab_data->objects[local_idx], VObjectId(m_id, object_id)};
+	int pool_idx = pool_list.back();
+	auto &pool = pools[pool_idx];
+	int local_idx = countTrailingZeros(~pool.usage_bits);
+	pool.usage_bits |= (1u << local_idx);
+	int object_id = local_idx + (pool_idx << pool_size_log2);
+	auto *pool_data = reinterpret_cast<PoolData<TObject> *>(pool.data);
+	return {&pool_data->objects[local_idx], VObjectId(m_id, object_id)};
 }
 
 template <class TObject> void VulkanDevice::destroyObject(VulkanObjectBase<TObject> *ptr) {
@@ -427,12 +427,12 @@ template <class TObject> void VulkanDevice::destroyObject(VulkanObjectBase<TObje
 
 	reinterpret_cast<TObject *>(ptr)->~TObject();
 
-	uint local_idx = object_idx & ((1 << slab_size_log2) - 1);
-	uint slab_idx = object_idx >> slab_size_log2;
-	auto &slab = m_impl->slabs[type_id][slab_idx];
-	if(slab.usage_bits == ~0u)
-		m_impl->fillable_slabs[type_id].emplace_back(slab_idx);
-	slab.usage_bits &= ~(1u << local_idx);
+	uint local_idx = object_idx & ((1 << pool_size_log2) - 1);
+	uint pool_idx = object_idx >> pool_size_log2;
+	auto &pool = m_impl->pools[type_id][pool_idx];
+	if(pool.usage_bits == ~0u)
+		m_impl->fillable_pools[type_id].emplace_back(pool_idx);
+	pool.usage_bits &= ~(1u << local_idx);
 }
 
 template <class T> void VulkanObjectBase<T>::destroyObject() {
