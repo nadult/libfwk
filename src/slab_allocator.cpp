@@ -73,8 +73,16 @@ void SlabAllocator::addChunkGroup(ChunkLevel &level) {
 constexpr int findLastBit(u64 bits) { return __builtin_clzll(bits); }
 constexpr int findFirstBit(u64 bits) { return __builtin_ctzll(bits); }
 
-auto SlabAllocator::alloc(u32 size) -> Pair<Chunk, Allocation> {
-	DASSERT_LE(size, maxAllocationSize());
+auto SlabAllocator::alloc(u32 size) -> Pair<Identifier, Allocation> {
+	DASSERT_LE(size, m_zone_size);
+
+	if(size > maxChunkSize()) {
+		int num_slabs = (size + m_slab_size - 1) / m_slab_size;
+		auto [zone_id, slab_id] = allocSlabs(num_slabs);
+		u64 zone_offset = u64(slab_id) * m_slab_size;
+		return {Identifier(slab_id, num_slabs, zone_id), Allocation{uint(zone_id), zone_offset}};
+	}
+
 	int level_id = findBestChunkLevel(size);
 	auto &level = m_levels[level_id];
 
@@ -100,22 +108,30 @@ auto SlabAllocator::alloc(u32 size) -> Pair<Chunk, Allocation> {
 		}
 	DASSERT(chunk_id != 1 && chunk_id < level.chunks_per_group);
 
-	Chunk chunk(chunk_id, group_id, level_id);
-	uint zone_offset = uint(group.slab_offset * m_slab_size) + uint(chunk_id) * level.chunk_size;
+	Identifier ident(chunk_id, group_id, level_id, 0);
+	u64 zone_offset = u64(group.slab_offset * m_slab_size) + u64(chunk_id) * level.chunk_size;
 	Allocation alloc{group.zone_id, zone_offset};
-	return {chunk, alloc};
+	return {ident, alloc};
 }
 
-void SlabAllocator::free(Chunk chunk) {
-	DASSERT_LT(chunk.levelId(), num_chunk_levels);
-	int group_id = chunk.groupId();
-	int chunk_id = chunk.chunkId();
-	auto &level = m_levels[chunk.levelId()];
-	auto &group = level.groups[group_id];
+void SlabAllocator::free(Identifier ident) {
+	if(ident.isChunkAlloc()) {
+		int level_id = ident.chunkLevelId(), group_id = ident.chunkGroupId();
+		int chunk_id = ident.chunkId();
+		DASSERT_LT(level_id, num_chunk_levels);
 
-	if(++group.num_free_chunks == 1)
-		listInsert(GROUP_ACCESSOR, level.not_full_groups, group_id);
-	level.chunks[group_id * level.bits_64_per_group + (chunk_id >> 6)] |= 1ull << (chunk_id & 63);
+		auto &level = m_levels[level_id];
+		auto &group = level.groups[group_id];
+
+		if(++group.num_free_chunks == 1)
+			listInsert(GROUP_ACCESSOR, level.not_full_groups, group_id);
+		uint bits_idx = group_id * level.bits_64_per_group + (chunk_id >> 6);
+		level.chunks[bits_idx] |= 1ull << (chunk_id & 63);
+	} else {
+		int slab_id = ident.slabId(), zone_id = ident.slabZoneId();
+		int num_slabs = ident.slabCount();
+		clearSlabs(zone_id, slab_id, num_slabs);
+	}
 
 	// TODO: free unused groups
 }

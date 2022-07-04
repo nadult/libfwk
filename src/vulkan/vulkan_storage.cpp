@@ -12,7 +12,7 @@
 namespace fwk {
 
 #if VK_USE_64_BIT_PTR_DEFINES == 0
-#error VPtr<> conversion to VkHandle won't work correctly;; TODO: fix it
+#error VPtr<> conversion to VkHandle won't work correctly; TODO: fix it
 #endif
 
 VulkanStorage g_vk_storage;

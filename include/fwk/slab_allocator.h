@@ -11,15 +11,20 @@ namespace fwk {
 // Memory in this allocator is organized in large (64 - 512MB) zones
 // Each zone contains multiple (1 - 32) groups and each group contains 64 slabs.
 //
-// Those slabs are then divided or merged to allocate chunks. Chunks can have a wide
-// range in size, starting from 256 going even up to several MB.
-// Single slab can contain many small chunks, but to allocate single large chunk, we
-// might need to allocate many slabs.
+// Slab has a fixed size (typically 256K). User can allocate continous range composed of
+// multiple slabs or smaller chunks.
 //
-// Supported chunk sizes: 256, 384, 512, 768, 1024, 1536, ..., 2MB, 3MB, 4MB, 6MB, 8MB
+// Chunks can have a wide range in size, starting from 256 going up to 1.5 times slab size.
+// Chunk allocator automatically allocates slabs in the background. To be able to allocate
+// chunks of a given size at least one slab has to be allocated (for some sizes up to 3 slabs
+// are allocated to minimize waste per chunk).
+//
+// Supported chunk sizes: 256, 384, 512, 768, 1024, 1536, ..., 256K, 384K
 // When allocating memory, the size will be rounded up to >= chunk size; This will cause
 // small (12.5%) internal fragmentation
 //
+// TODO: review docs
+// TODO: zones should be able to have different sizes?
 // TODO: option to control chunk alignment
 // TODO: functions for defragmentation/garbage collection
 class SlabAllocator {
@@ -41,12 +46,13 @@ class SlabAllocator {
 		return (level0 << 1) + (size > value ? 2 : 1);
 	}
 
-	static constexpr int num_chunk_levels = 31;
+	static constexpr int num_chunk_levels = 22;
 	// Adjust if necessary
 	static constexpr int max_chunks_per_group = 1024;
-	static constexpr int max_chunk_groups = 128 * 1024;
-	static constexpr int max_zones = 64 * 1024;
-	static constexpr u64 maxAllocationSize() { return chunkSize(num_chunk_levels - 1); }
+	static constexpr int max_chunk_groups = 64 * 1024;
+	static constexpr int max_zones = 1024;
+
+	static constexpr uint maxChunkSize() { return chunkSize(num_chunk_levels - 1); }
 
 	// TODO: consider turning these into template params
 	SlabAllocator(u64 slab_size = 256 * 1024, u64 zone_size = 128 * 1024 * 1024);
@@ -54,26 +60,39 @@ class SlabAllocator {
 
 	u64 zoneSize() const { return m_zone_size; }
 
-	struct Chunk {
-		Chunk(int chunk_id, int group_id, int level_id)
-			: value(u32(chunk_id) | u32((group_id) << 10) | (u32(level_id) << 27)) {
+	struct Identifier {
+		Identifier(int chunk_id, int group_id, int level_id, int)
+			: value(u32(chunk_id) | u32((group_id) << 10) | (u32(level_id) << 26) | 0x80000000u) {
 			PASSERT(chunk_level >= 0 && chunk_level < num_chunk_levels);
 			PASSERT(chunk_id >= 0 && chunk_id < max_chunks_per_group);
 		}
+		Identifier(int slab_id, int slab_count, int zone_id)
+			: value(u32(slab_id) | (u32(slab_count - 1) << 11) | (u32(zone_id) << 22)) {
+			PASSERT(slab_id >= 0 && slab_id < max_slabs);
+			PASSERT(slab_count >= 1 && slab_count <= max_slabs);
+			PASSERT(zone_id >= 0 && zone_id < max_zones);
+		}
 
+		bool isChunkAlloc() const { return value & 0x80000000; }
 		int chunkId() const { return int(value & 0x3ff); }
-		int groupId() const { return int((value >> 10) & 0x1ffff); }
-		int levelId() const { return int(value >> 27); }
+		int chunkGroupId() const { return int((value >> 10) & 0x1ffff); }
+		int chunkLevelId() const { return int(value >> 26); }
+
+		bool isSlabAlloc() const { return !isChunkAlloc(); }
+		int slabId() const { return int(value & 0x7ff); }
+		int slabCount() const { return int((value >> 11) & 0x7ff) + 1; }
+		int slabZoneId() const { return int(value >> 22); }
 
 		u32 value;
 	};
 
 	struct Allocation {
-		uint zone_id, zone_offset;
+		uint zone_id;
+		u64 zone_offset;
 	};
 
-	Pair<Chunk, Allocation> alloc(u32 size);
-	void free(Chunk);
+	Pair<Identifier, Allocation> alloc(u32 size);
+	void free(Identifier);
 
 	// TODO: stats functions
 

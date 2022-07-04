@@ -17,15 +17,15 @@ class VulkanAllocator {
 	VulkanAllocator(VDeviceRef, VMemoryDomain);
 	~VulkanAllocator();
 
-	using Chunk = SlabAllocator::Chunk;
+	using Identifier = SlabAllocator::Identifier;
 	struct Allocation {
-		Chunk chunk;
+		Identifier identifier;
 		VkDeviceMemory mem_handle;
-		uint mem_offset;
+		u64 mem_offset;
 	};
 
 	Ex<Allocation> alloc(u64 size, uint alignment);
-	void free(Chunk);
+	void free(Identifier); // TODO: defer list
 
   private:
 	VulkanDevice *m_device;

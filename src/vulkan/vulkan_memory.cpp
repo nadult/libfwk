@@ -20,17 +20,16 @@ Ex<VulkanAllocator::Allocation> VulkanAllocator::alloc(u64 size, uint alignment)
 		EXPECT("TODO: add support for greater alignment");
 	}
 
-	auto [chunk, alloc] = m_slabs.alloc(size);
+	auto [identifier, alloc] = m_slabs.alloc(size);
 	if(alloc.zone_id >= m_device_mem.size()) {
 		DASSERT(alloc.zone_id == m_device_mem.size());
 		auto mem = EX_PASS(m_device->allocDeviceMemory(m_slabs.zoneSize(), m_memory_type));
 		m_device_mem.emplace_back(move(mem));
 	}
-	return Allocation{
-		.chunk = chunk, .mem_handle = m_device_mem[alloc.zone_id], .mem_offset = alloc.zone_offset};
+	return Allocation{identifier, m_device_mem[alloc.zone_id], alloc.zone_offset};
 }
 
-void VulkanAllocator::free(Chunk chunk) { m_slabs.free(chunk); }
+void VulkanAllocator::free(Identifier ident) { m_slabs.free(ident); }
 
 VulkanFrameAllocator::VulkanFrameAllocator(VDeviceRef device, VMemoryDomain domain, u64 base_size)
 	: m_device(&*device), m_device_handle(device), m_base_size(base_size) {
