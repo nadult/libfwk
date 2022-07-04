@@ -23,7 +23,8 @@ Ex<VulkanAllocator::Allocation> VulkanAllocator::alloc(u64 size, uint alignment)
 	auto [identifier, alloc] = m_slabs.alloc(size);
 	if(alloc.zone_id >= m_device_mem.size()) {
 		DASSERT(alloc.zone_id == m_device_mem.size());
-		auto mem = EX_PASS(m_device->allocDeviceMemory(m_slabs.zoneSize(), m_memory_type));
+		auto zone_size = m_slabs.zones()[alloc.zone_id].size;
+		auto mem = EX_PASS(m_device->allocDeviceMemory(zone_size, m_memory_type));
 		m_device_mem.emplace_back(move(mem));
 	}
 	return Allocation{identifier, m_device_mem[alloc.zone_id], alloc.zone_offset};
