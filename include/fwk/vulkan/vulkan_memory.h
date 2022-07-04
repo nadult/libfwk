@@ -42,22 +42,28 @@ class VulkanFrameAllocator {
 	static constexpr int max_memory_types = 32;
 	static constexpr int max_frames = 2;
 
-	VulkanFrameAllocator(VDeviceRef, u64 base_size = 64 * 1024);
+	VulkanFrameAllocator(VDeviceRef, VMemoryDomain, u64 base_size = 64 * 1024);
 	FWK_MOVABLE_CLASS(VulkanFrameAllocator);
 
 	void startFrame(int frame_idx); // TODO: name
-	Ex<void> alloc(PVBuffer, VMemoryFlags);
+
+	struct Allocation {
+		PVDeviceMemory memory;
+		u64 offset;
+	};
+	Ex<Allocation> alloc(u64 size, uint alignment);
+	Ex<void> alloc(PVBuffer);
 
 	struct Pool {
 		PVDeviceMemory memory;
-		VMemoryFlags flags = none;
 		u64 offset = 0, size = 0;
 	};
 
   private:
 	VulkanDevice *m_device;
 	VkDevice m_device_handle;
-	array<vector<Pool>, max_frames> m_pools;
+	uint m_memory_type_index;
+	array<Pool, max_frames> m_pools;
 	int m_frame_idx = -1;
 	u64 m_base_size;
 };

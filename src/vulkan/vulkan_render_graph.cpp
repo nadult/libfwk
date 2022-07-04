@@ -81,7 +81,9 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 
 void VulkanRenderGraph::initFrameAllocator(u64 base_size) {
 	DASSERT(!m_frame_allocator);
-	m_frame_allocator.emplace(m_device.ref(), base_size);
+	bool temp_available = m_device.isAvailable(VMemoryDomain::temporary);
+	auto mem_domain = temp_available ? VMemoryDomain::temporary : VMemoryDomain::host;
+	m_frame_allocator.emplace(m_device.ref(), mem_domain, base_size);
 }
 
 Ex<void> VulkanRenderGraph::beginFrame() {

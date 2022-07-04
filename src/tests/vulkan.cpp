@@ -163,7 +163,7 @@ Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
 	auto &frame_alloc = ctx.device->renderGraph().frameAllocator();
-	EXPECT(frame_alloc.alloc(buffer, VMemoryFlag::device_local));
+	EXPECT(frame_alloc.alloc(buffer));
 	return buffer;
 }
 
@@ -177,7 +177,7 @@ Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
 	auto buffer = EX_PASS(VulkanBuffer::create<UBOData>(ctx.device, 1, usage));
 	// Makes no sense to put it on device local, staging buffer shouldn't be needed either
 	auto &frame_alloc = ctx.device->renderGraph().frameAllocator();
-	EXPECT(frame_alloc.alloc(buffer, VMemoryFlag::device_local));
+	EXPECT(frame_alloc.alloc(buffer));
 	return buffer;
 }
 

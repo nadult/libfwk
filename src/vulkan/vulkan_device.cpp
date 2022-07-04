@@ -161,15 +161,15 @@ Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	return createObject(handle);
 }
 
-Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, uint type_id) {
-	const auto &type_props = m_instance_ref->info(m_phys_id).mem_properties.memoryTypes[type_id];
+Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, uint memory_type_index) {
+	const auto *mem_types = m_instance_ref->info(m_phys_id).mem_properties.memoryTypes;
 	VMemoryFlags flags;
-	flags.bits = (type_props.propertyFlags) & VMemoryFlags::mask;
+	flags.bits = (mem_types[memory_type_index].propertyFlags) & VMemoryFlags::mask;
 
 	VkMemoryAllocateInfo ai{};
 	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	ai.allocationSize = size;
-	ai.memoryTypeIndex = type_id;
+	ai.memoryTypeIndex = memory_type_index;
 	VkDeviceMemory handle;
 	if(vkAllocateMemory(m_handle, &ai, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkAllocateMemory failed");

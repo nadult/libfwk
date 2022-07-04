@@ -132,7 +132,7 @@ class VulkanDevice {
 	Ex<PVFence> createFence(bool is_signaled = false);
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
 	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, VCommandPoolFlags);
-	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, uint memory_type_id);
+	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, uint memory_type_index);
 	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
 	Ex<PVSampler> createSampler(const VSamplingParams &);
 	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);
@@ -152,6 +152,7 @@ class VulkanDevice {
 		u64 heap_size = 0;
 	};
 
+	bool isAvailable(VMemoryDomain domain) const { return m_mem_domains[domain].type_index != -1; }
 	const MemoryDomainInfo &info(VMemoryDomain domain) const { return m_mem_domains[domain]; }
 
 	template <class THandle, class... Args>
