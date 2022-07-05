@@ -19,9 +19,65 @@
 // TODO: proprly differentiate between graphics, present & compute queues
 
 namespace fwk {
+
+static Ex<VkCommandBuffer> allocCommandBuffer(VkDevice device, VkCommandPool pool) {
+	VkCommandBufferAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	ai.commandPool = pool;
+	ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	ai.commandBufferCount = 1;
+	VkCommandBuffer handle;
+	if(vkAllocateCommandBuffers(device, &ai, &handle) != VK_SUCCESS)
+		return ERROR("vkAllocateCommandBuffers failed");
+	return handle;
+}
+
+static Ex<VkSemaphore> createSemaphore(VkDevice device, bool is_signaled = false) {
+	VkSemaphore handle;
+	VkSemaphoreCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	if(vkCreateSemaphore(device, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("Failed to create semaphore");
+	return handle;
+}
+
+static Ex<VkFence> createFence(VkDevice device, bool is_signaled = false) {
+	VkFence handle;
+	VkFenceCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	if(vkCreateFence(device, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("Failed to create fence");
+	return handle;
+}
+
+static Ex<VkCommandPool> createCommandPool(VkDevice device, VQueueFamilyId queue_family_id,
+										   VCommandPoolFlags flags) {
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = toVk(flags);
+	poolInfo.queueFamilyIndex = queue_family_id;
+	VkCommandPool handle;
+	if(vkCreateCommandPool(device, &poolInfo, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateCommandPool failed");
+	return handle;
+}
+
 VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device)
-	: m_device(*device), m_device_handle(device){};
-VulkanRenderGraph::~VulkanRenderGraph() = default;
+	: m_device(*device), m_device_handle(device) {}
+
+VulkanRenderGraph::~VulkanRenderGraph() {
+	if(!m_device_handle)
+		return;
+	vkDeviceWaitIdle(m_device_handle);
+	for(auto &frame : m_frames) {
+		vkDestroySemaphore(m_device_handle, frame.image_available_sem, nullptr);
+		vkDestroySemaphore(m_device_handle, frame.render_finished_sem, nullptr);
+		vkDestroyFence(m_device_handle, frame.in_flight_fence, nullptr);
+	}
+	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
+}
 
 Ex<PVRenderPass> VulkanRenderGraph::createRenderPass(VDeviceRef device, PVSwapChain swap_chain) {
 	auto sc_image = swap_chain->imageViews().front()->image();
@@ -68,13 +124,13 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 		m_framebuffers.emplace_back(
 			EX_PASS(VulkanFramebuffer::create(device, cspan(&image_view, 1), m_render_pass)));
 
-	m_command_pool = EX_PASS(device->createCommandPool(
-		queue_family, VCommandPoolFlag::reset_command | VCommandPoolFlag::transient));
+	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
+	m_command_pool = EX_PASS(createCommandPool(m_device_handle, queue_family, pool_flags));
 	for(auto &frame : m_frames) {
-		frame.command_buffer = EX_PASS(m_command_pool->allocBuffer());
-		frame.image_available_sem = EX_PASS(device->createSemaphore());
-		frame.render_finished_sem = EX_PASS(device->createSemaphore());
-		frame.in_flight_fence = EX_PASS(device->createFence(true));
+		frame.command_buffer = EX_PASS(allocCommandBuffer(m_device_handle, m_command_pool));
+		frame.image_available_sem = EX_PASS(createSemaphore(m_device_handle));
+		frame.render_finished_sem = EX_PASS(createSemaphore(m_device_handle));
+		frame.in_flight_fence = EX_PASS(createFence(m_device_handle, true));
 	}
 
 	return {};

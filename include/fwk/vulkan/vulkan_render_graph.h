@@ -130,6 +130,9 @@ class VulkanRenderGraph {
   private:
 	friend class VulkanDevice;
 	VulkanRenderGraph(VDeviceRef);
+	VulkanRenderGraph(const VulkanRenderGraph &) = delete;
+	void operator=(const VulkanRenderGraph &) = delete;
+
 	Ex<void> initialize(VDeviceRef, PVSwapChain);
 	Ex<PVRenderPass> createRenderPass(VDeviceRef, PVSwapChain);
 
@@ -137,7 +140,7 @@ class VulkanRenderGraph {
 	Ex<void> finishFrame();
 
 	struct FrameContext {
-		PVCommandBuffer cmd_buffer;
+		VkCommandBuffer cmd_buffer;
 		VCommandId cmd_id;
 	};
 
@@ -152,22 +155,22 @@ class VulkanRenderGraph {
 	void perform(FrameContext &, const CmdEndRenderPass &);
 
 	struct FrameSync {
-		PVCommandBuffer command_buffer;
-		PVSemaphore image_available_sem;
-		PVSemaphore render_finished_sem;
-		PVFence in_flight_fence;
+		VkCommandBuffer command_buffer = nullptr;
+		VkSemaphore image_available_sem = nullptr;
+		VkSemaphore render_finished_sem = nullptr;
+		VkFence in_flight_fence = nullptr;
 	};
 
 	vector<StagingBuffer> m_staging_buffers;
 	vector<Command> m_commands;
 
 	VulkanDevice &m_device;
-	VkDevice m_device_handle;
+	VkDevice m_device_handle = nullptr;
 	PVSwapChain m_swap_chain;
 	vector<PVFramebuffer> m_framebuffers;
 	FrameSync m_frames[num_swap_frames];
 	PVRenderPass m_render_pass;
-	PVCommandPool m_command_pool;
+	VkCommandPool m_command_pool = nullptr;
 	uint m_frame_index = 0, m_image_index = 0;
 	bool m_frame_in_progress = false;
 };

@@ -24,42 +24,6 @@ struct VulkanDeviceSetup {
 	Dynamic<VkPhysicalDeviceFeatures> features;
 };
 
-class VulkanCommandBuffer : public VulkanObjectBase<VulkanCommandBuffer> {
-  public:
-  private:
-	friend class VulkanDevice;
-	VulkanCommandBuffer(VkCommandBuffer, VObjectId, PVCommandPool);
-	~VulkanCommandBuffer();
-
-	PVCommandPool m_pool;
-};
-
-class VulkanCommandPool : public VulkanObjectBase<VulkanCommandPool> {
-  public:
-	Ex<PVCommandBuffer> allocBuffer();
-
-  private:
-	friend class VulkanDevice;
-	VulkanCommandPool(VkCommandPool, VObjectId);
-	~VulkanCommandPool();
-};
-
-class VulkanFence : public VulkanObjectBase<VulkanFence> {
-  public:
-  private:
-	friend class VulkanDevice;
-	VulkanFence(VkFence, VObjectId);
-	~VulkanFence();
-};
-
-class VulkanSemaphore : public VulkanObjectBase<VulkanSemaphore> {
-  public:
-  private:
-	friend class VulkanDevice;
-	VulkanSemaphore(VkSemaphore, VObjectId);
-	~VulkanSemaphore();
-};
-
 class VulkanDevice {
   public:
 	Ex<void> createRenderGraph(PVSwapChain);
@@ -86,10 +50,7 @@ class VulkanDevice {
 	// ----------  Object management  ------------------------------------------------------------
 
   public:
-	Ex<PVSemaphore> createSemaphore(bool is_signaled = false);
-	Ex<PVFence> createFence(bool is_signaled = false);
 	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
-	Ex<PVCommandPool> createCommandPool(VQueueFamilyId, VCommandPoolFlags);
 	Ex<PVSampler> createSampler(const VSamplingParams &);
 	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);
 

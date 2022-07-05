@@ -22,44 +22,6 @@
 
 namespace fwk {
 
-VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBuffer handle, VObjectId id, PVCommandPool pool)
-	: VulkanObjectBase(handle, id), m_pool(move(pool)) {}
-
-VulkanCommandBuffer ::~VulkanCommandBuffer() {
-	// CommandPool should be destroyed after all CommandBuffers belonging to it
-	deferredHandleRelease(m_handle, m_pool.handle(), [](void *p0, void *p1, VkDevice device) {
-		VkCommandBuffer handles[1] = {(VkCommandBuffer)p0};
-		vkFreeCommandBuffers(device, (VkCommandPool)p1, 1, handles);
-	});
-}
-
-VulkanCommandPool::VulkanCommandPool(VkCommandPool handle, VObjectId id)
-	: VulkanObjectBase(handle, id) {}
-VulkanCommandPool ::~VulkanCommandPool() {
-	deferredHandleRelease<VkCommandPool, vkDestroyCommandPool>();
-}
-
-Ex<PVCommandBuffer> VulkanCommandPool::allocBuffer() {
-	VkCommandBufferAllocateInfo ai{};
-	ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	ai.commandPool = m_handle;
-	ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	ai.commandBufferCount = 1;
-
-	auto device = deviceRef();
-
-	VkCommandBuffer handle;
-	if(vkAllocateCommandBuffers(device, &ai, &handle) != VK_SUCCESS)
-		return ERROR("vkAllocateCommandBuffers failed");
-	return device->createObject(handle, ref());
-}
-
-VulkanFence::VulkanFence(VkFence handle, VObjectId id) : VulkanObjectBase(handle, id) {}
-VulkanFence ::~VulkanFence() { deferredHandleRelease<VkFence, vkDestroyFence>(); }
-
-VulkanSemaphore::VulkanSemaphore(VkSemaphore handle, VObjectId id) : VulkanObjectBase(handle, id) {}
-VulkanSemaphore ::~VulkanSemaphore() { deferredHandleRelease<VkSemaphore, vkDestroySemaphore>(); }
-
 // -------------------------------------------------------------------------------------------
 // ------  Implementation struct declarations  -----------------------------------------------
 
@@ -220,26 +182,6 @@ Ex<void> VulkanDevice::finishFrame() {
 // -------------------------------------------------------------------------------------------
 // ----------  Object management  ------------------------------------------------------------
 
-Ex<PVSemaphore> VulkanDevice::createSemaphore(bool is_signaled) {
-	VkSemaphore handle;
-	VkSemaphoreCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
-	if(vkCreateSemaphore(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("Failed to create semaphore");
-	return createObject(handle);
-}
-
-Ex<PVFence> VulkanDevice::createFence(bool is_signaled) {
-	VkFence handle;
-	VkFenceCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
-	if(vkCreateFence(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("Failed to create fence");
-	return createObject(handle);
-}
-
 Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	VkShaderModuleCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -250,18 +192,6 @@ Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
 	VkShaderModule handle;
 	if(vkCreateShaderModule(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateShaderModule failed");
-	return createObject(handle);
-}
-
-Ex<PVCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id,
-												  VCommandPoolFlags flags) {
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = toVk(flags);
-	poolInfo.queueFamilyIndex = queue_family_id;
-	VkCommandPool handle;
-	if(vkCreateCommandPool(m_handle, &poolInfo, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateCommandPool failed");
 	return createObject(handle);
 }
 

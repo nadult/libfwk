@@ -15,11 +15,6 @@ class SlabAllocator;
 // TODO: add support for dedicated allocation
 // TODO: memory mapping managed here
 
-// Jak zrobiæ bindowanie pamiêci do obiektów i jej mapowanie ?
-//
-// TODO: Teraz muszê jeszcze zrobiæ mapowanie oraz staging buffer
-//
-
 class VulkanMemoryManager {
   public:
 	static constexpr int num_frames = 2;
