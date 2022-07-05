@@ -10,7 +10,6 @@
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
-#include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 
@@ -104,7 +103,6 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 		return ERROR("vkBeginCommandBuffer failed");
 
 	m_frame_in_progress = true;
-	m_device.memory().startFrame(m_frame_index);
 
 	return {};
 }

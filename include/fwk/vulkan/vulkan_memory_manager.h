@@ -41,7 +41,6 @@ class VulkanMemoryManager {
 	// Will return -1 if budget extension is not available
 	EnumMap<VMemoryDomain, Budget> budget() const;
 
-	// Note: frame allocations don't have to be freed
 	struct AllocId {
 		AllocId(VAllocationType type, VMemoryDomain domain, u32 block_id)
 			: type(type), domain(domain), block_id(block_id) {}
@@ -52,16 +51,12 @@ class VulkanMemoryManager {
 		u32 block_id;
 	};
 
+	// TODO: allocation should also return size, because it may return more than was requested
 	struct Allocation {
 		AllocId identifier;
-		// TODO: remove mem_
-		VkDeviceMemory mem_handle;
-		u64 mem_offset;
+		VkDeviceMemory handle;
+		u64 offset;
 	};
-
-	// This should be called directly by RenderGraph::beginFrame()
-	// TODO: name; we don't really need exact frame index
-	void startFrame(int frame_idx);
 
 	Ex<Allocation> alloc(VMemoryDomain, u64 size, uint alignment);
 	Ex<Allocation> unmanagedAlloc(VMemoryDomain, u64 size, uint alignment);
@@ -69,14 +64,22 @@ class VulkanMemoryManager {
 	Ex<Allocation> frameAlloc(u64 size, uint alignment);
 	Ex<void> frameAlloc(PVBuffer);
 
-	void free(AllocId); // TODO: defer list
+	// Note: frame allocations don't have to be freed at all
+	void immediateFree(AllocId);
+	void deferredFree(AllocId);
+
+  private:
+	void beginFrame();
+	friend class VulkanDevice;
 
   private:
 	static u64 slabAlloc(u64, uint, void *);
 
 	struct FrameInfo {
-		PVDeviceMemory memory;
-		u64 offset = 0, size = 0;
+		Maybe<AllocId> alloc_id;
+		VkDeviceMemory handle = nullptr;
+		u64 base_offset = 0, offset = 0;
+		u64 size = 0;
 	};
 
 	struct DomainInfo {
@@ -98,9 +101,12 @@ class VulkanMemoryManager {
 	EnumMap<VMemoryDomain, DomainInfo> m_domains;
 
 	array<FrameInfo, num_frames> m_frames;
+	array<vector<AllocId>, num_frames> m_deferred_frees;
+
 	VMemoryDomain m_frame_allocator_domain;
 	u64 m_frame_allocator_base_size = 256 * 1024;
-	int m_frame_index = -1;
+	bool m_is_initial_frame = true;
+	int m_frame_index = 0;
 };
 
 }

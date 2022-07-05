@@ -102,7 +102,7 @@ struct VulkanDevice::ObjectPools {
 };
 
 // -------------------------------------------------------------------------------------------
-// ----  Device initialization & destruction  ------------------------------------------------
+// ---  Construction / destruction & main functions  -----------------------------------------
 
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)
 	: m_id(id), m_phys_id(phys_id), m_instance_ref(instance_ref) {
@@ -214,6 +214,19 @@ Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {
 	DASSERT(!m_render_graph && "Render graph already initialized");
 	m_render_graph = new VulkanRenderGraph(ref());
 	return m_render_graph->initialize(ref(), swap_chain);
+}
+
+Ex<void> VulkanDevice::beginFrame() {
+	if(m_render_graph)
+		EXPECT(m_render_graph->beginFrame());
+	m_memory->beginFrame();
+	return {};
+}
+
+Ex<void> VulkanDevice::finishFrame() {
+	if(m_render_graph)
+		EXPECT(m_render_graph->finishFrame());
+	return {};
 }
 
 // -------------------------------------------------------------------------------------------

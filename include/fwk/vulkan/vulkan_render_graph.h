@@ -112,11 +112,6 @@ class VulkanRenderGraph {
 	PVSwapChain swapChain() const { return m_swap_chain; }
 	PVRenderPass defaultRenderPass() const { return m_render_pass; }
 
-	Ex<void> beginFrame();
-	Ex<void> finishFrame();
-	// TODO: better name
-	int frameIndex() const { return m_frame_index; }
-
 	// Commands are first enqueued and only with large enough context
 	// they are being performed
 	void enqueue(Command);
@@ -130,11 +125,16 @@ class VulkanRenderGraph {
 	// This can only be called between beginFrame() & finishFrame()
 	void flushCommands();
 
+	int swapFrameIndex() const { return m_frame_index; }
+
   private:
 	friend class VulkanDevice;
 	VulkanRenderGraph(VDeviceRef);
 	Ex<void> initialize(VDeviceRef, PVSwapChain);
 	Ex<PVRenderPass> createRenderPass(VDeviceRef, PVSwapChain);
+
+	Ex<void> beginFrame();
+	Ex<void> finishFrame();
 
 	struct FrameContext {
 		PVCommandBuffer cmd_buffer;

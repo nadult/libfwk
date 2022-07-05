@@ -95,6 +95,9 @@ class VulkanDevice {
 	const VulkanMemoryManager &memory() const { return *m_memory; }
 	VulkanMemoryManager &memory() { return *m_memory; }
 
+	Ex<void> beginFrame();
+	Ex<void> finishFrame();
+
 	// TODO: replace with proper allocator
 	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, uint memory_type_index);
 	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);

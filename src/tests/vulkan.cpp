@@ -187,9 +187,7 @@ struct DrawRect {
 };
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
-	auto &render_graph = ctx.device->renderGraph();
-
-	EXPECT(render_graph.beginFrame());
+	EXPECT(ctx.device->beginFrame());
 
 	vector<MyVertex> vertices;
 	vertices.reserve(rects.size() * 6);
@@ -215,6 +213,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	// it's a slow operation...
 
 	auto vbuffer = EX_PASS(createVertexBuffer(ctx, vertices));
+	auto &render_graph = ctx.device->renderGraph();
 	EXPECT(render_graph << CmdUpload(vertices, vbuffer));
 
 	UBOData ubo;
@@ -222,7 +221,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	auto ubuffer = EX_PASS(createUniformBuffer(ctx));
 	EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
-	auto &descr_set = ctx.descr_sets[render_graph.frameIndex()];
+	auto &descr_set = ctx.descr_sets[render_graph.swapFrameIndex()];
 	descr_set.update({{.binding = 0, .data = ubuffer, .type = VDescriptorType::uniform_buffer},
 					  {.binding = 1,
 					   .data = std::make_pair(ctx.sampler, ctx.font_image_view),
@@ -236,7 +235,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	render_graph << CmdBindVertexBuffers({{vbuffer}}, vector<u64>{{0}});
 	render_graph << CmdDraw{.num_vertices = vertices.size()};
 	render_graph << CmdEndRenderPass();
-	EXPECT(render_graph.finishFrame());
+	EXPECT(ctx.device->finishFrame());
 
 	return {};
 }
