@@ -10,8 +10,9 @@
 
 namespace fwk {
 
-VulkanAllocator::VulkanAllocator(VDeviceRef device, VMemoryDomain domain)
-	: m_device(&*device), m_device_handle(device), m_memory_type(device->info(domain).type_index) {}
+VulkanAllocator::VulkanAllocator(VDeviceRef device, VMemoryDomain domain, u64 slab_zone_size)
+	: m_device(&*device), m_device_handle(device), m_memory_type(device->info(domain).type_index),
+	  m_slabs(slab_zone_size, {&slabAlloc, this}) {}
 VulkanAllocator::~VulkanAllocator() = default;
 
 Ex<VulkanAllocator::Allocation> VulkanAllocator::alloc(u64 size, uint alignment) {
@@ -21,16 +22,46 @@ Ex<VulkanAllocator::Allocation> VulkanAllocator::alloc(u64 size, uint alignment)
 	}
 
 	auto [identifier, alloc] = m_slabs.alloc(size);
-	if(alloc.zone_id >= m_device_mem.size()) {
-		DASSERT(alloc.zone_id == m_device_mem.size());
-		auto zone_size = m_slabs.zones()[alloc.zone_id].size;
-		auto mem = EX_PASS(m_device->allocDeviceMemory(zone_size, m_memory_type));
-		m_device_mem.emplace_back(move(mem));
+	if(identifier.isValid()) {
+		return Allocation{identifier, m_slab_memory[alloc.zone_id], alloc.zone_offset};
+	} else {
+		// TODO: alignment?
+		auto mem = EX_PASS(m_device->allocDeviceMemory(size, m_memory_type));
+
+		int index = -1;
+		for(int i : intRange(m_free_memory))
+			if(!m_free_memory) {
+				m_free_memory[i] = move(mem);
+				index = i;
+				break;
+			}
+		if(index == -1) {
+			index = m_free_memory.size();
+			m_free_memory.emplace_back(move(mem));
+		}
+		return Allocation{FreeIdentifier{index}, m_free_memory.back(), 0};
 	}
-	return Allocation{identifier, m_device_mem[alloc.zone_id], alloc.zone_offset};
 }
 
-void VulkanAllocator::free(Identifier ident) { m_slabs.free(ident); }
+void VulkanAllocator::free(Identifier ident) {
+	ident.match([&](const SlabIdentifier &ident) { m_slabs.free(ident); },
+				[&](const FreeIdentifier &ident) { m_free_memory[ident.index] = {}; });
+}
+
+u64 VulkanAllocator::slabAlloc(u64 size, uint zone_index, void *ptr) {
+	return ((VulkanAllocator *)ptr)->slabAlloc(size, zone_index);
+}
+
+u64 VulkanAllocator::slabAlloc(u64 req_size, uint zone_index) {
+	auto result = m_device->allocDeviceMemory(req_size, m_memory_type);
+	if(!result) {
+		m_errors.emplace_back(result.error());
+		return 0;
+	}
+	DASSERT(zone_index == m_slab_memory.size());
+	m_slab_memory.emplace_back(move(*result));
+	return req_size;
+}
 
 VulkanFrameAllocator::VulkanFrameAllocator(VDeviceRef device, VMemoryDomain domain, u64 base_size)
 	: m_device(&*device), m_device_handle(device), m_base_size(base_size) {

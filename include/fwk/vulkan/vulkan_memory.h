@@ -6,6 +6,7 @@
 #include "fwk/enum_flags.h"
 #include "fwk/slab_allocator.h"
 #include "fwk/sys/expected.h"
+#include "fwk/variant.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
@@ -14,10 +15,15 @@ namespace fwk {
 
 class VulkanAllocator {
   public:
-	VulkanAllocator(VDeviceRef, VMemoryDomain);
+	VulkanAllocator(VDeviceRef, VMemoryDomain, u64 slab_zone_size = 64 * 1024 * 1024);
 	~VulkanAllocator();
 
-	using Identifier = SlabAllocator::Identifier;
+	struct FreeIdentifier {
+		int index;
+	};
+	using SlabIdentifier = SlabAllocator::Identifier;
+	using Identifier = Variant<SlabIdentifier, FreeIdentifier>;
+
 	struct Allocation {
 		Identifier identifier;
 		VkDeviceMemory mem_handle;
@@ -28,10 +34,15 @@ class VulkanAllocator {
 	void free(Identifier); // TODO: defer list
 
   private:
+	static u64 slabAlloc(u64, uint, void *);
+	u64 slabAlloc(u64, uint);
+
 	VulkanDevice *m_device;
 	VkDevice m_device_handle;
 	uint m_memory_type;
-	vector<PVDeviceMemory> m_device_mem;
+	vector<Error> m_errors;
+	vector<PVDeviceMemory> m_slab_memory;
+	vector<PVDeviceMemory> m_free_memory;
 	SlabAllocator m_slabs;
 };
 

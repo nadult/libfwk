@@ -23,8 +23,9 @@ namespace fwk {
 // When allocating memory, the size will be rounded up to >= chunk size; This will cause
 // small (12.5%) internal fragmentation
 //
+// TODO: remove slab groups, just rename to bits_64 or something
+// TODO: free chunk groups should be reclaimed ASAP?
 // TODO: review docs
-// TODO: zones should be able to have different sizes?
 // TODO: option to control chunk alignment
 // TODO: functions for defragmentation/garbage collection
 class SlabAllocator {
@@ -57,6 +58,13 @@ class SlabAllocator {
 	static constexpr int max_zones = 1024;
 
 	static constexpr uint maxChunkSize() { return chunkSize(num_chunk_levels - 1); }
+
+	struct ZoneAllocator {
+		// Zone allocator should return 0 if allocation failed
+		using Func = u64 (*)(u64 requested_size, uint zone_index, void *);
+		Func func;
+		void *param = nullptr;
+	};
 
 	struct Zone {
 		u64 size;
@@ -99,15 +107,16 @@ class SlabAllocator {
 		u64 zone_offset = 0;
 	};
 
-	// TODO: consider turning these into template params
 	SlabAllocator(u64 default_zone_size = min_zone_size * 4);
+	SlabAllocator(u64 default_zone_size, ZoneAllocator);
 	~SlabAllocator();
 
 	CSpan<Zone> zones() const { return m_zones; }
 	static bool validZoneSize(u64 size) {
 		return size >= min_zone_size && size <= max_zone_size && size % min_zone_size == 0;
 	}
-	void addZone(u64 zone_size);
+	// Returns false if zone allocation failed
+	bool allocZone(u64 zone_size);
 
 	// May return invalid identifier, in this case allocation failed
 	Pair<Identifier, Allocation> alloc(u64 size);
@@ -137,12 +146,11 @@ class SlabAllocator {
 		int slabs_per_group;
 	};
 
-	void addChunkGroup(ChunkLevel &);
-
 	void fillSlabs(int zone_id, int offset, int num_slabs);
 	void clearSlabs(int zone_id, int offset, int num_slabs);
 	Pair<int, int> allocSlabs(int num_slabs);
 
+	ZoneAllocator m_zone_allocator;
 	vector<Zone> m_zones;
 	ChunkLevel m_levels[num_chunk_levels];
 	u64 m_default_zone_size;

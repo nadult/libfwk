@@ -18,7 +18,12 @@ static int findClosestChunk(u32 size) {
 	return (level0 << 1) + (size > value ? 2 : 1);
 }
 
-SlabAllocator::SlabAllocator(u64 default_zone_size) : m_default_zone_size(default_zone_size) {
+static u64 defaultZoneAllocator(u64 size, uint, void *) { return size; }
+
+SlabAllocator::SlabAllocator(u64 default_zone_size)
+	: SlabAllocator(default_zone_size, {defaultZoneAllocator}) {}
+SlabAllocator::SlabAllocator(u64 default_zone_size, ZoneAllocator zone_alloc)
+	: m_zone_allocator(zone_alloc), m_default_zone_size(default_zone_size) {
 	DASSERT(validZoneSize(default_zone_size));
 
 	for(int l : intRange(num_chunk_levels)) {
@@ -52,16 +57,6 @@ SlabAllocator::~SlabAllocator() = default;
 
 #define GROUP_ACCESSOR [&](int idx) -> ListNode & { return level.groups[idx].node; }
 
-void SlabAllocator::addChunkGroup(ChunkLevel &level) {
-	auto [zone_id, slab_offset] = allocSlabs(level.slabs_per_group);
-	int group_index = level.groups.size();
-	level.groups.emplace_back(ChunkGroup{.num_free_chunks = level.chunks_per_group,
-										 .slab_offset = u16(slab_offset),
-										 .zone_id = u16(zone_id)});
-	level.chunks.resize(level.groups.size() * level.bits_64_per_group, 0ull);
-	listInsert(GROUP_ACCESSOR, level.not_full_groups, group_index);
-}
-
 // Here we assume that bits are not empty
 constexpr int findLastBit(u64 bits) { return __builtin_clzll(bits); }
 constexpr int findFirstBit(u64 bits) { return __builtin_ctzll(bits); }
@@ -80,8 +75,17 @@ auto SlabAllocator::alloc(u64 size) -> Pair<Identifier, Allocation> {
 	int level_id = findBestChunkLevel(size);
 	auto &level = m_levels[level_id];
 
-	if(level.not_full_groups.empty())
-		addChunkGroup(level);
+	if(level.not_full_groups.empty()) {
+		auto [zone_id, slab_id] = allocSlabs(level.slabs_per_group);
+		if(zone_id == -1)
+			return {};
+		int group_index = level.groups.size();
+		level.groups.emplace_back(ChunkGroup{.num_free_chunks = level.chunks_per_group,
+											 .slab_offset = u16(slab_id),
+											 .zone_id = u16(zone_id)});
+		level.chunks.resize(level.groups.size() * level.bits_64_per_group, 0ull);
+		listInsert(GROUP_ACCESSOR, level.not_full_groups, group_index);
+	}
 
 	int group_id = level.not_full_groups.head;
 	auto &group = level.groups[group_id];
@@ -208,19 +212,24 @@ Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 		target_offset = 0;
 		target_zone = m_zones.size();
 
-		// TODO: properly handle such situation
-		if(m_default_zone_size < num_slabs * slab_size)
-			return {};
-		addZone(m_default_zone_size);
+		u64 min_size =
+			((num_slabs * slab_size + min_zone_size - 1) / min_zone_size) * min_zone_size;
+		if(!allocZone(max(m_default_zone_size, min_size)))
+			return {-1, -1};
 	}
 
 	fillSlabs(target_zone, target_offset, num_slabs);
 	return {target_zone, target_offset};
 }
 
-void SlabAllocator::addZone(u64 zone_size) {
+bool SlabAllocator::allocZone(u64 zone_size) {
 	DASSERT(validZoneSize(zone_size));
 	DASSERT_LE(m_zones.size(), max_zones);
+
+	zone_size = m_zone_allocator.func(zone_size, m_zones.size(), m_zone_allocator.param);
+	if(zone_size == 0)
+		return false;
+	DASSERT(validZoneSize(zone_size));
 
 	Zone &zone = m_zones.emplace_back();
 	zone.num_slabs = int(zone_size / slab_size);
@@ -230,6 +239,7 @@ void SlabAllocator::addZone(u64 zone_size) {
 	zone.empty_groups = zone.groups_mask;
 	zone.full_groups = 0;
 	zone.groups.resize(zone.num_slab_groups, 0);
+	return true;
 }
 
 void SlabAllocator::fillSlabs(int zone_id, int offset, int num_slabs) {
@@ -368,6 +378,7 @@ void SlabAllocator::testSlabs() {
 	for(int n = 0; n < 30; n++) {
 		int num_slabs = max<int>(1, sqrt(rand.uniform(1, 200)));
 		auto [zone_id, slab_offset] = allocSlabs(num_slabs);
+		DASSERT(zone_id != -1);
 		allocs.emplace_back(zone_id, slab_offset, num_slabs);
 		print("Allocating: % slabs\n", num_slabs);
 		visualizeSlabs();
@@ -379,6 +390,7 @@ void SlabAllocator::testSlabs() {
 		if(mode || allocs.empty()) {
 			int num_slabs = max<int>(1, rand.uniform(1, 128));
 			auto [zone_id, slab_offset] = allocSlabs(num_slabs);
+			DASSERT(zone_id != -1);
 			allocs.emplace_back(zone_id, slab_offset, num_slabs);
 			print("Allocating: % slabs\n", num_slabs);
 		} else {
