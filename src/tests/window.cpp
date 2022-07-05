@@ -83,8 +83,8 @@ int main(int argc, char **argv) {
 	print("OpenGL info:\n%\n", gl_info->toString());
 
 	int font_size = 16 * gl_device.windowDpiScale();
-	auto font = FontFactory().makeFont(fontPath(), font_size);
-	gl_device.runMainLoop(mainLoop, &font.get());
+	Font font(FontFactory().makeFont(fontPath(), font_size).get());
+	gl_device.runMainLoop(mainLoop, &font);
 
 	return 0;
 }
