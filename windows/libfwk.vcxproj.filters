@@ -687,7 +687,7 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_render_graph.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_memory.h">
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_memory_manager.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\slab_allocator.h">
@@ -1178,7 +1178,7 @@
     <ClCompile Include="..\src\vulkan\vulkan_render_graph.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\vulkan\vulkan_memory.cpp">
+    <ClCompile Include="..\src\vulkan\vulkan_memory_manager.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\slab_allocator.cpp">

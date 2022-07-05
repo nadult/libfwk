@@ -153,7 +153,7 @@
     <ClInclude Include="..\include\fwk\gfx\visualizer2.h" />
     <ClInclude Include="..\include\fwk\gfx\visualizer3.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_descriptors.h" />
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_memory.h" />
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_memory_manager.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_buffer.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_device.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_framebuffer.h" />
@@ -371,7 +371,7 @@
     <ClCompile Include="..\src\gfx\visualizer2.cpp" />
     <ClCompile Include="..\src\gfx\visualizer3.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_descriptors.cpp" />
-    <ClCompile Include="..\src\vulkan\vulkan_memory.cpp" />
+    <ClCompile Include="..\src\vulkan\vulkan_memory_manager.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_buffer.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_device.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_framebuffer.cpp" />

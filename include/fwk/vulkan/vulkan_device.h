@@ -92,6 +92,13 @@ class VulkanDevice {
 	const VulkanRenderGraph &renderGraph() const { return *m_render_graph; }
 	VulkanRenderGraph &renderGraph() { return *m_render_graph; }
 
+	const VulkanMemoryManager &memory() const { return *m_memory; }
+	VulkanMemoryManager &memory() { return *m_memory; }
+
+	// TODO: replace with proper allocator
+	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, uint memory_type_index);
+	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
+
 	// -------------------------------------------------------------------------------------------
 	// ----------  Object management  ------------------------------------------------------------
 
@@ -117,37 +124,6 @@ class VulkanDevice {
 						 int num_frames = max_defer_frames);
 	void nextReleasePhase();
 
-	// -------------------------------------------------------------------------------------------
-	// ----------  Memory management  ------------------------------------------------------------
-
-  public:
-	struct MemoryDomainInfo {
-		int type_index = -1;
-		int heap_index = -1;
-		u64 heap_size = 0;
-	};
-
-	struct MemoryBudget {
-		i64 heap_budget = -1;
-		i64 heap_usage = -1;
-	};
-
-	bool isAvailable(VMemoryDomain domain) const { return m_mem_domains[domain].type_index != -1; }
-	const MemoryDomainInfo &info(VMemoryDomain domain) const { return m_mem_domains[domain]; }
-
-	// Will return -1 if budget extension is not available
-	EnumMap<VMemoryDomain, MemoryBudget> memoryBudget() const;
-
-	// TODO: replace with proper allocator
-	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, uint memory_type_index);
-	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
-
-	// -------------------------------------------------------------------------------------------
-	// -------------  Render graph  --------------------------------------------------------------
-
-	// -------------------------------------------------------------------------------------------
-	// -------------  Private stuff  -------------------------------------------------------------
-
   private:
 	VulkanDevice(VDeviceId, VPhysicalDeviceId, VInstanceRef);
 	~VulkanDevice();
@@ -167,10 +143,10 @@ class VulkanDevice {
 
 	Dynamic<ObjectPools> m_objects;
 	Dynamic<VulkanRenderGraph> m_render_graph;
+	Dynamic<VulkanMemoryManager> m_memory;
 
 	VDeviceFeatures m_features;
 	vector<Pair<VkQueue, VQueueFamilyId>> m_queues;
-	EnumMap<VMemoryDomain, MemoryDomainInfo> m_mem_domains;
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;
 	VInstanceRef m_instance_ref;

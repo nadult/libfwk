@@ -4,6 +4,7 @@
 #include "fwk/vulkan/vulkan_device.h"
 
 #include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_storage.h"
@@ -107,23 +108,6 @@ VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef
 	: m_id(id), m_phys_id(phys_id), m_instance_ref(instance_ref) {
 	m_objects.emplace();
 	ASSERT(m_instance_ref->valid(m_phys_id));
-
-	auto &info = instance_ref->info(phys_id);
-	auto &mem_info = info.mem_properties;
-	EnumMap<VMemoryDomain, VMemoryFlags> domain_flags = {
-		{VMemoryFlag::device_local, VMemoryFlag::host_visible,
-		 VMemoryFlag::device_local | VMemoryFlag::host_visible}};
-
-	for(auto domain : all<VMemoryDomain>) {
-		int type_index = info.findMemoryType(~0u, domain_flags[domain]);
-		int heap_index = -1;
-		u64 heap_size = 0;
-		if(type_index != -1) {
-			heap_index = mem_info.memoryTypes[type_index].heapIndex;
-			heap_size = mem_info.memoryHeaps[heap_index].size;
-		}
-		m_mem_domains[domain] = {type_index, heap_index, heap_size};
-	}
 }
 
 Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
@@ -170,6 +154,7 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 	auto result = vkCreateDevice(m_phys_handle, &ci, nullptr, &m_handle);
 	if(result != VK_SUCCESS)
 		return ERROR("Error during vkCreateDevice: 0x%x", stdFormat("%x", result));
+	g_vk_storage.device_handles[m_id] = m_handle;
 
 	m_queues.reserve(setup.queues.size());
 	for(auto &queue_def : setup.queues) {
@@ -180,13 +165,17 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 		}
 	}
 
-	g_vk_storage.device_handles[m_id] = m_handle;
-
+	m_memory.emplace(ref());
 	return {};
 }
 
 VulkanDevice::~VulkanDevice() {
+	if(m_handle)
+		vkDeviceWaitIdle(m_handle);
 	m_render_graph.reset();
+
+	// TODO: memory should be freed only after all objects pointing to it are destroyed
+	m_memory.reset();
 
 #ifndef NDEBUG
 	bool errors = false;
@@ -214,10 +203,9 @@ VulkanDevice::~VulkanDevice() {
 #endif
 
 	if(m_handle) {
-		g_vk_storage.device_handles[m_id] = nullptr;
-		vkDeviceWaitIdle(m_handle);
 		for(int i = 0; i <= max_defer_frames; i++)
 			nextReleasePhase();
+		g_vk_storage.device_handles[m_id] = nullptr;
 		vkDestroyDevice(m_handle, nullptr);
 	}
 }
@@ -410,29 +398,6 @@ Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, u32 memory_type_bit
 		return ERROR("Couldn't find a suitable memory type; bits:% flags:%", memory_type_bits,
 					 flags);
 	return allocDeviceMemory(size, mem_type);
-}
-
-auto VulkanDevice::memoryBudget() const -> EnumMap<VMemoryDomain, MemoryBudget> {
-	EnumMap<VMemoryDomain, MemoryBudget> out;
-
-	if(m_features & VDeviceFeature::memory_budget) {
-		VkPhysicalDeviceMemoryBudgetPropertiesEXT budget{
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT};
-		VkPhysicalDeviceMemoryProperties2 props{
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2};
-		props.pNext = &budget;
-		vkGetPhysicalDeviceMemoryProperties2(m_phys_handle, &props);
-
-		for(auto domain : all<VMemoryDomain>) {
-			int type_index = m_mem_domains[domain].type_index;
-			if(type_index != -1) {
-				auto heap_index = m_mem_domains[domain].heap_index;
-				out[domain].heap_budget = budget.heapBudget[heap_index];
-				out[domain].heap_usage = budget.heapUsage[heap_index];
-			}
-		}
-	}
-	return out;
 }
 
 }

@@ -100,7 +100,7 @@ class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
 class VulkanRenderGraph;
-class VulkanAllocator;
+class VulkanMemoryManager;
 class VulkanFrameAllocator;
 
 // TODO: PVInstance, PVDevice? PV sucks, but what should I use instead ? VBufferPtr ?

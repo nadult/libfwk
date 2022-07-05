@@ -130,12 +130,6 @@ class VulkanRenderGraph {
 	// This can only be called between beginFrame() & finishFrame()
 	void flushCommands();
 
-	void initFrameAllocator(u64 base_size);
-	VulkanFrameAllocator &frameAllocator() {
-		DASSERT(m_frame_allocator);
-		return *m_frame_allocator.get();
-	}
-
   private:
 	friend class VulkanDevice;
 	VulkanRenderGraph(VDeviceRef);
@@ -171,7 +165,6 @@ class VulkanRenderGraph {
 	VkDevice m_device_handle;
 	PVSwapChain m_swap_chain;
 	vector<PVFramebuffer> m_framebuffers;
-	Dynamic<VulkanFrameAllocator> m_frame_allocator;
 	FrameSync m_frames[num_swap_frames];
 	PVRenderPass m_render_pass;
 	PVCommandPool m_command_pool;

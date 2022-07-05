@@ -19,7 +19,7 @@
 #include <fwk/vulkan/vulkan_framebuffer.h>
 #include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
-#include <fwk/vulkan/vulkan_memory.h>
+#include <fwk/vulkan/vulkan_memory_manager.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
 #include <fwk/vulkan/vulkan_render_graph.h>
 #include <fwk/vulkan/vulkan_swap_chain.h>
@@ -163,8 +163,7 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
-	auto &frame_alloc = ctx.device->renderGraph().frameAllocator();
-	EXPECT(frame_alloc.alloc(buffer));
+	EXPECT(ctx.device->memory().frameAlloc(buffer));
 	return buffer;
 }
 
@@ -177,8 +176,7 @@ Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
 	auto usage = VBufferUsage::uniform_buffer | VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(VulkanBuffer::create<UBOData>(ctx.device, 1, usage));
 	// Makes no sense to put it on device local, staging buffer shouldn't be needed either
-	auto &frame_alloc = ctx.device->renderGraph().frameAllocator();
-	EXPECT(frame_alloc.alloc(buffer));
+	EXPECT(ctx.device->memory().frameAlloc(buffer));
 	return buffer;
 }
 
@@ -394,7 +392,6 @@ Ex<int> exMain() {
 
 	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
-	ctx.device->renderGraph().initFrameAllocator(256 * 1024);
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
