@@ -162,9 +162,7 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 
 Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
 	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
-	auto buffer = EX_PASS(VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage));
-	EXPECT(ctx.device->memory().frameAlloc(buffer));
-	return buffer;
+	return VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage, VMemoryUsage::frame);
 }
 
 struct UBOData {
@@ -174,10 +172,7 @@ struct UBOData {
 
 Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
 	auto usage = VBufferUsage::uniform_buffer | VBufferUsage::transfer_dst;
-	auto buffer = EX_PASS(VulkanBuffer::create<UBOData>(ctx.device, 1, usage));
-	// Makes no sense to put it on device local, staging buffer shouldn't be needed either
-	EXPECT(ctx.device->memory().frameAlloc(buffer));
-	return buffer;
+	return VulkanBuffer::create<UBOData>(ctx.device, 1, usage, VMemoryUsage::frame);
 }
 
 struct DrawRect {
@@ -222,11 +217,11 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
 	EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
 	auto &descr_set = ctx.descr_sets[render_graph.swapFrameIndex()];
-	descr_set.update({{.binding = 0, .data = ubuffer, .type = VDescriptorType::uniform_buffer},
-					  {.binding = 1,
-					   .data = std::make_pair(ctx.sampler, ctx.font_image_view),
-					   .type = VDescriptorType::combined_image_sampler}});
-	render_graph << CmdBindDescriptorSet{.set = &descr_set, .index = 0};
+	descr_set.update({{.type = VDescriptorType::uniform_buffer, .binding = 0, .data = ubuffer},
+					  {.type = VDescriptorType::combined_image_sampler,
+					   .binding = 1,
+					   .data = std::make_pair(ctx.sampler, ctx.font_image_view)}});
+	render_graph << CmdBindDescriptorSet{.index = 0, .set = &descr_set};
 
 	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 	render_graph << CmdBeginRenderPass{.render_pass = ctx.pipeline->renderPass(),
@@ -304,61 +299,11 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 }
 
 Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
-	auto vimage = EX_PASS(VulkanImage::create(ctx.device, toVkExtent(image.size()),
-											  {.format = VK_FORMAT_R8G8B8A8_SRGB}));
-	auto mem_req = vimage->memoryRequirements();
-	auto mem_flags = VMemoryFlag::device_local;
-	auto memory =
-		EX_PASS(ctx.device->allocDeviceMemory(mem_req.size, mem_req.memoryTypeBits, mem_flags));
-	EXPECT(vimage->bindMemory(memory));
+	auto vimage =
+		EX_PASS(VulkanImage::create(ctx.device, toVkExtent(image.size()),
+									{.format = VK_FORMAT_R8G8B8A8_SRGB}, VMemoryUsage::device));
 	EXPECT(ctx.device->renderGraph() << CmdUploadImage(image, vimage));
 	return vimage;
-}
-
-void memoryAllocTest(VDeviceRef device) {
-	auto phys_info = VulkanInstance::ref()->info(device->physId());
-
-	VMemoryFlags mem_types[] = {none, VMemoryFlag::device_local, VMemoryFlag::host_visible,
-								VMemoryFlag::host_cached, VMemoryFlag::host_coherent};
-
-	printf("Allocation times : Free times\n");
-	for(auto flags : mem_types) {
-		u64 max_size = 4096;
-		auto mem_type = phys_info.findMemoryType(~0u, flags);
-		if(mem_type == -1)
-			continue;
-		int heap_index = phys_info.mem_properties.memoryTypes[mem_type].heapIndex;
-		auto heap_size = phys_info.mem_properties.memoryHeaps[heap_index].size / (1024 * 1024);
-		max_size = min(max_size, heap_size);
-
-		for(u64 size = 1; size <= max_size; size *= 2) {
-			printf("flags=%s size=%4lluM : ", toString(flags).c_str(), size);
-			bool failed = false;
-			int max_n = max(4, 24 / max<int>(1, size / 512));
-			for(int n = 0; n < max_n; n++) {
-				auto start_time = getTime();
-				double alloc_time, free_time;
-				{
-					auto mem = device->allocDeviceMemory(size * 1024 * 1024, mem_type);
-					alloc_time = getTime();
-					if(!mem) {
-						printf("FAILED");
-						failed = true;
-						break;
-					} else {
-						(*mem)->dontDefer();
-					}
-				}
-				free_time = getTime() - alloc_time;
-				alloc_time -= start_time;
-				printf("%.0f:%.0f ", alloc_time * 1000.0, free_time * 1000.0);
-			}
-
-			print("\n");
-			if(failed)
-				break;
-		}
-	}
 }
 
 Ex<int> exMain() {

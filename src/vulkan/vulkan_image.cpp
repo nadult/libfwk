@@ -8,16 +8,19 @@
 
 namespace fwk {
 
-VulkanImage::VulkanImage(VkImage handle, VObjectId id, VkExtent2D extent, const ImageSetup &setup)
-	: VulkanObjectBase(handle, id), m_format(setup.format), m_extent(extent), m_usage(setup.usage),
-	  m_num_samples(setup.num_samples), m_last_layout(setup.layout), m_is_external(false) {}
+VulkanImage::VulkanImage(VkImage handle, VObjectId id, VMemoryBlock mem_block, VkExtent2D extent,
+						 const ImageSetup &setup)
+	: VulkanObjectBase(handle, id), m_memory_block(mem_block), m_format(setup.format),
+	  m_extent(extent), m_usage(setup.usage), m_num_samples(setup.num_samples),
+	  m_last_layout(setup.layout), m_is_external(false) {}
 
 VulkanImage::~VulkanImage() {
 	if(!m_is_external)
 		deferredHandleRelease<VkImage, vkDestroyImage>();
 }
 
-Ex<PVImage> VulkanImage::create(VDeviceRef device, VkExtent2D extent, const ImageSetup &setup) {
+Ex<PVImage> VulkanImage::create(VDeviceRef device, VkExtent2D extent, const ImageSetup &setup,
+								VMemoryUsage mem_usage) {
 	VkImageCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	ci.imageType = VK_IMAGE_TYPE_2D;
@@ -39,12 +42,27 @@ Ex<PVImage> VulkanImage::create(VDeviceRef device, VkExtent2D extent, const Imag
 	VkImage handle;
 	if(vkCreateImage(device, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateImage failed");
-	return device->createObject(handle, extent, setup);
+
+	VkMemoryRequirements requirements;
+	vkGetImageMemoryRequirements(device, handle, &requirements);
+
+	auto mem_block = device->alloc(mem_usage, requirements);
+	if(!mem_block) {
+		vkDestroyImage(device, handle, nullptr);
+		return mem_block.error();
+	}
+
+	if(vkBindImageMemory(device, handle, mem_block->handle, mem_block->offset) != VK_SUCCESS) {
+		vkDestroyImage(device, handle, nullptr);
+		return ERROR("vkBindImageMemory failed");
+	}
+
+	return device->createObject(handle, *mem_block, extent, setup);
 }
 
 Ex<PVImage> VulkanImage::createExternal(VDeviceRef device, VkImage handle, VkExtent2D extent,
 										const ImageSetup &setup) {
-	auto out = device->createObject(handle, extent, setup);
+	auto out = device->createObject(handle, VMemoryBlock(), extent, setup);
 	out->m_is_external = true;
 	return out;
 }
@@ -72,19 +90,4 @@ Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 		return ERROR("vkCreateImageView failed");
 	return device->createObject(handle, image, image->format(), image->extent());
 }
-
-VkMemoryRequirements VulkanImage::memoryRequirements() const {
-	VkMemoryRequirements mem_requirements;
-	vkGetImageMemoryRequirements(deviceHandle(), m_handle, &mem_requirements);
-	return mem_requirements;
-}
-
-Ex<void> VulkanImage::bindMemory(PVDeviceMemory memory) {
-	if(vkBindImageMemory(deviceHandle(), m_handle, memory, 0) != VK_SUCCESS)
-		return ERROR("vkBindImageMemory failed");
-	m_memory = memory;
-	m_memory_flags = m_memory->flags();
-	return {};
-}
-
 }

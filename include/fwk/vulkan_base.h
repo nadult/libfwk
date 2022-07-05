@@ -31,14 +31,22 @@ struct VulkanVersion {
 	int major, minor, patch;
 };
 
-DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, device_memory,
-			descriptor_pool, descriptor_set_layout, fence, framebuffer, image, image_view, pipeline,
-			pipeline_layout, render_pass, sampler, semaphore, shader_module, swap_chain);
+DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, descriptor_pool,
+			descriptor_set_layout, fence, framebuffer, image, image_view, pipeline, pipeline_layout,
+			render_pass, sampler, semaphore, shader_module, swap_chain);
 
 // device: fastest memory with device_local (always available)
 // host: fastest memory with host_visible (always available)
 // temporary: device_local + host_visible
 DEFINE_ENUM(VMemoryDomain, device, host, temporary);
+
+// TODO: sometimes device domain can be mapped too
+constexpr inline bool canBeMapped(VMemoryDomain domain) { return domain != VMemoryDomain::device; }
+
+// frame: object will only be used during current frame
+// device: object will be stored in device memory
+// host: object will be stored in host memory
+DEFINE_ENUM(VMemoryUsage, frame, device, host);
 
 DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
 			protected_, device_coherent_amd, device_uncached_amd);
@@ -76,6 +84,29 @@ DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 DEFINE_ENUM(VDeviceFeature, memory_budget);
 using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
+DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);
+
+struct VMemoryBlockId {
+	VMemoryBlockId(VMemoryBlockType type, VMemoryDomain domain, u16 zone_id, u32 block_identifier)
+		: value(u64(block_identifier) | (u64(type) << 32) | (u64(domain) << 40) |
+				(u64(zone_id) << 48)) {}
+	VMemoryBlockId() : VMemoryBlockId(VMemoryBlockType::invalid, VMemoryDomain(0), 0, 0) {}
+
+	u16 zoneId() const { return u16(value >> 48); }
+	u32 blockIdentifier() const { return u32(value & 0xffffffff); }
+	VMemoryDomain domain() const { return VMemoryDomain((value >> 40) & 0xff); }
+	VMemoryBlockType type() const { return VMemoryBlockType((value >> 32) & 0xff); }
+	bool valid() const { return type() != VMemoryBlockType::invalid; }
+
+	u64 value;
+};
+
+struct VMemoryBlock {
+	VMemoryBlockId id;
+	VkDeviceMemory handle = nullptr;
+	u32 offset = 0, size = 0;
+};
+
 // TODO: move to internal
 inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }
 inline auto toVk(VShaderStageFlags flags) { return VkShaderStageFlags(flags.bits); }
@@ -101,7 +132,7 @@ class VulkanInstance;
 class VulkanWindow;
 class VulkanRenderGraph;
 class VulkanMemoryManager;
-class VulkanFrameAllocator;
+struct VulkanPhysicalDeviceInfo;
 
 // TODO: PVInstance, PVDevice? PV sucks, but what should I use instead ? VBufferPtr ?
 class VInstanceRef;

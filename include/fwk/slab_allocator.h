@@ -23,6 +23,7 @@ namespace fwk {
 // When allocating memory, the size will be rounded up to >= chunk size; This will cause
 // small (12.5%) internal fragmentation
 //
+// TODO: zone_size should be a multiple of slab_size, not min_zone_size
 // TODO: remove slab groups, just rename to bits_64 or something
 // TODO: free chunk groups should be reclaimed ASAP?
 // TODO: review docs
@@ -104,7 +105,8 @@ class SlabAllocator {
 
 	struct Allocation {
 		uint zone_id = 0;
-		u64 zone_offset = 0;
+		u64 offset = 0;
+		u64 size = 0;
 	};
 
 	SlabAllocator(u64 default_zone_size = min_zone_size * 4);

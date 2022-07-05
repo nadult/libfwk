@@ -60,17 +60,6 @@ VulkanFence ::~VulkanFence() { deferredHandleRelease<VkFence, vkDestroyFence>();
 VulkanSemaphore::VulkanSemaphore(VkSemaphore handle, VObjectId id) : VulkanObjectBase(handle, id) {}
 VulkanSemaphore ::~VulkanSemaphore() { deferredHandleRelease<VkSemaphore, vkDestroySemaphore>(); }
 
-VulkanDeviceMemory::VulkanDeviceMemory(VkDeviceMemory handle, VObjectId id, u64 size,
-									   VMemoryFlags flags)
-	: VulkanObjectBase(handle, id), m_size(size), m_flags(flags) {}
-
-VulkanDeviceMemory ::~VulkanDeviceMemory() {
-	if(m_deferred_free)
-		deferredHandleRelease<VkDeviceMemory, vkFreeMemory>();
-	else
-		vkFreeMemory(deviceHandle(), m_handle, nullptr);
-}
-
 // -------------------------------------------------------------------------------------------
 // ------  Implementation struct declarations  -----------------------------------------------
 
@@ -165,7 +154,7 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 		}
 	}
 
-	m_memory.emplace(ref());
+	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
 	return {};
 }
 
@@ -173,9 +162,6 @@ VulkanDevice::~VulkanDevice() {
 	if(m_handle)
 		vkDeviceWaitIdle(m_handle);
 	m_render_graph.reset();
-
-	// TODO: memory should be freed only after all objects pointing to it are destroyed
-	m_memory.reset();
 
 #ifndef NDEBUG
 	bool errors = false;
@@ -201,6 +187,7 @@ VulkanDevice::~VulkanDevice() {
 	if(errors)
 		FATAL("All VPtrs<> to Vulkan objects should be freed before VulkanDevice is destroyed");
 #endif
+	m_memory.reset();
 
 	if(m_handle) {
 		for(int i = 0; i <= max_defer_frames; i++)
@@ -224,6 +211,7 @@ Ex<void> VulkanDevice::beginFrame() {
 }
 
 Ex<void> VulkanDevice::finishFrame() {
+	m_memory->finishFrame();
 	if(m_render_graph)
 		EXPECT(m_render_graph->finishFrame());
 	return {};
@@ -329,6 +317,10 @@ void VulkanDevice::nextReleasePhase() {
 		to_release[i - 1].swap(to_release[i]);
 }
 
+Ex<VMemoryBlock> VulkanDevice::alloc(VMemoryUsage usage, const VkMemoryRequirements &requirements) {
+	return m_memory->alloc(usage, requirements);
+}
+
 template <class TObject> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 	auto type_id = VulkanTypeInfo<TObject>::type_id;
 
@@ -384,33 +376,5 @@ void VulkanObjectBase<T>::deferredHandleRelease(void *p0, void *p1, ReleaseFunc 
 	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(void *, void *,       \
 																			 ReleaseFunc);
 #include "fwk/vulkan/vulkan_type_list.h"
-
-// -------------------------------------------------------------------------------------------
-// ----------  Memory management  ------------------------------------------------------------
-
-Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, uint memory_type_index) {
-	const auto *mem_types = m_instance_ref->info(m_phys_id).mem_properties.memoryTypes;
-	VMemoryFlags flags;
-	flags.bits = (mem_types[memory_type_index].propertyFlags) & VMemoryFlags::mask;
-
-	VkMemoryAllocateInfo ai{};
-	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	ai.allocationSize = size;
-	ai.memoryTypeIndex = memory_type_index;
-	VkDeviceMemory handle;
-	if(vkAllocateMemory(m_handle, &ai, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkAllocateMemory failed");
-	return createObject(handle, size, flags);
-}
-
-Ex<PVDeviceMemory> VulkanDevice::allocDeviceMemory(u64 size, u32 memory_type_bits,
-												   VMemoryFlags flags) {
-	auto &phys_info = m_instance_ref->info(m_phys_id);
-	auto mem_type = phys_info.findMemoryType(memory_type_bits, flags);
-	if(mem_type == -1)
-		return ERROR("Couldn't find a suitable memory type; bits:% flags:%", memory_type_bits,
-					 flags);
-	return allocDeviceMemory(size, mem_type);
-}
 
 }

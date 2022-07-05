@@ -60,22 +60,6 @@ class VulkanSemaphore : public VulkanObjectBase<VulkanSemaphore> {
 	~VulkanSemaphore();
 };
 
-class VulkanDeviceMemory : public VulkanObjectBase<VulkanDeviceMemory> {
-  public:
-	VMemoryFlags flags() const { return m_flags; }
-	auto size() const { return m_size; }
-	void dontDefer() { m_deferred_free = false; }
-
-  private:
-	friend class VulkanDevice;
-	VulkanDeviceMemory(VkDeviceMemory, VObjectId, u64 size, VMemoryFlags);
-	~VulkanDeviceMemory();
-
-	u64 m_size;
-	VMemoryFlags m_flags;
-	bool m_deferred_free = true;
-};
-
 class VulkanDevice {
   public:
 	Ex<void> createRenderGraph(PVSwapChain);
@@ -98,10 +82,6 @@ class VulkanDevice {
 	Ex<void> beginFrame();
 	Ex<void> finishFrame();
 
-	// TODO: replace with proper allocator
-	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, uint memory_type_index);
-	Ex<PVDeviceMemory> allocDeviceMemory(u64 size, u32 memory_type_bits, VMemoryFlags);
-
 	// -------------------------------------------------------------------------------------------
 	// ----------  Object management  ------------------------------------------------------------
 
@@ -121,11 +101,14 @@ class VulkanDevice {
 		return {object};
 	}
 
+	// TODO: just use max_swap_frames from RenderGraph (or move it here)
 	static constexpr int max_defer_frames = 3;
 	using ReleaseFunc = void (*)(void *param0, void *param1, VkDevice);
 	void deferredRelease(void *param0, void *param1, ReleaseFunc,
 						 int num_frames = max_defer_frames);
 	void nextReleasePhase();
+
+	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
 
   private:
 	VulkanDevice(VDeviceId, VPhysicalDeviceId, VInstanceRef);
@@ -149,6 +132,7 @@ class VulkanDevice {
 	Dynamic<VulkanMemoryManager> m_memory;
 
 	VDeviceFeatures m_features;
+	// TODO: separate queue for transfers in the background?
 	vector<Pair<VkQueue, VQueueFamilyId>> m_queues;
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;

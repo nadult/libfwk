@@ -18,13 +18,11 @@ struct ImageSetup {
 
 class VulkanImage : public VulkanObjectBase<VulkanImage> {
   public:
-	static Ex<PVImage> create(VDeviceRef, VkExtent2D, const ImageSetup &);
+	static Ex<PVImage> create(VDeviceRef, VkExtent2D, const ImageSetup &,
+							  VMemoryUsage = VMemoryUsage::device);
 	static Ex<PVImage> createExternal(VDeviceRef, VkImage, VkExtent2D, const ImageSetup &);
 
-	VkMemoryRequirements memoryRequirements() const;
-	Ex<void> bindMemory(PVDeviceMemory);
-
-	auto memoryFlags() { return m_memory_flags; }
+	auto memoryBlock() { return m_memory_block; }
 	VkExtent2D extent() const { return m_extent; }
 	VkFormat format() const { return m_format; }
 	auto usage() const { return m_usage; }
@@ -33,15 +31,14 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
   private:
 	friend class VulkanDevice;
 	friend class VulkanRenderGraph;
-	VulkanImage(VkImage, VObjectId, VkExtent2D, const ImageSetup &);
+	VulkanImage(VkImage, VObjectId, VMemoryBlock, VkExtent2D, const ImageSetup &);
 	~VulkanImage();
 
+	VMemoryBlock m_memory_block;
 	VkFormat m_format;
 	VkExtent2D m_extent;
 	int m_num_samples;
 	VImageUsageFlags m_usage;
-	PVDeviceMemory m_memory;
-	VMemoryFlags m_memory_flags;
 	VImageLayout m_last_layout;
 	bool m_is_external = false;
 };

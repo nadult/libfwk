@@ -68,8 +68,9 @@ auto SlabAllocator::alloc(u64 size) -> Pair<Identifier, Allocation> {
 		if(zone_id == -1)
 			return {};
 
-		u64 zone_offset = u64(slab_id) * slab_size;
-		return {Identifier(slab_id, num_slabs, zone_id), Allocation{uint(zone_id), zone_offset}};
+		u64 offset = slab_id * slab_size;
+		u64 size = num_slabs * slab_size;
+		return {Identifier(slab_id, num_slabs, zone_id), Allocation{uint(zone_id), offset, size}};
 	}
 
 	int level_id = findBestChunkLevel(size);
@@ -107,8 +108,8 @@ auto SlabAllocator::alloc(u64 size) -> Pair<Identifier, Allocation> {
 	DASSERT(chunk_id != 1 && chunk_id < level.chunks_per_group);
 
 	Identifier ident(chunk_id, group_id, level_id, 0);
-	u64 zone_offset = u64(group.slab_offset * slab_size) + u64(chunk_id) * level.chunk_size;
-	Allocation alloc{group.zone_id, zone_offset};
+	u64 offset = u64(group.slab_offset * slab_size) + u64(chunk_id) * level.chunk_size;
+	Allocation alloc{group.zone_id, offset, level.chunk_size};
 	return {ident, alloc};
 }
 

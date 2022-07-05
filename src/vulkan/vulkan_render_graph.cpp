@@ -10,6 +10,7 @@
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 
@@ -164,27 +165,25 @@ void VulkanRenderGraph::enqueue(Command cmd) { m_commands.emplace_back(move(cmd)
 Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
 	if(cmd.data.empty())
 		return {};
-
-	// TODO: add weak DeviceRef for passing into functions ?
-	// Maybe instead create functions should all be in device?
-	auto staging_buffer =
-		EX_PASS(VulkanBuffer::create(m_device.ref(), cmd.data.size(), VBufferUsage::transfer_src));
-	auto staging_mem_req = staging_buffer->memoryRequirements();
-	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_cached;
-	auto staging_memory = EX_PASS(m_device.allocDeviceMemory(
-		staging_mem_req.size, staging_mem_req.memoryTypeBits, staging_mem_flags));
-
-	EXPECT(staging_buffer->bindMemory(staging_memory));
-
-	staging_buffer->upload(cmd.data);
-	VkBufferCopy copy_params{
-		.srcOffset = 0, .dstOffset = cmd.offset, .size = (VkDeviceSize)cmd.data.size()};
-	m_commands.emplace_back(
-		CmdCopy{.src = staging_buffer, .dst = cmd.dst, .regions = {{copy_params}}});
-	m_staging_buffers.emplace_back(move(staging_buffer));
-	// TODO: don't use staging buffer if:
-	// cmd.buffer is host_visible
-	// cmd.buffer isn't being used yet?
+	auto &mem_mgr = m_device.memory();
+	auto mem_block = cmd.dst->memoryBlock();
+	if(canBeMapped(mem_block.id.domain())) {
+		mem_block.offset += cmd.offset;
+		DASSERT(cmd.offset <= mem_block.size);
+		// TODO: better checks
+		mem_block.size = min<u32>(mem_block.size - cmd.offset, cmd.data.size());
+		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.data);
+	} else {
+		auto staging_buffer = EX_PASS(VulkanBuffer::create(
+			m_device.ref(), cmd.data.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
+		auto mem_block = staging_buffer->memoryBlock();
+		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.data);
+		VkBufferCopy copy_params{
+			.srcOffset = 0, .dstOffset = cmd.offset, .size = (VkDeviceSize)cmd.data.size()};
+		m_commands.emplace_back(
+			CmdCopy{.src = staging_buffer, .dst = cmd.dst, .regions = {{copy_params}}});
+		m_staging_buffers.emplace_back(move(staging_buffer));
+	}
 
 	return {};
 }
@@ -195,23 +194,20 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUploadImage cmd) {
 
 	int data_size = cmd.image.data().size() * sizeof(IColor);
 
-	// TODO: add weak DeviceRef for passing into functions ?
-	// Maybe instead create functions should all be in device?
-	auto staging_buffer =
-		EX_PASS(VulkanBuffer::create(m_device.ref(), data_size, VBufferUsage::transfer_src));
-	auto staging_mem_req = staging_buffer->memoryRequirements();
-	auto staging_mem_flags = VMemoryFlag::host_visible | VMemoryFlag::host_cached;
-	auto staging_memory = EX_PASS(m_device.allocDeviceMemory(
-		staging_mem_req.size, staging_mem_req.memoryTypeBits, staging_mem_flags));
-
-	EXPECT(staging_buffer->bindMemory(staging_memory));
-
-	staging_buffer->upload(cmd.image.data());
-	m_commands.emplace_back(CmdCopyImage{.src = staging_buffer, .dst = cmd.dst});
-	m_staging_buffers.emplace_back(move(staging_buffer));
-	// TODO: don't use staging buffer if:
-	// cmd.buffer is host_visible
-	// cmd.buffer isn't being used yet?
+	auto &mem_mgr = m_device.memory();
+	auto mem_block = cmd.dst->memoryBlock();
+	if(canBeMapped(mem_block.id.domain())) {
+		// TODO: better checks
+		mem_block.size = min<u32>(mem_block.size, data_size);
+		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.image.data().reinterpret<char>());
+	} else {
+		auto staging_buffer = EX_PASS(VulkanBuffer::create(
+			m_device.ref(), data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
+		auto mem_block = staging_buffer->memoryBlock();
+		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.image.data().reinterpret<char>());
+		m_commands.emplace_back(CmdCopyImage{.src = staging_buffer, .dst = cmd.dst});
+		m_staging_buffers.emplace_back(move(staging_buffer));
+	}
 
 	return {};
 }

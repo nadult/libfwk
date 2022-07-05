@@ -9,17 +9,15 @@
 
 namespace fwk {
 
-// TODO: make objects immovable
 class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
   public:
-	static Ex<PVBuffer> create(VDeviceRef, u64 num_bytes, VBufferUsageFlags usage);
+	static Ex<PVBuffer> create(VDeviceRef, u64 num_bytes, VBufferUsageFlags,
+							   VMemoryUsage = VMemoryUsage::device);
 	template <class T>
-	static Ex<PVBuffer> create(VDeviceRef device, u64 num_elements, VBufferUsageFlags usage) {
-		return create(device, num_elements * sizeof(T), usage);
+	static Ex<PVBuffer> create(VDeviceRef device, u32 num_elements, VBufferUsageFlags usage,
+							   VMemoryUsage mem_usage = VMemoryUsage::device) {
+		return create(device, num_elements * sizeof(T), usage, mem_usage);
 	}
-
-	VkMemoryRequirements memoryRequirements() const;
-	Ex<void> bindMemory(PVDeviceMemory);
 
 	void upload(CSpan<char>);
 	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
@@ -27,21 +25,19 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 		upload<T>(cspan(data));
 	}
 
-	u64 size() const { return m_size; }
+	u32 size() const { return m_memory_block.size; }
+	auto memoryBlock() const { return m_memory_block; }
 	auto usage() const { return m_usage; }
-	auto memoryFlags() const { return m_mem_flags; }
 
 	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
 	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
 
   private:
 	friend class VulkanDevice;
-	VulkanBuffer(VkBuffer, VObjectId, u64 size, VBufferUsageFlags);
+	VulkanBuffer(VkBuffer, VObjectId, VMemoryBlock, VBufferUsageFlags);
 	~VulkanBuffer();
 
-	u64 m_size;
-	PVDeviceMemory m_memory;
-	VMemoryFlags m_mem_flags;
+	VMemoryBlock m_memory_block;
 	VBufferUsageFlags m_usage;
 };
 

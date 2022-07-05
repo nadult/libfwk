@@ -13,23 +13,26 @@ namespace fwk {
 class SlabAllocator;
 
 // TODO: add support for dedicated allocation
-// TODO: use alloc/unmanagedAlloc for frame allocator
 // TODO: memory mapping managed here
 
-DEFINE_ENUM(VAllocationType, slab, unmanaged, frame);
+// Jak zrobiæ bindowanie pamiêci do obiektów i jej mapowanie ?
+//
+// TODO: Teraz muszê jeszcze zrobiæ mapowanie oraz staging buffer
+//
 
 class VulkanMemoryManager {
   public:
 	static constexpr int num_frames = 2;
+	static constexpr u32 max_allocation_size = 0xffffffffu;
 
-	VulkanMemoryManager(VDeviceRef);
+	VulkanMemoryManager(VkDevice, const VulkanPhysicalDeviceInfo &, VDeviceFeatures);
 	~VulkanMemoryManager();
 
 	VulkanMemoryManager(const VulkanMemoryManager &) = delete;
 	void operator=(const VulkanMemoryManager &) = delete;
 
-	void addSlabAllocator(VMemoryDomain, u64 zone_size = 64 * 1024 * 1024);
-	Ex<void> allocSlabZone(VMemoryDomain, u64 zone_size);
+	void addSlabAllocator(VMemoryDomain, u32 zone_size = 64 * 1024 * 1024);
+	Ex<void> allocSlabZone(VMemoryDomain, u32 zone_size);
 
 	struct Budget {
 		i64 heap_budget = -1;
@@ -41,72 +44,71 @@ class VulkanMemoryManager {
 	// Will return -1 if budget extension is not available
 	EnumMap<VMemoryDomain, Budget> budget() const;
 
-	struct AllocId {
-		AllocId(VAllocationType type, VMemoryDomain domain, u32 block_id)
-			: type(type), domain(domain), block_id(block_id) {}
-
-		// TODO: encode in u64?
-		VAllocationType type;
-		VMemoryDomain domain;
-		u32 block_id;
-	};
-
-	// TODO: allocation should also return size, because it may return more than was requested
-	struct Allocation {
-		AllocId identifier;
-		VkDeviceMemory handle;
-		u64 offset;
-	};
-
-	Ex<Allocation> alloc(VMemoryDomain, u64 size, uint alignment);
-	Ex<Allocation> unmanagedAlloc(VMemoryDomain, u64 size, uint alignment);
-
-	Ex<Allocation> frameAlloc(u64 size, uint alignment);
-	Ex<void> frameAlloc(PVBuffer);
+	Ex<VMemoryBlock> alloc(VMemoryDomain, u32 size, uint alignment);
+	Ex<VMemoryBlock> unmanagedAlloc(VMemoryDomain, u32 size);
+	Ex<VMemoryBlock> frameAlloc(u32 size, uint alignment);
+	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
 
 	// Note: frame allocations don't have to be freed at all
-	void immediateFree(AllocId);
-	void deferredFree(AllocId);
+	void immediateFree(VMemoryBlockId);
+	void deferredFree(VMemoryBlockId);
+
+	// Memory will be automatically flushed in finishFrame()
+	// Memory should be filled immediately after calling accessMemory
+	// accessMemory may invalidate previous mappings
+	Ex<Span<char>> accessMemory(const VMemoryBlock &);
 
   private:
 	void beginFrame();
+	void finishFrame();
 	friend class VulkanDevice;
 
   private:
+	void shrunkMappings();
 	static u64 slabAlloc(u64, uint, void *);
 
-	struct FrameInfo {
-		Maybe<AllocId> alloc_id;
+	struct DeviceMemory {
 		VkDeviceMemory handle = nullptr;
+		void *mapping = nullptr;
+	};
+
+	struct FrameInfo {
+		Maybe<VMemoryBlockId> alloc_id;
+		DeviceMemory memory;
 		u64 base_offset = 0, offset = 0;
 		u64 size = 0;
 	};
 
 	struct DomainInfo {
 		VMemoryDomain domain;
-		VulkanDevice *device;
+		VkDevice device_handle;
 
 		int type_index = -1;
 		int heap_index = -1;
 		u64 heap_size = 0;
 		u64 slab_zone_size = 0;
 
-		vector<PVDeviceMemory> slab_memory;
-		vector<PVDeviceMemory> free_memory;
+		bool validDomain(u32 type_mask) const;
+
+		vector<DeviceMemory> slab_memory;
+		vector<DeviceMemory> unmanaged_memory;
 		Dynamic<SlabAllocator> slab_alloc;
 	};
 
-	VulkanDevice *m_device = nullptr;
 	VkDevice m_device_handle = nullptr;
+	VkPhysicalDevice m_phys_handle = nullptr;
 	EnumMap<VMemoryDomain, DomainInfo> m_domains;
+	u32 m_non_coherent_atom_size = 1;
 
 	array<FrameInfo, num_frames> m_frames;
-	array<vector<AllocId>, num_frames> m_deferred_frees;
+	array<vector<VMemoryBlockId>, num_frames> m_deferred_frees;
+	vector<VkMappedMemoryRange> m_flush_ranges;
 
 	VMemoryDomain m_frame_allocator_domain;
-	u64 m_frame_allocator_base_size = 256 * 1024;
-	bool m_is_initial_frame = true;
+	u32 m_frame_allocator_base_size = 256 * 1024;
 	int m_frame_index = 0;
-};
 
+	bool m_is_initial_frame = true;
+	bool m_has_mem_budget = false;
+};
 }

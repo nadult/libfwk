@@ -9,7 +9,6 @@
 CASE_TYPE(Buffer, VkBuffer, buffer)
 CASE_TYPE(CommandBuffer, VkCommandBuffer, command_buffer)
 CASE_TYPE(CommandPool, VkCommandPool, command_pool)
-CASE_TYPE(DeviceMemory, VkDeviceMemory, device_memory)
 CASE_TYPE(DescriptorPool, VkDescriptorPool, descriptor_pool)
 CASE_TYPE(DescriptorSetLayout, VkDescriptorSetLayout, descriptor_set_layout)
 CASE_TYPE(Fence, VkFence, fence)
