@@ -12,8 +12,6 @@ namespace fwk {
 
 class SlabAllocator;
 
-// TODO: add support for dedicated allocation
-// TODO: memory mapping managed here
 
 class VulkanMemoryManager {
   public:

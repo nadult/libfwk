@@ -54,6 +54,9 @@ VulkanMemoryManager::VulkanMemoryManager(VkDevice device_handle,
 		info.heap_size = heap_size;
 	}
 
+	addSlabAllocator(VMemoryDomain::device);
+	addSlabAllocator(VMemoryDomain::host);
+
 	bool temp_available = isAvailable(VMemoryDomain::temporary);
 	m_frame_allocator_domain = temp_available ? VMemoryDomain::temporary : VMemoryDomain::host;
 }

@@ -27,11 +27,20 @@
 
 #include <vulkan/vulkan.h>
 
+// TODO: what should we do when error happens in begin/end frame?
+// TODO: proprly handle multiple queues
+// TODO: proprly differentiate between graphics, present & compute queues
+
 // TODO: handling VkResults
 // TODO: making sure that handles are correct ?
 // TODO: more type safety
 // TODO: VHandle<> class ? handles are not initialized to null by default ...
-// TODO: kolejnoœæ niszczenia obiektów...
+// TODO: test_vulkan na nvidii jest ca³y czas wolniejszy ni¿ test_window (1300 vs 2220 FPS)
+// TODO: mo¿na jeszcze pewnie zrobiæ du¿o ró¿nego rodzaju optymalizacji, ale najpierw przyda³yby
+//       siê jakieœ konkretne programy testowe
+// TODO: add support for dedicated allocations in MemoryManager
+// TODO: robust mapping / unmapping in MemoryManager
+// TODO: garbage collection in memory manager (especially chunks), but first we should test it more thoroughly
 
 using namespace fwk;
 
