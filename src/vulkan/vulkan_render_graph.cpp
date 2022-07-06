@@ -80,36 +80,11 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 
 Ex<PVRenderPass> VulkanRenderGraph::createRenderPass(VDeviceRef device, PVSwapChain swap_chain) {
 	auto sc_image = swap_chain->imageViews().front()->image();
-	auto extent = sc_image->extent();
-
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = sc_image->format();
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	return VulkanRenderPass::create(device, cspan(&colorAttachment, 1), cspan(&subpass, 1),
-									cspan(&dependency, 1));
+	RenderPassDesc desc;
+	desc.colors = {{sc_image->format()}};
+	desc.colors_sync.emplace_back(VLoadOp::clear, VStoreOp::store, VLayout::undefined,
+								  VLayout::present_src);
+	return VulkanRenderPass::create(device, desc);
 }
 
 Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain) {
@@ -367,10 +342,9 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopyImage &cmd) {
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBeginRenderPass &cmd) {
-	VkRenderPassBeginInfo bi{};
+	VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
 	auto framebuffer = m_framebuffers[m_image_index];
 
-	bi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	bi.renderPass = cmd.render_pass;
 	if(cmd.render_area)
 		bi.renderArea = toVkRect(*cmd.render_area);

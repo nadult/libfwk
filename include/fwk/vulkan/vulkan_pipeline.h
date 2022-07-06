@@ -46,8 +46,58 @@ struct VPipelineSetup {
 	// TODO: other stuff
 };
 
+struct AttachmentCore {
+	AttachmentCore(VkFormat format, uint num_samples = 1)
+		: format(format), num_samples(num_samples) {}
+	FWK_TIE_MEMBERS(format, num_samples);
+	FWK_TIED_COMPARES(AttachmentCore);
+
+	VkFormat format;
+	uint num_samples;
+};
+
+struct ColorAttachmentSync {
+	ColorAttachmentSync(VLoadOp load, VStoreOp store, VLayout init_layout, VLayout final_layout)
+		: load_op(load), store_op(store), init_layout(init_layout), final_layout(final_layout) {}
+	FWK_TIE_MEMBERS(load_op, store_op, init_layout, final_layout);
+	FWK_TIED_COMPARES(ColorAttachmentSync);
+
+	VLoadOp load_op;
+	VStoreOp store_op;
+	VLayout init_layout;
+	VLayout final_layout;
+};
+
+struct DepthAttachmentSync {
+	DepthAttachmentSync(VLoadOp load, VStoreOp store, VLoadOp stencil_load, VStoreOp stencil_store,
+						VLayout init_layout, VLayout final_layout)
+		: load_op(load), store_op(store), stencil_load_op(stencil_load),
+		  stencil_store_op(stencil_store), init_layout(init_layout), final_layout(final_layout) {}
+	FWK_TIE_MEMBERS(load_op, store_op, stencil_load_op, stencil_store_op, init_layout,
+					final_layout);
+	FWK_TIED_COMPARES(DepthAttachmentSync);
+
+	VLoadOp load_op;
+	VStoreOp store_op;
+	VLoadOp stencil_load_op;
+	VStoreOp stencil_store_op;
+	VLayout init_layout;
+	VLayout final_layout;
+};
+
+struct RenderPassDesc {
+	static constexpr int max_color_attachments = 8;
+
+	StaticVector<AttachmentCore, max_color_attachments> colors;
+	StaticVector<ColorAttachmentSync, max_color_attachments> colors_sync;
+
+	Maybe<AttachmentCore> depth;
+	Maybe<DepthAttachmentSync> depth_sync;
+};
+
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
+	static Ex<PVRenderPass> create(VDeviceRef, const RenderPassDesc &);
 	static Ex<PVRenderPass> create(VDeviceRef, CSpan<VkAttachmentDescription>,
 								   CSpan<VkSubpassDescription>, CSpan<VkSubpassDependency>);
 

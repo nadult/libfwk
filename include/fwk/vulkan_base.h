@@ -88,6 +88,11 @@ DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);
 
 DEFINE_ENUM(VPresentMode, immediate, mailbox, fifo, fifo_relaxed);
 
+DEFINE_ENUM(VLoadOp, load, clear, dont_care, none);
+DEFINE_ENUM(VStoreOp, store, dont_care, none);
+DEFINE_ENUM(VLayout, undefined, general, color, depth_stencil, depth_stencil_ro, shader_ro,
+			transfer_src, transfer_dst, preinitialized, present_src);
+
 struct VMemoryBlockId {
 	VMemoryBlockId(VMemoryBlockType type, VMemoryDomain domain, u16 zone_id, u32 block_identifier)
 		: value(u64(block_identifier) | (u64(type) << 32) | (u64(domain) << 40) |
@@ -120,6 +125,15 @@ inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(f
 inline auto toVk(VImageLayout layout) { return VkImageLayout(layout); }
 inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }
 inline auto toVk(VPresentMode mode) { return VkPresentModeKHR(mode); }
+inline auto toVk(VLoadOp op) {
+	return op == VLoadOp::none ? VK_ATTACHMENT_LOAD_OP_NONE_EXT : VkAttachmentLoadOp(op);
+}
+inline auto toVk(VStoreOp op) {
+	return op == VStoreOp::none ? VK_ATTACHMENT_STORE_OP_NONE_EXT : VkAttachmentStoreOp(op);
+}
+inline auto toVk(VLayout layout) {
+	return layout == VLayout::present_src ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VkImageLayout(layout);
+}
 
 struct VSamplingParams {
 	VTexFilter mag_filter = VTexFilter::nearest;
