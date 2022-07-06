@@ -86,6 +86,7 @@
     <ClInclude Include="..\include\fwk\audio_base.h" />
     <ClInclude Include="..\include\fwk\base_vector.h" />
     <ClInclude Include="..\include\fwk\bit_vector.h" />
+    <ClInclude Include="..\include\fwk\gfx\shader_reflection.h" />
     <ClInclude Include="..\include\fwk\slab_allocator.h" />
     <ClInclude Include="..\include\fwk\dynamic.h" />
     <ClInclude Include="..\include\fwk\enum.h" />
@@ -295,6 +296,7 @@
     </ClCompile>
     <ClCompile Include="..\src\base_vector.cpp" />
     <ClCompile Include="..\src\bit_vector.cpp" />
+    <ClCompile Include="..\src\gfx\shader_reflection.cpp" />
     <ClCompile Include="..\src\slab_allocator.cpp" />
     <ClCompile Include="..\src\enum.cpp" />
     <ClCompile Include="..\src\format.cpp" />

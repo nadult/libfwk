@@ -58,6 +58,11 @@
 	Class &operator=(const Class &) = delete;                                                      \
 	Class &operator=(Class &&);
 
+#define FWK_IMMOVABLE_CLASS(Class)                                                                 \
+	~Class();                                                                                      \
+	Class(const Class &) = delete;                                                                 \
+	Class &operator=(const Class &) = delete;
+
 #define FWK_MOVABLE_CLASS_IMPL(Class)                                                              \
 	Class::~Class() = default;                                                                     \
 	Class::Class(Class &&) = default;                                                              \

@@ -12,7 +12,6 @@ namespace fwk {
 
 class SlabAllocator;
 
-
 class VulkanMemoryManager {
   public:
 	static constexpr int num_frames = 2;
