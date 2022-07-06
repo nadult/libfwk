@@ -15,9 +15,8 @@ struct VulkanSurfaceInfo {
 };
 
 struct VulkanSwapChainSetup {
-	VkSurfaceFormatKHR surface_format;
-	VkPresentModeKHR present_mode;
-	VkSurfaceTransformFlagBitsKHR transform;
+	vector<VkFormat> preferred_formats = {VK_FORMAT_B8G8R8A8_SRGB};
+	VPresentMode preferred_present_mode = VPresentMode::fifo;
 };
 
 class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {

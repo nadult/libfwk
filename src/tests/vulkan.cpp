@@ -312,6 +312,7 @@ Ex<int> exMain() {
 	setup.debug_types = all<VDebugType>;
 	auto instance = EX_PASS(VulkanInstance::create(setup));
 
+	// TODO: cleanup in flags
 	auto flags = VWindowFlag::resizable | VWindowFlag::vsync | VWindowFlag::centered |
 				 VWindowFlag::allow_hidpi;
 	auto window = EX_PASS(VulkanWindow::create(instance, "fwk::vulkan_test", IRect(0, 0, 1280, 720),
@@ -326,12 +327,8 @@ Ex<int> exMain() {
 	print("Selected Vulkan physical device: %\nDriver version: %\n",
 		  phys_info.properties.deviceName, phys_info.properties.driverVersion);
 
-	auto surf_info = VulkanSwapChain::surfaceInfo(device, window);
-	auto swap_chain =
-		EX_PASS(VulkanSwapChain::create(device, window,
-										{.surface_format = surf_info.formats[0],
-										 .present_mode = surf_info.present_modes[0],
-										 .transform = surf_info.capabilities.currentTransform}));
+	auto swap_chain = EX_PASS(VulkanSwapChain::create(
+		device, window, {.preferred_present_mode = VPresentMode::immediate}));
 	EXPECT(device->createRenderGraph(swap_chain));
 
 	VulkanContext ctx{device, window};

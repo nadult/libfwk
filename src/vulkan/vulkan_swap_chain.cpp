@@ -40,21 +40,35 @@ VulkanSurfaceInfo VulkanSwapChain::surfaceInfo(VDeviceRef device, VWindowRef win
 
 Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 										const VulkanSwapChainSetup &setup) {
+	auto surf_info = surfaceInfo(device, window);
+
 	VkSwapchainKHR handle;
-	VkSwapchainCreateInfoKHR ci{};
+	VkSwapchainCreateInfoKHR ci{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 	VImageUsageFlags usage = VImageUsage::color_attachment;
-	ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	ci.surface = window->surfaceHandle();
 	ci.minImageCount = 2;
-	ci.imageFormat = setup.surface_format.format;
-	ci.imageColorSpace = setup.surface_format.colorSpace;
+	ci.imageFormat = surf_info.formats[0].format;
+	ci.imageColorSpace = surf_info.formats[0].colorSpace;
 	ci.imageExtent = toVkExtent(window->extent());
 	ci.imageArrayLayers = 1;
 	ci.imageUsage = toVk(usage);
-	ci.preTransform = setup.transform;
+	ci.preTransform = surf_info.capabilities.currentTransform;
 	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	ci.clipped = VK_TRUE;
-	ci.presentMode = setup.present_mode;
+
+	bool valid_preferred = isOneOf(toVk(setup.preferred_present_mode), surf_info.present_modes);
+	ci.presentMode = toVk(valid_preferred ? setup.preferred_present_mode : VPresentMode::fifo);
+
+	bool found_preferred_format = false;
+	for(int i = 0; i < setup.preferred_formats.size() && !found_preferred_format; i++) {
+		auto preferred = setup.preferred_formats[i];
+		for(auto format : surf_info.formats)
+			if(format.format == preferred) {
+				ci.imageFormat = format.format;
+				ci.imageColorSpace = format.colorSpace;
+				break;
+			}
+	}
 
 	// TODO: separate class for swap chain ?
 	if(vkCreateSwapchainKHR(device, &ci, nullptr, &handle) != VK_SUCCESS)

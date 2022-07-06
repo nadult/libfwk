@@ -86,6 +86,8 @@ using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
 DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);
 
+DEFINE_ENUM(VPresentMode, immediate, mailbox, fifo, fifo_relaxed);
+
 struct VMemoryBlockId {
 	VMemoryBlockId(VMemoryBlockType type, VMemoryDomain domain, u16 zone_id, u32 block_identifier)
 		: value(u64(block_identifier) | (u64(type) << 32) | (u64(domain) << 40) |
@@ -117,6 +119,7 @@ inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits
 inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
 inline auto toVk(VImageLayout layout) { return VkImageLayout(layout); }
 inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }
+inline auto toVk(VPresentMode mode) { return VkPresentModeKHR(mode); }
 
 struct VSamplingParams {
 	VTexFilter mag_filter = VTexFilter::nearest;
