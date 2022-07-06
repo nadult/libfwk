@@ -49,7 +49,7 @@ struct VulkanDevice::ObjectPools {
 
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
-	array<vector<DeferredRelease>, max_defer_frames + 1> to_release;
+	array<vector<DeferredRelease>, num_swap_frames> to_release;
 };
 
 // -------------------------------------------------------------------------------------------
@@ -152,8 +152,8 @@ VulkanDevice::~VulkanDevice() {
 	m_memory.reset();
 
 	if(m_handle) {
-		for(int i = 0; i <= max_defer_frames; i++)
-			nextReleasePhase();
+		for(int i : intRange(num_swap_frames))
+			releaseObjects(i);
 		g_vk_storage.device_handles[m_id] = nullptr;
 		vkDestroyDevice(m_handle, nullptr);
 	}
@@ -166,16 +166,18 @@ Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {
 }
 
 Ex<void> VulkanDevice::beginFrame() {
-	if(m_render_graph)
-		EXPECT(m_render_graph->beginFrame());
+	ASSERT(m_render_graph);
+	EXPECT(m_render_graph->beginFrame());
+	m_swap_frame_index = m_render_graph->swapFrameIndex();
 	m_memory->beginFrame();
+	releaseObjects(m_swap_frame_index);
 	return {};
 }
 
 Ex<void> VulkanDevice::finishFrame() {
+	DASSERT(m_render_graph);
 	m_memory->finishFrame();
-	if(m_render_graph)
-		EXPECT(m_render_graph->finishFrame());
+	EXPECT(m_render_graph->finishFrame());
 	return {};
 }
 
@@ -233,18 +235,15 @@ Ex<PVDescriptorPool> VulkanDevice::createDescriptorPool(const DescriptorPoolSetu
 }
 
 using ReleaseFunc = void (*)(void *, void *, VkDevice);
-void VulkanDevice::deferredRelease(void *param0, void *param1, ReleaseFunc func, int num_frames) {
-	DASSERT(num_frames <= max_defer_frames);
-	m_objects->to_release[num_frames].emplace_back(param0, param1, func);
+void VulkanDevice::deferredRelease(void *param0, void *param1, ReleaseFunc func) {
+	m_objects->to_release[m_swap_frame_index].emplace_back(param0, param1, func);
 }
 
-void VulkanDevice::nextReleasePhase() {
-	auto &to_release = m_objects->to_release;
-	for(auto [param0, param1, func] : to_release[0])
+void VulkanDevice::releaseObjects(int frame_index) {
+	auto &to_release = m_objects->to_release[frame_index];
+	for(auto [param0, param1, func] : to_release)
 		func(param0, param1, m_handle);
-	to_release[0].clear();
-	for(int i = 1; i <= max_defer_frames; i++)
-		to_release[i - 1].swap(to_release[i]);
+	to_release.clear();
 }
 
 Ex<VMemoryBlock> VulkanDevice::alloc(VMemoryUsage usage, const VkMemoryRequirements &requirements) {

@@ -26,8 +26,6 @@ struct VulkanDeviceSetup {
 
 class VulkanDevice {
   public:
-	Ex<void> createRenderGraph(PVSwapChain);
-
 	VDeviceRef ref() const { return VDeviceRef(m_id); }
 	VDeviceId id() const { return m_id; }
 	VPhysicalDeviceId physId() const { return m_phys_id; }
@@ -37,6 +35,7 @@ class VulkanDevice {
 	CSpan<Pair<VkQueue, VQueueFamilyId>> queues() const { return m_queues; }
 	VDeviceFeatures features() const { return m_features; }
 
+	Ex<void> createRenderGraph(PVSwapChain);
 	const VulkanRenderGraph &renderGraph() const { return *m_render_graph; }
 	VulkanRenderGraph &renderGraph() { return *m_render_graph; }
 
@@ -62,13 +61,9 @@ class VulkanDevice {
 		return {object};
 	}
 
-	// TODO: just use max_swap_frames from RenderGraph (or move it here)
-	static constexpr int max_defer_frames = 3;
+	static constexpr int num_swap_frames = 2;
 	using ReleaseFunc = void (*)(void *param0, void *param1, VkDevice);
-	void deferredRelease(void *param0, void *param1, ReleaseFunc,
-						 int num_frames = max_defer_frames);
-	void nextReleasePhase();
-
+	void deferredRelease(void *param0, void *param1, ReleaseFunc);
 	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
 
   private:
@@ -86,6 +81,7 @@ class VulkanDevice {
 
 	template <class TObject> Pair<void *, VObjectId> allocObject();
 	template <class TObject> void destroyObject(VulkanObjectBase<TObject> *);
+	void releaseObjects(int swap_frame_index);
 	struct ObjectPools;
 
 	Dynamic<ObjectPools> m_objects;
@@ -100,5 +96,6 @@ class VulkanDevice {
 	VInstanceRef m_instance_ref;
 	VPhysicalDeviceId m_phys_id;
 	VDeviceId m_id;
+	int m_swap_frame_index = 0;
 };
 }

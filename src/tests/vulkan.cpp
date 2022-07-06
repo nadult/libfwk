@@ -292,9 +292,6 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 	renderer.render();*/
 
-	// TODO: is this a good place ?
-	ctx.device->nextReleasePhase();
-
 	return true;
 }
 
