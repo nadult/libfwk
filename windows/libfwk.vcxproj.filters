@@ -693,9 +693,6 @@
     <ClInclude Include="..\include\fwk\slab_allocator.h">
       <Filter>include\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_descriptors.h">
-      <Filter>include\vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\shader_reflection.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
@@ -1186,9 +1183,6 @@
     </ClCompile>
     <ClCompile Include="..\src\slab_allocator.cpp">
       <Filter>src\common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vulkan\vulkan_descriptors.cpp">
-      <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\shader_reflection.cpp">
       <Filter>src\gfx</Filter>

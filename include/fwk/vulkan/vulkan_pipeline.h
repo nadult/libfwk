@@ -3,8 +3,10 @@
 
 #pragma once
 
+#include "fwk/enum_map.h"
 #include "fwk/static_vector.h"
 #include "fwk/sys/expected.h"
+#include "fwk/variant.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
@@ -35,7 +37,6 @@ struct VInputAssemblySetup {
 
 struct VPipelineSetup {
 	StaticVector<VShaderStageSetup, count<VShaderStage>> stages;
-	vector<PVDescriptorSetLayout> dsls;
 	VInputAssemblySetup input_assembly;
 	VkViewport viewport;
 	VkRect2D scissor;
@@ -72,17 +73,78 @@ class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
 	vector<PVDescriptorSetLayout> m_dsls;
 };
 
+// TODO: consistent naming
+// TODO: natvis
 struct DescriptorBindingInfo {
-	uint binding = 0;
-	uint count = 1;
-	VShaderStageFlags stages = VShaderStage::vertex | VShaderStage::fragment;
-	VDescriptorType type = VDescriptorType::sampler;
+	static constexpr int stages_bit_mask = 0x3fff;
+	static_assert(count<VShaderStage> < 14);
+
+	static constexpr int max_sets = 32;
+	static constexpr int max_bindings = 1024 * 1024;
+
+	DescriptorBindingInfo(VDescriptorType type, VShaderStageFlags stages, uint binding,
+						  uint count = 1, uint set = 0)
+		: value(u64(stages.bits) | (u64(type) << 14) | (u64(count) << 18) | (u64(binding) << 38) |
+				(u64(set) << 58)) {
+		PASSERT(set < max_sets);
+		PASSERT(binding < max_bindings);
+	}
+	explicit DescriptorBindingInfo(u64 encoded_value) : value(encoded_value) {}
+	DescriptorBindingInfo() : value(0) {}
+
+	void clearSet() { value = value & ((1ull << 58) - 1); }
+
+	uint set() const { return uint(value >> 58); }
+	uint binding() const { return uint((value >> 38) & 0xfffffu); }
+	uint count() const { return uint((value >> 18) & 0xfffffu); }
+	VDescriptorType type() const { return VDescriptorType((value >> 14) & 0xf); }
+	VShaderStageFlags stages() const { return VShaderStageFlags(value & stages_bit_mask); }
+
+	bool operator<(const DescriptorBindingInfo &rhs) const { return value < rhs.value; }
+	bool operator==(const DescriptorBindingInfo &rhs) const { return value == rhs.value; }
+
+	static vector<DescriptorBindingInfo> merge(CSpan<DescriptorBindingInfo>,
+											   CSpan<DescriptorBindingInfo>);
+	static vector<CSpan<DescriptorBindingInfo>> divideSets(CSpan<DescriptorBindingInfo>);
+
+	static u32 hashIgnoreSet(CSpan<DescriptorBindingInfo>, u32 seed = 123);
+
+	u64 value = 0;
+};
+
+// TODO: consistent naming
+struct DescriptorPoolSetup {
+	EnumMap<VDescriptorType, uint> sizes;
+	uint max_sets = 1;
+};
+
+// TODO: would it be better to turn it into managed class?
+// TODO: consistent naming
+struct DescriptorSet {
+	DescriptorSet(PVPipelineLayout layout, uint layout_index, PVDescriptorPool pool,
+				  VkDescriptorSet handle)
+		: layout(layout), layout_index(layout_index), pool(pool), handle(handle) {}
+	DescriptorSet() {}
+
+	struct Assignment {
+		VDescriptorType type;
+		uint binding;
+		Variant<Pair<PVSampler, PVImageView>, PVBuffer> data;
+	};
+
+	static constexpr int max_assignments = 16;
+	void update(CSpan<Assignment>);
+
+	PVPipelineLayout layout;
+	uint layout_index = 0;
+
+	PVDescriptorPool pool;
+	VkDescriptorSet handle = nullptr;
 };
 
 class VulkanDescriptorSetLayout : public VulkanObjectBase<VulkanDescriptorSetLayout> {
   public:
 	using BindingInfo = DescriptorBindingInfo;
-
 	CSpan<BindingInfo> bindings() const { return m_bindings; }
 
   private:
@@ -93,10 +155,32 @@ class VulkanDescriptorSetLayout : public VulkanObjectBase<VulkanDescriptorSetLay
 	vector<BindingInfo> m_bindings;
 };
 
+class VulkanDescriptorPool : public VulkanObjectBase<VulkanDescriptorPool> {
+  public:
+	Ex<DescriptorSet> alloc(PVPipelineLayout, uint index);
+
+  private:
+	friend class VulkanDevice;
+	VulkanDescriptorPool(VkDescriptorPool, VObjectId, uint max_sets);
+	~VulkanDescriptorPool();
+
+	uint m_num_sets = 0, m_max_sets;
+};
+
+class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
+  public:
+	const auto &params() const { return m_params; }
+
+  private:
+	friend class VulkanDevice;
+	VulkanSampler(VkSampler, VObjectId, const VSamplingParams &);
+	~VulkanSampler();
+
+	VSamplingParams m_params;
+};
+
 class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
   public:
-	static Ex<PVDescriptorSetLayout> createDescriptorSetLayout(VDeviceRef,
-															   vector<DescriptorBindingInfo>);
 	static Ex<PVPipelineLayout> createLayout(VDeviceRef, vector<PVDescriptorSetLayout>);
 	static Ex<PVPipeline> create(VDeviceRef, VPipelineSetup);
 

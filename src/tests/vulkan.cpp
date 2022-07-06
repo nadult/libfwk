@@ -14,7 +14,6 @@
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_buffer.h>
-#include <fwk/vulkan/vulkan_descriptors.h>
 #include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_framebuffer.h>
 #include <fwk/vulkan/vulkan_image.h>
@@ -22,6 +21,7 @@
 #include <fwk/vulkan/vulkan_memory_manager.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
 #include <fwk/vulkan/vulkan_render_graph.h>
+#include <fwk/vulkan/vulkan_shader.h>
 #include <fwk/vulkan/vulkan_swap_chain.h>
 #include <fwk/vulkan/vulkan_window.h>
 
@@ -137,8 +137,8 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	if(!fsh_code.bytecode)
 		return ERROR("Failed to compile fragment shader:\n%", fsh_code.messages);
 
-	auto vsh_module = EX_PASS(ctx.device->createShaderModule(vsh_code.bytecode));
-	auto fsh_module = EX_PASS(ctx.device->createShaderModule(fsh_code.bytecode));
+	auto vsh_module = EX_PASS(VulkanShaderModule::create(ctx.device, vsh_code.bytecode));
+	auto fsh_module = EX_PASS(VulkanShaderModule::create(ctx.device, fsh_code.bytecode));
 
 	auto &render_graph = ctx.device->renderGraph();
 	auto swap_chain = render_graph.swapChain();
@@ -156,14 +156,6 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	setup.scissor = {.offset = {0, 0}, .extent = extent};
 	setup.render_pass = render_graph.defaultRenderPass();
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
-
-	vector<DescriptorBindingInfo> bindings = {
-		{.binding = 0, .stages = VShaderStage::vertex, .type = VDescriptorType::uniform_buffer},
-		{.binding = 1,
-		 .stages = VShaderStage::fragment,
-		 .type = VDescriptorType::combined_image_sampler}};
-	auto dsl = EX_PASS(VulkanPipeline::createDescriptorSetLayout(ctx.device, move(bindings)));
-	setup.dsls.emplace_back(dsl);
 
 	ctx.pipeline = EX_PASS(VulkanPipeline::create(ctx.device, setup));
 	return {};

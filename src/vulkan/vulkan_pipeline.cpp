@@ -5,10 +5,133 @@
 
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_shader.h"
 
 #include <vulkan/vulkan.h>
 
 namespace fwk {
+
+vector<DescriptorBindingInfo> DescriptorBindingInfo::merge(CSpan<DescriptorBindingInfo> lhs,
+														   CSpan<DescriptorBindingInfo> rhs) {
+	vector<DescriptorBindingInfo> out;
+	out.reserve(lhs.size() + rhs.size());
+
+	int lpos = 0, rpos = 0;
+	while(lpos < lhs.size() && rpos < rhs.size()) {
+		auto &left = lhs[lpos];
+		auto &right = rhs[lpos];
+
+		if((left.value & ~stages_bit_mask) == (right.value & ~stages_bit_mask)) {
+			out.emplace_back(left.value | (right.value & stages_bit_mask));
+			lpos++, rpos++;
+			continue;
+		}
+		if(left < right) {
+			out.emplace_back(left);
+			lpos++;
+		} else {
+			out.emplace_back(right);
+			rpos++;
+		}
+	}
+
+	if(lpos < lhs.size())
+		insertBack(out, cspan(lhs.data() + lpos, lhs.size() - lpos));
+	if(rpos < rhs.size())
+		insertBack(out, cspan(rhs.data() + rpos, rhs.size() - rpos));
+	return out;
+}
+
+u32 DescriptorBindingInfo::hashIgnoreSet(CSpan<DescriptorBindingInfo> infos, u32 seed) {
+	u64 hash = seed;
+	for(auto info : infos) {
+		info.clearSet();
+		hash = combineHash(hash, hashU64(info.value));
+	}
+
+	// TODO: hash 32 -> 64
+	return u32(hash);
+}
+
+// TODO: what about set indices? we have to pass them forward too somehow
+vector<CSpan<DescriptorBindingInfo>>
+DescriptorBindingInfo::divideSets(CSpan<DescriptorBindingInfo> merged) {
+	vector<CSpan<DescriptorBindingInfo>> out;
+	uint prev_set = merged.empty() ? 0 : merged[0].set();
+	int start_idx = 0;
+
+	for(int i : intRange(merged)) {
+		auto cur_set = merged[i].set();
+		if(cur_set != prev_set) {
+			out.emplace_back(merged.data() + start_idx, merged.data() + i);
+			start_idx = i;
+			prev_set = cur_set;
+		}
+	}
+
+	out.emplace_back(merged.data() + start_idx, merged.end());
+	return out;
+}
+
+VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplingParams &params)
+	: VulkanObjectBase(handle, id), m_params(params) {}
+VulkanSampler::~VulkanSampler() { deferredHandleRelease<VkSampler, vkDestroySampler>(); }
+
+void DescriptorSet::update(CSpan<Assignment> assigns) {
+	DASSERT(assigns.size() <= max_assignments);
+
+	array<VkDescriptorBufferInfo, max_assignments> buffer_infos;
+	array<VkDescriptorImageInfo, max_assignments> image_infos;
+	array<VkWriteDescriptorSet, max_assignments> writes;
+	int num_buffers = 0, num_images = 0;
+
+	for(int i : intRange(assigns)) {
+		auto &write = writes[i];
+		auto &assign = assigns[i];
+		write = {};
+		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.dstBinding = assign.binding;
+		write.dstSet = handle;
+		write.descriptorType = toVk(assign.type);
+		write.descriptorCount = 1;
+		if(const PVBuffer *pbuffer = assign.data) {
+			auto &bi = buffer_infos[num_buffers++];
+			bi = {};
+			bi.buffer = *pbuffer;
+			bi.offset = 0;
+			bi.range = VK_WHOLE_SIZE;
+			write.pBufferInfo = &bi;
+		} else if(const Pair<PVSampler, PVImageView> *pair = assign.data) {
+			auto &ii = image_infos[num_images++];
+			ii = {};
+			ii.imageView = pair->second;
+			ii.sampler = pair->first;
+			ii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			write.pImageInfo = &ii;
+		}
+	}
+	vkUpdateDescriptorSets(pool->deviceHandle(), assigns.size(), writes.data(), 0, nullptr);
+}
+
+Ex<DescriptorSet> VulkanDescriptorPool::alloc(PVPipelineLayout layout, uint index) {
+	VkDescriptorSetLayout layout_handle = layout->descriptorSetLayouts()[index];
+	VkDescriptorSetAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	ai.descriptorPool = m_handle;
+	ai.descriptorSetCount = 1;
+	ai.pSetLayouts = &layout_handle;
+	VkDescriptorSet handle;
+	auto result = vkAllocateDescriptorSets(deviceHandle(), &ai, &handle);
+	if(result != VK_SUCCESS)
+		return ERROR("vkAllocateDescriptorSets failed");
+	return DescriptorSet(layout, index, ref(), handle);
+}
+
+VulkanDescriptorPool::VulkanDescriptorPool(VkDescriptorPool handle, VObjectId id, uint max_sets)
+	: VulkanObjectBase(handle, id), m_max_sets(max_sets) {}
+VulkanDescriptorPool ::~VulkanDescriptorPool() {
+	deferredHandleRelease<VkDescriptorPool, vkDestroyDescriptorPool>();
+}
 
 VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
@@ -60,29 +183,6 @@ VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
 	: VulkanObjectBase(handle, id), m_render_pass(rp), m_pipeline_layout(lt) {}
 VulkanPipeline::~VulkanPipeline() { deferredHandleRelease<VkPipeline, vkDestroyPipeline>(); }
 
-Ex<PVDescriptorSetLayout>
-VulkanPipeline::createDescriptorSetLayout(VDeviceRef device,
-										  vector<DescriptorBindingInfo> bindings) {
-	auto vk_bindings = transform(bindings, [](const DescriptorBindingInfo &binding) {
-		VkDescriptorSetLayoutBinding lb{};
-		lb.binding = binding.binding;
-		lb.descriptorType = toVk(binding.type);
-		lb.descriptorCount = binding.count;
-		lb.stageFlags = toVk(binding.stages);
-		return lb;
-	});
-
-	VkDescriptorSetLayoutCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	ci.pBindings = vk_bindings.data();
-	ci.bindingCount = vk_bindings.size();
-
-	VkDescriptorSetLayout handle;
-	if(vkCreateDescriptorSetLayout(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateDescriptorSetLayout failed");
-	return device->createObject(handle, move(bindings));
-}
-
 Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device,
 												  vector<PVDescriptorSetLayout> dsls) {
 	VkPipelineLayoutCreateInfo ci{};
@@ -102,7 +202,21 @@ Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device,
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	DASSERT(setup.render_pass);
-	auto pipeline_layout = EX_PASS(createLayout(device, move(setup.dsls)));
+
+	vector<DescriptorBindingInfo> descr_bindings;
+	for(auto &stage : setup.stages) {
+		auto stage_bindings = stage.shader_module->descriptorBindingInfos();
+		if(descr_bindings.empty())
+			descr_bindings = stage_bindings;
+		else
+			descr_bindings = DescriptorBindingInfo::merge(descr_bindings, stage_bindings);
+	}
+	auto descr_sets = DescriptorBindingInfo::divideSets(descr_bindings);
+	vector<PVDescriptorSetLayout> dsls;
+	dsls.reserve(descr_sets.size());
+	for(auto bindings : descr_sets)
+		dsls.emplace_back(EX_PASS(device->getDSL(bindings)));
+	auto pipeline_layout = EX_PASS(createLayout(device, move(dsls)));
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
 	for(int i : intRange(setup.stages)) {

@@ -142,6 +142,8 @@ class VInstanceRef;
 class VDeviceRef;
 class VWindowRef;
 
+struct DescriptorBindingInfo;
+
 template <class T> class VPtr;
 
 // TODO: Better name than 'Wrapper'

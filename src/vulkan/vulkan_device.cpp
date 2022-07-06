@@ -10,8 +10,9 @@
 #include "fwk/vulkan/vulkan_storage.h"
 
 #include "fwk/format.h"
+#include "fwk/hash_map.h"
+
 #include "fwk/vulkan/vulkan_buffer.h"
-#include "fwk/vulkan/vulkan_descriptors.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
@@ -32,6 +33,20 @@ template <class T> struct PoolData {
 	std::aligned_storage_t<sizeof(T), alignof(T)> objects[object_pool_size];
 };
 
+struct HashedDSL {
+	HashedDSL(CSpan<DescriptorBindingInfo> bindings) : bindings(bindings) {
+		hash_value = DescriptorBindingInfo::hashIgnoreSet(bindings);
+	}
+
+	u32 hash() const { return hash_value; }
+	bool operator==(const HashedDSL &rhs) const {
+		return hash_value == rhs.hash_value && bindings == rhs.bindings;
+	}
+
+	CSpan<DescriptorBindingInfo> bindings;
+	u32 hash_value;
+};
+
 struct VulkanDevice::ObjectPools {
 	// TODO: trim empty unused pools from time to time we can't move them around, but we can free the pool and
 	// leave nullptr in pool array. Maybe just delete pool data every time when it's usage_bits are empty?
@@ -47,6 +62,7 @@ struct VulkanDevice::ObjectPools {
 		ReleaseFunc func;
 	};
 
+	HashMap<HashedDSL, PVDescriptorSetLayout> hashed_dsls;
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
 	array<vector<DeferredRelease>, num_swap_frames> to_release;
@@ -124,6 +140,7 @@ VulkanDevice::~VulkanDevice() {
 	if(m_handle)
 		vkDeviceWaitIdle(m_handle);
 	m_render_graph.reset();
+	m_objects->hashed_dsls.clear();
 
 #ifndef NDEBUG
 	bool errors = false;
@@ -184,17 +201,33 @@ Ex<void> VulkanDevice::finishFrame() {
 // -------------------------------------------------------------------------------------------
 // ----------  Object management  ------------------------------------------------------------
 
-Ex<PVShaderModule> VulkanDevice::createShaderModule(CSpan<char> bytecode) {
-	VkShaderModuleCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	ci.codeSize = bytecode.size();
-	// TODO: make sure that this is safe
-	ci.pCode = reinterpret_cast<const uint32_t *>(bytecode.data());
+Ex<PVDescriptorSetLayout> VulkanDevice::getDSL(CSpan<DescriptorBindingInfo> bindings) {
+	HashedDSL key(bindings);
+	auto &hash_map = m_objects->hashed_dsls;
+	auto it = hash_map.find(key);
+	if(it != hash_map.end())
+		return it->value;
 
-	VkShaderModule handle;
-	if(vkCreateShaderModule(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateShaderModule failed");
-	return createObject(handle);
+	auto vk_bindings = transform(bindings, [](DescriptorBindingInfo binding) {
+		VkDescriptorSetLayoutBinding lb{};
+		lb.binding = binding.binding();
+		lb.descriptorType = toVk(binding.type());
+		lb.descriptorCount = binding.count();
+		lb.stageFlags = toVk(binding.stages());
+		return lb;
+	});
+
+	VkDescriptorSetLayoutCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+	ci.pBindings = vk_bindings.data();
+	ci.bindingCount = vk_bindings.size();
+
+	VkDescriptorSetLayout handle;
+	if(vkCreateDescriptorSetLayout(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateDescriptorSetLayout failed");
+
+	auto pointer = createObject(handle, bindings);
+	hash_map.emplace(key, pointer);
+	return pointer;
 }
 
 Ex<PVSampler> VulkanDevice::createSampler(const VSamplingParams &params) {

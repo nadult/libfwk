@@ -49,7 +49,7 @@ class VulkanDevice {
 	// ----------  Object management  ------------------------------------------------------------
 
   public:
-	Ex<PVShaderModule> createShaderModule(CSpan<char> bytecode);
+	Ex<PVDescriptorSetLayout> getDSL(CSpan<DescriptorBindingInfo>);
 	Ex<PVSampler> createSampler(const VSamplingParams &);
 	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);
 
