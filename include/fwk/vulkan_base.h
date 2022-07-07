@@ -5,6 +5,7 @@
 
 #include "fwk/enum.h"
 #include "fwk/enum_flags.h"
+#include "fwk/gfx_base.h"
 #include "fwk/tag_id.h"
 
 // TODO: move it to vulkan_internal.h; But only after most of the Vulkan definitions are hidden
