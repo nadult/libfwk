@@ -12,22 +12,25 @@
 
 namespace fwk {
 
-Ex<vector<DescriptorBindingInfo>> getBindings(CSpan<char> bytecode) {
+Ex<vector<DescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStage &out_stage) {
 	auto reflection = EX_PASS(ShaderReflectionModule::create(bytecode));
 	vector<DescriptorBindingInfo> out;
 	out.reserve(reflection->descriptor_binding_count);
 	uint stage_bits = reflection->shader_stage;
-	if(stage_bits > VShaderStageFlags::mask)
-		return ERROR("Unsupported shader stage: %", stdFormat("%x", stage_bits));
-	VShaderStageFlags stages;
-	stages.bits = stage_bits;
+	if(countBits(stage_bits) > 1)
+		return ERROR("Currently ShaderModule only supports single shader stage");
+	uint stage_num = countTrailingZeros(stage_bits);
+	if(stage_num >= count<VShaderStage>)
+		return ERROR("Unsupported shader stage: %", stage_num);
+	VShaderStage stage = VShaderStage(stage_num);
+	out_stage = stage;
 
 	for(int i : intRange(reflection->descriptor_binding_count)) {
 		auto &binding = reflection->descriptor_bindings[i];
 		uint desc_type = uint(binding.descriptor_type);
 		if(desc_type > count<VDescriptorType>)
 			return ERROR("Unsupported descriptor type: %", desc_type);
-		out.emplace_back(VDescriptorType(desc_type), stages, binding.binding, binding.count,
+		out.emplace_back(VDescriptorType(desc_type), flag(stage), binding.binding, binding.count,
 						 binding.set);
 	}
 
@@ -38,27 +41,31 @@ Ex<vector<DescriptorBindingInfo>> getBindings(CSpan<char> bytecode) {
 }
 
 Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> bytecode,
+											  VShaderStage stage,
 											  vector<DescriptorBindingInfo> infos) {
+	DASSERT(bytecode.size() % sizeof(u32) == 0);
+	DASSERT(u64((void *)bytecode.data()) % sizeof(u32) == 0);
+
 	VkShaderModuleCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	ci.codeSize = bytecode.size();
-	// TODO: make sure that this is safe
-	ci.pCode = reinterpret_cast<const uint32_t *>(bytecode.data());
+	ci.pCode = reinterpret_cast<const u32 *>(bytecode.data());
 
 	VkShaderModule handle;
 	if(vkCreateShaderModule(device, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateShaderModule failed");
-	return device->createObject(handle, move(infos));
+	return device->createObject(handle, stage, move(infos));
 }
 
 Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> bytecode) {
-	auto bindings = EX_PASS(getBindings(bytecode));
-	return create(device, bytecode, move(bindings));
+	VShaderStage stage = {};
+	auto bindings = EX_PASS(getBindings(bytecode, stage));
+	return create(device, bytecode, stage, move(bindings));
 }
 
-VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id,
+VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id, VShaderStage stage,
 									   vector<DescriptorBindingInfo> infos)
-	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(move(infos)) {}
+	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(move(infos)), m_stage(stage) {}
 
 VulkanShaderModule ::~VulkanShaderModule() {
 	vkDestroyShaderModule(deviceHandle(), m_handle, nullptr);

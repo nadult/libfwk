@@ -145,16 +145,11 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	auto sc_image = swap_chain->imageViews().front()->image();
 	auto extent = sc_image->extent();
 	VPipelineSetup setup;
-	setup.stages.emplace_back(vsh_module, VShaderStage::vertex);
-	setup.stages.emplace_back(fsh_module, VShaderStage::fragment);
-	setup.viewport = {.x = 0.0f,
-					  .y = 0.0f,
-					  .width = (float)extent.width,
-					  .height = (float)extent.height,
-					  .minDepth = 0.0f,
-					  .maxDepth = 1.0f};
-	setup.scissor = {.offset = {0, 0}, .extent = extent};
+	setup.shader_modules = {{vsh_module, fsh_module}};
 	setup.render_pass = render_graph.defaultRenderPass();
+	setup.viewport = {IRect(0, 0, extent.width, extent.height)};
+	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,
+					VFrontFace::cw};
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
 
 	ctx.pipeline = EX_PASS(VulkanPipeline::create(ctx.device, setup));

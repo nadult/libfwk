@@ -4,6 +4,7 @@
 #include "fwk/vulkan/vulkan_pipeline.h"
 
 #include "fwk/index_range.h"
+#include "fwk/sys/assert.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_shader.h"
 
@@ -133,8 +134,8 @@ VulkanDescriptorPool ::~VulkanDescriptorPool() {
 	deferredHandleRelease<VkDescriptorPool, vkDestroyDescriptorPool>();
 }
 
-VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
-	: VulkanObjectBase(handle, id) {}
+VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id, const RenderPassDesc &desc)
+	: VulkanObjectBase(handle, id), m_num_color_attachments(desc.colors.size()) {}
 VulkanRenderPass ::~VulkanRenderPass() {
 	// TODO: here we probably don't need defer
 	deferredHandleRelease<VkRenderPass, vkDestroyRenderPass>();
@@ -157,7 +158,7 @@ VulkanDescriptorSetLayout ::~VulkanDescriptorSetLayout() {
 }
 
 Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, const RenderPassDesc &desc) {
-	static constexpr int max_colors = RenderPassDesc::max_color_attachments;
+	static constexpr int max_colors = VulkanLimits::max_color_attachments;
 	array<VkAttachmentDescription, max_colors + 1> attachments;
 	array<VkAttachmentReference, max_colors + 1> attachment_refs;
 
@@ -219,29 +220,18 @@ Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, const RenderPassDes
 		dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	}
 
-	return create(device, cspan(attachments.data(), desc.colors.size()), cspan(&subpass, 1),
-				  cspan(&dependency, 1));
-}
-
-Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device,
-										  CSpan<VkAttachmentDescription> attachments,
-										  CSpan<VkSubpassDescription> subpasses,
-										  CSpan<VkSubpassDependency> dependencies) {
 	VkRenderPassCreateInfo ci{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-	ci.attachmentCount = attachments.size();
+	ci.attachmentCount = desc.colors.size();
 	ci.pAttachments = attachments.data();
-	ci.subpassCount = subpasses.size();
-	ci.pSubpasses = subpasses.data();
-	ci.dependencyCount = dependencies.size();
-	ci.pDependencies = dependencies.data();
+	ci.subpassCount = 1;
+	ci.pSubpasses = &subpass;
+	ci.dependencyCount = 1;
+	ci.pDependencies = &dependency;
+
 	VkRenderPass handle;
 	if(vkCreateRenderPass(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateRenderPass failed");
-	auto out = device->createObject(handle);
-	out->m_attachment_count = attachments.size();
-	out->m_subpass_count = subpasses.size();
-	out->m_dependency_count = dependencies.size();
-	return out;
+	return device->createObject(handle, desc);
 }
 
 VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
@@ -270,8 +260,9 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	DASSERT(setup.render_pass);
 
 	vector<DescriptorBindingInfo> descr_bindings;
-	for(auto &stage : setup.stages) {
-		auto stage_bindings = stage.shader_module->descriptorBindingInfos();
+	for(auto &shader_module : setup.shader_modules) {
+		DASSERT(shader_module);
+		auto stage_bindings = shader_module->descriptorBindingInfos();
 		if(descr_bindings.empty())
 			descr_bindings = stage_bindings;
 		else
@@ -285,11 +276,12 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	auto pipeline_layout = EX_PASS(createLayout(device, move(dsls)));
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
-	for(int i : intRange(setup.stages)) {
-		DASSERT(setup.stages[i].shader_module);
+	for(int i : intRange(setup.shader_modules)) {
+		auto &shader_module = setup.shader_modules[i];
+		DASSERT(shader_module);
 		stages_ci[i] = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-		stages_ci[i].stage = toVk(setup.stages[i].stage);
-		stages_ci[i].module = setup.stages[i].shader_module;
+		stages_ci[i].stage = toVk(shader_module->stage());
+		stages_ci[i].module = shader_module;
 		stages_ci[i].pName = "main";
 	}
 
@@ -311,8 +303,8 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 		return out;
 	});
 
-	VkPipelineVertexInputStateCreateInfo vertex_input_ci{};
-	vertex_input_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	VkPipelineVertexInputStateCreateInfo vertex_input_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
 	vertex_input_ci.vertexBindingDescriptionCount = vertex_bindings.size();
 	vertex_input_ci.pVertexBindingDescriptions = vertex_bindings.data();
 	vertex_input_ci.vertexAttributeDescriptionCount = vertex_attribs.size();
@@ -320,61 +312,98 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_ci{};
 	input_assembly_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly_ci.topology = toVk(setup.input_assembly.topology);
+	input_assembly_ci.topology = toVk(setup.raster.primitiveTopology());
 	input_assembly_ci.primitiveRestartEnable =
-		setup.input_assembly.primitive_restart ? VK_TRUE : VK_FALSE;
+		!!(setup.raster.flags() & VRasterFlag::primitive_restart);
 
-	VkPipelineViewportStateCreateInfo viewport_state_ci{};
-	viewport_state_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	FRect view_rect(setup.viewport.rect);
+	VkViewport viewport{view_rect.x(),
+						view_rect.y(),
+						view_rect.width(),
+						view_rect.height(),
+						setup.viewport.min_depth,
+						setup.viewport.max_depth};
+
+	IRect scissor_rect = setup.scissor.orElse(setup.viewport.rect);
+	VkRect2D scissor = {{scissor_rect.x(), scissor_rect.y()},
+						{uint(scissor_rect.width()), uint(scissor_rect.height())}};
+
+	VkPipelineViewportStateCreateInfo viewport_state_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
 	viewport_state_ci.viewportCount = 1;
-	viewport_state_ci.pViewports = &setup.viewport;
+	viewport_state_ci.pViewports = &viewport;
 	viewport_state_ci.scissorCount = 1;
-	viewport_state_ci.pScissors = &setup.scissor;
+	viewport_state_ci.pScissors = &scissor;
 
-	VkPipelineRasterizationStateCreateInfo rasterizer_ci{};
-	rasterizer_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer_ci.depthClampEnable = VK_FALSE;
-	rasterizer_ci.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer_ci.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer_ci.lineWidth = 1.0f;
-	rasterizer_ci.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer_ci.frontFace = VK_FRONT_FACE_CLOCKWISE;
-	rasterizer_ci.depthBiasEnable = VK_FALSE;
-	rasterizer_ci.depthBiasConstantFactor = 0.0f; // Optional
-	rasterizer_ci.depthBiasClamp = 0.0f; // Optional
-	rasterizer_ci.depthBiasSlopeFactor = 0.0f; // Optional
+	VkPipelineRasterizationStateCreateInfo rasterizer_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+	rasterizer_ci.depthClampEnable = !!(setup.depth.flags() & VDepthFlag::clamp);
+	rasterizer_ci.rasterizerDiscardEnable = !!(setup.raster.flags() & VRasterFlag::discard);
+	rasterizer_ci.polygonMode = toVk(setup.raster.polygonMode());
+	rasterizer_ci.lineWidth = setup.raster.line_width;
+	rasterizer_ci.cullMode = toVk(setup.raster.cullMode());
+	rasterizer_ci.frontFace = toVk(setup.raster.frontFace());
+	rasterizer_ci.depthBiasEnable = !!(setup.depth.flags() & VDepthFlag::bias);
+	rasterizer_ci.depthBiasConstantFactor = setup.depth.bias.constant_factor;
+	rasterizer_ci.depthBiasClamp = setup.depth.bias.clamp;
+	rasterizer_ci.depthBiasSlopeFactor = setup.depth.bias.slope_factor;
 
-	VkPipelineMultisampleStateCreateInfo multisampling{};
-	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-	multisampling.minSampleShading = 1.0f; // Optional
-	multisampling.pSampleMask = nullptr; // Optional
-	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-	multisampling.alphaToOneEnable = VK_FALSE; // Optional
+	VkPipelineDepthStencilStateCreateInfo depth_stencil_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
+	depth_stencil_ci.depthTestEnable = !!(setup.depth.flags() & VDepthFlag::test);
+	depth_stencil_ci.depthWriteEnable = !!(setup.depth.flags() & VDepthFlag::write);
+	depth_stencil_ci.depthCompareOp = toVk(setup.depth.compareOp());
+	depth_stencil_ci.depthBoundsTestEnable = !!(setup.depth.flags() & VDepthFlag::bounds_test);
+	depth_stencil_ci.minDepthBounds = setup.depth.bounds.min;
+	depth_stencil_ci.maxDepthBounds = setup.depth.bounds.max;
 
-	VkPipelineColorBlendAttachmentState color_blend_attachment{};
-	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-											VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	color_blend_attachment.blendEnable = VK_FALSE;
-	color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-	color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-	color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-	color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-	color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+	VkPipelineMultisampleStateCreateInfo multisampling_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+	multisampling_ci.sampleShadingEnable = VK_FALSE;
+	multisampling_ci.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampling_ci.minSampleShading = 1.0f; // Optional
+	multisampling_ci.pSampleMask = nullptr; // Optional
+	multisampling_ci.alphaToCoverageEnable = VK_FALSE; // Optional
+	multisampling_ci.alphaToOneEnable = VK_FALSE; // Optional
 
-	VkPipelineColorBlendStateCreateInfo colorBlending{};
-	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	colorBlending.logicOpEnable = VK_FALSE;
-	colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &color_blend_attachment;
-	colorBlending.blendConstants[0] = 0.0f; // Optional
-	colorBlending.blendConstants[1] = 0.0f; // Optional
-	colorBlending.blendConstants[2] = 0.0f; // Optional
-	colorBlending.blendConstants[3] = 0.0f; // Optional
+	array<VkPipelineColorBlendAttachmentState, VulkanLimits::max_color_attachments>
+		blend_attachments;
+	int num_color_attachments = setup.render_pass->numColorAttachments();
+	DASSERT_LE(setup.blending.attachments.size(), num_color_attachments);
 
+	// TODO: check num modes, fill missing?
+	for(int i = 0; i < setup.blending.attachments.size(); i++) {
+		auto &src = setup.blending.attachments[i];
+		auto &dst = blend_attachments[i];
+		if(src.enabled()) {
+			dst.blendEnable = VK_TRUE;
+			dst.srcColorBlendFactor = toVk(src.srcColor());
+			dst.dstColorBlendFactor = toVk(src.dstColor());
+			dst.colorBlendOp = toVk(src.colorOp());
+			dst.srcAlphaBlendFactor = toVk(src.srcAlpha());
+			dst.dstAlphaBlendFactor = toVk(src.dstAlpha());
+			dst.alphaBlendOp = toVk(src.alphaOp());
+		} else {
+			dst = {};
+		}
+		dst.colorWriteMask = toVk(src.writeMask());
+	}
+	for(int i = setup.blending.attachments.size(); i < num_color_attachments; i++) {
+		auto &dst = blend_attachments[i];
+		dst = {};
+		dst.colorWriteMask = toVk(all<VColorComponent>);
+	}
+
+	VkPipelineColorBlendStateCreateInfo blending_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+	blending_ci.logicOpEnable = VK_FALSE;
+	blending_ci.logicOp = VK_LOGIC_OP_COPY;
+	blending_ci.attachmentCount = num_color_attachments;
+	blending_ci.pAttachments = blend_attachments.data();
+	for(int i : intRange(4))
+		blending_ci.blendConstants[i] = setup.blending.constant[i];
+
+	// TODO
 	VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_LINE_WIDTH};
 
 	VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -382,17 +411,16 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	dynamicState.dynamicStateCount = static_cast<uint32_t>(arraySize(dynamicStates));
 	dynamicState.pDynamicStates = dynamicStates;
 
-	VkGraphicsPipelineCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	ci.stageCount = setup.stages.size();
+	VkGraphicsPipelineCreateInfo ci{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+	ci.stageCount = setup.shader_modules.size();
 	ci.pStages = stages_ci.data();
 	ci.pVertexInputState = &vertex_input_ci;
 	ci.pInputAssemblyState = &input_assembly_ci;
 	ci.pViewportState = &viewport_state_ci;
 	ci.pRasterizationState = &rasterizer_ci;
-	ci.pMultisampleState = &multisampling;
-	ci.pDepthStencilState = nullptr; // Optional
-	ci.pColorBlendState = &colorBlending;
+	ci.pMultisampleState = &multisampling_ci;
+	ci.pDepthStencilState = &depth_stencil_ci;
+	ci.pColorBlendState = &blending_ci;
 	ci.pDynamicState = nullptr; // Optional
 	ci.layout = pipeline_layout;
 	ci.renderPass = setup.render_pass;

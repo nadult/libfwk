@@ -67,7 +67,7 @@ DEFINE_ENUM(VImageLayout, undefined, general, color_attachment, depth_stencil_at
 			depth_stencil_read_only, shader_read_only, transfer_src, transfer_dst, preinitialized);
 
 DEFINE_ENUM(VShaderStage, vertex, tess_control, tess_eval, geometry, fragment, compute);
-using VShaderStageFlags = EnumFlags<VShaderStage>;
+using VShaderStages = EnumFlags<VShaderStage>;
 
 DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, storage_image,
 			uniform_texel_buffer, storage_texel_buffer, uniform_buffer, storage_buffer,
@@ -93,6 +93,29 @@ DEFINE_ENUM(VStoreOp, store, dont_care, none);
 DEFINE_ENUM(VLayout, undefined, general, color, depth_stencil, depth_stencil_ro, shader_ro,
 			transfer_src, transfer_dst, preinitialized, present_src);
 
+DEFINE_ENUM(VBlendFactor, zero, one, src_color, one_minus_src_color, dst_color, one_minus_dst_color,
+			src_alpha, one_minus_src_alpha, dst_alpha, one_minus_dst_alpha, constant_color,
+			one_minus_constant_color, constant_alpha, one_minus_constant_alpha, src_alpha_saturate,
+			src1_color, one_minus_src1_color, src1_alpha, one_minus_src1_alpha);
+
+DEFINE_ENUM(VBlendOp, add, subtract, reverse_subtract, min, max);
+DEFINE_ENUM(VColorComponent, red, green, blue, alpha);
+using VColorComponents = EnumFlags<VColorComponent>;
+
+DEFINE_ENUM(VPolygonMode, fill, line, point);
+DEFINE_ENUM(VCull, front, back);
+DEFINE_ENUM(VFrontFace, ccw, cw);
+DEFINE_ENUM(VRasterFlag, discard, primitive_restart);
+using VCullMode = EnumFlags<VCull>;
+using VRasterFlags = EnumFlags<VRasterFlag>;
+
+DEFINE_ENUM(VDynamic, viewport, scissor, line_width, depth_bias, blend_constants, depth_bounds,
+			stencil_compare_mask, stencil_write_mask, stencil_reference, cull_mode, front_face,
+			primitive_topology);
+DEFINE_ENUM(VCompareOp, never, less, equal, less_equal, greater, not_equal, greater_equal, always);
+DEFINE_ENUM(VDepthFlag, test, write, bounds_test, bias, clamp);
+using VDepthFlags = EnumFlags<VDepthFlag>;
+
 struct VMemoryBlockId {
 	VMemoryBlockId(VMemoryBlockType type, VMemoryDomain domain, u16 zone_id, u32 block_identifier)
 		: value(u64(block_identifier) | (u64(type) << 32) | (u64(domain) << 40) |
@@ -116,7 +139,7 @@ struct VMemoryBlock {
 
 // TODO: move to internal
 inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }
-inline auto toVk(VShaderStageFlags flags) { return VkShaderStageFlags(flags.bits); }
+inline auto toVk(VShaderStages flags) { return VkShaderStageFlags(flags.bits); }
 inline auto toVk(VDescriptorType type) { return VkDescriptorType(type); }
 inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
 inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
@@ -133,6 +156,17 @@ inline auto toVk(VStoreOp op) {
 }
 inline auto toVk(VLayout layout) {
 	return layout == VLayout::present_src ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VkImageLayout(layout);
+}
+inline auto toVk(VBlendFactor factor) { return VkBlendFactor(factor); }
+inline auto toVk(VBlendOp op) { return VkBlendOp(op); }
+inline auto toVk(VColorComponents components) { return VkColorComponentFlags(components.bits); }
+inline auto toVk(VPolygonMode mode) { return VkPolygonMode(mode); }
+inline auto toVk(VCullMode mode) { return VkCullModeFlags(mode.bits); }
+inline auto toVk(VFrontFace face) { return VkFrontFace(face); }
+inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
+inline auto toVk(VDynamic dynamic) {
+	return VkDynamicState(dynamic >= VDynamic::cull_mode ? uint(dynamic) + (1000267000 - 9) :
+															 uint(dynamic));
 }
 
 struct VSamplingParams {
