@@ -134,7 +134,7 @@ VulkanDescriptorPool ::~VulkanDescriptorPool() {
 	deferredHandleRelease<VkDescriptorPool, vkDestroyDescriptorPool>();
 }
 
-VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id, const RenderPassDesc &desc)
+VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id, const VRenderPassSetup &desc)
 	: VulkanObjectBase(handle, id), m_num_color_attachments(desc.colors.size()) {}
 VulkanRenderPass ::~VulkanRenderPass() {
 	// TODO: here we probably don't need defer
@@ -157,7 +157,7 @@ VulkanDescriptorSetLayout ::~VulkanDescriptorSetLayout() {
 	deferredHandleRelease<VkDescriptorSetLayout, vkDestroyDescriptorSetLayout>();
 }
 
-Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, const RenderPassDesc &desc) {
+Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, const VRenderPassSetup &desc) {
 	static constexpr int max_colors = VulkanLimits::max_color_attachments;
 	array<VkAttachmentDescription, max_colors + 1> attachments;
 	array<VkAttachmentReference, max_colors + 1> attachment_refs;
@@ -285,7 +285,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 		stages_ci[i].pName = "main";
 	}
 
-	auto vertex_bindings = transform(setup.vertex_bindings, [](const VertexBindingDesc &desc) {
+	auto vertex_bindings = transform(setup.vertex_bindings, [](const VVertexBinding &desc) {
 		VkVertexInputBindingDescription out;
 		out.binding = desc.index;
 		out.inputRate = desc.input_rate == VertexInputRate::vertex ? VK_VERTEX_INPUT_RATE_VERTEX :
@@ -294,7 +294,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 		return out;
 	});
 
-	auto vertex_attribs = transform(setup.vertex_attribs, [](const VertexAttribDesc &desc) {
+	auto vertex_attribs = transform(setup.vertex_attribs, [](const VVertexAttrib &desc) {
 		VkVertexInputAttributeDescription out;
 		out.binding = desc.binding_index;
 		out.format = desc.format;

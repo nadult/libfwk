@@ -80,7 +80,7 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 
 Ex<PVRenderPass> VulkanRenderGraph::createRenderPass(VDeviceRef device, PVSwapChain swap_chain) {
 	auto sc_image = swap_chain->imageViews().front()->image();
-	RenderPassDesc desc;
+	VRenderPassSetup desc;
 	desc.colors = {{sc_image->format()}};
 	desc.colors_sync.emplace_back(VLoadOp::clear, VStoreOp::store, VLayout::undefined,
 								  VLayout::present_src);

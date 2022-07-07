@@ -90,27 +90,13 @@ struct MyVertex {
 	float3 color;
 	float2 texCoord;
 
-	static void addStreamDesc(vector<VertexBindingDesc> &bindings,
-							  vector<VertexAttribDesc> &attribs, int index, int first_location) {
-		bindings.emplace_back(VertexBindingDesc{.index = u8(index), .stride = sizeof(MyVertex)});
-		attribs.emplace_back(VertexAttribDesc{
-			.format = VkFormat::VK_FORMAT_R32G32_SFLOAT,
-			.offset = 0,
-			.location_index = u8(first_location),
-			.binding_index = u8(index),
-		});
-		attribs.emplace_back(VertexAttribDesc{
-			.format = VkFormat::VK_FORMAT_R32G32B32_SFLOAT,
-			.offset = sizeof(pos),
-			.location_index = u8(first_location + 1),
-			.binding_index = u8(index),
-		});
-		attribs.emplace_back(VertexAttribDesc{
-			.format = VkFormat::VK_FORMAT_R32G32_SFLOAT,
-			.offset = sizeof(pos) + sizeof(color),
-			.location_index = u8(first_location + 2),
-			.binding_index = u8(index),
-		});
+	static void addStreamDesc(vector<VVertexBinding> &bindings, vector<VVertexAttrib> &attribs,
+							  int index, int first_location) {
+		bindings.emplace_back(vertexBinding<MyVertex>(index));
+		attribs.emplace_back(vertexAttrib<float2>(first_location, index, 0));
+		attribs.emplace_back(vertexAttrib<float3>(first_location + 1, index, sizeof(pos)));
+		attribs.emplace_back(
+			vertexAttrib<float2>(first_location + 2, index, sizeof(pos) + sizeof(color)));
 	}
 };
 

@@ -17,21 +17,54 @@ struct VulkanLimits {
 	static constexpr int max_descr_bindings = 1024 * 1024;
 };
 
-// TODO: make useful constructors
-struct VertexAttribDesc {
-	VkFormat format = VkFormat::VK_FORMAT_R32_SFLOAT;
-	u16 offset = 0;
-	u8 location_index = 0;
-	u8 binding_index = 0;
+template <class T> struct VAutoVulkanFormat {};
+#define AUTO_FORMAT(type_, format_)                                                                \
+	template <> struct VAutoVulkanFormat<type_> { static constexpr auto format = format_; };
+AUTO_FORMAT(float, VK_FORMAT_R32_SFLOAT)
+AUTO_FORMAT(float2, VK_FORMAT_R32G32_SFLOAT)
+AUTO_FORMAT(float3, VK_FORMAT_R32G32B32_SFLOAT)
+AUTO_FORMAT(float4, VK_FORMAT_R32G32B32A32_SFLOAT)
+AUTO_FORMAT(int, VK_FORMAT_R32_SINT)
+AUTO_FORMAT(int2, VK_FORMAT_R32G32_SINT)
+AUTO_FORMAT(int3, VK_FORMAT_R32G32B32_SINT)
+AUTO_FORMAT(int4, VK_FORMAT_R32G32B32A32_SINT)
+AUTO_FORMAT(IColor, VK_FORMAT_R8G8B8A8_UNORM)
+#undef AUTO_FORMAT
+
+struct VVertexAttrib {
+	VVertexAttrib(uint location_index, uint binding_index, uint offset = 0,
+				  VkFormat format = VK_FORMAT_R32_SFLOAT)
+		: format(format), offset(offset), location_index(location_index),
+		  binding_index(binding_index) {}
+
+	VkFormat format;
+	u16 offset;
+	u8 location_index;
+	u8 binding_index;
 };
 
-struct VertexBindingDesc {
-	u8 index = 0;
-	VertexInputRate input_rate = VertexInputRate::vertex;
-	u16 stride = 0;
+template <class T> auto vertexAttrib(uint location_index, uint binding_index, uint offset = 0) {
+	return VVertexAttrib(location_index, binding_index, offset, VAutoVulkanFormat<T>::format);
+}
+
+struct VVertexBinding {
+	VVertexBinding(uint index, uint stride, VertexInputRate input_rate = VertexInputRate::vertex)
+		: index(index), input_rate(input_rate), stride(stride) {}
+
+	u8 index;
+	VertexInputRate input_rate;
+	u16 stride;
 };
+
+template <class T>
+auto vertexBinding(uint index, VertexInputRate input_rate = VertexInputRate::vertex) {
+	return VVertexBinding(index, sizeof(T), input_rate);
+}
 
 struct VBlendingMode {
+	VBlendingMode(VBlendFactor src, VBlendFactor dst, VBlendOp op = VBlendOp::add,
+				  VColorComponents write_mask = all<VColorComponent>)
+		: VBlendingMode(src, dst, op, src, dst, op, write_mask) {}
 	VBlendingMode(VBlendFactor src_color, VBlendFactor dst_color, VBlendOp color_op,
 				  VBlendFactor src_alpha, VBlendFactor dst_alpha, VBlendOp alpha_op,
 				  VColorComponents write_mask = all<VColorComponent>)
@@ -125,8 +158,8 @@ struct VPipelineSetup {
 	StaticVector<PVShaderModule, count<VShaderStage>> shader_modules;
 	PVRenderPass render_pass;
 
-	vector<VertexBindingDesc> vertex_bindings;
-	vector<VertexAttribDesc> vertex_attribs;
+	vector<VVertexBinding> vertex_bindings;
+	vector<VVertexAttrib> vertex_attribs;
 
 	VViewport viewport = IRect(0, 0, 1280, 720);
 	Maybe<IRect> scissor;
@@ -137,21 +170,23 @@ struct VPipelineSetup {
 	VDynamicState dynamic_state = none;
 };
 
-struct AttachmentCore {
-	AttachmentCore(VkFormat format, uint num_samples = 1)
+struct VAttachmentCore {
+	VAttachmentCore(VkFormat format, uint num_samples = 1)
 		: format(format), num_samples(num_samples) {}
 	FWK_TIE_MEMBERS(format, num_samples);
-	FWK_TIED_COMPARES(AttachmentCore);
+	FWK_TIED_COMPARES(VAttachmentCore);
 
 	VkFormat format;
 	uint num_samples;
 };
 
-struct ColorAttachmentSync {
-	ColorAttachmentSync(VLoadOp load, VStoreOp store, VLayout init_layout, VLayout final_layout)
+struct VColorAttachmentSync {
+	VColorAttachmentSync(VLoadOp load = VLoadOp::load, VStoreOp store = VStoreOp::store,
+						 VLayout init_layout = VLayout::color,
+						 VLayout final_layout = VLayout::color)
 		: load_op(load), store_op(store), init_layout(init_layout), final_layout(final_layout) {}
 	FWK_TIE_MEMBERS(load_op, store_op, init_layout, final_layout);
-	FWK_TIED_COMPARES(ColorAttachmentSync);
+	FWK_TIED_COMPARES(VColorAttachmentSync);
 
 	VLoadOp load_op;
 	VStoreOp store_op;
@@ -159,14 +194,17 @@ struct ColorAttachmentSync {
 	VLayout final_layout;
 };
 
-struct DepthAttachmentSync {
-	DepthAttachmentSync(VLoadOp load, VStoreOp store, VLoadOp stencil_load, VStoreOp stencil_store,
-						VLayout init_layout, VLayout final_layout)
+struct VDepthAttachmentSync {
+	VDepthAttachmentSync(VLoadOp load = VLoadOp::load, VStoreOp store = VStoreOp::store,
+						 VLoadOp stencil_load = VLoadOp::dont_care,
+						 VStoreOp stencil_store = VStoreOp::dont_care,
+						 VLayout init_layout = VLayout::depth_stencil,
+						 VLayout final_layout = VLayout::depth_stencil)
 		: load_op(load), store_op(store), stencil_load_op(stencil_load),
 		  stencil_store_op(stencil_store), init_layout(init_layout), final_layout(final_layout) {}
 	FWK_TIE_MEMBERS(load_op, store_op, stencil_load_op, stencil_store_op, init_layout,
 					final_layout);
-	FWK_TIED_COMPARES(DepthAttachmentSync);
+	FWK_TIED_COMPARES(VDepthAttachmentSync);
 
 	VLoadOp load_op;
 	VStoreOp store_op;
@@ -176,23 +214,23 @@ struct DepthAttachmentSync {
 	VLayout final_layout;
 };
 
-struct RenderPassDesc {
-	StaticVector<AttachmentCore, VulkanLimits::max_color_attachments> colors;
-	StaticVector<ColorAttachmentSync, VulkanLimits::max_color_attachments> colors_sync;
+struct VRenderPassSetup {
+	StaticVector<VAttachmentCore, VulkanLimits::max_color_attachments> colors;
+	StaticVector<VColorAttachmentSync, VulkanLimits::max_color_attachments> colors_sync;
 
-	Maybe<AttachmentCore> depth;
-	Maybe<DepthAttachmentSync> depth_sync;
+	Maybe<VAttachmentCore> depth;
+	Maybe<VDepthAttachmentSync> depth_sync;
 };
 
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
-	static Ex<PVRenderPass> create(VDeviceRef, const RenderPassDesc &);
+	static Ex<PVRenderPass> create(VDeviceRef, const VRenderPassSetup &);
 
 	int numColorAttachments() const { return m_num_color_attachments; }
 
   private:
 	friend class VulkanDevice;
-	VulkanRenderPass(VkRenderPass, VObjectId, const RenderPassDesc &);
+	VulkanRenderPass(VkRenderPass, VObjectId, const VRenderPassSetup &);
 	~VulkanRenderPass();
 
 	int m_num_color_attachments;
@@ -331,5 +369,4 @@ class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
 	PVRenderPass m_render_pass;
 	PVPipelineLayout m_pipeline_layout;
 };
-
 }
