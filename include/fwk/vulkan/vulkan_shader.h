@@ -14,8 +14,8 @@ class VulkanShaderModule : public VulkanObjectBase<VulkanShaderModule> {
 	static Ex<PVShaderModule> create(VDeviceRef, CSpan<char> bytecode, VShaderStage stage,
 									 vector<DescriptorBindingInfo> bindings);
 
-	static Ex<vector<PVShaderModule>> compile(VDeviceRef,
-											  CSpan<Pair<VShaderStage, ZStr>> source_codes);
+	static Ex<vector<PVShaderModule>>
+	compile(VDeviceRef, CSpan<Pair<VShaderStage, ZStr>> source_codes, bool dump_bytecodes = false);
 
 	VShaderStage stage() const { return m_stage; }
 	CSpan<DescriptorBindingInfo> descriptorBindingInfos() const {

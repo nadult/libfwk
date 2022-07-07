@@ -72,16 +72,41 @@ Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> byt
 	return create(device, bytecode, stage, move(bindings));
 }
 
-Ex<vector<PVShaderModule>>
-VulkanShaderModule::compile(VDeviceRef device, CSpan<Pair<VShaderStage, ZStr>> source_codes) {
+static string formatBytecode(CSpan<char> bytecode, Str var_name, int max_line_len = 100) {
+	TextFormatter fmt;
+	fmt("static const u32 % [] = {\n  ", var_name);
+	int line_start = fmt.size() - 2;
+	auto dwords = bytecode.reinterpret<u32>();
+	for(int i : intRange(dwords)) {
+		int cur_pos = fmt.size();
+		fmt.stdFormat("0x%x, ", dwords[i]);
+		if(fmt.size() - line_start > max_line_len) {
+			fmt.trim(fmt.size() - cur_pos);
+			fmt("\n  ");
+			line_start = fmt.size() - 2;
+			fmt.stdFormat("0x%x, ", dwords[i]);
+		}
+	}
+	fmt("\n};\n\n");
+	return fmt.text();
+}
+
+Ex<vector<PVShaderModule>> VulkanShaderModule::compile(VDeviceRef device,
+													   CSpan<Pair<VShaderStage, ZStr>> source_codes,
+													   bool dump_bytecodes) {
 	vector<PVShaderModule> out;
 	ShaderCompiler compiler;
 
+	// TODO: first compilation is usually slow
 	out.reserve(source_codes.size());
 	for(auto [stage, code] : source_codes) {
 		auto result = compiler.compile(stage, code);
 		if(!result.bytecode)
 			return ERROR("Failed to compile '%' shader:\n%", stage, result.messages);
+		if(dump_bytecodes) {
+			auto text = formatBytecode(result.bytecode, format("%_spirv", stage));
+			print("%\n", text);
+		}
 		out.emplace_back(EX_PASS(create(device, result.bytecode)));
 	}
 
