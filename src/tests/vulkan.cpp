@@ -8,7 +8,6 @@
 #include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/image.h>
 #include <fwk/gfx/renderer2d.h>
-#include <fwk/gfx/shader_compiler.h>
 #include <fwk/io/file_system.h>
 #include <fwk/slab_allocator.h>
 #include <fwk/sys/expected.h>
@@ -127,25 +126,16 @@ struct VulkanContext {
 };
 
 Ex<void> createPipeline(VulkanContext &ctx) {
-	// TODO: making sure that shaderc_shared.dll is available
-	ShaderCompiler compiler;
-	auto vsh_code = compiler.compile(ShaderType::vertex, vertex_shader);
-	auto fsh_code = compiler.compile(ShaderType::fragment, fragment_shader);
-
-	if(!vsh_code.bytecode)
-		return ERROR("Failed to compile vertex shader:\n%", vsh_code.messages);
-	if(!fsh_code.bytecode)
-		return ERROR("Failed to compile fragment shader:\n%", fsh_code.messages);
-
-	auto vsh_module = EX_PASS(VulkanShaderModule::create(ctx.device, vsh_code.bytecode));
-	auto fsh_module = EX_PASS(VulkanShaderModule::create(ctx.device, fsh_code.bytecode));
+	Pair<VShaderStage, ZStr> source_codes[] = {{VShaderStage::vertex, vertex_shader},
+											   {VShaderStage::fragment, fragment_shader}};
+	auto shader_modules = EX_PASS(VulkanShaderModule::compile(ctx.device, source_codes));
 
 	auto &render_graph = ctx.device->renderGraph();
 	auto swap_chain = render_graph.swapChain();
 	auto sc_image = swap_chain->imageViews().front()->image();
 	auto extent = sc_image->extent();
 	VPipelineSetup setup;
-	setup.shader_modules = {{vsh_module, fsh_module}};
+	setup.shader_modules = shader_modules;
 	setup.render_pass = render_graph.defaultRenderPass();
 	setup.viewport = {IRect(0, 0, extent.width, extent.height)};
 	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,

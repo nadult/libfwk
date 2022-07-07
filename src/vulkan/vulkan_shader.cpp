@@ -3,6 +3,7 @@
 
 #include "fwk/vulkan/vulkan_shader.h"
 
+#include "fwk/gfx/shader_compiler.h"
 #include "fwk/gfx/shader_reflection.h"
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_device.h"
@@ -40,6 +41,14 @@ Ex<vector<DescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStage
 	return out;
 }
 
+VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id, VShaderStage stage,
+									   vector<DescriptorBindingInfo> infos)
+	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(move(infos)), m_stage(stage) {}
+
+VulkanShaderModule ::~VulkanShaderModule() {
+	vkDestroyShaderModule(deviceHandle(), m_handle, nullptr);
+}
+
 Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> bytecode,
 											  VShaderStage stage,
 											  vector<DescriptorBindingInfo> infos) {
@@ -63,12 +72,19 @@ Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> byt
 	return create(device, bytecode, stage, move(bindings));
 }
 
-VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id, VShaderStage stage,
-									   vector<DescriptorBindingInfo> infos)
-	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(move(infos)), m_stage(stage) {}
+Ex<vector<PVShaderModule>>
+VulkanShaderModule::compile(VDeviceRef device, CSpan<Pair<VShaderStage, ZStr>> source_codes) {
+	vector<PVShaderModule> out;
+	ShaderCompiler compiler;
 
-VulkanShaderModule ::~VulkanShaderModule() {
-	vkDestroyShaderModule(deviceHandle(), m_handle, nullptr);
+	out.reserve(source_codes.size());
+	for(auto [stage, code] : source_codes) {
+		auto result = compiler.compile(stage, code);
+		if(!result.bytecode)
+			return ERROR("Failed to compile '%' shader:\n%", stage, result.messages);
+		out.emplace_back(EX_PASS(create(device, result.bytecode)));
+	}
+
+	return out;
 }
-
 }

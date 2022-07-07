@@ -8,6 +8,7 @@
 
 namespace fwk {
 
+// TODO: making sure that shaderc_shared.dll is available
 using CompilationResult = ShaderCompiler::CompilationResult;
 
 ShaderCompiler::ShaderCompiler() { m_compiler = shaderc_compiler_initialize(); }
@@ -27,18 +28,16 @@ ShaderCompiler &ShaderCompiler::operator=(ShaderCompiler &&rhs) {
 	return *this;
 }
 
-const EnumMap<ShaderType, shaderc_shader_kind> type_map = {{
-	{ShaderType::compute, shaderc_compute_shader},
-	{ShaderType::vertex, shaderc_vertex_shader},
-	{ShaderType::fragment, shaderc_fragment_shader},
-	{ShaderType::geometry, shaderc_geometry_shader},
-}};
+using Stage = VShaderStage;
+const EnumMap<VShaderStage, shaderc_shader_kind> type_map = {
+	{shaderc_vertex_shader, shaderc_tess_control_shader, shaderc_tess_evaluation_shader,
+	 shaderc_geometry_shader, shaderc_fragment_shader, shaderc_compute_shader}};
 
-CompilationResult ShaderCompiler::compile(ShaderType type, ZStr code) const {
+CompilationResult ShaderCompiler::compile(VShaderStage stage, ZStr code) const {
 	CompilationResult out;
 	auto result =
 		shaderc_compile_into_spv((shaderc_compiler_t)m_compiler, code.c_str(), code.size(),
-								 type_map[type], "input.shader", "main", nullptr);
+								 type_map[stage], "input.shader", "main", nullptr);
 	int num_warnings = shaderc_result_get_num_warnings(result);
 	int num_errors = shaderc_result_get_num_errors(result);
 	auto status = shaderc_result_get_compilation_status(result);

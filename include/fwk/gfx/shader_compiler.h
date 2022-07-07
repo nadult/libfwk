@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "fwk/gfx/gl_shader.h"
 #include "fwk/vector.h"
 #include "fwk/vulkan_base.h"
 
@@ -23,7 +22,7 @@ class ShaderCompiler {
 		string messages;
 	};
 
-	CompilationResult compile(ShaderType, ZStr) const;
+	CompilationResult compile(VShaderStage, ZStr) const;
 
   private:
 	void *m_compiler = nullptr;
