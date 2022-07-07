@@ -429,7 +429,8 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	ci.basePipelineIndex = -1; // Optional
 
 	VkPipeline handle;
-	if(vkCreateGraphicsPipelines(device->handle(), nullptr, 1, &ci, nullptr, &handle) != VK_SUCCESS)
+	if(vkCreateGraphicsPipelines(device->handle(), device->pipelineCache(), 1, &ci, nullptr,
+								 &handle) != VK_SUCCESS)
 		return ERROR("vkCreateGraphicsPipelines failed");
 	return device->createObject(handle, setup.render_pass, pipeline_layout);
 }

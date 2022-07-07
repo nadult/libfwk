@@ -44,6 +44,7 @@ class VulkanDevice {
 
 	Ex<void> beginFrame();
 	Ex<void> finishFrame();
+	VkPipelineCache pipelineCache();
 
 	// -------------------------------------------------------------------------------------------
 	// ----------  Object management  ------------------------------------------------------------

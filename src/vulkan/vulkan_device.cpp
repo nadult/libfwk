@@ -62,7 +62,9 @@ struct VulkanDevice::ObjectPools {
 		ReleaseFunc func;
 	};
 
+	VkPipelineCache pipeline_cache = nullptr;
 	HashMap<HashedDSL, PVDescriptorSetLayout> hashed_dsls;
+
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
 	array<vector<DeferredRelease>, num_swap_frames> to_release;
@@ -132,13 +134,20 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 		}
 	}
 
+	VkPipelineCacheCreateInfo pip_ci{VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+	//pip_ci.flags = VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+	if(vkCreatePipelineCache(m_handle, &pip_ci, nullptr, &m_objects->pipeline_cache) != VK_SUCCESS)
+		return ERROR("vkCreatePipelineCache failed");
+
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
 	return {};
 }
 
 VulkanDevice::~VulkanDevice() {
-	if(m_handle)
+	if(m_handle) {
+		vkDestroyPipelineCache(m_handle, m_objects->pipeline_cache, nullptr);
 		vkDeviceWaitIdle(m_handle);
+	}
 	m_render_graph.reset();
 	m_objects->hashed_dsls.clear();
 
@@ -197,6 +206,8 @@ Ex<void> VulkanDevice::finishFrame() {
 	EXPECT(m_render_graph->finishFrame());
 	return {};
 }
+
+VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache; }
 
 // -------------------------------------------------------------------------------------------
 // ----------  Object management  ------------------------------------------------------------
