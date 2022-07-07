@@ -9,6 +9,8 @@
 #include "fwk/gfx/matrix_stack.h"
 #include "fwk/math/box.h"
 
+#include "fwk/vulkan_base.h"
+
 namespace fwk {
 
 class Renderer2D : public MatrixStack {
@@ -19,6 +21,9 @@ class Renderer2D : public MatrixStack {
 	void setViewPos(const float2 &view_pos);
 	void setViewPos(const int2 &view_pos) { setViewPos(float2(view_pos)); }
 
+	static Ex<Pair<PVPipeline>> makeVulkanPipelines(VDeviceRef, VkFormat draw_surface_format);
+
+	void render(VDeviceRef, const Pair<PVPipeline> &);
 	void render();
 
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4>,

@@ -104,6 +104,7 @@ struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
 	PVPipeline pipeline;
+	Pair<PVPipeline> renderer2d_pipes;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
 	PVImageView font_image_view;
@@ -302,6 +303,8 @@ Ex<int> exMain() {
 
 	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
+	auto sc_format = swap_chain->imageViews()[0]->format();
+	ctx.renderer2d_pipes = EX_PASS(Renderer2D::makeVulkanPipelines(device, sc_format));
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));

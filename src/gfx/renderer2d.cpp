@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/renderer2d.h"
 #include "fwk/gfx/gl_buffer.h"
 #include "fwk/gfx/gl_device.h"
 #include "fwk/gfx/gl_program.h"
@@ -8,12 +9,15 @@
 #include "fwk/gfx/gl_texture.h"
 #include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/opengl.h"
-#include "fwk/gfx/renderer2d.h"
 #include "fwk/hash_map.h"
 #include "fwk/io/xml.h"
 #include "fwk/math/constants.h"
 #include "fwk/math/rotation.h"
 #include "fwk/sys/on_fail.h"
+
+#include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_pipeline.h"
+#include "fwk/vulkan/vulkan_shader.h"
 
 namespace fwk {
 
@@ -46,6 +50,40 @@ static const char *vertex_shader_2d_src =
 	"	tex_coord = in_tex_coord;										\n"
 	"	color = in_color;												\n"
 	"} 																	\n";
+
+const char *vsh_2d_vulkan = R"(
+#version 450
+
+layout(location = 0) in vec2 in_pos;
+layout(location = 1) in vec4 in_color;
+layout(location = 2) in vec2 in_tex_coord;
+
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec2 out_tex_coord;
+
+layout(std430, binding = 0) readonly restrict buffer buf0_ { mat4 proj_view_matrices[]; };
+
+void main() {
+	gl_Position = proj_view_matrices[gl_InstanceIndex] * vec4(in_pos, 0.0, 1.0);
+	out_color = in_color;
+	out_tex_coord = in_tex_coord;
+}
+)";
+
+const char *fsh_2d_vulkan = R"(
+#version 450
+
+layout(location = 0) out vec4 out_color;
+
+layout(location = 0) in vec4 in_color;
+layout(location = 1) in vec2 in_tex_coord;
+
+layout(set = 1, binding = 0) uniform sampler2D tex_sampler;
+
+void main() {
+	out_color = in_color * texture(tex_sampler, in_tex_coord);
+}
+)";
 
 static Ex<PProgram> buildProgram2D(Str name) {
 	ON_FAIL("Building shader program: %", name);
@@ -259,6 +297,36 @@ void Renderer2D::clear() {
 	m_scissor_rects.clear();
 	m_current_scissor_rect = -1;
 }
+
+Ex<Pair<PVPipeline>> Renderer2D::makeVulkanPipelines(VDeviceRef device,
+													 VkFormat draw_surface_format) {
+	VRenderPassSetup rp_setup;
+	rp_setup.colors = {{VAttachmentCore(draw_surface_format, 1)}};
+	rp_setup.colors_sync.emplace_back();
+	auto render_pass = EX_PASS(VulkanRenderPass::create(device, rp_setup));
+
+	VPipelineSetup setup;
+	setup.shader_modules = EX_PASS(VulkanShaderModule::compile(
+		device, {{VShaderStage::vertex, vsh_2d_vulkan}, {VShaderStage::fragment, fsh_2d_vulkan}}));
+	setup.render_pass = render_pass;
+	setup.raster = VRasterSetup(VPrimitiveTopology::triangle_list, VPolygonMode::fill, none);
+
+	setup.vertex_bindings = {
+		{vertexBinding<float2>(0), vertexBinding<IColor>(1), vertexBinding<float2>(2)}};
+	setup.vertex_attribs = {
+		{vertexAttrib<float2>(0, 0), vertexAttrib<IColor>(1, 1), vertexAttrib<float2>(2, 2)}};
+
+	setup.blending.attachments = {
+		{VBlendingMode(VBlendFactor::src_alpha, VBlendFactor::one_minus_src_alpha)}};
+	auto blend1_pipe = EX_PASS(VulkanPipeline::create(device, setup));
+
+	setup.blending.attachments = {{VBlendingMode(VBlendFactor::one, VBlendFactor::one)}};
+	auto blend2_pipe = EX_PASS(VulkanPipeline::create(device, setup));
+
+	return pair{blend1_pipe, blend2_pipe};
+}
+
+void Renderer2D::render(VDeviceRef device, const Pair<PVPipeline> &pipes) {}
 
 void Renderer2D::render() {
 	glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
