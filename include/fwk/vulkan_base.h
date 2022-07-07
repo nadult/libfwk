@@ -110,8 +110,9 @@ using VCullMode = EnumFlags<VCull>;
 using VRasterFlags = EnumFlags<VRasterFlag>;
 
 DEFINE_ENUM(VDynamic, viewport, scissor, line_width, depth_bias, blend_constants, depth_bounds,
-			stencil_compare_mask, stencil_write_mask, stencil_reference, cull_mode, front_face,
-			primitive_topology);
+			stencil_compare_mask, stencil_write_mask, stencil_reference);
+using VDynamicState = EnumFlags<VDynamic>;
+
 DEFINE_ENUM(VCompareOp, never, less, equal, less_equal, greater, not_equal, greater_equal, always);
 DEFINE_ENUM(VDepthFlag, test, write, bounds_test, bias, clamp);
 using VDepthFlags = EnumFlags<VDepthFlag>;
@@ -164,10 +165,7 @@ inline auto toVk(VPolygonMode mode) { return VkPolygonMode(mode); }
 inline auto toVk(VCullMode mode) { return VkCullModeFlags(mode.bits); }
 inline auto toVk(VFrontFace face) { return VkFrontFace(face); }
 inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
-inline auto toVk(VDynamic dynamic) {
-	return VkDynamicState(dynamic >= VDynamic::cull_mode ? uint(dynamic) + (1000267000 - 9) :
-															 uint(dynamic));
-}
+inline auto toVk(VDynamic dynamic) { return VkDynamicState(dynamic); }
 
 struct VSamplingParams {
 	VTexFilter mag_filter = VTexFilter::nearest;

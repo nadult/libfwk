@@ -403,13 +403,14 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	for(int i : intRange(4))
 		blending_ci.blendConstants[i] = setup.blending.constant[i];
 
-	// TODO
-	VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_LINE_WIDTH};
-
-	VkPipelineDynamicStateCreateInfo dynamicState{};
-	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = static_cast<uint32_t>(arraySize(dynamicStates));
-	dynamicState.pDynamicStates = dynamicStates;
+	VkDynamicState dynamic_states[count<VDynamic>];
+	int num_dynamic = 0;
+	for(auto dynamic : setup.dynamic_state)
+		dynamic_states[num_dynamic++] = toVk(dynamic);
+	VkPipelineDynamicStateCreateInfo dynamic_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
+	dynamic_ci.dynamicStateCount = num_dynamic;
+	dynamic_ci.pDynamicStates = dynamic_states;
 
 	VkGraphicsPipelineCreateInfo ci{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
 	ci.stageCount = setup.shader_modules.size();
@@ -421,12 +422,12 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	ci.pMultisampleState = &multisampling_ci;
 	ci.pDepthStencilState = &depth_stencil_ci;
 	ci.pColorBlendState = &blending_ci;
-	ci.pDynamicState = nullptr; // Optional
+	ci.pDynamicState = num_dynamic > 0 ? &dynamic_ci : nullptr;
 	ci.layout = pipeline_layout;
 	ci.renderPass = setup.render_pass;
 	ci.subpass = 0;
-	ci.basePipelineHandle = VK_NULL_HANDLE; // Optional
-	ci.basePipelineIndex = -1; // Optional
+	ci.basePipelineHandle = VK_NULL_HANDLE;
+	ci.basePipelineIndex = -1;
 
 	VkPipeline handle;
 	if(vkCreateGraphicsPipelines(device->handle(), device->pipelineCache(), 1, &ci, nullptr,

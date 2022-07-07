@@ -134,6 +134,7 @@ struct VPipelineSetup {
 	VDepthSetup depth;
 	VStencilSetup stencil;
 	VBlendingSetup blending;
+	VDynamicState dynamic_state = none;
 };
 
 struct AttachmentCore {
