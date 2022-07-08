@@ -104,7 +104,7 @@ struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
 	PVPipeline pipeline;
-	Pair<PVPipeline> renderer2d_pipes;
+	Renderer2D::VulkanPipelines renderer2d_pipes;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
 	PVImageView font_image_view;

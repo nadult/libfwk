@@ -302,8 +302,8 @@ void Renderer2D::clear() {
 	m_current_scissor_rect = -1;
 }
 
-Ex<Pair<PVPipeline>> Renderer2D::makeVulkanPipelines(VDeviceRef device,
-													 VkFormat draw_surface_format) {
+auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VkFormat draw_surface_format)
+	-> Ex<VulkanPipelines> {
 	VRenderPassSetup rp_setup;
 	rp_setup.colors = {{VAttachmentCore(draw_surface_format, 1)}};
 	rp_setup.colors_sync.emplace_back(VColorAttachmentSync(
@@ -314,24 +314,33 @@ Ex<Pair<PVPipeline>> Renderer2D::makeVulkanPipelines(VDeviceRef device,
 	setup.shader_modules = EX_PASS(VulkanShaderModule::compile(
 		device, {{VShaderStage::vertex, vsh_2d_vulkan}, {VShaderStage::fragment, fsh_2d_vulkan}}));
 	setup.render_pass = render_pass;
-	setup.raster = VRasterSetup(VPrimitiveTopology::triangle_list, VPolygonMode::fill, none);
-
 	setup.vertex_bindings = {
 		{vertexBinding<float2>(0), vertexBinding<IColor>(1), vertexBinding<float2>(2)}};
 	setup.vertex_attribs = {
 		{vertexAttrib<float2>(0, 0), vertexAttrib<IColor>(1, 1), vertexAttrib<float2>(2, 2)}};
 
-	setup.blending.attachments = {
-		{VBlendingMode(VBlendFactor::src_alpha, VBlendFactor::one_minus_src_alpha)}};
-	auto blend1_pipe = EX_PASS(VulkanPipeline::create(device, setup));
+	VBlendingMode additive_blend(VBlendFactor::one, VBlendFactor::one);
+	VBlendingMode normal_blend(VBlendFactor::src_alpha, VBlendFactor::one_minus_src_alpha);
 
-	setup.blending.attachments = {{VBlendingMode(VBlendFactor::one, VBlendFactor::one)}};
-	auto blend2_pipe = EX_PASS(VulkanPipeline::create(device, setup));
+	VulkanPipelines out;
+	out.pipelines.resize(4);
+	setup.raster = VRasterSetup(VPrimitiveTopology::triangle_list, VPolygonMode::fill, none);
+	setup.blending.attachments = {{normal_blend}};
+	out.pipelines[0] = EX_PASS(VulkanPipeline::create(device, setup));
+	setup.blending.attachments = {{additive_blend}};
+	out.pipelines[1] = EX_PASS(VulkanPipeline::create(device, setup));
 
-	return pair{blend1_pipe, blend2_pipe};
+	setup.raster = VRasterSetup(VPrimitiveTopology::line_list, VPolygonMode::fill, none);
+	setup.blending.attachments = {{normal_blend}};
+	out.pipelines[2] = EX_PASS(VulkanPipeline::create(device, setup));
+	setup.blending.attachments = {{additive_blend}};
+	out.pipelines[3] = EX_PASS(VulkanPipeline::create(device, setup));
+	return out;
 }
 
-Ex<void> Renderer2D::render(VDeviceRef device, const Pair<PVPipeline> &pipes) {
+Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &pipes_) {
+	auto &pipes = pipes_.pipelines;
+
 	// Shadery uzywaj¹ 2 rodzajów deskryptorów:
 	// - jeden sta³y zawiraj¹cy macierze
 	// - drugi dynamiczny zawieraj¹cy teksturki
@@ -395,7 +404,7 @@ Ex<void> Renderer2D::render(VDeviceRef device, const Pair<PVPipeline> &pipes) {
 	DescriptorPoolSetup pool_setup;
 	pool_setup.sizes[VDescriptorType::storage_buffer] = 16;
 	auto descriptor_pool = EX_PASS(device->createDescriptorPool(pool_setup));
-	auto descr = EX_PASS(descriptor_pool->alloc(pipes.first->pipelineLayout(), 0));
+	auto descr = EX_PASS(descriptor_pool->alloc(pipes[0]->pipelineLayout(), 0));
 	descr.update({{.binding = 0, .type = VDescriptorType::storage_buffer, .data = matrix_buffer}});
 
 	// TODO: render_pass shouldn't be set up here, but outside
@@ -403,8 +412,8 @@ Ex<void> Renderer2D::render(VDeviceRef device, const Pair<PVPipeline> &pipes) {
 	//
 	// TODO: passing weak pointers to commands
 	rgraph << CmdBeginRenderPass{
-		pipes.first->renderPass(), none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
-	rgraph << CmdBindPipeline{pipes.first};
+		pipes[0]->renderPass(), none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
+
 	rgraph << CmdBindDescriptorSet{.index = 0, .set = &descr};
 	vertex_pos = 0, index_pos = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
@@ -420,12 +429,13 @@ Ex<void> Renderer2D::render(VDeviceRef device, const Pair<PVPipeline> &pipes) {
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
-			if(element.primitive_type == PrimitiveType::triangles) {
-				rgraph << CmdDrawIndexed{.first_index = element.first_index,
-										 .num_indices = element.num_indices,
-										 .num_instances = 1,
-										 .first_instance = int(num_elements)};
-			}
+			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
+						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
+			rgraph << CmdBindPipeline{pipes[pipe_id]};
+			rgraph << CmdDrawIndexed{.first_index = element.first_index,
+									 .num_indices = element.num_indices,
+									 .num_instances = 1,
+									 .first_instance = int(num_elements)};
 			num_elements++;
 		}
 	}

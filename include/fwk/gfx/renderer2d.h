@@ -21,9 +21,13 @@ class Renderer2D : public MatrixStack {
 	void setViewPos(const float2 &view_pos);
 	void setViewPos(const int2 &view_pos) { setViewPos(float2(view_pos)); }
 
-	static Ex<Pair<PVPipeline>> makeVulkanPipelines(VDeviceRef, VkFormat draw_surface_format);
+	struct VulkanPipelines {
+		vector<PVPipeline> pipelines;
+	};
 
-	Ex<void> render(VDeviceRef, const Pair<PVPipeline> &);
+	static Ex<VulkanPipelines> makeVulkanPipelines(VDeviceRef, VkFormat draw_surface_format);
+	Ex<void> render(VDeviceRef, const VulkanPipelines &);
+
 	void render();
 
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4>,
