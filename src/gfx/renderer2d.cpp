@@ -364,6 +364,7 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 
 	auto &rgraph = device->renderGraph();
 	rgraph << CmdBindDescriptorSet{.index = 0, .set = &dc.descr0};
+	PVImageView prev_tex;
 
 	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
@@ -379,14 +380,18 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
-			dc.tex_descrs[num_elements] =
-				EX_PASS(dc.descr_pool->alloc(pipes[0]->pipelineLayout(), 1));
 			auto tex = element.texture ? element.texture : ctx.white;
-			dc.tex_descrs[num_elements].update({{.binding = 0,
-												 .type = VDescriptorType::combined_image_sampler,
-												 .data = pair{ctx.sampler, tex}}});
-			// TODO: put update into command?
-			rgraph << CmdBindDescriptorSet{.index = 1, .set = &dc.tex_descrs[num_elements]};
+			if(tex != prev_tex) {
+				dc.tex_descrs[num_elements] =
+					EX_PASS(dc.descr_pool->alloc(pipes[0]->pipelineLayout(), 1));
+				dc.tex_descrs[num_elements].update(
+					{{.binding = 0,
+					  .type = VDescriptorType::combined_image_sampler,
+					  .data = pair{ctx.sampler, tex}}});
+				// TODO: put update into command?
+				rgraph << CmdBindDescriptorSet{.index = 1, .set = &dc.tex_descrs[num_elements]};
+				prev_tex = tex;
+			}
 
 			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
 						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
