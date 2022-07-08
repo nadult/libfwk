@@ -88,6 +88,7 @@ Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 	out->m_image = image;
 	out->m_format = image->format();
 	out->m_extent = image->extent();
+	out->m_num_samples = image->numSamples();
 	return out;
 }
 }

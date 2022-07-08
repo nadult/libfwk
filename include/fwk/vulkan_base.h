@@ -16,6 +16,12 @@ namespace fwk {
 
 DEFINE_ENUM(VTag, cmd, device, window, physical_device, queue_family);
 
+struct VulkanLimits {
+	static constexpr int max_color_attachments = 8;
+	static constexpr int max_descr_sets = 32;
+	static constexpr int max_descr_bindings = 1024 * 1024;
+};
+
 using VDeviceId = TagId<VTag::device, u8>;
 using VWindowId = TagId<VTag::window, u8>;
 using VPhysicalDeviceId = TagId<VTag::physical_device, u8>;

@@ -85,11 +85,8 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 
 	auto image_views = m_swap_chain->imageViews();
 	m_framebuffers.reserve(image_views.size());
-	VColorAttachment color_att(m_swap_chain_format, 1); // TODO: get samples from sc
-	auto render_pass = EX_PASS(device->getRenderPass({color_att}));
 	for(auto &image_view : image_views)
-		m_framebuffers.emplace_back(
-			EX_PASS(VulkanFramebuffer::create(device, cspan(&image_view, 1), render_pass)));
+		m_framebuffers.emplace_back(EX_PASS(VulkanFramebuffer::create(device, {image_view})));
 
 	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
 	m_command_pool = EX_PASS(createCommandPool(m_device_handle, queue_family, pool_flags));
@@ -112,8 +109,9 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 	vkResetFences(m_device_handle, 1, fences);
 
 	uint32_t image_index;
-	if(vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX, frame.image_available_sem,
-							 VK_NULL_HANDLE, &image_index) != VK_SUCCESS)
+	auto result = vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX,
+										frame.image_available_sem, VK_NULL_HANDLE, &image_index);
+	if(!isOneOf(result, VK_SUCCESS, VK_SUBOPTIMAL_KHR))
 		FATAL("vkAcquireNextImageKHR failed");
 
 	m_image_index = image_index;

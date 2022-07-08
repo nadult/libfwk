@@ -153,6 +153,7 @@ template <class T> class VPtr {
 	using BaseObject = VulkanObjectBase<Object>;
 	static constexpr VTypeId type_id = VulkanHandleInfo<T>::type_id;
 
+	VPtr(None) : m_ptr(nullptr) {}
 	VPtr() : m_ptr(nullptr) {}
 	VPtr(const VPtr &);
 	VPtr(VPtr &&);

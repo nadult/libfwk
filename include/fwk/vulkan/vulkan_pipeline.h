@@ -11,12 +11,6 @@
 
 namespace fwk {
 
-struct VulkanLimits {
-	static constexpr int max_color_attachments = 8;
-	static constexpr int max_descr_sets = 32;
-	static constexpr int max_descr_bindings = 1024 * 1024;
-};
-
 template <class T> struct VAutoVulkanFormat {};
 #define AUTO_FORMAT(type_, format_)                                                                \
 	template <> struct VAutoVulkanFormat<type_> { static constexpr auto format = format_; };
