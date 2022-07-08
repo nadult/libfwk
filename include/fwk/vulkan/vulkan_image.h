@@ -31,7 +31,7 @@ struct VImageSetup {
 class VulkanImage : public VulkanObjectBase<VulkanImage> {
   public:
 	static Ex<PVImage> create(VDeviceRef, const VImageSetup &, VMemoryUsage = VMemoryUsage::device);
-	static Ex<PVImage> createExternal(VDeviceRef, VkImage, const VImageSetup &);
+	static PVImage createExternal(VDeviceRef, VkImage, const VImageSetup &);
 
 	auto memoryBlock() { return m_memory_block; }
 	int2 extent() const { return m_extent; }

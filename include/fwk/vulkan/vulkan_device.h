@@ -35,7 +35,7 @@ class VulkanDevice {
 	CSpan<Pair<VkQueue, VQueueFamilyId>> queues() const { return m_queues; }
 	VDeviceFeatures features() const { return m_features; }
 
-	Ex<void> createRenderGraph(PVSwapChain);
+	Ex<void> createRenderGraph(PVSwapChain, PVImageView depth_buffer = none);
 	const VulkanRenderGraph &renderGraph() const { return *m_render_graph; }
 	VulkanRenderGraph &renderGraph() { return *m_render_graph; }
 

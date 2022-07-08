@@ -78,15 +78,11 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
 
-Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain) {
+Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain,
+									   PVImageView depth_buffer) {
 	m_swap_chain = swap_chain;
 	m_swap_chain_format = swap_chain->imageViews()[0]->format();
 	auto queue_family = device->queues().front().second;
-
-	auto image_views = m_swap_chain->imageViews();
-	m_framebuffers.reserve(image_views.size());
-	for(auto &image_view : image_views)
-		m_framebuffers.emplace_back(EX_PASS(VulkanFramebuffer::create(device, {image_view})));
 
 	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
 	m_command_pool = EX_PASS(createCommandPool(m_device_handle, queue_family, pool_flags));
@@ -97,11 +93,18 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 		frame.in_flight_fence = EX_PASS(createFence(m_device_handle, true));
 	}
 
+	m_framebuffers.reserve(m_swap_chain->imageViews().size());
+	auto image_views = m_swap_chain->imageViews();
+	for(auto &image_view : image_views) {
+		auto fb = EX_PASS(VulkanFramebuffer::create(m_device.ref(), {image_view}, depth_buffer));
+		m_framebuffers.emplace_back(move(fb));
+	}
+
 	return {};
 }
 
 Ex<void> VulkanRenderGraph::beginFrame() {
-	DASSERT(!m_frame_in_progress);
+	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_frame_index];
 
 	VkFence fences[] = {frame.in_flight_fence};
@@ -113,7 +116,6 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 										frame.image_available_sem, VK_NULL_HANDLE, &image_index);
 	if(!isOneOf(result, VK_SUCCESS, VK_SUBOPTIMAL_KHR))
 		FATAL("vkAcquireNextImageKHR failed");
-
 	m_image_index = image_index;
 
 	vkResetCommandBuffer(frame.command_buffer, 0);
@@ -124,15 +126,14 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 	if(vkBeginCommandBuffer(frame.command_buffer, &bi) != VK_SUCCESS)
 		return ERROR("vkBeginCommandBuffer failed");
 
-	m_frame_in_progress = true;
-
+	m_status = Status::frame_running;
 	return {};
 }
 
 Ex<void> VulkanRenderGraph::finishFrame() {
-	DASSERT(m_frame_in_progress);
+	DASSERT(m_status == Status::frame_running);
 	flushCommands();
-	m_frame_in_progress = false;
+	m_status = Status::frame_finished;
 
 	auto &frame = m_frames[m_frame_index];
 	if(vkEndCommandBuffer(frame.command_buffer) != VK_SUCCESS)
@@ -234,7 +235,7 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUploadImage cmd) {
 }
 
 void VulkanRenderGraph::flushCommands() {
-	DASSERT(m_frame_in_progress);
+	DASSERT(m_status == Status::frame_running);
 	FrameContext ctx{m_frames[m_frame_index].command_buffer, VCommandId(0)};
 
 	for(int i : intRange(m_commands)) {
@@ -340,18 +341,17 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopyImage &cmd) {
 	cmd.dst->m_last_layout = dst_layout;
 }
 
+// TODO: add cache for renderpasses, add renderpass for framebuffer, interface for clear values
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBeginRenderPass &cmd) {
 	VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-	auto framebuffer = m_framebuffers[m_image_index];
-
 	bi.renderPass = cmd.render_pass;
 	if(cmd.render_area)
 		bi.renderArea = toVkRect(*cmd.render_area);
 	else
-		bi.renderArea.extent = toVkExtent(framebuffer->extent());
+		bi.renderArea.extent = toVkExtent(cmd.framebuffer->extent());
 	bi.clearValueCount = cmd.clear_values.size();
 	bi.pClearValues = cmd.clear_values.data();
-	bi.framebuffer = framebuffer;
+	bi.framebuffer = cmd.framebuffer;
 	vkCmdBeginRenderPass(ctx.cmd_buffer, &bi, VK_SUBPASS_CONTENTS_INLINE);
 }
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdEndRenderPass &cmd) {

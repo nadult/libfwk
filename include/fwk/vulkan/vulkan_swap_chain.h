@@ -28,7 +28,7 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 
   private:
 	friend class VulkanDevice;
-	VulkanSwapChain(VkSwapchainKHR, VObjectId, VWindowRef, vector<PVImageView>);
+	VulkanSwapChain(VkSwapchainKHR, VObjectId, VWindowRef);
 	~VulkanSwapChain();
 
 	VWindowRef m_window;

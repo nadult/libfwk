@@ -59,8 +59,7 @@ Ex<PVImage> VulkanImage::create(VDeviceRef device, const VImageSetup &setup,
 	return device->createObject(handle, *mem_block, setup);
 }
 
-Ex<PVImage> VulkanImage::createExternal(VDeviceRef device, VkImage handle,
-										const VImageSetup &setup) {
+PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VImageSetup &setup) {
 	auto out = device->createObject(handle, VMemoryBlock(), setup);
 	out->m_is_external = true;
 	return out;

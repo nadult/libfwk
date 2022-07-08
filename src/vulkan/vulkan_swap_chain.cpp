@@ -5,15 +5,15 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_window.h"
 
 #include <vulkan/vulkan.h>
 
 namespace fwk {
 
-VulkanSwapChain::VulkanSwapChain(VkSwapchainKHR handle, VObjectId id, VWindowRef window,
-								 vector<PVImageView> image_views)
-	: VulkanObjectBase(handle, id), m_window(window), m_image_views(move(image_views)) {}
+VulkanSwapChain::VulkanSwapChain(VkSwapchainKHR handle, VObjectId id, VWindowRef window)
+	: VulkanObjectBase(handle, id), m_window(window) {}
 
 VulkanSwapChain::~VulkanSwapChain() {
 	deferredHandleRelease<VkSwapchainKHR, vkDestroySwapchainKHR>();
@@ -47,8 +47,11 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	VImageUsageFlags usage = VImageUsage::color_att;
 	auto layout = VImageLayout::color_att;
 
+	auto &phys_info = VulkanInstance::ref()->info(device->physId());
+
 	ci.surface = window->surfaceHandle();
-	ci.minImageCount = 2;
+	ci.minImageCount =
+		min(surf_info.capabilities.minImageCount + 1, surf_info.capabilities.maxImageCount);
 	ci.imageFormat = surf_info.formats[0].format;
 	ci.imageColorSpace = surf_info.formats[0].colorSpace;
 	ci.imageExtent = toVkExtent(window->extent());
@@ -72,9 +75,9 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 			}
 	}
 
-	// TODO: separate class for swap chain ?
 	if(vkCreateSwapchainKHR(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		FATAL("Error when creating swap chain");
+		return ERROR("vkCreateSwapchainKHR failed");
+	auto out = device->createObject(handle, window);
 
 	vector<VkImage> images;
 	uint num_images = 0;
@@ -82,15 +85,14 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	images.resize(num_images);
 	vkGetSwapchainImagesKHR(device, handle, &num_images, images.data());
 
-	vector<PVImageView> image_views;
-	image_views.reserve(num_images);
+	out->m_image_views.reserve(num_images);
 	for(auto image_handle : images) {
 		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), 1, usage, layout);
-		auto image = EX_PASS(VulkanImage::createExternal(device, image_handle, setup));
+		auto image = VulkanImage::createExternal(device, image_handle, setup);
 		auto view = EX_PASS(VulkanImageView::create(device, image));
-		image_views.emplace_back(view);
+		out->m_image_views.emplace_back(view);
 	}
 
-	return device->createObject(handle, window, move(image_views));
+	return out;
 }
 }

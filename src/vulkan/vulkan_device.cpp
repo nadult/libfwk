@@ -204,10 +204,10 @@ VulkanDevice::~VulkanDevice() {
 	}
 }
 
-Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {
+Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain, PVImageView depth) {
 	DASSERT(!m_render_graph && "Render graph already initialized");
 	m_render_graph = new VulkanRenderGraph(ref());
-	return m_render_graph->initialize(ref(), swap_chain);
+	return m_render_graph->initialize(ref(), swap_chain, depth);
 }
 
 Ex<void> VulkanDevice::beginFrame() {

@@ -200,9 +200,10 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, ctx.renderer2d_pipes));
+	auto fb = render_graph.defaultFramebuffer();
 
 	render_graph << CmdBeginRenderPass{
-		render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
+		fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
 	EXPECT(renderer.render(dc, ctx.device, ctx.renderer2d_pipes));
 	render_graph << CmdEndRenderPass{};
 	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?

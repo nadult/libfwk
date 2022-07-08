@@ -86,6 +86,7 @@ struct CmdDrawIndexed {
 };
 
 struct CmdBeginRenderPass {
+	PVFramebuffer framebuffer;
 	PVRenderPass render_pass;
 	Maybe<IRect> render_area;
 	vector<VkClearValue> clear_values;
@@ -114,6 +115,7 @@ class StagingBuffer {
 
 class VulkanRenderGraph {
   public:
+	// TODO: document difference between swap frame/image
 	static constexpr int num_swap_frames = 2;
 
 	~VulkanRenderGraph();
@@ -134,7 +136,15 @@ class VulkanRenderGraph {
 	// This can only be called between beginFrame() & finishFrame()
 	void flushCommands();
 
+	enum class Status { init, frame_running, frame_finished };
+	Status status() const { return m_status; }
 	int swapFrameIndex() const { return m_frame_index; }
+
+	int swapImageIndex() const {
+		DASSERT(m_status != Status::init);
+		return m_image_index;
+	}
+	PVFramebuffer defaultFramebuffer() const { return m_framebuffers[swapImageIndex()]; }
 
   private:
 	friend class VulkanDevice;
@@ -142,7 +152,7 @@ class VulkanRenderGraph {
 	VulkanRenderGraph(const VulkanRenderGraph &) = delete;
 	void operator=(const VulkanRenderGraph &) = delete;
 
-	Ex<void> initialize(VDeviceRef, PVSwapChain);
+	Ex<void> initialize(VDeviceRef, PVSwapChain, PVImageView);
 
 	Ex<void> beginFrame();
 	Ex<void> finishFrame();
@@ -176,12 +186,12 @@ class VulkanRenderGraph {
 	VulkanDevice &m_device;
 	VkDevice m_device_handle = nullptr;
 	PVSwapChain m_swap_chain;
-	vector<PVFramebuffer> m_framebuffers;
 	FrameSync m_frames[num_swap_frames];
+	vector<PVFramebuffer> m_framebuffers;
 	VkCommandPool m_command_pool = nullptr;
 	VkFormat m_swap_chain_format = {};
 	uint m_frame_index = 0, m_image_index = 0;
-	bool m_frame_in_progress = false;
+	Status m_status = Status::init;
 };
 
 }
