@@ -23,7 +23,7 @@ class Renderer2D : public MatrixStack {
 
 	static Ex<Pair<PVPipeline>> makeVulkanPipelines(VDeviceRef, VkFormat draw_surface_format);
 
-	void render(VDeviceRef, const Pair<PVPipeline> &);
+	Ex<void> render(VDeviceRef, const Pair<PVPipeline> &);
 	void render();
 
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4>,

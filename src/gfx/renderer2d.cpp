@@ -15,8 +15,10 @@
 #include "fwk/math/rotation.h"
 #include "fwk/sys/on_fail.h"
 
+#include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
+#include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_shader.h"
 
 namespace fwk {
@@ -61,7 +63,7 @@ layout(location = 2) in vec2 in_tex_coord;
 layout(location = 0) out vec4 out_color;
 layout(location = 1) out vec2 out_tex_coord;
 
-layout(std430, binding = 0) readonly restrict buffer buf0_ { mat4 proj_view_matrices[]; };
+layout(binding = 0) readonly restrict buffer buf0_ { mat4 proj_view_matrices[]; };
 
 void main() {
 	gl_Position = proj_view_matrices[gl_InstanceIndex] * vec4(in_pos, 0.0, 1.0);
@@ -78,10 +80,10 @@ layout(location = 0) out vec4 out_color;
 layout(location = 0) in vec4 in_color;
 layout(location = 1) in vec2 in_tex_coord;
 
-layout(set = 1, binding = 0) uniform sampler2D tex_sampler;
+//layout(set = 1, binding = 0) uniform sampler2D tex_sampler;
 
 void main() {
-	out_color = in_color * texture(tex_sampler, in_tex_coord);
+	out_color = in_color;// * texture(tex_sampler, in_tex_coord);
 }
 )";
 
@@ -105,9 +107,11 @@ static PProgram getProgram2D(Str name) {
 Renderer2D::Renderer2D(const IRect &viewport, Orient2D orient)
 	: MatrixStack(projectionMatrix2D(viewport, orient), viewMatrix2D(viewport, float2(0, 0))),
 	  m_viewport(viewport), m_current_scissor_rect(-1) {
-	m_tex_program = getProgram2D("2d_with_texture");
-	m_tex_program["tex"] = 0;
-	m_flat_program = getProgram2D("2d_without_texture");
+	if(GlDevice::isPresent()) {
+		m_tex_program = getProgram2D("2d_with_texture");
+		m_tex_program["tex"] = 0;
+		m_flat_program = getProgram2D("2d_without_texture");
+	}
 }
 
 Renderer2D::~Renderer2D() = default;
@@ -302,7 +306,8 @@ Ex<Pair<PVPipeline>> Renderer2D::makeVulkanPipelines(VDeviceRef device,
 													 VkFormat draw_surface_format) {
 	VRenderPassSetup rp_setup;
 	rp_setup.colors = {{VAttachmentCore(draw_surface_format, 1)}};
-	rp_setup.colors_sync.emplace_back();
+	rp_setup.colors_sync.emplace_back(VColorAttachmentSync(
+		VLoadOp::clear, VStoreOp::store, VLayout::undefined, VLayout::present_src));
 	auto render_pass = EX_PASS(VulkanRenderPass::create(device, rp_setup));
 
 	VPipelineSetup setup;
@@ -326,7 +331,112 @@ Ex<Pair<PVPipeline>> Renderer2D::makeVulkanPipelines(VDeviceRef device,
 	return pair{blend1_pipe, blend2_pipe};
 }
 
-void Renderer2D::render(VDeviceRef device, const Pair<PVPipeline> &pipes) {}
+Ex<void> Renderer2D::render(VDeviceRef device, const Pair<PVPipeline> &pipes) {
+	// Shadery uzywaj¹ 2 rodzajów deskryptorów:
+	// - jeden sta³y zawiraj¹cy macierze
+	// - drugi dynamiczny zawieraj¹cy teksturki
+	//
+	// Co klatkê dla ka¿dej teksturki muszê wygenerowaæ descriptor_set i podpi¹æ go ?
+	// DLa ka¿dego typu teksturki, nie dla ka¿dego elementu
+
+	// Mo¿e zrobiæ max 128 ró¿nych materia³ów, i trzymaæ je w tablicach?
+	// Ale, renderer2d mo¿e wymagaæ
+
+	// Po prostu jak bêdzie du¿o tekstur to bêdzie wolne?
+	// Poza tym mogê zrobiæ HashMap<PVTexture, descriptor> ?
+
+	// Mo¿e lepiej by by³o lepiej przerobiæ trochê
+
+	uint vertex_pos = 0;
+	uint index_pos = 0;
+	uint num_elements = 0;
+
+	for(auto &chunk : m_chunks) {
+		vertex_pos += chunk.positions.size() * sizeof(chunk.positions[0]) +
+					  chunk.colors.size() * sizeof(chunk.colors[0]) +
+					  chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]);
+		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
+		num_elements += chunk.elements.size();
+	}
+
+	auto vbuffer = EX_PASS(VulkanBuffer::create(
+		device, vertex_pos, VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst,
+		VMemoryUsage::frame));
+	auto ibuffer = EX_PASS(VulkanBuffer::create(
+		device, index_pos, VBufferUsage::index_buffer | VBufferUsage::transfer_dst,
+		VMemoryUsage::frame));
+	auto matrix_buffer = EX_PASS(VulkanBuffer::create<Matrix4>(
+		device, num_elements, VBufferUsage::storage_buffer | VBufferUsage::transfer_dst,
+		VMemoryUsage::frame));
+
+	vertex_pos = 0, index_pos = 0, num_elements = 0;
+	auto &rgraph = device->renderGraph();
+	// TODO: upload command with multiple regions
+	for(auto &chunk : m_chunks) {
+		EXPECT(rgraph << CmdUpload(chunk.positions, vbuffer, vertex_pos));
+		vertex_pos += chunk.positions.size() * sizeof(chunk.positions[0]);
+		EXPECT(rgraph << CmdUpload(chunk.colors, vbuffer, vertex_pos));
+		vertex_pos += chunk.colors.size() * sizeof(chunk.colors[0]);
+		EXPECT(rgraph << CmdUpload(chunk.tex_coords, vbuffer, vertex_pos));
+		vertex_pos += chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]);
+		EXPECT(rgraph << CmdUpload(chunk.indices, ibuffer, index_pos));
+		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
+		// TODO: store element matrices in single vector
+		for(auto &element : chunk.elements) {
+			EXPECT(rgraph << CmdUpload(cspan(&element.matrix, 1), matrix_buffer,
+									   num_elements * sizeof(Matrix4)));
+			num_elements++;
+		}
+	}
+
+	// TODO: mo¿e instrukcja BindVertexBuffers/IndexBuffers z pointerem do pamiêci CPU?
+	// automatycznie by by³y grupowane do buforów i uploadowane?
+
+	DescriptorPoolSetup pool_setup;
+	pool_setup.sizes[VDescriptorType::storage_buffer] = 16;
+	auto descriptor_pool = EX_PASS(device->createDescriptorPool(pool_setup));
+	auto descr = EX_PASS(descriptor_pool->alloc(pipes.first->pipelineLayout(), 0));
+	descr.update({{.binding = 0, .type = VDescriptorType::storage_buffer, .data = matrix_buffer}});
+
+	// TODO: render_pass shouldn't be set up here, but outside
+	// we just have to make sure that pipeline is compatible with it
+	//
+	// TODO: passing weak pointers to commands
+	rgraph << CmdBeginRenderPass{
+		pipes.first->renderPass(), none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
+	rgraph << CmdBindPipeline{pipes.first};
+	rgraph << CmdBindDescriptorSet{.index = 0, .set = &descr};
+	vertex_pos = 0, index_pos = 0, num_elements = 0;
+	for(auto &chunk : m_chunks) {
+		uint sizes[3] = {uint(chunk.positions.size() * sizeof(chunk.positions[0])),
+						 uint(chunk.colors.size() * sizeof(chunk.colors[0])),
+						 uint(chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]))};
+		uint offsets[3];
+		for(int i = 0; i < 3; i++)
+			offsets[i] = vertex_pos, vertex_pos += sizes[i];
+
+		rgraph << CmdBindVertexBuffers({vbuffer, vbuffer, vbuffer}, cspan(offsets));
+		rgraph << CmdBindIndexBuffer(ibuffer, index_pos);
+		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
+
+		for(auto &element : chunk.elements) {
+			if(element.primitive_type == PrimitiveType::triangles) {
+				rgraph << CmdDrawIndexed{.first_index = element.first_index,
+										 .num_indices = element.num_indices,
+										 .num_instances = 1,
+										 .first_instance = int(num_elements)};
+			}
+			num_elements++;
+		}
+	}
+	rgraph << CmdEndRenderPass{};
+
+	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
+	// Only queue uploads ?
+	rgraph.flushCommands();
+
+	return {};
+}
 
 void Renderer2D::render() {
 	glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());

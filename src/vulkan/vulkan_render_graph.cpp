@@ -261,16 +261,20 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindDescriptorSet &c
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindIndexBuffer &cmd) {
-	vkCmdBindIndexBuffer(ctx.cmd_buffer, cmd.buffer, 0, VkIndexType::VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(ctx.cmd_buffer, cmd.buffer, cmd.offset, VkIndexType::VK_INDEX_TYPE_UINT32);
 }
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindVertexBuffers &cmd) {
 	static constexpr int max_bindings = 32;
 	VkBuffer buffers[max_bindings];
+	u64 offsets_64[max_bindings];
+
 	DASSERT(cmd.buffers.size() <= max_bindings);
-	for(int i : intRange(cmd.buffers))
+	for(int i : intRange(cmd.buffers)) {
 		buffers[i] = cmd.buffers[i];
+		offsets_64[i] = cmd.offsets[i];
+	}
 	vkCmdBindVertexBuffers(ctx.cmd_buffer, cmd.first_binding, cmd.buffers.size(), buffers,
-						   cmd.offsets.data());
+						   offsets_64);
 }
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipeline &cmd) {
 	vkCmdBindPipeline(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.pipeline);
@@ -279,6 +283,11 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipeline &cmd) {
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDraw &cmd) {
 	vkCmdDraw(ctx.cmd_buffer, cmd.num_vertices, cmd.num_instances, cmd.first_vertex,
 			  cmd.first_instance);
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDrawIndexed &cmd) {
+	vkCmdDrawIndexed(ctx.cmd_buffer, cmd.num_indices, cmd.num_instances, cmd.first_index,
+					 cmd.vertex_offset, cmd.first_instance);
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopy &cmd) {

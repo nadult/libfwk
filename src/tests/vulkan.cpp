@@ -148,61 +148,51 @@ Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
 	return VulkanBuffer::create<UBOData>(ctx.device, 1, usage, VMemoryUsage::frame);
 }
 
-struct DrawRect {
-	FRect rect;
-	IColor fill_color;
-	IColor border_color;
-};
-
-Ex<void> drawFrame(VulkanContext &ctx, CSpan<DrawRect> rects) {
+Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	EXPECT(ctx.device->beginFrame());
-
-	vector<MyVertex> vertices;
-	vertices.reserve(rects.size() * 6);
-
-	float2 scale = float2(2.0) / float2(ctx.window->extent());
-	for(auto &draw_rect : rects) {
-		float3 color = FColor(draw_rect.fill_color).rgb();
-		auto corners = transform(draw_rect.rect.corners(), [&](float2 corner) -> MyVertex {
-			float2 pos = corner * scale - float2(1.0);
-			return {.pos = pos, .color = color, .texCoord = {}};
-		});
-		corners[1].texCoord.y = corners[2].texCoord.y = 1.0;
-		corners[2].texCoord.x = corners[3].texCoord.x = 1.0;
-
-		Array<MyVertex, 6> cur_verts = {
-			{corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]}};
-		insertBack(vertices, cur_verts);
-	}
 
 	// TODO: createVertexBuffer and upload command add considerble overhead in this program
 	// (FPS drops from 2500 to 800); We should probably amortize memory allocations and map/unmap
 	// in staging buffer across multiple frames? Also we should avoid resource recreation? Supposedly
 	// it's a slow operation...
 
-	auto vbuffer = EX_PASS(createVertexBuffer(ctx, vertices));
 	auto &render_graph = ctx.device->renderGraph();
-	EXPECT(render_graph << CmdUpload(vertices, vbuffer));
 
-	UBOData ubo;
-	ubo.saturation = 0.25 + sin(getTime()) * 0.25;
-	auto ubuffer = EX_PASS(createUniformBuffer(ctx));
-	EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
+	//UBOData ubo;
+	//ubo.saturation = 0.25 + sin(getTime()) * 0.25;
+	//auto ubuffer = EX_PASS(createUniformBuffer(ctx));
+	//EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
-	auto &descr_set = ctx.descr_sets[render_graph.swapFrameIndex()];
+	/*auto &descr_set = ctx.descr_sets[render_graph.swapFrameIndex()];
 	descr_set.update({{.type = VDescriptorType::uniform_buffer, .binding = 0, .data = ubuffer},
 					  {.type = VDescriptorType::combined_image_sampler,
 					   .binding = 1,
 					   .data = std::make_pair(ctx.sampler, ctx.font_image_view)}});
-	render_graph << CmdBindDescriptorSet{.index = 0, .set = &descr_set};
+	render_graph << CmdBindDescriptorSet{.index = 0, .set = &descr_set};*/
 
-	VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-	render_graph << CmdBeginRenderPass{.render_pass = ctx.pipeline->renderPass(),
-									   .clear_values = {{clear_color}}};
-	render_graph << CmdBindPipeline{ctx.pipeline};
-	render_graph << CmdBindVertexBuffers({{vbuffer}}, vector<u64>{{0}});
-	render_graph << CmdDraw{.num_vertices = vertices.size()};
-	render_graph << CmdEndRenderPass();
+	VRenderPassSetup rp_setup;
+	auto sc_format =
+		render_graph.swapChain()->imageViews()[0]->format(); // TODO: easier way to extract format
+	rp_setup.colors = {{VAttachmentCore(sc_format, 1)}};
+	rp_setup.colors_sync.emplace_back(
+		VColorAttachmentSync(VLoadOp::clear, VStoreOp::store, VLayout::undefined, VLayout::color));
+	auto render_pass = EX_PASS(VulkanRenderPass::create(ctx.device, rp_setup));
+	// TODO: pipeline should keep render pass core only?
+
+	// TODO: viewport? remove orient ?
+	Renderer2D renderer(IRect(0, 0, 1280, 720), Orient2D::y_up);
+	for(int n = 0; n < (int)positions.size(); n++) {
+		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
+		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
+		IColor border_color = ColorId::black;
+
+		renderer.addFilledRect(rect, fill_color);
+		renderer.addRect(rect, border_color);
+	}
+
+	//auto text = format("Hello world!\nWindow size: %", device.windowSize());
+	//font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
+	EXPECT(renderer.render(ctx.device, ctx.renderer2d_pipes));
 	EXPECT(ctx.device->finishFrame());
 
 	return {};
@@ -235,35 +225,9 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
-
-	vector<DrawRect> rects;
-	rects.reserve(positions.size());
-	for(int n = 0; n < (int)positions.size(); n++) {
-		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
-		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
-		IColor border_color = ColorId::black;
-		rects.emplace_back(rect, IColor(fill_color), border_color);
-	}
-
-	drawFrame(ctx, rects).check();
+	drawFrame(ctx, positions).check();
 
 	updateFPS(window);
-
-	//clearColor(IColor(50, 0, 50));
-	/*Renderer2D renderer(IRect(VkDevice::instance().windowSize()), Orient2D::y_down);
-
-	for(int n = 0; n < (int)positions.size(); n++) {
-		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
-		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
-		IColor border_color = ColorId::black;
-
-		renderer.addFilledRect(rect, fill_color);
-		renderer.addRect(rect, border_color);
-	}
-
-	auto text = format("Hello world!\nWindow size: %", device.windowSize());
-	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
-	renderer.render();*/
 
 	return true;
 }

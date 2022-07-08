@@ -89,8 +89,7 @@ void DescriptorSet::update(CSpan<Assignment> assigns) {
 	for(int i : intRange(assigns)) {
 		auto &write = writes[i];
 		auto &assign = assigns[i];
-		write = {};
-		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
 		write.dstBinding = assign.binding;
 		write.dstSet = handle;
 		write.descriptorType = toVk(assign.type);

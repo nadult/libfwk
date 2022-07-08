@@ -50,11 +50,6 @@ struct CmdBindPipeline {
 	PVPipeline pipeline;
 };
 
-struct CmdBindIndexBuffer {
-	PVBuffer buffer;
-	// TODO
-};
-
 struct DescriptorSet;
 
 struct CmdBindDescriptorSet {
@@ -64,17 +59,30 @@ struct CmdBindDescriptorSet {
 };
 
 struct CmdBindVertexBuffers {
-	CmdBindVertexBuffers(vector<PVBuffer> buffers, vector<u64> offsets, uint first_binding = 0)
+	CmdBindVertexBuffers(vector<PVBuffer> buffers, vector<uint> offsets, uint first_binding = 0)
 		: buffers(move(buffers)), offsets(move(offsets)), first_binding(first_binding) {}
 
 	vector<PVBuffer> buffers;
-	vector<u64> offsets;
+	vector<uint> offsets;
 	uint first_binding;
+};
+
+struct CmdBindIndexBuffer {
+	CmdBindIndexBuffer(PVBuffer buffer, uint offset) : buffer(buffer), offset(offset) {}
+
+	PVBuffer buffer;
+	uint offset;
 };
 
 struct CmdDraw {
 	int first_vertex = 0, first_instance = 0;
 	int num_vertices = 0, num_instances = 1;
+};
+
+struct CmdDrawIndexed {
+	int first_index = 0, first_instance = 0;
+	int num_indices = 0, num_instances = 1;
+	int vertex_offset = 0;
 };
 
 struct CmdBeginRenderPass {
@@ -85,8 +93,9 @@ struct CmdBeginRenderPass {
 
 struct CmdEndRenderPass {};
 
-using Command = Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers,
-						CmdBindPipeline, CmdDraw, CmdBeginRenderPass, CmdEndRenderPass>;
+using Command =
+	Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers, CmdBindIndexBuffer,
+			CmdBindPipeline, CmdDraw, CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
 
 class StagingBuffer {
   public:
@@ -149,6 +158,7 @@ class VulkanRenderGraph {
 	void perform(FrameContext &, const CmdBindVertexBuffers &);
 	void perform(FrameContext &, const CmdBindPipeline &);
 	void perform(FrameContext &, const CmdDraw &);
+	void perform(FrameContext &, const CmdDrawIndexed &);
 	void perform(FrameContext &, const CmdCopy &);
 	void perform(FrameContext &, const CmdCopyImage &);
 	void perform(FrameContext &, const CmdBeginRenderPass &);
