@@ -8,6 +8,7 @@
 #include "fwk/gfx/matrix_stack.h"
 #include "fwk/math/box.h"
 
+#include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_storage.h" // TODO: only ptr needed
 #include "fwk/vulkan_base.h"
 
@@ -47,8 +48,17 @@ class Renderer2D : public MatrixStack {
 		PVSampler sampler;
 	};
 
-	static Ex<VulkanPipelines> makeVulkanPipelines(VDeviceRef, VkFormat draw_surface_format);
-	Ex<void> render(VDeviceRef, const VulkanPipelines &);
+	static Ex<VulkanPipelines> makeVulkanPipelines(VDeviceRef, VColorAttachment);
+
+	struct DrawCall {
+		PVBuffer vbuffer, ibuffer, matrix_buffer;
+		PVDescriptorPool descr_pool;
+		DescriptorSet descr0; // TODO: this is shit
+		vector<DescriptorSet> tex_descrs;
+	};
+
+	Ex<DrawCall> genDrawCall(VDeviceRef, const VulkanPipelines &);
+	Ex<void> render(DrawCall &, VDeviceRef, const VulkanPipelines &);
 
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4>,
 					   const SimpleMaterial &);

@@ -123,7 +123,8 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	auto extent = sc_image->extent();
 	VPipelineSetup setup;
 	setup.shader_modules = shader_modules;
-	setup.render_pass = render_graph.defaultRenderPass();
+	// TODO: maybe pass ColorAttachment directly?
+	setup.render_pass = EX_PASS(ctx.device->getRenderPass({{sc_image->format(), 1}}));
 	setup.viewport = {IRect(0, 0, extent.width, extent.height)};
 	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,
 					VFrontFace::cw};
@@ -170,13 +171,10 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 					   .data = std::make_pair(ctx.sampler, ctx.font_image_view)}});
 	render_graph << CmdBindDescriptorSet{.index = 0, .set = &descr_set};*/
 
-	VRenderPassSetup rp_setup;
 	auto sc_format =
 		render_graph.swapChain()->imageViews()[0]->format(); // TODO: easier way to extract format
-	rp_setup.colors = {{VAttachmentCore(sc_format, 1)}};
-	rp_setup.colors_sync.emplace_back(
-		VColorAttachmentSync(VLoadOp::clear, VStoreOp::store, VLayout::undefined, VLayout::color));
-	auto render_pass = EX_PASS(VulkanRenderPass::create(ctx.device, rp_setup));
+	auto render_pass =
+		EX_PASS(ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}}));
 	// TODO: pipeline should keep render pass core only?
 
 	// TODO: viewport? remove orient ?
@@ -197,7 +195,16 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 		format("Hello world!\nWindow size: %\nVulkan device: %", ctx.window->extent(), device_name);
 	Font font(*ctx.font_core, ctx.font_image_view);
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
-	EXPECT(renderer.render(ctx.device, ctx.renderer2d_pipes));
+
+	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, ctx.renderer2d_pipes));
+
+	render_graph << CmdBeginRenderPass{
+		render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
+	EXPECT(renderer.render(dc, ctx.device, ctx.renderer2d_pipes));
+	render_graph << CmdEndRenderPass{};
+	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
+	// Only queue uploads ?
+
 	EXPECT(ctx.device->finishFrame());
 
 	return {};

@@ -44,12 +44,14 @@ class VulkanDevice {
 
 	Ex<void> beginFrame();
 	Ex<void> finishFrame();
+
 	VkPipelineCache pipelineCache();
 
 	// -------------------------------------------------------------------------------------------
 	// ----------  Object management  ------------------------------------------------------------
 
   public:
+	Ex<PVRenderPass> getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
 	Ex<PVDescriptorSetLayout> getDSL(CSpan<DescriptorBindingInfo>);
 	Ex<PVSampler> createSampler(const VSamplerSetup &);
 	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);

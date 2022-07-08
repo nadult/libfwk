@@ -78,25 +78,18 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
 
-Ex<PVRenderPass> VulkanRenderGraph::createRenderPass(VDeviceRef device, PVSwapChain swap_chain) {
-	auto sc_image = swap_chain->imageViews().front()->image();
-	VRenderPassSetup desc;
-	desc.colors = {{sc_image->format()}};
-	desc.colors_sync.emplace_back(VLoadOp::clear, VStoreOp::store, VLayout::undefined,
-								  VLayout::present_src);
-	return VulkanRenderPass::create(device, desc);
-}
-
 Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain) {
 	m_swap_chain = swap_chain;
-	m_render_pass = EX_PASS(createRenderPass(device, swap_chain));
+	m_swap_chain_format = swap_chain->imageViews()[0]->format();
 	auto queue_family = device->queues().front().second;
 
 	auto image_views = m_swap_chain->imageViews();
 	m_framebuffers.reserve(image_views.size());
+	VColorAttachment color_att(m_swap_chain_format, 1); // TODO: get samples from sc
+	auto render_pass = EX_PASS(device->getRenderPass({color_att}));
 	for(auto &image_view : image_views)
 		m_framebuffers.emplace_back(
-			EX_PASS(VulkanFramebuffer::create(device, cspan(&image_view, 1), m_render_pass)));
+			EX_PASS(VulkanFramebuffer::create(device, cspan(&image_view, 1), render_pass)));
 
 	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
 	m_command_pool = EX_PASS(createCommandPool(m_device_handle, queue_family, pool_flags));

@@ -12,6 +12,7 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- maybe it would be better to hash in u64 and only at the end convert to desired type?
 - fix countLeadingZeros, etc. add findFirstBit/findLastBit
 - nextPow2 -> ceil2
 - Use DIP (device independent pixel) in Gui system

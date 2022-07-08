@@ -34,9 +34,9 @@ template <class T> struct PoolData {
 };
 
 struct HashedDSL {
-	HashedDSL(CSpan<DescriptorBindingInfo> bindings) : bindings(bindings) {
-		hash_value = DescriptorBindingInfo::hashIgnoreSet(bindings);
-	}
+	HashedDSL(CSpan<DescriptorBindingInfo> bindings, Maybe<u32> hash_value)
+		: bindings(bindings),
+		  hash_value(hash_value.orElse(DescriptorBindingInfo::hashIgnoreSet(bindings))) {}
 
 	u32 hash() const { return hash_value; }
 	bool operator==(const HashedDSL &rhs) const {
@@ -44,6 +44,23 @@ struct HashedDSL {
 	}
 
 	CSpan<DescriptorBindingInfo> bindings;
+	u32 hash_value;
+};
+
+struct HashedRenderPass {
+	HashedRenderPass(CSpan<VColorAttachment> colors, const VDepthAttachment *depth,
+					 Maybe<u32> hash_value)
+		: colors(colors), depth(depth),
+		  hash_value(hash_value.orElse(VulkanRenderPass::hashConfig(colors, depth))) {}
+
+	u32 hash() const { return hash_value; }
+	bool operator==(const HashedRenderPass &rhs) const {
+		return hash_value == rhs.hash_value && colors == rhs.colors &&
+			   bool(depth) == bool(rhs.depth) && (!depth || *depth == *rhs.depth);
+	}
+
+	CSpan<VColorAttachment> colors;
+	const VDepthAttachment *depth;
 	u32 hash_value;
 };
 
@@ -64,6 +81,7 @@ struct VulkanDevice::ObjectPools {
 
 	VkPipelineCache pipeline_cache = nullptr;
 	HashMap<HashedDSL, PVDescriptorSetLayout> hashed_dsls;
+	HashMap<HashedRenderPass, PVRenderPass> hashed_render_passes;
 
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
@@ -150,6 +168,7 @@ VulkanDevice::~VulkanDevice() {
 	}
 	m_render_graph.reset();
 	m_objects->hashed_dsls.clear();
+	m_objects->hashed_render_passes.clear();
 
 #ifndef NDEBUG
 	bool errors = false;
@@ -212,8 +231,22 @@ VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache
 // -------------------------------------------------------------------------------------------
 // ----------  Object management  ------------------------------------------------------------
 
+Ex<PVRenderPass> VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
+											 Maybe<VDepthAttachment> depth) {
+	HashedRenderPass key(colors, depth ? &*depth : nullptr, none);
+	auto &hash_map = m_objects->hashed_render_passes;
+	auto it = hash_map.find(key);
+	if(it != hash_map.end())
+		return it->value;
+
+	auto pointer = EX_PASS(VulkanRenderPass::create(ref(), colors, depth));
+	auto depth_ptr = pointer->depth() ? &*pointer->depth() : nullptr;
+	hash_map.emplace(HashedRenderPass(pointer->colors(), depth_ptr, key.hash_value), pointer);
+	return pointer;
+}
+
 Ex<PVDescriptorSetLayout> VulkanDevice::getDSL(CSpan<DescriptorBindingInfo> bindings) {
-	HashedDSL key(bindings);
+	HashedDSL key(bindings, none);
 	auto &hash_map = m_objects->hashed_dsls;
 	auto it = hash_map.find(key);
 	if(it != hash_map.end())
@@ -237,7 +270,7 @@ Ex<PVDescriptorSetLayout> VulkanDevice::getDSL(CSpan<DescriptorBindingInfo> bind
 		return ERROR("vkCreateDescriptorSetLayout failed");
 
 	auto pointer = createObject(handle, bindings);
-	hash_map.emplace(key, pointer);
+	hash_map.emplace({pointer->bindings(), key.hash_value}, pointer);
 	return pointer;
 }
 
@@ -349,5 +382,4 @@ void VulkanObjectBase<T>::deferredHandleRelease(void *p0, void *p1, ReleaseFunc 
 	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(void *, void *,       \
 																			 ReleaseFunc);
 #include "fwk/vulkan/vulkan_type_list.h"
-
 }

@@ -118,8 +118,8 @@ class VulkanRenderGraph {
 
 	~VulkanRenderGraph();
 
+	VkFormat swapChainFormat() const { return m_swap_chain_format; }
 	PVSwapChain swapChain() const { return m_swap_chain; }
-	PVRenderPass defaultRenderPass() const { return m_render_pass; }
 
 	// Commands are first enqueued and only with large enough context
 	// they are being performed
@@ -143,7 +143,6 @@ class VulkanRenderGraph {
 	void operator=(const VulkanRenderGraph &) = delete;
 
 	Ex<void> initialize(VDeviceRef, PVSwapChain);
-	Ex<PVRenderPass> createRenderPass(VDeviceRef, PVSwapChain);
 
 	Ex<void> beginFrame();
 	Ex<void> finishFrame();
@@ -179,8 +178,8 @@ class VulkanRenderGraph {
 	PVSwapChain m_swap_chain;
 	vector<PVFramebuffer> m_framebuffers;
 	FrameSync m_frames[num_swap_frames];
-	PVRenderPass m_render_pass;
 	VkCommandPool m_command_pool = nullptr;
+	VkFormat m_swap_chain_format = {};
 	uint m_frame_index = 0, m_image_index = 0;
 	bool m_frame_in_progress = false;
 };

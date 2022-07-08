@@ -247,18 +247,12 @@ void Renderer2D::clear() {
 	m_current_scissor_rect = -1;
 }
 
-auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VkFormat draw_surface_format)
+auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_attachment)
 	-> Ex<VulkanPipelines> {
-	VRenderPassSetup rp_setup;
-	rp_setup.colors = {{VAttachmentCore(draw_surface_format, 1)}};
-	rp_setup.colors_sync.emplace_back(VColorAttachmentSync(
-		VLoadOp::clear, VStoreOp::store, VLayout::undefined, VLayout::present_src));
-	auto render_pass = EX_PASS(VulkanRenderPass::create(device, rp_setup));
-
 	VPipelineSetup setup;
 	setup.shader_modules = EX_PASS(VulkanShaderModule::compile(
 		device, {{VShaderStage::vertex, vsh_2d}, {VShaderStage::fragment, fsh_2d}}));
-	setup.render_pass = render_pass;
+	setup.render_pass = EX_PASS(device->getRenderPass({color_attachment}));
 	setup.vertex_bindings = {
 		{vertexBinding<float2>(0), vertexBinding<IColor>(1), vertexBinding<float2>(2)}};
 	setup.vertex_attribs = {
@@ -290,7 +284,7 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VkFormat draw_surface_fo
 	out.white = EX_PASS(VulkanImageView::create(device, white_image));
 
 	Image img_data({4, 4}, ColorId::white);
-	device->renderGraph() << CmdUploadImage(img_data, white_image);
+	EXPECT(device->renderGraph() << CmdUploadImage(img_data, white_image));
 
 	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
 	out.sampler = EX_PASS(device->createSampler(sampler));
@@ -298,12 +292,14 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VkFormat draw_surface_fo
 	return out;
 }
 
-Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &ctx) {
+Ex<Renderer2D::DrawCall> Renderer2D::genDrawCall(VDeviceRef device, const VulkanPipelines &ctx) {
 	auto &pipes = ctx.pipelines;
 
 	uint vertex_pos = 0;
 	uint index_pos = 0;
 	uint num_elements = 0;
+
+	DrawCall dc;
 
 	for(auto &chunk : m_chunks) {
 		vertex_pos += chunk.positions.size() * sizeof(chunk.positions[0]) +
@@ -313,13 +309,13 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &ctx) {
 		num_elements += chunk.elements.size();
 	}
 
-	auto vbuffer = EX_PASS(VulkanBuffer::create(
+	dc.vbuffer = EX_PASS(VulkanBuffer::create(
 		device, vertex_pos, VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
-	auto ibuffer = EX_PASS(VulkanBuffer::create(
+	dc.ibuffer = EX_PASS(VulkanBuffer::create(
 		device, index_pos, VBufferUsage::index_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
-	auto matrix_buffer = EX_PASS(VulkanBuffer::create<Matrix4>(
+	dc.matrix_buffer = EX_PASS(VulkanBuffer::create<Matrix4>(
 		device, num_elements, VBufferUsage::storage_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 
@@ -327,17 +323,17 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &ctx) {
 	auto &rgraph = device->renderGraph();
 	// TODO: upload command with multiple regions
 	for(auto &chunk : m_chunks) {
-		EXPECT(rgraph << CmdUpload(chunk.positions, vbuffer, vertex_pos));
+		EXPECT(rgraph << CmdUpload(chunk.positions, dc.vbuffer, vertex_pos));
 		vertex_pos += chunk.positions.size() * sizeof(chunk.positions[0]);
-		EXPECT(rgraph << CmdUpload(chunk.colors, vbuffer, vertex_pos));
+		EXPECT(rgraph << CmdUpload(chunk.colors, dc.vbuffer, vertex_pos));
 		vertex_pos += chunk.colors.size() * sizeof(chunk.colors[0]);
-		EXPECT(rgraph << CmdUpload(chunk.tex_coords, vbuffer, vertex_pos));
+		EXPECT(rgraph << CmdUpload(chunk.tex_coords, dc.vbuffer, vertex_pos));
 		vertex_pos += chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]);
-		EXPECT(rgraph << CmdUpload(chunk.indices, ibuffer, index_pos));
+		EXPECT(rgraph << CmdUpload(chunk.indices, dc.ibuffer, index_pos));
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 		// TODO: store element matrices in single vector
 		for(auto &element : chunk.elements) {
-			EXPECT(rgraph << CmdUpload(cspan(&element.matrix, 1), matrix_buffer,
+			EXPECT(rgraph << CmdUpload(cspan(&element.matrix, 1), dc.matrix_buffer,
 									   num_elements * sizeof(Matrix4)));
 			num_elements++;
 		}
@@ -353,23 +349,28 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &ctx) {
 	pool_setup.sizes[VDescriptorType::combined_image_sampler] = num_elements;
 	pool_setup.max_sets = 1 + num_elements;
 
-	auto descriptor_pool = EX_PASS(device->createDescriptorPool(pool_setup));
-	auto descr0 = EX_PASS(descriptor_pool->alloc(pipes[0]->pipelineLayout(), 0));
-	descr0.update({{.binding = 0, .type = VDescriptorType::storage_buffer, .data = matrix_buffer}});
+	dc.descr_pool = EX_PASS(device->createDescriptorPool(pool_setup));
+	dc.descr0 = EX_PASS(dc.descr_pool->alloc(pipes[0]->pipelineLayout(), 0));
+	dc.descr0.update(
+		{{.binding = 0, .type = VDescriptorType::storage_buffer, .data = dc.matrix_buffer}});
 
 	// TODO: optimize this
-	vector<DescriptorSet> tex_descrs(num_elements);
+	dc.tex_descrs.resize(num_elements);
+	return dc;
+}
+
+Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelines &ctx) {
+	auto &pipes = ctx.pipelines;
 
 	// TODO: render_pass shouldn't be set up here, but outside
 	// we just have to make sure that pipeline is compatible with it
 	//
 	// TODO: passing weak pointers to commands
-	rgraph << CmdBeginRenderPass{
-		pipes[0]->renderPass(), none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
 
-	rgraph << CmdBindDescriptorSet{.index = 0, .set = &descr0};
+	auto &rgraph = device->renderGraph();
+	rgraph << CmdBindDescriptorSet{.index = 0, .set = &dc.descr0};
 
-	vertex_pos = 0, index_pos = 0, num_elements = 0;
+	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
 		uint sizes[3] = {uint(chunk.positions.size() * sizeof(chunk.positions[0])),
 						 uint(chunk.colors.size() * sizeof(chunk.colors[0])),
@@ -378,19 +379,19 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &ctx) {
 		for(int i = 0; i < 3; i++)
 			offsets[i] = vertex_pos, vertex_pos += sizes[i];
 
-		rgraph << CmdBindVertexBuffers({vbuffer, vbuffer, vbuffer}, cspan(offsets));
-		rgraph << CmdBindIndexBuffer(ibuffer, index_pos);
+		rgraph << CmdBindVertexBuffers({dc.vbuffer, dc.vbuffer, dc.vbuffer}, cspan(offsets));
+		rgraph << CmdBindIndexBuffer(dc.ibuffer, index_pos);
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
-			tex_descrs[num_elements] =
-				EX_PASS(descriptor_pool->alloc(pipes[0]->pipelineLayout(), 1));
+			dc.tex_descrs[num_elements] =
+				EX_PASS(dc.descr_pool->alloc(pipes[0]->pipelineLayout(), 1));
 			auto tex = element.texture ? element.texture : ctx.white;
-			tex_descrs[num_elements].update({{.binding = 0,
-											  .type = VDescriptorType::combined_image_sampler,
-											  .data = pair{ctx.sampler, tex}}});
+			dc.tex_descrs[num_elements].update({{.binding = 0,
+												 .type = VDescriptorType::combined_image_sampler,
+												 .data = pair{ctx.sampler, tex}}});
 			// TODO: put update into command?
-			rgraph << CmdBindDescriptorSet{.index = 1, .set = &tex_descrs[num_elements]};
+			rgraph << CmdBindDescriptorSet{.index = 1, .set = &dc.tex_descrs[num_elements]};
 
 			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
 						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
@@ -402,11 +403,6 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &ctx) {
 			num_elements++;
 		}
 	}
-	rgraph << CmdEndRenderPass{};
-
-	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
-	// Only queue uploads ?
-	rgraph.flushCommands();
 
 	return {};
 }

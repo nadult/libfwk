@@ -177,6 +177,75 @@ struct VSamplerSetup {
 										  VTexAddress::repeat};
 };
 
+DEFINE_ENUM(VColorSyncStd, clear, clear_present, present);
+
+struct VColorSync {
+	VColorSync(VLoadOp load, VStoreOp store, VLayout initial_layout, VLayout final_layout)
+		: load_op(load), store_op(store), initial_layout(initial_layout),
+		  final_layout(final_layout) {}
+	VColorSync(VColorSyncStd std)
+		: load_op(std == VColorSyncStd::present ? VLoadOp::load : VLoadOp::clear),
+		  store_op(VStoreOp::store),
+		  initial_layout(std == VColorSyncStd::present ? VLayout::color : VLayout::undefined),
+		  final_layout(std == VColorSyncStd::clear ? VLayout::color : VLayout::present_src) {}
+	VColorSync() : VColorSync(VLoadOp::load, VStoreOp::store, VLayout::color, VLayout::color) {}
+
+	FWK_TIE_MEMBERS(load_op, store_op, initial_layout, final_layout);
+	FWK_TIED_COMPARES(VColorSync);
+
+	VLoadOp load_op;
+	VStoreOp store_op;
+	VLayout initial_layout;
+	VLayout final_layout;
+};
+
+struct VDepthSync {
+	VDepthSync(VLoadOp load, VStoreOp store, VLayout initial_layout, VLayout final_layout,
+			   VLoadOp stencil_load = VLoadOp::dont_care,
+			   VStoreOp stencil_store = VStoreOp::dont_care)
+		: load_op(load), store_op(store), stencil_load_op(stencil_load),
+		  stencil_store_op(stencil_store), initial_layout(initial_layout),
+		  final_layout(final_layout) {}
+	VDepthSync()
+		: VDepthSync(VLoadOp::load, VStoreOp::store, VLayout::depth_stencil, VLayout::depth_stencil,
+					 VLoadOp::dont_care, VStoreOp::dont_care) {}
+
+	FWK_TIE_MEMBERS(load_op, store_op, stencil_load_op, stencil_store_op, initial_layout,
+					final_layout);
+	FWK_TIED_COMPARES(VDepthSync);
+
+	VLoadOp load_op;
+	VStoreOp store_op;
+	VLoadOp stencil_load_op;
+	VStoreOp stencil_store_op;
+	VLayout initial_layout;
+	VLayout final_layout;
+};
+
+struct VColorAttachment {
+	VColorAttachment(VkFormat format, uint num_samples = 1, VColorSync sync = {})
+		: format(format), num_samples(num_samples), sync(sync) {}
+
+	FWK_TIE_MEMBERS(format, num_samples, sync);
+	FWK_TIED_COMPARES(VColorAttachment);
+
+	VkFormat format;
+	uint num_samples;
+	VColorSync sync;
+};
+
+struct VDepthAttachment {
+	VDepthAttachment(VkFormat format, uint num_samples = 1, VDepthSync sync = {})
+		: format(format), num_samples(num_samples), sync(sync) {}
+
+	FWK_TIE_MEMBERS(format, num_samples, sync);
+	FWK_TIED_COMPARES(VDepthAttachment);
+
+	VkFormat format;
+	uint num_samples;
+	VDepthSync sync;
+};
+
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
@@ -190,6 +259,8 @@ class VDeviceRef;
 class VWindowRef;
 
 struct DescriptorBindingInfo;
+struct VColorAttachment;
+struct VDepthAttachment;
 
 template <class T> class VPtr;
 

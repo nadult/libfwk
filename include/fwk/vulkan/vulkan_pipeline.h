@@ -170,70 +170,24 @@ struct VPipelineSetup {
 	VDynamicState dynamic_state = none;
 };
 
-struct VAttachmentCore {
-	VAttachmentCore(VkFormat format, uint num_samples = 1)
-		: format(format), num_samples(num_samples) {}
-	FWK_TIE_MEMBERS(format, num_samples);
-	FWK_TIED_COMPARES(VAttachmentCore);
-
-	VkFormat format;
-	uint num_samples;
-};
-
-struct VColorAttachmentSync {
-	VColorAttachmentSync(VLoadOp load = VLoadOp::load, VStoreOp store = VStoreOp::store,
-						 VLayout init_layout = VLayout::color,
-						 VLayout final_layout = VLayout::color)
-		: load_op(load), store_op(store), init_layout(init_layout), final_layout(final_layout) {}
-	FWK_TIE_MEMBERS(load_op, store_op, init_layout, final_layout);
-	FWK_TIED_COMPARES(VColorAttachmentSync);
-
-	VLoadOp load_op;
-	VStoreOp store_op;
-	VLayout init_layout;
-	VLayout final_layout;
-};
-
-struct VDepthAttachmentSync {
-	VDepthAttachmentSync(VLoadOp load = VLoadOp::load, VStoreOp store = VStoreOp::store,
-						 VLoadOp stencil_load = VLoadOp::dont_care,
-						 VStoreOp stencil_store = VStoreOp::dont_care,
-						 VLayout init_layout = VLayout::depth_stencil,
-						 VLayout final_layout = VLayout::depth_stencil)
-		: load_op(load), store_op(store), stencil_load_op(stencil_load),
-		  stencil_store_op(stencil_store), init_layout(init_layout), final_layout(final_layout) {}
-	FWK_TIE_MEMBERS(load_op, store_op, stencil_load_op, stencil_store_op, init_layout,
-					final_layout);
-	FWK_TIED_COMPARES(VDepthAttachmentSync);
-
-	VLoadOp load_op;
-	VStoreOp store_op;
-	VLoadOp stencil_load_op;
-	VStoreOp stencil_store_op;
-	VLayout init_layout;
-	VLayout final_layout;
-};
-
-struct VRenderPassSetup {
-	StaticVector<VAttachmentCore, VulkanLimits::max_color_attachments> colors;
-	StaticVector<VColorAttachmentSync, VulkanLimits::max_color_attachments> colors_sync;
-
-	Maybe<VAttachmentCore> depth;
-	Maybe<VDepthAttachmentSync> depth_sync;
-};
-
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
-	static Ex<PVRenderPass> create(VDeviceRef, const VRenderPassSetup &);
+	static constexpr int max_colors = VulkanLimits::max_color_attachments;
 
-	int numColorAttachments() const { return m_num_color_attachments; }
+	static Ex<PVRenderPass> create(VDeviceRef, CSpan<VColorAttachment>,
+								   Maybe<VDepthAttachment> = none);
+	static u32 hashConfig(CSpan<VColorAttachment>, const VDepthAttachment *);
+
+	CSpan<VColorAttachment> colors() const { return m_colors; }
+	const Maybe<VDepthAttachment> &depth() const { return m_depth; }
 
   private:
 	friend class VulkanDevice;
-	VulkanRenderPass(VkRenderPass, VObjectId, const VRenderPassSetup &);
+	VulkanRenderPass(VkRenderPass, VObjectId);
 	~VulkanRenderPass();
 
-	int m_num_color_attachments;
+	StaticVector<VColorAttachment, max_colors> m_colors;
+	Maybe<VDepthAttachment> m_depth;
 };
 
 class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {

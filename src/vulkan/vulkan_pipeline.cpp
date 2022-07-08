@@ -133,11 +133,98 @@ VulkanDescriptorPool ::~VulkanDescriptorPool() {
 	deferredHandleRelease<VkDescriptorPool, vkDestroyDescriptorPool>();
 }
 
-VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id, const VRenderPassSetup &desc)
-	: VulkanObjectBase(handle, id), m_num_color_attachments(desc.colors.size()) {}
+VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
+	: VulkanObjectBase(handle, id) {}
 VulkanRenderPass ::~VulkanRenderPass() {
 	// TODO: here we probably don't need defer
 	deferredHandleRelease<VkRenderPass, vkDestroyRenderPass>();
+}
+
+u32 VulkanRenderPass::hashConfig(CSpan<VColorAttachment> colors, const VDepthAttachment *depth) {
+	auto out = hash(colors);
+	if(depth)
+		out = combineHash(out, hash(*depth));
+	return out;
+}
+
+Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment> colors,
+										  Maybe<VDepthAttachment> depth) {
+
+	array<VkAttachmentDescription, max_colors + 1> attachments;
+	array<VkAttachmentReference, max_colors + 1> attachment_refs;
+
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = colors.size();
+	subpass.pColorAttachments = attachment_refs.data();
+
+	// TODO: what's the point of that?
+	VkSubpassDependency dependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	for(int i : intRange(colors)) {
+		auto &src = colors[i];
+		auto &dst = attachments[i];
+		dst.flags = 0;
+		dst.format = src.format;
+		dst.samples = VkSampleCountFlagBits(src.num_samples);
+		dst.loadOp = toVk(src.sync.load_op);
+		dst.storeOp = toVk(src.sync.store_op);
+		dst.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		dst.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		dst.initialLayout = toVk(src.sync.initial_layout);
+		dst.finalLayout = toVk(src.sync.final_layout);
+		attachment_refs[i].attachment = i;
+		// TODO: is this the right layout?
+		attachment_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	}
+
+	int depth_index = -1;
+	if(depth) {
+		depth_index = colors.size();
+		auto &src = *depth;
+		auto &dst = attachments[depth_index];
+		dst.flags = 0;
+		dst.format = src.format;
+		dst.samples = VkSampleCountFlagBits(src.num_samples);
+		dst.loadOp = toVk(src.sync.load_op);
+		dst.storeOp = toVk(src.sync.store_op);
+		dst.stencilLoadOp = toVk(src.sync.stencil_load_op);
+		dst.stencilStoreOp = toVk(src.sync.stencil_store_op);
+		dst.initialLayout = toVk(src.sync.initial_layout);
+		dst.finalLayout = toVk(src.sync.final_layout);
+		attachment_refs[depth_index].attachment = depth_index;
+		attachment_refs[depth_index].layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+		subpass.pDepthStencilAttachment = attachment_refs.data() + max_colors;
+
+		dependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency.dstStageMask |=
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+									VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+	}
+
+	VkRenderPassCreateInfo ci{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+	ci.attachmentCount = colors.size();
+	ci.pAttachments = attachments.data();
+	ci.subpassCount = 1;
+	ci.pSubpasses = &subpass;
+	ci.dependencyCount = 1;
+	ci.pDependencies = &dependency;
+
+	VkRenderPass handle;
+	if(vkCreateRenderPass(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateRenderPass failed");
+	auto out = device->createObject(handle);
+	out->m_colors = colors;
+	out->m_depth = depth;
+
+	return out;
 }
 
 VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id,
@@ -154,83 +241,6 @@ VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VkDescriptorSetLayout handl
 VulkanDescriptorSetLayout ::~VulkanDescriptorSetLayout() {
 	// TODO: do we really need deferred?
 	deferredHandleRelease<VkDescriptorSetLayout, vkDestroyDescriptorSetLayout>();
-}
-
-Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, const VRenderPassSetup &desc) {
-	static constexpr int max_colors = VulkanLimits::max_color_attachments;
-	array<VkAttachmentDescription, max_colors + 1> attachments;
-	array<VkAttachmentReference, max_colors + 1> attachment_refs;
-
-	DASSERT(desc.colors_sync.size() == desc.colors.size());
-	DASSERT(desc.depth.hasValue() == desc.depth_sync.hasValue());
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = desc.colors.size();
-	subpass.pColorAttachments = attachment_refs.data();
-
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	for(int i : intRange(desc.colors)) {
-		auto &src = desc.colors[i];
-		auto &sync = desc.colors_sync[i];
-		auto &dst = attachments[i];
-		dst.flags = 0;
-		dst.format = src.format;
-		dst.samples = VkSampleCountFlagBits(src.num_samples);
-		dst.loadOp = toVk(sync.load_op);
-		dst.storeOp = toVk(sync.store_op);
-		dst.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		dst.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		dst.initialLayout = toVk(sync.init_layout);
-		dst.finalLayout = toVk(sync.final_layout);
-		attachment_refs[i].attachment = i;
-		// TODO: is this the right layout?
-		attachment_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	}
-
-	int depth_index = -1;
-	if(desc.depth) {
-		depth_index = desc.colors.size();
-		auto &src = *desc.depth;
-		auto &sync = *desc.depth_sync;
-		auto &dst = attachments[depth_index];
-		dst.flags = 0;
-		dst.format = src.format;
-		dst.samples = VkSampleCountFlagBits(src.num_samples);
-		dst.loadOp = toVk(sync.load_op);
-		dst.storeOp = toVk(sync.store_op);
-		dst.stencilLoadOp = toVk(sync.stencil_load_op);
-		dst.stencilStoreOp = toVk(sync.stencil_store_op);
-		dst.initialLayout = toVk(sync.init_layout);
-		dst.finalLayout = toVk(sync.final_layout);
-		attachment_refs[depth_index].attachment = depth_index;
-		attachment_refs[depth_index].layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-		subpass.pDepthStencilAttachment = attachment_refs.data() + max_colors;
-
-		dependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-	}
-
-	VkRenderPassCreateInfo ci{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-	ci.attachmentCount = desc.colors.size();
-	ci.pAttachments = attachments.data();
-	ci.subpassCount = 1;
-	ci.pSubpasses = &subpass;
-	ci.dependencyCount = 1;
-	ci.pDependencies = &dependency;
-
-	VkRenderPass handle;
-	if(vkCreateRenderPass(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateRenderPass failed");
-	return device->createObject(handle, desc);
 }
 
 VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
@@ -367,7 +377,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 
 	array<VkPipelineColorBlendAttachmentState, VulkanLimits::max_color_attachments>
 		blend_attachments;
-	int num_color_attachments = setup.render_pass->numColorAttachments();
+	int num_color_attachments = setup.render_pass->colors().size();
 	DASSERT_LE(setup.blending.attachments.size(), num_color_attachments);
 
 	// TODO: check num modes, fill missing?
