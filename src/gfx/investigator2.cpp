@@ -45,7 +45,8 @@ Investigator2::Investigator2(VisFunc2 vis_func, Maybe<DRect> focus, Investigator
 	auto data_path = FilePath(executablePath()).parent() / "data";
 	auto font_path = data_path / "LiberationSans-Regular.ttf";
 	auto charset = FontFactory::ansiCharset() + FontFactory::basicMathCharset();
-	m_font.emplace(move(FontFactory().makeFont(font_path, charset, 14, false).get()));
+	FATAL("TODO: fixme");
+	//m_font.emplace(move(FontFactory().makeFont(font_path, charset, 14, false).get()));
 }
 
 Investigator2::~Investigator2() = default;

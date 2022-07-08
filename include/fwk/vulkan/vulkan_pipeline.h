@@ -80,7 +80,7 @@ struct VBlendingMode {
 		encoded_value = (encoded_value & 0xfffffffu) | (u32(bits.bits) << 28);
 	}
 
-	bool enabled() const { return (encoded_value & 0xfffffffu) == 0xfffffffu; }
+	bool enabled() const { return (encoded_value & 0xfffffffu) != 0xfffffffu; }
 	auto srcColor() const { return VBlendFactor((encoded_value >> 0) & 0x1f); }
 	auto dstColor() const { return VBlendFactor((encoded_value >> 5) & 0x1f); }
 	auto colorOp() const { return VBlendOp((encoded_value >> 20) & 0xf); }
@@ -347,10 +347,10 @@ class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
 
   private:
 	friend class VulkanDevice;
-	VulkanSampler(VkSampler, VObjectId, const VSamplingParams &);
+	VulkanSampler(VkSampler, VObjectId, const VSamplerSetup &);
 	~VulkanSampler();
 
-	VSamplingParams m_params;
+	VSamplerSetup m_params;
 };
 
 class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {

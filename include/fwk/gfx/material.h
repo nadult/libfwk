@@ -10,26 +10,6 @@
 
 namespace fwk {
 
-DEFINE_ENUM(BlendingMode, normal, additive);
-
-class SimpleMaterial {
-  public:
-	SimpleMaterial(PTexture texture, FColor color = ColorId::white,
-				   BlendingMode bm = BlendingMode::normal)
-		: m_texture(texture), m_color(color), m_blendingMode(bm) {}
-	SimpleMaterial(FColor color = ColorId::white, BlendingMode bm = BlendingMode::normal)
-		: m_color(color), m_blendingMode(bm) {}
-
-	PTexture texture() const { return m_texture; }
-	FColor color() const { return m_color; }
-	BlendingMode blendingMode() const { return m_blendingMode; }
-
-  private:
-	PTexture m_texture;
-	FColor m_color;
-	BlendingMode m_blendingMode;
-};
-
 DEFINE_ENUM(MaterialOpt, blended, two_sided, clear_depth, ignore_depth);
 using MaterialFlags = EnumFlags<MaterialOpt>;
 

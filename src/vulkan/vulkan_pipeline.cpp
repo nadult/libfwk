@@ -74,7 +74,7 @@ DescriptorBindingInfo::divideSets(CSpan<DescriptorBindingInfo> merged) {
 	return out;
 }
 
-VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplingParams &params)
+VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplerSetup &params)
 	: VulkanObjectBase(handle, id), m_params(params) {}
 VulkanSampler::~VulkanSampler() { deferredHandleRelease<VkSampler, vkDestroySampler>(); }
 

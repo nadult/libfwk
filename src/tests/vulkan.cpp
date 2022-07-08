@@ -190,8 +190,13 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 		renderer.addRect(rect, border_color);
 	}
 
-	//auto text = format("Hello world!\nWindow size: %", device.windowSize());
-	//font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
+	auto device_name = VulkanInstance::ref()->info(ctx.device->physId()).properties.deviceName;
+	// TODO: immediate drawing mode sux, we should replace it with something better?
+	// On the other hand, imgui is fine...
+	auto text =
+		format("Hello world!\nWindow size: %\nVulkan device: %", ctx.window->extent(), device_name);
+	Font font(*ctx.font_core, ctx.font_image_view);
+	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 	EXPECT(renderer.render(ctx.device, ctx.renderer2d_pipes));
 	EXPECT(ctx.device->finishFrame());
 

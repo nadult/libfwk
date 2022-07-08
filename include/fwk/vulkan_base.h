@@ -168,7 +168,7 @@ inline auto toVk(VFrontFace face) { return VkFrontFace(face); }
 inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
 inline auto toVk(VDynamic dynamic) { return VkDynamicState(dynamic); }
 
-struct VSamplingParams {
+struct VSamplerSetup {
 	VTexFilter mag_filter = VTexFilter::nearest;
 	VTexFilter min_filter = VTexFilter::nearest;
 	Maybe<VTexFilter> mipmap_filter;

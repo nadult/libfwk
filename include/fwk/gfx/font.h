@@ -5,11 +5,13 @@
 
 #include "fwk/fwd_member.h"
 #include "fwk/gfx/color.h"
-#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/image.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math/box.h"
 #include "fwk/str.h"
+
+#include "fwk/vulkan/vulkan_storage.h" // TODO: only Ptr<> is needed here
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 
@@ -81,8 +83,7 @@ struct FontData {
 class Font {
   public:
 	using Style = FontStyle;
-	Font(FontCore, PTexture texture);
-	Font(FontData);
+	Font(FontCore, PVImageView);
 	FWK_COPYABLE_CLASS(Font)
 
 	FRect draw(Renderer2D &, const FRect &, const Style &, const string32 &text) const;
@@ -122,6 +123,6 @@ class Font {
 	float2 drawPos(const string32 &text, const FRect &, const FontStyle &) const;
 
 	FontCore m_core;
-	PTexture m_texture;
+	PVImageView m_texture;
 };
 }

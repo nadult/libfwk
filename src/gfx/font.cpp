@@ -6,8 +6,6 @@
 
 #include "fwk/gfx/font.h"
 
-#include "fwk/gfx/gl_texture.h"
-#include "fwk/gfx/opengl.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/io/xml.h"
 #include "fwk/sys/expected.h"
@@ -215,12 +213,13 @@ FontStyle::FontStyle(FColor color, FColor shadow_color, HAlign halign, VAlign va
 FontStyle::FontStyle(FColor color, HAlign halign, VAlign valign)
 	: text_color(color), shadow_color(ColorId::transparent), halign(halign), valign(valign) {}
 
-Font::Font(FontCore core, PTexture texture) : m_core(move(core)), m_texture(texture) {
+Font::Font(FontCore core, PVImageView texture) : m_core(move(core)), m_texture(texture) {
 	DASSERT(m_texture);
-	DASSERT(m_texture->size() == m_core.m_texture_size);
+
+	// TODO:
+	//DASSERT(m_texture->extent() == m_core.m_texture_size);
 }
 
-Font::Font(FontData data) : m_core(move(data.core)), m_texture(GlTexture::make(data.image)) {}
 FWK_COPYABLE_CLASS_IMPL(Font)
 
 float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &style) const {
@@ -239,7 +238,7 @@ float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &s
 	return float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
 }
 
-FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
+/*FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
 				 const string32 &text) const {
 	auto pos = drawPos(text, rect, style);
 
@@ -260,7 +259,7 @@ FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
 	out.setMaterial(Material(ColorId::white));
 
 	return enclose(positions);
-}
+}*/
 
 FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 				 const string32 &text) const {

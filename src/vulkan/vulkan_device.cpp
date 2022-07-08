@@ -241,7 +241,7 @@ Ex<PVDescriptorSetLayout> VulkanDevice::getDSL(CSpan<DescriptorBindingInfo> bind
 	return pointer;
 }
 
-Ex<PVSampler> VulkanDevice::createSampler(const VSamplingParams &params) {
+Ex<PVSampler> VulkanDevice::createSampler(const VSamplerSetup &params) {
 	VkSamplerCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	ci.magFilter = VkFilter(params.mag_filter);

@@ -4,14 +4,34 @@
 #pragma once
 
 #include "fwk/gfx/color.h"
-#include "fwk/gfx/gl_ref.h"
 #include "fwk/gfx/material.h"
 #include "fwk/gfx/matrix_stack.h"
 #include "fwk/math/box.h"
 
+#include "fwk/vulkan/vulkan_storage.h" // TODO: only ptr needed
 #include "fwk/vulkan_base.h"
 
 namespace fwk {
+
+DEFINE_ENUM(BlendingMode, normal, additive);
+
+class SimpleMaterial {
+  public:
+	SimpleMaterial(PVImageView texture, FColor color = ColorId::white,
+				   BlendingMode bm = BlendingMode::normal)
+		: m_texture(texture), m_color(color), m_blendingMode(bm) {}
+	SimpleMaterial(FColor color = ColorId::white, BlendingMode bm = BlendingMode::normal)
+		: m_color(color), m_blendingMode(bm) {}
+
+	PVImageView texture() const { return m_texture; }
+	FColor color() const { return m_color; }
+	BlendingMode blendingMode() const { return m_blendingMode; }
+
+  private:
+	PVImageView m_texture;
+	FColor m_color;
+	BlendingMode m_blendingMode;
+};
 
 class Renderer2D : public MatrixStack {
   public:
@@ -23,12 +43,12 @@ class Renderer2D : public MatrixStack {
 
 	struct VulkanPipelines {
 		vector<PVPipeline> pipelines;
+		PVImageView white;
+		PVSampler sampler;
 	};
 
 	static Ex<VulkanPipelines> makeVulkanPipelines(VDeviceRef, VkFormat draw_surface_format);
 	Ex<void> render(VDeviceRef, const VulkanPipelines &);
-
-	void render();
 
 	void addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4>,
 					   const SimpleMaterial &);
@@ -52,7 +72,7 @@ class Renderer2D : public MatrixStack {
 
 	struct Element {
 		Matrix4 matrix;
-		PTexture texture;
+		PVImageView texture;
 		int first_index, num_indices;
 		int scissor_rect_id;
 		PrimitiveType primitive_type;
@@ -85,12 +105,12 @@ class Renderer2D : public MatrixStack {
 	};
 
 	DrawChunk &allocChunk(int num_verts);
-	Element &makeElement(DrawChunk &, PrimitiveType, PTexture, BlendingMode = BlendingMode::normal);
+	Element &makeElement(DrawChunk &, PrimitiveType, PVImageView,
+						 BlendingMode = BlendingMode::normal);
 
 	vector<DrawChunk> m_chunks;
 	vector<IRect> m_scissor_rects;
 	IRect m_viewport;
-	PProgram m_tex_program, m_flat_program;
 	int m_current_scissor_rect;
 };
 }

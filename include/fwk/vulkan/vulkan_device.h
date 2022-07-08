@@ -51,7 +51,7 @@ class VulkanDevice {
 
   public:
 	Ex<PVDescriptorSetLayout> getDSL(CSpan<DescriptorBindingInfo>);
-	Ex<PVSampler> createSampler(const VSamplingParams &);
+	Ex<PVSampler> createSampler(const VSamplerSetup &);
 	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);
 
 	template <class THandle, class... Args>

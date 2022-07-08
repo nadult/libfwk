@@ -2,13 +2,7 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/renderer2d.h"
-#include "fwk/gfx/gl_buffer.h"
-#include "fwk/gfx/gl_device.h"
-#include "fwk/gfx/gl_program.h"
-#include "fwk/gfx/gl_shader.h"
-#include "fwk/gfx/gl_texture.h"
-#include "fwk/gfx/gl_vertex_array.h"
-#include "fwk/gfx/opengl.h"
+#include "fwk/gfx/image.h"
 #include "fwk/hash_map.h"
 #include "fwk/io/xml.h"
 #include "fwk/math/constants.h"
@@ -17,43 +11,17 @@
 
 #include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_shader.h"
 
+// Czy chcemy, ¿eby Renderer2D bazowa³ na ElementBufferze ?
+// Czy jest sens to robiæ teraz ? nie, zróbmy tylko, ¿eby dzia³a³o, nawet bez optymalizacji?
+
 namespace fwk {
 
-static const char *fragment_shader_2d_tex_src =
-	"#version 100\n"
-	"uniform sampler2D tex; 											\n"
-	"varying lowp vec4 color;											\n"
-	"varying mediump vec2 tex_coord;									\n"
-	"void main() {														\n"
-	"	gl_FragColor = color * texture2D(tex, tex_coord);				\n"
-	"}																	\n";
-
-static const char *fragment_shader_2d_flat_src =
-	"#version 100\n"
-	"varying lowp vec4 color;											\n"
-	"void main() {														\n"
-	"	gl_FragColor = color;											\n"
-	"}																	\n";
-
-static const char *vertex_shader_2d_src =
-	"#version 100\n"
-	"uniform mat4 proj_view_matrix;										\n"
-	"attribute vec2 in_pos;												\n"
-	"attribute vec4 in_color;											\n"
-	"attribute vec2 in_tex_coord;										\n"
-	"varying vec2 tex_coord;  											\n"
-	"varying vec4 color;  												\n"
-	"void main() {														\n"
-	"	gl_Position = proj_view_matrix * vec4(in_pos, 0.0, 1.0);		\n"
-	"	tex_coord = in_tex_coord;										\n"
-	"	color = in_color;												\n"
-	"} 																	\n";
-
-const char *vsh_2d_vulkan = R"(
+const char *vsh_2d = R"(
 #version 450
 
 layout(location = 0) in vec2 in_pos;
@@ -72,7 +40,7 @@ void main() {
 }
 )";
 
-const char *fsh_2d_vulkan = R"(
+const char *fsh_2d = R"(
 #version 450
 
 layout(location = 0) out vec4 out_color;
@@ -80,39 +48,16 @@ layout(location = 0) out vec4 out_color;
 layout(location = 0) in vec4 in_color;
 layout(location = 1) in vec2 in_tex_coord;
 
-//layout(set = 1, binding = 0) uniform sampler2D tex_sampler;
+layout(set = 1, binding = 0) uniform sampler2D tex_sampler;
 
 void main() {
-	out_color = in_color;// * texture(tex_sampler, in_tex_coord);
+	out_color = in_color * texture(tex_sampler, in_tex_coord);
 }
 )";
 
-static Ex<PProgram> buildProgram2D(Str name) {
-	ON_FAIL("Building shader program: %", name);
-	const char *src =
-		name == "2d_with_texture" ? fragment_shader_2d_tex_src : fragment_shader_2d_flat_src;
-	auto vsh = EX_PASS(GlShader::compileAndCheck(ShaderType::vertex, vertex_shader_2d_src));
-	auto fsh = EX_PASS(GlShader::compileAndCheck(ShaderType::fragment, src));
-	return GlProgram::linkAndCheck({vsh, fsh}, {"in_pos", "in_color", "in_tex_coord"});
-}
-
-static PProgram getProgram2D(Str name) {
-	if(auto out = GlDevice::instance().cacheFindProgram(name))
-		return out;
-	auto program = buildProgram2D(name).get();
-	GlDevice::instance().cacheAddProgram(name, program);
-	return program;
-}
-
 Renderer2D::Renderer2D(const IRect &viewport, Orient2D orient)
 	: MatrixStack(projectionMatrix2D(viewport, orient), viewMatrix2D(viewport, float2(0, 0))),
-	  m_viewport(viewport), m_current_scissor_rect(-1) {
-	if(GlDevice::isPresent()) {
-		m_tex_program = getProgram2D("2d_with_texture");
-		m_tex_program["tex"] = 0;
-		m_flat_program = getProgram2D("2d_without_texture");
-	}
-}
+	  m_viewport(viewport), m_current_scissor_rect(-1) {}
 
 Renderer2D::~Renderer2D() = default;
 
@@ -127,7 +72,7 @@ Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {
 }
 
 Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType primitive_type,
-											 PTexture texture, BlendingMode bm) {
+											 PVImageView texture, BlendingMode bm) {
 	// TODO: merging won't work for triangle strip (have to add some more indices)
 	auto &elems = chunk.elements;
 
@@ -188,7 +133,7 @@ void Renderer2D::addEllipse(float2 center, float2 size, FColor color, int num_ed
 
 void Renderer2D::addRect(const FRect &rect, FColor color) {
 	auto &chunk = allocChunk(4);
-	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
+	Element &elem = makeElement(chunk, PrimitiveType::lines, {});
 	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices(rect.corners(), {}, {}, color);
 
@@ -201,7 +146,7 @@ void Renderer2D::addRect(const FRect &rect, FColor color) {
 
 void Renderer2D::addLine(const float2 &p1, const float2 &p2, FColor color) {
 	auto &chunk = allocChunk(2);
-	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
+	Element &elem = makeElement(chunk, PrimitiveType::lines, {});
 	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices({p1, p2}, {}, {}, color);
 
@@ -230,7 +175,7 @@ void Renderer2D::addLines(CSpan<float2> pos, CSpan<FColor> color, FColor mat_col
 	DASSERT(pos.size() % 2 == 0);
 
 	auto &chunk = allocChunk(pos.size());
-	Element &elem = makeElement(chunk, PrimitiveType::lines, PTexture());
+	Element &elem = makeElement(chunk, PrimitiveType::lines, {});
 
 	int vertex_offset = chunk.positions.size();
 	chunk.appendVertices(pos, {}, color, mat_color);
@@ -312,7 +257,7 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VkFormat draw_surface_fo
 
 	VPipelineSetup setup;
 	setup.shader_modules = EX_PASS(VulkanShaderModule::compile(
-		device, {{VShaderStage::vertex, vsh_2d_vulkan}, {VShaderStage::fragment, fsh_2d_vulkan}}));
+		device, {{VShaderStage::vertex, vsh_2d}, {VShaderStage::fragment, fsh_2d}}));
 	setup.render_pass = render_pass;
 	setup.vertex_bindings = {
 		{vertexBinding<float2>(0), vertexBinding<IColor>(1), vertexBinding<float2>(2)}};
@@ -335,26 +280,26 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VkFormat draw_surface_fo
 	out.pipelines[2] = EX_PASS(VulkanPipeline::create(device, setup));
 	setup.blending.attachments = {{additive_blend}};
 	out.pipelines[3] = EX_PASS(VulkanPipeline::create(device, setup));
+
+	ImageSetup img_setup;
+	img_setup.format = VK_FORMAT_R8G8B8A8_UNORM;
+	img_setup.layout = VImageLayout::undefined;
+	img_setup.num_samples = 1;
+	img_setup.usage = VImageUsage::sampled | VImageUsage::transfer_dst;
+	auto white_image = EX_PASS(VulkanImage::create(device, {4, 4}, img_setup));
+	out.white = EX_PASS(VulkanImageView::create(device, white_image));
+
+	Image img_data({4, 4}, ColorId::white);
+	device->renderGraph() << CmdUploadImage(img_data, white_image);
+
+	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
+	out.sampler = EX_PASS(device->createSampler(sampler));
+
 	return out;
 }
 
-Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &pipes_) {
-	auto &pipes = pipes_.pipelines;
-
-	// Shadery uzywaj¹ 2 rodzajów deskryptorów:
-	// - jeden sta³y zawiraj¹cy macierze
-	// - drugi dynamiczny zawieraj¹cy teksturki
-	//
-	// Co klatkê dla ka¿dej teksturki muszê wygenerowaæ descriptor_set i podpi¹æ go ?
-	// DLa ka¿dego typu teksturki, nie dla ka¿dego elementu
-
-	// Mo¿e zrobiæ max 128 ró¿nych materia³ów, i trzymaæ je w tablicach?
-	// Ale, renderer2d mo¿e wymagaæ
-
-	// Po prostu jak bêdzie du¿o tekstur to bêdzie wolne?
-	// Poza tym mogê zrobiæ HashMap<PVTexture, descriptor> ?
-
-	// Mo¿e lepiej by by³o lepiej przerobiæ trochê
+Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &ctx) {
+	auto &pipes = ctx.pipelines;
 
 	uint vertex_pos = 0;
 	uint index_pos = 0;
@@ -398,14 +343,22 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &pipes_) {
 		}
 	}
 
+	// TODO: scissors support
+
 	// TODO: mo¿e instrukcja BindVertexBuffers/IndexBuffers z pointerem do pamiêci CPU?
 	// automatycznie by by³y grupowane do buforów i uploadowane?
 
 	DescriptorPoolSetup pool_setup;
-	pool_setup.sizes[VDescriptorType::storage_buffer] = 16;
+	pool_setup.sizes[VDescriptorType::storage_buffer] = 1;
+	pool_setup.sizes[VDescriptorType::combined_image_sampler] = num_elements;
+	pool_setup.max_sets = 1 + num_elements;
+
 	auto descriptor_pool = EX_PASS(device->createDescriptorPool(pool_setup));
-	auto descr = EX_PASS(descriptor_pool->alloc(pipes[0]->pipelineLayout(), 0));
-	descr.update({{.binding = 0, .type = VDescriptorType::storage_buffer, .data = matrix_buffer}});
+	auto descr0 = EX_PASS(descriptor_pool->alloc(pipes[0]->pipelineLayout(), 0));
+	descr0.update({{.binding = 0, .type = VDescriptorType::storage_buffer, .data = matrix_buffer}});
+
+	// TODO: optimize this
+	vector<DescriptorSet> tex_descrs(num_elements);
 
 	// TODO: render_pass shouldn't be set up here, but outside
 	// we just have to make sure that pipeline is compatible with it
@@ -414,7 +367,8 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &pipes_) {
 	rgraph << CmdBeginRenderPass{
 		pipes[0]->renderPass(), none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
 
-	rgraph << CmdBindDescriptorSet{.index = 0, .set = &descr};
+	rgraph << CmdBindDescriptorSet{.index = 0, .set = &descr0};
+
 	vertex_pos = 0, index_pos = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
 		uint sizes[3] = {uint(chunk.positions.size() * sizeof(chunk.positions[0])),
@@ -429,6 +383,15 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &pipes_) {
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
+			tex_descrs[num_elements] =
+				EX_PASS(descriptor_pool->alloc(pipes[0]->pipelineLayout(), 1));
+			auto tex = element.texture ? element.texture : ctx.white;
+			tex_descrs[num_elements].update({{.binding = 0,
+											  .type = VDescriptorType::combined_image_sampler,
+											  .data = pair{ctx.sampler, tex}}});
+			// TODO: put update into command?
+			rgraph << CmdBindDescriptorSet{.index = 1, .set = &tex_descrs[num_elements]};
+
 			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
 						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
 			rgraph << CmdBindPipeline{pipes[pipe_id]};
@@ -446,70 +409,6 @@ Ex<void> Renderer2D::render(VDeviceRef device, const VulkanPipelines &pipes_) {
 	rgraph.flushCommands();
 
 	return {};
-}
-
-void Renderer2D::render() {
-	glViewport(m_viewport.x(), m_viewport.y(), m_viewport.width(), m_viewport.height());
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(0);
-	glDisable(GL_SCISSOR_TEST);
-
-	int prev_scissor_rect = -1;
-	auto bm = BlendingMode::normal;
-
-	for(const auto &chunk : m_chunks) {
-		auto pbuffer = GlBuffer::make(BufferType::array, chunk.positions);
-		auto cbuffer = GlBuffer::make(BufferType::array, chunk.colors);
-		auto tbuffer = GlBuffer::make(BufferType::array, chunk.tex_coords);
-		auto ibuffer = GlBuffer::make(BufferType::element_array, chunk.indices);
-
-		auto vao = GlVertexArray::make();
-		vao->set({move(pbuffer), move(cbuffer), move(tbuffer)},
-				 defaultVertexAttribs<float2, IColor, float2>(), move(ibuffer), IndexType::uint32);
-
-		for(const auto &element : chunk.elements) {
-			auto &program = (element.texture ? m_tex_program : m_flat_program);
-			program["proj_view_matrix"] = element.matrix;
-
-			if(element.texture)
-				element.texture->bind();
-			if(bm != element.blending_mode) {
-				bm = element.blending_mode;
-				if(bm == BlendingMode::normal)
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				else if(bm == BlendingMode::additive)
-					glBlendFunc(GL_ONE, GL_ONE);
-			}
-
-			if(element.scissor_rect_id != prev_scissor_rect) {
-				if(element.scissor_rect_id == -1)
-					glDisable(GL_SCISSOR_TEST);
-				else if(prev_scissor_rect == -1)
-					glEnable(GL_SCISSOR_TEST);
-
-				if(element.scissor_rect_id != -1) {
-					IRect rect = m_scissor_rects[element.scissor_rect_id];
-					int min_y = m_viewport.height() - rect.ey();
-					rect = {{rect.x(), max(0, min_y)}, {rect.ex(), min_y + rect.height()}};
-					glScissor(rect.x(), rect.y(), rect.width(), rect.height());
-				}
-
-				prev_scissor_rect = element.scissor_rect_id;
-			}
-
-			program->use();
-			vao->draw(element.primitive_type, element.num_indices, element.first_index);
-		}
-	}
-
-	glDisable(GL_SCISSOR_TEST);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	GlTexture::unbind();
-
-	clear();
 }
 
 vector<Pair<FRect, Matrix4>> Renderer2D::renderRects() const {

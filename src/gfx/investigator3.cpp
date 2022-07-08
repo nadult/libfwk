@@ -34,7 +34,8 @@ Investigator3::Investigator3(VisFunc vis_func, InvestigatorOpts flags, Config co
 	auto font = findDefaultSystemFont().get();
 	auto &gl_device = GlDevice::instance();
 	auto font_size = int(14 * gl_device.windowDpiScale());
-	m_font.emplace(move(FontFactory().makeFont(font.file_path, charset, font_size, false).get()));
+	FATAL("TODO: fixme");
+	//m_font.emplace(move(FontFactory().makeFont(font.file_path, charset, font_size, false).get()));
 
 	auto new_viewport = IRect(gl_device.windowSize());
 	Plane3F base_plane{{0, 1, 0}, {0, 1.5f, 0}};
@@ -150,7 +151,8 @@ void Investigator3::draw() {
 
 	m_font->draw(renderer_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
 
-	renderer_2d.render();
+	FATAL("TODO: fixme");
+	//renderer_2d.render();
 }
 
 bool Investigator3::mainLoop(GlDevice &device) {
