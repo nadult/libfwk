@@ -9,21 +9,26 @@
 
 namespace fwk {
 
-struct ImageSetup {
+struct VImageSetup {
+	VImageSetup(VkFormat format, int2 extent, int num_samples = 1,
+				VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled,
+				VImageLayout layout = VImageLayout::undefined)
+		: extent(extent), format(format), num_samples(num_samples), usage(usage), layout(layout) {}
+
+	int2 extent;
 	VkFormat format;
-	VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled;
-	VImageLayout layout = VImageLayout::undefined;
-	int num_samples = 1;
+	int num_samples;
+	VImageUsageFlags usage;
+	VImageLayout layout;
 };
 
 class VulkanImage : public VulkanObjectBase<VulkanImage> {
   public:
-	static Ex<PVImage> create(VDeviceRef, VkExtent2D, const ImageSetup &,
-							  VMemoryUsage = VMemoryUsage::device);
-	static Ex<PVImage> createExternal(VDeviceRef, VkImage, VkExtent2D, const ImageSetup &);
+	static Ex<PVImage> create(VDeviceRef, const VImageSetup &, VMemoryUsage = VMemoryUsage::device);
+	static Ex<PVImage> createExternal(VDeviceRef, VkImage, const VImageSetup &);
 
 	auto memoryBlock() { return m_memory_block; }
-	VkExtent2D extent() const { return m_extent; }
+	int2 extent() const { return m_extent; }
 	VkFormat format() const { return m_format; }
 	auto usage() const { return m_usage; }
 	int numSamples() const { return m_num_samples; }
@@ -31,12 +36,12 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
   private:
 	friend class VulkanDevice;
 	friend class VulkanRenderGraph;
-	VulkanImage(VkImage, VObjectId, VMemoryBlock, VkExtent2D, const ImageSetup &);
+	VulkanImage(VkImage, VObjectId, VMemoryBlock, const VImageSetup &);
 	~VulkanImage();
 
 	VMemoryBlock m_memory_block;
 	VkFormat m_format;
-	VkExtent2D m_extent;
+	int2 m_extent;
 	int m_num_samples;
 	VImageUsageFlags m_usage;
 	VImageLayout m_last_layout;
@@ -47,17 +52,17 @@ class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
   public:
 	static Ex<PVImageView> create(VDeviceRef, PVImage);
 
-	VkExtent2D extent() const { return m_extent; }
+	int2 extent() const { return m_extent; }
 	VkFormat format() const { return m_format; }
 	PVImage image() const { return m_image; }
 
   private:
 	friend class VulkanDevice;
-	VulkanImageView(VkImageView, VObjectId, PVImage, VkFormat, VkExtent2D);
+	VulkanImageView(VkImageView, VObjectId);
 	~VulkanImageView();
 
 	PVImage m_image;
-	VkExtent2D m_extent;
+	int2 m_extent;
 	VkFormat m_format;
 };
 }

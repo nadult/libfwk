@@ -9,9 +9,8 @@
 
 namespace fwk {
 
-VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id,
-									 vector<PVImageView> img_views, VkExtent2D extent)
-	: VulkanObjectBase(handle, id), m_image_views(move(img_views)), m_extent(extent) {}
+VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id)
+	: VulkanObjectBase(handle, id) {}
 
 VulkanFramebuffer::~VulkanFramebuffer() {
 	deferredHandleRelease<VkFramebuffer, vkDestroyFramebuffer>();
@@ -24,18 +23,20 @@ Ex<PVFramebuffer> VulkanFramebuffer::create(VDeviceRef device, vector<PVImageVie
 	auto attachments = transform(image_views, [](const auto &ptr) { return ptr.handle(); });
 	auto extent = image_views[0]->extent();
 
-	VkFramebufferCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	VkFramebufferCreateInfo ci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 	ci.renderPass = render_pass;
 	ci.attachmentCount = attachments.size();
 	ci.pAttachments = attachments.data();
-	ci.width = extent.width;
-	ci.height = extent.height;
+	ci.width = uint(extent.x);
+	ci.height = uint(extent.y);
 	ci.layers = 1;
 
 	VkFramebuffer handle;
 	if(vkCreateFramebuffer(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateFramebuffer failed");
-	return device->createObject(handle, move(image_views), extent);
+	auto out = device->createObject(handle);
+	out->m_image_views = move(image_views);
+	out->m_extent = extent;
+	return out;
 }
 }

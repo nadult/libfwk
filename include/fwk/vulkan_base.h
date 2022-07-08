@@ -60,19 +60,19 @@ DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel_buffer, stor
 			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer);
 using VBufferUsageFlags = EnumFlags<VBufferUsage>;
 
-DEFINE_ENUM(VImageUsage, transfer_src, transfer_dst, sampled, storage, color_attachment,
-			depth_stencil_attachment, transient_attachment, input_attachment);
+DEFINE_ENUM(VImageUsage, transfer_src, transfer_dst, sampled, storage, color_att, depth_stencil_att,
+			transient_att, input_att);
 using VImageUsageFlags = EnumFlags<VImageUsage>;
 
-DEFINE_ENUM(VImageLayout, undefined, general, color_attachment, depth_stencil_attachment,
-			depth_stencil_read_only, shader_read_only, transfer_src, transfer_dst, preinitialized);
+DEFINE_ENUM(VImageLayout, undefined, general, color_att, depth_stencil_att, depth_stencil_ro,
+			shader_ro, transfer_src, transfer_dst, preinitialized, present_src);
 
 DEFINE_ENUM(VShaderStage, vertex, tess_control, tess_eval, geometry, fragment, compute);
 using VShaderStages = EnumFlags<VShaderStage>;
 
 DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, storage_image,
 			uniform_texel_buffer, storage_texel_buffer, uniform_buffer, storage_buffer,
-			uniform_buffer_dynamic, storage_buffer_dynamic, input_attachment);
+			uniform_buffer_dynamic, storage_buffer_dynamic, input_att);
 
 DEFINE_ENUM(VPrimitiveTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
 			triangle_fan);
@@ -91,8 +91,6 @@ DEFINE_ENUM(VPresentMode, immediate, mailbox, fifo, fifo_relaxed);
 
 DEFINE_ENUM(VLoadOp, load, clear, dont_care, none);
 DEFINE_ENUM(VStoreOp, store, dont_care, none);
-DEFINE_ENUM(VLayout, undefined, general, color, depth_stencil, depth_stencil_ro, shader_ro,
-			transfer_src, transfer_dst, preinitialized, present_src);
 
 DEFINE_ENUM(VBlendFactor, zero, one, src_color, one_minus_src_color, dst_color, one_minus_dst_color,
 			src_alpha, one_minus_src_alpha, dst_alpha, one_minus_dst_alpha, constant_color,
@@ -147,7 +145,6 @@ inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
 inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
 inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
 inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
-inline auto toVk(VImageLayout layout) { return VkImageLayout(layout); }
 inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }
 inline auto toVk(VPresentMode mode) { return VkPresentModeKHR(mode); }
 inline auto toVk(VLoadOp op) {
@@ -156,8 +153,10 @@ inline auto toVk(VLoadOp op) {
 inline auto toVk(VStoreOp op) {
 	return op == VStoreOp::none ? VK_ATTACHMENT_STORE_OP_NONE_EXT : VkAttachmentStoreOp(op);
 }
-inline auto toVk(VLayout layout) {
-	return layout == VLayout::present_src ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VkImageLayout(layout);
+inline auto toVk(VImageLayout layout) {
+	if(layout == VImageLayout::present_src)
+		return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	return VkImageLayout(layout);
 }
 inline auto toVk(VBlendFactor factor) { return VkBlendFactor(factor); }
 inline auto toVk(VBlendOp op) { return VkBlendOp(op); }
@@ -179,36 +178,39 @@ struct VSamplerSetup {
 
 DEFINE_ENUM(VColorSyncStd, clear, clear_present, present);
 
+// TODO: move out of base
 struct VColorSync {
-	VColorSync(VLoadOp load, VStoreOp store, VLayout initial_layout, VLayout final_layout)
+	using Std = VColorSyncStd;
+	VColorSync(Std std)
+		: load_op(std == Std::present ? VLoadOp::load : VLoadOp::clear), store_op(VStoreOp::store),
+		  initial_layout(std == Std::present ? VImageLayout::color_att : VImageLayout::undefined),
+		  final_layout(std == Std::clear ? VImageLayout::color_att : VImageLayout::present_src) {}
+	VColorSync(VLoadOp load, VStoreOp store, VImageLayout initial_layout, VImageLayout final_layout)
 		: load_op(load), store_op(store), initial_layout(initial_layout),
 		  final_layout(final_layout) {}
-	VColorSync(VColorSyncStd std)
-		: load_op(std == VColorSyncStd::present ? VLoadOp::load : VLoadOp::clear),
-		  store_op(VStoreOp::store),
-		  initial_layout(std == VColorSyncStd::present ? VLayout::color : VLayout::undefined),
-		  final_layout(std == VColorSyncStd::clear ? VLayout::color : VLayout::present_src) {}
-	VColorSync() : VColorSync(VLoadOp::load, VStoreOp::store, VLayout::color, VLayout::color) {}
+	VColorSync()
+		: load_op(VLoadOp::load), store_op(VStoreOp::store),
+		  initial_layout(VImageLayout::color_att), final_layout(VImageLayout::color_att) {}
 
 	FWK_TIE_MEMBERS(load_op, store_op, initial_layout, final_layout);
 	FWK_TIED_COMPARES(VColorSync);
 
 	VLoadOp load_op;
 	VStoreOp store_op;
-	VLayout initial_layout;
-	VLayout final_layout;
+	VImageLayout initial_layout;
+	VImageLayout final_layout;
 };
 
 struct VDepthSync {
-	VDepthSync(VLoadOp load, VStoreOp store, VLayout initial_layout, VLayout final_layout,
+	VDepthSync(VLoadOp load, VStoreOp store, VImageLayout initial_layout, VImageLayout final_layout,
 			   VLoadOp stencil_load = VLoadOp::dont_care,
 			   VStoreOp stencil_store = VStoreOp::dont_care)
 		: load_op(load), store_op(store), stencil_load_op(stencil_load),
 		  stencil_store_op(stencil_store), initial_layout(initial_layout),
 		  final_layout(final_layout) {}
 	VDepthSync()
-		: VDepthSync(VLoadOp::load, VStoreOp::store, VLayout::depth_stencil, VLayout::depth_stencil,
-					 VLoadOp::dont_care, VStoreOp::dont_care) {}
+		: VDepthSync(VLoadOp::load, VStoreOp::store, VImageLayout::depth_stencil_att,
+					 VImageLayout::depth_stencil_att, VLoadOp::dont_care, VStoreOp::dont_care) {}
 
 	FWK_TIE_MEMBERS(load_op, store_op, stencil_load_op, stencil_store_op, initial_layout,
 					final_layout);
@@ -218,8 +220,8 @@ struct VDepthSync {
 	VStoreOp store_op;
 	VLoadOp stencil_load_op;
 	VStoreOp stencil_store_op;
-	VLayout initial_layout;
-	VLayout final_layout;
+	VImageLayout initial_layout;
+	VImageLayout final_layout;
 };
 
 struct VColorAttachment {
@@ -292,6 +294,8 @@ inline VkExtent2D toVkExtent(int2 extent) {
 	PASSERT(extent.x >= 0 && extent.y >= 0);
 	return {uint(extent.x), uint(extent.y)};
 }
+
+inline int2 fromVk(VkExtent2D extent) { return int2(extent.width, extent.height); }
 
 inline VkRect2D toVkRect(IRect rect) {
 	return VkRect2D{.offset = {rect.min().x, rect.min().y},

@@ -44,7 +44,9 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 
 	VkSwapchainKHR handle;
 	VkSwapchainCreateInfoKHR ci{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
-	VImageUsageFlags usage = VImageUsage::color_attachment;
+	VImageUsageFlags usage = VImageUsage::color_att;
+	auto layout = VImageLayout::color_att;
+
 	ci.surface = window->surfaceHandle();
 	ci.minImageCount = 2;
 	ci.imageFormat = surf_info.formats[0].format;
@@ -83,9 +85,8 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	vector<PVImageView> image_views;
 	image_views.reserve(num_images);
 	for(auto image_handle : images) {
-		ImageSetup setup{.format = ci.imageFormat, .num_samples = 1, .usage = usage};
-		auto image =
-			EX_PASS(VulkanImage::createExternal(device, image_handle, ci.imageExtent, setup));
+		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), 1, usage, layout);
+		auto image = EX_PASS(VulkanImage::createExternal(device, image_handle, setup));
 		auto view = EX_PASS(VulkanImageView::create(device, image));
 		image_views.emplace_back(view);
 	}

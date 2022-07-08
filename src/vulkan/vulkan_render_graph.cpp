@@ -307,8 +307,7 @@ static void transitionImageLayout(VkCommandBuffer cmd_buffer, VkImage image, VkF
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		dst_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-	} else if(old_layout == VImageLayout::transfer_dst &&
-			  new_layout == VImageLayout::shader_read_only) {
+	} else if(old_layout == VImageLayout::transfer_dst && new_layout == VImageLayout::shader_ro) {
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -330,10 +329,10 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopyImage &cmd) {
 	region.bufferRowLength = 0;
 	region.imageSubresource.layerCount = 1;
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageExtent = {dst_extent.width, dst_extent.height, 1};
+	region.imageExtent = {uint(dst_extent.x), uint(dst_extent.y), 1};
 
 	auto copy_layout = VImageLayout::transfer_dst;
-	auto dst_layout = cmd.dst_layout.orElse(VImageLayout::shader_read_only);
+	auto dst_layout = cmd.dst_layout.orElse(VImageLayout::shader_ro);
 	transitionImageLayout(ctx.cmd_buffer, cmd.dst, cmd.dst->format(), cmd.dst->m_last_layout,
 						  copy_layout);
 	vkCmdCopyBufferToImage(ctx.cmd_buffer, cmd.src, cmd.dst, toVk(copy_layout), 1, &region);
@@ -351,7 +350,7 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBeginRenderPass &cmd
 	if(cmd.render_area)
 		bi.renderArea = toVkRect(*cmd.render_area);
 	else
-		bi.renderArea.extent = framebuffer->extent();
+		bi.renderArea.extent = toVkExtent(framebuffer->extent());
 	bi.clearValueCount = cmd.clear_values.size();
 	bi.pClearValues = cmd.clear_values.data();
 	bi.framebuffer = framebuffer;

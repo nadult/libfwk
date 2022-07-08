@@ -125,7 +125,7 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	setup.shader_modules = shader_modules;
 	// TODO: maybe pass ColorAttachment directly?
 	setup.render_pass = EX_PASS(ctx.device->getRenderPass({{sc_image->format(), 1}}));
-	setup.viewport = {IRect(0, 0, extent.width, extent.height)};
+	setup.viewport = {IRect(extent)};
 	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,
 					VFrontFace::cw};
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
@@ -171,8 +171,11 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 					   .data = std::make_pair(ctx.sampler, ctx.font_image_view)}});
 	render_graph << CmdBindDescriptorSet{.index = 0, .set = &descr_set};*/
 
-	auto sc_format =
-		render_graph.swapChain()->imageViews()[0]->format(); // TODO: easier way to extract format
+	auto sc_format = render_graph.swapChainFormat();
+
+	// TODO: device mo¿e zbieraæ b³êdy wewn¹trz i w przypadku b³êdu zwróciæ niepoprawny (pusty)
+	// render pass? Ale to by powodowa³o sta³y overhead w przypadku ka¿dej funkcji, bo trzeba by
+	// sprawdzaæ czy wszystkie obiekty s¹ niepuste...
 	auto render_pass =
 		EX_PASS(ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}}));
 	// TODO: pipeline should keep render pass core only?
@@ -245,9 +248,8 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 }
 
 Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
-	auto vimage =
-		EX_PASS(VulkanImage::create(ctx.device, toVkExtent(image.size()),
-									{.format = VK_FORMAT_R8G8B8A8_SRGB}, VMemoryUsage::device));
+	auto vimage = EX_PASS(VulkanImage::create(ctx.device, {VK_FORMAT_R8G8B8A8_SRGB, image.size()},
+											  VMemoryUsage::device));
 	EXPECT(ctx.device->renderGraph() << CmdUploadImage(image, vimage));
 	return vimage;
 }

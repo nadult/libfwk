@@ -275,12 +275,7 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 	setup.blending.attachments = {{additive_blend}};
 	out.pipelines[3] = EX_PASS(VulkanPipeline::create(device, setup));
 
-	ImageSetup img_setup;
-	img_setup.format = VK_FORMAT_R8G8B8A8_UNORM;
-	img_setup.layout = VImageLayout::undefined;
-	img_setup.num_samples = 1;
-	img_setup.usage = VImageUsage::sampled | VImageUsage::transfer_dst;
-	auto white_image = EX_PASS(VulkanImage::create(device, {4, 4}, img_setup));
+	auto white_image = EX_PASS(VulkanImage::create(device, {VK_FORMAT_R8G8B8A8_UNORM, {4, 4}, 1}));
 	out.white = EX_PASS(VulkanImageView::create(device, white_image));
 
 	Image img_data({4, 4}, ColorId::white);

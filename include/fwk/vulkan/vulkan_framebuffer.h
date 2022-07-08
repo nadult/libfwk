@@ -13,15 +13,16 @@ class VulkanFramebuffer : public VulkanObjectBase<VulkanFramebuffer> {
   public:
 	static Ex<PVFramebuffer> create(VDeviceRef, vector<PVImageView>, PVRenderPass);
 
-	VkExtent2D extent() const { return m_extent; }
+	CSpan<PVImageView> imageViews() const { return m_image_views; }
+	int2 extent() const { return m_extent; }
 
   private:
 	friend class VulkanDevice;
-	VulkanFramebuffer(VkFramebuffer, VObjectId, vector<PVImageView>, VkExtent2D);
+	VulkanFramebuffer(VkFramebuffer, VObjectId);
 	~VulkanFramebuffer();
 
 	vector<PVImageView> m_image_views;
-	VkExtent2D m_extent;
+	int2 m_extent;
 };
 
 }
