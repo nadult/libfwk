@@ -17,8 +17,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "model_viewer", "model_viewe
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_window", "test_window.vcxproj", "{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_vulkan", "test_vulkan.vcxproj", "{C6576C2C-1F43-4129-9F60-F1845459C9D1}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,10 +39,6 @@ Global
 		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Debug|x64.Build.0 = Debug|x64
 		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Release|x64.ActiveCfg = Release|x64
 		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Release|x64.Build.0 = Release|x64
-		{C6576C2C-1F43-4129-9F60-F1845459C9D1}.Debug|x64.ActiveCfg = Debug|x64
-		{C6576C2C-1F43-4129-9F60-F1845459C9D1}.Debug|x64.Build.0 = Debug|x64
-		{C6576C2C-1F43-4129-9F60-F1845459C9D1}.Release|x64.ActiveCfg = Release|x64
-		{C6576C2C-1F43-4129-9F60-F1845459C9D1}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
