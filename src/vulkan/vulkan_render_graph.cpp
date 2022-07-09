@@ -119,10 +119,8 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 	m_image_index = image_index;
 
 	vkResetCommandBuffer(frame.command_buffer, 0);
-	VkCommandBufferBeginInfo bi{};
-	bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 	bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	bi.pInheritanceInfo = nullptr; // Optional
 	if(vkBeginCommandBuffer(frame.command_buffer, &bi) != VK_SUCCESS)
 		return ERROR("vkBeginCommandBuffer failed");
 
@@ -139,20 +137,17 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 	if(vkEndCommandBuffer(frame.command_buffer) != VK_SUCCESS)
 		return ERROR("vkEndCommandBuffer failed");
 
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
 	VkSemaphore waitSemaphores[] = {frame.image_available_sem};
+	VkSemaphore signalSemaphores[] = {frame.render_finished_sem};
 	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	VkCommandBuffer cmd_bufs[1] = {frame.command_buffer};
+
+	VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
-
-	VkCommandBuffer cmd_bufs[1] = {frame.command_buffer};
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = cmd_bufs;
-
-	VkSemaphore signalSemaphores[] = {frame.render_finished_sem};
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -162,12 +157,11 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.in_flight_fence) != VK_SUCCESS)
 		return ERROR("vkQueueSubmit failed");
 
-	VkPresentInfoKHR presentInfo{};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	VkSwapchainKHR swapChains[] = {m_swap_chain};
 
+	VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
-	VkSwapchainKHR swapChains[] = {m_swap_chain};
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &m_image_index;
@@ -179,6 +173,7 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 
 	// TODO: staging buffers destruction should be hooked to fence
 	m_staging_buffers.clear();
+
 	return {};
 }
 

@@ -214,6 +214,9 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	return {};
 }
 
+// Old test_window perf:
+// 2260 on AMD Vega   -> 2500
+//  880 on RTX 3050   -> 1250
 void updateFPS(VulkanWindow &window) {
 	static double prev_time = getTime();
 	static int num_frames = 0;

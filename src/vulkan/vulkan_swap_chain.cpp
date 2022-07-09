@@ -50,8 +50,9 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	auto &phys_info = VulkanInstance::ref()->info(device->physId());
 
 	ci.surface = window->surfaceHandle();
-	ci.minImageCount =
-		min(surf_info.capabilities.minImageCount + 1, surf_info.capabilities.maxImageCount);
+	ci.minImageCount = surf_info.capabilities.minImageCount;
+	if(ci.minImageCount == 1)
+		ci.minImageCount = min(ci.minImageCount + 1, surf_info.capabilities.maxImageCount);
 	ci.imageFormat = surf_info.formats[0].format;
 	ci.imageColorSpace = surf_info.formats[0].colorSpace;
 	ci.imageExtent = toVkExtent(window->extent());
