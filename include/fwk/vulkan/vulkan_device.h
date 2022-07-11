@@ -50,6 +50,7 @@ class VulkanDevice {
 
   public:
 	Ex<PVRenderPass> getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
+	Ex<PVPipelineLayout> getPipelineLayout(CSpan<VDSLId>);
 	Ex<PVSampler> createSampler(const VSamplerSetup &);
 
 	// TODO: remove unnecessary layers

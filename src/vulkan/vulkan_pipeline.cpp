@@ -232,12 +232,7 @@ VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	deferredHandleRelease<VkPipelineLayout, vkDestroyPipelineLayout>();
 }
 
-VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
-							   PVPipelineLayout lt)
-	: VulkanObjectBase(handle, id), m_render_pass(rp), m_pipeline_layout(lt) {}
-VulkanPipeline::~VulkanPipeline() { deferredHandleRelease<VkPipeline, vkDestroyPipeline>(); }
-
-Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device, vector<VDSLId> dsls) {
+Ex<PVPipelineLayout> VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> dsls) {
 	VkPipelineLayoutCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
@@ -253,6 +248,11 @@ Ex<PVPipelineLayout> VulkanPipeline::createLayout(VDeviceRef device, vector<VDSL
 		return ERROR("vkCreatePipelineLayout failed");
 	return device->createObject(handle, move(dsls));
 }
+
+VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
+							   PVPipelineLayout lt)
+	: VulkanObjectBase(handle, id), m_render_pass(rp), m_layout(lt) {}
+VulkanPipeline::~VulkanPipeline() { deferredHandleRelease<VkPipeline, vkDestroyPipeline>(); }
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	DASSERT(setup.render_pass);
@@ -271,7 +271,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	dsls.reserve(descr_sets.size());
 	for(auto bindings : descr_sets)
 		dsls.emplace_back(EX_PASS(device->getDSL(bindings)));
-	auto pipeline_layout = EX_PASS(createLayout(device, move(dsls)));
+	auto pipeline_layout = EX_PASS(device->getPipelineLayout(dsls));
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
 	for(int i : intRange(setup.shader_modules)) {

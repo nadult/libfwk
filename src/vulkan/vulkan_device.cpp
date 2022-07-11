@@ -51,6 +51,19 @@ struct HashedRenderPass {
 	u32 hash_value;
 };
 
+struct HashedPipelineLayout {
+	HashedPipelineLayout(CSpan<VDSLId> dsls, Maybe<u32> hash_value)
+		: dsls(dsls), hash_value(hash_value.orElse(fwk::hash<u32>(dsls))) {}
+
+	u32 hash() const { return hash_value; }
+	bool operator==(const HashedPipelineLayout &rhs) const {
+		return hash_value == rhs.hash_value && dsls == rhs.dsls;
+	}
+
+	CSpan<VDSLId> dsls;
+	u32 hash_value;
+};
+
 struct VulkanDevice::ObjectPools {
 	// TODO: trim empty unused pools from time to time we can't move them around, but we can free the pool and
 	// leave nullptr in pool array. Maybe just delete pool data every time when it's usage_bits are empty?
@@ -67,7 +80,9 @@ struct VulkanDevice::ObjectPools {
 	};
 
 	VkPipelineCache pipeline_cache = nullptr;
+
 	HashMap<HashedRenderPass, PVRenderPass> hashed_render_passes;
+	HashMap<HashedPipelineLayout, PVPipelineLayout> hashed_pipeline_layouts;
 
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
@@ -156,6 +171,7 @@ VulkanDevice::~VulkanDevice() {
 	m_descriptors.reset();
 	m_render_graph.reset();
 	m_objects->hashed_render_passes.clear();
+	m_objects->hashed_pipeline_layouts.clear();
 
 #ifndef NDEBUG
 	bool errors = false;
@@ -231,6 +247,19 @@ Ex<PVRenderPass> VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
 	auto pointer = EX_PASS(VulkanRenderPass::create(ref(), colors, depth));
 	auto depth_ptr = pointer->depth() ? &*pointer->depth() : nullptr;
 	hash_map.emplace(HashedRenderPass(pointer->colors(), depth_ptr, key.hash_value), pointer);
+	return pointer;
+}
+
+Ex<PVPipelineLayout> VulkanDevice::getPipelineLayout(CSpan<VDSLId> dsls) {
+	HashedPipelineLayout key(dsls, none);
+	auto &hash_map = m_objects->hashed_pipeline_layouts;
+	auto it = hash_map.find(key);
+	if(it != hash_map.end())
+		return it->value;
+
+	auto pointer = EX_PASS(VulkanPipelineLayout::create(ref(), dsls));
+	hash_map.emplace(HashedPipelineLayout(pointer->descriptorSetLayouts(), key.hash_value),
+					 pointer);
 	return pointer;
 }
 

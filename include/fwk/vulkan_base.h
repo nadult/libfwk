@@ -49,8 +49,8 @@ struct VulkanVersion {
 	int major, minor, patch;
 };
 
-DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, framebuffer, image,
-			image_view, pipeline, pipeline_layout, render_pass, sampler, shader_module, swap_chain);
+DEFINE_ENUM(VTypeId, buffer, buffer_view, framebuffer, image, image_view, pipeline, pipeline_layout,
+			render_pass, sampler, shader_module, swap_chain);
 
 // device: fastest memory with device_local (always available)
 // host: fastest memory with host_visible (always available)

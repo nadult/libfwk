@@ -266,7 +266,7 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindVertexBuffers &c
 }
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipeline &cmd) {
 	vkCmdBindPipeline(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.pipeline);
-	m_last_pipeline_layout = cmd.pipeline->pipelineLayout();
+	m_last_pipeline_layout = cmd.pipeline->layout();
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipelineLayout &cmd) {

@@ -351,8 +351,8 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 	// TODO: passing weak pointers to commands
 
 	auto &rgraph = device->renderGraph();
-	auto dsls = pipes[0]->pipelineLayout()->descriptorSetLayouts();
-	rgraph << CmdBindPipelineLayout{pipes[0]->pipelineLayout()};
+	auto dsls = pipes[0]->layout()->descriptorSetLayouts();
+	rgraph << CmdBindPipelineLayout{pipes[0]->layout()};
 	auto descr0 = device->acquireSet(dsls[0]);
 	descr0.assigner()(0, dc.matrix_buffer);
 	rgraph << CmdBindDescriptorSet{0, descr0.handle};

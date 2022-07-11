@@ -187,6 +187,7 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
   public:
 	const auto &descriptorSetLayouts() const { return m_dsls; }
+	static Ex<PVPipelineLayout> create(VDeviceRef, vector<VDSLId>);
 
   private:
 	friend class VulkanDevice;
@@ -238,7 +239,7 @@ struct BufferRange {
 	u32 offset = 0, size = 0;
 };
 
-// DescriptorSets can only be used during the same frame during which they wer acquired
+// DescriptorSets can only be used during the same frame during which they were acquired
 struct VDescriptorSet {
 	VDescriptorSet(VkDevice device, VkDescriptorSet handle)
 		: device_handle(device), handle(handle) {}
@@ -292,11 +293,10 @@ class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
 
 class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
   public:
-	static Ex<PVPipelineLayout> createLayout(VDeviceRef, vector<VDSLId>);
 	static Ex<PVPipeline> create(VDeviceRef, VPipelineSetup);
 
 	PVRenderPass renderPass() const { return m_render_pass; }
-	PVPipelineLayout pipelineLayout() const { return m_pipeline_layout; }
+	PVPipelineLayout layout() const { return m_layout; }
 
   private:
 	friend class VulkanDevice;
@@ -304,6 +304,6 @@ class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
 	~VulkanPipeline();
 
 	PVRenderPass m_render_pass;
-	PVPipelineLayout m_pipeline_layout;
+	PVPipelineLayout m_layout;
 };
 }
