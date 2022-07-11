@@ -141,7 +141,6 @@ struct VulkanContext {
 	PVImage font_image;
 	PVImageView font_image_view;
 	PVSampler sampler;
-	array<DescriptorSet, 2> descr_sets;
 };
 
 Ex<void> createPipeline(VulkanContext &ctx) {
@@ -191,13 +190,6 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	//auto ubuffer = EX_PASS(createUniformBuffer(ctx));
 	//EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
-	/*auto &descr_set = ctx.descr_sets[render_graph.swapFrameIndex()];
-	descr_set.update({{.type = VDescriptorType::uniform_buffer, .binding = 0, .data = ubuffer},
-					  {.type = VDescriptorType::combined_image_sampler,
-					   .binding = 1,
-					   .data = std::make_pair(ctx.sampler, ctx.font_image_view)}});
-	render_graph << CmdBindDescriptorSet{.index = 0, .set = &descr_set};*/
-
 	auto sc_format = render_graph.swapChainFormat();
 
 	// TODO: device mo¿e zbieraæ b³êdy wewn¹trz i w przypadku b³êdu zwróciæ niepoprawny (pusty)
@@ -242,8 +234,8 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 }
 
 // Old test_window perf:
-// 2260 on AMD Vega   -> 2500
-//  880 on RTX 3050   -> 1250
+// 2260 on AMD Vega   -> 2500 -> 2550
+//  880 on RTX 3050   -> 1250 -> 1270
 void updateFPS(VulkanWindow &window) {
 	static double prev_time = getTime();
 	static int num_frames = 0;
@@ -322,13 +314,6 @@ Ex<int> exMain() {
 	ctx.font_image_view = EX_PASS(VulkanImageView::create(ctx.device, ctx.font_image));
 	ctx.sampler = EX_PASS(ctx.device->createSampler({}));
 
-	DescriptorPoolSetup pool_setup;
-	pool_setup.sizes[VDescriptorType::uniform_buffer] = 2;
-	pool_setup.sizes[VDescriptorType::combined_image_sampler] = 2;
-	pool_setup.max_sets = 2;
-	auto pool = EX_PASS(ctx.device->createDescriptorPool(pool_setup));
-	for(auto &set : ctx.descr_sets)
-		set = EX_PASS(pool->alloc(ctx.pipeline->pipelineLayout(), 0));
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;
 }

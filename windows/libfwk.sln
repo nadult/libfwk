@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "model_viewer", "model_viewe
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_window", "test_window.vcxproj", "{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_stuff", "test_stuff.vcxproj", "{10129294-A243-402E-9A51-48431B3B477C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -39,6 +41,10 @@ Global
 		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Debug|x64.Build.0 = Debug|x64
 		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Release|x64.ActiveCfg = Release|x64
 		{8B9F7C8D-AFB6-4717-83C7-CDFA32AB12DA}.Release|x64.Build.0 = Release|x64
+		{10129294-A243-402E-9A51-48431B3B477C}.Debug|x64.ActiveCfg = Debug|x64
+		{10129294-A243-402E-9A51-48431B3B477C}.Debug|x64.Build.0 = Debug|x64
+		{10129294-A243-402E-9A51-48431B3B477C}.Release|x64.ActiveCfg = Release|x64
+		{10129294-A243-402E-9A51-48431B3B477C}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

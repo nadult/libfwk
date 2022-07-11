@@ -52,9 +52,6 @@ class Renderer2D : public MatrixStack {
 
 	struct DrawCall {
 		PVBuffer vbuffer, ibuffer, matrix_buffer;
-		PVDescriptorPool descr_pool;
-		DescriptorSet descr0; // TODO: this is shit
-		vector<DescriptorSet> tex_descrs;
 	};
 
 	Ex<DrawCall> genDrawCall(VDeviceRef, const VulkanPipelines &);

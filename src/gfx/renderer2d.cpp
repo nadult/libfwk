@@ -339,18 +339,6 @@ Ex<Renderer2D::DrawCall> Renderer2D::genDrawCall(VDeviceRef device, const Vulkan
 	// TODO: mo¿e instrukcja BindVertexBuffers/IndexBuffers z pointerem do pamiêci CPU?
 	// automatycznie by by³y grupowane do buforów i uploadowane?
 
-	DescriptorPoolSetup pool_setup;
-	pool_setup.sizes[VDescriptorType::storage_buffer] = 1;
-	pool_setup.sizes[VDescriptorType::combined_image_sampler] = num_elements;
-	pool_setup.max_sets = 1 + num_elements;
-
-	dc.descr_pool = EX_PASS(device->createDescriptorPool(pool_setup));
-	dc.descr0 = EX_PASS(dc.descr_pool->alloc(pipes[0]->pipelineLayout(), 0));
-	dc.descr0.update(
-		{{.binding = 0, .type = VDescriptorType::storage_buffer, .data = dc.matrix_buffer}});
-
-	// TODO: optimize this
-	dc.tex_descrs.resize(num_elements);
 	return dc;
 }
 
@@ -363,7 +351,11 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 	// TODO: passing weak pointers to commands
 
 	auto &rgraph = device->renderGraph();
-	rgraph << CmdBindDescriptorSet{.index = 0, .set = &dc.descr0};
+	auto dsls = pipes[0]->pipelineLayout()->descriptorSetLayouts();
+	rgraph << CmdBindPipelineLayout{pipes[0]->pipelineLayout()};
+	auto descr0 = device->acquireSet(dsls[0]);
+	descr0.assigner()(0, dc.matrix_buffer);
+	rgraph << CmdBindDescriptorSet{0, descr0.handle};
 	PVImageView prev_tex;
 
 	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
@@ -380,16 +372,13 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
+
 			auto tex = element.texture ? element.texture : ctx.white;
 			if(tex != prev_tex) {
-				dc.tex_descrs[num_elements] =
-					EX_PASS(dc.descr_pool->alloc(pipes[0]->pipelineLayout(), 1));
-				dc.tex_descrs[num_elements].update(
-					{{.binding = 0,
-					  .type = VDescriptorType::combined_image_sampler,
-					  .data = pair{ctx.sampler, tex}}});
+				auto descr1 = device->acquireSet(dsls[1]);
+				descr1.assigner()(0, ctx.sampler, tex);
 				// TODO: put update into command?
-				rgraph << CmdBindDescriptorSet{.index = 1, .set = &dc.tex_descrs[num_elements]};
+				rgraph << CmdBindDescriptorSet{.index = 1, .set = descr1.handle};
 				prev_tex = tex;
 			}
 

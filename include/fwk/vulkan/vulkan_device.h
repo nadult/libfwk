@@ -11,8 +11,6 @@
 
 namespace fwk {
 
-struct DescriptorPoolSetup;
-
 struct VulkanQueueSetup {
 	VQueueFamilyId family_id;
 	int count;
@@ -52,9 +50,13 @@ class VulkanDevice {
 
   public:
 	Ex<PVRenderPass> getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
-	Ex<PVDescriptorSetLayout> getDSL(CSpan<DescriptorBindingInfo>);
 	Ex<PVSampler> createSampler(const VSamplerSetup &);
-	Ex<PVDescriptorPool> createDescriptorPool(const DescriptorPoolSetup &);
+
+	// TODO: remove unnecessary layers
+	Ex<VDSLId> getDSL(CSpan<DescriptorBindingInfo>);
+	CSpan<DescriptorBindingInfo> bindings(VDSLId);
+	VDescriptorSet acquireSet(VDSLId);
+	VkDescriptorSetLayout handle(VDSLId);
 
 	template <class THandle, class... Args>
 	VPtr<THandle> createObject(THandle handle, Args &&...args) {
@@ -64,7 +66,6 @@ class VulkanDevice {
 		return {object};
 	}
 
-	static constexpr int num_swap_frames = 2;
 	using ReleaseFunc = void (*)(void *param0, void *param1, VkDevice);
 	void deferredRelease(void *param0, void *param1, ReleaseFunc);
 	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
@@ -87,6 +88,7 @@ class VulkanDevice {
 	void releaseObjects(int swap_frame_index);
 	struct ObjectPools;
 
+	Dynamic<VulkanDescriptorManager> m_descriptors;
 	Dynamic<ObjectPools> m_objects;
 	Dynamic<VulkanRenderGraph> m_render_graph;
 	Dynamic<VulkanMemoryManager> m_memory;

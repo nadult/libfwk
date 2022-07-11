@@ -7,8 +7,6 @@
 
 // UpperCaseName; vulkan handle name; VTypeId enum member name
 CASE_TYPE(Buffer, VkBuffer, buffer)
-CASE_TYPE(DescriptorPool, VkDescriptorPool, descriptor_pool)
-CASE_TYPE(DescriptorSetLayout, VkDescriptorSetLayout, descriptor_set_layout)
 CASE_TYPE(Framebuffer, VkFramebuffer, framebuffer)
 CASE_TYPE(Image, VkImage, image)
 CASE_TYPE(ImageView, VkImageView, image_view)

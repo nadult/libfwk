@@ -169,10 +169,11 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 
 	if(vkQueuePresentKHR(presentQueue, &presentInfo) != VK_SUCCESS)
 		return ERROR("vkQueuePresentKHR failed");
-	m_frame_index = (m_frame_index + 1) % num_swap_frames;
+	m_frame_index = (m_frame_index + 1) % VulkanLimits::num_swap_frames;
 
 	// TODO: staging buffers destruction should be hooked to fence
 	m_staging_buffers.clear();
+	m_last_pipeline_layout = nullptr;
 
 	return {};
 }
@@ -242,9 +243,9 @@ void VulkanRenderGraph::flushCommands() {
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindDescriptorSet &cmd) {
-	VkDescriptorSet handle = cmd.set->handle;
-	vkCmdBindDescriptorSets(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.set->layout,
-							cmd.set->layout_index, 1, &handle, 0, nullptr);
+	DASSERT(m_last_pipeline_layout);
+	vkCmdBindDescriptorSets(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_last_pipeline_layout,
+							cmd.index, 1, &cmd.set, 0, nullptr);
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindIndexBuffer &cmd) {
@@ -265,6 +266,11 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindVertexBuffers &c
 }
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipeline &cmd) {
 	vkCmdBindPipeline(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.pipeline);
+	m_last_pipeline_layout = cmd.pipeline->pipelineLayout();
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipelineLayout &cmd) {
+	m_last_pipeline_layout = cmd.layout;
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDraw &cmd) {

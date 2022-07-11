@@ -14,12 +14,17 @@
 
 namespace fwk {
 
-DEFINE_ENUM(VTag, cmd, device, window, physical_device, queue_family);
+DEFINE_ENUM(VTag, cmd, ds, dsl, device, window, physical_device, queue_family);
 
 struct VulkanLimits {
 	static constexpr int max_color_attachments = 8;
 	static constexpr int max_descr_sets = 32;
 	static constexpr int max_descr_bindings = 1024 * 1024;
+
+	static constexpr int max_descr_set_layouts = 32 * 1024;
+	static constexpr int max_descr_sets_per_layout = 64 * 1024;
+
+	static constexpr int num_swap_frames = 2;
 };
 
 using VDeviceId = TagId<VTag::device, u8>;
@@ -27,6 +32,12 @@ using VWindowId = TagId<VTag::window, u8>;
 using VPhysicalDeviceId = TagId<VTag::physical_device, u8>;
 using VQueueFamilyId = TagId<VTag::queue_family, u8>;
 using VCommandId = TagId<VTag::cmd, u32>;
+
+using VDescriptorSetLayoutId = TagId<VTag::dsl, u16>;
+using VDescriptorSetId = TagId<VTag::ds, u32>;
+
+using VDSLId = VDescriptorSetLayoutId;
+using VDSId = VDescriptorSetId;
 
 class VObjectId;
 
@@ -38,9 +49,8 @@ struct VulkanVersion {
 	int major, minor, patch;
 };
 
-DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, descriptor_pool,
-			descriptor_set_layout, fence, framebuffer, image, image_view, pipeline, pipeline_layout,
-			render_pass, sampler, semaphore, shader_module, swap_chain);
+DEFINE_ENUM(VTypeId, buffer, buffer_view, command_pool, command_buffer, framebuffer, image,
+			image_view, pipeline, pipeline_layout, render_pass, sampler, shader_module, swap_chain);
 
 // device: fastest memory with device_local (always available)
 // host: fastest memory with host_visible (always available)
@@ -79,6 +89,7 @@ using VShaderStages = EnumFlags<VShaderStage>;
 DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, storage_image,
 			uniform_texel_buffer, storage_texel_buffer, uniform_buffer, storage_buffer,
 			uniform_buffer_dynamic, storage_buffer_dynamic, input_att);
+using VDescriptorTypes = EnumFlags<VDescriptorType>;
 
 DEFINE_ENUM(VPrimitiveTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
 			triangle_fan);
@@ -259,6 +270,7 @@ class VulkanInstance;
 class VulkanWindow;
 class VulkanRenderGraph;
 class VulkanMemoryManager;
+class VulkanDescriptorManager;
 struct VulkanPhysicalDeviceInfo;
 
 // TODO: PVInstance, PVDevice? PV sucks, but what should I use instead ? VBufferPtr ?
@@ -266,7 +278,9 @@ class VInstanceRef;
 class VDeviceRef;
 class VWindowRef;
 
-struct DescriptorBindingInfo;
+struct VDescriptorSet;
+
+struct DescriptorBindingInfo; // TODO: name
 struct VColorAttachment;
 struct VDepthAttachment;
 

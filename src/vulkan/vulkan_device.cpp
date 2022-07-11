@@ -3,6 +3,7 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 
+#include "fwk/vulkan/vulkan_descriptor_manager.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_render_graph.h"
@@ -31,20 +32,6 @@ static constexpr int object_pool_size_log2 = 5;
 
 template <class T> struct PoolData {
 	std::aligned_storage_t<sizeof(T), alignof(T)> objects[object_pool_size];
-};
-
-struct HashedDSL {
-	HashedDSL(CSpan<DescriptorBindingInfo> bindings, Maybe<u32> hash_value)
-		: bindings(bindings),
-		  hash_value(hash_value.orElse(DescriptorBindingInfo::hashIgnoreSet(bindings))) {}
-
-	u32 hash() const { return hash_value; }
-	bool operator==(const HashedDSL &rhs) const {
-		return hash_value == rhs.hash_value && bindings == rhs.bindings;
-	}
-
-	CSpan<DescriptorBindingInfo> bindings;
-	u32 hash_value;
 };
 
 struct HashedRenderPass {
@@ -80,12 +67,11 @@ struct VulkanDevice::ObjectPools {
 	};
 
 	VkPipelineCache pipeline_cache = nullptr;
-	HashMap<HashedDSL, PVDescriptorSetLayout> hashed_dsls;
 	HashMap<HashedRenderPass, PVRenderPass> hashed_render_passes;
 
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
-	array<vector<DeferredRelease>, num_swap_frames> to_release;
+	array<vector<DeferredRelease>, VulkanLimits::num_swap_frames> to_release;
 };
 
 // -------------------------------------------------------------------------------------------
@@ -157,6 +143,7 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 	if(vkCreatePipelineCache(m_handle, &pip_ci, nullptr, &m_objects->pipeline_cache) != VK_SUCCESS)
 		return ERROR("vkCreatePipelineCache failed");
 
+	m_descriptors.emplace(m_handle);
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
 	return {};
 }
@@ -166,8 +153,8 @@ VulkanDevice::~VulkanDevice() {
 		vkDestroyPipelineCache(m_handle, m_objects->pipeline_cache, nullptr);
 		vkDeviceWaitIdle(m_handle);
 	}
+	m_descriptors.reset();
 	m_render_graph.reset();
-	m_objects->hashed_dsls.clear();
 	m_objects->hashed_render_passes.clear();
 
 #ifndef NDEBUG
@@ -197,7 +184,7 @@ VulkanDevice::~VulkanDevice() {
 	m_memory.reset();
 
 	if(m_handle) {
-		for(int i : intRange(num_swap_frames))
+		for(int i : intRange(VulkanLimits::num_swap_frames))
 			releaseObjects(i);
 		g_vk_storage.device_handles[m_id] = nullptr;
 		vkDestroyDevice(m_handle, nullptr);
@@ -215,12 +202,14 @@ Ex<void> VulkanDevice::beginFrame() {
 	EXPECT(m_render_graph->beginFrame());
 	m_swap_frame_index = m_render_graph->swapFrameIndex();
 	m_memory->beginFrame();
+	m_descriptors->beginFrame(m_swap_frame_index);
 	releaseObjects(m_swap_frame_index);
 	return {};
 }
 
 Ex<void> VulkanDevice::finishFrame() {
 	DASSERT(m_render_graph);
+	m_descriptors->finishFrame();
 	m_memory->finishFrame();
 	EXPECT(m_render_graph->finishFrame());
 	return {};
@@ -245,34 +234,20 @@ Ex<PVRenderPass> VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
 	return pointer;
 }
 
-Ex<PVDescriptorSetLayout> VulkanDevice::getDSL(CSpan<DescriptorBindingInfo> bindings) {
-	HashedDSL key(bindings, none);
-	auto &hash_map = m_objects->hashed_dsls;
-	auto it = hash_map.find(key);
-	if(it != hash_map.end())
-		return it->value;
-
-	auto vk_bindings = transform(bindings, [](DescriptorBindingInfo binding) {
-		VkDescriptorSetLayoutBinding lb{};
-		lb.binding = binding.binding();
-		lb.descriptorType = toVk(binding.type());
-		lb.descriptorCount = binding.count();
-		lb.stageFlags = toVk(binding.stages());
-		return lb;
-	});
-
-	VkDescriptorSetLayoutCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-	ci.pBindings = vk_bindings.data();
-	ci.bindingCount = vk_bindings.size();
-
-	VkDescriptorSetLayout handle;
-	if(vkCreateDescriptorSetLayout(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateDescriptorSetLayout failed");
-
-	auto pointer = createObject(handle, bindings);
-	hash_map.emplace({pointer->bindings(), key.hash_value}, pointer);
-	return pointer;
+Ex<VDSLId> VulkanDevice::getDSL(CSpan<DescriptorBindingInfo> bindings) {
+	return m_descriptors->getLayout(bindings);
 }
+
+CSpan<DescriptorBindingInfo> VulkanDevice::bindings(VDSLId dsl_id) {
+	return m_descriptors->bindings(dsl_id);
+}
+
+VDescriptorSet VulkanDevice::acquireSet(VDSLId dsl_id) {
+	auto handle = m_descriptors->acquireSet(dsl_id);
+	return VDescriptorSet(m_handle, handle);
+}
+
+VkDescriptorSetLayout VulkanDevice::handle(VDSLId dsl_id) { return m_descriptors->handle(dsl_id); }
 
 Ex<PVSampler> VulkanDevice::createSampler(const VSamplerSetup &params) {
 	VkSamplerCreateInfo ci{};
@@ -289,26 +264,6 @@ Ex<PVSampler> VulkanDevice::createSampler(const VSamplerSetup &params) {
 	if(vkCreateSampler(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
 		return ERROR("vkCreateSampler failed");
 	return createObject(handle, params);
-}
-
-Ex<PVDescriptorPool> VulkanDevice::createDescriptorPool(const DescriptorPoolSetup &setup) {
-	array<VkDescriptorPoolSize, count<VDescriptorType>> sizes;
-	uint num_sizes = 0;
-	for(auto type : all<VDescriptorType>)
-		if(setup.sizes[type] > 0)
-			sizes[num_sizes++] = {.type = toVk(type), .descriptorCount = setup.sizes[type]};
-
-	VkDescriptorPoolCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	ci.poolSizeCount = num_sizes;
-	ci.pPoolSizes = sizes.data();
-	ci.maxSets = setup.max_sets;
-	ci.flags = 0; //TODO
-
-	VkDescriptorPool handle;
-	if(vkCreateDescriptorPool(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateDescriptorPool failed");
-	return createObject(handle, setup.max_sets);
 }
 
 using ReleaseFunc = void (*)(void *, void *, VkDevice);

@@ -190,10 +190,10 @@ class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
 
   private:
 	friend class VulkanDevice;
-	VulkanPipelineLayout(VkPipelineLayout, VObjectId, vector<PVDescriptorSetLayout>);
+	VulkanPipelineLayout(VkPipelineLayout, VObjectId, vector<VDSLId>);
 	~VulkanPipelineLayout();
 
-	vector<PVDescriptorSetLayout> m_dsls;
+	vector<VDSLId> m_dsls;
 };
 
 // TODO: consistent naming
@@ -234,59 +234,48 @@ struct DescriptorBindingInfo {
 	u64 value = 0;
 };
 
-// TODO: consistent naming
-struct DescriptorPoolSetup {
-	EnumMap<VDescriptorType, uint> sizes;
-	uint max_sets = 1;
+struct BufferRange {
+	u32 offset = 0, size = 0;
 };
 
-// TODO: would it be better to turn it into managed class?
-// TODO: consistent naming
-struct DescriptorSet {
-	DescriptorSet(PVPipelineLayout layout, uint layout_index, PVDescriptorPool pool,
-				  VkDescriptorSet handle)
-		: layout(layout), layout_index(layout_index), pool(pool), handle(handle) {}
-	DescriptorSet() {}
+// DescriptorSets can only be used during the same frame during which they wer acquired
+struct VDescriptorSet {
+	VDescriptorSet(VkDevice device, VkDescriptorSet handle)
+		: device_handle(device), handle(handle) {}
+	VDescriptorSet() {}
 
-	struct Assignment {
-		VDescriptorType type;
-		uint binding;
-		Variant<Pair<PVSampler, PVImageView>, PVBuffer> data;
+	struct Assigner {
+		static constexpr int max_assignments = 8;
+
+		Assigner(const Assigner &) = delete;
+		void operator=(Assigner &) = delete;
+		~Assigner() { performAssignment(); }
+
+		Assigner &operator()(int binding_index, PVBuffer, Maybe<BufferRange> = none);
+		Assigner &operator()(int binding_index, PVSampler, PVImageView);
+
+	  private:
+		Assigner(VkDevice device, VkDescriptorSet set) : device_handle(device), set_handle(set) {}
+		void performAssignment();
+		friend struct VDescriptorSet;
+
+		union AdditionalData {
+			VkDescriptorBufferInfo buffer_info;
+			VkDescriptorImageInfo image_info;
+		};
+
+		array<VkWriteDescriptorSet, max_assignments> assignments;
+		array<AdditionalData, max_assignments> additional_data;
+		VkDescriptorSet set_handle;
+		VkDevice device_handle;
+		int size = 0;
 	};
 
-	static constexpr int max_assignments = 16;
-	void update(CSpan<Assignment>);
+	Assigner assigner() { return {device_handle, handle}; }
 
-	PVPipelineLayout layout;
-	uint layout_index = 0;
-
-	PVDescriptorPool pool;
+	// TODO: encode device_id in set_id
+	VkDevice device_handle = nullptr;
 	VkDescriptorSet handle = nullptr;
-};
-
-class VulkanDescriptorSetLayout : public VulkanObjectBase<VulkanDescriptorSetLayout> {
-  public:
-	using BindingInfo = DescriptorBindingInfo;
-	CSpan<BindingInfo> bindings() const { return m_bindings; }
-
-  private:
-	friend class VulkanDevice;
-	VulkanDescriptorSetLayout(VkDescriptorSetLayout, VObjectId, vector<BindingInfo>);
-	~VulkanDescriptorSetLayout();
-
-	vector<BindingInfo> m_bindings;
-};
-
-class VulkanDescriptorPool : public VulkanObjectBase<VulkanDescriptorPool> {
-  public:
-	Ex<DescriptorSet> alloc(PVPipelineLayout, uint index);
-
-  private:
-	friend class VulkanDevice;
-	VulkanDescriptorPool(VkDescriptorPool, VObjectId, uint max_sets);
-	~VulkanDescriptorPool();
-
-	uint m_num_sets = 0, m_max_sets;
 };
 
 class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
@@ -303,7 +292,7 @@ class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
 
 class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
   public:
-	static Ex<PVPipelineLayout> createLayout(VDeviceRef, vector<PVDescriptorSetLayout>);
+	static Ex<PVPipelineLayout> createLayout(VDeviceRef, vector<VDSLId>);
 	static Ex<PVPipeline> create(VDeviceRef, VPipelineSetup);
 
 	PVRenderPass renderPass() const { return m_render_pass; }

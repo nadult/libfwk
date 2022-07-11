@@ -50,12 +50,15 @@ struct CmdBindPipeline {
 	PVPipeline pipeline;
 };
 
-struct DescriptorSet;
+struct CmdBindPipelineLayout {
+	PVPipelineLayout layout;
+};
+
+struct VDescriptorSet;
 
 struct CmdBindDescriptorSet {
 	uint index = 0;
-	// TODO: make full blown class
-	const DescriptorSet *set = nullptr;
+	VkDescriptorSet set = nullptr;
 };
 
 struct CmdBindVertexBuffers {
@@ -94,9 +97,9 @@ struct CmdBeginRenderPass {
 
 struct CmdEndRenderPass {};
 
-using Command =
-	Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers, CmdBindIndexBuffer,
-			CmdBindPipeline, CmdDraw, CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
+using Command = Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers,
+						CmdBindIndexBuffer, CmdBindPipeline, CmdBindPipelineLayout, CmdDraw,
+						CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
 
 class StagingBuffer {
   public:
@@ -115,9 +118,6 @@ class StagingBuffer {
 
 class VulkanRenderGraph {
   public:
-	// TODO: document difference between swap frame/image
-	static constexpr int num_swap_frames = 2;
-
 	~VulkanRenderGraph();
 
 	VkFormat swapChainFormat() const { return m_swap_chain_format; }
@@ -166,6 +166,7 @@ class VulkanRenderGraph {
 	void perform(FrameContext &, const CmdBindIndexBuffer &);
 	void perform(FrameContext &, const CmdBindVertexBuffers &);
 	void perform(FrameContext &, const CmdBindPipeline &);
+	void perform(FrameContext &, const CmdBindPipelineLayout &);
 	void perform(FrameContext &, const CmdDraw &);
 	void perform(FrameContext &, const CmdDrawIndexed &);
 	void perform(FrameContext &, const CmdCopy &);
@@ -186,9 +187,10 @@ class VulkanRenderGraph {
 	VulkanDevice &m_device;
 	VkDevice m_device_handle = nullptr;
 	PVSwapChain m_swap_chain;
-	FrameSync m_frames[num_swap_frames];
+	FrameSync m_frames[VulkanLimits::num_swap_frames];
 	vector<PVFramebuffer> m_framebuffers;
 	VkCommandPool m_command_pool = nullptr;
+	VkPipelineLayout m_last_pipeline_layout = nullptr;
 	VkFormat m_swap_chain_format = {};
 	uint m_frame_index = 0, m_image_index = 0;
 	Status m_status = Status::init;

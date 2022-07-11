@@ -696,6 +696,9 @@
     <ClInclude Include="..\include\fwk\gfx\shader_reflection.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_descriptor_manager.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1186,6 +1189,9 @@
     </ClCompile>
     <ClCompile Include="..\src\gfx\shader_reflection.cpp">
       <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_descriptor_manager.cpp">
+      <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
