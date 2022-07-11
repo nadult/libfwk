@@ -50,14 +50,11 @@ struct CmdBindPipeline {
 	PVPipeline pipeline;
 };
 
-struct CmdBindPipelineLayout {
-	PVPipelineLayout layout;
-};
-
 struct VDescriptorSet;
 
 struct CmdBindDescriptorSet {
 	uint index = 0;
+	VkPipelineLayout pipe_layout = nullptr;
 	VkDescriptorSet set = nullptr;
 };
 
@@ -97,9 +94,9 @@ struct CmdBeginRenderPass {
 
 struct CmdEndRenderPass {};
 
-using Command = Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers,
-						CmdBindIndexBuffer, CmdBindPipeline, CmdBindPipelineLayout, CmdDraw,
-						CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
+using Command =
+	Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers, CmdBindIndexBuffer,
+			CmdBindPipeline, CmdDraw, CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
 
 class StagingBuffer {
   public:
@@ -126,6 +123,12 @@ class VulkanRenderGraph {
 	// Commands are first enqueued and only with large enough context
 	// they are being performed
 	void enqueue(Command);
+
+	void bind(PVPipelineLayout);
+	// Binds given descriptor set
+	void bindDS(int index, const VDescriptorSet &);
+	// Acquires new descriptor set and immediately binds it
+	VDescriptorSet bindDS(int index);
 
 	// Upload commands are handled immediately, copy commands are enqueued in their place
 	Ex<void> enqueue(CmdUpload);
@@ -166,7 +169,6 @@ class VulkanRenderGraph {
 	void perform(FrameContext &, const CmdBindIndexBuffer &);
 	void perform(FrameContext &, const CmdBindVertexBuffers &);
 	void perform(FrameContext &, const CmdBindPipeline &);
-	void perform(FrameContext &, const CmdBindPipelineLayout &);
 	void perform(FrameContext &, const CmdDraw &);
 	void perform(FrameContext &, const CmdDrawIndexed &);
 	void perform(FrameContext &, const CmdCopy &);
@@ -183,6 +185,7 @@ class VulkanRenderGraph {
 
 	vector<StagingBuffer> m_staging_buffers;
 	vector<Command> m_commands;
+	PVPipelineLayout m_last_pipeline_layout;
 
 	VulkanDevice &m_device;
 	VkDevice m_device_handle = nullptr;
@@ -190,7 +193,6 @@ class VulkanRenderGraph {
 	FrameSync m_frames[VulkanLimits::num_swap_frames];
 	vector<PVFramebuffer> m_framebuffers;
 	VkCommandPool m_command_pool = nullptr;
-	VkPipelineLayout m_last_pipeline_layout = nullptr;
 	VkFormat m_swap_chain_format = {};
 	uint m_frame_index = 0, m_image_index = 0;
 	Status m_status = Status::init;

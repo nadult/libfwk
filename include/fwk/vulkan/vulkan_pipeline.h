@@ -257,6 +257,12 @@ struct VDescriptorSet {
 
 	  private:
 		Assigner(VkDevice device, VkDescriptorSet set) : device_handle(device), set_handle(set) {}
+		template <class... Args>
+		Assigner(VkDevice device, VkDescriptorSet set, int binding_index, Args... args)
+			: Assigner(device, set) {
+			operator()(binding_index, std::forward<Args>(args)...);
+		}
+
 		void performAssignment();
 		friend struct VDescriptorSet;
 
@@ -271,6 +277,10 @@ struct VDescriptorSet {
 		VkDevice device_handle;
 		int size = 0;
 	};
+
+	template <class... Args> Assigner operator()(int binding_index, Args &&...args) {
+		return {device_handle, handle, binding_index, std::forward<Args>(args)...};
+	}
 
 	Assigner assigner() { return {device_handle, handle}; }
 

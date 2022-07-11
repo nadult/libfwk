@@ -343,21 +343,17 @@ Ex<Renderer2D::DrawCall> Renderer2D::genDrawCall(VDeviceRef device, const Vulkan
 }
 
 Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelines &ctx) {
-	auto &pipes = ctx.pipelines;
-
 	// TODO: render_pass shouldn't be set up here, but outside
 	// we just have to make sure that pipeline is compatible with it
-	//
 	// TODO: passing weak pointers to commands
 
 	auto &rgraph = device->renderGraph();
-	auto dsls = pipes[0]->layout()->descriptorSetLayouts();
-	rgraph << CmdBindPipelineLayout{pipes[0]->layout()};
-	auto descr0 = device->acquireSet(dsls[0]);
-	descr0.assigner()(0, dc.matrix_buffer);
-	rgraph << CmdBindDescriptorSet{0, descr0.handle};
-	PVImageView prev_tex;
 
+	auto pipe_layout = ctx.pipelines[0]->layout();
+	rgraph.bind(pipe_layout);
+	rgraph.bindDS(0)(0, dc.matrix_buffer);
+
+	PVImageView prev_tex;
 	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
 		uint sizes[3] = {uint(chunk.positions.size() * sizeof(chunk.positions[0])),
@@ -375,16 +371,13 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 
 			auto tex = element.texture ? element.texture : ctx.white;
 			if(tex != prev_tex) {
-				auto descr1 = device->acquireSet(dsls[1]);
-				descr1.assigner()(0, ctx.sampler, tex);
-				// TODO: put update into command?
-				rgraph << CmdBindDescriptorSet{.index = 1, .set = descr1.handle};
+				rgraph.bindDS(1)(0, ctx.sampler, tex);
 				prev_tex = tex;
 			}
 
 			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
 						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
-			rgraph << CmdBindPipeline{pipes[pipe_id]};
+			rgraph << CmdBindPipeline{ctx.pipelines[pipe_id]};
 			rgraph << CmdDrawIndexed{.first_index = element.first_index,
 									 .num_indices = element.num_indices,
 									 .num_instances = 1,

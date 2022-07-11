@@ -173,9 +173,22 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 
 	// TODO: staging buffers destruction should be hooked to fence
 	m_staging_buffers.clear();
-	m_last_pipeline_layout = nullptr;
+	m_last_pipeline_layout.reset();
 
 	return {};
+}
+
+void VulkanRenderGraph::bind(PVPipelineLayout layout) { m_last_pipeline_layout = layout; }
+void VulkanRenderGraph::bindDS(int index, const VDescriptorSet &ds) {
+	enqueue(CmdBindDescriptorSet{uint(index), m_last_pipeline_layout, ds.handle});
+}
+
+VDescriptorSet VulkanRenderGraph::bindDS(int index) {
+	DASSERT(m_last_pipeline_layout);
+	auto dsl_id = m_last_pipeline_layout->descriptorSetLayouts()[index];
+	auto ds = m_device.acquireSet(dsl_id);
+	enqueue(CmdBindDescriptorSet{uint(index), m_last_pipeline_layout, ds.handle});
+	return ds;
 }
 
 void VulkanRenderGraph::enqueue(Command cmd) { m_commands.emplace_back(move(cmd)); }
@@ -243,8 +256,7 @@ void VulkanRenderGraph::flushCommands() {
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindDescriptorSet &cmd) {
-	DASSERT(m_last_pipeline_layout);
-	vkCmdBindDescriptorSets(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_last_pipeline_layout,
+	vkCmdBindDescriptorSets(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.pipe_layout,
 							cmd.index, 1, &cmd.set, 0, nullptr);
 }
 
@@ -266,11 +278,6 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindVertexBuffers &c
 }
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipeline &cmd) {
 	vkCmdBindPipeline(ctx.cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cmd.pipeline);
-	m_last_pipeline_layout = cmd.pipeline->layout();
-}
-
-void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipelineLayout &cmd) {
-	m_last_pipeline_layout = cmd.layout;
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDraw &cmd) {
