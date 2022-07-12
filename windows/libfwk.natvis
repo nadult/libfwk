@@ -78,4 +78,25 @@
   <Type Name="fwk::Box&lt;fwk::vec2&lt;*&gt;&gt;">
     <DisplayString>{{x={m_min.x} y={m_min.y} w={m_max.x-m_min.x} h={m_max.y-m_min.y} ex={m_max.x} ey={m_max.y}}}</DisplayString>
   </Type>
+
+  <Type Name="fwk::VMemoryBlockId">
+    <Expand>
+      <Item Name="zone_id">unsigned(encoded_value >> 48)</Item>
+      <Item Name="domain">fwk::VMemoryDomain(unsigned(encoded_value >> 40) &amp; 0xff)</Item>
+      <Item Name="type">fwk::VMemoryBlockType(unsigned(encoded_value >> 32) &amp; 0xff)</Item>
+      <Item Name="slab_identifier">*(fwk::SlabAllocator::Identifier*) &amp;encoded_value</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="fwk::SlabAllocator::Identifier">
+    <Expand>
+      <Item Condition="(value &amp; 0x80000000) != 0" Name="chunk_id" >unsigned(value &amp; 0x3ff)</Item>
+      <Item Condition="(value &amp; 0x80000000) != 0" Name="chunk_group_id">unsigned(value >> 10) &amp; 0x1ffff</Item>
+      <Item Condition="(value &amp; 0x80000000) != 0" Name="chunk_level_id">unsigned(value >> 26) &amp; 31</Item>
+      <Item Condition="(value &amp; 0x80000000) == 0" Name="slab_id">unsigned(value &amp; 0x7ff)</Item>
+      <Item Condition="(value &amp; 0x80000000) == 0" Name="slab_count">(unsigned(value >> 11) &amp; 0x7ff) + 1</Item>
+      <Item Condition="(value &amp; 0x80000000) == 0" Name="slab_zone_id">unsigned(value >> 22)</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>
