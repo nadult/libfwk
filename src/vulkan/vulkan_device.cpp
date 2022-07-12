@@ -231,6 +231,15 @@ void VulkanDevice::finishFrame() {
 	m_render_graph->finishFrame();
 }
 
+void VulkanDevice::waitForIdle() {
+	DASSERT(m_render_graph->status() != VulkanRenderGraph::Status::frame_running);
+	vkDeviceWaitIdle(m_handle);
+	for(int i : intRange(VulkanLimits::num_swap_frames)) {
+		releaseObjects(i);
+		m_memory->freeDeferred(i);
+	}
+}
+
 VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache; }
 
 // -------------------------------------------------------------------------------------------

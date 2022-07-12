@@ -68,12 +68,16 @@ VulkanMemoryManager::~VulkanMemoryManager() {
 	}
 }
 
+void VulkanMemoryManager::freeDeferred(int frame_index) {
+	for(auto ident : m_deferred_frees[frame_index])
+		immediateFree(ident);
+	m_deferred_frees[frame_index].clear();
+}
+
 void VulkanMemoryManager::beginFrame() {
 	if(!m_is_initial_frame) {
 		m_frame_index = (m_frame_index + 1) % num_frames;
-		for(auto ident : m_deferred_frees[m_frame_index])
-			immediateFree(ident);
-		m_deferred_frees[m_frame_index].clear();
+		freeDeferred(m_frame_index);
 	}
 	m_is_initial_frame = false;
 	m_frames[m_frame_index].offset = 0;

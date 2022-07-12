@@ -198,8 +198,10 @@ Gui::Gui(Gui &&rhs) : m_last_time(rhs.m_last_time), m_impl(move(rhs.m_impl)) { s
 
 Gui::~Gui() {
 	if(m_impl) {
-		vkDeviceWaitIdle(m_impl->device);
-		vkDestroyDescriptorPool(m_impl->device, m_impl->descr_pool, nullptr);
+		m_impl->device->deferredRelease(
+			m_impl->descr_pool, nullptr, [](void *pool, void *, VkDevice device) {
+				vkDestroyDescriptorPool(device, (VkDescriptorPool)pool, nullptr);
+			});
 	}
 	if(s_instance != this)
 		return;

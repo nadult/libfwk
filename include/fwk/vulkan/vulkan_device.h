@@ -43,6 +43,8 @@ class VulkanDevice {
 	void beginFrame();
 	void finishFrame();
 
+	void waitForIdle();
+
 	VkPipelineCache pipelineCache();
 
 	// -------------------------------------------------------------------------------------------

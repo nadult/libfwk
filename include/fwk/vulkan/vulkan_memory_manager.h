@@ -53,6 +53,7 @@ class VulkanMemoryManager {
   private:
 	void beginFrame();
 	void finishFrame();
+	void freeDeferred(int frame_index);
 	friend class VulkanDevice;
 
   private:
