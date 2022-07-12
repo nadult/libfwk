@@ -116,7 +116,7 @@ class VulkanRenderGraph {
   public:
 	~VulkanRenderGraph();
 
-	VkFormat swapChainFormat() const { return m_swap_chain_format; }
+	VkFormat swapChainFormat() const;
 	PVSwapChain swapChain() const { return m_swap_chain; }
 
 	// Commands are first enqueued and only with large enough context
@@ -148,6 +148,8 @@ class VulkanRenderGraph {
 		return m_image_index;
 	}
 	PVFramebuffer defaultFramebuffer() const { return m_framebuffers[swapImageIndex()]; }
+
+	void recreateSwapChain();
 
   private:
 	friend class VulkanDevice;
@@ -195,7 +197,6 @@ class VulkanRenderGraph {
 	FrameSync m_frames[VulkanLimits::num_swap_frames];
 	vector<PVFramebuffer> m_framebuffers;
 	VkCommandPool m_command_pool = nullptr;
-	VkFormat m_swap_chain_format = {};
 	uint m_frame_index = 0, m_image_index = 0;
 	Status m_status = Status::init;
 };

@@ -46,9 +46,10 @@ class Renderer2D : public MatrixStack {
 		vector<PVPipeline> pipelines;
 		PVImageView white;
 		PVSampler sampler;
+		IRect viewport;
 	};
 
-	static Ex<VulkanPipelines> makeVulkanPipelines(VDeviceRef, VColorAttachment);
+	static Ex<VulkanPipelines> makeVulkanPipelines(VDeviceRef, VColorAttachment, IRect);
 
 	struct DrawCall {
 		PVBuffer vbuffer, ibuffer, matrix_buffer;

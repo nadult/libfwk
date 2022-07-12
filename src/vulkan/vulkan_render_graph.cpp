@@ -38,7 +38,6 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain,
 									   PVImageView depth_buffer) {
 	m_swap_chain = swap_chain;
-	m_swap_chain_format = swap_chain->imageViews()[0]->format();
 	auto queue_family = device->queues().front().second;
 
 	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
@@ -50,13 +49,22 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 		frame.in_flight_fence = createVkFence(device, true);
 	}
 
-	m_framebuffers.reserve(m_swap_chain->imageViews().size());
-	auto image_views = m_swap_chain->imageViews();
-	for(auto &image_view : image_views) {
-		auto fb = EX_PASS(VulkanFramebuffer::create(m_device.ref(), {image_view}, depth_buffer));
-		m_framebuffers.emplace_back(move(fb));
-	}
+	// TODO: handle depth buffer properly
+	m_framebuffers = transform(m_swap_chain->imageViews(), [&](PVImageView image_view) {
+		return VulkanFramebuffer::create(device, {image_view});
+	});
 	return {};
+}
+
+void VulkanRenderGraph::recreateSwapChain() {
+	m_swap_chain->recreate();
+	m_framebuffers = transform(m_swap_chain->imageViews(), [&](PVImageView image_view) {
+		return VulkanFramebuffer::create(m_device.ref(), {image_view});
+	});
+}
+
+VkFormat VulkanRenderGraph::swapChainFormat() const {
+	return m_swap_chain->imageViews()[0]->format();
 }
 
 void VulkanRenderGraph::beginFrame() {
@@ -65,15 +73,22 @@ void VulkanRenderGraph::beginFrame() {
 
 	VkFence fences[] = {frame.in_flight_fence};
 	vkWaitForFences(m_device_handle, 1, fences, VK_TRUE, UINT64_MAX);
-	vkResetFences(m_device_handle, 1, fences);
 
-	uint32_t image_index;
+	uint image_index;
 	auto result = vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX,
 										frame.image_available_sem, VK_NULL_HANDLE, &image_index);
+	if(result == VK_SUBOPTIMAL_KHR) {
+		recreateSwapChain();
+		result = vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX,
+									   frame.image_available_sem, VK_NULL_HANDLE, &image_index);
+	}
+
 	// TODO: handle NOT_READY
 	if(!isOneOf(result, VK_SUCCESS, VK_SUBOPTIMAL_KHR))
 		FWK_VK_FATAL("vkAcquireNextImageKHR", result);
 	m_image_index = image_index;
+
+	vkResetFences(m_device_handle, 1, fences);
 
 	vkResetCommandBuffer(frame.command_buffer, 0);
 	VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -106,9 +121,9 @@ void VulkanRenderGraph::finishFrame() {
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
 	auto queues = m_device.queues();
-	auto graphicsQueue = queues.front().first;
-	auto presentQueue = queues.back().first;
-	FWK_VK_CALL(vkQueueSubmit, graphicsQueue, 1, &submitInfo, frame.in_flight_fence);
+	auto graphics_queue = queues.front().first;
+	auto present_queue = queues.back().first;
+	FWK_VK_CALL(vkQueueSubmit, graphics_queue, 1, &submitInfo, frame.in_flight_fence);
 
 	VkSwapchainKHR swapChains[] = {m_swap_chain};
 
@@ -120,7 +135,11 @@ void VulkanRenderGraph::finishFrame() {
 	presentInfo.pImageIndices = &m_image_index;
 	presentInfo.pResults = nullptr; // Optional
 
-	FWK_VK_CALL(vkQueuePresentKHR, presentQueue, &presentInfo);
+	auto present_result = vkQueuePresentKHR(present_queue, &presentInfo);
+	if(present_result == VK_ERROR_OUT_OF_DATE_KHR)
+		recreateSwapChain();
+	else if(present_result < 0)
+		FWK_VK_FATAL("vkQueuePresentKHR", present_result);
 	m_frame_index = (m_frame_index + 1) % VulkanLimits::num_swap_frames;
 
 	// TODO: staging buffers destruction should be hooked to fence

@@ -136,7 +136,7 @@ struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
 	PVPipeline pipeline;
-	Renderer2D::VulkanPipelines renderer2d_pipes;
+	Dynamic<Renderer2D::VulkanPipelines> renderer2d_pipes;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
 	PVImageView font_image_view;
@@ -155,7 +155,7 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	VPipelineSetup setup;
 	setup.shader_modules = shader_modules;
 	// TODO: maybe pass ColorAttachment directly?
-	setup.render_pass = EX_PASS(ctx.device->getRenderPass({{sc_image->format(), 1}}));
+	setup.render_pass = ctx.device->getRenderPass({{sc_image->format(), 1}});
 	setup.viewport = {IRect(extent)};
 	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,
 					VFrontFace::cw};
@@ -190,16 +190,10 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	//EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
 	auto sc_format = render_graph.swapChainFormat();
-
-	// TODO: device mo¿e zbieraæ b³êdy wewn¹trz i w przypadku b³êdu zwróciæ niepoprawny (pusty)
-	// render pass? Ale to by powodowa³o sta³y overhead w przypadku ka¿dej funkcji, bo trzeba by
-	// sprawdzaæ czy wszystkie obiekty s¹ niepuste...
-	auto render_pass =
-		EX_PASS(ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}}));
-	// TODO: pipeline should keep render pass core only?
+	auto render_pass = ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}});
 
 	// TODO: viewport? remove orient ?
-	Renderer2D renderer(IRect(0, 0, 1280, 720), Orient2D::y_up);
+	Renderer2D renderer(ctx.renderer2d_pipes->viewport, Orient2D::y_up);
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
 		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
@@ -217,12 +211,12 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	Font font(*ctx.font_core, ctx.font_image_view);
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 
-	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, ctx.renderer2d_pipes));
+	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
 	auto fb = render_graph.defaultFramebuffer();
 
 	render_graph << CmdBeginRenderPass{
 		fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
-	EXPECT(renderer.render(dc, ctx.device, ctx.renderer2d_pipes));
+	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
 	render_graph << CmdEndRenderPass{};
 	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
 	// Only queue uploads ?
@@ -233,8 +227,8 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 }
 
 // Old test_window perf:
-// 2260 on AMD Vega   -> 2500 -> 2550
-//  880 on RTX 3050   -> 1250 -> 1270
+// 2260 on AMD Vega   -> 2500 -> 2550 -> 2570
+//  880 on RTX 3050   -> 1250 -> 1270 -> 1380
 void updateFPS(VulkanWindow &window) {
 	static double prev_time = getTime();
 	static int num_frames = 0;
@@ -262,6 +256,14 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
+
+	auto viewport = IRect(ctx.window->rect().size());
+	if(!ctx.renderer2d_pipes || viewport != ctx.renderer2d_pipes->viewport) {
+		auto sc_format = ctx.device->renderGraph().swapChainFormat();
+		ctx.renderer2d_pipes =
+			Renderer2D::makeVulkanPipelines(ctx.device, sc_format, viewport).get();
+	}
+
 	drawFrame(ctx, positions).check();
 
 	updateFPS(window);
@@ -297,21 +299,19 @@ Ex<int> exMain() {
 	print("Selected Vulkan physical device: %\nDriver version: %\n",
 		  phys_info.properties.deviceName, phys_info.properties.driverVersion);
 
-	auto swap_chain = EX_PASS(VulkanSwapChain::create(
-		device, window, {.preferred_present_mode = VPresentMode::immediate}));
+	auto swap_chain = VulkanSwapChain::create(device, window,
+											  {.preferred_present_mode = VPresentMode::immediate});
 	EXPECT(device->createRenderGraph(swap_chain));
 
 	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
-	auto sc_format = swap_chain->imageViews()[0]->format();
-	ctx.renderer2d_pipes = EX_PASS(Renderer2D::makeVulkanPipelines(device, sc_format));
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
 	ctx.font_core = move(font_data.core);
 	ctx.font_image = EX_PASS(makeTexture(ctx, font_data.image));
-	ctx.font_image_view = EX_PASS(VulkanImageView::create(ctx.device, ctx.font_image));
-	ctx.sampler = EX_PASS(ctx.device->createSampler({}));
+	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
+	ctx.sampler = ctx.device->createSampler({});
 
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;

@@ -22,16 +22,20 @@ struct VulkanSwapChainSetup {
 class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
   public:
 	static VulkanSurfaceInfo surfaceInfo(VDeviceRef, VWindowRef);
-	static Ex<PVSwapChain> create(VDeviceRef, VWindowRef, const VulkanSwapChainSetup &);
+	static PVSwapChain create(VDeviceRef, VWindowRef, const VulkanSwapChainSetup &);
 
 	CSpan<PVImageView> imageViews() const { return m_image_views; }
+	void recreate();
 
   private:
 	friend class VulkanDevice;
 	VulkanSwapChain(VkSwapchainKHR, VObjectId, VWindowRef);
 	~VulkanSwapChain();
 
+	void initialize();
+
 	VWindowRef m_window;
+	VulkanSwapChainSetup m_setup;
 	vector<PVImageView> m_image_views;
 };
 }

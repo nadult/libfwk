@@ -49,9 +49,9 @@ class VulkanDevice {
 	// ----------  Object management  ------------------------------------------------------------
 
   public:
-	Ex<PVRenderPass> getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
-	Ex<PVPipelineLayout> getPipelineLayout(CSpan<VDSLId>);
-	Ex<PVSampler> createSampler(const VSamplerSetup &);
+	PVRenderPass getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
+	PVPipelineLayout getPipelineLayout(CSpan<VDSLId>);
+	PVSampler createSampler(const VSamplerSetup &);
 
 	VDSLId getDSL(CSpan<DescriptorBindingInfo>);
 	CSpan<DescriptorBindingInfo> bindings(VDSLId);

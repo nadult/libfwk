@@ -143,8 +143,8 @@ u32 VulkanRenderPass::hashConfig(CSpan<VColorAttachment> colors, const VDepthAtt
 	return out;
 }
 
-Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment> colors,
-										  Maybe<VDepthAttachment> depth) {
+PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment> colors,
+									  Maybe<VDepthAttachment> depth) {
 
 	array<VkAttachmentDescription, max_colors + 1> attachments;
 	array<VkAttachmentReference, max_colors + 1> attachment_refs;
@@ -214,7 +214,7 @@ Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachm
 	ci.pDependencies = &dependency;
 
 	VkRenderPass handle;
-	FWK_VK_EXPECT_CALL(vkCreateRenderPass, device->handle(), &ci, nullptr, &handle);
+	FWK_VK_CALL(vkCreateRenderPass, device->handle(), &ci, nullptr, &handle);
 	auto out = device->createObject(handle);
 	out->m_colors = colors;
 	out->m_depth = depth;
@@ -230,7 +230,7 @@ VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	deferredHandleRelease<VkPipelineLayout, vkDestroyPipelineLayout>();
 }
 
-Ex<PVPipelineLayout> VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> dsls) {
+PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> dsls) {
 	VkPipelineLayoutCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
@@ -242,7 +242,7 @@ Ex<PVPipelineLayout> VulkanPipelineLayout::create(VDeviceRef device, vector<VDSL
 	ci.pPushConstantRanges = nullptr;
 
 	VkPipelineLayout handle;
-	FWK_VK_EXPECT_CALL(vkCreatePipelineLayout, device->handle(), &ci, nullptr, &handle);
+	FWK_VK_CALL(vkCreatePipelineLayout, device->handle(), &ci, nullptr, &handle);
 	return device->createObject(handle, move(dsls));
 }
 
@@ -268,7 +268,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	dsls.reserve(descr_sets.size());
 	for(auto bindings : descr_sets)
 		dsls.emplace_back(device->getDSL(bindings));
-	auto pipeline_layout = EX_PASS(device->getPipelineLayout(dsls));
+	auto pipeline_layout = device->getPipelineLayout(dsls);
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
 	for(int i : intRange(setup.shader_modules)) {

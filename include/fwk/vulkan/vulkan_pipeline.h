@@ -168,7 +168,7 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
 	static constexpr int max_colors = VulkanLimits::max_color_attachments;
 
-	static Ex<PVRenderPass> create(VDeviceRef, CSpan<VColorAttachment>,
+	static PVRenderPass create(VDeviceRef, CSpan<VColorAttachment>,
 								   Maybe<VDepthAttachment> = none);
 	static u32 hashConfig(CSpan<VColorAttachment>, const VDepthAttachment *);
 
@@ -187,7 +187,7 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
   public:
 	const auto &descriptorSetLayouts() const { return m_dsls; }
-	static Ex<PVPipelineLayout> create(VDeviceRef, vector<VDSLId>);
+	static PVPipelineLayout create(VDeviceRef, vector<VDSLId>);
 
   private:
 	friend class VulkanDevice;

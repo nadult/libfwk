@@ -37,36 +37,43 @@ VulkanSurfaceInfo VulkanSwapChain::surfaceInfo(VDeviceRef device, VWindowRef win
 	return out;
 }
 
-Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
-										const VulkanSwapChainSetup &setup) {
-	auto surf_info = surfaceInfo(device, window);
+PVSwapChain VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
+									const VulkanSwapChainSetup &setup) {
+	auto out = device->createObject(VkSwapchainKHR(nullptr), window);
+	out->m_setup = setup;
+	out->initialize();
+	return out;
+}
 
-	VkSwapchainKHR handle;
+void VulkanSwapChain::initialize() {
+	auto device = deviceRef();
+	auto surf_info = surfaceInfo(device, m_window);
+
 	VkSwapchainCreateInfoKHR ci{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 	VImageUsageFlags usage = VImageUsage::color_att;
 	auto layout = VImageLayout::color_att;
 
 	auto &phys_info = VulkanInstance::ref()->info(device->physId());
 
-	ci.surface = window->surfaceHandle();
+	ci.surface = m_window->surfaceHandle();
 	ci.minImageCount = surf_info.capabilities.minImageCount;
 	if(ci.minImageCount == 1)
 		ci.minImageCount = min(ci.minImageCount + 1, surf_info.capabilities.maxImageCount);
 	ci.imageFormat = surf_info.formats[0].format;
 	ci.imageColorSpace = surf_info.formats[0].colorSpace;
-	ci.imageExtent = toVkExtent(window->extent());
+	ci.imageExtent = toVkExtent(m_window->extent());
 	ci.imageArrayLayers = 1;
 	ci.imageUsage = toVk(usage);
 	ci.preTransform = surf_info.capabilities.currentTransform;
 	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	ci.clipped = VK_TRUE;
 
-	bool valid_preferred = isOneOf(toVk(setup.preferred_present_mode), surf_info.present_modes);
-	ci.presentMode = toVk(valid_preferred ? setup.preferred_present_mode : VPresentMode::fifo);
+	bool valid_preferred = isOneOf(toVk(m_setup.preferred_present_mode), surf_info.present_modes);
+	ci.presentMode = toVk(valid_preferred ? m_setup.preferred_present_mode : VPresentMode::fifo);
 
 	bool found_preferred_format = false;
-	for(int i = 0; i < setup.preferred_formats.size() && !found_preferred_format; i++) {
-		auto preferred = setup.preferred_formats[i];
+	for(int i = 0; i < m_setup.preferred_formats.size() && !found_preferred_format; i++) {
+		auto preferred = m_setup.preferred_formats[i];
 		for(auto format : surf_info.formats)
 			if(format.format == preferred) {
 				ci.imageFormat = format.format;
@@ -75,23 +82,28 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 			}
 	}
 
-	FWK_VK_EXPECT_CALL(vkCreateSwapchainKHR, device, &ci, nullptr, &handle);
-	auto out = device->createObject(handle, window);
+	FWK_VK_CALL(vkCreateSwapchainKHR, device, &ci, nullptr, &m_handle);
 
 	vector<VkImage> images;
 	uint num_images = 0;
-	vkGetSwapchainImagesKHR(device, handle, &num_images, nullptr);
+	vkGetSwapchainImagesKHR(device, m_handle, &num_images, nullptr);
 	images.resize(num_images);
-	vkGetSwapchainImagesKHR(device, handle, &num_images, images.data());
+	vkGetSwapchainImagesKHR(device, m_handle, &num_images, images.data());
 
-	out->m_image_views.reserve(num_images);
+	m_image_views.reserve(num_images);
 	for(auto image_handle : images) {
 		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), 1, usage, layout);
 		auto image = VulkanImage::createExternal(device, image_handle, setup);
-		auto view = EX_PASS(VulkanImageView::create(device, image));
-		out->m_image_views.emplace_back(view);
+		auto view = VulkanImageView::create(device, image);
+		m_image_views.emplace_back(view);
 	}
+}
 
-	return out;
+void VulkanSwapChain::recreate() {
+	vkDeviceWaitIdle(deviceHandle());
+	m_image_views.clear(); // TODO: destroy immediately
+	vkDestroySwapchainKHR(deviceHandle(), m_handle, nullptr);
+	m_handle = nullptr;
+	initialize();
 }
 }

@@ -236,28 +236,28 @@ VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache
 // -------------------------------------------------------------------------------------------
 // ----------  Object management  ------------------------------------------------------------
 
-Ex<PVRenderPass> VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
-											 Maybe<VDepthAttachment> depth) {
+PVRenderPass VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
+										 Maybe<VDepthAttachment> depth) {
 	HashedRenderPass key(colors, depth ? &*depth : nullptr, none);
 	auto &hash_map = m_objects->hashed_render_passes;
 	auto it = hash_map.find(key);
 	if(it != hash_map.end())
 		return it->value;
 
-	auto pointer = EX_PASS(VulkanRenderPass::create(ref(), colors, depth));
+	auto pointer = VulkanRenderPass::create(ref(), colors, depth);
 	auto depth_ptr = pointer->depth() ? &*pointer->depth() : nullptr;
 	hash_map.emplace(HashedRenderPass(pointer->colors(), depth_ptr, key.hash_value), pointer);
 	return pointer;
 }
 
-Ex<PVPipelineLayout> VulkanDevice::getPipelineLayout(CSpan<VDSLId> dsls) {
+PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<VDSLId> dsls) {
 	HashedPipelineLayout key(dsls, none);
 	auto &hash_map = m_objects->hashed_pipeline_layouts;
 	auto it = hash_map.find(key);
 	if(it != hash_map.end())
 		return it->value;
 
-	auto pointer = EX_PASS(VulkanPipelineLayout::create(ref(), dsls));
+	auto pointer = VulkanPipelineLayout::create(ref(), dsls);
 	hash_map.emplace(HashedPipelineLayout(pointer->descriptorSetLayouts(), key.hash_value),
 					 pointer);
 	return pointer;
@@ -278,7 +278,7 @@ VDescriptorSet VulkanDevice::acquireSet(VDSLId dsl_id) {
 
 VkDescriptorSetLayout VulkanDevice::handle(VDSLId dsl_id) { return m_descriptors->handle(dsl_id); }
 
-Ex<PVSampler> VulkanDevice::createSampler(const VSamplerSetup &params) {
+PVSampler VulkanDevice::createSampler(const VSamplerSetup &params) {
 	VkSamplerCreateInfo ci{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
 	ci.magFilter = VkFilter(params.mag_filter);
 	ci.minFilter = VkFilter(params.min_filter);
@@ -289,7 +289,7 @@ Ex<PVSampler> VulkanDevice::createSampler(const VSamplerSetup &params) {
 	ci.maxAnisotropy = params.max_anisotropy_samples;
 	ci.anisotropyEnable = params.max_anisotropy_samples > 1;
 	VkSampler handle;
-	FWK_VK_EXPECT_CALL(vkCreateSampler, m_handle, &ci, nullptr, &handle);
+	FWK_VK_CALL(vkCreateSampler, m_handle, &ci, nullptr, &handle);
 	return createObject(handle, params);
 }
 

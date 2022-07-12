@@ -6,7 +6,7 @@
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
-#include "vulkan/vulkan.h"
+#include "fwk/vulkan/vulkan_internal.h"
 
 namespace fwk {
 
@@ -17,8 +17,8 @@ VulkanFramebuffer::~VulkanFramebuffer() {
 	deferredHandleRelease<VkFramebuffer, vkDestroyFramebuffer>();
 }
 
-Ex<PVFramebuffer> VulkanFramebuffer::create(VDeviceRef device, CSpan<PVImageView> colors,
-											PVImageView depth, PVRenderPass render_pass) {
+PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, CSpan<PVImageView> colors,
+										PVImageView depth, PVRenderPass render_pass) {
 	DASSERT(!colors.empty());
 	DASSERT(colors.size() <= VulkanLimits::max_color_attachments);
 
@@ -37,7 +37,7 @@ Ex<PVFramebuffer> VulkanFramebuffer::create(VDeviceRef device, CSpan<PVImageView
 		Maybe<VDepthAttachment> depth_att;
 		if(depth)
 			depth_att = VDepthAttachment(depth->format(), depth->numSamples());
-		render_pass = EX_PASS(device->getRenderPass(color_atts, depth_att));
+		render_pass = device->getRenderPass(color_atts, depth_att);
 	}
 
 	VkFramebufferCreateInfo ci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
@@ -49,8 +49,7 @@ Ex<PVFramebuffer> VulkanFramebuffer::create(VDeviceRef device, CSpan<PVImageView
 	ci.layers = 1;
 
 	VkFramebuffer handle;
-	if(vkCreateFramebuffer(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateFramebuffer failed");
+	FWK_VK_CALL(vkCreateFramebuffer, device->handle(), &ci, nullptr, &handle);
 	auto out = device->createObject(handle);
 	out->m_colors = colors;
 	out->m_depth = depth;

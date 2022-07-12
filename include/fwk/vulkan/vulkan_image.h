@@ -56,7 +56,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 
 class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
   public:
-	static Ex<PVImageView> create(VDeviceRef, PVImage);
+	static PVImageView create(VDeviceRef, PVImage);
 
 	int2 extent() const { return m_extent; }
 	VkFormat format() const { return m_format; }

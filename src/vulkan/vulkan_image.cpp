@@ -63,7 +63,7 @@ PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VIm
 VulkanImageView::VulkanImageView(VkImageView handle, VObjectId id) : VulkanObjectBase(handle, id) {}
 VulkanImageView ::~VulkanImageView() { deferredHandleRelease<VkImageView, vkDestroyImageView>(); }
 
-Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
+PVImageView VulkanImageView::create(VDeviceRef device, PVImage image) {
 	VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
 	ci.image = image;
 	ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -76,7 +76,7 @@ Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 						   .baseArrayLayer = 0,
 						   .layerCount = 1};
 	VkImageView handle;
-	FWK_VK_EXPECT_CALL(vkCreateImageView, device->handle(), &ci, nullptr, &handle);
+	FWK_VK_CALL(vkCreateImageView, device->handle(), &ci, nullptr, &handle);
 	auto out = device->createObject(handle);
 	out->m_image = image;
 	out->m_format = image->format();
