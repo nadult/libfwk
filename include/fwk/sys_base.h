@@ -286,6 +286,19 @@ template <> inline constexpr int type_size<Any> = sizeof(void *) * 2;
 template <class T, int min_size = 0> class Span;
 template <class T> class SparseSpan;
 
+template <class TFunc> struct Cleanup {
+	Cleanup(TFunc func) : func(func) {}
+	~Cleanup() {
+		if(!cancel)
+			func();
+	}
+
+	bool cancel = false;
+	TFunc func;
+};
+
+template <class TFunc> Cleanup(TFunc) -> Cleanup<TFunc>;
+
 // TODO: make concepts
 // This kind of data can be safely serialized to/from binary format, byte by byte
 template <class T>
