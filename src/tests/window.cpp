@@ -156,7 +156,6 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	setup.shader_modules = shader_modules;
 	// TODO: maybe pass ColorAttachment directly?
 	setup.render_pass = ctx.device->getRenderPass({{sc_image->format(), 1}});
-	setup.viewport = {IRect(extent)};
 	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,
 					VFrontFace::cw};
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
@@ -190,10 +189,11 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	//EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
 	auto sc_format = render_graph.swapChainFormat();
+	auto sc_extent = render_graph.swapChainExtent();
 	auto render_pass = ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}});
 
 	// TODO: viewport? remove orient ?
-	Renderer2D renderer(ctx.renderer2d_pipes->viewport, Orient2D::y_up);
+	Renderer2D renderer(IRect(sc_extent), Orient2D::y_up);
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
 		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
@@ -216,6 +216,9 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 
 	render_graph << CmdBeginRenderPass{
 		fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
+	render_graph << CmdSetViewport{IRect(sc_extent)};
+	render_graph << CmdSetScissor{none};
+
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
 	render_graph << CmdEndRenderPass{};
 	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
@@ -256,13 +259,6 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
-
-	auto viewport = IRect(ctx.window->rect().size());
-	if(!ctx.renderer2d_pipes || viewport != ctx.renderer2d_pipes->viewport) {
-		auto sc_format = ctx.device->renderGraph().swapChainFormat();
-		ctx.renderer2d_pipes =
-			Renderer2D::makeVulkanPipelines(ctx.device, sc_format, viewport).get();
-	}
 
 	drawFrame(ctx, positions).check();
 
@@ -310,6 +306,9 @@ Ex<int> exMain() {
 	ctx.font_image = EX_PASS(makeTexture(ctx, font_data.image));
 	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
 	ctx.sampler = ctx.device->createSampler({});
+
+	auto sc_format = ctx.device->renderGraph().swapChainFormat();
+	ctx.renderer2d_pipes = Renderer2D::makeVulkanPipelines(ctx.device, sc_format).get();
 
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;

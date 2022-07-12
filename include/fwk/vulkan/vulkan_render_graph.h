@@ -57,6 +57,16 @@ struct CmdBindDescriptorSet {
 	VkDescriptorSet set = nullptr;
 };
 
+struct CmdSetViewport {
+	IRect viewport;
+	float min_depth = 0.0f;
+	float max_depth = 1.0f;
+};
+
+struct CmdSetScissor {
+	Maybe<IRect> scissor;
+};
+
 struct CmdBindVertexBuffers {
 	CmdBindVertexBuffers(vector<PVBuffer> buffers, vector<uint> offsets, uint first_binding = 0)
 		: buffers(move(buffers)), offsets(move(offsets)), first_binding(first_binding) {}
@@ -93,9 +103,9 @@ struct CmdBeginRenderPass {
 
 struct CmdEndRenderPass {};
 
-using Command =
-	Variant<CmdCopy, CmdCopyImage, CmdBindDescriptorSet, CmdBindVertexBuffers, CmdBindIndexBuffer,
-			CmdBindPipeline, CmdDraw, CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
+using Command = Variant<CmdCopy, CmdCopyImage, CmdSetViewport, CmdSetScissor, CmdBindDescriptorSet,
+						CmdBindVertexBuffers, CmdBindIndexBuffer, CmdBindPipeline, CmdDraw,
+						CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
 
 class StagingBuffer {
   public:
@@ -117,6 +127,7 @@ class VulkanRenderGraph {
 	~VulkanRenderGraph();
 
 	VkFormat swapChainFormat() const;
+	int2 swapChainExtent() const;
 	PVSwapChain swapChain() const { return m_swap_chain; }
 
 	// Commands are first enqueued and only with large enough context
@@ -169,6 +180,8 @@ class VulkanRenderGraph {
 		VCommandId cmd_id;
 	};
 
+	void perform(FrameContext &, const CmdSetViewport &);
+	void perform(FrameContext &, const CmdSetScissor &);
 	void perform(FrameContext &, const CmdBindDescriptorSet &);
 	void perform(FrameContext &, const CmdBindIndexBuffer &);
 	void perform(FrameContext &, const CmdBindVertexBuffers &);
@@ -190,6 +203,7 @@ class VulkanRenderGraph {
 	vector<StagingBuffer> m_staging_buffers;
 	vector<Command> m_commands;
 	PVPipelineLayout m_last_pipeline_layout;
+	IRect m_last_viewport;
 
 	VulkanDevice &m_device;
 	VkDevice m_device_handle = nullptr;

@@ -67,6 +67,8 @@ VkFormat VulkanRenderGraph::swapChainFormat() const {
 	return m_swap_chain->imageViews()[0]->format();
 }
 
+int2 VulkanRenderGraph::swapChainExtent() const { return m_swap_chain->imageViews()[0]->extent(); }
+
 void VulkanRenderGraph::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_frame_index];
@@ -145,6 +147,7 @@ void VulkanRenderGraph::finishFrame() {
 	// TODO: staging buffers destruction should be hooked to fence
 	m_staging_buffers.clear();
 	m_last_pipeline_layout.reset();
+	m_last_viewport = {};
 }
 
 void VulkanRenderGraph::bind(PVPipelineLayout layout) { m_last_pipeline_layout = layout; }
@@ -226,6 +229,20 @@ void VulkanRenderGraph::flushCommands() {
 
 VkCommandBuffer VulkanRenderGraph::currentCommandBuffer() {
 	return m_frames[m_frame_index].command_buffer;
+}
+
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdSetViewport &cmd) {
+	VkViewport viewport{
+		float(cmd.viewport.x()),	  float(cmd.viewport.y()), float(cmd.viewport.width()),
+		float(cmd.viewport.height()), cmd.min_depth,		   cmd.max_depth};
+	m_last_viewport = cmd.viewport;
+	vkCmdSetViewport(ctx.cmd_buffer, 0, 1, &viewport);
+}
+void VulkanRenderGraph::perform(FrameContext &ctx, const CmdSetScissor &cmd) {
+	DASSERT(cmd.scissor || !m_last_viewport.empty());
+	IRect rect = cmd.scissor.orElse(m_last_viewport);
+	VkRect2D vk_rect{{rect.x(), rect.y()}, {uint(rect.width()), uint(rect.height())}};
+	vkCmdSetScissor(ctx.cmd_buffer, 0, 1, &vk_rect);
 }
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindDescriptorSet &cmd) {

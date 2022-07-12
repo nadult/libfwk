@@ -247,8 +247,8 @@ void Renderer2D::clear() {
 	m_current_scissor_rect = -1;
 }
 
-auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_attachment,
-									 IRect viewport) -> Ex<VulkanPipelines> {
+auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_attachment)
+	-> Ex<VulkanPipelines> {
 	VPipelineSetup setup;
 	setup.shader_modules = EX_PASS(VulkanShaderModule::compile(
 		device, {{VShaderStage::vertex, vsh_2d}, {VShaderStage::fragment, fsh_2d}}));
@@ -257,7 +257,6 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 		{vertexBinding<float2>(0), vertexBinding<IColor>(1), vertexBinding<float2>(2)}};
 	setup.vertex_attribs = {
 		{vertexAttrib<float2>(0, 0), vertexAttrib<IColor>(1, 1), vertexAttrib<float2>(2, 2)}};
-	setup.viewport = viewport;
 
 	VBlendingMode additive_blend(VBlendFactor::one, VBlendFactor::one);
 	VBlendingMode normal_blend(VBlendFactor::src_alpha, VBlendFactor::one_minus_src_alpha);
@@ -284,7 +283,6 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 
 	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
 	out.sampler = device->createSampler(sampler);
-	out.viewport = viewport;
 
 	return out;
 }

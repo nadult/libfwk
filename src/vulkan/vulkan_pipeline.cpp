@@ -253,6 +253,8 @@ VulkanPipeline::~VulkanPipeline() { deferredHandleRelease<VkPipeline, vkDestroyP
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	DASSERT(setup.render_pass);
+	DASSERT(setup.dynamic_state & VDynamic::viewport);
+	DASSERT(setup.dynamic_state & VDynamic::scissor);
 
 	vector<DescriptorBindingInfo> descr_bindings;
 	for(auto &shader_module : setup.shader_modules) {
@@ -311,24 +313,12 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	input_assembly_ci.primitiveRestartEnable =
 		!!(setup.raster.flags() & VRasterFlag::primitive_restart);
 
-	FRect view_rect(setup.viewport.rect);
-	VkViewport viewport{view_rect.x(),
-						view_rect.y(),
-						view_rect.width(),
-						view_rect.height(),
-						setup.viewport.min_depth,
-						setup.viewport.max_depth};
-
-	IRect scissor_rect = setup.scissor.orElse(setup.viewport.rect);
-	VkRect2D scissor = {{scissor_rect.x(), scissor_rect.y()},
-						{uint(scissor_rect.width()), uint(scissor_rect.height())}};
-
 	VkPipelineViewportStateCreateInfo viewport_state_ci{
 		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
 	viewport_state_ci.viewportCount = 1;
-	viewport_state_ci.pViewports = &viewport;
+	viewport_state_ci.pViewports = nullptr;
 	viewport_state_ci.scissorCount = 1;
-	viewport_state_ci.pScissors = &scissor;
+	viewport_state_ci.pScissors = nullptr;
 
 	VkPipelineRasterizationStateCreateInfo rasterizer_ci{
 		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};

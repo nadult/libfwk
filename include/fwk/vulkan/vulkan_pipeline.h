@@ -155,21 +155,20 @@ struct VPipelineSetup {
 	vector<VVertexBinding> vertex_bindings;
 	vector<VVertexAttrib> vertex_attribs;
 
-	VViewport viewport = IRect(0, 0, 1280, 720);
-	Maybe<IRect> scissor;
 	VRasterSetup raster;
 	VDepthSetup depth;
 	VStencilSetup stencil;
 	VBlendingSetup blending;
-	VDynamicState dynamic_state = none;
+
+	// Viewport & scissor are mandatory in dynamic_state
+	VDynamicState dynamic_state = VDynamic::viewport | VDynamic::scissor;
 };
 
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
 	static constexpr int max_colors = VulkanLimits::max_color_attachments;
 
-	static PVRenderPass create(VDeviceRef, CSpan<VColorAttachment>,
-								   Maybe<VDepthAttachment> = none);
+	static PVRenderPass create(VDeviceRef, CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
 	static u32 hashConfig(CSpan<VColorAttachment>, const VDepthAttachment *);
 
 	CSpan<VColorAttachment> colors() const { return m_colors; }
