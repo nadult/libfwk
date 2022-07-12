@@ -18,22 +18,13 @@ namespace fwk {
 class InputState;
 class InputEvent;
 
-// TODO: separate window flags from device flags
-DEFINE_ENUM(VWindowFlag, fullscreen, fullscreen_desktop, resizable, centered, vsync, maximized,
+DEFINE_ENUM(VWindowFlag, fullscreen, fullscreen_desktop, resizable, centered, maximized,
 			allow_hidpi);
 using VWindowFlags = EnumFlags<VWindowFlag>;
 
-struct VulkanWindowConfig {
-	VWindowFlags flags;
-};
-
 class VulkanWindow {
   public:
-	using Flag = VWindowFlag;
-	using Flags = VWindowFlags;
-	using Config = VulkanWindowConfig;
-
-	static Ex<VWindowRef> create(VInstanceRef, ZStr title, IRect rect, Config);
+	static Ex<VWindowRef> create(VInstanceRef, ZStr title, IRect rect, VWindowFlags);
 
 	VkSurfaceKHR surfaceHandle() const;
 
@@ -55,10 +46,10 @@ class VulkanWindow {
 
 	int displayIndex() const;
 	float dpiScale() const;
-	Flags flags() const;
+	VWindowFlags flags() const;
 
 	// Only accepted: none, fullscreen or fullscreen_desktop
-	void setFullscreen(Flags);
+	void setFullscreen(VWindowFlags);
 
 	bool isFullscreen() const;
 	bool isMaximized() const;
@@ -79,7 +70,7 @@ class VulkanWindow {
 	VulkanWindow(VWindowId, VInstanceRef);
 	~VulkanWindow();
 
-	Ex<void> initialize(ZStr title, IRect rect, Config);
+	Ex<void> initialize(ZStr title, IRect, VWindowFlags);
 
 	VulkanWindow(const VulkanWindow &) = delete;
 	void operator=(VulkanWindow &) = delete;

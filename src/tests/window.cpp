@@ -284,11 +284,9 @@ Ex<int> exMain() {
 	setup.debug_types = all<VDebugType>;
 	auto instance = EX_PASS(VulkanInstance::create(setup));
 
-	// TODO: cleanup in flags
-	auto flags = VWindowFlag::resizable | VWindowFlag::vsync | VWindowFlag::centered |
-				 VWindowFlag::allow_hidpi;
-	auto window = EX_PASS(VulkanWindow::create(instance, "fwk::test_window", IRect(0, 0, 1280, 720),
-											   VulkanWindowConfig{flags}));
+	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi;
+	auto window =
+		EX_PASS(VulkanWindow::create(instance, "fwk::test_window", IRect(0, 0, 1280, 720), flags));
 
 	VulkanDeviceSetup dev_setup;
 	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);

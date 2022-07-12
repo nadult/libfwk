@@ -61,7 +61,7 @@ void VulkanSwapChain::initialize() {
 		ci.minImageCount = min(ci.minImageCount + 1, surf_info.capabilities.maxImageCount);
 	ci.imageFormat = surf_info.formats[0].format;
 	ci.imageColorSpace = surf_info.formats[0].colorSpace;
-	ci.imageExtent = toVkExtent(m_window->extent());
+	ci.imageExtent = surf_info.capabilities.currentExtent;
 	ci.imageArrayLayers = 1;
 	ci.imageUsage = toVk(usage);
 	ci.preTransform = surf_info.capabilities.currentTransform;

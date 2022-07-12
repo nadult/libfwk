@@ -30,10 +30,12 @@
 
 namespace fwk {
 
+using Flag = VWindowFlag;
+
 struct VulkanWindow::Impl {
 	VWindowId id;
 	VInstanceRef instance_ref;
-	Config config;
+	VWindowFlags flags;
 	bool sdl_initialized = false;
 	SDL_Window *window = nullptr;
 	SDLKeyMap key_map;
@@ -48,9 +50,6 @@ VulkanWindow::VulkanWindow(VWindowId id, VInstanceRef instance_ref) {
 	m_impl.emplace(id, instance_ref);
 }
 VulkanWindow::~VulkanWindow() {
-	if(!m_impl)
-		return;
-
 	if(m_impl->surface_handle)
 		vkDestroySurfaceKHR(m_impl->instance_ref->handle(), m_impl->surface_handle, nullptr);
 	if(m_impl->window)
@@ -60,16 +59,15 @@ VulkanWindow::~VulkanWindow() {
 }
 
 Ex<VWindowRef> VulkanWindow::create(VInstanceRef instance_ref, ZStr title, IRect rect,
-									Config config) {
+									VWindowFlags flags) {
 	auto window = EX_PASS(g_vk_storage.allocWindow(instance_ref));
-	EXPECT(window->initialize(title, rect, config));
+	EXPECT(window->initialize(title, rect, flags));
 	return window;
 }
 
-Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, Config config) {
-	m_impl->config = config;
+Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
+	m_impl->flags = flags;
 	int sdl_flags = SDL_WINDOW_VULKAN;
-	auto flags = config.flags;
 	DASSERT(!((flags & Flag::fullscreen) && (flags & Flag::fullscreen_desktop)));
 
 	if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) // TODO: input ?
@@ -89,14 +87,6 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, Config config) {
 		sdl_flags |= SDL_WINDOW_MAXIMIZED;
 	if(flags & Flag::centered)
 		pos.x = pos.y = SDL_WINDOWPOS_CENTERED;
-	/*if(config.multisampling) {
-		FATAL("fixme");
-		DASSERT(*config.multisampling >= 1 && *config.multisampling <= 64);
-		//SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-		//SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, *config.multisampling);
-	}*/
-
-	m_impl->config = config;
 	m_impl->window = SDL_CreateWindow(title.c_str(), pos.x, pos.y, size.x, size.y, sdl_flags);
 	if(!m_impl->window)
 		return ERROR("SDL_CreateWindow failed: %", SDL_GetError());
@@ -158,29 +148,24 @@ IRect VulkanWindow::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_
 void VulkanWindow::setTitle(ZStr title) { SDL_SetWindowTitle(m_impl->window, title.c_str()); }
 
 void VulkanWindow::setExtent(const int2 &size) {
-	if(m_impl)
-		SDL_SetWindowSize(m_impl->window, size.x, size.y);
+	SDL_SetWindowSize(m_impl->window, size.x, size.y);
 }
 
 void VulkanWindow::setRect(IRect rect) {
-	if(m_impl) {
-		SDL_SetWindowSize(m_impl->window, rect.width(), rect.height());
-		SDL_SetWindowPosition(m_impl->window, rect.x(), rect.y());
-	}
+	SDL_SetWindowSize(m_impl->window, rect.width(), rect.height());
+	SDL_SetWindowPosition(m_impl->window, rect.x(), rect.y());
 }
 
 IRect VulkanWindow::rect() const {
 	int2 pos, size;
-	if(m_impl) {
-		size = this->extent();
-		SDL_GetWindowPosition(m_impl->window, &pos.x, &pos.y);
-		if(platform == Platform::linux) {
-			// Workaround for SDL2 bug on linux platforms
-			// (TODO: find out exactly where it happens?)
-			int top, left, bottom, right;
-			SDL_GetWindowBordersSize(m_impl->window, &top, &left, &bottom, &right);
-			pos -= int2{left, top};
-		}
+	size = this->extent();
+	SDL_GetWindowPosition(m_impl->window, &pos.x, &pos.y);
+	if(platform == Platform::linux) {
+		// Workaround for SDL2 bug on linux platforms
+		// (TODO: find out exactly where it happens?)
+		int top, left, bottom, right;
+		SDL_GetWindowBordersSize(m_impl->window, &top, &left, &bottom, &right);
+		pos -= int2{left, top};
 	}
 	return IRect(pos, pos + size);
 }
@@ -214,17 +199,16 @@ EnumMap<RectSide, int> VulkanWindow::border() const {
 	return {{right, top, left, bottom}};
 }
 
-void VulkanWindow::setFullscreen(Flags flags) {
+void VulkanWindow::setFullscreen(VWindowFlags flags) {
 	DASSERT(!flags || isOneOf(flags, Flag::fullscreen, Flag::fullscreen_desktop));
 
-	if(m_impl) {
-		uint sdl_flags = flags == Flag::fullscreen		   ? SDL_WINDOW_FULLSCREEN :
-						 flags == Flag::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP :
-															   0;
-		SDL_SetWindowFullscreen(m_impl->window, sdl_flags);
-		auto mask = Flag::fullscreen | Flag::fullscreen_desktop;
-		m_impl->config.flags = (m_impl->config.flags & ~mask) | (mask & flags);
-	}
+	uint sdl_flags = flags == Flag::fullscreen		   ? SDL_WINDOW_FULLSCREEN :
+					 flags == Flag::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP :
+														   0;
+	SDL_SetWindowFullscreen(m_impl->window, sdl_flags);
+	auto mask = Flag::fullscreen | Flag::fullscreen_desktop;
+	// TODO: fullscreen status can also be change externally, we should be able to track it
+	m_impl->flags = (m_impl->flags & ~mask) | (mask & flags);
 }
 
 bool VulkanWindow::isFullscreen() const {
@@ -244,12 +228,11 @@ float VulkanWindow::dpiScale() const {
 	return display_dpis.inRange(display_index) ? display_dpis[display_index] : 1.0f;
 }
 
-auto VulkanWindow::flags() const -> Flags { return m_impl ? m_impl->config.flags : Flags(); }
+VWindowFlags VulkanWindow::flags() const { return m_impl->flags; }
 
 int2 VulkanWindow::extent() const {
 	int2 out;
-	if(m_impl)
-		SDL_GetWindowSize(m_impl->window, &out.x, &out.y);
+	SDL_GetWindowSize(m_impl->window, &out.x, &out.y);
 	return out;
 }
 
@@ -277,8 +260,7 @@ void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 }
 
 void VulkanWindow::grabMouse(bool grab) {
-	if(m_impl)
-		SDL_SetWindowGrab(m_impl->window, grab ? SDL_TRUE : SDL_FALSE);
+	SDL_SetWindowGrab(m_impl->window, grab ? SDL_TRUE : SDL_FALSE);
 }
 
 void VulkanWindow::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
