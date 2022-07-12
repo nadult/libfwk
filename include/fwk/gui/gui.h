@@ -9,6 +9,8 @@
 #include "fwk/maybe.h"
 #include "fwk/vector.h"
 
+#include "fwk/vulkan/vulkan_device.h"
+
 namespace fwk {
 
 DEFINE_ENUM(GuiStyleMode, normal, mini);
@@ -23,7 +25,7 @@ struct GuiConfig {
 // Currently based on ImGUI. Because of that only single instance can be created.
 class Gui {
   public:
-	Gui(GlDevice &, GuiConfig = {});
+	Gui(VDeviceRef, VWindowRef, PVRenderPass, GuiConfig = {});
 	Gui(Gui &&);
 	~Gui();
 
@@ -34,9 +36,9 @@ class Gui {
 	static bool isPresent();
 	static Gui &instance();
 
-	void beginFrame(GlDevice &);
-	vector<InputEvent> finishFrame(GlDevice &);
-	void drawFrame(GlDevice &);
+	void beginFrame(VulkanWindow &);
+	vector<InputEvent> finishFrame(VulkanWindow &);
+	void drawFrame(VulkanWindow &, VkCommandBuffer);
 
 	AnyConfig config() const;
 	void setConfig(const AnyConfig &);
@@ -93,12 +95,13 @@ class Gui {
 	void showHelpMarker(Str, const char *marker = "(?)");
 
   private:
-	void updateDpiAndFonts(bool is_initial);
+	void updateDpiAndFonts(VulkanWindow &, bool is_initial);
 	void rescaleWindows(float scale);
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
 
+	// TODO: keep device handle
 	float m_dpi_scale = 1.0f;
 	double m_last_time = -1.0;
 	static Gui *s_instance;

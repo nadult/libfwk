@@ -366,4 +366,47 @@ void VulkanObjectBase<T>::deferredHandleRelease(void *p0, void *p1, ReleaseFunc 
 	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(void *, void *,       \
 																			 ReleaseFunc);
 #include "fwk/vulkan/vulkan_type_list.h"
+
+// -------------------------------------------------------------------------------------------
+// ----------  Low level functions  ----------------------------------------------------------
+
+Ex<VkCommandBuffer> VulkanDevice::allocCommandBuffer(VkCommandPool pool) {
+	VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+	ai.commandPool = pool;
+	ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	ai.commandBufferCount = 1;
+	VkCommandBuffer handle;
+	if(vkAllocateCommandBuffers(m_handle, &ai, &handle) != VK_SUCCESS)
+		return ERROR("vkAllocateCommandBuffers failed");
+	return handle;
+}
+
+Ex<VkSemaphore> VulkanDevice::createSemaphore(bool is_signaled) {
+	VkSemaphore handle;
+	VkSemaphoreCreateInfo ci{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	if(vkCreateSemaphore(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("Failed to create semaphore");
+	return handle;
+}
+
+Ex<VkFence> VulkanDevice::createFence(bool is_signaled) {
+	VkFence handle;
+	VkFenceCreateInfo ci{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	if(vkCreateFence(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("Failed to create fence");
+	return handle;
+}
+
+Ex<VkCommandPool> VulkanDevice::createCommandPool(VQueueFamilyId queue_family_id,
+												  VCommandPoolFlags flags) {
+	VkCommandPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+	poolInfo.flags = toVk(flags);
+	poolInfo.queueFamilyIndex = queue_family_id;
+	VkCommandPool handle;
+	if(vkCreateCommandPool(m_handle, &poolInfo, nullptr, &handle) != VK_SUCCESS)
+		return ERROR("vkCreateCommandPool failed");
+	return handle;
+}
 }

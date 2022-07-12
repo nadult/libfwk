@@ -156,7 +156,8 @@ void Investigator3::draw() {
 }
 
 bool Investigator3::mainLoop(GlDevice &device) {
-	IColor nice_background(100, 120, 80);
+	// TODO: fixme
+	/*IColor nice_background(100, 120, 80);
 	clearColor(nice_background);
 	clearDepth(1.0f);
 
@@ -184,7 +185,7 @@ bool Investigator3::mainLoop(GlDevice &device) {
 	if(Gui::isPresent())
 		Gui::instance().drawFrame(device);
 #endif
-
+*/
 	return !m_exit_please;
 }
 

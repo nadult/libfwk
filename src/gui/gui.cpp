@@ -5,19 +5,17 @@
 
 #include "fwk/any_config.h"
 #include "fwk/gfx/font_finder.h"
-#include "fwk/gfx/gl_device.h"
 #include "fwk/gui/imgui_internal.h"
 #include "fwk/sys/input.h"
 #include "gui_impl.h"
 
-#ifdef FWK_PLATFORM_HTML
-#define IMGUI_IMPL_OPENGL_ES2
-#endif
+#include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_render_graph.h"
+#include "fwk/vulkan/vulkan_swap_chain.h"
+#include "fwk/vulkan/vulkan_window.h"
 
-#include "fwk/gfx/opengl.h"
-#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
-
-#include "../extern/imgui/backends/imgui_impl_opengl3.cpp"
+#include "../extern/imgui/backends/imgui_impl_vulkan.cpp"
 
 namespace fwk {
 
@@ -25,16 +23,18 @@ Gui *Gui::s_instance = nullptr;
 
 static const char *getClipboardText(void *) {
 	static string buffer;
-	buffer = GlDevice::instance().clipboardText();
+	// TODO: fixme
+	//buffer = GlDevice::instance().clipboardText();
 	return buffer.c_str();
 }
 
 static void setClipboardText(void *, const char *text) {
-	GlDevice::instance().setClipboardText(text);
+	// TODO: fixme
+	//GlDevice::instance().setClipboardText(text);
 }
 
-void Gui::updateDpiAndFonts(bool is_initial) {
-	auto dpi_scale = GlDevice::instance().windowDpiScale();
+void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
+	auto dpi_scale = window.dpiScale();
 	if(dpi_scale == m_dpi_scale && !is_initial)
 		return;
 	float scale_change = dpi_scale / m_dpi_scale;
@@ -54,11 +54,35 @@ void Gui::updateDpiAndFonts(bool is_initial) {
 	io.FontDefault =
 		io.Fonts->AddFontFromFileTTF(m_impl->font_path.c_str(), font_size, 0, glyph_ranges);
 
-	auto *bd = ImGui_ImplOpenGL3_GetBackendData();
-	if(bd && bd->FontTexture) {
-		ImGui_ImplOpenGL3_DestroyFontsTexture();
-		ImGui_ImplOpenGL3_CreateFontsTexture();
+	if(is_initial) {
+		auto &device = *m_impl->device;
+		auto queues = device.queues();
+		auto cmd_pool =
+			device.createCommandPool(queues[0].second, VCommandPoolFlag::transient).get();
+		auto cmd_buffer = device.allocCommandBuffer(cmd_pool).get();
+
+		// TODO: error handling
+		VkCommandBufferBeginInfo begin_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+		begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(cmd_buffer, &begin_info);
+		ImGui_ImplVulkan_CreateFontsTexture(cmd_buffer);
+
+		VkSubmitInfo end_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+		end_info.commandBufferCount = 1;
+		end_info.pCommandBuffers = &cmd_buffer;
+		vkEndCommandBuffer(cmd_buffer);
+		vkQueueSubmit(queues[0].first, 1, &end_info, VK_NULL_HANDLE);
+
+		vkDeviceWaitIdle(device.handle());
+		ImGui_ImplVulkan_DestroyFontUploadObjects();
+		vkDestroyCommandPool(device.handle(), cmd_pool, nullptr);
 	}
+
+	// TODO: font recreation
+	/*auto *bd = ImGui_ImplVulkan_GetBackendData();
+	if(bd && bd->FontImage) {
+		FATAL("TODO: fixme");
+	}*/
 
 	if(!is_initial)
 		rescaleWindows(scale_change);
@@ -74,8 +98,8 @@ void Gui::rescaleWindows(float scale) {
 	}
 }
 
-Gui::Gui(GlDevice &device, GuiConfig opts) {
-	m_impl.emplace();
+Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opts) {
+	m_impl.emplace(device);
 	ASSERT("You can only create a single instance of Gui" && !s_instance);
 	s_instance = this;
 	ImGui::CreateContext();
@@ -96,9 +120,35 @@ Gui::Gui(GlDevice &device, GuiConfig opts) {
 	m_impl->font_path = *opts.font_path;
 	m_impl->font_size = *opts.font_size;
 
-	updateDpiAndFonts(true);
+	ImGui_ImplVulkan_InitInfo info{};
+	info.Instance = VulkanInstance::ref()->handle();
+	info.PhysicalDevice = device->physHandle();
+	info.Device = device->handle();
+	auto queues = device->queues();
+	info.QueueFamily = queues[0].second;
+	info.Queue = queues[0].first;
+	info.PipelineCache = device->pipelineCache();
 
-	ImGui_ImplOpenGL3_Init();
+	auto &rgraph = device->renderGraph();
+	info.ImageCount = info.MinImageCount = rgraph.swapChain()->imageViews().size();
+	info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+	{
+		VkDescriptorPoolSize pool_size;
+		pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		pool_size.descriptorCount = 4;
+		VkDescriptorPoolCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+		ci.maxSets = 4;
+		ci.poolSizeCount = 1;
+		ci.pPoolSizes = &pool_size;
+		if(vkCreateDescriptorPool(device, &ci, nullptr, &m_impl->descr_pool) != VK_SUCCESS)
+			FATAL("vkCreateDescriptorPool failed");
+		info.DescriptorPool = m_impl->descr_pool;
+	}
+
+	// TODO:
+	//void (*CheckVkResultFn)(VkResult err);
+	ImGui_ImplVulkan_Init(&info, rpass);
 
 	io.KeyMap[ImGuiKey_Tab] = InputKey::tab;
 	io.KeyMap[ImGuiKey_LeftArrow] = InputKey::left;
@@ -123,6 +173,8 @@ Gui::Gui(GlDevice &device, GuiConfig opts) {
 	io.GetClipboardTextFn = getClipboardText;
 	io.ClipboardUserData = nullptr;
 
+	updateDpiAndFonts(*window, true);
+
 	/*
 #ifdef _WIN32
 	SDL_SysWMinfo wmInfo;
@@ -141,11 +193,15 @@ Gui::Gui(GlDevice &device, GuiConfig opts) {
 Gui::Gui(Gui &&rhs) : m_last_time(rhs.m_last_time), m_impl(move(rhs.m_impl)) { s_instance = this; }
 
 Gui::~Gui() {
+	if(m_impl) {
+		vkDeviceWaitIdle(m_impl->device);
+		vkDestroyDescriptorPool(m_impl->device, m_impl->descr_pool, nullptr);
+	}
 	if(s_instance != this)
 		return;
 
 	s_instance = nullptr;
-	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplVulkan_Shutdown();
 	ImGui::DestroyContext();
 }
 
@@ -177,23 +233,23 @@ void Gui::removeProcess(ProcessFunc func, void *arg) {
 	});
 }
 
-void Gui::drawFrame(GlDevice &device) {
+void Gui::drawFrame(VulkanWindow &window, VkCommandBuffer cmd) {
 	//PERF_GPU_SCOPE();
 	if(o_hide)
 		return;
 	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 }
 
-void Gui::beginFrame(GlDevice &device) {
+void Gui::beginFrame(VulkanWindow &window) {
 	ImGuiIO &io = ImGui::GetIO();
 	memset(io.KeysDown, 0, sizeof(io.KeysDown));
 	memset(io.MouseDown, 0, sizeof(io.MouseDown));
 
-	updateDpiAndFonts(false);
+	updateDpiAndFonts(window, false);
 
 	if(!o_hide) {
-		for(auto &event : device.inputEvents()) {
+		for(auto &event : window.inputEvents()) {
 			if(isOneOf(event.type(), InputEventType::key_down, InputEventType::key_pressed))
 				io.KeysDown[event.key()] = true;
 			if(event.isMouseEvent()) {
@@ -205,7 +261,7 @@ void Gui::beginFrame(GlDevice &device) {
 				io.AddInputCharacter(event.keyChar()); // TODO: this is UTF16...
 		}
 
-		const auto &state = device.inputState();
+		const auto &state = window.inputState();
 
 		io.KeyShift = state.isKeyPressed(InputKey::lshift);
 		io.KeyCtrl = state.isKeyPressed(InputKey::lctrl);
@@ -217,11 +273,11 @@ void Gui::beginFrame(GlDevice &device) {
 		io.MouseWheel = state.mouseWheelMove();
 	}
 
-	device.showCursor(io.MouseDrawCursor && !o_hide ? false : true);
+	window.showCursor(io.MouseDrawCursor && !o_hide ? false : true);
 
 	// TODO: io.AddInputCharactersUTF8(event->text.text);
 
-	io.DisplaySize = (ImVec2)float2(device.windowSize());
+	io.DisplaySize = (ImVec2)float2(window.extent());
 	// TODO:
 	//io.DisplayFramebufferScale =
 	//	ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
@@ -230,21 +286,21 @@ void Gui::beginFrame(GlDevice &device) {
 	io.DeltaTime = m_last_time > 0.0 ? (float)(current_time - m_last_time) : (float)(1.0f / 60.0f);
 	m_last_time = current_time;
 
-	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplVulkan_NewFrame();
 	ImGui::NewFrame();
 
 	for(auto &proc : m_impl->processes)
 		proc.func(proc.arg);
 }
 
-vector<InputEvent> Gui::finishFrame(GlDevice &device) {
+vector<InputEvent> Gui::finishFrame(VulkanWindow &window) {
 	if(o_hide)
-		return device.inputEvents();
+		return window.inputEvents();
 
 	vector<InputEvent> out;
 
 	ImGuiIO &io = ImGui::GetIO();
-	for(auto event : device.inputEvents()) {
+	for(auto event : window.inputEvents()) {
 		if(event.isKeyEvent() && !io.WantCaptureKeyboard && !io.WantTextInput)
 			out.emplace_back(event);
 		if(event.isMouseEvent() && !io.WantCaptureMouse)

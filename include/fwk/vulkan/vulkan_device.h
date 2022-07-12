@@ -71,6 +71,14 @@ class VulkanDevice {
 	void deferredRelease(void *param0, void *param1, ReleaseFunc);
 	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
 
+	// -------------------------------------------------------------------------------------------
+	// ----------  Low level functions  ----------------------------------------------------------
+
+	Ex<VkCommandBuffer> allocCommandBuffer(VkCommandPool pool);
+	Ex<VkSemaphore> createSemaphore(bool is_signaled = false);
+	Ex<VkFence> createFence(bool is_signaled = false);
+	Ex<VkCommandPool> createCommandPool(VQueueFamilyId queue_family_id, VCommandPoolFlags flags);
+
   private:
 	VulkanDevice(VDeviceId, VPhysicalDeviceId, VInstanceRef);
 	~VulkanDevice();

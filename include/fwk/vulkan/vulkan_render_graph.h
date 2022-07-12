@@ -138,6 +138,7 @@ class VulkanRenderGraph {
 
 	// This can only be called between beginFrame() & finishFrame()
 	void flushCommands();
+	VkCommandBuffer currentCommandBuffer();
 
 	enum class Status { init, frame_running, frame_finished };
 	Status status() const { return m_status; }
@@ -151,6 +152,8 @@ class VulkanRenderGraph {
 
   private:
 	friend class VulkanDevice;
+	friend class Gui;
+
 	VulkanRenderGraph(VDeviceRef);
 	VulkanRenderGraph(const VulkanRenderGraph &) = delete;
 	void operator=(const VulkanRenderGraph &) = delete;
