@@ -14,8 +14,7 @@ static Ex<VkDeviceMemory> allocDeviceMemory(VkDevice device_handle, u32 size, ui
 	ai.allocationSize = size;
 	ai.memoryTypeIndex = type_index;
 	VkDeviceMemory handle;
-	if(vkAllocateMemory(device_handle, &ai, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkAllocateMemory failed");
+	FWK_VK_EXPECT_CALL(vkAllocateMemory, device_handle, &ai, nullptr, &handle);
 	return handle;
 }
 

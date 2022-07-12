@@ -11,6 +11,7 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 #include "fwk/vulkan/vulkan_window.h"
@@ -56,26 +57,26 @@ void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 
 	if(is_initial) {
 		auto &device = *m_impl->device;
+		auto device_handle = device.handle();
 		auto queues = device.queues();
 		auto cmd_pool =
-			device.createCommandPool(queues[0].second, VCommandPoolFlag::transient).get();
-		auto cmd_buffer = device.allocCommandBuffer(cmd_pool).get();
+			createVkCommandPool(device_handle, queues[0].second, VCommandPoolFlag::transient);
+		auto cmd_buffer = allocVkCommandBuffer(device_handle, cmd_pool);
 
-		// TODO: error handling
 		VkCommandBufferBeginInfo begin_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 		begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		vkBeginCommandBuffer(cmd_buffer, &begin_info);
+		FWK_VK_CALL(vkBeginCommandBuffer, cmd_buffer, &begin_info);
 		ImGui_ImplVulkan_CreateFontsTexture(cmd_buffer);
 
 		VkSubmitInfo end_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
 		end_info.commandBufferCount = 1;
 		end_info.pCommandBuffers = &cmd_buffer;
-		vkEndCommandBuffer(cmd_buffer);
+		FWK_VK_CALL(vkEndCommandBuffer, cmd_buffer);
 		vkQueueSubmit(queues[0].first, 1, &end_info, VK_NULL_HANDLE);
 
-		vkDeviceWaitIdle(device.handle());
+		FWK_VK_CALL(vkDeviceWaitIdle, device_handle);
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
-		vkDestroyCommandPool(device.handle(), cmd_pool, nullptr);
+		vkDestroyCommandPool(device_handle, cmd_pool, nullptr);
 	}
 
 	// TODO: font recreation
@@ -132,6 +133,12 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 	auto &rgraph = device->renderGraph();
 	info.ImageCount = info.MinImageCount = rgraph.swapChain()->imageViews().size();
 	info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	info.CheckVkResultFn = [](VkResult result) {
+		if(result < 0) {
+			auto error = translateVkResult(result);
+			FWK_FATAL("Vulkan error in ImGui code; Result: %s", error.c_str());
+		}
+	};
 
 	{
 		VkDescriptorPoolSize pool_size;
@@ -141,13 +148,10 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 		ci.maxSets = 4;
 		ci.poolSizeCount = 1;
 		ci.pPoolSizes = &pool_size;
-		if(vkCreateDescriptorPool(device, &ci, nullptr, &m_impl->descr_pool) != VK_SUCCESS)
-			FATAL("vkCreateDescriptorPool failed");
+		FWK_VK_CALL(vkCreateDescriptorPool, device, &ci, nullptr, &m_impl->descr_pool);
 		info.DescriptorPool = m_impl->descr_pool;
 	}
 
-	// TODO:
-	//void (*CheckVkResultFn)(VkResult err);
 	ImGui_ImplVulkan_Init(&info, rpass);
 
 	io.KeyMap[ImGuiKey_Tab] = InputKey::tab;

@@ -91,6 +91,9 @@ DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, sto
 			uniform_buffer_dynamic, storage_buffer_dynamic, input_att);
 using VDescriptorTypes = EnumFlags<VDescriptorType>;
 
+DEFINE_ENUM(VDescriptorPoolFlag, free_descriptor_set, update_after_bind, host_only);
+using VDescriptorPoolFlags = EnumFlags<VDescriptorPoolFlag>;
+
 DEFINE_ENUM(VPrimitiveTopology, point_list, line_list, line_strip, triangle_list, triangle_strip,
 			triangle_fan);
 DEFINE_ENUM(VertexInputRate, vertex, instance);

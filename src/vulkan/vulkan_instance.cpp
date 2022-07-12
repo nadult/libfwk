@@ -1,11 +1,6 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifdef FWK_GFX_VULKAN_H
-#define FWK_GFX_VULKAN_H_ONLY_EXTENSIONS
-#undef FWK_GFX_VULKAN_H
-#endif
-
 #include "fwk/vulkan/vulkan_instance.h"
 
 #include "fwk/enum_map.h"
@@ -220,10 +215,11 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 		create_info.pfnUserCallback = messageHandler;
 		create_info.pUserData = nullptr;
 
-		auto hook_messenger_func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			m_handle, "vkCreateDebugUtilsMessengerEXT");
+		auto hook_func_name = "vkCreateDebugUtilsMessengerEXT";
+		auto hook_messenger_func =
+			(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_handle, hook_func_name);
 		if(!hook_messenger_func)
-			return ERROR("Cannot hook vulkan debug message handler");
+			return ERROR("Cannot acquire address of function: '%'", hook_func_name);
 		FWK_VK_EXPECT_CALL(hook_messenger_func, m_handle, &create_info, nullptr, &m_messenger);
 	}
 

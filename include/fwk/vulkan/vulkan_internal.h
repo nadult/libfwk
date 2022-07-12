@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/enum_map.h"
 #include "fwk/vulkan_base.h"
 
 #include <vulkan/vulkan.h>
@@ -12,6 +13,7 @@ namespace fwk {
 inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }
 inline auto toVk(VShaderStages flags) { return VkShaderStageFlags(flags.bits); }
 inline auto toVk(VDescriptorType type) { return VkDescriptorType(type); }
+inline auto toVk(VDescriptorPoolFlags flags) { return VkDescriptorPoolCreateFlagBits(flags.bits); }
 inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
 inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
 inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
@@ -38,10 +40,19 @@ inline auto toVk(VFrontFace face) { return VkFrontFace(face); }
 inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
 inline auto toVk(VDynamic dynamic) { return VkDynamicState(dynamic); }
 
-string vulkanTranslateResult(VkResult);
-Error vulkanMakeError(const char *file, int line, VkResult, const char *function_name);
+VkCommandBuffer allocVkCommandBuffer(VkDevice, VkCommandPool pool);
+VkSemaphore createVkSemaphore(VkDevice, bool is_signaled = false);
+VkFence createVkFence(VkDevice, bool is_signaled = false);
+VkCommandPool createVkCommandPool(VkDevice, VQueueFamilyId queue_family_id,
+								  VCommandPoolFlags flags);
+VkDescriptorPool createVkDescriptorPool(VkDevice, EnumMap<VDescriptorType, uint> type_counts,
+										uint set_count, VDescriptorPoolFlags flags = none);
 
-#define FWK_VK_ERROR(func_name, result) vulkanMakeError(__FILE__, __LINE__, result, func_name);
+string translateVkResult(VkResult);
+Error makeVkError(const char *file, int line, VkResult, const char *function_name);
+[[noreturn]] void fatalVkError(const char *file, int line, VkResult, const char *function_name);
+
+#define FWK_VK_ERROR(func_name, result) makeVkError(__FILE__, __LINE__, result, func_name);
 
 // Calls given function with passed arguments, returns ERROR on error
 #define FWK_VK_EXPECT_CALL(func, ...)                                                              \
@@ -49,6 +60,14 @@ Error vulkanMakeError(const char *file, int line, VkResult, const char *function
 		auto result = func(__VA_ARGS__);                                                           \
 		if(result < 0)                                                                             \
 			return FWK_VK_ERROR(#func, result);                                                    \
+	}
+
+// Calls given function with passed arguments, stops program with FATAL on error
+#define FWK_VK_CALL(func, ...)                                                                     \
+	{                                                                                              \
+		auto result = func(__VA_ARGS__);                                                           \
+		if(result < 0)                                                                             \
+			fatalVkError(__FILE__, __LINE__, result, #func);                                       \
 	}
 
 }

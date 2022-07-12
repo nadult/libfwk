@@ -53,8 +53,7 @@ class VulkanDevice {
 	Ex<PVPipelineLayout> getPipelineLayout(CSpan<VDSLId>);
 	Ex<PVSampler> createSampler(const VSamplerSetup &);
 
-	// TODO: remove unnecessary layers
-	Ex<VDSLId> getDSL(CSpan<DescriptorBindingInfo>);
+	VDSLId getDSL(CSpan<DescriptorBindingInfo>);
 	CSpan<DescriptorBindingInfo> bindings(VDSLId);
 	VDescriptorSet acquireSet(VDSLId);
 	VkDescriptorSetLayout handle(VDSLId);
@@ -70,14 +69,6 @@ class VulkanDevice {
 	using ReleaseFunc = void (*)(void *param0, void *param1, VkDevice);
 	void deferredRelease(void *param0, void *param1, ReleaseFunc);
 	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
-
-	// -------------------------------------------------------------------------------------------
-	// ----------  Low level functions  ----------------------------------------------------------
-
-	Ex<VkCommandBuffer> allocCommandBuffer(VkCommandPool pool);
-	Ex<VkSemaphore> createSemaphore(bool is_signaled = false);
-	Ex<VkFence> createFence(bool is_signaled = false);
-	Ex<VkCommandPool> createCommandPool(VQueueFamilyId queue_family_id, VCommandPoolFlags flags);
 
   private:
 	VulkanDevice(VDeviceId, VPhysicalDeviceId, VInstanceRef);
@@ -103,7 +94,6 @@ class VulkanDevice {
 	Dynamic<VulkanMemoryManager> m_memory;
 
 	VDeviceFeatures m_features;
-	// TODO: separate queue for transfers in the background?
 	vector<Pair<VkQueue, VQueueFamilyId>> m_queues;
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;

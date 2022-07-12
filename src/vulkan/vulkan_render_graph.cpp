@@ -42,12 +42,12 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 	auto queue_family = device->queues().front().second;
 
 	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
-	m_command_pool = EX_PASS(device->createCommandPool(queue_family, pool_flags));
+	m_command_pool = createVkCommandPool(device, queue_family, pool_flags);
 	for(auto &frame : m_frames) {
-		frame.command_buffer = EX_PASS(device->allocCommandBuffer(m_command_pool));
-		frame.image_available_sem = EX_PASS(device->createSemaphore());
-		frame.render_finished_sem = EX_PASS(device->createSemaphore());
-		frame.in_flight_fence = EX_PASS(device->createFence(true));
+		frame.command_buffer = allocVkCommandBuffer(device, m_command_pool);
+		frame.image_available_sem = createVkSemaphore(device);
+		frame.render_finished_sem = createVkSemaphore(device);
+		frame.in_flight_fence = createVkFence(device, true);
 	}
 
 	m_framebuffers.reserve(m_swap_chain->imageViews().size());

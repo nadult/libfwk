@@ -39,24 +39,16 @@ Ex<PVImage> VulkanImage::create(VDeviceRef device, const VImageSetup &setup,
 	ci.samples = VkSampleCountFlagBits(setup.num_samples);
 
 	VkImage handle;
-	if(vkCreateImage(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateImage failed");
+	FWK_VK_EXPECT_CALL(vkCreateImage, device, &ci, nullptr, &handle);
+	Cleanup cleanup([&]() { vkDestroyImage(device, handle, nullptr); });
 
 	VkMemoryRequirements requirements;
 	vkGetImageMemoryRequirements(device, handle, &requirements);
+	auto mem_block = EX_PASS(device->alloc(mem_usage, requirements));
+	FWK_VK_EXPECT_CALL(vkBindImageMemory, device, handle, mem_block.handle, mem_block.offset);
 
-	auto mem_block = device->alloc(mem_usage, requirements);
-	if(!mem_block) {
-		vkDestroyImage(device, handle, nullptr);
-		return mem_block.error();
-	}
-
-	if(vkBindImageMemory(device, handle, mem_block->handle, mem_block->offset) != VK_SUCCESS) {
-		vkDestroyImage(device, handle, nullptr);
-		return ERROR("vkBindImageMemory failed");
-	}
-
-	return device->createObject(handle, *mem_block, setup);
+	cleanup.cancel = true;
+	return device->createObject(handle, mem_block, setup);
 }
 
 PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VImageSetup &setup) {
@@ -81,8 +73,7 @@ Ex<PVImageView> VulkanImageView::create(VDeviceRef device, PVImage image) {
 						   .baseArrayLayer = 0,
 						   .layerCount = 1};
 	VkImageView handle;
-	if(vkCreateImageView(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateImageView failed");
+	FWK_VK_EXPECT_CALL(vkCreateImageView, device->handle(), &ci, nullptr, &handle);
 	auto out = device->createObject(handle);
 	out->m_image = image;
 	out->m_format = image->format();

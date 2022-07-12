@@ -5,7 +5,64 @@
 
 namespace fwk {
 
-string vulkanTranslateResult(VkResult result) {
+// -------------------------------------------------------------------------------------------
+// ----------  Low level functions  ----------------------------------------------------------
+
+VkCommandBuffer allocVkCommandBuffer(VkDevice device, VkCommandPool pool) {
+	VkCommandBufferAllocateInfo ai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+	ai.commandPool = pool;
+	ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	ai.commandBufferCount = 1;
+	VkCommandBuffer handle;
+	FWK_VK_CALL(vkAllocateCommandBuffers, device, &ai, &handle);
+	return handle;
+}
+
+VkSemaphore createVkSemaphore(VkDevice device, bool is_signaled) {
+	VkSemaphore handle;
+	VkSemaphoreCreateInfo ci{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	FWK_VK_CALL(vkCreateSemaphore, device, &ci, nullptr, &handle);
+	return handle;
+}
+
+VkFence createVkFence(VkDevice device, bool is_signaled) {
+	VkFence handle;
+	VkFenceCreateInfo ci{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	FWK_VK_CALL(vkCreateFence, device, &ci, nullptr, &handle);
+	return handle;
+}
+
+VkCommandPool createVkCommandPool(VkDevice device, VQueueFamilyId queue_family_id,
+								  VCommandPoolFlags flags) {
+	VkCommandPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+	poolInfo.flags = toVk(flags);
+	poolInfo.queueFamilyIndex = queue_family_id;
+	VkCommandPool handle;
+	FWK_VK_CALL(vkCreateCommandPool, device, &poolInfo, nullptr, &handle);
+	return handle;
+}
+
+VkDescriptorPool createVkDescriptorPool(VkDevice device, EnumMap<VDescriptorType, uint> type_counts,
+										uint set_count, VDescriptorPoolFlags flags) {
+	array<VkDescriptorPoolSize, count<VDescriptorType>> sizes;
+	uint num_sizes = 0;
+	for(auto type : all<VDescriptorType>)
+		if(type_counts[type] > 0)
+			sizes[num_sizes++] = {toVk(type), type_counts[type]};
+
+	VkDescriptorPoolCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+	ci.poolSizeCount = num_sizes;
+	ci.pPoolSizes = sizes.data();
+	ci.maxSets = set_count;
+	ci.flags = 0; //TODO
+	VkDescriptorPool handle;
+	FWK_VK_CALL(vkCreateDescriptorPool, device, &ci, nullptr, &handle);
+	return handle;
+}
+
+string translateVkResult(VkResult result) {
 	const char *stringized = "VK_UNKNOWN";
 #define CASE(element)                                                                              \
 	case element:                                                                                  \
@@ -59,13 +116,22 @@ string vulkanTranslateResult(VkResult result) {
 	return stdFormat("%s (0x%x)", stringized, result);
 }
 
-Error vulkanMakeError(const char *file, int line, VkResult result, const char *function_name) {
-	auto message = format("% % %", function_name, result < 0 ? "failed with" : "returned",
-						  vulkanTranslateResult(result));
+static string makeVkMessage(const char *function_name, VkResult result) {
+	return format("% % %", function_name, result < 0 ? "failed with" : "returned",
+				  translateVkResult(result));
+}
+
+Error makeVkError(const char *file, int line, VkResult result, const char *function_name) {
+	auto message = makeVkMessage(function_name, result);
 	detail::AssertInfo info{};
 	info.file = file;
 	info.line = line;
 	info.message = message.c_str();
 	return detail::makeError(&info);
+}
+
+void fatalVkError(const char *file, int line, VkResult result, const char *function_name) {
+	auto message = makeVkMessage(function_name, result);
+	fwk::fatalError(file, line, "%s", message.c_str());
 }
 }

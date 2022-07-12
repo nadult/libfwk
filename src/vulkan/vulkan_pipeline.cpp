@@ -269,7 +269,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	vector<VDSLId> dsls;
 	dsls.reserve(descr_sets.size());
 	for(auto bindings : descr_sets)
-		dsls.emplace_back(EX_PASS(device->getDSL(bindings)));
+		dsls.emplace_back(device->getDSL(bindings));
 	auto pipeline_layout = EX_PASS(device->getPipelineLayout(dsls));
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;

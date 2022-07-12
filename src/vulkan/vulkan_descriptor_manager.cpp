@@ -33,7 +33,7 @@ VulkanDescriptorManager::~VulkanDescriptorManager() {
 	}
 }
 
-Ex<VDSLId> VulkanDescriptorManager::getLayout(CSpan<DescriptorBindingInfo> bindings) {
+VDSLId VulkanDescriptorManager::getLayout(CSpan<DescriptorBindingInfo> bindings) {
 	HashedDSL key(bindings, none);
 	auto it = m_hash_map.find(key);
 	if(it != m_hash_map.end())
@@ -53,10 +53,9 @@ Ex<VDSLId> VulkanDescriptorManager::getLayout(CSpan<DescriptorBindingInfo> bindi
 	ci.bindingCount = vk_bindings.size();
 
 	DSL new_dsl;
-	if(vkCreateDescriptorSetLayout(m_device_handle, &ci, nullptr, &new_dsl.layout) != VK_SUCCESS)
-		return ERROR("vkCreateDescriptorSetLayout failed");
-	new_dsl.pool = EX_PASS(allocPool(bindings, DSL::num_initial_sets));
-	EXPECT(allocSets(new_dsl.pool, new_dsl.layout, new_dsl.handles));
+	FWK_VK_CALL(vkCreateDescriptorSetLayout, m_device_handle, &ci, nullptr, &new_dsl.layout);
+	new_dsl.pool = allocPool(bindings, DSL::num_initial_sets);
+	allocSets(new_dsl.pool, new_dsl.layout, new_dsl.handles);
 	new_dsl.first_binding = m_declarations.size();
 	new_dsl.num_bindings = bindings.size();
 	new_dsl.num_allocated = DSL::num_initial_sets;
@@ -93,24 +92,14 @@ VkDescriptorSet VulkanDescriptorManager::acquireSet(VDSLId dsl_id) {
 	if(dsl.num_used == num_frame_allocated) {
 		uint new_alloc_size = dsl.num_allocated * 2;
 		auto new_pool = allocPool(bindings(dsl_id), new_alloc_size);
-		if(!new_pool) {
-			m_error = move(new_pool.error());
-			// TODO: What should we do now?
-			return nullptr;
-		}
 
 		if(dsl.num_used > DSL::num_initial_sets)
 			delete[] dsl.more_handles;
 		dsl.more_handles = new VkDescriptorSet[new_alloc_size];
-		auto result = allocSets(*new_pool, dsl.layout, span(dsl.more_handles, new_alloc_size));
-		if(!result) {
-			m_error = move(result.error());
-			vkDestroyDescriptorPool(m_device_handle, *new_pool, nullptr);
-			return nullptr;
-		}
+		allocSets(new_pool, dsl.layout, span(dsl.more_handles, new_alloc_size));
 
 		m_deferred_releases[m_swap_frame_index].emplace_back(dsl.pool);
-		dsl.pool = *new_pool;
+		dsl.pool = new_pool;
 		dsl.num_allocated = new_alloc_size;
 		num_frame_allocated = new_alloc_size >> 1;
 	}
@@ -142,31 +131,16 @@ void VulkanDescriptorManager::finishFrame() {
 	m_frame_running = false;
 }
 
-Ex<VkDescriptorPool> VulkanDescriptorManager::allocPool(CSpan<DescriptorBindingInfo> bindings,
-														uint num_sets) {
+VkDescriptorPool VulkanDescriptorManager::allocPool(CSpan<DescriptorBindingInfo> bindings,
+													uint num_sets) {
 	EnumMap<VDescriptorType, uint> counts;
 	for(auto binding : bindings)
-		counts[binding.type()] += binding.count();
-
-	array<VkDescriptorPoolSize, count<VDescriptorType>> sizes;
-	uint num_sizes = 0;
-	for(auto type : all<VDescriptorType>)
-		if(counts[type] > 0)
-			sizes[num_sizes++] = {toVk(type), counts[type] * num_sets};
-
-	VkDescriptorPoolCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-	ci.poolSizeCount = num_sizes;
-	ci.pPoolSizes = sizes.data();
-	ci.maxSets = num_sets;
-	ci.flags = 0; //TODO
-	VkDescriptorPool handle;
-	if(vkCreateDescriptorPool(m_device_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateDescriptorPool failed");
-	return handle;
+		counts[binding.type()] += binding.count() * num_sets;
+	return createVkDescriptorPool(m_device_handle, counts, num_sets);
 }
 
-Ex<void> VulkanDescriptorManager::allocSets(VkDescriptorPool pool, VkDescriptorSetLayout layout,
-											Span<VkDescriptorSet> out) {
+void VulkanDescriptorManager::allocSets(VkDescriptorPool pool, VkDescriptorSetLayout layout,
+										Span<VkDescriptorSet> out) {
 	static constexpr int step_size = 16;
 	array<VkDescriptorSetLayout, step_size> layouts;
 	fill(layouts, layout);
@@ -176,11 +150,7 @@ Ex<void> VulkanDescriptorManager::allocSets(VkDescriptorPool pool, VkDescriptorS
 	ai.pSetLayouts = layouts.data();
 	for(int i = 0; i < out.size(); i += step_size) {
 		ai.descriptorSetCount = min(out.size() - i, step_size);
-		auto result = vkAllocateDescriptorSets(m_device_handle, &ai, &out[i]);
-		if(result != VK_SUCCESS)
-			return ERROR("vkAllocateDescriptorSets failed");
+		FWK_VK_CALL(vkAllocateDescriptorSets, m_device_handle, &ai, &out[i]);
 	}
-	return {};
 }
-
 }

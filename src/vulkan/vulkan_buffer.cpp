@@ -21,22 +21,16 @@ Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsageFlags
 	ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 	VkBuffer handle;
-	if(vkCreateBuffer(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("Failed to create buffer");
+	FWK_VK_EXPECT_CALL(vkCreateBuffer, device, &ci, nullptr, &handle);
+	Cleanup cleanup([&]() { vkDestroyBuffer(device, handle, nullptr); });
 
 	VkMemoryRequirements requirements;
 	vkGetBufferMemoryRequirements(device, handle, &requirements);
 
-	auto mem_block = device->alloc(mem_usage, requirements);
-	if(!mem_block) {
-		vkDestroyBuffer(device, handle, nullptr);
-		return mem_block.error();
-	}
-	if(vkBindBufferMemory(device, handle, mem_block->handle, mem_block->offset) != VK_SUCCESS) {
-		vkDestroyBuffer(device, handle, nullptr);
-		return ERROR("vkBindBufferMemory failed");
-	}
+	auto mem_block = EX_PASS(device->alloc(mem_usage, requirements));
+	FWK_VK_EXPECT_CALL(vkBindBufferMemory, device, handle, mem_block.handle, mem_block.offset);
 
-	return device->createObject(handle, *mem_block, usage);
+	cleanup.cancel = true;
+	return device->createObject(handle, mem_block, usage);
 }
 }

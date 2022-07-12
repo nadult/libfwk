@@ -19,8 +19,7 @@ class VulkanDescriptorManager {
 	VulkanDescriptorManager(VkDevice);
 	FWK_IMMOVABLE_CLASS(VulkanDescriptorManager);
 
-	// TODO: more concise form of descriptor declarations
-	Ex<VDSLId> getLayout(CSpan<DescriptorBindingInfo>);
+	VDSLId getLayout(CSpan<DescriptorBindingInfo>);
 	VkDescriptorSetLayout handle(VDSLId dsl_id) const { return m_dsls[dsl_id].layout; }
 
 	// This should only be called between beginFrame & finishFrame
@@ -32,8 +31,8 @@ class VulkanDescriptorManager {
 	void finishFrame();
 
   private:
-	Ex<VkDescriptorPool> allocPool(CSpan<DescriptorBindingInfo>, uint num_sets);
-	Ex<void> allocSets(VkDescriptorPool, VkDescriptorSetLayout, Span<VkDescriptorSet>);
+	VkDescriptorPool allocPool(CSpan<DescriptorBindingInfo>, uint num_sets);
+	void allocSets(VkDescriptorPool, VkDescriptorSetLayout, Span<VkDescriptorSet>);
 
 	struct HashedDSL {
 		HashedDSL(CSpan<DescriptorBindingInfo> bindings, Maybe<u32> hash_value)
@@ -66,7 +65,6 @@ class VulkanDescriptorManager {
 	vector<DSL> m_dsls;
 	vector<VkDescriptorPool> m_deferred_releases[VulkanLimits::num_swap_frames];
 	HashMap<HashedDSL, VDSLId> m_hash_map;
-	Maybe<Error> m_error;
 
 	uint m_swap_frame_index = 0;
 	bool m_frame_running = false;
