@@ -18,10 +18,8 @@
 #include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_storage.h"
-#include <cstring>
-
-#include <vulkan/vulkan.h>
 
 namespace fwk {
 
@@ -179,8 +177,7 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 	makeSortedUnique(extensions);
 	makeSortedUnique(layers);
 
-	VkApplicationInfo app_info{};
-	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	VkApplicationInfo app_info{VK_STRUCTURE_TYPE_APPLICATION_INFO};
 	app_info.pApplicationName = "";
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.pEngineName = "fwk";
@@ -189,8 +186,7 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 		VK_MAKE_API_VERSION(0, setup.version.major, setup.version.minor, setup.version.patch);
 	m_version = setup.version;
 
-	VkInstanceCreateInfo create_info{};
-	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	VkInstanceCreateInfo create_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 	create_info.pApplicationInfo = &app_info;
 
 	auto ext_names = transform(extensions, [](const string &str) { return str.c_str(); });
@@ -201,19 +197,16 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 	create_info.enabledLayerCount = layer_names.size();
 	create_info.ppEnabledLayerNames = layer_names.data();
 
-	// TODO: vkCreateInstance is really slow, why ?
-	VkResult result = vkCreateInstance(&create_info, nullptr, &m_handle);
-	if(result != VK_SUCCESS)
-		return ERROR("Error on vkCreateInstance: 0x%x", uint(result));
+	FWK_VK_EXPECT_CALL(vkCreateInstance, &create_info, nullptr, &m_handle);
 
 	if(enable_validation) {
-		VkDebugUtilsMessengerCreateInfoEXT create_info{};
+		VkDebugUtilsMessengerCreateInfoEXT create_info{
+			VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
 		auto dtypes = setup.debug_types;
 		auto dlevels = setup.debug_levels;
 		using DType = VDebugType;
 		using DLevel = VDebugLevel;
 
-		create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 		create_info.messageSeverity =
 			(dlevels & DLevel::verbose ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT : 0) |
 			(dlevels & DLevel::info ? VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT : 0) |
@@ -231,9 +224,7 @@ Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 			m_handle, "vkCreateDebugUtilsMessengerEXT");
 		if(!hook_messenger_func)
 			return ERROR("Cannot hook vulkan debug message handler");
-		result = hook_messenger_func(m_handle, &create_info, nullptr, &m_messenger);
-		if(result != VK_SUCCESS)
-			return ERROR("Error while hooking vulkan debug message handler: 0x%x", uint(result));
+		FWK_VK_EXPECT_CALL(hook_messenger_func, m_handle, &create_info, nullptr, &m_messenger);
 	}
 
 	m_phys_devices = physicalDeviceInfos(m_handle);

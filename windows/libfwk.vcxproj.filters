@@ -699,6 +699,9 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_descriptor_manager.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_internal.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1191,6 +1194,9 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vulkan\vulkan_descriptor_manager.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_internal.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>

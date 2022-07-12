@@ -7,9 +7,8 @@
 #include "fwk/gfx/shader_reflection.h"
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
-
-#include <vulkan/vulkan.h>
 
 namespace fwk {
 

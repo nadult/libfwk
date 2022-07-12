@@ -5,9 +5,8 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_window.h"
-
-#include <vulkan/vulkan.h>
 
 namespace fwk {
 

@@ -5,6 +5,7 @@
 
 #include "fwk/vulkan/vulkan_descriptor_manager.h"
 #include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_shader.h"
@@ -19,8 +20,6 @@
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
-
-#include <vulkan/vulkan.h>
 
 namespace fwk {
 
@@ -106,8 +105,7 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 
 	float default_priority = 1.0;
 	for(auto &queue : setup.queues) {
-		VkDeviceQueueCreateInfo ci{};
-		ci.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		VkDeviceQueueCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
 		ci.queueCount = queue.count;
 		ci.queueFamilyIndex = queue.family_id;
 		ci.pQueuePriorities = &default_priority;
@@ -130,8 +128,7 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 		features = *setup.features;
 
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
-	VkDeviceCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 	ci.pQueueCreateInfos = queue_cis.data();
 	ci.queueCreateInfoCount = queue_cis.size();
 	ci.pEnabledFeatures = &features;
@@ -139,9 +136,7 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 	ci.ppEnabledExtensionNames = c_exts.data();
 
 	m_phys_handle = phys_info.handle;
-	auto result = vkCreateDevice(m_phys_handle, &ci, nullptr, &m_handle);
-	if(result != VK_SUCCESS)
-		return ERROR("Error during vkCreateDevice: 0x%x", stdFormat("%x", result));
+	FWK_VK_EXPECT_CALL(vkCreateDevice, m_phys_handle, &ci, nullptr, &m_handle);
 	g_vk_storage.device_handles[m_id] = m_handle;
 
 	m_queues.reserve(setup.queues.size());
@@ -155,8 +150,8 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 
 	VkPipelineCacheCreateInfo pip_ci{VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
 	//pip_ci.flags = VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
-	if(vkCreatePipelineCache(m_handle, &pip_ci, nullptr, &m_objects->pipeline_cache) != VK_SUCCESS)
-		return ERROR("vkCreatePipelineCache failed");
+	FWK_VK_EXPECT_CALL(vkCreatePipelineCache, m_handle, &pip_ci, nullptr,
+					   &m_objects->pipeline_cache);
 
 	m_descriptors.emplace(m_handle);
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
@@ -279,8 +274,7 @@ VDescriptorSet VulkanDevice::acquireSet(VDSLId dsl_id) {
 VkDescriptorSetLayout VulkanDevice::handle(VDSLId dsl_id) { return m_descriptors->handle(dsl_id); }
 
 Ex<PVSampler> VulkanDevice::createSampler(const VSamplerSetup &params) {
-	VkSamplerCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	VkSamplerCreateInfo ci{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
 	ci.magFilter = VkFilter(params.mag_filter);
 	ci.minFilter = VkFilter(params.min_filter);
 	ci.mipmapMode = VkSamplerMipmapMode(params.mipmap_filter.orElse(VTexFilter::nearest));
@@ -290,8 +284,7 @@ Ex<PVSampler> VulkanDevice::createSampler(const VSamplerSetup &params) {
 	ci.maxAnisotropy = params.max_anisotropy_samples;
 	ci.anisotropyEnable = params.max_anisotropy_samples > 1;
 	VkSampler handle;
-	if(vkCreateSampler(m_handle, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateSampler failed");
+	FWK_VK_EXPECT_CALL(vkCreateSampler, m_handle, &ci, nullptr, &handle);
 	return createObject(handle, params);
 }
 

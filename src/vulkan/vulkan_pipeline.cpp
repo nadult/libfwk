@@ -6,9 +6,8 @@
 #include "fwk/index_range.h"
 #include "fwk/sys/assert.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_shader.h"
-
-#include <vulkan/vulkan.h>
 
 namespace fwk {
 

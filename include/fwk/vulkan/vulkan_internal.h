@@ -1,0 +1,54 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
+#pragma once
+
+#include "fwk/vulkan_base.h"
+
+#include <vulkan/vulkan.h>
+
+namespace fwk {
+
+inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }
+inline auto toVk(VShaderStages flags) { return VkShaderStageFlags(flags.bits); }
+inline auto toVk(VDescriptorType type) { return VkDescriptorType(type); }
+inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
+inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
+inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
+inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
+inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }
+inline auto toVk(VPresentMode mode) { return VkPresentModeKHR(mode); }
+inline auto toVk(VLoadOp op) {
+	return op == VLoadOp::none ? VK_ATTACHMENT_LOAD_OP_NONE_EXT : VkAttachmentLoadOp(op);
+}
+inline auto toVk(VStoreOp op) {
+	return op == VStoreOp::none ? VK_ATTACHMENT_STORE_OP_NONE_EXT : VkAttachmentStoreOp(op);
+}
+inline auto toVk(VImageLayout layout) {
+	if(layout == VImageLayout::present_src)
+		return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	return VkImageLayout(layout);
+}
+inline auto toVk(VBlendFactor factor) { return VkBlendFactor(factor); }
+inline auto toVk(VBlendOp op) { return VkBlendOp(op); }
+inline auto toVk(VColorComponents components) { return VkColorComponentFlags(components.bits); }
+inline auto toVk(VPolygonMode mode) { return VkPolygonMode(mode); }
+inline auto toVk(VCullMode mode) { return VkCullModeFlags(mode.bits); }
+inline auto toVk(VFrontFace face) { return VkFrontFace(face); }
+inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
+inline auto toVk(VDynamic dynamic) { return VkDynamicState(dynamic); }
+
+string vulkanTranslateResult(VkResult);
+Error vulkanMakeError(const char *file, int line, VkResult, const char *function_name);
+
+#define FWK_VK_ERROR(func_name, result) vulkanMakeError(__FILE__, __LINE__, result, func_name);
+
+// Calls given function with passed arguments, returns ERROR on error
+#define FWK_VK_EXPECT_CALL(func, ...)                                                              \
+	{                                                                                              \
+		auto result = func(__VA_ARGS__);                                                           \
+		if(result < 0)                                                                             \
+			return FWK_VK_ERROR(#func, result);                                                    \
+	}
+
+}

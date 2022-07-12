@@ -4,7 +4,7 @@
 #include "fwk/vulkan/vulkan_image.h"
 
 #include "fwk/vulkan/vulkan_device.h"
-#include "vulkan/vulkan.h"
+#include "fwk/vulkan/vulkan_internal.h"
 
 namespace fwk {
 

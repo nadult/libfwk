@@ -154,36 +154,6 @@ struct VMemoryBlock {
 	u32 offset = 0, size = 0;
 };
 
-// TODO: move to internal
-inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }
-inline auto toVk(VShaderStages flags) { return VkShaderStageFlags(flags.bits); }
-inline auto toVk(VDescriptorType type) { return VkDescriptorType(type); }
-inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
-inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
-inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
-inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
-inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }
-inline auto toVk(VPresentMode mode) { return VkPresentModeKHR(mode); }
-inline auto toVk(VLoadOp op) {
-	return op == VLoadOp::none ? VK_ATTACHMENT_LOAD_OP_NONE_EXT : VkAttachmentLoadOp(op);
-}
-inline auto toVk(VStoreOp op) {
-	return op == VStoreOp::none ? VK_ATTACHMENT_STORE_OP_NONE_EXT : VkAttachmentStoreOp(op);
-}
-inline auto toVk(VImageLayout layout) {
-	if(layout == VImageLayout::present_src)
-		return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	return VkImageLayout(layout);
-}
-inline auto toVk(VBlendFactor factor) { return VkBlendFactor(factor); }
-inline auto toVk(VBlendOp op) { return VkBlendOp(op); }
-inline auto toVk(VColorComponents components) { return VkColorComponentFlags(components.bits); }
-inline auto toVk(VPolygonMode mode) { return VkPolygonMode(mode); }
-inline auto toVk(VCullMode mode) { return VkCullModeFlags(mode.bits); }
-inline auto toVk(VFrontFace face) { return VkFrontFace(face); }
-inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
-inline auto toVk(VDynamic dynamic) { return VkDynamicState(dynamic); }
-
 struct VSamplerSetup {
 	VTexFilter mag_filter = VTexFilter::nearest;
 	VTexFilter min_filter = VTexFilter::nearest;

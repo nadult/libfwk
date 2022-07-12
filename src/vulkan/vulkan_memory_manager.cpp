@@ -5,8 +5,7 @@
 
 #include "fwk/slab_allocator.h"
 #include "fwk/vulkan/vulkan_instance.h"
-
-#include <vulkan/vulkan.h>
+#include "fwk/vulkan/vulkan_internal.h"
 
 namespace fwk {
 

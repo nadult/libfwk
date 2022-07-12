@@ -1,8 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#ifndef FWK_GFX_VULKAN_H
-#define FWK_GFX_VULKAN_H
+#pragma once
 
 #include "fwk/sys/platform.h"
 
@@ -149,7 +148,4 @@ class VulkanInstance {
 	VkDebugUtilsMessengerEXT m_messenger = nullptr;
 	vector<VulkanPhysicalDeviceInfo> m_phys_devices;
 };
-
 }
-
-#endif

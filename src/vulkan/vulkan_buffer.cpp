@@ -5,8 +5,7 @@
 
 #include "fwk/enum_map.h"
 #include "fwk/vulkan/vulkan_device.h"
-
-#include <vulkan/vulkan.h>
+#include "fwk/vulkan/vulkan_internal.h"
 
 namespace fwk {
 VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, VMemoryBlock memory_block,
@@ -16,8 +15,7 @@ VulkanBuffer::~VulkanBuffer() { deferredHandleRelease<VkBuffer, vkDestroyBuffer>
 
 Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsageFlags usage,
 								  VMemoryUsage mem_usage) {
-	VkBufferCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	VkBufferCreateInfo ci{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
 	ci.size = size;
 	ci.usage = toVk(usage);
 	ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
