@@ -15,8 +15,11 @@ VulkanImage::VulkanImage(VkImage handle, VObjectId id, VMemoryBlock mem_block,
 	  m_last_layout(setup.layout), m_is_external(false) {}
 
 VulkanImage::~VulkanImage() {
-	if(!m_is_external)
+	if(!m_is_external) {
 		deferredHandleRelease<VkImage, vkDestroyImage>();
+		if(m_memory_block.id.requiresFree())
+			deferredFree(m_memory_block.id);
+	}
 }
 
 Ex<PVImage> VulkanImage::create(VDeviceRef device, const VImageSetup &setup,

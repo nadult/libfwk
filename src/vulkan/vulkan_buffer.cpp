@@ -11,7 +11,11 @@ namespace fwk {
 VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, VMemoryBlock memory_block,
 						   VBufferUsageFlags usage)
 	: VulkanObjectBase(handle, id), m_memory_block(memory_block), m_usage(usage) {}
-VulkanBuffer::~VulkanBuffer() { deferredHandleRelease<VkBuffer, vkDestroyBuffer>(); }
+VulkanBuffer::~VulkanBuffer() {
+	deferredHandleRelease<VkBuffer, vkDestroyBuffer>();
+	if(m_memory_block.id.requiresFree())
+		deferredFree(m_memory_block.id);
+}
 
 Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsageFlags usage,
 								  VMemoryUsage mem_usage) {

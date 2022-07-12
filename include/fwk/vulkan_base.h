@@ -137,18 +137,20 @@ DEFINE_ENUM(VDepthFlag, test, write, bounds_test, bias, clamp);
 using VDepthFlags = EnumFlags<VDepthFlag>;
 
 struct VMemoryBlockId {
-	VMemoryBlockId(VMemoryBlockType type, VMemoryDomain domain, u16 zone_id, u32 block_identifier)
-		: value(u64(block_identifier) | (u64(type) << 32) | (u64(domain) << 40) |
-				(u64(zone_id) << 48)) {}
-	VMemoryBlockId() : VMemoryBlockId(VMemoryBlockType::invalid, VMemoryDomain(0), 0, 0) {}
+	using Type = VMemoryBlockType;
+	VMemoryBlockId(Type type, VMemoryDomain domain, u16 zone_id, u32 block_identifier)
+		: encoded_value(u64(block_identifier) | (u64(type) << 32) | (u64(domain) << 40) |
+						(u64(zone_id) << 48)) {}
+	VMemoryBlockId() : VMemoryBlockId(Type::invalid, VMemoryDomain(0), 0, 0) {}
 
-	u16 zoneId() const { return u16(value >> 48); }
-	u32 blockIdentifier() const { return u32(value & 0xffffffff); }
-	VMemoryDomain domain() const { return VMemoryDomain((value >> 40) & 0xff); }
-	VMemoryBlockType type() const { return VMemoryBlockType((value >> 32) & 0xff); }
-	bool valid() const { return type() != VMemoryBlockType::invalid; }
+	u16 zoneId() const { return u16(encoded_value >> 48); }
+	u32 blockIdentifier() const { return u32(encoded_value & 0xffffffff); }
+	VMemoryDomain domain() const { return VMemoryDomain((encoded_value >> 40) & 0xff); }
+	Type type() const { return Type((encoded_value >> 32) & 0xff); }
+	bool valid() const { return type() != Type::invalid; }
+	bool requiresFree() const { return isOneOf(type(), Type::slab, Type::unmanaged); }
 
-	u64 value;
+	u64 encoded_value;
 };
 
 struct VMemoryBlock {

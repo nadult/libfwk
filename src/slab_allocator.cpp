@@ -9,6 +9,8 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
 
+// TODO: add optional logging about allocated/freed chunks/slabs
+
 namespace fwk {
 
 static int findClosestChunk(u32 size) {
@@ -104,8 +106,9 @@ auto SlabAllocator::alloc(u64 size) -> Pair<Identifier, Allocation> {
 			int bit = findFirstBit(~chunk_bits[i]);
 			chunk_bits[i] |= 1ull << bit;
 			chunk_id = (i << 6) + bit;
+			break;
 		}
-	DASSERT(chunk_id != 1 && chunk_id < level.chunks_per_group);
+	DASSERT(chunk_id != -1 && chunk_id < level.chunks_per_group);
 
 	Identifier ident(chunk_id, group_id, level_id, 0);
 	u64 offset = u64(group.slab_offset * slab_size) + u64(chunk_id) * level.chunk_size;
@@ -125,7 +128,7 @@ void SlabAllocator::free(Identifier ident) {
 		if(++group.num_free_chunks == 1)
 			listInsert(GROUP_ACCESSOR, level.not_full_groups, group_id);
 		uint bits_idx = group_id * level.bits_64_per_group + (chunk_id >> 6);
-		level.chunks[bits_idx] |= 1ull << (chunk_id & 63);
+		level.chunks[bits_idx] &= ~(1ull << (chunk_id & 63));
 	} else {
 		int slab_id = ident.slabId(), zone_id = ident.slabZoneId();
 		int num_slabs = ident.slabCount();

@@ -21,6 +21,13 @@
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 
+// TODO: add option to hook an error handler which in case of (for example) out of memory error
+// it can try to reclaim some memory by clearing the caches
+// TODO: more concise form of descriptor declarations
+// TODO: remove unnecessary layers (at the end)
+// TODO: cleanup in queue interface
+// TODO: hide lower level functions somehow ?
+
 namespace fwk {
 
 // -------------------------------------------------------------------------------------------
@@ -302,6 +309,8 @@ Ex<VMemoryBlock> VulkanDevice::alloc(VMemoryUsage usage, const VkMemoryRequireme
 	return m_memory->alloc(usage, requirements);
 }
 
+void VulkanDevice::deferredFree(VMemoryBlockId id) { m_memory->deferredFree(id); }
+
 template <class TObject> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 	auto type_id = VulkanTypeInfo<TObject>::type_id;
 
@@ -350,12 +359,18 @@ void VulkanObjectBase<T>::deferredHandleRelease(void *p0, void *p1, ReleaseFunc 
 	device.deferredRelease(p0, p1, release_func);
 }
 
+template <class T> void VulkanObjectBase<T>::deferredFree(VMemoryBlockId block_id) {
+	auto &device = reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[deviceId()]);
+	device.deferredFree(block_id);
+}
+
 #define CASE_TYPE(UpperCase, VkName, _)                                                            \
 	template Pair<void *, VObjectId> VulkanDevice::allocObject<Vulkan##UpperCase>();               \
 	template void VulkanDevice::destroyObject(VulkanObjectBase<Vulkan##UpperCase> *);              \
 	template void VulkanObjectBase<Vulkan##UpperCase>::destroyObject();                            \
 	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(void *, void *,       \
-																			 ReleaseFunc);
+																			 ReleaseFunc);         \
+	template void VulkanObjectBase<Vulkan##UpperCase>::deferredFree(VMemoryBlockId);
 #include "fwk/vulkan/vulkan_type_list.h"
 
 }

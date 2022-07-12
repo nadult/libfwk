@@ -68,7 +68,9 @@ class VulkanDevice {
 
 	using ReleaseFunc = void (*)(void *param0, void *param1, VkDevice);
 	void deferredRelease(void *param0, void *param1, ReleaseFunc);
+
 	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
+	void deferredFree(VMemoryBlockId);
 
   private:
 	VulkanDevice(VDeviceId, VPhysicalDeviceId, VInstanceRef);
