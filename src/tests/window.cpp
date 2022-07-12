@@ -181,8 +181,7 @@ Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
 }
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
-	EXPECT(ctx.device->beginFrame());
-
+	ctx.device->beginFrame();
 	auto &render_graph = ctx.device->renderGraph();
 
 	//UBOData ubo;
@@ -228,7 +227,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
 	// Only queue uploads ?
 
-	EXPECT(ctx.device->finishFrame());
+	ctx.device->finishFrame();
 
 	return {};
 }

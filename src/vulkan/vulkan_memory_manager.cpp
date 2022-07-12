@@ -175,7 +175,7 @@ static u32 alignOffset(u32 offset, uint alignment_mask) {
 }
 
 // TODO: pass errors differently in an uniform way across whole VulkanDevice and members
-Ex<Span<char>> VulkanMemoryManager::accessMemory(const VMemoryBlock &block) {
+Span<char> VulkanMemoryManager::accessMemory(const VMemoryBlock &block) {
 	DeviceMemory *memory = nullptr;
 	auto domain = block.id.domain();
 	int zone_id = block.id.zoneId();
@@ -194,13 +194,9 @@ Ex<Span<char>> VulkanMemoryManager::accessMemory(const VMemoryBlock &block) {
 		return Span<char>();
 	}
 
-	if(!memory->mapping) {
-		// Do we always want to map the wo
-		auto result =
-			vkMapMemory(m_device_handle, memory->handle, 0, VK_WHOLE_SIZE, 0, &memory->mapping);
-		if(result != VK_SUCCESS)
-			return ERROR("vkMapMemory failed");
-	}
+	if(!memory->mapping)
+		FWK_VK_CALL(vkMapMemory, m_device_handle, memory->handle, 0, VK_WHOLE_SIZE, 0,
+					&memory->mapping);
 
 	// TODO: handle coherent case
 	u32 alignment_mask = m_non_coherent_atom_size - 1;
@@ -271,8 +267,8 @@ Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryUsage usage, const VkMemoryRe
 	if(m_domains[domain].validDomain(reqs.memoryTypeBits))
 		return alloc(domain, reqs.size, reqs.alignment);
 
-	return ERROR("Couldn't find a memory domain which will satisfy type mask: 0x%",
-				 stdFormat("%x", reqs.memoryTypeBits));
+	return FWK_ERROR("Couldn't find a memory domain which will satisfy type mask: 0x%",
+					 stdFormat("%x", reqs.memoryTypeBits));
 }
 
 auto VulkanMemoryManager::budget() const -> EnumMap<VMemoryDomain, Budget> {

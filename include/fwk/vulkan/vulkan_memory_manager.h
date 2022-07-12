@@ -48,7 +48,7 @@ class VulkanMemoryManager {
 	// Memory will be automatically flushed in finishFrame()
 	// Memory should be filled immediately after calling accessMemory
 	// accessMemory may invalidate previous mappings
-	Ex<Span<char>> accessMemory(const VMemoryBlock &);
+	Span<char> accessMemory(const VMemoryBlock &);
 
   private:
 	void beginFrame();

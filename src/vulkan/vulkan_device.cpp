@@ -208,22 +208,20 @@ Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain, PVImageView dep
 	return m_render_graph->initialize(ref(), swap_chain, depth);
 }
 
-Ex<void> VulkanDevice::beginFrame() {
+void VulkanDevice::beginFrame() {
 	ASSERT(m_render_graph);
-	EXPECT(m_render_graph->beginFrame());
+	m_render_graph->beginFrame();
 	m_swap_frame_index = m_render_graph->swapFrameIndex();
 	m_memory->beginFrame();
 	m_descriptors->beginFrame(m_swap_frame_index);
 	releaseObjects(m_swap_frame_index);
-	return {};
 }
 
-Ex<void> VulkanDevice::finishFrame() {
+void VulkanDevice::finishFrame() {
 	DASSERT(m_render_graph);
 	m_descriptors->finishFrame();
 	m_memory->finishFrame();
-	EXPECT(m_render_graph->finishFrame());
-	return {};
+	m_render_graph->finishFrame();
 }
 
 VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache; }

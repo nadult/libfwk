@@ -4,7 +4,6 @@
 #pragma once
 
 #include "fwk/str.h"
-#include "fwk/sys/expected.h"
 #include "fwk/variant.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
@@ -160,8 +159,8 @@ class VulkanRenderGraph {
 
 	Ex<void> initialize(VDeviceRef, PVSwapChain, PVImageView);
 
-	Ex<void> beginFrame();
-	Ex<void> finishFrame();
+	void beginFrame();
+	void finishFrame();
 
 	struct FrameContext {
 		VkCommandBuffer cmd_buffer;

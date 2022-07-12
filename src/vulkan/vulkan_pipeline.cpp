@@ -214,8 +214,7 @@ Ex<PVRenderPass> VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachm
 	ci.pDependencies = &dependency;
 
 	VkRenderPass handle;
-	if(vkCreateRenderPass(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateRenderPass failed");
+	FWK_VK_EXPECT_CALL(vkCreateRenderPass, device->handle(), &ci, nullptr, &handle);
 	auto out = device->createObject(handle);
 	out->m_colors = colors;
 	out->m_depth = depth;
@@ -243,8 +242,7 @@ Ex<PVPipelineLayout> VulkanPipelineLayout::create(VDeviceRef device, vector<VDSL
 	ci.pPushConstantRanges = nullptr;
 
 	VkPipelineLayout handle;
-	if(vkCreatePipelineLayout(device->handle(), &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreatePipelineLayout failed");
+	FWK_VK_EXPECT_CALL(vkCreatePipelineLayout, device->handle(), &ci, nullptr, &handle);
 	return device->createObject(handle, move(dsls));
 }
 
@@ -427,9 +425,8 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	ci.basePipelineIndex = -1;
 
 	VkPipeline handle;
-	if(vkCreateGraphicsPipelines(device->handle(), device->pipelineCache(), 1, &ci, nullptr,
-								 &handle) != VK_SUCCESS)
-		return ERROR("vkCreateGraphicsPipelines failed");
+	FWK_VK_EXPECT_CALL(vkCreateGraphicsPipelines, device->handle(), device->pipelineCache(), 1, &ci,
+					   nullptr, &handle);
 	return device->createObject(handle, setup.render_pass, pipeline_layout);
 }
 }

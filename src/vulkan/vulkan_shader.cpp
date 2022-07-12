@@ -60,8 +60,7 @@ Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> byt
 	ci.pCode = reinterpret_cast<const u32 *>(bytecode.data());
 
 	VkShaderModule handle;
-	if(vkCreateShaderModule(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateShaderModule failed");
+	FWK_VK_EXPECT_CALL(vkCreateShaderModule, device, &ci, nullptr, &handle);
 	return device->createObject(handle, stage, move(infos));
 }
 

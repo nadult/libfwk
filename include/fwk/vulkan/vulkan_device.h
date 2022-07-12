@@ -40,8 +40,8 @@ class VulkanDevice {
 	const VulkanMemoryManager &memory() const { return *m_memory; }
 	VulkanMemoryManager &memory() { return *m_memory; }
 
-	Ex<void> beginFrame();
-	Ex<void> finishFrame();
+	void beginFrame();
+	void finishFrame();
 
 	VkPipelineCache pipelineCache();
 

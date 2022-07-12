@@ -75,8 +75,7 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 			}
 	}
 
-	if(vkCreateSwapchainKHR(device, &ci, nullptr, &handle) != VK_SUCCESS)
-		return ERROR("vkCreateSwapchainKHR failed");
+	FWK_VK_EXPECT_CALL(vkCreateSwapchainKHR, device, &ci, nullptr, &handle);
 	auto out = device->createObject(handle, window);
 
 	vector<VkImage> images;

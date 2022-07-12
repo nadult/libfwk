@@ -56,11 +56,10 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 		auto fb = EX_PASS(VulkanFramebuffer::create(m_device.ref(), {image_view}, depth_buffer));
 		m_framebuffers.emplace_back(move(fb));
 	}
-
 	return {};
 }
 
-Ex<void> VulkanRenderGraph::beginFrame() {
+void VulkanRenderGraph::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_frame_index];
 
@@ -71,28 +70,26 @@ Ex<void> VulkanRenderGraph::beginFrame() {
 	uint32_t image_index;
 	auto result = vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX,
 										frame.image_available_sem, VK_NULL_HANDLE, &image_index);
+	// TODO: handle NOT_READY
 	if(!isOneOf(result, VK_SUCCESS, VK_SUBOPTIMAL_KHR))
-		FATAL("vkAcquireNextImageKHR failed");
+		FWK_VK_FATAL("vkAcquireNextImageKHR", result);
 	m_image_index = image_index;
 
 	vkResetCommandBuffer(frame.command_buffer, 0);
 	VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 	bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	if(vkBeginCommandBuffer(frame.command_buffer, &bi) != VK_SUCCESS)
-		return ERROR("vkBeginCommandBuffer failed");
+	FWK_VK_CALL(vkBeginCommandBuffer, frame.command_buffer, &bi);
 
 	m_status = Status::frame_running;
-	return {};
 }
 
-Ex<void> VulkanRenderGraph::finishFrame() {
+void VulkanRenderGraph::finishFrame() {
 	DASSERT(m_status == Status::frame_running);
 	flushCommands();
 	m_status = Status::frame_finished;
 
 	auto &frame = m_frames[m_frame_index];
-	if(vkEndCommandBuffer(frame.command_buffer) != VK_SUCCESS)
-		return ERROR("vkEndCommandBuffer failed");
+	FWK_VK_CALL(vkEndCommandBuffer, frame.command_buffer);
 
 	VkSemaphore waitSemaphores[] = {frame.image_available_sem};
 	VkSemaphore signalSemaphores[] = {frame.render_finished_sem};
@@ -111,8 +108,7 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 	auto queues = m_device.queues();
 	auto graphicsQueue = queues.front().first;
 	auto presentQueue = queues.back().first;
-	if(vkQueueSubmit(graphicsQueue, 1, &submitInfo, frame.in_flight_fence) != VK_SUCCESS)
-		return ERROR("vkQueueSubmit failed");
+	FWK_VK_CALL(vkQueueSubmit, graphicsQueue, 1, &submitInfo, frame.in_flight_fence);
 
 	VkSwapchainKHR swapChains[] = {m_swap_chain};
 
@@ -124,15 +120,12 @@ Ex<void> VulkanRenderGraph::finishFrame() {
 	presentInfo.pImageIndices = &m_image_index;
 	presentInfo.pResults = nullptr; // Optional
 
-	if(vkQueuePresentKHR(presentQueue, &presentInfo) != VK_SUCCESS)
-		return ERROR("vkQueuePresentKHR failed");
+	FWK_VK_CALL(vkQueuePresentKHR, presentQueue, &presentInfo);
 	m_frame_index = (m_frame_index + 1) % VulkanLimits::num_swap_frames;
 
 	// TODO: staging buffers destruction should be hooked to fence
 	m_staging_buffers.clear();
 	m_last_pipeline_layout.reset();
-
-	return {};
 }
 
 void VulkanRenderGraph::bind(PVPipelineLayout layout) { m_last_pipeline_layout = layout; }
@@ -160,12 +153,12 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
 		DASSERT(cmd.offset <= mem_block.size);
 		// TODO: better checks
 		mem_block.size = min<u32>(mem_block.size - cmd.offset, cmd.data.size());
-		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.data);
+		copy(mem_mgr.accessMemory(mem_block), cmd.data);
 	} else {
 		auto staging_buffer = EX_PASS(VulkanBuffer::create(
 			m_device.ref(), cmd.data.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
 		auto mem_block = staging_buffer->memoryBlock();
-		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.data);
+		copy(mem_mgr.accessMemory(mem_block), cmd.data);
 		VkBufferCopy copy_params{
 			.srcOffset = 0, .dstOffset = cmd.offset, .size = (VkDeviceSize)cmd.data.size()};
 		m_commands.emplace_back(
@@ -187,12 +180,12 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUploadImage cmd) {
 	if(canBeMapped(mem_block.id.domain())) {
 		// TODO: better checks
 		mem_block.size = min<u32>(mem_block.size, data_size);
-		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.image.data().reinterpret<char>());
+		copy(mem_mgr.accessMemory(mem_block), cmd.image.data().reinterpret<char>());
 	} else {
 		auto staging_buffer = EX_PASS(VulkanBuffer::create(
 			m_device.ref(), data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
 		auto mem_block = staging_buffer->memoryBlock();
-		copy(EX_PASS(mem_mgr.accessMemory(mem_block)), cmd.image.data().reinterpret<char>());
+		copy(mem_mgr.accessMemory(mem_block), cmd.image.data().reinterpret<char>());
 		m_commands.emplace_back(CmdCopyImage{.src = staging_buffer, .dst = cmd.dst});
 		m_staging_buffers.emplace_back(move(staging_buffer));
 	}

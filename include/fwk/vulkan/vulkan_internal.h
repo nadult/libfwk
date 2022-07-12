@@ -53,6 +53,7 @@ Error makeVkError(const char *file, int line, VkResult, const char *function_nam
 [[noreturn]] void fatalVkError(const char *file, int line, VkResult, const char *function_name);
 
 #define FWK_VK_ERROR(func_name, result) makeVkError(__FILE__, __LINE__, result, func_name);
+#define FWK_VK_FATAL(func_name, result) fatalVkError(__FILE__, __LINE__, result, func_name);
 
 // Calls given function with passed arguments, returns ERROR on error
 #define FWK_VK_EXPECT_CALL(func, ...)                                                              \
@@ -67,7 +68,7 @@ Error makeVkError(const char *file, int line, VkResult, const char *function_nam
 	{                                                                                              \
 		auto result = func(__VA_ARGS__);                                                           \
 		if(result < 0)                                                                             \
-			fatalVkError(__FILE__, __LINE__, result, #func);                                       \
+			FWK_VK_FATAL(#func, result);                                                           \
 	}
 
 }
