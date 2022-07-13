@@ -18,12 +18,16 @@ namespace fwk {
 class InputState;
 class InputEvent;
 
-DEFINE_ENUM(VWindowFlag, fullscreen, fullscreen_desktop, resizable, centered, maximized,
-			allow_hidpi);
+DEFINE_ENUM(VWindowFlag, fullscreen, fullscreen_desktop, resizable, centered, maximized, minimized,
+			allow_hidpi, sleep_when_minimized);
 using VWindowFlags = EnumFlags<VWindowFlag>;
+
+DECLARE_ENUM(WindowEvent);
 
 class VulkanWindow {
   public:
+	using Flag = VWindowFlag;
+
 	static Ex<VWindowRef> create(VInstanceRef, ZStr title, IRect rect, VWindowFlags);
 
 	VkSurfaceKHR surfaceHandle() const;
@@ -46,13 +50,16 @@ class VulkanWindow {
 
 	int displayIndex() const;
 	float dpiScale() const;
-	VWindowFlags flags() const;
 
 	// Only accepted: none, fullscreen or fullscreen_desktop
 	void setFullscreen(VWindowFlags);
 
-	bool isFullscreen() const;
-	bool isMaximized() const;
+	bool isFullscreen() const { return flags() & (Flag::fullscreen | Flag::fullscreen_desktop); }
+
+	// Some of this state is only updated during pollEvents()
+	VWindowFlags flags() const;
+	bool isMaximized() const { return flags() & Flag::maximized; }
+	bool isMinimized() const { return flags() & Flag::minimized; }
 
 	double frameTime() const;
 

@@ -156,15 +156,11 @@ bool InputState::isMouseButtonDown(InputButton key) const { return m_mouse_butto
 bool InputState::isMouseButtonUp(InputButton key) const { return m_mouse_buttons[key] == -1; }
 bool InputState::isMouseButtonPressed(InputButton key) const { return m_mouse_buttons[key] == 2; }
 
-vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_window) {
-	vector<InputEvent> events;
+void InputState::pollEvents(const SDLKeyMap &key_map, vector<InputEvent> &input_events,
+							vector<WindowEvent> &window_events, void *sdl_window) {
 	SDL_Event event;
 
 	if(m_is_initialized) {
-#ifdef FWK_PLATFORM_HTML
-		SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
-#endif
-
 		for(auto &key_state : m_keys)
 			if(key_state.second >= 0)
 				key_state.second++;
@@ -183,6 +179,8 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 	m_mouse_wheel = 0;
 	m_text.clear();
 
+	auto window_id = SDL_GetWindowID((SDL_Window *)sdl_window);
+
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
 		case SDL_KEYDOWN: {
@@ -196,7 +194,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 					is_pressed = true;
 			if(!is_pressed) {
 				m_keys.emplace_back(key_id, 0);
-				events.emplace_back(Type::key_down, key_id, 0);
+				input_events.emplace_back(Type::key_down, key_id, 0);
 			}
 			break;
 		}
@@ -207,7 +205,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 			if(text) {
 				m_text += *text;
 				for(auto ch : *text)
-					events.emplace_back(ch);
+					input_events.emplace_back(ch);
 			}
 			break;
 		}
@@ -216,7 +214,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 			if(key_id == -1)
 				break;
 
-			events.emplace_back(Type::key_up, key_id, 0);
+			input_events.emplace_back(Type::key_up, key_id, 0);
 			for(auto &key_state : m_keys)
 				if(key_state.first == key_id)
 					key_state.second = -1;
@@ -243,28 +241,36 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 			}
 			if(button_id) {
 				m_mouse_buttons[*button_id] = is_down ? 1 : -1;
-				events.emplace_back(is_down ? Type::mouse_button_down : Type::mouse_button_up,
-									*button_id);
+				input_events.emplace_back(is_down ? Type::mouse_button_down : Type::mouse_button_up,
+										  *button_id);
 			}
 			break;
 		}
 		case SDL_MOUSEWHEEL:
 			m_mouse_wheel = event.wheel.y;
 			break;
+		case SDL_WINDOWEVENT:
+			if(event.window.windowID == window_id) {
+				if(event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+					window_events.emplace_back(WindowEvent::minimized);
+				else if(event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
+					window_events.emplace_back(WindowEvent::maximized);
+				else if(event.window.event == SDL_WINDOWEVENT_RESTORED)
+					window_events.emplace_back(WindowEvent::restored);
+			}
+			break;
+
 		case SDL_QUIT:
-			events.emplace_back(Type::quit);
+			window_events.emplace_back(WindowEvent::quit);
+			input_events.emplace_back(Type::quit);
 			break;
 		}
 	}
 
-#ifdef FWK_PLATFORM_HTML
-	SDL_GetMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
-#else
 	int2 window_pos;
 	SDL_GetWindowPosition((SDL_Window *)sdl_window, &window_pos.x, &window_pos.y);
 	SDL_GetGlobalMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
 	m_mouse_pos -= window_pos;
-#endif
 
 	EnumMap<InputModifier, int> mod_map = {{{InputModifier::lshift, InputKey::lshift},
 											{InputModifier::rshift, InputKey::rshift},
@@ -276,7 +282,7 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 	InputModifiers modifiers;
 	for(const auto &key_state : m_keys) {
 		if(key_state.second >= 1)
-			events.emplace_back(Type::key_pressed, key_state.first, key_state.second);
+			input_events.emplace_back(Type::key_pressed, key_state.first, key_state.second);
 		if(key_state.second >= 0) {
 			for(auto mod : all<InputModifier>)
 				if(key_state.first == mod_map[mod])
@@ -286,12 +292,9 @@ vector<InputEvent> InputState::pollEvents(const SDLKeyMap &key_map, void *sdl_wi
 
 	for(auto button : all<InputButton>)
 		if(m_mouse_buttons[button] == 2)
-			events.emplace_back(Type::mouse_button_pressed, button);
-	events.emplace_back(Type::mouse_over);
-
-	for(auto &event : events)
+			input_events.emplace_back(Type::mouse_button_pressed, button);
+	input_events.emplace_back(Type::mouse_over);
+	for(auto &event : input_events)
 		event.init(modifiers, m_mouse_pos, m_mouse_move, m_mouse_wheel);
-
-	return events;
 }
 }

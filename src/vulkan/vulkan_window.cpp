@@ -30,13 +30,12 @@
 
 namespace fwk {
 
-using Flag = VWindowFlag;
-
 struct VulkanWindow::Impl {
 	VWindowId id;
 	VInstanceRef instance_ref;
-	VWindowFlags flags;
 	bool sdl_initialized = false;
+	bool is_closing = false;
+	VWindowFlags flags = none;
 	SDL_Window *window = nullptr;
 	SDLKeyMap key_map;
 	InputState input_state;
@@ -65,26 +64,23 @@ Ex<VWindowRef> VulkanWindow::create(VInstanceRef instance_ref, ZStr title, IRect
 	return window;
 }
 
+static const EnumMap<VWindowFlag, uint> window_flags_map = {
+	{SDL_WINDOW_FULLSCREEN, SDL_WINDOW_FULLSCREEN_DESKTOP, SDL_WINDOW_RESIZABLE, 0,
+	 SDL_WINDOW_MAXIMIZED, SDL_WINDOW_MINIMIZED, SDL_WINDOW_ALLOW_HIGHDPI, 0}};
+
 Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
-	m_impl->flags = flags;
 	int sdl_flags = SDL_WINDOW_VULKAN;
+	for(auto flag : flags)
+		sdl_flags |= window_flags_map[flag];
 	DASSERT(!((flags & Flag::fullscreen) && (flags & Flag::fullscreen_desktop)));
+	DASSERT(!((flags & Flag::minimized) && (flags & Flag::maximized)));
 
 	if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) // TODO: input ?
 		return ERROR("SDL_InitSubSystem failed");
 	m_impl->sdl_initialized = true;
+	m_impl->flags = flags;
 
 	int2 pos = rect.min(), size = rect.size();
-	if(flags & Flag::fullscreen)
-		sdl_flags |= SDL_WINDOW_FULLSCREEN;
-	if(flags & Flag::fullscreen_desktop)
-		sdl_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-	if(flags & Flag::resizable)
-		sdl_flags |= SDL_WINDOW_RESIZABLE;
-	if(flags & Flag::allow_hidpi)
-		sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
-	if(flags & Flag::maximized)
-		sdl_flags |= SDL_WINDOW_MAXIMIZED;
 	if(flags & Flag::centered)
 		pos.x = pos.y = SDL_WINDOWPOS_CENTERED;
 	m_impl->window = SDL_CreateWindow(title.c_str(), pos.x, pos.y, size.x, size.y, sdl_flags);
@@ -202,22 +198,10 @@ EnumMap<RectSide, int> VulkanWindow::border() const {
 void VulkanWindow::setFullscreen(VWindowFlags flags) {
 	DASSERT(!flags || isOneOf(flags, Flag::fullscreen, Flag::fullscreen_desktop));
 
-	uint sdl_flags = flags == Flag::fullscreen		   ? SDL_WINDOW_FULLSCREEN :
-					 flags == Flag::fullscreen_desktop ? SDL_WINDOW_FULLSCREEN_DESKTOP :
-														   0;
+	uint sdl_flags = 0;
+	for(auto flag : flags)
+		sdl_flags |= window_flags_map[flag];
 	SDL_SetWindowFullscreen(m_impl->window, sdl_flags);
-	auto mask = Flag::fullscreen | Flag::fullscreen_desktop;
-	// TODO: fullscreen status can also be change externally, we should be able to track it
-	m_impl->flags = (m_impl->flags & ~mask) | (mask & flags);
-}
-
-bool VulkanWindow::isFullscreen() const {
-	return flags() & (Flag::fullscreen | Flag::fullscreen_desktop);
-}
-
-bool VulkanWindow::isMaximized() const {
-	auto flags = SDL_GetWindowFlags(m_impl->window);
-	return (flags & SDL_WINDOW_MAXIMIZED) != 0;
 }
 
 int VulkanWindow::displayIndex() const { return SDL_GetWindowDisplayIndex(m_impl->window); }
@@ -237,11 +221,38 @@ int2 VulkanWindow::extent() const {
 }
 
 bool VulkanWindow::pollEvents() {
-	m_impl->input_events = m_impl->input_state.pollEvents(m_impl->key_map, m_impl->window);
-	for(const auto &event : m_impl->input_events)
-		if(event.type() == InputEventType::quit)
-			return false;
-	return true;
+	vector<WindowEvent> window_events;
+	m_impl->input_events.clear();
+	m_impl->input_state.pollEvents(m_impl->key_map, m_impl->input_events, window_events,
+								   m_impl->window);
+	for(auto event : window_events) {
+		switch(event) {
+		case WindowEvent::maximized:
+			m_impl->flags &= ~Flag::minimized;
+			m_impl->flags |= Flag::maximized;
+			break;
+		case WindowEvent::minimized:
+			m_impl->flags |= Flag::minimized;
+			m_impl->flags &= ~Flag::maximized;
+			break;
+		case WindowEvent::restored:
+			m_impl->flags &= ~(Flag::maximized | Flag::minimized);
+			break;
+		case WindowEvent::quit:
+			m_impl->is_closing = true;
+			break;
+		}
+	}
+
+	auto sdl_flags = SDL_GetWindowFlags(m_impl->window);
+	auto update_flags = VWindowFlag::fullscreen | VWindowFlag::fullscreen_desktop;
+	m_impl->flags &= ~update_flags;
+	VWindowFlags out;
+	for(auto flag : update_flags)
+		if(sdl_flags & window_flags_map[flag])
+			out |= flag;
+
+	return !m_impl->is_closing;
 }
 
 void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
@@ -253,6 +264,10 @@ void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 		m_impl->frame_time = m_impl->last_time < 0.0 ? 0.0 : time - m_impl->last_time;
 		m_impl->last_time = time;
 
+		if(m_impl->flags & Flag::sleep_when_minimized && isMinimized()) {
+			sleep(0.01);
+			continue;
+		}
 		if(!main_loop_func(*this, arg))
 			break;
 	}

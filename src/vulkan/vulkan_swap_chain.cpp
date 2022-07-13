@@ -138,7 +138,7 @@ void VulkanSwapChain::release() {
 	m_handle = nullptr;
 }
 
-bool VulkanSwapChain::isValid() const { return m_handle != nullptr; }
+bool VulkanSwapChain::isValid() const { return m_handle != nullptr && m_status != Status::invalid; }
 
 Ex<void> VulkanSwapChain::recreate() {
 	if(m_handle)

@@ -92,6 +92,8 @@ DEFINE_ENUM(InputModifier, lshift, rshift, lctrl, rctrl, lalt, ralt);
 DEFINE_ENUM(InputEventType, empty, quit, key_down, key_up, key_pressed, key_char, mouse_button_down,
 			mouse_button_up, mouse_button_pressed, mouse_over);
 
+DEFINE_ENUM(WindowEvent, quit, minimized, maximized, restored);
+
 using InputModifiers = EnumFlags<InputModifier>;
 
 // Keeps all the information about single input event (mouse or keyboard)
@@ -176,7 +178,9 @@ class InputState {
 	int mouseWheelMove() const { return m_mouse_wheel; }
 
   private:
-	vector<InputEvent> pollEvents(const SDLKeyMap &, void *);
+	void pollEvents(const SDLKeyMap &, vector<InputEvent> &, vector<WindowEvent> &,
+					void *sdl_window);
+
 	friend class GlDevice;
 	friend class VulkanWindow;
 

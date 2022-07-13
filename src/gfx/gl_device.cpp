@@ -93,7 +93,7 @@ struct GlDevice::WindowImpl {
 		int ver_major = int(config.version);
 		int ver_minor = int((config.version - float(ver_major)) * 10.0);
 		int profile = config.profile == GlProfile::compatibility ?
-														  SDL_GL_CONTEXT_PROFILE_COMPATIBILITY :
+						  SDL_GL_CONTEXT_PROFILE_COMPATIBILITY :
 					  config.profile == GlProfile::es ? SDL_GL_CONTEXT_PROFILE_ES :
 														  SDL_GL_CONTEXT_PROFILE_CORE;
 
@@ -350,8 +350,10 @@ int GlDevice::swapInterval() { return SDL_GL_GetSwapInterval(); }
 void GlDevice::setSwapInterval(int value) { SDL_GL_SetSwapInterval(value); }
 
 bool GlDevice::pollEvents() {
-	m_input_impl->events =
-		m_input_impl->state.pollEvents(m_input_impl->key_map, m_window_impl->window);
+	vector<WindowEvent> window_events;
+	m_input_impl->events.clear();
+	m_input_impl->state.pollEvents(m_input_impl->key_map, m_input_impl->events, window_events,
+								   m_window_impl->window);
 	for(const auto &event : m_input_impl->events)
 		if(event.type() == InputEventType::quit)
 			return false;

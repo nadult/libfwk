@@ -257,15 +257,20 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	bool all_good = false;
-	if(ctx.device->beginFrame()) {
+	bool is_valid = ctx.device->renderGraph().swapChain()->isValid();
+	if(!is_valid) {
+		print("Recreating swap chain...\n");
+		auto result = ctx.device->renderGraph().swapChain()->recreate();
+		if(result)
+			is_valid = true;
+		else
+			result.error().print();
+	}
+
+	if(is_valid && ctx.device->beginFrame()) {
 		drawFrame(ctx, positions).check();
 		if(ctx.device->finishFrame())
-			all_good = true;
-	}
-	if(!all_good) {
-		auto result = ctx.device->renderGraph().swapChain()->recreate();
-		result.check();
+			is_valid = false;
 	}
 
 	updateFPS(window);
@@ -286,7 +291,8 @@ Ex<int> exMain() {
 	setup.debug_types = all<VDebugType>;
 	auto instance = EX_PASS(VulkanInstance::create(setup));
 
-	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi;
+	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi |
+				 VWindowFlag::sleep_when_minimized;
 	auto window =
 		EX_PASS(VulkanWindow::create(instance, "fwk::test_window", IRect(0, 0, 1280, 720), flags));
 
