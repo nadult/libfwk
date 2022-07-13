@@ -12,7 +12,7 @@ VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, VMemoryBlock memory_bl
 						   VBufferUsageFlags usage)
 	: VulkanObjectBase(handle, id), m_memory_block(memory_block), m_usage(usage) {}
 VulkanBuffer::~VulkanBuffer() {
-	deferredHandleRelease<VkBuffer, vkDestroyBuffer>();
+	deferredRelease<vkDestroyBuffer>(m_handle);
 	if(m_memory_block.id.requiresFree())
 		deferredFree(m_memory_block.id);
 }

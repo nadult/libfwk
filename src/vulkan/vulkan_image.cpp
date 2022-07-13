@@ -16,7 +16,7 @@ VulkanImage::VulkanImage(VkImage handle, VObjectId id, VMemoryBlock mem_block,
 
 VulkanImage::~VulkanImage() {
 	if(!m_is_external) {
-		deferredHandleRelease<VkImage, vkDestroyImage>();
+		deferredRelease<vkDestroyImage>(m_handle);
 		if(m_memory_block.id.requiresFree())
 			deferredFree(m_memory_block.id);
 	}
@@ -61,7 +61,7 @@ PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VIm
 }
 
 VulkanImageView::VulkanImageView(VkImageView handle, VObjectId id) : VulkanObjectBase(handle, id) {}
-VulkanImageView ::~VulkanImageView() { deferredHandleRelease<VkImageView, vkDestroyImageView>(); }
+VulkanImageView ::~VulkanImageView() { deferredRelease<vkDestroyImageView>(m_handle); }
 
 PVImageView VulkanImageView::create(VDeviceRef device, PVImage image) {
 	VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};

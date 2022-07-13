@@ -69,6 +69,9 @@ DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached,
 			protected_, device_coherent_amd, device_uncached_amd);
 using VMemoryFlags = EnumFlags<VMemoryFlag>;
 
+DEFINE_ENUM(VQueueCap, graphics, compute, transfer);
+using VQueueCaps = EnumFlags<VQueueCap>;
+
 DEFINE_ENUM(VCommandPoolFlag, transient, reset_command, protected_);
 using VCommandPoolFlags = EnumFlags<VCommandPoolFlag>;
 

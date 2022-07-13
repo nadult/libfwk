@@ -28,68 +28,37 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 		return;
 	vkDeviceWaitIdle(m_device_handle);
 	for(auto &frame : m_frames) {
-		vkDestroySemaphore(m_device_handle, frame.image_available_sem, nullptr);
 		vkDestroySemaphore(m_device_handle, frame.render_finished_sem, nullptr);
 		vkDestroyFence(m_device_handle, frame.in_flight_fence, nullptr);
 	}
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
 
-Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain,
-									   PVImageView depth_buffer) {
+Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain) {
 	m_swap_chain = swap_chain;
-	auto queue_family = device->queues().front().second;
+	auto queue = device->findFirstQueue(VQueueCap::graphics);
+	EXPECT(queue);
 
 	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
-	m_command_pool = createVkCommandPool(device, queue_family, pool_flags);
+	m_command_pool = createVkCommandPool(device, queue->family_id, pool_flags);
 	for(auto &frame : m_frames) {
 		frame.command_buffer = allocVkCommandBuffer(device, m_command_pool);
-		frame.image_available_sem = createVkSemaphore(device);
 		frame.render_finished_sem = createVkSemaphore(device);
 		frame.in_flight_fence = createVkFence(device, true);
 	}
 
-	// TODO: handle depth buffer properly
-	m_framebuffers = transform(m_swap_chain->imageViews(), [&](PVImageView image_view) {
-		return VulkanFramebuffer::create(device, {image_view});
-	});
 	return {};
 }
 
-void VulkanRenderGraph::recreateSwapChain() {
-	m_swap_chain->recreate();
-	m_framebuffers = transform(m_swap_chain->imageViews(), [&](PVImageView image_view) {
-		return VulkanFramebuffer::create(m_device.ref(), {image_view});
-	});
-}
-
-VkFormat VulkanRenderGraph::swapChainFormat() const {
-	return m_swap_chain->imageViews()[0]->format();
-}
-
-int2 VulkanRenderGraph::swapChainExtent() const { return m_swap_chain->imageViews()[0]->extent(); }
-
-void VulkanRenderGraph::beginFrame() {
+bool VulkanRenderGraph::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_frame_index];
 
+	if(!m_swap_chain->acquireImage())
+		return false;
+
 	VkFence fences[] = {frame.in_flight_fence};
 	vkWaitForFences(m_device_handle, 1, fences, VK_TRUE, UINT64_MAX);
-
-	uint image_index;
-	auto result = vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX,
-										frame.image_available_sem, VK_NULL_HANDLE, &image_index);
-	if(result == VK_SUBOPTIMAL_KHR) {
-		recreateSwapChain();
-		result = vkAcquireNextImageKHR(m_device_handle, m_swap_chain, UINT64_MAX,
-									   frame.image_available_sem, VK_NULL_HANDLE, &image_index);
-	}
-
-	// TODO: handle NOT_READY
-	if(!isOneOf(result, VK_SUCCESS, VK_SUBOPTIMAL_KHR))
-		FWK_VK_FATAL("vkAcquireNextImageKHR", result);
-	m_image_index = image_index;
-
 	vkResetFences(m_device_handle, 1, fences);
 
 	vkResetCommandBuffer(frame.command_buffer, 0);
@@ -98,9 +67,11 @@ void VulkanRenderGraph::beginFrame() {
 	FWK_VK_CALL(vkBeginCommandBuffer, frame.command_buffer, &bi);
 
 	m_status = Status::frame_running;
+	return true;
 }
 
-void VulkanRenderGraph::finishFrame() {
+bool VulkanRenderGraph::finishFrame() {
+	auto wait_on_sem = m_swap_chain->acquiredImage().available_sem;
 	DASSERT(m_status == Status::frame_running);
 	flushCommands();
 	m_status = Status::frame_finished;
@@ -108,46 +79,28 @@ void VulkanRenderGraph::finishFrame() {
 	auto &frame = m_frames[m_frame_index];
 	FWK_VK_CALL(vkEndCommandBuffer, frame.command_buffer);
 
-	VkSemaphore waitSemaphores[] = {frame.image_available_sem};
-	VkSemaphore signalSemaphores[] = {frame.render_finished_sem};
-	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-	VkCommandBuffer cmd_bufs[1] = {frame.command_buffer};
+	VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = &wait_on_sem;
+	submit_info.pWaitDstStageMask = wait_stages;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &frame.command_buffer;
+	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores = &frame.render_finished_sem;
 
-	VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = cmd_bufs;
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	auto queues = m_device.queues();
-	auto graphics_queue = queues.front().first;
-	auto present_queue = queues.back().first;
-	FWK_VK_CALL(vkQueueSubmit, graphics_queue, 1, &submitInfo, frame.in_flight_fence);
-
-	VkSwapchainKHR swapChains[] = {m_swap_chain};
-
-	VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &m_image_index;
-	presentInfo.pResults = nullptr; // Optional
-
-	auto present_result = vkQueuePresentKHR(present_queue, &presentInfo);
-	if(present_result == VK_ERROR_OUT_OF_DATE_KHR)
-		recreateSwapChain();
-	else if(present_result < 0)
-		FWK_VK_FATAL("vkQueuePresentKHR", present_result);
+	auto queue = m_device.findFirstQueue(VQueueCap::graphics);
+	if(!queue)
+		FATAL("Device has no queue with graphics capability");
+	FWK_VK_CALL(vkQueueSubmit, queue->handle, 1, &submit_info, frame.in_flight_fence);
 	m_frame_index = (m_frame_index + 1) % VulkanLimits::num_swap_frames;
 
 	// TODO: staging buffers destruction should be hooked to fence
 	m_staging_buffers.clear();
 	m_last_pipeline_layout.reset();
 	m_last_viewport = {};
+
+	return m_swap_chain->presentImage(frame.render_finished_sem);
 }
 
 void VulkanRenderGraph::bind(PVPipelineLayout layout) { m_last_pipeline_layout = layout; }

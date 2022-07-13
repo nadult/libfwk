@@ -75,7 +75,7 @@ DescriptorBindingInfo::divideSets(CSpan<DescriptorBindingInfo> merged) {
 
 VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplerSetup &params)
 	: VulkanObjectBase(handle, id), m_params(params) {}
-VulkanSampler::~VulkanSampler() { deferredHandleRelease<VkSampler, vkDestroySampler>(); }
+VulkanSampler::~VulkanSampler() { deferredRelease<vkDestroySampler>(m_handle); }
 
 VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index, PVBuffer buffer,
 															   Maybe<BufferRange> range) {
@@ -133,7 +133,7 @@ VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 VulkanRenderPass ::~VulkanRenderPass() {
 	// TODO: here we probably don't need defer
-	deferredHandleRelease<VkRenderPass, vkDestroyRenderPass>();
+	deferredRelease<vkDestroyRenderPass>(m_handle);
 }
 
 u32 VulkanRenderPass::hashConfig(CSpan<VColorAttachment> colors, const VDepthAttachment *depth) {
@@ -227,7 +227,7 @@ VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id
 	: VulkanObjectBase(handle, id), m_dsls(move(dsls)) {}
 VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	// TODO: do we really need deferred?
-	deferredHandleRelease<VkPipelineLayout, vkDestroyPipelineLayout>();
+	deferredRelease<vkDestroyPipelineLayout>(m_handle);
 }
 
 PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> dsls) {
@@ -249,7 +249,7 @@ PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> 
 VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
 							   PVPipelineLayout lt)
 	: VulkanObjectBase(handle, id), m_render_pass(rp), m_layout(lt) {}
-VulkanPipeline::~VulkanPipeline() { deferredHandleRelease<VkPipeline, vkDestroyPipeline>(); }
+VulkanPipeline::~VulkanPipeline() { deferredRelease<vkDestroyPipeline>(m_handle); }
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	DASSERT(setup.render_pass);

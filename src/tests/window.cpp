@@ -150,12 +150,11 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 
 	auto &render_graph = ctx.device->renderGraph();
 	auto swap_chain = render_graph.swapChain();
-	auto sc_image = swap_chain->imageViews().front()->image();
-	auto extent = sc_image->extent();
+
 	VPipelineSetup setup;
 	setup.shader_modules = shader_modules;
 	// TODO: maybe pass ColorAttachment directly?
-	setup.render_pass = ctx.device->getRenderPass({{sc_image->format(), 1}});
+	setup.render_pass = ctx.device->getRenderPass({{swap_chain->format(), 1}});
 	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,
 					VFrontFace::cw};
 	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
@@ -180,7 +179,6 @@ Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
 }
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
-	ctx.device->beginFrame();
 	auto &render_graph = ctx.device->renderGraph();
 
 	//UBOData ubo;
@@ -188,8 +186,9 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	//auto ubuffer = EX_PASS(createUniformBuffer(ctx));
 	//EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
-	auto sc_format = render_graph.swapChainFormat();
-	auto sc_extent = render_graph.swapChainExtent();
+	auto swap_chain = render_graph.swapChain();
+	auto sc_format = swap_chain->format();
+	auto sc_extent = swap_chain->extent();
 	auto render_pass = ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}});
 
 	// TODO: viewport? remove orient ?
@@ -212,7 +211,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
-	auto fb = render_graph.defaultFramebuffer();
+	auto fb = render_graph.swapChain()->acquiredImage().framebuffer; // TODO
 
 	render_graph << CmdBeginRenderPass{
 		fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
@@ -223,8 +222,6 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	render_graph << CmdEndRenderPass{};
 	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
 	// Only queue uploads ?
-
-	ctx.device->finishFrame();
 
 	return {};
 }
@@ -260,7 +257,16 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	drawFrame(ctx, positions).check();
+	bool all_good = false;
+	if(ctx.device->beginFrame()) {
+		drawFrame(ctx, positions).check();
+		if(ctx.device->finishFrame())
+			all_good = true;
+	}
+	if(!all_good) {
+		auto result = ctx.device->renderGraph().swapChain()->recreate();
+		result.check();
+	}
 
 	updateFPS(window);
 
@@ -284,7 +290,7 @@ Ex<int> exMain() {
 	auto window =
 		EX_PASS(VulkanWindow::create(instance, "fwk::test_window", IRect(0, 0, 1280, 720), flags));
 
-	VulkanDeviceSetup dev_setup;
+	VDeviceSetup dev_setup;
 	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);
 	if(!pref_device)
 		return ERROR("Couldn't find a suitable Vulkan device");
@@ -293,8 +299,8 @@ Ex<int> exMain() {
 	print("Selected Vulkan physical device: %\nDriver version: %\n",
 		  phys_info.properties.deviceName, phys_info.properties.driverVersion);
 
-	auto swap_chain = VulkanSwapChain::create(device, window,
-											  {.preferred_present_mode = VPresentMode::immediate});
+	auto swap_chain = EX_PASS(VulkanSwapChain::create(
+		device, window, {.preferred_present_mode = VPresentMode::immediate}));
 	EXPECT(device->createRenderGraph(swap_chain));
 
 	VulkanContext ctx{device, window};
@@ -307,8 +313,7 @@ Ex<int> exMain() {
 	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
 	ctx.sampler = ctx.device->createSampler({});
 
-	auto sc_format = ctx.device->renderGraph().swapChainFormat();
-	ctx.renderer2d_pipes = Renderer2D::makeVulkanPipelines(ctx.device, sc_format).get();
+	ctx.renderer2d_pipes = Renderer2D::makeVulkanPipelines(ctx.device, swap_chain->format()).get();
 
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;

@@ -60,12 +60,11 @@ template <class T> class VulkanObjectBase {
 	template <class> friend class VPtr;
 
 	using ReleaseFunc = void (*)(void *, void *, VkDevice);
-	void deferredHandleRelease(void *, void *, ReleaseFunc);
+	void deferredRelease(void *, void *, ReleaseFunc);
 	void deferredFree(VMemoryBlockId);
 
-	template <class THandle, void (*vk_func)(VkDevice, THandle, const VkAllocationCallbacks *)>
-	void deferredHandleRelease() {
-		deferredHandleRelease(m_handle, nullptr, [](void *p0, void *p1, VkDevice device) {
+	template <auto vk_func, class THandle> void deferredRelease(THandle handle) {
+		deferredRelease(handle, nullptr, [](void *p0, void *p1, VkDevice device) {
 			vk_func(device, (THandle)p0, nullptr);
 		});
 	}

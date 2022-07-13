@@ -20,6 +20,7 @@
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
+#include "fwk/vulkan/vulkan_window.h"
 
 // TODO: add option to hook an error handler which in case of (for example) out of memory error
 // it can try to reclaim some memory by clearing the caches
@@ -104,7 +105,7 @@ VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef
 	ASSERT(m_instance_ref->valid(m_phys_id));
 }
 
-Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
+Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	EXPECT(!setup.queues.empty());
 
 	vector<VkDeviceQueueCreateInfo> queue_cis;
@@ -147,11 +148,13 @@ Ex<void> VulkanDevice::initialize(const VulkanDeviceSetup &setup) {
 	g_vk_storage.device_handles[m_id] = m_handle;
 
 	m_queues.reserve(setup.queues.size());
-	for(auto &queue_def : setup.queues) {
-		for(int i : intRange(queue_def.count)) {
+	for(auto &def : setup.queues) {
+		for(int i : intRange(def.count)) {
 			VkQueue queue = nullptr;
-			vkGetDeviceQueue(m_handle, queue_def.family_id, i, &queue);
-			m_queues.emplace_back(queue, queue_def.family_id);
+			vkGetDeviceQueue(m_handle, def.family_id, i, &queue);
+			uint vk_flags = phys_info.queue_families[def.family_id].queueFlags;
+			VQueueCaps caps(vk_flags & VQueueCaps::mask);
+			m_queues.emplace_back(queue, def.family_id, caps);
 		}
 	}
 
@@ -209,26 +212,35 @@ VulkanDevice::~VulkanDevice() {
 	}
 }
 
-Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain, PVImageView depth) {
-	DASSERT(!m_render_graph && "Render graph already initialized");
-	m_render_graph = new VulkanRenderGraph(ref());
-	return m_render_graph->initialize(ref(), swap_chain, depth);
+Maybe<VQueue> VulkanDevice::findFirstQueue(VQueueCaps caps) const {
+	for(auto &queue : m_queues)
+		if((queue.caps & caps) == caps)
+			return queue;
+	return none;
 }
 
-void VulkanDevice::beginFrame() {
+Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {
+	DASSERT(!m_render_graph && "Render graph already initialized");
+	m_render_graph = new VulkanRenderGraph(ref());
+	return m_render_graph->initialize(ref(), swap_chain);
+}
+
+bool VulkanDevice::beginFrame() {
 	ASSERT(m_render_graph);
-	m_render_graph->beginFrame();
+	if(!m_render_graph->beginFrame())
+		return false;
 	m_swap_frame_index = m_render_graph->swapFrameIndex();
 	m_memory->beginFrame();
 	m_descriptors->beginFrame(m_swap_frame_index);
 	releaseObjects(m_swap_frame_index);
+	return true;
 }
 
-void VulkanDevice::finishFrame() {
+bool VulkanDevice::finishFrame() {
 	DASSERT(m_render_graph);
 	m_descriptors->finishFrame();
 	m_memory->finishFrame();
-	m_render_graph->finishFrame();
+	return m_render_graph->finishFrame();
 }
 
 void VulkanDevice::waitForIdle() {
@@ -363,7 +375,7 @@ template <class T> void VulkanObjectBase<T>::destroyObject() {
 }
 
 template <class T>
-void VulkanObjectBase<T>::deferredHandleRelease(void *p0, void *p1, ReleaseFunc release_func) {
+void VulkanObjectBase<T>::deferredRelease(void *p0, void *p1, ReleaseFunc release_func) {
 	auto &device = reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[deviceId()]);
 	device.deferredRelease(p0, p1, release_func);
 }
@@ -377,9 +389,8 @@ template <class T> void VulkanObjectBase<T>::deferredFree(VMemoryBlockId block_i
 	template Pair<void *, VObjectId> VulkanDevice::allocObject<Vulkan##UpperCase>();               \
 	template void VulkanDevice::destroyObject(VulkanObjectBase<Vulkan##UpperCase> *);              \
 	template void VulkanObjectBase<Vulkan##UpperCase>::destroyObject();                            \
-	template void VulkanObjectBase<Vulkan##UpperCase>::deferredHandleRelease(void *, void *,       \
-																			 ReleaseFunc);         \
+	template void VulkanObjectBase<Vulkan##UpperCase>::deferredRelease(void *, void *,             \
+																	   ReleaseFunc);               \
 	template void VulkanObjectBase<Vulkan##UpperCase>::deferredFree(VMemoryBlockId);
 #include "fwk/vulkan/vulkan_type_list.h"
-
 }

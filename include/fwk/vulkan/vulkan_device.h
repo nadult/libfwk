@@ -11,15 +11,21 @@
 
 namespace fwk {
 
-struct VulkanQueueSetup {
+struct VQueueSetup {
 	VQueueFamilyId family_id;
 	int count;
 };
 
-struct VulkanDeviceSetup {
+struct VDeviceSetup {
 	vector<string> extensions;
-	vector<VulkanQueueSetup> queues;
+	vector<VQueueSetup> queues;
 	Dynamic<VkPhysicalDeviceFeatures> features;
+};
+
+struct VQueue {
+	VkQueue handle = nullptr;
+	VQueueFamilyId family_id = VQueueFamilyId(0);
+	VQueueCaps caps;
 };
 
 class VulkanDevice {
@@ -30,19 +36,20 @@ class VulkanDevice {
 	VkDevice handle() const { return m_handle; }
 	VkPhysicalDevice physHandle() const { return m_phys_handle; }
 
-	CSpan<Pair<VkQueue, VQueueFamilyId>> queues() const { return m_queues; }
+	CSpan<VQueue> queues() const { return m_queues; }
+	Maybe<VQueue> findFirstQueue(VQueueCaps) const;
+
 	VDeviceFeatures features() const { return m_features; }
 
-	Ex<void> createRenderGraph(PVSwapChain, PVImageView depth_buffer = none);
+	Ex<void> createRenderGraph(PVSwapChain);
 	const VulkanRenderGraph &renderGraph() const { return *m_render_graph; }
 	VulkanRenderGraph &renderGraph() { return *m_render_graph; }
 
 	const VulkanMemoryManager &memory() const { return *m_memory; }
 	VulkanMemoryManager &memory() { return *m_memory; }
 
-	void beginFrame();
-	void finishFrame();
-
+	bool beginFrame();
+	bool finishFrame();
 	void waitForIdle();
 
 	VkPipelineCache pipelineCache();
@@ -81,7 +88,7 @@ class VulkanDevice {
 	VulkanDevice(const VulkanDevice &) = delete;
 	void operator=(const VulkanDevice &) = delete;
 
-	Ex<void> initialize(const VulkanDeviceSetup &);
+	Ex<void> initialize(const VDeviceSetup &);
 
 	friend class VulkanInstance;
 	friend class VulkanStorage;
@@ -98,7 +105,7 @@ class VulkanDevice {
 	Dynamic<VulkanMemoryManager> m_memory;
 
 	VDeviceFeatures m_features;
-	vector<Pair<VkQueue, VQueueFamilyId>> m_queues;
+	vector<VQueue> m_queues;
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;
 	VInstanceRef m_instance_ref;

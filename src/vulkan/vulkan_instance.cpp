@@ -18,16 +18,14 @@
 
 namespace fwk {
 
-vector<VQueueFamilyId> VulkanPhysicalDeviceInfo::findQueues(VQueueFlags flags) const {
+vector<VQueueFamilyId> VulkanPhysicalDeviceInfo::findQueues(VQueueCaps caps) const {
 	vector<VQueueFamilyId> out;
 	out.reserve(queue_families.size());
+	auto vk_caps = toVk(caps);
 	for(int idx : intRange(queue_families)) {
 		auto &queue = queue_families[idx];
-		if((flags & VQueueFlag::compute) && !(queue.queueFlags & VK_QUEUE_COMPUTE_BIT))
-			continue;
-		if((flags & VQueueFlag::graphics) && !(queue.queueFlags & VK_QUEUE_GRAPHICS_BIT))
-			continue;
-		out.emplace_back(idx);
+		if((queue.queueFlags & vk_caps) == vk_caps)
+			out.emplace_back(idx);
 	}
 	return out;
 }
@@ -75,9 +73,9 @@ vector<string> VulkanInstance::availableLayers() {
 
 double VulkanPhysicalDeviceInfo::defaultScore() const {
 	double score = 0.0;
-	if(findQueues(VQueueFlag::graphics))
+	if(findQueues(VQueueCap::graphics))
 		score += 1000.0;
-	if(findQueues(VQueueFlag::compute))
+	if(findQueues(VQueueCap::compute))
 		score += 100.0;
 	if(properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		score += 10.0;
@@ -251,9 +249,8 @@ SimpleIndexRange<VPhysicalDeviceId> VulkanInstance::physicalDeviceIds() const {
 	return indexRange<VPhysicalDeviceId>(m_phys_devices.size());
 }
 
-Maybe<VPhysicalDeviceId>
-VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
-								vector<VulkanQueueSetup> *out_queues) const {
+Maybe<VPhysicalDeviceId> VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
+														 vector<VQueueSetup> *out_queues) const {
 	Maybe<VPhysicalDeviceId> best;
 	double best_score = -1.0;
 
@@ -263,9 +260,9 @@ VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
 		if(score <= best_score)
 			continue;
 
-		auto gfx_queues = info.findQueues(VQueueFlag::compute | VQueueFlag::graphics);
+		auto gfx_queues = info.findQueues(VQueueCap::compute | VQueueCap::graphics);
 		if(!gfx_queues)
-			gfx_queues = info.findQueues(VQueueFlag::graphics);
+			gfx_queues = info.findQueues(VQueueCap::graphics);
 		auto present_queues = info.findPresentableQueues(target_surface);
 		if(!gfx_queues || !present_queues)
 			continue;
@@ -280,7 +277,7 @@ VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
 		best = id;
 
 		if(out_queues) {
-			vector<VulkanQueueSetup> queue_setup;
+			vector<VQueueSetup> queue_setup;
 			for(auto queue : sel_queues)
 				queue_setup.emplace_back(queue, 1);
 			*out_queues = move(queue_setup);
@@ -290,8 +287,7 @@ VulkanInstance::preferredDevice(VkSurfaceKHR target_surface,
 	return best;
 }
 
-Ex<VDeviceRef> VulkanInstance::createDevice(VPhysicalDeviceId phys_id,
-											const VulkanDeviceSetup &setup) {
+Ex<VDeviceRef> VulkanInstance::createDevice(VPhysicalDeviceId phys_id, const VDeviceSetup &setup) {
 	auto ref = EX_PASS(g_vk_storage.allocDevice(VInstanceRef(), phys_id));
 	EXPECT(ref->initialize(setup));
 	return ref;

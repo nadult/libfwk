@@ -58,9 +58,13 @@ void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 	if(is_initial) {
 		auto &device = *m_impl->device;
 		auto device_handle = device.handle();
-		auto queues = device.queues();
+		auto queue = device.findFirstQueue(VQueueCap::graphics);
+		ASSERT(queue); // TODO
+
+		m_impl->queue = *queue;
 		auto cmd_pool =
-			createVkCommandPool(device_handle, queues[0].second, VCommandPoolFlag::transient);
+			createVkCommandPool(device_handle, queue->family_id, VCommandPoolFlag::transient);
+		// TODO: auto release for cmd_pool
 		auto cmd_buffer = allocVkCommandBuffer(device_handle, cmd_pool);
 
 		VkCommandBufferBeginInfo begin_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -72,7 +76,7 @@ void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 		end_info.commandBufferCount = 1;
 		end_info.pCommandBuffers = &cmd_buffer;
 		FWK_VK_CALL(vkEndCommandBuffer, cmd_buffer);
-		vkQueueSubmit(queues[0].first, 1, &end_info, VK_NULL_HANDLE);
+		vkQueueSubmit(queue->handle, 1, &end_info, VK_NULL_HANDLE);
 
 		FWK_VK_CALL(vkDeviceWaitIdle, device_handle);
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -125,13 +129,12 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 	info.Instance = VulkanInstance::ref()->handle();
 	info.PhysicalDevice = device->physHandle();
 	info.Device = device->handle();
-	auto queues = device->queues();
-	info.QueueFamily = queues[0].second;
-	info.Queue = queues[0].first;
+	info.QueueFamily = m_impl->queue.family_id;
+	info.Queue = m_impl->queue.handle;
 	info.PipelineCache = device->pipelineCache();
 
 	auto &rgraph = device->renderGraph();
-	info.ImageCount = info.MinImageCount = rgraph.swapChain()->imageViews().size();
+	info.ImageCount = info.MinImageCount = rgraph.swapChain()->images().size();
 	info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	info.CheckVkResultFn = [](VkResult result) {
 		if(result < 0) {

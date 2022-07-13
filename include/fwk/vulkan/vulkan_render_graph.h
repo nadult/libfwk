@@ -126,8 +126,6 @@ class VulkanRenderGraph {
   public:
 	~VulkanRenderGraph();
 
-	VkFormat swapChainFormat() const;
-	int2 swapChainExtent() const;
 	PVSwapChain swapChain() const { return m_swap_chain; }
 
 	// Commands are first enqueued and only with large enough context
@@ -154,14 +152,6 @@ class VulkanRenderGraph {
 	Status status() const { return m_status; }
 	int swapFrameIndex() const { return m_frame_index; }
 
-	int swapImageIndex() const {
-		DASSERT(m_status != Status::init);
-		return m_image_index;
-	}
-	PVFramebuffer defaultFramebuffer() const { return m_framebuffers[swapImageIndex()]; }
-
-	void recreateSwapChain();
-
   private:
 	friend class VulkanDevice;
 	friend class Gui;
@@ -170,10 +160,10 @@ class VulkanRenderGraph {
 	VulkanRenderGraph(const VulkanRenderGraph &) = delete;
 	void operator=(const VulkanRenderGraph &) = delete;
 
-	Ex<void> initialize(VDeviceRef, PVSwapChain, PVImageView);
+	Ex<void> initialize(VDeviceRef, PVSwapChain);
 
-	void beginFrame();
-	void finishFrame();
+	bool beginFrame();
+	bool finishFrame();
 
 	struct FrameContext {
 		VkCommandBuffer cmd_buffer;
@@ -195,7 +185,6 @@ class VulkanRenderGraph {
 
 	struct FrameSync {
 		VkCommandBuffer command_buffer = nullptr;
-		VkSemaphore image_available_sem = nullptr;
 		VkSemaphore render_finished_sem = nullptr;
 		VkFence in_flight_fence = nullptr;
 	};
@@ -209,10 +198,8 @@ class VulkanRenderGraph {
 	VkDevice m_device_handle = nullptr;
 	PVSwapChain m_swap_chain;
 	FrameSync m_frames[VulkanLimits::num_swap_frames];
-	vector<PVFramebuffer> m_framebuffers;
 	VkCommandPool m_command_pool = nullptr;
 	uint m_frame_index = 0, m_image_index = 0;
 	Status m_status = Status::init;
 };
-
 }

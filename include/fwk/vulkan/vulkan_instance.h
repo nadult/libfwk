@@ -33,9 +33,6 @@ using VFeatures = EnumFlags<VFeature>;
 DEFINE_ENUM(VDebugLevel, verbose, info, warning, error);
 DEFINE_ENUM(VDebugType, general, validation, performance);
 
-DEFINE_ENUM(VQueueFlag, compute, graphics);
-using VQueueFlags = EnumFlags<VQueueFlag>;
-
 using VDebugLevels = EnumFlags<VDebugLevel>;
 using VDebugTypes = EnumFlags<VDebugType>;
 
@@ -50,7 +47,7 @@ struct VulkanInstanceSetup {
 
 struct VulkanPhysicalDeviceInfo {
 	// Returned queues are ordered in all find functions
-	vector<VQueueFamilyId> findQueues(VQueueFlags) const;
+	vector<VQueueFamilyId> findQueues(VQueueCaps) const;
 	vector<VQueueFamilyId> findPresentableQueues(VkSurfaceKHR) const;
 
 	int findMemoryType(u32 type_bits, VMemoryFlags) const;
@@ -63,53 +60,8 @@ struct VulkanPhysicalDeviceInfo {
 	vector<string> extensions;
 };
 
-struct VulkanQueueSetup;
-struct VulkanDeviceSetup;
-
-struct VResourceId {
-	static constexpr int max_vulkan_devices = 4;
-	static constexpr int max_resource_types = 32;
-	static_assert(count<VTypeId> <= max_resource_types);
-
-	VResourceId(VTypeId type_id, VDeviceId device_id, uint object_id)
-		: bits(object_id | (uint(device_id) << 25) | (uint(type_id) << 27)) {}
-	VResourceId() : bits(0) {}
-
-	uint bits;
-};
-
-struct VDownloadId {
-	uint res_id = 0;
-};
-
-struct VulkanUploadImageOp {
-	VResourceId image_id;
-	VkFormat format;
-	PodVector<u8> data;
-};
-
-struct VulkanUploadBufferOp {
-	VResourceId buffer_id;
-	PodVector<u8> data;
-	uint offset = 0;
-};
-
-struct VulkanDownloadBufferOp {
-	VResourceId buffer_id;
-	VDownloadId download_buffer_id;
-	uint offset = 0, size = 0;
-};
-
-struct VulkanDownloadImageOp {
-	VResourceId buffer_id;
-	VDownloadId download_image_id;
-	uint offset = 0, size = 0;
-};
-
-struct VulkanRenderOp {
-	VResourceId render_pass_id;
-	// TODO: ?
-};
+struct VQueueSetup;
+struct VDeviceSetup;
 
 // Singleton class for Vulkan instance object
 class VulkanInstance {
@@ -126,8 +78,8 @@ class VulkanInstance {
 	SimpleIndexRange<VPhysicalDeviceId> physicalDeviceIds() const;
 
 	Maybe<VPhysicalDeviceId> preferredDevice(VkSurfaceKHR target_surface,
-											 vector<VulkanQueueSetup> * = nullptr) const;
-	Ex<VDeviceRef> createDevice(VPhysicalDeviceId, const VulkanDeviceSetup &);
+											 vector<VQueueSetup> * = nullptr) const;
+	Ex<VDeviceRef> createDevice(VPhysicalDeviceId, const VDeviceSetup &);
 
 	VkInstance handle() { return m_handle; }
 	auto version() const { return m_version; }
