@@ -92,7 +92,7 @@ class SlabAllocator {
 
 		bool isChunkAlloc() const { return value & 0x80000000; }
 		int chunkId() const { return int(value & 0x3ff); }
-		int chunkGroupId() const { return int((value >> 10) & 0x1ffff); }
+		int chunkGroupId() const { return int((value >> 10) & 0xffff); }
 		int chunkLevelId() const { return int((value >> 26) & 31); }
 
 		bool isSlabAlloc() const { return !isChunkAlloc(); }

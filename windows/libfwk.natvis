@@ -91,7 +91,7 @@
   <Type Name="fwk::SlabAllocator::Identifier">
     <Expand>
       <Item Condition="(value &amp; 0x80000000) != 0" Name="chunk_id" >unsigned(value &amp; 0x3ff)</Item>
-      <Item Condition="(value &amp; 0x80000000) != 0" Name="chunk_group_id">unsigned(value >> 10) &amp; 0x1ffff</Item>
+      <Item Condition="(value &amp; 0x80000000) != 0" Name="chunk_group_id">unsigned(value >> 10) &amp; 0xffff</Item>
       <Item Condition="(value &amp; 0x80000000) != 0" Name="chunk_level_id">unsigned(value >> 26) &amp; 31</Item>
       <Item Condition="(value &amp; 0x80000000) == 0" Name="slab_id">unsigned(value &amp; 0x7ff)</Item>
       <Item Condition="(value &amp; 0x80000000) == 0" Name="slab_count">(unsigned(value >> 11) &amp; 0x7ff) + 1</Item>

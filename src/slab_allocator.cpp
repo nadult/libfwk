@@ -126,6 +126,8 @@ void SlabAllocator::free(Identifier ident) {
 		DASSERT_LT(level_id, num_chunk_levels);
 
 		auto &level = m_levels[level_id];
+
+		DASSERT_LT(group_id, level.groups.size());
 		auto &group = level.groups[group_id];
 
 		if(++group.num_free_chunks == 1)
