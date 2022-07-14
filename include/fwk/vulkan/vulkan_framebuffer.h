@@ -14,8 +14,9 @@ class VulkanFramebuffer : public VulkanObjectBase<VulkanFramebuffer> {
   public:
 	static constexpr int max_color_atts = VulkanLimits::max_color_attachments;
 
-	static PVFramebuffer create(VDeviceRef, CSpan<PVImageView> colors, PVImageView depth = none,
-								PVRenderPass = none);
+	static PVFramebuffer create(VDeviceRef, PVRenderPass, CSpan<PVImageView> colors,
+								PVImageView depth = none);
+	static u32 hashConfig(CSpan<PVImageView> colors, PVImageView depth);
 
 	// TODO: somehow mark Ptrs that they are non-null?
 	CSpan<PVImageView> colors() const { return m_colors; }

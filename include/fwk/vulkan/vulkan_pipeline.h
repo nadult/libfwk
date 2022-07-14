@@ -173,6 +173,7 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 
 	CSpan<VColorAttachment> colors() const { return m_colors; }
 	const Maybe<VDepthAttachment> &depth() const { return m_depth; }
+	u32 hash() const { return m_hash; }
 
   private:
 	friend class VulkanDevice;
@@ -181,6 +182,7 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 
 	StaticVector<VColorAttachment, max_colors> m_colors;
 	Maybe<VDepthAttachment> m_depth;
+	u32 m_hash;
 };
 
 class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {

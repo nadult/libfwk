@@ -137,9 +137,9 @@ VulkanRenderPass ::~VulkanRenderPass() {
 }
 
 u32 VulkanRenderPass::hashConfig(CSpan<VColorAttachment> colors, const VDepthAttachment *depth) {
-	auto out = hash(colors);
+	auto out = fwk::hash(colors);
 	if(depth)
-		out = combineHash(out, hash(*depth));
+		out = combineHash(out, fwk::hash(*depth));
 	return out;
 }
 

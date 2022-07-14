@@ -39,7 +39,11 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	auto usage() const { return m_usage; }
 	uint numSamples() const { return m_num_samples; }
 
+	// External image may become invalid (for example when swap chain is destroyed)
+	bool isValid() const { return m_is_valid; }
+
   private:
+	friend class VulkanSwapChain;
 	friend class VulkanDevice;
 	friend class VulkanRenderGraph;
 	VulkanImage(VkImage, VObjectId, VMemoryBlock, const VImageSetup &);
@@ -52,6 +56,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	VImageUsageFlags m_usage;
 	VImageLayout m_last_layout;
 	bool m_is_external = false;
+	bool m_is_valid = true;
 };
 
 class VulkanImageView : public VulkanObjectBase<VulkanImageView> {

@@ -209,7 +209,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
-	auto fb = ctx.device->swapChain()->acquiredImageFramebuffer(false);
+	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
 	render_graph << CmdBeginRenderPass{
 		fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};

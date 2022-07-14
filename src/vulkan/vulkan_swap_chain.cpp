@@ -5,7 +5,6 @@
 
 #include "fwk/sys/assert.h"
 #include "fwk/vulkan/vulkan_device.h"
-#include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
@@ -122,32 +121,28 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 	images.resize(num_images);
 	vkGetSwapchainImagesKHR(device, m_handle, &num_images, images.data());
 
-	m_images.resize(num_images);
+	m_image_views.resize(num_images);
 	for(int i : intRange(num_images)) {
-		auto &dst = m_images[i];
 		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), 1, color_usage, color_layout);
 		auto image = VulkanImage::createExternal(device, images[i], setup);
-		dst.view = VulkanImageView::create(device, image);
-		dst.framebuffer = VulkanFramebuffer::create(device, {dst.view});
-		dst.available_sem = createVkSemaphore(device);
+		m_image_views[i] = VulkanImageView::create(device, image);
 	}
+	for(auto &sem : m_semaphores)
+		sem = createVkSemaphore(device);
 
 	m_status = Status::initialized;
 	return {};
 }
 
 void VulkanSwapChain::release() {
-	deferredRelease<vkDestroySwapchainKHR>(m_handle);
-	for(auto &image : m_images) {
-		auto swap_image = image.view->image();
-		image.view = {};
-		image.framebuffer = {};
-		DASSERT("After SwapChain release/recreation, swap images will become invalid;\n"
-				"Make sure to release all handles to them (including ImageViews & Framebuffers)" &&
-				swap_image->refCount() == 1);
-		deferredRelease<vkDestroySemaphore>(image.available_sem);
+	for(auto &image_view : m_image_views)
+		image_view->image()->m_is_valid = false;
+	m_image_views.clear();
+	for(auto &sem : m_semaphores) {
+		deferredRelease<vkDestroySemaphore>(sem);
+		sem = nullptr;
 	}
-	m_images.clear();
+	deferredRelease<vkDestroySwapchainKHR>(m_handle);
 	m_handle = nullptr;
 }
 
@@ -166,48 +161,33 @@ Ex<void> VulkanSwapChain::recreate() {
 	return initialize(surf_info);
 }
 
-Ex<bool> VulkanSwapChain::acquireImage() {
+Ex<VkSemaphore> VulkanSwapChain::acquireImage() {
+	DASSERT(m_status != Status::image_acquired);
 	if(isOneOf(m_status, Status::invalid, Status::window_minimized)) {
 		EXPECT(recreate());
 		if(m_status == Status::window_minimized)
-			return false;
+			return nullptr;
 	}
 
-	DASSERT(m_status != Status::image_acquired);
-
-	int next_index = m_status == Status::initialized ? 0 : (m_image_index + 1) % m_images.size();
-	auto &available_sem = m_images[next_index].available_sem;
-	uint image_index;
 	VkResult result;
 	for(int retry = 0; retry < 2; retry++) {
-		result = vkAcquireNextImageKHR(deviceHandle(), m_handle, UINT64_MAX, available_sem,
-									   VK_NULL_HANDLE, &image_index);
+		result = vkAcquireNextImageKHR(deviceHandle(), m_handle, UINT64_MAX, m_semaphores[0],
+									   VK_NULL_HANDLE, &m_image_index);
 		if(result == VK_SUCCESS)
 			break;
 		EXPECT(recreate());
 		if(m_status == Status::window_minimized || retry > 0)
-			return false;
+			return nullptr;
 	}
 
-	if(image_index != next_index)
-		swap(available_sem, m_images[image_index].available_sem);
-	m_image_index = image_index;
 	m_status = Status::image_acquired;
-	return true;
+	swap(m_semaphores[0], m_semaphores[1]);
+	return m_semaphores[1];
 }
 
-int VulkanSwapChain::acquiredImageIndex() const {
+PVImageView VulkanSwapChain::acquiredImage() const {
 	DASSERT_EQ(m_status, Status::image_acquired);
-	return m_image_index;
-}
-
-const VulkanSwapChain::ImageInfo &VulkanSwapChain::acquiredImage() const {
-	return m_images[acquiredImageIndex()];
-}
-
-PVFramebuffer VulkanSwapChain::acquiredImageFramebuffer(bool with_depth) const {
-	// TODO
-	return m_images[acquiredImageIndex()].framebuffer;
+	return m_image_views[m_image_index];
 }
 
 Ex<bool> VulkanSwapChain::presentImage(CSpan<VkSemaphore> wait_sems) {

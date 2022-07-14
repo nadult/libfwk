@@ -31,36 +31,23 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 
 	VkFormat format() const { return m_format; }
 	int2 extent() const { return m_extent; }
+	int numImages() const { return m_image_views.size(); }
 
 	using Status = VSwapChainStatus;
 	Status status() const { return m_status; }
 
-	struct ImageInfo {
-		PVImageView view;
-		PVFramebuffer framebuffer;
-		VkSemaphore available_sem = nullptr;
-	};
-	CSpan<ImageInfo> images() const { return m_images; }
-
-	// Returns true if image was properly acquired; false means that acquisition failed
-	// and user should try again at a later time (for now the only reason is minimized window).
+	// Returns image_available semaphore if image was properly acquired;
+	// Returned nullptr means that acquisition failed and user should try again at a later time.
 	// Error may also be returned when swap chain recreation failed.
-	Ex<bool> acquireImage();
+	Ex<VkSemaphore> acquireImage();
+
+	// This function should only be called after successful acquireImage() & before presentImage()
+	PVImageView acquiredImage() const;
 
 	// Returns true if image was properly presented; Otherwise returns false which means
 	// that user should try again at a later time (starting with acquire). Error may also
 	// be returned when swap chain recreation failed.
 	Ex<bool> presentImage(CSpan<VkSemaphore> wait_sems);
-
-	// This function should only be called between acquireImage() & presentImage()
-	int acquiredImageIndex() const;
-	VkSemaphore imageAvailableSemaphore() const {
-		DASSERT_EQ(m_status, Status::image_acquired);
-		return m_images[m_image_index].available_sem;
-	}
-
-	const ImageInfo &acquiredImage() const;
-	PVFramebuffer acquiredImageFramebuffer(bool with_depth) const;
 
   private:
 	friend class VulkanDevice;
@@ -73,7 +60,8 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 
 	VWindowRef m_window;
 	VSwapChainSetup m_setup;
-	vector<ImageInfo> m_images;
+	vector<PVImageView> m_image_views;
+	VkSemaphore m_semaphores[2] = {};
 	VkQueue m_present_queue;
 	VkFormat m_format;
 	int2 m_extent;

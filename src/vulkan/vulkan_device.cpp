@@ -58,6 +58,21 @@ struct HashedRenderPass {
 	u32 hash_value;
 };
 
+struct HashedFramebuffer {
+	HashedFramebuffer(CSpan<PVImageView> colors, PVImageView depth, Maybe<u32> hash_value)
+		: colors(colors), depth(depth),
+		  hash_value(hash_value.orElse(VulkanFramebuffer::hashConfig(colors, depth))) {}
+
+	u32 hash() const { return hash_value; }
+	bool operator==(const HashedFramebuffer &rhs) const {
+		return hash_value == rhs.hash_value && colors == rhs.colors && depth == rhs.depth;
+	}
+
+	CSpan<PVImageView> colors;
+	PVImageView depth;
+	u32 hash_value;
+};
+
 struct HashedPipelineLayout {
 	HashedPipelineLayout(CSpan<VDSLId> dsls, Maybe<u32> hash_value)
 		: dsls(dsls), hash_value(hash_value.orElse(fwk::hash<u32>(dsls))) {}
@@ -89,6 +104,7 @@ struct VulkanDevice::ObjectPools {
 	VkPipelineCache pipeline_cache = nullptr;
 
 	HashMap<HashedRenderPass, PVRenderPass> hashed_render_passes;
+	HashMap<HashedFramebuffer, Pair<PVFramebuffer, int>> hashed_framebuffers;
 	HashMap<HashedPipelineLayout, PVPipelineLayout> hashed_pipeline_layouts;
 
 	EnumMap<VTypeId, vector<Pool>> pools;
@@ -177,6 +193,7 @@ VulkanDevice::~VulkanDevice() {
 	m_descriptors.reset();
 	m_render_graph.reset();
 	m_objects->hashed_render_passes.clear();
+	m_objects->hashed_framebuffers.clear();
 	m_objects->hashed_pipeline_layouts.clear();
 
 #ifndef NDEBUG
@@ -242,8 +259,8 @@ Ex<void> VulkanDevice::createRenderGraph() {
 Ex<bool> VulkanDevice::beginFrame() {
 	DASSERT(m_render_graph);
 	if(m_swap_chain) {
-		auto result = EX_PASS(m_swap_chain->acquireImage());
-		if(!result)
+		m_image_available_sem = EX_PASS(m_swap_chain->acquireImage());
+		if(!m_image_available_sem)
 			return false;
 	}
 	m_render_graph->beginFrame();
@@ -260,12 +277,14 @@ Ex<bool> VulkanDevice::finishFrame() {
 	m_memory->finishFrame();
 
 	if(m_swap_chain) {
-		auto image_available_sem = m_swap_chain->imageAvailableSemaphore();
-		auto render_finished_sem = m_render_graph->finishFrame(cspan(&image_available_sem, 1));
+		auto render_finished_sem = m_render_graph->finishFrame(cspan(&m_image_available_sem, 1));
 		EXPECT(m_swap_chain->presentImage(cspan(&render_finished_sem, 1)));
 	} else {
 		m_render_graph->finishFrame({});
 	}
+
+	cleanupFramebuffers();
+
 	return true;
 }
 
@@ -294,6 +313,28 @@ PVRenderPass VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
 	auto pointer = VulkanRenderPass::create(ref(), colors, depth);
 	auto depth_ptr = pointer->depth() ? &*pointer->depth() : nullptr;
 	hash_map.emplace(HashedRenderPass(pointer->colors(), depth_ptr, key.hash_value), pointer);
+	return pointer;
+}
+
+PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageView depth) {
+	HashedFramebuffer key(colors, depth, none);
+	auto &hash_map = m_objects->hashed_framebuffers;
+	auto it = hash_map.find(key);
+	if(it != hash_map.end()) {
+		it->value.second = 0;
+		return it->value.first;
+	}
+
+	StaticVector<VColorAttachment, VulkanLimits::max_color_attachments> color_atts;
+	for(auto color : colors)
+		color_atts.emplace_back(color->format(), color->numSamples());
+	Maybe<VDepthAttachment> depth_att;
+	if(depth)
+		depth_att = VDepthAttachment(depth->format(), depth->numSamples());
+	auto render_pass = getRenderPass(color_atts, depth_att);
+
+	auto pointer = VulkanFramebuffer::create(ref(), render_pass, colors, depth);
+	hash_map.emplace(HashedFramebuffer(pointer->colors(), depth, key.hash_value), pair{pointer, 0});
 	return pointer;
 }
 
@@ -343,6 +384,31 @@ PVSampler VulkanDevice::createSampler(const VSamplerSetup &params) {
 using ReleaseFunc = void (*)(void *, void *, VkDevice);
 void VulkanDevice::deferredRelease(void *param0, void *param1, ReleaseFunc func) {
 	m_objects->to_release[m_swap_frame_index].emplace_back(param0, param1, func);
+}
+
+// We're removing framebuffers which weren't used for some time, or those which
+// keep refs to images unreferenced anywhere else
+void VulkanDevice::cleanupFramebuffers() {
+	static constexpr int cleanup_num_frames = 16;
+
+	auto &hash_map = m_objects->hashed_framebuffers;
+	for(auto it = hash_map.begin(); it != hash_map.end(); ++it) {
+		auto &ref = *it->value.first;
+		if(ref.refCount() == 1) {
+			auto &unused_counter = it->value.second;
+			unused_counter++;
+
+			bool needs_cleanup = unused_counter >= cleanup_num_frames;
+			if(!needs_cleanup) {
+				bool last_refs = !ref.hasDepth() || ref.depth()->refCount() == 1;
+				for(auto &color : ref.colors())
+					last_refs &= color->refCount() == 1;
+				needs_cleanup = last_refs;
+			}
+			if(needs_cleanup)
+				hash_map.erase(it);
+		}
+	}
 }
 
 void VulkanDevice::releaseObjects(int frame_index) {

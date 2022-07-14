@@ -15,8 +15,8 @@ VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id)
 
 VulkanFramebuffer::~VulkanFramebuffer() { deferredRelease<vkDestroyFramebuffer>(m_handle); }
 
-PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, CSpan<PVImageView> colors,
-										PVImageView depth, PVRenderPass render_pass) {
+PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, PVRenderPass render_pass,
+										CSpan<PVImageView> colors, PVImageView depth) {
 	DASSERT(!colors.empty());
 	DASSERT(colors.size() <= VulkanLimits::max_color_attachments);
 
@@ -27,16 +27,6 @@ PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, CSpan<PVImageView> co
 	if(depth)
 		attachments[num_attachments++] = depth;
 	auto extent = colors[0]->extent();
-
-	if(!render_pass) {
-		StaticVector<VColorAttachment, max_color_atts> color_atts;
-		for(auto color : colors)
-			color_atts.emplace_back(color->format(), color->numSamples());
-		Maybe<VDepthAttachment> depth_att;
-		if(depth)
-			depth_att = VDepthAttachment(depth->format(), depth->numSamples());
-		render_pass = device->getRenderPass(color_atts, depth_att);
-	}
 
 	VkFramebufferCreateInfo ci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 	ci.renderPass = render_pass;
@@ -52,6 +42,14 @@ PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, CSpan<PVImageView> co
 	out->m_colors = colors;
 	out->m_depth = depth;
 	out->m_extent = extent;
+	return out;
+}
+
+u32 VulkanFramebuffer::hashConfig(CSpan<PVImageView> colors, PVImageView depth) {
+	u32 out = 123;
+	for(auto color : colors)
+		out = combineHash(out, fwk::hash(u64(color.get())));
+	out = combineHash(fwk::hash(u64(depth.get())), out);
 	return out;
 }
 }

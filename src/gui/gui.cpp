@@ -135,7 +135,7 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 
 	auto &rgraph = device->renderGraph();
 	auto swap_chain = device->swapChain();
-	info.ImageCount = info.MinImageCount = swap_chain->images().size();
+	info.ImageCount = info.MinImageCount = swap_chain->numImages();
 	info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	info.CheckVkResultFn = [](VkResult result) {
 		if(result < 0) {

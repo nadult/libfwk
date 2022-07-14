@@ -61,6 +61,7 @@ class VulkanDevice {
 
   public:
 	PVRenderPass getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
+	PVFramebuffer getFramebuffer(CSpan<PVImageView> colors, PVImageView depth = none);
 	PVPipelineLayout getPipelineLayout(CSpan<VDSLId>);
 	PVSampler createSampler(const VSamplerSetup &);
 
@@ -98,6 +99,8 @@ class VulkanDevice {
 
 	template <class TObject> Pair<void *, VObjectId> allocObject();
 	template <class TObject> void destroyObject(VulkanObjectBase<TObject> *);
+
+	void cleanupFramebuffers();
 	void releaseObjects(int swap_frame_index);
 	struct ObjectPools;
 
@@ -111,6 +114,7 @@ class VulkanDevice {
 	vector<VQueue> m_queues;
 	VkDevice m_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;
+	VkSemaphore m_image_available_sem = nullptr;
 	VInstanceRef m_instance_ref;
 	VPhysicalDeviceId m_phys_id;
 	VDeviceId m_id;
