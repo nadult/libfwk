@@ -36,9 +36,10 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 Ex<void> VulkanRenderGraph::initialize(VDeviceRef device) {
 	auto queue = device->findFirstQueue(VQueueCap::graphics);
 	EXPECT(queue);
+	m_queue = *queue;
 
 	auto pool_flags = VCommandPoolFlag::reset_command | VCommandPoolFlag::transient;
-	m_command_pool = createVkCommandPool(device, queue->family_id, pool_flags);
+	m_command_pool = createVkCommandPool(device, m_queue.family_id, pool_flags);
 	for(auto &frame : m_frames) {
 		frame.command_buffer = allocVkCommandBuffer(device, m_command_pool);
 		frame.render_finished_sem = createVkSemaphore(device);
@@ -82,10 +83,7 @@ VkSemaphore VulkanRenderGraph::finishFrame(CSpan<VkSemaphore> wait_on_sems) {
 	submit_info.signalSemaphoreCount = 1;
 	submit_info.pSignalSemaphores = &frame.render_finished_sem;
 
-	auto queue = m_device.findFirstQueue(VQueueCap::graphics);
-	if(!queue)
-		FATAL("Device has no queue with graphics capability");
-	FWK_VK_CALL(vkQueueSubmit, queue->handle, 1, &submit_info, frame.in_flight_fence);
+	FWK_VK_CALL(vkQueueSubmit, m_queue.handle, 1, &submit_info, frame.in_flight_fence);
 	m_frame_index = (m_frame_index + 1) % VulkanLimits::num_swap_frames;
 
 	// TODO: staging buffers destruction should be hooked to fence

@@ -193,6 +193,7 @@ class VulkanRenderGraph {
 	IRect m_last_viewport;
 
 	VulkanDevice &m_device;
+	VQueue m_queue;
 	VkDevice m_device_handle = nullptr;
 	FrameSync m_frames[VulkanLimits::num_swap_frames];
 	VkCommandPool m_command_pool = nullptr;

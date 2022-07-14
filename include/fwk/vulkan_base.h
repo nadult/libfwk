@@ -243,6 +243,12 @@ struct VDepthAttachment {
 	VDepthSync sync;
 };
 
+struct VQueue {
+	VkQueue handle = nullptr;
+	VQueueFamilyId family_id = VQueueFamilyId(0);
+	VQueueCaps caps;
+};
+
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;

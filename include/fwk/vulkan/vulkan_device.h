@@ -22,12 +22,6 @@ struct VDeviceSetup {
 	Dynamic<VkPhysicalDeviceFeatures> features;
 };
 
-struct VQueue {
-	VkQueue handle = nullptr;
-	VQueueFamilyId family_id = VQueueFamilyId(0);
-	VQueueCaps caps;
-};
-
 class VulkanDevice {
   public:
 	VDeviceRef ref() const { return VDeviceRef(m_id); }
