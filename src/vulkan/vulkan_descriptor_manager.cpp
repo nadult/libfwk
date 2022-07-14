@@ -13,6 +13,8 @@
 // TODO: more concise form of descriptor declarations
 // TODO: properly handling errors
 // TODO: we can have 12 handles in DSL with union with a ptr
+// TODO: more compressed form of binding infos (we could have for example
+// up to 20 bindings with either vertex+fragmenr or compute)
 
 // TODO: better name for Descriptor Set;
 // ShaderControl ? Board ?  Input / InputLayout ?

@@ -5,64 +5,24 @@
 #include <fwk/gfx/font.h>
 #include <fwk/gfx/font_factory.h>
 #include <fwk/gfx/font_finder.h>
-#include <fwk/gfx/gl_texture.h>
 #include <fwk/gfx/image.h>
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/io/file_system.h>
-#include <fwk/slab_allocator.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_buffer.h>
 #include <fwk/vulkan/vulkan_device.h>
-#include <fwk/vulkan/vulkan_framebuffer.h>
 #include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
-#include <fwk/vulkan/vulkan_memory_manager.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
 #include <fwk/vulkan/vulkan_render_graph.h>
-#include <fwk/vulkan/vulkan_shader.h>
 #include <fwk/vulkan/vulkan_swap_chain.h>
 #include <fwk/vulkan/vulkan_window.h>
-
-#include <vulkan/vulkan.h>
-
-// TODO: minimize errors, if possible; Unified handling of OOM errors? (both host & device?)
-
-// Czy zostawiæ OGL czy nie ?
-// Nie bêdê maintainowaæ dwóch wersji...
-// Jak ju¿ mam sensown¹ obs³ugê vulkana (innej nie chcê) to ogl jest mi po nic...
-// Na macu i tak bym u¿ywa³ moltenVk
-// wiêc mo¿e ju¿ teraz zacznijmy to przerabiaæ stopniowo wywalaj¹c stary oglowy kod ?
-
-// Co jeszcze musze zrobiæ?
-// - sensowne tworzenie obiektów pipeline-a i render-passy
-//   - automatyczne ustawianie layoutów ?
-//
-// - na razie mo¿emy olaæ subpassy
-//
-// - jakieœ cachew-owanie renderpassów i pipelineów?
-//   jak ?
-//
-// - jeœli mam renderer2D, to jak to konkretnie ma dzia³aæ ?
-//   renderujê na ekran, a co jeœli mam podpiêty depth buffer ?
-//   po prostu ignorujê depth buffer?
-//
-// - render2D wogóle nie powinien sam generowaæ komend, jedynie draw calle i ew. móg³by definiowac pipeline ?
-//   albo elementy pipeline-a .
-//
-//   u¿ytownik by sobie sk³ada³ te elementy w ca³y render pass ?
-//   Czy chcê render passy cache-owaæ ? moze nie koniecznie ?
-//
-// ³atwe konstruowanie opisów render passów i pipeline-ów
-//
-// z opisów muszê byæ w stanie szybko znaleŸæ odpowiedni obiekt pipeline-a, ¿eby go u¿yæ w komendach
-//
 
 // TODO: what should we do when error happens in begin/end frame?
 // TODO: proprly handle multiple queues
 // TODO: proprly differentiate between graphics, present & compute queues
 
-// TODO: handling VkResults
 // TODO: making sure that handles are correct ?
 // TODO: more type safety
 // TODO: VHandle<> class ? handles are not initialized to null by default ...
@@ -75,119 +35,26 @@
 
 using namespace fwk;
 
-const char *vertex_shader = R"(
-#version 450
-
-layout(location = 0) in vec2 inPosition;
-layout(location = 1) in vec3 inColor;
-layout(location = 2) in vec2 inTexCoord;
-
-layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec2 texCoord;
-
-layout(binding = 0) uniform UniformBufferObject {
-	float saturation;
-} ubo;
-
-void main() {
-	gl_Position = vec4(inPosition, 0.0, 1.0);
-	fragColor = inColor * (1.0 - ubo.saturation) + vec3(1.0) * ubo.saturation;
-	texCoord = inTexCoord;
-}
-)";
-
-const char *fragment_shader = R"(
-#version 450
-
-layout(location = 0) out vec4 outColor;
-
-layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 texCoord;
-
-layout(binding = 1) uniform sampler2D texSampler;
-
-void main() {
-	outColor = vec4(fragColor, 1.0) * texture(texSampler, texCoord);
-}
-)";
-
 string fontPath() {
 	if(platform == Platform::html)
 		return "data/LiberationSans-Regular.ttf";
 	return findDefaultSystemFont().get().file_path;
 }
 
-struct MyVertex {
-	float2 pos;
-	float3 color;
-	float2 texCoord;
-
-	static void addStreamDesc(vector<VVertexBinding> &bindings, vector<VVertexAttrib> &attribs,
-							  int index, int first_location) {
-		bindings.emplace_back(vertexBinding<MyVertex>(index));
-		attribs.emplace_back(vertexAttrib<float2>(first_location, index, 0));
-		attribs.emplace_back(vertexAttrib<float3>(first_location + 1, index, sizeof(pos)));
-		attribs.emplace_back(
-			vertexAttrib<float2>(first_location + 2, index, sizeof(pos) + sizeof(color)));
-	}
-};
-
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
-	PVPipeline pipeline;
 	Dynamic<Renderer2D::VulkanPipelines> renderer2d_pipes;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
 	PVImageView font_image_view;
-	PVSampler sampler;
 };
-
-Ex<void> createPipeline(VulkanContext &ctx) {
-	Pair<VShaderStage, ZStr> source_codes[] = {{VShaderStage::vertex, vertex_shader},
-											   {VShaderStage::fragment, fragment_shader}};
-	auto shader_modules = EX_PASS(VulkanShaderModule::compile(ctx.device, source_codes));
-	auto swap_chain = ctx.device->swapChain();
-
-	VPipelineSetup setup;
-	setup.shader_modules = shader_modules;
-	// TODO: maybe pass ColorAttachment directly?
-	setup.render_pass = ctx.device->getRenderPass({{swap_chain->format(), 1}});
-	setup.raster = {VPrimitiveTopology::triangle_list, VPolygonMode::fill, VCull::back,
-					VFrontFace::cw};
-	MyVertex::addStreamDesc(setup.vertex_bindings, setup.vertex_attribs, 0, 0);
-
-	ctx.pipeline = EX_PASS(VulkanPipeline::create(ctx.device, setup));
-	return {};
-}
-
-Ex<PVBuffer> createVertexBuffer(VulkanContext &ctx, CSpan<MyVertex> vertices) {
-	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
-	return VulkanBuffer::create<MyVertex>(ctx.device, vertices.size(), usage, VMemoryUsage::frame);
-}
-
-struct UBOData {
-	float saturation = 1.0;
-	float temp[15];
-};
-
-Ex<PVBuffer> createUniformBuffer(VulkanContext &ctx) {
-	auto usage = VBufferUsage::uniform_buffer | VBufferUsage::transfer_dst;
-	return VulkanBuffer::create<UBOData>(ctx.device, 1, usage, VMemoryUsage::frame);
-}
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	auto &render_graph = ctx.device->renderGraph();
 
-	//UBOData ubo;
-	//ubo.saturation = 0.25 + sin(getTime()) * 0.25;
-	//auto ubuffer = EX_PASS(createUniformBuffer(ctx));
-	//EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
-
 	auto swap_chain = ctx.device->swapChain();
-	auto sc_format = swap_chain->format();
 	auto sc_extent = swap_chain->extent();
-	auto render_pass = ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}});
 
 	// TODO: viewport? remove orient ?
 	Renderer2D renderer(IRect(sc_extent), Orient2D::y_up);
@@ -208,6 +75,8 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	Font font(*ctx.font_core, ctx.font_image_view);
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 
+	auto render_pass =
+		ctx.device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
 	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
@@ -218,23 +87,22 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
 	render_graph << CmdEndRenderPass{};
-	// TODO: final layout has to be present, middle layout shoud be different FFS! How to automate this ?!?
-	// Only queue uploads ?
 
 	return {};
 }
 
 // Old test_window perf:
-// 2260 on AMD Vega   -> 2500 -> 2550 -> 2570
-//  880 on RTX 3050   -> 1250 -> 1270 -> 1380
+// 2260 on AMD Vega   -> 2500 -> 2550 -> 2570 -> 2606
+//  880 on RTX 3050   -> 1250 -> 1270 -> 1380 -> 1355
 void updateTitleFPS(VulkanWindow &window, ZStr title_prefix) {
+	static Maybe<double> old_fps;
 	auto fps = window.fps();
-	string text;
-	if(!fps)
-		text = title_prefix;
-	else
-		text =
-			stdFormat(*fps > 100 ? "%s [FPS: %.0f]" : "%s [FPS: %.2f]", title_prefix.c_str(), *fps);
+	if(fps == old_fps)
+		return;
+	old_fps = fps;
+	string text = title_prefix;
+	if(fps)
+		text += stdFormat(*fps > 100 ? " [FPS: %.0f]" : " [FPS: %.2f]", *fps);
 	window.setTitle(text);
 }
 
@@ -288,8 +156,7 @@ Ex<int> exMain() {
 		return ERROR("Couldn't find a suitable Vulkan device");
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
 	auto phys_info = instance->info(device->physId());
-	print("Selected Vulkan physical device: %\nDriver version: %\n",
-		  phys_info.properties.deviceName, phys_info.properties.driverVersion);
+	print("Selected Vulkan device: %\n", phys_info.properties.deviceName);
 
 	auto swap_chain = EX_PASS(VulkanSwapChain::create(
 		device, window, {.preferred_present_mode = VPresentMode::immediate}));
@@ -297,14 +164,11 @@ Ex<int> exMain() {
 	EXPECT(device->createRenderGraph());
 
 	VulkanContext ctx{device, window};
-	EXPECT(createPipeline(ctx));
-
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
 	ctx.font_core = move(font_data.core);
 	ctx.font_image = EX_PASS(makeTexture(ctx, font_data.image));
 	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
-	ctx.sampler = ctx.device->createSampler({});
 
 	ctx.renderer2d_pipes =
 		EX_PASS(Renderer2D::makeVulkanPipelines(ctx.device, swap_chain->format()));

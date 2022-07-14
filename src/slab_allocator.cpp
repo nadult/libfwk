@@ -10,6 +10,9 @@
 #include "fwk/sys/expected.h"
 
 // TODO: add optional logging about allocated/freed chunks/slabs
+// TODO: free unused chunks to slabs; but we want to avoid constantly
+// allocating/deallocating whole chunk groups when a single element is being
+// constantly allocated/deallocated ? Several frame timeout for chunk free?
 
 namespace fwk {
 

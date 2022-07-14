@@ -26,8 +26,9 @@
 // it can try to reclaim some memory by clearing the caches
 // TODO: more concise form of descriptor declarations
 // TODO: remove unnecessary layers (at the end)
-// TODO: cleanup in queue interface
 // TODO: hide lower level functions somehow ?
+// TODO: deferred releases are a bit messy
+// TODO: per-frame buffers, images & image_views
 
 namespace fwk {
 
