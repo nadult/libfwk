@@ -43,6 +43,7 @@ template <class T> class VulkanObjectBase {
 
 	VObjectId objectId() const { return m_object_id; }
 	VDeviceId deviceId() const { return m_object_id.deviceId(); }
+	uint refCount() const { return m_ref_count; }
 
 	VDeviceRef deviceRef() const;
 	VkDevice deviceHandle() const;

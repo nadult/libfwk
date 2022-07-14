@@ -139,8 +139,12 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 void VulkanSwapChain::release() {
 	deferredRelease<vkDestroySwapchainKHR>(m_handle);
 	for(auto &image : m_images) {
+		auto swap_image = image.view->image();
 		image.view = {};
 		image.framebuffer = {};
+		DASSERT("After SwapChain release/recreation, swap images will become invalid;\n"
+				"Make sure to release all handles to them (including ImageViews & Framebuffers)" &&
+				swap_image->refCount() == 1);
 		deferredRelease<vkDestroySemaphore>(image.available_sem);
 	}
 	m_images.clear();
