@@ -33,16 +33,19 @@ namespace fwk {
 struct VulkanWindow::Impl {
 	VWindowId id;
 	VInstanceRef instance_ref;
-	bool sdl_initialized = false;
-	bool is_closing = false;
 	VWindowFlags flags = none;
 	SDL_Window *window = nullptr;
 	SDLKeyMap key_map;
 	InputState input_state;
 	VkSurfaceKHR surface_handle = 0;
 	vector<InputEvent> input_events;
-	double last_time = -1.0;
-	double frame_time = 0.0;
+
+	double prev_time = -1.0;
+	double fps = 0;
+	int num_frames = 0;
+
+	bool sdl_initialized = false;
+	bool is_closing = false;
 };
 
 VulkanWindow::VulkanWindow(VWindowId id, VInstanceRef instance_ref) {
@@ -259,19 +262,37 @@ void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 	PASSERT_GL_THREAD();
 	ASSERT(main_loop_func);
 	m_main_loop_stack.emplace_back(main_loop_func, arg);
-	while(pollEvents()) {
-		double time = getTime();
-		m_impl->frame_time = m_impl->last_time < 0.0 ? 0.0 : time - m_impl->last_time;
-		m_impl->last_time = time;
 
+	while(pollEvents()) {
 		if(m_impl->flags & Flag::sleep_when_minimized && isMinimized()) {
+			m_impl->prev_time = -1.0;
+			m_impl->num_frames = 0;
+			m_impl->fps = 0.0;
 			sleep(0.01);
 			continue;
 		}
+
+		double time = getTime();
+		if(m_impl->prev_time < 0.0)
+			m_impl->prev_time = time;
+		else {
+			m_impl->num_frames++;
+			auto diff = time - m_impl->prev_time;
+			if(diff > 1.0) {
+				m_impl->fps = double(m_impl->num_frames) / diff;
+				m_impl->num_frames = 0;
+				m_impl->prev_time = time;
+			}
+		}
+
 		if(!main_loop_func(*this, arg))
 			break;
 	}
 	m_main_loop_stack.pop_back();
+}
+
+Maybe<double> VulkanWindow::fps() const {
+	return m_impl->fps == 0.0 ? Maybe<double>() : m_impl->fps;
 }
 
 void VulkanWindow::grabMouse(bool grab) {
@@ -280,7 +301,6 @@ void VulkanWindow::grabMouse(bool grab) {
 
 void VulkanWindow::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
 
-double VulkanWindow::frameTime() const { return m_impl->frame_time; }
 const InputState &VulkanWindow::inputState() const { return m_impl->input_state; }
 const vector<InputEvent> &VulkanWindow::inputEvents() const { return m_impl->input_events; }
 }

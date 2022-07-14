@@ -61,7 +61,7 @@ class VulkanWindow {
 	bool isMaximized() const { return flags() & Flag::maximized; }
 	bool isMinimized() const { return flags() & Flag::minimized; }
 
-	double frameTime() const;
+	Maybe<double> fps() const;
 
 	void grabMouse(bool);
 	void showCursor(bool);

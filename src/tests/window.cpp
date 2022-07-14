@@ -227,17 +227,15 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 // Old test_window perf:
 // 2260 on AMD Vega   -> 2500 -> 2550 -> 2570
 //  880 on RTX 3050   -> 1250 -> 1270 -> 1380
-void updateFPS(VulkanWindow &window) {
-	static double prev_time = getTime();
-	static int num_frames = 0;
-	double cur_time = getTime();
-	num_frames++;
-	if(cur_time - prev_time > 1.0) {
-		int fps = double(num_frames) / (cur_time - prev_time);
-		window.setTitle(format("fwk::test_window [FPS: %]", fps));
-		prev_time = cur_time;
-		num_frames = 0;
-	}
+void updateTitleFPS(VulkanWindow &window, ZStr title_prefix) {
+	auto fps = window.fps();
+	string text;
+	if(!fps)
+		text = title_prefix;
+	else
+		text =
+			stdFormat(*fps > 100 ? "%s [FPS: %.0f]" : "%s [FPS: %.2f]", title_prefix.c_str(), *fps);
+	window.setTitle(text);
 }
 
 bool mainLoop(VulkanWindow &window, void *ctx_) {
@@ -260,7 +258,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 		ctx.device->finishFrame().check();
 	}
 
-	updateFPS(window);
+	updateTitleFPS(window, "fwk::test_window");
 
 	return true;
 }
