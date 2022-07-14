@@ -164,6 +164,10 @@ struct VPipelineSetup {
 	VDynamicState dynamic_state = VDynamic::viewport | VDynamic::scissor;
 };
 
+struct VComputePipelineSetup {
+	PVShaderModule compute_module;
+};
+
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
 	static constexpr int max_colors = VulkanLimits::max_color_attachments;
@@ -305,9 +309,11 @@ class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
 class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
   public:
 	static Ex<PVPipeline> create(VDeviceRef, VPipelineSetup);
+	static Ex<PVPipeline> create(VDeviceRef, const VComputePipelineSetup &);
 
 	PVRenderPass renderPass() const { return m_render_pass; }
 	PVPipelineLayout layout() const { return m_layout; }
+	auto bindPoint() const { return m_bind_point; }
 
   private:
 	friend class VulkanDevice;
@@ -316,5 +322,6 @@ class VulkanPipeline : public VulkanObjectBase<VulkanPipeline> {
 
 	PVRenderPass m_render_pass;
 	PVPipelineLayout m_layout;
+	VBindPoint m_bind_point = VBindPoint::graphics;
 };
 }

@@ -40,6 +40,7 @@ inline auto toVk(VFrontFace face) { return VkFrontFace(face); }
 inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
 inline auto toVk(VDynamic dynamic) { return VkDynamicState(dynamic); }
 inline auto toVk(VQueueCaps caps) { return VkQueueFlags(caps.bits); }
+inline auto toVk(VBindPoint bind_point) { return VkPipelineBindPoint(bind_point); }
 
 VkCommandBuffer allocVkCommandBuffer(VkDevice, VkCommandPool pool);
 VkSemaphore createVkSemaphore(VkDevice, bool is_signaled = false);

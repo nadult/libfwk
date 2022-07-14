@@ -75,6 +75,8 @@ using VQueueCaps = EnumFlags<VQueueCap>;
 DEFINE_ENUM(VCommandPoolFlag, transient, reset_command, protected_);
 using VCommandPoolFlags = EnumFlags<VCommandPoolFlag>;
 
+DEFINE_ENUM(VBindPoint, graphics, compute);
+
 DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel_buffer, storage_texel_buffer,
 			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer);
 using VBufferUsageFlags = EnumFlags<VBufferUsage>;

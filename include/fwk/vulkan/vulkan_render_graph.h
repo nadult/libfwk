@@ -49,12 +49,17 @@ struct CmdBindPipeline {
 	PVPipeline pipeline;
 };
 
+struct CmdDispatchCompute {
+	int3 size = {1, 1, 1};
+};
+
 struct VDescriptorSet;
 
 struct CmdBindDescriptorSet {
 	uint index = 0;
 	VkPipelineLayout pipe_layout = nullptr;
 	VkDescriptorSet set = nullptr;
+	VBindPoint bind_point = VBindPoint::graphics;
 };
 
 struct CmdSetViewport {
@@ -105,7 +110,7 @@ struct CmdEndRenderPass {};
 
 using Command = Variant<CmdCopy, CmdCopyImage, CmdSetViewport, CmdSetScissor, CmdBindDescriptorSet,
 						CmdBindVertexBuffers, CmdBindIndexBuffer, CmdBindPipeline, CmdDraw,
-						CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass>;
+						CmdDrawIndexed, CmdBeginRenderPass, CmdEndRenderPass, CmdDispatchCompute>;
 
 class StagingBuffer {
   public:
@@ -130,7 +135,7 @@ class VulkanRenderGraph {
 	// they are being performed
 	void enqueue(Command);
 
-	void bind(PVPipelineLayout);
+	void bind(PVPipelineLayout, VBindPoint = VBindPoint::graphics);
 	// Binds given descriptor set
 	void bindDS(int index, const VDescriptorSet &);
 	// Acquires new descriptor set and immediately binds it
@@ -144,11 +149,14 @@ class VulkanRenderGraph {
 
 	// This can only be called between beginFrame() & finishFrame()
 	void flushCommands();
-	VkCommandBuffer currentCommandBuffer();
 
 	enum class Status { init, frame_running, frame_finished };
 	Status status() const { return m_status; }
 	int swapFrameIndex() const { return m_frame_index; }
+
+	// These allow to submit some commands independently from frame commands
+	void beginCommands();
+	void finishCommands();
 
   private:
 	friend class VulkanDevice;
@@ -180,6 +188,7 @@ class VulkanRenderGraph {
 	void perform(FrameContext &, const CmdCopyImage &);
 	void perform(FrameContext &, const CmdBeginRenderPass &);
 	void perform(FrameContext &, const CmdEndRenderPass &);
+	void perform(FrameContext &, const CmdDispatchCompute &);
 
 	struct FrameSync {
 		VkCommandBuffer command_buffer = nullptr;
@@ -190,6 +199,7 @@ class VulkanRenderGraph {
 	vector<StagingBuffer> m_staging_buffers;
 	vector<Command> m_commands;
 	PVPipelineLayout m_last_pipeline_layout;
+	VBindPoint m_last_bind_point = VBindPoint::graphics;
 	IRect m_last_viewport;
 
 	VulkanDevice &m_device;

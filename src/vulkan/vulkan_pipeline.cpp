@@ -419,4 +419,31 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 					   nullptr, &handle);
 	return device->createObject(handle, setup.render_pass, pipeline_layout);
 }
+
+Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineSetup &setup) {
+	DASSERT(setup.compute_module);
+
+	auto descr_bindings = setup.compute_module->descriptorBindingInfos();
+	auto descr_sets = DescriptorBindingInfo::divideSets(descr_bindings);
+	vector<VDSLId> dsls;
+	dsls.reserve(descr_sets.size());
+	for(auto bindings : descr_sets)
+		dsls.emplace_back(device->getDSL(bindings));
+	auto pipeline_layout = device->getPipelineLayout(dsls);
+
+	VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
+	ci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	ci.stage.stage = toVk(setup.compute_module->stage());
+	ci.stage.module = setup.compute_module;
+	ci.stage.pName = "main";
+	ci.layout = pipeline_layout;
+	ci.basePipelineIndex = -1;
+
+	VkPipeline handle;
+	FWK_VK_EXPECT_CALL(vkCreateComputePipelines, device->handle(), device->pipelineCache(), 1, &ci,
+					   nullptr, &handle);
+	auto out = device->createObject(handle, PVRenderPass(), pipeline_layout);
+	out->m_bind_point = VBindPoint::compute;
+	return out;
+}
 }

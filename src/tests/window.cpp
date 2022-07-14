@@ -16,6 +16,7 @@
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
 #include <fwk/vulkan/vulkan_render_graph.h>
+#include <fwk/vulkan/vulkan_shader.h>
 #include <fwk/vulkan/vulkan_swap_chain.h>
 #include <fwk/vulkan/vulkan_window.h>
 
@@ -35,6 +36,28 @@
 
 using namespace fwk;
 
+const char *compute_shader = R"(
+#version 450
+
+// TODO: shader constant
+#define LSIZE	1024
+
+layout(local_size_x = 1024) in;
+
+layout(binding = 0) buffer buf0_ { uint num_input_elements; uint input_data[]; };
+layout(binding = 1) buffer buf1_ { uint num_output_elements; uint output_data[]; };
+
+// TODO push buffer for num_elements
+
+void main() {
+	uint num_elements = num_input_elements;
+	if(gl_LocalInvocationIndex == 0)
+		num_output_elements = num_elements;
+	for(uint i = gl_LocalInvocationIndex; i < num_elements; i += LSIZE)
+		output_data[i] = input_data[i] + 1;
+}
+)";
+
 string fontPath() {
 	if(platform == Platform::html)
 		return "data/LiberationSans-Regular.ttf";
@@ -48,6 +71,9 @@ struct VulkanContext {
 	Maybe<FontCore> font_core;
 	PVImage font_image;
 	PVImageView font_image_view;
+	PVPipeline compute_pipe;
+	int compute_buffer_idx = 0;
+	PVBuffer compute_buffers[2];
 };
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
@@ -87,6 +113,15 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
 	render_graph << CmdEndRenderPass{};
+
+	render_graph.bind(ctx.compute_pipe->layout(), VBindPoint::compute);
+	auto ds = render_graph.bindDS(0);
+	ds(0, ctx.compute_buffers[ctx.compute_buffer_idx]);
+	ds(1, ctx.compute_buffers[ctx.compute_buffer_idx ^ 1]);
+	ctx.compute_buffer_idx ^= 1;
+
+	render_graph << CmdBindPipeline{ctx.compute_pipe};
+	render_graph << CmdDispatchCompute{{1, 1, 1}};
 
 	return {};
 }
@@ -164,6 +199,19 @@ Ex<int> exMain() {
 	EXPECT(device->createRenderGraph());
 
 	VulkanContext ctx{device, window};
+	auto compute_module =
+		EX_PASS(VulkanShaderModule::compile(device, {{VShaderStage::compute, compute_shader}}));
+	ctx.compute_pipe = EX_PASS(VulkanPipeline::create(device, {compute_module[0]}));
+
+	int compute_size = 4 * 1024;
+	auto compute_usage =
+		VBufferUsage::storage_buffer | VBufferUsage::transfer_dst | VBufferUsage::transfer_src;
+	for(auto &buffer : ctx.compute_buffers)
+		buffer = EX_PASS(VulkanBuffer::create<u32>(device, compute_size + 1, compute_usage));
+	vector<u32> compute_data(compute_size + 1, 0);
+	compute_data[0] = compute_size;
+	EXPECT(ctx.device->renderGraph() << CmdUpload(compute_data, ctx.compute_buffers[0]));
+
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
 	ctx.font_core = move(font_data.core);
