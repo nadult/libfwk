@@ -33,6 +33,7 @@ Ex<PVBuffer> VulkanBuffer::create(VDeviceRef device, u64 size, VBufferUsageFlags
 
 	auto mem_block = EX_PASS(device->alloc(mem_usage, requirements));
 	FWK_VK_EXPECT_CALL(vkBindBufferMemory, device, handle, mem_block.handle, mem_block.offset);
+	mem_block.size = min<u32>(size, mem_block.size);
 
 	cleanup.cancel = true;
 	return device->createObject(handle, mem_block, usage);

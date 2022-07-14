@@ -45,6 +45,8 @@ inline auto toVk(VBindPoint bind_point) { return VkPipelineBindPoint(bind_point)
 VkCommandBuffer allocVkCommandBuffer(VkDevice, VkCommandPool pool);
 VkSemaphore createVkSemaphore(VkDevice, bool is_signaled = false);
 VkFence createVkFence(VkDevice, bool is_signaled = false);
+VkEvent createVkEvent(VkDevice, bool device_only = false);
+
 VkCommandPool createVkCommandPool(VkDevice, VQueueFamilyId queue_family_id,
 								  VCommandPoolFlags flags);
 VkDescriptorPool createVkDescriptorPool(VkDevice, EnumMap<VDescriptorType, uint> type_counts,

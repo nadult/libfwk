@@ -14,7 +14,7 @@
 
 namespace fwk {
 
-DEFINE_ENUM(VTag, cmd, ds, dsl, device, window, physical_device, queue_family);
+DEFINE_ENUM(VTag, cmd, ds, dsl, device, window, physical_device, queue_family, download);
 
 struct VulkanLimits {
 	static constexpr int max_color_attachments = 8;
@@ -32,6 +32,7 @@ using VWindowId = TagId<VTag::window, u8>;
 using VPhysicalDeviceId = TagId<VTag::physical_device, u8>;
 using VQueueFamilyId = TagId<VTag::queue_family, u8>;
 using VCommandId = TagId<VTag::cmd, u32>;
+using VDownloadId = TagId<VTag::download, u32>;
 
 using VDescriptorSetLayoutId = TagId<VTag::dsl, u16>;
 using VDescriptorSetId = TagId<VTag::ds, u32>;

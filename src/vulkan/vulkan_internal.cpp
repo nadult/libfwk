@@ -34,6 +34,14 @@ VkFence createVkFence(VkDevice device, bool is_signaled) {
 	return handle;
 }
 
+VkEvent createVkEvent(VkDevice device, bool device_only) {
+	VkEvent handle;
+	VkEventCreateInfo ci{VK_STRUCTURE_TYPE_EVENT_CREATE_INFO};
+	ci.flags = device_only ? VK_EVENT_CREATE_DEVICE_ONLY_BIT : 0;
+	FWK_VK_CALL(vkCreateEvent, device, &ci, nullptr, &handle);
+	return handle;
+}
+
 VkCommandPool createVkCommandPool(VkDevice device, VQueueFamilyId queue_family_id,
 								  VCommandPoolFlags flags) {
 	VkCommandPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};

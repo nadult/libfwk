@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/sparse_vector.h"
 #include "fwk/str.h"
 #include "fwk/variant.h"
 #include "fwk/vulkan/vulkan_storage.h"
@@ -26,6 +27,14 @@ struct CmdUpload {
 	u64 offset;
 };
 
+struct CmdDownload {
+	CmdDownload(PVBuffer);
+	CmdDownload(PVBuffer, u64 offset, u64 size) : src(src), offset(offset), size(size) {}
+
+	PVBuffer src;
+	u64 offset, size = 0;
+};
+
 struct CmdUploadImage {
 	CmdUploadImage(const Image &image, PVImage dst) : image(image), dst(dst) {}
 
@@ -37,6 +46,7 @@ struct CmdCopy {
 	PVBuffer src;
 	PVBuffer dst;
 	vector<VkBufferCopy> regions;
+	VkEvent event = nullptr;
 };
 
 struct CmdCopyImage {
@@ -144,6 +154,7 @@ class VulkanRenderGraph {
 	// Upload commands are handled immediately, copy commands are enqueued in their place
 	Ex<void> enqueue(CmdUpload);
 	Ex<void> enqueue(CmdUploadImage);
+	Ex<VDownloadId> enqueue(CmdDownload);
 
 	template <class T> auto operator<<(T &&cmd) { return enqueue(std::forward<T>(cmd)); }
 
@@ -154,9 +165,8 @@ class VulkanRenderGraph {
 	Status status() const { return m_status; }
 	int swapFrameIndex() const { return m_frame_index; }
 
-	// These allow to submit some commands independently from frame commands
-	void beginCommands();
-	void finishCommands();
+	bool isFinished(VDownloadId);
+	PodVector<char> retrieve(VDownloadId);
 
   private:
 	friend class VulkanDevice;
@@ -196,6 +206,12 @@ class VulkanRenderGraph {
 		VkFence in_flight_fence = nullptr;
 	};
 
+	struct Download {
+		PVBuffer buffer;
+		VkEvent event;
+	};
+
+	SparseVector<Download> m_downloads;
 	vector<StagingBuffer> m_staging_buffers;
 	vector<Command> m_commands;
 	PVPipelineLayout m_last_pipeline_layout;

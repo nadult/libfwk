@@ -19,6 +19,8 @@
 
 namespace fwk {
 
+CmdDownload::CmdDownload(PVBuffer src) : src(src), offset(0), size(src->size()) {}
+
 VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device)
 	: m_device(*device), m_device_handle(device) {}
 
@@ -30,6 +32,8 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 		vkDestroySemaphore(m_device_handle, frame.render_finished_sem, nullptr);
 		vkDestroyFence(m_device_handle, frame.in_flight_fence, nullptr);
 	}
+	for(auto &download : m_downloads)
+		vkDestroyEvent(m_device_handle, download.event, nullptr);
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
 
@@ -165,6 +169,19 @@ Ex<void> VulkanRenderGraph::enqueue(CmdUploadImage cmd) {
 	return {};
 }
 
+Ex<VDownloadId> VulkanRenderGraph::enqueue(CmdDownload cmd) {
+	auto buffer = EX_PASS(VulkanBuffer::create(m_device.ref(), cmd.size, VBufferUsage::transfer_dst,
+											   VMemoryUsage::host));
+	VkBufferCopy copy_params{
+		.srcOffset = cmd.offset, .dstOffset = 0, .size = (VkDeviceSize)cmd.size};
+	auto event = createVkEvent(m_device_handle);
+	vkResetEvent(m_device_handle, event);
+	m_commands.emplace_back(
+		CmdCopy{.src = cmd.src, .dst = buffer, .regions = {{copy_params}}, .event = event});
+	auto id = m_downloads.emplace(move(buffer), event);
+	return VDownloadId(id);
+}
+
 void VulkanRenderGraph::flushCommands() {
 	DASSERT(m_status == Status::frame_running);
 	FrameContext ctx{m_frames[m_frame_index].command_buffer, VCommandId(0)};
@@ -199,6 +216,7 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindDescriptorSet &c
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindIndexBuffer &cmd) {
 	vkCmdBindIndexBuffer(ctx.cmd_buffer, cmd.buffer, cmd.offset, VkIndexType::VK_INDEX_TYPE_UINT32);
 }
+
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindVertexBuffers &cmd) {
 	static constexpr int max_bindings = 32;
 	VkBuffer buffers[max_bindings];
@@ -212,6 +230,7 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindVertexBuffers &c
 	vkCmdBindVertexBuffers(ctx.cmd_buffer, cmd.first_binding, cmd.buffers.size(), buffers,
 						   offsets_64);
 }
+
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdBindPipeline &cmd) {
 	vkCmdBindPipeline(ctx.cmd_buffer, toVk(cmd.pipeline->bindPoint()), cmd.pipeline);
 }
@@ -228,6 +247,10 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDrawIndexed &cmd) {
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopy &cmd) {
 	vkCmdCopyBuffer(ctx.cmd_buffer, cmd.src, cmd.dst, cmd.regions.size(), cmd.regions.data());
+	if(cmd.event) {
+		// TODO: stage mask is ok?
+		vkCmdSetEvent(ctx.cmd_buffer, cmd.event, VK_PIPELINE_STAGE_TRANSFER_BIT);
+	}
 }
 
 static void transitionImageLayout(VkCommandBuffer cmd_buffer, VkImage image, VkFormat format,
@@ -303,5 +326,26 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdEndRenderPass &cmd) 
 }
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDispatchCompute &cmd) {
 	vkCmdDispatch(ctx.cmd_buffer, cmd.size.x, cmd.size.y, cmd.size.z);
+}
+
+bool VulkanRenderGraph::isFinished(VDownloadId download_id) {
+	PASSERT(m_downloads.valid(download_id));
+	auto &download = m_downloads[download_id];
+	auto result = vkGetEventStatus(m_device_handle, download.event);
+	return result == VK_EVENT_SET;
+}
+
+PodVector<char> VulkanRenderGraph::retrieve(VDownloadId download_id) {
+	PASSERT(m_downloads.valid(download_id));
+	auto &download = m_downloads[download_id];
+	auto mem_block = download.buffer->memoryBlock();
+	PodVector<char> out_data(download.buffer->size());
+	auto src_memory = m_device.memory().accessMemory(mem_block);
+	copy(out_data, src_memory.subSpan(0, out_data.size()));
+	m_device.deferredRelease(download.event, nullptr, [](void *event, void *, VkDevice device) {
+		vkDestroyEvent(device, (VkEvent)event, nullptr);
+	});
+	m_downloads.erase(download_id);
+	return out_data;
 }
 }

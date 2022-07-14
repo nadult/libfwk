@@ -74,9 +74,10 @@ struct VulkanContext {
 	PVPipeline compute_pipe;
 	int compute_buffer_idx = 0;
 	PVBuffer compute_buffers[2];
+	Maybe<VDownloadId> download_id;
 };
 
-Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
+Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto &render_graph = ctx.device->renderGraph();
 
 	auto swap_chain = ctx.device->swapChain();
@@ -96,8 +97,8 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	auto device_name = VulkanInstance::ref()->info(ctx.device->physId()).properties.deviceName;
 	// TODO: immediate drawing mode sux, we should replace it with something better?
 	// On the other hand, imgui is fine...
-	auto text =
-		format("Hello world!\nWindow size: %\nVulkan device: %", ctx.window->extent(), device_name);
+	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->extent(), device_name);
+	text += message;
 	Font font(*ctx.font_core, ctx.font_image_view);
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 
@@ -122,6 +123,10 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 
 	render_graph << CmdBindPipeline{ctx.compute_pipe};
 	render_graph << CmdDispatchCompute{{1, 1, 1}};
+	if(!ctx.download_id)
+		ctx.download_id =
+			render_graph.enqueue(CmdDownload(ctx.compute_buffers[ctx.compute_buffer_idx]));
+	render_graph.flushCommands();
 
 	return {};
 }
@@ -156,8 +161,22 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
+	static string last_message;
+	if(ctx.download_id) {
+		auto &rgraph = ctx.device->renderGraph();
+		if(rgraph.isFinished(*ctx.download_id)) {
+			auto data = rgraph.retrieve(*ctx.download_id);
+			auto uints = cspan(data).reinterpret<u32>();
+			uint count = uints[0];
+			bool is_valid = count == uints.size() - 1 && allOf(uints.subSpan(2), uints[1]);
+			// TODO: sometimes we get invalid result on AMD
+			last_message = format("Compute result: %%\n", uints[1], is_valid ? "" : " (invalid)");
+			ctx.download_id = none;
+		}
+	}
+
 	if(ctx.device->beginFrame().get()) {
-		drawFrame(ctx, positions).check();
+		drawFrame(ctx, positions, last_message).check();
 		ctx.device->finishFrame().check();
 	}
 
