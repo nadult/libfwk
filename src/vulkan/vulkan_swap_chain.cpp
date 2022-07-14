@@ -190,12 +190,12 @@ PVImageView VulkanSwapChain::acquiredImage() const {
 	return m_image_views[m_image_index];
 }
 
-Ex<bool> VulkanSwapChain::presentImage(CSpan<VkSemaphore> wait_sems) {
+Ex<bool> VulkanSwapChain::presentImage(VkSemaphore wait_sem) {
 	DASSERT_EQ(m_status, Status::image_acquired);
 
 	VkPresentInfoKHR present_info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-	present_info.waitSemaphoreCount = wait_sems.size();
-	present_info.pWaitSemaphores = wait_sems.data();
+	present_info.waitSemaphoreCount = 1;
+	present_info.pWaitSemaphores = &wait_sem;
 	present_info.swapchainCount = 1;
 	present_info.pSwapchains = &m_handle;
 	present_info.pImageIndices = &m_image_index;

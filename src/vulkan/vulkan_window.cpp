@@ -264,31 +264,39 @@ void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 	m_main_loop_stack.emplace_back(main_loop_func, arg);
 
 	while(pollEvents()) {
-		if(m_impl->flags & Flag::sleep_when_minimized && isMinimized()) {
-			m_impl->prev_time = -1.0;
-			m_impl->num_frames = 0;
-			m_impl->fps = 0.0;
+		bool is_minimized = isMinimized();
+		if(m_impl->flags & Flag::sleep_when_minimized && is_minimized) {
 			sleep(0.01);
 			continue;
 		}
 
-		double time = getTime();
-		if(m_impl->prev_time < 0.0)
-			m_impl->prev_time = time;
-		else {
-			m_impl->num_frames++;
-			auto diff = time - m_impl->prev_time;
-			if(diff > 1.0) {
-				m_impl->fps = double(m_impl->num_frames) / diff;
-				m_impl->num_frames = 0;
-				m_impl->prev_time = time;
-			}
-		}
-
+		updateFPS(is_minimized);
 		if(!main_loop_func(*this, arg))
 			break;
 	}
 	m_main_loop_stack.pop_back();
+}
+
+void VulkanWindow::updateFPS(bool reset) {
+	if(reset) {
+		m_impl->prev_time = -1.0;
+		m_impl->num_frames = 0;
+		m_impl->fps = 0.0;
+		return;
+	}
+
+	double time = getTime();
+	if(m_impl->prev_time < 0.0)
+		m_impl->prev_time = time;
+	else {
+		m_impl->num_frames++;
+		auto diff = time - m_impl->prev_time;
+		if(diff > 1.0) {
+			m_impl->fps = double(m_impl->num_frames) / diff;
+			m_impl->num_frames = 0;
+			m_impl->prev_time = time;
+		}
+	}
 }
 
 Maybe<double> VulkanWindow::fps() const {

@@ -13,10 +13,6 @@
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 
-// TODO: what should we do when error happens in begin/end frame?
-// TODO: proprly handle multiple queues
-// TODO: proprly differentiate between graphics, present & compute queues
-
 namespace fwk {
 
 CmdDownload::CmdDownload(PVBuffer src) : src(src), offset(0), size(src->size()) {}
@@ -71,7 +67,7 @@ void VulkanRenderGraph::beginFrame() {
 	m_status = Status::frame_running;
 }
 
-VkSemaphore VulkanRenderGraph::finishFrame(CSpan<VkSemaphore> wait_on_sems) {
+void VulkanRenderGraph::finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_signal_sem) {
 	DASSERT(m_status == Status::frame_running);
 	flushCommands();
 	m_status = Status::frame_finished;
@@ -81,13 +77,18 @@ VkSemaphore VulkanRenderGraph::finishFrame(CSpan<VkSemaphore> wait_on_sems) {
 
 	VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-	submit_info.waitSemaphoreCount = wait_on_sems.size();
-	submit_info.pWaitSemaphores = wait_on_sems.data();
 	submit_info.pWaitDstStageMask = wait_stages;
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &frame.command_buffer;
-	submit_info.signalSemaphoreCount = 1;
-	submit_info.pSignalSemaphores = &frame.render_finished_sem;
+	if(wait_sem) {
+		submit_info.waitSemaphoreCount = 1;
+		submit_info.pWaitSemaphores = wait_sem;
+	}
+	if(out_signal_sem) {
+		*out_signal_sem = frame.render_finished_sem;
+		submit_info.signalSemaphoreCount = 1;
+		submit_info.pSignalSemaphores = out_signal_sem;
+	}
 
 	FWK_VK_CALL(vkQueueSubmit, m_queue.handle, 1, &submit_info, frame.in_flight_fence);
 	m_swap_index = (m_swap_index + 1) % VulkanLimits::num_swap_frames;
@@ -98,7 +99,6 @@ VkSemaphore VulkanRenderGraph::finishFrame(CSpan<VkSemaphore> wait_on_sems) {
 	m_last_pipeline_layout.reset();
 	m_last_bind_point = VBindPoint::graphics;
 	m_last_viewport = {};
-	return frame.render_finished_sem;
 }
 
 void VulkanRenderGraph::bind(PVPipelineLayout layout, VBindPoint bind_point) {

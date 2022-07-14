@@ -83,6 +83,7 @@ class VulkanWindow {
 	void operator=(VulkanWindow &) = delete;
 
 	bool pollEvents();
+	void updateFPS(bool reset = false);
 
 	vector<Pair<MainLoopFunction, void *>> m_main_loop_stack;
 

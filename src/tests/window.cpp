@@ -79,9 +79,12 @@ struct VulkanContext {
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto &render_graph = ctx.device->renderGraph();
-
 	auto swap_chain = ctx.device->swapChain();
 	auto sc_extent = swap_chain->extent();
+
+	// Not drawing if swap chain is not available
+	if(swap_chain->status() != VSwapChainStatus::image_acquired)
+		return {};
 
 	// TODO: viewport? remove orient ?
 	Renderer2D renderer(IRect(sc_extent), Orient2D::y_up);
@@ -115,19 +118,22 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
 	render_graph << CmdEndRenderPass{};
 
+	return {};
+}
+
+Ex<void> computeStuff(VulkanContext &ctx) {
+	auto &render_graph = ctx.device->renderGraph();
 	render_graph.bind(ctx.compute_pipe->layout(), VBindPoint::compute);
 	auto ds = render_graph.bindDS(0);
+	auto &target_buffer = ctx.compute_buffers[ctx.compute_buffer_idx ^ 1];
 	ds(0, ctx.compute_buffers[ctx.compute_buffer_idx]);
-	ds(1, ctx.compute_buffers[ctx.compute_buffer_idx ^ 1]);
+	ds(1, target_buffer);
 	ctx.compute_buffer_idx ^= 1;
 
 	render_graph << CmdBindPipeline{ctx.compute_pipe};
 	render_graph << CmdDispatchCompute{{1, 1, 1}};
 	if(!ctx.download_id)
-		ctx.download_id =
-			render_graph.enqueue(CmdDownload(ctx.compute_buffers[ctx.compute_buffer_idx]));
-	render_graph.flushCommands();
-
+		ctx.download_id = EX_PASS(render_graph.enqueue(CmdDownload(target_buffer)));
 	return {};
 }
 
@@ -176,6 +182,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	if(ctx.device->beginFrame().get()) {
 		drawFrame(ctx, positions, last_message).check();
+		computeStuff(ctx).check();
 		ctx.device->finishFrame().check();
 	}
 
@@ -197,8 +204,7 @@ Ex<int> exMain() {
 	setup.debug_types = all<VDebugType>;
 	auto instance = EX_PASS(VulkanInstance::create(setup));
 
-	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi |
-				 VWindowFlag::sleep_when_minimized;
+	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi;
 
 	auto window =
 		EX_PASS(VulkanWindow::create(instance, "fwk::test_window", IRect(0, 0, 1280, 720), flags));

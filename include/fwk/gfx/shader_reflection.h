@@ -9,6 +9,7 @@
 
 #include "../extern/spirv-reflect/spirv_reflect.h"
 
+// TODO: is this additional layer really needed?
 namespace fwk {
 class ShaderReflectionModule {
   public:

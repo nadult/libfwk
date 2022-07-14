@@ -136,6 +136,9 @@ class StagingBuffer {
 	PVBuffer buffer;
 };
 
+// TODO: new name: command queue ?
+// TODO: only upload commands should be enqueue-able; All the other have to happen
+// between begin & end frame
 class VulkanRenderGraph {
   public:
 	~VulkanRenderGraph();
@@ -180,7 +183,7 @@ class VulkanRenderGraph {
 	Ex<void> initialize(VDeviceRef);
 
 	void beginFrame();
-	VkSemaphore finishFrame(CSpan<VkSemaphore> wait_on_sems);
+	void finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_signal_sem);
 
 	struct FrameContext {
 		VkCommandBuffer cmd_buffer;

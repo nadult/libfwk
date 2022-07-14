@@ -29,6 +29,14 @@
 // TODO: hide lower level functions somehow ?
 // TODO: deferred releases are a bit messy
 // TODO: per-frame buffers, images & image_views
+// TODO: different interface for hashed objects? or maybe just hide create function and use weak refs?
+// TODO: add check that objects which use frame allocator are actually destroyed in given frame
+// TODO: add weak DeviceRef for passing into functions ?
+// Maybe instead create functions should all be in device?
+// TODO: not everything is released in waitForIdle (descriptors for example)
+// TODO: add status function which prints number of objects of each type which are present
+// TODO: another status function would be useful for memory
+// TODO: don't store ref-counters in CMD lists in rendergraph (upload queue may be an exception)
 
 namespace fwk {
 
@@ -259,11 +267,8 @@ Ex<void> VulkanDevice::createRenderGraph() {
 
 Ex<bool> VulkanDevice::beginFrame() {
 	DASSERT(m_render_graph);
-	if(m_swap_chain) {
+	if(m_swap_chain)
 		m_image_available_sem = EX_PASS(m_swap_chain->acquireImage());
-		if(!m_image_available_sem)
-			return false;
-	}
 	m_render_graph->beginFrame();
 	m_swap_frame_index = m_render_graph->swapFrameIndex();
 	m_memory->beginFrame();
@@ -277,11 +282,13 @@ Ex<bool> VulkanDevice::finishFrame() {
 	m_descriptors->finishFrame();
 	m_memory->finishFrame();
 
-	if(m_swap_chain) {
-		auto render_finished_sem = m_render_graph->finishFrame(cspan(&m_image_available_sem, 1));
-		EXPECT(m_swap_chain->presentImage(cspan(&render_finished_sem, 1)));
+	if(m_swap_chain && m_image_available_sem) {
+		VkSemaphore render_finished_sem = nullptr;
+		m_render_graph->finishFrame(&m_image_available_sem, &render_finished_sem);
+		EXPECT(m_swap_chain->presentImage(render_finished_sem));
+		m_image_available_sem = nullptr;
 	} else {
-		m_render_graph->finishFrame({});
+		m_render_graph->finishFrame(nullptr, nullptr);
 	}
 
 	cleanupFramebuffers();

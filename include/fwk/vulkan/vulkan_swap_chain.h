@@ -47,7 +47,7 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 	// Returns true if image was properly presented; Otherwise returns false which means
 	// that user should try again at a later time (starting with acquire). Error may also
 	// be returned when swap chain recreation failed.
-	Ex<bool> presentImage(CSpan<VkSemaphore> wait_sems);
+	Ex<bool> presentImage(VkSemaphore wait_sem);
 
   private:
 	friend class VulkanDevice;
