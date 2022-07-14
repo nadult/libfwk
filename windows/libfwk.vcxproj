@@ -517,7 +517,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/wd4800 /wd4244 /wd4521 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC  /DFATAL=FWK_FATAL /DDUMP=FWK_DUMP -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized -Wno-unused-function -Werror=switch -Werror=delete-incomplete -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4800 /wd4244 /wd4521 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC  /DFATAL=FWK_FATAL /DDUMP=FWK_DUMP -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized -Wno-unused-function -Werror=switch -Werror=delete-incomplete -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual -Wconstant-conversion -Werror=return-type -Wno-undefined-inline %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
@@ -541,7 +541,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/wd4800 /wd4244 /wd4521 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC  /DFATAL=FWK_FATAL /DDUMP=FWK_DUMP -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized -Wno-unused-function -Werror=switch -Werror=delete-incomplete -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4800 /wd4244 /wd4521 /D_CRT_SECURE_NO_WARNINGS /DFWK_TARGET_MSVC  /DFATAL=FWK_FATAL /DDUMP=FWK_DUMP -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized -Wno-unused-function -Werror=switch -Werror=delete-incomplete -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual -Wconstant-conversion -Werror=return-type -Wno-undefined-inline %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>

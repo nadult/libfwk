@@ -63,7 +63,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/DFWK_TARGET_MSVC %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/DFWK_TARGET_MSVC -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized -Wno-unused-function -Werror=switch -Werror=delete-incomplete -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual -Wconstant-conversion -Werror=return-type -Wno-undefined-inline %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -85,7 +85,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/DFWK_TARGET_MSVC %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/DFWK_TARGET_MSVC -Woverloaded-virtual -Wnon-virtual-dtor -Wno-reorder -Wuninitialized -Wno-unused-function -Werror=switch -Werror=delete-incomplete -Wno-unused-variable -Wno-unused-parameter -Wparentheses -Wno-overloaded-virtual -Wconstant-conversion -Werror=return-type -Wno-undefined-inline %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
