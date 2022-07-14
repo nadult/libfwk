@@ -162,14 +162,13 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 		positions.erase(positions.begin());
 
 	static string last_message;
+
 	if(ctx.download_id) {
 		auto &rgraph = ctx.device->renderGraph();
-		if(rgraph.isFinished(*ctx.download_id)) {
-			auto data = rgraph.retrieve(*ctx.download_id);
+		if(auto data = rgraph.retrieve(*ctx.download_id)) {
 			auto uints = cspan(data).reinterpret<u32>();
 			uint count = uints[0];
 			bool is_valid = count == uints.size() - 1 && allOf(uints.subSpan(2), uints[1]);
-			// TODO: sometimes we get invalid result on AMD
 			last_message = format("Compute result: %%\n", uints[1], is_valid ? "" : " (invalid)");
 			ctx.download_id = none;
 		}

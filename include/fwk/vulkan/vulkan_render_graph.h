@@ -29,7 +29,7 @@ struct CmdUpload {
 
 struct CmdDownload {
 	CmdDownload(PVBuffer);
-	CmdDownload(PVBuffer, u64 offset, u64 size) : src(src), offset(offset), size(size) {}
+	CmdDownload(PVBuffer src, u64 offset, u64 size) : src(src), offset(offset), size(size) {}
 
 	PVBuffer src;
 	u64 offset, size = 0;
@@ -46,7 +46,6 @@ struct CmdCopy {
 	PVBuffer src;
 	PVBuffer dst;
 	vector<VkBufferCopy> regions;
-	VkEvent event = nullptr;
 };
 
 struct CmdCopyImage {
@@ -163,9 +162,11 @@ class VulkanRenderGraph {
 
 	enum class Status { init, frame_running, frame_finished };
 	Status status() const { return m_status; }
-	int swapFrameIndex() const { return m_frame_index; }
+	u64 frameIndex() const { return m_frame_index; }
+	int swapFrameIndex() const { return m_swap_index; }
 
 	bool isFinished(VDownloadId);
+	// Returns empty vector if not ready
 	PodVector<char> retrieve(VDownloadId);
 
   private:
@@ -208,7 +209,8 @@ class VulkanRenderGraph {
 
 	struct Download {
 		PVBuffer buffer;
-		VkEvent event;
+		u64 frame_index;
+		bool is_ready = false;
 	};
 
 	SparseVector<Download> m_downloads;
@@ -223,7 +225,8 @@ class VulkanRenderGraph {
 	VkDevice m_device_handle = nullptr;
 	FrameSync m_frames[VulkanLimits::num_swap_frames];
 	VkCommandPool m_command_pool = nullptr;
-	uint m_frame_index = 0, m_image_index = 0;
+	uint m_swap_index = 0;
+	u64 m_frame_index = 0;
 	Status m_status = Status::init;
 };
 }

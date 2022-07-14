@@ -32,8 +32,6 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 		vkDestroySemaphore(m_device_handle, frame.render_finished_sem, nullptr);
 		vkDestroyFence(m_device_handle, frame.in_flight_fence, nullptr);
 	}
-	for(auto &download : m_downloads)
-		vkDestroyEvent(m_device_handle, download.event, nullptr);
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
 
@@ -55,11 +53,15 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device) {
 
 void VulkanRenderGraph::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
-	auto &frame = m_frames[m_frame_index];
+	auto &frame = m_frames[m_swap_index];
 
 	VkFence fences[] = {frame.in_flight_fence};
 	vkWaitForFences(m_device_handle, 1, fences, VK_TRUE, UINT64_MAX);
 	vkResetFences(m_device_handle, 1, fences);
+
+	for(auto &download : m_downloads)
+		if(download.frame_index + VulkanLimits::num_swap_frames >= m_frame_index)
+			download.is_ready = true;
 
 	vkResetCommandBuffer(frame.command_buffer, 0);
 	VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -74,7 +76,7 @@ VkSemaphore VulkanRenderGraph::finishFrame(CSpan<VkSemaphore> wait_on_sems) {
 	flushCommands();
 	m_status = Status::frame_finished;
 
-	auto &frame = m_frames[m_frame_index];
+	auto &frame = m_frames[m_swap_index];
 	FWK_VK_CALL(vkEndCommandBuffer, frame.command_buffer);
 
 	VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -88,7 +90,8 @@ VkSemaphore VulkanRenderGraph::finishFrame(CSpan<VkSemaphore> wait_on_sems) {
 	submit_info.pSignalSemaphores = &frame.render_finished_sem;
 
 	FWK_VK_CALL(vkQueueSubmit, m_queue.handle, 1, &submit_info, frame.in_flight_fence);
-	m_frame_index = (m_frame_index + 1) % VulkanLimits::num_swap_frames;
+	m_swap_index = (m_swap_index + 1) % VulkanLimits::num_swap_frames;
+	m_frame_index++;
 
 	// TODO: staging buffers destruction should be hooked to fence
 	m_staging_buffers.clear();
@@ -174,17 +177,14 @@ Ex<VDownloadId> VulkanRenderGraph::enqueue(CmdDownload cmd) {
 											   VMemoryUsage::host));
 	VkBufferCopy copy_params{
 		.srcOffset = cmd.offset, .dstOffset = 0, .size = (VkDeviceSize)cmd.size};
-	auto event = createVkEvent(m_device_handle);
-	vkResetEvent(m_device_handle, event);
-	m_commands.emplace_back(
-		CmdCopy{.src = cmd.src, .dst = buffer, .regions = {{copy_params}}, .event = event});
-	auto id = m_downloads.emplace(move(buffer), event);
+	m_commands.emplace_back(CmdCopy{.src = cmd.src, .dst = buffer, .regions = {{copy_params}}});
+	auto id = m_downloads.emplace(move(buffer), m_frame_index);
 	return VDownloadId(id);
 }
 
 void VulkanRenderGraph::flushCommands() {
 	DASSERT(m_status == Status::frame_running);
-	FrameContext ctx{m_frames[m_frame_index].command_buffer, VCommandId(0)};
+	FrameContext ctx{m_frames[m_swap_index].command_buffer, VCommandId(0)};
 
 	for(int i : intRange(m_commands)) {
 		auto &command = m_commands[i];
@@ -247,10 +247,6 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDrawIndexed &cmd) {
 
 void VulkanRenderGraph::perform(FrameContext &ctx, const CmdCopy &cmd) {
 	vkCmdCopyBuffer(ctx.cmd_buffer, cmd.src, cmd.dst, cmd.regions.size(), cmd.regions.data());
-	if(cmd.event) {
-		// TODO: stage mask is ok?
-		vkCmdSetEvent(ctx.cmd_buffer, cmd.event, VK_PIPELINE_STAGE_TRANSFER_BIT);
-	}
 }
 
 static void transitionImageLayout(VkCommandBuffer cmd_buffer, VkImage image, VkFormat format,
@@ -331,20 +327,18 @@ void VulkanRenderGraph::perform(FrameContext &ctx, const CmdDispatchCompute &cmd
 bool VulkanRenderGraph::isFinished(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
-	auto result = vkGetEventStatus(m_device_handle, download.event);
-	return result == VK_EVENT_SET;
+	return download.is_ready;
 }
 
 PodVector<char> VulkanRenderGraph::retrieve(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
+	if(!download.is_ready)
+		return {};
 	auto mem_block = download.buffer->memoryBlock();
 	PodVector<char> out_data(download.buffer->size());
 	auto src_memory = m_device.memory().accessMemory(mem_block);
 	copy(out_data, src_memory.subSpan(0, out_data.size()));
-	m_device.deferredRelease(download.event, nullptr, [](void *event, void *, VkDevice device) {
-		vkDestroyEvent(device, (VkEvent)event, nullptr);
-	});
 	m_downloads.erase(download_id);
 	return out_data;
 }
