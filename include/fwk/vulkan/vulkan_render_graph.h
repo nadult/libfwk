@@ -126,8 +126,6 @@ class VulkanRenderGraph {
   public:
 	~VulkanRenderGraph();
 
-	PVSwapChain swapChain() const { return m_swap_chain; }
-
 	// Commands are first enqueued and only with large enough context
 	// they are being performed
 	void enqueue(Command);
@@ -160,10 +158,10 @@ class VulkanRenderGraph {
 	VulkanRenderGraph(const VulkanRenderGraph &) = delete;
 	void operator=(const VulkanRenderGraph &) = delete;
 
-	Ex<void> initialize(VDeviceRef, PVSwapChain);
+	Ex<void> initialize(VDeviceRef);
 
-	bool beginFrame();
-	bool finishFrame();
+	void beginFrame();
+	VkSemaphore finishFrame(CSpan<VkSemaphore> wait_on_sems);
 
 	struct FrameContext {
 		VkCommandBuffer cmd_buffer;
@@ -196,7 +194,6 @@ class VulkanRenderGraph {
 
 	VulkanDevice &m_device;
 	VkDevice m_device_handle = nullptr;
-	PVSwapChain m_swap_chain;
 	FrameSync m_frames[VulkanLimits::num_swap_frames];
 	VkCommandPool m_command_pool = nullptr;
 	uint m_frame_index = 0, m_image_index = 0;

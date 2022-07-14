@@ -12,7 +12,6 @@
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
-#include "fwk/vulkan/vulkan_swap_chain.h"
 
 // TODO: what should we do when error happens in begin/end frame?
 // TODO: proprly handle multiple queues
@@ -34,8 +33,7 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
 
-Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain) {
-	m_swap_chain = swap_chain;
+Ex<void> VulkanRenderGraph::initialize(VDeviceRef device) {
 	auto queue = device->findFirstQueue(VQueueCap::graphics);
 	EXPECT(queue);
 
@@ -50,12 +48,9 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device, PVSwapChain swap_chain
 	return {};
 }
 
-bool VulkanRenderGraph::beginFrame() {
+void VulkanRenderGraph::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_frame_index];
-
-	if(!m_swap_chain->acquireImage())
-		return false;
 
 	VkFence fences[] = {frame.in_flight_fence};
 	vkWaitForFences(m_device_handle, 1, fences, VK_TRUE, UINT64_MAX);
@@ -67,11 +62,9 @@ bool VulkanRenderGraph::beginFrame() {
 	FWK_VK_CALL(vkBeginCommandBuffer, frame.command_buffer, &bi);
 
 	m_status = Status::frame_running;
-	return true;
 }
 
-bool VulkanRenderGraph::finishFrame() {
-	auto wait_on_sem = m_swap_chain->acquiredImage().available_sem;
+VkSemaphore VulkanRenderGraph::finishFrame(CSpan<VkSemaphore> wait_on_sems) {
 	DASSERT(m_status == Status::frame_running);
 	flushCommands();
 	m_status = Status::frame_finished;
@@ -81,8 +74,8 @@ bool VulkanRenderGraph::finishFrame() {
 
 	VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-	submit_info.waitSemaphoreCount = 1;
-	submit_info.pWaitSemaphores = &wait_on_sem;
+	submit_info.waitSemaphoreCount = wait_on_sems.size();
+	submit_info.pWaitSemaphores = wait_on_sems.data();
 	submit_info.pWaitDstStageMask = wait_stages;
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &frame.command_buffer;
@@ -99,8 +92,7 @@ bool VulkanRenderGraph::finishFrame() {
 	m_staging_buffers.clear();
 	m_last_pipeline_layout.reset();
 	m_last_viewport = {};
-
-	return m_swap_chain->presentImage(frame.render_finished_sem);
+	return frame.render_finished_sem;
 }
 
 void VulkanRenderGraph::bind(PVPipelineLayout layout) { m_last_pipeline_layout = layout; }

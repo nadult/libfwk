@@ -25,16 +25,23 @@ VSurfaceInfo VulkanSwapChain::surfaceInfo(VDeviceRef device, VWindowRef window) 
 
 	VSurfaceInfo out;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_handle, surf_handle, &out.capabilities);
-	uint count = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(phys_handle, surf_handle, &count, nullptr);
-	out.formats.resize(count);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(phys_handle, surf_handle, &count, out.formats.data());
 
-	count = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(phys_handle, surf_handle, &count, nullptr);
-	out.present_modes.resize(count);
-	vkGetPhysicalDeviceSurfacePresentModesKHR(phys_handle, surf_handle, &count,
-											  out.present_modes.data());
+	if(out.capabilities.currentExtent.width == 0 || out.capabilities.currentExtent.height == 0)
+		out.is_minimized = true;
+
+	if(!out.is_minimized) {
+		uint count = 0;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(phys_handle, surf_handle, &count, nullptr);
+		out.formats.resize(count);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(phys_handle, surf_handle, &count, out.formats.data());
+
+		count = 0;
+		vkGetPhysicalDeviceSurfacePresentModesKHR(phys_handle, surf_handle, &count, nullptr);
+		out.present_modes.resize(count);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(phys_handle, surf_handle, &count,
+												  out.present_modes.data());
+	}
+
 	return out;
 }
 
@@ -55,23 +62,25 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 		// Note: it shouldn't be possible if findPresentableQueues() was used during device selection
 		return ERROR("VulkanSwapChain: Couldn't find a queue which is presentable");
 	}
+
+	auto surf_info = surfaceInfo(device, window);
+	if(surf_info.is_minimized)
+		return ERROR("Swap chain cannot be created: window is minimized");
+
 	auto out = device->createObject(VkSwapchainKHR(nullptr), window, present_queue->handle);
 	out->m_setup = setup;
-	EXPECT(out->initialize());
+
+	EXPECT(out->initialize(surf_info));
 	return out;
 }
 
-Ex<void> VulkanSwapChain::initialize() {
+Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 	m_status = Status::invalid;
+	DASSERT(!surf_info.is_minimized);
 
 	auto device = deviceRef();
-	auto surf_info = surfaceInfo(device, m_window);
 	auto color_usage = flag(VImageUsage::color_att);
 	auto color_layout = VImageLayout::color_att;
-
-	if(surf_info.capabilities.currentExtent.width == 0 ||
-	   surf_info.capabilities.currentExtent.height == 0)
-		return ERROR("Window minimized"); // TODO: this is not really an error
 
 	VkSwapchainCreateInfoKHR ci{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 	ci.surface = m_window->surfaceHandle();
@@ -138,26 +147,42 @@ void VulkanSwapChain::release() {
 	m_handle = nullptr;
 }
 
-bool VulkanSwapChain::isValid() const { return m_handle != nullptr && m_status != Status::invalid; }
-
 Ex<void> VulkanSwapChain::recreate() {
-	if(m_handle)
+	if(m_handle) {
 		release();
-	deviceRef()->waitForIdle();
-	return initialize();
+		deviceRef()->waitForIdle();
+		m_status = Status::invalid;
+	}
+
+	auto surf_info = surfaceInfo(deviceRef(), m_window);
+	if(surf_info.is_minimized) {
+		m_status = Status::window_minimized;
+		return {};
+	}
+	return initialize(surf_info);
 }
 
-bool VulkanSwapChain::acquireImage() {
-	DASSERT(isOneOf(m_status, Status::image_presented, Status::initialized));
+Ex<bool> VulkanSwapChain::acquireImage() {
+	if(isOneOf(m_status, Status::invalid, Status::window_minimized)) {
+		EXPECT(recreate());
+		if(m_status == Status::window_minimized)
+			return false;
+	}
+
+	DASSERT(m_status != Status::image_acquired);
 
 	int next_index = m_status == Status::initialized ? 0 : (m_image_index + 1) % m_images.size();
 	auto &available_sem = m_images[next_index].available_sem;
 	uint image_index;
-	auto result = vkAcquireNextImageKHR(deviceHandle(), m_handle, UINT64_MAX, available_sem,
-										VK_NULL_HANDLE, &image_index);
-	if(result != VK_SUCCESS) {
-		m_status = Status::invalid;
-		return false;
+	VkResult result;
+	for(int retry = 0; retry < 2; retry++) {
+		result = vkAcquireNextImageKHR(deviceHandle(), m_handle, UINT64_MAX, available_sem,
+									   VK_NULL_HANDLE, &image_index);
+		if(result == VK_SUCCESS)
+			break;
+		EXPECT(recreate());
+		if(m_status == Status::window_minimized || retry > 0)
+			return false;
 	}
 
 	if(image_index != next_index)
@@ -167,27 +192,37 @@ bool VulkanSwapChain::acquireImage() {
 	return true;
 }
 
-const VulkanSwapChain::ImageInfo &VulkanSwapChain::acquiredImage() const {
+int VulkanSwapChain::acquiredImageIndex() const {
 	DASSERT_EQ(m_status, Status::image_acquired);
-	return m_images[m_image_index];
+	return m_image_index;
 }
 
-bool VulkanSwapChain::presentImage(VkSemaphore wait_for_sem) {
+const VulkanSwapChain::ImageInfo &VulkanSwapChain::acquiredImage() const {
+	return m_images[acquiredImageIndex()];
+}
+
+PVFramebuffer VulkanSwapChain::acquiredImageFramebuffer(bool with_depth) const {
+	// TODO
+	return m_images[acquiredImageIndex()].framebuffer;
+}
+
+Ex<bool> VulkanSwapChain::presentImage(CSpan<VkSemaphore> wait_sems) {
 	DASSERT_EQ(m_status, Status::image_acquired);
 
 	VkPresentInfoKHR present_info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-	present_info.waitSemaphoreCount = 1;
-	present_info.pWaitSemaphores = &wait_for_sem;
+	present_info.waitSemaphoreCount = wait_sems.size();
+	present_info.pWaitSemaphores = wait_sems.data();
 	present_info.swapchainCount = 1;
 	present_info.pSwapchains = &m_handle;
 	present_info.pImageIndices = &m_image_index;
 
 	auto present_result = vkQueuePresentKHR(m_present_queue, &present_info);
 	if(present_result == VK_ERROR_OUT_OF_DATE_KHR) {
-		m_status = Status::invalid;
-		return false;
+		EXPECT(recreate());
+		if(m_status == Status::window_minimized)
+			return false;
 	}
-	m_status = Status::image_presented;
+	m_status = Status::ready;
 	return true;
 }
 }

@@ -147,9 +147,7 @@ Ex<void> createPipeline(VulkanContext &ctx) {
 	Pair<VShaderStage, ZStr> source_codes[] = {{VShaderStage::vertex, vertex_shader},
 											   {VShaderStage::fragment, fragment_shader}};
 	auto shader_modules = EX_PASS(VulkanShaderModule::compile(ctx.device, source_codes));
-
-	auto &render_graph = ctx.device->renderGraph();
-	auto swap_chain = render_graph.swapChain();
+	auto swap_chain = ctx.device->swapChain();
 
 	VPipelineSetup setup;
 	setup.shader_modules = shader_modules;
@@ -186,7 +184,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	//auto ubuffer = EX_PASS(createUniformBuffer(ctx));
 	//EXPECT(render_graph << CmdUpload(cspan(&ubo, 1), ubuffer));
 
-	auto swap_chain = render_graph.swapChain();
+	auto swap_chain = ctx.device->swapChain();
 	auto sc_format = swap_chain->format();
 	auto sc_extent = swap_chain->extent();
 	auto render_pass = ctx.device->getRenderPass({{sc_format, 1, VColorSyncStd::clear_present}});
@@ -211,7 +209,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions) {
 	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
 
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
-	auto fb = render_graph.swapChain()->acquiredImage().framebuffer; // TODO
+	auto fb = ctx.device->swapChain()->acquiredImageFramebuffer(false);
 
 	render_graph << CmdBeginRenderPass{
 		fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
@@ -257,20 +255,9 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	while(positions.size() > 15)
 		positions.erase(positions.begin());
 
-	bool is_valid = ctx.device->renderGraph().swapChain()->isValid();
-	if(!is_valid) {
-		print("Recreating swap chain...\n");
-		auto result = ctx.device->renderGraph().swapChain()->recreate();
-		if(result)
-			is_valid = true;
-		else
-			result.error().print();
-	}
-
-	if(is_valid && ctx.device->beginFrame()) {
+	if(ctx.device->beginFrame().get()) {
 		drawFrame(ctx, positions).check();
-		if(ctx.device->finishFrame())
-			is_valid = false;
+		ctx.device->finishFrame().check();
 	}
 
 	updateFPS(window);
@@ -293,6 +280,7 @@ Ex<int> exMain() {
 
 	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi |
 				 VWindowFlag::sleep_when_minimized;
+
 	auto window =
 		EX_PASS(VulkanWindow::create(instance, "fwk::test_window", IRect(0, 0, 1280, 720), flags));
 
@@ -307,7 +295,8 @@ Ex<int> exMain() {
 
 	auto swap_chain = EX_PASS(VulkanSwapChain::create(
 		device, window, {.preferred_present_mode = VPresentMode::immediate}));
-	EXPECT(device->createRenderGraph(swap_chain));
+	device->addSwapChain(swap_chain);
+	EXPECT(device->createRenderGraph());
 
 	VulkanContext ctx{device, window};
 	EXPECT(createPipeline(ctx));
@@ -319,7 +308,8 @@ Ex<int> exMain() {
 	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
 	ctx.sampler = ctx.device->createSampler({});
 
-	ctx.renderer2d_pipes = Renderer2D::makeVulkanPipelines(ctx.device, swap_chain->format()).get();
+	ctx.renderer2d_pipes =
+		EX_PASS(Renderer2D::makeVulkanPipelines(ctx.device, swap_chain->format()));
 
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;

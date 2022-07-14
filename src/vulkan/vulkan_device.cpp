@@ -173,6 +173,7 @@ VulkanDevice::~VulkanDevice() {
 		vkDestroyPipelineCache(m_handle, m_objects->pipeline_cache, nullptr);
 		vkDeviceWaitIdle(m_handle);
 	}
+	m_swap_chain = {};
 	m_descriptors.reset();
 	m_render_graph.reset();
 	m_objects->hashed_render_passes.clear();
@@ -219,16 +220,33 @@ Maybe<VQueue> VulkanDevice::findFirstQueue(VQueueCaps caps) const {
 	return none;
 }
 
-Ex<void> VulkanDevice::createRenderGraph(PVSwapChain swap_chain) {
-	DASSERT(!m_render_graph && "Render graph already initialized");
-	m_render_graph = new VulkanRenderGraph(ref());
-	return m_render_graph->initialize(ref(), swap_chain);
+void VulkanDevice::addSwapChain(PVSwapChain swap_chain) {
+	DASSERT("Currently only single swap chain can be used by VulkanDevice" && !m_swap_chain);
+	if(m_render_graph)
+		DASSERT(m_render_graph->status() != VulkanRenderGraph::Status::frame_running);
+	m_swap_chain = swap_chain;
 }
 
-bool VulkanDevice::beginFrame() {
-	ASSERT(m_render_graph);
-	if(!m_render_graph->beginFrame())
-		return false;
+void VulkanDevice::removeSwapChain() {
+	DASSERT(m_swap_chain);
+	DASSERT(m_swap_chain->status() != VSwapChainStatus::image_acquired);
+	m_swap_chain = {};
+}
+
+Ex<void> VulkanDevice::createRenderGraph() {
+	DASSERT(!m_render_graph && "Render graph already initialized");
+	m_render_graph = new VulkanRenderGraph(ref());
+	return m_render_graph->initialize(ref());
+}
+
+Ex<bool> VulkanDevice::beginFrame() {
+	DASSERT(m_render_graph);
+	if(m_swap_chain) {
+		auto result = EX_PASS(m_swap_chain->acquireImage());
+		if(!result)
+			return false;
+	}
+	m_render_graph->beginFrame();
 	m_swap_frame_index = m_render_graph->swapFrameIndex();
 	m_memory->beginFrame();
 	m_descriptors->beginFrame(m_swap_frame_index);
@@ -236,11 +254,19 @@ bool VulkanDevice::beginFrame() {
 	return true;
 }
 
-bool VulkanDevice::finishFrame() {
+Ex<bool> VulkanDevice::finishFrame() {
 	DASSERT(m_render_graph);
 	m_descriptors->finishFrame();
 	m_memory->finishFrame();
-	return m_render_graph->finishFrame();
+
+	if(m_swap_chain) {
+		auto image_available_sem = m_swap_chain->imageAvailableSemaphore();
+		auto render_finished_sem = m_render_graph->finishFrame(cspan(&image_available_sem, 1));
+		EXPECT(m_swap_chain->presentImage(cspan(&render_finished_sem, 1)));
+	} else {
+		m_render_graph->finishFrame({});
+	}
+	return true;
 }
 
 void VulkanDevice::waitForIdle() {
