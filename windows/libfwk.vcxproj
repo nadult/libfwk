@@ -87,6 +87,10 @@
     <ClInclude Include="..\include\fwk\base_vector.h" />
     <ClInclude Include="..\include\fwk\bit_vector.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_reflection.h" />
+    <ClInclude Include="..\include\fwk\perf\analyzer.h" />
+    <ClInclude Include="..\include\fwk\perf\exec_tree.h" />
+    <ClInclude Include="..\include\fwk\perf\manager.h" />
+    <ClInclude Include="..\include\fwk\perf\thread_context.h" />
     <ClInclude Include="..\include\fwk\slab_allocator.h" />
     <ClInclude Include="..\include\fwk\dynamic.h" />
     <ClInclude Include="..\include\fwk\enum.h" />

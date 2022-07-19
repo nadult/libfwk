@@ -76,6 +76,9 @@
     <Filter Include="src\common">
       <UniqueIdentifier>{6afc8e04-5495-45c6-8958-a05b688a9a41}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\perf">
+      <UniqueIdentifier>{a5c8b5a4-3b19-4956-8486-2491542df67d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\fwk\sys\assert.h">
@@ -704,6 +707,18 @@
     </ClInclude>
     <ClInclude Include="..\include\fwk\vulkan\vulkan_query_manager.h">
       <Filter>include\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\perf\analyzer.h">
+      <Filter>include\perf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\perf\exec_tree.h">
+      <Filter>include\perf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\perf\manager.h">
+      <Filter>include\perf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\perf\thread_context.h">
+      <Filter>include\perf</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
