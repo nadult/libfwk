@@ -15,7 +15,11 @@
 
 namespace fwk {
 
-CmdDownload::CmdDownload(PVBuffer src) : src(src), offset(0), size(src->size()) {}
+VSpan::VSpan(PVBuffer buffer) : buffer(buffer), offset(0), size(buffer->size()) {}
+VSpan::VSpan(PVBuffer buffer, u32 offset)
+	: buffer(buffer), offset(offset), size(buffer->size() - offset) {
+	PASSERT(offset < buffer->size());
+}
 
 VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device)
 	: m_device(*device), m_device_handle(device) {}
@@ -122,62 +126,64 @@ VDescriptorSet VulkanRenderGraph::bindDS(int index) {
 
 void VulkanRenderGraph::enqueue(Command cmd) { m_commands.emplace_back(move(cmd)); }
 
-Ex<void> VulkanRenderGraph::enqueue(CmdUpload cmd) {
-	if(cmd.data.empty())
-		return {};
+Ex<VSpan> VulkanRenderGraph::upload(VSpan dst, CSpan<char> src) {
+	if(src.empty())
+		return dst;
+	DASSERT(src.size() <= dst.size);
+
 	auto &mem_mgr = m_device.memory();
-	auto mem_block = cmd.dst->memoryBlock();
+	auto mem_block = dst.buffer->memoryBlock();
 	if(canBeMapped(mem_block.id.domain())) {
-		mem_block.offset += cmd.offset;
+		mem_block.offset += dst.offset;
 		DASSERT(cmd.offset <= mem_block.size);
 		// TODO: better checks
-		mem_block.size = min<u32>(mem_block.size - cmd.offset, cmd.data.size());
-		copy(mem_mgr.accessMemory(mem_block), cmd.data);
+		mem_block.size = min<u32>(mem_block.size - dst.offset, src.size());
+		copy(mem_mgr.accessMemory(mem_block), src);
 	} else {
 		auto staging_buffer = EX_PASS(VulkanBuffer::create(
-			m_device.ref(), cmd.data.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
+			m_device.ref(), src.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
 		auto mem_block = staging_buffer->memoryBlock();
-		copy(mem_mgr.accessMemory(mem_block), cmd.data);
+		copy(mem_mgr.accessMemory(mem_block), src);
 		VkBufferCopy copy_params{
-			.srcOffset = 0, .dstOffset = cmd.offset, .size = (VkDeviceSize)cmd.data.size()};
+			.srcOffset = 0, .dstOffset = dst.offset, .size = (VkDeviceSize)src.size()};
 		m_commands.emplace_back(
-			CmdCopy{.src = staging_buffer, .dst = cmd.dst, .regions = {{copy_params}}});
+			CmdCopy{.src = staging_buffer, .dst = dst.buffer, .regions = {{copy_params}}});
 		m_staging_buffers.emplace_back(move(staging_buffer));
 	}
 
-	return {};
+	return VSpan{dst.buffer, dst.offset + src.size(), dst.size - src.size()};
 }
 
-Ex<void> VulkanRenderGraph::enqueue(CmdUploadImage cmd) {
-	if(cmd.image.empty())
+Ex<void> VulkanRenderGraph::upload(PVImage dst, const Image &src) {
+	if(src.empty())
 		return {};
 
-	int data_size = cmd.image.data().size() * sizeof(IColor);
+	int data_size = src.data().size() * sizeof(IColor);
 
 	auto &mem_mgr = m_device.memory();
-	auto mem_block = cmd.dst->memoryBlock();
+	auto mem_block = dst->memoryBlock();
 	if(canBeMapped(mem_block.id.domain())) {
 		// TODO: better checks
 		mem_block.size = min<u32>(mem_block.size, data_size);
-		copy(mem_mgr.accessMemory(mem_block), cmd.image.data().reinterpret<char>());
+		copy(mem_mgr.accessMemory(mem_block), src.data().reinterpret<char>());
 	} else {
 		auto staging_buffer = EX_PASS(VulkanBuffer::create(
 			m_device.ref(), data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
 		auto mem_block = staging_buffer->memoryBlock();
-		copy(mem_mgr.accessMemory(mem_block), cmd.image.data().reinterpret<char>());
-		m_commands.emplace_back(CmdCopyImage{.src = staging_buffer, .dst = cmd.dst});
+		copy(mem_mgr.accessMemory(mem_block), src.data().reinterpret<char>());
+		m_commands.emplace_back(CmdCopyImage{.src = staging_buffer, .dst = dst});
 		m_staging_buffers.emplace_back(move(staging_buffer));
 	}
 
 	return {};
 }
 
-Ex<VDownloadId> VulkanRenderGraph::enqueue(CmdDownload cmd) {
-	auto buffer = EX_PASS(VulkanBuffer::create(m_device.ref(), cmd.size, VBufferUsage::transfer_dst,
+Ex<VDownloadId> VulkanRenderGraph::download(VSpan src) {
+	auto buffer = EX_PASS(VulkanBuffer::create(m_device.ref(), src.size, VBufferUsage::transfer_dst,
 											   VMemoryUsage::host));
 	VkBufferCopy copy_params{
-		.srcOffset = cmd.offset, .dstOffset = 0, .size = (VkDeviceSize)cmd.size};
-	m_commands.emplace_back(CmdCopy{.src = cmd.src, .dst = buffer, .regions = {{copy_params}}});
+		.srcOffset = src.offset, .dstOffset = 0, .size = (VkDeviceSize)src.size};
+	m_commands.emplace_back(CmdCopy{.src = src.buffer, .dst = buffer, .regions = {{copy_params}}});
 	auto id = m_downloads.emplace(move(buffer), m_frame_index);
 	return VDownloadId(id);
 }

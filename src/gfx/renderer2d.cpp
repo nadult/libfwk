@@ -278,8 +278,7 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 	auto white_image = EX_PASS(VulkanImage::create(device, {VK_FORMAT_R8G8B8A8_UNORM, {4, 4}, 1}));
 	out.white = VulkanImageView::create(device, white_image);
 
-	Image img_data({4, 4}, ColorId::white);
-	EXPECT(device->renderGraph() << CmdUploadImage(img_data, white_image));
+	EXPECT(device->renderGraph().upload(white_image, Image({4, 4}, ColorId::white)));
 
 	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
 	out.sampler = device->createSampler(sampler);
@@ -288,56 +287,43 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 }
 
 Ex<Renderer2D::DrawCall> Renderer2D::genDrawCall(VDeviceRef device, const VulkanPipelines &ctx) {
-	auto &pipes = ctx.pipelines;
-
-	uint vertex_pos = 0;
-	uint index_pos = 0;
-	uint num_elements = 0;
-
 	DrawCall dc;
 
+	uint num_vertices = 0, num_indices = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
-		vertex_pos += chunk.positions.size() * sizeof(chunk.positions[0]) +
-					  chunk.colors.size() * sizeof(chunk.colors[0]) +
-					  chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]);
-		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
+		num_vertices += chunk.positions.size() * sizeof(chunk.positions[0]) +
+						chunk.colors.size() * sizeof(chunk.colors[0]) +
+						chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]);
+		num_indices += chunk.indices.size() * sizeof(chunk.indices[0]);
 		num_elements += chunk.elements.size();
 	}
 
 	dc.vbuffer = EX_PASS(VulkanBuffer::create(
-		device, vertex_pos, VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst,
+		device, num_vertices, VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 	dc.ibuffer = EX_PASS(VulkanBuffer::create(
-		device, index_pos, VBufferUsage::index_buffer | VBufferUsage::transfer_dst,
+		device, num_indices, VBufferUsage::index_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 	dc.matrix_buffer = EX_PASS(VulkanBuffer::create<Matrix4>(
 		device, num_elements, VBufferUsage::storage_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 
-	vertex_pos = 0, index_pos = 0, num_elements = 0;
 	auto &rgraph = device->renderGraph();
-	// TODO: upload command with multiple regions
+
+	VSpan vbuffer_span(dc.vbuffer), ibuffer_span(dc.ibuffer);
+	VSpan mbuffer_span(dc.matrix_buffer);
 	for(auto &chunk : m_chunks) {
-		EXPECT(rgraph << CmdUpload(chunk.positions, dc.vbuffer, vertex_pos));
-		vertex_pos += chunk.positions.size() * sizeof(chunk.positions[0]);
-		EXPECT(rgraph << CmdUpload(chunk.colors, dc.vbuffer, vertex_pos));
-		vertex_pos += chunk.colors.size() * sizeof(chunk.colors[0]);
-		EXPECT(rgraph << CmdUpload(chunk.tex_coords, dc.vbuffer, vertex_pos));
-		vertex_pos += chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]);
-		EXPECT(rgraph << CmdUpload(chunk.indices, dc.ibuffer, index_pos));
-		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
+		vbuffer_span = EX_PASS(rgraph.upload(vbuffer_span, chunk.positions));
+		vbuffer_span = EX_PASS(rgraph.upload(vbuffer_span, chunk.colors));
+		vbuffer_span = EX_PASS(rgraph.upload(vbuffer_span, chunk.tex_coords));
+		ibuffer_span = EX_PASS(rgraph.upload(ibuffer_span, chunk.indices));
+
 		// TODO: store element matrices in single vector
-		for(auto &element : chunk.elements) {
-			EXPECT(rgraph << CmdUpload(cspan(&element.matrix, 1), dc.matrix_buffer,
-									   num_elements * sizeof(Matrix4)));
-			num_elements++;
-		}
+		for(auto &element : chunk.elements)
+			mbuffer_span = EX_PASS(rgraph.upload(mbuffer_span, cspan(&element.matrix, 1)));
 	}
 
 	// TODO: scissors support
-
-	// TODO: mo¿e instrukcja BindVertexBuffers/IndexBuffers z pointerem do pamiêci CPU?
-	// automatycznie by by³y grupowane do buforów i uploadowane?
 
 	return dc;
 }

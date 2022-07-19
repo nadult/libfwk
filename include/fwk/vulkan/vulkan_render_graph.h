@@ -14,34 +14,6 @@ class Image;
 class VulkanRenderGraph;
 using PVRenderGraph = Dynamic<VulkanRenderGraph>;
 
-// TODO: option to pass function/functor which copies some data to dst buffer
-struct CmdUpload {
-	CmdUpload(CSpan<char> data, PVBuffer dst, u64 offset = 0)
-		: data(data), dst(dst), offset(offset) {}
-	template <c_span TSpan, class T = SpanBase<TSpan>>
-	CmdUpload(const TSpan &span, PVBuffer dst, u64 offset = 0)
-		: data(cspan(span).template reinterpret<char>()), dst(dst), offset(offset) {}
-
-	CSpan<char> data;
-	PVBuffer dst;
-	u64 offset;
-};
-
-struct CmdDownload {
-	CmdDownload(PVBuffer);
-	CmdDownload(PVBuffer src, u64 offset, u64 size) : src(src), offset(offset), size(size) {}
-
-	PVBuffer src;
-	u64 offset, size = 0;
-};
-
-struct CmdUploadImage {
-	CmdUploadImage(const Image &image, PVImage dst) : image(image), dst(dst) {}
-
-	const Image &image;
-	PVImage dst;
-};
-
 struct CmdCopy {
 	PVBuffer src;
 	PVBuffer dst;
@@ -136,6 +108,15 @@ class StagingBuffer {
 	PVBuffer buffer;
 };
 
+struct VSpan {
+	VSpan(PVBuffer buffer);
+	VSpan(PVBuffer buffer, u32 offset);
+	VSpan(PVBuffer buffer, u32 offset, u32 size) : buffer(buffer), offset(offset), size(size) {}
+
+	PVBuffer buffer;
+	u32 offset, size;
+};
+
 // TODO: new name: command queue ?
 // TODO: only upload commands should be enqueue-able; All the other have to happen
 // between begin & end frame
@@ -153,10 +134,16 @@ class VulkanRenderGraph {
 	// Acquires new descriptor set and immediately binds it
 	VDescriptorSet bindDS(int index);
 
-	// Upload commands are handled immediately, copy commands are enqueued in their place
-	Ex<void> enqueue(CmdUpload);
-	Ex<void> enqueue(CmdUploadImage);
-	Ex<VDownloadId> enqueue(CmdDownload);
+	// Upload commands are handled immediately, if staging buffer is used, then copy commands
+	// will be enqueued until beginFrame
+	Ex<VSpan> upload(VSpan dst, CSpan<char> src);
+	template <c_span TSpan, class T = SpanBase<TSpan>>
+	Ex<VSpan> upload(VSpan dst, const TSpan &src) {
+		return upload(dst, cspan(src).template reinterpret<char>());
+	}
+	Ex<void> upload(PVImage dst, const Image &src);
+
+	Ex<VDownloadId> download(VSpan src);
 
 	template <class T> auto operator<<(T &&cmd) { return enqueue(std::forward<T>(cmd)); }
 

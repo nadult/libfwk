@@ -37,6 +37,7 @@
 // TODO: add status function which prints number of objects of each type which are present
 // TODO: another status function would be useful for memory
 // TODO: don't store ref-counters in CMD lists in rendergraph (upload queue may be an exception)
+// TODO(opt): upload command with multiple regions
 
 namespace fwk {
 

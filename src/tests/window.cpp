@@ -133,7 +133,7 @@ Ex<void> computeStuff(VulkanContext &ctx) {
 	render_graph << CmdBindPipeline{ctx.compute_pipe};
 	render_graph << CmdDispatchCompute{{1, 1, 1}};
 	if(!ctx.download_id)
-		ctx.download_id = EX_PASS(render_graph.enqueue(CmdDownload(target_buffer)));
+		ctx.download_id = EX_PASS(render_graph.download(target_buffer));
 	return {};
 }
 
@@ -194,7 +194,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
 	auto vimage = EX_PASS(VulkanImage::create(ctx.device, {VK_FORMAT_R8G8B8A8_SRGB, image.size()},
 											  VMemoryUsage::device));
-	EXPECT(ctx.device->renderGraph() << CmdUploadImage(image, vimage));
+	EXPECT(ctx.device->renderGraph().upload(vimage, image));
 	return vimage;
 }
 
@@ -234,7 +234,7 @@ Ex<int> exMain() {
 		buffer = EX_PASS(VulkanBuffer::create<u32>(device, compute_size + 1, compute_usage));
 	vector<u32> compute_data(compute_size + 1, 0);
 	compute_data[0] = compute_size;
-	EXPECT(ctx.device->renderGraph() << CmdUpload(compute_data, ctx.compute_buffers[0]));
+	EXPECT(ctx.device->renderGraph().upload(ctx.compute_buffers[0], compute_data));
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
