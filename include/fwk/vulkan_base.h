@@ -256,6 +256,7 @@ class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
 class VulkanCommandQueue;
+class VulkanQueryManager;
 class VulkanMemoryManager;
 class VulkanDescriptorManager;
 struct VulkanPhysicalDeviceInfo;

@@ -8,6 +8,7 @@
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
+#include "fwk/vulkan/vulkan_query_manager.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
@@ -190,6 +191,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 					   &m_objects->pipeline_cache);
 
 	m_descriptors.emplace(m_handle);
+	m_queries.emplace(m_handle);
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
 
 	m_cmds = new VulkanCommandQueue(ref());
@@ -202,6 +204,7 @@ VulkanDevice::~VulkanDevice() {
 		vkDeviceWaitIdle(m_handle);
 	}
 	m_swap_chain = {};
+	m_queries.reset();
 	m_descriptors.reset();
 	m_cmds.reset();
 	m_objects->hashed_render_passes.clear();

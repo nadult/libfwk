@@ -163,6 +163,7 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_instance.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_pipeline.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_command_queue.h" />
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_query_manager.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_shader.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_storage.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_swap_chain.h" />
@@ -383,6 +384,7 @@
     <ClCompile Include="..\src\vulkan\vulkan_instance.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_pipeline.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_command_queue.cpp" />
+    <ClCompile Include="..\src\vulkan\vulkan_query_manager.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_shader.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_storage.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_swap_chain.cpp" />

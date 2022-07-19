@@ -108,6 +108,7 @@ class VulkanDevice {
 	PVSwapChain m_swap_chain;
 	Dynamic<VulkanCommandQueue> m_cmds;
 	Dynamic<VulkanMemoryManager> m_memory;
+	Dynamic<VulkanQueryManager> m_queries;
 
 	VDeviceFeatures m_features;
 	vector<VQueue> m_queues;
