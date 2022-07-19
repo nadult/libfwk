@@ -110,13 +110,12 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
 	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
-	render_graph << CmdBeginRenderPass{
-		fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}}};
-	render_graph << CmdSetViewport{IRect(sc_extent)};
-	render_graph << CmdSetScissor{none};
+	render_graph.beginRenderPass(fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}});
+	render_graph.setViewport(IRect(sc_extent));
+	render_graph.setScissor(none);
 
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
-	render_graph << CmdEndRenderPass{};
+	render_graph.endRenderPass();
 
 	return {};
 }
@@ -130,8 +129,8 @@ Ex<void> computeStuff(VulkanContext &ctx) {
 	ds(1, target_buffer);
 	ctx.compute_buffer_idx ^= 1;
 
-	render_graph << CmdBindPipeline{ctx.compute_pipe};
-	render_graph << CmdDispatchCompute{{1, 1, 1}};
+	render_graph.bind(ctx.compute_pipe);
+	render_graph.dispatchCompute({1, 1, 1});
 	if(!ctx.download_id)
 		ctx.download_id = EX_PASS(render_graph.download(target_buffer));
 	return {};

@@ -349,12 +349,12 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 		for(int i = 0; i < 3; i++)
 			offsets[i] = vertex_pos, vertex_pos += sizes[i];
 
-		rgraph << CmdBindVertexBuffers({dc.vbuffer, dc.vbuffer, dc.vbuffer}, cspan(offsets));
-		rgraph << CmdBindIndexBuffer(dc.ibuffer, index_pos);
+		rgraph.bindVertices(
+			{{dc.vbuffer, offsets[0]}, {dc.vbuffer, offsets[1]}, {dc.vbuffer, offsets[2]}});
+		rgraph.bindIndices({dc.ibuffer, index_pos});
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
-
 			auto tex = element.texture ? element.texture : ctx.white;
 			if(tex != prev_tex) {
 				rgraph.bindDS(1)(0, ctx.sampler, tex);
@@ -363,12 +363,8 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 
 			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
 						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
-			rgraph << CmdBindPipeline{ctx.pipelines[pipe_id]};
-			rgraph << CmdDrawIndexed{.first_index = element.first_index,
-									 .num_indices = element.num_indices,
-									 .num_instances = 1,
-									 .first_instance = int(num_elements)};
-			num_elements++;
+			rgraph.bind(ctx.pipelines[pipe_id]);
+			rgraph.drawIndexed(element.num_indices, 1, element.first_index, num_elements++);
 		}
 	}
 
