@@ -11,11 +11,11 @@
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
 #include <fwk/vulkan/vulkan_buffer.h>
+#include <fwk/vulkan/vulkan_command_queue.h>
 #include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_image.h>
 #include <fwk/vulkan/vulkan_instance.h>
 #include <fwk/vulkan/vulkan_pipeline.h>
-#include <fwk/vulkan/vulkan_render_graph.h>
 #include <fwk/vulkan/vulkan_shader.h>
 #include <fwk/vulkan/vulkan_swap_chain.h>
 #include <fwk/vulkan/vulkan_window.h>
@@ -78,7 +78,7 @@ struct VulkanContext {
 };
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
-	auto &render_graph = ctx.device->renderGraph();
+	auto &cmds = ctx.device->cmdQueue();
 	auto swap_chain = ctx.device->swapChain();
 	auto sc_extent = swap_chain->extent();
 
@@ -110,29 +110,29 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
 	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
-	render_graph.beginRenderPass(fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}});
-	render_graph.setViewport(IRect(sc_extent));
-	render_graph.setScissor(none);
+	cmds.beginRenderPass(fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}});
+	cmds.setViewport(IRect(sc_extent));
+	cmds.setScissor(none);
 
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
-	render_graph.endRenderPass();
+	cmds.endRenderPass();
 
 	return {};
 }
 
 Ex<void> computeStuff(VulkanContext &ctx) {
-	auto &render_graph = ctx.device->renderGraph();
-	render_graph.bind(ctx.compute_pipe->layout(), VBindPoint::compute);
-	auto ds = render_graph.bindDS(0);
+	auto &cmds = ctx.device->cmdQueue();
+	cmds.bind(ctx.compute_pipe->layout(), VBindPoint::compute);
+	auto ds = cmds.bindDS(0);
 	auto &target_buffer = ctx.compute_buffers[ctx.compute_buffer_idx ^ 1];
 	ds(0, ctx.compute_buffers[ctx.compute_buffer_idx]);
 	ds(1, target_buffer);
 	ctx.compute_buffer_idx ^= 1;
 
-	render_graph.bind(ctx.compute_pipe);
-	render_graph.dispatchCompute({1, 1, 1});
+	cmds.bind(ctx.compute_pipe);
+	cmds.dispatchCompute({1, 1, 1});
 	if(!ctx.download_id)
-		ctx.download_id = EX_PASS(render_graph.download(target_buffer));
+		ctx.download_id = EX_PASS(cmds.download(target_buffer));
 	return {};
 }
 
@@ -169,7 +169,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	static string last_message;
 
 	if(ctx.download_id) {
-		auto &rgraph = ctx.device->renderGraph();
+		auto &rgraph = ctx.device->cmdQueue();
 		if(auto data = rgraph.retrieve(*ctx.download_id)) {
 			auto uints = cspan(data).reinterpret<u32>();
 			uint count = uints[0];
@@ -193,7 +193,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
 	auto vimage = EX_PASS(VulkanImage::create(ctx.device, {VK_FORMAT_R8G8B8A8_SRGB, image.size()},
 											  VMemoryUsage::device));
-	EXPECT(ctx.device->renderGraph().upload(vimage, image));
+	EXPECT(ctx.device->cmdQueue().upload(vimage, image));
 	return vimage;
 }
 
@@ -219,7 +219,6 @@ Ex<int> exMain() {
 	auto swap_chain = EX_PASS(VulkanSwapChain::create(
 		device, window, {.preferred_present_mode = VPresentMode::immediate}));
 	device->addSwapChain(swap_chain);
-	EXPECT(device->createRenderGraph());
 
 	VulkanContext ctx{device, window};
 	auto compute_module =
@@ -233,7 +232,7 @@ Ex<int> exMain() {
 		buffer = EX_PASS(VulkanBuffer::create<u32>(device, compute_size + 1, compute_usage));
 	vector<u32> compute_data(compute_size + 1, 0);
 	compute_data[0] = compute_size;
-	EXPECT(ctx.device->renderGraph().upload(ctx.compute_buffers[0], compute_data));
+	EXPECT(ctx.device->cmdQueue().upload(ctx.compute_buffers[0], compute_data));
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));

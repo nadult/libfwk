@@ -10,10 +10,6 @@
 
 namespace fwk {
 
-class Image;
-class VulkanRenderGraph;
-using PVRenderGraph = Dynamic<VulkanRenderGraph>;
-
 struct VSpan {
 	VSpan(PVBuffer buffer);
 	VSpan(PVBuffer buffer, u32 offset);
@@ -23,12 +19,13 @@ struct VSpan {
 	u32 offset, size;
 };
 
-// TODO: new name: command queue ?
-class VulkanRenderGraph {
-  public:
-	~VulkanRenderGraph();
+DEFINE_ENUM(VCommandQueueStatus, initialized, frame_running, frame_finished);
 
-	enum class Status { init, frame_running, frame_finished };
+class VulkanCommandQueue {
+  public:
+	~VulkanCommandQueue();
+	using Status = VCommandQueueStatus;
+
 	Status status() const { return m_status; }
 	u64 frameIndex() const { return m_frame_index; }
 	int swapFrameIndex() const { return m_swap_index; }
@@ -72,7 +69,7 @@ class VulkanRenderGraph {
 
 	// -------------------------------------------------------------------------------------------
 	// ----------  Upload commands (can be called anytime)   -------------------------------------
-	//
+
 	// Upload commands are handled immediately, if staging buffer is used, then copy commands
 	// will be enqueued until beginFrame
 	Ex<VSpan> upload(VSpan dst, CSpan<char> src);
@@ -87,9 +84,9 @@ class VulkanRenderGraph {
 	friend class VulkanDevice;
 	friend class Gui;
 
-	VulkanRenderGraph(VDeviceRef);
-	VulkanRenderGraph(const VulkanRenderGraph &) = delete;
-	void operator=(const VulkanRenderGraph &) = delete;
+	VulkanCommandQueue(VDeviceRef);
+	VulkanCommandQueue(const VulkanCommandQueue &) = delete;
+	void operator=(const VulkanCommandQueue &) = delete;
 
 	Ex<void> initialize(VDeviceRef);
 
@@ -146,6 +143,6 @@ class VulkanRenderGraph {
 	VkCommandPool m_command_pool = nullptr;
 	VkCommandBuffer m_cur_cmd_buffer = nullptr;
 	uint m_swap_index = 0, m_frame_index = 0;
-	Status m_status = Status::init;
+	Status m_status = Status::initialized;
 };
 }

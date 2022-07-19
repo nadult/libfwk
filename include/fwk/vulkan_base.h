@@ -255,7 +255,7 @@ struct VQueue {
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;
-class VulkanRenderGraph;
+class VulkanCommandQueue;
 class VulkanMemoryManager;
 class VulkanDescriptorManager;
 struct VulkanPhysicalDeviceInfo;

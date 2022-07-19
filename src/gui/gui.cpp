@@ -9,10 +9,10 @@
 #include "fwk/sys/input.h"
 #include "gui_impl.h"
 
+#include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
-#include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 #include "fwk/vulkan/vulkan_window.h"
 
@@ -133,7 +133,6 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 	info.Queue = m_impl->queue.handle;
 	info.PipelineCache = device->pipelineCache();
 
-	auto &rgraph = device->renderGraph();
 	auto swap_chain = device->swapChain();
 	info.ImageCount = info.MinImageCount = swap_chain->numImages();
 	info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;

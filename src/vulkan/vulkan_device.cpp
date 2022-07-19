@@ -3,11 +3,11 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 
+#include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_descriptor_manager.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
-#include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
@@ -191,7 +191,9 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 
 	m_descriptors.emplace(m_handle);
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
-	return {};
+
+	m_cmds = new VulkanCommandQueue(ref());
+	return m_cmds->initialize(ref());
 }
 
 VulkanDevice::~VulkanDevice() {
@@ -201,7 +203,7 @@ VulkanDevice::~VulkanDevice() {
 	}
 	m_swap_chain = {};
 	m_descriptors.reset();
-	m_render_graph.reset();
+	m_cmds.reset();
 	m_objects->hashed_render_passes.clear();
 	m_objects->hashed_framebuffers.clear();
 	m_objects->hashed_pipeline_layouts.clear();
@@ -249,8 +251,8 @@ Maybe<VQueue> VulkanDevice::findFirstQueue(VQueueCaps caps) const {
 
 void VulkanDevice::addSwapChain(PVSwapChain swap_chain) {
 	DASSERT("Currently only single swap chain can be used by VulkanDevice" && !m_swap_chain);
-	if(m_render_graph)
-		DASSERT(m_render_graph->status() != VulkanRenderGraph::Status::frame_running);
+	if(m_cmds)
+		DASSERT(m_cmds->status() != VulkanCommandQueue::Status::frame_running);
 	m_swap_chain = swap_chain;
 }
 
@@ -260,18 +262,12 @@ void VulkanDevice::removeSwapChain() {
 	m_swap_chain = {};
 }
 
-Ex<void> VulkanDevice::createRenderGraph() {
-	DASSERT(!m_render_graph && "Render graph already initialized");
-	m_render_graph = new VulkanRenderGraph(ref());
-	return m_render_graph->initialize(ref());
-}
-
 Ex<bool> VulkanDevice::beginFrame() {
-	DASSERT(m_render_graph);
+	DASSERT(m_cmds);
 	if(m_swap_chain)
 		m_image_available_sem = EX_PASS(m_swap_chain->acquireImage());
-	m_render_graph->beginFrame();
-	m_swap_frame_index = m_render_graph->swapFrameIndex();
+	m_cmds->beginFrame();
+	m_swap_frame_index = m_cmds->swapFrameIndex();
 	m_memory->beginFrame();
 	m_descriptors->beginFrame(m_swap_frame_index);
 	releaseObjects(m_swap_frame_index);
@@ -279,17 +275,17 @@ Ex<bool> VulkanDevice::beginFrame() {
 }
 
 Ex<bool> VulkanDevice::finishFrame() {
-	DASSERT(m_render_graph);
+	DASSERT(m_cmds);
 	m_descriptors->finishFrame();
 	m_memory->finishFrame();
 
 	if(m_swap_chain && m_image_available_sem) {
 		VkSemaphore render_finished_sem = nullptr;
-		m_render_graph->finishFrame(&m_image_available_sem, &render_finished_sem);
+		m_cmds->finishFrame(&m_image_available_sem, &render_finished_sem);
 		EXPECT(m_swap_chain->presentImage(render_finished_sem));
 		m_image_available_sem = nullptr;
 	} else {
-		m_render_graph->finishFrame(nullptr, nullptr);
+		m_cmds->finishFrame(nullptr, nullptr);
 	}
 
 	cleanupFramebuffers();
@@ -298,7 +294,7 @@ Ex<bool> VulkanDevice::finishFrame() {
 }
 
 void VulkanDevice::waitForIdle() {
-	DASSERT(m_render_graph->status() != VulkanRenderGraph::Status::frame_running);
+	DASSERT(m_cmds->status() != VulkanCommandQueue::Status::frame_running);
 	vkDeviceWaitIdle(m_handle);
 	for(int i : intRange(VulkanLimits::num_swap_frames)) {
 		releaseObjects(i);

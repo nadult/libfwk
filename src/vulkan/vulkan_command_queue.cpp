@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/vulkan/vulkan_render_graph.h"
+#include "fwk/vulkan/vulkan_command_queue.h"
 
 #include "fwk/gfx/image.h"
 #include "fwk/index_range.h"
@@ -21,10 +21,10 @@ VSpan::VSpan(PVBuffer buffer, u32 offset)
 	PASSERT(offset < buffer->size());
 }
 
-VulkanRenderGraph::VulkanRenderGraph(VDeviceRef device)
+VulkanCommandQueue::VulkanCommandQueue(VDeviceRef device)
 	: m_device(*device), m_device_handle(device) {}
 
-VulkanRenderGraph::~VulkanRenderGraph() {
+VulkanCommandQueue::~VulkanCommandQueue() {
 	if(!m_device_handle)
 		return;
 	vkDeviceWaitIdle(m_device_handle);
@@ -35,7 +35,7 @@ VulkanRenderGraph::~VulkanRenderGraph() {
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
 
-Ex<void> VulkanRenderGraph::initialize(VDeviceRef device) {
+Ex<void> VulkanCommandQueue::initialize(VDeviceRef device) {
 	auto queue = device->findFirstQueue(VQueueCap::graphics);
 	EXPECT(queue);
 	m_queue = *queue;
@@ -51,7 +51,7 @@ Ex<void> VulkanRenderGraph::initialize(VDeviceRef device) {
 	return {};
 }
 
-void VulkanRenderGraph::beginFrame() {
+void VulkanCommandQueue::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_swap_index];
 
@@ -80,7 +80,7 @@ void VulkanRenderGraph::beginFrame() {
 	m_copy_queue.clear();
 }
 
-void VulkanRenderGraph::finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_signal_sem) {
+void VulkanCommandQueue::finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_signal_sem) {
 	DASSERT(m_status == Status::frame_running);
 	m_status = Status::frame_finished;
 
@@ -113,13 +113,13 @@ void VulkanRenderGraph::finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_sign
 	m_last_viewport = {};
 }
 
-bool VulkanRenderGraph::isFinished(VDownloadId download_id) {
+bool VulkanCommandQueue::isFinished(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
 	return download.is_ready;
 }
 
-PodVector<char> VulkanRenderGraph::retrieve(VDownloadId download_id) {
+PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
 	if(!download.is_ready)
@@ -135,7 +135,7 @@ PodVector<char> VulkanRenderGraph::retrieve(VDownloadId download_id) {
 // -------------------------------------------------------------------------------------------
 // ----------  Commands ----------------------------------------------------------------------
 
-void VulkanRenderGraph::copy(VSpan dst, VSpan src) {
+void VulkanCommandQueue::copy(VSpan dst, VSpan src) {
 	DASSERT(src.size <= dst.size);
 	VkBufferCopy copy_params{src.offset, dst.offset, VkDeviceSize(src.size)};
 	vkCmdCopyBuffer(m_cur_cmd_buffer, src.buffer, dst.buffer, 1, &copy_params);
@@ -173,7 +173,7 @@ static void transitionImageLayout(VkCommandBuffer cmd_buffer, VkImage image, VkF
 	vkCmdPipelineBarrier(cmd_buffer, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
-void VulkanRenderGraph::copy(PVImage dst, VSpan src, VImageLayout dst_layout) {
+void VulkanCommandQueue::copy(PVImage dst, VSpan src, VImageLayout dst_layout) {
 	VkBufferImageCopy region{};
 	region.bufferOffset = src.offset;
 	// TODO: do it properly
@@ -193,17 +193,17 @@ void VulkanRenderGraph::copy(PVImage dst, VSpan src, VImageLayout dst_layout) {
 	dst->m_last_layout = dst_layout;
 }
 
-void VulkanRenderGraph::bind(PVPipelineLayout layout, VBindPoint bind_point) {
+void VulkanCommandQueue::bind(PVPipelineLayout layout, VBindPoint bind_point) {
 	m_last_pipeline_layout = layout;
 	m_last_bind_point = bind_point;
 }
 
-void VulkanRenderGraph::bindDS(int index, const VDescriptorSet &ds) {
+void VulkanCommandQueue::bindDS(int index, const VDescriptorSet &ds) {
 	vkCmdBindDescriptorSets(m_cur_cmd_buffer, toVk(m_last_bind_point), m_last_pipeline_layout,
 							uint(index), 1, &ds.handle, 0, nullptr);
 }
 
-VDescriptorSet VulkanRenderGraph::bindDS(int index) {
+VDescriptorSet VulkanCommandQueue::bindDS(int index) {
 	DASSERT(m_last_pipeline_layout);
 	auto dsl_id = m_last_pipeline_layout->descriptorSetLayouts()[index];
 	auto ds = m_device.acquireSet(dsl_id);
@@ -211,7 +211,7 @@ VDescriptorSet VulkanRenderGraph::bindDS(int index) {
 	return ds;
 }
 
-Ex<VDownloadId> VulkanRenderGraph::download(VSpan src) {
+Ex<VDownloadId> VulkanCommandQueue::download(VSpan src) {
 	PASSERT(m_status == Status::frame_running);
 	auto buffer = EX_PASS(VulkanBuffer::create(m_device.ref(), src.size, VBufferUsage::transfer_dst,
 											   VMemoryUsage::host));
@@ -222,7 +222,7 @@ Ex<VDownloadId> VulkanRenderGraph::download(VSpan src) {
 	return VDownloadId(id);
 }
 
-void VulkanRenderGraph::setViewport(IRect viewport, float min_depth, float max_depth) {
+void VulkanCommandQueue::setViewport(IRect viewport, float min_depth, float max_depth) {
 	PASSERT(m_status == Status::frame_running);
 	VkViewport vk_viewport{float(viewport.x()),		 float(viewport.y()), float(viewport.width()),
 						   float(viewport.height()), min_depth,			  max_depth};
@@ -230,7 +230,7 @@ void VulkanRenderGraph::setViewport(IRect viewport, float min_depth, float max_d
 	vkCmdSetViewport(m_cur_cmd_buffer, 0, 1, &vk_viewport);
 }
 
-void VulkanRenderGraph::setScissor(Maybe<IRect> scissor) {
+void VulkanCommandQueue::setScissor(Maybe<IRect> scissor) {
 	PASSERT(m_status == Status::frame_running);
 	DASSERT(scissor || !m_last_viewport.empty());
 	IRect rect = scissor.orElse(m_last_viewport);
@@ -238,13 +238,13 @@ void VulkanRenderGraph::setScissor(Maybe<IRect> scissor) {
 	vkCmdSetScissor(m_cur_cmd_buffer, 0, 1, &vk_rect);
 }
 
-void VulkanRenderGraph::bindIndices(VSpan span) {
+void VulkanCommandQueue::bindIndices(VSpan span) {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdBindIndexBuffer(m_cur_cmd_buffer, span.buffer, span.offset,
 						 VkIndexType::VK_INDEX_TYPE_UINT32);
 }
 
-void VulkanRenderGraph::bindVertices(CSpan<VSpan> vbuffers, uint first_binding) {
+void VulkanCommandQueue::bindVertices(CSpan<VSpan> vbuffers, uint first_binding) {
 	PASSERT(m_status == Status::frame_running);
 	static constexpr int max_bindings = 32;
 	VkBuffer buffers[max_bindings];
@@ -258,28 +258,28 @@ void VulkanRenderGraph::bindVertices(CSpan<VSpan> vbuffers, uint first_binding) 
 	vkCmdBindVertexBuffers(m_cur_cmd_buffer, first_binding, vbuffers.size(), buffers, offsets_64);
 }
 
-void VulkanRenderGraph::bind(PVPipeline pipeline) {
+void VulkanCommandQueue::bind(PVPipeline pipeline) {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdBindPipeline(m_cur_cmd_buffer, toVk(pipeline->bindPoint()), pipeline);
 }
 
-void VulkanRenderGraph::draw(int num_vertices, int num_instances, int first_vertex,
-							 int first_instance) {
+void VulkanCommandQueue::draw(int num_vertices, int num_instances, int first_vertex,
+							  int first_instance) {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdDraw(m_cur_cmd_buffer, num_vertices, num_instances, first_vertex, first_instance);
 }
 
-void VulkanRenderGraph::drawIndexed(int num_indices, int num_instances, int first_index,
-									int first_instance, int vertex_offset) {
+void VulkanCommandQueue::drawIndexed(int num_indices, int num_instances, int first_index,
+									 int first_instance, int vertex_offset) {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdDrawIndexed(m_cur_cmd_buffer, num_indices, num_instances, first_index, vertex_offset,
 					 first_instance);
 }
 
 // TODO: add cache for renderpasses, add renderpass for framebuffer, interface for clear values
-void VulkanRenderGraph::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass render_pass,
-										Maybe<IRect> render_area,
-										CSpan<VkClearValue> clear_values) {
+void VulkanCommandQueue::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass render_pass,
+										 Maybe<IRect> render_area,
+										 CSpan<VkClearValue> clear_values) {
 	PASSERT(m_status == Status::frame_running);
 	VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
 	bi.renderPass = render_pass;
@@ -293,12 +293,12 @@ void VulkanRenderGraph::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass 
 	vkCmdBeginRenderPass(m_cur_cmd_buffer, &bi, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void VulkanRenderGraph::endRenderPass() {
+void VulkanCommandQueue::endRenderPass() {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdEndRenderPass(m_cur_cmd_buffer);
 }
 
-void VulkanRenderGraph::dispatchCompute(int3 size) {
+void VulkanCommandQueue::dispatchCompute(int3 size) {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdDispatch(m_cur_cmd_buffer, size.x, size.y, size.z);
 }
@@ -306,7 +306,7 @@ void VulkanRenderGraph::dispatchCompute(int3 size) {
 // -------------------------------------------------------------------------------------------
 // ----------  Upload commands ---------------------------------------------------------------
 
-Ex<VSpan> VulkanRenderGraph::upload(VSpan dst, CSpan<char> src) {
+Ex<VSpan> VulkanCommandQueue::upload(VSpan dst, CSpan<char> src) {
 	if(src.empty())
 		return dst;
 	DASSERT(src.size() <= dst.size);
@@ -335,7 +335,7 @@ Ex<VSpan> VulkanRenderGraph::upload(VSpan dst, CSpan<char> src) {
 	return VSpan{dst.buffer, dst.offset + src.size(), dst.size - src.size()};
 }
 
-Ex<void> VulkanRenderGraph::upload(PVImage dst, const Image &src, VImageLayout dst_layout) {
+Ex<void> VulkanCommandQueue::upload(PVImage dst, const Image &src, VImageLayout dst_layout) {
 	if(src.empty())
 		return {};
 

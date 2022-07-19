@@ -39,9 +39,8 @@ class VulkanDevice {
 	void removeSwapChain();
 	PVSwapChain swapChain() const { return m_swap_chain; }
 
-	Ex<void> createRenderGraph();
-	const VulkanRenderGraph &renderGraph() const { return *m_render_graph; }
-	VulkanRenderGraph &renderGraph() { return *m_render_graph; }
+	const VulkanCommandQueue &cmdQueue() const { return *m_cmds; }
+	VulkanCommandQueue &cmdQueue() { return *m_cmds; }
 
 	const VulkanMemoryManager &memory() const { return *m_memory; }
 	VulkanMemoryManager &memory() { return *m_memory; }
@@ -107,7 +106,7 @@ class VulkanDevice {
 	Dynamic<VulkanDescriptorManager> m_descriptors;
 	Dynamic<ObjectPools> m_objects;
 	PVSwapChain m_swap_chain;
-	Dynamic<VulkanRenderGraph> m_render_graph;
+	Dynamic<VulkanCommandQueue> m_cmds;
 	Dynamic<VulkanMemoryManager> m_memory;
 
 	VDeviceFeatures m_features;

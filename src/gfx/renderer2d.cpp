@@ -10,10 +10,10 @@
 #include "fwk/sys/on_fail.h"
 
 #include "fwk/vulkan/vulkan_buffer.h"
+#include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
-#include "fwk/vulkan/vulkan_render_graph.h"
 #include "fwk/vulkan/vulkan_shader.h"
 
 // Czy chcemy, ¿eby Renderer2D bazowa³ na ElementBufferze ?
@@ -278,7 +278,7 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 	auto white_image = EX_PASS(VulkanImage::create(device, {VK_FORMAT_R8G8B8A8_UNORM, {4, 4}, 1}));
 	out.white = VulkanImageView::create(device, white_image);
 
-	EXPECT(device->renderGraph().upload(white_image, Image({4, 4}, ColorId::white)));
+	EXPECT(device->cmdQueue().upload(white_image, Image({4, 4}, ColorId::white)));
 
 	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
 	out.sampler = device->createSampler(sampler);
@@ -308,19 +308,18 @@ Ex<Renderer2D::DrawCall> Renderer2D::genDrawCall(VDeviceRef device, const Vulkan
 		device, num_elements, VBufferUsage::storage_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 
-	auto &rgraph = device->renderGraph();
-
+	auto &cmds = device->cmdQueue();
 	VSpan vbuffer_span(dc.vbuffer), ibuffer_span(dc.ibuffer);
 	VSpan mbuffer_span(dc.matrix_buffer);
 	for(auto &chunk : m_chunks) {
-		vbuffer_span = EX_PASS(rgraph.upload(vbuffer_span, chunk.positions));
-		vbuffer_span = EX_PASS(rgraph.upload(vbuffer_span, chunk.colors));
-		vbuffer_span = EX_PASS(rgraph.upload(vbuffer_span, chunk.tex_coords));
-		ibuffer_span = EX_PASS(rgraph.upload(ibuffer_span, chunk.indices));
+		vbuffer_span = EX_PASS(cmds.upload(vbuffer_span, chunk.positions));
+		vbuffer_span = EX_PASS(cmds.upload(vbuffer_span, chunk.colors));
+		vbuffer_span = EX_PASS(cmds.upload(vbuffer_span, chunk.tex_coords));
+		ibuffer_span = EX_PASS(cmds.upload(ibuffer_span, chunk.indices));
 
 		// TODO: store element matrices in single vector
 		for(auto &element : chunk.elements)
-			mbuffer_span = EX_PASS(rgraph.upload(mbuffer_span, cspan(&element.matrix, 1)));
+			mbuffer_span = EX_PASS(cmds.upload(mbuffer_span, cspan(&element.matrix, 1)));
 	}
 
 	// TODO: scissors support
@@ -333,11 +332,9 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 	// we just have to make sure that pipeline is compatible with it
 	// TODO: passing weak pointers to commands
 
-	auto &rgraph = device->renderGraph();
-
-	auto pipe_layout = ctx.pipelines[0]->layout();
-	rgraph.bind(pipe_layout);
-	rgraph.bindDS(0)(0, dc.matrix_buffer);
+	auto &cmds = device->cmdQueue();
+	cmds.bind(ctx.pipelines[0]->layout());
+	cmds.bindDS(0)(0, dc.matrix_buffer);
 
 	PVImageView prev_tex;
 	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
@@ -349,22 +346,22 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 		for(int i = 0; i < 3; i++)
 			offsets[i] = vertex_pos, vertex_pos += sizes[i];
 
-		rgraph.bindVertices(
+		cmds.bindVertices(
 			{{dc.vbuffer, offsets[0]}, {dc.vbuffer, offsets[1]}, {dc.vbuffer, offsets[2]}});
-		rgraph.bindIndices({dc.ibuffer, index_pos});
+		cmds.bindIndices({dc.ibuffer, index_pos});
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
 			auto tex = element.texture ? element.texture : ctx.white;
 			if(tex != prev_tex) {
-				rgraph.bindDS(1)(0, ctx.sampler, tex);
+				cmds.bindDS(1)(0, ctx.sampler, tex);
 				prev_tex = tex;
 			}
 
 			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
 						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
-			rgraph.bind(ctx.pipelines[pipe_id]);
-			rgraph.drawIndexed(element.num_indices, 1, element.first_index, num_elements++);
+			cmds.bind(ctx.pipelines[pipe_id]);
+			cmds.drawIndexed(element.num_indices, 1, element.first_index, num_elements++);
 		}
 	}
 

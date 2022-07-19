@@ -45,7 +45,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
   private:
 	friend class VulkanSwapChain;
 	friend class VulkanDevice;
-	friend class VulkanRenderGraph;
+	friend class VulkanCommandQueue;
 	VulkanImage(VkImage, VObjectId, VMemoryBlock, const VImageSetup &);
 	~VulkanImage();
 
