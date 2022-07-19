@@ -23,7 +23,7 @@ struct GuiPopupContext {
 };
 
 struct Gui::Impl {
-	Impl(VDeviceRef device) : device(device) {}
+	Impl(VDeviceRef device, VWindowRef window) : device(device), window(window) {}
 
 	struct Process {
 		ProcessFunc func;
@@ -31,6 +31,7 @@ struct Gui::Impl {
 	};
 
 	VDeviceRef device;
+	VWindowRef window;
 	VQueue queue = {};
 	VkDescriptorPool descr_pool = nullptr;
 

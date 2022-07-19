@@ -22,18 +22,6 @@ namespace fwk {
 
 Gui *Gui::s_instance = nullptr;
 
-static const char *getClipboardText(void *) {
-	static string buffer;
-	// TODO: fixme
-	//buffer = GlDevice::instance().clipboardText();
-	return buffer.c_str();
-}
-
-static void setClipboardText(void *, const char *text) {
-	// TODO: fixme
-	//GlDevice::instance().setClipboardText(text);
-}
-
 void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 	auto dpi_scale = window.dpiScale();
 	if(dpi_scale == m_dpi_scale && !is_initial)
@@ -104,7 +92,7 @@ void Gui::rescaleWindows(float scale) {
 }
 
 Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opts) {
-	m_impl.emplace(device);
+	m_impl.emplace(device, window);
 	ASSERT("You can only create a single instance of Gui" && !s_instance);
 	s_instance = this;
 	ImGui::CreateContext();
@@ -176,9 +164,17 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 	io.KeyMap[ImGuiKey_X] = 'x';
 	io.KeyMap[ImGuiKey_Y] = 'y';
 
-	io.SetClipboardTextFn = setClipboardText;
-	io.GetClipboardTextFn = getClipboardText;
-	io.ClipboardUserData = nullptr;
+	io.SetClipboardTextFn = [](void *window_ptr, const char *text) {
+		auto *window = reinterpret_cast<VulkanWindow *>(window_ptr);
+		return window->setClipboardText(text);
+	};
+	io.GetClipboardTextFn = [](void *window_ptr) {
+		auto *window = reinterpret_cast<VulkanWindow *>(window_ptr);
+		static string buffer;
+		buffer = window->clipboardText();
+		return buffer.c_str();
+	};
+	io.ClipboardUserData = &*m_impl->window;
 
 	updateDpiAndFonts(*window, true);
 

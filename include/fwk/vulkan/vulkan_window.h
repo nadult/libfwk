@@ -66,6 +66,9 @@ class VulkanWindow {
 	void grabMouse(bool);
 	void showCursor(bool);
 
+	string clipboardText() const;
+	void setClipboardText(ZStr);
+
 	const InputState &inputState() const;
 	const vector<InputEvent> &inputEvents() const;
 

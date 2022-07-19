@@ -309,6 +309,13 @@ void VulkanWindow::grabMouse(bool grab) {
 
 void VulkanWindow::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
 
+string VulkanWindow::clipboardText() const {
+	auto ret = SDL_GetClipboardText();
+	return ret ? string(ret) : string();
+}
+
+void VulkanWindow::setClipboardText(ZStr str) { SDL_SetClipboardText(str.c_str()); }
+
 const InputState &VulkanWindow::inputState() const { return m_impl->input_state; }
 const vector<InputEvent> &VulkanWindow::inputEvents() const { return m_impl->input_events; }
 }
