@@ -25,12 +25,15 @@ VulkanCommandQueue::VulkanCommandQueue(VDeviceRef device)
 	: m_device(*device), m_device_handle(device) {}
 
 VulkanCommandQueue::~VulkanCommandQueue() {
+	DASSERT(m_status != Status::frame_running);
 	if(!m_device_handle)
 		return;
 	vkDeviceWaitIdle(m_device_handle);
 	for(auto &frame : m_frames) {
 		vkDestroySemaphore(m_device_handle, frame.render_finished_sem, nullptr);
 		vkDestroyFence(m_device_handle, frame.in_flight_fence, nullptr);
+		for(auto pool : frame.query_pools)
+			vkDestroyQueryPool(m_device_handle, pool, nullptr);
 	}
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
 }
@@ -69,6 +72,28 @@ void VulkanCommandQueue::beginFrame() {
 	FWK_VK_CALL(vkBeginCommandBuffer, frame.command_buffer, &bi);
 	m_cur_cmd_buffer = frame.command_buffer;
 	m_status = Status::frame_running;
+
+	if(frame.query_count > 0) {
+		PodVector<u64> new_data(frame.query_count);
+		uint cur_count = 0;
+		for(auto pool : frame.query_pools) {
+			uint pool_count = min(frame.query_count - cur_count, query_pool_size);
+			if(pool_count == 0)
+				break;
+
+			size_t data_size = sizeof(u64) * pool_count;
+			auto data_offset = new_data.data() + cur_count;
+			cur_count += pool_count;
+
+			FWK_VK_CALL(vkGetQueryPoolResults, m_device_handle, pool, 0, pool_count, data_size,
+						data_offset, sizeof(u64), VK_QUERY_RESULT_64_BIT);
+			vkCmdResetQueryPool(m_cur_cmd_buffer, pool, 0, pool_count);
+		}
+
+		vector<u64> new_data_vec;
+		new_data.unsafeSwap(frame.query_results);
+	}
+	frame.query_count = 0;
 
 	// Flushing copy commands
 	for(auto &copy_command : m_copy_queue) {
@@ -111,6 +136,23 @@ void VulkanCommandQueue::finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_sig
 	m_last_pipeline_layout.reset();
 	m_last_bind_point = VBindPoint::graphics;
 	m_last_viewport = {};
+}
+
+CSpan<u64> VulkanCommandQueue::getQueryResults(u64 frame_index) const {
+	i64 frame_indices[num_swap_frames];
+	for(int i : intRange(num_swap_frames)) {
+		uint idx = (i + m_swap_index) % num_swap_frames;
+		frame_indices[idx] = i64(m_frame_index) - num_swap_frames - i;
+	}
+	if(m_status != Status::frame_running)
+		frame_indices[m_swap_index] -= num_swap_frames;
+
+	for(int i : intRange(num_swap_frames))
+		if(frame_index == frame_indices[i]) {
+			uint idx = (i + m_swap_index) % num_swap_frames;
+			return m_frames[idx].query_results;
+		}
+	return {};
 }
 
 bool VulkanCommandQueue::isFinished(VDownloadId download_id) {
@@ -303,6 +345,26 @@ void VulkanCommandQueue::dispatchCompute(int3 size) {
 	vkCmdDispatch(m_cur_cmd_buffer, size.x, size.y, size.z);
 }
 
+uint VulkanCommandQueue::timestampQuery() {
+	PASSERT(m_status == Status::frame_running);
+	auto &frame = m_frames[m_swap_index];
+	uint index = frame.query_count++;
+	uint pool_id = index >> query_pool_shift;
+	if(pool_id >= frame.query_pools.size()) {
+		VkQueryPoolCreateInfo ci{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
+		ci.queryCount = query_pool_size;
+		ci.queryType = VK_QUERY_TYPE_TIMESTAMP;
+		VkQueryPool handle = nullptr;
+		FWK_VK_CALL(vkCreateQueryPool, m_device_handle, &ci, nullptr, &handle);
+		vkCmdResetQueryPool(m_cur_cmd_buffer, handle, 0, query_pool_size);
+		frame.query_pools.emplace_back(handle);
+	}
+
+	vkCmdWriteTimestamp(m_cur_cmd_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+						frame.query_pools[pool_id], index & (query_pool_size - 1));
+	return index;
+}
+
 // -------------------------------------------------------------------------------------------
 // ----------  Upload commands ---------------------------------------------------------------
 
@@ -315,7 +377,6 @@ Ex<VSpan> VulkanCommandQueue::upload(VSpan dst, CSpan<char> src) {
 	auto mem_block = dst.buffer->memoryBlock();
 	if(canBeMapped(mem_block.id.domain())) {
 		mem_block.offset += dst.offset;
-		DASSERT(cmd.offset <= mem_block.size);
 		// TODO: better checks
 		mem_block.size = min<u32>(mem_block.size - dst.offset, src.size());
 		fwk::copy(mem_mgr.accessMemory(mem_block), src);

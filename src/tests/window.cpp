@@ -75,6 +75,7 @@ struct VulkanContext {
 	int compute_buffer_idx = 0;
 	PVBuffer compute_buffers[2];
 	Maybe<VDownloadId> download_id;
+	Pair<u64> timings[2];
 };
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
@@ -85,6 +86,8 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	// Not drawing if swap chain is not available
 	if(swap_chain->status() != VSwapChainStatus::image_acquired)
 		return {};
+	Pair<u64> timings;
+	timings.first = cmds.timestampQuery();
 
 	// TODO: viewport? remove orient ?
 	Renderer2D renderer(IRect(sc_extent), Orient2D::y_up);
@@ -97,7 +100,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 		renderer.addRect(rect, border_color);
 	}
 
-	auto device_name = VulkanInstance::ref()->info(ctx.device->physId()).properties.deviceName;
+	auto device_name = ctx.device->physInfo().properties.deviceName;
 	// TODO: immediate drawing mode sux, we should replace it with something better?
 	// On the other hand, imgui is fine...
 	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->extent(), device_name);
@@ -116,6 +119,9 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
 	cmds.endRenderPass();
+
+	timings.second = cmds.timestampQuery();
+	ctx.timings[cmds.swapFrameIndex()] = timings;
 
 	return {};
 }
@@ -137,8 +143,8 @@ Ex<void> computeStuff(VulkanContext &ctx) {
 }
 
 // Old test_window perf:
-// 2260 on AMD Vega   -> 2500 -> 2550 -> 2570 -> 2606
-//  880 on RTX 3050   -> 1250 -> 1270 -> 1380 -> 1355
+// 2260 on AMD Vega   -> 2500 -> 2550 -> 2570 -> 2606 -> 2560 (with compute)
+//  880 on RTX 3050   -> 1250 -> 1270 -> 1380 -> 1355 -> 1180 (with compute)
 void updateTitleFPS(VulkanWindow &window, ZStr title_prefix) {
 	static Maybe<double> old_fps;
 	auto fps = window.fps();
@@ -179,8 +185,20 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 		}
 	}
 
+	string message = last_message;
+
 	if(ctx.device->beginFrame().get()) {
-		drawFrame(ctx, positions, last_message).check();
+		auto &cmds = ctx.device->cmdQueue();
+		auto frame_index = cmds.frameIndex();
+		if(frame_index >= 2) {
+			auto results = cmds.getQueryResults(frame_index - 2);
+			auto timings = ctx.timings[ctx.device->cmdQueue().swapFrameIndex()];
+			double time = results[timings.second] - results[timings.first];
+			double scale = 1e-3 * ctx.device->physInfo().properties.limits.timestampPeriod;
+			message += stdFormat("Draw time: %.0f us\n", time * scale);
+		}
+
+		drawFrame(ctx, positions, message).check();
 		computeStuff(ctx).check();
 		ctx.device->finishFrame().check();
 	}
@@ -213,8 +231,7 @@ Ex<int> exMain() {
 	if(!pref_device)
 		return ERROR("Couldn't find a suitable Vulkan device");
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
-	auto phys_info = instance->info(device->physId());
-	print("Selected Vulkan device: %\n", phys_info.properties.deviceName);
+	print("Selected Vulkan device: %\n", device->physInfo().properties.deviceName);
 
 	auto swap_chain = EX_PASS(VulkanSwapChain::create(
 		device, window, {.preferred_present_mode = VPresentMode::immediate}));

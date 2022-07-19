@@ -705,9 +705,6 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_internal.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\vulkan\vulkan_query_manager.h">
-      <Filter>include\vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\perf\analyzer.h">
       <Filter>include\perf</Filter>
     </ClInclude>
@@ -1215,9 +1212,6 @@
       <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vulkan\vulkan_internal.cpp">
-      <Filter>src\vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\vulkan\vulkan_query_manager.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>

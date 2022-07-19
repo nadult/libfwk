@@ -34,6 +34,8 @@ class VulkanCommandQueue {
 	// Returns empty vector if not ready
 	PodVector<char> retrieve(VDownloadId);
 
+	CSpan<u64> getQueryResults(u64 frame_index) const;
+
 	// -------------------------------------------------------------------------------------------
 	// ----------  Commands (must be called between beginFrame & endFrame)   ---------------------
 
@@ -65,6 +67,8 @@ class VulkanCommandQueue {
 
 	void dispatchCompute(int3 size);
 
+	uint timestampQuery();
+
 	Ex<VDownloadId> download(VSpan src);
 
 	// -------------------------------------------------------------------------------------------
@@ -81,6 +85,10 @@ class VulkanCommandQueue {
 					VImageLayout dst_layout = VImageLayout::shader_ro);
 
   private:
+	static constexpr uint query_pool_size = 256;
+	static constexpr uint query_pool_shift = 8;
+	static constexpr uint num_swap_frames = VulkanLimits::num_swap_frames;
+
 	friend class VulkanDevice;
 	friend class Gui;
 
@@ -102,6 +110,10 @@ class VulkanCommandQueue {
 		VkCommandBuffer command_buffer = nullptr;
 		VkSemaphore render_finished_sem = nullptr;
 		VkFence in_flight_fence = nullptr;
+
+		vector<VkQueryPool> query_pools;
+		vector<u64> query_results;
+		uint query_count = 0;
 	};
 
 	struct Download {
@@ -139,7 +151,7 @@ class VulkanCommandQueue {
 	VulkanDevice &m_device;
 	VQueue m_queue;
 	VkDevice m_device_handle = nullptr;
-	FrameSync m_frames[VulkanLimits::num_swap_frames];
+	FrameSync m_frames[num_swap_frames];
 	VkCommandPool m_command_pool = nullptr;
 	VkCommandBuffer m_cur_cmd_buffer = nullptr;
 	uint m_swap_index = 0, m_frame_index = 0;

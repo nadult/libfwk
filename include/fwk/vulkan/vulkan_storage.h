@@ -208,7 +208,7 @@ class VulkanStorage {
 	static constexpr int max_devices = 4;
 	static constexpr int max_windows = VWindowId::maxIndex() + 1;
 
-	static constexpr int device_size = 104, device_alignment = 8;
+	static constexpr int device_size = 96, device_alignment = 8;
 	static constexpr int instance_size = 48, instance_alignment = 8;
 	using DeviceStorage = std::aligned_storage_t<device_size, device_alignment>;
 	using InstanceStorage = std::aligned_storage_t<instance_size, instance_alignment>;

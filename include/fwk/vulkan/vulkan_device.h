@@ -29,6 +29,7 @@ class VulkanDevice {
 	VPhysicalDeviceId physId() const { return m_phys_id; }
 	VkDevice handle() const { return m_handle; }
 	VkPhysicalDevice physHandle() const { return m_phys_handle; }
+	const VulkanPhysicalDeviceInfo &physInfo() const;
 
 	CSpan<VQueue> queues() const { return m_queues; }
 	Maybe<VQueue> findFirstQueue(VQueueCaps) const;
@@ -108,7 +109,6 @@ class VulkanDevice {
 	PVSwapChain m_swap_chain;
 	Dynamic<VulkanCommandQueue> m_cmds;
 	Dynamic<VulkanMemoryManager> m_memory;
-	Dynamic<VulkanQueryManager> m_queries;
 
 	VDeviceFeatures m_features;
 	vector<VQueue> m_queues;
