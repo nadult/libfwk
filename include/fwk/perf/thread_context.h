@@ -10,15 +10,23 @@ namespace perf {
 
 class ThreadContext {
   public:
+	static constexpr int num_swap_frames = 3;
+
 	ThreadContext(int reserve = 1024);
 	~ThreadContext();
 
 	ThreadContext(const ThreadContext &) = delete;
 	void operator=(const ThreadContext &) = delete;
 
-	// Sends frame to manager; resolves queries
+	int numGpuScopes() const;
+
+	// Also sends frames to Manager
 	void nextFrame();
-	void endFrame();
+
+	static ThreadContext *current();
+
+	i64 frameId() const { return m_frame_id; }
+	void resolveGpuScopes(i64 frame_id, CSpan<Pair<uint, u64>> sample_gpu_times);
 
 	bool isPaused() const;
 	bool isGpuPaused() const;
@@ -29,21 +37,18 @@ class ThreadContext {
 	void siblingScope(PointId);
 	void exitSingleScope(PointId);
 
-	void enterGpuScope(PointId);
-	void exitGpuScope(PointId);
-	void childGpuScope(PointId);
-	void siblingGpuScope(PointId);
+	// Gpu functions return sample index into which gpu timing should be added or -1
+	int enterGpuScope(PointId);
+	int exitGpuScope(PointId);
+	int childGpuScope(PointId);
+	int siblingGpuScope(PointId);
 	void exitSingleGpuScope(PointId);
 
 	void setCounter(PointId, u64);
 
-	void reserveGpuQueries(int count);
-	void resolveGpuQueries();
-
-	static int numGpuQueries();
-
   private:
-	PQuery getQuery();
+	void endFrame();
+
 	u64 currentTimeNs() const;
 	u64 currentTimeClocks() const;
 
@@ -56,22 +61,25 @@ class ThreadContext {
 		u32 gpu_scope : 1;
 	};
 
-	int latestGlQueryId() const;
+	int latestGpuScopeId() const;
 
-	// TODO: limits on depth
 	unsigned long long m_frame_begin_clock;
 	unsigned long long m_frame_begin_ns;
 	double m_frame_begin = -1.0;
-	// times2, scale2, samples2 and prev_queries2 are used for double buffering
-	// it allows resolving gpu queries in the next frame
-	double m_scale2;
-	pair<double, double> m_times2;
-	vector<PSample> m_samples, m_samples2;
-	vector<PQuery> m_free_queries;
-	vector<pair<PQuery, int>> m_prev_queries, m_prev_queries2;
+
+	struct FrameData {
+		vector<PSample> samples;
+		double cpu_time_scale;
+		double begin_time, end_time;
+		i64 frame_id = -1;
+	};
+
+	// TODO: limits on depth
+	vector<PSample> m_samples;
+	FrameData m_frames[num_swap_frames];
 	vector<Level> m_stack;
-	PQuery m_current_query;
-	int m_current_query_id;
-	int m_frame_id = 0;
+	i64 m_frame_id = 0;
+	int m_swap_frame_id = 0;
+	bool m_is_initial = true;
 };
 }

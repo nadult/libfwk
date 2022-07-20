@@ -43,7 +43,6 @@ class ExecTree {
 	vector<PSample> makePointSamples(vector<ESample>) const;
 
 	void scaleCpuTimes(Span<ESample>, double scale) const;
-	void computeGpuTimes(Span<ESample>);
 	vector<bool> emptyBranches(CSpan<i64>) const;
 
 	// TODO: CSpan<ExecId> descendants(ExecId);
@@ -71,7 +70,6 @@ class ExecTree {
 
   private:
 	bool emptyBranches(ExecId, Span<bool>, CSpan<i64>) const;
-	pair<u64, int> computeGpuTimes(int, Span<ESample>) const;
 	void updateDescendants();
 
 	vector<ExecId> m_stack;

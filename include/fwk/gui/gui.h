@@ -36,9 +36,14 @@ class Gui {
 	static bool isPresent();
 	static Gui &instance();
 
+	// All gui generating functions must be called between beginFrame & endFrame
+	// After finishFrame input is filtered, and gui is ready to be drawn; Afterwards
+	// either drawFrame or endFrame (or both) must be called
 	void beginFrame(VulkanWindow &);
 	vector<InputEvent> finishFrame(VulkanWindow &);
+
 	void drawFrame(VulkanWindow &, VkCommandBuffer);
+	void endFrame();
 
 	AnyConfig config() const;
 	void setConfig(const AnyConfig &);
@@ -100,8 +105,6 @@ class Gui {
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
-
-	// TODO: keep device handle
 	float m_dpi_scale = 1.0f;
 	double m_last_time = -1.0;
 	static Gui *s_instance;

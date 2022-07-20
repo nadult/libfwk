@@ -99,4 +99,12 @@
     </Expand>
   </Type>
 
+  <Type Name="perf::Sample&lt;*&gt;">
+    <Expand>
+      <Item Name="value">(unsigned long long)(encoded &amp; ((1ull &lt;&lt; 45) - 1))</Item>
+      <Item Name="type">(perf::SampleType)((encoded &gt;&gt; 45) &amp; 7)</Item>
+      <Item Name="id">unsigned(encoded &gt;&gt; 48)</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>

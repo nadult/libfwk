@@ -5,10 +5,12 @@
 
 #include "fwk/gfx/image.h"
 #include "fwk/index_range.h"
+#include "fwk/perf/thread_context.h"
 #include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
@@ -50,6 +52,7 @@ Ex<void> VulkanCommandQueue::initialize(VDeviceRef device) {
 		frame.render_finished_sem = createVkSemaphore(device);
 		frame.in_flight_fence = createVkFence(device, true);
 	}
+	m_timestamp_period = m_device.physInfo().properties.limits.timestampPeriod;
 
 	return {};
 }
@@ -94,6 +97,25 @@ void VulkanCommandQueue::beginFrame() {
 		new_data.unsafeSwap(frame.query_results);
 	}
 	frame.query_count = 0;
+
+	auto *perf_tc = perf::ThreadContext::current();
+	if(frame.perf_queries) {
+		auto first_value = frame.query_results[0];
+		if(perf_tc) {
+			auto sample_values =
+				transform(frame.perf_queries, [&](Pair<uint, uint> sample_query_id) {
+					auto value = frame.query_results[sample_query_id.second] - first_value;
+					value *= m_timestamp_period;
+					return pair{sample_query_id.first, u64(value)};
+				});
+			perf_tc->resolveGpuScopes(frame.perf_frame_id, sample_values);
+		}
+		frame.perf_queries.clear();
+	}
+	frame.perf_frame_id = perf_tc ? perf_tc->frameId() : -1;
+
+	auto first_query = timestampQuery();
+	PASSERT(first_query == 0);
 
 	// Flushing copy commands
 	for(auto &copy_command : m_copy_queue) {
@@ -368,6 +390,12 @@ uint VulkanCommandQueue::timestampQuery() {
 	vkCmdWriteTimestamp(m_cur_cmd_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 						frame.query_pools[pool_id], index & (query_pool_size - 1));
 	return index;
+}
+
+void VulkanCommandQueue::perfTimestampQuery(uint sample_id) {
+	auto query_id = timestampQuery();
+	auto &frame = m_frames[m_swap_index];
+	frame.perf_queries.emplace_back(sample_id, query_id);
 }
 
 // -------------------------------------------------------------------------------------------

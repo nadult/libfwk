@@ -169,46 +169,6 @@ void ExecTree::scaleCpuTimes(Span<ESample> samples, double scale) const {
 			sample.setValue(double(sample.value()) * scale);
 }
 
-pair<u64, int> ExecTree::computeGpuTimes(int sample_id, Span<ESample> samples) const {
-	auto &sample = samples[sample_id];
-	if(sample.type() == SampleType::scope_begin) {
-		ESample *gpu_sample = nullptr;
-		if(sample_id + 1 < samples.size() && samples[sample_id + 1].type() == SampleType::gpu_time)
-			gpu_sample = &samples[sample_id + 1];
-
-		u64 sum = 0;
-		for(int n = sample_id + 1; n < samples.size(); n++) {
-			auto &next_sample = samples[n];
-			if(next_sample.type() == SampleType::scope_begin) {
-				auto result = computeGpuTimes(n, samples);
-				sum += result.first;
-				n = result.second;
-			} else if(next_sample.type() == SampleType::scope_end) {
-				sample_id = n;
-				break;
-			}
-		}
-
-		if(gpu_sample) {
-			sum += gpu_sample->value();
-			gpu_sample->setValue(sum);
-		}
-		return {sum, sample_id};
-	}
-
-	return {0, sample_id};
-}
-
-void ExecTree::computeGpuTimes(Span<ESample> samples) {
-	// When gathered, gpu time values exclude times from child scopes
-	// This function compute total gpu execution time for all scopes
-
-	for(int n = 0; n < samples.size(); n++) {
-		auto result = computeGpuTimes(n, samples);
-		n = result.second;
-	}
-}
-
 int ExecTree::depth(ExecId id) const {
 	int out = 1;
 	while(id != root()) {

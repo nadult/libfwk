@@ -247,6 +247,11 @@ void Gui::drawFrame(VulkanWindow &window, VkCommandBuffer cmd) {
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 }
 
+void Gui::endFrame() {
+	if(!o_hide)
+		ImGui::EndFrame();
+}
+
 void Gui::beginFrame(VulkanWindow &window) {
 	ImGuiIO &io = ImGui::GetIO();
 	memset(io.KeysDown, 0, sizeof(io.KeysDown));

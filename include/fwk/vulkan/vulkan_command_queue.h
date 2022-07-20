@@ -70,6 +70,7 @@ class VulkanCommandQueue {
 	void dispatchCompute(int3 size);
 
 	uint timestampQuery();
+	void perfTimestampQuery(uint sample_id);
 
 	Ex<VDownloadId> download(VSpan src);
 
@@ -114,8 +115,10 @@ class VulkanCommandQueue {
 		VkFence in_flight_fence = nullptr;
 
 		vector<VkQueryPool> query_pools;
+		vector<Pair<uint, uint>> perf_queries;
 		vector<u64> query_results;
 		uint query_count = 0;
+		i64 perf_frame_id = 0;
 	};
 
 	struct Download {
@@ -157,6 +160,7 @@ class VulkanCommandQueue {
 	VkCommandPool m_command_pool = nullptr;
 	VkCommandBuffer m_cur_cmd_buffer = nullptr;
 	uint m_swap_index = 0, m_frame_index = 0;
+	double m_timestamp_period = 1.0;
 	Status m_status = Status::initialized;
 };
 }

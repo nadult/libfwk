@@ -80,23 +80,20 @@ struct VulkanContext {
 	int compute_buffer_idx = 0;
 	PVBuffer compute_buffers[2];
 	Maybe<VDownloadId> download_id;
-	Pair<u64> timings[2];
 	Gui *gui;
 	perf::Analyzer *perf_analyzer = nullptr;
 };
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
-	PERF_SCOPE();
-
 	auto &cmds = ctx.device->cmdQueue();
+	PERF_GPU_SCOPE(cmds);
+
 	auto swap_chain = ctx.device->swapChain();
 	auto sc_extent = swap_chain->extent();
 
 	// Not drawing if swap chain is not available
 	if(swap_chain->status() != VSwapChainStatus::image_acquired)
 		return {};
-	Pair<u64> timings;
-	timings.first = cmds.timestampQuery();
 
 	// TODO: viewport? remove orient ?
 	Renderer2D renderer(IRect(sc_extent), Orient2D::y_up);
@@ -110,8 +107,6 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	}
 
 	auto device_name = ctx.device->physInfo().properties.deviceName;
-	// TODO: immediate drawing mode sux, we should replace it with something better?
-	// On the other hand, imgui is fine...
 	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->extent(), device_name);
 	text += message;
 	Font font(*ctx.font_core, ctx.font_image_view);
@@ -127,19 +122,20 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	cmds.setScissor(none);
 
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
-	ctx.gui->drawFrame(*ctx.window, cmds.bufferHandle());
-	cmds.endRenderPass();
 
-	timings.second = cmds.timestampQuery();
-	ctx.timings[cmds.swapFrameIndex()] = timings;
+	PERF_CHILD_SCOPE("imgui_draw");
+	ctx.gui->drawFrame(*ctx.window, cmds.bufferHandle());
+	PERF_CLOSE_SCOPE();
+
+	cmds.endRenderPass();
 
 	return {};
 }
 
 Ex<void> computeStuff(VulkanContext &ctx) {
-	PERF_SCOPE();
-
 	auto &cmds = ctx.device->cmdQueue();
+	PERF_GPU_SCOPE(cmds);
+
 	cmds.bind(ctx.compute_pipe->layout(), VBindPoint::compute);
 	auto ds = cmds.bindDS(0);
 	auto &target_buffer = ctx.compute_buffers[ctx.compute_buffer_idx ^ 1];
@@ -198,6 +194,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 		positions.erase(positions.begin());
 
 	static string last_message;
+	static int num_invalid = 0;
 
 	if(ctx.download_id) {
 		auto &rgraph = ctx.device->cmdQueue();
@@ -206,6 +203,10 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 			uint count = uints[0];
 			bool is_valid = count == uints.size() - 1 && allOf(uints.subSpan(2), uints[1]);
 			last_message = format("Compute result: %%\n", uints[1], is_valid ? "" : " (invalid)");
+			if(!is_valid)
+				num_invalid++;
+			if(num_invalid > 0)
+				last_message += format("Invalid computations: %\n", num_invalid);
 			ctx.download_id = none;
 		}
 	}
@@ -213,20 +214,11 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	string message = last_message;
 
 	if(ctx.device->beginFrame().get()) {
-		auto &cmds = ctx.device->cmdQueue();
-		auto frame_index = cmds.frameIndex();
-		if(frame_index >= 2) {
-			auto results = cmds.getQueryResults(frame_index - 2);
-			auto timings = ctx.timings[ctx.device->cmdQueue().swapFrameIndex()];
-			double time = results[timings.second] - results[timings.first];
-			double scale = 1e-3 * ctx.device->physInfo().properties.limits.timestampPeriod;
-			message += stdFormat("Draw time: %.0f us\n", time * scale);
-		}
-
 		drawFrame(ctx, positions, message).check();
 		computeStuff(ctx).check();
 		ctx.device->finishFrame().check();
 	}
+	ctx.gui->endFrame();
 
 	updateTitleFPS(window, "fwk::test_window");
 

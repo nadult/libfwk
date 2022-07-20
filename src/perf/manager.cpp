@@ -30,7 +30,6 @@ Manager::~Manager() {
 }
 
 void Manager::getNewFrames() {
-	PERF_SCOPE();
 	MutexLocker lock(s_mutex);
 	for(auto &frame : s_new_frames)
 		m_frames.emplace_back(move(frame));
@@ -42,7 +41,6 @@ void Manager::addFrame(int frame_id, double begin, double end, CSpan<PSample> ps
 	DASSERT(s_instance);
 	auto &tree = s_instance->m_tree;
 	auto esamples = tree->makeExecSamples(psamples);
-	tree->computeGpuTimes(esamples);
 	tree->scaleCpuTimes(esamples, cpu_time_scale);
 
 	MutexLocker lock(s_mutex);

@@ -487,7 +487,8 @@ void Analyzer::changeOptions() {
 		ImGui::SameLine();
 		gui.showHelpMarker("Try to keep this number low (few thousands at most)");
 
-		gui.text("Num GPU queries: %\n", ThreadContext::numGpuQueries());
+		// TODO
+		//gui.text("Num GPU queries: %\n", ThreadContext::numGpuScopes());
 		ImGui::SameLine();
 		gui.showHelpMarker(
 			"Be careful with PERF_GPU_SCOPE(): each call will require separate query");

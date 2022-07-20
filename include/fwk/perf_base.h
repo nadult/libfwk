@@ -7,6 +7,12 @@
 #include "fwk/sys_base.h"
 #include "fwk/vector.h"
 
+#include "fwk/vulkan/vulkan_command_queue.h"
+
+namespace fwk {
+class VulkanCommandQueue;
+};
+
 namespace perf {
 using namespace fwk;
 
@@ -113,15 +119,12 @@ void exitSingleScope(PointId);
 void siblingScope(PointId);
 void childScope(PointId);
 
-void enterGpuScope(PointId);
-void exitGpuScope(PointId);
+int enterGpuScope(PointId);
+int exitGpuScope(PointId);
 void exitSingleGpuScope(PointId);
-void siblingGpuScope(PointId);
-void childGpuScope(PointId);
+int siblingGpuScope(PointId);
+int childGpuScope(PointId);
 
-void setCounter(PointId, u64 value);
-
-void endFrame();
 void nextFrame();
 
 // Make sure not to break scopes when pausing & resuming
@@ -162,7 +165,7 @@ void resumeGpu();
 
 // Defines a scope either with GPU measurements or without
 #define PERF_SCOPE(...)						_PERF_POINT(scope, __LINE__, __PRETTY_FUNCTION__, "#" __VA_ARGS__);				perf::Scope perf_scope{_PERF_USE_POINT(__LINE__)};
-#define PERF_GPU_SCOPE(...)					_PERF_POINT(scope, __LINE__, __PRETTY_FUNCTION__, "#" __VA_ARGS__);				perf::GpuScope perf_scope{_PERF_USE_POINT(__LINE__)};
+#define PERF_GPU_SCOPE(cmds, ...)			_PERF_POINT(scope, __LINE__, __PRETTY_FUNCTION__, "#" __VA_ARGS__);				perf::GpuScope perf_scope{cmds, _PERF_USE_POINT(__LINE__)};
 
 // Overrides current scope
 #define PERF_CHILD_SCOPE(...)				_PERF_POINT(scope, __LINE__, __PRETTY_FUNCTION__, "#" __VA_ARGS__);				perf_scope.child(_PERF_USE_POINT(__LINE__));
@@ -174,8 +177,6 @@ void resumeGpu();
 
 // clang-format on
 #endif
-
-struct ScopeInfo {};
 
 class Scope {
   public:
@@ -208,34 +209,49 @@ class Scope {
 	PointId point_id;
 };
 
+DEFINE_ENUM(ScopeType, enter, exit, sibling);
+
 class GpuScope {
   public:
-	GpuScope(PointId id) : point_id(id) {
+	GpuScope(VulkanCommandQueue &cmd_queue, PointId id) : cmd_queue(cmd_queue), point_id(id) {
 		PASSERT(point_id);
-		enterGpuScope(id);
+		performQuery(enterGpuScope(id), ScopeType::enter);
 	}
 	~GpuScope() {
 		if(point_id)
-			exitGpuScope(point_id);
+			performQuery(exitGpuScope(point_id), ScopeType::exit);
+	}
+
+	static uint encodeSampleId(uint sample_id, ScopeType scope_type) {
+		return (sample_id * 4) + uint(scope_type);
+	}
+	static Pair<uint, ScopeType> decodeSampleId(uint encoded_id) {
+		return pair{encoded_id >> 2, ScopeType(encoded_id & 3)};
 	}
 
 	void sibling(PointId id) {
 		PASSERT(id);
 		point_id = id;
-		siblingGpuScope(id);
+		performQuery(siblingGpuScope(id), ScopeType::sibling);
 	}
 	void child(PointId id) {
 		PASSERT(id);
 		point_id = id;
-		childGpuScope(id);
+		performQuery(childGpuScope(id), ScopeType::enter);
 	}
 	void exitSingle() { exitSingleGpuScope(point_id); }
 	void close() {
-		exitScope(point_id);
+		performQuery(exitGpuScope(point_id), ScopeType::exit);
 		point_id = {};
 	}
 
   private:
+	void performQuery(int sample_id, ScopeType scope_type) {
+		if(sample_id != -1)
+			cmd_queue.perfTimestampQuery(encodeSampleId(uint(sample_id), scope_type));
+	}
+
+	VulkanCommandQueue &cmd_queue;
 	PointId point_id;
 };
 }
