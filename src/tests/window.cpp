@@ -20,6 +20,11 @@
 #include <fwk/vulkan/vulkan_swap_chain.h>
 #include <fwk/vulkan/vulkan_window.h>
 
+#include <fwk/gui/gui.h>
+#include <fwk/perf/analyzer.h>
+#include <fwk/perf/manager.h>
+#include <fwk/perf/thread_context.h>
+
 // TODO: what should we do when error happens in begin/end frame?
 // TODO: proprly handle multiple queues
 // TODO: proprly differentiate between graphics, present & compute queues
@@ -76,9 +81,13 @@ struct VulkanContext {
 	PVBuffer compute_buffers[2];
 	Maybe<VDownloadId> download_id;
 	Pair<u64> timings[2];
+	Gui *gui;
+	perf::Analyzer *perf_analyzer = nullptr;
 };
 
 Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
+	PERF_SCOPE();
+
 	auto &cmds = ctx.device->cmdQueue();
 	auto swap_chain = ctx.device->swapChain();
 	auto sc_extent = swap_chain->extent();
@@ -118,6 +127,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	cmds.setScissor(none);
 
 	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
+	ctx.gui->drawFrame(*ctx.window, cmds.bufferHandle());
 	cmds.endRenderPass();
 
 	timings.second = cmds.timestampQuery();
@@ -127,6 +137,8 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 }
 
 Ex<void> computeStuff(VulkanContext &ctx) {
+	PERF_SCOPE();
+
 	auto &cmds = ctx.device->cmdQueue();
 	cmds.bind(ctx.compute_pipe->layout(), VBindPoint::compute);
 	auto ds = cmds.bindDS(0);
@@ -158,10 +170,23 @@ void updateTitleFPS(VulkanWindow &window, ZStr title_prefix) {
 }
 
 bool mainLoop(VulkanWindow &window, void *ctx_) {
+	perf::nextFrame();
+	perf::Manager::instance()->getNewFrames();
+
+	PERF_SCOPE();
+
 	auto &ctx = *(VulkanContext *)ctx_;
 	static vector<float2> positions(15, float2(window.extent() / 2));
 
-	for(auto &event : window.inputEvents()) {
+	// TODO: begin & finishFrame w gui znacz¹ coœ innego ni¿ w devce; nazwijmy to inaczej
+	ctx.gui->beginFrame(window);
+	if(ctx.perf_analyzer) {
+		bool show = true;
+		ctx.perf_analyzer->doMenu(show);
+	}
+	auto events = ctx.gui->finishFrame(window);
+
+	for(auto &event : events) {
 		if(event.keyDown(InputKey::esc) || event.type() == InputEventType::quit)
 			return false;
 
@@ -231,7 +256,8 @@ Ex<int> exMain() {
 	if(!pref_device)
 		return ERROR("Couldn't find a suitable Vulkan device");
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
-	print("Selected Vulkan device: %\n", device->physInfo().properties.deviceName);
+	auto phys_info = device->physInfo();
+	print("Selected Vulkan device: %\n", phys_info.properties.deviceName);
 
 	auto swap_chain = EX_PASS(VulkanSwapChain::create(
 		device, window, {.preferred_present_mode = VPresentMode::immediate}));
@@ -259,6 +285,17 @@ Ex<int> exMain() {
 
 	ctx.renderer2d_pipes =
 		EX_PASS(Renderer2D::makeVulkanPipelines(ctx.device, swap_chain->format()));
+
+	perf::ThreadContext perf_ctx;
+	perf::Manager perf_mgr;
+	perf::Analyzer perf_analyzer;
+	ctx.perf_analyzer = &perf_analyzer;
+
+	// TODO: sc_format might change if we move to different screen
+	auto sc_format = ctx.device->swapChain()->format();
+	auto gui_rpass = ctx.device->getRenderPass({{sc_format, 1}});
+	Gui gui(device, window, gui_rpass, GuiConfig{GuiStyleMode::mini});
+	ctx.gui = &gui;
 
 	window->runMainLoop(mainLoop, &ctx);
 	return 0;

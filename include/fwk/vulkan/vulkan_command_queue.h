@@ -39,6 +39,8 @@ class VulkanCommandQueue {
 	// -------------------------------------------------------------------------------------------
 	// ----------  Commands (must be called between beginFrame & endFrame)   ---------------------
 
+	VkCommandBuffer bufferHandle();
+
 	void copy(VSpan dst, VSpan src);
 	void copy(PVImage dst, VSpan src, VImageLayout dst_layout = VImageLayout::shader_ro);
 

@@ -46,12 +46,8 @@ void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 	if(is_initial) {
 		auto &device = *m_impl->device;
 		auto device_handle = device.handle();
-		auto queue = device.findFirstQueue(VQueueCap::graphics);
-		ASSERT(queue); // TODO
-
-		m_impl->queue = *queue;
-		auto cmd_pool =
-			createVkCommandPool(device_handle, queue->family_id, VCommandPoolFlag::transient);
+		auto cmd_pool = createVkCommandPool(device_handle, m_impl->queue.family_id,
+											VCommandPoolFlag::transient);
 		// TODO: auto release for cmd_pool
 		auto cmd_buffer = allocVkCommandBuffer(device_handle, cmd_pool);
 
@@ -64,7 +60,7 @@ void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 		end_info.commandBufferCount = 1;
 		end_info.pCommandBuffers = &cmd_buffer;
 		FWK_VK_CALL(vkEndCommandBuffer, cmd_buffer);
-		vkQueueSubmit(queue->handle, 1, &end_info, VK_NULL_HANDLE);
+		vkQueueSubmit(m_impl->queue.handle, 1, &end_info, VK_NULL_HANDLE);
 
 		FWK_VK_CALL(vkDeviceWaitIdle, device_handle);
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
@@ -92,9 +88,13 @@ void Gui::rescaleWindows(float scale) {
 }
 
 Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opts) {
-	m_impl.emplace(device, window);
 	ASSERT("You can only create a single instance of Gui" && !s_instance);
 	s_instance = this;
+
+	m_impl.emplace(device, window);
+	auto queue = device->findFirstQueue(VQueueCap::graphics);
+	ASSERT("Gui has to be created with Vulkan device which has graphics queue" && queue);
+	m_impl->queue = *queue;
 	ImGui::CreateContext();
 
 	// Build texture atlas
@@ -201,6 +201,7 @@ Gui::~Gui() {
 			m_impl->descr_pool, nullptr, [](void *pool, void *, VkDevice device) {
 				vkDestroyDescriptorPool(device, (VkDescriptorPool)pool, nullptr);
 			});
+		m_impl->device->waitForIdle();
 	}
 	if(s_instance != this)
 		return;

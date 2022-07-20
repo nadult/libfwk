@@ -28,7 +28,7 @@ Analyzer::Analyzer()
 	DASSERT(!s_instance && "Only one instance of Analyzer is allowed");
 	s_instance = this;
 	m_visible_columns = ColumnId::name | ColumnId::cpu_avg | ColumnId::gpu_avg;
-	m_set_menu_rect = IRect(10, 380, 350, 650);
+	m_set_menu_rect = IRect(10, 380, 500, 650);
 }
 
 Analyzer::~Analyzer() { s_instance = nullptr; }

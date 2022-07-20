@@ -177,6 +177,11 @@ PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 // -------------------------------------------------------------------------------------------
 // ----------  Commands ----------------------------------------------------------------------
 
+VkCommandBuffer VulkanCommandQueue::bufferHandle() {
+	DASSERT(m_status == Status::frame_running);
+	return m_cur_cmd_buffer;
+}
+
 void VulkanCommandQueue::copy(VSpan dst, VSpan src) {
 	DASSERT(src.size <= dst.size);
 	VkBufferCopy copy_params{src.offset, dst.offset, VkDeviceSize(src.size)};
@@ -422,5 +427,4 @@ Ex<void> VulkanCommandQueue::upload(PVImage dst, const Image &src, VImageLayout 
 
 	return {};
 }
-
 }

@@ -10,7 +10,7 @@ namespace perf {
 
 class ThreadContext {
   public:
-	ThreadContext(int reserve);
+	ThreadContext(int reserve = 1024);
 	~ThreadContext();
 
 	ThreadContext(const ThreadContext &) = delete;

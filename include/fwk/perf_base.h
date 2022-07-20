@@ -147,7 +147,6 @@ void resumeGpu();
 #define PERF_POP_CHILD_SCOPE()
 #define PERF_CLOSE_SCOPE()
 #define PERF_COUNT(value, ...)
-#define PERF_IF(...)
 #else
 
 // clang-format off
@@ -172,7 +171,6 @@ void resumeGpu();
 #define PERF_CLOSE_SCOPE()					perf_scope.close();
 
 #define PERF_COUNT(value, ...)				_PERF_POINT(counter, __LINE__, __PRETTY_FUNCTION__, #value "#" __VA_ARGS__);	perf::setCounter(_PERF_USE_POINT(__LINE__), value);
-#define PERF_IF(...)						__VA_ARGS__
 
 // clang-format on
 #endif
