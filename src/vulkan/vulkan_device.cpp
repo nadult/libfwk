@@ -149,6 +149,9 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	const auto &phys_info = m_instance_ref->info(m_phys_id);
 	auto exts = setup.extensions;
 	exts.emplace_back("VK_KHR_swapchain");
+	if(m_instance_ref->version() < VulkanVersion{1, 2, 0})
+		exts.emplace_back("VK_KHR_separate_depth_stencil_layouts");
+
 	if(anyOf(phys_info.extensions, "VK_EXT_memory_budget")) {
 		m_features |= VDeviceFeature::memory_budget;
 		exts.emplace_back("VK_EXT_memory_budget");
@@ -157,9 +160,17 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	}
 	makeSortedUnique(exts);
 
+	for(auto ext : exts)
+		if(!isOneOf(ext, phys_info.extensions))
+			return ERROR("Mandatory extension not supported: '%'", ext);
+
 	VkPhysicalDeviceFeatures features{};
 	if(setup.features)
 		features = *setup.features;
+
+	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures ds_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES};
+	ds_features.separateDepthStencilLayouts = VK_TRUE;
 
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
@@ -168,6 +179,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	ci.pEnabledFeatures = &features;
 	ci.enabledExtensionCount = c_exts.size();
 	ci.ppEnabledExtensionNames = c_exts.data();
+	ci.pNext = &ds_features;
 
 	m_phys_handle = phys_info.handle;
 	FWK_VK_EXPECT_CALL(vkCreateDevice, m_phys_handle, &ci, nullptr, &m_handle);
@@ -307,6 +319,30 @@ void VulkanDevice::waitForIdle() {
 
 VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache; }
 
+VDepthStencilFormat VulkanDevice::bestSupportedFormat(VDepthStencilFormat format) const {
+	auto supported = physInfo().supported_depth_stencil_formats;
+	DASSERT(supported != none);
+	if(format & supported)
+		return format;
+
+	uint min_depth_bits = depthBits(format);
+	bool req_stencil = hasStencil(format);
+
+	Maybe<VDepthStencilFormat> best;
+	uint best_bits = 666;
+	for(auto format : supported) {
+		if(req_stencil && !hasStencil(format))
+			continue;
+		uint depth_bits = depthBits(format);
+		if(depth_bits >= min_depth_bits && depth_bits < best_bits) {
+			best = format;
+			best_bits = depth_bits;
+		}
+	}
+
+	return *best;
+}
+
 // -------------------------------------------------------------------------------------------
 // ----------  Object management  ------------------------------------------------------------
 
@@ -337,8 +373,11 @@ PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageVie
 	for(auto color : colors)
 		color_atts.emplace_back(color->format(), color->numSamples());
 	Maybe<VDepthAttachment> depth_att;
-	if(depth)
-		depth_att = VDepthAttachment(depth->format(), depth->numSamples());
+	if(depth) {
+		auto ds_format = fromVkDepthStencilFormat(depth->format());
+		DASSERT(ds_format);
+		depth_att = VDepthAttachment(*ds_format, depth->numSamples());
+	}
 	auto render_pass = getRenderPass(color_atts, depth_att);
 
 	auto pointer = VulkanFramebuffer::create(ref(), render_pass, colors, depth);

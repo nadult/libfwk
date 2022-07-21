@@ -87,7 +87,8 @@ DEFINE_ENUM(VImageUsage, transfer_src, transfer_dst, sampled, storage, color_att
 using VImageUsageFlags = EnumFlags<VImageUsage>;
 
 DEFINE_ENUM(VImageLayout, undefined, general, color_att, depth_stencil_att, depth_stencil_ro,
-			shader_ro, transfer_src, transfer_dst, preinitialized, present_src);
+			shader_ro, transfer_src, transfer_dst, preinitialized, depth_ro_stencil_att,
+			depth_stencil_ro_att, depth_att, depth_ro, stencil_att, stencil_ro, present_src);
 
 DEFINE_ENUM(VShaderStage, vertex, tess_control, tess_eval, geometry, fragment, compute);
 using VShaderStages = EnumFlags<VShaderStage>;
@@ -117,6 +118,18 @@ DEFINE_ENUM(VPresentMode, immediate, mailbox, fifo, fifo_relaxed);
 
 DEFINE_ENUM(VLoadOp, load, clear, dont_care, none);
 DEFINE_ENUM(VStoreOp, store, dont_care, none);
+
+DEFINE_ENUM(VDepthStencilFormat, d16, d24_x8, d32f, s8, d16_s8, d24_s8, d32f_s8);
+using VDepthStencilFormats = EnumFlags<VDepthStencilFormat>;
+inline bool hasStencil(VDepthStencilFormat format) { return format >= VDepthStencilFormat::s8; }
+inline bool hasDepth(VDepthStencilFormat format) { return format != VDepthStencilFormat::s8; }
+inline VImageLayout defaultLayout(VDepthStencilFormat format) {
+	if(hasDepth(format))
+		return hasStencil(format) ? VImageLayout::depth_stencil_att : VImageLayout::depth_att;
+	return VImageLayout::stencil_att;
+}
+inline uint depthBits(VDepthStencilFormat format) { return ((uint(format) & 3) * 8 + 8) & 31; }
+inline uint stencilBits(VDepthStencilFormat format) { return hasStencil(format) ? 8 : 0; }
 
 DEFINE_ENUM(VBlendFactor, zero, one, src_color, one_minus_src_color, dst_color, one_minus_dst_color,
 			src_alpha, one_minus_src_alpha, dst_alpha, one_minus_dst_alpha, constant_color,
@@ -206,9 +219,9 @@ struct VDepthSync {
 		: load_op(load), store_op(store), stencil_load_op(stencil_load),
 		  stencil_store_op(stencil_store), initial_layout(initial_layout),
 		  final_layout(final_layout) {}
-	VDepthSync()
-		: VDepthSync(VLoadOp::load, VStoreOp::store, VImageLayout::depth_stencil_att,
-					 VImageLayout::depth_stencil_att, VLoadOp::dont_care, VStoreOp::dont_care) {}
+	VDepthSync(VImageLayout target_layout = VImageLayout::depth_stencil_att)
+		: VDepthSync(VLoadOp::load, VStoreOp::store, target_layout, target_layout,
+					 VLoadOp::dont_care, VStoreOp::dont_care) {}
 
 	FWK_TIE_MEMBERS(load_op, store_op, stencil_load_op, stencil_store_op, initial_layout,
 					final_layout);
@@ -235,13 +248,13 @@ struct VColorAttachment {
 };
 
 struct VDepthAttachment {
-	VDepthAttachment(VkFormat format, uint num_samples = 1, VDepthSync sync = {})
+	VDepthAttachment(VDepthStencilFormat format, uint num_samples = 1, VDepthSync sync = {})
 		: format(format), num_samples(num_samples), sync(sync) {}
 
 	FWK_TIE_MEMBERS(format, num_samples, sync);
 	FWK_TIED_COMPARES(VDepthAttachment);
 
-	VkFormat format;
+	VDepthStencilFormat format;
 	uint num_samples;
 	VDepthSync sync;
 };

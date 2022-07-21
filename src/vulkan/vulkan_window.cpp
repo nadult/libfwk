@@ -98,7 +98,7 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 
 VkSurfaceKHR VulkanWindow::surfaceHandle() const { return m_impl->surface_handle; }
 
-vector<IRect> VulkanWindow::displayRects() const {
+vector<IRect> VulkanWindow::displayRects() {
 	int count = SDL_GetNumVideoDisplays();
 	vector<IRect> out(count);
 	for(int idx = 0; idx < count; idx++) {
@@ -110,7 +110,7 @@ vector<IRect> VulkanWindow::displayRects() const {
 	return out;
 }
 
-vector<float> VulkanWindow::displayDpiScales() const {
+vector<float> VulkanWindow::displayDpiScales() {
 	int count = SDL_GetNumVideoDisplays();
 	vector<float> out(count);
 	for(int idx = 0; idx < count; idx++) {

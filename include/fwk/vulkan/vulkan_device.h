@@ -56,6 +56,8 @@ class VulkanDevice {
 
 	VkPipelineCache pipelineCache();
 
+	VDepthStencilFormat bestSupportedFormat(VDepthStencilFormat) const;
+
 	// -------------------------------------------------------------------------------------------
 	// ----------  Object management  ------------------------------------------------------------
 

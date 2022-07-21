@@ -8,6 +8,10 @@
 
 namespace fwk {
 
+VImageSetup::VImageSetup(VDepthStencilFormat ds_format, int2 extent, uint num_samples)
+	: VImageSetup(toVk(ds_format), extent, num_samples, VImageUsage::depth_stencil_att,
+				  VImageLayout::undefined) {}
+
 VulkanImage::VulkanImage(VkImage handle, VObjectId id, VMemoryBlock mem_block,
 						 const VImageSetup &setup)
 	: VulkanObjectBase(handle, id), m_memory_block(mem_block), m_format(setup.format),
@@ -58,6 +62,10 @@ PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VIm
 	auto out = device->createObject(handle, VMemoryBlock(), setup);
 	out->m_is_external = true;
 	return out;
+}
+
+Maybe<VDepthStencilFormat> VulkanImage::depthStencilFormat() const {
+	return fromVkDepthStencilFormat(m_format);
 }
 
 VulkanImageView::VulkanImageView(VkImageView handle, VObjectId id) : VulkanObjectBase(handle, id) {}

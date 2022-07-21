@@ -125,6 +125,13 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 	vkGetPhysicalDeviceProperties(handle, &out.properties);
 	vkGetPhysicalDeviceMemoryProperties(handle, &out.mem_properties);
 
+	for(auto format : all<VDepthStencilFormat>) {
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(handle, toVk(format), &props);
+		if(props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+			out.supported_depth_stencil_formats |= format;
+	}
+
 	return out;
 }
 

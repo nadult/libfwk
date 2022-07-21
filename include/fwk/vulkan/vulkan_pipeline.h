@@ -22,6 +22,7 @@ AUTO_FORMAT(int, VK_FORMAT_R32_SINT)
 AUTO_FORMAT(int2, VK_FORMAT_R32G32_SINT)
 AUTO_FORMAT(int3, VK_FORMAT_R32G32B32_SINT)
 AUTO_FORMAT(int4, VK_FORMAT_R32G32B32A32_SINT)
+AUTO_FORMAT(u32, VK_FORMAT_R32_UINT)
 AUTO_FORMAT(IColor, VK_FORMAT_R8G8B8A8_UNORM)
 #undef AUTO_FORMAT
 
@@ -261,7 +262,7 @@ struct VDescriptorSet {
 		Assigner &operator()(int binding_index, PVSampler, PVImageView);
 
 	  private:
-		Assigner(VkDevice device, VkDescriptorSet set) : device_handle(device), set_handle(set) {}
+		Assigner(VkDevice device, VkDescriptorSet set) : set_handle(set), device_handle(device) {}
 		template <class... Args>
 		Assigner(VkDevice device, VkDescriptorSet set, int binding_index, Args... args)
 			: Assigner(device, set) {

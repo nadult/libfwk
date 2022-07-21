@@ -9,17 +9,13 @@
 
 namespace fwk {
 
-inline bool isDepthFormat(VkFormat format) {
-	return isOneOf(format, VK_FORMAT_D16_UNORM, VK_FORMAT_X8_D24_UNORM_PACK32, VK_FORMAT_D32_SFLOAT,
-				   VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT,
-				   VK_FORMAT_D32_SFLOAT_S8_UINT);
-}
-
 struct VImageSetup {
 	VImageSetup(VkFormat format, int2 extent, uint num_samples = 1,
 				VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled,
 				VImageLayout layout = VImageLayout::undefined)
 		: extent(extent), format(format), num_samples(num_samples), usage(usage), layout(layout) {}
+
+	VImageSetup(VDepthStencilFormat ds_format, int2 extent, uint num_samples = 1);
 
 	int2 extent;
 	VkFormat format;
@@ -41,6 +37,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 
 	// External image may become invalid (for example when swap chain is destroyed)
 	bool isValid() const { return m_is_valid; }
+	Maybe<VDepthStencilFormat> depthStencilFormat() const;
 
   private:
 	friend class VulkanSwapChain;

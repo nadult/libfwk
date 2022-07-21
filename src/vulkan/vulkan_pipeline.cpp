@@ -186,7 +186,7 @@ PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment>
 		auto &src = *depth;
 		auto &dst = attachments[depth_index];
 		dst.flags = 0;
-		dst.format = src.format;
+		dst.format = toVk(src.format);
 		dst.samples = VkSampleCountFlagBits(src.num_samples);
 		dst.loadOp = toVk(src.sync.load_op);
 		dst.storeOp = toVk(src.sync.store_op);
@@ -195,8 +195,8 @@ PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment>
 		dst.initialLayout = toVk(src.sync.initial_layout);
 		dst.finalLayout = toVk(src.sync.final_layout);
 		attachment_refs[depth_index].attachment = depth_index;
-		attachment_refs[depth_index].layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-		subpass.pDepthStencilAttachment = attachment_refs.data() + max_colors;
+		attachment_refs[depth_index].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		subpass.pDepthStencilAttachment = attachment_refs.data() + colors.size();
 
 		dependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.dstStageMask |=
@@ -206,7 +206,7 @@ PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment>
 	}
 
 	VkRenderPassCreateInfo ci{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-	ci.attachmentCount = colors.size();
+	ci.attachmentCount = colors.size() + (depth ? 1 : 0);
 	ci.pAttachments = attachments.data();
 	ci.subpassCount = 1;
 	ci.pSubpasses = &subpass;

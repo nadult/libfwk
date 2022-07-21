@@ -29,8 +29,19 @@ inline auto toVk(VStoreOp op) {
 inline auto toVk(VImageLayout layout) {
 	if(layout == VImageLayout::present_src)
 		return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	if(layout >= VImageLayout::depth_att) {
+		uint offset =
+			uint(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) - uint(VImageLayout::depth_att);
+		return VkImageLayout(uint(layout) + offset);
+	}
+	if(layout >= VImageLayout::depth_ro_stencil_att) {
+		uint offset = uint(VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL) -
+					  uint(VImageLayout::depth_ro_stencil_att);
+		return VkImageLayout(uint(layout) + offset);
+	}
 	return VkImageLayout(layout);
 }
+
 inline auto toVk(VBlendFactor factor) { return VkBlendFactor(factor); }
 inline auto toVk(VBlendOp op) { return VkBlendOp(op); }
 inline auto toVk(VColorComponents components) { return VkColorComponentFlags(components.bits); }
@@ -41,6 +52,14 @@ inline auto toVk(VCompareOp op) { return VkCompareOp(op); }
 inline auto toVk(VDynamic dynamic) { return VkDynamicState(dynamic); }
 inline auto toVk(VQueueCaps caps) { return VkQueueFlags(caps.bits); }
 inline auto toVk(VBindPoint bind_point) { return VkPipelineBindPoint(bind_point); }
+inline auto toVk(VDepthStencilFormat format) {
+	return VkFormat(uint(VK_FORMAT_D16_UNORM) + uint(format));
+}
+inline auto fromVkDepthStencilFormat(VkFormat format) {
+	return format >= VK_FORMAT_D16_UNORM && format < VK_FORMAT_D32_SFLOAT_S8_UINT ?
+			   VDepthStencilFormat(uint(format) - uint(VK_FORMAT_D16_UNORM)) :
+				 Maybe<VDepthStencilFormat>();
+}
 
 VkCommandBuffer allocVkCommandBuffer(VkDevice, VkCommandPool pool);
 VkSemaphore createVkSemaphore(VkDevice, bool is_signaled = false);
