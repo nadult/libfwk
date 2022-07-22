@@ -39,6 +39,7 @@ class DynamicMesh;
 class Model;
 class ModelNode;
 class ModelAnim;
+class ShaderCompiler;
 
 class TriangleBuffer;
 class SpriteBuffer;

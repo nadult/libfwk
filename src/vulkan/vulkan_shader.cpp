@@ -54,8 +54,7 @@ Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> byt
 	DASSERT(bytecode.size() % sizeof(u32) == 0);
 	DASSERT(u64((void *)bytecode.data()) % sizeof(u32) == 0);
 
-	VkShaderModuleCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	VkShaderModuleCreateInfo ci{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 	ci.codeSize = bytecode.size();
 	ci.pCode = reinterpret_cast<const u32 *>(bytecode.data());
 
@@ -93,12 +92,12 @@ Ex<vector<PVShaderModule>> VulkanShaderModule::compile(VDeviceRef device,
 													   CSpan<Pair<VShaderStage, ZStr>> source_codes,
 													   bool dump_bytecodes) {
 	vector<PVShaderModule> out;
-	ShaderCompiler compiler;
+	ShaderCompiler compiler({});
 
 	// TODO: first compilation is usually slow
 	out.reserve(source_codes.size());
 	for(auto [stage, code] : source_codes) {
-		auto result = compiler.compile(stage, code);
+		auto result = compiler.compileCode(stage, code);
 		if(!result.bytecode)
 			return ERROR("Failed to compile '%' shader:\n%", stage, result.messages);
 		if(dump_bytecodes) {

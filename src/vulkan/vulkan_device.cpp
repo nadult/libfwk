@@ -168,6 +168,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	if(setup.features)
 		features = *setup.features;
 
+	features.fillModeNonSolid = VK_TRUE;
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures ds_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES};
 	ds_features.separateDepthStencilLayouts = VK_TRUE;
@@ -318,6 +319,8 @@ void VulkanDevice::waitForIdle() {
 }
 
 VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache; }
+
+VulkanVersion VulkanDevice::version() const { return m_instance_ref->version(); }
 
 VDepthStencilFormat VulkanDevice::bestSupportedFormat(VDepthStencilFormat format) const {
 	auto supported = physInfo().supported_depth_stencil_formats;

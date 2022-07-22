@@ -43,6 +43,9 @@ using VDSId = VDescriptorSetId;
 class VObjectId;
 
 struct VulkanVersion {
+	VulkanVersion(int major = 1, int minor = 0, int patch = 0)
+		: major(major), minor(minor), patch(patch) {}
+
 	bool operator<(const VulkanVersion &rhs) const {
 		return tie(major, minor, patch) < tie(rhs.major, rhs.minor, rhs.patch);
 	}

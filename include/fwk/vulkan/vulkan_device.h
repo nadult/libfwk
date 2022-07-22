@@ -35,6 +35,7 @@ class VulkanDevice {
 	Maybe<VQueue> findFirstQueue(VQueueCaps) const;
 
 	VDeviceFeatures features() const { return m_features; }
+	VulkanVersion version() const;
 
 	void addSwapChain(PVSwapChain);
 	void removeSwapChain();
