@@ -241,6 +241,7 @@ struct DescriptorBindingInfo {
 	u64 value = 0;
 };
 
+// TODO: just use span
 struct BufferRange {
 	u32 offset = 0, size = 0;
 };
@@ -258,7 +259,10 @@ struct VDescriptorSet {
 		void operator=(Assigner &) = delete;
 		~Assigner() { performAssignment(); }
 
-		Assigner &operator()(int binding_index, PVBuffer, Maybe<BufferRange> = none);
+		Assigner &operator()(int binding_index, PVBuffer, Maybe<BufferRange> = none,
+							 VDescriptorType = VDescriptorType::storage_buffer);
+		Assigner &operator()(int binding_index, VSpan,
+							 VDescriptorType = VDescriptorType::storage_buffer);
 		Assigner &operator()(int binding_index, PVSampler, PVImageView);
 
 	  private:

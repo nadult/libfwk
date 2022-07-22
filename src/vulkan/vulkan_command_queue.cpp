@@ -17,12 +17,6 @@
 
 namespace fwk {
 
-VSpan::VSpan(PVBuffer buffer) : buffer(buffer), offset(0), size(buffer->size()) {}
-VSpan::VSpan(PVBuffer buffer, u32 offset)
-	: buffer(buffer), offset(offset), size(buffer->size() - offset) {
-	PASSERT(offset < buffer->size());
-}
-
 VulkanCommandQueue::VulkanCommandQueue(VDeviceRef device)
 	: m_device(*device), m_device_handle(device) {}
 
@@ -348,7 +342,9 @@ void VulkanCommandQueue::drawIndexed(int num_indices, int num_instances, int fir
 // TODO: add cache for renderpasses, add renderpass for framebuffer, interface for clear values
 void VulkanCommandQueue::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass render_pass,
 										 Maybe<IRect> render_area,
-										 CSpan<VkClearValue> clear_values) {
+										 CSpan<VClearValue> clear_values) {
+	static_assert(sizeof(VClearValue) == sizeof(VkClearValue));
+
 	PASSERT(m_status == Status::frame_running);
 	VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
 	bi.renderPass = render_pass;
@@ -357,7 +353,7 @@ void VulkanCommandQueue::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass
 	else
 		bi.renderArea.extent = toVkExtent(framebuffer->extent());
 	bi.clearValueCount = clear_values.size();
-	bi.pClearValues = clear_values.data();
+	bi.pClearValues = reinterpret_cast<const VkClearValue *>(clear_values.data());
 	bi.framebuffer = framebuffer;
 	vkCmdBeginRenderPass(m_cur_cmd_buffer, &bi, VK_SUBPASS_CONTENTS_INLINE);
 }

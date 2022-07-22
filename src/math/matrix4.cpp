@@ -216,10 +216,10 @@ Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {
 	if(delta_z != 0.0f && sin != 0.0f && aspect_ratio != 0.0f) {
 		float ctg = cos(rad) / sin;
 		out[0][0] = ctg / aspect_ratio;
-		out[1][1] = ctg;
-		out[2][2] = std::isinf(z_far)? -1.0f : -(z_far + z_near) / delta_z;
+		out[1][1] = -ctg;
+		out[2][2] = std::isinf(z_far) ? -1.0f : -(z_far + z_near) / delta_z;
 		out[2][3] = -1.0f;
-		out[3][2] = -2.0f * z_near * (std::isinf(z_far)? 1.0f : z_far / delta_z);
+		out[3][2] = -2.0f * z_near * (std::isinf(z_far) ? 1.0f : z_far / delta_z);
 		out[3][3] = 0.0f;
 	}
 

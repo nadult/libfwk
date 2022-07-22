@@ -5,6 +5,7 @@
 
 #include "fwk/index_range.h"
 #include "fwk/sys/assert.h"
+#include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_shader.h"
@@ -78,7 +79,8 @@ VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplerSetup
 VulkanSampler::~VulkanSampler() { deferredRelease<vkDestroySampler>(m_handle); }
 
 VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index, PVBuffer buffer,
-															   Maybe<BufferRange> range) {
+															   Maybe<BufferRange> range,
+															   VDescriptorType type) {
 	PASSERT(size < max_assignments);
 	auto &info = additional_data[size].buffer_info;
 	auto &write = assignments[size++];
@@ -88,7 +90,7 @@ VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index
 	write.dstBinding = binding_index;
 	write.dstArrayElement = 0;
 	write.descriptorCount = 1;
-	write.descriptorType = toVk(VDescriptorType::storage_buffer); // TODO: uniform buffer?
+	write.descriptorType = toVk(type);
 	write.pBufferInfo = &info;
 	write.pImageInfo = nullptr;
 	write.pTexelBufferView = nullptr;
@@ -102,6 +104,11 @@ VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index
 		info.range = VK_WHOLE_SIZE;
 	}
 	return *this;
+}
+
+VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index, VSpan span,
+															   VDescriptorType type) {
+	return operator()(binding_index, span.buffer, BufferRange{span.offset, span.size}, type);
 }
 
 VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index, PVSampler sampler,

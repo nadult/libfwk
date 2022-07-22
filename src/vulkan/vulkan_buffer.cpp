@@ -8,6 +8,14 @@
 #include "fwk/vulkan/vulkan_internal.h"
 
 namespace fwk {
+
+VSpan::VSpan(PVBuffer buffer) : buffer(buffer), offset(0), size(buffer ? buffer->size() : 0) {}
+VSpan::VSpan(PVBuffer buffer, u32 offset) : buffer(buffer), offset(offset) {
+	PASSERT(offset < buffer->size());
+	PASSERT(buffer || !offset);
+	size = buffer ? buffer->size() - offset : 0;
+}
+
 VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, VMemoryBlock memory_block,
 						   VBufferUsageFlags usage)
 	: VulkanObjectBase(handle, id), m_memory_block(memory_block), m_usage(usage) {}

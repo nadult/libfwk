@@ -257,7 +257,8 @@ vector<char> ShaderCompiler::getSpirv(ShaderDefId id) {
 		spirv_path = *m_impl->spirv_cache_dir / (def.name + ".spv");
 		if(spirv_path.isRegularFile()) {
 			// TODO: handle error properly
-			return loadFile(spirv_path).get();
+			// TODO: for now loading disabled
+			//return loadFile(spirv_path).get();
 		}
 	}
 

@@ -78,7 +78,10 @@ PVImageView VulkanImageView::create(VDeviceRef device, PVImage image) {
 	ci.format = image->format();
 	ci.components.a = ci.components.b = ci.components.g = ci.components.r =
 		VK_COMPONENT_SWIZZLE_IDENTITY;
-	ci.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	auto ds_format = image->depthStencilFormat();
+	uint aspect_mask = ds_format ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+	ci.subresourceRange = {.aspectMask = aspect_mask,
 						   .baseMipLevel = 0,
 						   .levelCount = 1,
 						   .baseArrayLayer = 0,

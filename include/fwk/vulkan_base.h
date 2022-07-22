@@ -190,15 +190,16 @@ struct VSamplerSetup {
 										  VTexAddress::repeat};
 };
 
-DEFINE_ENUM(VColorSyncStd, clear, clear_present, present);
+DEFINE_ENUM(VColorSyncStd, clear, clear_present, present, draw);
 
 // TODO: move out of base
 struct VColorSync {
 	using Std = VColorSyncStd;
 	VColorSync(Std std)
-		: load_op(std == Std::present ? VLoadOp::load : VLoadOp::clear), store_op(VStoreOp::store),
-		  initial_layout(std == Std::present ? VImageLayout::color_att : VImageLayout::undefined),
-		  final_layout(std == Std::clear ? VImageLayout::color_att : VImageLayout::present_src) {}
+		: load_op(std >= Std::present ? VLoadOp::load : VLoadOp::clear), store_op(VStoreOp::store),
+		  initial_layout(std >= Std::present ? VImageLayout::color_att : VImageLayout::undefined),
+		  final_layout(isOneOf(std, Std::clear, Std::draw) ? VImageLayout::color_att :
+															   VImageLayout::present_src) {}
 	VColorSync(VLoadOp load, VStoreOp store, VImageLayout initial_layout, VImageLayout final_layout)
 		: load_op(load), store_op(store), initial_layout(initial_layout),
 		  final_layout(final_layout) {}
@@ -287,6 +288,10 @@ struct VDescriptorSet;
 struct DescriptorBindingInfo; // TODO: name
 struct VColorAttachment;
 struct VDepthAttachment;
+
+struct VPipelineSetup;
+
+struct VSpan;
 
 template <class T> class VPtr;
 

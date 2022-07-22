@@ -3,23 +3,37 @@
 
 #pragma once
 
+#include "fwk/gfx/color.h"
 #include "fwk/sparse_vector.h"
 #include "fwk/str.h"
 #include "fwk/variant.h"
+#include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
 
-struct VSpan {
-	VSpan(PVBuffer buffer);
-	VSpan(PVBuffer buffer, u32 offset);
-	VSpan(PVBuffer buffer, u32 offset, u32 size) : buffer(buffer), offset(offset), size(size) {}
+DEFINE_ENUM(VCommandQueueStatus, initialized, frame_running, frame_finished);
 
-	PVBuffer buffer;
-	u32 offset, size;
+struct VClearDepthStencil {
+	VClearDepthStencil(float depth, uint stencil = 0) : depth(depth), stencil(stencil) {}
+
+	float depth;
+	uint stencil;
 };
 
-DEFINE_ENUM(VCommandQueueStatus, initialized, frame_running, frame_finished);
+struct VClearValue {
+	VClearValue(FColor color) : f{color.r, color.g, color.b, color.a} {}
+	VClearValue(IColor color) : VClearValue(FColor(color)) {}
+	VClearValue(VClearDepthStencil ds) {
+		f[0] = ds.depth;
+		u[1] = ds.stencil;
+	}
+
+	union {
+		float f[4];
+		u32 u[4];
+	};
+};
 
 class VulkanCommandQueue {
   public:
@@ -63,8 +77,8 @@ class VulkanCommandQueue {
 					 int first_instance = 0, int vertex_offset = 0);
 
 	// TODO: pass colors & depth here directly
-	void beginRenderPass(PVFramebuffer, PVRenderPass, Maybe<IRect> render_area,
-						 CSpan<VkClearValue> clear_values);
+	void beginRenderPass(PVFramebuffer, PVRenderPass, Maybe<IRect> render_area = none,
+						 CSpan<VClearValue> clear_values = {});
 	void endRenderPass();
 
 	void dispatchCompute(int3 size);
