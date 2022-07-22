@@ -66,6 +66,7 @@ class VulkanDevice {
 	PVRenderPass getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
 	PVFramebuffer getFramebuffer(CSpan<PVImageView> colors, PVImageView depth = none);
 	PVPipelineLayout getPipelineLayout(CSpan<VDSLId>);
+	PVPipelineLayout getPipelineLayout(CSpan<PVShaderModule>);
 	PVSampler createSampler(const VSamplerSetup &);
 
 	VDSLId getDSL(CSpan<DescriptorBindingInfo>);

@@ -259,25 +259,11 @@ VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
 VulkanPipeline::~VulkanPipeline() { deferredRelease<vkDestroyPipeline>(m_handle); }
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
+	if(!setup.pipeline_layout)
+		setup.pipeline_layout = device->getPipelineLayout(setup.shader_modules);
 	DASSERT(setup.render_pass);
 	DASSERT(setup.dynamic_state & VDynamic::viewport);
 	DASSERT(setup.dynamic_state & VDynamic::scissor);
-
-	vector<DescriptorBindingInfo> descr_bindings;
-	for(auto &shader_module : setup.shader_modules) {
-		DASSERT(shader_module);
-		auto stage_bindings = shader_module->descriptorBindingInfos();
-		if(descr_bindings.empty())
-			descr_bindings = stage_bindings;
-		else
-			descr_bindings = DescriptorBindingInfo::merge(descr_bindings, stage_bindings);
-	}
-	auto descr_sets = DescriptorBindingInfo::divideSets(descr_bindings);
-	vector<VDSLId> dsls;
-	dsls.reserve(descr_sets.size());
-	for(auto bindings : descr_sets)
-		dsls.emplace_back(device->getDSL(bindings));
-	auto pipeline_layout = device->getPipelineLayout(dsls);
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
 	for(int i : intRange(setup.shader_modules)) {
@@ -415,7 +401,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	ci.pDepthStencilState = &depth_stencil_ci;
 	ci.pColorBlendState = &blending_ci;
 	ci.pDynamicState = num_dynamic > 0 ? &dynamic_ci : nullptr;
-	ci.layout = pipeline_layout;
+	ci.layout = setup.pipeline_layout;
 	ci.renderPass = setup.render_pass;
 	ci.subpass = 0;
 	ci.basePipelineHandle = VK_NULL_HANDLE;
@@ -424,7 +410,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	VkPipeline handle;
 	FWK_VK_EXPECT_CALL(vkCreateGraphicsPipelines, device->handle(), device->pipelineCache(), 1, &ci,
 					   nullptr, &handle);
-	return device->createObject(handle, setup.render_pass, pipeline_layout);
+	return device->createObject(handle, setup.render_pass, setup.pipeline_layout);
 }
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineSetup &setup) {

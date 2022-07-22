@@ -151,6 +151,7 @@ struct VViewport {
 
 struct VPipelineSetup {
 	StaticVector<PVShaderModule, count<VShaderStage>> shader_modules;
+	PVPipelineLayout pipeline_layout;
 	PVRenderPass render_pass;
 
 	vector<VVertexBinding> vertex_bindings;
