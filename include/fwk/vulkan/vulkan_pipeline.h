@@ -249,8 +249,8 @@ struct BufferRange {
 
 // DescriptorSets can only be used during the same frame during which they were acquired
 struct VDescriptorSet {
-	VDescriptorSet(VkDevice device, VkDescriptorSet handle)
-		: device_handle(device), handle(handle) {}
+	VDescriptorSet(VulkanDevice &device, VkDescriptorSet handle)
+		: device(&device), handle(handle) {}
 	VDescriptorSet() {}
 
 	struct Assigner {
@@ -267,9 +267,9 @@ struct VDescriptorSet {
 		Assigner &operator()(int binding_index, PVSampler, PVImageView);
 
 	  private:
-		Assigner(VkDevice device, VkDescriptorSet set) : set_handle(set), device_handle(device) {}
+		Assigner(VulkanDevice &device, VkDescriptorSet set) : set_handle(set), device(device) {}
 		template <class... Args>
-		Assigner(VkDevice device, VkDescriptorSet set, int binding_index, Args... args)
+		Assigner(VulkanDevice &device, VkDescriptorSet set, int binding_index, Args... args)
 			: Assigner(device, set) {
 			operator()(binding_index, std::forward<Args>(args)...);
 		}
@@ -285,18 +285,22 @@ struct VDescriptorSet {
 		array<VkWriteDescriptorSet, max_assignments> assignments;
 		array<AdditionalData, max_assignments> additional_data;
 		VkDescriptorSet set_handle;
-		VkDevice device_handle;
+		VulkanDevice &device;
 		int size = 0;
 	};
 
 	template <class... Args> Assigner operator()(int binding_index, Args &&...args) {
-		return {device_handle, handle, binding_index, std::forward<Args>(args)...};
+		PASSERT(device);
+		return {*device, handle, binding_index, std::forward<Args>(args)...};
 	}
 
-	Assigner assigner() { return {device_handle, handle}; }
+	Assigner assigner() {
+		PASSERT(device);
+		return {*device, handle};
+	}
 
 	// TODO: encode device_id in set_id
-	VkDevice device_handle = nullptr;
+	VulkanDevice *device = nullptr;
 	VkDescriptorSet handle = nullptr;
 };
 

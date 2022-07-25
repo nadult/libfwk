@@ -26,7 +26,7 @@ PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, PVRenderPass render_p
 		attachments[i] = colors[i];
 	if(depth)
 		attachments[num_attachments++] = depth;
-	auto extent = colors[0]->extent();
+	auto extent = colors[0]->size().xy(); // TODO: size2d?
 
 	VkFramebufferCreateInfo ci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 	ci.renderPass = render_pass;

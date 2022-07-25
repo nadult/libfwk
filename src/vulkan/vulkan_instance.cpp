@@ -132,6 +132,13 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 			out.supported_depth_stencil_formats |= format;
 	}
 
+	for(auto format : all<VBlockFormat>) {
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(handle, toVk(format), &props);
+		if(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
+			out.supported_block_color_formats |= format;
+	}
+
 	return out;
 }
 

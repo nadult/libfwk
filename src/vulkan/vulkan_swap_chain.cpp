@@ -123,7 +123,7 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 
 	m_image_views.resize(num_images);
 	for(int i : intRange(num_images)) {
-		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), 1, color_usage, color_layout);
+		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), color_usage, color_layout);
 		auto image = VulkanImage::createExternal(device, images[i], setup);
 		m_image_views[i] = VulkanImageView::create(device, image);
 	}

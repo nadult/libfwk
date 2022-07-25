@@ -144,16 +144,6 @@ PTexture GlTexture::make(CSpan<FloatImage> levels, Format format) {
 	return tex;
 }
 
-PTexture GlTexture::make(CSpan<CompressedImage> levels, Maybe<Format> format) {
-	DASSERT(levels);
-	if(!format)
-		format = levels[0].format();
-	auto tex = make(Type::tex_2d, *format, {levels[0].size(), 1}, levels.size());
-	for(int i = 0; i < levels.size(); i++)
-		tex->upload(levels[i], i);
-	return tex;
-}
-
 int GlTexture::estimateGpuMemory() const {
 	// TODO: buffered & view does not take any additional memory
 	// TODO: mipmaps & layers
@@ -164,11 +154,11 @@ void GlTexture::setFiltering(const TextureFilteringParams &params) {
 	uint mag_filter = params.magnification == FilterOpt::nearest ? GL_NEAREST : GL_LINEAR;
 	uint min_filter;
 	if(params.mipmap && m_num_levels > 1) {
-		min_filter = params.minification == FilterOpt::nearest
-						 ? (params.mipmap == FilterOpt::nearest ? GL_NEAREST_MIPMAP_NEAREST
-																: GL_NEAREST_MIPMAP_LINEAR)
-						 : (params.mipmap == FilterOpt::nearest ? GL_LINEAR_MIPMAP_NEAREST
-																: GL_LINEAR_MIPMAP_LINEAR);
+		min_filter = params.minification == FilterOpt::nearest ?
+						 (params.mipmap == FilterOpt::nearest ? GL_NEAREST_MIPMAP_NEAREST :
+																  GL_NEAREST_MIPMAP_LINEAR) :
+						   (params.mipmap == FilterOpt::nearest ? GL_LINEAR_MIPMAP_NEAREST :
+																  GL_LINEAR_MIPMAP_LINEAR);
 	} else {
 		min_filter = params.minification == FilterOpt::nearest ? GL_NEAREST : GL_LINEAR;
 	}
@@ -202,9 +192,9 @@ TextureFilteringParams GlTexture::filtering() const {
 	glGetTexParameteriv(glType(), GL_TEXTURE_MAG_FILTER, &mag_filter);
 	out.magnification = mag_filter == GL_NEAREST ? FilterOpt::nearest : FilterOpt::linear;
 	out.minification =
-		isOneOf(min_filter, GL_NEAREST, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST_MIPMAP_LINEAR)
-			? FilterOpt::nearest
-			: FilterOpt::linear;
+		isOneOf(min_filter, GL_NEAREST, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST_MIPMAP_LINEAR) ?
+			FilterOpt::nearest :
+			  FilterOpt::linear;
 	if(isOneOf(min_filter, GL_NEAREST_MIPMAP_NEAREST, GL_LINEAR_MIPMAP_NEAREST))
 		out.mipmap = FilterOpt::nearest;
 	if(isOneOf(min_filter, GL_NEAREST_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR))
@@ -286,10 +276,6 @@ void GlTexture::upload(const Image &src, int mipmap_level) {
 }
 
 void GlTexture::upload(const FloatImage &src, int mipmap_level) {
-	upload(src.format(), src.data().reinterpret<u8>(), IRect(src.size()), mipmap_level);
-}
-
-void GlTexture::upload(const CompressedImage &src, int mipmap_level) {
 	upload(src.format(), src.data().reinterpret<u8>(), IRect(src.size()), mipmap_level);
 }
 

@@ -13,16 +13,31 @@
 
 namespace fwk {
 
-CompressedImage::CompressedImage(PodVector<u8> data, int2 size, GlFormat format)
+using Format = VBlockFormat;
+
+int compressedBlockSize(VBlockFormat format) {
+	if(isOneOf(format, Format::r_bc4, Format::r_bc4s))
+		return 8;
+	return format < VBlockFormat::srgba_bc2 ? 8 : 16;
+}
+
+int imageSize(VBlockFormat format, int width, int height) {
+	return ((width + 3) / 4) * ((height + 3) / 4) * compressedBlockSize(format);
+}
+
+int imageRowSize(VBlockFormat format, int width) {
+	return ((width + 3) / 4) * compressedBlockSize(format);
+}
+
+CompressedImage::CompressedImage(PodVector<u8> data, int2 size, Format format)
 	: m_data(move(data)), m_size(size), m_format(format) {
-	DASSERT(isCompressed(format));
 	DASSERT(m_data.size() >= imageSize(format, size.x, size.y));
 }
 
-CompressedImage::CompressedImage(const Image &input, GlFormat format)
+CompressedImage::CompressedImage(const Image &input, Format format)
 	: m_size(input.size()), m_format(format) {
-	DASSERT(isOneOf(format, GlFormat::rgb_bc1, GlFormat::srgb_bc1, GlFormat::rgba_bc3,
-					GlFormat::srgba_bc3));
+	DASSERT(
+		isOneOf(format, Format::rgb_bc1, Format::srgb_bc1, Format::rgba_bc3, Format::srgba_bc3));
 
 	m_data.resize(imageSize(format, m_size.x, m_size.y));
 	IColor input_data[4 * 4];

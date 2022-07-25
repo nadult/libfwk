@@ -126,14 +126,14 @@ VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index
 	write.pImageInfo = &info;
 	write.pBufferInfo = nullptr;
 	write.pTexelBufferView = nullptr;
-	info.imageView = image;
+	info.imageView = image ? image : device.dummyImage2D();
 	info.sampler = sampler;
 	info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	return *this;
 }
 
 void VDescriptorSet::Assigner::performAssignment() {
-	vkUpdateDescriptorSets(device_handle, size, assignments.data(), 0, nullptr);
+	vkUpdateDescriptorSets(device.handle(), size, assignments.data(), 0, nullptr);
 }
 
 VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)

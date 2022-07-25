@@ -3,7 +3,6 @@
 
 #include "fwk/vulkan/vulkan_command_queue.h"
 
-#include "fwk/gfx/image.h"
 #include "fwk/index_range.h"
 #include "fwk/perf/thread_context.h"
 #include "fwk/vulkan/vulkan_buffer.h"
@@ -51,13 +50,17 @@ Ex<void> VulkanCommandQueue::initialize(VDeviceRef device) {
 	return {};
 }
 
-void VulkanCommandQueue::beginFrame() {
+void VulkanCommandQueue::waitForFrameFence() {
 	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_swap_index];
-
 	VkFence fences[] = {frame.in_flight_fence};
 	vkWaitForFences(m_device_handle, 1, fences, VK_TRUE, UINT64_MAX);
 	vkResetFences(m_device_handle, 1, fences);
+}
+
+void VulkanCommandQueue::beginFrame() {
+	DASSERT(m_status != Status::frame_running);
+	auto &frame = m_frames[m_swap_index];
 
 	for(auto &download : m_downloads)
 		if(download.frame_index + VulkanLimits::num_swap_frames >= m_frame_index)
@@ -116,7 +119,7 @@ void VulkanCommandQueue::beginFrame() {
 		if(const CmdCopyBuffer *cmd = copy_command)
 			copy(cmd->dst, cmd->src);
 		else if(const CmdCopyImage *cmd = copy_command)
-			copy(cmd->dst, cmd->src, cmd->dst_layout);
+			copy(cmd->dst, cmd->src, cmd->dst_mip_level, cmd->dst_layout);
 	}
 	m_copy_queue.clear();
 }
@@ -200,60 +203,37 @@ VkCommandBuffer VulkanCommandQueue::bufferHandle() {
 
 void VulkanCommandQueue::copy(VSpan dst, VSpan src) {
 	DASSERT(src.size <= dst.size);
+	if(m_status != Status::frame_running) {
+		m_copy_queue.emplace_back(CmdCopyBuffer{dst, src});
+		return;
+	}
+
 	VkBufferCopy copy_params{src.offset, dst.offset, VkDeviceSize(src.size)};
 	vkCmdCopyBuffer(m_cur_cmd_buffer, src.buffer, dst.buffer, 1, &copy_params);
 }
 
-static void transitionImageLayout(VkCommandBuffer cmd_buffer, VkImage image, VkFormat format,
-								  VImageLayout old_layout, VImageLayout new_layout) {
-	VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-	barrier.oldLayout = toVk(old_layout);
-	barrier.newLayout = toVk(new_layout);
-	barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image = image;
-	barrier.subresourceRange = {
-		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1};
-	barrier.srcAccessMask = 0;
-	barrier.dstAccessMask = 0;
-
-	VkPipelineStageFlags src_stage, dst_stage;
-	// TODO: properly handle access masks & stages
-	if(old_layout == VImageLayout::undefined && new_layout == VImageLayout::transfer_dst) {
-		barrier.srcAccessMask = 0;
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		dst_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-	} else if(old_layout == VImageLayout::transfer_dst && new_layout == VImageLayout::shader_ro) {
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-	} else {
-		FATAL("Unsupported layout transition: %s -> %s", toString(old_layout),
-			  toString(new_layout));
+void VulkanCommandQueue::copy(PVImage dst, VSpan src, int dst_mip_level, VImageLayout dst_layout) {
+	if(m_status != Status::frame_running) {
+		m_copy_queue.emplace_back(CmdCopyImage{dst, src, dst_mip_level, dst_layout});
+		return;
 	}
 
-	vkCmdPipelineBarrier(cmd_buffer, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-}
-
-void VulkanCommandQueue::copy(PVImage dst, VSpan src, VImageLayout dst_layout) {
 	VkBufferImageCopy region{};
 	region.bufferOffset = src.offset;
 	// TODO: do it properly
-	auto dst_extent = dst->extent();
 	region.bufferImageHeight = 0;
 	region.bufferRowLength = 0;
 	region.imageSubresource.layerCount = 1;
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageExtent = {uint(dst_extent.x), uint(dst_extent.y), 1};
+	region.imageSubresource.mipLevel = dst_mip_level;
+	auto mip_size = dst->mipSize(dst_mip_level);
+	region.imageExtent = {uint(mip_size.x), uint(mip_size.y), uint(mip_size.z)};
 
 	auto copy_layout = VImageLayout::transfer_dst;
-	transitionImageLayout(m_cur_cmd_buffer, dst, dst->format(), dst->m_last_layout, copy_layout);
+	dst->transitionLayout(copy_layout, dst_mip_level);
 	vkCmdCopyBufferToImage(m_cur_cmd_buffer, src.buffer, dst, toVk(copy_layout), 1, &region);
-
 	// TODO: do this transition right before we're going to do something with this texture?
-	transitionImageLayout(m_cur_cmd_buffer, dst, dst->format(), copy_layout, dst_layout);
-	dst->m_last_layout = dst_layout;
+	dst->transitionLayout(dst_layout, dst_mip_level);
 }
 
 void VulkanCommandQueue::bind(PVPipelineLayout layout, VBindPoint bind_point) {
@@ -414,41 +394,11 @@ Ex<VSpan> VulkanCommandQueue::upload(VSpan dst, CSpan<char> src) {
 			m_device.ref(), src.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
 		auto mem_block = staging_buffer->memoryBlock();
 		fwk::copy(mem_mgr.accessMemory(mem_block), src);
-
-		if(m_status == Status::frame_running)
-			copy(dst, staging_buffer);
-		else
-			m_copy_queue.emplace_back(CmdCopyBuffer{dst, staging_buffer});
+		copy(dst, staging_buffer);
 		m_staging_buffers.emplace_back(move(staging_buffer));
 	}
 
 	return VSpan{dst.buffer, dst.offset + src.size(), dst.size - src.size()};
 }
 
-Ex<void> VulkanCommandQueue::upload(PVImage dst, const Image &src, VImageLayout dst_layout) {
-	if(src.empty())
-		return {};
-
-	int data_size = src.data().size() * sizeof(IColor);
-
-	auto &mem_mgr = m_device.memory();
-	auto mem_block = dst->memoryBlock();
-	if(canBeMapped(mem_block.id.domain())) {
-		// TODO: better checks
-		mem_block.size = min<u32>(mem_block.size, data_size);
-		fwk::copy(mem_mgr.accessMemory(mem_block), src.data().reinterpret<char>());
-	} else {
-		auto staging_buffer = EX_PASS(VulkanBuffer::create(
-			m_device.ref(), data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
-		auto mem_block = staging_buffer->memoryBlock();
-		fwk::copy(mem_mgr.accessMemory(mem_block), src.data().reinterpret<char>());
-		if(m_status == Status::frame_running)
-			copy(dst, staging_buffer, dst_layout);
-		else
-			m_copy_queue.emplace_back(CmdCopyImage{dst, staging_buffer, dst_layout});
-		m_staging_buffers.emplace_back(move(staging_buffer));
-	}
-
-	return {};
-}
 }

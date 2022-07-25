@@ -3,6 +3,7 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 
+#include "fwk/gfx/image.h"
 #include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_descriptor_manager.h"
 #include "fwk/vulkan/vulkan_instance.h"
@@ -122,12 +123,17 @@ struct VulkanDevice::ObjectPools {
 	array<vector<DeferredRelease>, VulkanLimits::num_swap_frames> to_release;
 };
 
+struct VulkanDevice::DummyObjects {
+	PVImageView dummy_image_2d;
+};
+
 // -------------------------------------------------------------------------------------------
 // ---  Construction / destruction & main functions  -----------------------------------------
 
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)
 	: m_id(id), m_phys_id(phys_id), m_instance_ref(instance_ref) {
 	m_objects.emplace();
+	m_dummies.emplace();
 	ASSERT(m_instance_ref->valid(m_phys_id));
 }
 
@@ -206,10 +212,18 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
 
 	m_cmds = new VulkanCommandQueue(ref());
-	return m_cmds->initialize(ref());
+	EXPECT(m_cmds->initialize(ref()));
+
+	VImageSetup img_setup{VK_FORMAT_R8G8B8A8_UNORM, int2(4, 4)};
+	auto white_image = EX_PASS(VulkanImage::create(ref(), img_setup));
+	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
+	m_dummies->dummy_image_2d = VulkanImageView::create(ref(), white_image);
+
+	return {};
 }
 
 VulkanDevice::~VulkanDevice() {
+	m_dummies.reset();
 	if(m_handle) {
 		vkDestroyPipelineCache(m_handle, m_objects->pipeline_cache, nullptr);
 		vkDeviceWaitIdle(m_handle);
@@ -283,11 +297,12 @@ Ex<bool> VulkanDevice::beginFrame() {
 	DASSERT(m_cmds);
 	if(m_swap_chain)
 		m_image_available_sem = EX_PASS(m_swap_chain->acquireImage());
-	m_cmds->beginFrame();
+	m_cmds->waitForFrameFence();
 	m_swap_frame_index = m_cmds->swapFrameIndex();
+	releaseObjects(m_swap_frame_index);
+	m_cmds->beginFrame();
 	m_memory->beginFrame();
 	m_descriptors->beginFrame(m_swap_frame_index);
-	releaseObjects(m_swap_frame_index);
 	return true;
 }
 
@@ -374,12 +389,12 @@ PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageVie
 
 	StaticVector<VColorAttachment, VulkanLimits::max_color_attachments> color_atts;
 	for(auto color : colors)
-		color_atts.emplace_back(color->format(), color->numSamples());
+		color_atts.emplace_back(color->format(), color->dimensions().num_samples);
 	Maybe<VDepthAttachment> depth_att;
 	if(depth) {
 		auto ds_format = fromVkDepthStencilFormat(depth->format());
 		DASSERT(ds_format);
-		depth_att = VDepthAttachment(*ds_format, depth->numSamples());
+		depth_att = VDepthAttachment(*ds_format, depth->dimensions().num_samples);
 	}
 	auto render_pass = getRenderPass(color_atts, depth_att);
 
@@ -429,7 +444,7 @@ CSpan<DescriptorBindingInfo> VulkanDevice::bindings(VDSLId dsl_id) {
 
 VDescriptorSet VulkanDevice::acquireSet(VDSLId dsl_id) {
 	auto handle = m_descriptors->acquireSet(dsl_id);
-	return VDescriptorSet(m_handle, handle);
+	return VDescriptorSet(*this, handle);
 }
 
 VkDescriptorSetLayout VulkanDevice::handle(VDSLId dsl_id) { return m_descriptors->handle(dsl_id); }
@@ -448,6 +463,8 @@ PVSampler VulkanDevice::createSampler(const VSamplerSetup &params) {
 	FWK_VK_CALL(vkCreateSampler, m_handle, &ci, nullptr, &handle);
 	return createObject(handle, params);
 }
+
+PVImageView VulkanDevice::dummyImage2D() const { return m_dummies->dummy_image_2d; }
 
 using ReleaseFunc = void (*)(void *, void *, VkDevice);
 void VulkanDevice::deferredRelease(void *param0, void *param1, ReleaseFunc func) {

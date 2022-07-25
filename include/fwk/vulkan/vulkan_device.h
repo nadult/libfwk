@@ -69,6 +69,8 @@ class VulkanDevice {
 	PVPipelineLayout getPipelineLayout(CSpan<PVShaderModule>);
 	PVSampler createSampler(const VSamplerSetup &);
 
+	PVImageView dummyImage2D() const;
+
 	VDSLId getDSL(CSpan<DescriptorBindingInfo>);
 	CSpan<DescriptorBindingInfo> bindings(VDSLId);
 	VDescriptorSet acquireSet(VDSLId);
@@ -107,9 +109,11 @@ class VulkanDevice {
 	void cleanupFramebuffers();
 	void releaseObjects(int swap_frame_index);
 	struct ObjectPools;
+	struct DummyObjects;
 
 	Dynamic<VulkanDescriptorManager> m_descriptors;
 	Dynamic<ObjectPools> m_objects;
+	Dynamic<DummyObjects> m_dummies;
 	PVSwapChain m_swap_chain;
 	Dynamic<VulkanCommandQueue> m_cmds;
 	Dynamic<VulkanMemoryManager> m_memory;

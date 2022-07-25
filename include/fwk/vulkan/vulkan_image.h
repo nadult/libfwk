@@ -9,49 +9,77 @@
 
 namespace fwk {
 
+struct VImageDimensions {
+	VImageDimensions(int3 size, uint num_mip_levels = 1, uint num_samples = 1);
+	VImageDimensions(int2 size, uint num_mip_levels = 1, uint num_samples = 1);
+	VImageDimensions() : size(0), num_mip_levels(1), num_samples(1) {}
+
+	int3 size;
+	u16 num_mip_levels;
+	u16 num_samples;
+};
+
+// TODO: Add VImageSpan, VImageDimensions -> VImageSize
+
 struct VImageSetup {
-	VImageSetup(VkFormat format, int2 extent, uint num_samples = 1,
+	VImageSetup(VkFormat format, VImageDimensions dims,
 				VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled,
 				VImageLayout layout = VImageLayout::undefined)
-		: extent(extent), format(format), num_samples(num_samples), usage(usage), layout(layout) {}
+		: dims(dims), format(format), usage(usage), layout(layout) {}
+	VImageSetup(VBlockFormat, VImageDimensions dims,
+				VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled,
+				VImageLayout layout = VImageLayout::undefined);
+	VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims);
 
-	VImageSetup(VDepthStencilFormat ds_format, int2 extent, uint num_samples = 1);
-
-	int2 extent;
+	VImageDimensions dims;
 	VkFormat format;
-	uint num_samples;
 	VImageUsageFlags usage;
 	VImageLayout layout;
 };
 
 class VulkanImage : public VulkanObjectBase<VulkanImage> {
   public:
+	using Layout = VImageLayout;
 	static Ex<PVImage> create(VDeviceRef, const VImageSetup &, VMemoryUsage = VMemoryUsage::device);
 	static PVImage createExternal(VDeviceRef, VkImage, const VImageSetup &);
 
 	auto memoryBlock() { return m_memory_block; }
-	int2 extent() const { return m_extent; }
+	auto dimensions() const { return m_dims; }
+	auto size() const { return m_dims.size; }
 	VkFormat format() const { return m_format; }
 	auto usage() const { return m_usage; }
-	uint numSamples() const { return m_num_samples; }
+	int3 mipSize(int mip_level) const;
 
 	// External image may become invalid (for example when swap chain is destroyed)
 	bool isValid() const { return m_is_valid; }
 	Maybe<VDepthStencilFormat> depthStencilFormat() const;
 
+	// ---------- Commands --------------------------------------------------------------
+
+	Ex<> upload(CSpan<Image>, Layout target_layout = Layout::shader_ro);
+	Ex<> upload(CSpan<CompressedImage>, Layout target_layout = Layout::shader_ro);
+
+	Ex<> upload(const Image &, int target_mip = 0, Layout target_layout = Layout::shader_ro);
+	Ex<> upload(const CompressedImage &, int target_mip = 0,
+				Layout target_layout = Layout::shader_ro);
+
+	void transitionLayout(Layout target_layout, int mip_level = 0);
+
   private:
-	friend class VulkanSwapChain;
+	Layout layout(int mip_level) const;
+	void setLayout(Layout, int mip_level);
+
 	friend class VulkanDevice;
-	friend class VulkanCommandQueue;
+	friend class VulkanSwapChain;
+
 	VulkanImage(VkImage, VObjectId, VMemoryBlock, const VImageSetup &);
 	~VulkanImage();
 
 	VMemoryBlock m_memory_block;
 	VkFormat m_format;
-	int2 m_extent;
-	uint m_num_samples;
+	VImageDimensions m_dims;
 	VImageUsageFlags m_usage;
-	VImageLayout m_last_layout;
+	u64 m_layout_bits = 0;
 	bool m_is_external = false;
 	bool m_is_valid = true;
 };
@@ -60,10 +88,10 @@ class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
   public:
 	static PVImageView create(VDeviceRef, PVImage);
 
-	int2 extent() const { return m_extent; }
+	auto dimensions() const { return m_dims; }
+	auto size() const { return m_dims.size; }
 	VkFormat format() const { return m_format; }
 	PVImage image() const { return m_image; }
-	uint numSamples() const { return m_num_samples; }
 
   private:
 	friend class VulkanDevice;
@@ -71,8 +99,7 @@ class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
 	~VulkanImageView();
 
 	PVImage m_image;
-	int2 m_extent;
-	uint m_num_samples;
+	VImageDimensions m_dims;
 	VkFormat m_format;
 };
 }

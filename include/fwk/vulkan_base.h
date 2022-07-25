@@ -25,6 +25,9 @@ struct VulkanLimits {
 	static constexpr int max_descr_sets_per_layout = 64 * 1024;
 
 	static constexpr int num_swap_frames = 2;
+
+	static constexpr int max_image_size = 32 * 1024;
+	static constexpr int max_mip_levels = 16;
 };
 
 using VDeviceId = TagId<VTag::device, u8>;
@@ -157,6 +160,24 @@ using VDynamicState = EnumFlags<VDynamic>;
 DEFINE_ENUM(VCompareOp, never, less, equal, less_equal, greater, not_equal, greater_equal, always);
 DEFINE_ENUM(VDepthFlag, test, write, bounds_test, bias, clamp);
 using VDepthFlags = EnumFlags<VDepthFlag>;
+
+// TODO: rename to bc*_* ?
+DEFINE_ENUM(VBlockFormat,
+			// BC1 (DXT1) formats (64-bit block size)
+			rgb_bc1, srgb_bc1, rgba_bc1, srgba_bc1,
+
+			// BC2 & BC3 (DXT3 & DXT5) formats (128-bit block size)
+			rgba_bc2, srgba_bc2, rgba_bc3, srgba_bc3,
+
+			// Single channel BC4 (64-bit block size)
+			r_bc4, r_bc4s,
+
+			// Two channel BC5 (128-bit block size)
+			rg_bc5, rg_bc5s,
+
+			// BC6H & BC7 formats (128-bit block size)
+			rgb_bc6h, rgb_bc6h_signed, rgba_bc7, srgba_bc7);
+using VBlockFormats = EnumFlags<VBlockFormat>;
 
 struct VMemoryBlockId {
 	using Type = VMemoryBlockType;

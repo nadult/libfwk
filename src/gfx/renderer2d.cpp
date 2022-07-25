@@ -275,10 +275,10 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 	setup.blending.attachments = {{additive_blend}};
 	out.pipelines[3] = EX_PASS(VulkanPipeline::create(device, setup));
 
-	auto white_image = EX_PASS(VulkanImage::create(device, {VK_FORMAT_R8G8B8A8_UNORM, {4, 4}, 1}));
+	VImageSetup img_setup{VK_FORMAT_R8G8B8A8_UNORM, int2(4, 4)};
+	auto white_image = EX_PASS(VulkanImage::create(device, img_setup));
 	out.white = VulkanImageView::create(device, white_image);
-
-	EXPECT(device->cmdQueue().upload(white_image, Image({4, 4}, ColorId::white)));
+	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
 
 	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
 	out.sampler = device->createSampler(sampler);

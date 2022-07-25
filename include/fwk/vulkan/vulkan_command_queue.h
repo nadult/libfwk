@@ -55,8 +55,11 @@ class VulkanCommandQueue {
 
 	VkCommandBuffer bufferHandle();
 
+	// Copy commands wil be enqueued and performed later if called
+
 	void copy(VSpan dst, VSpan src);
-	void copy(PVImage dst, VSpan src, VImageLayout dst_layout = VImageLayout::shader_ro);
+	void copy(PVImage dst, VSpan src, int dst_mip_level = 0,
+			  VImageLayout dst_layout = VImageLayout::shader_ro);
 
 	void bind(PVPipeline);
 	void bindVertices(CSpan<VSpan>, uint first_binding = 0);
@@ -91,6 +94,7 @@ class VulkanCommandQueue {
 	// -------------------------------------------------------------------------------------------
 	// ----------  Upload commands (can be called anytime)   -------------------------------------
 
+	// TODO: move to VulkanBuffer?
 	// Upload commands are handled immediately, if staging buffer is used, then copy commands
 	// will be enqueued until beginFrame
 	Ex<VSpan> upload(VSpan dst, CSpan<char> src);
@@ -98,8 +102,6 @@ class VulkanCommandQueue {
 	Ex<VSpan> upload(VSpan dst, const TSpan &src) {
 		return upload(dst, cspan(src).template reinterpret<char>());
 	}
-	Ex<void> upload(PVImage dst, const Image &src,
-					VImageLayout dst_layout = VImageLayout::shader_ro);
 
   private:
 	static constexpr uint query_pool_size = 256;
@@ -115,6 +117,7 @@ class VulkanCommandQueue {
 
 	Ex<void> initialize(VDeviceRef);
 
+	void waitForFrameFence();
 	void beginFrame();
 	void finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_signal_sem);
 
@@ -148,6 +151,7 @@ class VulkanCommandQueue {
 	struct CmdCopyImage {
 		PVImage dst;
 		VSpan src;
+		int dst_mip_level;
 		VImageLayout dst_layout;
 	};
 

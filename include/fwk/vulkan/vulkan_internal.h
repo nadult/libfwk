@@ -60,6 +60,14 @@ inline auto fromVkDepthStencilFormat(VkFormat format) {
 			   VDepthStencilFormat(uint(format) - uint(VK_FORMAT_D16_UNORM)) :
 				 Maybe<VDepthStencilFormat>();
 }
+inline VkFormat toVk(VBlockFormat format) {
+	return VkFormat(uint(VK_FORMAT_BC1_RGB_UNORM_BLOCK) + uint(format));
+}
+inline Maybe<VBlockFormat> fromVkBlockFormat(VkFormat format) {
+	if(format >= VK_FORMAT_BC1_RGB_UNORM_BLOCK && format <= VK_FORMAT_BC7_SRGB_BLOCK)
+		return VBlockFormat(uint(format) - uint(VK_FORMAT_BC1_RGB_UNORM_BLOCK));
+	return none;
+}
 
 VkCommandBuffer allocVkCommandBuffer(VkDevice, VkCommandPool pool);
 VkSemaphore createVkSemaphore(VkDevice, bool is_signaled = false);
