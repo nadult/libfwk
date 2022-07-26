@@ -87,6 +87,7 @@ template <class T> class PodVector {
 					  "Incompatible sizes; are you sure, you want to do this cast?");
 
 		m_base.size = (int)(size_t(m_base.size) * sizeof(T) / sizeof(U));
+		m_base.capacity = (int)(size_t(m_base.capacity) * sizeof(T) / sizeof(U));
 		auto *rcurrent = reinterpret_cast<PodVector<U> *>(this);
 		return PodVector<U>(move(*rcurrent));
 	}

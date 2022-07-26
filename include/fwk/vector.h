@@ -167,7 +167,7 @@ template <class T> class Vector {
 		resizePrelude(new_size);
 	}
 
-	template <class... Args> T &emplace_back(Args &&... args) INST_EXCEPT {
+	template <class... Args> T &emplace_back(Args &&...args) INST_EXCEPT {
 		if(m_base.size == m_base.capacity) {
 			if(trivial_move_constr && trivial_destruction)
 				m_base.growPod(sizeof(T));
@@ -267,6 +267,7 @@ template <class T> class Vector {
 					  "Incompatible sizes; are you sure, you want to do this cast?");
 
 		m_base.size = (int)(size_t(m_base.size) * sizeof(T) / sizeof(U));
+		m_base.capacity = (int)(size_t(m_base.capacity) * sizeof(T) / sizeof(U));
 		auto *rcurrent = reinterpret_cast<Vector<U> *>(this);
 		return Vector<U>(move(*rcurrent));
 	}
