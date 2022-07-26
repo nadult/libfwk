@@ -84,6 +84,24 @@ PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VIm
 	return out;
 }
 
+Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<Image> images) {
+	DASSERT(images);
+	VImageSetup setup(VK_FORMAT_B8G8R8A8_SRGB, VImageDimensions(images[0].size(), images.size()));
+	auto out = EX_PASS(create(device, setup));
+	EXPECT(out->upload(images));
+	return out;
+}
+
+Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<CompressedImage> images) {
+	DASSERT(images);
+	for(auto image : images)
+		DASSERT(image.format() == images[0].format());
+	VImageSetup setup(images[0].format(), VImageDimensions(images[0].size(), images.size()));
+	auto out = EX_PASS(create(device, setup));
+	EXPECT(out->upload(images));
+	return out;
+}
+
 Maybe<VDepthStencilFormat> VulkanImage::depthStencilFormat() const {
 	return fromVkDepthStencilFormat(m_format);
 }

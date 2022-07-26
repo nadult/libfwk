@@ -43,6 +43,9 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	static Ex<PVImage> create(VDeviceRef, const VImageSetup &, VMemoryUsage = VMemoryUsage::device);
 	static PVImage createExternal(VDeviceRef, VkImage, const VImageSetup &);
 
+	static Ex<PVImage> createAndUpload(VDeviceRef, CSpan<Image>);
+	static Ex<PVImage> createAndUpload(VDeviceRef, CSpan<CompressedImage>);
+
 	auto memoryBlock() { return m_memory_block; }
 	auto dimensions() const { return m_dims; }
 	auto size() const { return m_dims.size; }

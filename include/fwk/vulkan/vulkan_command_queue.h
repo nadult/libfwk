@@ -46,7 +46,8 @@ class VulkanCommandQueue {
 
 	bool isFinished(VDownloadId);
 	// Returns empty vector if not ready
-	PodVector<char> retrieve(VDownloadId);
+	vector<char> retrieve(VDownloadId);
+	template <class T> vector<T> retrieve(VDownloadId id) { return retrieve(id).reinterpret<T>(); }
 
 	CSpan<u64> getQueryResults(u64 frame_index) const;
 

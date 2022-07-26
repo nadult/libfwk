@@ -12,6 +12,7 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- remove min_size from span
 - just use samplingTime in perf, no need to num_frames + max_sampling_time; we can also add min_frames...
 - add warning/error when initializing variable with self (WTF is it not an error by default?!?)
 - maybe it would be better to hash in u64 and only at the end convert to desired type?

@@ -197,11 +197,10 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	static int num_invalid = 0;
 
 	if(ctx.download_id) {
-		auto &rgraph = ctx.device->cmdQueue();
-		if(auto data = rgraph.retrieve(*ctx.download_id)) {
-			auto uints = cspan(data).reinterpret<u32>();
+		auto &cmds = ctx.device->cmdQueue();
+		if(auto uints = cmds.retrieve<u32>(*ctx.download_id)) {
 			uint count = uints[0];
-			bool is_valid = count == uints.size() - 1 && allOf(uints.subSpan(2), uints[1]);
+			bool is_valid = count == uints.size() - 1 && allOf(subSpan(uints, 2), uints[1]);
 			last_message = format("Compute result: %%\n", uints[1], is_valid ? "" : " (invalid)");
 			if(!is_valid)
 				num_invalid++;
@@ -225,12 +224,6 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	return true;
 }
 
-Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
-	auto vimage = EX_PASS(VulkanImage::create(ctx.device, {VK_FORMAT_R8G8B8A8_SRGB, image.size()},
-											  VMemoryUsage::device));
-	EXPECT(vimage->upload(image));
-	return vimage;
-}
 
 Ex<int> exMain() {
 	VulkanInstanceSetup setup;
@@ -272,7 +265,7 @@ Ex<int> exMain() {
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
 	ctx.font_core = move(font_data.core);
-	ctx.font_image = EX_PASS(makeTexture(ctx, font_data.image));
+	ctx.font_image = EX_PASS(VulkanImage::createAndUpload(ctx.device, font_data.image));
 	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
 
 	ctx.renderer2d_pipes =

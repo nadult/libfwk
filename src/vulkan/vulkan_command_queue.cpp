@@ -180,7 +180,7 @@ bool VulkanCommandQueue::isFinished(VDownloadId download_id) {
 	return download.is_ready;
 }
 
-PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
+vector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
 	if(!download.is_ready)
@@ -190,7 +190,9 @@ PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 	auto src_memory = m_device.memory().accessMemory(mem_block);
 	fwk::copy(out_data, src_memory.subSpan(0, out_data.size()));
 	m_downloads.erase(download_id);
-	return out_data;
+	vector<char> out;
+	out_data.unsafeSwap(out);
+	return out;
 }
 
 // -------------------------------------------------------------------------------------------
