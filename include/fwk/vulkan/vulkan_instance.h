@@ -60,6 +60,8 @@ struct VulkanPhysicalDeviceInfo {
 	vector<string> extensions;
 	VDepthStencilFormats supported_depth_stencil_formats;
 	VBlockFormats supported_block_color_formats;
+	vector<VkFormat> supported_color_formats;
+	vector<VkFormat> supported_color_attachment_formats;
 };
 
 struct VQueueSetup;

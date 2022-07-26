@@ -139,6 +139,16 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 			out.supported_block_color_formats |= format;
 	}
 
+	for(uint f = 0; f < VK_FORMAT_ASTC_12x12_SRGB_BLOCK; f++) {
+		auto format = VkFormat(f);
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(handle, format, &props);
+		if(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
+			out.supported_color_formats.emplace_back(format);
+		if(props.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)
+			out.supported_color_attachment_formats.emplace_back(format);
+	}
+
 	return out;
 }
 
