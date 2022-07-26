@@ -275,11 +275,6 @@ auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_a
 	setup.blending.attachments = {{additive_blend}};
 	out.pipelines[3] = EX_PASS(VulkanPipeline::create(device, setup));
 
-	VImageSetup img_setup{VK_FORMAT_R8G8B8A8_UNORM, int2(4, 4)};
-	auto white_image = EX_PASS(VulkanImage::create(device, img_setup));
-	out.white = VulkanImageView::create(device, white_image);
-	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
-
 	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
 	out.sampler = device->createSampler(sampler);
 
@@ -337,6 +332,8 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 	cmds.bindDS(0)(0, dc.matrix_buffer);
 
 	PVImageView prev_tex;
+	cmds.bindDS(1)(0, ctx.sampler, prev_tex);
+
 	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
 		uint sizes[3] = {uint(chunk.positions.size() * sizeof(chunk.positions[0])),
@@ -352,10 +349,9 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
 
 		for(auto &element : chunk.elements) {
-			auto tex = element.texture ? element.texture : ctx.white;
-			if(tex != prev_tex) {
-				cmds.bindDS(1)(0, ctx.sampler, tex);
-				prev_tex = tex;
+			if(element.texture != prev_tex) {
+				cmds.bindDS(1)(0, ctx.sampler, element.texture);
+				prev_tex = element.texture;
 			}
 
 			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +

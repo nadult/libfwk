@@ -117,7 +117,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
 	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
-	cmds.beginRenderPass(fb, render_pass, none, {{VkClearColorValue{0.0, 0.2, 0.0, 1.0}}});
+	cmds.beginRenderPass(fb, render_pass, none, {FColor(0.0, 0.2, 0.0)});
 	cmds.setViewport(IRect(sc_extent));
 	cmds.setScissor(none);
 
@@ -228,7 +228,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 Ex<PVImage> makeTexture(VulkanContext &ctx, const Image &image) {
 	auto vimage = EX_PASS(VulkanImage::create(ctx.device, {VK_FORMAT_R8G8B8A8_SRGB, image.size()},
 											  VMemoryUsage::device));
-	EXPECT(ctx.device->cmdQueue().upload(vimage, image));
+	EXPECT(vimage->upload(image));
 	return vimage;
 }
 

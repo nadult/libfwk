@@ -44,7 +44,6 @@ class Renderer2D : public MatrixStack {
 
 	struct VulkanPipelines {
 		vector<PVPipeline> pipelines;
-		PVImageView white;
 		PVSampler sampler;
 	};
 
