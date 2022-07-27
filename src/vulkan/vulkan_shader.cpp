@@ -97,9 +97,7 @@ Ex<vector<PVShaderModule>> VulkanShaderModule::compile(VDeviceRef device,
 	// TODO: first compilation is usually slow
 	out.reserve(source_codes.size());
 	for(auto [stage, code] : source_codes) {
-		auto result = compiler.compileCode(stage, code);
-		if(!result.bytecode)
-			return ERROR("Failed to compile '%' shader:\n%", stage, result.messages);
+		auto result = EX_PASS(compiler.compileCode(stage, code));
 		if(dump_bytecodes) {
 			auto text = formatBytecode(result.bytecode, format("%_spirv", stage));
 			print("%\n", text);

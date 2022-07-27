@@ -8,6 +8,7 @@
 #include "fwk/hash_map.h"
 #include "fwk/io/file_system.h"
 #include "fwk/sparse_vector.h"
+#include "fwk/vulkan/vulkan_shader.h"
 #include "shaderc/shaderc.h"
 
 // Powinna byæ mo¿liwoœæ ³adowania shaderów tylko z plików spirv
@@ -130,23 +131,35 @@ shaderc_include_result *ShaderCompiler::Impl::resolveInclude(void *user_data,
 	return &new_result->result;
 }
 
-ShaderCompiler::ShaderCompiler(Options options) {
+ShaderCompiler::ShaderCompiler(ShaderCompilerSetup setup) {
 	m_impl.emplace();
 	m_impl->compiler = shaderc_compiler_initialize();
-	m_impl->compile_options = shaderc_compile_options_initialize();
-	if(options.source_dirs) {
-		for(auto &dir : options.source_dirs)
+	auto *opts = m_impl->compile_options = shaderc_compile_options_initialize();
+	if(setup.source_dirs) {
+		for(auto &dir : setup.source_dirs)
 			DASSERT(dir.isAbsolute());
 
-		m_impl->source_dirs = move(options.source_dirs);
-		shaderc_compile_options_set_include_callbacks(m_impl->compile_options, Impl::resolveInclude,
+		m_impl->source_dirs = move(setup.source_dirs);
+		shaderc_compile_options_set_include_callbacks(opts, Impl::resolveInclude,
 													  Impl::releaseInclude, m_impl.get());
 	}
-	if(options.glsl_version)
-		shaderc_compile_options_set_forced_version_profile(
-			m_impl->compile_options, *options.glsl_version, shaderc_profile_none);
+	uint vk_version = (setup.vulkan_version.major << 22) | (setup.vulkan_version.minor << 12);
+	shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan, vk_version);
+	if(setup.glsl_version)
+		shaderc_compile_options_set_forced_version_profile(opts, int(*setup.glsl_version * 100),
+														   shaderc_profile_none);
+	if(setup.spirv_version) {
+		int version = int(*setup.spirv_version * 10);
+		int major = version / 10;
+		int minor = version % 10;
+		DASSERT(major == 1);
+		DASSERT(minor >= 0 && minor <= 6);
+		uint version_id = 0x010000u | (minor << 8);
+		shaderc_compile_options_set_target_spirv(opts, shaderc_spirv_version(version_id));
+	}
+	shaderc_compile_options_set_optimization_level(opts, shaderc_optimization_level_performance);
 
-	m_impl->spirv_cache_dir = move(options.spirv_cache_dir);
+	m_impl->spirv_cache_dir = move(setup.spirv_cache_dir);
 }
 
 ShaderCompiler::~ShaderCompiler() {
@@ -168,8 +181,8 @@ const EnumMap<VShaderStage, shaderc_shader_kind> type_map = {
 
 Maybe<FilePath> ShaderCompiler::filePath(ZStr name) const { return m_impl->findPath(name); }
 
-CompilationResult ShaderCompiler::compileCode(VShaderStage stage, ZStr code, ZStr file_name,
-											  CSpan<Pair<string>> macros) const {
+Ex<CompilationResult> ShaderCompiler::compileCode(VShaderStage stage, ZStr code, ZStr file_name,
+												  CSpan<Pair<string>> macros) const {
 	CompilationResult out;
 
 	auto *options = m_impl->compile_options;
@@ -181,9 +194,8 @@ CompilationResult ShaderCompiler::compileCode(VShaderStage stage, ZStr code, ZSt
 	}
 	auto result = shaderc_compile_into_spv(m_impl->compiler, code.c_str(), code.size(),
 										   type_map[stage], file_name.c_str(), "main", options);
-	if(macros) {
+	if(macros)
 		shaderc_compile_options_release(options);
-	}
 
 	int num_warnings = shaderc_result_get_num_warnings(result);
 	int num_errors = shaderc_result_get_num_errors(result);
@@ -195,21 +207,23 @@ CompilationResult ShaderCompiler::compileCode(VShaderStage stage, ZStr code, ZSt
 		out.bytecode.assign(bytes, bytes + length);
 	}
 	out.messages = shaderc_result_get_error_message(result);
-	if(m_impl->include_errors)
-		out = Error::merge(m_impl->include_errors);
 	shaderc_result_release(result);
+
+	if(m_impl->include_errors)
+		return Error::merge(m_impl->include_errors);
+	if(!out.bytecode)
+		return ERROR("Compilation failed:\n%", out.messages);
+
 	m_impl->include_results.clear();
 	m_impl->include_errors.clear();
 	return out;
 }
 
-CompilationResult ShaderCompiler::compileFile(VShaderStage stage, ZStr file_name,
-											  CSpan<Pair<string>> macros) const {
+Ex<CompilationResult> ShaderCompiler::compileFile(VShaderStage stage, ZStr file_name,
+												  CSpan<Pair<string>> macros) const {
 	if(auto file_path = filePath(file_name)) {
-		if(auto content = loadFileString(*file_path))
-			return compileCode(stage, *content, *file_path, macros);
-		else
-			return content.error();
+		auto content = EX_PASS(loadFileString(*file_path));
+		return compileCode(stage, content, *file_path, macros);
 	}
 
 	return ERROR("Cannot open shader file: '%'", file_name);
@@ -248,7 +262,7 @@ const ShaderDefinition &ShaderCompiler::operator[](ZStr name) const {
 	return m_impl->shader_defs[*id];
 }
 
-vector<char> ShaderCompiler::getSpirv(ShaderDefId id) {
+Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	DASSERT(valid(id));
 	auto &def = m_impl->shader_defs[id];
 	FilePath spirv_path;
@@ -262,28 +276,28 @@ vector<char> ShaderCompiler::getSpirv(ShaderDefId id) {
 		}
 	}
 
-	auto result = compileFile(def.stage, def.source_file_name, def.macros);
-	if(!result.messages.empty()) {
-		print("When compiling: '%'\n%\n", def.name, result.messages); // TODO
-		m_impl->messages.emplace_back(id, move(result.messages));
-	}
-
+	auto result = EX_PASS(compileFile(def.stage, def.source_file_name, def.macros));
 	if(result.bytecode && !spirv_path.empty()) {
 		mkdirRecursive(spirv_path.parent()).check();
 		saveFile(spirv_path, result.bytecode).check();
 	}
 
-	return result.bytecode;
+	return result;
 }
 
-vector<char> ShaderCompiler::getSpirv(ZStr def_name) {
+// TODO: better way to pass errors
+Ex<CompilationResult> ShaderCompiler::getSpirv(ZStr def_name) {
 	auto id = find(def_name);
 	if(!id)
-		FATAL("ShaderDefinition not found: '%s'", def_name.c_str());
+		return ERROR("ShaderDefinition not found: '%'", def_name);
 	return getSpirv(*id);
+}
+
+Ex<PVShaderModule> ShaderCompiler::createShaderModule(VDeviceRef device, ZStr def_name) {
+	auto result = EX_PASS(getSpirv(def_name));
+	return VulkanShaderModule::create(device, result.bytecode);
 }
 
 vector<ShaderDefId> ShaderCompiler::updateList() const { return {}; }
 
-vector<Pair<ShaderDefId, string>> ShaderCompiler::getMessages() { return move(m_impl->messages); }
 }

@@ -10,11 +10,12 @@
 
 namespace fwk {
 
-struct ShaderCompilerOptions {
-	VulkanVersion version;
+struct ShaderCompilerSetup {
 	vector<FilePath> source_dirs;
 	Maybe<FilePath> spirv_cache_dir;
-	Maybe<int> glsl_version = 450;
+	VulkanVersion vulkan_version = {1, 2, 0};
+	Maybe<double> glsl_version = 4.5;
+	Maybe<double> spirv_version = 1.3;
 };
 
 struct ShaderDefinition {
@@ -31,24 +32,19 @@ using ShaderDefId = TagId<Tag::shader_def>;
 
 class ShaderCompiler {
   public:
-	using Options = ShaderCompilerOptions;
-
-	ShaderCompiler(Options);
+	ShaderCompiler(ShaderCompilerSetup);
 	FWK_MOVABLE_CLASS(ShaderCompiler);
 
 	struct CompilationResult {
-		CompilationResult() {}
-		CompilationResult(const Error &error) : messages(toString(error)) {}
-
 		vector<char> bytecode;
 		string messages;
 	};
 
 	Maybe<FilePath> filePath(ZStr file_name) const;
-	CompilationResult compileCode(VShaderStage, ZStr source_code, ZStr file_name = "input.glsl",
-								  CSpan<Pair<string>> macros = {}) const;
-	CompilationResult compileFile(VShaderStage, ZStr file_name,
-								  CSpan<Pair<string>> macros = {}) const;
+	Ex<CompilationResult> compileCode(VShaderStage, ZStr source_code, ZStr file_name = "input.glsl",
+									  CSpan<Pair<string>> macros = {}) const;
+	Ex<CompilationResult> compileFile(VShaderStage, ZStr file_name,
+									  CSpan<Pair<string>> macros = {}) const;
 
 	// ------------------ ShaderDefs manager --------------------------------------------
 
@@ -62,11 +58,11 @@ class ShaderCompiler {
 	const ShaderDefinition &operator[](ZStr) const;
 
 	// If source code failed to compile, latest valid spirv will be returned
-	vector<char> getSpirv(ShaderDefId def_id);
-	vector<char> getSpirv(ZStr def_name);
-	vector<ShaderDefId> updateList() const;
+	Ex<CompilationResult> getSpirv(ShaderDefId def_id);
+	Ex<CompilationResult> getSpirv(ZStr def_name);
+	Ex<PVShaderModule> createShaderModule(VDeviceRef, ZStr def_name);
 
-	vector<Pair<ShaderDefId, string>> getMessages();
+	vector<ShaderDefId> updateList() const;
 
   private:
 	struct Impl;
