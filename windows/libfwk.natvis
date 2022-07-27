@@ -99,6 +99,16 @@
     </Expand>
   </Type>
 
+  <Type Name="fwk::VDescriptorBindingInfo">
+    <Expand>
+      <Item Name="set">unsigned(value >> 58)</Item>
+      <Item Name="binding">unsigned((value >> 38) &amp; 0xfffffu)</Item>
+      <Item Name="count">unsigned((value >> 18) &amp; 0xfffffu)</Item>
+      <Item Name="type">VDescriptorType((value >> 14) &amp; 0xfu)</Item>
+      <Item Name="stages">*(fwk::VShaderStages*)(&amp; value)</Item>
+    </Expand>
+  </Type>
+
   <Type Name="perf::Sample&lt;*&gt;">
     <Expand>
       <Item Name="value">(unsigned long long)(encoded &amp; ((1ull &lt;&lt; 45) - 1))</Item>
