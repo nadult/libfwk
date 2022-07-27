@@ -31,7 +31,8 @@ class CameraControl {
 	struct Config {
 		Config() = default;
 
-		FWK_ORDER_BY(Config, params, move_multiplier, shift_move_speed, rotation_filter);
+		FWK_TIE_MEMBERS(params, move_multiplier, shift_move_speed, rotation_filter);
+		bool operator==(const Config &rhs) const { return tied() == rhs.tied(); }
 
 		CameraParams params;
 		float move_multiplier = 1.0f;
