@@ -24,6 +24,7 @@ class Frustum {
 	bool testIsect(const float3 &point) const;
 	bool testIsect(const FBox &box) const;
 	bool testIsect(CSpan<float3> points) const;
+	array<Ray3F, 4> cornerRays() const;
 
 	const Plane3F &operator[](int idx) const {
 		PASSERT(idx >= 0 && idx < plane_count);

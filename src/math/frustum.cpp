@@ -5,6 +5,7 @@
 
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
+#include "fwk/math/ray.h"
 
 namespace fwk {
 
@@ -51,4 +52,11 @@ bool Frustum::testIsect(CSpan<float3> points) const {
 }
 
 bool Frustum::testIsect(const FBox &box) const { return testIsect(box.corners()); }
+
+array<Ray3F, 4> Frustum::cornerRays() const {
+	return {{*planes[FrustumPlaneId::down].isect(planes[FrustumPlaneId::left]),
+			 *planes[FrustumPlaneId::left].isect(planes[FrustumPlaneId::up]),
+			 *planes[FrustumPlaneId::up].isect(planes[FrustumPlaneId::right]),
+			 *planes[FrustumPlaneId::right].isect(planes[FrustumPlaneId::down])}};
+}
 }
