@@ -71,8 +71,8 @@ class VulkanDevice {
 
 	PVImageView dummyImage2D() const;
 
-	VDSLId getDSL(CSpan<DescriptorBindingInfo>);
-	CSpan<DescriptorBindingInfo> bindings(VDSLId);
+	VDSLId getDSL(CSpan<VDescriptorBindingInfo>);
+	CSpan<VDescriptorBindingInfo> bindings(VDSLId);
 	VDescriptorSet acquireSet(VDSLId);
 	VkDescriptorSetLayout handle(VDSLId);
 

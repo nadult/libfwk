@@ -306,7 +306,7 @@ class VWindowRef;
 
 struct VDescriptorSet;
 
-struct DescriptorBindingInfo; // TODO: name
+struct VDescriptorBindingInfo;
 struct VColorAttachment;
 struct VDepthAttachment;
 

@@ -12,9 +12,9 @@
 
 namespace fwk {
 
-Ex<vector<DescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStage &out_stage) {
+Ex<vector<VDescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStage &out_stage) {
 	auto reflection = EX_PASS(ShaderReflectionModule::create(bytecode));
-	vector<DescriptorBindingInfo> out;
+	vector<VDescriptorBindingInfo> out;
 	out.reserve(reflection->descriptor_binding_count);
 	uint stage_bits = reflection->shader_stage;
 	if(countBits(stage_bits) > 1)
@@ -41,7 +41,7 @@ Ex<vector<DescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStage
 }
 
 VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id, VShaderStage stage,
-									   vector<DescriptorBindingInfo> infos)
+									   vector<VDescriptorBindingInfo> infos)
 	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(move(infos)), m_stage(stage) {}
 
 VulkanShaderModule ::~VulkanShaderModule() {
@@ -50,7 +50,7 @@ VulkanShaderModule ::~VulkanShaderModule() {
 
 Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> bytecode,
 											  VShaderStage stage,
-											  vector<DescriptorBindingInfo> infos) {
+											  vector<VDescriptorBindingInfo> infos) {
 	DASSERT(bytecode.size() % sizeof(u32) == 0);
 	DASSERT(u64((void *)bytecode.data()) % sizeof(u32) == 0);
 

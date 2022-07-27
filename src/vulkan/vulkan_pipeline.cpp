@@ -12,9 +12,9 @@
 
 namespace fwk {
 
-vector<DescriptorBindingInfo> DescriptorBindingInfo::merge(CSpan<DescriptorBindingInfo> lhs,
-														   CSpan<DescriptorBindingInfo> rhs) {
-	vector<DescriptorBindingInfo> out;
+vector<VDescriptorBindingInfo> VDescriptorBindingInfo::merge(CSpan<VDescriptorBindingInfo> lhs,
+															 CSpan<VDescriptorBindingInfo> rhs) {
+	vector<VDescriptorBindingInfo> out;
 	out.reserve(lhs.size() + rhs.size());
 
 	int lpos = 0, rpos = 0;
@@ -43,7 +43,7 @@ vector<DescriptorBindingInfo> DescriptorBindingInfo::merge(CSpan<DescriptorBindi
 	return out;
 }
 
-u32 DescriptorBindingInfo::hashIgnoreSet(CSpan<DescriptorBindingInfo> infos, u32 seed) {
+u32 VDescriptorBindingInfo::hashIgnoreSet(CSpan<VDescriptorBindingInfo> infos, u32 seed) {
 	u64 hash = seed;
 	for(auto info : infos) {
 		info.clearSet();
@@ -55,9 +55,9 @@ u32 DescriptorBindingInfo::hashIgnoreSet(CSpan<DescriptorBindingInfo> infos, u32
 }
 
 // TODO: what about set indices? we have to pass them forward too somehow
-vector<CSpan<DescriptorBindingInfo>>
-DescriptorBindingInfo::divideSets(CSpan<DescriptorBindingInfo> merged) {
-	vector<CSpan<DescriptorBindingInfo>> out;
+vector<CSpan<VDescriptorBindingInfo>>
+VDescriptorBindingInfo::divideSets(CSpan<VDescriptorBindingInfo> merged) {
+	vector<CSpan<VDescriptorBindingInfo>> out;
 	uint prev_set = merged.empty() ? 0 : merged[0].set();
 	int start_idx = 0;
 
@@ -452,7 +452,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineS
 	DASSERT(setup.compute_module);
 
 	auto descr_bindings = setup.compute_module->descriptorBindingInfos();
-	auto descr_sets = DescriptorBindingInfo::divideSets(descr_bindings);
+	auto descr_sets = VDescriptorBindingInfo::divideSets(descr_bindings);
 	vector<VDSLId> dsls;
 	dsls.reserve(descr_sets.size());
 	for(auto bindings : descr_sets)

@@ -220,23 +220,21 @@ class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
 	vector<VDSLId> m_dsls;
 };
 
-// TODO: consistent naming
-// TODO: natvis
-struct DescriptorBindingInfo {
+struct VDescriptorBindingInfo {
 	static constexpr int stages_bit_mask = 0x3fff;
 	static_assert(count<VShaderStage> < 14);
 	static constexpr int max_sets = VulkanLimits::max_descr_sets,
 						 max_bindings = VulkanLimits::max_descr_bindings;
 
-	DescriptorBindingInfo(VDescriptorType type, VShaderStages stages, uint binding, uint count = 1,
-						  uint set = 0)
+	VDescriptorBindingInfo(VDescriptorType type, VShaderStages stages, uint binding, uint count = 1,
+						   uint set = 0)
 		: value(u64(stages.bits) | (u64(type) << 14) | (u64(count) << 18) | (u64(binding) << 38) |
 				(u64(set) << 58)) {
 		PASSERT(set < max_sets);
 		PASSERT(binding < max_bindings);
 	}
-	explicit DescriptorBindingInfo(u64 encoded_value) : value(encoded_value) {}
-	DescriptorBindingInfo() : value(0) {}
+	explicit VDescriptorBindingInfo(u64 encoded_value) : value(encoded_value) {}
+	VDescriptorBindingInfo() : value(0) {}
 
 	void clearSet() { value = value & ((1ull << 58) - 1); }
 
@@ -246,14 +244,14 @@ struct DescriptorBindingInfo {
 	VDescriptorType type() const { return VDescriptorType((value >> 14) & 0xf); }
 	VShaderStages stages() const { return VShaderStages(value & stages_bit_mask); }
 
-	bool operator<(const DescriptorBindingInfo &rhs) const { return value < rhs.value; }
-	bool operator==(const DescriptorBindingInfo &rhs) const { return value == rhs.value; }
+	bool operator<(const VDescriptorBindingInfo &rhs) const { return value < rhs.value; }
+	bool operator==(const VDescriptorBindingInfo &rhs) const { return value == rhs.value; }
 
-	static vector<DescriptorBindingInfo> merge(CSpan<DescriptorBindingInfo>,
-											   CSpan<DescriptorBindingInfo>);
-	static vector<CSpan<DescriptorBindingInfo>> divideSets(CSpan<DescriptorBindingInfo>);
+	static vector<VDescriptorBindingInfo> merge(CSpan<VDescriptorBindingInfo>,
+												CSpan<VDescriptorBindingInfo>);
+	static vector<CSpan<VDescriptorBindingInfo>> divideSets(CSpan<VDescriptorBindingInfo>);
 
-	static u32 hashIgnoreSet(CSpan<DescriptorBindingInfo>, u32 seed = 123);
+	static u32 hashIgnoreSet(CSpan<VDescriptorBindingInfo>, u32 seed = 123);
 
 	u64 value = 0;
 };

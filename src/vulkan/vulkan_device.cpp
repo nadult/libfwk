@@ -417,16 +417,16 @@ PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<VDSLId> dsls) {
 }
 
 PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_modules) {
-	vector<DescriptorBindingInfo> descr_bindings;
+	vector<VDescriptorBindingInfo> descr_bindings;
 	for(auto &shader_module : shader_modules) {
 		DASSERT(shader_module);
 		auto stage_bindings = shader_module->descriptorBindingInfos();
 		if(descr_bindings.empty())
 			descr_bindings = stage_bindings;
 		else
-			descr_bindings = DescriptorBindingInfo::merge(descr_bindings, stage_bindings);
+			descr_bindings = VDescriptorBindingInfo::merge(descr_bindings, stage_bindings);
 	}
-	auto descr_sets = DescriptorBindingInfo::divideSets(descr_bindings);
+	auto descr_sets = VDescriptorBindingInfo::divideSets(descr_bindings);
 	vector<VDSLId> dsls;
 	dsls.reserve(descr_sets.size());
 	for(auto bindings : descr_sets)
@@ -434,11 +434,11 @@ PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_mo
 	return getPipelineLayout(dsls);
 }
 
-VDSLId VulkanDevice::getDSL(CSpan<DescriptorBindingInfo> bindings) {
+VDSLId VulkanDevice::getDSL(CSpan<VDescriptorBindingInfo> bindings) {
 	return m_descriptors->getLayout(bindings);
 }
 
-CSpan<DescriptorBindingInfo> VulkanDevice::bindings(VDSLId dsl_id) {
+CSpan<VDescriptorBindingInfo> VulkanDevice::bindings(VDSLId dsl_id) {
 	return m_descriptors->bindings(dsl_id);
 }
 

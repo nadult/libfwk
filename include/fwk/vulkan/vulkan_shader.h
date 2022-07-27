@@ -12,22 +12,22 @@ class VulkanShaderModule : public VulkanObjectBase<VulkanShaderModule> {
   public:
 	static Ex<PVShaderModule> create(VDeviceRef, CSpan<char> bytecode);
 	static Ex<PVShaderModule> create(VDeviceRef, CSpan<char> bytecode, VShaderStage stage,
-									 vector<DescriptorBindingInfo> bindings);
+									 vector<VDescriptorBindingInfo> bindings);
 
 	static Ex<vector<PVShaderModule>>
 	compile(VDeviceRef, CSpan<Pair<VShaderStage, ZStr>> source_codes, bool dump_bytecodes = false);
 
 	VShaderStage stage() const { return m_stage; }
-	CSpan<DescriptorBindingInfo> descriptorBindingInfos() const {
+	CSpan<VDescriptorBindingInfo> descriptorBindingInfos() const {
 		return m_descriptor_binding_infos;
 	}
 
   private:
 	friend class VulkanDevice;
-	VulkanShaderModule(VkShaderModule, VObjectId, VShaderStage, vector<DescriptorBindingInfo>);
+	VulkanShaderModule(VkShaderModule, VObjectId, VShaderStage, vector<VDescriptorBindingInfo>);
 	~VulkanShaderModule();
 
-	vector<DescriptorBindingInfo> m_descriptor_binding_infos;
+	vector<VDescriptorBindingInfo> m_descriptor_binding_infos;
 	VShaderStage m_stage;
 };
 

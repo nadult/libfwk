@@ -35,13 +35,13 @@ VulkanDescriptorManager::~VulkanDescriptorManager() {
 	}
 }
 
-VDSLId VulkanDescriptorManager::getLayout(CSpan<DescriptorBindingInfo> bindings) {
+VDSLId VulkanDescriptorManager::getLayout(CSpan<VDescriptorBindingInfo> bindings) {
 	HashedDSL key(bindings, none);
 	auto it = m_hash_map.find(key);
 	if(it != m_hash_map.end())
 		return it->value;
 
-	auto vk_bindings = transform(bindings, [](DescriptorBindingInfo binding) {
+	auto vk_bindings = transform(bindings, [](VDescriptorBindingInfo binding) {
 		VkDescriptorSetLayoutBinding lb{};
 		lb.binding = binding.binding();
 		lb.descriptorType = toVk(binding.type());
@@ -70,8 +70,8 @@ VDSLId VulkanDescriptorManager::getLayout(CSpan<DescriptorBindingInfo> bindings)
 		new_hash_map.reserve(m_hash_map.capacity());
 		for(auto [key, value] : m_hash_map) {
 			auto &dsl = m_dsls[value];
-			CSpan<DescriptorBindingInfo> new_bindings(m_declarations.data() + dsl.first_binding,
-													  dsl.num_bindings);
+			CSpan<VDescriptorBindingInfo> new_bindings(m_declarations.data() + dsl.first_binding,
+													   dsl.num_bindings);
 			new_hash_map.emplace({new_bindings, key.hash_value}, value);
 		}
 		m_hash_map.swap(new_hash_map);
@@ -111,7 +111,7 @@ VkDescriptorSet VulkanDescriptorManager::acquireSet(VDSLId dsl_id) {
 														  dsl.more_handles[index];
 }
 
-CSpan<DescriptorBindingInfo> VulkanDescriptorManager::bindings(VDSLId dsl_id) const {
+CSpan<VDescriptorBindingInfo> VulkanDescriptorManager::bindings(VDSLId dsl_id) const {
 	auto &dsl = m_dsls[dsl_id];
 	return {m_declarations.data() + dsl.first_binding, int(dsl.num_bindings)};
 }
@@ -133,7 +133,7 @@ void VulkanDescriptorManager::finishFrame() {
 	m_frame_running = false;
 }
 
-VkDescriptorPool VulkanDescriptorManager::allocPool(CSpan<DescriptorBindingInfo> bindings,
+VkDescriptorPool VulkanDescriptorManager::allocPool(CSpan<VDescriptorBindingInfo> bindings,
 													uint num_sets) {
 	EnumMap<VDescriptorType, uint> counts;
 	for(auto binding : bindings)
