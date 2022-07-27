@@ -122,7 +122,14 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 	vkEnumerateDeviceExtensionProperties(handle, nullptr, &count, exts.data());
 	out.extensions = transform(exts, [](auto &prop) -> string { return prop.extensionName; });
 
-	vkGetPhysicalDeviceProperties(handle, &out.properties);
+	VkPhysicalDeviceSubgroupProperties subgroup_props{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES};
+	VkPhysicalDeviceProperties2 props2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+	props2.pNext = &subgroup_props;
+	vkGetPhysicalDeviceProperties2(handle, &props2);
+	out.properties = props2.properties;
+	out.subgroup_props = subgroup_props;
+
 	vkGetPhysicalDeviceMemoryProperties(handle, &out.mem_properties);
 
 	for(auto format : all<VDepthStencilFormat>) {
@@ -180,6 +187,8 @@ Ex<VInstanceRef> VulkanInstance::create(const VulkanInstanceSetup &setup) {
 Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
 
+	if(setup.version < VulkanVersion(1, 2, 0))
+		FATAL("FWK currently requires Vulkan version to be at least 1.2.0");
 	auto extensions = setup.extensions;
 	auto layers = setup.layers;
 
