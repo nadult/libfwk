@@ -238,6 +238,11 @@ void VulkanCommandQueue::copy(PVImage dst, VSpan src, int dst_mip_level, VImageL
 	dst->transitionLayout(dst_layout, dst_mip_level);
 }
 
+void VulkanCommandQueue::fill(VSpan dst, u32 value) {
+	PASSERT(m_status == Status::frame_running);
+	vkCmdFillBuffer(m_cur_cmd_buffer, dst.buffer, dst.offset, dst.size, value);
+}
+
 void VulkanCommandQueue::bind(PVPipelineLayout layout, VBindPoint bind_point) {
 	m_last_pipeline_layout = layout;
 	m_last_bind_point = bind_point;
@@ -258,8 +263,8 @@ VDescriptorSet VulkanCommandQueue::bindDS(int index) {
 
 Ex<VDownloadId> VulkanCommandQueue::download(VSpan src) {
 	PASSERT(m_status == Status::frame_running);
-	auto buffer = EX_PASS(VulkanBuffer::create(m_device.ref(), src.size, VBufferUsage::transfer_dst,
-											   VMemoryUsage::host));
+	auto buffer = EX_PASS(
+		VulkanBuffer::create(m_device, src.size, VBufferUsage::transfer_dst, VMemoryUsage::host));
 	VkBufferCopy copy_params{
 		.srcOffset = src.offset, .dstOffset = 0, .size = (VkDeviceSize)src.size};
 	copy(buffer, src);
@@ -393,7 +398,7 @@ Ex<VSpan> VulkanCommandQueue::upload(VSpan dst, CSpan<char> src) {
 		fwk::copy(mem_mgr.accessMemory(mem_block), src);
 	} else {
 		auto staging_buffer = EX_PASS(VulkanBuffer::create(
-			m_device.ref(), src.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
+			m_device, src.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
 		auto mem_block = staging_buffer->memoryBlock();
 		fwk::copy(mem_mgr.accessMemory(mem_block), src);
 		copy(dst, staging_buffer);

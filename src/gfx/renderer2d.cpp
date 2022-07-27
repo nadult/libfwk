@@ -294,13 +294,13 @@ Ex<Renderer2D::DrawCall> Renderer2D::genDrawCall(VDeviceRef device, const Vulkan
 	}
 
 	dc.vbuffer = EX_PASS(VulkanBuffer::create(
-		device, num_vertices, VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst,
+		*device, num_vertices, VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 	dc.ibuffer = EX_PASS(VulkanBuffer::create(
-		device, num_indices, VBufferUsage::index_buffer | VBufferUsage::transfer_dst,
+		*device, num_indices, VBufferUsage::index_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 	dc.matrix_buffer = EX_PASS(VulkanBuffer::create<Matrix4>(
-		device, num_elements, VBufferUsage::storage_buffer | VBufferUsage::transfer_dst,
+		*device, num_elements, VBufferUsage::storage_buffer | VBufferUsage::transfer_dst,
 		VMemoryUsage::frame));
 
 	auto &cmds = device->cmdQueue();

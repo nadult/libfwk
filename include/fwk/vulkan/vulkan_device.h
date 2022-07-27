@@ -47,11 +47,10 @@ class VulkanDevice {
 	const VulkanMemoryManager &memory() const { return *m_memory; }
 	VulkanMemoryManager &memory() { return *m_memory; }
 
-	// Returns result of SwapChain::acquireImage() or true
-	Ex<bool> beginFrame();
-
-	// Returns result of SwapChain::presentImage() or true
-	Ex<bool> finishFrame();
+	// Error might come from SwapChain::acquireImage()
+	Ex<> beginFrame();
+	// Error might come from SwapChain::presentImage()
+	Ex<> finishFrame();
 
 	void waitForIdle();
 

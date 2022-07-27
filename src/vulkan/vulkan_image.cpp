@@ -195,7 +195,7 @@ Ex<> VulkanImage::upload(const Image &src, int target_mip, Layout target_layout)
 	auto &mem_mgr = device->memory();
 
 	auto staging_buffer = EX_PASS(
-		VulkanBuffer::create(device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
+		VulkanBuffer::create(*device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
 	auto mem_block = staging_buffer->memoryBlock();
 	fwk::copy(mem_mgr.accessMemory(mem_block), src.data().reinterpret<char>());
 	device->cmdQueue().copy(ref(), staging_buffer, target_mip, target_layout);
@@ -215,7 +215,7 @@ Ex<> VulkanImage::upload(const CompressedImage &src, int target_mip, Layout targ
 	auto &mem_mgr = device->memory();
 
 	auto staging_buffer = EX_PASS(
-		VulkanBuffer::create(device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
+		VulkanBuffer::create(*device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
 	auto mem_block = staging_buffer->memoryBlock();
 	fwk::copy(mem_mgr.accessMemory(mem_block), src.data().reinterpret<char>());
 	device->cmdQueue().copy(ref(), staging_buffer, target_mip, target_layout);

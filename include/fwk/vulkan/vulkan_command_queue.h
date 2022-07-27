@@ -62,6 +62,8 @@ class VulkanCommandQueue {
 	void copy(PVImage dst, VSpan src, int dst_mip_level = 0,
 			  VImageLayout dst_layout = VImageLayout::shader_ro);
 
+	void fill(VSpan dst, u32 value);
+
 	void bind(PVPipeline);
 	void bindVertices(CSpan<VSpan>, uint first_binding = 0);
 	void bindIndices(VSpan);

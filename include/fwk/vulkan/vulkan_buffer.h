@@ -26,12 +26,22 @@ inline VSpan span(PVBuffer buffer, u32 offset, u32 size) { return VSpan(buffer, 
 
 class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
   public:
-	static Ex<PVBuffer> create(VDeviceRef, u64 num_bytes, VBufferUsageFlags,
+	static Ex<PVBuffer> create(VulkanDevice &, u64 num_bytes, VBufferUsageFlags,
 							   VMemoryUsage = VMemoryUsage::device);
+	static Ex<PVBuffer> createAndUpload(VulkanDevice &, CSpan<char>, VBufferUsageFlags,
+										VMemoryUsage = VMemoryUsage::device);
+
 	template <class T>
-	static Ex<PVBuffer> create(VDeviceRef device, u32 num_elements, VBufferUsageFlags usage,
+	static Ex<PVBuffer> create(VulkanDevice &device, u32 num_elements, VBufferUsageFlags usage,
 							   VMemoryUsage mem_usage = VMemoryUsage::device) {
 		return create(device, num_elements * sizeof(T), usage, mem_usage);
+	}
+
+	template <c_span TSpan>
+	static Ex<PVBuffer> createAndUpload(VulkanDevice &device, const TSpan &data,
+										VBufferUsageFlags usage,
+										VMemoryUsage mem_usage = VMemoryUsage::device) {
+		return createAndUpload(device, cspan(data).template reinterpret<char>(), usage, mem_usage);
 	}
 
 	void upload(CSpan<char>);

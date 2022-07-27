@@ -178,6 +178,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures ds_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES};
 	ds_features.separateDepthStencilLayouts = VK_TRUE;
+	VkPhysicalDeviceFeatures2 features2;
 
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
@@ -293,7 +294,7 @@ void VulkanDevice::removeSwapChain() {
 	m_swap_chain = {};
 }
 
-Ex<bool> VulkanDevice::beginFrame() {
+Ex<> VulkanDevice::beginFrame() {
 	DASSERT(m_cmds);
 	if(m_swap_chain)
 		m_image_available_sem = EX_PASS(m_swap_chain->acquireImage());
@@ -303,10 +304,10 @@ Ex<bool> VulkanDevice::beginFrame() {
 	m_cmds->beginFrame();
 	m_memory->beginFrame();
 	m_descriptors->beginFrame(m_swap_frame_index);
-	return true;
+	return {};
 }
 
-Ex<bool> VulkanDevice::finishFrame() {
+Ex<> VulkanDevice::finishFrame() {
 	DASSERT(m_cmds);
 	m_descriptors->finishFrame();
 	m_memory->finishFrame();
@@ -320,8 +321,7 @@ Ex<bool> VulkanDevice::finishFrame() {
 		m_cmds->finishFrame(nullptr, nullptr);
 	}
 	cleanupFramebuffers();
-
-	return true;
+	return {};
 }
 
 void VulkanDevice::waitForIdle() {
