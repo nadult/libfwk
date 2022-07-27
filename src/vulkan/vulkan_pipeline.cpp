@@ -258,12 +258,46 @@ VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
 	: VulkanObjectBase(handle, id), m_render_pass(rp), m_layout(lt) {}
 VulkanPipeline::~VulkanPipeline() { deferredRelease<vkDestroyPipeline>(m_handle); }
 
+using ConstType = VSpecConstant::ConstType;
+static void initSpecInfo(VkSpecializationInfo &info, PodVector<ConstType> &data,
+						 PodVector<VkSpecializationMapEntry> &entries,
+						 CSpan<VSpecConstant> constants) {
+	uint total_count = 0;
+
+	for(auto &constant : constants)
+		total_count += constant.data.size();
+	data.resize(total_count);
+	entries.resize(total_count);
+
+	uint offset = 0;
+	for(auto &constant : constants) {
+		copy(subSpan(data, offset), constant.data);
+		for(uint i : intRange(constant.data)) {
+			auto &entry = entries[offset + i];
+			entry.size = sizeof(ConstType);
+			entry.constantID = constant.first_index + i;
+			entry.offset = (offset + i) * sizeof(ConstType);
+		}
+		offset += constant.data.size();
+	}
+
+	info.pData = data.data();
+	info.dataSize = data.size() * sizeof(ConstType);
+	info.mapEntryCount = entries.size();
+	info.pMapEntries = entries.data();
+}
+
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	if(!setup.pipeline_layout)
 		setup.pipeline_layout = device->getPipelineLayout(setup.shader_modules);
 	DASSERT(setup.render_pass);
 	DASSERT(setup.dynamic_state & VDynamic::viewport);
 	DASSERT(setup.dynamic_state & VDynamic::scissor);
+
+	VkSpecializationInfo spec_info;
+	PodVector<ConstType> spec_data;
+	PodVector<VkSpecializationMapEntry> spec_entries;
+	initSpecInfo(spec_info, spec_data, spec_entries, setup.spec_constants);
 
 	array<VkPipelineShaderStageCreateInfo, count<VShaderStage>> stages_ci;
 	for(int i : intRange(setup.shader_modules)) {
@@ -273,6 +307,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 		stages_ci[i].stage = toVk(shader_module->stage());
 		stages_ci[i].module = shader_module;
 		stages_ci[i].pName = "main";
+		stages_ci[i].pSpecializationInfo = spec_data ? &spec_info : nullptr;
 	}
 
 	auto vertex_bindings = transform(setup.vertex_bindings, [](const VVertexBinding &desc) {
@@ -424,11 +459,17 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineS
 		dsls.emplace_back(device->getDSL(bindings));
 	auto pipeline_layout = device->getPipelineLayout(dsls);
 
+	VkSpecializationInfo spec_info;
+	PodVector<ConstType> spec_data;
+	PodVector<VkSpecializationMapEntry> spec_entries;
+	initSpecInfo(spec_info, spec_data, spec_entries, setup.spec_constants);
+
 	VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 	ci.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	ci.stage.stage = toVk(setup.compute_module->stage());
 	ci.stage.module = setup.compute_module;
 	ci.stage.pName = "main";
+	ci.stage.pSpecializationInfo = spec_data ? &spec_info : nullptr;
 	ci.layout = pipeline_layout;
 	ci.basePipelineIndex = -1;
 

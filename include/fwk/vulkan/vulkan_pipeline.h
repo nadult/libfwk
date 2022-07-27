@@ -149,8 +149,23 @@ struct VViewport {
 	float min_depth, max_depth;
 };
 
+struct VSpecConstant {
+	using ConstType = u32;
+
+	template <class T>
+	VSpecConstant(const T &data, uint first_index)
+		: VSpecConstant(CSpan<T>(data).template reinterpret<ConstType>(), first_index) {
+		DASSERT(sizeof(T) % sizeof(ConstType) == 0);
+	}
+	VSpecConstant(CSpan<ConstType> data, uint first_index) : data(data), first_index(first_index) {}
+
+	CSpan<ConstType> data;
+	uint first_index;
+};
+
 struct VPipelineSetup {
 	StaticVector<PVShaderModule, count<VShaderStage>> shader_modules;
+	vector<VSpecConstant> spec_constants;
 	PVPipelineLayout pipeline_layout;
 	PVRenderPass render_pass;
 
@@ -168,6 +183,7 @@ struct VPipelineSetup {
 
 struct VComputePipelineSetup {
 	PVShaderModule compute_module;
+	vector<VSpecConstant> spec_constants;
 };
 
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
