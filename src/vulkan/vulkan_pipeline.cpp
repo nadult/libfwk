@@ -20,10 +20,10 @@ vector<DescriptorBindingInfo> DescriptorBindingInfo::merge(CSpan<DescriptorBindi
 	int lpos = 0, rpos = 0;
 	while(lpos < lhs.size() && rpos < rhs.size()) {
 		auto &left = lhs[lpos];
-		auto &right = rhs[lpos];
+		auto &right = rhs[rpos];
 
 		if((left.value & ~stages_bit_mask) == (right.value & ~stages_bit_mask)) {
-			out.emplace_back(left.value | (right.value & stages_bit_mask));
+			out.emplace_back(left.value | right.value);
 			lpos++, rpos++;
 			continue;
 		}
