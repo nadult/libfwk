@@ -35,11 +35,7 @@ namespace detail {
 
 		Backtrace::t_is_enabled = true;
 		onFailMakeError(info->file, info->line, out.text()).print();
-
-#ifndef FWK_PLATFORM_HTML
 		asm("int $3");
-#endif
-
 		exit(1);
 	}
 

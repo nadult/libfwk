@@ -4,6 +4,7 @@
 #include "fwk/vulkan/vulkan_buffer.h"
 
 #include "fwk/enum_map.h"
+#include "fwk/sys/assert.h"
 #include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_internal.h"
@@ -12,9 +13,12 @@ namespace fwk {
 
 VSpan::VSpan(PVBuffer buffer) : buffer(buffer), offset(0), size(buffer ? buffer->size() : 0) {}
 VSpan::VSpan(PVBuffer buffer, u32 offset) : buffer(buffer), offset(offset) {
-	PASSERT(offset < buffer->size());
-	PASSERT(buffer || !offset);
-	size = buffer ? buffer->size() - offset : 0;
+	auto buffer_size = buffer ? buffer->size() : 0;
+	DASSERT_LE(offset, buffer_size);
+	size = buffer_size - offset;
+}
+VSpan::VSpan(PVBuffer buffer, u32 offset, u32 size) : buffer(buffer), offset(offset), size(size) {
+	DASSERT_LE(offset + size, buffer->size());
 }
 
 VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, VMemoryBlock memory_block,

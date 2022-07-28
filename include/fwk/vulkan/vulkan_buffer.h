@@ -12,7 +12,7 @@ namespace fwk {
 struct VSpan {
 	VSpan(PVBuffer buffer);
 	VSpan(PVBuffer buffer, u32 offset);
-	VSpan(PVBuffer buffer, u32 offset, u32 size) : buffer(buffer), offset(offset), size(size) {}
+	VSpan(PVBuffer buffer, u32 offset, u32 size);
 
 	explicit operator bool() const { return buffer && size; }
 
@@ -20,11 +20,10 @@ struct VSpan {
 	u32 offset, size;
 };
 
-// TODO: add checks
-template <class T> VSpan span(PVBuffer buffer, u32 offset, u32 size) {
+template <class T> VSpan vspan(PVBuffer buffer, u32 offset, u32 size) {
 	return VSpan(buffer, offset * sizeof(T), size * sizeof(T));
 }
-inline VSpan span(PVBuffer buffer, u32 offset, u32 size) { return VSpan(buffer, offset, size); }
+inline VSpan vspan(PVBuffer buffer, u32 offset, u32 size) { return VSpan(buffer, offset, size); }
 
 class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
   public:
