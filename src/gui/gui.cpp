@@ -256,6 +256,9 @@ void Gui::beginFrame(VulkanWindow &window) {
 	ImGuiIO &io = ImGui::GetIO();
 	memset(io.KeysDown, 0, sizeof(io.KeysDown));
 	memset(io.MouseDown, 0, sizeof(io.MouseDown));
+	io.MouseWheelH = 0.0;
+	io.MouseWheel = 0.0f;
+	io.KeyAlt = io.KeyCtrl = io.KeyShift = io.KeySuper = false;
 
 	updateDpiAndFonts(window, false);
 
