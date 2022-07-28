@@ -517,6 +517,7 @@ void VulkanDevice::deferredFree(VMemoryBlockId id) { m_memory->deferredFree(id);
 template <class TObject> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 	auto type_id = VulkanTypeInfo<TObject>::type_id;
 
+	// TODO: are we sure that this is faster than new & delete?
 	auto &pools = m_objects->pools[type_id];
 	auto &pool_list = m_objects->fillable_pools[type_id];
 	if(pool_list.empty()) {
@@ -530,8 +531,11 @@ template <class TObject> Pair<void *, VObjectId> VulkanDevice::allocObject() {
 
 	int pool_idx = pool_list.back();
 	auto &pool = pools[pool_idx];
+	DASSERT(pool.usage_bits != ~0u);
 	int local_idx = countTrailingZeros(~pool.usage_bits);
 	pool.usage_bits |= (1u << local_idx);
+	if(pool.usage_bits == ~0u)
+		pool_list.pop_back();
 	int object_id = local_idx + (pool_idx << object_pool_size_log2);
 	auto *pool_data = reinterpret_cast<PoolData<TObject> *>(pool.data);
 	return {&pool_data->objects[local_idx], VObjectId(m_id, object_id)};
