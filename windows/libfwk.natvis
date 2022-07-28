@@ -79,6 +79,45 @@
     <DisplayString>{{x={m_min.x} y={m_min.y} w={m_max.x-m_min.x} h={m_max.y-m_min.y} ex={m_max.x} ey={m_max.y}}}</DisplayString>
   </Type>
 
+  <Type Name="fwk::Variant&lt;*&gt;">
+    <Expand>
+      <Item Name="type"  Condition="type_index ==  0" Optional="0">"$T1"</Item>
+      <Item Name="type"  Condition="type_index ==  1" Optional="1">"$T2"</Item>
+      <Item Name="type"  Condition="type_index ==  2" Optional="1">"$T3"</Item>
+      <Item Name="type"  Condition="type_index ==  3" Optional="1">"$T4"</Item>
+      <Item Name="type"  Condition="type_index ==  4" Optional="1">"$T5"</Item>
+      <Item Name="type"  Condition="type_index ==  5" Optional="1">"$T6"</Item>
+      <Item Name="type"  Condition="type_index ==  6" Optional="1">"$T7"</Item>
+      <Item Name="type"  Condition="type_index ==  7" Optional="1">"$T8"</Item>
+      <Item Name="type"  Condition="type_index ==  8" Optional="1">"$T9"</Item>
+      <Item Name="type"  Condition="type_index ==  9" Optional="1">"$T10"</Item>
+      <Item Name="type"  Condition="type_index == 10" Optional="1">"$T11"</Item>
+      <Item Name="type"  Condition="type_index == 11" Optional="1">"$T12"</Item>
+      <Item Name="type"  Condition="type_index == 12" Optional="1">"$T13"</Item>
+      <Item Name="type"  Condition="type_index == 13" Optional="1">"$T14"</Item>
+      <Item Name="type"  Condition="type_index == 14" Optional="1">"$T15"</Item>
+      <Item Name="type"  Condition="type_index == 15" Optional="1">"$T16"</Item>
+
+      <Item Name="value" Condition="type_index ==  0" Optional="0">* ($T1*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  1" Optional="1">* ($T2*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  2" Optional="1">* ($T3*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  3" Optional="1">* ($T4*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  4" Optional="1">* ($T5*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  5" Optional="1">* ($T6*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  6" Optional="1">* ($T7*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  7" Optional="1">* ($T8*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  8" Optional="1">* ($T9*)&amp;data</Item>
+      <Item Name="value" Condition="type_index ==  9" Optional="1">*($T10*)&amp;data</Item>
+      <Item Name="value" Condition="type_index == 10" Optional="1">*($T11*)&amp;data</Item>
+      <Item Name="value" Condition="type_index == 11" Optional="1">*($T12*)&amp;data</Item>
+      <Item Name="value" Condition="type_index == 12" Optional="1">*($T13*)&amp;data</Item>
+      <Item Name="value" Condition="type_index == 13" Optional="1">*($T14*)&amp;data</Item>
+      <Item Name="value" Condition="type_index == 14" Optional="1">*($T15*)&amp;data</Item>
+      <Item Name="value" Condition="type_index == 15" Optional="1">*($T16*)&amp;data</Item>
+      <Item Name="index">type_index</Item>
+    </Expand>
+  </Type>
+
   <Type Name="fwk::VMemoryBlockId">
     <Expand>
       <Item Name="zone_id">unsigned(encoded_value >> 48)</Item>
