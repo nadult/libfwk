@@ -14,6 +14,8 @@ struct VSpan {
 	VSpan(PVBuffer buffer, u32 offset);
 	VSpan(PVBuffer buffer, u32 offset, u32 size) : buffer(buffer), offset(offset), size(size) {}
 
+	explicit operator bool() const { return buffer && size; }
+
 	PVBuffer buffer;
 	u32 offset, size;
 };

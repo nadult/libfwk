@@ -69,6 +69,7 @@ class VulkanDevice {
 	PVSampler createSampler(const VSamplerSetup &);
 
 	PVImageView dummyImage2D() const;
+	PVBuffer dummyBuffer() const;
 
 	VDSLId getDSL(CSpan<VDescriptorBindingInfo>);
 	CSpan<VDescriptorBindingInfo> bindings(VDSLId);

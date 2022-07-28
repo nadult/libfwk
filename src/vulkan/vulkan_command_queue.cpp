@@ -255,8 +255,9 @@ void VulkanCommandQueue::bindDS(int index, const VDescriptorSet &ds) {
 
 VDescriptorSet VulkanCommandQueue::bindDS(int index) {
 	DASSERT(m_last_pipeline_layout);
-	auto dsl_id = m_last_pipeline_layout->descriptorSetLayouts()[index];
-	auto ds = m_device.acquireSet(dsl_id);
+	CSpan<VDSLId> dsls = m_last_pipeline_layout->descriptorSetLayouts();
+	DASSERT(index >= 0 && index < dsls.size());
+	auto ds = m_device.acquireSet(dsls[index]);
 	bindDS(index, ds);
 	return ds;
 }
@@ -310,7 +311,9 @@ void VulkanCommandQueue::bindVertices(CSpan<VSpan> vbuffers, uint first_binding)
 
 void VulkanCommandQueue::bind(PVPipeline pipeline) {
 	PASSERT(m_status == Status::frame_running);
-	vkCmdBindPipeline(m_cur_cmd_buffer, toVk(pipeline->bindPoint()), pipeline);
+	m_last_pipeline_layout = pipeline->layout();
+	m_last_bind_point = pipeline->bindPoint();
+	vkCmdBindPipeline(m_cur_cmd_buffer, toVk(m_last_bind_point), pipeline);
 }
 
 void VulkanCommandQueue::draw(int num_vertices, int num_instances, int first_vertex,

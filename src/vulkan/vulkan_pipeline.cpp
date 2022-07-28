@@ -70,7 +70,8 @@ VDescriptorBindingInfo::divideSets(CSpan<VDescriptorBindingInfo> merged) {
 		}
 	}
 
-	out.emplace_back(merged.data() + start_idx, merged.end());
+	if(start_idx < merged.size())
+		out.emplace_back(merged.data() + start_idx, merged.end());
 	return out;
 }
 
@@ -78,62 +79,54 @@ VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplerSetup
 	: VulkanObjectBase(handle, id), m_params(params) {}
 VulkanSampler::~VulkanSampler() { deferredRelease<vkDestroySampler>(m_handle); }
 
-VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index, PVBuffer buffer,
-															   Maybe<BufferRange> range,
-															   VDescriptorType type) {
-	PASSERT(size < max_assignments);
-	auto &info = additional_data[size].buffer_info;
-	auto &write = assignments[size++];
-	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	write.pNext = nullptr;
-	write.dstSet = set_handle;
-	write.dstBinding = binding_index;
-	write.dstArrayElement = 0;
-	write.descriptorCount = 1;
-	write.descriptorType = toVk(type);
-	write.pBufferInfo = &info;
-	write.pImageInfo = nullptr;
-	write.pTexelBufferView = nullptr;
+void VDescriptorSet::operator()(int first_index, VDescriptorType type, CSpan<VSpan> buffers) {
+	array<VkDescriptorBufferInfo, 16> static_infos;
+	PodVector<VkDescriptorBufferInfo> dynamic_infos;
+	if(buffers.size() > static_infos.size())
+		dynamic_infos.resize(buffers.size());
+	auto *infos = dynamic_infos ? dynamic_infos.data() : static_infos.data();
 
-	info.buffer = buffer;
-	if(range) {
-		info.offset = range->offset;
-		info.range = range->size;
-	} else {
-		info.offset = 0;
-		info.range = VK_WHOLE_SIZE;
+	for(int i : intRange(buffers)) {
+		auto span = buffers[i];
+		if(!span)
+			span = device->dummyBuffer();
+		infos[i] = {span.buffer, VkDeviceSize(span.offset), VkDeviceSize(span.size)};
 	}
-	return *this;
+
+	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+	write.dstSet = handle;
+	write.dstBinding = first_index;
+	write.descriptorCount = buffers.size();
+	write.descriptorType = toVk(type);
+	write.pBufferInfo = infos;
+	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }
 
-VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index, VSpan span,
-															   VDescriptorType type) {
-	return operator()(binding_index, span.buffer, BufferRange{span.offset, span.size}, type);
+void VDescriptorSet::operator()(int first_index, CSpan<VSpan> buffers) {
+	(*this)(first_index, VDescriptorType::storage_buffer, buffers);
 }
 
-VDescriptorSet::Assigner &VDescriptorSet::Assigner::operator()(int binding_index, PVSampler sampler,
-															   PVImageView image) {
-	PASSERT(size < max_assignments);
-	auto &info = additional_data[size].image_info;
-	auto &write = assignments[size++];
-	write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	write.pNext = nullptr;
-	write.dstSet = set_handle;
-	write.dstBinding = binding_index;
+void VDescriptorSet::operator()(int first_index, CSpan<Pair<PVSampler, PVImageView>> pairs) {
+	array<VkDescriptorImageInfo, 16> static_infos;
+	PodVector<VkDescriptorImageInfo> dynamic_infos;
+	if(pairs.size() > static_infos.size())
+		dynamic_infos.resize(pairs.size());
+	auto *infos = dynamic_infos ? dynamic_infos.data() : static_infos.data();
+
+	for(int i : intRange(pairs)) {
+		auto &pair = pairs[i];
+		auto image = pair.second ? pair.second : device->dummyImage2D();
+		infos[i] = {pair.first, image, toVk(VImageLayout::shader_ro)};
+	}
+
+	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+	write.descriptorCount = pairs.size();
+	write.dstSet = handle;
+	write.dstBinding = first_index;
 	write.dstArrayElement = 0;
-	write.descriptorCount = 1;
 	write.descriptorType = toVk(VDescriptorType::combined_image_sampler);
-	write.pImageInfo = &info;
-	write.pBufferInfo = nullptr;
-	write.pTexelBufferView = nullptr;
-	info.imageView = image ? image : device.dummyImage2D();
-	info.sampler = sampler;
-	info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	return *this;
-}
-
-void VDescriptorSet::Assigner::performAssignment() {
-	vkUpdateDescriptorSets(device.handle(), size, assignments.data(), 0, nullptr);
+	write.pImageInfo = infos;
+	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }
 
 VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)

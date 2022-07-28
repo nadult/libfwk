@@ -125,6 +125,7 @@ struct VulkanDevice::ObjectPools {
 
 struct VulkanDevice::DummyObjects {
 	PVImageView dummy_image_2d;
+	PVBuffer dummy_buffer;
 };
 
 // -------------------------------------------------------------------------------------------
@@ -219,6 +220,8 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	auto white_image = EX_PASS(VulkanImage::create(ref(), img_setup));
 	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
 	m_dummies->dummy_image_2d = VulkanImageView::create(ref(), white_image);
+	m_dummies->dummy_buffer =
+		EX_PASS(VulkanBuffer::create(*this, 1024, all<VBufferUsage>, VMemoryUsage::device));
 
 	return {};
 }
@@ -435,6 +438,7 @@ PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_mo
 }
 
 VDSLId VulkanDevice::getDSL(CSpan<VDescriptorBindingInfo> bindings) {
+	DASSERT(bindings);
 	return m_descriptors->getLayout(bindings);
 }
 
@@ -465,6 +469,7 @@ PVSampler VulkanDevice::createSampler(const VSamplerSetup &params) {
 }
 
 PVImageView VulkanDevice::dummyImage2D() const { return m_dummies->dummy_image_2d; }
+PVBuffer VulkanDevice::dummyBuffer() const { return m_dummies->dummy_buffer; }
 
 using ReleaseFunc = void (*)(void *, void *, VkDevice);
 void VulkanDevice::deferredRelease(void *param0, void *param1, ReleaseFunc func) {

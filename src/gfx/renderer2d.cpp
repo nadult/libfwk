@@ -329,10 +329,10 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 
 	auto &cmds = device->cmdQueue();
 	cmds.bind(ctx.pipelines[0]->layout());
-	cmds.bindDS(0)(0, dc.matrix_buffer);
+	cmds.bindDS(0)(0, {dc.matrix_buffer});
 
 	PVImageView prev_tex;
-	cmds.bindDS(1)(0, ctx.sampler, prev_tex);
+	cmds.bindDS(1)(0, {{ctx.sampler, prev_tex}});
 
 	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
 	for(auto &chunk : m_chunks) {
@@ -350,7 +350,7 @@ Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelin
 
 		for(auto &element : chunk.elements) {
 			if(element.texture != prev_tex) {
-				cmds.bindDS(1)(0, ctx.sampler, element.texture);
+				cmds.bindDS(1)(0, {{ctx.sampler, element.texture}});
 				prev_tex = element.texture;
 			}
 

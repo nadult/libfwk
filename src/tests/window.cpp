@@ -136,14 +136,12 @@ Ex<void> computeStuff(VulkanContext &ctx) {
 	auto &cmds = ctx.device->cmdQueue();
 	PERF_GPU_SCOPE(cmds);
 
-	cmds.bind(ctx.compute_pipe->layout(), VBindPoint::compute);
+	cmds.bind(ctx.compute_pipe);
 	auto ds = cmds.bindDS(0);
 	auto &target_buffer = ctx.compute_buffers[ctx.compute_buffer_idx ^ 1];
 	ds(0, ctx.compute_buffers[ctx.compute_buffer_idx]);
 	ds(1, target_buffer);
 	ctx.compute_buffer_idx ^= 1;
-
-	cmds.bind(ctx.compute_pipe);
 	cmds.dispatchCompute({1, 1, 1});
 	if(!ctx.download_id)
 		ctx.download_id = EX_PASS(cmds.download(target_buffer));

@@ -267,51 +267,9 @@ struct VDescriptorSet {
 		: device(&device), handle(handle) {}
 	VDescriptorSet() {}
 
-	struct Assigner {
-		static constexpr int max_assignments = 8;
-
-		Assigner(const Assigner &) = delete;
-		void operator=(Assigner &) = delete;
-		~Assigner() { performAssignment(); }
-
-		Assigner &operator()(int binding_index, PVBuffer, Maybe<BufferRange> = none,
-							 VDescriptorType = VDescriptorType::storage_buffer);
-		Assigner &operator()(int binding_index, VSpan,
-							 VDescriptorType = VDescriptorType::storage_buffer);
-		Assigner &operator()(int binding_index, PVSampler, PVImageView);
-
-	  private:
-		Assigner(VulkanDevice &device, VkDescriptorSet set) : set_handle(set), device(device) {}
-		template <class... Args>
-		Assigner(VulkanDevice &device, VkDescriptorSet set, int binding_index, Args... args)
-			: Assigner(device, set) {
-			operator()(binding_index, std::forward<Args>(args)...);
-		}
-
-		void performAssignment();
-		friend struct VDescriptorSet;
-
-		union AdditionalData {
-			VkDescriptorBufferInfo buffer_info;
-			VkDescriptorImageInfo image_info;
-		};
-
-		array<VkWriteDescriptorSet, max_assignments> assignments;
-		array<AdditionalData, max_assignments> additional_data;
-		VkDescriptorSet set_handle;
-		VulkanDevice &device;
-		int size = 0;
-	};
-
-	template <class... Args> Assigner operator()(int binding_index, Args &&...args) {
-		PASSERT(device);
-		return {*device, handle, binding_index, std::forward<Args>(args)...};
-	}
-
-	Assigner assigner() {
-		PASSERT(device);
-		return {*device, handle};
-	}
+	void operator()(int first_index, VDescriptorType type, CSpan<VSpan>);
+	void operator()(int first_index, CSpan<VSpan>);
+	void operator()(int first_index, CSpan<Pair<PVSampler, PVImageView>>);
 
 	// TODO: encode device_id in set_id
 	VulkanDevice *device = nullptr;
