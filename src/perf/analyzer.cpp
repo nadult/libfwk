@@ -47,6 +47,12 @@ void Analyzer::doMenu(bool &is_enabled) {
 	}
 
 	ImGui::Begin("Performance analyzer", &is_enabled, ImGuiWindowFlags_NoScrollbar);
+	Maybe<int2> hover_pos;
+	if(ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+		auto mouse_pos = ImGui::GetMousePos();
+		hover_pos = int2(mouse_pos.x, mouse_pos.y);
+	}
+
 	auto frames = cspan(m_manager.frames());
 	if(!frames) {
 		gui.text("No frames\n");
@@ -60,7 +66,7 @@ void Analyzer::doMenu(bool &is_enabled) {
 	updateOpenedNodes();
 	computeExecList(m_range);
 
-	showGrid(m_range);
+	showGrid(m_range, hover_pos);
 
 	ImGui::End();
 
@@ -520,7 +526,7 @@ void Analyzer::changeOptions() {
 	}
 }
 
-void Analyzer::showGrid(FrameRange &range) {
+void Analyzer::showGrid(FrameRange &range, Maybe<int2> hover_pos) {
 	auto &gui = Gui::instance();
 	bool update_scroll = m_update_scroll;
 	m_update_scroll = false;
@@ -644,16 +650,13 @@ void Analyzer::showGrid(FrameRange &range) {
 			auto &vert = m_vert_intervals[n];
 			IRect rect(0, vert.min, inner_rect.width(), vert.max);
 			rect += offset;
-			ImGui::SetCursorScreenPos(rect.min());
-			if(!rect.empty())
-				ImGui::InvisibleButton("", rect.size());
 
 			auto exec_id = range.exec_list[n];
 			bool is_hovered = false, is_selected = range.exec_list[n] == m_selected_exec;
-			if(ImGui::IsItemHovered()) {
+			if(hover_pos && rect.contains(*hover_pos)) {
 				is_hovered = true;
 				hovered_row = n;
-				if(ImGui::IsItemClicked(1) || m_tooltip_exec == exec_id)
+				if(ImGui::IsMouseClicked(1) || m_tooltip_exec == exec_id)
 					still_tooltip = showTooltip(exec_id);
 			}
 

@@ -91,7 +91,7 @@ class Analyzer {
 	void showTree(ExecId, const FrameRange &);
 	void showNameColumn(FrameRange &);
 	void showDataColumn(ColumnId, FrameRange &);
-	void showGrid(FrameRange &);
+	void showGrid(FrameRange &, Maybe<int2>);
 	bool showTooltip(ExecId);
 
 	void computeExecList(ExecId, FrameRange &) const;
