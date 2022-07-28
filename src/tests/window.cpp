@@ -139,8 +139,8 @@ Ex<void> computeStuff(VulkanContext &ctx) {
 	cmds.bind(ctx.compute_pipe);
 	auto ds = cmds.bindDS(0);
 	auto &target_buffer = ctx.compute_buffers[ctx.compute_buffer_idx ^ 1];
-	ds(0, ctx.compute_buffers[ctx.compute_buffer_idx]);
-	ds(1, target_buffer);
+	ds(0, {ctx.compute_buffers[ctx.compute_buffer_idx]});
+	ds(1, {target_buffer});
 	ctx.compute_buffer_idx ^= 1;
 	cmds.dispatchCompute({1, 1, 1});
 	if(!ctx.download_id)
@@ -210,11 +210,10 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	string message = last_message;
 
-	if(ctx.device->beginFrame().get()) {
-		drawFrame(ctx, positions, message).check();
-		computeStuff(ctx).check();
-		ctx.device->finishFrame().check();
-	}
+	ctx.device->beginFrame().check();
+	drawFrame(ctx, positions, message).check();
+	computeStuff(ctx).check();
+	ctx.device->finishFrame().check();
 	ctx.gui->endFrame();
 
 	updateTitleFPS(window, "fwk::test_window");
@@ -252,13 +251,12 @@ Ex<int> exMain() {
 	ctx.compute_pipe = EX_PASS(VulkanPipeline::create(device, {compute_module[0]}));
 
 	int compute_size = 4 * 1024;
+	vector<u32> compute_data(compute_size + 1, 0);
+	compute_data[0] = compute_size;
 	auto compute_usage =
 		VBufferUsage::storage_buffer | VBufferUsage::transfer_dst | VBufferUsage::transfer_src;
 	for(auto &buffer : ctx.compute_buffers)
-		buffer = EX_PASS(VulkanBuffer::create<u32>(device, compute_size + 1, compute_usage));
-	vector<u32> compute_data(compute_size + 1, 0);
-	compute_data[0] = compute_size;
-	EXPECT(ctx.device->cmdQueue().upload(ctx.compute_buffers[0], compute_data));
+		buffer = EX_PASS(VulkanBuffer::createAndUpload(*device, compute_data, compute_usage));
 
 	int font_size = 16 * window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
