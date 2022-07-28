@@ -180,6 +180,9 @@ void resumeGpu();
 
 class Scope {
   public:
+	Scope(const Scope &) = delete;
+	void operator=(const Scope &) = delete;
+
 	Scope(PointId id) : point_id(id) {
 		PASSERT(point_id);
 		enterScope(id);
@@ -221,6 +224,8 @@ class GpuScope {
 		if(point_id)
 			performQuery(exitGpuScope(point_id), ScopeType::exit);
 	}
+	GpuScope(const GpuScope &) = delete;
+	void operator=(const GpuScope &) = delete;
 
 	static uint encodeSampleId(uint sample_id, ScopeType scope_type) {
 		return (sample_id * 4) + uint(scope_type);
