@@ -210,17 +210,18 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 
 	string message = last_message;
 
+	PERF_CHILD_SCOPE("process_frame");
 	ctx.device->beginFrame().check();
 	drawFrame(ctx, positions, message).check();
 	computeStuff(ctx).check();
 	ctx.device->finishFrame().check();
 	ctx.gui->endFrame();
 
+	PERF_SIBLING_SCOPE("update_title");
 	updateTitleFPS(window, "fwk::test_window");
 
 	return true;
 }
-
 
 Ex<int> exMain() {
 	VulkanInstanceSetup setup;

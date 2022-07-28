@@ -110,10 +110,9 @@ class Analyzer {
 	DataSource m_data_source = DataSource::last_frames;
 
 	// When analyzing last frames:
-	Maybe<int> getLastFrames(CSpan<Frame>, int start) const;
-	int m_num_last_frames = 60;
+	double m_last_min_duration = 1.0;
+	int m_last_min_frames = 1;
 	int m_last_frames_start = 0;
-	double m_limit_last_frames_time = 2.0;
 
 	// When analyzing custom range:
 	int m_first_frame = 0, m_end_frame = 0;

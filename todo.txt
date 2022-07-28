@@ -13,7 +13,6 @@ CAŁY CZAS TO ROBISZ :(
 
 Problemy:
 - remove min_size from span
-- just use samplingTime in perf, no need to num_frames + max_sampling_time; we can also add min_frames...
 - add warning/error when initializing variable with self (WTF is it not an error by default?!?)
 - maybe it would be better to hash in u64 and only at the end convert to desired type?
 - fix countLeadingZeros, etc. add findFirstBit/findLastBit
@@ -24,7 +23,6 @@ Problemy:
 - strange bug with PASSERT in perf/analyzer.cpp:327 firing
 - problem when drawing IRects in Renderer2D: bottom left corner is invisible
 - limit stored frames in perf manager
-- RMB & MMB does not work in perf analyzer
 - Jest jakiś dziwny problem w trans rendererze: jak próbuję przechować dane buforów z jednej klatki do drugiej,
   to chyba są zamazywane; Cholera go wie czemu
 - Przydałaby się klasa dyskretnego interwału ? (offset + size), (min + max trochę nie ma w tej sytuacji sensu)

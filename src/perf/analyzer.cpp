@@ -53,19 +53,16 @@ void Analyzer::doMenu(bool &is_enabled) {
 		hover_pos = int2(mouse_pos.x, mouse_pos.y);
 	}
 
-	auto frames = cspan(m_manager.frames());
-	if(!frames) {
+	CSpan<Frame> sel_frames = getFrames();
+	if(!sel_frames) {
 		gui.text("No frames\n");
 		ImGui::End();
 		return;
 	}
 
-	CSpan<Frame> sel_frames = getFrames();
-
 	computeRange(m_range, sel_frames);
 	updateOpenedNodes();
 	computeExecList(m_range);
-
 	showGrid(m_range, hover_pos);
 
 	ImGui::End();
@@ -411,22 +408,6 @@ static const array<const char *, 7> column_names[2] = {
 	{"name", "avg", "min", "max", "avg", "min", "max"},
 };
 
-Maybe<int> Analyzer::getLastFrames(CSpan<Frame> frames, int start) const {
-	int num_frames = frames.size() - start;
-	double time_sum = 0.0;
-
-	for(int n = 0; n < num_frames; n++) {
-		auto &frame = frames[start + n];
-		time_sum += frame.end_time - frame.start_time;
-		if(time_sum >= m_limit_last_frames_time)
-			return n + 1;
-	}
-
-	if(num_frames >= m_num_last_frames)
-		return m_num_last_frames;
-	return none;
-}
-
 CSpan<Frame> Analyzer::getFrames() {
 	auto frames = cspan(m_manager.frames());
 
@@ -437,15 +418,30 @@ CSpan<Frame> Analyzer::getFrames() {
 		return frames.subSpan(first_frame, end_frame);
 	}
 	case DataSource::last_frames: {
-		// Grabbing last frames makes no sense? user has to wait until animation is over anyways
-		auto num_frames = getLastFrames(frames, m_last_frames_start);
-		if(!num_frames)
-			return frames.subSpan(m_last_frames_start);
-		if(auto next_frames = getLastFrames(frames, m_last_frames_start + *num_frames)) {
-			m_last_frames_start += *num_frames;
-			num_frames = next_frames;
+		double time_left = 0.0;
+		for(int i = m_last_frames_start; i < frames.size(); i++)
+			time_left += frames[i].end_time - frames[i].start_time;
+		if(m_last_frames_start == 0 && time_left <= m_last_min_duration)
+			return frames;
+		CSpan<Frame> out;
+		while(true) {
+			double cur_duration = 0.0;
+
+			int num_frames = 0;
+			for(int i = m_last_frames_start; i < frames.size(); i++) {
+				cur_duration += frames[i].end_time - frames[i].start_time;
+				num_frames++;
+				if(cur_duration >= m_last_min_duration && num_frames >= m_last_min_frames)
+					break;
+			}
+			time_left -= cur_duration;
+			bool can_get_more_frames =
+				frames.size() - m_last_frames_start - num_frames >= m_last_min_frames &&
+				(m_last_min_duration == 0.0 || time_left >= m_last_min_duration);
+			if(!can_get_more_frames)
+				return {&frames[m_last_frames_start], num_frames};
+			m_last_frames_start += num_frames;
 		}
-		return frames.subSpan(m_last_frames_start, m_last_frames_start + *num_frames);
 	}
 	}
 
@@ -507,10 +503,10 @@ void Analyzer::changeOptions() {
 			gui.inputValue("Num frames", num_frames);
 			m_end_frame = clamp(m_first_frame + num_frames, m_first_frame + 1, frames.size());
 		} else if(m_data_source == DataSource::last_frames) {
-			if(gui.inputValue("Num frames", m_num_last_frames))
-				m_num_last_frames = clamp(m_num_last_frames, 1, 10000);
-			if(gui.inputValue("Limit sampling time", m_limit_last_frames_time))
-				m_limit_last_frames_time = clamp(m_limit_last_frames_time, 1.0 / 60.0, 1000.0);
+			if(gui.inputValue("Minimum time range", m_last_min_duration))
+				m_last_min_duration = clamp(m_last_min_duration, 0.0, 1000.0);
+			if(gui.inputValue("Minimum frames in range", m_last_min_frames))
+				m_last_min_frames = clamp(m_last_min_frames, 1, 10000);
 		}
 
 		if(auto cur_frames = getFrames())
@@ -749,8 +745,8 @@ AnyConfig Analyzer::config() const {
 	out.set("end_frame", m_end_frame, m_first_frame + 1);
 	if(m_selected_exec)
 		out.set("selected", m_exec_tree.hashedId(*m_selected_exec));
-	out.set("num_last_frames", m_num_last_frames, 60);
-	out.set("limit_last_frames_time", m_limit_last_frames_time, 2.0);
+	out.set("last_min_duration", m_last_min_duration, 1.0);
+	out.set("last_min_frames", m_last_min_frames, 1);
 	return out;
 }
 
@@ -770,7 +766,7 @@ void Analyzer::setConfig(const AnyConfig &config) {
 	// Problem: ładowanie niektórych zmiennych nie ma sensu dopóki nie mamy danych...
 	if(auto sel_exec = config.get("selected", u64(0)))
 		m_selected_exec_hash = sel_exec;
-	m_num_last_frames = config.get("num_last_frames", 60);
-	m_limit_last_frames_time = config.get("limit_last_frames_time", 2.0);
+	m_last_min_duration = config.get("last_min_duration", 1.0);
+	m_last_min_frames = config.get("last_min_frames", 1);
 }
 }
