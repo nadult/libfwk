@@ -6,9 +6,14 @@
 
 #include "fwk/gfx/font.h"
 
+#include "fwk/gfx/font_factory.h"
+#include "fwk/gfx/font_finder.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/io/xml.h"
+#include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
+#include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_window.h"
 
 namespace fwk {
 
@@ -215,12 +220,19 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 
 Font::Font(FontCore core, PVImageView texture) : m_core(move(core)), m_texture(texture) {
 	DASSERT(m_texture);
-
-	// TODO:
-	//DASSERT(m_texture->extent() == m_core.m_texture_size);
+	DASSERT_EQ(int3(core.m_texture_size, 1), m_texture->size());
 }
 
 FWK_COPYABLE_CLASS_IMPL(Font)
+
+Ex<Font> Font::makeDefault(VDeviceRef device, VWindowRef window, int font_size) {
+	auto font_path = EX_PASS(findDefaultSystemFont()).file_path;
+	font_size *= window->dpiScale();
+	auto font_data = EX_PASS(FontFactory().makeFont(font_path, font_size));
+	auto font_image = EX_PASS(VulkanImage::createAndUpload(device, font_data.image));
+	auto font_image_view = VulkanImageView::create(device, font_image);
+	return Font(move(font_data.core), move(font_image_view));
+}
 
 float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &style) const {
 	float2 pos = rect.min();

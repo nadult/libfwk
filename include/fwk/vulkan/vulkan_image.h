@@ -93,6 +93,7 @@ class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
 
 	auto dimensions() const { return m_dims; }
 	auto size() const { return m_dims.size; }
+	auto size2D() const { return m_dims.size.xy(); }
 	VkFormat format() const { return m_format; }
 	PVImage image() const { return m_image; }
 

@@ -86,6 +86,8 @@ class Font {
 	Font(FontCore, PVImageView);
 	FWK_COPYABLE_CLASS(Font)
 
+	static Ex<Font> makeDefault(VDeviceRef, VWindowRef, int font_size = 14);
+
 	FRect draw(Renderer2D &, const FRect &, const Style &, const string32 &text) const;
 	FRect draw(TriangleBuffer &, const FRect &, const Style &, const string32 &text) const;
 

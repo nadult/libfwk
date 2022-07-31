@@ -3,8 +3,6 @@
 
 #include <fwk/format.h>
 #include <fwk/gfx/font.h>
-#include <fwk/gfx/font_factory.h>
-#include <fwk/gfx/font_finder.h>
 #include <fwk/gfx/image.h>
 #include <fwk/gfx/renderer2d.h>
 #include <fwk/gfx/shader_compiler.h>
@@ -64,19 +62,11 @@ void main() {
 }
 )";
 
-string fontPath() {
-	if(platform == Platform::html)
-		return "data/LiberationSans-Regular.ttf";
-	return findDefaultSystemFont().get().file_path;
-}
-
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
 	ShaderCompiler &compiler;
-	Maybe<FontCore> font_core;
-	PVImage font_image;
-	PVImageView font_image_view;
+	Maybe<Font> font;
 	PVPipeline compute_pipe;
 	int compute_buffer_idx = 0;
 	VBufferSpan<u32> compute_buffers[2];
@@ -110,8 +100,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto device_name = ctx.device->physInfo().properties.deviceName;
 	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->extent(), device_name);
 	text += message;
-	Font font(*ctx.font_core, ctx.font_image_view);
-	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white, ColorId::black}, text);
+	ctx.font->draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white, ColorId::black}, text);
 
 	auto render_pass =
 		ctx.device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
@@ -260,12 +249,7 @@ Ex<int> exMain() {
 		VBufferUsage::storage_buffer | VBufferUsage::transfer_dst | VBufferUsage::transfer_src;
 	for(auto &buffer : ctx.compute_buffers)
 		buffer = EX_PASS(VulkanBuffer::createAndUpload(*device, compute_data, compute_usage));
-
-	int font_size = 16 * window->dpiScale();
-	auto font_data = EX_PASS(FontFactory().makeFont(fontPath(), font_size));
-	ctx.font_core = move(font_data.core);
-	ctx.font_image = EX_PASS(VulkanImage::createAndUpload(ctx.device, font_data.image));
-	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
+	ctx.font = EX_PASS(Font::makeDefault(device, window, 16));
 
 	perf::ThreadContext perf_ctx;
 	perf::Manager perf_mgr;
