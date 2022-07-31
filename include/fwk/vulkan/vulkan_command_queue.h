@@ -7,7 +7,7 @@
 #include "fwk/sparse_vector.h"
 #include "fwk/str.h"
 #include "fwk/variant.h"
-#include "fwk/vulkan/vulkan_buffer.h"
+#include "fwk/vulkan/vulkan_buffer_span.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
@@ -58,15 +58,20 @@ class VulkanCommandQueue {
 
 	// Copy commands wil be enqueued and performed later if called
 
-	void copy(VSpan dst, VSpan src);
-	void copy(PVImage dst, VSpan src, int dst_mip_level = 0,
+	void copy(VBufferSpan<> dst, VBufferSpan<> src);
+	void copy(PVImage dst, VBufferSpan<> src, int dst_mip_level = 0,
 			  VImageLayout dst_layout = VImageLayout::shader_ro);
 
-	void fill(VSpan dst, u32 value);
+	void fill(VBufferSpan<> dst, u32 value);
 
 	void bind(PVPipeline);
-	void bindVertices(CSpan<VSpan>, uint first_binding = 0);
-	void bindIndices(VSpan);
+	void bindVertices(uint first_binding, CSpan<VBufferSpan<>>);
+	template <class... Args> void bindVertices(uint first_binding, VBufferSpan<Args>... spans) {
+		bindVertices(first_binding, {spans.template reinterpret<char>()...});
+	}
+
+	void bindIndices(VBufferSpan<u16>);
+	void bindIndices(VBufferSpan<u32>);
 
 	void bind(PVPipelineLayout, VBindPoint = VBindPoint::graphics);
 	// Binds given descriptor set
@@ -92,7 +97,10 @@ class VulkanCommandQueue {
 	uint timestampQuery();
 	void perfTimestampQuery(uint sample_id);
 
-	Ex<VDownloadId> download(VSpan src);
+	Ex<VDownloadId> download(VBufferSpan<char> src);
+	template <class T> Ex<VDownloadId> download(VBufferSpan<T> src) {
+		return download(src.template reinterpret<char>());
+	}
 
 	// -------------------------------------------------------------------------------------------
 	// ----------  Upload commands (can be called anytime)   -------------------------------------
@@ -100,14 +108,15 @@ class VulkanCommandQueue {
 	// TODO: move to VulkanBuffer?
 	// Upload commands are handled immediately, if staging buffer is used, then copy commands
 	// will be enqueued until beginFrame
-	Ex<VSpan> upload(VSpan dst, CSpan<char> src);
-	template <c_span TSpan, class T = SpanBase<TSpan>>
-	Ex<VSpan> upload(VSpan dst, const TSpan &src) {
-		return upload(dst, cspan(src).template reinterpret<char>());
-	}
+	Ex<VBufferSpan<char>> upload(VBufferSpan<char> dst, CSpan<char> src);
+	template <class T1, c_span TSpan, class T2 = RemoveConst<SpanBase<TSpan>>>
+		requires is_same<T1, T2> Ex<VBufferSpan<T1>> upload(VBufferSpan<T1> dst, const TSpan &src) {
+			auto result = EX_PASS(
+				upload(dst.template reinterpret<char>(), cspan(src).template reinterpret<char>()));
+			return result.template reinterpret<T1>();
+		}
 
-  private:
-	static constexpr uint query_pool_size = 256;
+  private : static constexpr uint query_pool_size = 256;
 	static constexpr uint query_pool_shift = 8;
 	static constexpr uint num_swap_frames = VulkanLimits::num_swap_frames;
 
@@ -148,12 +157,12 @@ class VulkanCommandQueue {
 	};
 
 	struct CmdCopyBuffer {
-		VSpan dst, src;
+		VBufferSpan<char> dst, src;
 	};
 
 	struct CmdCopyImage {
 		PVImage dst;
-		VSpan src;
+		VBufferSpan<char> src;
 		int dst_mip_level;
 		VImageLayout dst_layout;
 	};

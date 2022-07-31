@@ -7,6 +7,7 @@
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
 #include "fwk/vector.h"
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 
@@ -17,13 +18,13 @@ class ElementBuffer {
 	using Opt = ElementBufferOpt;
 	using Flags = EnumFlags<Opt>;
 
-	ElementBuffer(Flags flags = Opt::colors);
+	ElementBuffer(Flags flags = Opt::colors, VMemoryUsage mem_usage = VMemoryUsage::frame);
 	FWK_COPYABLE_CLASS(ElementBuffer);
 
 	// TODO: option to set command_id (simple integer) which can be stored in DrawCall;
 	// it can be used to attach additional data to each DrawCall (for example: scissor rects)
 
-	void setMaterial(Material);
+	void setMaterial(SimpleMaterial);
 	void setTrans(Matrix4);
 	void reserve(int num_vertices, int num_elements);
 	void clear();
@@ -45,15 +46,17 @@ class ElementBuffer {
 	bool emptyElement() const { return m_elements.back().first_index == m_positions.size(); }
 
 	void addElement();
-	vector<DrawCall> drawCalls(PrimitiveType, bool compute_bboxes) const;
+	Ex<vector<SimpleDrawCall>> drawCalls(VulkanDevice &, VPrimitiveTopology,
+										 bool compute_bboxes) const;
 
 	vector<float3> m_positions;
 	vector<IColor> m_colors;
 	vector<float2> m_tex_coords;
 	vector<Element> m_elements;
 
-	vector<Material> m_materials;
+	vector<SimpleMaterial> m_materials;
 	vector<Matrix4> m_matrices;
+	VMemoryUsage m_mem_usage;
 	int m_matrix_lock = 0, m_material_lock = 0;
 	Flags m_flags;
 };

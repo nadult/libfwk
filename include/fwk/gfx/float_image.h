@@ -36,7 +36,6 @@ class FloatImage {
 	bool inRange(int x, int y) const;
 
 	bool empty() const { return m_data.empty(); }
-	GlFormat format() const;
 
 	void swap(FloatImage &);
 

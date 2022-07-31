@@ -69,6 +69,7 @@ Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> byt
 	return create(device, bytecode, stage, move(bindings));
 }
 
+// TODO: move to shader compiler
 static string formatBytecode(CSpan<char> bytecode, Str var_name, int max_line_len = 100) {
 	TextFormatter fmt;
 	fmt("static const u32 % [] = {\n  ", var_name);
@@ -88,11 +89,10 @@ static string formatBytecode(CSpan<char> bytecode, Str var_name, int max_line_le
 	return fmt.text();
 }
 
-Ex<vector<PVShaderModule>> VulkanShaderModule::compile(VDeviceRef device,
+Ex<vector<PVShaderModule>> VulkanShaderModule::compile(ShaderCompiler &compiler, VDeviceRef device,
 													   CSpan<Pair<VShaderStage, ZStr>> source_codes,
 													   bool dump_bytecodes) {
 	vector<PVShaderModule> out;
-	ShaderCompiler compiler({});
 
 	// TODO: first compilation is usually slow
 	out.reserve(source_codes.size());

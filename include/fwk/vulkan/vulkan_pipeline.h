@@ -68,7 +68,6 @@ struct VBlendingMode {
 						(u32(write_mask.bits) << 28)) {}
 	VBlendingMode(VColorComponents write_mask = all<VColorComponent>)
 		: encoded_value(0xfffffffu | (u32(write_mask.bits) << 28)) {}
-	VBlendingMode() : encoded_value(~0u) {}
 
 	VColorComponents writeMask() const { return VColorComponents(encoded_value >> 28); }
 	void setWriteMask(VColorComponents bits) {
@@ -267,9 +266,13 @@ struct VDescriptorSet {
 		: device(&device), handle(handle) {}
 	VDescriptorSet() {}
 
-	void operator()(int first_index, VDescriptorType type, CSpan<VSpan>);
-	void operator()(int first_index, CSpan<VSpan>);
+	void operator()(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>>);
+	void operator()(int first_index, CSpan<VBufferSpan<char>>);
 	void operator()(int first_index, CSpan<Pair<PVSampler, PVImageView>>);
+
+	template <class... Args> void operator()(int first_index, const VBufferSpan<Args> &...args) {
+		operator()(first_index, {args.template reinterpret<char>()...});
+	}
 
 	// TODO: encode device_id in set_id
 	VulkanDevice *device = nullptr;

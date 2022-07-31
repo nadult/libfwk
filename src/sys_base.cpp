@@ -154,13 +154,6 @@ void handleCtrlC(void (*handler)()) {
 }
 
 #ifdef FWK_PLATFORM_WINDOWS
-void *winLoadFunction(const char *name) {
-	PROC func = wglGetProcAddress(name);
-	if(!func)
-		FATAL("Error while importing OpenGL function: %s", name);
-	return (void *)func;
-}
-
 FWK_NO_INLINE int winGetBacktrace(Span<void *> addrs, void *context_) {
 	if(!context_) {
 		return CaptureStackBackTrace(0, addrs.size(), addrs.data(), 0);

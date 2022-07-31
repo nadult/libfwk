@@ -32,7 +32,7 @@ using ShaderDefId = TagId<Tag::shader_def>;
 
 class ShaderCompiler {
   public:
-	ShaderCompiler(ShaderCompilerSetup);
+	ShaderCompiler(ShaderCompilerSetup = {});
 	FWK_MOVABLE_CLASS(ShaderCompiler);
 
 	struct CompilationResult {

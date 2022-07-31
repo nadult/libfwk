@@ -12,6 +12,12 @@
 
 namespace fwk {
 
+FontStyle::FontStyle(IColor color, IColor shadow_color, HAlign halign, VAlign valign)
+	: text_color(color), shadow_color(shadow_color), halign(halign), valign(valign) {}
+
+FontStyle::FontStyle(IColor color, HAlign halign, VAlign valign)
+	: text_color(color), shadow_color(ColorId::transparent), halign(halign), valign(valign) {}
+
 Ex<FontCore> FontCore::load(ZStr file_name) {
 	auto doc = XmlDocument::load(file_name);
 	return doc ? load(*doc) : doc.error();
@@ -207,12 +213,6 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 	}
 // clang-format on
 
-FontStyle::FontStyle(FColor color, FColor shadow_color, HAlign halign, VAlign valign)
-	: text_color(color), shadow_color(shadow_color), halign(halign), valign(valign) {}
-
-FontStyle::FontStyle(FColor color, HAlign halign, VAlign valign)
-	: text_color(color), shadow_color(ColorId::transparent), halign(halign), valign(valign) {}
-
 Font::Font(FontCore core, PVImageView texture) : m_core(move(core)), m_texture(texture) {
 	DASSERT(m_texture);
 
@@ -238,7 +238,7 @@ float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &s
 	return float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
 }
 
-/*FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
+FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
 				 const string32 &text) const {
 	auto pos = drawPos(text, rect, style);
 
@@ -248,18 +248,18 @@ float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &s
 
 	if(style.shadow_color != ColorId::transparent) {
 		out.setTrans(translation(float3(1.0f, 1.0f, 0.0f)));
-		out.setMaterial(Material({m_texture}, (IColor)style.shadow_color));
+		out.setMaterial(SimpleMaterial({m_texture}, (IColor)style.shadow_color));
 		out.quads(positions, uvs, {});
 	}
 
 	out.setTrans(Matrix4::identity());
-	out.setMaterial(Material({m_texture}, (IColor)style.text_color));
+	out.setMaterial(SimpleMaterial({m_texture}, (IColor)style.text_color));
 	out.quads(positions, uvs, {});
 
-	out.setMaterial(Material(ColorId::white));
+	out.setMaterial(SimpleMaterial{ColorId::white});
 
 	return enclose(positions);
-}*/
+}
 
 FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 				 const string32 &text) const {
@@ -274,10 +274,13 @@ FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
 		out.mulViewMatrix(translation(float3(1.0f, 1.0f, 0.0f)));
 		// TODO: increase out_rect when rendering with shadow?
 		// TODO: shadows could use same set of vertex data
-		out.addQuads(positions, uvs, {}, {m_texture, style.shadow_color});
+		out.addQuads(
+			positions, uvs, {},
+			SimpleMaterial{m_texture, style.shadow_color, none, SimpleBlendingMode::normal});
 		out.popViewMatrix();
 	}
-	out.addQuads(positions, uvs, {}, {m_texture, style.text_color});
+	out.addQuads(positions, uvs, {},
+				 {m_texture, style.text_color, none, SimpleBlendingMode::normal});
 
 	return enclose(positions);
 }

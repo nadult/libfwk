@@ -5,7 +5,7 @@
 
 #include "fwk/index_range.h"
 #include "fwk/sys/assert.h"
-#include "fwk/vulkan/vulkan_buffer.h"
+#include "fwk/vulkan/vulkan_buffer_span.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_shader.h"
@@ -79,7 +79,8 @@ VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplerSetup
 	: VulkanObjectBase(handle, id), m_params(params) {}
 VulkanSampler::~VulkanSampler() { deferredRelease<vkDestroySampler>(m_handle); }
 
-void VDescriptorSet::operator()(int first_index, VDescriptorType type, CSpan<VSpan> buffers) {
+void VDescriptorSet::operator()(int first_index, VDescriptorType type,
+								CSpan<VBufferSpan<char>> buffers) {
 	array<VkDescriptorBufferInfo, 16> static_infos;
 	PodVector<VkDescriptorBufferInfo> dynamic_infos;
 	if(buffers.size() > static_infos.size())
@@ -90,7 +91,7 @@ void VDescriptorSet::operator()(int first_index, VDescriptorType type, CSpan<VSp
 		auto span = buffers[i];
 		if(!span)
 			span = device->dummyBuffer();
-		infos[i] = {span.buffer, VkDeviceSize(span.offset), VkDeviceSize(span.size)};
+		infos[i] = {span.buffer(), VkDeviceSize(span.byteOffset()), VkDeviceSize(span.byteSize())};
 	}
 
 	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
@@ -102,7 +103,7 @@ void VDescriptorSet::operator()(int first_index, VDescriptorType type, CSpan<VSp
 	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }
 
-void VDescriptorSet::operator()(int first_index, CSpan<VSpan> buffers) {
+void VDescriptorSet::operator()(int first_index, CSpan<VBufferSpan<char>> buffers) {
 	(*this)(first_index, VDescriptorType::storage_buffer, buffers);
 }
 

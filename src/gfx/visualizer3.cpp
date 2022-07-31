@@ -7,8 +7,7 @@
 #include "fwk/geom_base.h"
 #include "fwk/gfx/colored_quad.h"
 #include "fwk/gfx/colored_triangle.h"
-#include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/material.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/gfx/visualizer3.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/vector.h"
@@ -27,10 +26,12 @@ void Visualizer3::clear() {
 	m_tris.clear();
 }
 
-vector<DrawCall> Visualizer3::drawCalls(bool compute_boxes) const {
-	auto out = m_tris.drawCalls(compute_boxes);
+vector<SimpleDrawCall> Visualizer3::drawCalls(bool compute_boxes) const {
+	FATAL("writeme please");
+	return {};
+	/*auto out = m_tris.drawCalls(compute_boxes);
 	insertBack(out, m_lines.drawCalls(compute_boxes));
-	return out;
+	return out;*/
 }
 
 void Visualizer3::setTrans(Matrix4 mat, ModeFlags flags) {
@@ -40,7 +41,7 @@ void Visualizer3::setTrans(Matrix4 mat, ModeFlags flags) {
 		m_lines.setTrans(mat);
 }
 
-void Visualizer3::setMaterial(Material mat, ModeFlags flags) {
+void Visualizer3::setMaterial(SimpleMaterial mat, ModeFlags flags) {
 	// TODO: what if we're rendering lines in solid mode ?
 	if(flags & Mode::solid)
 		m_tris.setMaterial(mat);

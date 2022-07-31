@@ -34,7 +34,7 @@ class TriangleBuffer : public ElementBuffer {
 	void operator()(CSpan<float2> pos, CSpan<float2> tex_coord, IColor = ColorId::white);
 
 	// Generates DrawCalls suitable for RenderList
-	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
+	vector<SimpleDrawCall> drawCalls(bool compute_boxes = false) const;
 	void reserve(int num_tris, int num_elem);
 
 	using ElementBuffer::clear;

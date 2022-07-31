@@ -8,6 +8,7 @@
 #include "fwk/gfx/investigate.h"
 #include "fwk/math/box.h"
 #include "fwk/maybe_ref.h"
+#include "fwk/vulkan/vulkan_storage.h"
 
 // Parametry:
 // - vis_func
@@ -37,7 +38,7 @@ class Investigator3 {
 		float move_speed_multiplier = 1.0;
 	};
 
-	Investigator3(VisFunc, InvestigatorOpts, Config);
+	Investigator3(VDeviceRef, VWindowRef, VisFunc, InvestigatorOpts, Config);
 	~Investigator3();
 
 	void run();
@@ -45,12 +46,14 @@ class Investigator3 {
 	CamVariant defaultCamera() const;
 	CamVariant camera() const;
 
-	void handleInput(GlDevice &, vector<InputEvent>, float time_diff);
+	void handleInput(vector<InputEvent>, float time_diff);
 	void draw();
-	bool mainLoop(GlDevice &);
-	static bool mainLoop(GlDevice &, void *);
+	bool mainLoop();
+	static bool mainLoop(VulkanWindow &, void *);
 
   private:
+	VDeviceRef m_device;
+	VWindowRef m_window;
 	VisFunc m_vis_func;
 	DBox m_focus;
 	Dynamic<CameraControl> m_cam_control;

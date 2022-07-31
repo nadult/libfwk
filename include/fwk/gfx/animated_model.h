@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fwk/gfx/mesh.h"
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 
@@ -23,8 +24,10 @@ class AnimatedModel {
 	FBox boundingBox() const;
 	float intersect(const Segment3<float> &) const;
 
+	using SimpleMaterialSet = HashMap<string, SimpleMaterial>;
 	// Generates DrawCalls suitable for RenderList
-	vector<DrawCall> genDrawCalls(const MaterialSet &, const Matrix4 & = Matrix4::identity()) const;
+	vector<SimpleDrawCall> genDrawCalls(VulkanDevice &, const SimpleMaterialSet &,
+										const Matrix4 & = Matrix4::identity()) const;
 
   private:
 	const Model &m_model;

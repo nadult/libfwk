@@ -117,6 +117,7 @@ struct VulkanDevice::ObjectPools {
 	HashMap<HashedRenderPass, PVRenderPass> hashed_render_passes;
 	HashMap<HashedFramebuffer, Pair<PVFramebuffer, int>> hashed_framebuffers;
 	HashMap<HashedPipelineLayout, PVPipelineLayout> hashed_pipeline_layouts;
+	HashMap<VSamplerSetup, PVSampler> hashed_samplers;
 
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
@@ -227,6 +228,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 }
 
 VulkanDevice::~VulkanDevice() {
+	m_pipeline_caches.clear();
 	m_dummies.reset();
 	if(m_handle) {
 		vkDestroyPipelineCache(m_handle, m_objects->pipeline_cache, nullptr);
@@ -238,6 +240,7 @@ VulkanDevice::~VulkanDevice() {
 	m_objects->hashed_render_passes.clear();
 	m_objects->hashed_framebuffers.clear();
 	m_objects->hashed_pipeline_layouts.clear();
+	m_objects->hashed_samplers.clear();
 
 #ifndef NDEBUG
 	bool errors = false;
@@ -282,6 +285,12 @@ Maybe<VQueue> VulkanDevice::findFirstQueue(VQueueCaps caps) const {
 		if((queue.caps & caps) == caps)
 			return queue;
 	return none;
+}
+
+Ex<void> VulkanDevice::addSwapChain(VWindowRef window, VSwapChainSetup setup) {
+	auto swap_chain = EX_PASS(VulkanSwapChain::create(ref(), window, setup));
+	addSwapChain(swap_chain);
+	return {};
 }
 
 void VulkanDevice::addSwapChain(PVSwapChain swap_chain) {
@@ -453,19 +462,23 @@ VDescriptorSet VulkanDevice::acquireSet(VDSLId dsl_id) {
 
 VkDescriptorSetLayout VulkanDevice::handle(VDSLId dsl_id) { return m_descriptors->handle(dsl_id); }
 
-PVSampler VulkanDevice::createSampler(const VSamplerSetup &params) {
-	VkSamplerCreateInfo ci{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-	ci.magFilter = VkFilter(params.mag_filter);
-	ci.minFilter = VkFilter(params.min_filter);
-	ci.mipmapMode = VkSamplerMipmapMode(params.mipmap_filter.orElse(VTexFilter::nearest));
-	ci.addressModeU = VkSamplerAddressMode(params.address_mode[0]);
-	ci.addressModeV = VkSamplerAddressMode(params.address_mode[1]);
-	ci.addressModeW = VkSamplerAddressMode(params.address_mode[2]);
-	ci.maxAnisotropy = params.max_anisotropy_samples;
-	ci.anisotropyEnable = params.max_anisotropy_samples > 1;
-	VkSampler handle;
-	FWK_VK_CALL(vkCreateSampler, m_handle, &ci, nullptr, &handle);
-	return createObject(handle, params);
+PVSampler VulkanDevice::getSampler(const VSamplerSetup &setup) {
+	auto &ref = m_objects->hashed_samplers[setup];
+	if(!ref) {
+		VkSamplerCreateInfo ci{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+		ci.magFilter = VkFilter(setup.mag_filter);
+		ci.minFilter = VkFilter(setup.min_filter);
+		ci.mipmapMode = VkSamplerMipmapMode(setup.mipmap_filter.orElse(VTexFilter::nearest));
+		ci.addressModeU = VkSamplerAddressMode(setup.address_mode[0]);
+		ci.addressModeV = VkSamplerAddressMode(setup.address_mode[1]);
+		ci.addressModeW = VkSamplerAddressMode(setup.address_mode[2]);
+		ci.maxAnisotropy = setup.max_anisotropy_samples;
+		ci.anisotropyEnable = setup.max_anisotropy_samples > 1;
+		VkSampler handle;
+		FWK_VK_CALL(vkCreateSampler, m_handle, &ci, nullptr, &handle);
+		ref = createObject(handle, setup);
+	}
+	return ref;
 }
 
 PVImageView VulkanDevice::dummyImage2D() const { return m_dummies->dummy_image_2d; }

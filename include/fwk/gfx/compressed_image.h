@@ -16,6 +16,7 @@ int blockSize(VBlockFormat);
 int imageSize(VBlockFormat, int width, int height);
 int imageRowSize(VBlockFormat, int width);
 
+// TODO: Rename to BlockImage
 // RGB/RGBA image packed in 4x4 blocks
 class CompressedImage {
   public:

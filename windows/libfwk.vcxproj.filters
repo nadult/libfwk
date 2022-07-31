@@ -276,9 +276,6 @@
     <ClInclude Include="..\include\fwk\gfx\converter.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\draw_call.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\dynamic_mesh.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
@@ -297,42 +294,6 @@
     <ClInclude Include="..\include\fwk\gfx\fpp_camera.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_buffer.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_device.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_format.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_framebuffer.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_program.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_query.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_ref.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_renderbuffer.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_shader.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_storage.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_texture.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\gl_vertex_array.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\image.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
@@ -346,12 +307,6 @@
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\line_buffer.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\material.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\material_set.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\matrix_stack.h">
@@ -375,9 +330,6 @@
     <ClInclude Include="..\include\fwk\gfx\model_node.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\opengl.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\orbiting_camera.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
@@ -390,22 +342,13 @@
     <ClInclude Include="..\include\fwk\gfx\pose.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\render_list.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\renderer2d.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\shader_combiner.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\shader_debug.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\shader_defs.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\sprite_buffer.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\triangle_buffer.h">
@@ -717,6 +660,12 @@
     <ClInclude Include="..\include\fwk\perf\thread_context.h">
       <Filter>include\perf</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\gfx\drawing.h">
+      <Filter>include\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_buffer_span.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -812,7 +761,7 @@
     <ClCompile Include="..\src\gfx\converter.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\draw_call.cpp">
+    <ClCompile Include="..\src\gfx\drawing.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\dynamic_mesh.cpp">
@@ -831,39 +780,6 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\fpp_camera.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_buffer.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_device.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_format.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_framebuffer.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_program.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_query.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_renderbuffer.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_shader.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_storage.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_texture.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\gl_vertex_array.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\image.cpp">
@@ -890,12 +806,6 @@
     <ClCompile Include="..\src\gfx\line_buffer.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\material.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\material_set.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\gfx\matrix_stack.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
@@ -920,9 +830,6 @@
     <ClCompile Include="..\src\gfx\model_node.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\opengl.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\gfx\orbiting_camera.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
@@ -935,22 +842,13 @@
     <ClCompile Include="..\src\gfx\pose.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\render_list.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\gfx\renderer2d.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\shader_combiner.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\shader_debug.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\shader_defs.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\sprite_buffer.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\triangle_buffer.cpp">
@@ -1212,6 +1110,9 @@
       <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vulkan\vulkan_internal.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan_base.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>

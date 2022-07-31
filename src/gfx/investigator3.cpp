@@ -5,12 +5,9 @@
 
 #include "fwk/gfx/camera_control.h"
 #include "fwk/gfx/camera_variant.h"
-#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/font_finder.h"
-#include "fwk/gfx/gl_device.h"
-#include "fwk/gfx/opengl.h"
-#include "fwk/gfx/render_list.h"
 #include "fwk/gfx/renderer2d.h"
 #include "fwk/gfx/visualizer3.h"
 #include "fwk/io/file_system.h"
@@ -18,6 +15,9 @@
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/input.h"
 #include "fwk/variant.h"
+#include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_window.h"
 
 #ifndef FWK_IMGUI_DISABLED
 #include "fwk/gui/gui.h"
@@ -25,24 +25,25 @@
 
 namespace fwk {
 
-Investigator3::Investigator3(VisFunc vis_func, InvestigatorOpts flags, Config config)
-	: m_vis_func(vis_func), m_opts(flags) {
-	assertGlThread();
-
+Investigator3::Investigator3(VDeviceRef device, VWindowRef window, VisFunc vis_func,
+							 InvestigatorOpts flags, Config config)
+	: m_device(device), m_window(window), m_vis_func(vis_func), m_opts(flags) {
 	auto charset = FontFactory::ansiCharset() + FontFactory::basicMathCharset();
 	// TODO: hard-code default font somehow? Keep only minimal set of glyphs?
 	auto font = findDefaultSystemFont().get();
-	auto &gl_device = GlDevice::instance();
-	auto font_size = int(14 * gl_device.windowDpiScale());
-	FATAL("TODO: fixme");
-	//m_font.emplace(move(FontFactory().makeFont(font.file_path, charset, font_size, false).get()));
+	auto font_size = int(14 * window->dpiScale());
+	auto font_data = FontFactory().makeFont(font.file_path, charset, font_size, false).get();
+	auto texture = VulkanImage::createAndUpload(device, font_data.image).get();
+	auto texture_view = VulkanImageView::create(device, texture);
+	m_font.emplace(font_data.core, texture_view);
 
-	auto new_viewport = IRect(gl_device.windowSize());
+	auto new_viewport = IRect(window->extent());
 	Plane3F base_plane{{0, 1, 0}, {0, 1.5f, 0}};
 
 	if(!config.focus) {
 		// TODO: RenderList is not necessary here
-		RenderList temp(IRect(gl_device.windowSize()), Matrix4::identity());
+		FATAL("fixme");
+		/*RenderList temp(IRect(window->extent()), Matrix4::identity());
 		Visualizer3 vis(1.0f);
 		m_vis_func(vis, double2());
 		temp.add(vis.drawCalls(true));
@@ -58,7 +59,7 @@ Investigator3::Investigator3(VisFunc vis_func, InvestigatorOpts flags, Config co
 
 		auto size = vmax(float3(1), sum.size());
 		sum = {sum.center() - size * 0.5f, sum.center() + size * 0.5f};
-		config.focus = DBox(sum);
+		config.focus = DBox(sum);*/
 	}
 	m_focus = *config.focus;
 
@@ -93,15 +94,13 @@ auto Investigator3::camera() const -> CamVariant { return m_cam_control->target(
 void Investigator3::run() {
 	if(m_opts & Opt::backtrace)
 		print("Running investigator:\n%s\n", Backtrace::get(2));
-
-	GlDevice::instance().runMainLoop(mainLoop, this);
-
+	m_window->runMainLoop(mainLoop, this);
 	if(!m_compute_close)
 		if((m_opts & Opt::exit_when_finished) || !m_exit_please)
 			exit(0);
 }
 
-void Investigator3::handleInput(GlDevice &device, vector<InputEvent> events, float time_diff) {
+void Investigator3::handleInput(vector<InputEvent> events, float time_diff) {
 	if(m_cam_control)
 		events = m_cam_control->handleInput(events);
 
@@ -123,16 +122,17 @@ void Investigator3::handleInput(GlDevice &device, vector<InputEvent> events, flo
 		m_cam_control->finishAnim();
 	}
 
-	m_mouse_pos = double2(device.inputState().mousePos());
+	m_mouse_pos = double2(m_window->inputState().mousePos());
 }
 
 void Investigator3::draw() {
-	auto viewport = IRect(GlDevice::instance().windowSize());
+	auto viewport = IRect(m_window->extent());
 	Renderer2D renderer_2d(viewport, Orient2D::y_down);
 
 	TextFormatter fmt;
 
-	m_cam_control->o_config.params.viewport = viewport;
+	FATAL("fixme");
+	/*m_cam_control->o_config.params.viewport = viewport;
 	auto cam = m_cam_control->currentCamera();
 	RenderList renderer_3d(viewport, cam.projectionMatrix());
 	renderer_3d.setViewMatrix(cam.viewMatrix());
@@ -141,7 +141,7 @@ void Investigator3::draw() {
 	auto text = m_vis_func(vis, m_mouse_pos);
 	renderer_3d.add(vis.drawCalls(false));
 	fmt << text;
-	renderer_3d.render();
+	renderer_3d.render();*/
 
 	FontStyle style{ColorId::white, ColorId::black};
 	auto extents = m_font->evalExtents(fmt.text());
@@ -155,9 +155,10 @@ void Investigator3::draw() {
 	//renderer_2d.render();
 }
 
-bool Investigator3::mainLoop(GlDevice &device) {
-	// TODO: fixme
-	/*IColor nice_background(100, 120, 80);
+bool Investigator3::mainLoop() {
+	FATAL("writeme");
+	/*
+	IColor nice_background(100, 120, 80);
 	clearColor(nice_background);
 	clearDepth(1.0f);
 
@@ -189,7 +190,7 @@ bool Investigator3::mainLoop(GlDevice &device) {
 	return !m_exit_please;
 }
 
-bool Investigator3::mainLoop(GlDevice &device, void *this_ptr) {
-	return ((Investigator3 *)this_ptr)->mainLoop(device);
+bool Investigator3::mainLoop(VulkanWindow &, void *this_ptr) {
+	return ((Investigator3 *)this_ptr)->mainLoop();
 }
 }

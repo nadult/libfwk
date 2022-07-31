@@ -26,12 +26,12 @@ class Visualizer3 {
 	FWK_COPYABLE_CLASS(Visualizer3);
 
 	void clear();
-	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
+	vector<SimpleDrawCall> drawCalls(bool compute_boxes = false) const;
 
 	bool isFullyTransparent(IColor) const;
 
 	void setMode(VisMode);
-	void setMaterial(Material, ModeFlags = all<VisMode>);
+	void setMaterial(SimpleMaterial, ModeFlags = all<VisMode>);
 	void setTrans(Matrix4, ModeFlags = all<VisMode>);
 
 	void operator()(const Triangle3F &, IColor = ColorId::white);

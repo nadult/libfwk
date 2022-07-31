@@ -5,6 +5,8 @@
 
 #include "fwk/enum_flags.h"
 #include "fwk/enum_map.h"
+#include "fwk/hash_map.h"
+#include "fwk/light_tuple.h"
 #include "fwk/sys/expected.h"
 #include "fwk/variant.h"
 #include "fwk/vulkan/vulkan_storage.h"
@@ -37,6 +39,7 @@ class VulkanDevice {
 	VDeviceFeatures features() const { return m_features; }
 	VulkanVersion version() const;
 
+	Ex<void> addSwapChain(VWindowRef, VSwapChainSetup = {});
 	void addSwapChain(PVSwapChain);
 	void removeSwapChain();
 	PVSwapChain swapChain() const { return m_swap_chain; }
@@ -66,7 +69,21 @@ class VulkanDevice {
 	PVFramebuffer getFramebuffer(CSpan<PVImageView> colors, PVImageView depth = none);
 	PVPipelineLayout getPipelineLayout(CSpan<VDSLId>);
 	PVPipelineLayout getPipelineLayout(CSpan<PVShaderModule>);
-	PVSampler createSampler(const VSamplerSetup &);
+	PVSampler getSampler(const VSamplerSetup &);
+
+	template <class... Args>
+	using PipelineFunc = Ex<PVPipeline> (*)(ShaderCompiler &, VulkanDevice &, Args...);
+
+	template <class... Args>
+	Ex<PVPipeline> getCachedPipeline(ShaderCompiler &compiler, PipelineFunc<Decay<Args>...> func,
+									 Args &&...args) {
+		auto make_cache_func = [](void *func) -> PipelineCacheModel * {
+			return new PipelineCache<Args...>(func);
+		};
+		auto *cache = reinterpret_cast<PipelineCache<Args...> *>(
+			getPipelineCache((void *)func, make_cache_func));
+		return cache->get(compiler, *this, std::forward<Args>(args)...);
+	}
 
 	PVImageView dummyImage2D() const;
 	PVBuffer dummyBuffer() const;
@@ -108,12 +125,58 @@ class VulkanDevice {
 
 	void cleanupFramebuffers();
 	void releaseObjects(int swap_frame_index);
+
 	struct ObjectPools;
 	struct DummyObjects;
+	struct PipelineCaches;
+
+	struct PipelineCacheModel {
+		virtual ~PipelineCacheModel() = default;
+		virtual PipelineCacheModel *clone() const = 0;
+	};
+
+	template <class... Args> struct PipelineCache final : public PipelineCacheModel {
+		using Func = PipelineFunc<Decay<Args>...>;
+		using Key = LightTuple<Decay<RemoveReference<Args>>...>;
+		PipelineCache(void *func) : function(Func(func)) {}
+
+		PipelineCacheModel *clone() const {
+			auto out = new PipelineCache((void *)function);
+			out->pipelines = pipelines;
+			return out;
+		}
+
+		Ex<PVPipeline> get(ShaderCompiler &compiler, VulkanDevice &device, Args &&...args) {
+			Key key{std::forward<Args>(args)...};
+			auto it = pipelines.find(key);
+			if(it != pipelines.end())
+				return it->value;
+
+			auto result = EX_PASS(function(compiler, device, std::forward<Args>(args)...));
+			pipelines.emplace(key, result);
+			return result;
+		}
+
+		Func function;
+		HashMap<Key, PVPipeline> pipelines;
+	};
+
+	PipelineCacheModel *getPipelineCache(void *func, PipelineCacheModel *(*make_func)(void *)) {
+		auto it = m_pipeline_caches.find(func);
+		if(it != m_pipeline_caches.end())
+			return it->value.get();
+
+		auto *result = make_func(func);
+		Dynamic<PipelineCacheModel> model(result);
+		m_pipeline_caches.emplace(func, move(model));
+		return result;
+	}
 
 	Dynamic<VulkanDescriptorManager> m_descriptors;
 	Dynamic<ObjectPools> m_objects;
 	Dynamic<DummyObjects> m_dummies;
+	HashMap<void *, Dynamic<PipelineCacheModel>> m_pipeline_caches;
+
 	PVSwapChain m_swap_chain;
 	Dynamic<VulkanCommandQueue> m_cmds;
 	Dynamic<VulkanMemoryManager> m_memory;

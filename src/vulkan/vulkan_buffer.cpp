@@ -11,16 +11,6 @@
 
 namespace fwk {
 
-VSpan::VSpan(PVBuffer buffer) : buffer(buffer), offset(0), size(buffer ? buffer->size() : 0) {}
-VSpan::VSpan(PVBuffer buffer, u32 offset) : buffer(buffer), offset(offset) {
-	auto buffer_size = buffer ? buffer->size() : 0;
-	DASSERT_LE(offset, buffer_size);
-	size = buffer_size - offset;
-}
-VSpan::VSpan(PVBuffer buffer, u32 offset, u32 size) : buffer(buffer), offset(offset), size(size) {
-	DASSERT_LE(offset + size, buffer->size());
-}
-
 VulkanBuffer::VulkanBuffer(VkBuffer handle, VObjectId id, VMemoryBlock memory_block,
 						   VBufferUsageFlags usage)
 	: VulkanObjectBase(handle, id), m_memory_block(memory_block), m_usage(usage) {}

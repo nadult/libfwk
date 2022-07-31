@@ -16,12 +16,6 @@ struct VSurfaceInfo {
 	bool is_minimized = false;
 };
 
-struct VSwapChainSetup {
-	vector<VkFormat> preferred_formats = {VK_FORMAT_B8G8R8A8_SRGB};
-	vector<VkFormat> preferred_depth_formats = {};
-	VPresentMode preferred_present_mode = VPresentMode::fifo;
-};
-
 DEFINE_ENUM(VSwapChainStatus, initialized, image_acquired, ready, invalid, window_minimized);
 
 class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {

@@ -40,8 +40,6 @@ class Mesh {
 	FBox boundingBox() const { return m_bounding_box; }
 	FBox boundingBox(const AnimatedData &) const;
 
-	void changePrimitiveType(PrimitiveType new_type);
-
 	int vertexCount() const { return (int)m_buffers.positions.size(); }
 	int triangleCount() const;
 
@@ -81,9 +79,11 @@ class Mesh {
 
 	vector<float3> lines() const;
 
+	using SimpleMaterialSet = HashMap<string, SimpleMaterial>;
 	// Generates DrawCalls suitable for RenderList
-	vector<DrawCall> genDrawCalls(const MaterialSet &, const AnimatedData *anim_data = nullptr,
-								  const Matrix4 & = Matrix4::identity()) const;
+	vector<SimpleDrawCall> genDrawCalls(VulkanDevice &, const SimpleMaterialSet &,
+										const AnimatedData *anim_data = nullptr,
+										const Matrix4 & = Matrix4::identity()) const;
 
   protected:
 	bool valid(const AnimatedData &) const;

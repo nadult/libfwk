@@ -11,6 +11,7 @@
 
 namespace fwk {
 
+/*
 string shaderDebugDefs(bool enable_debugging);
 void shaderDebugUseBuffer(PBuffer);
 void shaderDebugInitBuffer(PBuffer);
@@ -45,6 +46,6 @@ struct ShaderDebugInfo {
 	int3 num_work_groups;
 	vector<string> file_names;
 	vector<ShaderDebugRecord> records;
-};
+};*/
 
 }

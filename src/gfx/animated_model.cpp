@@ -3,7 +3,7 @@
 
 #include "fwk/gfx/animated_model.h"
 
-#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/gfx/model.h"
 #include "fwk/gfx/pose.h"
 #include "fwk/math/constants.h"
@@ -67,15 +67,18 @@ FBox AnimatedModel::boundingBox() const {
 	return out;
 }
 
-vector<DrawCall> AnimatedModel::genDrawCalls(const MaterialSet &materials,
-											 const Matrix4 &matrix) const {
-	vector<DrawCall> out;
-	out.reserve(m_meshes.size());
+vector<SimpleDrawCall> AnimatedModel::genDrawCalls(VulkanDevice &device,
+												   const SimpleMaterialSet &materials,
+												   const Matrix4 &matrix) const {
+	vector<SimpleDrawCall> out;
+	FATAL("writeme");
+
+	/*out.reserve(m_meshes.size());
 	for(auto &mesh_data : m_meshes) {
 		auto mat = matrix * mesh_data.transform;
 		auto *mesh = m_model.mesh(mesh_data.mesh_id);
 		insertBack(out, mesh->genDrawCalls(materials, &mesh_data.anim_data, mat));
-	}
+	}*/
 
 	return out;
 }

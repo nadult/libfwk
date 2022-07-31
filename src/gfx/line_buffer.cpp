@@ -3,7 +3,7 @@
 
 #include "fwk/gfx/line_buffer.h"
 
-#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/math/box.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
@@ -126,7 +126,7 @@ void LineBuffer::reserve(int num_lines, int num_elem) {
 	ElementBuffer::reserve(num_lines * 2, num_elem);
 }
 
-vector<DrawCall> LineBuffer::drawCalls(bool compute_boxes) const {
-	return ElementBuffer::drawCalls(PrimitiveType::lines, compute_boxes);
+Ex<vector<SimpleDrawCall>> LineBuffer::drawCalls(VulkanDevice &device, bool compute_boxes) const {
+	return ElementBuffer::drawCalls(device, VPrimitiveTopology::line_list, compute_boxes);
 }
 }

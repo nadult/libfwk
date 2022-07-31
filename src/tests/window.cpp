@@ -7,10 +7,11 @@
 #include <fwk/gfx/font_finder.h>
 #include <fwk/gfx/image.h>
 #include <fwk/gfx/renderer2d.h>
+#include <fwk/gfx/shader_compiler.h>
 #include <fwk/io/file_system.h>
 #include <fwk/sys/expected.h>
 #include <fwk/sys/input.h>
-#include <fwk/vulkan/vulkan_buffer.h>
+#include <fwk/vulkan/vulkan_buffer_span.h>
 #include <fwk/vulkan/vulkan_command_queue.h>
 #include <fwk/vulkan/vulkan_device.h>
 #include <fwk/vulkan/vulkan_image.h>
@@ -72,13 +73,13 @@ string fontPath() {
 struct VulkanContext {
 	VDeviceRef device;
 	VWindowRef window;
-	Dynamic<Renderer2D::VulkanPipelines> renderer2d_pipes;
+	ShaderCompiler &compiler;
 	Maybe<FontCore> font_core;
 	PVImage font_image;
 	PVImageView font_image_view;
 	PVPipeline compute_pipe;
 	int compute_buffer_idx = 0;
-	PVBuffer compute_buffers[2];
+	VBufferSpan<u32> compute_buffers[2];
 	Maybe<VDownloadId> download_id;
 	Gui *gui;
 	perf::Analyzer *perf_analyzer = nullptr;
@@ -102,7 +103,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
 		IColor border_color = ColorId::black;
 
-		renderer.addFilledRect(rect, fill_color);
+		renderer.addFilledRect(rect, IColor(fill_color));
 		renderer.addRect(rect, border_color);
 	}
 
@@ -110,18 +111,18 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->extent(), device_name);
 	text += message;
 	Font font(*ctx.font_core, ctx.font_image_view);
-	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white}, text);
+	font.draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white, ColorId::black}, text);
 
 	auto render_pass =
 		ctx.device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
-	auto dc = EX_PASS(renderer.genDrawCall(ctx.device, *ctx.renderer2d_pipes));
+	auto dc = EX_PASS(renderer.genDrawCall(ctx.compiler, *ctx.device, render_pass));
 	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
 	cmds.beginRenderPass(fb, render_pass, none, {FColor(0.0, 0.2, 0.0)});
 	cmds.setViewport(IRect(sc_extent));
 	cmds.setScissor(none);
 
-	EXPECT(renderer.render(dc, ctx.device, *ctx.renderer2d_pipes));
+	dc.render(*ctx.device);
 
 	PERF_CHILD_SCOPE("imgui_draw");
 	ctx.gui->drawFrame(*ctx.window, cmds.bufferHandle());
@@ -139,8 +140,7 @@ Ex<void> computeStuff(VulkanContext &ctx) {
 	cmds.bind(ctx.compute_pipe);
 	auto ds = cmds.bindDS(0);
 	auto &target_buffer = ctx.compute_buffers[ctx.compute_buffer_idx ^ 1];
-	ds(0, {ctx.compute_buffers[ctx.compute_buffer_idx]});
-	ds(1, {target_buffer});
+	ds(0, ctx.compute_buffers[ctx.compute_buffer_idx], target_buffer);
 	ctx.compute_buffer_idx ^= 1;
 	cmds.dispatchCompute({1, 1, 1});
 	if(!ctx.download_id)
@@ -224,7 +224,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 }
 
 Ex<int> exMain() {
-	VulkanInstanceSetup setup;
+	VInstanceSetup setup;
 	setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
 	setup.debug_types = all<VDebugType>;
 	auto instance = EX_PASS(VulkanInstance::create(setup));
@@ -246,9 +246,11 @@ Ex<int> exMain() {
 		device, window, {.preferred_present_mode = VPresentMode::immediate}));
 	device->addSwapChain(swap_chain);
 
-	VulkanContext ctx{device, window};
-	auto compute_module =
-		EX_PASS(VulkanShaderModule::compile(device, {{VShaderStage::compute, compute_shader}}));
+	ShaderCompiler compiler;
+
+	VulkanContext ctx{device, window, compiler};
+	auto compute_module = EX_PASS(
+		VulkanShaderModule::compile(compiler, device, {{VShaderStage::compute, compute_shader}}));
 	ctx.compute_pipe = EX_PASS(VulkanPipeline::create(device, {compute_module[0]}));
 
 	int compute_size = 4 * 1024;
@@ -264,9 +266,6 @@ Ex<int> exMain() {
 	ctx.font_core = move(font_data.core);
 	ctx.font_image = EX_PASS(VulkanImage::createAndUpload(ctx.device, font_data.image));
 	ctx.font_image_view = VulkanImageView::create(ctx.device, ctx.font_image);
-
-	ctx.renderer2d_pipes =
-		EX_PASS(Renderer2D::makeVulkanPipelines(ctx.device, swap_chain->format()));
 
 	perf::ThreadContext perf_ctx;
 	perf::Manager perf_mgr;

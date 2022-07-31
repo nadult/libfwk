@@ -3,7 +3,7 @@
 
 #include "fwk/gfx/triangle_buffer.h"
 
-#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/math/box.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
@@ -12,8 +12,10 @@ namespace fwk {
 
 TriangleBuffer::TriangleBuffer(Flags flags) : ElementBuffer(flags) {}
 
-vector<DrawCall> TriangleBuffer::drawCalls(bool compute_boxes) const {
-	return ElementBuffer::drawCalls(PrimitiveType::triangles, compute_boxes);
+vector<SimpleDrawCall> TriangleBuffer::drawCalls(bool compute_boxes) const {
+	FATAL("writeme");
+	return {};
+	//return ElementBuffer::drawCalls(VPrimitiveTopology::triangle_list, compute_boxes);
 }
 
 void TriangleBuffer::fillBuffers(IColor color) {

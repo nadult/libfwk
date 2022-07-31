@@ -2,14 +2,18 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/gfx/renderer2d.h"
+
+#include "fwk/gfx/drawing.h"
 #include "fwk/gfx/image.h"
+#include "fwk/gfx/shader_compiler.h"
 #include "fwk/hash_map.h"
+#include "fwk/index_range.h"
 #include "fwk/io/xml.h"
 #include "fwk/math/constants.h"
 #include "fwk/math/rotation.h"
+#include "fwk/perf_base.h"
 #include "fwk/sys/on_fail.h"
-
-#include "fwk/vulkan/vulkan_buffer.h"
+#include "fwk/vulkan/vulkan_buffer_span.h"
 #include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
@@ -21,43 +25,15 @@
 
 namespace fwk {
 
-const char *vsh_2d = R"(
-#version 450
-
-layout(location = 0) in vec2 in_pos;
-layout(location = 1) in vec4 in_color;
-layout(location = 2) in vec2 in_tex_coord;
-
-layout(location = 0) out vec4 out_color;
-layout(location = 1) out vec2 out_tex_coord;
-
-layout(binding = 0) readonly restrict buffer buf0_ { mat4 proj_view_matrices[]; };
-
-void main() {
-	gl_Position = proj_view_matrices[gl_InstanceIndex] * vec4(in_pos, 0.0, 1.0);
-	out_color = in_color;
-	out_tex_coord = in_tex_coord;
+Renderer2D::BasicMaterial::BasicMaterial(const SimpleMaterial &mat)
+	: texture(mat.texture()), blending_mode(mat.blendingMode()) {}
+bool Renderer2D::BasicMaterial::operator==(const BasicMaterial &rhs) const {
+	return texture == rhs.texture && blending_mode == rhs.blending_mode;
 }
-)";
-
-const char *fsh_2d = R"(
-#version 450
-
-layout(location = 0) out vec4 out_color;
-
-layout(location = 0) in vec4 in_color;
-layout(location = 1) in vec2 in_tex_coord;
-
-layout(set = 1, binding = 0) uniform sampler2D tex_sampler;
-
-void main() {
-	out_color = in_color * texture(tex_sampler, in_tex_coord);
-}
-)";
 
 Renderer2D::Renderer2D(const IRect &viewport, Orient2D orient)
 	: MatrixStack(projectionMatrix2D(viewport, orient), viewMatrix2D(viewport, float2(0, 0))),
-	  m_viewport(viewport), m_current_scissor_rect(-1) {}
+	  m_viewport(viewport) {}
 
 Renderer2D::~Renderer2D() = default;
 
@@ -65,23 +41,16 @@ void Renderer2D::setViewPos(const float2 &view_pos) {
 	MatrixStack::setViewMatrix(viewMatrix2D(m_viewport, view_pos));
 }
 
-Renderer2D::DrawChunk &Renderer2D::allocChunk(int num_verts) {
-	if(!m_chunks || m_chunks.back().positions.size() + num_verts > 65535)
-		m_chunks.emplace_back();
-	return m_chunks.back();
-}
-
-Renderer2D::Element &Renderer2D::makeElement(DrawChunk &chunk, PrimitiveType primitive_type,
-											 PVImageView texture, BlendingMode bm) {
+Renderer2D::Element &Renderer2D::makeElement(VPrimitiveTopology topo,
+											 const SimpleMaterial &material) {
 	// TODO: merging won't work for triangle strip (have to add some more indices)
-	auto &elems = chunk.elements;
-
-	if(!elems || elems.back().primitive_type != primitive_type || elems.back().texture != texture ||
-	   elems.back().blending_mode != bm || fullMatrix() != elems.back().matrix ||
-	   m_current_scissor_rect != elems.back().scissor_rect_id)
-		elems.emplace_back(Element{fullMatrix(), move(texture), chunk.indices.size(), 0,
-								   m_current_scissor_rect, primitive_type, bm});
-	return elems.back();
+	BasicMaterial basic_mat(material);
+	if(!m_elements || m_elements.back().prim_topo != topo ||
+	   m_elements.back().material != basic_mat || fullMatrix() != m_matrices.back()) {
+		m_matrices.emplace_back(fullMatrix());
+		m_elements.emplace_back(Element{basic_mat, m_indices.size(), 0, topo});
+	}
+	return m_elements.back();
 }
 
 void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4> colors,
@@ -96,91 +65,87 @@ void Renderer2D::addFilledRect(const FRect &rect, const FRect &tex_rect,
 
 void Renderer2D::addFilledEllipse(float2 center, float2 size, FColor color, int num_tris) {
 	PASSERT(num_tris >= 3);
-	auto &chunk = allocChunk(num_tris + 1);
-	auto &elem = makeElement(chunk, PrimitiveType::triangles, {});
-	int idx = chunk.positions.size();
+	auto &elem = makeElement(VPrimitiveTopology::triangle_list, {});
+	uint idx = m_positions.size();
 
 	auto ang_mul = pi * 2.0f / float(num_tris);
-	for(int n = 0; n < num_tris; n++)
-		chunk.positions.emplace_back(angleToVector(float(n) * ang_mul) * size + center);
-	chunk.positions.emplace_back(center);
+	for(int i = 0; i < num_tris; i++)
+		m_positions.emplace_back(float3(angleToVector(float(i) * ang_mul) * size + center, 0.0));
+	m_positions.emplace_back(float3(center, 0.0));
 
-	for(int n = 0; n < num_tris; n++) {
-		int next = n == num_tris - 1 ? 0 : n + 1;
-		insertBack(chunk.indices, {idx + num_tris, idx + n, idx + next});
+	for(int i = 0; i < num_tris; i++) {
+		uint next = i == num_tris - 1 ? 0 : i + 1;
+		insertBack(m_indices, {idx + num_tris, idx + i, idx + next});
 	}
 
-	chunk.tex_coords.resize(chunk.positions.size(), float2());
-	chunk.colors.resize(chunk.positions.size(), IColor(color));
+	m_tex_coords.resize(m_positions.size(), float2());
+	m_colors.resize(m_positions.size(), IColor(color));
 	elem.num_indices += num_tris * 3;
 }
 
 void Renderer2D::addEllipse(float2 center, float2 size, FColor color, int num_edges) {
-	auto &chunk = allocChunk(num_edges + 1);
-	auto &elem = makeElement(chunk, PrimitiveType::lines, {});
+	auto &elem = makeElement(VPrimitiveTopology::line_list, {});
 
 	auto ang_mul = pi * 2.0f / float(num_edges);
-	int idx = chunk.positions.size();
-	for(int n = 0; n < num_edges; n++) {
-		chunk.positions.emplace_back(angleToVector(float(n) * ang_mul) * size + center);
-		int next = n == num_edges - 1 ? 0 : n + 1;
-		insertBack(chunk.indices, {idx + n, idx + next});
+	uint idx = m_positions.size();
+	for(int i = 0; i < num_edges; i++) {
+		m_positions.emplace_back(float3(angleToVector(float(i) * ang_mul) * size + center, 0.0));
+		uint next = i == num_edges - 1 ? 0 : i + 1;
+		insertBack(m_indices, {idx + i, idx + next});
 	}
-	chunk.tex_coords.resize(chunk.positions.size(), float2());
-	chunk.colors.resize(chunk.positions.size(), IColor(color));
+	m_tex_coords.resize(m_positions.size(), float2());
+	m_colors.resize(m_positions.size(), IColor(color));
 	elem.num_indices += num_edges * 2;
 }
 
 void Renderer2D::addRect(const FRect &rect, FColor color) {
-	auto &chunk = allocChunk(4);
-	Element &elem = makeElement(chunk, PrimitiveType::lines, {});
-	int vertex_offset = chunk.positions.size();
-	chunk.appendVertices(rect.corners(), {}, {}, color);
+	Element &elem = makeElement(VPrimitiveTopology::line_list, {});
+	uint vertex_offset = m_positions.size();
+	appendVertices(rect.corners(), {}, {}, color);
 
 	const int num_indices = 8;
-	int indices[num_indices] = {0, 1, 1, 2, 2, 3, 3, 0};
+	uint indices[num_indices] = {0, 1, 1, 2, 2, 3, 3, 0};
 	for(int i = 0; i < num_indices; i++)
-		chunk.indices.emplace_back(vertex_offset + indices[i]);
+		m_indices.emplace_back(vertex_offset + indices[i]);
 	elem.num_indices += num_indices;
 }
 
 void Renderer2D::addLine(const float2 &p1, const float2 &p2, FColor color) {
-	auto &chunk = allocChunk(2);
-	Element &elem = makeElement(chunk, PrimitiveType::lines, {});
-	int vertex_offset = chunk.positions.size();
-	chunk.appendVertices({p1, p2}, {}, {}, color);
+	Element &elem = makeElement(VPrimitiveTopology::line_list, {});
+	uint vertex_offset = m_positions.size();
+	appendVertices({p1, p2}, {}, {}, color);
 
-	insertBack(chunk.indices, {vertex_offset, vertex_offset + 1});
+	insertBack(m_indices, {vertex_offset, vertex_offset + 1});
 	elem.num_indices += 2;
 }
 
-void Renderer2D::DrawChunk::appendVertices(CSpan<float2> positions_, CSpan<float2> tex_coords_,
-										   CSpan<FColor> colors_, FColor mat_color) {
+void Renderer2D::appendVertices(CSpan<float2> positions, CSpan<float2> tex_coords,
+								CSpan<FColor> colors, FColor mat_color) {
 	DASSERT(colors.size() == positions.size() || !colors);
 	DASSERT(tex_coords.size() == positions.size() || !tex_coords);
 
-	insertBack(positions, positions_);
-	if(colors_)
-		for(auto col : colors_)
-			colors.emplace_back(col * mat_color);
+	// TODO
+	insertBack(m_positions, transform(positions, [](float2 pos) { return float3(pos, 0.0); }));
+	if(colors)
+		for(auto col : colors)
+			m_colors.emplace_back(col * mat_color);
 	else
-		colors.resize(positions.size(), IColor(mat_color));
-	if(tex_coords_)
-		insertBack(tex_coords, tex_coords_);
+		m_colors.resize(m_positions.size(), IColor(mat_color));
+	if(tex_coords)
+		insertBack(m_tex_coords, tex_coords);
 	else
-		tex_coords.resize(positions.size(), float2());
+		m_tex_coords.resize(m_positions.size(), float2());
 }
 
 void Renderer2D::addLines(CSpan<float2> pos, CSpan<FColor> color, FColor mat_color) {
 	DASSERT(pos.size() % 2 == 0);
 
-	auto &chunk = allocChunk(pos.size());
-	Element &elem = makeElement(chunk, PrimitiveType::lines, {});
+	Element &elem = makeElement(VPrimitiveTopology::line_list, {});
 
-	int vertex_offset = chunk.positions.size();
-	chunk.appendVertices(pos, {}, color, mat_color);
-	for(int n = 0; n < pos.size(); n++)
-		chunk.indices.emplace_back(vertex_offset + n);
+	uint vertex_offset = m_positions.size();
+	appendVertices(pos, {}, color, mat_color);
+	for(int i = 0; i < pos.size(); i++)
+		m_indices.emplace_back(vertex_offset + i);
 	elem.num_indices += pos.size();
 }
 
@@ -188,17 +153,15 @@ void Renderer2D::addQuads(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FCol
 						  const SimpleMaterial &material) {
 	DASSERT(pos.size() % 4 == 0);
 
-	auto &chunk = allocChunk(pos.size());
-	Element &elem =
-		makeElement(chunk, PrimitiveType::triangles, material.texture(), material.blendingMode());
-	int vertex_offset = chunk.positions.size();
+	Element &elem = makeElement(VPrimitiveTopology::triangle_list, material);
+	uint vertex_offset = m_positions.size();
 	int num_quads = pos.size() / 4;
 
-	chunk.appendVertices(pos, tex_coord, color, material.color());
-	for(int n = 0; n < num_quads; n++) {
-		int inds[6] = {0, 1, 2, 0, 2, 3};
-		for(int i = 0; i < 6; i++)
-			chunk.indices.emplace_back(vertex_offset + n * 4 + inds[i]);
+	appendVertices(pos, tex_coord, color, material.color());
+	for(int i = 0; i < num_quads; i++) {
+		uint inds[6] = {0, 1, 2, 0, 2, 3};
+		for(int j = 0; j < 6; j++)
+			m_indices.emplace_back(vertex_offset + i * 4 + inds[j]);
 	}
 	elem.num_indices += num_quads * 6;
 }
@@ -208,177 +171,78 @@ void Renderer2D::addTris(CSpan<float2> pos, CSpan<float2> tex_coord, CSpan<FColo
 	DASSERT(pos.size() % 3 == 0);
 
 	int num_tris = pos.size() / 3;
+	Element &elem = makeElement(VPrimitiveTopology::triangle_list, material);
+	uint vertex_offset = m_positions.size();
+	appendVertices(pos, tex_coord, color, material.color());
 
-	auto &chunk = allocChunk(pos.size());
-	Element &elem =
-		makeElement(chunk, PrimitiveType::triangles, material.texture(), material.blendingMode());
-	int vertex_offset = chunk.positions.size();
-	chunk.appendVertices(pos, tex_coord, color, material.color());
-
-	for(int n = 0; n < num_tris; n++) {
-		int inds[3] = {0, 1, 2};
-		for(int i = 0; i < 3; i++)
-			chunk.indices.emplace_back(vertex_offset + n * 3 + inds[i]);
+	for(int i = 0; i < num_tris; i++) {
+		uint inds[3] = {0, 1, 2};
+		for(int j = 0; j < 3; j++)
+			m_indices.emplace_back(vertex_offset + i * 3 + inds[j]);
 	}
 	elem.num_indices += num_tris * 3;
 }
 
-Maybe<IRect> Renderer2D::scissorRect() const {
-	if(m_current_scissor_rect != -1)
-		return m_scissor_rects[m_current_scissor_rect];
-	return none;
-}
+Ex<SimpleDrawCall> Renderer2D::genDrawCall(ShaderCompiler &compiler, VulkanDevice &device,
+										   PVRenderPass render_pass, VMemoryUsage mem_usage) {
+	PERF_SCOPE();
 
-void Renderer2D::setScissorRect(Maybe<IRect> rect) {
-	if(!rect) {
-		m_current_scissor_rect = -1;
-		return;
-	}
-	if(!m_scissor_rects || m_current_scissor_rect == -1 ||
-	   m_scissor_rects[m_current_scissor_rect] != *rect) {
-		m_scissor_rects.emplace_back(*rect);
-		m_current_scissor_rect = m_scissor_rects.size() - 1;
-	}
-}
+	SimpleDrawCall dc;
 
-void Renderer2D::clear() {
-	m_chunks.clear();
-	m_scissor_rects.clear();
-	m_current_scissor_rect = -1;
-}
+	auto vb_usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
+	auto ib_usage = VBufferUsage::index_buffer | VBufferUsage::transfer_dst;
+	auto mb_usage = VBufferUsage::storage_buffer | VBufferUsage::transfer_dst;
 
-auto Renderer2D::makeVulkanPipelines(VDeviceRef device, VColorAttachment color_attachment)
-	-> Ex<VulkanPipelines> {
-	VPipelineSetup setup;
-	setup.shader_modules = EX_PASS(VulkanShaderModule::compile(
-		device, {{VShaderStage::vertex, vsh_2d}, {VShaderStage::fragment, fsh_2d}}));
-	setup.render_pass = device->getRenderPass({color_attachment});
-	setup.vertex_bindings = {
-		{vertexBinding<float2>(0), vertexBinding<IColor>(1), vertexBinding<float2>(2)}};
-	setup.vertex_attribs = {
-		{vertexAttrib<float2>(0, 0), vertexAttrib<IColor>(1, 1), vertexAttrib<float2>(2, 2)}};
+	dc.vertices = EX_PASS(VulkanBuffer::createAndUpload(device, m_positions, vb_usage, mem_usage));
+	dc.tex_coords =
+		EX_PASS(VulkanBuffer::createAndUpload(device, m_tex_coords, vb_usage, mem_usage));
+	dc.colors = EX_PASS(VulkanBuffer::createAndUpload(device, m_colors, vb_usage, mem_usage));
+	dc.indices = EX_PASS(VulkanBuffer::createAndUpload(device, m_indices, ib_usage, mem_usage));
+	dc.instance_matrices =
+		EX_PASS(VulkanBuffer::createAndUpload(device, m_matrices, mb_usage, mem_usage));
 
-	VBlendingMode additive_blend(VBlendFactor::one, VBlendFactor::one);
-	VBlendingMode normal_blend(VBlendFactor::src_alpha, VBlendFactor::one_minus_src_alpha);
+	vector<SimplePipelineSetup> setups;
+	setups.reserve(count<SimpleBlendingMode> * count<VPrimitiveTopology>);
 
-	VulkanPipelines out;
-	out.pipelines.resize(4);
-	setup.raster = VRasterSetup(VPrimitiveTopology::triangle_list, VPolygonMode::fill, none);
-	setup.blending.attachments = {{normal_blend}};
-	out.pipelines[0] = EX_PASS(VulkanPipeline::create(device, setup));
-	setup.blending.attachments = {{additive_blend}};
-	out.pipelines[1] = EX_PASS(VulkanPipeline::create(device, setup));
+	dc.instances.reserve(m_elements.size());
+	for(auto &element : m_elements) {
+		auto &instance = dc.instances.emplace_back();
+		instance.texture = element.material.texture;
 
-	setup.raster = VRasterSetup(VPrimitiveTopology::line_list, VPolygonMode::fill, none);
-	setup.blending.attachments = {{normal_blend}};
-	out.pipelines[2] = EX_PASS(VulkanPipeline::create(device, setup));
-	setup.blending.attachments = {{additive_blend}};
-	out.pipelines[3] = EX_PASS(VulkanPipeline::create(device, setup));
+		int pipeline_index = -1;
+		for(int i : intRange(setups))
+			if(setups[i].blending_mode == element.material.blending_mode &&
+			   setups[i].primitive_topo == element.prim_topo) {
+				pipeline_index = i;
+				break;
+			}
 
-	VSamplerSetup sampler{VTexFilter::linear, VTexFilter::linear};
-	out.sampler = device->createSampler(sampler);
-
-	return out;
-}
-
-Ex<Renderer2D::DrawCall> Renderer2D::genDrawCall(VDeviceRef device, const VulkanPipelines &ctx) {
-	DrawCall dc;
-
-	uint num_vertices = 0, num_indices = 0, num_elements = 0;
-	for(auto &chunk : m_chunks) {
-		num_vertices += chunk.positions.size() * sizeof(chunk.positions[0]) +
-						chunk.colors.size() * sizeof(chunk.colors[0]) +
-						chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]);
-		num_indices += chunk.indices.size() * sizeof(chunk.indices[0]);
-		num_elements += chunk.elements.size();
+		if(pipeline_index == -1) {
+			pipeline_index = setups.size();
+			setups.emplace_back(none, element.material.blending_mode, element.prim_topo);
+		}
+		instance.pipeline_index = pipeline_index;
+		instance.num_vertices = element.num_indices;
+		instance.first_index = element.first_index;
 	}
 
-	dc.vbuffer = EX_PASS(VulkanBuffer::create(
-		*device, num_vertices, VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst,
-		VMemoryUsage::frame));
-	dc.ibuffer = EX_PASS(VulkanBuffer::create(
-		*device, num_indices, VBufferUsage::index_buffer | VBufferUsage::transfer_dst,
-		VMemoryUsage::frame));
-	dc.matrix_buffer = EX_PASS(VulkanBuffer::create<Matrix4>(
-		*device, num_elements, VBufferUsage::storage_buffer | VBufferUsage::transfer_dst,
-		VMemoryUsage::frame));
-
-	auto &cmds = device->cmdQueue();
-	VSpan vbuffer_span(dc.vbuffer), ibuffer_span(dc.ibuffer);
-	VSpan mbuffer_span(dc.matrix_buffer);
-	for(auto &chunk : m_chunks) {
-		vbuffer_span = EX_PASS(cmds.upload(vbuffer_span, chunk.positions));
-		vbuffer_span = EX_PASS(cmds.upload(vbuffer_span, chunk.colors));
-		vbuffer_span = EX_PASS(cmds.upload(vbuffer_span, chunk.tex_coords));
-		ibuffer_span = EX_PASS(cmds.upload(ibuffer_span, chunk.indices));
-
-		// TODO: store element matrices in single vector
-		for(auto &element : chunk.elements)
-			mbuffer_span = EX_PASS(cmds.upload(mbuffer_span, cspan(&element.matrix, 1)));
-	}
-
-	// TODO: scissors support
-
+	dc.pipelines = EX_PASS(SimpleDrawCall::makePipelines(compiler, device, render_pass, setups));
 	return dc;
 }
 
-Ex<void> Renderer2D::render(DrawCall &dc, VDeviceRef device, const VulkanPipelines &ctx) {
-	// TODO: render_pass shouldn't be set up here, but outside
-	// we just have to make sure that pipeline is compatible with it
-	// TODO: passing weak pointers to commands
-
-	auto &cmds = device->cmdQueue();
-	cmds.bind(ctx.pipelines[0]->layout());
-	cmds.bindDS(0)(0, {dc.matrix_buffer});
-
-	PVImageView prev_tex;
-	cmds.bindDS(1)(0, {{ctx.sampler, prev_tex}});
-
-	uint vertex_pos = 0, index_pos = 0, num_elements = 0;
-	for(auto &chunk : m_chunks) {
-		uint sizes[3] = {uint(chunk.positions.size() * sizeof(chunk.positions[0])),
-						 uint(chunk.colors.size() * sizeof(chunk.colors[0])),
-						 uint(chunk.tex_coords.size() * sizeof(chunk.tex_coords[0]))};
-		uint offsets[3];
-		for(int i = 0; i < 3; i++)
-			offsets[i] = vertex_pos, vertex_pos += sizes[i];
-
-		cmds.bindVertices(
-			{{dc.vbuffer, offsets[0]}, {dc.vbuffer, offsets[1]}, {dc.vbuffer, offsets[2]}});
-		cmds.bindIndices({dc.ibuffer, index_pos});
-		index_pos += chunk.indices.size() * sizeof(chunk.indices[0]);
-
-		for(auto &element : chunk.elements) {
-			if(element.texture != prev_tex) {
-				cmds.bindDS(1)(0, {{ctx.sampler, element.texture}});
-				prev_tex = element.texture;
-			}
-
-			int pipe_id = (element.blending_mode == BlendingMode::additive ? 1 : 0) +
-						  (element.primitive_type == PrimitiveType::lines ? 2 : 0);
-			cmds.bind(ctx.pipelines[pipe_id]);
-			cmds.drawIndexed(element.num_indices, 1, element.first_index, num_elements++);
-		}
-	}
-
-	return {};
-}
-
-vector<Pair<FRect, Matrix4>> Renderer2D::renderRects() const {
+vector<Pair<FRect, Matrix4>> Renderer2D::drawRects() const {
 	vector<Pair<FRect, Matrix4>> out;
-	for(const auto &chunk : m_chunks) {
-		for(const auto &elem : chunk.elements) {
-			const int *inds = &chunk.indices[elem.first_index];
-			int min_index = inds[0], max_index = inds[0];
-			for(int i = 0; i < elem.num_indices; i++) {
-				max_index = max(max_index, inds[i]);
-				min_index = min(min_index, inds[i]);
-			}
-
-			FRect erect = enclose(
-				CSpan<float2>(&chunk.positions[min_index], &chunk.positions[max_index] + 1));
-			out.emplace_back(erect, elem.matrix);
+	for(int e : intRange(m_elements)) {
+		auto &elem = m_elements[e];
+		const u32 *inds = &m_indices[elem.first_index];
+		u32 min_index = inds[0], max_index = inds[0];
+		for(int i = 0; i < elem.num_indices; i++) {
+			max_index = max(max_index, inds[i]);
+			min_index = min(min_index, inds[i]);
 		}
+
+		auto ebox = enclose(CSpan<float3>(&m_positions[min_index], &m_positions[max_index] + 1));
+		out.emplace_back(ebox.xy(), m_matrices[e]);
 	}
 
 	return out;

@@ -199,32 +199,30 @@ vector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 // ----------  Commands ----------------------------------------------------------------------
 
 VkCommandBuffer VulkanCommandQueue::bufferHandle() {
-	DASSERT(m_status == Status::frame_running);
+	DASSERT_EQ(m_status, Status::frame_running);
 	return m_cur_cmd_buffer;
 }
 
-void VulkanCommandQueue::copy(VSpan dst, VSpan src) {
-	DASSERT(src.size <= dst.size);
+void VulkanCommandQueue::copy(VBufferSpan<char> dst, VBufferSpan<char> src) {
+	DASSERT_LE(src.size(), dst.size());
 	if(m_status != Status::frame_running) {
 		m_copy_queue.emplace_back(CmdCopyBuffer{dst, src});
 		return;
 	}
 
-	VkBufferCopy copy_params{src.offset, dst.offset, VkDeviceSize(src.size)};
-	vkCmdCopyBuffer(m_cur_cmd_buffer, src.buffer, dst.buffer, 1, &copy_params);
+	VkBufferCopy copy_params{src.byteOffset(), dst.byteOffset(), VkDeviceSize(src.byteSize())};
+	vkCmdCopyBuffer(m_cur_cmd_buffer, src.buffer(), dst.buffer(), 1, &copy_params);
 }
 
-void VulkanCommandQueue::copy(PVImage dst, VSpan src, int dst_mip_level, VImageLayout dst_layout) {
+void VulkanCommandQueue::copy(PVImage dst, VBufferSpan<> src, int dst_mip_level,
+							  VImageLayout dst_layout) {
 	if(m_status != Status::frame_running) {
 		m_copy_queue.emplace_back(CmdCopyImage{dst, src, dst_mip_level, dst_layout});
 		return;
 	}
 
 	VkBufferImageCopy region{};
-	region.bufferOffset = src.offset;
-	// TODO: do it properly
-	region.bufferImageHeight = 0;
-	region.bufferRowLength = 0;
+	region.bufferOffset = src.byteOffset();
 	region.imageSubresource.layerCount = 1;
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.mipLevel = dst_mip_level;
@@ -233,14 +231,14 @@ void VulkanCommandQueue::copy(PVImage dst, VSpan src, int dst_mip_level, VImageL
 
 	auto copy_layout = VImageLayout::transfer_dst;
 	dst->transitionLayout(copy_layout, dst_mip_level);
-	vkCmdCopyBufferToImage(m_cur_cmd_buffer, src.buffer, dst, toVk(copy_layout), 1, &region);
+	vkCmdCopyBufferToImage(m_cur_cmd_buffer, src.buffer(), dst, toVk(copy_layout), 1, &region);
 	// TODO: do this transition right before we're going to do something with this texture?
 	dst->transitionLayout(dst_layout, dst_mip_level);
 }
 
-void VulkanCommandQueue::fill(VSpan dst, u32 value) {
+void VulkanCommandQueue::fill(VBufferSpan<> dst, u32 value) {
 	PASSERT(m_status == Status::frame_running);
-	vkCmdFillBuffer(m_cur_cmd_buffer, dst.buffer, dst.offset, dst.size, value);
+	vkCmdFillBuffer(m_cur_cmd_buffer, dst.buffer(), dst.byteOffset(), dst.byteSize(), value);
 }
 
 void VulkanCommandQueue::bind(PVPipelineLayout layout, VBindPoint bind_point) {
@@ -262,12 +260,11 @@ VDescriptorSet VulkanCommandQueue::bindDS(int index) {
 	return ds;
 }
 
-Ex<VDownloadId> VulkanCommandQueue::download(VSpan src) {
+Ex<VDownloadId> VulkanCommandQueue::download(VBufferSpan<char> src) {
 	PASSERT(m_status == Status::frame_running);
 	auto buffer = EX_PASS(
-		VulkanBuffer::create(m_device, src.size, VBufferUsage::transfer_dst, VMemoryUsage::host));
-	VkBufferCopy copy_params{
-		.srcOffset = src.offset, .dstOffset = 0, .size = (VkDeviceSize)src.size};
+		VulkanBuffer::create(m_device, src.size(), VBufferUsage::transfer_dst, VMemoryUsage::host));
+	VkBufferCopy copy_params{src.byteOffset(), 0, (VkDeviceSize)src.byteSize()};
 	copy(buffer, src);
 	auto id = m_downloads.emplace(move(buffer), m_frame_index);
 	return VDownloadId(id);
@@ -289,13 +286,19 @@ void VulkanCommandQueue::setScissor(Maybe<IRect> scissor) {
 	vkCmdSetScissor(m_cur_cmd_buffer, 0, 1, &vk_rect);
 }
 
-void VulkanCommandQueue::bindIndices(VSpan span) {
+void VulkanCommandQueue::bindIndices(VBufferSpan<u16> span) {
 	PASSERT(m_status == Status::frame_running);
-	vkCmdBindIndexBuffer(m_cur_cmd_buffer, span.buffer, span.offset,
+	vkCmdBindIndexBuffer(m_cur_cmd_buffer, span.buffer(), span.byteOffset(),
+						 VkIndexType::VK_INDEX_TYPE_UINT16);
+}
+
+void VulkanCommandQueue::bindIndices(VBufferSpan<u32> span) {
+	PASSERT(m_status == Status::frame_running);
+	vkCmdBindIndexBuffer(m_cur_cmd_buffer, span.buffer(), span.byteOffset(),
 						 VkIndexType::VK_INDEX_TYPE_UINT32);
 }
 
-void VulkanCommandQueue::bindVertices(CSpan<VSpan> vbuffers, uint first_binding) {
+void VulkanCommandQueue::bindVertices(uint first_binding, CSpan<VBufferSpan<char>> vbuffers) {
 	PASSERT(m_status == Status::frame_running);
 	static constexpr int max_bindings = 32;
 	VkBuffer buffers[max_bindings];
@@ -303,8 +306,8 @@ void VulkanCommandQueue::bindVertices(CSpan<VSpan> vbuffers, uint first_binding)
 
 	DASSERT(vbuffers.size() <= max_bindings);
 	for(int i : intRange(vbuffers)) {
-		buffers[i] = vbuffers[i].buffer;
-		offsets_64[i] = vbuffers[i].offset;
+		buffers[i] = vbuffers[i].buffer();
+		offsets_64[i] = vbuffers[i].byteOffset();
 	}
 	vkCmdBindVertexBuffers(m_cur_cmd_buffer, first_binding, vbuffers.size(), buffers, offsets_64);
 }
@@ -387,17 +390,17 @@ void VulkanCommandQueue::perfTimestampQuery(uint sample_id) {
 // -------------------------------------------------------------------------------------------
 // ----------  Upload commands ---------------------------------------------------------------
 
-Ex<VSpan> VulkanCommandQueue::upload(VSpan dst, CSpan<char> src) {
+Ex<VBufferSpan<char>> VulkanCommandQueue::upload(VBufferSpan<char> dst, CSpan<char> src) {
 	if(src.empty())
 		return dst;
-	DASSERT(src.size() <= dst.size);
+	DASSERT_LE(src.size(), dst.size());
 
 	auto &mem_mgr = m_device.memory();
-	auto mem_block = dst.buffer->memoryBlock();
+	auto mem_block = dst.buffer()->memoryBlock();
 	if(canBeMapped(mem_block.id.domain())) {
-		mem_block.offset += dst.offset;
+		mem_block.offset += dst.byteOffset();
 		// TODO: better checks
-		mem_block.size = min<u32>(mem_block.size - dst.offset, src.size());
+		mem_block.size = min<u32>(mem_block.size - dst.byteOffset(), src.size());
 		fwk::copy(mem_mgr.accessMemory(mem_block), src);
 	} else {
 		auto staging_buffer = EX_PASS(VulkanBuffer::create(
@@ -408,7 +411,6 @@ Ex<VSpan> VulkanCommandQueue::upload(VSpan dst, CSpan<char> src) {
 		m_staging_buffers.emplace_back(move(staging_buffer));
 	}
 
-	return VSpan{dst.buffer, dst.offset + src.size(), dst.size - src.size()};
+	return VBufferSpan{dst.buffer(), dst.byteOffset() + src.size(), dst.size() - src.size()};
 }
-
 }

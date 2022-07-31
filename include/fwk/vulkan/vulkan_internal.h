@@ -69,6 +69,18 @@ inline Maybe<VBlockFormat> fromVkBlockFormat(VkFormat format) {
 	return none;
 }
 
+inline VkExtent2D toVkExtent(int2 extent) {
+	PASSERT(extent.x >= 0 && extent.y >= 0);
+	return {uint(extent.x), uint(extent.y)};
+}
+
+inline int2 fromVk(VkExtent2D extent) { return int2(extent.width, extent.height); }
+
+inline VkRect2D toVkRect(IRect rect) {
+	return VkRect2D{.offset = {rect.min().x, rect.min().y},
+					.extent = {uint(rect.width()), uint(rect.height())}};
+}
+
 VkCommandBuffer allocVkCommandBuffer(VkDevice, VkCommandPool pool);
 VkSemaphore createVkSemaphore(VkDevice, bool is_signaled = false);
 VkFence createVkFence(VkDevice, bool is_signaled = false);

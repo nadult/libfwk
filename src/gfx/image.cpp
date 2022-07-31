@@ -4,7 +4,6 @@
 #include "fwk/gfx/image.h"
 
 #include "fwk/gfx/float_image.h"
-#include "fwk/gfx/gl_format.h"
 #include "fwk/io/file_stream.h"
 #include "fwk/io/file_system.h"
 #include "fwk/str.h"
@@ -54,8 +53,6 @@ void Image::resize(int2 size, Maybe<IColor> fill_color) {
 	new_tex.blit(*this, int2(0, 0));
 	swap(new_tex);
 }
-
-GlFormat Image::format() const { return GlFormat::rgba8; }
 
 void Image::swap(Image &tex) {
 	std::swap(m_size, tex.m_size);

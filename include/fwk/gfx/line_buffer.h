@@ -37,7 +37,7 @@ class LineBuffer : public ElementBuffer {
 	void operator()(CSpan<float2> pos, IColor = ColorId::white);
 
 	// Generates DrawCalls suitable for RenderList
-	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
+	Ex<vector<SimpleDrawCall>> drawCalls(VulkanDevice &, bool compute_boxes = false) const;
 
 	void reserve(int num_lines, int num_elements);
 

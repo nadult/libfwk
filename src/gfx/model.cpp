@@ -3,13 +3,10 @@
 
 #include "fwk/gfx/model.h"
 
-#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/gfx/line_buffer.h"
-#include "fwk/gfx/material.h"
-#include "fwk/gfx/material_set.h"
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/pose.h"
-#include "fwk/gfx/render_list.h"
 #include "fwk/gfx/triangle_buffer.h"
 #include "fwk/index_range.h"
 #include "fwk/io/xml.h"
@@ -186,10 +183,12 @@ void Model::save(XmlNode xml_node) const {
 
 void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose, IColor node_color,
 					  IColor line_color, float node_scale) const {
+	// TODO: output to Visualizer3?
 	// TODO: move this to model viewer
-	DASSERT(valid(pose));
-	Material node_mat(node_color, MaterialOpt::ignore_depth);
-	Material line_mat(line_color, MaterialOpt::ignore_depth);
+	/*DASSERT(valid(pose));
+	// TODO: ignore depth
+	SimpleMaterial node_mat(node_color, SimpleMa::ignore_depth);
+	SimpleMaterial line_mat(line_color, MaterialOpt::ignore_depth);
 
 	tris.setMaterial(node_mat);
 	lines.setMaterial(line_mat);
@@ -210,7 +209,7 @@ void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose,
 			float3 line[2] = {positions[node.id], positions[node.parent_id]};
 			lines(line);
 		}
-	}
+	}*/
 }
 
 void Model::printHierarchy() const {

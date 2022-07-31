@@ -178,13 +178,13 @@ VInstanceRef VulkanInstance::ref() {
 	return {};
 }
 
-Ex<VInstanceRef> VulkanInstance::create(const VulkanInstanceSetup &setup) {
+Ex<VInstanceRef> VulkanInstance::create(const VInstanceSetup &setup) {
 	auto ref = EX_PASS(g_vk_storage.allocInstance());
 	EXPECT(ref->initialize(setup));
 	return ref;
 }
 
-Ex<void> VulkanInstance::initialize(const VulkanInstanceSetup &setup) {
+Ex<void> VulkanInstance::initialize(const VInstanceSetup &setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
 
 	if(setup.version < VulkanVersion(1, 2, 0))

@@ -16,12 +16,12 @@
 namespace fwk {
 
 struct FontStyle {
-	FontStyle(FColor color, FColor shadow_color, HAlign halign = HAlign::left,
+	FontStyle(IColor color, IColor shadow_color, HAlign halign = HAlign::left,
 			  VAlign valign = VAlign::top);
-	FontStyle(FColor color, HAlign halign = HAlign::left, VAlign valign = VAlign::top);
+	FontStyle(IColor color, HAlign halign = HAlign::left, VAlign valign = VAlign::top);
 
-	FColor text_color;
-	FColor shadow_color;
+	IColor text_color;
+	IColor shadow_color;
 	HAlign halign;
 	VAlign valign;
 };

@@ -295,10 +295,6 @@ void Analyzer::showNameColumn(FrameRange &range) {
 		}
 
 		fmt << execName(exec_id);
-		uint flags = 0;
-		if(!exec.children)
-			flags |= ImGuiTreeNodeFlags_Leaf;
-
 		int num_insts = row.num_instances;
 		int num_pinsts =
 			exec.parent_id ? range.rows[exec.parent_id].num_instances : range.num_frames;

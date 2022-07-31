@@ -3,7 +3,6 @@
 
 #include "fwk/gfx/float_image.h"
 
-#include "fwk/gfx/gl_format.h"
 #include "fwk/str.h"
 
 namespace fwk {
@@ -39,8 +38,6 @@ FloatImage::FloatImage(PodVector<FColor> data, int2 size) : m_data(move(data)), 
 	DASSERT(m_data.size() >= size.x * size.y);
 }
 FloatImage::~FloatImage() = default;
-
-GlFormat FloatImage::format() const { return GlFormat::rgba32f; }
 
 void FloatImage::resize(int2 size, Maybe<FColor> fill_color) {
 	if(size == m_size)

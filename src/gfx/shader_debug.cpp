@@ -4,10 +4,9 @@
 #include "fwk/gfx/shader_debug.h"
 
 #include "fwk/format.h"
-#include "fwk/gfx/gl_buffer.h"
-#include "fwk/gfx/gl_format.h"
-#include "fwk/gfx/opengl.h"
-#include "fwk/gfx/shader_combiner.h"
+
+// TODO: fixme
+/*
 
 namespace fwk {
 
@@ -209,3 +208,4 @@ ShaderDebugInfo::ShaderDebugInfo(PBuffer buf, Maybe<uint> limit,
 	makeSorted(records);
 }
 }
+*/

@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "fwk/gfx/gl_ref.h"
 #include "fwk/perf_base.h"
 
 namespace perf {

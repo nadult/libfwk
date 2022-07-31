@@ -3,22 +3,21 @@
 
 #include "fwk/gfx/investigator2.h"
 
-#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/gfx/font_factory.h"
-#include "fwk/gfx/gl_device.h"
-#include "fwk/gfx/opengl.h"
-#include "fwk/gfx/render_list.h"
 #include "fwk/gfx/triangle_buffer.h"
 #include "fwk/gfx/visualizer2.h"
 #include "fwk/io/file_system.h"
 #include "fwk/math/constants.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/input.h"
+#include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_window.h"
 
 namespace fwk {
-Investigator2::Investigator2(VisFunc2 vis_func, Maybe<DRect> focus, InvestigatorOpts flags)
-	: m_vis_func(vis_func), m_opts(flags) {
-	assertGlThread();
+Investigator2::Investigator2(VDeviceRef device, VWindowRef window, VisFunc2 vis_func,
+							 Maybe<DRect> focus, InvestigatorOpts flags)
+	: m_device(device), m_window(window), m_vis_func(vis_func), m_opts(flags) {
 
 	if(!focus) {
 		auto pscale = 1.0 / (m_scale * m_view_scale);
@@ -55,17 +54,17 @@ void Investigator2::run() {
 	if(m_opts & Opt::backtrace)
 		print("Running investigator:\n%s\n", Backtrace::get(2));
 
-	GlDevice::instance().runMainLoop(mainLoop, this);
+	m_window->runMainLoop(mainLoop, this);
 
 	if((m_opts & Opt::exit_when_finished) || !m_exit_please)
 		exit(1);
 }
 
-void Investigator2::handleInput(GlDevice &device, float time_diff) {
+void Investigator2::handleInput(float time_diff) {
 	double2 view_move;
 	double scale_mod = 0.0;
 
-	auto events = device.inputEvents();
+	auto events = m_window->inputEvents();
 	auto exit_key = m_opts & InvestigatorOpt::exit_with_space ? InputKey::space : InputKey::esc;
 	for(const auto &event : events) {
 		bool shift = event.pressed(InputModifier::lshift);
@@ -92,19 +91,20 @@ void Investigator2::handleInput(GlDevice &device, float time_diff) {
 		m_scale = clamp(m_scale * (1.0 + scale_mod), 0.000000000001, 1000000000000.0);
 	m_view_pos += view_move * 200.0 / (m_view_scale * m_scale);
 
-	m_mouse_pos = double2(device.inputState().mousePos());
+	m_mouse_pos = double2(m_window->inputState().mousePos());
 }
 
 vector<Vis2Label> Investigator2::draw(RenderList &out, TextFormatter &fmt) {
-	auto viewport = out.viewport();
-	auto cursor_pos =
-		double2(m_mouse_pos - viewport.center()) * double2(1, -1) / (m_scale * m_view_scale) +
-		m_view_pos;
+	FATAL("writeme");
+	//auto viewport = out.viewport();
+	//auto cursor_pos =
+	//	double2(m_mouse_pos - viewport.center()) * double2(1, -1) / (m_scale * m_view_scale) +
+	//	m_view_pos;
 	string text;
 
 	vector<Vis2Label> labels;
 
-	{
+	/*{
 		float3 center(float2(viewport.center()), 0.0f);
 		out.pushViewMatrix();
 		out.mulViewMatrix(translation(center));
@@ -118,7 +118,7 @@ vector<Vis2Label> Investigator2::draw(RenderList &out, TextFormatter &fmt) {
 		auto matrix = out.viewMatrix();
 		out.popViewMatrix();
 		labels = vis.labels();
-	}
+	}*/
 
 	fmt("Investigating...\n%", text);
 	return labels;
@@ -140,7 +140,8 @@ static IColor negativeColor(IColor color) {
 }
 
 void Investigator2::draw() {
-	RenderList rlist(m_viewport, projectionMatrix2D(m_viewport, Orient2D::y_down));
+	FATAL("writeme");
+	/*RenderList rlist(m_viewport, projectionMatrix2D(m_viewport, Orient2D::y_down));
 	rlist.setViewMatrix(viewMatrix2D(m_viewport, float2()));
 
 	TextFormatter fmt;
@@ -168,11 +169,12 @@ void Investigator2::draw() {
 	m_font->draw(vis.triangleBuffer(), text_rect, style, fmt.text());
 
 	rlist.add(vis.drawCalls());
-	rlist.render(true);
+	rlist.render(true);*/
 }
 
-bool Investigator2::mainLoop(GlDevice &device) {
-	IColor nice_background(100, 120, 80);
+bool Investigator2::mainLoop() {
+	FATAL("writeme");
+	/*IColor nice_background(100, 120, 80);
 	clearColor(nice_background);
 	clearDepth(1.0f);
 
@@ -183,12 +185,11 @@ bool Investigator2::mainLoop(GlDevice &device) {
 
 	handleInput(device, time_diff);
 	applyFocus();
-	draw();
-
+	draw();*/
 	return !m_exit_please;
 }
 
-bool Investigator2::mainLoop(GlDevice &device, void *this_ptr) {
-	return ((Investigator2 *)this_ptr)->mainLoop(device);
+bool Investigator2::mainLoop(VulkanWindow &, void *this_ptr) {
+	return ((Investigator2 *)this_ptr)->mainLoop();
 }
 }

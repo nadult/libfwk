@@ -11,8 +11,6 @@
 #include "fwk/vulkan/vulkan_window.h"
 
 #include "fwk/format.h"
-#include "fwk/gfx/gl_format.h"
-#include "fwk/gfx/gl_ref.h"
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
 #include "fwk/math/box.h"
@@ -170,7 +168,18 @@ IRect VulkanWindow::rect() const {
 }
 
 #ifdef FWK_PLATFORM_WINDOWS
-Pair<int2> windowNonClientBorders(HWND hwnd);
+Pair<int2> windowNonClientBorders(HWND hwnd) {
+	RECT non_client = {0, 0, 0, 0}, window = {0, 0, 0, 0}, client = {0, 0, 0, 0};
+	POINT client_to_screen = {0, 0};
+
+	if(GetWindowRect(hwnd, &window) && GetClientRect(hwnd, &client) &&
+	   ClientToScreen(hwnd, &client_to_screen)) {
+		return {{client_to_screen.x - window.left, client_to_screen.y - window.top},
+				{window.right - client_to_screen.x - client.right,
+				 window.bottom - client_to_screen.y - client.bottom}};
+	}
+	return {};
+}
 #endif
 
 IRect VulkanWindow::restoredRect() const {
@@ -259,7 +268,6 @@ bool VulkanWindow::pollEvents() {
 }
 
 void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
-	PASSERT_GL_THREAD();
 	ASSERT(main_loop_func);
 	m_main_loop_stack.emplace_back(main_loop_func, arg);
 

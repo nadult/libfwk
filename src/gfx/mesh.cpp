@@ -4,15 +4,13 @@
 #include "fwk/gfx/mesh.h"
 
 #include "fwk/gfx/colored_triangle.h"
-#include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/gl_vertex_array.h"
-#include "fwk/gfx/material_set.h"
-#include "fwk/gfx/render_list.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/io/xml.h"
 #include "fwk/math/constants.h"
 #include "fwk/math/segment.h"
 #include "fwk/math/triangle.h"
 #include "fwk/sys/assert.h"
+#include "fwk/vulkan/vulkan_buffer_span.h"
 
 namespace fwk {
 
@@ -28,7 +26,7 @@ Ex<Mesh> Mesh::load(CXmlNode node) {
 	vector<MeshIndices> indices;
 	auto xml_indices = node.child("indices");
 	while(xml_indices) {
-		auto type = xml_indices("type", PrimitiveType::triangles);
+		auto type = xml_indices("type", VPrimitiveTopology::triangle_list);
 		indices.emplace_back(xml_indices.value<vector<int>>(), type);
 		xml_indices.next();
 	}
@@ -47,8 +45,8 @@ void Mesh::saveToXML(XmlNode node) const {
 	for(int n = 0; n < m_indices.size(); n++) {
 		const auto &indices = m_indices[n];
 		XmlNode xml_indices = node.addChild("indices", indices.data());
-		if(indices.type() != PrimitiveType::triangles)
-			xml_indices("type") = indices.type();
+		if(indices.topology() != VPrimitiveTopology::triangle_list)
+			xml_indices("type") = indices.topology();
 	}
 	if(m_material_names)
 		node.addChild("materials", m_material_names);
@@ -260,10 +258,12 @@ vector<float3> Mesh::lines() const {
 	return lines;
 }
 
-vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const AnimatedData *anim_data,
-									const Matrix4 &matrix) const {
-	vector<DrawCall> out;
-
+vector<SimpleDrawCall> Mesh::genDrawCalls(VulkanDevice &device, const SimpleMaterialSet &materials,
+										  const AnimatedData *anim_data,
+										  const Matrix4 &matrix) const {
+	FATAL("writeme");
+	vector<SimpleDrawCall> out;
+	/*
 	if(anim_data) {
 		DASSERT(valid(*anim_data));
 		if(anim_data->empty())
@@ -290,7 +290,7 @@ vector<DrawCall> Mesh::genDrawCalls(const MaterialSet &materials, const Animated
 	} else {
 		out.emplace_back(vao, PrimitiveType::triangles, triangleCount() * 3, 0,
 						 materials.defaultMat(), matrix, encloseTransformed(bbox, matrix));
-	}
+	}*/
 
 	return out;
 }

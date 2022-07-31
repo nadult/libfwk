@@ -3,7 +3,6 @@
 
 #include "fwk/gfx/compressed_image.h"
 
-#include "fwk/gfx/gl_format.h"
 #include "fwk/gfx/image.h"
 
 #define STB_DXT_STATIC

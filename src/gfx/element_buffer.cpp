@@ -3,16 +3,17 @@
 
 #include "fwk/gfx/element_buffer.h"
 
-#include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/material.h"
-#include "fwk/gfx/render_list.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/sys/assert.h"
 
 namespace fwk {
 
-ElementBuffer::ElementBuffer(Flags flags) : m_flags(flags) { clear(); }
+ElementBuffer::ElementBuffer(Flags flags, VMemoryUsage mem_usage)
+	: m_flags(flags), m_mem_usage(mem_usage) {
+	clear();
+}
 
 FWK_COPYABLE_CLASS_IMPL(ElementBuffer);
 
@@ -27,7 +28,7 @@ void ElementBuffer::setTrans(Matrix4 mat) {
 	}
 }
 
-void ElementBuffer::setMaterial(Material mat) {
+void ElementBuffer::setMaterial(SimpleMaterial mat) {
 	if(emptyElement() && m_elements.back().material_idx == m_material_lock) {
 		m_materials.back() = mat;
 		return;
@@ -56,7 +57,7 @@ void ElementBuffer::clear() {
 	m_elements.clear();
 
 	m_matrices.emplace_back(Matrix4::identity());
-	m_materials.emplace_back(Material());
+	m_materials.emplace_back();
 	m_elements.emplace_back(0, 0, 0, 0);
 }
 
@@ -98,15 +99,18 @@ int ElementBuffer::size() const {
 	return emptyElement() ? out - 1 : out;
 }
 
-vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes) const {
-	vector<DrawCall> out;
-	out.reserve(size());
+Ex<vector<SimpleDrawCall>> ElementBuffer::drawCalls(VulkanDevice &device, VPrimitiveTopology pt,
+													bool compute_bboxes) const {
+	FATAL("writeme");
+	vector<SimpleDrawCall> out;
+	/*out.reserve(size());
 
 	if(!m_positions)
 		return out;
 
 	DASSERT(!isNan(m_positions));
-	auto vao = RenderList::makeVao(m_positions, m_colors, m_tex_coords);
+	auto vertex_array = SimpleVertexArray::make(device, m_positions, m_colors, m_tex_coords, {}, {},
+												pt, m_mem_usage);
 
 	for(const auto &elem : m_elements) {
 		int num_verts = numVerts(elem);
@@ -123,9 +127,9 @@ vector<DrawCall> ElementBuffer::drawCalls(PrimitiveType pt, bool compute_bboxes)
 		Maybe<FBox> bbox;
 		if(compute_bboxes)
 			bbox = this->bbox(elem);
-		out.emplace_back(vao, pt, num_verts, elem.first_index, m_materials[elem.material_idx],
-						 m_matrices[elem.matrix_idx], bbox);
-	}
+		out.emplace_back(move(vertex_array), num_verts, elem.first_index,
+						 m_materials[elem.material_idx], m_matrices[elem.matrix_idx], bbox);
+	}*/
 
 	return out;
 }

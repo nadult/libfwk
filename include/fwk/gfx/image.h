@@ -58,7 +58,6 @@ class Image {
 	bool empty() const { return m_data.empty(); }
 	bool testPixelAlpha(const int2 &) const;
 	bool isOpaque() const;
-	GlFormat format() const;
 
 	void swap(Image &);
 

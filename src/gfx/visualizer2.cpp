@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/draw_call.h"
+#include "fwk/gfx/drawing.h"
 #include "fwk/gfx/line_buffer.h"
 #include "fwk/gfx/triangle_buffer.h"
 
@@ -102,10 +102,12 @@ vector<pair<FBox, Matrix4>> Visualizer2::drawBoxes() const {
 	return dboxes;
 }
 
-vector<DrawCall> Visualizer2::drawCalls(bool compute_boxes) const {
-	auto out = m_tris.drawCalls(compute_boxes);
+vector<SimpleDrawCall> Visualizer2::drawCalls(bool compute_boxes) const {
+	FATAL("writeme");
+	return {};
+	/*auto out = m_tris.drawCalls(compute_boxes);
 	insertBack(out, m_lines.drawCalls(compute_boxes));
-	return out;
+	return out;*/
 }
 
 void Visualizer2::drawPoint(float2 pos, IColor color) {

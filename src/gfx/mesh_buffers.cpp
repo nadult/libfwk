@@ -3,8 +3,6 @@
 
 #include "fwk/gfx/mesh_buffers.h"
 
-#include "fwk/gfx/gl_buffer.h"
-#include "fwk/gfx/gl_vertex_array.h"
 #include "fwk/gfx/pose.h"
 #include "fwk/io/xml.h"
 #include "fwk/math/matrix4.h"
@@ -46,24 +44,6 @@ MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
 			max_node_id = max(max_node_id, vweight.node_id);
 	ASSERT(max_node_id < node_names.size());
 }
-
-MeshBuffers::MeshBuffers(PBuffer positions, PBuffer normals, PBuffer tex_coords, PBuffer colors)
-	: MeshBuffers((DASSERT(positions), positions->download<float3>()),
-				  normals ? normals->download<float3>() : vector<float3>(),
-				  tex_coords ? tex_coords->download<float2>() : vector<float2>(),
-				  colors ? colors->download<IColor>() : vector<IColor>()) {}
-
-template <class T> static PBuffer extractBuffer(PVertexArray array, int buffer_id) {
-	DASSERT(array);
-	DASSERT(buffer_id == -1 || (buffer_id >= 0 && buffer_id < array->buffers().size()));
-	return buffer_id == -1 ? PBuffer() : array->buffers()[buffer_id];
-}
-
-MeshBuffers::MeshBuffers(PVertexArray array, int positions_id, int normals_id, int tex_coords_id,
-						 int colors_id)
-	: MeshBuffers(
-		  extractBuffer<float3>(array, positions_id), extractBuffer<float3>(array, normals_id),
-		  extractBuffer<float2>(array, tex_coords_id), extractBuffer<IColor>(array, colors_id)) {}
 
 static auto parseVertexWeights(CXmlNode node) EXCEPT {
 	vector<vector<MeshBuffers::VertexWeight>> out;

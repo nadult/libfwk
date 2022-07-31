@@ -25,6 +25,7 @@ class VObjectId {
 
 	int objectIdx() const { return int(m_bits & 0xfffffff); }
 	VDeviceId deviceId() const { return VDeviceId(m_bits >> 28); }
+	u32 hash() const { return fwk::hash(m_bits); }
 
 	bool operator==(const VObjectId &rhs) const { return m_bits == rhs.m_bits; }
 	bool operator<(const VObjectId &rhs) const { return m_bits < rhs.m_bits; }
@@ -172,13 +173,17 @@ template <class T> class VPtr {
 	bool valid() const { return m_ptr; }
 	explicit operator bool() const { return m_ptr; }
 
-	operator VObjectId() const { return m_id; }
+	operator VObjectId() const {
+		auto *base = reinterpret_cast<const BaseObject *>(m_ptr);
+		return base ? base->m_object_id : VObjectId();
+	}
 	operator T() const { return PASSERT(m_ptr), handle(); }
-	VDeviceId deviceId() const { return m_id.deviceId(); }
-	int objectId() const { return m_id.objectId(); }
+	VDeviceId deviceId() const { return VObjectId(*this).deviceId(); }
+	int objectId() const { return VObjectId(*this).objectId(); }
 
 	T handle() const;
 	void reset();
+	u32 hash() const { return fwk::hash(VObjectId(*this)); }
 
 	bool operator==(const VPtr &) const;
 	bool operator<(const VPtr &) const;
@@ -208,7 +213,7 @@ class VulkanStorage {
 	static constexpr int max_devices = 4;
 	static constexpr int max_windows = VWindowId::maxIndex() + 1;
 
-	static constexpr int device_size = 104, device_alignment = 8;
+	static constexpr int device_size = 144, device_alignment = 8;
 	static constexpr int instance_size = 48, instance_alignment = 8;
 	using DeviceStorage = std::aligned_storage_t<device_size, device_alignment>;
 	using InstanceStorage = std::aligned_storage_t<instance_size, instance_alignment>;
@@ -316,11 +321,6 @@ template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator==(const VPtr &rhs) c
 }
 
 template <class T> FWK_ALWAYS_INLINE bool VPtr<T>::operator<(const VPtr &rhs) const {
-	VObjectId lhs_id, rhs_id;
-	if(m_ptr)
-		lsh_id = m_ptr->objectId();
-	if(rhs.m_ptr)
-		rhs_id = rhs.m_ptr->objectId();
-	return lhs_id < rhs_id;
+	return VObjectId(*this) < VObjectId(rhs);
 }
 }

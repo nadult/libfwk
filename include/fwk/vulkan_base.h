@@ -203,12 +203,27 @@ struct VMemoryBlock {
 };
 
 struct VSamplerSetup {
+	VSamplerSetup(VTexFilter mag_filter = VTexFilter::nearest,
+				  VTexFilter min_filter = VTexFilter::nearest, Maybe<VTexFilter> mip_filter = none,
+				  VTexAddress address_mode = VTexAddress::repeat, uint max_anisotropy_samples = 1);
+	VSamplerSetup(VTexFilter mag_filter, VTexFilter min_filter, Maybe<VTexFilter> mip_filter,
+				  array<VTexAddress, 3> address_mode, uint max_anisotropy_samples = 1);
+
+	FWK_TIE_MEMBERS(mag_filter, min_filter, mipmap_filter, max_anisotropy_samples, address_mode);
+	FWK_TIED_COMPARES(VSamplerSetup);
+
 	VTexFilter mag_filter = VTexFilter::nearest;
 	VTexFilter min_filter = VTexFilter::nearest;
 	Maybe<VTexFilter> mipmap_filter;
 	u8 max_anisotropy_samples = 1;
 	array<VTexAddress, 3> address_mode = {VTexAddress::repeat, VTexAddress::repeat,
 										  VTexAddress::repeat};
+};
+
+struct VSwapChainSetup {
+	vector<VkFormat> preferred_formats = {VK_FORMAT_B8G8R8A8_SRGB};
+	vector<VkFormat> preferred_depth_formats = {};
+	VPresentMode preferred_present_mode = VPresentMode::fifo;
 };
 
 DEFINE_ENUM(VColorSyncStd, clear, clear_present, present, draw);
@@ -309,10 +324,9 @@ struct VDescriptorSet;
 struct VDescriptorBindingInfo;
 struct VColorAttachment;
 struct VDepthAttachment;
-
 struct VPipelineSetup;
 
-struct VSpan;
+template <class T = char> struct VBufferSpan;
 
 template <class T> class VPtr;
 
@@ -332,24 +346,6 @@ template <class> struct VulkanHandleInfo;
 	using PV##UpperCase = VPtr<VkName>;
 #include "fwk/vulkan/vulkan_type_list.h"
 
-template <class Enum, class Bit>
-VkFlags translateFlags(EnumFlags<Enum> flags, const EnumMap<Enum, Bit> &bit_map) {
-	VkFlags out = 0;
-	for(auto flag : flags)
-		out |= bit_map[flag];
-	return out;
-}
-
-inline VkExtent2D toVkExtent(int2 extent) {
-	PASSERT(extent.x >= 0 && extent.y >= 0);
-	return {uint(extent.x), uint(extent.y)};
-}
-
-inline int2 fromVk(VkExtent2D extent) { return int2(extent.width, extent.height); }
-
-inline VkRect2D toVkRect(IRect rect) {
-	return VkRect2D{.offset = {rect.min().x, rect.min().y},
-					.extent = {uint(rect.width()), uint(rect.height())}};
-}
+int primitiveCount(VPrimitiveTopology topo, int vertex_count);
 
 }

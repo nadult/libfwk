@@ -75,7 +75,7 @@ class Visualizer2 {
 
 	void clear();
 	vector<pair<FBox, Matrix4>> drawBoxes() const;
-	vector<DrawCall> drawCalls(bool compute_boxes = false) const;
+	vector<SimpleDrawCall> drawCalls(bool compute_boxes = false) const;
 
 	void drawPoint(float2, IColor);
 	void drawLine(float2, float2, IColor);
@@ -154,8 +154,6 @@ class Visualizer2 {
 	TriangleBuffer &triangleBuffer() { return reinterpret_cast<TriangleBuffer &>(m_tris); }
 
   private:
-	template <class T> void instantiator();
-
 	FwdMember<LineBuffer> m_lines;
 	FwdMember<TriangleBuffer> m_tris;
 	vector<Vis2Label> m_labels;
