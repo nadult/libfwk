@@ -46,9 +46,6 @@ class Model {
 
 	Matrix4 nodeTrans(const string &name, const Pose &) const;
 
-	//void drawNodes(TriangleBuffer &, LineBuffer &, const Pose &, IColor node_color,
-	//			   IColor line_color, float node_scale = 1.0f) const;
-
 	void clearDrawingCache() const;
 
 	const ModelAnim &anim(int anim_id) const { return m_anims[anim_id]; }

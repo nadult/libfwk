@@ -279,9 +279,6 @@
     <ClInclude Include="..\include\fwk\gfx\dynamic_mesh.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\element_buffer.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\float_image.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
@@ -304,9 +301,6 @@
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\investigator3.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\line_buffer.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\matrix_stack.h">
@@ -349,15 +343,6 @@
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\shader_defs.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\triangle_buffer.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\visualizer2.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\visualizer3.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\meta\iterator.h">
@@ -666,6 +651,9 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_buffer_span.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\gfx\canvas_3d.h">
+      <Filter>include\gfx</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -767,9 +755,6 @@
     <ClCompile Include="..\src\gfx\dynamic_mesh.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\element_buffer.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\gfx\float_image.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
@@ -801,9 +786,6 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\investigator3.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\line_buffer.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\matrix_stack.cpp">
@@ -849,15 +831,6 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\shader_defs.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\triangle_buffer.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\visualizer2.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\visualizer3.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\geom\contour.cpp">
@@ -1114,6 +1087,9 @@
     </ClCompile>
     <ClCompile Include="..\src\vulkan_base.cpp">
       <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gfx\canvas_3d.cpp">
+      <Filter>src\gfx</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

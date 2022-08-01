@@ -92,12 +92,12 @@ template <class T, int min_size /*= 0*/> class Span {
 	}
 
 	Span subSpan(int start) const {
-		DASSERT(start >= 0 && start < m_size);
+		DASSERT(start >= 0 && start <= m_size);
 		return {m_data + start, m_size - start};
 	}
 
 	Span subSpan(int start, int end) const {
-		DASSERT(start >= 0 && start < end);
+		DASSERT(start >= 0 && start <= end);
 		DASSERT(end <= m_size);
 		return {m_data + start, end - start};
 	}

@@ -25,6 +25,7 @@ Investigator2::Investigator2(VDeviceRef device, VWindowRef window, VisFunc2 vis_
 	m_compiler.emplace();
 
 	if(!focus) {
+		// TODO: pscale is invalid
 		auto pscale = 1.0 / (m_scale * m_view_scale);
 
 		Canvas2D canvas(IRect(window->extent()), Orient2D::y_up);
@@ -163,8 +164,6 @@ void Investigator2::draw(PVRenderPass render_pass) {
 }
 
 bool Investigator2::mainLoop() {
-	m_device->beginFrame().check();
-
 	m_viewport = IRect(m_window->extent());
 	m_view_scale = min(m_viewport.width(), m_viewport.height());
 
@@ -172,6 +171,7 @@ bool Investigator2::mainLoop() {
 	handleInput(time_diff);
 	applyFocus();
 
+	m_device->beginFrame().check();
 	auto swap_chain = m_device->swapChain();
 	auto render_pass =
 		m_device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
@@ -182,6 +182,7 @@ bool Investigator2::mainLoop() {
 	cmds.setViewport(m_viewport);
 	cmds.setScissor(none);
 	draw(render_pass);
+	cmds.endRenderPass();
 	m_device->finishFrame().check();
 
 	return !m_exit_please;

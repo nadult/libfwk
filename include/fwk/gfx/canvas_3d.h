@@ -14,19 +14,19 @@
 namespace fwk {
 
 // TODO: fix point & line drawing (direction and scale)
-// TODO: add functionality from Visualizer2
+// TODO: add functionality from Visualizer3
 
-class Canvas2D {
+class Canvas3D {
   public:
 	using TexCoord = float2;
 
-	Canvas2D(const IRect &viewport, Orient2D);
-	FWK_COPYABLE_CLASS(Canvas2D);
+	Canvas3D(const IRect &viewport, const Matrix4 &proj_matrix, const Matrix4 &view_matrix);
+	FWK_COPYABLE_CLASS(Canvas3D);
 
 	Ex<SimpleDrawCall> genDrawCall(ShaderCompiler &, VulkanDevice &, PVRenderPass,
 								   VMemoryUsage = VMemoryUsage::frame);
 
-	vector<Pair<FRect, Matrix4>> drawRects() const;
+	vector<Pair<FBox, Matrix4>> drawBoxes() const;
 
 	// --------------------------------------------------------------------------------------------
 	// ---------- Changing canvas state -----------------------------------------------------------
@@ -52,26 +52,14 @@ class Canvas2D {
 	// --------------------------------------------------------------------------------------------
 	// ------------ Drawing functions -------------------------------------------------------------
 
-	void addTris(CSpan<float2>, CSpan<TexCoord> = {}, CSpan<IColor> = {});
-	void addQuads(CSpan<float2>, CSpan<TexCoord> = {}, CSpan<IColor> = {});
-	void addPoints(CSpan<float2>, CSpan<IColor> = {});
-	void addSegments(CSpan<float2>, CSpan<IColor> = {});
+	void addTris(CSpan<float3>, CSpan<TexCoord> = {}, CSpan<IColor> = {});
+	void addQuads(CSpan<float3>, CSpan<TexCoord> = {}, CSpan<IColor> = {});
+	void addPoints(CSpan<float3>, CSpan<IColor> = {});
+	void addSegments(CSpan<float3>, CSpan<IColor> = {});
 
-	void addFilledRect(const FRect &, const FRect &tex_rect, CSpan<FColor, 4>);
-	void addFilledRect(const FRect &, const FRect &tex_rect);
-	void addFilledRect(const FRect &, FColor);
-	void addFilledRect(const FRect &);
-	void addFilledRect(const IRect &);
-
-	void addFilledEllipse(float2 center, float2 size, FColor, int num_tris = 32);
-
-	void addRect(const FRect &rect, FColor);
-	void addRect(const IRect &rect, FColor color) { addRect(FRect(rect), color); }
-	void addEllipse(float2 center, float2 size, FColor, int num_edges = 32);
-
-	void addSegment(const float2 &, const float2 &, FColor);
-	void addSegment(const int2 &p1, const int2 &p2, FColor color) {
-		addSegment(float2(p1), float2(p2), color);
+	void addSegment(const float3 &, const float3 &, FColor);
+	void addSegment(const int3 &p1, const int3 &p2, FColor color) {
+		addSegment(float3(p1), float3(p2), color);
 	}
 
 	// TODO: advanced drawing functions from Visualizer2

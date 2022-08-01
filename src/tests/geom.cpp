@@ -11,6 +11,7 @@
 #include "fwk/geom/regular_grid.h"
 #include "fwk/geom/segment_grid.h"
 #include "fwk/gfx/canvas_2d.h"
+#include "fwk/gfx/canvas_3d.h"
 #include "fwk/gfx/investigate.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rotation.h"
@@ -223,18 +224,30 @@ void testSquareBorder() {
 void testInvestigators() {
 	Random rand(1337);
 
-	vector<float2> points;
+	vector<float2> points_2d;
 	for(int i : intRange(1024))
-		points.emplace_back(rand.sampleBox(float2(-4), float2(4)));
+		points_2d.emplace_back(rand.sampleBox(float2(-4), float2(4)));
 
 	auto func2 = [&](Canvas2D &canvas, double2 mouse_pos) {
 		canvas.setMaterial(IColor(ColorId::green));
 		// TODO: option to define point width in pixels
 		canvas.setPointWidth(0.1);
-		canvas.addPoints(points);
+		canvas.addPoints(points_2d);
 		return "hello there!";
 	};
 	investigate(func2, none, none);
+
+	vector<float3> points_3d;
+	for(int i : intRange(1024))
+		points_3d.emplace_back(rand.sampleBox(float3(-4), float3(4)));
+	auto func3 = [&](Canvas3D &canvas, double2 mouse_pos) {
+		canvas.setMaterial(IColor(ColorId::green));
+		// TODO: option to define point width in pixels
+		canvas.setPointWidth(0.1);
+		canvas.addPoints(points_3d);
+		return "hello there!";
+	};
+	investigate(func3, none, none);
 }
 
 void testMain() {

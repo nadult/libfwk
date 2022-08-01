@@ -86,6 +86,7 @@
     <ClInclude Include="..\include\fwk\audio_base.h" />
     <ClInclude Include="..\include\fwk\base_vector.h" />
     <ClInclude Include="..\include\fwk\bit_vector.h" />
+    <ClInclude Include="..\include\fwk\gfx\canvas_3d.h" />
     <ClInclude Include="..\include\fwk\gfx\drawing.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_reflection.h" />
     <ClInclude Include="..\include\fwk\perf\analyzer.h" />
@@ -110,7 +111,6 @@
     <ClInclude Include="..\include\fwk\gfx\compressed_image.h" />
     <ClInclude Include="..\include\fwk\gfx\converter.h" />
     <ClInclude Include="..\include\fwk\gfx\dynamic_mesh.h" />
-    <ClInclude Include="..\include\fwk\gfx\element_buffer.h" />
     <ClInclude Include="..\include\fwk\gfx\float_image.h" />
     <ClInclude Include="..\include\fwk\gfx\font.h" />
     <ClInclude Include="..\include\fwk\gfx\font_factory.h" />
@@ -120,7 +120,6 @@
     <ClInclude Include="..\include\fwk\gfx\investigate.h" />
     <ClInclude Include="..\include\fwk\gfx\investigator2.h" />
     <ClInclude Include="..\include\fwk\gfx\investigator3.h" />
-    <ClInclude Include="..\include\fwk\gfx\line_buffer.h" />
     <ClInclude Include="..\include\fwk\gfx\matrix_stack.h" />
     <ClInclude Include="..\include\fwk\gfx\mesh.h" />
     <ClInclude Include="..\include\fwk\gfx\mesh_buffers.h" />
@@ -136,9 +135,6 @@
     <ClInclude Include="..\include\fwk\gfx\shader_compiler.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_debug.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_defs.h" />
-    <ClInclude Include="..\include\fwk\gfx\triangle_buffer.h" />
-    <ClInclude Include="..\include\fwk\gfx\visualizer2.h" />
-    <ClInclude Include="..\include\fwk\gfx\visualizer3.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_buffer_span.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_descriptor_manager.h" />
     <ClInclude Include="..\include\fwk\vulkan\vulkan_internal.h" />
@@ -284,6 +280,7 @@
     </ClCompile>
     <ClCompile Include="..\src\base_vector.cpp" />
     <ClCompile Include="..\src\bit_vector.cpp" />
+    <ClCompile Include="..\src\gfx\canvas_3d.cpp" />
     <ClCompile Include="..\src\gfx\shader_reflection.cpp" />
     <ClCompile Include="..\src\slab_allocator.cpp" />
     <ClCompile Include="..\src\enum.cpp" />
@@ -310,7 +307,6 @@
     <ClCompile Include="..\src\gfx\converter.cpp" />
     <ClCompile Include="..\src\gfx\drawing.cpp" />
     <ClCompile Include="..\src\gfx\dynamic_mesh.cpp" />
-    <ClCompile Include="..\src\gfx\element_buffer.cpp" />
     <ClCompile Include="..\src\gfx\float_image.cpp" />
     <ClCompile Include="..\src\gfx\font.cpp" />
     <ClCompile Include="..\src\gfx\font_factory.cpp" />
@@ -323,7 +319,6 @@
     <ClCompile Include="..\src\gfx\investigate.cpp" />
     <ClCompile Include="..\src\gfx\investigator2.cpp" />
     <ClCompile Include="..\src\gfx\investigator3.cpp" />
-    <ClCompile Include="..\src\gfx\line_buffer.cpp" />
     <ClCompile Include="..\src\gfx\matrix_stack.cpp" />
     <ClCompile Include="..\src\gfx\mesh.cpp" />
     <ClCompile Include="..\src\gfx\mesh_buffers.cpp" />
@@ -340,9 +335,6 @@
     <ClCompile Include="..\src\gfx\shader_compiler.cpp" />
     <ClCompile Include="..\src\gfx\shader_debug.cpp" />
     <ClCompile Include="..\src\gfx\shader_defs.cpp" />
-    <ClCompile Include="..\src\gfx\triangle_buffer.cpp" />
-    <ClCompile Include="..\src\gfx\visualizer2.cpp" />
-    <ClCompile Include="..\src\gfx\visualizer3.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_descriptor_manager.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_internal.cpp" />
     <ClCompile Include="..\src\vulkan\vulkan_memory_manager.cpp" />

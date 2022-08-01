@@ -7,8 +7,6 @@
 #include "fwk/enum_flags.h"
 #include "fwk/fwd_member.h"
 #include "fwk/gfx/color.h"
-#include "fwk/gfx/line_buffer.h"
-#include "fwk/gfx/triangle_buffer.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math/segment.h"
 #include "fwk/math_base.h"
@@ -76,8 +74,6 @@ class Visualizer3 {
 	float pointScale() const;
 
   private:
-	LineBuffer m_lines;
-	TriangleBuffer m_tris;
 	float m_point_scale;
 	VisMode m_mode = VisMode::solid;
 };

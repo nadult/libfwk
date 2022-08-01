@@ -28,7 +28,6 @@ namespace fwk {
 
 class Investigator3 {
   public:
-	using VisFunc = VisFunc3;
 	using Opt = InvestigatorOpt;
 	using CamVariant = CameraVariant;
 
@@ -38,7 +37,7 @@ class Investigator3 {
 		float move_speed_multiplier = 1.0;
 	};
 
-	Investigator3(VDeviceRef, VWindowRef, VisFunc, InvestigatorOpts, Config);
+	Investigator3(VDeviceRef, VWindowRef, VisFunc3, InvestigatorOpts, Config);
 	~Investigator3();
 
 	void run();
@@ -47,16 +46,18 @@ class Investigator3 {
 	CamVariant camera() const;
 
 	void handleInput(vector<InputEvent>, float time_diff);
-	void draw();
+	string draw(PVRenderPass);
 	bool mainLoop();
 	static bool mainLoop(VulkanWindow &, void *);
 
   private:
 	VDeviceRef m_device;
 	VWindowRef m_window;
-	VisFunc m_vis_func;
-	DBox m_focus;
+	PVImageView m_depth_buffer;
+	Dynamic<ShaderCompiler> m_compiler;
 	Dynamic<CameraControl> m_cam_control;
+	VisFunc3 m_vis_func;
+	DBox m_focus;
 
 	Dynamic<Font> m_font;
 	double2 m_mouse_pos;

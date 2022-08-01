@@ -4,10 +4,8 @@
 #include "fwk/gfx/model.h"
 
 #include "fwk/gfx/drawing.h"
-#include "fwk/gfx/line_buffer.h"
 #include "fwk/gfx/mesh.h"
 #include "fwk/gfx/pose.h"
-#include "fwk/gfx/triangle_buffer.h"
 #include "fwk/index_range.h"
 #include "fwk/io/xml.h"
 #include "fwk/sys/assert.h"
@@ -180,37 +178,6 @@ void Model::save(XmlNode xml_node) const {
 	for(const auto &anim : m_anims)
 		anim.save(xml_node.addChild("anim"));
 }
-
-/*void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose, IColor node_color,
-					  IColor line_color, float node_scale) const {
-	// TODO: output to Visualizer3?
-	// TODO: move this to model viewer
-	DASSERT(valid(pose));
-	// TODO: ignore depth
-	SimpleMaterial node_mat(node_color, SimpleMa::ignore_depth);
-	SimpleMaterial line_mat(line_color, MaterialOpt::ignore_depth);
-
-	tris.setMaterial(node_mat);
-	lines.setMaterial(line_mat);
-
-	FBox bbox = FBox(float3(-0.3f), float3(0.3f)) * node_scale;
-
-	auto global_pose = globalPose(pose);
-	auto transforms = global_pose.transforms();
-
-	vector<float3> positions(m_nodes.size());
-	for(int n : intRange(m_nodes))
-		positions[n] = mulPoint(transforms[n], float3(0, 0, 0));
-
-	for(auto &node : m_nodes) {
-		if(&node != rootNode())
-			tris(bbox, translation(positions[node.id]));
-		if(node.parent_id > 0) {
-			float3 line[2] = {positions[node.id], positions[node.parent_id]};
-			lines(line);
-		}
-	}
-}*/
 
 void Model::printHierarchy() const {
 	for(auto &node : m_nodes)
