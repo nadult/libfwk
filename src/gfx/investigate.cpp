@@ -4,10 +4,9 @@
 #include "fwk/gfx/investigate.h"
 
 #include "fwk/any.h"
+#include "fwk/gfx/canvas_2d.h"
 #include "fwk/gfx/investigator2.h"
 #include "fwk/gfx/investigator3.h"
-#include "fwk/gfx/visualizer2.h"
-#include "fwk/gfx/visualizer3.h"
 #include "fwk/perf_base.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_instance.h"
@@ -23,7 +22,8 @@ struct VulkanContext {
 static Ex<VulkanContext> spawnVulkanDevice() {
 	auto instance =
 		VulkanInstance::isPresent() ? VulkanInstance::ref() : EX_PASS(VulkanInstance::create({}));
-	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi;
+	auto flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi |
+				 VWindowFlag::sleep_when_minimized;
 	auto window = EX_PASS(
 		VulkanWindow::create(instance, "libfwk investigator", IRect(0, 0, 1280, 720), flags));
 
@@ -58,18 +58,20 @@ void investigateOnFail(const Expected<void> &expected) {
 		return;
 
 	for(auto &val : expected.error().values) {
-		if(const VisFunc2 *vis2 = val) {
-			auto func = [&](Visualizer2 &vis, double2 mouse_pos) -> string {
-				auto result = (*vis2)(vis, mouse_pos);
+		if(const VisFunc2 *stored_func = val) {
+			auto wrapper = [&](Canvas2D &canvas, double2 mouse_pos) -> string {
+				auto result = (*stored_func)(canvas, mouse_pos);
 				return format("%\n%", result, expected.error());
 			};
-			return investigate(func);
-		} else if(const VisFunc3 *vis3 = val) {
-			auto func = [&](Visualizer3 &vis, double2 mouse_pos) -> string {
-				auto result = (*vis3)(vis, mouse_pos);
-				return format("%\n%", result, expected.error());
+			return investigate(wrapper);
+		} else if(const VisFunc3 *stored_func = val) {
+			auto wrapper = [&](Canvas3D &canvas, double2 mouse_pos) -> string {
+				FATAL("fixme");
+				//auto result = (*stored_func)(canvas, mouse_pos);
+				//return format("%\n%", result, expected.error());
+				return "";
 			};
-			return investigate(func);
+			return investigate(wrapper);
 		}
 	}
 

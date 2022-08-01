@@ -62,6 +62,7 @@ class VoronoiVis2 {
 	Maybe<CellId> m_sel;
 };
 
+// DEPRECATED: use Canvas instead
 class Visualizer2 {
   public:
 	Visualizer2(float point_scale = 1.0f, float cross_scale = 1.0f);

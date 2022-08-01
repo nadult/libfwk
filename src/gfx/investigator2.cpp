@@ -3,15 +3,18 @@
 
 #include "fwk/gfx/investigator2.h"
 
+#include "fwk/gfx/canvas_2d.h"
 #include "fwk/gfx/drawing.h"
-#include "fwk/gfx/font_factory.h"
-#include "fwk/gfx/triangle_buffer.h"
-#include "fwk/gfx/visualizer2.h"
+#include "fwk/gfx/font.h"
+#include "fwk/gfx/shader_compiler.h"
 #include "fwk/io/file_system.h"
 #include "fwk/math/constants.h"
 #include "fwk/sys/backtrace.h"
 #include "fwk/sys/input.h"
+#include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_image.h"
+#include "fwk/vulkan/vulkan_swap_chain.h"
 #include "fwk/vulkan/vulkan_window.h"
 
 namespace fwk {
@@ -19,33 +22,33 @@ Investigator2::Investigator2(VDeviceRef device, VWindowRef window, VisFunc2 vis_
 							 Maybe<DRect> focus, InvestigatorOpts flags)
 	: m_device(device), m_window(window), m_vis_func(vis_func), m_opts(flags) {
 
+	m_compiler.emplace();
+
 	if(!focus) {
 		auto pscale = 1.0 / (m_scale * m_view_scale);
 
-		Visualizer2 vis(pscale, pscale);
-		m_vis_func(vis, double2());
+		Canvas2D canvas(IRect(window->extent()), Orient2D::y_up);
+		canvas.setPointWidth(pscale);
+		canvas.setSegmentWidth(pscale);
+		m_vis_func(canvas, double2());
 
-		auto is_finite = [](float3 pt) {
+		auto is_finite = [](float2 pt) {
 			return allOf(pt.values(), [](float v) { return v >= -inf && v < inf; });
 		};
 
 		FRect sum;
-		for(auto pair : vis.drawBoxes())
+		for(auto pair : canvas.drawRects())
 			if(is_finite(pair.first.min()) && is_finite(pair.first.max()))
-				sum = encloseNotEmpty(sum, pair.first.xy());
+				sum = encloseNotEmpty(sum, pair.first);
 
 		// In case we're focusing on a single point
 		auto size = vmax(float2(1), sum.size());
 		sum = {sum.center() - size * 0.5f, sum.center() + size * 0.5f};
 		focus = DRect(sum);
 	}
-	m_focus = *focus;
 
-	auto data_path = FilePath(executablePath()).parent() / "data";
-	auto font_path = data_path / "LiberationSans-Regular.ttf";
-	auto charset = FontFactory::ansiCharset() + FontFactory::basicMathCharset();
-	FATAL("TODO: fixme");
-	//m_font.emplace(move(FontFactory().makeFont(font_path, charset, 14, false).get()));
+	m_focus = *focus;
+	m_font.emplace(Font::makeDefault(device, window).get());
 }
 
 Investigator2::~Investigator2() = default;
@@ -94,34 +97,24 @@ void Investigator2::handleInput(float time_diff) {
 	m_mouse_pos = double2(m_window->inputState().mousePos());
 }
 
-vector<Vis2Label> Investigator2::draw(RenderList &out, TextFormatter &fmt) {
-	FATAL("writeme");
-	//auto viewport = out.viewport();
-	//auto cursor_pos =
-	//	double2(m_mouse_pos - viewport.center()) * double2(1, -1) / (m_scale * m_view_scale) +
-	//	m_view_pos;
-	string text;
+void Investigator2::draw(Canvas2D &canvas, TextFormatter &fmt) {
+	auto viewport = canvas.viewport();
+	auto cursor_pos =
+		double2(m_mouse_pos - viewport.center()) * double2(1, -1) / (m_scale * m_view_scale) +
+		m_view_pos;
+	float3 center(float2(viewport.center()), 0.0f);
 
-	vector<Vis2Label> labels;
-
-	/*{
-		float3 center(float2(viewport.center()), 0.0f);
-		out.pushViewMatrix();
-		out.mulViewMatrix(translation(center));
-		float3 offset(-float2(m_view_pos), 0.0f);
-		out.mulViewMatrix(scaling(float3(1, -1, 1) * m_scale * m_view_scale) * translation(offset));
-		auto pscale = 1.0 / (m_scale * m_view_scale);
-
-		Visualizer2 vis(pscale, pscale);
-		text = m_vis_func(vis, cursor_pos);
-		out.add(vis.drawCalls());
-		auto matrix = out.viewMatrix();
-		out.popViewMatrix();
-		labels = vis.labels();
-	}*/
+	canvas.pushViewMatrix();
+	canvas.mulViewMatrix(translation(center));
+	float3 offset(-float2(m_view_pos), 0.0f);
+	canvas.mulViewMatrix(scaling(float3(1, -1, 1) * m_scale * m_view_scale) * translation(offset));
+	auto old_point_width = canvas.pointWidth();
+	canvas.setPointWidth(1.0 / (m_scale * m_view_scale));
+	auto text = m_vis_func(canvas, cursor_pos);
+	canvas.setPointWidth(old_point_width);
+	canvas.popViewMatrix();
 
 	fmt("Investigating...\n%", text);
-	return labels;
 }
 
 void Investigator2::applyFocus() {
@@ -139,19 +132,16 @@ static IColor negativeColor(IColor color) {
 	return (IColor)FColor(distanceSq(col1, rgb) > distanceSq(col2, rgb) ? col1 : col2);
 }
 
-void Investigator2::draw() {
-	FATAL("writeme");
-	/*RenderList rlist(m_viewport, projectionMatrix2D(m_viewport, Orient2D::y_down));
-	rlist.setViewMatrix(viewMatrix2D(m_viewport, float2()));
-
+void Investigator2::draw(PVRenderPass render_pass) {
+	Canvas2D canvas(m_viewport, Orient2D::y_up);
 	TextFormatter fmt;
-
-	auto labels = draw(rlist, fmt);
+	draw(canvas, fmt);
 
 	FontStyle style{ColorId::white, ColorId::black};
 	auto extents = m_font->evalExtents(fmt.text());
-	Visualizer2 vis;
 
+	// TODO: labels
+	/*
 	float scale = m_scale * m_view_scale;
 	float2 offset = -float2(m_view_pos);
 	for(auto &label : labels) {
@@ -162,30 +152,38 @@ void Investigator2::draw() {
 		FontStyle style{label.style.color, negativeColor(label.style.color), HAlign::center,
 						VAlign::center};
 		m_font->draw(vis.triangleBuffer(), rect, style, label.text);
-	}
+	}*/
 
-	vis.drawRect(FRect(float2(extents.size()) + float2(10, 10)), {IColor(0, 0, 0, 80)}, true);
+	canvas.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)), IColor(0, 0, 0, 80));
 	FRect text_rect = FRect({5, 5}, {300, 100});
-	m_font->draw(vis.triangleBuffer(), text_rect, style, fmt.text());
+	m_font->draw(canvas, text_rect, style, fmt.text());
 
-	rlist.add(vis.drawCalls());
-	rlist.render(true);*/
+	auto dc = canvas.genDrawCall(*m_compiler, *m_device, render_pass).get();
+	dc.render(*m_device);
 }
 
 bool Investigator2::mainLoop() {
-	FATAL("writeme");
-	/*IColor nice_background(100, 120, 80);
-	clearColor(nice_background);
-	clearDepth(1.0f);
+	m_device->beginFrame().check();
 
-	float time_diff = 1.0f / 60.0f;
-
-	m_viewport = (IRect)device.windowSize();
+	m_viewport = IRect(m_window->extent());
 	m_view_scale = min(m_viewport.width(), m_viewport.height());
 
-	handleInput(device, time_diff);
+	float time_diff = 1.0f / 60.0f;
+	handleInput(time_diff);
 	applyFocus();
-	draw();*/
+
+	auto swap_chain = m_device->swapChain();
+	auto render_pass =
+		m_device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
+	auto frame_buffer = m_device->getFramebuffer({swap_chain->acquiredImage()});
+
+	auto &cmds = m_device->cmdQueue();
+	cmds.beginRenderPass(frame_buffer, render_pass, none, {FColor(0.4, 0.5, 0.3)});
+	cmds.setViewport(m_viewport);
+	cmds.setScissor(none);
+	draw(render_pass);
+	m_device->finishFrame().check();
+
 	return !m_exit_please;
 }
 

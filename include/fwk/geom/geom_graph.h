@@ -12,7 +12,7 @@ namespace fwk {
 
 // A graph where each vertex also has a distinct position (2D or 3D).
 // Each edge, triangle and polygon can have duplicates though (some
-// algorithms might not work as intenged in such cases).
+// algorithms might not work as intended in such cases).
 //
 // Warning: when using rational numbers, remember to normalize them first!
 // It's still faster to normalize rationals with GCD than use std::map.

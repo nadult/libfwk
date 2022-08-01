@@ -342,7 +342,7 @@
     <ClInclude Include="..\include\fwk\gfx\pose.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\renderer2d.h">
+    <ClInclude Include="..\include\fwk\gfx\canvas_2d.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\shader_debug.h">
@@ -842,7 +842,7 @@
     <ClCompile Include="..\src\gfx\pose.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gfx\renderer2d.cpp">
+    <ClCompile Include="..\src\gfx\canvas_2d.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\shader_debug.cpp">

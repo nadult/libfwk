@@ -10,11 +10,13 @@
 #include "fwk/geom/geom_graph.h"
 #include "fwk/geom/regular_grid.h"
 #include "fwk/geom/segment_grid.h"
+#include "fwk/gfx/canvas_2d.h"
+#include "fwk/gfx/investigate.h"
 #include "fwk/math/random.h"
 #include "fwk/math/rotation.h"
 
 static void orderByDirectionTest() {
-	vector<double2> vecs{{1.1, 0.0},  {3.0, 3.0},	{1.0, 5.0},  {-2.0, 4.0},
+	vector<double2> vecs{{1.1, 0.0},  {3.0, 3.0},	 {1.0, 5.0},  {-2.0, 4.0},
 						 {-3.0, 0.0}, {-1.0, -10.0}, {5.0, -20.0}};
 	Random rand(123);
 
@@ -164,7 +166,7 @@ void testDelaunayFuncs() {
 
 static void testGeomGraph() {
 	GeomGraph<float2> graph;
-	float2 points[] = {float2(-1, 0), float2(0, 0),   float2(1, 0),
+	float2 points[] = {float2(-1, 0), float2(0, 0),	  float2(1, 0),
 					   float2(0, -1), float2(-1, -1), float2(0, 1)};
 	int indices[][2] = {{1, 0}, {3, 1}, {2, 1}, {0, 4}, {1, 5}};
 
@@ -218,6 +220,23 @@ void testSquareBorder() {
 	}
 }
 
+void testInvestigators() {
+	Random rand(1337);
+
+	vector<float2> points;
+	for(int i : intRange(1024))
+		points.emplace_back(rand.sampleBox(float2(-4), float2(4)));
+
+	auto func2 = [&](Canvas2D &canvas, double2 mouse_pos) {
+		canvas.setMaterial(IColor(ColorId::green));
+		// TODO: option to define point width in pixels
+		canvas.setPointWidth(0.1);
+		canvas.addPoints(points);
+		return "hello there!";
+	};
+	investigate(func2, none, none);
+}
+
 void testMain() {
 	testContour();
 	//testImmutableGraph();
@@ -228,6 +247,7 @@ void testMain() {
 	testGeomGraph();
 	testDelaunayFuncs();
 	testSquareBorder();
+	testInvestigators();
 }
 
 #else

@@ -2,9 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include <fwk/format.h>
+#include <fwk/gfx/canvas_2d.h>
 #include <fwk/gfx/font.h>
 #include <fwk/gfx/image.h>
-#include <fwk/gfx/renderer2d.h>
 #include <fwk/gfx/shader_compiler.h>
 #include <fwk/io/file_system.h>
 #include <fwk/sys/expected.h>
@@ -87,24 +87,24 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 		return {};
 
 	// TODO: viewport? remove orient ?
-	Renderer2D renderer(IRect(sc_extent), Orient2D::y_up);
+	Canvas2D canvas(IRect(sc_extent), Orient2D::y_up);
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
 		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
 		IColor border_color = ColorId::black;
 
-		renderer.addFilledRect(rect, IColor(fill_color));
-		renderer.addRect(rect, border_color);
+		canvas.addFilledRect(rect, fill_color);
+		canvas.addRect(rect, border_color);
 	}
 
 	auto device_name = ctx.device->physInfo().properties.deviceName;
 	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->extent(), device_name);
 	text += message;
-	ctx.font->draw(renderer, FRect({5, 5}, {200, 20}), {ColorId::white, ColorId::black}, text);
+	ctx.font->draw(canvas, FRect({5, 5}, {200, 20}), {ColorId::white, ColorId::black}, text);
 
 	auto render_pass =
 		ctx.device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
-	auto dc = EX_PASS(renderer.genDrawCall(ctx.compiler, *ctx.device, render_pass));
+	auto dc = EX_PASS(canvas.genDrawCall(ctx.compiler, *ctx.device, render_pass));
 	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
 	cmds.beginRenderPass(fb, render_pass, none, {FColor(0.0, 0.2, 0.0)});

@@ -8,6 +8,8 @@
 
 namespace fwk {
 
+class Canvas2D;
+class Canvas3D;
 class CompressedImage;
 class DynamicMesh;
 class FloatImage;
@@ -16,19 +18,13 @@ class FontCore;
 class FontFactory;
 class GlDevice;
 class Image;
-class LineBuffer;
 class MatrixStack;
 class Mesh;
 class MeshIndices;
 class Model;
 class ModelAnim;
 class ModelNode;
-class Renderer2D;
 class ShaderCompiler;
-class SpriteBuffer;
-class TriangleBuffer;
-class Visualizer2;
-class Visualizer3;
 class VulkanDevice;
 struct MeshBuffers;
 struct Pose;
@@ -44,8 +40,6 @@ DECLARE_ENUM(ColorId);
 struct ColoredTriangle;
 struct ColoredQuad;
 
-DECLARE_ENUM(GlFormat);
-
 struct FramebufferTarget;
 struct FontStyle;
 
@@ -59,12 +53,7 @@ class Camera;
 struct CameraParams;
 class CameraControl;
 
-DEFINE_ENUM(AccessMode, read_only, write_only, read_write);
-
-DEFINE_ENUM(BufferType, array, element_array, copy_read, copy_write, pixel_unpack, pixel_pack,
-			query, texture, transform_fedback, uniform, draw_indirect, atomic_counter,
-			dispatch_indirect, shader_storage);
-
+// TODO: fix these
 enum class HAlign {
 	left,
 	center,
@@ -76,9 +65,6 @@ enum class VAlign {
 	center,
 	bottom,
 };
-
-template <> inline constexpr int type_size<TriangleBuffer> = sizeof(void *) == 8 ? 112 : 84;
-template <> inline constexpr int type_size<LineBuffer> = sizeof(void *) == 8 ? 112 : 84;
 
 template <> inline constexpr bool is_flat_data<ColoredTriangle> = true;
 template <> inline constexpr bool is_flat_data<IColor> = true;

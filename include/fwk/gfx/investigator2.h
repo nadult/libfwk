@@ -10,9 +10,6 @@
 #include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
-struct Vis2Label;
-
-struct RenderList; // TODO: remove
 
 class Investigator2 {
   public:
@@ -26,8 +23,8 @@ class Investigator2 {
 
 	void handleInput(float time_diff);
 	void applyFocus();
-	vector<Vis2Label> draw(RenderList &, TextFormatter &);
-	void draw();
+	void draw(Canvas2D &, TextFormatter &);
+	void draw(PVRenderPass);
 	bool mainLoop();
 	static bool mainLoop(VulkanWindow &, void *);
 
@@ -37,6 +34,7 @@ class Investigator2 {
 	VisFunc2 m_vis_func;
 	DRect m_focus;
 
+	Dynamic<ShaderCompiler> m_compiler; // TODO
 	Dynamic<Font> m_font;
 	IRect m_viewport;
 	double2 m_view_pos, m_mouse_pos;

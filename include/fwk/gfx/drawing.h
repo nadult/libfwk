@@ -43,9 +43,11 @@ class SimpleMaterial {
 };
 
 struct SimplePipelineSetup {
-	SimpleDrawingFlags flags;
-	SimpleBlendingMode blending_mode;
-	VPrimitiveTopology primitive_topo;
+	FWK_ORDER_BY_DECL(SimplePipelineSetup);
+
+	SimpleDrawingFlags flags = none;
+	SimpleBlendingMode blending_mode = SimpleBlendingMode::disabled;
+	VPrimitiveTopology primitive_topo = VPrimitiveTopology::triangle_list;
 };
 
 struct SimpleDrawCall {
@@ -56,18 +58,6 @@ struct SimpleDrawCall {
 
 	// TODO: Add ShaderCompiler to VDevice?
 	void render(VulkanDevice &);
-
-	// Jaki render_pass ?
-	// Rendering jest po prostu zawsze do pierwszego outputu? Render pass jako parametr?
-
-	/*
-	static Ex<SimpleDrawCall> make(VulkanDevice &, CSpan<float3> vertices,
-									  CSpan<IColor> colors = {}, CSpan<float2> tex_coords = {},
-									  CSpan<float3> normals = {}, CSpan<u32> indices = {},
-									  VPrimitiveTopology = VPrimitiveTopology::triangle_list,
-									  VMemoryUsage mem_usage = VMemoryUsage::device);
-	static Ex<SimpleDrawCall> make(VulkanDevice &, CSpan<ColoredTriangle>,
-									  VMemoryUsage mem_usage = VMemoryUsage::device);*/
 
 	// Vertex data:
 	// indices, tex_coords, normals & colors are optional
@@ -88,34 +78,5 @@ struct SimpleDrawCall {
 	vector<Instance> instances;
 	vector<PVPipeline> pipelines;
 };
-
-// Potrzebujê funkcjê do narysowania zestawu draw-calli:
-//
-// Czy potrzebujê jeszcze jakiegoœ cache-a na pipeline-y ?
-//
-// funkcja jako argumentu bierze te¿ ShaderCompiler;
-// compiler jest inicjowany odpowiednimi definicjami, jeœli nie istniej¹
-//
-// jak zrobiæ cache ? i gdzie ten cache by³by trzymany ?
-// W VulkanDevice ?
-//
-// device.getCachedPipeline(compiler, function, params) ?
-// funkcja by³aby zahashowana ? czy moglibyœmy tam przekazaæ jakiœ stan ?
-//
-// To jest ok
-//
-// Po skompilowaniu pipelineów, musze siê jeszcze miêdzy nimi szybko prze³¹czaæ;
-// Czy do tego potrzebujê hash mapy ? Bo czasami ró¿nych trybów mo¿e byæ pierdyliard...
-// zwyk³a numeracja od 0 nie zadzia³a...
-//
-// Mo¿e móg³bym zwracaæ HashMapê z gotowymi pipeline-ami ?
-// Albo zwracaæ wskaŸnik na cache bazuj¹cy na konkretnej funkcji
-
-// Chcê mieæ jeden system renderingu dla 2D i 3D?
-// Jeden SimpleVertexArray powinien wystarczyæ
-// Renderer2D móg³by u¿ywaæ tego samego systemu do renderingu: nie musi byæ zajrbiœcie szybki
-
-// Draw Calle nie s¹ potrzebne?
-// Mo¿e niech zostan¹: przdadz¹ siê tez do renderingu meshy, etc.?
 
 }

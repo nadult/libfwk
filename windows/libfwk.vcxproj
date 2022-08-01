@@ -132,7 +132,7 @@
     <ClInclude Include="..\include\fwk\gfx\ortho_camera.h" />
     <ClInclude Include="..\include\fwk\gfx\plane_camera.h" />
     <ClInclude Include="..\include\fwk\gfx\pose.h" />
-    <ClInclude Include="..\include\fwk\gfx\renderer2d.h" />
+    <ClInclude Include="..\include\fwk\gfx\canvas_2d.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_compiler.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_debug.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_defs.h" />
@@ -336,7 +336,7 @@
     <ClCompile Include="..\src\gfx\ortho_camera.cpp" />
     <ClCompile Include="..\src\gfx\plane_camera.cpp" />
     <ClCompile Include="..\src\gfx\pose.cpp" />
-    <ClCompile Include="..\src\gfx\renderer2d.cpp" />
+    <ClCompile Include="..\src\gfx\canvas_2d.cpp" />
     <ClCompile Include="..\src\gfx\shader_compiler.cpp" />
     <ClCompile Include="..\src\gfx\shader_debug.cpp" />
     <ClCompile Include="..\src\gfx\shader_defs.cpp" />

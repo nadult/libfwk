@@ -30,8 +30,8 @@ namespace fwk {
 //
 // There are 3 kinds of add functions:
 // - [add*]: it simply adds new object with given parameter
-// - [fix*]: only adds new object if another one with same parameters doesn't exist
 // - [add*At]: adds new element at given index; Index should be free, otherwise it's an error
+// - [fix*]: only adds new object if another one with same parameters doesn't exist
 //   already; This function returns id and a bool which is true if new object was added
 //
 // TODO: add polygon support

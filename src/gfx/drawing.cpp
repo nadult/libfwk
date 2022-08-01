@@ -21,6 +21,7 @@ SimpleMaterial::SimpleMaterial(IColor color, DrawingFlags drawing_flags, Blendin
 	: m_color(color), m_drawing_flags(drawing_flags), m_blending_mode(blending_mode) {}
 
 FWK_ORDER_BY_DEF(SimpleMaterial, m_texture, m_color, m_drawing_flags, m_blending_mode);
+FWK_ORDER_BY_DEF(SimplePipelineSetup, flags, blending_mode, primitive_topo);
 
 void SimpleDrawCall::getVertexBindings(vector<VVertexAttrib> &attribs,
 									   vector<VVertexBinding> &bindings) {

@@ -29,6 +29,7 @@ template <class T> struct VBufferSpan {
 	u32 size() const { return m_size; }
 	u32 byteOffset() const { return m_byte_offset; }
 	u32 byteSize() const { return m_size * sizeof(T); }
+	u32 byteEndOffset() const { return m_byte_offset + byteSize(); }
 	explicit operator bool() const { return m_size != 0; }
 
 	VBufferSpan operator+(int offset) const {
@@ -62,12 +63,12 @@ template <class T> struct VBufferSpan {
 	u32 m_byte_offset, m_size;
 };
 
-template <class T> VBufferSpan<T> span(PVBuffer buffer, u32 offset, u32 size) {
-	return VBufferSpan(buffer, offset * sizeof(T), size * sizeof(T));
+template <class T> VBufferSpan<T> span(PVBuffer buffer, u32 byte_offset, u32 size) {
+	return VBufferSpan<T>(buffer, byte_offset, size);
 }
 
-inline VBufferSpan<char> span(PVBuffer buffer, u32 offset, u32 size) {
-	return VBufferSpan<char>(buffer, offset, size);
+inline VBufferSpan<char> span(PVBuffer buffer, u32 byte_offset, u32 size) {
+	return VBufferSpan<char>(buffer, byte_offset, size);
 }
 
 template <class T>

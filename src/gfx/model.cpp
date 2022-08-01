@@ -181,11 +181,11 @@ void Model::save(XmlNode xml_node) const {
 		anim.save(xml_node.addChild("anim"));
 }
 
-void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose, IColor node_color,
+/*void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose, IColor node_color,
 					  IColor line_color, float node_scale) const {
 	// TODO: output to Visualizer3?
 	// TODO: move this to model viewer
-	/*DASSERT(valid(pose));
+	DASSERT(valid(pose));
 	// TODO: ignore depth
 	SimpleMaterial node_mat(node_color, SimpleMa::ignore_depth);
 	SimpleMaterial line_mat(line_color, MaterialOpt::ignore_depth);
@@ -209,8 +209,8 @@ void Model::drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose,
 			float3 line[2] = {positions[node.id], positions[node.parent_id]};
 			lines(line);
 		}
-	}*/
-}
+	}
+}*/
 
 void Model::printHierarchy() const {
 	for(auto &node : m_nodes)

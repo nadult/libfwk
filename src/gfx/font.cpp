@@ -1,14 +1,13 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/triangle_buffer.h"
 #include "fwk/hash_map.h"
 
 #include "fwk/gfx/font.h"
 
+#include "fwk/gfx/canvas_2d.h"
 #include "fwk/gfx/font_factory.h"
 #include "fwk/gfx/font_finder.h"
-#include "fwk/gfx/renderer2d.h"
 #include "fwk/io/xml.h"
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
@@ -250,7 +249,7 @@ float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &s
 	return float2((int)(pos.x + 0.5f), (int)(pos.y + 0.5f));
 }
 
-FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
+FRect Font::draw(Canvas2D &out, const FRect &rect, const FontStyle &style,
 				 const string32 &text) const {
 	auto pos = drawPos(text, rect, style);
 
@@ -258,41 +257,20 @@ FRect Font::draw(TriangleBuffer &out, const FRect &rect, const FontStyle &style,
 	int num_verts = m_core.genQuads(text, pos_buf, uv_buf, pos) * 4;
 	CSpan<float2> positions(pos_buf.data(), num_verts), uvs(uv_buf.data(), num_verts);
 
-	if(style.shadow_color != ColorId::transparent) {
-		out.setTrans(translation(float3(1.0f, 1.0f, 0.0f)));
-		out.setMaterial(SimpleMaterial({m_texture}, (IColor)style.shadow_color));
-		out.quads(positions, uvs, {});
-	}
-
-	out.setTrans(Matrix4::identity());
-	out.setMaterial(SimpleMaterial({m_texture}, (IColor)style.text_color));
-	out.quads(positions, uvs, {});
-
-	out.setMaterial(SimpleMaterial{ColorId::white});
-
-	return enclose(positions);
-}
-
-FRect Font::draw(Renderer2D &out, const FRect &rect, const FontStyle &style,
-				 const string32 &text) const {
-	auto pos = drawPos(text, rect, style);
-
-	PodVector<float2> pos_buf(text.length() * 4), uv_buf(text.length() * 4);
-	int num_verts = m_core.genQuads(text, pos_buf, uv_buf, pos) * 4;
-	CSpan<float2> positions(pos_buf.data(), num_verts), uvs(uv_buf.data(), num_verts);
-
+	auto prev_mat = out.getMaterial();
 	if(style.shadow_color != ColorId::transparent) {
 		out.pushViewMatrix();
+		out.setMaterial(
+			SimpleMaterial{m_texture, style.shadow_color, none, SimpleBlendingMode::normal});
 		out.mulViewMatrix(translation(float3(1.0f, 1.0f, 0.0f)));
 		// TODO: increase out_rect when rendering with shadow?
 		// TODO: shadows could use same set of vertex data
-		out.addQuads(
-			positions, uvs, {},
-			SimpleMaterial{m_texture, style.shadow_color, none, SimpleBlendingMode::normal});
+		out.addQuads(positions, uvs);
 		out.popViewMatrix();
 	}
-	out.addQuads(positions, uvs, {},
-				 {m_texture, style.text_color, none, SimpleBlendingMode::normal});
+	out.setMaterial(SimpleMaterial{m_texture, style.text_color, none, SimpleBlendingMode::normal});
+	out.addQuads(positions, uvs);
+	out.setMaterial(prev_mat);
 
 	return enclose(positions);
 }

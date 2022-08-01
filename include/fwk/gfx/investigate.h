@@ -15,8 +15,8 @@ using InvestigatorOpts = EnumFlags<InvestigatorOpt>;
 
 // TODO: introspection mode ?
 
-using VisFunc2 = std::function<string(Visualizer2 &, double2 mouse_pos)>;
-using VisFunc3 = std::function<string(Visualizer3 &, double2 mouse_pos)>;
+using VisFunc2 = std::function<string(Canvas2D &, double2 mouse_pos)>;
+using VisFunc3 = std::function<string(Canvas3D &, double2 mouse_pos)>;
 
 void investigate(VisFunc2 vis_func, Maybe<DRect> focus = none,
 				 InvestigatorOpts = InvestigatorOpt::exit_when_finished |

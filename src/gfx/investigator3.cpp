@@ -5,10 +5,9 @@
 
 #include "fwk/gfx/camera_control.h"
 #include "fwk/gfx/camera_variant.h"
+#include "fwk/gfx/canvas_2d.h"
 #include "fwk/gfx/drawing.h"
-#include "fwk/gfx/font_factory.h"
-#include "fwk/gfx/font_finder.h"
-#include "fwk/gfx/renderer2d.h"
+#include "fwk/gfx/font.h"
 #include "fwk/gfx/visualizer3.h"
 #include "fwk/io/file_system.h"
 #include "fwk/math/constants.h"
@@ -28,14 +27,7 @@ namespace fwk {
 Investigator3::Investigator3(VDeviceRef device, VWindowRef window, VisFunc vis_func,
 							 InvestigatorOpts flags, Config config)
 	: m_device(device), m_window(window), m_vis_func(vis_func), m_opts(flags) {
-	auto charset = FontFactory::ansiCharset() + FontFactory::basicMathCharset();
-	// TODO: hard-code default font somehow? Keep only minimal set of glyphs?
-	auto font = findDefaultSystemFont().get();
-	auto font_size = int(14 * window->dpiScale());
-	auto font_data = FontFactory().makeFont(font.file_path, charset, font_size, false).get();
-	auto texture = VulkanImage::createAndUpload(device, font_data.image).get();
-	auto texture_view = VulkanImageView::create(device, texture);
-	m_font.emplace(font_data.core, texture_view);
+	m_font.emplace(Font::makeDefault(device, window).get());
 
 	auto new_viewport = IRect(window->extent());
 	Plane3F base_plane{{0, 1, 0}, {0, 1.5f, 0}};
@@ -127,7 +119,7 @@ void Investigator3::handleInput(vector<InputEvent> events, float time_diff) {
 
 void Investigator3::draw() {
 	auto viewport = IRect(m_window->extent());
-	Renderer2D renderer_2d(viewport, Orient2D::y_down);
+	Canvas2D canvas_2d(viewport, Orient2D::y_down);
 
 	TextFormatter fmt;
 
@@ -145,11 +137,10 @@ void Investigator3::draw() {
 
 	FontStyle style{ColorId::white, ColorId::black};
 	auto extents = m_font->evalExtents(fmt.text());
-	renderer_2d.setViewPos(float2());
-	renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
-							  {IColor(0, 0, 0, 80)});
+	canvas_2d.setViewPos(float2());
+	canvas_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)), {IColor(0, 0, 0, 80)});
 
-	m_font->draw(renderer_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
+	m_font->draw(canvas_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
 
 	FATAL("TODO: fixme");
 	//renderer_2d.render();
