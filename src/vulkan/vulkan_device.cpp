@@ -457,7 +457,7 @@ CSpan<VDescriptorBindingInfo> VulkanDevice::bindings(VDSLId dsl_id) {
 
 VDescriptorSet VulkanDevice::acquireSet(VDSLId dsl_id) {
 	auto handle = m_descriptors->acquireSet(dsl_id);
-	return VDescriptorSet(*this, handle);
+	return VDescriptorSet(*this, handle, m_descriptors->bindingMap(dsl_id));
 }
 
 VkDescriptorSetLayout VulkanDevice::handle(VDSLId dsl_id) { return m_descriptors->handle(dsl_id); }

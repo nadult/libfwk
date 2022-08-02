@@ -79,16 +79,26 @@ VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplerSetup
 	: VulkanObjectBase(handle, id), m_params(params) {}
 VulkanSampler::~VulkanSampler() { deferredRelease<vkDestroySampler>(m_handle); }
 
-void VDescriptorSet::operator()(int first_index, VDescriptorType type,
-								CSpan<VBufferSpan<char>> buffers) {
+void VDescriptorSet::set(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>> values) {
+	u64 bits = ((1ull << values.size()) - 1ull) << first_index;
+	if((bits & bindings_map) != bits) {
+		bits = bits & bindings_map >> first_index;
+		if(values.size() > 1) {
+			for(int i : intRange(values))
+				if(bits & (1ull << i))
+					set(first_index + i, type, values.subSpan(i, i + 1));
+		} else if(!bits)
+			return;
+	}
+
 	array<VkDescriptorBufferInfo, 16> static_infos;
 	PodVector<VkDescriptorBufferInfo> dynamic_infos;
-	if(buffers.size() > static_infos.size())
-		dynamic_infos.resize(buffers.size());
+	if(values.size() > static_infos.size())
+		dynamic_infos.resize(values.size());
 	auto *infos = dynamic_infos ? dynamic_infos.data() : static_infos.data();
 
-	for(int i : intRange(buffers)) {
-		auto span = buffers[i];
+	for(int i : intRange(values)) {
+		auto span = values[i];
 		if(!span)
 			span = device->dummyBuffer();
 		infos[i] = {span.buffer(), VkDeviceSize(span.byteOffset()), VkDeviceSize(span.byteSize())};
@@ -97,27 +107,38 @@ void VDescriptorSet::operator()(int first_index, VDescriptorType type,
 	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
 	write.dstSet = handle;
 	write.dstBinding = first_index;
-	write.descriptorCount = buffers.size();
+	write.descriptorCount = values.size();
 	write.descriptorType = toVk(type);
 	write.pBufferInfo = infos;
 	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }
 
-void VDescriptorSet::operator()(int first_index, CSpan<Pair<PVSampler, PVImageView>> pairs) {
+void VDescriptorSet::set(int first_index, CSpan<Pair<PVSampler, PVImageView>> values) {
+	u64 bits = ((1ull << values.size()) - 1ull) << first_index;
+	if((bits & bindings_map) != bits) {
+		bits = bits & bindings_map >> first_index;
+		if(values.size() > 1) {
+			for(int i : intRange(values))
+				if(bits & (1ull << i))
+					set(first_index + i, values.subSpan(i, i + 1));
+		} else if(!bits)
+			return;
+	}
+
 	array<VkDescriptorImageInfo, 16> static_infos;
 	PodVector<VkDescriptorImageInfo> dynamic_infos;
-	if(pairs.size() > static_infos.size())
-		dynamic_infos.resize(pairs.size());
+	if(values.size() > static_infos.size())
+		dynamic_infos.resize(values.size());
 	auto *infos = dynamic_infos ? dynamic_infos.data() : static_infos.data();
 
-	for(int i : intRange(pairs)) {
-		auto &pair = pairs[i];
+	for(int i : intRange(values)) {
+		auto &pair = values[i];
 		auto image = pair.second ? pair.second : device->dummyImage2D();
 		infos[i] = {pair.first, image, toVk(VImageLayout::shader_ro)};
 	}
 
 	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-	write.descriptorCount = pairs.size();
+	write.descriptorCount = values.size();
 	write.dstSet = handle;
 	write.dstBinding = first_index;
 	write.dstArrayElement = 0;

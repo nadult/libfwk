@@ -19,7 +19,7 @@ DEFINE_ENUM(VTag, cmd, ds, dsl, device, window, physical_device, queue_family, d
 struct VulkanLimits {
 	static constexpr int max_color_attachments = 8;
 	static constexpr int max_descr_sets = 32;
-	static constexpr int max_descr_bindings = 1024 * 1024;
+	static constexpr int max_descr_bindings = 64;
 
 	static constexpr int max_descr_set_layouts = 32 * 1024;
 	static constexpr int max_descr_sets_per_layout = 64 * 1024;

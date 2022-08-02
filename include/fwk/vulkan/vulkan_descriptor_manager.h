@@ -25,6 +25,7 @@ class VulkanDescriptorManager {
 	// This should only be called between beginFrame & finishFrame
 	VkDescriptorSet acquireSet(VDSLId);
 
+	u64 bindingMap(VDSLId) const;
 	CSpan<VDescriptorBindingInfo> bindings(VDSLId) const;
 
 	void beginFrame(uint swap_frame_index);
@@ -52,7 +53,7 @@ class VulkanDescriptorManager {
 		static constexpr int num_initial_sets = 10;
 
 		uint first_binding, num_bindings; // TODO: binding_infos ?
-		uint temp[2];
+		u64 binding_map = 0;
 		VkDescriptorSetLayout layout = nullptr;
 		VkDescriptorPool pool = nullptr;
 		uint num_allocated = 0, num_used = 0;

@@ -367,6 +367,12 @@ void VulkanCommandQueue::dispatchCompute(int3 size) {
 	vkCmdDispatch(m_cur_cmd_buffer, size.x, size.y, size.z);
 }
 
+void VulkanCommandQueue::dispatchComputeIndirect(VBufferSpan<char> buffer_span, u32 offset) {
+	PASSERT(m_status == Status::frame_running);
+	vkCmdDispatchIndirect(m_cur_cmd_buffer, buffer_span.buffer(),
+						  buffer_span.byteOffset() + offset);
+}
+
 uint VulkanCommandQueue::timestampQuery() {
 	PASSERT(m_status == Status::frame_running);
 	auto &frame = m_frames[m_swap_index];

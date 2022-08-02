@@ -116,11 +116,11 @@ void SimpleDrawCall::render(VulkanDevice &device) {
 
 	auto &cmds = device.cmdQueue();
 	cmds.bind(pipelines.front());
-	cmds.bindDS(0)(0, instance_matrices);
+	cmds.bindDS(0).set(0, instance_matrices);
 
 	int prev_pipeline_idx = -1;
 	PVImageView prev_tex;
-	cmds.bindDS(1)(0, {{sampler, prev_tex}});
+	cmds.bindDS(1).set(0, {{sampler, prev_tex}});
 
 	cmds.bindVertices(0, vertices, tex_coords, colors);
 	if(indices)
@@ -133,7 +133,8 @@ void SimpleDrawCall::render(VulkanDevice &device) {
 			prev_pipeline_idx = instance.pipeline_index;
 
 			if(instance.texture != prev_tex) {
-				cmds.bindDS(1)(0, {{sampler, instance.texture}});
+				// TODO: we need as many DSes as we have different textures
+				cmds.bindDS(1).set(0, {{sampler, instance.texture}});
 				prev_tex = instance.texture;
 			}
 		}

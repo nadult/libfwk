@@ -25,6 +25,10 @@ template <class T> struct VBufferSpan {
 		: m_buffer(buffer), m_byte_offset(byte_offset), m_size(size) {}
 	VBufferSpan() : m_byte_offset(0), m_size(0) {}
 
+	operator VBufferSpan<char>() const {
+		return VBufferSpan<char>(m_buffer, m_byte_offset, byteSize(), no_asserts);
+	}
+
 	PVBuffer buffer() const { return m_buffer; }
 	u32 size() const { return m_size; }
 	u32 byteOffset() const { return m_byte_offset; }

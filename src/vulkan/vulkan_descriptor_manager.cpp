@@ -58,6 +58,8 @@ VDSLId VulkanDescriptorManager::getLayout(CSpan<VDescriptorBindingInfo> bindings
 	FWK_VK_CALL(vkCreateDescriptorSetLayout, m_device_handle, &ci, nullptr, &new_dsl.layout);
 	new_dsl.pool = allocPool(bindings, DSL::num_initial_sets);
 	allocSets(new_dsl.pool, new_dsl.layout, new_dsl.handles);
+	for(auto binding : bindings)
+		new_dsl.binding_map |= 1ull << binding.binding();
 	new_dsl.first_binding = m_declarations.size();
 	new_dsl.num_bindings = bindings.size();
 	new_dsl.num_allocated = DSL::num_initial_sets;
@@ -110,6 +112,8 @@ VkDescriptorSet VulkanDescriptorManager::acquireSet(VDSLId dsl_id) {
 	return dsl.num_allocated <= DSL::num_initial_sets ? dsl.handles[index] :
 														  dsl.more_handles[index];
 }
+
+u64 VulkanDescriptorManager::bindingMap(VDSLId dsl_id) const { return m_dsls[dsl_id].binding_map; }
 
 CSpan<VDescriptorBindingInfo> VulkanDescriptorManager::bindings(VDSLId dsl_id) const {
 	auto &dsl = m_dsls[dsl_id];

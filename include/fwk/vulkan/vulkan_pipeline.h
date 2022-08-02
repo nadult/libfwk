@@ -255,33 +255,30 @@ struct VDescriptorBindingInfo {
 	u64 value = 0;
 };
 
-// TODO: just use span
-struct BufferRange {
-	u32 offset = 0, size = 0;
-};
-
 // DescriptorSets can only be used during the same frame during which they were acquired
 struct VDescriptorSet {
-	VDescriptorSet(VulkanDevice &device, VkDescriptorSet handle)
-		: device(&device), handle(handle) {}
+	VDescriptorSet(VulkanDevice &device, VkDescriptorSet handle, u64 bindings_map)
+		: device(&device), handle(handle), bindings_map(bindings_map) {}
 	VDescriptorSet() {}
 
-	void operator()(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>>);
-	void operator()(int first_index, CSpan<Pair<PVSampler, PVImageView>>);
+	void set(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>>);
+	void set(int first_index, CSpan<Pair<PVSampler, PVImageView>>);
 
-	template <class... Args> void operator()(int first_index, const VBufferSpan<Args> &...args) {
-		operator()(first_index, VDescriptorType::storage_buffer,
-				   {args.template reinterpret<char>()...});
+	template <class... Args> void set(int first_index, const VBufferSpan<Args> &...args) {
+		set(first_index, VDescriptorType::storage_buffer, {args.template reinterpret<char>()...});
 	}
 
 	template <class... Args>
-	void operator()(int first_index, VDescriptorType type, const VBufferSpan<Args> &...args) {
-		operator()(first_index, type, {args.template reinterpret<char>()...});
+	void set(int first_index, VDescriptorType type, const VBufferSpan<Args> &...args) {
+		set(first_index, type, {args.template reinterpret<char>()...});
 	}
+
+	bool isPresent(int binding_index) const { return bindings_map & (1ull << binding_index); }
 
 	// TODO: encode device_id in set_id
 	VulkanDevice *device = nullptr;
 	VkDescriptorSet handle = nullptr;
+	u64 bindings_map = 0;
 };
 
 class VulkanSampler : public VulkanObjectBase<VulkanSampler> {
