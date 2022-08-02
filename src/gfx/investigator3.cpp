@@ -128,7 +128,7 @@ string Investigator3::draw(PVRenderPass render_pass) {
 }
 
 bool Investigator3::mainLoop() {
-	float time_diff = 1.0f / 60.0f;
+	auto time_diff = m_window->frameTimeDiff().orElse(1.0f / 60.0f);
 
 	handleInput(m_window->inputEvents(), time_diff);
 	if(m_cam_control)

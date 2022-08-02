@@ -166,8 +166,7 @@ void Investigator2::draw(PVRenderPass render_pass) {
 bool Investigator2::mainLoop() {
 	m_viewport = IRect(m_window->size());
 	m_view_scale = min(m_viewport.width(), m_viewport.height());
-
-	float time_diff = 1.0f / 60.0f;
+	auto time_diff = m_window->frameTimeDiff().orElse(1.0f / 60.0f);
 	handleInput(time_diff);
 	applyFocus();
 

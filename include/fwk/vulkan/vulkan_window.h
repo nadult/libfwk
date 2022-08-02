@@ -62,6 +62,7 @@ class VulkanWindow {
 	bool isMinimized() const { return flags() & Flag::minimized; }
 
 	Maybe<double> fps() const;
+	Maybe<double> frameTimeDiff() const;
 
 	void grabMouse(bool);
 	void showCursor(bool);

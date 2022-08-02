@@ -38,9 +38,12 @@ struct VulkanWindow::Impl {
 	VkSurfaceKHR surface_handle = 0;
 	vector<InputEvent> input_events;
 
-	double prev_time = -1.0;
+	double prev_fps_time = -1.0;
 	double fps = 0;
 	int num_frames = 0;
+
+	double last_frame_time = -1.0;
+	double frame_diff_time = -1.0;
 
 	bool sdl_initialized = false;
 	bool is_closing = false;
@@ -285,28 +288,38 @@ void VulkanWindow::runMainLoop(MainLoopFunction main_loop_func, void *arg) {
 
 void VulkanWindow::updateFPS(bool reset) {
 	if(reset) {
-		m_impl->prev_time = -1.0;
+		m_impl->prev_fps_time = -1.0;
+		m_impl->last_frame_time = -1.0;
+		m_impl->frame_diff_time = -1.0;
 		m_impl->num_frames = 0;
 		m_impl->fps = 0.0;
 		return;
 	}
 
 	double time = getTime();
-	if(m_impl->prev_time < 0.0)
-		m_impl->prev_time = time;
+	if(m_impl->prev_fps_time < 0.0)
+		m_impl->prev_fps_time = time;
 	else {
 		m_impl->num_frames++;
-		auto diff = time - m_impl->prev_time;
+		auto diff = time - m_impl->prev_fps_time;
 		if(diff > 1.0) {
 			m_impl->fps = double(m_impl->num_frames) / diff;
 			m_impl->num_frames = 0;
-			m_impl->prev_time = time;
+			m_impl->prev_fps_time = time;
 		}
 	}
+
+	if(m_impl->last_frame_time >= 0.0)
+		m_impl->frame_diff_time = time - m_impl->last_frame_time;
+	m_impl->last_frame_time = time;
 }
 
 Maybe<double> VulkanWindow::fps() const {
 	return m_impl->fps == 0.0 ? Maybe<double>() : m_impl->fps;
+}
+
+Maybe<double> VulkanWindow::frameTimeDiff() const {
+	return m_impl->frame_diff_time < 0.0 ? Maybe<double>() : m_impl->frame_diff_time;
 }
 
 void VulkanWindow::grabMouse(bool grab) {
