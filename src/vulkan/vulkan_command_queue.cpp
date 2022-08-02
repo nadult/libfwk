@@ -344,7 +344,7 @@ void VulkanCommandQueue::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass
 	if(render_area)
 		bi.renderArea = toVkRect(*render_area);
 	else
-		bi.renderArea.extent = toVkExtent(framebuffer->extent());
+		bi.renderArea.extent = toVkExtent(framebuffer->size());
 	bi.clearValueCount = clear_values.size();
 	bi.pClearValues = reinterpret_cast<const VkClearValue *>(clear_values.data());
 	bi.framebuffer = framebuffer;

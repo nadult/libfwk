@@ -29,12 +29,12 @@ Investigator3::Investigator3(VDeviceRef device, VWindowRef window, VisFunc3 vis_
 	m_font.emplace(Font::makeDefault(device, window).get());
 	m_compiler.emplace();
 
-	auto new_viewport = IRect(window->extent());
+	auto new_viewport = IRect(window->size());
 	Plane3F base_plane{{0, 1, 0}, {0, 1.5f, 0}};
 
 	if(!config.focus) {
 		// TODO: RenderList is not necessary here
-		Canvas3D canvas(IRect(window->extent()), Matrix4::identity(), Matrix4::identity());
+		Canvas3D canvas(new_viewport, Matrix4::identity(), Matrix4::identity());
 		m_vis_func(canvas, double2());
 
 		FBox sum;
@@ -115,7 +115,7 @@ void Investigator3::handleInput(vector<InputEvent> events, float time_diff) {
 }
 
 string Investigator3::draw(PVRenderPass render_pass) {
-	auto viewport = IRect(m_window->extent());
+	auto viewport = IRect(m_window->size());
 
 	m_cam_control->o_config.params.viewport = viewport;
 	auto cam = m_cam_control->currentCamera();
@@ -135,7 +135,7 @@ bool Investigator3::mainLoop() {
 		m_cam_control->tick(time_diff, false);
 
 	auto swap_chain = m_device->swapChain();
-	IRect viewport(m_window->extent());
+	IRect viewport(m_window->size());
 	if(!m_depth_buffer || m_depth_buffer->size2D() != viewport.size()) {
 		auto format = m_device->bestSupportedFormat(VDepthStencilFormat::d24_x8);
 		auto buffer = VulkanImage::create(m_device, VImageSetup(format, viewport.size())).get();

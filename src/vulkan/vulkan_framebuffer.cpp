@@ -26,14 +26,14 @@ PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, PVRenderPass render_p
 		attachments[i] = colors[i];
 	if(depth)
 		attachments[num_attachments++] = depth;
-	auto extent = colors[0]->size().xy(); // TODO: size2d?
+	auto size = colors[0]->size2D();
 
 	VkFramebufferCreateInfo ci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 	ci.renderPass = render_pass;
 	ci.attachmentCount = num_attachments;
 	ci.pAttachments = attachments.data();
-	ci.width = uint(extent.x);
-	ci.height = uint(extent.y);
+	ci.width = uint(size.x);
+	ci.height = uint(size.y);
 	ci.layers = 1;
 
 	VkFramebuffer handle;
@@ -41,7 +41,7 @@ PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, PVRenderPass render_p
 	auto out = device->createObject(handle);
 	out->m_colors = colors;
 	out->m_depth = depth;
-	out->m_extent = extent;
+	out->m_size = size;
 	return out;
 }
 

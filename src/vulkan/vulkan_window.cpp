@@ -144,9 +144,7 @@ IRect VulkanWindow::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_
 
 void VulkanWindow::setTitle(ZStr title) { SDL_SetWindowTitle(m_impl->window, title.c_str()); }
 
-void VulkanWindow::setExtent(const int2 &size) {
-	SDL_SetWindowSize(m_impl->window, size.x, size.y);
-}
+void VulkanWindow::setSize(const int2 &size) { SDL_SetWindowSize(m_impl->window, size.x, size.y); }
 
 void VulkanWindow::setRect(IRect rect) {
 	SDL_SetWindowSize(m_impl->window, rect.width(), rect.height());
@@ -155,7 +153,7 @@ void VulkanWindow::setRect(IRect rect) {
 
 IRect VulkanWindow::rect() const {
 	int2 pos, size;
-	size = this->extent();
+	size = this->size();
 	SDL_GetWindowPosition(m_impl->window, &pos.x, &pos.y);
 	if(platform == Platform::linux) {
 		// Workaround for SDL2 bug on linux platforms
@@ -226,7 +224,7 @@ float VulkanWindow::dpiScale() const {
 
 VWindowFlags VulkanWindow::flags() const { return m_impl->flags; }
 
-int2 VulkanWindow::extent() const {
+int2 VulkanWindow::size() const {
 	int2 out;
 	SDL_GetWindowSize(m_impl->window, &out.x, &out.y);
 	return out;

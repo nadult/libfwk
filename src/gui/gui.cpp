@@ -291,7 +291,7 @@ void Gui::beginFrame(VulkanWindow &window) {
 
 	// TODO: io.AddInputCharactersUTF8(event->text.text);
 
-	io.DisplaySize = (ImVec2)float2(window.extent());
+	io.DisplaySize = (ImVec2)float2(window.size());
 	// TODO:
 	//io.DisplayFramebufferScale =
 	//	ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);

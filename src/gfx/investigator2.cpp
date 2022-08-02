@@ -28,7 +28,7 @@ Investigator2::Investigator2(VDeviceRef device, VWindowRef window, VisFunc2 vis_
 		// TODO: pscale is invalid
 		auto pscale = 1.0 / (m_scale * m_view_scale);
 
-		Canvas2D canvas(IRect(window->extent()), Orient2D::y_up);
+		Canvas2D canvas(IRect(window->size()), Orient2D::y_up);
 		canvas.setPointWidth(pscale);
 		canvas.setSegmentWidth(pscale);
 		m_vis_func(canvas, double2());
@@ -164,7 +164,7 @@ void Investigator2::draw(PVRenderPass render_pass) {
 }
 
 bool Investigator2::mainLoop() {
-	m_viewport = IRect(m_window->extent());
+	m_viewport = IRect(m_window->size());
 	m_view_scale = min(m_viewport.width(), m_viewport.height());
 
 	float time_diff = 1.0f / 60.0f;

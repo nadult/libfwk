@@ -22,8 +22,7 @@ class VulkanFramebuffer : public VulkanObjectBase<VulkanFramebuffer> {
 	CSpan<PVImageView> colors() const { return m_colors; }
 	PVImageView depth() const { return m_depth; }
 	bool hasDepth() const { return m_depth; }
-
-	int2 extent() const { return m_extent; }
+	int2 size() const { return m_size; }
 
   private:
 	friend class VulkanDevice;
@@ -32,6 +31,6 @@ class VulkanFramebuffer : public VulkanObjectBase<VulkanFramebuffer> {
 
 	StaticVector<PVImageView, max_color_atts> m_colors;
 	PVImageView m_depth;
-	int2 m_extent;
+	int2 m_size;
 };
 }

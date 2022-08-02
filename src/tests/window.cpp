@@ -80,14 +80,13 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	PERF_GPU_SCOPE(cmds);
 
 	auto swap_chain = ctx.device->swapChain();
-	auto sc_extent = swap_chain->extent();
 
 	// Not drawing if swap chain is not available
 	if(swap_chain->status() != VSwapChainStatus::image_acquired)
 		return {};
 
 	// TODO: viewport? remove orient ?
-	Canvas2D canvas(IRect(sc_extent), Orient2D::y_up);
+	Canvas2D canvas(IRect(swap_chain->size()), Orient2D::y_up);
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
 		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);
@@ -98,7 +97,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	}
 
 	auto device_name = ctx.device->physInfo().properties.deviceName;
-	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->extent(), device_name);
+	auto text = format("Window size: %\nVulkan device: %\n", ctx.window->size(), device_name);
 	text += message;
 	ctx.font->draw(canvas, FRect({5, 5}, {200, 20}), {ColorId::white, ColorId::black}, text);
 
@@ -108,7 +107,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
 	cmds.beginRenderPass(fb, render_pass, none, {FColor(0.0, 0.2, 0.0)});
-	cmds.setViewport(IRect(sc_extent));
+	cmds.setViewport(IRect(swap_chain->size()));
 	cmds.setScissor(none);
 
 	dc.render(*ctx.device);
@@ -159,7 +158,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	PERF_SCOPE();
 
 	auto &ctx = *(VulkanContext *)ctx_;
-	static vector<float2> positions(15, float2(window.extent() / 2));
+	static vector<float2> positions(15, float2(window.size() / 2));
 
 	// TODO: begin & finishFrame w gui znacz¹ coœ innego ni¿ w devce; nazwijmy to inaczej
 	ctx.gui->beginFrame(window);

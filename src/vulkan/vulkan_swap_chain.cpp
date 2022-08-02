@@ -111,7 +111,7 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 
 	// TODO: handle minimized extents
 	m_format = ci.imageFormat;
-	m_extent = int2(ci.imageExtent.width, ci.imageExtent.height);
+	m_size = int2(ci.imageExtent.width, ci.imageExtent.height);
 
 	FWK_VK_EXPECT_CALL(vkCreateSwapchainKHR, device, &ci, nullptr, &m_handle);
 

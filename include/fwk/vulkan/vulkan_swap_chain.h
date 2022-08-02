@@ -24,7 +24,7 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 	static Ex<PVSwapChain> create(VDeviceRef, VWindowRef, const VSwapChainSetup &);
 
 	VkFormat format() const { return m_format; }
-	int2 extent() const { return m_extent; }
+	int2 size() const { return m_size; }
 	int numImages() const { return m_image_views.size(); }
 
 	using Status = VSwapChainStatus;
@@ -58,7 +58,7 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 	VkSemaphore m_semaphores[2] = {};
 	VkQueue m_present_queue;
 	VkFormat m_format;
-	int2 m_extent;
+	int2 m_size;
 	uint m_image_index = 0;
 	Status m_status = Status::initialized;
 };
