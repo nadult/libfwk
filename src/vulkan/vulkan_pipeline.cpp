@@ -103,10 +103,6 @@ void VDescriptorSet::operator()(int first_index, VDescriptorType type,
 	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }
 
-void VDescriptorSet::operator()(int first_index, CSpan<VBufferSpan<char>> buffers) {
-	(*this)(first_index, VDescriptorType::storage_buffer, buffers);
-}
-
 void VDescriptorSet::operator()(int first_index, CSpan<Pair<PVSampler, PVImageView>> pairs) {
 	array<VkDescriptorImageInfo, 16> static_infos;
 	PodVector<VkDescriptorImageInfo> dynamic_infos;

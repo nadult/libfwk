@@ -306,8 +306,14 @@ void VulkanCommandQueue::bindVertices(uint first_binding, CSpan<VBufferSpan<char
 
 	DASSERT(vbuffers.size() <= max_bindings);
 	for(int i : intRange(vbuffers)) {
-		buffers[i] = vbuffers[i].buffer();
-		offsets_64[i] = vbuffers[i].byteOffset();
+		auto &vbuffer = vbuffers[i];
+		if(vbuffer) {
+			buffers[i] = vbuffers[i].buffer();
+			offsets_64[i] = vbuffers[i].byteOffset();
+		} else {
+			buffers[i] = m_device.dummyBuffer();
+			offsets_64[i] = 0;
+		}
 	}
 	vkCmdBindVertexBuffers(m_cur_cmd_buffer, first_binding, vbuffers.size(), buffers, offsets_64);
 }

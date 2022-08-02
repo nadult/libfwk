@@ -63,6 +63,9 @@ class VulkanCommandQueue {
 			  VImageLayout dst_layout = VImageLayout::shader_ro);
 
 	void fill(VBufferSpan<> dst, u32 value);
+	template <class T> void fill(VBufferSpan<T> dst, u32 value) {
+		fill(dst.template reinterpret<char>(), value);
+	}
 
 	void bind(PVPipeline);
 	void bindVertices(uint first_binding, CSpan<VBufferSpan<>>);

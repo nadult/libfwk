@@ -43,6 +43,9 @@ class Image {
 	void resize(int2, Maybe<IColor> fill = IColor(ColorId::black));
 	Image rescale(int2 new_size, ImageRescaleOpts opts = none) const;
 
+	static int maxMipmapLevels(int max_dimension) { return int(log2(max_dimension)) + 1; }
+	static int maxMipmapLevels(int2 size) { return maxMipmapLevels(max(size.x, size.y)); }
+
 	void clear();
 	void fill(IColor);
 
