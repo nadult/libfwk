@@ -178,13 +178,13 @@ VInstanceRef VulkanInstance::ref() {
 	return {};
 }
 
-Ex<VInstanceRef> VulkanInstance::create(const VInstanceSetup &setup) {
+Ex<VInstanceRef> VulkanInstance::create(VInstanceSetup setup) {
 	auto ref = EX_PASS(g_vk_storage.allocInstance());
 	EXPECT(ref->initialize(setup));
 	return ref;
 }
 
-Ex<void> VulkanInstance::initialize(const VInstanceSetup &setup) {
+Ex<void> VulkanInstance::initialize(VInstanceSetup setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
 
 	if(setup.version < VulkanVersion(1, 2, 0))
@@ -195,8 +195,22 @@ Ex<void> VulkanInstance::initialize(const VInstanceSetup &setup) {
 	if(enable_validation) {
 		auto debug_ext = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 		auto debug_layer = "VK_LAYER_KHRONOS_validation";
-		extensions.emplace_back(debug_ext);
-		layers.emplace_back(debug_layer);
+
+		bool ext_available = isOneOf(debug_ext, availableExtensions());
+		bool layer_available = isOneOf(debug_layer, availableLayers());
+		if(ext_available && layer_available) {
+			extensions.emplace_back(debug_ext);
+			layers.emplace_back(debug_layer);
+		} else {
+			print("Vulkan validation NOT enabled:\n");
+			if(!ext_available)
+				print("% instance extension not available\n", debug_ext);
+			if(!layer_available)
+				print("% instance layer not available\n", debug_layer);
+			enable_validation = false;
+			setup.debug_levels = none;
+			setup.debug_types = none;
+		}
 	}
 
 	insertBack(extensions, vulkanSurfaceExtensions());
@@ -325,5 +339,4 @@ Ex<VDeviceRef> VulkanInstance::createDevice(VPhysicalDeviceId phys_id, const VDe
 	EXPECT(ref->initialize(setup));
 	return ref;
 }
-
 }

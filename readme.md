@@ -6,6 +6,10 @@ FWK is a sweet (IMVHO) abbreviation for framework. It is basically a set of clas
 and functions which I use in most of my projects (mostly game-related). It's trying
 to be light, super easy to use and performant where it matters.
 
+Note: currently FWK's graphics module is being converted from OpenGL to Vulkan, so some
+functionality is disabled, there may be some errors in newly modified code. Also currently
+libfwk can only be compiled on Windows/MSVC. Fixing linux makefiles is still on TODO list.
+
 TODO: write more detailed description.
 
 ## Features

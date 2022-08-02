@@ -76,7 +76,7 @@ class VulkanInstance {
 
 	static bool isPresent();
 	static VInstanceRef ref();
-	static Ex<VInstanceRef> create(const VInstanceSetup &);
+	static Ex<VInstanceRef> create(VInstanceSetup);
 
 	bool valid(VPhysicalDeviceId) const;
 	const VulkanPhysicalDeviceInfo &info(VPhysicalDeviceId) const;
@@ -95,7 +95,7 @@ class VulkanInstance {
 	VulkanInstance();
 	~VulkanInstance();
 
-	Ex<void> initialize(const VInstanceSetup &);
+	Ex<void> initialize(VInstanceSetup);
 
 	VulkanInstance(const VulkanInstance &) = delete;
 	void operator=(const VulkanInstance &) = delete;
