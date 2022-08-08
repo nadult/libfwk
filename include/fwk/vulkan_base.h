@@ -125,6 +125,18 @@ DEFINE_ENUM(VPresentMode, immediate, mailbox, fifo, fifo_relaxed);
 DEFINE_ENUM(VLoadOp, load, clear, dont_care, none);
 DEFINE_ENUM(VStoreOp, store, dont_care, none);
 
+DEFINE_ENUM(VPipeStage, top, draw_indirect, vertex_input, vertex_shader, tess_control_shader,
+			tess_evaluation_shader, geometry_shader, fragment_shader, early_fragment_tests,
+			late_fragment_tests, color_att_output, compute_shader, transfer, bottom, host,
+			all_graphics, all_commands);
+using VPipeStages = EnumFlags<VPipeStage>;
+
+DEFINE_ENUM(VAccess, indirect_command_read, index_read, vertex_attribute_read, uniform_read,
+			input_attachment_read, shader_read, shader_write, color_att_read, color_att_write,
+			depth_stencil_att_read, depth_stencil_att_write, transfer_read, transfer_write,
+			host_read, host_write, memory_read, memory_write);
+using VAccessFlags = EnumFlags<VAccess>;
+
 DEFINE_ENUM(VDepthStencilFormat, d16, d24_x8, d32f, s8, d16_s8, d24_s8, d32f_s8);
 using VDepthStencilFormats = EnumFlags<VDepthStencilFormat>;
 inline bool hasStencil(VDepthStencilFormat format) { return format >= VDepthStencilFormat::s8; }

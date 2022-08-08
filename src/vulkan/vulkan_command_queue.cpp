@@ -373,6 +373,21 @@ void VulkanCommandQueue::dispatchComputeIndirect(VBufferSpan<char> buffer_span, 
 						  buffer_span.byteOffset() + offset);
 }
 
+void VulkanCommandQueue::barrier(VPipeStages src, VPipeStages dst, VAccessFlags mem_src,
+								 VAccessFlags mem_dst) {
+	if(mem_src || mem_dst) {
+		VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+		barrier.srcAccessMask = mem_src.bits;
+		barrier.dstAccessMask = mem_dst.bits;
+
+		vkCmdPipelineBarrier(m_cur_cmd_buffer, toVk(src), toVk(dst), 0, 1, &barrier, 0, nullptr, 0,
+							 nullptr);
+	} else {
+		vkCmdPipelineBarrier(m_cur_cmd_buffer, toVk(src), toVk(dst), 0, 0, nullptr, 0, nullptr, 0,
+							 nullptr);
+	}
+}
+
 uint VulkanCommandQueue::timestampQuery() {
 	PASSERT(m_status == Status::frame_running);
 	auto &frame = m_frames[m_swap_index];

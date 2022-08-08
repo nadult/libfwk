@@ -98,6 +98,9 @@ class VulkanCommandQueue {
 	void dispatchCompute(int3 size);
 	void dispatchComputeIndirect(VBufferSpan<char>, u32 offset);
 
+	void barrier(VPipeStages src, VPipeStages dst, VAccessFlags mem_src = none,
+				 VAccessFlags mem_dst = none);
+
 	uint timestampQuery();
 	void perfTimestampQuery(uint sample_id);
 
