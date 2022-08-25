@@ -100,6 +100,8 @@ class SlabAllocator {
 		int slabCount() const { return int((value >> 11) & 0x7ff) + 1; }
 		int slabZoneId() const { return int(value >> 22); }
 
+		void operator>>(TextFormatter &) const;
+
 		u32 value = 0;
 	};
 

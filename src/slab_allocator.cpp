@@ -25,6 +25,16 @@ static int findClosestChunk(u32 size) {
 
 static u64 defaultZoneAllocator(u64 size, uint, void *) { return size; }
 
+void SlabAllocator::Identifier::operator>>(TextFormatter &fmt) const {
+	if(!isValid())
+		fmt("invalid");
+	else if(isChunkAlloc())
+		fmt("chunk_id:% group:% level:% size:%", chunkId(), chunkGroupId(), chunkLevelId(),
+			chunkSize(chunkLevelId()));
+	else
+		fmt("slab_id:% zone:% size:%*%K", slabId(), slabZoneId(), slabCount(), slab_size / 1024);
+}
+
 SlabAllocator::SlabAllocator(u64 default_zone_size)
 	: SlabAllocator(default_zone_size, {defaultZoneAllocator}) {}
 SlabAllocator::SlabAllocator(u64 default_zone_size, ZoneAllocator zone_alloc)

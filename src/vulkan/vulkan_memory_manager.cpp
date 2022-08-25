@@ -75,15 +75,18 @@ void VulkanMemoryManager::freeDeferred(int frame_index) {
 }
 
 void VulkanMemoryManager::beginFrame() {
-	if(!m_is_initial_frame) {
+	if(!m_is_initial_frame)
 		m_frame_index = (m_frame_index + 1) % num_frames;
-		freeDeferred(m_frame_index);
-	}
+	if(m_logging)
+		print("VulkanMemory: begin frame: % -----------------------------------\n", m_frame_index);
+	freeDeferred(m_frame_index);
 	m_is_initial_frame = false;
 	m_frames[m_frame_index].offset = 0;
 }
 
 void VulkanMemoryManager::finishFrame() {
+	if(m_logging)
+		print("VulkanMemory: finish frame: % ----------------------------------\n", m_frame_index);
 	if(m_flush_ranges) {
 		// TODO: make sure that all ranges are actually mapped
 		// If not, then they should be flushed before unmapping
@@ -119,6 +122,7 @@ Ex<VMemoryBlock> VulkanMemoryManager::unmanagedAlloc(VMemoryDomain domain_id, u3
 		domain.unmanaged_memory.emplace_back(handle, nullptr);
 	}
 	VMemoryBlockId alloc_id(VMemoryBlockType::unmanaged, domain_id, u16(index), 0);
+	log("alloc", alloc_id);
 	return VMemoryBlock{alloc_id, domain.unmanaged_memory.back().handle, 0, size};
 }
 
@@ -134,6 +138,7 @@ Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryDomain domain_id, u32 size, u
 		auto [ident, alloc] = domain.slab_alloc->alloc(size);
 		if(ident.isValid()) {
 			VMemoryBlockId block_id(VMemoryBlockType::slab, domain_id, alloc.zone_id, ident.value);
+			log("alloc", block_id);
 			return VMemoryBlock{block_id, domain.slab_memory[alloc.zone_id].handle,
 								u32(alloc.offset), u32(alloc.size)};
 		}
@@ -145,6 +150,7 @@ Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryDomain domain_id, u32 size, u
 void VulkanMemoryManager::immediateFree(VMemoryBlockId ident) {
 	DASSERT(ident.valid());
 
+	log("free", ident);
 	switch(ident.type()) {
 	case VMemoryBlockType::unmanaged: {
 		auto &mem = m_domains[ident.domain()].unmanaged_memory[ident.zoneId()];
@@ -165,6 +171,7 @@ void VulkanMemoryManager::immediateFree(VMemoryBlockId ident) {
 
 void VulkanMemoryManager::deferredFree(VMemoryBlockId ident) {
 	DASSERT(ident.valid());
+	log("deferred_free", ident);
 	if(ident.type() == VMemoryBlockType::frame)
 		return;
 	m_deferred_frees[m_frame_index].emplace_back(ident);
@@ -224,6 +231,7 @@ u64 VulkanMemoryManager::slabAlloc(u64 size, uint zone_index, void *domain_ptr) 
 		return 0;
 	DASSERT(zone_index == domain.slab_memory.size());
 	domain.slab_memory.emplace_back(*result, nullptr);
+
 	return size;
 }
 
@@ -252,6 +260,8 @@ auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBloc
 	frame.offset = aligned_offset + size;
 	VMemoryBlockId block_id(VMemoryBlockType::frame, m_frame_allocator_domain, u16(m_frame_index),
 							u32(aligned_offset));
+
+	log("alloc", block_id);
 	return VMemoryBlock{block_id, frame.memory.handle, aligned_offset, size};
 }
 bool VulkanMemoryManager::DomainInfo::validDomain(u32 type_mask) const {
@@ -296,5 +306,20 @@ auto VulkanMemoryManager::budget() const -> EnumMap<VMemoryDomain, Budget> {
 		}
 	}
 	return out;
+}
+
+void VulkanMemoryManager::log(ZStr action, VMemoryBlockId ident) {
+	if(!m_logging)
+		return;
+
+	print("VulkanMemory: % % in domain '%': ", ident.type(), action, ident.domain());
+	if(ident.type() == VMemoryBlockType::unmanaged)
+		print("zone_id:%\n", ident.zoneId());
+	else if(ident.type() == VMemoryBlockType::slab) {
+		SlabAllocator::Identifier slab_ident;
+		slab_ident.value = ident.blockIdentifier();
+		print("%", slab_ident);
+	}
+	print("\n");
 }
 }

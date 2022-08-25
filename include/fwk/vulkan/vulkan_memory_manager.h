@@ -49,6 +49,7 @@ class VulkanMemoryManager {
 	// Memory should be filled immediately after calling accessMemory
 	// accessMemory may invalidate previous mappings
 	Span<char> accessMemory(const VMemoryBlock &);
+	void setLogging(bool enable) { m_logging = enable; }
 
   private:
 	void beginFrame();
@@ -59,6 +60,7 @@ class VulkanMemoryManager {
   private:
 	void shrunkMappings();
 	static u64 slabAlloc(u64, uint, void *);
+	void log(ZStr action, VMemoryBlockId);
 
 	struct DeviceMemory {
 		VkDeviceMemory handle = nullptr;
@@ -103,5 +105,6 @@ class VulkanMemoryManager {
 
 	bool m_is_initial_frame = true;
 	bool m_has_mem_budget = false;
+	bool m_logging = false;
 };
 }
