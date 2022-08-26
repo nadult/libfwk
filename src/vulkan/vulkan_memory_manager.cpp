@@ -75,18 +75,26 @@ void VulkanMemoryManager::freeDeferred(int frame_index) {
 }
 
 void VulkanMemoryManager::beginFrame() {
+	DASSERT(!m_frame_running);
 	if(!m_is_initial_frame)
 		m_frame_index = (m_frame_index + 1) % num_frames;
 	if(m_logging)
 		print("VulkanMemory: begin frame: % -----------------------------------\n", m_frame_index);
 	freeDeferred(m_frame_index);
 	m_is_initial_frame = false;
+	m_frame_running = true;
 	m_frames[m_frame_index].offset = 0;
 }
 
 void VulkanMemoryManager::finishFrame() {
+	DASSERT(m_frame_running);
 	if(m_logging)
 		print("VulkanMemory: finish frame: % ----------------------------------\n", m_frame_index);
+	flushMappedRanges();
+	m_frame_running = false;
+}
+
+void VulkanMemoryManager::flushMappedRanges() {
 	if(m_flush_ranges) {
 		// TODO: make sure that all ranges are actually mapped
 		// If not, then they should be flushed before unmapping
@@ -186,7 +194,7 @@ static u32 alignOffset(u32 offset, uint alignment_mask) {
 }
 
 // TODO: pass errors differently in an uniform way across whole VulkanDevice and members
-Span<char> VulkanMemoryManager::accessMemory(const VMemoryBlock &block) {
+Span<char> VulkanMemoryManager::accessMemory(const VMemoryBlock &block, bool read_mode) {
 	DeviceMemory *memory = nullptr;
 	auto domain = block.id.domain();
 	int zone_id = block.id.zoneId();
@@ -217,9 +225,20 @@ Span<char> VulkanMemoryManager::accessMemory(const VMemoryBlock &block) {
 	mapped_range.memory = memory->handle;
 	mapped_range.offset = offset;
 	mapped_range.size = size;
-	m_flush_ranges.emplace_back(mapped_range);
 
+	if(read_mode)
+		vkInvalidateMappedMemoryRanges(m_device_handle, 1, &mapped_range);
+	else
+		m_flush_ranges.emplace_back(mapped_range);
 	return Span<char>(((char *)memory->mapping) + block.offset, block.size);
+}
+
+Span<char> VulkanMemoryManager::readAccessMemory(const VMemoryBlock &block) {
+	return accessMemory(block, true);
+}
+
+Span<char> VulkanMemoryManager::writeAccessMemory(const VMemoryBlock &block) {
+	return accessMemory(block, false);
 }
 
 u64 VulkanMemoryManager::slabAlloc(u64 size, uint zone_index, void *domain_ptr) {
@@ -236,6 +255,7 @@ u64 VulkanMemoryManager::slabAlloc(u64 size, uint zone_index, void *domain_ptr) 
 }
 
 auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBlock> {
+	DASSERT(m_frame_running);
 	auto &frame = m_frames[m_frame_index];
 	uint alignment_mask = alignment - 1;
 

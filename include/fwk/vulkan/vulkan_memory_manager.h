@@ -48,13 +48,16 @@ class VulkanMemoryManager {
 	// Memory will be automatically flushed in finishFrame()
 	// Memory should be filled immediately after calling accessMemory
 	// accessMemory may invalidate previous mappings
-	Span<char> accessMemory(const VMemoryBlock &);
+	Span<char> readAccessMemory(const VMemoryBlock &);
+	Span<char> writeAccessMemory(const VMemoryBlock &);
+	void flushMappedRanges();
 	void setLogging(bool enable) { m_logging = enable; }
 
   private:
 	void beginFrame();
 	void finishFrame();
 	void freeDeferred(int frame_index);
+	Span<char> accessMemory(const VMemoryBlock &, bool read_mode);
 	friend class VulkanDevice;
 
   private:
@@ -105,6 +108,7 @@ class VulkanMemoryManager {
 
 	bool m_is_initial_frame = true;
 	bool m_has_mem_budget = false;
+	bool m_frame_running = false;
 	bool m_logging = false;
 };
 }

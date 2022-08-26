@@ -187,7 +187,7 @@ vector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 		return {};
 	auto mem_block = download.buffer->memoryBlock();
 	PodVector<char> out_data(download.buffer->size());
-	auto src_memory = m_device.memory().accessMemory(mem_block);
+	auto src_memory = m_device.memory().readAccessMemory(mem_block);
 	fwk::copy(out_data, src_memory.subSpan(0, out_data.size()));
 	m_downloads.erase(download_id);
 	vector<char> out;
@@ -428,12 +428,12 @@ Ex<VBufferSpan<char>> VulkanCommandQueue::upload(VBufferSpan<char> dst, CSpan<ch
 		mem_block.offset += dst.byteOffset();
 		// TODO: better checks
 		mem_block.size = min<u32>(mem_block.size - dst.byteOffset(), src.size());
-		fwk::copy(mem_mgr.accessMemory(mem_block), src);
+		fwk::copy(mem_mgr.writeAccessMemory(mem_block), src);
 	} else {
 		auto staging_buffer = EX_PASS(VulkanBuffer::create(
 			m_device, src.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
 		auto mem_block = staging_buffer->memoryBlock();
-		fwk::copy(mem_mgr.accessMemory(mem_block), src);
+		fwk::copy(mem_mgr.writeAccessMemory(mem_block), src);
 		copy(dst, staging_buffer);
 		m_staging_buffers.emplace_back(move(staging_buffer));
 	}
