@@ -128,7 +128,7 @@ Ex<void> computeStuff(VulkanContext &ctx) {
 	cmds.bind(ctx.compute_pipe);
 	auto ds = cmds.bindDS(0);
 	auto &target_buffer = ctx.compute_buffers[ctx.compute_buffer_idx ^ 1];
-	ds(0, ctx.compute_buffers[ctx.compute_buffer_idx], target_buffer);
+	ds.set(0, ctx.compute_buffers[ctx.compute_buffer_idx], target_buffer);
 	ctx.compute_buffer_idx ^= 1;
 	cmds.dispatchCompute({1, 1, 1});
 	if(!ctx.download_id)
