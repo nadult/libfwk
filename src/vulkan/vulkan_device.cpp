@@ -339,10 +339,9 @@ Ex<> VulkanDevice::finishFrame() {
 void VulkanDevice::waitForIdle() {
 	DASSERT(m_cmds->status() != VulkanCommandQueue::Status::frame_running);
 	vkDeviceWaitIdle(m_handle);
-	for(int i : intRange(VulkanLimits::num_swap_frames)) {
+	for(int i : intRange(VulkanLimits::num_swap_frames))
 		releaseObjects(i);
-		m_memory->freeDeferred(i);
-	}
+	m_memory->flushDeferredFrees();
 }
 
 VkPipelineCache VulkanDevice::pipelineCache() { return m_objects->pipeline_cache; }

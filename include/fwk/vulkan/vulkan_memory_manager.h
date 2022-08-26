@@ -56,8 +56,8 @@ class VulkanMemoryManager {
   private:
 	void beginFrame();
 	void finishFrame();
-	void freeDeferred(int frame_index);
 	Span<char> accessMemory(const VMemoryBlock &, bool read_mode);
+	void flushDeferredFrees();
 	friend class VulkanDevice;
 
   private:
@@ -99,14 +99,13 @@ class VulkanMemoryManager {
 	u32 m_non_coherent_atom_size = 1;
 
 	array<FrameInfo, num_frames> m_frames;
-	array<vector<VMemoryBlockId>, num_frames> m_deferred_frees;
+	array<vector<VMemoryBlockId>, num_frames + 1> m_deferred_frees;
 	vector<VkMappedMemoryRange> m_flush_ranges;
 
 	VMemoryDomain m_frame_allocator_domain;
 	u32 m_frame_allocator_base_size = 256 * 1024;
 	int m_frame_index = 0;
 
-	bool m_is_initial_frame = true;
 	bool m_has_mem_budget = false;
 	bool m_frame_running = false;
 	bool m_logging = false;

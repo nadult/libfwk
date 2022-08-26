@@ -72,22 +72,15 @@ VulkanMemoryManager::~VulkanMemoryManager() {
 	}
 }
 
-void VulkanMemoryManager::freeDeferred(int frame_index) {
-	for(auto ident : m_deferred_frees[frame_index])
-		immediateFree(ident);
-	m_deferred_frees[frame_index].clear();
-}
-
 void VulkanMemoryManager::beginFrame() {
 	DASSERT(!m_frame_running);
-	if(!m_is_initial_frame)
-		m_frame_index = (m_frame_index + 1) % num_frames;
 	if(m_logging)
 		print("VulkanMemory: begin frame: % -----------------------------------\n", m_frame_index);
-	freeDeferred(m_frame_index);
-	m_is_initial_frame = false;
-	m_frame_running = true;
+	for(auto ident : m_deferred_frees[m_frame_index])
+		immediateFree(ident);
+	m_deferred_frees[m_frame_index] = move(m_deferred_frees.back());
 	m_frames[m_frame_index].offset = 0;
+	m_frame_running = true;
 }
 
 void VulkanMemoryManager::finishFrame() {
@@ -95,6 +88,7 @@ void VulkanMemoryManager::finishFrame() {
 	if(m_logging)
 		print("VulkanMemory: finish frame: % ----------------------------------\n", m_frame_index);
 	flushMappedRanges();
+	m_frame_index = (m_frame_index + 1) % num_frames;
 	m_frame_running = false;
 }
 
@@ -156,7 +150,7 @@ Ex<VMemoryBlock> VulkanMemoryManager::unmanagedAlloc(VMemoryDomain domain_id, u3
 	}
 	VMemoryBlockId alloc_id(VMemoryBlockType::unmanaged, domain_id, u16(index), 0);
 	log("alloc", alloc_id);
-	return VMemoryBlock{alloc_id, domain.unmanaged_memory.back().handle, 0, size};
+	return VMemoryBlock{alloc_id, domain.unmanaged_memory[index].handle, 0, size};
 }
 
 auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBlock> {
@@ -234,7 +228,14 @@ void VulkanMemoryManager::deferredFree(VMemoryBlockId ident) {
 	log("deferred_free", ident);
 	if(ident.type() == VMemoryBlockType::frame)
 		return;
-	m_deferred_frees[m_frame_index].emplace_back(ident);
+	int deferred_index = m_frame_running ? m_frame_index : num_frames;
+	m_deferred_frees[deferred_index].emplace_back(ident);
+}
+
+void VulkanMemoryManager::flushDeferredFrees() {
+	for(auto &defers : m_deferred_frees)
+		for(auto ident : defers)
+			immediateFree(ident);
 }
 
 void VulkanMemoryManager::shrunkMappings() {
