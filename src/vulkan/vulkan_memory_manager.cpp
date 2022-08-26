@@ -23,6 +23,10 @@ static void freeDeviceMemory(VkDevice device_handle, VkDeviceMemory handle) {
 		vkFreeMemory(device_handle, handle, nullptr);
 }
 
+static u32 alignOffset(u32 offset, uint alignment_mask) {
+	return (offset + alignment_mask) & (~alignment_mask);
+}
+
 VulkanMemoryManager::VulkanMemoryManager(VkDevice device_handle,
 										 const VulkanPhysicalDeviceInfo &phys_info,
 										 VDeviceFeatures features)
@@ -114,6 +118,27 @@ void VulkanMemoryManager::addSlabAllocator(VMemoryDomain domain, u32 zone_size) 
 	}
 }
 
+Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryDomain domain_id, u32 size, uint alignment) {
+	auto &domain = m_domains[domain_id];
+	if(alignment > SlabAllocator::min_alignment) {
+		auto remainder = size % alignment;
+		if(remainder != 0)
+			size += alignment - remainder;
+	}
+
+	if(domain.slab_alloc) {
+		auto [ident, alloc] = domain.slab_alloc->alloc(size);
+		if(ident.isValid()) {
+			VMemoryBlockId block_id(VMemoryBlockType::slab, domain_id, alloc.zone_id, ident.value);
+			log("alloc", block_id);
+			return VMemoryBlock{block_id, domain.slab_memory[alloc.zone_id].handle,
+								u32(alloc.offset), u32(alloc.size)};
+		}
+	}
+
+	return unmanagedAlloc(domain_id, size);
+}
+
 Ex<VMemoryBlock> VulkanMemoryManager::unmanagedAlloc(VMemoryDomain domain_id, u32 size) {
 	auto &domain = m_domains[domain_id];
 	auto handle = EX_PASS(allocDeviceMemory(m_device_handle, size, domain.type_index));
@@ -134,25 +159,52 @@ Ex<VMemoryBlock> VulkanMemoryManager::unmanagedAlloc(VMemoryDomain domain_id, u3
 	return VMemoryBlock{alloc_id, domain.unmanaged_memory.back().handle, 0, size};
 }
 
-Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryDomain domain_id, u32 size, uint alignment) {
-	auto &domain = m_domains[domain_id];
-	if(alignment > SlabAllocator::min_alignment) {
-		auto remainder = size % alignment;
-		if(remainder != 0)
-			size += alignment - remainder;
+auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBlock> {
+	DASSERT(m_frame_running);
+	auto &frame = m_frames[m_frame_index];
+	uint alignment_mask = alignment - 1;
+
+	u32 aligned_offset = alignOffset(frame.offset, alignment_mask);
+	if(aligned_offset + size - frame.base_offset > frame.size) {
+		auto type_index = m_domains[m_frame_allocator_domain].type_index;
+		u64 min_size = aligned_offset - frame.base_offset + size;
+		u64 new_size = max<u64>(frame.size * 2, m_frame_allocator_base_size, min_size);
+		new_size = min<u64>(new_size, max_allocation_size);
+		EXPECT("Allocation size limit reached for frame allocator" && new_size >= min_size);
+
+		auto new_mem = EX_PASS(alloc(m_frame_allocator_domain, new_size, alignment));
+		if(frame.alloc_id)
+			deferredFree(*frame.alloc_id);
+		frame.alloc_id = new_mem.id;
+		frame.offset = frame.base_offset = new_mem.offset;
+		frame.size = new_mem.size;
+		frame.memory = {new_mem.handle, nullptr};
+		aligned_offset = frame.offset;
 	}
 
-	if(domain.slab_alloc) {
-		auto [ident, alloc] = domain.slab_alloc->alloc(size);
-		if(ident.isValid()) {
-			VMemoryBlockId block_id(VMemoryBlockType::slab, domain_id, alloc.zone_id, ident.value);
-			log("alloc", block_id);
-			return VMemoryBlock{block_id, domain.slab_memory[alloc.zone_id].handle,
-								u32(alloc.offset), u32(alloc.size)};
-		}
-	}
+	frame.offset = aligned_offset + size;
+	VMemoryBlockId block_id(VMemoryBlockType::frame, m_frame_allocator_domain, u16(m_frame_index),
+							u32(aligned_offset));
 
-	return unmanagedAlloc(domain_id, size);
+	log("alloc", block_id);
+	return VMemoryBlock{block_id, frame.memory.handle, aligned_offset, size};
+}
+
+Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryUsage usage, const VkMemoryRequirements &reqs) {
+	if(usage == VMemoryUsage::frame)
+		if(m_domains[m_frame_allocator_domain].validDomain(reqs.memoryTypeBits))
+			return frameAlloc(reqs.size, reqs.alignment);
+
+	auto domain = usage == VMemoryUsage::device ? VMemoryDomain::device : VMemoryDomain::host;
+	if(m_domains[domain].validDomain(reqs.memoryTypeBits))
+		return alloc(domain, reqs.size, reqs.alignment);
+
+	domain = domain == VMemoryDomain::host ? VMemoryDomain::device : VMemoryDomain::host;
+	if(m_domains[domain].validDomain(reqs.memoryTypeBits))
+		return alloc(domain, reqs.size, reqs.alignment);
+
+	return FWK_ERROR("Couldn't find a memory domain which will satisfy type mask: 0x%",
+					 stdFormat("%x", reqs.memoryTypeBits));
 }
 
 void VulkanMemoryManager::immediateFree(VMemoryBlockId ident) {
@@ -187,10 +239,6 @@ void VulkanMemoryManager::deferredFree(VMemoryBlockId ident) {
 
 void VulkanMemoryManager::shrunkMappings() {
 	// TODO: when is it worth it to do that?
-}
-
-static u32 alignOffset(u32 offset, uint alignment_mask) {
-	return (offset + alignment_mask) & (~alignment_mask);
 }
 
 // TODO: pass errors differently in an uniform way across whole VulkanDevice and members
@@ -254,55 +302,8 @@ u64 VulkanMemoryManager::slabAlloc(u64 size, uint zone_index, void *domain_ptr) 
 	return size;
 }
 
-auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBlock> {
-	DASSERT(m_frame_running);
-	auto &frame = m_frames[m_frame_index];
-	uint alignment_mask = alignment - 1;
-
-	u32 aligned_offset = alignOffset(frame.offset, alignment_mask);
-	if(aligned_offset + size - frame.base_offset > frame.size) {
-		auto type_index = m_domains[m_frame_allocator_domain].type_index;
-		u64 min_size = aligned_offset - frame.base_offset + size;
-		u64 new_size = max<u64>(frame.size * 2, m_frame_allocator_base_size, min_size);
-		new_size = min<u64>(new_size, max_allocation_size);
-		EXPECT("Allocation size limit reached for frame allocator" && new_size >= min_size);
-
-		auto new_mem = EX_PASS(alloc(m_frame_allocator_domain, new_size, alignment));
-		if(frame.alloc_id)
-			deferredFree(*frame.alloc_id);
-		frame.alloc_id = new_mem.id;
-		frame.offset = frame.base_offset = new_mem.offset;
-		frame.size = new_mem.size;
-		frame.memory = {new_mem.handle, nullptr};
-		aligned_offset = frame.offset;
-	}
-
-	frame.offset = aligned_offset + size;
-	VMemoryBlockId block_id(VMemoryBlockType::frame, m_frame_allocator_domain, u16(m_frame_index),
-							u32(aligned_offset));
-
-	log("alloc", block_id);
-	return VMemoryBlock{block_id, frame.memory.handle, aligned_offset, size};
-}
 bool VulkanMemoryManager::DomainInfo::validDomain(u32 type_mask) const {
 	return (type_mask & (1u << type_index)) != 0;
-}
-
-Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryUsage usage, const VkMemoryRequirements &reqs) {
-	if(usage == VMemoryUsage::frame)
-		if(m_domains[m_frame_allocator_domain].validDomain(reqs.memoryTypeBits))
-			return frameAlloc(reqs.size, reqs.alignment);
-
-	auto domain = usage == VMemoryUsage::device ? VMemoryDomain::device : VMemoryDomain::host;
-	if(m_domains[domain].validDomain(reqs.memoryTypeBits))
-		return alloc(domain, reqs.size, reqs.alignment);
-
-	domain = domain == VMemoryDomain::host ? VMemoryDomain::device : VMemoryDomain::host;
-	if(m_domains[domain].validDomain(reqs.memoryTypeBits))
-		return alloc(domain, reqs.size, reqs.alignment);
-
-	return FWK_ERROR("Couldn't find a memory domain which will satisfy type mask: 0x%",
-					 stdFormat("%x", reqs.memoryTypeBits));
 }
 
 auto VulkanMemoryManager::budget() const -> EnumMap<VMemoryDomain, Budget> {
