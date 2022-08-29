@@ -58,6 +58,7 @@ VulkanMemoryManager::VulkanMemoryManager(VkDevice device_handle,
 
 	addSlabAllocator(VMemoryDomain::device);
 	addSlabAllocator(VMemoryDomain::host);
+	addSlabAllocator(VMemoryDomain::temporary);
 
 	bool temp_available = isAvailable(VMemoryDomain::temporary);
 	m_frame_allocator_domain = temp_available ? VMemoryDomain::temporary : VMemoryDomain::host;
@@ -189,7 +190,9 @@ Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryUsage usage, const VkMemoryRe
 		if(m_domains[m_frame_allocator_domain].validDomain(reqs.memoryTypeBits))
 			return frameAlloc(reqs.size, reqs.alignment);
 
-	auto domain = usage == VMemoryUsage::device ? VMemoryDomain::device : VMemoryDomain::host;
+	auto domain = usage == VMemoryUsage::temporary ? VMemoryDomain::temporary :
+				  usage == VMemoryUsage::device	   ? VMemoryDomain::device :
+													   VMemoryDomain::host;
 	if(m_domains[domain].validDomain(reqs.memoryTypeBits))
 		return alloc(domain, reqs.size, reqs.alignment);
 

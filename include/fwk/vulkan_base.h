@@ -70,7 +70,8 @@ constexpr inline bool canBeMapped(VMemoryDomain domain) { return domain != VMemo
 // frame: object will only be used during current frame
 // device: object will be stored in device memory
 // host: object will be stored in host memory
-DEFINE_ENUM(VMemoryUsage, frame, device, host);
+// TODO: cleanup: frame / temporary
+DEFINE_ENUM(VMemoryUsage, frame, temporary, device, host);
 
 DEFINE_ENUM(VMemoryFlag, device_local, host_visible, host_coherent, host_cached, lazily_allocated,
 			protected_, device_coherent_amd, device_uncached_amd);
