@@ -63,7 +63,7 @@ void VulkanCommandQueue::beginFrame() {
 	auto &frame = m_frames[m_swap_index];
 
 	for(auto &download : m_downloads)
-		if(download.frame_index + VulkanLimits::num_swap_frames >= m_frame_index)
+		if(download.frame_index + VulkanLimits::num_swap_frames <= m_frame_index)
 			download.is_ready = true;
 
 	vkResetCommandBuffer(frame.command_buffer, 0);
@@ -264,7 +264,6 @@ Ex<VDownloadId> VulkanCommandQueue::download(VBufferSpan<char> src) {
 	PASSERT(m_status == Status::frame_running);
 	auto buffer = EX_PASS(
 		VulkanBuffer::create(m_device, src.size(), VBufferUsage::transfer_dst, VMemoryUsage::host));
-	VkBufferCopy copy_params{src.byteOffset(), 0, (VkDeviceSize)src.byteSize()};
 	copy(buffer, src);
 	auto id = m_downloads.emplace(move(buffer), m_frame_index);
 	return VDownloadId(id);

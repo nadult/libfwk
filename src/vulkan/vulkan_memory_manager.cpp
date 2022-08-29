@@ -336,7 +336,7 @@ void VulkanMemoryManager::log(ZStr action, VMemoryBlockId ident) {
 
 	print("VulkanMemory: % % in domain '%': ", ident.type(), action, ident.domain());
 	if(ident.type() == VMemoryBlockType::unmanaged)
-		print("zone_id:%\n", ident.zoneId());
+		print("zone_id:%", ident.zoneId());
 	else if(ident.type() == VMemoryBlockType::slab) {
 		SlabAllocator::Identifier slab_ident;
 		slab_ident.value = ident.blockIdentifier();
