@@ -160,18 +160,19 @@ auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBloc
 	uint alignment_mask = alignment - 1;
 
 	u32 aligned_offset = alignOffset(frame.offset, alignment_mask);
-	if(aligned_offset + size - frame.base_offset > frame.size) {
+	if(aligned_offset + size > frame.size) {
 		auto type_index = m_domains[m_frame_allocator_domain].type_index;
-		u64 min_size = aligned_offset - frame.base_offset + size;
-		u64 new_size = max<u64>(frame.size * 2, m_frame_allocator_base_size, min_size);
-		new_size = min<u64>(new_size, max_allocation_size);
+		u32 min_size = aligned_offset + size;
+		u32 new_size = max<u32>(frame.size * 2, m_frame_allocator_base_size, min_size);
+		new_size = min<u32>(new_size, max_allocation_size);
 		EXPECT("Allocation size limit reached for frame allocator" && new_size >= min_size);
 
-		auto new_mem = EX_PASS(alloc(m_frame_allocator_domain, new_size, alignment));
+		auto new_mem = EX_PASS(unmanagedAlloc(m_frame_allocator_domain, new_size));
+		PASSERT(new_mem.offset == 0);
 		if(frame.alloc_id)
 			deferredFree(*frame.alloc_id);
 		frame.alloc_id = new_mem.id;
-		frame.offset = frame.base_offset = new_mem.offset;
+		frame.offset = 0;
 		frame.size = new_mem.size;
 		frame.memory = {new_mem.handle, nullptr};
 		aligned_offset = frame.offset;

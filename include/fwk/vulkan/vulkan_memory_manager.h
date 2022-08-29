@@ -73,8 +73,7 @@ class VulkanMemoryManager {
 	struct FrameInfo {
 		Maybe<VMemoryBlockId> alloc_id;
 		DeviceMemory memory;
-		u64 base_offset = 0, offset = 0;
-		u64 size = 0;
+		u32 offset = 0, size = 0;
 	};
 
 	struct DomainInfo {
