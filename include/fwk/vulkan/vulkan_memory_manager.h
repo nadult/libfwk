@@ -66,14 +66,15 @@ class VulkanMemoryManager {
 	void log(ZStr action, VMemoryBlockId);
 
 	struct DeviceMemory {
-		VkDeviceMemory handle = nullptr;
-		void *mapping = nullptr;
+		VkDeviceMemory handle;
+		void *mapping;
+		u32 size;
 	};
 
 	struct FrameInfo {
 		Maybe<VMemoryBlockId> alloc_id;
 		DeviceMemory memory;
-		u32 offset = 0, size = 0;
+		u32 offset = 0;
 	};
 
 	struct DomainInfo {

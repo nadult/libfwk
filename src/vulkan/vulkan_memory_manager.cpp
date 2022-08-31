@@ -147,7 +147,7 @@ Ex<VMemoryBlock> VulkanMemoryManager::unmanagedAlloc(VMemoryDomain domain_id, u3
 		}
 	if(index == -1) {
 		index = domain.unmanaged_memory.size();
-		domain.unmanaged_memory.emplace_back(handle, nullptr);
+		domain.unmanaged_memory.emplace_back(handle, nullptr, size);
 	}
 	VMemoryBlockId alloc_id(VMemoryBlockType::unmanaged, domain_id, u16(index), 0);
 	log("alloc", alloc_id);
@@ -160,10 +160,10 @@ auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBloc
 	uint alignment_mask = alignment - 1;
 
 	u32 aligned_offset = alignOffset(frame.offset, alignment_mask);
-	if(aligned_offset + size > frame.size) {
+	if(aligned_offset + size > frame.memory.size) {
 		auto type_index = m_domains[m_frame_allocator_domain].type_index;
 		u32 min_size = aligned_offset + size;
-		u32 new_size = max<u32>(frame.size * 2, m_frame_allocator_base_size, min_size);
+		u32 new_size = max<u32>(frame.memory.size * 2, m_frame_allocator_base_size, min_size);
 		new_size = min<u32>(new_size, max_allocation_size);
 		EXPECT("Allocation size limit reached for frame allocator" && new_size >= min_size);
 
@@ -173,14 +173,13 @@ auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBloc
 			deferredFree(*frame.alloc_id);
 		frame.alloc_id = new_mem.id;
 		frame.offset = 0;
-		frame.size = new_mem.size;
-		frame.memory = {new_mem.handle, nullptr};
+		frame.memory = {new_mem.handle, nullptr, new_mem.size};
 		aligned_offset = frame.offset;
 	}
 
 	frame.offset = aligned_offset + size;
 	VMemoryBlockId block_id(VMemoryBlockType::frame, m_frame_allocator_domain, u16(m_frame_index),
-							u32(aligned_offset));
+							aligned_offset);
 
 	log("alloc", block_id);
 	return VMemoryBlock{block_id, frame.memory.handle, aligned_offset, size};
@@ -274,6 +273,8 @@ Span<char> VulkanMemoryManager::accessMemory(const VMemoryBlock &block, bool rea
 	u32 alignment_mask = m_non_coherent_atom_size - 1;
 	u32 offset = block.offset & ~alignment_mask;
 	u32 size = ((block.offset - offset) + block.size + alignment_mask) & ~alignment_mask;
+	size = min(size, memory->size - offset);
+
 	VkMappedMemoryRange mapped_range{VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE};
 	mapped_range.memory = memory->handle;
 	mapped_range.offset = offset;
@@ -302,7 +303,7 @@ u64 VulkanMemoryManager::slabAlloc(u64 size, uint zone_index, void *domain_ptr) 
 	if(!result)
 		return 0;
 	DASSERT(zone_index == domain.slab_memory.size());
-	domain.slab_memory.emplace_back(*result, nullptr);
+	domain.slab_memory.emplace_back(*result, nullptr, u32(size));
 
 	return size;
 }
