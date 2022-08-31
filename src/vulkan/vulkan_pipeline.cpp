@@ -82,8 +82,9 @@ VulkanSampler::~VulkanSampler() { deferredRelease<vkDestroySampler>(m_handle); }
 void VDescriptorSet::set(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>> values) {
 	u64 bits = ((1ull << values.size()) - 1ull) << first_index;
 	if((bits & bindings_map) != bits) {
-		bits = bits & bindings_map >> first_index;
+		bits = (bits & bindings_map) >> first_index;
 		if(values.size() > 1) {
+			// TODO: extract ranges
 			for(int i : intRange(values))
 				if(bits & (1ull << i))
 					set(first_index + i, type, values.subSpan(i, i + 1));
