@@ -16,6 +16,7 @@ struct ShaderCompilerSetup {
 	VulkanVersion vulkan_version = {1, 2, 0};
 	Maybe<double> glsl_version = 4.5;
 	Maybe<double> spirv_version = 1.3;
+	bool debug_info = false;
 };
 
 struct ShaderDefinition {

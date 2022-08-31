@@ -135,6 +135,9 @@ ShaderCompiler::ShaderCompiler(ShaderCompilerSetup setup) {
 	m_impl.emplace();
 	m_impl->compiler = shaderc_compiler_initialize();
 	auto *opts = m_impl->compile_options = shaderc_compile_options_initialize();
+	if(setup.debug_info)
+		shaderc_compile_options_set_generate_debug_info(opts);
+
 	if(setup.source_dirs) {
 		for(auto &dir : setup.source_dirs)
 			DASSERT(dir.isAbsolute());
