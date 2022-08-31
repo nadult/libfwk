@@ -212,7 +212,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 					   &m_objects->pipeline_cache);
 
 	m_descriptors.emplace(m_handle);
-	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features);
+	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features, setup.memory);
 
 	m_cmds = new VulkanCommandQueue(ref());
 	EXPECT(m_cmds->initialize(ref()));

@@ -17,14 +17,14 @@ class VulkanMemoryManager {
 	static constexpr int num_frames = 2;
 	static constexpr u32 max_allocation_size = 0xffffffffu;
 
-	VulkanMemoryManager(VkDevice, const VulkanPhysicalDeviceInfo &, VDeviceFeatures);
+	VulkanMemoryManager(VkDevice, const VulkanPhysicalDeviceInfo &, VDeviceFeatures,
+						VMemoryManagerSetup);
 	~VulkanMemoryManager();
 
 	VulkanMemoryManager(const VulkanMemoryManager &) = delete;
 	void operator=(const VulkanMemoryManager &) = delete;
 
 	void addSlabAllocator(VMemoryDomain, u32 zone_size = 64 * 1024 * 1024);
-	Ex<void> allocSlabZone(VMemoryDomain, u32 zone_size);
 
 	struct Budget {
 		i64 heap_budget = -1;
@@ -66,9 +66,9 @@ class VulkanMemoryManager {
 	void log(ZStr action, VMemoryBlockId);
 
 	struct DeviceMemory {
-		VkDeviceMemory handle;
-		void *mapping;
-		u32 size;
+		VkDeviceMemory handle = nullptr;
+		void *mapping = nullptr;
+		u32 size = 0;
 	};
 
 	struct FrameInfo {
@@ -93,6 +93,7 @@ class VulkanMemoryManager {
 		Dynamic<SlabAllocator> slab_alloc;
 	};
 
+	VMemoryManagerSetup m_setup;
 	VkDevice m_device_handle = nullptr;
 	VkPhysicalDevice m_phys_handle = nullptr;
 	EnumMap<VMemoryDomain, DomainInfo> m_domains;

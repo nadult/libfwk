@@ -239,6 +239,24 @@ struct VSwapChainSetup {
 	VPresentMode preferred_present_mode = VPresentMode::fifo;
 };
 
+struct VQueueSetup {
+	VQueueFamilyId family_id;
+	int count;
+};
+
+struct VMemoryManagerSetup {
+	// In case of disabled slab / frame allocation, simple unmanaged allocation will be used
+	bool enable_slab_allocator = true;
+	bool enable_frame_allocator = true;
+};
+
+struct VDeviceSetup {
+	vector<string> extensions;
+	vector<VQueueSetup> queues;
+	VMemoryManagerSetup memory;
+	Dynamic<VkPhysicalDeviceFeatures> features;
+};
+
 DEFINE_ENUM(VColorSyncStd, clear, clear_present, present, draw);
 
 // TODO: move out of base

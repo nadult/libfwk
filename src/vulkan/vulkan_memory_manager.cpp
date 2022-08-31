@@ -29,8 +29,8 @@ static u32 alignOffset(u32 offset, uint alignment_mask) {
 
 VulkanMemoryManager::VulkanMemoryManager(VkDevice device_handle,
 										 const VulkanPhysicalDeviceInfo &phys_info,
-										 VDeviceFeatures features)
-	: m_device_handle(device_handle), m_phys_handle(phys_info.handle),
+										 VDeviceFeatures features, VMemoryManagerSetup setup)
+	: m_setup(setup), m_device_handle(device_handle), m_phys_handle(phys_info.handle),
 	  m_has_mem_budget(features & VDeviceFeature::memory_budget) {
 	m_non_coherent_atom_size = phys_info.properties.limits.nonCoherentAtomSize;
 
@@ -56,9 +56,11 @@ VulkanMemoryManager::VulkanMemoryManager(VkDevice device_handle,
 		info.heap_size = heap_size;
 	}
 
-	addSlabAllocator(VMemoryDomain::device);
-	addSlabAllocator(VMemoryDomain::host);
-	addSlabAllocator(VMemoryDomain::temporary);
+	if(setup.enable_slab_allocator) {
+		addSlabAllocator(VMemoryDomain::device);
+		addSlabAllocator(VMemoryDomain::host);
+		addSlabAllocator(VMemoryDomain::temporary);
+	}
 
 	bool temp_available = isAvailable(VMemoryDomain::temporary);
 	m_frame_allocator_domain = temp_available ? VMemoryDomain::temporary : VMemoryDomain::host;
@@ -155,6 +157,9 @@ Ex<VMemoryBlock> VulkanMemoryManager::unmanagedAlloc(VMemoryDomain domain_id, u3
 }
 
 auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBlock> {
+	if(!m_setup.enable_frame_allocator)
+		return unmanagedAlloc(VMemoryDomain::temporary, size);
+
 	DASSERT(m_frame_running);
 	auto &frame = m_frames[m_frame_index];
 	uint alignment_mask = alignment - 1;

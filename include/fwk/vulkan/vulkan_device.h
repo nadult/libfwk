@@ -13,17 +13,6 @@
 
 namespace fwk {
 
-struct VQueueSetup {
-	VQueueFamilyId family_id;
-	int count;
-};
-
-struct VDeviceSetup {
-	vector<string> extensions;
-	vector<VQueueSetup> queues;
-	Dynamic<VkPhysicalDeviceFeatures> features;
-};
-
 class VulkanDevice {
   public:
 	VDeviceRef ref() const { return VDeviceRef(m_id); }
