@@ -40,7 +40,7 @@ void debugRecord(uint record_id, int line, uint v1, uint v2, uint v3, uint v4, u
   _debug_records[record_id * 3 + 2] = uvec2(v3, v4);                                         \
 }
 
-#define DEBUG_RECORD_(line, v1, v2, v3, v4) {                             \
+#define DEBUG_RECORD(v1, v2, v3, v4) {                                    \
     uint record_id = atomicAdd(_debug_header.num_records, 1);             \
     if(record_id == 0) for(int i = 0; i < 3; i++) {                       \
       _debug_header.workgroup_size[i] = gl_WorkGroupSize[i];              \
@@ -52,16 +52,13 @@ void debugRecord(uint record_id, int line, uint v1, uint v2, uint v3, uint v4, u
     uint uv2 = ((types >> 2) & 3) == 2? floatBitsToUint(v2) : uint(v2);   \
     uint uv3 = ((types >> 4) & 3) == 2? floatBitsToUint(v3) : uint(v3);   \
     uint uv4 = ((types >> 6) & 3) == 2? floatBitsToUint(v4) : uint(v4);   \
-    debugRecord(record_id, line, uv1, uv2, uv3, uv4, types);              \
+    debugRecord(record_id, __LINE__, uv1, uv2, uv3, uv4, types);          \
   }
-#define DEBUG_RECORD(v1, v2, v3, v4) DEBUG_RECORD_(__LINE__, v1, v2, v3, v4)
 #else
 #define DEBUG_SETUP(buffer_set_id, buffer_binding_id)
 #define DEBUG_RECORD(v1, v2, v3, v4)
 #endif
 )";
-
-// TODO: two DEBUG_RECORD defs redundant ?
 
 ZStr getShaderDebugCode() { return debug_code; }
 
@@ -128,10 +125,10 @@ void ShaderDebugInfo::operator>>(TextFormatter &fmt) const {
 		auto local_id = localIndexToID(record.local_index);
 		auto global_id = workGroupIndexToID(record.work_group_index);
 
-		fmt(" work_group_id:");
+		fmt(" wgid:");
 		printID(fmt, global_id, work_group_id_size, work_group_id_width);
 
-		fmt(" local_id:");
+		fmt(" lid:");
 		printID(fmt, local_id, local_id_size, local_id_width);
 		fmt("  ");
 
@@ -170,8 +167,8 @@ ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
 	local_id_size = work_group_size.yz() == int2(1) ? 1 : work_group_size.z == 1 ? 2 : 3;
 	work_group_id_size = num_work_groups.yz() == int2(1) ? 1 : num_work_groups.z == 1 ? 2 : 3;
 	for(int i = 0; i < 3; i++) {
-		local_id_width[i] = log10(work_group_size[i]) + 1;
-		work_group_id_width[i] = log10(num_work_groups[i]) + 1;
+		local_id_width[i] = max(1.0, log10(work_group_size[i]) + 1);
+		work_group_id_width[i] = max(1.0, log10(num_work_groups[i]) + 1);
 	}
 
 	if(limit)
