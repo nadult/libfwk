@@ -14,6 +14,8 @@
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 
+// TODO: add function for clearing labeled downloads
+
 namespace fwk {
 
 VulkanCommandQueue::VulkanCommandQueue(VDeviceRef device)
@@ -180,18 +182,16 @@ bool VulkanCommandQueue::isFinished(VDownloadId download_id) {
 	return download.is_ready;
 }
 
-vector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
+PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
 	if(!download.is_ready)
 		return {};
 	auto mem_block = download.buffer->memoryBlock();
-	PodVector<char> out_data(download.buffer->size());
+	PodVector<char> out(download.buffer->size());
 	auto src_memory = m_device.memory().readAccessMemory(mem_block);
-	fwk::copy(out_data, src_memory.subSpan(0, out_data.size()));
+	fwk::copy(out, src_memory.subSpan(0, out.size()));
 	m_downloads.erase(download_id);
-	vector<char> out;
-	out_data.unsafeSwap(out);
 	return out;
 }
 
@@ -267,6 +267,42 @@ Ex<VDownloadId> VulkanCommandQueue::download(VBufferSpan<char> src) {
 	copy(buffer, src);
 	auto id = m_downloads.emplace(move(buffer), m_frame_index);
 	return VDownloadId(id);
+}
+
+Ex<PodVector<char>> VulkanCommandQueue::download(VBufferSpan<char> src, Str unique_label,
+												 uint skip_frames) {
+	if(!src)
+		return PodVector<char>();
+	LabeledDownload *current = nullptr;
+	for(auto &ld : m_labeled_downloads)
+		if(ld.label == unique_label) {
+			current = &ld;
+			break;
+		}
+	if(!current) {
+		current = &m_labeled_downloads.emplace_back();
+		current->label = unique_label;
+		current->last_frame = m_frame_index;
+	}
+
+	PodVector<char> out;
+	while(current->ids) {
+		auto id = current->ids.front();
+		out = retrieve<char>(id);
+		if(!out)
+			break;
+		current->ids.erase(current->ids.begin());
+	}
+
+	uint frame_counter = m_frame_index - current->last_frame;
+	if(skip_frames && frame_counter % (skip_frames + 1) == 0) {
+		barrier(VPipeStage::all_commands, VPipeStage::transfer, VAccess::memory_write,
+				VAccess::transfer_read);
+		current->ids.emplace_back(EX_PASS(download(src)));
+		current->last_frame = m_frame_index;
+	}
+
+	return out;
 }
 
 void VulkanCommandQueue::setViewport(IRect viewport, float min_depth, float max_depth) {

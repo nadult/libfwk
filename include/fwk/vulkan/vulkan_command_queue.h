@@ -46,8 +46,10 @@ class VulkanCommandQueue {
 
 	bool isFinished(VDownloadId);
 	// Returns empty vector if not ready
-	vector<char> retrieve(VDownloadId);
-	template <class T> vector<T> retrieve(VDownloadId id) { return retrieve(id).reinterpret<T>(); }
+	PodVector<char> retrieve(VDownloadId);
+	template <class T> PodVector<T> retrieve(VDownloadId id) {
+		return retrieve(id).reinterpret<T>();
+	}
 
 	CSpan<u64> getQueryResults(u64 frame_index) const;
 
@@ -109,6 +111,16 @@ class VulkanCommandQueue {
 		return download(src.template reinterpret<char>());
 	}
 
+	Ex<PodVector<char>> download(VBufferSpan<char> src, Str unique_label, uint skip_frames = 0);
+	template <class T>
+	Ex<> download(vector<T> &dst, VBufferSpan<T> src, Str unique_label, uint skip_frames = 0) {
+		auto result =
+			EX_PASS(download(src.template reinterpret<char>(), unique_label, skip_frames));
+		if(result)
+			result.template reinterpret<T>().unsafeSwap(dst);
+		return {};
+	}
+
 	// -------------------------------------------------------------------------------------------
 	// ----------  Upload commands (can be called anytime)   -------------------------------------
 
@@ -163,6 +175,12 @@ class VulkanCommandQueue {
 		bool is_ready = false;
 	};
 
+	struct LabeledDownload {
+		string label;
+		vector<VDownloadId> ids;
+		uint last_frame;
+	};
+
 	struct CmdCopyBuffer {
 		VBufferSpan<char> dst, src;
 	};
@@ -184,6 +202,7 @@ class VulkanCommandQueue {
 	};
 
 	SparseVector<Download> m_downloads;
+	vector<LabeledDownload> m_labeled_downloads;
 	vector<CmdCopy> m_copy_queue;
 	vector<PVBuffer> m_staging_buffers;
 	PVPipelineLayout m_last_pipeline_layout;
