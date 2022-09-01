@@ -4,72 +4,73 @@
 #include "fwk/gfx/shader_debug.h"
 
 #include "fwk/format.h"
-
-// TODO: fixme
-/*
+#include "fwk/vulkan/vulkan_buffer_span.h"
+#include "fwk/vulkan/vulkan_command_queue.h"
 
 namespace fwk {
 
 using ValueType = ShaderDebugValueType;
-static constexpr int debug_header_size = 8;
 
-static const char *debug_funcs =
-	R"(// ----------------- Shader Debug -----------------------
-uint debugValueType(int v) { return 0; }
-uint debugValueType(uint v) { return 1; }
-uint debugValueType(float v) { return 2; }
-void debugRecord(uint record_id, int line, uint v1, uint v2, uint v3, uint v4, uint types) {
-  if(record_id < debug_max_records) {
-    uint wg_index = gl_WorkGroupID.x + gl_NumWorkGroups.x * 
-                    (gl_WorkGroupID.y + gl_NumWorkGroups.y * gl_WorkGroupID.z);
-    debug_records[record_id * 3 + 0] = uvec2(gl_LocalInvocationIndex | (line << 16), wg_index | (types << 24));
-    debug_records[record_id * 3 + 1] = uvec2(v1, v2);
-    debug_records[record_id * 3 + 2] = uvec2(v3, v4);
-  }
-}
-#define RECORD_(line, v1, v2, v3, v4) {               \
-    uint record_id = atomicAdd(debug_num_records, 1); \
-    if(record_id == 0) for(int i = 0; i < 3; i++) {   \
-      debug_sizes[i] = gl_WorkGroupSize[i];           \
-      debug_sizes[i + 3] = gl_NumWorkGroups[i];       \
-    }                                                 \
-    const uint types = (debugValueType(v1) << 0) | (debugValueType(v2) << 2) | \
-                       (debugValueType(v3) << 4) | (debugValueType(v4) << 6);  \
-    uint uv1 = ((types >> 0) & 3) == 2? floatBitsToUint(v1) : uint(v1);        \
-    uint uv2 = ((types >> 2) & 3) == 2? floatBitsToUint(v2) : uint(v2);        \
-    uint uv3 = ((types >> 4) & 3) == 2? floatBitsToUint(v3) : uint(v3);        \
-    uint uv4 = ((types >> 6) & 3) == 2? floatBitsToUint(v4) : uint(v4);        \
-    debugRecord(record_id, line, uv1, uv2, uv3, uv4, types);                   \
-  }
-#define RECORD(v1, v2, v3, v4) RECORD_(__LINE__, v1, v2, v3, v4)
-#define SHADER_DEBUG)";
+static const ZStr debug_code = R"(// Shader debug:
 
-string shaderDebugDefs(bool enable) {
-	TextFormatter fmt;
-	if(enable) {
-		fmt("layout(std430, binding = %) buffer debug_records_ {\n",
-			gl_info->limits[GlLimit::max_ssbo_bindings] - 1);
-		fmt("  uint debug_num_records;\n"
-			"  uint debug_max_records;\n"
-			"  uint debug_sizes[6];\n"
-			"  uvec2 debug_records[];\n"
-			"};\n");
-		fmt << debug_funcs;
-	} else {
-		fmt("#define RECORD(v1, v2, v3, v4) {}\n");
-	}
-
-	return fmt.text();
+#ifdef DEBUG_ENABLED
+#define DEBUG_SETUP(buffer_set_id, buffer_binding_id) \
+struct ShaderDebugHeader {                            \
+	uint max_records, num_records;                    \
+	uint workgroup_size[3];                           \
+	uint num_workgroups[3];                           \
+};                                                    \
+                                                      \
+layout(std430, set = buffer_set_id, binding = buffer_binding_id) \
+restrict buffer _debug_buffer {            \
+	ShaderDebugHeader _debug_header;       \
+	uvec2 _debug_records[];                \
+};                                         \
+uint debugValueType(int   v) { return 0; } \
+uint debugValueType(uint  v) { return 1; } \
+uint debugValueType(float v) { return 2; } \
+void debugRecord(uint record_id, int line, uint v1, uint v2, uint v3, uint v4, uint types) { \
+  if(record_id >= _debug_header.max_records)                                                 \
+    return;                                                                                  \
+  uint wg_index = gl_WorkGroupID.x + gl_NumWorkGroups.x *                                    \
+                  (gl_WorkGroupID.y + gl_NumWorkGroups.y * gl_WorkGroupID.z);                \
+  uint val0 = gl_LocalInvocationIndex | (line << 16), val1 = wg_index | (types << 24);       \
+  _debug_records[record_id * 3 + 0] = uvec2(val0, val1);                                     \
+  _debug_records[record_id * 3 + 1] = uvec2(v1, v2);                                         \
+  _debug_records[record_id * 3 + 2] = uvec2(v3, v4);                                         \
 }
 
-void shaderDebugUseBuffer(PBuffer buf) {
-	int size = buf->size<u32>();
-	DASSERT(size >= debug_header_size);
-	buf->clear(GlFormat::r32ui, 0, 0, 4);
-	buf->clear(GlFormat::r32ui, (size - debug_header_size) / 6, 4, 4);
-	// TODO: wrong number here does not generate an error
-	buf->bindIndex(gl_info->limits[GlLimit::max_ssbo_bindings] - 1);
-	testGlError("shader debug stuff");
+#define DEBUG_RECORD_(line, v1, v2, v3, v4) {                             \
+    uint record_id = atomicAdd(_debug_header.num_records, 1);             \
+    if(record_id == 0) for(int i = 0; i < 3; i++) {                       \
+      _debug_header.workgroup_size[i] = gl_WorkGroupSize[i];              \
+      _debug_header.num_workgroups[i] = gl_NumWorkGroups[i];              \
+    }                                                                     \
+    uint types = (debugValueType(v1) << 0) | (debugValueType(v2) << 2) |  \
+                 (debugValueType(v3) << 4) | (debugValueType(v4) << 6);   \
+    uint uv1 = ((types >> 0) & 3) == 2? floatBitsToUint(v1) : uint(v1);   \
+    uint uv2 = ((types >> 2) & 3) == 2? floatBitsToUint(v2) : uint(v2);   \
+    uint uv3 = ((types >> 4) & 3) == 2? floatBitsToUint(v3) : uint(v3);   \
+    uint uv4 = ((types >> 6) & 3) == 2? floatBitsToUint(v4) : uint(v4);   \
+    debugRecord(record_id, line, uv1, uv2, uv3, uv4, types);              \
+  }
+#define DEBUG_RECORD(v1, v2, v3, v4) DEBUG_RECORD_(__LINE__, v1, v2, v3, v4)
+#else
+#define DEBUG_SETUP(buffer_set_id, buffer_binding_id)
+#define DEBUG_RECORD(v1, v2, v3, v4)
+#endif
+)";
+
+// TODO: two DEBUG_RECORD defs redundant ?
+
+ZStr getShaderDebugCode() { return debug_code; }
+
+void shaderDebugInitBuffer(VulkanCommandQueue &cmds, VBufferSpan<u32> buf) {
+	auto header_size = sizeof(ShaderDebugHeader) / sizeof(u32);
+	DASSERT(buf.size() >= header_size);
+	auto max_records = buf.size() - header_size;
+	cmds.fill(buf.subSpan(0, 1), max_records);
+	cmds.fill(buf.subSpan(1, header_size), 0);
 }
 
 bool ShaderDebugRecord::operator<(const ShaderDebugRecord &rhs) const {
@@ -155,12 +156,17 @@ void ShaderDebugInfo::operator>>(TextFormatter &fmt) const {
 	fmt << "\n";
 }
 
-ShaderDebugInfo::ShaderDebugInfo(PBuffer buf, Maybe<uint> limit,
+ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
 								 CSpan<Pair<string, int>> source_ranges) {
-	auto header = buf->download<u32>(debug_header_size, 0);
-	u32 num_records = min<u32>(header[0], (buf->size<u32>() - debug_header_size) / 6);
-	work_group_size = int3(header[2], header[3], header[4]);
-	num_work_groups = int3(header[5], header[6], header[7]);
+	auto header_size = sizeof(ShaderDebugHeader) / sizeof(u32);
+	const int record_size = 6;
+	DASSERT(buffer_data.size() >= header_size);
+	auto &header = *reinterpret_cast<const ShaderDebugHeader *>(buffer_data.data());
+	u32 num_records = min<u32>(header.num_records, (buffer_data.size() - header_size) / 6);
+	work_group_size =
+		int3(header.workgroup_size[0], header.workgroup_size[1], header.workgroup_size[2]);
+	num_work_groups =
+		int3(header.num_workgroups[0], header.num_workgroups[1], header.num_workgroups[2]);
 	local_id_size = work_group_size.yz() == int2(1) ? 1 : work_group_size.z == 1 ? 2 : 3;
 	work_group_id_size = num_work_groups.yz() == int2(1) ? 1 : num_work_groups.z == 1 ? 2 : 3;
 	for(int i = 0; i < 3; i++) {
@@ -170,7 +176,7 @@ ShaderDebugInfo::ShaderDebugInfo(PBuffer buf, Maybe<uint> limit,
 
 	if(limit)
 		num_records = min(num_records, *limit);
-	auto values = buf->download<u32>(num_records * 6, debug_header_size);
+	auto values = buffer_data.subSpan(header_size, header_size + num_records * 6);
 	records.reserve(num_records);
 	file_names.reserve(source_ranges.size());
 	for(auto &label : source_ranges)
@@ -182,11 +188,11 @@ ShaderDebugInfo::ShaderDebugInfo(PBuffer buf, Maybe<uint> limit,
 		uint gix = values[i * 6 + 1] & 0xffffff, types = values[i * 6 + 1] >> 24;
 
 		int file_id = -1;
-		if(auto label_id = CombinedShaderSource::lineToLabel(source_ranges, line); label_id != -1) {
+		/*if(auto label_id = CombinedShaderSource::lineToLabel(source_ranges, line); label_id != -1) {
 			auto &label = source_ranges[label_id];
 			file_id = label_id;
 			line = line - label.second + 1;
-		}
+		}*/
 
 		ShaderDebugRecord record;
 		record.line_id = line;
@@ -208,4 +214,3 @@ ShaderDebugInfo::ShaderDebugInfo(PBuffer buf, Maybe<uint> limit,
 	makeSorted(records);
 }
 }
-*/

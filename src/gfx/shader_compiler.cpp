@@ -43,6 +43,8 @@
 
 namespace fwk {
 
+ZStr getShaderDebugCode();
+
 // TODO: making sure that shaderc_shared.dll is available
 // TODO: merge shader reflection module here?
 
@@ -82,6 +84,8 @@ struct ShaderCompiler::Impl {
 	HashMap<string, ShaderDefId> shader_def_map;
 	SparseVector<ShaderDefinition> shader_defs;
 	vector<Pair<ShaderDefId, string>> messages;
+
+	vector<Pair<string>> internal_files;
 };
 
 Maybe<FilePath> ShaderCompiler::Impl::findPath(FilePath path) const {
@@ -111,6 +115,25 @@ shaderc_include_result *ShaderCompiler::Impl::resolveInclude(void *user_data,
 	auto &impl = *(Impl *)user_data;
 	IncludeResult *new_result = new IncludeResult;
 	impl.include_results.emplace_back(new_result);
+
+	if(requested_source[0] == '%') {
+		bool found = false;
+		for(auto &[name, content] : impl.internal_files) {
+			if(name == ZStr(requested_source + 1)) {
+				new_result->path = requested_source;
+				new_result->result.content = content.c_str();
+				new_result->result.content_length = content.size();
+				new_result->result.source_name = new_result->path.c_str();
+				new_result->result.source_name_length = new_result->path.size();
+				found = true;
+				break;
+			}
+		}
+		if(!found) {
+			impl.include_errors.emplace_back(
+				ERROR("Cannot find internal file: '%'", requested_source));
+		}
+	}
 
 	FilePath req_path(requested_source);
 	auto cur_path = FilePath(requesting_source).parent();
@@ -163,6 +186,7 @@ ShaderCompiler::ShaderCompiler(ShaderCompilerSetup setup) {
 	shaderc_compile_options_set_optimization_level(opts, shaderc_optimization_level_performance);
 
 	m_impl->spirv_cache_dir = move(setup.spirv_cache_dir);
+	setInternalFile("shader_debug", getShaderDebugCode());
 }
 
 ShaderCompiler::~ShaderCompiler() {
@@ -254,6 +278,24 @@ void ShaderCompiler::remove(ShaderDefId id) {
 	m_impl->shader_defs.erase(id);
 }
 
+void ShaderCompiler::setInternalFile(ZStr name, ZStr code) {
+	DASSERT(!anyOf(name, internal_file_prefix));
+	for(auto &pair : m_impl->internal_files)
+		if(pair.first == name) {
+			pair.second = code;
+			return;
+		}
+	m_impl->internal_files.emplace_back(name, code);
+}
+
+void ShaderCompiler::removeInternalFile(ZStr name) {
+	for(auto &pair : m_impl->internal_files)
+		if(pair.first == name) {
+			m_impl->internal_files.erase(&pair);
+			return;
+		}
+}
+
 Maybe<ShaderDefId> ShaderCompiler::find(ZStr name) const {
 	return m_impl->shader_def_map.maybeFind(name);
 }
@@ -302,5 +344,4 @@ Ex<PVShaderModule> ShaderCompiler::createShaderModule(VDeviceRef device, ZStr de
 }
 
 vector<ShaderDefId> ShaderCompiler::updateList() const { return {}; }
-
 }

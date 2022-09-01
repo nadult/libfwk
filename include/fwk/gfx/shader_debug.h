@@ -4,17 +4,32 @@
 #pragma once
 
 #include "fwk/algorithm.h"
+#include "fwk/enum.h"
 #include "fwk/gfx_base.h"
 #include "fwk/math_base.h"
 #include "fwk/str.h"
 #include "fwk/vector.h"
+#include "fwk/vulkan_base.h"
 
 namespace fwk {
 
-/*
-string shaderDebugDefs(bool enable_debugging);
-void shaderDebugUseBuffer(PBuffer);
-void shaderDebugInitBuffer(PBuffer);
+// To use shader debug:
+// - In shader:
+//   predefine macro: DEBUG_ENABLED
+//   #include "%shader_debug"
+// 	 DEBUG_SETUP(buffer_set_id, buffer_binding_id)
+// 	 DEBUG_RECORD(int0, int1, float2, uint3);
+//
+// - Enable shader_debug in pipeline setup
+// - Init and use shaderDebug buffer with these functions:
+
+void shaderDebugInitBuffer(VulkanCommandQueue &, VBufferSpan<u32>);
+
+struct ShaderDebugHeader {
+	uint max_records, num_records;
+	uint workgroup_size[3];
+	uint num_workgroups[3];
+};
 
 DEFINE_ENUM(ShaderDebugValueType, vt_int, vt_uint, vt_float);
 
@@ -30,7 +45,8 @@ struct ShaderDebugRecord {
 
 struct ShaderDebugInfo {
 	ShaderDebugInfo() = default;
-	ShaderDebugInfo(PBuffer, Maybe<uint> limit = none, CSpan<Pair<string, int>> source_ranges = {});
+	ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit = none,
+					CSpan<Pair<string, int>> source_ranges = {});
 
 	int3 localIndexToID(uint) const;
 	int3 workGroupIndexToID(uint) const;
@@ -46,6 +62,5 @@ struct ShaderDebugInfo {
 	int3 num_work_groups;
 	vector<string> file_names;
 	vector<ShaderDebugRecord> records;
-};*/
-
+};
 }

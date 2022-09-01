@@ -55,6 +55,13 @@ class ShaderCompiler {
 	bool valid(ShaderDefId) const;
 	void remove(ShaderDefId);
 
+	static constexpr char internal_file_prefix = '%';
+
+	// TODO: naming
+	// Internal files can be included by using '%' prefix (i.e. #include "%shader_debug")
+	void setInternalFile(ZStr name, ZStr code);
+	void removeInternalFile(ZStr name);
+
 	Maybe<ShaderDefId> find(ZStr shader_def_name) const;
 	const ShaderDefinition &operator[](ZStr) const;
 
