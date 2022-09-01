@@ -296,8 +296,6 @@ Ex<PodVector<char>> VulkanCommandQueue::download(VBufferSpan<char> src, Str uniq
 
 	uint frame_counter = m_frame_index - current->last_frame;
 	if(skip_frames && frame_counter % (skip_frames + 1) == 0) {
-		barrier(VPipeStage::all_commands, VPipeStage::transfer, VAccess::memory_write,
-				VAccess::transfer_read);
 		current->ids.emplace_back(EX_PASS(download(src)));
 		current->last_frame = m_frame_index;
 	}
