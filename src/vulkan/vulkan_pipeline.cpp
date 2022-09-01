@@ -462,14 +462,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineSetup &setup) {
 	DASSERT(setup.compute_module);
-
-	auto descr_bindings = setup.compute_module->descriptorBindingInfos();
-	auto descr_sets = VDescriptorBindingInfo::divideSets(descr_bindings);
-	vector<VDSLId> dsls;
-	dsls.reserve(descr_sets.size());
-	for(auto bindings : descr_sets)
-		dsls.emplace_back(device->getDSL(bindings));
-	auto pipeline_layout = device->getPipelineLayout(dsls);
+	auto pipeline_layout = device->getPipelineLayout({setup.compute_module});
 
 	VkSpecializationInfo spec_info;
 	PodVector<ConstType> spec_data;
