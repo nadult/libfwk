@@ -68,6 +68,8 @@ void shaderDebugInitBuffer(VulkanCommandQueue &cmds, VBufferSpan<u32> buf) {
 	auto max_records = buf.size() - header_size;
 	cmds.fill(buf.subSpan(0, 1), max_records);
 	cmds.fill(buf.subSpan(1, header_size), 0);
+	cmds.barrier(VPipeStage::transfer, VPipeStage::compute_shader, VAccess::transfer_write,
+				 VAccess::memory_read | VAccess::memory_write);
 }
 
 bool ShaderDebugRecord::operator<(const ShaderDebugRecord &rhs) const {
