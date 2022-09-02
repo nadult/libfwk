@@ -80,41 +80,37 @@ VulkanSampler::VulkanSampler(VkSampler handle, VObjectId id, const VSamplerSetup
 VulkanSampler::~VulkanSampler() { deferredRelease<vkDestroySampler>(m_handle); }
 
 void VDescriptorSet::set(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>> values) {
-	u64 bits = ((1ull << values.size()) - 1ull) << first_index;
-	if((bits & bindings_map) != bits) {
-		bits = (bits & bindings_map) >> first_index;
-		if(values.size() > 1) {
-			// TODO: extract ranges
-			for(int i : intRange(values))
-				if(bits & (1ull << i))
-					set(first_index + i, type, values.subSpan(i, i + 1));
-		} else if(!bits)
-			return;
-	}
+	DASSERT_LT(first_index + values.size(), VulkanLimits::max_descr_bindings);
+	// TODO: we should be able to do it with a single VkWriteDescriptorSet structure...
+	array<VkWriteDescriptorSet, VulkanLimits::max_descr_bindings> writes;
+	array<VkDescriptorBufferInfo, VulkanLimits::max_descr_bindings> buffer_infos;
 
-	array<VkDescriptorBufferInfo, 16> static_infos;
-	PodVector<VkDescriptorBufferInfo> dynamic_infos;
-	if(values.size() > static_infos.size())
-		dynamic_infos.resize(values.size());
-	auto *infos = dynamic_infos ? dynamic_infos.data() : static_infos.data();
-
+	int update_index = 0;
 	for(int i : intRange(values)) {
+		if(!(bindings_map & (1ull << (i + first_index))))
+			continue;
 		auto span = values[i];
 		if(!span)
 			span = device->dummyBuffer();
-		infos[i] = {span.buffer(), VkDeviceSize(span.byteOffset()), VkDeviceSize(span.byteSize())};
+
+		auto &buffer_info = buffer_infos[update_index];
+		auto &write = writes[update_index++];
+
+		buffer_info = {span.buffer(), VkDeviceSize(span.byteOffset()),
+					   VkDeviceSize(span.byteSize())};
+		write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+		write.dstSet = handle;
+		write.dstBinding = first_index + i;
+		write.descriptorCount = 1;
+		write.descriptorType = toVk(type);
+		write.pBufferInfo = &buffer_info;
 	}
 
-	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-	write.dstSet = handle;
-	write.dstBinding = first_index;
-	write.descriptorCount = values.size();
-	write.descriptorType = toVk(type);
-	write.pBufferInfo = infos;
-	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
+	vkUpdateDescriptorSets(device->handle(), update_index, writes.data(), 0, nullptr);
 }
 
 void VDescriptorSet::set(int first_index, CSpan<Pair<PVSampler, PVImageView>> values) {
+	// TODO: make it work properly for multiple elements just like for buffers
 	u64 bits = ((1ull << values.size()) - 1ull) << first_index;
 	if((bits & bindings_map) != bits) {
 		bits = bits & bindings_map >> first_index;
