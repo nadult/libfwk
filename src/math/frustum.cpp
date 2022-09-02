@@ -20,8 +20,8 @@ Frustum::Frustum(const Matrix4 &view_proj) {
 	planes[PlaneId::left] = makePlane(t[3] + t[0]);
 	planes[PlaneId::right] = makePlane(t[3] - t[0]);
 
-	planes[PlaneId::up] = makePlane(t[3] - t[1]);
-	planes[PlaneId::down] = makePlane(t[3] + t[1]);
+	planes[PlaneId::down] = makePlane(t[3] - t[1]);
+	planes[PlaneId::up] = makePlane(t[3] + t[1]);
 
 	//	planes[PlaneId::front]	= makePlane(t[3] - t[2]);
 	//	planes[PlaneId::back]	= makePlane(t[3] + t[2]);
@@ -54,9 +54,9 @@ bool Frustum::testIsect(CSpan<float3> points) const {
 bool Frustum::testIsect(const FBox &box) const { return testIsect(box.corners()); }
 
 array<Ray3F, 4> Frustum::cornerRays() const {
-	return {{*planes[FrustumPlaneId::down].isect(planes[FrustumPlaneId::left]),
-			 *planes[FrustumPlaneId::left].isect(planes[FrustumPlaneId::up]),
-			 *planes[FrustumPlaneId::up].isect(planes[FrustumPlaneId::right]),
-			 *planes[FrustumPlaneId::right].isect(planes[FrustumPlaneId::down])}};
+	return {{*planes[FrustumPlaneId::left].isect(planes[FrustumPlaneId::up]),
+			 *planes[FrustumPlaneId::down].isect(planes[FrustumPlaneId::left]),
+			 *planes[FrustumPlaneId::right].isect(planes[FrustumPlaneId::down]),
+			 *planes[FrustumPlaneId::up].isect(planes[FrustumPlaneId::right])}};
 }
 }
