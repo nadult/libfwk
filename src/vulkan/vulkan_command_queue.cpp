@@ -421,6 +421,12 @@ void VulkanCommandQueue::barrier(VPipeStages src, VPipeStages dst, VAccessFlags 
 	}
 }
 
+void VulkanCommandQueue::fullBarrier() {
+	barrier(VPipeStage::all_commands, VPipeStage::all_graphics,
+			VAccess::memory_read | VAccess::memory_write,
+			VAccess::memory_read | VAccess::memory_write);
+}
+
 uint VulkanCommandQueue::timestampQuery() {
 	PASSERT(m_status == Status::frame_running);
 	auto &frame = m_frames[m_swap_index];

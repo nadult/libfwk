@@ -102,6 +102,7 @@ class VulkanCommandQueue {
 
 	void barrier(VPipeStages src, VPipeStages dst, VAccessFlags mem_src = none,
 				 VAccessFlags mem_dst = none);
+	void fullBarrier();
 
 	uint timestampQuery();
 	void perfTimestampQuery(uint sample_id);
