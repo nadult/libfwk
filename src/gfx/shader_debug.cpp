@@ -207,7 +207,5 @@ ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
 
 		records.emplace_back(record);
 	}
-
-	makeSorted(records);
 }
 }
