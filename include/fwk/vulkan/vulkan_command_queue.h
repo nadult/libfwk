@@ -113,12 +113,13 @@ class VulkanCommandQueue {
 
 	Ex<PodVector<char>> download(VBufferSpan<char> src, Str unique_label, uint skip_frames = 0);
 	template <class T>
-	Ex<> download(vector<T> &dst, VBufferSpan<T> src, Str unique_label, uint skip_frames = 0) {
+	Ex<vector<T>> download(VBufferSpan<T> src, Str unique_label, uint skip_frames = 0) {
 		auto result =
 			EX_PASS(download(src.template reinterpret<char>(), unique_label, skip_frames));
+		vector<T> out;
 		if(result)
-			result.template reinterpret<T>().unsafeSwap(dst);
-		return {};
+			result.template reinterpret<T>().unsafeSwap(out);
+		return out;
 	}
 
 	// -------------------------------------------------------------------------------------------
