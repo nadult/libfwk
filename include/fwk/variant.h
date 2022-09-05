@@ -158,7 +158,6 @@ template <typename... Types> class Variant {
 	template <class T> using EnableIfValidType = EnableIf<(type_index_<T> != -1), TypeNotInVariant>;
 
 	using First = NthType<0, Types...>;
-	using Data = typename std::aligned_storage<data_size, data_align>::type;
 	using Helper = detail::variant_helper<Types...>;
 
 #ifdef NDEBUG
@@ -167,7 +166,7 @@ template <typename... Types> class Variant {
 	static constexpr bool ndebug_access = false;
 #endif
 
-	Data data;
+	alignas(data_align) char data[data_size];
 	char type_index;
 
 	template <class T> T &access() const {
