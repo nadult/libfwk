@@ -177,6 +177,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 		features = *setup.features;
 
 	features.fillModeNonSolid = VK_TRUE;
+	features.samplerAnisotropy = VK_TRUE;
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures ds_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES};
 	ds_features.separateDepthStencilLayouts = VK_TRUE;
@@ -479,6 +480,7 @@ PVSampler VulkanDevice::getSampler(const VSamplerSetup &setup) {
 		ci.addressModeW = VkSamplerAddressMode(setup.address_mode[2]);
 		ci.maxAnisotropy = setup.max_anisotropy_samples;
 		ci.anisotropyEnable = setup.max_anisotropy_samples > 1;
+		ci.maxLod = setup.mipmap_filter ? VK_LOD_CLAMP_NONE : 0.0;
 		VkSampler handle;
 		FWK_VK_CALL(vkCreateSampler, m_handle, &ci, nullptr, &handle);
 		ref = createObject(handle, setup);

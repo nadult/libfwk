@@ -20,8 +20,7 @@ namespace fwk {
 // 	 DEBUG_SETUP(buffer_set_id, buffer_binding_id)
 // 	 DEBUG_RECORD(int0, int1, float2, uint3);
 //
-// - Enable shader_debug in pipeline setup
-// - Init and use shaderDebug buffer with these functions:
+// - init debug buffer with shaderDebugInitBuffer
 
 void shaderDebugInitBuffer(VulkanCommandQueue &, VBufferSpan<u32>);
 

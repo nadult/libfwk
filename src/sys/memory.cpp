@@ -49,8 +49,8 @@ void *operator new[](std::size_t count) { return fwk::allocate(count); }
 void operator delete(void *ptr) noexcept { fwk::deallocate(ptr); }
 void operator delete[](void *ptr) noexcept { fwk::deallocate(ptr); }
 
-void operator delete(void *ptr, std::size_t sz) { fwk::deallocate(ptr); }
-void operator delete[](void *ptr, std::size_t sz) { fwk::deallocate(ptr); }
+void operator delete(void *ptr, std::size_t sz) noexcept { fwk::deallocate(ptr); }
+void operator delete[](void *ptr, std::size_t sz) noexcept { fwk::deallocate(ptr); }
 
 // TODO: C++17 alignment versions
 /*

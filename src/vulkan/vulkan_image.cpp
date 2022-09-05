@@ -108,10 +108,9 @@ Maybe<VDepthStencilFormat> VulkanImage::depthStencilFormat() const {
 
 int3 VulkanImage::mipSize(int mip_level) const {
 	DASSERT(mip_level >= 0 && mip_level < m_dims.num_mip_levels);
-	int min_xy_size = fromVkBlockFormat(m_format) ? 4 : 1;
 	auto out = size();
-	out.x = max(min_xy_size, out.x >> mip_level);
-	out.y = max(min_xy_size, out.y >> mip_level);
+	out.x = out.x >> mip_level;
+	out.y = out.y >> mip_level;
 	out.z = max(1, out.z >> mip_level);
 	return out;
 }
