@@ -409,6 +409,8 @@ CSpan<Frame> Analyzer::getFrames() {
 
 	switch(m_data_source) {
 	case DataSource::custom_range: {
+		if(!frames)
+			return {};
 		int first_frame = clamp(m_first_frame, 0, frames.size() - 1);
 		int end_frame = clamp(m_end_frame, first_frame + 1, frames.size());
 		return frames.subSpan(first_frame, end_frame);
