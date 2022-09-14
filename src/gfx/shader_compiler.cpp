@@ -239,7 +239,7 @@ Ex<CompilationResult> ShaderCompiler::compileCode(VShaderStage stage, ZStr code,
 	if(m_impl->include_errors)
 		return Error::merge(m_impl->include_errors);
 	if(!out.bytecode)
-		return ERROR("Compilation failed:\n%", out.messages);
+		return ERROR("Compilation of % shader '%' failed:\n%", stage, file_name, out.messages);
 
 	m_impl->include_results.clear();
 	m_impl->include_errors.clear();
