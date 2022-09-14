@@ -176,8 +176,9 @@ Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 		if(zone.num_free_slabs < num_slabs)
 			continue;
 
-		int groups_per_zone = zone.groups.size();
-		uint not_full_groups = (~zone.full_groups) & ((1 << groups_per_zone) - 1);
+		int num_groups = zone.groups.size();
+		u64 not_full_groups =
+			(~zone.full_groups) & (num_groups == 64 ? ~0ull : (1ull << num_groups) - 1);
 		u64 *groups = zone.groups.data();
 		if(num_slabs == 1) {
 			int first_group = findFirstBit(not_full_groups);
@@ -257,6 +258,7 @@ bool SlabAllocator::allocZone(u64 zone_size) {
 	zone.groups_mask = (1ull << zone.num_slab_groups) - 1;
 	zone.empty_groups = zone.groups_mask;
 	zone.full_groups = 0;
+	PASSERT(zone.num_slab_groups <= 64);
 	zone.groups.resize(zone.num_slab_groups, 0);
 	return true;
 }
