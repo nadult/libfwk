@@ -56,6 +56,13 @@ ShaderDefinition::ShaderDefinition(string name, VShaderStage stage, string sourc
 		this->source_file_name = this->name;
 }
 
+struct ShaderDefinitionEx : public ShaderDefinition {
+	ShaderDefinitionEx(ShaderDefinition def) : ShaderDefinition(move(def)) {}
+
+	vector<FilePath> update_paths;
+	double last_modification_time = -1.0;
+};
+
 using CompilationResult = ShaderCompiler::CompilationResult;
 
 struct ShaderCompiler::Impl {
@@ -80,9 +87,10 @@ struct ShaderCompiler::Impl {
 	vector<FilePath> source_dirs;
 	Maybe<FilePath> spirv_cache_dir;
 	vector<Error> include_errors;
+	vector<FilePath> current_paths;
 
 	HashMap<string, ShaderDefId> shader_def_map;
-	SparseVector<ShaderDefinition> shader_defs;
+	SparseVector<ShaderDefinitionEx> shader_defs;
 	vector<Pair<ShaderDefId, string>> messages;
 
 	vector<Pair<string>> internal_files;
@@ -138,6 +146,7 @@ shaderc_include_result *ShaderCompiler::Impl::resolveInclude(void *user_data,
 	FilePath req_path(requested_source);
 	auto cur_path = FilePath(requesting_source).parent();
 	if(auto file_path = impl.findPath(req_path, cur_path)) {
+		impl.current_paths.emplace_back(*file_path);
 		if(auto content = loadFileString(*file_path)) {
 			new_result->path = *file_path;
 			new_result->content = move(*content);
@@ -250,6 +259,7 @@ Ex<CompilationResult> ShaderCompiler::compileFile(VShaderStage stage, ZStr file_
 												  CSpan<Pair<string>> macros) const {
 	if(auto file_path = filePath(file_name)) {
 		auto content = EX_PASS(loadFileString(*file_path));
+		m_impl->current_paths.emplace_back(*file_path);
 		return compileCode(stage, content, *file_path, macros);
 	}
 
@@ -262,8 +272,11 @@ ShaderDefId ShaderCompiler::add(ShaderDefinition def) {
 	if(find(def.name))
 		FATAL("ShaderDefinition already exists: '%s'", def.name.c_str());
 	auto id = ShaderDefId(m_impl->shader_defs.nextFreeIndex());
+
 	m_impl->shader_def_map.emplace(def.name, id);
-	m_impl->shader_defs.emplace(move(def));
+	int index = m_impl->shader_defs.emplace(move(def));
+	if(auto path = filePath(def.source_file_name))
+		m_impl->shader_defs[index].update_paths.emplace_back(move(*path));
 	return id;
 }
 
@@ -307,21 +320,42 @@ const ShaderDefinition &ShaderCompiler::operator[](ZStr name) const {
 	return m_impl->shader_defs[*id];
 }
 
+double lastModificationTime(CSpan<FilePath> paths) {
+	double last_mod_time = -1.0;
+	for(auto path : paths)
+		if(auto mod_time = lastModificationTime(path))
+			last_mod_time = max(last_mod_time, *mod_time);
+	return last_mod_time;
+}
+
 Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	DASSERT(valid(id));
 	auto &def = m_impl->shader_defs[id];
 	FilePath spirv_path;
 
+	double last_mod_time = lastModificationTime(def.update_paths);
+
 	if(m_impl->spirv_cache_dir) {
 		spirv_path = *m_impl->spirv_cache_dir / (def.name + ".spv");
 		if(spirv_path.isRegularFile()) {
+			double spirv_time = lastModificationTime(spirv_path).orElse(-1.0);
 			// TODO: handle error properly
 			// TODO: for now loading disabled
 			//return loadFile(spirv_path).get();
 		}
 	}
 
+	// TODO: use latest spirv if compilation failed
+
+	m_impl->current_paths.clear();
 	auto result = EX_PASS(compileFile(def.stage, def.source_file_name, def.macros));
+	makeSortedUnique(m_impl->current_paths);
+	if(m_impl->current_paths != def.update_paths) {
+		def.update_paths = move(m_impl->current_paths);
+		last_mod_time = lastModificationTime(def.update_paths);
+	}
+	def.last_modification_time = last_mod_time;
+
 	if(result.bytecode && !spirv_path.empty()) {
 		mkdirRecursive(spirv_path.parent()).check();
 		saveFile(spirv_path, result.bytecode).check();
@@ -343,5 +377,22 @@ Ex<PVShaderModule> ShaderCompiler::createShaderModule(VDeviceRef device, ZStr de
 	return VulkanShaderModule::create(device, result.bytecode);
 }
 
-vector<ShaderDefId> ShaderCompiler::updateList() const { return {}; }
+vector<ShaderDefId> ShaderCompiler::updateList() const {
+	vector<ShaderDefId> out;
+	HashMap<FilePath, double> last_mod_times;
+
+	for(auto &def : m_impl->shader_defs) {
+		for(auto &path : def.update_paths) {
+			auto &time = last_mod_times[path];
+			if(time == 0)
+				time = lastModificationTime(path).orElse(-1.0);
+			if(time > def.last_modification_time) {
+				out.emplace_back(m_impl->shader_defs.indexOf(def));
+				break;
+			}
+		}
+	}
+
+	return out;
+}
 }
