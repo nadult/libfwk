@@ -17,6 +17,7 @@ struct ShaderCompilerSetup {
 	Maybe<double> glsl_version = 4.5;
 	Maybe<double> spirv_version = 1.3;
 	bool debug_info = false;
+	bool generate_assembly = false;
 };
 
 struct ShaderDefinition {
@@ -38,10 +39,12 @@ class ShaderCompiler {
 
 	struct CompilationResult {
 		vector<char> bytecode;
+		vector<char> assembly;
 		string messages;
 	};
 
 	Maybe<FilePath> filePath(ZStr file_name) const;
+
 	Ex<CompilationResult> compileCode(VShaderStage, ZStr source_code, ZStr file_name = "input.glsl",
 									  CSpan<Pair<string>> macros = {}) const;
 	Ex<CompilationResult> compileFile(VShaderStage, ZStr file_name,

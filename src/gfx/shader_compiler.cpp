@@ -94,6 +94,7 @@ struct ShaderCompiler::Impl {
 	vector<Pair<ShaderDefId, string>> messages;
 
 	vector<Pair<string>> internal_files;
+	bool generate_assmbly = false;
 };
 
 Maybe<FilePath> ShaderCompiler::Impl::findPath(FilePath path) const {
@@ -166,6 +167,7 @@ shaderc_include_result *ShaderCompiler::Impl::resolveInclude(void *user_data,
 ShaderCompiler::ShaderCompiler(ShaderCompilerSetup setup) {
 	m_impl.emplace();
 	m_impl->compiler = shaderc_compiler_initialize();
+	m_impl->generate_assmbly = setup.generate_assembly;
 	auto *opts = m_impl->compile_options = shaderc_compile_options_initialize();
 	if(setup.debug_info)
 		shaderc_compile_options_set_generate_debug_info(opts);
@@ -228,10 +230,13 @@ Ex<CompilationResult> ShaderCompiler::compileCode(VShaderStage stage, ZStr code,
 			shaderc_compile_options_add_macro_definition(options, name.c_str(), name.size(),
 														 value.c_str(), value.size());
 	}
+	Cleanup cleanup([&]() {
+		if(macros)
+			shaderc_compile_options_release(options);
+	});
+
 	auto result = shaderc_compile_into_spv(m_impl->compiler, code.c_str(), code.size(),
 										   type_map[stage], file_name.c_str(), "main", options);
-	if(macros)
-		shaderc_compile_options_release(options);
 
 	int num_warnings = shaderc_result_get_num_warnings(result);
 	int num_errors = shaderc_result_get_num_errors(result);
@@ -249,9 +254,23 @@ Ex<CompilationResult> ShaderCompiler::compileCode(VShaderStage stage, ZStr code,
 		return Error::merge(m_impl->include_errors);
 	if(!out.bytecode)
 		return ERROR("Compilation of % shader '%' failed:\n%", stage, file_name, out.messages);
-
 	m_impl->include_results.clear();
-	m_impl->include_errors.clear();
+
+	if(m_impl->generate_assmbly) {
+		auto result =
+			shaderc_compile_into_spv_assembly(m_impl->compiler, code.c_str(), code.size(),
+											  type_map[stage], file_name.c_str(), "main", options);
+		auto status = shaderc_result_get_compilation_status(result);
+		if(status == shaderc_compilation_status_success) {
+			auto length = shaderc_result_get_length(result);
+			auto *bytes = shaderc_result_get_bytes(result);
+			out.assembly.assign(bytes, bytes + length);
+		}
+		shaderc_result_release(result);
+		m_impl->include_errors.clear();
+		m_impl->include_results.clear();
+	}
+
 	return out;
 }
 
@@ -331,12 +350,13 @@ double lastModificationTime(CSpan<FilePath> paths) {
 Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	DASSERT(valid(id));
 	auto &def = m_impl->shader_defs[id];
-	FilePath spirv_path;
+	FilePath spirv_path, asm_path;
 
 	double last_mod_time = lastModificationTime(def.update_paths);
 
 	if(m_impl->spirv_cache_dir) {
 		spirv_path = *m_impl->spirv_cache_dir / (def.name + ".spv");
+		asm_path = *m_impl->spirv_cache_dir / (def.name + ".asm");
 		if(spirv_path.isRegularFile()) {
 			double spirv_time = lastModificationTime(spirv_path).orElse(-1.0);
 			// TODO: handle error properly
@@ -359,6 +379,10 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	if(result.bytecode && !spirv_path.empty()) {
 		mkdirRecursive(spirv_path.parent()).check();
 		saveFile(spirv_path, result.bytecode).check();
+	}
+	if(result.assembly && !asm_path.empty()) {
+		mkdirRecursive(asm_path.parent()).check();
+		saveFile(asm_path, result.assembly).check();
 	}
 
 	return result;
