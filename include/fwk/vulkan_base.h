@@ -56,6 +56,8 @@ struct VulkanVersion {
 	int major, minor, patch;
 };
 
+DEFINE_ENUM(VVendorId, intel, nvidia, amd, unknown);
+
 DEFINE_ENUM(VTypeId, buffer, buffer_view, framebuffer, image, image_view, pipeline, pipeline_layout,
 			render_pass, sampler, shader_module, swap_chain);
 

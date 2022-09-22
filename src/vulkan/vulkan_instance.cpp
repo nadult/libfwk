@@ -129,6 +129,11 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 	vkGetPhysicalDeviceProperties2(handle, &props2);
 	out.properties = props2.properties;
 	out.subgroup_props = subgroup_props;
+	out.vendor_id = VVendorId::unknown;
+	if(props2.properties.vendorID == 4098)
+		out.vendor_id = VVendorId::amd;
+	else if(props2.properties.vendorID == 4318)
+		out.vendor_id = VVendorId::nvidia;
 
 	vkGetPhysicalDeviceMemoryProperties(handle, &out.mem_properties);
 
