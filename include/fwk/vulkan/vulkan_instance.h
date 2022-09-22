@@ -57,6 +57,7 @@ struct VulkanPhysicalDeviceInfo {
 	VkPhysicalDeviceProperties properties;
 	VkPhysicalDeviceMemoryProperties mem_properties;
 	VkPhysicalDeviceSubgroupProperties subgroup_props;
+	VkPhysicalDeviceSubgroupSizeControlProperties subgroup_control_props;
 	vector<VkQueueFamilyProperties> queue_families;
 	vector<string> extensions;
 	VDepthStencilFormats supported_depth_stencil_formats;

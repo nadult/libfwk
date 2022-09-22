@@ -124,9 +124,18 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 
 	VkPhysicalDeviceSubgroupProperties subgroup_props{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES};
+	VkPhysicalDeviceSubgroupSizeControlProperties subgroup_control_props{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES};
+
 	VkPhysicalDeviceProperties2 props2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
 	props2.pNext = &subgroup_props;
+	subgroup_props.pNext = &subgroup_control_props;
 	vkGetPhysicalDeviceProperties2(handle, &props2);
+	subgroup_props.pNext = nullptr;
+	subgroup_control_props.pNext = nullptr;
+	if(!subgroup_control_props.minSubgroupSize)
+		subgroup_control_props.minSubgroupSize = subgroup_control_props.maxSubgroupSize =
+			subgroup_props.subgroupSize;
 	out.properties = props2.properties;
 	out.subgroup_props = subgroup_props;
 	out.vendor_id = VVendorId::unknown;

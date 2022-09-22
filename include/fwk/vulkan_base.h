@@ -118,7 +118,7 @@ DEFINE_ENUM(VTexFilter, nearest, linear);
 DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 			mirror_clamp_to_edge);
 
-DEFINE_ENUM(VDeviceFeature, memory_budget);
+DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control);
 using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
 DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);
@@ -268,7 +268,7 @@ struct VColorSync {
 		: load_op(std >= Std::present ? VLoadOp::load : VLoadOp::clear), store_op(VStoreOp::store),
 		  initial_layout(std >= Std::present ? VImageLayout::color_att : VImageLayout::undefined),
 		  final_layout(isOneOf(std, Std::clear, Std::draw) ? VImageLayout::color_att :
-															   VImageLayout::present_src) {}
+															 VImageLayout::present_src) {}
 	VColorSync(VLoadOp load, VStoreOp store, VImageLayout initial_layout, VImageLayout final_layout)
 		: load_op(load), store_op(store), initial_layout(initial_layout),
 		  final_layout(final_layout) {}

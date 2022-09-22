@@ -183,6 +183,7 @@ struct VPipelineSetup {
 struct VComputePipelineSetup {
 	PVShaderModule compute_module;
 	vector<VSpecConstant> spec_constants;
+	Maybe<uint> subgroup_size;
 };
 
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {

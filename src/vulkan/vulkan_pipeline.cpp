@@ -322,7 +322,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 		VkVertexInputBindingDescription out;
 		out.binding = desc.index;
 		out.inputRate = desc.input_rate == VertexInputRate::vertex ? VK_VERTEX_INPUT_RATE_VERTEX :
-																	   VK_VERTEX_INPUT_RATE_INSTANCE;
+																	 VK_VERTEX_INPUT_RATE_INSTANCE;
 		out.stride = desc.stride;
 		return out;
 	});
@@ -473,6 +473,13 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineS
 	ci.stage.pSpecializationInfo = spec_data ? &spec_info : nullptr;
 	ci.layout = pipeline_layout;
 	ci.basePipelineIndex = -1;
+
+	VkPipelineShaderStageRequiredSubgroupSizeCreateInfo subgroup_control_ci{
+		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO};
+	if(setup.subgroup_size) {
+		subgroup_control_ci.requiredSubgroupSize = *setup.subgroup_size;
+		ci.stage.pNext = &subgroup_control_ci;
+	}
 
 	VkPipeline handle;
 	FWK_VK_EXPECT_CALL(vkCreateComputePipelines, device->handle(), device->pipelineCache(), 1, &ci,

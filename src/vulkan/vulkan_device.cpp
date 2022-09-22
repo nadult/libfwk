@@ -155,17 +155,28 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	}
 
 	const auto &phys_info = m_instance_ref->info(m_phys_id);
+	auto version = m_instance_ref->version();
 	auto exts = setup.extensions;
 	exts.emplace_back("VK_KHR_swapchain");
-	if(m_instance_ref->version() < VulkanVersion{1, 2, 0})
+	if(version < VulkanVersion{1, 2, 0})
 		exts.emplace_back("VK_KHR_separate_depth_stencil_layouts");
 
-	if(anyOf(phys_info.extensions, "VK_EXT_memory_budget")) {
+	if(anyOf(phys_info.extensions, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)) {
 		m_features |= VDeviceFeature::memory_budget;
-		exts.emplace_back("VK_EXT_memory_budget");
-		if(m_instance_ref->version() < VulkanVersion{1, 1, 0})
+		exts.emplace_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+		if(version < VulkanVersion{1, 1, 0})
 			exts.emplace_back("VK_KHR_get_physical_device_properties2");
 	}
+
+	if(version >= VulkanVersion{1, 3, 0})
+		m_features |= VDeviceFeature::subgroup_size_control;
+	else {
+		if(anyOf(phys_info.extensions, VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME)) {
+			m_features |= VDeviceFeature::subgroup_size_control;
+			exts.emplace_back(VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME);
+		}
+	}
+
 	makeSortedUnique(exts);
 
 	for(auto ext : exts)
@@ -441,9 +452,9 @@ PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_mo
 
 	auto descr_sets = VDescriptorBindingInfo::divideSets(descr_bindings);
 	for(int index : intRange(descr_sets))
-		DASSERT(
-			"Description sets in pipeline layout must have continuous indices starting from 0" &&
-			descr_sets[index][0].set() == index);
+		DASSERT("Description sets in pipeline layout must have continuous indices starting "
+				"from 0" &&
+				descr_sets[index][0].set() == index);
 
 	vector<VDSLId> dsls;
 	dsls.reserve(descr_sets.size());
