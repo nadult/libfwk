@@ -137,6 +137,7 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 			subgroup_props.subgroupSize;
 	out.properties = props2.properties;
 	out.subgroup_props = subgroup_props;
+	out.subgroup_control_props = subgroup_control_props;
 	out.vendor_id = VVendorId::unknown;
 	if(props2.properties.vendorID == 4098)
 		out.vendor_id = VVendorId::amd;
