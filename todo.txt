@@ -12,6 +12,7 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- wykomentowane PASSERTy w vulkan_storage
 - roznice w countLeadingZeros (i podobnych) między linuxem a windowsem?
 - optimize perf vulkan queries (now we have 3 queries in one point...)
 - remove min_size from span

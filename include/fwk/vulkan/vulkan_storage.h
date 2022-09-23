@@ -52,7 +52,7 @@ template <class T> class VulkanObjectBase {
   protected:
 	VulkanObjectBase(Handle handle, VObjectId object_id, uint initial_ref_count = 1)
 		: m_handle(handle), m_object_id(object_id), m_ref_count(initial_ref_count) {
-		PASSERT(handle);
+		//PASSERT(handle);
 	}
 	// Vulkan objects are immovable
 	VulkanObjectBase(const VulkanObjectBase &) = delete;
@@ -177,7 +177,7 @@ template <class T> class VPtr {
 		auto *base = reinterpret_cast<const BaseObject *>(m_ptr);
 		return base ? base->m_object_id : VObjectId();
 	}
-	operator T() const { return PASSERT(m_ptr), handle(); }
+	operator T() const { return /*PASSERT(m_ptr),*/ handle(); }
 	VDeviceId deviceId() const { return VObjectId(*this).deviceId(); }
 	int objectIdx() const { return VObjectId(*this).objectIdx(); }
 
