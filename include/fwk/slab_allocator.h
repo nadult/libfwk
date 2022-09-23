@@ -46,10 +46,10 @@ class SlabAllocator {
 	}
 
 	static constexpr int findBestChunkLevel(u32 size) {
-		int level0 = (31 - countLeadingZeros((size - 1) >> 8));
+		int level0 = max(23 - countLeadingZeros(size), 0);
 		u32 value0 = 256u << level0;
-		u32 value = value0 + (value0 >> 1);
-		return (level0 << 1) + (size > value ? 2 : 1);
+		u32 value1 = value0 + (value0 >> 1);
+		return (level0 << 1) + (size > value1 ? 2 : size > value0 ? 1 : 0);
 	}
 
 	static constexpr int num_chunk_levels = 22;

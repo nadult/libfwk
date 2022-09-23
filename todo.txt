@@ -12,6 +12,7 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- roznice w countLeadingZeros (i podobnych) między linuxem a windowsem?
 - optimize perf vulkan queries (now we have 3 queries in one point...)
 - remove min_size from span
 - add warning/error when initializing variable with self (WTF is it not an error by default?!?)
