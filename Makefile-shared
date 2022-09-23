@@ -111,9 +111,9 @@ endif
 
 HTML_shared  := -s EXIT_RUNTIME=1 -s USE_SDL=2 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_ZLIB=1
 LIBS_shared  += freetype2 sdl2 vorbisfile
-LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lopenal -lGL -lGLU -lrt -lm -lstdc++
+LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lshaderc_combined -lz -lopenal -lvulkan -lrt -lm -lstdc++
 LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lOpenAL32 -ldsound -lole32 -lwinmm \
-                    -lglu32 -lopengl32 -lws2_32 -limagehlp
+                    -lglu32 -lvulkan -lws2_32 -limagehlp
 
 ifeq ($(FWK_DWARF), enabled)
 LIBS_linux   += -ldwarf -lelf -ldl

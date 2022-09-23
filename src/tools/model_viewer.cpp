@@ -1,7 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/animated_model.h"
+#include <stdio.h>
+
+/*#include "fwk/gfx/animated_model.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dynamic_mesh.h"
 #include "fwk/gfx/font_factory.h"
@@ -451,5 +453,10 @@ int main(int argc, char **argv) {
 
 	gl_device.runMainLoop(Viewer::mainLoop, &viewer);
 
+	return 0;
+}*/
+
+int main() {
+	printf("TODO: fixme\n");
 	return 0;
 }

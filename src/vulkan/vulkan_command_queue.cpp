@@ -335,7 +335,7 @@ void VulkanCommandQueue::bindVertices(uint first_binding, CSpan<VBufferSpan<char
 	PASSERT(m_status == Status::frame_running);
 	static constexpr int max_bindings = 32;
 	VkBuffer buffers[max_bindings];
-	u64 offsets_64[max_bindings];
+	VkDeviceSize offsets_64[max_bindings];
 
 	DASSERT(vbuffers.size() <= max_bindings);
 	for(int i : intRange(vbuffers)) {

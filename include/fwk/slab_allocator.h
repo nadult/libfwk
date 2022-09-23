@@ -77,7 +77,7 @@ class SlabAllocator {
 	struct Identifier {
 		Identifier(int chunk_id, int group_id, int level_id, int)
 			: value(u32(chunk_id) | u32((group_id) << 10) | (u32(level_id) << 26) | 0x80000000u) {
-			PASSERT(chunk_level >= 0 && chunk_level < num_chunk_levels);
+			PASSERT(level_id >= 0 && level_id < num_chunk_levels);
 			PASSERT(chunk_id >= 0 && chunk_id < max_chunks_per_group);
 		}
 		Identifier(int slab_id, int slab_count, int zone_id)

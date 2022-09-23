@@ -13,8 +13,8 @@ template <class T> struct VBufferSpan {
 		: m_buffer(buffer), m_byte_offset(0), m_size(buffer ? buffer->size() / sizeof(T) : 0) {}
 	VBufferSpan(PVBuffer buffer, u32 byte_offset) : m_buffer(buffer), m_byte_offset(byte_offset) {
 		auto buffer_byte_size = buffer ? buffer->size() : 0;
-		DASSERT_LE(byte_offset, buffer_size);
-		size = (buffer_byte_size - byte_offset) / sizeof(T);
+		DASSERT_LE(byte_offset, buffer_byte_size);
+		m_size = (buffer_byte_size - byte_offset) / sizeof(T);
 	}
 	VBufferSpan(PVBuffer buffer, u32 byte_offset, u32 size)
 		: m_buffer(buffer), m_byte_offset(byte_offset), m_size(size) {

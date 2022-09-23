@@ -11,11 +11,12 @@
 #include "fwk/math/segment.h"
 #include "fwk/math_base.h"
 
+// DEPRECATED: use Canvas instead
+
 namespace fwk {
 
 DEFINE_ENUM(VisMode, wireframe, solid);
 
-// DEPRECATED: use Canvas instead
 class Visualizer3 {
   public:
 	using Mode = VisMode;

@@ -29,7 +29,7 @@ include Makefile-shared
 SUBDIRS        = build tests tools lib temp
 BUILD_SUBDIRS  = tests tools
 ifndef FWK_MERGE_MODULES
-BUILD_SUBDIRS += gfx audio math sys io tests tools gui perf geom
+BUILD_SUBDIRS += gfx audio math sys io tests tools gui perf geom vulkan
 endif
 
 ifndef JUNK_GATHERING
@@ -39,7 +39,7 @@ endif
 
 # --- Lists of source files -----------------------------------------------------------------------
 
-SRC_base = base_vector hash_map_stats enum str type_info any logger any_config format parse
+SRC_base = base_vector hash_map_stats enum str type_info any logger any_config format parse slab_allocator
 
 SRC_sys  = \
 	sys_base sys/error sys/exception sys/thread sys/expected sys/assert sys/assert_impl sys/on_fail \
@@ -61,25 +61,24 @@ ifeq ($(PLATFORM), html)
 endif
 
 SRC_gfx = \
-	gfx/camera gfx/fpp_camera gfx/ortho_camera gfx/orbiting_camera gfx/plane_camera gfx/camera_control \
-	gfx/color gfx/font gfx/font_factory gfx/font_finder gfx/colored_triangle gfx/colored_quad gfx/material \
-	gfx/element_buffer gfx/triangle_buffer gfx/line_buffer gfx/sprite_buffer \
-	gfx/image gfx/image_stbir gfx/image_tga gfx/compressed_image gfx/float_image \
-	gfx/material_set gfx/matrix_stack gfx/draw_call \
-	gfx/visualizer2 gfx/visualizer3 gfx/investigate gfx/investigator2 gfx/investigator3 \
-	gfx/shader_debug gfx/shader_defs gfx/shader_combiner
+	gfx/camera_control gfx/camera gfx/canvas_2d gfx/canvas_3d gfx/color gfx/colored_quad gfx/colored_triangle \
+	gfx/compressed_image gfx/drawing gfx/dynamic_mesh gfx/float_image gfx/font gfx/font_factory gfx/font_finder \
+	gfx/fpp_camera gfx/image gfx/image_tga gfx/investigate gfx/investigator2 gfx/investigator3 \
+	gfx/matrix_stack gfx/orbiting_camera gfx/ortho_camera gfx/plane_camera gfx/shader_compiler \
+	gfx/shader_debug gfx/shader_defs gfx/shader_reflection
 
 SRC_gfx_mesh = \
-	gfx/model_anim gfx/model_node gfx/dynamic_mesh gfx/model gfx/pose gfx/mesh gfx/mesh_indices \
-	gfx/mesh_buffers gfx/mesh_constructor gfx/animated_model gfx/converter
+	gfx/animated_model gfx/converter gfx/mesh_buffers gfx/mesh_constructor gfx/mesh gfx/mesh_indices \
+	gfx/model_anim gfx/model gfx/model_node gfx/pose
 
-SRC_gfx_gl = \
-	gfx/gl_device gfx/gl_texture gfx/gl_renderbuffer gfx/gl_framebuffer gfx/gl_shader gfx/gl_storage \
-	gfx/gl_format gfx/gl_query  gfx/gl_buffer gfx/gl_vertex_array gfx/gl_program \
-	gfx/render_list gfx/renderer2d gfx/opengl
+SRC_vulkan = \
+	vulkan/vulkan_buffer vulkan/vulkan_command_queue vulkan/vulkan_descriptor_manager vulkan/vulkan_device \
+	vulkan/vulkan_framebuffer vulkan/vulkan_image vulkan/vulkan_instance vulkan/vulkan_internal \
+	vulkan/vulkan_memory_manager vulkan/vulkan_pipeline vulkan/vulkan_shader vulkan/vulkan_storage \
+	vulkan/vulkan_swap_chain vulkan/vulkan_window vulkan_base
 
 SRC_gfx_stbi = \
-	gfx/image_stbi
+	gfx/image_stbi gfx/image_stbir
 
 SRC_audio = audio/al_device audio/sound audio/ogg_stream
 
@@ -112,7 +111,7 @@ endif
 WEBGL_PROGRAMS := tests/window tools/model_viewer
 SRC_programs    = $(SRC_tests) $(SRC_tools)
 
-MODULES = gui_imgui1 gui_imgui2 gui_imgui3 gui_imgui4 base sys gfx gfx_gl gfx_mesh gfx_stbi \
+MODULES = gui_imgui1 gui_imgui2 gui_imgui3 gui_imgui4 base sys gfx gfx_mesh gfx_stbi vulkan \
 		  math geom geom_graph geom_voronoi gui perf audio
 
 # --- Definitions ---------------------------------------------------------------------------------

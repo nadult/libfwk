@@ -19,7 +19,7 @@
 #define FWK_THREAD_LOCAL __declspec(thread)
 #else
 #define FWK_NO_INLINE __attribute__((noinline))
-#define FWK_ALWAYS_INLINE __attribute__((always_inline))
+#define FWK_ALWAYS_INLINE inline __attribute__((always_inline))
 #define FWK_RESTRICT __restrict__
 #define FWK_THREAD_LOCAL __thread
 #endif

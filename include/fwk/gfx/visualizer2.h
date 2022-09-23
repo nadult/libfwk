@@ -10,11 +10,13 @@
 #include "fwk/math/box.h"
 #include "fwk/vector.h"
 
+// DEPRECATED: use Canvas instead
+
 namespace fwk {
 
 class Visualizer2;
 
-DEFINE_ENUM(VisOpt, cross, dashed /*TODO*/, arrow, solid);
+DEFINE_ENUM(VisOpt, cross, dashed, arrow, solid);
 using VisFlags = EnumFlags<VisOpt>;
 
 struct VisStyle {

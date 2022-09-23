@@ -94,7 +94,6 @@ vector<string> vulkanSurfaceExtensions() {
 		out.emplace_back("VK_KHR_wayland_surface");
 	else
 		out.emplace_back("VK_KHR_xlib_surface");
-}
 #endif
 	return out;
 }

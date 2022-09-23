@@ -179,7 +179,7 @@ template <class T> class VPtr {
 	}
 	operator T() const { return PASSERT(m_ptr), handle(); }
 	VDeviceId deviceId() const { return VObjectId(*this).deviceId(); }
-	int objectId() const { return VObjectId(*this).objectId(); }
+	int objectIdx() const { return VObjectId(*this).objectIdx(); }
 
 	T handle() const;
 	void reset();
@@ -303,7 +303,7 @@ template <class T> void VPtr<T>::operator=(VPtr &&rhs) {
 	}
 }
 
-template <class T> inline void VPtr<T>::swap(VPtr &rhs) { fwk::swap(m_id, rhs.m_id); }
+template <class T> inline void VPtr<T>::swap(VPtr &rhs) { fwk::swap(m_ptr, rhs.m_ptr); }
 
 template <class T> void VPtr<T>::reset() {
 	if(m_ptr) {
