@@ -422,9 +422,17 @@ void VulkanCommandQueue::barrier(VPipeStages src, VPipeStages dst, VAccessFlags 
 }
 
 void VulkanCommandQueue::fullBarrier() {
-	barrier(VPipeStage::all_commands, VPipeStage::all_graphics,
+	barrier(VPipeStage::all_commands, VPipeStage::all_commands,
 			VAccess::memory_read | VAccess::memory_write,
 			VAccess::memory_read | VAccess::memory_write);
+}
+
+void VulkanCommandQueue::clearColor(PVImage image, VClearValue color) {
+	VkImageSubresourceRange range{};
+	range.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+	range.levelCount = range.layerCount = 1;
+	vkCmdClearColorImage(m_cur_cmd_buffer, image, toVk(image->layout(0)),
+						 reinterpret_cast<VkClearColorValue *>(&color), 1, &range);
 }
 
 uint VulkanCommandQueue::timestampQuery() {

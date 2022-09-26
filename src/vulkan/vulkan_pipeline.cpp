@@ -144,6 +144,25 @@ void VDescriptorSet::set(int first_index, CSpan<Pair<PVSampler, PVImageView>> va
 	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }
 
+void VDescriptorSet::setStorageImage(int index, PVImageView image_view, VImageLayout layout) {
+	if(!(bindings_map & (1ull << index)))
+		return;
+
+	VkDescriptorImageInfo image_info;
+	image_info.imageView = image_view;
+	image_info.imageLayout = toVk(layout);
+	image_info.sampler = nullptr;
+
+	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+	write.descriptorCount = 1;
+	write.dstSet = handle;
+	write.dstBinding = index;
+	write.dstArrayElement = 0;
+	write.descriptorType = toVk(VDescriptorType::storage_image);
+	write.pImageInfo = &image_info;
+	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
+}
+
 VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 VulkanRenderPass ::~VulkanRenderPass() {

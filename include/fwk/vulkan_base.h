@@ -118,7 +118,7 @@ DEFINE_ENUM(VTexFilter, nearest, linear);
 DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 			mirror_clamp_to_edge);
 
-DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control);
+DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control, shader_clock);
 using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
 DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);
@@ -239,6 +239,8 @@ struct VSwapChainSetup {
 	vector<VkFormat> preferred_formats = {VK_FORMAT_B8G8R8A8_SRGB};
 	vector<VkFormat> preferred_depth_formats = {};
 	VPresentMode preferred_present_mode = VPresentMode::fifo;
+	VImageUsageFlags usage = VImageUsage::color_att;
+	VImageLayout initial_layout = VImageLayout::color_att;
 };
 
 struct VQueueSetup {

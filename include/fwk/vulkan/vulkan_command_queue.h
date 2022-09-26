@@ -104,6 +104,8 @@ class VulkanCommandQueue {
 				 VAccessFlags mem_dst = none);
 	void fullBarrier();
 
+	void clearColor(PVImage, VClearValue);
+
 	uint timestampQuery();
 	void perfTimestampQuery(uint sample_id);
 
@@ -131,13 +133,15 @@ class VulkanCommandQueue {
 	// will be enqueued until beginFrame
 	Ex<VBufferSpan<char>> upload(VBufferSpan<char> dst, CSpan<char> src);
 	template <class T1, c_span TSpan, class T2 = RemoveConst<SpanBase<TSpan>>>
-		requires is_same<T1, T2> Ex<VBufferSpan<T1>> upload(VBufferSpan<T1> dst, const TSpan &src) {
-			auto result = EX_PASS(
-				upload(dst.template reinterpret<char>(), cspan(src).template reinterpret<char>()));
-			return result.template reinterpret<T1>();
-		}
+		requires is_same<T1, T2>
+	Ex<VBufferSpan<T1>> upload(VBufferSpan<T1> dst, const TSpan &src) {
+		auto result = EX_PASS(
+			upload(dst.template reinterpret<char>(), cspan(src).template reinterpret<char>()));
+		return result.template reinterpret<T1>();
+	}
 
-  private : static constexpr uint query_pool_size = 256;
+  private:
+	static constexpr uint query_pool_size = 256;
 	static constexpr uint query_pool_shift = 8;
 	static constexpr uint num_swap_frames = VulkanLimits::num_swap_frames;
 

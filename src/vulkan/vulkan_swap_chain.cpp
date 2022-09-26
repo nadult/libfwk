@@ -68,7 +68,6 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 
 	auto out = device->createObject(VkSwapchainKHR(nullptr), window, present_queue->handle);
 	out->m_setup = setup;
-
 	EXPECT(out->initialize(surf_info));
 	return out;
 }
@@ -78,8 +77,6 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 	DASSERT(!surf_info.is_minimized);
 
 	auto device = deviceRef();
-	auto color_usage = flag(VImageUsage::color_att);
-	auto color_layout = VImageLayout::color_att;
 
 	VkSwapchainCreateInfoKHR ci{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 	ci.surface = m_window->surfaceHandle();
@@ -90,7 +87,7 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 	ci.imageColorSpace = surf_info.formats[0].colorSpace;
 	ci.imageExtent = surf_info.capabilities.currentExtent;
 	ci.imageArrayLayers = 1;
-	ci.imageUsage = toVk(color_usage);
+	ci.imageUsage = toVk(m_setup.usage);
 	ci.preTransform = surf_info.capabilities.currentTransform;
 	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	ci.clipped = VK_TRUE;
@@ -123,7 +120,8 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 
 	m_image_views.resize(num_images);
 	for(int i : intRange(num_images)) {
-		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), color_usage, color_layout);
+		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), m_setup.usage,
+						  m_setup.initial_layout);
 		auto image = VulkanImage::createExternal(device, images[i], setup);
 		m_image_views[i] = VulkanImageView::create(device, image);
 	}

@@ -131,8 +131,11 @@ void VulkanImage::setLayout(Layout layout, int mip_level) {
 
 // TODO: option to transition multiple mip levels at once
 void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
-	VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
 	auto old_layout = layout(mip_level);
+	if(old_layout == new_layout)
+		return;
+
+	VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
 	barrier.oldLayout = toVk(old_layout);
 	barrier.newLayout = toVk(new_layout);
 	barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -156,6 +159,13 @@ void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	} else if((old_layout == VImageLayout::color_att && new_layout == VImageLayout::general) ||
+			  (old_layout == VImageLayout::general && new_layout == VImageLayout::color_att)) {
+		// TODO: too generic
+		barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+		src_stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		dst_stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 	} else {
 		FATAL("Unsupported layout transition: %s -> %s", toString(old_layout),
 			  toString(new_layout));

@@ -177,6 +177,11 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 		}
 	}
 
+	if(anyOf(phys_info.extensions, VK_KHR_SHADER_CLOCK_EXTENSION_NAME)) {
+		exts.emplace_back(VK_KHR_SHADER_CLOCK_EXTENSION_NAME);
+		m_features |= VDeviceFeature::shader_clock;
+	}
+
 	makeSortedUnique(exts);
 
 	for(auto ext : exts)
@@ -192,7 +197,11 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures ds_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES};
 	ds_features.separateDepthStencilLayouts = VK_TRUE;
-	VkPhysicalDeviceFeatures2 features2;
+	VkPhysicalDeviceShaderClockFeaturesKHR clock_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR};
+	clock_features.shaderDeviceClock = VK_TRUE;
+	clock_features.shaderSubgroupClock = VK_TRUE;
+	clock_features.pNext = &ds_features;
 
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
@@ -201,7 +210,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	ci.pEnabledFeatures = &features;
 	ci.enabledExtensionCount = c_exts.size();
 	ci.ppEnabledExtensionNames = c_exts.data();
-	ci.pNext = &ds_features;
+	ci.pNext = &clock_features;
 
 	m_phys_handle = phys_info.handle;
 	FWK_VK_EXPECT_CALL(vkCreateDevice, m_phys_handle, &ci, nullptr, &m_handle);

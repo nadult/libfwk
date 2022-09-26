@@ -66,10 +66,10 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	Ex<> upload(const CompressedImage &, int target_mip = 0,
 				Layout target_layout = Layout::shader_ro);
 
+	Layout layout(int mip_level) const;
 	void transitionLayout(Layout target_layout, int mip_level = 0);
 
   private:
-	Layout layout(int mip_level) const;
 	void setLayout(Layout, int mip_level);
 
 	friend class VulkanDevice;

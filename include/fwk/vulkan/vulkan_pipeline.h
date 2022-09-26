@@ -13,7 +13,9 @@ namespace fwk {
 
 template <class T> struct VAutoVulkanFormat {};
 #define AUTO_FORMAT(type_, format_)                                                                \
-	template <> struct VAutoVulkanFormat<type_> { static constexpr auto format = format_; };
+	template <> struct VAutoVulkanFormat<type_> {                                                  \
+		static constexpr auto format = format_;                                                    \
+	};
 AUTO_FORMAT(float, VK_FORMAT_R32_SFLOAT)
 AUTO_FORMAT(float2, VK_FORMAT_R32G32_SFLOAT)
 AUTO_FORMAT(float3, VK_FORMAT_R32G32B32_SFLOAT)
@@ -264,6 +266,8 @@ struct VDescriptorSet {
 
 	void set(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>>);
 	void set(int first_index, CSpan<Pair<PVSampler, PVImageView>>);
+
+	void setStorageImage(int index, PVImageView, VImageLayout);
 
 	template <class... Args> void set(int first_index, const VBufferSpan<Args> &...args) {
 		set(first_index, VDescriptorType::storage_buffer, {args.template reinterpret<char>()...});
