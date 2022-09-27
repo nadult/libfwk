@@ -51,6 +51,16 @@ int VulkanPhysicalDeviceInfo::findMemoryType(u32 type_bits, VMemoryFlags flags) 
 	return -1;
 }
 
+u64 VulkanPhysicalDeviceInfo::deviceLocalMemorySize() const {
+	for(uint i = 0; i < mem_properties.memoryHeapCount; i++) {
+		auto &heap = mem_properties.memoryHeaps[i];
+		if(heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+			return heap.size;
+	}
+
+	return 0;
+}
+
 vector<string> VulkanInstance::availableExtensions() {
 	uint num_extensions = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &num_extensions, nullptr);

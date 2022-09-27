@@ -51,6 +51,7 @@ struct VulkanPhysicalDeviceInfo {
 	vector<VQueueFamilyId> findPresentableQueues(VkSurfaceKHR) const;
 
 	int findMemoryType(u32 type_bits, VMemoryFlags) const;
+	u64 deviceLocalMemorySize() const;
 	double defaultScore() const;
 
 	VkPhysicalDevice handle;
