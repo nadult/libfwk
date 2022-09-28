@@ -77,7 +77,7 @@ VulkanMemoryManager::~VulkanMemoryManager() {
 
 void VulkanMemoryManager::beginFrame() {
 	DASSERT(!m_frame_running);
-	if(m_logging)
+	if(m_logging && m_frame_logging)
 		print("VulkanMemory: begin frame: % -----------------------------------\n", m_frame_index);
 	for(auto ident : m_deferred_frees[m_frame_index])
 		immediateFree(ident);
@@ -88,7 +88,7 @@ void VulkanMemoryManager::beginFrame() {
 
 void VulkanMemoryManager::finishFrame() {
 	DASSERT(m_frame_running);
-	if(m_logging)
+	if(m_logging && m_frame_logging)
 		print("VulkanMemory: finish frame: % ----------------------------------\n", m_frame_index);
 	flushMappedRanges();
 	m_frame_index = (m_frame_index + 1) % num_frames;
@@ -197,7 +197,7 @@ Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryUsage usage, const VkMemoryRe
 
 	auto domain = usage == VMemoryUsage::temporary ? VMemoryDomain::temporary :
 				  usage == VMemoryUsage::device	   ? VMemoryDomain::device :
-													   VMemoryDomain::host;
+													 VMemoryDomain::host;
 	if(m_domains[domain].validDomain(reqs.memoryTypeBits))
 		return alloc(domain, reqs.size, reqs.alignment);
 
@@ -341,7 +341,7 @@ auto VulkanMemoryManager::budget() const -> EnumMap<VMemoryDomain, Budget> {
 }
 
 void VulkanMemoryManager::log(ZStr action, VMemoryBlockId ident) {
-	if(!m_logging)
+	if(!m_logging || (ident.type() == VMemoryBlockType::frame && !m_frame_logging))
 		return;
 
 	print("VulkanMemory: % % in domain '%': ", ident.type(), action, ident.domain());

@@ -169,6 +169,7 @@ int findNBits(u64 bits, int n) {
 Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 	// TODO: we can make it quite fast with SSE/AVX probably
 	// The number of groups per zone should be small in typical case (4 - 16)
+	DASSERT(num_slabs <= max_slabs);
 
 	int target_zone = -1, target_offset = -1;
 	for(int i : intRange(m_zones)) {
@@ -244,7 +245,7 @@ Pair<int, int> SlabAllocator::allocSlabs(int num_slabs) {
 
 bool SlabAllocator::allocZone(u64 zone_size) {
 	DASSERT(validZoneSize(zone_size));
-	DASSERT_LE(m_zones.size(), max_zones);
+	DASSERT_LT(m_zones.size(), max_zones);
 
 	zone_size = m_zone_allocator.func(zone_size, m_zones.size(), m_zone_allocator.param);
 	if(zone_size == 0)

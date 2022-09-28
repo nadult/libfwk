@@ -35,7 +35,7 @@ class SlabAllocator {
 	static constexpr u64 min_zone_size = 16 * 1024 * 1024;
 	static constexpr u64 max_zone_size = 1024 * 1024 * 1024;
 
-	static constexpr int min_slabs = 64, max_slabs = 2048;
+	static constexpr int min_slabs = 64, max_slabs = 4096;
 	static constexpr int slab_group_size = 64, slab_group_shift = 6;
 	static constexpr int min_alignment = 128;
 
@@ -56,7 +56,7 @@ class SlabAllocator {
 	// Adjust if necessary
 	static constexpr int max_chunks_per_group = 1024;
 	static constexpr int max_chunk_groups = 64 * 1024;
-	static constexpr int max_zones = 1024;
+	static constexpr int max_zones = 256;
 
 	static constexpr uint maxChunkSize() { return chunkSize(num_chunk_levels - 1); }
 
@@ -68,7 +68,6 @@ class SlabAllocator {
 	};
 
 	struct Zone {
-		u64 size;
 		u64 empty_groups, full_groups, groups_mask;
 		int num_slabs, num_free_slabs, num_slab_groups;
 		vector<u64> groups;
@@ -81,7 +80,7 @@ class SlabAllocator {
 			PASSERT(chunk_id >= 0 && chunk_id < max_chunks_per_group);
 		}
 		Identifier(int slab_id, int slab_count, int zone_id)
-			: value(u32(slab_id) | (u32(slab_count - 1) << 11) | (u32(zone_id) << 22)) {
+			: value(u32(slab_id) | (u32(slab_count - 1) << 12) | (u32(zone_id) << 24)) {
 			PASSERT(slab_id >= 0 && slab_id < max_slabs);
 			PASSERT(slab_count >= 1 && slab_count <= max_slabs);
 			PASSERT(zone_id >= 0 && zone_id < max_zones);
@@ -96,9 +95,9 @@ class SlabAllocator {
 		int chunkLevelId() const { return int((value >> 26) & 31); }
 
 		bool isSlabAlloc() const { return !isChunkAlloc(); }
-		int slabId() const { return int(value & 0x7ff); }
-		int slabCount() const { return int((value >> 11) & 0x7ff) + 1; }
-		int slabZoneId() const { return int(value >> 22); }
+		int slabId() const { return int(value & 0xfff); }
+		int slabCount() const { return int((value >> 12) & 0xfff) + 1; }
+		int slabZoneId() const { return int(value >> 24); }
 
 		void operator>>(TextFormatter &) const;
 
