@@ -293,9 +293,10 @@ ShaderDefId ShaderCompiler::add(ShaderDefinition def) {
 	auto id = ShaderDefId(m_impl->shader_defs.nextFreeIndex());
 
 	m_impl->shader_def_map.emplace(def.name, id);
+	auto update_path = filePath(def.source_file_name);
 	int index = m_impl->shader_defs.emplace(move(def));
-	if(auto path = filePath(def.source_file_name))
-		m_impl->shader_defs[index].update_paths.emplace_back(move(*path));
+	if(update_path)
+		m_impl->shader_defs[index].update_paths.emplace_back(move(*update_path));
 	return id;
 }
 
@@ -347,6 +348,7 @@ double lastModificationTime(CSpan<FilePath> paths) {
 	return last_mod_time;
 }
 
+// TODO: better way to pass errors
 Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	DASSERT(valid(id));
 	auto &def = m_impl->shader_defs[id];
@@ -359,9 +361,14 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 		asm_path = *m_impl->spirv_cache_dir / (def.name + ".asm");
 		if(spirv_path.isRegularFile()) {
 			double spirv_time = lastModificationTime(spirv_path).orElse(-1.0);
-			// TODO: handle error properly
-			// TODO: for now loading disabled
-			//return loadFile(spirv_path).get();
+			if(spirv_time >= last_mod_time) {
+				if(auto spirv_data = loadFile(spirv_path)) {
+					CompilationResult result;
+					result.bytecode = move(*spirv_data);
+					def.last_modification_time = spirv_time;
+					return result;
+				}
+			}
 		}
 	}
 
@@ -388,12 +395,16 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	return result;
 }
 
-// TODO: better way to pass errors
 Ex<CompilationResult> ShaderCompiler::getSpirv(ZStr def_name) {
 	auto id = find(def_name);
 	if(!id)
 		return ERROR("ShaderDefinition not found: '%'", def_name);
 	return getSpirv(*id);
+}
+
+Ex<PVShaderModule> ShaderCompiler::createShaderModule(VDeviceRef device, ShaderDefId def_id) {
+	auto result = EX_PASS(getSpirv(def_id));
+	return VulkanShaderModule::create(device, result.bytecode);
 }
 
 Ex<PVShaderModule> ShaderCompiler::createShaderModule(VDeviceRef device, ZStr def_name) {

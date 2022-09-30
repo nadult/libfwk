@@ -69,8 +69,9 @@ class ShaderCompiler {
 	const ShaderDefinition &operator[](ZStr) const;
 
 	// If source code failed to compile, latest valid spirv will be returned
-	Ex<CompilationResult> getSpirv(ShaderDefId def_id);
+	Ex<CompilationResult> getSpirv(ShaderDefId);
 	Ex<CompilationResult> getSpirv(ZStr def_name);
+	Ex<PVShaderModule> createShaderModule(VDeviceRef, ShaderDefId);
 	Ex<PVShaderModule> createShaderModule(VDeviceRef, ZStr def_name);
 
 	vector<ShaderDefId> updateList() const;
