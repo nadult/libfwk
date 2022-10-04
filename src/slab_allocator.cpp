@@ -9,6 +9,7 @@
 #include "fwk/sys/assert.h"
 #include "fwk/sys/expected.h"
 
+// TODO: best fit when selecting zones?
 // TODO: add optional logging about allocated/freed chunks/slabs
 // TODO: free unused chunks to slabs; but we want to avoid constantly
 // allocating/deallocating whole chunk groups when a single element is being
