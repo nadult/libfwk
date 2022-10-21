@@ -24,9 +24,23 @@
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_vulkan.h>
 #include <algorithm>
+#include <atomic>
 #include <memory.h>
 
 namespace fwk {
+
+static std::atomic<unsigned> sdl_init_counter;
+
+static void initSdlVideo() {
+	if(sdl_init_counter.fetch_add(1) == 0)
+		if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0)
+			FWK_FATAL("SDL_InitSubSystem failed");
+}
+
+static void quitSdlVideo() {
+	if(sdl_init_counter.fetch_sub(1) == 1)
+		SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
 
 struct VulkanWindow::Impl {
 	VWindowId id;
@@ -45,7 +59,6 @@ struct VulkanWindow::Impl {
 	double last_frame_time = -1.0;
 	double frame_diff_time = -1.0;
 
-	bool sdl_initialized = false;
 	bool is_closing = false;
 };
 
@@ -57,8 +70,7 @@ VulkanWindow::~VulkanWindow() {
 		vkDestroySurfaceKHR(m_impl->instance_ref->handle(), m_impl->surface_handle, nullptr);
 	if(m_impl->window)
 		SDL_DestroyWindow(m_impl->window);
-	if(m_impl->sdl_initialized)
-		SDL_QuitSubSystem(SDL_INIT_VIDEO);
+	quitSdlVideo();
 }
 
 Ex<VWindowRef> VulkanWindow::create(VInstanceRef instance_ref, ZStr title, IRect rect,
@@ -79,9 +91,7 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 	DASSERT(!((flags & Flag::fullscreen) && (flags & Flag::fullscreen_desktop)));
 	DASSERT(!((flags & Flag::minimized) && (flags & Flag::maximized)));
 
-	if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) // TODO: input ?
-		return ERROR("SDL_InitSubSystem failed");
-	m_impl->sdl_initialized = true;
+	initSdlVideo();
 	m_impl->flags = flags;
 
 	int2 pos = rect.min(), size = rect.size();
@@ -100,6 +110,7 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 VkSurfaceKHR VulkanWindow::surfaceHandle() const { return m_impl->surface_handle; }
 
 vector<IRect> VulkanWindow::displayRects() {
+	initSdlVideo();
 	int count = SDL_GetNumVideoDisplays();
 	vector<IRect> out(count);
 	for(int idx = 0; idx < count; idx++) {
@@ -108,6 +119,7 @@ vector<IRect> VulkanWindow::displayRects() {
 			FWK_FATAL("Error in SDL_GetDisplayBounds");
 		out[idx] = {rect.x, rect.y, rect.x + rect.w, rect.y + rect.h};
 	}
+	quitSdlVideo();
 	return out;
 }
 
