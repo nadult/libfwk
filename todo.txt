@@ -12,6 +12,8 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- drobny błąd przy wyświetlaniu perfanalyzera: jak sie zmniejszy okno, to ostatnia linia moze byc czasami
+  maksymalnie widoczna tylko do polowy
 - wykomentowane PASSERTy w vulkan_storage
 - roznice w countLeadingZeros (i podobnych) między linuxem a windowsem?
 - optimize perf vulkan queries (now we have 3 queries in one point...)
