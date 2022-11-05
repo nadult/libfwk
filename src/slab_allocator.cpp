@@ -292,12 +292,12 @@ void SlabAllocator::fillSlabs(int zone_id, int offset, int num_slabs) {
 	zone.num_free_slabs -= num_slabs;
 	zone.empty_groups &=
 		~((zone.groups_mask >> (zone.num_slab_groups - num_groups)) << first_group);
-	uint full_bits =
+	u64 full_bits =
 		((zone.groups_mask >> (zone.num_slab_groups - num_full_groups)) << (first_group + 1));
 	if(groups[first_group] == ~0ull)
-		full_bits |= 1u << first_group;
+		full_bits |= 1ull << first_group;
 	if(groups[last_group] == ~0ull)
-		full_bits |= 1u << last_group;
+		full_bits |= 1ull << last_group;
 	zone.full_groups |= full_bits;
 }
 
@@ -327,12 +327,12 @@ void SlabAllocator::clearSlabs(int zone_id, int offset, int num_slabs) {
 
 	zone.num_free_slabs += num_slabs;
 	zone.full_groups &= ~((zone.groups_mask >> (zone.num_slab_groups - num_groups)) << first_group);
-	uint empty_bits =
+	u64 empty_bits =
 		((zone.groups_mask >> (zone.num_slab_groups - num_full_groups)) << (first_group + 1));
 	if(groups[first_group] == 0)
-		empty_bits |= 1u << first_group;
+		empty_bits |= 1ull << first_group;
 	if(groups[last_group] == 0)
-		empty_bits |= 1u << last_group;
+		empty_bits |= 1ull << last_group;
 	zone.empty_groups |= empty_bits;
 }
 
@@ -369,8 +369,8 @@ Ex<void> SlabAllocator::verifySlabs() const {
 			bool is_full = zone.groups[g] == ~0ull;
 			num_slabs += countBits(zone.groups[g]);
 
-			bool marked_empty = zone.empty_groups & (1u << g);
-			bool marked_full = zone.full_groups & (1u << g);
+			bool marked_empty = zone.empty_groups & (1ull << g);
+			bool marked_full = zone.full_groups & (1ull << g);
 
 			if(is_empty != marked_empty)
 				return FWK_ERROR("% group marked as % (zone_id:% group_id:%)",
