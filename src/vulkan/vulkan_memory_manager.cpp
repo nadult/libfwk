@@ -4,6 +4,7 @@
 #include "fwk/vulkan/vulkan_memory_manager.h"
 
 #include "fwk/slab_allocator.h"
+#include "fwk/sys/on_fail.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 
@@ -353,5 +354,12 @@ void VulkanMemoryManager::log(ZStr action, VMemoryBlockId ident) {
 		print("%", slab_ident);
 	}
 	print("\n");
+}
+
+void VulkanMemoryManager::validate() const {
+	for(auto &domain : m_domains) {
+		ON_FAIL("Problem with vulkan memory domain: %", domain.domain);
+		domain.slab_alloc->verifySlabs().check();
+	}
 }
 }

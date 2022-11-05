@@ -57,6 +57,8 @@ class VulkanMemoryManager {
 		m_frame_logging = frame;
 	}
 
+	void validate() const;
+
   private:
 	void beginFrame();
 	void finishFrame();
