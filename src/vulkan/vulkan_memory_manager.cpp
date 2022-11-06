@@ -78,7 +78,7 @@ VulkanMemoryManager::~VulkanMemoryManager() {
 
 void VulkanMemoryManager::beginFrame() {
 	DASSERT(!m_frame_running);
-	if(m_logging && m_frame_logging)
+	if(m_log_types & VMemoryBlockType::frame)
 		print("VulkanMemory: begin frame: % -----------------------------------\n", m_frame_index);
 	for(auto ident : m_deferred_frees[m_frame_index])
 		immediateFree(ident);
@@ -89,7 +89,7 @@ void VulkanMemoryManager::beginFrame() {
 
 void VulkanMemoryManager::finishFrame() {
 	DASSERT(m_frame_running);
-	if(m_logging && m_frame_logging)
+	if(m_log_types & VMemoryBlockType::frame)
 		print("VulkanMemory: finish frame: % ----------------------------------\n", m_frame_index);
 	flushMappedRanges();
 	m_frame_index = (m_frame_index + 1) % num_frames;
@@ -342,7 +342,7 @@ auto VulkanMemoryManager::budget() const -> EnumMap<VMemoryDomain, Budget> {
 }
 
 void VulkanMemoryManager::log(ZStr action, VMemoryBlockId ident) {
-	if(!m_logging || (ident.type() == VMemoryBlockType::frame && !m_frame_logging))
+	if(!(ident.type() & m_log_types) || !(ident.domain() & m_log_domains))
 		return;
 
 	print("VulkanMemory: % % in domain '%': ", ident.type(), action, ident.domain());
@@ -354,6 +354,11 @@ void VulkanMemoryManager::log(ZStr action, VMemoryBlockId ident) {
 		print("%", slab_ident);
 	}
 	print("\n");
+}
+
+void VulkanMemoryManager::setLogging(VMemoryDomains domains, VMemoryBlockTypes types) {
+	m_log_domains = domains;
+	m_log_types = types;
 }
 
 void VulkanMemoryManager::validate() const {

@@ -65,6 +65,7 @@ DEFINE_ENUM(VTypeId, buffer, buffer_view, framebuffer, image, image_view, pipeli
 // host: fastest memory with host_visible (always available)
 // temporary: device_local + host_visible
 DEFINE_ENUM(VMemoryDomain, device, host, temporary);
+using VMemoryDomains = EnumFlags<VMemoryDomain>;
 
 // TODO: sometimes device domain can be mapped too
 constexpr inline bool canBeMapped(VMemoryDomain domain) { return domain != VMemoryDomain::device; }
@@ -122,6 +123,7 @@ DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control, shader_clock);
 using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
 DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);
+using VMemoryBlockTypes = EnumFlags<VMemoryBlockType>;
 
 DEFINE_ENUM(VPresentMode, immediate, mailbox, fifo, fifo_relaxed);
 

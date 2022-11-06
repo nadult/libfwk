@@ -52,10 +52,7 @@ class VulkanMemoryManager {
 	Span<char> writeAccessMemory(const VMemoryBlock &);
 	void flushMappedRanges();
 
-	void setLogging(bool basic, bool frame) {
-		m_logging = basic;
-		m_frame_logging = frame;
-	}
+	void setLogging(VMemoryDomains, VMemoryBlockTypes);
 
 	void validate() const;
 
@@ -115,7 +112,7 @@ class VulkanMemoryManager {
 
 	bool m_has_mem_budget = false;
 	bool m_frame_running = false;
-	bool m_logging = false;
-	bool m_frame_logging = false;
+	VMemoryDomains m_log_domains;
+	VMemoryBlockTypes m_log_types;
 };
 }
