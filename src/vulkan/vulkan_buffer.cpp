@@ -8,6 +8,7 @@
 #include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_internal.h"
+#include "fwk/vulkan/vulkan_memory_manager.h"
 
 namespace fwk {
 
@@ -30,17 +31,19 @@ Ex<PVBuffer> VulkanBuffer::create(VulkanDevice &device, u64 size, VBufferUsageFl
 	VkBuffer handle;
 	auto device_handle = device.handle();
 	FWK_VK_EXPECT_CALL(vkCreateBuffer, device_handle, &ci, nullptr, &handle);
-	Cleanup cleanup([&]() { vkDestroyBuffer(device_handle, handle, nullptr); });
+	Cleanup cleanup1([&]() { vkDestroyBuffer(device_handle, handle, nullptr); });
 
 	VkMemoryRequirements requirements;
 	vkGetBufferMemoryRequirements(device_handle, handle, &requirements);
 
 	auto mem_block = EX_PASS(device.alloc(mem_usage, requirements));
+	Cleanup cleanup2([&]() { device.memory().immediateFree(mem_block.id); });
 	FWK_VK_EXPECT_CALL(vkBindBufferMemory, device_handle, handle, mem_block.handle,
 					   mem_block.offset);
 	mem_block.size = min<u32>(size, mem_block.size);
 
-	cleanup.cancel = true;
+	cleanup1.cancel = true;
+	cleanup2.cancel = true;
 	return device.createObject(handle, mem_block, usage);
 }
 
