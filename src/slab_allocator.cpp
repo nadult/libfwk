@@ -275,16 +275,20 @@ void SlabAllocator::fillSlabs(int zone_id, int offset, int num_slabs) {
 
 	int first_offset = offset & (slab_group_size - 1);
 	u64 first_bits = (~0ull >> max(0, 64 - num_slabs)) << first_offset;
+	PASSERT((groups[first_group] & first_bits) == 0);
 	groups[first_group] |= first_bits;
 
 	if(last_group != first_group) {
 		int num_last_bits = (offset + num_slabs) & (slab_group_size - 1);
 		u64 last_bits = ~0ull >> (64 - num_last_bits);
+		PASSERT((groups[last_group] & last_bits) == 0);
 		groups[last_group] |= last_bits;
 	}
 
-	for(int g = first_group + 1; g < last_group; g++)
+	for(int g = first_group + 1; g < last_group; g++) {
+		PASSERT(groups[g] == 0);
 		groups[g] = ~0ull;
+	}
 
 	int num_groups = last_group - first_group + 1;
 	int num_full_groups = max(num_groups - 2, 0);
@@ -311,16 +315,20 @@ void SlabAllocator::clearSlabs(int zone_id, int offset, int num_slabs) {
 
 	int first_offset = offset & (slab_group_size - 1);
 	u64 first_bits = (~0ull >> max(0, 64 - num_slabs)) << first_offset;
+	PASSERT((groups[first_group] & first_bits) == first_bits);
 	groups[first_group] &= ~first_bits;
 
 	if(last_group != first_group) {
 		int num_last_bits = (offset + num_slabs) & (slab_group_size - 1);
 		u64 last_bits = ~0ull >> (64 - num_last_bits);
+		PASSERT((groups[last_group] & last_bits) == last_bits);
 		groups[last_group] &= ~last_bits;
 	}
 
-	for(int g = first_group + 1; g < last_group; g++)
+	for(int g = first_group + 1; g < last_group; g++) {
+		PASSERT(groups[g] == ~0ull);
 		groups[g] = 0;
+	}
 
 	int num_groups = last_group - first_group + 1;
 	int num_full_groups = max(num_groups - 2, 0);

@@ -82,6 +82,7 @@ void VulkanMemoryManager::beginFrame() {
 		print("VulkanMemory: begin frame: % -----------------------------------\n", m_frame_index);
 	for(auto ident : m_deferred_frees[m_frame_index])
 		immediateFree(ident);
+	m_deferred_frees[m_frame_index].clear();
 	m_deferred_frees[m_frame_index] = move(m_deferred_frees.back());
 	m_frames[m_frame_index].offset = 0;
 	m_frame_running = true;
@@ -242,9 +243,11 @@ void VulkanMemoryManager::deferredFree(VMemoryBlockId ident) {
 }
 
 void VulkanMemoryManager::flushDeferredFrees() {
-	for(auto &defers : m_deferred_frees)
+	for(auto &defers : m_deferred_frees) {
 		for(auto ident : defers)
 			immediateFree(ident);
+		defers.clear();
+	}
 }
 
 void VulkanMemoryManager::shrunkMappings() {
