@@ -257,7 +257,7 @@ bool SlabAllocator::allocZone(u64 zone_size) {
 	zone.num_slabs = int(zone_size / slab_size);
 	zone.num_free_slabs = zone.num_slabs;
 	zone.num_slab_groups = zone.num_slabs / slab_group_size;
-	zone.groups_mask = (1ull << zone.num_slab_groups) - 1;
+	zone.groups_mask = zone.num_slab_groups == 64 ? ~0ull : (1ull << zone.num_slab_groups) - 1;
 	zone.empty_groups = zone.groups_mask;
 	zone.full_groups = 0;
 	PASSERT(zone.num_slab_groups <= 64);
