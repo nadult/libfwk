@@ -203,6 +203,14 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	clock_features.shaderSubgroupClock = VK_TRUE;
 	clock_features.pNext = &ds_features;
 
+	VkPhysicalDeviceSubgroupSizeControlFeatures subgroup_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_FEATURES};
+	if(m_features & VDeviceFeature::subgroup_size_control) {
+		subgroup_features.subgroupSizeControl = VK_TRUE;
+		subgroup_features.pNext = clock_features.pNext;
+		clock_features.pNext = &subgroup_features;
+	}
+
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 	ci.pQueueCreateInfos = queue_cis.data();
