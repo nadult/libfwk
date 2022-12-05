@@ -30,10 +30,10 @@ It requires a linux environment with fairly new Clang (>= 8.0) or G++ (>= 9.1).
 Code is written in C++20. Clang is used during development so from time to
 time libfwk may fail to compile under G++.
 
-* **SDL2**   
+* **SDL2**  
 	[https://www.libsdl.org/](https://www.libsdl.org/)
 	
-* **Vulkan SDK**
+* **Vulkan SDK**  
 	[https://www.lunarg.com/vulkan-sdk/](https://www.lunarg.com/vulkan-sdk/)
 
 * **dear imgui (optional)**  
