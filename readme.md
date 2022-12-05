@@ -7,15 +7,14 @@ and functions which I use in most of my projects (mostly game-related). It's try
 to be light, super easy to use and performant where it matters.
 
 Note: currently FWK's graphics module is being converted from OpenGL to Vulkan, so some
-functionality is disabled, there may be some errors in newly modified code. Also currently
-libfwk can only be compiled on Windows/MSVC. Fixing linux makefiles is still on TODO list.
+functionality is disabled, there may be some errors in newly modified code.
 
 TODO: write more detailed description.
 
 ## Features
 
-- OpenGL & SDL2 based
-- Supported platforms: linux, windows (using MinGW32-W64), WebGL (through emscripten)
+- Vulkan & SDL2 based
+- Supported platforms: linux, windows (requires Visual Studio 2022)
 - Doesn't use C++ exceptions (has a much simpler system instead)
 
 TODO: more details
@@ -33,6 +32,9 @@ time libfwk may fail to compile under G++.
 
 * **SDL2**   
 	[https://www.libsdl.org/](https://www.libsdl.org/)
+	
+* **Vulkan SDK**
+	[https://www.lunarg.com/vulkan-sdk/](https://www.lunarg.com/vulkan-sdk/)
 
 * **dear imgui (optional)**  
 	Included as a git submodule in extern/imgui/.  
@@ -66,6 +68,8 @@ time libfwk may fail to compile under G++.
     TODO: info
 
 ## Compilation
+
+TODO: this section requires update for windows  
 
 To compile simply run make. There is a basic description of the options that you can pass to make at the beginning of
 Makefile & Makefile-shared. To cross-compile for mingw specify MINGW\_PREFIX and run make with PLATFORM=mingw.
