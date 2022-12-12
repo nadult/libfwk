@@ -254,7 +254,7 @@ void Canvas2D::addTris(CSpan<float2> points, CSpan<float2> tex_coords, CSpan<ICo
 		fill(span(m_tex_coords).subSpan(old_size), TexCoord());
 	}
 
-	appendColors(colors, points.size(), 1);
+	appendColors(colors, points.size(), colors.size() == 1 ? points.size() : 1);
 	int index_offset = m_indices.size();
 	int vertex_offset = old_size;
 	int num_indices = num_tris * 3;
@@ -330,7 +330,7 @@ void Canvas2D::addSegments(CSpan<float2> points, CSpan<IColor> colors) {
 	for(int i : intRange(num_segs))
 		copy(m_tex_coords.data() + old_size + i * 4, tex_coords);
 
-	appendColors(colors, points.size() * 2, 2);
+	appendColors(colors, points.size() * 2, (colors.size() == 1 ? points.size() : 1) * 2);
 	appendQuadIndices(old_size, num_segs);
 }
 
@@ -353,39 +353,41 @@ void Canvas2D::addFilledRect(const FRect &rect) { addFilledRect(rect, FRect({1, 
 void Canvas2D::addFilledRect(const IRect &rect) { addFilledRect(FRect(rect)); }
 
 void Canvas2D::addFilledEllipse(float2 center, float2 size, FColor color, int num_tris) {
-	// TODO: this can be optimized
-	FATAL("fixme");
 	PASSERT(num_tris >= 3);
-	/*uint idx = m_positions.size();
 
-	vector<Point> points
+	vector<float2> points;
+	points.reserve(num_tris + 1);
 	auto ang_mul = pi * 2.0f / float(num_tris);
 	for(int i = 0; i < num_tris; i++)
-		m_positions.emplace_back(float3(angleToVector(float(i) * ang_mul) * size + center, 0.0));
-	m_positions.emplace_back(float3(center, 0.0));
+		points.emplace_back(angleToVector(float(i) * ang_mul) * size + center);
+	points.emplace_back(center);
 
+	vector<float2> tri_points;
+	tri_points.reserve(num_tris * 3);
 	for(int i = 0; i < num_tris; i++) {
 		uint next = i == num_tris - 1 ? 0 : i + 1;
-		insertBack(m_indices, {idx + num_tris, idx + i, idx + next});
+		insertBack(tri_points, {points[num_tris], points[i], points[next]});
 	}
 
-	m_tex_coords.resize(m_positions.size(), float2());
-	m_colors.resize(m_positions.size(), IColor(color));
-	elem.num_indices += num_tris * 3;*/
+	addTris(tri_points, {}, {IColor(color)});
 }
 
 void Canvas2D::addEllipse(float2 center, float2 size, FColor color, int num_edges) {
-	FATAL("fixme");
-	/*auto ang_mul = pi * 2.0f / float(num_edges);
+	PASSERT(num_edges >= 3);
+
+	auto ang_mul = pi * 2.0f / float(num_edges);
 	uint idx = m_positions.size();
-	for(int i = 0; i < num_edges; i++) {
-		m_positions.emplace_back(float3(angleToVector(float(i) * ang_mul) * size + center, 0.0));
-		uint next = i == num_edges - 1 ? 0 : i + 1;
-		insertBack(m_indices, {idx + i, idx + next});
-	}
-	m_tex_coords.resize(m_positions.size(), float2());
-	m_colors.resize(m_positions.size(), IColor(color));
-	elem.num_indices += num_edges * 2;*/
+	vector<float2> points;
+	points.reserve(num_edges);
+
+	for(int i = 0; i < num_edges; i++)
+		points.emplace_back(angleToVector(float(i) * ang_mul) * size + center);
+
+	vector<float2> segments;
+	segments.reserve(num_edges * 2);
+	for(int i = 0; i < num_edges; i++)
+		insertBack(segments, {points[i], points[i == num_edges - 1 ? 0 : i + 1]});
+	addSegments(segments, {IColor(color)});
 }
 
 void Canvas2D::addRect(const FRect &rect, FColor color) {

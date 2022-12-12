@@ -277,6 +277,8 @@ template <class T> class Dynamic;
 class Any;
 class AnyConfig;
 
+class Gui;
+
 template <class T> inline constexpr int type_size<SparseVector<T>> = sizeof(void *) == 8 ? 48 : 40;
 template <class Key, class Value, class Policy>
 inline constexpr int type_size<HashMap<Key, Value, Policy>> = sizeof(void *) == 4 ? 32 : 40;
