@@ -330,7 +330,12 @@ void Canvas2D::addSegments(CSpan<float2> points, CSpan<IColor> colors) {
 	for(int i : intRange(num_segs))
 		copy(m_tex_coords.data() + old_size + i * 4, tex_coords);
 
-	appendColors(colors, points.size() * 2, (colors.size() == 1 ? points.size() : 1) * 2);
+	int num_vertices = points.size() * 2, multiplier = 1;
+	if(colors) {
+		multiplier = num_vertices / colors.size();
+		DASSERT_EQ(multiplier * colors.size(), num_vertices);
+	}
+	appendColors(colors, num_vertices, multiplier);
 	appendQuadIndices(old_size, num_segs);
 }
 
@@ -414,5 +419,4 @@ void Canvas2D::addSegment(const float2 &p1, const float2 &p2, FColor color) {
 	IColor icolor(color);
 	addSegments({p1, p2}, {icolor, icolor});
 }
-
 }
