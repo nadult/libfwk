@@ -131,12 +131,11 @@ void SimpleDrawCall::render(VulkanDevice &device) {
 		if(instance.pipeline_index != prev_pipeline_idx) {
 			cmds.bind(pipelines[instance.pipeline_index]);
 			prev_pipeline_idx = instance.pipeline_index;
-
-			if(instance.texture != prev_tex) {
-				// TODO: we need as many DSes as we have different textures
-				cmds.bindDS(1).set(0, {{sampler, instance.texture}});
-				prev_tex = instance.texture;
-			}
+		}
+		if(instance.texture != prev_tex) {
+			// TODO: we need as many DSes as we have different textures
+			cmds.bindDS(1).set(0, {{sampler, instance.texture}});
+			prev_tex = instance.texture;
 		}
 
 		if(indices)
