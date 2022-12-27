@@ -101,21 +101,21 @@ namespace detail {
 template <class T>
 constexpr bool is_enum = detail::IsEnum<T>::decl_value | detail::IsEnum<T>::value;
 template <class T> constexpr bool is_defined_enum = detail::IsEnum<T>::value;
-
+template <class T> concept c_enum = is_enum<T>;
 template <class T> using EnableIfEnum = EnableIf<is_enum<T>, NotAnEnum>;
 
-template <class T, EnableIfEnum<T>...> T fromString(Str str) EXCEPT {
+template <c_enum T> T fromString(Str str) EXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	return T(fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, true));
 }
 
-template <class T, EnableIfEnum<T>...> T tryFromString(Str str, T on_error) NOEXCEPT {
+template <c_enum T> T tryFromString(Str str, T on_error) NOEXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
 	return ret == -1 ? on_error : T(ret);
 }
 
-template <class T, EnableIfEnum<T>...> Maybe<T> maybeFromString(Str str) NOEXCEPT {
+template <c_enum T> Maybe<T> maybeFromString(Str str) NOEXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	int ret = fwk::detail::parseEnum(str, Strings::offsets.data, Strings::K, false);
 	if(ret == -1)
@@ -123,14 +123,14 @@ template <class T, EnableIfEnum<T>...> Maybe<T> maybeFromString(Str str) NOEXCEP
 	return T(ret);
 }
 
-template <class T, EnableIfEnum<T>...> const char *toString(T value) {
+template <c_enum T> const char *toString(T value) {
 	using Strings = decltype(enumStrings(T()));
 	int ivalue = (int)value;
 	PASSERT(ivalue >= 0 && ivalue < Strings::K);
 	return Strings::offsets.data[ivalue];
 }
 
-template <class T, EnableIfEnum<T>...> constexpr int count = decltype(enumStrings(T()))::K;
+template <c_enum T> constexpr int count = decltype(enumStrings(T()))::K;
 
 template <class Type> struct AllEnums {
 	struct Iter {
@@ -147,33 +147,33 @@ template <class Type> struct AllEnums {
 	operator EnumFlags<Type>() const;
 };
 
-template <class T, EnableIfEnum<T>...> constexpr AllEnums<T> all;
+template <c_enum T> constexpr AllEnums<T> all;
 
-template <class T, EnableIfEnum<T>...> T next(T value) {
+template <c_enum T> T next(T value) {
 	return T(int(value) == count<T> - 1 ? 0 : int(value) + 1);
 }
 
-template <class T, EnableIfEnum<T>...> T prev(T value) {
+template <c_enum T> T prev(T value) {
 	return T(int(value) == 0 ? int(count<T> - 1) : int(value) - 1);
 }
 
-template <int offset, class T, EnableIfEnum<T>...> T next(T value) {
+template <int offset, c_enum T> T next(T value) {
 	static_assert(offset >= 0 && offset <= count<T>);
 	int new_val = int(value) + offset;
 	return T(new_val >= count<T> ? new_val - count<T> : new_val);
 }
-template <int offset, class T, EnableIfEnum<T>...> T prev(T value) {
+template <int offset, c_enum T> T prev(T value) {
 	static_assert(offset >= 0 && offset <= count<T>);
 	int new_val = int(value) - offset;
 	return T(new_val < 0 ? new_val + count<T> : new_val);
 }
 
-template <class T> struct detail::EmptyMaybe<T, EnableIfEnum<T>> {
+template <c_enum T> struct detail::EmptyMaybe<T, EnableIfEnum<T>> {
 	static T make() { return T(255); }
 	static constexpr bool valid(const T &rhs) { return int(rhs) != 255; }
 };
 
-template <class T, EnableIfEnum<T>...> TextParser &operator>>(TextParser &parser, T &value) EXCEPT {
+template <c_enum T> TextParser &operator>>(TextParser &parser, T &value) EXCEPT {
 	using Strings = decltype(enumStrings(T()));
 	value = T(fwk::detail::parseEnum(parser, Strings::offsets.data, Strings::K));
 	return parser;

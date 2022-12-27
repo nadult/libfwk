@@ -252,7 +252,7 @@ class TextFormatter {
 		return *this;
 	}
 
-	template <class T, EnableIfEnum<T>...> TextFormatter &operator<<(T value) {
+	template <c_enum T> TextFormatter &operator<<(T value) {
 		return *this << toString(value);
 	}
 
