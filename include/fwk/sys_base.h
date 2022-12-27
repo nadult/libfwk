@@ -270,6 +270,8 @@ class TextParser;
 class InputEvent;
 class InputState;
 
+class Gui;
+
 template <class Key, class Value, class Policy = None> class HashMap;
 template <class Key> class HashSet;
 template <class T> class Dynamic;

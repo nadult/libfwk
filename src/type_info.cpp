@@ -76,7 +76,23 @@ namespace detail {
 
 	void addTypeName(const TypeInfoData &data, const char *mangled_name) {
 #ifdef FWK_PLATFORM_MSVC
-		const char *demangled_name = mangled_name; // No need for demangling under msvc
+		string demangled_name;
+		int length = strlen(mangled_name);
+		demangled_name.reserve(length);
+		Pair<const char *, int> prefixes[] = {{"struct ", 7}, {"class ", 6}, {"enum ", 5}};
+
+		for(int i = 0; i < length; i++) {
+			bool prefix_matched = false;
+			if(i == 0 || (!isalnum(mangled_name[i - 1]) && mangled_name[i - 1] != '_'))
+				for(auto [prefix, prefix_len] : prefixes)
+					if(strncmp(prefix, mangled_name + i, prefix_len) == 0) {
+						i += prefix_len - 1;
+						prefix_matched = true;
+						break;
+					}
+			if(!prefix_matched)
+				demangled_name += mangled_name[i];
+		}
 #else
 		int status;
 		auto demangled_name = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);

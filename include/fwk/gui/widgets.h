@@ -5,6 +5,7 @@
 
 #include "fwk/format.h"
 #include "fwk/gui/gui.h"
+#include "fwk/gui/imgui.h"
 #include "fwk/span.h"
 
 namespace fwk {
