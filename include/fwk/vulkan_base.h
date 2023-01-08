@@ -342,6 +342,8 @@ struct VQueue {
 	VQueueCaps caps;
 };
 
+struct VPushConstantRanges;
+
 class VulkanDevice;
 class VulkanInstance;
 class VulkanWindow;

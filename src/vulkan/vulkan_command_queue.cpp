@@ -260,6 +260,11 @@ VDescriptorSet VulkanCommandQueue::bindDS(int index) {
 	return ds;
 }
 
+void VulkanCommandQueue::setPushConstants(u32 offset, VShaderStages stages, CSpan<char> data) {
+	vkCmdPushConstants(m_cur_cmd_buffer, m_last_pipeline_layout, toVk(stages), offset, data.size(),
+					   data.data());
+}
+
 Ex<VDownloadId> VulkanCommandQueue::download(VBufferSpan<char> src) {
 	PASSERT(m_status == Status::frame_running);
 	auto buffer = EX_PASS(

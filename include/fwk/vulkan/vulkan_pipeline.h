@@ -164,8 +164,21 @@ struct VSpecConstant {
 	uint first_index;
 };
 
+struct VPushConstantRanges {
+	VPushConstantRanges(EnumMap<VShaderStage, Pair<u16>> ranges) : ranges(ranges) {}
+	VPushConstantRanges(VShaderStages stages, u16 size) : VPushConstantRanges() {
+		for(auto elem : stages)
+			ranges[elem] = Pair<u16>(0, size);
+	}
+	VPushConstantRanges() : ranges(Pair<u16>(0, 0)) {}
+	bool empty() const { return allOf(ranges, Pair<u16>(0, 0)); }
+
+	EnumMap<VShaderStage, Pair<u16>> ranges;
+};
+
 struct VPipelineSetup {
 	StaticVector<PVShaderModule, count<VShaderStage>> shader_modules;
+	VPushConstantRanges push_constant_ranges;
 	vector<VSpecConstant> spec_constants;
 	PVPipelineLayout pipeline_layout;
 	PVRenderPass render_pass;
@@ -186,6 +199,7 @@ struct VComputePipelineSetup {
 	PVShaderModule compute_module;
 	vector<VSpecConstant> spec_constants;
 	Maybe<uint> subgroup_size;
+	Maybe<uint> push_constant_size;
 };
 
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
@@ -212,14 +226,16 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 class VulkanPipelineLayout : public VulkanObjectBase<VulkanPipelineLayout> {
   public:
 	const auto &descriptorSetLayouts() const { return m_dsls; }
-	static PVPipelineLayout create(VDeviceRef, vector<VDSLId>);
+	const auto &pushConstantRanges() const { return m_pcrs; }
+	static PVPipelineLayout create(VDeviceRef, vector<VDSLId>, const VPushConstantRanges &);
 
   private:
 	friend class VulkanDevice;
-	VulkanPipelineLayout(VkPipelineLayout, VObjectId, vector<VDSLId>);
+	VulkanPipelineLayout(VkPipelineLayout, VObjectId, vector<VDSLId>, const VPushConstantRanges &);
 	~VulkanPipelineLayout();
 
 	vector<VDSLId> m_dsls;
+	VPushConstantRanges m_pcrs;
 };
 
 struct VDescriptorBindingInfo {

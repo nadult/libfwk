@@ -84,6 +84,15 @@ class VulkanCommandQueue {
 	// Acquires new descriptor set and immediately binds it
 	VDescriptorSet bindDS(int index);
 
+	void setPushConstants(u32 offset, VShaderStages, CSpan<char> data);
+	template <class T> void setPushConstants(u32 offset, VShaderStages stages, CSpan<T> data) {
+		setPushConstants(offset, stages, data.reinterpret<char>());
+	}
+	template <class T> void setPushConstants(u32 offset, VShaderStages stages, const T &data) {
+		auto byte_ptr = reinterpret_cast<const char *>(&data);
+		setPushConstants(offset, stages, CSpan<char>(byte_ptr, sizeof(T)));
+	}
+
 	void setScissor(Maybe<IRect>);
 	void setViewport(IRect, float min_depth = 0.0f, float max_depth = 1.0f);
 

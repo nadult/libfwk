@@ -257,27 +257,40 @@ PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment>
 }
 
 VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id,
-										   vector<VDSLId> dsls)
-	: VulkanObjectBase(handle, id), m_dsls(move(dsls)) {}
+										   vector<VDSLId> dsls, const VPushConstantRanges &pcrs)
+	: VulkanObjectBase(handle, id), m_dsls(move(dsls)), m_pcrs(pcrs) {}
 VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	// TODO: do we really need deferred?
 	deferredRelease<vkDestroyPipelineLayout>(m_handle);
 }
 
-PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> dsls) {
-	VkPipelineLayoutCreateInfo ci{};
-	ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> dsls,
+											  const VPushConstantRanges &pcrs) {
+	VkPipelineLayoutCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 
 	// TODO: array
 	auto sl_handles = transform(dsls, [&](VDSLId id) { return device->handle(id); });
 	ci.setLayoutCount = dsls.size();
 	ci.pSetLayouts = sl_handles.data();
-	ci.pushConstantRangeCount = 0;
-	ci.pPushConstantRanges = nullptr;
+
+	if(!pcrs.empty()) {
+		VkPushConstantRange pcrs_[count<VShaderStage>];
+		int count = 0;
+		for(auto stage : all<VShaderStage>) {
+			auto [offset, size] = pcrs.ranges[stage];
+			if(offset == 0 && size == 0)
+				continue;
+			pcrs_[count].offset = offset;
+			pcrs_[count].size = size;
+			pcrs_[count++].stageFlags = toVk(stage);
+		}
+		ci.pushConstantRangeCount = count;
+		ci.pPushConstantRanges = pcrs_;
+	}
 
 	VkPipelineLayout handle;
 	FWK_VK_CALL(vkCreatePipelineLayout, device->handle(), &ci, nullptr, &handle);
-	return device->createObject(handle, move(dsls));
+	return device->createObject(handle, move(dsls), pcrs);
 }
 
 VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
@@ -316,7 +329,8 @@ static void initSpecInfo(VkSpecializationInfo &info, PodVector<ConstType> &data,
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	if(!setup.pipeline_layout)
-		setup.pipeline_layout = device->getPipelineLayout(setup.shader_modules);
+		setup.pipeline_layout =
+			device->getPipelineLayout(setup.shader_modules, setup.push_constant_ranges);
 	DASSERT(setup.render_pass);
 	DASSERT(setup.dynamic_state & VDynamic::viewport);
 	DASSERT(setup.dynamic_state & VDynamic::scissor);
@@ -477,7 +491,11 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 
 Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineSetup &setup) {
 	DASSERT(setup.compute_module);
-	auto pipeline_layout = device->getPipelineLayout({setup.compute_module});
+
+	VPushConstantRanges push_constants;
+	if(setup.push_constant_size)
+		push_constants.ranges[VShaderStage::compute] = {0, *setup.push_constant_size};
+	auto pipeline_layout = device->getPipelineLayout({setup.compute_module}, push_constants);
 
 	VkSpecializationInfo spec_info;
 	PodVector<ConstType> spec_data;

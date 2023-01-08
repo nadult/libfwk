@@ -85,15 +85,17 @@ struct HashedFramebuffer {
 };
 
 struct HashedPipelineLayout {
-	HashedPipelineLayout(CSpan<VDSLId> dsls, Maybe<u32> hash_value)
-		: dsls(dsls), hash_value(hash_value.orElse(fwk::hash<u32>(dsls))) {}
+	HashedPipelineLayout(CSpan<VDSLId> dsls, const VPushConstantRanges &pcrs, Maybe<u32> hash_value)
+		: dsls(dsls), pcrs(pcrs),
+		  hash_value(hash_value ? *hash_value : fwk::hashMany<u32>(dsls, pcrs.ranges)) {}
 
 	u32 hash() const { return hash_value; }
 	bool operator==(const HashedPipelineLayout &rhs) const {
-		return hash_value == rhs.hash_value && dsls == rhs.dsls;
+		return hash_value == rhs.hash_value && dsls == rhs.dsls && pcrs.ranges == rhs.pcrs.ranges;
 	}
 
 	CSpan<VDSLId> dsls;
+	const VPushConstantRanges &pcrs;
 	u32 hash_value;
 };
 
@@ -443,20 +445,23 @@ PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageVie
 	return pointer;
 }
 
-PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<VDSLId> dsls) {
-	HashedPipelineLayout key(dsls, none);
+PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<VDSLId> dsls,
+												 const VPushConstantRanges &pcrs) {
+	HashedPipelineLayout key(dsls, pcrs, none);
 	auto &hash_map = m_objects->hashed_pipeline_layouts;
 	auto it = hash_map.find(key);
 	if(it != hash_map.end())
 		return it->value;
 
-	auto pointer = VulkanPipelineLayout::create(ref(), dsls);
-	hash_map.emplace(HashedPipelineLayout(pointer->descriptorSetLayouts(), key.hash_value),
+	auto pointer = VulkanPipelineLayout::create(ref(), dsls, pcrs);
+	hash_map.emplace(HashedPipelineLayout(pointer->descriptorSetLayouts(),
+										  pointer->pushConstantRanges(), key.hash_value),
 					 pointer);
 	return pointer;
 }
 
-PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_modules) {
+PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_modules,
+												 const VPushConstantRanges &pcrs) {
 	vector<VDescriptorBindingInfo> descr_bindings;
 	for(auto &shader_module : shader_modules) {
 		DASSERT(shader_module);
@@ -477,7 +482,11 @@ PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_mo
 	dsls.reserve(descr_sets.size());
 	for(auto bindings : descr_sets)
 		dsls.emplace_back(getDSL(bindings));
-	return getPipelineLayout(dsls);
+	return getPipelineLayout(dsls, pcrs);
+}
+
+PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_modules) {
+	return getPipelineLayout(shader_modules, {});
 }
 
 VDSLId VulkanDevice::getDSL(CSpan<VDescriptorBindingInfo> bindings) {

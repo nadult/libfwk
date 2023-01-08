@@ -585,9 +585,6 @@
     <ClInclude Include="..\include\fwk\vector_map.h">
       <Filter>include\common</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\vulkan_base.h">
-      <Filter>include\common</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\fwk_pch.h">
       <Filter>src\common</Filter>
     </ClInclude>
@@ -653,6 +650,9 @@
     </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\canvas_3d.h">
       <Filter>include\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan_base.h">
+      <Filter>include\vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
