@@ -1,0 +1,48 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_run:
+    # Use a workflow as a trigger of scheduled builds. Forked repositories can disable scheduled builds by disabling
+    # "scheduled" workflow, while maintaining ability to perform local CI builds.
+    workflows:
+      - scheduled
+    branches:
+      - main
+      - test_actions
+    types:
+      - requested
+
+jobs:
+  Windows:
+    runs-on: windows-2022
+    env:
+      VS_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise
+      MSBUILD_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        shell: cmd
+        run: |
+          git submodule update --init
+          pip install conan
+          libfwk_deps.bat
+          
+#      - name: Prepare Vulkan SDK
+#        uses: humbletim/setup-vulkan-sdk@v1.2.0
+#        with:
+#           vulkan-query-version: 1.3.204.0
+#           vulkan-components: Vulkan-Headers, Vulkan-Loader
+#           vulkan-use-cache: true
+            #echo "VULKAN_SDK=$(pwd)\vulkan-sdk-1.1.121.2\" >>${env:GITHUB_ENV}
+
+      - name: Build libfwk release
+        shell: cmd
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/libfwk.vcxproj /p:Platform=x64 /p:Configuration=Release'
+
+      - name: Build test_window
+        shell: cmd
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/test_window.vcxproj /p:Platform=x64 /p:Configuration=Release'
+ 
