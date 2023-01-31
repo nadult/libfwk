@@ -1,6 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/colored_triangle.h"
 #include "fwk/math/affine_trans.h"
 #include "fwk/math/axis_angle.h"
 #include "fwk/math/box_iter.h"
@@ -20,9 +21,10 @@
 #include "fwk/math/tetrahedron.h"
 #include "fwk/math/triangle.h"
 #include "fwk/variant.h"
+
 #include "testing.h"
 
-#include "fwk/gfx/colored_triangle.h"
+#include "fwk/libs_msvc.h"
 
 float3 randomTranslation(float magnitude) {
 	return float3(frand() - 0.5f, frand() - 0.5f, frand() - 0.5f) * 2.0f * magnitude;

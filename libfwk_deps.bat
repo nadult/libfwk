@@ -4,6 +4,7 @@
 set LIBRARIES_PATH=C:\libraries
 set INCLUDE_PATH=%LIBRARIES_PATH%\x86_64\include
 set     LIB_PATH=%LIBRARIES_PATH%\x86_64\lib
+set     BIN_PATH=%LIBRARIES_PATH%\x86_64\bin
 
 set      BZIP2_VER=1.0.8
 set      BZIP2_CFG=d16a91eadaaf5829b928b12d2f836ff7680d3df5
@@ -29,7 +30,6 @@ set  VK_LOADER_VER=1.3.236.0
 set  VK_LOADER_CFG=595054a9f5d93cebcdd932c4adb8ade54c859ee5
 set    SHADERC_VER=2021.1
 set    SHADERC_CFG=2dafb007392789de77227cd3f25f9328ea7ea53f
-::shaderc_static: dd5cedfb88db52dd47fa5d18a1b6f9a1378c786f
 
 :: TODO: spirv-tools, spirv-headers glslang
 
@@ -51,6 +51,7 @@ mkdir %LIBRARIES_PATH%
 mkdir %LIBRARIES_PATH%\x86_64
 mkdir %INCLUDE_PATH%
 mkdir %LIB_PATH%
+mkdir %BIN_PATH%
 
 xcopy %userprofile%\.conan\data\brotli\%BROTLI_VER%\_\_\package\%BROTLI_CFG%\include                 %INCLUDE_PATH% /s /e
 xcopy %userprofile%\.conan\data\brotli\%BROTLI_VER%\_\_\package\%BROTLI_CFG%\lib                     %LIB_PATH% /s /e
@@ -77,3 +78,4 @@ xcopy %userprofile%\.conan\data\vulkan-loader\%VK_LOADER_VER%\_\_\package\%VK_LO
 xcopy %userprofile%\.conan\data\vulkan-loader\%VK_LOADER_VER%\_\_\package\%VK_LOADER_CFG%\lib        %LIB_PATH% /s /e
 xcopy %userprofile%\.conan\data\shaderc\%SHADERC_VER%\_\_\package\%SHADERC_CFG%\include              %INCLUDE_PATH% /s /e
 xcopy %userprofile%\.conan\data\shaderc\%SHADERC_VER%\_\_\package\%SHADERC_CFG%\lib                  %LIB_PATH% /s /e
+xcopy %userprofile%\.conan\data\shaderc\%SHADERC_VER%\_\_\package\%SHADERC_CFG%\bin                  %BIN_PATH% /s /e

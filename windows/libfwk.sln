@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_stuff", "test_stuff.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_geom", "test_geom.vcxproj", "{62421D1A-0DF3-48E5-A14E-FEFBA3D75088}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_math", "test_math.vcxproj", "{79134A7D-6D7D-4562-A2BB-D90834216F25}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,10 @@ Global
 		{62421D1A-0DF3-48E5-A14E-FEFBA3D75088}.Debug|x64.Build.0 = Debug|x64
 		{62421D1A-0DF3-48E5-A14E-FEFBA3D75088}.Release|x64.ActiveCfg = Release|x64
 		{62421D1A-0DF3-48E5-A14E-FEFBA3D75088}.Release|x64.Build.0 = Release|x64
+		{79134A7D-6D7D-4562-A2BB-D90834216F25}.Debug|x64.ActiveCfg = Debug|x64
+		{79134A7D-6D7D-4562-A2BB-D90834216F25}.Debug|x64.Build.0 = Debug|x64
+		{79134A7D-6D7D-4562-A2BB-D90834216F25}.Release|x64.ActiveCfg = Release|x64
+		{79134A7D-6D7D-4562-A2BB-D90834216F25}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

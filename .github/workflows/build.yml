@@ -23,13 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-#      - name: Prepare Vulkan SDK
-#        uses: humbletim/setup-vulkan-sdk@v1.2.0
-#        with:
-#           vulkan-query-version: 1.3.204.0
-#           vulkan-components: Vulkan-Headers, Vulkan-Loader
-#           vulkan-use-cache: true
-
       - name: Install Dependencies
         shell: cmd
         run: |
@@ -37,18 +30,30 @@ jobs:
           pip install conan
           libfwk_deps.bat
 
-      - name: Build libfwk release
+      - name: Build libfwk debug
         shell: cmd
-        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/libfwk.vcxproj /p:Platform=x64 /p:Configuration=Release'
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows\libfwk.vcxproj /p:Platform=x64 /p:Configuration=Debug'
 
       - name: Build test_window
         shell: cmd
-        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/test_window.vcxproj /p:Platform=x64 /p:Configuration=Release'
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows\test_window.vcxproj /p:Platform=x64 /p:Configuration=Debug'
 
       - name: Build test_stuff
         shell: cmd
-        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/test_stuff.vcxproj /p:Platform=x64 /p:Configuration=Release'
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows\test_stuff.vcxproj /p:Platform=x64 /p:Configuration=Debug'
 
-       - name: Build test_geom
+      - name: Build test_geom
         shell: cmd
-        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/test_geom.vcxproj /p:Platform=x64 /p:Configuration=Release'
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows\test_geom.vcxproj /p:Platform=x64 /p:Configuration=Debug'
+
+      - name: Build test_math
+        shell: cmd
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows\test_math.vcxproj /p:Platform=x64 /p:Configuration=Debug'
+        
+      - name: Test stuff
+        shell: cmd
+        run: '"build\test_stuff-x64-Debug\test_stuff.exe"'
+
+      - name: Test math
+        shell: cmd
+        run: '"build\test_math-x64-Debug\test_math.exe"'
