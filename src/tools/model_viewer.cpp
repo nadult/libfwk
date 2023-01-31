@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#include <fwk/libs_msvc.h>
+
 /*#include "fwk/gfx/animated_model.h"
 #include "fwk/gfx/draw_call.h"
 #include "fwk/gfx/dynamic_mesh.h"

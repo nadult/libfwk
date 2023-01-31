@@ -28,7 +28,8 @@ set VK_HEADERS_CFG=5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9
 set  VK_LOADER_VER=1.3.236.0
 set  VK_LOADER_CFG=595054a9f5d93cebcdd932c4adb8ade54c859ee5
 set    SHADERC_VER=2021.1
-set    SHADERC_CFG=262692e8840f6e6a13986c13da07f3633baede95
+set    SHADERC_CFG=2dafb007392789de77227cd3f25f9328ea7ea53f
+::shaderc_static: dd5cedfb88db52dd47fa5d18a1b6f9a1378c786f
 
 :: TODO: spirv-tools, spirv-headers glslang
 
@@ -42,9 +43,9 @@ conan download         openal/%OPENAL_VER%@:%OPENAL_CFG%
 conan download            sdl/%SDL_VER%@:%SDL_CFG%
 conan download         vorbis/%VORBIS_VER%@:%VORBIS_CFG%
 conan download           zlib/%ZLIB_VER%@:%ZLIB_CFG%
-::conan download vulkan-headers/%VK_HEADERS_VER%@:%VK_HEADERS_CFG%
-::conan download vulkan-loader/%VK_LOADER_VER%@:%VK_LOADER_CFG%
-::conan download       shaderc/%SHADERC_VER%@:%SHADERC_CFG%
+conan download vulkan-headers/%VK_HEADERS_VER%@:%VK_HEADERS_CFG%
+conan download  vulkan-loader/%VK_LOADER_VER%@:%VK_LOADER_CFG%
+conan download        shaderc/%SHADERC_VER%@:%SHADERC_CFG%
 
 mkdir %LIBRARIES_PATH%
 mkdir %LIBRARIES_PATH%\x86_64
@@ -70,9 +71,9 @@ xcopy %userprofile%\.conan\data\vorbis\%VORBIS_VER%\_\_\package\%VORBIS_CFG%\lib
 xcopy %userprofile%\.conan\data\zlib\%ZLIB_VER%\_\_\package\%ZLIB_CFG%\include                       %INCLUDE_PATH% /s /e
 xcopy %userprofile%\.conan\data\zlib\%ZLIB_VER%\_\_\package\%ZLIB_CFG%\lib                           %LIB_PATH% /s /e
 
-::xcopy %userprofile%\.conan\data\vulkan-headers\%VK_HEADERS_VER%\_\_\package\%VK_HEADERS_CFG%\include %INCLUDE_PATH% /s /e
-::xcopy %userprofile%\.conan\data\vulkan-headers\%VK_HEADERS_VER%\_\_\package\%VK_HEADERS_CFG%\lib     %LIB_PATH% /s /e
-::xcopy %userprofile%\.conan\data\vulkan-loader\%VK_LOADER_VER%\_\_\package\%VK_LOADER_CFG%\include    %INCLUDE_PATH% /s /e
-::xcopy %userprofile%\.conan\data\vulkan-loader\%VK_LOADER_VER%\_\_\package\%VK_LOADER_CFG%\lib        %LIB_PATH% /s /e
-::xcopy %userprofile%\.conan\data\shaderc\%SHADERC_VER%\_\_\package\%SHADERC_CFG%\include              %INCLUDE_PATH% /s /e
-::xcopy %userprofile%\.conan\data\shaderc\%SHADERC_VER%\_\_\package\%SHADERC_CFG%\lib                  %LIB_PATH% /s /e
+xcopy %userprofile%\.conan\data\vulkan-headers\%VK_HEADERS_VER%\_\_\package\%VK_HEADERS_CFG%\include %INCLUDE_PATH% /s /e
+xcopy %userprofile%\.conan\data\vulkan-headers\%VK_HEADERS_VER%\_\_\package\%VK_HEADERS_CFG%\lib     %LIB_PATH% /s /e
+xcopy %userprofile%\.conan\data\vulkan-loader\%VK_LOADER_VER%\_\_\package\%VK_LOADER_CFG%\include    %INCLUDE_PATH% /s /e
+xcopy %userprofile%\.conan\data\vulkan-loader\%VK_LOADER_VER%\_\_\package\%VK_LOADER_CFG%\lib        %LIB_PATH% /s /e
+xcopy %userprofile%\.conan\data\shaderc\%SHADERC_VER%\_\_\package\%SHADERC_CFG%\include              %INCLUDE_PATH% /s /e
+xcopy %userprofile%\.conan\data\shaderc\%SHADERC_VER%\_\_\package\%SHADERC_CFG%\lib                  %LIB_PATH% /s /e

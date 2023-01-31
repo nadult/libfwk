@@ -24,6 +24,8 @@
 #include <fwk/perf/manager.h>
 #include <fwk/perf/thread_context.h>
 
+#include <fwk/libs_msvc.h>
+
 // TODO: what should we do when error happens in begin/end frame?
 // TODO: proprly handle multiple queues
 // TODO: proprly differentiate between graphics, present & compute queues

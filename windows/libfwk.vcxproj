@@ -89,6 +89,7 @@
     <ClInclude Include="..\include\fwk\gfx\canvas_3d.h" />
     <ClInclude Include="..\include\fwk\gfx\drawing.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_reflection.h" />
+    <ClInclude Include="..\include\fwk\libs_msvc.h" />
     <ClInclude Include="..\include\fwk\perf\analyzer.h" />
     <ClInclude Include="..\include\fwk\perf\exec_tree.h" />
     <ClInclude Include="..\include\fwk\perf\manager.h" />
