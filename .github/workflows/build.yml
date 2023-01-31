@@ -44,4 +44,11 @@ jobs:
       - name: Build test_window
         shell: cmd
         run: '"%MSBUILD_PATH%\MSBuild.exe" windows/test_window.vcxproj /p:Platform=x64 /p:Configuration=Release'
- 
+
+      - name: Build test_stuff
+        shell: cmd
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/test_stuff.vcxproj /p:Platform=x64 /p:Configuration=Release'
+
+       - name: Build test_geom
+        shell: cmd
+        run: '"%MSBUILD_PATH%\MSBuild.exe" windows/test_geom.vcxproj /p:Platform=x64 /p:Configuration=Release'
