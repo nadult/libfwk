@@ -5,38 +5,37 @@
 
 #include <fwk/libs_msvc.h>
 
-/*#include "fwk/gfx/animated_model.h"
-#include "fwk/gfx/draw_call.h"
-#include "fwk/gfx/dynamic_mesh.h"
-#include "fwk/gfx/font_factory.h"
-#include "fwk/gfx/font_finder.h"
-#include "fwk/gfx/gl_device.h"
-#include "fwk/gfx/gl_texture.h"
-#include "fwk/gfx/line_buffer.h"
-#include "fwk/gfx/material_set.h"
-#include "fwk/gfx/mesh.h"
-#include "fwk/gfx/model.h"
-#include "fwk/gfx/opengl.h"
-#include "fwk/gfx/render_list.h"
-#include "fwk/gfx/renderer2d.h"
-#include "fwk/gfx/triangle_buffer.h"
-#include "fwk/io/file_system.h"
-#include "fwk/math/axis_angle.h"
-#include "fwk/math/rotation.h"
-#include "fwk/sys/input.h"
+#include <fwk/gfx/animated_model.h>
+#include <fwk/gfx/canvas_2d.h>
+#include <fwk/gfx/canvas_3d.h>
+#include <fwk/gfx/drawing.h>
+#include <fwk/gfx/dynamic_mesh.h>
+#include <fwk/gfx/font.h>
+#include <fwk/gfx/image.h>
+#include <fwk/gfx/mesh.h>
+#include <fwk/gfx/model.h>
+#include <fwk/gfx/shader_compiler.h>
+#include <fwk/io/file_system.h>
+#include <fwk/math/axis_angle.h>
+#include <fwk/math/rotation.h>
+#include <fwk/sys/input.h>
+#include <fwk/vulkan/vulkan_command_queue.h>
+#include <fwk/vulkan/vulkan_device.h>
+#include <fwk/vulkan/vulkan_image.h>
+#include <fwk/vulkan/vulkan_instance.h>
+#include <fwk/vulkan/vulkan_swap_chain.h>
+#include <fwk/vulkan/vulkan_window.h>
 
 #ifndef FWK_IMGUI_DISABLED
-#include "fwk/gui/gui.h"
-#include "fwk/gui/imgui.h"
-#include "fwk/gui/widgets.h"
+#include <fwk/gfx/font_finder.h>
+#include <fwk/gui/gui.h>
+#include <fwk/gui/imgui.h>
+#include <fwk/gui/widgets.h>
 #endif
 
 using namespace fwk;
 
-namespace {
-HashMap<string, PTexture> s_textures;
-
-string dataPath(string file_name) {
+static string dataPath(string file_name) {
 #ifdef FWK_PLATFORM_MSVC
 	auto main_path = FilePath::current().get();
 #else
@@ -44,6 +43,14 @@ string dataPath(string file_name) {
 #endif
 	return main_path / "data" / file_name;
 }
+
+static void loadShaderDefs(ShaderCompiler &compiler) {
+	vector<Pair<string>> vsh_macros = {{"VERTEX_SHADER", "1"}};
+	vector<Pair<string>> fsh_macros = {{"FRAGMENT_SHADER", "1"}};
+
+	compiler.add({"ray_trace", VShaderStage::compute, "ray_trace.shader"});
+	compiler.add({"display_vert", VShaderStage::vertex, "display.shader", vsh_macros});
+	compiler.add({"display_frag", VShaderStage::vertex, "display.shader", fsh_macros});
 }
 
 struct ViewConfig {
@@ -58,17 +65,17 @@ ViewConfig lerp(const ViewConfig &a, const ViewConfig &b, float t) {
 }
 
 struct ViewModel {
-	ViewModel(Model model, const Material &default_mat, PTexture tex, string mname, string tname)
-		: m_model(std::move(model)), m_materials(default_mat), m_model_name(mname),
-		  m_tex_name(tname), m_num_segments(0) {
-		HashMap<string, Material> map;
+	ViewModel(Model model, Maybe<PVImageView> tex, string mname, string tname)
+		: m_model(std::move(model)), m_model_name(mname), m_tex_name(tname), m_num_segments(0) {
+		HashMap<string, SimpleMaterial> map;
+		if(tex)
+			m_default_material = {*tex};
 
 		for(const auto &def : m_model.materialDefs()) {
-			map[def.name] =
-				tex ? Material({tex}, IColor(def.diffuse)) : Material(IColor(def.diffuse));
+			map[def.name] = tex ? SimpleMaterial(*tex, IColor(def.diffuse)) :
+								  SimpleMaterial(IColor(def.diffuse));
 		}
-		m_materials = MaterialSet(default_mat, map);
-		map.clear();
+		m_materials = move(map);
 	}
 
 	Pose animatePose(int anim_id, float anim_pos) const {
@@ -81,13 +88,13 @@ struct ViewModel {
 
 	float scale() const { return 4.0f / max(boundingBox().size().values()); }
 
-	void drawModel(RenderList &out, const Pose &pose, const Matrix4 &matrix) {
-		out.add(animate(pose).genDrawCalls(m_materials, matrix));
+	void drawModel(Canvas3D &out, const Pose &pose, const Matrix4 &matrix) {
+		//out.add(animate(pose).genDrawCalls(m_materials, matrix));
 	}
 
-	void drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose) {
-		m_model.drawNodes(tris, lines, pose, ColorId::green, ColorId::yellow, 0.1f / scale());
-	}
+	//void drawNodes(TriangleBuffer &tris, LineBuffer &lines, const Pose &pose) {
+	//	m_model.drawNodes(tris, lines, pose, ColorId::green, ColorId::yellow, 0.1f / scale());
+	//}
 
 	void printModelStats(TextFormatter &fmt) const {
 		int num_parts = 0, num_verts = 0, num_faces = 0;
@@ -102,69 +109,82 @@ struct ViewModel {
 		fmt("Parts: %  Verts: % Faces: %\n", num_parts, num_verts, num_faces);
 	}
 
-	Material makeMat(IColor col, bool line) {
-		auto flags = col.a != 255 || line ? MaterialOpt::blended | MaterialOpt::ignore_depth : none;
-		return Material{col, flags};
-	}
-
 	Model m_model;
-	MaterialSet m_materials;
+	HashMap<string, SimpleMaterial> m_materials;
+	SimpleMaterial m_default_material;
 	string m_model_name;
 	string m_tex_name;
 	int m_num_segments;
 };
 
+HashMap<string, PVImageView> loadImages(VDeviceRef device, CSpan<Pair<string>> file_names) {
+	HashMap<string, PVImageView> out;
+
+	for(auto pair : file_names) {
+		auto tex_name = pair.second;
+		if(tex_name.empty() || !access(tex_name))
+			continue;
+
+		auto image = Image::load(tex_name);
+		if(!image) {
+			image.error().print();
+			image = Image(int2(4, 4), ColorId::magneta);
+		}
+
+		auto tex = VulkanImage::createAndUpload(device, {*image});
+		if(!tex) {
+			tex.error().print();
+			continue;
+		}
+		auto tex_view = VulkanImageView::create(device, *tex);
+		out.emplace(tex_name, tex_view);
+	}
+	return out;
+}
+
+PVRenderPass guiRenderPass(VDeviceRef device) {
+	auto sc_format = device->swapChain()->format();
+	auto color_sync = VColorSync(VLoadOp::load, VStoreOp::store, VImageLayout::general,
+								 VImageLayout::present_src);
+	return device->getRenderPass({{sc_format, 1, color_sync}});
+}
+
 class Viewer {
   public:
-	void makeMaterials(Material default_mat, ViewModel &model) {}
+	void updateViewport() { m_viewport = IRect(m_window->size()); }
 
-	void updateViewport() { m_viewport = IRect(GlDevice::instance().windowSize()); }
-
-	Viewer(const vector<Pair<string>> &file_names)
-		: m_current_model(0), m_current_anim(-1), m_anim_pos(0.0), m_show_nodes(false) {
+	Viewer(VWindowRef window, VDeviceRef device, const vector<Pair<string>> &file_names)
+		: m_window(window), m_device(device), m_current_model(0), m_current_anim(-1),
+		  m_anim_pos(0.0), m_show_nodes(false) {
 		updateViewport();
 
+		auto images = loadImages(device, file_names);
+
 		for(auto file_name : file_names) {
-			PTexture tex;
-			if(!file_name.second.empty() && access(file_name.second)) {
-				double time = getTime();
-				if(auto it = s_textures.find(file_name.second))
-					tex = it->value;
-				else {
-					tex = GlTexture::load(file_name.second, true).get();
-					s_textures[file_name.second] = tex;
-				}
-
-				printf("Loaded texture %s: %.2f ms\n", file_name.second.c_str(),
-					   (getTime() - time) * 1000.0f);
-			}
-
-			Material default_mat = tex ? Material({tex}) : Material();
+			auto image = images.maybeFind(file_name.second);
 
 			double time = getTime();
 			auto model = Model::load(file_name.first);
+			time = (getTime() - time) * 1000.0;
 
 			if(model) {
-				printf("Loaded %s: %.2f ms\n", file_name.first.c_str(),
-					   (getTime() - time) * 1000.0f);
-				m_models.emplace_back(move(model.get()), default_mat, tex, file_name.first,
-									  file_name.second);
+				printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), time);
+				m_models.emplace_back(move(model.get()), image, file_name.first, file_name.second);
 			} else {
 				print("Error while loading '%':\n%", file_name.first, model.error());
 			}
 		}
 
-		auto font_info = findDefaultSystemFont().get();
-
 #ifndef FWK_IMGUI_DISABLED
+		auto font_info = findDefaultSystemFont().get();
 		GuiConfig gui_config;
 		gui_config.style_mode = GuiStyleMode::normal;
 		gui_config.font_path = font_info.file_path;
-		m_gui.emplace(GlDevice::instance(), gui_config);
+		m_gui.emplace(device, window, guiRenderPass(device), gui_config);
+#else
+		int font_scale = 14;
+		m_font.emplace(Font::makeDefault(device, window, font_scale).get());
 #endif
-
-		int font_scale = 14 * GlDevice::instance().windowDpiScale();
-		m_font.emplace(move(FontFactory().makeFont(font_info.file_path, font_scale, false).get()));
 	}
 
 	string helpText() const {
@@ -178,7 +198,8 @@ class Viewer {
 		return fmt.text();
 	}
 
-	void helpBox(Renderer2D &renderer_2d, ViewModel &model) const {
+#ifdef FWK_IMGUI_DISABLED
+	void helpBox(Canvas2D &out, ViewModel &model) const {
 		TextFormatter fmt;
 		fmt("[Imgui disabled]\n");
 		fmt("Model: % (% / %)\n", model.m_model_name, m_current_model + 1, m_models.size());
@@ -192,10 +213,10 @@ class Viewer {
 
 		FontStyle style{ColorId::white, ColorId::black};
 		auto extents = m_font->evalExtents(fmt.text());
-		renderer_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)),
-								  {IColor(0, 0, 0, 80)});
-		m_font->draw(renderer_2d, FRect({5, 5}, {300, 100}), style, fmt.text());
+		out.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)), {IColor(0, 0, 0, 80)});
+		m_font->draw(out, FRect({5, 5}, {300, 100}), style, fmt.text());
 	}
+#endif
 
 	void doMenu() {
 #ifndef FWK_IMGUI_DISABLED
@@ -282,7 +303,7 @@ class Viewer {
 		return true;
 	}
 
-	bool valid() const { return !!m_models; }
+	bool hasModels() const { return !!m_models; }
 
 	void tick(float time_diff) {
 		m_view_config = lerp(m_view_config, m_target_view, 0.1f);
@@ -302,57 +323,64 @@ class Viewer {
 	}
 
 	void draw() {
-		Matrix4 proj = perspective(degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(),
-								   1.0f, 10000.0f);
-		RenderList renderer_3d(m_viewport, proj);
+		m_device->beginFrame().check();
+		auto swap_chain = m_device->swapChain();
+		if(swap_chain->status() == VSwapChainStatus::image_acquired) {
+			IColor nice_background(200, 200, 255);
+			//clearColor(nice_background);
+			//clearDepth(1.0f);
 
-		renderer_3d.setViewMatrix(translation(0, 0, -5.0f));
+			Matrix4 proj = perspective(
+				degToRad(60.0f), float(m_viewport.width()) / m_viewport.height(), 1.0f, 10000.0f);
+			Matrix4 view = translation(0, 0, -5.0f);
+			Canvas3D renderer_3d(m_viewport, proj, view);
+			auto &model = m_models[m_current_model];
 
-		auto &model = m_models[m_current_model];
+			auto anim_id = model.m_model.anims().inRange(m_current_anim) ? m_current_anim : -1;
+			auto pose = model.animatePose(anim_id, m_anim_pos);
+			auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
+						  translation(-model.boundingBox().center());
 
-		auto anim_id = model.m_model.anims().inRange(m_current_anim) ? m_current_anim : -1;
-		auto pose = model.animatePose(anim_id, m_anim_pos);
-		auto matrix = scaling(m_view_config.zoom * model.scale()) * Matrix4(m_view_config.rot) *
-					  translation(-model.boundingBox().center());
+			renderer_3d.setViewMatrix(matrix);
 
-		TriangleBuffer tris;
-		LineBuffer lines;
-		tris.setTrans(matrix);
-		lines.setTrans(matrix);
+			/*model.drawModel(renderer_3d, pose, matrix);
+			if(m_show_nodes)
+				model.drawNodes(tris, lines, pose);
+			renderer_3d.add
+			lines(model.boundingBox(pose), ColorId::green);
 
-		model.drawModel(renderer_3d, pose, matrix);
-		if(m_show_nodes)
-			model.drawNodes(tris, lines, pose);
-		lines(model.boundingBox(pose), ColorId::green);
+			renderer_3d.add(tris.drawCalls());
+			renderer_3d.add(lines.drawCalls());
 
-		renderer_3d.add(tris.drawCalls());
-		renderer_3d.add(lines.drawCalls());
+			renderer_3d.render();*/
 
-		renderer_3d.render();
+			auto &cmds = m_device->cmdQueue();
+			auto fb = m_device->getFramebuffer({m_device->swapChain()->acquiredImage()});
+			cmds.beginRenderPass(fb, guiRenderPass(m_device), none);
 
 #ifdef FWK_IMGUI_DISABLED
-		Renderer2D renderer_2d(m_viewport, Orient2D::y_down);
-		helpBox(renderer_2d, model);
-		renderer_2d.render();
+			Renderer2D renderer_2d(m_viewport, Orient2D::y_down);
+			helpBox(renderer_2d, model);
+			renderer_2d.render();
 #else
-		m_gui->drawFrame(GlDevice::instance());
+			m_gui->drawFrame(*m_window, cmds.bufferHandle());
 #endif
+
+			cmds.endRenderPass();
+		}
+		m_device->finishFrame().check();
 	}
 
 	const IRect &viewport() const { return m_viewport; }
 
-	bool mainLoop(GlDevice &device) {
-		IColor nice_background(200, 200, 255);
-		clearColor(nice_background);
-		clearDepth(1.0f);
-
+	bool mainLoop() {
 		vector<InputEvent> events;
 #ifdef FWK_IMGUI_DISABLED
 		events = device.inputEvents();
 #else
-		m_gui->beginFrame(device);
+		m_gui->beginFrame(*m_window);
 		doMenu();
-		events = m_gui->finishFrame(device);
+		events = m_gui->finishFrame(*m_window);
 #endif
 
 		float time_diff = 1.0f / 60.0f;
@@ -362,18 +390,26 @@ class Viewer {
 		updateViewport();
 		draw();
 
+#ifndef FWK_IMGUI_DISABLED
+		m_gui->endFrame();
+#endif
+
 		return true;
 	}
 
-	static bool mainLoop(GlDevice &device, void *this_ptr) {
-		return ((Viewer *)this_ptr)->mainLoop(device);
+	static bool mainLoop(VulkanWindow &window, void *this_ptr) {
+		return ((Viewer *)this_ptr)->mainLoop();
 	}
 
   private:
+	VWindowRef m_window;
+	VDeviceRef m_device;
+
 	vector<ViewModel> m_models;
-	Dynamic<Font> m_font;
 #ifndef FWK_IMGUI_DISABLED
 	Dynamic<Gui> m_gui;
+#else
+	Dynamic<Font> m_font;
 #endif
 
 	IRect m_viewport;
@@ -384,7 +420,7 @@ class Viewer {
 	ViewConfig m_target_view;
 };
 
-int main(int argc, char **argv) {
+Ex<> exMain(int argc, char **argv) {
 	double time = getTime();
 
 	string models_path = "./", tex_argument = "";
@@ -412,6 +448,7 @@ int main(int argc, char **argv) {
 		auto star_pos = models_path.find('*');
 		string prefix = models_path.substr(0, star_pos);
 		string suffix = models_path.substr(star_pos + 1);
+		prefix = FilePath(prefix);
 
 		auto tstar_pos = tex_argument.find('*');
 		string tprefix = star_pos == string::npos ? "" : tex_argument.substr(0, tstar_pos);
@@ -435,30 +472,60 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	GlDevice gl_device;
-	auto display_rects = gl_device.displayRects();
+	auto display_rects = VulkanWindow::displayRects();
 	if(!display_rects)
 		FWK_FATAL("No display available");
 	int2 resolution = display_rects[0].size() * 2 / 3;
-	GlDeviceConfig gl_config;
-	gl_config.flags = GlDeviceOpt::resizable | GlDeviceOpt::vsync | GlDeviceOpt::centered |
-					  GlDeviceOpt::allow_hidpi;
-	gl_config.multisampling = 4;
-	gl_device.createWindow("libfwk::model_viewer", IRect(resolution), gl_config);
+
+	// TODO: multisampling
+	VInstanceSetup setup;
+#ifndef NDEBUG
+	setup.debug_levels = VDebugLevel::warning | VDebugLevel::error;
+	setup.debug_types = all<VDebugType>;
+#endif
+	auto window_flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi |
+						VWindowFlag::sleep_when_minimized;
+	VSwapChainSetup swap_chain_setup;
+	swap_chain_setup.preferred_formats = {{VK_FORMAT_B8G8R8A8_UNORM}};
+	swap_chain_setup.preferred_present_mode = VPresentMode::immediate;
+	swap_chain_setup.usage =
+		VImageUsage::color_att | VImageUsage::storage | VImageUsage::transfer_dst;
+	swap_chain_setup.initial_layout = VImageLayout::general;
+
+	// TODO: create instance on a thread, in the meantime load resources?
+	auto instance = EX_PASS(VulkanInstance::create(setup));
+
+	auto window = EX_PASS(
+		VulkanWindow::create(instance, "libfwk::model_viewer", IRect(resolution), window_flags));
+
+	VDeviceSetup dev_setup;
+	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);
+	if(!pref_device)
+		return ERROR("Couldn't find a suitable Vulkan device");
+	dev_setup.extensions = {"VK_EXT_shader_subgroup_vote", "VK_EXT_shader_subgroup_ballot"};
+	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
+	auto phys_info = instance->info(device->physId());
+	print("Selected Vulkan physical device: %\nDriver version: %\n",
+		  phys_info.properties.deviceName, phys_info.properties.driverVersion);
+	device->addSwapChain(EX_PASS(VulkanSwapChain::create(device, window, swap_chain_setup)));
 
 	double init_time = getTime();
-	Viewer viewer(files);
-	if(!viewer.valid()) {
+	Viewer viewer(window, device, files);
+	if(!viewer.hasModels()) {
 		print("No models\n");
-		return 0;
+		return {};
 	}
 
-	gl_device.runMainLoop(Viewer::mainLoop, &viewer);
+	window->runMainLoop(Viewer::mainLoop, &viewer);
+	return {};
+}
 
-	return 0;
-}*/
+int main(int argc, char **argv) {
+	auto result = exMain(argc, argv);
 
-int main() {
-	printf("TODO: fixme\n");
+	if(!result) {
+		result.error().print();
+		return 1;
+	}
 	return 0;
 }
