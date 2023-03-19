@@ -173,7 +173,8 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	if(version >= VulkanVersion{1, 3, 0})
 		m_features |= VDeviceFeature::subgroup_size_control;
 	else {
-		if(anyOf(phys_info.extensions, VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME)) {
+		if(anyOf(phys_info.extensions, VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME) &&
+		   phys_info.subgroup_control_props.requiredSubgroupSizeStages != 0) {
 			m_features |= VDeviceFeature::subgroup_size_control;
 			exts.emplace_back(VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME);
 		}

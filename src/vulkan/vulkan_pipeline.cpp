@@ -7,6 +7,7 @@
 #include "fwk/sys/assert.h"
 #include "fwk/vulkan/vulkan_buffer_span.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_shader.h"
 
@@ -511,9 +512,10 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineS
 	ci.layout = pipeline_layout;
 	ci.basePipelineIndex = -1;
 
+	auto subgroup_stages = device->physInfo().subgroup_control_props.requiredSubgroupSizeStages;
 	VkPipelineShaderStageRequiredSubgroupSizeCreateInfo subgroup_control_ci{
 		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO};
-	if(setup.subgroup_size) {
+	if(setup.subgroup_size && (subgroup_stages & VK_SHADER_STAGE_COMPUTE_BIT) != 0) {
 		subgroup_control_ci.requiredSubgroupSize = *setup.subgroup_size;
 		ci.stage.pNext = &subgroup_control_ci;
 	}
