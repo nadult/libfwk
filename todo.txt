@@ -12,6 +12,7 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- disable/remove backtraces?
 - drobny błąd przy wyświetlaniu perfanalyzera: jak sie zmniejszy okno, to ostatnia linia moze byc czasami
   maksymalnie widoczna tylko do polowy
 - wykomentowane PASSERTy w vulkan_storage

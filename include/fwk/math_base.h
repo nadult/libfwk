@@ -547,6 +547,7 @@ template <class T> struct vec4 {
 
 	constexpr vec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) { CHECK_NANS(x, y, z, w); }
 	constexpr vec4(const vec2<T> &xy, T z, T w) : x(xy.x), y(xy.y), z(z), w(w) { CHECK_NANS(z, w); }
+	constexpr vec4(const vec2<T> &xy, const vec2<T> &zw) : x(xy.x), y(xy.y), z(zw.x), w(zw.y) {}
 	constexpr vec4(const vec3<T> &xyz, T w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) { CHECK_NANS(w); }
 	constexpr vec4() : x(0), y(0), z(0), w(0) {}
 	constexpr vec4(CSpan<T, 4> v) : vec4(v[0], v[1], v[2], v[3]) {}
