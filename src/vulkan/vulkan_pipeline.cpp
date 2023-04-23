@@ -114,11 +114,12 @@ void VDescriptorSet::set(int first_index, CSpan<Pair<PVSampler, PVImageView>> va
 	// TODO: make it work properly for multiple elements just like for buffers
 	u64 bits = ((1ull << values.size()) - 1ull) << first_index;
 	if((bits & bindings_map) != bits) {
-		bits = bits & bindings_map >> first_index;
+		bits = (bits & bindings_map) >> first_index;
 		if(values.size() > 1) {
 			for(int i : intRange(values))
 				if(bits & (1ull << i))
 					set(first_index + i, values.subSpan(i, i + 1));
+			return;
 		} else if(!bits)
 			return;
 	}
