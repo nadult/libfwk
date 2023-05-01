@@ -270,9 +270,6 @@
     <ClInclude Include="..\include\fwk\gfx\colored_triangle.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\fwk\gfx\compressed_image.h">
-      <Filter>include\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\fwk\gfx\converter.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
@@ -657,6 +654,9 @@
     <ClInclude Include="..\include\fwk\libs_msvc.h">
       <Filter>include\common</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\gfx\block_image.h">
+      <Filter>include\gfx</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -744,9 +744,6 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\colored_triangle.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\compressed_image.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\converter.cpp">
@@ -1092,6 +1089,9 @@
       <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\canvas_3d.cpp">
+      <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gfx\block_image.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
   </ItemGroup>

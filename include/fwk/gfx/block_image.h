@@ -16,15 +16,14 @@ int blockSize(VBlockFormat);
 int imageSize(VBlockFormat, int width, int height);
 int imageRowSize(VBlockFormat, int width);
 
-// TODO: Rename to BlockImage
 // RGB/RGBA image packed in 4x4 blocks
-class CompressedImage {
+class BlockImage {
   public:
 	using Format = VBlockFormat;
 
-	CompressedImage(PodVector<u8>, int2 size, VBlockFormat);
-	CompressedImage(const Image &, VBlockFormat);
-	~CompressedImage();
+	BlockImage(PodVector<u8>, int2 size, VBlockFormat);
+	BlockImage(const Image &, VBlockFormat);
+	~BlockImage();
 
 	CSpan<u8> data() const { return m_data; }
 	Span<u8> data() { return m_data; }

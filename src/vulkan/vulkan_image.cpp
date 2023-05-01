@@ -3,7 +3,7 @@
 
 #include "fwk/vulkan/vulkan_image.h"
 
-#include "fwk/gfx/compressed_image.h"
+#include "fwk/gfx/block_image.h"
 #include "fwk/gfx/image.h"
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_command_queue.h"
@@ -92,7 +92,7 @@ Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<Image> images)
 	return out;
 }
 
-Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<CompressedImage> images) {
+Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<BlockImage> images) {
 	DASSERT(images);
 	for(auto image : images)
 		DASSERT(image.format() == images[0].format());
@@ -185,7 +185,7 @@ Ex<> VulkanImage::upload(CSpan<Image> src, VImageLayout dst_layout) {
 	return {};
 }
 
-Ex<> VulkanImage::upload(CSpan<CompressedImage> src, VImageLayout dst_layout) {
+Ex<> VulkanImage::upload(CSpan<BlockImage> src, VImageLayout dst_layout) {
 	DASSERT(m_dims.num_mip_levels >= src.size());
 	for(int mip : intRange(src))
 		EXPECT(upload(src[mip], mip, dst_layout));
@@ -212,7 +212,7 @@ Ex<> VulkanImage::upload(const Image &src, int target_mip, Layout target_layout)
 	return {};
 }
 
-Ex<> VulkanImage::upload(const CompressedImage &src, int target_mip, Layout target_layout) {
+Ex<> VulkanImage::upload(const BlockImage &src, int target_mip, Layout target_layout) {
 	if(src.empty())
 		return {};
 	DASSERT(target_mip >= 0 && target_mip < m_dims.num_mip_levels);

@@ -44,7 +44,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	static PVImage createExternal(VDeviceRef, VkImage, const VImageSetup &);
 
 	static Ex<PVImage> createAndUpload(VDeviceRef, CSpan<Image>);
-	static Ex<PVImage> createAndUpload(VDeviceRef, CSpan<CompressedImage>);
+	static Ex<PVImage> createAndUpload(VDeviceRef, CSpan<BlockImage>);
 
 	auto memoryBlock() { return m_memory_block; }
 	auto dimensions() const { return m_dims; }
@@ -60,11 +60,10 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	// ---------- Commands --------------------------------------------------------------
 
 	Ex<> upload(CSpan<Image>, Layout target_layout = Layout::shader_ro);
-	Ex<> upload(CSpan<CompressedImage>, Layout target_layout = Layout::shader_ro);
+	Ex<> upload(CSpan<BlockImage>, Layout target_layout = Layout::shader_ro);
 
 	Ex<> upload(const Image &, int target_mip = 0, Layout target_layout = Layout::shader_ro);
-	Ex<> upload(const CompressedImage &, int target_mip = 0,
-				Layout target_layout = Layout::shader_ro);
+	Ex<> upload(const BlockImage &, int target_mip = 0, Layout target_layout = Layout::shader_ro);
 
 	Layout layout(int mip_level) const;
 	void transitionLayout(Layout target_layout, int mip_level = 0);

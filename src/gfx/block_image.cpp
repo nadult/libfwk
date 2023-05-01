@@ -1,7 +1,7 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/gfx/compressed_image.h"
+#include "fwk/gfx/block_image.h"
 
 #include "fwk/gfx/image.h"
 
@@ -28,13 +28,12 @@ int imageRowSize(VBlockFormat format, int width) {
 	return ((width + 3) / 4) * compressedBlockSize(format);
 }
 
-CompressedImage::CompressedImage(PodVector<u8> data, int2 size, Format format)
+BlockImage::BlockImage(PodVector<u8> data, int2 size, Format format)
 	: m_data(move(data)), m_size(size), m_format(format) {
 	DASSERT(m_data.size() >= imageSize(format, size.x, size.y));
 }
 
-CompressedImage::CompressedImage(const Image &input, Format format)
-	: m_size(input.size()), m_format(format) {
+BlockImage::BlockImage(const Image &input, Format format) : m_size(input.size()), m_format(format) {
 	DASSERT(
 		isOneOf(format, Format::rgb_bc1, Format::srgb_bc1, Format::rgba_bc3, Format::srgba_bc3));
 
@@ -62,5 +61,5 @@ CompressedImage::CompressedImage(const Image &input, Format format)
 	}
 }
 
-CompressedImage::~CompressedImage() = default;
+BlockImage::~BlockImage() = default;
 }
