@@ -657,6 +657,9 @@
     <ClInclude Include="..\include\fwk\gfx\block_image.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\gfx\image_view.h">
+      <Filter>include\gfx</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -753,9 +756,6 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\dynamic_mesh.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\float_image.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\font.cpp">
@@ -1089,9 +1089,6 @@
       <Filter>src\vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gfx\canvas_3d.cpp">
-      <Filter>src\gfx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gfx\block_image.cpp">
       <Filter>src\gfx</Filter>
     </ClCompile>
   </ItemGroup>

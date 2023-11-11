@@ -15,7 +15,7 @@ constexpr bool compatibleSizes(size_t a, size_t b) { return a > b ? a % b == 0 :
 template <class T, int min_size /*= 0*/> class Span {
   public:
 	using value_type = RemoveConst<T>;
-	enum { is_const = fwk::is_const<T>, minimum_size = min_size };
+	static constexpr int is_const = fwk::is_const<T>, minimum_size = min_size;
 	static_assert(min_size >= 0, "min_size should be >= 0");
 
 	Span(T *data, int size, NoAssertsTag) : m_data(data), m_size(size) {

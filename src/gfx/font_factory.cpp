@@ -158,7 +158,7 @@ auto FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool
 		Image tex(int2(lcd_mode ? bitmap.width / 3 : bitmap.width, bitmap.rows), no_init);
 
 		for(int y = 0; y < tex.height(); y++) {
-			auto dst = tex.row(y);
+			auto dst = tex.row<IColor>(y);
 			unsigned char *src = bitmap.buffer + bitmap.pitch * y;
 			if(lcd_mode) {
 				for(int x = 0; x < tex.width(); x++) {

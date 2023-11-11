@@ -10,13 +10,11 @@ namespace fwk {
 
 class Canvas2D;
 class Canvas3D;
-class BlockImage;
 class DynamicMesh;
 class FloatImage;
 class Font;
 class FontCore;
 class FontFactory;
-class GlDevice;
 class Image;
 class MatrixStack;
 class Mesh;

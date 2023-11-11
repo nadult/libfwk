@@ -135,7 +135,7 @@ struct VulkanDevice::DummyObjects {
 // ---  Construction / destruction & main functions  -----------------------------------------
 
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)
-	: m_id(id), m_phys_id(phys_id), m_instance_ref(instance_ref) {
+	: m_phys_id(phys_id), m_instance_ref(instance_ref), m_id(id) {
 	m_objects.emplace();
 	m_dummies.emplace();
 	ASSERT(m_instance_ref->valid(m_phys_id));
@@ -249,7 +249,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	m_cmds = new VulkanCommandQueue(ref());
 	EXPECT(m_cmds->initialize(ref()));
 
-	VImageSetup img_setup{VK_FORMAT_R8G8B8A8_UNORM, int2(4, 4)};
+	VImageSetup img_setup{VFormat::rgba8_unorm, int2(4, 4)};
 	auto white_image = EX_PASS(VulkanImage::create(ref(), img_setup));
 	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
 	m_dummies->dummy_image_2d = VulkanImageView::create(ref(), white_image);
@@ -296,7 +296,7 @@ VulkanDevice::~VulkanDevice() {
 		}
 	}
 	if(errors)
-		FATAL("All VPtrs<> to Vulkan objects should be freed before VulkanDevice is destroyed");
+		FWK_FATAL("All VPtrs<> to Vulkan objects should be freed before VulkanDevice is destroyed");
 #endif
 	m_memory.reset();
 

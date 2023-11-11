@@ -89,6 +89,7 @@
     <ClInclude Include="..\include\fwk\gfx\block_image.h" />
     <ClInclude Include="..\include\fwk\gfx\canvas_3d.h" />
     <ClInclude Include="..\include\fwk\gfx\drawing.h" />
+    <ClInclude Include="..\include\fwk\gfx\image_view.h" />
     <ClInclude Include="..\include\fwk\gfx\shader_reflection.h" />
     <ClInclude Include="..\include\fwk\libs_msvc.h" />
     <ClInclude Include="..\include\fwk\perf\analyzer.h" />
@@ -281,7 +282,6 @@
     </ClCompile>
     <ClCompile Include="..\src\base_vector.cpp" />
     <ClCompile Include="..\src\bit_vector.cpp" />
-    <ClCompile Include="..\src\gfx\block_image.cpp" />
     <ClCompile Include="..\src\gfx\canvas_3d.cpp" />
     <ClCompile Include="..\src\gfx\shader_reflection.cpp" />
     <ClCompile Include="..\src\slab_allocator.cpp" />
@@ -308,7 +308,6 @@
     <ClCompile Include="..\src\gfx\converter.cpp" />
     <ClCompile Include="..\src\gfx\drawing.cpp" />
     <ClCompile Include="..\src\gfx\dynamic_mesh.cpp" />
-    <ClCompile Include="..\src\gfx\float_image.cpp" />
     <ClCompile Include="..\src\gfx\font.cpp" />
     <ClCompile Include="..\src\gfx\font_factory.cpp" />
     <ClCompile Include="..\src\gfx\font_finder.cpp" />

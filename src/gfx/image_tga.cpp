@@ -40,6 +40,7 @@ struct EXCEPT TGAHeader {
 };
 
 Ex<> Image::saveTGA(Stream &sr) const {
+	EXPECT(baseFormat(m_format) == VBaseFormat::rgba8);
 	TGAHeader header;
 
 	header.data_type_code = 2;
@@ -52,7 +53,7 @@ Ex<> Image::saveTGA(Stream &sr) const {
 	header.save(sr);
 	vector<IColor> line(m_size.x);
 	for(int y = m_size.y - 1; y >= 0; y--) {
-		copy(line, row(y));
+		copy(line, row<IColor>(y));
 		for(int x = 0; x < m_size.x; x++)
 			line[x] = IColor(line[x].b, line[x].g, line[x].r, line[x].a);
 		sr.saveData(line);

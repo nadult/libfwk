@@ -39,9 +39,9 @@ namespace detail {
 			return sr.getValid().error();
 		}
 
-		Image out({w, h}, no_init);
+		Image out({w, h}, no_init, VFormat::rgba8_unorm);
 		// TODO: avoid copy
-		copy(out.data(), span(reinterpret_cast<IColor *>(data), w * h));
+		copy(out.data(), span(data, w * h * sizeof(IColor)));
 		stbi_image_free(data);
 		EXPECT(sr.getValid());
 		return out;

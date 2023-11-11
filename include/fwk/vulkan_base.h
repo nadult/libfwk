@@ -142,7 +142,101 @@ DEFINE_ENUM(VAccess, indirect_command_read, index_read, vertex_attribute_read, u
 			host_read, host_write, memory_read, memory_write);
 using VAccessFlags = EnumFlags<VAccess>;
 
+DEFINE_ENUM(VBaseFormat, r8, rg8, rgb8, bgr8, rgba8, bgra8, abgr8, a2rgb10, a2bgr10, r16, rg16,
+			rgb16, rgba16, r32, rg32, rgb32, rgba32, b10g11r11_ufloat, e5r9g9b9_ufloat, bc1_rgb,
+			bc1_rgba, bc2_rgba, bc3_rgba, bc4_r, bc5_rg, bc6h_rgb, bc7_rgba);
+using VBaseFormats = EnumFlags<VBaseFormat>;
+
+constexpr bool isBlock(VBaseFormat format) {
+	return format >= VBaseFormat::bc1_rgb && format <= VBaseFormat::bc7_rgba;
+}
+
+int unitByteSize(VBaseFormat);
+constexpr int unitSize(VBaseFormat format) { return isBlock(format) ? 4 : 1; }
+
+//   unorm: unsigned normalized values in the range [ 0, 1]
+//   snorm:   signed normalized values in the range [-1, 1]
+//    uint: unsigned integer values in the range [       0, 2^n - 1    ]
+//    sint:   signed integer values in the range [-2^(n-1), 2^(n-1) - 1]
+//  ufloat: unsigned floating-point
+//  sfloat:   signed floating-point
+//    srgb: unorm with RGB additionally using sRGB nonlinear encoding
+DEFINE_ENUM(VNumericFormat, unorm, snorm, uint, sint, ufloat, sfloat, srgb);
+
+DEFINE_ENUM(VFormat,
+			//  8-bit R8
+			r8_unorm, r8_snorm, r8_uint, r8_sint, r8_srgb,
+			// 16-bit (R8, G8)
+			rg8_unorm, rg8_snorm, rg8_uint, rg8_sint, rg8_srgb,
+			// 24-bit (R8, G8, B8)
+			rgb8_unorm, rgb8_snorm, rgb8_uint, rgb8_sint, rgb8_srgb,
+			// 24-bit (B8, G8, R8)
+			bgr8_unorm, bgr8_snorm, bgr8_uint, bgr8_sint, bgr8_srgb,
+			// 32-bit (R8, G8, B8, A8)
+			rgba8_unorm, rgba8_snorm, rgba8_uint, rgba8_sint, rgba8_srgb,
+			// 32-bit (B8, G8, R8, A8)
+			bgra8_unorm, bgra8_snorm, bgra8_uint, bgra8_sint, bgra8_srgb,
+			// 32-bit (A8, B8, G8, R8), packed
+			abgr8_unorm, abgr8_snorm, abgr8_uint, abgr8_sint, abgr8_srgb,
+
+			// 32-bit (A2, R10, G10, B10), packed
+			a2rgb10_unorm, a2rgb10_snorm, a2rgb10_uint, a2rgb10_sint,
+			// 32-bit (A2, B10, G10, R10), packed
+			a2bgr10_unorm, a2bgr10_snorm, a2bgr10_uint, a2bgr10_sint,
+
+			// 16-bit R16
+			r16_unorm, r16_snorm, r16_uint, r16_sint, r16_sfloat,
+			// 32-bit (R16, G16)
+			rg16_unorm, rg16_snorm, rg16_uint, rg16_sint, rg16_sfloat,
+			// 48-bit (R16, G16, B16)
+			rgb16_unorm, rgb16_snorm, rgb16_uint, rgb16_sint, rgb16_sfloat,
+			// 64-bit (R16, G16, B16, A16)
+			rgba16_unorm, rgba16_snorm, rgba16_uint, rgba16_sint, rgba16_sfloat,
+
+			//  32-bit R32
+			r32_uint, r32_sint, r32_sfloat,
+			//  64-bit (R32, G32)
+			rg32_uint, rg32_sint, rg32_sfloat,
+			//  96-bit (R32, G32, B32)
+			rgb32_uint, rgb32_sint, rgb32_sfloat,
+			// 128-bit (R32, G32, B32, A32)
+			rgba32_uint, rgba32_sint, rgba32_sfloat,
+
+			// 32-bit packed formats
+			b10g11r11_ufloat, e5r9g9b9_ufloat,
+
+			//  64-bit 4x4 BC1 (DXT1)
+			bc1_rgb_unorm, bc1_rgb_srgb, bc1_rgba_unorm, bc1_rgba_srgb,
+			// 128-bit 4x4 BC2 & BC3 (DXT3 & DXT5)
+			bc2_rgba_unorm, bc2_rgba_srgb, bc3_rgba_unorm, bc3_rgba_srgb,
+			//  64-bit 4x4 BC4 (single channel)
+			bc4_r_unorm, bc4_r_snorm,
+			// 128-bit 4x4 BC5 (two channels)
+			bc5_rg_unorm, bc5_rg_snorm,
+			// 128-bit 4x4 BC6H
+			bc6h_rgb_ufloat, bc6h_rgb_sfloat,
+			// 128-bit 4x4 BC7
+			bc7_rgba_unorm, bc7_rgba_srgb);
+
+VBaseFormat baseFormat(VFormat);
+VNumericFormat numericFormat(VFormat);
+Maybe<VFormat> makeFormat(VBaseFormat, VNumericFormat);
+
+constexpr bool isBlock(VFormat format) {
+	return format >= VFormat::bc1_rgb_unorm && format <= VFormat::bc7_rgba_srgb;
+}
+
+int unitByteSize(VFormat);
+constexpr int unitSize(VFormat format) { return isBlock(format) ? 4 : 1; }
+
+// Formats which have same unit size & unit byte size are compatible.
+bool areCompatible(VFormat, VFormat);
+
+int2 imageBlockSize(VFormat format, int2 pixel_size);
+int imageByteSize(VFormat, int2 pixel_size);
+
 DEFINE_ENUM(VDepthStencilFormat, d16, d24_x8, d32f, s8, d16_s8, d24_s8, d32f_s8);
+
 using VDepthStencilFormats = EnumFlags<VDepthStencilFormat>;
 inline bool hasStencil(VDepthStencilFormat format) { return format >= VDepthStencilFormat::s8; }
 inline bool hasDepth(VDepthStencilFormat format) { return format != VDepthStencilFormat::s8; }
@@ -151,8 +245,14 @@ inline VImageLayout defaultLayout(VDepthStencilFormat format) {
 		return hasStencil(format) ? VImageLayout::depth_stencil_att : VImageLayout::depth_att;
 	return VImageLayout::stencil_att;
 }
-inline uint depthBits(VDepthStencilFormat format) { return ((uint(format) & 3) * 8 + 8) & 31; }
+
+inline uint depthBits(VDepthStencilFormat format) {
+	return format == VDepthStencilFormat::s8 ? 0 : (uint(format) & 3) * 8 + 16;
+}
 inline uint stencilBits(VDepthStencilFormat format) { return hasStencil(format) ? 8 : 0; }
+inline VNumericFormat depthNumericFormat(VDepthStencilFormat format) {
+	return depthBits(format) == 32 ? VNumericFormat::sfloat : VNumericFormat::unorm;
+}
 
 DEFINE_ENUM(VBlendFactor, zero, one, src_color, one_minus_src_color, dst_color, one_minus_dst_color,
 			src_alpha, one_minus_src_alpha, dst_alpha, one_minus_dst_alpha, constant_color,
@@ -177,24 +277,6 @@ using VDynamicState = EnumFlags<VDynamic>;
 DEFINE_ENUM(VCompareOp, never, less, equal, less_equal, greater, not_equal, greater_equal, always);
 DEFINE_ENUM(VDepthFlag, test, write, bounds_test, bias, clamp);
 using VDepthFlags = EnumFlags<VDepthFlag>;
-
-// TODO: rename to bc*_* ?
-DEFINE_ENUM(VBlockFormat,
-			// BC1 (DXT1) formats (64-bit block size)
-			rgb_bc1, srgb_bc1, rgba_bc1, srgba_bc1,
-
-			// BC2 & BC3 (DXT3 & DXT5) formats (128-bit block size)
-			rgba_bc2, srgba_bc2, rgba_bc3, srgba_bc3,
-
-			// Single channel BC4 (64-bit block size)
-			r_bc4, r_bc4s,
-
-			// Two channel BC5 (128-bit block size)
-			rg_bc5, rg_bc5s,
-
-			// BC6H & BC7 formats (128-bit block size)
-			rgb_bc6h, rgb_bc6h_signed, rgba_bc7, srgba_bc7);
-using VBlockFormats = EnumFlags<VBlockFormat>;
 
 struct VMemoryBlockId {
 	using Type = VMemoryBlockType;

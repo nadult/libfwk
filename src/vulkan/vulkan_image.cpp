@@ -3,7 +3,6 @@
 
 #include "fwk/vulkan/vulkan_image.h"
 
-#include "fwk/gfx/block_image.h"
 #include "fwk/gfx/image.h"
 #include "fwk/index_range.h"
 #include "fwk/vulkan/vulkan_command_queue.h"
@@ -23,12 +22,17 @@ VImageDimensions::VImageDimensions(int3 size, uint num_mip_levels, uint num_samp
 VImageDimensions::VImageDimensions(int2 size, uint num_mip_levels, uint num_samples)
 	: VImageDimensions(int3(size, 1), num_mip_levels, num_samples) {}
 
-VImageSetup::VImageSetup(VBlockFormat format, VImageDimensions dims, VImageUsageFlags usage,
+VImageSetup::VImageSetup(VkFormat format, VImageDimensions dims, VImageUsageFlags usage,
 						 VImageLayout layout)
-	: VImageSetup(toVk(format), dims, usage, layout) {}
+	: dims(dims), format(format), usage(usage), layout(layout) {}
+
+VImageSetup::VImageSetup(VFormat format, VImageDimensions dims, VImageUsageFlags usage,
+						 VImageLayout layout)
+	: dims(dims), format(toVk(format)), usage(usage), layout(layout) {}
 
 VImageSetup::VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims)
-	: VImageSetup(toVk(ds_format), dims, VImageUsage::depth_stencil_att, VImageLayout::undefined) {}
+	: dims(dims), format(toVk(ds_format)), usage(VImageUsage::depth_stencil_att),
+	  layout(VImageLayout::undefined) {}
 
 VulkanImage::VulkanImage(VkImage handle, VObjectId id, VMemoryBlock mem_block,
 						 const VImageSetup &setup)
@@ -85,14 +89,6 @@ PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VIm
 }
 
 Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<Image> images) {
-	DASSERT(images);
-	VImageSetup setup(VK_FORMAT_B8G8R8A8_SRGB, VImageDimensions(images[0].size(), images.size()));
-	auto out = EX_PASS(create(device, setup));
-	EXPECT(out->upload(images));
-	return out;
-}
-
-Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<BlockImage> images) {
 	DASSERT(images);
 	for(auto image : images)
 		DASSERT(image.format() == images[0].format());
@@ -185,34 +181,7 @@ Ex<> VulkanImage::upload(CSpan<Image> src, VImageLayout dst_layout) {
 	return {};
 }
 
-Ex<> VulkanImage::upload(CSpan<BlockImage> src, VImageLayout dst_layout) {
-	DASSERT(m_dims.num_mip_levels >= src.size());
-	for(int mip : intRange(src))
-		EXPECT(upload(src[mip], mip, dst_layout));
-	return {};
-}
-
 Ex<> VulkanImage::upload(const Image &src, int target_mip, Layout target_layout) {
-	if(src.empty())
-		return {};
-	DASSERT(target_mip >= 0 && target_mip < m_dims.num_mip_levels);
-	// TODO: dassert correct size
-
-	int data_size = src.data().size() * sizeof(IColor);
-	auto device = deviceRef(); // TODO: just get a plain reference
-
-	auto &mem_mgr = device->memory();
-
-	auto staging_buffer = EX_PASS(
-		VulkanBuffer::create(*device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
-	auto mem_block = staging_buffer->memoryBlock();
-	fwk::copy(mem_mgr.writeAccessMemory(mem_block), src.data().reinterpret<char>());
-	device->cmdQueue().copy(ref(), staging_buffer, target_mip, target_layout);
-
-	return {};
-}
-
-Ex<> VulkanImage::upload(const BlockImage &src, int target_mip, Layout target_layout) {
 	if(src.empty())
 		return {};
 	DASSERT(target_mip >= 0 && target_mip < m_dims.num_mip_levels);

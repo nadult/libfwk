@@ -59,16 +59,11 @@ inline auto toVk(VDepthStencilFormat format) {
 inline auto fromVkDepthStencilFormat(VkFormat format) {
 	return format >= VK_FORMAT_D16_UNORM && format < VK_FORMAT_D32_SFLOAT_S8_UINT ?
 			   VDepthStencilFormat(uint(format) - uint(VK_FORMAT_D16_UNORM)) :
-				 Maybe<VDepthStencilFormat>();
+			   Maybe<VDepthStencilFormat>();
 }
-inline VkFormat toVk(VBlockFormat format) {
-	return VkFormat(uint(VK_FORMAT_BC1_RGB_UNORM_BLOCK) + uint(format));
-}
-inline Maybe<VBlockFormat> fromVkBlockFormat(VkFormat format) {
-	if(format >= VK_FORMAT_BC1_RGB_UNORM_BLOCK && format <= VK_FORMAT_BC7_SRGB_BLOCK)
-		return VBlockFormat(uint(format) - uint(VK_FORMAT_BC1_RGB_UNORM_BLOCK));
-	return none;
-}
+
+VkFormat toVk(VFormat);
+Maybe<VFormat> fromVk(VkFormat);
 
 inline VkExtent2D toVkExtent(int2 extent) {
 	PASSERT(extent.x >= 0 && extent.y >= 0);
