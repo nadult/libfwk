@@ -423,6 +423,9 @@
   <ItemGroup>
     <Natvis Include="libfwk.natvis" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\install_deps.py" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D58F34BE-FFCB-485F-9294-460EA261D0ED}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

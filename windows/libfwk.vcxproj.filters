@@ -1098,4 +1098,7 @@
   <ItemGroup>
     <Natvis Include="libfwk.natvis" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\install_deps.py" />
+  </ItemGroup>
 </Project>
