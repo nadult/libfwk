@@ -28,7 +28,7 @@ jobs:
         run: |
           git submodule update --init
           pip install conan
-          libfwk_deps.bat
+          python install_deps.py C:/libraries
 
       - name: Build libfwk debug
         shell: cmd
