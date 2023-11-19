@@ -6,6 +6,8 @@
 #include "fwk/gfx/color.h"
 #include "fwk/vulkan_base.h"
 
+#include <iterator>
+
 namespace fwk {
 
 template <class T, int width, int height> struct PixelBlock {
@@ -93,6 +95,12 @@ struct PixelInfo<const T> : public PixelInfo<T> {};
 
 template <c_pixel T> class ImageIter {
   public:
+	using iterator_category = std::forward_iterator_tag;
+	using difference_type = void;
+	using value_type = T;
+	using pointer = T*;
+	using reference = T&;
+
 	ImageIter(T *data, int width, int stride)
 		: m_current(data), m_row_end(data + width), m_width(width), m_stride(stride) {}
 
