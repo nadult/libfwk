@@ -18,8 +18,8 @@ struct ErrorLoc {
 };
 
 struct ErrorChunk {
-	ErrorChunk(string message = {}) : message(move(message)) {}
-	ErrorChunk(ErrorLoc loc, string message = {}) : message(move(message)), loc(loc) {}
+	ErrorChunk(string message = {}) : message(std::move(message)) {}
+	ErrorChunk(ErrorLoc loc, string message = {}) : message(std::move(message)), loc(loc) {}
 	FWK_COPYABLE_CLASS(ErrorChunk);
 	FWK_ORDER_BY_DECL(ErrorChunk);
 

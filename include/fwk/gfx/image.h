@@ -90,7 +90,7 @@ class Image {
 
 template <c_pixel T>
 Image::Image(PodVector<T> data, int2 size, VFormat format)
-	: m_data(move(data.template reinterpret<u8>())), m_size(size), m_format(format) {
+	: m_data(std::move(data.template reinterpret<u8>())), m_size(size), m_format(format) {
 	DASSERT(sizeof(T) == unitByteSize(format));
 	DASSERT(m_data.size() * sizeof(T) >= imageByteSize(format, m_size));
 }

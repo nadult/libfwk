@@ -46,7 +46,7 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 
 	MaybeStorage(MaybeStorage &&src) {
 		if(src.m_has_value) {
-			construct(move(src.m_value));
+			construct(std::move(src.m_value));
 			src.clear();
 		}
 	}
@@ -57,14 +57,14 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 	}
 
 	// Implicit constructors:
-	MaybeStorage(T &&newValue) { construct(move(newValue)); }
+	MaybeStorage(T &&newValue) { construct(std::move(newValue)); }
 	MaybeStorage(const T &newValue) { construct(newValue); }
 
 	void operator=(T &&newValue) {
 		if(m_has_value)
-			m_value = move(newValue);
+			m_value = std::move(newValue);
 		else
-			construct(move(newValue));
+			construct(std::move(newValue));
 	}
 
 	void operator=(const T &newValue) {
@@ -79,7 +79,7 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 			return;
 
 		if(src.m_has_value) {
-			*this = move(src.m_value);
+			*this = std::move(src.m_value);
 			src.clear();
 		} else {
 			clear();
@@ -132,7 +132,7 @@ template <class T>
 class MaybeStorage<T, EnableIf<is_same<decltype(detail::EmptyMaybe<T>::make()), T>>> {
   public:
 	MaybeStorage() : m_value(Empty::make()) {}
-	MaybeStorage(T &&value) : m_value(move(value)) {}
+	MaybeStorage(T &&value) : m_value(std::move(value)) {}
 	MaybeStorage(const T &value) : m_value(value) {}
 
 	MaybeStorage(const MaybeStorage &src) = default;
@@ -141,7 +141,7 @@ class MaybeStorage<T, EnableIf<is_same<decltype(detail::EmptyMaybe<T>::make()), 
 
 	bool hasValue() const { return Empty::valid(m_value); }
 
-	void operator=(T &&new_value) { m_value = move(new_value); }
+	void operator=(T &&new_value) { m_value = std::move(new_value); }
 	void operator=(const T &new_value) { m_value = new_value; }
 	MaybeStorage &operator=(MaybeStorage &&) = default;
 	MaybeStorage &operator=(const MaybeStorage &) = default;
@@ -171,12 +171,12 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 	Maybe(Maybe &&rhs) = default;
 	Maybe(const Maybe &rhs) = default;
-	Maybe(T &&value) : MaybeStorage<T>(move(value)) {}
+	Maybe(T &&value) : MaybeStorage<T>(std::move(value)) {}
 	Maybe(const T &value) : MaybeStorage<T>(value) {}
 
 	Maybe &operator=(const Maybe &rhs) = default;
 	Maybe &operator=(Maybe &&rhs) = default;
-	void operator=(T &&new_value) { MaybeStorage<T>::operator=(move(new_value)); }
+	void operator=(T &&new_value) { MaybeStorage<T>::operator=(std::move(new_value)); }
 	void operator=(const T &new_value) { MaybeStorage<T>::operator=(new_value); }
 
 	using MaybeStorage<T>::hasValue;
@@ -185,7 +185,7 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 	const T &value() const & { return requireValue(), m_value; }
 	T &value() & { return requireValue(), m_value; }
-	T value() && { return requireValue(), move(m_value); }
+	T value() && { return requireValue(), std::move(m_value); }
 
 	const T *get() const & { return hasValue() ? &m_value : nullptr; }
 	T *get() & { return hasValue() ? &m_value : nullptr; }
@@ -199,7 +199,7 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 	template <class U> T orElse(U &&on_empty) && {
 		if(hasValue())
-			return move(m_value);
+			return std::move(m_value);
 		return std::forward<U>(on_empty);
 	}
 
@@ -229,7 +229,7 @@ template <class T> class Maybe : public MaybeStorage<T> {
 
 	const T &operator*() const & { return value(); }
 	T &operator*() & { return value(); }
-	T operator*() && { return move(value()); }
+	T operator*() && { return std::move(value()); }
 
 	const T *operator->() const { return &value(); }
 	T *operator->() { return &value(); }

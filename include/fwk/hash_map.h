@@ -119,7 +119,7 @@ template <class K, class V, class Policy> class HashMap {
 	HashMap() {}
 	explicit HashMap(int min_reserve) { reserve(min_reserve); }
 	HashMap(const HashMap &rhs) { *this = rhs; }
-	HashMap(HashMap &&rhs) { *this = move(rhs); }
+	HashMap(HashMap &&rhs) { *this = std::move(rhs); }
 	~HashMap() { deleteNodes(); }
 
 	// Load factor controls hash map load. Default is ~66%.

@@ -23,7 +23,7 @@ template <class T> class PodVector {
 	}
 	PodVector(CSpan<T> span) : PodVector(span.size()) { copy(data(), span); }
 	PodVector(const PodVector &rhs) : PodVector(CSpan<T>(rhs)) {}
-	PodVector(PodVector &&rhs) { m_base.moveConstruct(move(rhs.m_base)); }
+	PodVector(PodVector &&rhs) { m_base.moveConstruct(std::move(rhs.m_base)); }
 	~PodVector() { m_base.free(sizeof(T)); }
 
 	void operator=(const PodVector &rhs) {
@@ -89,7 +89,7 @@ template <class T> class PodVector {
 		m_base.size = (int)(size_t(m_base.size) * sizeof(T) / sizeof(U));
 		m_base.capacity = (int)(size_t(m_base.capacity) * sizeof(T) / sizeof(U));
 		auto *rcurrent = reinterpret_cast<PodVector<U> *>(this);
-		return PodVector<U>(move(*rcurrent));
+		return PodVector<U>(std::move(*rcurrent));
 	}
 
   private:

@@ -52,7 +52,7 @@ template <class T> class SparseVector {
 	}
 
 	SparseVector(SparseVector &&rhs)
-		: m_elements(move(rhs.m_elements)), m_valids(move(rhs.m_valids)),
+		: m_elements(std::move(rhs.m_elements)), m_valids(std::move(rhs.m_valids)),
 		  m_free_list(rhs.m_free_list), m_size(rhs.m_size), m_spread(rhs.m_spread) {
 		rhs.m_free_list = List();
 		rhs.m_size = 0;
@@ -67,7 +67,7 @@ template <class T> class SparseVector {
 		} else {
 			m_elements.resize(vec.size());
 			for(int n = 0; n < vec.size(); n++)
-				m_elements[n].value = move(vec[n]);
+				m_elements[n].value = std::move(vec[n]);
 		}
 	}
 

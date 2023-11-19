@@ -94,7 +94,7 @@
 	Class &Class::operator=(Class &&rhs) {                                                         \
 		if(this != &rhs) {                                                                         \
 			this->~Class();                                                                        \
-			new(this) Class(move(rhs));                                                            \
+			new(this) Class(std::move(rhs));                                                       \
 		}                                                                                          \
 		return *this;                                                                              \
 	}

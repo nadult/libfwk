@@ -44,7 +44,7 @@ template <typename TKey> class HashSet {
 	HashSet() {}
 	explicit HashSet(int min_reserve) { reserve(min_reserve); }
 	HashSet(const HashSet &rhs) { *this = rhs; }
-	HashSet(HashSet &&rhs) { *this = move(rhs); }
+	HashSet(HashSet &&rhs) { *this = std::move(rhs); }
 	~HashSet() { deleteNodes(); }
 
 	// Load factor controls hash map load. Default is ~66%.

@@ -23,7 +23,7 @@ template <class Transform = None, class Filter = None> class IndexRange {
   public:
 	constexpr IndexRange(int start, int end, Transform trans = Transform(),
 						 Filter filter = Filter())
-		: m_start(start), m_end(end), m_trans(move(trans)), m_filter(move(filter)) {
+		: m_start(start), m_end(end), m_trans(std::move(trans)), m_filter(std::move(filter)) {
 		PASSERT(start <= end);
 		if constexpr(!is_same<Filter, None>) {
 			while(m_start != m_end && !m_filter(m_start))
@@ -92,14 +92,14 @@ auto indexRange(int start, int end, const Transform &trans, const Filter &filter
 
 template <class Range, class Func> auto indexRange(Range range, Func func) {
 	struct SubFunc {
-		SubFunc(Range range, Func func) : range(move(range)), func(move(func)) {}
+		SubFunc(Range range, Func func) : range(std::move(range)), func(std::move(func)) {}
 		auto operator()(int index) const { return func(range[index]); }
 		Range range;
 		Func func;
 	};
 
 	int size = end(range) - begin(range);
-	return IndexRange<SubFunc>(0, size, SubFunc(move(range), move(func)));
+	return IndexRange<SubFunc>(0, size, SubFunc(std::move(range), std::move(func)));
 }
 
 template <class T> class SimpleIndexRange {

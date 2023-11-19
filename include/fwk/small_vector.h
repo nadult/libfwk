@@ -64,11 +64,11 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 		if(rhs.isSmall()) {
 			m_size = rhs.m_size;
 			for(int n = 0, size = this->size(); n < size; n++) {
-				new(&SMALL[n]) T(move(RHS_SMALL[n]));
+				new(&SMALL[n]) T(std::move(RHS_SMALL[n]));
 				RHS_SMALL[n].~T();
 			}
 		} else {
-			new(&m_big) vector<T>(move(rhs.m_big));
+			new(&m_big) vector<T>(std::move(rhs.m_big));
 			destruct(rhs.m_big);
 		}
 		rhs.m_size = small_bit;
@@ -81,15 +81,15 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 	}
 
 	void swap(SmallVector &rhs) {
-		SmallVector temp = move(*this);
-		*this = move(rhs);
-		rhs = move(temp);
+		SmallVector temp = std::move(*this);
+		*this = std::move(rhs);
+		rhs = std::move(temp);
 	}
 
 	void operator=(SmallVector &&rhs) {
 		if(&rhs != this) {
 			this->~SmallVector();
-			new(this) SmallVector(move(rhs));
+			new(this) SmallVector(std::move(rhs));
 		}
 	}
 
@@ -224,7 +224,7 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 		big.insert(big.begin(), begin(), end());
 		for(auto &elem : *this)
 			elem.~T();
-		new(&m_big) vector<T>(move(big));
+		new(&m_big) vector<T>(std::move(big));
 		PASSERT(!isSmall());
 	}
 
@@ -232,7 +232,7 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 		vector<T> big(begin(), end());
 		for(auto &elem : *this)
 			elem.~T();
-		new(&m_big) vector<T>(move(big));
+		new(&m_big) vector<T>(std::move(big));
 		PASSERT(!isSmall());
 	}
 

@@ -223,7 +223,7 @@ TSTREAM &TSTREAM::operator>>(Maybe<T> &obj) {
 	if(exists) {
 		T tmp;
 		*this >> tmp;
-		obj = move(tmp);
+		obj = std::move(tmp);
 	} else {
 		obj = {};
 	}

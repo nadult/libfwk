@@ -27,7 +27,7 @@ template <class Key, class Value> class VectorMap {
 	}
 
 	VectorMap() = default;
-	VectorMap(vector<Pair> elements) : m_container(move(elements)) {
+	VectorMap(vector<Pair> elements) : m_container(std::move(elements)) {
 		DASSERT(isSortedAndUnique(m_container));
 	}
 
@@ -76,7 +76,7 @@ template <class Key, class Value> class VectorMap {
 	pair<iterator, bool> insert(Pair &&pair) {
 		auto it = lower_bound(pair.first);
 		if(it == end() || Compare()(pair.first, *it))
-			return {m_container.insert(it, move(pair)), true};
+			return {m_container.insert(it, std::move(pair)), true};
 		return {it, false};
 	}
 

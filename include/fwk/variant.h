@@ -228,13 +228,13 @@ template <typename... Types> class Variant {
 	void operator=(T &&rhs) {
 		if constexpr(std::is_move_assignable<T>::value)
 			if(index == type_index) {
-				reinterpret_cast<DT &>(data) = move(rhs);
+				reinterpret_cast<DT &>(data) = std::move(rhs);
 				return;
 			}
 
 		Helper::destroy(type_index, &data);
 		type_index = index;
-		new(&data) DT(move(rhs));
+		new(&data) DT(std::move(rhs));
 	}
 
 	template <typename T, int index = type_index_<T>, EnableIf<index != -1>...>

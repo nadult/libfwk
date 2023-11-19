@@ -35,7 +35,7 @@ namespace detail {
 	void registerAnyType(TypeInfo, AnyXmlLoader, AnyXmlSaver);
 
 	template <class T> struct AnyModel : public AnyBase {
-		AnyModel(T value) : value(move(value)) { [[maybe_unused]] auto dummy = reg_dummy; }
+		AnyModel(T value) : value(std::move(value)) { [[maybe_unused]] auto dummy = reg_dummy; }
 		AnyBase *clone() const final { return new AnyModel(value); }
 		void *ptr() const { return (void *)&value; }
 
@@ -45,7 +45,7 @@ namespace detail {
 			if constexpr(is_xml_loadable<T>)
 				return [](CXmlNode n) -> Ex<AnyBase *> {
 					if(auto result = load<T>(n))
-						return new AnyModel<T>(move(*result));
+						return new AnyModel<T>(std::move(*result));
 					else
 						return result.error();
 				};
@@ -69,15 +69,15 @@ class Any {
   public:
 	template <class T> using Model = detail::AnyModel<T>;
 
-	template <class T, class DT = Decay<T>> Any(T value) { emplace(move(value)); }
+	template <class T, class DT = Decay<T>> Any(T value) { emplace(std::move(value)); }
 
 	// Error or value will be stored directly
 	template <class T> Any(Ex<T> value) {
 		if(value) {
-			m_model.emplace<Model<T>>(move(*value));
+			m_model.emplace<Model<T>>(std::move(*value));
 			m_type = typeInfo<T>();
 		} else {
-			m_model.emplace<Model<Error>>(move(value.error()));
+			m_model.emplace<Model<Error>>(std::move(value.error()));
 			m_type = typeInfo<Error>();
 		}
 	}
@@ -150,7 +150,7 @@ class Any {
   private:
 	template <class T, class DT = Decay<T>> void emplace(T value) {
 		m_type = typeInfo<T>();
-		m_model.emplace<Model<DT>>(move(value));
+		m_model.emplace<Model<DT>>(std::move(value));
 		static_assert(!is_one_of<DT, Any>);
 		static_assert(std::is_copy_constructible<T>::value);
 		static_assert(std::is_destructible<T>::value);

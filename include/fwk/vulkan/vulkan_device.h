@@ -159,7 +159,7 @@ class VulkanDevice {
 
 		auto *result = make_func(func);
 		Dynamic<PipelineCacheModel> model(result);
-		m_pipeline_caches.emplace(func, move(model));
+		m_pipeline_caches.emplace(func, std::move(model));
 		return result;
 	}
 

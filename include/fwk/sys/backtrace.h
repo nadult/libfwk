@@ -23,7 +23,7 @@ string demangle(string);
 
 class Backtrace {
   public:
-	Backtrace(vector<void *> addrs) : m_addresses(move(addrs)) {}
+	Backtrace(vector<void *> addrs) : m_addresses(std::move(addrs)) {}
 	Backtrace() = default;
 
 	static inline FWK_THREAD_LOCAL bool t_is_enabled = true;

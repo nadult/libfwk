@@ -35,7 +35,7 @@ template <class T, int max_size_> class StaticVector {
 	StaticVector(StaticVector &&rhs) : m_size(rhs.m_size) {
 		m_size = rhs.m_size;
 		for(uint n = 0; n < m_size; n++) {
-			new(&DATA[n]) T(move(RHS_DATA[n]));
+			new(&DATA[n]) T(std::move(RHS_DATA[n]));
 			RHS_DATA[n].~T();
 		}
 		rhs.m_size = 0;
@@ -49,9 +49,9 @@ template <class T, int max_size_> class StaticVector {
 	}
 
 	void swap(StaticVector &rhs) {
-		StaticVector temp = move(*this);
-		*this = move(rhs);
-		rhs = move(temp);
+		StaticVector temp = std::move(*this);
+		*this = std::move(rhs);
+		rhs = std::move(temp);
 	}
 
 	// TODO: insert...
@@ -59,7 +59,7 @@ template <class T, int max_size_> class StaticVector {
 	void operator=(StaticVector &&rhs) {
 		if(&rhs != this) {
 			this->~StaticVector();
-			new(this) StaticVector(move(rhs));
+			new(this) StaticVector(std::move(rhs));
 		}
 	}
 
@@ -136,7 +136,7 @@ template <class T, int max_size_> class StaticVector {
 		for(int i = 0; i < count; i++)
 			DATA[i + offset].~T();
 		for(int i = 0; i < move_count; i++) {
-			new(DATA + i + offset) T(move(DATA[i + move_offset]));
+			new(DATA + i + offset) T(std::move(DATA[i + move_offset]));
 			DATA[i + move_offset].~T();
 		}
 		m_size -= count;

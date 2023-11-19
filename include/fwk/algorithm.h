@@ -287,7 +287,7 @@ void makeFiltered(vector<T> &vec, const Pred &pred = {}) {
 
 	for(auto it = first; ++it != end;)
 		if(pred(*it))
-			*first++ = move(*it);
+			*first++ = std::move(*it);
 
 	vec.erase(first, end);
 }

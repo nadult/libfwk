@@ -269,7 +269,7 @@ template <class T> class Vector {
 		m_base.size = (int)(size_t(m_base.size) * sizeof(T) / sizeof(U));
 		m_base.capacity = (int)(size_t(m_base.capacity) * sizeof(T) / sizeof(U));
 		auto *rcurrent = reinterpret_cast<Vector<U> *>(this);
-		return Vector<U>(move(*rcurrent));
+		return Vector<U>(std::move(*rcurrent));
 	}
 
   private:

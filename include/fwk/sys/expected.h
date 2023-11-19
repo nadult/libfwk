@@ -78,9 +78,9 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 		if(exceptionRaised())
 			detail::expectFromExceptions(&m_error);
 		else
-			new(&m_value) T(move(value));
+			new(&m_value) T(std::move(value));
 	}
-	Expected(Error error) : m_error(move(error)), m_has_value(false) {
+	Expected(Error error) : m_error(std::move(error)), m_has_value(false) {
 		if(exceptionRaised())
 			detail::expectMergeExceptions(*m_error);
 	}
@@ -99,21 +99,21 @@ template <class T> class NOEXCEPT [[nodiscard]] Expected {
 	}
 	Expected(Expected &&rhs) : m_has_value(rhs.m_has_value) {
 		if(m_has_value)
-			new(&m_value) T(move(rhs.m_value));
+			new(&m_value) T(std::move(rhs.m_value));
 		else
-			new(&m_error) Dynamic<Error>(move(rhs.m_error));
+			new(&m_error) Dynamic<Error>(std::move(rhs.m_error));
 	}
 
 	void swap(Expected &rhs) {
-		Expected temp = move(*this);
-		*this = move(rhs);
-		rhs = move(temp);
+		Expected temp = std::move(*this);
+		*this = std::move(rhs);
+		rhs = std::move(temp);
 	}
 
 	void operator=(Expected &&rhs) {
 		if(&rhs != this) {
 			this->~Expected();
-			new(this) Expected(move(rhs));
+			new(this) Expected(std::move(rhs));
 		}
 	}
 
@@ -168,7 +168,7 @@ template <> class [[nodiscard]] Expected<void> {
 		if(exceptionRaised())
 			detail::expectFromExceptions(&m_error);
 	}
-	Expected(Error error) : m_error(move(error)) {
+	Expected(Error error) : m_error(std::move(error)) {
 		if(exceptionRaised())
 			detail::expectMergeExceptions(*m_error);
 	}

@@ -21,7 +21,7 @@ class FilePath {
 	FilePath();
 
 	void operator=(const FilePath &rhs) { m_path = rhs.m_path; }
-	void operator=(FilePath &&rhs) { m_path = move(rhs.m_path); }
+	void operator=(FilePath &&rhs) { m_path = std::move(rhs.m_path); }
 
 	bool isRoot() const;
 	bool isAbsolute() const;
