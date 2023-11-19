@@ -62,7 +62,7 @@ endif
 
 SRC_gfx = \
 	gfx/camera_control gfx/camera gfx/canvas_2d gfx/canvas_3d gfx/color gfx/colored_quad gfx/colored_triangle \
-	gfx/compressed_image gfx/drawing gfx/dynamic_mesh gfx/float_image gfx/font gfx/font_factory gfx/font_finder \
+	gfx/drawing gfx/dynamic_mesh gfx/font gfx/font_factory gfx/font_finder \
 	gfx/fpp_camera gfx/image gfx/image_tga gfx/investigate gfx/investigator2 gfx/investigator3 \
 	gfx/matrix_stack gfx/orbiting_camera gfx/ortho_camera gfx/plane_camera gfx/shader_compiler \
 	gfx/shader_debug gfx/shader_defs gfx/shader_reflection
@@ -99,8 +99,7 @@ endif
 SRC_perf = perf/perf_base perf/exec_tree perf/manager perf/thread_context
 
 SRC_tests = \
-	tests/stuff tests/math tests/geom tests/window tests/enums tests/vector_perf \
-	tests/variant_perf tests/hash_map_perf
+	tests/stuff tests/math tests/geom tests/window tests/vector_perf tests/variant_perf tests/hash_map_perf
 SRC_tools = tools/model_viewer tools/packager
 
 ifneq ($(PLATFORM), html)
