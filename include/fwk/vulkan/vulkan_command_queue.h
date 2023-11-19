@@ -86,7 +86,7 @@ class VulkanCommandQueue {
 
 	void setPushConstants(u32 offset, VShaderStages, CSpan<char> data);
 	template <class T> void setPushConstants(u32 offset, VShaderStages stages, CSpan<T> data) {
-		setPushConstants(offset, stages, data.reinterpret<char>());
+		setPushConstants(offset, stages, data.template reinterpret<char>());
 	}
 	template <class T> void setPushConstants(u32 offset, VShaderStages stages, const T &data) {
 		auto byte_ptr = reinterpret_cast<const char *>(&data);
