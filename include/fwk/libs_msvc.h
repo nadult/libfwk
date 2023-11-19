@@ -5,7 +5,7 @@
 
 #pragma comment(lib, "sdl2-static.lib")
 #pragma comment(lib, "freetype.lib")
-#pragma comment(lib, "libpng16.lib")
+#pragma comment(lib, "libpng16_static.lib")
 #pragma comment(lib, "brotlidec-static.lib")
 #pragma comment(lib, "brotlicommon-static.lib")
 #pragma comment(lib, "bz2.lib")
