@@ -1,4 +1,6 @@
 # libfwk
+[![License](https://img.shields.io/badge/License-Boost_1.0-lightblue.svg)](https://www.boost.org/LICENSE_1_0.txt)
+[![Build status](https://github.com/nadult/libfwk/workflows/build/badge.svg?branch=main)](https://github.com/nadult/libfwk/actions)
 
 ## WTF is libfwk?
 
@@ -23,6 +25,7 @@ TODO: more details
 
 * Some examples are available in src/test/ and src/tools.
 * FreeFT [https://github.com/nadult/freeft](https://github.com/nadult/freeft)
+* LucidRaster [https://github.com/nadult/lucid](https://github.com/nadult/lucid)
 
 ## Requirements & dependencies
 
