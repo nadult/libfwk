@@ -138,7 +138,7 @@ def get_shaderc(install_path: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='libfwk-install-deps',
+        prog='install_deps',
         description='Installs all the necessary dependencies for building libfwk on Windows',
     )
     parser.add_argument('install_path')
