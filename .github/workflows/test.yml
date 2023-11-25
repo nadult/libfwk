@@ -23,10 +23,24 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Dependencies
+      - name: Update submodules
         shell: cmd
         run: |
           git submodule update --init
+
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v3
+        env:
+            cache-name: cache-deps
+        with:
+            path: C:/libraries
+            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tools/install_deps.py') }}-v1
+
+      - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
+        name: Install dependencies
+        shell: cmd
+        run: |
           pip install conan
           python tools/install_deps.py C:/libraries
 
@@ -57,6 +71,7 @@ jobs:
       - name: Test math
         shell: cmd
         run: '"build\test_math-x64-Debug\test_math.exe"'
+
 
   check-formatting:
     runs-on: ubuntu-22.04
