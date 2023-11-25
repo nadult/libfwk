@@ -26,8 +26,8 @@ template <class T, class Base = Scalar<T>>
 void assertCloseEnough(const T &a, const T &b, double eps = epsilon<Base>) {
 	auto diff = relativeDifference(a, b);
 	if(diff > eps)
-		FWK_FATAL("Not close enough: %s : %s (relative difference: %.14f > %.14f)", toString(a).c_str(),
-			  toString(b).c_str(), diff, eps);
+		FWK_FATAL("Not close enough: %s : %s (relative difference: %.14f > %.14f)",
+				  toString(a).c_str(), toString(b).c_str(), diff, eps);
 }
 
 void testMain();

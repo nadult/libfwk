@@ -198,11 +198,11 @@ constexpr bool operator==(const LightTuple<Args...> &lhs, const LightTuple<Args.
 	return detail::cmpEqual<0>(lhs, rhs);
 }
 
-template <class... Args> constexpr auto tie(const Args &... args) {
+template <class... Args> constexpr auto tie(const Args &...args) {
 	return LightTuple<const Args &...>{args...};
 }
 
-template <class... Args> constexpr auto tuple(Args &&... args) {
+template <class... Args> constexpr auto tuple(Args &&...args) {
 	return LightTuple<Decay<RemoveReference<Args>>...>{std::forward<Args>(args)...};
 }
 

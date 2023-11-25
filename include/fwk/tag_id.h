@@ -157,5 +157,7 @@ namespace detail {
 
 template <class DstId, class Tag, Tag src_tag, class Base>
 	requires(detail::is_tag_id<DstId>)
-DstId castTag(const TagId<src_tag, Base> &tag) { return DstId(tag.index()); }
+DstId castTag(const TagId<src_tag, Base> &tag) {
+	return DstId(tag.index());
+}
 }

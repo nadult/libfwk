@@ -69,10 +69,14 @@ template <typename T> class Dynamic {
 
 	template <class... Args>
 		requires is_constructible<T, Args...>
-	void emplace(Args &&...args) { reset(new T{std::forward<Args>(args)...}); }
+	void emplace(Args &&...args) {
+		reset(new T{std::forward<Args>(args)...});
+	}
 	template <class T1, class... Args>
 		requires is_constructible<T1, Args...>
-	void emplace(Args &&...args) { reset(new T1(std::forward<Args>(args)...)); }
+	void emplace(Args &&...args) {
+		reset(new T1(std::forward<Args>(args)...));
+	}
 
 	T *release() {
 		auto ret = m_ptr;

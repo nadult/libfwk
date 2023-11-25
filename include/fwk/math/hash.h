@@ -85,15 +85,21 @@ template <class H, class... Types> H computeHash(const LightTuple<Types...> &tup
 
 template <class H, class T>
 	requires(has_tied_member<T>)
-H computeHash(const T &object, PriorityTag2) { return computeTupleHash<H, 0>(object.tied()); }
+H computeHash(const T &object, PriorityTag2) {
+	return computeTupleHash<H, 0>(object.tied());
+}
 
 template <class H, class T, class Ret = decltype(DECLVAL(const T &).hash())>
 	requires(c_integral<Ret>)
-H computeHash(const T &object, PriorityTag3) { return object.hash(); }
+H computeHash(const T &object, PriorityTag3) {
+	return object.hash();
+}
 
 template <class H, class T, class Ret = decltype(DECLVAL(const T &).template hash<H>())>
 	requires(is_same<Ret, H>)
-H computeHash(const T &object, PriorityTag4) { return object.template hash<H>(); }
+H computeHash(const T &object, PriorityTag4) {
+	return object.template hash<H>();
+}
 
 template <class T> unsigned hash(const T &value) { return computeHash<unsigned>(value); }
 template <class H, class T> H hash(const T &value) { return computeHash<H>(value); }

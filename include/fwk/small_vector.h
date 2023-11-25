@@ -98,7 +98,7 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 		swap(copy);
 	}
 
-	template <class... Args> void emplace_back(Args &&... args) {
+	template <class... Args> void emplace_back(Args &&...args) {
 		if(isSmall()) {
 			int size = this->size();
 			if(size < base_size) {

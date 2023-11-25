@@ -30,7 +30,9 @@ namespace detail {
 		static constexpr bool value = !is_same<void, decltype(test<T>(0))>;
 	};
 
-	template <class T> struct FullyDefined { static constexpr bool value = IsDefined<T>::value; };
+	template <class T> struct FullyDefined {
+		static constexpr bool value = IsDefined<T>::value;
+	};
 	template <template <class...> class T, class... Args> struct FullyDefined<T<Args...>> {
 		static constexpr bool eval() {
 			if constexpr((FullyDefined<Args>::value && ...))

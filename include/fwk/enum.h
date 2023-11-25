@@ -149,9 +149,7 @@ template <class Type> struct AllEnums {
 
 template <c_enum T> constexpr AllEnums<T> all;
 
-template <c_enum T> T next(T value) {
-	return T(int(value) == count<T> - 1 ? 0 : int(value) + 1);
-}
+template <c_enum T> T next(T value) { return T(int(value) == count<T> - 1 ? 0 : int(value) + 1); }
 
 template <c_enum T> T prev(T value) {
 	return T(int(value) == 0 ? int(count<T> - 1) : int(value) - 1);

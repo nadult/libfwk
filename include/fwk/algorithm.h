@@ -110,7 +110,9 @@ bool allOf(const TRange &range, const R &ref) {
 
 template <class T, c_range R, class U = RangeBase<R>>
 	requires(equality_comparable<T, U>)
-bool isOneOf(const T &value, const R &range) { return anyOf(range, value); }
+bool isOneOf(const T &value, const R &range) {
+	return anyOf(range, value);
+}
 
 template <class T, class... Args> constexpr bool isOneOf(const T &value, const Args &...args) {
 	return ((value == args) || ...);
@@ -152,7 +154,9 @@ vector<T> sortedUnique(const TSpan &span) {
 
 template <class TSpan, class T = SpanBase<TSpan>>
 	requires(!is_const<T>)
-void makeSorted(TSpan &span) { std::sort(begin(span), end(span)); }
+void makeSorted(TSpan &span) {
+	std::sort(begin(span), end(span));
+}
 
 template <c_range TRange1, c_range TRange2> auto setDifference(const TRange1 &a, const TRange2 &b) {
 	using VecType = vector<RemoveConst<RangeBase<TRange1>>>;
@@ -213,7 +217,9 @@ void copy(T *dst, const TRange &src) {
 
 template <class T, class T1>
 	requires(is_convertible<T1, T>)
-void fill(Span<T> span, const T1 &value) { std::fill(begin(span), end(span), value); }
+void fill(Span<T> span, const T1 &value) {
+	std::fill(begin(span), end(span), value);
+}
 
 template <c_range TRange, class T> void fill(TRange &range, const T &value) {
 	std::fill(begin(range), end(range), value);

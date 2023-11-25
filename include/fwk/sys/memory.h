@@ -32,7 +32,9 @@ template <class T> class SimpleAllocator : public SimpleAllocatorBase {
 
 	size_t max_size() const { return std::numeric_limits<size_t>::max() / sizeof(T); }
 
-	template <class Other> struct rebind { using other = SimpleAllocator<Other>; };
+	template <class Other> struct rebind {
+		using other = SimpleAllocator<Other>;
+	};
 
 	void deallocate(T *ptr, size_t) { deallocateBytes(ptr); }
 	template <class U> bool operator==(const SimpleAllocator<U> &rhs) const { return true; }

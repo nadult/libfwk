@@ -225,10 +225,11 @@ class VoronoiConstructor {
 					CT max_dist = 0.0001 * m_rect.width(); // TODO: better approximation
 					DASSERT(!isNan(max_dist));
 
-					PT point = edge.cell()->contains_point() ? getPoint(*edge.cell())
-															 : getPoint(*edge.twin()->cell());
-					auto segment = edge.cell()->contains_point() ? getSegment(*edge.twin()->cell())
-																 : getSegment(*edge.cell());
+					PT point = edge.cell()->contains_point() ? getPoint(*edge.cell()) :
+															   getPoint(*edge.twin()->cell());
+					auto segment = edge.cell()->contains_point() ?
+									   getSegment(*edge.twin()->cell()) :
+									   getSegment(*edge.cell());
 
 					discretize(point, segment, max_dist, points, stack);
 				}

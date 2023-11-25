@@ -33,7 +33,7 @@ class Quat : public float4 {
 	operator Matrix3() const;
 	operator AxisAngle() const;
 
-	const Quat operator*(const Quat &)const;
+	const Quat operator*(const Quat &) const;
 
 	void operator>>(TextFormatter &) const;
 

@@ -39,8 +39,9 @@ void uploadToBuffer(const Sound &sound, unsigned buffer_id) {
 	const auto &info = sound.info();
 	DASSERT(info.bits == 8 || info.bits == 16);
 
-	u32 format = info.bits == 8 ? info.is_stereo ? AL_FORMAT_STEREO8 : AL_FORMAT_MONO8
-								: info.is_stereo ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
+	u32 format = info.bits == 8 ? info.is_stereo ? AL_FORMAT_STEREO8 : AL_FORMAT_MONO8 :
+				 info.is_stereo ? AL_FORMAT_STEREO16 :
+								  AL_FORMAT_MONO16;
 
 	alGetError();
 	alBufferData(buffer_id, format, sound.data().data(), sound.data().size(), info.sampling_freq);

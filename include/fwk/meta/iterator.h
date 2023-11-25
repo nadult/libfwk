@@ -15,7 +15,7 @@ constexpr bool is_forward_iter =
 	equality_comparable<T, T>;
 
 template <class T>
-constexpr bool is_random_iter = is_forward_iter<T> &&std::is_integral<SubResult<T, T>>::value;
+constexpr bool is_random_iter = is_forward_iter<T> && std::is_integral<SubResult<T, T>>::value;
 
 template <class T> using IterBase = RemoveReference<DereferenceResult<T>>;
 

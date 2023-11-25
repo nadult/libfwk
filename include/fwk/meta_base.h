@@ -39,8 +39,12 @@ template <class T, int N> struct IndexedType {
 template <class T> struct Type {};
 template <class... Args> struct Types {};
 
-template <class T> struct UnwrapType_ { using Type = T; };
-template <class T> struct UnwrapType_<Type<T>> { using Type = T; };
+template <class T> struct UnwrapType_ {
+	using Type = T;
+};
+template <class T> struct UnwrapType_<Type<T>> {
+	using Type = T;
+};
 template <class T> using UnwrapType = typename UnwrapType_<T>::Type;
 
 template <class T> auto declval() -> T;
@@ -68,27 +72,37 @@ namespace detail {
 	template <int N, typename T, typename... Types> struct NthType {
 		using type = typename NthType<N - 1, Types...>::type;
 	};
-	template <typename T, typename... Types> struct NthType<0, T, Types...> { using type = T; };
+	template <typename T, typename... Types> struct NthType<0, T, Types...> {
+		using type = T;
+	};
 
-	template <class Arg0, class ArgN> struct MergeTypes { using type = Types<Arg0, ArgN>; };
+	template <class Arg0, class ArgN> struct MergeTypes {
+		using type = Types<Arg0, ArgN>;
+	};
 	template <class Arg0, class... Args> struct MergeTypes<Arg0, Types<Args...>> {
 		using type = Types<Arg0, Args...>;
 	};
 
-	template <int N, class... Args> struct MakeIndexedTypes { using type = Types<>; };
+	template <int N, class... Args> struct MakeIndexedTypes {
+		using type = Types<>;
+	};
 
 	template <int N, class Arg0, class... Args> struct MakeIndexedTypes<N, Arg0, Args...> {
 		using rest = typename MakeIndexedTypes<N + 1, Args...>::type;
 		using type = typename MergeTypes<IndexedType<Arg0, N>, rest>::type;
 	};
 
-	template <unsigned...> struct Seq { using type = Seq; };
+	template <unsigned...> struct Seq {
+		using type = Seq;
+	};
 	template <unsigned N, unsigned... Is> struct GenSeqX : GenSeqX<N - 1, N - 1, Is...> {};
 	template <unsigned... Is> struct GenSeqX<0, Is...> : Seq<Is...> {};
 	template <unsigned N> using GenSeq = typename GenSeqX<N>::type;
 
 	template <class TFrom, class TWhat> struct SubTypes;
-	template <class... VWhat> struct SubTypes<Types<>, Types<VWhat...>> { using Type = Types<>; };
+	template <class... VWhat> struct SubTypes<Types<>, Types<VWhat...>> {
+		using Type = Types<>;
+	};
 
 	template <class From, class... VFrom, class... VWhat>
 	struct SubTypes<Types<From, VFrom...>, Types<VWhat...>> {

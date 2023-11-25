@@ -98,8 +98,8 @@ template <c_pixel T> class ImageIter {
 	using iterator_category = std::forward_iterator_tag;
 	using difference_type = void;
 	using value_type = T;
-	using pointer = T*;
-	using reference = T&;
+	using pointer = T *;
+	using reference = T &;
 
 	ImageIter(T *data, int width, int stride)
 		: m_current(data), m_row_end(data + width), m_width(width), m_stride(stride) {}

@@ -76,7 +76,7 @@ vector<SystemFont> listSystemFonts() {
 			SystemFontStyle style =
 				ms_style == DWRITE_FONT_STYLE_NORMAL  ? SystemFontStyle::normal :
 				ms_style == DWRITE_FONT_STYLE_OBLIQUE ? SystemFontStyle::oblique :
-														  SystemFontStyle::italic;
+														SystemFontStyle::italic;
 
 			auto weight = (int)font->GetWeight();
 			auto stretch = (int)font->GetStretch();
@@ -204,7 +204,7 @@ vector<SystemFont> listSystemFonts() {
 		SystemFontParams font_params;
 		font_params.style = islant == 0	  ? SystemFontStyle::normal :
 							islant == 100 ? SystemFontStyle::italic :
-											  SystemFontStyle::oblique;
+											SystemFontStyle::oblique;
 
 		// 0 - 210(210) -> 100 - 950(850)
 		font_params.weight = int(double(weight) * 850 / 210) + 100;

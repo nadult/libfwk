@@ -1,9 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/logger.h"
 #include "fwk/format.h"
 #include "fwk/hash_map.h"
-#include "fwk/logger.h"
 #include "fwk/sys/thread.h"
 
 namespace fwk {

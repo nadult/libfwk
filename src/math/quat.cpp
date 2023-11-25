@@ -103,8 +103,8 @@ Quat::Quat(const AxisAngle &aa) {
 Quat::operator AxisAngle() const {
 	float sqrLen = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 
-	return sqrLen > 0 ? AxisAngle(float3(v[0], v[1], v[2]) / sqrLen, 2.0f * std::acos(v[3]))
-					  : AxisAngle(float3(0.0f, 1.0f, 0.0f), 0.0f);
+	return sqrLen > 0 ? AxisAngle(float3(v[0], v[1], v[2]) / sqrLen, 2.0f * std::acos(v[3])) :
+						AxisAngle(float3(0.0f, 1.0f, 0.0f), 0.0f);
 }
 
 const Quat Quat::operator*(const Quat &q) const {

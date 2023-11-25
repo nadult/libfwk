@@ -63,9 +63,9 @@ template <class K, class V, class Policy> class HashMap {
 
 	using ST = HashMapStorage;
 	static constexpr auto storage =
-		PolicyInfo::storage == ST::automatic
-			? intrusive_hash_type<K> ? ST::paired : ST::paired_with_hashes
-			: PolicyInfo::storage;
+		PolicyInfo::storage == ST::automatic ?
+			intrusive_hash_type<K> ? ST::paired : ST::paired_with_hashes :
+			PolicyInfo::storage;
 	static constexpr bool keeps_hashes = storage == ST::paired_with_hashes;
 	static constexpr bool keeps_pairs = storage != ST::separated;
 

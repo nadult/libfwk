@@ -68,7 +68,7 @@ template <class T, int max_size_> class StaticVector {
 		swap(copy);
 	}
 
-	template <class... Args> void emplace_back(Args &&... args) {
+	template <class... Args> void emplace_back(Args &&...args) {
 		PASSERT(m_size < max_size);
 		new(&DATA[m_size++]) T{std::forward<Args>(args)...};
 	}

@@ -39,8 +39,9 @@ template <c_vec<2> T, c_integral_vec<2> IT> class RegularGrid {
 	T toWorld(T grid_pos) const { return grid_pos * m_cell_size + m_offset; }
 	template <class U = T>
 		requires(!is_same<U, IT>)
-	T toWorld(IT cell_pos)
-	const { return toWorld(T(cell_pos)); }
+	T toWorld(IT cell_pos) const {
+		return toWorld(T(cell_pos));
+	}
 
 	//TODO: option to operate on powers-of two only? (shifts instead of mul & div)
 
@@ -50,8 +51,9 @@ template <c_vec<2> T, c_integral_vec<2> IT> class RegularGrid {
 	}
 	template <class U = T>
 		requires(!is_same<U, IT>)
-	Rect toWorld(IRect cell_rect)
-	const { return {toWorld(cell_rect.min()), toWorld(cell_rect.max())}; }
+	Rect toWorld(IRect cell_rect) const {
+		return {toWorld(cell_rect.min()), toWorld(cell_rect.max())};
+	}
 
 	Rect toWorldRect(IT cell_pos) const { return toWorld(IRect(cell_pos, cell_pos + IT(1))); }
 

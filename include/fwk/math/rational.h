@@ -66,7 +66,7 @@ template <class T, int N> struct Rational {
 
 	Rational operator+(const Rational &) const;
 	Rational operator-(const Rational &) const;
-	Rational operator*(const Rational &)const;
+	Rational operator*(const Rational &) const;
 
 	template <class U, EnableIf<precise_conversion<U, T>>...>
 	Rational operator*(const Rational<U> &s) const {
@@ -186,7 +186,8 @@ template <class T, class T1, EnableIf<dim<T> == 0>...> auto ratDivide(const T &n
 		return num / den;
 }
 
-template <class T, class T1, EnableIf<(dim<T>> 0)>...> auto ratDivide(const T &num, const T1 &den) {
+template <class T, class T1, EnableIf<(dim < T >> 0)>...>
+auto ratDivide(const T &num, const T1 &den) {
 	static_assert(precise_conversion<T1, Scalar<T>>);
 	constexpr bool make_rational = is_integral<Scalar<T>> || is_ext24<Scalar<T>>;
 	if constexpr(make_rational && dim<T> == 2)

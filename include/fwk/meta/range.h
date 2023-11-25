@@ -30,7 +30,9 @@ namespace detail {
 	};
 
 	template <class T> struct SpanInfo {
-		template <class Val> struct Info { using Value = Val; };
+		template <class Val> struct Info {
+			using Value = Val;
+		};
 
 		FWK_SFINAE_TYPE(DataType, T, DECLVAL(U &).data())
 		FWK_SFINAE_TYPE(SizeType, T, DECLVAL(U &).size())
@@ -62,21 +64,18 @@ namespace detail {
 // Iterators returned by begin(range) and end(range) must be comparable
 // Iterator returned by begin(range) must be dereferencible
 template <class T> constexpr bool is_range = detail::RangeInfo<T>::value;
-template <class T>
-concept c_range = is_range<T>;
+template <class T> concept c_range = is_range<T>;
 
 // Conditions for span:
 // It either must be a range where iterators are simple pointers
 // Or it must provide data() (which returns a pointer) and size()
 template <class T> constexpr bool is_span = detail::SpanInfo<T>::value;
-template <class T>
-concept c_span = is_span<T>;
+template <class T> concept c_span = is_span<T>;
 
 // Conditions for vector are not clearly defined yet (TODO)
 // This test is useful for some generic algorithms
 template <class T> constexpr bool is_vector = detail::is_vector<T>;
-template <class T>
-concept c_vector = is_vector<T>;
+template <class T> concept c_vector = is_vector<T>;
 
 // TODO: add concepts: sparse_span, sparse_vector ? A lot of containers could satisfy
 // sparse_span concept

@@ -15,7 +15,7 @@ on:
       - requested
 
 jobs:
-  Windows:
+  test-windows:
     runs-on: windows-2022
     env:
       VS_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise
@@ -49,7 +49,7 @@ jobs:
       - name: Build test_math
         shell: cmd
         run: '"%MSBUILD_PATH%\MSBuild.exe" windows\test_math.vcxproj /p:Platform=x64 /p:Configuration=Debug'
-        
+
       - name: Test stuff
         shell: cmd
         run: '"build\test_stuff-x64-Debug\test_stuff.exe"'
@@ -57,3 +57,20 @@ jobs:
       - name: Test math
         shell: cmd
         run: '"build\test_math-x64-Debug\test_math.exe"'
+
+  check-formatting:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: |
+          git submodule update --init
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main'
+          sudo apt update
+          sudo apt install clang-format-17
+
+      - name: Check C++ formatting
+        run: |
+           python tools/format.py -c

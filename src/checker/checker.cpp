@@ -27,11 +27,11 @@ const char *toString(ExceptAnnotation a) {
 	return strings[int(a)];
 }
 
-template <class T, class... Args> constexpr bool anyOf(const T &value, const Args &... args) {
+template <class T, class... Args> constexpr bool anyOf(const T &value, const Args &...args) {
 	return ((value == args) || ...);
 }
 
-template <class T, class... Args> constexpr bool allOf(const T &value, const Args &... args) {
+template <class T, class... Args> constexpr bool allOf(const T &value, const Args &...args) {
 	return ((value == args) && ...);
 }
 

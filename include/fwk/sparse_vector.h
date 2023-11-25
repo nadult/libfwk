@@ -119,7 +119,7 @@ template <class T> class SparseVector {
 	void reserve(int size) { reallocate(insertCapacity(size)); }
 	bool valid(int index) const { return index >= 0 && index < m_spread && m_valids[index]; }
 
-	template <class... Args> int emplace(Args &&... args) {
+	template <class... Args> int emplace(Args &&...args) {
 		int index = alloc();
 		new(&m_elements[index].value) T{std::forward<Args>(args)...};
 		m_valids[index] = true;
@@ -128,7 +128,7 @@ template <class T> class SparseVector {
 	}
 
 	// If there is an element at given index, it will be destroyed
-	template <class... Args> void emplaceAt(int index, Args &&... args) {
+	template <class... Args> void emplaceAt(int index, Args &&...args) {
 		if(valid(index))
 			erase(index);
 

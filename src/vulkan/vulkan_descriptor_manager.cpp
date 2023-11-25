@@ -110,7 +110,7 @@ VkDescriptorSet VulkanDescriptorManager::acquireSet(VDSLId dsl_id) {
 
 	uint index = dsl.num_used++ + m_swap_frame_index * num_frame_allocated;
 	return dsl.num_allocated <= DSL::num_initial_sets ? dsl.handles[index] :
-														  dsl.more_handles[index];
+														dsl.more_handles[index];
 }
 
 u64 VulkanDescriptorManager::bindingMap(VDSLId dsl_id) const { return m_dsls[dsl_id].binding_map; }
