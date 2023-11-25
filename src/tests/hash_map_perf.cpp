@@ -11,7 +11,7 @@
 template <class Map>
 vector<Pair<string, string>> testMap1(Map &map, const char *name, int num_iters, int &check) {
 	constexpr int num_strings = 16;
-	const char *strings[] = {"xxx",  "yyy",  "zzz",  "xxx", "abc", "abc",	  "zzz",	"ax",
+	const char *strings[] = {"xxx",	 "yyy",	 "zzz",	 "xxx", "abc", "abc",	   "zzz",	 "ax",
 							 "aaxx", "ddxx", "ccdd", "123", "234", "aaaabbb4", "ssfsdf", "45t98js"};
 	Random rand;
 
@@ -50,7 +50,7 @@ using MyTag = TagId<0, u16>;
 template <class Map>
 vector<Pair<MyTag, string>> testMap2(Map &map, const char *name, int num_iters, int &check) {
 	constexpr int num_strings = 16;
-	const char *strings[] = {"xxx",  "yyy",  "zzz",  "xxx", "abc", "abc",	  "zzz",	"ax",
+	const char *strings[] = {"xxx",	 "yyy",	 "zzz",	 "xxx", "abc", "abc",	   "zzz",	 "ax",
 							 "aaxx", "ddxx", "ccdd", "123", "234", "aaaabbb4", "ssfsdf", "45t98js"};
 	Random rand;
 	map.clear();

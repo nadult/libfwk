@@ -1,8 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/format.h"
 #include "fwk/math/ext24.h"
+#include "fwk/format.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/rational.h"
@@ -283,11 +283,7 @@ struct Ext24Tan {
 };
 
 static constexpr Ext24Tan vector_tans[5] = {
-	{{2, 0, -1, 0}, 1},
-	{{0, 0, 1, 0}, 3},
-	{{1, 0, 0, 0}, 1},
-	{{0, 0, 1, 0}, 1},
-	{{2, 0, 1, 0}, 1},
+	{{2, 0, -1, 0}, 1}, {{0, 0, 1, 0}, 3}, {{1, 0, 0, 0}, 1}, {{0, 0, 1, 0}, 1}, {{2, 0, 1, 0}, 1},
 };
 
 static constexpr array<Ext24Vec, 24> vectors = []() {

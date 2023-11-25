@@ -47,8 +47,12 @@ namespace fwk {
 	})
 
 namespace detail {
-	template <class T> struct RemoveExpected { using Type = T; };
-	template <class T> struct RemoveExpected<Expected<T>> { using Type = T; };
+	template <class T> struct RemoveExpected {
+		using Type = T;
+	};
+	template <class T> struct RemoveExpected<Expected<T>> {
+		using Type = T;
+	};
 
 	// Implemented in on_fail.cpp
 	Error expectMakeError(const char *, const char *, int);
@@ -211,7 +215,7 @@ namespace detail {
 
 template <class T, class... Args>
 constexpr bool is_ex_constructible =
-	detail::IsExConstructible<T, Args...>::value &&std::is_default_constructible<T>::value;
+	detail::IsExConstructible<T, Args...>::value && std::is_default_constructible<T>::value;
 
 // Convenient function for classes which have special kind of constructor:
 // member function which initializes given class and returns Ex<>;

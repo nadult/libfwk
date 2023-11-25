@@ -252,9 +252,7 @@ class TextFormatter {
 		return *this;
 	}
 
-	template <c_enum T> TextFormatter &operator<<(T value) {
-		return *this << toString(value);
-	}
+	template <c_enum T> TextFormatter &operator<<(T value) { return *this << toString(value); }
 
 	TextFormatter &operator<<(const None &);
 

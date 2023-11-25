@@ -17,7 +17,9 @@ template <class Enum, class T> class EnumMap {
 				  "EnumMap<> can only be used for enums specified with DEFINE_ENUM*");
 
 	static void checkPairs(CSpan<Pair<Enum, T>> pairs) {
-		u64 flags[(size_ + 63) / 64] = { 0, };
+		u64 flags[(size_ + 63) / 64] = {
+			0,
+		};
 
 		for(auto &pair : pairs) {
 			int offset = int(pair.first) >> 6;

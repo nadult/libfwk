@@ -1,10 +1,10 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/math/rational.h"
 #include "fwk/format.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
-#include "fwk/math/rational.h"
 
 namespace fwk {
 

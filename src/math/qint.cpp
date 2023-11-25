@@ -1,8 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/format.h"
 #include "fwk/math/qint.h"
+#include "fwk/format.h"
 
 namespace fwk {
 

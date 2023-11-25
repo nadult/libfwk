@@ -9,10 +9,18 @@
 
 namespace fwk {
 namespace detail {
-	template <class T> struct StoreType { using Type = const T &; };
-	template <class T> struct StoreType<T *> { using Type = const T *; };
-	template <int N> struct StoreType<char[N]> { using Type = const char *; };
-	template <int N> struct StoreType<const char[N]> { using Type = const char *; };
+	template <class T> struct StoreType {
+		using Type = const T &;
+	};
+	template <class T> struct StoreType<T *> {
+		using Type = const T *;
+	};
+	template <int N> struct StoreType<char[N]> {
+		using Type = const char *;
+	};
+	template <int N> struct StoreType<const char[N]> {
+		using Type = const char *;
+	};
 
 	template <class... Args>
 	auto makeRefs(const Args &...) -> LightTuple<typename StoreType<Args>::Type...>;

@@ -107,7 +107,9 @@ int numPoints();
 
 const PointInfo *pointInfo(PointId);
 PointId registerPoint(PointType, const char *file, const char *func, const char *tag, int line);
-template <class RegFunctor> struct RegisterPoint { static inline PointId id = RegFunctor::call(); };
+template <class RegFunctor> struct RegisterPoint {
+	static inline PointId id = RegFunctor::call();
+};
 
 // ------------------------------------------------------------------------------------------------
 // Per thread control:

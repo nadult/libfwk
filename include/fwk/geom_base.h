@@ -110,9 +110,9 @@ template <class T> auto flatten(const T &obj, Axes2D axes) {
 
 template <c_vec<2> T, class S, class Ret = MakeVec<Scalar<T>, 3>>
 Ret addThirdAxis(const T &obj, Axes2D axes, S third) {
-	return axes == Axes2D::xy	? Ret(obj[0], obj[1], third)
-		   : axes == Axes2D::xz ? Ret(obj[0], third, obj[1])
-								: Ret(third, obj[0], obj[1]);
+	return axes == Axes2D::xy ? Ret(obj[0], obj[1], third) :
+		   axes == Axes2D::xz ? Ret(obj[0], third, obj[1]) :
+								Ret(third, obj[0], obj[1]);
 }
 
 Line2<float> approximateLine(CSpan<float2> points);

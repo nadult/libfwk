@@ -17,10 +17,16 @@
 namespace fwk {
 namespace detail {
 	// References are stored as pointers
-	template <class T> struct VariantStoredType { using Type = T; };
-	template <class T> struct VariantStoredType<T &> { using Type = T *; };
+	template <class T> struct VariantStoredType {
+		using Type = T;
+	};
+	template <class T> struct VariantStoredType<T &> {
+		using Type = T *;
+	};
 
-	template <typename T, typename R = void> struct enable_if_type { using type = R; };
+	template <typename T, typename R = void> struct enable_if_type {
+		using type = R;
+	};
 	template <typename F, typename V, typename Enable = void> struct result_of_unary_visit {
 		using type = typename std::invoke_result<F, V &>::type;
 	};

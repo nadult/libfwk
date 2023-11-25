@@ -1,9 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#include "fwk/gfx/color.h"
 #include "fwk/enum_map.h"
 #include "fwk/format.h"
-#include "fwk/gfx/color.h"
 #include "fwk/parse.h"
 
 namespace fwk {
@@ -124,8 +124,8 @@ FColor gradientLerp(CSpan<FColor> colors, float value) {
 	auto ivalue = int(value);
 	float t = value - ivalue;
 
-	return ivalue >= colors.size() - 1 ? colors[ivalue]
-									   : lerp(colors[ivalue], colors[ivalue + 1], t);
+	return ivalue >= colors.size() - 1 ? colors[ivalue] :
+										 lerp(colors[ivalue], colors[ivalue + 1], t);
 }
 
 void FColor::operator>>(TextFormatter &fmt) const { fmt << float4(*this); }

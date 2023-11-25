@@ -517,8 +517,8 @@ Dwarf_Die DwarfResolver::get_referenced_die(Dwarf_Debug dwarf, Dwarf_Die die, Dw
 	Dwarf_Die found_die = NULL;
 	if(dwarf_attr(die, attr, &attr_mem, &error) == DW_DLV_OK) {
 		Dwarf_Off offset;
-		int result = global ? dwarf_global_formref(attr_mem, &offset, &error)
-							: dwarf_formref(attr_mem, &offset, &error);
+		int result = global ? dwarf_global_formref(attr_mem, &offset, &error) :
+							  dwarf_formref(attr_mem, &offset, &error);
 
 		if(result == DW_DLV_OK)
 			if(dwarf_offdie(dwarf, offset, &found_die, &error) != DW_DLV_OK)

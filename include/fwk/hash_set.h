@@ -22,7 +22,7 @@ template <typename TKey> class HashSet {
 		}
 
 		auto &operator*() const { return PASSERT(!atEnd()), map->m_keys[idx]; }
-		auto *operator-> () const { return PASSERT(!atEnd()), &map->m_keys[idx]; }
+		auto *operator->() const { return PASSERT(!atEnd()), &map->m_keys[idx]; }
 		void operator++() { PASSERT(!atEnd()), ++idx, skipUnoccupied(); }
 		bool operator==(const TIter &rhs) const { return rhs.idx == idx; }
 

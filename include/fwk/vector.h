@@ -23,7 +23,7 @@ template <class T> class Vector {
 	using size_type = int;
 
 	template <class IT>
-	static constexpr bool is_input_iter = is_forward_iter<IT> &&is_constructible<T, IterBase<IT>>;
+	static constexpr bool is_input_iter = is_forward_iter<IT> && is_constructible<T, IterBase<IT>>;
 
 	explicit Vector(PoolAllocTag) { m_base.initializePool(sizeof(T)); }
 	Vector() { m_base.zero(); }

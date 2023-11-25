@@ -11,8 +11,8 @@ namespace fwk {
 // Checks wheter type can hold intrusive hash info
 template <class T>
 static constexpr bool intrusive_hash_type =
-	Intrusive::CanHold<T, Intrusive::ETag::deleted_hash>::value
-		&&Intrusive::CanHold<T, Intrusive::ETag::unused_hash>::value;
+	Intrusive::CanHold<T, Intrusive::ETag::deleted_hash>::value &&
+	Intrusive::CanHold<T, Intrusive::ETag::unused_hash>::value;
 
 template <class Key, class Value> struct KeyValue {
 	explicit operator Pair<Key, Value>() const { return {key, value}; }

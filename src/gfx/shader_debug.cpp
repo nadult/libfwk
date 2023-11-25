@@ -204,7 +204,7 @@ ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
 			record.values[j] = values[i * 6 + 2 + j];
 			record.value_types[j] = vt == 0 ? ValueType::vt_int :
 									vt == 2 ? ValueType::vt_float :
-												ValueType::vt_uint;
+											  ValueType::vt_uint;
 		}
 
 		records.emplace_back(record);

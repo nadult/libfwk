@@ -114,7 +114,7 @@ template <class T, class Enabled = EnabledType> struct MaybeStorage {
 		}
 	}
 
-	template <class... Args> void construct(Args &&... args) {
+	template <class... Args> void construct(Args &&...args) {
 		const void *ptr = &m_value;
 		// for supporting const types
 		new(const_cast<void *>(ptr)) T(std::forward<Args>(args)...);

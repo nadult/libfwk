@@ -111,6 +111,6 @@ template <class T, int N> Box<MakeVec<T, N>> enclose(const Triangle<T, N> &tri) 
 }
 
 template <class T, int N>
-constexpr bool is_flat_data<Triangle<T, N>> = is_flat_data<T> &&
-											  sizeof(Triangle<T, N>) == sizeof(T) * N;
+constexpr bool is_flat_data<Triangle<T, N>> =
+	is_flat_data<T> && sizeof(Triangle<T, N>) == sizeof(T) * N;
 }

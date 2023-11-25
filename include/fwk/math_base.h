@@ -179,37 +179,77 @@ namespace detail {
 								  Projection, Tetrahedron>,
 						float, T>;
 	};
-	template <class T> struct Scalar<vec2<T>> { using Type = T; };
-	template <class T> struct Scalar<vec3<T>> { using Type = T; };
-	template <class T> struct Scalar<vec4<T>> { using Type = T; };
-	template <class T> struct Scalar<Interval<T>> { using Type = T; };
-	template <class T> struct Scalar<IsectParam<T>> { using Type = T; };
-	template <class T> struct Scalar<Segment<T>> { using Type = typename Scalar<T>::Type; };
-	template <class T> struct Scalar<Box<T>> { using Type = typename Scalar<T>::Type; };
-	template <class T, int N> struct Scalar<Triangle<T, N>> { using Type = T; };
-	template <class T, int N> struct Scalar<Plane<T, N>> { using Type = T; };
-	template <class T, int N> struct Scalar<Ray<T, N>> { using Type = T; };
-	template <class T, int N> struct Scalar<Rational<T, N>> { using Type = Rational<T>; };
+	template <class T> struct Scalar<vec2<T>> {
+		using Type = T;
+	};
+	template <class T> struct Scalar<vec3<T>> {
+		using Type = T;
+	};
+	template <class T> struct Scalar<vec4<T>> {
+		using Type = T;
+	};
+	template <class T> struct Scalar<Interval<T>> {
+		using Type = T;
+	};
+	template <class T> struct Scalar<IsectParam<T>> {
+		using Type = T;
+	};
+	template <class T> struct Scalar<Segment<T>> {
+		using Type = typename Scalar<T>::Type;
+	};
+	template <class T> struct Scalar<Box<T>> {
+		using Type = typename Scalar<T>::Type;
+	};
+	template <class T, int N> struct Scalar<Triangle<T, N>> {
+		using Type = T;
+	};
+	template <class T, int N> struct Scalar<Plane<T, N>> {
+		using Type = T;
+	};
+	template <class T, int N> struct Scalar<Ray<T, N>> {
+		using Type = T;
+	};
+	template <class T, int N> struct Scalar<Rational<T, N>> {
+		using Type = Rational<T>;
+	};
 
-	template <class T> struct ScBase { using Type = T; };
+	template <class T> struct ScBase {
+		using Type = T;
+	};
 	template <class T, int N> struct ScBase<Rational<T, N>> {
 		using Type = typename ScBase<T>::Type;
 	};
-	template <class T> struct ScBase<Ext24<T>> { using Type = typename ScBase<T>::Type; };
+	template <class T> struct ScBase<Ext24<T>> {
+		using Type = typename ScBase<T>::Type;
+	};
 
-	template <class T> struct RatSize { static constexpr int value = -1; };
-	template <class T, int N> struct RatSize<Rational<T, N>> { static constexpr int value = N; };
+	template <class T> struct RatSize {
+		static constexpr int value = -1;
+	};
+	template <class T, int N> struct RatSize<Rational<T, N>> {
+		static constexpr int value = N;
+	};
 
-	template <class T> struct RemoveExt24 { using Type = T; };
-	template <class T> struct RemoveExt24<Ext24<T>> { using Type = T; };
+	template <class T> struct RemoveExt24 {
+		using Type = T;
+	};
+	template <class T> struct RemoveExt24<Ext24<T>> {
+		using Type = T;
+	};
 
-	template <class T> struct RemoveRat { using Type = T; };
-	template <class T, int N> struct RemoveRat<Rational<T, N>> { using Type = T; };
+	template <class T> struct RemoveRat {
+		using Type = T;
+	};
+	template <class T, int N> struct RemoveRat<Rational<T, N>> {
+		using Type = T;
+	};
 
 	template <class T, int N> struct MakeVec {
 		using Type = If<N == 2, vec2<T>, If<N == 3, vec3<T>, If<N == 4, vec4<T>, NotAValidVec<N>>>>;
 	};
-	template <class T> struct MakeVec<T, 0> { using Type = T; };
+	template <class T> struct MakeVec<T, 0> {
+		using Type = T;
+	};
 	template <class T, int RN, int N> struct MakeVec<Rational<T, RN>, N> {
 		using Type = Rational<T, N>;
 	};
@@ -265,19 +305,31 @@ using MakeRat = typename detail::MakeRat<RemoveRat<T>, ReqN == -1 ? dim<T> : Req
 template <class T> concept c_float = is_fpt<T>;
 template <class T> concept c_integral = is_integral<T>;
 
-template <class T> struct ToFpt { using type = double; };
-template <> struct ToFpt<float> { using type = float; };
-template <> struct ToFpt<short> { using type = float; };
-template <> struct ToFpt<llint> { using type = long double; };
+template <class T> struct ToFpt {
+	using type = double;
+};
+template <> struct ToFpt<float> {
+	using type = float;
+};
+template <> struct ToFpt<short> {
+	using type = float;
+};
+template <> struct ToFpt<llint> {
+	using type = long double;
+};
 
 // -------------------------------------------------------------------------------------------
 // ---  Specifying promotions & precise conversion rules -------------------------------------
 
 namespace detail {
-	template <class T> struct Promotion { using type = T; };
+	template <class T> struct Promotion {
+		using type = T;
+	};
 
 #define PROMOTION(base, promoted)                                                                  \
-	template <> struct Promotion<base> { using type = promoted; };
+	template <> struct Promotion<base> {                                                           \
+		using type = promoted;                                                                     \
+	};
 
 	PROMOTION(short, int);
 	PROMOTION(int, llint);
@@ -324,7 +376,7 @@ inline constexpr bool precise_conversion<T, Ext24<U>> = precise_conversion<Remov
 
 template <class T, class U, int N>
 inline constexpr bool precise_conversion<T, Rational<U, N>> =
-	dim<T> == N &&precise_conversion<Scalar<RemoveRat<T>>, U>;
+	dim<T> == N && precise_conversion<Scalar<RemoveRat<T>>, U>;
 
 template <class T, class U>
 inline constexpr bool precise_conversion<vec2<T>, vec2<U>> = precise_conversion<T, U>;
@@ -623,7 +675,9 @@ template <c_vec<4> TVec, class TFunc> auto transform(const TVec &vec, const TFun
 
 template <c_vec<2> T>
 	requires(!is_rational<T>)
-T vmin(const T &lhs, const T &rhs) { return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1])); }
+T vmin(const T &lhs, const T &rhs) {
+	return T(min(lhs[0], rhs[0]), min(lhs[1], rhs[1]));
+}
 
 template <c_vec<3> T>
 	requires(!is_rational<T>)
@@ -639,7 +693,9 @@ T vmin(const T &lhs, const T &rhs) {
 
 template <c_vec<2> T>
 	requires(!is_rational<T>)
-T vmax(const T &lhs, const T &rhs) { return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1])); }
+T vmax(const T &lhs, const T &rhs) {
+	return T(max(lhs[0], rhs[0]), max(lhs[1], rhs[1]));
+}
 
 template <c_vec<3> T>
 	requires(!is_rational<T>)
@@ -731,7 +787,9 @@ auto cross(const T &a, const T &b) {
 
 template <c_vec<2> T>
 	requires(!is_rational<T>)
-T perpendicular(const T &v) { return T(-v[1], v[0]); }
+T perpendicular(const T &v) {
+	return T(-v[1], v[0]);
+}
 
 // TODO: we can't really check it properly for floating-point's...
 template <c_float_vec T> bool isNormalized(const T &vec) { return isAlmostOne(lengthSq(vec)); }

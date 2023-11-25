@@ -390,15 +390,15 @@ TEMPLATE auto TSEG::clip(const Box<TVec> &input_rect) const -> Maybe<Segment<PRe
 		if(lmin > 0.0 && !rect.contains((Vec2)from)) {
 			Real clipx = lmin == x1 ? rect.x() : rect.ex();
 			Real clipy = lmin == y1 ? rect.y() : rect.ey();
-			out_from = lmin == xmin ? Vec2(clipx, max(origin.y + offset.y * lmin, rect.y()))
-									: Vec2(max(origin.x + offset.x * lmin, rect.x()), clipy);
+			out_from = lmin == xmin ? Vec2(clipx, max(origin.y + offset.y * lmin, rect.y())) :
+									  Vec2(max(origin.x + offset.x * lmin, rect.x()), clipy);
 		}
 
 		if(lmax < 1.0 && !rect.contains((Vec2)to)) {
 			Real clipx = lmax == x1 ? rect.x() : rect.ex();
 			Real clipy = lmax == y1 ? rect.y() : rect.ey();
-			out_to = lmax == xmax ? Vec2(clipx, min(origin.y + offset.y * lmax, rect.ey()))
-								  : Vec2(min(origin.x + offset.x * lmax, rect.ex()), clipy);
+			out_to = lmax == xmax ? Vec2(clipx, min(origin.y + offset.y * lmax, rect.ey())) :
+									Vec2(min(origin.x + offset.x * lmax, rect.ex()), clipy);
 		}
 
 		if(out_from == out_to)
