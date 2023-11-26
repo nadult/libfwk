@@ -128,7 +128,7 @@ template <bool cond, class InvalidArg = DisabledType>
 using EnableIf =
 	typename std::conditional<cond, detail::ValidType, InvalidArg>::type::template Arg<EnabledType>;
 
-template <class T1, class T2> constexpr bool is_convertible = std::is_convertible<T1, T2>::value;
+template <class T1, class T2> concept is_convertible = std::is_convertible_v<T1, T2>;
 
 // Checks if class is brace constructible: T{Args...}
 template <class T, class... Args>

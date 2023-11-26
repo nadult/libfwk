@@ -76,7 +76,7 @@ bool anyOf(const TRange &range, const Functor &functor) {
 }
 
 template <c_range TRange, class R, class T = RangeBase<TRange>>
-	requires(is_same<EqualResult<T, R>, bool>)
+	requires(equality_comparable<T, R>)
 bool anyOf(const TRange &range, const R &ref) {
 	return std::any_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
@@ -88,7 +88,7 @@ bool anyOf(const TRange &range) {
 }
 
 template <c_span TSpan, class R, class T = SpanBase<TSpan>>
-	requires(is_same<EqualResult<T, R>, bool>)
+	requires(equality_comparable<T, R>)
 int indexOf(const TSpan &span, const R &ref) {
 	for(int i = 0, span_size = fwk::size(span); i < span_size; i++)
 		if(span[i] == ref)
@@ -103,13 +103,13 @@ bool allOf(const TRange &range, const Functor &functor) {
 }
 
 template <c_range TRange, class R, class T = RangeBase<TRange>>
-	requires(is_same<EqualResult<T, R>, bool>)
+	requires(equality_comparable<T, R>)
 bool allOf(const TRange &range, const R &ref) {
 	return std::all_of(begin(range), end(range), [&](const T &val) { return val == ref; });
 }
 
-template <class T, c_range R, class U = RangeBase<R>>
-	requires(equality_comparable<T, U>)
+template <class T, c_range R>
+	requires(equality_comparable<T, RangeBase<R>>)
 bool isOneOf(const T &value, const R &range) {
 	return anyOf(range, value);
 }
