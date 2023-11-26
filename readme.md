@@ -8,18 +8,15 @@ FWK is a sweet (IMVHO) abbreviation for framework. It is basically a set of clas
 and functions which I use in most of my projects (mostly game-related). It's trying
 to be light, super easy to use and performant where it matters.
 
-Note: currently FWK's graphics module is being converted from OpenGL to Vulkan, so some
-functionality is disabled, there may be some errors in newly modified code.
-
-TODO: write more detailed description.
-
-## Features
+### Features
 
 - Vulkan & SDL2 based
-- Supported platforms: linux, windows (requires Visual Studio 2022)
-- Doesn't use C++ exceptions (has a much simpler system instead)
+- Easy to use interfaces (trying to be as intuitive as possible)
+- Doesn't use C++ exceptions
+- Supported platforms: Ubuntu 22.04, Windows (requires VS 2022 with LLVM toolset)
 
 TODO: more details
+
 
 ## Examples & projects based on libfwk
 
@@ -27,22 +24,38 @@ TODO: more details
 * FreeFT [https://github.com/nadult/freeft](https://github.com/nadult/freeft)
 * LucidRaster [https://github.com/nadult/lucid](https://github.com/nadult/lucid)
 
-## Requirements & dependencies
+## Building
 
-It requires a linux environment with fairly new Clang (>= 8.0) or G++ (>= 9.1).
-Code is written in C++20. Clang is used during development so from time to
-time libfwk may fail to compile under G++.
+libfwk is written in C++20, so it requires a fairly new C++ compiler, preferably Clang.
+libfwk can be easily compiled in Ubuntu 22.04 and under Windows (github actions are provided).
+
+### Windows
+
+libfwk requires Visual Studio 2022 with LLVM toolset. [tools/install\_deps.py](https://github.com/nadult/libfwk/blob/main/tools/install_deps.py) will download all the necessary dependencies into a specified folder. libfwk project files expect this folder to be 'C:/libraries/x86_64'. You can change that in [windows/shared\_libraries.props](https://github.com/nadult/libfwk/blob/main/windows/shared_libraries.props). To build it, simply open [windows/libfwk.sln](https://github.com/nadult/libfwk/blob/main/windows/libfwk.sln)
+in Visual Studio and run build.
+
+### Ubuntu
+
+Several external dependencies have to be installed, before building libfwk. 'Install dependencies' step in test-linux job ([.github/workflows/test.yml](https://github.com/nadult/libfwk/blob/main/.github/workflows/test.yml#L55)) is a good reference of how to install them.  
+To compile simply run make. There is a basic description of the options that you can pass to make at the beginning of Makefile & Makefile-shared.
+
+Examples:
+
+    $ make MODE=release-paranoid COMPILER=clang++-17 STATS=true -j12
+    $ make MODE=release-paranoid print-stats print-variables
+    $ make MODE=debug-nans clean
+    $ make clean-all
+
+### Dependencies
+
+#### External dependencies
 
 * **SDL2**  
 	[https://www.libsdl.org/](https://www.libsdl.org/)
 	
 * **Vulkan SDK**  
-	[https://www.lunarg.com/vulkan-sdk/](https://www.lunarg.com/vulkan-sdk/)
-
-* **dear imgui (optional)**  
-	Included as a git submodule in extern/imgui/.  
-	Menu module & perf::Analyzer will only be compiled if imgui is present.  
-	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
+	[https://www.lunarg.com/vulkan-sdk/](https://www.lunarg.com/vulkan-sdk/)  
+	Only shaderc, vulkan headers & loader is actually used  
 
 * **zlib**
 
@@ -56,40 +69,30 @@ time libfwk may fail to compile under G++.
 * **OpenAL**  
 	[https://www.openal.org/](https://www.openal.org/)
 
-* **STB\_image && STB\_dxt && STB\_image\_resize (included)**
+* **dear imgui (optional)**  
+	Included as a git submodule in extern/imgui/.  
+	Menu module & perf::Analyzer will only be compiled if imgui is present.  
+	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
+
+* **libdwarf (optional, linux-only)**
+
+#### Included dependencies
+
+* **STB\_image && STB\_dxt && STB\_image\_resize**
     [https://github.com/nothings/stb](https://github.com/nothings/stb)
 
-* **rapidxml (included)**  
+* **rapidxml**  
 	included in extern/rapidxml/, licensed under BSL 1.0.  
 	[http://rapidxml.sourceforge.net/](http://rapidxml.sourceforge.net/)
 
-* **boost::polygon::voronoi (included)**   
+* **boost::polygon::voronoi**   
     included in extern/boost_polygon/, licensed under BSL 1.0.  
 	[http://www.boost.org/](http://www.boost.org/)
 
-* **libdwarf (optional)**
-    TODO: info
-
-## Compilation
-
-TODO: this section requires update for windows  
-
-To compile simply run make. There is a basic description of the options that you can pass to make at the beginning of
-Makefile & Makefile-shared. To cross-compile for mingw specify MINGW\_PREFIX and run make with PLATFORM=mingw.
-
-Examples:
-
-    $ make MODE=release-paranoid COMPILER=clang++-8 STATS=true -j12
-    $ make MODE=release-paranoid print-stats print-variables
-    $ make MODE=debug-nans clean
-    $ make clean-all
-
-TODO: how to build mingw with mxe (and which version)  
-TODO: how to use Makefile-shared for your own projects
 
 ## License
 
-Whole library is licensed under Boost Software license (see license.txt).
+Whole library is licensed under [Boost Software license](https://github.com/nadult/libfwk/blob/main/license.txt).
 
 If You found this library useful, please contact the author (nadult (at) fastmail (dot) fm).  
 Any kind of feedback is greatly appreciated.
