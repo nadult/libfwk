@@ -14,7 +14,7 @@ using namespace std;
 BaseFileStream::BaseFileStream() : Stream(0, true), m_file(nullptr) {}
 
 BaseFileStream::BaseFileStream(BaseFileStream &&rhs)
-	: Stream(move(rhs)), m_name(move(rhs.m_name)), m_file(rhs.m_file) {
+	: Stream(std::move(rhs)), m_name(std::move(rhs.m_name)), m_file(rhs.m_file) {
 	rhs.m_file = nullptr;
 	rhs.m_flags |= Flag::invalid;
 }
@@ -103,7 +103,7 @@ Ex<FileStream> fileStream(ZStr file_name, bool is_loading) {
 	out.m_pos = 0;
 	out.m_flags = mask(is_loading, StreamFlag::loading);
 	static_assert(sizeof(FileStream) == sizeof(BaseFileStream));
-	return move(reinterpret_cast<FileStream &>(out)); // TODO: hmmm
+	return std::move(reinterpret_cast<FileStream &>(out)); // TODO: hmmm
 }
 
 Ex<FileStream> fileLoader(ZStr file_name) { return fileStream(file_name, true); }

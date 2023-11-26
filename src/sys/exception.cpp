@@ -24,7 +24,7 @@ vector<Error> getExceptions() {
 	s_mutex.lock();
 	for(int n = 0; n < s_errors.size(); n++) {
 		if(s_errors[n].second == tid) {
-			out.emplace_back(move(s_errors[n].first));
+			out.emplace_back(std::move(s_errors[n].first));
 			s_errors[n--] = s_errors.back();
 			s_errors.pop_back();
 		}
@@ -50,7 +50,7 @@ void raiseException(Error error, int bt_skip) {
 
 	auto tid = threadId();
 	MutexLocker lock(s_mutex);
-	s_errors.emplace_back(move(error), tid);
+	s_errors.emplace_back(std::move(error), tid);
 }
 
 void clearExceptions() {

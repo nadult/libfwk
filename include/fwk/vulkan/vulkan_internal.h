@@ -102,7 +102,7 @@ Error makeVkError(const char *file, int line, VkResult, const char *function_nam
 			return FWK_VK_ERROR(#func, result);                                                    \
 	}
 
-// Calls given function with passed arguments, stops program with FATAL on error
+// Calls given function with passed arguments, stops program with FWK_FATAL on error
 #define FWK_VK_CALL(func, ...)                                                                     \
 	{                                                                                              \
 		auto result = func(__VA_ARGS__);                                                           \

@@ -313,7 +313,7 @@ vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
 	DASSERT_EQ(num_errors, 0);
 #endif
 
-	int num_free = 0;
+	[[maybe_unused]] int num_free = 0;
 	for(auto vert : igraph.verts())
 		if(vert.numEdges() == 0)
 			num_free++;
@@ -391,7 +391,7 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 	//DASSERT(igraph.isPlanar()); // TODO: make it work
 	PERF_SCOPE();
 
-	FATAL("test me");
+	FWK_FATAL("test me");
 	GeomGraph<int2> temp;
 	for(auto vert : igraph.verts())
 		temp.addVertexAt(vert, igraph(vert));

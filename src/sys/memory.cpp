@@ -20,7 +20,7 @@ namespace fwk {
 void *allocate(size_t size) {
 	auto ptr = malloc(size);
 	if(!ptr)
-		FATAL("Allocation error: failed to allocate %llu bytes", (unsigned long long)size);
+		FWK_FATAL("Allocation error: failed to allocate %llu bytes", (unsigned long long)size);
 	return ptr;
 }
 
@@ -32,8 +32,8 @@ void *allocate(size_t size, size_t alignment) {
 	auto ptr = aligned_alloc(alignment, size);
 #endif
 	if(!ptr)
-		FATAL("Allocation error: failed to allocate %lld bytes (aligned to: %lld)", (llint)size,
-			  (llint)alignment);
+		FWK_FATAL("Allocation error: failed to allocate %lld bytes (aligned to: %lld)", (llint)size,
+				  (llint)alignment);
 	return ptr;
 }
 

@@ -19,7 +19,7 @@ Ex<AnyConfig> AnyConfig::load(CXmlNode node, bool ignore_errors) {
 			ZStr name = sub_node.name();
 			auto value = Any::load(sub_node);
 			if(value)
-				out.m_elements.emplace(name, move(*value));
+				out.m_elements.emplace(name, std::move(*value));
 			else
 				out.m_loading_errors.emplace_back(name, value.error());
 			sub_node = sub_node.sibling();
@@ -28,7 +28,7 @@ Ex<AnyConfig> AnyConfig::load(CXmlNode node, bool ignore_errors) {
 
 	if(!ignore_errors && out.m_loading_errors) {
 		vector<Error> errors = transform(out.m_loading_errors, [](auto p) { return p.second; });
-		return Error::merge(move(errors));
+		return Error::merge(std::move(errors));
 	}
 
 	return out;
@@ -47,7 +47,7 @@ const Any *AnyConfig::get(Str name) const {
 
 const AnyConfig *AnyConfig::subConfig(Str name) const { return get<AnyConfig>(name); }
 
-void AnyConfig::set(string name, Any value) { m_elements[name] = move(value); }
+void AnyConfig::set(string name, Any value) { m_elements[name] = std::move(value); }
 
 vector<string> AnyConfig::keys() const { return m_elements.keys(); }
 

@@ -18,14 +18,14 @@ Ex<ShaderReflectionModule> ShaderReflectionModule::create(CSpan<char> bytecode) 
 	auto result = spvReflectCreateShaderModule(bytecode.size(), bytecode.data(), module.get());
 	if(result != SPV_REFLECT_RESULT_SUCCESS)
 		return ERROR("spvReflectCreateShaderModule failed with result: %", uint(result));
-	return ShaderReflectionModule(move(module));
+	return ShaderReflectionModule(std::move(module));
 }
 
 ShaderReflectionModule::ShaderReflectionModule(Dynamic<SpvReflectShaderModule> module)
-	: m_module(move(module)) {}
+	: m_module(std::move(module)) {}
 ShaderReflectionModule::~ShaderReflectionModule() { free(); }
 ShaderReflectionModule::ShaderReflectionModule(ShaderReflectionModule &&rhs)
-	: m_module(move(rhs.m_module)) {}
+	: m_module(std::move(rhs.m_module)) {}
 ShaderReflectionModule &ShaderReflectionModule::operator=(ShaderReflectionModule &&rhs) {
 	if(&rhs != this) {
 		free();

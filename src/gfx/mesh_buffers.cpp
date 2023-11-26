@@ -28,8 +28,9 @@ namespace {
 MeshBuffers::MeshBuffers(vector<float3> positions, vector<float3> normals,
 						 vector<float2> tex_coords, vector<IColor> colors,
 						 vector<vector<VertexWeight>> weights, vector<string> node_names)
-	: positions(move(positions)), normals(move(normals)), tex_coords(move(tex_coords)),
-	  colors(move(colors)), weights(move(weights)), node_names(move(node_names)) {
+	: positions(std::move(positions)), normals(std::move(normals)),
+	  tex_coords(std::move(tex_coords)), colors(std::move(colors)), weights(std::move(weights)),
+	  node_names(std::move(node_names)) {
 	// TODO: when loading from file, we want to use ASSERT, otherwise DASSERT
 	// In general if data is marked as untrusted, then we have to check.
 
@@ -121,7 +122,7 @@ vector<Matrix4> MeshBuffers::mapPose(const Pose &pose) const {
 
 MeshBuffers MeshBuffers::remap(const vector<int> &mapping) const {
 	if(hasSkin())
-		FATAL("FIXME");
+		FWK_FATAL("FIXME");
 
 	vector<float3> out_positions(mapping.size());
 	vector<float3> out_normals(normals ? mapping.size() : 0);
@@ -177,8 +178,8 @@ vector<float3> MeshBuffers::animateNormals(CSpan<Matrix4> matrices) const {
 }
 
 MeshBuffers MeshBuffers::transform(const Matrix4 &matrix, MeshBuffers buffers) {
-	buffers.positions = transformVertices(matrix, move(buffers.positions));
-	buffers.normals = transformNormals(matrix, move(buffers.normals));
+	buffers.positions = transformVertices(matrix, std::move(buffers.positions));
+	buffers.normals = transformNormals(matrix, std::move(buffers.normals));
 	return buffers;
 }
 

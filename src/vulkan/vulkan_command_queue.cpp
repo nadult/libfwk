@@ -270,7 +270,7 @@ Ex<VDownloadId> VulkanCommandQueue::download(VBufferSpan<char> src) {
 	auto buffer = EX_PASS(
 		VulkanBuffer::create(m_device, src.size(), VBufferUsage::transfer_dst, VMemoryUsage::host));
 	copy(buffer, src);
-	auto id = m_downloads.emplace(move(buffer), m_frame_index);
+	auto id = m_downloads.emplace(std::move(buffer), m_frame_index);
 	return VDownloadId(id);
 }
 
@@ -487,7 +487,7 @@ Ex<VBufferSpan<char>> VulkanCommandQueue::upload(VBufferSpan<char> dst, CSpan<ch
 		auto mem_block = staging_buffer->memoryBlock();
 		fwk::copy(mem_mgr.writeAccessMemory(mem_block), src);
 		copy(dst, staging_buffer);
-		m_staging_buffers.emplace_back(move(staging_buffer));
+		m_staging_buffers.emplace_back(std::move(staging_buffer));
 	}
 
 	return VBufferSpan{dst.buffer(), dst.byteOffset() + src.size(), dst.size() - src.size()};

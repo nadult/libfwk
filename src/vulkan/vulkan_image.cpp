@@ -163,8 +163,8 @@ void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
 		src_stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 		dst_stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 	} else {
-		FATAL("Unsupported layout transition: %s -> %s", toString(old_layout),
-			  toString(new_layout));
+		FWK_FATAL("Unsupported layout transition: %s -> %s", toString(old_layout),
+				  toString(new_layout));
 	}
 
 	auto &cmds = deviceRef()->cmdQueue();

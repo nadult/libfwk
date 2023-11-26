@@ -287,7 +287,7 @@ FixedElem<TriId> Graph::fixTri(VertexId v1, VertexId v2, VertexId v3, Layer laye
 }
 
 void Graph::remove(VertexId vid) {
-	auto edges = move(m_verts[vid]);
+	auto edges = std::move(m_verts[vid]);
 	for(auto eid : edges)
 		remove(eid);
 	if(m_vert_tris.size() > vid)
@@ -358,7 +358,7 @@ Graph Graph::makeForest(CSpan<Maybe<VertexId>> parents) {
 	for(auto node_id : indexRange<VertexId>(parents))
 		if(parents[node_id])
 			edges.emplace_back(*parents[node_id], node_id);
-	return {move(edges)};
+	return {std::move(edges)};
 }
 
 bool Graph::isUndirected(Layers layers) const {
@@ -456,7 +456,7 @@ Graph Graph::reversed() const {
 	Graph out;
 
 	if(numTris())
-		FATAL("check me");
+		FWK_FATAL("check me");
 
 	out.reserveEdges(edgesSpread());
 	out.reserveVerts(vertsSpread());
@@ -571,7 +571,7 @@ vector<VertexId> Graph::topoSort(bool inverse, Layers layers) const {
 	for(auto vid : vertexIds())
 		if(!context.visited[vid])
 			topoSort(context, vid);
-	return move(context.out);
+	return std::move(context.out);
 }
 
 // TODO: is this really needed ?
@@ -583,7 +583,7 @@ int Graph::compare(const Graph &rhs) const {
 	if(int cmp = m_tris.compare(rhs.m_tris))
 		return cmp;
 
-	FATAL("writeme");
+	FWK_FATAL("writeme");
 	return 0;
 }
 

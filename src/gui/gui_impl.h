@@ -11,7 +11,7 @@ namespace fwk {
 
 struct GuiPopupContext {
 	GuiPopupContext(string file_name, Gui::NameFilter name_filter)
-		: current_file(move(file_name)), name_filter(name_filter) {
+		: current_file(std::move(file_name)), name_filter(name_filter) {
 		FilePath fpath(current_file);
 		current_dir = fpath.isDirectory() ? fpath : fpath.parent();
 	}

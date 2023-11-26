@@ -66,7 +66,7 @@ class DelaunayConstructor {
 		builder.construct(this);
 	}
 
-	vector<Pair<VertexId>> extractSitePairs() { return move(m_site_pairs); }
+	vector<Pair<VertexId>> extractSitePairs() { return std::move(m_site_pairs); }
 
 	void clear() { m_site_pairs.clear(); }
 	void _reserve(std::size_t num_sites) { m_site_pairs.reserve(num_sites * 3); }
@@ -297,7 +297,7 @@ class VoronoiConstructor {
 			}
 		}
 
-		return {move(out), move(cells)};
+		return {std::move(out), std::move(cells)};
 	}
 
 	void clip_infinite_edge(const edge_type &edge, vector<double2> &out) const {

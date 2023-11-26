@@ -145,7 +145,7 @@ template <class T, int N>
 template <class U, EnableInDimension<U, 3>...>
 Triangle2<T> Triangle<T, N>::projection2D() const {
 	if constexpr(!is_same<T, float>) {
-		FATAL("Please fix me!");
+		FWK_FATAL("Please fix me!");
 		return {};
 	} else {
 		Projection proj(*this);

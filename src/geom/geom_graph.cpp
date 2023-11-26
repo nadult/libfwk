@@ -21,12 +21,12 @@ template <class T> GeomGraph<T>::GeomGraph(vector<Point> points) {
 
 template <class T>
 GeomGraph<T>::GeomGraph(Graph graph, PodVector<Point> points, PointMap point_map)
-	: Graph(move(graph)), m_points(move(points)), m_point_map(move(point_map)) {}
+	: Graph(std::move(graph)), m_points(std::move(points)), m_point_map(std::move(point_map)) {}
 
 template <class T>
 GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap point_map,
 						CSpan<Pair<VertexId>> collapsed_verts)
-	: m_points(move(points)), m_point_map(move(point_map)) {
+	: m_points(std::move(points)), m_point_map(std::move(point_map)) {
 	vector<Maybe<VertexId>> collapses(graph.vertsSpread());
 	for(auto [from, to] : collapsed_verts)
 		collapses[from] = to;
@@ -48,7 +48,7 @@ GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap po
 	}
 
 	if(graph.numTris())
-		FATAL("handle me please");
+		FWK_FATAL("handle me please");
 }
 
 template <class T> GeomGraph<T>::GeomGraph(CSpan<Triangle> tris) {
@@ -221,7 +221,7 @@ template <class T> int GeomGraph<T>::compare(const GeomGraph &rhs) const {
 	// TODO: test it
 	if(auto cmp = Graph::compare(rhs))
 		return cmp;
-	FATAL("writeme");
+	FWK_FATAL("writeme");
 	//if(auto cmp = m_points.compare(rhs.m_points))
 	//	return cmp;
 	return 0;
@@ -346,7 +346,7 @@ template <class T> auto GeomGraph<T>::makeGrid() const -> Grid {
 		return {edgePairs(), points()};
 	else {
 		auto flat_points = flatten<Point>(points(), m_flat_axes);
-		return {edgePairs(), move(flat_points), m_verts.valids(), m_verts.size()};
+		return {edgePairs(), std::move(flat_points), m_verts.valids(), m_verts.size()};
 	}
 }
 
@@ -355,7 +355,7 @@ template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors() const {
 	vector<EdgeId> out;
 
 	if constexpr(dim<T> == 3) {
-		FATAL("write me");
+		FWK_FATAL("write me");
 	}
 
 	auto grid = makeGrid();

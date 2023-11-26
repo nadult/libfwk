@@ -22,10 +22,13 @@ void ErrorChunk::operator>>(TextFormatter &out) const {
 		out("%\n", message);
 }
 
-Error::Error(ErrorLoc loc, string message) { chunks.emplace_back(loc, move(message)); }
+Error::Error(ErrorLoc loc, string message) { chunks.emplace_back(loc, std::move(message)); }
 
-Error::Error(Chunk chunk, Backtrace bt) : backtrace(move(bt)) { chunks.emplace_back(move(chunk)); }
-Error::Error(vector<Chunk> chunks, Backtrace bt) : chunks(move(chunks)), backtrace(move(bt)) {}
+Error::Error(Chunk chunk, Backtrace bt) : backtrace(std::move(bt)) {
+	chunks.emplace_back(std::move(chunk));
+}
+Error::Error(vector<Chunk> chunks, Backtrace bt)
+	: chunks(std::move(chunks)), backtrace(std::move(bt)) {}
 Error::Error() = default;
 
 FWK_COPYABLE_CLASS_IMPL(Error)
@@ -36,11 +39,11 @@ void Error::operator+=(const Chunk &chunk) { chunks.emplace_back(chunk); }
 Error Error::operator+(const Chunk &chunk) const {
 	auto new_chunks = chunks;
 	new_chunks.emplace_back(chunk);
-	return {move(new_chunks)};
+	return {std::move(new_chunks)};
 }
 
 Error &Error::operator<<(Any value) {
-	values.emplace_back(move(value));
+	values.emplace_back(std::move(value));
 	return *this;
 }
 
@@ -54,7 +57,7 @@ void Error::operator>>(TextFormatter &out) const {
 Error Error::merge(vector<Error> list) {
 	DASSERT(list);
 	if(list.size() == 1)
-		return move(list[0]);
+		return std::move(list[0]);
 
 	vector<ErrorChunk> chunks;
 	for(auto &err : list) {
@@ -63,7 +66,7 @@ Error Error::merge(vector<Error> list) {
 		if(err.backtrace)
 			chunks.emplace_back(err.backtrace.format());
 	}
-	return {move(chunks)};
+	return {std::move(chunks)};
 }
 
 void Error::print() const { fwk::print("%\n", *this); }

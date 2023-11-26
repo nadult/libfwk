@@ -217,7 +217,7 @@ i64 FontCore::usedMemory() const { return m_glyphs.usedMemory() + m_kernings.use
 	}
 // clang-format on
 
-Font::Font(FontCore core, PVImageView texture) : m_core(move(core)), m_texture(texture) {
+Font::Font(FontCore core, PVImageView texture) : m_core(std::move(core)), m_texture(texture) {
 	DASSERT(m_texture);
 	DASSERT_EQ(int3(core.m_texture_size, 1), m_texture->size());
 }
@@ -230,7 +230,7 @@ Ex<Font> Font::makeDefault(VDeviceRef device, VWindowRef window, int font_size) 
 	auto font_data = EX_PASS(FontFactory().makeFont(font_path, font_size));
 	auto font_image = EX_PASS(VulkanImage::createAndUpload(device, font_data.image));
 	auto font_image_view = VulkanImageView::create(device, font_image);
-	return Font(move(font_data.core), move(font_image_view));
+	return Font(std::move(font_data.core), std::move(font_image_view));
 }
 
 float2 Font::drawPos(const string32 &text, const FRect &rect, const FontStyle &style) const {

@@ -55,7 +55,7 @@ Error onFailMakeError(const char *file, int line, ZStr main_message) {
 	auto bt = Backtrace::get(3);
 	auto chunks = onFailChunks();
 	chunks.emplace_back(ErrorLoc{file, line}, main_message);
-	Error out(move(chunks), bt);
+	Error out(std::move(chunks), bt);
 
 	s_fail_protect = false;
 	return out;

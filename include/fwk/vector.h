@@ -252,12 +252,14 @@ template <class T> class Vector {
 	operator Span<T>() { return Span<T>(data(), m_base.size); }
 	operator CSpan<T>() const { return CSpan<T>(data(), m_base.size); }
 
-	template <class U = T, EnableIf<equality_comparable<U, U>>...>
+	template <class U = T>
+		requires(equality_comparable<U, U>)
 	bool operator==(const Vector &rhs) const {
 		return size() == rhs.size() && std::equal(begin(), end(), rhs.begin(), rhs.end());
 	}
 
-	template <class U = T, EnableIf<less_comparable<U>>...>
+	template <class U = T>
+		requires(less_comparable<U, U>)
 	bool operator<(const Vector &rhs) const {
 		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
 	}

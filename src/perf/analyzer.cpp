@@ -127,7 +127,7 @@ void Analyzer::computeRange(FrameRange &out, CSpan<Frame> frames) {
 	}
 
 	computeRows(m_exec_tree.root(), rows, out);
-	out.rows = move(rows);
+	out.rows = std::move(rows);
 
 	out.empty = m_exec_tree.emptyBranches(out.average);
 }
@@ -728,7 +728,9 @@ void Analyzer::updateOpenedNodes() {
 	}
 }
 
-void Analyzer::setOpenedNodes(vector<u64> hashed_ids) { m_set_opened_nodes = move(hashed_ids); }
+void Analyzer::setOpenedNodes(vector<u64> hashed_ids) {
+	m_set_opened_nodes = std::move(hashed_ids);
+}
 
 AnyConfig Analyzer::config() const {
 	AnyConfig out;

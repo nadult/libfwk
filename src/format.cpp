@@ -101,8 +101,8 @@ void TextFormatter::append_(const char *format_str, int arg_count, const Func *f
 		if(isOneOf(funcs[n], opt_funcs))
 			num_format_args++;
 	if(num_percent != arg_count - num_format_args)
-		FATAL("Invalid nr of arguments passed: %d, expected: %d\nFormat string: \"%s\"",
-			  arg_count - num_format_args, num_percent, format_str);
+		FWK_FATAL("Invalid nr of arguments passed: %d, expected: %d\nFormat string: \"%s\"",
+				  arg_count - num_format_args, num_percent, format_str);
 #endif
 
 	for(int n = 0; n < arg_count; n++) {
@@ -159,7 +159,7 @@ void TextFormatter::stdFormat(const char *format, ...) {
 		va_end(ap);
 
 		if(ret < 0)
-			FATAL("Error in vsnprintf(\"%s\"): errno: %s(%d)", format, strerror(errno), errno);
+			FWK_FATAL("Error in vsnprintf(\"%s\"): errno: %s(%d)", format, strerror(errno), errno);
 
 		int new_offset = m_offset + ret;
 		if(new_offset + 1 <= m_data.size()) {

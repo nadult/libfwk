@@ -75,7 +75,7 @@ struct ViewModel {
 			map[def.name] = tex ? SimpleMaterial(*tex, IColor(def.diffuse)) :
 								  SimpleMaterial(IColor(def.diffuse));
 		}
-		m_materials = move(map);
+		m_materials = std::move(map);
 	}
 
 	Pose animatePose(int anim_id, float anim_pos) const {
@@ -169,7 +169,8 @@ class Viewer {
 
 			if(model) {
 				printf("Loaded %s: %.2f ms\n", file_name.first.c_str(), time);
-				m_models.emplace_back(move(model.get()), image, file_name.first, file_name.second);
+				m_models.emplace_back(std::move(model.get()), image, file_name.first,
+									  file_name.second);
 			} else {
 				print("Error while loading '%':\n%", file_name.first, model.error());
 			}

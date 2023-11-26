@@ -207,7 +207,7 @@ Ex<void> VulkanInstance::initialize(VInstanceSetup setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
 
 	if(setup.version < VulkanVersion(1, 2, 0))
-		FATAL("FWK currently requires Vulkan version to be at least 1.2.0");
+		FWK_FATAL("FWK currently requires Vulkan version to be at least 1.2.0");
 	auto extensions = setup.extensions;
 	auto layers = setup.layers;
 
@@ -346,7 +346,7 @@ Maybe<VPhysicalDeviceId> VulkanInstance::preferredDevice(VkSurfaceKHR target_sur
 			vector<VQueueSetup> queue_setup;
 			for(auto queue : sel_queues)
 				queue_setup.emplace_back(queue, 1);
-			*out_queues = move(queue_setup);
+			*out_queues = std::move(queue_setup);
 		}
 	}
 

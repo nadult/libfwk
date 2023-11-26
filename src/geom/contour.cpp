@@ -424,7 +424,7 @@ template <class T> Contour<T> Contour<T>::smooth(Scalar step) const {
 	}
 	int end = m_points.size() - 1;
 	out.emplace_back(interpCatmullRom(temp[end], temp[end + 1], temp[end + 2], temp[end + 3], 1.0));
-	return {move(out), isLooped()};
+	return {std::move(out), isLooped()};
 }
 
 template <class T> Contour<T> Contour<T>::blur(int width) const {
@@ -465,7 +465,7 @@ template <class T> Contour<T> Contour<T>::blur(int width) const {
 		out.back() = m_points.back();
 	}
 
-	return {move(out), isLooped()};
+	return {std::move(out), isLooped()};
 }
 
 template <class T>

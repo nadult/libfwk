@@ -66,7 +66,7 @@ void investigateOnFail(const Expected<void> &expected) {
 			return investigate(wrapper);
 		} else if(const VisFunc3 *stored_func = val) {
 			auto wrapper = [&](Canvas3D &canvas, double2 mouse_pos) -> string {
-				FATAL("fixme");
+				FWK_FATAL("fixme");
 				//auto result = (*stored_func)(canvas, mouse_pos);
 				//return format("%\n%", result, expected.error());
 				return "";

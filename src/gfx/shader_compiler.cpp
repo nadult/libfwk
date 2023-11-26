@@ -50,14 +50,14 @@ ZStr getShaderDebugCode();
 
 ShaderDefinition::ShaderDefinition(string name, VShaderStage stage, string source_file_name,
 								   vector<Pair<string>> macros)
-	: name(move(name)), source_file_name(move(source_file_name)), macros(move(macros)),
-	  stage(stage) {
+	: name(std::move(name)), source_file_name(std::move(source_file_name)),
+	  macros(std::move(macros)), stage(stage) {
 	if(this->source_file_name.empty())
 		this->source_file_name = this->name;
 }
 
 struct ShaderDefinitionEx : public ShaderDefinition {
-	ShaderDefinitionEx(ShaderDefinition def) : ShaderDefinition(move(def)) {}
+	ShaderDefinitionEx(ShaderDefinition def) : ShaderDefinition(std::move(def)) {}
 
 	vector<FilePath> update_paths;
 	double last_modification_time = -1.0;
@@ -150,14 +150,14 @@ shaderc_include_result *ShaderCompiler::Impl::resolveInclude(void *user_data,
 		impl.current_paths.emplace_back(*file_path);
 		if(auto content = loadFileString(*file_path)) {
 			new_result->path = *file_path;
-			new_result->content = move(*content);
+			new_result->content = std::move(*content);
 			auto &result = new_result->result;
 			result.content = new_result->content.c_str();
 			result.content_length = new_result->content.size();
 			result.source_name = new_result->path.c_str();
 			result.source_name_length = new_result->path.size();
 		} else {
-			impl.include_errors.emplace_back(move(content.error()));
+			impl.include_errors.emplace_back(std::move(content.error()));
 		}
 	}
 
@@ -176,7 +176,7 @@ ShaderCompiler::ShaderCompiler(ShaderCompilerSetup setup) {
 		for(auto &dir : setup.source_dirs)
 			DASSERT(dir.isAbsolute());
 
-		m_impl->source_dirs = move(setup.source_dirs);
+		m_impl->source_dirs = std::move(setup.source_dirs);
 		shaderc_compile_options_set_include_callbacks(opts, Impl::resolveInclude,
 													  Impl::releaseInclude, m_impl.get());
 	}
@@ -196,7 +196,7 @@ ShaderCompiler::ShaderCompiler(ShaderCompilerSetup setup) {
 	}
 	shaderc_compile_options_set_optimization_level(opts, shaderc_optimization_level_performance);
 
-	m_impl->spirv_cache_dir = move(setup.spirv_cache_dir);
+	m_impl->spirv_cache_dir = std::move(setup.spirv_cache_dir);
 	setInternalFile("shader_debug", getShaderDebugCode());
 }
 
@@ -209,7 +209,7 @@ ShaderCompiler::~ShaderCompiler() {
 	}
 }
 
-ShaderCompiler::ShaderCompiler(ShaderCompiler &&rhs) : m_impl(move(rhs.m_impl)) {}
+ShaderCompiler::ShaderCompiler(ShaderCompiler &&rhs) : m_impl(std::move(rhs.m_impl)) {}
 FWK_MOVE_ASSIGN_RECONSTRUCT(ShaderCompiler)
 
 using Stage = VShaderStage;
@@ -289,14 +289,14 @@ Ex<CompilationResult> ShaderCompiler::compileFile(VShaderStage stage, ZStr file_
 
 ShaderDefId ShaderCompiler::add(ShaderDefinition def) {
 	if(find(def.name))
-		FATAL("ShaderDefinition already exists: '%s'", def.name.c_str());
+		FWK_FATAL("ShaderDefinition already exists: '%s'", def.name.c_str());
 	auto id = ShaderDefId(m_impl->shader_defs.nextFreeIndex());
 
 	m_impl->shader_def_map.emplace(def.name, id);
 	auto update_path = filePath(def.source_file_name);
-	int index = m_impl->shader_defs.emplace(move(def));
+	int index = m_impl->shader_defs.emplace(std::move(def));
 	if(update_path)
-		m_impl->shader_defs[index].update_paths.emplace_back(move(*update_path));
+		m_impl->shader_defs[index].update_paths.emplace_back(std::move(*update_path));
 	return id;
 }
 
@@ -336,7 +336,7 @@ Maybe<ShaderDefId> ShaderCompiler::find(ZStr name) const {
 const ShaderDefinition &ShaderCompiler::operator[](ZStr name) const {
 	auto id = find(name);
 	if(!id)
-		FATAL("ShaderDefinition not found: '%s'", name.c_str());
+		FWK_FATAL("ShaderDefinition not found: '%s'", name.c_str());
 	return m_impl->shader_defs[*id];
 }
 
@@ -364,7 +364,7 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 			if(spirv_time >= last_mod_time) {
 				if(auto spirv_data = loadFile(spirv_path)) {
 					CompilationResult result;
-					result.bytecode = move(*spirv_data);
+					result.bytecode = std::move(*spirv_data);
 					def.last_modification_time = spirv_time;
 					return result;
 				}
@@ -378,7 +378,7 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	auto result = EX_PASS(compileFile(def.stage, def.source_file_name, def.macros));
 	makeSortedUnique(m_impl->current_paths);
 	if(m_impl->current_paths != def.update_paths) {
-		def.update_paths = move(m_impl->current_paths);
+		def.update_paths = std::move(m_impl->current_paths);
 		last_mod_time = lastModificationTime(def.update_paths);
 	}
 	def.last_modification_time = last_mod_time;

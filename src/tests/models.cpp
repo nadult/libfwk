@@ -55,7 +55,7 @@ void testMain() {
 	auto result = cvt(mainPath("data/test.blend"), mesh_path);
 	ASSERT(result);
 
-	auto doc = move(XmlDocument::load(mesh_path).get());
+	auto doc = std::move(XmlDocument::load(mesh_path).get());
 	auto model = Model::load(doc.child());
 	ASSERT(model);
 

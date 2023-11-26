@@ -32,7 +32,7 @@ Manager::~Manager() {
 void Manager::getNewFrames() {
 	MutexLocker lock(s_mutex);
 	for(auto &frame : s_new_frames)
-		m_frames.emplace_back(move(frame));
+		m_frames.emplace_back(std::move(frame));
 	s_new_frames.clear();
 }
 
@@ -44,7 +44,7 @@ void Manager::addFrame(int frame_id, double begin, double end, CSpan<PSample> ps
 	tree->scaleCpuTimes(esamples, cpu_time_scale);
 
 	MutexLocker lock(s_mutex);
-	s_new_frames.emplace_back(move(esamples), begin, end, frame_id, threadId());
+	s_new_frames.emplace_back(std::move(esamples), begin, end, frame_id, threadId());
 }
 
 i64 Manager::usedMemory() const {

@@ -70,7 +70,7 @@ void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 	// TODO: font recreation
 	/*auto *bd = ImGui_ImplVulkan_GetBackendData();
 	if(bd && bd->FontImage) {
-		FATAL("TODO: fixme");
+		FWK_FATAL("TODO: fixme");
 	}*/
 
 	if(!is_initial)
@@ -193,7 +193,9 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 	}
 }
 
-Gui::Gui(Gui &&rhs) : m_last_time(rhs.m_last_time), m_impl(move(rhs.m_impl)) { s_instance = this; }
+Gui::Gui(Gui &&rhs) : m_last_time(rhs.m_last_time), m_impl(std::move(rhs.m_impl)) {
+	s_instance = this;
+}
 
 Gui::~Gui() {
 	if(m_impl) {

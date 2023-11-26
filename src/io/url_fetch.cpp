@@ -66,7 +66,7 @@ Ex<UrlFetch> UrlFetch::make(ZStr relative_url) {
 
 Ex<vector<char>> UrlFetch::finish(UrlFetch fetch) {
 #ifdef FWK_PLATFORM_HTML
-	auto data = move(fetch.m_impl->data);
+	auto data = std::move(fetch.m_impl->data);
 	if(fetch.m_impl->status != Status::completed)
 		return ERROR("Cannot finish UrlFetch: %",
 					 fetch.status() == Status::failed ? "fetch failed" : "still downloading");

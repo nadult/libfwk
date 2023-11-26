@@ -29,7 +29,7 @@ static Pose defaultPose(vector<int> dfs_ids, CSpan<ModelNode> nodes) {
 		pose_matrices.emplace_back(node.trans);
 		pose_names.emplace_back(node.name);
 	}
-	return {move(pose_matrices), pose_names};
+	return {std::move(pose_matrices), pose_names};
 }
 
 static void dfs(CSpan<ModelNode> nodes, int node_id, vector<int> &out) {
@@ -40,8 +40,8 @@ static void dfs(CSpan<ModelNode> nodes, int node_id, vector<int> &out) {
 
 Model::Model(vector<ModelNode> nodes, vector<Mesh> meshes, vector<ModelAnim> anims,
 			 vector<MaterialDef> material_defs)
-	: m_nodes(move(nodes)), m_meshes(meshes), m_anims(move(anims)),
-	  m_material_defs(move(material_defs)) {
+	: m_nodes(std::move(nodes)), m_meshes(meshes), m_anims(std::move(anims)),
+	  m_material_defs(std::move(material_defs)) {
 	if(auto *root = rootNode())
 		ASSERT(root->name == "" && root->trans == AffineTrans() && root->mesh_id == -1);
 
@@ -77,7 +77,7 @@ Ex<void> parseNodes(vector<ModelNode> &out, int node_id, int num_meshes, CXmlNod
 		int sub_node_id = out.size();
 		new_node.parent_id = node_id;
 		new_node.id = sub_node_id;
-		out.emplace_back(move(new_node));
+		out.emplace_back(std::move(new_node));
 		out[node_id].children_ids.emplace_back(sub_node_id);
 		EXPECT(parseNodes(out, sub_node_id, num_meshes, xml_node));
 		xml_node.next();
@@ -119,7 +119,7 @@ Ex<Model> Model::load(CXmlNode xml_node) {
 	}
 
 	// TODO: make sure that errors are handled properly here
-	return Model(move(nodes), move(meshes), move(anims), move(material_defs));
+	return Model(std::move(nodes), std::move(meshes), std::move(anims), std::move(material_defs));
 }
 
 Ex<Model> Model::load(ZStr file_name) {
@@ -196,7 +196,7 @@ Pose Model::globalPose(vector<Matrix4> out) const {
 	for(int n : intRange(m_nodes))
 		if(m_nodes[n].parent_id != -1)
 			out[n] = out[m_nodes[n].parent_id] * out[n];
-	return {move(out), m_default_pose.nameMap()};
+	return {std::move(out), m_default_pose.nameMap()};
 }
 
 Pose Model::globalPose(const Pose &pose) const {
@@ -205,7 +205,7 @@ Pose Model::globalPose(const Pose &pose) const {
 	for(int n : intRange(m_nodes))
 		if(m_nodes[n].parent_id != -1)
 			out[n] = out[m_nodes[n].parent_id] * out[n];
-	return {move(out), pose.nameMap()};
+	return {std::move(out), pose.nameMap()};
 }
 
 Matrix4 Model::globalTrans(int node_id) const {
@@ -229,7 +229,7 @@ Pose Model::meshSkinningPose(const Pose &global_pose, int node_id) const {
 	vector<Matrix4> out = global_pose.transforms();
 	for(int n : intRange(out))
 		out[n] = pre * out[n] * invGlobalTrans(n) * post;
-	return {move(out), global_pose.nameMap()};
+	return {std::move(out), global_pose.nameMap()};
 }
 
 vector<Matrix4> Model::animatePoseFast(int anim_id, double anim_pos) const {
@@ -283,6 +283,6 @@ Model Model::split(int node_id) const {
 	new_nodes[1].trans.translation = {};
 
 	// TODO: split ModelAnims
-	return {move(new_nodes), move(new_meshes), m_anims, m_material_defs};
+	return {std::move(new_nodes), std::move(new_meshes), m_anims, m_material_defs};
 }
 }
