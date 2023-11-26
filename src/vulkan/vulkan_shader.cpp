@@ -42,7 +42,7 @@ Ex<vector<VDescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStag
 
 VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id, VShaderStage stage,
 									   vector<VDescriptorBindingInfo> infos)
-	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(move(infos)), m_stage(stage) {}
+	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(std::move(infos)), m_stage(stage) {}
 
 VulkanShaderModule ::~VulkanShaderModule() {
 	vkDestroyShaderModule(deviceHandle(), m_handle, nullptr);
@@ -60,13 +60,13 @@ Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> byt
 
 	VkShaderModule handle;
 	FWK_VK_EXPECT_CALL(vkCreateShaderModule, device, &ci, nullptr, &handle);
-	return device->createObject(handle, stage, move(infos));
+	return device->createObject(handle, stage, std::move(infos));
 }
 
 Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> bytecode) {
 	VShaderStage stage = {};
 	auto bindings = EX_PASS(getBindings(bytecode, stage));
-	return create(device, bytecode, stage, move(bindings));
+	return create(device, bytecode, stage, std::move(bindings));
 }
 
 // TODO: move to shader compiler

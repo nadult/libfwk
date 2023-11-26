@@ -21,12 +21,12 @@ template <class T> GeomGraph<T>::GeomGraph(vector<Point> points) {
 
 template <class T>
 GeomGraph<T>::GeomGraph(Graph graph, PodVector<Point> points, PointMap point_map)
-	: Graph(move(graph)), m_points(move(points)), m_point_map(move(point_map)) {}
+	: Graph(std::move(graph)), m_points(std::move(points)), m_point_map(std::move(point_map)) {}
 
 template <class T>
 GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap point_map,
 						CSpan<Pair<VertexId>> collapsed_verts)
-	: m_points(move(points)), m_point_map(move(point_map)) {
+	: m_points(std::move(points)), m_point_map(std::move(point_map)) {
 	vector<Maybe<VertexId>> collapses(graph.vertsSpread());
 	for(auto [from, to] : collapsed_verts)
 		collapses[from] = to;
@@ -346,7 +346,7 @@ template <class T> auto GeomGraph<T>::makeGrid() const -> Grid {
 		return {edgePairs(), points()};
 	else {
 		auto flat_points = flatten<Point>(points(), m_flat_axes);
-		return {edgePairs(), move(flat_points), m_verts.valids(), m_verts.size()};
+		return {edgePairs(), std::move(flat_points), m_verts.valids(), m_verts.size()};
 	}
 }
 

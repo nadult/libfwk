@@ -12,7 +12,7 @@ namespace fwk {
 // TODO: error handling when writing to/from streams
 
 PackageFile::PackageFile(vector<FileInfo> infos, PodVector<char> data, u32 off)
-	: m_infos(move(infos)), m_data(move(data)), m_data_offset(off) {}
+	: m_infos(std::move(infos)), m_data(std::move(data)), m_data_offset(off) {}
 
 Ex<PackageFile> PackageFile::make(FilePath prefix, CSpan<string> in_files) {
 	if(!prefix.isAbsolute())
@@ -34,7 +34,7 @@ Ex<PackageFile> PackageFile::make(FilePath prefix, CSpan<string> in_files) {
 		offset += size;
 	}
 
-	return PackageFile{move(files), move(data)};
+	return PackageFile{std::move(files), std::move(data)};
 }
 
 Ex<PackageFile> PackageFile::load(Stream &sr) {
@@ -57,7 +57,7 @@ Ex<PackageFile> PackageFile::load(Stream &sr) {
 		u32 size;
 		sr >> name >> size;
 		EXPECT(size <= max_file_size);
-		infos.emplace_back(move(name), size, offset);
+		infos.emplace_back(std::move(name), size, offset);
 		offset += size;
 	}
 
@@ -66,7 +66,7 @@ Ex<PackageFile> PackageFile::load(Stream &sr) {
 	sr.loadData(data);
 	EXPECT(sr.getValid());
 
-	return PackageFile{move(infos), move(data), data_offset};
+	return PackageFile{std::move(infos), std::move(data), data_offset};
 }
 
 Ex<> PackageFile::save(Stream &sr) const {

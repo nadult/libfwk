@@ -260,7 +260,7 @@ PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment>
 
 VulkanPipelineLayout::VulkanPipelineLayout(VkPipelineLayout handle, VObjectId id,
 										   vector<VDSLId> dsls, const VPushConstantRanges &pcrs)
-	: VulkanObjectBase(handle, id), m_dsls(move(dsls)), m_pcrs(pcrs) {}
+	: VulkanObjectBase(handle, id), m_dsls(std::move(dsls)), m_pcrs(pcrs) {}
 VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	// TODO: do we really need deferred?
 	deferredRelease<vkDestroyPipelineLayout>(m_handle);
@@ -292,7 +292,7 @@ PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> 
 
 	VkPipelineLayout handle;
 	FWK_VK_CALL(vkCreatePipelineLayout, device->handle(), &ci, nullptr, &handle);
-	return device->createObject(handle, move(dsls), pcrs);
+	return device->createObject(handle, std::move(dsls), pcrs);
 }
 
 VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,

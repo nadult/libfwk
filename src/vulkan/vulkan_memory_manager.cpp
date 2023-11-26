@@ -83,7 +83,7 @@ void VulkanMemoryManager::beginFrame() {
 	for(auto ident : m_deferred_frees[m_frame_index])
 		immediateFree(ident);
 	m_deferred_frees[m_frame_index].clear();
-	m_deferred_frees[m_frame_index] = move(m_deferred_frees.back());
+	m_deferred_frees[m_frame_index] = std::move(m_deferred_frees.back());
 	m_frames[m_frame_index].offset = 0;
 	m_frame_running = true;
 }

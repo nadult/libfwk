@@ -102,7 +102,7 @@ Ex<ModelAnim> ModelAnim::load(CXmlNode node, const Pose &default_pose) {
 	while(channel_node) {
 		Channel channel;
 		EXPECT(channel.load(channel_node, AffineTrans(*trans_it++)));
-		out.m_channels.emplace_back(move(channel));
+		out.m_channels.emplace_back(std::move(channel));
 		channel_node.next();
 	}
 
@@ -167,7 +167,7 @@ Pose ModelAnim::animatePose(const Pose &initial_pose, double anim_pos) const {
 	for(int n = 0; n < m_channels.size(); n++)
 		matrices[mapping[n]] = animateChannel(n, anim_pos);
 
-	return {move(matrices), initial_pose.nameMap()};
+	return {std::move(matrices), initial_pose.nameMap()};
 }
 
 string ModelAnim::print() const {

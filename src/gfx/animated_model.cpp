@@ -26,7 +26,7 @@ AnimatedModel::AnimatedModel(const Model &model, const Pose &pose) : m_model(mod
 				anim_data = mesh->animate(skinning_pose);
 			}
 
-			m_meshes.emplace_back(node.mesh_id, move(anim_data), transforms[node.id]);
+			m_meshes.emplace_back(node.mesh_id, std::move(anim_data), transforms[node.id]);
 		}
 }
 

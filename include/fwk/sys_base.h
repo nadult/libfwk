@@ -107,7 +107,6 @@
 
 namespace fwk {
 
-using std::move;
 using std::string;
 using std::swap;
 using string32 = std::u32string;

@@ -15,11 +15,11 @@ BaseMemoryStream::BaseMemoryStream(Span<char> data)
 	: Stream(0, false), m_data(data.data()), m_capacity(data.size()) {}
 
 BaseMemoryStream::BaseMemoryStream(PodVector<char> buffer, bool is_loading)
-	: Stream(is_loading ? buffer.size() : 0, is_loading), m_buffer(move(buffer)),
+	: Stream(is_loading ? buffer.size() : 0, is_loading), m_buffer(std::move(buffer)),
 	  m_data(m_buffer.data()), m_capacity(buffer.size()) {}
 
 BaseMemoryStream::BaseMemoryStream(BaseMemoryStream &&rhs)
-	: Stream(move(rhs)), m_buffer(move(rhs.m_buffer)), m_data(rhs.m_data),
+	: Stream(std::move(rhs)), m_buffer(std::move(rhs.m_buffer)), m_data(rhs.m_data),
 	  m_capacity(rhs.m_capacity) {
 	rhs.free();
 }
@@ -36,7 +36,7 @@ void BaseMemoryStream::free() {
 }
 
 PodVector<char> BaseMemoryStream::extractBuffer() {
-	auto out = move(m_buffer);
+	auto out = std::move(m_buffer);
 	free();
 	return out;
 }
@@ -89,13 +89,13 @@ MemoryStream memoryLoader(CSpan<char> data) { return MemoryStream(data); }
 MemoryStream memoryLoader(vector<char> vec) {
 	PodVector<char> pvec;
 	pvec.unsafeSwap(vec);
-	return MemoryStream(move(pvec), true);
+	return MemoryStream(std::move(pvec), true);
 }
-MemoryStream memoryLoader(PodVector<char> vec) { return MemoryStream(move(vec), true); }
+MemoryStream memoryLoader(PodVector<char> vec) { return MemoryStream(std::move(vec), true); }
 
 MemoryStream memorySaver(Span<char> buf) { return MemoryStream(buf); }
 MemoryStream memorySaver(int capacity) { return MemoryStream(PodVector<char>(capacity), false); }
-MemoryStream memorySaver(PodVector<char> buffer) { return MemoryStream(move(buffer), false); }
+MemoryStream memorySaver(PodVector<char> buffer) { return MemoryStream(std::move(buffer), false); }
 
 template class TStream<BaseMemoryStream>;
 }

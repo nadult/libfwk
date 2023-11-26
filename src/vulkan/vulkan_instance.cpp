@@ -346,7 +346,7 @@ Maybe<VPhysicalDeviceId> VulkanInstance::preferredDevice(VkSurfaceKHR target_sur
 			vector<VQueueSetup> queue_setup;
 			for(auto queue : sel_queues)
 				queue_setup.emplace_back(queue, 1);
-			*out_queues = move(queue_setup);
+			*out_queues = std::move(queue_setup);
 		}
 	}
 

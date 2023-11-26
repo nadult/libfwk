@@ -116,7 +116,7 @@ Ex<string> Converter::exportFromBlender(const string &file_name, string &target_
 
 Ex<Pair<Model, string>> Converter::loadModel(FileType file_type, ZStr file_name) {
 	if(file_type == FileType::fwk_model) {
-		auto doc = move(XmlDocument::load(file_name).get());
+		auto doc = std::move(XmlDocument::load(file_name).get());
 		XmlOnFailGuard xml_guard(doc);
 		XmlNode child = doc.child();
 		if(!child)

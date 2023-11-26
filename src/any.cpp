@@ -30,9 +30,9 @@ namespace detail {
 Any::Any() = default;
 Any::Any(Ex<Any> &&rhs) {
 	if(rhs)
-		*this = move(*rhs);
+		*this = std::move(*rhs);
 	else
-		*this = move(rhs.error());
+		*this = std::move(rhs.error());
 }
 Any::Any(const Ex<Any> &rhs) {
 	if(rhs)

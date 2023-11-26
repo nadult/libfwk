@@ -173,7 +173,7 @@ SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, SparseSpan<Point> 
 template <class T>
 SegmentGrid<T>::SegmentGrid(SparseSpan<Pair<VertexId>> edges, PodVector<Point> points,
 							CSpan<bool> valids, int psize)
-	: m_points_buffer(move(points)) {
+	: m_points_buffer(std::move(points)) {
 	SparseSpan<Point> pspan(m_points_buffer.data(), valids, psize);
 	initialize(edges, pspan);
 }

@@ -103,7 +103,7 @@ Ex<vector<PVPipeline>> SimpleDrawCall::makePipelines(ShaderCompiler &compiler, V
 		auto pipeline = EX_PASS(device.getCachedPipeline(compiler, makePipeline, render_pass,
 														 setup.blending_mode, setup.flags,
 														 setup.primitive_topo));
-		pipelines.emplace_back(move(pipeline));
+		pipelines.emplace_back(std::move(pipeline));
 	}
 	return pipelines;
 }
@@ -182,7 +182,7 @@ Ex<SimpleVertexArray> SimpleVertexArray::make(VulkanDevice &device, CSpan<Colore
 SimpleDrawCall::SimpleDrawCall(SimpleVertexArray vertex_array, const SimpleMaterial &material,
 							   Matrix4 matrix, Maybe<FBox> transformed_bbox)
 	: matrix(matrix), transformed_bbox(transformed_bbox), material(material),
-	  vertex_array(move(vertex_array)) {}
+	  vertex_array(std::move(vertex_array)) {}
 
 FWK_COPYABLE_CLASS_IMPL(SimpleDrawCall);*/
 

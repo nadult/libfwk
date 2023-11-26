@@ -21,7 +21,7 @@ void ShaderDefs::Setter::operator=(bool value) {
 ShaderDefs::ShaderDefs() = default;
 FWK_COPYABLE_CLASS_IMPL(ShaderDefs);
 
-void ShaderDefs::set(string name, string value) { macros[name] = move(value); }
+void ShaderDefs::set(string name, string value) { macros[name] = std::move(value); }
 
 void ShaderDefs::remove(Str name) { macros.erase(name); }
 

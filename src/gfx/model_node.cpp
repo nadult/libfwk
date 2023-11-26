@@ -10,7 +10,7 @@ namespace fwk {
 
 ModelNode::ModelNode() = default;
 ModelNode::ModelNode(string name, Type type, const AffineTrans &trans, vector<Property> props)
-	: props(move(props)), name(move(name)), trans(trans), inv_trans(inverseOrZero(trans)),
+	: props(std::move(props)), name(std::move(name)), trans(trans), inv_trans(inverseOrZero(trans)),
 	  type(type) {}
 
 FWK_COPYABLE_CLASS_IMPL(ModelNode)

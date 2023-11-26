@@ -41,7 +41,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 
 	vector<char> data(size);
 	sr.loadData(data);
-	return Sound(move(data), {(int)frequency, bits, channels > 1});
+	return Sound(std::move(data), {(int)frequency, bits, channels > 1});
 }
 
 Ex<> Sound::save(FileStream &sr) const {

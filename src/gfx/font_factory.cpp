@@ -177,7 +177,7 @@ auto FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool
 
 		glyphs.emplace_back(
 			FontCore::Glyph{(int)character, {0, 0}, (short2)tex.size(), bearing, advance},
-			move(tex));
+			std::move(tex));
 	}
 
 	auto atlas = makeTextureAtlas(glyphs);
@@ -198,7 +198,7 @@ auto FontFactory::makeFont(ZStr path, const string32 &charset, int size_px, bool
 			}
 
 	int line_height = (int)face->size->metrics.height / 64;
-	FontCore core{move(oglyphs), move(okernings), atlas.size(), line_height};
-	return FontData{move(core), move(atlas)};
+	FontCore core{std::move(oglyphs), std::move(okernings), atlas.size(), line_height};
+	return FontData{std::move(core), std::move(atlas)};
 }
 }

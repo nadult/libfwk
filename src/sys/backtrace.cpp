@@ -162,7 +162,7 @@ namespace {
 		if(!cmd_result || cmd_result->second != 0)
 			return {};
 
-		string result = move(cmd_result->first);
+		string result = std::move(cmd_result->first);
 		vector<string> file_lines;
 		while(!result.empty()) {
 			auto pos = result.find('\n');
@@ -306,7 +306,7 @@ string Backtrace::format(vector<BacktraceInfo> infos, Maybe<int> max_cols) {
 			if(fpath.isAbsolute()) {
 				auto rpath = string(fpath.relative(*cur));
 				if(rpath.size() < entry.file.size())
-					entry.file = move(rpath);
+					entry.file = std::move(rpath);
 			}
 		}
 		entry.file = Str(entry.file).limitSizeFront(limit_file_size);

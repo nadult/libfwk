@@ -20,7 +20,7 @@ GzipStream::GzipStream(void *ctx, Stream &pipe, bool is_compressing)
 	: m_buffer(buffer_size), m_pipe(&pipe), m_ctx(ctx), m_is_compressing(is_compressing) {}
 
 GzipStream::GzipStream(GzipStream &&rhs)
-	: m_buffer(move(rhs.m_buffer)), m_pipe(rhs.m_pipe), m_ctx(rhs.m_ctx),
+	: m_buffer(std::move(rhs.m_buffer)), m_pipe(rhs.m_pipe), m_ctx(rhs.m_ctx),
 	  m_is_compressing(rhs.m_is_compressing), m_is_valid(rhs.m_is_valid),
 	  m_is_finished(rhs.m_is_finished) {
 	rhs.m_pipe = nullptr;
@@ -88,10 +88,10 @@ Error GzipStream::makeError(const char *file, int line, Str str, int err) {
 			   m_is_compressing ? "compressing" : "decompressing", input_pos, output_pos, str);
 	if(err)
 		text += format(" err:%", err);
-	auto out = Error(ErrorLoc{file, line}, move(text));
+	auto out = Error(ErrorLoc{file, line}, std::move(text));
 
 	if(auto result = m_pipe->getValid(); !result)
-		out = Error::merge({move(out), move(result.error())});
+		out = Error::merge({std::move(out), std::move(result.error())});
 	return out;
 }
 

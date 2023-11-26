@@ -14,11 +14,11 @@ static auto makeNameMap(const vector<string> &names) {
 }
 
 Pose::Pose(vector<Matrix4> transforms, NameMap name_map)
-	: m_name_map(move(name_map)), m_transforms(move(transforms)) {
+	: m_name_map(std::move(name_map)), m_transforms(std::move(transforms)) {
 	DASSERT(m_transforms.size() == m_name_map.size());
 }
 Pose::Pose(vector<Matrix4> transforms, const vector<string> &names)
-	: Pose(move(transforms), makeNameMap(names)) {}
+	: Pose(std::move(transforms), makeNameMap(names)) {}
 
 vector<int> Pose::mapNames(const vector<string> &names) const {
 	auto dst_map = makeNameMap(names);

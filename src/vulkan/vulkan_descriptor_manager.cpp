@@ -80,7 +80,7 @@ VDSLId VulkanDescriptorManager::getLayout(CSpan<VDescriptorBindingInfo> bindings
 	}
 	bindings = cspan(m_declarations.data() + new_dsl.first_binding, new_dsl.num_bindings);
 	VDSLId dsl_id(m_dsls.size());
-	m_dsls.emplace_back(move(new_dsl));
+	m_dsls.emplace_back(std::move(new_dsl));
 	m_hash_map.emplace({bindings, key.hash_value}, dsl_id);
 	return dsl_id;
 }

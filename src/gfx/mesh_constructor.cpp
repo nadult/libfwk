@@ -15,7 +15,7 @@ Mesh Mesh::makeRect(const FRect &xz_rect, float y) {
 					  float3(xz_rect.ex(), y, xz_rect.ey()), float3(xz_rect.x(), y, xz_rect.ey())};
 	auto normals = vector<float3>(4, float3(0, 1, 0));
 	auto tex_coords = vector<float2>{{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-	return Mesh({move(positions), move(normals), move(tex_coords)},
+	return Mesh({std::move(positions), std::move(normals), std::move(tex_coords)},
 				{MeshIndices({0, 2, 1, 0, 3, 2})});
 }
 

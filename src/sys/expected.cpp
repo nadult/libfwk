@@ -21,7 +21,7 @@ namespace detail {
 
 	void expectMergeExceptions(Error &out) {
 		auto errors = getExceptions();
-		errors.emplace_back(move(out));
+		errors.emplace_back(std::move(out));
 		out = Error::merge(errors);
 	}
 }

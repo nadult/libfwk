@@ -14,7 +14,7 @@
 namespace fwk {
 
 Voronoi::Voronoi(GeomGraph<double2> graph, vector<Cell> cells)
-	: graph(move(graph)), cells(move(cells)) {
+	: graph(std::move(graph)), cells(std::move(cells)) {
 	for(auto &cell : cells) {
 		if(EdgeId *eid = cell)
 			DASSERT(graph.valid(*eid));

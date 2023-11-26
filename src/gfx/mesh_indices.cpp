@@ -8,7 +8,7 @@
 namespace fwk {
 
 MeshIndices::MeshIndices(vector<int> indices, Topology topology)
-	: m_data(move(indices)), m_topology(topology) {
+	: m_data(std::move(indices)), m_topology(topology) {
 	DASSERT(isSupported(m_topology));
 }
 
@@ -18,7 +18,7 @@ MeshIndices MeshIndices::makeRange(int count, int first, Topology ptype) {
 	DASSERT(count >= 0);
 	vector<int> indices(count);
 	std::iota(begin(indices), end(indices), first);
-	return MeshIndices(move(indices), ptype);
+	return MeshIndices(std::move(indices), ptype);
 }
 
 MeshIndices MeshIndices::merge(const vector<MeshIndices> &set, vector<Pair<int>> &index_ranges) {
@@ -97,8 +97,8 @@ vector<MeshIndices> MeshIndices::split(int max_vertices, vector<vector<int>> &ou
 		for(auto idx : mapping)
 			index_map[idx - range.first] = -1;
 
-		out.emplace_back(move(indices));
-		out_mappings.emplace_back(move(mapping));
+		out.emplace_back(std::move(indices));
+		out_mappings.emplace_back(std::move(mapping));
 	}
 
 	return out;

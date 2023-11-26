@@ -46,7 +46,7 @@ Image::Image(PodVector<u8> data, int2 size, VFormat format)
 }
 
 Image::Image(Image rhs, VFormat format)
-	: m_data(move(rhs.m_data)), m_size(rhs.m_size), m_format(format) {
+	: m_data(std::move(rhs.m_data)), m_size(rhs.m_size), m_format(format) {
 	rhs.m_size = int2(0, 0);
 	DASSERT(areCompatible(rhs.m_format, format));
 }

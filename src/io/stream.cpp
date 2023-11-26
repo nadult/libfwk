@@ -28,7 +28,7 @@ BaseStream::BaseStream(BaseStream &&rhs)
 }
 
 void BaseStream::operator=(BaseStream &&rhs) {
-	m_error = move(rhs.m_error);
+	m_error = std::move(rhs.m_error);
 	m_pos = rhs.m_pos;
 	m_size = rhs.m_size;
 	m_flags = rhs.m_flags;
@@ -54,9 +54,9 @@ void BaseStream::seek(i64 pos) {
 void BaseStream::reportError(Str text) {
 	string message = errorMessage(text);
 	if(m_error) {
-		m_error->chunks.emplace_back(move(message));
+		m_error->chunks.emplace_back(std::move(message));
 	} else {
-		m_error.emplace(move(message));
+		m_error.emplace(std::move(message));
 		if(t_backtrace_enabled)
 			m_error->backtrace = Backtrace::get(1, nullptr, true);
 	}
@@ -66,7 +66,7 @@ void BaseStream::reportError(Str text) {
 Ex<> BaseStream::getValid() {
 	Ex<> out;
 	if(m_error) {
-		out = move(*m_error);
+		out = std::move(*m_error);
 		m_error.reset();
 	}
 	return out;
@@ -85,7 +85,7 @@ Ex<> BaseStream::loadSignature(u32 sig) {
 
 		auto text =
 			stdFormat("Expected signature: 0x%08x (\"%s\")", sig, escapeString(temp).c_str());
-		return Error(move(text));
+		return Error(std::move(text));
 	}
 
 	return {};
@@ -102,7 +102,7 @@ Ex<> BaseStream::loadSignature(CSpan<char> sig) {
 	if(memcmp(buf, sig.data(), sig.size()) != 0) {
 		auto text = format("Expected signature: \"%\" got: \"%\"", escapeString(sig),
 						   escapeString({buf, sig.size()}));
-		return Error(move(text));
+		return Error(std::move(text));
 	}
 
 	return {};
