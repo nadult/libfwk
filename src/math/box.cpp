@@ -13,7 +13,7 @@ namespace fwk {
 
 template <class T> void checkBoxRangeDetailed(const T &min, const T &max) {
 	if(!validBoxRange(min, max))
-		FATAL("Invalid box range: %s", format("% - %", min, max).c_str());
+		FWK_FATAL("Invalid box range: %s", format("% - %", min, max).c_str());
 }
 
 void checkBoxRange(const float2 &min, const float2 &max) { return checkBoxRangeDetailed(min, max); }

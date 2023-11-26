@@ -97,7 +97,8 @@ namespace detail {
 		int status;
 		auto demangled_name = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
 		if(status != 0)
-			FATAL("Error while demangling name: %s; cxa_demangle status: %d", mangled_name, status);
+			FWK_FATAL("Error while demangling name: %s; cxa_demangle status: %d", mangled_name,
+					  status);
 #endif
 
 		bool is_const = data.is_const;
@@ -117,7 +118,7 @@ namespace detail {
 		auto id = (long long)&data;
 		typeNames()[id] = name;
 		if(name_to_id.find(name) != name_to_id.end())
-			FATAL("Multiple entries found for: %s", name.c_str());
+			FWK_FATAL("Multiple entries found for: %s", name.c_str());
 		name_to_id[name] = id;
 	}
 }

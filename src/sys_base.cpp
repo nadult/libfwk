@@ -130,7 +130,7 @@ namespace {
 			sa.sa_sigaction = segfaultHandler;
 			for(const auto &info : s_signal_infos)
 				if(sigaction(info.num, &sa, NULL) == -1)
-					FATAL("Error while attaching signal handler: %d", info.num);
+					FWK_FATAL("Error while attaching signal handler: %d", info.num);
 		}
 	} s_auto_sig_handler;
 #endif

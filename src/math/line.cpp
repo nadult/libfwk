@@ -32,7 +32,7 @@ TEMPLATE auto TLINE::isectParam(const Line &rhs) const -> PRIsectParam {
 		auto t1 = dot<PVec>(diff, perpendicular(vec2));
 		return ratDivide(t1, tdot);
 	} else {
-		FATAL("write me please");
+		FWK_FATAL("write me please");
 		return {};
 	}
 }

@@ -116,7 +116,7 @@ TEMPLATE auto TSEG::isectParam(const Segment &rhs) const -> PRIsectParam {
 			return ratDivide(t1, tdot);
 		return {};
 	} else {
-		FATAL("write me please");
+		FWK_FATAL("write me please");
 		return {};
 	}
 }
@@ -129,7 +129,7 @@ TEMPLATE auto TSEG::isectParam(const Box<Vec> &box) const -> PRIsectParam {
 		auto param = asRay()->isectParam(box).asInterval() / length();
 		return param.min > T(1) || param.max < T(0) ? IsectParam() : param;
 	} else {
-		FATAL("write me please");
+		FWK_FATAL("write me please");
 		return {};
 	}
 }
@@ -138,7 +138,7 @@ TEMPLATE auto TSEG::isectParam(const Box<Vec> &box) const -> PRIsectParam {
 TEMPLATE template <c_float U>
 auto TSEG::isectParamPlane(const Plane<T, dim> &plane) const -> IsectParam {
 	if constexpr(dim == 2) {
-		FATAL("write me");
+		FWK_FATAL("write me");
 		return {};
 	} else {
 		if(empty())
@@ -189,7 +189,7 @@ TEMPLATE auto TSEG::isectParam(const Triangle<T, dim> &tri) const -> Pair<PPRIse
 			return {PPRIsectParam(ratDivide<PPT>(t, d)), is_front};
 		return {};
 	} else {
-		FATAL("write me please");
+		FWK_FATAL("write me please");
 		return {};
 	}
 }
@@ -198,7 +198,7 @@ TEMPLATE auto TSEG::isect(const Segment &segment) const -> Isect {
 	if constexpr(is_fpt<T>)
 		return at(isectParam(segment));
 
-	FATAL("write me");
+	FWK_FATAL("write me");
 	return {};
 }
 
@@ -206,7 +206,7 @@ TEMPLATE auto TSEG::isect(const Box<Vec> &box) const -> Isect {
 	if constexpr(is_fpt<T>)
 		return at(isectParam(box));
 
-	FATAL("write me");
+	FWK_FATAL("write me");
 	return {};
 }
 
@@ -230,7 +230,7 @@ TEMPLATE IsectClass TSEG::classifyIsect(const Point &point) const {
 			return IsectClass::point;
 		}
 	} else {
-		FATAL("write me please");
+		FWK_FATAL("write me please");
 	}
 
 	return IsectClass::none;
@@ -356,7 +356,7 @@ TEMPLATE auto TSEG::clip(const Box<TVec> &input_rect) const -> Maybe<Segment<PRe
 	}
 
 	if constexpr(dim == 3) {
-		FATAL("write me");
+		FWK_FATAL("write me");
 	} else {
 		// TODO: naming
 		// TODO: early out

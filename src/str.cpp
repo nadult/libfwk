@@ -133,7 +133,7 @@ unsigned Str::hash() const {
 }
 
 void Str::invalidIndex(int idx) const {
-	FATAL("Str: Index %d out of range: [%d - %d]", idx, 0, m_size);
+	FWK_FATAL("Str: Index %d out of range: [%d - %d]", idx, 0, m_size);
 }
 
 vector<string> tokenize(ZStr str, char c) {

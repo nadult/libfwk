@@ -161,7 +161,7 @@ MeshIndices MeshIndices::changeTopology(MeshIndices indices, Topology new_type) 
 		return indices;
 
 	if(new_type == Topology::triangle_strip)
-		FATAL("Please write me");
+		FWK_FATAL("Please write me");
 	if(new_type == Topology::triangle_list) {
 		auto tris = indices.trisIndices();
 		indices.m_data.reserve(tris.size() * 3);

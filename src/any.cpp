@@ -21,8 +21,8 @@ namespace detail {
 	}
 
 	void reportAnyError(TypeInfo requested, TypeInfo current) {
-		FATAL("Invalid value type in any: %s; requested: %s", current.name().c_str(),
-			  requested.name().c_str());
+		FWK_FATAL("Invalid value type in any: %s; requested: %s", current.name().c_str(),
+				  requested.name().c_str());
 	}
 
 }

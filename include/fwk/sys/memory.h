@@ -8,7 +8,7 @@
 
 namespace fwk {
 
-// Either returns valid pointer or fails on FATAL
+// Either returns valid pointer or fails on FWK_FATAL
 // Default new[] and delete[] operators also use these functions.
 void *allocate(size_t size);
 void *allocate(size_t size, size_t alignment);

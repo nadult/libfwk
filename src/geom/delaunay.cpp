@@ -391,7 +391,7 @@ vector<VertexIdPair> cdtFilterSide(const GeomGraph<int2> &igraph, CSpan<VertexId
 	//DASSERT(igraph.isPlanar()); // TODO: make it work
 	PERF_SCOPE();
 
-	FATAL("test me");
+	FWK_FATAL("test me");
 	GeomGraph<int2> temp;
 	for(auto vert : igraph.verts())
 		temp.addVertexAt(vert, igraph(vert));

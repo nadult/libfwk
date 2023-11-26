@@ -289,7 +289,7 @@ Ex<CompilationResult> ShaderCompiler::compileFile(VShaderStage stage, ZStr file_
 
 ShaderDefId ShaderCompiler::add(ShaderDefinition def) {
 	if(find(def.name))
-		FATAL("ShaderDefinition already exists: '%s'", def.name.c_str());
+		FWK_FATAL("ShaderDefinition already exists: '%s'", def.name.c_str());
 	auto id = ShaderDefId(m_impl->shader_defs.nextFreeIndex());
 
 	m_impl->shader_def_map.emplace(def.name, id);
@@ -336,7 +336,7 @@ Maybe<ShaderDefId> ShaderCompiler::find(ZStr name) const {
 const ShaderDefinition &ShaderCompiler::operator[](ZStr name) const {
 	auto id = find(name);
 	if(!id)
-		FATAL("ShaderDefinition not found: '%s'", name.c_str());
+		FWK_FATAL("ShaderDefinition not found: '%s'", name.c_str());
 	return m_impl->shader_defs[*id];
 }
 

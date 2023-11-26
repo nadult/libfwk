@@ -43,13 +43,13 @@ CellId Voronoi::cellId(EdgeId id) const {
 
 vector<EdgeId> Voronoi::arcSegments(EdgeId edge) const {
 	vector<EdgeId> out;
-	FATAL("write me");
+	FWK_FATAL("write me");
 	return out;
 }
 
 vector<EdgeId> Voronoi::cellArcs(CellId) const {
 	vector<EdgeId> out;
-	FATAL("write me");
+	FWK_FATAL("write me");
 	return out;
 }
 

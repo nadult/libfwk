@@ -118,7 +118,7 @@ vector<ColoredTriangle> Mesh::coloredTris(CSpan<IColor> colors) const {
 vector<Mesh> Mesh::split(int max_vertices) const {
 	vector<Mesh> out;
 	if(!hasIndices())
-		FATAL("Write me, please");
+		FWK_FATAL("Write me, please");
 
 	for(int n = 0; n < m_indices.size(); n++) {
 		const auto &sub_indices = m_indices[n];
@@ -139,7 +139,7 @@ Mesh Mesh::merge(vector<Mesh> meshes) {
 	// TODO: Merging skinned meshes
 	for(const auto &mesh : meshes) {
 		if(!mesh.hasIndices())
-			FATAL("Write me");
+			FWK_FATAL("Write me");
 	}
 
 	if(meshes.size() == 1)
@@ -263,7 +263,7 @@ vector<float3> Mesh::lines() const {
 vector<SimpleDrawCall> Mesh::genDrawCalls(VulkanDevice &device, const SimpleMaterialSet &materials,
 										  const AnimatedData *anim_data,
 										  const Matrix4 &matrix) const {
-	FATAL("writeme");
+	FWK_FATAL("writeme");
 	vector<SimpleDrawCall> out;
 	/*
 	if(anim_data) {

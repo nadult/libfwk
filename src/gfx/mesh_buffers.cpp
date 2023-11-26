@@ -122,7 +122,7 @@ vector<Matrix4> MeshBuffers::mapPose(const Pose &pose) const {
 
 MeshBuffers MeshBuffers::remap(const vector<int> &mapping) const {
 	if(hasSkin())
-		FATAL("FIXME");
+		FWK_FATAL("FIXME");
 
 	vector<float3> out_positions(mapping.size());
 	vector<float3> out_normals(normals ? mapping.size() : 0);

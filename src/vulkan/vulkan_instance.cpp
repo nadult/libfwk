@@ -207,7 +207,7 @@ Ex<void> VulkanInstance::initialize(VInstanceSetup setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
 
 	if(setup.version < VulkanVersion(1, 2, 0))
-		FATAL("FWK currently requires Vulkan version to be at least 1.2.0");
+		FWK_FATAL("FWK currently requires Vulkan version to be at least 1.2.0");
 	auto extensions = setup.extensions;
 	auto layers = setup.layers;
 

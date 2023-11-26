@@ -70,7 +70,7 @@ void Gui::updateDpiAndFonts(VulkanWindow &window, bool is_initial) {
 	// TODO: font recreation
 	/*auto *bd = ImGui_ImplVulkan_GetBackendData();
 	if(bd && bd->FontImage) {
-		FATAL("TODO: fixme");
+		FWK_FATAL("TODO: fixme");
 	}*/
 
 	if(!is_initial)

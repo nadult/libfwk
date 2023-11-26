@@ -43,7 +43,7 @@ GzipStream::~GzipStream() {
 	}
 }
 
-// TODO: use FATAL in these?
+// TODO: use FWK_FATAL in these?
 Ex<GzipStream> GzipStream::decompressor(Stream &input, Maybe<i64> load_limit) {
 	DASSERT(input.isLoading());
 

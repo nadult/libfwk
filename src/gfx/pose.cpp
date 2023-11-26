@@ -30,7 +30,7 @@ vector<int> Pose::mapNames(const vector<string> &names) const {
 		while(m_name_map[src_index].first != name) {
 			src_index++;
 			if(src_index == m_name_map.size())
-				FATAL("Cannot find node in pose: %s", name.c_str());
+				FWK_FATAL("Cannot find node in pose: %s", name.c_str());
 		}
 
 		out[dst_map[n].second] = m_name_map[src_index++].second;

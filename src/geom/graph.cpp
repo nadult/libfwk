@@ -456,7 +456,7 @@ Graph Graph::reversed() const {
 	Graph out;
 
 	if(numTris())
-		FATAL("check me");
+		FWK_FATAL("check me");
 
 	out.reserveEdges(edgesSpread());
 	out.reserveVerts(vertsSpread());
@@ -583,7 +583,7 @@ int Graph::compare(const Graph &rhs) const {
 	if(int cmp = m_tris.compare(rhs.m_tris))
 		return cmp;
 
-	FATAL("writeme");
+	FWK_FATAL("writeme");
 	return 0;
 }
 

@@ -43,8 +43,8 @@ BaseStream::~BaseStream() {
 	}
 }
 
-void BaseStream::saveData(CSpan<char>) { FATAL("Un-implemented saveData called"); }
-void BaseStream::loadData(Span<char>) { FATAL("Un-implemented loadData called"); }
+void BaseStream::saveData(CSpan<char>) { FWK_FATAL("Un-implemented saveData called"); }
+void BaseStream::loadData(Span<char>) { FWK_FATAL("Un-implemented loadData called"); }
 void BaseStream::seek(i64 pos) {
 	DASSERT_GE(pos, 0);
 	DASSERT_LE(pos, m_size);

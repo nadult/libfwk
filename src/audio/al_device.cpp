@@ -32,7 +32,7 @@ const char *errorToString(int id) {
 void testError(const char *message) {
 	int last_error = alGetError();
 	if(last_error != AL_NO_ERROR)
-		FATAL("%s. %s", message, errorToString(last_error));
+		FWK_FATAL("%s. %s", message, errorToString(last_error));
 }
 
 void uploadToBuffer(const Sound &sound, unsigned buffer_id) {
@@ -68,9 +68,9 @@ struct AlDevice::Impl {
 		: device(nullptr), context(nullptr), sources(max_sources, 0), free_sources(max_sources, 0),
 		  num_free_sources(0), last_time(0.0) {
 		if(!(device = alcOpenDevice(0)))
-			FATAL("Error in alcOpenDevice");
+			FWK_FATAL("Error in alcOpenDevice");
 		if(!(context = alcCreateContext(device, 0)))
-			FATAL("Error in alcCreateContext");
+			FWK_FATAL("Error in alcCreateContext");
 		alcMakeContextCurrent(context);
 
 		alGetError();

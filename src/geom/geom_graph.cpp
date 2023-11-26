@@ -48,7 +48,7 @@ GeomGraph<T>::GeomGraph(const Graph &graph, PodVector<Point> points, PointMap po
 	}
 
 	if(graph.numTris())
-		FATAL("handle me please");
+		FWK_FATAL("handle me please");
 }
 
 template <class T> GeomGraph<T>::GeomGraph(CSpan<Triangle> tris) {
@@ -221,7 +221,7 @@ template <class T> int GeomGraph<T>::compare(const GeomGraph &rhs) const {
 	// TODO: test it
 	if(auto cmp = Graph::compare(rhs))
 		return cmp;
-	FATAL("writeme");
+	FWK_FATAL("writeme");
 	//if(auto cmp = m_points.compare(rhs.m_points))
 	//	return cmp;
 	return 0;
@@ -355,7 +355,7 @@ template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors() const {
 	vector<EdgeId> out;
 
 	if constexpr(dim<T> == 3) {
-		FATAL("write me");
+		FWK_FATAL("write me");
 	}
 
 	auto grid = makeGrid();
