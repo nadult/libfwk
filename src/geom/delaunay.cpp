@@ -313,7 +313,7 @@ vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
 	DASSERT_EQ(num_errors, 0);
 #endif
 
-	int num_free = 0;
+	[[maybe_unused]] int num_free = 0;
 	for(auto vert : igraph.verts())
 		if(vert.numEdges() == 0)
 			num_free++;

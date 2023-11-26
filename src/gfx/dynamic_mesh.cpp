@@ -262,7 +262,7 @@ DynamicMesh::VertexId DynamicMesh::merge(CSpan<VertexId> range, const float3 &ta
 		auto pvalue = value(poly);
 		remove(poly);
 
-		int count = 0;
+		[[maybe_unused]] int count = 0;
 		for(auto &pvert : pverts)
 			if(isOneOf(pvert, range)) {
 				pvert = new_vert;
