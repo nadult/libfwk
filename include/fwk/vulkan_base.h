@@ -119,7 +119,7 @@ DEFINE_ENUM(VTexFilter, nearest, linear);
 DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 			mirror_clamp_to_edge);
 
-DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control, shader_clock);
+DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control, shader_clock, ray_tracing);
 using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
 DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);

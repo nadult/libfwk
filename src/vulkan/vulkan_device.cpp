@@ -185,6 +185,15 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 		m_features |= VDeviceFeature::shader_clock;
 	}
 
+	vector<string> raytracing_exts{{VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+									VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+									VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME}};
+	if(allOf(raytracing_exts,
+			 [&](const string &ext) { return anyOf(phys_info.extensions, ext); })) {
+		insertBack(exts, raytracing_exts);
+		m_features |= VDeviceFeature::ray_tracing;
+	}
+
 	makeSortedUnique(exts);
 
 	for(auto ext : exts)
@@ -213,6 +222,8 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 		subgroup_features.pNext = clock_features.pNext;
 		clock_features.pNext = &subgroup_features;
 	}
+
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR prop;
 
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};

@@ -135,10 +135,13 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES};
 	VkPhysicalDeviceSubgroupSizeControlProperties subgroup_control_props{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES};
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_props{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
 	VkPhysicalDeviceProperties2 props2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
 	props2.pNext = &subgroup_props;
 	subgroup_props.pNext = &subgroup_control_props;
+	subgroup_control_props.pNext = &raytracing_props;
 	vkGetPhysicalDeviceProperties2(handle, &props2);
 	subgroup_props.pNext = nullptr;
 	subgroup_control_props.pNext = nullptr;
@@ -148,6 +151,7 @@ static VulkanPhysicalDeviceInfo physicalDeviceInfo(VkPhysicalDevice handle) {
 	out.properties = props2.properties;
 	out.subgroup_props = subgroup_props;
 	out.subgroup_control_props = subgroup_control_props;
+	out.raytracing_pipeline_props = raytracing_props;
 	out.vendor_id = VVendorId::unknown;
 	if(props2.properties.vendorID == 4098)
 		out.vendor_id = VVendorId::amd;
