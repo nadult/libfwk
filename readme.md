@@ -89,6 +89,10 @@ Examples:
     included in extern/boost_polygon/, licensed under BSL 1.0.  
 	[http://www.boost.org/](http://www.boost.org/)
 
+* **Volk**   
+    included in extern/volk/, licensed under MIT license.
+	[https://github.com/zeux/volk](https://github.com/zeux/volk)
+
 
 ## License
 

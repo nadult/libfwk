@@ -13,7 +13,7 @@ namespace fwk {
 VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 
-VulkanFramebuffer::~VulkanFramebuffer() { deferredRelease<vkDestroyFramebuffer>(m_handle); }
+VulkanFramebuffer::~VulkanFramebuffer() { deferredRelease(vkDestroyFramebuffer, m_handle); }
 
 PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, PVRenderPass render_pass,
 										CSpan<PVImageView> colors, PVImageView depth) {
