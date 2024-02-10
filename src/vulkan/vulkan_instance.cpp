@@ -207,8 +207,16 @@ Ex<VInstanceRef> VulkanInstance::create(VInstanceSetup setup) {
 	return ref;
 }
 
+static bool s_volk_initialized = false;
+
 Ex<void> VulkanInstance::initialize(VInstanceSetup setup) {
 	bool enable_validation = setup.debug_levels && setup.debug_types;
+
+	if(!s_volk_initialized) {
+		if(volkInitialize() != VK_SUCCESS)
+			FWK_FATAL("Failed to load Vulkan functions. Is Vulkan available on this device?");
+		s_volk_initialized = true;
+	}
 
 	if(setup.version < VulkanVersion(1, 2, 0))
 		FWK_FATAL("FWK currently requires Vulkan version to be at least 1.2.0");
@@ -261,6 +269,7 @@ Ex<void> VulkanInstance::initialize(VInstanceSetup setup) {
 	create_info.ppEnabledLayerNames = layer_names.data();
 
 	FWK_VK_EXPECT_CALL(vkCreateInstance, &create_info, nullptr, &m_handle);
+	volkLoadInstance(m_handle);
 
 	if(enable_validation) {
 		VkDebugUtilsMessengerCreateInfoEXT create_info{

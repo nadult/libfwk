@@ -137,10 +137,10 @@ void VulkanSwapChain::release() {
 		image_view->image()->m_is_valid = false;
 	m_image_views.clear();
 	for(auto &sem : m_semaphores) {
-		deferredRelease<vkDestroySemaphore>(sem);
+		deferredRelease(vkDestroySemaphore, sem);
 		sem = nullptr;
 	}
-	deferredRelease<vkDestroySwapchainKHR>(m_handle);
+	deferredRelease(vkDestroySwapchainKHR, m_handle);
 	m_handle = nullptr;
 }
 

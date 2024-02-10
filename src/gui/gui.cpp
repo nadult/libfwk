@@ -16,6 +16,9 @@
 #include "fwk/vulkan/vulkan_swap_chain.h"
 #include "fwk/vulkan/vulkan_window.h"
 
+// This is needed so that imgui_impl_vulkan won't add it's own prototypes...
+#undef VK_NO_PROTOTYPES
+
 #include "../extern/imgui/backends/imgui_impl_vulkan.cpp"
 
 namespace fwk {

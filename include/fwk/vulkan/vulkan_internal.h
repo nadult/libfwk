@@ -6,7 +6,7 @@
 #include "fwk/enum_map.h"
 #include "fwk/vulkan_base.h"
 
-#include <vulkan/vulkan.h>
+#include "../extern/volk/volk.h"
 
 namespace fwk {
 

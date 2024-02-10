@@ -10,7 +10,6 @@
 #pragma comment(lib, "brotlicommon-static.lib")
 #pragma comment(lib, "bz2.lib")
 #pragma comment(lib, "zlib.lib")
-#pragma comment(lib, "vulkan-1.lib")
 #pragma comment(lib, "shaderc_shared.lib")
 #pragma comment(lib, "setupapi.lib")
 #pragma comment(lib, "version.lib")

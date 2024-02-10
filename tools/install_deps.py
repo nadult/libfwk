@@ -116,7 +116,8 @@ package_queries = [
     PackageQuery("vorbis", "1.3.7", windows_query),
     PackageQuery("zlib", "1.3", windows_query),
     PackageQuery("vulkan-headers", "1.3.236.0"),
-    PackageQuery("vulkan-loader", "1.3.236.0", "os=Windows and arch=x86_64"),
+    # VulkanLoader no longer needed (replaced with Volk)
+    # PackageQuery("vulkan-loader", "1.3.236.0", "os=Windows and arch=x86_64"),
     # TODO: shaderc is broken :(
     # PackageQuery("shaderc", "2021.1", "os=Windows"),
 ]

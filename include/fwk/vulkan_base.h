@@ -8,9 +8,10 @@
 #include "fwk/gfx_base.h"
 #include "fwk/tag_id.h"
 
-// TODO: move it to vulkan_internal.h; But only after most of the Vulkan definitions are hidden
-// Otherwise it makes no sense
-#include <vulkan/vulkan.h>
+#define VK_NO_PROTOTYPES
+
+// TODO: drop this dependency
+#include <vulkan/vulkan_core.h>
 
 namespace fwk {
 

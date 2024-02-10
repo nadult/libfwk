@@ -65,9 +65,12 @@ template <class T> class VulkanObjectBase {
 	void deferredRelease(void *, void *, ReleaseFunc);
 	void deferredFree(VMemoryBlockId);
 
-	template <auto vk_func, class THandle> void deferredRelease(THandle handle) {
-		deferredRelease(handle, nullptr, [](void *p0, void *p1, VkDevice device) {
-			vk_func(device, (THandle)p0, nullptr);
+	template <class THandle>
+	using VkDestroyFunc = void (*)(VkDevice, THandle, const VkAllocationCallbacks *);
+
+	template <class THandle> void deferredRelease(VkDestroyFunc<THandle> func_ptr, THandle handle) {
+		deferredRelease(handle, (void *)func_ptr, [](void *p0, void *p1, VkDevice device) {
+			reinterpret_cast<VkDestroyFunc<THandle>>(p1)(device, (THandle)p0, nullptr);
 		});
 	}
 

@@ -18,6 +18,7 @@
 #include "fwk/sys/input.h"
 #include "fwk/sys/thread.h"
 #include "fwk/vulkan/vulkan_instance.h"
+#include "fwk/vulkan/vulkan_internal.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
@@ -99,10 +100,10 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 		pos.x = pos.y = SDL_WINDOWPOS_CENTERED;
 	m_impl->window = SDL_CreateWindow(title.c_str(), pos.x, pos.y, size.x, size.y, sdl_flags);
 	if(!m_impl->window)
-		return ERROR("SDL_CreateWindow failed: %", SDL_GetError());
+		return FWK_ERROR("SDL_CreateWindow failed: %", SDL_GetError());
 	if(!SDL_Vulkan_CreateSurface(m_impl->window, m_impl->instance_ref->handle(),
 								 &m_impl->surface_handle))
-		return ERROR("SDL_Vulkan_CreateSurface failed: %", SDL_GetError());
+		return FWK_ERROR("SDL_Vulkan_CreateSurface failed: %", SDL_GetError());
 
 	return {};
 }

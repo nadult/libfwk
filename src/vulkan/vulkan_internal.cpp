@@ -1,6 +1,14 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
+#define VOLK_IMPLEMENTATION
+
+#ifdef _MSC_VER
+#define VK_USE_PLATFORM_WIN32_KHR
+#else
+#define VK_USE_PLATFORM_XLIB_KHR
+#endif
+
 #include "fwk/vulkan/vulkan_internal.h"
 
 namespace fwk {
