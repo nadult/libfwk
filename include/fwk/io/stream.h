@@ -47,6 +47,9 @@ template <class Base> class TStream : public Base {
 	template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!is_const<T> && is_flat_data<T>>...>
 	void loadData(TSpan &);
 
+	template <class T, EnableIf<is_flat_data<T>>...> void saveData(Span<const T>);
+	template <class T, EnableIf<!is_const<T> && is_flat_data<T>>...> void loadData(Span<T>);
+
 	// TODO: support for serializing vector< >, maybe < > of saveable ?
 	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator<<(const T &);
 	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator>>(T &);
@@ -173,6 +176,16 @@ void TSTREAM::saveData(const TSpan &data) {
 TEMPLATE template <class TSpan, class T, EnableIf<!is_const<T> && is_flat_data<T>>...>
 void TSTREAM::loadData(TSpan &data) {
 	this->loadData(span(data).template reinterpret<char>());
+}
+
+TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
+void TSTREAM::saveData(Span<const T> data) {
+	this->saveData(data.template reinterpret<char>());
+}
+
+TEMPLATE template <class T, EnableIf<!is_const<T> && is_flat_data<T>>...>
+void TSTREAM::loadData(Span<T> data) {
+	this->loadData(data.template reinterpret<char>());
 }
 
 TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
