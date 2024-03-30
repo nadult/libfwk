@@ -660,6 +660,9 @@
     <ClInclude Include="..\include\fwk\gfx\image_view.h">
       <Filter>include\gfx</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_ray_tracing.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1090,6 +1093,9 @@
     </ClCompile>
     <ClCompile Include="..\src\gfx\canvas_3d.cpp">
       <Filter>src\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_ray_tracing.cpp">
+      <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

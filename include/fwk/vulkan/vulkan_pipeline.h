@@ -282,6 +282,7 @@ struct VDescriptorSet {
 
 	void set(int first_index, VDescriptorType type, CSpan<VBufferSpan<char>>);
 	void set(int first_index, CSpan<Pair<PVSampler, PVImageView>>);
+	void set(int first_index, PVAccelStruct);
 
 	void setStorageImage(int index, PVImageView, VImageLayout);
 

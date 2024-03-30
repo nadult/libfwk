@@ -59,8 +59,8 @@ struct VulkanVersion {
 
 DEFINE_ENUM(VVendorId, intel, nvidia, amd, unknown);
 
-DEFINE_ENUM(VTypeId, buffer, buffer_view, framebuffer, image, image_view, pipeline, pipeline_layout,
-			render_pass, sampler, shader_module, swap_chain);
+DEFINE_ENUM(VTypeId, accel_struct, buffer, buffer_view, framebuffer, image, image_view, pipeline,
+			pipeline_layout, render_pass, sampler, shader_module, swap_chain);
 
 // device: fastest memory with device_local (always available)
 // host: fastest memory with host_visible (always available)
@@ -90,7 +90,8 @@ using VCommandPoolFlags = EnumFlags<VCommandPoolFlag>;
 DEFINE_ENUM(VBindPoint, graphics, compute);
 
 DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel_buffer, storage_texel_buffer,
-			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer);
+			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer,
+			accel_struct_build_input, accel_struct_storage);
 using VBufferUsageFlags = EnumFlags<VBufferUsage>;
 
 DEFINE_ENUM(VImageUsage, transfer_src, transfer_dst, sampled, storage, color_att, depth_stencil_att,
@@ -106,7 +107,7 @@ using VShaderStages = EnumFlags<VShaderStage>;
 
 DEFINE_ENUM(VDescriptorType, sampler, combined_image_sampler, sampled_image, storage_image,
 			uniform_texel_buffer, storage_texel_buffer, uniform_buffer, storage_buffer,
-			uniform_buffer_dynamic, storage_buffer_dynamic, input_att);
+			uniform_buffer_dynamic, storage_buffer_dynamic, input_att, accel_struct);
 using VDescriptorTypes = EnumFlags<VDescriptorType>;
 
 DEFINE_ENUM(VDescriptorPoolFlag, free_descriptor_set, update_after_bind, host_only);

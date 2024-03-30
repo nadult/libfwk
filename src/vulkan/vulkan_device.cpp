@@ -19,6 +19,7 @@
 #include "fwk/vulkan/vulkan_framebuffer.h"
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
+#include "fwk/vulkan/vulkan_ray_tracing.h"
 #include "fwk/vulkan/vulkan_shader.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 #include "fwk/vulkan/vulkan_window.h"
