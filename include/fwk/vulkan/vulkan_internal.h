@@ -12,11 +12,17 @@ namespace fwk {
 
 inline auto toVk(VShaderStage stage) { return VkShaderStageFlagBits(1u << int(stage)); }
 inline auto toVk(VShaderStages flags) { return VkShaderStageFlags(flags.bits); }
-inline auto toVk(VDescriptorType type) { return VkDescriptorType(type); }
+inline auto toVk(VDescriptorType type) {
+	return type == VDescriptorType::accel_struct ? VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR :
+												   VkDescriptorType(type);
+}
 inline auto toVk(VDescriptorPoolFlags flags) { return VkDescriptorPoolCreateFlagBits(flags.bits); }
 inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
 inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
-inline auto toVk(VBufferUsageFlags usage) { return VkBufferUsageFlags{usage.bits}; }
+inline auto toVk(VBufferUsageFlags usage) {
+	uint32_t base_bits{usage.bits & 0x1ffu}, accel_bits{usage.bits & 0x600u};
+	return VkBufferUsageFlags{base_bits | (accel_bits << 10)};
+}
 inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
 inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }
 inline auto toVk(VPresentMode mode) { return VkPresentModeKHR(mode); }

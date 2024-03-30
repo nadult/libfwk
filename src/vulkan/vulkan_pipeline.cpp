@@ -9,6 +9,7 @@
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
+#include "fwk/vulkan/vulkan_ray_tracing.h"
 #include "fwk/vulkan/vulkan_shader.h"
 
 namespace fwk {
@@ -162,6 +163,25 @@ void VDescriptorSet::setStorageImage(int index, PVImageView image_view, VImageLa
 	write.dstArrayElement = 0;
 	write.descriptorType = toVk(VDescriptorType::storage_image);
 	write.pImageInfo = &image_info;
+	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
+}
+
+void VDescriptorSet::set(int index, PVAccelStruct as) {
+	if(!(bindings_map & (1ull << index)))
+		return;
+	VkWriteDescriptorSetAccelerationStructureKHR as_info{
+		VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR};
+	auto as_handle = as->handle();
+	as_info.pAccelerationStructures = &as_handle;
+	as_info.accelerationStructureCount = 1;
+
+	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+	write.descriptorCount = 1;
+	write.dstSet = handle;
+	write.dstBinding = index;
+	write.dstArrayElement = 0;
+	write.descriptorType = toVk(VDescriptorType::storage_image);
+	write.pNext = &as_info;
 	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }
 

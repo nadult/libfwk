@@ -16,5 +16,6 @@ CASE_TYPE(RenderPass, VkRenderPass, render_pass)
 CASE_TYPE(ShaderModule, VkShaderModule, shader_module)
 CASE_TYPE(SwapChain, VkSwapchainKHR, swap_chain)
 CASE_TYPE(Sampler, VkSampler, sampler)
+CASE_TYPE(AccelStruct, VkAccelerationStructureKHR, accel_struct)
 
 #undef CASE_TYPE
