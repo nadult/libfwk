@@ -94,6 +94,12 @@ double VulkanPhysicalDeviceInfo::defaultScore() const {
 	return score;
 }
 
+VPhysicalDeviceType VulkanPhysicalDeviceInfo::deviceType() const {
+	if(properties.deviceType < count<VPhysicalDeviceType>)
+		return VPhysicalDeviceType(properties.deviceType);
+	return VPhysicalDeviceType::other;
+}
+
 vector<string> vulkanSurfaceExtensions() {
 	vector<string> out;
 	out.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);

@@ -28,6 +28,7 @@ DEFINE_ENUM(VVendor, intel, nvidia, amd, other);
 DEFINE_ENUM(VFeature, vertex_array_object, debug, copy_image, separate_shader_objects,
 			shader_draw_parameters, shader_ballot, shader_subgroup, texture_view, texture_storage,
 			texture_s3tc, texture_filter_anisotropic, timer_query);
+DEFINE_ENUM(VPhysicalDeviceType, other, integrated_gpu, discrete_gpu, virtual_gpu, cpu);
 using VFeatures = EnumFlags<VFeature>;
 
 DEFINE_ENUM(VDebugLevel, verbose, info, warning, error);
@@ -53,6 +54,7 @@ struct VulkanPhysicalDeviceInfo {
 	int findMemoryType(u32 type_bits, VMemoryFlags) const;
 	u64 deviceLocalMemorySize() const;
 	double defaultScore() const;
+	VPhysicalDeviceType deviceType() const;
 
 	VkPhysicalDevice handle;
 	VkPhysicalDeviceProperties properties;
