@@ -83,6 +83,7 @@ class VulkanMemoryManager {
 	struct DomainInfo {
 		VMemoryDomain domain;
 		VkDevice device_handle;
+		bool device_address = false;
 
 		int type_index = -1;
 		int heap_index = -1;

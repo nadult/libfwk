@@ -207,24 +207,40 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 
 	features.fillModeNonSolid = VK_TRUE;
 	features.samplerAnisotropy = VK_TRUE;
-	VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures ds_features{
-		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES};
-	ds_features.separateDepthStencilLayouts = VK_TRUE;
 	VkPhysicalDeviceShaderClockFeaturesKHR clock_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR};
 	clock_features.shaderDeviceClock = VK_TRUE;
 	clock_features.shaderSubgroupClock = VK_TRUE;
-	clock_features.pNext = &ds_features;
 
 	VkPhysicalDeviceSubgroupSizeControlFeatures subgroup_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_FEATURES};
 	if(m_features & VDeviceFeature::subgroup_size_control) {
 		subgroup_features.subgroupSizeControl = VK_TRUE;
-		subgroup_features.pNext = clock_features.pNext;
 		clock_features.pNext = &subgroup_features;
 	}
 
-	VkPhysicalDeviceRayTracingPipelinePropertiesKHR prop;
+	VkPhysicalDeviceVulkan12Features v12_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+	v12_features.pNext = &subgroup_features;
+	if(m_features & VDeviceFeature::ray_tracing)
+		v12_features.bufferDeviceAddress = VK_TRUE;
+	v12_features.separateDepthStencilLayouts = VK_TRUE;
+
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rt_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+	VkPhysicalDeviceRayQueryFeaturesKHR rq_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR acc_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+	if(m_features & VDeviceFeature::ray_tracing) {
+		rt_features.pNext = &rq_features;
+		rq_features.pNext = &acc_features;
+		acc_features.pNext = v12_features.pNext;
+		v12_features.pNext = &rt_features;
+		rt_features.rayTracingPipeline = VK_TRUE;
+		rq_features.rayQuery = VK_TRUE;
+		acc_features.accelerationStructure = VK_TRUE;
+	}
 
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
@@ -233,7 +249,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	ci.pEnabledFeatures = &features;
 	ci.enabledExtensionCount = c_exts.size();
 	ci.ppEnabledExtensionNames = c_exts.data();
-	ci.pNext = &clock_features;
+	ci.pNext = &v12_features;
 
 	m_phys_handle = phys_info.handle;
 	FWK_VK_EXPECT_CALL(vkCreateDevice, m_phys_handle, &ci, nullptr, &m_handle);
@@ -256,7 +272,9 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 					   &m_objects->pipeline_cache);
 
 	m_descriptors.emplace(m_handle);
-	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features, setup.memory);
+	auto mem_setup = setup.memory;
+	mem_setup.enable_device_address |= !!(m_features & VDeviceFeature::ray_tracing);
+	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features, mem_setup);
 
 	m_cmds = new VulkanCommandQueue(ref());
 	EXPECT(m_cmds->initialize(ref()));

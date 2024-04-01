@@ -20,8 +20,9 @@ inline auto toVk(VDescriptorPoolFlags flags) { return VkDescriptorPoolCreateFlag
 inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
 inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
 inline auto toVk(VBufferUsageFlags usage) {
-	uint32_t base_bits{usage.bits & 0x1ffu}, accel_bits{usage.bits & 0x600u};
-	return VkBufferUsageFlags{base_bits | (accel_bits << 10)};
+	uint32_t base_bits{usage.bits & 0x1ffu}, accel_bits{usage.bits & 0xc00u};
+	uint32_t device_addr_bits{usage.bits & 0x200u};
+	return VkBufferUsageFlags{base_bits | (device_addr_bits << 8) | (accel_bits << 9)};
 }
 inline auto toVk(VCommandPoolFlags flags) { return VkCommandPoolCreateFlagBits(flags.bits); }
 inline auto toVk(VMemoryFlags flags) { return VkMemoryPropertyFlags(flags.bits); }

@@ -10,10 +10,19 @@
 
 namespace fwk {
 
-static Ex<VkDeviceMemory> allocDeviceMemory(VkDevice device_handle, u32 size, uint type_index) {
+static Ex<VkDeviceMemory> allocDeviceMemory(VkDevice device_handle, u32 size, uint type_index,
+											bool device_address) {
+
 	VkMemoryAllocateInfo ai{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
 	ai.allocationSize = size;
 	ai.memoryTypeIndex = type_index;
+
+	VkMemoryAllocateFlagsInfo fi{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO};
+	if(device_address) {
+		fi.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+		ai.pNext = &fi;
+	}
+
 	VkDeviceMemory handle;
 	FWK_VK_EXPECT_CALL(vkAllocateMemory, device_handle, &ai, nullptr, &handle);
 	return handle;
@@ -52,6 +61,7 @@ VulkanMemoryManager::VulkanMemoryManager(VkDevice device_handle,
 		auto &info = m_domains[domain];
 		info.domain = domain;
 		info.device_handle = m_device_handle;
+		info.device_address = setup.enable_device_address;
 		info.type_index = type_index;
 		info.heap_index = heap_index;
 		info.heap_size = heap_size;
@@ -140,7 +150,8 @@ Ex<VMemoryBlock> VulkanMemoryManager::alloc(VMemoryDomain domain_id, u32 size, u
 
 Ex<VMemoryBlock> VulkanMemoryManager::unmanagedAlloc(VMemoryDomain domain_id, u32 size) {
 	auto &domain = m_domains[domain_id];
-	auto handle = EX_PASS(allocDeviceMemory(m_device_handle, size, domain.type_index));
+	auto handle =
+		EX_PASS(allocDeviceMemory(m_device_handle, size, domain.type_index, domain.device_address));
 
 	int index = -1;
 	for(int i : intRange(domain.unmanaged_memory))
@@ -308,7 +319,8 @@ u64 VulkanMemoryManager::slabAlloc(u64 size, uint zone_index, void *domain_ptr) 
 	if(size > max_allocation_size)
 		return 0;
 	DomainInfo &domain = *reinterpret_cast<DomainInfo *>(domain_ptr);
-	auto result = allocDeviceMemory(domain.device_handle, size, domain.type_index);
+	auto result =
+		allocDeviceMemory(domain.device_handle, size, domain.type_index, domain.device_address);
 	if(!result)
 		return 0;
 	DASSERT(zone_index == domain.slab_memory.size());

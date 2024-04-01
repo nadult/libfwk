@@ -91,7 +91,7 @@ DEFINE_ENUM(VBindPoint, graphics, compute);
 
 DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel_buffer, storage_texel_buffer,
 			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer,
-			accel_struct_build_input, accel_struct_storage);
+			device_address, accel_struct_build_input, accel_struct_storage);
 using VBufferUsageFlags = EnumFlags<VBufferUsage>;
 
 DEFINE_ENUM(VImageUsage, transfer_src, transfer_dst, sampled, storage, color_att, depth_stencil_att,
@@ -338,6 +338,7 @@ struct VMemoryManagerSetup {
 	// In case of disabled slab / frame allocation, simple unmanaged allocation will be used
 	bool enable_slab_allocator = true;
 	bool enable_frame_allocator = true;
+	bool enable_device_address = false;
 };
 
 struct VDeviceSetup {
