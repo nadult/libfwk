@@ -28,7 +28,7 @@ Ex<PVAccelStruct> VulkanAccelStruct::create(VulkanDevice &device, VAccelStructTy
 		VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR};
 	create_info.buffer = buffer.buffer().handle();
 	create_info.offset = buffer.byteOffset();
-	create_info.size = buffer.byteOffset();
+	create_info.size = buffer.byteSize();
 	create_info.type = VkAccelerationStructureTypeKHR(type);
 
 	VkAccelerationStructureKHR handle = 0;
@@ -37,14 +37,21 @@ Ex<PVAccelStruct> VulkanAccelStruct::create(VulkanDevice &device, VAccelStructTy
 	return device.createObject(handle, buffer.buffer());
 }
 
-template <class T> static u64 getAddress(VulkanDevice &device, VBufferSpan<T> buffer) {
+static u64 getAddress(VulkanDevice &device, const VulkanBuffer &buffer) {
 	VkBufferDeviceAddressInfo info = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
-	info.buffer = buffer.buffer().handle();
-	return vkGetBufferDeviceAddress(device.handle(), &info) + buffer.byteOffset();
+	info.buffer = buffer.handle();
+	return vkGetBufferDeviceAddress(device.handle(), &info);
+}
+
+template <class T> static u64 getAddress(VulkanDevice &device, VBufferSpan<T> buffer) {
+	return getAddress(device, *buffer.buffer()) + buffer.byteOffset();
 }
 
 Ex<PVAccelStruct> VulkanAccelStruct::build(VulkanDevice &device, VBufferSpan<float3> vertices,
 										   VBufferSpan<u32> indices) {
+	DASSERT(vertices.buffer()->usage() & VBufferUsage::accel_struct_build_input_read_only);
+	DASSERT(indices.buffer()->usage() & VBufferUsage::accel_struct_build_input_read_only);
+
 	VkAccelerationStructureGeometryTrianglesDataKHR triangles{
 		VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR};
 	triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
@@ -61,11 +68,12 @@ Ex<PVAccelStruct> VulkanAccelStruct::build(VulkanDevice &device, VBufferSpan<flo
 	geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
 	geometry.geometry.triangles = triangles;
 
-	VkAccelerationStructureBuildRangeInfoKHR offset;
-	offset.firstVertex = vertices.byteOffset() / sizeof(float3);
-	offset.primitiveCount = indices.size() / 3;
-	offset.primitiveOffset = 0;
-	offset.transformOffset = 0;
+	VkAccelerationStructureBuildRangeInfoKHR build_range_info;
+	build_range_info.firstVertex = vertices.byteOffset() / sizeof(float3);
+	build_range_info.primitiveCount = indices.size() / 3;
+	build_range_info.primitiveOffset = 0;
+	build_range_info.transformOffset = 0;
+	auto *build_range_infos = &build_range_info;
 
 	VkAccelerationStructureBuildGeometryInfoKHR build_info{
 		VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
@@ -79,22 +87,28 @@ Ex<PVAccelStruct> VulkanAccelStruct::build(VulkanDevice &device, VBufferSpan<flo
 		VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
 	uint32_t prim_count = indices.size() / 3;
 
-	vkGetAccelerationStructureBuildSizesKHR(
-		device.handle(),
-		VkAccelerationStructureBuildTypeKHR::VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-		&build_info, &prim_count, &size_info);
+	vkGetAccelerationStructureBuildSizesKHR(device.handle(),
+											VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+											&build_info, &prim_count, &size_info);
 
 	auto buffer = EX_PASS(VulkanBuffer::create(device, size_info.accelerationStructureSize,
 											   VBufferUsage::accel_struct_storage));
 	auto accel = EX_PASS(VulkanAccelStruct::create(device, VAccelStructType::bottom_level, buffer));
 
+	accel->m_scratch_buffer =
+		EX_PASS(VulkanBuffer::create(device, size_info.buildScratchSize,
+									 VBufferUsage::device_address | VBufferUsage::storage_buffer));
+	build_info.scratchData.deviceAddress = getAddress(device, *accel->m_scratch_buffer);
+
 	build_info.srcAccelerationStructure = accel->handle();
 	build_info.dstAccelerationStructure = accel->handle();
 
-	auto *offsets = &offset;
-
-	auto result =
-		vkBuildAccelerationStructuresKHR(device.handle(), nullptr, 1, &build_info, &offsets);
+	auto &cmds = device.cmdQueue();
+	auto cmd_handle = cmds.bufferHandle();
+	vkCmdBuildAccelerationStructuresKHR(cmd_handle, 1, &build_info, &build_range_infos);
+	// TODO: barriers here in case of multiple builds
+	// TODO: compacting
+	// TODO: clear scratch buffer once building is done
 
 	return accel;
 }

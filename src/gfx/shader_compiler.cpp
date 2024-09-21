@@ -182,9 +182,7 @@ ShaderCompiler::ShaderCompiler(ShaderCompilerSetup setup) {
 	}
 	uint vk_version = (setup.vulkan_version.major << 22) | (setup.vulkan_version.minor << 12);
 	shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan, vk_version);
-	if(setup.glsl_version)
-		shaderc_compile_options_set_forced_version_profile(opts, int(*setup.glsl_version * 100),
-														   shaderc_profile_none);
+
 	if(setup.spirv_version) {
 		int version = int(*setup.spirv_version * 10);
 		int major = version / 10;

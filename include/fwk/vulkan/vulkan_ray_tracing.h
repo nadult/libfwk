@@ -23,6 +23,7 @@ class VulkanAccelStruct : public VulkanObjectBase<VulkanAccelStruct> {
 	~VulkanAccelStruct();
 
 	PVBuffer m_buffer;
+	PVBuffer m_scratch_buffer;
 };
 
 }

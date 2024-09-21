@@ -27,11 +27,14 @@ Ex<vector<VDescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStag
 
 	for(int i : intRange(reflection->descriptor_binding_count)) {
 		auto &binding = reflection->descriptor_bindings[i];
-		uint desc_type = uint(binding.descriptor_type);
-		if(desc_type > count<VDescriptorType>)
-			return ERROR("Unsupported descriptor type: %", desc_type);
-		out.emplace_back(VDescriptorType(desc_type), flag(stage), binding.binding, binding.count,
-						 binding.set);
+		VDescriptorType desc_type;
+		if(binding.descriptor_type <= SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+			desc_type = VDescriptorType(binding.descriptor_type);
+		else if(binding.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+			desc_type = VDescriptorType::accel_struct;
+		else
+			return ERROR("Unsupported descriptor type: %", binding.descriptor_type);
+		out.emplace_back(desc_type, flag(stage), binding.binding, binding.count, binding.set);
 	}
 
 	// TODO: is this needed?

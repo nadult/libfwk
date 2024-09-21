@@ -16,6 +16,7 @@ inline auto toVk(VDescriptorType type) {
 	return type == VDescriptorType::accel_struct ? VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR :
 												   VkDescriptorType(type);
 }
+
 inline auto toVk(VDescriptorPoolFlags flags) { return VkDescriptorPoolCreateFlagBits(flags.bits); }
 inline auto toVk(VPrimitiveTopology type) { return VkPrimitiveTopology(type); }
 inline auto toVk(VImageUsageFlags usage) { return VkImageUsageFlags{usage.bits}; }
