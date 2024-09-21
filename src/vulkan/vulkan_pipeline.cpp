@@ -180,7 +180,7 @@ void VDescriptorSet::set(int index, PVAccelStruct as) {
 	write.dstSet = handle;
 	write.dstBinding = index;
 	write.dstArrayElement = 0;
-	write.descriptorType = toVk(VDescriptorType::storage_image);
+	write.descriptorType = toVk(VDescriptorType::accel_struct);
 	write.pNext = &as_info;
 	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
 }

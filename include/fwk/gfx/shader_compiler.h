@@ -14,8 +14,7 @@ struct ShaderCompilerSetup {
 	vector<FilePath> source_dirs;
 	Maybe<FilePath> spirv_cache_dir;
 	VulkanVersion vulkan_version = {1, 2, 0};
-	Maybe<double> glsl_version = 4.5;
-	Maybe<double> spirv_version = 1.3;
+	Maybe<double> spirv_version = 1.5;
 	bool debug_info = false;
 	bool generate_assembly = false;
 };

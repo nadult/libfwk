@@ -186,9 +186,9 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 		m_features |= VDeviceFeature::shader_clock;
 	}
 
-	vector<string> raytracing_exts{{VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-									VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-									VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME}};
+	vector<string> raytracing_exts{
+		{VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+		 VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, VK_KHR_RAY_QUERY_EXTENSION_NAME}};
 	if(allOf(raytracing_exts,
 			 [&](const string &ext) { return anyOf(phys_info.extensions, ext); })) {
 		insertBack(exts, raytracing_exts);
