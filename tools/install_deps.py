@@ -115,26 +115,9 @@ package_queries = [
     PackageQuery("sdl", "2.26.1", windows_query),
     PackageQuery("vorbis", "1.3.7", windows_query),
     PackageQuery("zlib", "1.3", windows_query),
+    PackageQuery("shaderc", "2024.1", windows_query),
     PackageQuery("vulkan-headers", "1.3.236.0"),
-    # VulkanLoader no longer needed (replaced with Volk)
-    # PackageQuery("vulkan-loader", "1.3.236.0", "os=Windows and arch=x86_64"),
-    # TODO: shaderc is broken :(
-    # PackageQuery("shaderc", "2021.1", "os=Windows"),
 ]
-
-
-def get_shaderc(install_path: str):
-    print('Downloading shaderc package...')
-    file_name = 'shaderc-2021-01-windows.zip'
-    url = f'https://github.com/nadult/libfwk/releases/download/v0.1/{file_name}'
-    if os.path.isfile(file_name):
-        os.remove(file_name)
-    urllib.request.urlretrieve(url, file_name)
-    print(f"Extracting shaderc...")
-    zip_file = zipfile.ZipFile(file_name, 'r')
-    zip_file.extractall(install_path)
-    zip_file.close()
-    os.remove(file_name)
 
 
 def main():
@@ -155,7 +138,6 @@ def main():
     install_path = os.path.join(install_path, 'x86_64')
     print(f"Installing packages at: {install_path}")
     os.makedirs(install_path, exist_ok=True)
-    get_shaderc(install_path)
 
     # TODO: multithreading
     for query in package_queries:
