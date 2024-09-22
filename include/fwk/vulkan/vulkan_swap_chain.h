@@ -55,11 +55,12 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 	VWindowRef m_window;
 	VSwapChainSetup m_setup;
 	vector<PVImageView> m_image_views;
-	VkSemaphore m_semaphores[2] = {};
+	array<VkSemaphore, 4> m_semaphores = {};
 	VkQueue m_present_queue;
 	VkFormat m_format;
 	int2 m_size;
 	uint m_image_index = 0;
+	uint m_semaphore_index = 0;
 	Status m_status = Status::initialized;
 };
 }
