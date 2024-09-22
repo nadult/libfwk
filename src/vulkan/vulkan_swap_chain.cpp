@@ -167,10 +167,10 @@ Ex<VkSemaphore> VulkanSwapChain::acquireImage() {
 			return nullptr;
 	}
 
-	VkResult result;
+	auto semaphore = m_semaphores[m_semaphore_index];
 	for(int retry = 0; retry < 2; retry++) {
-		result = vkAcquireNextImageKHR(deviceHandle(), m_handle, UINT64_MAX, m_semaphores[0],
-									   VK_NULL_HANDLE, &m_image_index);
+		VkResult result = vkAcquireNextImageKHR(deviceHandle(), m_handle, UINT64_MAX, semaphore,
+												VK_NULL_HANDLE, &m_image_index);
 		if(result == VK_SUCCESS)
 			break;
 		EXPECT(recreate());
@@ -179,8 +179,10 @@ Ex<VkSemaphore> VulkanSwapChain::acquireImage() {
 	}
 
 	m_status = Status::image_acquired;
-	swap(m_semaphores[0], m_semaphores[1]);
-	return m_semaphores[1];
+	m_semaphore_index++;
+	if(m_semaphore_index >= m_semaphores.size())
+		m_semaphore_index = 0;
+	return semaphore;
 }
 
 PVImageView VulkanSwapChain::acquiredImage() const {
