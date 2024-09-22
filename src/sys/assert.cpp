@@ -30,7 +30,9 @@ void fatalError(const char *file, int line, const char *fmt, ...) {
 #else
 	Backtrace::t_is_enabled = true;
 	onFailMakeError(file, line, buffer).print();
-	asm("int $3");
+#ifdef FWK_PLATFORM_MSVC
+	__debugbreak();
+#endif
 #endif
 	exit(1);
 }
@@ -56,7 +58,9 @@ void assertFailed(const char *file, int line, const char *text) {
 #else
 	Backtrace::t_is_enabled = true;
 	onFailMakeError(file, line, buffer).print();
-	asm("int $3");
+#ifdef FWK_PLATFORM_MSVC
+	__debugbreak();
+#endif
 #endif
 	exit(1);
 }

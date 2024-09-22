@@ -35,7 +35,9 @@ namespace detail {
 
 		Backtrace::t_is_enabled = true;
 		onFailMakeError(info->file, info->line, out.text()).print();
-		asm("int $3");
+#ifdef FWK_PLATFORM_MSVC
+		__debugbreak();
+#endif
 		exit(1);
 	}
 
