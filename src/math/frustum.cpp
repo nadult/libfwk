@@ -15,6 +15,7 @@ static Plane3F makePlane(const float4 &vec) {
 }
 
 Frustum::Frustum(const Matrix4 &view_proj) {
+	DASSERT(!isNan(view_proj.values()));
 	Matrix4 t = transpose(view_proj);
 
 	planes[PlaneId::left] = makePlane(t[3] + t[0]);
