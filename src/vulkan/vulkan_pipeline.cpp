@@ -169,9 +169,12 @@ void VDescriptorSet::setStorageImage(int index, PVImageView image_view, VImageLa
 void VDescriptorSet::set(int index, PVAccelStruct as) {
 	if(!(bindings_map & (1ull << index)))
 		return;
+
+	if(as)
+		DASSERT(as->type() == VAccelStructType::top_level);
 	VkWriteDescriptorSetAccelerationStructureKHR as_info{
 		VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR};
-	auto as_handle = as->handle();
+	auto as_handle = as.handle();
 	as_info.pAccelerationStructures = &as_handle;
 	as_info.accelerationStructureCount = 1;
 
