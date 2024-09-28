@@ -33,6 +33,9 @@ FppCamera FppCamera::closest(const Camera &cam) {
 	auto fwd = cam.forward();
 	auto fwd_xz = fwd.xz();
 
+	// TODO: fix it for cases where fwd_xz is close to 0
+	DASSERT(lengthSq(fwd_xz) >= 0.001f);
+
 	float best = 0.0;
 	float best_dist = inf;
 	for(int n = 0; n < 1024; n++) {
