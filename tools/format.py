@@ -1,43 +1,58 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import argparse, os, re, subprocess, shutil
 
 
-def find_clang_format_cmd():
-    names = ['clang-format-17', 'clang-format']
-    for name in names:
-        if shutil.which(name) is not None:
-            return name
-    print("clang-format is missing")
-    exit(1)
+class CodeFormatter:
+    def __init__(self, expected_version=17):
+        self.expected_version = expected_version
+        self.clang_format_cmd = self._find_clang_format_cmd()
+        self._verify_clang_format()
+
+    def _find_clang_format_cmd(self):
+        names = [f"clang-format-{self.expected_version}", "clang-format"]
+        for name in names:
+            if shutil.which(name) is not None:
+                return name
+        raise Exception(f"{names[0]} is missing")
+
+    def _verify_clang_format(self):
+        result = subprocess.run([self.clang_format_cmd, "--version"], stdout=subprocess.PIPE)
+        tokens = result.stdout.decode("utf-8").split()
+        while len(tokens) > 0 and tokens[0] != "clang-format":
+            tokens.pop(0)
+        if (
+            result.returncode != 0
+            or len(tokens) < 3
+            or tokens[0] != "clang-format"
+            or tokens[1] != "version"
+        ):
+            raise Exception(f"error while checking clang-format version (version string: {tokens})")
+        version = tokens[2].split(".", 2)
+        print(f"clang-format version: {version[0]}.{version[1]}.{version[2]}")
+
+        if int(version[0]) < self.expected_version:
+            raise Exception(
+                "clang-format is too old; At least version {self.expected_version} is required"
+            )
+
+    def format_cpp(self, files, check: bool):
+        print("Checking code formatting..." if check else "Formatting code...")
+        full_command = [self.clang_format_cmd, "-i"]
+        if check:
+            full_command += ["--dry-run", "-Werror"]
+        full_command += files
+        result = subprocess.run(full_command)
+
+        if check:
+            if result.returncode != 0:
+                exit(1)
+            print("All OK")
 
 
-def verify_clang_format(cmd):
-    result = subprocess.run([cmd, '--version'], stdout=subprocess.PIPE)
-    tokens = result.stdout.decode("utf-8").split()
-    while len(tokens) > 0 and tokens[0] != 'clang-format':
-        tokens.pop(0)
-    if (
-        result.returncode != 0
-        or len(tokens) < 3
-        or tokens[0] != 'clang-format'
-        or tokens[1] != 'version'
-    ):
-        print('error while checking clang-format version')
-        print("version string: " + str(tokens))
-        exit(1)
-    version = tokens[2].split('.', 2)
-    print(f"clang-format version: {version[0]}.{version[1]}.{version[2]}")
-
-    if int(version[0]) < 17:
-        print("clang-format is too old; At least version 17 is required")
-        exit(1)
-
-
-def find_cpp_files():
+def find_files(root_dirs, regex):
     out = []
-    regex = re.compile('(.*\.h$)|(.*\.cpp$)')
-    for root_dir in ['include', 'src']:
+    for root_dir in root_dirs:
         for root, dirs, files in os.walk(root_dir):
             for file in files:
                 if regex.match(file):
@@ -45,35 +60,16 @@ def find_cpp_files():
     return out
 
 
-def format_cpp(cf_cmd, check: bool):
-    print("Checking C++ code formatting..." if check else "Formatting C++ code...")
-    full_command = [cf_cmd, '-i']
-    if check:
-        full_command += ['--dry-run', '-Werror']
-    full_command += find_cpp_files()
-    result = subprocess.run(full_command)
-
-    if check:
-        if result.returncode != 0:
-            exit(1)
-        print("All OK")
-
-
-def main():
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog='libfwk-format',
-        description='Tool for code formatting and format verification',
+        prog=__file__,
+        description="Tool for code formatting and format verification",
     )
-    parser.add_argument('-c', '--check', action='store_true')
+    parser.add_argument("-c", "--check", action="store_true")
     args = parser.parse_args()
 
-    libfwk_path = os.path.join(__file__, '..')
-
-    clang_format_cmd = find_clang_format_cmd()
-    verify_clang_format(clang_format_cmd)
-
-    format_cpp(clang_format_cmd, args.check)
-
-
-if __name__ == "__main__":
-    main()
+    formatter = CodeFormatter()
+    libfwk_path = os.path.abspath(os.path.join(__file__, "../.."))
+    os.chdir(libfwk_path)
+    files = find_files(["include", "src"], re.compile(".*[.](h|cpp)$"))
+    formatter.format_cpp(files, args.check)
