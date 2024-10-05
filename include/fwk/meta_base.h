@@ -177,6 +177,18 @@ template <class T> constexpr int type_size = sizeof(T);
 
 template <class T> using Decay = std::decay_t<T>;
 
+// Can be used to pass string literals into templates. Example:
+// template <ConstString string> void foo() { print("%\n", string.string); }
+// foo<"Example string">();
+template <int N> struct ConstString {
+	consteval ConstString(const char (&str)[N]) {
+		for(int i = 0; i < N; i++)
+			string[i] = str[i];
+		string[N] = 0;
+	}
+	char string[N + 1];
+};
+
 // Certain types may be constructed in such a way that besides normal value can also hold
 // 'special' values. These special values can be used by data structures such as Maybe<> or HashMap<>
 // to mark these values as empty or unused, so that no additional memory needs to be spent for storage
