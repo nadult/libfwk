@@ -103,7 +103,7 @@ namespace detail {
 	}
 
 	void formatSpan(TextFormatter &out, const char *data, int size, int obj_size, TFFunc);
-	string autoPrintFormat(const char *args);
+	string autoPrintFormat(const array<const char *, 8> &);
 
 	template <class... T> struct TFFuncs {
 		static constexpr TFFunc funcs[] = {getTFFunc<T>()...};
@@ -337,7 +337,8 @@ template <c_formattible... T> string format(const char *str, T &&...);
 template <c_formattible... T> void print(const char *str, T &&...);
 template <c_formattible... T> void printPlain(const char *str, T &&...);
 
-#define FWK_DUMP(...) fwk::print(fwk::detail::autoPrintFormat(#__VA_ARGS__).c_str(), __VA_ARGS__)
+#define FWK_DUMP(...)                                                                              \
+	fwk::print(fwk::detail::autoPrintFormat({FWK_STRINGIZE_MANY(__VA_ARGS__)}).c_str(), __VA_ARGS__)
 }
 
 #endif

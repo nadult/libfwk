@@ -105,6 +105,20 @@
 #define FWK_JOIN(a, b) FWK_JOIN_(a, b)
 #define FWK_JOIN_(a, b) a##b
 
+#define FWK_NUM_ARGS_(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
+#define FWK_NUM_ARGS(args...) FWK_NUM_ARGS_(args..., 8, 7, 6, 5, 4, 3, 2, 1)
+
+#define FWK_STRINGIZE_1(x) #x
+#define FWK_STRINGIZE_2(x, x2) #x, #x2
+#define FWK_STRINGIZE_3(x, x2, x3) #x, #x2, #x3
+#define FWK_STRINGIZE_4(x, x2, x3, x4) #x, #x2, #x3, #x4
+#define FWK_STRINGIZE_5(x, x2, x3, x4, x5) #x, #x2, #x3, #x4, #x5
+#define FWK_STRINGIZE_6(x, x2, x3, x4, x5, x6) #x, #x2, #x3, #x4, #x5, #x6
+#define FWK_STRINGIZE_7(x, x2, x3, x4, x5, x6, x7) #x, #x2, #x3, #x4, #x5, #x6
+#define FWK_STRINGIZE_8(x, x2, x3, x4, x5, x6, x7, x8) #x, #x2, #x3, #x4, #x5, #x6, #x7, #x8
+
+#define FWK_STRINGIZE_MANY(args...) FWK_JOIN(FWK_STRINGIZE_, FWK_NUM_ARGS(args))(args)
+
 namespace fwk {
 
 using std::string;
