@@ -10,52 +10,6 @@
 #include <cxxabi.h>
 #endif
 
-/*
-// Problems with __PRETTY_FUNCTION__:
-// - different compilers give different results in __PRETTY_FUNCTION__
-// - a bit longer compile times?
-// - cxa_demangle should give similar results
-
-// __PRETTY_FUNCTION__ based type names:
-template <int N> struct FixedString {
-	constexpr FixedString(char const *s) {
-		for(int i = 0; i < N; i++)
-			buf[i] = s[i];
-		buf[N] = 0;
-	}
-	char buf[N + 1];
-};
-
-static constexpr const char *getName() {
-	char const *name = __PRETTY_FUNCTION__;
-	while(*name++ != '=')
-		;
-	while(*name == ' ')
-		name++;
-	return name;
-}
-
-static constexpr int getNameSize() {
-	auto start = getName();
-	auto end = start;
-	int bracketCount = 1;
-	for(;; ++end) {
-		if(*end == '[')
-			bracketCount++;
-		if(*end == ']') {
-			--bracketCount;
-			if(!bracketCount)
-				return end - start;
-		}
-	}
-	return {};
-}
-
-#ifdef __clang__
-	static constexpr FixedString<getNameSize()> name{getName()};
-#endif
-*/
-
 namespace fwk {
 namespace detail {
 
@@ -74,6 +28,15 @@ namespace detail {
 		return 0;
 	}();
 
+	static constexpr Pair<const char *> replacements[] = {
+		{"std::basic_string<char,std::char_traits<char>,std::allocator<char> >", "std::string"},
+		{"std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >",
+		 "std::string"},
+#ifdef FWK_PLATFORM_MSVC
+		{"* __ptr64", "*"}
+#endif
+	};
+
 	void addTypeName(const TypeInfoData &data, const char *mangled_name) {
 #ifdef FWK_PLATFORM_MSVC
 		string demangled_name;
@@ -81,6 +44,7 @@ namespace detail {
 		demangled_name.reserve(length);
 		Pair<const char *, int> prefixes[] = {{"struct ", 7}, {"class ", 6}, {"enum ", 5}};
 
+		// Removing redundant MSVC-specific qualifiers
 		for(int i = 0; i < length; i++) {
 			bool prefix_matched = false;
 			if(i == 0 || (!isalnum(mangled_name[i - 1]) && mangled_name[i - 1] != '_'))
@@ -108,8 +72,38 @@ namespace detail {
 			is_volatile = data.reference_base->is_volatile;
 		}
 
+		// Adding missing qualifiers
 		string name = format("%%%%", demangled_name, is_const ? " const" : "",
 							 is_volatile ? " volatile" : "", data.reference_base ? "&" : "");
+
+		// Replacing long substrings with shorter ones
+		for(auto &replacement : replacements) {
+			ZStr source = replacement.first;
+			while(true) {
+				auto it = name.find(source.c_str(), 0, source.size());
+				if(it == string::npos)
+					break;
+				name.replace(it, source.size(), replacement.second);
+			}
+		}
+
+		// Normalizing spaces around pointers & references and in template parameters
+		auto is_ident = [](char c) { return isalnum(c) || c == '_' || c == '$'; };
+		string new_name;
+		new_name.reserve(name.size());
+		for(size_t i = 0; i < name.size(); i++) {
+			char prev = i == 0 ? 0 : name[i - 1];
+			char cur = name[i], next = i + 1 < name.size() ? name[i + 1] : 0;
+
+			if(cur == ' ' && ((prev == '*' || prev == '&') || (prev == '>' && next == '>')))
+				continue;
+			if(((cur == '*' || cur == '&') && (is_ident(prev) || prev == '>')) ||
+			   (prev == ',' && cur != ' '))
+				new_name += ' ';
+			new_name += cur;
+		}
+		name.swap(new_name);
+
 #ifndef FWK_PLATFORM_MSVC
 		free(demangled_name);
 #endif
