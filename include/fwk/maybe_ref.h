@@ -13,7 +13,8 @@ template <class T> class MaybeRef {
 	enum { is_const = fwk::is_const<T> };
 
 	MaybeRef(Maybe<T> &rhs) : m_ptr(rhs ? rhs.get() : nullptr) {}
-	template <class U = T, EnableIf<fwk::is_const<U>>...>
+	template <class U = T>
+		requires(fwk::is_const<U>)
 	MaybeRef(const Maybe<RemoveConst<T>> &rhs) : m_ptr(rhs ? rhs.get() : nullptr) {}
 
 	MaybeRef(T &ref) : m_ptr(&ref) {}

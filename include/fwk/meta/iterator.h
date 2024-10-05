@@ -18,7 +18,9 @@ constexpr bool is_random_iter = is_forward_iter<T> && std::is_integral_v<SubResu
 
 template <class T> using IterBase = RemoveReference<DereferenceResult<T>>;
 
-template <class IT, EnableIf<is_forward_iter<IT>>...> auto distance(IT begin, IT end) {
+template <class IT>
+	requires(is_forward_iter<IT>)
+auto distance(IT begin, IT end) {
 	long long ret;
 	if constexpr(is_random_iter<IT>) {
 		PASSERT(end >= begin);

@@ -26,10 +26,12 @@ template <class T> class SparseSpan {
 		: SparseSpan(data, valids.data(), size, valids.size()) {}
 	SparseSpan(CSpan<T> span)
 		: m_data(span.data()), m_valids(nullptr), m_size(span.size()), m_spread(span.size()) {}
-	template <class USpan, class U = RemoveConst<SpanBase<USpan>>, EnableIf<is_same<T, U>>...>
+	template <class USpan, class U = RemoveConst<SpanBase<USpan>>>
+		requires(is_same<T, U>)
 	SparseSpan(const USpan &span) : SparseSpan(cspan(span)) {}
 
-	template <class U = T, EnableIf<is_same<U, T>>...>
+	template <class U = T>
+		requires(is_same<U, T>)
 	SparseSpan(const SparseVector<U> &vec)
 		: m_data(vec.rawData()), m_valids(vec.valids().data()), m_size(vec.size()),
 		  m_spread(vec.spread()) {

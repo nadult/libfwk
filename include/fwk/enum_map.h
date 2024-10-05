@@ -37,18 +37,21 @@ template <class Enum, class T> class EnumMap {
 	// ---------------------------------------------------------------
 	// ----- Initializers with all values specified ------------------
 
-	template <class U, int N, EnableIf<is_convertible<U, T>>...> EnumMap(CSpan<U, N> values) {
+	template <class U, int N>
+		requires(is_convertible<U, T>)
+	EnumMap(CSpan<U, N> values) {
 		DASSERT(values.size() == size_ && "Invalid number of values specified");
 		std::copy(values.begin(), values.end(), m_data);
 	}
-	template <class U, int N, EnableIf<is_convertible<U, T>>...>
+	template <class U, int N>
+		requires(is_convertible<U, T>)
 	EnumMap(CSpan<Pair<Enum, U>, N> pairs) {
 		IF_DEBUG(checkPairs(pairs));
 		for(auto &pair : pairs)
 			m_data[(int)pair.first] = pair.second;
 	}
-	template <class USpan, class U = SpanBase<USpan>,
-			  EnableIf<is_convertible<U, T> || is_convertible<U, Pair<Enum, T>>>...>
+	template <class USpan, class U = SpanBase<USpan>>
+		requires(is_convertible<U, T> || is_convertible<U, Pair<Enum, T>>)
 	EnumMap(const USpan &span) : EnumMap(cspan(span)) {}
 
 	template <int N> EnumMap(const Pair<Enum, T> (&arr)[N]) : EnumMap(CSpan<Pair<Enum, T>>(arr)) {

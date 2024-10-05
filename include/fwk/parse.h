@@ -138,8 +138,14 @@ TextParser &operator>>(TextParser &parser, vector<T> &vec) EXCEPT {
 	return parser;
 }
 
-template <class T, EnableIf<is_one_of<T, Str, ZStr, string>>...> T fromString(ZStr v) { return v; }
-template <class T, EnableIf<is_parsable<T> && !is_enum<T> && !is_one_of<T, Str, ZStr, string>>...>
+template <class T>
+	requires(is_one_of<T, Str, ZStr, string>)
+T fromString(ZStr v) {
+	return v;
+}
+
+template <c_parsable T>
+	requires(!is_enum<T> && !is_one_of<T, Str, ZStr, string>)
 T fromString(ZStr str) EXCEPT {
 	TextParser parser(str);
 	T out;
@@ -151,7 +157,8 @@ T fromString(ZStr str) EXCEPT {
 	return out;
 }
 
-template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...>
+template <c_parsable T>
+	requires(!is_enum<T>)
 T tryFromString(ZStr str, const T &on_error = {}) NOEXCEPT {
 	QuietExceptionBlock quiet;
 	TextParser parser(str);
@@ -166,7 +173,8 @@ T tryFromString(ZStr str, const T &on_error = {}) NOEXCEPT {
 	return out;
 }
 
-template <class T, EnableIf<is_parsable<T> && !is_enum<T>>...>
+template <c_parsable T>
+	requires(!is_enum<T>)
 Maybe<T> maybeFromString(ZStr str) NOEXCEPT {
 	QuietExceptionBlock quiet;
 	TextParser parser(str);

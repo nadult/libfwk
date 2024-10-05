@@ -41,7 +41,8 @@ template <class T, int max_size_> class StaticVector {
 		rhs.m_size = 0;
 	}
 	operator CSpan<T>() const { return {data(), size()}; }
-	template <class URange, class U = RangeBase<URange>, EnableIf<is_convertible<U, T>>...>
+	template <class URange>
+		requires(is_convertible<RangeBase<URange>, T>)
 	StaticVector(const URange &range) : StaticVector() {
 		PASSERT(fwk::size(range) <= max_size);
 		for(auto &elem : range)

@@ -89,19 +89,17 @@ template <class T> AllEnums<T>::operator EnumFlags<T>() const {
 	return EnumFlags<T>{EnumFlags<T>::mask};
 }
 
-template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> flag(T val) {
-	return EnumFlags<T>(val);
-}
+template <c_enum T> constexpr EnumFlags<T> flag(T val) { return EnumFlags<T>(val); }
 
-template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator|(T lhs, T rhs) {
+template <c_enum T> constexpr EnumFlags<T> operator|(T lhs, T rhs) {
 	return EnumFlags<T>(lhs) | rhs;
 }
 
-template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator&(T lhs, T rhs) {
+template <c_enum T> constexpr EnumFlags<T> operator&(T lhs, T rhs) {
 	return EnumFlags<T>(lhs) & rhs;
 }
 
-template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator^(T lhs, T rhs) {
+template <c_enum T> constexpr EnumFlags<T> operator^(T lhs, T rhs) {
 	return EnumFlags<T>(lhs) ^ rhs;
 }
 
@@ -109,17 +107,16 @@ template <class T> constexpr EnumFlags<T> operator|(T lhs, EnumFlags<T> rhs) { r
 template <class T> constexpr EnumFlags<T> operator&(T lhs, EnumFlags<T> rhs) { return rhs & lhs; }
 template <class T> constexpr EnumFlags<T> operator^(T lhs, EnumFlags<T> rhs) { return rhs ^ lhs; }
 
-template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> operator~(T bit) {
-	return ~EnumFlags<T>(bit);
-}
+template <c_enum T> constexpr EnumFlags<T> operator~(T bit) { return ~EnumFlags<T>(bit); }
 
 template <class T> constexpr EnumFlags<T> mask(bool cond, AllEnums<T>) {
 	return EnumFlags<T>{cond ? EnumFlags<T>::mask : typename EnumFlags<T>::Base()};
 }
-template <class T, EnableIfEnum<T>...> constexpr EnumFlags<T> mask(bool cond, T val) {
+template <c_enum T> constexpr EnumFlags<T> mask(bool cond, T val) {
 	return cond ? val : EnumFlags<T>();
 }
-template <class C, class T, EnableIf<is_convertible<C, bool>>...>
+template <class C, class T>
+	requires(is_convertible<C, bool>)
 constexpr EnumFlags<T> mask(C cond, EnumFlags<T> val) {
 	return cond ? val : EnumFlags<T>();
 }

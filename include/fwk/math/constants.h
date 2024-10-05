@@ -11,28 +11,34 @@ DEFINE_ENUM(NumberType, integral, rational, real, infinity);
 
 template <NumberType type = NumberType::real> struct RealConstant {
 	constexpr RealConstant(long double val, bool sign = false) : val(val), sign(sign) {}
-	template <class T, EnableIf<is_scalar<T>>...> constexpr operator T() const {
-		return sign ? -T(val) : T(val);
-	}
+	template <c_scalar T> constexpr operator T() const { return sign ? -T(val) : T(val); }
 	constexpr RealConstant operator-() const { return {val, !sign}; }
 
-#define IF_FPT template <class T, EnableIf<is_fpt<T>>...>
+	template <c_fpt T> constexpr T operator*(T val) const { return T(*this) * val; }
+	template <c_fpt T> constexpr T operator/(T val) const { return T(*this) / val; }
+	template <c_fpt T> constexpr T operator-(T val) const { return T(*this) - val; }
+	template <c_fpt T> constexpr T operator+(T val) const { return T(*this) + val; }
+	template <c_fpt T> constexpr bool operator<(T val) const { return T(*this) < val; }
 
-	IF_FPT constexpr T operator*(T val) const { return T(*this) * val; }
-	IF_FPT constexpr T operator/(T val) const { return T(*this) / val; }
-	IF_FPT constexpr T operator-(T val) const { return T(*this) - val; }
-	IF_FPT constexpr T operator+(T val) const { return T(*this) + val; }
-	IF_FPT constexpr bool operator<(T val) const { return T(*this) < val; }
+	template <c_fpt T> friend constexpr T operator*(T v, const RealConstant &rc) {
+		return v * T(rc);
+	}
+	template <c_fpt T> friend constexpr T operator/(T v, const RealConstant &rc) {
+		return v / T(rc);
+	}
+	template <c_fpt T> friend constexpr T operator-(T v, const RealConstant &rc) {
+		return v - T(rc);
+	}
+	template <c_fpt T> friend constexpr T operator+(T v, const RealConstant &rc) {
+		return v + T(rc);
+	}
 
-	IF_FPT friend constexpr T operator*(T v, const RealConstant &rc) { return v * T(rc); }
-	IF_FPT friend constexpr T operator/(T v, const RealConstant &rc) { return v / T(rc); }
-	IF_FPT friend constexpr T operator-(T v, const RealConstant &rc) { return v - T(rc); }
-	IF_FPT friend constexpr T operator+(T v, const RealConstant &rc) { return v + T(rc); }
-
-	IF_FPT friend constexpr bool operator==(T v, const RealConstant &rc) { return v == T(rc); }
-	IF_FPT friend constexpr bool operator<(T v, const RealConstant &rc) { return v < T(rc); }
-
-#undef IF_FPT
+	template <c_fpt T> friend constexpr bool operator==(T v, const RealConstant &rc) {
+		return v == T(rc);
+	}
+	template <c_fpt T> friend constexpr bool operator<(T v, const RealConstant &rc) {
+		return v < T(rc);
+	}
 
 	long double val;
 	bool sign;

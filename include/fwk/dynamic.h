@@ -26,7 +26,8 @@ template <typename T> class Dynamic {
 	explicit Dynamic(T *ptr) : m_ptr(ptr) {}
 	Dynamic(Dynamic &&x) : m_ptr(x.release()) {}
 
-	template <class U, EnableIf<is_convertible<U *, T *>>...>
+	template <class U>
+		requires(is_convertible<U *, T *>)
 	Dynamic(Dynamic<U> &&rhs) : m_ptr(rhs.release()) {}
 
 	// At least one argument is required (otherwise default Dynamic constructor will be selected)
@@ -42,7 +43,9 @@ template <typename T> class Dynamic {
 	Dynamic(const Dynamic &rhs) : m_ptr(rhs.clone()) {}
 	~Dynamic() { reset(); }
 
-	template <class U, EnableIf<is_convertible<U *, T *>>...> Dynamic &operator=(Dynamic<U> &&rhs) {
+	template <class U>
+		requires(is_convertible<U *, T *>)
+	Dynamic &operator=(Dynamic<U> &&rhs) {
 		reset(rhs.release());
 		return *this;
 	}

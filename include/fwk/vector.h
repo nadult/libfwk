@@ -50,18 +50,23 @@ template <class T> class Vector {
 		for(int idx = 0; idx < size; idx++)
 			new(((T *)m_base.data) + idx) T(default_value);
 	}
-	template <class IT, EnableIf<is_input_iter<IT>>...> Vector(IT first, IT last) : Vector() {
+	template <class IT>
+		requires(is_input_iter<IT>)
+	Vector(IT first, IT last) : Vector() {
 		assign(first, last);
 	}
 
 	Vector(std::initializer_list<T> il) : Vector(il.begin(), il.end()) {}
 	Vector(CSpan<T> span) : Vector(span.begin(), span.end()) {}
-	template <class U, int size, EnableIf<is_same<RemoveConst<U>, T>>...>
+	template <class U, int size>
+		requires(is_same<RemoveConst<U>, T>)
 	Vector(Span<U, size> span) : Vector(CSpan<T>(span)) {}
 
 	void swap(Vector &rhs) { m_base.swap(rhs.m_base); }
 
-	template <class IT, EnableIf<is_input_iter<IT>>...> void assign(IT first, IT last) {
+	template <class IT>
+		requires(is_input_iter<IT>)
+	void assign(IT first, IT last) {
 		if(trivial_destruction)
 			m_base.assignPartialPod(sizeof(T), fwk::distance(first, last));
 		else
@@ -203,7 +208,9 @@ template <class T> class Vector {
 
 	T *insert(const T *pos, const T &value) { return insert(pos, &value, (&value) + 1); }
 
-	template <class IT, EnableIf<is_input_iter<IT>>...> T *insert(const T *pos, IT first, IT last) {
+	template <class IT>
+		requires(is_input_iter<IT>)
+	T *insert(const T *pos, IT first, IT last) {
 		int offset = pos - begin();
 		if(trivial_move_constr && trivial_destruction)
 			m_base.insertPodPartial(sizeof(T), offset, fwk::distance(first, last));

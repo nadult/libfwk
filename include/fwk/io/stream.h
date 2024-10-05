@@ -42,31 +42,35 @@ template <class Base> class TStream : public Base {
 	using Base::seek;
 
 	// TODO: rename to save/load Span
-	template <class TSpan, class T = SpanBase<TSpan>, EnableIf<is_flat_data<T>>...>
+	template <c_span TSpan>
+		requires(is_flat_data<SpanBase<TSpan>>)
 	void saveData(const TSpan &);
-	template <class TSpan, class T = SpanBase<TSpan>, EnableIf<!is_const<T> && is_flat_data<T>>...>
+	template <c_span TSpan>
+		requires(!is_const<SpanBase<TSpan>> && is_flat_data<SpanBase<TSpan>>)
 	void loadData(TSpan &);
 
-	template <class T, EnableIf<is_flat_data<T>>...> void saveData(Span<const T>);
-	template <class T, EnableIf<!is_const<T> && is_flat_data<T>>...> void loadData(Span<T>);
+	template <c_flat_data T> void saveData(Span<const T>);
+	template <c_flat_data T>
+		requires(!is_const<T>)
+	void loadData(Span<T>);
 
 	// TODO: support for serializing vector< >, maybe < > of saveable ?
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator<<(const T &);
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator>>(T &);
+	template <c_flat_data T> TStream &operator<<(const T &);
+	template <c_flat_data T> TStream &operator>>(T &);
 
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator>>(Maybe<T> &);
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator<<(const Maybe<T> &);
+	template <c_flat_data T> TStream &operator>>(Maybe<T> &);
+	template <c_flat_data T> TStream &operator<<(const Maybe<T> &);
 
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator>>(vector<T> &);
-	template <class T, EnableIf<is_flat_data<T>>...> TStream &operator<<(const vector<T> &);
+	template <c_flat_data T> TStream &operator>>(vector<T> &);
+	template <c_flat_data T> TStream &operator<<(const vector<T> &);
 
-	template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...> void unpack(Args &...);
-	template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...> void pack(const Args &...);
+	template <c_flat_data... Args> void unpack(Args &...);
+	template <c_flat_data... Args> void pack(const Args &...);
 
-	template <class T, EnableIf<is_flat_data<T>>...> void saveVector(CSpan<T>);
+	template <c_flat_data T> void saveVector(CSpan<T>);
 
-	template <class T, EnableIf<is_flat_data<T>>...> PodVector<T> loadVector();
-	template <class T, EnableIf<is_flat_data<T>>...> PodVector<T> loadVector(int vector_size);
+	template <c_flat_data T> PodVector<T> loadVector();
+	template <c_flat_data T> PodVector<T> loadVector(int vector_size);
 
 	TStream &operator<<(Str);
 	TStream &operator>>(string &);
@@ -168,69 +172,66 @@ using Stream = TStream<BaseStream>;
 #define TEMPLATE template <class TBase>
 #define TSTREAM TStream<TBase>
 
-TEMPLATE template <class TSpan, class T, EnableIf<is_flat_data<T>>...>
+TEMPLATE template <c_span TSpan>
+	requires(is_flat_data<SpanBase<TSpan>>)
 void TSTREAM::saveData(const TSpan &data) {
 	this->saveData(cspan(data).template reinterpret<char>());
 }
 
-TEMPLATE template <class TSpan, class T, EnableIf<!is_const<T> && is_flat_data<T>>...>
+TEMPLATE template <c_span TSpan>
+	requires(!is_const<SpanBase<TSpan>> && is_flat_data<SpanBase<TSpan>>)
 void TSTREAM::loadData(TSpan &data) {
 	this->loadData(span(data).template reinterpret<char>());
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
-void TSTREAM::saveData(Span<const T> data) {
+TEMPLATE template <c_flat_data T> void TSTREAM::saveData(Span<const T> data) {
 	this->saveData(data.template reinterpret<char>());
 }
 
-TEMPLATE template <class T, EnableIf<!is_const<T> && is_flat_data<T>>...>
+TEMPLATE template <c_flat_data T>
+	requires(!is_const<T>)
 void TSTREAM::loadData(Span<T> data) {
 	this->loadData(data.template reinterpret<char>());
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
-TSTREAM &TSTREAM::operator<<(const T &obj) {
+TEMPLATE template <c_flat_data T> TSTREAM &TSTREAM::operator<<(const T &obj) {
 	saveData(cspan(&obj, 1).template reinterpret<char>());
 	return *this;
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...> TSTREAM &TSTREAM::operator>>(T &obj) {
+TEMPLATE template <c_flat_data T> TSTREAM &TSTREAM::operator>>(T &obj) {
 	loadData(span(&obj, 1).template reinterpret<char>());
 	return *this;
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
-TSTREAM &TSTREAM::operator>>(vector<T> &vec) {
+TEMPLATE template <c_flat_data T> TSTREAM &TSTREAM::operator>>(vector<T> &vec) {
 	auto bytes = BaseStream::loadVector(sizeof(T));
 	auto elems = bytes.template reinterpret<T>();
 	elems.unsafeSwap(vec);
 	return *this;
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
-TSTREAM &TSTREAM::operator<<(const vector<T> &vec) {
+TEMPLATE template <c_flat_data T> TSTREAM &TSTREAM::operator<<(const vector<T> &vec) {
 	BaseStream::saveVector(cspan(vec).template reinterpret<char>(), sizeof(T));
 	return *this;
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...> void TSTREAM::saveVector(CSpan<T> vec) {
+TEMPLATE template <c_flat_data T> void TSTREAM::saveVector(CSpan<T> vec) {
 	BaseStream::saveVector(vec.template reinterpret<char>(), sizeof(T));
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...> PodVector<T> TSTREAM::loadVector() {
+TEMPLATE template <c_flat_data T> PodVector<T> TSTREAM::loadVector() {
 	auto bytes = BaseStream::loadVector(sizeof(T));
 	auto out = bytes.template reinterpret<T>();
 	return out;
 }
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
-PodVector<T> TSTREAM::loadVector(int vector_size) {
+TEMPLATE template <c_flat_data T> PodVector<T> TSTREAM::loadVector(int vector_size) {
 	auto bytes = BaseStream::loadVector(vector_size, sizeof(T));
 	auto out = bytes.template reinterpret<T>();
 	return out;
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
-TSTREAM &TSTREAM::operator>>(Maybe<T> &obj) {
+TEMPLATE template <c_flat_data T> TSTREAM &TSTREAM::operator>>(Maybe<T> &obj) {
 	char exists;
 	*this >> exists;
 	if(exists) {
@@ -243,24 +244,21 @@ TSTREAM &TSTREAM::operator>>(Maybe<T> &obj) {
 	return *this;
 }
 
-TEMPLATE template <class T, EnableIf<is_flat_data<T>>...>
-TSTREAM &TSTREAM::operator<<(const Maybe<T> &obj) {
+TEMPLATE template <c_flat_data T> TSTREAM &TSTREAM::operator<<(const Maybe<T> &obj) {
 	*this << char(obj ? 1 : 0);
 	if(obj)
 		*this << *obj;
 	return *this;
 }
 
-TEMPLATE template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...>
-void TSTREAM::unpack(Args &...args) {
+TEMPLATE template <c_flat_data... Args> void TSTREAM::unpack(Args &...args) {
 	char buffer[(sizeof(Args) + ...)];
 	loadData(buffer);
 	int offset = 0;
 	((memcpy(&args, buffer + offset, sizeof(Args)), offset += sizeof(Args)), ...);
 }
 
-TEMPLATE template <class... Args, EnableIf<(is_flat_data<Args> && ...)>...>
-void TSTREAM::pack(const Args &...args) {
+TEMPLATE template <c_flat_data... Args> void TSTREAM::pack(const Args &...args) {
 	char buffer[(sizeof(Args) + ...)];
 	int offset = 0;
 	((memcpy(buffer + offset, &args, sizeof(Args)), offset += sizeof(Args)), ...);
