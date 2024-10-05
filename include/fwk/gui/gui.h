@@ -69,9 +69,9 @@ class Gui {
 	template <class TEnum> bool selectFlags(EnumFlags<TEnum> &flag);
 	template <class T> bool inputValue(ZStr title, T &value);
 
-	template <class Enum, EnableIfEnum<Enum>...> bool selectEnum(ZStr title, Enum &value);
+	template <c_enum Enum> bool selectEnum(ZStr title, Enum &value);
 
-	template <class EType, class Index, class GetFunc, class SetFunc, EnableIfEnum<EType>...>
+	template <c_enum EType, class Index, class GetFunc, class SetFunc>
 	void modifyEnums(ZStr title, const vector<Index> &selection, const GetFunc &get_func,
 					 const SetFunc &set_func);
 

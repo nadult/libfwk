@@ -15,7 +15,8 @@ constexpr bool compatibleSizes(size_t a, size_t b) { return a > b ? a % b == 0 :
 template <class T, int min_size /*= 0*/> class Span {
   public:
 	using value_type = RemoveConst<T>;
-	static constexpr int is_const = fwk::is_const<T>, minimum_size = min_size;
+	static constexpr bool is_const = fwk::is_const<T>;
+	static constexpr int minimum_size = min_size;
 	static_assert(min_size >= 0, "min_size should be >= 0");
 
 	Span(T *data, int size, NoAssertsTag) : m_data(data), m_size(size) {
@@ -49,20 +50,22 @@ template <class T, int min_size /*= 0*/> class Span {
 	Span(const Span &other) : m_data(other.m_data), m_size(other.m_size) {}
 	Span &operator=(const Span &) = default;
 
-	template <int rhs_min_size, EnableIf<rhs_min_size >= min_size>...>
+	template <int rhs_min_size>
+		requires(rhs_min_size >= min_size)
 	Span(Span<T, rhs_min_size> range) : m_data(range.data()), m_size(range.size()) {}
 
-	template <class U = T, EnableIf<fwk::is_const<U>>...>
+	template <class U = T>
+		requires(fwk::is_const<U>)
 	Span(const Span<value_type, min_size> &range) : m_data(range.data()), m_size(range.size()) {}
 
 	Span(const std::initializer_list<T> &list) : Span(list.begin(), list.end()) {}
 
-	template <class TSpan, class Base = SpanBase<TSpan>,
-			  EnableIf<is_same<Base, T> && !is_same<TSpan, Span>>...>
+	template <c_span TSpan>
+		requires(is_same<SpanBase<TSpan>, T> && !is_same<TSpan, Span>)
 	Span(TSpan &rhs) : Span(fwk::data(rhs), fwk::size(rhs)) {}
 
-	template <class TSpan, class Base = SpanBase<TSpan>,
-			  EnableIf<is_same<Base, value_type> && !is_same<TSpan, Span> && is_const>...>
+	template <c_span TSpan>
+		requires(is_same<SpanBase<TSpan>, value_type> && !is_same<TSpan, Span> && is_const)
 	Span(const TSpan &rhs) : Span(fwk::data(rhs), fwk::size(rhs)) {}
 
 	const T *begin() const { return m_data; }
@@ -102,7 +105,8 @@ template <class T, int min_size /*= 0*/> class Span {
 		return {m_data + start, end - start};
 	}
 
-	template <class U, EnableIf<is_same<RemoveConst<U>, value_type>>...>
+	template <class U>
+		requires(is_same<RemoveConst<U>, value_type>)
 	bool operator==(Span<U> rhs) const {
 		if(m_size != rhs.size())
 			return false;
@@ -112,7 +116,8 @@ template <class T, int min_size /*= 0*/> class Span {
 		return true;
 	}
 
-	template <class U, EnableIf<is_same<RemoveConst<U>, value_type>>...>
+	template <class U>
+		requires(is_same<RemoveConst<U>, value_type>)
 	bool operator<(Span<U> rhs) const {
 		return std::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
 	}
@@ -132,11 +137,10 @@ template <class T, int min_size /*= 0*/> class Span {
 
 template <class T, int min_size = 0> using CSpan = Span<const T, min_size>;
 
-template <class TSpan, class T = SpanBase<TSpan>> Span<T> span(TSpan &span) {
+template <c_span TSpan, class T = SpanBase<TSpan>> Span<T> span(TSpan &span) {
 	return Span<T>(span);
 }
-
-template <class TSpan, class T = SpanBase<TSpan>> CSpan<T> cspan(const TSpan &span) {
+template <c_span TSpan, class T = SpanBase<TSpan>> CSpan<T> cspan(const TSpan &span) {
 	return CSpan<T>(span);
 }
 
@@ -148,15 +152,16 @@ template <class T> CSpan<T> cspan(T *ptr, int size) { return CSpan<T>(ptr, size)
 template <class T> CSpan<T> cspan(T *begin, const T *end) { return CSpan<T>(begin, end); }
 template <class T> CSpan<T> cspan(const std::initializer_list<T> &list) { return CSpan<T>(list); }
 
-template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int start) {
+template <c_span TSpan> Span<SpanBase<TSpan>> subSpan(TSpan &v, int start) {
 	return span(v).subSpan(start);
 }
 
-template <class TSpan, class T = SpanBase<TSpan>> Span<T> subSpan(TSpan &v, int start, int end) {
+template <c_span TSpan> Span<SpanBase<TSpan>> subSpan(TSpan &v, int start, int end) {
 	return span(v).subSpan(start, end);
 }
 
-template <class TSpan, class T, class TB = SpanBase<TSpan>, EnableIf<is_same<T, TB>>...>
+template <c_span TSpan, class T>
+	requires(is_same<T, SpanBase<TSpan>>)
 int spanMemberIndex(const TSpan &span, const T &elem) {
 	auto *ptr = &elem;
 	PASSERT("Element is not a member of span" && ptr >= span.begin() && ptr < span.end());

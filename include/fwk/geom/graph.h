@@ -218,7 +218,7 @@ class Graph {
 	// Edges are directed from parents to their children
 	static Graph makeForest(CSpan<Maybe<VertexId>> parents);
 
-	template <class T, EnableIf<is_scalar<T>>...>
+	template <c_scalar T>
 	Graph minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected = false) const;
 
 	Graph shortestPathTree(CSpan<VertexId> sources,

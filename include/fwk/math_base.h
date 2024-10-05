@@ -278,6 +278,7 @@ constexpr bool is_integral = std::is_integral<T>::value || is_one_of<T, uint128,
 template <class T> constexpr bool is_fpt = std::is_floating_point<T>::value;
 template <class T> constexpr bool is_fundamental = is_integral<T> || is_fpt<T>;
 template <class T> constexpr bool is_rational = detail::RatSize<T>::value != -1;
+template <class T> concept c_fpt = is_fpt<T>;
 
 template <class T> constexpr bool is_ext24 = false;
 template <class T> constexpr bool is_ext24<Ext24<T>> = true;

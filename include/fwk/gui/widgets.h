@@ -62,14 +62,14 @@ template <class T> bool Gui::inputValue(ZStr title, T &value) {
 	return changed;
 }
 
-template <class Enum, EnableIfEnum<Enum>...> bool Gui::selectEnum(ZStr title, Enum &value) {
+template <c_enum Enum> bool Gui::selectEnum(ZStr title, Enum &value) {
 	array<const char *, count<Enum>> strings;
 	for(auto val : all<Enum>)
 		strings[(int)val] = toString(val);
 	return selectIndex(title, value, strings);
 }
 
-template <class EType, class Index, class GetFunc, class SetFunc, EnableIfEnum<EType>...>
+template <c_enum EType, class Index, class GetFunc, class SetFunc>
 void Gui::modifyEnums(ZStr title, const vector<Index> &selection, const GetFunc &get_func,
 					  const SetFunc &set_func) {
 	if(!selection)

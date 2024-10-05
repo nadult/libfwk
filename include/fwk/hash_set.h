@@ -17,7 +17,9 @@ template <typename TKey> class HashSet {
 	using Key = TKey;
 
 	template <bool is_const> struct TIter {
-		template <bool to_const, EnableIf<!is_const && to_const>...> operator TIter<to_const>() {
+		template <bool to_const>
+			requires(!is_const && to_const)
+		operator TIter<to_const>() {
 			return {map, idx};
 		}
 

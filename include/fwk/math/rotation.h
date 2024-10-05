@@ -8,8 +8,8 @@
 
 namespace fwk {
 
-template <class T, EnableIf<is_fpt<T>>...> T degToRad(T v) { return v * T((2.0 * pi) / 360.0); }
-template <class T, EnableIf<is_fpt<T>>...> T radToDeg(T v) { return v * T(360.0 / (2.0 * pi)); }
+template <c_fpt T> T degToRad(T v) { return v * T((2.0 * pi) / 360.0); }
+template <c_fpt T> T radToDeg(T v) { return v * T(360.0 / (2.0 * pi)); }
 
 // Return angle in range (0; 2 * PI)
 float normalizeAngle(float radians); // TODO: clampAngle ?

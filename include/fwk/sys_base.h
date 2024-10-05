@@ -307,6 +307,7 @@ template <class TFunc> Cleanup(TFunc) -> Cleanup<TFunc>;
 template <class T>
 inline constexpr bool is_flat_data = std::is_arithmetic<T>::value || std::is_enum<T>::value;
 template <class T, int N> inline constexpr bool is_flat_data<Array<T, N>> = is_flat_data<T>;
+template <class T> concept c_flat_data = is_flat_data<T>;
 
 // Implemented in logger.[h|cpp]
 void log(Str message, Str unique_key);

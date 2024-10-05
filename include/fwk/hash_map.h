@@ -78,7 +78,9 @@ template <class K, class V, class Policy> class HashMap {
 		using MapPtr = If<is_const, const HashMap *, HashMap *>;
 		using KVRef = If<keeps_pairs, KeyValue &, KeyValue>;
 
-		template <bool to_const, EnableIf<!is_const && to_const>...> operator TIter<to_const>() {
+		template <bool to_const>
+			requires(!is_const && to_const)
+		operator TIter<to_const>() {
 			return {map, idx};
 		}
 

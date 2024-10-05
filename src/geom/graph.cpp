@@ -369,7 +369,7 @@ bool Graph::isUndirected(Layers layers) const {
 	return true;
 }
 
-template <class T, EnableIf<is_scalar<T>>...>
+template <c_scalar T>
 Graph Graph::minimumSpanningTree(CSpan<T> edge_weights, bool as_undirected) const {
 	DASSERT_GE(edge_weights.size(), edgesSpread());
 
