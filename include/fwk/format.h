@@ -338,7 +338,10 @@ template <c_formattible... T> void print(const char *str, T &&...);
 template <c_formattible... T> void printPlain(const char *str, T &&...);
 
 #define FWK_DUMP(...)                                                                              \
-	fwk::print(fwk::detail::autoPrintFormat({FWK_STRINGIZE_MANY(__VA_ARGS__)}).c_str(), __VA_ARGS__)
+	fwk::print(                                                                                    \
+		("Dump at %:%:\n" + fwk::detail::autoPrintFormat({FWK_STRINGIZE_MANY(__VA_ARGS__)}))       \
+			.c_str(),                                                                              \
+		__FILE__, __LINE__, __VA_ARGS__)
 }
 
 #endif

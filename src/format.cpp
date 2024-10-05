@@ -24,6 +24,7 @@ namespace detail {
 		};
 
 		bool back_trim = false;
+		int arg_id = 0;
 		for(auto &arg : args) {
 			if(!arg)
 				break;
@@ -36,17 +37,19 @@ namespace detail {
 
 			DASSERT(elem);
 			back_trim = true;
-			if(elem[0] == '"' && elem[elem.size() - 1] == '"') {
-				out << "%";
-				back_trim = false;
-			} else if(anyOf(elem, isspace)) {
-				out << '"';
+			out << "- arg #" << arg_id;
+
+			bool is_string_literal = elem[0] == '"' && elem[elem.size() - 1] == '"';
+			bool is_numeric_value = allOf(elem, [](char c) { return isdigit(c) || c == '.'; });
+			bool is_const_value = is_string_literal || is_numeric_value;
+
+			if(!is_const_value) {
+				out << " (";
 				append_elem(elem);
-				out << "\":% ";
-			} else {
-				append_elem(elem);
-				out << ":% ";
+				out << ')';
 			}
+			out << ": %\n";
+			arg_id++;
 		}
 
 		if(back_trim)
