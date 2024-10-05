@@ -228,17 +228,22 @@ void testMaybe() {
 }
 
 void testTypeInfo() {
-	ASSERT_EQ(typeInfo<float const &>().name(), string("float const&"));
-	ASSERT_EQ(typeInfo<int volatile const &>().name(), string("int const volatile&"));
-#ifndef FWK_PLATFORM_WINDOWS
-	// TODO: on windows pointers are named __ptr64 ...
-	ASSERT_EQ(typeInfo<vector<const int *> const &>().name(),
-			  string("fwk::Vector<int const*> const&"));
+	ASSERT_EQ(typeInfo<float const &>().name(), "float const &");
+	ASSERT_EQ(typeInfo<int volatile const &>().name(), "int const volatile &");
+
+	ASSERT_EQ(typeInfo<vector<const int *> const &>().name(), "fwk::Vector<int const *> const &");
 	ASSERT_EQ(typeInfo<int const *const *&>().referenceBase()->pointerBase()->name(),
-			  string("int const* const"));
-	ASSERT_EQ(typeInfo<double *volatile>().asConst().name(), string("double* const volatile"));
-#endif
-	ASSERT_EQ(typeInfo<double &>().asConst().name(), string("double&"));
+			  "int const *const");
+	ASSERT_EQ(typeInfo<double *volatile>().asConst().name(), "double *const volatile");
+	ASSERT_EQ(typeInfo<double &>().asConst().name(), "double &");
+
+	using PairType = Pair<string, int>;
+	using ArrayType = array<unsigned char, 32>;
+	ASSERT_EQ(typeInfo<PairType>().name(), "std::pair<std::string, int>");
+	ASSERT_EQ(typeInfo<ArrayType>().name(), "fwk::Array<unsigned char, 32>");
+	ASSERT_EQ(typeInfo<vector<vector<int>>>().name(), "fwk::Vector<fwk::Vector<int>>");
+	ASSERT_EQ(typeInfo<int const *const *&>().name(), "int const *const *&");
+	ASSERT_EQ(typeInfo<int const **&>().name(), "int const **&");
 }
 
 void testFwdMember() {
