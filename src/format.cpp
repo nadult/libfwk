@@ -12,10 +12,8 @@
 namespace fwk {
 
 namespace detail {
-	string autoPrintFormat(const char *args) {
+	string autoPrintFormat(const array<const char *, 8> &args) {
 		TextFormatter out;
-		// TODO: properly handle parenthesis, etc.
-		Tokenizer tok(args, ',');
 
 		auto append_elem = [&](Str elem) {
 			for(auto c : elem)
@@ -26,15 +24,16 @@ namespace detail {
 		};
 
 		bool back_trim = false;
-		while(!tok.finished()) {
-			auto elem = tok.next();
+		for(auto &arg : args) {
+			if(!arg)
+				break;
+			Str elem = arg;
 
 			while(elem && isspace(elem[0]))
 				elem = elem.substr(1);
 			while(elem && isspace(elem[elem.size() - 1]))
 				elem = elem.substr(0, elem.size() - 1);
 
-			// TODO: handle % in elems
 			DASSERT(elem);
 			back_trim = true;
 			if(elem[0] == '"' && elem[elem.size() - 1] == '"') {

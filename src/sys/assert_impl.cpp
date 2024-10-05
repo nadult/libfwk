@@ -13,9 +13,7 @@ namespace fwk {
 namespace detail {
 
 	string AssertInfo::preFormat(TextFormatter &out, const char *prefix) const {
-		string temp;
-
-		if(strlen(arg_names) > 0) {
+		if(anyOf(arg_names)) {
 			out("%%\n", prefix, message);
 			return detail::autoPrintFormat(arg_names);
 		} else {
