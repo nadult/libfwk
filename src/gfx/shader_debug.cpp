@@ -157,8 +157,7 @@ void ShaderDebugInfo::operator>>(TextFormatter &fmt) const {
 
 ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
 								 CSpan<Pair<string, int>> source_ranges) {
-	auto header_size = sizeof(ShaderDebugHeader) / sizeof(u32);
-	const int record_size = 6;
+	int header_size = sizeof(ShaderDebugHeader) / sizeof(u32);
 	DASSERT(buffer_data.size() >= header_size);
 	auto &header = *reinterpret_cast<const ShaderDebugHeader *>(buffer_data.data());
 	u32 num_records = min<u32>(header.num_records, (buffer_data.size() - header_size) / 6);

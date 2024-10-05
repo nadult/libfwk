@@ -67,6 +67,7 @@ class CXmlNode {
   public:
 	CXmlNode(const CXmlNode &) = default;
 	CXmlNode() = default;
+	CXmlNode &operator=(const CXmlNode &) = default;
 
 	ZStr attrib(Str name) const EXCEPT;
 	template <class T = Empty>
@@ -150,6 +151,7 @@ class XmlNode : public CXmlNode {
   public:
 	XmlNode(const XmlNode &) = default;
 	XmlNode() = default;
+	XmlNode &operator=(const XmlNode &) = default;
 
 	template <class T = Empty>
 	XmlAccessor<XmlNode, T> operator()(Str name, const T &default_value = Empty()) {
