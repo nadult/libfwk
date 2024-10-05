@@ -33,7 +33,7 @@ class CodeFormatter:
 
         if int(version[0]) < self.expected_version:
             raise Exception(
-                "clang-format is too old; At least version {self.expected_version} is required"
+                f"clang-format is too old; At least version {self.expected_version} is required"
             )
 
     def format_cpp(self, files, check: bool):

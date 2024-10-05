@@ -97,9 +97,9 @@ auto SlabAllocator::alloc(u64 size) -> Pair<Identifier, Allocation> {
 		if(zone_id == -1)
 			return {};
 		int group_index = level.groups.size();
-		level.groups.emplace_back(ChunkGroup{.num_free_chunks = level.chunks_per_group,
+		level.groups.emplace_back(ChunkGroup{.zone_id = u16(zone_id),
 											 .slab_offset = u16(slab_id),
-											 .zone_id = u16(zone_id)});
+											 .num_free_chunks = level.chunks_per_group});
 		level.chunks.resize(level.groups.size() * level.bits_64_per_group, 0ull);
 		listInsert(GROUP_ACCESSOR, level.not_full_groups, group_index);
 	}

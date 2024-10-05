@@ -3,6 +3,10 @@
 
 #pragma once
 
+#include "fwk/sys/platform.h"
+
+#ifdef FWK_PLATFORM_MSVC
+
 #pragma comment(lib, "sdl2-static.lib")
 #pragma comment(lib, "freetype.lib")
 #pragma comment(lib, "libpng16_static.lib")
@@ -17,3 +21,5 @@
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "Imm32.lib")
 #pragma comment(lib, "dwrite.lib")
+
+#endif
