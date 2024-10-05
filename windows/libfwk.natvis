@@ -156,4 +156,41 @@
     </Expand>
   </Type>
 
+  <Type Name="fwk::ZStr">
+    <DisplayString>{m_data,[m_size]}</DisplayString>
+    <StringView>m_data,[m_size]</StringView>
+    <Expand>
+      <Item Name="[size]">m_size</Item>
+      <ArrayItems>
+        <Size>m_size</Size>
+        <ValuePointer>m_data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="fwk::Str">
+    <DisplayString>{m_data,[m_size]}</DisplayString>
+    <StringView>m_data,[m_size]</StringView>
+    <Expand>
+      <Item Name="[size]">m_size</Item>
+      <ArrayItems>
+        <Size>m_size</Size>
+        <ValuePointer>m_data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="fwk::TextFormatter">
+    <DisplayString>{m_data.m_base.data,[m_offset]}</DisplayString>
+    <StringView>m_data.m_base.data,[m_offset]</StringView>
+    <Expand>
+      <Item Name="[size]">m_offset</Item>
+      <Item Name="[capacity]">m_data.m_base.size</Item>
+      <ArrayItems>
+        <Size>m_offset</Size>
+        <ValuePointer>m_data.m_base.data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>
