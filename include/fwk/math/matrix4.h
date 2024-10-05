@@ -13,6 +13,8 @@ class Matrix4 {
   public:
 	Matrix4() = default;
 	Matrix4(const Matrix4 &) = default;
+	Matrix4 &operator=(const Matrix4 &) = default;
+
 	Matrix4(const Matrix3 &mat) {
 		v[0] = float4(mat[0], 0.0f);
 		v[1] = float4(mat[1], 0.0f);

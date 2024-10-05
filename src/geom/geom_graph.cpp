@@ -484,7 +484,7 @@ template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> Mer
 
 	auto inv_cell_size = 1.0 / join_dist;
 
-	auto to_cell = [=](VecD pos) {
+	auto to_cell = [=, this](VecD pos) {
 		auto fpos = flatten(pos, m_flat_axes);
 		return Vec2I(vfloor(fpos * inv_cell_size));
 	};
