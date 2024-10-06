@@ -51,6 +51,8 @@ void AnyConfig::set(string name, Any value) { m_elements[name] = std::move(value
 
 vector<string> AnyConfig::keys() const { return m_elements.keys(); }
 
+bool AnyConfig::empty() const { return m_elements.empty(); }
+
 void AnyConfig::printErrors() const {
 	for(auto &[name, err] : m_loading_errors) {
 		print("Error while loading AnyConfig element: %\n", name);

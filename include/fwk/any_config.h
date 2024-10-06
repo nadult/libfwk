@@ -52,6 +52,9 @@ class AnyConfig {
 		return default_value;
 	}
 
+	bool empty() const;
+	explicit operator bool() const { return !empty(); }
+
 	CSpan<Pair<string, Error>> loadingErrors() const { return m_loading_errors; }
 	void printErrors() const;
 
