@@ -8,7 +8,6 @@
 
 #define STBI_NO_PSD
 #define STBI_NO_STDIO
-#define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "../extern/stb_image.h"
