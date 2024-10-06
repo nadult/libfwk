@@ -504,15 +504,21 @@ PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<PVShaderModule> shader_mo
 	}
 
 	auto descr_sets = VDescriptorBindingInfo::divideSets(descr_bindings);
-	for(int index : intRange(descr_sets))
-		DASSERT("Description sets in pipeline layout must have continuous indices starting "
-				"from 0" &&
-				descr_sets[index][0].set() == index);
 
 	vector<VDSLId> dsls;
 	dsls.reserve(descr_sets.size());
-	for(auto bindings : descr_sets)
+	int set_index = 0;
+	for(auto bindings : descr_sets) {
+		PASSERT(!bindings.empty());
+		int bindings_set_index = bindings[0].set();
+		DASSERT(bindings_set_index >= set_index);
+		while(set_index < bindings_set_index) {
+			dsls.emplace_back(m_descriptors->getEmptyLayout());
+			set_index++;
+		}
 		dsls.emplace_back(getDSL(bindings));
+		set_index++;
+	}
 	return getPipelineLayout(dsls, pcrs);
 }
 
