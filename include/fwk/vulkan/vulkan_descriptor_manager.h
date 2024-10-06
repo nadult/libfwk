@@ -19,6 +19,7 @@ class VulkanDescriptorManager {
 	VulkanDescriptorManager(VkDevice);
 	FWK_IMMOVABLE_CLASS(VulkanDescriptorManager);
 
+	VDSLId getEmptyLayout() const { return m_empty_dsl_id; }
 	VDSLId getLayout(CSpan<VDescriptorBindingInfo>);
 	VkDescriptorSetLayout handle(VDSLId dsl_id) const { return m_dsls[dsl_id].layout; }
 
@@ -66,6 +67,7 @@ class VulkanDescriptorManager {
 	vector<DSL> m_dsls;
 	vector<VkDescriptorPool> m_deferred_releases[VulkanLimits::num_swap_frames];
 	HashMap<HashedDSL, VDSLId> m_hash_map;
+	VDSLId m_empty_dsl_id = VDSLId(0);
 
 	uint m_swap_frame_index = 0;
 	bool m_frame_running = false;

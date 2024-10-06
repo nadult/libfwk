@@ -24,6 +24,7 @@ namespace fwk {
 
 VulkanDescriptorManager::VulkanDescriptorManager(VkDevice device) : m_device_handle(device) {
 	static_assert(sizeof(VulkanDescriptorManager::DSL) == 128);
+	m_empty_dsl_id = getLayout({});
 }
 
 VulkanDescriptorManager::~VulkanDescriptorManager() {
