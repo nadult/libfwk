@@ -1,6 +1,6 @@
 # libfwk
 [![License](https://img.shields.io/badge/License-Boost_1.0-lightblue.svg)](https://www.boost.org/LICENSE_1_0.txt)
-[![Build status](https://github.com/nadult/libfwk/workflows/build/badge.svg?branch=main)](https://github.com/nadult/libfwk/actions)
+[![Build status](https://github.com/nadult/libfwk/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/nadult/libfwk/actions)
 
 ## WTF is libfwk?
 
