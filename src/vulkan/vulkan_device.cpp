@@ -207,24 +207,24 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 
 	features.fillModeNonSolid = VK_TRUE;
 	features.samplerAnisotropy = VK_TRUE;
+
+	VkPhysicalDeviceVulkan12Features v12_features{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+	if(m_features & VDeviceFeature::ray_tracing)
+		v12_features.bufferDeviceAddress = VK_TRUE;
+	v12_features.separateDepthStencilLayouts = VK_TRUE;
+
 	VkPhysicalDeviceShaderClockFeaturesKHR clock_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR};
 	clock_features.shaderDeviceClock = VK_TRUE;
 	clock_features.shaderSubgroupClock = VK_TRUE;
-
 	VkPhysicalDeviceSubgroupSizeControlFeatures subgroup_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_FEATURES};
 	if(m_features & VDeviceFeature::subgroup_size_control) {
 		subgroup_features.subgroupSizeControl = VK_TRUE;
 		clock_features.pNext = &subgroup_features;
+		v12_features.pNext = &clock_features;
 	}
-
-	VkPhysicalDeviceVulkan12Features v12_features{
-		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-	v12_features.pNext = &subgroup_features;
-	if(m_features & VDeviceFeature::ray_tracing)
-		v12_features.bufferDeviceAddress = VK_TRUE;
-	v12_features.separateDepthStencilLayouts = VK_TRUE;
 
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rt_features{
 		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
@@ -283,8 +283,13 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	auto white_image = EX_PASS(VulkanImage::create(ref(), img_setup));
 	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
 	m_dummies->dummy_image_2d = VulkanImageView::create(ref(), white_image);
+
+	auto rt_usage =
+		VBufferUsage::accel_struct_storage | VBufferUsage::accel_struct_build_input_read_only;
+	auto dummy_usage = (VBufferUsageFlags(all<VBufferUsage>) & ~rt_usage) |
+					   mask(m_features & VDeviceFeature::ray_tracing, rt_usage);
 	m_dummies->dummy_buffer =
-		EX_PASS(VulkanBuffer::create(*this, 1024, all<VBufferUsage>, VMemoryUsage::device));
+		EX_PASS(VulkanBuffer::create(*this, 1024, dummy_usage, VMemoryUsage::device));
 
 	return {};
 }
