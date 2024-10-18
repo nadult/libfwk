@@ -21,6 +21,8 @@
 
 #include "../extern/imgui/backends/imgui_impl_vulkan.cpp"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 Gui *Gui::s_instance = nullptr;

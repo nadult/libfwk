@@ -24,6 +24,8 @@
 #include "fwk/vulkan/vulkan_swap_chain.h"
 #include "fwk/vulkan/vulkan_window.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 // TODO: add option to hook an error handler which in case of (for example) out of memory error
 // it can try to reclaim some memory by clearing the caches
 // TODO: more concise form of descriptor declarations

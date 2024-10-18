@@ -10,6 +10,8 @@
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 Ex<vector<VDescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStage &out_stage) {

@@ -16,6 +16,8 @@
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 vector<VQueueFamilyId> VulkanPhysicalDeviceInfo::findQueues(VQueueCaps caps) const {

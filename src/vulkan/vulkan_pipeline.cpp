@@ -12,6 +12,8 @@
 #include "fwk/vulkan/vulkan_ray_tracing.h"
 #include "fwk/vulkan/vulkan_shader.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 vector<VDescriptorBindingInfo> VDescriptorBindingInfo::merge(CSpan<VDescriptorBindingInfo> lhs,

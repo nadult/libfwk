@@ -8,6 +8,8 @@
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 static Ex<VkDeviceMemory> allocDeviceMemory(VkDevice device_handle, u32 size, uint type_index,
@@ -323,7 +325,7 @@ u64 VulkanMemoryManager::slabAlloc(u64 size, uint zone_index, void *domain_ptr) 
 		allocDeviceMemory(domain.device_handle, size, domain.type_index, domain.device_address);
 	if(!result)
 		return 0;
-	DASSERT(zone_index == domain.slab_memory.size());
+	DASSERT(zone_index == uint(domain.slab_memory.size()));
 	domain.slab_memory.emplace_back(*result, nullptr, u32(size));
 
 	return size;

@@ -162,7 +162,7 @@ FWK_NO_INLINE int testSparseVector() {
 
 	int val = 0;
 	int num_values = 0, num_iters = 0;
-	double val_time, total_time;
+	double val_time [[maybe_unused]], total_time;
 	{
 		auto time = getTime();
 		for(int n = 0; n < 1000; n++) {

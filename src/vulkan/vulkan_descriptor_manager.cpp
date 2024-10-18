@@ -20,6 +20,8 @@
 // ShaderControl ? Board ?  Input / InputLayout ?
 // ShaderInput, ShaderInputLayout ?
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 VulkanDescriptorManager::VulkanDescriptorManager(VkDevice device) : m_device_handle(device) {

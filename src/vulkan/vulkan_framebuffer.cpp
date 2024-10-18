@@ -8,6 +8,8 @@
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_internal.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id)

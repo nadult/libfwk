@@ -10,6 +10,8 @@
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 VImageDimensions::VImageDimensions(int3 size, uint num_mip_levels, uint num_samples)

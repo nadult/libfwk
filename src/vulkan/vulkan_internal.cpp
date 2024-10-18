@@ -11,6 +11,8 @@
 
 #include "fwk/vulkan/vulkan_internal.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 // -------------------------------------------------------------------------------------------
