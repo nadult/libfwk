@@ -487,7 +487,7 @@ Ex<> exMain(int argc, char **argv) {
 	auto window_flags = VWindowFlag::resizable | VWindowFlag::centered | VWindowFlag::allow_hidpi |
 						VWindowFlag::sleep_when_minimized;
 	VSwapChainSetup swap_chain_setup;
-	swap_chain_setup.preferred_formats = {{VK_FORMAT_B8G8R8A8_UNORM}};
+	swap_chain_setup.preferred_formats = {VK_FORMAT_B8G8R8A8_UNORM};
 	swap_chain_setup.preferred_present_mode = VPresentMode::immediate;
 	swap_chain_setup.usage =
 		VImageUsage::color_att | VImageUsage::storage | VImageUsage::transfer_dst;

@@ -28,6 +28,8 @@
 #include <atomic>
 #include <memory.h>
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 static std::atomic<unsigned> sdl_init_counter;

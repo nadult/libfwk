@@ -52,7 +52,7 @@ static unsigned long long getClock() {
 }
 
 void ThreadContext::resolveGpuScopes(i64 frame_id, CSpan<Pair<uint, u64>> sample_gpu_times) {
-	vector<Pair<int, u64>> sample_stack;
+	vector<Pair<uint, u64>> sample_stack;
 
 	Span<PSample> samples;
 	for(auto &frame : m_frames)

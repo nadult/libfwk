@@ -3,9 +3,14 @@
 
 #include "../extern/spirv-reflect/spirv_reflect.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 extern "C" {
 #include "../extern/spirv-reflect/spirv_reflect.c"
 }
+
+#pragma clang diagnostic pop
 
 #include "fwk/gfx/shader_reflection.h"
 

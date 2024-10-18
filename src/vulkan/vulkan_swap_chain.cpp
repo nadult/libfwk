@@ -10,6 +10,8 @@
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_window.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 namespace fwk {
 
 VulkanSwapChain::VulkanSwapChain(VkSwapchainKHR handle, VObjectId id, VWindowRef window,
@@ -180,7 +182,7 @@ Ex<VkSemaphore> VulkanSwapChain::acquireImage() {
 
 	m_status = Status::image_acquired;
 	m_semaphore_index++;
-	if(m_semaphore_index >= m_semaphores.size())
+	if(m_semaphore_index >= uint(m_semaphores.size()))
 		m_semaphore_index = 0;
 	return semaphore;
 }

@@ -14,6 +14,8 @@
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
 // TODO: add function for clearing labeled downloads
 
 namespace fwk {
@@ -169,7 +171,7 @@ CSpan<u64> VulkanCommandQueue::getQueryResults(u64 frame_index) const {
 		frame_indices[m_swap_index] -= num_swap_frames;
 
 	for(int i : intRange(num_swap_frames))
-		if(frame_index == frame_indices[i]) {
+		if(i64(frame_index) == frame_indices[i]) {
 			uint idx = (i + m_swap_index) % num_swap_frames;
 			return m_frames[idx].query_results;
 		}
@@ -444,7 +446,7 @@ uint VulkanCommandQueue::timestampQuery() {
 	PASSERT(m_status == Status::frame_running);
 	auto &frame = m_frames[m_swap_index];
 	uint index = frame.query_count++;
-	uint pool_id = index >> query_pool_shift;
+	int pool_id = int(index >> query_pool_shift);
 	if(pool_id >= frame.query_pools.size()) {
 		VkQueryPoolCreateInfo ci{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
 		ci.queryCount = query_pool_size;
@@ -472,7 +474,7 @@ void VulkanCommandQueue::perfTimestampQuery(uint sample_id) {
 Ex<VBufferSpan<char>> VulkanCommandQueue::upload(VBufferSpan<char> dst, CSpan<char> src) {
 	if(src.empty())
 		return dst;
-	DASSERT_LE(src.size(), dst.size());
+	DASSERT_LE(u32(src.size()), dst.size());
 
 	auto &mem_mgr = m_device.memory();
 	auto mem_block = dst.buffer()->memoryBlock();

@@ -196,7 +196,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 		auto &cmds = ctx.device->cmdQueue();
 		if(auto uints = cmds.retrieve<u32>(*ctx.download_id)) {
 			uint count = uints[0];
-			bool is_valid = count == uints.size() - 1 && allOf(subSpan(uints, 2), uints[1]);
+			bool is_valid = count == uint(uints.size() - 1) && allOf(subSpan(uints, 2), uints[1]);
 			last_message = format("Compute result: %%\n", uints[1], is_valid ? "" : " (invalid)");
 			if(!is_valid)
 				num_invalid++;
