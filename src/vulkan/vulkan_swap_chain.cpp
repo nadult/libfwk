@@ -169,8 +169,9 @@ Ex<VkSemaphore> VulkanSwapChain::acquireImage() {
 			return nullptr;
 	}
 
-	auto semaphore = m_semaphores[m_semaphore_index];
+	VkSemaphore semaphore;
 	for(int retry = 0; retry < 2; retry++) {
+		semaphore = m_semaphores[m_semaphore_index];
 		VkResult result = vkAcquireNextImageKHR(deviceHandle(), m_handle, UINT64_MAX, semaphore,
 												VK_NULL_HANDLE, &m_image_index);
 		if(result == VK_SUCCESS)
