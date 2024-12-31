@@ -147,7 +147,8 @@ void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
 
 	VkPipelineStageFlags src_stage, dst_stage;
 	// TODO: properly handle access masks & stages
-	if(old_layout == VImageLayout::undefined && new_layout == VImageLayout::transfer_dst) {
+	if(old_layout == VImageLayout::undefined &&
+	   isOneOf(new_layout, VImageLayout::transfer_dst, VImageLayout::general)) {
 		barrier.srcAccessMask = 0;
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -179,11 +180,12 @@ void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
 Ex<> VulkanImage::upload(CSpan<Image> src, VImageLayout dst_layout) {
 	DASSERT(m_dims.num_mip_levels >= src.size());
 	for(int mip : intRange(src))
-		EXPECT(upload(src[mip], mip, dst_layout));
+		EXPECT(upload(src[mip], {0, 0}, mip, dst_layout));
 	return {};
 }
 
-Ex<> VulkanImage::upload(const Image &src, int target_mip, Layout target_layout) {
+Ex<> VulkanImage::upload(const Image &src, int2 target_offset, int target_mip,
+						 Layout target_layout) {
 	if(src.empty())
 		return {};
 	DASSERT(target_mip >= 0 && target_mip < m_dims.num_mip_levels);
@@ -198,7 +200,8 @@ Ex<> VulkanImage::upload(const Image &src, int target_mip, Layout target_layout)
 		VulkanBuffer::create(*device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
 	auto mem_block = staging_buffer->memoryBlock();
 	fwk::copy(mem_mgr.writeAccessMemory(mem_block), src.data().reinterpret<char>());
-	device->cmdQueue().copy(ref(), staging_buffer, target_mip, target_layout);
+	IBox box(int3{target_offset, 0}, int3{target_offset + src.size(), 1});
+	device->cmdQueue().copy(ref(), staging_buffer, box, target_mip, target_layout);
 
 	return {};
 }

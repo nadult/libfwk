@@ -123,7 +123,7 @@ void VulkanCommandQueue::beginFrame() {
 		if(const CmdCopyBuffer *cmd = copy_command)
 			copy(cmd->dst, cmd->src);
 		else if(const CmdCopyImage *cmd = copy_command)
-			copy(cmd->dst, cmd->src, cmd->dst_mip_level, cmd->dst_layout);
+			copy(cmd->dst, cmd->src, cmd->dst_box, cmd->dst_mip_level, cmd->dst_layout);
 	}
 	m_copy_queue.clear();
 }
@@ -216,11 +216,20 @@ void VulkanCommandQueue::copy(VBufferSpan<char> dst, VBufferSpan<char> src) {
 	vkCmdCopyBuffer(m_cur_cmd_buffer, src.buffer(), dst.buffer(), 1, &copy_params);
 }
 
-void VulkanCommandQueue::copy(PVImage dst, VBufferSpan<> src, int dst_mip_level,
+void VulkanCommandQueue::copy(PVImage dst, VBufferSpan<> src, Maybe<IBox> box, int dst_mip_level,
 							  VImageLayout dst_layout) {
 	if(m_status != Status::frame_running) {
-		m_copy_queue.emplace_back(CmdCopyImage{dst, src, dst_mip_level, dst_layout});
+		m_copy_queue.emplace_back(CmdCopyImage{dst, src, box, dst_mip_level, dst_layout});
 		return;
+	}
+
+	auto mip_size = dst->mipSize(dst_mip_level);
+	if(!box) {
+		box = IBox{int3(0), mip_size};
+	} else {
+		auto box_min = box->min(), box_max = box->max();
+		DASSERT(box_min.x >= 0 && box_min.y >= 0 && box_min.z >= 0);
+		DASSERT(box_max.x <= mip_size.x && box_max.y <= mip_size.y && box_max.z <= mip_size.z);
 	}
 
 	VkBufferImageCopy region{};
@@ -228,10 +237,12 @@ void VulkanCommandQueue::copy(PVImage dst, VBufferSpan<> src, int dst_mip_level,
 	region.imageSubresource.layerCount = 1;
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.mipLevel = dst_mip_level;
-	auto mip_size = dst->mipSize(dst_mip_level);
-	region.imageExtent = {uint(mip_size.x), uint(mip_size.y), uint(mip_size.z)};
+	auto box_size = box->size(), box_offset = box->min();
+	region.imageExtent = {uint(box_size.x), uint(box_size.y), uint(box_size.z)};
+	region.imageOffset = {box_offset.x, box_offset.y, box_offset.z};
 
-	auto copy_layout = VImageLayout::transfer_dst;
+	auto copy_layout =
+		dst_layout == VImageLayout::general ? VImageLayout::general : VImageLayout::transfer_dst;
 	dst->transitionLayout(copy_layout, dst_mip_level);
 	vkCmdCopyBufferToImage(m_cur_cmd_buffer, src.buffer(), dst, toVk(copy_layout), 1, &region);
 	// TODO: do this transition right before we're going to do something with this texture?
