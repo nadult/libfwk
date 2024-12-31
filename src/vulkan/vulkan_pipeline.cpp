@@ -7,6 +7,7 @@
 #include "fwk/sys/assert.h"
 #include "fwk/vulkan/vulkan_buffer_span.h"
 #include "fwk/vulkan/vulkan_device.h"
+#include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_ray_tracing.h"
@@ -136,7 +137,8 @@ void VDescriptorSet::set(int first_index, CSpan<Pair<PVSampler, PVImageView>> va
 	for(int i : intRange(values)) {
 		auto &pair = values[i];
 		auto image = pair.second ? pair.second : device->dummyImage2D();
-		infos[i] = {pair.first, image, toVk(VImageLayout::shader_ro)};
+		auto layout = image->image()->layout(0);
+		infos[i] = {pair.first, image, toVk(layout)};
 	}
 
 	VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};

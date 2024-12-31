@@ -61,7 +61,7 @@ class VulkanCommandQueue {
 	// Copy commands wil be enqueued and performed later if called
 
 	void copy(VBufferSpan<> dst, VBufferSpan<> src);
-	void copy(PVImage dst, VBufferSpan<> src, int dst_mip_level = 0,
+	void copy(PVImage dst, VBufferSpan<> src, Maybe<IBox> dst_box = none, int dst_mip_level = 0,
 			  VImageLayout dst_layout = VImageLayout::shader_ro);
 
 	void fill(VBufferSpan<> dst, u32 value);
@@ -203,6 +203,7 @@ class VulkanCommandQueue {
 	struct CmdCopyImage {
 		PVImage dst;
 		VBufferSpan<char> src;
+		Maybe<IBox> dst_box;
 		int dst_mip_level;
 		VImageLayout dst_layout;
 	};

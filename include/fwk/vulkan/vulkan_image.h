@@ -58,7 +58,8 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	// ---------- Commands --------------------------------------------------------------
 
 	Ex<> upload(CSpan<Image>, Layout target_layout = Layout::shader_ro);
-	Ex<> upload(const Image &, int target_mip = 0, Layout target_layout = Layout::shader_ro);
+	Ex<> upload(const Image &, int2 target_offset = {0, 0}, int target_mip = 0,
+				Layout target_layout = Layout::shader_ro);
 
 	Layout layout(int mip_level) const;
 	void transitionLayout(Layout target_layout, int mip_level = 0);
