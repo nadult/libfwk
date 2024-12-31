@@ -350,6 +350,10 @@ void Canvas2D::addFilledRect(const FRect &rect, FColor color) {
 	addFilledRect(rect, {}, {color, color, color, color});
 }
 
+void Canvas2D::addFilledRect(const IRect &rect, FColor color) {
+	addFilledRect(FRect(rect), {}, {color, color, color, color});
+}
+
 void Canvas2D::addFilledRect(const FRect &rect, const FRect &tex_rect) {
 	addQuads(rect.corners(), tex_rect.corners());
 }

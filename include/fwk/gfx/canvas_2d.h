@@ -60,6 +60,7 @@ class Canvas2D {
 	void addFilledRect(const FRect &, const FRect &tex_rect, CSpan<FColor, 4>);
 	void addFilledRect(const FRect &, const FRect &tex_rect);
 	void addFilledRect(const FRect &, FColor);
+	void addFilledRect(const IRect &, FColor);
 	void addFilledRect(const FRect &);
 	void addFilledRect(const IRect &);
 
