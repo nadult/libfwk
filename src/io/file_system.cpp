@@ -486,6 +486,7 @@ static void findFiles(vector<FileEntry> &out, const FilePath &path, const FilePa
 				FileEntry entry;
 				entry.path = append / FilePath(data.cFileName);
 				entry.is_dir = is_dir;
+				entry.is_link = false;
 				out.push_back(entry);
 			}
 
