@@ -27,7 +27,7 @@ namespace fwk {
 Canvas2D::Canvas2D(const IRect &viewport, Orient2D orient)
 	: m_matrix_stack(projectionMatrix2D(viewport, orient), viewMatrix2D(viewport, float2(0, 0))),
 	  m_viewport(viewport) {
-	m_groups.emplace_back(0, getPipeline({}));
+	m_groups.emplace_back(0, getPipeline({}), -1);
 	m_group_matrices.emplace_back(m_matrix_stack.fullMatrix());
 }
 
@@ -81,10 +81,12 @@ Ex<SimpleDrawCall> Canvas2D::genDrawCall(ShaderCompiler &compiler, VulkanDevice 
 		instance.pipeline_index = group.pipeline_index + (skip_first_pipeline ? -1 : 0);
 		instance.num_vertices = group.num_indices;
 		instance.first_index = group.first_index;
+		instance.scissor_rect_index = group.scissor_rect_index;
 	}
 
 	auto setups = subSpan(m_pipelines, skip_first_pipeline ? 1 : 0);
 	dc.pipelines = EX_PASS(SimpleDrawCall::makePipelines(compiler, device, render_pass, setups));
+	dc.scissor_rects = m_scissor_rects;
 	return dc;
 }
 
@@ -158,6 +160,23 @@ SimpleMaterial Canvas2D::getMaterial() const {
 	auto &group = m_groups.back();
 	auto &pipe = m_pipelines[group.pipeline_index];
 	return SimpleMaterial{group.texture, IColor(m_cur_color), pipe.flags, pipe.blending_mode};
+}
+
+void Canvas2D::setScissorRect(Maybe<IRect> rect) {
+	if(getScissorRect() == rect)
+		return;
+	splitGroup();
+	int scissor_index = -1;
+	if(rect) {
+		scissor_index = m_scissor_rects.size();
+		m_scissor_rects.emplace_back(*rect);
+	}
+	m_groups.back().scissor_rect_index = scissor_index;
+}
+
+Maybe<IRect> Canvas2D::getScissorRect() const {
+	int index = m_groups.back().scissor_rect_index;
+	return index == -1 ? Maybe<IRect>() : m_scissor_rects[index];
 }
 
 void Canvas2D::pushViewMatrix() {

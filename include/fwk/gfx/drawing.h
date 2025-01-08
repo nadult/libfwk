@@ -61,20 +61,20 @@ struct SimpleDrawCall {
 
 	// Vertex data:
 	// indices, tex_coords, normals & colors are optional
-
 	VBufferSpan<u32> indices;
 	VBufferSpan<float3> vertices;
 	VBufferSpan<float2> tex_coords;
 	VBufferSpan<IColor> colors;
 
 	// Instance data:
-
 	struct Instance {
 		PVImageView texture;
 		int pipeline_index;
 		int first_index, num_vertices;
+		int scissor_rect_index;
 	};
 	VBufferSpan<Matrix4> instance_matrices;
+	vector<IRect> scissor_rects;
 	vector<Instance> instances;
 	vector<PVPipeline> pipelines;
 };

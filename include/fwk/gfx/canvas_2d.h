@@ -39,6 +39,9 @@ class Canvas2D {
 	void setMaterial(const SimpleMaterial &);
 	SimpleMaterial getMaterial() const;
 
+	void setScissorRect(Maybe<IRect>);
+	Maybe<IRect> getScissorRect() const;
+
 	void pushViewMatrix();
 	void popViewMatrix();
 	void mulViewMatrix(const Matrix4 &);
@@ -79,12 +82,14 @@ class Canvas2D {
 
   private:
 	struct Group {
-		Group(int first_index, int pipeline_index)
-			: first_index(first_index), num_indices(0), pipeline_index(pipeline_index) {}
+		Group(int first_index, int pipeline_index, int scissor_rect_index)
+			: first_index(first_index), num_indices(0), pipeline_index(pipeline_index),
+			  scissor_rect_index(scissor_rect_index) {}
 
 		PVImageView texture;
 		int first_index, num_indices;
 		int pipeline_index;
+		int scissor_rect_index;
 	};
 
 	int getPipeline(const SimplePipelineSetup &);
@@ -99,6 +104,7 @@ class Canvas2D {
 	vector<SimplePipelineSetup> m_pipelines;
 	vector<Matrix4> m_group_matrices;
 	vector<Group> m_groups;
+	vector<IRect> m_scissor_rects;
 
 	PodVector<float3> m_positions;
 	PodVector<TexCoord> m_tex_coords;
