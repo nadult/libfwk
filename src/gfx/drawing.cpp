@@ -127,7 +127,9 @@ void SimpleDrawCall::render(VulkanDevice &device) {
 		cmds.bindIndices(indices);
 
 	uint instance_id = 0;
-	for(auto &instance : instances) {
+	for(int i = 0; i < instances.size(); i++) {
+		auto &instance = instances[i];
+
 		if(instance.pipeline_index != prev_pipeline_idx) {
 			cmds.bind(pipelines[instance.pipeline_index]);
 			prev_pipeline_idx = instance.pipeline_index;
@@ -137,12 +139,20 @@ void SimpleDrawCall::render(VulkanDevice &device) {
 			cmds.bindDS(1).set(0, {{sampler, instance.texture}});
 			prev_tex = instance.texture;
 		}
+		if(i == 0 || instance.scissor_rect_index != instances[i - 1].scissor_rect_index) {
+			Maybe<IRect> scissor_rect;
+			if(instance.scissor_rect_index != -1)
+				scissor_rect = scissor_rects[instance.scissor_rect_index];
+			cmds.setScissor(scissor_rect);
+		}
 
 		if(indices)
 			cmds.drawIndexed(instance.num_vertices, 1, instance.first_index, instance_id++);
 		else
 			cmds.draw(instance.num_vertices, 1, instance.first_index, instance_id++);
 	}
+
+	cmds.setScissor(none);
 }
 
 /*
