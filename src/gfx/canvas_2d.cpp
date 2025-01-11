@@ -359,6 +359,7 @@ void Canvas2D::addSegments(CSpan<float2> points, CSpan<IColor> colors) {
 }
 
 void Canvas2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FColor, 4> colors) {
+	PASSERT(colors.size() == 4);
 	IColor icolors[4];
 	for(int i : intRange(4))
 		icolors[i] = IColor(colors[i]);
@@ -366,11 +367,11 @@ void Canvas2D::addFilledRect(const FRect &rect, const FRect &tex_rect, CSpan<FCo
 }
 
 void Canvas2D::addFilledRect(const FRect &rect, FColor color) {
-	addFilledRect(rect, {}, {color, color, color, color});
+	addFilledRect(rect, FRect(0, 0, 1, 1), {color, color, color, color});
 }
 
 void Canvas2D::addFilledRect(const IRect &rect, FColor color) {
-	addFilledRect(FRect(rect), {}, {color, color, color, color});
+	addFilledRect(FRect(rect), FRect(0, 0, 1, 1), {color, color, color, color});
 }
 
 void Canvas2D::addFilledRect(const FRect &rect, const FRect &tex_rect) {
