@@ -1,0 +1,58 @@
+{
+  "packages": [
+    {
+      "name": "bzip2",
+      "version": "1.0.8",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "brotli",
+      "version": "1.0.9",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "libpng",
+      "version": "1.6.39",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "freetype",
+      "version": "2.11.1",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "ogg",
+      "version": "1.3.5",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "openal",
+      "version": "1.22.2",
+      "query": "os=Windows and arch=x86_64 and options.shared=True"
+    },
+    {
+      "name": "sdl",
+      "version": "2.26.1",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "vorbis",
+      "version": "1.3.7",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "zlib",
+      "version": "1.3",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "shaderc",
+      "version": "2024.1",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+    {
+      "name": "vulkan-headers",
+      "version": "1.3.236.0"
+    }
+  ]
+}
