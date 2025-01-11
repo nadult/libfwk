@@ -23,15 +23,15 @@ jobs:
         env:
             cache-name: cache-deps
         with:
-            path: C:/libraries
-            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tools/install_deps.py') }}-v1
+            path: windows/libraries
+            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tools/install_deps.py', 'dependencies.json') }}-v1
 
       - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         name: Install dependencies
         shell: cmd
         run: |
           pip install conan
-          python tools/install_deps.py C:/libraries
+          python tools/install_deps.py
 
       - name: Build libfwk, tests & tools
         shell: cmd

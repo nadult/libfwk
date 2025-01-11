@@ -4,10 +4,6 @@ import subprocess, os, json, shutil, argparse
 from dataclasses import dataclass
 
 
-def script_dir():
-    return os.path.dirname(os.path.abspath(__file__))
-
-
 @dataclass
 class PackageInfo:
     name: str
@@ -126,9 +122,6 @@ def copy_subdirs(package_name: str, dst_dir: str, src_dir: str, subdirs: list[st
             shutil.copytree(src_subdir, dst_subdir, dirs_exist_ok=True)
 
 
-windows_query = "os=Windows and arch=x86_64 and options.shared=False"
-
-
 def parse_package_queries(json_path):
     queries = []
     with open(json_path, "r") as file:
@@ -136,7 +129,7 @@ def parse_package_queries(json_path):
         for package in json_data["packages"]:
             name = package["name"]
             version = package["version"]
-            query = getattr(package, "query", "")
+            query = package.get("query", "")
             assert isinstance(name, str)
             assert isinstance(version, str)
             assert isinstance(query, str)
@@ -150,15 +143,26 @@ def parse_arguments():
         description="Installs all the necessary dependencies for building libfwk on Windows",
     )
     parser.add_argument(
-        "--deps",
+        "--deps-file",
         type=str,
         help=(
-            "Path to the file with a list of packages to install; "
-            "If not specified then libfwk's dependencies.json will be used"
+            "Path to the file with a list of packages to install. "
+            "If not specified then dependencies.json in current directory will be used."
         ),
     )
-    parser.add_argument("install_path")
+    parser.add_argument(
+        "--install_dir",
+        type=str,
+        help=(
+            "Target directory where libraries will be installed. "
+            "By default the will be installed in windows/libraries/ inside libfwk's directory."
+        ),
+    )
     return parser.parse_args()
+
+
+def libfwk_path():
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def main():
@@ -169,15 +173,19 @@ def main():
 
     check_conan_version()
 
-    deps_file_path = args.deps
+    deps_file_path = args.deps_file
     if deps_file_path is None:
-        deps_file_path = os.path.join(os.path.dirname(script_dir()), "dependencies.json")
+        deps_file_path = os.path.join(os.getcwd(), "dependencies.json")
+    assert os.path.isfile(deps_file_path)
     package_queries = parse_package_queries(deps_file_path)
+    package_names = [package.name for package in package_queries]
+    print(f"Packages to install: {package_names}")
 
-    install_path = args.install_path
-    install_path = os.path.join(install_path, "x86_64")
-    print(f"Installing packages at: {install_path}")
-    os.makedirs(install_path, exist_ok=True)
+    install_dir = args.install_dir
+    if install_dir is None:
+        install_dir = os.path.join(libfwk_path(), "windows", "libraries")
+    print(f"Installing into: {install_dir}")
+    os.makedirs(install_dir, exist_ok=True)
 
     # TODO: multithreading
     for query in package_queries:
@@ -193,7 +201,7 @@ def main():
         package_path = get_package_path(package)
 
         print(f"Installing {package.pattern()} from: {package_path}")
-        copy_subdirs(package.name, install_path, package_path, ["include", "lib", "bin"])
+        copy_subdirs(package.name, install_dir, package_path, ["include", "lib", "bin"])
 
 
 if __name__ == "__main__":

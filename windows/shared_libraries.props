@@ -3,8 +3,8 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>C:\libraries\x86_64\include;$(IncludePath);</IncludePath>
-    <LibraryPath>C:\libraries\x86_64\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(MSBuildThisFileDirectory)\libraries\include;$(IncludePath);</IncludePath>
+    <LibraryPath>$(MSBuildThisFileDirectory)\libraries\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemGroup />
 </Project>
