@@ -156,7 +156,7 @@ void Canvas3D::setMaterial(const SimpleMaterial &material) {
 SimpleMaterial Canvas3D::getMaterial() const {
 	auto &group = m_groups.back();
 	auto &pipe = m_pipelines[group.pipeline_index];
-	return SimpleMaterial{group.texture, IColor(m_cur_color), pipe.flags, pipe.blending_mode};
+	return SimpleMaterial{group.texture, IColor(m_cur_color), pipe.blending_mode, pipe.flags};
 }
 
 void Canvas3D::pushViewMatrix() {

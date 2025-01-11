@@ -19,27 +19,26 @@ DEFINE_ENUM(SimpleBlendingMode, disabled, normal, additive);
 
 class SimpleMaterial {
   public:
-	using DrawingFlag = SimpleDrawingFlag;
 	using DrawingFlags = SimpleDrawingFlags;
 	using BlendingMode = SimpleBlendingMode;
 
-	SimpleMaterial(PVImageView, IColor = ColorId::white, DrawingFlags = none,
-				   BlendingMode = BlendingMode::disabled);
-	SimpleMaterial(IColor = ColorId::white, DrawingFlags = none,
-				   BlendingMode = BlendingMode::disabled);
+	SimpleMaterial(PVImageView, IColor = ColorId::white, BlendingMode = BlendingMode::disabled,
+				   DrawingFlags = none);
+	SimpleMaterial(IColor = ColorId::white, BlendingMode = BlendingMode::disabled,
+				   DrawingFlags = none);
 
 	PVImageView texture() const { return m_texture; }
 	IColor color() const { return m_color; }
-	DrawingFlags drawingFlags() const { return m_drawing_flags; }
 	BlendingMode blendingMode() const { return m_blending_mode; }
+	DrawingFlags drawingFlags() const { return m_drawing_flags; }
 
 	FWK_ORDER_BY_DECL(SimpleMaterial);
 
   private:
 	PVImageView m_texture;
 	IColor m_color;
-	DrawingFlags m_drawing_flags;
 	BlendingMode m_blending_mode;
+	DrawingFlags m_drawing_flags;
 };
 
 struct SimplePipelineSetup {

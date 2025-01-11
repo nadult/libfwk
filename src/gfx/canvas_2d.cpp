@@ -159,7 +159,7 @@ void Canvas2D::setMaterial(const SimpleMaterial &material) {
 SimpleMaterial Canvas2D::getMaterial() const {
 	auto &group = m_groups.back();
 	auto &pipe = m_pipelines[group.pipeline_index];
-	return SimpleMaterial{group.texture, IColor(m_cur_color), pipe.flags, pipe.blending_mode};
+	return SimpleMaterial{group.texture, IColor(m_cur_color), pipe.blending_mode, pipe.flags};
 }
 
 void Canvas2D::setScissorRect(Maybe<IRect> rect) {
