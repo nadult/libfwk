@@ -1,7 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
-import subprocess, os, re, json, shutil, argparse, zipfile, urllib.request
+import subprocess, os, json, shutil, argparse
 from dataclasses import dataclass
+
+
+def script_dir():
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 @dataclass
@@ -43,6 +47,27 @@ def parse_packages_json(query: str, json_text: str) -> list[PackageInfo]:
                 PackageInfo(query.name, query.version, rev_id, package_id, settings, options)
             )
     return out
+
+
+def check_conan_version():
+    conan_version = None
+    min_version = 2
+
+    try:
+        result = subprocess.run(["conan", "--version"], stdout=subprocess.PIPE)
+        tokens = result.stdout.decode("utf-8").split()
+        if len(tokens) >= 3 and tokens[0] == "Conan" and tokens[1] == "version":
+            conan_version = [int(x) for x in tokens[2].split(".")]
+    except Exception as e:
+        print(f"Exception while checking conan version: {e}")
+        pass
+
+    if not conan_version:
+        raise Exception(f"Conan not found. At least version {min_version} is required.")
+    if len(conan_version) < 3 or conan_version[0] < 2:
+        raise Exception(
+            f"Invalid conan version: {conan_version} At least version {min_version} is required."
+        )
 
 
 def list_packages(query: PackageQuery) -> list[PackageInfo]:
@@ -103,32 +128,51 @@ def copy_subdirs(package_name: str, dst_dir: str, src_dir: str, subdirs: list[st
 
 windows_query = "os=Windows and arch=x86_64 and options.shared=False"
 
-package_queries = [
-    PackageQuery("bzip2", "1.0.8", windows_query),
-    PackageQuery("brotli", "1.0.9", windows_query),
-    PackageQuery("libpng", "1.6.39", windows_query),
-    PackageQuery("freetype", "2.11.1", windows_query),
-    PackageQuery("ogg", "1.3.5", windows_query),
-    PackageQuery("openal", "1.21.1", windows_query),
-    PackageQuery("sdl", "2.26.1", windows_query),
-    PackageQuery("vorbis", "1.3.7", windows_query),
-    PackageQuery("zlib", "1.3", windows_query),
-    PackageQuery("shaderc", "2024.1", windows_query),
-    PackageQuery("vulkan-headers", "1.3.236.0"),
-]
+
+def parse_package_queries(json_path):
+    queries = []
+    with open(json_path, "r") as file:
+        json_data = json.load(file)
+        for package in json_data["packages"]:
+            name = package["name"]
+            version = package["version"]
+            query = getattr(package, "query", "")
+            assert isinstance(name, str)
+            assert isinstance(version, str)
+            assert isinstance(query, str)
+            queries.append(PackageQuery(name, version, query))
+    return queries
 
 
-def main():
+def parse_arguments():
     parser = argparse.ArgumentParser(
         prog="install_deps",
         description="Installs all the necessary dependencies for building libfwk on Windows",
     )
+    parser.add_argument(
+        "--deps",
+        type=str,
+        help=(
+            "Path to the file with a list of packages to install; "
+            "If not specified then libfwk's dependencies.json will be used"
+        ),
+    )
     parser.add_argument("install_path")
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def main():
+    args = parse_arguments()
     if os.name != "nt":
         print("Currently the only purpose of install_deps.py is to install dependencies on Windows")
         exit(1)
+
+    check_conan_version()
+
+    deps_file_path = args.deps
+    if deps_file_path is None:
+        deps_file_path = os.path.join(os.path.dirname(script_dir()), "dependencies.json")
+    package_queries = parse_package_queries(deps_file_path)
 
     install_path = args.install_path
     install_path = os.path.join(install_path, "x86_64")
