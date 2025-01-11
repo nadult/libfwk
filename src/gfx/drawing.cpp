@@ -13,14 +13,14 @@
 
 namespace fwk {
 
-SimpleMaterial::SimpleMaterial(PVImageView texture, IColor color, DrawingFlags drawing_flags,
-							   BlendingMode blending_mode)
-	: m_texture(texture), m_color(color), m_drawing_flags(drawing_flags),
-	  m_blending_mode(blending_mode) {}
-SimpleMaterial::SimpleMaterial(IColor color, DrawingFlags drawing_flags, BlendingMode blending_mode)
-	: m_color(color), m_drawing_flags(drawing_flags), m_blending_mode(blending_mode) {}
+SimpleMaterial::SimpleMaterial(PVImageView texture, IColor color, BlendingMode blending_mode,
+							   DrawingFlags drawing_flags)
+	: m_texture(texture), m_color(color), m_blending_mode(blending_mode),
+	  m_drawing_flags(drawing_flags) {}
+SimpleMaterial::SimpleMaterial(IColor color, BlendingMode blending_mode, DrawingFlags drawing_flags)
+	: m_color(color), m_blending_mode(blending_mode), m_drawing_flags(drawing_flags) {}
 
-FWK_ORDER_BY_DEF(SimpleMaterial, m_texture, m_color, m_drawing_flags, m_blending_mode);
+FWK_ORDER_BY_DEF(SimpleMaterial, m_texture, m_color, m_blending_mode, m_drawing_flags);
 FWK_ORDER_BY_DEF(SimplePipelineSetup, flags, blending_mode, primitive_topo);
 
 void SimpleDrawCall::getVertexBindings(vector<VVertexAttrib> &attribs,
@@ -30,9 +30,6 @@ void SimpleDrawCall::getVertexBindings(vector<VVertexAttrib> &attribs,
 	insertBack(bindings,
 			   {vertexBinding<float3>(0), vertexBinding<float2>(1), vertexBinding<IColor>(2)});
 }
-
-//	vec3 normal = normalize(cross(dFdx(v_tpos), dFdy(v_tpos)));
-//	float shade = abs(dot(normal, vec3(0, 0, 1))) * 0.5 + 0.5;
 
 const char *simple_vsh = R"(
 #version 450

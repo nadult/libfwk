@@ -260,15 +260,14 @@ FRect Font::draw(Canvas2D &out, const FRect &rect, const FontStyle &style,
 	auto prev_mat = out.getMaterial();
 	if(style.shadow_color != ColorId::transparent) {
 		out.pushViewMatrix();
-		out.setMaterial(
-			SimpleMaterial{m_texture, style.shadow_color, none, SimpleBlendingMode::normal});
+		out.setMaterial({m_texture, style.shadow_color, SimpleBlendingMode::normal});
 		out.mulViewMatrix(translation(float3(1.0f, 1.0f, 0.0f)));
 		// TODO: increase out_rect when rendering with shadow?
 		// TODO: shadows could use same set of vertex data
 		out.addQuads(positions, uvs);
 		out.popViewMatrix();
 	}
-	out.setMaterial(SimpleMaterial{m_texture, style.text_color, none, SimpleBlendingMode::normal});
+	out.setMaterial({m_texture, style.text_color, SimpleBlendingMode::normal});
 	out.addQuads(positions, uvs);
 	out.setMaterial(prev_mat);
 
