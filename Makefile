@@ -39,7 +39,7 @@ endif
 
 # --- Lists of source files -----------------------------------------------------------------------
 
-SRC_base = base_vector hash_map_stats enum str type_info any logger any_config format parse slab_allocator
+SRC_base = base_vector hash_map_stats enum str type_info any logger any_config format parse slab_allocator bit_vector
 
 SRC_sys  = \
 	sys_base sys/error sys/exception sys/thread sys/expected sys/assert sys/assert_impl sys/on_fail \
