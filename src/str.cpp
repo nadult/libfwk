@@ -146,7 +146,7 @@ vector<Str> tokenize(Str str, char c) {
 }
 
 vector<Str> splitLines(Str str) {
-	auto lines = tokenize(str);
+	auto lines = tokenize(str, '\n');
 	for(auto &line : lines)
 		if(!line.empty() && line[line.size() - 1] == '\r')
 			line = {line.data(), line.size() - 1};
