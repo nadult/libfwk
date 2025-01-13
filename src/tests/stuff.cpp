@@ -80,6 +80,12 @@ void testString() {
 	ASSERT_EQ(fileNameStem("foo.xx/name.bar.xx"), "name.bar");
 	ASSERT(!fileNameExtension("aaa"));
 	ASSERT_EQ(fileNameStem("abc/aaa.xyz"), "aaa");
+
+	vector<string> tokens{"foo", "bar", "bar", "foo"};
+	ASSERT_EQ(tokenize("foo bar bar foo"), tokens);
+
+	vector<string> lines{"foo", "bar", "", "meh"};
+	ASSERT_EQ(splitLines("foo\n\rbar\nmeh\n\n"), lines);
 }
 
 struct BigType {

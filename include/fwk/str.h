@@ -113,18 +113,18 @@ class ZStr : public Str {
 	const char *c_str() const { return m_data; }
 };
 
-vector<string> tokenize(ZStr, char c = ' ');
+vector<Str> tokenize(Str, char c = ' ');
+
+// Can handle both LF & CRLF line endings
+vector<Str> splitLines(Str);
 
 struct Tokenizer {
-	explicit Tokenizer(const char *str, char delim = ' ') : m_str(str), m_delim(delim) {
-		DASSERT(delim);
-	}
-
+	explicit Tokenizer(Str str, char delim = ' ');
 	Str next();
-	bool finished() const { return *m_str == 0; }
+	bool finished() const { return m_str == m_end; }
 
   private:
-	const char *m_str;
+	const char *m_str, *m_end;
 	char m_delim;
 };
 

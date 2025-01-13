@@ -136,23 +136,32 @@ void Str::invalidIndex(int idx) const {
 	FWK_FATAL("Str: Index %d out of range: [%d - %d]", idx, 0, m_size);
 }
 
-vector<string> tokenize(ZStr str, char c) {
-	Tokenizer tok(str.c_str(), c);
-	vector<string> result;
+vector<Str> tokenize(Str str, char c) {
+	Tokenizer tok(str, c);
+	vector<Str> result;
 	result.reserve(std::count(begin(str), end(str), c) + 1);
 	while(!tok.finished())
 		result.emplace_back(tok.next());
 	return result;
 }
 
+vector<Str> splitLines(Str str) {
+	auto lines = tokenize(str);
+	for(auto &line : lines)
+		if(!line.empty() && line[line.size() - 1] == '\r')
+			line = {line.data(), line.size() - 1};
+	return lines;
+}
+
+Tokenizer::Tokenizer(Str str, char delim) : m_str(str.data()), m_end(str.end()), m_delim(delim) {}
+
 Str Tokenizer::next() {
 	const char *start = m_str;
-	while(*m_str && *m_str != m_delim)
+	while(m_str != m_end && *m_str != m_delim)
 		m_str++;
 	const char *end = m_str;
-	if(*m_str)
+	if(m_str != m_end)
 		m_str++;
-
 	return {start, (int)(end - start)};
 }
 
