@@ -166,7 +166,7 @@ vector<SystemFont> listSystemFonts() {
 		return params;
 	};
 
-	for(auto line : tokenize(result->first, '\n')) {
+	for(string line : tokenize(result->first, '\n')) {
 		auto delim = line.find(':');
 		if(delim == string::npos)
 			continue;
