@@ -23,7 +23,7 @@ template <class IT>
 auto distance(IT begin, IT end) {
 	long long ret;
 	if constexpr(is_random_iter<IT>) {
-		PASSERT(end >= begin);
+		PASSERT(!(end < begin));
 		ret = end - begin;
 	} else {
 		ret = 0;

@@ -12,6 +12,7 @@ CAŁY CZAS TO ROBISZ :(
 
 
 Problemy:
+- Replace freetype with stb_truetype
 - Why VBufferSpan has sizes as u32? Is this a mistake or by design?
 - natstepfilter
 - remove min_size from Span<>
