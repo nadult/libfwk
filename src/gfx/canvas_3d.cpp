@@ -54,10 +54,9 @@ Ex<SimpleDrawCall> Canvas3D::genDrawCall(ShaderCompiler &compiler, VulkanDevice 
 	dc.tex_coords = span<TexCoord>(vbuffer, dc.vertices.byteEndOffset(), num_verts);
 	dc.colors = span<IColor>(vbuffer, dc.tex_coords.byteEndOffset(), num_verts);
 
-	auto &cmds = device.cmdQueue();
-	EXPECT(cmds.upload(dc.vertices, m_positions));
-	EXPECT(cmds.upload(dc.tex_coords, m_tex_coords));
-	EXPECT(cmds.upload(dc.colors, m_colors));
+	EXPECT(dc.vertices.upload(m_positions));
+	EXPECT(dc.tex_coords.upload(m_tex_coords));
+	EXPECT(dc.colors.upload(m_colors));
 
 	dc.indices = EX_PASS(VulkanBuffer::createAndUpload(device, m_indices, ib_usage, mem_usage));
 	dc.instance_matrices =

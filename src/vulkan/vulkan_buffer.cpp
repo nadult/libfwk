@@ -52,7 +52,36 @@ Ex<PVBuffer> VulkanBuffer::create(VulkanDevice &device, u64 size, VBufferUsageFl
 Ex<PVBuffer> VulkanBuffer::createAndUpload(VulkanDevice &device, CSpan<char> data,
 										   VBufferUsageFlags usage, VMemoryUsage mem_usage) {
 	auto out = EX_PASS(create(device, data.size(), usage, mem_usage));
-	EXPECT(device.cmdQueue().upload(out, data));
+	EXPECT(out->upload(data));
 	return out;
+}
+
+Ex<> VulkanBuffer::upload(CSpan<char> data, uint byte_offset) {
+	DASSERT_LE(byte_offset, size());
+	if(!data)
+		return {};
+
+	// TODO: add option to invalidate previous contents?
+	DASSERT_LE(u32(data.size()), size() - byte_offset);
+	auto &device = *deviceRef();
+	auto &mem_mgr = device.memory();
+	auto mem_block = m_memory_block;
+	if(canBeMapped(mem_block.id.domain())) {
+		mem_block.offset += byte_offset;
+		// TODO: better checks
+		mem_block.size = min<u32>(mem_block.size - byte_offset, data.size());
+		fwk::copy(mem_mgr.writeAccessMemory(mem_block), data);
+	} else {
+		// TODO: minimize staging buffers allocations for many small uploads
+		auto staging_buffer = EX_PASS(VulkanBuffer::create(
+			device, data.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
+		auto mem_block = staging_buffer->memoryBlock();
+		fwk::copy(mem_mgr.writeAccessMemory(mem_block), data);
+		auto &cmd_queue = device.cmdQueue();
+		cmd_queue.copy({ref(), byte_offset}, staging_buffer);
+		cmd_queue.addStagingBufferInTransfer(std::move(staging_buffer));
+	}
+
+	return {};
 }
 }

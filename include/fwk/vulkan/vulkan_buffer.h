@@ -24,11 +24,12 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 	static Ex<VBufferSpan<T>> createAndUpload(VulkanDevice &, const TSpan &data, VBufferUsageFlags,
 											  VMemoryUsage = VMemoryUsage::device);
 
-	void upload(CSpan<char>);
-	template <class T> void upload(CSpan<T> data) { upload(data.template reinterpret<char>()); }
-	template <class TSpan, class T = SpanBase<TSpan>> void upload(const TSpan &data) {
-		upload<T>(cspan(data));
-	}
+	// Uploads data immediately if it can be mapped, otherwise it will copied through a staging buffer.
+	Ex<> upload(CSpan<char>, uint byte_offset = 0);
+
+	template <class T> Ex<> upload(CSpan<T> data, uint byte_offset = 0);
+	template <class TSpan, class T = SpanBase<TSpan>>
+	Ex<> upload(const TSpan &data, uint byte_offset = 0);
 
 	u32 size() const { return m_memory_block.size; }
 	auto memoryBlock() const { return m_memory_block; }
@@ -45,4 +46,12 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 	VMemoryBlock m_memory_block;
 	VBufferUsageFlags m_usage;
 };
+
+template <class T> Ex<> VulkanBuffer::upload(CSpan<T> data, uint byte_offset) {
+	return upload(data.template reinterpret<char>(), byte_offset);
+}
+
+template <class TSpan, class T> Ex<> VulkanBuffer::upload(const TSpan &data, uint byte_offset) {
+	return upload<T>(cspan(data), byte_offset);
+}
 }
