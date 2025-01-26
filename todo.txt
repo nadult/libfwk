@@ -1,18 +1,9 @@
-ZAPAMIĘTAJ: nie załatasz całego C++! kod nie musi być perfekcyjny!
-ULEPSZAJ TYLKO W KONTEKŚCIE JAKIEGOŚ FICZERA DO JAKIEGOS PROJEKTU
-NIE PRZESADZAJ Z OPTYMALIZACJĄ WYDAJNOŚCI, CZASÓW KOMPILACJI, WIELKOŚCI BINARKI, ETC.
+TODO: prioritize aggresively
 
-
------------------------------ PRIORYTETYZUJ TE TASKI!  ------------------------------------
-
-NIE ZABIERAJ SIĘ ZA NIC DOPÓKI NIE ZASTANOWISZ SIĘ CO NAJBARDZIEJ SIĘ OPŁACA ROBIĆ W DANYM
-MOMENCIE (NAJPRAWDOPODOBNIEJ JEST TO COŚ Z FRONTIERA A NIE LIBFWK)
-
-CAŁY CZAS TO ROBISZ :(
-
-
-Problemy:
 - Replace freetype with stb_truetype
+- Handle vulkan device lost (repro: resize window to side by side and wait)
+- Device lost in ray tracing mode? Why?
+- Wrong DPI on ubuntu 24.04
 - Why VBufferSpan has sizes as u32? Is this a mistake or by design?
 - natstepfilter
 - remove min_size from Span<>
@@ -53,7 +44,6 @@ Problemy:
 - zła identyfikacja shadera (zawsze mam DEFINITIONS)
 - lepsze opcje do dumpowania shaderów
 - drobny bug w perf analyzerze: wyswietlanie duzych wartosci (7000sec zamiast 7sec)
-- AnyConfig tak sobie zapisuje typy STLowe (np. string)
 - NoInit support for vector instead of PodVector ?
 - Rename ShaderCombiner to ProgramCombiner ?
 - Add asserts support to shaders

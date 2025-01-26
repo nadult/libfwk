@@ -127,6 +127,8 @@ void exitSingleGpuScope(PointId);
 int siblingGpuScope(PointId);
 int childGpuScope(PointId);
 
+void setCounter(PointId, u64 value);
+
 void nextFrame();
 
 // Make sure not to break scopes when pausing & resuming
