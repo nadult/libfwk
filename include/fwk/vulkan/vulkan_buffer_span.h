@@ -29,6 +29,8 @@ template <class T> struct VBufferSpan {
 		return VBufferSpan<char>(m_buffer, m_byte_offset, byteSize(), no_asserts);
 	}
 
+	Ex<> upload(CSpan<T> data) { return buffer()->upload(data, m_byte_offset); }
+
 	PVBuffer buffer() const { return m_buffer; }
 	u32 size() const { return m_size; }
 	u32 byteOffset() const { return m_byte_offset; }

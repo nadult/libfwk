@@ -249,6 +249,10 @@ void VulkanCommandQueue::copy(PVImage dst, VBufferSpan<> src, Maybe<IBox> box, i
 	dst->transitionLayout(dst_layout, dst_mip_level);
 }
 
+void VulkanCommandQueue::addStagingBufferInTransfer(VBufferSpan<> buffer) {
+	m_staging_buffers.emplace_back(buffer.buffer());
+}
+
 void VulkanCommandQueue::fill(VBufferSpan<> dst, u32 value) {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdFillBuffer(m_cur_cmd_buffer, dst.buffer(), dst.byteOffset(), dst.byteSize(), value);
@@ -477,32 +481,5 @@ void VulkanCommandQueue::perfTimestampQuery(uint sample_id) {
 	auto query_id = timestampQuery();
 	auto &frame = m_frames[m_swap_index];
 	frame.perf_queries.emplace_back(sample_id, query_id);
-}
-
-// -------------------------------------------------------------------------------------------
-// ----------  Upload commands ---------------------------------------------------------------
-
-Ex<VBufferSpan<char>> VulkanCommandQueue::upload(VBufferSpan<char> dst, CSpan<char> src) {
-	if(src.empty())
-		return dst;
-	DASSERT_LE(u32(src.size()), dst.size());
-
-	auto &mem_mgr = m_device.memory();
-	auto mem_block = dst.buffer()->memoryBlock();
-	if(canBeMapped(mem_block.id.domain())) {
-		mem_block.offset += dst.byteOffset();
-		// TODO: better checks
-		mem_block.size = min<u32>(mem_block.size - dst.byteOffset(), src.size());
-		fwk::copy(mem_mgr.writeAccessMemory(mem_block), src);
-	} else {
-		auto staging_buffer = EX_PASS(VulkanBuffer::create(
-			m_device, src.size(), VBufferUsage::transfer_src, VMemoryUsage::host));
-		auto mem_block = staging_buffer->memoryBlock();
-		fwk::copy(mem_mgr.writeAccessMemory(mem_block), src);
-		copy(dst, staging_buffer);
-		m_staging_buffers.emplace_back(std::move(staging_buffer));
-	}
-
-	return VBufferSpan{dst.buffer(), dst.byteOffset() + src.size(), dst.size() - src.size()};
 }
 }
