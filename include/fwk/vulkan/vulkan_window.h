@@ -27,6 +27,8 @@ DECLARE_ENUM(WindowEvent);
 class VulkanWindow {
   public:
 	using Flag = VWindowFlag;
+	VWindowRef ref();
+	VWindowId id() const;
 
 	static Ex<VWindowRef> create(VInstanceRef, ZStr title, IRect rect, VWindowFlags);
 

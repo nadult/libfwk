@@ -15,7 +15,7 @@ namespace fwk {
 
 class VulkanDevice {
   public:
-	VDeviceRef ref() const { return VDeviceRef(m_id); }
+	VDeviceRef ref() { return VDeviceRef(m_id); }
 	VDeviceId id() const { return m_id; }
 	VPhysicalDeviceId physId() const { return m_phys_id; }
 	VkDevice handle() const { return m_handle; }
