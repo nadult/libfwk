@@ -139,6 +139,7 @@ class VWindowRef {
 	VWindowId id() const { return m_id; }
 
   private:
+	friend class VulkanWindow;
 	friend class VulkanStorage;
 	VWindowRef(VWindowId, VulkanWindow *);
 

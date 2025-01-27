@@ -65,6 +65,9 @@ struct VulkanWindow::Impl {
 	bool is_closing = false;
 };
 
+VWindowRef VulkanWindow::ref() { return VWindowRef(m_impl->id, this); }
+VWindowId VulkanWindow::id() const { return m_impl->id; }
+
 VulkanWindow::VulkanWindow(VWindowId id, VInstanceRef instance_ref) {
 	m_impl.emplace(id, instance_ref);
 }
