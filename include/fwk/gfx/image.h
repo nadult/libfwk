@@ -48,7 +48,7 @@ class Image {
 		RegisterLoader(const char *locase_ext, Loader);
 	};
 
-	template <class TPixel> void fill(const TPixel &color);
+	template <c_pixel TPixel> void fill(const TPixel &);
 	void blit(const Image &src, int2 target_pos = {});
 
 	void resize(int2, Maybe<IColor> fill = IColor(ColorId::black));
@@ -99,7 +99,7 @@ template <c_pixel T> Image::Image(int2 size, T value, VFormat format) : Image(si
 	fill(value);
 }
 
-template <class T> void Image::fill(const T &color) {
+template <c_pixel T> void Image::fill(const T &color) {
 	DASSERT(sizeof(T) == unitByteSize(m_format));
 	for(int y = 0; y < m_size.y; y++)
 		fwk::fill(row<T>(y), color);
