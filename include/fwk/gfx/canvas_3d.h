@@ -15,6 +15,7 @@ namespace fwk {
 
 // TODO: fix point & line drawing (direction and scale)
 // TODO: add functionality from Visualizer3
+// TODO: feeding directly to command buffer would be faster
 
 class Canvas3D {
   public:
