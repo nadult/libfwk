@@ -111,7 +111,7 @@ void VDescriptorSet::set(int first_index, VDescriptorType type, CSpan<VBufferSpa
 		write.pBufferInfo = &buffer_info;
 	}
 
-	vkUpdateDescriptorSets(device->handle(), update_index, writes.data(), 0, nullptr);
+	vkUpdateDescriptorSets(*device, update_index, writes.data(), 0, nullptr);
 }
 
 void VDescriptorSet::set(int first_index, CSpan<Pair<PVSampler, PVImageView>> values) {
@@ -148,7 +148,7 @@ void VDescriptorSet::set(int first_index, CSpan<Pair<PVSampler, PVImageView>> va
 	write.dstArrayElement = 0;
 	write.descriptorType = toVk(VDescriptorType::combined_image_sampler);
 	write.pImageInfo = infos;
-	vkUpdateDescriptorSets(device->handle(), 1, &write, 0, nullptr);
+	vkUpdateDescriptorSets(*device, 1, &write, 0, nullptr);
 }
 
 void VDescriptorSet::setStorageImage(int index, PVImageView image_view, VImageLayout layout) {
@@ -206,7 +206,7 @@ u32 VulkanRenderPass::hashConfig(CSpan<VColorAttachment> colors, const VDepthAtt
 	return out;
 }
 
-PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment> colors,
+PVRenderPass VulkanRenderPass::create(VulkanDevice &device, CSpan<VColorAttachment> colors,
 									  Maybe<VDepthAttachment> depth) {
 
 	array<VkAttachmentDescription, max_colors + 1> attachments;
@@ -277,8 +277,8 @@ PVRenderPass VulkanRenderPass::create(VDeviceRef device, CSpan<VColorAttachment>
 	ci.pDependencies = &dependency;
 
 	VkRenderPass handle;
-	FWK_VK_CALL(vkCreateRenderPass, device->handle(), &ci, nullptr, &handle);
-	auto out = device->createObject(handle);
+	FWK_VK_CALL(vkCreateRenderPass, device.handle(), &ci, nullptr, &handle);
+	auto out = device.createObject(handle);
 	out->m_colors = colors;
 	out->m_depth = depth;
 
@@ -293,12 +293,12 @@ VulkanPipelineLayout ::~VulkanPipelineLayout() {
 	deferredRelease(vkDestroyPipelineLayout, m_handle);
 }
 
-PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> dsls,
+PVPipelineLayout VulkanPipelineLayout::create(VulkanDevice &device, vector<VDSLId> dsls,
 											  const VPushConstantRanges &pcrs) {
 	VkPipelineLayoutCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 
 	// TODO: array
-	auto sl_handles = transform(dsls, [&](VDSLId id) { return device->handle(id); });
+	auto sl_handles = transform(dsls, [&](VDSLId id) { return device.handle(id); });
 	ci.setLayoutCount = dsls.size();
 	ci.pSetLayouts = sl_handles.data();
 
@@ -318,8 +318,8 @@ PVPipelineLayout VulkanPipelineLayout::create(VDeviceRef device, vector<VDSLId> 
 	}
 
 	VkPipelineLayout handle;
-	FWK_VK_CALL(vkCreatePipelineLayout, device->handle(), &ci, nullptr, &handle);
-	return device->createObject(handle, std::move(dsls), pcrs);
+	FWK_VK_CALL(vkCreatePipelineLayout, device, &ci, nullptr, &handle);
+	return device.createObject(handle, std::move(dsls), pcrs);
 }
 
 VulkanPipeline::VulkanPipeline(VkPipeline handle, VObjectId id, PVRenderPass rp,
@@ -356,10 +356,10 @@ static void initSpecInfo(VkSpecializationInfo &info, PodVector<ConstType> &data,
 	info.pMapEntries = entries.data();
 }
 
-Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
+Ex<PVPipeline> VulkanPipeline::create(VulkanDevice &device, VPipelineSetup setup) {
 	if(!setup.pipeline_layout)
 		setup.pipeline_layout =
-			device->getPipelineLayout(setup.shader_modules, setup.push_constant_ranges);
+			device.getPipelineLayout(setup.shader_modules, setup.push_constant_ranges);
 	DASSERT(setup.render_pass);
 	DASSERT(setup.dynamic_state & VDynamic::viewport);
 	DASSERT(setup.dynamic_state & VDynamic::scissor);
@@ -513,18 +513,18 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, VPipelineSetup setup) {
 	ci.basePipelineIndex = -1;
 
 	VkPipeline handle;
-	FWK_VK_EXPECT_CALL(vkCreateGraphicsPipelines, device->handle(), device->pipelineCache(), 1, &ci,
-					   nullptr, &handle);
-	return device->createObject(handle, setup.render_pass, setup.pipeline_layout);
+	FWK_VK_EXPECT_CALL(vkCreateGraphicsPipelines, device, device.pipelineCache(), 1, &ci, nullptr,
+					   &handle);
+	return device.createObject(handle, setup.render_pass, setup.pipeline_layout);
 }
 
-Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineSetup &setup) {
+Ex<PVPipeline> VulkanPipeline::create(VulkanDevice &device, const VComputePipelineSetup &setup) {
 	DASSERT(setup.compute_module);
 
 	VPushConstantRanges push_constants;
 	if(setup.push_constant_size)
 		push_constants.ranges[VShaderStage::compute] = {0, *setup.push_constant_size};
-	auto pipeline_layout = device->getPipelineLayout({setup.compute_module}, push_constants);
+	auto pipeline_layout = device.getPipelineLayout({setup.compute_module}, push_constants);
 
 	VkSpecializationInfo spec_info;
 	PodVector<ConstType> spec_data;
@@ -540,7 +540,7 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineS
 	ci.layout = pipeline_layout;
 	ci.basePipelineIndex = -1;
 
-	auto subgroup_stages = device->physInfo().subgroup_control_props.requiredSubgroupSizeStages;
+	auto subgroup_stages = device.physInfo().subgroup_control_props.requiredSubgroupSizeStages;
 	VkPipelineShaderStageRequiredSubgroupSizeCreateInfo subgroup_control_ci{
 		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO};
 	if(setup.subgroup_size && (subgroup_stages & VK_SHADER_STAGE_COMPUTE_BIT) != 0) {
@@ -549,9 +549,9 @@ Ex<PVPipeline> VulkanPipeline::create(VDeviceRef device, const VComputePipelineS
 	}
 
 	VkPipeline handle;
-	FWK_VK_EXPECT_CALL(vkCreateComputePipelines, device->handle(), device->pipelineCache(), 1, &ci,
-					   nullptr, &handle);
-	auto out = device->createObject(handle, PVRenderPass(), pipeline_layout);
+	FWK_VK_EXPECT_CALL(vkCreateComputePipelines, device, device.pipelineCache(), 1, &ci, nullptr,
+					   &handle);
+	auto out = device.createObject(handle, PVRenderPass(), pipeline_layout);
 	out->m_bind_point = VBindPoint::compute;
 	return out;
 }

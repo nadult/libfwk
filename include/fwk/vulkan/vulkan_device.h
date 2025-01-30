@@ -18,6 +18,7 @@ class VulkanDevice {
 	VDeviceRef ref() { return VDeviceRef(m_id); }
 	VDeviceId id() const { return m_id; }
 	VPhysicalDeviceId physId() const { return m_phys_id; }
+	operator VkDevice() const { return handle(); }
 	VkDevice handle() const { return m_handle; }
 	VkPhysicalDevice physHandle() const { return m_phys_handle; }
 	const VulkanPhysicalDeviceInfo &physInfo() const;

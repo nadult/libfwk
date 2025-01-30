@@ -241,18 +241,18 @@ Ex<int> exMain() {
 	print("Selected Vulkan device: %\n", phys_info.properties.deviceName);
 
 	auto swap_chain = EX_PASS(VulkanSwapChain::create(
-		device, window, {.preferred_present_mode = VPresentMode::immediate}));
+		*device, window, {.preferred_present_mode = VPresentMode::immediate}));
 	device->addSwapChain(swap_chain);
 
 	ShaderCompiler compiler;
 
 	VulkanContext ctx{device, window, compiler};
 	auto compute_module = EX_PASS(
-		VulkanShaderModule::compile(compiler, device, {{VShaderStage::compute, compute_shader}}));
+		VulkanShaderModule::compile(compiler, *device, {{VShaderStage::compute, compute_shader}}));
 	VComputePipelineSetup compute_setup;
 	compute_setup.compute_module = compute_module[0];
 	compute_setup.push_constant_size = sizeof(u32);
-	ctx.compute_pipe = EX_PASS(VulkanPipeline::create(device, compute_setup));
+	ctx.compute_pipe = EX_PASS(VulkanPipeline::create(*device, compute_setup));
 
 	vector<u32> compute_data(compute_size + 1, 0);
 	compute_data[0] = compute_size;
@@ -260,7 +260,7 @@ Ex<int> exMain() {
 		VBufferUsage::storage_buffer | VBufferUsage::transfer_dst | VBufferUsage::transfer_src;
 	for(auto &buffer : ctx.compute_buffers)
 		buffer = EX_PASS(VulkanBuffer::createAndUpload(*device, compute_data, compute_usage));
-	ctx.font = EX_PASS(Font::makeDefault(device, window, 16));
+	ctx.font = EX_PASS(Font::makeDefault(*device, window, 16));
 
 	perf::ThreadContext perf_ctx;
 	perf::Manager perf_mgr;

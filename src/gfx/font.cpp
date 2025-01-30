@@ -224,12 +224,12 @@ Font::Font(FontCore core, PVImageView texture) : m_core(std::move(core)), m_text
 
 FWK_COPYABLE_CLASS_IMPL(Font)
 
-Ex<Font> Font::makeDefault(VDeviceRef device, VWindowRef window, int font_size) {
+Ex<Font> Font::makeDefault(VulkanDevice &device, VWindowRef window, int font_size) {
 	auto font_path = EX_PASS(findDefaultSystemFont()).file_path;
 	font_size *= window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(font_path, font_size));
 	auto font_image = EX_PASS(VulkanImage::createAndUpload(device, font_data.image));
-	auto font_image_view = VulkanImageView::create(device, font_image);
+	auto font_image_view = VulkanImageView::create(font_image);
 	return Font(std::move(font_data.core), std::move(font_image_view));
 }
 

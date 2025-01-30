@@ -278,13 +278,13 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	mem_setup.enable_device_address |= !!(m_features & VDeviceFeature::ray_tracing);
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features, mem_setup);
 
-	m_cmds = new VulkanCommandQueue(ref());
+	m_cmds = new VulkanCommandQueue(*this);
 	EXPECT(m_cmds->initialize(ref()));
 
 	VImageSetup img_setup{VFormat::rgba8_unorm, int2(4, 4)};
-	auto white_image = EX_PASS(VulkanImage::create(ref(), img_setup));
+	auto white_image = EX_PASS(VulkanImage::create(*this, img_setup));
 	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
-	m_dummies->dummy_image_2d = VulkanImageView::create(ref(), white_image);
+	m_dummies->dummy_image_2d = VulkanImageView::create(white_image);
 
 	auto rt_usage =
 		VBufferUsage::accel_struct_storage | VBufferUsage::accel_struct_build_input_read_only;
@@ -357,7 +357,7 @@ Maybe<VQueue> VulkanDevice::findFirstQueue(VQueueCaps caps) const {
 }
 
 Ex<void> VulkanDevice::addSwapChain(VWindowRef window, VSwapChainSetup setup) {
-	auto swap_chain = EX_PASS(VulkanSwapChain::create(ref(), window, setup));
+	auto swap_chain = EX_PASS(VulkanSwapChain::create(*this, window, setup));
 	addSwapChain(swap_chain);
 	return {};
 }
@@ -452,7 +452,7 @@ PVRenderPass VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
 	if(it != hash_map.end())
 		return it->value;
 
-	auto pointer = VulkanRenderPass::create(ref(), colors, depth);
+	auto pointer = VulkanRenderPass::create(*this, colors, depth);
 	auto depth_ptr = pointer->depth() ? &*pointer->depth() : nullptr;
 	hash_map.emplace(HashedRenderPass(pointer->colors(), depth_ptr, key.hash_value), pointer);
 	return pointer;
@@ -478,7 +478,7 @@ PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageVie
 	}
 	auto render_pass = getRenderPass(color_atts, depth_att);
 
-	auto pointer = VulkanFramebuffer::create(ref(), render_pass, colors, depth);
+	auto pointer = VulkanFramebuffer::create(render_pass, colors, depth);
 	hash_map.emplace(HashedFramebuffer(pointer->colors(), depth, key.hash_value), pair{pointer, 0});
 	return pointer;
 }
@@ -491,7 +491,7 @@ PVPipelineLayout VulkanDevice::getPipelineLayout(CSpan<VDSLId> dsls,
 	if(it != hash_map.end())
 		return it->value;
 
-	auto pointer = VulkanPipelineLayout::create(ref(), dsls, pcrs);
+	auto pointer = VulkanPipelineLayout::create(*this, dsls, pcrs);
 	hash_map.emplace(HashedPipelineLayout(pointer->descriptorSetLayouts(),
 										  pointer->pushConstantRanges(), key.hash_value),
 					 pointer);

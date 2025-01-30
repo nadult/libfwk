@@ -49,7 +49,7 @@ Investigator2::Investigator2(VDeviceRef device, VWindowRef window, VisFunc2 vis_
 	}
 
 	m_focus = *focus;
-	m_font.emplace(Font::makeDefault(device, window).get());
+	m_font.emplace(Font::makeDefault(*device, window).get());
 }
 
 Investigator2::~Investigator2() = default;

@@ -73,7 +73,7 @@ static Ex<PVPipeline> makePipeline(ShaderCompiler &compiler, VulkanDevice &devic
 
 	// TODO: use shader compiler
 	setup.shader_modules = EX_PASS(VulkanShaderModule::compile(
-		compiler, device.ref(),
+		compiler, device,
 		{{VShaderStage::vertex, simple_vsh}, {VShaderStage::fragment, simple_fsh}}));
 	setup.render_pass = render_pass;
 	SimpleDrawCall::getVertexBindings(setup.vertex_attribs, setup.vertex_bindings);
@@ -88,7 +88,7 @@ static Ex<PVPipeline> makePipeline(ShaderCompiler &compiler, VulkanDevice &devic
 		setup.blending.attachments = {{blending_mode}};
 	}
 
-	return VulkanPipeline::create(device.ref(), setup);
+	return VulkanPipeline::create(device, setup);
 }
 
 Ex<vector<PVPipeline>> SimpleDrawCall::makePipelines(ShaderCompiler &compiler, VulkanDevice &device,

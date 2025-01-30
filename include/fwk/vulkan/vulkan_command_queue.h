@@ -145,7 +145,7 @@ class VulkanCommandQueue {
 	friend class VulkanDevice;
 	friend class Gui;
 
-	VulkanCommandQueue(VDeviceRef);
+	VulkanCommandQueue(VulkanDevice &);
 	VulkanCommandQueue(const VulkanCommandQueue &) = delete;
 	void operator=(const VulkanCommandQueue &) = delete;
 

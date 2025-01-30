@@ -86,7 +86,7 @@ class Font {
 	Font(FontCore, PVImageView);
 	FWK_COPYABLE_CLASS(Font)
 
-	static Ex<Font> makeDefault(VDeviceRef, VWindowRef, int font_size = 14);
+	static Ex<Font> makeDefault(VulkanDevice &, VWindowRef, int font_size = 14);
 	FRect draw(Canvas2D &, const FRect &, const Style &, const string32 &text) const;
 
 	template <class Output>

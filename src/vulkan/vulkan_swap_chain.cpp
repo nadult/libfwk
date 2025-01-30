@@ -20,9 +20,9 @@ VulkanSwapChain::VulkanSwapChain(VkSwapchainKHR handle, VObjectId id, VWindowRef
 
 VulkanSwapChain::~VulkanSwapChain() { release(); }
 
-VSurfaceInfo VulkanSwapChain::surfaceInfo(VDeviceRef device, VWindowRef window) {
+VSurfaceInfo VulkanSwapChain::surfaceInfo(VulkanDevice &device, VWindowRef window) {
 	auto surf_handle = window->surfaceHandle();
-	auto phys_handle = device->physHandle();
+	auto phys_handle = device.physHandle();
 
 	VSurfaceInfo out;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_handle, surf_handle, &out.capabilities);
@@ -46,12 +46,12 @@ VSurfaceInfo VulkanSwapChain::surfaceInfo(VDeviceRef device, VWindowRef window) 
 	return out;
 }
 
-Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
+Ex<PVSwapChain> VulkanSwapChain::create(VulkanDevice &device, VWindowRef window,
 										const VSwapChainSetup &setup) {
-	auto phys_handle = device->physHandle();
+	auto phys_handle = device.physHandle();
 	auto surf_handle = window->surfaceHandle();
 	Maybe<VQueue> present_queue = none;
-	for(auto queue : device->queues()) {
+	for(auto queue : device.queues()) {
 		VkBool32 valid = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(phys_handle, queue.family_id, surf_handle, &valid);
 		if(valid) {
@@ -68,7 +68,7 @@ Ex<PVSwapChain> VulkanSwapChain::create(VDeviceRef device, VWindowRef window,
 	if(surf_info.is_minimized)
 		return ERROR("Swap chain cannot be created: window is minimized");
 
-	auto out = device->createObject(VkSwapchainKHR(nullptr), window, present_queue->handle);
+	auto out = device.createObject(VkSwapchainKHR(nullptr), window, present_queue->handle);
 	out->m_setup = setup;
 	EXPECT(out->initialize(surf_info));
 	return out;
@@ -78,7 +78,7 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 	m_status = Status::invalid;
 	DASSERT(!surf_info.is_minimized);
 
-	auto device = deviceRef();
+	auto &device = this->device();
 
 	VkSwapchainCreateInfoKHR ci{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 	ci.surface = m_window->surfaceHandle();
@@ -125,7 +125,7 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), m_setup.usage,
 						  m_setup.initial_layout);
 		auto image = VulkanImage::createExternal(device, images[i], setup);
-		m_image_views[i] = VulkanImageView::create(device, image);
+		m_image_views[i] = VulkanImageView::create(image);
 	}
 	for(auto &sem : m_semaphores)
 		sem = createVkSemaphore(device);
@@ -149,11 +149,11 @@ void VulkanSwapChain::release() {
 Ex<void> VulkanSwapChain::recreate() {
 	if(m_handle) {
 		release();
-		deviceRef()->waitForIdle();
+		device().waitForIdle();
 		m_status = Status::invalid;
 	}
 
-	auto surf_info = surfaceInfo(deviceRef(), m_window);
+	auto surf_info = surfaceInfo(device(), m_window);
 	if(surf_info.is_minimized) {
 		m_status = Status::window_minimized;
 		return {};

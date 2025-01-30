@@ -20,8 +20,8 @@ DEFINE_ENUM(VSwapChainStatus, initialized, image_acquired, ready, invalid, windo
 
 class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
   public:
-	static VSurfaceInfo surfaceInfo(VDeviceRef, VWindowRef);
-	static Ex<PVSwapChain> create(VDeviceRef, VWindowRef, const VSwapChainSetup &);
+	static VSurfaceInfo surfaceInfo(VulkanDevice &, VWindowRef);
+	static Ex<PVSwapChain> create(VulkanDevice &, VWindowRef, const VSwapChainSetup &);
 
 	VkFormat format() const { return m_format; }
 	int2 size() const { return m_size; }
