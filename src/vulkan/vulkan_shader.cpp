@@ -49,11 +49,11 @@ VulkanShaderModule::VulkanShaderModule(VkShaderModule handle, VObjectId id, VSha
 									   vector<VDescriptorBindingInfo> infos)
 	: VulkanObjectBase(handle, id), m_descriptor_binding_infos(std::move(infos)), m_stage(stage) {}
 
-VulkanShaderModule ::~VulkanShaderModule() {
+VulkanShaderModule::~VulkanShaderModule() {
 	vkDestroyShaderModule(deviceHandle(), m_handle, nullptr);
 }
 
-Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> bytecode,
+Ex<PVShaderModule> VulkanShaderModule::create(VulkanDevice &device, CSpan<char> bytecode,
 											  VShaderStage stage,
 											  vector<VDescriptorBindingInfo> infos) {
 	DASSERT(bytecode.size() % sizeof(u32) == 0);
@@ -65,10 +65,10 @@ Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> byt
 
 	VkShaderModule handle;
 	FWK_VK_EXPECT_CALL(vkCreateShaderModule, device, &ci, nullptr, &handle);
-	return device->createObject(handle, stage, std::move(infos));
+	return device.createObject(handle, stage, std::move(infos));
 }
 
-Ex<PVShaderModule> VulkanShaderModule::create(VDeviceRef device, CSpan<char> bytecode) {
+Ex<PVShaderModule> VulkanShaderModule::create(VulkanDevice &device, CSpan<char> bytecode) {
 	VShaderStage stage = {};
 	auto bindings = EX_PASS(getBindings(bytecode, stage));
 	return create(device, bytecode, stage, std::move(bindings));
@@ -94,7 +94,8 @@ static string formatBytecode(CSpan<char> bytecode, Str var_name, int max_line_le
 	return fmt.text();
 }
 
-Ex<vector<PVShaderModule>> VulkanShaderModule::compile(ShaderCompiler &compiler, VDeviceRef device,
+Ex<vector<PVShaderModule>> VulkanShaderModule::compile(ShaderCompiler &compiler,
+													   VulkanDevice &device,
 													   CSpan<Pair<VShaderStage, ZStr>> source_codes,
 													   bool dump_bytecodes) {
 	vector<PVShaderModule> out;

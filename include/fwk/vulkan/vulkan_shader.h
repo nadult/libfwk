@@ -10,11 +10,11 @@ namespace fwk {
 
 class VulkanShaderModule : public VulkanObjectBase<VulkanShaderModule> {
   public:
-	static Ex<PVShaderModule> create(VDeviceRef, CSpan<char> bytecode);
-	static Ex<PVShaderModule> create(VDeviceRef, CSpan<char> bytecode, VShaderStage stage,
+	static Ex<PVShaderModule> create(VulkanDevice &, CSpan<char> bytecode);
+	static Ex<PVShaderModule> create(VulkanDevice &, CSpan<char> bytecode, VShaderStage stage,
 									 vector<VDescriptorBindingInfo> bindings);
 
-	static Ex<vector<PVShaderModule>> compile(ShaderCompiler &, VDeviceRef,
+	static Ex<vector<PVShaderModule>> compile(ShaderCompiler &, VulkanDevice &,
 											  CSpan<Pair<VShaderStage, ZStr>> source_codes,
 											  bool dump_bytecodes = false);
 

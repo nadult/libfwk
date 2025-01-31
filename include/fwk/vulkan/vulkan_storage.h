@@ -46,7 +46,7 @@ template <class T> class VulkanObjectBase {
 	VDeviceId deviceId() const { return m_object_id.deviceId(); }
 	uint refCount() const { return m_ref_count; }
 
-	VDeviceRef deviceRef() const;
+	VulkanDevice &device();
 	VkDevice deviceHandle() const;
 
   protected:
@@ -262,8 +262,8 @@ template <class T> auto VulkanObjectBase<T>::ref() -> VPtr<Handle> {
 	return VPtr<Handle>(reinterpret_cast<T *>(this));
 }
 
-template <class T> VDeviceRef VulkanObjectBase<T>::deviceRef() const {
-	return VDeviceRef(deviceId());
+template <class T> FWK_ALWAYS_INLINE VulkanDevice &VulkanObjectBase<T>::device() {
+	return reinterpret_cast<VulkanDevice &>(g_vk_storage.devices[deviceId()]);
 }
 
 template <class T> FWK_ALWAYS_INLINE VkDevice VulkanObjectBase<T>::deviceHandle() const {

@@ -117,7 +117,7 @@ struct ViewModel {
 	int m_num_segments;
 };
 
-HashMap<string, PVImageView> loadImages(VDeviceRef device, CSpan<Pair<string>> file_names) {
+HashMap<string, PVImageView> loadImages(VulkanDevice &device, CSpan<Pair<string>> file_names) {
 	HashMap<string, PVImageView> out;
 
 	for(auto pair : file_names) {
@@ -136,7 +136,7 @@ HashMap<string, PVImageView> loadImages(VDeviceRef device, CSpan<Pair<string>> f
 			tex.error().print();
 			continue;
 		}
-		auto tex_view = VulkanImageView::create(device, *tex);
+		auto tex_view = VulkanImageView::create(*tex);
 		out.emplace(tex_name, tex_view);
 	}
 	return out;
@@ -158,7 +158,7 @@ class Viewer {
 		  m_anim_pos(0.0), m_show_nodes(false) {
 		updateViewport();
 
-		auto images = loadImages(device, file_names);
+		auto images = loadImages(*device, file_names);
 
 		for(auto file_name : file_names) {
 			auto image = images.maybeFind(file_name.second);
@@ -508,7 +508,7 @@ Ex<> exMain(int argc, char **argv) {
 	auto phys_info = instance->info(device->physId());
 	print("Selected Vulkan physical device: %\nDriver version: %\n",
 		  phys_info.properties.deviceName, phys_info.properties.driverVersion);
-	device->addSwapChain(EX_PASS(VulkanSwapChain::create(device, window, swap_chain_setup)));
+	device->addSwapChain(EX_PASS(VulkanSwapChain::create(*device, window, swap_chain_setup)));
 
 	double init_time = getTime();
 	Viewer viewer(window, device, files);

@@ -20,8 +20,8 @@
 
 namespace fwk {
 
-VulkanCommandQueue::VulkanCommandQueue(VDeviceRef device)
-	: m_device(*device), m_device_handle(device) {}
+VulkanCommandQueue::VulkanCommandQueue(VulkanDevice &device)
+	: m_device(device), m_device_handle(device) {}
 
 VulkanCommandQueue::~VulkanCommandQueue() {
 	DASSERT(m_status != Status::frame_running);

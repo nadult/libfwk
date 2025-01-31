@@ -63,7 +63,7 @@ Ex<> VulkanBuffer::upload(CSpan<char> data, uint byte_offset) {
 
 	// TODO: add option to invalidate previous contents?
 	DASSERT_LE(u32(data.size()), size() - byte_offset);
-	auto &device = *deviceRef();
+	auto &device = this->device();
 	auto &mem_mgr = device.memory();
 	auto mem_block = m_memory_block;
 	if(canBeMapped(mem_block.id.domain())) {

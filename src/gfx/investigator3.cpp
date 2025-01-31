@@ -26,7 +26,7 @@ namespace fwk {
 Investigator3::Investigator3(VDeviceRef device, VWindowRef window, VisFunc3 vis_func,
 							 InvestigatorOpts flags, Config config)
 	: m_device(device), m_window(window), m_vis_func(vis_func), m_opts(flags) {
-	m_font.emplace(Font::makeDefault(device, window).get());
+	m_font.emplace(Font::makeDefault(*device, window).get());
 	m_compiler.emplace();
 
 	auto new_viewport = IRect(window->size());
@@ -138,8 +138,8 @@ bool Investigator3::mainLoop() {
 	IRect viewport(m_window->size());
 	if(!m_depth_buffer || m_depth_buffer->size2D() != viewport.size()) {
 		auto format = m_device->bestSupportedFormat(VDepthStencilFormat::d24_x8);
-		auto buffer = VulkanImage::create(m_device, VImageSetup(format, viewport.size())).get();
-		m_depth_buffer = VulkanImageView::create(m_device, buffer);
+		auto buffer = VulkanImage::create(*m_device, VImageSetup(format, viewport.size())).get();
+		m_depth_buffer = VulkanImageView::create(buffer);
 	}
 
 	m_device->beginFrame().check();

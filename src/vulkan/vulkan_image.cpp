@@ -52,7 +52,7 @@ VulkanImage::~VulkanImage() {
 	}
 }
 
-Ex<PVImage> VulkanImage::create(VDeviceRef device, const VImageSetup &setup,
+Ex<PVImage> VulkanImage::create(VulkanDevice &device, const VImageSetup &setup,
 								VMemoryUsage mem_usage) {
 	VkImageCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
 	ci.imageType = VK_IMAGE_TYPE_2D;
@@ -77,20 +77,21 @@ Ex<PVImage> VulkanImage::create(VDeviceRef device, const VImageSetup &setup,
 
 	VkMemoryRequirements requirements;
 	vkGetImageMemoryRequirements(device, handle, &requirements);
-	auto mem_block = EX_PASS(device->alloc(mem_usage, requirements));
+	auto mem_block = EX_PASS(device.alloc(mem_usage, requirements));
 	FWK_VK_EXPECT_CALL(vkBindImageMemory, device, handle, mem_block.handle, mem_block.offset);
 
 	cleanup.cancel = true;
-	return device->createObject(handle, mem_block, setup);
+	return device.createObject(handle, mem_block, setup);
 }
 
-PVImage VulkanImage::createExternal(VDeviceRef device, VkImage handle, const VImageSetup &setup) {
-	auto out = device->createObject(handle, VMemoryBlock(), setup);
+PVImage VulkanImage::createExternal(VulkanDevice &device, VkImage handle,
+									const VImageSetup &setup) {
+	auto out = device.createObject(handle, VMemoryBlock(), setup);
 	out->m_is_external = true;
 	return out;
 }
 
-Ex<PVImage> VulkanImage::createAndUpload(VDeviceRef device, CSpan<Image> images) {
+Ex<PVImage> VulkanImage::createAndUpload(VulkanDevice &device, CSpan<Image> images) {
 	DASSERT(images);
 	for(auto image : images)
 		DASSERT(image.format() == images[0].format());
@@ -170,7 +171,7 @@ void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
 				  toString(new_layout));
 	}
 
-	auto &cmds = deviceRef()->cmdQueue();
+	auto &cmds = device().cmdQueue();
 	DASSERT(cmds.status() == VCommandQueueStatus::frame_running);
 	auto cmd_buffer = cmds.bufferHandle();
 	vkCmdPipelineBarrier(cmd_buffer, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
@@ -193,15 +194,15 @@ Ex<> VulkanImage::upload(const Image &src, int2 target_offset, int target_mip,
 	// TODO: dassert correct size
 
 	int data_size = src.data().size();
-	auto device = deviceRef(); // TODO: just get a plain reference
-	auto &mem_mgr = device->memory();
+	auto &device = this->device();
+	auto &mem_mgr = device.memory();
 
 	auto staging_buffer = EX_PASS(
-		VulkanBuffer::create(*device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
+		VulkanBuffer::create(device, data_size, VBufferUsage::transfer_src, VMemoryUsage::host));
 	auto mem_block = staging_buffer->memoryBlock();
 	fwk::copy(mem_mgr.writeAccessMemory(mem_block), src.data().reinterpret<char>());
 	IBox box(int3{target_offset, 0}, int3{target_offset + src.size(), 1});
-	device->cmdQueue().copy(ref(), staging_buffer, box, target_mip, target_layout);
+	device.cmdQueue().copy(ref(), staging_buffer, box, target_mip, target_layout);
 
 	return {};
 }
@@ -209,7 +210,7 @@ Ex<> VulkanImage::upload(const Image &src, int2 target_offset, int target_mip,
 VulkanImageView::VulkanImageView(VkImageView handle, VObjectId id) : VulkanObjectBase(handle, id) {}
 VulkanImageView ::~VulkanImageView() { deferredRelease(vkDestroyImageView, m_handle); }
 
-PVImageView VulkanImageView::create(VDeviceRef device, PVImage image) {
+PVImageView VulkanImageView::create(PVImage image) {
 	VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
 	ci.image = image;
 	ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -225,9 +226,11 @@ PVImageView VulkanImageView::create(VDeviceRef device, PVImage image) {
 						   .levelCount = dims.num_mip_levels,
 						   .baseArrayLayer = 0,
 						   .layerCount = 1};
+
+	auto &device = image->device();
 	VkImageView handle;
-	FWK_VK_CALL(vkCreateImageView, device->handle(), &ci, nullptr, &handle);
-	auto out = device->createObject(handle);
+	FWK_VK_CALL(vkCreateImageView, device, &ci, nullptr, &handle);
+	auto out = device.createObject(handle);
 	out->m_image = image;
 	out->m_format = image->format();
 	out->m_dims = dims;

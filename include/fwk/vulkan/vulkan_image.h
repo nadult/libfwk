@@ -39,10 +39,11 @@ struct VImageSetup {
 class VulkanImage : public VulkanObjectBase<VulkanImage> {
   public:
 	using Layout = VImageLayout;
-	static Ex<PVImage> create(VDeviceRef, const VImageSetup &, VMemoryUsage = VMemoryUsage::device);
-	static PVImage createExternal(VDeviceRef, VkImage, const VImageSetup &);
+	static Ex<PVImage> create(VulkanDevice &, const VImageSetup &,
+							  VMemoryUsage = VMemoryUsage::device);
+	static PVImage createExternal(VulkanDevice &, VkImage, const VImageSetup &);
 
-	static Ex<PVImage> createAndUpload(VDeviceRef, CSpan<Image>);
+	static Ex<PVImage> createAndUpload(VulkanDevice &, CSpan<Image>);
 
 	auto memoryBlock() { return m_memory_block; }
 	auto dimensions() const { return m_dims; }
@@ -84,7 +85,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 
 class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
   public:
-	static PVImageView create(VDeviceRef, PVImage);
+	static PVImageView create(PVImage);
 
 	auto dimensions() const { return m_dims; }
 	auto size() const { return m_dims.size; }

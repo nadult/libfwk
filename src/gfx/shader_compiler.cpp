@@ -400,12 +400,12 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ZStr def_name) {
 	return getSpirv(*id);
 }
 
-Ex<PVShaderModule> ShaderCompiler::createShaderModule(VDeviceRef device, ShaderDefId def_id) {
+Ex<PVShaderModule> ShaderCompiler::createShaderModule(VulkanDevice &device, ShaderDefId def_id) {
 	auto result = EX_PASS(getSpirv(def_id));
 	return VulkanShaderModule::create(device, result.bytecode);
 }
 
-Ex<PVShaderModule> ShaderCompiler::createShaderModule(VDeviceRef device, ZStr def_name) {
+Ex<PVShaderModule> ShaderCompiler::createShaderModule(VulkanDevice &device, ZStr def_name) {
 	auto result = EX_PASS(getSpirv(def_name));
 	return VulkanShaderModule::create(device, result.bytecode);
 }

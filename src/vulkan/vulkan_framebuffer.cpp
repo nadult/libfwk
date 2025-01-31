@@ -7,6 +7,7 @@
 #include "fwk/vulkan/vulkan_device.h"
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_internal.h"
+#include "fwk/vulkan/vulkan_pipeline.h"
 
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 
@@ -17,8 +18,8 @@ VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id)
 
 VulkanFramebuffer::~VulkanFramebuffer() { deferredRelease(vkDestroyFramebuffer, m_handle); }
 
-PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, PVRenderPass render_pass,
-										CSpan<PVImageView> colors, PVImageView depth) {
+PVFramebuffer VulkanFramebuffer::create(PVRenderPass render_pass, CSpan<PVImageView> colors,
+										PVImageView depth) {
 	DASSERT(!colors.empty());
 	DASSERT(colors.size() <= VulkanLimits::max_color_attachments);
 
@@ -38,9 +39,10 @@ PVFramebuffer VulkanFramebuffer::create(VDeviceRef device, PVRenderPass render_p
 	ci.height = uint(size.y);
 	ci.layers = 1;
 
+	auto &device = render_pass->device();
 	VkFramebuffer handle;
-	FWK_VK_CALL(vkCreateFramebuffer, device->handle(), &ci, nullptr, &handle);
-	auto out = device->createObject(handle);
+	FWK_VK_CALL(vkCreateFramebuffer, device, &ci, nullptr, &handle);
+	auto out = device.createObject(handle);
 	out->m_colors = colors;
 	out->m_depth = depth;
 	out->m_size = size;
