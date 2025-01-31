@@ -301,9 +301,9 @@ PVPipelineLayout VulkanPipelineLayout::create(VulkanDevice &device, vector<VDSLI
 	auto sl_handles = transform(dsls, [&](VDSLId id) { return device.handle(id); });
 	ci.setLayoutCount = dsls.size();
 	ci.pSetLayouts = sl_handles.data();
+	VkPushConstantRange pcrs_[count<VShaderStage>];
 
 	if(!pcrs.empty()) {
-		VkPushConstantRange pcrs_[count<VShaderStage>];
 		int count = 0;
 		for(auto stage : all<VShaderStage>) {
 			auto [offset, size] = pcrs.ranges[stage];
