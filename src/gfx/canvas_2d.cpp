@@ -41,6 +41,8 @@ Ex<SimpleDrawCall> Canvas2D::genDrawCall(ShaderCompiler &compiler, VulkanDevice 
 	DASSERT_EQ(m_tex_coords.size(), m_positions.size());
 
 	SimpleDrawCall dc;
+	if(!m_positions)
+		return dc;
 
 	auto vb_usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
 	auto ib_usage = VBufferUsage::index_buffer | VBufferUsage::transfer_dst;
