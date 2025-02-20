@@ -275,7 +275,7 @@ struct VDescriptorBindingInfo {
 	u64 value = 0;
 };
 
-// DescriptorSets can only be used during the same frame during which they were acquired
+// DescriptorSets can only be used during the same frame in which they were acquired
 struct VDescriptorSet {
 	VDescriptorSet(VulkanDevice &device, VkDescriptorSet handle, u64 bindings_map)
 		: device(&device), handle(handle), bindings_map(bindings_map) {}

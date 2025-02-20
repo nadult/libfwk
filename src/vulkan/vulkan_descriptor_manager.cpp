@@ -24,7 +24,8 @@
 
 namespace fwk {
 
-VulkanDescriptorManager::VulkanDescriptorManager(VkDevice device) : m_device_handle(device) {
+VulkanDescriptorManager::VulkanDescriptorManager(VkDevice device, bool update_after_bind)
+	: m_device_handle(device), m_update_after_bind(update_after_bind) {
 	static_assert(sizeof(VulkanDescriptorManager::DSL) == 128);
 	m_empty_dsl_id = getLayout({});
 }
@@ -56,6 +57,17 @@ VDSLId VulkanDescriptorManager::getLayout(CSpan<VDescriptorBindingInfo> bindings
 	VkDescriptorSetLayoutCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
 	ci.pBindings = vk_bindings.data();
 	ci.bindingCount = vk_bindings.size();
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT binding_flags_ci{
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
+	if(m_update_after_bind) {
+		if(m_binding_flags.size() < bindings.size())
+			m_binding_flags.resize(bindings.size(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+		binding_flags_ci.pBindingFlags = m_binding_flags.data();
+		binding_flags_ci.bindingCount = bindings.size();
+		ci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+		ci.pNext = &binding_flags_ci;
+	}
 
 	DSL new_dsl;
 	FWK_VK_CALL(vkCreateDescriptorSetLayout, m_device_handle, &ci, nullptr, &new_dsl.layout);
@@ -145,7 +157,8 @@ VkDescriptorPool VulkanDescriptorManager::allocPool(CSpan<VDescriptorBindingInfo
 	EnumMap<VDescriptorType, uint> counts;
 	for(auto binding : bindings)
 		counts[binding.type()] += binding.count() * num_sets;
-	return createVkDescriptorPool(m_device_handle, counts, num_sets);
+	auto flags = mask(m_update_after_bind, VDescriptorPoolFlag::update_after_bind);
+	return createVkDescriptorPool(m_device_handle, counts, num_sets, flags);
 }
 
 void VulkanDescriptorManager::allocSets(VkDescriptorPool pool, VkDescriptorSetLayout layout,
