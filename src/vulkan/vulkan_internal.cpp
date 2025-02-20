@@ -74,7 +74,7 @@ VkDescriptorPool createVkDescriptorPool(VkDevice device, EnumMap<VDescriptorType
 	ci.poolSizeCount = num_sizes;
 	ci.pPoolSizes = sizes.data();
 	ci.maxSets = set_count;
-	ci.flags = 0; //TODO
+	ci.flags = flags.bits;
 	VkDescriptorPool handle;
 	FWK_VK_CALL(vkCreateDescriptorPool, device, &ci, nullptr, &handle);
 	return handle;

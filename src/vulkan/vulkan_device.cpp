@@ -244,6 +244,13 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 		acc_features.accelerationStructure = VK_TRUE;
 	}
 
+	if(setup.allow_descriptor_update_after_bind) {
+		v12_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+		v12_features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+		v12_features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+		m_features |= VDeviceFeature::descriptor_update_after_bind;
+	}
+
 	vector<const char *> c_exts = transform(exts, [](auto &str) { return str.c_str(); });
 	VkDeviceCreateInfo ci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 	ci.pQueueCreateInfos = queue_cis.data();
@@ -273,7 +280,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	FWK_VK_EXPECT_CALL(vkCreatePipelineCache, m_handle, &pip_ci, nullptr,
 					   &m_objects->pipeline_cache);
 
-	m_descriptors.emplace(m_handle);
+	m_descriptors.emplace(m_handle, !!(m_features & VDeviceFeature::descriptor_update_after_bind));
 	auto mem_setup = setup.memory;
 	mem_setup.enable_device_address |= !!(m_features & VDeviceFeature::ray_tracing);
 	m_memory.emplace(m_handle, m_instance_ref->info(m_phys_id), m_features, mem_setup);
