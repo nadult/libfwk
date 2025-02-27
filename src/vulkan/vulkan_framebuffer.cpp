@@ -20,7 +20,6 @@ VulkanFramebuffer::~VulkanFramebuffer() { deferredRelease(vkDestroyFramebuffer, 
 
 PVFramebuffer VulkanFramebuffer::create(PVRenderPass render_pass, CSpan<PVImageView> colors,
 										PVImageView depth) {
-	DASSERT(!colors.empty());
 	DASSERT(colors.size() <= VulkanLimits::max_color_attachments);
 
 	array<VkImageView, max_color_atts + 1> attachments;
@@ -29,7 +28,7 @@ PVFramebuffer VulkanFramebuffer::create(PVRenderPass render_pass, CSpan<PVImageV
 		attachments[i] = colors[i];
 	if(depth)
 		attachments[num_attachments++] = depth;
-	auto size = colors[0]->size2D();
+	int2 size = colors ? colors[0]->size2D() : depth ? depth->size2D() : int2();
 
 	VkFramebufferCreateInfo ci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 	ci.renderPass = render_pass;
@@ -37,6 +36,7 @@ PVFramebuffer VulkanFramebuffer::create(PVRenderPass render_pass, CSpan<PVImageV
 	ci.pAttachments = attachments.data();
 	ci.width = uint(size.x);
 	ci.height = uint(size.y);
+	ci.flags = num_attachments == 0 ? VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT : 0;
 	ci.layers = 1;
 
 	auto &device = render_pass->device();
