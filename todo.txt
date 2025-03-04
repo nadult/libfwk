@@ -1,8 +1,10 @@
 TODO: prioritize aggresively
 
+- FilePath() should be empty; FilePath::empty() always returns false;
+  This class could be modernized or maybe even replaced with std::filesystem;
+  But std::filesystem uses exceptions
 - Replace freetype with stb_truetype
 - Handle vulkan device lost (repro: resize window to side by side and wait)
-- Device lost in ray tracing mode? Why?
 - Wrong DPI on ubuntu 24.04
 - Why VBufferSpan has sizes as u32? Is this a mistake or by design?
 - natstepfilter

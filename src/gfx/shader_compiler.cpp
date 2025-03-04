@@ -350,17 +350,17 @@ double lastModificationTime(CSpan<FilePath> paths) {
 Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	DASSERT(valid(id));
 	auto &def = m_impl->shader_defs[id];
-	FilePath spirv_path, asm_path;
+	Maybe<FilePath> spirv_path, asm_path;
 
 	double last_mod_time = lastModificationTime(def.update_paths);
 
 	if(m_impl->spirv_cache_dir) {
 		spirv_path = *m_impl->spirv_cache_dir / (def.name + ".spv");
 		asm_path = *m_impl->spirv_cache_dir / (def.name + ".asm");
-		if(spirv_path.isRegularFile()) {
-			double spirv_time = lastModificationTime(spirv_path).orElse(-1.0);
+		if(spirv_path->isRegularFile()) {
+			double spirv_time = lastModificationTime(*spirv_path).orElse(-1.0);
 			if(spirv_time >= last_mod_time) {
-				if(auto spirv_data = loadFile(spirv_path)) {
+				if(auto spirv_data = loadFile(*spirv_path)) {
 					CompilationResult result;
 					result.bytecode = std::move(*spirv_data);
 					def.last_modification_time = spirv_time;
@@ -381,13 +381,13 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 	}
 	def.last_modification_time = last_mod_time;
 
-	if(result.bytecode && !spirv_path.empty()) {
-		mkdirRecursive(spirv_path.parent()).check();
-		saveFile(spirv_path, result.bytecode).check();
+	if(result.bytecode && spirv_path) {
+		mkdirRecursive(spirv_path->parent()).check();
+		saveFile(*spirv_path, result.bytecode).check();
 	}
-	if(result.assembly && !asm_path.empty()) {
-		mkdirRecursive(asm_path.parent()).check();
-		saveFile(asm_path, result.assembly).check();
+	if(result.assembly && asm_path) {
+		mkdirRecursive(asm_path->parent()).check();
+		saveFile(*asm_path, result.assembly).check();
 	}
 
 	return result;
