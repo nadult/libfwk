@@ -11,7 +11,6 @@ namespace fwk {
 class Canvas2D;
 class Canvas3D;
 class DynamicMesh;
-class FloatImage;
 class Font;
 class FontCore;
 class FontFactory;
@@ -29,7 +28,6 @@ struct Pose;
 
 struct SimpleDrawCall;
 class SimpleMaterial;
-class SimpleMaterialSet;
 
 struct FColor;
 struct IColor;
@@ -38,7 +36,6 @@ DECLARE_ENUM(ColorId);
 struct ColoredTriangle;
 struct ColoredQuad;
 
-struct FramebufferTarget;
 struct FontStyle;
 
 struct FppCamera;
