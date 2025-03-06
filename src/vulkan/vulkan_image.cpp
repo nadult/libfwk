@@ -32,9 +32,9 @@ VImageSetup::VImageSetup(VFormat format, VImageDimensions dims, VImageUsageFlags
 						 VImageLayout layout)
 	: dims(dims), format(toVk(format)), usage(usage), layout(layout) {}
 
-VImageSetup::VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims)
-	: dims(dims), format(toVk(ds_format)), usage(VImageUsage::depth_stencil_att),
-	  layout(VImageLayout::undefined) {}
+VImageSetup::VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims,
+						 VImageUsageFlags usage)
+	: dims(dims), format(toVk(ds_format)), usage(usage), layout(VImageLayout::undefined) {}
 
 VulkanImage::VulkanImage(VkImage handle, VObjectId id, VMemoryBlock mem_block,
 						 const VImageSetup &setup)
@@ -218,7 +218,10 @@ PVImageView VulkanImageView::create(PVImage image) {
 	ci.components.a = ci.components.b = ci.components.g = ci.components.r =
 		VK_COMPONENT_SWIZZLE_IDENTITY;
 	auto ds_format = image->depthStencilFormat();
-	uint aspect_mask = ds_format ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	uint aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
+	if(ds_format)
+		aspect_mask =
+			VK_IMAGE_ASPECT_DEPTH_BIT | (hasStencil(*ds_format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 
 	auto dims = image->dimensions();
 	ci.subresourceRange = {.aspectMask = aspect_mask,
