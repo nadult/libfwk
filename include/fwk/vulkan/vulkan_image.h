@@ -28,7 +28,8 @@ struct VImageSetup {
 	VImageSetup(VFormat format, VImageDimensions dims,
 				VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled,
 				VImageLayout layout = VImageLayout::undefined);
-	VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims);
+	VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims,
+				VImageUsageFlags = VImageUsage::depth_stencil_att);
 
 	VImageDimensions dims;
 	VkFormat format;

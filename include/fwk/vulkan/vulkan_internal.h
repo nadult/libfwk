@@ -65,7 +65,7 @@ inline auto toVk(VDepthStencilFormat format) {
 	return VkFormat(uint(VK_FORMAT_D16_UNORM) + uint(format));
 }
 inline auto fromVkDepthStencilFormat(VkFormat format) {
-	return format >= VK_FORMAT_D16_UNORM && format < VK_FORMAT_D32_SFLOAT_S8_UINT ?
+	return format >= VK_FORMAT_D16_UNORM && format <= VK_FORMAT_D32_SFLOAT_S8_UINT ?
 			   VDepthStencilFormat(uint(format) - uint(VK_FORMAT_D16_UNORM)) :
 			   Maybe<VDepthStencilFormat>();
 }
