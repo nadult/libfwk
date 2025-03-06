@@ -225,6 +225,17 @@ VBaseFormat baseFormat(VFormat);
 VNumericFormat numericFormat(VFormat);
 Maybe<VFormat> makeFormat(VBaseFormat, VNumericFormat);
 
+DEFINE_ENUM(VFormatFeature, sampled_image, storage_image, storage_image_atomic,
+			uniform_texel_buffer, storage_texel_buffer, storage_texel_buffer_atomic, vertex_buffer,
+			color_attachment, color_attachment_blend, depth_stencil_attachment, blit_src, blit_dst,
+			sampled_image_filter_linear, transfer_src, transfer_dst);
+
+using VFormatFeatures = EnumFlags<VFormatFeature>;
+
+struct VFormatSupport {
+	VFormatFeatures linear_tiling, optimal_tiling, buffer;
+};
+
 constexpr bool isBlock(VFormat format) {
 	return format >= VFormat::bc1_rgb_unorm && format <= VFormat::bc7_rgba_srgb;
 }

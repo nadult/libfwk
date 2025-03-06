@@ -73,6 +73,16 @@ inline auto fromVkDepthStencilFormat(VkFormat format) {
 VkFormat toVk(VFormat);
 Maybe<VFormat> fromVk(VkFormat);
 
+inline VkFormatFeatureFlags toVk(VFormatFeatures features) {
+	u32 low_bits = features.bits & 0x1fffu, high_bits = features.bits >> 13;
+	return VkFormatFeatureFlags{low_bits | (high_bits << 14)};
+}
+
+inline VFormatFeatures fromVkFormatFeatures(VkFormatFeatureFlags features) {
+	u32 low_bits = features & 0x1fffu, high_bits = (features >> 14) & 3;
+	return VFormatFeatures(low_bits | (high_bits << 13));
+}
+
 inline VkExtent2D toVkExtent(int2 extent) {
 	PASSERT(extent.x >= 0 && extent.y >= 0);
 	return {uint(extent.x), uint(extent.y)};
