@@ -379,4 +379,21 @@ Ex<VDeviceRef> VulkanInstance::createDevice(VPhysicalDeviceId phys_id, const VDe
 	EXPECT(ref->initialize(setup));
 	return ref;
 }
+
+static VFormatSupport formatSupport(VkPhysicalDevice phys_device, VkFormat format) {
+	VkFormatProperties2 props{VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2};
+	vkGetPhysicalDeviceFormatProperties2(phys_device, format, &props);
+	return VFormatSupport{fromVkFormatFeatures(props.formatProperties.linearTilingFeatures),
+						  fromVkFormatFeatures(props.formatProperties.optimalTilingFeatures),
+						  fromVkFormatFeatures(props.formatProperties.bufferFeatures)};
+}
+
+VFormatSupport VulkanInstance::formatSupport(VPhysicalDeviceId phys_id, VFormat format) const {
+	return fwk::formatSupport(m_phys_devices[phys_id].handle, toVk(format));
+}
+
+VFormatSupport VulkanInstance::formatSupport(VPhysicalDeviceId phys_id,
+											 VDepthStencilFormat format) const {
+	return fwk::formatSupport(m_phys_devices[phys_id].handle, toVk(format));
+}
 }
