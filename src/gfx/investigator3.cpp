@@ -144,7 +144,7 @@ bool Investigator3::mainLoop() {
 
 	m_device->beginFrame().check();
 	auto sc_format = swap_chain->format();
-	auto depth_format = *m_depth_buffer->image()->depthStencilFormat();
+	auto depth_format = m_depth_buffer->image()->format().get<VDepthStencilFormat>();
 	auto render_pass_3d =
 		m_device->getRenderPass({{sc_format, 1, VColorSyncStd::clear}}, {depth_format});
 	auto render_pass_2d = m_device->getRenderPass({{sc_format, 1, VColorSyncStd::present}});

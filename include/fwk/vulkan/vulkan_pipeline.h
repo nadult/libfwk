@@ -16,25 +16,25 @@ template <class T> struct VAutoVulkanFormat {};
 	template <> struct VAutoVulkanFormat<type_> {                                                  \
 		static constexpr auto format = format_;                                                    \
 	};
-AUTO_FORMAT(float, VK_FORMAT_R32_SFLOAT)
-AUTO_FORMAT(float2, VK_FORMAT_R32G32_SFLOAT)
-AUTO_FORMAT(float3, VK_FORMAT_R32G32B32_SFLOAT)
-AUTO_FORMAT(float4, VK_FORMAT_R32G32B32A32_SFLOAT)
-AUTO_FORMAT(int, VK_FORMAT_R32_SINT)
-AUTO_FORMAT(int2, VK_FORMAT_R32G32_SINT)
-AUTO_FORMAT(int3, VK_FORMAT_R32G32B32_SINT)
-AUTO_FORMAT(int4, VK_FORMAT_R32G32B32A32_SINT)
-AUTO_FORMAT(u32, VK_FORMAT_R32_UINT)
-AUTO_FORMAT(IColor, VK_FORMAT_R8G8B8A8_UNORM)
+AUTO_FORMAT(float, VColorFormat::r32_sfloat)
+AUTO_FORMAT(float2, VColorFormat::rg32_sfloat)
+AUTO_FORMAT(float3, VColorFormat::rgb32_sfloat)
+AUTO_FORMAT(float4, VColorFormat::rgba32_sfloat)
+AUTO_FORMAT(int, VColorFormat::r32_sint)
+AUTO_FORMAT(int2, VColorFormat::rg32_sint)
+AUTO_FORMAT(int3, VColorFormat::rgb32_sint)
+AUTO_FORMAT(int4, VColorFormat::rgba32_sint)
+AUTO_FORMAT(u32, VColorFormat::r32_uint)
+AUTO_FORMAT(IColor, VColorFormat::rgba8_unorm)
 #undef AUTO_FORMAT
 
 struct VVertexAttrib {
 	VVertexAttrib(uint location_index, uint binding_index, uint offset = 0,
-				  VkFormat format = VK_FORMAT_R32_SFLOAT)
+				  VColorFormat format = VColorFormat::r32_sfloat)
 		: format(format), offset(offset), location_index(location_index),
 		  binding_index(binding_index) {}
 
-	VkFormat format;
+	VColorFormat format;
 	u16 offset;
 	u8 location_index;
 	u8 binding_index;

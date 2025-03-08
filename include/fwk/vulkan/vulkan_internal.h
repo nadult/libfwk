@@ -70,8 +70,8 @@ inline auto fromVkDepthStencilFormat(VkFormat format) {
 			   Maybe<VDepthStencilFormat>();
 }
 
-VkFormat toVk(VFormat);
-Maybe<VFormat> fromVk(VkFormat);
+VkFormat toVk(VColorFormat);
+Maybe<VColorFormat> fromVkColorFormat(VkFormat);
 
 inline VkFormatFeatureFlags toVk(VFormatFeatures features) {
 	u32 low_bits = features.bits & 0x1fffu, high_bits = features.bits >> 13;

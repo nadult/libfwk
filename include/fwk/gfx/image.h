@@ -18,14 +18,14 @@ using ImageRescaleOpts = EnumFlags<ImageRescaleOpt>;
 
 class Image {
   public:
-	explicit Image(int2 size, VFormat = VFormat::rgba8_unorm);
-	Image(Image, VFormat new_format);
-	Image(int2 size, NoInitTag, VFormat = VFormat::rgba8_unorm);
-	Image(int2 size, IColor fill, VFormat = VFormat::rgba8_unorm);
-	Image(PodVector<u8>, int2 size, VFormat);
+	explicit Image(int2 size, VColorFormat = VColorFormat::rgba8_unorm);
+	Image(Image, VColorFormat new_format);
+	Image(int2 size, NoInitTag, VColorFormat = VColorFormat::rgba8_unorm);
+	Image(int2 size, IColor fill, VColorFormat = VColorFormat::rgba8_unorm);
+	Image(PodVector<u8>, int2 size, VColorFormat);
 
-	template <c_pixel T> Image(PodVector<T> data, int2 size, VFormat format);
-	template <c_pixel T> Image(int2 size, T fill, VFormat format);
+	template <c_pixel T> Image(PodVector<T> data, int2 size, VColorFormat format);
+	template <c_pixel T> Image(int2 size, T fill, VColorFormat format);
 	Image();
 	~Image();
 
@@ -54,9 +54,9 @@ class Image {
 	void resize(int2, Maybe<IColor> fill = IColor(ColorId::black));
 	Image rescale(int2 new_size, ImageRescaleOpts opts = none) const;
 
-	void setFormat(VFormat new_format);
+	void setFormat(VColorFormat new_format);
 
-	static Image compressBC(const Image &, VFormat);
+	static Image compressBC(const Image &, VColorFormat);
 
 	static int maxMipmapLevels(int max_dimension) { return int(log2(max_dimension)) + 1; }
 	static int maxMipmapLevels(int2 size) { return maxMipmapLevels(max(size.x, size.y)); }
@@ -70,7 +70,7 @@ class Image {
 	int height() const { return m_size.y; }
 	int2 size() const { return m_size; }
 
-	VFormat format() const { return m_format; }
+	VColorFormat format() const { return m_format; }
 	bool empty() const { return m_size.x == 0 || m_size.y == 0; }
 
 	template <c_pixel T> Span<T> row(int y);
@@ -82,20 +82,20 @@ class Image {
   private:
 	PodVector<u8> m_data;
 	int2 m_size;
-	VFormat m_format;
+	VColorFormat m_format;
 };
 
 // -------------------------------------------------------------------------------------------
 // ---  Inlined code -------------------------------------------------------------------------
 
 template <c_pixel T>
-Image::Image(PodVector<T> data, int2 size, VFormat format)
+Image::Image(PodVector<T> data, int2 size, VColorFormat format)
 	: m_data(std::move(data.template reinterpret<u8>())), m_size(size), m_format(format) {
 	DASSERT(sizeof(T) == unitByteSize(format));
 	DASSERT(m_data.size() * sizeof(T) >= imageByteSize(format, m_size));
 }
 
-template <c_pixel T> Image::Image(int2 size, T value, VFormat format) : Image(size, format) {
+template <c_pixel T> Image::Image(int2 size, T value, VColorFormat format) : Image(size, format) {
 	fill(value);
 }
 

@@ -22,36 +22,36 @@ namespace detail {
 	Ex<Image> loadSTBI(Stream &);
 }
 
-Image::Image(int2 size, VFormat format)
+Image::Image(int2 size, VColorFormat format)
 	: m_data(imageByteSize(format, size)), m_size(size), m_format(format) {
 	fwk::fill(m_data, 0);
 	DASSERT(size.x >= 0 && size.y >= 0);
 }
 
-Image::Image(int2 size, NoInitTag, VFormat format)
+Image::Image(int2 size, NoInitTag, VColorFormat format)
 	: m_data(imageByteSize(format, size)), m_size(size), m_format(format) {
 	DASSERT(size.x >= 0 && size.y >= 0);
 }
 
-Image::Image(int2 size, IColor color, VFormat format)
+Image::Image(int2 size, IColor color, VColorFormat format)
 	: m_data(imageByteSize(format, size)), m_size(size), m_format(format) {
 	DASSERT(size.x >= 0 && size.y >= 0);
 	fill(color);
 }
 
-Image::Image(PodVector<u8> data, int2 size, VFormat format)
+Image::Image(PodVector<u8> data, int2 size, VColorFormat format)
 	: m_data(std::move(data)), m_size(size), m_format(format) {
 	DASSERT(size.x >= 0 && size.y >= 0);
 	DASSERT(m_data.size() >= imageByteSize(format, m_size));
 }
 
-Image::Image(Image rhs, VFormat format)
+Image::Image(Image rhs, VColorFormat format)
 	: m_data(std::move(rhs.m_data)), m_size(rhs.m_size), m_format(format) {
 	rhs.m_size = int2(0, 0);
 	DASSERT(areCompatible(rhs.m_format, format));
 }
 
-Image::Image() : m_format(VFormat::rgba8_unorm) {}
+Image::Image() : m_format(VColorFormat::rgba8_unorm) {}
 Image::~Image() = default;
 
 using ImageLoaders = vector<Pair<string, Image::Loader>>;
@@ -96,7 +96,7 @@ Image::RegisterLoader::RegisterLoader(const char *ext, Loader func) {
 	loaders().emplace_back(ext, func);
 }
 
-Image Image::compressBC(const Image &image, VFormat format) {
+Image Image::compressBC(const Image &image, VColorFormat format) {
 	auto base_format = baseFormat(format);
 	auto numeric_format = numericFormat(format);
 
@@ -132,7 +132,7 @@ Image Image::compressBC(const Image &image, VFormat format) {
 	return {std::move(data), image.size(), format};
 }
 
-void Image::setFormat(VFormat new_format) {
+void Image::setFormat(VColorFormat new_format) {
 	DASSERT(areCompatible(m_format, new_format));
 	m_format = new_format;
 }

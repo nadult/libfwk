@@ -288,7 +288,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	m_cmds = new VulkanCommandQueue(*this);
 	EXPECT(m_cmds->initialize(ref()));
 
-	VImageSetup img_setup{VFormat::rgba8_unorm, int2(4, 4)};
+	VImageSetup img_setup{VColorFormat::rgba8_unorm, int2(4, 4)};
 	auto white_image = EX_PASS(VulkanImage::create(*this, img_setup));
 	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
 	m_dummies->dummy_image_2d = VulkanImageView::create(white_image);
@@ -475,13 +475,17 @@ PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageVie
 	}
 
 	StaticVector<VColorAttachment, VulkanLimits::max_color_attachments> color_atts;
-	for(auto color : colors)
-		color_atts.emplace_back(color->format(), color->dimensions().num_samples);
+	for(auto color : colors) {
+		auto format = color->format();
+		DASSERT(format.is<VColorFormat>());
+		color_atts.emplace_back(format.get<VColorFormat>(), color->dimensions().num_samples);
+	}
 	Maybe<VDepthAttachment> depth_att;
 	if(depth) {
-		auto ds_format = fromVkDepthStencilFormat(depth->format());
-		DASSERT(ds_format);
-		depth_att = VDepthAttachment(*ds_format, depth->dimensions().num_samples);
+		auto format = depth->format();
+		int num_samples = depth->dimensions().num_samples;
+		DASSERT(format.is<VDepthStencilFormat>());
+		depth_att = VDepthAttachment(format.get<VDepthStencilFormat>(), num_samples);
 	}
 	auto render_pass = getRenderPass(color_atts, depth_att);
 
