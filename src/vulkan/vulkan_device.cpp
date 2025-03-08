@@ -52,7 +52,7 @@ static constexpr int object_pool_size = 32;
 static constexpr int object_pool_size_log2 = 5;
 
 template <class T> struct PoolData {
-	std::aligned_storage_t<sizeof(T), alignof(T)> objects[object_pool_size];
+	alignas(T) Array<std::byte, sizeof(T)> objects[object_pool_size];
 };
 
 struct HashedRenderPass {

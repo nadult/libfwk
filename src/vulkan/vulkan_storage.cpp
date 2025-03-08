@@ -18,10 +18,10 @@ VulkanStorage g_vk_storage;
 
 //UndefSize<VulkanInstance> test_size1;
 //UndefSize<VulkanDevice> test_size2;
-static_assert(sizeof(VulkanInstance) == VulkanStorage::instance_size);
-static_assert(alignof(VulkanInstance) == VulkanStorage::instance_alignment);
-static_assert(sizeof(VulkanDevice) == VulkanStorage::device_size);
-static_assert(alignof(VulkanDevice) == VulkanStorage::device_alignment);
+static_assert(sizeof(VulkanInstance) <= sizeof(VulkanStorage::InstanceStorage));
+static_assert(alignof(VulkanInstance) <= alignof(VulkanStorage::InstanceStorage));
+static_assert(sizeof(VulkanDevice) <= sizeof(VulkanStorage::DeviceStorage));
+static_assert(alignof(VulkanDevice) <= alignof(VulkanStorage::DeviceStorage));
 
 VulkanStorage::VulkanStorage() {
 	ASSERT("VulkanStorage is a singleton, don't create additional instances" &&
