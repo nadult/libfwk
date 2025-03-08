@@ -5,17 +5,17 @@
 #define CASE_TYPE(...)
 #endif
 
-// UpperCaseName; vulkan handle name; VTypeId enum member name
-CASE_TYPE(Buffer, VkBuffer, buffer)
-CASE_TYPE(Framebuffer, VkFramebuffer, framebuffer)
-CASE_TYPE(Image, VkImage, image)
-CASE_TYPE(ImageView, VkImageView, image_view)
-CASE_TYPE(Pipeline, VkPipeline, pipeline)
-CASE_TYPE(PipelineLayout, VkPipelineLayout, pipeline_layout)
-CASE_TYPE(RenderPass, VkRenderPass, render_pass)
-CASE_TYPE(ShaderModule, VkShaderModule, shader_module)
-CASE_TYPE(SwapChain, VkSwapchainKHR, swap_chain)
-CASE_TYPE(Sampler, VkSampler, sampler)
-CASE_TYPE(AccelStruct, VkAccelerationStructureKHR, accel_struct)
+// FullClassName; vulkan handle name; VTypeId enum member name
+CASE_TYPE(VulkanBuffer, VkBuffer, buffer)
+CASE_TYPE(VulkanFramebuffer, VkFramebuffer, framebuffer)
+CASE_TYPE(VulkanImage, VkImage, image)
+CASE_TYPE(VulkanImageView, VkImageView, image_view)
+CASE_TYPE(VulkanPipeline, VkPipeline, pipeline)
+CASE_TYPE(VulkanPipelineLayout, VkPipelineLayout, pipeline_layout)
+CASE_TYPE(VulkanRenderPass, VkRenderPass, render_pass)
+CASE_TYPE(VulkanShaderModule, VkShaderModule, shader_module)
+CASE_TYPE(VulkanSwapChain, VkSwapchainKHR, swap_chain)
+CASE_TYPE(VulkanSampler, VkSampler, sampler)
+CASE_TYPE(VulkanAccelStruct, VkAccelerationStructureKHR, accel_struct)
 
 #undef CASE_TYPE
