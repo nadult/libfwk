@@ -359,7 +359,8 @@ struct VDeviceSetup {
 	VMemoryManagerSetup memory;
 	Dynamic<VkPhysicalDeviceFeatures> features;
 
-	bool allow_descriptor_update_after_bind = false;
+	// Mechanisms for descriptor updates in libfwk depend on the ability to update them after binding.
+	bool allow_descriptor_update_after_bind = true;
 };
 
 DEFINE_ENUM(VColorSyncStd, clear, clear_present, present, draw);

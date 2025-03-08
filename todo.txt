@@ -1,5 +1,7 @@
 TODO: prioritize aggresively
 
+- Consider replacing mechanism for updating descriptors so that it won't require
+  update_after_bind (does it affect performance?)
 - FilePath() should be empty; FilePath::empty() always returns false;
   This class could be modernized or maybe even replaced with std::filesystem;
   But std::filesystem uses exceptions
