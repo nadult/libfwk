@@ -161,7 +161,7 @@ template <typename... Types> class Variant {
 	static constexpr int data_size = max(0, 0, (int)sizeof(StoredType<Types>)...);
 	static constexpr int data_align = max(0, 0, (int)alignof(StoredType<Types>)...);
 	template <class T> static constexpr int type_index_ = fwk::type_index<T, Types...>;
-	template <class T> using EnableIfValidType = EnableIf<(type_index_<T> != -1), TypeNotInVariant>;
+	template <class T> static constexpr bool valid_type = type_index_<T> != -1;
 
 	using First = NthType<0, Types...>;
 	using Helper = detail::variant_helper<Types...>;
@@ -190,15 +190,16 @@ template <typename... Types> class Variant {
 		new(&data) First();
 	}
 
-	template <class T, class DT = Decay<T>, int index = type_index_<DT>, EnableIf<index != -1>...>
+	template <class T, class DT = Decay<T>, int index = type_index_<DT>>
+		requires(index != -1)
 	Variant(T &&val) : type_index(index) {
 		new(&data) DT(std::forward<T>(val));
 	}
 
 	// Initializing reference type
 	template <class T,
-			  int index = (type_index_<T &> == -1 ? type_index_<const T &> : type_index_<T &>),
-			  EnableIf<index != -1>...>
+			  int index = (type_index_<T &> == -1 ? type_index_<const T &> : type_index_<T &>)>
+		requires(index != -1)
 	Variant(T &val) : type_index(index) {
 		new (&data)(T *)(&val);
 	}
@@ -229,8 +230,8 @@ template <typename... Types> class Variant {
 		return *this;
 	}
 
-	template <typename T, class DT = Decay<T>, int index = type_index_<DT>,
-			  EnableIf<index != -1>...>
+	template <typename T, class DT = Decay<T>, int index = type_index_<DT>>
+		requires(index != -1)
 	void operator=(T &&rhs) {
 		if constexpr(std::is_move_assignable<T>::value)
 			if(index == type_index) {
@@ -243,7 +244,8 @@ template <typename... Types> class Variant {
 		new(&data) DT(std::move(rhs));
 	}
 
-	template <typename T, int index = type_index_<T>, EnableIf<index != -1>...>
+	template <typename T, int index = type_index_<T>>
+		requires(index != -1)
 	void operator=(const T &rhs) {
 		if constexpr(std::is_move_assignable<T>::value)
 			if(index == type_index) {
@@ -258,8 +260,8 @@ template <typename... Types> class Variant {
 
 	// Assigning reference type
 	template <typename T,
-			  int index = (type_index_<T &> == -1 ? type_index_<const T &> : type_index_<T &>),
-			  EnableIf<index != -1>...>
+			  int index = (type_index_<T &> == -1 ? type_index_<const T &> : type_index_<T &>)>
+		requires(index != -1)
 	void operator=(T &rhs) {
 		Helper::destroy(type_index, &data);
 		type_index = index;
@@ -277,42 +279,62 @@ template <typename... Types> class Variant {
 		type_index = type_index_<T>;
 	}
 
-	template <typename T, EnableIfValidType<T>...> T &get() & {
+	template <typename T>
+		requires(valid_type<T>)
+	T &get() & {
 		if(type_index == type_index_<T> || ndebug_access)
 			return access<T>();
 		else
 			FWK_FATAL("Bad variant access in get()");
 	}
 
-	template <typename T, EnableIfValidType<T>...> T const &get() const & {
+	template <typename T>
+		requires(valid_type<T>)
+	T const &get() const & {
 		if(type_index == type_index_<T> || ndebug_access)
 			return access<const T>();
 		else
 			FWK_FATAL("Bad variant access in get()");
 	}
 
-	template <typename T, EnableIfValidType<T>...> operator T *() & {
+	template <typename T>
+		requires(valid_type<T>)
+	operator T *() & {
 		return type_index == type_index_<T> ? &access<T>() : nullptr;
 	}
 
-	template <typename T, EnableIfValidType<T>...> operator const T *() const & {
+	template <typename T>
+		requires(valid_type<T>)
+	operator const T *() const & {
 		return type_index == type_index_<T> ? &access<const T>() : nullptr;
 	}
 
 	// Accessing references
-	template <typename T, EnableIfValidType<T &>...> operator T *() & {
+	template <typename T>
+		requires(valid_type<T &>)
+	operator T *() & {
 		return type_index == type_index_<T &> ? &access<T &>() : nullptr;
 	}
 
-	template <typename T, EnableIfValidType<T &>...> operator const T *() const & {
+	template <typename T>
+		requires(valid_type<T &>)
+	operator const T *() const & {
 		return type_index == type_index_<T &> ? &access<const T &>() : nullptr;
 	}
 
-	template <typename T, EnableIfValidType<T>...> T &get() && = delete;
-	template <typename T, EnableIfValidType<T>...> T const &get() const && = delete;
+	template <typename T>
+		requires(valid_type<T>)
+	T &get() && = delete;
+	template <typename T>
+		requires(valid_type<T>)
+	T const &get() const && = delete;
 
-	template <typename T, EnableIfValidType<T>...> operator T *() && = delete;
-	template <typename T, EnableIfValidType<T>...> operator const T *() const && = delete;
+	template <typename T>
+		requires(valid_type<T>)
+	operator T *() && = delete;
+	template <typename T>
+		requires(valid_type<T>)
+	operator const T *() const && = delete;
 
 	int which() const { return type_index; }
 
