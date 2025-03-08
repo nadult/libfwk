@@ -156,7 +156,7 @@ template <class T, int max_size_> class StaticVector {
 
   private:
 	IndexType m_size;
-	std::aligned_storage_t<sizeof(T), alignof(T)> m_data[max_size];
+	alignas(T) std::byte m_data[sizeof(T) * max_size];
 };
 
 }

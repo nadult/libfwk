@@ -246,7 +246,7 @@ template <class T, int base_size_ = smallVectorSize<T>(64)> class SmallVector {
 	union {
 		struct {
 			uint m_size;
-			std::aligned_storage_t<sizeof(T), alignof(T)> m_small[base_size];
+			alignas(T) std::byte m_small[sizeof(T) * base_size];
 		};
 		struct {
 			vector<T> m_big;
