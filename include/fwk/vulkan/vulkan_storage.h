@@ -39,7 +39,7 @@ template <class T> class VulkanObjectBase {
   public:
 	using Handle = typename VulkanTypeInfo<T>::Handle;
 
-	VPtr<Handle> ref();
+	VPtr<T> ref();
 	Handle handle() const { return m_handle; }
 
 	VObjectId objectId() const { return m_object_id; }
@@ -155,9 +155,10 @@ class VWindowRef {
 // When VulkanDevice is destroyed there should be np VPtrs<> left to any object form this device.
 template <class T> class VPtr {
   public:
-	using Object = typename VulkanHandleInfo<T>::Type;
+	using Object = T;
+	using Handle = typename VulkanTypeInfo<T>::Handle;
 	using BaseObject = VulkanObjectBase<Object>;
-	static constexpr VTypeId type_id = VulkanHandleInfo<T>::type_id;
+	static constexpr VTypeId type_id = VulkanTypeInfo<T>::type_id;
 
 	VPtr(None) : m_ptr(nullptr) {}
 	VPtr() : m_ptr(nullptr) {}
@@ -181,11 +182,11 @@ template <class T> class VPtr {
 		auto *base = reinterpret_cast<const BaseObject *>(m_ptr);
 		return base ? base->m_object_id : VObjectId();
 	}
-	operator T() const { return /*PASSERT(m_ptr),*/ handle(); }
+	operator Handle() const { return /*PASSERT(m_ptr),*/ handle(); }
 	VDeviceId deviceId() const { return VObjectId(*this).deviceId(); }
 	int objectIdx() const { return VObjectId(*this).objectIdx(); }
 
-	T handle() const;
+	Handle handle() const;
 	void reset();
 	u32 hash() const { return fwk::hash(VObjectId(*this)); }
 
@@ -257,9 +258,9 @@ extern VulkanStorage g_vk_storage;
 // -------------------------------------------------------------------------------------------
 // ----------  IMPLEMENTATION  ---------------------------------------------------------------
 
-template <class T> auto VulkanObjectBase<T>::ref() -> VPtr<Handle> {
+template <class T> auto VulkanObjectBase<T>::ref() -> VPtr<T> {
 	m_ref_count++;
-	return VPtr<Handle>(reinterpret_cast<T *>(this));
+	return VPtr<T>(reinterpret_cast<T *>(this));
 }
 
 template <class T> FWK_ALWAYS_INLINE VulkanDevice &VulkanObjectBase<T>::device() {
@@ -316,7 +317,7 @@ template <class T> void VPtr<T>::reset() {
 	}
 }
 
-template <class T> FWK_ALWAYS_INLINE T VPtr<T>::handle() const {
+template <class T> FWK_ALWAYS_INLINE typename VPtr<T>::Handle VPtr<T>::handle() const {
 	return m_ptr ? reinterpret_cast<BaseObject *>(m_ptr)->m_handle : nullptr;
 }
 

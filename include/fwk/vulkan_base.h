@@ -468,21 +468,31 @@ template <class T = char> struct VBufferSpan;
 
 template <class T> class VPtr;
 
-// TODO: Better name than 'Wrapper'
 template <class> struct VulkanTypeInfo;
 template <class> struct VulkanHandleInfo;
-#define CASE_TYPE(UpperCase, VkName, lower_case)                                                   \
-	class Vulkan##UpperCase;                                                                       \
+#define CASE_TYPE(ClassName, VkName, lower_case)                                                   \
+	class ClassName;                                                                               \
 	template <> struct VulkanHandleInfo<VkName> {                                                  \
 		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
-		using Type = Vulkan##UpperCase;                                                            \
+		using Type = ClassName;                                                                    \
 	};                                                                                             \
-	template <> struct VulkanTypeInfo<Vulkan##UpperCase> {                                         \
+	template <> struct VulkanTypeInfo<ClassName> {                                                 \
 		static constexpr VTypeId type_id = VTypeId::lower_case;                                    \
 		using Handle = VkName;                                                                     \
-	};                                                                                             \
-	using PV##UpperCase = VPtr<VkName>;
+	};
 #include "fwk/vulkan/vulkan_type_list.h"
+
+using PVBuffer = VPtr<VulkanBuffer>;
+using PVFramebuffer = VPtr<VulkanFramebuffer>;
+using PVImage = VPtr<VulkanImage>;
+using PVImageView = VPtr<VulkanImageView>;
+using PVPipeline = VPtr<VulkanPipeline>;
+using PVPipelineLayout = VPtr<VulkanPipelineLayout>;
+using PVRenderPass = VPtr<VulkanRenderPass>;
+using PVShaderModule = VPtr<VulkanShaderModule>;
+using PVSwapChain = VPtr<VulkanSwapChain>;
+using PVSampler = VPtr<VulkanSampler>;
+using PVAccelStruct = VPtr<VulkanAccelStruct>;
 
 int primitiveCount(VPrimitiveTopology topo, int vertex_count);
 

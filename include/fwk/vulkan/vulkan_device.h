@@ -85,11 +85,11 @@ class VulkanDevice {
 	VDescriptorSet acquireSet(VDSLId);
 	VkDescriptorSetLayout handle(VDSLId);
 
-	template <class THandle, class... Args>
-	VPtr<THandle> createObject(THandle handle, Args &&...args) {
-		using Object = typename VulkanHandleInfo<THandle>::Type;
-		auto [ptr, object_id] = allocObject<Object>();
-		auto *object = new(ptr) Object(handle, object_id, std::forward<Args>(args)...);
+	template <class THandle, class... Args,
+			  class TObject = typename VulkanHandleInfo<THandle>::Type>
+	VPtr<TObject> createObject(THandle handle, Args &&...args) {
+		auto [ptr, object_id] = allocObject<TObject>();
+		auto *object = new(ptr) TObject(handle, object_id, std::forward<Args>(args)...);
 		return {object};
 	}
 

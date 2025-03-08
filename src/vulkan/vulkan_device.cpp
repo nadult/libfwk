@@ -679,12 +679,11 @@ template <class T> void VulkanObjectBase<T>::deferredFree(VMemoryBlockId block_i
 	device.deferredFree(block_id);
 }
 
-#define CASE_TYPE(UpperCase, VkName, _)                                                            \
-	template Pair<void *, VObjectId> VulkanDevice::allocObject<Vulkan##UpperCase>();               \
-	template void VulkanDevice::destroyObject(VulkanObjectBase<Vulkan##UpperCase> *);              \
-	template void VulkanObjectBase<Vulkan##UpperCase>::destroyObject();                            \
-	template void VulkanObjectBase<Vulkan##UpperCase>::deferredRelease(void *, void *,             \
-																	   ReleaseFunc);               \
-	template void VulkanObjectBase<Vulkan##UpperCase>::deferredFree(VMemoryBlockId);
+#define CASE_TYPE(ClassName, VkName, _2)                                                           \
+	template Pair<void *, VObjectId> VulkanDevice::allocObject<ClassName>();                       \
+	template void VulkanDevice::destroyObject(VulkanObjectBase<ClassName> *);                      \
+	template void VulkanObjectBase<ClassName>::destroyObject();                                    \
+	template void VulkanObjectBase<ClassName>::deferredRelease(void *, void *, ReleaseFunc);       \
+	template void VulkanObjectBase<ClassName>::deferredFree(VMemoryBlockId);
 #include "fwk/vulkan/vulkan_type_list.h"
 }
