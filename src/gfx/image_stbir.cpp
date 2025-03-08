@@ -33,7 +33,7 @@ Image Image::rescale(int2 new_size, ImageRescaleOpts opts) const {
 			alpha_opt, flags, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT, colorspace, nullptr);
 		if(!result)
 			FWK_FATAL("STB_image_resize failed!");
-	} else if(isOneOf(m_format, VFormat::rgb32_sfloat)) {
+	} else if(isOneOf(m_format, VColorFormat::rgb32_sfloat)) {
 		auto input_pixels = reinterpret_cast<const float *>(m_data.data());
 		auto output_pixels = reinterpret_cast<float *>(new_image.m_data.data());
 

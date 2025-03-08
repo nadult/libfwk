@@ -109,7 +109,9 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 	}
 
 	// TODO: handle minimized extents
-	m_format = ci.imageFormat;
+	auto format = fromVkColorFormat(ci.imageFormat);
+	EXPECT(format && "Unrecognized swapchain color format");
+	m_format = *format;
 	m_size = int2(ci.imageExtent.width, ci.imageExtent.height);
 
 	FWK_VK_EXPECT_CALL(vkCreateSwapchainKHR, device, &ci, nullptr, &m_handle);
@@ -122,8 +124,7 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 
 	m_image_views.resize(num_images);
 	for(int i : intRange(num_images)) {
-		VImageSetup setup(ci.imageFormat, fromVk(ci.imageExtent), m_setup.usage,
-						  m_setup.initial_layout);
+		VImageSetup setup(m_format, fromVk(ci.imageExtent), m_setup.usage, m_setup.initial_layout);
 		auto image = VulkanImage::createExternal(device, images[i], setup);
 		m_image_views[i] = VulkanImageView::create(image);
 	}

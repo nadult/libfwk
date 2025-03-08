@@ -91,7 +91,7 @@ class VulkanInstance {
 											 vector<VQueueSetup> * = nullptr) const;
 	Ex<VDeviceRef> createDevice(VPhysicalDeviceId, const VDeviceSetup &);
 
-	VFormatSupport formatSupport(VPhysicalDeviceId, VFormat) const;
+	VFormatSupport formatSupport(VPhysicalDeviceId, VColorFormat) const;
 	VFormatSupport formatSupport(VPhysicalDeviceId, VDepthStencilFormat) const;
 
 	VkInstance handle() { return m_handle; }

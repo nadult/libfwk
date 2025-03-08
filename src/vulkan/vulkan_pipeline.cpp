@@ -230,7 +230,7 @@ PVRenderPass VulkanRenderPass::create(VulkanDevice &device, CSpan<VColorAttachme
 		auto &src = colors[i];
 		auto &dst = attachments[i];
 		dst.flags = 0;
-		dst.format = src.format;
+		dst.format = toVk(src.format);
 		dst.samples = VkSampleCountFlagBits(src.num_samples);
 		dst.loadOp = toVk(src.sync.load_op);
 		dst.storeOp = toVk(src.sync.store_op);
@@ -392,7 +392,7 @@ Ex<PVPipeline> VulkanPipeline::create(VulkanDevice &device, VPipelineSetup setup
 	auto vertex_attribs = transform(setup.vertex_attribs, [](const VVertexAttrib &desc) {
 		VkVertexInputAttributeDescription out;
 		out.binding = desc.binding_index;
-		out.format = desc.format;
+		out.format = toVk(desc.format);
 		out.location = desc.location_index;
 		out.offset = desc.offset;
 		return out;

@@ -5,9 +5,12 @@
 
 #include "fwk/enum_flags.h"
 #include "fwk/sys/expected.h"
+#include "fwk/variant.h"
 #include "fwk/vulkan/vulkan_storage.h"
 
 namespace fwk {
+
+using VFormatVariant = Variant<VColorFormat, VDepthStencilFormat>;
 
 struct VImageDimensions {
 	VImageDimensions(int3 size, uint num_mip_levels = 1, uint num_samples = 1);
@@ -22,17 +25,17 @@ struct VImageDimensions {
 // TODO: Add VImageSpan, VImageDimensions -> VImageSize
 
 struct VImageSetup {
-	VImageSetup(VkFormat format, VImageDimensions dims,
-				VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled,
-				VImageLayout layout = VImageLayout::undefined);
-	VImageSetup(VFormat format, VImageDimensions dims,
-				VImageUsageFlags usage = VImageUsage::transfer_dst | VImageUsage::sampled,
-				VImageLayout layout = VImageLayout::undefined);
-	VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims,
-				VImageUsageFlags = VImageUsage::depth_stencil_att);
+	VImageSetup(VColorFormat, VImageDimensions,
+				VImageUsageFlags = VImageUsage::transfer_dst | VImageUsage::sampled,
+				VImageLayout = VImageLayout::undefined);
+	VImageSetup(VDepthStencilFormat, VImageDimensions,
+				VImageUsageFlags = VImageUsage::depth_stencil_att,
+				VImageLayout = VImageLayout::undefined);
+	VImageSetup(VFormatVariant, VImageDimensions, VImageUsageFlags,
+				VImageLayout = VImageLayout::undefined);
 
 	VImageDimensions dims;
-	VkFormat format;
+	VFormatVariant format;
 	VImageUsageFlags usage;
 	VImageLayout layout;
 };
@@ -49,13 +52,12 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	auto memoryBlock() { return m_memory_block; }
 	auto dimensions() const { return m_dims; }
 	auto size() const { return m_dims.size; }
-	VkFormat format() const { return m_format; }
+	const VFormatVariant &format() const { return m_format; }
 	auto usage() const { return m_usage; }
 	int3 mipSize(int mip_level) const;
 
 	// External image may become invalid (for example when swap chain is destroyed)
 	bool isValid() const { return m_is_valid; }
-	Maybe<VDepthStencilFormat> depthStencilFormat() const;
 
 	// ---------- Commands --------------------------------------------------------------
 
@@ -76,7 +78,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	~VulkanImage();
 
 	VMemoryBlock m_memory_block;
-	VkFormat m_format;
+	VFormatVariant m_format;
 	VImageDimensions m_dims;
 	VImageUsageFlags m_usage;
 	u64 m_layout_bits = 0;
@@ -91,7 +93,7 @@ class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
 	auto dimensions() const { return m_dims; }
 	auto size() const { return m_dims.size; }
 	auto size2D() const { return m_dims.size.xy(); }
-	VkFormat format() const { return m_format; }
+	const VFormatVariant &format() const { return m_format; }
 	PVImage image() const { return m_image; }
 
   private:
@@ -101,6 +103,6 @@ class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
 
 	PVImage m_image;
 	VImageDimensions m_dims;
-	VkFormat m_format;
+	VFormatVariant m_format;
 };
 }

@@ -166,7 +166,7 @@ constexpr int unitSize(VBaseFormat format) { return isBlock(format) ? 4 : 1; }
 //    srgb: unorm with RGB additionally using sRGB nonlinear encoding
 DEFINE_ENUM(VNumericFormat, unorm, snorm, uint, sint, ufloat, sfloat, srgb);
 
-DEFINE_ENUM(VFormat,
+DEFINE_ENUM(VColorFormat,
 			//  8-bit R8
 			r8_unorm, r8_snorm, r8_uint, r8_sint, r8_srgb,
 			// 16-bit (R8, G8)
@@ -221,9 +221,9 @@ DEFINE_ENUM(VFormat,
 			// 128-bit 4x4 BC7
 			bc7_rgba_unorm, bc7_rgba_srgb);
 
-VBaseFormat baseFormat(VFormat);
-VNumericFormat numericFormat(VFormat);
-Maybe<VFormat> makeFormat(VBaseFormat, VNumericFormat);
+VBaseFormat baseFormat(VColorFormat);
+VNumericFormat numericFormat(VColorFormat);
+Maybe<VColorFormat> makeFormat(VBaseFormat, VNumericFormat);
 
 DEFINE_ENUM(VFormatFeature, sampled_image, storage_image, storage_image_atomic,
 			uniform_texel_buffer, storage_texel_buffer, storage_texel_buffer_atomic, vertex_buffer,
@@ -236,18 +236,18 @@ struct VFormatSupport {
 	VFormatFeatures linear_tiling, optimal_tiling, buffer;
 };
 
-constexpr bool isBlock(VFormat format) {
-	return format >= VFormat::bc1_rgb_unorm && format <= VFormat::bc7_rgba_srgb;
+constexpr bool isBlock(VColorFormat format) {
+	return format >= VColorFormat::bc1_rgb_unorm && format <= VColorFormat::bc7_rgba_srgb;
 }
 
-int unitByteSize(VFormat);
-constexpr int unitSize(VFormat format) { return isBlock(format) ? 4 : 1; }
+int unitByteSize(VColorFormat);
+constexpr int unitSize(VColorFormat format) { return isBlock(format) ? 4 : 1; }
 
 // Formats which have same unit size & unit byte size are compatible.
-bool areCompatible(VFormat, VFormat);
+bool areCompatible(VColorFormat, VColorFormat);
 
-int2 imageBlockSize(VFormat format, int2 pixel_size);
-int imageByteSize(VFormat, int2 pixel_size);
+int2 imageBlockSize(VColorFormat format, int2 pixel_size);
+int imageByteSize(VColorFormat, int2 pixel_size);
 
 DEFINE_ENUM(VDepthStencilFormat, d16, d24_x8, d32f, s8, d16_s8, d24_s8, d32f_s8);
 
@@ -413,13 +413,13 @@ struct VDepthSync {
 };
 
 struct VColorAttachment {
-	VColorAttachment(VkFormat format, uint num_samples = 1, VColorSync sync = {})
+	VColorAttachment(VColorFormat format, uint num_samples = 1, VColorSync sync = {})
 		: format(format), num_samples(num_samples), sync(sync) {}
 
 	FWK_TIE_MEMBERS(format, num_samples, sync);
 	FWK_TIED_COMPARES(VColorAttachment);
 
-	VkFormat format;
+	VColorFormat format;
 	uint num_samples;
 	VColorSync sync;
 };

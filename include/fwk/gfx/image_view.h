@@ -47,7 +47,7 @@ template <class T> struct PixelInfo {};
 
 #define PIXEL_TYPE(Type, default_format_)                                                          \
 	template <> struct PixelInfo<Type> {                                                           \
-		static constexpr VFormat default_format = VFormat::default_format_;                        \
+		static constexpr VColorFormat default_format = VColorFormat::default_format_;              \
 	};
 
 PIXEL_TYPE(IColor, rgba8_unorm)
@@ -125,7 +125,7 @@ template <c_pixel T> class ImageIter {
 template <c_pixel T> class ImageView {
   public:
 	ImageView(const ImageView<RemoveConst<T>> &rhs);
-	ImageView(T *pixels, int2 size, int stride, VFormat format);
+	ImageView(T *pixels, int2 size, int stride, VColorFormat format);
 	ImageView();
 	~ImageView() = default;
 
@@ -136,7 +136,7 @@ template <c_pixel T> class ImageView {
 
 	bool inRange(int x, int y) const;
 
-	VFormat format() const { return m_format; }
+	VColorFormat format() const { return m_format; }
 	bool empty() const { return m_size.x == 0 || m_size.y == 0; }
 
 	Span<T> row(int y);
@@ -161,7 +161,7 @@ template <c_pixel T> class ImageView {
 	T *m_pixels;
 	int2 m_size;
 	int m_stride;
-	VFormat m_format;
+	VColorFormat m_format;
 };
 
 // -------------------------------------------------------------------------------------------
@@ -172,14 +172,14 @@ ImageView<T>::ImageView(const ImageView<RemoveConst<T>> &rhs)
 	: m_pixels(rhs.m_pixels), m_size(rhs.m_size), m_stride(rhs.m_stride), m_format(rhs.m_format) {}
 
 template <c_pixel T>
-ImageView<T>::ImageView(T *pixels, int2 size, int stride, VFormat format)
+ImageView<T>::ImageView(T *pixels, int2 size, int stride, VColorFormat format)
 	: m_pixels(pixels), m_size(size), m_stride(stride), m_format(format) {
 	DASSERT(stride > 0 && size.x >= 0 && size.y >= 0);
 	DASSERT(unitByteSize(format) == sizeof(T));
 }
 
 template <c_pixel T>
-ImageView<T>::ImageView() : m_pixels(nullptr), m_stride(1), m_format(VFormat::rgba8_unorm) {}
+ImageView<T>::ImageView() : m_pixels(nullptr), m_stride(1), m_format(VColorFormat::rgba8_unorm) {}
 
 template <c_pixel T> inline bool ImageView<T>::inRange(int x, int y) const {
 	return x >= 0 && y >= 0 && x < m_size.x && y < m_size.y;

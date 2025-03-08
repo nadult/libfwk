@@ -388,7 +388,7 @@ static VFormatSupport formatSupport(VkPhysicalDevice phys_device, VkFormat forma
 						  fromVkFormatFeatures(props.formatProperties.bufferFeatures)};
 }
 
-VFormatSupport VulkanInstance::formatSupport(VPhysicalDeviceId phys_id, VFormat format) const {
+VFormatSupport VulkanInstance::formatSupport(VPhysicalDeviceId phys_id, VColorFormat format) const {
 	return fwk::formatSupport(m_phys_devices[phys_id].handle, toVk(format));
 }
 

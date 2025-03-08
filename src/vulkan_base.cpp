@@ -51,7 +51,7 @@ struct VFormatInfo {
 
 #define DEF(format, base, numeric, vk)                                                             \
 	{                                                                                              \
-		VFormat::format, { VBaseFormat::base, VNumericFormat::numeric, vk }                        \
+		VColorFormat::format, { VBaseFormat::base, VNumericFormat::numeric, vk }                   \
 	}
 
 // clang-format off
@@ -64,7 +64,7 @@ static const EnumMap<VBaseFormat, u8> base_unit_size{{
 	8, 8, 16, 16, 8, 16, 16, 16 // block
 }};
 
-static const EnumMap<VFormat, VFormatInfo> format_infos{{
+static const EnumMap<VColorFormat, VFormatInfo> format_infos{{
 	//  8-bit R8
 	DEF(r8_unorm, r8, unorm, VK_FORMAT_R8_UNORM),
 	DEF(r8_snorm, r8, snorm, VK_FORMAT_R8_SNORM),
@@ -198,45 +198,46 @@ static const EnumMap<VFormat, VFormatInfo> format_infos{{
 // clang-format on
 #undef DEF
 
-VBaseFormat baseFormat(VFormat format) { return format_infos[format].base; }
-VNumericFormat numericFormat(VFormat format) { return format_infos[format].numeric; }
+VBaseFormat baseFormat(VColorFormat format) { return format_infos[format].base; }
+VNumericFormat numericFormat(VColorFormat format) { return format_infos[format].numeric; }
 
-Maybe<VFormat> makeFormat(VBaseFormat base, VNumericFormat numeric) {
+Maybe<VColorFormat> makeFormat(VBaseFormat base, VNumericFormat numeric) {
 	auto it =
 		std::lower_bound(format_infos.begin(), format_infos.end(), base,
 						 [](const VFormatInfo &lhs, VBaseFormat base) { return lhs.base < base; });
 	while(it != format_infos.end() && it->base == base) {
 		if(it->numeric == numeric)
-			return VFormat(it - format_infos.begin());
+			return VColorFormat(it - format_infos.begin());
 		++it;
 	}
 	return none;
 }
 
-int unitByteSize(VFormat format) { return unitByteSize(baseFormat(format)); }
+int unitByteSize(VColorFormat format) { return unitByteSize(baseFormat(format)); }
 int unitByteSize(VBaseFormat format) { return base_unit_size[format]; }
 
-int2 imageBlockSize(VFormat format, int2 pixel_size) {
+int2 imageBlockSize(VColorFormat format, int2 pixel_size) {
 	int unit_size = unitSize(format);
 	return unit_size == 1 ? pixel_size : (pixel_size + int2(unit_size - 1)) / unit_size;
 }
 
-int imageByteSize(VFormat format, int2 pixel_size) {
+int imageByteSize(VColorFormat format, int2 pixel_size) {
 	auto block_size = imageBlockSize(format, pixel_size);
 	return block_size.x * block_size.y * unitByteSize(format);
 }
 
-bool areCompatible(VFormat lhs, VFormat rhs) {
+bool areCompatible(VColorFormat lhs, VColorFormat rhs) {
 	return unitSize(lhs) == unitSize(rhs) && unitByteSize(lhs) == unitByteSize(rhs);
 }
 
-VkFormat toVk(VFormat format) { return VkFormat(format_infos[format].vk_format); }
-Maybe<VFormat> fromVk(VkFormat format) {
+VkFormat toVk(VColorFormat format) { return VkFormat(format_infos[format].vk_format); }
+Maybe<VColorFormat> fromVkColorFormat(VkFormat format) {
 	auto it = std::lower_bound(
 		format_infos.begin(), format_infos.end(), format,
 		[](const VFormatInfo &lhs, VkFormat fmt) { return VkFormat(lhs.vk_format) < fmt; });
 	if(it == format_infos.end() || VkFormat(it->vk_format) != format)
 		return none;
-	return VFormat(it - format_infos.begin());
+	return VColorFormat(it - format_infos.begin());
 }
+
 }

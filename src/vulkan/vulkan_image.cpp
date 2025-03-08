@@ -14,6 +14,11 @@
 
 namespace fwk {
 
+static VkFormat toVk(VFormatVariant format) {
+	return format.is<VColorFormat>() ? toVk(format.get<VColorFormat>()) :
+									   toVk(format.get<VDepthStencilFormat>());
+}
+
 VImageDimensions::VImageDimensions(int3 size, uint num_mip_levels, uint num_samples)
 	: size(size), num_mip_levels(num_mip_levels), num_samples(num_samples) {
 	DASSERT(size.x >= 1 && size.y >= 1 && size.z >= 1);
@@ -24,17 +29,17 @@ VImageDimensions::VImageDimensions(int3 size, uint num_mip_levels, uint num_samp
 VImageDimensions::VImageDimensions(int2 size, uint num_mip_levels, uint num_samples)
 	: VImageDimensions(int3(size, 1), num_mip_levels, num_samples) {}
 
-VImageSetup::VImageSetup(VkFormat format, VImageDimensions dims, VImageUsageFlags usage,
+VImageSetup::VImageSetup(VColorFormat format, VImageDimensions dims, VImageUsageFlags usage,
 						 VImageLayout layout)
 	: dims(dims), format(format), usage(usage), layout(layout) {}
 
-VImageSetup::VImageSetup(VFormat format, VImageDimensions dims, VImageUsageFlags usage,
+VImageSetup::VImageSetup(VDepthStencilFormat format, VImageDimensions dims, VImageUsageFlags usage,
 						 VImageLayout layout)
-	: dims(dims), format(toVk(format)), usage(usage), layout(layout) {}
+	: dims(dims), format(format), usage(usage), layout(layout) {}
 
-VImageSetup::VImageSetup(VDepthStencilFormat ds_format, VImageDimensions dims,
-						 VImageUsageFlags usage)
-	: dims(dims), format(toVk(ds_format)), usage(usage), layout(VImageLayout::undefined) {}
+VImageSetup::VImageSetup(VFormatVariant format, VImageDimensions dims, VImageUsageFlags usage,
+						 VImageLayout layout)
+	: dims(dims), format(format), usage(usage), layout(layout) {}
 
 VulkanImage::VulkanImage(VkImage handle, VObjectId id, VMemoryBlock mem_block,
 						 const VImageSetup &setup)
@@ -59,7 +64,7 @@ Ex<PVImage> VulkanImage::create(VulkanDevice &device, const VImageSetup &setup,
 	ci.extent.width = uint(setup.dims.size.x);
 	ci.extent.height = uint(setup.dims.size.y);
 	ci.extent.depth = uint(setup.dims.size.z);
-	ci.format = setup.format;
+	ci.format = toVk(setup.format);
 	ci.arrayLayers = 1;
 	ci.mipLevels = setup.dims.num_mip_levels;
 	ci.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -99,10 +104,6 @@ Ex<PVImage> VulkanImage::createAndUpload(VulkanDevice &device, CSpan<Image> imag
 	auto out = EX_PASS(create(device, setup));
 	EXPECT(out->upload(images));
 	return out;
-}
-
-Maybe<VDepthStencilFormat> VulkanImage::depthStencilFormat() const {
-	return fromVkDepthStencilFormat(m_format);
 }
 
 int3 VulkanImage::mipSize(int mip_level) const {
@@ -190,7 +191,7 @@ Ex<> VulkanImage::upload(const Image &src, int2 target_offset, int target_mip,
 	if(src.empty())
 		return {};
 	DASSERT(target_mip >= 0 && target_mip < m_dims.num_mip_levels);
-	DASSERT(toVk(src.format()) == m_format);
+	DASSERT(src.format() == m_format);
 	// TODO: dassert correct size
 
 	int data_size = src.data().size();
@@ -212,14 +213,14 @@ VulkanImageView ::~VulkanImageView() { deferredRelease(vkDestroyImageView, m_han
 
 PVImageView VulkanImageView::create(PVImage image) {
 	VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+	auto format = image->format();
 	ci.image = image;
 	ci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	ci.format = image->format();
+	ci.format = toVk(format);
 	ci.components.a = ci.components.b = ci.components.g = ci.components.r =
 		VK_COMPONENT_SWIZZLE_IDENTITY;
-	auto ds_format = image->depthStencilFormat();
 	uint aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
-	if(ds_format)
+	if(const VDepthStencilFormat *ds_format = format)
 		aspect_mask =
 			VK_IMAGE_ASPECT_DEPTH_BIT | (hasStencil(*ds_format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 

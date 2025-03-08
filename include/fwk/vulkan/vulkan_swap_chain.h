@@ -23,7 +23,7 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 	static VSurfaceInfo surfaceInfo(VulkanDevice &, VWindowRef);
 	static Ex<PVSwapChain> create(VulkanDevice &, VWindowRef, const VSwapChainSetup &);
 
-	VkFormat format() const { return m_format; }
+	VColorFormat format() const { return m_format; }
 	int2 size() const { return m_size; }
 	int numImages() const { return m_image_views.size(); }
 
@@ -57,7 +57,7 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 	vector<PVImageView> m_image_views;
 	array<VkSemaphore, 4> m_semaphores = {};
 	VkQueue m_present_queue;
-	VkFormat m_format;
+	VColorFormat m_format;
 	int2 m_size;
 	uint m_image_index = 0;
 	uint m_semaphore_index = 0;
