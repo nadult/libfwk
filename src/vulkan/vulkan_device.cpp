@@ -3,24 +3,22 @@
 
 #include "fwk/vulkan/vulkan_device.h"
 
+#include "fwk/format.h"
 #include "fwk/gfx/image.h"
+#include "fwk/hash_map.h"
+#include "fwk/vulkan/vulkan_buffer.h"
 #include "fwk/vulkan/vulkan_command_queue.h"
 #include "fwk/vulkan/vulkan_descriptor_manager.h"
+#include "fwk/vulkan/vulkan_framebuffer.h"
+#include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
-#include "fwk/vulkan/vulkan_shader.h"
-#include "fwk/vulkan/vulkan_storage.h"
-
-#include "fwk/format.h"
-#include "fwk/hash_map.h"
-
-#include "fwk/vulkan/vulkan_buffer.h"
-#include "fwk/vulkan/vulkan_framebuffer.h"
-#include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
 #include "fwk/vulkan/vulkan_ray_tracing.h"
+#include "fwk/vulkan/vulkan_render_pass.h"
 #include "fwk/vulkan/vulkan_shader.h"
+#include "fwk/vulkan/vulkan_storage.h"
 #include "fwk/vulkan/vulkan_swap_chain.h"
 #include "fwk/vulkan/vulkan_window.h"
 

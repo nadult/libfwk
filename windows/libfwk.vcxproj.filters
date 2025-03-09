@@ -663,6 +663,9 @@
     <ClInclude Include="..\include\fwk\vulkan\vulkan_ray_tracing.h">
       <Filter>include\vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\fwk\vulkan\vulkan_render_pass.h">
+      <Filter>include\vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\math\base.cpp">
@@ -1095,6 +1098,9 @@
       <Filter>src\gfx</Filter>
     </ClCompile>
     <ClCompile Include="..\src\vulkan\vulkan_ray_tracing.cpp">
+      <Filter>src\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\vulkan\vulkan_render_pass.cpp">
       <Filter>src\vulkan</Filter>
     </ClCompile>
   </ItemGroup>
