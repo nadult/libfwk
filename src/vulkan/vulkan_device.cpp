@@ -56,34 +56,30 @@ template <class T> struct PoolData {
 };
 
 struct HashedRenderPass {
-	HashedRenderPass(CSpan<VColorAttachment> colors, const VDepthAttachment *depth,
-					 Maybe<u32> hash_value)
-		: colors(colors), depth(depth),
-		  hash_value(hash_value.orElse(VulkanRenderPass::hashConfig(colors, depth))) {}
+	HashedRenderPass(CSpan<VAttachment> attachments, Maybe<u32> hash_value)
+		: attachments(attachments),
+		  hash_value(hash_value.orElse(VulkanRenderPass::hashConfig(attachments))) {}
 
 	u32 hash() const { return hash_value; }
 	bool operator==(const HashedRenderPass &rhs) const {
-		return hash_value == rhs.hash_value && colors == rhs.colors &&
-			   bool(depth) == bool(rhs.depth) && (!depth || *depth == *rhs.depth);
+		return hash_value == rhs.hash_value && attachments == rhs.attachments;
 	}
 
-	CSpan<VColorAttachment> colors;
-	const VDepthAttachment *depth;
+	CSpan<VAttachment> attachments;
 	u32 hash_value;
 };
 
 struct HashedFramebuffer {
-	HashedFramebuffer(CSpan<PVImageView> colors, PVImageView depth, Maybe<u32> hash_value)
-		: colors(colors), depth(depth),
-		  hash_value(hash_value.orElse(VulkanFramebuffer::hashConfig(colors, depth))) {}
+	HashedFramebuffer(CSpan<PVImageView> attachments, Maybe<u32> hash_value)
+		: attachments(attachments),
+		  hash_value(hash_value.orElse(VulkanFramebuffer::hashConfig(attachments))) {}
 
 	u32 hash() const { return hash_value; }
 	bool operator==(const HashedFramebuffer &rhs) const {
-		return hash_value == rhs.hash_value && colors == rhs.colors && depth == rhs.depth;
+		return hash_value == rhs.hash_value && attachments == rhs.attachments;
 	}
 
-	CSpan<PVImageView> colors;
-	PVImageView depth;
+	CSpan<PVImageView> attachments;
 	u32 hash_value;
 };
 
@@ -451,22 +447,32 @@ VDepthStencilFormat VulkanDevice::bestSupportedFormat(VDepthStencilFormat format
 // -------------------------------------------------------------------------------------------
 // ----------  Object management  ------------------------------------------------------------
 
-PVRenderPass VulkanDevice::getRenderPass(CSpan<VColorAttachment> colors,
-										 Maybe<VDepthAttachment> depth) {
-	HashedRenderPass key(colors, depth ? &*depth : nullptr, none);
+PVRenderPass VulkanDevice::getRenderPass(CSpan<VAttachment> attachments) {
+	HashedRenderPass key(attachments, none);
 	auto &hash_map = m_objects->hashed_render_passes;
 	auto it = hash_map.find(key);
 	if(it != hash_map.end())
 		return it->value;
 
-	auto pointer = VulkanRenderPass::create(*this, colors, depth);
-	auto depth_ptr = pointer->depth() ? &*pointer->depth() : nullptr;
-	hash_map.emplace(HashedRenderPass(pointer->colors(), depth_ptr, key.hash_value), pointer);
+	auto pointer = VulkanRenderPass::create(*this, attachments);
+	hash_map.emplace(HashedRenderPass(pointer->attachments(), key.hash_value), pointer);
 	return pointer;
 }
 
-PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageView depth) {
-	HashedFramebuffer key(colors, depth, none);
+PVRenderPass VulkanDevice::getRenderPass(CSpan<PVImageView> image_views,
+										 CSpan<VAttachmentSync> syncs) {
+	auto attachments = VulkanRenderPass::computeAttachments(image_views, syncs);
+	return getRenderPass(attachments);
+}
+
+PVRenderPass VulkanDevice::getRenderPass(CSpan<PVImageView> image_views, VSimpleSync sync) {
+	auto attachments = VulkanRenderPass::computeAttachments(image_views, sync);
+	return getRenderPass(attachments);
+}
+
+PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> attachments,
+										   PVRenderPass render_pass) {
+	HashedFramebuffer key(attachments, none);
 	auto &hash_map = m_objects->hashed_framebuffers;
 	auto it = hash_map.find(key);
 	if(it != hash_map.end()) {
@@ -474,23 +480,10 @@ PVFramebuffer VulkanDevice::getFramebuffer(CSpan<PVImageView> colors, PVImageVie
 		return it->value.first;
 	}
 
-	StaticVector<VColorAttachment, VulkanLimits::max_color_attachments> color_atts;
-	for(auto color : colors) {
-		auto format = color->format();
-		DASSERT(format.is<VColorFormat>());
-		color_atts.emplace_back(format.get<VColorFormat>(), color->dimensions().num_samples);
-	}
-	Maybe<VDepthAttachment> depth_att;
-	if(depth) {
-		auto format = depth->format();
-		int num_samples = depth->dimensions().num_samples;
-		DASSERT(format.is<VDepthStencilFormat>());
-		depth_att = VDepthAttachment(format.get<VDepthStencilFormat>(), num_samples);
-	}
-	auto render_pass = getRenderPass(color_atts, depth_att);
-
-	auto pointer = VulkanFramebuffer::create(render_pass, colors, depth);
-	hash_map.emplace(HashedFramebuffer(pointer->colors(), depth, key.hash_value), pair{pointer, 0});
+	if(!render_pass)
+		render_pass = getRenderPass(attachments, VSimpleSync::draw);
+	auto pointer = VulkanFramebuffer::create(render_pass, attachments);
+	hash_map.emplace(HashedFramebuffer(pointer->attachments(), key.hash_value), pair{pointer, 0});
 	return pointer;
 }
 

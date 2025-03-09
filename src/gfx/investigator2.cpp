@@ -171,13 +171,11 @@ bool Investigator2::mainLoop() {
 	applyFocus();
 
 	m_device->beginFrame().check();
-	auto swap_chain = m_device->swapChain();
-	auto render_pass =
-		m_device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
-	auto frame_buffer = m_device->getFramebuffer({swap_chain->acquiredImage()});
+	auto screen = m_device->swapChain()->acquiredImage();
+	auto render_pass = m_device->getRenderPass({screen}, VSimpleSync::clear_present);
 
 	auto &cmds = m_device->cmdQueue();
-	cmds.beginRenderPass(frame_buffer, render_pass, none, {FColor(0.4, 0.5, 0.3)});
+	cmds.beginRenderPass({screen}, render_pass, none, {FColor(0.4, 0.5, 0.3)});
 	cmds.setViewport(m_viewport);
 	cmds.setScissor(none);
 	draw(render_pass);

@@ -18,42 +18,46 @@ VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer handle, VObjectId id)
 
 VulkanFramebuffer::~VulkanFramebuffer() { deferredRelease(vkDestroyFramebuffer, m_handle); }
 
-PVFramebuffer VulkanFramebuffer::create(PVRenderPass render_pass, CSpan<PVImageView> colors,
-										PVImageView depth) {
-	DASSERT(colors.size() <= VulkanLimits::max_color_attachments);
+PVFramebuffer VulkanFramebuffer::create(PVRenderPass render_pass, CSpan<PVImageView> attachments) {
+	DASSERT(render_pass);
+	DASSERT(attachments.size() <= max_attachments);
+	for(int i = 0; i < attachments.size() - 1; i++)
+		DASSERT(attachments[i]->format().is<VColorFormat>());
 
-	array<VkImageView, max_color_atts + 1> attachments;
-	int num_attachments = colors.size();
-	for(int i : intRange(colors))
-		attachments[i] = colors[i];
-	if(depth)
-		attachments[num_attachments++] = depth;
-	int2 size = colors ? colors[0]->size2D() : depth ? depth->size2D() : int2();
+	int2 size = attachments ? attachments[0]->size2D() : int2();
+	int num_colors = attachments.size();
+	if(attachments && attachments.back()->format().is<VDepthStencilFormat>())
+		num_colors--;
+
+	array<VkImageView, max_attachments> vk_attachments;
+	for(int i : intRange(attachments))
+		vk_attachments[i] = attachments[i];
 
 	VkFramebufferCreateInfo ci{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 	ci.renderPass = render_pass;
-	ci.attachmentCount = num_attachments;
-	ci.pAttachments = attachments.data();
+	ci.attachmentCount = attachments.size();
+	ci.pAttachments = vk_attachments.data();
 	ci.width = uint(size.x);
 	ci.height = uint(size.y);
-	ci.flags = num_attachments == 0 ? VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT : 0;
+	ci.flags = attachments ? 0 : VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
 	ci.layers = 1;
 
 	auto &device = render_pass->device();
 	VkFramebuffer handle;
 	FWK_VK_CALL(vkCreateFramebuffer, device, &ci, nullptr, &handle);
 	auto out = device.createObject(handle);
-	out->m_colors = colors;
-	out->m_depth = depth;
+	out->m_attachments = attachments;
+	out->m_has_depth = num_colors < attachments.size();
 	out->m_size = size;
+	out->m_render_pass = render_pass;
+	out->m_num_colors = num_colors;
 	return out;
 }
 
-u32 VulkanFramebuffer::hashConfig(CSpan<PVImageView> colors, PVImageView depth) {
+u32 VulkanFramebuffer::hashConfig(CSpan<PVImageView> attachments) {
 	u32 out = 123;
-	for(auto color : colors)
-		out = combineHash(out, fwk::hash(u64(color.get())));
-	out = combineHash(fwk::hash(u64(depth.get())), out);
+	for(auto attachment : attachments)
+		out = combineHash(out, fwk::hash(u64(attachment.get())));
 	return out;
 }
 }

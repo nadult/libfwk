@@ -55,8 +55,11 @@ class VulkanDevice {
 	// ----------  Object management  ------------------------------------------------------------
 
   public:
-	PVRenderPass getRenderPass(CSpan<VColorAttachment>, Maybe<VDepthAttachment> = none);
-	PVFramebuffer getFramebuffer(CSpan<PVImageView> colors, PVImageView depth = none);
+	PVRenderPass getRenderPass(CSpan<VAttachment>);
+	PVRenderPass getRenderPass(CSpan<PVImageView>, CSpan<VAttachmentSync>);
+	PVRenderPass getRenderPass(CSpan<PVImageView>, VSimpleSync);
+	PVFramebuffer getFramebuffer(CSpan<PVImageView>, PVRenderPass = none);
+
 	PVPipelineLayout getPipelineLayout(CSpan<VDSLId>, const VPushConstantRanges &);
 	PVPipelineLayout getPipelineLayout(CSpan<PVShaderModule>, const VPushConstantRanges &);
 	PVPipelineLayout getPipelineLayout(CSpan<PVShaderModule>);
