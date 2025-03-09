@@ -75,7 +75,7 @@ SRC_vulkan = \
 	vulkan/vulkan_buffer vulkan/vulkan_command_queue vulkan/vulkan_descriptor_manager vulkan/vulkan_device \
 	vulkan/vulkan_framebuffer vulkan/vulkan_image vulkan/vulkan_instance vulkan/vulkan_internal \
 	vulkan/vulkan_memory_manager vulkan/vulkan_pipeline vulkan/vulkan_shader vulkan/vulkan_storage \
-	vulkan/vulkan_swap_chain vulkan/vulkan_window vulkan/vulkan_ray_tracing vulkan_base
+	vulkan/vulkan_swap_chain vulkan/vulkan_window vulkan/vulkan_ray_tracing vulkan/vulkan_render_pass vulkan_base
 
 SRC_gfx_stbi = \
 	gfx/image_stbi gfx/image_stbir

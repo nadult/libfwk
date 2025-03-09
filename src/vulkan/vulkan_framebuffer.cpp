@@ -8,6 +8,7 @@
 #include "fwk/vulkan/vulkan_image.h"
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
+#include "fwk/vulkan/vulkan_render_pass.h"
 
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 
