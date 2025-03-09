@@ -1,5 +1,7 @@
 TODO: prioritize aggresively
 
+- Move RenderPass to separate file
+- Option to mark Ptrs that they are non-null? New type like RVImageView?
 - Consider replacing mechanism for updating descriptors so that it won't require
   update_after_bind (does it affect performance?)
 - FilePath() should be empty; FilePath::empty() always returns false;

@@ -102,12 +102,12 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	text += message;
 	ctx.font->draw(canvas, FRect({5, 5}, {200, 20}), {ColorId::white, ColorId::black}, text);
 
-	auto render_pass =
-		ctx.device->getRenderPass({{swap_chain->format(), 1, VColorSyncStd::clear_present}});
+	auto screen = swap_chain->acquiredImage();
+	auto render_pass = ctx.device->getRenderPass({screen}, VSimpleSync::clear_present);
+	auto framebuffer = ctx.device->getFramebuffer({screen});
 	auto dc = EX_PASS(canvas.genDrawCall(ctx.compiler, *ctx.device, render_pass));
-	auto fb = ctx.device->getFramebuffer({swap_chain->acquiredImage()});
 
-	cmds.beginRenderPass(fb, render_pass, none, {FColor(0.0, 0.2, 0.0)});
+	cmds.beginRenderPass(framebuffer, render_pass, none, {FColor(0.0, 0.2, 0.0)});
 	cmds.setViewport(IRect(swap_chain->size()));
 	cmds.setScissor(none);
 
@@ -269,7 +269,7 @@ Ex<int> exMain() {
 
 	// TODO: sc_format might change if we move to different screen
 	auto sc_format = ctx.device->swapChain()->format();
-	auto gui_rpass = ctx.device->getRenderPass({{sc_format, 1}});
+	auto gui_rpass = ctx.device->getRenderPass({{sc_format, VSimpleSync::draw}});
 	Gui gui(device, window, gui_rpass, GuiConfig{GuiStyleMode::mini});
 	ctx.gui = &gui;
 

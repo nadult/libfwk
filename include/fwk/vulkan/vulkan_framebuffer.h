@@ -12,15 +12,17 @@ namespace fwk {
 
 class VulkanFramebuffer : public VulkanObjectBase<VulkanFramebuffer> {
   public:
-	static constexpr int max_color_atts = VulkanLimits::max_color_attachments;
+	static constexpr int max_colors = VulkanLimits::max_color_attachments;
+	static constexpr int max_attachments = max_colors + 1;
 
-	static PVFramebuffer create(PVRenderPass, CSpan<PVImageView> colors, PVImageView depth = none);
-	static u32 hashConfig(CSpan<PVImageView> colors, PVImageView depth);
+	static PVFramebuffer create(PVRenderPass, CSpan<PVImageView>);
+	static u32 hashConfig(CSpan<PVImageView>);
 
-	// TODO: somehow mark Ptrs that they are non-null?
-	CSpan<PVImageView> colors() const { return m_colors; }
-	PVImageView depth() const { return m_depth; }
-	bool hasDepth() const { return m_depth; }
+	PVRenderPass renderPass() const { return m_render_pass; }
+	CSpan<PVImageView> attachments() const { return m_attachments; }
+	CSpan<PVImageView> colors() const { return cspan(m_attachments.data(), m_num_colors); }
+	PVImageView depth() const { return m_has_depth ? m_attachments.back() : PVImageView(); }
+	bool hasDepth() const { return m_has_depth; }
 	int2 size() const { return m_size; }
 
   private:
@@ -28,8 +30,10 @@ class VulkanFramebuffer : public VulkanObjectBase<VulkanFramebuffer> {
 	VulkanFramebuffer(VkFramebuffer, VObjectId);
 	~VulkanFramebuffer();
 
-	StaticVector<PVImageView, max_color_atts> m_colors;
-	PVImageView m_depth;
+	StaticVector<PVImageView, max_attachments> m_attachments;
+	PVRenderPass m_render_pass;
 	int2 m_size;
+	int m_num_colors;
+	bool m_has_depth;
 };
 }

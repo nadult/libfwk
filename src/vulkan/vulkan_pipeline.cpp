@@ -199,89 +199,102 @@ VulkanRenderPass ::~VulkanRenderPass() {
 	deferredRelease(vkDestroyRenderPass, m_handle);
 }
 
-u32 VulkanRenderPass::hashConfig(CSpan<VColorAttachment> colors, const VDepthAttachment *depth) {
-	auto out = fwk::hash(colors);
-	if(depth)
-		out = combineHash(out, fwk::hash(*depth));
-	return out;
-}
+u32 VulkanRenderPass::hashConfig(CSpan<VAttachment> attachments) { return fwk::hash(attachments); }
 
-PVRenderPass VulkanRenderPass::create(VulkanDevice &device, CSpan<VColorAttachment> colors,
-									  Maybe<VDepthAttachment> depth) {
+PVRenderPass VulkanRenderPass::create(VulkanDevice &device, CSpan<VAttachment> attachments) {
+	array<VkAttachmentDescription, max_attachments> vk_attachments;
+	array<VkAttachmentReference, max_attachments> vk_attachment_refs;
 
-	array<VkAttachmentDescription, max_colors + 1> attachments;
-	array<VkAttachmentReference, max_colors + 1> attachment_refs;
+	for(int i = 0; i < attachments.size() - 1; i++)
+		DASSERT(attachments[i].type() == VAttachmentType::color);
+
+	const VAttachment *depth_attachment = nullptr;
+	int num_colors = attachments.size();
+	if(attachments && hasDepth(attachments.back().type())) {
+		depth_attachment = &attachments.back();
+		num_colors--;
+	}
 
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = colors.size();
-	subpass.pColorAttachments = attachment_refs.data();
+	subpass.colorAttachmentCount = num_colors;
+	subpass.pColorAttachments = vk_attachment_refs.data();
 
-	// TODO: what's the point of that?
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-	for(int i : intRange(colors)) {
-		auto &src = colors[i];
-		auto &dst = attachments[i];
+	for(int i : intRange(num_colors)) {
+		auto &src = attachments[i];
+		auto &dst = vk_attachments[i];
 		dst.flags = 0;
-		dst.format = toVk(src.format);
-		dst.samples = VkSampleCountFlagBits(src.num_samples);
-		dst.loadOp = toVk(src.sync.load_op);
-		dst.storeOp = toVk(src.sync.store_op);
+		dst.format = toVk(src.colorFormat());
+		dst.samples = VkSampleCountFlagBits(src.numSamples());
+		auto sync = src.sync();
+		dst.loadOp = toVk(sync.loadOp());
+		dst.storeOp = toVk(sync.storeOp());
 		dst.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		dst.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		dst.initialLayout = toVk(src.sync.initial_layout);
-		dst.finalLayout = toVk(src.sync.final_layout);
-		attachment_refs[i].attachment = i;
+		dst.initialLayout = toVk(sync.initialLayout());
+		dst.finalLayout = toVk(sync.finalLayout());
+		vk_attachment_refs[i].attachment = i;
 		// TODO: is this the right layout?
-		attachment_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		vk_attachment_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	}
 
 	int depth_index = -1;
-	if(depth) {
-		depth_index = colors.size();
-		auto &src = *depth;
-		auto &dst = attachments[depth_index];
+	if(depth_attachment) {
+		depth_index = num_colors;
+		auto &src = *depth_attachment;
+		auto &dst = vk_attachments[depth_index];
 		dst.flags = 0;
-		dst.format = toVk(src.format);
-		dst.samples = VkSampleCountFlagBits(src.num_samples);
-		dst.loadOp = toVk(src.sync.load_op);
-		dst.storeOp = toVk(src.sync.store_op);
-		dst.stencilLoadOp = toVk(src.sync.stencil_load_op);
-		dst.stencilStoreOp = toVk(src.sync.stencil_store_op);
-		dst.initialLayout = toVk(src.sync.initial_layout);
-		dst.finalLayout = toVk(src.sync.final_layout);
-		attachment_refs[depth_index].attachment = depth_index;
-		attachment_refs[depth_index].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		subpass.pDepthStencilAttachment = attachment_refs.data() + colors.size();
-
-		dependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstStageMask |=
-			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
-									VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		dst.format = toVk(src.depthStencilFormat());
+		dst.samples = VkSampleCountFlagBits(src.numSamples());
+		auto sync = src.sync();
+		dst.loadOp = toVk(sync.loadOp());
+		dst.storeOp = toVk(sync.storeOp());
+		dst.stencilLoadOp = toVk(sync.stencilLoadOp());
+		dst.stencilStoreOp = toVk(sync.stencilStoreOp());
+		dst.initialLayout = toVk(sync.initialLayout());
+		dst.finalLayout = toVk(sync.finalLayout());
+		vk_attachment_refs[depth_index].attachment = depth_index;
+		vk_attachment_refs[depth_index].layout =
+			toVk(src.type() == VAttachmentType::depth ? VImageLayout::depth_att :
+														VImageLayout::depth_stencil_att);
+		subpass.pDepthStencilAttachment = vk_attachment_refs.data() + depth_index;
 	}
 
 	VkRenderPassCreateInfo ci{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-	ci.attachmentCount = colors.size() + (depth ? 1 : 0);
-	ci.pAttachments = attachments.data();
+	ci.attachmentCount = attachments.size();
+	ci.pAttachments = vk_attachments.data();
 	ci.subpassCount = 1;
 	ci.pSubpasses = &subpass;
-	ci.dependencyCount = 1;
-	ci.pDependencies = &dependency;
 
 	VkRenderPass handle;
 	FWK_VK_CALL(vkCreateRenderPass, device.handle(), &ci, nullptr, &handle);
 	auto out = device.createObject(handle);
-	out->m_colors = colors;
-	out->m_depth = depth;
+	out->m_attachments = attachments;
+	if(depth_attachment)
+		out->m_depth_attachment = *depth_attachment;
+	out->m_num_color_attachments = num_colors;
+	return out;
+}
 
+auto VulkanRenderPass::computeAttachments(CSpan<PVImageView> image_views, VSimpleSync sync)
+	-> AttachmentsVector {
+	AttachmentsVector out;
+	for(auto &image_view : image_views) {
+		auto format = image_view->format();
+		auto num_samples = image_view->dimensions().num_samples;
+		format.visit([&](auto format) { out.emplace_back(format, sync, num_samples); });
+	}
+	return out;
+}
+
+auto VulkanRenderPass::computeAttachments(CSpan<PVImageView> image_views,
+										  CSpan<VAttachmentSync> syncs) -> AttachmentsVector {
+	AttachmentsVector out;
+	for(int i : intRange(image_views)) {
+		auto format = image_views[i]->format();
+		auto num_samples = image_views[i]->dimensions().num_samples;
+		format.visit([&](auto format) { out.emplace_back(format, syncs[i], num_samples); });
+	}
 	return out;
 }
 

@@ -105,6 +105,9 @@ class VulkanCommandQueue {
 	// TODO: pass colors & depth here directly
 	void beginRenderPass(PVFramebuffer, PVRenderPass, Maybe<IRect> render_area = none,
 						 CSpan<VClearValue> clear_values = {});
+	void beginRenderPass(CSpan<PVImageView> attachments, PVRenderPass,
+						 Maybe<IRect> render_area = none, CSpan<VClearValue> clear_values = {});
+
 	void endRenderPass();
 
 	void dispatchCompute(int3 size);

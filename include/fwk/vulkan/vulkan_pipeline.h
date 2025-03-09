@@ -204,14 +204,18 @@ struct VComputePipelineSetup {
 
 class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
   public:
-	static constexpr int max_colors = VulkanLimits::max_color_attachments;
+	static constexpr int max_attachments = VulkanLimits::max_color_attachments + 1;
+	using AttachmentsVector = StaticVector<VAttachment, max_attachments>;
 
-	static PVRenderPass create(VulkanDevice &, CSpan<VColorAttachment>,
-							   Maybe<VDepthAttachment> = none);
-	static u32 hashConfig(CSpan<VColorAttachment>, const VDepthAttachment *);
+	// It's better not to use this function directly, use VulkanDevice::getRenderPass instead
+	static PVRenderPass create(VulkanDevice &, CSpan<VAttachment>);
+	static AttachmentsVector computeAttachments(CSpan<PVImageView>, VSimpleSync);
+	static AttachmentsVector computeAttachments(CSpan<PVImageView>, CSpan<VAttachmentSync>);
+	static u32 hashConfig(CSpan<VAttachment>);
 
-	CSpan<VColorAttachment> colors() const { return m_colors; }
-	const Maybe<VDepthAttachment> &depth() const { return m_depth; }
+	CSpan<VAttachment> attachments() const { return m_attachments; }
+	CSpan<VAttachment> colors() const { return {m_attachments.data(), m_num_color_attachments}; }
+	Maybe<VAttachment> depth() const { return m_depth_attachment; }
 	u32 hash() const { return m_hash; }
 
   private:
@@ -219,8 +223,9 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 	VulkanRenderPass(VkRenderPass, VObjectId);
 	~VulkanRenderPass();
 
-	StaticVector<VColorAttachment, max_colors> m_colors;
-	Maybe<VDepthAttachment> m_depth;
+	AttachmentsVector m_attachments;
+	Maybe<VAttachment> m_depth_attachment;
+	int m_num_color_attachments;
 	u32 m_hash;
 };
 

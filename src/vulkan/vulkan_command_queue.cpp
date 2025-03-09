@@ -412,6 +412,13 @@ void VulkanCommandQueue::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass
 	vkCmdBeginRenderPass(m_cur_cmd_buffer, &bi, VK_SUBPASS_CONTENTS_INLINE);
 }
 
+void VulkanCommandQueue::beginRenderPass(CSpan<PVImageView> attachments, PVRenderPass render_pass,
+										 Maybe<IRect> render_area,
+										 CSpan<VClearValue> clear_values) {
+	auto framebuffer = m_device.getFramebuffer(attachments, render_pass);
+	beginRenderPass(framebuffer, render_pass, render_area, clear_values);
+}
+
 void VulkanCommandQueue::endRenderPass() {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdEndRenderPass(m_cur_cmd_buffer);

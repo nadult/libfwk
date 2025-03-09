@@ -28,6 +28,7 @@ struct VulkanLimits {
 	static constexpr int num_swap_frames = 2;
 
 	static constexpr int max_image_size = 32 * 1024;
+	static constexpr int max_image_samples = 32;
 	static constexpr int max_mip_levels = 16;
 };
 
@@ -363,77 +364,56 @@ struct VDeviceSetup {
 	bool allow_descriptor_update_after_bind = true;
 };
 
-DEFINE_ENUM(VColorSyncStd, clear, clear_present, present, draw);
+DEFINE_ENUM(VSimpleSync, clear, clear_present, present, draw);
+DEFINE_ENUM(VAttachmentType, color, depth, depth_stencil);
+inline bool hasDepth(VAttachmentType type) {
+	return isOneOf(type, VAttachmentType::depth, VAttachmentType::depth_stencil);
+}
 
-// TODO: move out of base
-struct VColorSync {
-	using Std = VColorSyncStd;
-	VColorSync(Std std)
-		: load_op(std >= Std::present ? VLoadOp::load : VLoadOp::clear), store_op(VStoreOp::store),
-		  initial_layout(std >= Std::present ? VImageLayout::color_att : VImageLayout::undefined),
-		  final_layout(isOneOf(std, Std::clear, Std::draw) ? VImageLayout::color_att :
-															 VImageLayout::present_src) {}
-	VColorSync(VLoadOp load, VStoreOp store, VImageLayout initial_layout, VImageLayout final_layout)
-		: load_op(load), store_op(store), initial_layout(initial_layout),
-		  final_layout(final_layout) {}
-	VColorSync()
-		: load_op(VLoadOp::load), store_op(VStoreOp::store),
-		  initial_layout(VImageLayout::color_att), final_layout(VImageLayout::color_att) {}
+struct VAttachmentSync {
+	VAttachmentSync(VLoadOp load_op, VStoreOp store_op, VLoadOp stencil_load_op,
+					VStoreOp stencil_store_op, VImageLayout initial_layout,
+					VImageLayout final_layout);
+	explicit VAttachmentSync(u16 encoded) : encoded(encoded) {}
+	static VAttachmentSync make(VSimpleSync, VAttachmentType);
 
-	FWK_TIE_MEMBERS(load_op, store_op, initial_layout, final_layout);
-	FWK_TIED_COMPARES(VColorSync);
+	auto operator<=>(const VAttachmentSync &) const = default;
 
-	VLoadOp load_op;
-	VStoreOp store_op;
-	VImageLayout initial_layout;
-	VImageLayout final_layout;
+	VLoadOp loadOp() const { return VLoadOp(encoded & 3); }
+	VStoreOp storeOp() const { return VStoreOp((encoded >> 2) & 3); }
+	VLoadOp stencilLoadOp() const { return VLoadOp((encoded >> 4) & 3); }
+	VStoreOp stencilStoreOp() const { return VStoreOp((encoded >> 6) & 3); }
+	VImageLayout initialLayout() const { return VImageLayout((encoded >> 8) & 15); }
+	VImageLayout finalLayout() const { return VImageLayout((encoded >> 12) & 15); }
+
+	u16 encoded;
 };
 
-struct VDepthSync {
-	VDepthSync(VLoadOp load, VStoreOp store, VImageLayout initial_layout, VImageLayout final_layout,
-			   VLoadOp stencil_load = VLoadOp::dont_care,
-			   VStoreOp stencil_store = VStoreOp::dont_care)
-		: load_op(load), store_op(store), stencil_load_op(stencil_load),
-		  stencil_store_op(stencil_store), initial_layout(initial_layout),
-		  final_layout(final_layout) {}
-	VDepthSync(VImageLayout target_layout = VImageLayout::depth_stencil_att)
-		: VDepthSync(VLoadOp::load, VStoreOp::store, target_layout, target_layout,
-					 VLoadOp::dont_care, VStoreOp::dont_care) {}
+struct VAttachment {
+	using Type = VAttachmentType;
 
-	FWK_TIE_MEMBERS(load_op, store_op, stencil_load_op, stencil_store_op, initial_layout,
-					final_layout);
-	FWK_TIED_COMPARES(VDepthSync);
+	VAttachment(VColorFormat, VAttachmentSync, uint num_samples = 1);
+	VAttachment(VColorFormat, VSimpleSync, uint num_samples = 1);
 
-	VLoadOp load_op;
-	VStoreOp store_op;
-	VLoadOp stencil_load_op;
-	VStoreOp stencil_store_op;
-	VImageLayout initial_layout;
-	VImageLayout final_layout;
-};
+	VAttachment(VDepthStencilFormat, VAttachmentSync, uint num_samples = 1);
+	VAttachment(VDepthStencilFormat, VSimpleSync, uint num_samples = 1);
 
-struct VColorAttachment {
-	VColorAttachment(VColorFormat format, uint num_samples = 1, VColorSync sync = {})
-		: format(format), num_samples(num_samples), sync(sync) {}
+	auto operator<=>(const VAttachment &) const = default;
 
-	FWK_TIE_MEMBERS(format, num_samples, sync);
-	FWK_TIED_COMPARES(VColorAttachment);
+	VColorFormat colorFormat() const {
+		PASSERT(type() == Type::color);
+		return VColorFormat(encoded & 255);
+	}
+	VDepthStencilFormat depthStencilFormat() const {
+		PASSERT(type() != Type::color);
+		return VDepthStencilFormat(encoded & 255);
+	}
+	Type type() const { return Type((encoded >> 8) & 3); }
+	uint numSamples() const { return (encoded >> 10) & 63; }
+	u32 hash() const { return fwk::hashU32(encoded); }
+	VAttachmentSync sync() const { return VAttachmentSync(u16(encoded >> 16)); }
 
-	VColorFormat format;
-	uint num_samples;
-	VColorSync sync;
-};
-
-struct VDepthAttachment {
-	VDepthAttachment(VDepthStencilFormat format, uint num_samples = 1, VDepthSync sync = {})
-		: format(format), num_samples(num_samples), sync(sync) {}
-
-	FWK_TIE_MEMBERS(format, num_samples, sync);
-	FWK_TIED_COMPARES(VDepthAttachment);
-
-	VDepthStencilFormat format;
-	uint num_samples;
-	VDepthSync sync;
+	u32 encoded;
 };
 
 struct VQueue {
@@ -461,8 +441,8 @@ class VWindowRef;
 struct VDescriptorSet;
 
 struct VDescriptorBindingInfo;
-struct VColorAttachment;
-struct VDepthAttachment;
+struct VAttachmentSync;
+struct VAttachment;
 struct VPipelineSetup;
 
 template <class T = char> struct VBufferSpan;
@@ -496,5 +476,4 @@ using PVSampler = VPtr<VulkanSampler>;
 using PVAccelStruct = VPtr<VulkanAccelStruct>;
 
 int primitiveCount(VPrimitiveTopology topo, int vertex_count);
-
 }

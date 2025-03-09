@@ -143,22 +143,20 @@ bool Investigator3::mainLoop() {
 	}
 
 	m_device->beginFrame().check();
-	auto sc_format = swap_chain->format();
+	auto screen = swap_chain->acquiredImage();
 	auto depth_format = m_depth_buffer->image()->format().get<VDepthStencilFormat>();
-	auto render_pass_3d =
-		m_device->getRenderPass({{sc_format, 1, VColorSyncStd::clear}}, {depth_format});
-	auto render_pass_2d = m_device->getRenderPass({{sc_format, 1, VColorSyncStd::present}});
-	auto frame_buffer = m_device->getFramebuffer({swap_chain->acquiredImage()}, m_depth_buffer);
+	auto render_pass_3d = m_device->getRenderPass({screen, m_depth_buffer}, VSimpleSync::clear);
+	auto render_pass_2d = m_device->getRenderPass({screen}, VSimpleSync::present);
 	auto &cmds = m_device->cmdQueue();
 
-	cmds.beginRenderPass(frame_buffer, render_pass_3d, none,
+	cmds.beginRenderPass({screen, m_depth_buffer}, render_pass_3d, none,
 						 {FColor(0.4, 0.5, 0.3), VClearDepthStencil(1.0)});
 	cmds.setViewport(viewport);
 	cmds.setScissor(none);
 	auto text = draw(render_pass_3d);
 	cmds.endRenderPass();
 
-	cmds.beginRenderPass(frame_buffer, render_pass_2d, none);
+	cmds.beginRenderPass({screen}, render_pass_2d, none);
 	FontStyle style{ColorId::white, ColorId::black};
 	auto extents = m_font->evalExtents(text);
 	Canvas2D canvas_2d(viewport, Orient2D::y_up);
