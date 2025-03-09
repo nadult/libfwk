@@ -144,9 +144,7 @@ HashMap<string, PVImageView> loadImages(VulkanDevice &device, CSpan<Pair<string>
 
 PVRenderPass guiRenderPass(VDeviceRef device) {
 	auto sc_format = device->swapChain()->format();
-	auto color_sync = VColorSync(VLoadOp::load, VStoreOp::store, VImageLayout::general,
-								 VImageLayout::present_src);
-	return device->getRenderPass({{sc_format, 1, color_sync}});
+	return device->getRenderPass({{sc_format, VSimpleSync::draw}});
 }
 
 class Viewer {
