@@ -306,6 +306,8 @@ const ShaderDefinition &ShaderCompiler::operator[](ShaderDefId id) const {
 bool ShaderCompiler::valid(ShaderDefId id) const { return m_impl->shader_defs.valid(id); }
 void ShaderCompiler::remove(ShaderDefId id) {
 	DASSERT(valid(id));
+	auto &def = m_impl->shader_defs[id];
+	m_impl->shader_def_map.erase(m_impl->shader_def_map.find(def.name));
 	m_impl->shader_defs.erase(id);
 }
 
