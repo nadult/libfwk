@@ -24,13 +24,20 @@ struct VClearDepthStencil {
 struct VClearValue {
 	VClearValue(FColor color) : f{color.r, color.g, color.b, color.a} {}
 	VClearValue(IColor color) : VClearValue(FColor(color)) {}
+	VClearValue(float4 val) : f{val.x, val.y, val.z, val.w} {}
+	VClearValue(int4 val) : i{val.x, val.y, val.z, val.w} {}
+	VClearValue(float val) : f{val, 0, 0, 0} {}
+	VClearValue(u32 val) : u{val, 0, 0, 0} {}
+	VClearValue(i32 val) : i{val, 0, 0, 0} {}
 	VClearValue(VClearDepthStencil ds) {
 		f[0] = ds.depth;
 		u[1] = ds.stencil;
+		u[2] = u[3] = 0;
 	}
 
 	union {
 		float f[4];
+		i32 i[4];
 		u32 u[4];
 	};
 };

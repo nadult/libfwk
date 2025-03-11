@@ -393,10 +393,10 @@ struct VAttachment {
 	using Type = VAttachmentType;
 
 	VAttachment(VColorFormat, VAttachmentSync, uint num_samples = 1);
-	VAttachment(VColorFormat, VSimpleSync, uint num_samples = 1);
+	VAttachment(VColorFormat, VSimpleSync = VSimpleSync::draw, uint num_samples = 1);
 
 	VAttachment(VDepthStencilFormat, VAttachmentSync, uint num_samples = 1);
-	VAttachment(VDepthStencilFormat, VSimpleSync, uint num_samples = 1);
+	VAttachment(VDepthStencilFormat, VSimpleSync = VSimpleSync::draw, uint num_samples = 1);
 
 	auto operator<=>(const VAttachment &) const = default;
 
