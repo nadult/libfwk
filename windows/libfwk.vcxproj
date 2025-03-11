@@ -429,6 +429,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\install_deps.py" />
+    <None Include="libfwk.natstepfilter" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D58F34BE-FFCB-485F-9294-460EA261D0ED}</ProjectGuid>

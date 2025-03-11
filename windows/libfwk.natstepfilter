@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StepFilter xmlns="http://schemas.microsoft.com/vstudio/debugger/natstepfilter/2010">
+  <Function>
+    <Name>fwk::Span&lt;.*&gt;::.+</Name>
+    <Action>NoStepInto</Action>
+  </Function>
+  <Function>
+    <Name>fwk::VPtr&lt;.*&gt;::.+</Name>
+    <Action>NoStepInto</Action>
+  </Function>
+  <Function>
+    <Name>fwk::(vec2|vec3|vec4)&lt;.*&gt;::.+</Name>
+    <Action>NoStepInto</Action>
+  </Function>
+  <Function>
+    <Name>fwk::Box&lt;.*&gt;::Box.*</Name>
+    <Action>NoStepInto</Action>
+  </Function>
+  <Function>
+    <Name>fwk::(Maybe|Expected|Dynamic)&lt;.*&gt;::.+</Name>
+    <Action>NoStepInto</Action>
+  </Function>
+  <Function>
+    <Name>fwk::(Vector|PodVector|StaticVector)&lt;.*&gt;::operator.*</Name>
+    <Action>NoStepInto</Action>
+  </Function>
+  <Function>
+    <Name>fwk::(Vector|PodVector|StaticVector)&lt;.*&gt;::(front|back|begin|end|size|capacity)</Name>
+    <Action>NoStepInto</Action>
+  </Function>
+</StepFilter>

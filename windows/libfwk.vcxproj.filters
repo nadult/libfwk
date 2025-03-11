@@ -1112,5 +1112,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\install_deps.py" />
+    <None Include="libfwk.natstepfilter" />
   </ItemGroup>
 </Project>
