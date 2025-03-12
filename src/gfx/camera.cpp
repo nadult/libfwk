@@ -81,7 +81,7 @@ float3 Camera::right() const { return cross(forward(), up()); }
 Segment3<float> Camera::screenRay(float2 screen_pos) const {
 	float2 pos = screen_pos - float2(m_params.viewport.center());
 	pos.x = pos.x * 2.0f / m_params.viewport.width();
-	pos.y = -pos.y * 2.0f / m_params.viewport.height();
+	pos.y = pos.y * 2.0f / m_params.viewport.height();
 	return screenRayNormalized(pos);
 }
 
