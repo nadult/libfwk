@@ -86,8 +86,7 @@ Ex<void> drawFrame(VulkanContext &ctx, CSpan<float2> positions, ZStr message) {
 	if(swap_chain->status() != VSwapChainStatus::image_acquired)
 		return {};
 
-	// TODO: viewport? remove orient ?
-	Canvas2D canvas(IRect(swap_chain->size()), Orient2D::y_up);
+	Canvas2D canvas(IRect(swap_chain->size()));
 	for(int n = 0; n < (int)positions.size(); n++) {
 		FRect rect = FRect({-50, -50}, {50, 50}) + positions[n];
 		FColor fill_color(1.0f - n * 0.1f, 1.0f - n * 0.05f, 0, 1.0f);

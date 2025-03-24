@@ -25,8 +25,7 @@
 namespace fwk {
 
 Canvas2D::Canvas2D(const IRect &viewport, Orient2D orient)
-	: m_matrix_stack(projectionMatrix2D(viewport, orient), viewMatrix2D(viewport, float2(0, 0))),
-	  m_viewport(viewport) {
+	: m_matrix_stack(projectionMatrix2D(viewport, orient)), m_viewport(viewport) {
 	m_groups.emplace_back(0, getPipeline({}), -1);
 	m_group_matrices.emplace_back(m_matrix_stack.fullMatrix());
 }
@@ -138,7 +137,7 @@ void Canvas2D::setPointWidth(float width) { m_point_width = width; }
 void Canvas2D::setSegmentWidth(float width) { m_segment_width = width; }
 
 void Canvas2D::setViewPos(const float2 &view_pos) {
-	setViewMatrix(viewMatrix2D(m_viewport, view_pos));
+	setViewMatrix(translation(-view_pos.x, -view_pos.y, 0.0f));
 }
 
 void Canvas2D::setMaterial(const SimpleMaterial &material) {

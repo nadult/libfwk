@@ -20,7 +20,7 @@ class Canvas2D {
   public:
 	using TexCoord = float2;
 
-	Canvas2D(const IRect &viewport, Orient2D);
+	explicit Canvas2D(const IRect &viewport, Orient2D = Orient2D::y_down);
 	FWK_COPYABLE_CLASS(Canvas2D);
 
 	Ex<SimpleDrawCall> genDrawCall(ShaderCompiler &, VulkanDevice &, PVRenderPass,

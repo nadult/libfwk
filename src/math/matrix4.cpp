@@ -207,50 +207,43 @@ Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up) {
 	return Matrix4(transpose(side, cross(side, front), -front)) * translation(-eye);
 }
 
-Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far) {
-	float rad = fov * 0.5f;
-	float delta_z = z_far - z_near;
-	float sin = std::sin(rad);
+Matrix4 perspective(float vert_fov_rad, float aspect_ratio, float z_near, float z_far) {
+	DASSERT(vert_fov_rad > 0.0f && vert_fov_rad < pi);
+	DASSERT(aspect_ratio > 0.0f);
+	DASSERT(z_near >= 0.0f && z_far > z_near);
+	DASSERT(std::isfinite(z_far));
 
-	Matrix4 out = Matrix4::identity();
-	if(delta_z != 0.0f && sin != 0.0f && aspect_ratio != 0.0f) {
-		float ctg = cos(rad) / sin;
-		out[0][0] = ctg / aspect_ratio;
-		out[1][1] = -ctg;
-		out[2][2] = std::isinf(z_far) ? -1.0f : -(z_far + z_near) / delta_z;
-		out[2][3] = -1.0f;
-		out[3][2] = -2.0f * z_near * (std::isinf(z_far) ? 1.0f : z_far / delta_z);
-		out[3][3] = 0.0f;
-	}
+	float ctg = 1.0f / std::tan(0.5f * vert_fov_rad);
+	float z_diff = z_far - z_near;
 
+	Matrix4 out = Matrix4::zero();
+	out[0][0] = ctg / aspect_ratio;
+	out[1][1] = -ctg;
+	out[2][2] = -(z_far + z_near) / z_diff;
+	out[2][3] = -1.0f;
+	out[3][2] = -(2.0f * z_near * z_far) / z_diff;
 	return out;
 }
 
 Matrix4 ortho(float left, float right, float top, float bottom, float near, float far) {
 	Matrix4 out = Matrix4::identity();
 	float ix = 1.0f / (right - left);
-	float iy = 1.0f / (bottom - top);
+	float iy = 1.0f / (top - bottom);
 	float iz = 1.0f / (far - near);
 
 	out(0, 0) = 2.0f * ix;
-	out(1, 1) = 2.0f * iy;
-	out(2, 2) = -2.0f * iz;
+	out(1, 1) = -2.0f * iy;
+	out(2, 2) = -1.0f * iz;
 	out(0, 3) = -(right + left) * ix;
-	out(1, 3) = -(bottom + top) * iy;
-	out(2, 3) = -(far + near) * iz;
-
+	out(1, 3) = (top + bottom) * iy;
+	out(2, 3) = -near * iz;
 	return out;
 }
 
-Matrix4 projectionMatrix2D(const IRect &viewport, Orient2D orient) {
+Matrix4 projectionMatrix2D(const IRect &viewport, Orient2D orient, Interval<float> depth) {
 	int y_min = orient == Orient2D::y_up ? viewport.ey() : viewport.y();
 	int y_max = orient == Orient2D::y_up ? viewport.y() : viewport.ey();
-	return ortho(viewport.x(), viewport.ex(), y_min, y_max, -1.0f, 1.0f);
-}
-
-Matrix4 viewMatrix2D(const IRect &viewport, const float2 &look_at) {
-	return translation(0, viewport.height(), 0) * scaling(1, -1, 1) *
-		   translation(-look_at.x, -look_at.y, 0.0f);
+	return ortho(viewport.x(), viewport.ex(), y_min, y_max, depth.min, depth.max);
 }
 
 void Matrix4::operator>>(TextFormatter &out) const {
