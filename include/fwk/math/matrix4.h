@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "fwk/math/interval.h"
 #include "fwk/math/matrix3.h"
 
 namespace fwk {
@@ -83,16 +84,16 @@ Matrix4 inverseOrZero(const Matrix4 &);
 
 Matrix4 translation(const float3 &);
 Matrix4 lookAt(const float3 &eye, const float3 &target, const float3 &up);
-Matrix4 perspective(float fov, float aspect_ratio, float z_near, float z_far);
+Matrix4 perspective(float vert_fov_rad, float aspect_ratio, float z_near, float z_far);
 Matrix4 ortho(float left, float right, float top, float bottom, float near, float far);
 
-DEFINE_ENUM(Orient2D, y_up, y_down);
+DEFINE_ENUM(Orient2D, y_down, y_up);
 
 // Simple 2D view with point (0, 0) in corner:
+// - top left if orientation == Orient2D::y_down (default Vulkan orientation)
 // - bottom left if orientation == Orient2D::y_up
-// - top left if orientation == Orient2D::y_down
-Matrix4 projectionMatrix2D(const IRect &viewport, Orient2D orientation);
-Matrix4 viewMatrix2D(const IRect &viewport, const float2 &view_pos);
+Matrix4 projectionMatrix2D(const IRect &viewport, Orient2D orientation = Orient2D::y_down,
+						   Interval<float> depth = {0.0f, 1.0f});
 
 inline Matrix4 scaling(const float3 &v) {
 	return Matrix4({v[0], 0.0f, 0.0f, 0.0f}, {0.0f, v[1], 0.0f, 0.0f}, {0.0f, 0.0f, v[2], 0.0f},

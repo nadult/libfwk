@@ -28,7 +28,7 @@ Investigator2::Investigator2(VDeviceRef device, VWindowRef window, VisFunc2 vis_
 		// TODO: pscale is invalid
 		auto pscale = 1.0 / (m_scale * m_view_scale);
 
-		Canvas2D canvas(IRect(window->size()), Orient2D::y_up);
+		Canvas2D canvas(IRect(window->size()));
 		canvas.setPointWidth(pscale);
 		canvas.setSegmentWidth(pscale);
 		m_vis_func(canvas, double2());
@@ -134,7 +134,7 @@ static IColor negativeColor(IColor color) {
 }
 
 void Investigator2::draw(PVRenderPass render_pass) {
-	Canvas2D canvas(m_viewport, Orient2D::y_up);
+	Canvas2D canvas(m_viewport);
 	TextFormatter fmt;
 	draw(canvas, fmt);
 

@@ -45,9 +45,6 @@ class Canvas3D {
 	void mulViewMatrix(const Matrix4 &);
 	void setViewMatrix(const Matrix4 &);
 
-	void setViewPos(const float2 &view_pos);
-	void setViewPos(const int2 &view_pos) { setViewPos(float2(view_pos)); }
-
 	const IRect &viewport() const { return m_viewport; }
 
 	// --------------------------------------------------------------------------------------------

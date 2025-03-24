@@ -17,7 +17,7 @@ float CameraParams::aspectRatio() const { return float(viewport.width()) / viewp
 
 Matrix4 CameraParams::projectionMatrix() const {
 	if(projection == CameraProjection::orthogonal)
-		return fwk::ortho(viewport.x(), viewport.ex(), viewport.y(), viewport.ey(), depth.min,
+		return fwk::ortho(viewport.x(), viewport.ex(), viewport.ey(), viewport.y(), depth.min,
 						  depth.max);
 	return fwk::perspective(fov_in_radians, aspectRatio(), depth.min, depth.max);
 }
@@ -87,7 +87,7 @@ Segment3<float> Camera::screenRay(float2 screen_pos) const {
 
 Segment3<float> Camera::screenRayNormalized(float2 screen_pos_nrm) const {
 	auto inv_mat = inverseOrZero(matrix());
-	auto p1 = mulPoint(inv_mat, float3(screen_pos_nrm, -1.0f));
+	auto p1 = mulPoint(inv_mat, float3(screen_pos_nrm, 0.0f));
 	auto p2 = mulPoint(inv_mat, float3(screen_pos_nrm, 1.0f));
 	return {p1, p2};
 
@@ -122,7 +122,7 @@ float2 Camera::screenOffset(const Camera &rhs) const {
 FRect Camera::screenRect(FBox box) const {
 	FBox trans_box = encloseTransformed(box, matrix());
 	FRect out = enclose(transform(
-		trans_box.corners(), [](auto pt) { return (float2(pt.x, -pt.y) + float2(1, 1)) * 0.5f; }));
+		trans_box.corners(), [](auto pt) { return (float2(pt.x, pt.y) + float2(1, 1)) * 0.5f; }));
 	return out * float2(m_params.viewport.size());
 }
 

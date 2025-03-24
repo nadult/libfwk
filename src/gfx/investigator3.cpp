@@ -159,7 +159,7 @@ bool Investigator3::mainLoop() {
 	cmds.beginRenderPass({screen}, render_pass_2d, none);
 	FontStyle style{ColorId::white, ColorId::black};
 	auto extents = m_font->evalExtents(text);
-	Canvas2D canvas_2d(viewport, Orient2D::y_up);
+	Canvas2D canvas_2d(viewport);
 	canvas_2d.setViewPos(float2());
 	canvas_2d.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)), FColor(0, 0, 0, 0.3));
 	m_font->draw(canvas_2d, FRect({5, 5}, {300, 100}), style, text);

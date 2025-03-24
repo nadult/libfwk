@@ -7,6 +7,7 @@
 #include "fwk/math/box_iter.h"
 #include "fwk/math/cylinder.h"
 #include "fwk/math/direction.h"
+#include "fwk/math/frustum.h"
 #include "fwk/math/gcd.h"
 #include "fwk/math/hash.h"
 #include "fwk/math/line.h"
@@ -78,6 +79,29 @@ void testMatrices() {
 	}
 
 	// TODO: finish me
+}
+
+void test2DProjections() {
+	IRect viewport(0, 0, 1280, 720);
+	auto mat_ydown = projectionMatrix2D(viewport, Orient2D::y_down);
+	auto mat_yup = projectionMatrix2D(viewport, Orient2D::y_up);
+
+	auto viewport_corners = viewport.corners();
+	auto ndc_corners = FRect(-1, -1, 1, 1).corners();
+	for(int i : intRange(viewport_corners)) {
+		auto transformed = mulPoint(mat_ydown, {float2(viewport_corners[i]), 0.0f});
+		assertCloseEnough(transformed, float3(ndc_corners[i], 0.0f));
+		auto transformed_yup = mulPoint(mat_yup, {float2(viewport_corners[i]), 0.0f});
+		assertCloseEnough(transformed_yup, float3(ndc_corners[i].x, -ndc_corners[i].y, 0.0f));
+	}
+
+	assertCloseEnough(mulPoint(mat_ydown, float3(0, 0, 0)), float3(-1, -1, 0));
+	auto mat_custom_depth = projectionMatrix2D(viewport, Orient2D::y_down, {1.0f, 3.0f});
+	auto center0 = mulPoint(mat_custom_depth, {float2(viewport.center()), -1.0f});
+	auto center1 = mulPoint(mat_custom_depth, {float2(viewport.center()), -2.5f});
+	auto center2 = mulPoint(mat_ydown, {float2(viewport.center()), -0.5f});
+	assertCloseEnough(center1, float3(0.0f, 0.0f, 0.75f));
+	assertCloseEnough(center2, float3(0.0f, 0.0f, 0.5f));
 }
 
 void testRays() {
@@ -657,6 +681,7 @@ void testMain() {
 	testConsts();
 	testRational();
 	testMatrices();
+	test2DProjections();
 	testRays();
 	testIntersections();
 	test2DIntersections();

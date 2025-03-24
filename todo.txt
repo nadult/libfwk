@@ -5,7 +5,7 @@ TODO: prioritize aggresively
   update_after_bind (does it affect performance?)
 - FilePath() should be empty; FilePath::empty() always returns false;
   This class could be modernized or maybe even replaced with std::filesystem;
-  But std::filesystem uses exceptions
+  Make a wrapper over std::filesystem with Expected?
 - Replace freetype with stb_truetype
 - Handle vulkan device lost (repro: resize window to side by side and wait)
 - Wrong DPI on ubuntu 24.04

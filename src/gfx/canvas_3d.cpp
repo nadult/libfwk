@@ -132,10 +132,6 @@ bool Canvas3D::splitGroup() {
 void Canvas3D::setPointWidth(float width) { m_point_width = width; }
 void Canvas3D::setSegmentWidth(float width) { m_segment_width = width; }
 
-void Canvas3D::setViewPos(const float2 &view_pos) {
-	setViewMatrix(viewMatrix2D(m_viewport, view_pos));
-}
-
 void Canvas3D::setMaterial(const SimpleMaterial &material) {
 	auto *group = &m_groups.back();
 	auto &pipe = m_pipelines[group->pipeline_index];
