@@ -10,7 +10,6 @@ TODO: prioritize aggresively
 - Handle vulkan device lost (repro: resize window to side by side and wait)
 - Wrong DPI on ubuntu 24.04
 - Why VBufferSpan has sizes as u32? Is this a mistake or by design?
-- natstepfilter
 - remove min_size from Span<>
 - disable/remove backtraces?
 - drobny błąd przy wyświetlaniu perfanalyzera: jak sie zmniejszy okno, to ostatnia linia moze byc czasami
@@ -100,6 +99,7 @@ TODO: prioritize aggresively
 - libfwk configuration in header file?
 
 - FpsCamera -> FppCamera
+- Rename Camera to GenericCamera?
 - Jak ma działać CamControl ? W różnych programach chcę w różny sposób kontrolować kamerę
   może lepiej zrobić tak, żeby kamera miała abstrakcyjny typ bazowy ?
 - używanie OrbitingCamera w model viewerze

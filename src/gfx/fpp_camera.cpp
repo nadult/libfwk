@@ -62,7 +62,7 @@ void FppCamera::move(float2 move, float2 rot, float move_up) {
 	float pi_half = pi * 0.5f;
 
 	move *= 16.0f;
-	move_up *= -2.50f;
+	move_up *= -16.0f;
 	rot *= 0.5f;
 
 	auto new_fwd = rotateVector(forward_xz, rot.x);

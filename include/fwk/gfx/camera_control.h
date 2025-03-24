@@ -11,11 +11,6 @@
 
 namespace fwk {
 
-// TODO: nazewnictwo: odroznic Camera od GameCam, OrbitingCam, ...
-//       nazwy pozostałych klas tez mozna poprawic...
-// TODO: kamera powinna zwracać informacje o wielkości piksela / jaką wielkość powinny
-//       mieć punkty, żeby na ekranie dać 1 pixel?
-
 class CameraControl {
   public:
 	using Type = CameraType;
