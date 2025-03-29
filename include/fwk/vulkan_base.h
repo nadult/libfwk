@@ -364,7 +364,14 @@ struct VDeviceSetup {
 	bool allow_descriptor_update_after_bind = true;
 };
 
-DEFINE_ENUM(VSimpleSync, clear, clear_present, present, draw);
+// Layout transitions:
+// clear:         undefined -> color/depth/depth-stencil attachment
+// clear_present: undefined -> color/depth/depth-stencil attachment -> present_src
+// clear_read:    undefined -> color/depth/depth-stencil attachment -> shader_ro
+// present:       color/depth/depth-stencil attachment -> present_src
+// draw:          color/depth/depth-stencil attachment
+// draw_read:     color/depth/depth-stencil attachment -> shader_ro -> shader_ro
+DEFINE_ENUM(VSimpleSync, clear, clear_present, clear_read, present, draw, draw_read);
 DEFINE_ENUM(VAttachmentType, color, depth, depth_stencil);
 inline bool hasDepth(VAttachmentType type) {
 	return isOneOf(type, VAttachmentType::depth, VAttachmentType::depth_stencil);
@@ -373,9 +380,11 @@ inline bool hasDepth(VAttachmentType type) {
 struct VAttachmentSync {
 	VAttachmentSync(VLoadOp load_op, VStoreOp store_op, VLoadOp stencil_load_op,
 					VStoreOp stencil_store_op, VImageLayout initial_layout,
-					VImageLayout final_layout);
-	explicit VAttachmentSync(u16 encoded) : encoded(encoded) {}
-	static VAttachmentSync make(VSimpleSync, VAttachmentType);
+					VImageLayout subpass_layout, VImageLayout final_layout);
+	VAttachmentSync(VLoadOp load_op, VStoreOp store_op, VImageLayout initial_layout,
+					VImageLayout subpass_layout, VImageLayout final_layout);
+	VAttachmentSync(VSimpleSync, VAttachmentType);
+	explicit VAttachmentSync(u32 encoded) : encoded(encoded) {}
 
 	auto operator<=>(const VAttachmentSync &) const = default;
 
@@ -384,9 +393,10 @@ struct VAttachmentSync {
 	VLoadOp stencilLoadOp() const { return VLoadOp((encoded >> 4) & 3); }
 	VStoreOp stencilStoreOp() const { return VStoreOp((encoded >> 6) & 3); }
 	VImageLayout initialLayout() const { return VImageLayout((encoded >> 8) & 15); }
-	VImageLayout finalLayout() const { return VImageLayout((encoded >> 12) & 15); }
+	VImageLayout subpassLayout() const { return VImageLayout((encoded >> 12) & 15); }
+	VImageLayout finalLayout() const { return VImageLayout((encoded >> 16) & 15); }
 
-	u16 encoded;
+	u32 encoded;
 };
 
 struct VAttachment {
@@ -410,10 +420,10 @@ struct VAttachment {
 	}
 	Type type() const { return Type((encoded >> 8) & 3); }
 	uint numSamples() const { return (encoded >> 10) & 63; }
-	u32 hash() const { return fwk::hashU32(encoded); }
-	VAttachmentSync sync() const { return VAttachmentSync(u16(encoded >> 16)); }
+	u32 hash() const { return fwk::hashU64(encoded); }
+	VAttachmentSync sync() const { return VAttachmentSync(u32(encoded >> 16)); }
 
-	u32 encoded;
+	u64 encoded;
 };
 
 struct VQueue {

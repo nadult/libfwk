@@ -56,8 +56,7 @@ PVRenderPass VulkanRenderPass::create(VulkanDevice &device, CSpan<VAttachment> a
 		dst.initialLayout = toVk(sync.initialLayout());
 		dst.finalLayout = toVk(sync.finalLayout());
 		vk_attachment_refs[i].attachment = i;
-		// TODO: is this the right layout?
-		vk_attachment_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		vk_attachment_refs[i].layout = toVk(sync.subpassLayout());
 	}
 
 	int depth_index = -1;
@@ -76,9 +75,7 @@ PVRenderPass VulkanRenderPass::create(VulkanDevice &device, CSpan<VAttachment> a
 		dst.initialLayout = toVk(sync.initialLayout());
 		dst.finalLayout = toVk(sync.finalLayout());
 		vk_attachment_refs[depth_index].attachment = depth_index;
-		vk_attachment_refs[depth_index].layout =
-			toVk(src.type() == VAttachmentType::depth ? VImageLayout::depth_att :
-														VImageLayout::depth_stencil_att);
+		vk_attachment_refs[depth_index].layout = toVk(sync.subpassLayout());
 		subpass.pDepthStencilAttachment = vk_attachment_refs.data() + depth_index;
 	}
 

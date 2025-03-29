@@ -242,15 +242,20 @@ Maybe<VColorFormat> fromVkColorFormat(VkFormat format) {
 
 VAttachmentSync::VAttachmentSync(VLoadOp load_op, VStoreOp store_op, VLoadOp stencil_load_op,
 								 VStoreOp stencil_store_op, VImageLayout initial_layout,
-								 VImageLayout final_layout)
-	: encoded(u16(load_op) | (u16(store_op) << 2) | (u16(stencil_load_op) << 4) |
-			  (u16(stencil_store_op) << 6) | (u16(initial_layout) << 8) |
-			  (u16(final_layout) << 12)) {
+								 VImageLayout subpass_layout, VImageLayout final_layout)
+	: encoded(u32(load_op) | (u32(store_op) << 2) | (u32(stencil_load_op) << 4) |
+			  (u32(stencil_store_op) << 6) | (u32(initial_layout) << 8) |
+			  (u32(subpass_layout) << 12) | (u16(final_layout) << 16)) {
 	static_assert(count<VLoadOp> <= 4 && count<VStoreOp> <= 4);
 	static_assert(count<VImageLayout> <= 16);
 }
 
-VAttachmentSync VAttachmentSync::make(VSimpleSync sync, VAttachmentType type) {
+VAttachmentSync::VAttachmentSync(VLoadOp load_op, VStoreOp store_op, VImageLayout initial_layout,
+								 VImageLayout subpass_layout, VImageLayout final_layout)
+	: VAttachmentSync(load_op, store_op, VLoadOp::dont_care, VStoreOp::dont_care, initial_layout,
+					  subpass_layout, final_layout) {}
+
+static VAttachmentSync makeAttachmentSync(VSimpleSync sync, VAttachmentType type) {
 	auto load_op = sync >= VSimpleSync::present ? VLoadOp::load : VLoadOp::clear;
 	auto store_op = VStoreOp::store;
 	auto opt_layout = type == VAttachmentType::color ? VImageLayout::color_att :
@@ -258,39 +263,47 @@ VAttachmentSync VAttachmentSync::make(VSimpleSync sync, VAttachmentType type) {
 													   VImageLayout::depth_stencil_att;
 	bool is_clearing = sync < VSimpleSync::present;
 	bool is_presenting = isOneOf(sync, VSimpleSync::present, VSimpleSync::clear_present);
-
+	bool is_reading = isOneOf(sync, VSimpleSync::draw_read, VSimpleSync::clear_read);
+	auto final_layout = is_presenting ? VImageLayout::present_src :
+						is_reading	  ? VImageLayout::shader_ro :
+										opt_layout;
 	return {load_op,
 			VStoreOp::store,
 			type == VAttachmentType::depth_stencil ? load_op : VLoadOp::dont_care,
 			type == VAttachmentType::depth_stencil ? store_op : VStoreOp::dont_care,
 			is_clearing ? VImageLayout::undefined : opt_layout,
-			is_presenting ? VImageLayout::present_src : opt_layout};
+			opt_layout,
+			final_layout};
 }
 
-static_assert(count<VColorFormat> <= 256);
-static_assert(count<VDepthStencilFormat> <= 256);
-static_assert(count<VAttachmentType> <= 4 && VulkanLimits::max_image_samples <= 64);
+VAttachmentSync::VAttachmentSync(VSimpleSync sync, VAttachmentType type)
+	: VAttachmentSync(makeAttachmentSync(sync, type)) {}
+
+static_assert(count<VColorFormat> <= 128);
+static_assert(count<VDepthStencilFormat> <= 128);
+static_assert(count<VAttachmentType> <= 4);
+static_assert(VulkanLimits::max_image_samples <= 32);
 
 VAttachment::VAttachment(VColorFormat format, VAttachmentSync sync, uint num_samples)
-	: encoded(u32(format) | (u32(Type::color) << 8) | (u32(num_samples) << 10) |
-			  (u32(sync.encoded) << 16)) {
+	: encoded(u64(format) | (u64(Type::color) << 8) | (u64(num_samples) << 10) |
+			  (u64(sync.encoded) << 16)) {
 	PASSERT(num_samples >= 1 && num_samples <= VulkanLimits::max_image_samples);
 }
 
 VAttachment::VAttachment(VColorFormat format, VSimpleSync sync, uint num_samples)
-	: VAttachment(format, VAttachmentSync::make(sync, Type::color), num_samples) {}
+	: VAttachment(format, {sync, Type::color}, num_samples) {}
 
 static VAttachmentType attachmentType(VDepthStencilFormat format) {
 	return hasStencil(format) ? VAttachmentType::depth_stencil : VAttachmentType::depth;
 }
 
 VAttachment::VAttachment(VDepthStencilFormat format, VAttachmentSync sync, uint num_samples)
-	: encoded(u32(format) | (u32(attachmentType(format)) << 8) | (u32(num_samples) << 10) |
-			  (u32(sync.encoded) << 16)) {
+	: encoded(u64(format) | (u64(attachmentType(format)) << 8) | (u64(num_samples) << 10) |
+			  (u64(sync.encoded) << 16)) {
 	PASSERT(num_samples >= 1 && num_samples <= VulkanLimits::max_image_samples);
 }
 
 VAttachment::VAttachment(VDepthStencilFormat format, VSimpleSync sync, uint num_samples)
-	: VAttachment(format, VAttachmentSync::make(sync, attachmentType(format)), num_samples) {}
+	: VAttachment(format, {sync, attachmentType(format)}, num_samples) {}
 
 }
