@@ -165,6 +165,9 @@ class VulkanCommandQueue {
 	void beginFrame();
 	void finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_signal_sem);
 
+  private:
+	void updateAttachmentsLayouts(bool final);
+
 	struct FrameContext {
 		VkCommandBuffer cmd_buffer;
 		VCommandId cmd_id;
@@ -214,6 +217,9 @@ class VulkanCommandQueue {
 		VkDescriptorSet set = nullptr;
 		VBindPoint bind_point = VBindPoint::graphics;
 	};
+
+	PVRenderPass m_current_render_pass;
+	PVFramebuffer m_current_framebuffer;
 
 	SparseVector<Download> m_downloads;
 	vector<LabeledDownload> m_labeled_downloads;

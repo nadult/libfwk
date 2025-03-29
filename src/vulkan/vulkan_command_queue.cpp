@@ -13,6 +13,7 @@
 #include "fwk/vulkan/vulkan_internal.h"
 #include "fwk/vulkan/vulkan_memory_manager.h"
 #include "fwk/vulkan/vulkan_pipeline.h"
+#include "fwk/vulkan/vulkan_render_pass.h"
 
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 
@@ -410,6 +411,24 @@ void VulkanCommandQueue::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass
 	bi.pClearValues = reinterpret_cast<const VkClearValue *>(clear_values.data());
 	bi.framebuffer = framebuffer;
 	vkCmdBeginRenderPass(m_cur_cmd_buffer, &bi, VK_SUBPASS_CONTENTS_INLINE);
+
+	PASSERT(!m_current_render_pass && !m_current_framebuffer);
+	m_current_render_pass = render_pass;
+	m_current_framebuffer = framebuffer;
+	updateAttachmentsLayouts(false);
+}
+
+void VulkanCommandQueue::updateAttachmentsLayouts(bool final) {
+	PASSERT(m_current_render_pass && m_current_framebuffer);
+	auto attachments = m_current_framebuffer->attachments();
+	auto rp_attachments = m_current_render_pass->attachments();
+	PASSERT(attachments.size() == rp_attachments.size());
+	for(int i = 0; i < attachments.size(); i++) {
+		auto image = attachments[i]->image();
+		auto sync = rp_attachments[i].sync();
+		auto layout = final ? sync.finalLayout() : sync.initialLayout();
+		image->setLayout(layout, 0);
+	}
 }
 
 void VulkanCommandQueue::beginRenderPass(CSpan<PVImageView> attachments, PVRenderPass render_pass,
@@ -422,6 +441,9 @@ void VulkanCommandQueue::beginRenderPass(CSpan<PVImageView> attachments, PVRende
 void VulkanCommandQueue::endRenderPass() {
 	PASSERT(m_status == Status::frame_running);
 	vkCmdEndRenderPass(m_cur_cmd_buffer);
+	updateAttachmentsLayouts(true);
+	m_current_render_pass = {};
+	m_current_framebuffer = {};
 }
 
 void VulkanCommandQueue::dispatchCompute(int3 size) {

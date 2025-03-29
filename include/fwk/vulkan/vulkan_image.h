@@ -73,6 +73,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 
 	friend class VulkanDevice;
 	friend class VulkanSwapChain;
+	friend class VulkanCommandQueue;
 
 	VulkanImage(VkImage, VObjectId, VMemoryBlock, const VImageSetup &);
 	~VulkanImage();
