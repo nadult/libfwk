@@ -106,6 +106,18 @@ auto VulkanRenderPass::computeAttachments(CSpan<PVImageView> image_views, VSimpl
 	return out;
 }
 
+auto VulkanRenderPass::computeAttachments(CSpan<PVImageView> image_views, CSpan<VSimpleSync> sync)
+	-> AttachmentsVector {
+	AttachmentsVector out;
+	PASSERT(sync.size() == image_views.size());
+	for(int i : intRange(image_views)) {
+		auto format = image_views[i]->format();
+		auto num_samples = image_views[i]->dimensions().num_samples;
+		format.visit([&](auto format) { out.emplace_back(format, sync[i], num_samples); });
+	}
+	return out;
+}
+
 auto VulkanRenderPass::computeAttachments(CSpan<PVImageView> image_views,
 										  CSpan<VAttachmentSync> syncs) -> AttachmentsVector {
 	AttachmentsVector out;
