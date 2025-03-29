@@ -16,6 +16,7 @@ class VulkanRenderPass : public VulkanObjectBase<VulkanRenderPass> {
 	// It's better not to use this function directly, use VulkanDevice::getRenderPass instead
 	static PVRenderPass create(VulkanDevice &, CSpan<VAttachment>);
 	static AttachmentsVector computeAttachments(CSpan<PVImageView>, VSimpleSync);
+	static AttachmentsVector computeAttachments(CSpan<PVImageView>, CSpan<VSimpleSync>);
 	static AttachmentsVector computeAttachments(CSpan<PVImageView>, CSpan<VAttachmentSync>);
 	static u32 hashConfig(CSpan<VAttachment>);
 

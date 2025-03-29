@@ -463,6 +463,12 @@ PVRenderPass VulkanDevice::getRenderPass(CSpan<PVImageView> image_views,
 	return getRenderPass(attachments);
 }
 
+PVRenderPass VulkanDevice::getRenderPass(CSpan<PVImageView> image_views,
+										 CSpan<VSimpleSync> simple_syncs) {
+	auto attachments = VulkanRenderPass::computeAttachments(image_views, simple_syncs);
+	return getRenderPass(attachments);
+}
+
 PVRenderPass VulkanDevice::getRenderPass(CSpan<PVImageView> image_views, VSimpleSync sync) {
 	auto attachments = VulkanRenderPass::computeAttachments(image_views, sync);
 	return getRenderPass(attachments);

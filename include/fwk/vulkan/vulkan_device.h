@@ -57,6 +57,7 @@ class VulkanDevice {
   public:
 	PVRenderPass getRenderPass(CSpan<VAttachment>);
 	PVRenderPass getRenderPass(CSpan<PVImageView>, CSpan<VAttachmentSync>);
+	PVRenderPass getRenderPass(CSpan<PVImageView>, CSpan<VSimpleSync>);
 	PVRenderPass getRenderPass(CSpan<PVImageView>, VSimpleSync);
 	PVFramebuffer getFramebuffer(CSpan<PVImageView>, PVRenderPass = none);
 

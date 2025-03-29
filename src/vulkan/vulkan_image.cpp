@@ -118,9 +118,9 @@ int3 VulkanImage::mipSize(int mip_level) const {
 
 static constexpr uint layout_bits = 4;
 static constexpr u64 layout_mask = ((1 << layout_bits) - 1);
+static_assert(count<VImageLayout> <= (1 << layout_bits));
 
 VImageLayout VulkanImage::layout(int mip_level) const {
-	static_assert(count<VImageLayout> <= (1 << layout_bits));
 	return Layout((m_layout_bits >> (mip_level * layout_bits)) & layout_mask);
 }
 
@@ -161,8 +161,7 @@ void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-	} else if((old_layout == VImageLayout::color_att && new_layout == VImageLayout::general) ||
-			  (old_layout == VImageLayout::general && new_layout == VImageLayout::color_att)) {
+	} else if(old_layout == VImageLayout::color_att || old_layout == VImageLayout::general) {
 		// TODO: too generic
 		barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
