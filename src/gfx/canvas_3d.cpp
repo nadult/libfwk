@@ -41,13 +41,10 @@ Ex<SimpleDrawCall> Canvas3D::genDrawCall(ShaderCompiler &compiler, VulkanDevice 
 
 	SimpleDrawCall dc;
 
-	auto vb_usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_dst;
-	auto ib_usage = VBufferUsage::index_buffer | VBufferUsage::transfer_dst;
-	auto mb_usage = VBufferUsage::storage_buffer | VBufferUsage::transfer_dst;
-
 	uint num_verts = m_positions.size();
 	uint vbuffer_size =
 		num_verts * (sizeof(m_positions[0]) + sizeof(m_tex_coords[0]) + sizeof(m_colors[0]));
+	auto vb_usage = VBufferUsage::vertex | VBufferUsage::transfer_dst;
 	auto vbuffer = EX_PASS(VulkanBuffer::create(device, vbuffer_size, vb_usage, mem_usage));
 
 	dc.vertices = span<float3>(vbuffer, 0, num_verts);
@@ -58,9 +55,10 @@ Ex<SimpleDrawCall> Canvas3D::genDrawCall(ShaderCompiler &compiler, VulkanDevice 
 	EXPECT(dc.tex_coords.upload(m_tex_coords));
 	EXPECT(dc.colors.upload(m_colors));
 
-	dc.indices = EX_PASS(VulkanBuffer::createAndUpload(device, m_indices, ib_usage, mem_usage));
-	dc.instance_matrices =
-		EX_PASS(VulkanBuffer::createAndUpload(device, m_group_matrices, mb_usage, mem_usage));
+	dc.indices =
+		EX_PASS(VulkanBuffer::createAndUpload(device, m_indices, VBufferUsage::index, mem_usage));
+	dc.instance_matrices = EX_PASS(
+		VulkanBuffer::createAndUpload(device, m_group_matrices, VBufferUsage::storage, mem_usage));
 
 	bool skip_first_pipeline = true;
 	for(auto &group : m_groups)

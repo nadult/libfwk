@@ -98,9 +98,8 @@ Ex<PVAccelStruct> VulkanAccelStruct::buildBottom(VulkanDevice &device, VBufferSp
 							 VBufferUsage::device_address | VBufferUsage::accel_struct_storage));
 	auto accel = EX_PASS(VulkanAccelStruct::create(device, VAccelStructType::bottom_level, buffer));
 
-	accel->m_scratch_buffer =
-		EX_PASS(VulkanBuffer::create(device, size_info.buildScratchSize,
-									 VBufferUsage::device_address | VBufferUsage::storage_buffer));
+	accel->m_scratch_buffer = EX_PASS(VulkanBuffer::create(
+		device, size_info.buildScratchSize, VBufferUsage::device_address | VBufferUsage::storage));
 	build_info.scratchData.deviceAddress = getAddress(device, *accel->m_scratch_buffer);
 
 	build_info.srcAccelerationStructure = accel->handle();
@@ -134,8 +133,7 @@ Ex<PVAccelStruct> VulkanAccelStruct::buildTop(VulkanDevice &device,
 
 	auto instances_buffer = VulkanBuffer::createAndUpload(
 		device, vk_instances,
-		VBufferUsage::device_address | VBufferUsage::accel_struct_build_input_read_only |
-			VBufferUsage::transfer_dst);
+		VBufferUsage::device_address | VBufferUsage::accel_struct_build_input_read_only);
 
 	VkAccelerationStructureGeometryKHR as_geometry = {
 		VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
@@ -164,9 +162,8 @@ Ex<PVAccelStruct> VulkanAccelStruct::buildTop(VulkanDevice &device,
 											   VBufferUsage::accel_struct_storage));
 	auto accel = EX_PASS(VulkanAccelStruct::create(device, VAccelStructType::top_level, buffer));
 
-	accel->m_scratch_buffer =
-		EX_PASS(VulkanBuffer::create(device, size_info.buildScratchSize,
-									 VBufferUsage::device_address | VBufferUsage::storage_buffer));
+	accel->m_scratch_buffer = EX_PASS(VulkanBuffer::create(
+		device, size_info.buildScratchSize, VBufferUsage::device_address | VBufferUsage::storage));
 	build_info.scratchData.deviceAddress = getAddress(device, *accel->m_scratch_buffer);
 	build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 	build_info.dstAccelerationStructure = accel.handle();

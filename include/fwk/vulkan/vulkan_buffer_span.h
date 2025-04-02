@@ -91,6 +91,7 @@ Ex<VBufferSpan<T>> VulkanBuffer::createAndUpload(VulkanDevice &device, const TSp
 												 VBufferUsageFlags usage, VMemoryUsage mem_usage) {
 	if(!data)
 		return VBufferSpan<T>();
+	usage |= VBufferUsage::transfer_dst;
 	auto buffer = EX_PASS(
 		createAndUpload(device, cspan(data).template reinterpret<char>(), usage, mem_usage));
 	return VBufferSpan<T>(buffer);

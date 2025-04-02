@@ -35,9 +35,6 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 	auto memoryBlock() const { return m_memory_block; }
 	auto usage() const { return m_usage; }
 
-	//static Ex<PShaderModule> make(VDeviceId, ShaderType, ZStr code);
-	//static Ex<PShaderModule> load(VDeviceId, ZStr file_name);
-
   private:
 	friend class VulkanDevice;
 	VulkanBuffer(VkBuffer, VObjectId, VMemoryBlock, VBufferUsageFlags);

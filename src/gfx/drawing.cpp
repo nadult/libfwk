@@ -151,46 +151,4 @@ void SimpleDrawCall::render(VulkanDevice &device) {
 
 	cmds.setScissor(none);
 }
-
-/*
-Ex<SimpleVertexArray> SimpleVertexArray::make(VulkanDevice &device, CSpan<float3> vertex_data,
-											  CSpan<IColor> color_data, CSpan<float2> tex_data,
-											  CSpan<float3> normal_data, CSpan<u32> index_data,
-											  VPrimitiveTopology topo, VMemoryUsage mem_usage) {
-	SimpleVertexArray out;
-	auto usage = VBufferUsage::vertex_buffer | VBufferUsage::transfer_src;
-	out.vertices = EX_PASS(VulkanBuffer::createAndUpload(device, vertex_data, usage, mem_usage));
-	out.colors = EX_PASS(VulkanBuffer::createAndUpload(device, color_data, usage, mem_usage));
-	out.tex_coords = EX_PASS(VulkanBuffer::createAndUpload(device, tex_data, usage, mem_usage));
-	out.normals = EX_PASS(VulkanBuffer::createAndUpload(device, normal_data, usage, mem_usage));
-
-	usage = VBufferUsage::index_buffer | VBufferUsage::transfer_src;
-	out.indices = EX_PASS(VulkanBuffer::createAndUpload(device, index_data, usage, mem_usage));
-	out.topology = topo;
-	return out;
-}
-
-Ex<SimpleVertexArray> SimpleVertexArray::make(VulkanDevice &device, CSpan<ColoredTriangle> tris,
-											  VMemoryUsage mem_usage) {
-	vector<float3> positions;
-	vector<IColor> colors;
-
-	positions.reserve(tris.size() * 3);
-	colors.reserve(tris.size() * 3);
-	for(auto &tri : tris)
-		for(int i = 0; i < 3; i++) {
-			positions.emplace_back(tri[i]);
-			colors.emplace_back(tri.colors[i]);
-		}
-	return make(device, positions, colors, {}, {}, {}, VPrimitiveTopology::triangle_list,
-				mem_usage);
-}
-
-SimpleDrawCall::SimpleDrawCall(SimpleVertexArray vertex_array, const SimpleMaterial &material,
-							   Matrix4 matrix, Maybe<FBox> transformed_bbox)
-	: matrix(matrix), transformed_bbox(transformed_bbox), material(material),
-	  vertex_array(std::move(vertex_array)) {}
-
-FWK_COPYABLE_CLASS_IMPL(SimpleDrawCall);*/
-
 }

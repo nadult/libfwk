@@ -90,9 +90,9 @@ using VCommandPoolFlags = EnumFlags<VCommandPoolFlag>;
 
 DEFINE_ENUM(VBindPoint, graphics, compute);
 
-DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel_buffer, storage_texel_buffer,
-			uniform_buffer, storage_buffer, index_buffer, vertex_buffer, indirect_buffer,
-			device_address, accel_struct_build_input_read_only, accel_struct_storage);
+DEFINE_ENUM(VBufferUsage, transfer_src, transfer_dst, uniform_texel, storage_texel, uniform,
+			storage, index, vertex, indirect, device_address, accel_struct_build_input_read_only,
+			accel_struct_storage);
 using VBufferUsageFlags = EnumFlags<VBufferUsage>;
 
 DEFINE_ENUM(VImageUsage, transfer_src, transfer_dst, sampled, storage, color_att, depth_stencil_att,

@@ -26,20 +26,6 @@
 
 #include <fwk/libs_msvc.h>
 
-// TODO: what should we do when error happens in begin/end frame?
-// TODO: proprly handle multiple queues
-// TODO: proprly differentiate between graphics, present & compute queues
-
-// TODO: making sure that handles are correct ?
-// TODO: more type safety
-// TODO: VHandle<> class ? handles are not initialized to null by default ...
-// TODO: test_vulkan na nvidii jest ca³y czas wolniejszy ni¿ test_window (1300 vs 2220 FPS)
-// TODO: mo¿na jeszcze pewnie zrobiæ du¿o ró¿nego rodzaju optymalizacji, ale najpierw przyda³yby
-//       siê jakieœ konkretne programy testowe
-// TODO: add support for dedicated allocations in MemoryManager
-// TODO: robust mapping / unmapping in MemoryManager
-// TODO: garbage collection in memory manager (especially chunks), but first we should test it more thoroughly
-
 using namespace fwk;
 
 const char *compute_shader = R"(
@@ -169,7 +155,7 @@ bool mainLoop(VulkanWindow &window, void *ctx_) {
 	auto &ctx = *(VulkanContext *)ctx_;
 	static vector<float2> positions(15, float2(window.size() / 2));
 
-	// TODO: begin & finishFrame w gui znacz¹ coœ innego ni¿ w devce; nazwijmy to inaczej
+	// TODO: begin & finishFrame means something else in gui than in device; name it differently
 	ctx.gui->beginFrame(window);
 	if(ctx.perf_analyzer) {
 		bool show = true;
@@ -255,8 +241,7 @@ Ex<int> exMain() {
 
 	vector<u32> compute_data(compute_size + 1, 0);
 	compute_data[0] = compute_size;
-	auto compute_usage =
-		VBufferUsage::storage_buffer | VBufferUsage::transfer_dst | VBufferUsage::transfer_src;
+	auto compute_usage = VBufferUsage::storage | VBufferUsage::transfer_src;
 	for(auto &buffer : ctx.compute_buffers)
 		buffer = EX_PASS(VulkanBuffer::createAndUpload(*device, compute_data, compute_usage));
 	ctx.font = EX_PASS(Font::makeDefault(*device, window, 16));
