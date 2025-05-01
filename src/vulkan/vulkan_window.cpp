@@ -129,19 +129,6 @@ vector<IRect> VulkanWindow::displayRects() {
 	return out;
 }
 
-vector<float> VulkanWindow::displayDpiScales() {
-	int count = SDL_GetNumVideoDisplays();
-	vector<float> out(count);
-	for(int idx = 0; idx < count; idx++) {
-		// TODO: make sure that it's correct for all different platforms
-		const float default_dpi = 96;
-		float current_dpi = default_dpi;
-		SDL_GetDisplayDPI(idx, nullptr, &current_dpi, nullptr);
-		out[idx] = current_dpi / default_dpi;
-	}
-	return out;
-}
-
 IRect VulkanWindow::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
 									   float minimum_overlap) {
 	if(!display_rects)
@@ -238,9 +225,11 @@ void VulkanWindow::setFullscreen(VWindowFlags flags) {
 int VulkanWindow::displayIndex() const { return SDL_GetWindowDisplayIndex(m_impl->window); }
 
 float VulkanWindow::dpiScale() const {
-	auto display_dpis = displayDpiScales();
-	auto display_index = displayIndex();
-	return display_dpis.inRange(display_index) ? display_dpis[display_index] : 1.0f;
+	int ww = 0, wh = 0, dw = 0, dh = 0;
+	SDL_GetWindowSize(m_impl->window, &ww, &wh);
+	SDL_Vulkan_GetDrawableSize(m_impl->window, &dw, &dh);
+	DASSERT(ww > 0 && dw > 0);
+	return float(dw) / ww;
 }
 
 VWindowFlags VulkanWindow::flags() const { return m_impl->flags; }

@@ -35,7 +35,6 @@ class VulkanWindow {
 	VkSurfaceKHR surfaceHandle() const;
 
 	static vector<IRect> displayRects();
-	static vector<float> displayDpiScales();
 
 	// If window is outside of all display rects then it's positioned on first display
 	static IRect sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
