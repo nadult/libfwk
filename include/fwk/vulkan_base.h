@@ -269,6 +269,11 @@ inline VNumericFormat depthNumericFormat(VDepthStencilFormat format) {
 	return depthBits(format) == 32 ? VNumericFormat::sfloat : VNumericFormat::unorm;
 }
 
+inline bool validNumImageSamples(int num_samples) {
+	return num_samples >= 1 && num_samples <= VulkanLimits::max_image_samples &&
+		   isPowerOfTwo(num_samples);
+}
+
 DEFINE_ENUM(VBlendFactor, zero, one, src_color, one_minus_src_color, dst_color, one_minus_dst_color,
 			src_alpha, one_minus_src_alpha, dst_alpha, one_minus_dst_alpha, constant_color,
 			one_minus_constant_color, constant_alpha, one_minus_constant_alpha, src_alpha_saturate,
@@ -402,11 +407,11 @@ struct VAttachmentSync {
 struct VAttachment {
 	using Type = VAttachmentType;
 
-	VAttachment(VColorFormat, VAttachmentSync, uint num_samples = 1);
-	VAttachment(VColorFormat, VSimpleSync = VSimpleSync::draw, uint num_samples = 1);
+	VAttachment(VColorFormat, VAttachmentSync, int num_samples = 1);
+	VAttachment(VColorFormat, VSimpleSync = VSimpleSync::draw, int num_samples = 1);
 
-	VAttachment(VDepthStencilFormat, VAttachmentSync, uint num_samples = 1);
-	VAttachment(VDepthStencilFormat, VSimpleSync = VSimpleSync::draw, uint num_samples = 1);
+	VAttachment(VDepthStencilFormat, VAttachmentSync, int num_samples = 1);
+	VAttachment(VDepthStencilFormat, VSimpleSync = VSimpleSync::draw, int num_samples = 1);
 
 	auto operator<=>(const VAttachment &) const = default;
 

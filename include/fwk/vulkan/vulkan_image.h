@@ -13,13 +13,13 @@ namespace fwk {
 using VFormatVariant = Variant<VColorFormat, VDepthStencilFormat>;
 
 struct VImageDimensions {
-	VImageDimensions(int3 size, uint num_mip_levels = 1, uint num_samples = 1);
-	VImageDimensions(int2 size, uint num_mip_levels = 1, uint num_samples = 1);
+	VImageDimensions(int3 size, int num_mip_levels = 1, int num_samples = 1);
+	VImageDimensions(int2 size, int num_mip_levels = 1, int num_samples = 1);
 	VImageDimensions() : size(0), num_mip_levels(1), num_samples(1) {}
 
 	int3 size;
-	u16 num_mip_levels;
-	u16 num_samples;
+	i16 num_mip_levels;
+	i16 num_samples;
 };
 
 // TODO: Add VImageSpan, VImageDimensions -> VImageSize

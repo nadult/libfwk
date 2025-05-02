@@ -72,9 +72,7 @@ Ex<PVImage> VulkanImage::create(VulkanDevice &device, const VImageSetup &setup,
 	ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	ci.usage = toVk(setup.usage);
 
-	DASSERT(setup.dims.num_samples >= 1 &&
-			setup.dims.num_samples <= VulkanLimits::max_image_samples);
-	DASSERT(isPowerOfTwo(setup.dims.num_samples));
+	DASSERT(validNumImageSamples(setup.dims.num_samples));
 	ci.samples = VkSampleCountFlagBits(setup.dims.num_samples);
 
 	VkImage handle;
@@ -227,7 +225,7 @@ PVImageView VulkanImageView::create(PVImage image) {
 	auto dims = image->dimensions();
 	ci.subresourceRange = {.aspectMask = aspect_mask,
 						   .baseMipLevel = 0,
-						   .levelCount = dims.num_mip_levels,
+						   .levelCount = uint32_t(dims.num_mip_levels),
 						   .baseArrayLayer = 0,
 						   .layerCount = 1};
 

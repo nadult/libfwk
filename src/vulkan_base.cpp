@@ -284,26 +284,26 @@ static_assert(count<VDepthStencilFormat> <= 128);
 static_assert(count<VAttachmentType> <= 4);
 static_assert(VulkanLimits::max_image_samples <= 32);
 
-VAttachment::VAttachment(VColorFormat format, VAttachmentSync sync, uint num_samples)
+VAttachment::VAttachment(VColorFormat format, VAttachmentSync sync, int num_samples)
 	: encoded(u64(format) | (u64(Type::color) << 8) | (u64(num_samples) << 10) |
 			  (u64(sync.encoded) << 16)) {
-	PASSERT(num_samples >= 1 && num_samples <= VulkanLimits::max_image_samples);
+	PASSERT(validNumImageSamples(num_samples));
 }
 
-VAttachment::VAttachment(VColorFormat format, VSimpleSync sync, uint num_samples)
+VAttachment::VAttachment(VColorFormat format, VSimpleSync sync, int num_samples)
 	: VAttachment(format, {sync, Type::color}, num_samples) {}
 
 static VAttachmentType attachmentType(VDepthStencilFormat format) {
 	return hasStencil(format) ? VAttachmentType::depth_stencil : VAttachmentType::depth;
 }
 
-VAttachment::VAttachment(VDepthStencilFormat format, VAttachmentSync sync, uint num_samples)
+VAttachment::VAttachment(VDepthStencilFormat format, VAttachmentSync sync, int num_samples)
 	: encoded(u64(format) | (u64(attachmentType(format)) << 8) | (u64(num_samples) << 10) |
 			  (u64(sync.encoded) << 16)) {
-	PASSERT(num_samples >= 1 && num_samples <= VulkanLimits::max_image_samples);
+	PASSERT(validNumImageSamples(num_samples));
 }
 
-VAttachment::VAttachment(VDepthStencilFormat format, VSimpleSync sync, uint num_samples)
+VAttachment::VAttachment(VDepthStencilFormat format, VSimpleSync sync, int num_samples)
 	: VAttachment(format, {sync, attachmentType(format)}, num_samples) {}
 
 }
