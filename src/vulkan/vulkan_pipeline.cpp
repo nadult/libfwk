@@ -350,12 +350,13 @@ Ex<PVPipeline> VulkanPipeline::create(VulkanDevice &device, VPipelineSetup setup
 
 	VkPipelineMultisampleStateCreateInfo multisampling_ci{
 		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+	DASSERT(validNumImageSamples(setup.multisample.num_samples));
 	multisampling_ci.sampleShadingEnable = VK_FALSE;
-	multisampling_ci.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampling_ci.rasterizationSamples = VkSampleCountFlagBits(setup.multisample.num_samples);
 	multisampling_ci.minSampleShading = 1.0f; // Optional
 	multisampling_ci.pSampleMask = nullptr; // Optional
-	multisampling_ci.alphaToCoverageEnable = VK_FALSE; // Optional
-	multisampling_ci.alphaToOneEnable = VK_FALSE; // Optional
+	multisampling_ci.alphaToCoverageEnable = setup.multisample.alpha_to_coverage;
+	multisampling_ci.alphaToOneEnable = setup.multisample.alpha_to_one;
 
 	array<VkPipelineColorBlendAttachmentState, VulkanLimits::max_color_attachments>
 		blend_attachments;

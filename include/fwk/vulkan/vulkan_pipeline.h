@@ -142,6 +142,12 @@ struct VBlendingSetup {
 	float4 constant = float4(0.0f);
 };
 
+struct VMultisampleSetup {
+	int num_samples = 1;
+	bool alpha_to_coverage = false;
+	bool alpha_to_one = false;
+};
+
 struct VViewport {
 	VViewport(IRect rect, float min_depth = 0.0, float max_depth = 1.0)
 		: rect(rect), min_depth(min_depth), max_depth(max_depth) {}
@@ -190,6 +196,7 @@ struct VPipelineSetup {
 	VDepthSetup depth;
 	VStencilSetup stencil;
 	VBlendingSetup blending;
+	VMultisampleSetup multisample;
 
 	// Viewport & scissor are mandatory in dynamic_state
 	VDynamicState dynamic_state = VDynamic::viewport | VDynamic::scissor;

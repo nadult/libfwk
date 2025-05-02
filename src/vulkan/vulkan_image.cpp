@@ -19,14 +19,15 @@ static VkFormat toVk(VFormatVariant format) {
 									   toVk(format.get<VDepthStencilFormat>());
 }
 
-VImageDimensions::VImageDimensions(int3 size, uint num_mip_levels, uint num_samples)
+VImageDimensions::VImageDimensions(int3 size, int num_mip_levels, int num_samples)
 	: size(size), num_mip_levels(num_mip_levels), num_samples(num_samples) {
 	DASSERT(size.x >= 1 && size.y >= 1 && size.z >= 1);
 	DASSERT(max(size.x, size.y, size.z) <= VulkanLimits::max_image_size);
 	DASSERT(num_mip_levels >= 1 && num_mip_levels <= VulkanLimits::max_mip_levels);
+	DASSERT(validNumImageSamples(num_samples));
 }
 
-VImageDimensions::VImageDimensions(int2 size, uint num_mip_levels, uint num_samples)
+VImageDimensions::VImageDimensions(int2 size, int num_mip_levels, int num_samples)
 	: VImageDimensions(int3(size, 1), num_mip_levels, num_samples) {}
 
 VImageSetup::VImageSetup(VColorFormat format, VImageDimensions dims, VImageUsageFlags usage,
