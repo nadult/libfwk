@@ -44,7 +44,7 @@ Maybe<FileType> Converter::classify(const string &name) {
 }
 
 Maybe<BlenderVersion> Converter::checkBlenderVersion(Str command) {
-	if(auto result = execCommand(format("% --version", command))) {
+	if(auto result = execCommand(format("\"%\" --version", command))) {
 		TextParser parser(result->first);
 		string temp;
 		double value;
@@ -65,7 +65,7 @@ string Converter::exportScriptName(BlenderVersion ver) {
 }
 
 Ex<Converter::BlenderInfo> Converter::locateBlender() {
-#if defined(FWK_PLATFORM_MINGW)
+#if defined(FWK_PLATFORM_WINDOWS)
 	vector<string> pfiles = {"C:/program files/", "C:/program files (x86)/"};
 	for(auto pf : pfiles) {
 		for(auto dir : fwk::findFiles(pf, FindFileOpt::directory)) {
