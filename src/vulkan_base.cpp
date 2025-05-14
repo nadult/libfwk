@@ -21,6 +21,8 @@ VSamplerSetup::VSamplerSetup(VTexFilter mag_filter, VTexFilter min_filter,
 	: mag_filter(mag_filter), min_filter(min_filter), mipmap_filter(mip_filter),
 	  address_mode(address_mode), max_anisotropy_samples(max_anisotropy_samples) {}
 
+VSamplerSetup::VSamplerSetup(VCompareOp compare_op) : compare_op(compare_op) {}
+
 int primitiveCount(VPrimitiveTopology topo, int vertex_count) {
 	using Topo = VPrimitiveTopology;
 	switch(topo) {

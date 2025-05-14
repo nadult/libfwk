@@ -327,13 +327,16 @@ struct VSamplerSetup {
 				  VTexAddress address_mode = VTexAddress::repeat, uint max_anisotropy_samples = 1);
 	VSamplerSetup(VTexFilter mag_filter, VTexFilter min_filter, Maybe<VTexFilter> mip_filter,
 				  array<VTexAddress, 3> address_mode, uint max_anisotropy_samples = 1);
+	VSamplerSetup(VCompareOp compare_op);
 
-	FWK_TIE_MEMBERS(mag_filter, min_filter, mipmap_filter, max_anisotropy_samples, address_mode);
+	FWK_TIE_MEMBERS(mag_filter, min_filter, mipmap_filter, compare_op, max_anisotropy_samples,
+					address_mode);
 	FWK_TIED_COMPARES(VSamplerSetup);
 
 	VTexFilter mag_filter = VTexFilter::nearest;
 	VTexFilter min_filter = VTexFilter::nearest;
 	Maybe<VTexFilter> mipmap_filter;
+	Maybe<VCompareOp> compare_op;
 	u8 max_anisotropy_samples = 1;
 	array<VTexAddress, 3> address_mode = {VTexAddress::repeat, VTexAddress::repeat,
 										  VTexAddress::repeat};
