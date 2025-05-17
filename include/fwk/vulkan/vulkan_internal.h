@@ -50,6 +50,8 @@ inline auto toVk(VImageLayout layout) {
 	return VkImageLayout(layout);
 }
 
+inline auto toVk(VImageAspectFlags aspect) { return VkImageAspectFlags(aspect.bits); }
+
 inline auto toVk(VPipeStages stages) { return VkPipelineStageFlags(stages.bits); }
 inline auto toVk(VBlendFactor factor) { return VkBlendFactor(factor); }
 inline auto toVk(VBlendOp op) { return VkBlendOp(op); }

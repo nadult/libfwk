@@ -89,7 +89,7 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 
 class VulkanImageView : public VulkanObjectBase<VulkanImageView> {
   public:
-	static PVImageView create(PVImage);
+	static PVImageView create(PVImage, Maybe<VImageAspectFlags> aspect = none);
 
 	auto dimensions() const { return m_dims; }
 	auto size() const { return m_dims.size; }

@@ -103,6 +103,9 @@ DEFINE_ENUM(VImageLayout, undefined, general, color_att, depth_stencil_att, dept
 			shader_ro, transfer_src, transfer_dst, preinitialized, depth_ro_stencil_att,
 			depth_stencil_ro_att, depth_att, depth_ro, stencil_att, stencil_ro, present_src);
 
+DEFINE_ENUM(VImageAspect, color, depth, stencil);
+using VImageAspectFlags = EnumFlags<VImageAspect>;
+
 DEFINE_ENUM(VShaderStage, vertex, tess_control, tess_eval, geometry, fragment, compute);
 using VShaderStages = EnumFlags<VShaderStage>;
 

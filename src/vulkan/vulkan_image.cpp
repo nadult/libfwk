@@ -210,7 +210,7 @@ Ex<> VulkanImage::upload(const Image &src, int2 target_offset, int target_mip,
 VulkanImageView::VulkanImageView(VkImageView handle, VObjectId id) : VulkanObjectBase(handle, id) {}
 VulkanImageView ::~VulkanImageView() { deferredRelease(vkDestroyImageView, m_handle); }
 
-PVImageView VulkanImageView::create(PVImage image) {
+PVImageView VulkanImageView::create(PVImage image, Maybe<VImageAspectFlags> aspect) {
 	VkImageViewCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
 	auto format = image->format();
 	ci.image = image;
@@ -218,13 +218,12 @@ PVImageView VulkanImageView::create(PVImage image) {
 	ci.format = toVk(format);
 	ci.components.a = ci.components.b = ci.components.g = ci.components.r =
 		VK_COMPONENT_SWIZZLE_IDENTITY;
-	uint aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
-	if(const VDepthStencilFormat *ds_format = format)
-		aspect_mask =
-			VK_IMAGE_ASPECT_DEPTH_BIT | (hasStencil(*ds_format) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+
+	if(!aspect)
+		aspect = format.is<VDepthStencilFormat>() ? VImageAspect::depth : VImageAspect::color;
 
 	auto dims = image->dimensions();
-	ci.subresourceRange = {.aspectMask = aspect_mask,
+	ci.subresourceRange = {.aspectMask = toVk(*aspect),
 						   .baseMipLevel = 0,
 						   .levelCount = uint32_t(dims.num_mip_levels),
 						   .baseArrayLayer = 0,
