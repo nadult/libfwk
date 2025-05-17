@@ -6,53 +6,75 @@
 #include "fwk/format.h"
 #include "fwk/vulkan/vulkan_buffer_span.h"
 #include "fwk/vulkan/vulkan_command_queue.h"
+#include "fwk/vulkan/vulkan_device.h"
 
 namespace fwk {
 
 using ValueType = ShaderDebugValueType;
 
 static const ZStr debug_code = R"(// Shader debug:
-
 #ifdef DEBUG_ENABLED
-#define DEBUG_SETUP(buffer_set_id, buffer_binding_id) \
-struct ShaderDebugHeader {                            \
-	uint max_records, num_records;                    \
-	uint workgroup_size[3];                           \
-	uint num_workgroups[3];                           \
-};                                                    \
-                                                      \
+
+struct _DebugHeader {
+	uint max_records, num_records;
+	uint workgroup_size[3];
+	uint num_workgroups[3];
+};
+
+void _debugInitHeader(inout _DebugHeader header) {
+#ifdef DEBUG_COMPUTE
+	for(int i = 0; i < 3; i++) {
+      header.workgroup_size[i] = gl_WorkGroupSize[i];
+      header.num_workgroups[i] = gl_NumWorkGroups[i];
+    }
+#else
+	for(int i = 0; i < 3; i++) {
+      header.workgroup_size[i] = 0;
+      header.num_workgroups[i] = 0;
+    }
+#endif
+}
+
+uvec2 _debugRecordHeader(uint line, uint types) {
+#ifdef DEBUG_COMPUTE
+  uint wg_index = gl_WorkGroupID.x + gl_NumWorkGroups.x *
+                  (gl_WorkGroupID.y + gl_NumWorkGroups.y * gl_WorkGroupID.z);
+  uint val0 = gl_LocalInvocationIndex | (line << 16), val1 = wg_index | (types << 24);
+#else
+  uint val0 = 0 | (line << 16), val1 = 0 | (types << 24);
+#endif
+  return uvec2(val0, val1);
+}
+
+uint _debugValueType(int   v) { return 0; }
+uint _debugValueType(uint  v) { return 1; }
+uint _debugValueType(float v) { return 2; }
+
+#define DEBUG_SETUP(buffer_set_id, buffer_binding_id)            \
 layout(std430, set = buffer_set_id, binding = buffer_binding_id) \
 restrict buffer _debug_buffer {            \
-	ShaderDebugHeader _debug_header;       \
+	_DebugHeader _debug_header;       \
 	uvec2 _debug_records[];                \
 };                                         \
-uint debugValueType(int   v) { return 0; } \
-uint debugValueType(uint  v) { return 1; } \
-uint debugValueType(float v) { return 2; } \
-void debugRecord(uint record_id, int line, uint v1, uint v2, uint v3, uint v4, uint types) { \
+void _debugRecord(uint record_id, int line, uint v1, uint v2, uint v3, uint v4, uint types) { \
   if(record_id >= _debug_header.max_records)                                                 \
     return;                                                                                  \
-  uint wg_index = gl_WorkGroupID.x + gl_NumWorkGroups.x *                                    \
-                  (gl_WorkGroupID.y + gl_NumWorkGroups.y * gl_WorkGroupID.z);                \
-  uint val0 = gl_LocalInvocationIndex | (line << 16), val1 = wg_index | (types << 24);       \
-  _debug_records[record_id * 3 + 0] = uvec2(val0, val1);                                     \
+  _debug_records[record_id * 3 + 0] = _debugRecordHeader(line, types);                        \
   _debug_records[record_id * 3 + 1] = uvec2(v1, v2);                                         \
   _debug_records[record_id * 3 + 2] = uvec2(v3, v4);                                         \
 }
 
+
 #define DEBUG_RECORD(v1, v2, v3, v4) {                                    \
     uint record_id = atomicAdd(_debug_header.num_records, 1);             \
-    if(record_id == 0) for(int i = 0; i < 3; i++) {                       \
-      _debug_header.workgroup_size[i] = gl_WorkGroupSize[i];              \
-      _debug_header.num_workgroups[i] = gl_NumWorkGroups[i];              \
-    }                                                                     \
-    uint types = (debugValueType(v1) << 0) | (debugValueType(v2) << 2) |  \
-                 (debugValueType(v3) << 4) | (debugValueType(v4) << 6);   \
+    if(record_id == 0) _debugInitHeader(_debug_header);                    \
+    uint types = (_debugValueType(v1) << 0) | (_debugValueType(v2) << 2) |  \
+                 (_debugValueType(v3) << 4) | (_debugValueType(v4) << 6);   \
     uint uv1 = ((types >> 0) & 3) == 2? floatBitsToUint(v1) : uint(v1);   \
     uint uv2 = ((types >> 2) & 3) == 2? floatBitsToUint(v2) : uint(v2);   \
     uint uv3 = ((types >> 4) & 3) == 2? floatBitsToUint(v3) : uint(v3);   \
     uint uv4 = ((types >> 6) & 3) == 2? floatBitsToUint(v4) : uint(v4);   \
-    debugRecord(record_id, __LINE__, uv1, uv2, uv3, uv4, types);          \
+    _debugRecord(record_id, __LINE__, uv1, uv2, uv3, uv4, types);          \
   }
 #else
 #define DEBUG_SETUP(buffer_set_id, buffer_binding_id)
@@ -62,29 +84,19 @@ void debugRecord(uint record_id, int line, uint v1, uint v2, uint v3, uint v4, u
 
 ZStr getShaderDebugCode() { return debug_code; }
 
-void shaderDebugInitBuffer(VulkanCommandQueue &cmds, VBufferSpan<u32> buf) {
-	auto header_size = sizeof(ShaderDebugHeader) / sizeof(u32);
-	DASSERT(buf.size() >= header_size);
-	auto max_records = buf.size() - header_size;
-	cmds.fill(buf.subSpan(0, 1), max_records);
-	cmds.fill(buf.subSpan(1, header_size), 0);
-	cmds.barrier(VPipeStage::transfer, VPipeStage::compute_shader, VAccess::transfer_write,
-				 VAccess::memory_read | VAccess::memory_write);
-}
-
 bool ShaderDebugRecord::operator<(const ShaderDebugRecord &rhs) const {
-	return tie(file_id, line_id, work_group_index, local_index) <
-		   tie(rhs.file_id, rhs.line_id, rhs.work_group_index, rhs.local_index);
+	return tie(line_id, work_group_index, local_index) <
+		   tie(rhs.line_id, rhs.work_group_index, rhs.local_index);
 }
 
-int3 ShaderDebugInfo::localIndexToID(uint idx) const {
+int3 ShaderDebugResults::localIndexToID(uint idx) const {
 	int x = idx % work_group_size.x;
 	int z = idx / (work_group_size.x * work_group_size.y);
 	int y = idx / work_group_size.x - z * work_group_size.y;
 	return {x, y, z};
 }
 
-int3 ShaderDebugInfo::workGroupIndexToID(uint idx) const {
+int3 ShaderDebugResults::workGroupIndexToID(uint idx) const {
 	int x = idx % num_work_groups.x;
 	int z = idx / (num_work_groups.x * num_work_groups.y);
 	int y = idx / num_work_groups.x - z * num_work_groups.y;
@@ -111,28 +123,31 @@ static void printID(TextFormatter &fmt, int3 id, int size, int3 width) {
 		fmt << ')';
 }
 
-void ShaderDebugInfo::operator>>(TextFormatter &fmt) const {
-	fmt("local_size:");
-	printID(fmt, work_group_size, local_id_size, local_id_width);
-	fmt(" num_work_groups:");
-	printID(fmt, num_work_groups, work_group_id_size, work_group_id_width);
+void ShaderDebugResults::operator>>(TextFormatter &fmt) const {
+	fmt("%", title);
+	if(compute_mode) {
+		fmt(" local_size:");
+		printID(fmt, work_group_size, local_id_size, local_id_width);
+		fmt(" num_work_groups:");
+		printID(fmt, num_work_groups, work_group_id_size, work_group_id_width);
+	}
 	fmt(" num_records:%\n", records.size());
 
 	for(auto &record : records) {
-		if(record.file_id != -1)
-			fmt.stdFormat("%s:%04i", file_names[record.file_id].c_str(), record.line_id);
-		else
-			fmt.stdFormat("%4i", record.line_id);
+		int num_chars = record.line_id > 0 ? int(std::log10(record.line_id)) + 1 : 1;
+		fmt.stdFormat("%*s%i", num_chars, ":", record.line_id);
 
-		auto local_id = localIndexToID(record.local_index);
-		auto global_id = workGroupIndexToID(record.work_group_index);
+		if(compute_mode) {
+			auto local_id = localIndexToID(record.local_index);
+			auto global_id = workGroupIndexToID(record.work_group_index);
 
-		fmt(" wgid:");
-		printID(fmt, global_id, work_group_id_size, work_group_id_width);
+			fmt(" wgid:");
+			printID(fmt, global_id, work_group_id_size, work_group_id_width);
 
-		fmt(" lid:");
-		printID(fmt, local_id, local_id_size, local_id_width);
-		fmt("  ");
+			fmt(" lid:");
+			printID(fmt, local_id, local_id_size, local_id_width);
+			fmt("  ");
+		}
 
 		for(int i = 0; i < 4; i++) {
 			auto value = record.values[i];
@@ -155,8 +170,8 @@ void ShaderDebugInfo::operator>>(TextFormatter &fmt) const {
 	fmt << "\n";
 }
 
-ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
-								 CSpan<Pair<string, int>> source_ranges) {
+ShaderDebugResults::ShaderDebugResults(string title, CSpan<u32> buffer_data, Maybe<uint> limit)
+	: title(std::move(title)) {
 	int header_size = sizeof(ShaderDebugHeader) / sizeof(u32);
 	DASSERT(buffer_data.size() >= header_size);
 	auto &header = *reinterpret_cast<const ShaderDebugHeader *>(buffer_data.data());
@@ -171,30 +186,20 @@ ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
 		local_id_width[i] = max(1.0, log10(work_group_size[i]) + 1);
 		work_group_id_width[i] = max(1.0, log10(num_work_groups[i]) + 1);
 	}
+	compute_mode = work_group_size != int3(0, 0, 0);
 
 	if(limit)
 		num_records = min(num_records, *limit);
 	auto values = buffer_data.subSpan(header_size, header_size + num_records * 6);
 	records.reserve(num_records);
-	file_names.reserve(source_ranges.size());
-	for(auto &label : source_ranges)
-		file_names.emplace_back(label.first);
 
 	for(uint i = 0; i < num_records; i++) {
 		const u32 *cur = &values[i * 6];
 		uint lix = values[i * 6 + 0] & 0xffff, line = values[i * 6 + 0] >> 16;
 		uint gix = values[i * 6 + 1] & 0xffffff, types = values[i * 6 + 1] >> 24;
 
-		int file_id = -1;
-		/*if(auto label_id = CombinedShaderSource::lineToLabel(source_ranges, line); label_id != -1) {
-			auto &label = source_ranges[label_id];
-			file_id = label_id;
-			line = line - label.second + 1;
-		}*/
-
 		ShaderDebugRecord record;
 		record.line_id = line;
-		record.file_id = file_id;
 		record.local_index = lix;
 		record.work_group_index = gix;
 
@@ -208,5 +213,38 @@ ShaderDebugInfo::ShaderDebugInfo(CSpan<u32> buffer_data, Maybe<uint> limit,
 
 		records.emplace_back(record);
 	}
+}
+
+Ex<VBufferSpan<u32>> shaderDebugBuffer(VulkanDevice &device, uint size_bytes,
+									   VMemoryUsage mem_usage) {
+	DASSERT(size_bytes % 4 == 0);
+	VBufferSpan<u32> buffer = EX_PASS(VulkanBuffer::create<u32>(
+		device, size_bytes / 4,
+		VBufferUsage::storage | VBufferUsage::transfer_dst | VBufferUsage::transfer_src,
+		mem_usage));
+	shaderDebugResetBuffer(device.cmdQueue(), buffer);
+	return buffer;
+}
+
+void shaderDebugResetBuffer(VulkanCommandQueue &cmds, VBufferSpan<u32> buf) {
+	auto header_size = sizeof(ShaderDebugHeader) / sizeof(u32);
+	DASSERT(buf.size() >= header_size);
+	auto max_records = buf.size() - header_size;
+	cmds.fill(buf.subSpan(0, 1), max_records);
+	cmds.fill(buf.subSpan(1, header_size), 0);
+	cmds.fullBarrier();
+	cmds.barrier(VPipeStage::transfer, VPipeStage::fragment_shader, VAccess::transfer_write,
+				 VAccess::memory_read | VAccess::memory_write);
+}
+
+Maybe<ShaderDebugResults> shaderDebugDownloadResults(VulkanCommandQueue &cmds, VBufferSpan<u32> src,
+													 Str title, uint skip_frames) {
+	cmds.barrier(VPipeStage::all_commands, VPipeStage::transfer, VAccess::memory_write,
+				 VAccess::transfer_read);
+	auto debug_data = cmds.download(src, title, skip_frames);
+	cmds.barrier(VPipeStage::transfer, VPipeStage::all_commands);
+	if(debug_data && *debug_data)
+		return ShaderDebugResults(title, *debug_data);
+	return none;
 }
 }
