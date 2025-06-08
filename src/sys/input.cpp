@@ -6,9 +6,9 @@
 #include "fwk/algorithm.h"
 #include "fwk/format.h"
 #include "fwk/str.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_keyboard.h>
-#include <SDL2/SDL_mouse.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_mouse.h>
 
 namespace fwk {
 
@@ -183,8 +183,8 @@ void InputState::pollEvents(const SDLKeyMap &key_map, vector<InputEvent> &input_
 
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
-		case SDL_KEYDOWN: {
-			int key_id = key_map.from(event.key.keysym.sym);
+		case SDL_EVENT_KEY_DOWN: {
+			int key_id = key_map.from(event.key.key);
 			if(key_id == -1)
 				break;
 
@@ -198,9 +198,8 @@ void InputState::pollEvents(const SDLKeyMap &key_map, vector<InputEvent> &input_
 			}
 			break;
 		}
-		case SDL_TEXTINPUT: {
-			// TODO: Should we call SDL_StartTextInput before?
-			int len = strnlen(event.text.text, arraySize(event.text.text));
+		case SDL_EVENT_TEXT_INPUT: {
+			int len = strlen(event.text.text);
 			auto text = toUTF32({event.text.text, len});
 			if(text) {
 				m_text += *text;
@@ -209,8 +208,8 @@ void InputState::pollEvents(const SDLKeyMap &key_map, vector<InputEvent> &input_
 			}
 			break;
 		}
-		case SDL_KEYUP: {
-			int key_id = key_map.from(event.key.keysym.sym);
+		case SDL_EVENT_KEY_UP: {
+			int key_id = key_map.from(event.key.key);
 			if(key_id == -1)
 				break;
 
@@ -220,12 +219,12 @@ void InputState::pollEvents(const SDLKeyMap &key_map, vector<InputEvent> &input_
 					key_state.second = -1;
 			break;
 		}
-		case SDL_MOUSEMOTION:
+		case SDL_EVENT_MOUSE_MOTION:
 			m_mouse_move += int2(event.motion.xrel, event.motion.yrel);
 			break;
-		case SDL_MOUSEBUTTONUP:
-		case SDL_MOUSEBUTTONDOWN: {
-			bool is_down = event.type == SDL_MOUSEBUTTONDOWN;
+		case SDL_EVENT_MOUSE_BUTTON_UP:
+		case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+			bool is_down = event.type == SDL_EVENT_MOUSE_BUTTON_DOWN;
 
 			Maybe<InputButton> button_id;
 			switch(event.button.button) {
@@ -246,21 +245,23 @@ void InputState::pollEvents(const SDLKeyMap &key_map, vector<InputEvent> &input_
 			}
 			break;
 		}
-		case SDL_MOUSEWHEEL:
+		case SDL_EVENT_MOUSE_WHEEL:
 			m_mouse_wheel = event.wheel.y;
 			break;
-		case SDL_WINDOWEVENT:
+		case SDL_EVENT_WINDOW_MINIMIZED:
+		case SDL_EVENT_WINDOW_MAXIMIZED:
+		case SDL_EVENT_WINDOW_RESTORED:
 			if(event.window.windowID == window_id) {
-				if(event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+				if(event.type == SDL_EVENT_WINDOW_MINIMIZED)
 					window_events.emplace_back(WindowEvent::minimized);
-				else if(event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
+				else if(event.type == SDL_EVENT_WINDOW_MAXIMIZED)
 					window_events.emplace_back(WindowEvent::maximized);
-				else if(event.window.event == SDL_WINDOWEVENT_RESTORED)
+				else if(event.type == SDL_EVENT_WINDOW_RESTORED)
 					window_events.emplace_back(WindowEvent::restored);
 			}
 			break;
 
-		case SDL_QUIT:
+		case SDL_EVENT_QUIT:
 			window_events.emplace_back(WindowEvent::quit);
 			input_events.emplace_back(Type::quit);
 			break;
@@ -269,8 +270,10 @@ void InputState::pollEvents(const SDLKeyMap &key_map, vector<InputEvent> &input_
 
 	int2 window_pos;
 	SDL_GetWindowPosition((SDL_Window *)sdl_window, &window_pos.x, &window_pos.y);
-	SDL_GetGlobalMouseState(&m_mouse_pos.x, &m_mouse_pos.y);
-	m_mouse_pos -= window_pos;
+	float2 mouse_pos;
+	SDL_GetGlobalMouseState(&mouse_pos.x, &mouse_pos.y);
+	// TODO: keep as float?
+	m_mouse_pos = int2(mouse_pos) - window_pos;
 
 	EnumMap<InputModifier, int> mod_map = {{{InputModifier::lshift, InputKey::lshift},
 											{InputModifier::rshift, InputKey::rshift},

@@ -471,10 +471,10 @@ Ex<> exMain(int argc, char **argv) {
 		}
 	}
 
-	auto display_rects = VulkanWindow::displayRects();
-	if(!display_rects)
+	auto displays = VulkanWindow::displays();
+	if(!displays)
 		FWK_FATAL("No display available");
-	int2 resolution = display_rects[0].size() * 2 / 3;
+	int2 resolution = displays[0].rect.size() * 2 / 3;
 
 	// TODO: multisampling
 	VInstanceSetup setup;

@@ -18,11 +18,18 @@ namespace fwk {
 class InputState;
 class InputEvent;
 
-DEFINE_ENUM(VWindowFlag, fullscreen, fullscreen_desktop, resizable, centered, maximized, minimized,
-			allow_hidpi, sleep_when_minimized);
+DEFINE_ENUM(VWindowFlag, fullscreen, resizable, centered, maximized, minimized, allow_hidpi,
+			sleep_when_minimized);
 using VWindowFlags = EnumFlags<VWindowFlag>;
 
 DECLARE_ENUM(WindowEvent);
+
+struct DisplayInfo {
+	string name;
+	IRect rect;
+	u32 id;
+	float dpi_scale;
+};
 
 class VulkanWindow {
   public:
@@ -33,11 +40,10 @@ class VulkanWindow {
 	static Ex<VWindowRef> create(VInstanceRef, ZStr title, IRect rect, VWindowFlags);
 
 	VkSurfaceKHR surfaceHandle() const;
-
-	static vector<IRect> displayRects();
+	static vector<DisplayInfo> displays();
 
 	// If window is outside of all display rects then it's positioned on first display
-	static IRect sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
+	static IRect sanitizeWindowRect(CSpan<DisplayInfo>, IRect window_rect,
 									float minimum_overlap = 0.1);
 
 	void setTitle(ZStr);
@@ -49,13 +55,11 @@ class VulkanWindow {
 	IRect restoredRect() const;
 	EnumMap<RectSide, int> border() const;
 
-	int displayIndex() const;
+	u32 displayIndex() const;
 	float dpiScale() const;
 
-	// Only accepted: none, fullscreen or fullscreen_desktop
-	void setFullscreen(VWindowFlags);
-
-	bool isFullscreen() const { return flags() & (Flag::fullscreen | Flag::fullscreen_desktop); }
+	void setFullscreen(bool);
+	bool isFullscreen() const { return flags() & Flag::fullscreen; }
 
 	// Some of this state is only updated during pollEvents()
 	VWindowFlags flags() const;

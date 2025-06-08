@@ -10,7 +10,7 @@ to be light, super easy to use and performant where it matters.
 
 ### Features
 
-- Vulkan & SDL2 based
+- Vulkan & SDL3 based
 - Easy to use interfaces (trying to be as intuitive as possible)
 - Doesn't use C++ exceptions
 - Supported platforms: Ubuntu 22.04, Windows (requires VS 2022 with LLVM toolset)
@@ -50,7 +50,7 @@ Examples:
 
 #### External dependencies
 
-* **SDL2**  
+* **SDL3**  
 	[https://www.libsdl.org/](https://www.libsdl.org/)
 	
 * **Vulkan SDK**  

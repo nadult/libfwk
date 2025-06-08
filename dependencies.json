@@ -35,9 +35,14 @@
       "version": "1.22.2",
       "query": "os=Windows and arch=x86_64 and options.shared=True"
     },
-    {
+	{
+      "name": "libusb",
+      "version": "1.0.26",
+      "query": "os=Windows and arch=x86_64 and options.shared=False"
+    },
+	{
       "name": "sdl",
-      "version": "2.26.1",
+      "version": "3.2.14",
       "query": "os=Windows and arch=x86_64 and options.shared=False"
     },
     {

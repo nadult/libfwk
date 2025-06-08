@@ -20,10 +20,9 @@
 #include "fwk/vulkan/vulkan_instance.h"
 #include "fwk/vulkan/vulkan_internal.h"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_syswm.h>
-#include <SDL2/SDL_video.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_video.h>
+#include <SDL3/SDL_vulkan.h>
 #include <algorithm>
 #include <atomic>
 #include <memory.h>
@@ -36,7 +35,7 @@ static std::atomic<unsigned> sdl_init_counter;
 
 static void initSdlVideo() {
 	if(sdl_init_counter.fetch_add(1) == 0)
-		if(SDL_InitSubSystem(SDL_INIT_VIDEO) != 0)
+		if(!SDL_InitSubSystem(SDL_INIT_VIDEO))
 			FWK_FATAL("SDL_InitSubSystem failed");
 }
 
@@ -87,14 +86,13 @@ Ex<VWindowRef> VulkanWindow::create(VInstanceRef instance_ref, ZStr title, IRect
 }
 
 static const EnumMap<VWindowFlag, uint> window_flags_map = {
-	{SDL_WINDOW_FULLSCREEN, SDL_WINDOW_FULLSCREEN_DESKTOP, SDL_WINDOW_RESIZABLE, 0,
-	 SDL_WINDOW_MAXIMIZED, SDL_WINDOW_MINIMIZED, SDL_WINDOW_ALLOW_HIGHDPI, 0}};
+	{SDL_WINDOW_FULLSCREEN, SDL_WINDOW_RESIZABLE, 0, SDL_WINDOW_MAXIMIZED, SDL_WINDOW_MINIMIZED,
+	 SDL_WINDOW_HIGH_PIXEL_DENSITY, 0}};
 
 Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 	int sdl_flags = SDL_WINDOW_VULKAN;
 	for(auto flag : flags)
 		sdl_flags |= window_flags_map[flag];
-	DASSERT(!((flags & Flag::fullscreen) && (flags & Flag::fullscreen_desktop)));
 	DASSERT(!((flags & Flag::minimized) && (flags & Flag::maximized)));
 
 	initSdlVideo();
@@ -103,10 +101,21 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 	int2 pos = rect.min(), size = rect.size();
 	if(flags & Flag::centered)
 		pos.x = pos.y = SDL_WINDOWPOS_CENTERED;
-	m_impl->window = SDL_CreateWindow(title.c_str(), pos.x, pos.y, size.x, size.y, sdl_flags);
+	else if(flags & Flag::maximized)
+		pos.x = pos.y = SDL_WINDOWPOS_UNDEFINED;
+	SDL_PropertiesID props = SDL_CreateProperties();
+	SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title.c_str());
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_X_NUMBER, pos.x);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, pos.y);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, size.x);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, size.y);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, sdl_flags);
+	m_impl->window = SDL_CreateWindowWithProperties(props);
+	SDL_DestroyProperties(props);
+
 	if(!m_impl->window)
 		return FWK_ERROR("SDL_CreateWindow failed: %", SDL_GetError());
-	if(!SDL_Vulkan_CreateSurface(m_impl->window, m_impl->instance_ref->handle(),
+	if(!SDL_Vulkan_CreateSurface(m_impl->window, m_impl->instance_ref->handle(), nullptr,
 								 &m_impl->surface_handle))
 		return FWK_ERROR("SDL_Vulkan_CreateSurface failed: %", SDL_GetError());
 
@@ -115,36 +124,46 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 
 VkSurfaceKHR VulkanWindow::surfaceHandle() const { return m_impl->surface_handle; }
 
-vector<IRect> VulkanWindow::displayRects() {
+vector<DisplayInfo> VulkanWindow::displays() {
 	initSdlVideo();
-	int count = SDL_GetNumVideoDisplays();
-	vector<IRect> out(count);
+	int count = 0;
+	auto *display_ids = SDL_GetDisplays(&count);
+	vector<DisplayInfo> out;
+	out.reserve(count);
 	for(int idx = 0; idx < count; idx++) {
-		SDL_Rect rect;
-		if(SDL_GetDisplayBounds(idx, &rect) != 0)
-			FWK_FATAL("Error in SDL_GetDisplayBounds");
-		out[idx] = {rect.x, rect.y, rect.x + rect.w, rect.y + rect.h};
+		auto id = display_ids[idx];
+		float dpi_scale = SDL_GetDisplayContentScale(id);
+		if(dpi_scale == 0.0f)
+			continue;
+		SDL_Rect sdl_rect;
+		if(!SDL_GetDisplayBounds(id, &sdl_rect))
+			continue;
+		const char *name = SDL_GetDisplayName(id);
+		if(!name)
+			continue;
+		IRect rect{sdl_rect.x, sdl_rect.y, sdl_rect.x + sdl_rect.w, sdl_rect.y + sdl_rect.h};
+		out.emplace_back(string(name), rect, id, dpi_scale);
 	}
 	quitSdlVideo();
 	return out;
 }
 
-IRect VulkanWindow::sanitizeWindowRect(CSpan<IRect> display_rects, IRect window_rect,
+IRect VulkanWindow::sanitizeWindowRect(CSpan<DisplayInfo> displays, IRect window_rect,
 									   float minimum_overlap) {
-	if(!display_rects)
+	if(!displays)
 		return window_rect;
 	IRect nonempty_rect{window_rect.min(), window_rect.min() + max(int2(1), window_rect.size())};
 
 	float area = window_rect.surfaceArea(), overlap = 0.0;
-	for(auto &display_rect : display_rects) {
-		auto isect = nonempty_rect.intersection(display_rect);
+	for(auto &display : displays) {
+		auto isect = nonempty_rect.intersection(display.rect);
 		if(isect)
 			overlap += isect->surfaceArea();
 	}
 
 	if(overlap / area < minimum_overlap) {
-		auto first_display = display_rects[0];
-		int2 new_window_pos = first_display.center() - window_rect.size() / 2;
+		auto &first_display = displays[0];
+		int2 new_window_pos = first_display.rect.center() - window_rect.size() / 2;
 		return IRect(new_window_pos, new_window_pos + window_rect.size());
 	}
 	return window_rect;
@@ -192,10 +211,8 @@ IRect VulkanWindow::restoredRect() const {
 	IRect window_rect = rect();
 
 #ifdef FWK_PLATFORM_WINDOWS
-	SDL_SysWMinfo wmInfo;
-	SDL_VERSION(&wmInfo.version);
-	SDL_GetWindowWMInfo(m_impl->window, &wmInfo);
-	HWND hwnd = wmInfo.info.win.window;
+	HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(m_impl->window),
+											 SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
 	WINDOWPLACEMENT placement;
 	GetWindowPlacement(hwnd, &placement);
 	IRect out(placement.rcNormalPosition.left, placement.rcNormalPosition.top,
@@ -213,24 +230,12 @@ EnumMap<RectSide, int> VulkanWindow::border() const {
 	return {{right, top, left, bottom}};
 }
 
-void VulkanWindow::setFullscreen(VWindowFlags flags) {
-	DASSERT(!flags || isOneOf(flags, Flag::fullscreen, Flag::fullscreen_desktop));
-
-	uint sdl_flags = 0;
-	for(auto flag : flags)
-		sdl_flags |= window_flags_map[flag];
-	SDL_SetWindowFullscreen(m_impl->window, sdl_flags);
+void VulkanWindow::setFullscreen(bool fullscreen) {
+	SDL_SetWindowFullscreen(m_impl->window, fullscreen);
 }
 
-int VulkanWindow::displayIndex() const { return SDL_GetWindowDisplayIndex(m_impl->window); }
-
-float VulkanWindow::dpiScale() const {
-	int ww = 0, wh = 0, dw = 0, dh = 0;
-	SDL_GetWindowSize(m_impl->window, &ww, &wh);
-	SDL_Vulkan_GetDrawableSize(m_impl->window, &dw, &dh);
-	DASSERT(ww > 0 && dw > 0);
-	return float(dw) / ww;
-}
+u32 VulkanWindow::displayIndex() const { return SDL_GetDisplayForWindow(m_impl->window); }
+float VulkanWindow::dpiScale() const { return SDL_GetWindowDisplayScale(m_impl->window); }
 
 VWindowFlags VulkanWindow::flags() const { return m_impl->flags; }
 
@@ -265,7 +270,7 @@ bool VulkanWindow::pollEvents() {
 	}
 
 	auto sdl_flags = SDL_GetWindowFlags(m_impl->window);
-	auto update_flags = VWindowFlag::fullscreen | VWindowFlag::fullscreen_desktop;
+	auto update_flags = flag(VWindowFlag::fullscreen);
 	m_impl->flags &= ~update_flags;
 	VWindowFlags out;
 	for(auto flag : update_flags)
@@ -329,11 +334,14 @@ Maybe<double> VulkanWindow::frameTimeDiff() const {
 	return m_impl->frame_diff_time < 0.0 ? Maybe<double>() : m_impl->frame_diff_time;
 }
 
-void VulkanWindow::grabMouse(bool grab) {
-	SDL_SetWindowGrab(m_impl->window, grab ? SDL_TRUE : SDL_FALSE);
-}
+void VulkanWindow::grabMouse(bool grab) { SDL_SetWindowMouseGrab(m_impl->window, grab); }
 
-void VulkanWindow::showCursor(bool flag) { SDL_ShowCursor(flag ? 1 : 0); }
+void VulkanWindow::showCursor(bool flag) {
+	if(flag)
+		SDL_ShowCursor();
+	else
+		SDL_HideCursor();
+}
 
 string VulkanWindow::clipboardText() const {
 	auto ret = SDL_GetClipboardText();
