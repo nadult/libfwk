@@ -380,7 +380,7 @@ Ex<> VulkanDevice::beginFrame() {
 	DASSERT(m_cmds);
 	if(m_swap_chain)
 		m_image_available_sem = EX_PASS(m_swap_chain->acquireImage());
-	m_cmds->waitForFrameFence();
+	m_cmds->waitForSwapFrameAvailable();
 	m_swap_frame_index = m_cmds->swapFrameIndex();
 	releaseObjects(m_swap_frame_index);
 	m_cmds->beginFrame();
@@ -395,12 +395,11 @@ Ex<> VulkanDevice::finishFrame() {
 	m_memory->finishFrame();
 
 	if(m_swap_chain && m_image_available_sem) {
-		VkSemaphore render_finished_sem = nullptr;
-		m_cmds->finishFrame(&m_image_available_sem, &render_finished_sem);
+		auto render_finished_sem = m_cmds->finishFrame(m_image_available_sem);
 		EXPECT(m_swap_chain->presentImage(render_finished_sem));
 		m_image_available_sem = nullptr;
 	} else {
-		m_cmds->finishFrame(nullptr, nullptr);
+		m_cmds->finishFrame(nullptr);
 	}
 	cleanupFramebuffers();
 	return {};

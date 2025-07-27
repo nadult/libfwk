@@ -42,6 +42,9 @@ struct VClearValue {
 	};
 };
 
+// Allows for enqueuing commands into a single queue. Commands are fed into buffers and are
+// submitted either with a submit() or when the frame is finished. Each command buffer when
+// submitted will wait until previously submitted buffer is finished.
 class VulkanCommandQueue {
   public:
 	~VulkanCommandQueue();
@@ -60,10 +63,16 @@ class VulkanCommandQueue {
 
 	CSpan<u64> getQueryResults(u64 frame_index) const;
 
+	// Submits all recorded commands to the queue
+	void submit();
+
+	// Waits until all submitted commands are finished
+	void finish();
+
 	// -------------------------------------------------------------------------------------------
 	// ----------  Commands (must be called between beginFrame & endFrame)   ---------------------
 
-	VkCommandBuffer bufferHandle();
+	VkCommandBuffer bufferHandle() { return m_cur_cmd_buffer; }
 
 	// Copy commands wil be enqueued and performed later if called
 
@@ -145,9 +154,7 @@ class VulkanCommandQueue {
 		return out;
 	}
 
-	// -------------------------------------------------------------------------------------------
-	// ----------  Upload commands (can be called anytime)   -------------------------------------
-
+  private:
 	static constexpr uint query_pool_size = 256;
 	static constexpr uint query_pool_shift = 8;
 	static constexpr uint num_swap_frames = VulkanLimits::num_swap_frames;
@@ -161,29 +168,35 @@ class VulkanCommandQueue {
 
 	Ex<void> initialize(VDeviceRef);
 
-	void waitForFrameFence();
-	void beginFrame();
-	void finishFrame(VkSemaphore *wait_sem, VkSemaphore *out_signal_sem);
-
-  private:
-	void updateAttachmentsLayouts(bool final);
-
-	struct FrameContext {
-		VkCommandBuffer cmd_buffer;
-		VCommandId cmd_id;
+	struct CommandBufferInfo {
+		VkCommandBuffer buffer;
+		VkSemaphore semaphore;
+		VkFence fence;
 	};
 
-	struct FrameSync {
-		VkCommandBuffer command_buffer = nullptr;
-		VkSemaphore render_finished_sem = nullptr;
-		VkFence in_flight_fence = nullptr;
-
+	struct SwapFrame {
+		// Commands from previous frame with the same swap index
+		vector<CommandBufferInfo> previous_commands;
+		vector<CommandBufferInfo> commands;
 		vector<VkQueryPool> query_pools;
 		vector<Pair<uint, uint>> perf_queries;
 		vector<u64> query_results;
-		uint query_count = 0;
 		i64 perf_frame_id = 0;
+		uint query_count = 0;
+		int num_waited_fences = 0;
 	};
+
+	CommandBufferInfo acquireCommands();
+	void recycleCommands(CommandBufferInfo);
+	void beginCommands();
+	void submitCommands(VkSemaphore, VPipeStages);
+
+	void waitForSwapFrameAvailable();
+
+	void beginFrame();
+	VkSemaphore finishFrame(VkSemaphore image_available_semaphore);
+
+	void updateAttachmentsLayouts(bool final);
 
 	struct Download {
 		PVBuffer buffer;
@@ -197,20 +210,6 @@ class VulkanCommandQueue {
 		uint last_frame;
 	};
 
-	struct CmdCopyBuffer {
-		VBufferSpan<char> dst, src;
-	};
-
-	struct CmdCopyImage {
-		PVImage dst;
-		VBufferSpan<char> src;
-		Maybe<IBox> dst_box;
-		int dst_mip_level;
-		VImageLayout dst_layout;
-	};
-
-	using CmdCopy = Variant<CmdCopyBuffer, CmdCopyImage>;
-
 	struct CmdBindDescriptorSet {
 		uint index = 0;
 		VkPipelineLayout pipe_layout = nullptr;
@@ -221,9 +220,9 @@ class VulkanCommandQueue {
 	PVRenderPass m_current_render_pass;
 	PVFramebuffer m_current_framebuffer;
 
+	vector<CommandBufferInfo> m_recycled_commands;
 	SparseVector<Download> m_downloads;
 	vector<LabeledDownload> m_labeled_downloads;
-	vector<CmdCopy> m_copy_queue;
 	vector<PVBuffer> m_staging_buffers;
 	PVPipelineLayout m_last_pipeline_layout;
 	VBindPoint m_last_bind_point = VBindPoint::graphics;
@@ -232,7 +231,9 @@ class VulkanCommandQueue {
 	VulkanDevice &m_device;
 	VQueue m_queue;
 	VkDevice m_device_handle = nullptr;
-	FrameSync m_frames[num_swap_frames];
+	// TODO: swap_frames
+	SwapFrame m_frames[num_swap_frames];
+	VkSemaphore m_last_submitted_semaphore = nullptr;
 	VkCommandPool m_command_pool = nullptr;
 	VkCommandBuffer m_cur_cmd_buffer = nullptr;
 	uint m_swap_index = 0, m_frame_index = 0;

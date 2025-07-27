@@ -24,7 +24,7 @@ class VulkanBuffer : public VulkanObjectBase<VulkanBuffer> {
 	static Ex<VBufferSpan<T>> createAndUpload(VulkanDevice &, const TSpan &data, VBufferUsageFlags,
 											  VMemoryUsage = VMemoryUsage::device);
 
-	// Uploads data immediately if it can be mapped, otherwise it will copied through a staging buffer.
+	// Uploads data immediately if it can be mapped, otherwise it will be copied through a staging buffer.
 	Ex<> upload(CSpan<char>, uint byte_offset = 0);
 
 	template <class T> Ex<> upload(CSpan<T> data, uint byte_offset = 0);

@@ -28,10 +28,9 @@ VkCommandBuffer allocVkCommandBuffer(VkDevice device, VkCommandPool pool) {
 	return handle;
 }
 
-VkSemaphore createVkSemaphore(VkDevice device, bool is_signaled) {
+VkSemaphore createVkSemaphore(VkDevice device) {
 	VkSemaphore handle;
 	VkSemaphoreCreateInfo ci{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-	ci.flags = is_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 	FWK_VK_CALL(vkCreateSemaphore, device, &ci, nullptr, &handle);
 	return handle;
 }

@@ -98,7 +98,7 @@ inline VkRect2D toVkRect(IRect rect) {
 }
 
 VkCommandBuffer allocVkCommandBuffer(VkDevice, VkCommandPool pool);
-VkSemaphore createVkSemaphore(VkDevice, bool is_signaled = false);
+VkSemaphore createVkSemaphore(VkDevice);
 VkFence createVkFence(VkDevice, bool is_signaled = false);
 VkEvent createVkEvent(VkDevice, bool device_only = false);
 

@@ -172,7 +172,6 @@ void VulkanImage::transitionLayout(VImageLayout new_layout, int mip_level) {
 	}
 
 	auto &cmds = device().cmdQueue();
-	DASSERT(cmds.status() == VCommandQueueStatus::frame_running);
 	auto cmd_buffer = cmds.bufferHandle();
 	vkCmdPipelineBarrier(cmd_buffer, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 	setLayout(new_layout, mip_level);
