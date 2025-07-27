@@ -11,35 +11,8 @@
 #include "fwk/vulkan/vulkan_shader.h"
 #include "shaderc/shaderc.h"
 
-// Powinna byæ mo¿liwoœæ ³adowania shaderów tylko z plików spirv
-// Czy wogóle potrzebujemy obs³ugê makr? mo¿e lepiej obs³ugiwaæ tylko sta³e?
-
-// Makra móg³bym przerobiæ na include-owane pliki (tak jak shader debug)
-// OK, ale w takim systemie jak nazywaæ pliki spriv? Jeœli mo¿na wygenerowaæ
-// wiele opcji podaj¹c ró¿ne pliki wejœciowe?
-
-// System powinien te¿ trackowaæ hierarchiê zale¿noœci, i jeœli którykolwiek
-// z includowanych plików siê zmieni³, to propagowa³ te zmiany wy¿ej
-
-// Jedna kwestia to trackowanie zmian w plikach Ÿród³owych
-
-// Czy lepsze jest podawanie makr jako parametrów czy przez dodtkowy plik?
-// funkcjonalnoœæ przez plik i tak trzeba bêdzie zrobiæ...
-
-// Problem: shader debug mogê w³¹czaæ tylko dla niektórych shaderów, jak to w³¹czaæ / wy³¹czaæ?
-// Mo¿e móg³bym trzymaæ dwie wersje tego samego shadera? raster_low.spv i raster_low_dbg.spv ?
-// Jeœli wypuszczê wersjê tylko _spv, to muszê mieæ wygenerowane wszystkie warianty .spv które
-// bêd¹ potrzebne (albo kontrolowaæ wiêkszoœæ zmian za pomoc¹ specjalizacji).
-
-// Jak nazywaæ ró¿ne wersje?
-// u¿ytkownik mia³by mo¿liwoœæ nazywania wersji w trybie spirv?
-//
-// makra mog¹ byæ, ale one nie bêd¹ wp³ywaæ na nazwê spv, to jest odpowiedzialnoœæ u¿ytkownika?
-// Ale w takiej sytuacji, mo¿e powstaæ kolizja nazw ...
-//
-// To mo¿e zróbmy z makrami i z haszowaniem makr dla uzyskania suffiksu nazwy spv
-// Dodatkowo u¿ytkownik mo¿e tak¹ nazwê zoverride-owaæ
-//
+// TODO: an option to load shaders only from a SPIRV file
+// TODO: Keeping a hierarchy of dependencies, updating files based on that
 
 namespace fwk {
 
