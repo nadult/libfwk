@@ -98,6 +98,7 @@ class VulkanDevice {
 	}
 
 	using ReleaseFunc = void (*)(void *param0, void *param1, VkDevice);
+	// Release function will be called after given swap frame has finished execution.
 	void deferredRelease(void *param0, void *param1, ReleaseFunc);
 
 	Ex<VMemoryBlock> alloc(VMemoryUsage, const VkMemoryRequirements &);
@@ -120,7 +121,7 @@ class VulkanDevice {
 	template <class TObject> void destroyObject(VulkanObjectBase<TObject> *);
 
 	void cleanupFramebuffers();
-	void releaseObjects(int swap_frame_index);
+	void runDeferredReleases(int index);
 
 	struct ObjectPools;
 	struct DummyObjects;

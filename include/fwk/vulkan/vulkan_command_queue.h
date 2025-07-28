@@ -44,7 +44,7 @@ struct VClearValue {
 
 // Allows for enqueuing commands into a single queue. Commands are fed into buffers and are
 // submitted either with a submit() or when the frame is finished. Each command buffer when
-// submitted will wait until previously submitted buffer is finished.
+// submitted will wait until commands in the previously submitted buffer are finished.
 class VulkanCommandQueue {
   public:
 	~VulkanCommandQueue();
@@ -79,7 +79,6 @@ class VulkanCommandQueue {
 	void copy(VBufferSpan<> dst, VBufferSpan<> src);
 	void copy(PVImage dst, VBufferSpan<> src, Maybe<IBox> dst_box = none, int dst_mip_level = 0,
 			  VImageLayout dst_layout = VImageLayout::shader_ro);
-	void addStagingBufferInTransfer(VBufferSpan<>);
 
 	void fill(VBufferSpan<> dst, u32 value);
 	template <class T> void fill(VBufferSpan<T> dst, u32 value) {
@@ -223,7 +222,6 @@ class VulkanCommandQueue {
 	vector<CommandBufferInfo> m_recycled_commands;
 	SparseVector<Download> m_downloads;
 	vector<LabeledDownload> m_labeled_downloads;
-	vector<PVBuffer> m_staging_buffers;
 	PVPipelineLayout m_last_pipeline_layout;
 	VBindPoint m_last_bind_point = VBindPoint::graphics;
 	IRect m_last_viewport;

@@ -125,9 +125,7 @@ void VulkanCommandQueue::submit() {
 }
 
 void VulkanCommandQueue::finish() {
-	DASSERT(m_status != Status::frame_running);
 	auto &frame = m_frames[m_swap_index];
-
 	if(frame.num_waited_fences >= frame.commands.size())
 		return;
 	// We only need to wait for the fence of the last submitted command buffer,
@@ -213,8 +211,6 @@ VkSemaphore VulkanCommandQueue::finishFrame(VkSemaphore image_available_semaphor
 	m_frame_index++;
 	beginCommands();
 
-	// TODO: staging buffers destruction should be hooked to fence
-	m_staging_buffers.clear();
 	m_last_pipeline_layout.reset();
 	m_last_bind_point = VBindPoint::graphics;
 	m_last_viewport = {};
@@ -292,10 +288,6 @@ void VulkanCommandQueue::copy(PVImage dst, VBufferSpan<> src, Maybe<IBox> box, i
 	vkCmdCopyBufferToImage(m_cur_cmd_buffer, src.buffer(), dst, toVk(copy_layout), 1, &region);
 	// TODO: do this transition right before we're going to do something with this texture?
 	dst->transitionLayout(dst_layout, dst_mip_level);
-}
-
-void VulkanCommandQueue::addStagingBufferInTransfer(VBufferSpan<> buffer) {
-	m_staging_buffers.emplace_back(buffer.buffer());
 }
 
 void VulkanCommandQueue::fill(VBufferSpan<> dst, u32 value) {

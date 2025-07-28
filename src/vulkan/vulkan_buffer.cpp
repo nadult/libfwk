@@ -79,7 +79,6 @@ Ex<> VulkanBuffer::upload(CSpan<char> data, uint byte_offset) {
 		fwk::copy(mem_mgr.writeAccessMemory(mem_block), data);
 		auto &cmd_queue = device.cmdQueue();
 		cmd_queue.copy({ref(), byte_offset}, staging_buffer);
-		cmd_queue.addStagingBufferInTransfer(std::move(staging_buffer));
 	}
 
 	return {};

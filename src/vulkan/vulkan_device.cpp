@@ -120,7 +120,9 @@ struct VulkanDevice::ObjectPools {
 
 	EnumMap<VTypeId, vector<Pool>> pools;
 	EnumMap<VTypeId, vector<u32>> fillable_pools;
-	array<vector<DeferredRelease>, VulkanLimits::num_swap_frames> to_release;
+
+	// Deferred releases from current (index: 0) and past swap frames (index: 1+)
+	vector<DeferredRelease> deferred_releases[VulkanLimits::num_swap_frames + 1];
 };
 
 struct VulkanDevice::DummyObjects {
@@ -340,7 +342,8 @@ VulkanDevice::~VulkanDevice() {
 
 	if(m_handle) {
 		for(int i : intRange(VulkanLimits::num_swap_frames))
-			releaseObjects(i);
+			runDeferredReleases(i + 1);
+		runDeferredReleases(0);
 		g_vk_storage.device_handles[m_id] = nullptr;
 		vkDestroyDevice(m_handle, nullptr);
 	}
@@ -381,8 +384,8 @@ Ex<> VulkanDevice::beginFrame() {
 	if(m_swap_chain)
 		m_image_available_sem = EX_PASS(m_swap_chain->acquireImage());
 	m_cmds->waitForSwapFrameAvailable();
-	m_swap_frame_index = m_cmds->swapFrameIndex();
-	releaseObjects(m_swap_frame_index);
+
+	runDeferredReleases(m_swap_frame_index + 1);
 	m_cmds->beginFrame();
 	m_memory->beginFrame();
 	m_descriptors->beginFrame(m_swap_frame_index);
@@ -401,6 +404,13 @@ Ex<> VulkanDevice::finishFrame() {
 	} else {
 		m_cmds->finishFrame(nullptr);
 	}
+
+	// Moving deferred releases from just finished swap frame to past frames
+	auto &past_releases = m_objects->deferred_releases[m_swap_frame_index + 1];
+	PASSERT(!past_releases);
+	past_releases = std::move(m_objects->deferred_releases[0]);
+
+	m_swap_frame_index = m_cmds->swapFrameIndex();
 	cleanupFramebuffers();
 	return {};
 }
@@ -409,7 +419,7 @@ void VulkanDevice::waitForIdle() {
 	DASSERT(m_cmds->status() != VulkanCommandQueue::Status::frame_running);
 	vkDeviceWaitIdle(m_handle);
 	for(int i : intRange(VulkanLimits::num_swap_frames))
-		releaseObjects(i);
+		runDeferredReleases(i + 1);
 	m_memory->flushDeferredFrees();
 }
 
@@ -585,7 +595,14 @@ PVBuffer VulkanDevice::dummyBuffer() const { return m_dummies->dummy_buffer; }
 
 using ReleaseFunc = void (*)(void *, void *, VkDevice);
 void VulkanDevice::deferredRelease(void *param0, void *param1, ReleaseFunc func) {
-	m_objects->to_release[m_swap_frame_index].emplace_back(param0, param1, func);
+	m_objects->deferred_releases[0].emplace_back(param0, param1, func);
+}
+
+void VulkanDevice::runDeferredReleases(int index) {
+	auto &releases = m_objects->deferred_releases[index];
+	for(auto [param0, param1, func] : releases)
+		func(param0, param1, m_handle);
+	releases.clear();
 }
 
 // We're removing framebuffers which weren't used for some time, or those which
@@ -611,13 +628,6 @@ void VulkanDevice::cleanupFramebuffers() {
 				hash_map.erase(it);
 		}
 	}
-}
-
-void VulkanDevice::releaseObjects(int frame_index) {
-	auto &to_release = m_objects->to_release[frame_index];
-	for(auto [param0, param1, func] : to_release)
-		func(param0, param1, m_handle);
-	to_release.clear();
 }
 
 Ex<VMemoryBlock> VulkanDevice::alloc(VMemoryUsage usage, const VkMemoryRequirements &requirements) {
