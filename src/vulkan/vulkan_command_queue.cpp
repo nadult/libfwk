@@ -17,8 +17,6 @@
 
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 
-// TODO: add function for clearing labeled downloads
-
 namespace fwk {
 
 VulkanCommandQueue::VulkanCommandQueue(VulkanDevice &device)
@@ -111,6 +109,9 @@ VkSemaphore VulkanCommandQueue::submitCommands(VkSemaphore wait_semaphore, VPipe
 		num_semaphore_waits++;
 	}
 
+	for(auto &download : m_downloads)
+		download.is_submitted = true;
+
 	VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
 	submit_info.pWaitSemaphores = wait_semaphores;
 	submit_info.pWaitDstStageMask = wait_stages;
@@ -139,6 +140,10 @@ void VulkanCommandQueue::finish() {
 	auto last_fence = swap_frame.commands.back().fence;
 	vkWaitForFences(m_device_handle, 1, &last_fence, VK_TRUE, UINT64_MAX);
 	swap_frame.num_waited_fences = swap_frame.commands.size();
+
+	for(auto &download : m_downloads)
+		if(download.is_submitted)
+			download.is_finished = true;
 }
 
 void VulkanCommandQueue::waitForSwapFrameAvailable() {
@@ -150,17 +155,24 @@ void VulkanCommandQueue::waitForSwapFrameAvailable() {
 		for(auto &command : swap_frame.previous_commands)
 			recycleCommands(command);
 		swap_frame.previous_commands.clear();
+
+		for(auto &download : m_downloads)
+			if(download.frame_index + num_swap_frames <= m_frame_index)
+				download.is_finished = true;
+
+		// Removing finished downloads which were marked for removal
+		for(auto download_idx : m_downloads.indices()) {
+			auto &download = m_downloads[download_idx];
+			if(download.is_finished && download.remove_when_finished)
+				m_downloads.erase(download_idx);
+		}
 	}
 }
 
 void VulkanCommandQueue::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
-	auto &swap_frame = m_swap_frames[m_swap_index];
-
-	for(auto &download : m_downloads)
-		if(download.frame_index + VulkanLimits::num_swap_frames <= m_frame_index)
-			download.is_ready = true;
 	m_status = Status::frame_running;
+	auto &swap_frame = m_swap_frames[m_swap_index];
 
 	if(swap_frame.query_count > 0) {
 		PodVector<u64> new_data(swap_frame.query_count);
@@ -499,13 +511,13 @@ void VulkanCommandQueue::perfTimestampQuery(uint sample_id) {
 bool VulkanCommandQueue::isFinished(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
-	return download.is_ready;
+	return download.is_finished;
 }
 
 PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
 	PASSERT(m_downloads.valid(download_id));
 	auto &download = m_downloads[download_id];
-	if(!download.is_ready)
+	if(!download.is_finished)
 		return {};
 	auto mem_block = download.buffer->memoryBlock();
 	PodVector<char> out(download.buffer->size());
@@ -559,4 +571,14 @@ Ex<PodVector<char>> VulkanCommandQueue::download(VBufferSpan<char> src, Str uniq
 	return out;
 }
 
+void VulkanCommandQueue::removeDownload(Str unique_label) {
+	for(auto &ld : m_labeled_downloads)
+		if(ld.label == unique_label) {
+			for(auto id : ld.ids)
+				if(m_downloads.valid(id))
+					m_downloads[id].remove_when_finished = true;
+			m_labeled_downloads.erase(&ld);
+			return;
+		}
+}
 }

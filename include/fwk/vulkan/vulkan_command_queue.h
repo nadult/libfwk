@@ -148,6 +148,7 @@ class VulkanCommandQueue {
 			result.template reinterpret<T>().unsafeSwap(out);
 		return out;
 	}
+	void removeDownload(Str unique_label);
 
 	bool isFinished(VDownloadId);
 	// Returns empty vector if not ready
@@ -206,7 +207,9 @@ class VulkanCommandQueue {
 	struct Download {
 		PVBuffer buffer;
 		u64 frame_index;
-		bool is_ready = false;
+		bool is_submitted = false;
+		bool is_finished = false;
+		bool remove_when_finished = false;
 	};
 
 	struct LabeledDownload {
