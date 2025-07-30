@@ -241,27 +241,8 @@ CSpan<u64> VulkanCommandQueue::getQueryResults(u64 frame_index) const {
 	return {};
 }
 
-bool VulkanCommandQueue::isFinished(VDownloadId download_id) {
-	PASSERT(m_downloads.valid(download_id));
-	auto &download = m_downloads[download_id];
-	return download.is_ready;
-}
-
-PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
-	PASSERT(m_downloads.valid(download_id));
-	auto &download = m_downloads[download_id];
-	if(!download.is_ready)
-		return {};
-	auto mem_block = download.buffer->memoryBlock();
-	PodVector<char> out(download.buffer->size());
-	auto src_memory = m_device.memory().readAccessMemory(mem_block);
-	fwk::copy(out, src_memory.subSpan(0, out.size()));
-	m_downloads.erase(download_id);
-	return out;
-}
-
 // -------------------------------------------------------------------------------------------
-// ----------  Commands ----------------------------------------------------------------------
+// ------------------------------------  Commands --------------------------------------------
 
 void VulkanCommandQueue::copy(VBufferSpan<char> dst, VBufferSpan<char> src) {
 	DASSERT_LE(src.size(), dst.size());
@@ -324,50 +305,6 @@ VDescriptorSet VulkanCommandQueue::bindDS(int index) {
 void VulkanCommandQueue::setPushConstants(u32 offset, VShaderStages stages, CSpan<char> data) {
 	vkCmdPushConstants(m_cur_cmd_buffer, m_last_pipeline_layout, toVk(stages), offset, data.size(),
 					   data.data());
-}
-
-Ex<VDownloadId> VulkanCommandQueue::download(VBufferSpan<char> src) {
-	PASSERT(m_status == Status::frame_running);
-	auto buffer = EX_PASS(
-		VulkanBuffer::create(m_device, src.size(), VBufferUsage::transfer_dst, VMemoryUsage::host));
-	copy(buffer, src);
-	auto id = m_downloads.emplace(std::move(buffer), m_frame_index);
-	return VDownloadId(id);
-}
-
-Ex<PodVector<char>> VulkanCommandQueue::download(VBufferSpan<char> src, Str unique_label,
-												 uint skip_frames) {
-	if(!src)
-		return PodVector<char>();
-	LabeledDownload *current = nullptr;
-	for(auto &ld : m_labeled_downloads)
-		if(ld.label == unique_label) {
-			current = &ld;
-			break;
-		}
-	if(!current) {
-		current = &m_labeled_downloads.emplace_back();
-		current->label = unique_label;
-		current->last_frame_index = m_frame_index;
-	}
-
-	PodVector<char> out;
-	while(current->ids) {
-		auto id = current->ids.front();
-		out = retrieve<char>(id);
-		if(!out)
-			break;
-		current->ids.erase(current->ids.begin());
-	}
-
-	PASSERT(m_frame_index >= current->last_frame_index);
-	u64 frame_counter = m_frame_index - current->last_frame_index;
-	if(skip_frames && frame_counter % (skip_frames + 1) == 0) {
-		current->ids.emplace_back(EX_PASS(download(src)));
-		current->last_frame_index = m_frame_index;
-	}
-
-	return out;
 }
 
 void VulkanCommandQueue::setViewport(IRect viewport, float min_depth, float max_depth) {
@@ -555,4 +492,71 @@ void VulkanCommandQueue::perfTimestampQuery(uint sample_id) {
 	auto &swap_frame = m_swap_frames[m_swap_index];
 	swap_frame.perf_queries.emplace_back(sample_id, query_id);
 }
+
+// -------------------------------------------------------------------------------------------
+// ------------------------------  Download commands -----------------------------------------
+
+bool VulkanCommandQueue::isFinished(VDownloadId download_id) {
+	PASSERT(m_downloads.valid(download_id));
+	auto &download = m_downloads[download_id];
+	return download.is_ready;
+}
+
+PodVector<char> VulkanCommandQueue::retrieve(VDownloadId download_id) {
+	PASSERT(m_downloads.valid(download_id));
+	auto &download = m_downloads[download_id];
+	if(!download.is_ready)
+		return {};
+	auto mem_block = download.buffer->memoryBlock();
+	PodVector<char> out(download.buffer->size());
+	auto src_memory = m_device.memory().readAccessMemory(mem_block);
+	fwk::copy(out, src_memory.subSpan(0, out.size()));
+	m_downloads.erase(download_id);
+	return out;
+}
+
+Ex<VDownloadId> VulkanCommandQueue::download(VBufferSpan<char> src) {
+	PASSERT(m_status == Status::frame_running);
+	auto buffer = EX_PASS(
+		VulkanBuffer::create(m_device, src.size(), VBufferUsage::transfer_dst, VMemoryUsage::host));
+	copy(buffer, src);
+	auto id = m_downloads.emplace(std::move(buffer), m_frame_index);
+	return VDownloadId(id);
+}
+
+Ex<PodVector<char>> VulkanCommandQueue::download(VBufferSpan<char> src, Str unique_label,
+												 uint skip_frames) {
+	if(!src)
+		return PodVector<char>();
+	LabeledDownload *current = nullptr;
+	for(auto &ld : m_labeled_downloads)
+		if(ld.label == unique_label) {
+			current = &ld;
+			break;
+		}
+	if(!current) {
+		current = &m_labeled_downloads.emplace_back();
+		current->label = unique_label;
+		current->last_frame_index = m_frame_index;
+	}
+
+	PodVector<char> out;
+	while(current->ids) {
+		auto id = current->ids.front();
+		out = retrieve<char>(id);
+		if(!out)
+			break;
+		current->ids.erase(current->ids.begin());
+	}
+
+	PASSERT(m_frame_index >= current->last_frame_index);
+	u64 frame_counter = m_frame_index - current->last_frame_index;
+	if(skip_frames && frame_counter % (skip_frames + 1) == 0) {
+		current->ids.emplace_back(EX_PASS(download(src)));
+		current->last_frame_index = m_frame_index;
+	}
+
+	return out;
+}
+
 }

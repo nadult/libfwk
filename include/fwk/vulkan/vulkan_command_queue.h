@@ -54,13 +54,6 @@ class VulkanCommandQueue {
 	u64 frameIndex() const { return m_frame_index; }
 	int swapFrameIndex() const { return m_swap_index; }
 
-	bool isFinished(VDownloadId);
-	// Returns empty vector if not ready
-	PodVector<char> retrieve(VDownloadId);
-	template <class T> PodVector<T> retrieve(VDownloadId id) {
-		return retrieve(id).reinterpret<T>();
-	}
-
 	CSpan<u64> getQueryResults(u64 frame_index) const;
 
 	// Submits all recorded commands to the queue
@@ -70,7 +63,7 @@ class VulkanCommandQueue {
 	void finish();
 
 	// -------------------------------------------------------------------------------------------
-	// ----------  Commands (must be called between beginFrame & endFrame)   ---------------------
+	// -----------------------------------  Commands   -------------------------------------------
 
 	VkCommandBuffer bufferHandle() { return m_cur_cmd_buffer; }
 
@@ -137,6 +130,9 @@ class VulkanCommandQueue {
 	uint timestampQuery();
 	void perfTimestampQuery(uint sample_id);
 
+	// -------------------------------------------------------------------------------------------
+	// -----------------------------  Download commands   ----------------------------------------
+
 	Ex<VDownloadId> download(VBufferSpan<char> src);
 	template <class T> Ex<VDownloadId> download(VBufferSpan<T> src) {
 		return download(src.template reinterpret<char>());
@@ -151,6 +147,13 @@ class VulkanCommandQueue {
 		if(result)
 			result.template reinterpret<T>().unsafeSwap(out);
 		return out;
+	}
+
+	bool isFinished(VDownloadId);
+	// Returns empty vector if not ready
+	PodVector<char> retrieve(VDownloadId);
+	template <class T> PodVector<T> retrieve(VDownloadId id) {
+		return retrieve(id).reinterpret<T>();
 	}
 
   private:
