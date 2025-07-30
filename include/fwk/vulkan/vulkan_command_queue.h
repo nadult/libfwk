@@ -169,7 +169,10 @@ class VulkanCommandQueue {
 
 	struct CommandBufferInfo {
 		VkCommandBuffer buffer;
-		VkSemaphore semaphore;
+		// First semaphore is used for synchronisation between subsequent command submits
+		// Second semaphore is used to wait with presentation until frame commands are executed
+		VkSemaphore semaphores[2];
+		// Fence is used to wait until previous swap frame has finished executing
 		VkFence fence;
 	};
 
@@ -188,7 +191,8 @@ class VulkanCommandQueue {
 	CommandBufferInfo acquireCommands();
 	void recycleCommands(CommandBufferInfo);
 	void beginCommands();
-	void submitCommands(VkSemaphore, VPipeStages);
+	VkSemaphore submitCommands(VkSemaphore wait_semaphore, VPipeStages wait_stages,
+							   bool need_signal_semaphore);
 
 	void waitForSwapFrameAvailable();
 

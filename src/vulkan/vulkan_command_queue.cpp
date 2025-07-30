@@ -30,7 +30,8 @@ VulkanCommandQueue::~VulkanCommandQueue() {
 		return;
 	vkDeviceWaitIdle(m_device_handle);
 	auto destroy_syncs = [&](CommandBufferInfo &commands) {
-		vkDestroySemaphore(m_device_handle, commands.semaphore, nullptr);
+		for(auto &semaphore : commands.semaphores)
+			vkDestroySemaphore(m_device_handle, semaphore, nullptr);
 		vkDestroyFence(m_device_handle, commands.fence, nullptr);
 	};
 
@@ -65,7 +66,9 @@ auto VulkanCommandQueue::acquireCommands() -> CommandBufferInfo {
 		m_recycled_commands.pop_back();
 		return result;
 	}
-	return {allocVkCommandBuffer(m_device, m_command_pool), createVkSemaphore(m_device),
+
+	return {allocVkCommandBuffer(m_device, m_command_pool),
+			{createVkSemaphore(m_device), createVkSemaphore(m_device)},
 			createVkFence(m_device)};
 }
 
@@ -85,7 +88,8 @@ void VulkanCommandQueue::beginCommands() {
 	FWK_VK_CALL(vkBeginCommandBuffer, m_cur_cmd_buffer, &bi);
 }
 
-void VulkanCommandQueue::submitCommands(VkSemaphore wait_semaphore, VPipeStages wait_stage) {
+VkSemaphore VulkanCommandQueue::submitCommands(VkSemaphore wait_semaphore, VPipeStages wait_stage,
+											   bool need_signal_semaphore) {
 	auto &frame = m_frames[m_swap_index];
 	DASSERT(!frame.commands.empty());
 	auto &current = frame.commands.back();
@@ -99,6 +103,7 @@ void VulkanCommandQueue::submitCommands(VkSemaphore wait_semaphore, VPipeStages 
 	if(wait_semaphore) {
 		wait_semaphores[num_semaphore_waits] = wait_semaphore;
 		wait_stages[num_semaphore_waits] = toVk(wait_stage);
+		num_semaphore_waits++;
 	}
 	if(m_last_submitted_semaphore) {
 		wait_semaphores[num_semaphore_waits] = m_last_submitted_semaphore;
@@ -112,15 +117,16 @@ void VulkanCommandQueue::submitCommands(VkSemaphore wait_semaphore, VPipeStages 
 	submit_info.waitSemaphoreCount = num_semaphore_waits;
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &current.buffer;
-	submit_info.pSignalSemaphores = &current.semaphore;
-	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores = current.semaphores;
+	submit_info.signalSemaphoreCount = need_signal_semaphore ? 2 : 1;
 
 	FWK_VK_CALL(vkQueueSubmit, m_queue.handle, 1, &submit_info, current.fence);
-	m_last_submitted_semaphore = current.semaphore;
+	m_last_submitted_semaphore = current.semaphores[0];
+	return need_signal_semaphore ? current.semaphores[1] : nullptr;
 }
 
 void VulkanCommandQueue::submit() {
-	submitCommands(nullptr, none);
+	submitCommands(nullptr, none, false);
 	beginCommands();
 }
 
@@ -201,7 +207,8 @@ void VulkanCommandQueue::beginFrame() {
 VkSemaphore VulkanCommandQueue::finishFrame(VkSemaphore image_available_semaphore) {
 	DASSERT(m_status == Status::frame_running);
 	auto &frame = m_frames[m_swap_index];
-	submitCommands(image_available_semaphore, VPipeStage::color_att_output);
+	auto signalled_semaphore =
+		submitCommands(image_available_semaphore, VPipeStage::color_att_output, true);
 	DASSERT(!frame.previous_commands);
 	frame.previous_commands = std::move(frame.commands);
 	frame.num_waited_fences = 0;
@@ -214,7 +221,7 @@ VkSemaphore VulkanCommandQueue::finishFrame(VkSemaphore image_available_semaphor
 	m_last_pipeline_layout.reset();
 	m_last_bind_point = VBindPoint::graphics;
 	m_last_viewport = {};
-	return m_last_submitted_semaphore;
+	return signalled_semaphore;
 }
 
 CSpan<u64> VulkanCommandQueue::getQueryResults(u64 frame_index) const {
