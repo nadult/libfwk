@@ -18,7 +18,7 @@ VulkanSwapChain::VulkanSwapChain(VkSwapchainKHR handle, VObjectId id, VWindowRef
 								 VkQueue queue)
 	: VulkanObjectBase(handle, id), m_window(window), m_present_queue(queue) {}
 
-VulkanSwapChain::~VulkanSwapChain() { release(); }
+VulkanSwapChain::~VulkanSwapChain() { release(true); }
 
 VSurfaceInfo VulkanSwapChain::surfaceInfo(VulkanDevice &device, VWindowRef window) {
 	auto surf_handle = window->surfaceHandle();
@@ -135,7 +135,7 @@ Ex<void> VulkanSwapChain::initialize(const VSurfaceInfo &surf_info) {
 	return {};
 }
 
-void VulkanSwapChain::release() {
+void VulkanSwapChain::release(bool release_handle) {
 	for(auto &image_view : m_image_views)
 		image_view->image()->m_is_valid = false;
 	m_image_views.clear();
@@ -143,14 +143,18 @@ void VulkanSwapChain::release() {
 		deferredRelease(vkDestroySemaphore, sem);
 		sem = nullptr;
 	}
-	deferredRelease(vkDestroySwapchainKHR, m_handle);
-	m_handle = nullptr;
+	if(release_handle) {
+		deferredRelease(vkDestroySwapchainKHR, m_handle);
+		m_handle = nullptr;
+	}
 }
 
 Ex<void> VulkanSwapChain::recreate() {
 	if(m_handle) {
-		release();
+		release(false);
 		device().waitForIdle();
+		vkDestroySwapchainKHR(deviceHandle(), m_handle, nullptr);
+		m_handle = nullptr;
 		m_status = Status::invalid;
 	}
 

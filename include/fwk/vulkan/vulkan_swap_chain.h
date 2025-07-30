@@ -50,7 +50,7 @@ class VulkanSwapChain : public VulkanObjectBase<VulkanSwapChain> {
 
 	Ex<void> initialize(const VSurfaceInfo &);
 	Ex<void> recreate();
-	void release();
+	void release(bool release_handle);
 
 	VWindowRef m_window;
 	VSwapChainSetup m_setup;
