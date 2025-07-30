@@ -348,7 +348,7 @@ Ex<PodVector<char>> VulkanCommandQueue::download(VBufferSpan<char> src, Str uniq
 	if(!current) {
 		current = &m_labeled_downloads.emplace_back();
 		current->label = unique_label;
-		current->last_frame = m_frame_index;
+		current->last_frame_index = m_frame_index;
 	}
 
 	PodVector<char> out;
@@ -360,10 +360,11 @@ Ex<PodVector<char>> VulkanCommandQueue::download(VBufferSpan<char> src, Str uniq
 		current->ids.erase(current->ids.begin());
 	}
 
-	uint frame_counter = m_frame_index - current->last_frame;
+	PASSERT(m_frame_index >= current->last_frame_index);
+	u64 frame_counter = m_frame_index - current->last_frame_index;
 	if(skip_frames && frame_counter % (skip_frames + 1) == 0) {
 		current->ids.emplace_back(EX_PASS(download(src)));
-		current->last_frame = m_frame_index;
+		current->last_frame_index = m_frame_index;
 	}
 
 	return out;

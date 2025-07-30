@@ -209,7 +209,7 @@ class VulkanCommandQueue {
 	struct LabeledDownload {
 		string label;
 		vector<VDownloadId> ids;
-		uint last_frame;
+		u64 last_frame_index;
 	};
 
 	struct CmdBindDescriptorSet {
@@ -236,7 +236,8 @@ class VulkanCommandQueue {
 	VkSemaphore m_last_submitted_semaphore = nullptr;
 	VkCommandPool m_command_pool = nullptr;
 	VkCommandBuffer m_cur_cmd_buffer = nullptr;
-	uint m_swap_index = 0, m_frame_index = 0;
+	uint m_swap_index = 0;
+	u64 m_frame_index = 0;
 	double m_timestamp_period = 1.0;
 	Status m_status = Status::initialized;
 };
