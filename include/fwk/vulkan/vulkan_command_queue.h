@@ -194,10 +194,9 @@ class VulkanCommandQueue {
 	VkSemaphore submitCommands(VkSemaphore wait_semaphore, VPipeStages wait_stages,
 							   bool need_signal_semaphore);
 
-	void waitForSwapFrameAvailable();
-
 	void beginFrame();
 	VkSemaphore finishFrame(VkSemaphore image_available_semaphore);
+	void waitForSwapFrameAvailable();
 
 	void updateAttachmentsLayouts(bool final);
 
@@ -233,8 +232,7 @@ class VulkanCommandQueue {
 	VulkanDevice &m_device;
 	VQueue m_queue;
 	VkDevice m_device_handle = nullptr;
-	// TODO: swap_frames
-	SwapFrame m_frames[num_swap_frames];
+	SwapFrame m_swap_frames[num_swap_frames];
 	VkSemaphore m_last_submitted_semaphore = nullptr;
 	VkCommandPool m_command_pool = nullptr;
 	VkCommandBuffer m_cur_cmd_buffer = nullptr;

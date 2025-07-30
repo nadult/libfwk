@@ -37,12 +37,12 @@ VulkanCommandQueue::~VulkanCommandQueue() {
 
 	for(auto &commands : m_recycled_commands)
 		destroy_syncs(commands);
-	for(auto &frame : m_frames) {
-		for(auto &commands : frame.previous_commands)
+	for(auto &swap_frame : m_swap_frames) {
+		for(auto &commands : swap_frame.previous_commands)
 			destroy_syncs(commands);
-		for(auto &commands : frame.commands)
+		for(auto &commands : swap_frame.commands)
 			destroy_syncs(commands);
-		for(auto pool : frame.query_pools)
+		for(auto pool : swap_frame.query_pools)
 			vkDestroyQueryPool(m_device_handle, pool, nullptr);
 	}
 	vkDestroyCommandPool(m_device_handle, m_command_pool, nullptr);
@@ -82,17 +82,17 @@ void VulkanCommandQueue::beginCommands() {
 	DASSERT(m_cur_cmd_buffer == nullptr);
 	VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 	bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	auto &frame = m_frames[m_swap_index];
-	frame.commands.emplace_back(acquireCommands());
-	m_cur_cmd_buffer = frame.commands.back().buffer;
+	auto &swap_frame = m_swap_frames[m_swap_index];
+	swap_frame.commands.emplace_back(acquireCommands());
+	m_cur_cmd_buffer = swap_frame.commands.back().buffer;
 	FWK_VK_CALL(vkBeginCommandBuffer, m_cur_cmd_buffer, &bi);
 }
 
 VkSemaphore VulkanCommandQueue::submitCommands(VkSemaphore wait_semaphore, VPipeStages wait_stage,
 											   bool need_signal_semaphore) {
-	auto &frame = m_frames[m_swap_index];
-	DASSERT(!frame.commands.empty());
-	auto &current = frame.commands.back();
+	auto &swap_frame = m_swap_frames[m_swap_index];
+	DASSERT(!swap_frame.commands.empty());
+	auto &current = swap_frame.commands.back();
 	DASSERT(current.buffer == m_cur_cmd_buffer);
 	FWK_VK_CALL(vkEndCommandBuffer, current.buffer);
 	m_cur_cmd_buffer = nullptr;
@@ -131,42 +131,42 @@ void VulkanCommandQueue::submit() {
 }
 
 void VulkanCommandQueue::finish() {
-	auto &frame = m_frames[m_swap_index];
-	if(frame.num_waited_fences >= frame.commands.size())
+	auto &swap_frame = m_swap_frames[m_swap_index];
+	if(swap_frame.num_waited_fences >= swap_frame.commands.size())
 		return;
 	// We only need to wait for the fence of the last submitted command buffer,
 	// because each command buffer waits for the prevous one to finish
-	auto last_fence = frame.commands.back().fence;
+	auto last_fence = swap_frame.commands.back().fence;
 	vkWaitForFences(m_device_handle, 1, &last_fence, VK_TRUE, UINT64_MAX);
-	frame.num_waited_fences = frame.commands.size();
+	swap_frame.num_waited_fences = swap_frame.commands.size();
 }
 
 void VulkanCommandQueue::waitForSwapFrameAvailable() {
 	DASSERT(m_status != Status::frame_running);
-	auto &frame = m_frames[m_swap_index];
-	if(frame.previous_commands) {
-		auto &previous_fence = frame.previous_commands.back().fence;
+	auto &swap_frame = m_swap_frames[m_swap_index];
+	if(swap_frame.previous_commands) {
+		auto &previous_fence = swap_frame.previous_commands.back().fence;
 		vkWaitForFences(m_device_handle, 1, &previous_fence, VK_TRUE, UINT64_MAX);
-		for(auto &command : frame.previous_commands)
+		for(auto &command : swap_frame.previous_commands)
 			recycleCommands(command);
-		frame.previous_commands.clear();
+		swap_frame.previous_commands.clear();
 	}
 }
 
 void VulkanCommandQueue::beginFrame() {
 	DASSERT(m_status != Status::frame_running);
-	auto &frame = m_frames[m_swap_index];
+	auto &swap_frame = m_swap_frames[m_swap_index];
 
 	for(auto &download : m_downloads)
 		if(download.frame_index + VulkanLimits::num_swap_frames <= m_frame_index)
 			download.is_ready = true;
 	m_status = Status::frame_running;
 
-	if(frame.query_count > 0) {
-		PodVector<u64> new_data(frame.query_count);
+	if(swap_frame.query_count > 0) {
+		PodVector<u64> new_data(swap_frame.query_count);
 		uint cur_count = 0;
-		for(auto pool : frame.query_pools) {
-			uint pool_count = min(frame.query_count - cur_count, query_pool_size);
+		for(auto pool : swap_frame.query_pools) {
+			uint pool_count = min(swap_frame.query_count - cur_count, query_pool_size);
 			if(pool_count == 0)
 				break;
 
@@ -180,25 +180,25 @@ void VulkanCommandQueue::beginFrame() {
 		}
 
 		vector<u64> new_data_vec;
-		new_data.unsafeSwap(frame.query_results);
+		new_data.unsafeSwap(swap_frame.query_results);
 	}
-	frame.query_count = 0;
+	swap_frame.query_count = 0;
 
 	auto *perf_tc = perf::ThreadContext::current();
-	if(frame.perf_queries) {
-		auto first_value = frame.query_results[0];
+	if(swap_frame.perf_queries) {
+		auto first_value = swap_frame.query_results[0];
 		if(perf_tc) {
 			auto sample_values =
-				transform(frame.perf_queries, [&](Pair<uint, uint> sample_query_id) {
-					auto value = frame.query_results[sample_query_id.second] - first_value;
+				transform(swap_frame.perf_queries, [&](Pair<uint, uint> sample_query_id) {
+					auto value = swap_frame.query_results[sample_query_id.second] - first_value;
 					value *= m_timestamp_period;
 					return pair{sample_query_id.first, u64(value)};
 				});
-			perf_tc->resolveGpuScopes(frame.perf_frame_id, sample_values);
+			perf_tc->resolveGpuScopes(swap_frame.perf_frame_id, sample_values);
 		}
-		frame.perf_queries.clear();
+		swap_frame.perf_queries.clear();
 	}
-	frame.perf_frame_id = perf_tc ? perf_tc->frameId() : -1;
+	swap_frame.perf_frame_id = perf_tc ? perf_tc->frameId() : -1;
 
 	auto first_query = timestampQuery();
 	PASSERT(first_query == 0);
@@ -206,12 +206,12 @@ void VulkanCommandQueue::beginFrame() {
 
 VkSemaphore VulkanCommandQueue::finishFrame(VkSemaphore image_available_semaphore) {
 	DASSERT(m_status == Status::frame_running);
-	auto &frame = m_frames[m_swap_index];
+	auto &swap_frame = m_swap_frames[m_swap_index];
 	auto signalled_semaphore =
 		submitCommands(image_available_semaphore, VPipeStage::color_att_output, true);
-	DASSERT(!frame.previous_commands);
-	frame.previous_commands = std::move(frame.commands);
-	frame.num_waited_fences = 0;
+	DASSERT(!swap_frame.previous_commands);
+	swap_frame.previous_commands = std::move(swap_frame.commands);
+	swap_frame.num_waited_fences = 0;
 	m_status = Status::frame_finished;
 
 	m_swap_index = (m_swap_index + 1) % VulkanLimits::num_swap_frames;
@@ -236,7 +236,7 @@ CSpan<u64> VulkanCommandQueue::getQueryResults(u64 frame_index) const {
 	for(int i : intRange(num_swap_frames))
 		if(i64(frame_index) == frame_indices[i]) {
 			uint idx = (i + m_swap_index) % num_swap_frames;
-			return m_frames[idx].query_results;
+			return m_swap_frames[idx].query_results;
 		}
 	return {};
 }
@@ -531,27 +531,27 @@ void VulkanCommandQueue::clearColor(PVImage image, VClearValue color) {
 
 uint VulkanCommandQueue::timestampQuery() {
 	PASSERT(m_status == Status::frame_running);
-	auto &frame = m_frames[m_swap_index];
-	uint index = frame.query_count++;
+	auto &swap_frame = m_swap_frames[m_swap_index];
+	uint index = swap_frame.query_count++;
 	int pool_id = int(index >> query_pool_shift);
-	if(pool_id >= frame.query_pools.size()) {
+	if(pool_id >= swap_frame.query_pools.size()) {
 		VkQueryPoolCreateInfo ci{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
 		ci.queryCount = query_pool_size;
 		ci.queryType = VK_QUERY_TYPE_TIMESTAMP;
 		VkQueryPool handle = nullptr;
 		FWK_VK_CALL(vkCreateQueryPool, m_device_handle, &ci, nullptr, &handle);
 		vkCmdResetQueryPool(m_cur_cmd_buffer, handle, 0, query_pool_size);
-		frame.query_pools.emplace_back(handle);
+		swap_frame.query_pools.emplace_back(handle);
 	}
 
 	vkCmdWriteTimestamp(m_cur_cmd_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-						frame.query_pools[pool_id], index & (query_pool_size - 1));
+						swap_frame.query_pools[pool_id], index & (query_pool_size - 1));
 	return index;
 }
 
 void VulkanCommandQueue::perfTimestampQuery(uint sample_id) {
 	auto query_id = timestampQuery();
-	auto &frame = m_frames[m_swap_index];
-	frame.perf_queries.emplace_back(sample_id, query_id);
+	auto &swap_frame = m_swap_frames[m_swap_index];
+	swap_frame.perf_queries.emplace_back(sample_id, query_id);
 }
 }
