@@ -189,7 +189,6 @@ class VulkanCommandQueue {
 		vector<u64> query_results;
 		i64 perf_frame_id = 0;
 		uint query_count = 0;
-		int num_waited_fences = 0;
 	};
 
 	CommandBufferInfo acquireCommands();
@@ -240,6 +239,7 @@ class VulkanCommandQueue {
 	VkDevice m_device_handle = nullptr;
 	SwapFrame m_swap_frames[num_swap_frames];
 	VkSemaphore m_last_submitted_semaphore = nullptr;
+	VkFence m_last_submitted_fence = nullptr;
 	VkCommandPool m_command_pool = nullptr;
 	VkCommandBuffer m_cur_cmd_buffer = nullptr;
 	uint m_swap_index = 0;

@@ -123,6 +123,7 @@ VkSemaphore VulkanCommandQueue::submitCommands(VkSemaphore wait_semaphore, VPipe
 
 	FWK_VK_CALL(vkQueueSubmit, m_queue.handle, 1, &submit_info, current.fence);
 	m_last_submitted_semaphore = current.semaphores[0];
+	m_last_submitted_fence = current.fence;
 	return need_signal_semaphore ? current.semaphores[1] : nullptr;
 }
 
@@ -132,14 +133,13 @@ void VulkanCommandQueue::submit() {
 }
 
 void VulkanCommandQueue::finish() {
-	auto &swap_frame = m_swap_frames[m_swap_index];
-	if(swap_frame.num_waited_fences >= swap_frame.commands.size())
+	if(!m_last_submitted_fence)
 		return;
+
 	// We only need to wait for the fence of the last submitted command buffer,
 	// because each command buffer waits for the prevous one to finish
-	auto last_fence = swap_frame.commands.back().fence;
-	vkWaitForFences(m_device_handle, 1, &last_fence, VK_TRUE, UINT64_MAX);
-	swap_frame.num_waited_fences = swap_frame.commands.size();
+	vkWaitForFences(m_device_handle, 1, &m_last_submitted_fence, VK_TRUE, UINT64_MAX);
+	m_last_submitted_fence = nullptr;
 
 	for(auto &download : m_downloads)
 		if(download.is_submitted)
@@ -223,7 +223,6 @@ VkSemaphore VulkanCommandQueue::finishFrame(VkSemaphore image_available_semaphor
 		submitCommands(image_available_semaphore, VPipeStage::color_att_output, true);
 	DASSERT(!swap_frame.previous_commands);
 	swap_frame.previous_commands = std::move(swap_frame.commands);
-	swap_frame.num_waited_fences = 0;
 	m_status = Status::frame_finished;
 
 	m_swap_index = (m_swap_index + 1) % VulkanLimits::num_swap_frames;
