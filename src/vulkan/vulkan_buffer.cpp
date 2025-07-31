@@ -51,6 +51,7 @@ Ex<PVBuffer> VulkanBuffer::create(VulkanDevice &device, u64 size, VBufferUsageFl
 
 Ex<PVBuffer> VulkanBuffer::createAndUpload(VulkanDevice &device, CSpan<char> data,
 										   VBufferUsageFlags usage, VMemoryUsage mem_usage) {
+	usage |= VBufferUsage::transfer_dst;
 	auto out = EX_PASS(create(device, data.size(), usage, mem_usage));
 	EXPECT(out->upload(data));
 	return out;
