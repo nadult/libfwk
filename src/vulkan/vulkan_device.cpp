@@ -388,13 +388,12 @@ Ex<> VulkanDevice::beginFrame() {
 	runDeferredReleases(m_swap_frame_index + 1);
 	m_cmds->beginFrame();
 	m_memory->beginFrame();
-	m_descriptors->beginFrame(m_swap_frame_index);
+	m_descriptors->onBeginFrame();
 	return {};
 }
 
 Ex<> VulkanDevice::finishFrame() {
 	DASSERT(m_cmds);
-	m_descriptors->finishFrame();
 	m_memory->finishFrame();
 
 	if(m_swap_chain && m_image_available_sem) {
@@ -411,6 +410,7 @@ Ex<> VulkanDevice::finishFrame() {
 	past_releases = std::move(m_objects->deferred_releases[0]);
 
 	m_swap_frame_index = m_cmds->swapFrameIndex();
+	m_descriptors->onFinishFrame(m_swap_frame_index);
 	cleanupFramebuffers();
 	return {};
 }

@@ -101,7 +101,6 @@ VDSLId VulkanDescriptorManager::getLayout(CSpan<VDescriptorBindingInfo> bindings
 }
 
 VkDescriptorSet VulkanDescriptorManager::acquireSet(VDSLId dsl_id) {
-	DASSERT(m_frame_running);
 	auto &dsl = m_dsls[dsl_id];
 
 	static_assert(VulkanLimits::num_swap_frames == 2,
@@ -135,21 +134,16 @@ CSpan<VDescriptorBindingInfo> VulkanDescriptorManager::bindings(VDSLId dsl_id) c
 	return {m_declarations.data() + dsl.first_binding, int(dsl.num_bindings)};
 }
 
-void VulkanDescriptorManager::beginFrame(uint swap_frame_index) {
-	DASSERT(!m_frame_running);
-	m_frame_running = true;
-
-	m_swap_frame_index = swap_frame_index;
-	for(auto pool_handle : m_deferred_releases[swap_frame_index])
+void VulkanDescriptorManager::onBeginFrame() {
+	for(auto pool_handle : m_deferred_releases[m_swap_frame_index])
 		vkDestroyDescriptorPool(m_device_handle, pool_handle, nullptr);
-	m_deferred_releases[swap_frame_index].clear();
+	m_deferred_releases[m_swap_frame_index].clear();
 	for(auto &dsl : m_dsls)
 		dsl.num_used = 0;
 }
 
-void VulkanDescriptorManager::finishFrame() {
-	DASSERT(m_frame_running);
-	m_frame_running = false;
+void VulkanDescriptorManager::onFinishFrame(uint swap_frame_index) {
+	m_swap_frame_index = swap_frame_index;
 }
 
 VkDescriptorPool VulkanDescriptorManager::allocPool(CSpan<VDescriptorBindingInfo> bindings,

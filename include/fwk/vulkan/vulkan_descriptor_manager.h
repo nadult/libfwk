@@ -29,8 +29,8 @@ class VulkanDescriptorManager {
 	u64 bindingMap(VDSLId) const;
 	CSpan<VDescriptorBindingInfo> bindings(VDSLId) const;
 
-	void beginFrame(uint swap_frame_index);
-	void finishFrame();
+	void onBeginFrame();
+	void onFinishFrame(uint next_swap_frame_index);
 
   private:
 	VkDescriptorPool allocPool(CSpan<VDescriptorBindingInfo>, uint num_sets);
@@ -71,7 +71,6 @@ class VulkanDescriptorManager {
 	VDSLId m_empty_dsl_id = VDSLId(0);
 
 	uint m_swap_frame_index = 0;
-	bool m_frame_running = false;
 	bool m_update_after_bind = false;
 };
 
