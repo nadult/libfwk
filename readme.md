@@ -59,11 +59,11 @@ Examples:
 
 * **zlib**
 
-* **freetype2**  
+* **freetype2** (used under the "FreeType License")  
 	[http://www.freetype.org/](http://www.freetype.org/)
 
 * **libogg, libvorbis**  
-	[https://xiph.org/ogg/](https://xiph.org/ogg/)
+	[https://xiph.org/ogg/](https://xiph.org/ogg/)  
 	[https://xiph.org/vorbis/](https://xiph.org/vorbis/)
 
 * **OpenAL**  
@@ -78,7 +78,7 @@ Examples:
 
 #### Included dependencies
 
-* **STB\_image && STB\_dxt && STB\_image\_resize**
+* **STB\_image && STB\_dxt && STB\_image\_resize**  
     [https://github.com/nothings/stb](https://github.com/nothings/stb)
 
 * **rapidxml**  
@@ -90,7 +90,7 @@ Examples:
 	[http://www.boost.org/](http://www.boost.org/)
 
 * **Volk**   
-    included in extern/volk/, licensed under MIT license.
+    included in extern/volk/, licensed under MIT license.  
 	[https://github.com/zeux/volk](https://github.com/zeux/volk)
 
 

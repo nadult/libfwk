@@ -1,5 +1,12 @@
 TODO: prioritize aggresively
 
+Goal: we want to minimize code which we have to maintain ourseleves. If we could easily
+replace certain functinoalities with standard library or some external libraries which
+do (almost) what we want.
+
+When adding new functionalities consider first if they are worth it. If you add 40KB of code
+to simplify 20 lines into 10, maybe it's not worth it...
+
 - Option to mark Ptrs that they are non-null? New type like RVImageView?
 - Consider replacing mechanism for updating descriptors so that it won't require
   update_after_bind (does it affect performance?)
