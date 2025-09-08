@@ -7,7 +7,6 @@
 
 #ifdef FWK_PLATFORM_MSVC
 
-#pragma comment(lib, "libusb-1.0.lib")
 #pragma comment(lib, "sdl3-static.lib")
 #pragma comment(lib, "freetype.lib")
 #pragma comment(lib, "libpng16_static.lib")
