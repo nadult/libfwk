@@ -10,4 +10,5 @@ build_stats.txt
 /windows/.vs
 /windows/*.vcxproj.user
 /windows/libraries
+/windows/packages
 /tools/__pycache__/
