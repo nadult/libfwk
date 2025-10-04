@@ -38,6 +38,7 @@ def compute_sha256_64(file_path: str) -> str:
 # Function does not verify SSL certificates, so the results must be verified in some way by the caller.
 def download_file_unsafe(url: str, dest_path: str):
     import urllib.request
+
     context = ssl._create_unverified_context()
     with urllib.request.urlopen(url, context=context) as response, open(
         dest_path, "wb"
@@ -45,11 +46,25 @@ def download_file_unsafe(url: str, dest_path: str):
         shutil.copyfileobj(response, out_file)
 
 
+def zip_directory(target_dir: str, file_name_base: Optional[str] = None) -> Optional[str]:
+    assert os.path.isdir(target_dir), f"Cannot zip directory: {target_dir}"
+
+    file_name_base = file_name_base or os.path.basename(target_dir)
+    zip_path_base = os.path.join(os.path.dirname(target_dir), file_name_base)
+    zip_path = zip_path_base + ".zip"
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+    print(f"Creating archive: {zip_path}")
+    shutil.make_archive(zip_path_base, "zip", root_dir=target_dir, base_dir=".")
+    return zip_path
+
+
 def libfwk_path():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # =================================== dependencies.json parsing ===================================
+# =================================================================================================
 
 
 @dataclass
@@ -173,7 +188,16 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
     return DependenciesJson(dependencies, package_caches, conan_recipes, custom_recipes)
 
 
+def load_deps_json(deps_file_path: Optional[str]) -> DependenciesJson:
+    if deps_file_path is None:
+        deps_file_path = os.path.join(os.getcwd(), "dependencies.json")
+    assert os.path.isfile(deps_file_path)
+    with open(deps_file_path, "r") as file:
+        return parse_dependencies_json(json.load(file))
+
+
 # =================================== Conan related functions =====================================
+# =================================================================================================
 
 
 @dataclass
@@ -284,7 +308,117 @@ def conan_get_package_path(info: ConanPackageInfo):
     return result.stdout.decode("utf-8").split()[0]
 
 
+# ====================================== Package caches ===========================================
+# =================================================================================================
+
+
+def get_cached_package_names(deps: DependenciesJson) -> list[str]:
+    names = []
+    for cache in deps.package_caches:
+        for pkg in cache.packages:
+            names.append(pkg.split(":")[0])
+    return list(set(names))
+
+
+# Returns a tuple (version, full_url, hash)
+def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optional[tuple[str, str]]:
+    for cache in deps.package_caches:
+        for pkg in cache.packages:
+            name, version, hash = pkg.split(":")
+            if name == package_name:
+                return (version, cache.url + f"/{name}_{version}.zip", hash)
+    return None
+
+
+def download_package(deps: DependenciesJson, package_name: str, target_dir: str, package_dir: str):
+    cached_package = find_package_in_caches(deps, package_name)
+    if not cached_package:
+        print(f"Don't know how to download package: {package_name}")
+        exit(1)
+
+    (version, url, hash) = cached_package
+    print(f"Downloading package: {package_name}")
+    print(f"  Version: {version}")
+    print(f"  URL: {url}")
+
+    package_file_name = f"{package_name}_{version}.zip"
+    package_file_path = os.path.join(package_dir, package_file_name)
+    if os.path.isfile(package_file_path) and compute_sha256_64(package_file_path) == hash:
+        print(f"Package already downloaded: {package_file_path}")
+    else:
+        download_file_unsafe(url, package_file_path)
+        downloaded_hash = compute_sha256_64(package_file_path)
+        if downloaded_hash != hash:
+            print(f"Error: downloaded file has invalid hash: {package_file_path}")
+            print(f"File hash: {downloaded_hash} expected: {hash}")
+            exit(1)
+
+    shutil.unpack_archive(package_file_path, target_dir)
+
+
+# ====================================== Package building =========================================
+# =================================================================================================
+
+
+def get_buildable_package_names(deps: DependenciesJson) -> list[str]:
+    names = []
+    for pkg in deps.conan_recipes.packages:
+        names.append(pkg.split(":")[0])
+    for pkg in deps.custom_recipes:
+        names.append(pkg.split(":")[0])
+    return list(set(names))
+
+
+def find_conan_recipe(
+    deps_json: DependenciesJson, package_name: str
+) -> Optional[ConanPackageQuery]:
+    conan_recipes = deps_json.conan_recipes
+    for pkg in conan_recipes.packages:
+        name, version, query_name = pkg.split(":")
+        if name == package_name:
+            query = conan_recipes.queries.get(query_name)
+            assert query is not None
+            return ConanPackageQuery(package_name, version, query)
+    return None
+
+
+# Returns package version from a given recipe or None
+def find_custom_recipe(deps_json: DependenciesJson, package_name: str) -> Optional[str]:
+    for pkg in deps_json.custom_recipes:
+        name, version = pkg.split(":")
+        if name == package_name:
+            return version
+    return None
+
+
+def build_package(deps: DependenciesJson, package_name: str, target_dir: str):
+    conan_recipe = find_conan_recipe(deps, package_name)
+    if conan_recipe:
+        packages = conan_list_packages(conan_recipe)
+        if not packages:
+            print(f"Downloading: {conan_recipe.pattern()}")
+            packages = conan_download_packages(conan_recipe)
+        if not packages:
+            print(f"Didn't download any matching packages for: {conan_recipe.pattern()}")
+            exit(1)
+
+        package = conan_get_best_package(packages)
+        package_path = conan_get_package_path(package)
+
+        print(f"Installing {package.pattern()} from: {package_path}")
+        copy_subdirs(package.name, target_dir, package_path, ["include", "lib", "bin"])
+        return package.version
+
+    custom_version = find_custom_recipe(deps, package_name)
+    if custom_version:
+        print("TODO: custom build not implemented yet")
+        return custom_version
+
+    assert False, f"Don't know how to build package: '{package_name}'"
+
+
 # ========================================= Main script ===========================================
+# =================================================================================================
 
 # TODO: update commands and help
 
@@ -361,142 +495,6 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def get_cached_package_names(deps: DependenciesJson) -> list[str]:
-    names = []
-    for cache in deps.package_caches:
-        for pkg in cache.packages:
-            names.append(pkg.split(":")[0])
-    return list(set(names))
-
-
-def get_buildable_package_names(deps: DependenciesJson) -> list[str]:
-    names = []
-    for pkg in deps.conan_recipes.packages:
-        names.append(pkg.split(":")[0])
-    for pkg in deps.custom_recipes:
-        names.append(pkg.split(":")[0])
-    return list(set(names))
-
-
-def find_conan_recipe(deps_json: DependenciesJson, package_name: str) -> Optional[ConanPackageQuery]:
-    conan_recipes = deps_json.conan_recipes
-    for pkg in conan_recipes.packages:
-        name, version, query_name = pkg.split(":")
-        if name == package_name:
-            query = conan_recipes.queries.get(query_name)
-            assert query is not None
-            return ConanPackageQuery(package_name, version, query)
-    return None
-
-
-# Returns package version from a given recipe or None
-def find_custom_recipe(deps_json: DependenciesJson, package_name: str) -> Optional[str]:
-    for pkg in deps_json.custom_recipes:
-        name, version = pkg.split(":")
-        if name == package_name:
-            return version
-    return None
-
-
-# Returns a tuple (version, full_url, hash)
-def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optional[tuple[str, str]]:
-    for cache in deps.package_caches:
-        for pkg in cache.packages:
-            name, version, hash = pkg.split(":")
-            if name == package_name:
-                return (version, cache.url + f"/{name}_{version}.zip", hash)
-    return None
-
-
-def build_package(deps: DependenciesJson, package_name: str, target_dir: str):
-    conan_recipe = find_conan_recipe(deps, package_name)
-    if conan_recipe:
-        packages = conan_list_packages(conan_recipe)
-        if not packages:
-            print(f"Downloading: {conan_recipe.pattern()}")
-            packages = conan_download_packages(conan_recipe)
-        if not packages:
-            print(f"Didn't download any matching packages for: {conan_recipe.pattern()}")
-            exit(1)
-
-        package = conan_get_best_package(packages)
-        package_path = conan_get_package_path(package)
-
-        print(f"Installing {package.pattern()} from: {package_path}")
-        copy_subdirs(package.name, target_dir, package_path, ["include", "lib", "bin"])
-        return package.version
-
-    custom_version = find_custom_recipe(deps, package_name)
-    if custom_version:
-        print("TODO: custom build not implemented yet")
-        return custom_version
-
-    assert False, f"Don't know how to build package: '{package_name}'"
-
-
-def download_package(deps: DependenciesJson, package_name: str, target_dir: str, package_dir: str):
-    cached_package = find_package_in_caches(deps, package_name)
-    if not cached_package:
-        print(f"Don't know how to download package: {package_name}")
-        exit(1)
-
-    (version, url, hash) = cached_package
-    print(f"Downloading package: {package_name}")
-    print(f"  Version: {version}")
-    print(f"  URL: {url}")
-
-    package_file_name = f"{package_name}_{version}.zip"
-    package_file_path = os.path.join(package_dir, package_file_name)
-    if os.path.isfile(package_file_path) and compute_sha256_64(package_file_path) == hash:
-        print(f"Package already downloaded: {package_file_path}")
-    else:
-        download_file_unsafe(url, package_file_path)
-        downloaded_hash = compute_sha256_64(package_file_path)
-        if downloaded_hash != hash:
-            print(f"Error: downloaded file has invalid hash: {package_file_path}")
-            print(f"File hash: {downloaded_hash} expected: {hash}")
-            exit(1)
-
-    shutil.unpack_archive(package_file_path, target_dir)
-
-
-# Komendy do zaimplementowania:
-# - zbudowanie / zainstalowanie  wybranego/wybranych pakietów albo wszystkich wymaganych pakietów
-# - zrobienie cleana w docelowym katalogu
-
-
-def load_deps_json(deps_file_path: Optional[str]) -> DependenciesJson:
-    if deps_file_path is None:
-        deps_file_path = os.path.join(os.getcwd(), "dependencies.json")
-    assert os.path.isfile(deps_file_path)
-    with open(deps_file_path, "r") as file:
-        return parse_dependencies_json(json.load(file))
-
-
-def clean_target_dir(target_dir: str):
-    print(f"Cleaning target directory: {target_dir}")
-    valid_subdirs = ["include", "lib", "bin", "share"]
-    if os.path.isdir(target_dir):
-        for subdir in os.listdir(target_dir):
-            if subdir in valid_subdirs:
-                shutil.rmtree(os.path.join(target_dir, subdir))
-            else:
-                print(f"Warning: unexpected subdirectory in target dir: {subdir}")
-
-
-def zip_directory(target_dir: str, file_name_base: Optional[str] = None) -> Optional[str]:
-    assert os.path.isdir(target_dir), f"Cannot zip directory: {target_dir}"
-
-    file_name_base = file_name_base or os.path.basename(target_dir)
-    zip_path_base = os.path.join(os.path.dirname(target_dir), file_name_base)
-    zip_path = zip_path_base + ".zip"
-    if os.path.exists(zip_path):
-        os.remove(zip_path)
-    print(f"Creating archive: {zip_path}")
-    shutil.make_archive(zip_path_base, "zip", root_dir=target_dir, base_dir=".")
-    return zip_path
-
-
 def prepare_target_dir(dir: str, clean: bool, verbose: bool = True):
     assert not os.path.isfile(dir)
     if clean and os.path.isdir(dir):
@@ -541,7 +539,9 @@ def main():
         default_package_dir = os.path.join(libfwk_path(), "windows", "packages")
         target_dir = os.path.abspath(args.target_dir or default_target_dir)
         package_dir = os.path.abspath(args.package_dir or default_package_dir)
-        # TODO: shouldn't download command clean the target dir by default? especially when installing all packages
+
+        # TODO: shouldn't download command clean the target dir by default?
+        # especially when installing all packages
         prepare_target_dir(target_dir, args.clean)
         prepare_target_dir(package_dir, False)
         for dep in selected_deps:
