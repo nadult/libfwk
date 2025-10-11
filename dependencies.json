@@ -45,14 +45,24 @@
       "libpng:1.6.44:static-win",
       "freetype:2.13.3:static-win",
       "ogg:1.3.5:static-win",
-      "sdl:3.2.20:static-win",
       "vorbis:1.3.7:static-win",
       "shaderc:2024.1:static-win",
       "openal:1.22.2:shared-win",
       "vulkan-headers:1.3.236.0:any"
     ]
   },
-  "custom-recipes": [
-    "assimp:6.0.2"
+  "cmake-recipes": [
+    {
+      "package": "sdl:3.2.24",
+      "github-project": "libsdl-org/SDL",
+      "source-branch": "release-3.2.24",
+      "source-sha1": "a8589a84226a6202831a3d49ff4edda4acab9acd",
+      "cmake-options": {
+        "SDL_SHARED": "off",
+        "SDL_STATIC": "on",
+        "CMAKE_BUILD_TYPE": "release"
+      },
+      "install-subdirs": [ "include", "lib", "cmake", "licenses" ]
+    }
   ]
 }

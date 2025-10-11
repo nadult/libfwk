@@ -9,6 +9,9 @@ from typing import Optional
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: improve logging, maybe add some colors?
+# TODO: rename windows/libraries to windows/dependencies?
+# TODO: cleaning target directory vs cleaning build directory?
 # TODO: building sdl3 & assimp
 # TODO: building missing packages on ubuntu
 # TODO: ubuntu & windows package building in github action (runnable on demand)
@@ -46,11 +49,10 @@ def download_file_unsafe(url: str, dest_path: str):
         shutil.copyfileobj(response, out_file)
 
 
-def zip_directory(target_dir: str, file_name_base: Optional[str] = None) -> Optional[str]:
+def zip_directory(target_dir: str, zip_path_base: Optional[str] = None) -> Optional[str]:
     assert os.path.isdir(target_dir), f"Cannot zip directory: {target_dir}"
 
-    file_name_base = file_name_base or os.path.basename(target_dir)
-    zip_path_base = os.path.join(os.path.dirname(target_dir), file_name_base)
+    zip_path_base = zip_path_base or target_dir
     zip_path = zip_path_base + ".zip"
     if os.path.exists(zip_path):
         os.remove(zip_path)
@@ -63,8 +65,18 @@ def libfwk_path():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def check_commands_available(commands: list[str]) -> bool:
+    for command in commands:
+        if shutil.which(command) is None:
+            raise RuntimeError(
+                f"Command missing: {command} please install it first before running this script"
+            )
+
+
 # =================================== dependencies.json parsing ===================================
 # =================================================================================================
+
+# TODO: move classes to different sections?
 
 
 @dataclass
@@ -84,20 +96,35 @@ class ConanRecipes:
 
 
 @dataclass
+class CMakeRecipe:
+    name: str
+    version: str
+    github_project: str
+    source_branch: str
+    source_sha1: str
+    cmake_options: dict[str, str] = field(default_factory=dict)
+    install_subdirs: list[str] = field(default_factory=list)
+
+
+@dataclass
 class DependenciesJson:
     dependencies: list[str] = field(default_factory=list)
     package_caches: list[PackageCache] = field(default_factory=list)
     conan_recipes: ConanRecipes = field(default_factory=ConanRecipes)
     # Tuples: package_name:version
-    custom_recipes: list[str] = field(default_factory=list)
+    cmake_recipes: list[str] = field(default_factory=list)
 
 
-# Checks if strings in a list match a given regex pattern fully
-def _validate_strings(title: str, strings: list[str], pattern: str):
-    matcher = re.compile(rf"^{pattern}$")
-    invalid = [s for s in strings if not matcher.fullmatch(s)]
-    if invalid:
-        raise ValueError(f"Invalid {title}: {invalid}. Must match pattern: {pattern}")
+class _PatternValidator:
+    def __init__(self, pattern: str):
+        self.pattern = pattern
+        self.matcher = re.compile(rf"^{pattern}$")
+
+    # Checks if strings in a list match a given regex pattern fully
+    def validate(self, title: str, strings: list[str]):
+        invalid = [s for s in strings if not isinstance(s, str) or not self.matcher.fullmatch(s)]
+        if invalid:
+            raise ValueError(f"Invalid {title}: {invalid}. Must match pattern: {self.pattern}")
 
 
 def _validate_string_options(title: str, string: str, options: list[str]):
@@ -122,11 +149,17 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
     version_pattern = r"\d+(\.\d+)*(-\d+)?"
     sha256_64_pattern = r"[a-f0-9]{16}"
 
-    package_name_version_pattern = rf"{package_name_pattern}:{version_pattern}"
-    package_name_version_hash_pattern = (
+    branch_name_checker = _PatternValidator(r"[A-Za-z0-9_.-]+")
+    sha1_checker = _PatternValidator(r"[a-f0-9]{40}")
+    github_project_checker = _PatternValidator(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+
+    package_name_checker = _PatternValidator(package_name_pattern)
+    query_name_checker = _PatternValidator(query_name_pattern)
+    package_name_version_checker = _PatternValidator(rf"{package_name_pattern}:{version_pattern}")
+    package_name_version_hash_checker = _PatternValidator(
         rf"{package_name_pattern}:{version_pattern}:{sha256_64_pattern}"
     )
-    package_name_version_query_pattern = (
+    package_name_version_query_checker = _PatternValidator(
         rf"{package_name_pattern}:{version_pattern}:{query_name_pattern}"
     )
 
@@ -134,7 +167,7 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
     dependencies = json_data.get("dependencies", [])
     if not isinstance(dependencies, list) or not all(isinstance(d, str) for d in dependencies):
         raise TypeError("dependencies must be a list of strings")
-    _validate_strings("dependencies", dependencies, package_name_pattern)
+    package_name_checker.validate("dependencies", dependencies)
 
     # Parsing package caches
     package_caches = []
@@ -150,9 +183,7 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
             "package-cache.platform", package_cache.platform, package_source_platforms
         )
         _validate_url(package_cache.url)
-        _validate_strings(
-            "package-cache.packages", package_cache.packages, package_name_version_hash_pattern
-        )
+        package_name_version_hash_checker.validate("package-cache.packages", package_cache.packages)
         package_caches.append(package_cache)
 
     # Parsing conan recipes
@@ -170,22 +201,53 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
         ):
             raise TypeError("conan-recipes.packages must be a list of strings")
 
-        _validate_strings(
-            "conan-recipes.queries keys",
-            list(conan_recipes.queries.keys()),
-            query_name_pattern,
+        query_name_checker.validate(
+            "conan-recipes.queries keys", list(conan_recipes.queries.keys())
         )
-        _validate_strings(
-            "conan-recipes.packages", conan_recipes.packages, package_name_version_query_pattern
+        package_name_version_query_checker.validate(
+            "conan-recipes.packages", conan_recipes.packages
         )
 
-    # Parsing custom recipes
-    custom_recipes = json_data.get("custom-recipes", [])
-    if not isinstance(custom_recipes, list) or not all(isinstance(p, str) for p in custom_recipes):
-        raise TypeError("custom-recipes must be a list of strings")
-    _validate_strings("custom-recipes", custom_recipes, package_name_version_pattern)
+    # Parsing cmake recipes
+    cmake_recipes = []
+    for cmake_recipe in json_data.get("cmake-recipes", []):
+        if not isinstance(cmake_recipe, dict):
+            raise TypeError("cmake-recipes must be a list of dictionaries")
+        name_version = cmake_recipe.get("package")
+        package_name_version_checker.validate("cmake-recipes.package", [name_version])
+        name, version = name_version.split(":")
+        github_project = cmake_recipe.get("github-project")
+        source_branch = cmake_recipe.get("source-branch")
+        source_sha1 = cmake_recipe.get("source-sha1")
 
-    return DependenciesJson(dependencies, package_caches, conan_recipes, custom_recipes)
+        cmake_options = cmake_recipe.get("cmake-options", {})
+        if not isinstance(cmake_options, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in cmake_options.items()
+        ):
+            raise TypeError("cmake-recipes.cmake-options must be a dictionary of strings")
+
+        install_subdirs = cmake_recipe.get("install-subdirs", [])
+        if not isinstance(install_subdirs, list) or not all(
+            isinstance(d, str) for d in install_subdirs
+        ):
+            raise TypeError("cmake-recipes.install-subdirs must be a list of strings")
+
+        github_project_checker.validate("cmake-recipes.github-project", [github_project])
+        branch_name_checker.validate("cmake-recipes.source-branch", [source_branch])
+        sha1_checker.validate("cmake-recipes.source-sha1", [source_sha1])
+        cmake_recipes.append(
+            CMakeRecipe(
+                name=name,
+                version=version,
+                github_project=github_project,
+                source_branch=source_branch,
+                source_sha1=source_sha1,
+                cmake_options=cmake_options,
+                install_subdirs=install_subdirs,
+            )
+        )
+
+    return DependenciesJson(dependencies, package_caches, conan_recipes, cmake_recipes)
 
 
 def load_deps_json(deps_file_path: Optional[str]) -> DependenciesJson:
@@ -360,12 +422,25 @@ def download_package(deps: DependenciesJson, package_name: str, target_dir: str,
 # =================================================================================================
 
 
+@dataclass
+class BuildOptions:
+    clean_build: bool = False
+    skip_download_source: bool = False
+
+    @staticmethod
+    def parse(args: argparse.Namespace) -> "BuildOptions":
+        self = BuildOptions()
+        self.clean_build = args.clean_build
+        self.skip_download_source = args.skip_download_source
+        return self
+
+
 def get_buildable_package_names(deps: DependenciesJson) -> list[str]:
     names = []
     for pkg in deps.conan_recipes.packages:
         names.append(pkg.split(":")[0])
-    for pkg in deps.custom_recipes:
-        names.append(pkg.split(":")[0])
+    for recipe in deps.cmake_recipes:
+        names.append(recipe.name)
     return list(set(names))
 
 
@@ -382,16 +457,93 @@ def find_conan_recipe(
     return None
 
 
-# Returns package version from a given recipe or None
-def find_custom_recipe(deps_json: DependenciesJson, package_name: str) -> Optional[str]:
-    for pkg in deps_json.custom_recipes:
-        name, version = pkg.split(":")
-        if name == package_name:
-            return version
+def find_cmake_recipe(deps_json: DependenciesJson, package_name: str) -> Optional[CMakeRecipe]:
+    for recipe in deps_json.cmake_recipes:
+        if recipe.name == package_name:
+            return recipe
     return None
 
 
-def build_package(deps: DependenciesJson, package_name: str, target_dir: str):
+def is_git_repository(dir: str) -> bool:
+    return os.path.isdir(os.path.join(dir, ".git"))
+
+
+def github_update_source(
+    github_project: str, branch: str, sha1: str, dest_dir: str, skip_download: bool = False
+):
+    if not skip_download:
+        repo_url = f"https://github.com/{github_project}.git"
+
+        if is_git_repository(dest_dir):
+            subprocess.run(["git", "fetch"], cwd=dest_dir, check=True)
+            subprocess.run(["git", "checkout", branch], cwd=dest_dir, check=True)
+            subprocess.run(["git", "pull", "origin", branch], cwd=dest_dir, check=True)
+        else:
+            git_clone_cmd = ["git", "clone", "--branch", branch, repo_url, dest_dir]
+            subprocess.run(git_clone_cmd, check=True)
+
+    current_sha1 = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=dest_dir, check=True, stdout=subprocess.PIPE
+        )
+        .stdout.decode("utf-8")
+        .strip()
+    )
+    if current_sha1 != sha1:
+        subprocess.run(["git", "checkout", sha1], cwd=dest_dir, check=True)
+
+
+def configure_cmake_package(
+    cmake_recipe: CMakeRecipe, source_dir: str, build_dir: str, install_dir: str
+):
+    os.makedirs(build_dir, exist_ok=True)
+    cmake_cmd = ["cmake", "-S", source_dir, "-DCMAKE_INSTALL_PREFIX=" + install_dir]
+    cmake_cmd += [f"-D{key}={value}" for key, value in cmake_recipe.cmake_options.items()]
+
+    print("CMake command: " + str(cmake_cmd))
+    subprocess.run(cmake_cmd, cwd=build_dir, check=True)
+
+
+def build_cmake_package(
+    cmake_recipe: CMakeRecipe, target_dir: str, build_dir: str, options: BuildOptions
+) -> str:
+    print(f"Building cmake package: {cmake_recipe.name} (version: {cmake_recipe.version})")
+
+    src_dir = os.path.join(build_dir, "src")
+    install_dir = os.path.join(build_dir, "install")
+    build_dir = os.path.join(build_dir, "build")
+
+    check_commands_available(["git", "cmake"])
+
+    github_update_source(
+        cmake_recipe.github_project,
+        cmake_recipe.source_branch,
+        cmake_recipe.source_sha1,
+        src_dir,
+        options.skip_download_source,
+    )
+
+    prepare_target_dir(build_dir, options.clean_build, False)
+    prepare_target_dir(install_dir, True, False)
+    configure_cmake_package(cmake_recipe, src_dir, build_dir, install_dir)
+
+    build_cmd = ["cmake", "--build", ".", "--config", "Release", "--target", "install"]
+    print("Build command: " + str(build_cmd))
+    subprocess.run(build_cmd, cwd=build_dir, check=True)
+
+    install_subdirs = cmake_recipe.install_subdirs or ["include", "lib", "bin"]
+    copy_subdirs(cmake_recipe.name, target_dir, install_dir, install_subdirs)
+
+    return cmake_recipe.version
+
+
+def build_package(
+    deps: DependenciesJson,
+    package_name: str,
+    target_dir: str,
+    build_dir: str,
+    options: BuildOptions,
+) -> str:
     conan_recipe = find_conan_recipe(deps, package_name)
     if conan_recipe:
         packages = conan_list_packages(conan_recipe)
@@ -409,10 +561,10 @@ def build_package(deps: DependenciesJson, package_name: str, target_dir: str):
         copy_subdirs(package.name, target_dir, package_path, ["include", "lib", "bin"])
         return package.version
 
-    custom_version = find_custom_recipe(deps, package_name)
-    if custom_version:
-        print("TODO: custom build not implemented yet")
-        return custom_version
+    cmake_recipe = find_cmake_recipe(deps, package_name)
+    if cmake_recipe:
+        version = build_cmake_package(cmake_recipe, target_dir, build_dir, options)
+        return version
 
     assert False, f"Don't know how to build package: '{package_name}'"
 
@@ -423,7 +575,7 @@ def build_package(deps: DependenciesJson, package_name: str, target_dir: str):
 # TODO: update commands and help
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="install_deps",
         description="Installs dependencies needed for building libfwk or "
@@ -443,54 +595,71 @@ def parse_arguments():
         "By default it is 'windows/libraries/' inside libfwk's directory.",
     )
     parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="If specified then the target directory will be cleaned before "
+        "installing new libraries. When downloading all packages this is done by default.",
+    )
+
+    sub_parsers = parser.add_subparsers(help="Available commands:", dest="command")
+
+    download_parser = sub_parsers.add_parser(
+        "download", help="Download prebuilt packages from caches."
+    )
+    download_parser.add_argument(
         "--package-dir",
         type=str,
         help="Directory where downloaded packages will be stored. "
         "By default it is 'windows/packages/' inside libfwk's directory.",
     )
 
-    # TODO: change these to subcommands
-    # TODO: build is not a good name
-    parser.add_argument(
-        "--download",
+    build_parser = sub_parsers.add_parser(
+        "build",
+        help="Build packages locally by using recipies or by downloading it from conan center.",
+    )
+    package_parser = sub_parsers.add_parser(
+        "package", help="Build packages which can later be downloaded from caches."
+    )
+
+    sub_parsers.add_parser(
+        "list",
+        help="List packages which can be downloaded or built.",
+    )
+
+    for sub_parser in [build_parser, package_parser]:
+        sub_parser.add_argument(
+            "--clean-build",
+            action="store_true",
+            help="Build directory will be cleaned before configuring & building.",
+        )
+
+    build_parser.add_argument(
+        "--skip-download-source",
         action="store_true",
-        help="Download prebuilt packages from storages.",
+        help="Skip downloading sources if they are already present in the source directory.",
     )
 
-    parser.add_argument(
-        "--build",
-        action="store_true",
-        help="Don't download prebuilt packages from storage, instead get them from "
-        "conan or build them locally.",
-    )
-
-    parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="If specified then the target directory will be cleaned before "
-        "installing new libraries.",
-    )
-
-    parser.add_argument("--package", action="store_true", help="Build downloadable packages.")
-
-    parser.add_argument(
-        "--list-downloadable",
-        action="store_true",
-        help="Lists packages which can be downloaded.",
-    )
-
-    parser.add_argument(
-        "--list-buildable",
-        action="store_true",
-        help="Lists packages which can be built .",
-    )
-
-    parser.add_argument(
-        "packages",
-        nargs="*",
-        metavar="PACKAGE",
-        help="Packages to install. If omitted, installs all dependencies from dependencies.json.",
-    )
+    for sub_parser, help_text in [
+        (
+            download_parser,
+            "Selection of packages to download. If omitted all required dependencies will be downloaded.",
+        ),
+        (
+            build_parser,
+            "Selection of packages to build. If omitted all buildable packages will be built.",
+        ),
+        (
+            package_parser,
+            "Selection of packages to build and package. "
+            "If omitted all buildable packages will be built and packaged.",
+        ),
+    ]:
+        sub_parser.add_argument(
+            "packages",
+            nargs="*",
+            metavar="PACKAGE",
+            help=help_text,
+        )
 
     return parser.parse_args()
 
@@ -513,12 +682,9 @@ def main():
     deps_json = load_deps_json(args.deps_file)
     downloadable_packages = get_cached_package_names(deps_json)
     buildable_packages = get_buildable_package_names(deps_json)
-    available_packages = buildable_packages if args.build else downloadable_packages
 
-    if args.list_downloadable:
+    if args.command == "list":
         print(f"Downloadable packages: {downloadable_packages}")
-        return
-    if args.list_buildable:
         print(f"Buildable packages: {buildable_packages}")
         return
 
@@ -526,45 +692,51 @@ def main():
     if not selected_deps:
         selected_deps = deps_json.dependencies
 
-    # TODO: this is probably not needed
+    available_packages = downloadable_packages if args.command == "download" else buildable_packages
     unavailable_packages = [dep for dep in selected_deps if dep not in available_packages]
     if unavailable_packages:
         print(f"The following requested packages are not available: {unavailable_packages}")
         exit(1)
 
-    # TODO: multithreading for downloading
-
-    if args.download:
+    # TODO: multithreading for downloading & unpacking?
+    if args.command == "download":
         default_target_dir = os.path.join(libfwk_path(), "windows", "libraries")
         default_package_dir = os.path.join(libfwk_path(), "windows", "packages")
         target_dir = os.path.abspath(args.target_dir or default_target_dir)
         package_dir = os.path.abspath(args.package_dir or default_package_dir)
 
-        # TODO: shouldn't download command clean the target dir by default?
-        # especially when installing all packages
+        if args.packages is None and args.clean is None:
+            args.clean = True
+
         prepare_target_dir(target_dir, args.clean)
         prepare_target_dir(package_dir, False)
         for dep in selected_deps:
             download_package(deps_json, dep, target_dir, package_dir)
 
-    elif args.build:
+    elif args.command == "build":
         default_target_dir = os.path.join(libfwk_path(), "windows", "libraries")
         target_dir = os.path.abspath(args.target_dir or default_target_dir)
+        build_dir = os.path.join(libfwk_path(), "build", "dependencies")
+        build_options = BuildOptions.parse(args)
+
         prepare_target_dir(target_dir, args.clean)
         for dep in selected_deps:
-            build_package(deps_json, dep, target_dir)
+            package_build_dir = os.path.join(build_dir, dep)
+            build_package(deps_json, dep, target_dir, package_build_dir, build_options)
 
-    elif args.package:
-        target_dir = args.target_dir
-        if target_dir is None:
-            target_dir = os.path.abspath(os.path.join("build", "packages"))
+    elif args.command == "package":
+        build_dir = os.path.join(libfwk_path(), "build", "dependencies")
+        target_dir = args.target_dir or os.path.join(libfwk_path(), "windows", "packages")
+        build_options = BuildOptions.parse(args)
+
+        prepare_target_dir(target_dir, args.clean)
         download_strings = []
         for dep in selected_deps:
-            package_target_dir = os.path.join(target_dir, dep)
-            prepare_target_dir(package_target_dir, True)
-            version = build_package(deps_json, dep, package_target_dir)
-            file_name_base = f"{dep}_{version}"
-            zip_path = zip_directory(package_target_dir, file_name_base)
+            package_build_dir = os.path.join(build_dir, dep)
+            package_target_dir = os.path.join(package_build_dir, "install")
+            version = build_package(deps_json, dep, target_dir, package_build_dir, build_options)
+            zip_file_base = f"{dep}_{version}"
+            zip_path = zip_directory(package_target_dir, os.path.join(target_dir, zip_file_base))
             hash = compute_sha256_64(zip_path)
             download_strings.append(f"{dep}:{version}:{hash}")
 
