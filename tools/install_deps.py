@@ -22,6 +22,11 @@ from typing import Optional
 # TODO: ubuntu & windows package building in github action (runnable on demand)
 
 
+# =================================================================================================
+# region                                  Common functions
+# =================================================================================================
+
+
 def copy_subdirs(package_name: str, dst_dir: str, src_dir: str, subdirs: list[str]):
     for subdir in subdirs:
         dst_subdir = os.path.join(dst_dir, subdir)
@@ -78,10 +83,18 @@ def check_commands_available(commands: list[str]) -> bool:
             )
 
 
-# =================================== dependencies.json parsing ===================================
-# =================================================================================================
+def prepare_target_dir(dir: str, clean: bool, verbose: bool = True):
+    assert not os.path.isfile(dir)
+    if clean and os.path.isdir(dir):
+        if verbose:
+            print(f"Cleaning target directory: {dir}")
+        shutil.rmtree(dir)
+    os.makedirs(dir, exist_ok=True)
 
-# TODO: move classes to different sections?
+
+# =================================================================================================
+# region                                   Common classes
+# =================================================================================================
 
 
 @dataclass
@@ -119,6 +132,11 @@ class DependenciesJson:
     conan_recipes: ConanRecipes = field(default_factory=ConanRecipes)
     # Tuples: package_name:version
     cmake_recipes: list[str] = field(default_factory=list)
+
+
+# =================================================================================================
+# region                                 deps.json parsing
+# =================================================================================================
 
 
 class _PatternValidator:
@@ -269,7 +287,67 @@ def load_deps_json(deps_file_path: Optional[str]) -> DependenciesJson:
         return parse_dependencies_json(json.load(file))
 
 
-# =================================== Conan related functions =====================================
+# =================================================================================================
+# region                                     Package building
+# =================================================================================================
+
+
+@dataclass
+class BuildOptions:
+    clean_build: bool = False
+    skip_download_source: bool = False
+
+    @staticmethod
+    def parse(args: argparse.Namespace) -> "BuildOptions":
+        self = BuildOptions()
+        self.clean_build = args.clean_build
+        self.skip_download_source = args.skip_download_source
+        return self
+
+
+def get_buildable_package_names(deps: DependenciesJson) -> list[str]:
+    names = []
+    for pkg in deps.conan_recipes.packages:
+        names.append(pkg.split(":")[0])
+    for recipe in deps.cmake_recipes:
+        names.append(recipe.name)
+    return list(set(names))
+
+
+def build_package(
+    deps: DependenciesJson,
+    package_name: str,
+    target_dir: str,
+    build_dir: str,
+    options: BuildOptions,
+) -> str:
+    conan_recipe = find_conan_recipe(deps, package_name)
+    if conan_recipe:
+        packages = conan_list_packages(conan_recipe)
+        if not packages:
+            print(f"Downloading: {conan_recipe.pattern()}")
+            packages = conan_download_packages(conan_recipe)
+        if not packages:
+            print(f"Didn't download any matching packages for: {conan_recipe.pattern()}")
+            exit(1)
+
+        package = conan_get_best_package(packages)
+        package_path = conan_get_package_path(package)
+
+        print(f"Installing {package.pattern()} from: {package_path}")
+        copy_subdirs(package.name, target_dir, package_path, ["include", "lib", "bin"])
+        return package.version
+
+    cmake_recipe = find_cmake_recipe(deps, package_name)
+    if cmake_recipe:
+        version = build_cmake_package(cmake_recipe, target_dir, build_dir, options)
+        return version
+
+    assert False, f"Don't know how to build package: '{package_name}'"
+
+
+# =================================================================================================
+# region                                    Building Conan pkgs
 # =================================================================================================
 
 
@@ -295,6 +373,19 @@ class ConanPackageQuery:
 
     def pattern(self):
         return f"{self.name}/{self.version}"
+
+
+def find_conan_recipe(
+    deps_json: DependenciesJson, package_name: str
+) -> Optional[ConanPackageQuery]:
+    conan_recipes = deps_json.conan_recipes
+    for pkg in conan_recipes.packages:
+        name, version, query_name = pkg.split(":")
+        if name == package_name:
+            query = conan_recipes.queries.get(query_name)
+            assert query is not None
+            return ConanPackageQuery(package_name, version, query)
+    return None
 
 
 def conan_parse_packages_json(query: str, json_text: str) -> list[ConanPackageInfo]:
@@ -381,91 +472,9 @@ def conan_get_package_path(info: ConanPackageInfo):
     return result.stdout.decode("utf-8").split()[0]
 
 
-# ====================================== Package caches ===========================================
 # =================================================================================================
-
-
-def get_cached_package_names(deps: DependenciesJson) -> list[str]:
-    names = []
-    for cache in deps.package_caches:
-        for pkg in cache.packages:
-            names.append(pkg.split(":")[0])
-    return list(set(names))
-
-
-# Returns a tuple (version, full_url, hash)
-def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optional[tuple[str, str]]:
-    for cache in deps.package_caches:
-        for pkg in cache.packages:
-            name, version, hash = pkg.split(":")
-            if name == package_name:
-                return (version, cache.url + f"/{name}_{version}.zip", hash)
-    return None
-
-
-def download_package(deps: DependenciesJson, package_name: str, target_dir: str, package_dir: str):
-    cached_package = find_package_in_caches(deps, package_name)
-    if not cached_package:
-        print(f"Don't know how to download package: {package_name}")
-        exit(1)
-
-    (version, url, hash) = cached_package
-    print(f"Downloading package: {package_name}")
-    print(f"  Version: {version}")
-    print(f"  URL: {url}")
-
-    package_file_name = f"{package_name}_{version}.zip"
-    package_file_path = os.path.join(package_dir, package_file_name)
-    if os.path.isfile(package_file_path) and compute_sha256_64(package_file_path) == hash:
-        print(f"Package already downloaded: {package_file_path}")
-    else:
-        download_file_unsafe(url, package_file_path)
-        downloaded_hash = compute_sha256_64(package_file_path)
-        if downloaded_hash != hash:
-            print(f"Error: downloaded file has invalid hash: {package_file_path}")
-            print(f"File hash: {downloaded_hash} expected: {hash}")
-            exit(1)
-
-    shutil.unpack_archive(package_file_path, target_dir)
-
-
-# ====================================== Package building =========================================
+# region                                  Building CMake pkgs
 # =================================================================================================
-
-
-@dataclass
-class BuildOptions:
-    clean_build: bool = False
-    skip_download_source: bool = False
-
-    @staticmethod
-    def parse(args: argparse.Namespace) -> "BuildOptions":
-        self = BuildOptions()
-        self.clean_build = args.clean_build
-        self.skip_download_source = args.skip_download_source
-        return self
-
-
-def get_buildable_package_names(deps: DependenciesJson) -> list[str]:
-    names = []
-    for pkg in deps.conan_recipes.packages:
-        names.append(pkg.split(":")[0])
-    for recipe in deps.cmake_recipes:
-        names.append(recipe.name)
-    return list(set(names))
-
-
-def find_conan_recipe(
-    deps_json: DependenciesJson, package_name: str
-) -> Optional[ConanPackageQuery]:
-    conan_recipes = deps_json.conan_recipes
-    for pkg in conan_recipes.packages:
-        name, version, query_name = pkg.split(":")
-        if name == package_name:
-            query = conan_recipes.queries.get(query_name)
-            assert query is not None
-            return ConanPackageQuery(package_name, version, query)
-    return None
 
 
 def find_cmake_recipe(deps_json: DependenciesJson, package_name: str) -> Optional[CMakeRecipe]:
@@ -552,42 +561,59 @@ def build_cmake_package(
     return cmake_recipe.version
 
 
-def build_package(
-    deps: DependenciesJson,
-    package_name: str,
-    target_dir: str,
-    build_dir: str,
-    options: BuildOptions,
-) -> str:
-    conan_recipe = find_conan_recipe(deps, package_name)
-    if conan_recipe:
-        packages = conan_list_packages(conan_recipe)
-        if not packages:
-            print(f"Downloading: {conan_recipe.pattern()}")
-            packages = conan_download_packages(conan_recipe)
-        if not packages:
-            print(f"Didn't download any matching packages for: {conan_recipe.pattern()}")
-            exit(1)
-
-        package = conan_get_best_package(packages)
-        package_path = conan_get_package_path(package)
-
-        print(f"Installing {package.pattern()} from: {package_path}")
-        copy_subdirs(package.name, target_dir, package_path, ["include", "lib", "bin"])
-        return package.version
-
-    cmake_recipe = find_cmake_recipe(deps, package_name)
-    if cmake_recipe:
-        version = build_cmake_package(cmake_recipe, target_dir, build_dir, options)
-        return version
-
-    assert False, f"Don't know how to build package: '{package_name}'"
-
-
-# ========================================= Main script ===========================================
+# =================================================================================================
+# region                                   Package caches
 # =================================================================================================
 
-# TODO: update commands and help
+
+def get_cached_package_names(deps: DependenciesJson) -> list[str]:
+    names = []
+    for cache in deps.package_caches:
+        for pkg in cache.packages:
+            names.append(pkg.split(":")[0])
+    return list(set(names))
+
+
+# Returns a tuple (version, full_url, hash)
+def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optional[tuple[str, str]]:
+    for cache in deps.package_caches:
+        for pkg in cache.packages:
+            name, version, hash = pkg.split(":")
+            if name == package_name:
+                return (version, cache.url + f"/{name}_{version}.zip", hash)
+    return None
+
+
+def download_package(deps: DependenciesJson, package_name: str, target_dir: str, package_dir: str):
+    cached_package = find_package_in_caches(deps, package_name)
+    if not cached_package:
+        print(f"Don't know how to download package: {package_name}")
+        exit(1)
+
+    (version, url, hash) = cached_package
+    print(f"Downloading package: {package_name}")
+    print(f"  Version: {version}")
+    print(f"  URL: {url}")
+
+    package_file_name = f"{package_name}_{version}.zip"
+    package_file_path = os.path.join(package_dir, package_file_name)
+    if os.path.isfile(package_file_path) and compute_sha256_64(package_file_path) == hash:
+        print(f"Package already downloaded: {package_file_path}")
+    else:
+        download_file_unsafe(url, package_file_path)
+        downloaded_hash = compute_sha256_64(package_file_path)
+        if downloaded_hash != hash:
+            print(f"Error: downloaded file has invalid hash: {package_file_path}")
+            print(f"File hash: {downloaded_hash} expected: {hash}")
+            exit(1)
+
+    shutil.unpack_archive(package_file_path, target_dir)
+
+
+# =================================================================================================
+# region                                     Main script
+# =================================================================================================
+
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -677,15 +703,6 @@ def parse_arguments() -> argparse.Namespace:
         )
 
     return parser.parse_args()
-
-
-def prepare_target_dir(dir: str, clean: bool, verbose: bool = True):
-    assert not os.path.isfile(dir)
-    if clean and os.path.isdir(dir):
-        if verbose:
-            print(f"Cleaning target directory: {dir}")
-        shutil.rmtree(dir)
-    os.makedirs(dir, exist_ok=True)
 
 
 def main():
