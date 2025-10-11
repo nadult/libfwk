@@ -9,6 +9,11 @@ from typing import Optional
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: Add option to build only specific targets
+# TODO: better installed files filtering
+# TODO: option to compile library in release mode with /MDd
+# TODO: option to compile multiple versions of a given library (release, release-mdd, debug)
+# TODO: renaming of static libraries to have consistent suffixes
 # TODO: improve logging, maybe add some colors?
 # TODO: rename windows/libraries to windows/dependencies?
 # TODO: cleaning target directory vs cleaning build directory?
@@ -102,6 +107,7 @@ class CMakeRecipe:
     github_project: str
     source_branch: str
     source_sha1: str
+    after_checkout_commands: list[str] = field(default_factory=list)
     cmake_options: dict[str, str] = field(default_factory=dict)
     install_subdirs: list[str] = field(default_factory=list)
 
@@ -127,17 +133,32 @@ class _PatternValidator:
             raise ValueError(f"Invalid {title}: {invalid}. Must match pattern: {self.pattern}")
 
 
-def _validate_string_options(title: str, string: str, options: list[str]):
-    if not isinstance(string, str):
+def _validate_options(title: str, value: str, options: list[str]):
+    if not isinstance(value, str):
         raise TypeError(f"{title} must be a string")
-    if string not in options:
-        raise ValueError(f"Invalid {title}: {string}. Must be one of: {options}")
+    if value not in options:
+        raise ValueError(f"Invalid {title}: {value}. Must be one of: {options}")
 
 
 def _validate_url(url: str):
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise ValueError(f"Invalid URL: {url}")
+
+
+def _validate_list_type(title: str, value, expected_type):
+    if not isinstance(value, list) or not all(isinstance(v, expected_type) for v in value):
+        raise TypeError(f"{title} must be a list of {expected_type.__name__}")
+
+
+def _validate_dict_type(title: str, value, expected_key_type, expected_value_type):
+    if not isinstance(value, dict) or not all(
+        isinstance(k, expected_key_type) and isinstance(v, expected_value_type)
+        for k, v in value.items()
+    ):
+        raise TypeError(
+            f"{title} must be a dictionary of {expected_key_type.__name__} to {expected_value_type.__name__}"
+        )
 
 
 def parse_dependencies_json(json_data: dict) -> DependenciesJson:
@@ -165,8 +186,7 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
 
     # Parsing dependencies
     dependencies = json_data.get("dependencies", [])
-    if not isinstance(dependencies, list) or not all(isinstance(d, str) for d in dependencies):
-        raise TypeError("dependencies must be a list of strings")
+    _validate_list_type("dependencies", dependencies, str)
     package_name_checker.validate("dependencies", dependencies)
 
     # Parsing package caches
@@ -178,8 +198,8 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
             url=cache.get("url", ""),
             packages=cache.get("packages", []),
         )
-        _validate_string_options("package-cache.type", package_cache.type, package_source_types)
-        _validate_string_options(
+        _validate_options("package-cache.type", package_cache.type, package_source_types)
+        _validate_options(
             "package-cache.platform", package_cache.platform, package_source_platforms
         )
         _validate_url(package_cache.url)
@@ -192,15 +212,8 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
         conan_recipes_data = json_data.get("conan-recipes", {})
         conan_recipes.queries = conan_recipes_data.get("queries", {})
         conan_recipes.packages = conan_recipes_data.get("packages", [])
-        if not isinstance(conan_recipes.queries, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) for k, v in conan_recipes.queries.items()
-        ):
-            raise TypeError("conan-recipes.queries must be a dictionary of strings")
-        if not isinstance(conan_recipes.packages, list) or not all(
-            isinstance(p, str) for p in conan_recipes.packages
-        ):
-            raise TypeError("conan-recipes.packages must be a list of strings")
-
+        _validate_dict_type("conan-recipes.queries", conan_recipes.queries, str, str)
+        _validate_list_type("conan-recipes.packages", conan_recipes.packages, str)
         query_name_checker.validate(
             "conan-recipes.queries keys", list(conan_recipes.queries.keys())
         )
@@ -220,17 +233,14 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
         source_branch = cmake_recipe.get("source-branch")
         source_sha1 = cmake_recipe.get("source-sha1")
 
+        after_checkout_commands = cmake_recipe.get("after-checkout-commands", [])
+        _validate_list_type("cmake-recipes.after-checkout-commands", after_checkout_commands, str)
+
         cmake_options = cmake_recipe.get("cmake-options", {})
-        if not isinstance(cmake_options, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) for k, v in cmake_options.items()
-        ):
-            raise TypeError("cmake-recipes.cmake-options must be a dictionary of strings")
+        _validate_dict_type("cmake-recipes.cmake-options", cmake_options, str, str)
 
         install_subdirs = cmake_recipe.get("install-subdirs", [])
-        if not isinstance(install_subdirs, list) or not all(
-            isinstance(d, str) for d in install_subdirs
-        ):
-            raise TypeError("cmake-recipes.install-subdirs must be a list of strings")
+        _validate_list_type("cmake-recipes.install-subdirs", install_subdirs, str)
 
         github_project_checker.validate("cmake-recipes.github-project", [github_project])
         branch_name_checker.validate("cmake-recipes.source-branch", [source_branch])
@@ -242,6 +252,7 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
                 github_project=github_project,
                 source_branch=source_branch,
                 source_sha1=source_sha1,
+                after_checkout_commands=after_checkout_commands,
                 cmake_options=cmake_options,
                 install_subdirs=install_subdirs,
             )
@@ -522,6 +533,10 @@ def build_cmake_package(
         src_dir,
         options.skip_download_source,
     )
+
+    for cmd in cmake_recipe.after_checkout_commands:
+        print(f"Running command: {cmd}")
+        subprocess.run(cmd, cwd=src_dir, check=True, shell=True)
 
     prepare_target_dir(build_dir, options.clean_build, False)
     prepare_target_dir(install_dir, True, False)

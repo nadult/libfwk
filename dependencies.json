@@ -46,7 +46,6 @@
       "freetype:2.13.3:static-win",
       "ogg:1.3.5:static-win",
       "vorbis:1.3.7:static-win",
-      "shaderc:2024.1:static-win",
       "openal:1.22.2:shared-win",
       "vulkan-headers:1.3.236.0:any"
     ]
@@ -60,9 +59,40 @@
       "cmake-options": {
         "SDL_SHARED": "off",
         "SDL_STATIC": "on",
-        "CMAKE_BUILD_TYPE": "release"
+        "CMAKE_BUILD_TYPE": "Release"
       },
-      "install-subdirs": [ "include", "lib", "cmake", "licenses" ]
+      "install-subdirs": [
+        "include",
+        "lib",
+        "cmake",
+        "licenses"
+      ]
+    },
+    {
+      "package": "assimp:6.0.2",
+      "github-project": "assimp/assimp",
+      "source-branch": "v6.0.2",
+      "source-sha1": "fb375dd8c0a032106a2122815fb18dffe0283721",
+      "cmake-options": {
+        "BUILD_SHARED_LIBS": "off",
+        "ASSIMP_BUILD_TESTS": "off",
+        "ASSIMP_INSTALL_PDB": "off",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "package": "shaderc:2025.4",
+      "github-project": "google/shaderc",
+      "source-branch": "v2025.4",
+      "source-sha1": "73743588fe9c39f2f1c780a087d94afac691a189",
+      "after-checkout-commands": [
+        "python ./utils/git-sync-deps"
+      ],
+      "cmake-options": {
+        "SHADERC_SKIP_TESTS": "on",
+        "SHADERC_SKIP_EXAMPLES": "on",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ]
 }
