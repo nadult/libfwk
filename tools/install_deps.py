@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+# This file is part of libfwk. See license.txt for details.
+
 import argparse, hashlib, json, shutil, os, re, ssl, subprocess
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
@@ -9,8 +12,6 @@ from typing import Optional
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
-# TODO: Add option to build only specific targets
-# TODO: better installed files filtering
 # TODO: option to compile library in release mode with /MDd
 # TODO: option to compile multiple versions of a given library (release, release-mdd, debug)
 # TODO: renaming of static libraries to have consistent suffixes
@@ -20,7 +21,7 @@ from typing import Optional
 # TODO: building sdl3 & assimp
 # TODO: building missing packages on ubuntu
 # TODO: ubuntu & windows package building in github action (runnable on demand)
-
+# TODO: Add option to specify per-platform flags
 
 # =================================================================================================
 # region                                  Common functions
@@ -36,6 +37,31 @@ def copy_subdirs(package_name: str, dst_dir: str, src_dir: str, subdirs: list[st
         os.makedirs(dst_subdir, exist_ok=True)
         if os.path.isdir(src_subdir):
             shutil.copytree(src_subdir, dst_subdir, dirs_exist_ok=True)
+
+
+# File patterns are regexes matching relative paths. Additionally after colon they can have
+# a new name for the file. In such case it shouldn't be a regex, but a simple path.
+def install_files(dst_dir: str, src_dir: str, file_patterns_or_renames: list[str]):
+    # Copy files from src_dir to dst_dir if they match any of the patterns (without fnmatch)
+    os.makedirs(dst_dir, exist_ok=True)
+
+    file_patterns = [p for p in file_patterns_or_renames if ":" not in p]
+    compiled_patterns = [re.compile(p) for p in file_patterns]
+    file_renames = [p.split(":") for p in file_patterns_or_renames if ":" in p]
+
+    for root, _, files in os.walk(src_dir):
+        for fname in files:
+            src_path = os.path.join(root, fname)
+            rel_path = os.path.relpath(src_path, src_dir).replace(os.sep, "/")
+            if any(rgx.fullmatch(rel_path) for rgx in compiled_patterns):
+                dst_path = os.path.join(dst_dir, *rel_path.split("/"))
+                os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                shutil.copy2(src_path, dst_path)
+            for old_name, new_name in file_renames:
+                if rel_path == old_name:
+                    dst_path = os.path.join(dst_dir, *new_name.split("/"))
+                    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                    shutil.copy2(src_path, dst_path)
 
 
 # Computes first 64 bits (16 hex digits) of sha256 checksum
@@ -120,9 +146,10 @@ class CMakeRecipe:
     github_project: str
     source_branch: str
     source_sha1: str
+    source_patches: list[str] = field(default_factory=list)
     after_checkout_commands: list[str] = field(default_factory=list)
     cmake_options: dict[str, str] = field(default_factory=dict)
-    install_subdirs: list[str] = field(default_factory=list)
+    install_files: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -250,15 +277,14 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
         github_project = cmake_recipe.get("github-project")
         source_branch = cmake_recipe.get("source-branch")
         source_sha1 = cmake_recipe.get("source-sha1")
-
+        source_patches = cmake_recipe.get("source-patches", [])
+        _validate_list_type("cmake-recipes.source-patches", source_patches, str)
         after_checkout_commands = cmake_recipe.get("after-checkout-commands", [])
         _validate_list_type("cmake-recipes.after-checkout-commands", after_checkout_commands, str)
-
         cmake_options = cmake_recipe.get("cmake-options", {})
         _validate_dict_type("cmake-recipes.cmake-options", cmake_options, str, str)
-
-        install_subdirs = cmake_recipe.get("install-subdirs", [])
-        _validate_list_type("cmake-recipes.install-subdirs", install_subdirs, str)
+        install_files = cmake_recipe.get("install-files", [])
+        _validate_list_type("cmake-recipes.install-files", install_files, str)
 
         github_project_checker.validate("cmake-recipes.github-project", [github_project])
         branch_name_checker.validate("cmake-recipes.source-branch", [source_branch])
@@ -270,20 +296,19 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
                 github_project=github_project,
                 source_branch=source_branch,
                 source_sha1=source_sha1,
+                source_patches=source_patches,
                 after_checkout_commands=after_checkout_commands,
                 cmake_options=cmake_options,
-                install_subdirs=install_subdirs,
+                install_files=install_files,
             )
         )
 
     return DependenciesJson(dependencies, package_caches, conan_recipes, cmake_recipes)
 
 
-def load_deps_json(deps_file_path: Optional[str]) -> DependenciesJson:
-    if deps_file_path is None:
-        deps_file_path = os.path.join(os.getcwd(), "dependencies.json")
-    assert os.path.isfile(deps_file_path)
-    with open(deps_file_path, "r") as file:
+def load_deps_json(deps_json_path: str) -> DependenciesJson:
+    assert os.path.isfile(deps_json_path)
+    with open(deps_json_path, "r") as file:
         return parse_dependencies_json(json.load(file))
 
 
@@ -296,12 +321,14 @@ def load_deps_json(deps_file_path: Optional[str]) -> DependenciesJson:
 class BuildOptions:
     clean_build: bool = False
     skip_download_source: bool = False
+    deps_json_dir: Optional[str] = None
 
     @staticmethod
-    def parse(args: argparse.Namespace) -> "BuildOptions":
+    def parse(args: argparse.Namespace, deps_json_dir: str) -> "BuildOptions":
         self = BuildOptions()
         self.clean_build = args.clean_build
         self.skip_download_source = args.skip_download_source
+        self.deps_json_dir = deps_json_dir
         return self
 
 
@@ -495,10 +522,12 @@ def github_update_source(
         repo_url = f"https://github.com/{github_project}.git"
 
         if is_git_repository(dest_dir):
+            print(f"Updating existing repository: {github_project} to branch/tag: {branch}")
             subprocess.run(["git", "fetch"], cwd=dest_dir, check=True)
-            subprocess.run(["git", "checkout", branch], cwd=dest_dir, check=True)
+            subprocess.run(["git", "checkout", "-f", branch], cwd=dest_dir, check=True)
             subprocess.run(["git", "pull", "origin", branch], cwd=dest_dir, check=True)
         else:
+            print(f"Cloning repository: {github_project} branch/tag: {branch}")
             git_clone_cmd = ["git", "clone", "--branch", branch, repo_url, dest_dir]
             subprocess.run(git_clone_cmd, check=True)
 
@@ -510,6 +539,7 @@ def github_update_source(
         .strip()
     )
     if current_sha1 != sha1:
+        print(f"Checking out specific commit: {sha1}")
         subprocess.run(["git", "checkout", sha1], cwd=dest_dir, check=True)
 
 
@@ -543,6 +573,11 @@ def build_cmake_package(
         options.skip_download_source,
     )
 
+    for patch_file in cmake_recipe.source_patches:
+        patch_file_path = os.path.join(options.deps_json_dir, patch_file)
+        print(f"Applying patch: {patch_file_path}")
+        subprocess.run(["git", "apply", patch_file_path], cwd=src_dir, check=True)
+
     for cmd in cmake_recipe.after_checkout_commands:
         print(f"Running command: {cmd}")
         subprocess.run(cmd, cwd=src_dir, check=True, shell=True)
@@ -555,8 +590,7 @@ def build_cmake_package(
     print("Build command: " + str(build_cmd))
     subprocess.run(build_cmd, cwd=build_dir, check=True)
 
-    install_subdirs = cmake_recipe.install_subdirs or ["include", "lib", "bin"]
-    copy_subdirs(cmake_recipe.name, target_dir, install_dir, install_subdirs)
+    install_files(target_dir, install_dir, cmake_recipe.install_files or [".*"])
 
     return cmake_recipe.version
 
@@ -613,7 +647,6 @@ def download_package(deps: DependenciesJson, package_name: str, target_dir: str,
 # =================================================================================================
 # region                                     Main script
 # =================================================================================================
-
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -711,7 +744,9 @@ def main():
         print("Currently the only purpose of install_deps.py is to install dependencies on Windows")
         exit(1)
 
-    deps_json = load_deps_json(args.deps_file)
+    deps_json_path = args.deps_file or os.path.join(os.getcwd(), "dependencies.json")
+    deps_json_dir = os.path.dirname(os.path.abspath(deps_json_path))
+    deps_json = load_deps_json(deps_json_path)
     downloadable_packages = get_cached_package_names(deps_json)
     buildable_packages = get_buildable_package_names(deps_json)
 
@@ -749,7 +784,7 @@ def main():
         default_target_dir = os.path.join(libfwk_path(), "windows", "libraries")
         target_dir = os.path.abspath(args.target_dir or default_target_dir)
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
-        build_options = BuildOptions.parse(args)
+        build_options = BuildOptions.parse(args, deps_json_dir)
 
         prepare_target_dir(target_dir, args.clean)
         for dep in selected_deps:
@@ -759,7 +794,7 @@ def main():
     elif args.command == "package":
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
         target_dir = args.target_dir or os.path.join(libfwk_path(), "windows", "packages")
-        build_options = BuildOptions.parse(args)
+        build_options = BuildOptions.parse(args, deps_json_dir)
 
         prepare_target_dir(target_dir, args.clean)
         download_strings = []

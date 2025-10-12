@@ -9,7 +9,7 @@
     "openal",
     "sdl",
     "vorbis",
-    "shaderc",
+    "shaderc-combined",
     "vulkan-headers"
   ],
   "package-caches": [
@@ -58,14 +58,12 @@
       "source-sha1": "a8589a84226a6202831a3d49ff4edda4acab9acd",
       "cmake-options": {
         "SDL_SHARED": "off",
-        "SDL_STATIC": "on",
-        "CMAKE_BUILD_TYPE": "Release"
+        "SDL_STATIC": "on"
       },
-      "install-subdirs": [
-        "include",
-        "lib",
-        "cmake",
-        "licenses"
+      "install-files": [
+        "include/.*",
+        "lib/SDL3-static.lib:lib/SDL3.lib",
+        "licenses/SDL3/LICENSE.txt:lib/SDL3-license.txt"
       ]
     },
     {
@@ -76,23 +74,39 @@
       "cmake-options": {
         "BUILD_SHARED_LIBS": "off",
         "ASSIMP_BUILD_TESTS": "off",
-        "ASSIMP_INSTALL_PDB": "off",
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+        "ASSIMP_INSTALL_PDB": "off"
+      },
+      "install-files": [
+        "include/.*",
+        "lib/assimp-vc143-mt.lib:lib/assimp.lib"
+      ]
     },
     {
-      "package": "shaderc:2025.4",
+      "package": "shaderc-combined:2025.4",
       "github-project": "google/shaderc",
       "source-branch": "v2025.4",
       "source-sha1": "73743588fe9c39f2f1c780a087d94afac691a189",
+      "source-patches": [
+        "extern/patches/shaderc-msvc-runtime.patch"
+      ],
       "after-checkout-commands": [
         "python ./utils/git-sync-deps"
       ],
       "cmake-options": {
         "SHADERC_SKIP_TESTS": "on",
         "SHADERC_SKIP_EXAMPLES": "on",
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+        "SHADERC_SKIP_EXECUTABLES": "on",
+        "SHADERC_ENABLE_SHARED_CRT": "on",
+        "SKIP_SPIRV_TOOLS_INSTALL": "on",
+        "SPIRV_SKIP_EXECUTABLES": "on",
+        "SPIRV_SKIP_TESTS": "on",
+        "BUILD_SHARED_LIBS": "off",
+        "ENABLE_GLSLANG_BINARIES": "off"
+      },
+      "install-files": [
+        "include/.*",
+        "lib/shaderc_combined.lib:lib/shaderc-combined-md.lib"
+      ]
     }
   ]
 }

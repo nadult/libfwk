@@ -1,0 +1,21 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 06f5395..e815a3e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -120,8 +120,15 @@ if(MSVC)
+   option(SHADERC_ENABLE_SHARED_CRT
+           "Use the shared CRT instead of the static CRT"
+ 		  OFF)
++  option(SHADERC_ENABLE_SHARED_DEBUG_CRT
++		  "Use the shared debug CRT instead of the static CRT"
++		  OFF)
+   if (SHADERC_ENABLE_SHARED_CRT)
+-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
++    if (SHADERC_ENABLE_SHARED_DEBUG_CRT)
++      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
++	else()
++	  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
++	endif()
+   else()
+     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+   endif()
