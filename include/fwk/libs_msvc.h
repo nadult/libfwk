@@ -14,12 +14,17 @@
 #pragma comment(lib, "brotlicommon.lib")
 #pragma comment(lib, "bz2.lib")
 #pragma comment(lib, "zlib.lib")
-#pragma comment(lib, "shaderc_shared.lib")
 #pragma comment(lib, "setupapi.lib")
 #pragma comment(lib, "version.lib")
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "Imm32.lib")
 #pragma comment(lib, "dwrite.lib")
+
+#ifdef _DEBUG
+#pragma comment(lib, "shaderc-combined-mdd.lib")
+#else
+#pragma comment(lib, "shaderc-combined-md.lib")
+#endif
 
 #endif

@@ -26,7 +26,7 @@
         "ogg:1.3.5:ba627248ca9bd00a",
         "openal:1.22.2:664a53b70bc932f1",
         "sdl:3.2.20:13e44bb37998f54f",
-        "shaderc:2024.1:1cd8dd9317a12b80",
+        "shaderc-combined:2025.4:eddee4f144d5945a",
         "vorbis:1.3.7:13cfaa45fb57c387",
         "vulkan-headers:1.3.236.0:53b1434962d5432d"
       ]
@@ -87,7 +87,7 @@
       "source-branch": "v2025.4",
       "source-sha1": "73743588fe9c39f2f1c780a087d94afac691a189",
       "source-patches": [
-        "extern/patches/shaderc-msvc-runtime.patch"
+        "extern/patches/shaderc-combined.patch"
       ],
       "after-checkout-commands": [
         "python ./utils/git-sync-deps"
@@ -96,17 +96,32 @@
         "SHADERC_SKIP_TESTS": "on",
         "SHADERC_SKIP_EXAMPLES": "on",
         "SHADERC_SKIP_EXECUTABLES": "on",
+        "SHADERC_ONLY_COMBINED": "on",
         "SHADERC_ENABLE_SHARED_CRT": "on",
         "SKIP_SPIRV_TOOLS_INSTALL": "on",
         "SPIRV_SKIP_EXECUTABLES": "on",
         "SPIRV_SKIP_TESTS": "on",
+        "SPIRV_TOOLS_BUILD_STATIC": "on",
         "BUILD_SHARED_LIBS": "off",
         "ENABLE_GLSLANG_BINARIES": "off"
       },
-      "install-files": [
-        "include/.*",
-        "lib/shaderc_combined.lib:lib/shaderc-combined-md.lib"
-      ]
+      "builds": {
+        "windows:release:md": {
+          "install-files": [
+            "include/.*",
+            "lib/shaderc_combined.lib:lib/shaderc-combined-md.lib"
+          ]
+        },
+        "windows:release:mdd": {
+          "cmake-options": {
+            "SHADERC_ENABLE_SHARED_DEBUG_CRT": "on"
+          },
+          "install-files": [
+            "include/.*",
+            "lib/shaderc_combined.lib:lib/shaderc-combined-mdd.lib"
+          ]
+        }
+      }
     }
   ]
 }
