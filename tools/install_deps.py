@@ -12,9 +12,8 @@ from typing import Optional
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
-# TODO: option to compile library in release mode with /MDd
-# TODO: option to compile multiple versions of a given library (release, release-mdd, debug)
-# TODO: renaming of static libraries to have consistent suffixes
+# TODO: verify that libfwk is buildable with built dependencies? that would be costly?
+# TODO: add option to clean build directories?
 # TODO: improve logging, maybe add some colors?
 # TODO: rename windows/libraries to windows/dependencies?
 # TODO: cleaning target directory vs cleaning build directory?
@@ -118,6 +117,15 @@ def prepare_target_dir(dir: str, clean: bool, verbose: bool = True):
     os.makedirs(dir, exist_ok=True)
 
 
+def current_platform() -> str:
+    if os.name == "nt":
+        return "windows"
+    elif os.name == "posix":
+        return "linux"
+    else:
+        raise RuntimeError(f"Unsupported platform: {os.name}")
+
+
 # =================================================================================================
 # region                                 Parsing helpers
 # =================================================================================================
@@ -139,6 +147,9 @@ def _make_pattern_validators():
     branch_name = r"[A-Za-z0-9_.-]+"
     github_project = r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
     package_name = r"[a-z][a-z0-9-]*"
+    platform_name = r"(windows|linux)"
+    build_type = r"(release|debug)"
+    build_suffix = r"[a-z][a-z0-9-]*"
     query_name = r"[a-z][a-z0-9-]*"
     sha256_64 = r"[a-f0-9]{16}"
     sha1 = r"[a-f0-9]{40}"
@@ -146,6 +157,7 @@ def _make_pattern_validators():
 
     return {
         "branch_name": _PatternValidator(branch_name),
+        "build_name": _PatternValidator(rf"({platform_name})?:{build_type}:({build_suffix})?"),
         "github_project": _PatternValidator(github_project),
         "package_name": _PatternValidator(package_name),
         "package_name_version": _PatternValidator(rf"{package_name}:{version}"),
@@ -243,8 +255,33 @@ class ConanRecipes:
 
 @dataclass
 class CMakeBuild:
+    full_name: str = ""
+    platform: Optional[str] = None
+    build_type: str = ""
+    build_suffix: Optional[str] = None
     cmake_options: dict[str, str] = field(default_factory=dict)
     install_files: list[str] = field(default_factory=list)
+
+    @staticmethod
+    def parse(json: dict, full_name: str) -> "CMakeBuild":
+        full_name = full_name or ":release:"
+        _validate_pattern("build_name", "cmake-build name", [full_name])
+        platform, build_type, build_suffix = full_name.split(":")
+        platform = platform or None
+        build_suffix = build_suffix or None
+
+        cmake_options = json.get("cmake-options", {})
+        _validate_dict_type("cmake-build.cmake-options", cmake_options, str, str)
+        install_files = json.get("install-files", [])
+        _validate_list_type("cmake-build.install-files", install_files, str)
+        return CMakeBuild(
+            full_name, platform, build_type, build_suffix, cmake_options, install_files
+        )
+
+    def inherit_cmake_options(self, parent: "CMakeBuild"):
+        for key, value in parent.cmake_options.items():
+            if key not in self.cmake_options:
+                self.cmake_options[key] = value
 
 
 @dataclass
@@ -256,8 +293,8 @@ class CMakeRecipe:
     source_sha1: str
     source_patches: list[str] = field(default_factory=list)
     after_checkout_commands: list[str] = field(default_factory=list)
-    cmake_options: dict[str, str] = field(default_factory=dict)
-    install_files: list[str] = field(default_factory=list)
+    default_build: CMakeBuild = field(default_factory=CMakeBuild)
+    builds: list[CMakeBuild] = field(default_factory=list)
 
     @staticmethod
     def parse(json: dict) -> "CMakeRecipe":
@@ -267,20 +304,31 @@ class CMakeRecipe:
         _validate_pattern("package_name_version", "cmake-recipe.package", [name_version])
         name, version = name_version.split(":")
         github_project = json.get("github-project")
+        _validate_pattern("github_project", "cmake-recipe.github-project", [github_project])
         source_branch = json.get("source-branch")
+        _validate_pattern("branch_name", "cmake-recipe.source-branch", [source_branch])
         source_sha1 = json.get("source-sha1")
+        _validate_pattern("sha1", "cmake-recipe.source-sha1", [source_sha1])
         source_patches = json.get("source-patches", [])
         _validate_list_type("cmake-recipe.source-patches", source_patches, str)
         after_checkout_commands = json.get("after-checkout-commands", [])
         _validate_list_type("cmake-recipe.after-checkout-commands", after_checkout_commands, str)
-        cmake_options = json.get("cmake-options", {})
-        _validate_dict_type("cmake-recipe.cmake-options", cmake_options, str, str)
-        install_files = json.get("install-files", [])
-        _validate_list_type("cmake-recipe.install-files", install_files, str)
 
-        _validate_pattern("github_project", "cmake-recipe.github-project", [github_project])
-        _validate_pattern("branch_name", "cmake-recipe.source-branch", [source_branch])
-        _validate_pattern("sha1", "cmake-recipe.source-sha1", [source_sha1])
+        default_build = CMakeBuild.parse(json, "")
+        json_builds = json.get("builds", {})
+        _validate_dict_type("cmake-recipe.builds", json_builds, str, object)
+        builds = []
+        for build_name, json_build in json_builds.items():
+            build = CMakeBuild.parse(json_build, build_name)
+            if not build.install_files:
+                raise ValueError(f"Build '{build_name}' has no install files")
+            build.inherit_cmake_options(default_build)
+            builds.append(build)
+        if builds and default_build.install_files:
+            raise ValueError(
+                "If there are multiple builds then it makes no sense to specify "
+                "install-files for the default-build"
+            )
 
         return CMakeRecipe(
             name=name,
@@ -290,9 +338,14 @@ class CMakeRecipe:
             source_sha1=source_sha1,
             source_patches=source_patches,
             after_checkout_commands=after_checkout_commands,
-            cmake_options=cmake_options,
-            install_files=install_files,
+            default_build=default_build,
+            builds=builds,
         )
+
+    def get_builds(self) -> list[CMakeBuild]:
+        if not self.builds:
+            return [self.default_build]
+        return self.builds
 
 
 @dataclass
@@ -376,8 +429,8 @@ def build_package(
 
     cmake_recipe = find_cmake_recipe(deps, package_name)
     if cmake_recipe:
-        version = build_cmake_package(cmake_recipe, target_dir, build_dir, options)
-        return version
+        build_cmake_package(cmake_recipe, target_dir, build_dir, options)
+        return cmake_recipe.version
 
     assert False, f"Don't know how to build package: '{package_name}'"
 
@@ -553,55 +606,60 @@ def github_update_source(
 
 
 def configure_cmake_package(
-    cmake_recipe: CMakeRecipe, source_dir: str, build_dir: str, install_dir: str
+    cmake_build: CMakeBuild, source_dir: str, build_dir: str, install_dir: str
 ):
     os.makedirs(build_dir, exist_ok=True)
     cmake_cmd = ["cmake", "-S", source_dir, "-DCMAKE_INSTALL_PREFIX=" + install_dir]
-    cmake_cmd += [f"-D{key}={value}" for key, value in cmake_recipe.cmake_options.items()]
+    cmake_cmd += [f"-D{key}={value}" for key, value in cmake_build.cmake_options.items()]
+    cmake_cmd += [f"-DCMAKE_BUILD_TYPE={cmake_build.build_type}"]
 
     print("CMake command: " + str(cmake_cmd))
     subprocess.run(cmake_cmd, cwd=build_dir, check=True)
 
 
 def build_cmake_package(
-    cmake_recipe: CMakeRecipe, target_dir: str, build_dir: str, options: BuildOptions
-) -> str:
-    print(f"Building cmake package: {cmake_recipe.name} (version: {cmake_recipe.version})")
+    recipe: CMakeRecipe, target_dir: str, build_dir: str, options: BuildOptions
+):
+    print(f"Building cmake package: {recipe.name} (version: {recipe.version})")
 
-    src_dir = os.path.join(build_dir, "src")
-    install_dir = os.path.join(build_dir, "install")
-    build_dir = os.path.join(build_dir, "build")
-
+    src_sub_dir = os.path.join(build_dir, "src")
     check_commands_available(["git", "cmake"])
 
     github_update_source(
-        cmake_recipe.github_project,
-        cmake_recipe.source_branch,
-        cmake_recipe.source_sha1,
-        src_dir,
+        recipe.github_project,
+        recipe.source_branch,
+        recipe.source_sha1,
+        src_sub_dir,
         options.skip_download_source,
     )
 
-    for patch_file in cmake_recipe.source_patches:
+    for patch_file in recipe.source_patches:
         patch_file_path = os.path.join(options.deps_json_dir, patch_file)
         print(f"Applying patch: {patch_file_path}")
-        subprocess.run(["git", "apply", patch_file_path], cwd=src_dir, check=True)
+        subprocess.run(["git", "apply", patch_file_path], cwd=src_sub_dir, check=True)
 
-    for cmd in cmake_recipe.after_checkout_commands:
+    for cmd in recipe.after_checkout_commands:
         print(f"Running command: {cmd}")
-        subprocess.run(cmd, cwd=src_dir, check=True, shell=True)
+        subprocess.run(cmd, cwd=src_sub_dir, check=True, shell=True)
 
-    prepare_target_dir(build_dir, options.clean_build, False)
-    prepare_target_dir(install_dir, True, False)
-    configure_cmake_package(cmake_recipe, src_dir, build_dir, install_dir)
+    for build in recipe.get_builds():
+        if build.platform and build.platform != current_platform():
+            continue
+        print(f"Building configuration: {build.full_name}")
+        build_suffix = build.build_type + (f"_{build.build_suffix}" if build.build_suffix else "")
+        build_sub_dir = os.path.join(build_dir, f"build_{build_suffix}")
+        install_sub_dir = os.path.join(build_dir, f"install_{build_suffix}")
 
-    build_cmd = ["cmake", "--build", ".", "--config", "Release", "--target", "install"]
-    print("Build command: " + str(build_cmd))
-    subprocess.run(build_cmd, cwd=build_dir, check=True)
+        prepare_target_dir(build_sub_dir, options.clean_build, False)
+        prepare_target_dir(install_sub_dir, True, False)
 
-    install_files(target_dir, install_dir, cmake_recipe.install_files or [".*"])
+        configure_cmake_package(build, src_sub_dir, build_sub_dir, install_sub_dir)
 
-    return cmake_recipe.version
+        build_cmd = ["cmake", "--build", ".", "--config", build.build_type, "--target", "install"]
+        print("Build command: " + str(build_cmd))
+        subprocess.run(build_cmd, cwd=build_sub_dir, check=True)
+
+        install_files(target_dir, install_sub_dir, build.install_files or [".*"])
 
 
 # =================================================================================================
@@ -715,12 +773,11 @@ def parse_arguments() -> argparse.Namespace:
             action="store_true",
             help="Build directory will be cleaned before configuring & building.",
         )
-
-    build_parser.add_argument(
-        "--skip-download-source",
-        action="store_true",
-        help="Skip downloading sources if they are already present in the source directory.",
-    )
+        sub_parser.add_argument(
+            "--skip-download-source",
+            action="store_true",
+            help="Skip downloading sources if they are already present in the source directory.",
+        )
 
     for sub_parser, help_text in [
         (
@@ -811,8 +868,11 @@ def main():
         download_strings = []
         for dep in selected_deps:
             package_build_dir = os.path.join(build_dir, dep)
-            package_target_dir = os.path.join(package_build_dir, "install")
-            version = build_package(deps_json, dep, target_dir, package_build_dir, build_options)
+            package_target_dir = os.path.join(package_build_dir, "package")
+            prepare_target_dir(package_target_dir, True, False)
+            version = build_package(
+                deps_json, dep, package_target_dir, package_build_dir, build_options
+            )
             zip_file_base = f"{dep}_{version}"
             zip_path = zip_directory(package_target_dir, os.path.join(target_dir, zip_file_base))
             hash = compute_sha256_64(zip_path)
