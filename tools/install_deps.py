@@ -119,50 +119,7 @@ def prepare_target_dir(dir: str, clean: bool, verbose: bool = True):
 
 
 # =================================================================================================
-# region                                   Common classes
-# =================================================================================================
-
-
-@dataclass
-class PackageCache:
-    type: str
-    platform: str
-    url: str
-    # Tuples: package_name:version:hash
-    packages: list[str]
-
-
-@dataclass
-class ConanRecipes:
-    queries: dict[str, str] = field(default_factory=dict)
-    # Triples: package_name:version:query_name
-    packages: list[str] = field(default_factory=list)
-
-
-@dataclass
-class CMakeRecipe:
-    name: str
-    version: str
-    github_project: str
-    source_branch: str
-    source_sha1: str
-    source_patches: list[str] = field(default_factory=list)
-    after_checkout_commands: list[str] = field(default_factory=list)
-    cmake_options: dict[str, str] = field(default_factory=dict)
-    install_files: list[str] = field(default_factory=list)
-
-
-@dataclass
-class DependenciesJson:
-    dependencies: list[str] = field(default_factory=list)
-    package_caches: list[PackageCache] = field(default_factory=list)
-    conan_recipes: ConanRecipes = field(default_factory=ConanRecipes)
-    # Tuples: package_name:version
-    cmake_recipes: list[str] = field(default_factory=list)
-
-
-# =================================================================================================
-# region                                 deps.json parsing
+# region                                 Parsing helpers
 # =================================================================================================
 
 
@@ -215,10 +172,10 @@ def _validate_options(title: str, value: str, options: list[str]):
         raise ValueError(f"Invalid {title}: {value}. Must be one of: {options}")
 
 
-def _validate_url(url: str):
+def _validate_url(title: str, url: str):
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise ValueError(f"Invalid URL: {url}")
+        raise ValueError(f"Invalid URL in {title}: {url}")
 
 
 def _validate_list_type(title: str, value, expected_type):
@@ -236,93 +193,132 @@ def _validate_dict_type(title: str, value, expected_key_type, expected_value_typ
         )
 
 
-def parse_dependencies_json(json_data: dict) -> DependenciesJson:
-    package_source_types = ["github_release", "custom"]
-    package_source_platforms = ["windows", "linux"]
+# =================================================================================================
+# region                                   Common classes
+# =================================================================================================
 
-    # Parsing dependencies
-    dependencies = json_data.get("dependencies", [])
-    _validate_list_type("dependencies", dependencies, str)
-    _validate_pattern("package_name", "dependencies", dependencies)
 
-    # Parsing package caches
-    package_caches = []
-    for cache in json_data.get("package-caches", []):
-        package_cache = PackageCache(
-            type=cache["type"],
-            platform=cache["platform"],
-            url=cache.get("url", ""),
-            packages=cache.get("packages", []),
-        )
-        _validate_options("package-cache.type", package_cache.type, package_source_types)
-        _validate_options(
-            "package-cache.platform", package_cache.platform, package_source_platforms
-        )
-        _validate_url(package_cache.url)
-        _validate_pattern(
-            "package_name_version_hash", "package-cache.packages", package_cache.packages
-        )
-        package_caches.append(package_cache)
+@dataclass
+class PackageCache:
+    type: str
+    platform: str
+    url: str
+    # Tuples: package_name:version:hash
+    packages: list[str]
 
-    # Parsing conan recipes
-    conan_recipes = ConanRecipes()
-    if "conan-recipes" in json_data:
-        conan_recipes_data = json_data.get("conan-recipes", {})
-        conan_recipes.queries = conan_recipes_data.get("queries", {})
-        conan_recipes.packages = conan_recipes_data.get("packages", [])
-        _validate_dict_type("conan-recipes.queries", conan_recipes.queries, str, str)
-        _validate_list_type("conan-recipes.packages", conan_recipes.packages, str)
-        _validate_pattern(
-            "query_name", "conan-recipes.queries keys", list(conan_recipes.queries.keys())
-        )
-        _validate_pattern(
-            "package_name_version_query", "conan-recipes.packages", conan_recipes.packages
-        )
+    @staticmethod
+    def parse(json: dict) -> "PackageCache":
+        package_source_types = ["github_release", "custom"]
+        package_source_platforms = ["windows", "linux"]
 
-    # Parsing cmake recipes
-    cmake_recipes = []
-    for cmake_recipe in json_data.get("cmake-recipes", []):
-        if not isinstance(cmake_recipe, dict):
-            raise TypeError("cmake-recipes must be a list of dictionaries")
-        name_version = cmake_recipe.get("package")
-        _validate_pattern("package_name_version", "cmake-recipes.package", [name_version])
+        type = json["type"]
+        platform = json["platform"]
+        url = json["url"]
+        packages = json.get("packages", [])
+
+        _validate_options("package-cache.type", type, package_source_types)
+        _validate_options("package-cache.platform", platform, package_source_platforms)
+        _validate_url("package-cache.url", url)
+        _validate_pattern("package_name_version_hash", "package-cache.packages", packages)
+
+        return PackageCache(type, platform, url, packages)
+
+
+@dataclass
+class ConanRecipes:
+    queries: dict[str, str] = field(default_factory=dict)
+    # Triples: package_name:version:query_name
+    packages: list[str] = field(default_factory=list)
+
+    @staticmethod
+    def parse(json: dict) -> "ConanRecipes":
+        queries = json.get("queries", {})
+        packages = json.get("packages", [])
+        _validate_dict_type("conan-recipes.queries", queries, str, str)
+        _validate_list_type("conan-recipes.packages", packages, str)
+        _validate_pattern("query_name", "conan-recipes.queries keys", list(queries.keys()))
+        _validate_pattern("package_name_version_query", "conan-recipes.packages", packages)
+        return ConanRecipes(queries, packages)
+
+
+@dataclass
+class CMakeBuild:
+    cmake_options: dict[str, str] = field(default_factory=dict)
+    install_files: list[str] = field(default_factory=list)
+
+
+@dataclass
+class CMakeRecipe:
+    name: str
+    version: str
+    github_project: str
+    source_branch: str
+    source_sha1: str
+    source_patches: list[str] = field(default_factory=list)
+    after_checkout_commands: list[str] = field(default_factory=list)
+    cmake_options: dict[str, str] = field(default_factory=dict)
+    install_files: list[str] = field(default_factory=list)
+
+    @staticmethod
+    def parse(json: dict) -> "CMakeRecipe":
+        if not isinstance(json, dict):
+            raise TypeError("cmake-recipe must be a dictionary")
+        name_version = json.get("package")
+        _validate_pattern("package_name_version", "cmake-recipe.package", [name_version])
         name, version = name_version.split(":")
-        github_project = cmake_recipe.get("github-project")
-        source_branch = cmake_recipe.get("source-branch")
-        source_sha1 = cmake_recipe.get("source-sha1")
-        source_patches = cmake_recipe.get("source-patches", [])
-        _validate_list_type("cmake-recipes.source-patches", source_patches, str)
-        after_checkout_commands = cmake_recipe.get("after-checkout-commands", [])
-        _validate_list_type("cmake-recipes.after-checkout-commands", after_checkout_commands, str)
-        cmake_options = cmake_recipe.get("cmake-options", {})
-        _validate_dict_type("cmake-recipes.cmake-options", cmake_options, str, str)
-        install_files = cmake_recipe.get("install-files", [])
-        _validate_list_type("cmake-recipes.install-files", install_files, str)
+        github_project = json.get("github-project")
+        source_branch = json.get("source-branch")
+        source_sha1 = json.get("source-sha1")
+        source_patches = json.get("source-patches", [])
+        _validate_list_type("cmake-recipe.source-patches", source_patches, str)
+        after_checkout_commands = json.get("after-checkout-commands", [])
+        _validate_list_type("cmake-recipe.after-checkout-commands", after_checkout_commands, str)
+        cmake_options = json.get("cmake-options", {})
+        _validate_dict_type("cmake-recipe.cmake-options", cmake_options, str, str)
+        install_files = json.get("install-files", [])
+        _validate_list_type("cmake-recipe.install-files", install_files, str)
 
-        _validate_pattern("github_project", "cmake-recipes.github-project", [github_project])
-        _validate_pattern("branch_name", "cmake-recipes.source-branch", [source_branch])
-        _validate_pattern("sha1", "cmake-recipes.source-sha1", [source_sha1])
-        cmake_recipes.append(
-            CMakeRecipe(
-                name=name,
-                version=version,
-                github_project=github_project,
-                source_branch=source_branch,
-                source_sha1=source_sha1,
-                source_patches=source_patches,
-                after_checkout_commands=after_checkout_commands,
-                cmake_options=cmake_options,
-                install_files=install_files,
-            )
+        _validate_pattern("github_project", "cmake-recipe.github-project", [github_project])
+        _validate_pattern("branch_name", "cmake-recipe.source-branch", [source_branch])
+        _validate_pattern("sha1", "cmake-recipe.source-sha1", [source_sha1])
+
+        return CMakeRecipe(
+            name=name,
+            version=version,
+            github_project=github_project,
+            source_branch=source_branch,
+            source_sha1=source_sha1,
+            source_patches=source_patches,
+            after_checkout_commands=after_checkout_commands,
+            cmake_options=cmake_options,
+            install_files=install_files,
         )
 
-    return DependenciesJson(dependencies, package_caches, conan_recipes, cmake_recipes)
 
+@dataclass
+class DependenciesJson:
+    dependencies: list[str] = field(default_factory=list)
+    package_caches: list[PackageCache] = field(default_factory=list)
+    conan_recipes: ConanRecipes = field(default_factory=ConanRecipes)
+    cmake_recipes: list[CMakeRecipe] = field(default_factory=list)
 
-def load_deps_json(deps_json_path: str) -> DependenciesJson:
-    assert os.path.isfile(deps_json_path)
-    with open(deps_json_path, "r") as file:
-        return parse_dependencies_json(json.load(file))
+    @staticmethod
+    def parse(json: dict) -> "DependenciesJson":
+        dependencies = json.get("dependencies", [])
+        _validate_list_type("dependencies", dependencies, str)
+        _validate_pattern("package_name", "dependencies", dependencies)
+
+        package_caches = [
+            PackageCache.parse(json_cache) for json_cache in json.get("package-caches", [])
+        ]
+
+        conan_recipes = ConanRecipes.parse(json.get("conan-recipes", {}))
+
+        cmake_recipes = [
+            CMakeRecipe.parse(json_recipe) for json_recipe in json.get("cmake-recipes", [])
+        ]
+
+        return DependenciesJson(dependencies, package_caches, conan_recipes, cmake_recipes)
 
 
 # =================================================================================================
@@ -759,7 +755,9 @@ def main():
 
     deps_json_path = args.deps_file or os.path.join(os.getcwd(), "dependencies.json")
     deps_json_dir = os.path.dirname(os.path.abspath(deps_json_path))
-    deps_json = load_deps_json(deps_json_path)
+    with open(deps_json_path, "r") as file:
+        deps_json = DependenciesJson.parse(json.load(file))
+
     downloadable_packages = get_cached_package_names(deps_json)
     buildable_packages = get_buildable_package_names(deps_json)
 
