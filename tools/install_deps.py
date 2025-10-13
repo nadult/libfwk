@@ -178,6 +178,36 @@ class _PatternValidator:
             raise ValueError(f"Invalid {title}: {invalid}. Must match pattern: {self.pattern}")
 
 
+def _make_pattern_validators():
+    branch_name = r"[A-Za-z0-9_.-]+"
+    github_project = r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
+    package_name = r"[a-z][a-z0-9-]*"
+    query_name = r"[a-z][a-z0-9-]*"
+    sha256_64 = r"[a-f0-9]{16}"
+    sha1 = r"[a-f0-9]{40}"
+    version = r"\d+(\.\d+)*(-\d+)?"
+
+    return {
+        "branch_name": _PatternValidator(branch_name),
+        "github_project": _PatternValidator(github_project),
+        "package_name": _PatternValidator(package_name),
+        "package_name_version": _PatternValidator(rf"{package_name}:{version}"),
+        "package_name_version_hash": _PatternValidator(rf"{package_name}:{version}:{sha256_64}"),
+        "package_name_version_query": _PatternValidator(rf"{package_name}:{version}:{query_name}"),
+        "query_name": _PatternValidator(query_name),
+        "sha1": _PatternValidator(sha1),
+    }
+
+
+_pattern_validators = _make_pattern_validators()
+
+
+def _validate_pattern(validator_name: str, title: str, values: list[str]):
+    validator = _pattern_validators.get(validator_name)
+    assert validator
+    validator.validate(title, values)
+
+
 def _validate_options(title: str, value: str, options: list[str]):
     if not isinstance(value, str):
         raise TypeError(f"{title} must be a string")
@@ -210,29 +240,10 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
     package_source_types = ["github_release", "custom"]
     package_source_platforms = ["windows", "linux"]
 
-    package_name_pattern = r"[a-z][a-z0-9-]+"
-    query_name_pattern = r"[a-z][a-z0-9-]+"
-    version_pattern = r"\d+(\.\d+)*(-\d+)?"
-    sha256_64_pattern = r"[a-f0-9]{16}"
-
-    branch_name_checker = _PatternValidator(r"[A-Za-z0-9_.-]+")
-    sha1_checker = _PatternValidator(r"[a-f0-9]{40}")
-    github_project_checker = _PatternValidator(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
-
-    package_name_checker = _PatternValidator(package_name_pattern)
-    query_name_checker = _PatternValidator(query_name_pattern)
-    package_name_version_checker = _PatternValidator(rf"{package_name_pattern}:{version_pattern}")
-    package_name_version_hash_checker = _PatternValidator(
-        rf"{package_name_pattern}:{version_pattern}:{sha256_64_pattern}"
-    )
-    package_name_version_query_checker = _PatternValidator(
-        rf"{package_name_pattern}:{version_pattern}:{query_name_pattern}"
-    )
-
     # Parsing dependencies
     dependencies = json_data.get("dependencies", [])
     _validate_list_type("dependencies", dependencies, str)
-    package_name_checker.validate("dependencies", dependencies)
+    _validate_pattern("package_name", "dependencies", dependencies)
 
     # Parsing package caches
     package_caches = []
@@ -248,7 +259,9 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
             "package-cache.platform", package_cache.platform, package_source_platforms
         )
         _validate_url(package_cache.url)
-        package_name_version_hash_checker.validate("package-cache.packages", package_cache.packages)
+        _validate_pattern(
+            "package_name_version_hash", "package-cache.packages", package_cache.packages
+        )
         package_caches.append(package_cache)
 
     # Parsing conan recipes
@@ -259,11 +272,11 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
         conan_recipes.packages = conan_recipes_data.get("packages", [])
         _validate_dict_type("conan-recipes.queries", conan_recipes.queries, str, str)
         _validate_list_type("conan-recipes.packages", conan_recipes.packages, str)
-        query_name_checker.validate(
-            "conan-recipes.queries keys", list(conan_recipes.queries.keys())
+        _validate_pattern(
+            "query_name", "conan-recipes.queries keys", list(conan_recipes.queries.keys())
         )
-        package_name_version_query_checker.validate(
-            "conan-recipes.packages", conan_recipes.packages
+        _validate_pattern(
+            "package_name_version_query", "conan-recipes.packages", conan_recipes.packages
         )
 
     # Parsing cmake recipes
@@ -272,7 +285,7 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
         if not isinstance(cmake_recipe, dict):
             raise TypeError("cmake-recipes must be a list of dictionaries")
         name_version = cmake_recipe.get("package")
-        package_name_version_checker.validate("cmake-recipes.package", [name_version])
+        _validate_pattern("package_name_version", "cmake-recipes.package", [name_version])
         name, version = name_version.split(":")
         github_project = cmake_recipe.get("github-project")
         source_branch = cmake_recipe.get("source-branch")
@@ -286,9 +299,9 @@ def parse_dependencies_json(json_data: dict) -> DependenciesJson:
         install_files = cmake_recipe.get("install-files", [])
         _validate_list_type("cmake-recipes.install-files", install_files, str)
 
-        github_project_checker.validate("cmake-recipes.github-project", [github_project])
-        branch_name_checker.validate("cmake-recipes.source-branch", [source_branch])
-        sha1_checker.validate("cmake-recipes.source-sha1", [source_sha1])
+        _validate_pattern("github_project", "cmake-recipes.github-project", [github_project])
+        _validate_pattern("branch_name", "cmake-recipes.source-branch", [source_branch])
+        _validate_pattern("sha1", "cmake-recipes.source-sha1", [source_sha1])
         cmake_recipes.append(
             CMakeRecipe(
                 name=name,
