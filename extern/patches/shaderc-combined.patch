@@ -19,25 +19,3 @@ index 06f5395..e815a3e 100644
    else()
      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
    endif()
-diff --git a/libshaderc/CMakeLists.txt b/libshaderc/CMakeLists.txt
-index df9a88d..572822c 100644
---- a/libshaderc/CMakeLists.txt
-+++ b/libshaderc/CMakeLists.txt
-@@ -43,7 +43,7 @@ target_compile_definitions(shaderc_shared
- )
- set_target_properties(shaderc_shared PROPERTIES SOVERSION 1)
- 
--if(SHADERC_ENABLE_INSTALL)
-+if(SHADERC_ENABLE_INSTALL AND NOT SHADERC_ONLY_COMBINED)
-   install(
-     FILES
-       include/shaderc/env.h
-@@ -59,7 +59,7 @@ if(SHADERC_ENABLE_INSTALL)
-     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-     BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}
-     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
--endif(SHADERC_ENABLE_INSTALL)
-+endif(SHADERC_ENABLE_INSTALL AND NOT SHADERC_ONLY_COMBINED)
- 
- find_package(Threads)
- set(SHADERC_LIBS

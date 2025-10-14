@@ -30,7 +30,7 @@ jobs:
         name: Install dependencies
         shell: cmd
         run: |
-          python tools/install_deps.py --download
+          python tools/install_deps.py download
 
       - name: Build libfwk, tests & tools
         shell: cmd
