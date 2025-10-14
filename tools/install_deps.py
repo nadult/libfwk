@@ -3,6 +3,7 @@
 # Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 # This file is part of libfwk. See license.txt for details.
 
+import enum
 import argparse, hashlib, json, shutil, os, re, ssl, subprocess
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
@@ -14,7 +15,6 @@ from typing import Optional
 
 # TODO: verify that libfwk is buildable with built dependencies? that would be costly?
 # TODO: add option to clean build directories?
-# TODO: improve logging, maybe add some colors?
 # TODO: rename windows/libraries to windows/dependencies?
 # TODO: cleaning target directory vs cleaning build directory?
 # TODO: building sdl3 & assimp
@@ -25,6 +25,69 @@ from typing import Optional
 # =================================================================================================
 # region                                  Common functions
 # =================================================================================================
+
+
+class Color(enum.Enum):
+    DEFAULT = 0
+    BLACK = 30
+    RED = 31
+    GREEN = 32
+    YELLOW = 33
+    BLUE = 34
+    MAGENTA = 35
+    CYAN = 36
+    WHITE = 37
+    HI_BLACK = 90
+    HI_RED = 91
+    HI_GREEN = 92
+    HI_YELLOW = 93
+    HI_BLUE = 94
+    HI_MAGENTA = 95
+    HI_CYAN = 96
+    HI_WHITE = 97
+
+
+class Style(enum.Enum):
+    REGULAR = 0
+    BOLD = 1
+    UNDERLINE = 4
+
+
+def ansi_code(color: Color, style: Style = Style.REGULAR) -> str:
+    if color == Color.DEFAULT:
+        return f"\033[{style.value}m"
+    return f"\033[{style.value};{color.value}m"
+
+
+def ansi_reset_code() -> str:
+    return "\033[0m"
+
+
+def stylize_text(text: str, color: Color, style: Style = Style.REGULAR) -> str:
+    return f"{ansi_code(color, style)}{text}{ansi_reset_code()}"
+
+
+def print_title(title: str, color: Color = Color.DEFAULT, style: Style = Style.REGULAR):
+    title_width = len(title) + 2
+    title = f" {ansi_code(color, style)}{title}{ansi_reset_code()} "
+    console_width = min(shutil.get_terminal_size((80, 20)).columns, 100)
+    left_width = (console_width - title_width) // 2
+    right_width = console_width - title_width - left_width
+    left_width = max(left_width, 3)
+    right_width = max(right_width, 3)
+    print(f"\n{'=' * left_width}{title}{'=' * right_width}\n")
+
+
+def print_color(text: str, color: Color, style: Style = Style.REGULAR):
+    print(stylize_text(text, color, style))
+
+
+def print_step(text: str):
+    print_color(f"\n(*) {text}", Color.DEFAULT, Style.BOLD)
+
+
+def print_error(text: str):
+    print_color(text, Color.RED, Style.BOLD)
 
 
 def copy_subdirs(package_name: str, dst_dir: str, src_dir: str, subdirs: list[str]):
@@ -89,9 +152,10 @@ def zip_directory(target_dir: str, zip_path_base: Optional[str] = None) -> Optio
 
     zip_path_base = zip_path_base or target_dir
     zip_path = zip_path_base + ".zip"
+    print_step(f"Creating archive: {zip_path}")
+
     if os.path.exists(zip_path):
         os.remove(zip_path)
-    print(f"Creating archive: {zip_path}")
     shutil.make_archive(zip_path_base, "zip", root_dir=target_dir, base_dir=".")
     return zip_path
 
@@ -103,9 +167,10 @@ def libfwk_path():
 def check_commands_available(commands: list[str]) -> bool:
     for command in commands:
         if shutil.which(command) is None:
-            raise RuntimeError(
+            print_error(
                 f"Command missing: {command} please install it first before running this script"
             )
+            exit(1)
 
 
 def prepare_target_dir(dir: str, clean: bool, verbose: bool = True):
@@ -593,13 +658,11 @@ def github_update_source(
             git_clone_cmd = ["git", "clone", "--branch", branch, repo_url, dest_dir]
             subprocess.run(git_clone_cmd, check=True)
 
-    current_sha1 = (
-        subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=dest_dir, check=True, stdout=subprocess.PIPE
-        )
-        .stdout.decode("utf-8")
-        .strip()
+    rev_parse_result = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=dest_dir, check=True, stdout=subprocess.PIPE
     )
+    current_sha1 = rev_parse_result.stdout.decode("utf-8").strip()
+
     if current_sha1 != sha1:
         print(f"Checking out specific commit: {sha1}")
         subprocess.run(["git", "checkout", sha1], cwd=dest_dir, check=True)
@@ -620,11 +683,12 @@ def configure_cmake_package(
 def build_cmake_package(
     recipe: CMakeRecipe, target_dir: str, build_dir: str, options: BuildOptions
 ):
-    print(f"Building cmake package: {recipe.name} (version: {recipe.version})")
+    print_title(f"Building CMake package: {recipe.name}", Color.DEFAULT, Style.BOLD)
 
     src_sub_dir = os.path.join(build_dir, "src")
     check_commands_available(["git", "cmake"])
 
+    print_step("Updating source code")
     github_update_source(
         recipe.github_project,
         recipe.source_branch,
@@ -633,11 +697,15 @@ def build_cmake_package(
         options.skip_download_source,
     )
 
+    if recipe.source_patches:
+        print_step("Applying patches")
     for patch_file in recipe.source_patches:
         patch_file_path = os.path.join(options.deps_json_dir, patch_file)
         print(f"Applying patch: {patch_file_path}")
         subprocess.run(["git", "apply", patch_file_path], cwd=src_sub_dir, check=True)
 
+    if recipe.after_checkout_commands:
+        print_step("Running after checkout commands")
     for cmd in recipe.after_checkout_commands:
         print(f"Running command: {cmd}")
         subprocess.run(cmd, cwd=src_sub_dir, check=True, shell=True)
@@ -645,7 +713,7 @@ def build_cmake_package(
     for build in recipe.get_builds():
         if build.platform and build.platform != current_platform():
             continue
-        print(f"Building configuration: {build.full_name}")
+        print_step(f"Configuring build: {build.full_name}")
         build_suffix = build.build_type + (f"_{build.build_suffix}" if build.build_suffix else "")
         build_sub_dir = os.path.join(build_dir, f"build_{build_suffix}")
         install_sub_dir = os.path.join(build_dir, f"install_{build_suffix}")
@@ -655,10 +723,12 @@ def build_cmake_package(
 
         configure_cmake_package(build, src_sub_dir, build_sub_dir, install_sub_dir)
 
+        print_step(f"Running build: {build.full_name}")
         build_cmd = ["cmake", "--build", ".", "--config", build.build_type, "--target", "install"]
         print("Build command: " + str(build_cmd))
         subprocess.run(build_cmd, cwd=build_sub_dir, check=True)
 
+        print_step(f"Installing files for build: {build.full_name}")
         install_files(target_dir, install_sub_dir, build.install_files or [".*"])
 
 
@@ -681,7 +751,8 @@ def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optiona
         for pkg in cache.packages:
             name, version, hash = pkg.split(":")
             if name == package_name:
-                return (version, cache.url + f"/{name}_{version}.zip", hash)
+                additional_slash = "" if cache.url.endswith("/") else "/"
+                return (version, f"{cache.url}{additional_slash}{name}_{version}.zip", hash)
     return None
 
 
@@ -692,23 +763,25 @@ def download_package(deps: DependenciesJson, package_name: str, target_dir: str,
         exit(1)
 
     (version, url, hash) = cached_package
-    print(f"Downloading package: {package_name}")
+    print(f"Downloading package: {stylize_text(package_name, Color.DEFAULT, Style.BOLD)}")
     print(f"  Version: {version}")
-    print(f"  URL: {url}")
 
     package_file_name = f"{package_name}_{version}.zip"
     package_file_path = os.path.join(package_dir, package_file_name)
     if os.path.isfile(package_file_path) and compute_sha256_64(package_file_path) == hash:
-        print(f"Package already downloaded: {package_file_path}")
+        print(f"  Package already downloaded: {package_file_path}")
     else:
+        print(f"  Downloading from: {url}")
         download_file_unsafe(url, package_file_path)
         downloaded_hash = compute_sha256_64(package_file_path)
         if downloaded_hash != hash:
-            print(f"Error: downloaded file has invalid hash: {package_file_path}")
-            print(f"File hash: {downloaded_hash} expected: {hash}")
+            print_error(f"Error: downloaded file has invalid hash: {package_file_path}")
+            print_error(f"File hash: {downloaded_hash} expected: {hash}")
             exit(1)
 
+    print(f"  Unpacking to: {target_dir}")
     shutil.unpack_archive(package_file_path, target_dir)
+    print("")
 
 
 # =================================================================================================
@@ -807,7 +880,9 @@ def parse_arguments() -> argparse.Namespace:
 def main():
     args = parse_arguments()
     if os.name != "nt":
-        print("Currently the only purpose of install_deps.py is to install dependencies on Windows")
+        print_error(
+            "Currently the only purpose of install_deps.py is to install " "dependencies on Windows"
+        )
         exit(1)
 
     deps_json_path = args.deps_file or os.path.join(os.getcwd(), "dependencies.json")
@@ -830,11 +905,12 @@ def main():
     available_packages = downloadable_packages if args.command == "download" else buildable_packages
     unavailable_packages = [dep for dep in selected_deps if dep not in available_packages]
     if unavailable_packages:
-        print(f"The following requested packages are not available: {unavailable_packages}")
+        print_error(f"The following requested packages are not available: {unavailable_packages}")
         exit(1)
 
     # TODO: multithreading for downloading & unpacking?
     if args.command == "download":
+        print_title("Downloading pre-built packages", Color.DEFAULT, Style.BOLD)
         default_target_dir = os.path.join(libfwk_path(), "windows", "libraries")
         default_package_dir = os.path.join(libfwk_path(), "windows", "packages")
         target_dir = os.path.abspath(args.target_dir or default_target_dir)
@@ -878,7 +954,7 @@ def main():
             hash = compute_sha256_64(zip_path)
             download_strings.append(f"{dep}:{version}:{hash}")
 
-        print("Built packages (name:version:hash):")
+        print_color("\nBuilt packages (name:version:hash):", Color.DEFAULT, Style.BOLD)
         for download_string in download_strings:
             print(f"  {download_string}")
 
