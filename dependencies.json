@@ -32,24 +32,33 @@
       ]
     }
   ],
-  "conan-recipes": {
-    "queries": {
-      "shared-win": "os=Windows and arch=x86_64 and options.shared=True",
-      "static-win": "os=Windows and arch=x86_64 and options.shared=False",
-      "any": ""
-    },
-    "packages": [
-      "zlib:1.3.1:static-win",
-      "bzip2:1.0.8:static-win",
-      "brotli:1.1.0:static-win",
-      "libpng:1.6.44:static-win",
-      "freetype:2.13.3:static-win",
-      "ogg:1.3.5:static-win",
-      "vorbis:1.3.7:static-win",
-      "openal:1.22.2:shared-win",
-      "vulkan-headers:1.3.236.0:any"
-    ]
-  },
+  "conan-recipes": [
+      {
+        "queries": {
+          "any": ""
+        },
+        "packages": [
+          "vulkan-headers:1.3.236.0:any"
+        ]
+      },
+      {
+        "platform": "windows",
+        "queries": {
+          "shared": "os=windows and arch=x86_64 and options.shared=true",
+          "static": "os=windows and arch=x86_64 and options.shared=false"
+        },
+        "packages": [
+          "zlib:1.3.1:static",
+          "bzip2:1.0.8:static",
+          "brotli:1.1.0:static",
+          "libpng:1.6.44:static",
+          "freetype:2.13.3:static",
+          "ogg:1.3.5:static",
+          "vorbis:1.3.7:static",
+          "openal:1.22.2:shared"
+        ]
+      }
+  ],
   "cmake-recipes": [
     {
       "package": "sdl:3.2.24",
@@ -63,6 +72,7 @@
       "install-files": [
         "include/.*",
         "lib/SDL3-static.lib:lib/SDL3.lib",
+        "lib/libSDL3.a",
         "licenses/SDL3/LICENSE.txt:lib/SDL3-license.txt"
       ]
     },
@@ -78,7 +88,8 @@
       },
       "install-files": [
         "include/.*",
-        "lib/assimp-vc143-mt.lib:lib/assimp.lib"
+        "lib/assimp-vc143-mt.lib:lib/assimp.lib",
+        "lib/libassimp.a"
       ]
     },
     {
@@ -117,6 +128,12 @@
           },
           "install-files": [
             "lib/shaderc_combined.lib:lib/shaderc-combined-mdd.lib"
+          ]
+        },
+        "linux:release:": {
+          "install-files": [
+            "include/.*",
+            "lib/libshaderc_combined.a:lib/libshaderc-combined.a"
           ]
         }
       }

@@ -17,7 +17,7 @@ all: lib tools tests
 
 CFLAGS_linux  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
 CFLAGS_mingw  = $(shell $(PKG_CONFIG) --cflags $(LIBS_shared)) -Umain
-CFLAGS        = -Isrc/ -Iextern/imgui/
+CFLAGS        = -Isrc/ -Iextern/imgui/ -Idependencies/include/
 BUILD_DIR     = $(FWK_BUILD_DIR)
 PCH_SOURCE   := src/fwk_pch.h
 

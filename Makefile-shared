@@ -110,8 +110,8 @@ endif
 # --- Compilation & linking flags -----------------------------------------------------------------
 
 HTML_shared  := -s EXIT_RUNTIME=1 -s USE_SDL=2 -s USE_VORBIS=1 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s USE_ZLIB=1
-LIBS_shared  += freetype2 sdl2 vorbisfile
-LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lshaderc_combined -lz -lopenal -lvulkan -lrt -lm -lstdc++
+LIBS_shared  += freetype2 vorbisfile
+LIBS_linux   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lSDL3 -lshaderc-combined -lz -lopenal -lvulkan -lrt -lm -lstdc++
 LIBS_mingw   += $(shell $(PKG_CONFIG) --libs $(LIBS_shared)) -lz -lOpenAL32 -ldsound -lole32 -lwinmm \
                     -lglu32 -lvulkan -lws2_32 -limagehlp
 
@@ -151,7 +151,7 @@ CFLAGS_opts    := $(if $(findstring enabled,$(FWK_GEOM)),,-DFWK_GEOM_DISABLED) \
 CFLAGS         += $(strip $(CFLAGS_opts) $(CFLAGS_$(BASE_MODE)) $(CFLAGS_$(PLATFORM)) $(CFLAGS_$(COMPILER_TYPE)) $(ADD_CFLAGS))
 
 LDFLAGS_clang  += -fuse-ld=gold
-LDFLAGS_linux  += -pthread
+LDFLAGS_linux  += -pthread -L$(FWK_DIR)dependencies/lib
 LDFLAGS_mingw  += -pthread
 LDFLAGS_emcc   += $(HTML_shared)
 LDFLAGS        += $(LDFLAGS_$(PLATFORM)) $(LDFLAGS_$(COMPILER_TYPE)) $(LIBS_$(PLATFORM)) $(ADD_LDFLAGS)

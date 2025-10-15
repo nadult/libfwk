@@ -13,11 +13,13 @@ from typing import Optional
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: better printing for conan command
 # TODO: verify that libfwk is buildable with built dependencies? that would be costly?
 # TODO: add option to clean build directories?
 # TODO: rename windows/libraries to windows/dependencies?
 # TODO: building missing packages on ubuntu
 # TODO: ubuntu & windows package building in github action (runnable on demand)
+# TODO: autoclear when package configuration changed? we could store keys and compare them
 
 # =================================================================================================
 # region                                  Common functions
@@ -231,6 +233,7 @@ def _make_pattern_validators():
 
     return {
         "branch_name": _PatternValidator(branch_name),
+        "platform_name": _PatternValidator(platform_name),
         "build_name": _PatternValidator(rf"({platform_name})?:{build_type}:({build_suffix})?"),
         "github_project": _PatternValidator(github_project),
         "package_name": _PatternValidator(package_name),
@@ -309,22 +312,34 @@ class PackageCache:
 
         return PackageCache(type, platform, url, packages)
 
+    def matches_platform(self, platform: str) -> bool:
+        return self.platform == platform
+
 
 @dataclass
 class ConanRecipes:
+    platform: Optional[str]
     queries: dict[str, str] = field(default_factory=dict)
     # Triples: package_name:version:query_name
     packages: list[str] = field(default_factory=list)
 
     @staticmethod
     def parse(json: dict) -> "ConanRecipes":
+        if not isinstance(json, dict):
+            raise TypeError("conan-recipe must be a dictionary")
+        platform = json.get("platform")
         queries = json.get("queries", {})
         packages = json.get("packages", [])
         _validate_dict_type("conan-recipes.queries", queries, str, str)
         _validate_list_type("conan-recipes.packages", packages, str)
         _validate_pattern("query_name", "conan-recipes.queries keys", list(queries.keys()))
         _validate_pattern("package_name_version_query", "conan-recipes.packages", packages)
-        return ConanRecipes(queries, packages)
+        if platform:
+            _validate_pattern("platform_name", "conan-recipes.platform", [platform])
+        return ConanRecipes(platform, queries, packages)
+
+    def matches_platform(self, platform: str) -> bool:
+        return not self.platform or platform == self.platform
 
 
 @dataclass
@@ -416,17 +431,29 @@ class CMakeRecipe:
             builds=builds,
         )
 
-    def get_builds(self) -> list[CMakeBuild]:
+    def get_builds(self, platform: str) -> list[CMakeBuild]:
         if not self.builds:
             return [self.default_build]
-        return self.builds
+        builds = []
+        for build in self.builds:
+            if not build.platform or build.platform == platform:
+                builds.append(build)
+        return builds
+
+    def matches_platform(self, platform: str) -> bool:
+        if not self.builds:
+            return True
+        for build in self.builds:
+            if not build.platform or build.platform == platform:
+                return True
+        return False
 
 
 @dataclass
 class DependenciesJson:
     dependencies: list[str] = field(default_factory=list)
     package_caches: list[PackageCache] = field(default_factory=list)
-    conan_recipes: ConanRecipes = field(default_factory=ConanRecipes)
+    conan_recipes: list[ConanRecipes] = field(default_factory=list)
     cmake_recipes: list[CMakeRecipe] = field(default_factory=list)
 
     @staticmethod
@@ -439,7 +466,9 @@ class DependenciesJson:
             PackageCache.parse(json_cache) for json_cache in json.get("package-caches", [])
         ]
 
-        conan_recipes = ConanRecipes.parse(json.get("conan-recipes", {}))
+        conan_recipes = [
+            ConanRecipes.parse(json_recipes) for json_recipes in json.get("conan-recipes", {})
+        ]
 
         cmake_recipes = [
             CMakeRecipe.parse(json_recipe) for json_recipe in json.get("cmake-recipes", [])
@@ -455,6 +484,7 @@ class DependenciesJson:
 
 @dataclass
 class BuildOptions:
+    platform: str = current_platform()
     clean_build: bool = False
     skip_download_source: bool = False
     deps_json_dir: Optional[str] = None
@@ -468,12 +498,16 @@ class BuildOptions:
         return self
 
 
-def get_buildable_package_names(deps: DependenciesJson) -> list[str]:
+def get_buildable_package_names(deps: DependenciesJson, platform: str) -> list[str]:
     names = []
-    for pkg in deps.conan_recipes.packages:
-        names.append(pkg.split(":")[0])
+    for conan_recipes in deps.conan_recipes:
+        if conan_recipes.matches_platform(platform):
+            for pkg in conan_recipes.packages:
+                names.append(pkg.split(":")[0])
+
     for recipe in deps.cmake_recipes:
-        names.append(recipe.name)
+        if recipe.matches_platform(platform):
+            names.append(recipe.name)
     return list(set(names))
 
 
@@ -484,7 +518,7 @@ def build_package(
     build_dir: str,
     options: BuildOptions,
 ) -> str:
-    conan_recipe = find_conan_recipe(deps, package_name)
+    conan_recipe = find_conan_recipe(deps, package_name, options.platform)
     if conan_recipe:
         packages = conan_list_packages(conan_recipe)
         if not packages:
@@ -501,7 +535,7 @@ def build_package(
         copy_subdirs(package.name, target_dir, package_path, ["include", "lib", "bin"])
         return package.version
 
-    cmake_recipe = find_cmake_recipe(deps, package_name)
+    cmake_recipe = find_cmake_recipe(deps, package_name, options.platform)
     if cmake_recipe:
         build_cmake_package(cmake_recipe, target_dir, build_dir, options)
         return cmake_recipe.version
@@ -539,15 +573,17 @@ class ConanPackageQuery:
 
 
 def find_conan_recipe(
-    deps_json: DependenciesJson, package_name: str
+    deps_json: DependenciesJson, package_name: str, platform: str
 ) -> Optional[ConanPackageQuery]:
-    conan_recipes = deps_json.conan_recipes
-    for pkg in conan_recipes.packages:
-        name, version, query_name = pkg.split(":")
-        if name == package_name:
-            query = conan_recipes.queries.get(query_name)
-            assert query is not None
-            return ConanPackageQuery(package_name, version, query)
+    for conan_recipes in deps_json.conan_recipes:
+        if not conan_recipes.matches_platform(platform):
+            continue
+        for pkg in conan_recipes.packages:
+            name, version, query_name = pkg.split(":")
+            if name == package_name:
+                query = conan_recipes.queries.get(query_name)
+                assert query is not None
+                return ConanPackageQuery(package_name, version, query)
     return None
 
 
@@ -640,9 +676,11 @@ def conan_get_package_path(info: ConanPackageInfo):
 # =================================================================================================
 
 
-def find_cmake_recipe(deps_json: DependenciesJson, package_name: str) -> Optional[CMakeRecipe]:
+def find_cmake_recipe(
+    deps_json: DependenciesJson, package_name: str, platform: str
+) -> Optional[CMakeRecipe]:
     for recipe in deps_json.cmake_recipes:
-        if recipe.name == package_name:
+        if recipe.name == package_name and recipe.matches_platform(platform):
             return recipe
     return None
 
@@ -719,9 +757,10 @@ def build_cmake_package(
         print(f"Running command: {cmd}")
         subprocess.run(cmd, cwd=src_sub_dir, check=True, shell=True)
 
-    for build in recipe.get_builds():
-        if build.platform and build.platform != current_platform():
-            continue
+    num_threads = os.cpu_count()
+    jobs_argument = [f"-j{num_threads}"] if num_threads > 1 else []
+
+    for build in recipe.get_builds(current_platform()):
         print_step(f"Configuring build: {build.full_name}")
         build_suffix = build.build_type + (f"_{build.build_suffix}" if build.build_suffix else "")
         build_sub_dir = os.path.join(build_dir, f"build_{build_suffix}")
@@ -734,6 +773,7 @@ def build_cmake_package(
 
         print_step(f"Running build: {build.full_name}")
         build_cmd = ["cmake", "--build", ".", "--config", build.build_type, "--target", "install"]
+        build_cmd += jobs_argument
         print("Build command: " + str(build_cmd))
         subprocess.run(build_cmd, cwd=build_sub_dir, check=True)
 
@@ -746,11 +786,12 @@ def build_cmake_package(
 # =================================================================================================
 
 
-def get_cached_package_names(deps: DependenciesJson) -> list[str]:
+def get_cached_package_names(deps: DependenciesJson, platform: str) -> list[str]:
     names = []
     for cache in deps.package_caches:
-        for pkg in cache.packages:
-            names.append(pkg.split(":")[0])
+        if cache.matches_platform(platform):
+            for pkg in cache.packages:
+                names.append(pkg.split(":")[0])
     return list(set(names))
 
 
@@ -827,7 +868,7 @@ def parse_arguments() -> argparse.Namespace:
     sub_parsers = parser.add_subparsers(help="Available commands:", dest="command")
 
     download_parser = sub_parsers.add_parser(
-        "download", help="Download prebuilt packages from caches."
+        "download", help="Download prebuilt packages from caches. [DEFAULT COMMAND]"
     )
     download_parser.add_argument(
         "--package-dir",
@@ -883,24 +924,24 @@ def parse_arguments() -> argparse.Namespace:
             help=help_text,
         )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.command:
+        args.command = "download"
+        args.packages = []
+    return args
 
 
 def main():
     args = parse_arguments()
-    if os.name != "nt":
-        print_error(
-            "Currently the only purpose of install_deps.py is to install " "dependencies on Windows"
-        )
-        exit(1)
 
     deps_json_path = args.deps_file or os.path.join(os.getcwd(), "dependencies.json")
     deps_json_dir = os.path.dirname(os.path.abspath(deps_json_path))
     with open(deps_json_path, "r") as file:
         deps_json = DependenciesJson.parse(json.load(file))
+    platform = current_platform()
 
-    downloadable_packages = get_cached_package_names(deps_json)
-    buildable_packages = get_buildable_package_names(deps_json)
+    downloadable_packages = get_cached_package_names(deps_json, platform)
+    buildable_packages = get_buildable_package_names(deps_json, platform)
 
     if args.command == "list":
         print(f"Downloadable packages: {downloadable_packages}")
