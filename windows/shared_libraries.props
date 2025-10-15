@@ -3,8 +3,8 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(MSBuildThisFileDirectory)\libraries\include;$(IncludePath);</IncludePath>
-    <LibraryPath>$(MSBuildThisFileDirectory)\libraries\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(MSBuildThisFileDirectory)\..\dependencies\include;$(IncludePath);</IncludePath>
+    <LibraryPath>$(MSBuildThisFileDirectory)\..\dependencies\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemGroup />
 </Project>

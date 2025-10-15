@@ -1,7 +1,7 @@
 *.swp
 *.exe
 /build
-/lib
+/dependencies
 /tests
 /temp
 /.ycm_extra_conf.pyc
@@ -9,6 +9,5 @@
 build_stats.txt
 /windows/.vs
 /windows/*.vcxproj.user
-/windows/libraries
 /windows/packages
 /tools/__pycache__/

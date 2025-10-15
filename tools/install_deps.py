@@ -16,11 +16,8 @@ from typing import Optional
 # TODO: verify that libfwk is buildable with built dependencies? that would be costly?
 # TODO: add option to clean build directories?
 # TODO: rename windows/libraries to windows/dependencies?
-# TODO: cleaning target directory vs cleaning build directory?
-# TODO: building sdl3 & assimp
 # TODO: building missing packages on ubuntu
 # TODO: ubuntu & windows package building in github action (runnable on demand)
-# TODO: Add option to specify per-platform flags
 
 # =================================================================================================
 # region                                  Common functions
@@ -173,12 +170,24 @@ def check_commands_available(commands: list[str]) -> bool:
             exit(1)
 
 
-def prepare_target_dir(dir: str, clean: bool, verbose: bool = True):
+def find_subdirs(dir: str) -> list[str]:
+    return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
+
+
+def prepare_dir(dir: str, clean: bool, verbose: bool = True):
     assert not os.path.isfile(dir)
     if clean and os.path.isdir(dir):
         if verbose:
             print(f"Cleaning target directory: {dir}")
         shutil.rmtree(dir)
+    os.makedirs(dir, exist_ok=True)
+
+
+def prepare_target_dir(dir: str, clean: bool):
+    if clean:
+        for subdir in find_subdirs(dir):
+            subdir_path = os.path.join(dir, subdir)
+            shutil.rmtree(subdir)
     os.makedirs(dir, exist_ok=True)
 
 
@@ -718,8 +727,8 @@ def build_cmake_package(
         build_sub_dir = os.path.join(build_dir, f"build_{build_suffix}")
         install_sub_dir = os.path.join(build_dir, f"install_{build_suffix}")
 
-        prepare_target_dir(build_sub_dir, options.clean_build, False)
-        prepare_target_dir(install_sub_dir, True, False)
+        prepare_dir(build_sub_dir, options.clean_build, False)
+        prepare_dir(install_sub_dir, True, False)
 
         configure_cmake_package(build, src_sub_dir, build_sub_dir, install_sub_dir)
 
@@ -908,25 +917,20 @@ def main():
         print_error(f"The following requested packages are not available: {unavailable_packages}")
         exit(1)
 
+    default_target_dir = os.path.join(libfwk_path(), "dependencies")
+    target_dir = os.path.abspath(args.target_dir or default_target_dir)
+
     # TODO: multithreading for downloading & unpacking?
     if args.command == "download":
         print_title("Downloading pre-built packages", Color.DEFAULT, Style.BOLD)
-        default_target_dir = os.path.join(libfwk_path(), "windows", "libraries")
-        default_package_dir = os.path.join(libfwk_path(), "windows", "packages")
-        target_dir = os.path.abspath(args.target_dir or default_target_dir)
-        package_dir = os.path.abspath(args.package_dir or default_package_dir)
-
         if args.packages is None and args.clean is None:
             args.clean = True
 
         prepare_target_dir(target_dir, args.clean)
-        prepare_target_dir(package_dir, False)
         for dep in selected_deps:
-            download_package(deps_json, dep, target_dir, package_dir)
+            download_package(deps_json, dep, target_dir, target_dir)
 
     elif args.command == "build":
-        default_target_dir = os.path.join(libfwk_path(), "windows", "libraries")
-        target_dir = os.path.abspath(args.target_dir or default_target_dir)
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
         build_options = BuildOptions.parse(args, deps_json_dir)
 
@@ -937,15 +941,14 @@ def main():
 
     elif args.command == "package":
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
-        target_dir = args.target_dir or os.path.join(libfwk_path(), "windows", "packages")
         build_options = BuildOptions.parse(args, deps_json_dir)
 
-        prepare_target_dir(target_dir, args.clean)
+        prepare_dir(target_dir, args.clean)
         download_strings = []
         for dep in selected_deps:
             package_build_dir = os.path.join(build_dir, dep)
             package_target_dir = os.path.join(package_build_dir, "package")
-            prepare_target_dir(package_target_dir, True, False)
+            prepare_dir(package_target_dir, True, False)
             version = build_package(
                 deps_json, dep, package_target_dir, package_build_dir, build_options
             )

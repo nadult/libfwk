@@ -23,7 +23,7 @@ jobs:
         env:
             cache-name: cache-deps
         with:
-            path: windows/libraries
+            path: dependencies
             key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tools/install_deps.py', 'dependencies.json') }}-v1
 
       - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
