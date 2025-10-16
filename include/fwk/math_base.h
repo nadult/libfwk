@@ -10,7 +10,7 @@
 #include <cmath>
 
 // TODO: move it out of here
-#if defined(FWK_PLATFORM_HTML) || defined(FWK_PLATFORM_MSVC)
+#if defined(FWK_PLATFORM_HTML)
 #include "fwk/math/int128.h"
 #include "fwk/math/uint128.h"
 #endif
@@ -50,7 +50,7 @@ template <class T, int ReqN = 0> concept c_vec = is_vec<T, ReqN>;
 
 using llint = long long;
 
-#if !defined(FWK_PLATFORM_HTML) && !defined(FWK_PLATFORM_MSVC)
+#if !defined(FWK_PLATFORM_HTML)
 using uint128 = __uint128_t;
 using int128 = __int128_t;
 #else

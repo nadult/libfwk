@@ -14,7 +14,7 @@ template <class T> struct HasCloneMethod {
 };
 
 // Dynamic storage: basically it's an unique_ptr with improvements.
-// To copy Dynamic<T> one of the following conditions must be met:
+// Dynamic<T> is copyable, but requires one of the following conditions to be met:
 // - T is copy constructible and is not polymorphic
 // - T has clone() method which returns pointer to newly allocated T
 template <typename T> class Dynamic {
