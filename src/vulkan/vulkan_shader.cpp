@@ -20,10 +20,10 @@ Ex<vector<VDescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStag
 	out.reserve(reflection->descriptor_binding_count);
 	uint stage_bits = reflection->shader_stage;
 	if(countBits(stage_bits) > 1)
-		return ERROR("Currently ShaderModule only supports single shader stage");
+		return FWK_ERROR("Currently ShaderModule only supports single shader stage");
 	uint stage_num = countTrailingZeros(stage_bits);
 	if(stage_num >= count<VShaderStage>)
-		return ERROR("Unsupported shader stage: %", stage_num);
+		return FWK_ERROR("Unsupported shader stage: %", stage_num);
 	VShaderStage stage = VShaderStage(stage_num);
 	out_stage = stage;
 
@@ -35,7 +35,7 @@ Ex<vector<VDescriptorBindingInfo>> getBindings(CSpan<char> bytecode, VShaderStag
 		else if(binding.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
 			desc_type = VDescriptorType::accel_struct;
 		else
-			return ERROR("Unsupported descriptor type: %", binding.descriptor_type);
+			return FWK_ERROR("Unsupported descriptor type: %", binding.descriptor_type);
 		out.emplace_back(desc_type, flag(stage), binding.binding, binding.count, binding.set);
 	}
 

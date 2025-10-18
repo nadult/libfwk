@@ -48,7 +48,7 @@ Ex<Any> Any::load(CXmlNode node, ZStr type_name) {
 	[[maybe_unused]] auto &type_infos = detail::anyTypeInfos();
 	auto type_info = typeInfo(type_name.c_str());
 	if(!type_info)
-		return ERROR("Type-info not found for: '%'", type_name);
+		return FWK_ERROR("Type-info not found for: '%'", type_name);
 	return load(node, *type_info);
 }
 
@@ -56,10 +56,10 @@ Ex<Any> Any::load(CXmlNode node, TypeInfo type_info) {
 	auto &type_infos = detail::anyTypeInfos();
 	auto it = type_infos.find(type_info.id());
 	if(!it)
-		return ERROR("Any-type-info not found for: '%'", type_info.name());
+		return FWK_ERROR("Any-type-info not found for: '%'", type_info.name());
 
 	if(!it->value.first)
-		return ERROR("Type '%' is not XML-constructible", type_info.name());
+		return FWK_ERROR("Type '%' is not XML-constructible", type_info.name());
 
 	Any out;
 	out.m_model = EX_PASS(it->value.first(node));

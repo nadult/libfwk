@@ -32,7 +32,7 @@ VulkanStorage::~VulkanStorage() {}
 
 Ex<VInstanceRef> VulkanStorage::allocInstance() {
 	if(instance_ref_count > 0)
-		return ERROR("VulkanInstance already created");
+		return FWK_ERROR("VulkanInstance already created");
 	new(&instance) VulkanInstance;
 	return VInstanceRef();
 }
@@ -43,7 +43,7 @@ Ex<VDeviceRef> VulkanStorage::allocDevice(VInstanceRef instance_ref, VPhysicalDe
 			new(&devices[i]) VulkanDevice(VDeviceId(i), phys_id, instance_ref);
 			return VDeviceRef(VDeviceId(i));
 		}
-	return ERROR("Too many VulkanDevices created (max: %)", max_devices);
+	return FWK_ERROR("Too many VulkanDevices created (max: %)", max_devices);
 }
 
 Ex<VWindowRef> VulkanStorage::allocWindow(VInstanceRef instance_ref) {
@@ -53,7 +53,7 @@ Ex<VWindowRef> VulkanStorage::allocWindow(VInstanceRef instance_ref) {
 			window_id = i;
 	if(window_id == -1) {
 		if(windows.size() >= max_windows)
-			return ERROR("Too many VulkanWindows created (max: %)", max_windows);
+			return FWK_ERROR("Too many VulkanWindows created (max: %)", max_windows);
 		window_id = windows.size();
 		windows.emplace_back(nullptr, 0);
 	}

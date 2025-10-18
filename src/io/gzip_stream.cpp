@@ -52,7 +52,7 @@ Ex<GzipStream> GzipStream::decompressor(Stream &input, Maybe<i64> load_limit) {
 
 	if(inflateInit2(ctx, 32 + 15) != Z_OK) {
 		fwk::deallocate(ctx);
-		return ERROR("inflateInit failed");
+		return FWK_ERROR("inflateInit failed");
 	}
 	GzipStream out(ctx, input, false);
 	if(load_limit) {
@@ -71,7 +71,7 @@ Ex<GzipStream> GzipStream::compressor(Stream &output, int compr_level) {
 
 	if(deflateInit(ctx, compr_level) != Z_OK) {
 		fwk::deallocate(ctx);
-		return ERROR("Error in deflateInit");
+		return FWK_ERROR("Error in deflateInit");
 	}
 	auto out = GzipStream(ctx, output, true);
 	ctx->avail_out = out.m_buffer.size();
@@ -155,7 +155,7 @@ Ex<vector<char>> GzipStream::decompress() {
 Ex<> GzipStream::compress(CSpan<char> data) {
 	PASSERT(m_is_compressing && !m_is_finished);
 	if(!m_is_valid)
-		return ERROR("Writing to invalidated stream");
+		return FWK_ERROR("Writing to invalidated stream");
 	if(!data)
 		return {};
 
@@ -186,7 +186,7 @@ Ex<> GzipStream::compress(CSpan<char> data) {
 Ex<> GzipStream::finishCompression() {
 	PASSERT(m_is_compressing && !m_is_finished);
 	if(!m_is_valid)
-		return ERROR("Writing to invalidated stream");
+		return FWK_ERROR("Writing to invalidated stream");
 
 	auto &ctx = *(z_stream *)m_ctx;
 	ctx.avail_in = 0;

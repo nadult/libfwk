@@ -246,7 +246,7 @@ namespace fwk {
 
 Ex<XmlDocument> XmlDocument::load(Stream &sr, int max_size) {
 	if(sr.size() > max_size)
-		return ERROR("Document too big: % > %", sr.size(), max_size);
+		return FWK_ERROR("Document too big: % > %", sr.size(), max_size);
 
 	// TODO: load directly to rapidxml alocated buffer
 	PodVector<char> data(sr.size());

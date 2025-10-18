@@ -79,7 +79,7 @@ Ex<FilePath> FilePath::current() {
 	char buffer[512];
 	char *name = getcwd(buffer, sizeof(buffer) - 1);
 	if(!name)
-		return ERROR("Error in getcwd: %", strerror(errno));
+		return FWK_ERROR("Error in getcwd: %", strerror(errno));
 	return FilePath(name);
 #endif
 }
@@ -106,7 +106,7 @@ Ex<void> FilePath::setCurrent(const FilePath &path) {
 	return {};
 #else
 	if(chdir(path.c_str()) != 0)
-		return ERROR("Error in chdir: %", strerror(errno));
+		return FWK_ERROR("Error in chdir: %", strerror(errno));
 	return {};
 #endif
 }

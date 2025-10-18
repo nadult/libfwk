@@ -403,7 +403,7 @@ template <class T> vector<EdgeId> GeomGraph<T>::findIntersectors() const {
 template <class T> Ex<void> GeomGraph<T>::checkPlanar() const {
 	auto isectors = findIntersectors();
 	if(isectors) {
-		auto error = ERROR("Graph not planar");
+		auto error = FWK_ERROR("Graph not planar");
 		auto &graph = *this;
 		auto func = [&](EdgeId edge_id) {
 			auto edge = graph.ref(edge_id);

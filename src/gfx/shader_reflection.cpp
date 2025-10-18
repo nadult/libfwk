@@ -22,7 +22,7 @@ Ex<ShaderReflectionModule> ShaderReflectionModule::create(CSpan<char> bytecode) 
 	Dynamic<SpvReflectShaderModule> module(new SpvReflectShaderModule);
 	auto result = spvReflectCreateShaderModule(bytecode.size(), bytecode.data(), module.get());
 	if(result != SPV_REFLECT_RESULT_SUCCESS)
-		return ERROR("spvReflectCreateShaderModule failed with result: %", uint(result));
+		return FWK_ERROR("spvReflectCreateShaderModule failed with result: %", uint(result));
 	return ShaderReflectionModule(std::move(module));
 }
 

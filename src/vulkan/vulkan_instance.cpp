@@ -304,7 +304,7 @@ Ex<void> VulkanInstance::initialize(VInstanceSetup setup) {
 		auto hook_messenger_func =
 			(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_handle, hook_func_name);
 		if(!hook_messenger_func)
-			return ERROR("Cannot acquire address of function: '%'", hook_func_name);
+			return FWK_ERROR("Cannot acquire address of function: '%'", hook_func_name);
 		FWK_VK_EXPECT_CALL(hook_messenger_func, m_handle, &create_info, nullptr, &m_messenger);
 	}
 

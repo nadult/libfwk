@@ -56,11 +56,11 @@ Ex<UrlFetch> UrlFetch::make(ZStr relative_url) {
 	attr.onprogress = Impl::downloadProgress;
 	auto *fetch = emscripten_fetch(&attr, relative_url.c_str());
 	if(!fetch)
-		return ERROR("Error while initiating URLFetch");
+		return FWK_ERROR("Error while initiating URLFetch");
 	out.m_impl->updateProgress(*fetch);
 	return out;
 #else
-	return ERROR("UrlFetch supported only on HTML platform (for now)");
+	return FWK_ERROR("UrlFetch supported only on HTML platform (for now)");
 #endif
 }
 
@@ -68,11 +68,11 @@ Ex<vector<char>> UrlFetch::finish(UrlFetch fetch) {
 #ifdef FWK_PLATFORM_HTML
 	auto data = std::move(fetch.m_impl->data);
 	if(fetch.m_impl->status != Status::completed)
-		return ERROR("Cannot finish UrlFetch: %",
-					 fetch.status() == Status::failed ? "fetch failed" : "still downloading");
+		return FWK_ERROR("Cannot finish UrlFetch: %",
+						 fetch.status() == Status::failed ? "fetch failed" : "still downloading");
 	return data;
 #else
-	return ERROR("UrlFetch supported only on HTML platform (for now)");
+	return FWK_ERROR("UrlFetch supported only on HTML platform (for now)");
 #endif
 }
 

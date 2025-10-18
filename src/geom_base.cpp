@@ -33,7 +33,7 @@ template <class T> Ex<vector<int2>> toIntegral(CSpan<T> points, double scale) {
 	HashSet<int2> set;
 	for(auto ip : ipoints) {
 		if(set.contains(ip))
-			return ERROR("Duplicate points found!");
+			return FWK_ERROR("Duplicate points found!");
 		set.emplace(ip);
 	}
 	return ipoints;

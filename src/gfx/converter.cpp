@@ -83,7 +83,7 @@ Ex<Converter::BlenderInfo> Converter::locateBlender() {
 		if(auto ver = checkBlenderVersion(cmd))
 			return BlenderInfo{cmd, *ver};
 #endif
-	return ERROR("Cannot find blender with correct version (2.75+ or 2.80+)");
+	return FWK_ERROR("Cannot find blender with correct version (2.75+ or 2.80+)");
 }
 
 Ex<string> Converter::exportFromBlender(const string &file_name, string &target_file_name) {
@@ -120,7 +120,7 @@ Ex<Pair<Model, string>> Converter::loadModel(FileType file_type, ZStr file_name)
 		XmlOnFailGuard xml_guard(doc);
 		XmlNode child = doc.child();
 		if(!child)
-			return ERROR("empty XML document");
+			return FWK_ERROR("empty XML document");
 		auto model = EX_PASS(Model::load(child));
 		return pair{model, string(child.name())};
 	} else {

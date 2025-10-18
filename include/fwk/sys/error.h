@@ -31,12 +31,11 @@ struct ErrorChunk {
 };
 
 // Creates an error with automatically formatted parameters
-// Example: ERROR_EX("Invalid arguments", arg1, arg2, arg3)
-#define ERROR_EX(...) _ASSERT_WITH_PARAMS(makeError, __VA_ARGS__)
+// Example: FWK_ERROR_EX("Invalid arguments", arg1, arg2, arg3)
+#define FWK_ERROR_EX(...) _ASSERT_WITH_PARAMS(makeError, __VA_ARGS__)
 
 // Creates an error with formatted text
-// Example: ERROR("Low-case string should be passed: %", str)
-#define ERROR(...) _ASSERT_FORMATTED(makeError, __VA_ARGS__)
+// Example: FWK_ERROR("Low-case string should be passed: %", str)
 #define FWK_ERROR(...) _ASSERT_FORMATTED(makeError, __VA_ARGS__)
 
 struct Error {

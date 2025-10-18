@@ -61,12 +61,12 @@ Ex<PVSwapChain> VulkanSwapChain::create(VulkanDevice &device, VWindowRef window,
 	}
 	if(!present_queue) {
 		// Note: it shouldn't be possible if findPresentableQueues() was used during device selection
-		return ERROR("VulkanSwapChain: Couldn't find a queue which is presentable");
+		return FWK_ERROR("VulkanSwapChain: Couldn't find a queue which is presentable");
 	}
 
 	auto surf_info = surfaceInfo(device, window);
 	if(surf_info.is_minimized)
-		return ERROR("Swap chain cannot be created: window is minimized");
+		return FWK_ERROR("Swap chain cannot be created: window is minimized");
 
 	auto out = device.createObject(VkSwapchainKHR(nullptr), window, present_queue->handle);
 	out->m_setup = setup;

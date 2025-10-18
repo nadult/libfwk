@@ -67,7 +67,7 @@ Ex<Image> Image::load(ZStr file_name, Maybe<ImageFileType> type) {
 	return load(loader);
 	if(auto ext = fileNameExtension(file_name))
 		return load(loader, *ext);
-	return ERROR("File '%' has no extension: don't know which loader to use", file_name);
+	return FWK_ERROR("File '%' has no extension: don't know which loader to use", file_name);
 }
 
 Ex<Image> Image::load(Stream &sr, ImageFileType type) { return detail::loadSTBI(sr); }
@@ -82,13 +82,13 @@ Ex<Image> Image::load(Stream &sr, Str extension) {
 	for(auto &loader : loaders())
 		if(loader.first == extension)
 			return loader.second(sr);
-	return ERROR("Extension '%' not supported", extension);
+	return FWK_ERROR("Extension '%' not supported", extension);
 }
 
 Ex<Image> Image::load(FileStream &sr) {
 	if(auto ext = fileNameExtension(sr.name()))
 		return load(sr, *ext);
-	return ERROR("File '%' has no extension: don't know which loader to use", sr.name());
+	return FWK_ERROR("File '%' has no extension: don't know which loader to use", sr.name());
 }
 
 Image::RegisterLoader::RegisterLoader(const char *ext, Loader func) {

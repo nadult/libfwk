@@ -118,7 +118,7 @@ template <class T> class GeomGraph : public Graph {
 		vector<Pair<VertexId>> collapsed_verts;
 		auto point_map = GeomGraph<U>::buildPointMap(vertexValids(), points, collapsed_verts);
 		if(collapsed_verts)
-			return ERROR("Duplicated points found");
+			return FWK_ERROR("Duplicated points found");
 		return GeomGraph<U>(*this, points, point_map);
 	}
 

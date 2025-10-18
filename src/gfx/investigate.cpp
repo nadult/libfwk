@@ -30,7 +30,7 @@ static Ex<VulkanContext> spawnVulkanDevice() {
 	VDeviceSetup dev_setup;
 	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);
 	if(!pref_device)
-		return ERROR("Couldn't find a suitable Vulkan device");
+		return FWK_ERROR("Couldn't find a suitable Vulkan device");
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
 	EXPECT(device->addSwapChain(window));
 

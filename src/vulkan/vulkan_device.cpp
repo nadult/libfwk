@@ -197,7 +197,7 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 
 	for(auto ext : exts)
 		if(!isOneOf(ext, phys_info.extensions))
-			return ERROR("Mandatory extension not supported: '%'", ext);
+			return FWK_ERROR("Mandatory extension not supported: '%'", ext);
 
 	VkPhysicalDeviceFeatures features{};
 	if(setup.features)

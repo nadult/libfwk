@@ -113,7 +113,7 @@ shaderc_include_result *ShaderCompiler::Impl::resolveInclude(void *user_data,
 		}
 		if(!found) {
 			impl.include_errors.emplace_back(
-				ERROR("Cannot find internal file: '%'", requested_source));
+				FWK_ERROR("Cannot find internal file: '%'", requested_source));
 		}
 	}
 
@@ -224,7 +224,7 @@ Ex<CompilationResult> ShaderCompiler::compileCode(VShaderStage stage, ZStr code,
 	if(m_impl->include_errors)
 		return Error::merge(m_impl->include_errors);
 	if(!out.bytecode)
-		return ERROR("Compilation of % shader '%' failed:\n%", stage, file_name, out.messages);
+		return FWK_ERROR("Compilation of % shader '%' failed:\n%", stage, file_name, out.messages);
 	m_impl->include_results.clear();
 
 	if(m_impl->generate_assmbly) {
@@ -253,7 +253,7 @@ Ex<CompilationResult> ShaderCompiler::compileFile(VShaderStage stage, ZStr file_
 		return compileCode(stage, content, *file_path, macros);
 	}
 
-	return ERROR("Cannot open shader file: '%'", file_name);
+	return FWK_ERROR("Cannot open shader file: '%'", file_name);
 }
 
 // ------------------ ShaderDefs manager --------------------------------------------
@@ -371,7 +371,7 @@ Ex<CompilationResult> ShaderCompiler::getSpirv(ShaderDefId id) {
 Ex<CompilationResult> ShaderCompiler::getSpirv(ZStr def_name) {
 	auto id = find(def_name);
 	if(!id)
-		return ERROR("ShaderDefinition not found: '%'", def_name);
+		return FWK_ERROR("ShaderDefinition not found: '%'", def_name);
 	return getSpirv(*id);
 }
 

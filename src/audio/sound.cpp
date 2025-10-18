@@ -37,7 +37,7 @@ Ex<Sound> Sound::load(FileStream &sr) {
 	sr >> size;
 
 	if(channels > 2 || (bits != 8 && bits != 16))
-		return ERROR("Unsupported format (bits: %d channels: %d)", bits, channels);
+		return FWK_ERROR("Unsupported format (bits: %d channels: %d)", bits, channels);
 
 	vector<char> data(size);
 	sr.loadData(data);

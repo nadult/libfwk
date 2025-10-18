@@ -220,7 +220,7 @@ Ex<int> exMain() {
 	VDeviceSetup dev_setup;
 	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);
 	if(!pref_device)
-		return ERROR("Couldn't find a suitable Vulkan device");
+		return FWK_ERROR("Couldn't find a suitable Vulkan device");
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
 	auto phys_info = device->physInfo();
 	print("Selected Vulkan device: %\n", phys_info.properties.deviceName);

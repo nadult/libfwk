@@ -500,7 +500,7 @@ Ex<> exMain(int argc, char **argv) {
 	VDeviceSetup dev_setup;
 	auto pref_device = instance->preferredDevice(window->surfaceHandle(), &dev_setup.queues);
 	if(!pref_device)
-		return ERROR("Couldn't find a suitable Vulkan device");
+		return FWK_ERROR("Couldn't find a suitable Vulkan device");
 	dev_setup.extensions = {"VK_EXT_shader_subgroup_vote", "VK_EXT_shader_subgroup_ballot"};
 	auto device = EX_PASS(instance->createDevice(*pref_device, dev_setup));
 	auto phys_info = instance->info(device->physId());
