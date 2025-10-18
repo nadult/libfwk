@@ -35,13 +35,15 @@ jobs:
       - name: Build libfwk, tests & tools
         shell: cmd
         run: |
-          "%MSBUILD_PATH%" windows\libfwk.sln /p:Platform=x64 /p:Configuration=Debug
+          mkdir build && cd build
+          cmake .. -A x64
+          cmake --build . --config Debug
 
       - name: Run tests
         shell: cmd
         run: |
-          build\test_stuff-x64-Debug\test_stuff.exe
-          build\test_math-x64-Debug\test_math.exe
+          build\Debug\test_stuff.exe
+          build\Debug\test_math.exe
 
 
   test-linux:
@@ -75,18 +77,16 @@ jobs:
         run: |
           python tools/install_deps.py build sdl shaderc-combined
 
-      - name: Build libfwk
+      - name: Build libfwk, tests & tools
         run: |
-          make -j8 lib
-
-      - name: Build tests & tools
-        run: |
-          make -j8 tests tools
+          mkdir build && cd build
+          cmake ..
+          cmake --build . --config Debug
 
       - name: Run tests
         run: |
-          tests/stuff
-          tests/math
+          build/Debug/test_stuff
+          build/Debug/test_math
 
 
   check-formatting:
