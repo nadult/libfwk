@@ -37,13 +37,13 @@ jobs:
         run: |
           mkdir build && cd build
           cmake .. -A x64
-          cmake --build . --config Debug
+          cmake --build . --config Debug --parallel
 
       - name: Run tests
         shell: cmd
         run: |
-          build\Debug\test_stuff.exe
-          build\Debug\test_math.exe
+          build\Debug\tests_stuff.exe
+          build\Debug\tests_math.exe
 
 
   test-linux:
@@ -81,12 +81,12 @@ jobs:
         run: |
           mkdir build && cd build
           cmake ..
-          cmake --build . --config Debug
+          cmake --build . --config Debug --parallel
 
       - name: Run tests
         run: |
-          build/Debug/test_stuff
-          build/Debug/test_math
+          build/Debug/tests_stuff
+          build/Debug/tests_math
 
 
   check-formatting:
