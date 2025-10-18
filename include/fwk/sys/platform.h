@@ -5,6 +5,9 @@
 
 #ifdef __linux__
 #define FWK_PLATFORM_LINUX 1
+#ifdef linux
+#undef linux
+#endif
 #endif
 
 #if _MSC_VER
