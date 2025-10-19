@@ -7,7 +7,4 @@
 /.ycm_extra_conf.pyc
 /checker.so
 build_stats.txt
-/windows/.vs
-/windows/*.vcxproj.user
-/windows/packages
 /tools/__pycache__/

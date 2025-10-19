@@ -5,6 +5,40 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# =================================================================================================
+# region                                    Options
+# =================================================================================================
+
+option(FWK_BUILD_TESTS "Enable building of tests" ON)
+option(FWK_BUILD_TOOLS "Enable building of tools" ON)
+option(FWK_UNITY_BUILD "Enable unity builds for faster compilation" OFF)
+
+option(FWK_GEOM "Enable geometry module" ON)
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/imgui/imgui.h")
+option(FWK_IMGUI "Enable ImGui support" ON)
+else()
+option(FWK_IMGUI "Enable ImGui support" OFF)
+endif()
+
+# Export to cache so other included files can see the choices
+set(FWK_BUILD_TESTS ${FWK_BUILD_TESTS} CACHE BOOL "Enable building of tests" FORCE)
+set(FWK_BUILD_TOOLS ${FWK_BUILD_TOOLS} CACHE BOOL "Enable building of tools" FORCE)
+
+message(STATUS "FWK: Build tests = ${FWK_BUILD_TESTS}")
+message(STATUS "FWK: Build tools = ${FWK_BUILD_TOOLS}")
+message(STATUS "FWK: Unity build = ${FWK_UNITY_BUILD}")
+message(STATUS "FWK: Enable geometry module = ${FWK_GEOM}")
+message(STATUS "FWK: Enable ImGui support = ${FWK_IMGUI}")
+
+# =================================================================================================
+# region                   Compiler configuration & default compiler flags
+# =================================================================================================
+
+if(FWK_UNITY_BUILD)
+	set(CMAKE_UNITY_BUILD ON)
+endif()
+
 if (CMAKE_GENERATOR MATCHES "Visual Studio")
 	set(CMAKE_GENERATOR_TOOLSET "ClangCL")
 endif()
@@ -13,28 +47,31 @@ endif()
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Develop" CACHE STRING "" FORCE)
 
 # Configuration-specific compiler flags
-if (CMAKE_GENERATOR MATCHES "Visual Studio")
+if (CMAKE_GENERATOR MATCHES "Visual Studio" OR TRUE)
 	# MSVC flags
-	set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od /MDd /RTC1 /D_DEBUG /DFWK_DEBUG"
-	    CACHE STRING "" FORCE)
-	set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Ob2 /MD /DNDEBUG /DFWK_RELEASE"
-	    CACHE STRING "" FORCE)
-	set(CMAKE_CXX_FLAGS_DEVELOP "/Zi /O2 /MD /DFWK_DEVELOP"
-	    CACHE STRING "" FORCE)
+	set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od /MDd" CACHE STRING "" FORCE)
+	set(CMAKE_CXX_FLAGS_DEVELOP "/Zi /O2 /MD" CACHE STRING "" FORCE)
+	set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Ob2 /MD" CACHE STRING "" FORCE)
 
 	set(CMAKE_C_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "" FORCE)
-	set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "" FORCE)
 	set(CMAKE_C_FLAGS_DEVELOP ${CMAKE_CXX_FLAGS_DEVELOP} CACHE STRING "" FORCE)
+	set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "" FORCE)
 else()
 	# GCC/Clang flags
-	set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG /DFWK_DEBUG" CACHE STRING "" FORCE)
-	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG /DFWK_RELEASE" CACHE STRING "" FORCE)
-	set(CMAKE_CXX_FLAGS_DEVELOP "-g -O2 -DDEVELOP /DFWK_DEVELOP" CACHE STRING "" FORCE)
+	set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "" FORCE)
+	set(CMAKE_CXX_FLAGS_DEVELOP "-g -O2" CACHE STRING "" FORCE)
+	set(CMAKE_CXX_FLAGS_RELEASE "-O3" CACHE STRING "" FORCE)
 
 	set(CMAKE_C_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "" FORCE)
-	set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "" FORCE)
 	set(CMAKE_C_FLAGS_DEVELOP ${CMAKE_CXX_FLAGS_DEVELOP} CACHE STRING "" FORCE)
+	set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "" FORCE)
 endif()
+
+add_compile_definitions(
+	$<$<CONFIG:Debug>:FWK_DEBUG>
+	$<$<CONFIG:Develop>:FWK_DEVELOP>
+	$<$<CONFIG:Release>:FWK_RELEASE>
+)
 
 # Set default build type if not specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -43,15 +80,52 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 
+# =================================================================================================
+# region 				                 Utility functions
+# =================================================================================================
+
+function(fwk_add_program GROUP NAME)
+	# Optional argument: SOURCES
+	set(SOURCES "${ARGV2}")
+	if(NOT SOURCES)
+		set(SOURCES "${GROUP}/${NAME}")
+	endif()
+
+	set(_FILES "")
+	foreach(SOURCE IN LISTS SOURCES)
+		list(APPEND _FILES "src/${SOURCE}.cpp")
+	endforeach()
+
+	set(TARGET_NAME "${GROUP}_${NAME}")
+	add_executable(${TARGET_NAME} ${_FILES})
+	target_link_libraries(${TARGET_NAME} PRIVATE libfwk)
+	set_target_properties(${TARGET_NAME} PROPERTIES
+		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>/${GROUP}")
+	set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_NAME "${NAME}")
+endfunction()
+
+function(fwk_add_module NAME)
+	set(_FILES "")
+	foreach(SOURCE ${SRC_${NAME}})
+		list(APPEND _FILES "src/${SOURCE}.cpp")
+	endforeach()
+
+	string(REGEX REPLACE "_.*" "" GROUP_NAME ${NAME}) 
+	source_group("${GROUP_NAME}" FILES ${_FILES})
+
+	set(_LIBFWK_SOURCES "${LIBFWK_SOURCES}")
+	list(APPEND _LIBFWK_SOURCES ${_FILES})
+	set(LIBFWK_SOURCES "${_LIBFWK_SOURCES}" PARENT_SCOPE)
+
+	set_source_files_properties(${_FILES} PROPERTIES UNITY_GROUP "${NAME}")
+endfunction()
+
+
+# =================================================================================================
+# region 				              libfwk project definition
+# =================================================================================================
+
 project(libfwk)
-
-# Options
-option(FWK_MERGE_MODULES "Merge modules for faster full builds" OFF)
-option(FWK_GEOM "Enable geometry modules" ON)
-option(FWK_IMGUI "Enable ImGui support" ON)
-
-# Include directories
-include_directories(src/ extern/imgui/)
 
 set(PCH_SOURCE "src/fwk_pch.h")
 if(MSVC)
@@ -100,10 +174,16 @@ set(SRC_gfx_stbi
 set(SRC_audio
 	audio/al_device audio/sound audio/ogg_stream)
 
+set(SRC_perf
+	perf/perf_base perf/exec_tree perf/manager perf/thread_context)
+
+set(MODULES base sys math gfx gfx_mesh vulkan gfx_stbi audio perf)
+
 if(FWK_GEOM)
 	set(SRC_geom geom_base geom/contour geom/regular_grid geom/segment_grid geom/procgen)
 	set(SRC_geom_graph geom/element_ref geom/graph geom/geom_graph)
 	set(SRC_geom_voronoi geom/voronoi geom/wide_int geom/voronoi_constructor geom/delaunay)
+	list(APPEND MODULES geom geom_graph geom_voronoi)
 endif()
 
 if(FWK_IMGUI)
@@ -112,122 +192,70 @@ if(FWK_IMGUI)
 	set(SRC_gui_imgui3 gui/imgui_widgets gui/imgui_tables)
 	set(SRC_gui_imgui4 gui/imgui_demo)
 	set(SRC_gui gui/gui gui/popups gui/widgets perf/analyzer)
-endif()
-
-set(SRC_perf
-	perf/perf_base perf/exec_tree perf/manager perf/thread_context)
-
-set(SRC_tests
-	tests/stuff tests/math tests/geom tests/window tests/vector_perf tests/variant_perf
-	tests/hash_map_perf tests/models)
-
-set(SRC_tools
-	tools/model_viewer tools/packager tools/model_convert)
-
-# Collect all modules for the library
-set(MODULES
-	base sys math gfx gfx_mesh vulkan gfx_stbi audio perf)
-
-function(get_module_sources MODULE OUTPUT_VARIABLE)
-	set(MODULE_SOURCES "")
-	foreach(SRC_FILE ${SRC_${MODULE}})
-		list(APPEND MODULE_SOURCES "src/${SRC_FILE}.cpp")
-	endforeach()
-	set(${OUTPUT_VARIABLE} ${MODULE_SOURCES} PARENT_SCOPE)
-endfunction()
-
-foreach(MODULE ${MODULES})
-	get_module_sources(${MODULE} MODULE_SOURCES)
-	source_group("${MODULE}" FILES ${MODULE_SOURCES} )
-	message(STATUS "Module ${MODULE} files: ${MODULE_SOURCES}")
-endforeach()
-
-if(FWK_GEOM)
-	list(APPEND MODULES geom geom_graph geom_voronoi)
-endif()
-
-if(FWK_IMGUI)
 	list(APPEND MODULES gui_imgui1 gui_imgui2 gui_imgui3 gui_imgui4 gui)
 endif()
 
+foreach(MODULE ${MODULES})
+	fwk_add_module(${MODULE})
+endforeach()
 
-# Function to add prefix to list of files
-function(prepend_path VAR PREFIX)
-	set(result "")
-	foreach(item ${${VAR}})
-		list(APPEND result "${PREFIX}/${item}.cpp")
-	endforeach()
-	set(${VAR} ${result} PARENT_SCOPE)
-endfunction()
+add_library(libfwk ${LIBFWK_SOURCES})
 
-# Build and link the library
-if(FWK_MERGE_MODULES)
-	# Create merged implementation
-	foreach(MODULE ${MODULES})
-		set(merged_file "${CMAKE_BINARY_DIR}/${MODULE}_merged.cpp")
-		set_source_files_properties(${merged_file} PROPERTIES GENERATED TRUE)
-		file(WRITE ${merged_file} "// Merged module: ${MODULE}\n")
-
-		foreach(SRC_FILE ${SRC_${MODULE}})
-			file(APPEND ${merged_file} "#include \"${SRC_FILE}.cpp\"\n")
-		endforeach()
-
-		list(APPEND LIB_SOURCES ${merged_file})
-	endforeach()
-else()
-	# Use individual source files
-	foreach(MODULE ${MODULES})
-		prepend_path(SRC_${MODULE} "src")
-		list(APPEND LIB_SOURCES ${SRC_${MODULE}})
-	endforeach()
+if(FWK_BUILD_TESTS)
+	if(FWK_GEOM)
+		fwk_add_program(tests geom)
+	endif()
+	fwk_add_program(tests hash_map_perf)
+	fwk_add_program(tests math)
+	fwk_add_program(tests models)
+	fwk_add_program(tests stuff)
+	fwk_add_program(tests variant_perf)
+	fwk_add_program(tests vector_perf)
+	fwk_add_program(tests window)
 endif()
 
-# Create the library
-add_library(libfwk ${LIB_SOURCES})
+if(FWK_BUILD_TOOLS)
+	fwk_add_program(tools model_convert)
+	fwk_add_program(tools model_viewer)
+endif()
+
+include_directories(src/ extern/imgui/)
 
 target_include_directories(libfwk
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/include
+  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/include
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_link_directories(libfwk
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lib)
 
-
-message(STATUS "C++ Compiler Path: ${CMAKE_CXX_COMPILER}")
-
 if(WIN32)
-target_link_libraries(libfwk
-	SDL3 dbghelp winmm version setupapi dwrite
-	shaderc-combined-$<IF:$<CONFIG:Release>,md,mdd>
-)
+	target_link_libraries(libfwk
+		SDL3 dbghelp winmm version setupapi dwrite
+		shaderc-combined-$<IF:$<CONFIG:Release>,md,mdd>)
 else()
-target_link_libraries(libfwk
-	SDL3 shaderc-combined)
+	target_link_libraries(libfwk SDL3 shaderc-combined)
+endif()
+
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+	target_sources(libfwk PRIVATE libfwk.natstepfilter)
+	target_sources(libfwk PRIVATE libfwk.natvis)
+endif()
+
+if(FWK_UNITY_BUILD)
+	set_target_properties(libfwk PROPERTIES UNITY_BUILD ON)
+	set_target_properties(libfwk PROPERTIES UNITY_BUILD_MODE GROUP)
 endif()
 
 # This is required for clang __int128 support on Windows
-if ((CMAKE_GENERATOR MATCHES "Visual Studio") AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+if ((CMAKE_GENERATOR MATCHES "Visual Studio") AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR TRUE)
     string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" CLANG_MAJOR_VERSION ${CMAKE_CXX_COMPILER_VERSION})
 	get_filename_component(CLANG_MAIN_DIR_PATH "${CMAKE_CXX_COMPILER}/../.." ABSOLUTE)
 	set(CLANG_RT_LIB_PATH "${CLANG_MAIN_DIR_PATH}/lib/clang/${CLANG_MAJOR_VERSION}/lib/windows/")
 	target_link_libraries(libfwk ${CLANG_RT_LIB_PATH}/clang_rt.builtins-x86_64.lib)
-	message(STATUS "PATH: ${CLANG_RT_LIB_PATH}")
 endif()
 
-# Add tests
-foreach(TEST_SRC ${SRC_tests})
-	string(REPLACE "/" "_" TEST_NAME ${TEST_SRC})
-	prepend_path(CURRENT_TEST_SRC "src")
-	set(CURRENT_TEST_SRC ${SRC_${TEST_SRC}})
-	add_executable(${TEST_NAME} src/${TEST_SRC}.cpp)
-	target_link_libraries(${TEST_NAME} libfwk)
-endforeach()
-
-# Add tools
-foreach(TOOL_SRC ${SRC_tools})
-	string(REPLACE "/" "_" TOOL_NAME ${TOOL_SRC})
-	prepend_path(CURRENT_TOOL_SRC "src")
-	set(CURRENT_TOOL_SRC ${SRC_${TOOL_SRC}})
-	add_executable(${TOOL_NAME} src/${TOOL_SRC}.cpp)
-	target_link_libraries(${TOOL_NAME} libfwk)
-endforeach()
+if ((CMAKE_GENERATOR MATCHES "Visual Studio") AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+	message(FATAL_ERROR "Visual Studio builds require ClangCL toolset.\n"
+			"You can enable it with: set(CMAKE_GENERATOR_TOOLSET \"ClangCL\")")
+endif()
