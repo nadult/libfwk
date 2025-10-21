@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include "fwk/fwd_member.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/image.h"
 #include "fwk/gfx_base.h"
+#include "fwk/hash_map.h"
 #include "fwk/math/box.h"
 #include "fwk/str.h"
 
@@ -62,8 +62,8 @@ class FontCore {
 	FontCore();
 	void computeRect();
 
-	FwdMember<HashMap<int, Glyph>> m_glyphs;
-	FwdMember<HashMap<Pair<int>, int>> m_kernings;
+	HashMap<int, Glyph> m_glyphs;
+	HashMap<Pair<int>, int> m_kernings;
 	string m_texture_name;
 	int2 m_texture_size;
 

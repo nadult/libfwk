@@ -152,21 +152,24 @@ set(SRC_math
 
 set(SRC_gfx
 	gfx/camera_control gfx/camera gfx/canvas_2d gfx/canvas_3d gfx/color gfx/colored_quad
-	gfx/colored_triangle gfx/drawing gfx/dynamic_mesh gfx/font gfx/font_factory gfx/font_finder
+	gfx/colored_triangle gfx/drawing gfx/dynamic_mesh
 	gfx/fpp_camera gfx/image gfx/image_tga gfx/investigate gfx/investigator2 gfx/investigator3
 	gfx/matrix_stack gfx/orbiting_camera gfx/ortho_camera gfx/plane_camera gfx/shader_compiler
 	gfx/shader_debug gfx/shader_defs gfx/shader_reflection)
+
+set(SRC_gfx_font
+    gfx/font_factory gfx/font_finder gfx/font)
 
 set(SRC_gfx_mesh
 	gfx/animated_model gfx/converter gfx/mesh_buffers gfx/mesh_constructor gfx/mesh gfx/mesh_indices
 	gfx/model_anim gfx/model gfx/model_node gfx/pose)
 
 set(SRC_vulkan
-	vulkan/vulkan_buffer vulkan/vulkan_command_queue vulkan/vulkan_descriptor_manager
-	vulkan/vulkan_device vulkan/vulkan_framebuffer vulkan/vulkan_image vulkan/vulkan_instance
-	vulkan/vulkan_internal vulkan/vulkan_memory_manager vulkan/vulkan_pipeline vulkan/vulkan_shader
-	vulkan/vulkan_storage vulkan/vulkan_swap_chain vulkan/vulkan_window vulkan/vulkan_ray_tracing
-	vulkan/vulkan_render_pass vulkan_base)
+	vulkan/vulkan_internal vulkan/vulkan_buffer vulkan/vulkan_command_queue
+	vulkan/vulkan_descriptor_manager vulkan/vulkan_device vulkan/vulkan_framebuffer
+	vulkan/vulkan_image vulkan/vulkan_instance vulkan/vulkan_memory_manager vulkan/vulkan_pipeline
+	vulkan/vulkan_shader vulkan/vulkan_storage vulkan/vulkan_swap_chain vulkan/vulkan_window
+	vulkan/vulkan_ray_tracing vulkan/vulkan_render_pass vulkan_base)
 
 set(SRC_gfx_stbi
 	gfx/image_stbi gfx/image_stbir)
@@ -177,7 +180,7 @@ set(SRC_audio
 set(SRC_perf
 	perf/perf_base perf/exec_tree perf/manager perf/thread_context)
 
-set(MODULES base sys math gfx gfx_mesh vulkan gfx_stbi audio perf)
+set(MODULES base sys math gfx gfx_font gfx_mesh vulkan gfx_stbi audio perf)
 
 if(FWK_GEOM)
 	set(SRC_geom geom_base geom/contour geom/regular_grid geom/segment_grid geom/procgen)

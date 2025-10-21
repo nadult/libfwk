@@ -1,7 +1,10 @@
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
+
 #pragma once
 
 #include "fwk/any.h"
-#include "fwk/fwd_member.h"
+#include "fwk/hash_map.h"
 #include "fwk/str.h"
 
 namespace fwk {
@@ -59,7 +62,7 @@ class AnyConfig {
 	void printErrors() const;
 
   private:
-	FwdMember<HashMap<string, Any>> m_elements;
+	HashMap<string, Any> m_elements;
 	vector<Pair<string, Error>> m_loading_errors;
 };
 }

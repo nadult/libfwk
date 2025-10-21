@@ -1,10 +1,8 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-#include "fwk/hash_map.h"
-
-#include "fwk/format.h"
 #include "fwk/gfx/shader_defs.h"
+#include "fwk/format.h"
 
 namespace fwk {
 

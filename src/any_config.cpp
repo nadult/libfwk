@@ -1,4 +1,5 @@
-#include "fwk/hash_map.h"
+// Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+// This file is part of libfwk. See license.txt for details.
 
 #include "fwk/any_config.h"
 

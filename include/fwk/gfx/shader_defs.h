@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "fwk/fwd_member.h"
 #include "fwk/gfx_base.h"
+#include "fwk/hash_map.h"
 
 namespace fwk {
 
@@ -36,6 +36,6 @@ class ShaderDefs {
 	string text() const;
 
   private:
-	FwdMember<HashMap<string, string>> macros;
+	HashMap<string, string> macros;
 };
 }
