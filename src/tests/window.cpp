@@ -24,8 +24,6 @@
 #include <fwk/perf/manager.h>
 #include <fwk/perf/thread_context.h>
 
-#include <fwk/libs_msvc.h>
-
 using namespace fwk;
 
 const char *compute_shader = R"(

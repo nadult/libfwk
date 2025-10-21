@@ -3,8 +3,6 @@
 
 #include <stdio.h>
 
-#include <fwk/libs_msvc.h>
-
 #include <fwk/gfx/animated_model.h>
 #include <fwk/gfx/canvas_2d.h>
 #include <fwk/gfx/canvas_3d.h>

@@ -234,7 +234,8 @@ target_link_directories(libfwk
 
 if(WIN32)
 	target_link_libraries(libfwk
-		SDL3 dbghelp winmm version setupapi dwrite
+		SDL3 dbghelp winmm version setupapi dwrite Imm32
+		freetype zlib bz2 brotlidec brotlicommon libpng16_static
 		shaderc-combined-$<IF:$<CONFIG:Release>,md,mdd>)
 else()
 	target_link_libraries(libfwk SDL3 shaderc-combined)

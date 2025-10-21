@@ -20,8 +20,6 @@
 #include "fwk/variant.h"
 #include "testing.h"
 
-#include <fwk/libs_msvc.h>
-
 DEFINE_ENUM(SomeTag, foo, bar);
 
 void testTypes() {

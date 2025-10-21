@@ -25,8 +25,6 @@
 
 #include "testing.h"
 
-#include "fwk/libs_msvc.h"
-
 float3 randomTranslation(float magnitude) {
 	return float3(frand() - 0.5f, frand() - 0.5f, frand() - 0.5f) * 2.0f * magnitude;
 }

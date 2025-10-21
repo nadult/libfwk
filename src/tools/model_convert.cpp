@@ -6,8 +6,6 @@
 #include "fwk/io/file_system.h"
 #include "fwk/sys/expected.h"
 
-#include <fwk/libs_msvc.h>
-
 using namespace fwk;
 
 string dataPath(string file_name) {
