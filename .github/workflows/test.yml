@@ -9,9 +9,6 @@ on:
 jobs:
   test-windows:
     runs-on: windows-2025
-    env:
-      VS_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise
-      MSBUILD_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,12 +29,15 @@ jobs:
         run: |
           python tools/install_deps.py download
 
+      - name: Configure libfwk, tests & tools
+        shell: cmd
+        run: |
+          tools/configure.py --build-type Release -DFWK_UNITY_BUILD=ON
+
       - name: Build libfwk, tests & tools
         shell: cmd
         run: |
-          mkdir build && cd build
-          cmake .. -A x64
-          cmake --build . --config Debug --parallel
+          cmake --build build --parallel
 
       - name: Run tests
         shell: cmd
