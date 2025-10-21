@@ -25,22 +25,18 @@ jobs:
 
       - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         name: Install dependencies
-        shell: cmd
         run: |
-          python tools/install_deps.py download
+          python tools\install_deps.py download
 
       - name: Configure libfwk, tests & tools
-        shell: cmd
         run: |
-          python tools/configure.py --build-type Release -DFWK_UNITY_BUILD=ON
+          python tools\configure.py --build-type Debug -DFWK_UNITY_BUILD=ON
 
       - name: Build libfwk, tests & tools
-        shell: cmd
         run: |
           cmake --build build --parallel
 
       - name: Run tests
-        shell: cmd
         run: |
           build\Debug\tests\stuff.exe
           build\Debug\tests\math.exe
