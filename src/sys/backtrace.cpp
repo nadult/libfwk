@@ -243,6 +243,7 @@ vector<BacktraceInfo> Backtrace::analyze() const {
 
 #elif defined(FWK_PLATFORM_LINUX)
 
+	/*
 	auto current = FilePath::current();
 	if(!current)
 		return {};
@@ -274,7 +275,7 @@ vector<BacktraceInfo> Backtrace::analyze() const {
 			formatter.stdFormat(fmt.c_str(), file_line, tstring.c_str());
 		}
 		::free(strings);
-	}
+	}*/
 
 #elif defined(FWK_PLATFORM_MINGW)
 	// TODO

@@ -1,5 +1,9 @@
 # CMakeLists.txt for libfwk library
 
+# TODO: paranoid mode
+# TODO: PCH
+# TODO: look for more stuff worth restoring from makefiles
+
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -72,6 +76,7 @@ add_compile_definitions(
 	$<$<CONFIG:Debug>:FWK_DEBUG>
 	$<$<CONFIG:Develop>:FWK_DEVELOP>
 	$<$<CONFIG:Release>:FWK_RELEASE>
+	FWK_DWARF_DISABLED
 )
 
 # Set default build type if not specified
@@ -233,13 +238,16 @@ target_include_directories(libfwk
 target_link_directories(libfwk
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lib)
 
+
 if(WIN32)
 	target_link_libraries(libfwk
 		SDL3 dbghelp winmm version setupapi dwrite Imm32
 		freetype zlib bz2 brotlidec brotlicommon libpng16_static
 		shaderc-combined-$<IF:$<CONFIG:Release>,md,mdd>)
 else()
-	target_link_libraries(libfwk SDL3 shaderc-combined)
+	find_package(ZLIB REQUIRED)
+	find_package(Freetype REQUIRED)
+	target_link_libraries(libfwk SDL3 shaderc-combined Freetype::Freetype ZLIB::ZLIB)
 endif()
 
 if (CMAKE_GENERATOR MATCHES "Visual Studio")
@@ -253,7 +261,7 @@ if(FWK_UNITY_BUILD)
 endif()
 
 # This is required for clang __int128 support on Windows
-if ((CMAKE_GENERATOR MATCHES "Visual Studio") AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR TRUE)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" CLANG_MAJOR_VERSION ${CMAKE_CXX_COMPILER_VERSION})
 	get_filename_component(CLANG_MAIN_DIR_PATH "${CMAKE_CXX_COMPILER}/../.." ABSOLUTE)
 	set(CLANG_RT_LIB_PATH "${CLANG_MAIN_DIR_PATH}/lib/clang/${CLANG_MAJOR_VERSION}/lib/windows/")
