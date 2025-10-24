@@ -85,7 +85,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cd build/tests
+          cd build/Release/tests
           ./stuff
           ./math
           ./variant_perf
