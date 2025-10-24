@@ -73,22 +73,28 @@ jobs:
         run: |
           python tools/install_deps.py build sdl shaderc-combined
 
-      - name: Build libfwk
+      - name: Configure libfwk
         run: |
-          make -j8 lib
+          export CXX=clang++
+          export CC=clang
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build tests & tools
+      - name: Build libfwk, tests & tools
         run: |
-          make -j8 tests tools
+          cmake --build build -j8
 
       - name: Run tests
         run: |
-          tests/stuff
-          tests/math
+          cd build/Release/tests
+          ./stuff
+          ./math
+          ./variant_perf
+          ./vector_perf
+          ./hash_map_perf
 
 
   check-formatting:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -96,10 +102,6 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main'
-          sudo apt update
-          sudo apt install clang-format-17
           pip install black
 
       - name: Check C++ formatting

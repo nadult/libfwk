@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from urllib.parse import urlparse
 from typing import Optional
 
+# TODO: disable python print caching at least on github
 # TODO: better naming, especially differentiation between packages which can be downloaded
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
