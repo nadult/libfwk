@@ -13,6 +13,10 @@ if (CMAKE_GENERATOR MATCHES "Visual Studio")
 	set(CMAKE_GENERATOR_TOOLSET "ClangCL")
 endif()
 
+if ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC") OR MSVC)
+	set(MSVC_MODE ON)
+endif()
+
 # =================================================================================================
 # region                                    Options
 # =================================================================================================
@@ -52,7 +56,7 @@ endif()
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Develop" CACHE STRING "" FORCE)
 
 # Configuration-specific compiler flags
-if (MSVC)
+if (MSVC_MODE)
 	# MSVC flags
 	set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od /MDd" CACHE STRING "" FORCE)
 	set(CMAKE_CXX_FLAGS_DEVELOP "/Zi /O2 /MD" CACHE STRING "" FORCE)
@@ -261,7 +265,7 @@ if(FWK_UNITY_BUILD)
 endif()
 
 # This is required for clang __int128 support on Windows
-if (MSVC)
+if (MSVC_MODE)
     string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" CLANG_MAJOR_VERSION ${CMAKE_CXX_COMPILER_VERSION})
 	get_filename_component(CLANG_MAIN_DIR_PATH "${CMAKE_CXX_COMPILER}/../.." ABSOLUTE)
 	set(CLANG_RT_LIB_PATH "${CLANG_MAIN_DIR_PATH}/lib/clang/${CLANG_MAJOR_VERSION}/lib/windows/")
