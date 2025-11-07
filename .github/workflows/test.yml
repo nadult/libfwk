@@ -52,6 +52,20 @@ jobs:
         with:
           submodules: 'true'
 
+      - name: 📝 Create a Colored Script
+        # Creates a script that uses ANSI codes for Red, Green, and Yellow
+        run: |
+          echo 'print("\033[91mThis is BRIGHT RED text.\033[0m")' >> color_script.py
+          echo 'print("\033[92mThis is BRIGHT GREEN text.\033[0m")' >> color_script.py
+          echo 'print("\033[93mThis is BRIGHT YELLOW text.\033[0m")' >> color_script.py
+          echo 'print("---")' >> color_script.py
+          echo 'print("\033[36mThis is CYAN (Standard Color).\033[0m")' >> color_script.py
+          echo 'print("\033[44mThis has a BLUE background.\033[0m")' >> color_script.py
+
+      - name: 🏃 Run the Script (Output will be colored)
+        # Because FORCE_COLOR is set, the ANSI codes will be passed through
+        run: python color_script.py          
+
       - name: Install system dependencies
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -

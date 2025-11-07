@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import enum
 import argparse, os, re, subprocess, shutil
 import sys
 
@@ -81,7 +82,74 @@ def format_python(files: list[str], check: bool):
         print("All OK")
 
 
+class Color(enum.Enum):
+    DEFAULT = 0
+    BLACK = 30
+    RED = 31
+    GREEN = 32
+    YELLOW = 33
+    BLUE = 34
+    MAGENTA = 35
+    CYAN = 36
+    WHITE = 37
+    HI_BLACK = 90
+    HI_RED = 91
+    HI_GREEN = 92
+    HI_YELLOW = 93
+    HI_BLUE = 94
+    HI_MAGENTA = 95
+    HI_CYAN = 96
+    HI_WHITE = 97
+
+
+class Style(enum.Enum):
+    REGULAR = 0
+    BOLD = 1
+    UNDERLINE = 4
+
+
+def ansi_code(color: Color, style: Style = Style.REGULAR) -> str:
+    if color == Color.DEFAULT:
+        return f"\033[{style.value}m"
+    return f"\033[{style.value};{color.value}m"
+
+
+def ansi_reset_code() -> str:
+    return "\033[0m"
+
+
+def stylize_text(text: str, color: Color, style: Style = Style.REGULAR) -> str:
+    return f"{ansi_code(color, style)}{text}{ansi_reset_code()}"
+
+
+def print_title(title: str, color: Color = Color.DEFAULT, style: Style = Style.REGULAR):
+    title_width = len(title) + 2
+    title = f" {ansi_code(color, style)}{title}{ansi_reset_code()} "
+    console_width = min(shutil.get_terminal_size((80, 20)).columns, 100)
+    left_width = (console_width - title_width) // 2
+    right_width = console_width - title_width - left_width
+    left_width = max(left_width, 3)
+    right_width = max(right_width, 3)
+    print(f"\n{'=' * left_width}{title}{'=' * right_width}\n")
+
+
+def print_color(text: str, color: Color, style: Style = Style.REGULAR):
+    print(stylize_text(text, color, style))
+
+
+def print_step(text: str):
+    print_color(f"\n(*) {text}", Color.HI_WHITE, Style.BOLD)
+
+
+def print_error(text: str):
+    print_color(text, Color.RED, Style.BOLD)
+    
 def main():
+    print("\033[91mThis is BRIGHT RED text.\033[0m")
+    print("abbababab \033[1;91mThis is bold BRIGHT RED text.\033[0m")
+    print_error("This is an error message.")
+    print_step("This is a step message.")
+    print_title("This is a title", Color.HI_CYAN, Style.BOLD)
     parser = argparse.ArgumentParser(
         prog=__file__,
         description="Tool for code formatting and format verification",
