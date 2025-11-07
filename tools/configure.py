@@ -2,11 +2,12 @@
 
 import enum
 import argparse, os
-import shutil
 import subprocess
 from dataclasses import dataclass, field
 from typing import Optional
 import tempfile
+
+# TODO: verify that ninja is installed?
 
 
 def find_visual_studio_installation() -> str:
@@ -110,7 +111,7 @@ def configure_windows(build_config: BuildConfig):
     if build_config.generator == Generator.NINJA_CLANG_CL:
         generator = "Ninja"
     else:
-        generator = f"Visual Studio {vs_year_version.major} {vs_year_version.year}"
+        generator = f"Visual Studio {vs_year_version[1]} {vs_year_version[0]}"
 
     cmd = ["cmake", "-G", generator, "--fresh"]
     cmd += ["-S", build_config.source_dir, "-B", build_config.build_dir]

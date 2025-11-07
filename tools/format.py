@@ -4,7 +4,7 @@ import argparse, os, re, subprocess, shutil
 
 
 class CodeFormatter:
-    def __init__(self, expected_version=17):
+    def __init__(self, expected_version=20):
         self.expected_version = expected_version
         self.clang_format_cmd = self._find_clang_format_cmd()
         self._verify_clang_format()
