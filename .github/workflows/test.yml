@@ -94,19 +94,21 @@ jobs:
 
 
   check-formatting:
-    runs-on: ubuntu-24.04
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'true'
 
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+
       - name: Install Dependencies
         run: |
           pip install black
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-20 main'
-          sudo apt update
-          sudo apt install clang-format-20
 
       - name: Check C++ formatting
         run: |
@@ -115,4 +117,4 @@ jobs:
       - name: Check Python formatting
         if: '!cancelled()'
         run: |
-          python -m black tools/* --check --color --diff -l 100
+          python tools/format.py -p -c

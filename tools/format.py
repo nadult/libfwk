@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, os, re, subprocess, shutil
+import sys
 
 
 class CodeFormatter:
@@ -60,16 +61,46 @@ def find_files(root_dirs, regex):
     return out
 
 
-if __name__ == "__main__":
+def check_black_installed():
+    cmd = [sys.executable, "-m", "black", "--version"]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        raise Exception("Black is not installed")
+
+
+def format_python(files: list[str], check: bool):
+    check_black_installed()
+    cmd = [sys.executable, "-m", "black", "-l", "100"]
+    if check:
+        cmd += ["--check", "--color", "--diff"]
+    cmd += files
+    result = subprocess.run(cmd)
+    if check:
+        if result.returncode != 0:
+            exit(1)
+        print("All OK")
+
+
+def main():
     parser = argparse.ArgumentParser(
         prog=__file__,
         description="Tool for code formatting and format verification",
     )
     parser.add_argument("-c", "--check", action="store_true")
+    parser.add_argument("-p", "--python", action="store_true")
     args = parser.parse_args()
+
+    if args.python:
+        py_files = find_files(["tools"], re.compile(".*[.]py$"))
+        format_python(py_files, args.check)
+        return
 
     formatter = CodeFormatter()
     libfwk_path = os.path.abspath(os.path.join(__file__, "../.."))
     os.chdir(libfwk_path)
     files = find_files(["include", "src"], re.compile(".*[.](h|cpp)$"))
     formatter.format_cpp(files, args.check)
+
+
+if __name__ == "__main__":
+    main()
