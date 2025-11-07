@@ -1,4 +1,5 @@
-# CMakeLists.txt for libfwk library
+# Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+# This file is part of libfwk. See license.txt for details.
 
 # TODO: paranoid mode
 # TODO: PCH

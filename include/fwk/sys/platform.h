@@ -13,7 +13,6 @@
 #if _MSC_VER
 #define FWK_PLATFORM_MSVC 1
 #define FWK_PLATFORM_WINDOWS 1
-#define FWK_DWARF_DISABLED
 #endif
 
 #ifdef __MINGW32__

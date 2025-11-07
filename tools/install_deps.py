@@ -14,6 +14,7 @@ from typing import Optional
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: Fix shaderc-combined: it's too large... unity-builds for spirv-opt?
 # TODO: better printing for conan command
 # TODO: verify that libfwk is buildable with built dependencies? that would be costly?
 # TODO: add option to clean build directories?
