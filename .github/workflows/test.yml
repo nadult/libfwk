@@ -6,6 +6,9 @@ on:
       - '**'
   workflow_call:
 
+env:
+  PYTHONUNBUFFERED: 1
+
 jobs:
   test-windows:
     runs-on: windows-2025
@@ -53,7 +56,7 @@ jobs:
         run: |
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo apt update
-          sudo apt-get install libfreetype-dev libvorbis-dev libogg-dev libopenal-dev libdwarf-dev libelf-dev
+          sudo apt-get install libvorbis-dev libogg-dev libopenal-dev libdwarf-dev libelf-dev
           wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
           sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list http://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
           sudo apt update
@@ -71,7 +74,7 @@ jobs:
       - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         name: Build dependencies
         run: |
-          python tools/install_deps.py build sdl shaderc-combined
+          python tools/install_deps.py build sdl shaderc-combined freetype
 
       - name: Configure libfwk
         run: |

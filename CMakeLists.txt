@@ -234,6 +234,7 @@ include_directories(src/ extern/imgui/)
 target_include_directories(libfwk
   PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
   PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/include
+  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/include/freetype2
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_link_directories(libfwk
@@ -243,12 +244,13 @@ target_link_directories(libfwk
 if(WIN32)
 	target_link_libraries(libfwk
 		SDL3 dbghelp winmm version setupapi dwrite Imm32
-		freetype zlib bz2 brotlidec brotlicommon libpng16_static
+		freetype zlib libpng16_static
 		shaderc-combined-$<IF:$<CONFIG:Release>,md,mdd>)
 else()
 	find_package(ZLIB REQUIRED)
-	find_package(Freetype REQUIRED)
-	target_link_libraries(libfwk SDL3 shaderc-combined Freetype::Freetype ZLIB::ZLIB)
+	find_package(PNG REQUIRED)
+	target_link_libraries(libfwk SDL3 shaderc-combined freetype PNG::PNG ZLIB::ZLIB)
+	set_target_properties(libfwk PROPERTIES  OUTPUT_NAME "fwk")
 endif()
 
 if (CMAKE_GENERATOR MATCHES "Visual Studio")
